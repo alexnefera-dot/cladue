@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>КриптоБосс Казино — Блоки</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #1a1d24;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #e8eaf0;
+    }
+
+    .section { padding: 32px 24px; max-width: 1400px; margin: 0 auto; }
+
+    /* ===================== */
+    /* БЛОК 1: ВЫИГРЫШИ      */
+    /* ===================== */
+    .wins-block {
+      background: #22262f;
+      border-radius: 12px;
+      padding: 24px;
+      border: 1px solid #2e3340;
+      margin-bottom: 32px;
+    }
+    .block-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .wins-table { width: 100%; border-collapse: collapse; }
+    .wins-table tbody tr {
+      border-top: 1px solid #2e3340;
+      transition: background 0.15s;
+    }
+    .wins-table tbody tr:hover { background: #272b35; }
+    .wins-table td { padding: 14px 12px; vertical-align: middle; }
+    .col-player { width: 25%; }
+    .player-name { font-size: 15px; font-weight: 600; color: #e8eaf0; }
+    .player-city { font-size: 13px; color: #666d80; margin-top: 2px; }
+    .col-game { width: 35%; text-align: center; }
+    .game-name { font-size: 15px; color: #3ecfcf; }
+    .col-amount { width: 25%; }
+    .amount { font-size: 16px; font-weight: 700; }
+    .amount.green  { color: #3dcc85; }
+    .amount.orange { color: #f5a623; }
+    .amount.red    { color: #ff4f4f; }
+    .col-time { width: 15%; text-align: right; }
+    .win-time { font-size: 13px; color: #555d70; white-space: nowrap; }
+
+    /* ===================== */
+    /* БЛОК 2: ОТЗЫВЫ        */
+    /* ===================== */
+    .reviews-block {
+      background: #22262f;
+      border-radius: 12px;
+      padding: 24px;
+      border: 1px solid #2e3340;
+      margin-bottom: 32px;
+    }
+    .reviews-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 4px;
+    }
+    .review-card {
+      background: #2a2f3a;
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid #343a48;
+    }
+    .review-card.full-width { grid-column: 1 / -1; max-width: calc(50% - 8px); }
+    .review-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .review-author { display: flex; align-items: center; gap: 12px; }
+    .avatar {
+      width: 42px; height: 42px;
+      border-radius: 50%;
+      background: #3ecfcf;
+      color: #1a2a2a;
+      font-size: 18px;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .author-name { font-size: 15px; font-weight: 600; color: #e8eaf0; }
+    .author-city { font-size: 13px; color: #666d80; margin-top: 2px; }
+    .stars { color: #f5a623; font-size: 16px; letter-spacing: 1px; }
+    .star-empty { color: #444; }
+    .review-text { font-size: 14px; color: #b0b5c3; line-height: 1.6; margin-bottom: 12px; }
+    .review-win { font-size: 14px; color: #3dcc85; font-weight: 500; }
+    .review-win span { font-weight: 700; }
+
+    /* ===================== */
+    /* БЛОК 3: КАЛЬКУЛЯТОР   */
+    /* ===================== */
+    .calc-block {
+      background: #22262f;
+      border-radius: 12px;
+      padding: 24px;
+      border: 1px solid #2e3340;
+      margin-bottom: 32px;
+    }
+    .calc-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #666d80;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      margin-top: 20px;
+    }
+    .calc-label:first-of-type { margin-top: 8px; }
+    .calc-input {
+      width: 100%;
+      background: #2a2f3a;
+      border: 1px solid #343a48;
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 18px;
+      font-weight: 600;
+      color: #e8eaf0;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .calc-input:focus { border-color: #3ecfcf; }
+    .calc-presets {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    .preset-btn {
+      background: #2a2f3a;
+      border: 1px solid #343a48;
+      border-radius: 6px;
+      padding: 8px 16px;
+      font-size: 13px;
+      color: #a0a8bb;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .preset-btn:hover, .preset-btn.active {
+      background: #3ecfcf22;
+      border-color: #3ecfcf;
+      color: #3ecfcf;
+    }
+    .calc-select {
+      width: 100%;
+      background: #2a2f3a;
+      border: 1px solid #343a48;
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 15px;
+      color: #e8eaf0;
+      outline: none;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23666d80' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 16px center;
+      transition: border-color 0.2s;
+    }
+    .calc-select:focus { border-color: #3ecfcf; }
+    .calc-results {
+      background: #2a2f3a;
+      border-radius: 8px;
+      border: 1px solid #343a48;
+      margin-top: 20px;
+      overflow: hidden;
+    }
+    .calc-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 20px;
+      border-bottom: 1px solid #343a48;
+    }
+    .calc-row:last-child { border-bottom: none; }
+    .calc-row-label { font-size: 14px; color: #888fa0; }
+    .calc-row-value { font-size: 15px; font-weight: 600; color: #e8eaf0; }
+    .calc-row-value.green { color: #3dcc85; }
+    .calc-row-value.teal { color: #3ecfcf; font-size: 20px; }
+    .calc-row-value.muted { color: #666d80; font-weight: 400; }
+    .calc-btn {
+      width: 100%;
+      margin-top: 16px;
+      padding: 16px;
+      background: #3ecfcf;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #0d1f1f;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .calc-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    .calc-btn:active { transform: translateY(0); }
+
+    /* ===================== */
+    /* БЛОК 4: КВИЗ          */
+    /* ===================== */
+    .quiz-block {
+      background: #22262f;
+      border-radius: 12px;
+      padding: 24px;
+      border: 1px solid #2e3340;
+      margin-bottom: 32px;
+    }
+    .quiz-question {
+      font-size: 16px;
+      font-weight: 600;
+      color: #e8eaf0;
+      margin: 20px 0 12px;
+    }
+    .quiz-options { display: flex; flex-direction: column; gap: 8px; }
+    .quiz-option {
+      background: #2a2f3a;
+      border: 1px solid #343a48;
+      border-radius: 8px;
+      padding: 14px 18px;
+      font-size: 14px;
+      color: #b0b5c3;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .quiz-option:hover { border-color: #3ecfcf; color: #3ecfcf; background: #1e3535; }
+    .quiz-option.selected { border-color: #3ecfcf; color: #3ecfcf; background: #1e3535; }
+
+    /* ===================== */
+    /* БЛОК 5: CTA-БАННЕР    */
+    /* ===================== */
+    .cta-banner {
+      background: linear-gradient(135deg, #0d2a2a 0%, #0d1f2f 50%, #0d2a2a 100%);
+      border-radius: 12px;
+      padding: 60px 24px;
+      text-align: center;
+      margin-bottom: 32px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid #1e4040;
+    }
+    .cta-banner::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #3ecfcf, transparent);
+    }
+    .cta-icon { font-size: 40px; margin-bottom: 20px; display: block; }
+    .cta-title {
+      font-size: 32px;
+      font-weight: 700;
+      color: #3ecfcf;
+      margin-bottom: 16px;
+    }
+    .cta-subtitle {
+      font-size: 15px;
+      font-weight: 600;
+      color: #3dcc85;
+      margin-bottom: 20px;
+    }
+    .cta-feature {
+      font-size: 14px;
+      color: #b0b5c3;
+      margin-bottom: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .cta-feature-icon { color: #3dcc85; font-size: 16px; }
+    .cta-btn {
+      display: inline-block;
+      padding: 16px 60px;
+      background: #3ecfcf;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 700;
+      color: #0d1f1f;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      text-decoration: none;
+    }
+    .cta-btn:hover { opacity: 0.9; transform: translateY(-2px); }
+
+    /* ===================== */
+    /* БЛОК 6: ОПЛАТА        */
+    /* ===================== */
+    .payments-block {
+      background: linear-gradient(135deg, #0d2a2a 0%, #0d1f2f 50%, #0d2a2a 100%);
+      padding: 48px 24px;
+      border-radius: 12px;
+      text-align: center;
+      margin-bottom: 32px;
+      border: 1px solid #1e4040;
+    }
+    .payments-title {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      color: #666d80;
+      text-transform: uppercase;
+      margin-bottom: 28px;
+    }
+    .payments-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+    .payment-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border: 1px solid #2a4a4a;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #3ecfcf;
+      background: transparent;
+      transition: all 0.15s;
+      cursor: default;
+    }
+    .payment-pill:hover {
+      background: #1e3535;
+      border-color: #3ecfcf;
+    }
+    .payment-pill svg {
+      width: 16px; height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 768px) {
+      .reviews-grid { grid-template-columns: 1fr; }
+      .review-card.full-width { max-width: 100%; }
+      .cta-title { font-size: 22px; }
+      .wins-table .col-game, .wins-table .col-time { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="section">
+  <!-- БЛОК 1: ПОСЛЕДНИЕ ВЫИГРЫШИ -->
+  <div class="wins-block">
+    <h2 class="block-title">🏆 Последние выигрыши в КриптоБосс Казино</h2>
+    <table class="wins-table">
+      <tbody>
+        <tr>
+          <td class="col-player"><div class="player-name">M***a</div><div class="player-city">Иркутск</div></td>
+          <td class="col-game"><span class="game-name">Волчье золото</span></td>
+          <td class="col-amount"><span class="amount orange">282 539 ₽</span></td>
+          <td class="col-time"><span class="win-time">вчера</span></td>
+        </tr>
+        <tr>
+          <td class="col-player"><div class="player-name">Н***а</div><div class="player-city">Москва</div></td>
+          <td class="col-game"><span class="game-name">Книга мертвых</span></td>
+          <td class="col-amount"><span class="amount green">17 254 ₽</span></td>
+          <td class="col-time"><span class="win-time">2 часа назад</span></td>
+        </tr>
+        <tr>
+          <td class="col-player"><div class="player-name">O***a</div><div class="player-city">Ростов-на-Дону</div></td>
+          <td class="col-game"><span class="game-name">Врата Олимпа</span></td>
+          <td class="col-amount"><span class="amount red">1 046 254 ₽</span></td>
+          <td class="col-time"><span class="win-time">13 часов назад</span></td>
+        </tr>
+        <tr>
+          <td class="col-player"><div class="player-name">Д***</div><div class="player-city">Новосибирск</div></td>
+          <td class="col-game"><span class="game-name">Разыскивается мертвым или диким</span></td>
+          <td class="col-amount"><span class="amount green">31 403 ₽</span></td>
+          <td class="col-time"><span class="win-time">2 дня назад</span></td>
+        </tr>
+        <tr>
+          <td class="col-player"><div class="player-name">А***</div><div class="player-city">Рязань</div></td>
+          <td class="col-game"><span class="game-name">Gonzo's Quest Megaways</span></td>
+          <td class="col-amount"><span class="amount green">88 676 ₽</span></td>
+          <td class="col-time"><span class="win-time">2 дня назад</span></td>
+        </tr>
+        <tr>
+          <td class="col-player"><div class="player-name">М***</div><div class="player-city">Нижний Новгород</div></td>
+          <td class="col-game"><span class="game-name">Gonzo's Quest Megaways</span></td>
+          <td class="col-amount"><span class="amount green">50 297 ₽</span></td>
+          <td class="col-time"><span class="win-time">вчера</span></td>
+        </tr>
+        <tr>
+          <td class="col-player"><div class="player-name">Н***</div><div class="player-city">Челябинск</div></td>
+          <td class="col-game"><span class="game-name">Наследие мертвых</span></td>
+          <td class="col-amount"><span class="amount green">22 946 ₽</span></td>
+          <td class="col-time"><span class="win-time">5 часов назад</span></td>
+        </tr>
+        <tr>
+          <td class="col-player"><div class="player-name">А***а</div><div class="player-city">Барнаул</div></td>
+          <td class="col-game"><span class="game-name">Врата Олимпа</span></td>
+          <td class="col-amount"><span class="amount green">85 221 ₽</span></td>
+          <td class="col-time"><span class="win-time">вчера</span></td>
+        </tr>
+        <tr>
+          <td class="col-player"><div class="player-name">B***а</div><div class="player-city">Екатеринбург</div></td>
+          <td class="col-game"><span class="game-name">Огненный Джокер</span></td>
+          <td class="col-amount"><span class="amount green">86 080 ₽</span></td>
+          <td class="col-time"><span class="win-time">вчера</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- БЛОК 2: ОТЗЫВЫ ИГРОКОВ -->
+  <div class="reviews-block">
+    <h2 class="block-title">⭐ Отзывы игроков КриптоБосс Казино</h2>
+    <div class="reviews-grid">
+      <div class="review-card">
+        <div class="review-header">
+          <div class="review-author">
+            <div class="avatar">А</div>
+            <div><div class="author-name">Алла С.</div><div class="author-city">Новокузнецк</div></div>
+          </div>
+          <div class="stars">★★★★<span class="star-empty">★</span></div>
+        </div>
+        <p class="review-text">Играю по вечерам для отдыха. Суммы небольшие, но каждый раз выводить получается без проблем.</p>
+        <div class="review-win">Выигрыш: <span>10 500₽</span></div>
+      </div>
+      <div class="review-card">
+        <div class="review-header">
+          <div class="review-author">
+            <div class="avatar">Д</div>
+            <div><div class="author-name">Дмитрий С.</div><div class="author-city">Казань</div></div>
+          </div>
+          <div class="stars">★★★★★</div>
+        </div>
+        <p class="review-text">Занёс x150 на Sweet Bonanza. Первый раз такой множитель ловлю. Вывод пришёл за 15 минут на карту.</p>
+        <div class="review-win">Выигрыш: <span>230 000₽</span></div>
+      </div>
+      <div class="review-card">
+        <div class="review-header">
+          <div class="review-author">
+            <div class="avatar">О</div>
+            <div><div class="author-name">Оксана Б.</div><div class="author-city">Орёл</div></div>
+          </div>
+          <div class="stars">★★★<span class="star-empty">★★</span></div>
+        </div>
+        <p class="review-text">Нормальный сайт, но не хватает живых дилеров. Если добавят больше столов с русскоговорящими дилерами — будет 5.</p>
+        <div class="review-win">Выигрыш: <span>9 200₽</span></div>
+      </div>
+      <div class="review-card">
+        <div class="review-header">
+          <div class="review-author">
+            <div class="avatar">В</div>
+            <div><div class="author-name">Виталий Н.</div><div class="author-city">Тверь</div></div>
+          </div>
+          <div class="stars">★★★★★</div>
+        </div>
+        <p class="review-text">Fruit Party дал мне мега-комбинацию на x340! 510 000₽ с одного спина! Лучший день в моей жизни!</p>
+        <div class="review-win">Выигрыш: <span>510 000₽</span></div>
+      </div>
+      <div class="review-card">
+        <div class="review-header">
+          <div class="review-author">
+            <div class="avatar">И</div>
+            <div><div class="author-name">Игорь Н.</div><div class="author-city">Ростов-на-Дону</div></div>
+          </div>
+          <div class="stars">★★★★★</div>
+        </div>
+        <p class="review-text">Лучшее казино из всех, где играл. Огромный выбор игр, быстрые выплаты и адекватная поддержка. Рекомендую!</p>
+        <div class="review-win">Выигрыш: <span>156 000₽</span></div>
+      </div>
+      <div class="review-card">
+        <div class="review-header">
+          <div class="review-author">
+            <div class="avatar">Н</div>
+            <div><div class="author-name">Наталья М.</div><div class="author-city">Воронеж</div></div>
+          </div>
+          <div class="stars">★★★★<span class="star-empty">★</span></div>
+        </div>
+        <p class="review-text">Пробовала разные казино — это одно из лучших. Быстрый вывод, много игр, нормальная отдача. Минус только — нет лайв-чата 24/7.</p>
+        <div class="review-win">Выигрыш: <span>19 000₽</span></div>
+      </div>
+      <div class="review-card full-width">
+        <div class="review-header">
+          <div class="review-author">
+            <div class="avatar">М</div>
+            <div><div class="author-name">Матвей С.</div><div class="author-city">Махачкала</div></div>
+          </div>
+          <div class="stars">★★★★★</div>
+        </div>
+        <p class="review-text">Начал с 2000₽, раскрутил до 89 000₽ за три дня на Pragmatic слотах. Вывел всё, пришло через 15 минут.</p>
+        <div class="review-win">Выигрыш: <span>89 000₽</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- БЛОК 3: КАЛЬКУЛЯТОР БОНУСА -->
+  <div class="calc-block">
+    <h2 class="block-title">🧮 Калькулятор бонуса КриптоБосс Казино</h2>
+    <div class="calc-label">Сумма депозита (₽)</div>
+    <input type="number" class="calc-input" id="depositInput" value="5000" min="0">
+    <div class="calc-presets">
+      <button class="preset-btn" onclick="setDeposit(1000, this)">1 000</button>
+      <button class="preset-btn active" onclick="setDeposit(5000, this)">5 000</button>
+      <button class="preset-btn" onclick="setDeposit(10000, this)">10 000</button>
+      <button class="preset-btn" onclick="setDeposit(50000, this)">50 000</button>
+    </div>
+    <div class="calc-label">Бонус (%)</div>
+    <select class="calc-select" id="bonusSelect" onchange="calcBonus()">
+      <option value="500">1-й депозит — 500%</option>
+      <option value="200">2-й депозит — 200%</option>
+      <option value="150">3-й депозит — 150%</option>
+      <option value="100">4-й депозит — 100%</option>
+    </select>
+    <div class="calc-results">
+      <div class="calc-row">
+        <span class="calc-row-label">Ваш депозит</span>
+        <span class="calc-row-value" id="resDeposit">5 000 ₽</span>
+      </div>
+      <div class="calc-row">
+        <span class="calc-row-label">Бонус</span>
+        <span class="calc-row-value green" id="resBonus">+25 000 ₽</span>
+      </div>
+      <div class="calc-row">
+        <span class="calc-row-label">Итого на счету</span>
+        <span class="calc-row-value teal" id="resTotal">30 000 ₽</span>
+      </div>
+      <div class="calc-row">
+        <span class="calc-row-label">Ставка (35)</span>
+        <span class="calc-row-value muted" id="resWager">875 000 ₽</span>
+      </div>
+    </div>
+    <button class="calc-btn">Получить бонус</button>
+  </div>
+
+  <!-- БЛОК 4: КВИЗ -->
+  <div class="quiz-block">
+    <h2 class="block-title">❓ Какой слот тебе подходит?</h2>
+    <div class="quiz-question">Какой уровень риска тебе по душе?</div>
+    <div class="quiz-options">
+      <div class="quiz-option" onclick="selectOption(this)">Минимальный — стабильные выигрыши</div>
+      <div class="quiz-option" onclick="selectOption(this)">Средний — баланс риска и выплат</div>
+      <div class="quiz-option" onclick="selectOption(this)">Максимальный — крупные выигрыши</div>
+    </div>
+  </div>
+</div>
+
+<!-- БЛОК 5: CTA-БАННЕР -->
+<div style="padding: 0 24px; max-width: 1400px; margin: 0 auto 32px;">
+  <div class="cta-banner">
+    <span class="cta-icon">🎰</span>
+    <h2 class="cta-title">Готов рискнуть? Тогда не жди.</h2>
+    <p class="cta-subtitle">Моментальная регистрация и быстрый старт.</p>
+    <div class="cta-feature">
+      <span class="cta-feature-icon">✅</span>
+      Джекпот 45.0 млн — встречается в игре
+    </div>
+    <a href="#" class="cta-btn">Зарегистрироваться</a>
+  </div>
+</div>
+
+<!-- БЛОК 6: ОПЛАТА -->
+<div style="padding: 0 24px; max-width: 1400px; margin: 0 auto 32px;">
+  <div class="payments-block">
+    <div class="payments-title">Принимаем к оплате</div>
+    <div class="payments-list">
+      <div class="payment-pill"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>Виза</div>
+      <div class="payment-pill"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>MasterCard</div>
+      <div class="payment-pill"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>МИР</div>
+      <div class="payment-pill"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Биткоин</div>
+      <div class="payment-pill"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>СИМТ</div>
+      <div class="payment-pill"><svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Эфириум</div>
+      <div class="payment-pill"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18" stroke-width="3"/></svg>СБП</div>
+      <div class="payment-pill"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Перевод</div>
+      <div class="payment-pill"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>ЮМони</div>
+      <div class="payment-pill"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>QIWI</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function fmt(n) { return n.toLocaleString('ru-RU') + ' ₽'; }
+
+  function calcBonus() {
+    const deposit = parseInt(document.getElementById('depositInput').value) || 0;
+    const pct = parseInt(document.getElementById('bonusSelect').value);
+    const bonus = Math.round(deposit * pct / 100);
+    const total = deposit + bonus;
+    const wager = Math.round(bonus * 35);
+    document.getElementById('resDeposit').textContent = fmt(deposit);
+    document.getElementById('resBonus').textContent   = '+' + fmt(bonus);
+    document.getElementById('resTotal').textContent   = fmt(total);
+    document.getElementById('resWager').textContent   = fmt(wager);
+  }
+
+  function setDeposit(val, btn) {
+    document.getElementById('depositInput').value = val;
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    calcBonus();
+  }
+
+  document.getElementById('depositInput').addEventListener('input', function() {
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    calcBonus();
+  });
+
+  function selectOption(el) {
+    document.querySelectorAll('.quiz-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+</script>
+</body>
+</html>
