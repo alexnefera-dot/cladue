@@ -1,0 +1,307 @@
+{
+  "name": "Indexing Check — XMLStock (Yandex) → Google Sheets",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * *"
+            }
+          ]
+        }
+      },
+      "id": "1a2b3c00-0000-4000-8000-000000000001",
+      "name": "Daily Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        300
+      ],
+      "notes": "Runs every day at 06:00 server time. Edit the cron expression to change the schedule."
+    },
+    {
+      "parameters": {
+        "jsCode": "// ---------------------------------------------------------------\n// Configure domains and brands here. 5 domains × 6 brands = 30 queries.\n// Queries are generated in the form: site:<brand>.<domain>\n// ---------------------------------------------------------------\nconst domains = [\n  'site1.example.com',\n  'site2.example.com',\n  'site3.example.com',\n  'site4.example.com',\n  'site5.example.com'\n];\n\nconst brands = [\n  'aurora',\n  'cryptoboss',\n  'eva',\n  'enomo',\n  'avocado',\n  'bonsai'\n];\n\n// ---------------------------------------------------------------\n// Google Sheet layout (matches the reference screenshot):\n//   Row 1: merged title\n//   Row 2: site headers (Сайт 1, Сайт 2, ...)\n//   Row 3: sub-headers (Индексация, Топ3, Топ5, Топ10, Топ20, Топ50)\n//   Rows 4..9: brand rows (Aurora, Cryptoboss, Eva, Enomo, Avocado, Bonsai)\n// Each site occupies 6 columns. The first column of each group is\n// \"Индексация\" — the only column this workflow writes to.\n// ---------------------------------------------------------------\nconst SHEET_NAME = $env.GOOGLE_SHEET_TAB || 'Мониторинг';\nconst FIRST_BRAND_ROW = 4;\nconst INDEXING_COLUMNS = ['B', 'H', 'N', 'T', 'Z']; // site 1..5\n\nif (domains.length !== INDEXING_COLUMNS.length) {\n  throw new Error(`Domains count (${domains.length}) must match indexing columns count (${INDEXING_COLUMNS.length}).`);\n}\n\nconst items = [];\nfor (let b = 0; b < brands.length; b++) {\n  for (let s = 0; s < domains.length; s++) {\n    const brand = brands[b];\n    const domain = domains[s];\n    const row = FIRST_BRAND_ROW + b;\n    const column = INDEXING_COLUMNS[s];\n    items.push({\n      json: {\n        brand,\n        domain,\n        query: `site:${brand}.${domain}`,\n        sheetName: SHEET_NAME,\n        row,\n        column,\n        cell: `${column}${row}`,\n        a1Range: `${SHEET_NAME}!${column}${row}`\n      }\n    });\n  }\n}\n\nreturn items;"
+      },
+      "id": "1a2b3c00-0000-4000-8000-000000000002",
+      "name": "Build 30 Queries",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        300
+      ],
+      "notes": "Edit the `domains` and `brands` arrays to match your setup. Generates one item per (brand × domain) pair with the target Google Sheets cell pre-computed."
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "1a2b3c00-0000-4000-8000-000000000003",
+      "name": "Loop Over Queries",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        640,
+        300
+      ],
+      "notes": "Processes one query at a time so the Wait node can throttle per-request."
+    },
+    {
+      "parameters": {
+        "url": "https://xmlstock.com/yandex/xml/",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "user",
+              "value": "={{ $env.XMLSTOCK_USER }}"
+            },
+            {
+              "name": "key",
+              "value": "={{ $env.XMLSTOCK_KEY }}"
+            },
+            {
+              "name": "query",
+              "value": "={{ $json.query }}"
+            },
+            {
+              "name": "groupby",
+              "value": "attr=d.mode=deep.groups-on-page=10.docs-in-group=1"
+            },
+            {
+              "name": "numdoc",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "responseFormat": "text",
+              "neverError": true
+            }
+          },
+          "retry": {
+            "retry": {
+              "maxTries": 3,
+              "waitBetweenTries": 3000
+            }
+          }
+        }
+      },
+      "id": "1a2b3c00-0000-4000-8000-000000000004",
+      "name": "XMLStock API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        860,
+        300
+      ],
+      "notes": "Calls XMLStock Yandex XML endpoint. Credentials come from env vars XMLSTOCK_USER and XMLSTOCK_KEY. Response is raw XML."
+    },
+    {
+      "parameters": {
+        "mode": "xmlToJson",
+        "dataPropertyName": "data",
+        "options": {
+          "explicitArray": false,
+          "ignoreAttrs": false,
+          "mergeAttrs": false
+        }
+      },
+      "id": "1a2b3c00-0000-4000-8000-000000000005",
+      "name": "Parse XML",
+      "type": "n8n-nodes-base.xml",
+      "typeVersion": 1,
+      "position": [
+        1080,
+        300
+      ],
+      "notes": "Converts XMLStock XML response to JSON. The `data` field of the previous HTTP node holds the raw XML body."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract total indexed-pages count from parsed XMLStock response.\n// XMLStock returns several <found priority=\"...\"> tags. We prefer\n// priority=\"phrase\" (the value the web UI shows for site: queries),\n// then fall back to \"all\" and \"strict\".\n\nconst xmlItem = $input.first();\nconst parsed = xmlItem.json?.data ?? xmlItem.json ?? {};\nconst meta = $('Loop Over Queries').first().json;\n\nfunction pickFound(response) {\n  if (!response) return null;\n  const foundRaw = response.found;\n  if (foundRaw == null) return null;\n\n  const arr = Array.isArray(foundRaw) ? foundRaw : [foundRaw];\n  const byPriority = (p) => arr.find((f) => {\n    const attr = f?.$?.priority ?? f?._attributes?.priority ?? f?.priority;\n    return attr === p;\n  });\n\n  const candidate = byPriority('phrase') || byPriority('all') || byPriority('strict') || arr[0];\n  if (candidate == null) return null;\n\n  // xml2js / n8n XML node variants: value can be under `_`, `#`, or be a primitive.\n  const raw = candidate._ ?? candidate['#'] ?? candidate['#text'] ?? (typeof candidate === 'object' ? null : candidate);\n  const n = Number(raw);\n  return Number.isFinite(n) ? n : null;\n}\n\nconst response = parsed?.yandexsearch?.response ?? parsed?.response ?? null;\nconst errorNode = response?.error ?? parsed?.yandexsearch?.error;\nconst errorText = errorNode ? (errorNode._ ?? errorNode['#'] ?? errorNode['#text'] ?? String(errorNode)) : null;\n\nconst found = pickFound(response);\n\nreturn [\n  {\n    json: {\n      brand: meta.brand,\n      domain: meta.domain,\n      query: meta.query,\n      sheetName: meta.sheetName,\n      row: meta.row,\n      column: meta.column,\n      cell: meta.cell,\n      a1Range: meta.a1Range,\n      found: found,\n      value: found == null ? 'ERR' : found,\n      error: errorText,\n      timestamp: new Date().toISOString()\n    }\n  }\n];"
+      },
+      "id": "1a2b3c00-0000-4000-8000-000000000006",
+      "name": "Extract Found Count",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        300
+      ],
+      "notes": "Reads <found> value from parsed XML. Writes `ERR` to the sheet if XMLStock returned an error or the response was malformed — check the `error` field in execution logs."
+    },
+    {
+      "parameters": {
+        "amount": 2.5,
+        "unit": "seconds"
+      },
+      "id": "1a2b3c00-0000-4000-8000-000000000007",
+      "name": "Throttle 2.5s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1520,
+        300
+      ],
+      "webhookId": "indexing-throttle",
+      "notes": "Sleeps 2.5 seconds between requests to stay under XMLStock rate limits."
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/{{ $env.GOOGLE_SHEET_ID }}/values/{{ encodeURIComponent($json.a1Range) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "valueInputOption",
+              "value": "USER_ENTERED"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"range\": \"{{ $json.a1Range }}\",\n  \"majorDimension\": \"ROWS\",\n  \"values\": [[ {{ JSON.stringify($json.value) }} ]]\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "1a2b3c00-0000-4000-8000-000000000008",
+      "name": "Write Cell to Google Sheets",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1740,
+        300
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE_WITH_CREDENTIAL_ID",
+          "name": "Google Sheets OAuth2"
+        }
+      },
+      "notes": "Updates a single cell via the Sheets API (values.update). Uses the n8n Google Sheets OAuth2 credential — you MUST bind an existing credential after import."
+    }
+  ],
+  "connections": {
+    "Daily Schedule": {
+      "main": [
+        [
+          {
+            "node": "Build 30 Queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build 30 Queries": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Queries": {
+      "main": [
+        [],
+        [
+          {
+            "node": "XMLStock API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "XMLStock API": {
+      "main": [
+        [
+          {
+            "node": "Parse XML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse XML": {
+      "main": [
+        [
+          {
+            "node": "Extract Found Count",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Found Count": {
+      "main": [
+        [
+          {
+            "node": "Throttle 2.5s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Throttle 2.5s": {
+      "main": [
+        [
+          {
+            "node": "Write Cell to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Cell to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "pinData": {},
+  "versionId": "1",
+  "triggerCount": 1,
+  "tags": [
+    {
+      "name": "seo"
+    },
+    {
+      "name": "indexing"
+    }
+  ]
+}
