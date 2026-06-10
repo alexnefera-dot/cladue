@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Панель управления — макет</title>
+<style>
+:root{
+  --bg:#f4f6f9; --card:#fff; --border:#e3e8ef; --text:#1d2733; --muted:#6b7686;
+  --accent:#2563eb; --accent-soft:#eff4ff; --danger:#dc2626; --warn:#d97706;
+  --ok:#16a34a; --sidebar:#101826; --sidebar-text:#aeb9ca;
+  --red-row:#fef2f2; --yellow-row:#fffbeb;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text)}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ---------- каркас ---------- */
+.layout{display:flex;min-height:100vh}
+.sidebar{width:220px;background:var(--sidebar);color:var(--sidebar-text);flex-shrink:0;display:flex;flex-direction:column}
+.logo{padding:18px 20px;font-size:16px;font-weight:700;color:#fff;border-bottom:1px solid #1e2a3d}
+.logo small{display:block;font-weight:400;font-size:11px;color:#5d6b80;margin-top:2px}
+.nav{padding:10px 0;flex:1}
+.nav a{display:flex;align-items:center;gap:10px;padding:9px 20px;color:var(--sidebar-text);font-size:13.5px}
+.nav a:hover{background:#182233;color:#fff;text-decoration:none}
+.nav a.active{background:#1d2c44;color:#fff;border-left:3px solid var(--accent);padding-left:17px}
+.nav .sep{margin:10px 20px;border-top:1px solid #1e2a3d}
+.nav .stage{padding:4px 20px;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#52607a}
+.nav a.disabled{opacity:.38;pointer-events:none}
+.userbox{padding:14px 20px;border-top:1px solid #1e2a3d;font-size:12.5px}
+.userbox b{color:#fff;display:block}
+.userbox .role{display:inline-block;background:#1d2c44;color:#8fb4ff;border-radius:4px;padding:1px 7px;font-size:10.5px;margin-top:3px}
+.userbox a{color:#7b8aa3;font-size:12px;display:inline-block;margin-top:8px}
+
+.main{flex:1;min-width:0;padding:24px 28px}
+.pagehead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.pagehead h1{font-size:20px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ---------- кнопки/элементы ---------- */
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:#fff;color:var(--text);border-radius:7px;padding:7px 14px;font-size:13px;cursor:pointer}
+.btn:hover{border-color:#c8d2e0;text-decoration:none}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:#1d4fd8}
+.btn.sm{padding:4px 9px;font-size:12px;border-radius:6px}
+.btn.danger-ghost{color:var(--danger)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.chip{border:1px solid var(--border);background:#fff;border-radius:999px;padding:5px 14px;font-size:12.5px;cursor:pointer;color:var(--muted)}
+.chip b{color:var(--text);font-weight:600}
+.chip .n{background:#eef1f6;border-radius:999px;padding:0 7px;margin-left:5px;font-size:11px}
+.chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip.active b,.chip.active .n{color:#fff;background:rgba(255,255,255,.2)}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.filters select,.filters input{border:1px solid var(--border);border-radius:7px;padding:7px 10px;font-size:13px;background:#fff;color:var(--text)}
+.filters input[type=search]{width:220px}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);text-align:left;padding:10px 14px;border-bottom:1px solid var(--border);background:#fafbfd;white-space:nowrap;cursor:pointer}
+th:hover{color:var(--text)}
+td{padding:10px 14px;border-bottom:1px solid #eef1f6;vertical-align:top}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#f8fafc}
+tr.row-red{background:var(--red-row)} tr.row-red:hover{background:#fde8e8}
+tr.row-yellow{background:var(--yellow-row)} tr.row-yellow:hover{background:#fdf3d7}
+.badge{display:inline-block;border-radius:5px;padding:2px 8px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.b-green{background:#e7f6ec;color:var(--ok)} .b-gray{background:#eef1f6;color:var(--muted)}
+.b-red{background:#fdecec;color:var(--danger)} .b-yellow{background:#fdf3d7;color:var(--warn)}
+.b-blue{background:var(--accent-soft);color:var(--accent)}
+.cat{display:inline-block;border-radius:5px;padding:2px 8px;font-size:11.5px;font-weight:600}
+.cat-slots{background:#f3e8ff;color:#7c3aed} .cat-brand{background:#e0f2fe;color:#0369a1}
+.cat-dorgen{background:#ffedd5;color:#c2410c} .cat-spine{background:#dcfce7;color:#15803d}
+.cat-none{background:#eef1f6;color:var(--muted)}
+.muted{color:var(--muted)} .nowrap{white-space:nowrap}
+.iconlink{display:inline-block;border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:11.5px;margin-right:4px}
+.tfoot{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;font-size:12.5px;color:var(--muted);background:#fafbfd;border-top:1px solid var(--border)}
+.note{margin-top:14px;font-size:12.5px;color:var(--muted)}
+.flash{background:#e7f6ec;border:1px solid #bfe5cd;color:#166534;border-radius:8px;padding:9px 14px;font-size:13px;margin-bottom:14px}
+
+/* ---------- логин ---------- */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--sidebar)}
+.login{background:#fff;border-radius:14px;padding:36px;width:360px;max-width:92vw;box-shadow:0 18px 50px rgba(0,0,0,.35)}
+.login h1{font-size:19px;margin-bottom:4px}
+.login p{color:var(--muted);font-size:13px;margin-bottom:22px}
+.login label{display:block;font-size:12.5px;font-weight:600;margin-bottom:5px}
+.login input{width:100%;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:14px}
+.login .btn{width:100%;justify-content:center;padding:10px}
+.login .err{background:#fdecec;color:var(--danger);border-radius:8px;padding:8px 12px;font-size:12.5px;margin-bottom:14px;display:none}
+
+/* ---------- модалка-форма ---------- */
+.overlay{display:none;position:fixed;inset:0;background:rgba(13,20,32,.55);z-index:50;align-items:flex-start;justify-content:center;padding:5vh 16px;overflow:auto}
+.overlay.open{display:flex}
+.modal{background:#fff;border-radius:12px;width:560px;max-width:100%;padding:24px}
+.modal h2{font-size:17px;margin-bottom:18px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fgrid .full{grid-column:1/-1}
+.modal label{display:block;font-size:12px;font-weight:600;margin-bottom:4px}
+.modal input,.modal select,.modal textarea{width:100%;border:1px solid var(--border);border-radius:7px;padding:8px 10px;font-size:13.5px;background:#fff}
+.modal textarea{min-height:70px;resize:vertical}
+.modal .foot{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+.check{display:flex;align-items:center;gap:8px;font-size:13.5px;padding-top:22px}
+.check input{width:auto}
+
+.screen{display:none}.screen.visible{display:block}
+@media (max-width:760px){
+  .sidebar{display:none}
+  .main{padding:16px}
+  .card{overflow-x:auto}
+  table{min-width:760px}
+}
+.demo-bar{position:fixed;bottom:14px;right:14px;z-index:99;background:#101826;color:#fff;border-radius:10px;padding:8px 10px;font-size:11.5px;box-shadow:0 8px 24px rgba(0,0,0,.3);display:flex;gap:6px;align-items:center}
+.demo-bar button{background:#1d2c44;border:0;color:#cfe0ff;border-radius:6px;padding:4px 9px;font-size:11.5px;cursor:pointer}
+.demo-bar button:hover{background:#27406b}
+</style>
+</head>
+<body>
+
+<!-- ======================= ЭКРАН: ВХОД ======================= -->
+<div class="screen visible" id="scr-login">
+  <div class="login-wrap">
+    <div class="login">
+      <h1>Панель управления</h1>
+      <p>morol.casino · внутренний доступ</p>
+      <div class="err" id="login-err">Неверный логин или пароль</div>
+      <label>Логин</label>
+      <input type="text" value="alex" autocomplete="username">
+      <label>Пароль</label>
+      <input type="password" value="••••••••" autocomplete="current-password">
+      <button class="btn primary" onclick="show('projects')">Войти</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= КАРКАС ПАНЕЛИ ======================= -->
+<div class="screen" id="scr-app">
+<div class="layout">
+  <aside class="sidebar">
+    <div class="logo">Панель управления<small>morol.casino</small></div>
+    <nav class="nav">
+      <a href="#" data-nav="projects" onclick="return show('projects')">📁 Проекты</a>
+      <a href="#" data-nav="domains" onclick="return show('domains')">🌐 Домены</a>
+      <div class="stage">Этап 2</div>
+      <a href="#" class="disabled">🖥 Серверы</a>
+      <a href="#" class="disabled">🛡 Прокси</a>
+      <div class="stage">Этап 3</div>
+      <a href="#" class="disabled">📄 Доки</a>
+      <a href="#" class="disabled">⚙️ Сервисы</a>
+      <a href="#" class="disabled">ℹ️ Инфо</a>
+      <div class="stage">Этап 4</div>
+      <a href="#" class="disabled">📊 Дашборд</a>
+      <a href="#" class="disabled">✅ Задачи</a>
+      <div class="sep"></div>
+      <a href="#" data-nav="users" onclick="return show('users')">👥 Пользователи</a>
+      <a href="#" data-nav="log" onclick="return show('log')">🕓 Лог действий</a>
+    </nav>
+    <div class="userbox">
+      <b>Алекс</b>
+      <span class="role">admin</span><br>
+      <a href="#" onclick="return show('login')">Выйти →</a>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- ======================= ПРОЕКТЫ ======================= -->
+    <section class="screen" id="scr-projects">
+      <div class="flash">Проект «LuckySpin Review» сохранён</div>
+      <div class="pagehead">
+        <h1>Проекты</h1>
+        <div class="actions">
+          <button class="btn">⬇ Экспорт CSV</button>
+          <button class="btn primary" onclick="openModal('modal-project')">+ Добавить проект</button>
+        </div>
+      </div>
+
+      <div class="chips">
+        <button class="chip active"><b>Все</b><span class="n">12</span></button>
+        <button class="chip">Слоты<span class="n">4</span></button>
+        <button class="chip">Brand Main<span class="n">3</span></button>
+        <button class="chip">Dorgen<span class="n">2</span></button>
+        <button class="chip">Spine<span class="n">2</span></button>
+        <button class="chip">Без системы<span class="n">1</span></button>
+      </div>
+
+      <div class="filters">
+        <input type="search" placeholder="Поиск по имени…">
+        <select><option>Статус: все</option><option>Активен</option><option>Пауза</option><option>Архив</option></select>
+        <select><option>Ответственный: все</option><option>Алекс</option><option>Марина</option><option>Дима</option></select>
+      </div>
+
+      <div class="card">
+        <table>
+          <thead><tr>
+            <th>Имя ↑</th><th>Категория</th><th>Статус</th><th>Система</th><th>Панели</th><th>Ответственный</th><th>Домены</th><th>Заметки</th><th></th>
+          </tr></thead>
+          <tbody>
+            <tr>
+              <td><b>LuckySpin Review</b></td>
+              <td><span class="cat cat-slots">Слоты</span></td>
+              <td><span class="badge b-green">Активен</span></td>
+              <td><a href="#">SpinCMS ↗</a></td>
+              <td><a class="iconlink" href="#">GSC</a><a class="iconlink" href="#">Я.Вм</a></td>
+              <td>Алекс</td>
+              <td><a href="#" onclick="return show('domains')">3</a></td>
+              <td class="muted">обновить обзоры к июлю</td>
+              <td class="nowrap"><button class="btn sm">✎</button> <button class="btn sm danger-ghost">✕</button></td>
+            </tr>
+            <tr>
+              <td><b>BrandCore Main</b></td>
+              <td><span class="cat cat-brand">Brand Main</span></td>
+              <td><span class="badge b-green">Активен</span></td>
+              <td><a href="#">BrandPanel ↗</a></td>
+              <td><a class="iconlink" href="#">GSC</a><a class="iconlink" href="#">Я.Вм</a></td>
+              <td>Марина</td>
+              <td><a href="#">5</a></td>
+              <td class="muted">—</td>
+              <td class="nowrap"><button class="btn sm">✎</button> <button class="btn sm danger-ghost">✕</button></td>
+            </tr>
+            <tr>
+              <td><b>DG-Cluster-07</b></td>
+              <td><span class="cat cat-dorgen">Dorgen</span></td>
+              <td><span class="badge b-yellow">Пауза</span></td>
+              <td><a href="#">DorgenGen ↗</a></td>
+              <td><a class="iconlink" href="#">GSC</a></td>
+              <td>Дима</td>
+              <td><a href="#">8</a></td>
+              <td class="muted">ждём новые ключи</td>
+              <td class="nowrap"><button class="btn sm">✎</button> <button class="btn sm danger-ghost">✕</button></td>
+            </tr>
+            <tr>
+              <td><b>SpineNet A</b></td>
+              <td><span class="cat cat-spine">Spine</span></td>
+              <td><span class="badge b-green">Активен</span></td>
+              <td><a href="#">SpineHub ↗</a></td>
+              <td><a class="iconlink" href="#">GSC</a><a class="iconlink" href="#">Я.Вм</a></td>
+              <td>Алекс</td>
+              <td><a href="#">2</a></td>
+              <td class="muted">—</td>
+              <td class="nowrap"><button class="btn sm">✎</button> <button class="btn sm danger-ghost">✕</button></td>
+            </tr>
+            <tr>
+              <td><b>Старый лендинг</b></td>
+              <td><span class="cat cat-none">Без системы</span></td>
+              <td><span class="badge b-gray">Архив</span></td>
+              <td class="muted">—</td>
+              <td class="muted">—</td>
+              <td class="muted">—</td>
+              <td><a href="#">1</a></td>
+              <td class="muted">оставить до конца года</td>
+              <td class="nowrap"><button class="btn sm">✎</button> <button class="btn sm danger-ghost">✕</button></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="tfoot"><span>Показано 5 из 12</span><span>‹ 1 2 3 ›</span></div>
+      </div>
+      <p class="note">У роли <b>viewer</b> кнопки «Добавить / ✎ / ✕» не отображаются — только просмотр и переход по ссылкам.</p>
+    </section>
+
+    <!-- ======================= ДОМЕНЫ ======================= -->
+    <section class="screen" id="scr-domains">
+      <div class="pagehead">
+        <h1>Домены</h1>
+        <div class="actions">
+          <button class="btn">⬇ Экспорт CSV</button>
+          <button class="btn primary" onclick="openModal('modal-domain')">+ Добавить домен</button>
+        </div>
+      </div>
+
+      <div class="filters">
+        <input type="search" placeholder="Поиск по домену…">
+        <select><option>Статус: все</option><option>Активен</option><option>Истекает</option><option>Истёк</option><option>Припаркован</option></select>
+        <select><option>Проект: все</option><option>LuckySpin Review</option><option>BrandCore Main</option><option>DG-Cluster-07</option></select>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox"> истекают ≤ 30 дней</label>
+      </div>
+
+      <div class="card">
+        <table>
+          <thead><tr>
+            <th>Домен</th><th>Регистратор</th><th>Продление ↑</th><th>Автопрод.</th><th>Статус</th><th>Проект</th><th>Заметка</th><th></th>
+          </tr></thead>
+          <tbody>
+            <tr class="row-red">
+              <td><b>luckyspin-review.com</b></td>
+              <td>Namecheap</td>
+              <td class="nowrap"><b>14.06.2026</b> <span class="badge b-red">4 дня</span></td>
+              <td class="muted">нет</td>
+              <td><span class="badge b-red">Истекает</span></td>
+              <td><a href="#" onclick="return show('projects')">LuckySpin Review</a></td>
+              <td class="muted">продлить вручную!</td>
+              <td class="nowrap"><button class="btn sm">✎</button> <button class="btn sm danger-ghost">✕</button></td>
+            </tr>
+            <tr class="row-yellow">
+              <td><b>brandcore.io</b></td>
+              <td>Porkbun</td>
+              <td class="nowrap">02.07.2026 <span class="badge b-yellow">22 дня</span></td>
+              <td class="muted">нет</td>
+              <td><span class="badge b-green">Активен</span></td>
+              <td><a href="#">BrandCore Main</a></td>
+              <td class="muted">—</td>
+              <td class="nowrap"><button class="btn sm">✎</button> <button class="btn sm danger-ghost">✕</button></td>
+            </tr>
+            <tr>
+              <td><b>dg-news-portal.net</b></td>
+              <td>Reg.ru</td>
+              <td class="nowrap">18.11.2026</td>
+              <td><span class="badge b-blue">авто</span></td>
+              <td><span class="badge b-green">Активен</span></td>
+              <td><a href="#">DG-Cluster-07</a></td>
+              <td class="muted">—</td>
+              <td class="nowrap"><button class="btn sm">✎</button> <button class="btn sm danger-ghost">✕</button></td>
+            </tr>
+            <tr>
+              <td><b>spine-hub-a.org</b></td>
+              <td>Namecheap</td>
+              <td class="nowrap">03.02.2027</td>
+              <td><span class="badge b-blue">авто</span></td>
+              <td><span class="badge b-green">Активен</span></td>
+              <td><a href="#">SpineNet A</a></td>
+              <td class="muted">куплен на распродаже</td>
+              <td class="nowrap"><button class="btn sm">✎</button> <button class="btn sm danger-ghost">✕</button></td>
+            </tr>
+            <tr>
+              <td><b>old-landing.site</b></td>
+              <td>Reg.ru</td>
+              <td class="nowrap">10.01.2026 <span class="badge b-red">истёк</span></td>
+              <td class="muted">нет</td>
+              <td><span class="badge b-gray">Припаркован</span></td>
+              <td class="muted">—</td>
+              <td class="muted">не продлеваем</td>
+              <td class="nowrap"><button class="btn sm">✎</button> <button class="btn sm danger-ghost">✕</button></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="tfoot"><span>Показано 5 из 19</span><span>‹ 1 2 3 4 ›</span></div>
+      </div>
+      <p class="note">Подсветка: <span class="badge b-red">красный</span> — ≤ 7 дней или просрочен, <span class="badge b-yellow">жёлтый</span> — ≤ 30 дней (только без автопродления).</p>
+    </section>
+
+    <!-- ======================= ПОЛЬЗОВАТЕЛИ ======================= -->
+    <section class="screen" id="scr-users">
+      <div class="pagehead">
+        <h1>Пользователи</h1>
+        <div class="actions"><button class="btn primary">+ Добавить пользователя</button></div>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr><th>Логин</th><th>Имя</th><th>Роль</th><th>Статус</th><th>Создан</th><th></th></tr></thead>
+          <tbody>
+            <tr>
+              <td><b>alex</b></td><td>Алекс</td>
+              <td><span class="badge b-blue">admin</span></td>
+              <td><span class="badge b-green">Активен</span></td>
+              <td class="muted">10.06.2026</td>
+              <td class="nowrap"><button class="btn sm">✎ Роль</button> <button class="btn sm">🔑 Пароль</button></td>
+            </tr>
+            <tr>
+              <td><b>marina</b></td><td>Марина</td>
+              <td><span class="badge b-green">manager</span></td>
+              <td><span class="badge b-green">Активна</span></td>
+              <td class="muted">10.06.2026</td>
+              <td class="nowrap"><button class="btn sm">✎ Роль</button> <button class="btn sm">🔑 Пароль</button> <button class="btn sm danger-ghost">Деактивировать</button></td>
+            </tr>
+            <tr>
+              <td><b>dima</b></td><td>Дима</td>
+              <td><span class="badge b-gray">viewer</span></td>
+              <td><span class="badge b-green">Активен</span></td>
+              <td class="muted">10.06.2026</td>
+              <td class="nowrap"><button class="btn sm">✎ Роль</button> <button class="btn sm">🔑 Пароль</button> <button class="btn sm danger-ghost">Деактивировать</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">Раздел виден только роли <b>admin</b>. Пользователи не удаляются — только деактивация (лог остаётся читаемым).</p>
+    </section>
+
+    <!-- ======================= ЛОГ ======================= -->
+    <section class="screen" id="scr-log">
+      <div class="pagehead">
+        <h1>Лог действий</h1>
+        <div class="actions"><button class="btn">⬇ Экспорт CSV</button></div>
+      </div>
+      <div class="filters">
+        <select><option>Пользователь: все</option><option>Алекс</option><option>Марина</option></select>
+        <select><option>Действие: все</option><option>Вход</option><option>Создание</option><option>Изменение</option><option>Удаление</option></select>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr><th>Когда</th><th>Кто</th><th>Действие</th><th>Описание</th></tr></thead>
+          <tbody>
+            <tr><td class="nowrap muted">10.06 14:32</td><td>Марина</td><td><span class="badge b-green">создание</span></td><td>создала домен «brandcore.io»</td></tr>
+            <tr><td class="nowrap muted">10.06 14:21</td><td>Марина</td><td><span class="badge b-blue">изменение</span></td><td>изменила проект «BrandCore Main»</td></tr>
+            <tr><td class="nowrap muted">10.06 13:05</td><td>Марина</td><td><span class="badge b-gray">вход</span></td><td>вход в панель</td></tr>
+            <tr><td class="nowrap muted">10.06 11:48</td><td>Алекс</td><td><span class="badge b-red">удаление</span></td><td>удалил домен «test-old.xyz»</td></tr>
+            <tr><td class="nowrap muted">10.06 09:12</td><td>Алекс</td><td><span class="badge b-gray">вход</span></td><td>вход в панель</td></tr>
+          </tbody>
+        </table>
+        <div class="tfoot"><span>Последние 500 записей</span><span>‹ 1 2 … ›</span></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+</div>
+
+<!-- ======================= ФОРМА: ПРОЕКТ ======================= -->
+<div class="overlay" id="modal-project" onclick="if(event.target===this)closeModal(this)">
+  <div class="modal">
+    <h2>Новый проект</h2>
+    <div class="fgrid">
+      <div class="full"><label>Имя проекта *</label><input placeholder="Например: LuckySpin Review"></div>
+      <div><label>Категория *</label>
+        <select><option>Слоты</option><option>Brand Main</option><option>Dorgen</option><option>Spine</option><option>Без системы</option></select></div>
+      <div><label>Статус *</label>
+        <select><option>Активен</option><option>Пауза</option><option>Архив</option></select></div>
+      <div><label>Система — название</label><input placeholder="SpinCMS"></div>
+      <div><label>Система — URL</label><input placeholder="https://…"></div>
+      <div><label>Google Search Console</label><input placeholder="https://search.google.com/…"></div>
+      <div><label>Яндекс.Вебмастер</label><input placeholder="https://webmaster.yandex.ru/…"></div>
+      <div class="full"><label>Ответственный</label>
+        <select><option>— не назначен —</option><option>Алекс</option><option selected>Марина</option><option>Дима</option></select></div>
+      <div class="full"><label>Заметки</label><textarea placeholder="Свободный текст…"></textarea></div>
+    </div>
+    <div class="foot">
+      <button class="btn" onclick="closeModal(this.closest('.overlay'))">Отмена</button>
+      <button class="btn primary" onclick="closeModal(this.closest('.overlay'))">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= ФОРМА: ДОМЕН ======================= -->
+<div class="overlay" id="modal-domain" onclick="if(event.target===this)closeModal(this)">
+  <div class="modal">
+    <h2>Новый домен</h2>
+    <div class="fgrid">
+      <div class="full"><label>Доменное имя *</label><input placeholder="example.com"></div>
+      <div><label>Регистратор</label><input placeholder="Namecheap"></div>
+      <div><label>Дата продления</label><input type="date" value="2027-06-10"></div>
+      <div><label>Статус *</label>
+        <select><option>Активен</option><option>Истекает</option><option>Истёк</option><option>Припаркован</option></select></div>
+      <div class="check"><input type="checkbox" id="ar"><label for="ar" style="margin:0">Автопродление</label></div>
+      <div class="full"><label>Проект</label>
+        <select><option>— без проекта —</option><option>LuckySpin Review</option><option>BrandCore Main</option><option>DG-Cluster-07</option><option>SpineNet A</option></select></div>
+      <div class="full"><label>Заметка</label><textarea placeholder="Свободный текст…"></textarea></div>
+    </div>
+    <div class="foot">
+      <button class="btn" onclick="closeModal(this.closest('.overlay'))">Отмена</button>
+      <button class="btn primary" onclick="closeModal(this.closest('.overlay'))">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- панель переключения экранов (только для макета) -->
+<div class="demo-bar">
+  МАКЕТ:
+  <button onclick="show('login')">Вход</button>
+  <button onclick="show('projects')">Проекты</button>
+  <button onclick="show('domains')">Домены</button>
+  <button onclick="show('users')">Пользователи</button>
+  <button onclick="show('log')">Лог</button>
+</div>
+
+<script>
+function show(name){
+  document.getElementById('scr-login').classList.toggle('visible', name==='login');
+  document.getElementById('scr-app').classList.toggle('visible', name!=='login');
+  ['projects','domains','users','log'].forEach(s=>{
+    document.getElementById('scr-'+s).classList.toggle('visible', s===name);
+  });
+  document.querySelectorAll('.nav a[data-nav]').forEach(a=>{
+    a.classList.toggle('active', a.dataset.nav===name);
+  });
+  window.scrollTo(0,0);
+  return false;
+}
+function openModal(id){document.getElementById(id).classList.add('open')}
+function closeModal(el){el.classList.remove('open')}
+show('projects'); // макет открывается сразу на «Проектах»; экран входа — кнопкой внизу
+</script>
+</body>
+</html>
