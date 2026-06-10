@@ -41,6 +41,58 @@ export function addChild(db, parent_id, title) {
   return getNode(db, id);
 }
 
+// ===== Импорт вставленного блока: разбор вложенности по отступам =====
+export function parseOutline(text) {
+  const lines = String(text).replace(/\r/g, '').split('\n');
+  const out = [];
+  for (const raw of lines) {
+    if (!raw.trim()) continue;
+    const indentMatch = raw.match(/^[\t ]*/)[0];
+    const indent = indentMatch.replace(/\t/g, '    ').length;
+    // срезаем маркеры списков и нумерацию: «1.», «2)», «-», «•», «◦», «▪»
+    const title = raw.trim().replace(/^(?:\d+[.)]|[-*•◦▪‣o])\s+/u, '').trim();
+    if (title) out.push({ indent, title });
+  }
+  // нормализуем отступы в уровни
+  const levels = [...new Set(out.map(l => l.indent))].sort((a, b) => a - b);
+  return out.map(l => ({ level: levels.indexOf(l.indent), title: l.title }));
+}
+
+export function importBlock(db, parent_id, text) {
+  const rows = parseOutline(text);
+  const stack = [{ level: -1, id: parent_id ?? null }];
+  let count = 0;
+  for (const r of rows) {
+    while (stack.length > 1 && stack.at(-1).level >= r.level) stack.pop();
+    const id = insertNode(db, stack.at(-1).id, r.title);
+    stack.push({ level: r.level, id });
+    count++;
+  }
+  return count;
+}
+
+// ===== Перемещение узла (раскидывание по категориям) =====
+export function moveNode(db, id, new_parent_id) {
+  if (id === new_parent_id) throw new Error('self-parent');
+  if (new_parent_id != null) {
+    const desc = db.prepare(`
+      WITH RECURSIVE r(x) AS (
+        SELECT id FROM nodes WHERE parent_id = ?
+        UNION SELECT n.id FROM nodes n JOIN r ON n.parent_id = r.x
+      ) SELECT 1 AS hit FROM r WHERE x = ? LIMIT 1`).get(id, new_parent_id);
+    if (desc) throw new Error('cannot move into own descendant');
+  }
+  const ord = db.prepare('SELECT COALESCE(MAX(ord), 0) + 1 AS o FROM nodes WHERE parent_id IS ?')
+    .get(new_parent_id).o;
+  db.prepare(`UPDATE nodes SET parent_id = ?, ord = ?, updated_at = datetime('now') WHERE id = ?`)
+    .run(new_parent_id, ord, id);
+  return getNode(db, id);
+}
+
+export function listCategories(db) {
+  return db.prepare('SELECT * FROM nodes WHERE is_category = 1 ORDER BY parent_id NULLS FIRST, ord').all();
+}
+
 // ===== Связи (только подтверждённые пользователем) =====
 export function addLink(db, from_id, to_id, type = 'related') {
   if (from_id === to_id) throw new Error('self-link');
@@ -90,9 +142,11 @@ export function listTree(db) {
 
 const VERBS = /^(понять|продать|купить|найти|находим|написать|посмотреть|посмотрим|использовать|сделать|назначить|подумать|сформулирую|формулирую|изучить|закрыть|общаемся|ведем|ведём|завести|положить|оплатить|проверить|узнать|записаться|выбрать|решить)/i;
 const DECIS = /^(стоит ли|как мы|что лучше|или\b)/i;
+const WORRY = /(боюсь|страшно|тревож|переживаю|волнуюсь|а вдруг|а если)/i;
 
 export function suggestKind(title) {
   const t = title.trim();
+  if (WORRY.test(t)) return 'worry';
   if (DECIS.test(t)) return 'decision';
   if (/\?\s*$/.test(t)) return 'question';
   const letters = t.replace(/[^а-яёa-z]/gi, '');

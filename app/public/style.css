@@ -71,3 +71,11 @@ body{background:var(--bg);color:var(--text);font:14px/1.45 var(--sans);height:10
 #dateInput{width:100%;border:1px solid var(--line);border-radius:7px;padding:6px 8px;font:12px var(--sans);margin-top:6px;background:var(--panel)}
 .addbar{margin-top:12px}
 .addbar input{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:13px var(--sans);background:var(--panel)}
+.task.cat{background:var(--bg2)}
+.task.cat:hover{background:var(--panel2)}
+.task.cat.sel{background:var(--green-soft)}
+.folder{color:var(--green);font-size:12px}
+.importpanel{background:var(--panel);border:1px solid var(--green-dim);border-radius:10px;padding:12px 14px;margin-bottom:12px}
+.importpanel textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:10px;font:13px/1.5 var(--mono);background:var(--bg);resize:vertical}
+.importpanel select,.movesel{border:1px solid var(--line);border-radius:7px;padding:5px 8px;font:12px var(--sans);background:var(--panel);max-width:100%}
+.movesel{width:100%;margin:4px 0}

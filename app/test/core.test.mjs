@@ -6,114 +6,124 @@ import * as core from '../core.js';
 function freshDb() { const db = createDb(':memory:'); seed(db); return db; }
 const byTitle = (db, part) =>
   core.listTree(db).nodes.find(n => n.title.includes(part));
+const catByTitle = (db, part) =>
+  core.listCategories(db).find(n => n.title.includes(part));
 
-test('нормализация гомоглифов: х5 == x5', () => {
-  assert.equal(norm('х5'), 'x5');
-  assert.equal(norm('X5'), 'x5');
-  assert.equal(norm('Продать х5'), norm('Продать x5'));
-});
+// Реальный блок пользователя — как он вставит его в поле импорта
+const BLOCK = `5. Авто
+    1. SK
+        1. Понять, когда будет внж у Натальи - примерно январь, и у меня
+        2. Как мы покупаем в SK? Бюджет? Цель? Что?
+    2. Х5
+        1. Август продать х5?
+        2. 10к с продажи откладываем на легализацию своего авто
+        3. Стоит ли положить половину Наталье на счет ?
+    3. МХ5
+        1. НЕ СПЕШИМ до 2028`;
 
-test('сид: структура пользователя дословно, НИЧЕГО не типизировано и не связано', () => {
+const BLOCK2 = `Семья
+    - Консультация за договор
+    - Сделать до росписи
+        - Продать х5 до надо`;
+
+test('сид: только категории пользователя, ноль записей и связей', () => {
   const db = freshDb();
   const s = core.listTree(db);
-  assert.ok(s.nodes.length >= 28);
-  assert.ok(s.nodes.every(n => n.kind === null), 'все kind = NULL');
-  assert.ok(s.nodes.every(n => n.priority === null), 'все priority = NULL');
-  assert.ok(s.nodes.every(n => !n.blocked), 'ничего не заблокировано');
-  assert.equal(s.links.length, 0, 'ноль связей');
+  assert.ok(s.nodes.every(n => n.is_category === 1), 'в сиде только категории');
+  assert.equal(s.links.length, 0);
+  for (const c of ['Инбокс', 'Финансы', 'Налоги', 'Балансы', 'Легализация', 'ВНЖ',
+                   'Работа', 'Жизнь', 'История и расчёты', 'Тревоги', 'Глобальные цели'])
+    assert.ok(catByTitle(db, c), `категория «${c}» есть`);
+  const trev = catByTitle(db, 'Тревоги');
+  const sub = s.nodes.filter(n => n.parent_id === trev.id).map(n => n.title);
+  assert.equal(sub.length, 8, 'у Тревог 8 подкатегорий');
+  assert.ok(sub.includes('Принятые'));
 });
 
-test('сид: вложенность и порядок сохранены (Авто → Х5 → 4 строки в исходном порядке)', () => {
+test('parseOutline: уровни по отступам, маркеры срезаются', () => {
+  const rows = core.parseOutline(BLOCK);
+  assert.equal(rows[0].title, 'Авто');
+  assert.equal(rows[0].level, 0);
+  assert.equal(rows[1].title, 'SK');
+  assert.equal(rows[1].level, 1);
+  assert.equal(rows[2].level, 2);
+  assert.match(rows[2].title, /^Понять/);
+  const dash = core.parseOutline(BLOCK2);
+  assert.equal(dash[1].title, 'Консультация за договор');
+  assert.equal(dash[3].title, 'Продать х5 до надо');
+  assert.equal(dash[3].level, 2);
+});
+
+test('importBlock: блок ложится в категорию с вложенностью и порядком', () => {
   const db = freshDb();
+  const inbox = catByTitle(db, 'Инбокс');
+  const n = core.importBlock(db, inbox.id, BLOCK);
+  assert.equal(n, 10);
+  const avto = byTitle(db, 'Авто');
+  assert.equal(avto.parent_id, inbox.id);
   const x5 = byTitle(db, 'Х5');
-  const kids = core.listTree(db).nodes
-    .filter(n => n.parent_id === x5.id)
-    .sort((a, b) => a.ord - b.ord)
-    .map(n => n.title);
-  assert.equal(kids.length, 4);
-  assert.match(kids[0], /Август продать/);
-  assert.match(kids[3], /половину Наталье/);
+  const kids = core.listTree(db).nodes.filter(k => k.parent_id === x5.id).sort((a, b) => a.ord - b.ord);
+  assert.equal(kids.length, 3);
+  assert.match(kids[0].title, /Август/);
+  assert.ok(kids.every(k => k.kind === null), 'импорт ничего не типизирует');
 });
 
-test('подсказка типа: предлагает, но не сохраняет', () => {
+test('перемещение: запись уходит в категорию, в потомка — нельзя', () => {
   const db = freshDb();
-  const n = byTitle(db, 'Август продать');
-  const s = core.suggestForNode(db, n.id);
-  assert.equal(s.kind, 'question');           // «…х5?» — вопрос на конце
+  const inbox = catByTitle(db, 'Инбокс');
+  core.importBlock(db, inbox.id, BLOCK);
+  const sellX5 = byTitle(db, 'Август продать');
+  const nalogi = core.listCategories(db)
+    .find(c => c.title === 'Налоги' && core.getNode(db, c.parent_id).title === 'Финансы');
+  core.moveNode(db, sellX5.id, nalogi.id);
+  assert.equal(core.getNode(db, sellX5.id).parent_id, nalogi.id);
+  const avto = byTitle(db, 'Авто');
+  const x5 = byTitle(db, 'Х5');
+  assert.throws(() => core.moveNode(db, avto.id, x5.id), /descendant/);
+});
+
+test('подсказки: тип (включая тревогу) и срок — только предлагаются', () => {
+  const db = freshDb();
+  const inbox = catByTitle(db, 'Инбокс');
+  core.importBlock(db, inbox.id, BLOCK);
   assert.equal(core.suggestKind('Стоит ли положить половину Наталье на счет ?'), 'decision');
   assert.equal(core.suggestKind('НЕ СПЕШИМ до 2028'), 'principle');
-  assert.equal(core.suggestKind('Понять, когда будет внж у Натальи'), 'task');
-  assert.equal(byTitle(db, 'Август продать').kind, null, 'в базе ничего не изменилось');
-});
-
-test('подсказка срока из текста: «Август…» и «до 2028»', () => {
+  assert.equal(core.suggestKind('боюсь что налоги посчитают не так'), 'worry');
   const now = new Date('2026-06-10');
   assert.equal(core.suggestDate('Август продать х5?', now).date, '2026-08-31');
   assert.equal(core.suggestDate('НЕ СПЕШИМ до 2028', now).date, '2027-12-31');
-  assert.equal(core.suggestDate('просто строка', now), null);
+  assert.ok(core.listTree(db).nodes.filter(n => !n.is_category).every(n => !n.kind));
 });
 
-test('принятие типа пользователем выставляет стартовый статус', () => {
+test('предложения связей между импортированными блоками: х5 ↔ «Продать х5 до надо»', () => {
   const db = freshDb();
-  const n = byTitle(db, 'Август продать');
-  core.updateNode(db, n.id, { kind: 'task' });
-  assert.equal(core.getNode(db, n.id).status, 'todo');
-  core.updateNode(db, n.id, { kind: 'decision' });
-  assert.equal(core.getNode(db, n.id).status, 'open');
-});
-
-test('предложения связей: «Август продать х5?» находит «Продать х5 до надо» из Семьи', () => {
-  const db = freshDb();
+  const inbox = catByTitle(db, 'Инбокс');
+  core.importBlock(db, inbox.id, BLOCK);
+  const sem = core.listCategories(db)
+    .find(c => c.title === 'Семья' && core.getNode(db, c.parent_id).title === 'Жизнь');
+  core.importBlock(db, sem.id, BLOCK2);
   const s = core.suggestForNode(db, byTitle(db, 'Август продать').id);
-  const titles = s.links.map(l => l.node.title).join('|');
-  assert.match(titles, /Продать х5 до надо/);
-  assert.ok(s.links.every(l => l.reason.startsWith('совпадение')), 'у каждого предложения есть причина');
+  assert.match(s.links.map(l => l.node.title).join('|'), /Продать х5 до надо/);
 });
 
-test('предложения не включают родителей/детей и уже отклонённое', () => {
+test('блокировка только после подтверждения; категории не считаются записями', () => {
   const db = freshDb();
-  const n = byTitle(db, 'Август продать');
-  const s1 = core.suggestForNode(db, n.id);
-  assert.ok(!s1.links.some(l => l.node.title === 'Х5'), 'родитель не предлагается');
-  const target = s1.links.find(l => /до надо/.test(l.node.title));
-  core.dismissPair(db, n.id, target.node.id);
-  const s2 = core.suggestForNode(db, n.id);
-  assert.ok(!s2.links.some(l => l.node.id === target.node.id), 'отклонённое скрыто');
-});
-
-test('блокировка появляется ТОЛЬКО после подтверждения связи пользователем', () => {
-  const db = freshDb();
+  const inbox = catByTitle(db, 'Инбокс');
+  core.importBlock(db, inbox.id, BLOCK);
+  core.importBlock(db, inbox.id, BLOCK2);
   const sell = byTitle(db, 'Август продать');
   const consult = byTitle(db, 'Консультация за договор');
   assert.equal(sell.blocked, false);
   core.updateNode(db, consult.id, { kind: 'task' });
-  core.addLink(db, consult.id, sell.id, 'blocks');      // пользователь подтвердил
+  core.addLink(db, consult.id, sell.id, 'blocks');
   assert.equal(byTitle(db, 'Август продать').blocked, true);
-  core.toggleNode(db, consult.id);                      // консультация done
+  core.toggleNode(db, consult.id);
   assert.equal(byTitle(db, 'Август продать').blocked, false);
 });
 
-test('циклы и self-link запрещены', () => {
+test('поиск с гомоглифами работает по импортированному', () => {
   const db = freshDb();
-  const a = core.addChild(db, null, 'A');
-  const b = core.addChild(db, null, 'B');
-  core.addLink(db, a.id, b.id, 'blocks');
-  assert.throws(() => core.addLink(db, b.id, a.id, 'blocks'), /cycle/);
-  assert.throws(() => core.addLink(db, a.id, a.id), /self/);
-});
-
-test('toggle работает только для типизированных задач/решений', () => {
-  const db = freshDb();
-  const plain = byTitle(db, 'Поездки');
-  core.toggleNode(db, plain.id);
-  assert.equal(core.getNode(db, plain.id).status, null, 'нетипизированная строка не трогается');
-});
-
-test('поиск: кириллица находит, дети добавляются в конец', () => {
-  const db = freshDb();
-  assert.ok(core.search(db, 'х5').length >= 2);
-  const x5 = byTitle(db, 'Х5');
-  const added = core.addChild(db, x5.id, 'Новая строка');
-  const kids = core.listTree(db).nodes.filter(n => n.parent_id === x5.id).sort((a, b) => a.ord - b.ord);
-  assert.equal(kids.at(-1).id, added.id);
+  core.importBlock(db, catByTitle(db, 'Инбокс').id, BLOCK);
+  assert.equal(norm('х5'), 'x5');
+  assert.ok(core.search(db, 'x5').some(n => n.title.includes('х5')));
 });

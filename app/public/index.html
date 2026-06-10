@@ -12,7 +12,8 @@
 </div>
 <div class="layout">
   <nav class="side">
-    <div class="item active">☰ Список (структура — твоя)</div>
+    <div class="item active">☰ Категории и список</div>
+    <div class="item" id="importBtn">⤓ Импорт заметок</div>
     <div class="item off">▤ Инфо · этап 3</div>
     <div class="item off">▦ Календарь · этап 2</div>
     <div class="item off">◈ Финансы 🔒 · этап 2</div>
@@ -23,8 +24,18 @@
     </div>
   </nav>
   <main class="main">
-    <div class="hint">Структура и порядок — из твоего списка, ничего не типизировано заранее.
-      Кликни строку → справа подсказки: тип, срок, связи. Принимаешь только ты.</div>
+    <div id="importPanel" class="importpanel" style="display:none">
+      <div class="sec" style="margin-top:0">⤓ Импорт блока заметок</div>
+      <textarea id="importText" rows="10" placeholder="Вставь блок из заметок как есть — вложенность по отступам, маркеры (1. / - / •) распознаются и убираются."></textarea>
+      <div class="btnrow" style="margin-top:8px">
+        <span class="muted">куда:</span>
+        <select id="importTarget"></select>
+        <span class="pill btn ok" id="importGo">Импортировать</span>
+        <span class="pill btn" id="importClose">закрыть</span>
+      </div>
+    </div>
+    <div class="hint">Вставляй блоки через «⤓ Импорт» → они попадут в выбранную категорию (по умолчанию 📥 Инбокс) с твоей вложенностью.
+      Кликни строку → справа карточка: тип, срок, «переместить в…», связи. Решаешь только ты.</div>
     <div id="board"></div>
     <div class="addbar">
       <input id="addTitle" placeholder="Добавить строку… (Enter — в выбранный узел, пусто — в корень)">

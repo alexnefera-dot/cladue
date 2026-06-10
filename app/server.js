@@ -11,7 +11,7 @@ const PORT = Number(process.env.PORT ?? 7777);
 
 const fresh = DB_PATH === ':memory:' || !existsSync(DB_PATH);
 const db = createDb(DB_PATH);
-if (fresh) { seed(db); console.log('БД создана: твой список загружен дословно →', DB_PATH); }
+if (fresh) { seed(db); console.log('БД создана: категории готовы, вставляй блоки через «⤓ Импорт» →', DB_PATH); }
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
 
@@ -45,6 +45,19 @@ const server = http.createServer(async (req, res) => {
       const r = core.suggestForNode(db, +m[1]);
       return r ? json(res, 200, r) : json(res, 404, { error: 'not found' });
     }
+    if (p === '/api/import' && req.method === 'POST') {
+      const b = await body(req);
+      if (!b.text?.trim()) return json(res, 400, { error: 'text required' });
+      const count = core.importBlock(db, b.parent_id ?? null, b.text);
+      return json(res, 201, { imported: count });
+    }
+    if ((m = p.match(/^\/api\/nodes\/(\d+)\/move$/)) && req.method === 'POST') {
+      const b = await body(req);
+      try { return json(res, 200, core.moveNode(db, +m[1], b.parent_id ?? null)); }
+      catch (e) { return json(res, 400, { error: e.message }); }
+    }
+    if (p === '/api/categories' && req.method === 'GET')
+      return json(res, 200, core.listCategories(db));
     if (p === '/api/links' && req.method === 'POST') {
       const b = await body(req);
       try { core.addLink(db, b.from_id, b.to_id, b.type ?? 'related'); }

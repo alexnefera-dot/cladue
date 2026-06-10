@@ -2,10 +2,13 @@ let state = null, selected = null;
 const collapsed = new Set();
 
 const KIND = { task: ['задача','ok'], decision: ['решение','dec'], question: ['вопрос','p2'],
-               principle: ['принцип','p1'], idea: ['идея',''] };
+               principle: ['принцип','p1'], idea: ['идея',''], worry: ['тревога','p0'] };
 
 const api = {
   tree: () => fetch('/api/tree').then(r => r.json()),
+  categories: () => fetch('/api/categories').then(r => r.json()),
+  import: b => fetch('/api/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json()),
+  move: (id, parent_id) => fetch(`/api/nodes/${id}/move`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ parent_id }) }).then(r => r.json()),
   suggest: id => fetch('/api/suggest/' + id).then(r => r.json()),
   patch: (id, b) => fetch('/api/nodes/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json()),
   toggle: id => fetch(`/api/nodes/${id}/toggle`, { method: 'POST' }).then(r => r.json()),
@@ -25,11 +28,21 @@ async function load() {
   if (selected) showCard(selected);
 }
 
+function countItems(catId) {
+  let c = 0;
+  const walk = id => (byParent[id] ?? []).forEach(k => { if (!k.is_category) c++; walk(k.id); });
+  walk(catId);
+  return c ? c + ' зап.' : 'пусто';
+}
+
 function renderStatus() {
-  const typed = state.nodes.filter(n => n.kind).length;
-  const blocked = state.nodes.filter(n => n.blocked).length;
+  const real = state.nodes.filter(n => !n.is_category);
+  const typed = real.filter(n => n.kind).length;
+  const blocked = real.filter(n => n.blocked).length;
+  const inboxId = state.nodes.find(n => n.is_category && n.title.includes('Инбокс'))?.id;
+  const inbox = inboxId ? (state.nodes.filter(n => n.parent_id === inboxId).length) : 0;
   document.getElementById('statusbar').textContent =
-    `строк: ${state.nodes.length} · типизировано: ${typed} · связей: ${state.links.length} · заблокировано: ${blocked}`;
+    `записей: ${real.length} · типизировано: ${typed} · связей: ${state.links.length} · заблокировано: ${blocked} · в инбоксе: ${inbox}`;
 }
 
 function nodeRow(n, depth, idx) {
@@ -39,6 +52,11 @@ function nodeRow(n, depth, idx) {
   const caret = kids
     ? `<span class="caret" data-fold="${n.id}">${collapsed.has(n.id) ? '▸' : '▾'}</span>`
     : '<span class="caret"></span>';
+  if (n.is_category) {
+    const inside = kids ? `<span class="meta">${countItems(n.id)}</span>` : '<span class="meta">пусто</span>';
+    return `<div class="task cat ${selected === n.id ? 'sel' : ''}" data-id="${n.id}" style="padding-left:${6 + depth * 24}px">
+      ${caret}<span class="folder">▣</span><span class="t top">${esc(n.title)}</span>${inside}</div>`;
+  }
   const marker = !n.kind
     ? `<span class="bullet">${idx}.</span>`
     : (n.kind === 'task' || n.kind === 'decision')
@@ -76,11 +94,29 @@ function pathOf(id) {
 
 const LINKLABEL = { related: '⛓ связано', blocks: '⛔ блокирует' };
 
+function catOptions(currentParent) {
+  const walk = (pid, depth) => (byParent[pid] ?? [])
+    .filter(n => n.is_category)
+    .flatMap(n => [`<option value="${n.id}" ${n.id === currentParent ? 'selected' : ''}>${' '.repeat(depth * 3)}${esc(n.title)}</option>`,
+                   ...[walk(n.id, depth + 1)]]).join('');
+  return walk('root', 0);
+}
+
 async function showCard(id) {
   selected = id;
   renderBoard();
   const s = await api.suggest(id);
   const n = s.node;
+
+  if (n.is_category) {
+    document.getElementById('insp').innerHTML = `
+      <h3>Категория</h3>
+      <div class="title">${esc(n.title)}</div>
+      <div class="muted">${esc(pathOf(id) || 'верхний уровень')}</div>
+      <div class="muted" style="margin-top:8px">Внутри: ${countItems(id)}.
+        Строка внизу добавит запись сюда; «⤓ Импорт» зальёт блок в выбранную категорию.</div>`;
+    return;
+  }
   const kindBtns = ['task', 'decision', 'question', 'principle', 'idea']
     .map(k => `<span class="pill btn ${n.kind === k ? 'ok' : ''} ${s.kind === k ? 'pulse' : ''}"
        data-setkind="${k}">${KIND[k][0]}${s.kind === k ? ' ★' : ''}</span>`).join(' ');
@@ -91,6 +127,12 @@ async function showCard(id) {
     <h3>Оригинал</h3>
     <div class="title">${esc(n.title)}</div>
     <div class="muted" style="margin-bottom:8px">${esc(pathOf(id) || 'корень списка')}</div>
+
+    <h3>Раскидать: переместить в…</h3>
+    <select id="moveSel" class="movesel">
+      <option value="">— выбери категорию —</option>
+      ${catOptions(n.parent_id)}
+    </select>
 
     <h3>Тип <span class="hintstar">★ — подсказка, решаешь ты</span></h3>
     <div class="btnrow">${kindBtns} ${n.kind ? `<span class="pill btn" data-setkind="">сбросить</span>` : ''}</div>
@@ -131,6 +173,14 @@ async function showCard(id) {
     : '<div class="muted">кандидатов не найдено</div>'}
   `;
 
+  document.getElementById('moveSel')?.addEventListener('change', async e => {
+    const v = e.target.value;
+    if (!v) return;
+    const r = await api.move(id, +v);
+    if (r.error) alert(r.error);
+    await load();
+  });
+
   document.getElementById('dateInput').addEventListener('keydown', async e => {
     if (e.key === 'Enter' && /^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) {
       await api.patch(id, { due_date: e.target.value });
@@ -169,6 +219,34 @@ document.getElementById('addTitle').addEventListener('keydown', async e => {
   await api.add({ title: e.target.value.trim(), parent_id: selected ?? null });
   e.target.value = '';
   await load();
+});
+
+// ===== Импорт =====
+document.getElementById('importBtn').addEventListener('click', () => {
+  const panel = document.getElementById('importPanel');
+  const show = panel.style.display === 'none';
+  panel.style.display = show ? 'block' : 'none';
+  if (show) {
+    const sel = document.getElementById('importTarget');
+    sel.innerHTML = catOptions(null);
+    const inbox = state.nodes.find(n => n.is_category && n.title.includes('Инбокс'));
+    if (inbox) sel.value = inbox.id;
+    document.getElementById('importText').focus();
+  }
+});
+document.getElementById('importClose').addEventListener('click', () => {
+  document.getElementById('importPanel').style.display = 'none';
+});
+document.getElementById('importGo').addEventListener('click', async () => {
+  const text = document.getElementById('importText').value;
+  if (!text.trim()) return;
+  const target = +document.getElementById('importTarget').value || null;
+  const r = await api.import({ parent_id: target, text });
+  document.getElementById('importText').value = '';
+  document.getElementById('importPanel').style.display = 'none';
+  await load();
+  if (target) { collapsed.delete(target); renderBoard(); }
+  document.getElementById('statusbar').textContent += ` · ⤓ импортировано: ${r.imported}`;
 });
 
 let st;
