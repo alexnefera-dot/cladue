@@ -89,6 +89,24 @@ export function moveNode(db, id, new_parent_id) {
   return getNode(db, id);
 }
 
+// ===== Удаление узла со всем поддеревом (и чистка поискового индекса) =====
+export function deleteNode(db, id) {
+  const ids = db.prepare(`
+    WITH RECURSIVE r(x) AS (
+      SELECT ? UNION SELECT n.id FROM nodes n JOIN r ON n.parent_id = r.x
+    ) SELECT x FROM r`).all(id).map(r => r.x);
+  for (const x of ids) db.prepare('DELETE FROM node_fts WHERE rowid = ?').run(x);
+  db.prepare('DELETE FROM nodes WHERE id = ?').run(id);   // дети — каскадом
+  return ids.length;
+}
+
+export function subtreeCount(db, id) {
+  return db.prepare(`
+    WITH RECURSIVE r(x) AS (
+      SELECT ? UNION SELECT n.id FROM nodes n JOIN r ON n.parent_id = r.x
+    ) SELECT count(*) AS c FROM r`).get(id).c - 1;
+}
+
 export function listCategories(db) {
   return db.prepare('SELECT * FROM nodes WHERE is_category = 1 ORDER BY parent_id NULLS FIRST, ord').all();
 }

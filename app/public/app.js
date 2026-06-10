@@ -17,6 +17,7 @@ const api = {
   move: (id, parent_id) => fetch(`/api/nodes/${id}/move`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ parent_id }) }).then(r => r.json()),
   import: b => fetch('/api/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json()),
   link: b => fetch('/api/links', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json()),
+  del: id => fetch('/api/nodes/' + id, { method: 'DELETE' }).then(r => r.json()),
   unlink: id => fetch('/api/links/' + id, { method: 'DELETE' }),
   dismiss: (a, b) => fetch('/api/dismiss', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ a, b }) }),
   search: q => fetch('/api/search?q=' + encodeURIComponent(q)).then(r => r.json()),
@@ -142,10 +143,16 @@ async function showCard(id, { silent = false } = {}) {
   const prioBtns = ['P0', 'P1', 'P2', 'P3']
     .map(p => `<span class="pill btn ${p} ${n.priority === p ? 'ok' : ''}" data-setprio="${p}">${p}</span>`).join(' ');
 
+  const subCount = (() => { let c = 0; const w = x => (byParent[x] ?? []).forEach(k => { c++; w(k.id); }); w(id); return c; })();
+
   document.getElementById('insp').innerHTML = `
-    <h3>Оригинал</h3>
+    <h3>Оригинал <span class="hintstar">двойной клик по строке — правка текста</span></h3>
     <div class="title">${esc(n.title)}</div>
     <div class="muted" style="margin-bottom:8px">${esc(pathOf(id) || 'корень')}</div>
+
+    <h3>Заметка / рассуждение</h3>
+    <textarea id="noteEdit" rows="3" placeholder="мысли, контекст, почему…">${esc(n.note)}</textarea>
+    <div class="btnrow"><span class="pill btn ok" id="noteSave">сохранить заметку</span></div>
 
     <h3>Раскидать: переместить в…</h3>
     <select id="moveSel" class="movesel">
@@ -191,8 +198,15 @@ async function showCard(id, { silent = false } = {}) {
         </div>
       </div>`).join('')
     : '<div class="muted">кандидатов не найдено</div>'}
+
+    <h3>Опасная зона</h3>
+    <span class="pill btn danger" data-del="${n.id}">🗑 удалить${subCount ? ` (и ${subCount} вложенных)` : ''}</span>
   `;
 
+  document.getElementById('noteSave')?.addEventListener('click', async () => {
+    await api.patch(id, { note: document.getElementById('noteEdit').value.trim() });
+    await load();
+  });
   document.getElementById('moveSel')?.addEventListener('change', async e => {
     if (!e.target.value) return;
     const r = await api.move(id, +e.target.value);
@@ -229,6 +243,17 @@ document.addEventListener('click', async e => {
     await load(); return;
   }
   if (el.dataset.dis) { await api.dismiss(id, +el.dataset.dis); await load(); return; }
+  if (el.dataset.del) {
+    const did = +el.dataset.del;
+    const n = state.nodes.find(x => x.id === did);
+    if (confirm(`Удалить «${n?.title}»${el.textContent.includes('вложенных') ? ' со всеми вложенными' : ''}? Отменить нельзя.`)) {
+      await api.del(did);
+      selected = null; picked.delete(did);
+      document.getElementById('insp').innerHTML = '<h3>Карточка узла</h3><div class="muted">Удалено.</div>';
+      await load();
+    }
+    return;
+  }
 
   const row = el.closest('.task[data-id]');
   if (!row) return;
@@ -246,6 +271,33 @@ document.addEventListener('click', async e => {
     }
   }
   showCard(rid);
+});
+
+// ===== Двойной клик: правка текста на месте =====
+document.addEventListener('dblclick', e => {
+  const row = e.target.closest('.task[data-id]');
+  if (!row) return;
+  const id = +row.dataset.id;
+  const n = state.nodes.find(x => x.id === id);
+  const t = row.querySelector('.t');
+  if (!t || row.querySelector('.inlineedit')) return;
+  const input = document.createElement('input');
+  input.className = 'inlineedit';
+  input.value = n.title;
+  t.replaceWith(input);
+  input.focus(); input.select();
+  let saved = false;
+  const save = async () => {
+    if (saved) return; saved = true;
+    const v = input.value.trim();
+    if (v && v !== n.title) await api.patch(id, { title: v });
+    await load();
+  };
+  input.addEventListener('keydown', ev => {
+    if (ev.key === 'Enter') save();
+    if (ev.key === 'Escape') { saved = true; load(); }
+  });
+  input.addEventListener('blur', save);
 });
 
 // ===== Drag & drop: вложенность любого в любое =====
@@ -299,12 +351,30 @@ document.getElementById('bulkGo').addEventListener('click', async () => {
   picked = new Set();
   await load();
 });
+document.getElementById('bulkDel').addEventListener('click', async () => {
+  if (!confirm(`Удалить ${picked.size} выбранных записей (с их вложенными)? Отменить нельзя.`)) return;
+  for (const mid of picked) await api.del(mid);
+  picked = new Set(); selected = null;
+  await load();
+});
 document.getElementById('bulkClear').addEventListener('click', () => {
   picked = selected ? new Set([selected]) : new Set();
   renderBoard();
 });
 
-// ===== Добавление строки =====
+// ===== Добавление строки (вставка нескольких строк = импорт) =====
+document.getElementById('addTitle').addEventListener('paste', async e => {
+  const text = e.clipboardData.getData('text');
+  if (!text.includes('\n')) return;
+  e.preventDefault();
+  const inbox = state.nodes.find(n => n.is_category && n.title.includes('Инбокс'));
+  const target = selected ?? inbox?.id ?? null;
+  const r = await api.import({ parent_id: target, text });
+  if (target) collapsed.delete(target);
+  e.target.value = '';
+  await load();
+  document.getElementById('statusbar').textContent += ` · ⤓ импортировано: ${r.imported}`;
+});
 document.getElementById('addTitle').addEventListener('keydown', async e => {
   if (e.key !== 'Enter' || !e.target.value.trim()) return;
   await api.add({ title: e.target.value.trim(), parent_id: selected ?? null });

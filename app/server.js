@@ -51,6 +51,8 @@ const server = http.createServer(async (req, res) => {
       const count = core.importBlock(db, b.parent_id ?? null, b.text);
       return json(res, 201, { imported: count });
     }
+    if ((m = p.match(/^\/api\/nodes\/(\d+)$/)) && req.method === 'DELETE')
+      return json(res, 200, { deleted: core.deleteNode(db, +m[1]) });
     if ((m = p.match(/^\/api\/nodes\/(\d+)\/move$/)) && req.method === 'POST') {
       const b = await body(req);
       try { return json(res, 200, core.moveNode(db, +m[1], b.parent_id ?? null)); }

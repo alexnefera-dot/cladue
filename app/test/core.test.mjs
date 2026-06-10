@@ -136,6 +136,30 @@ test('вложенность любого в любое: вопрос внутр
   assert.equal(core.getNode(db, t2.id).parent_id, q.id);
 });
 
+test('удаление: поддерево уходит целиком и пропадает из поиска', () => {
+  const db = freshDb();
+  const inbox = catByTitle(db, 'Инбокс');
+  core.importBlock(db, inbox.id, BLOCK);
+  const x5 = byTitle(db, 'Х5');
+  const before = core.listTree(db).nodes.length;
+  const deleted = core.deleteNode(db, x5.id);
+  assert.equal(deleted, 4, 'Х5 + 3 ребёнка');
+  assert.equal(core.listTree(db).nodes.length, before - 4);
+  assert.ok(!byTitle(db, 'Август продать'), 'детей больше нет');
+  assert.equal(core.search(db, 'х5').length, 0, 'поисковый индекс почищен');
+});
+
+test('редактирование: новый текст ищется, старый — нет', () => {
+  const db = freshDb();
+  const inbox = catByTitle(db, 'Инбокс');
+  core.importBlock(db, inbox.id, BLOCK);
+  const n = byTitle(db, 'Понять, когда будет внж');
+  core.updateNode(db, n.id, { title: 'Уточнить сроки ВНЖ в консульстве', note: 'записаться на приём' });
+  assert.ok(core.search(db, 'консульстве').some(x => x.id === n.id));
+  assert.ok(core.search(db, 'приём').some(x => x.id === n.id), 'заметка тоже ищется');
+  assert.ok(!core.search(db, 'понять').some(x => x.id === n.id));
+});
+
 test('поиск с гомоглифами работает по импортированному', () => {
   const db = freshDb();
   core.importBlock(db, catByTitle(db, 'Инбокс').id, BLOCK);

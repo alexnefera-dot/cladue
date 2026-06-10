@@ -26,7 +26,7 @@
   <main class="main">
     <div id="importPanel" class="importpanel" style="display:none">
       <div class="sec" style="margin-top:0">⤓ Импорт блока заметок</div>
-      <textarea id="importText" rows="10" placeholder="Вставь блок из заметок как есть — вложенность по отступам, маркеры (1. / - / •) распознаются и убираются."></textarea>
+      <textarea id="importText" rows="16" placeholder="Вставь сюда сколько угодно строк — хоть весь список разом.&#10;Вложенность по отступам сохраняется, маркеры (1. / - / •) срезаются.&#10;&#10;Пример:&#10;Авто&#10;    SK&#10;        Понять, когда будет внж&#10;    Х5&#10;        Август продать х5?"></textarea>
       <div class="btnrow" style="margin-top:8px">
         <span class="muted">куда:</span>
         <select id="importTarget"></select>
@@ -40,11 +40,12 @@
       <span id="bulkCount"></span>
       <select id="bulkTarget"></select>
       <span class="pill btn ok" id="bulkGo">переместить выбранные</span>
+      <span class="pill btn danger" id="bulkDel">🗑 удалить выбранные</span>
       <span class="pill btn" id="bulkClear">✕ снять выделение</span>
     </div>
     <div id="board"></div>
     <div class="addbar">
-      <input id="addTitle" placeholder="Добавить строку… (Enter — в выбранный узел, пусто — в корень)">
+      <input id="addTitle" placeholder="Добавить строку (Enter — внутрь выбранной) · вставишь несколько строк — сработает как импорт">
     </div>
   </main>
   <aside class="insp" id="insp"><h3>Карточка узла</h3>
