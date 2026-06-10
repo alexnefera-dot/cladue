@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Pipboy — макет десктопа</title>
+<title>Pipboy — макет десктопа v2</title>
 <style>
   :root{
     --bg:#f5f6f8; --bg2:#eef0f3; --panel:#ffffff; --panel2:#e9edf1;
@@ -13,13 +13,11 @@
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--text);font:14px/1.45 var(--sans);height:100vh;display:flex;flex-direction:column;overflow:hidden}
-  /* titlebar */
   .titlebar{height:38px;background:var(--bg2);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 14px;gap:8px;flex:0 0 auto}
   .dot{width:12px;height:12px;border-radius:50%}
   .titlebar .name{margin-left:14px;font:600 12px var(--mono);color:var(--green);letter-spacing:2px}
   .titlebar .status{margin-left:auto;font:11px var(--mono);color:var(--muted)}
   .layout{flex:1;display:flex;min-height:0}
-  /* sidebar */
   .side{width:208px;background:var(--bg2);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:10px 8px;flex:0 0 auto}
   .side .item{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:7px;color:var(--muted);cursor:pointer;font-size:13px;user-select:none}
   .side .item:hover{background:var(--panel);color:var(--text)}
@@ -28,7 +26,7 @@
   .side .sep{height:1px;background:var(--line);margin:10px 6px}
   .side .bottom{margin-top:auto}
   .kbd{font:10px var(--mono);border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:var(--muted);margin-left:auto}
-  /* main */
+  .lock{font-size:10px;margin-left:4px}
   .main{flex:1;overflow-y:auto;padding:22px 26px;min-width:0}
   .screen{display:none}.screen.on{display:block}
   h1.page{font:600 20px var(--sans);margin-bottom:2px}
@@ -37,7 +35,6 @@
   .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
   .grid{display:grid;gap:14px}
   .g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}
-  .row{display:flex;align-items:center;gap:10px}
   .num{font-family:var(--mono)}
   .pill{font:10px var(--mono);padding:2px 8px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}
   .pill.p0{color:var(--red);border-color:var(--red)} .pill.p1{color:var(--amber);border-color:var(--amber)}
@@ -57,45 +54,39 @@
   th{font:600 10px var(--mono);letter-spacing:1px;color:var(--muted);text-transform:uppercase;text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
   td{padding:8px;border-bottom:1px solid var(--line)} tr:last-child td{border-bottom:0}
   td.r,th.r{text-align:right}
-  /* inspector */
   .insp{width:248px;background:var(--bg2);border-left:1px solid var(--line);padding:16px 14px;flex:0 0 auto;overflow-y:auto;font-size:12px}
   .insp h3{font:600 11px var(--mono);letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin:14px 0 8px}
   .insp h3:first-child{margin-top:0}
   .chip{display:inline-block;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:3px 8px;margin:0 4px 6px 0;font-size:11px;color:var(--text)}
   .chip.link{color:var(--green);cursor:pointer}
   .kv{display:flex;justify-content:space-between;padding:4px 0;color:var(--muted)} .kv b{color:var(--text);font-weight:500}
-  /* notes */
-  .notes-wrap{display:flex;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;min-height:520px}
+  .notes-wrap{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;min-height:480px}
   .notes-tree{width:215px;background:var(--bg2);border-right:1px solid var(--line);padding:12px 8px;font-size:13px}
   .ntitem{padding:5px 8px;border-radius:6px;color:var(--muted);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .ntitem:hover{background:var(--panel)} .ntitem.active{background:var(--green-soft);color:var(--green)}
   .ntitem.indent{margin-left:16px}.ntitem.indent2{margin-left:32px}
   .editor{flex:1;background:var(--panel);padding:28px 34px;min-width:0}
   .editor h1{font-size:24px;margin-bottom:14px}
-  .editor p{margin-bottom:10px;color:var(--text)}
+  .editor p{margin-bottom:10px}
   .wikilink{color:var(--green);border-bottom:1px dashed var(--green-dim);cursor:pointer}
   .callout{background:var(--green-soft);border:1px solid var(--green-dim);border-radius:8px;padding:10px 14px;margin:12px 0;display:flex;gap:10px}
   .toggle{color:var(--muted);margin:8px 0;cursor:pointer}
   .slashhint{color:var(--muted);font-style:italic;border-left:2px solid var(--line);padding-left:10px;margin-top:16px}
   blockquote{border-left:3px solid var(--green-dim);padding-left:12px;color:var(--muted);margin:10px 0}
-  /* wheel svg labels */
   .legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12px;color:var(--muted)}
-  .legend .num{color:var(--text)}
   svg text{font:11px var(--mono);fill:var(--muted)}
-  /* calendar */
   .cal{display:grid;grid-template-columns:repeat(7,1fr);border:1px solid var(--line);border-radius:10px;overflow:hidden}
   .cal .h{background:var(--bg2);padding:6px;font:10px var(--mono);color:var(--muted);text-align:center;letter-spacing:1px;border-bottom:1px solid var(--line)}
   .cal .d{min-height:84px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:5px 6px;background:var(--panel);font-size:11px}
   .cal .d .n{font:11px var(--mono);color:var(--muted);margin-bottom:4px}
   .cal .d.today{background:var(--green-soft)} .cal .d.today .n{color:var(--green);font-weight:700}
-  .cal .d.dim{opacity:.35}
   .ev{border-radius:4px;padding:1px 5px;margin-bottom:3px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .ev.task{background:rgba(90,167,224,.15);color:var(--blue)}
-  .ev.money{background:rgba(224,179,57,.15);color:var(--amber)}
+  .ev.task{background:rgba(47,127,194,.12);color:var(--blue)}
+  .ev.money{background:rgba(176,125,16,.12);color:var(--amber)}
   .ev.cal{background:var(--green-soft);color:var(--green)}
-  .ev.review{background:rgba(224,90,90,.15);color:var(--red)}
-  /* cashflow bars */
-  .cf{display:flex;align-items:flex-end;gap:14px;height:150px;padding:10px 6px 0}
+  .ev.review{background:rgba(204,68,68,.12);color:var(--red)}
+  .ev.psy{background:rgba(140,90,200,.12);color:#7a4fc0}
+  .cf{display:flex;align-items:flex-end;gap:14px;height:130px;padding:10px 6px 0}
   .cf .m{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;font:10px var(--mono);color:var(--muted)}
   .cf .b{width:70%;border-radius:4px 4px 0 0;background:var(--green-dim)}
   .cf .b.neg{background:var(--red)}
@@ -103,6 +94,9 @@
   .footer-hint{margin-top:26px;color:var(--muted);font-size:11px;border-top:1px solid var(--line);padding-top:10px}
   .quick{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--green-dim);border-radius:10px;padding:9px 16px;font:12px var(--mono);color:var(--muted);box-shadow:0 8px 30px rgba(31,41,51,.15)}
   .quick b{color:var(--green)}
+  .zonebar{display:flex;align-items:center;gap:10px;background:rgba(176,125,16,.08);border:1px solid rgba(176,125,16,.35);border-radius:8px;padding:8px 12px;font:11px var(--mono);color:var(--amber);margin-bottom:16px}
+  .subtabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+  .lockcard{display:flex;align-items:center;gap:12px;background:var(--panel2);border:1px dashed var(--line);border-radius:10px;padding:14px 16px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -110,22 +104,22 @@
 <div class="titlebar">
   <span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span>
   <span class="name">▣ PIPBOY</span>
-  <span class="status">СР 10 ИЮН 2026 · Q2: осталось 20 дней · неделя 24 · 🔒 заблокировать ⌘L</span>
+  <span class="status">СР 10 ИЮН 2026 · Q2: осталось 20 дней · 🔒 заблокировать всё ⌘L</span>
 </div>
 
 <div class="layout">
 
-  <!-- ============ SIDEBAR ============ -->
   <nav class="side">
     <div class="item active" data-s="today"><span class="ico">◉</span>Сегодня<span class="kbd">⌘1</span></div>
     <div class="item" data-s="tasks"><span class="ico">☑</span>Задачи<span class="kbd">⌘2</span></div>
-    <div class="item" data-s="notes"><span class="ico">▤</span>Инфо<span class="kbd">⌘3</span></div>
-    <div class="item" data-s="cal"><span class="ico">▦</span>Календарь<span class="kbd">⌘4</span></div>
-    <div class="item" data-s="fin"><span class="ico">◈</span>Финансы<span class="kbd">⌘5</span></div>
-    <div class="item" data-s="wheel"><span class="ico">◎</span>Колесо<span class="kbd">⌘6</span></div>
-    <div class="item"><span class="ico">⚑</span>Цели</div>
-    <div class="item"><span class="ico">✎</span>Журнал</div>
+    <div class="item" data-s="goals"><span class="ico">⚑</span>Цели<span class="kbd">⌘3</span></div>
+    <div class="item" data-s="notes"><span class="ico">▤</span>Инфо<span class="kbd">⌘4</span></div>
+    <div class="item" data-s="cal"><span class="ico">▦</span>Календарь<span class="kbd">⌘5</span></div>
     <div class="sep"></div>
+    <div class="item" data-s="fin"><span class="ico">◈</span>Финансы<span class="lock">🔒</span><span class="kbd">⌘6</span></div>
+    <div class="item" data-s="psy"><span class="ico">◎</span>Психология<span class="lock">🔒</span><span class="kbd">⌘7</span></div>
+    <div class="sep"></div>
+    <div class="item"><span class="ico">✎</span>Журнал</div>
     <div class="item"><span class="ico">↻</span>Рутины</div>
     <div class="item"><span class="ico">⊕</span>Inbox <span class="pill" style="margin-left:auto">4</span></div>
     <div class="bottom">
@@ -135,85 +129,111 @@
     </div>
   </nav>
 
-  <!-- ============ MAIN ============ -->
   <main class="main">
 
-  <!-- ===== СЕГОДНЯ ===== -->
+  <!-- ===== СЕГОДНЯ (без секретов) ===== -->
   <section class="screen on" id="s-today">
     <h1 class="page">Сегодня</h1>
-    <div class="sub">Среда, 10 июня · 3 задачи · 2 события · платежей на неделе: 12 400 ₽</div>
+    <div class="sub">Среда, 10 июня · экран безопасен для чужих глаз — приватные зоны скрыты</div>
 
     <div class="grid g3">
-      <div class="card"><div class="meta">НЕТВОРС</div>
-        <div class="num" style="font-size:22px;margin:4px 0">8 412 300 ₽ <span class="up" style="font-size:13px">▲ 1.8%</span></div>
-        <svg width="100%" height="30" viewBox="0 0 200 30" preserveAspectRatio="none"><polyline points="0,24 25,22 50,25 75,18 100,19 125,14 150,15 175,9 200,7" fill="none" stroke="#1e9e57" stroke-width="2"/></svg>
-        <div class="meta">за 30 дней</div></div>
+      <div class="card"><div class="meta">МЕСЯЦ АКТИВНОСТИ</div>
+        <div style="font-size:18px;font-weight:600;margin:4px 0">🎾 Июнь — падл</div>
+        <div class="meta">сыграно 5 из 8 игр · след. классный план: «уикенд в горах» (июль)</div></div>
       <div class="card"><div class="meta">НЕДЕЛЬНЫЕ ЦЕЛИ</div>
         <div class="num" style="font-size:22px;margin:4px 0">4 / 6</div>
         <div class="bar" style="margin:8px 0 6px"><i style="width:67%"></i></div>
-        <div class="meta">фокус: сектор «Здоровье» (5/10)</div></div>
-      <div class="card"><div class="meta">РУТИНА · УТРО</div>
-        <div class="task"><span class="cb done"></span><span class="t done">Зарядка 15 мин</span></div>
+        <div class="meta">фокус недели: «Переезд» — 2 шага</div></div>
+      <div class="card"><div class="meta">РУТИНА · УТРО · 🔥 12</div>
+        <div class="task"><span class="cb done"></span><span class="t done">Подъём 7:00</span></div>
         <div class="task"><span class="cb done"></span><span class="t done">Планирование дня</span></div>
-        <div class="task"><span class="cb"></span><span class="t">Чтение 20 стр</span><span class="meta">🔥 12</span></div></div>
+        <div class="task"><span class="cb"></span><span class="t">Чтение 20 стр</span></div></div>
     </div>
 
     <div class="sec">Задачи на сегодня</div>
     <div class="card">
       <div class="task"><span class="cb"></span><span class="pill p0">P0</span><span class="t">Подать документы на визу</span><span class="meta">⚑ Переезд · сегодня</span></div>
-      <div class="task"><span class="cb"></span><span class="pill p1">P1</span><span class="t">Ревью портфеля: ребаланс облигаций</span><span class="meta">◈ Финансы · сегодня</span></div>
+      <div class="task"><span class="cb"></span><span class="pill p1">P1</span><span class="t">Шаг по портфелю (детали в 🔒)</span><span class="meta">◈ Финансы</span></div>
       <div class="task"><span class="cb done"></span><span class="t done">Созвон с бухгалтером</span><span class="meta">14:00</span></div>
-      <div class="task blocked"><span class="cb"></span><span class="pill p2">P2</span><span class="t">Купить билеты</span><span class="meta">⛔ ждёт: «Подать документы на визу»</span></div>
+      <div class="task blocked"><span class="cb"></span><span class="pill p2">P2</span><span class="t">Купить билеты</span><span class="meta">⛔ ждёт: визу</span></div>
     </div>
 
     <div class="grid g2" style="margin-top:14px">
       <div>
         <div class="sec">События</div>
         <div class="card">
-          <div class="task"><span class="meta num">16:00</span><span class="t">Тренировка (зал)</span><span class="pill ok">кал</span></div>
-          <div class="task"><span class="meta num">19:30</span><span class="t">Ужин с А.</span><span class="pill ok">кал</span></div>
+          <div class="task"><span class="meta num">16:00</span><span class="t">Падл с Д.</span><span class="pill ok">энергия</span></div>
+          <div class="task"><span class="meta num">19:00</span><span class="t">Практика: тревоги по расписанию</span><span class="pill">психология</span></div>
         </div>
       </div>
       <div>
-        <div class="sec">Платежи · 7 дней</div>
-        <div class="card">
-          <div class="task"><span class="meta num">11.06</span><span class="t">iCloud+ 2TB</span><span class="meta num">999 ₽</span></div>
-          <div class="task"><span class="meta num">13.06</span><span class="t">Кредит авто · платёж 14/36</span><span class="meta num amber">38 000 ₽</span></div>
-          <div class="task"><span class="meta num">15.06</span><span class="t">Spotify <span class="pill" style="margin-left:6px">не исп. 6 нед?</span></span><span class="meta num">299 ₽</span></div>
-        </div>
+        <div class="sec">Приватные зоны</div>
+        <div class="lockcard">🔒 <div><b>Финансы:</b> 3 напоминания на этой неделе<br><span class="meta">разблокировать — повторный пароль · ⌘⇧F</span></div></div>
+        <div class="lockcard" style="margin-top:10px">🔒 <div><b>Психология:</b> 1 практика сегодня в 19:00<br><span class="meta">разблокировать — повторный пароль · ⌘⇧P</span></div></div>
       </div>
     </div>
-    <div class="footer-hint">Inbox: 4 необработанных записи → разобрать вечером · Ближайшее ревью: вс 14.06</div>
+    <div class="footer-hint">Inbox: 4 записи → разобрать вечером · Ревью недели: вс 14.06 · ⌘N — быстрый ввод</div>
   </section>
 
   <!-- ===== ЗАДАЧИ ===== -->
   <section class="screen" id="s-tasks">
     <h1 class="page">Задачи</h1>
-    <div class="sub">Вид: Дерево · фильтр: активные · <span class="pill">Список</span> <span class="pill ok">Дерево</span> <span class="pill">Доска</span> <span class="pill">Неделя</span></div>
+    <div class="sub">Вид: Дерево · <span class="pill">Список</span> <span class="pill ok">Дерево</span> <span class="pill">Доска</span> <span class="pill">Неделя</span> · из задачи → в календарь, из календаря выполнение → в цель</div>
 
     <div class="sec">⚑ Цель: Переезд (Q2) — прогресс 40%</div>
     <div class="card">
-      <div class="task"><span class="cb"></span><span class="pill p0">P0</span><span class="t"><b>Подать документы на визу</b></span><span class="meta">срок: 10.06 · план есть · лог: 3 записи</span></div>
-      <div class="task" style="padding-left:30px"><span class="cb done"></span><span class="t done">Собрать справки с работы</span></div>
-      <div class="task" style="padding-left:30px"><span class="cb done"></span><span class="t done">Перевод документов</span></div>
-      <div class="task" style="padding-left:30px"><span class="cb"></span><span class="t">Запись в визовый центр</span><span class="meta">сегодня</span></div>
-      <div class="task blocked"><span class="cb"></span><span class="pill p2">P2</span><span class="t">Купить билеты</span><span class="meta">⛔ после: «Подать документы на визу»</span></div>
-      <div class="task blocked"><span class="cb"></span><span class="pill p2">P2</span><span class="t">Бронь жилья на месяц</span><span class="meta">⛔ после: «Купить билеты»</span></div>
+      <div class="task"><span class="cb"></span><span class="pill p0">P0</span><span class="t"><b>Подать документы на визу</b></span><span class="meta">срок 10.06 · план есть · лог: 3</span></div>
+      <div class="task" style="padding-left:30px"><span class="cb done"></span><span class="t done">Собрать справки</span></div>
+      <div class="task" style="padding-left:30px"><span class="cb"></span><span class="t">Запись в визовый центр</span><span class="meta">→ в календарь 11:30 ✓</span></div>
+      <div class="task blocked"><span class="cb"></span><span class="pill p2">P2</span><span class="t">Купить билеты</span><span class="meta">⛔ после визы · 💬 «брать гибкий тариф»</span></div>
+      <div class="task blocked"><span class="cb"></span><span class="pill p2">P2</span><span class="t">Бронь жилья</span><span class="meta">⛔ зависит от решения: «город Б или В»</span></div>
     </div>
 
-    <div class="sec">◎ Сектор: Финансы</div>
-    <div class="card">
-      <div class="task"><span class="cb"></span><span class="pill p1">P1</span><span class="t">Ревью портфеля: ребаланс облигаций</span><span class="meta">повтор: ежемесячно</span></div>
-      <div class="task"><span class="cb"></span><span class="pill p2">P2</span><span class="t">Отменить неиспользуемые подписки</span><span class="meta">из сигнала подписок</span></div>
-    </div>
-
-    <div class="sec">Без цели · предупреждение в ревью</div>
+    <div class="sec">Без цели · попадёт в ревью</div>
     <div class="card">
       <div class="task"><span class="cb"></span><span class="pill p2">P2</span><span class="t">Починить полку</span><span class="meta">без цели · без срока</span></div>
     </div>
   </section>
 
-  <!-- ===== ЗАМЕТКИ ===== -->
+  <!-- ===== ЦЕЛИ ===== -->
+  <section class="screen" id="s-goals">
+    <h1 class="page">Цели</h1>
+    <div class="sub"><span class="pill ok">Глобальные</span> <span class="pill">Год</span> <span class="pill">Квартал</span> <span class="pill">Энергия жизни</span> <span class="pill">Разбор списка</span></div>
+
+    <div class="zonebar" style="background:var(--green-soft);border-color:var(--green-dim);color:var(--green)">⛏ Разбор импортированного списка: обработано 128 из 514 строк · продолжить →</div>
+
+    <div class="sec">Направление жизни</div>
+    <div class="card">
+      <div class="task"><span class="pill ok">жизнь</span><span class="t"><b>Финансовая независимость</b></span><span class="meta">прогресс в 🔒 Финансы → FIRE</span></div>
+      <div class="task"><span class="pill ok">жизнь</span><span class="t"><b>Жить у моря, работать на себя</b></span><span class="meta">3 подцели</span></div>
+    </div>
+
+    <div class="sec">Граф зависимостей (фрагмент)</div>
+    <div class="card">
+      <div class="task"><span class="pill p1">решение</span><span class="t"><b>Выбрать город: Б или В</b></span><span class="meta">блокирует 7 задач ниже</span></div>
+      <div class="task" style="padding-left:30px"><span class="cb"></span><span class="t">Бронь жилья</span><span class="meta">⛔ зависит от решения</span></div>
+      <div class="task" style="padding-left:30px"><span class="cb"></span><span class="t">Школа языка</span><span class="meta">⛔ зависит от решения · 💬 «если Б — то интенсив»</span></div>
+      <div class="task"><span class="pill p2">дополняет</span><span class="t">Падл-комьюнити на новом месте</span><span class="meta">↔ дополняет «жить у моря»</span></div>
+    </div>
+
+    <div class="sec">⚡ Энергия жизни · месяц активности: падл</div>
+    <div class="grid g2">
+      <div class="card">
+        <div class="meta">КЛАССНЫЕ ПЛАНЫ</div>
+        <div class="task"><span class="cb"></span><span class="t">Уикенд в горах</span><span class="meta">июль · бюджет в 🔒</span></div>
+        <div class="task"><span class="cb"></span><span class="t">Сезон падл-турниров</span><span class="meta">осень</span></div>
+        <div class="task"><span class="cb"></span><span class="t">Новая камера</span><span class="meta">крупная покупка → 🔒 план трат</span></div>
+      </div>
+      <div class="card">
+        <div class="meta">ЖЕЛАНИЯ ВНУТРЕННЕГО РЕБЁНКА <span class="pill">из психологии</span></div>
+        <div class="task"><span class="cb"></span><span class="t">Картинг с друзьями</span></div>
+        <div class="task"><span class="cb done"></span><span class="t done">Концерт любимой группы</span><span class="meta">→ дополнил цель «эмоции»</span></div>
+        <div class="task"><span class="cb"></span><span class="t">Поход с палаткой как в детстве</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== ИНФО ===== -->
   <section class="screen" id="s-notes">
     <h1 class="page">Инфо</h1>
     <div class="sub">Свой аналог Notion: блочный редактор · вложенные страницы · [[вики-ссылки]] · бэклинки</div>
@@ -222,23 +242,20 @@
         <div class="ntitem">📌 Принципы</div>
         <div class="ntitem">🧠 База знаний</div>
         <div class="ntitem indent">Инвестиции</div>
-        <div class="ntitem indent2">Облигации: шпаргалка</div>
         <div class="ntitem indent">Здоровье</div>
         <div class="ntitem active">✈️ План переезда</div>
-        <div class="ntitem indent">Виза — план задачи</div>
         <div class="ntitem indent">Сравнение городов</div>
-        <div class="ntitem">📓 Журнал решений</div>
+        <div class="ntitem" style="color:var(--muted)">🔒 Майндсет (психология)</div>
         <div class="ntitem" style="margin-top:10px;color:var(--green)">+ Новая страница</div>
       </div>
       <div class="editor">
         <h1>✈️ План переезда</h1>
-        <div class="callout">💡 <div>Связано с целью <span class="wikilink">[[Переезд (Q2)]]</span> и задачей <span class="wikilink">[[Подать документы на визу]]</span></div></div>
-        <p>Главный критерий выбора — баланс стоимости жизни и качества среды. Бюджет считаем из прогноза кэшфлоу: <span class="wikilink">[[Финансы → прогноз июль]]</span>.</p>
-        <blockquote>Решение от 02.06: едем в вариант Б, пересмотр через 3 месяца → запись в журнале решений</blockquote>
-        <div class="toggle">▸ Сравнение городов (таблица, свёрнуто)</div>
+        <div class="callout">💡 <div>Связано с целью <span class="wikilink">[[Переезд (Q2)]]</span> и решением <span class="wikilink">[[Выбрать город: Б или В]]</span></div></div>
+        <p>Критерий — баланс стоимости жизни и среды. Бюджет: <span class="wikilink">[[🔒 Финансы → прогноз июль]]</span>.</p>
+        <blockquote>Решение от 02.06: склоняюсь к Б, пересмотр через 3 месяца → журнал решений</blockquote>
+        <div class="toggle">▸ Сравнение городов (таблица)</div>
         <div class="toggle">▸ Чеклист документов (8/12)</div>
-        <p style="margin-top:14px">Дальше: после визы открываются задачи <span class="wikilink">[[Купить билеты]]</span> → <span class="wikilink">[[Бронь жилья]]</span>.</p>
-        <div class="slashhint">Наберите «/» для вставки блока: заголовок, чеклист, таблица, callout, embed-сущность…</div>
+        <div class="slashhint">«/» — вставка блока: заголовок, чеклист, таблица, callout, embed-сущность…</div>
       </div>
     </div>
   </section>
@@ -246,105 +263,174 @@
   <!-- ===== КАЛЕНДАРЬ ===== -->
   <section class="screen" id="s-cal">
     <h1 class="page">Календарь</h1>
-    <div class="sub">Июнь 2026 · единая лента: события + дедлайны задач + финансовые даты + ревью</div>
+    <div class="sub">Июнь 2026 · события + дедлайны + деньги (без сумм при блокировке) + практики + ревью</div>
     <div class="cal">
       <div class="h">ПН</div><div class="h">ВТ</div><div class="h">СР</div><div class="h">ЧТ</div><div class="h">ПТ</div><div class="h">СБ</div><div class="h">ВС</div>
       <div class="d"><div class="n">8</div></div>
-      <div class="d"><div class="n">9</div><div class="ev cal">Стоматолог 11:00</div></div>
-      <div class="d today"><div class="n">10</div><div class="ev task">⚑ Виза — дедлайн</div><div class="ev cal">Зал 16:00</div></div>
-      <div class="d"><div class="n">11</div><div class="ev money">iCloud+ −999₽</div></div>
+      <div class="d"><div class="n">9</div><div class="ev psy">Тревоги 19:00</div></div>
+      <div class="d today"><div class="n">10</div><div class="ev task">⚑ Виза — дедлайн</div><div class="ev cal">Падл 16:00</div><div class="ev psy">Тревоги 19:00</div></div>
+      <div class="d"><div class="n">11</div><div class="ev money">платёж 🔒</div></div>
       <div class="d"><div class="n">12</div></div>
-      <div class="d"><div class="n">13</div><div class="ev money">Кредит −38 000₽</div></div>
+      <div class="d"><div class="n">13</div><div class="ev money">платёж 🔒</div></div>
       <div class="d"><div class="n">14</div><div class="ev review">Ревью недели</div></div>
-      <div class="d"><div class="n">15</div><div class="ev money">Spotify −299₽</div><div class="ev money">Зарплата +X</div></div>
-      <div class="d"><div class="n">16</div></div>
-      <div class="d"><div class="n">17</div><div class="ev task">Ребаланс портфеля</div></div>
+      <div class="d"><div class="n">15</div><div class="ev money">доход 🔒</div></div>
+      <div class="d"><div class="n">16</div><div class="ev psy">Тревоги 19:00</div></div>
+      <div class="d"><div class="n">17</div><div class="ev task">Шаг портфеля 🔒</div></div>
       <div class="d"><div class="n">18</div></div>
       <div class="d"><div class="n">19</div><div class="ev cal">ДР мамы 🎂</div></div>
-      <div class="d"><div class="n">20</div></div>
+      <div class="d"><div class="n">20</div><div class="ev cal">Падл-турнир</div></div>
       <div class="d"><div class="n">21</div><div class="ev review">Ревью недели</div></div>
     </div>
-    <div class="footer-hint">Легенда: <span class="ev cal" style="display:inline">событие</span> <span class="ev task" style="display:inline">задача/дедлайн</span> <span class="ev money" style="display:inline">деньги</span> <span class="ev review" style="display:inline">ревью</span></div>
+    <div class="footer-hint">Выполнил событие → отметка уходит в задачу и дополняет цель записью «сделано»</div>
   </section>
 
   <!-- ===== ФИНАНСЫ ===== -->
   <section class="screen" id="s-fin">
     <h1 class="page">Финансы</h1>
-    <div class="sub"><span class="pill ok">Обзор</span> <span class="pill">Портфель</span> <span class="pill">Подписки</span> <span class="pill">Транзакции</span> <span class="pill">Пассивы</span> · 👁 скрыть суммы</div>
+    <div class="sub">Замена Snowball + Monefy · 👁 скрыть суммы («режим кафе»)</div>
+    <div class="zonebar">🔓 Зона разблокирована повторным паролем · автоблок через 4:32</div>
+    <div class="subtabs"><span class="pill ok">Обзор</span> <span class="pill">Портфель</span> <span class="pill">Счета</span> <span class="pill">Расходы</span> <span class="pill">Доходы</span> <span class="pill">Пассивы</span> <span class="pill">FIRE</span> <span class="pill">Макро</span></div>
 
     <div class="grid g3">
       <div class="card"><div class="meta">НЕТВОРС</div><div class="num" style="font-size:20px;margin-top:4px">8 412 300 ₽</div><div class="meta up">▲ +148 200 за месяц</div></div>
-      <div class="card"><div class="meta">ПОДПИСКИ / МЕС</div><div class="num" style="font-size:20px;margin-top:4px">6 840 ₽</div><div class="meta amber">2 кандидата на отмену</div></div>
-      <div class="card"><div class="meta">ПАССИВЫ</div><div class="num" style="font-size:20px;margin-top:4px">−842 000 ₽</div><div class="meta">кредит авто · 22 платежа осталось</div></div>
+      <div class="card"><div class="meta">FIRE · ЦЕЛЬ 25 000 000</div><div class="num" style="font-size:20px;margin-top:4px">33.6%</div><div class="bar" style="margin-top:6px"><i style="width:34%"></i></div><div class="meta">прогноз: 2033 при тек. норме сбережений</div></div>
+      <div class="card"><div class="meta">МАКРО · МОЙ ТЕЗИС</div><div style="font-weight:600;margin-top:4px">Поздний цикл ⚠</div><div class="meta">от 28.05: «жду коррекции, кэш ↑, докупки лесенкой» · история тезисов →</div></div>
     </div>
 
-    <div class="sec">Портфель · отклонение от целевой аллокации</div>
+    <div class="sec">Портфель: текущий → целевой</div>
     <div class="card">
       <table>
-        <tr><th>Актив</th><th>Класс</th><th class="r">Стоимость</th><th class="r">Доля / цель</th><th class="r">XIRR</th></tr>
-        <tr><td>Индекс акций</td><td><span class="pill">акции</span></td><td class="r num">3 950 000</td><td class="r num">47% / 50%</td><td class="r num up">+14.2%</td></tr>
-        <tr><td>ОФЗ + корп.</td><td><span class="pill">облиг.</span></td><td class="r num">2 100 000</td><td class="r num amber">25% / 30% ⚠</td><td class="r num up">+11.1%</td></tr>
-        <tr><td>BTC / ETH</td><td><span class="pill">крипто</span></td><td class="r num">980 000</td><td class="r num">12% / 10%</td><td class="r num up">+31.0%</td></tr>
-        <tr><td>Кэш-подушка</td><td><span class="pill">кэш</span></td><td class="r num">1 382 300</td><td class="r num">16% / 10%</td><td class="r num down">−7% инфл.</td></tr>
+        <tr><th>Класс / инструмент</th><th class="r">Цена (авто)</th><th class="r">Стоимость</th><th class="r">Сейчас → цель</th><th class="r">Отклон.</th></tr>
+        <tr><td>ETF мировые акции</td><td class="r num">обновл. 09:00</td><td class="r num">3 950 000</td><td class="r num">47% → 50%</td><td class="r num amber">−3%</td></tr>
+        <tr><td>Облигации</td><td class="r num">вручную</td><td class="r num">2 100 000</td><td class="r num amber">25% → 30%</td><td class="r num amber">−5%</td></tr>
+        <tr><td>BTC</td><td class="r num">обновл. 09:00</td><td class="r num">980 000</td><td class="r num">12% → 10%</td><td class="r num">+2%</td></tr>
+        <tr><td>Золото</td><td class="r num">обновл. 09:00</td><td class="r num">0</td><td class="r num down">0% → 5% ⚠</td><td class="r num down">−5%</td></tr>
+        <tr><td>Кэш (₽/$/€)</td><td class="r num">курсы авто</td><td class="r num">1 382 300</td><td class="r num">16% → 5%</td><td class="r num">+11%</td></tr>
       </table>
-      <div class="meta" style="margin-top:8px">⚠ Ребаланс: докупить облигаций на ~420 000 ₽ из кэша → создать задачу</div>
+      <div class="bar" style="margin-top:10px"><i style="width:78%"></i></div>
+      <div class="meta" style="margin-top:4px">соответствие целевому портфелю: 78%</div>
     </div>
 
-    <div class="sec">Прогноз кэшфлоу · 6 месяцев</div>
+    <div class="grid g2" style="margin-top:14px">
+      <div>
+        <div class="sec">План шагов (покупки/продажи)</div>
+        <div class="card">
+          <div class="task"><span class="pill ok">купить</span><span class="t">Золото ETF на 420 000</span><span class="meta">17.06 → задача+календарь</span></div>
+          <div class="task"><span class="pill ok">купить</span><span class="t">Облигации на 300 000</span><span class="meta">условие: после зарплаты</span></div>
+          <div class="task"><span class="pill p1">продать</span><span class="t">BTC на 150 000</span><span class="meta">условие: BTC > $120k · тезис «поздний цикл»</span></div>
+          <div class="task"><span class="cb done"></span><span class="t done">Перевод на брокера 200 000</span><span class="meta">05.06 ✓ → транзакция</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="sec">Счета · инлайн-обновление</div>
+        <div class="card">
+          <div class="task"><span class="t">Брокер А</span><span class="meta num">5 030 000 · вчера</span></div>
+          <div class="task"><span class="t">Банк (карта)</span><span class="meta num">312 300 · сегодня</span></div>
+          <div class="task"><span class="t">Крипто-кошелёк</span><span class="meta num">980 000 · сегодня</span></div>
+          <div class="task"><span class="t amber">Вклад $ </span><span class="meta num amber">⚠ не обновлялся 3 нед — тап для ввода</span></div>
+        </div>
+        <div class="sec">Дебиторка · невыплаченные доходы</div>
+        <div class="card">
+          <div class="task"><span class="t">Проект Х, остаток</span><span class="meta num">250 000 · ждём 20.06</span></div>
+          <div class="task"><span class="t down">Консультация Y</span><span class="meta num down">45 000 · просрочен 9 дн ⚠ напомнить</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid g2" style="margin-top:14px">
+      <div>
+        <div class="sec">Обязательства и напоминания</div>
+        <div class="card">
+          <div class="task"><span class="meta num">13.06</span><span class="t">Кредит авто 14/36</span><span class="meta num">38 000</span></div>
+          <div class="task"><span class="meta num">01.07</span><span class="t">Аренда ячейки (банк)</span><span class="meta num">за 5 дн напомнить</span></div>
+          <div class="task"><span class="meta num">05.07</span><span class="t">Коммуналка квартира #2</span><span class="meta num">~9 000</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="sec">Расходы · импорт Monefy</div>
+        <div class="card">
+          <div class="kv">Июнь, факт <b class="num">142 000 / план 180 000</b></div>
+          <div class="bar" style="margin:6px 0"><i style="width:79%"></i></div>
+          <div class="kv">Топ: еда 38k · авто 24k · развлечения 19k <b></b></div>
+          <div class="meta" style="margin-top:6px">⬆ импорт CSV из Monefy · след. крупная трата: «камера» (план, авг)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">Прогноз кэшфлоу · 6 мес (с крупными тратами и дебиторкой)</div>
     <div class="card">
       <div class="cf">
-        <div class="m"><div class="b" style="height:62px"></div>июн</div>
-        <div class="m"><div class="b" style="height:48px"></div>июл</div>
-        <div class="m"><div class="b neg" style="height:26px"></div>авг ⚠</div>
-        <div class="m"><div class="b" style="height:55px"></div>сен</div>
-        <div class="m"><div class="b pot" style="height:95px"></div>окт*</div>
-        <div class="m"><div class="b" style="height:70px"></div>ноя</div>
+        <div class="m"><div class="b" style="height:60px"></div>июн</div>
+        <div class="m"><div class="b" style="height:46px"></div>июл</div>
+        <div class="m"><div class="b neg" style="height:24px"></div>авг ⚠</div>
+        <div class="m"><div class="b" style="height:52px"></div>сен</div>
+        <div class="m"><div class="b pot" style="height:90px"></div>окт*</div>
+        <div class="m"><div class="b" style="height:66px"></div>ноя</div>
       </div>
-      <div class="meta" style="margin-top:8px">авг: прогноз −34 000 ₽ (страховка + отпуск) · *окт: потенциальный доход «проект Х» взвешен на 60%</div>
+      <div class="meta" style="margin-top:8px">авг: −34 000 (камера + горы) · *окт: потенциальный доход, взвешен 60%</div>
     </div>
   </section>
 
-  <!-- ===== КОЛЕСО ===== -->
-  <section class="screen" id="s-wheel">
-    <h1 class="page">Колесо развития</h1>
-    <div class="sub">Замер от 01.06 · следующий — 01.07 · пунктир: прошлый месяц</div>
-    <div class="grid g2">
-      <div class="card" style="display:flex;justify-content:center">
-        <svg width="340" height="320" viewBox="0 0 340 320">
-          <g stroke="#dde2e8" fill="none">
-            <polygon points="170,40 262,78 300,160 262,242 170,280 78,242 40,160 78,78"/>
-            <polygon points="170,80 231,105 255,160 231,215 170,240 109,215 85,160 109,105"/>
-            <polygon points="170,120 200,132 212,160 200,188 170,200 140,188 128,160 140,132"/>
-            <line x1="170" y1="160" x2="170" y2="40"/><line x1="170" y1="160" x2="262" y2="78"/>
-            <line x1="170" y1="160" x2="300" y2="160"/><line x1="170" y1="160" x2="262" y2="242"/>
-            <line x1="170" y1="160" x2="170" y2="280"/><line x1="170" y1="160" x2="78" y2="242"/>
-            <line x1="170" y1="160" x2="40" y2="160"/><line x1="170" y1="160" x2="78" y2="78"/>
-          </g>
-          <polygon points="170,75 240,98 280,160 235,213 170,224 113,205 95,160 122,112" fill="rgba(30,158,87,.15)" stroke="#1e9e57" stroke-width="2"/>
-          <polygon points="170,90 228,105 262,160 222,205 170,236 120,196 105,160 130,120" fill="none" stroke="#9aa7b3" stroke-width="1.5" stroke-dasharray="4 4"/>
-          <text x="170" y="28" text-anchor="middle">Здоровье 5</text>
-          <text x="278" y="68">Финансы 8</text>
-          <text x="306" y="164">Карьера 7</text>
-          <text x="272" y="258">Отношения 6</text>
-          <text x="170" y="298" text-anchor="middle">Развитие 8</text>
-          <text x="20" y="258">Отдых 4</text>
-          <text x="14" y="164">Окружение 6</text>
-          <text x="26" y="68">Смысл 7</text>
-        </svg>
+  <!-- ===== ПСИХОЛОГИЯ ===== -->
+  <section class="screen" id="s-psy">
+    <h1 class="page">Психология</h1>
+    <div class="sub">Майндсет · практики · колесо · рабочий лог</div>
+    <div class="zonebar">🔓 Зона разблокирована повторным паролем · автоблок через 4:58</div>
+
+    <div class="sec">Практики · сегодня</div>
+    <div class="card">
+      <div class="task"><span class="cb"></span><span class="t"><b>Тревоги по расписанию</b></span><span class="meta">вт/чт 19:00 · 🔥 8 · открыть сессию →</span></div>
+      <div class="task"><span class="cb done"></span><span class="t done">Подъём 7:00</span><span class="meta">в рабочие дни · 🔥 12</span></div>
+      <div class="task"><span class="cb"></span><span class="t">Позитивное намерение — 7 шагов</span><span class="meta">техника · мастер по шагам · 3/7 сохранено</span></div>
+    </div>
+
+    <div class="grid g2" style="margin-top:14px">
+      <div>
+        <div class="sec">Все практики · + создать</div>
+        <div class="card">
+          <div class="task"><span class="pill ok">расписание</span><span class="t">Падл</span><span class="meta">2р/нед · 5/8 в июне</span></div>
+          <div class="task"><span class="pill ok">расписание</span><span class="t">Психолог</span><span class="meta">пт 18:00 · заметки к сессиям</span></div>
+          <div class="task"><span class="pill p2">чеклист</span><span class="t">Выбор инвестиций</span><span class="meta">пройти перед сделкой · связан с 🔒 шагами</span></div>
+          <div class="task"><span class="pill p2">чеклист</span><span class="t">Авто</span><span class="meta">ТО, страховка, резина</span></div>
+          <div class="task"><span class="pill">техника</span><span class="t">Позитивное намерение (7 шагов)</span><span class="meta">12 прохождений</span></div>
+        </div>
+        <div class="sec">Рабочий лог</div>
+        <div class="card">
+          <div class="kv">10.06 <b>закрыл вопрос с подрядчиком, 2 созвона</b></div>
+          <div class="kv">09.06 <b>план квартала команде</b></div>
+          <div class="meta" style="margin-top:6px">быстрый ввод: ⌘⇧W из любого экрана</div>
+        </div>
       </div>
       <div>
-        <div class="card">
-          <div class="sec" style="margin-top:0">Проседает: Отдых (4) и Здоровье (5)</div>
-          <div class="task"><span class="cb"></span><span class="t">Запланировать отпуск в августе</span><span class="meta">◎ Отдых</span></div>
-          <div class="task"><span class="cb"></span><span class="t">Сон до 23:30 — привычка 21 день</span><span class="meta">◎ Здоровье · 🔥 12</span></div>
-          <div class="task"><span class="cb done"></span><span class="t done">Записаться к стоматологу</span><span class="meta">◎ Здоровье</span></div>
+        <div class="sec">Колесо · замер 01.06</div>
+        <div class="card" style="display:flex;justify-content:center">
+          <svg width="300" height="280" viewBox="0 0 340 320">
+            <g stroke="#dde2e8" fill="none">
+              <polygon points="170,40 262,78 300,160 262,242 170,280 78,242 40,160 78,78"/>
+              <polygon points="170,80 231,105 255,160 231,215 170,240 109,215 85,160 109,105"/>
+              <polygon points="170,120 200,132 212,160 200,188 170,200 140,188 128,160 140,132"/>
+              <line x1="170" y1="160" x2="170" y2="40"/><line x1="170" y1="160" x2="262" y2="78"/>
+              <line x1="170" y1="160" x2="300" y2="160"/><line x1="170" y1="160" x2="262" y2="242"/>
+              <line x1="170" y1="160" x2="170" y2="280"/><line x1="170" y1="160" x2="78" y2="242"/>
+              <line x1="170" y1="160" x2="40" y2="160"/><line x1="170" y1="160" x2="78" y2="78"/>
+            </g>
+            <polygon points="170,75 240,98 280,160 235,213 170,224 113,205 95,160 122,112" fill="rgba(30,158,87,.15)" stroke="#1e9e57" stroke-width="2"/>
+            <polygon points="170,90 228,105 262,160 222,205 170,236 120,196 105,160 130,120" fill="none" stroke="#9aa7b3" stroke-width="1.5" stroke-dasharray="4 4"/>
+            <text x="170" y="28" text-anchor="middle">Здоровье 5</text>
+            <text x="278" y="68">Финансы 8</text>
+            <text x="306" y="164">Карьера 7</text>
+            <text x="272" y="258">Отношения 6</text>
+            <text x="170" y="298" text-anchor="middle">Развитие 8</text>
+            <text x="20" y="258">Отдых 4</text>
+            <text x="14" y="164">Окружение 6</text>
+            <text x="26" y="68">Смысл 7</text>
+          </svg>
         </div>
-        <div class="card" style="margin-top:14px">
-          <div class="sec" style="margin-top:0">Динамика за квартал</div>
-          <div class="kv">Финансы <b class="up">7 → 8 ▲</b></div>
-          <div class="kv">Здоровье <b class="down">6 → 5 ▼</b></div>
-          <div class="kv">Отдых <b>4 → 4 —</b></div>
-          <div class="meta" style="margin-top:8px">Вопрос на ревью: что съедает здоровье второй месяц подряд?</div>
+        <div class="sec">Майндсет (из Notion)</div>
+        <div class="card">
+          <div class="ntitem active">🧭 Принципы решений</div>
+          <div class="ntitem">🌊 Работа с тревогой</div>
+          <div class="ntitem">🧒 Внутренний ребёнок <span class="meta">→ желания вынесены в Цели</span></div>
         </div>
       </div>
     </div>
@@ -352,31 +438,26 @@
 
   </main>
 
-  <!-- ============ INSPECTOR ============ -->
   <aside class="insp">
     <h3>Инспектор</h3>
-    <div style="font-weight:600;margin-bottom:8px">Подать документы на визу</div>
-    <span class="pill p0">P0</span> <span class="pill">todo</span>
+    <div style="font-weight:600;margin-bottom:8px">Шаг: купить золото ETF</div>
+    <span class="pill ok">купить</span> <span class="pill">запланирован</span>
     <h3>Свойства</h3>
-    <div class="kv">Срок <b>сегодня, 10.06</b></div>
-    <div class="kv">Цель <b>⚑ Переезд (Q2)</b></div>
-    <div class="kv">Сектор <b>◎ Смысл</b></div>
-    <div class="kv">Подзадачи <b>2/3</b></div>
-    <h3>Блокирует</h3>
-    <span class="chip link">Купить билеты</span>
-    <span class="chip link">Бронь жилья</span>
-    <h3>Связи и бэклинки</h3>
-    <span class="chip link">▤ План переезда</span>
-    <span class="chip link">▤ Виза — план задачи</span>
-    <span class="chip link">✎ Решение от 02.06</span>
-    <h3>Лог</h3>
-    <div class="kv">08.06 <b>справки готовы</b></div>
-    <div class="kv">09.06 <b>перевод получен</b></div>
-    <div class="kv">10.06 <b>запись на 11:30 ✓</b></div>
+    <div class="kv">Дата <b>17.06</b></div>
+    <div class="kv">Сумма <b class="num">420 000 ₽</b></div>
+    <div class="kv">Причина <b>цель 5% золота</b></div>
+    <div class="kv">Тезис <b>«поздний цикл» 28.05</b></div>
+    <h3>Создаёт</h3>
+    <span class="chip link">☑ Задача (без суммы)</span>
+    <span class="chip link">▦ Событие 17.06</span>
+    <h3>Перед сделкой</h3>
+    <span class="chip link">◎ Чеклист «выбор инвестиций»</span>
+    <h3>После исполнения</h3>
+    <span class="chip link">→ транзакция + журнал сделок</span>
   </aside>
 </div>
 
-<div class="quick"><b>⌘N</b> быстрый ввод: «купить билеты после визы p2» → задача с зависимостью</div>
+<div class="quick"><b>⌘N</b> быстрый ввод · <b>⌘⇧F</b> финансы · <b>⌘⇧P</b> психология · <b>⌘⇧W</b> рабочий лог</div>
 
 <script>
 document.querySelectorAll('.side .item[data-s]').forEach(el=>{
