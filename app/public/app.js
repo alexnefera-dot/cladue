@@ -146,9 +146,10 @@ async function showCard(id, { silent = false } = {}) {
   const subCount = (() => { let c = 0; const w = x => (byParent[x] ?? []).forEach(k => { c++; w(k.id); }); w(id); return c; })();
 
   document.getElementById('insp').innerHTML = `
-    <h3>Оригинал <span class="hintstar">двойной клик по строке — правка текста</span></h3>
+    <h3>Оригинал</h3>
     <div class="title">${esc(n.title)}</div>
-    <div class="muted" style="margin-bottom:8px">${esc(pathOf(id) || 'корень')}</div>
+    <div class="muted" style="margin-bottom:4px">${esc(pathOf(id) || 'корень')}</div>
+    <div class="btnrow"><span class="pill btn" data-editrow="${n.id}">✎ править текст</span></div>
 
     <h3>Заметка / рассуждение</h3>
     <textarea id="noteEdit" rows="3" placeholder="мысли, контекст, почему…">${esc(n.note)}</textarea>
@@ -243,6 +244,7 @@ document.addEventListener('click', async e => {
     await load(); return;
   }
   if (el.dataset.dis) { await api.dismiss(id, +el.dataset.dis); await load(); return; }
+  if (el.dataset.editrow) { startInlineEdit(+el.dataset.editrow); return; }
   if (el.dataset.del) {
     const did = +el.dataset.del;
     const n = state.nodes.find(x => x.id === did);
@@ -270,17 +272,25 @@ document.addEventListener('click', async e => {
       renderBoard(); return;
     }
   }
+  // двойной клик определяем вручную: одиночный клик перерисовывает дерево,
+  // и нативный dblclick до подменённого DOM-элемента не доходит
+  const now = Date.now();
+  if (lastClick.id === rid && now - lastClick.t < 450) {
+    lastClick = { id: null, t: 0 };
+    startInlineEdit(rid);
+    return;
+  }
+  lastClick = { id: rid, t: now };
   showCard(rid);
 });
 
-// ===== Двойной клик: правка текста на месте =====
-document.addEventListener('dblclick', e => {
-  const row = e.target.closest('.task[data-id]');
-  if (!row) return;
-  const id = +row.dataset.id;
+let lastClick = { id: null, t: 0 };
+
+function startInlineEdit(id) {
+  const row = document.querySelector(`.task[data-id="${id}"]`);
   const n = state.nodes.find(x => x.id === id);
-  const t = row.querySelector('.t');
-  if (!t || row.querySelector('.inlineedit')) return;
+  const t = row?.querySelector('.t');
+  if (!n || !t || row.querySelector('.inlineedit')) return;
   const input = document.createElement('input');
   input.className = 'inlineedit';
   input.value = n.title;
@@ -293,12 +303,13 @@ document.addEventListener('dblclick', e => {
     if (v && v !== n.title) await api.patch(id, { title: v });
     await load();
   };
+  input.addEventListener('click', ev => ev.stopPropagation());
   input.addEventListener('keydown', ev => {
     if (ev.key === 'Enter') save();
     if (ev.key === 'Escape') { saved = true; load(); }
   });
   input.addEventListener('blur', save);
-});
+}
 
 // ===== Drag & drop: вложенность любого в любое =====
 let draggedId = null;

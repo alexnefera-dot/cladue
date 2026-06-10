@@ -34,8 +34,11 @@
         <span class="pill btn" id="importClose">закрыть</span>
       </div>
     </div>
-    <div class="hint">Вставляй блоки через «⤓ Импорт». Вложенность: перетащи строку на другую — станет её ребёнком (работает с любыми типами).
-      Мультивыбор: ⌘-клик / Shift-клик → панель массового перемещения. Строка внизу добавляет внутрь выбранной.</div>
+    <div class="addbar" style="margin:0 0 10px">
+      <input id="addTitle" placeholder="＋ Добавить строку (Enter — внутрь выбранной, иначе в Инбокс) · вставка нескольких строк = импорт с вложенностью">
+    </div>
+    <div class="hint">Перетащи строку на другую — станет её ребёнком (любые типы). ⌘-клик / Shift-клик — мультивыбор.
+      Двойной клик по строке — правка текста.</div>
     <div id="bulkbar" class="bulkbar" style="display:none">
       <span id="bulkCount"></span>
       <select id="bulkTarget"></select>
@@ -44,9 +47,6 @@
       <span class="pill btn" id="bulkClear">✕ снять выделение</span>
     </div>
     <div id="board"></div>
-    <div class="addbar">
-      <input id="addTitle" placeholder="Добавить строку (Enter — внутрь выбранной) · вставишь несколько строк — сработает как импорт">
-    </div>
   </main>
   <aside class="insp" id="insp"><h3>Карточка узла</h3>
     <div class="muted">Выбери строку слева — здесь появится карточка: оригинал, подсказки типа и срока, предложения связей.</div>
