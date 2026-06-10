@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Панель управления — макет</title>
+<title>Панель управления — макет v2</title>
 <style>
 :root{
   --bg:#f4f6f9; --card:#fff; --border:#e3e8ef; --text:#1d2733; --muted:#6b7686;
@@ -18,16 +18,17 @@ a:hover{text-decoration:underline}
 
 /* ---------- каркас ---------- */
 .layout{display:flex;min-height:100vh}
-.sidebar{width:220px;background:var(--sidebar);color:var(--sidebar-text);flex-shrink:0;display:flex;flex-direction:column}
+.sidebar{width:225px;background:var(--sidebar);color:var(--sidebar-text);flex-shrink:0;display:flex;flex-direction:column}
 .logo{padding:18px 20px;font-size:16px;font-weight:700;color:#fff;border-bottom:1px solid #1e2a3d}
 .logo small{display:block;font-weight:400;font-size:11px;color:#5d6b80;margin-top:2px}
 .nav{padding:10px 0;flex:1}
-.nav a{display:flex;align-items:center;gap:10px;padding:9px 20px;color:var(--sidebar-text);font-size:13.5px}
+.nav a{display:flex;align-items:center;gap:10px;padding:8px 20px;color:var(--sidebar-text);font-size:13.5px}
 .nav a:hover{background:#182233;color:#fff;text-decoration:none}
 .nav a.active{background:#1d2c44;color:#fff;border-left:3px solid var(--accent);padding-left:17px}
 .nav .sep{margin:10px 20px;border-top:1px solid #1e2a3d}
-.nav .stage{padding:4px 20px;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#52607a}
+.nav .grp{padding:10px 20px 4px;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#52607a}
 .nav a.disabled{opacity:.38;pointer-events:none}
+.nav a .tag{margin-left:auto;font-size:9.5px;background:#1d2c44;color:#7b8aa3;border-radius:4px;padding:1px 6px}
 .userbox{padding:14px 20px;border-top:1px solid #1e2a3d;font-size:12.5px}
 .userbox b{color:#fff;display:block}
 .userbox .role{display:inline-block;background:#1d2c44;color:#8fb4ff;border-radius:4px;padding:1px 7px;font-size:10.5px;margin-top:3px}
@@ -37,6 +38,9 @@ a:hover{text-decoration:underline}
 .pagehead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
 .pagehead h1{font-size:20px}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
+.crumbs{font-size:13px;color:var(--muted);margin-bottom:14px}
+.crumbs a{color:var(--accent)}
+.crumbs b{color:var(--text)}
 
 /* ---------- кнопки/элементы ---------- */
 .btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:#fff;color:var(--text);border-radius:7px;padding:7px 14px;font-size:13px;cursor:pointer}
@@ -45,13 +49,7 @@ a:hover{text-decoration:underline}
 .btn.primary:hover{background:#1d4fd8}
 .btn.sm{padding:4px 9px;font-size:12px;border-radius:6px}
 .btn.danger-ghost{color:var(--danger)}
-.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
-.chip{border:1px solid var(--border);background:#fff;border-radius:999px;padding:5px 14px;font-size:12.5px;cursor:pointer;color:var(--muted)}
-.chip b{color:var(--text);font-weight:600}
-.chip .n{background:#eef1f6;border-radius:999px;padding:0 7px;margin-left:5px;font-size:11px}
-.chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
-.chip.active b,.chip.active .n{color:#fff;background:rgba(255,255,255,.2)}
-.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
 .filters select,.filters input{border:1px solid var(--border);border-radius:7px;padding:7px 10px;font-size:13px;background:#fff;color:var(--text)}
 .filters input[type=search]{width:220px}
 
@@ -68,15 +66,54 @@ tr.row-yellow{background:var(--yellow-row)} tr.row-yellow:hover{background:#fdf3
 .b-green{background:#e7f6ec;color:var(--ok)} .b-gray{background:#eef1f6;color:var(--muted)}
 .b-red{background:#fdecec;color:var(--danger)} .b-yellow{background:#fdf3d7;color:var(--warn)}
 .b-blue{background:var(--accent-soft);color:var(--accent)}
-.cat{display:inline-block;border-radius:5px;padding:2px 8px;font-size:11.5px;font-weight:600}
-.cat-slots{background:#f3e8ff;color:#7c3aed} .cat-brand{background:#e0f2fe;color:#0369a1}
-.cat-dorgen{background:#ffedd5;color:#c2410c} .cat-spine{background:#dcfce7;color:#15803d}
-.cat-none{background:#eef1f6;color:var(--muted)}
 .muted{color:var(--muted)} .nowrap{white-space:nowrap}
 .iconlink{display:inline-block;border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:11.5px;margin-right:4px}
 .tfoot{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;font-size:12.5px;color:var(--muted);background:#fafbfd;border-top:1px solid var(--border)}
 .note{margin-top:14px;font-size:12.5px;color:var(--muted)}
 .flash{background:#e7f6ec;border:1px solid #bfe5cd;color:#166534;border-radius:8px;padding:9px 14px;font-size:13px;margin-bottom:14px}
+
+/* ---------- папки ---------- */
+.folders{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:18px}
+.folder{background:#fff;border:1px solid var(--border);border-radius:10px;padding:13px 15px;cursor:pointer;display:flex;gap:11px;align-items:flex-start}
+.folder:hover{border-color:var(--accent);box-shadow:0 2px 10px rgba(37,99,235,.08);text-decoration:none}
+.folder .ic{font-size:21px;line-height:1.2}
+.folder b{display:block;color:var(--text);font-size:13.5px}
+.folder span{font-size:11.5px;color:var(--muted)}
+.subhead{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:4px 0 10px}
+
+/* ---------- дашборд ---------- */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:18px}
+.stat{background:#fff;border:1px solid var(--border);border-radius:10px;padding:15px 17px;cursor:pointer}
+.stat:hover{border-color:var(--accent)}
+.stat .lbl{font-size:12px;color:var(--muted)}
+.stat .num{font-size:26px;font-weight:700;margin:2px 0}
+.stat .sub{font-size:11.5px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:1100px){.cols{grid-template-columns:1fr}}
+.card h3{font-size:13px;padding:11px 14px;border-bottom:1px solid var(--border);background:#fafbfd}
+.list{list-style:none}
+.list li{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid #eef1f6;font-size:13px}
+.list li:last-child{border-bottom:none}
+.list .when{margin-left:auto;color:var(--muted);font-size:12px;white-space:nowrap}
+.list .ico{width:20px;text-align:center}
+
+/* ---------- инфо: дерево + страницы ---------- */
+.info-grid{display:grid;grid-template-columns:250px 1fr;gap:14px;align-items:start}
+@media(max-width:900px){.info-grid{grid-template-columns:1fr}}
+.tree{background:#fff;border:1px solid var(--border);border-radius:10px;padding:8px;font-size:13px}
+.tree a{display:flex;align-items:center;gap:7px;padding:6px 9px;border-radius:6px;color:var(--text)}
+.tree a:hover{background:#f3f6fb;text-decoration:none}
+.tree a.sel{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.tree .lvl1{padding-left:26px}.tree .lvl2{padding-left:44px}
+.tree .cnt{margin-left:auto;font-size:11px;color:var(--muted)}
+.pageitem{display:flex;gap:10px;align-items:center;padding:11px 14px;border-bottom:1px solid #eef1f6;font-size:13.5px}
+.pageitem:last-child{border-bottom:none}
+.pageitem .ttl{font-weight:600}
+.pageitem .typ{font-size:11px;color:var(--muted)}
+.pageview{padding:16px;font-size:13.5px;line-height:1.7}
+.pageview h4{font-size:15px;margin-bottom:8px}
+.pageview .meta{font-size:11.5px;color:var(--muted);margin-bottom:12px}
+.pageview ol{padding-left:20px}
 
 /* ---------- логин ---------- */
 .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--sidebar)}
@@ -86,9 +123,8 @@ tr.row-yellow{background:var(--yellow-row)} tr.row-yellow:hover{background:#fdf3
 .login label{display:block;font-size:12.5px;font-weight:600;margin-bottom:5px}
 .login input{width:100%;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:14px}
 .login .btn{width:100%;justify-content:center;padding:10px}
-.login .err{background:#fdecec;color:var(--danger);border-radius:8px;padding:8px 12px;font-size:12.5px;margin-bottom:14px;display:none}
 
-/* ---------- модалка-форма ---------- */
+/* ---------- модалка ---------- */
 .overlay{display:none;position:fixed;inset:0;background:rgba(13,20,32,.55);z-index:50;align-items:flex-start;justify-content:center;padding:5vh 16px;overflow:auto}
 .overlay.open{display:flex}
 .modal{background:#fff;border-radius:12px;width:560px;max-width:100%;padding:24px}
@@ -102,54 +138,56 @@ tr.row-yellow{background:var(--yellow-row)} tr.row-yellow:hover{background:#fdf3
 .check{display:flex;align-items:center;gap:8px;font-size:13.5px;padding-top:22px}
 .check input{width:auto}
 
+/* ---------- заглушка ---------- */
+.stub{background:#fff;border:1px dashed #c8d2e0;border-radius:10px;padding:46px 20px;text-align:center;color:var(--muted)}
+.stub .big{font-size:34px;margin-bottom:10px}
+.stub b{color:var(--text)}
+
 .screen{display:none}.screen.visible{display:block}
 @media (max-width:760px){
   .sidebar{display:none}
   .main{padding:16px}
   .card{overflow-x:auto}
-  table{min-width:760px}
+  table{min-width:720px}
 }
-.demo-bar{position:fixed;bottom:14px;right:14px;z-index:99;background:#101826;color:#fff;border-radius:10px;padding:8px 10px;font-size:11.5px;box-shadow:0 8px 24px rgba(0,0,0,.3);display:flex;gap:6px;align-items:center}
-.demo-bar button{background:#1d2c44;border:0;color:#cfe0ff;border-radius:6px;padding:4px 9px;font-size:11.5px;cursor:pointer}
+.demo-bar{position:fixed;bottom:14px;right:14px;z-index:99;background:#101826;color:#fff;border-radius:10px;padding:8px 10px;font-size:11.5px;box-shadow:0 8px 24px rgba(0,0,0,.3);display:flex;gap:5px;align-items:center;flex-wrap:wrap;max-width:90vw}
+.demo-bar button{background:#1d2c44;border:0;color:#cfe0ff;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer}
 .demo-bar button:hover{background:#27406b}
 </style>
 </head>
 <body>
 
-<!-- ======================= ЭКРАН: ВХОД ======================= -->
-<div class="screen visible" id="scr-login">
+<!-- ======================= ВХОД ======================= -->
+<div class="screen" id="scr-login">
   <div class="login-wrap">
     <div class="login">
       <h1>Панель управления</h1>
       <p>morol.casino · внутренний доступ</p>
-      <div class="err" id="login-err">Неверный логин или пароль</div>
       <label>Логин</label>
       <input type="text" value="alex" autocomplete="username">
       <label>Пароль</label>
       <input type="password" value="••••••••" autocomplete="current-password">
-      <button class="btn primary" onclick="show('projects')">Войти</button>
+      <button class="btn primary" onclick="show('dashboard')">Войти</button>
     </div>
   </div>
 </div>
 
-<!-- ======================= КАРКАС ПАНЕЛИ ======================= -->
-<div class="screen" id="scr-app">
+<!-- ======================= КАРКАС ======================= -->
+<div class="screen visible" id="scr-app">
 <div class="layout">
   <aside class="sidebar">
     <div class="logo">Панель управления<small>morol.casino</small></div>
     <nav class="nav">
+      <a href="#" data-nav="dashboard" onclick="return show('dashboard')">📊 Дашборд</a>
       <a href="#" data-nav="projects" onclick="return show('projects')">📁 Проекты</a>
+      <div class="grp">Панель управления</div>
       <a href="#" data-nav="domains" onclick="return show('domains')">🌐 Домены</a>
-      <div class="stage">Этап 2</div>
-      <a href="#" class="disabled">🖥 Серверы</a>
-      <a href="#" class="disabled">🛡 Прокси</a>
-      <div class="stage">Этап 3</div>
-      <a href="#" class="disabled">📄 Доки</a>
-      <a href="#" class="disabled">⚙️ Сервисы</a>
-      <a href="#" class="disabled">ℹ️ Инфо</a>
-      <div class="stage">Этап 4</div>
-      <a href="#" class="disabled">📊 Дашборд</a>
-      <a href="#" class="disabled">✅ Задачи</a>
+      <a href="#" data-nav="servers" onclick="return show('servers')">🖥 Серверы</a>
+      <a href="#" data-nav="proxies" onclick="return show('proxies')">🛡 Прокси</a>
+      <a href="#" data-nav="services" onclick="return show('services')">⚙️ Сервисы</a>
+      <div class="sep"></div>
+      <a href="#" data-nav="info" onclick="return show('info')">📚 Инфо</a>
+      <a href="#" class="disabled">✅ Задачи <span class="tag">этап 4</span></a>
       <div class="sep"></div>
       <a href="#" data-nav="users" onclick="return show('users')">👥 Пользователи</a>
       <a href="#" data-nav="log" onclick="return show('log')">🕓 Лог действий</a>
@@ -163,98 +201,146 @@ tr.row-yellow{background:var(--yellow-row)} tr.row-yellow:hover{background:#fdf3
 
   <main class="main">
 
-    <!-- ======================= ПРОЕКТЫ ======================= -->
+    <!-- ======================= ДАШБОРД ======================= -->
+    <section class="screen" id="scr-dashboard">
+      <div class="pagehead"><h1>Дашборд</h1><span class="muted" style="font-size:12.5px">обновлено только что</span></div>
+
+      <div class="stats">
+        <div class="stat" onclick="show('projects')">
+          <div class="lbl">📁 Проекты</div>
+          <div class="num">12</div>
+          <div class="sub"><span class="badge b-green">9 активных</span> <span class="badge b-gray">3 пауза/архив</span></div>
+        </div>
+        <div class="stat" onclick="show('domains')">
+          <div class="lbl">🌐 Домены</div>
+          <div class="num">19</div>
+          <div class="sub"><span class="badge b-red">2 истекают</span></div>
+        </div>
+        <div class="stat" onclick="show('servers')">
+          <div class="lbl">🖥 Серверы</div>
+          <div class="num">6</div>
+          <div class="sub"><span class="badge b-yellow">1 оплатить</span></div>
+        </div>
+        <div class="stat" onclick="show('proxies')">
+          <div class="lbl">🛡 Прокси</div>
+          <div class="num">24</div>
+          <div class="sub"><span class="badge b-gray">2 не работают</span></div>
+        </div>
+      </div>
+
+      <div class="cols">
+        <div class="card">
+          <h3>⏰ Ближайшие продления и оплаты</h3>
+          <ul class="list">
+            <li><span class="ico">🌐</span> <a href="#" onclick="return show('domains')">luckyspin-review.com</a> <span class="badge b-red">4 дня</span><span class="when">14.06.2026</span></li>
+            <li><span class="ico">🖥</span> <a href="#" onclick="return show('servers')">DE-Hetzner-2</a> <span class="badge b-yellow">12 дней</span><span class="when">22.06.2026</span></li>
+            <li><span class="ico">🌐</span> <a href="#" onclick="return show('domains')">brandcore.io</a> <span class="badge b-yellow">22 дня</span><span class="when">02.07.2026</span></li>
+            <li><span class="ico">🛡</span> <a href="#" onclick="return show('proxies')">пакет mobile-proxy.ru</a> <span class="badge b-yellow">25 дней</span><span class="when">05.07.2026</span></li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>🕓 Последние действия</h3>
+          <ul class="list">
+            <li><span class="ico">➕</span> Марина создала домен «brandcore.io»<span class="when">14:32</span></li>
+            <li><span class="ico">✏️</span> Марина изменила проект «BrandCore Main»<span class="when">14:21</span></li>
+            <li><span class="ico">🗑</span> Алекс удалил домен «test-old.xyz»<span class="when">11:48</span></li>
+            <li><span class="ico">➕</span> Алекс добавил сервер «NL-Pq-1»<span class="when">09:30</span></li>
+          </ul>
+        </div>
+      </div>
+      <p class="note">В Этапе 4 сюда добавятся задачи из Notion и настраиваемые алёрты. Пока — счётчики, продления и лог.</p>
+    </section>
+
+    <!-- ======================= ПРОЕКТЫ: КОРЕНЬ ======================= -->
     <section class="screen" id="scr-projects">
-      <div class="flash">Проект «LuckySpin Review» сохранён</div>
       <div class="pagehead">
         <h1>Проекты</h1>
         <div class="actions">
           <button class="btn">⬇ Экспорт CSV</button>
-          <button class="btn primary" onclick="openModal('modal-project')">+ Добавить проект</button>
+          <button class="btn" onclick="openModal('modal-folder')">+ Папка</button>
+          <button class="btn primary" onclick="openModal('modal-project')">+ Проект</button>
         </div>
       </div>
+      <div class="crumbs">📁 <b>Проекты</b> <span class="muted">(корень)</span></div>
 
-      <div class="chips">
-        <button class="chip active"><b>Все</b><span class="n">12</span></button>
-        <button class="chip">Слоты<span class="n">4</span></button>
-        <button class="chip">Brand Main<span class="n">3</span></button>
-        <button class="chip">Dorgen<span class="n">2</span></button>
-        <button class="chip">Spine<span class="n">2</span></button>
-        <button class="chip">Без системы<span class="n">1</span></button>
+      <div class="subhead">Папки</div>
+      <div class="folders">
+        <a class="folder" href="#" onclick="return show('projects-slots')"><span class="ic">📁</span><span><b>Слоты</b><span>4 проекта · 2 подпапки</span></span></a>
+        <a class="folder" href="#"><span class="ic">📁</span><span><b>Brand Main</b><span>3 проекта</span></span></a>
+        <a class="folder" href="#"><span class="ic">📁</span><span><b>Dorgen</b><span>2 проекта · 1 подпапка</span></span></a>
+        <a class="folder" href="#"><span class="ic">📁</span><span><b>Spine</b><span>2 проекта</span></span></a>
+        <a class="folder" href="#"><span class="ic">📁</span><span><b>Без системы</b><span>1 проект</span></span></a>
       </div>
 
+      <div class="subhead">Проекты в корне</div>
+      <div class="card">
+        <table>
+          <thead><tr><th>Имя</th><th>Статус</th><th>Система</th><th>Панели</th><th>Домены</th><th>Заметки</th><th></th></tr></thead>
+          <tbody>
+            <tr>
+              <td><b>Песочница / эксперименты</b></td>
+              <td><span class="badge b-yellow">Пауза</span></td>
+              <td class="muted">—</td>
+              <td class="muted">—</td>
+              <td><a href="#">1</a></td>
+              <td class="muted">тестовый проект, не сортировал</td>
+              <td class="nowrap"><button class="btn sm">✎</button> <button class="btn sm danger-ghost">✕</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">Поиск сверху ищет по всем папкам сразу. Проект можно перенести в другую папку через форму редактирования.</p>
+    </section>
+
+    <!-- ======================= ПРОЕКТЫ: ПАПКА «СЛОТЫ» ======================= -->
+    <section class="screen" id="scr-projects-slots">
+      <div class="pagehead">
+        <h1>Слоты</h1>
+        <div class="actions">
+          <button class="btn">⬇ Экспорт CSV</button>
+          <button class="btn" onclick="openModal('modal-folder')">+ Папка</button>
+          <button class="btn primary" onclick="openModal('modal-project')">+ Проект</button>
+        </div>
+      </div>
+      <div class="crumbs">📁 <a href="#" onclick="return show('projects')">Проекты</a> / <b>Слоты</b></div>
+
+      <div class="subhead">Подпапки</div>
+      <div class="folders">
+        <a class="folder" href="#"><span class="ic">📁</span><span><b>Обзорники</b><span>2 проекта</span></span></a>
+        <a class="folder" href="#"><span class="ic">📁</span><span><b>Сетка-2026</b><span>1 проект</span></span></a>
+      </div>
+
+      <div class="subhead">Проекты в этой папке</div>
       <div class="filters">
         <input type="search" placeholder="Поиск по имени…">
         <select><option>Статус: все</option><option>Активен</option><option>Пауза</option><option>Архив</option></select>
-        <select><option>Ответственный: все</option><option>Алекс</option><option>Марина</option><option>Дима</option></select>
       </div>
-
       <div class="card">
         <table>
-          <thead><tr>
-            <th>Имя ↑</th><th>Категория</th><th>Статус</th><th>Система</th><th>Панели</th><th>Ответственный</th><th>Домены</th><th>Заметки</th><th></th>
-          </tr></thead>
+          <thead><tr><th>Имя ↑</th><th>Статус</th><th>Система</th><th>Панели</th><th>Домены</th><th>Заметки</th><th></th></tr></thead>
           <tbody>
             <tr>
               <td><b>LuckySpin Review</b></td>
-              <td><span class="cat cat-slots">Слоты</span></td>
               <td><span class="badge b-green">Активен</span></td>
               <td><a href="#">SpinCMS ↗</a></td>
               <td><a class="iconlink" href="#">GSC</a><a class="iconlink" href="#">Я.Вм</a></td>
-              <td>Алекс</td>
               <td><a href="#" onclick="return show('domains')">3</a></td>
               <td class="muted">обновить обзоры к июлю</td>
               <td class="nowrap"><button class="btn sm">✎</button> <button class="btn sm danger-ghost">✕</button></td>
             </tr>
             <tr>
-              <td><b>BrandCore Main</b></td>
-              <td><span class="cat cat-brand">Brand Main</span></td>
+              <td><b>SlotHunter Blog</b></td>
               <td><span class="badge b-green">Активен</span></td>
-              <td><a href="#">BrandPanel ↗</a></td>
-              <td><a class="iconlink" href="#">GSC</a><a class="iconlink" href="#">Я.Вм</a></td>
-              <td>Марина</td>
-              <td><a href="#">5</a></td>
-              <td class="muted">—</td>
-              <td class="nowrap"><button class="btn sm">✎</button> <button class="btn sm danger-ghost">✕</button></td>
-            </tr>
-            <tr>
-              <td><b>DG-Cluster-07</b></td>
-              <td><span class="cat cat-dorgen">Dorgen</span></td>
-              <td><span class="badge b-yellow">Пауза</span></td>
-              <td><a href="#">DorgenGen ↗</a></td>
+              <td><a href="#">SpinCMS ↗</a></td>
               <td><a class="iconlink" href="#">GSC</a></td>
-              <td>Дима</td>
-              <td><a href="#">8</a></td>
-              <td class="muted">ждём новые ключи</td>
-              <td class="nowrap"><button class="btn sm">✎</button> <button class="btn sm danger-ghost">✕</button></td>
-            </tr>
-            <tr>
-              <td><b>SpineNet A</b></td>
-              <td><span class="cat cat-spine">Spine</span></td>
-              <td><span class="badge b-green">Активен</span></td>
-              <td><a href="#">SpineHub ↗</a></td>
-              <td><a class="iconlink" href="#">GSC</a><a class="iconlink" href="#">Я.Вм</a></td>
-              <td>Алекс</td>
               <td><a href="#">2</a></td>
               <td class="muted">—</td>
               <td class="nowrap"><button class="btn sm">✎</button> <button class="btn sm danger-ghost">✕</button></td>
             </tr>
-            <tr>
-              <td><b>Старый лендинг</b></td>
-              <td><span class="cat cat-none">Без системы</span></td>
-              <td><span class="badge b-gray">Архив</span></td>
-              <td class="muted">—</td>
-              <td class="muted">—</td>
-              <td class="muted">—</td>
-              <td><a href="#">1</a></td>
-              <td class="muted">оставить до конца года</td>
-              <td class="nowrap"><button class="btn sm">✎</button> <button class="btn sm danger-ghost">✕</button></td>
-            </tr>
           </tbody>
         </table>
-        <div class="tfoot"><span>Показано 5 из 12</span><span>‹ 1 2 3 ›</span></div>
+        <div class="tfoot"><span>2 проекта · вместе с подпапками 4</span><span></span></div>
       </div>
-      <p class="note">У роли <b>viewer</b> кнопки «Добавить / ✎ / ✕» не отображаются — только просмотр и переход по ссылкам.</p>
     </section>
 
     <!-- ======================= ДОМЕНЫ ======================= -->
@@ -286,7 +372,7 @@ tr.row-yellow{background:var(--yellow-row)} tr.row-yellow:hover{background:#fdf3
               <td class="nowrap"><b>14.06.2026</b> <span class="badge b-red">4 дня</span></td>
               <td class="muted">нет</td>
               <td><span class="badge b-red">Истекает</span></td>
-              <td><a href="#" onclick="return show('projects')">LuckySpin Review</a></td>
+              <td><a href="#" onclick="return show('projects-slots')">LuckySpin Review</a></td>
               <td class="muted">продлить вручную!</td>
               <td class="nowrap"><button class="btn sm">✎</button> <button class="btn sm danger-ghost">✕</button></td>
             </tr>
@@ -337,6 +423,191 @@ tr.row-yellow{background:var(--yellow-row)} tr.row-yellow:hover{background:#fdf3
       <p class="note">Подсветка: <span class="badge b-red">красный</span> — ≤ 7 дней или просрочен, <span class="badge b-yellow">жёлтый</span> — ≤ 30 дней (только без автопродления).</p>
     </section>
 
+    <!-- ======================= СЕРВЕРЫ ======================= -->
+    <section class="screen" id="scr-servers">
+      <div class="pagehead">
+        <h1>Серверы</h1>
+        <div class="actions">
+          <button class="btn">⬇ Экспорт CSV</button>
+          <button class="btn primary">+ Добавить сервер</button>
+        </div>
+      </div>
+      <div class="filters">
+        <input type="search" placeholder="Поиск: имя, IP, провайдер…">
+        <select><option>Статус: все</option><option>Работает</option><option>Выключен</option></select>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr><th>Название</th><th>IP</th><th>Провайдер</th><th>Панель</th><th>Оплачен до ↑</th><th>Статус</th><th>Заметки</th><th></th></tr></thead>
+          <tbody>
+            <tr class="row-yellow">
+              <td><b>DE-Hetzner-2</b></td>
+              <td class="nowrap">157.90.xx.xx</td>
+              <td>Hetzner</td>
+              <td><a class="iconlink" href="#">панель ↗</a></td>
+              <td class="nowrap">22.06.2026 <span class="badge b-yellow">12 дней</span></td>
+              <td><span class="badge b-green">Работает</span></td>
+              <td class="muted">основная сетка дорвеев</td>
+              <td class="nowrap"><button class="btn sm">✎</button> <button class="btn sm danger-ghost">✕</button></td>
+            </tr>
+            <tr>
+              <td><b>NL-Pq-1</b></td>
+              <td class="nowrap">185.22.xx.xx</td>
+              <td>PQ Hosting</td>
+              <td><a class="iconlink" href="#">панель ↗</a></td>
+              <td class="nowrap">14.09.2026</td>
+              <td><span class="badge b-green">Работает</span></td>
+              <td class="muted">brand-сайты</td>
+              <td class="nowrap"><button class="btn sm">✎</button> <button class="btn sm danger-ghost">✕</button></td>
+            </tr>
+            <tr>
+              <td><b>US-Vultr-old</b></td>
+              <td class="nowrap">45.76.xx.xx</td>
+              <td>Vultr</td>
+              <td><a class="iconlink" href="#">панель ↗</a></td>
+              <td class="nowrap muted">—</td>
+              <td><span class="badge b-gray">Выключен</span></td>
+              <td class="muted">слить и закрыть</td>
+              <td class="nowrap"><button class="btn sm">✎</button> <button class="btn sm danger-ghost">✕</button></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="tfoot"><span>Показано 3 из 6</span><span></span></div>
+      </div>
+      <p class="note">Пароли и SSH-ключи здесь не храним — только метка, панель и заметки. Доступы — в разделе Инфо → Доступы (ссылки на менеджер паролей).</p>
+    </section>
+
+    <!-- ======================= ПРОКСИ ======================= -->
+    <section class="screen" id="scr-proxies">
+      <div class="pagehead">
+        <h1>Прокси</h1>
+        <div class="actions">
+          <button class="btn">⬇ Экспорт CSV</button>
+          <button class="btn primary">+ Добавить</button>
+        </div>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr><th>Адрес</th><th>Тип</th><th>Провайдер</th><th>Оплачен до</th><th>Статус</th><th>Проект</th><th>Заметки</th><th></th></tr></thead>
+          <tbody>
+            <tr class="row-yellow">
+              <td class="nowrap"><b>91.108.xx.xx:8080</b></td>
+              <td><span class="badge b-blue">http</span></td>
+              <td>mobile-proxy.ru</td>
+              <td class="nowrap">05.07.2026 <span class="badge b-yellow">25 дней</span></td>
+              <td><span class="badge b-green">Работает</span></td>
+              <td><a href="#">DG-Cluster-07</a></td>
+              <td class="muted">пакет 10 шт.</td>
+              <td class="nowrap"><button class="btn sm">✎</button> <button class="btn sm danger-ghost">✕</button></td>
+            </tr>
+            <tr>
+              <td class="nowrap"><b>45.155.xx.xx:1080</b></td>
+              <td><span class="badge b-blue">socks5</span></td>
+              <td>proxy6</td>
+              <td class="nowrap">30.08.2026</td>
+              <td><span class="badge b-green">Работает</span></td>
+              <td class="muted">—</td>
+              <td class="muted">—</td>
+              <td class="nowrap"><button class="btn sm">✎</button> <button class="btn sm danger-ghost">✕</button></td>
+            </tr>
+            <tr>
+              <td class="nowrap"><b>193.124.xx.xx:8000</b></td>
+              <td><span class="badge b-blue">http</span></td>
+              <td>proxy6</td>
+              <td class="nowrap muted">—</td>
+              <td><span class="badge b-red">Не работает</span></td>
+              <td class="muted">—</td>
+              <td class="muted">заменить</td>
+              <td class="nowrap"><button class="btn sm">✎</button> <button class="btn sm danger-ghost">✕</button></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="tfoot"><span>Показано 3 из 24</span><span>‹ 1 2 … ›</span></div>
+      </div>
+    </section>
+
+    <!-- ======================= СЕРВИСЫ ======================= -->
+    <section class="screen" id="scr-services">
+      <div class="pagehead">
+        <h1>Сервисы — генератор контента</h1>
+        <div class="actions">
+          <button class="btn">⬇ Экспорт CSV</button>
+          <button class="btn primary">+ Добавить пакет</button>
+        </div>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr><th>Название</th><th>Проект</th><th>Материалы</th><th>Заметки</th><th></th></tr></thead>
+          <tbody>
+            <tr>
+              <td><b>Обзоры слотов · июнь</b></td>
+              <td><a href="#" onclick="return show('projects-slots')">LuckySpin Review</a></td>
+              <td><a class="iconlink" href="#">📄 Результаты</a><a class="iconlink" href="#">🔑 Ключи</a><a class="iconlink" href="#">💬 Промпты</a></td>
+              <td class="muted">120 статей, проверить уникальность</td>
+              <td class="nowrap"><button class="btn sm">✎</button> <button class="btn sm danger-ghost">✕</button></td>
+            </tr>
+            <tr>
+              <td><b>Dorgen тексты · партия 14</b></td>
+              <td><a href="#">DG-Cluster-07</a></td>
+              <td><a class="iconlink" href="#">📄 Результаты</a><a class="iconlink" href="#">🔑 Ключи</a><a class="iconlink" href="#">💬 Промпты</a></td>
+              <td class="muted">—</td>
+              <td class="nowrap"><button class="btn sm">✎</button> <button class="btn sm danger-ghost">✕</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ======================= ИНФО ======================= -->
+    <section class="screen" id="scr-info">
+      <div class="pagehead">
+        <h1>Инфо</h1>
+        <div class="actions">
+          <button class="btn" onclick="openModal('modal-folder')">+ Папка</button>
+          <button class="btn primary">+ Страница</button>
+        </div>
+      </div>
+
+      <div class="info-grid">
+        <div class="tree">
+          <a href="#">📁 Финансы <span class="cnt">4</span></a>
+          <a href="#" class="lvl1">📁 Отчёты <span class="cnt">2</span></a>
+          <a href="#" class="lvl1">📁 Расходы <span class="cnt">2</span></a>
+          <a href="#">📁 Партнёрки <span class="cnt">6</span></a>
+          <a href="#">📁 Вики <span class="cnt">9</span></a>
+          <a href="#" class="lvl1 sel">📁 Инструкции <span class="cnt">5</span></a>
+          <a href="#" class="lvl1">📁 Глоссарий <span class="cnt">4</span></a>
+          <a href="#">📁 Доступы <span class="cnt">3</span></a>
+          <a href="#">📁 Прочее <span class="cnt">1</span></a>
+        </div>
+
+        <div>
+          <div class="crumbs" style="margin-bottom:10px">📚 <a href="#">Инфо</a> / <a href="#">Вики</a> / <b>Инструкции</b></div>
+          <div class="card" style="margin-bottom:14px">
+            <div class="pageitem"><span>📄</span><span><span class="ttl">Залив сайта по FTP</span><br><span class="typ">текстовая страница · обновлена 02.06.2026</span></span></div>
+            <div class="pageitem"><span>🔗</span><span><span class="ttl">Шаблон ТЗ копирайтеру</span><br><span class="typ">ссылка на Google Doc</span></span></div>
+            <div class="pageitem"><span>🔗</span><span><span class="ttl">Чек-лист запуска проекта</span><br><span class="typ">ссылка на Google Doc</span></span></div>
+            <div class="pageitem"><span>📄</span><span><span class="ttl">Как снять бэкап панели</span><br><span class="typ">текстовая страница</span></span></div>
+            <div class="pageitem"><span>📄</span><span><span class="ttl">Регламент продления доменов</span><br><span class="typ">текстовая страница</span></span></div>
+          </div>
+
+          <div class="card">
+            <div class="pageview">
+              <h4>📄 Залив сайта по FTP</h4>
+              <div class="meta">Вики / Инструкции · обновил Алекс · 02.06.2026 · <a href="#">✎ редактировать</a></div>
+              <ol>
+                <li>Берём доступы хостинга из менеджера паролей (ссылка в Доступы → Хостинги).</li>
+                <li>Подключаемся FileZilla, порт 21, пассивный режим.</li>
+                <li>Заливаем в каталог <b>public_html</b>, права на папки 755, на файлы 644.</li>
+                <li>Проверяем сайт и добавляем домен в раздел «Домены» панели.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="note">Страница — это либо текст (как выше), либо кнопка-ссылка на Google Doc. В «Доступах» храним только ссылки на менеджер паролей и метки, не сами пароли.</p>
+    </section>
+
     <!-- ======================= ПОЛЬЗОВАТЕЛИ ======================= -->
     <section class="screen" id="scr-users">
       <div class="pagehead">
@@ -371,7 +642,7 @@ tr.row-yellow{background:var(--yellow-row)} tr.row-yellow:hover{background:#fdf3
           </tbody>
         </table>
       </div>
-      <p class="note">Раздел виден только роли <b>admin</b>. Пользователи не удаляются — только деактивация (лог остаётся читаемым).</p>
+      <p class="note">Раздел виден только роли <b>admin</b>. Пользователи не удаляются — только деактивация.</p>
     </section>
 
     <!-- ======================= ЛОГ ======================= -->
@@ -392,7 +663,7 @@ tr.row-yellow{background:var(--yellow-row)} tr.row-yellow:hover{background:#fdf3
             <tr><td class="nowrap muted">10.06 14:21</td><td>Марина</td><td><span class="badge b-blue">изменение</span></td><td>изменила проект «BrandCore Main»</td></tr>
             <tr><td class="nowrap muted">10.06 13:05</td><td>Марина</td><td><span class="badge b-gray">вход</span></td><td>вход в панель</td></tr>
             <tr><td class="nowrap muted">10.06 11:48</td><td>Алекс</td><td><span class="badge b-red">удаление</span></td><td>удалил домен «test-old.xyz»</td></tr>
-            <tr><td class="nowrap muted">10.06 09:12</td><td>Алекс</td><td><span class="badge b-gray">вход</span></td><td>вход в панель</td></tr>
+            <tr><td class="nowrap muted">10.06 09:30</td><td>Алекс</td><td><span class="badge b-green">создание</span></td><td>добавил сервер «NL-Pq-1»</td></tr>
           </tbody>
         </table>
         <div class="tfoot"><span>Последние 500 записей</span><span>‹ 1 2 … ›</span></div>
@@ -409,21 +680,48 @@ tr.row-yellow{background:var(--yellow-row)} tr.row-yellow:hover{background:#fdf3
     <h2>Новый проект</h2>
     <div class="fgrid">
       <div class="full"><label>Имя проекта *</label><input placeholder="Например: LuckySpin Review"></div>
-      <div><label>Категория *</label>
-        <select><option>Слоты</option><option>Brand Main</option><option>Dorgen</option><option>Spine</option><option>Без системы</option></select></div>
+      <div class="full"><label>Папка *</label>
+        <select>
+          <option>Проекты (корень)</option>
+          <option selected>&nbsp;&nbsp;📁 Слоты</option>
+          <option>&nbsp;&nbsp;&nbsp;&nbsp;📁 Слоты / Обзорники</option>
+          <option>&nbsp;&nbsp;&nbsp;&nbsp;📁 Слоты / Сетка-2026</option>
+          <option>&nbsp;&nbsp;📁 Brand Main</option>
+          <option>&nbsp;&nbsp;📁 Dorgen</option>
+          <option>&nbsp;&nbsp;📁 Spine</option>
+          <option>&nbsp;&nbsp;📁 Без системы</option>
+        </select></div>
       <div><label>Статус *</label>
         <select><option>Активен</option><option>Пауза</option><option>Архив</option></select></div>
       <div><label>Система — название</label><input placeholder="SpinCMS"></div>
       <div><label>Система — URL</label><input placeholder="https://…"></div>
       <div><label>Google Search Console</label><input placeholder="https://search.google.com/…"></div>
-      <div><label>Яндекс.Вебмастер</label><input placeholder="https://webmaster.yandex.ru/…"></div>
-      <div class="full"><label>Ответственный</label>
-        <select><option>— не назначен —</option><option>Алекс</option><option selected>Марина</option><option>Дима</option></select></div>
+      <div class="full"><label>Яндекс.Вебмастер</label><input placeholder="https://webmaster.yandex.ru/…"></div>
       <div class="full"><label>Заметки</label><textarea placeholder="Свободный текст…"></textarea></div>
     </div>
     <div class="foot">
       <button class="btn" onclick="closeModal(this.closest('.overlay'))">Отмена</button>
       <button class="btn primary" onclick="closeModal(this.closest('.overlay'))">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= ФОРМА: ПАПКА ======================= -->
+<div class="overlay" id="modal-folder" onclick="if(event.target===this)closeModal(this)">
+  <div class="modal" style="width:420px">
+    <h2>Новая папка</h2>
+    <div class="fgrid">
+      <div class="full"><label>Название *</label><input placeholder="Например: Обзорники"></div>
+      <div class="full"><label>Где создать</label>
+        <select>
+          <option>В корне</option>
+          <option selected>📁 Слоты</option>
+          <option>📁 Brand Main</option>
+        </select></div>
+    </div>
+    <div class="foot">
+      <button class="btn" onclick="closeModal(this.closest('.overlay'))">Отмена</button>
+      <button class="btn primary" onclick="closeModal(this.closest('.overlay'))">Создать</button>
     </div>
   </div>
 </div>
@@ -454,28 +752,36 @@ tr.row-yellow{background:var(--yellow-row)} tr.row-yellow:hover{background:#fdf3
 <div class="demo-bar">
   МАКЕТ:
   <button onclick="show('login')">Вход</button>
+  <button onclick="show('dashboard')">Дашборд</button>
   <button onclick="show('projects')">Проекты</button>
+  <button onclick="show('projects-slots')">…папка</button>
   <button onclick="show('domains')">Домены</button>
-  <button onclick="show('users')">Пользователи</button>
+  <button onclick="show('servers')">Серверы</button>
+  <button onclick="show('proxies')">Прокси</button>
+  <button onclick="show('services')">Сервисы</button>
+  <button onclick="show('info')">Инфо</button>
+  <button onclick="show('users')">Юзеры</button>
   <button onclick="show('log')">Лог</button>
 </div>
 
 <script>
+const SCREENS = ['dashboard','projects','projects-slots','domains','servers','proxies','services','info','users','log'];
 function show(name){
   document.getElementById('scr-login').classList.toggle('visible', name==='login');
   document.getElementById('scr-app').classList.toggle('visible', name!=='login');
-  ['projects','domains','users','log'].forEach(s=>{
+  SCREENS.forEach(s=>{
     document.getElementById('scr-'+s).classList.toggle('visible', s===name);
   });
+  const navName = name==='projects-slots' ? 'projects' : name;
   document.querySelectorAll('.nav a[data-nav]').forEach(a=>{
-    a.classList.toggle('active', a.dataset.nav===name);
+    a.classList.toggle('active', a.dataset.nav===navName);
   });
   window.scrollTo(0,0);
   return false;
 }
 function openModal(id){document.getElementById(id).classList.add('open')}
 function closeModal(el){el.classList.remove('open')}
-show('projects'); // макет открывается сразу на «Проектах»; экран входа — кнопкой внизу
+show('dashboard');
 </script>
 </body>
 </html>
