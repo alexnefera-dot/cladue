@@ -200,7 +200,7 @@
     <h1 class="page">Цели</h1>
     <div class="sub"><span class="pill ok">Глобальные</span> <span class="pill">Год</span> <span class="pill">Квартал</span> <span class="pill">Энергия жизни</span> <span class="pill">Разбор списка</span></div>
 
-    <div class="zonebar" style="background:var(--green-soft);border-color:var(--green-dim);color:var(--green)">⛏ Разбор импортированного списка: обработано 128 из 514 строк · продолжить →</div>
+    <div class="zonebar" data-goto="triage" style="background:var(--green-soft);border-color:var(--green-dim);color:var(--green);cursor:pointer">⛏ Разбор импортированного списка: обработано 128 из 514 строк · продолжить → (кликни)</div>
 
     <div class="sec">Направление жизни</div>
     <div class="card">
@@ -231,6 +231,55 @@
         <div class="task"><span class="cb"></span><span class="t">Поход с палаткой как в детстве</span></div>
       </div>
     </div>
+  </section>
+
+  <!-- ===== РАЗБОР ===== -->
+  <section class="screen" id="s-triage">
+    <h1 class="page">Разбор списка</h1>
+    <div class="sub">Источник: «Жизненный план.md» · разобрано 128 / 514 · ветка: P4 Авто → X5 · оригинал ничего не теряет</div>
+
+    <div class="grid g2">
+      <div class="card">
+        <div class="meta">ИСТОЧНИК (ОРИГИНАЛ, READ-ONLY)</div>
+        <div style="font:12px var(--mono);line-height:1.9;margin-top:8px;color:var(--muted)">
+          5. Авто<br>
+          &nbsp;&nbsp;2. X5<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span style="background:var(--green-soft);color:var(--green);padding:2px 6px;border-radius:4px">1. Август продать x5? ← разбираем</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;2. Находим автобизнесменов, написать за условия<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;3. 10к с продажи откладываем на легализацию<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;4. Стоит ли положить половину Наталье на счет?<br>
+          &nbsp;&nbsp;3. MX5<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;2. <span class="amber">НЕ СПЕШИМ до 2028</span> ← принцип ветки
+        </div>
+      </div>
+      <div class="card">
+        <div class="meta">ТИПИЗАЦИЯ СТРОКИ · автоподсказка, подтверди</div>
+        <div style="font-size:15px;font-weight:600;margin:8px 0">«Август продать x5?»</div>
+        <div style="margin-bottom:10px">
+          <span class="pill ok">задача ✓</span> <span class="pill p1">+ вопрос (есть «?»)</span> <span class="pill">решение</span> <span class="pill">тревога</span> <span class="pill">идея</span>
+        </div>
+        <div class="kv">Срок <b>август 2026 (из текста)</b></div>
+        <div class="kv">Ветка / приоритет <b>P4 Авто → X5</b></div>
+        <div class="kv">Дочерние строки <b>3 шт → подзадачи</b></div>
+        <div class="kv">Вопрос «половину Наталье?» <b>→ Decision</b></div>
+        <div style="margin-top:10px"><span class="pill ok">Создать + связи (4)</span> <span class="pill">Объединить с дублем</span> <span class="pill">Отложить</span></div>
+      </div>
+    </div>
+
+    <div class="sec">📡 Радар блокеров — что нельзя упустить по этой задаче</div>
+    <div class="grid g2">
+      <div class="card">
+        <div class="task"><span class="pill p0">дубль</span><span class="t">«Семья → Сделать до росписи → <b>Продать x5</b>»</span><span class="meta">дедлайн жёстче августа ⚠ объединить?</span></div>
+        <div class="task"><span class="pill p1">время</span><span class="t">Налоги за 2025 — не закрыты</span><span class="meta">из P2 Финансы · окно авг ±2 мес ⚠</span></div>
+        <div class="task"><span class="pill p1">время</span><span class="t">Оплата квартиры — транш</span><span class="meta">🔒 обязательство · сентябрь</span></div>
+      </div>
+      <div class="card">
+        <div class="task"><span class="pill p2">деньги</span><span class="t">Продажа = приток → план шагов портфеля?</span><span class="meta">🔒 связать · «10к на легализацию» уже резерв</span></div>
+        <div class="task"><span class="pill p2">решение</span><span class="t">Decision: «Резидентство SK?» — открыто</span><span class="meta">влияет на MX5 и легализацию</span></div>
+        <div class="task"><span class="pill">принцип</span><span class="t">Ветка MX5: «НЕ СПЕШИМ до 2028»</span><span class="meta">подсвечен на всех задачах ветки</span></div>
+      </div>
+    </div>
+    <div class="footer-hint">Pre-flight: при старте «важной» задачи этот радар показывается обязательным чеклистом — продать авто, «забыв» налоги, не выйдет. Неразобранные строки тоже ищутся радаром.</div>
   </section>
 
   <!-- ===== ИНФО ===== -->
@@ -460,6 +509,11 @@
 <div class="quick"><b>⌘N</b> быстрый ввод · <b>⌘⇧F</b> финансы · <b>⌘⇧P</b> психология · <b>⌘⇧W</b> рабочий лог</div>
 
 <script>
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+  document.getElementById('s-'+id).classList.add('on');
+}
+document.querySelectorAll('[data-goto]').forEach(el=>el.addEventListener('click',()=>show(el.dataset.goto)));
 document.querySelectorAll('.side .item[data-s]').forEach(el=>{
   el.addEventListener('click',()=>{
     document.querySelectorAll('.side .item').forEach(i=>i.classList.remove('active'));
