@@ -61,7 +61,8 @@ function nodeRow(n, depth, idx) {
   if (n.is_category) {
     return `<div class="task cat ${isPicked ? 'sel' : ''}" data-id="${n.id}" style="padding-left:${6 + depth * 24}px">
       ${caret}<span class="folder">▣</span><span class="t top">${esc(n.title)}</span>
-      <span class="meta">${countItems(n.id)}</span></div>`;
+      <span class="meta">${countItems(n.id)}</span>
+      <span class="rowbtn" data-addchild="${n.id}" title="добавить внутрь">＋</span></div>`;
   }
   const [kl, kc] = n.kind ? (KIND[n.kind] ?? [n.kind, '']) : [null, null];
   const marker = !n.kind
@@ -77,6 +78,8 @@ function nodeRow(n, depth, idx) {
     <span class="t ${done ? 'done' : ''}">${esc(n.title)}</span>
     ${n.blocked ? '<span class="meta">⛔</span>' : ''}
     ${n.due_date ? `<span class="meta">${n.due_date}</span>` : ''}
+    <span class="rowbtn" data-addchild="${n.id}" title="добавить вложенную">＋</span>
+    <span class="rowbtn del" data-delrow="${n.id}" title="удалить">✕</span>
   </div>`;
 }
 
@@ -245,6 +248,19 @@ document.addEventListener('click', async e => {
   }
   if (el.dataset.dis) { await api.dismiss(id, +el.dataset.dis); await load(); return; }
   if (el.dataset.editrow) { startInlineEdit(+el.dataset.editrow); return; }
+  if (el.dataset.addchild) { addChildInput(+el.dataset.addchild); return; }
+  if (el.dataset.delrow) {
+    const did = +el.dataset.delrow;
+    const n = state.nodes.find(x => x.id === did);
+    let cnt = 0; const w = x => (byParent[x] ?? []).forEach(k => { cnt++; w(k.id); }); w(did);
+    if (confirm(`Удалить «${n?.title}»${cnt ? ` и ${cnt} вложенных` : ''}?`)) {
+      await api.del(did);
+      if (selected === did) selected = null;
+      picked.delete(did);
+      await load();
+    }
+    return;
+  }
   if (el.dataset.del) {
     const did = +el.dataset.del;
     const n = state.nodes.find(x => x.id === did);
@@ -285,6 +301,40 @@ document.addEventListener('click', async e => {
 });
 
 let lastClick = { id: null, t: 0 };
+
+// «＋»: поле новой строки прямо под родителем; Enter — сохранить и добавить ещё
+function addChildInput(pid) {
+  collapsed.delete(pid);
+  renderBoard();
+  const row = document.querySelector(`.task[data-id="${pid}"]`);
+  if (!row) return;
+  const div = document.createElement('div');
+  div.className = 'task';
+  div.style.paddingLeft = ((parseInt(row.style.paddingLeft) || 6) + 24) + 'px';
+  div.innerHTML = '<span class="caret"></span><span class="bullet">＋</span>';
+  const input = document.createElement('input');
+  input.className = 'inlineedit';
+  input.placeholder = 'новая строка… (Enter — сохранить и ещё одну, Esc — закончить)';
+  div.appendChild(input);
+  row.after(div);
+  input.focus();
+  let done = false;
+  const save = async (andNext) => {
+    if (done) return; done = true;
+    const v = input.value.trim();
+    if (v) {
+      await api.add({ title: v, parent_id: pid });
+      await load();
+      if (andNext) addChildInput(pid);
+    } else div.remove();
+  };
+  input.addEventListener('click', ev => ev.stopPropagation());
+  input.addEventListener('keydown', ev => {
+    if (ev.key === 'Enter') save(true);
+    if (ev.key === 'Escape') { done = true; div.remove(); }
+  });
+  input.addEventListener('blur', () => save(false));
+}
 
 function startInlineEdit(id) {
   const row = document.querySelector(`.task[data-id="${id}"]`);

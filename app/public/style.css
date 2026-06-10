@@ -87,3 +87,7 @@ body{background:var(--bg);color:var(--text);font:14px/1.45 var(--sans);height:10
 .inlineedit{flex:1;border:1px solid var(--green-dim);border-radius:6px;padding:3px 7px;font:13.5px var(--sans);background:var(--panel)}
 #noteEdit{width:100%;border:1px solid var(--line);border-radius:7px;padding:7px 9px;font:12.5px/1.5 var(--sans);background:var(--panel);resize:vertical;margin-bottom:4px}
 .importpanel textarea{min-height:240px}
+.rowbtn{font:13px var(--mono);color:var(--muted);padding:0 5px;border-radius:5px;cursor:pointer;opacity:0;flex:0 0 auto}
+.task:hover .rowbtn{opacity:1}
+.rowbtn:hover{background:var(--green-soft);color:var(--green)}
+.rowbtn.del:hover{background:rgba(204,68,68,.1);color:var(--red)}
