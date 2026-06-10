@@ -1,18 +1,21 @@
-let state = null, selected = null;
+let state = null;
+let selected = null;            // строка, чья карточка открыта
+let picked = new Set();         // мультивыбор
+let visibleOrder = [];          // порядок видимых строк (для Shift-выбора)
 const collapsed = new Set();
 
 const KIND = { task: ['задача','ok'], decision: ['решение','dec'], question: ['вопрос','p2'],
                principle: ['принцип','p1'], idea: ['идея',''], worry: ['тревога','p0'] };
+const LINKLABEL = { related: '⛓ связано', blocks: '⛔ блокирует' };
 
 const api = {
   tree: () => fetch('/api/tree').then(r => r.json()),
-  categories: () => fetch('/api/categories').then(r => r.json()),
-  import: b => fetch('/api/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json()),
-  move: (id, parent_id) => fetch(`/api/nodes/${id}/move`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ parent_id }) }).then(r => r.json()),
   suggest: id => fetch('/api/suggest/' + id).then(r => r.json()),
   patch: (id, b) => fetch('/api/nodes/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json()),
   toggle: id => fetch(`/api/nodes/${id}/toggle`, { method: 'POST' }).then(r => r.json()),
   add: b => fetch('/api/nodes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json()),
+  move: (id, parent_id) => fetch(`/api/nodes/${id}/move`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ parent_id }) }).then(r => r.json()),
+  import: b => fetch('/api/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json()),
   link: b => fetch('/api/links', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json()),
   unlink: id => fetch('/api/links/' + id, { method: 'DELETE' }),
   dismiss: (a, b) => fetch('/api/dismiss', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ a, b }) }),
@@ -25,8 +28,10 @@ async function load() {
   state = await api.tree();
   renderBoard();
   renderStatus();
-  if (selected) showCard(selected);
+  if (selected) showCard(selected, { silent: true });
 }
+
+let byParent = {};
 
 function countItems(catId) {
   let c = 0;
@@ -40,48 +45,69 @@ function renderStatus() {
   const typed = real.filter(n => n.kind).length;
   const blocked = real.filter(n => n.blocked).length;
   const inboxId = state.nodes.find(n => n.is_category && n.title.includes('Инбокс'))?.id;
-  const inbox = inboxId ? (state.nodes.filter(n => n.parent_id === inboxId).length) : 0;
+  const inbox = inboxId ? state.nodes.filter(n => n.parent_id === inboxId).length : 0;
   document.getElementById('statusbar').textContent =
     `записей: ${real.length} · типизировано: ${typed} · связей: ${state.links.length} · заблокировано: ${blocked} · в инбоксе: ${inbox}`;
 }
 
 function nodeRow(n, depth, idx) {
   const kids = byParent[n.id]?.length ?? 0;
-  const [kl, kc] = n.kind ? (KIND[n.kind] ?? [n.kind, '']) : [null, null];
   const done = n.status === 'done' || n.status === 'accepted';
   const caret = kids
     ? `<span class="caret" data-fold="${n.id}">${collapsed.has(n.id) ? '▸' : '▾'}</span>`
     : '<span class="caret"></span>';
+  const isPicked = picked.has(n.id);
   if (n.is_category) {
-    const inside = kids ? `<span class="meta">${countItems(n.id)}</span>` : '<span class="meta">пусто</span>';
-    return `<div class="task cat ${selected === n.id ? 'sel' : ''}" data-id="${n.id}" style="padding-left:${6 + depth * 24}px">
-      ${caret}<span class="folder">▣</span><span class="t top">${esc(n.title)}</span>${inside}</div>`;
+    return `<div class="task cat ${isPicked ? 'sel' : ''}" data-id="${n.id}" style="padding-left:${6 + depth * 24}px">
+      ${caret}<span class="folder">▣</span><span class="t top">${esc(n.title)}</span>
+      <span class="meta">${countItems(n.id)}</span></div>`;
   }
+  const [kl, kc] = n.kind ? (KIND[n.kind] ?? [n.kind, '']) : [null, null];
   const marker = !n.kind
     ? `<span class="bullet">${idx}.</span>`
     : (n.kind === 'task' || n.kind === 'decision')
       ? `<span class="cb ${n.kind === 'decision' ? 'dec' : ''} ${done ? 'done' : ''}" data-toggle="${n.id}"></span>`
       : `<span class="pill ${kc}">${kl}</span>`;
-  return `<div class="task ${n.blocked ? 'blocked' : ''} ${selected === n.id ? 'sel' : ''}"
+  return `<div class="task ${n.blocked ? 'blocked' : ''} ${isPicked ? 'sel' : ''}" draggable="true"
       data-id="${n.id}" style="padding-left:${6 + depth * 24}px">
     ${caret}${marker}
     ${n.priority ? `<span class="pill ${n.priority}">${n.priority}</span>` : ''}
-    ${n.kind === 'task' || n.kind === 'decision' ? `<span class="pill ${kc}">${kl}</span>` : ''}
-    <span class="t ${done ? 'done' : ''} ${depth === 0 ? 'top' : ''}">${esc(n.title)}</span>
+    ${(n.kind === 'task' || n.kind === 'decision') ? `<span class="pill ${kc}">${kl}</span>` : ''}
+    <span class="t ${done ? 'done' : ''}">${esc(n.title)}</span>
     ${n.blocked ? '<span class="meta">⛔</span>' : ''}
     ${n.due_date ? `<span class="meta">${n.due_date}</span>` : ''}
   </div>`;
 }
 
-let byParent = {};
 function renderBoard() {
   byParent = {};
   for (const n of state.nodes) (byParent[n.parent_id ?? 'root'] ??= []).push(n);
-  const walk = (n, depth, idx) =>
-    nodeRow(n, depth, idx) +
-    (collapsed.has(n.id) ? '' : (byParent[n.id] ?? []).map((c, i) => walk(c, depth + 1, i + 1)).join(''));
+  visibleOrder = [];
+  const walk = (n, depth, idx) => {
+    visibleOrder.push(n.id);
+    return nodeRow(n, depth, idx) +
+      (collapsed.has(n.id) ? '' : (byParent[n.id] ?? []).map((c, i) => walk(c, depth + 1, i + 1)).join(''));
+  };
   document.getElementById('board').innerHTML =
     `<div class="card">${(byParent['root'] ?? []).map((n, i) => walk(n, 0, i + 1)).join('')}</div>`;
+  renderBulkbar();
+}
+
+function renderBulkbar() {
+  const bar = document.getElementById('bulkbar');
+  if (picked.size <= 1) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  document.getElementById('bulkCount').textContent = `выбрано: ${picked.size}`;
+  const sel = document.getElementById('bulkTarget');
+  if (!sel.options.length) sel.innerHTML = `<option value="">— куда —</option>` + catOptions(null);
+}
+
+function catOptions(currentParent) {
+  const walk = (pid, depth) => (byParent[pid] ?? [])
+    .filter(n => n.is_category)
+    .map(n => `<option value="${n.id}" ${n.id === currentParent ? 'selected' : ''}>${' '.repeat(depth * 3)}${esc(n.title)}</option>`
+         + walk(n.id, depth + 1)).join('');
+  return walk('root', 0);
 }
 
 function pathOf(id) {
@@ -92,20 +118,12 @@ function pathOf(id) {
   return out.join(' → ');
 }
 
-const LINKLABEL = { related: '⛓ связано', blocks: '⛔ блокирует' };
-
-function catOptions(currentParent) {
-  const walk = (pid, depth) => (byParent[pid] ?? [])
-    .filter(n => n.is_category)
-    .flatMap(n => [`<option value="${n.id}" ${n.id === currentParent ? 'selected' : ''}>${' '.repeat(depth * 3)}${esc(n.title)}</option>`,
-                   ...[walk(n.id, depth + 1)]]).join('');
-  return walk('root', 0);
-}
-
-async function showCard(id) {
+async function showCard(id, { silent = false } = {}) {
   selected = id;
+  if (!silent) { picked = new Set([id]); }
   renderBoard();
   const s = await api.suggest(id);
+  if (!s || s.error) return;
   const n = s.node;
 
   if (n.is_category) {
@@ -114,10 +132,11 @@ async function showCard(id) {
       <div class="title">${esc(n.title)}</div>
       <div class="muted">${esc(pathOf(id) || 'верхний уровень')}</div>
       <div class="muted" style="margin-top:8px">Внутри: ${countItems(id)}.
-        Строка внизу добавит запись сюда; «⤓ Импорт» зальёт блок в выбранную категорию.</div>`;
+        Строка внизу добавит запись сюда; перетаскивай строки прямо на категорию.</div>`;
     return;
   }
-  const kindBtns = ['task', 'decision', 'question', 'principle', 'idea']
+
+  const kindBtns = ['task', 'decision', 'question', 'principle', 'idea', 'worry']
     .map(k => `<span class="pill btn ${n.kind === k ? 'ok' : ''} ${s.kind === k ? 'pulse' : ''}"
        data-setkind="${k}">${KIND[k][0]}${s.kind === k ? ' ★' : ''}</span>`).join(' ');
   const prioBtns = ['P0', 'P1', 'P2', 'P3']
@@ -126,13 +145,14 @@ async function showCard(id) {
   document.getElementById('insp').innerHTML = `
     <h3>Оригинал</h3>
     <div class="title">${esc(n.title)}</div>
-    <div class="muted" style="margin-bottom:8px">${esc(pathOf(id) || 'корень списка')}</div>
+    <div class="muted" style="margin-bottom:8px">${esc(pathOf(id) || 'корень')}</div>
 
     <h3>Раскидать: переместить в…</h3>
     <select id="moveSel" class="movesel">
       <option value="">— выбери категорию —</option>
       ${catOptions(n.parent_id)}
     </select>
+    <div class="muted" style="font-size:11px">вложить в другую запись — перетащи строку в дереве</div>
 
     <h3>Тип <span class="hintstar">★ — подсказка, решаешь ты</span></h3>
     <div class="btnrow">${kindBtns} ${n.kind ? `<span class="pill btn" data-setkind="">сбросить</span>` : ''}</div>
@@ -174,14 +194,12 @@ async function showCard(id) {
   `;
 
   document.getElementById('moveSel')?.addEventListener('change', async e => {
-    const v = e.target.value;
-    if (!v) return;
-    const r = await api.move(id, +v);
+    if (!e.target.value) return;
+    const r = await api.move(id, +e.target.value);
     if (r.error) alert(r.error);
     await load();
   });
-
-  document.getElementById('dateInput').addEventListener('keydown', async e => {
+  document.getElementById('dateInput')?.addEventListener('keydown', async e => {
     if (e.key === 'Enter' && /^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) {
       await api.patch(id, { due_date: e.target.value });
       await load();
@@ -189,6 +207,7 @@ async function showCard(id) {
   });
 }
 
+// ===== Клики: выбор, мультивыбор, действия =====
 document.addEventListener('click', async e => {
   const el = e.target;
   const id = selected;
@@ -210,13 +229,86 @@ document.addEventListener('click', async e => {
     await load(); return;
   }
   if (el.dataset.dis) { await api.dismiss(id, +el.dataset.dis); await load(); return; }
-  const row = el.closest('[data-id]');
-  if (row) showCard(+row.dataset.id);
+
+  const row = el.closest('.task[data-id]');
+  if (!row) return;
+  const rid = +row.dataset.id;
+  if (e.metaKey || e.ctrlKey) {                       // ⌘-клик: добавить/убрать из выбора
+    picked.has(rid) ? picked.delete(rid) : picked.add(rid);
+    selected = rid;
+    renderBoard(); return;
+  }
+  if (e.shiftKey && selected) {                       // Shift-клик: диапазон
+    const a = visibleOrder.indexOf(selected), b = visibleOrder.indexOf(rid);
+    if (a !== -1 && b !== -1) {
+      picked = new Set(visibleOrder.slice(Math.min(a, b), Math.max(a, b) + 1));
+      renderBoard(); return;
+    }
+  }
+  showCard(rid);
 });
 
+// ===== Drag & drop: вложенность любого в любое =====
+let draggedId = null;
+document.addEventListener('dragstart', e => {
+  const row = e.target.closest('.task[data-id]');
+  if (!row) return;
+  draggedId = +row.dataset.id;
+  if (!picked.has(draggedId)) { picked = new Set([draggedId]); renderBoard(); }
+  e.dataTransfer.effectAllowed = 'move';
+});
+document.addEventListener('dragover', e => {
+  const row = e.target.closest('.task[data-id]');
+  if (!row || picked.has(+row.dataset.id)) return;
+  e.preventDefault();
+  row.classList.add('dropinto');
+});
+document.addEventListener('dragleave', e => {
+  e.target.closest('.task[data-id]')?.classList.remove('dropinto');
+});
+document.addEventListener('drop', async e => {
+  const row = e.target.closest('.task[data-id]');
+  document.querySelectorAll('.dropinto').forEach(x => x.classList.remove('dropinto'));
+  if (!row || draggedId == null) return;
+  e.preventDefault();
+  const target = +row.dataset.id;
+  const ids = picked.has(draggedId) ? [...picked] : [draggedId];
+  for (const mid of ids) {
+    if (mid === target) continue;
+    const r = await api.move(mid, target);
+    if (r.error) { alert(`«${state.nodes.find(n => n.id === mid)?.title}»: ${r.error}`); }
+  }
+  collapsed.delete(target);
+  draggedId = null;
+  await load();
+});
+document.addEventListener('dragend', () => {
+  document.querySelectorAll('.dropinto').forEach(x => x.classList.remove('dropinto'));
+  draggedId = null;
+});
+
+// ===== Массовое перемещение =====
+document.getElementById('bulkGo').addEventListener('click', async () => {
+  const target = +document.getElementById('bulkTarget').value;
+  if (!target) return;
+  for (const mid of picked) {
+    if (mid === target) continue;
+    const r = await api.move(mid, target);
+    if (r.error) alert(r.error);
+  }
+  picked = new Set();
+  await load();
+});
+document.getElementById('bulkClear').addEventListener('click', () => {
+  picked = selected ? new Set([selected]) : new Set();
+  renderBoard();
+});
+
+// ===== Добавление строки =====
 document.getElementById('addTitle').addEventListener('keydown', async e => {
   if (e.key !== 'Enter' || !e.target.value.trim()) return;
   await api.add({ title: e.target.value.trim(), parent_id: selected ?? null });
+  if (selected) collapsed.delete(selected);
   e.target.value = '';
   await load();
 });
@@ -244,11 +336,12 @@ document.getElementById('importGo').addEventListener('click', async () => {
   const r = await api.import({ parent_id: target, text });
   document.getElementById('importText').value = '';
   document.getElementById('importPanel').style.display = 'none';
+  if (target) collapsed.delete(target);
   await load();
-  if (target) { collapsed.delete(target); renderBoard(); }
   document.getElementById('statusbar').textContent += ` · ⤓ импортировано: ${r.imported}`;
 });
 
+// ===== Поиск =====
 let st;
 document.getElementById('searchbox').addEventListener('input', e => {
   clearTimeout(st);

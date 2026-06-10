@@ -121,6 +121,21 @@ test('блокировка только после подтверждения; �
   assert.equal(byTitle(db, 'Август продать').blocked, false);
 });
 
+test('вложенность любого в любое: вопрос внутрь задачи и наоборот', () => {
+  const db = freshDb();
+  const inbox = catByTitle(db, 'Инбокс');
+  core.importBlock(db, inbox.id, BLOCK);
+  const task = byTitle(db, 'Консультация') ?? core.addChild(db, inbox.id, 'Консультация за договор');
+  const q = core.addChild(db, inbox.id, 'Влияет ли договор на накопления?');
+  core.updateNode(db, task.id, { kind: 'task' });
+  core.updateNode(db, q.id, { kind: 'question' });
+  core.moveNode(db, q.id, task.id);                       // вопрос внутрь задачи
+  assert.equal(core.getNode(db, q.id).parent_id, task.id);
+  const t2 = core.addChild(db, q.id, 'Сходить к юристу');  // задача внутрь вопроса
+  core.updateNode(db, t2.id, { kind: 'task' });
+  assert.equal(core.getNode(db, t2.id).parent_id, q.id);
+});
+
 test('поиск с гомоглифами работает по импортированному', () => {
   const db = freshDb();
   core.importBlock(db, catByTitle(db, 'Инбокс').id, BLOCK);
