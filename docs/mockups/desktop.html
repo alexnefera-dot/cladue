@@ -97,6 +97,17 @@
   .zonebar{display:flex;align-items:center;gap:10px;background:rgba(176,125,16,.08);border:1px solid rgba(176,125,16,.35);border-radius:8px;padding:8px 12px;font:11px var(--mono);color:var(--amber);margin-bottom:16px}
   .subtabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
   .lockcard{display:flex;align-items:center;gap:12px;background:var(--panel2);border:1px dashed var(--line);border-radius:10px;padding:14px 16px;color:var(--muted)}
+  .srcline{padding:2px 8px;border-radius:5px;color:var(--muted);font:12px var(--mono);line-height:1.7}
+  .srcline.cat{color:var(--text);font-weight:700}
+  .srcline.cur{background:var(--green-soft);color:var(--green)}
+  .srcline.done{color:var(--green-dim)}
+  .srcline.skip{opacity:.5;font-style:italic}
+  .btn{cursor:pointer;user-select:none}
+  .pill.sel{background:var(--green-soft)}
+  .pill.psy{color:#7a4fc0;border-color:#7a4fc0}
+  .pill.idea{color:#8a6d1d;border-color:#c9b06a}
+  .created-item{display:flex;gap:8px;padding:6px 4px;border-bottom:1px solid var(--line);font-size:12.5px;align-items:baseline}
+  .created-item:last-child{border-bottom:0}
 </style>
 </head>
 <body>
@@ -113,6 +124,7 @@
     <div class="item active" data-s="today"><span class="ico">◉</span>Сегодня<span class="kbd">⌘1</span></div>
     <div class="item" data-s="tasks"><span class="ico">☑</span>Задачи<span class="kbd">⌘2</span></div>
     <div class="item" data-s="goals"><span class="ico">⚑</span>Цели<span class="kbd">⌘3</span></div>
+    <div class="item" data-s="triage" style="padding-left:26px"><span class="ico">⛏</span>Разбор <span class="pill ok" style="margin-left:auto">демо</span></div>
     <div class="item" data-s="notes"><span class="ico">▤</span>Инфо<span class="kbd">⌘4</span></div>
     <div class="item" data-s="cal"><span class="ico">▦</span>Календарь<span class="kbd">⌘5</span></div>
     <div class="sep"></div>
@@ -233,53 +245,27 @@
     </div>
   </section>
 
-  <!-- ===== РАЗБОР ===== -->
+  <!-- ===== РАЗБОР (интерактивная демка на реальных блоках) ===== -->
   <section class="screen" id="s-triage">
-    <h1 class="page">Разбор списка</h1>
-    <div class="sub">Источник: «Жизненный план.md» · разобрано 128 / 514 · ветка: P4 Авто → X5 · оригинал ничего не теряет</div>
+    <h1 class="page">Разбор списка <span class="pill ok">интерактив — кликай</span></h1>
+    <div class="sub">Источник: «Жизненный план.md» · <span id="trCount">разобрано 128 / 514</span> · демо-ветки: P4 Авто + P5 Здоровье</div>
+    <div class="bar" style="margin-bottom:16px"><i id="trProg" style="width:25%"></i></div>
 
     <div class="grid g2">
       <div class="card">
-        <div class="meta">ИСТОЧНИК (ОРИГИНАЛ, READ-ONLY)</div>
-        <div style="font:12px var(--mono);line-height:1.9;margin-top:8px;color:var(--muted)">
-          5. Авто<br>
-          &nbsp;&nbsp;2. X5<br>
-          &nbsp;&nbsp;&nbsp;&nbsp;<span style="background:var(--green-soft);color:var(--green);padding:2px 6px;border-radius:4px">1. Август продать x5? ← разбираем</span><br>
-          &nbsp;&nbsp;&nbsp;&nbsp;2. Находим автобизнесменов, написать за условия<br>
-          &nbsp;&nbsp;&nbsp;&nbsp;3. 10к с продажи откладываем на легализацию<br>
-          &nbsp;&nbsp;&nbsp;&nbsp;4. Стоит ли положить половину Наталье на счет?<br>
-          &nbsp;&nbsp;3. MX5<br>
-          &nbsp;&nbsp;&nbsp;&nbsp;2. <span class="amber">НЕ СПЕШИМ до 2028</span> ← принцип ветки
-        </div>
+        <div class="meta">ИСТОЧНИК (ОРИГИНАЛ, READ-ONLY) · твои реальные блоки</div>
+        <div id="srcTree" style="margin-top:8px"></div>
       </div>
-      <div class="card">
-        <div class="meta">ТИПИЗАЦИЯ СТРОКИ · автоподсказка, подтверди</div>
-        <div style="font-size:15px;font-weight:600;margin:8px 0">«Август продать x5?»</div>
-        <div style="margin-bottom:10px">
-          <span class="pill ok">задача ✓</span> <span class="pill p1">+ вопрос (есть «?»)</span> <span class="pill">решение</span> <span class="pill">тревога</span> <span class="pill">идея</span>
-        </div>
-        <div class="kv">Срок <b>август 2026 (из текста)</b></div>
-        <div class="kv">Ветка / приоритет <b>P4 Авто → X5</b></div>
-        <div class="kv">Дочерние строки <b>3 шт → подзадачи</b></div>
-        <div class="kv">Вопрос «половину Наталье?» <b>→ Decision</b></div>
-        <div style="margin-top:10px"><span class="pill ok">Создать + связи (4)</span> <span class="pill">Объединить с дублем</span> <span class="pill">Отложить</span></div>
+      <div>
+        <div class="card" id="stepPanel"></div>
+        <div class="sec">📡 Радар блокеров по этой строке</div>
+        <div class="card" id="radarPanel"></div>
       </div>
     </div>
 
-    <div class="sec">📡 Радар блокеров — что нельзя упустить по этой задаче</div>
-    <div class="grid g2">
-      <div class="card">
-        <div class="task"><span class="pill p0">дубль</span><span class="t">«Семья → Сделать до росписи → <b>Продать x5</b>»</span><span class="meta">дедлайн жёстче августа ⚠ объединить?</span></div>
-        <div class="task"><span class="pill p1">время</span><span class="t">Налоги за 2025 — не закрыты</span><span class="meta">из P2 Финансы · окно авг ±2 мес ⚠</span></div>
-        <div class="task"><span class="pill p1">время</span><span class="t">Оплата квартиры — транш</span><span class="meta">🔒 обязательство · сентябрь</span></div>
-      </div>
-      <div class="card">
-        <div class="task"><span class="pill p2">деньги</span><span class="t">Продажа = приток → план шагов портфеля?</span><span class="meta">🔒 связать · «10к на легализацию» уже резерв</span></div>
-        <div class="task"><span class="pill p2">решение</span><span class="t">Decision: «Резидентство SK?» — открыто</span><span class="meta">влияет на MX5 и легализацию</span></div>
-        <div class="task"><span class="pill">принцип</span><span class="t">Ветка MX5: «НЕ СПЕШИМ до 2028»</span><span class="meta">подсвечен на всех задачах ветки</span></div>
-      </div>
-    </div>
-    <div class="footer-hint">Pre-flight: при старте «важной» задачи этот радар показывается обязательным чеклистом — продать авто, «забыв» налоги, не выйдет. Неразобранные строки тоже ищутся радаром.</div>
+    <div class="sec">Создано в этой сессии разбора</div>
+    <div class="card" id="createdList"><span class="meta">— пока пусто, подтверди первую строку →</span></div>
+    <div class="footer-hint">Радар ищет по: дублям в других ветках · окну времени ±2 мес · деньгам (🔒) · открытым решениям · принципам ветки. Неразобранные строки тоже находятся радаром.</div>
   </section>
 
   <!-- ===== ИНФО ===== -->
@@ -509,6 +495,201 @@
 <div class="quick"><b>⌘N</b> быстрый ввод · <b>⌘⇧F</b> финансы · <b>⌘⇧P</b> психология · <b>⌘⇧W</b> рабочий лог</div>
 
 <script>
+/* ===== Демо разбора: реальные блоки пользователя ===== */
+const STEPS=[
+ {path:"P4 Авто → SK",text:"Понять, когда будет внж у Натальи — примерно январь, и у меня",
+  type:["задача","ok"],alts:["вопрос","решение","тревога"],
+  kv:[["Срок","январь (из текста)"],["Создаёт","Decision «Резидентство SK?»"]],
+  radar:[["p2","решение","Открывается Decision «Резидентство SK?»","от него зависят: покупка в SK, MX5 → растаможка"],
+         ["","упоминание","«MX5 → Если резидент SK, ищем опцию растаможить…»","строка ниже в этой же ветке — свяжется автоматически"]],
+  action:"Создать задачу + Decision",
+  result:["☑","Задача «Узнать сроки ВНЖ (Наталья ~янв; мой — ?)» · янв","◆ Decision «Резидентство SK?» — открыто"]},
+
+ {path:"P4 Авто → SK",text:"Как мы покупаем в SK? Бюджет? Цель? Что?",
+  type:["решение","p1"],alts:["вопрос","задача"],
+  kv:[["3 вопроса внутри","бюджет · цель · что берём"],["Зависит от","Decision «Резидентство SK?»"]],
+  radar:[["p2","деньги","Бюджет покупки → 🔒 Финансы → план крупных трат","суммы останутся в приватной зоне"],
+         ["p1","блокер","Decision «Резидентство SK?» ещё открыт","покупку не спланировать до ответа про ВНЖ"]],
+  action:"Создать Decision",
+  result:["◆","Decision «Покупка авто в SK: бюджет и цель» · зависит от резидентства"]},
+
+ {path:"P4 Авто → SK",text:"Использовать баланс е46, завести деньги?",
+  type:["вопрос","p2"],alts:["задача","решение"],
+  kv:[["Прикрепить к","Decision «Покупка авто в SK»"]],
+  radar:[["p2","деньги","Счёт «e46» найден в 🔒 Счета","⚠ баланс не обновлялся 3 недели — обновить перед решением"]],
+  action:"Прикрепить вопрос",
+  result:["?","Вопрос «баланс e46 или заводить деньги?» → внутрь Decision «Покупка в SK»"]},
+
+ {path:"P4 Авто → X5",text:"Август продать х5?",
+  type:["задача","ok"],alts:["вопрос","решение"],
+  kv:[["Срок","август 2026 (из текста)"],["Дочерних строк","2 → подзадачи"]],
+  radar:[["p0","дубль","«P5 Семья → Сделать до росписи → Продать х5»","⚠ другой ветке нужен дедлайн раньше августа"],
+         ["p1","время","Налоги за 2025 — не закрыты","из P2 Финансы · попадает в окно ±2 мес"],
+         ["p1","время","Транш за квартиру — сентябрь","🔒 обязательство рядом по времени"],
+         ["p2","деньги","Продажа = приток → план шагов портфеля 🔒","строка ниже уже резервирует «10к на легализацию»"]],
+  action:"Создать задачу + 4 связи",
+  result:["☑","Задача «Продать X5» · авг 2026 · связи: налоги, транш, приток 🔒, дубль(ждёт)"]},
+
+ {path:"P4 Авто → X5",text:"Находим автобизнесменов, написать за условия и рынок",
+  type:["задача","ok"],alts:["идея"],
+  kv:[["Родитель","«Продать X5»"]],
+  radar:[["","вверх","Подзадача «Продать X5»","наследует её блокеры и дедлайн"]],
+  action:"Создать подзадачу",
+  result:["☑","Подзадача «Написать автобизнесменам: условия и рынок»"]},
+
+ {path:"P4 Авто → X5",text:"10к с продажи откладываем на легализацию своего авто",
+  type:["принцип","p1"],alts:["задача"],
+  kv:[["Создаёт","резерв в 🔒 плане трат"],["Связь","продажа X5 → легализация MX5"]],
+  radar:[["p2","деньги","PlannedExpense «Легализация авто — 10k» 🔒","спишется из притока от продажи"],
+         ["","упоминание","«MX5 → растаможить или поменять»","легализация = та ветка"]],
+  action:"Создать правило + резерв",
+  result:["◇","Правило «10k от продажи X5 → резерв „легализация MX5“» 🔒"]},
+
+ {path:"P4 Авто → X5",text:"Стоит ли положить половину Наталье на счет?",
+  type:["решение","p1"],alts:["вопрос","задача"],
+  kv:[["Зависит от","консультации по договору (P5 Семья!)"]],
+  radar:[["p0","поперечная","«P5 Семья → Консультация за договор → влияет ли на накопления/подарки/наследство»","⚠ сначала консультация — иначе решение вслепую"]],
+  action:"Создать Decision + связь",
+  result:["◆","Decision «Половину от продажи — Наталье?» · ⛔ после консультации по договору"]},
+
+ {path:"P4 Авто → MX5",text:"Посмотрим по закону сколько можно ездить и что делать если нельзя",
+  type:["задача","ok"],alts:["вопрос"],
+  kv:[["Тип","исследование"]],
+  radar:[["","принцип","Ветка MX5: «НЕ СПЕШИМ до 2028»","бейдж на задаче — без паники по срокам"]],
+  action:"Создать задачу",
+  result:["☑","Задача «Изучить: сколько можно ездить на MX5 по закону» · ◇не спешим"]},
+
+ {path:"P4 Авто → MX5",text:"НЕ СПЕШИМ до 2028",
+  type:["принцип","p1"],alts:["заметка"],
+  kv:[["Действие","бейдж на всех задачах ветки MX5 до 2028"]],
+  radar:[["","инфо","Принцип не блокирует, а напоминает","увидишь его при любом действии с MX5"]],
+  action:"Закрепить принцип",
+  result:["◇","Принцип ветки MX5: «не спешим до 2028»"]},
+
+ {path:"P4 Авто → MX5",text:"Если резидент SK, ищем опцию растаможить или поменять на аналог местный",
+  type:["задача","ok"],alts:["идея","решение"],
+  kv:[["Условие","Decision «Резидентство SK?» = да"]],
+  radar:[["p1","блокер","⛔ Decision «Резидентство SK?» — открыт","задача спит, проснётся при ответе"],
+         ["p2","деньги","Резерв «легализация 10k» уже создан 🔒","строкой выше"]],
+  action:"Создать условную задачу",
+  result:["☑","Задача «Растаможка/замена MX5» · ⛔ ждёт резидентство · резерв связан"]},
+
+ {path:"P5 Здоровье → Семья",text:"Формулирую, что для меня идеальные отношения, чтоб я был доволен нашим браком полностью.",
+  type:["рефлексия","psy"],alts:["задача","тревога"],
+  kv:[["Зона","🔒 Психология"],["Формат","страница-проработка + задача"]],
+  radar:[["psy","практика","Связь с «Личные проработки 2р/нед»","появится ниже в P5 Развитие — можно делать там"]],
+  action:"Создать в Психологии",
+  result:["◎","Проработка «Идеальные отношения — сформулировать» → 🔒 Психология"]},
+
+ {path:"P5 Здоровье → Семья",text:"Консультация за договор → вопрос: влияет ли на покупку / накопленные / подарки / наследство",
+  type:["задача","ok"],alts:["вопрос","решение"],
+  kv:[["Вопросов внутри","1 (из вложенной строки)"],["Разблокирует","Decision из ветки Авто"]],
+  radar:[["p0","поперечная","Decision «Половину Наталье?» (P4 Авто) ждёт эту консультацию","выполнишь — решение откроется"],
+         ["p2","деньги","Ответ влияет и на «Покупку в SK»","режим покупки на двоих"]],
+  action:"Создать задачу + связи",
+  result:["☑","Задача «Консультация по договору» · разблокирует 2 решения в Авто"]},
+
+ {path:"P5 Здоровье → Семья",text:"Даты каждого: назначить заранее + подумать, как провести и что видеть?",
+  type:["задача","ok"],alts:["идея","рутина"],
+  kv:[["Повтор","ежемесячно, заранее"],["Идея «как провести»","→ Энергия жизни"]],
+  radar:[["idea","энергия","«Как провести дату» → Цели → Энергия жизни","рядом с классными планами"]],
+  action:"Создать повтор + идею",
+  result:["☑","Повторяющаяся «Назначить дату заранее»","💡 «Как провести дату» → Энергия жизни"]},
+
+ {path:"P5 Здоровье → Семья",text:"Сделать до росписи → Продать х5 до надо",
+  type:["дубль","p0"],alts:["задача"],
+  kv:[["Найден дубль","«Продать X5» (P4 Авто, авг 2026)"],["Дедлайн здесь","до росписи — раньше ⚠"]],
+  radar:[["p0","дубль","Та же задача в двух ветках","объединяем: один экземпляр, два контекста, дедлайн — более ранний"]],
+  action:"⟲ Объединить с «Продать X5»",merge:true,
+  result:["⟲","«Продать X5»: дедлайн ужесточён авг → ДО РОСПИСИ · контекст «Семья» добавлен"]},
+
+ {path:"P5 Здоровье → Развитие",text:"Психолог: 1 раз в неделю · 2 раза в неделю личные проработки · ведём дневники тревог",
+  type:["практика","psy"],alts:["рутина","задача"],
+  kv:[["Создаётся","3 практики с расписанием"],["Зона","🔒 Психология"]],
+  radar:[["psy","связь","«Дневник тревог» = твоя практика «тревоги по расписанию»","логи в одном месте"],
+         ["psy","связь","Проработка «идеальные отношения» прикрепится сюда","из строки выше"]],
+  action:"Создать 3 практики",
+  result:["◎","Практики: «Психолог (1р/нед)» · «Проработки (2р/нед)» · «Дневник тревог»"]},
+
+ {path:"P5 Здоровье → Развитие",text:"Поездки",
+  type:["идея","idea"],alts:["цель","задача"],
+  kv:[["Куда","Цели → Энергия жизни"],["Статус","раскрыть позже — радар не потеряет"]],
+  radar:[["idea","энергия","Рядом: «уикенд в горах», «как провести дату»","кластер идей для эмоций"]],
+  action:"В Энергию жизни",
+  result:["💡","«Поездки» → Цели → Энергия жизни (бэклог идей)"]}
+];
+
+const ROWS=[
+ {cat:"P4 — АВТО",d:0},{cat:"1. SK",d:1},{s:0,d:2},{s:1,d:2},{s:2,d:2},
+ {cat:"2. X5",d:1},{s:3,d:2},{s:4,d:2},{s:5,d:2},{s:6,d:2},
+ {cat:"3. MX5",d:1},{s:7,d:2},{s:8,d:2},{s:9,d:2},
+ {cat:"P5 — ЗДОРОВЬЕ / СТАБИЛЬНО",d:0},{cat:"1. Семья",d:1},{s:10,d:2},{s:11,d:2},{s:12,d:2},{s:13,d:2},
+ {cat:"2. Развитие",d:1},{s:14,d:2},{s:15,d:2}
+];
+
+let cur=0, status={}; // idx -> 'done' | 'skip'
+const $=id=>document.getElementById(id);
+
+function typeIcon(i){return STEPS[i].result[0];}
+
+function renderTriage(){
+  if(!$("srcTree"))return;
+  // tree
+  $("srcTree").innerHTML=ROWS.map(r=>{
+    if(r.cat!==undefined)return `<div class="srcline cat" style="padding-left:${r.d*18}px">${r.cat}</div>`;
+    const st=STEPS[r.s];
+    let cls="srcline", suffix="";
+    if(status[r.s]==='done'){cls+=" done";suffix=` <span class="tl">· ${st.result[0]} ${st.type[0]}</span>`;}
+    else if(status[r.s]==='skip'){cls+=" skip";suffix=" · отложено";}
+    else if(r.s===cur){cls+=" cur";suffix=" ← разбираем";}
+    return `<div class="${cls}" style="padding-left:${r.d*18}px">${st.text}${suffix}</div>`;
+  }).join("");
+  // counter
+  const done=Object.keys(status).length;
+  $("trCount").textContent=`разобрано ${128+done} / 514`;
+  $("trProg").style.width=((128+done)/514*100)+"%";
+  // panel
+  if(cur>=STEPS.length){
+    const made=Object.values(status).filter(v=>v==='done').length;
+    $("stepPanel").innerHTML=`<div class="meta">ВЕТКИ РАЗОБРАНЫ 🎉</div>
+      <div style="font-size:15px;font-weight:600;margin:8px 0">16 строк → ${made} подтверждено</div>
+      <div class="kv">Задач / подзадач <b>8</b></div><div class="kv">Решений (Decision) <b>3</b></div>
+      <div class="kv">Практик 🔒 <b>4</b></div><div class="kv">Принципов / правил <b>2</b></div>
+      <div class="kv">Идей → Энергия жизни <b>2</b></div><div class="kv">Объединено дублей <b>1</b></div>
+      <div class="kv">Поперечных связей между ветками <b>5</b></div>
+      <div style="margin-top:10px"><span class="pill ok btn" onclick="resetTriage()">↺ пройти демо заново</span></div>`;
+    $("radarPanel").innerHTML=`<div class="task"><span class="pill ok">чисто</span><span class="t">Открытых блокеров в разобранных ветках: 2 (резидентство SK, консультация)</span><span class="meta">обе — Decision, видны в Целях</span></div>`;
+    return;
+  }
+  const st=STEPS[cur];
+  $("stepPanel").innerHTML=`
+    <div class="meta">СТРОКА ${cur+1} ИЗ ${STEPS.length} · ${st.path}</div>
+    <div style="font-size:14.5px;font-weight:600;margin:8px 0">«${st.text}»</div>
+    <div style="margin-bottom:10px">
+      <span class="pill ${st.type[1]} sel btn">${st.type[0]} ✓</span>
+      ${st.alts.map(a=>`<span class="pill btn" onclick="this.classList.toggle('sel')">${a}</span>`).join(" ")}
+    </div>
+    ${st.kv.map(k=>`<div class="kv">${k[0]} <b>${k[1]}</b></div>`).join("")}
+    <div style="margin-top:12px">
+      <span class="pill ok btn" onclick="confirmStep()">${st.action}</span>
+      <span class="pill btn" onclick="skipStep()">Отложить</span>
+    </div>`;
+  $("radarPanel").innerHTML=st.radar.map(r=>
+    `<div class="task"><span class="pill ${r[0]}">${r[1]}</span><span class="t">${r[2]}</span><span class="meta">${r[3]}</span></div>`).join("");
+}
+function confirmStep(){
+  const st=STEPS[cur];status[cur]='done';
+  const list=$("createdList");
+  if(list.querySelector(".meta"))list.innerHTML="";
+  const lines=st.result.slice(1).map((r,i)=>
+    `<div class="created-item"><span>${i===0?st.result[0]:"+"}</span><span>${r}</span>${i===0?`<span class="meta" style="margin-left:auto">← «${st.text.slice(0,38)}…»</span>`:""}</div>`).join("");
+  list.insertAdjacentHTML("afterbegin",lines);
+  cur++;renderTriage();
+}
+function skipStep(){status[cur]='skip';cur++;renderTriage();}
+function resetTriage(){cur=0;status={};$("createdList").innerHTML='<span class="meta">— пока пусто, подтверди первую строку →</span>';renderTriage();}
+document.addEventListener("DOMContentLoaded",renderTriage);
+
 function show(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
   document.getElementById('s-'+id).classList.add('on');
