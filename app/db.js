@@ -7,8 +7,8 @@ export function norm(s) {
 }
 
 const STOP = new Set(['и','в','на','с','по','за','до','от','для','не','что','как','это','или',
-  'у','мы','я','к','о','же','бы','из','со','свой','наш','еще','ещё','при','то','ли',
-  'the','to','of','and','a','in','is','for','on']);
+  'у','мы','я','к','о','же','бы','из','со','свой','наш','еще','ещё','при','то','ли','если',
+  'есть','будет','надо','чтоб','чтобы','когда','раз','the','to','of','and','a','in','is']);
 
 export function tokens(s) {
   return [...new Set(norm(s).split(/[^a-z0-9а-яё]+/u).filter(t => t.length >= 2 && !STOP.has(t)))];
@@ -18,88 +18,89 @@ export function createDb(path = ':memory:') {
   const db = new DatabaseSync(path);
   db.exec(`
     PRAGMA foreign_keys = ON;
-    CREATE TABLE IF NOT EXISTS goals(
+    -- Узел аутлайна: структура пользователя первична. kind=NULL — обычная строка.
+    CREATE TABLE IF NOT EXISTS nodes(
       id INTEGER PRIMARY KEY,
-      title TEXT NOT NULL,
-      kind TEXT NOT NULL DEFAULT 'regular',   -- global|direction|energy|regular
-      parent_id INTEGER REFERENCES goals(id),
-      priority TEXT                            -- P1..P5 из жизненного списка
-    );
-    CREATE TABLE IF NOT EXISTS tasks(
-      id INTEGER PRIMARY KEY,
+      parent_id INTEGER REFERENCES nodes(id) ON DELETE CASCADE,
+      ord INTEGER NOT NULL,                    -- порядок среди соседей, как в источнике
       title TEXT NOT NULL,
       note TEXT NOT NULL DEFAULT '',
-      kind TEXT NOT NULL DEFAULT 'task',       -- task|decision|question|principle|idea
-      status TEXT NOT NULL DEFAULT 'todo',     -- task: todo|done · decision: open|accepted
-      priority TEXT,                           -- P0..P3
-      due_date TEXT,
-      parent_id INTEGER REFERENCES tasks(id),
-      goal_id INTEGER REFERENCES goals(id),
-      source_line TEXT,
+      kind TEXT,                               -- NULL|task|decision|question|principle|idea
+      status TEXT,                             -- task: todo|done · decision: open|accepted
+      priority TEXT,                           -- ставит только пользователь
+      due_date TEXT,                           -- ставит только пользователь (можно из подсказки)
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
-    CREATE TABLE IF NOT EXISTS deps(
+    -- Связи: существуют только подтверждённые пользователем
+    CREATE TABLE IF NOT EXISTS links(
       id INTEGER PRIMARY KEY,
-      predecessor_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-      successor_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-      type TEXT NOT NULL DEFAULT 'blocks',     -- blocks|decision|complements
-      UNIQUE(predecessor_id, successor_id, type)
+      from_id INTEGER NOT NULL REFERENCES nodes(id) ON DELETE CASCADE,
+      to_id INTEGER NOT NULL REFERENCES nodes(id) ON DELETE CASCADE,
+      type TEXT NOT NULL DEFAULT 'related',    -- related|blocks (from блокирует to)
+      UNIQUE(from_id, to_id, type)
     );
-    CREATE VIRTUAL TABLE IF NOT EXISTS task_fts USING fts5(title_norm, note_norm);
+    -- Отклонённые предложения: больше не предлагать эту пару
+    CREATE TABLE IF NOT EXISTS dismissed(
+      a INTEGER NOT NULL,
+      b INTEGER NOT NULL,
+      UNIQUE(a, b)
+    );
+    CREATE VIRTUAL TABLE IF NOT EXISTS node_fts USING fts5(title_norm, note_norm);
   `);
   return db;
 }
 
+export function insertNode(db, parent_id, title, note = '') {
+  const ord = db.prepare('SELECT COALESCE(MAX(ord), 0) + 1 AS o FROM nodes WHERE parent_id IS ?')
+    .get(parent_id).o;
+  db.prepare('INSERT INTO nodes(parent_id, ord, title, note) VALUES(?,?,?,?)')
+    .run(parent_id, ord, title, note);
+  const id = db.prepare('SELECT last_insert_rowid() AS id').get().id;
+  db.prepare('INSERT INTO node_fts(rowid, title_norm, note_norm) VALUES(?,?,?)')
+    .run(id, norm(title), norm(note));
+  return id;
+}
+
+// Список пользователя — ДОСЛОВНО, с его вложенностью и порядком.
+// Никаких типов, приоритетов и связей: всё это система только предлагает.
 export function seed(db) {
-  const g = (title, priority, kind = 'regular') => {
-    db.prepare('INSERT INTO goals(title, priority, kind) VALUES(?,?,?)').run(title, priority, kind);
-    return db.prepare('SELECT last_insert_rowid() AS id').get().id;
-  };
-  const t = (o) => {
-    db.prepare(`INSERT INTO tasks(title, note, kind, status, priority, due_date, parent_id, goal_id, source_line)
-      VALUES(?,?,?,?,?,?,?,?,?)`)
-      .run(o.title, o.note ?? '', o.kind ?? 'task', o.status ?? (o.kind === 'decision' ? 'open' : 'todo'),
-           o.priority ?? null, o.due ?? null, o.parent ?? null, o.goal ?? null, o.src ?? null);
-    const id = db.prepare('SELECT last_insert_rowid() AS id').get().id;
-    db.prepare('INSERT INTO task_fts(rowid, title_norm, note_norm) VALUES(?,?,?)')
-      .run(id, norm(o.title), norm(o.note ?? ''));
-    return id;
-  };
-  const dep = (pre, suc, type = 'blocks') =>
-    db.prepare('INSERT INTO deps(predecessor_id, successor_id, type) VALUES(?,?,?)').run(pre, suc, type);
+  const n = (parent, title) => insertNode(db, parent, title);
 
-  const gAuto = g('Авто', 'P4');
-  const gHealth = g('Здоровье / Стабильно', 'P5');
-  const gFin = g('Финансы (тест)', 'P2');
+  const p4 = n(null, 'P4 — (блок выше, на скрине виден частично)');
+  n(p4, 'Wise - 29 - ?');
+  const mat = n(p4, 'Мать');
+  n(mat, 'IB - SGOV/XEON - 50 - 2%');
+  const avto = n(p4, 'Авто');
+  const sk = n(avto, 'SK');
+  n(sk, 'Понять, когда будет внж у Натальи - примерно январь, и у меня');
+  n(sk, 'Как мы покупаем в SK? Бюджет? Цель? Что?');
+  n(sk, 'Использовать баланс е46, завести деньги?');
+  const x5 = n(avto, 'Х5');
+  n(x5, 'Август продать х5?');
+  n(x5, 'Находим автобизнесменов, написать за условия и рынок');
+  n(x5, '10к с продажи откладываем на легализацию своего авто');
+  n(x5, 'Стоит ли положить половину Наталье на счет ?');
+  const mx5 = n(avto, 'МХ5');
+  n(mx5, 'Посмотрим по закону сколько можно ездить и что делать если нельзя');
+  n(mx5, 'НЕ СПЕШИМ до 2028');
+  n(mx5, 'Если резидент SK, ищем опцию растаможить или поменять на аналог местный');
 
-  // — Авто → SK
-  const tVnzh = t({ goal: gAuto, title: 'Узнать сроки ВНЖ (Наталья ~январь; мой — ?)', priority: 'P2', due: '2027-01-15', src: 'Авто→SK→1' });
-  const dResid = t({ goal: gAuto, kind: 'decision', title: 'Резидентство SK?', note: 'Зависит от ВНЖ', src: 'Авто→SK' });
-  const dBuySK = t({ goal: gAuto, kind: 'decision', title: 'Покупка авто в SK: бюджет и цель', src: 'Авто→SK→2' });
-  t({ goal: gAuto, kind: 'question', parent: dBuySK, title: 'Использовать баланс e46 или заводить деньги?', src: 'Авто→SK→3' });
-  dep(dResid, dBuySK, 'decision');
-
-  // — Авто → X5
-  const tSellX5 = t({ goal: gAuto, title: 'Продать X5', priority: 'P1', due: '2026-08-31',
-    note: 'Дедлайн ужесточён: до росписи (контекст Семья). Налоги и транш — см. радар.', src: 'Авто→X5→1' });
-  t({ goal: gAuto, parent: tSellX5, title: 'Написать автобизнесменам: условия и рынок', priority: 'P2', src: 'Авто→X5→2' });
-  t({ goal: gAuto, kind: 'principle', title: '10k с продажи X5 → резерв «легализация MX5»', src: 'Авто→X5→3' });
-  const dHalf = t({ goal: gAuto, kind: 'decision', title: 'Половину от продажи X5 — Наталье?', src: 'Авто→X5→4' });
-
-  // — Авто → MX5
-  t({ goal: gAuto, title: 'Изучить: сколько можно ездить на MX5 по закону', priority: 'P3', src: 'Авто→MX5→1' });
-  t({ goal: gAuto, kind: 'principle', title: 'MX5: НЕ СПЕШИМ до 2028', src: 'Авто→MX5→2' });
-  const tCustoms = t({ goal: gAuto, title: 'Растаможка/замена MX5 на местный аналог', priority: 'P3', src: 'Авто→MX5→3' });
-  dep(dResid, tCustoms, 'decision');
-
-  // — Здоровье → Семья
-  const tContract = t({ goal: gHealth, title: 'Консультация по договору (накопления / подарки / наследство)', priority: 'P1', due: '2026-07-10', src: 'Семья→2' });
-  dep(tContract, dHalf, 'blocks');
-  t({ goal: gHealth, title: 'Назначать даты заранее (ежемесячно)', priority: 'P2', src: 'Семья→3' });
-  t({ goal: gHealth, kind: 'idea', title: 'Продумать, как провести дату и что видеть', src: 'Семья→3' });
-
-  // — Финансы (для окна времени радара)
-  t({ goal: gFin, title: 'Закрыть налоги за 2025', priority: 'P0', due: '2026-08-15', src: 'Финансы' });
-  t({ goal: gFin, title: 'Транш за квартиру', priority: 'P1', due: '2026-09-05', src: 'Финансы' });
+  const p5 = n(null, 'P5 — ЗДОРОВЬЕ / СТАБИЛЬНО');
+  const fam = n(p5, 'Семья');
+  n(fam, 'Формулирую, что для меня идеальные отношения, чтоб я был доволен нашим браком полностью.');
+  const dog = n(fam, 'Консультация за договор');
+  const vop = n(dog, 'Вопросы');
+  n(vop, 'Общаемся по договору влияет ли он на покупку / есть ли нюансы накопленных или подарков и наследств');
+  const dates = n(fam, 'Даты каждого');
+  n(dates, 'Желательно назначить заранее, если ничем не мешает');
+  n(dates, 'Подумать как бы я хотел провести дату и что видеть?');
+  const dorospisi = n(fam, 'Сделать до росписи');
+  n(dorospisi, 'Продать х5 до надо');
+  const razv = n(p5, 'Развитие');
+  const psy = n(razv, 'Психолог');
+  n(psy, '1 раз в неделю');
+  n(psy, '2 раза в неделю личные проработки');
+  n(psy, 'Ведем дневники тревог');
+  n(razv, 'Поездки');
 }

@@ -60,3 +60,14 @@ body{background:var(--bg);color:var(--text);font:14px/1.45 var(--sans);height:10
 .ritem.warn{border-color:rgba(176,125,16,.5)}
 .muted{color:var(--muted)}
 .empty{color:var(--muted);font-size:12px;padding:2px 0 8px}
+.hint{background:var(--green-soft);border:1px solid var(--green-dim);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--green);margin-bottom:12px}
+.caret{width:16px;color:var(--muted);cursor:pointer;flex:0 0 auto;font-size:11px;text-align:center}
+.bullet{font:11px var(--mono);color:var(--muted);min-width:18px;text-align:right}
+.t.top{font-weight:700}
+.btnrow{display:flex;gap:5px;flex-wrap:wrap;margin:4px 0}
+.pill.pulse{border-color:var(--green);color:var(--green);background:var(--green-soft)}
+.hintstar{font:10px var(--mono);color:var(--muted);text-transform:none;letter-spacing:0;margin-left:6px}
+.suggest{background:var(--green-soft);border-radius:7px;padding:6px 8px;font-size:12px;margin:6px 0}
+#dateInput{width:100%;border:1px solid var(--line);border-radius:7px;padding:6px 8px;font:12px var(--sans);margin-top:6px;background:var(--panel)}
+.addbar{margin-top:12px}
+.addbar input{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:13px var(--sans);background:var(--panel)}

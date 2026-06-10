@@ -5,81 +5,115 @@ import * as core from '../core.js';
 
 function freshDb() { const db = createDb(':memory:'); seed(db); return db; }
 const byTitle = (db, part) =>
-  core.listState(db).tasks.find(t => t.title.includes(part));
+  core.listTree(db).nodes.find(n => n.title.includes(part));
 
-test('нормализация гомоглифов: х5 (кириллица) == x5 (латиница)', () => {
+test('нормализация гомоглифов: х5 == x5', () => {
   assert.equal(norm('х5'), 'x5');
   assert.equal(norm('X5'), 'x5');
   assert.equal(norm('Продать х5'), norm('Продать x5'));
 });
 
-test('seed: данные загружены, статусы корректны', () => {
+test('сид: структура пользователя дословно, НИЧЕГО не типизировано и не связано', () => {
   const db = freshDb();
-  const s = core.listState(db);
-  assert.equal(s.goals.length, 3);
-  assert.ok(s.tasks.length >= 14);
-  assert.equal(byTitle(db, 'Резидентство SK').status, 'open');
+  const s = core.listTree(db);
+  assert.ok(s.nodes.length >= 28);
+  assert.ok(s.nodes.every(n => n.kind === null), 'все kind = NULL');
+  assert.ok(s.nodes.every(n => n.priority === null), 'все priority = NULL');
+  assert.ok(s.nodes.every(n => !n.blocked), 'ничего не заблокировано');
+  assert.equal(s.links.length, 0, 'ноль связей');
 });
 
-test('блокировка: «Растаможка MX5» заблокирована открытым решением «Резидентство SK?»', () => {
+test('сид: вложенность и порядок сохранены (Авто → Х5 → 4 строки в исходном порядке)', () => {
   const db = freshDb();
-  assert.equal(byTitle(db, 'Растаможка').blocked, true);
+  const x5 = byTitle(db, 'Х5');
+  const kids = core.listTree(db).nodes
+    .filter(n => n.parent_id === x5.id)
+    .sort((a, b) => a.ord - b.ord)
+    .map(n => n.title);
+  assert.equal(kids.length, 4);
+  assert.match(kids[0], /Август продать/);
+  assert.match(kids[3], /половину Наталье/);
 });
 
-test('принятие решения снимает блокировку', () => {
+test('подсказка типа: предлагает, но не сохраняет', () => {
   const db = freshDb();
-  core.toggleTask(db, byTitle(db, 'Резидентство SK').id);   // open -> accepted
-  assert.equal(byTitle(db, 'Растаможка').blocked, false);
+  const n = byTitle(db, 'Август продать');
+  const s = core.suggestForNode(db, n.id);
+  assert.equal(s.kind, 'question');           // «…х5?» — вопрос на конце
+  assert.equal(core.suggestKind('Стоит ли положить половину Наталье на счет ?'), 'decision');
+  assert.equal(core.suggestKind('НЕ СПЕШИМ до 2028'), 'principle');
+  assert.equal(core.suggestKind('Понять, когда будет внж у Натальи'), 'task');
+  assert.equal(byTitle(db, 'Август продать').kind, null, 'в базе ничего не изменилось');
 });
 
-test('поперечная связь: «Половину Наталье?» ждёт консультацию из ветки Семья', () => {
-  const db = freshDb();
-  const half = byTitle(db, 'Половину от продажи');
-  assert.equal(half.blocked, true);
-  core.toggleTask(db, byTitle(db, 'Консультация по договору').id); // done
-  assert.equal(byTitle(db, 'Половину от продажи').blocked, false);
+test('подсказка срока из текста: «Август…» и «до 2028»', () => {
+  const now = new Date('2026-06-10');
+  assert.equal(core.suggestDate('Август продать х5?', now).date, '2026-08-31');
+  assert.equal(core.suggestDate('НЕ СПЕШИМ до 2028', now).date, '2027-12-31');
+  assert.equal(core.suggestDate('просто строка', now), null);
 });
 
-test('радар «Продать X5»: окно времени ловит налоги и транш', () => {
+test('принятие типа пользователем выставляет стартовый статус', () => {
   const db = freshDb();
-  const r = core.radar(db, byTitle(db, 'Продать X5').id);
-  const titles = r.timeWindow.map(t => t.title).join('|');
-  assert.match(titles, /налоги/i);
-  assert.match(titles, /Транш/);
+  const n = byTitle(db, 'Август продать');
+  core.updateNode(db, n.id, { kind: 'task' });
+  assert.equal(core.getNode(db, n.id).status, 'todo');
+  core.updateNode(db, n.id, { kind: 'decision' });
+  assert.equal(core.getNode(db, n.id).status, 'open');
 });
 
-test('радар «Продать X5»: упоминания находят правило 10k и решение про Наталью', () => {
+test('предложения связей: «Август продать х5?» находит «Продать х5 до надо» из Семьи', () => {
   const db = freshDb();
-  const r = core.radar(db, byTitle(db, 'Продать X5').id);
-  const titles = r.mentions.map(t => t.title).join('|');
-  assert.match(titles, /10k|легализация/i);
-  assert.match(titles, /Наталье/);
+  const s = core.suggestForNode(db, byTitle(db, 'Август продать').id);
+  const titles = s.links.map(l => l.node.title).join('|');
+  assert.match(titles, /Продать х5 до надо/);
+  assert.ok(s.links.every(l => l.reason.startsWith('совпадение')), 'у каждого предложения есть причина');
 });
 
-test('радар: принципы ветки видны («НЕ СПЕШИМ до 2028»)', () => {
+test('предложения не включают родителей/детей и уже отклонённое', () => {
   const db = freshDb();
-  const r = core.radar(db, byTitle(db, 'Изучить').id);
-  assert.match(r.principles.map(p => p.title).join('|'), /НЕ СПЕШИМ/);
+  const n = byTitle(db, 'Август продать');
+  const s1 = core.suggestForNode(db, n.id);
+  assert.ok(!s1.links.some(l => l.node.title === 'Х5'), 'родитель не предлагается');
+  const target = s1.links.find(l => /до надо/.test(l.node.title));
+  core.dismissPair(db, n.id, target.node.id);
+  const s2 = core.suggestForNode(db, n.id);
+  assert.ok(!s2.links.some(l => l.node.id === target.node.id), 'отклонённое скрыто');
 });
 
-test('поиск: кириллическое «х5» находит латинское «X5»', () => {
+test('блокировка появляется ТОЛЬКО после подтверждения связи пользователем', () => {
   const db = freshDb();
-  const res = core.search(db, 'х5');
-  assert.ok(res.some(t => t.title.includes('X5')));
+  const sell = byTitle(db, 'Август продать');
+  const consult = byTitle(db, 'Консультация за договор');
+  assert.equal(sell.blocked, false);
+  core.updateNode(db, consult.id, { kind: 'task' });
+  core.addLink(db, consult.id, sell.id, 'blocks');      // пользователь подтвердил
+  assert.equal(byTitle(db, 'Август продать').blocked, true);
+  core.toggleNode(db, consult.id);                      // консультация done
+  assert.equal(byTitle(db, 'Август продать').blocked, false);
 });
 
-test('создание задачи + защита от циклов в зависимостях', () => {
+test('циклы и self-link запрещены', () => {
   const db = freshDb();
-  const a = core.createTask(db, { title: 'A', goal_id: 1 });
-  const b = core.createTask(db, { title: 'B', goal_id: 1 });
-  core.addDep(db, a.id, b.id, 'blocks');
-  assert.throws(() => core.addDep(db, b.id, a.id, 'blocks'), /cycle/);
-  assert.throws(() => core.addDep(db, a.id, a.id), /self/);
+  const a = core.addChild(db, null, 'A');
+  const b = core.addChild(db, null, 'B');
+  core.addLink(db, a.id, b.id, 'blocks');
+  assert.throws(() => core.addLink(db, b.id, a.id, 'blocks'), /cycle/);
+  assert.throws(() => core.addLink(db, a.id, a.id), /self/);
 });
 
-test('toggle задачи: todo -> done -> todo', () => {
+test('toggle работает только для типизированных задач/решений', () => {
   const db = freshDb();
-  const t = core.createTask(db, { title: 'Тест', goal_id: 1 });
-  assert.equal(core.toggleTask(db, t.id).status, 'done');
-  assert.equal(core.toggleTask(db, t.id).status, 'todo');
+  const plain = byTitle(db, 'Поездки');
+  core.toggleNode(db, plain.id);
+  assert.equal(core.getNode(db, plain.id).status, null, 'нетипизированная строка не трогается');
+});
+
+test('поиск: кириллица находит, дети добавляются в конец', () => {
+  const db = freshDb();
+  assert.ok(core.search(db, 'х5').length >= 2);
+  const x5 = byTitle(db, 'Х5');
+  const added = core.addChild(db, x5.id, 'Новая строка');
+  const kids = core.listTree(db).nodes.filter(n => n.parent_id === x5.id).sort((a, b) => a.ord - b.ord);
+  assert.equal(kids.at(-1).id, added.id);
 });

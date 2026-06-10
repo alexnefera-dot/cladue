@@ -1,134 +1,196 @@
-import { norm, tokens } from './db.js';
+import { norm, tokens, insertNode } from './db.js';
 
-export function createTask(db, o) {
-  db.prepare(`INSERT INTO tasks(title, note, kind, status, priority, due_date, parent_id, goal_id)
-    VALUES(?,?,?,?,?,?,?,?)`)
-    .run(o.title, o.note ?? '', o.kind ?? 'task',
-         o.kind === 'decision' ? 'open' : 'todo',
-         o.priority ?? null, o.due_date ?? null, o.parent_id ?? null, o.goal_id ?? null);
-  const id = db.prepare('SELECT last_insert_rowid() AS id').get().id;
-  db.prepare('INSERT INTO task_fts(rowid, title_norm, note_norm) VALUES(?,?,?)')
-    .run(id, norm(o.title), norm(o.note ?? ''));
-  return getTask(db, id);
+export function getNode(db, id) {
+  return db.prepare('SELECT * FROM nodes WHERE id = ?').get(id);
 }
 
-export function getTask(db, id) {
-  return db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
-}
+const PATCHABLE = ['title', 'note', 'kind', 'status', 'priority', 'due_date'];
 
-const PATCHABLE = ['title', 'note', 'status', 'priority', 'due_date', 'goal_id', 'parent_id'];
-
-export function updateTask(db, id, fields) {
+export function updateNode(db, id, fields) {
   const keys = Object.keys(fields).filter(k => PATCHABLE.includes(k));
-  if (!keys.length) return getTask(db, id);
-  const sets = keys.map(k => `${k} = ?`).join(', ');
-  db.prepare(`UPDATE tasks SET ${sets}, updated_at = datetime('now') WHERE id = ?`)
-    .run(...keys.map(k => fields[k]), id);
-  if (keys.includes('title') || keys.includes('note')) {
-    const t = getTask(db, id);
-    db.prepare('UPDATE task_fts SET title_norm = ?, note_norm = ? WHERE rowid = ?')
-      .run(norm(t.title), norm(t.note), id);
+  if (keys.length) {
+    // принятие типа выставляет стартовый статус
+    if (keys.includes('kind') && !('status' in fields)) {
+      fields.status = fields.kind === 'decision' ? 'open'
+                    : fields.kind === 'task' ? 'todo' : null;
+      keys.push('status');
+    }
+    const sets = keys.map(k => `${k} = ?`).join(', ');
+    db.prepare(`UPDATE nodes SET ${sets}, updated_at = datetime('now') WHERE id = ?`)
+      .run(...keys.map(k => fields[k]), id);
+    if (keys.includes('title') || keys.includes('note')) {
+      const t = getNode(db, id);
+      db.prepare('UPDATE node_fts SET title_norm = ?, note_norm = ? WHERE rowid = ?')
+        .run(norm(t.title), norm(t.note), id);
+    }
   }
-  return getTask(db, id);
+  return getNode(db, id);
 }
 
-export function toggleTask(db, id) {
-  const t = getTask(db, id);
-  if (!t) return null;
+export function toggleNode(db, id) {
+  const t = getNode(db, id);
+  if (!t || !['task', 'decision'].includes(t.kind ?? '')) return t;
   const next = t.kind === 'decision'
     ? (t.status === 'open' ? 'accepted' : 'open')
     : (t.status === 'done' ? 'todo' : 'done');
-  return updateTask(db, id, { status: next });
+  return updateNode(db, id, { status: next });
 }
 
-export function addDep(db, predecessor_id, successor_id, type = 'blocks') {
-  if (predecessor_id === successor_id) throw new Error('self-dependency');
-  if (reaches(db, successor_id, predecessor_id)) throw new Error('cycle');
-  db.prepare('INSERT OR IGNORE INTO deps(predecessor_id, successor_id, type) VALUES(?,?,?)')
-    .run(predecessor_id, successor_id, type);
+export function addChild(db, parent_id, title) {
+  const id = insertNode(db, parent_id ?? null, title);
+  return getNode(db, id);
+}
+
+// ===== Связи (только подтверждённые пользователем) =====
+export function addLink(db, from_id, to_id, type = 'related') {
+  if (from_id === to_id) throw new Error('self-link');
+  if (type === 'blocks' && reaches(db, to_id, from_id)) throw new Error('cycle');
+  db.prepare('INSERT OR IGNORE INTO links(from_id, to_id, type) VALUES(?,?,?)')
+    .run(from_id, to_id, type);
+}
+
+export function removeLink(db, id) {
+  db.prepare('DELETE FROM links WHERE id = ?').run(id);
+}
+
+export function dismissPair(db, a, b) {
+  const [x, y] = a < b ? [a, b] : [b, a];
+  db.prepare('INSERT OR IGNORE INTO dismissed(a, b) VALUES(?,?)').run(x, y);
 }
 
 function reaches(db, from, to) {
   const row = db.prepare(`
     WITH RECURSIVE r(id) AS (
-      SELECT successor_id FROM deps WHERE predecessor_id = ?
-      UNION SELECT d.successor_id FROM deps d JOIN r ON d.predecessor_id = r.id
+      SELECT to_id FROM links WHERE from_id = ? AND type = 'blocks'
+      UNION SELECT l.to_id FROM links l JOIN r ON l.from_id = r.id AND l.type = 'blocks'
     ) SELECT 1 AS hit FROM r WHERE id = ? LIMIT 1`).get(from, to);
   return !!row;
 }
 
-// Задача заблокирована, если есть незакрытый предшественник (blocks/decision)
+// Узел заблокирован, если его блокирует незакрытый узел (подтверждённая связь)
 export function blockedSet(db) {
   const rows = db.prepare(`
-    SELECT DISTINCT d.successor_id AS id FROM deps d
-    JOIN tasks p ON p.id = d.predecessor_id
-    WHERE d.type IN ('blocks','decision')
-      AND ((p.kind = 'decision' AND p.status != 'accepted')
-        OR (p.kind != 'decision' AND p.status != 'done'))`).all();
+    SELECT DISTINCT l.to_id AS id FROM links l
+    JOIN nodes p ON p.id = l.from_id
+    WHERE l.type = 'blocks'
+      AND NOT (p.status IN ('done','accepted'))`).all();
   return new Set(rows.map(r => r.id));
 }
 
-export function listState(db) {
+export function listTree(db) {
   const blocked = blockedSet(db);
   return {
-    goals: db.prepare('SELECT * FROM goals ORDER BY priority, id').all(),
-    tasks: db.prepare('SELECT * FROM tasks ORDER BY id').all()
+    nodes: db.prepare('SELECT * FROM nodes ORDER BY parent_id NULLS FIRST, ord').all()
       .map(t => ({ ...t, blocked: blocked.has(t.id) })),
-    deps: db.prepare('SELECT * FROM deps').all(),
+    links: db.prepare('SELECT * FROM links').all(),
   };
 }
 
-// ===== Радар блокеров =====
-export function radar(db, id) {
-  const t = getTask(db, id);
+// ===== Подсказки (ничего не сохраняют — только предлагают) =====
+
+const VERBS = /^(понять|продать|купить|найти|находим|написать|посмотреть|посмотрим|использовать|сделать|назначить|подумать|сформулирую|формулирую|изучить|закрыть|общаемся|ведем|ведём|завести|положить|оплатить|проверить|узнать|записаться|выбрать|решить)/i;
+const DECIS = /^(стоит ли|как мы|что лучше|или\b)/i;
+
+export function suggestKind(title) {
+  const t = title.trim();
+  if (DECIS.test(t)) return 'decision';
+  if (/\?\s*$/.test(t)) return 'question';
+  const letters = t.replace(/[^а-яёa-z]/gi, '');
+  const upper = t.replace(/[^А-ЯЁA-Z]/g, '');
+  if (letters.length >= 5 && upper.length / letters.length > 0.7) return 'principle';
+  if (VERBS.test(t)) return 'task';
+  return null;
+}
+
+const MONTHS = { 'январ':1,'феврал':2,'март':3,'апрел':4,'ма[йя]':5,'июн':6,
+                 'июл':7,'август':8,'сентябр':9,'октябр':10,'ноябр':11,'декабр':12 };
+
+export function suggestDate(title, now = new Date()) {
+  const t = title.toLowerCase();
+  const until = t.match(/до\s+(20\d\d)/);
+  if (until) return { date: `${+until[1] - 1}-12-31`, reason: `в тексте: «до ${until[1]}»` };
+  for (const [pat, m] of Object.entries(MONTHS)) {
+    // \b не работает с кириллицей — граница слова вручную
+    if (new RegExp(`(?:^|[^а-яёa-z])(?:${pat})`).test(t)) {
+      let y = now.getFullYear();
+      if (m < now.getMonth() + 1) y += 1;
+      const last = new Date(y, m, 0).getDate();
+      return { date: `${y}-${String(m).padStart(2, '0')}-${last}`,
+               reason: `в тексте найден месяц` };
+    }
+  }
+  return null;
+}
+
+export function ancestorIds(db, id) {
+  const out = [];
+  let cur = getNode(db, id);
+  while (cur?.parent_id) { out.push(cur.parent_id); cur = getNode(db, cur.parent_id); }
+  return out;
+}
+
+function descendantIds(db, id) {
+  return db.prepare(`
+    WITH RECURSIVE r(id) AS (
+      SELECT id FROM nodes WHERE parent_id = ?
+      UNION SELECT n.id FROM nodes n JOIN r ON n.parent_id = r.id
+    ) SELECT id FROM r`).all(id).map(r => r.id);
+}
+
+// Предложения для узла: тип, дата, связи-кандидаты с причиной
+export function suggestForNode(db, id) {
+  const t = getNode(db, id);
   if (!t) return null;
 
-  const blockers = db.prepare(`
-    SELECT p.*, d.type AS dep_type FROM deps d JOIN tasks p ON p.id = d.predecessor_id
-    WHERE d.successor_id = ?
-      AND ((p.kind = 'decision' AND p.status != 'accepted')
-        OR (p.kind != 'decision' AND p.status != 'done'))`).all(id);
+  const family = new Set([id, ...ancestorIds(db, id), ...descendantIds(db, id)]);
+  const linked = new Set(db.prepare(
+    'SELECT from_id AS x FROM links WHERE to_id = ? UNION SELECT to_id FROM links WHERE from_id = ?')
+    .all(id, id).map(r => r.x));
+  const dism = new Set(db.prepare('SELECT a, b FROM dismissed').all()
+    .flatMap(r => (r.a === id || r.b === id) ? [r.a === id ? r.b : r.a] : []));
 
-  const blocks = db.prepare(`
-    SELECT s.*, d.type AS dep_type FROM deps d JOIN tasks s ON s.id = d.successor_id
-    WHERE d.predecessor_id = ?`).all(id);
-
-  // Упоминания: FTS по значимым словам названия+заметки (гомоглифы нормализованы)
-  let mentions = [];
-  const toks = tokens(t.title + ' ' + t.note);
-  if (toks.length) {
-    const q = toks.map(x => `"${x.replaceAll('"', '')}"`).join(' OR ');
-    mentions = db.prepare(`
-      SELECT tk.*, bm25(task_fts) AS rank FROM task_fts
-      JOIN tasks tk ON tk.id = task_fts.rowid
-      WHERE task_fts MATCH ? AND tk.id != ? AND tk.parent_id IS NOT ?
-      ORDER BY rank LIMIT 8`).all(q, id, id)
-      .filter(m => m.id !== t.parent_id);
+  const myToks = tokens(t.title + ' ' + t.note);
+  let candidates = [];
+  if (myToks.length) {
+    const q = myToks.map(x => `"${x.replaceAll('"', '')}"`).join(' OR ');
+    candidates = db.prepare(`
+      SELECT n.*, bm25(node_fts) AS rank FROM node_fts
+      JOIN nodes n ON n.id = node_fts.rowid
+      WHERE node_fts MATCH ? ORDER BY rank LIMIT 20`).all(q)
+      .filter(c => !family.has(c.id) && !linked.has(c.id) && !dism.has(c.id))
+      .map(c => {
+        const common = tokens(c.title + ' ' + c.note).filter(x => myToks.includes(x));
+        // показываем слова в исходном виде, а не нормализованные
+        const raw = (t.title + ' ' + t.note).toLowerCase().split(/[^a-zа-яё0-9]+/u).filter(Boolean);
+        const disp = [...new Set(raw.filter(w => common.includes(norm(w))))];
+        return { node: c, reason: 'совпадение: ' + (disp.length ? disp : common).slice(0, 4).join(', '), kind: 'mention' };
+      })
+      .filter(c => c.reason.length > 12);
   }
 
-  // Окно времени ±60 дней
-  let timeWindow = [];
+  // близость по датам (если у обоих стоят сроки)
   if (t.due_date) {
-    timeWindow = db.prepare(`
-      SELECT * FROM tasks
-      WHERE due_date IS NOT NULL AND id != ? AND status NOT IN ('done','accepted')
-        AND abs(julianday(due_date) - julianday(?)) <= 60
-      ORDER BY due_date LIMIT 8`).all(id, t.due_date);
+    const near = db.prepare(`
+      SELECT * FROM nodes WHERE due_date IS NOT NULL AND id != ?
+        AND abs(julianday(due_date) - julianday(?)) <= 60`).all(id, t.due_date)
+      .filter(c => !family.has(c.id) && !linked.has(c.id) && !dism.has(c.id))
+      .map(c => ({ node: c, reason: `дата рядом: ${c.due_date}`, kind: 'time' }));
+    candidates.push(...near);
   }
 
-  // Открытые решения той же цели (не связанные напрямую — те уже в blockers)
-  const decisions = db.prepare(`
-    SELECT * FROM tasks WHERE kind = 'decision' AND status = 'open'
-      AND goal_id IS ? AND id != ?
-      AND id NOT IN (SELECT predecessor_id FROM deps WHERE successor_id = ?)`)
-    .all(t.goal_id, id, id);
+  const seen = new Set();
+  candidates = candidates.filter(c => !seen.has(c.node.id) && seen.add(c.node.id)).slice(0, 8);
 
-  // Принципы ветки (та же цель)
-  const principles = db.prepare(`
-    SELECT * FROM tasks WHERE kind = 'principle' AND goal_id IS ? AND id != ?`)
-    .all(t.goal_id, id);
-
-  return { task: t, blockers, blocks, mentions, timeWindow, decisions, principles };
+  return {
+    node: t,
+    kind: t.kind ? null : suggestKind(t.title),
+    date: t.due_date ? null : suggestDate(t.title),
+    links: candidates,
+    confirmed: db.prepare(`
+      SELECT l.id AS link_id, l.type, l.from_id, l.to_id, n.title, n.status, n.kind AS nkind
+      FROM links l JOIN nodes n ON n.id = CASE WHEN l.from_id = ? THEN l.to_id ELSE l.from_id END
+      WHERE l.from_id = ? OR l.to_id = ?`).all(id, id, id),
+  };
 }
 
 export function search(db, q) {
@@ -136,6 +198,6 @@ export function search(db, q) {
   if (!toks.length) return [];
   const match = toks.map(x => `"${x.replaceAll('"', '')}"*`).join(' ');
   return db.prepare(`
-    SELECT tk.* FROM task_fts JOIN tasks tk ON tk.id = task_fts.rowid
-    WHERE task_fts MATCH ? ORDER BY bm25(task_fts) LIMIT 20`).all(match);
+    SELECT n.* FROM node_fts JOIN nodes n ON n.id = node_fts.rowid
+    WHERE node_fts MATCH ? ORDER BY bm25(node_fts) LIMIT 20`).all(match);
 }

@@ -1,124 +1,172 @@
 let state = null, selected = null;
+const collapsed = new Set();
 
-const KIND = { task: ['задача',''], decision: ['решение','dec'], question: ['вопрос','p2'],
+const KIND = { task: ['задача','ok'], decision: ['решение','dec'], question: ['вопрос','p2'],
                principle: ['принцип','p1'], idea: ['идея',''] };
-const DEP = { blocks: 'блокирует', decision: 'зависит от решения', complements: 'дополняет' };
 
 const api = {
-  state: () => fetch('/api/state').then(r => r.json()),
-  radar: id => fetch('/api/radar/' + id).then(r => r.json()),
-  toggle: id => fetch(`/api/tasks/${id}/toggle`, { method: 'POST' }).then(r => r.json()),
-  create: b => fetch('/api/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json()),
+  tree: () => fetch('/api/tree').then(r => r.json()),
+  suggest: id => fetch('/api/suggest/' + id).then(r => r.json()),
+  patch: (id, b) => fetch('/api/nodes/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json()),
+  toggle: id => fetch(`/api/nodes/${id}/toggle`, { method: 'POST' }).then(r => r.json()),
+  add: b => fetch('/api/nodes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json()),
+  link: b => fetch('/api/links', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json()),
+  unlink: id => fetch('/api/links/' + id, { method: 'DELETE' }),
+  dismiss: (a, b) => fetch('/api/dismiss', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ a, b }) }),
   search: q => fetch('/api/search?q=' + encodeURIComponent(q)).then(r => r.json()),
 };
 
 function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 
 async function load() {
-  state = await api.state();
+  state = await api.tree();
   renderBoard();
   renderStatus();
-  if (selected) showRadar(selected);
+  if (selected) showCard(selected);
 }
 
 function renderStatus() {
-  const open = state.tasks.filter(t => t.kind === 'decision' && t.status === 'open').length;
-  const todo = state.tasks.filter(t => t.kind === 'task' && t.status === 'todo').length;
-  const blocked = state.tasks.filter(t => t.blocked).length;
+  const typed = state.nodes.filter(n => n.kind).length;
+  const blocked = state.nodes.filter(n => n.blocked).length;
   document.getElementById('statusbar').textContent =
-    `задач: ${todo} · решений открыто: ${open} · заблокировано: ${blocked}`;
+    `строк: ${state.nodes.length} · типизировано: ${typed} · связей: ${state.links.length} · заблокировано: ${blocked}`;
 }
 
-function taskRow(t, depth = 0) {
-  const [kindLabel, kindCls] = KIND[t.kind] ?? [t.kind, ''];
-  const done = t.status === 'done' || t.status === 'accepted';
-  const cb = t.kind === 'principle' || t.kind === 'idea' || t.kind === 'question'
-    ? `<span class="pill ${kindCls}">${kindLabel}</span>`
-    : `<span class="cb ${t.kind === 'decision' ? 'dec' : ''} ${done ? 'done' : ''}" data-toggle="${t.id}"></span>`;
-  return `<div class="task ${t.blocked ? 'blocked' : ''} ${selected === t.id ? 'sel' : ''}" data-id="${t.id}" style="padding-left:${4 + depth * 26}px">
-    ${cb}
-    ${t.priority ? `<span class="pill ${t.priority}">${t.priority}</span>` : ''}
-    ${t.kind === 'decision' ? `<span class="pill dec">решение</span>` : ''}
-    <span class="t ${done ? 'done' : ''}">${esc(t.title)}</span>
-    ${t.blocked ? '<span class="meta">⛔</span>' : ''}
-    ${t.due_date ? `<span class="meta">${t.due_date}</span>` : ''}
+function nodeRow(n, depth, idx) {
+  const kids = byParent[n.id]?.length ?? 0;
+  const [kl, kc] = n.kind ? (KIND[n.kind] ?? [n.kind, '']) : [null, null];
+  const done = n.status === 'done' || n.status === 'accepted';
+  const caret = kids
+    ? `<span class="caret" data-fold="${n.id}">${collapsed.has(n.id) ? '▸' : '▾'}</span>`
+    : '<span class="caret"></span>';
+  const marker = !n.kind
+    ? `<span class="bullet">${idx}.</span>`
+    : (n.kind === 'task' || n.kind === 'decision')
+      ? `<span class="cb ${n.kind === 'decision' ? 'dec' : ''} ${done ? 'done' : ''}" data-toggle="${n.id}"></span>`
+      : `<span class="pill ${kc}">${kl}</span>`;
+  return `<div class="task ${n.blocked ? 'blocked' : ''} ${selected === n.id ? 'sel' : ''}"
+      data-id="${n.id}" style="padding-left:${6 + depth * 24}px">
+    ${caret}${marker}
+    ${n.priority ? `<span class="pill ${n.priority}">${n.priority}</span>` : ''}
+    ${n.kind === 'task' || n.kind === 'decision' ? `<span class="pill ${kc}">${kl}</span>` : ''}
+    <span class="t ${done ? 'done' : ''} ${depth === 0 ? 'top' : ''}">${esc(n.title)}</span>
+    ${n.blocked ? '<span class="meta">⛔</span>' : ''}
+    ${n.due_date ? `<span class="meta">${n.due_date}</span>` : ''}
   </div>`;
 }
 
+let byParent = {};
 function renderBoard() {
-  const byParent = {};
-  for (const t of state.tasks) (byParent[t.parent_id ?? 'root'] ??= []).push(t);
-  const tree = (t, depth) => taskRow(t, depth) + (byParent[t.id] ?? []).map(c => tree(c, depth + 1)).join('');
-  document.getElementById('board').innerHTML = state.goals.map(g => {
-    const roots = (byParent['root'] ?? []).filter(t => t.goal_id === g.id);
-    return `<div class="sec">⚑ ${esc(g.title)}<span class="pr">· ${g.priority ?? ''}</span></div>
-      <div class="card">${roots.map(t => tree(t, 0)).join('') || '<div class="empty">пусто</div>'}</div>`;
-  }).join('');
-  const sel = document.getElementById('addGoal');
-  if (!sel.options.length)
-    sel.innerHTML = state.goals.map(g => `<option value="${g.id}">${esc(g.title)}</option>`).join('');
+  byParent = {};
+  for (const n of state.nodes) (byParent[n.parent_id ?? 'root'] ??= []).push(n);
+  const walk = (n, depth, idx) =>
+    nodeRow(n, depth, idx) +
+    (collapsed.has(n.id) ? '' : (byParent[n.id] ?? []).map((c, i) => walk(c, depth + 1, i + 1)).join(''));
+  document.getElementById('board').innerHTML =
+    `<div class="card">${(byParent['root'] ?? []).map((n, i) => walk(n, 0, i + 1)).join('')}</div>`;
 }
 
-function rItem(t, extra = '', warn = false) {
-  return `<div class="ritem ${warn ? 'warn' : ''}" data-id="${t.id}">
-    <div class="rt">${esc(t.title)}</div>
-    <div class="rm">${extra}${t.due_date ? ' · ' + t.due_date : ''}${t.status === 'done' || t.status === 'accepted' ? ' · ✓' : ''}</div>
-  </div>`;
+function pathOf(id) {
+  const map = Object.fromEntries(state.nodes.map(n => [n.id, n]));
+  const out = [];
+  let cur = map[id]?.parent_id;
+  while (cur) { out.unshift(map[cur].title); cur = map[cur].parent_id; }
+  return out.join(' → ');
 }
 
-async function showRadar(id) {
+const LINKLABEL = { related: '⛓ связано', blocks: '⛔ блокирует' };
+
+async function showCard(id) {
   selected = id;
   renderBoard();
-  const r = await api.radar(id);
-  const t = r.task;
-  const sec = (title, items, fmt) => items.length
-    ? `<h3>${title}</h3>` + items.map(fmt).join('')
-    : '';
+  const s = await api.suggest(id);
+  const n = s.node;
+  const kindBtns = ['task', 'decision', 'question', 'principle', 'idea']
+    .map(k => `<span class="pill btn ${n.kind === k ? 'ok' : ''} ${s.kind === k ? 'pulse' : ''}"
+       data-setkind="${k}">${KIND[k][0]}${s.kind === k ? ' ★' : ''}</span>`).join(' ');
+  const prioBtns = ['P0', 'P1', 'P2', 'P3']
+    .map(p => `<span class="pill btn ${p} ${n.priority === p ? 'ok' : ''}" data-setprio="${p}">${p}</span>`).join(' ');
+
   document.getElementById('insp').innerHTML = `
-    <h3>${KIND[t.kind]?.[0] ?? t.kind} · ${t.status}</h3>
-    <div class="title">${esc(t.title)}</div>
-    ${t.note ? `<div class="muted" style="margin-bottom:6px">${esc(t.note)}</div>` : ''}
-    <div class="kv">Срок <b>${t.due_date ?? '—'}</b></div>
-    <div class="kv">Приоритет <b>${t.priority ?? '—'}</b></div>
-    <div class="kv">Источник <b>${esc(t.source_line ?? '—')}</b></div>
-    <div style="margin:10px 0">
-      ${t.kind === 'decision'
-        ? `<span class="pill btn ok" data-toggle="${t.id}">${t.status === 'open' ? '✓ Принять решение' : '↺ Снова открыть'}</span>`
-        : `<span class="pill btn ok" data-toggle="${t.id}">${t.status === 'done' ? '↺ Вернуть' : '✓ Выполнено'}</span>`}
-    </div>
-    ${sec('⛔ Блокируют эту задачу', r.blockers, b => rItem(b, DEP[b.dep_type] ?? b.dep_type, true))}
-    ${sec('→ Эта запись блокирует', r.blocks, b => rItem(b, DEP[b.dep_type] ?? b.dep_type))}
-    ${sec('📡 Упоминания в других ветках', r.mentions, m => rItem(m, m.source_line ?? ''))}
-    ${sec('🕒 Окно времени ±60 дней', r.timeWindow, w => rItem(w, 'дедлайн рядом', true))}
-    ${sec('◆ Открытые решения рядом', r.decisions, d => rItem(d, 'решение открыто', true))}
-    ${sec('◇ Принципы ветки', r.principles, p => rItem(p, 'принцип'))}
-    ${!r.blockers.length && !r.mentions.length && !r.timeWindow.length && !r.decisions.length
-      ? '<h3>Радар</h3><div class="muted">Чисто — блокеров не найдено</div>' : ''}
+    <h3>Оригинал</h3>
+    <div class="title">${esc(n.title)}</div>
+    <div class="muted" style="margin-bottom:8px">${esc(pathOf(id) || 'корень списка')}</div>
+
+    <h3>Тип <span class="hintstar">★ — подсказка, решаешь ты</span></h3>
+    <div class="btnrow">${kindBtns} ${n.kind ? `<span class="pill btn" data-setkind="">сбросить</span>` : ''}</div>
+
+    ${n.kind === 'task' || n.kind === 'decision' ? `
+      <h3>Статус</h3>
+      <span class="pill btn ok" data-toggle="${n.id}">${
+        n.kind === 'decision'
+          ? (n.status === 'open' ? '✓ принять решение' : '↺ снова открыть')
+          : (n.status === 'done' ? '↺ вернуть в работу' : '✓ выполнено')}</span>` : ''}
+
+    <h3>Приоритет</h3>
+    <div class="btnrow">${prioBtns} ${n.priority ? `<span class="pill btn" data-setprio="">сбросить</span>` : ''}</div>
+
+    <h3>Срок</h3>
+    <div class="kv"><span>${n.due_date ?? 'не задан'}</span>
+      ${n.due_date ? `<span class="pill btn" data-setdate="">убрать</span>` : ''}</div>
+    ${s.date ? `<div class="suggest">💡 ${esc(s.date.reason)} →
+      <span class="pill btn ok" data-setdate="${s.date.date}">поставить ${s.date.date}</span></div>` : ''}
+    <input id="dateInput" placeholder="или вручную: 2026-08-31" value="">
+
+    ${s.confirmed.length ? `<h3>Связи (подтверждённые)</h3>` + s.confirmed.map(l => `
+      <div class="ritem"><div class="rt">${LINKLABEL[l.type] ?? l.type}${l.from_id === id && l.type === 'blocks' ? ' →' : l.type === 'blocks' ? ' ←' : ''} ${esc(l.title)}</div>
+      <div class="rm"><span class="pill btn" data-unlink="${l.link_id}">✕ убрать связь</span></div></div>`).join('') : ''}
+
+    <h3>📡 Предложения связей <span class="hintstar">система только предлагает</span></h3>
+    ${s.links.length ? s.links.map(c => `
+      <div class="ritem">
+        <div class="rt">${esc(c.node.title)}</div>
+        <div class="rm">${esc(pathOf(c.node.id))} · ${esc(c.reason)}</div>
+        <div class="rm btnrow">
+          <span class="pill btn ok" data-acc="${c.node.id}" data-type="related">⛓ связать</span>
+          <span class="pill btn" data-acc="${c.node.id}" data-type="blocked-by">⛔ это блокер</span>
+          <span class="pill btn" data-acc="${c.node.id}" data-type="blocks">→ я блокирую</span>
+          <span class="pill btn" data-dis="${c.node.id}">✕ скрыть</span>
+        </div>
+      </div>`).join('')
+    : '<div class="muted">кандидатов не найдено</div>'}
   `;
+
+  document.getElementById('dateInput').addEventListener('keydown', async e => {
+    if (e.key === 'Enter' && /^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) {
+      await api.patch(id, { due_date: e.target.value });
+      await load();
+    }
+  });
 }
 
 document.addEventListener('click', async e => {
-  const tg = e.target.closest('[data-toggle]');
-  if (tg) { e.stopPropagation(); await api.toggle(+tg.dataset.toggle); await load(); return; }
-  const row = e.target.closest('[data-id]');
-  if (row) showRadar(+row.dataset.id);
+  const el = e.target;
+  const id = selected;
+  if (el.dataset.fold) {
+    const f = +el.dataset.fold;
+    collapsed.has(f) ? collapsed.delete(f) : collapsed.add(f);
+    renderBoard(); return;
+  }
+  if (el.dataset.toggle) { e.stopPropagation(); await api.toggle(+el.dataset.toggle); await load(); return; }
+  if ('setkind' in el.dataset) { await api.patch(id, { kind: el.dataset.setkind || null }); await load(); return; }
+  if ('setprio' in el.dataset) { await api.patch(id, { priority: el.dataset.setprio || null }); await load(); return; }
+  if ('setdate' in el.dataset) { await api.patch(id, { due_date: el.dataset.setdate || null }); await load(); return; }
+  if (el.dataset.unlink) { await api.unlink(+el.dataset.unlink); await load(); return; }
+  if (el.dataset.acc) {
+    const other = +el.dataset.acc, type = el.dataset.type;
+    if (type === 'blocked-by') await api.link({ from_id: other, to_id: id, type: 'blocks' });
+    else if (type === 'blocks') await api.link({ from_id: id, to_id: other, type: 'blocks' });
+    else await api.link({ from_id: id, to_id: other, type: 'related' });
+    await load(); return;
+  }
+  if (el.dataset.dis) { await api.dismiss(id, +el.dataset.dis); await load(); return; }
+  const row = el.closest('[data-id]');
+  if (row) showCard(+row.dataset.id);
 });
 
 document.getElementById('addTitle').addEventListener('keydown', async e => {
-  if (e.key !== 'Enter') return;
-  let title = e.target.value.trim();
-  if (!title) return;
-  const pm = title.match(/\bp([0-3])\b/i);
-  const dm = title.match(/\b(\d{4}-\d{2}-\d{2})\b/);
-  if (pm) title = title.replace(pm[0], '').trim();
-  if (dm) title = title.replace(dm[0], '').trim();
-  await api.create({
-    title,
-    kind: document.getElementById('addKind').value,
-    goal_id: +document.getElementById('addGoal').value,
-    priority: pm ? 'P' + pm[1] : null,
-    due_date: dm ? dm[1] : null,
-  });
+  if (e.key !== 'Enter' || !e.target.value.trim()) return;
+  await api.add({ title: e.target.value.trim(), parent_id: selected ?? null });
   e.target.value = '';
   await load();
 });

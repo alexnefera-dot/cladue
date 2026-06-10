@@ -7,38 +7,32 @@
 </head>
 <body>
 <div class="titlebar">
-  <span class="name">▣ PIPBOY · прототип · этап 1: Задачи и Цели</span>
+  <span class="name">▣ PIPBOY · прототип · этап 1: твой список, дословно</span>
   <span class="status" id="statusbar"></span>
 </div>
 <div class="layout">
   <nav class="side">
-    <div class="item active">☑ Задачи и Цели</div>
+    <div class="item active">☰ Список (структура — твоя)</div>
     <div class="item off">▤ Инфо · этап 3</div>
     <div class="item off">▦ Календарь · этап 2</div>
     <div class="item off">◈ Финансы 🔒 · этап 2</div>
     <div class="item off">◎ Психология 🔒 · этап 4</div>
-    <div class="item off">☻ Люди · этап 4</div>
-    <div class="item off">↻ Рутины · этап 4</div>
     <div class="bottom">
-      <input id="searchbox" placeholder="⌕ поиск (включая x5 ↔ х5)">
+      <input id="searchbox" placeholder="⌕ поиск (х5 найдёт и X5)">
       <div id="searchres"></div>
     </div>
   </nav>
   <main class="main">
-    <div class="addbar">
-      <select id="addGoal"></select>
-      <select id="addKind">
-        <option value="task">задача</option>
-        <option value="decision">решение</option>
-        <option value="question">вопрос</option>
-        <option value="principle">принцип</option>
-        <option value="idea">идея</option>
-      </select>
-      <input id="addTitle" placeholder="Новая запись… (Enter)  ·  p0–p3 в тексте = приоритет, 2026-08-31 = срок">
-    </div>
+    <div class="hint">Структура и порядок — из твоего списка, ничего не типизировано заранее.
+      Кликни строку → справа подсказки: тип, срок, связи. Принимаешь только ты.</div>
     <div id="board"></div>
+    <div class="addbar">
+      <input id="addTitle" placeholder="Добавить строку… (Enter — в выбранный узел, пусто — в корень)">
+    </div>
   </main>
-  <aside class="insp" id="insp"><h3>Инспектор</h3><div class="muted">Выбери задачу — здесь появится радар блокеров</div></aside>
+  <aside class="insp" id="insp"><h3>Карточка узла</h3>
+    <div class="muted">Выбери строку слева — здесь появится карточка: оригинал, подсказки типа и срока, предложения связей.</div>
+  </aside>
 </div>
 <script src="app.js"></script>
 </body>
