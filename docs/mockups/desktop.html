@@ -108,6 +108,9 @@
   .pill.idea{color:#8a6d1d;border-color:#c9b06a}
   .created-item{display:flex;gap:8px;padding:6px 4px;border-bottom:1px solid var(--line);font-size:12.5px;align-items:baseline}
   .created-item:last-child{border-bottom:0}
+  .hm{display:grid;grid-template-rows:repeat(7,12px);grid-auto-flow:column;gap:3px}
+  .hm i{width:12px;height:12px;border-radius:3px;background:var(--panel2)}
+  .hm i.l1{background:#cdeedd}.hm i.l2{background:#8fd6b0}.hm i.l3{background:#1e9e57}
 </style>
 </head>
 <body>
@@ -127,12 +130,13 @@
     <div class="item" data-s="triage" style="padding-left:26px"><span class="ico">⛏</span>Разбор <span class="pill ok" style="margin-left:auto">демо</span></div>
     <div class="item" data-s="notes"><span class="ico">▤</span>Инфо<span class="kbd">⌘4</span></div>
     <div class="item" data-s="cal"><span class="ico">▦</span>Календарь<span class="kbd">⌘5</span></div>
+    <div class="item" data-s="people"><span class="ico">☻</span>Люди<span class="kbd">⌘8</span></div>
+    <div class="item" data-s="routines"><span class="ico">↻</span>Рутины<span class="kbd">⌘9</span></div>
     <div class="sep"></div>
     <div class="item" data-s="fin"><span class="ico">◈</span>Финансы<span class="lock">🔒</span><span class="kbd">⌘6</span></div>
     <div class="item" data-s="psy"><span class="ico">◎</span>Психология<span class="lock">🔒</span><span class="kbd">⌘7</span></div>
     <div class="sep"></div>
     <div class="item"><span class="ico">✎</span>Журнал</div>
-    <div class="item"><span class="ico">↻</span>Рутины</div>
     <div class="item"><span class="ico">⊕</span>Inbox <span class="pill" style="margin-left:auto">4</span></div>
     <div class="bottom">
       <div class="sep"></div>
@@ -156,10 +160,11 @@
         <div class="num" style="font-size:22px;margin:4px 0">4 / 6</div>
         <div class="bar" style="margin:8px 0 6px"><i style="width:67%"></i></div>
         <div class="meta">фокус недели: «Переезд» — 2 шага</div></div>
-      <div class="card"><div class="meta">РУТИНА · УТРО · 🔥 12</div>
-        <div class="task"><span class="cb done"></span><span class="t done">Подъём 7:00</span></div>
-        <div class="task"><span class="cb done"></span><span class="t done">Планирование дня</span></div>
-        <div class="task"><span class="cb"></span><span class="t">Чтение 20 стр</span></div></div>
+      <div class="card"><div class="meta">РУТИНЫ · 2/5 · 🔥 12</div>
+        <div class="task"><span class="cb done"></span><span class="t done">Таблетка</span></div>
+        <div class="task"><span class="cb done"></span><span class="t done">Миноксидил</span></div>
+        <div class="task"><span class="cb"></span><span class="t">Отжимания 3×15</span><span class="meta">вечер</span></div>
+        <div class="task"><span class="cb"></span><span class="t">Чтение 20 стр</span><span class="meta">все →</span></div></div>
     </div>
 
     <div class="sec">Задачи на сегодня</div>
@@ -182,7 +187,20 @@
         <div class="sec">Приватные зоны</div>
         <div class="lockcard">🔒 <div><b>Финансы:</b> 3 напоминания на этой неделе<br><span class="meta">разблокировать — повторный пароль · ⌘⇧F</span></div></div>
         <div class="lockcard" style="margin-top:10px">🔒 <div><b>Психология:</b> 1 практика сегодня в 19:00<br><span class="meta">разблокировать — повторный пароль · ⌘⇧P</span></div></div>
+        <div class="sec">Люди</div>
+        <div class="card">
+          <div class="task"><span class="meta num">19.06</span><span class="t">🎂 ДР мамы — через 9 дней</span><span class="meta">идей подарка: 2</span></div>
+          <div class="task"><span class="t amber">Созвон с Димой просрочен</span><span class="meta">ритм 1р/мес · прошло 6 нед · 📅 поставить</span></div>
+        </div>
       </div>
+    </div>
+
+    <div class="sec">▲ Движение недели — даже мелкие шаги видны</div>
+    <div class="card">
+      <div class="task"><span class="pill ok">⚑ Переезд</span><span class="t">+8% — сделано 3 шага</span><span class="meta">3-я неделя подряд с движением 🔥</span></div>
+      <div class="task"><span class="pill ok">◎ Практики</span><span class="t">5 выполнений (+2 к прошлой неделе)</span><span class="meta">лучшая неделя за месяц</span></div>
+      <div class="task"><span class="pill ok">◈ Финансы</span><span class="t">движение к целевому есть ✓</span><span class="meta">детали в 🔒</span></div>
+      <div class="task"><span class="pill ok">👏</span><span class="t"><b>11 действий за неделю — ты двигаешься</b></span><span class="meta">статистика честная: только реальные шаги</span></div>
     </div>
     <div class="footer-hint">Inbox: 4 записи → разобрать вечером · Ревью недели: вс 14.06 · ⌘N — быстрый ввод</div>
   </section>
@@ -210,7 +228,7 @@
   <!-- ===== ЦЕЛИ ===== -->
   <section class="screen" id="s-goals">
     <h1 class="page">Цели</h1>
-    <div class="sub"><span class="pill ok">Глобальные</span> <span class="pill">Год</span> <span class="pill">Квартал</span> <span class="pill">Энергия жизни</span> <span class="pill">Разбор списка</span></div>
+    <div class="sub"><span class="pill ok">Глобальные</span> <span class="pill">Год</span> <span class="pill">Квартал</span> <span class="pill">Энергия жизни</span> <span class="pill">Разбор списка</span> · <span class="pill ok">▲ движение 3 нед подряд</span></div>
 
     <div class="zonebar" data-goto="triage" style="background:var(--green-soft);border-color:var(--green-dim);color:var(--green);cursor:pointer">⛏ Разбор импортированного списка: обработано 128 из 514 строк · продолжить → (кликни)</div>
 
@@ -319,6 +337,66 @@
     <div class="footer-hint">Выполнил событие → отметка уходит в задачу и дополняет цель записью «сделано»</div>
   </section>
 
+  <!-- ===== ЛЮДИ ===== -->
+  <section class="screen" id="s-people">
+    <h1 class="page">Люди</h1>
+    <div class="sub">Контакт-ритм · дни рождения · подарки · заметки о людях</div>
+
+    <div class="grid g2">
+      <div>
+        <div class="sec">Скоро</div>
+        <div class="card">
+          <div class="task"><span class="meta num">19.06</span><span class="t">🎂 <b>Мама</b> — 9 дней</span><span class="meta">подарки: спа-день · книга</span></div>
+          <div class="task"><span class="meta num">02.07</span><span class="t">🎂 Игорь</span><span class="meta">идей нет → добавить</span></div>
+        </div>
+        <div class="sec">Контакт-ритм · просрочено</div>
+        <div class="card">
+          <div class="task"><span class="t amber"><b>Дима</b></span><span class="meta">1р/мес · прошло 6 нед ⚠ · 📅 поставить созвон</span></div>
+          <div class="task"><span class="t amber">Бабушка</span><span class="meta">1р/2 нед · прошло 3 нед ⚠</span></div>
+          <div class="task"><span class="t">Мама</span><span class="meta">1р/нед · звонил позавчера ✓</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="sec">Карточка: Дима</div>
+        <div class="card">
+          <div class="kv">Ритм <b>созвон 1р/мес</b></div>
+          <div class="kv">Последний контакт <b>28.04 (6 недель)</b></div>
+          <div class="kv">ДР <b>14.11 · напомнить за 7 дн</b></div>
+          <div style="margin-top:8px"><span class="chip">падл</span><span class="chip">авто-рынок</span><span class="chip">дочь Алиса, 5 лет</span></div>
+          <div class="sec" style="margin-top:12px">Связи</div>
+          <span class="chip link">☑ Написать за условия и рынок (Авто→X5)</span>
+          <div class="sec" style="margin-top:12px">После встреч</div>
+          <div class="kv">28.04 <b>советовал смотреть рынок осенью</b></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== РУТИНЫ ===== -->
+  <section class="screen" id="s-routines">
+    <h1 class="page">Рутины</h1>
+    <div class="sub">Микро-действия отдельно от задач · пропуск не висит долгом — день закрылся и всё</div>
+
+    <div class="grid g3">
+      <div class="card"><div class="meta">УТРО</div>
+        <div class="task"><span class="cb done"></span><span class="t done">Таблетка</span><span class="meta">🔥 34</span></div>
+        <div class="task"><span class="cb done"></span><span class="t done">Миноксидил</span><span class="meta">🔥 21</span></div>
+        <div class="task"><span class="cb done"></span><span class="t done">Подъём 7:00</span><span class="meta">раб. дни · 🔥 12</span></div></div>
+      <div class="card"><div class="meta">ДЕНЬ</div>
+        <div class="task"><span class="cb"></span><span class="t">Чтение 20 стр</span><span class="meta">🔥 12</span></div>
+        <div class="task"><span class="cb"></span><span class="t">Прогулка 20 мин</span><span class="meta">пн/ср/пт</span></div></div>
+      <div class="card"><div class="meta">ВЕЧЕР</div>
+        <div class="task"><span class="cb"></span><span class="t">Отжимания 3×15</span><span class="meta">кол-во: __ из 45</span></div>
+        <div class="task"><span class="cb"></span><span class="t">Миноксидил (2-й раз)</span></div></div>
+    </div>
+
+    <div class="sec">Тепловая карта · «Таблетка» · 16 недель</div>
+    <div class="card">
+      <div class="hm" id="rheat"></div>
+      <div class="meta" style="margin-top:8px">выполнено 89% дней · лучший стрик 34 · текущий 34 🔥 · + создать рутину: название, слот, дни, количество (опц.)</div>
+    </div>
+  </section>
+
   <!-- ===== ФИНАНСЫ ===== -->
   <section class="screen" id="s-fin">
     <h1 class="page">Финансы</h1>
@@ -329,7 +407,7 @@
     <div class="grid g3">
       <div class="card"><div class="meta">НЕТВОРС</div><div class="num" style="font-size:20px;margin-top:4px">8 412 300 ₽</div><div class="meta up">▲ +148 200 за месяц</div></div>
       <div class="card"><div class="meta">FIRE · ЦЕЛЬ 25 000 000</div><div class="num" style="font-size:20px;margin-top:4px">33.6%</div><div class="bar" style="margin-top:6px"><i style="width:34%"></i></div><div class="meta">прогноз: 2033 при тек. норме сбережений</div></div>
-      <div class="card"><div class="meta">МАКРО · МОЙ ТЕЗИС</div><div style="font-weight:600;margin-top:4px">Поздний цикл ⚠</div><div class="meta">от 28.05: «жду коррекции, кэш ↑, докупки лесенкой» · история тезисов →</div></div>
+      <div class="card"><div class="meta">МАКРО · МОЙ ТЕЗИС</div><div style="font-weight:600;margin-top:4px">Поздний цикл ⚠</div><div class="meta">от 28.05: «жду коррекции, кэш ↑, докупки лесенкой»</div><div class="meta" style="margin-top:4px">🎯 калибровка прогнозов: 74% · проверено 12</div></div>
     </div>
 
     <div class="sec">Портфель: текущий → целевой</div>
@@ -390,6 +468,20 @@
           <div class="meta" style="margin-top:6px">⬆ импорт CSV из Monefy · след. крупная трата: «камера» (план, авг)</div>
         </div>
       </div>
+    </div>
+
+    <div class="sec">Имущество · регламенты по категориям</div>
+    <div class="grid g3">
+      <div class="card"><div class="meta">🚗 АВТО · X5</div>
+        <div class="task"><span class="cb done"></span><span class="t done">ТО</span><span class="meta">апр ✓</span></div>
+        <div class="task"><span class="t amber">Страховка</span><span class="meta amber">истекает 30 дн ⚠</span></div>
+        <div class="task"><span class="t">Резина зимняя</span><span class="meta">окт → задача создастся</span></div></div>
+      <div class="card"><div class="meta">🏠 НЕДВИЖИМОСТЬ</div>
+        <div class="task"><span class="t">Счётчики кв. №2</span><span class="meta">25-го ежемес.</span></div>
+        <div class="task"><span class="t">Аренда ячейки</span><span class="meta">01.07 · за 5 дн</span></div></div>
+      <div class="card"><div class="meta">💻 ТЕХНИКА</div>
+        <div class="task"><span class="t">AppleCare MacBook</span><span class="meta">истекает дек</span></div>
+        <div class="task"><span class="t" style="color:var(--green)">+ добавить объект</span></div></div>
     </div>
 
     <div class="sec">Прогноз кэшфлоу · 6 мес (с крупными тратами и дебиторкой)</div>
@@ -688,7 +780,11 @@ function confirmStep(){
 }
 function skipStep(){status[cur]='skip';cur++;renderTriage();}
 function resetTriage(){cur=0;status={};$("createdList").innerHTML='<span class="meta">— пока пусто, подтверди первую строку →</span>';renderTriage();}
-document.addEventListener("DOMContentLoaded",renderTriage);
+document.addEventListener("DOMContentLoaded",()=>{
+  renderTriage();
+  const hm=$("rheat");
+  if(hm){let h="";for(let i=0;i<112;i++){const r=(i*2654435761)%100;h+=`<i class="${r<11?"":r<30?"l1":r<55?"l2":"l3"}"></i>`;}hm.innerHTML=h;}
+});
 
 function show(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
