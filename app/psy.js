@@ -85,10 +85,17 @@ export function monthOccurrences(db, ym, first, last) {
 }
 
 // ===== Колесо развития =====
+const WHEEL_NAMES = ['Работа', 'Семья и дети', 'Партнёр', 'Саморазвитие и обучение', 'Здоровье и спорт',
+  'Социализация', 'Дом', 'Деньги и инвестиции', 'Отдых и хобби', 'Перспективы будущего'];
+const WHEEL_OLD = ['Здоровье', 'Финансы', 'Карьера', 'Отношения', 'Окружение', 'Развитие', 'Отдых', 'Смысл'];
+
 export function ensureWheel(db) {
+  const existing = db.prepare('SELECT name FROM wheel_areas ORDER BY ord').all().map(r => r.name);
+  // старый дефолтный набор заменяем на сектора пользователя (замеры по нему уходят каскадом)
+  if (existing.length && existing.join('|') === WHEEL_OLD.join('|'))
+    db.prepare('DELETE FROM wheel_areas').run();
   if (db.prepare('SELECT count(*) AS c FROM wheel_areas').get().c > 0) return;
-  const names = ['Здоровье', 'Финансы', 'Карьера', 'Отношения', 'Окружение', 'Развитие', 'Отдых', 'Смысл'];
-  names.forEach((n, i) => db.prepare('INSERT INTO wheel_areas(name, ord) VALUES(?,?)').run(n, i + 1));
+  WHEEL_NAMES.forEach((n, i) => db.prepare('INSERT INTO wheel_areas(name, ord) VALUES(?,?)').run(n, i + 1));
 }
 
 export function wheel(db) {
@@ -164,11 +171,13 @@ export function seedPsy(db) {
   }
   if (db.prepare('SELECT count(*) AS c FROM wheel_scores').get().c === 0) {
     const areas = db.prepare('SELECT id, name FROM wheel_areas ORDER BY ord').all();
-    const prev = { 'Здоровье': 6, 'Финансы': 7, 'Карьера': 7, 'Отношения': 6, 'Окружение': 6, 'Развитие': 8, 'Отдых': 4, 'Смысл': 7 };
-    const cur = { 'Здоровье': 5, 'Финансы': 8, 'Карьера': 7, 'Отношения': 6, 'Окружение': 6, 'Развитие': 8, 'Отдых': 4, 'Смысл': 7 };
+    const prev = { 'Работа': 7, 'Семья и дети': 6, 'Партнёр': 7, 'Саморазвитие и обучение': 8, 'Здоровье и спорт': 6,
+      'Социализация': 5, 'Дом': 6, 'Деньги и инвестиции': 7, 'Отдых и хобби': 4, 'Перспективы будущего': 6 };
+    const cur = { 'Работа': 7, 'Семья и дети': 6, 'Партнёр': 7, 'Саморазвитие и обучение': 8, 'Здоровье и спорт': 5,
+      'Социализация': 6, 'Дом': 6, 'Деньги и инвестиции': 8, 'Отдых и хобби': 4, 'Перспективы будущего': 7 };
     const monthAgo = iso(new Date(Date.now() - 30 * 864e5));
-    saveWheel(db, Object.fromEntries(areas.map(a => [a.id, prev[a.name]])), monthAgo);
-    saveWheel(db, Object.fromEntries(areas.map(a => [a.id, cur[a.name]])), today());
+    saveWheel(db, Object.fromEntries(areas.map(a => [a.id, prev[a.name] ?? 5])), monthAgo);
+    saveWheel(db, Object.fromEntries(areas.map(a => [a.id, cur[a.name] ?? 5])), today());
   }
   if (db.prepare('SELECT count(*) AS c FROM work_log').get().c === 0) {
     addWork(db, 'Закрыл вопрос с подрядчиком, два созвона (пример)', iso(new Date(Date.now() - 864e5)));
@@ -177,10 +186,10 @@ export function seedPsy(db) {
   // движение по секторам: пара примеров, если поля пустые
   if (!db.prepare(`SELECT count(*) AS c FROM wheel_areas WHERE step != ''`).get().c) {
     const byName = n => db.prepare('SELECT id FROM wheel_areas WHERE name = ?').get(n)?.id;
-    const h = byName('Здоровье');
+    const h = byName('Здоровье и спорт');
     if (h) patchArea(db, h, { ideal: 'энергия весь день, сон 7+, спорт 3р/нед, чекапы раз в год',
       next_desc: 'вернулся в зал 2р/нед, сон стабильно до 23:30', step: 'записаться в зал до пятницы (пример)' });
-    const o = byName('Отдых');
+    const o = byName('Отдых и хобби');
     if (o) patchArea(db, o, { ideal: 'отпуск 3р/год без ноутбука, выходные без работы',
       next_desc: 'один полностью свободный выходной в неделю', step: 'заблокировать субботу в календаре (пример)' });
   }

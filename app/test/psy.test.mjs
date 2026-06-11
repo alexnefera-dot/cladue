@@ -50,7 +50,7 @@ test('колесо: замер, перезапись в тот же день, д
   const db = freshDb();
   psy.ensureWheel(db);
   const w0 = psy.wheel(db);
-  assert.equal(w0.areas.length, 8);
+  assert.equal(w0.areas.length, 10);
   const [a1, a2] = w0.areas;
   psy.saveWheel(db, { [a1.id]: 6, [a2.id]: 7 }, '2026-05-01');
   psy.saveWheel(db, { [a1.id]: 5, [a2.id]: 8 });
@@ -115,11 +115,25 @@ test('сид психологии: практики/колесо/лог, иде�
 test('движение сектора: идеал, следующий уровень и шаг сохраняются', () => {
   const db = freshDb();
   psy.ensureWheel(db);
-  const a = psy.wheel(db).areas.find(x => x.name === 'Здоровье');
+  const a = psy.wheel(db).areas.find(x => x.name === 'Здоровье и спорт');
   assert.equal(a.step, '', 'поля движения пустые по умолчанию');
   psy.patchArea(db, a.id, { ideal: 'сон 7+, спорт 3р/нед', next_desc: 'зал 2р/нед', step: 'записаться в зал' });
   const after = psy.wheel(db).areas.find(x => x.id === a.id);
   assert.equal(after.ideal, 'сон 7+, спорт 3р/нед');
   assert.equal(after.next_desc, 'зал 2р/нед');
   assert.equal(after.step, 'записаться в зал');
+});
+
+test('сектора пользователя: 10 штук на русском; старый дефолт заменяется', () => {
+  const db = freshDb();
+  // имитируем базу со старым набором
+  ['Здоровье', 'Финансы', 'Карьера', 'Отношения', 'Окружение', 'Развитие', 'Отдых', 'Смысл']
+    .forEach((n, i) => db.prepare('INSERT INTO wheel_areas(name, ord) VALUES(?,?)').run(n, i + 1));
+  psy.ensureWheel(db);
+  const names = psy.wheel(db).areas.map(a => a.name);
+  assert.equal(names.length, 10);
+  assert.deepEqual(names, ['Работа', 'Семья и дети', 'Партнёр', 'Саморазвитие и обучение', 'Здоровье и спорт',
+    'Социализация', 'Дом', 'Деньги и инвестиции', 'Отдых и хобби', 'Перспективы будущего']);
+  psy.ensureWheel(db);   // повторно — не трогает
+  assert.equal(psy.wheel(db).areas.length, 10);
 });
