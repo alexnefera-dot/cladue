@@ -9,6 +9,7 @@ import * as cal from './cal.js';
 import { buildToday } from './today.js';
 import * as life from './life.js';
 import * as notes from './notes.js';
+import { seedDemo } from './seed.js';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const DB_PATH = process.env.PIPBOY_DB ?? join(ROOT, 'data.db');
@@ -25,6 +26,7 @@ ensurePortfolio(db);
 ensureRates(db);
 notes.seedPages(db);      // демо-страницы Инфо при пустом разделе
 life.seedPeople(db);      // 5 тестовых людей при пустом разделе
+seedDemo(db);             // демо-данные по всем разделам (только в пустые)
 fin.recordSnapshot(db);   // история нетворса: один замер в день
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
