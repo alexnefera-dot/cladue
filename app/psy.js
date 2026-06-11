@@ -103,6 +103,12 @@ export function wheel(db) {
   };
 }
 
+// поля движения сектора: идеал («что такое 10»), следующий уровень, шаг
+export function patchArea(db, id, b) {
+  for (const k of ['name', 'ideal', 'next_desc', 'step'])
+    if (k in b) db.prepare(`UPDATE wheel_areas SET ${k} = ? WHERE id = ?`).run(b[k], id);
+}
+
 // замер: оценки по областям на дату (повторный ввод в тот же день перезаписывает)
 export function saveWheel(db, scores, date = today()) {
   for (const [areaId, score] of Object.entries(scores)) {
@@ -167,5 +173,15 @@ export function seedPsy(db) {
   if (db.prepare('SELECT count(*) AS c FROM work_log').get().c === 0) {
     addWork(db, 'Закрыл вопрос с подрядчиком, два созвона (пример)', iso(new Date(Date.now() - 864e5)));
     addWork(db, 'Подготовил план квартала команде (пример)');
+  }
+  // движение по секторам: пара примеров, если поля пустые
+  if (!db.prepare(`SELECT count(*) AS c FROM wheel_areas WHERE step != ''`).get().c) {
+    const byName = n => db.prepare('SELECT id FROM wheel_areas WHERE name = ?').get(n)?.id;
+    const h = byName('Здоровье');
+    if (h) patchArea(db, h, { ideal: 'энергия весь день, сон 7+, спорт 3р/нед, чекапы раз в год',
+      next_desc: 'вернулся в зал 2р/нед, сон стабильно до 23:30', step: 'записаться в зал до пятницы (пример)' });
+    const o = byName('Отдых');
+    if (o) patchArea(db, o, { ideal: 'отпуск 3р/год без ноутбука, выходные без работы',
+      next_desc: 'один полностью свободный выходной в неделю', step: 'заблокировать субботу в календаре (пример)' });
   }
 }

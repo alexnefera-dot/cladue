@@ -160,7 +160,30 @@ function renderPsy() {
         <div class="btnrow" style="margin-top:8px"><span class="pill btn ok" id="psWheelSave">сохранить замер</span></div>
         <div class="meta" style="margin-top:6px">Пунктир на радаре — предыдущий замер. История: ${w.dates.join(' · ') || 'пока нет'}</div>
       </div>
-    </div>`;
+    </div>
+    <div class="sec">Движение по секторам · все ячейки правятся кликом</div>
+    ${w.areas.map(a => {
+      const cur = w.latest?.scores?.[a.id] ?? null;
+      const next = cur != null ? Math.min(10, cur + 1) : '+1';
+      return `
+      <div class="card">
+        <table class="fintable" style="table-layout:fixed">
+          <tr>
+            <th style="width:140px">${pesc(a.name)} · уровень</th>
+            <th>10 — идеал</th>
+            <th>${next} — следующий уровень</th>
+            <th>Шаг</th>
+          </tr>
+          <tr>
+            <td class="num" style="font-size:18px;font-weight:700">${cur ?? '—'}${cur != null ? ' → ' + next : ''}</td>
+            <td class="ed" data-aredit="${a.id}:ideal">${pesc(a.ideal) || '—'}</td>
+            <td class="ed" data-aredit="${a.id}:next_desc">${pesc(a.next_desc) || '—'}</td>
+            <td class="ed" data-aredit="${a.id}:step" style="${a.step ? 'color:var(--green);font-weight:600' : ''}">${pesc(a.step) || '＋ задать шаг'}</td>
+          </tr>
+        </table>
+      </div>`;
+    }).join('')}
+    <div class="footer-hint">Логика движения: оценил текущий уровень → описал, как выглядит «10» → как выглядит следующая ступень (+1) → один конкретный шаг к ней. Шаг сделан — обнови замер и поставь следующий.</div>`;
   } else if (psyTab === 'work') {
     bodyHtml = `
     <div class="card"><div class="task finadd">
@@ -262,6 +285,16 @@ function bindPsy() {
   $('psRunCancel')?.addEventListener('click', () => { psyRun = null; renderPsy(); });
   document.querySelectorAll('.pschk').forEach(el =>
     el.addEventListener('click', () => el.classList.toggle('done')));
+  document.querySelectorAll('#screen-psy [data-aredit]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const [id, field] = el.dataset.aredit.split(':');
+      const label = { ideal: 'Как выглядит «10» в этом секторе?', next_desc: 'Как выглядит следующий уровень (+1)?', step: 'Конкретный шаг к следующему уровню:' }[field];
+      const v = prompt(label, el.textContent.trim().replace('＋ задать шаг', '').replace('—', ''));
+      if (v == null) return;
+      await fetch('/api/psy/areas/' + id, { method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: v.trim() }) });
+      window.loadPsy();
+    }));
   $('psWheelSave')?.addEventListener('click', async () => {
     const scores = {};
     document.querySelectorAll('.pswheel').forEach(i => scores[i.dataset.area] = +i.value);

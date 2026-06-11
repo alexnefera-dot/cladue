@@ -230,6 +230,10 @@ const server = http.createServer(async (req, res) => {
       psy.saveWheel(db, b.scores ?? {});
       return json(res, 200, psy.wheel(db));
     }
+    if ((m = p.match(/^\/api\/psy\/areas\/(\d+)$/)) && req.method === 'PATCH') {
+      psy.patchArea(db, +m[1], await body(req));
+      return json(res, 200, { ok: true });
+    }
     if (p === '/api/psy/worklog' && req.method === 'POST') {
       const b = await body(req);
       if (!b.note?.trim()) return json(res, 400, { error: 'note required' });

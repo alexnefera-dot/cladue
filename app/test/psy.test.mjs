@@ -111,3 +111,15 @@ test('сид психологии: практики/колесо/лог, иде�
   const tech = psy.listPractices(db).find(p => p.kind === 'technique');
   assert.equal(tech.steps.length, 7, '7 шагов позитивного намерения');
 });
+
+test('движение сектора: идеал, следующий уровень и шаг сохраняются', () => {
+  const db = freshDb();
+  psy.ensureWheel(db);
+  const a = psy.wheel(db).areas.find(x => x.name === 'Здоровье');
+  assert.equal(a.step, '', 'поля движения пустые по умолчанию');
+  psy.patchArea(db, a.id, { ideal: 'сон 7+, спорт 3р/нед', next_desc: 'зал 2р/нед', step: 'записаться в зал' });
+  const after = psy.wheel(db).areas.find(x => x.id === a.id);
+  assert.equal(after.ideal, 'сон 7+, спорт 3р/нед');
+  assert.equal(after.next_desc, 'зал 2р/нед');
+  assert.equal(after.step, 'записаться в зал');
+});
