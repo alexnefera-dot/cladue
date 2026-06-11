@@ -1,4 +1,5 @@
 import { addMonths } from './fin.js';
+import { birthdays } from './life.js';
 
 // ===== События =====
 export function addEvent(db, b) {
@@ -53,6 +54,13 @@ export function calendar(db, ym) {
   for (const e of db.prepare('SELECT * FROM events').all())
     for (const d of occurrences(e.date, e.recur, first, last))
       items.push({ date: d, type: 'event', id: e.id, title: e.title, time: e.time, recur: e.recur });
+
+  // дни рождения людей — каждый год, удаляются только в разделе «Люди»
+  for (const p of birthdays(db)) {
+    const d = `${ym}-${p.mmdd.slice(3)}`;
+    if (p.mmdd.slice(0, 2) === ym.slice(5) && d >= first && d <= last)
+      items.push({ date: d, type: 'event', id: 'p' + p.id, title: '🎂 ' + p.name, recur: 'yearly', bday: true });
+  }
 
   items.sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : (a.time ?? '') < (b.time ?? '') ? -1 : 1);
   return { month: ym, first, last, items };

@@ -7,6 +7,7 @@ import * as core from './core.js';
 import * as fin from './fin.js';
 import * as cal from './cal.js';
 import { buildToday } from './today.js';
+import * as life from './life.js';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const DB_PATH = process.env.PIPBOY_DB ?? join(ROOT, 'data.db');
@@ -94,6 +95,42 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, core.search(db, url.searchParams.get('q') ?? ''));
 
     if (p === '/api/today' && req.method === 'GET') return json(res, 200, buildToday(db));
+
+    // ===== Рутины и Люди =====
+    if (p === '/api/routines' && req.method === 'GET') return json(res, 200, life.listRoutines(db));
+    if (p === '/api/routines' && req.method === 'POST') {
+      const b = await body(req);
+      if (!b.name?.trim()) return json(res, 400, { error: 'name required' });
+      life.addRoutine(db, b);
+      return json(res, 201, { ok: true });
+    }
+    if ((m = p.match(/^\/api\/routines\/(\d+)\/check$/)) && req.method === 'POST')
+      return json(res, 200, { done: life.toggleRoutineToday(db, +m[1]) });
+    if ((m = p.match(/^\/api\/routines\/(\d+)$/))) {
+      if (req.method === 'PATCH') { life.patchRoutine(db, +m[1], await body(req)); return json(res, 200, { ok: true }); }
+      if (req.method === 'DELETE') { life.delRoutine(db, +m[1]); return json(res, 200, { ok: true }); }
+    }
+    if (p === '/api/people' && req.method === 'GET') return json(res, 200, life.listPeople(db));
+    if (p === '/api/people' && req.method === 'POST') {
+      const b = await body(req);
+      if (!b.name?.trim()) return json(res, 400, { error: 'name required' });
+      life.addPerson(db, b);
+      return json(res, 201, { ok: true });
+    }
+    if ((m = p.match(/^\/api\/people\/(\d+)\/contacted$/)) && req.method === 'POST') {
+      life.contacted(db, +m[1]);
+      return json(res, 200, { ok: true });
+    }
+    if ((m = p.match(/^\/api\/people\/(\d+)$/))) {
+      if (req.method === 'PATCH') { life.patchPerson(db, +m[1], await body(req)); return json(res, 200, { ok: true }); }
+      if (req.method === 'DELETE') { life.delPerson(db, +m[1]); return json(res, 200, { ok: true }); }
+    }
+    if (p === '/api/setting' && req.method === 'POST') {
+      const b = await body(req);
+      if (!['activity_month'].includes(b.key)) return json(res, 400, { error: 'unknown key' });
+      fin.setSetting(db, b.key, b.value ?? '');
+      return json(res, 200, { ok: true });
+    }
     // ===== Календарь =====
     if (p === '/api/calendar' && req.method === 'GET') {
       try { return json(res, 200, cal.calendar(db, url.searchParams.get('month') ?? new Date().toISOString().slice(0, 7))); }

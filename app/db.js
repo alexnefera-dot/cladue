@@ -155,6 +155,26 @@ export function createDb(path = ':memory:') {
       date TEXT PRIMARY KEY,
       portfolio_eur REAL
     );
+    CREATE TABLE IF NOT EXISTS routines(        -- рутины: отдельно от задач, без чувства вины
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      slot TEXT NOT NULL DEFAULT 'утро',       -- утро|день|вечер
+      ord INTEGER NOT NULL DEFAULT 0,
+      note TEXT NOT NULL DEFAULT ''
+    );
+    CREATE TABLE IF NOT EXISTS routine_log(     -- отметки по дням
+      routine_id INTEGER NOT NULL REFERENCES routines(id) ON DELETE CASCADE,
+      date TEXT NOT NULL,
+      UNIQUE(routine_id, date)
+    );
+    CREATE TABLE IF NOT EXISTS people(          -- люди: ДР и контакт-ритм
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      birthday TEXT,                           -- YYYY-MM-DD или MM-DD
+      rhythm_days INTEGER,                     -- желаемая частота контакта
+      last_contact TEXT,
+      note TEXT NOT NULL DEFAULT ''
+    );
   `);
   // миграция существующих баз
   const cols = db.prepare('PRAGMA table_info(nodes)').all().map(c => c.name);

@@ -84,7 +84,7 @@ function renderCal() {
         <span class="t ${it.done ? 'done' : ''}" ${it.type === 'task' ? `data-nid="${it.id}" style="cursor:pointer" title="открыть карточку"` : ''}>${cesc(it.title)}</span>
         ${it.amount ? `<span class="meta num">${cfmt(it.amount)} ${cesc(it.currency ?? '€')}</span>` : ''}
         ${it.type === 'money' ? `<span class="pill btn ok" data-calpay="${it.id}" title="оплачено">✓</span>` : ''}
-        ${it.type === 'event' ? `<span class="rowbtn del" data-evdel="${it.id}">✕</span>` : ''}
+        ${it.type === 'event' && !it.bday ? `<span class="rowbtn del" data-evdel="${it.id}">✕</span>` : ''}
       </div>`).join('') || '<div class="empty">впереди пусто — добавь событие или поставь сроки задачам</div>'}
   </div>
   <div class="footer-hint">Клик по задаче — её карточка в списке. «✓» у задачи в повестке — выполнено (отметка уйдёт в список и цель). Платёж «✓» — сдвинуть на период.</div>`;

@@ -63,6 +63,6 @@ test('сегодня: прогресс разбора, инбокс и сдел�
   assert.equal(t.inbox, 2);
   assert.equal(t.progress.total, 2);
   assert.equal(t.progress.typed, 1);
-  assert.equal(t.doneWeek, 1);
+  assert.equal(t.movement.total, 1);
   assert.equal(t.inboxId, inbox.id);
 });

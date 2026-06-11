@@ -1,15 +1,16 @@
-/* «Сегодня» — главный дашборд: просрочка · задачи дня · неделя · долги · прогресс */
+/* «Сегодня» — по макету: месяц активности · рутины · задачи дня · события · люди · зоны · движение */
 let tdData = null;
 
 const tdApi = {
   get: () => fetch('/api/today').then(r => r.json()),
   toggle: id => fetch(`/api/nodes/${id}/toggle`, { method: 'POST' }),
-  pay: id => fetch(`/api/fin/obligations/${id}/pay`, { method: 'POST' }),
+  routineCheck: id => fetch(`/api/routines/${id}/check`, { method: 'POST' }),
+  contacted: id => fetch(`/api/people/${id}/contacted`, { method: 'POST' }),
   add: b => fetch('/api/nodes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }),
+  setSetting: (key, value) => fetch('/api/setting', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key, value }) }),
 };
 
 const tesc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const tfmt = n => n == null ? '' : Math.round(n).toLocaleString('ru-RU');
 const WD = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
 const MON = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
 
@@ -23,7 +24,7 @@ function taskLine(t) {
     <span class="cb ${t.kind === 'decision' ? 'dec' : ''}" data-tdtoggle="${t.id}"></span>
     ${t.priority ? `<span class="pill ${t.priority}">${t.priority}</span>` : ''}
     ${t.kind === 'decision' ? '<span class="pill dec">решение</span>' : ''}
-    <span class="t" data-tdopen="${t.id}" style="cursor:pointer" title="открыть карточку">${tesc(t.title)}</span>
+    <span class="t" data-tdopen="${t.id}" style="cursor:pointer">${tesc(t.title)}</span>
     <span class="meta">${t.due_date ?? ''}</span>
   </div>`;
 }
@@ -32,27 +33,33 @@ function renderToday() {
   const d = tdData;
   const dt = new Date(d.date + 'T00:00:00');
   const pct = d.progress.total ? Math.round(d.progress.typed / d.progress.total * 100) : 0;
+  const rDone = d.routines.filter(r => r.done).length;
 
   document.getElementById('screen-today').innerHTML = `
   <h2 style="margin-bottom:2px">Сегодня</h2>
   <div class="muted" style="margin-bottom:14px">${WD[dt.getDay()]}, ${dt.getDate()} ${MON[dt.getMonth()]} ·
-    просрочено: ${d.overdue.length} · на сегодня: ${d.dueToday.length} · сделано за неделю: ${d.doneWeek} 👏</div>
+    просрочено: ${d.overdue.length} · сделано за неделю: ${d.movement.total} 👏</div>
 
   <div class="addbar" style="margin:0 0 14px">
     <input id="tdQuick" placeholder="＋ Быстрый ввод в Инбокс (Enter) — мысль, задача, что угодно; разберёшь потом">
   </div>
 
   <div class="fingrid">
+    <div class="card"><div class="meta">МЕСЯЦ АКТИВНОСТИ</div>
+      <div class="bignum" style="font-size:17px"><span class="ed" id="tdActivity" title="клик — задать тему месяца">${d.activityMonth ? tesc(d.activityMonth) : '＋ задать тему'}</span></div>
+      <div class="meta">тема месяца из «Энергии жизни»</div></div>
     <div class="card"><div class="meta">РАЗБОР СПИСКА</div>
       <div class="bignum">${pct}%</div>
       <div class="bar"><i style="width:${pct}%"></i></div>
       <div class="meta">${d.progress.typed} из ${d.progress.total} · в инбоксе: ${d.inbox}</div></div>
-    <div class="card"><div class="meta">ПОРТФЕЛЬ</div>
-      <div class="bignum">${d.portfolioDelta ? (d.portfolioDelta.abs >= 0 ? '+' : '') + tfmt(d.portfolioDelta.abs) + ' €' : '—'}</div>
-      <div class="meta">${d.portfolioDelta ? 'с ' + d.portfolioDelta.since : 'движение появится со второго дня'}</div></div>
-    <div class="card"><div class="meta">FIRE</div>
-      <div class="bignum">${d.fire ? d.fire.pct.toFixed(1) + '%' : '—'}</div>
-      ${d.fire ? `<div class="bar"><i style="width:${d.fire.pct}%"></i></div>` : '<div class="meta">цель не задана (Финансы → FIRE)</div>'}</div>
+    <div class="card"><div class="meta">РУТИНЫ · ${rDone}/${d.routines.length}</div>
+      ${d.routines.slice(0, 4).map(r => `
+        <div class="task" style="padding:4px 0">
+          <span class="cb ${r.done ? 'done' : ''}" data-tdroutine="${r.id}"></span>
+          <span class="t ${r.done ? 'done' : ''}">${tesc(r.name)}</span>
+          ${r.streak ? `<span class="meta">🔥 ${r.streak}</span>` : ''}
+        </div>`).join('') || '<div class="empty">добавь рутины в разделе ↻</div>'}
+      ${d.routines.length > 4 ? `<div class="meta" style="cursor:pointer" data-tdgoto="routines">все ${d.routines.length} →</div>` : ''}</div>
   </div>
 
   ${d.overdue.length ? `<div class="sec" style="color:var(--red)">⚠ Просрочено</div>
@@ -60,31 +67,46 @@ function renderToday() {
 
   <div class="sec">Задачи на сегодня</div>
   <div class="card">${d.dueToday.map(taskLine).join('') ||
-    '<div class="empty">на сегодня сроков нет — загляни в «Сроки» в Задачах или поставь дедлайны</div>'}</div>
+    '<div class="empty">сроков на сегодня нет — поставь дедлайны в Задачах</div>'}</div>
 
-  <div class="sec">Ближайшие 7 дней</div>
-  <div class="card">
-    ${d.week.map(it => `
-      <div class="task">
-        <span class="meta num" style="min-width:46px">${it.date.slice(5)}</span>
-        <span class="pill ${it.type === 'money' ? 'p1' : it.type === 'task' ? 'ok' : it.type === 'step' ? 'p2' : ''}">${
-          { task: 'задача', money: it.okind === 'subscription' ? 'подписка' : 'платёж', step: 'шаг', event: 'событие' }[it.type]}</span>
-        <span class="t" ${it.type === 'task' ? `data-tdopen="${it.id}" style="cursor:pointer"` : ''}>${tesc(it.title)}</span>
-        ${it.amount ? `<span class="meta num">${tfmt(it.amount)} ${tesc(it.currency ?? '€')}</span>` : ''}
-        ${it.type === 'money' ? `<span class="pill btn ok" data-tdpay="${it.id}" title="оплачено">✓</span>` : ''}
-      </div>`).join('') || '<div class="empty">неделя свободна</div>'}
+  <div class="fingrid" style="grid-template-columns:1fr 1fr">
+    <div>
+      <div class="sec" style="margin-top:0">События · сегодня и завтра</div>
+      <div class="card">
+        ${d.events.map(e => `<div class="task">
+          <span class="meta num">${e.date === d.date ? 'сегодня' : 'завтра'}${e.time ? ' ' + e.time : ''}</span>
+          <span class="t">${tesc(e.title)}</span></div>`).join('') || '<div class="empty">тихо</div>'}
+      </div>
+      <div class="sec">Люди</div>
+      <div class="card">
+        ${d.people.birthdays.map(p => `<div class="task">
+          <span class="t">🎂 ${tesc(p.name)}</span>
+          <span class="meta ${p.days_to_birthday <= 7 ? 'amber' : ''}">${p.days_to_birthday === 0 ? 'СЕГОДНЯ!' : 'через ' + p.days_to_birthday + ' дн'}</span></div>`).join('')}
+        ${d.people.overdueContacts.map(p => `<div class="task">
+          <span class="t amber">☎ ${tesc(p.name)} — пора связаться</span>
+          <span class="meta">молчим ${p.since_contact ?? '∞'} дн</span>
+          <span class="pill btn ok" data-tdcontact="${p.id}">связались ✓</span></div>`).join('')}
+        ${!d.people.birthdays.length && !d.people.overdueContacts.length
+          ? '<div class="empty">ДР и созвоны под контролем · добавить людей — раздел ☻</div>' : ''}
+      </div>
+    </div>
+    <div>
+      <div class="sec" style="margin-top:0">Приватные зоны</div>
+      <div class="lockcard" data-tdgoto="fin" style="cursor:pointer">🔒 <div><b>Финансы:</b> платежей на неделе: ${d.zones.paymentsWeek}${d.zones.debtsOverdue ? ` · просроченных долгов: ${d.zones.debtsOverdue}` : ''}<br>
+        <span class="meta">суммы скрыты · клик — открыть раздел (в нативной версии — по паролю)</span></div></div>
+      <div class="lockcard" style="margin-top:10px;opacity:.6">🔒 <div><b>Психология:</b> этап 4<br>
+        <span class="meta">практики, тревоги, колесо — скоро</span></div></div>
+      <div class="sec">▲ Движение недели</div>
+      <div class="card">
+        ${d.movement.top.map(([cat, n]) => `<div class="task">
+          <span class="pill ok">⚑ ${tesc(cat)}</span>
+          <span class="t">${n} ${n === 1 ? 'шаг' : 'шага(ов)'} за неделю</span></div>`).join('')}
+        <div class="task"><span class="pill ok">👏</span>
+          <span class="t"><b>${d.movement.total ? d.movement.total + ' действий за неделю — ты двигаешься' : 'неделя только начинается'}</b></span></div>
+      </div>
+    </div>
   </div>
-
-  ${d.debtsOverdue.length ? `<div class="sec" style="color:var(--amber)">Долги · просрочено</div>
-  <div class="card">${d.debtsOverdue.map(x => `
-    <div class="task">
-      <span class="pill ${x.direction === 'i_owe' ? 'p0' : 'ok'}">${x.direction === 'i_owe' ? 'я должен' : 'мне должны'}</span>
-      <span class="t">${tesc(x.name)}</span>
-      <span class="meta num">${tfmt(x.amount)} ${tesc(x.currency)}</span>
-      <span class="meta amber">${x.overdue_days} дн ⚠</span>
-    </div>`).join('')}</div>` : ''}
-
-  <div class="footer-hint">Отметка задачи здесь синхронизируется со списком, шагами портфеля и календарём. Платёж «✓» сдвигается на период.</div>`;
+  <div class="footer-hint">Отметки синхронизируются со списком, шагами и календарём. Рутины: пропуск не висит долгом — день закрылся и всё.</div>`;
 
   bindToday();
 }
@@ -92,10 +114,18 @@ function renderToday() {
 function bindToday() {
   document.querySelectorAll('#screen-today [data-tdtoggle]').forEach(el =>
     el.addEventListener('click', async e => { e.stopPropagation(); await tdApi.toggle(+el.dataset.tdtoggle); window.loadToday(); }));
-  document.querySelectorAll('#screen-today [data-tdpay]').forEach(el =>
-    el.addEventListener('click', async e => { e.stopPropagation(); await tdApi.pay(+el.dataset.tdpay); window.loadToday(); }));
+  document.querySelectorAll('#screen-today [data-tdroutine]').forEach(el =>
+    el.addEventListener('click', async () => { await tdApi.routineCheck(+el.dataset.tdroutine); window.loadToday(); }));
+  document.querySelectorAll('#screen-today [data-tdcontact]').forEach(el =>
+    el.addEventListener('click', async () => { await tdApi.contacted(+el.dataset.tdcontact); window.loadToday(); }));
   document.querySelectorAll('#screen-today [data-tdopen]').forEach(el =>
     el.addEventListener('click', () => window.openNode(+el.dataset.tdopen)));
+  document.querySelectorAll('#screen-today [data-tdgoto]').forEach(el =>
+    el.addEventListener('click', () => showScreen(el.dataset.tdgoto)));
+  document.getElementById('tdActivity')?.addEventListener('click', async () => {
+    const v = prompt('Тема месяца (например: 🎾 Июнь — падл):', tdData.activityMonth ?? '');
+    if (v != null) { await tdApi.setSetting('activity_month', v.trim()); window.loadToday(); }
+  });
   document.getElementById('tdQuick')?.addEventListener('keydown', async e => {
     if (e.key !== 'Enter' || !e.target.value.trim()) return;
     await tdApi.add({ title: e.target.value.trim(), parent_id: tdData.inboxId });
