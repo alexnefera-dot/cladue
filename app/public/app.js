@@ -617,7 +617,7 @@ document.getElementById('addTitle').addEventListener('keydown', async e => {
 
 
 // ===== Переключение экранов =====
-const SCREENS = { today: 'loadToday', list: null, fin: 'loadFin', cal: 'loadCal', people: 'loadPeople', routines: 'loadRoutines', notes: 'loadNotes', psy: 'loadPsy', track: 'loadTrack' };
+const SCREENS = { today: 'loadToday', list: null, fin: 'loadFin', cal: 'loadCal', people: 'loadPeople', routines: 'loadRoutines', notes: 'loadNotes', psy: 'loadPsy', track: 'loadTrack', settings: 'loadSettings' };
 window.showScreen = function (scr) {
   document.querySelectorAll('.side .item').forEach(i =>
     i.classList.toggle('active', i.dataset.screen === scr));
@@ -648,30 +648,48 @@ window.preflightOk = async function (id) {
   return confirm(`🛫 Pre-flight «${n.title}» — перед закрытием проверь:\n\n${lines.join('\n')}\n\nВсё учтено — закрываем?`);
 };
 
-// ===== Экспорт, бэкап, корзина =====
-document.getElementById('exportBtn').addEventListener('click', async () => {
-  const r = await fetch('/api/export', { method: 'POST' }).then(x => x.json());
-  alert(r.error ? r.error : `Экспортировано ${r.files.length} файлов:\n${r.dir}\n\n(папка открыта в Finder)`);
-});
-document.getElementById('backupBtn').addEventListener('click', async () => {
-  const r = await fetch('/api/backup', { method: 'POST' }).then(x => x.json());
-  alert(r.error ? r.error : `Бэкап создан:\n${r.file}\n\nХранится 20 последних; авто-бэкап — раз в день при запуске.`);
-});
-document.getElementById('trashBtn').addEventListener('click', async () => {
-  const box = document.getElementById('trashList');
-  if (box.innerHTML) { box.innerHTML = ''; return; }
+// ===== Настройки: корзина, экспорт, бэкап =====
+window.loadSettings = async function () {
   const rows = await fetch('/api/trash').then(x => x.json());
-  box.innerHTML = rows.map(t => `
-    <div class="ritem" style="margin:4px 0">
-      <div class="rt" style="font-size:11.5px">${esc(t.label)}</div>
-      <div class="rm">${t.created_at.slice(5, 16).replace('T', ' ')}
-        <span class="pill btn ok" data-trrestore="${t.id}">↩</span>
-        <span class="pill btn danger" data-trpurge="${t.id}">✕</span></div>
-    </div>`).join('') || '<div class="empty" style="padding:4px 8px">пусто · удалённое хранится 30 дней</div>';
+  document.getElementById('screen-settings').innerHTML = `
+  <h2 style="margin-bottom:2px">Настройки</h2>
+  <div class="muted" style="margin-bottom:14px">данные принадлежат тебе: корзина, экспорт в открытые форматы, бэкапы базы</div>
+  <div class="fingrid">
+    <div class="card"><div class="meta">🗑 КОРЗИНА</div>
+      ${rows.map(t => `
+        <div class="task">
+          <span class="t">${esc(t.label)}</span>
+          <span class="meta">${t.created_at.slice(5, 16).replace('T', ' ')}</span>
+          <span class="pill btn ok" data-trrestore="${t.id}" title="восстановить">↩</span>
+          <span class="pill btn danger" data-trpurge="${t.id}" title="удалить безвозвратно">✕</span>
+        </div>`).join('') || '<div class="empty">пусто · удалённое хранится 30 дней</div>'}
+    </div>
+    <div class="card"><div class="meta">⤓ ЭКСПОРТ</div>
+      <div class="task" style="border:0">
+        <span class="pill btn ok" id="exportBtn">экспортировать MD/JSON</span>
+        <span class="meta">полный дамп: data.json + цели/страницы/финансы/люди в markdown — никакого лока на платформе</span>
+      </div>
+    </div>
+    <div class="card"><div class="meta">🗄 БЭКАП БАЗЫ</div>
+      <div class="task" style="border:0">
+        <span class="pill btn ok" id="backupBtn">сделать бэкап сейчас</span>
+        <span class="meta">хранится 20 последних · авто-бэкап раз в день при запуске</span>
+      </div>
+    </div>
+  </div>`;
+
+  const box = document.getElementById('screen-settings');
+  box.querySelector('#exportBtn').addEventListener('click', async () => {
+    const r = await fetch('/api/export', { method: 'POST' }).then(x => x.json());
+    alert(r.error ? r.error : `Экспортировано ${r.files.length} файлов:\n${r.dir}\n\n(папка открыта в Finder)`);
+  });
+  box.querySelector('#backupBtn').addEventListener('click', async () => {
+    const r = await fetch('/api/backup', { method: 'POST' }).then(x => x.json());
+    alert(r.error ? r.error : `Бэкап создан:\n${r.file}\n\nХранится 20 последних; авто-бэкап — раз в день при запуске.`);
+  });
   box.querySelectorAll('[data-trrestore]').forEach(el =>
     el.addEventListener('click', async () => {
       const r = await fetch(`/api/trash/${el.dataset.trrestore}/restore`, { method: 'POST' }).then(x => x.json());
-      box.innerHTML = '';
       if (r.kind === 'pages') window.openPage?.(r.restored);
       else { await load(); if (r.restored) window.openNode?.(r.restored); }
     }));
@@ -679,10 +697,9 @@ document.getElementById('trashBtn').addEventListener('click', async () => {
     el.addEventListener('click', async () => {
       if (!confirm('Удалить из корзины безвозвратно?')) return;
       await fetch('/api/trash/' + el.dataset.trpurge, { method: 'DELETE' });
-      box.innerHTML = '';
-      document.getElementById('trashBtn').click();
+      window.loadSettings();
     }));
-});
+};
 
 // ===== Поиск =====
 let st;
