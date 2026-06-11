@@ -276,6 +276,9 @@ async function showCard(id, { silent = false } = {}) {
     ${s.context?.decisions.length ? `<h3>◆ Открытые решения рядом</h3>` +
       s.context.decisions.map(d => `<div class="ritem warn" data-id="${d.id}"><div class="rt">${esc(d.title)}</div>
         <div class="rm">${esc(pathOf(d.id))} · решение открыто</div></div>`).join('') : ''}
+    ${s.context?.payments?.length ? `<h3>◈ Платежи рядом по времени <span class="hintstar">из Финансов, ±60 дн.</span></h3>` +
+      s.context.payments.map(o => `<div class="ritem warn"><div class="rt">${esc(o.name)}</div>
+        <div class="rm">${o.next_date} · ${Math.round(o.amount).toLocaleString('ru-RU')} ${esc(o.currency)}</div></div>`).join('') : ''}
 
     <h3>Опасная зона</h3>
     <span class="pill btn danger" data-del="${n.id}">🗑 удалить${subCount ? ` (и ${subCount} вложенных)` : ''}</span>
@@ -569,6 +572,18 @@ document.getElementById('importGo').addEventListener('click', async () => {
   if (target) collapsed.delete(target);
   await load();
   document.getElementById('statusbar').textContent += ` · ⤓ импортировано: ${r.imported}`;
+});
+
+// ===== Переключение экранов (Список / Финансы) =====
+document.querySelectorAll('.side .item[data-screen]').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.side .item').forEach(i => i.classList.remove('active'));
+    el.classList.add('active');
+    const scr = el.dataset.screen;
+    document.getElementById('screen-list').style.display = scr === 'list' ? 'block' : 'none';
+    document.getElementById('screen-fin').style.display = scr === 'fin' ? 'block' : 'none';
+    if (scr === 'fin' && window.loadFin) window.loadFin();
+  });
 });
 
 // ===== Поиск =====

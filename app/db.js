@@ -46,6 +46,47 @@ export function createDb(path = ':memory:') {
       UNIQUE(a, b)
     );
     CREATE VIRTUAL TABLE IF NOT EXISTS node_fts USING fts5(title_norm, note_norm);
+
+    -- ===== Финансы (этап 2) =====
+    CREATE TABLE IF NOT EXISTS accounts(
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT 'bank',       -- bank|broker|cash|crypto|deposit|safe
+      currency TEXT NOT NULL DEFAULT '₽',
+      balance REAL NOT NULL DEFAULT 0,
+      balance_updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      note TEXT NOT NULL DEFAULT ''
+    );
+    CREATE TABLE IF NOT EXISTS portfolio_classes(
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      value REAL NOT NULL DEFAULT 0,           -- текущая стоимость (вручную, v1)
+      target_pct REAL NOT NULL DEFAULT 0,      -- целевая доля %
+      ord INTEGER NOT NULL DEFAULT 0,
+      note TEXT NOT NULL DEFAULT ''
+    );
+    CREATE TABLE IF NOT EXISTS steps(           -- план шагов: покупки/продажи/переводы
+      id INTEGER PRIMARY KEY,
+      kind TEXT NOT NULL DEFAULT 'buy',        -- buy|sell|transfer
+      title TEXT NOT NULL,
+      amount REAL,
+      planned_date TEXT,
+      condition TEXT NOT NULL DEFAULT '',      -- «после зарплаты», «BTC > 120k»
+      status TEXT NOT NULL DEFAULT 'planned',  -- planned|done
+      note TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS obligations(     -- обязательства и подписки
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      amount REAL NOT NULL DEFAULT 0,
+      currency TEXT NOT NULL DEFAULT '₽',
+      period TEXT NOT NULL DEFAULT 'monthly',  -- monthly|yearly|once
+      next_date TEXT,
+      remind_days INTEGER NOT NULL DEFAULT 5,
+      kind TEXT NOT NULL DEFAULT 'liability',  -- liability|subscription
+      note TEXT NOT NULL DEFAULT ''
+    );
   `);
   // миграция существующих баз
   const cols = db.prepare('PRAGMA table_info(nodes)').all().map(c => c.name);
@@ -91,4 +132,29 @@ export function seed(db) {
     cat(trev, c);
 
   cat(null, 'Глобальные цели');
+}
+
+// Тестовое наполнение финансов (легко удалить из интерфейса)
+export function seedFin(db) {
+  const acc = db.prepare('INSERT INTO accounts(name, type, currency, balance, balance_updated_at) VALUES(?,?,?,?,?)');
+  acc.run('Брокер А (пример)', 'broker', '₽', 5030000, new Date(Date.now() - 2 * 864e5).toISOString().slice(0, 10));
+  acc.run('Карта банк (пример)', 'bank', '₽', 312300, new Date().toISOString().slice(0, 10));
+  acc.run('Вклад $ (пример)', 'deposit', '$', 12000, new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10));
+
+  const cls = db.prepare('INSERT INTO portfolio_classes(name, value, target_pct, ord) VALUES(?,?,?,?)');
+  cls.run('ETF акции (пример)', 3950000, 50, 1);
+  cls.run('Облигации (пример)', 2100000, 30, 2);
+  cls.run('BTC (пример)', 980000, 10, 3);
+  cls.run('Кэш (пример)', 1382300, 10, 4);
+
+  db.prepare(`INSERT INTO steps(kind, title, amount, planned_date, condition) VALUES
+    ('buy', 'Докупить облигации (пример)', 300000, NULL, 'после зарплаты'),
+    ('sell', 'Продать часть BTC (пример)', 150000, NULL, 'BTC > $120k')`).run();
+
+  const today = new Date();
+  const iso = d => d.toISOString().slice(0, 10);
+  const obl = db.prepare('INSERT INTO obligations(name, amount, period, next_date, remind_days, kind) VALUES(?,?,?,?,?,?)');
+  obl.run('Кредит авто (пример)', 38000, 'monthly', iso(new Date(today.getTime() + 3 * 864e5)), 5, 'liability');
+  obl.run('Аренда ячейки (пример)', 12000, 'yearly', iso(new Date(today.getTime() + 20 * 864e5)), 7, 'liability');
+  obl.run('iCloud+ (пример)', 999, 'monthly', iso(new Date(today.getTime() + 1 * 864e5)), 2, 'subscription');
 }

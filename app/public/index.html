@@ -12,11 +12,11 @@
 </div>
 <div class="layout">
   <nav class="side">
-    <div class="item active">☰ Категории и список</div>
+    <div class="item active" data-screen="list">☰ Категории и список</div>
     <div class="item" id="importBtn">⤓ Импорт заметок</div>
+    <div class="item" data-screen="fin">◈ Финансы</div>
     <div class="item off">▤ Инфо · этап 3</div>
     <div class="item off">▦ Календарь · этап 2</div>
-    <div class="item off">◈ Финансы 🔒 · этап 2</div>
     <div class="item off">◎ Психология 🔒 · этап 4</div>
     <div class="bottom">
       <input id="searchbox" placeholder="⌕ поиск (х5 найдёт и X5)">
@@ -24,6 +24,8 @@
     </div>
   </nav>
   <main class="main">
+    <div id="screen-fin" style="display:none"></div>
+    <div id="screen-list">
     <div id="importPanel" class="importpanel" style="display:none">
       <div class="sec" style="margin-top:0">⤓ Импорт блока заметок</div>
       <textarea id="importText" rows="16" placeholder="Вставь сюда сколько угодно строк — хоть весь список разом.&#10;Вложенность по отступам сохраняется, маркеры (1. / - / •) срезаются.&#10;&#10;Пример:&#10;Авто&#10;    SK&#10;        Понять, когда будет внж&#10;    Х5&#10;        Август продать х5?"></textarea>
@@ -53,11 +55,13 @@
       <span class="pill btn" id="bulkClear">✕ снять выделение</span>
     </div>
     <div id="board"></div>
+    </div>
   </main>
   <aside class="insp" id="insp"><h3>Карточка узла</h3>
     <div class="muted">Выбери строку слева — здесь появится карточка: оригинал, подсказки типа и срока, предложения связей.</div>
   </aside>
 </div>
 <script src="app.js"></script>
+<script src="fin.js"></script>
 </body>
 </html>

@@ -2,8 +2,9 @@ import http from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
 import { join, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createDb, seed } from './db.js';
+import { createDb, seed, seedFin } from './db.js';
 import * as core from './core.js';
+import * as fin from './fin.js';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const DB_PATH = process.env.PIPBOY_DB ?? join(ROOT, 'data.db');
@@ -12,6 +13,10 @@ const PORT = Number(process.env.PORT ?? 7777);
 const fresh = DB_PATH === ':memory:' || !existsSync(DB_PATH);
 const db = createDb(DB_PATH);
 if (fresh) { seed(db); console.log('БД создана: категории готовы, вставляй блоки через «⤓ Импорт» →', DB_PATH); }
+if (db.prepare('SELECT count(*) AS c FROM accounts').get().c === 0) {
+  seedFin(db);
+  console.log('Финансы наполнены примерами (всё с пометкой «пример» — удаляй и заводи своё)');
+}
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
 
@@ -82,6 +87,27 @@ const server = http.createServer(async (req, res) => {
     }
     if (p === '/api/search' && req.method === 'GET')
       return json(res, 200, core.search(db, url.searchParams.get('q') ?? ''));
+
+    // ===== Финансы =====
+    if (p === '/api/fin' && req.method === 'GET') return json(res, 200, fin.listFin(db));
+    const finMap = {
+      accounts: ['addAccount', 'patchAccount', 'delAccount'],
+      classes: ['addClass', 'patchClass', 'delClass'],
+      steps: ['addStep', 'patchStep', 'delStep'],
+      obligations: ['addObligation', 'patchObligation', 'delObligation'],
+    };
+    if ((m = p.match(/^\/api\/fin\/(accounts|classes|steps|obligations)(?:\/(\d+))?$/))) {
+      const [addF, patchF, delF] = finMap[m[1]];
+      if (req.method === 'POST' && !m[2]) { fin[addF](db, await body(req)); return json(res, 201, { ok: true }); }
+      if (req.method === 'PATCH' && m[2]) { fin[patchF](db, +m[2], await body(req)); return json(res, 200, { ok: true }); }
+      if (req.method === 'DELETE' && m[2]) { fin[delF](db, +m[2]); return json(res, 200, { ok: true }); }
+    }
+    if ((m = p.match(/^\/api\/fin\/obligations\/(\d+)\/pay$/)) && req.method === 'POST')
+      return json(res, 200, fin.payObligation(db, +m[1]));
+    if ((m = p.match(/^\/api\/fin\/steps\/(\d+)\/task$/)) && req.method === 'POST') {
+      try { return json(res, 201, fin.stepToTask(db, +m[1])); }
+      catch (e) { return json(res, 400, { error: e.message }); }
+    }
 
     const file = p === '/' ? 'index.html' : p.slice(1);
     const full = join(ROOT, 'public', file);

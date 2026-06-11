@@ -299,6 +299,10 @@ export function suggestForNode(db, id) {
   const context = {
     principles: inBranch(db.prepare(`SELECT * FROM nodes WHERE kind = 'principle'`).all()),
     decisions: inBranch(db.prepare(`SELECT * FROM nodes WHERE kind = 'decision' AND status = 'open'`).all()),
+    // финансовые платежи рядом по времени (окно ±60 дней от срока записи)
+    payments: t.due_date ? db.prepare(`
+      SELECT * FROM obligations WHERE next_date IS NOT NULL
+        AND abs(julianday(next_date) - julianday(?)) <= 60 ORDER BY next_date`).all(t.due_date) : [],
   };
 
   return {
