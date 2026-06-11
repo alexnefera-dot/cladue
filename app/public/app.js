@@ -554,6 +554,8 @@ window.showScreen = function (scr) {
     i.classList.toggle('active', i.dataset.screen === scr));
   for (const key of Object.keys(SCREENS))
     document.getElementById('screen-' + key).style.display = key === scr ? 'block' : 'none';
+  // правая панель (карточка записи) имеет смысл только в Задачах
+  document.querySelector('.insp').style.display = scr === 'list' ? 'block' : 'none';
   if (SCREENS[scr] && window[SCREENS[scr]]) window[SCREENS[scr]]();
 };
 document.querySelectorAll('.side .item[data-screen]').forEach(el =>

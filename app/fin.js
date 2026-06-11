@@ -12,7 +12,14 @@ export function eurUsdRate(db) {
 export function portfolioTree(db) {
   const rate = eurUsdRate(db);
   const toEur = (v, cur) => v == null ? null : (cur === '$' ? v / rate : v);
-  const rows = db.prepare('SELECT * FROM portfolio_items ORDER BY parent_id NULLS FIRST, ord, id').all();
+  const prices = Object.fromEntries(db.prepare('SELECT symbol, price FROM rates').all().map(r => [r.symbol, r.price]));
+  const rows = db.prepare('SELECT * FROM portfolio_items ORDER BY parent_id NULLS FIRST, ord, id').all()
+    .map(r => {
+      // автоцена: qty × курс тикера (курсы в $)
+      if (r.rate_symbol && r.qty != null && prices[r.rate_symbol])
+        return { ...r, value: r.qty * prices[r.rate_symbol], currency: '$', auto: true };
+      return r;
+    });
   const byP = {};
   rows.forEach(r => (byP[r.parent_id ?? 'root'] ??= []).push(r));
   const calc = r => {
@@ -65,8 +72,13 @@ export function listFin(db) {
     n.children.forEach(walkType);
   };
   portfolio.forEach(walkType);
+  const debts = db.prepare('SELECT * FROM debts ORDER BY due_date IS NULL, due_date').all()
+    .map(d => ({ ...d, overdue_days: d.due_date
+      ? Math.floor((Date.parse(today()) - Date.parse(d.due_date)) / 864e5) : null }));
+  const snaps = db.prepare('SELECT * FROM snapshots ORDER BY date DESC LIMIT 2').all();
   return {
-    accounts, portfolio, steps, obligations, loans,
+    accounts, portfolio, steps, obligations, loans, debts,
+    snapshotDelta: snaps.length === 2 ? { since: snaps[1].date, abs: snaps[0].portfolio_eur - snaps[1].portfolio_eur } : null,
     byType: Object.entries(byType).sort((a, b) => b[1] - a[1]),
     tx: txMonth(db, today().slice(0, 7)),
     fire: fireCalc(db, portfolioTotal),
@@ -91,8 +103,25 @@ export function addItem(db, b) {
     .run(b.parent_id ?? null, ord, b.name, b.kind ?? 'asset', b.buy_value ?? null, b.value ?? null, b.target_value ?? null, b.currency ?? '€');
 }
 export function patchItem(db, id, b) {
-  for (const k of ['name', 'buy_value', 'value', 'target_value', 'currency', 'is_loan', 'loan_due', 'asset_type', 'note'])
+  for (const k of ['name', 'buy_value', 'value', 'target_value', 'currency', 'is_loan', 'loan_due', 'asset_type', 'qty', 'rate_symbol', 'note'])
     if (k in b) db.prepare(`UPDATE portfolio_items SET ${k} = ? WHERE id = ?`).run(b[k], id);
+}
+
+// ===== Долги (мои и мне; плановые из портфеля — отдельно, через 🤝) =====
+export function addDebt(db, b) {
+  db.prepare('INSERT INTO debts(name, amount, currency, direction, due_date, note) VALUES(?,?,?,?,?,?)')
+    .run(b.name, b.amount ?? 0, b.currency ?? '€', b.direction ?? 'owed_to_me', b.due_date ?? null, b.note ?? '');
+}
+export function patchDebt(db, id, b) {
+  for (const k of ['name', 'amount', 'currency', 'direction', 'due_date', 'note'])
+    if (k in b) db.prepare(`UPDATE debts SET ${k} = ? WHERE id = ?`).run(b[k], id);
+}
+export function delDebt(db, id) { db.prepare('DELETE FROM debts WHERE id = ?').run(id); }
+
+// ===== История нетворса: один снапшот в день =====
+export function recordSnapshot(db) {
+  const total = portfolioTree(db).reduce((s, b) => s + b.eur, 0);
+  db.prepare('INSERT OR IGNORE INTO snapshots(date, portfolio_eur) VALUES(?,?)').run(today(), total);
 }
 export function delItem(db, id) { db.prepare('DELETE FROM portfolio_items WHERE id = ?').run(id); }
 

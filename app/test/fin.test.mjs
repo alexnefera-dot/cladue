@@ -231,3 +231,51 @@ test('макро: тезисы копятся историей, последни
   fin.delMacro(db, m[1].id);
   assert.equal(fin.listFin(db).macro.length, 1);
 });
+
+test('долги: ручные с направлением, не смешиваются с портфелем', () => {
+  const db = freshDb();
+  fin.addDebt(db, { name: 'Дима за падл', amount: 60, direction: 'owed_to_me', due_date: '2020-01-01' });
+  fin.addDebt(db, { name: 'Я брату', amount: 500, direction: 'i_owe', currency: '$' });
+  const d = fin.listFin(db);
+  assert.equal(d.debts.length, 2);
+  const mine = d.debts.find(x => x.direction === 'owed_to_me');
+  assert.ok(mine.overdue_days > 1000, 'просрочка считается');
+  assert.equal(d.summary.portfolioTotal, 475000, 'долги не трогают портфель');
+  fin.patchDebt(db, mine.id, { direction: 'i_owe' });
+  assert.equal(fin.listFin(db).debts.filter(x => x.direction === 'i_owe').length, 2);
+  fin.delDebt(db, mine.id);
+  assert.equal(fin.listFin(db).debts.length, 1);
+});
+
+test('автоцена: qty × курс тикера, валюта $ и пересчёт в €', () => {
+  const db = freshDb();
+  fin.rateSet(db, 'BTCUSD', 60000);
+  fin.rateSet(db, 'EURUSD', 1.2);
+  const growth = db.prepare(`SELECT id FROM portfolio_items WHERE name = 'Блок роста'`).get();
+  fin.addItem(db, { parent_id: growth.id, name: 'Крипта', kind: 'section' });
+  const sec = db.prepare(`SELECT id FROM portfolio_items WHERE name = 'Крипта'`).get();
+  fin.addItem(db, { parent_id: sec.id, name: 'BTC', kind: 'asset' });
+  const btc = db.prepare(`SELECT id FROM portfolio_items WHERE name = 'BTC'`).get();
+  fin.patchItem(db, btc.id, { qty: 0.5, rate_symbol: 'BTCUSD' });
+  const d = fin.listFin(db);
+  const g = d.portfolio.find(b => b.id === growth.id);
+  const asset = g.children[0].children[0];
+  assert.equal(asset.value, 30000, '0.5 × 60000 $');
+  assert.equal(asset.currency, '$');
+  assert.ok(asset.auto);
+  assert.equal(g.eur, 25000, '30000$ / 1.2');
+  fin.rateSet(db, 'BTCUSD', 70000);
+  const after = fin.portfolioTree(db).find(b => b.id === growth.id).eur;
+  assert.ok(Math.abs(after - 35000 / 1.2) < 0.01, 'курс вырос — стоимость пересчиталась сама');
+});
+
+test('снапшоты: один в день, дельта считается', () => {
+  const db = freshDb();
+  fin.recordSnapshot(db);
+  fin.recordSnapshot(db);   // второй раз в тот же день — игнор
+  assert.equal(db.prepare('SELECT count(*) AS c FROM snapshots').get().c, 1);
+  db.prepare(`INSERT INTO snapshots(date, portfolio_eur) VALUES('2020-01-01', 400000)`).run();
+  const d = fin.listFin(db);
+  assert.equal(d.snapshotDelta.since, '2020-01-01');
+  assert.equal(d.snapshotDelta.abs, 75000);
+});

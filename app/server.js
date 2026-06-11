@@ -20,6 +20,7 @@ if (db.prepare('SELECT count(*) AS c FROM accounts').get().c === 0) {
 }
 ensurePortfolio(db);
 ensureRates(db);
+fin.recordSnapshot(db);   // история нетворса: один замер в день
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
 
@@ -145,8 +146,9 @@ const server = http.createServer(async (req, res) => {
       obligations: ['addObligation', 'patchObligation', 'delObligation'],
       items: ['addItem', 'patchItem', 'delItem'],
       tx: ['addTx', 'patchTx', 'delTx'],
+      debts: ['addDebt', 'patchDebt', 'delDebt'],
     };
-    if ((m = p.match(/^\/api\/fin\/(accounts|classes|steps|obligations|items|tx)(?:\/(\d+))?$/))) {
+    if ((m = p.match(/^\/api\/fin\/(accounts|classes|steps|obligations|items|tx|debts)(?:\/(\d+))?$/))) {
       const [addF, patchF, delF] = finMap[m[1]];
       if (req.method === 'POST' && !m[2]) { fin[addF](db, await body(req)); return json(res, 201, { ok: true }); }
       if (req.method === 'PATCH' && m[2]) { fin[patchF](db, +m[2], await body(req)); return json(res, 200, { ok: true }); }

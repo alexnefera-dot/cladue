@@ -142,6 +142,19 @@ export function createDb(path = ':memory:') {
       phase TEXT NOT NULL DEFAULT '',          -- рост|пик|сжатие|дно
       thesis TEXT NOT NULL DEFAULT ''
     );
+    CREATE TABLE IF NOT EXISTS debts(           -- долги: мои и мне, вне портфеля
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      amount REAL NOT NULL DEFAULT 0,
+      currency TEXT NOT NULL DEFAULT '€',
+      direction TEXT NOT NULL DEFAULT 'owed_to_me', -- owed_to_me|i_owe
+      due_date TEXT,
+      note TEXT NOT NULL DEFAULT ''
+    );
+    CREATE TABLE IF NOT EXISTS snapshots(       -- история нетворса, раз в день
+      date TEXT PRIMARY KEY,
+      portfolio_eur REAL
+    );
   `);
   // миграция существующих баз
   const cols = db.prepare('PRAGMA table_info(nodes)').all().map(c => c.name);
@@ -157,6 +170,9 @@ export function createDb(path = ':memory:') {
   if (!pcols.includes('loan_due')) db.exec(`ALTER TABLE portfolio_items ADD COLUMN loan_due TEXT`);
   // тип актива: крипто|кеш|баланс|недвижка|авто|акции|золото|облигации
   if (!pcols.includes('asset_type')) db.exec(`ALTER TABLE portfolio_items ADD COLUMN asset_type TEXT`);
+  // автоцена: количество × курс (BTCUSD/XAUUSD/^SPX из полосы курсов)
+  if (!pcols.includes('qty')) db.exec(`ALTER TABLE portfolio_items ADD COLUMN qty REAL`);
+  if (!pcols.includes('rate_symbol')) db.exec(`ALTER TABLE portfolio_items ADD COLUMN rate_symbol TEXT`);
   return db;
 }
 
