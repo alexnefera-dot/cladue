@@ -29,7 +29,7 @@ window.loadPsy = async function () {
 function radarSvg(wheelData) {
   const { areas, latest, prev } = wheelData;
   const n = areas.length || 8;
-  const cx = 170, cy = 160, R = 120;
+  const W = 560, H = 460, cx = W / 2, cy = H / 2, R = 150;
   const pt = (i, val) => {
     const a = -Math.PI / 2 + i * 2 * Math.PI / n;
     const r = R * val / 10;
@@ -37,12 +37,18 @@ function radarSvg(wheelData) {
   };
   const ring = v => areas.map((_, i) => pt(i, v).map(x => x.toFixed(1)).join(',')).join(' ');
   const poly = scores => areas.map((a, i) => pt(i, scores?.[a.id] ?? 0).map(x => x.toFixed(1)).join(',')).join(' ');
+  // подписи: выравнивание по стороне, чтобы длинные названия не резались
   const labels = areas.map((a, i) => {
-    const [x, y] = pt(i, 12.3);
+    const ang = -Math.PI / 2 + i * 2 * Math.PI / n;
+    const lx = cx + (R + 16) * Math.cos(ang);
+    const ly = cy + (R + 16) * Math.sin(ang);
+    const c = Math.cos(ang), s = Math.sin(ang);
+    const anchor = c > 0.35 ? 'start' : c < -0.35 ? 'end' : 'middle';
+    const dy = s > 0.35 ? 12 : s < -0.35 ? -4 : 4;
     const score = latest?.scores?.[a.id];
-    return `<text x="${x.toFixed(0)}" y="${y.toFixed(0)}" text-anchor="middle">${pesc(a.name)}${score ? ' ' + score : ''}</text>`;
+    return `<text x="${lx.toFixed(0)}" y="${(ly + dy).toFixed(0)}" text-anchor="${anchor}">${pesc(a.name)}${score ? ' · ' + score : ''}</text>`;
   }).join('');
-  return `<svg width="340" height="330" viewBox="0 0 340 320">
+  return `<svg width="100%" viewBox="0 0 ${W} ${H}" style="max-width:${W}px">
     <g stroke="#dde2e8" fill="none">
       ${[10, 6.6, 3.3].map(v => `<polygon points="${ring(v)}"/>`).join('')}
       ${areas.map((_, i) => { const [x, y] = pt(i, 10); return `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/>`; }).join('')}
