@@ -24,9 +24,13 @@ export function listPages(db) {
   return db.prepare('SELECT id, parent_id, ord, title, node_id, locked, updated_at FROM pages ORDER BY parent_id NULLS FIRST, ord, id').all();
 }
 
-// Демо-страницы из макета — потрогать редактор, ссылки и пароль (удаляемо)
+// Демо-страницы из макета — потрогать редактор, ссылки и пароль (удаляемо).
+// Страницы-планы задач не считаются «наполнением» — сид сработает и при их наличии.
 export function seedPages(db) {
-  if (db.prepare('SELECT count(*) AS c FROM pages').get().c > 0) return;
+  const real = db.prepare(`
+    SELECT count(*) AS c FROM pages
+    WHERE node_id IS NULL AND title != 'Планы задач'`).get().c;
+  if (real > 0) return;
   const princ = addPage(db, { title: '📌 Принципы', content:
 `# Мои принципы
 

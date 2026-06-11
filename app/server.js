@@ -27,6 +27,15 @@ ensureRates(db);
 notes.seedPages(db);      // демо-страницы Инфо при пустом разделе
 life.seedPeople(db);      // 5 тестовых людей при пустом разделе
 seedDemo(db);             // демо-данные по всем разделам (только в пустые)
+{
+  const c = q => db.prepare(q).get().c;
+  console.log(`Наполнение: записи=${c('SELECT count(*) AS c FROM nodes WHERE is_category=0')}`
+    + ` · страницы=${c('SELECT count(*) AS c FROM pages')}`
+    + ` · люди=${c('SELECT count(*) AS c FROM people')}`
+    + ` · рутины=${c('SELECT count(*) AS c FROM routines')}`
+    + ` · события=${c('SELECT count(*) AS c FROM events')}`
+    + ` · транзакции=${c('SELECT count(*) AS c FROM transactions')}`);
+}
 fin.recordSnapshot(db);   // история нетворса: один замер в день
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
