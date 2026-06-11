@@ -152,6 +152,11 @@ export function createDb(path = ':memory:') {
   // бивалютный портфель: у актива своя валюта € или $
   const pcols = db.prepare('PRAGMA table_info(portfolio_items)').all().map(c => c.name);
   if (!pcols.includes('currency')) db.exec(`ALTER TABLE portfolio_items ADD COLUMN currency TEXT NOT NULL DEFAULT '€'`);
+  // займы: актив с флагом 🤝 зеркалится в раздел «Дебиторка»
+  if (!pcols.includes('is_loan')) db.exec(`ALTER TABLE portfolio_items ADD COLUMN is_loan INTEGER NOT NULL DEFAULT 0`);
+  if (!pcols.includes('loan_due')) db.exec(`ALTER TABLE portfolio_items ADD COLUMN loan_due TEXT`);
+  // тип актива: крипто|кеш|баланс|недвижка|авто|акции|золото|облигации
+  if (!pcols.includes('asset_type')) db.exec(`ALTER TABLE portfolio_items ADD COLUMN asset_type TEXT`);
   return db;
 }
 

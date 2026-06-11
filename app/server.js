@@ -124,8 +124,6 @@ const server = http.createServer(async (req, res) => {
       try { return json(res, 201, { imported: fin.importMonefy(db, b.csv ?? '') }); }
       catch (e) { return json(res, 400, { error: e.message }); }
     }
-    if ((m = p.match(/^\/api\/fin\/receivables\/(\d+)\/received$/)) && req.method === 'POST')
-      return json(res, 200, fin.receiveReceivable(db, +m[1]));
     if (p === '/api/fin/fire' && req.method === 'POST') {
       const b = await body(req);
       for (const k of ['fire_target', 'fire_return_pct', 'fire_monthly_savings'])
@@ -147,9 +145,8 @@ const server = http.createServer(async (req, res) => {
       obligations: ['addObligation', 'patchObligation', 'delObligation'],
       items: ['addItem', 'patchItem', 'delItem'],
       tx: ['addTx', 'patchTx', 'delTx'],
-      receivables: ['addReceivable', 'patchReceivable', 'delReceivable'],
     };
-    if ((m = p.match(/^\/api\/fin\/(accounts|classes|steps|obligations|items|tx|receivables)(?:\/(\d+))?$/))) {
+    if ((m = p.match(/^\/api\/fin\/(accounts|classes|steps|obligations|items|tx)(?:\/(\d+))?$/))) {
       const [addF, patchF, delF] = finMap[m[1]];
       if (req.method === 'POST' && !m[2]) { fin[addF](db, await body(req)); return json(res, 201, { ok: true }); }
       if (req.method === 'PATCH' && m[2]) { fin[patchF](db, +m[2], await body(req)); return json(res, 200, { ok: true }); }

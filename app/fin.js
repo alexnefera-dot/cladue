@@ -46,11 +46,28 @@ export function listFin(db) {
   // счета: итог по каждой валюте отдельно
   const byCur = {};
   for (const a of accounts) byCur[a.currency] = (byCur[a.currency] ?? 0) + a.balance;
-  const receivables = db.prepare(`SELECT * FROM receivables ORDER BY status = 'received', expected_date IS NULL, expected_date`).all()
-    .map(r => ({ ...r, overdue_days: r.expected_date && r.status === 'waiting'
-      ? Math.floor((Date.parse(today()) - Date.parse(r.expected_date)) / 864e5) : null }));
+  // займы: зеркало активов портфеля с флагом is_loan (ничего не считаем отдельно)
+  const loans = [];
+  const walkLoan = (n, path) => {
+    if (n.is_loan && (n.kind === 'asset' || !n.children.length))
+      loans.push({ id: n.id, name: n.name, value: n.value, currency: n.currency ?? '€', loan_due: n.loan_due,
+        path: path.join(' → '),
+        overdue_days: n.loan_due ? Math.floor((Date.parse(today()) - Date.parse(n.loan_due)) / 864e5) : null });
+    n.children.forEach(c => walkLoan(c, [...path, n.name]));
+  };
+  portfolio.forEach(b => walkLoan(b, []));
+  // аллокация по типам активов (поверх блоков), в €
+  const byType = {};
+  const walkType = n => {
+    if (n.kind === 'asset' || !n.children.length) {
+      if (n.eur) byType[n.asset_type ?? 'без типа'] = (byType[n.asset_type ?? 'без типа'] ?? 0) + n.eur;
+    }
+    n.children.forEach(walkType);
+  };
+  portfolio.forEach(walkType);
   return {
-    accounts, portfolio, steps, obligations, receivables,
+    accounts, portfolio, steps, obligations, loans,
+    byType: Object.entries(byType).sort((a, b) => b[1] - a[1]),
     tx: txMonth(db, today().slice(0, 7)),
     fire: fireCalc(db, portfolioTotal),
     macro: db.prepare('SELECT * FROM macro_notes ORDER BY date DESC, id DESC').all(),
@@ -74,7 +91,7 @@ export function addItem(db, b) {
     .run(b.parent_id ?? null, ord, b.name, b.kind ?? 'asset', b.buy_value ?? null, b.value ?? null, b.target_value ?? null, b.currency ?? '€');
 }
 export function patchItem(db, id, b) {
-  for (const k of ['name', 'buy_value', 'value', 'target_value', 'currency', 'note'])
+  for (const k of ['name', 'buy_value', 'value', 'target_value', 'currency', 'is_loan', 'loan_due', 'asset_type', 'note'])
     if (k in b) db.prepare(`UPDATE portfolio_items SET ${k} = ? WHERE id = ?`).run(b[k], id);
 }
 export function delItem(db, id) { db.prepare('DELETE FROM portfolio_items WHERE id = ?').run(id); }
@@ -263,27 +280,6 @@ export function parseAnyDate(s) {
   if ((m = s.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})/)))
     return `${m[3]}-${String(m[2]).padStart(2, '0')}-${String(m[1]).padStart(2, '0')}`;
   return null;
-}
-
-// ===== Дебиторка =====
-export function addReceivable(db, b) {
-  db.prepare('INSERT INTO receivables(name, amount, currency, expected_date, note) VALUES(?,?,?,?,?)')
-    .run(b.name, b.amount ?? 0, b.currency ?? '€', b.expected_date ?? null, b.note ?? '');
-}
-export function patchReceivable(db, id, b) {
-  for (const k of ['name', 'amount', 'currency', 'expected_date', 'status', 'note'])
-    if (k in b) db.prepare(`UPDATE receivables SET ${k} = ? WHERE id = ?`).run(b[k], id);
-}
-export function delReceivable(db, id) { db.prepare('DELETE FROM receivables WHERE id = ?').run(id); }
-
-// «получено»: закрывает дебиторку и создаёт доход
-export function receiveReceivable(db, id) {
-  const r = db.prepare('SELECT * FROM receivables WHERE id = ?').get(id);
-  if (!r || r.status === 'received') return r;
-  db.prepare(`UPDATE receivables SET status = 'received' WHERE id = ?`).run(id);
-  addTx(db, { date: today(), amount: r.amount, currency: r.currency,
-              direction: 'income', category: 'дебиторка', note: r.name });
-  return db.prepare('SELECT * FROM receivables WHERE id = ?').get(id);
 }
 
 // ===== FIRE =====

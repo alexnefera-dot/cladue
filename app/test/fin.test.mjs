@@ -177,21 +177,35 @@ test('Monefy CSV: точка-с-запятой, даты DD/MM/YYYY, минус 
   assert.ok(t.rows.every(r => r.source === 'monefy'));
 });
 
-test('дебиторка: просрочка считается, «получено» создаёт доход', () => {
+test('займы: актив со значком 🤝 зеркалится в дебиторку, отдельно не считается', () => {
   const db = freshDb();
-  fin.addReceivable(db, { name: 'Проект Х, остаток', amount: 2500, expected_date: '2020-01-01' });
+  const start = db.prepare(`SELECT id FROM portfolio_items WHERE name = 'Start'`).get();
+  fin.patchItem(db, start.id, { is_loan: 1, loan_due: '2020-01-01' });
   const d = fin.listFin(db);
-  const r = d.receivables.find(x => x.name.includes('Проект Х'));
-  assert.ok(r.overdue_days > 1000, 'просрочен давно');
-  fin.receiveReceivable(db, r.id);
-  const after = fin.listFin(db);
-  assert.equal(after.receivables.find(x => x.id === r.id).status, 'received');
+  const l = d.loans.find(x => x.id === start.id);
+  assert.ok(l, 'займ виден в дебиторке');
+  assert.match(l.path, /Замороженный/);
+  assert.ok(l.overdue_days > 1000, 'просрочка считается');
+  assert.equal(d.summary.portfolioTotal, 475000, 'итог портфеля не меняется — займ уже в нём');
   const ym = new Date().toISOString().slice(0, 7);
-  const inc = fin.txMonth(db, ym).rows.find(t => t.category === 'дебиторка');
-  assert.equal(inc.amount, 2500);
-  assert.equal(inc.direction, 'income');
-  fin.receiveReceivable(db, r.id); // повторно — дохода не дублирует
-  assert.equal(fin.txMonth(db, ym).rows.filter(t => t.category === 'дебиторка').length, 1);
+  fin.patchItem(db, start.id, { is_loan: 0 });            // вернули — просто снимаем значок
+  assert.equal(fin.listFin(db).loans.length, 0);
+  assert.equal(fin.txMonth(db, ym).rows.length, 0, 'никаких автодоходов не создаётся');
+});
+
+test('типы активов: аллокация по типам в €', () => {
+  const db = freshDb();
+  const start = db.prepare(`SELECT id FROM portfolio_items WHERE name = 'Start'`).get();
+  const belg = db.prepare(`SELECT id FROM portfolio_items WHERE name = 'Belgravia'`).get();
+  const x5 = db.prepare(`SELECT id FROM portfolio_items WHERE name = 'X5' AND kind = 'asset'`).get();
+  fin.patchItem(db, start.id, { asset_type: 'недвижка' });
+  fin.patchItem(db, belg.id, { asset_type: 'недвижка' });
+  fin.patchItem(db, x5.id, { asset_type: 'авто' });
+  const d = fin.listFin(db);
+  const types = Object.fromEntries(d.byType);
+  assert.equal(types['недвижка'], 400000);
+  assert.equal(types['авто'], 45000);
+  assert.ok(types['без типа'] >= 30000, 'непомеченные собраны в «без типа»');
 });
 
 test('FIRE: прогресс и прогноз года', () => {

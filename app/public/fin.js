@@ -13,7 +13,6 @@ const finApi = {
   toTask: id => fetch(`/api/fin/steps/${id}/task`, { method: 'POST' }).then(r => r.json()),
   txMonth: ym => fetch('/api/fin/tx?month=' + ym).then(r => r.json()),
   monefy: csv => fetch('/api/fin/monefy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ csv }) }).then(r => r.json()),
-  received: id => fetch(`/api/fin/receivables/${id}/received`, { method: 'POST' }),
   fire: b => fetch('/api/fin/fire', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }),
   macroAdd: b => fetch('/api/fin/macro', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }),
   macroDel: id => fetch('/api/fin/macro/' + id, { method: 'DELETE' }),
@@ -33,6 +32,7 @@ const parseNum = s => {
   return isNaN(v) ? null : v * mul;
 };
 const ACCT = { bank: 'банк', broker: 'брокер', cash: 'кэш', crypto: 'крипто', deposit: 'вклад', safe: 'ячейка' };
+const ATYPES = ['крипто', 'кеш', 'баланс', 'недвижка', 'авто', 'акции', 'золото', 'облигации'];
 const STEPK = { buy: ['купить', 'ok'], sell: ['продать', 'p1'], transfer: ['перевод', 'p2'] };
 const PERIOD = { monthly: 'мес', yearly: 'год', once: 'разово' };
 const RATE_FMT = { 'XAUUSD': v => '$' + fmt(v), 'EURUSD': v => v?.toFixed(4), 'BTCUSD': v => '$' + fmt(v), '^SPX': v => fmt(v) };
@@ -67,11 +67,17 @@ function portRows(it, depth) {
         <td class="r num acc">${fmtE(it.eur)}</td>`;
   }
   return `<tr class="${rowCls}">
-    <td style="padding-left:${8 + depth * 22}px"><span class="ed" data-fe="items:${it.id}:name:text" title="клик — переименовать">${fesc(it.name)}</span></td>
+    <td style="padding-left:${8 + depth * 22}px">
+      <span class="ed" data-fe="items:${it.id}:name:text" title="клик — переименовать">${fesc(it.name)}</span>
+      ${editable && it.asset_type ? `<span class="pill" data-ftype="${it.id}" title="тип актива — клик">${fesc(it.asset_type)}</span>` : ''}
+      ${it.is_loan ? '<span class="pill p2">🤝 займ</span>' : ''}
+    </td>
     ${cells}
-    <td class="r" style="width:56px;white-space:nowrap">
+    <td class="r" style="width:80px;white-space:nowrap">
       ${!target && it.kind === 'block' ? `<span class="rowbtn" data-fadd="section:${it.id}" title="добавить раздел">＋</span>` : ''}
       ${!target && it.kind === 'section' ? `<span class="rowbtn" data-fadd="asset:${it.id}" title="добавить актив">＋</span>` : ''}
+      ${!target && editable && !it.asset_type ? `<span class="rowbtn" data-ftype="${it.id}" title="задать тип актива">⊙</span>` : ''}
+      ${!target && editable ? `<span class="rowbtn" data-loanflag="${it.id}:${it.is_loan ? 1 : 0}" title="${it.is_loan ? 'убрать значок займа' : 'пометить как займ'}">🤝</span>` : ''}
       ${!target ? `<span class="rowbtn del" data-findel="items:${it.id}">✕</span>` : ''}
     </td>
   </tr>` + it.children.map(c => portRows(c, depth + 1)).join('');
@@ -117,6 +123,13 @@ function renderFin() {
     </table>
     ${finTab === 'target' ? '<div class="empty" style="padding-top:8px">Целевые суммы ставь на любом уровне: блок целиком или конкретный раздел. Δ — факт минус цель.</div>' : ''}
   </div>
+  ${finTab === 'fact' && d.byType.length ? `
+  <div class="card">
+    <div class="meta" style="margin-bottom:6px">АЛЛОКАЦИЯ ПО ТИПАМ АКТИВОВ (⊙ у строки — задать тип)</div>
+    ${d.byType.map(([t, v]) => `
+      <div class="kv"><span>${fesc(t)}</span><b class="num">${fmt(v)} € · ${(v / s.portfolioTotal * 100).toFixed(1)}%</b></div>
+      <div class="bar" style="margin:2px 0 6px"><i style="width:${v / d.byType[0][1] * 100}%"></i></div>`).join('')}
+  </div>` : ''}
 
   <div class="sec">Счета · название и баланс правятся кликом</div>
   <div class="card">
@@ -183,7 +196,7 @@ function renderFin() {
     </div>
   </div>
   ${renderTx(d.tx)}
-  ${renderReceivables(d.receivables)}
+  ${renderLoans(d.loans)}
 
   <div class="sec">FIRE · Макро</div>
   <div class="fingrid" style="grid-template-columns:1fr 1fr">
@@ -263,26 +276,21 @@ function renderTx(tx) {
   </div>`;
 }
 
-function renderReceivables(recs) {
+// Дебиторка = зеркало активов портфеля со значком 🤝. Ничего не считается отдельно.
+function renderLoans(loans) {
   return `
-  <div class="sec">Дебиторка · мне должны</div>
+  <div class="sec">Дебиторка · займы из портфеля</div>
   <div class="card">
-    ${recs.map(r => `
-      <div class="task" style="${r.status === 'received' ? 'opacity:.5' : ''}">
-        <span class="t ed" data-fe="receivables:${r.id}:name:text">${fesc(r.name)}</span>
-        <span class="ed num" data-fe="receivables:${r.id}:amount:num">${fmt(r.amount)} ${fesc(r.currency)}</span>
-        ${r.status === 'received'
-          ? '<span class="pill ok">получено ✓</span>'
-          : `<span class="ed meta ${r.overdue_days > 0 ? 'amber' : ''}" data-fe="receivables:${r.id}:expected_date:date">${r.expected_date ?? '+дата'}${r.overdue_days > 0 ? ` · просрочен ${r.overdue_days} дн ⚠` : ''}</span>
-             <span class="pill btn ok" data-recok="${r.id}" title="получено — создам доход">✓ получено</span>`}
-        <span class="rowbtn del" data-findel="receivables:${r.id}">✕</span>
-      </div>`).join('') || '<div class="empty">никто не должен — красота</div>'}
-    <div class="task finadd">
-      <input id="recName" placeholder="кто и за что должен">
-      <input id="recAmount" placeholder="сумма" style="width:90px">
-      <input id="recDate" placeholder="ждём до…" style="width:105px">
-      <span class="pill btn ok" id="recAdd">＋</span>
-    </div>
+    ${loans.map(l => `
+      <div class="task">
+        <span class="pill p2">🤝</span>
+        <span class="t ed" data-fe="items:${l.id}:name:text">${fesc(l.name)}</span>
+        <span class="meta">${fesc(l.path)}</span>
+        <span class="ed meta ${l.overdue_days > 0 ? 'amber' : ''}" data-fe="items:${l.id}:loan_due:date" title="дата возврата (клик)">${l.loan_due ?? '+дата возврата'}${l.overdue_days > 0 ? ` · просрочен ${l.overdue_days} дн ⚠` : ''}</span>
+        <span class="pill btn" data-fcur="${l.id}:${l.currency}" title="сменить валюту">${fesc(l.currency)}</span>
+        <span class="ed num" data-fe="items:${l.id}:value:num">${l.value != null ? fmt(l.value) : '—'}</span>
+        <span class="pill btn" data-loanflag="${l.id}:1" title="вернули — убрать значок">✓ закрыт</span>
+      </div>`).join('') || '<div class="empty">пусто — пометь актив значком 🤝 в портфеле (кнопка у строки), и он появится здесь</div>'}
   </div>`;
 }
 
@@ -301,7 +309,14 @@ function inlineVal(el, type, onSave) {
     if (raw) {
       let v = raw;
       if (type === 'num') { v = parseNum(raw); if (v == null) { window.loadFin(); return; } }
-      if (type === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(raw)) { window.loadFin(); return; }
+      if (type === 'date') {
+        // принимаем 2026-07-01, 01.07.2026 и 01/07/2026
+        let mm;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) v = raw;
+        else if ((mm = raw.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})$/)))
+          v = `${mm[3]}-${mm[2].padStart(2, '0')}-${mm[1].padStart(2, '0')}`;
+        else { alert('Дата: 2026-07-01 или 01.07.2026'); window.loadFin(); return; }
+      }
       await onSave(v);
     }
     window.loadFin();
@@ -377,15 +392,28 @@ function bindFin() {
       amount, note: $('txNote').value.trim() });
     window.loadFin();
   });
-  // дебиторка
-  document.querySelectorAll('[data-recok]').forEach(el =>
-    el.addEventListener('click', async () => { await finApi.received(+el.dataset.recok); window.loadFin(); }));
-  $('recAdd')?.addEventListener('click', async () => {
-    if (!$('recName').value.trim()) return;
-    await finApi.add('receivables', { name: $('recName').value.trim(), amount: parseNum($('recAmount').value) ?? 0,
-      expected_date: /^\d{4}-\d{2}-\d{2}$/.test($('recDate').value) ? $('recDate').value : null });
-    window.loadFin();
-  });
+  // займы и типы активов
+  document.querySelectorAll('[data-loanflag]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const [id, cur] = el.dataset.loanflag.split(':');
+      await finApi.patch('items', +id, { is_loan: cur === '1' ? 0 : 1 });
+      window.loadFin();
+    }));
+  document.querySelectorAll('[data-ftype]').forEach(el =>
+    el.addEventListener('click', () => {
+      const id = +el.dataset.ftype;
+      const sel = document.createElement('select');
+      sel.innerHTML = '<option value="">— тип актива —</option>'
+        + ATYPES.map(t => `<option>${t}</option>`).join('')
+        + '<option value="__none">убрать тип</option>';
+      el.replaceWith(sel);
+      sel.focus();
+      sel.addEventListener('change', async () => {
+        await finApi.patch('items', id, { asset_type: sel.value === '__none' ? null : (sel.value || null) });
+        window.loadFin();
+      });
+      sel.addEventListener('blur', () => window.loadFin());
+    }));
   // FIRE
   document.querySelectorAll('[data-fireset]').forEach(el =>
     el.addEventListener('click', () => inlineVal(el, 'num', async v => { await finApi.fire({ [el.dataset.fireset]: v }); })));
