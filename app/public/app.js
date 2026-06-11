@@ -598,6 +598,42 @@ document.querySelectorAll('.side .item[data-screen]').forEach(el =>
 // открыть карточку записи из другого экрана (календарь и т.п.)
 window.openNode = function (id) { showScreen('list'); showCard(id); };
 
+// ===== Экспорт, бэкап, корзина =====
+document.getElementById('exportBtn').addEventListener('click', async () => {
+  const r = await fetch('/api/export', { method: 'POST' }).then(x => x.json());
+  alert(r.error ? r.error : `Экспортировано ${r.files.length} файлов:\n${r.dir}\n\n(папка открыта в Finder)`);
+});
+document.getElementById('backupBtn').addEventListener('click', async () => {
+  const r = await fetch('/api/backup', { method: 'POST' }).then(x => x.json());
+  alert(r.error ? r.error : `Бэкап создан:\n${r.file}\n\nХранится 20 последних; авто-бэкап — раз в день при запуске.`);
+});
+document.getElementById('trashBtn').addEventListener('click', async () => {
+  const box = document.getElementById('trashList');
+  if (box.innerHTML) { box.innerHTML = ''; return; }
+  const rows = await fetch('/api/trash').then(x => x.json());
+  box.innerHTML = rows.map(t => `
+    <div class="ritem" style="margin:4px 0">
+      <div class="rt" style="font-size:11.5px">${esc(t.label)}</div>
+      <div class="rm">${t.created_at.slice(5, 16).replace('T', ' ')}
+        <span class="pill btn ok" data-trrestore="${t.id}">↩</span>
+        <span class="pill btn danger" data-trpurge="${t.id}">✕</span></div>
+    </div>`).join('') || '<div class="empty" style="padding:4px 8px">пусто · удалённое хранится 30 дней</div>';
+  box.querySelectorAll('[data-trrestore]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const r = await fetch(`/api/trash/${el.dataset.trrestore}/restore`, { method: 'POST' }).then(x => x.json());
+      box.innerHTML = '';
+      if (r.kind === 'pages') window.openPage?.(r.restored);
+      else { await load(); if (r.restored) window.openNode?.(r.restored); }
+    }));
+  box.querySelectorAll('[data-trpurge]').forEach(el =>
+    el.addEventListener('click', async () => {
+      if (!confirm('Удалить из корзины безвозвратно?')) return;
+      await fetch('/api/trash/' + el.dataset.trpurge, { method: 'DELETE' });
+      box.innerHTML = '';
+      document.getElementById('trashBtn').click();
+    }));
+});
+
 // ===== Поиск =====
 let st;
 document.getElementById('searchbox').addEventListener('input', e => {

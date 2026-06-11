@@ -187,13 +187,47 @@ export function movePage(db, id, parent_id) {
 }
 
 export function delPage(db, id) {
-  const ids = db.prepare(`
-    WITH RECURSIVE r(x) AS (
-      SELECT ? UNION SELECT p.id FROM pages p JOIN r ON p.parent_id = r.x
-    ) SELECT x FROM r`).all(id).map(r => r.x);
-  for (const x of ids) db.prepare('DELETE FROM page_fts WHERE rowid = ?').run(x);
+  const root = getPage(db, id);
+  if (!root) return { count: 0, trash_id: null };
+  const rows = db.prepare(`
+    WITH RECURSIVE r(x, depth) AS (
+      SELECT ?, 0 UNION ALL
+      SELECT p.id, r.depth + 1 FROM pages p JOIN r ON p.parent_id = r.x
+    ) SELECT p.*, r.depth AS _depth FROM r JOIN pages p ON p.id = r.x ORDER BY r.depth, p.ord`).all(id);
+  db.prepare('INSERT INTO trash(kind, label, payload) VALUES(?,?,?)').run(
+    'pages', '▤ ' + root.title + (rows.length > 1 ? ` (+${rows.length - 1} подстр.)` : ''),
+    JSON.stringify({ rows }));
+  const trash_id = db.prepare('SELECT last_insert_rowid() AS id').get().id;
+  for (const r of rows) db.prepare('DELETE FROM page_fts WHERE rowid = ?').run(r.id);
   db.prepare('DELETE FROM pages WHERE id = ?').run(id);
-  return ids.length;
+  return { count: rows.length, trash_id };
+}
+
+// Восстановление страниц (шифрованные возвращаются как были, в индекс не попадают)
+export function restorePages(db, payload) {
+  const map = {};
+  for (const r of payload.rows) {
+    let parent = map[r.parent_id] ?? null;
+    if (parent == null && r.parent_id != null)
+      parent = getPage(db, r.parent_id) ? r.parent_id : null;
+    const ord = db.prepare('SELECT COALESCE(MAX(ord),0)+1 AS o FROM pages WHERE parent_id IS ?').get(parent).o;
+    db.prepare('INSERT INTO pages(parent_id, ord, title, content, node_id, locked, enc) VALUES(?,?,?,?,?,?,?)')
+      .run(parent, ord, r.title, r.content, r.node_id ?? null, r.locked ?? 0, r.enc ?? null);
+    const newId = db.prepare('SELECT last_insert_rowid() AS id').get().id;
+    map[r.id] = newId;
+    if (!r.locked)
+      db.prepare('INSERT INTO page_fts(rowid, title_norm, content_norm) VALUES(?,?,?)')
+        .run(newId, norm(r.title), norm(r.content));
+  }
+  return map[payload.rows[0]?.id] ?? null;
+}
+
+export function listTrash(db) {
+  return db.prepare('SELECT id, kind, label, created_at FROM trash ORDER BY id DESC LIMIT 30').all();
+}
+export function purgeTrash(db, id) { db.prepare('DELETE FROM trash WHERE id = ?').run(id); }
+export function pruneTrash(db, days = 30) {
+  db.prepare(`DELETE FROM trash WHERE created_at < datetime('now', ?)`).run(`-${days} days`);
 }
 
 // Бэклинки: страницы, в тексте которых есть [[Заголовок этой страницы]].

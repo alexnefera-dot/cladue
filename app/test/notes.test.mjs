@@ -19,7 +19,7 @@ test('страницы: дерево, правка, перемещение, ка
   const other = notes.addPage(db, { title: 'Другая' });
   notes.movePage(db, child.id, other.id);
   assert.equal(notes.getPage(db, child.id).parent_id, other.id);
-  assert.equal(notes.delPage(db, other.id), 3, 'другая + инвестиции + шпаргалка');
+  assert.equal(notes.delPage(db, other.id).count, 3, 'другая + инвестиции + шпаргалка');
   assert.equal(notes.searchPages(db, 'крипту').length, 0);
 });
 

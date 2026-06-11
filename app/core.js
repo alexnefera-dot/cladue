@@ -93,18 +93,65 @@ export function moveNode(db, id, new_parent_id) {
   return getNode(db, id);
 }
 
-// ===== Удаление узла со всем поддеревом (и чистка поискового индекса) =====
+// ===== Удаление узла со всем поддеревом — в корзину, с возможностью восстановления =====
 export function deleteNode(db, id) {
-  const ids = db.prepare(`
-    WITH RECURSIVE r(x) AS (
-      SELECT ? UNION SELECT n.id FROM nodes n JOIN r ON n.parent_id = r.x
-    ) SELECT x FROM r`).all(id).map(r => r.x);
+  const root = getNode(db, id);
+  if (!root) return { count: 0, trash_id: null };
+  // строки поддерева в порядке родитель→дети (для восстановления)
+  const rows = db.prepare(`
+    WITH RECURSIVE r(x, depth) AS (
+      SELECT ?, 0 UNION ALL
+      SELECT n.id, r.depth + 1 FROM nodes n JOIN r ON n.parent_id = r.x
+    ) SELECT n.*, r.depth AS _depth FROM r JOIN nodes n ON n.id = r.x ORDER BY r.depth, n.ord`).all(id);
+  const ids = new Set(rows.map(r => r.id));
+  const links = db.prepare('SELECT * FROM links').all()
+    .filter(l => ids.has(l.from_id) || ids.has(l.to_id));
+  const stepRefs = db.prepare('SELECT id AS step_id, task_id FROM steps WHERE task_id IS NOT NULL').all()
+    .filter(s => ids.has(s.task_id));
+  db.prepare('INSERT INTO trash(kind, label, payload) VALUES(?,?,?)').run(
+    'nodes', root.title + (rows.length > 1 ? ` (+${rows.length - 1} влож.)` : ''),
+    JSON.stringify({ rows, links, stepRefs }));
+  const trash_id = db.prepare('SELECT last_insert_rowid() AS id').get().id;
+
   for (const x of ids) {
     db.prepare('DELETE FROM node_fts WHERE rowid = ?').run(x);
-    db.prepare('UPDATE steps SET task_id = NULL WHERE task_id = ?').run(x); // отвязать шаги
+    db.prepare('UPDATE steps SET task_id = NULL WHERE task_id = ?').run(x);
   }
   db.prepare('DELETE FROM nodes WHERE id = ?').run(id);   // дети — каскадом
-  return ids.length;
+  return { count: rows.length, trash_id };
+}
+
+// Восстановление из корзины: id переназначаются (старые могли быть заняты),
+// родитель — исходный, если жив, иначе Инбокс/корень.
+export function restoreNodes(db, payload) {
+  const { rows, links, stepRefs } = payload;
+  const map = {};
+  const inbox = db.prepare(`SELECT id FROM nodes WHERE is_category = 1 AND title LIKE '%Инбокс%'`).get();
+  for (const r of rows) {
+    let parent = map[r.parent_id] ?? null;
+    if (parent == null) {
+      const orig = r.parent_id != null ? getNode(db, r.parent_id) : null;
+      parent = orig ? r.parent_id : (r.parent_id != null ? inbox?.id ?? null : null);
+    }
+    const ord = db.prepare('SELECT COALESCE(MAX(ord),0)+1 AS o FROM nodes WHERE parent_id IS ?').get(parent).o;
+    db.prepare(`INSERT INTO nodes(parent_id, ord, title, note, is_category, kind, status, priority, due_date, answer)
+      VALUES(?,?,?,?,?,?,?,?,?,?)`)
+      .run(parent, ord, r.title, r.note, r.is_category, r.kind, r.status, r.priority, r.due_date, r.answer ?? null);
+    const newId = db.prepare('SELECT last_insert_rowid() AS id').get().id;
+    map[r.id] = newId;
+    db.prepare('INSERT INTO node_fts(rowid, title_norm, note_norm) VALUES(?,?,?)')
+      .run(newId, norm(r.title), norm(r.note));
+  }
+  for (const l of links ?? []) {
+    const from = map[l.from_id] ?? (getNode(db, l.from_id) ? l.from_id : null);
+    const to = map[l.to_id] ?? (getNode(db, l.to_id) ? l.to_id : null);
+    if (from && to && from !== to)
+      db.prepare('INSERT OR IGNORE INTO links(from_id, to_id, type) VALUES(?,?,?)').run(from, to, l.type);
+  }
+  for (const s of stepRefs ?? [])
+    if (map[s.task_id])
+      db.prepare('UPDATE steps SET task_id = ? WHERE id = ? AND task_id IS NULL').run(map[s.task_id], s.step_id);
+  return map[rows[0]?.id] ?? null;
 }
 
 // ===== Объединение дублей: dup вливается в keep =====

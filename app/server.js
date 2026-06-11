@@ -11,6 +11,8 @@ import * as life from './life.js';
 import * as notes from './notes.js';
 import { seedDemo } from './seed.js';
 import * as psy from './psy.js';
+import { exportAll, backupDb, lastBackupDate } from './export.js';
+import { execFile } from 'node:child_process';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const DB_PATH = process.env.PIPBOY_DB ?? join(ROOT, 'data.db');
@@ -29,6 +31,12 @@ notes.seedPages(db);      // демо-страницы Инфо при пуст�
 life.seedPeople(db);      // 5 тестовых людей при пустом разделе
 seedDemo(db);             // демо-данные по всем разделам (только в пустые)
 psy.seedPsy(db);          // практики, колесо, рабочий лог
+notes.pruneTrash(db);     // корзина: чистим старше 30 дней
+// авто-бэкап: не чаще раза в день
+if (DB_PATH !== ':memory:' && lastBackupDate(ROOT) !== new Date().toISOString().slice(0, 10)) {
+  const f = backupDb(DB_PATH, ROOT);
+  if (f) console.log('Авто-бэкап базы:', f);
+}
 {
   const c = q => db.prepare(q).get().c;
   console.log(`Наполнение: записи=${c('SELECT count(*) AS c FROM nodes WHERE is_category=0')}`
@@ -84,7 +92,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, 201, { imported: count });
     }
     if ((m = p.match(/^\/api\/nodes\/(\d+)$/)) && req.method === 'DELETE')
-      return json(res, 200, { deleted: core.deleteNode(db, +m[1]) });
+      return json(res, 200, core.deleteNode(db, +m[1]));   // {count, trash_id}
     if ((m = p.match(/^\/api\/nodes\/(\d+)\/move$/)) && req.method === 'POST') {
       const b = await body(req);
       try { return json(res, 200, core.moveNode(db, +m[1], b.parent_id ?? null)); }
@@ -181,7 +189,7 @@ const server = http.createServer(async (req, res) => {
         try { return json(res, 200, notes.patchPage(db, +m[1], await body(req))); }
         catch (e) { return json(res, 400, { error: e.message }); }
       }
-      if (req.method === 'DELETE') return json(res, 200, { deleted: notes.delPage(db, +m[1]) });
+      if (req.method === 'DELETE') return json(res, 200, notes.delPage(db, +m[1]));   // {count, trash_id}
     }
     if ((m = p.match(/^\/api\/nodes\/(\d+)\/plan$/)) && req.method === 'POST') {
       try { return json(res, 201, notes.planPage(db, +m[1])); }
@@ -242,6 +250,32 @@ const server = http.createServer(async (req, res) => {
     }
     if ((m = p.match(/^\/api\/psy\/worklog\/(\d+)$/)) && req.method === 'DELETE') {
       psy.delWork(db, +m[1]);
+      return json(res, 200, { ok: true });
+    }
+
+    // ===== Экспорт, бэкап, корзина =====
+    if (p === '/api/export' && req.method === 'POST') {
+      const r = exportAll(db, ROOT);
+      execFile('open', [r.dir], () => {});   // на macOS откроет папку в Finder
+      return json(res, 200, r);
+    }
+    if (p === '/api/backup' && req.method === 'POST') {
+      const f = backupDb(DB_PATH, ROOT);
+      return f ? json(res, 200, { file: f }) : json(res, 400, { error: 'база в памяти — бэкапить нечего' });
+    }
+    if (p === '/api/trash' && req.method === 'GET') return json(res, 200, notes.listTrash(db));
+    if ((m = p.match(/^\/api\/trash\/(\d+)\/restore$/)) && req.method === 'POST') {
+      const row = db.prepare('SELECT * FROM trash WHERE id = ?').get(+m[1]);
+      if (!row) return json(res, 404, { error: 'not found' });
+      const payload = JSON.parse(row.payload);
+      const newId = row.kind === 'pages'
+        ? notes.restorePages(db, payload)
+        : core.restoreNodes(db, payload);
+      notes.purgeTrash(db, row.id);
+      return json(res, 200, { restored: newId, kind: row.kind });
+    }
+    if ((m = p.match(/^\/api\/trash\/(\d+)$/)) && req.method === 'DELETE') {
+      notes.purgeTrash(db, +m[1]);
       return json(res, 200, { ok: true });
     }
 

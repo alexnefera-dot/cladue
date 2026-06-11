@@ -142,8 +142,9 @@ test('удаление: поддерево уходит целиком и про
   core.importBlock(db, inbox.id, BLOCK);
   const x5 = byTitle(db, 'Х5');
   const before = core.listTree(db).nodes.length;
-  const deleted = core.deleteNode(db, x5.id);
+  const { count: deleted, trash_id } = core.deleteNode(db, x5.id);
   assert.equal(deleted, 4, 'Х5 + 3 ребёнка');
+  assert.ok(trash_id, 'удалённое попало в корзину');
   assert.equal(core.listTree(db).nodes.length, before - 4);
   assert.ok(!byTitle(db, 'Август продать'), 'детей больше нет');
   assert.equal(core.search(db, 'х5').length, 0, 'поисковый индекс почищен');

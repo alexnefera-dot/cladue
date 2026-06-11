@@ -228,6 +228,13 @@ export function createDb(path = ':memory:') {
       date TEXT NOT NULL DEFAULT (date('now')),
       note TEXT NOT NULL DEFAULT ''
     );
+    CREATE TABLE IF NOT EXISTS trash(           -- корзина: удалённые поддеревья для восстановления
+      id INTEGER PRIMARY KEY,
+      kind TEXT NOT NULL,                      -- nodes|pages
+      label TEXT NOT NULL,
+      payload TEXT NOT NULL,                   -- JSON со строками и связями
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `);
   // миграция существующих баз
   const cols = db.prepare('PRAGMA table_info(nodes)').all().map(c => c.name);
