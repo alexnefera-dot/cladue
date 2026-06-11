@@ -520,6 +520,8 @@ function bindFin() {
     $('ratesRefresh').textContent = '…';
     const r = await finApi.ratesRefresh();
     if (r.error) alert(r.error);
+    else if (r.errors?.length && r.rates?.some(x => x.price == null))
+      alert('Часть курсов не обновилась:\n' + r.errors.join('\n'));
     window.loadFin();
   });
   $('accAdd')?.addEventListener('click', async () => {

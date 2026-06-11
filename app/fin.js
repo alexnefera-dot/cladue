@@ -125,28 +125,66 @@ export function recordSnapshot(db) {
 }
 export function delItem(db, id) { db.prepare('DELETE FROM portfolio_items WHERE id = ?').run(id); }
 
-// ===== Курсы (stooq, без ключей; вручную — всегда можно) =====
+// ===== Курсы: публичные источники без ключей, с фолбэками. Наружу уходят только тикеры. =====
 const RATE_LABELS = { 'XAUUSD': 'Золото', 'EURUSD': 'EUR/USD', 'BTCUSD': 'BTC', '^SPX': 'S&P 500' };
 
-export async function ratesRefresh(db) {
-  const url = 'https://stooq.com/q/l/?s=xauusd,eurusd,btcusd,%5Espx&f=sd2t2ohlcv&h&e=csv';
-  const res = await fetch(url, {
+async function jget(url) {
+  const r = await fetch(url, {
     signal: AbortSignal.timeout(8000),
-    headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)' },
+    headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', 'Accept': 'application/json,text/csv,*/*' },
   });
-  if (!res.ok) throw new Error('stooq: ' + res.status);
-  const text = await res.text();
-  for (const line of text.trim().split('\n').slice(1)) {
-    const parts = line.split(',');
-    const sym = (parts[0] ?? '').toUpperCase();
-    const open = parseFloat(parts[3]), close = parseFloat(parts[6]);
-    if (!isFinite(close)) continue;
+  if (!r.ok) throw new Error(new URL(url).host + ': ' + r.status);
+  return r;
+}
+
+async function stooqOne(sym) {
+  const text = await (await jget(`https://stooq.com/q/l/?s=${sym}&f=sd2t2ohlcv&h&e=csv`)).text();
+  const close = parseFloat(text.trim().split('\n')[1]?.split(',')[6]);
+  if (!isFinite(close)) throw new Error('stooq: пусто');
+  return close;
+}
+
+// порядок = приоритет; первый сработавший побеждает
+const RATE_SOURCES = {
+  'EURUSD': [
+    async () => (await (await jget('https://api.frankfurter.app/latest?from=EUR&to=USD')).json()).rates.USD,
+    async () => (await (await jget('https://open.er-api.com/v6/latest/EUR')).json()).rates.USD,
+    () => stooqOne('eurusd'),
+  ],
+  'BTCUSD': [
+    async () => parseFloat((await (await jget('https://api.coinbase.com/v2/prices/BTC-USD/spot')).json()).data.amount),
+    async () => (await (await jget('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd')).json()).bitcoin.usd,
+    () => stooqOne('btcusd'),
+  ],
+  'XAUUSD': [   // PAXG = токенизированная унция золота, честный прокси спота
+    async () => (await (await jget('https://api.coingecko.com/api/v3/simple/price?ids=pax-gold&vs_currencies=usd')).json())['pax-gold'].usd,
+    () => stooqOne('xauusd'),
+  ],
+  '^SPX': [
+    async () => (await (await jget('https://query1.finance.yahoo.com/v8/finance/chart/%5EGSPC?range=1d&interval=1d')).json()).chart.result[0].meta.regularMarketPrice,
+    () => stooqOne('%5Espx'),
+  ],
+};
+
+export async function ratesRefresh(db) {
+  const errors = [];
+  for (const [sym, sources] of Object.entries(RATE_SOURCES)) {
+    let price = null;
+    for (const fn of sources) {
+      try { price = await fn(); if (isFinite(price) && price > 0) break; price = null; }
+      catch (e) { errors.push(`${sym}: ${e.message}`); }
+    }
+    if (price == null) continue;
+    const prev = db.prepare('SELECT price FROM rates WHERE symbol = ?').get(sym)?.price;
+    const chg = prev ? (price - prev) / prev * 100 : null;
     db.prepare(`INSERT INTO rates(symbol, label, price, change_pct, updated_at)
       VALUES(?,?,?,?,datetime('now'))
       ON CONFLICT(symbol) DO UPDATE SET price = excluded.price, change_pct = excluded.change_pct, updated_at = excluded.updated_at`)
-      .run(sym, RATE_LABELS[sym] ?? sym, close, isFinite(open) && open ? (close - open) / open * 100 : null);
+      .run(sym, RATE_LABELS[sym] ?? sym, price, chg);
   }
-  return db.prepare('SELECT * FROM rates').all();
+  const rates = db.prepare('SELECT * FROM rates').all();
+  if (rates.every(r => r.price == null)) throw new Error('ни один источник не ответил: ' + errors.join('; '));
+  return { rates, errors };
 }
 
 export function rateSet(db, symbol, price) {
