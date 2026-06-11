@@ -548,7 +548,7 @@ document.getElementById('addTitle').addEventListener('keydown', async e => {
 
 
 // ===== Переключение экранов =====
-const SCREENS = { list: null, fin: 'loadFin', cal: 'loadCal' };
+const SCREENS = { today: 'loadToday', list: null, fin: 'loadFin', cal: 'loadCal' };
 window.showScreen = function (scr) {
   document.querySelectorAll('.side .item').forEach(i =>
     i.classList.toggle('active', i.dataset.screen === scr));

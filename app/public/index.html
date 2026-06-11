@@ -12,7 +12,8 @@
 </div>
 <div class="layout">
   <nav class="side">
-    <div class="item active" data-screen="list">☑ Задачи</div>
+    <div class="item" data-screen="today">◉ Сегодня</div>
+    <div class="item" data-screen="list">☑ Задачи</div>
     <div class="item" data-screen="fin">◈ Финансы</div>
     <div class="item" data-screen="cal">▦ Календарь</div>
     <div class="item off">▤ Инфо · этап 3</div>
@@ -23,6 +24,7 @@
     </div>
   </nav>
   <main class="main">
+    <div id="screen-today" style="display:none"></div>
     <div id="screen-fin" style="display:none"></div>
     <div id="screen-cal" style="display:none"></div>
     <div id="screen-list">
@@ -54,5 +56,6 @@
 <script src="app.js"></script>
 <script src="fin.js"></script>
 <script src="cal.js"></script>
+<script src="today.js"></script>
 </body>
 </html>

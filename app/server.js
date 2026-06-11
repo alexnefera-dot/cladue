@@ -6,6 +6,7 @@ import { createDb, seed, seedFin, ensurePortfolio, ensureRates } from './db.js';
 import * as core from './core.js';
 import * as fin from './fin.js';
 import * as cal from './cal.js';
+import { buildToday } from './today.js';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const DB_PATH = process.env.PIPBOY_DB ?? join(ROOT, 'data.db');
@@ -92,6 +93,7 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/search' && req.method === 'GET')
       return json(res, 200, core.search(db, url.searchParams.get('q') ?? ''));
 
+    if (p === '/api/today' && req.method === 'GET') return json(res, 200, buildToday(db));
     // ===== Календарь =====
     if (p === '/api/calendar' && req.method === 'GET') {
       try { return json(res, 200, cal.calendar(db, url.searchParams.get('month') ?? new Date().toISOString().slice(0, 7))); }
