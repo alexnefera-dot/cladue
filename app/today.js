@@ -72,7 +72,11 @@ export function buildToday(db) {
     activityMonth: getSetting(db, 'activity_month', null),
     routines: sortRoutines(listRoutines(db)),
     overdue, dueToday, week, events,
-    zones: { paymentsWeek: payments7.length, debtsOverdue: debtsOverdue.length },
+    zones: {
+      paymentsWeek: payments7.length,
+      debtsOverdue: debtsOverdue.length,
+      practicesToday: all.filter(i => i.type === 'practice' && i.date === today && !i.done).length,
+    },
     people: {
       birthdays: people.filter(p => p.days_to_birthday != null && p.days_to_birthday <= 30)
         .sort((a, b) => a.days_to_birthday - b.days_to_birthday).slice(0, 5),

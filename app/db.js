@@ -192,6 +192,42 @@ export function createDb(path = ':memory:') {
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
     CREATE VIRTUAL TABLE IF NOT EXISTS page_fts USING fts5(title_norm, content_norm);
+
+    -- ===== Психология (этап 4) =====
+    CREATE TABLE IF NOT EXISTS practices(
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      kind TEXT NOT NULL DEFAULT 'schedule',   -- schedule|technique|checklist
+      days TEXT NOT NULL DEFAULT '',           -- daily|workdays|csv дней недели (пн=1)
+      time TEXT,                               -- HH:MM для расписания
+      steps TEXT NOT NULL DEFAULT '[]',        -- JSON: шаги техники / пункты чеклиста
+      note TEXT NOT NULL DEFAULT '',
+      ord INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE TABLE IF NOT EXISTS practice_log(
+      id INTEGER PRIMARY KEY,
+      practice_id INTEGER NOT NULL REFERENCES practices(id) ON DELETE CASCADE,
+      date TEXT NOT NULL DEFAULT (date('now')),
+      note TEXT NOT NULL DEFAULT '',
+      answers TEXT NOT NULL DEFAULT '[]'       -- JSON: ответы по шагам
+    );
+    CREATE TABLE IF NOT EXISTS wheel_areas(
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      ord INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE TABLE IF NOT EXISTS wheel_scores(
+      id INTEGER PRIMARY KEY,
+      date TEXT NOT NULL,
+      area_id INTEGER NOT NULL REFERENCES wheel_areas(id) ON DELETE CASCADE,
+      score INTEGER NOT NULL,
+      UNIQUE(date, area_id)
+    );
+    CREATE TABLE IF NOT EXISTS work_log(
+      id INTEGER PRIMARY KEY,
+      date TEXT NOT NULL DEFAULT (date('now')),
+      note TEXT NOT NULL DEFAULT ''
+    );
   `);
   // миграция существующих баз
   const cols = db.prepare('PRAGMA table_info(nodes)').all().map(c => c.name);

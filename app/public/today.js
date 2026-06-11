@@ -96,8 +96,8 @@ function renderToday() {
       <div class="sec" style="margin-top:0">Приватные зоны</div>
       <div class="lockcard" data-tdgoto="fin" style="cursor:pointer">🔒 <div><b>Финансы:</b> платежей на неделе: ${d.zones.paymentsWeek}${d.zones.debtsOverdue ? ` · просроченных долгов: ${d.zones.debtsOverdue}` : ''}<br>
         <span class="meta">суммы скрыты · клик — открыть раздел (в нативной версии — по паролю)</span></div></div>
-      <div class="lockcard" style="margin-top:10px;opacity:.6">🔒 <div><b>Психология:</b> этап 4<br>
-        <span class="meta">практики, тревоги, колесо — скоро</span></div></div>
+      <div class="lockcard" data-tdgoto="psy" style="margin-top:10px;cursor:pointer">🔒 <div><b>Психология:</b> практик сегодня: ${d.zones.practicesToday ?? 0}<br>
+        <span class="meta">детали скрыты · клик — открыть раздел</span></div></div>
       <div class="sec">▲ Движение недели</div>
       <div class="card">
         ${d.movement.top.map(([cat, n]) => `<div class="task">

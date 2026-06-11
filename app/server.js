@@ -10,6 +10,7 @@ import { buildToday } from './today.js';
 import * as life from './life.js';
 import * as notes from './notes.js';
 import { seedDemo } from './seed.js';
+import * as psy from './psy.js';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const DB_PATH = process.env.PIPBOY_DB ?? join(ROOT, 'data.db');
@@ -27,6 +28,7 @@ ensureRates(db);
 notes.seedPages(db);      // демо-страницы Инфо при пустом разделе
 life.seedPeople(db);      // 5 тестовых людей при пустом разделе
 seedDemo(db);             // демо-данные по всем разделам (только в пустые)
+psy.seedPsy(db);          // практики, колесо, рабочий лог
 {
   const c = q => db.prepare(q).get().c;
   console.log(`Наполнение: записи=${c('SELECT count(*) AS c FROM nodes WHERE is_category=0')}`
@@ -184,6 +186,59 @@ const server = http.createServer(async (req, res) => {
     if ((m = p.match(/^\/api\/nodes\/(\d+)\/plan$/)) && req.method === 'POST') {
       try { return json(res, 201, notes.planPage(db, +m[1])); }
       catch (e) { return json(res, 400, { error: e.message }); }
+    }
+
+    // ===== Психология =====
+    if (p === '/api/psy' && req.method === 'GET')
+      return json(res, 200, {
+        practices: psy.listPractices(db),
+        wheel: psy.wheel(db),
+        worklog: psy.workLog(db),
+        decisions: psy.acceptedDecisions(db),
+        hasPass: psy.psyHasPass(db),
+      });
+    if (p === '/api/psy/unlock' && req.method === 'POST') {
+      const b = await body(req);
+      return psy.checkPsyPass(db, b.password)
+        ? json(res, 200, { ok: true })
+        : json(res, 403, { error: 'неверный пароль' });
+    }
+    if (p === '/api/psy/pass' && req.method === 'POST') {
+      const b = await body(req);
+      if (psy.psyHasPass(db) && !psy.checkPsyPass(db, b.old ?? '')) return json(res, 403, { error: 'неверный текущий пароль' });
+      psy.setPsyPass(db, b.password ?? '');
+      return json(res, 200, { ok: true });
+    }
+    if (p === '/api/psy/practices' && req.method === 'POST') {
+      const b = await body(req);
+      if (!b.name?.trim()) return json(res, 400, { error: 'name required' });
+      psy.addPractice(db, b);
+      return json(res, 201, { ok: true });
+    }
+    if ((m = p.match(/^\/api\/psy\/practices\/(\d+)\/log$/)) && req.method === 'POST') {
+      psy.logPractice(db, +m[1], await body(req));
+      return json(res, 201, { ok: true });
+    }
+    if ((m = p.match(/^\/api\/psy\/practices\/(\d+)\/logs$/)) && req.method === 'GET')
+      return json(res, 200, psy.practiceLogs(db, +m[1]));
+    if ((m = p.match(/^\/api\/psy\/practices\/(\d+)$/))) {
+      if (req.method === 'PATCH') { psy.patchPractice(db, +m[1], await body(req)); return json(res, 200, { ok: true }); }
+      if (req.method === 'DELETE') { psy.delPractice(db, +m[1]); return json(res, 200, { ok: true }); }
+    }
+    if (p === '/api/psy/wheel' && req.method === 'POST') {
+      const b = await body(req);
+      psy.saveWheel(db, b.scores ?? {});
+      return json(res, 200, psy.wheel(db));
+    }
+    if (p === '/api/psy/worklog' && req.method === 'POST') {
+      const b = await body(req);
+      if (!b.note?.trim()) return json(res, 400, { error: 'note required' });
+      psy.addWork(db, b.note.trim());
+      return json(res, 201, { ok: true });
+    }
+    if ((m = p.match(/^\/api\/psy\/worklog\/(\d+)$/)) && req.method === 'DELETE') {
+      psy.delWork(db, +m[1]);
+      return json(res, 200, { ok: true });
     }
 
     if (p === '/api/setting' && req.method === 'POST') {

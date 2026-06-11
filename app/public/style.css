@@ -164,3 +164,5 @@ body{background:var(--bg);color:var(--text);font:14px/1.45 var(--sans);height:10
 .richedit{border:1px solid var(--green-dim);border-radius:8px;padding:14px 16px;min-height:420px;outline:none;background:var(--panel)}
 .richedit:focus{border-color:var(--green)}
 .richedit pre{white-space:pre-wrap}
+.ev-psy{background:rgba(122,79,192,.12);color:#7a4fc0}
+.cb.done.pschk,.pschk.done{background:var(--green-dim);border-color:var(--green-dim)}

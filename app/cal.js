@@ -1,5 +1,6 @@
 import { addMonths } from './fin.js';
 import { birthdays } from './life.js';
+import { monthOccurrences } from './psy.js';
 
 // ===== События =====
 export function addEvent(db, b) {
@@ -54,6 +55,9 @@ export function calendar(db, ym) {
   for (const e of db.prepare('SELECT * FROM events').all())
     for (const d of occurrences(e.date, e.recur, first, last))
       items.push({ date: d, type: 'event', id: e.id, title: e.title, time: e.time, recur: e.recur });
+
+  // практики по расписанию (вт/чт 19:00 и т.п.)
+  items.push(...monthOccurrences(db, ym, first, last));
 
   // дни рождения людей — каждый год, удаляются только в разделе «Люди»
   for (const p of birthdays(db)) {

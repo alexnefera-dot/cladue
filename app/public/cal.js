@@ -13,7 +13,7 @@ const calApi = {
 const cesc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const cfmt = n => n == null ? '' : Math.round(n).toLocaleString('ru-RU');
 const MONTHS_RU = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
-const TYPE_CLS = { task: 'ev-task', money: 'ev-money', step: 'ev-step', event: 'ev-cal' };
+const TYPE_CLS = { task: 'ev-task', money: 'ev-money', step: 'ev-step', event: 'ev-cal', practice: 'ev-psy' };
 
 window.loadCal = async function () {
   calData = await calApi.month(calMonth);
@@ -80,7 +80,7 @@ function renderCal() {
         <span class="meta num" style="min-width:78px">${it.date.slice(5)}${it.time ? ' ' + it.time : ''}</span>
         ${it.type === 'task' ? `<span class="cb ${it.done ? 'done' : ''}" data-caltoggle="${it.id}"></span>` : ''}
         <span class="pill ${it.type === 'money' ? 'p1' : it.type === 'task' ? 'ok' : it.type === 'step' ? 'p2' : ''}">${
-          { task: it.kind === 'decision' ? 'решение' : 'задача', money: it.okind === 'subscription' ? 'подписка' : 'платёж', step: 'шаг', event: it.recur === 'yearly' ? '🎂/год' : 'событие' }[it.type]}</span>
+          { task: it.kind === 'decision' ? 'решение' : 'задача', money: it.okind === 'subscription' ? 'подписка' : 'платёж', step: 'шаг', event: it.recur === 'yearly' ? '🎂/год' : 'событие', practice: '◎ практика' }[it.type]}</span>
         <span class="t ${it.done ? 'done' : ''}" ${it.type === 'task' ? `data-nid="${it.id}" style="cursor:pointer" title="открыть карточку"` : ''}>${cesc(it.title)}</span>
         ${it.amount ? `<span class="meta num">${cfmt(it.amount)} ${cesc(it.currency ?? '€')}</span>` : ''}
         ${it.type === 'money' ? `<span class="pill btn ok" data-calpay="${it.id}" title="оплачено">✓</span>` : ''}
