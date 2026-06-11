@@ -159,3 +159,8 @@ body{background:var(--bg);color:var(--text);font:14px/1.45 var(--sans);height:10
 .mdview code{background:var(--bg2);border-radius:4px;padding:1px 5px;font:12.5px var(--mono)}
 .mdview .mdgap{height:8px}
 .wiki{color:var(--green);border-bottom:1px dashed var(--green-dim);cursor:pointer}
+.nttoolbar{display:flex;gap:5px;align-items:center;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;padding:6px 8px;margin-bottom:8px;background:var(--bg2)}
+.ntb{min-width:30px;text-align:center}
+.richedit{border:1px solid var(--green-dim);border-radius:8px;padding:14px 16px;min-height:420px;outline:none;background:var(--panel)}
+.richedit:focus{border-color:var(--green)}
+.richedit pre{white-space:pre-wrap}

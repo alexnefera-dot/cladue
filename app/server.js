@@ -23,6 +23,8 @@ if (db.prepare('SELECT count(*) AS c FROM accounts').get().c === 0) {
 }
 ensurePortfolio(db);
 ensureRates(db);
+notes.seedPages(db);      // демо-страницы Инфо при пустом разделе
+life.seedPeople(db);      // 5 тестовых людей при пустом разделе
 fin.recordSnapshot(db);   // история нетворса: один замер в день
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
@@ -119,7 +121,8 @@ const server = http.createServer(async (req, res) => {
       return json(res, 201, { ok: true });
     }
     if ((m = p.match(/^\/api\/people\/(\d+)\/contacted$/)) && req.method === 'POST') {
-      life.contacted(db, +m[1]);
+      const b = await body(req);
+      life.contacted(db, +m[1], b.note);
       return json(res, 200, { ok: true });
     }
     if ((m = p.match(/^\/api\/people\/(\d+)$/))) {
@@ -144,12 +147,27 @@ const server = http.createServer(async (req, res) => {
       try { return json(res, 200, notes.movePage(db, +m[1], b.parent_id ?? null)); }
       catch (e) { return json(res, 400, { error: e.message }); }
     }
+    if ((m = p.match(/^\/api\/pages\/(\d+)\/lock$/)) && req.method === 'POST') {
+      const b = await body(req);
+      try { const { enc, ...pg } = notes.lockPage(db, +m[1], b.password, b.content); return json(res, 200, pg); }
+      catch (e) { return json(res, 400, { error: e.message }); }
+    }
+    if ((m = p.match(/^\/api\/pages\/(\d+)\/unlock$/)) && req.method === 'POST') {
+      const b = await body(req);
+      try { return json(res, 200, notes.unlockPage(db, +m[1], b.password, !!b.remove)); }
+      catch (e) { return json(res, 403, { error: e.message }); }
+    }
     if ((m = p.match(/^\/api\/pages\/(\d+)$/))) {
       if (req.method === 'GET') {
         const pg = notes.getPage(db, +m[1]);
-        return pg ? json(res, 200, pg) : json(res, 404, { error: 'not found' });
+        if (!pg) return json(res, 404, { error: 'not found' });
+        const { enc, ...rest } = pg;   // шифротекст наружу не отдаём
+        return json(res, 200, rest);
       }
-      if (req.method === 'PATCH') return json(res, 200, notes.patchPage(db, +m[1], await body(req)));
+      if (req.method === 'PATCH') {
+        try { return json(res, 200, notes.patchPage(db, +m[1], await body(req))); }
+        catch (e) { return json(res, 400, { error: e.message }); }
+      }
       if (req.method === 'DELETE') return json(res, 200, { deleted: notes.delPage(db, +m[1]) });
     }
     if ((m = p.match(/^\/api\/nodes\/(\d+)\/plan$/)) && req.method === 'POST') {

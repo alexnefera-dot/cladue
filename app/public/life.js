@@ -106,6 +106,133 @@ routineReminderTick();
 // ===== Люди =====
 window.loadPeople = async function () {
   const rows = await lfApi.people();
+  const soon = rows.filter(p => p.days_to_birthday != null && p.days_to_birthday <= 30)
+    .sort((a, b) => a.days_to_birthday - b.days_to_birthday);
+  const overdue = rows.filter(p => p.overdue_contact > 0)
+    .sort((a, b) => b.overdue_contact - a.overdue_contact);
+
+  const card = p => `
+    <div class="card">
+      <div class="task" style="border-bottom:1px solid var(--line)">
+        <span class="t ed" data-lfpname="${p.id}" style="font-weight:600">${lesc(p.name)}</span>
+        <span class="pill btn ok" data-lfpc="${p.id}" title="отметить контакт (можно с заметкой)">☎ связались</span>
+        <span class="rowbtn del" data-lfpdel="${p.id}">✕</span>
+      </div>
+      <div class="kv">Ритм <b class="ed" data-lfprh="${p.id}">${p.rhythm_days ? 'раз в ' + p.rhythm_days + ' дн' : '—'}</b></div>
+      <div class="kv">Последний контакт <b class="${p.overdue_contact > 0 ? 'amber' : ''}">${p.last_contact ?? 'не было'}${p.since_contact != null ? ' (' + p.since_contact + ' дн)' : ''}${p.overdue_contact > 0 ? ' ⚠' : ''}</b></div>
+      <div class="kv">ДР <b class="ed" data-lfpbd="${p.id}">${p.birthday ?? '—'}${p.days_to_birthday != null ? ' · через ' + p.days_to_birthday + ' дн' : ''}</b></div>
+      <div style="margin:6px 0 2px"><span class="ed meta" data-lfptags="${p.id}" title="интересы/чипы — клик">${
+        p.tags ? p.tags.split(',').map(t => `<span class="chip">${lesc(t.trim())}</span>`).join('') : '+чипы'}</span></div>
+      ${p.tasks.length ? `<div class="meta" style="margin-top:6px">СВЯЗИ С ЗАДАЧАМИ</div>` +
+        p.tasks.map(t => `<div class="ritem" data-lfopen="${t.id}"><div class="rt">${lesc(t.title)}</div></div>`).join('') : ''}
+      ${p.logs.length ? `<div class="meta" style="margin-top:6px">ПОСЛЕ ВСТРЕЧ</div>` +
+        p.logs.map(l => `<div class="kv"><span>${l.date}</span><b style="text-align:right">${lesc(l.note)}</b></div>`).join('') : ''}
+    </div>`;
+
+  document.getElementById('screen-people').innerHTML = `
+  <h2 style="margin-bottom:2px">Люди</h2>
+  <div class="muted" style="margin-bottom:14px">ДР попадают в календарь и на дашборд · связи с задачами — по упоминанию имени</div>
+  <div class="fingrid" style="grid-template-columns:1fr 1fr">
+    <div class="card"><div class="meta">🎂 СКОРО</div>
+      ${soon.map(p => `<div class="task"><span class="t">${lesc(p.name)}</span>
+        <span class="meta ${p.days_to_birthday <= 7 ? 'amber' : ''}">${p.days_to_birthday === 0 ? 'СЕГОДНЯ!' : 'через ' + p.days_to_birthday + ' дн'}</span></div>`).join('')
+        || '<div class="empty">в ближайший месяц ДР нет</div>'}
+    </div>
+    <div class="card"><div class="meta">☎ КОНТАКТ-РИТМ · ПРОСРОЧЕНО</div>
+      ${overdue.map(p => `<div class="task"><span class="t amber">${lesc(p.name)}</span>
+        <span class="meta">молчим ${p.since_contact ?? '∞'} дн</span>
+        <span class="pill btn ok" data-lfpc="${p.id}">☎</span></div>`).join('')
+        || '<div class="empty">все созвоны в норме</div>'}
+    </div>
+  </div>
+  <div class="sec">Все люди</div>
+  <div class="fingrid" style="grid-template-columns:1fr 1fr">${rows.map(card).join('')}</div>
+  <div class="card"><div class="task finadd">
+    <input id="ppName" placeholder="имя (Мама, Дима…)">
+    <input id="ppBd" placeholder="ДР: 06-19" style="width:110px">
+    <input id="ppRh" placeholder="ритм, дн" style="width:80px">
+    <input id="ppTags" placeholder="чипы: падл, авто" style="width:160px">
+    <span class="pill btn ok" id="ppAdd">＋</span>
+  </div></div>`;
+
+  const reload = window.loadPeople;
+  document.querySelectorAll('#screen-people [data-lfopen]').forEach(el =>
+    el.addEventListener('click', () => window.openNode(+el.dataset.lfopen)));
+  document.querySelectorAll('#screen-people [data-lfpc]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const note = prompt('Заметка о контакте (опционально):') ?? '';
+      await fetch(`/api/people/${el.dataset.lfpc}/contacted`, { method: 'POST',
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ note }) });
+      reload();
+    }));
+  document.querySelectorAll('#screen-people [data-lfpdel]').forEach(el =>
+    el.addEventListener('click', async () => {
+      if (confirm('Удалить человека (с логом встреч)?')) { await lfApi.pDel(+el.dataset.lfpdel); reload(); }
+    }));
+  document.querySelectorAll('#screen-people [data-lfpname]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const v = prompt('Имя:', el.textContent.trim());
+      if (v?.trim()) { await lfApi.pPatch(+el.dataset.lfpname, { name: v.trim() }); reload(); }
+    }));
+  document.querySelectorAll('#screen-people [data-lfptags]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const v = prompt('Чипы через запятую (падл, авто-рынок…):');
+      if (v == null) return;
+      await lfApi.pPatch(+el.dataset.lfptags, { tags: v.trim() });
+      reload();
+    }));
+  document.querySelectorAll('#screen-people [data-lfpbd]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const v = prompt('День рождения (2026-06-19, 06-19 или пусто — убрать):');
+      if (v == null) return;
+      const t = v.trim();
+      if (t && !/^(\d{4}-)?\d{2}-\d{2}$/.test(t)) { alert('Формат: 2026-06-19 или 06-19'); return; }
+      await lfApi.pPatch(+el.dataset.lfpbd, { birthday: t || null });
+      reload();
+    }));
+  document.querySelectorAll('#screen-people [data-lfprh]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const v = prompt('Связываться раз в сколько дней? (пусто — убрать)');
+      if (v == null) return;
+      const n = parseInt(v, 10);
+      await lfApi.pPatch(+el.dataset.lfprh, { rhythm_days: isNaN(n) ? null : n });
+      reload();
+    }));
+  document.getElementById('ppAdd')?.addEventListener('click', async () => {
+    const name = document.getElementById('ppName').value.trim();
+    if (!name) return;
+    const bd = document.getElementById('ppBd').value.trim();
+    const rh = parseInt(document.getElementById('ppRh').value, 10);
+    await lfApi.pAdd({ name, birthday: /^(\d{4}-)?\d{2}-\d{2}$/.test(bd) ? bd : null,
+      rhythm_days: isNaN(rh) ? null : rh, tags: document.getElementById('ppTags').value.trim() });
+    window.loadPeople();
+  });
+};
+
+// ===== Напоминания: пока вкладка открыта, рутина с ⏰ шлёт браузерное уведомление.
+// То же поле time станет источником системных пушей в мобильной версии.
+async function routineReminderTick() {
+  if (localStorage.rtNotifyOn !== '1' || typeof Notification === 'undefined'
+      || Notification.permission !== 'granted') return;
+  const now = new Date();
+  const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const key = 'rtNotified:' + now.toISOString().slice(0, 10);
+  const notified = new Set(JSON.parse(localStorage.getItem(key) ?? '[]'));
+  let rows;
+  try { rows = await lfApi.routines(); } catch { return; }
+  for (const r of rows) {
+    if (!r.time || r.done || notified.has(r.id) || r.time > hhmm) continue;
+    new Notification('⏰ ' + r.name, { body: `Рутина на ${r.time} — пора. Стрик: ${r.streak} 🔥`, tag: 'routine-' + r.id });
+    notified.add(r.id);
+  }
+  localStorage.setItem(key, JSON.stringify([...notified]));
+}
+setInterval(routineReminderTick, 30000);
+routineReminderTick();
+
+// ===== Люди =====
+window.loadPeople = async function () {
+  const rows = await lfApi.people();
   document.getElementById('screen-people').innerHTML = `
   <h2 style="margin-bottom:2px">Люди</h2>
   <div class="muted" style="margin-bottom:14px">ДР попадают в календарь и на дашборд · контакт-ритм напоминает связаться</div>

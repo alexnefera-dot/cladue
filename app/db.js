@@ -175,6 +175,12 @@ export function createDb(path = ':memory:') {
       last_contact TEXT,
       note TEXT NOT NULL DEFAULT ''
     );
+    CREATE TABLE IF NOT EXISTS contact_log(     -- записи после встреч/созвонов
+      id INTEGER PRIMARY KEY,
+      person_id INTEGER NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+      date TEXT NOT NULL DEFAULT (date('now')),
+      note TEXT NOT NULL DEFAULT ''
+    );
     CREATE TABLE IF NOT EXISTS pages(           -- Инфо: страницы-заметки (наш Notion)
       id INTEGER PRIMARY KEY,
       parent_id INTEGER REFERENCES pages(id) ON DELETE CASCADE,
@@ -210,6 +216,13 @@ export function createDb(path = ':memory:') {
   // фиксированное время рутины (HH:MM) — для сортировки и напоминаний
   const rcols = db.prepare('PRAGMA table_info(routines)').all().map(c => c.name);
   if (!rcols.includes('time')) db.exec(`ALTER TABLE routines ADD COLUMN time TEXT`);
+  // чипы интересов у людей
+  const ppl = db.prepare('PRAGMA table_info(people)').all().map(c => c.name);
+  if (!ppl.includes('tags')) db.exec(`ALTER TABLE people ADD COLUMN tags TEXT NOT NULL DEFAULT ''`);
+  // страницы под паролем: содержимое шифруется aes-256-gcm
+  const pgc = db.prepare('PRAGMA table_info(pages)').all().map(c => c.name);
+  if (!pgc.includes('locked')) db.exec(`ALTER TABLE pages ADD COLUMN locked INTEGER NOT NULL DEFAULT 0`);
+  if (!pgc.includes('enc')) db.exec(`ALTER TABLE pages ADD COLUMN enc TEXT`);
   return db;
 }
 

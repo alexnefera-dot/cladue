@@ -1,7 +1,116 @@
+import crypto from 'node:crypto';
 import { norm, tokens } from './db.js';
 
+// ===== Шифрование содержимого страницы (aes-256-gcm, ключ из пароля через scrypt) =====
+function encrypt(password, text) {
+  const salt = crypto.randomBytes(16);
+  const key = crypto.scryptSync(password, salt, 32);
+  const iv = crypto.randomBytes(12);
+  const c = crypto.createCipheriv('aes-256-gcm', key, iv);
+  const data = Buffer.concat([c.update(text, 'utf8'), c.final()]);
+  return JSON.stringify({ s: salt.toString('base64'), i: iv.toString('base64'),
+    t: c.getAuthTag().toString('base64'), d: data.toString('base64') });
+}
+function decrypt(password, encStr) {
+  const { s, i, t, d } = JSON.parse(encStr);
+  const key = crypto.scryptSync(password, Buffer.from(s, 'base64'), 32);
+  const dec = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(i, 'base64'));
+  dec.setAuthTag(Buffer.from(t, 'base64'));
+  try { return Buffer.concat([dec.update(Buffer.from(d, 'base64')), dec.final()]).toString('utf8'); }
+  catch { throw new Error('неверный пароль'); }
+}
+
 export function listPages(db) {
-  return db.prepare('SELECT id, parent_id, ord, title, node_id, updated_at FROM pages ORDER BY parent_id NULLS FIRST, ord, id').all();
+  return db.prepare('SELECT id, parent_id, ord, title, node_id, locked, updated_at FROM pages ORDER BY parent_id NULLS FIRST, ord, id').all();
+}
+
+// Демо-страницы из макета — потрогать редактор, ссылки и пароль (удаляемо)
+export function seedPages(db) {
+  if (db.prepare('SELECT count(*) AS c FROM pages').get().c > 0) return;
+  const princ = addPage(db, { title: '📌 Принципы', content:
+`# Мои принципы
+
+> Решения принимаю на холодную голову, пересматриваю по расписанию, а не по панике.
+
+- **НЕ СПЕШИМ до 2028** — принцип ветки МХ5
+- 10к с продажи откладываем на легализацию своего авто
+- Сначала консультация — потом крупные переводы
+- Раз в месяц — ревью портфеля, раз в неделю — разбор инбокса
+` });
+  const kb = addPage(db, { title: 'База знаний', content: 'Корневая страница. Подстраницы — слева в дереве.\n' });
+  const inv = addPage(db, { parent_id: kb.id, title: 'Инвестиции', content:
+`# Конспект: структура портфеля
+
+Портфель делим на четыре блока:
+
+1. Блок защиты — кэш, облигации, золото
+2. Блок роста — ETF акций, S&P 500
+3. Блок развития — крипта, эксперименты
+4. Замороженный капитал — недвижимость, авто
+
+Связанные задачи: [[Продать X5]]
+
+## Правила ребаланса
+
+- [ ] раз в квартал сверяю факт с целевым
+- [ ] отклонение больше 5% — план шагов
+- [x] завёл целевой портфель
+` });
+  addPage(db, { parent_id: inv.id, title: 'Облигации: шпаргалка', content:
+`## Что смотрю перед покупкой
+
+1. Дюрация против моего горизонта
+2. Купон: фикс или флоатер
+3. Налоговый режим
+
+> Доходность к погашению важнее купона.
+
+\`YTM\` считаю в таблице, пример формулы: \`=YIELD(...)\`
+` });
+  const move = addPage(db, { title: '✈️ План переезда', content:
+`# План переезда
+
+> 💡 Связано с задачей [[Продать X5]] и страницей [[Сравнение городов]]
+
+Критерий — баланс стоимости жизни и качества среды.
+
+## Решения
+
+> Решение от 02.06: склоняюсь к варианту Б, пересмотр через 3 месяца.
+
+## Чеклист документов
+
+- [x] загранпаспорта
+- [x] справки с работы
+- [x] переводы документов
+- [ ] апостили
+- [ ] страховка
+` });
+  addPage(db, { parent_id: move.id, title: 'Сравнение городов', content:
+`## Критерии
+
+1. Аренда и быт
+2. Комьюнити и спорт (падл!)
+3. Логистика перелётов
+4. Налоговый режим
+
+**Вывод пока:** вариант Б впереди по 3 из 4.
+` });
+  addPage(db, { title: 'Журнал решений', content:
+`# Журнал решений
+
+Шаблон записи:
+
+## ДАТА — Решение
+- Контекст:
+- Варианты:
+- Выбрал и почему:
+- Проверить через: 3 месяца
+` });
+  // приватная страница под паролем для теста: пароль 1234
+  const secret = addPage(db, { title: '🔒 Приватное (пример, пароль 1234)', content:
+'Это содержимое зашифровано. Сними пароль или поменяй текст — всё через кнопки на странице.\n' });
+  lockPage(db, secret.id, '1234');
 }
 
 export function getPage(db, id) {
@@ -19,14 +128,46 @@ export function addPage(db, b) {
 }
 
 export function patchPage(db, id, b) {
+  const before = getPage(db, id);
+  if (before?.locked && 'content' in b) throw new Error('страница под паролем — сохраняй через lock');
   for (const k of ['title', 'content'])
     if (k in b) db.prepare(`UPDATE pages SET ${k} = ?, updated_at = datetime('now') WHERE id = ?`).run(b[k], id);
-  if ('title' in b || 'content' in b) {
+  if (('title' in b || 'content' in b) && !before?.locked) {
     const p = getPage(db, id);
     db.prepare('UPDATE page_fts SET title_norm = ?, content_norm = ? WHERE rowid = ?')
       .run(norm(p.title), norm(p.content), id);
   }
   return getPage(db, id);
+}
+
+// Закрыть паролем (или пересохранить уже закрытую). Из поиска страница уходит.
+export function lockPage(db, id, password, newContent) {
+  const p = getPage(db, id);
+  if (!p) throw new Error('not found');
+  if (!password) throw new Error('пустой пароль');
+  let content;
+  if (p.locked) {
+    const old = decrypt(password, p.enc);     // проверка пароля
+    content = newContent ?? old;
+  } else content = newContent ?? p.content;
+  db.prepare(`UPDATE pages SET enc = ?, locked = 1, content = '', updated_at = datetime('now') WHERE id = ?`)
+    .run(encrypt(password, content), id);
+  db.prepare('DELETE FROM page_fts WHERE rowid = ?').run(id);
+  return getPage(db, id);
+}
+
+// Открыть по паролю; remove=true — снять пароль насовсем (текст обратно в открытое хранение)
+export function unlockPage(db, id, password, remove = false) {
+  const p = getPage(db, id);
+  if (!p?.locked) throw new Error('страница не под паролем');
+  const content = decrypt(password, p.enc);
+  if (remove) {
+    db.prepare(`UPDATE pages SET enc = NULL, locked = 0, content = ?, updated_at = datetime('now') WHERE id = ?`)
+      .run(content, id);
+    db.prepare('INSERT INTO page_fts(rowid, title_norm, content_norm) VALUES(?,?,?)')
+      .run(id, norm(p.title), norm(content));
+  }
+  return { content };
 }
 
 export function movePage(db, id, parent_id) {

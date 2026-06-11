@@ -1,6 +1,8 @@
-/* Инфо: страницы-заметки — дерево, markdown, [[вики-ссылки]], бэклинки */
-let ntPages = [], ntSel = null, ntEditing = false;
+/* Инфо: страницы-заметки — дерево, визуальный редактор (WYSIWYG ↔ markdown), [[вики]], бэклинки */
+let ntPages = [], ntSel = null, ntEditing = false, ntMode = 'rich'; // rich | md
 const ntFold = new Set();
+const ntPw = {};      // пароли открытых в этой сессии страниц
+const ntCache = {};   // расшифрованное содержимое
 
 const ntApi = {
   list: () => fetch('/api/pages').then(r => r.json()),
@@ -8,14 +10,15 @@ const ntApi = {
   add: b => fetch('/api/pages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json()),
   patch: (id, b) => fetch('/api/pages/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json()),
   del: id => fetch('/api/pages/' + id, { method: 'DELETE' }),
-  move: (id, parent_id) => fetch(`/api/pages/${id}/move`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ parent_id }) }).then(r => r.json()),
   backlinks: id => fetch(`/api/pages/${id}/backlinks`).then(r => r.json()),
   wiki: name => fetch('/api/wiki?name=' + encodeURIComponent(name)).then(r => r.json()),
+  lock: (id, b) => fetch(`/api/pages/${id}/lock`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json()),
+  unlock: (id, b) => fetch(`/api/pages/${id}/unlock`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json()),
 };
 
 const nesc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-// ===== Мини-markdown: заголовки, списки, чекбоксы, цитаты, код, жирный/курсив, [[вики]] =====
+// ===== markdown → HTML =====
 function mdRender(src) {
   const inline = s => s
     .replace(/\[\[([^\]]+)\]\]/g, (_, n) => `<a class="wiki" data-wiki="${nesc(n)}">${nesc(n)}</a>`)
@@ -34,7 +37,7 @@ function mdRender(src) {
     if ((m = l.match(/^(#{1,3})\s+(.*)/))) { closeList(); out += `<h${m[1].length + 1}>${inline(m[2])}</h${m[1].length + 1}>`; }
     else if ((m = l.match(/^\s*[-*]\s+\[( |x)\]\s+(.*)/i))) {
       if (list !== 'ul') { closeList(); out += '<ul>'; list = 'ul'; }
-      out += `<li class="chk">${m[1].trim() ? '☑' : '☐'} ${m[1].trim() ? '<s>' + inline(m[2]) + '</s>' : inline(m[2])}</li>`;
+      out += `<li>${m[1].trim() ? '☑ <s>' + inline(m[2]) + '</s>' : '☐ ' + inline(m[2])}</li>`;
     }
     else if ((m = l.match(/^\s*[-*]\s+(.*)/))) {
       if (list !== 'ul') { closeList(); out += '<ul>'; list = 'ul'; }
@@ -45,12 +48,56 @@ function mdRender(src) {
       out += `<li>${inline(m[1])}</li>`;
     }
     else if ((m = l.match(/^>\s?(.*)/))) { closeList(); out += `<blockquote>${inline(m[1])}</blockquote>`; }
-    else if (!l.trim()) { closeList(); out += '<div class="mdgap"></div>'; }
+    else if (!l.trim()) { closeList(); out += '<div class="mdgap"><br></div>'; }
     else { closeList(); out += `<p>${inline(l)}</p>`; }
   }
   closeList();
   if (code) out += '</pre>';
   return out;
+}
+
+// ===== HTML (из contenteditable) → markdown =====
+function htmlToMd(root) {
+  const inline = node => {
+    let s = '';
+    for (const n of node.childNodes) {
+      if (n.nodeType === 3) { s += n.textContent; continue; }
+      const tag = n.tagName;
+      if (tag === 'BR') s += '\n';
+      else if (tag === 'B' || tag === 'STRONG') s += '**' + inline(n) + '**';
+      else if (tag === 'I' || tag === 'EM') s += '*' + inline(n) + '*';
+      else if (tag === 'S' || tag === 'STRIKE' || tag === 'DEL') s += inline(n);
+      else if (tag === 'CODE') s += '`' + inline(n) + '`';
+      else if (tag === 'A') s += n.dataset?.wiki ? `[[${n.dataset.wiki}]]` : (n.getAttribute('href') ?? inline(n));
+      else s += inline(n);
+    }
+    return s;
+  };
+  const liMd = (li, marker) => {
+    let t = inline(li).trim();
+    if (t.startsWith('☑')) return marker + '[x] ' + t.replace(/^☑\s*/, '');
+    if (t.startsWith('☐')) return marker + '[ ] ' + t.replace(/^☐\s*/, '');
+    return marker.replace('[x] ', '').replace('[ ] ', '') + t;
+  };
+  let out = [];
+  for (const n of root.childNodes) {
+    if (n.nodeType === 3) { if (n.textContent.trim()) out.push(n.textContent.trim()); continue; }
+    const tag = n.tagName;
+    if (tag === 'H1' || tag === 'H2') out.push('# ' + inline(n).trim());
+    else if (tag === 'H3') out.push('## ' + inline(n).trim());
+    else if (tag === 'H4') out.push('### ' + inline(n).trim());
+    else if (tag === 'UL') out.push([...n.children].map(li => liMd(li, '- ')).join('\n'));
+    else if (tag === 'OL') out.push([...n.children].map((li, i) => `${i + 1}. ` + inline(li).trim()).join('\n'));
+    else if (tag === 'BLOCKQUOTE') out.push(inline(n).trim().split('\n').map(l => '> ' + l).join('\n'));
+    else if (tag === 'PRE') out.push('```\n' + n.textContent.replace(/\n$/, '') + '\n```');
+    else if (n.classList?.contains('mdgap')) out.push('');
+    else {
+      const t = inline(n).trim();
+      out.push(t); // P/DIV и неизвестные теги — как текст
+    }
+  }
+  // схлопываем тройные пустые строки
+  return out.join('\n\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
 }
 
 window.loadNotes = async function (openId) {
@@ -68,15 +115,35 @@ function ntTree() {
     const kids = byP[p.id] ?? [];
     return `<div class="ntitem ${ntSel === p.id ? 'active' : ''}" data-ntopen="${p.id}" style="padding-left:${8 + depth * 14}px">
       ${kids.length ? `<span class="caret" data-ntfold="${p.id}">${ntFold.has(p.id) ? '▸' : '▾'}</span>` : '<span class="caret"></span>'}
-      ${p.node_id ? '☑ ' : ''}${nesc(p.title)}</div>`
+      ${p.locked ? '🔒 ' : ''}${p.node_id ? '☑ ' : ''}${nesc(p.title)}</div>`
       + (ntFold.has(p.id) ? '' : kids.map(k => walk(k, depth + 1)).join(''));
   };
   return (byP['root'] ?? []).map(p => walk(p, 0)).join('');
 }
 
+const TOOLBAR = [
+  ['h2', 'Заголовок', () => document.execCommand('formatBlock', false, 'h2')],
+  ['h3', 'Подзаголовок', () => document.execCommand('formatBlock', false, 'h3')],
+  ['¶', 'обычный текст', () => document.execCommand('formatBlock', false, 'p')],
+  ['B', 'жирный (⌘B)', () => document.execCommand('bold')],
+  ['I', 'курсив (⌘I)', () => document.execCommand('italic')],
+  ['•', 'список', () => document.execCommand('insertUnorderedList')],
+  ['1.', 'нумерованный', () => document.execCommand('insertOrderedList')],
+  ['☐', 'чеклист', () => { document.execCommand('insertUnorderedList'); document.execCommand('insertText', false, '☐ '); }],
+  ['❝', 'цитата', () => document.execCommand('formatBlock', false, 'blockquote')],
+  ['</>', 'блок кода', () => document.execCommand('formatBlock', false, 'pre')],
+  ['[[ ]]', 'вики-ссылка', () => {
+    const name = prompt('Ссылка на страницу или запись (название):');
+    if (name?.trim()) document.execCommand('insertHTML', false,
+      `<a class="wiki" data-wiki="${nesc(name.trim())}">${nesc(name.trim())}</a>&nbsp;`);
+  }],
+];
+
 async function renderNotes() {
   const page = ntSel ? await ntApi.get(ntSel) : null;
-  const back = page ? await ntApi.backlinks(page.id) : [];
+  const needPw = page?.locked && ntCache[page.id] == null;
+  const content = page ? (page.locked ? (ntCache[page.id] ?? '') : page.content) : '';
+  const back = page && !ntEditing && !needPw ? await ntApi.backlinks(page.id) : [];
   document.getElementById('screen-notes').innerHTML = `
   <div class="notes-wrap">
     <div class="notes-tree">
@@ -85,12 +152,30 @@ async function renderNotes() {
     </div>
     <div class="editor">
       ${!page ? `<div class="muted">Выбери страницу слева или создай новую.<br><br>
-          Подсказки: <b>[[Название]]</b> — ссылка на страницу или запись из Задач;
-          markdown: # заголовок, - список, - [ ] чеклист, **жирный**, > цитата.<br>
-          Вставь сюда любой текст из Notion — он уже markdown.</div>`
+          В редакторе — панель оформления как в Ворде; <b>[[Название]]</b> — ссылка на страницу или запись.
+          Вставка текста из Notion работает в режиме «</> markdown».</div>`
+      : needPw ? `
+        <h1 style="margin-bottom:10px">🔒 ${nesc(page.title)}</h1>
+        <div class="muted" style="margin-bottom:10px">Страница под паролем — содержимое зашифровано.</div>
+        <div class="task finadd" style="max-width:380px">
+          <input id="ntPwIn" type="password" placeholder="пароль" style="flex:1">
+          <span class="pill btn ok" id="ntPwGo">открыть</span>
+        </div>
+        <div class="btnrow" style="margin-top:10px"><span class="pill btn danger" id="ntPwRemove">🔓 снять пароль…</span></div>`
       : ntEditing ? `
         <input id="ntTitle" class="nttitle" value="${nesc(page.title)}">
-        <textarea id="ntBody" class="ntbody">${nesc(page.content)}</textarea>
+        ${ntMode === 'rich' ? `
+          <div class="nttoolbar">
+            ${TOOLBAR.map(([label, hint], i) => `<span class="pill btn ntb" data-ntb="${i}" title="${hint}">${nesc(label)}</span>`).join('')}
+            <span class="pill btn" id="ntModeMd" title="редактировать как markdown" style="margin-left:auto">&lt;/&gt; markdown</span>
+          </div>
+          <div id="ntRich" class="mdview richedit" contenteditable="true" spellcheck="false">${mdRender(content)}</div>`
+        : `
+          <div class="nttoolbar">
+            <span class="meta">markdown-режим: # заголовок · - список · - [ ] чеклист · > цитата · [[ссылка]]</span>
+            <span class="pill btn" id="ntModeRich" style="margin-left:auto">Aa визуальный</span>
+          </div>
+          <textarea id="ntBody" class="ntbody">${nesc(content)}</textarea>`}
         <div class="btnrow" style="margin-top:8px">
           <span class="pill btn ok" id="ntSave">сохранить (⌘Enter)</span>
           <span class="pill btn" id="ntCancel">отмена (Esc)</span>
@@ -100,11 +185,12 @@ async function renderNotes() {
           <h1 style="flex:1;margin:0">${nesc(page.title)}</h1>
           ${page.node_id ? `<span class="pill ok btn" data-ntnode="${page.node_id}">☑ к записи</span>` : ''}
           <span class="pill btn ok" id="ntEdit">✎ редактировать</span>
+          <span class="pill btn" id="ntLockBtn">${page.locked ? '🔓 снять пароль' : '🔒 пароль'}</span>
           <span class="pill btn" id="ntAddChild">＋ подстраница</span>
           <span class="pill btn danger" id="ntDel">🗑</span>
         </div>
         <div class="meta" style="margin:4px 0 14px">обновлено ${page.updated_at.slice(0, 16).replace('T', ' ')}</div>
-        <div class="mdview">${page.content.trim() ? mdRender(page.content) : '<span class="muted">пусто — нажми ✎</span>'}</div>
+        <div class="mdview">${content.trim() ? mdRender(content) : '<span class="muted">пусто — нажми ✎</span>'}</div>
         ${back.length ? `<div class="sec" style="margin-top:22px">↩ Бэклинки — ссылаются сюда</div>
           ${back.map(b => `<div class="ritem" data-ntopen="${b.id}"><div class="rt">${nesc(b.title)}</div></div>`).join('')}` : ''}`}
     </div>
@@ -125,17 +211,18 @@ function bindNotes(page) {
     el.addEventListener('click', () => { ntSel = +el.dataset.ntopen; ntEditing = false; renderNotes(); }));
   document.querySelectorAll('#screen-notes [data-ntnode]').forEach(el =>
     el.addEventListener('click', () => window.openNode(+el.dataset.ntnode)));
-  document.querySelectorAll('#screen-notes [data-wiki]').forEach(el =>
-    el.addEventListener('click', async () => {
-      const name = el.dataset.wiki;
-      const r = await ntApi.wiki(name);
-      if (r.type === 'page') { ntSel = r.id; ntEditing = false; renderNotes(); }
-      else if (r.type === 'node') window.openNode(r.id);
-      else if (confirm(`Страницы «${name}» нет. Создать?`)) {
-        const p = await ntApi.add({ title: name, parent_id: ntSel });
-        ntSel = p.id; renderNotes();
-      }
-    }));
+  if (!ntEditing)
+    document.querySelectorAll('#screen-notes [data-wiki]').forEach(el =>
+      el.addEventListener('click', async () => {
+        const name = el.dataset.wiki;
+        const r = await ntApi.wiki(name);
+        if (r.type === 'page') { ntSel = r.id; renderNotes(); }
+        else if (r.type === 'node') window.openNode(r.id);
+        else if (confirm(`Страницы «${name}» нет. Создать?`)) {
+          const p = await ntApi.add({ title: name, parent_id: ntSel });
+          ntSel = p.id; renderNotes();
+        }
+      }));
   $('ntAddRoot')?.addEventListener('click', async () => {
     const t = prompt('Название страницы:');
     if (t?.trim()) { const p = await ntApi.add({ title: t.trim() }); window.loadNotes(p.id); }
@@ -153,16 +240,80 @@ function bindNotes(page) {
       window.loadNotes();
     }
   });
+
+  // редактор
+  document.querySelectorAll('#screen-notes [data-ntb]').forEach(el => {
+    el.addEventListener('mousedown', e => e.preventDefault()); // не терять выделение
+    el.addEventListener('click', () => { TOOLBAR[+el.dataset.ntb][2](); $('ntRich')?.focus(); });
+  });
+  const currentMd = () => ntMode === 'rich' ? htmlToMd($('ntRich')) : $('ntBody').value;
+  $('ntModeMd')?.addEventListener('click', () => {
+    page.content = htmlToMd($('ntRich'));   // переносим правки между режимами
+    ntMode = 'md'; renderNotes();
+  });
+  $('ntModeRich')?.addEventListener('click', () => {
+    page.content = $('ntBody').value;
+    ntMode = 'rich'; renderNotes();
+  });
   const save = async () => {
-    await ntApi.patch(ntSel, { title: $('ntTitle').value.trim() || page.title, content: $('ntBody').value });
+    const title = $('ntTitle').value.trim() || page.title;
+    if (page.locked) {
+      const r = await ntApi.lock(ntSel, { password: ntPw[ntSel], content: currentMd() });
+      if (r.error) { alert(r.error); return; }
+      ntCache[ntSel] = currentMd();
+      await ntApi.patch(ntSel, { title });
+    } else {
+      await ntApi.patch(ntSel, { title, content: currentMd() });
+    }
     ntEditing = false;
     window.loadNotes(ntSel);
   };
   $('ntSave')?.addEventListener('click', save);
   $('ntCancel')?.addEventListener('click', () => { ntEditing = false; renderNotes(); });
-  $('ntBody')?.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) save();
-    if (e.key === 'Escape') { ntEditing = false; renderNotes(); }
+  for (const id of ['ntBody', 'ntRich'])
+    $(id)?.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); save(); }
+      if (e.key === 'Escape') { ntEditing = false; renderNotes(); }
+    });
+  ($('ntRich') ?? $('ntBody'))?.focus();
+
+  // ===== пароль =====
+  const tryUnlock = async (remove) => {
+    const pw = remove
+      ? (ntPw[ntSel] ?? prompt('Пароль страницы:'))
+      : $('ntPwIn')?.value;
+    if (!pw) return;
+    const r = await ntApi.unlock(ntSel, { password: pw, remove });
+    if (r.error) { alert(r.error); return; }
+    if (remove) { delete ntPw[ntSel]; delete ntCache[ntSel]; window.loadNotes(ntSel); return; }
+    ntPw[ntSel] = pw;
+    ntCache[ntSel] = r.content;
+    renderNotes();
+  };
+  $('ntPwGo')?.addEventListener('click', () => tryUnlock(false));
+  $('ntPwIn')?.addEventListener('keydown', e => { if (e.key === 'Enter') tryUnlock(false); });
+  $('ntPwIn')?.focus();
+  $('ntPwRemove')?.addEventListener('click', async () => {
+    if (confirm('Снять пароль? Текст снова будет храниться открыто и попадёт в поиск.')) tryUnlock(true);
   });
-  $('ntBody')?.focus();
+  $('ntLockBtn')?.addEventListener('click', async () => {
+    if (page.locked) {
+      if (confirm('Снять пароль с этой страницы?')) {
+        const pw = ntPw[ntSel] ?? prompt('Пароль страницы:');
+        if (!pw) return;
+        const r = await ntApi.unlock(ntSel, { password: pw, remove: true });
+        if (r.error) { alert(r.error); return; }
+        delete ntPw[ntSel]; delete ntCache[ntSel];
+        window.loadNotes(ntSel);
+      }
+    } else {
+      const pw = prompt('Задай пароль для этой страницы (содержимое будет зашифровано, из поиска уйдёт):');
+      if (!pw?.trim()) return;
+      const r = await ntApi.lock(ntSel, { password: pw.trim() });
+      if (r.error) { alert(r.error); return; }
+      ntPw[ntSel] = pw.trim();
+      ntCache[ntSel] = page.content;
+      window.loadNotes(ntSel);
+    }
+  });
 }

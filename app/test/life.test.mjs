@@ -93,3 +93,27 @@ test('рутины: время хранится, дашборд сортируе
   life.patchRoutine(db, tabl.id, { time: '07:30' });
   assert.equal(life.listRoutines(db).find(r => r.name === 'Таблетка').time, '07:30');
 });
+
+test('сид людей: 5 человек, просрочка и связи с задачами работают', () => {
+  const db = freshDb();
+  life.seedPeople(db);
+  life.seedPeople(db);   // повторно — не дублирует
+  const people = life.listPeople(db);
+  assert.equal(people.length, 5);
+  const dima = people.find(p => p.name.includes('Дима'));
+  assert.ok(dima.overdue_contact > 0, 'Дима просрочен (42 дня при ритме 30)');
+  assert.equal(dima.logs.length, 1, 'есть запись после встречи');
+  const mama = people.find(p => p.name.includes('Мама'));
+  assert.equal(mama.days_to_birthday, 9);
+  assert.equal(mama.overdue_contact, 0);
+  // связь с задачей по упоминанию имени
+  const inbox = core.listCategories(db).find(c => c.title.includes('Инбокс'));
+  core.addChild(db, inbox.id, 'Написать Дима (пример) за условия и рынок');
+  const dima2 = life.listPeople(db).find(p => p.name.includes('Дима'));
+  assert.equal(dima2.tasks.length, 1);
+  // «связались» с заметкой пишет лог и сбрасывает просрочку
+  life.contacted(db, dima.id, 'обсудили продажу');
+  const after = life.listPeople(db).find(p => p.name.includes('Дима'));
+  assert.equal(after.overdue_contact, 0);
+  assert.equal(after.logs[0].note, 'обсудили продажу');
+});

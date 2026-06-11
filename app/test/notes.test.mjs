@@ -57,3 +57,38 @@ test('план задачи: идемпотентно, лежит в «План�
   const root = notes.listPages(db).find(p => p.title === 'Планы задач');
   assert.equal(p1.parent_id, root.id);
 });
+
+test('пароль: шифрование, неверный пароль, поиск, пересохранение и снятие', () => {
+  const db = freshDb();
+  const pg = notes.addPage(db, { title: 'Секрет', content: 'тайный текст про крипту' });
+  assert.ok(notes.searchPages(db, 'тайный').length, 'до пароля ищется');
+  notes.lockPage(db, pg.id, 'qwerty');
+  const row = db.prepare('SELECT * FROM pages WHERE id = ?').get(pg.id);
+  assert.equal(row.locked, 1);
+  assert.equal(row.content, '', 'открытого текста в базе нет');
+  assert.ok(!row.enc.includes('тайный'), 'шифротекст не содержит исходник');
+  assert.equal(notes.searchPages(db, 'тайный').length, 0, 'из поиска ушла');
+  assert.throws(() => notes.unlockPage(db, pg.id, 'wrong'), /неверный пароль/);
+  assert.equal(notes.unlockPage(db, pg.id, 'qwerty').content, 'тайный текст про крипту');
+  assert.throws(() => notes.patchPage(db, pg.id, { content: 'x' }), /под паролем/);
+  notes.lockPage(db, pg.id, 'qwerty', 'обновлённый секрет');  // сейв в закрытую
+  assert.equal(notes.unlockPage(db, pg.id, 'qwerty').content, 'обновлённый секрет');
+  notes.unlockPage(db, pg.id, 'qwerty', true);                 // снять пароль
+  const open = db.prepare('SELECT * FROM pages WHERE id = ?').get(pg.id);
+  assert.equal(open.locked, 0);
+  assert.equal(open.content, 'обновлённый секрет');
+  assert.ok(notes.searchPages(db, 'обновлённый').length, 'после снятия снова в поиске');
+});
+
+test('демо-страницы: сидятся один раз, приватная под паролем 1234', () => {
+  const db = freshDb();
+  notes.seedPages(db);
+  notes.seedPages(db);
+  const pages = notes.listPages(db);
+  assert.ok(pages.some(p => p.title.includes('План переезда')));
+  assert.ok(pages.some(p => p.title === 'Сравнение городов'));
+  const secret = pages.find(p => p.locked);
+  assert.ok(secret, 'есть страница под паролем');
+  assert.match(notes.unlockPage(db, secret.id, '1234').content, /зашифровано/);
+  assert.equal(pages.filter(p => p.title === 'Журнал решений').length, 1, 'без дублей');
+});

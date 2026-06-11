@@ -73,6 +73,9 @@ export function daysToBirthday(birthday, now = new Date()) {
 
 export function listPeople(db) {
   const t = today();
+  // связи с задачами: записи, в названии которых упоминается имя (как в радаре)
+  const nodes = db.prepare(`SELECT id, title FROM nodes WHERE is_category = 0 AND status IS NOT 'done'`).all();
+  const normName = s => s.toLowerCase();
   return db.prepare('SELECT * FROM people ORDER BY name').all().map(p => ({
     ...p,
     days_to_birthday: daysToBirthday(p.birthday),
@@ -80,6 +83,8 @@ export function listPeople(db) {
       ? Math.max(0, Math.floor((Date.parse(t) - Date.parse(p.last_contact)) / 864e5) - p.rhythm_days)
       : (p.rhythm_days && !p.last_contact ? 1 : null),  // ритм задан, контакта не было — пора
     since_contact: p.last_contact ? Math.floor((Date.parse(t) - Date.parse(p.last_contact)) / 864e5) : null,
+    tasks: nodes.filter(n => normName(n.title).includes(normName(p.name))).slice(0, 3),
+    logs: db.prepare('SELECT date, note FROM contact_log WHERE person_id = ? ORDER BY date DESC, id DESC LIMIT 3').all(p.id),
   }));
 }
 
@@ -88,12 +93,33 @@ export function addPerson(db, b) {
     .run(b.name, b.birthday ?? null, b.rhythm_days ?? null, b.last_contact ?? null, b.note ?? '');
 }
 export function patchPerson(db, id, b) {
-  for (const k of ['name', 'birthday', 'rhythm_days', 'last_contact', 'note'])
+  for (const k of ['name', 'birthday', 'rhythm_days', 'last_contact', 'tags', 'note'])
     if (k in b) db.prepare(`UPDATE people SET ${k} = ? WHERE id = ?`).run(b[k], id);
 }
 export function delPerson(db, id) { db.prepare('DELETE FROM people WHERE id = ?').run(id); }
-export function contacted(db, id) {
+export function contacted(db, id, note) {
   db.prepare('UPDATE people SET last_contact = ? WHERE id = ?').run(today(), id);
+  if (note?.trim())
+    db.prepare('INSERT INTO contact_log(person_id, note) VALUES(?,?)').run(id, note.trim());
+}
+
+// 5 тестовых людей с датами относительно сегодня (если раздел пуст)
+export function seedPeople(db) {
+  if (db.prepare('SELECT count(*) AS c FROM people').get().c > 0) return;
+  const rel = n => iso(new Date(Date.now() + n * 864e5));
+  const bd = n => rel(n).slice(5);   // MM-DD через n дней
+  const add = (name, b) => {
+    db.prepare('INSERT INTO people(name, birthday, rhythm_days, last_contact, tags) VALUES(?,?,?,?,?)')
+      .run(name, b.birthday ?? null, b.rhythm ?? null, b.last ?? null, b.tags ?? '');
+    return db.prepare('SELECT last_insert_rowid() AS id').get().id;
+  };
+  add('Мама (пример)', { birthday: bd(9), rhythm: 7, last: rel(-2), tags: 'семья' });
+  add('Наталья (пример)', { birthday: bd(3), rhythm: 7, last: rel(-1), tags: 'семья, переезд' });
+  add('Игорь (пример)', { birthday: bd(21), tags: 'авто-рынок' });
+  const dima = add('Дима (пример)', { birthday: bd(120), rhythm: 30, last: rel(-42), tags: 'падл, авто-рынок' });
+  db.prepare('INSERT INTO contact_log(person_id, date, note) VALUES(?,?,?)')
+    .run(dima, rel(-42), 'советовал смотреть рынок осенью');
+  add('Бабушка (пример)', { birthday: bd(-40), rhythm: 14, last: rel(-21), tags: 'семья' });
 }
 
 // ДР для проекции в календарь: [{name, mmdd}]
