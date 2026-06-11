@@ -25,12 +25,9 @@ export function listPages(db) {
 }
 
 // Демо-страницы из макета — потрогать редактор, ссылки и пароль (удаляемо).
-// Страницы-планы задач не считаются «наполнением» — сид сработает и при их наличии.
+// Льётся и поверх своих страниц, но один раз (метка — «План переезда»).
 export function seedPages(db) {
-  const real = db.prepare(`
-    SELECT count(*) AS c FROM pages
-    WHERE node_id IS NULL AND title != 'Планы задач'`).get().c;
-  if (real > 0) return;
+  if (db.prepare(`SELECT count(*) AS c FROM pages WHERE title LIKE '%План переезда%'`).get().c > 0) return;
   const princ = addPage(db, { title: '📌 Принципы', content:
 `# Мои принципы
 

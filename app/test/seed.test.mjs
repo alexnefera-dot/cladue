@@ -20,15 +20,18 @@ test('демо-сид: все разделы наполнены, повторн�
   const db = fullDb();
   seedDemo(db);   // идемпотентность
   const c = q => db.prepare(q).get().c;
-  assert.ok(c('SELECT count(*) AS c FROM nodes WHERE is_category = 0') >= 15, 'записи в Целях');
+  assert.ok(c('SELECT count(*) AS c FROM nodes WHERE is_category = 0') >= 25, 'записи в Целях');
   assert.equal(c(`SELECT count(*) AS c FROM nodes WHERE title LIKE 'Закрыть налоги%'`), 1, 'без дублей');
-  assert.equal(c('SELECT count(*) AS c FROM routines'), 4);
-  assert.equal(c('SELECT count(*) AS c FROM events'), 3);
-  assert.ok(c('SELECT count(*) AS c FROM transactions') >= 10);
-  assert.equal(c('SELECT count(*) AS c FROM debts'), 2);
+  assert.equal(c('SELECT count(*) AS c FROM routines'), 5);
+  assert.equal(c('SELECT count(*) AS c FROM events'), 5);
+  assert.ok(c('SELECT count(*) AS c FROM transactions') >= 15, 'текущий + прошлый месяц');
+  assert.equal(c('SELECT count(*) AS c FROM debts'), 3);
   assert.equal(c('SELECT count(*) AS c FROM macro_notes'), 1);
   assert.equal(c('SELECT count(*) AS c FROM people'), 5);
-  assert.ok(c('SELECT count(*) AS c FROM pages') >= 8);
+  assert.ok(c('SELECT count(*) AS c FROM pages') >= 11);
+  assert.ok(c(`SELECT count(*) AS c FROM steps WHERE title LIKE '%(пример)%'`) >= 3, 'шаги портфеля');
+  assert.ok(c(`SELECT count(*) AS c FROM obligations WHERE name LIKE '%(пример)%'`) >= 4, 'обязательства');
+  assert.ok(c(`SELECT count(*) AS c FROM portfolio_items WHERE name LIKE '%(пример)%'`) >= 3, 'демо-раздел портфеля');
 });
 
 test('демо-сид оживляет дашборд: просрочка, неделя, рутины, движение, долги', () => {
@@ -36,7 +39,7 @@ test('демо-сид оживляет дашборд: просрочка, не�
   const t = buildToday(db);
   assert.ok(t.overdue.length >= 1, 'есть просроченная задача');
   assert.ok(t.week.length >= 3, 'неделя наполнена (задачи+платежи+события)');
-  assert.ok(t.routines.length === 4 && t.routines.some(r => r.streak > 0), 'рутины со стриком');
+  assert.ok(t.routines.length === 5 && t.routines.some(r => r.streak > 0), 'рутины со стриком');
   assert.ok(t.movement.total >= 1, 'движение недели не пустое');
   assert.ok(t.debtsOverdue.length >= 1, 'просроченный долг виден');
   assert.equal(t.activityMonth, '🎾 Июнь — падл');

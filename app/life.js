@@ -103,9 +103,9 @@ export function contacted(db, id, note) {
     db.prepare('INSERT INTO contact_log(person_id, note) VALUES(?,?)').run(id, note.trim());
 }
 
-// 5 тестовых людей с датами относительно сегодня (если раздел пуст)
+// 5 тестовых людей с датами относительно сегодня (льётся и поверх своих, но один раз)
 export function seedPeople(db) {
-  if (db.prepare('SELECT count(*) AS c FROM people').get().c > 0) return;
+  if (db.prepare(`SELECT count(*) AS c FROM people WHERE name LIKE '%(пример)%'`).get().c > 0) return;
   const rel = n => iso(new Date(Date.now() + n * 864e5));
   const bd = n => rel(n).slice(5);   // MM-DD через n дней
   const add = (name, b) => {
