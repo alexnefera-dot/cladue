@@ -23,7 +23,7 @@ test('демо-сид: все разделы наполнены, повторн�
   assert.ok(c('SELECT count(*) AS c FROM nodes WHERE is_category = 0') >= 25, 'записи в Целях');
   assert.equal(c(`SELECT count(*) AS c FROM nodes WHERE title LIKE 'Закрыть налоги%'`), 1, 'без дублей');
   assert.equal(c('SELECT count(*) AS c FROM routines'), 5);
-  assert.equal(c('SELECT count(*) AS c FROM events'), 5);
+  assert.equal(c('SELECT count(*) AS c FROM events'), 7);
   assert.ok(c('SELECT count(*) AS c FROM transactions') >= 15, 'текущий + прошлый месяц');
   assert.equal(c('SELECT count(*) AS c FROM debts'), 3);
   assert.equal(c('SELECT count(*) AS c FROM macro_notes'), 1);
@@ -62,4 +62,37 @@ test('демо-сид: блокировки и связи работают, за
   // календарь текущего месяца не пуст
   const month = cal.calendar(db, new Date().toISOString().slice(0, 7));
   assert.ok(month.items.length >= 4);
+});
+
+test('демо-сид: сегодня, трекинг, прогнозы и имущество живые', () => {
+  const db = fullDb();
+  seedDemo(db);   // идемпотентность новых под-сидов
+  const today = new Date().toISOString().slice(0, 10);
+  const t = buildToday(db);
+  assert.ok(t.dueToday.length >= 2, 'есть задачи со сроком сегодня');
+  assert.ok(t.dueToday.some(x => x.repeat === 'monthly'), 'повтор 🔁 в сегодняшних');
+  assert.ok(t.events.some(e => e.date === today), 'событие сегодня');
+  // вопрос с ответом и лог хода
+  const q = db.prepare(`SELECT * FROM nodes WHERE kind = 'question' AND answer != ''`).get();
+  assert.ok(q?.answer.includes('подушка'), 'вопрос с зафиксированным ответом');
+  const lawyer = db.prepare(`SELECT id FROM nodes WHERE title LIKE 'Позвонить юристу%'`).get();
+  assert.equal(core.listNodeLog(db, lawyer.id).length, 2, 'лог задачи наполнен');
+  // трекинг: чек-ины (сегодня свободен) и метрики с историей
+  const c = q2 => db.prepare(q2).get().c;
+  assert.ok(c('SELECT count(*) AS c FROM checkins') === 10, 'история чек-инов');
+  assert.equal(db.prepare('SELECT count(*) AS c FROM checkins WHERE date = ?').get(today).c, 0, 'сегодня не занят');
+  assert.equal(c('SELECT count(*) AS c FROM metrics'), 3);
+  assert.ok(c('SELECT count(*) AS c FROM metric_log') >= 12, 'история метрик');
+  // прогнозы: калибровка считается
+  const f = fin.forecasts(db);
+  assert.equal(f.rows.length, 4);
+  assert.equal(f.resolvedCount, 2);
+  assert.ok(Math.abs(f.calibration - 45) < 0.01, '100 − (30+80)/2 = 45');
+  // имущество: 3 объекта, 6 правил, налог в платежах недели
+  const props = fin.listProperties(db);
+  assert.equal(props.length, 3);
+  assert.equal(props.reduce((s, p) => s + p.rules.length, 0), 6);
+  assert.ok(t.zones.paymentsWeek >= 1, 'регламент в платежах недели');
+  // снапшоты: прошлые точки для дельты
+  assert.ok(c('SELECT count(*) AS c FROM snapshots') >= 2, 'история нетворса');
 });

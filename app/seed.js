@@ -27,6 +27,13 @@ export function seedDemo(db) {
   seedPortfolioExtra(db);
   seedPagesExtra(db);
   seedMacroFire(db);
+  seedNodesToday(db);
+  seedEventsToday(db);
+  seedCheckins(db);
+  seedMetrics(db);
+  seedForecasts(db);
+  seedProperties(db);
+  seedSnapshotPast(db);
 }
 
 // ===== Цели: ~25 записей с типами, сроками, связями и парой-дублем =====
@@ -212,6 +219,103 @@ function seedPagesExtra(db) {
 
 Ближайшее: [[Уикенд в горах в июле (пример)]]
 ` });
+}
+
+// ===== Сегодняшний срез: задачи на сегодня, повторы 🔁, вопрос с ответом, лог хода =====
+function seedNodesToday(db) {
+  if (db.prepare(`SELECT count(*) AS c FROM nodes WHERE title LIKE 'Оплатить интернет и подписки%'`).get().c > 0) return;
+  const mk = (parentId, title, fields = {}) => {
+    const n = core.addChild(db, parentId, title);
+    if (Object.keys(fields).length) core.updateNode(db, n.id, fields);
+    return n.id;
+  };
+  // задачи со сроком СЕГОДНЯ — оживляют блок «Задачи на сегодня»
+  mk(cat(db, 'Платежи', 'Финансы'), 'Оплатить интернет и подписки (пример)',
+    { kind: 'task', priority: 'P2', due_date: rel(0), repeat: 'monthly' });   // 🔁 закрыл — сдвинется на месяц
+  const lawyer = mk(cat(db, 'ВНЖ', 'Легализация'), 'Позвонить юристу — пакет документов ВНЖ (пример)',
+    { kind: 'task', priority: 'P1', due_date: rel(0) });
+  core.addNodeLog(db, lawyer, 'оставил голосовое, ждёт ответа от канцелярии', rel(-7));
+  core.addNodeLog(db, lawyer, 'юрист: пакет реально собрать к январю, нужен апостиль', rel(-2));
+  // повтор еженедельный
+  mk(cat(db, 'Отдых', 'Жизнь'), 'Падл — два корта на вечер (пример)',
+    { kind: 'task', priority: 'P3', due_date: rel(2), repeat: 'weekly' });
+  // вопрос с зафиксированным ответом — поле «ответ» в карточке
+  mk(cat(db, 'Балансы', 'Тревоги'), 'Сколько держать в кэше? (пример)', {
+    kind: 'question',
+    answer: 'Решил: подушка 6 мес расходов + кэш под докупки лесенкой. Не размещать подушку в крипте.',
+  });
+}
+
+function seedEventsToday(db) {
+  if (db.prepare(`SELECT count(*) AS c FROM events WHERE title LIKE 'Падл-корт%'`).get().c > 0) return;
+  cal.addEvent(db, { title: 'Падл-корт (пример)', date: rel(0), time: '19:00' });
+  cal.addEvent(db, { title: 'Завтрак с Натальей (пример)', date: rel(0), time: '09:30' });
+}
+
+// ===== Трекинг: история чек-инов (сегодня оставляем пустым — для живой отметки) =====
+function seedCheckins(db) {
+  if (db.prepare('SELECT count(*) AS c FROM checkins').get().c > 0) return;
+  const days = [
+    [-1, 3, 'падл + закрыл два дела'], [-2, 2, ''], [-3, 1, 'разнесло тревогой по налогам'],
+    [-4, 2, ''], [-5, 3, 'созвон с Натальей, ясность по срокам'], [-6, 2, ''],
+    [-7, 3, 'выходной без ноутбука'], [-8, 2, ''], [-9, 2, ''], [-10, 3, ''],
+  ];
+  for (const [n, mood, note] of days) life.setCheckin(db, mood, note, rel(n));
+}
+
+function seedMetrics(db) {
+  if (db.prepare('SELECT count(*) AS c FROM metrics').get().c > 0) return;
+  life.addMetric(db, { name: 'Вес (пример)', unit: 'кг' });
+  life.addMetric(db, { name: 'Падл (пример)', unit: 'ч/нед' });
+  life.addMetric(db, { name: 'Испанский (пример)', unit: 'мин' });
+  const id = n => db.prepare('SELECT id FROM metrics WHERE name = ?').get(n).id;
+  const w = id('Вес (пример)');
+  for (const [n, v] of [[-13, 84.6], [-11, 84.4], [-9, 84.5], [-7, 84.1], [-5, 84.0], [-3, 83.9], [-1, 83.8]])
+    life.setMetricValue(db, w, v, rel(n));
+  const p = id('Падл (пример)');
+  for (const [n, v] of [[-12, 1.5], [-5, 3], [-1, 1.5]]) life.setMetricValue(db, p, v, rel(n));
+  const e = id('Испанский (пример)');
+  for (const [n, v] of [[-4, 30], [-2, 25], [-1, 20]]) life.setMetricValue(db, e, v, rel(n));
+}
+
+// ===== Прогнозы: два открытых + два проверенных (чтобы калибровка считалась) =====
+function seedForecasts(db) {
+  if (db.prepare('SELECT count(*) AS c FROM forecasts').get().c > 0) return;
+  const yearEnd = new Date().getFullYear() + '-12-31';
+  fin.addForecast(db, { statement: 'S&P: коррекция ≥10% до конца года (пример)', confidence: 65, due_date: yearEnd });
+  fin.addForecast(db, { statement: 'BTC выше $150k (пример)', confidence: 55, due_date: rel(180) });
+  fin.addForecast(db, { statement: 'ЕЦБ снизит ставку ещё раз летом (пример)', confidence: 70 });
+  fin.addForecast(db, { statement: 'EUR/USD уйдёт ниже 1.05 весной (пример)', confidence: 80 });
+  const byStmt = s => db.prepare('SELECT id FROM forecasts WHERE statement LIKE ?').get(s + '%').id;
+  fin.resolveForecast(db, byStmt('ЕЦБ снизит ставку'), true);     // ошибка 30
+  fin.resolveForecast(db, byStmt('EUR/USD уйдёт ниже'), false);   // ошибка 80 → калибровка 45
+}
+
+// ===== Имущество: объекты с регламентами (правила сразу видны в календаре и радаре платежей) =====
+function seedProperties(db) {
+  if (db.prepare('SELECT count(*) AS c FROM properties').get().c > 0) return;
+  fin.addProperty(db, { name: 'X5 (пример)', category: 'авто' });
+  fin.addProperty(db, { name: 'Квартира (пример)', category: 'недвижимость' });
+  fin.addProperty(db, { name: 'MacBook (пример)', category: 'техника' });
+  const byName = n => db.prepare('SELECT id FROM properties WHERE name = ?').get(n).id;
+  const x5 = byName('X5 (пример)');
+  fin.addRule(db, x5, { name: 'страховка', amount: 240, period: 'yearly', next_date: rel(35) });
+  fin.addRule(db, x5, { name: 'ТО', amount: 350, period: 'yearly', next_date: rel(80) });
+  fin.addRule(db, x5, { name: 'дорожный налог', amount: 120, period: 'yearly', next_date: rel(6) });  // попадёт в «платежи недели»
+  const flat = byName('Квартира (пример)');
+  fin.addRule(db, flat, { name: 'страховка жилья', amount: 180, period: 'yearly', next_date: rel(140) });
+  fin.addRule(db, flat, { name: 'обслуживание кондиционера', amount: 90, period: 'yearly', next_date: rel(60) });
+  fin.addRule(db, byName('MacBook (пример)'), { name: 'AppleCare', amount: 99, period: 'yearly', next_date: rel(200) });
+}
+
+// ===== История нетворса: пара прошлых точек, чтобы Δ к прошлому снимку была живой =====
+function seedSnapshotPast(db) {
+  if (db.prepare('SELECT count(*) AS c FROM snapshots').get().c > 1) return;
+  const total = fin.portfolioTree(db).reduce((s, b) => s + b.eur, 0);
+  if (!total) return;
+  const ins = db.prepare('INSERT OR IGNORE INTO snapshots(date, portfolio_eur) VALUES(?,?)');
+  ins.run(rel(-30), Math.round(total * 0.94));
+  ins.run(rel(-7), Math.round(total * 0.985));
 }
 
 function seedMacroFire(db) {
