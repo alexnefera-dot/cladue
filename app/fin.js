@@ -64,8 +64,8 @@ export function listFin(db) {
 // ===== Узлы портфеля =====
 export function addItem(db, b) {
   const ord = db.prepare('SELECT COALESCE(MAX(ord),0)+1 AS o FROM portfolio_items WHERE parent_id IS ?').get(b.parent_id ?? null).o;
-  db.prepare('INSERT INTO portfolio_items(parent_id, ord, name, kind, buy_value, value, target_value) VALUES(?,?,?,?,?,?,?)')
-    .run(b.parent_id ?? null, ord, b.name, b.kind ?? 'asset', b.buy_value ?? null, b.value ?? null, b.target_value ?? null);
+  db.prepare('INSERT INTO portfolio_items(parent_id, ord, name, kind, buy_value, value, target_value, currency) VALUES(?,?,?,?,?,?,?,?)')
+    .run(b.parent_id ?? null, ord, b.name, b.kind ?? 'asset', b.buy_value ?? null, b.value ?? null, b.target_value ?? null, b.currency ?? '€');
 }
 export function patchItem(db, id, b) {
   for (const k of ['name', 'buy_value', 'value', 'target_value', 'currency', 'note'])
