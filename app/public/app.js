@@ -574,17 +574,19 @@ document.getElementById('importGo').addEventListener('click', async () => {
   document.getElementById('statusbar').textContent += ` · ⤓ импортировано: ${r.imported}`;
 });
 
-// ===== Переключение экранов (Список / Финансы) =====
-document.querySelectorAll('.side .item[data-screen]').forEach(el => {
-  el.addEventListener('click', () => {
-    document.querySelectorAll('.side .item').forEach(i => i.classList.remove('active'));
-    el.classList.add('active');
-    const scr = el.dataset.screen;
-    document.getElementById('screen-list').style.display = scr === 'list' ? 'block' : 'none';
-    document.getElementById('screen-fin').style.display = scr === 'fin' ? 'block' : 'none';
-    if (scr === 'fin' && window.loadFin) window.loadFin();
-  });
-});
+// ===== Переключение экранов =====
+const SCREENS = { list: null, fin: 'loadFin', cal: 'loadCal' };
+window.showScreen = function (scr) {
+  document.querySelectorAll('.side .item').forEach(i =>
+    i.classList.toggle('active', i.dataset.screen === scr));
+  for (const key of Object.keys(SCREENS))
+    document.getElementById('screen-' + key).style.display = key === scr ? 'block' : 'none';
+  if (SCREENS[scr] && window[SCREENS[scr]]) window[SCREENS[scr]]();
+};
+document.querySelectorAll('.side .item[data-screen]').forEach(el =>
+  el.addEventListener('click', () => showScreen(el.dataset.screen)));
+// открыть карточку записи из другого экрана (календарь и т.п.)
+window.openNode = function (id) { showScreen('list'); showCard(id); };
 
 // ===== Поиск =====
 let st;

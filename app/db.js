@@ -105,6 +105,14 @@ export function createDb(path = ':memory:') {
       change_pct REAL,
       updated_at TEXT
     );
+    CREATE TABLE IF NOT EXISTS events(          -- свои события: ДР, встречи, напоминания
+      id INTEGER PRIMARY KEY,
+      title TEXT NOT NULL,
+      date TEXT NOT NULL,                      -- первая дата
+      time TEXT,                               -- HH:MM, опционально
+      recur TEXT NOT NULL DEFAULT 'none',      -- none|monthly|yearly
+      note TEXT NOT NULL DEFAULT ''
+    );
   `);
   // миграция существующих баз
   const cols = db.prepare('PRAGMA table_info(nodes)').all().map(c => c.name);

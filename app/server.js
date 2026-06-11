@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { createDb, seed, seedFin, ensurePortfolio, ensureRates } from './db.js';
 import * as core from './core.js';
 import * as fin from './fin.js';
+import * as cal from './cal.js';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const DB_PATH = process.env.PIPBOY_DB ?? join(ROOT, 'data.db');
@@ -89,6 +90,22 @@ const server = http.createServer(async (req, res) => {
     }
     if (p === '/api/search' && req.method === 'GET')
       return json(res, 200, core.search(db, url.searchParams.get('q') ?? ''));
+
+    // ===== Календарь =====
+    if (p === '/api/calendar' && req.method === 'GET') {
+      try { return json(res, 200, cal.calendar(db, url.searchParams.get('month') ?? new Date().toISOString().slice(0, 7))); }
+      catch (e) { return json(res, 400, { error: e.message }); }
+    }
+    if (p === '/api/events' && req.method === 'POST') {
+      const b = await body(req);
+      if (!b.title?.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(b.date ?? '')) return json(res, 400, { error: 'title и date обязательны' });
+      cal.addEvent(db, b);
+      return json(res, 201, { ok: true });
+    }
+    if ((m = p.match(/^\/api\/events\/(\d+)$/))) {
+      if (req.method === 'PATCH') { cal.patchEvent(db, +m[1], await body(req)); return json(res, 200, { ok: true }); }
+      if (req.method === 'DELETE') { cal.delEvent(db, +m[1]); return json(res, 200, { ok: true }); }
+    }
 
     // ===== Финансы =====
     if (p === '/api/fin' && req.method === 'GET') return json(res, 200, fin.listFin(db));

@@ -124,3 +124,18 @@ body{background:var(--bg);color:var(--text);font:14px/1.45 var(--sans);height:10
 .porttable tr:hover .rowbtn{opacity:1}
 .ed{cursor:pointer;border-bottom:1px dashed var(--line)}
 .ed:hover{color:var(--green)}
+.calhead{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}
+.cal .h{background:var(--bg2);padding:6px;font:10px var(--mono);color:var(--muted);text-align:center;letter-spacing:1px;border-bottom:1px solid var(--line)}
+.cal .d{min-height:86px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:5px 6px;font-size:11px;overflow:hidden}
+.cal .d:nth-child(7n){border-right:0}
+.cal .d .n{font:11px var(--mono);color:var(--muted);margin-bottom:3px}
+.cal .d.today{background:var(--green-soft)}
+.cal .d.today .n{color:var(--green);font-weight:700}
+.cal .d.dim{background:var(--bg)}
+.ev{border-radius:4px;padding:1px 5px;margin-bottom:2px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev-task{background:rgba(47,127,194,.12);color:var(--blue);cursor:pointer}
+.ev-money{background:rgba(176,125,16,.12);color:var(--amber)}
+.ev-step{background:rgba(122,79,192,.1);color:#7a4fc0}
+.ev-cal{background:var(--green-soft);color:var(--green)}
+.evdone{opacity:.5;text-decoration:line-through}
