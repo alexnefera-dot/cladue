@@ -1,6 +1,8 @@
-/* Финансы: курсы · портфель (блоки→разделы→активы, факт/целевой) · счета · шаги · обязательства */
+/* Финансы: курсы · портфель · счета · шаги · обязательства · расходы · дебиторка · FIRE · макро */
 let finData = null;
 let finTab = 'fact';   // fact | target
+let finTxMonth = new Date().toISOString().slice(0, 7);
+let showMonefy = false;
 
 const finApi = {
   list: () => fetch('/api/fin').then(r => r.json()),
@@ -9,6 +11,12 @@ const finApi = {
   del: (ent, id) => fetch(`/api/fin/${ent}/${id}`, { method: 'DELETE' }),
   pay: id => fetch(`/api/fin/obligations/${id}/pay`, { method: 'POST' }),
   toTask: id => fetch(`/api/fin/steps/${id}/task`, { method: 'POST' }).then(r => r.json()),
+  txMonth: ym => fetch('/api/fin/tx?month=' + ym).then(r => r.json()),
+  monefy: csv => fetch('/api/fin/monefy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ csv }) }).then(r => r.json()),
+  received: id => fetch(`/api/fin/receivables/${id}/received`, { method: 'POST' }),
+  fire: b => fetch('/api/fin/fire', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }),
+  macroAdd: b => fetch('/api/fin/macro', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }),
+  macroDel: id => fetch('/api/fin/macro/' + id, { method: 'DELETE' }),
   ratesRefresh: () => fetch('/api/rates/refresh', { method: 'POST' }).then(r => r.json()),
   rateSet: (sym, price) => fetch('/api/rates/' + encodeURIComponent(sym), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ price }) }),
 };
@@ -31,6 +39,8 @@ const RATE_FMT = { 'XAUUSD': v => '$' + fmt(v), 'EURUSD': v => v?.toFixed(4), 'B
 
 window.loadFin = async function () {
   finData = await finApi.list();
+  if (finTxMonth !== new Date().toISOString().slice(0, 7))
+    finData.tx = await finApi.txMonth(finTxMonth);
   renderFin();
 };
 
@@ -172,8 +182,108 @@ function renderFin() {
       <span class="pill btn ok" id="obAdd">＋</span>
     </div>
   </div>
-  <div class="footer-hint">Портфель бивалютный: у актива валюта € или $ (клик по значку у суммы — сменить), итоги блоков и общий — в обеих валютах по курсу EURUSD из полосы сверху. Целевые суммы — в €. Ввод понимает «100k», «1.2m». Платежи видны в радаре задач (±60 дней).</div>`;
+  ${renderTx(d.tx)}
+  ${renderReceivables(d.receivables)}
+
+  <div class="sec">FIRE · Макро</div>
+  <div class="fingrid" style="grid-template-columns:1fr 1fr">
+    <div class="card">
+      <div class="meta">FIRE · ЦЕЛЕВОЙ КАПИТАЛ</div>
+      ${d.fire.target ? `
+        <div class="bignum">${d.fire.progressPct.toFixed(1)}%</div>
+        <div class="bar"><i style="width:${d.fire.progressPct}%"></i></div>
+        <div class="kv" style="margin-top:6px">Цель <b class="ed num" data-fireset="fire_target">${fmt(d.fire.target)} €</b></div>
+        <div class="kv">Доходность, %/год <b class="ed num" data-fireset="fire_return_pct">${d.fire.annual}</b></div>
+        <div class="kv">Пополнение, €/мес <b class="ed num" data-fireset="fire_monthly_savings">${fmt(d.fire.monthly)}</b></div>
+        <div class="meta" style="margin-top:6px">${d.fire.months != null
+          ? (d.fire.months === 0 ? '🎉 цель достигнута' : `прогноз: ~${d.fire.reachedYear} год (через ${Math.round(d.fire.months / 12 * 10) / 10} лет)`)
+          : 'при таких параметрах цель не достигается — подкрути доходность или пополнение'}</div>`
+      : `<div class="muted" style="margin:8px 0">Задай цель — посчитаю прогресс от портфеля (${fmt(s.portfolioTotal)} €) и год достижения.</div>
+        <div class="btnrow"><span class="pill btn ok ed" data-fireset="fire_target">задать цель, €</span></div>`}
+    </div>
+    <div class="card">
+      <div class="meta">МАКРО · МОЙ ТЕЗИС</div>
+      ${d.macro.length ? `
+        <div style="font-weight:600;margin:6px 0">${fesc(d.macro[0].phase)} <span class="meta">· ${d.macro[0].date}</span></div>
+        <div style="font-size:12.5px;margin-bottom:8px">${fesc(d.macro[0].thesis)}</div>`
+      : '<div class="muted" style="margin:8px 0">В какой фазе цикла мы? Запиши тезис — он останется в истории.</div>'}
+      <div class="task finadd">
+        <select id="mcPhase"><option>рост</option><option>пик</option><option>сжатие</option><option>дно</option></select>
+        <input id="mcThesis" placeholder="тезис: что жду и что делаю…">
+        <span class="pill btn ok" id="mcAdd">＋</span>
+      </div>
+      ${d.macro.length > 1 ? `<div class="meta" style="margin-top:6px">история:</div>` +
+        d.macro.slice(1, 4).map(mn => `<div class="kv"><span>${mn.date} · ${fesc(mn.phase)} — ${fesc(mn.thesis.slice(0, 60))}</span><span class="rowbtn del" style="opacity:1" data-mcdel="${mn.id}">✕</span></div>`).join('') : ''}
+    </div>
+  </div>
+
+  <div class="footer-hint">Портфель бивалютный: у актива валюта € или $ (клик по значку у суммы — сменить), итоги в обеих валютах по курсу EURUSD. Ввод понимает «100k», «1.2m». Платежи видны в радаре задач (±60 дней).</div>`;
   bindFin();
+}
+
+function renderTx(tx) {
+  const maxCat = tx.categories[0]?.[1] ?? 1;
+  return `
+  <div class="sec">Расходы и доходы</div>
+  <div class="card">
+    <div class="task" style="border-bottom:1px solid var(--line)">
+      <span class="pill btn" id="txPrev">‹</span>
+      <b class="num" style="min-width:70px;text-align:center">${tx.month}</b>
+      <span class="pill btn" id="txNext">›</span>
+      <span class="meta">расход: <b class="down">${fmt(tx.expense)} €</b> · доход: <b class="up">${fmt(tx.income)} €</b> · итого: ${fmt(tx.income - tx.expense)} €</span>
+      <span class="pill btn" id="monefyToggle" style="margin-left:auto">⤓ Monefy CSV</span>
+    </div>
+    ${showMonefy ? `
+      <div style="padding:8px 0">
+        <textarea id="monefyCsv" rows="6" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:8px;font:12px var(--mono)" placeholder="Вставь содержимое CSV-экспорта Monefy (с заголовком). Разделитель ; или , — определю сам. Минус = расход."></textarea>
+        <div class="btnrow" style="margin-top:6px"><span class="pill btn ok" id="monefyGo">Импортировать</span></div>
+      </div>` : ''}
+    ${tx.categories.length ? `<div style="padding:8px 0 4px">` + tx.categories.slice(0, 6).map(([cat, sum]) => `
+      <div class="kv"><span>${fesc(cat)}</span><b class="num">${fmt(sum)} €</b></div>
+      <div class="bar" style="margin:2px 0 6px"><i style="width:${sum / maxCat * 100}%"></i></div>`).join('') + '</div>' : ''}
+    ${tx.rows.slice(0, 15).map(t => `
+      <div class="task">
+        <span class="meta num">${t.date.slice(5)}</span>
+        <span class="pill ${t.direction === 'income' ? 'ok' : 'p1'}">${t.direction === 'income' ? 'доход' : 'расход'}</span>
+        <span class="ed meta" data-fe="tx:${t.id}:category:text">${fesc(t.category)}</span>
+        <span class="t ed" data-fe="tx:${t.id}:note:text">${fesc(t.note) || '—'}</span>
+        ${t.source === 'monefy' ? '<span class="meta">monefy</span>' : ''}
+        <span class="ed num" data-fe="tx:${t.id}:amount:num">${fmt(t.amount)} ${fesc(t.currency)}</span>
+        <span class="rowbtn del" data-findel="tx:${t.id}">✕</span>
+      </div>`).join('')}
+    ${tx.rows.length > 15 ? `<div class="empty">…и ещё ${tx.rows.length - 15} за месяц</div>` : ''}
+    <div class="task finadd">
+      <input id="txDate" value="${new Date().toISOString().slice(0, 10)}" style="width:105px">
+      <select id="txDir"><option value="expense">расход</option><option value="income">доход</option></select>
+      <input id="txCat" placeholder="категория" style="width:120px">
+      <input id="txAmount" placeholder="сумма" style="width:90px">
+      <input id="txNote" placeholder="заметка">
+      <span class="pill btn ok" id="txAdd">＋</span>
+    </div>
+  </div>`;
+}
+
+function renderReceivables(recs) {
+  return `
+  <div class="sec">Дебиторка · мне должны</div>
+  <div class="card">
+    ${recs.map(r => `
+      <div class="task" style="${r.status === 'received' ? 'opacity:.5' : ''}">
+        <span class="t ed" data-fe="receivables:${r.id}:name:text">${fesc(r.name)}</span>
+        <span class="ed num" data-fe="receivables:${r.id}:amount:num">${fmt(r.amount)} ${fesc(r.currency)}</span>
+        ${r.status === 'received'
+          ? '<span class="pill ok">получено ✓</span>'
+          : `<span class="ed meta ${r.overdue_days > 0 ? 'amber' : ''}" data-fe="receivables:${r.id}:expected_date:date">${r.expected_date ?? '+дата'}${r.overdue_days > 0 ? ` · просрочен ${r.overdue_days} дн ⚠` : ''}</span>
+             <span class="pill btn ok" data-recok="${r.id}" title="получено — создам доход">✓ получено</span>`}
+        <span class="rowbtn del" data-findel="receivables:${r.id}">✕</span>
+      </div>`).join('') || '<div class="empty">никто не должен — красота</div>'}
+    <div class="task finadd">
+      <input id="recName" placeholder="кто и за что должен">
+      <input id="recAmount" placeholder="сумма" style="width:90px">
+      <input id="recDate" placeholder="ждём до…" style="width:105px">
+      <span class="pill btn ok" id="recAdd">＋</span>
+    </div>
+  </div>`;
 }
 
 function inlineVal(el, type, onSave) {
@@ -245,6 +355,50 @@ function bindFin() {
     }));
   document.querySelectorAll('[data-oblpay]').forEach(el =>
     el.addEventListener('click', async () => { await finApi.pay(+el.dataset.oblpay); window.loadFin(); }));
+
+  // расходы
+  const shiftYm = (ym, d) => { const [y, m] = ym.split('-').map(Number); return new Date(Date.UTC(y, m - 1 + d, 1)).toISOString().slice(0, 7); };
+  $('txPrev')?.addEventListener('click', () => { finTxMonth = shiftYm(finTxMonth, -1); window.loadFin(); });
+  $('txNext')?.addEventListener('click', () => { finTxMonth = shiftYm(finTxMonth, 1); window.loadFin(); });
+  $('monefyToggle')?.addEventListener('click', () => { showMonefy = !showMonefy; renderFin(); });
+  $('monefyGo')?.addEventListener('click', async () => {
+    const csv = $('monefyCsv').value;
+    if (!csv.trim()) return;
+    const r = await finApi.monefy(csv);
+    alert(r.error ? r.error : `Импортировано транзакций: ${r.imported}`);
+    showMonefy = false;
+    window.loadFin();
+  });
+  $('txAdd')?.addEventListener('click', async () => {
+    const amount = parseNum($('txAmount').value);
+    if (amount == null) return;
+    await finApi.add('tx', { date: /^\d{4}-\d{2}-\d{2}$/.test($('txDate').value) ? $('txDate').value : undefined,
+      direction: $('txDir').value, category: $('txCat').value.trim() || 'прочее',
+      amount, note: $('txNote').value.trim() });
+    window.loadFin();
+  });
+  // дебиторка
+  document.querySelectorAll('[data-recok]').forEach(el =>
+    el.addEventListener('click', async () => { await finApi.received(+el.dataset.recok); window.loadFin(); }));
+  $('recAdd')?.addEventListener('click', async () => {
+    if (!$('recName').value.trim()) return;
+    await finApi.add('receivables', { name: $('recName').value.trim(), amount: parseNum($('recAmount').value) ?? 0,
+      expected_date: /^\d{4}-\d{2}-\d{2}$/.test($('recDate').value) ? $('recDate').value : null });
+    window.loadFin();
+  });
+  // FIRE
+  document.querySelectorAll('[data-fireset]').forEach(el =>
+    el.addEventListener('click', () => inlineVal(el, 'num', async v => { await finApi.fire({ [el.dataset.fireset]: v }); })));
+  // макро
+  $('mcAdd')?.addEventListener('click', async () => {
+    if (!$('mcThesis').value.trim()) return;
+    await finApi.macroAdd({ phase: $('mcPhase').value, thesis: $('mcThesis').value.trim() });
+    window.loadFin();
+  });
+  document.querySelectorAll('[data-mcdel]').forEach(el =>
+    el.addEventListener('click', async () => {
+      if (confirm('Удалить запись из истории тезисов?')) { await finApi.macroDel(+el.dataset.mcdel); window.loadFin(); }
+    }));
 
   $('ratesRefresh')?.addEventListener('click', async () => {
     $('ratesRefresh').textContent = '…';

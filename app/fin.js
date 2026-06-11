@@ -46,8 +46,14 @@ export function listFin(db) {
   // счета: итог по каждой валюте отдельно
   const byCur = {};
   for (const a of accounts) byCur[a.currency] = (byCur[a.currency] ?? 0) + a.balance;
+  const receivables = db.prepare(`SELECT * FROM receivables ORDER BY status = 'received', expected_date IS NULL, expected_date`).all()
+    .map(r => ({ ...r, overdue_days: r.expected_date && r.status === 'waiting'
+      ? Math.floor((Date.parse(today()) - Date.parse(r.expected_date)) / 864e5) : null }));
   return {
-    accounts, portfolio, steps, obligations,
+    accounts, portfolio, steps, obligations, receivables,
+    tx: txMonth(db, today().slice(0, 7)),
+    fire: fireCalc(db, portfolioTotal),
+    macro: db.prepare('SELECT * FROM macro_notes ORDER BY date DESC, id DESC').all(),
     rates: db.prepare('SELECT * FROM rates').all(),
     summary: {
       accountsByCurrency: byCur,
@@ -186,3 +192,128 @@ export function payObligation(db, id) {
   db.prepare('UPDATE obligations SET next_date = ? WHERE id = ?').run(next, id);
   return db.prepare('SELECT * FROM obligations WHERE id = ?').get(id);
 }
+
+// ===== Расходы/доходы =====
+export function addTx(db, b) {
+  db.prepare('INSERT INTO transactions(date, amount, currency, direction, category, note, source) VALUES(?,?,?,?,?,?,?)')
+    .run(b.date ?? today(), Math.abs(b.amount ?? 0), b.currency ?? '€',
+         b.direction ?? 'expense', b.category?.trim() || 'прочее', b.note ?? '', b.source ?? 'manual');
+}
+export function patchTx(db, id, b) {
+  for (const k of ['date', 'amount', 'currency', 'direction', 'category', 'note'])
+    if (k in b) db.prepare(`UPDATE transactions SET ${k} = ? WHERE id = ?`).run(b[k], id);
+}
+export function delTx(db, id) { db.prepare('DELETE FROM transactions WHERE id = ?').run(id); }
+
+export function txMonth(db, ym) {
+  const rows = db.prepare(`SELECT * FROM transactions WHERE date LIKE ? ORDER BY date DESC, id DESC`).all(ym + '%');
+  const sum = dir => rows.filter(t => t.direction === dir).reduce((s, t) => s + t.amount, 0);
+  const byCat = {};
+  for (const t of rows.filter(t => t.direction === 'expense'))
+    byCat[t.category] = (byCat[t.category] ?? 0) + t.amount;
+  return {
+    month: ym, rows,
+    expense: sum('expense'), income: sum('income'),
+    categories: Object.entries(byCat).sort((a, b) => b[1] - a[1]),
+  };
+}
+
+// Импорт Monefy CSV: разделитель и колонки определяются по заголовку
+export function importMonefy(db, csv) {
+  const lines = String(csv).replace(/\r/g, '').split('\n').filter(l => l.trim());
+  if (lines.length < 2) return 0;
+  const delim = (lines[0].match(/;/g) ?? []).length >= (lines[0].match(/,/g) ?? []).length ? ';' : ',';
+  const split = l => l.split(delim).map(c => c.replace(/^"|"$/g, '').trim());
+  const head = split(lines[0]).map(h => h.toLowerCase());
+  const col = (...names) => head.findIndex(h => names.some(n => h.includes(n)));
+  const iDate = col('date', 'дата'), iAmount = col('amount', 'сумма'),
+        iCat = col('category', 'категория'), iCur = col('currency', 'валюта'),
+        iNote = col('description', 'note', 'описание');
+  if (iDate < 0 || iAmount < 0) throw new Error('не нашёл колонки date/amount в заголовке CSV');
+  let count = 0;
+  for (const line of lines.slice(1)) {
+    const c = split(line);
+    const rawAmount = parseFloat((c[iAmount] ?? '').replace(/\s/g, '').replace(',', '.'));
+    const date = parseAnyDate(c[iDate]);
+    if (!date || isNaN(rawAmount)) continue;
+    addTx(db, {
+      date,
+      amount: Math.abs(rawAmount),
+      direction: rawAmount < 0 ? 'expense' : 'income',
+      category: iCat >= 0 && c[iCat] ? c[iCat] : 'прочее',
+      currency: iCur >= 0 && c[iCur] ? normCur(c[iCur]) : '€',
+      note: iNote >= 0 ? (c[iNote] ?? '') : '',
+      source: 'monefy',
+    });
+    count++;
+  }
+  return count;
+}
+
+function normCur(c) {
+  const u = c.toUpperCase();
+  if (u.includes('USD') || u === '$') return '$';
+  return '€';
+}
+
+export function parseAnyDate(s) {
+  s = String(s ?? '').trim();
+  let m;
+  if ((m = s.match(/^(\d{4})-(\d{2})-(\d{2})/))) return `${m[1]}-${m[2]}-${m[3]}`;
+  if ((m = s.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})/)))
+    return `${m[3]}-${String(m[2]).padStart(2, '0')}-${String(m[1]).padStart(2, '0')}`;
+  return null;
+}
+
+// ===== Дебиторка =====
+export function addReceivable(db, b) {
+  db.prepare('INSERT INTO receivables(name, amount, currency, expected_date, note) VALUES(?,?,?,?,?)')
+    .run(b.name, b.amount ?? 0, b.currency ?? '€', b.expected_date ?? null, b.note ?? '');
+}
+export function patchReceivable(db, id, b) {
+  for (const k of ['name', 'amount', 'currency', 'expected_date', 'status', 'note'])
+    if (k in b) db.prepare(`UPDATE receivables SET ${k} = ? WHERE id = ?`).run(b[k], id);
+}
+export function delReceivable(db, id) { db.prepare('DELETE FROM receivables WHERE id = ?').run(id); }
+
+// «получено»: закрывает дебиторку и создаёт доход
+export function receiveReceivable(db, id) {
+  const r = db.prepare('SELECT * FROM receivables WHERE id = ?').get(id);
+  if (!r || r.status === 'received') return r;
+  db.prepare(`UPDATE receivables SET status = 'received' WHERE id = ?`).run(id);
+  addTx(db, { date: today(), amount: r.amount, currency: r.currency,
+              direction: 'income', category: 'дебиторка', note: r.name });
+  return db.prepare('SELECT * FROM receivables WHERE id = ?').get(id);
+}
+
+// ===== FIRE =====
+export function getSetting(db, key, fallback = null) {
+  return db.prepare('SELECT value FROM settings WHERE key = ?').get(key)?.value ?? fallback;
+}
+export function setSetting(db, key, value) {
+  db.prepare('INSERT INTO settings(key, value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value = excluded.value')
+    .run(key, String(value));
+}
+
+export function fireCalc(db, capital) {
+  const target = parseFloat(getSetting(db, 'fire_target', '0')) || 0;
+  const annual = parseFloat(getSetting(db, 'fire_return_pct', '5')) || 0;
+  const monthly = parseFloat(getSetting(db, 'fire_monthly_savings', '0')) || 0;
+  if (!target) return { target: 0 };
+  const r = Math.pow(1 + annual / 100, 1 / 12) - 1;
+  let cap = capital, months = 0;
+  while (cap < target && months < 1200) { cap = cap * (1 + r) + monthly; months++; }
+  return {
+    target, annual, monthly,
+    progressPct: Math.min(100, capital / target * 100),
+    months: months >= 1200 ? null : months,
+    reachedYear: months >= 1200 ? null : new Date().getFullYear() + Math.floor((new Date().getMonth() + months) / 12),
+  };
+}
+
+// ===== Макро =====
+export function addMacro(db, b) {
+  db.prepare('INSERT INTO macro_notes(date, phase, thesis) VALUES(?,?,?)')
+    .run(b.date ?? today(), b.phase ?? '', b.thesis ?? '');
+}
+export function delMacro(db, id) { db.prepare('DELETE FROM macro_notes WHERE id = ?').run(id); }

@@ -142,3 +142,78 @@ test('радар задачи видит платежи в окне ±60 дне�
   assert.ok(names.includes('Налоги за 2025'), 'близкий платёж виден');
   assert.ok(!names.includes('Далёкий платёж'), 'далёкий не виден');
 });
+
+test('транзакции: месяц фильтруется, категории суммируются', () => {
+  const db = freshDb();
+  fin.addTx(db, { date: '2026-06-05', amount: 50, category: 'еда' });
+  fin.addTx(db, { date: '2026-06-10', amount: 30, category: 'еда' });
+  fin.addTx(db, { date: '2026-06-12', amount: 200, category: 'авто' });
+  fin.addTx(db, { date: '2026-06-15', amount: 1000, direction: 'income', category: 'зарплата' });
+  fin.addTx(db, { date: '2026-07-01', amount: 99, category: 'еда' });
+  const t = fin.txMonth(db, '2026-06');
+  assert.equal(t.rows.length, 4);
+  assert.equal(t.expense, 280);
+  assert.equal(t.income, 1000);
+  assert.deepEqual(t.categories[0], ['авто', 200]);
+  assert.deepEqual(t.categories[1], ['еда', 80]);
+});
+
+test('Monefy CSV: точка-с-запятой, даты DD/MM/YYYY, минус = расход', () => {
+  const db = freshDb();
+  const csv = [
+    'date;account;category;amount;currency;converted amount;currency;description',
+    '13/06/2026;Cash;Еда;-12,50;EUR;-12,50;EUR;обед',
+    '14/06/2026;Card;Зарплата;2000;EUR;2000;EUR;',
+    '15.06.2026;Card;Авто;-45;USD;-41;EUR;бензин',
+  ].join('\n');
+  const n = fin.importMonefy(db, csv);
+  assert.equal(n, 3);
+  const t = fin.txMonth(db, '2026-06');
+  assert.equal(t.expense, 12.5 + 45);
+  assert.equal(t.income, 2000);
+  const gas = t.rows.find(r => r.note === 'бензин');
+  assert.equal(gas.currency, '$');
+  assert.equal(gas.date, '2026-06-15');
+  assert.ok(t.rows.every(r => r.source === 'monefy'));
+});
+
+test('дебиторка: просрочка считается, «получено» создаёт доход', () => {
+  const db = freshDb();
+  fin.addReceivable(db, { name: 'Проект Х, остаток', amount: 2500, expected_date: '2020-01-01' });
+  const d = fin.listFin(db);
+  const r = d.receivables.find(x => x.name.includes('Проект Х'));
+  assert.ok(r.overdue_days > 1000, 'просрочен давно');
+  fin.receiveReceivable(db, r.id);
+  const after = fin.listFin(db);
+  assert.equal(after.receivables.find(x => x.id === r.id).status, 'received');
+  const ym = new Date().toISOString().slice(0, 7);
+  const inc = fin.txMonth(db, ym).rows.find(t => t.category === 'дебиторка');
+  assert.equal(inc.amount, 2500);
+  assert.equal(inc.direction, 'income');
+  fin.receiveReceivable(db, r.id); // повторно — дохода не дублирует
+  assert.equal(fin.txMonth(db, ym).rows.filter(t => t.category === 'дебиторка').length, 1);
+});
+
+test('FIRE: прогресс и прогноз года', () => {
+  const db = freshDb();   // портфель из сида: 475 000 €
+  fin.setSetting(db, 'fire_target', '950000');
+  fin.setSetting(db, 'fire_return_pct', '0');
+  fin.setSetting(db, 'fire_monthly_savings', '10000');
+  const f = fin.fireCalc(db, 475000);
+  assert.ok(Math.abs(f.progressPct - 50) < 0.01);
+  assert.ok(f.months >= 47 && f.months <= 48, '475k / 10k в мес ≈ 47.5 мес');
+  fin.setSetting(db, 'fire_monthly_savings', '0');
+  assert.equal(fin.fireCalc(db, 475000).months, null, 'без пополнений и доходности — недостижимо');
+  assert.equal(fin.fireCalc(db, 1000000).months, 0, 'капитал уже больше цели');
+});
+
+test('макро: тезисы копятся историей, последний — первым', () => {
+  const db = freshDb();
+  fin.addMacro(db, { date: '2026-05-28', phase: 'пик', thesis: 'жду коррекции' });
+  fin.addMacro(db, { date: '2026-06-10', phase: 'сжатие', thesis: 'кэш наращиваю' });
+  const m = fin.listFin(db).macro;
+  assert.equal(m.length, 2);
+  assert.equal(m[0].phase, 'сжатие');
+  fin.delMacro(db, m[1].id);
+  assert.equal(fin.listFin(db).macro.length, 1);
+});

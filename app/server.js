@@ -117,14 +117,39 @@ const server = http.createServer(async (req, res) => {
       const b = await body(req);
       return json(res, 200, fin.rateSet(db, decodeURIComponent(m[1]), b.price));
     }
+    if (p === '/api/fin/tx' && req.method === 'GET')
+      return json(res, 200, fin.txMonth(db, url.searchParams.get('month') ?? new Date().toISOString().slice(0, 7)));
+    if (p === '/api/fin/monefy' && req.method === 'POST') {
+      const b = await body(req);
+      try { return json(res, 201, { imported: fin.importMonefy(db, b.csv ?? '') }); }
+      catch (e) { return json(res, 400, { error: e.message }); }
+    }
+    if ((m = p.match(/^\/api\/fin\/receivables\/(\d+)\/received$/)) && req.method === 'POST')
+      return json(res, 200, fin.receiveReceivable(db, +m[1]));
+    if (p === '/api/fin/fire' && req.method === 'POST') {
+      const b = await body(req);
+      for (const k of ['fire_target', 'fire_return_pct', 'fire_monthly_savings'])
+        if (k in b) fin.setSetting(db, k, b[k]);
+      return json(res, 200, { ok: true });
+    }
+    if (p === '/api/fin/macro' && req.method === 'POST') {
+      fin.addMacro(db, await body(req));
+      return json(res, 201, { ok: true });
+    }
+    if ((m = p.match(/^\/api\/fin\/macro\/(\d+)$/)) && req.method === 'DELETE') {
+      fin.delMacro(db, +m[1]);
+      return json(res, 200, { ok: true });
+    }
     const finMap = {
       accounts: ['addAccount', 'patchAccount', 'delAccount'],
       classes: ['addClass', 'patchClass', 'delClass'],
       steps: ['addStep', 'patchStep', 'delStep'],
       obligations: ['addObligation', 'patchObligation', 'delObligation'],
       items: ['addItem', 'patchItem', 'delItem'],
+      tx: ['addTx', 'patchTx', 'delTx'],
+      receivables: ['addReceivable', 'patchReceivable', 'delReceivable'],
     };
-    if ((m = p.match(/^\/api\/fin\/(accounts|classes|steps|obligations|items)(?:\/(\d+))?$/))) {
+    if ((m = p.match(/^\/api\/fin\/(accounts|classes|steps|obligations|items|tx|receivables)(?:\/(\d+))?$/))) {
       const [addF, patchF, delF] = finMap[m[1]];
       if (req.method === 'POST' && !m[2]) { fin[addF](db, await body(req)); return json(res, 201, { ok: true }); }
       if (req.method === 'PATCH' && m[2]) { fin[patchF](db, +m[2], await body(req)); return json(res, 200, { ok: true }); }

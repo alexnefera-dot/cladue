@@ -113,6 +113,35 @@ export function createDb(path = ':memory:') {
       recur TEXT NOT NULL DEFAULT 'none',      -- none|monthly|yearly
       note TEXT NOT NULL DEFAULT ''
     );
+    CREATE TABLE IF NOT EXISTS transactions(    -- расходы/доходы (вручную или Monefy)
+      id INTEGER PRIMARY KEY,
+      date TEXT NOT NULL,
+      amount REAL NOT NULL,                    -- всегда положительное
+      currency TEXT NOT NULL DEFAULT '€',
+      direction TEXT NOT NULL DEFAULT 'expense', -- expense|income
+      category TEXT NOT NULL DEFAULT 'прочее',
+      note TEXT NOT NULL DEFAULT '',
+      source TEXT NOT NULL DEFAULT 'manual'    -- manual|monefy
+    );
+    CREATE TABLE IF NOT EXISTS receivables(     -- дебиторка: невыплаченные доходы
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      amount REAL NOT NULL,
+      currency TEXT NOT NULL DEFAULT '€',
+      expected_date TEXT,
+      status TEXT NOT NULL DEFAULT 'waiting',  -- waiting|received
+      note TEXT NOT NULL DEFAULT ''
+    );
+    CREATE TABLE IF NOT EXISTS settings(
+      key TEXT PRIMARY KEY,
+      value TEXT
+    );
+    CREATE TABLE IF NOT EXISTS macro_notes(     -- макро-тезисы с историей
+      id INTEGER PRIMARY KEY,
+      date TEXT NOT NULL DEFAULT (date('now')),
+      phase TEXT NOT NULL DEFAULT '',          -- рост|пик|сжатие|дно
+      thesis TEXT NOT NULL DEFAULT ''
+    );
   `);
   // миграция существующих баз
   const cols = db.prepare('PRAGMA table_info(nodes)').all().map(c => c.name);
