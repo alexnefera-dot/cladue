@@ -96,3 +96,16 @@ test('бэкап: копия создаётся, :memory: отказывает �
   assert.equal(readFileSync(f, 'utf8'), 'fake-db-bytes');
   assert.equal(backupDb(':memory:', root), null);
 });
+
+test('фронт: скрипты не конфликтуют top-level идентификаторами (общий scope браузера)', () => {
+  const pub = join(import.meta.dirname, '..', 'public');
+  const files = ['app.js', 'fin.js', 'cal.js', 'life.js', 'notes.js', 'psy.js', 'track.js', 'today.js'];
+  const seen = {};
+  for (const f of files) {
+    const src = readFileSync(join(pub, f), 'utf8');
+    for (const m of src.matchAll(/^(?:const|let|class)\s+([A-Za-z_$][\w$]*)/gm)) {
+      assert.ok(!seen[m[1]], `«${m[1]}» объявлен и в ${seen[m[1]]}, и в ${f} — второй скрипт упадёт целиком`);
+      seen[m[1]] = f;
+    }
+  }
+});

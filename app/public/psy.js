@@ -18,8 +18,8 @@ const psyApi = {
 const pesc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const KINDP = { schedule: ['расписание', 'ok'], technique: ['техника', 'p2'], checklist: ['чеклист', 'p1'] };
 const DAYSL = { daily: 'каждый день', workdays: 'раб. дни' };
-const WD = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
-const daysLabel = d => !d ? 'без расписания' : (DAYSL[d] ?? d.split(',').map(x => WD[+x - 1]).join('/'));
+const PSY_WD = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
+const daysLabel = d => !d ? 'без расписания' : (DAYSL[d] ?? d.split(',').map(x => PSY_WD[+x - 1]).join('/'));
 
 window.loadPsy = async function () {
   psyData = await psyApi.get();
