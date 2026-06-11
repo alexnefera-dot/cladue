@@ -279,3 +279,46 @@ test('снапшоты: один в день, дельта считается', 
   assert.equal(d.snapshotDelta.since, '2020-01-01');
   assert.equal(d.snapshotDelta.abs, 75000);
 });
+
+test('прогнозы: добавление, резолв, калибровка', () => {
+  const db = freshDb();
+  fin.addForecast(db, { statement: 'Коррекция S&P до конца года', confidence: 70, due_date: '2026-12-31' });
+  fin.addForecast(db, { statement: 'BTC > 100k', confidence: 90 });
+  fin.addForecast(db, { statement: 'Ставку снизят', confidence: 60 });
+  let f = fin.forecasts(db);
+  assert.equal(f.rows.length, 3);
+  assert.equal(f.calibration, null, 'без проверенных калибровки нет');
+  const a = f.rows.find(r => r.statement.includes('Коррекция'));
+  const b = f.rows.find(r => r.statement.includes('BTC'));
+  fin.resolveForecast(db, a.id, true);    // 70% и сбылось → ошибка 30
+  fin.resolveForecast(db, b.id, false);   // 90% и нет → ошибка 90
+  f = fin.forecasts(db);
+  assert.equal(f.resolvedCount, 2);
+  assert.ok(Math.abs(f.calibration - 40) < 0.01, '100 - (30+90)/2 = 40');
+  assert.equal(fin.addForecast(db, { statement: 'x', confidence: 250 }) ?? true, true);
+  assert.ok(fin.forecasts(db).rows.every(r => r.confidence <= 99), 'уверенность зажата');
+});
+
+test('имущество: объект, регламент с префиксом, ✓ сдвигает дату, видно в радаре', () => {
+  const db = freshDb();
+  fin.addProperty(db, { name: 'X5', category: 'авто' });
+  const prop = fin.listProperties(db)[0];
+  fin.addRule(db, prop.id, { name: 'страховка', amount: 240, period: 'yearly', next_date: '2026-07-10' });
+  fin.addRule(db, prop.id, { name: 'ТО', period: 'yearly' });
+  const withRules = fin.listProperties(db)[0];
+  assert.equal(withRules.rules.length, 2);
+  const ins = withRules.rules.find(r => r.name.includes('страховка'));
+  assert.equal(ins.name, 'X5: страховка', 'имя с префиксом объекта');
+  // «оплачено» сдвигает на год
+  assert.equal(fin.payObligation(db, ins.id).next_date, '2027-07-10');
+  // регламент виден в радаре задач как платёж
+  const inbox = core.listCategories(db).find(c => c.title.includes('Инбокс'));
+  const n = core.addChild(db, inbox.id, 'Продать X5');
+  core.updateNode(db, n.id, { kind: 'task', due_date: '2027-08-01' });
+  const names = core.suggestForNode(db, n.id).context.payments.map(p => p.name);
+  assert.ok(names.includes('X5: страховка'));
+  // удаление объекта чистит регламент
+  fin.delProperty(db, prop.id);
+  assert.equal(fin.listProperties(db).length, 0);
+  assert.equal(db.prepare('SELECT count(*) AS c FROM obligations WHERE property_id IS NOT NULL').get().c, 0);
+});

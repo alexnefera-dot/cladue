@@ -368,6 +368,37 @@ const server = http.createServer(async (req, res) => {
         if (k in b) fin.setSetting(db, k, b[k]);
       return json(res, 200, { ok: true });
     }
+    if (p === '/api/fin/forecasts' && req.method === 'POST') {
+      const b = await body(req);
+      if (!b.statement?.trim()) return json(res, 400, { error: 'statement required' });
+      fin.addForecast(db, b);
+      return json(res, 201, { ok: true });
+    }
+    if ((m = p.match(/^\/api\/fin\/forecasts\/(\d+)\/resolve$/)) && req.method === 'POST') {
+      const b = await body(req);
+      fin.resolveForecast(db, +m[1], !!b.outcome);
+      return json(res, 200, { ok: true });
+    }
+    if ((m = p.match(/^\/api\/fin\/forecasts\/(\d+)$/)) && req.method === 'DELETE') {
+      fin.delForecast(db, +m[1]);
+      return json(res, 200, { ok: true });
+    }
+    if (p === '/api/fin/properties' && req.method === 'POST') {
+      const b = await body(req);
+      if (!b.name?.trim()) return json(res, 400, { error: 'name required' });
+      fin.addProperty(db, b);
+      return json(res, 201, { ok: true });
+    }
+    if ((m = p.match(/^\/api\/fin\/properties\/(\d+)\/rules$/)) && req.method === 'POST') {
+      const b = await body(req);
+      if (!b.name?.trim()) return json(res, 400, { error: 'name required' });
+      try { fin.addRule(db, +m[1], b); return json(res, 201, { ok: true }); }
+      catch (e) { return json(res, 400, { error: e.message }); }
+    }
+    if ((m = p.match(/^\/api\/fin\/properties\/(\d+)$/))) {
+      if (req.method === 'PATCH') { fin.patchProperty(db, +m[1], await body(req)); return json(res, 200, { ok: true }); }
+      if (req.method === 'DELETE') { fin.delProperty(db, +m[1]); return json(res, 200, { ok: true }); }
+    }
     if (p === '/api/fin/macro' && req.method === 'POST') {
       fin.addMacro(db, await body(req));
       return json(res, 201, { ok: true });

@@ -228,6 +228,21 @@ export function createDb(path = ':memory:') {
       date TEXT NOT NULL DEFAULT (date('now')),
       note TEXT NOT NULL DEFAULT ''
     );
+    CREATE TABLE IF NOT EXISTS forecasts(       -- журнал прогнозов: тренировка калибровки
+      id INTEGER PRIMARY KEY,
+      statement TEXT NOT NULL,
+      confidence INTEGER NOT NULL,             -- уверенность, %
+      due_date TEXT,
+      outcome INTEGER,                         -- NULL ждём · 1 сбылось · 0 нет
+      created_at TEXT NOT NULL DEFAULT (date('now')),
+      resolved_at TEXT
+    );
+    CREATE TABLE IF NOT EXISTS properties(      -- имущество: авто, недвижимость, техника
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT 'прочее', -- авто|недвижимость|техника|прочее
+      note TEXT NOT NULL DEFAULT ''
+    );
     CREATE TABLE IF NOT EXISTS checkins(        -- чек-ин дня: 10 секунд, без фанатизма
       date TEXT PRIMARY KEY,
       mood INTEGER NOT NULL,                   -- 1 плохой · 2 нормальный · 3 хороший
@@ -281,6 +296,9 @@ export function createDb(path = ':memory:') {
   // связь шага портфеля с задачей: дедупликация в календаре и синк статусов
   const scols = db.prepare('PRAGMA table_info(steps)').all().map(c => c.name);
   if (!scols.includes('task_id')) db.exec(`ALTER TABLE steps ADD COLUMN task_id INTEGER`);
+  // регламент имущества хранится как обязательство, привязанное к объекту
+  const ocols = db.prepare('PRAGMA table_info(obligations)').all().map(c => c.name);
+  if (!ocols.includes('property_id')) db.exec(`ALTER TABLE obligations ADD COLUMN property_id INTEGER`);
   // фиксированное время рутины (HH:MM) — для сортировки и напоминаний
   const rcols = db.prepare('PRAGMA table_info(routines)').all().map(c => c.name);
   if (!rcols.includes('time')) db.exec(`ALTER TABLE routines ADD COLUMN time TEXT`);

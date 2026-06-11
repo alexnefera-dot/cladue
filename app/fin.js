@@ -81,6 +81,8 @@ export function listFin(db) {
     snapshotDelta: snaps.length === 2 ? { since: snaps[1].date, abs: snaps[0].portfolio_eur - snaps[1].portfolio_eur } : null,
     byType: Object.entries(byType).sort((a, b) => b[1] - a[1]),
     tx: txMonth(db, today().slice(0, 7)),
+    forecasts: forecasts(db),
+    properties: listProperties(db),
     fire: fireCalc(db, portfolioTotal),
     macro: db.prepare('SELECT * FROM macro_notes ORDER BY date DESC, id DESC').all(),
     rates: db.prepare('SELECT * FROM rates').all(),
@@ -393,3 +395,58 @@ export function addMacro(db, b) {
     .run(b.date ?? today(), b.phase ?? '', b.thesis ?? '');
 }
 export function delMacro(db, id) { db.prepare('DELETE FROM macro_notes WHERE id = ?').run(id); }
+
+// ===== Журнал прогнозов: «думаю, X случится — уверен на N%» → проверка → калибровка =====
+export function addForecast(db, b) {
+  const conf = Math.max(1, Math.min(99, Math.round(+b.confidence || 50)));
+  db.prepare('INSERT INTO forecasts(statement, confidence, due_date) VALUES(?,?,?)')
+    .run(b.statement, conf, b.due_date ?? null);
+}
+export function resolveForecast(db, id, outcome) {
+  db.prepare(`UPDATE forecasts SET outcome = ?, resolved_at = date('now') WHERE id = ?`)
+    .run(outcome ? 1 : 0, id);
+}
+export function delForecast(db, id) { db.prepare('DELETE FROM forecasts WHERE id = ?').run(id); }
+
+export function forecasts(db) {
+  const rows = db.prepare('SELECT * FROM forecasts ORDER BY outcome IS NOT NULL, due_date IS NULL, due_date, id DESC').all();
+  const resolved = rows.filter(r => r.outcome != null);
+  // калибровка: 100 − средняя ошибка |уверенность − исход·100|
+  const calibration = resolved.length
+    ? 100 - resolved.reduce((s, r) => s + Math.abs(r.confidence - r.outcome * 100), 0) / resolved.length
+    : null;
+  return { rows, calibration, resolvedCount: resolved.length };
+}
+
+// ===== Имущество и регламенты (правило = обязательство с property_id) =====
+export function addProperty(db, b) {
+  db.prepare('INSERT INTO properties(name, category, note) VALUES(?,?,?)')
+    .run(b.name, b.category ?? 'прочее', b.note ?? '');
+}
+export function patchProperty(db, id, b) {
+  for (const k of ['name', 'category', 'note'])
+    if (k in b) db.prepare(`UPDATE properties SET ${k} = ? WHERE id = ?`).run(b[k], id);
+}
+export function delProperty(db, id) {
+  db.prepare('DELETE FROM obligations WHERE property_id = ?').run(id);
+  db.prepare('DELETE FROM properties WHERE id = ?').run(id);
+}
+
+export function listProperties(db) {
+  const today = new Date().toISOString().slice(0, 10);
+  return db.prepare('SELECT * FROM properties ORDER BY category, name').all().map(p => ({
+    ...p,
+    rules: db.prepare('SELECT * FROM obligations WHERE property_id = ? ORDER BY next_date IS NULL, next_date').all(p.id)
+      .map(o => ({ ...o, days_left: o.next_date ? Math.ceil((Date.parse(o.next_date) - Date.parse(today)) / 864e5) : null })),
+  }));
+}
+
+// правило регламента: имя автоматически префиксуется объектом (видно в календаре/радаре)
+export function addRule(db, propertyId, b) {
+  const prop = db.prepare('SELECT * FROM properties WHERE id = ?').get(propertyId);
+  if (!prop) throw new Error('объект не найден');
+  db.prepare(`INSERT INTO obligations(name, amount, currency, period, next_date, remind_days, kind, property_id)
+    VALUES(?,?,?,?,?,?,'liability',?)`)
+    .run(`${prop.name}: ${b.name}`, b.amount ?? 0, b.currency ?? '€', b.period ?? 'yearly',
+         b.next_date ?? null, b.remind_days ?? 7, propertyId);
+}

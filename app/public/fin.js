@@ -265,6 +265,49 @@ function secPlans(d) {
   </div>`;
 }
 
+// Имущество: карточки по категориям, внутри — регламент (правила = обязательства)
+function secProps(d) {
+  const cats = {};
+  for (const p of d.properties) (cats[p.category] ??= []).push(p);
+  const CAT_ICO = { 'авто': '🚗', 'недвижимость': '🏠', 'техника': '💻', 'прочее': '📦' };
+  return `
+  <div class="sec">Имущество · регламенты по категориям · «✓» = сделано, дата сдвинется</div>
+  ${Object.entries(cats).map(([cat, props]) => `
+    <div class="meta" style="margin:8px 0 4px">${CAT_ICO[cat] ?? '📦'} ${fesc(cat).toUpperCase()}</div>
+    <div class="fingrid" style="grid-template-columns:1fr 1fr">
+      ${props.map(p => `
+      <div class="card">
+        <div class="task" style="border-bottom:1px solid var(--line)">
+          <span class="t ed" data-fe="properties:${p.id}:name:text" style="font-weight:600">${fesc(p.name)}</span>
+          <span class="rowbtn del" data-propdel="${p.id}">✕</span>
+        </div>
+        ${p.rules.map(r => `
+          <div class="task">
+            <span class="t">${fesc(r.name.replace(p.name + ': ', ''))}</span>
+            <span class="meta num">${fmt(r.amount)} ${fesc(r.currency)} / ${PERIOD[r.period]}</span>
+            ${r.next_date
+              ? `<span class="meta ${r.days_left <= r.remind_days ? 'amber' : ''}">${r.next_date} (${r.days_left} дн)</span>
+                 <span class="pill btn ok" data-oblpay="${r.id}">✓</span>`
+              : '<span class="meta">—</span>'}
+            <span class="rowbtn del" data-findel="obligations:${r.id}">✕</span>
+          </div>`).join('') || '<div class="empty">регламента нет</div>'}
+        <div class="task finadd">
+          <input data-rulename="${p.id}" placeholder="ТО, страховка, счётчики…">
+          <input data-ruleamount="${p.id}" placeholder="€" style="width:60px">
+          <select data-ruleperiod="${p.id}"><option value="yearly">год</option><option value="monthly">мес</option><option value="once">разово</option></select>
+          <input data-ruledate="${p.id}" placeholder="дата" style="width:100px">
+          <span class="pill btn ok" data-ruleadd="${p.id}">＋</span>
+        </div>
+      </div>`).join('')}
+    </div>`).join('') || '<div class="card"><div class="empty">объектов нет</div></div>'}
+  <div class="card"><div class="task finadd">
+    <input id="prName" placeholder="новый объект: X5, квартира №2, MacBook…">
+    <select id="prCat"><option>авто</option><option>недвижимость</option><option>техника</option><option>прочее</option></select>
+    <span class="pill btn ok" id="prAdd">＋</span>
+  </div>
+  <div class="empty">Регламентные даты попадают в календарь и радар задач как платежи.</div></div>`;
+}
+
 function secFire(d, s) {
   return `
   <div class="sec">FIRE · Макро</div>
@@ -296,6 +339,26 @@ function secFire(d, s) {
       </div>
       ${d.macro.length > 1 ? `<div class="meta" style="margin-top:6px">история:</div>` +
         d.macro.slice(1, 4).map(mn => `<div class="kv"><span>${mn.date} · ${fesc(mn.phase)} — ${fesc(mn.thesis.slice(0, 60))}</span><span class="rowbtn del" style="opacity:1" data-mcdel="${mn.id}">✕</span></div>`).join('') : ''}
+
+      <div class="meta" style="margin-top:12px">🎯 ПРОГНОЗЫ · ${d.forecasts.calibration != null
+        ? `калибровка ${d.forecasts.calibration.toFixed(0)}% · проверено ${d.forecasts.resolvedCount}`
+        : 'проверенных пока нет'}</div>
+      ${d.forecasts.rows.slice(0, 6).map(f => `
+        <div class="task" style="${f.outcome != null ? 'opacity:.55' : ''}">
+          <span class="pill ${f.outcome === 1 ? 'ok' : f.outcome === 0 ? 'p0' : 'p2'}">${f.outcome === 1 ? '✓ сбылось' : f.outcome === 0 ? '✗ нет' : f.confidence + '%'}</span>
+          <span class="t" style="font-size:12.5px">${fesc(f.statement)}</span>
+          ${f.due_date ? `<span class="meta">${f.due_date}</span>` : ''}
+          ${f.outcome == null ? `
+            <span class="pill btn ok" data-fcres="${f.id}:1" title="сбылось">✓</span>
+            <span class="pill btn" data-fcres="${f.id}:0" title="не сбылось">✗</span>` : ''}
+          <span class="rowbtn del" data-fcdel="${f.id}">✕</span>
+        </div>`).join('')}
+      <div class="task finadd">
+        <input id="fcText" placeholder="прогноз: «коррекция S&P до конца года»…">
+        <input id="fcConf" placeholder="%" style="width:55px">
+        <input id="fcDue" placeholder="срок" style="width:100px">
+        <span class="pill btn ok" id="fcAdd">＋</span>
+      </div>
     </div>
   </div>`;
 }
@@ -325,7 +388,7 @@ function renderFin() {
       <div class="meta">${s.upcoming.length ? `ближайшие 30 дней: ${s.upcoming.length}` : 'на месяц тихо'}</div></div>
   </div>
   <div class="viewtabs">
-    ${[['all', 'Всё'], ['port', 'Портфель'], ['acc', 'Счета'], ['flow', 'Расходы'], ['debts', 'Долги'], ['plans', 'Планы'], ['fire', 'FIRE·Макро']]
+    ${[['all', 'Всё'], ['port', 'Портфель'], ['acc', 'Счета'], ['flow', 'Расходы'], ['debts', 'Долги'], ['plans', 'Планы'], ['prop', 'Имущество'], ['fire', 'FIRE·Макро']]
       .map(([k, l]) => `<span class="pill btn ${finSection === k ? 'ok' : ''}" data-fsec="${k}">${l}</span>`).join(' ')}
   </div>`;
 
@@ -336,6 +399,7 @@ function renderFin() {
     + (show('flow') ? renderTx(d.tx) : '')
     + (show('debts') ? secDebts(d) : '')
     + (show('plans') ? secPlans(d) : '')
+    + (show('prop') ? secProps(d) : '')
     + (show('fire') ? secFire(d, s) : '')
     + `<div class="footer-hint">Бивалютно: € и $ по курсу EURUSD. ⚡ — автоцена «количество × курс» (BTC, золото, S&P). Ввод понимает «100k», «1.2m», даты — и 01.07.2026. Платежи и траты видны в календаре и радаре задач.</div>`;
   bindFin();
@@ -503,6 +567,55 @@ function bindFin() {
       amount, note: $('txNote').value.trim() });
     window.loadFin();
   });
+  // прогнозы
+  document.querySelectorAll('[data-fcres]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const [id, out] = el.dataset.fcres.split(':');
+      await fetch(`/api/fin/forecasts/${id}/resolve`, { method: 'POST',
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ outcome: out === '1' }) });
+      window.loadFin();
+    }));
+  document.querySelectorAll('[data-fcdel]').forEach(el =>
+    el.addEventListener('click', async () => {
+      if (confirm('Удалить прогноз?')) {
+        await fetch('/api/fin/forecasts/' + el.dataset.fcdel, { method: 'DELETE' });
+        window.loadFin();
+      }
+    }));
+  $('fcAdd')?.addEventListener('click', async () => {
+    const statement = $('fcText').value.trim();
+    if (!statement) return;
+    await fetch('/api/fin/forecasts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ statement, confidence: parseInt($('fcConf').value, 10) || 50,
+        due_date: /^\d{4}-\d{2}-\d{2}$/.test($('fcDue').value) ? $('fcDue').value : null }) });
+    window.loadFin();
+  });
+  // имущество
+  $('prAdd')?.addEventListener('click', async () => {
+    const name = $('prName').value.trim();
+    if (!name) return;
+    await fetch('/api/fin/properties', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, category: $('prCat').value }) });
+    window.loadFin();
+  });
+  document.querySelectorAll('[data-propdel]').forEach(el =>
+    el.addEventListener('click', async () => {
+      if (confirm('Удалить объект со всем регламентом?')) {
+        await fetch('/api/fin/properties/' + el.dataset.propdel, { method: 'DELETE' });
+        window.loadFin();
+      }
+    }));
+  document.querySelectorAll('[data-ruleadd]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const pid = el.dataset.ruleadd;
+      const q = sel => document.querySelector(`[data-rule${sel}="${pid}"]`).value.trim();
+      const name = q('name');
+      if (!name) return;
+      await fetch(`/api/fin/properties/${pid}/rules`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, amount: parseNum(q('amount')) ?? 0, period: q('period'),
+          next_date: /^\d{4}-\d{2}-\d{2}$/.test(q('date')) ? q('date') : null }) });
+      window.loadFin();
+    }));
   // FIRE и макро
   document.querySelectorAll('[data-fireset]').forEach(el =>
     el.addEventListener('click', () => inlineVal(el, 'num', async v => { await finApi.fire({ [el.dataset.fireset]: v }); })));
