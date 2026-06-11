@@ -546,33 +546,6 @@ document.getElementById('addTitle').addEventListener('keydown', async e => {
   await load();
 });
 
-// ===== Импорт =====
-document.getElementById('importBtn').addEventListener('click', () => {
-  const panel = document.getElementById('importPanel');
-  const show = panel.style.display === 'none';
-  panel.style.display = show ? 'block' : 'none';
-  if (show) {
-    const sel = document.getElementById('importTarget');
-    sel.innerHTML = catOptions(null);
-    const inbox = state.nodes.find(n => n.is_category && n.title.includes('Инбокс'));
-    if (inbox) sel.value = inbox.id;
-    document.getElementById('importText').focus();
-  }
-});
-document.getElementById('importClose').addEventListener('click', () => {
-  document.getElementById('importPanel').style.display = 'none';
-});
-document.getElementById('importGo').addEventListener('click', async () => {
-  const text = document.getElementById('importText').value;
-  if (!text.trim()) return;
-  const target = +document.getElementById('importTarget').value || null;
-  const r = await api.import({ parent_id: target, text });
-  document.getElementById('importText').value = '';
-  document.getElementById('importPanel').style.display = 'none';
-  if (target) collapsed.delete(target);
-  await load();
-  document.getElementById('statusbar').textContent += ` · ⤓ импортировано: ${r.imported}`;
-});
 
 // ===== Переключение экранов =====
 const SCREENS = { list: null, fin: 'loadFin', cal: 'loadCal' };

@@ -41,15 +41,20 @@ function portRows(it, depth) {
   const rowCls = it.kind === 'block' ? 'pblock' : it.kind === 'section' ? 'psection' : '';
   let cells;
   if (target) {
-    cells = `<td class="r num muted">${fmtE(it.value)}</td>
+    cells = `<td class="r num muted">${fmtE(it.eur)}</td>
       <td class="r num ed acc" data-fe="items:${it.id}:target_value:num" title="клик — целевая сумма">${it.target != null ? fmtE(it.target) : '—'}</td>
-      <td class="r">${it.target != null ? `<span class="pill ${it.value - it.target >= 0 ? 'ok' : 'p1'}">Δ ${fmt(it.value - it.target)}</span>` : ''}</td>`;
+      <td class="r">${it.target != null ? `<span class="pill ${it.eur - it.target >= 0 ? 'ok' : 'p1'}">Δ ${fmt(it.eur - it.target)}</span>` : ''}</td>`;
   } else {
     const g = it.invested != null && it.invested ? (it.investedCur - it.invested) / it.invested * 100 : null;
-    cells = `<td class="r num muted ${editable ? 'ed' : ''}" ${editable ? `data-fe="items:${it.id}:buy_value:num" title="цена покупки (клик)"` : ''}>
-        ${editable ? (it.buy_value != null ? fmt(it.buy_value) : '—') : (it.invested != null ? fmt(it.invested) : '')}</td>
-      <td class="r num">${g != null ? `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</span>` : ''}</td>
-      <td class="r num acc ${editable ? 'ed' : ''}" ${editable ? `data-fe="items:${it.id}:value:num" title="текущая стоимость (клик)"` : ''}>${fmtE(it.value)}</td>`;
+    const cur = it.currency ?? '€';
+    cells = editable
+      ? `<td class="r num muted ${editable ? 'ed' : ''}" data-fe="items:${it.id}:buy_value:num" title="цена покупки (клик)">${it.buy_value != null ? fmt(it.buy_value) : '—'}</td>
+        <td class="r num">${g != null ? `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</span>` : ''}</td>
+        <td class="r num acc"><span class="pill btn" data-fcur="${it.id}:${cur}" title="сменить валюту">${cur}</span>
+          <span class="ed" data-fe="items:${it.id}:value:num" title="текущая стоимость (клик)">${it.value != null ? fmt(it.value) : '—'}</span></td>`
+      : `<td class="r num muted">${it.invested != null ? fmt(it.invested) : ''}</td>
+        <td class="r num">${g != null ? `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</span>` : ''}</td>
+        <td class="r num acc">${fmtE(it.eur)}</td>`;
   }
   return `<tr class="${rowCls}">
     <td style="padding-left:${8 + depth * 22}px"><span class="ed" data-fe="items:${it.id}:name:text" title="клик — переименовать">${fesc(it.name)}</span></td>
@@ -81,8 +86,8 @@ function renderFin() {
       <div class="bignum" style="font-size:16px">${accStr}</div>
       <div class="meta">${d.accounts.length} счетов</div></div>
     <div class="card"><div class="meta">ПОРТФЕЛЬ · ФАКТ</div>
-      <div class="bignum">${fmtE(s.portfolioTotal)}</div>
-      <div class="meta">${s.growth ? `прирост от покупки: ${s.growth.abs >= 0 ? '+' : ''}${fmt(s.growth.abs)} € (${s.growth.pct.toFixed(1)}%)` : 'задай цены покупки активам — посчитаю прирост'}</div></div>
+      <div class="bignum">${fmtE(s.portfolioTotal)} <span style="font-size:14px;color:var(--muted)">· ${fmt(s.portfolioTotalUsd)} $</span></div>
+      <div class="meta">курс ${s.rate?.toFixed(4)} · ${s.growth ? `прирост: ${s.growth.abs >= 0 ? '+' : ''}${fmt(s.growth.abs)} € (${s.growth.pct.toFixed(1)}%)` : 'задай цены покупки — посчитаю прирост'}</div></div>
     <div class="card"><div class="meta">ОБЯЗАТЕЛЬСТВА / МЕС</div>
       <div class="bignum">${fmt(s.monthlyObligations)} €</div>
       <div class="meta">${s.upcoming.length ? `ближайшие 30 дней: ${s.upcoming.length}` : 'на месяц тихо'}</div></div>
@@ -167,7 +172,7 @@ function renderFin() {
       <span class="pill btn ok" id="obAdd">＋</span>
     </div>
   </div>
-  <div class="footer-hint">Валюта страницы — €. Суммы можно вводить как «100k» или «1.2m». Платежи отсюда видны в радаре задач (±60 дней). Курсы: stooq.com, наружу уходят только тикеры; можно ввести вручную кликом.</div>`;
+  <div class="footer-hint">Портфель бивалютный: у актива валюта € или $ (клик по значку у суммы — сменить), итоги блоков и общий — в обеих валютах по курсу EURUSD из полосы сверху. Целевые суммы — в €. Ввод понимает «100k», «1.2m». Платежи видны в радаре задач (±60 дней).</div>`;
   bindFin();
 }
 
@@ -205,6 +210,12 @@ function bindFin() {
     el.addEventListener('click', () => {
       const [ent, id, field, type] = el.dataset.fe.split(':');
       inlineVal(el, type, v => finApi.patch(ent, +id, { [field]: v }));
+    }));
+  document.querySelectorAll('[data-fcur]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const [id, cur] = el.dataset.fcur.split(':');
+      await finApi.patch('items', +id, { currency: cur === '€' ? '$' : '€' });
+      window.loadFin();
     }));
   document.querySelectorAll('[data-rate]').forEach(el =>
     el.addEventListener('click', () => inlineVal(el, 'num', v => finApi.rateSet(el.dataset.rate, v))));

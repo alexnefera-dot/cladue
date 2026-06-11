@@ -7,13 +7,12 @@
 </head>
 <body>
 <div class="titlebar">
-  <span class="name">▣ PIPBOY · прототип · этап 1: твой список, дословно</span>
+  <span class="name">▣ PIPBOY · прототип</span>
   <span class="status" id="statusbar"></span>
 </div>
 <div class="layout">
   <nav class="side">
-    <div class="item active" data-screen="list">☰ Категории и список</div>
-    <div class="item" id="importBtn">⤓ Импорт заметок</div>
+    <div class="item active" data-screen="list">☑ Задачи</div>
     <div class="item" data-screen="fin">◈ Финансы</div>
     <div class="item" data-screen="cal">▦ Календарь</div>
     <div class="item off">▤ Инфо · этап 3</div>
@@ -27,18 +26,8 @@
     <div id="screen-fin" style="display:none"></div>
     <div id="screen-cal" style="display:none"></div>
     <div id="screen-list">
-    <div id="importPanel" class="importpanel" style="display:none">
-      <div class="sec" style="margin-top:0">⤓ Импорт блока заметок</div>
-      <textarea id="importText" rows="16" placeholder="Вставь сюда сколько угодно строк — хоть весь список разом.&#10;Вложенность по отступам сохраняется, маркеры (1. / - / •) срезаются.&#10;&#10;Пример:&#10;Авто&#10;    SK&#10;        Понять, когда будет внж&#10;    Х5&#10;        Август продать х5?"></textarea>
-      <div class="btnrow" style="margin-top:8px">
-        <span class="muted">куда:</span>
-        <select id="importTarget"></select>
-        <span class="pill btn ok" id="importGo">Импортировать</span>
-        <span class="pill btn" id="importClose">закрыть</span>
-      </div>
-    </div>
     <div class="addbar" style="margin:0 0 10px">
-      <input id="addTitle" placeholder="＋ Добавить строку (Enter — внутрь выбранной, иначе в Инбокс) · вставка нескольких строк = импорт с вложенностью">
+      <input id="addTitle" placeholder="＋ Добавить (Enter — внутрь выбранной, иначе в Инбокс) · вставь сюда блок заметок целиком — импорт сохранит вложенность">
       <span class="pill btn" id="addCatBtn" title="новая категория верхнего уровня">＋ категория</span>
     </div>
     <div class="viewtabs" id="viewtabs">

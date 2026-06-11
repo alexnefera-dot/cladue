@@ -63,6 +63,24 @@ test('узлы портфеля: добавление, переименован�
   assert.equal(db.prepare(`SELECT count(*) AS c FROM portfolio_items WHERE name = 'BTC'`).get().c, 0, 'актив удалился каскадом');
 });
 
+test('бивалютный портфель: $ конвертируется в € по курсу, итог в обеих валютах', () => {
+  const db = freshDb();
+  fin.rateSet(db, 'EURUSD', 1.25);              // 1 € = 1.25 $
+  const growth = db.prepare(`SELECT id FROM portfolio_items WHERE name = 'Блок роста'`).get();
+  fin.addItem(db, { parent_id: growth.id, name: 'IB', kind: 'section' });
+  const sec = db.prepare(`SELECT id FROM portfolio_items WHERE name = 'IB'`).get();
+  fin.addItem(db, { parent_id: sec.id, name: 'SGOV', kind: 'asset', value: 125, currency: '$', buy_value: 100 });
+  const d = fin.listFin(db);
+  const g = d.portfolio.find(b => b.id === growth.id);
+  assert.equal(g.eur, 100, '125$ / 1.25 = 100€');
+  assert.equal(d.summary.portfolioTotal, 475000 + 100, 'итог в €');
+  assert.ok(Math.abs(d.summary.portfolioTotalUsd - (475100 * 1.25)) < 0.01, 'итог в $');
+  assert.equal(g.invested, 80, 'покупка 100$ = 80€');
+  const asset = g.children[0].children[0];
+  assert.equal(asset.value, 125, 'у актива — родное значение в его валюте');
+  assert.equal(asset.currency, '$');
+});
+
 test('курсы: строки созданы, ручной ввод работает', () => {
   const db = freshDb();
   const rates = db.prepare('SELECT * FROM rates').all();

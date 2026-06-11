@@ -2,23 +2,31 @@ import { addChild, updateNode } from './core.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-// Дерево портфеля с агрегатами: value/buy/target секций и блоков = сумма детей
+// Курс EURUSD: долларов за 1 евро (из полосы курсов; дефолт, если не загружен)
+export function eurUsdRate(db) {
+  return db.prepare(`SELECT price FROM rates WHERE symbol = 'EURUSD'`).get()?.price || 1.08;
+}
+
+// Дерево портфеля. Активы — в своей валюте (€/$), агрегаты — в € по курсу.
+// value: у листа — родное значение; у раздела/блока — сумма в €.
 export function portfolioTree(db) {
+  const rate = eurUsdRate(db);
+  const toEur = (v, cur) => v == null ? null : (cur === '$' ? v / rate : v);
   const rows = db.prepare('SELECT * FROM portfolio_items ORDER BY parent_id NULLS FIRST, ord, id').all();
   const byP = {};
   rows.forEach(r => (byP[r.parent_id ?? 'root'] ??= []).push(r));
   const calc = r => {
     const children = (byP[r.id] ?? []).map(calc);
     const isLeaf = r.kind === 'asset' || !children.length;
-    const value = isLeaf ? (r.value ?? 0) : children.reduce((s, k) => s + k.value, 0);
-    // прирост честный: считаем только пары, где задана цена покупки
-    const invested = isLeaf ? (r.buy_value ?? null)
+    const eur = isLeaf ? (toEur(r.value, r.currency) ?? 0) : children.reduce((s, k) => s + k.eur, 0);
+    // прирост честный: считаем только пары, где задана цена покупки (в €)
+    const invested = isLeaf ? toEur(r.buy_value, r.currency)
       : children.some(k => k.invested != null) ? children.reduce((s, k) => s + (k.invested ?? 0), 0) : null;
-    const investedCur = isLeaf ? (r.buy_value != null ? (r.value ?? 0) : null)
+    const investedCur = isLeaf ? (r.buy_value != null ? (toEur(r.value, r.currency) ?? 0) : null)
       : children.some(k => k.investedCur != null) ? children.reduce((s, k) => s + (k.investedCur ?? 0), 0) : null;
     const target = r.target_value != null ? r.target_value
       : children.some(k => k.target != null) ? children.reduce((s, k) => s + (k.target ?? 0), 0) : null;
-    return { ...r, children, value, invested, investedCur, target };
+    return { ...r, children, eur, value: isLeaf ? r.value : eur, invested, investedCur, target };
   };
   return (byP['root'] ?? []).map(calc);
 }
@@ -27,7 +35,9 @@ export function listFin(db) {
   const accounts = db.prepare('SELECT * FROM accounts ORDER BY id').all()
     .map(a => ({ ...a, stale_days: Math.floor((Date.parse(today()) - Date.parse(a.balance_updated_at.slice(0, 10))) / 864e5) }));
   const portfolio = portfolioTree(db);
-  const portfolioTotal = portfolio.reduce((s, b) => s + b.value, 0);
+  const rate = eurUsdRate(db);
+  const portfolioTotal = portfolio.reduce((s, b) => s + b.eur, 0);          // в €
+  const portfolioTotalUsd = portfolioTotal * rate;                          // в $
   const invested = portfolio.reduce((s, b) => s + (b.invested ?? 0), 0);
   const investedCur = portfolio.reduce((s, b) => s + (b.investedCur ?? 0), 0);
   const steps = db.prepare(`SELECT * FROM steps ORDER BY status = 'done', planned_date IS NULL, planned_date, id`).all();
@@ -42,6 +52,8 @@ export function listFin(db) {
     summary: {
       accountsByCurrency: byCur,
       portfolioTotal,
+      portfolioTotalUsd,
+      rate,
       growth: invested ? { invested, current: investedCur, abs: investedCur - invested, pct: (investedCur - invested) / invested * 100 } : null,
       monthlyObligations: obligations.filter(o => o.period === 'monthly').reduce((s, o) => s + o.amount, 0),
       upcoming: obligations.filter(o => o.days_left != null && o.days_left <= 30),
@@ -56,7 +68,7 @@ export function addItem(db, b) {
     .run(b.parent_id ?? null, ord, b.name, b.kind ?? 'asset', b.buy_value ?? null, b.value ?? null, b.target_value ?? null);
 }
 export function patchItem(db, id, b) {
-  for (const k of ['name', 'buy_value', 'value', 'target_value', 'note'])
+  for (const k of ['name', 'buy_value', 'value', 'target_value', 'currency', 'note'])
     if (k in b) db.prepare(`UPDATE portfolio_items SET ${k} = ? WHERE id = ?`).run(b[k], id);
 }
 export function delItem(db, id) { db.prepare('DELETE FROM portfolio_items WHERE id = ?').run(id); }

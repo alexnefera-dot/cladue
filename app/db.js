@@ -120,6 +120,9 @@ export function createDb(path = ':memory:') {
   // рубли убраны: всё в € (доллар — по желанию на конкретной записи)
   db.exec(`UPDATE accounts SET currency = '€' WHERE currency = '₽'`);
   db.exec(`UPDATE obligations SET currency = '€' WHERE currency = '₽'`);
+  // бивалютный портфель: у актива своя валюта € или $
+  const pcols = db.prepare('PRAGMA table_info(portfolio_items)').all().map(c => c.name);
+  if (!pcols.includes('currency')) db.exec(`ALTER TABLE portfolio_items ADD COLUMN currency TEXT NOT NULL DEFAULT '€'`);
   return db;
 }
 
