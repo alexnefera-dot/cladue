@@ -8,6 +8,7 @@ import * as fin from './fin.js';
 import * as cal from './cal.js';
 import { buildToday } from './today.js';
 import * as life from './life.js';
+import * as notes from './notes.js';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const DB_PATH = process.env.PIPBOY_DB ?? join(ROOT, 'data.db');
@@ -125,6 +126,37 @@ const server = http.createServer(async (req, res) => {
       if (req.method === 'PATCH') { life.patchPerson(db, +m[1], await body(req)); return json(res, 200, { ok: true }); }
       if (req.method === 'DELETE') { life.delPerson(db, +m[1]); return json(res, 200, { ok: true }); }
     }
+    // ===== Инфо: страницы =====
+    if (p === '/api/pages' && req.method === 'GET') return json(res, 200, notes.listPages(db));
+    if (p === '/api/pages' && req.method === 'POST') {
+      const b = await body(req);
+      if (!b.title?.trim()) return json(res, 400, { error: 'title required' });
+      return json(res, 201, notes.addPage(db, b));
+    }
+    if (p === '/api/pages/search' && req.method === 'GET')
+      return json(res, 200, notes.searchPages(db, url.searchParams.get('q') ?? ''));
+    if (p === '/api/wiki' && req.method === 'GET')
+      return json(res, 200, notes.resolveWiki(db, url.searchParams.get('name') ?? '') ?? {});
+    if ((m = p.match(/^\/api\/pages\/(\d+)\/backlinks$/)) && req.method === 'GET')
+      return json(res, 200, notes.backlinks(db, +m[1]));
+    if ((m = p.match(/^\/api\/pages\/(\d+)\/move$/)) && req.method === 'POST') {
+      const b = await body(req);
+      try { return json(res, 200, notes.movePage(db, +m[1], b.parent_id ?? null)); }
+      catch (e) { return json(res, 400, { error: e.message }); }
+    }
+    if ((m = p.match(/^\/api\/pages\/(\d+)$/))) {
+      if (req.method === 'GET') {
+        const pg = notes.getPage(db, +m[1]);
+        return pg ? json(res, 200, pg) : json(res, 404, { error: 'not found' });
+      }
+      if (req.method === 'PATCH') return json(res, 200, notes.patchPage(db, +m[1], await body(req)));
+      if (req.method === 'DELETE') return json(res, 200, { deleted: notes.delPage(db, +m[1]) });
+    }
+    if ((m = p.match(/^\/api\/nodes\/(\d+)\/plan$/)) && req.method === 'POST') {
+      try { return json(res, 201, notes.planPage(db, +m[1])); }
+      catch (e) { return json(res, 400, { error: e.message }); }
+    }
+
     if (p === '/api/setting' && req.method === 'POST') {
       const b = await body(req);
       if (!['activity_month'].includes(b.key)) return json(res, 400, { error: 'unknown key' });

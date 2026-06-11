@@ -213,7 +213,10 @@ async function showCard(id, { silent = false } = {}) {
     <h3>Оригинал</h3>
     <div class="title">${esc(n.title)}</div>
     <div class="muted" style="margin-bottom:4px">${esc(pathOf(id) || 'корень')}</div>
-    <div class="btnrow"><span class="pill btn" data-editrow="${n.id}">✎ править текст</span></div>
+    <div class="btnrow">
+      <span class="pill btn" data-editrow="${n.id}">✎ править текст</span>
+      <span class="pill btn ok" data-planpage="${n.id}">📝 план</span>
+    </div>
 
     <h3>Заметка / рассуждение</h3>
     <textarea id="noteEdit" rows="3" placeholder="мысли, контекст, почему…">${esc(n.note)}</textarea>
@@ -329,6 +332,11 @@ document.addEventListener('click', async e => {
   }
   if (el.dataset.dis) { await api.dismiss(id, +el.dataset.dis); await load(); return; }
   if (el.dataset.editrow) { startInlineEdit(+el.dataset.editrow); return; }
+  if (el.dataset.planpage) {
+    const r = await fetch(`/api/nodes/${el.dataset.planpage}/plan`, { method: 'POST' }).then(x => x.json());
+    if (r.error) alert(r.error); else window.openPage(r.id);
+    return;
+  }
   if (el.dataset.addchild) { addChildInput(+el.dataset.addchild); return; }
   if (el.dataset.vw) { view = el.dataset.vw; renderBoard(); return; }
   if (el.dataset.addsubcat) {
@@ -548,7 +556,7 @@ document.getElementById('addTitle').addEventListener('keydown', async e => {
 
 
 // ===== Переключение экранов =====
-const SCREENS = { today: 'loadToday', list: null, fin: 'loadFin', cal: 'loadCal', people: 'loadPeople', routines: 'loadRoutines' };
+const SCREENS = { today: 'loadToday', list: null, fin: 'loadFin', cal: 'loadCal', people: 'loadPeople', routines: 'loadRoutines', notes: 'loadNotes' };
 window.showScreen = function (scr) {
   document.querySelectorAll('.side .item').forEach(i =>
     i.classList.toggle('active', i.dataset.screen === scr));
@@ -571,8 +579,15 @@ document.getElementById('searchbox').addEventListener('input', e => {
     const q = e.target.value.trim();
     const box = document.getElementById('searchres');
     if (!q) { box.innerHTML = ''; return; }
-    const res = await api.search(q);
-    box.innerHTML = res.map(t => `<div data-id="${t.id}">${esc(t.title)}</div>`).join('') || '<div>ничего</div>';
+    const [res, pages] = await Promise.all([
+      api.search(q),
+      fetch('/api/pages/search?q=' + encodeURIComponent(q)).then(r => r.json()).catch(() => []),
+    ]);
+    box.innerHTML = res.map(t => `<div data-id="${t.id}">☑ ${esc(t.title)}</div>`).join('')
+      + pages.map(p => `<div data-page="${p.id}">▤ ${esc(p.title)}</div>`).join('')
+      || '<div>ничего</div>';
+    box.querySelectorAll('[data-page]').forEach(el =>
+      el.addEventListener('click', () => window.openPage(+el.dataset.page)));
   }, 200);
 });
 

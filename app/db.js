@@ -175,6 +175,17 @@ export function createDb(path = ':memory:') {
       last_contact TEXT,
       note TEXT NOT NULL DEFAULT ''
     );
+    CREATE TABLE IF NOT EXISTS pages(           -- Инфо: страницы-заметки (наш Notion)
+      id INTEGER PRIMARY KEY,
+      parent_id INTEGER REFERENCES pages(id) ON DELETE CASCADE,
+      ord INTEGER NOT NULL DEFAULT 0,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL DEFAULT '',        -- markdown + [[вики-ссылки]]
+      node_id INTEGER,                         -- «План» задачи: страница привязана к записи
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE VIRTUAL TABLE IF NOT EXISTS page_fts USING fts5(title_norm, content_norm);
   `);
   // миграция существующих баз
   const cols = db.prepare('PRAGMA table_info(nodes)').all().map(c => c.name);
