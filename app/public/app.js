@@ -2,7 +2,8 @@ let state = null;
 let selected = null;            // строка, чья карточка открыта
 let picked = new Set();         // мультивыбор
 let visibleOrder = [];          // порядок видимых строк (для Shift-выбора)
-let view = 'tree';              // tree | prio | dates
+let view = 'tree';              // tree | tasker
+let taskerView = 'prio';        // prio | dates | groups
 const collapsed = new Set();
 
 const KIND = { task: ['задача','ok'], decision: ['решение','dec'], question: ['вопрос','p2'],
@@ -91,8 +92,16 @@ function renderBoard() {
   for (const n of state.nodes) (byParent[n.parent_id ?? 'root'] ??= []).push(n);
   document.querySelectorAll('#viewtabs [data-vw]').forEach(t =>
     t.classList.toggle('ok', t.dataset.vw === view));
-  if (view === 'prio') return renderFlat(prioGroups());
-  if (view === 'dates') return renderFlat(dateGroups());
+  if (view === 'tasker') {
+    const groups = taskerView === 'prio' ? prioGroups()
+      : taskerView === 'dates' ? dateGroups() : catGroups();
+    return renderFlat(groups, `
+      <div class="viewtabs" style="margin-bottom:8px">
+        <span class="pill btn ${taskerView === 'prio' ? 'ok' : ''}" data-tvw="prio">Приоритеты</span>
+        <span class="pill btn ${taskerView === 'dates' ? 'ok' : ''}" data-tvw="dates">Сроки</span>
+        <span class="pill btn ${taskerView === 'groups' ? 'ok' : ''}" data-tvw="groups">Группы</span>
+      </div>`);
+  }
   visibleOrder = [];
   const walk = (n, depth, idx) => {
     visibleOrder.push(n.id);
@@ -132,9 +141,26 @@ function dateGroups() {
   return Object.entries(g);
 }
 
-function renderFlat(groups) {
+// Группы задачника = корневые категории дерева
+function catGroups() {
+  const map = Object.fromEntries(state.nodes.map(n => [n.id, n]));
+  const rootOf = n => {
+    let cur = n;
+    while (cur.parent_id && map[cur.parent_id]) {
+      const p = map[cur.parent_id];
+      if (p.is_category && !p.parent_id) return p.title;
+      cur = p;
+    }
+    return cur.is_category ? cur.title : 'без группы';
+  };
+  const g = {};
+  for (const n of actionable()) (g[rootOf(n)] ??= []).push(n);
+  return Object.entries(g).sort((a, b) => b[1].length - a[1].length);
+}
+
+function renderFlat(groups, headerHtml = '') {
   visibleOrder = [];
-  document.getElementById('board').innerHTML = groups
+  document.getElementById('board').innerHTML = headerHtml + groups
     .filter(([, items]) => items.length)
     .map(([name, items]) => `<div class="sec">${name} · ${items.length}</div><div class="card">` +
       items.map(n => {
@@ -339,6 +365,7 @@ document.addEventListener('click', async e => {
   }
   if (el.dataset.addchild) { addChildInput(+el.dataset.addchild); return; }
   if (el.dataset.vw) { view = el.dataset.vw; renderBoard(); return; }
+  if (el.dataset.tvw) { taskerView = el.dataset.tvw; renderBoard(); return; }
   if (el.dataset.addsubcat) {
     const name = prompt('Название подкатегории:');
     if (name?.trim()) { await api.add({ title: name.trim(), parent_id: +el.dataset.addsubcat, is_category: 1 }); await load(); }
