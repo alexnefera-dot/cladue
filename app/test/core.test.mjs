@@ -213,3 +213,45 @@ test('поиск с гомоглифами работает по импорти�
   assert.equal(norm('х5'), 'x5');
   assert.ok(core.search(db, 'x5').some(n => n.title.includes('х5')));
 });
+
+test('повторяющаяся задача: при выполнении срок сдвигается, в лог пишется запись', () => {
+  const db = freshDb();
+  const inbox = catByTitle(db, 'Инбокс');
+  const n = core.addChild(db, inbox.id, 'Назначать даты заранее');
+  core.updateNode(db, n.id, { kind: 'task', due_date: '2026-06-15', repeat: 'monthly' });
+  const r1 = core.toggleNode(db, n.id);
+  assert.equal(r1.repeated, true);
+  assert.equal(r1.status, 'todo', 'не закрылась');
+  assert.equal(r1.due_date, '2026-07-15', 'срок уехал на месяц');
+  assert.match(core.listNodeLog(db, n.id)[0].note, /выполнено/);
+  core.updateNode(db, n.id, { due_date: '2026-01-31', repeat: 'weekly' });
+  assert.equal(core.toggleNode(db, n.id).due_date, '2026-02-07', 'неделя');
+  core.updateNode(db, n.id, { repeat: null });
+  assert.equal(core.toggleNode(db, n.id).status, 'done', 'без повтора закрывается как обычно');
+});
+
+test('лог задачи: добавление, список по убыванию, удаление', () => {
+  const db = freshDb();
+  const inbox = catByTitle(db, 'Инбокс');
+  const n = core.addChild(db, inbox.id, 'Виза');
+  core.addNodeLog(db, n.id, 'справки готовы', '2026-06-08');
+  core.addNodeLog(db, n.id, 'запись на 11:30');
+  const log = core.listNodeLog(db, n.id);
+  assert.equal(log.length, 2);
+  assert.equal(log[0].note, 'запись на 11:30', 'свежие сверху');
+  core.delNodeLog(db, log[1].id);
+  assert.equal(core.listNodeLog(db, n.id).length, 1);
+});
+
+test('авто-типизация при ручном добавлении; импорт не типизирует', () => {
+  const db = freshDb();
+  const inbox = catByTitle(db, 'Инбокс');
+  assert.equal(core.addChildAuto(db, inbox.id, 'Продать гараж до осени?').kind, 'question');
+  assert.equal(core.addChildAuto(db, inbox.id, 'Стоит ли менять брокера').kind, 'decision');
+  assert.equal(core.addChildAuto(db, inbox.id, 'НЕ ПАНИКОВАТЬ').kind, 'principle');
+  assert.equal(core.addChildAuto(db, inbox.id, 'Понять сроки ВНЖ').kind, 'task');
+  assert.equal(core.addChildAuto(db, inbox.id, 'мысли о лете').kind, null, 'непонятное остаётся строкой');
+  core.importBlock(db, inbox.id, 'Август продать х5?\n    Стоит ли половину Наталье?');
+  const imported = core.listTree(db).nodes.filter(n => n.title.includes('х5') || n.title.includes('Наталье'));
+  assert.ok(imported.every(n => n.kind === null), 'импорт сохраняет строки нетронутыми');
+});

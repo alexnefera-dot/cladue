@@ -70,7 +70,23 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/nodes' && req.method === 'POST') {
       const b = await body(req);
       if (!b.title?.trim()) return json(res, 400, { error: 'title required' });
-      return json(res, 201, core.addChild(db, b.parent_id ?? null, b.title.trim(), b.is_category ? 1 : 0));
+      // ручной ввод типизируется автоматически («?» → вопрос); категории и импорт — нет
+      return json(res, 201, b.is_category
+        ? core.addChild(db, b.parent_id ?? null, b.title.trim(), 1)
+        : core.addChildAuto(db, b.parent_id ?? null, b.title.trim()));
+    }
+    if ((m = p.match(/^\/api\/nodes\/(\d+)\/log$/))) {
+      if (req.method === 'GET') return json(res, 200, core.listNodeLog(db, +m[1]));
+      if (req.method === 'POST') {
+        const b = await body(req);
+        if (!b.note?.trim()) return json(res, 400, { error: 'note required' });
+        core.addNodeLog(db, +m[1], b.note.trim());
+        return json(res, 201, { ok: true });
+      }
+    }
+    if ((m = p.match(/^\/api\/nodelog\/(\d+)$/)) && req.method === 'DELETE') {
+      core.delNodeLog(db, +m[1]);
+      return json(res, 200, { ok: true });
     }
     if (p === '/api/merge' && req.method === 'POST') {
       const b = await body(req);

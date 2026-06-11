@@ -25,9 +25,25 @@ function taskLine(t) {
     ${t.priority ? `<span class="pill ${t.priority}">${t.priority}</span>` : ''}
     ${t.kind === 'decision' ? '<span class="pill dec">решение</span>' : ''}
     <span class="t" data-tdopen="${t.id}" style="cursor:pointer">${tesc(t.title)}</span>
+    ${t.repeat ? '<span class="meta">🔁</span>' : ''}
     <span class="meta">${t.due_date ?? ''}</span>
   </div>`;
 }
+
+// pre-flight для P0/P1 (данные приоритета — в today payload)
+window.preflightTodayOk = async function (id) {
+  const all = [...(tdData?.overdue ?? []), ...(tdData?.dueToday ?? [])];
+  const t = all.find(x => x.id === id);
+  if (!t || t.kind !== 'task' || !['P0', 'P1'].includes(t.priority)) return true;
+  const s = await fetch('/api/suggest/' + id).then(r => r.json()).catch(() => null);
+  if (!s) return true;
+  const lines = [
+    ...(s.blockers ?? []).map(b => `⛔ ${b.title}`),
+    ...(s.context?.decisions ?? []).map(d => `◆ ${d.title}`),
+    ...(s.context?.payments ?? []).map(o => `◈ ${o.name} (${o.next_date})`),
+  ];
+  return !lines.length || confirm(`🛫 Pre-flight «${t.title}»:\n\n${lines.join('\n')}\n\nВсё учтено — закрываем?`);
+};
 
 function renderToday() {
   const d = tdData;
@@ -115,7 +131,12 @@ function renderToday() {
 
 function bindToday() {
   document.querySelectorAll('#screen-today [data-tdtoggle]').forEach(el =>
-    el.addEventListener('click', async e => { e.stopPropagation(); await tdApi.toggle(+el.dataset.tdtoggle); window.loadToday(); }));
+    el.addEventListener('click', async e => {
+      e.stopPropagation();
+      if (window.preflightTodayOk && !await window.preflightTodayOk(+el.dataset.tdtoggle)) return;
+      await tdApi.toggle(+el.dataset.tdtoggle);
+      window.loadToday();
+    }));
   document.querySelectorAll('#screen-today [data-tdroutine]').forEach(el =>
     el.addEventListener('click', async () => { await tdApi.routineCheck(+el.dataset.tdroutine); window.loadToday(); }));
   document.querySelectorAll('#screen-today [data-tdcontact]').forEach(el =>

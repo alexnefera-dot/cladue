@@ -4,7 +4,29 @@ export function getNode(db, id) {
   return db.prepare('SELECT * FROM nodes WHERE id = ?').get(id);
 }
 
-const PATCHABLE = ['title', 'note', 'kind', 'status', 'priority', 'due_date', 'answer'];
+const PATCHABLE = ['title', 'note', 'kind', 'status', 'priority', 'due_date', 'answer', 'repeat'];
+
+// сдвиг срока повторяющейся задачи
+function shiftRepeat(iso, repeat) {
+  const d = new Date(iso + 'T00:00:00Z');
+  if (repeat === 'weekly') return new Date(d.getTime() + 7 * 864e5).toISOString().slice(0, 10);
+  const day = d.getUTCDate();
+  d.setUTCDate(1);
+  d.setUTCMonth(d.getUTCMonth() + (repeat === 'yearly' ? 12 : 1));
+  const last = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  d.setUTCDate(Math.min(day, last));
+  return d.toISOString().slice(0, 10);
+}
+
+// ===== Лог задачи: датированные записи хода =====
+export function addNodeLog(db, nodeId, note, date) {
+  db.prepare('INSERT INTO node_log(node_id, note, date) VALUES(?,?,COALESCE(?, date(\'now\')))')
+    .run(nodeId, note, date ?? null);
+}
+export function listNodeLog(db, nodeId, limit = 10) {
+  return db.prepare('SELECT * FROM node_log WHERE node_id = ? ORDER BY date DESC, id DESC LIMIT ?').all(nodeId, limit);
+}
+export function delNodeLog(db, id) { db.prepare('DELETE FROM node_log WHERE id = ?').run(id); }
 
 export function updateNode(db, id, fields) {
   const keys = Object.keys(fields).filter(k => PATCHABLE.includes(k));
@@ -33,11 +55,23 @@ export function toggleNode(db, id) {
   const next = t.kind === 'decision'
     ? (t.status === 'open' ? 'accepted' : 'open')
     : (t.status === 'done' ? 'todo' : 'done');
+  // повторяющаяся задача не закрывается: пишем в лог и сдвигаем срок
+  if (next === 'done' && t.kind === 'task' && t.repeat && t.due_date) {
+    addNodeLog(db, id, `✓ выполнено (повтор ${t.repeat})`);
+    return { ...updateNode(db, id, { due_date: shiftRepeat(t.due_date, t.repeat) }), repeated: true };
+  }
   const res = updateNode(db, id, { status: next });
   // если задача создана из шага портфеля — шаг следует за ней
   db.prepare('UPDATE steps SET status = ? WHERE task_id = ?')
     .run(next === 'done' ? 'done' : 'planned', id);
   return res;
+}
+
+// добавление с авто-типизацией («?» → вопрос и т.п.) — для ручного ввода; импорт не трогает
+export function addChildAuto(db, parent_id, title) {
+  const node = addChild(db, parent_id, title);
+  const k = suggestKind(title);
+  return k ? updateNode(db, node.id, { kind: k }) : node;
 }
 
 export function addChild(db, parent_id, title, is_category = 0) {

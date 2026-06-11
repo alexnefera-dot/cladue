@@ -228,6 +228,12 @@ export function createDb(path = ':memory:') {
       date TEXT NOT NULL DEFAULT (date('now')),
       note TEXT NOT NULL DEFAULT ''
     );
+    CREATE TABLE IF NOT EXISTS node_log(        -- «Лог» задачи: датированные записи хода
+      id INTEGER PRIMARY KEY,
+      node_id INTEGER NOT NULL REFERENCES nodes(id) ON DELETE CASCADE,
+      date TEXT NOT NULL DEFAULT (date('now')),
+      note TEXT NOT NULL DEFAULT ''
+    );
     CREATE TABLE IF NOT EXISTS trash(           -- корзина: удалённые поддеревья для восстановления
       id INTEGER PRIMARY KEY,
       kind TEXT NOT NULL,                      -- nodes|pages
@@ -239,6 +245,7 @@ export function createDb(path = ':memory:') {
   // миграция существующих баз
   const cols = db.prepare('PRAGMA table_info(nodes)').all().map(c => c.name);
   if (!cols.includes('answer')) db.exec('ALTER TABLE nodes ADD COLUMN answer TEXT');
+  if (!cols.includes('repeat')) db.exec('ALTER TABLE nodes ADD COLUMN repeat TEXT'); // weekly|monthly|yearly
   // рубли убраны: всё в € (доллар — по желанию на конкретной записи)
   db.exec(`UPDATE accounts SET currency = '€' WHERE currency = '₽'`);
   db.exec(`UPDATE obligations SET currency = '€' WHERE currency = '₽'`);

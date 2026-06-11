@@ -81,6 +81,7 @@ function nodeRow(n, depth, idx) {
     ${(n.kind === 'task' || n.kind === 'decision') ? `<span class="pill ${kc}">${kl}</span>` : ''}
     <span class="t ${done ? 'done' : ''}">${esc(n.title)}</span>
     ${n.blocked ? '<span class="meta">⛔</span>' : ''}
+    ${n.repeat ? '<span class="meta" title="повторяющаяся">🔁</span>' : ''}
     ${n.due_date ? `<span class="meta">${n.due_date}</span>` : ''}
     <span class="rowbtn" data-addchild="${n.id}" title="добавить вложенную">＋</span>
     <span class="rowbtn del" data-delrow="${n.id}" title="удалить">✕</span>
@@ -210,7 +211,10 @@ async function showCard(id, { silent = false } = {}) {
   selected = id;
   if (!silent) { picked = new Set([id]); }
   renderBoard();
-  const s = await api.suggest(id);
+  const [s, nodeLog] = await Promise.all([
+    api.suggest(id),
+    fetch(`/api/nodes/${id}/log`).then(r => r.json()).catch(() => []),
+  ]);
   if (!s || s.error) return;
   const n = s.node;
 
@@ -270,6 +274,18 @@ async function showCard(id, { silent = false } = {}) {
       <textarea id="answerEdit" rows="2" placeholder="формулировка решения — останется в истории…">${esc(n.answer ?? '')}</textarea>
       <div class="btnrow"><span class="pill btn ok" id="answerSave">сохранить решение</span></div>` : ''}
 
+    ${n.kind === 'task' ? `
+      <h3>Повтор</h3>
+      <div class="btnrow">${[['', 'нет'], ['weekly', 'неделя'], ['monthly', 'месяц'], ['yearly', 'год']]
+        .map(([v, l]) => `<span class="pill btn ${(n.repeat ?? '') === v ? 'ok' : ''}" data-setrepeat="${v}">${l}</span>`).join('')}</div>
+      ${n.repeat && !n.due_date ? '<div class="meta amber">для повтора нужен срок</div>' : ''}
+
+      <h3>Лог хода</h3>
+      ${nodeLog.map(l => `<div class="kv"><span>${l.date.slice(5)}</span>
+        <b style="text-align:right">${esc(l.note)} <span class="rowbtn del" style="opacity:1" data-dellog="${l.id}">✕</span></b></div>`).join('')
+        || '<div class="muted" style="font-size:11.5px">записей нет</div>'}
+      <input id="logInput" placeholder="запись хода… (Enter)" style="width:100%;border:1px solid var(--line);border-radius:7px;padding:6px 8px;font:12px var(--sans);margin-top:4px;background:var(--panel)">` : ''}
+
     <h3>Приоритет</h3>
     <div class="btnrow">${prioBtns} ${n.priority ? `<span class="pill btn" data-setprio="">сбросить</span>` : ''}</div>
 
@@ -321,6 +337,12 @@ async function showCard(id, { silent = false } = {}) {
     await api.patch(id, { note: document.getElementById('noteEdit').value.trim() });
     await load();
   });
+  document.getElementById('logInput')?.addEventListener('keydown', async e => {
+    if (e.key !== 'Enter' || !e.target.value.trim()) return;
+    await fetch(`/api/nodes/${id}/log`, { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ note: e.target.value.trim() }) });
+    showCard(id, { silent: true });
+  });
   document.getElementById('moveSel')?.addEventListener('change', async e => {
     if (!e.target.value) return;
     const r = await api.move(id, +e.target.value);
@@ -344,7 +366,19 @@ document.addEventListener('click', async e => {
     collapsed.has(f) ? collapsed.delete(f) : collapsed.add(f);
     renderBoard(); return;
   }
-  if (el.dataset.toggle) { e.stopPropagation(); await api.toggle(+el.dataset.toggle); await load(); return; }
+  if (el.dataset.toggle) {
+    e.stopPropagation();
+    if (!await window.preflightOk(+el.dataset.toggle)) return;
+    await api.toggle(+el.dataset.toggle);
+    await load();
+    return;
+  }
+  if ('setrepeat' in el.dataset) { await api.patch(id, { repeat: el.dataset.setrepeat || null }); await load(); return; }
+  if (el.dataset.dellog) {
+    await fetch('/api/nodelog/' + el.dataset.dellog, { method: 'DELETE' });
+    showCard(id, { silent: true });
+    return;
+  }
   if ('setkind' in el.dataset) { await api.patch(id, { kind: el.dataset.setkind || null }); await load(); return; }
   if ('setprio' in el.dataset) { await api.patch(id, { priority: el.dataset.setprio || null }); await load(); return; }
   if ('setdate' in el.dataset) { await api.patch(id, { due_date: el.dataset.setdate || null }); await load(); return; }
@@ -597,6 +631,22 @@ document.querySelectorAll('.side .item[data-screen]').forEach(el =>
   el.addEventListener('click', () => showScreen(el.dataset.screen)));
 // открыть карточку записи из другого экрана (календарь и т.п.)
 window.openNode = function (id) { showScreen('list'); showCard(id); };
+
+// ===== Pre-flight: перед закрытием важной задачи (P0/P1) показываем блокеры =====
+window.preflightOk = async function (id) {
+  const n = state?.nodes.find(x => x.id === id);
+  if (!n || n.kind !== 'task' || n.status === 'done' || !['P0', 'P1'].includes(n.priority)) return true;
+  const s = await fetch('/api/suggest/' + id).then(r => r.json()).catch(() => null);
+  if (!s) return true;
+  const lines = [
+    ...(s.blockers ?? []).map(b => `⛔ блокирует: ${b.title}`),
+    ...(s.context?.decisions ?? []).map(d => `◆ решение открыто: ${d.title}`),
+    ...(s.context?.payments ?? []).map(o => `◈ платёж рядом: ${o.name} (${o.next_date})`),
+    ...(s.context?.principles ?? []).map(p => `◇ принцип: ${p.title}`),
+  ];
+  if (!lines.length) return true;
+  return confirm(`🛫 Pre-flight «${n.title}» — перед закрытием проверь:\n\n${lines.join('\n')}\n\nВсё учтено — закрываем?`);
+};
 
 // ===== Экспорт, бэкап, корзина =====
 document.getElementById('exportBtn').addEventListener('click', async () => {
