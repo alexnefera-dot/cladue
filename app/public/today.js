@@ -52,14 +52,16 @@ function renderToday() {
       <div class="bignum">${pct}%</div>
       <div class="bar"><i style="width:${pct}%"></i></div>
       <div class="meta">${d.progress.typed} из ${d.progress.total} · в инбоксе: ${d.inbox}</div></div>
-    <div class="card"><div class="meta">РУТИНЫ · ${rDone}/${d.routines.length}</div>
-      ${d.routines.slice(0, 4).map(r => `
+    <div class="card"><div class="meta">РУТИНЫ · ${rDone}/${d.routines.length} · по времени</div>
+      ${d.routines.slice(0, 5).map(r => `
         <div class="task" style="padding:4px 0">
           <span class="cb ${r.done ? 'done' : ''}" data-tdroutine="${r.id}"></span>
+          ${r.time ? `<span class="meta num ${r.due ? 'amber' : ''}">${r.time}</span>` : ''}
           <span class="t ${r.done ? 'done' : ''}">${tesc(r.name)}</span>
+          ${r.due ? '<span class="pill p1">пора!</span>' : ''}
           ${r.streak ? `<span class="meta">🔥 ${r.streak}</span>` : ''}
         </div>`).join('') || '<div class="empty">добавь рутины в разделе ↻</div>'}
-      ${d.routines.length > 4 ? `<div class="meta" style="cursor:pointer" data-tdgoto="routines">все ${d.routines.length} →</div>` : ''}</div>
+      ${d.routines.length > 5 ? `<div class="meta" style="cursor:pointer" data-tdgoto="routines">все ${d.routines.length} →</div>` : ''}</div>
   </div>
 
   ${d.overdue.length ? `<div class="sec" style="color:var(--red)">⚠ Просрочено</div>

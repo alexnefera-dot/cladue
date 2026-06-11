@@ -27,6 +27,7 @@ window.loadRoutines = async function () {
           <div class="task">
             <span class="cb ${r.done ? 'done' : ''}" data-lfcheck="${r.id}"></span>
             <span class="t ${r.done ? 'done' : ''} ed" data-lfren="${r.id}" title="клик — переименовать">${lesc(r.name)}</span>
+            <span class="ed meta num" data-lftime="${r.id}" title="фикс. время — напоминание (клик)">${r.time ? '⏰ ' + r.time : '+время'}</span>
             ${r.streak ? `<span class="meta">🔥 ${r.streak}</span>` : ''}
             <span class="rowbtn del" data-lfdel="${r.id}">✕</span>
           </div>`).join('') || '<div class="empty">пусто</div>'}
@@ -35,7 +36,12 @@ window.loadRoutines = async function () {
   <div class="card"><div class="task finadd">
     <input id="rtName" placeholder="новая рутина: таблетка, миноксидил, отжимания 3×15…">
     <select id="rtSlot">${SLOTS.map(s => `<option>${s}</option>`).join('')}</select>
+    <input id="rtTime" placeholder="чч:мм (опц.)" style="width:95px">
     <span class="pill btn ok" id="rtAdd">＋</span>
+  </div></div>
+  <div class="card"><div class="task" style="border:0">
+    <span class="pill btn ${localStorage.rtNotifyOn === '1' ? 'ok' : ''}" id="rtNotify">🔔 напоминания в браузере: ${localStorage.rtNotifyOn === '1' ? 'вкл' : 'выкл'}</span>
+    <span class="meta">рутина с ⏰ временем пришлёт уведомление, пока приложение открыто · в мобильной версии будут системные пуши</span>
   </div></div>
   <div class="footer-hint">Стрик 🔥 — подряд отмеченные дни. Тепловая карта и привязка к практикам — этап 4.</div>`;
 
@@ -50,13 +56,52 @@ window.loadRoutines = async function () {
     el.addEventListener('click', async () => {
       if (confirm('Удалить рутину (с историей отметок)?')) { await lfApi.rDel(+el.dataset.lfdel); window.loadRoutines(); }
     }));
+  document.querySelectorAll('#screen-routines [data-lftime]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const v = prompt('Фиксированное время (чч:мм, пусто — убрать):', el.textContent.replace('⏰', '').trim());
+      if (v == null) return;
+      const t = v.trim();
+      if (t && !/^([01]?\d|2[0-3]):[0-5]\d$/.test(t)) { alert('Формат: 07:30'); return; }
+      await lfApi.rPatch(+el.dataset.lftime, { time: t ? t.padStart(5, '0') : null });
+      window.loadRoutines();
+    }));
+  document.getElementById('rtNotify')?.addEventListener('click', async () => {
+    if (localStorage.rtNotifyOn === '1') { localStorage.rtNotifyOn = '0'; window.loadRoutines(); return; }
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') { alert('Браузер не дал разрешение на уведомления'); return; }
+    localStorage.rtNotifyOn = '1';
+    window.loadRoutines();
+  });
   document.getElementById('rtAdd')?.addEventListener('click', async () => {
     const name = document.getElementById('rtName').value.trim();
     if (!name) return;
-    await lfApi.rAdd({ name, slot: document.getElementById('rtSlot').value });
+    const t = document.getElementById('rtTime').value.trim();
+    await lfApi.rAdd({ name, slot: document.getElementById('rtSlot').value,
+      time: /^([01]?\d|2[0-3]):[0-5]\d$/.test(t) ? t.padStart(5, '0') : null });
     window.loadRoutines();
   });
 };
+
+// ===== Напоминания: пока вкладка открыта, рутина с ⏰ шлёт браузерное уведомление.
+// То же поле time станет источником системных пушей в мобильной версии.
+async function routineReminderTick() {
+  if (localStorage.rtNotifyOn !== '1' || typeof Notification === 'undefined'
+      || Notification.permission !== 'granted') return;
+  const now = new Date();
+  const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const key = 'rtNotified:' + now.toISOString().slice(0, 10);
+  const notified = new Set(JSON.parse(localStorage.getItem(key) ?? '[]'));
+  let rows;
+  try { rows = await lfApi.routines(); } catch { return; }
+  for (const r of rows) {
+    if (!r.time || r.done || notified.has(r.id) || r.time > hhmm) continue;
+    new Notification('⏰ ' + r.name, { body: `Рутина на ${r.time} — пора. Стрик: ${r.streak} 🔥`, tag: 'routine-' + r.id });
+    notified.add(r.id);
+  }
+  localStorage.setItem(key, JSON.stringify([...notified]));
+}
+setInterval(routineReminderTick, 30000);
+routineReminderTick();
 
 // ===== Люди =====
 window.loadPeople = async function () {

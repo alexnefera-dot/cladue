@@ -196,6 +196,9 @@ export function createDb(path = ':memory:') {
   // связь шага портфеля с задачей: дедупликация в календаре и синк статусов
   const scols = db.prepare('PRAGMA table_info(steps)').all().map(c => c.name);
   if (!scols.includes('task_id')) db.exec(`ALTER TABLE steps ADD COLUMN task_id INTEGER`);
+  // фиксированное время рутины (HH:MM) — для сортировки и напоминаний
+  const rcols = db.prepare('PRAGMA table_info(routines)').all().map(c => c.name);
+  if (!rcols.includes('time')) db.exec(`ALTER TABLE routines ADD COLUMN time TEXT`);
   return db;
 }
 

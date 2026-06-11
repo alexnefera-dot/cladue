@@ -20,11 +20,11 @@ export function routineStreak(db, id) {
 
 export function addRoutine(db, b) {
   const ord = db.prepare('SELECT COALESCE(MAX(ord),0)+1 AS o FROM routines').get().o;
-  db.prepare('INSERT INTO routines(name, slot, ord, note) VALUES(?,?,?,?)')
-    .run(b.name, b.slot ?? 'утро', ord, b.note ?? '');
+  db.prepare('INSERT INTO routines(name, slot, time, ord, note) VALUES(?,?,?,?,?)')
+    .run(b.name, b.slot ?? 'утро', b.time ?? null, ord, b.note ?? '');
 }
 export function patchRoutine(db, id, b) {
-  for (const k of ['name', 'slot', 'note'])
+  for (const k of ['name', 'slot', 'time', 'note'])
     if (k in b) db.prepare(`UPDATE routines SET ${k} = ? WHERE id = ?`).run(b[k], id);
 }
 export function delRoutine(db, id) { db.prepare('DELETE FROM routines WHERE id = ?').run(id); }
@@ -36,6 +36,22 @@ export function toggleRoutineToday(db, id) {
   if (has) db.prepare('DELETE FROM routine_log WHERE routine_id = ? AND date = ?').run(id, t);
   else db.prepare('INSERT INTO routine_log(routine_id, date) VALUES(?,?)').run(id, t);
   return !has;
+}
+
+// Приоритет на дашборде: невыполненные раньше выполненных; с временем — раньше и по времени;
+// без времени — по слоту (утро → день → вечер). Просроченное время помечается due=true.
+const SLOT_ORD = { 'утро': 0, 'день': 1, 'вечер': 2 };
+
+export function sortRoutines(rows, now = new Date()) {
+  const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  return rows
+    .map(r => ({ ...r, due: !r.done && !!r.time && r.time <= hhmm }))
+    .sort((a, b) => {
+      if (a.done !== b.done) return a.done ? 1 : -1;
+      if (!!a.time !== !!b.time) return a.time ? -1 : 1;
+      if (a.time && b.time && a.time !== b.time) return a.time < b.time ? -1 : 1;
+      return (SLOT_ORD[a.slot] ?? 9) - (SLOT_ORD[b.slot] ?? 9) || a.ord - b.ord;
+    });
 }
 
 // ===== Люди =====

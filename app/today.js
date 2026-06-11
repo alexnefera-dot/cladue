@@ -1,6 +1,6 @@
 import { calendar } from './cal.js';
 import { listFin, getSetting } from './fin.js';
-import { listRoutines, listPeople } from './life.js';
+import { listRoutines, listPeople, sortRoutines } from './life.js';
 
 const iso = d => d.toISOString().slice(0, 10);
 
@@ -70,7 +70,7 @@ export function buildToday(db) {
   return {
     date: today,
     activityMonth: getSetting(db, 'activity_month', null),
-    routines: listRoutines(db),
+    routines: sortRoutines(listRoutines(db)),
     overdue, dueToday, week, events,
     zones: { paymentsWeek: payments7.length, debtsOverdue: debtsOverdue.length },
     people: {

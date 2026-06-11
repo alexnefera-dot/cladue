@@ -71,3 +71,25 @@ test('дашборд: рутины, люди, зоны и движение не�
   assert.ok(!('fire' in t), 'FIRE с дашборда убран');
   assert.ok(!('portfolioDelta' in t), 'портфель с дашборда убран');
 });
+
+test('рутины: время хранится, дашборд сортирует по приоритету времени', () => {
+  const db = freshDb();
+  life.addRoutine(db, { name: 'Чтение', slot: 'вечер' });
+  life.addRoutine(db, { name: 'Зарядка', slot: 'утро' });
+  life.addRoutine(db, { name: 'Таблетка', slot: 'утро', time: '08:00' });
+  life.addRoutine(db, { name: 'Миноксидил', slot: 'вечер', time: '21:00' });
+  const tabl = life.listRoutines(db).find(r => r.name === 'Таблетка');
+  life.toggleRoutineToday(db, tabl.id); // выполнена — уходит вниз
+
+  const now = new Date(); now.setHours(12, 0);
+  const sorted = life.sortRoutines(life.listRoutines(db), now);
+  assert.deepEqual(sorted.map(r => r.name),
+    ['Миноксидил', 'Зарядка', 'Чтение', 'Таблетка'],
+    'время → слоты → выполненные в конец');
+  assert.equal(sorted.find(r => r.name === 'Миноксидил').due, false, '21:00 ещё не пора в полдень');
+  const evening = new Date(); evening.setHours(22, 0);
+  assert.equal(life.sortRoutines(life.listRoutines(db), evening).find(r => r.name === 'Миноксидил').due,
+    true, 'после 21:00 — пора');
+  life.patchRoutine(db, tabl.id, { time: '07:30' });
+  assert.equal(life.listRoutines(db).find(r => r.name === 'Таблетка').time, '07:30');
+});
