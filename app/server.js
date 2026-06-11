@@ -35,7 +35,12 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/nodes' && req.method === 'POST') {
       const b = await body(req);
       if (!b.title?.trim()) return json(res, 400, { error: 'title required' });
-      return json(res, 201, core.addChild(db, b.parent_id ?? null, b.title.trim()));
+      return json(res, 201, core.addChild(db, b.parent_id ?? null, b.title.trim(), b.is_category ? 1 : 0));
+    }
+    if (p === '/api/merge' && req.method === 'POST') {
+      const b = await body(req);
+      try { return json(res, 200, core.mergeNodes(db, b.keep_id, b.dup_id)); }
+      catch (e) { return json(res, 400, { error: e.message }); }
     }
     if ((m = p.match(/^\/api\/nodes\/(\d+)$/)) && req.method === 'PATCH')
       return json(res, 200, core.updateNode(db, +m[1], await body(req)));

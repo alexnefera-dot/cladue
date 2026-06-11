@@ -2,6 +2,7 @@ let state = null;
 let selected = null;            // строка, чья карточка открыта
 let picked = new Set();         // мультивыбор
 let visibleOrder = [];          // порядок видимых строк (для Shift-выбора)
+let view = 'tree';              // tree | prio | dates
 const collapsed = new Set();
 
 const KIND = { task: ['задача','ok'], decision: ['решение','dec'], question: ['вопрос','p2'],
@@ -19,6 +20,7 @@ const api = {
   link: b => fetch('/api/links', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json()),
   del: id => fetch('/api/nodes/' + id, { method: 'DELETE' }).then(r => r.json()),
   unlink: id => fetch('/api/links/' + id, { method: 'DELETE' }),
+  merge: b => fetch('/api/merge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json()),
   dismiss: (a, b) => fetch('/api/dismiss', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ a, b }) }),
   search: q => fetch('/api/search?q=' + encodeURIComponent(q)).then(r => r.json()),
 };
@@ -47,8 +49,9 @@ function renderStatus() {
   const blocked = real.filter(n => n.blocked).length;
   const inboxId = state.nodes.find(n => n.is_category && n.title.includes('Инбокс'))?.id;
   const inbox = inboxId ? state.nodes.filter(n => n.parent_id === inboxId).length : 0;
+  const pct = real.length ? Math.round(typed / real.length * 100) : 0;
   document.getElementById('statusbar').textContent =
-    `записей: ${real.length} · типизировано: ${typed} · связей: ${state.links.length} · заблокировано: ${blocked} · в инбоксе: ${inbox}`;
+    `разобрано: ${typed} из ${real.length} (${pct}%) · связей: ${state.links.length} · заблокировано: ${blocked} · в инбоксе: ${inbox}`;
 }
 
 function nodeRow(n, depth, idx) {
@@ -86,6 +89,10 @@ function nodeRow(n, depth, idx) {
 function renderBoard() {
   byParent = {};
   for (const n of state.nodes) (byParent[n.parent_id ?? 'root'] ??= []).push(n);
+  document.querySelectorAll('#viewtabs [data-vw]').forEach(t =>
+    t.classList.toggle('ok', t.dataset.vw === view));
+  if (view === 'prio') return renderFlat(prioGroups());
+  if (view === 'dates') return renderFlat(dateGroups());
   visibleOrder = [];
   const walk = (n, depth, idx) => {
     visibleOrder.push(n.id);
@@ -94,6 +101,57 @@ function renderBoard() {
   };
   document.getElementById('board').innerHTML =
     `<div class="card">${(byParent['root'] ?? []).map((n, i) => walk(n, 0, i + 1)).join('')}</div>`;
+  renderBulkbar();
+}
+
+// ===== Плоские виды поверх категорий =====
+function actionable() {  // типизированные задачи и решения, не закрытые
+  return state.nodes.filter(n => !n.is_category
+    && (n.kind === 'task' || n.kind === 'decision')
+    && !['done', 'accepted'].includes(n.status));
+}
+
+function prioGroups() {
+  const g = { P0: [], P1: [], P2: [], P3: [], 'без приоритета': [] };
+  for (const n of actionable()) (g[n.priority ?? 'без приоритета'] ?? g['без приоритета']).push(n);
+  return Object.entries(g);
+}
+
+function dateGroups() {
+  const today = new Date().toISOString().slice(0, 10);
+  const week = new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10);
+  const g = { '⚠ просрочено': [], 'сегодня': [], 'эта неделя': [], 'позже': [], 'без срока': [] };
+  for (const n of actionable()) {
+    if (!n.due_date) g['без срока'].push(n);
+    else if (n.due_date < today) g['⚠ просрочено'].push(n);
+    else if (n.due_date === today) g['сегодня'].push(n);
+    else if (n.due_date <= week) g['эта неделя'].push(n);
+    else g['позже'].push(n);
+  }
+  for (const k of Object.keys(g)) g[k].sort((a, b) => (a.due_date ?? '9') < (b.due_date ?? '9') ? -1 : 1);
+  return Object.entries(g);
+}
+
+function renderFlat(groups) {
+  visibleOrder = [];
+  document.getElementById('board').innerHTML = groups
+    .filter(([, items]) => items.length)
+    .map(([name, items]) => `<div class="sec">${name} · ${items.length}</div><div class="card">` +
+      items.map(n => {
+        visibleOrder.push(n.id);
+        const done = n.status === 'done' || n.status === 'accepted';
+        const [kl, kc] = KIND[n.kind];
+        return `<div class="task ${n.blocked ? 'blocked' : ''} ${picked.has(n.id) ? 'sel' : ''}" data-id="${n.id}">
+          <span class="cb ${n.kind === 'decision' ? 'dec' : ''} ${done ? 'done' : ''}" data-toggle="${n.id}"></span>
+          ${n.priority ? `<span class="pill ${n.priority}">${n.priority}</span>` : ''}
+          <span class="pill ${kc}">${kl}</span>
+          <span class="t">${esc(n.title)}</span>
+          ${n.blocked ? '<span class="meta">⛔</span>' : ''}
+          <span class="meta">${esc(pathOf(n.id))}</span>
+          ${n.due_date ? `<span class="meta">${n.due_date}</span>` : ''}
+        </div>`;
+      }).join('') + '</div>').join('')
+    || '<div class="card"><div class="empty">Нет типизированных задач/решений — типизируй записи в дереве, и они появятся здесь</div></div>';
   renderBulkbar();
 }
 
@@ -135,8 +193,11 @@ async function showCard(id, { silent = false } = {}) {
       <h3>Категория</h3>
       <div class="title">${esc(n.title)}</div>
       <div class="muted">${esc(pathOf(id) || 'верхний уровень')}</div>
-      <div class="muted" style="margin-top:8px">Внутри: ${countItems(id)}.
-        Строка внизу добавит запись сюда; перетаскивай строки прямо на категорию.</div>`;
+      <div class="muted" style="margin-top:8px">Внутри: ${countItems(id)}. Перетаскивай строки прямо на категорию.</div>
+      <div class="btnrow" style="margin-top:10px">
+        <span class="pill btn ok" data-addsubcat="${n.id}">＋ подкатегория</span>
+        <span class="pill btn danger" data-delrow="${n.id}">🗑 удалить категорию</span>
+      </div>`;
     return;
   }
 
@@ -175,6 +236,11 @@ async function showCard(id, { silent = false } = {}) {
           ? (n.status === 'open' ? '✓ принять решение' : '↺ снова открыть')
           : (n.status === 'done' ? '↺ вернуть в работу' : '✓ выполнено')}</span>` : ''}
 
+    ${n.kind === 'decision' ? `
+      <h3>Что решено</h3>
+      <textarea id="answerEdit" rows="2" placeholder="формулировка решения — останется в истории…">${esc(n.answer ?? '')}</textarea>
+      <div class="btnrow"><span class="pill btn ok" id="answerSave">сохранить решение</span></div>` : ''}
+
     <h3>Приоритет</h3>
     <div class="btnrow">${prioBtns} ${n.priority ? `<span class="pill btn" data-setprio="">сбросить</span>` : ''}</div>
 
@@ -198,15 +264,27 @@ async function showCard(id, { silent = false } = {}) {
           <span class="pill btn ok" data-acc="${c.node.id}" data-type="related">⛓ связать</span>
           <span class="pill btn" data-acc="${c.node.id}" data-type="blocked-by">⛔ это блокер</span>
           <span class="pill btn" data-acc="${c.node.id}" data-type="blocks">→ я блокирую</span>
+          <span class="pill btn" data-merge="${c.node.id}">⥂ объединить</span>
           <span class="pill btn" data-dis="${c.node.id}">✕ скрыть</span>
         </div>
       </div>`).join('')
     : '<div class="muted">кандидатов не найдено</div>'}
 
+    ${s.context?.principles.length ? `<h3>◇ Принципы ветки <span class="hintstar">информационно</span></h3>` +
+      s.context.principles.map(p => `<div class="ritem" data-id="${p.id}"><div class="rt">${esc(p.title)}</div>
+        <div class="rm">${esc(pathOf(p.id))}</div></div>`).join('') : ''}
+    ${s.context?.decisions.length ? `<h3>◆ Открытые решения рядом</h3>` +
+      s.context.decisions.map(d => `<div class="ritem warn" data-id="${d.id}"><div class="rt">${esc(d.title)}</div>
+        <div class="rm">${esc(pathOf(d.id))} · решение открыто</div></div>`).join('') : ''}
+
     <h3>Опасная зона</h3>
     <span class="pill btn danger" data-del="${n.id}">🗑 удалить${subCount ? ` (и ${subCount} вложенных)` : ''}</span>
   `;
 
+  document.getElementById('answerSave')?.addEventListener('click', async () => {
+    await api.patch(id, { answer: document.getElementById('answerEdit').value.trim() || null });
+    await load();
+  });
   document.getElementById('noteSave')?.addEventListener('click', async () => {
     await api.patch(id, { note: document.getElementById('noteEdit').value.trim() });
     await load();
@@ -249,6 +327,27 @@ document.addEventListener('click', async e => {
   if (el.dataset.dis) { await api.dismiss(id, +el.dataset.dis); await load(); return; }
   if (el.dataset.editrow) { startInlineEdit(+el.dataset.editrow); return; }
   if (el.dataset.addchild) { addChildInput(+el.dataset.addchild); return; }
+  if (el.dataset.vw) { view = el.dataset.vw; renderBoard(); return; }
+  if (el.dataset.addsubcat) {
+    const name = prompt('Название подкатегории:');
+    if (name?.trim()) { await api.add({ title: name.trim(), parent_id: +el.dataset.addsubcat, is_category: 1 }); await load(); }
+    return;
+  }
+  if (el.id === 'addCatBtn') {
+    const name = prompt('Название новой категории (верхний уровень):');
+    if (name?.trim()) { await api.add({ title: name.trim(), parent_id: null, is_category: 1 }); await load(); }
+    return;
+  }
+  if (el.dataset.merge) {
+    const other = +el.dataset.merge;
+    const o = state.nodes.find(x => x.id === other);
+    if (confirm(`Объединить «${o?.title}» с текущей записью?\nВложенные и связи переедут сюда, дубль удалится, дедлайн возьмём более ранний.`)) {
+      const r = await api.merge({ keep_id: id, dup_id: other });
+      if (r.error) alert(r.error);
+      await load();
+    }
+    return;
+  }
   if (el.dataset.delrow) {
     const did = +el.dataset.delrow;
     const n = state.nodes.find(x => x.id === did);
@@ -273,7 +372,7 @@ document.addEventListener('click', async e => {
     return;
   }
 
-  const row = el.closest('.task[data-id]');
+  const row = el.closest('[data-id]');
   if (!row) return;
   const rid = +row.dataset.id;
   if (e.metaKey || e.ctrlKey) {                       // ⌘-клик: добавить/убрать из выбора

@@ -47,6 +47,9 @@ export function createDb(path = ':memory:') {
     );
     CREATE VIRTUAL TABLE IF NOT EXISTS node_fts USING fts5(title_norm, note_norm);
   `);
+  // миграция существующих баз
+  const cols = db.prepare('PRAGMA table_info(nodes)').all().map(c => c.name);
+  if (!cols.includes('answer')) db.exec('ALTER TABLE nodes ADD COLUMN answer TEXT');
   return db;
 }
 

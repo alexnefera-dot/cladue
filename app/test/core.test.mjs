@@ -160,6 +160,52 @@ test('редактирование: новый текст ищется, стар
   assert.ok(!core.search(db, 'понять').some(x => x.id === n.id));
 });
 
+test('объединение дублей: дети и связи переезжают, дедлайн строже, дубль исчезает', () => {
+  const db = freshDb();
+  const inbox = catByTitle(db, 'Инбокс');
+  core.importBlock(db, inbox.id, BLOCK);
+  core.importBlock(db, inbox.id, 'Продать х5 до надо\n    уточнить дату росписи');
+  const keep = byTitle(db, 'Август продать');
+  const dup = byTitle(db, 'Продать х5 до надо');
+  core.updateNode(db, keep.id, { kind: 'task', due_date: '2026-08-31' });
+  core.updateNode(db, dup.id, { kind: 'task', due_date: '2026-07-20', priority: 'P0' });
+  const other = core.addChild(db, inbox.id, 'Налоги закрыть');
+  core.updateNode(db, other.id, { kind: 'task' });
+  core.addLink(db, other.id, dup.id, 'blocks');
+  const merged = core.mergeNodes(db, keep.id, dup.id);
+  assert.equal(merged.due_date, '2026-07-20', 'взят более ранний срок');
+  assert.equal(merged.priority, 'P0');
+  assert.match(merged.note, /объединено/);
+  assert.ok(!byTitle(db, 'до надо'), 'дубль удалён');
+  assert.ok(byTitle(db, 'уточнить дату росписи').parent_id === keep.id, 'ребёнок переехал');
+  assert.equal(byTitle(db, 'Август продать').blocked, true, 'связь-блокер перешла');
+  assert.equal(core.search(db, 'надо').filter(n => n.id === dup.id).length, 0);
+});
+
+test('контекст ветки: принципы и открытые решения видны информационно', () => {
+  const db = freshDb();
+  const inbox = catByTitle(db, 'Инбокс');
+  core.importBlock(db, inbox.id, BLOCK);
+  core.updateNode(db, byTitle(db, 'НЕ СПЕШИМ').id, { kind: 'principle' });
+  core.updateNode(db, byTitle(db, 'половину Наталье').id, { kind: 'decision' });
+  const s = core.suggestForNode(db, byTitle(db, 'Август продать').id);
+  assert.match(s.context.principles.map(p => p.title).join('|'), /НЕ СПЕШИМ/);
+  assert.match(s.context.decisions.map(d => d.title).join('|'), /Наталье/);
+});
+
+test('ответ решения сохраняется; категории создаются через addChild', () => {
+  const db = freshDb();
+  const inbox = catByTitle(db, 'Инбокс');
+  core.importBlock(db, inbox.id, BLOCK);
+  const d = byTitle(db, 'половину Наталье');
+  core.updateNode(db, d.id, { kind: 'decision' });
+  core.updateNode(db, d.id, { answer: 'Да, после консультации по договору', status: 'accepted' });
+  assert.equal(core.getNode(db, d.id).answer, 'Да, после консультации по договору');
+  const cat = core.addChild(db, null, 'Спорт', 1);
+  assert.equal(cat.is_category, 1);
+  assert.ok(core.listCategories(db).some(c => c.title === 'Спорт'));
+});
+
 test('поиск с гомоглифами работает по импортированному', () => {
   const db = freshDb();
   core.importBlock(db, catByTitle(db, 'Инбокс').id, BLOCK);

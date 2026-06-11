@@ -91,3 +91,5 @@ body{background:var(--bg);color:var(--text);font:14px/1.45 var(--sans);height:10
 .task:hover .rowbtn{opacity:1}
 .rowbtn:hover{background:var(--green-soft);color:var(--green)}
 .rowbtn.del:hover{background:rgba(204,68,68,.1);color:var(--red)}
+.viewtabs{display:flex;gap:6px;margin-bottom:10px}
+#answerEdit{width:100%;border:1px solid var(--line);border-radius:7px;padding:7px 9px;font:12.5px/1.5 var(--sans);background:var(--panel);resize:vertical;margin-bottom:4px}

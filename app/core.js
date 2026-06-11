@@ -4,7 +4,7 @@ export function getNode(db, id) {
   return db.prepare('SELECT * FROM nodes WHERE id = ?').get(id);
 }
 
-const PATCHABLE = ['title', 'note', 'kind', 'status', 'priority', 'due_date'];
+const PATCHABLE = ['title', 'note', 'kind', 'status', 'priority', 'due_date', 'answer'];
 
 export function updateNode(db, id, fields) {
   const keys = Object.keys(fields).filter(k => PATCHABLE.includes(k));
@@ -36,8 +36,8 @@ export function toggleNode(db, id) {
   return updateNode(db, id, { status: next });
 }
 
-export function addChild(db, parent_id, title) {
-  const id = insertNode(db, parent_id ?? null, title);
+export function addChild(db, parent_id, title, is_category = 0) {
+  const id = insertNode(db, parent_id ?? null, title, { is_category });
   return getNode(db, id);
 }
 
@@ -98,6 +98,38 @@ export function deleteNode(db, id) {
   for (const x of ids) db.prepare('DELETE FROM node_fts WHERE rowid = ?').run(x);
   db.prepare('DELETE FROM nodes WHERE id = ?').run(id);   // дети — каскадом
   return ids.length;
+}
+
+// ===== Объединение дублей: dup вливается в keep =====
+export function mergeNodes(db, keepId, dupId) {
+  if (keepId === dupId) throw new Error('same node');
+  const keep = getNode(db, keepId), dup = getNode(db, dupId);
+  if (!keep || !dup) throw new Error('not found');
+
+  // дети дубля переезжают (в конец)
+  for (const ch of db.prepare('SELECT id FROM nodes WHERE parent_id = ? ORDER BY ord').all(dupId)) {
+    const ord = db.prepare('SELECT COALESCE(MAX(ord), 0) + 1 AS o FROM nodes WHERE parent_id IS ?').get(keepId).o;
+    db.prepare('UPDATE nodes SET parent_id = ?, ord = ? WHERE id = ?').run(keepId, ord, ch.id);
+  }
+  // связи перекидываются (без self-link и дублей)
+  for (const l of db.prepare('SELECT * FROM links WHERE from_id = ? OR to_id = ?').all(dupId, dupId)) {
+    const from = l.from_id === dupId ? keepId : l.from_id;
+    const to = l.to_id === dupId ? keepId : l.to_id;
+    db.prepare('DELETE FROM links WHERE id = ?').run(l.id);
+    if (from !== to)
+      db.prepare('INSERT OR IGNORE INTO links(from_id, to_id, type) VALUES(?,?,?)').run(from, to, l.type);
+  }
+  // свойства: берём более строгий срок, более высокий приоритет, тип — если у keep не было
+  const fields = {};
+  if (dup.due_date && (!keep.due_date || dup.due_date < keep.due_date)) fields.due_date = dup.due_date;
+  if (dup.priority && (!keep.priority || dup.priority < keep.priority)) fields.priority = dup.priority;
+  if (!keep.kind && dup.kind) { fields.kind = dup.kind; fields.status = dup.status; }
+  fields.note = [keep.note, `[объединено] ${dup.title}`, dup.note].filter(Boolean).join('\n');
+  updateNode(db, keepId, fields);
+
+  db.prepare('DELETE FROM node_fts WHERE rowid = ?').run(dupId);
+  db.prepare('DELETE FROM nodes WHERE id = ?').run(dupId);
+  return getNode(db, keepId);
 }
 
 export function subtreeCount(db, id) {
@@ -253,11 +285,28 @@ export function suggestForNode(db, id) {
   const seen = new Set();
   candidates = candidates.filter(c => !seen.has(c.node.id) && seen.add(c.node.id)).slice(0, 8);
 
+  // Контекст ветки (информационно, не связи): принципы и открытые решения
+  // Ветка = поддерево верхнего не-категорийного предка
+  let branchRoot = t;
+  while (branchRoot.parent_id) {
+    const p = getNode(db, branchRoot.parent_id);
+    if (!p || p.is_category) break;
+    branchRoot = p;
+  }
+  const branchIds = new Set([branchRoot.id, ...descendantIds(db, branchRoot.id)]);
+  branchIds.delete(id);
+  const inBranch = rows => rows.filter(r => branchIds.has(r.id));
+  const context = {
+    principles: inBranch(db.prepare(`SELECT * FROM nodes WHERE kind = 'principle'`).all()),
+    decisions: inBranch(db.prepare(`SELECT * FROM nodes WHERE kind = 'decision' AND status = 'open'`).all()),
+  };
+
   return {
     node: t,
     kind: t.kind ? null : suggestKind(t.title),
     date: t.due_date ? null : suggestDate(t.title),
     links: candidates,
+    context,
     confirmed: db.prepare(`
       SELECT l.id AS link_id, l.type, l.from_id, l.to_id, n.title, n.status, n.kind AS nkind
       FROM links l JOIN nodes n ON n.id = CASE WHEN l.from_id = ? THEN l.to_id ELSE l.from_id END
