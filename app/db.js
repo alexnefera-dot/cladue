@@ -228,6 +228,24 @@ export function createDb(path = ':memory:') {
       date TEXT NOT NULL DEFAULT (date('now')),
       note TEXT NOT NULL DEFAULT ''
     );
+    CREATE TABLE IF NOT EXISTS checkins(        -- чек-ин дня: 10 секунд, без фанатизма
+      date TEXT PRIMARY KEY,
+      mood INTEGER NOT NULL,                   -- 1 плохой · 2 нормальный · 3 хороший
+      note TEXT NOT NULL DEFAULT ''
+    );
+    CREATE TABLE IF NOT EXISTS metrics(         -- свои метрики: кофе, падл-часы, страницы…
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT 'number',     -- number|bool|scale (1..10)
+      unit TEXT NOT NULL DEFAULT '',
+      ord INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE TABLE IF NOT EXISTS metric_log(
+      metric_id INTEGER NOT NULL REFERENCES metrics(id) ON DELETE CASCADE,
+      date TEXT NOT NULL,
+      value REAL NOT NULL,
+      UNIQUE(metric_id, date)
+    );
     CREATE TABLE IF NOT EXISTS node_log(        -- «Лог» задачи: датированные записи хода
       id INTEGER PRIMARY KEY,
       node_id INTEGER NOT NULL REFERENCES nodes(id) ON DELETE CASCADE,

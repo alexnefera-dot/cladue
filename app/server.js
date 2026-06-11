@@ -295,6 +295,34 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { ok: true });
     }
 
+    // ===== Трекинг: чек-ин и метрики =====
+    if (p === '/api/track' && req.method === 'GET')
+      return json(res, 200, {
+        checkins: life.checkins(db),
+        metrics: life.listMetrics(db),
+        heatmap: life.routineHeatmap(db),
+      });
+    if (p === '/api/track/checkin' && req.method === 'POST') {
+      const b = await body(req);
+      life.setCheckin(db, b.mood, b.note ?? '');
+      return json(res, 200, { ok: true });
+    }
+    if (p === '/api/track/metrics' && req.method === 'POST') {
+      const b = await body(req);
+      if (!b.name?.trim()) return json(res, 400, { error: 'name required' });
+      life.addMetric(db, b);
+      return json(res, 201, { ok: true });
+    }
+    if ((m = p.match(/^\/api\/track\/metrics\/(\d+)\/value$/)) && req.method === 'POST') {
+      const b = await body(req);
+      life.setMetricValue(db, +m[1], b.value, b.date);
+      return json(res, 200, { ok: true });
+    }
+    if ((m = p.match(/^\/api\/track\/metrics\/(\d+)$/))) {
+      if (req.method === 'PATCH') { life.patchMetric(db, +m[1], await body(req)); return json(res, 200, { ok: true }); }
+      if (req.method === 'DELETE') { life.delMetric(db, +m[1]); return json(res, 200, { ok: true }); }
+    }
+
     if (p === '/api/setting' && req.method === 'POST') {
       const b = await body(req);
       if (!['activity_month'].includes(b.key)) return json(res, 400, { error: 'unknown key' });

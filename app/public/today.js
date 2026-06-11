@@ -8,6 +8,7 @@ const tdApi = {
   contacted: id => fetch(`/api/people/${id}/contacted`, { method: 'POST' }),
   add: b => fetch('/api/nodes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }),
   setSetting: (key, value) => fetch('/api/setting', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key, value }) }),
+  setCheckin: (mood, note) => fetch('/api/track/checkin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mood, note }) }),
 };
 
 const tesc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -60,14 +61,23 @@ function renderToday() {
     <input id="tdQuick" placeholder="＋ Быстрый ввод в Инбокс (Enter) — мысль, задача, что угодно; разберёшь потом">
   </div>
 
-  <div class="fingrid">
+  <div class="fingrid" style="grid-template-columns:repeat(4,1fr)">
     <div class="card"><div class="meta">МЕСЯЦ АКТИВНОСТИ</div>
-      <div class="bignum" style="font-size:17px"><span class="ed" id="tdActivity" title="клик — задать тему месяца">${d.activityMonth ? tesc(d.activityMonth) : '＋ задать тему'}</span></div>
-      <div class="meta">тема месяца из «Энергии жизни»</div></div>
-    <div class="card"><div class="meta">РАЗБОР СПИСКА</div>
-      <div class="bignum">${pct}%</div>
-      <div class="bar"><i style="width:${pct}%"></i></div>
-      <div class="meta">${d.progress.typed} из ${d.progress.total} · в инбоксе: ${d.inbox}</div></div>
+      <div class="bignum" style="font-size:16px"><span class="ed" id="tdActivity" title="клик — задать тему месяца">${d.activityMonth ? tesc(d.activityMonth) : '＋ задать тему'}</span></div>
+      <div class="meta">разбор: ${pct}% · инбокс: ${d.inbox}</div></div>
+    <div class="card"><div class="meta">НЕДЕЛЬНЫЕ ЦЕЛИ</div>
+      <div class="bignum">${d.weekGoals.done} / ${d.weekGoals.total}</div>
+      <div class="bar"><i style="width:${d.weekGoals.total ? d.weekGoals.done / d.weekGoals.total * 100 : 0}%"></i></div>
+      <div class="meta">задачи со сроком на этой неделе</div></div>
+    <div class="card"><div class="meta">ЧЕК-ИН ДНЯ</div>
+      ${d.checkin
+        ? `<div class="bignum">${['', '😞', '😐', '🙂'][d.checkin.mood]}</div>
+           <div class="meta">${tesc(d.checkin.note) || 'отмечено'} · <span class="ed" id="tdCheckinRedo">изменить</span></div>`
+        : `<div class="btnrow" style="margin:6px 0">
+             <span class="pill btn" data-tdmood="1" style="font-size:16px">😞</span>
+             <span class="pill btn" data-tdmood="2" style="font-size:16px">😐</span>
+             <span class="pill btn" data-tdmood="3" style="font-size:16px">🙂</span></div>
+           <div class="meta">какой день? 10 секунд · 📊 Трекинг</div>`}</div>
     <div class="card"><div class="meta">РУТИНЫ · ${rDone}/${d.routines.length} · по времени</div>
       ${d.routines.slice(0, 5).map(r => `
         <div class="task" style="padding:4px 0">
@@ -145,6 +155,18 @@ function bindToday() {
     el.addEventListener('click', () => window.openNode(+el.dataset.tdopen)));
   document.querySelectorAll('#screen-today [data-tdgoto]').forEach(el =>
     el.addEventListener('click', () => showScreen(el.dataset.tdgoto)));
+  document.querySelectorAll('#screen-today [data-tdmood]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const note = prompt('Заметка к дню (опционально):') ?? '';
+      await tdApi.setCheckin(+el.dataset.tdmood, note);
+      window.loadToday();
+    }));
+  document.getElementById('tdCheckinRedo')?.addEventListener('click', async () => {
+    const mood = prompt('День: 1 — плохой, 2 — нормальный, 3 — хороший');
+    if (!['1', '2', '3'].includes(mood?.trim())) return;
+    await tdApi.setCheckin(+mood, prompt('Заметка (опционально):') ?? '');
+    window.loadToday();
+  });
   document.getElementById('tdActivity')?.addEventListener('click', async () => {
     const v = prompt('Тема месяца (например: 🎾 Июнь — падл):', tdData.activityMonth ?? '');
     if (v != null) { await tdApi.setSetting('activity_month', v.trim()); window.loadToday(); }

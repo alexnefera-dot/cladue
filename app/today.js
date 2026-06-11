@@ -61,6 +61,16 @@ export function buildToday(db) {
   ];
 
   const people = listPeople(db);
+
+  // недельные цели: задачи со сроком на этой неделе (пн–вс)
+  const now = new Date();
+  const monday = iso(new Date(now.getTime() - ((now.getDay() + 6) % 7) * 864e5));
+  const sunday = iso(new Date(Date.parse(monday) + 6 * 864e5));
+  const weekGoals = db.prepare(`
+    SELECT count(*) AS total,
+      SUM(CASE WHEN status IN ('done','accepted') THEN 1 ELSE 0 END) AS done
+    FROM nodes WHERE kind IN ('task','decision') AND due_date BETWEEN ? AND ?`).get(monday, sunday);
+  const checkinToday = db.prepare('SELECT mood, note FROM checkins WHERE date = ?').get(today) ?? null;
   const real = db.prepare('SELECT count(*) AS c FROM nodes WHERE is_category = 0').get().c;
   const typed = db.prepare('SELECT count(*) AS c FROM nodes WHERE is_category = 0 AND kind IS NOT NULL').get().c;
   const inboxCat = db.prepare(`SELECT id FROM nodes WHERE is_category = 1 AND title LIKE '%Инбокс%'`).get();
@@ -84,6 +94,8 @@ export function buildToday(db) {
         .sort((a, b) => b.overdue_contact - a.overdue_contact).slice(0, 5),
     },
     movement: movement(db),
+    weekGoals: { total: weekGoals.total ?? 0, done: weekGoals.done ?? 0 },
+    checkin: checkinToday,
     debtsOverdue,
     inboxId: inboxCat?.id ?? null, inbox,
     progress: { typed, total: real },

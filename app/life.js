@@ -128,3 +128,61 @@ export function birthdays(db) {
     .map(p => ({ id: p.id, name: p.name, mmdd: mmdd(p.birthday) }))
     .filter(p => p.mmdd);
 }
+
+// ===== Чек-ин дня =====
+export function setCheckin(db, mood, note = '', date = today()) {
+  const m = Math.max(1, Math.min(3, Math.round(+mood)));
+  db.prepare(`INSERT INTO checkins(date, mood, note) VALUES(?,?,?)
+    ON CONFLICT(date) DO UPDATE SET mood = excluded.mood, note = excluded.note`).run(date, m, note);
+}
+export function checkins(db, days = 30) {
+  return db.prepare(`SELECT * FROM checkins WHERE date >= date('now', ?) ORDER BY date DESC`)
+    .all(`-${days} days`);
+}
+
+// ===== Свои метрики =====
+export function addMetric(db, b) {
+  const ord = db.prepare('SELECT COALESCE(MAX(ord),0)+1 AS o FROM metrics').get().o;
+  db.prepare('INSERT INTO metrics(name, type, unit, ord) VALUES(?,?,?,?)')
+    .run(b.name, b.type ?? 'number', b.unit ?? '', ord);
+}
+export function patchMetric(db, id, b) {
+  for (const k of ['name', 'type', 'unit'])
+    if (k in b) db.prepare(`UPDATE metrics SET ${k} = ? WHERE id = ?`).run(b[k], id);
+}
+export function delMetric(db, id) { db.prepare('DELETE FROM metrics WHERE id = ?').run(id); }
+
+export function setMetricValue(db, id, value, date = today()) {
+  db.prepare(`INSERT INTO metric_log(metric_id, date, value) VALUES(?,?,?)
+    ON CONFLICT(metric_id, date) DO UPDATE SET value = excluded.value`).run(id, date, +value);
+}
+
+export function listMetrics(db, days = 14) {
+  const t = today();
+  return db.prepare('SELECT * FROM metrics ORDER BY ord, id').all().map(mt => {
+    const hist = db.prepare(`
+      SELECT date, value FROM metric_log WHERE metric_id = ? AND date >= date('now', ?)
+      ORDER BY date`).all(mt.id, `-${days} days`);
+    return {
+      ...mt,
+      today: hist.find(h => h.date === t)?.value ?? null,
+      history: hist,
+      total: db.prepare('SELECT count(*) AS c FROM metric_log WHERE metric_id = ?').get(mt.id).c,
+    };
+  });
+}
+
+// ===== Тепловая карта рутин: выполнено/всего по дням =====
+export function routineHeatmap(db, days = 112) {
+  const total = db.prepare('SELECT count(*) AS c FROM routines').get().c;
+  const rows = db.prepare(`
+    SELECT date, count(*) AS done FROM routine_log
+    WHERE date >= date('now', ?) GROUP BY date`).all(`-${days} days`);
+  const byDate = Object.fromEntries(rows.map(r => [r.date, r.done]));
+  const out = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = iso(new Date(Date.now() - i * 864e5));
+    out.push({ date: d, done: byDate[d] ?? 0, total });
+  }
+  return out;
+}

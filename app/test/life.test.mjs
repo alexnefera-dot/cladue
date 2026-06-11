@@ -7,6 +7,7 @@ import { buildToday } from '../today.js';
 import * as core from '../core.js';
 
 const iso = d => d.toISOString().slice(0, 10);
+const inboxOf = db => core.listCategories(db).find(c => c.title.includes('Инбокс'));
 function freshDb() {
   const db = createDb(':memory:');
   seed(db); ensurePortfolio(db); ensureRates(db);
@@ -116,4 +117,66 @@ test('сид людей: 5 человек, просрочка и связи с �
   const after = life.listPeople(db).find(p => p.name.includes('Дима'));
   assert.equal(after.overdue_contact, 0);
   assert.equal(after.logs[0].note, 'обсудили продажу');
+});
+
+test('чек-ин: upsert за день, история, зажим 1..3', () => {
+  const db = freshDb();
+  life.setCheckin(db, 2, 'обычный день');
+  life.setCheckin(db, 3, 'разогнался');     // перезапись сегодня
+  life.setCheckin(db, 9, '', iso(new Date(Date.now() - 864e5)));
+  const rows = life.checkins(db);
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].mood, 3);
+  assert.equal(rows[0].note, 'разогнался');
+  assert.equal(rows[1].mood, 3, 'зажат в 1..3');
+});
+
+test('метрики: создание, значение за день перезаписывается, история и типы', () => {
+  const db = freshDb();
+  life.addMetric(db, { name: 'Кофе', type: 'number', unit: 'чашек' });
+  life.addMetric(db, { name: 'Падл', type: 'bool' });
+  const [coffee, padel] = life.listMetrics(db);
+  life.setMetricValue(db, coffee.id, 2);
+  life.setMetricValue(db, coffee.id, 3);                                   // upsert
+  life.setMetricValue(db, coffee.id, 1, iso(new Date(Date.now() - 864e5)));
+  life.setMetricValue(db, padel.id, 1);
+  const after = life.listMetrics(db);
+  const c = after.find(x => x.id === coffee.id);
+  assert.equal(c.today, 3);
+  assert.equal(c.total, 2);
+  assert.deepEqual(c.history.map(h => h.value), [1, 3]);
+  assert.equal(after.find(x => x.id === padel.id).today, 1);
+  life.delMetric(db, coffee.id);
+  assert.equal(life.listMetrics(db).length, 1);
+});
+
+test('тепловая карта рутин: считает выполнено/всего по дням', () => {
+  const db = freshDb();
+  life.addRoutine(db, { name: 'А' });
+  life.addRoutine(db, { name: 'Б' });
+  const [a, b] = life.listRoutines(db);
+  life.toggleRoutineToday(db, a.id);
+  life.toggleRoutineToday(db, b.id);
+  db.prepare('INSERT INTO routine_log(routine_id, date) VALUES(?,?)').run(a.id, iso(new Date(Date.now() - 864e5)));
+  const heat = life.routineHeatmap(db, 7);
+  assert.equal(heat.length, 7);
+  assert.equal(heat.at(-1).done, 2, 'сегодня обе');
+  assert.equal(heat.at(-2).done, 1, 'вчера одна');
+  assert.equal(heat.at(-1).total, 2);
+});
+
+test('дашборд: недельные цели и чек-ин в payload', () => {
+  const db = freshDb();
+  const inbox = inboxOf(db);
+  const mk = (t, due) => { const n = core.addChild(db, inbox.id, t); core.updateNode(db, n.id, { kind: 'task', due_date: due }); return n; };
+  const monday = iso(new Date(Date.now() - ((new Date().getDay() + 6) % 7) * 864e5));
+  mk('На этой неделе 1', monday);
+  const d2 = mk('На этой неделе 2', iso(new Date(Date.parse(monday) + 4 * 864e5)));
+  core.toggleNode(db, d2.id);
+  mk('Через месяц', iso(new Date(Date.now() + 30 * 864e5)));
+  life.setCheckin(db, 3, 'хороший');
+  const t = buildToday(db);
+  assert.equal(t.weekGoals.total, 2);
+  assert.equal(t.weekGoals.done, 1);
+  assert.equal(t.checkin.mood, 3);
 });
