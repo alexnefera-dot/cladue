@@ -173,6 +173,9 @@ export function createDb(path = ':memory:') {
   // автоцена: количество × курс (BTCUSD/XAUUSD/^SPX из полосы курсов)
   if (!pcols.includes('qty')) db.exec(`ALTER TABLE portfolio_items ADD COLUMN qty REAL`);
   if (!pcols.includes('rate_symbol')) db.exec(`ALTER TABLE portfolio_items ADD COLUMN rate_symbol TEXT`);
+  // связь шага портфеля с задачей: дедупликация в календаре и синк статусов
+  const scols = db.prepare('PRAGMA table_info(steps)').all().map(c => c.name);
+  if (!scols.includes('task_id')) db.exec(`ALTER TABLE steps ADD COLUMN task_id INTEGER`);
   return db;
 }
 

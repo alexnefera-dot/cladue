@@ -56,3 +56,43 @@ test('лента отсортирована по дате', () => {
   assert.ok(all[0].date <= all[all.length - 1].date);
   assert.equal(all[0].title, 'A');
 });
+
+test('дедупликация: шаг с задачей виден в календаре один раз — как задача', () => {
+  const db = freshDb();
+  fin.addStep(db, { kind: 'buy', title: 'Золото', planned_date: '2026-06-17' });
+  const st = db.prepare(`SELECT * FROM steps WHERE title = 'Золото'`).get();
+  // до привязки: в календаре один шаг, задач нет
+  assert.equal(items(db, '2026-06', 'step').length, 1);
+  assert.equal(items(db, '2026-06', 'task').length, 0);
+  fin.stepToTask(db, st.id);
+  // после: одна задача, шаг скрыт
+  assert.equal(items(db, '2026-06', 'task').length, 1);
+  assert.equal(items(db, '2026-06', 'step').length, 0);
+  assert.equal(cal.calendar(db, '2026-06').items.filter(i => i.title.includes('Золото')).length, 1, 'ровно одна запись');
+});
+
+test('идемпотентность: повторное «→ задача» не плодит копий', () => {
+  const db = freshDb();
+  fin.addStep(db, { kind: 'buy', title: 'Облигации', planned_date: '2026-07-01' });
+  const st = db.prepare(`SELECT * FROM steps WHERE title = 'Облигации'`).get();
+  const t1 = fin.stepToTask(db, st.id);
+  const t2 = fin.stepToTask(db, st.id);
+  assert.equal(t1.id, t2.id, 'вторая попытка возвращает ту же задачу');
+  assert.ok(t2.already);
+  const count = db.prepare(`SELECT count(*) AS c FROM nodes WHERE title LIKE '%Облигации%' AND kind = 'task'`).get().c;
+  assert.equal(count, 1);
+});
+
+test('синк статусов: задача ↔ шаг в обе стороны; удаление задачи отвязывает шаг', () => {
+  const db = freshDb();
+  fin.addStep(db, { kind: 'sell', title: 'BTC часть', planned_date: '2026-07-10' });
+  const st = db.prepare(`SELECT * FROM steps WHERE title = 'BTC часть'`).get();
+  const task = fin.stepToTask(db, st.id);
+  core.toggleNode(db, task.id);   // задача done
+  assert.equal(db.prepare('SELECT status FROM steps WHERE id = ?').get(st.id).status, 'done', 'шаг исполнен вслед за задачей');
+  fin.patchStep(db, st.id, { status: 'planned' });  // шаг снова в план
+  assert.equal(core.getNode(db, task.id).status, 'todo', 'задача открылась вслед за шагом');
+  core.deleteNode(db, task.id);
+  assert.equal(db.prepare('SELECT task_id FROM steps WHERE id = ?').get(st.id).task_id, null, 'связь очищена');
+  assert.equal(items(db, '2026-07', 'step').length, 1, 'шаг снова виден в календаре сам');
+});

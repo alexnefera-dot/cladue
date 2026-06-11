@@ -227,7 +227,9 @@ function secPlans(d) {
         <span class="ed meta num" data-fe="steps:${st.id}:amount:num">${st.amount ? fmt(st.amount) : '+сумма'}</span>
         <span class="ed meta" data-fe="steps:${st.id}:planned_date:date">${st.planned_date ?? '+дата'}</span>
         <span class="ed meta" data-fe="steps:${st.id}:condition:text">${st.condition ? 'усл: ' + fesc(st.condition) : '+условие'}</span>
-        ${!done ? `<span class="pill btn" data-steptask="${st.id}">→ задача</span>` : ''}
+        ${st.task_id
+          ? `<span class="pill ok btn" data-stepopen="${st.task_id}" title="открыть задачу">↗ в задачах</span>`
+          : !done ? `<span class="pill btn" data-steptask="${st.id}" title="внести в общий список задач">→ задача</span>` : ''}
         <span class="rowbtn del" data-findel="steps:${st.id}">✕</span>
       </div>`;
     }).join('') || '<div class="empty">шагов нет</div>'}
@@ -412,8 +414,11 @@ function bindFin() {
   document.querySelectorAll('[data-steptask]').forEach(el =>
     el.addEventListener('click', async () => {
       const r = await finApi.toTask(+el.dataset.steptask);
-      alert(r.error ? r.error : `Задача создана в категории «Финансы»: ${r.title}`);
+      if (r.error) alert(r.error);
+      window.loadFin();
     }));
+  document.querySelectorAll('[data-stepopen]').forEach(el =>
+    el.addEventListener('click', () => window.openNode(+el.dataset.stepopen)));
   document.querySelectorAll('[data-oblpay]').forEach(el =>
     el.addEventListener('click', async () => { await finApi.pay(+el.dataset.oblpay); window.loadFin(); }));
   // займы, типы, автоцена

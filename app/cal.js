@@ -39,7 +39,8 @@ export function calendar(db, ym) {
     items.push({ date: t.due_date, type: 'task', id: t.id, title: t.title,
                  done: ['done', 'accepted'].includes(t.status), kind: t.kind, priority: t.priority });
 
-  for (const s of db.prepare(`SELECT * FROM steps WHERE planned_date BETWEEN ? AND ?`).all(first, last))
+  // шаги с привязанной задачей в календарь не попадают — их представляет сама задача
+  for (const s of db.prepare(`SELECT * FROM steps WHERE planned_date BETWEEN ? AND ? AND task_id IS NULL`).all(first, last))
     items.push({ date: s.planned_date, type: 'step', id: s.id,
                  title: ({ buy: 'Купить', sell: 'Продать', transfer: 'Перевод' }[s.kind] ?? s.kind) + ': ' + s.title,
                  done: s.status === 'done', amount: s.amount });

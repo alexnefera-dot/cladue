@@ -33,7 +33,11 @@ export function toggleNode(db, id) {
   const next = t.kind === 'decision'
     ? (t.status === 'open' ? 'accepted' : 'open')
     : (t.status === 'done' ? 'todo' : 'done');
-  return updateNode(db, id, { status: next });
+  const res = updateNode(db, id, { status: next });
+  // если задача создана из шага портфеля — шаг следует за ней
+  db.prepare('UPDATE steps SET status = ? WHERE task_id = ?')
+    .run(next === 'done' ? 'done' : 'planned', id);
+  return res;
 }
 
 export function addChild(db, parent_id, title, is_category = 0) {
@@ -95,7 +99,10 @@ export function deleteNode(db, id) {
     WITH RECURSIVE r(x) AS (
       SELECT ? UNION SELECT n.id FROM nodes n JOIN r ON n.parent_id = r.x
     ) SELECT x FROM r`).all(id).map(r => r.x);
-  for (const x of ids) db.prepare('DELETE FROM node_fts WHERE rowid = ?').run(x);
+  for (const x of ids) {
+    db.prepare('DELETE FROM node_fts WHERE rowid = ?').run(x);
+    db.prepare('UPDATE steps SET task_id = NULL WHERE task_id = ?').run(x); // отвязать шаги
+  }
   db.prepare('DELETE FROM nodes WHERE id = ?').run(id);   // дети — каскадом
   return ids.length;
 }

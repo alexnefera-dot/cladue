@@ -188,22 +188,35 @@ export function addStep(db, b) {
 export function patchStep(db, id, b) {
   for (const k of ['kind', 'title', 'amount', 'planned_date', 'condition', 'status', 'note'])
     if (k in b) db.prepare(`UPDATE steps SET ${k} = ? WHERE id = ?`).run(b[k], id);
+  // синк с привязанной задачей: исполнен шаг ↔ закрыта задача
+  if ('status' in b) {
+    const s = db.prepare('SELECT task_id FROM steps WHERE id = ?').get(id);
+    if (s?.task_id)
+      db.prepare(`UPDATE nodes SET status = ?, updated_at = datetime('now') WHERE id = ? AND kind = 'task'`)
+        .run(b.status === 'done' ? 'done' : 'todo', s.task_id);
+  }
 }
 export function delStep(db, id) { db.prepare('DELETE FROM steps WHERE id = ?').run(id); }
 
-// Шаг → задача в категории «Финансы» (интеграция с разделом списка)
+// Шаг → задача в категории «Финансы». Идемпотентно: повторный вызов вернёт существующую.
 export function stepToTask(db, id) {
   const s = db.prepare('SELECT * FROM steps WHERE id = ?').get(id);
   if (!s) throw new Error('step not found');
+  if (s.task_id) {
+    const existing = db.prepare('SELECT * FROM nodes WHERE id = ?').get(s.task_id);
+    if (existing) return { ...existing, already: true };
+  }
   const fin = db.prepare(`SELECT id FROM nodes WHERE is_category = 1 AND title = 'Финансы' AND parent_id IS NULL`).get();
   const KIND = { buy: 'Купить', sell: 'Продать', transfer: 'Перевести' };
   const node = addChild(db, fin?.id ?? null, `${KIND[s.kind] ?? s.kind}: ${s.title}`);
-  return updateNode(db, node.id, {
+  const updated = updateNode(db, node.id, {
     kind: 'task',
     due_date: s.planned_date ?? null,
     note: ['из плана шагов портфеля', s.amount ? `сумма: ${s.amount}` : '', s.condition ? `условие: ${s.condition}` : '']
       .filter(Boolean).join(' · '),
   });
+  db.prepare('UPDATE steps SET task_id = ? WHERE id = ?').run(node.id, id);
+  return updated;
 }
 
 // ===== Обязательства =====
