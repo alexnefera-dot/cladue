@@ -2,32 +2,93 @@ import { addChild, updateNode } from './core.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+// Дерево портфеля с агрегатами: value/buy/target секций и блоков = сумма детей
+export function portfolioTree(db) {
+  const rows = db.prepare('SELECT * FROM portfolio_items ORDER BY parent_id NULLS FIRST, ord, id').all();
+  const byP = {};
+  rows.forEach(r => (byP[r.parent_id ?? 'root'] ??= []).push(r));
+  const calc = r => {
+    const children = (byP[r.id] ?? []).map(calc);
+    const isLeaf = r.kind === 'asset' || !children.length;
+    const value = isLeaf ? (r.value ?? 0) : children.reduce((s, k) => s + k.value, 0);
+    // прирост честный: считаем только пары, где задана цена покупки
+    const invested = isLeaf ? (r.buy_value ?? null)
+      : children.some(k => k.invested != null) ? children.reduce((s, k) => s + (k.invested ?? 0), 0) : null;
+    const investedCur = isLeaf ? (r.buy_value != null ? (r.value ?? 0) : null)
+      : children.some(k => k.investedCur != null) ? children.reduce((s, k) => s + (k.investedCur ?? 0), 0) : null;
+    const target = r.target_value != null ? r.target_value
+      : children.some(k => k.target != null) ? children.reduce((s, k) => s + (k.target ?? 0), 0) : null;
+    return { ...r, children, value, invested, investedCur, target };
+  };
+  return (byP['root'] ?? []).map(calc);
+}
+
 export function listFin(db) {
   const accounts = db.prepare('SELECT * FROM accounts ORDER BY id').all()
     .map(a => ({ ...a, stale_days: Math.floor((Date.parse(today()) - Date.parse(a.balance_updated_at.slice(0, 10))) / 864e5) }));
-  const classes = db.prepare('SELECT * FROM portfolio_classes ORDER BY ord, id').all();
-  const totalPort = classes.reduce((s, c) => s + c.value, 0);
-  const withShares = classes.map(c => {
-    const share = totalPort ? c.value / totalPort * 100 : 0;
-    return { ...c, share, deviation: share - c.target_pct };
-  });
-  // соответствие целевому: 100% минус половина суммы модулей отклонений
-  const fit = totalPort
-    ? Math.max(0, 100 - withShares.reduce((s, c) => s + Math.abs(c.deviation), 0) / 2)
-    : null;
+  const portfolio = portfolioTree(db);
+  const portfolioTotal = portfolio.reduce((s, b) => s + b.value, 0);
+  const invested = portfolio.reduce((s, b) => s + (b.invested ?? 0), 0);
+  const investedCur = portfolio.reduce((s, b) => s + (b.investedCur ?? 0), 0);
   const steps = db.prepare(`SELECT * FROM steps ORDER BY status = 'done', planned_date IS NULL, planned_date, id`).all();
   const obligations = db.prepare('SELECT * FROM obligations ORDER BY next_date IS NULL, next_date').all()
     .map(o => ({ ...o, days_left: o.next_date ? Math.ceil((Date.parse(o.next_date) - Date.parse(today())) / 864e5) : null }));
+  // счета: итог по каждой валюте отдельно
+  const byCur = {};
+  for (const a of accounts) byCur[a.currency] = (byCur[a.currency] ?? 0) + a.balance;
   return {
-    accounts, classes: withShares, steps, obligations,
+    accounts, portfolio, steps, obligations,
+    rates: db.prepare('SELECT * FROM rates').all(),
     summary: {
-      accountsTotal: accounts.reduce((s, a) => s + (a.currency === '₽' ? a.balance : 0), 0),
-      portfolioTotal: totalPort,
-      fit,
+      accountsByCurrency: byCur,
+      portfolioTotal,
+      growth: invested ? { invested, current: investedCur, abs: investedCur - invested, pct: (investedCur - invested) / invested * 100 } : null,
       monthlyObligations: obligations.filter(o => o.period === 'monthly').reduce((s, o) => s + o.amount, 0),
       upcoming: obligations.filter(o => o.days_left != null && o.days_left <= 30),
     },
   };
+}
+
+// ===== Узлы портфеля =====
+export function addItem(db, b) {
+  const ord = db.prepare('SELECT COALESCE(MAX(ord),0)+1 AS o FROM portfolio_items WHERE parent_id IS ?').get(b.parent_id ?? null).o;
+  db.prepare('INSERT INTO portfolio_items(parent_id, ord, name, kind, buy_value, value, target_value) VALUES(?,?,?,?,?,?,?)')
+    .run(b.parent_id ?? null, ord, b.name, b.kind ?? 'asset', b.buy_value ?? null, b.value ?? null, b.target_value ?? null);
+}
+export function patchItem(db, id, b) {
+  for (const k of ['name', 'buy_value', 'value', 'target_value', 'note'])
+    if (k in b) db.prepare(`UPDATE portfolio_items SET ${k} = ? WHERE id = ?`).run(b[k], id);
+}
+export function delItem(db, id) { db.prepare('DELETE FROM portfolio_items WHERE id = ?').run(id); }
+
+// ===== Курсы (stooq, без ключей; вручную — всегда можно) =====
+const RATE_LABELS = { 'XAUUSD': 'Золото', 'EURUSD': 'EUR/USD', 'BTCUSD': 'BTC', '^SPX': 'S&P 500' };
+
+export async function ratesRefresh(db) {
+  const url = 'https://stooq.com/q/l/?s=xauusd,eurusd,btcusd,%5Espx&f=sd2t2ohlcv&h&e=csv';
+  const res = await fetch(url, {
+    signal: AbortSignal.timeout(8000),
+    headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)' },
+  });
+  if (!res.ok) throw new Error('stooq: ' + res.status);
+  const text = await res.text();
+  for (const line of text.trim().split('\n').slice(1)) {
+    const parts = line.split(',');
+    const sym = (parts[0] ?? '').toUpperCase();
+    const open = parseFloat(parts[3]), close = parseFloat(parts[6]);
+    if (!isFinite(close)) continue;
+    db.prepare(`INSERT INTO rates(symbol, label, price, change_pct, updated_at)
+      VALUES(?,?,?,?,datetime('now'))
+      ON CONFLICT(symbol) DO UPDATE SET price = excluded.price, change_pct = excluded.change_pct, updated_at = excluded.updated_at`)
+      .run(sym, RATE_LABELS[sym] ?? sym, close, isFinite(open) && open ? (close - open) / open * 100 : null);
+  }
+  return db.prepare('SELECT * FROM rates').all();
+}
+
+export function rateSet(db, symbol, price) {
+  db.prepare(`UPDATE rates SET price = ?, change_pct = NULL, updated_at = datetime('now') WHERE symbol = ?`)
+    .run(price, symbol);
+  return db.prepare('SELECT * FROM rates WHERE symbol = ?').get(symbol);
 }
 
 // ===== Счета =====

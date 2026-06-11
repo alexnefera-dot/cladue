@@ -1,20 +1,75 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createDb, seed, seedFin } from '../db.js';
+import { createDb, seed, seedFin, ensurePortfolio, ensureRates } from '../db.js';
 import * as fin from '../fin.js';
 import * as core from '../core.js';
 
-function freshDb() { const db = createDb(':memory:'); seed(db); seedFin(db); return db; }
+function freshDb() {
+  const db = createDb(':memory:');
+  seed(db); seedFin(db); ensurePortfolio(db); ensureRates(db);
+  return db;
+}
 
-test('listFin: суммы, доли и отклонения считаются', () => {
+test('портфель: дерево блоков, суммы разделов и блоков из активов', () => {
   const db = freshDb();
   const d = fin.listFin(db);
-  assert.ok(d.accounts.length >= 3);
-  assert.ok(d.summary.portfolioTotal > 0);
-  const etf = d.classes.find(c => c.name.includes('ETF'));
-  assert.ok(Math.abs(etf.share - etf.value / d.summary.portfolioTotal * 100) < 0.01);
-  assert.ok(Math.abs(etf.deviation - (etf.share - etf.target_pct)) < 0.01);
-  assert.ok(d.summary.fit > 0 && d.summary.fit <= 100);
+  assert.equal(d.portfolio.length, 4, '4 блока');
+  const frozen = d.portfolio.find(b => b.name.includes('Замороженный'));
+  const re = frozen.children.find(c => c.name === 'Недвижимость');
+  assert.equal(re.value, 400000, 'Start 100k + Belgravia 300k');
+  assert.equal(frozen.value, 475000, 'недвижимость + пассивы');
+  assert.equal(d.summary.portfolioTotal, 475000);
+});
+
+test('прирост: считается только по активам с ценой покупки', () => {
+  const db = freshDb();
+  const d0 = fin.listFin(db);
+  assert.equal(d0.summary.growth, null, 'без цен покупки прироста нет');
+  const start = db.prepare(`SELECT id FROM portfolio_items WHERE name = 'Start'`).get();
+  fin.patchItem(db, start.id, { buy_value: 80000 });
+  const d1 = fin.listFin(db);
+  assert.equal(d1.summary.growth.invested, 80000);
+  assert.equal(d1.summary.growth.current, 100000, 'текущая только по активам с покупкой');
+  assert.equal(d1.summary.growth.abs, 20000);
+  assert.ok(Math.abs(d1.summary.growth.pct - 25) < 0.01);
+});
+
+test('целевой портфель: target на любом уровне, у блока — свой или сумма детей', () => {
+  const db = freshDb();
+  const frozen = db.prepare(`SELECT id FROM portfolio_items WHERE name LIKE 'Заморож%'`).get();
+  const re = db.prepare(`SELECT id FROM portfolio_items WHERE name = 'Недвижимость'`).get();
+  fin.patchItem(db, re.id, { target_value: 350000 });
+  let tree = fin.portfolioTree(db);
+  let fz = tree.find(b => b.id === frozen.id);
+  assert.equal(fz.target, 350000, 'цель блока = сумма целей детей');
+  fin.patchItem(db, frozen.id, { target_value: 0 });
+  tree = fin.portfolioTree(db);
+  fz = tree.find(b => b.id === frozen.id);
+  assert.equal(fz.target, 0, 'своя цель блока перекрывает детей');
+});
+
+test('узлы портфеля: добавление, переименование, каскадное удаление', () => {
+  const db = freshDb();
+  const growth = db.prepare(`SELECT id FROM portfolio_items WHERE name = 'Блок роста'`).get();
+  fin.addItem(db, { parent_id: growth.id, name: 'Крипто', kind: 'section' });
+  const sec = db.prepare(`SELECT id FROM portfolio_items WHERE name = 'Крипто'`).get();
+  fin.addItem(db, { parent_id: sec.id, name: 'BTC', kind: 'asset', value: 10000, buy_value: 6000 });
+  fin.patchItem(db, sec.id, { name: 'Криптовалюты' });
+  let tree = fin.portfolioTree(db);
+  const g = tree.find(b => b.id === growth.id);
+  assert.equal(g.children[0].name, 'Криптовалюты');
+  assert.equal(g.value, 10000);
+  fin.delItem(db, sec.id);
+  assert.equal(db.prepare(`SELECT count(*) AS c FROM portfolio_items WHERE name = 'BTC'`).get().c, 0, 'актив удалился каскадом');
+});
+
+test('курсы: строки созданы, ручной ввод работает', () => {
+  const db = freshDb();
+  const rates = db.prepare('SELECT * FROM rates').all();
+  assert.equal(rates.length, 4);
+  const r = fin.rateSet(db, 'BTCUSD', 62734);
+  assert.equal(r.price, 62734);
+  assert.ok(r.updated_at);
 });
 
 test('счёт: обновление баланса трогает дату, stale считается', () => {

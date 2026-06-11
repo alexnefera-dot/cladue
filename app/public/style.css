@@ -111,3 +111,8 @@ body{background:var(--bg);color:var(--text);font:14px/1.45 var(--sans);height:10
 .finadd input,.finadd select{border:1px solid var(--line);border-radius:7px;padding:5px 8px;font:12px var(--sans);background:var(--bg)}
 .finadd input:first-child,.finadd input[id$=Name],.finadd input[id$=Title]{flex:1}
 .footer-hint{margin-top:14px;color:var(--muted);font-size:11px;border-top:1px solid var(--line);padding-top:8px}
+.ratesbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 14px;margin-bottom:12px;font-size:12.5px}
+.ratepill{display:flex;align-items:center;gap:6px}
+.ratepill b{font-weight:600}
+.up{color:var(--green);font:11px var(--mono)}
+.down{color:var(--red);font:11px var(--mono)}

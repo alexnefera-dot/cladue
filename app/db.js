@@ -87,6 +87,24 @@ export function createDb(path = ':memory:') {
       kind TEXT NOT NULL DEFAULT 'liability',  -- liability|subscription
       note TEXT NOT NULL DEFAULT ''
     );
+    CREATE TABLE IF NOT EXISTS portfolio_items( -- блоки → разделы → активы
+      id INTEGER PRIMARY KEY,
+      parent_id INTEGER REFERENCES portfolio_items(id) ON DELETE CASCADE,
+      ord INTEGER NOT NULL DEFAULT 0,
+      name TEXT NOT NULL,
+      kind TEXT NOT NULL DEFAULT 'asset',      -- block|section|asset
+      buy_value REAL,                          -- цена покупки (опционально)
+      value REAL,                              -- текущая стоимость
+      target_value REAL,                       -- целевой портфель (отдельная ось)
+      note TEXT NOT NULL DEFAULT ''
+    );
+    CREATE TABLE IF NOT EXISTS rates(           -- курсы: авто (stooq) или вручную
+      symbol TEXT PRIMARY KEY,
+      label TEXT,
+      price REAL,
+      change_pct REAL,
+      updated_at TEXT
+    );
   `);
   // миграция существующих баз
   const cols = db.prepare('PRAGMA table_info(nodes)').all().map(c => c.name);
@@ -137,24 +155,46 @@ export function seed(db) {
 // Тестовое наполнение финансов (легко удалить из интерфейса)
 export function seedFin(db) {
   const acc = db.prepare('INSERT INTO accounts(name, type, currency, balance, balance_updated_at) VALUES(?,?,?,?,?)');
-  acc.run('Брокер А (пример)', 'broker', '₽', 5030000, new Date(Date.now() - 2 * 864e5).toISOString().slice(0, 10));
-  acc.run('Карта банк (пример)', 'bank', '₽', 312300, new Date().toISOString().slice(0, 10));
+  acc.run('Брокер А (пример)', 'broker', '€', 50300, new Date(Date.now() - 2 * 864e5).toISOString().slice(0, 10));
+  acc.run('Карта банк (пример)', 'bank', '€', 3120, new Date().toISOString().slice(0, 10));
   acc.run('Вклад $ (пример)', 'deposit', '$', 12000, new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10));
 
-  const cls = db.prepare('INSERT INTO portfolio_classes(name, value, target_pct, ord) VALUES(?,?,?,?)');
-  cls.run('ETF акции (пример)', 3950000, 50, 1);
-  cls.run('Облигации (пример)', 2100000, 30, 2);
-  cls.run('BTC (пример)', 980000, 10, 3);
-  cls.run('Кэш (пример)', 1382300, 10, 4);
-
   db.prepare(`INSERT INTO steps(kind, title, amount, planned_date, condition) VALUES
-    ('buy', 'Докупить облигации (пример)', 300000, NULL, 'после зарплаты'),
-    ('sell', 'Продать часть BTC (пример)', 150000, NULL, 'BTC > $120k')`).run();
+    ('buy', 'Докупить облигации (пример)', 30000, NULL, 'после зарплаты'),
+    ('sell', 'Продать часть BTC (пример)', 15000, NULL, 'BTC > $120k')`).run();
 
   const today = new Date();
   const iso = d => d.toISOString().slice(0, 10);
-  const obl = db.prepare('INSERT INTO obligations(name, amount, period, next_date, remind_days, kind) VALUES(?,?,?,?,?,?)');
-  obl.run('Кредит авто (пример)', 38000, 'monthly', iso(new Date(today.getTime() + 3 * 864e5)), 5, 'liability');
-  obl.run('Аренда ячейки (пример)', 12000, 'yearly', iso(new Date(today.getTime() + 20 * 864e5)), 7, 'liability');
-  obl.run('iCloud+ (пример)', 999, 'monthly', iso(new Date(today.getTime() + 1 * 864e5)), 2, 'subscription');
+  const obl = db.prepare('INSERT INTO obligations(name, amount, currency, period, next_date, remind_days, kind) VALUES(?,?,?,?,?,?,?)');
+  obl.run('Кредит авто (пример)', 380, '€', 'monthly', iso(new Date(today.getTime() + 3 * 864e5)), 5, 'liability');
+  obl.run('Аренда ячейки (пример)', 120, '€', 'yearly', iso(new Date(today.getTime() + 20 * 864e5)), 7, 'liability');
+  obl.run('iCloud+ (пример)', 9.99, '€', 'monthly', iso(new Date(today.getTime() + 1 * 864e5)), 2, 'subscription');
+}
+
+// Каркас портфеля: 4 блока + пример из заметок пользователя
+export function ensurePortfolio(db) {
+  if (db.prepare('SELECT count(*) AS c FROM portfolio_items').get().c > 0) return;
+  const ins = (parent, name, kind, vals = {}) => {
+    const ord = db.prepare('SELECT COALESCE(MAX(ord),0)+1 AS o FROM portfolio_items WHERE parent_id IS ?').get(parent).o;
+    db.prepare('INSERT INTO portfolio_items(parent_id, ord, name, kind, buy_value, value, target_value) VALUES(?,?,?,?,?,?,?)')
+      .run(parent, ord, name, kind, vals.buy ?? null, vals.value ?? null, vals.target ?? null);
+    return db.prepare('SELECT last_insert_rowid() AS id').get().id;
+  };
+  ins(null, 'Блок защиты', 'block');
+  ins(null, 'Блок роста', 'block');
+  ins(null, 'Блок развития', 'block');
+  const frozen = ins(null, 'Замороженный капитал', 'block');
+  const re = ins(frozen, 'Недвижимость', 'section');
+  ins(re, 'Start', 'asset', { value: 100000 });
+  ins(re, 'Belgravia', 'asset', { value: 300000 });
+  const pas = ins(frozen, 'Пассивы', 'section');
+  ins(pas, 'X5', 'asset', { value: 45000 });
+  ins(pas, 'MX5', 'asset', { value: 30000 });
+}
+
+// Строки курсов, чтобы их можно было править вручную даже без сети
+export function ensureRates(db) {
+  const defs = [['XAUUSD', 'Золото'], ['EURUSD', 'EUR/USD'], ['BTCUSD', 'BTC'], ['^SPX', 'S&P 500']];
+  for (const [sym, label] of defs)
+    db.prepare('INSERT OR IGNORE INTO rates(symbol, label) VALUES(?,?)').run(sym, label);
 }

@@ -2,7 +2,7 @@ import http from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
 import { join, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createDb, seed, seedFin } from './db.js';
+import { createDb, seed, seedFin, ensurePortfolio, ensureRates } from './db.js';
 import * as core from './core.js';
 import * as fin from './fin.js';
 
@@ -17,6 +17,8 @@ if (db.prepare('SELECT count(*) AS c FROM accounts').get().c === 0) {
   seedFin(db);
   console.log('Финансы наполнены примерами (всё с пометкой «пример» — удаляй и заводи своё)');
 }
+ensurePortfolio(db);
+ensureRates(db);
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
 
@@ -90,13 +92,22 @@ const server = http.createServer(async (req, res) => {
 
     // ===== Финансы =====
     if (p === '/api/fin' && req.method === 'GET') return json(res, 200, fin.listFin(db));
+    if (p === '/api/rates/refresh' && req.method === 'POST') {
+      try { return json(res, 200, await fin.ratesRefresh(db)); }
+      catch (e) { return json(res, 502, { error: 'не удалось получить курсы: ' + e.message }); }
+    }
+    if ((m = p.match(/^\/api\/rates\/([^/]+)$/)) && req.method === 'PATCH') {
+      const b = await body(req);
+      return json(res, 200, fin.rateSet(db, decodeURIComponent(m[1]), b.price));
+    }
     const finMap = {
       accounts: ['addAccount', 'patchAccount', 'delAccount'],
       classes: ['addClass', 'patchClass', 'delClass'],
       steps: ['addStep', 'patchStep', 'delStep'],
       obligations: ['addObligation', 'patchObligation', 'delObligation'],
+      items: ['addItem', 'patchItem', 'delItem'],
     };
-    if ((m = p.match(/^\/api\/fin\/(accounts|classes|steps|obligations)(?:\/(\d+))?$/))) {
+    if ((m = p.match(/^\/api\/fin\/(accounts|classes|steps|obligations|items)(?:\/(\d+))?$/))) {
       const [addF, patchF, delF] = finMap[m[1]];
       if (req.method === 'POST' && !m[2]) { fin[addF](db, await body(req)); return json(res, 201, { ok: true }); }
       if (req.method === 'PATCH' && m[2]) { fin[patchF](db, +m[2], await body(req)); return json(res, 200, { ok: true }); }
