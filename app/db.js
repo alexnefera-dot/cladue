@@ -52,7 +52,7 @@ export function createDb(path = ':memory:') {
       id INTEGER PRIMARY KEY,
       name TEXT NOT NULL,
       type TEXT NOT NULL DEFAULT 'bank',       -- bank|broker|cash|crypto|deposit|safe
-      currency TEXT NOT NULL DEFAULT '₽',
+      currency TEXT NOT NULL DEFAULT '€',
       balance REAL NOT NULL DEFAULT 0,
       balance_updated_at TEXT NOT NULL DEFAULT (datetime('now')),
       note TEXT NOT NULL DEFAULT ''
@@ -80,7 +80,7 @@ export function createDb(path = ':memory:') {
       id INTEGER PRIMARY KEY,
       name TEXT NOT NULL,
       amount REAL NOT NULL DEFAULT 0,
-      currency TEXT NOT NULL DEFAULT '₽',
+      currency TEXT NOT NULL DEFAULT '€',
       period TEXT NOT NULL DEFAULT 'monthly',  -- monthly|yearly|once
       next_date TEXT,
       remind_days INTEGER NOT NULL DEFAULT 5,
@@ -109,6 +109,9 @@ export function createDb(path = ':memory:') {
   // миграция существующих баз
   const cols = db.prepare('PRAGMA table_info(nodes)').all().map(c => c.name);
   if (!cols.includes('answer')) db.exec('ALTER TABLE nodes ADD COLUMN answer TEXT');
+  // рубли убраны: всё в € (доллар — по желанию на конкретной записи)
+  db.exec(`UPDATE accounts SET currency = '€' WHERE currency = '₽'`);
+  db.exec(`UPDATE obligations SET currency = '€' WHERE currency = '₽'`);
   return db;
 }
 

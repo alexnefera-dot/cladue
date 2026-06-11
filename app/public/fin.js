@@ -34,39 +34,32 @@ window.loadFin = async function () {
   renderFin();
 };
 
-function growthPill(invested, current) {
-  if (invested == null || !invested) return '';
-  const abs = current - invested, pct = abs / invested * 100;
-  const cls = abs >= 0 ? 'ok' : 'p0';
-  return `<span class="pill ${cls}">${abs >= 0 ? '+' : ''}${fmt(abs)} € · ${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%</span>`;
-}
-
-function itemRow(it, depth) {
-  const pad = 6 + depth * 26;
-  const isBlock = it.kind === 'block', isSection = it.kind === 'section';
-  const nameCls = isBlock ? 't top' : isSection ? 't' : 't';
+function portRows(it, depth) {
   const target = finTab === 'target';
-  let cells = '';
+  // редактируемы: активы и любые узлы без детей (новый пустой раздел можно оценить сразу)
+  const editable = it.kind === 'asset' || !it.children.length;
+  const rowCls = it.kind === 'block' ? 'pblock' : it.kind === 'section' ? 'psection' : '';
+  let cells;
   if (target) {
-    cells = `<span class="meta num">факт: ${fmtE(it.value)}</span>
-      <span class="balance num" data-fe="items:${it.id}:target_value:num" title="клик — целевая сумма">${it.target != null ? fmtE(it.target) : 'цель: —'}</span>
-      ${it.target != null ? `<span class="pill ${it.value - it.target >= 0 ? 'ok' : 'p1'}">Δ ${fmt(it.value - it.target)} €</span>` : ''}`;
-  } else if (it.kind === 'asset') {
-    cells = `<span class="balance num meta" data-fe="items:${it.id}:buy_value:num" title="цена покупки (клик)">${it.buy_value != null ? 'купл. ' + fmt(it.buy_value) : '+покупка'}</span>
-      <span class="balance num" data-fe="items:${it.id}:value:num" title="текущая стоимость (клик)">${fmtE(it.value)}</span>
-      ${growthPill(it.invested, it.investedCur)}`;
+    cells = `<td class="r num muted">${fmtE(it.value)}</td>
+      <td class="r num ed acc" data-fe="items:${it.id}:target_value:num" title="клик — целевая сумма">${it.target != null ? fmtE(it.target) : '—'}</td>
+      <td class="r">${it.target != null ? `<span class="pill ${it.value - it.target >= 0 ? 'ok' : 'p1'}">Δ ${fmt(it.value - it.target)}</span>` : ''}</td>`;
   } else {
-    cells = `<span class="num" style="font-weight:600">${fmtE(it.value)}</span>
-      ${growthPill(it.invested, it.investedCur)}`;
+    const g = it.invested != null && it.invested ? (it.investedCur - it.invested) / it.invested * 100 : null;
+    cells = `<td class="r num muted ${editable ? 'ed' : ''}" ${editable ? `data-fe="items:${it.id}:buy_value:num" title="цена покупки (клик)"` : ''}>
+        ${editable ? (it.buy_value != null ? fmt(it.buy_value) : '—') : (it.invested != null ? fmt(it.invested) : '')}</td>
+      <td class="r num">${g != null ? `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</span>` : ''}</td>
+      <td class="r num acc ${editable ? 'ed' : ''}" ${editable ? `data-fe="items:${it.id}:value:num" title="текущая стоимость (клик)"` : ''}>${fmtE(it.value)}</td>`;
   }
-  return `<div class="task ${isBlock ? 'cat' : ''}" style="padding-left:${pad}px">
-    ${isSection || isBlock ? '<span class="folder">▣</span>' : '<span class="caret"></span>'}
-    <span class="${nameCls} balance" data-fe="items:${it.id}:name:text" title="клик — переименовать">${fesc(it.name)}</span>
+  return `<tr class="${rowCls}">
+    <td style="padding-left:${8 + depth * 22}px"><span class="ed" data-fe="items:${it.id}:name:text" title="клик — переименовать">${fesc(it.name)}</span></td>
     ${cells}
-    ${!target && isBlock ? `<span class="rowbtn" data-fadd="section:${it.id}" title="добавить раздел">＋</span>` : ''}
-    ${!target && isSection ? `<span class="rowbtn" data-fadd="asset:${it.id}" title="добавить актив">＋</span>` : ''}
-    ${!target ? `<span class="rowbtn del" data-findel="items:${it.id}">✕</span>` : ''}
-  </div>` + it.children.map(c => itemRow(c, depth + 1)).join('');
+    <td class="r" style="width:56px;white-space:nowrap">
+      ${!target && it.kind === 'block' ? `<span class="rowbtn" data-fadd="section:${it.id}" title="добавить раздел">＋</span>` : ''}
+      ${!target && it.kind === 'section' ? `<span class="rowbtn" data-fadd="asset:${it.id}" title="добавить актив">＋</span>` : ''}
+      ${!target ? `<span class="rowbtn del" data-findel="items:${it.id}">✕</span>` : ''}
+    </td>
+  </tr>` + it.children.map(c => portRows(c, depth + 1)).join('');
 }
 
 function renderFin() {
@@ -101,7 +94,12 @@ function renderFin() {
     <span class="pill btn ${finTab === 'target' ? 'ok' : ''}" data-fintab="target">Целевой портфель</span>
   </div>
   <div class="card">
-    ${d.portfolio.map(b => itemRow(b, 0)).join('') || '<div class="empty">пусто</div>'}
+    <table class="fintable porttable">
+      ${finTab === 'target'
+        ? '<tr><th>Название</th><th class="r">Факт</th><th class="r">Цель</th><th class="r">Δ</th><th></th></tr>'
+        : '<tr><th>Название</th><th class="r">Покупка</th><th class="r">Прирост</th><th class="r">Текущая</th><th></th></tr>'}
+      ${d.portfolio.map(b => portRows(b, 0)).join('')}
+    </table>
     ${finTab === 'target' ? '<div class="empty" style="padding-top:8px">Целевые суммы ставь на любом уровне: блок целиком или конкретный раздел. Δ — факт минус цель.</div>' : ''}
   </div>
 

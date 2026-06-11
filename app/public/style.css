@@ -116,3 +116,11 @@ body{background:var(--bg);color:var(--text);font:14px/1.45 var(--sans);height:10
 .ratepill b{font-weight:600}
 .up{color:var(--green);font:11px var(--mono)}
 .down{color:var(--red);font:11px var(--mono)}
+.porttable td{padding:7px 8px;border-bottom:1px solid var(--line)}
+.porttable tr:last-child td{border-bottom:0}
+.porttable tr.pblock td{background:var(--bg2);font-weight:700}
+.porttable tr.psection td{font-weight:600}
+.porttable td.acc{font-weight:700;font-size:13.5px}
+.porttable tr:hover .rowbtn{opacity:1}
+.ed{cursor:pointer;border-bottom:1px dashed var(--line)}
+.ed:hover{color:var(--green)}

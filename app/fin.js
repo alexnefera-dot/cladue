@@ -94,7 +94,7 @@ export function rateSet(db, symbol, price) {
 // ===== Счета =====
 export function addAccount(db, b) {
   db.prepare('INSERT INTO accounts(name, type, currency, balance) VALUES(?,?,?,?)')
-    .run(b.name, b.type ?? 'bank', b.currency ?? '₽', b.balance ?? 0);
+    .run(b.name, b.type ?? 'bank', b.currency ?? '€', b.balance ?? 0);
 }
 export function patchAccount(db, id, b) {
   if ('balance' in b)
@@ -145,7 +145,7 @@ export function stepToTask(db, id) {
 // ===== Обязательства =====
 export function addObligation(db, b) {
   db.prepare('INSERT INTO obligations(name, amount, currency, period, next_date, remind_days, kind, note) VALUES(?,?,?,?,?,?,?,?)')
-    .run(b.name, b.amount ?? 0, b.currency ?? '₽', b.period ?? 'monthly',
+    .run(b.name, b.amount ?? 0, b.currency ?? '€', b.period ?? 'monthly',
          b.next_date ?? null, b.remind_days ?? 5, b.kind ?? 'liability', b.note ?? '');
 }
 export function patchObligation(db, id, b) {
