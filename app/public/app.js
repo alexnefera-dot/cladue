@@ -737,6 +737,8 @@ function renderLockPane(scr) {
 // ===== Переключение экранов =====
 const SCREENS = { today: 'loadToday', list: null, fin: 'loadFin', cal: 'loadCal', people: 'loadPeople', routines: 'loadRoutines', notes: 'loadNotes', psy: 'loadPsy', track: 'loadTrack', settings: 'loadSettings' };
 window.showScreen = function (scr) {
+  // незаконченная правка в Инфо дозаписывается при уходе с экрана
+  if (scr !== 'notes' && window.ntFlush) { const f = window.ntFlush; window.ntFlush = null; f(); }
   currentScr = scr;
   const locked = window.isLocked(scr);
   document.querySelectorAll('.side .item').forEach(i =>

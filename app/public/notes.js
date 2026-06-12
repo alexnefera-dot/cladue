@@ -101,12 +101,20 @@ function htmlToMd(root) {
 }
 
 window.loadNotes = async function (openId) {
+  await flushNotes();   // незаконченная правка не теряется при любом переходе
   ntPages = await ntApi.list();
   if (openId) { ntSel = openId; ntEditing = false; }
   if (ntSel && !ntPages.some(p => p.id === ntSel)) ntSel = null;
   renderNotes();
 };
 window.openPage = id => { showScreen('notes'); window.loadNotes(id); };
+
+// автосохранение: если редактор открыт с правками — дописываем перед уходом
+async function flushNotes() {
+  const f = window.ntFlush;
+  window.ntFlush = null;
+  if (f) await f();
+}
 
 function ntTree() {
   const byP = {};
@@ -208,7 +216,7 @@ function bindNotes(page) {
       renderNotes();
     }));
   document.querySelectorAll('#screen-notes [data-ntopen]').forEach(el =>
-    el.addEventListener('click', () => { ntSel = +el.dataset.ntopen; ntEditing = false; renderNotes(); }));
+    el.addEventListener('click', async () => { await flushNotes(); ntSel = +el.dataset.ntopen; ntEditing = false; renderNotes(); }));
   document.querySelectorAll('#screen-notes [data-ntnode]').forEach(el =>
     el.addEventListener('click', () => window.openNode(+el.dataset.ntnode)));
   if (!ntEditing)
@@ -255,8 +263,8 @@ function bindNotes(page) {
     page.content = $('ntBody').value;
     ntMode = 'rich'; renderNotes();
   });
-  const save = async () => {
-    const title = $('ntTitle').value.trim() || page.title;
+  const saveData = async () => {
+    const title = $('ntTitle')?.value.trim() || page.title;
     if (page.locked) {
       const r = await ntApi.lock(ntSel, { password: ntPw[ntSel], content: currentMd() });
       if (r.error) { alert(r.error); return; }
@@ -265,15 +273,21 @@ function bindNotes(page) {
     } else {
       await ntApi.patch(ntSel, { title, content: currentMd() });
     }
+  };
+  // пока редактор открыт, правки можно дописать при любом уходе со страницы
+  window.ntFlush = (ntEditing && page && !(page.locked && ntCache[page.id] == null)) ? saveData : null;
+  const save = async () => {
+    await saveData();
+    window.ntFlush = null;
     ntEditing = false;
     window.loadNotes(ntSel);
   };
   $('ntSave')?.addEventListener('click', save);
-  $('ntCancel')?.addEventListener('click', () => { ntEditing = false; renderNotes(); });
+  $('ntCancel')?.addEventListener('click', () => { window.ntFlush = null; ntEditing = false; renderNotes(); });
   for (const id of ['ntBody', 'ntRich'])
     $(id)?.addEventListener('keydown', e => {
       if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); save(); }
-      if (e.key === 'Escape') { ntEditing = false; renderNotes(); }
+      if (e.key === 'Escape') { window.ntFlush = null; ntEditing = false; renderNotes(); }
     });
   ($('ntRich') ?? $('ntBody'))?.focus();
 

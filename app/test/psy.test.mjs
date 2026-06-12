@@ -153,3 +153,22 @@ test('общий замок разделов: включение, проверк
   psy.setLockPass(db, '');   // снятие
   assert.equal(psy.lockEnabled(db), false);
 });
+
+test('позитивное намерение: техника создаётся один раз, случай ложится в журнал с ответами', () => {
+  const db = freshDb();
+  psy.ensurePositiveIntent(db);
+  psy.ensurePositiveIntent(db);   // идемпотентность
+  const pi = psy.listPractices(db).filter(p => p.name === 'Позитивное намерение');
+  assert.equal(pi.length, 1);
+  assert.equal(pi[0].kind, 'technique');
+  assert.equal(pi[0].steps.length, 7, 'семь вопросов');
+  // пройденный случай: ответы по вопросам
+  psy.logPractice(db, pi[0].id, { answers: ['сорвался на звонке', 'крик', 'желание быть услышанным', 'пауза и вопрос', 'пауза', 'никому', 'завтра на созвоне'], note: 'кейс №1' });
+  const log = psy.practiceLogs(db, pi[0].id)[0];
+  assert.equal(log.answers.length, 7);
+  assert.equal(log.note, 'кейс №1');
+  // пользователь удалил технику — каркас не пересоздаёт (флаг)
+  psy.delPractice(db, pi[0].id);
+  psy.ensurePositiveIntent(db);
+  assert.equal(psy.listPractices(db).filter(p => p.name === 'Позитивное намерение').length, 0);
+});

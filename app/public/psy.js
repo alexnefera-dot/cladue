@@ -81,8 +81,14 @@ function practiceCard(p) {
     </div>
     ${psyOpenLogs?.id === p.id ? `<div style="margin-top:8px">${psyOpenLogs.rows.map(l => `
       <div class="ritem"><div class="rt">${l.date}${l.note ? ' — ' + pesc(l.note) : ''}</div>
-      ${l.answers.length ? `<div class="rm">${l.answers.map((a, i) => a ? `${i + 1}. ${pesc(a)}` : '').filter(Boolean).join('<br>')}</div>` : ''}</div>`).join('')
-      || '<div class="empty">журнал пуст</div>'}</div>` : ''}
+      ${l.answers.some(a => a) && p.kind === 'technique' ? `
+        <table class="diary" style="margin:6px 0 2px">
+          ${l.answers.map((a, i) => a ? `<tr>
+            <td style="text-align:left;color:var(--muted);width:42%;vertical-align:top">${pesc(p.steps[i] ?? i + 1)}</td>
+            <td style="text-align:left;white-space:pre-wrap">${pesc(a)}</td></tr>` : '').join('')}
+        </table>`
+      : l.answers.length ? `<div class="rm">${l.answers.map((a, i) => a ? `${i + 1}. ${pesc(a)}` : '').filter(Boolean).join('<br>')}</div>` : ''}</div>`).join('')
+      || '<div class="empty">журнал пуст — пройди технику, каждый случай ляжет сюда табличкой</div>'}</div>` : ''}
   </div>`;
 }
 

@@ -159,6 +159,24 @@ export function checkLockPass(db, password) {
   return !h || h === hash(password ?? '');
 }
 
+// ===== Техника «Позитивное намерение» — каркас пользователя (не демо, создаётся один раз) =====
+export const POSITIVE_INTENT_STEPS = [
+  'Ситуация: что произошло, что я сделал/почувствовал?',
+  'Какое поведение или реакцию хочу изменить?',
+  'Какое позитивное намерение стоит за этим поведением? (что оно для меня делает)',
+  'Какими ещё способами можно удовлетворить это намерение?',
+  'Выбираю лучший способ — какой и почему?',
+  'Проверка экологичности: кому/чему это может навредить?',
+  'Якорь: когда и где применю новый способ впервые?',
+];
+export function ensurePositiveIntent(db) {
+  if (getSetting(db, 'pi_v1', '') === '1') return;
+  if (!db.prepare(`SELECT id FROM practices WHERE name LIKE 'Позитивное намерение%' AND name NOT LIKE '%(пример)%'`).get())
+    addPractice(db, { name: 'Позитивное намерение', kind: 'technique', steps: POSITIVE_INTENT_STEPS,
+      note: 'за нежелательным поведением стоит позитивное намерение — найди его и дай ему лучший способ' });
+  setSetting(db, 'pi_v1', '1');
+}
+
 // ===== Демо =====
 export function seedPsy(db) {
   ensureWheel(db);

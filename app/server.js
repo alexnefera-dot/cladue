@@ -25,6 +25,7 @@ if (fresh) { seed(db); console.log('БД создана: категории го
 ensurePortfolio(db);
 ensureRates(db);
 psy.ensureWheel(db);      // секторы колеса — это структура, не демо
+psy.ensurePositiveIntent(db); // техника «Позитивное намерение» с 7 вопросами
 ensureEnergy(db);         // ⚡ Энергия жизни + Банк впечатлений — тоже структура
 notes.ensureInfoTree(db); // ветки Инфо: Finance / Mindset / Fun / Work / Health
 if (!demoWiped(db)) {     // после «удалить демо-данные» сиды не доливаются никогда
