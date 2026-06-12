@@ -254,7 +254,8 @@ async function renderNotes() {
   const page = ntSel ? await ntApi.get(ntSel) : null;
   const needPw = page?.locked && ntCache[page.id] == null;
   const content = page ? (page.locked ? (ntCache[page.id] ?? '') : page.content) : '';
-  const back = page && !ntEditing && !needPw ? await ntApi.backlinks(page.id) : [];
+  ntEditing = !!(page && !needPw);   // страница всегда в редактируемом режиме
+  const back = page && !needPw ? await ntApi.backlinks(page.id) : [];
   document.getElementById('screen-notes').innerHTML = `
   <div class="notes-wrap">
     <div class="notes-tree">
@@ -273,37 +274,29 @@ async function renderNotes() {
           <span class="pill btn ok" id="ntPwGo">открыть</span>
         </div>
         <div class="btnrow" style="margin-top:10px"><span class="pill btn danger" id="ntPwRemove">🔓 снять пароль…</span></div>`
-      : ntEditing ? `
-        <input id="ntTitle" class="nttitle" value="${nesc(page.title)}">
+      : `
+        <div class="row" style="display:flex;align-items:center;gap:8px">
+          <input id="ntTitle" class="nttitle" value="${nesc(page.title)}" style="flex:1;margin:0">
+          ${page.node_id ? `<span class="pill ok btn" data-ntnode="${page.node_id}">☑ к записи</span>` : ''}
+          <span class="pill btn" id="ntHist" title="прошлые версии — восстановить любую">⏪ история</span>
+          ${page.locked ? '<span class="pill btn" id="ntLockBtn">🔓 снять пароль</span>' : ''}
+          <span class="pill btn" id="ntAddChild">＋ подстраница</span>
+          <span class="pill btn danger" id="ntDel">🗑</span>
+        </div>
+        <div class="meta" style="margin:4px 0 10px">обновлено ${page.updated_at.slice(0, 16).replace('T', ' ')} · сохраняется само · ⌘Z — откат</div>
+        <div id="ntHistBox"></div>
         ${ntMode === 'rich' ? `
           <div class="nttoolbar">
             ${TOOLBAR.map(([label, hint], i) => `<span class="pill btn ntb" data-ntb="${i}" title="${hint}">${nesc(label)}</span>`).join('')}
             <span class="pill btn" id="ntModeMd" title="редактировать как markdown" style="margin-left:auto">&lt;/&gt; markdown</span>
           </div>
-          <div id="ntRich" class="mdview richedit" contenteditable="true" spellcheck="false">${mdRender(content)}</div>`
+          <div id="ntRich" class="mdview richedit" contenteditable="true" spellcheck="false" data-ph="пиши здесь — сохранится само">${mdRender(content)}</div>`
         : `
           <div class="nttoolbar">
             <span class="meta">markdown-режим: # заголовок · - список · - [ ] чеклист · > цитата · [[ссылка]]</span>
             <span class="pill btn" id="ntModeRich" style="margin-left:auto">Aa визуальный</span>
           </div>
           <textarea id="ntBody" class="ntbody">${nesc(content)}</textarea>`}
-        <div class="btnrow" style="margin-top:8px">
-          <span class="pill btn ok" id="ntSave">сохранить (⌘Enter)</span>
-          <span class="pill btn" id="ntCancel">отмена (Esc)</span>
-        </div>`
-      : `
-        <div class="row" style="display:flex;align-items:center;gap:8px">
-          <h1 style="flex:1;margin:0">${nesc(page.title)}</h1>
-          ${page.node_id ? `<span class="pill ok btn" data-ntnode="${page.node_id}">☑ к записи</span>` : ''}
-          <span class="pill btn ok" id="ntEdit">✎ редактировать</span>
-          <span class="pill btn" id="ntHist" title="прошлые версии страницы">⏪ история</span>
-          ${page.locked ? '<span class="pill btn" id="ntLockBtn">🔓 снять пароль</span>' : ''}
-          <span class="pill btn" id="ntAddChild">＋ подстраница</span>
-          <span class="pill btn danger" id="ntDel">🗑</span>
-        </div>
-        <div class="meta" style="margin:4px 0 14px">обновлено ${page.updated_at.slice(0, 16).replace('T', ' ')}</div>
-        <div id="ntHistBox"></div>
-        <div class="mdview" id="ntView" title="клик по тексту — редактировать">${content.trim() ? mdRender(content) : '<span class="muted">пусто — кликни сюда и пиши</span>'}</div>
         ${back.length ? `<div class="sec" style="margin-top:22px">↩ Бэклинки — ссылаются сюда</div>
           ${back.map(b => `<div class="ritem" data-ntopen="${b.id}"><div class="rt">${nesc(b.title)}</div></div>`).join('')}` : ''}`}
     </div>
@@ -382,7 +375,6 @@ function bindNotes(page) {
     const t = prompt('Название подстраницы:');
     if (t?.trim()) { const p = await ntApi.add({ title: t.trim(), parent_id: ntSel }); window.loadNotes(p.id); }
   });
-  $('ntEdit')?.addEventListener('click', () => { ntEditing = true; renderNotes(); });
   $('ntHist')?.addEventListener('click', async () => {
     const box = $('ntHistBox');
     if (box.innerHTML) { box.innerHTML = ''; return; }
@@ -398,11 +390,6 @@ function bindNotes(page) {
         if (r.error) { alert(r.error); return; }
         window.loadNotes(ntSel);
       }));
-  });
-  // клик по тексту страницы — сразу в редактор (ссылки продолжают работать)
-  $('ntView')?.addEventListener('click', e => {
-    if (e.target.closest('a')) return;
-    ntEditing = true; renderNotes();
   });
   $('ntDel')?.addEventListener('click', async () => {
     const kids = ntPages.filter(p => p.parent_id === ntSel).length;
@@ -478,33 +465,31 @@ function bindNotes(page) {
       ntAutoT = setTimeout(() => saveData(true), 250);   // даём DOM принять вставку — и пишем
     });
   }
-  // умная вставка в визуальный редактор: HTML/таб-таблицы/markdown → наш чистый формат.
-  // Вставляем через Range API (execCommand в Safari ненадёжен), при любом сбое — текстом.
+  // умная вставка: HTML/таб-таблицы/markdown → наш формат. Сначала execCommand
+  // (он дружит с ⌘Z), если не вставилось (Safari) — Range API; потерь не бывает.
   $('ntRich')?.addEventListener('paste', e => {
     e.preventDefault();
     const html = e.clipboardData.getData('text/html');
     const text = e.clipboardData.getData('text/plain').replace(/\r/g, '');
     const md = clipboardToMd(html, text);
-    if (!ntInsertHtml(md.trim() ? mdRender(md) : `<p>${nesc(text)}</p>`))
-      document.execCommand('insertText', false, text);   // редактор не найден — крайний случай
+    const htmlOut = md.trim() ? mdRender(md) : `<p>${nesc(text)}</p>`;
+    const rich = $('ntRich');
+    const before = rich.innerHTML;
+    let ok = false;
+    try { ok = document.execCommand('insertHTML', false, htmlOut); } catch { ok = false; }
+    if (!ok || rich.innerHTML === before) ntInsertHtml(htmlOut);
     clearTimeout(ntAutoT);
     ntAutoT = setTimeout(() => saveData(true), 250);
   });
-  const save = async () => {
+  // заголовок сохраняется сам, ⌘Enter — сохранить немедленно
+  $('ntTitle')?.addEventListener('input', () => {
     clearTimeout(ntAutoT);
-    if (!await saveData()) return;   // ошибка показана — правки не выбрасываем
-    window.ntFlush = null;
-    ntEditing = false;
-    window.loadNotes(ntSel);
-  };
-  $('ntSave')?.addEventListener('click', save);
-  $('ntCancel')?.addEventListener('click', () => { clearTimeout(ntAutoT); window.ntFlush = null; ntEditing = false; renderNotes(); });
-  for (const id of ['ntBody', 'ntRich'])
+    ntAutoT = setTimeout(() => saveData(true), 1500);
+  });
+  for (const id of ['ntBody', 'ntRich', 'ntTitle'])
     $(id)?.addEventListener('keydown', e => {
-      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); save(); }
-      if (e.key === 'Escape') { clearTimeout(ntAutoT); window.ntFlush = null; ntEditing = false; renderNotes(); }
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); clearTimeout(ntAutoT); saveData(false); }
     });
-  ($('ntRich') ?? $('ntBody'))?.focus();
 
   // ===== пароль =====
   const tryUnlock = async (remove) => {

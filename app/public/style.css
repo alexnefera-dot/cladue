@@ -280,3 +280,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .diary .badname,.diary th.badname{color:var(--red)}
 .diary th .rowbtn{opacity:1;visibility:hidden}
 .diary th:hover .rowbtn{visibility:visible}
+
+/* Редактор Инфо всегда активен: подсказка в пустой странице */
+.richedit:empty::before{content:attr(data-ph);color:var(--muted)}
+.richedit{min-height:380px}
