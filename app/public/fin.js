@@ -85,6 +85,7 @@ function portRows(it, depth) {
       ${folded ? `<span class="meta">· ${it.children.length} внутри</span>` : ''}
       ${editable && it.asset_type ? `<span class="pill" data-ftype="${it.id}" title="тип актива — клик">${fesc(it.asset_type)}</span>` : ''}
       ${it.rate_symbol ? `<span class="pill btn" data-fqty="${it.id}" title="количество — клик">${it.qty ?? '?'} × ${fesc(it.rate_symbol)}</span>` : ''}
+      ${it.no_rate ? '<span class="pill p1" title="курс тикера ещё не загружен — обнови курсы (⟳ вверху)">нет курса</span>' : ''}
       ${it.is_loan ? '<span class="pill p2">🤝 займ</span>' : ''}
     </td>
     ${cells}
@@ -548,6 +549,9 @@ function bindFin() {
         else if (sel.value) {
           const q = parseNum(prompt(`Количество (${sel.value}):`) ?? '');
           await finApi.patch('items', id, { rate_symbol: sel.value, qty: q });
+          // курса ещё нет — подтягиваем сразу, чтобы автоцена посчиталась
+          const known = finData.rates.find(r => r.symbol === sel.value)?.price;
+          if (!known) await finApi.ratesRefresh().catch(() => {});
         }
         window.loadFin();
       });

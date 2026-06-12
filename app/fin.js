@@ -16,8 +16,11 @@ export function portfolioTree(db) {
   const rows = db.prepare('SELECT * FROM portfolio_items ORDER BY parent_id NULLS FIRST, ord, id').all()
     .map(r => {
       // автоцена: qty × курс тикера (курсы в $)
-      if (r.rate_symbol && r.qty != null && prices[r.rate_symbol])
-        return { ...r, value: r.qty * prices[r.rate_symbol], currency: '$', auto: true };
+      if (r.rate_symbol && r.qty != null) {
+        if (prices[r.rate_symbol])
+          return { ...r, value: r.qty * prices[r.rate_symbol], currency: '$', auto: true };
+        return { ...r, no_rate: true };   // тикер задан, курс ещё не загружен — видно в UI
+      }
       return r;
     });
   const byP = {};
