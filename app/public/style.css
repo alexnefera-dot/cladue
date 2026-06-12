@@ -161,7 +161,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .ntitem:hover{background:var(--panel)}
 .ntitem.active{background:var(--green-soft);color:var(--green)}
 .editor{flex:1;padding:24px 30px;min-width:0;overflow-y:auto}
-.nttitle{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:600 18px var(--sans);margin-bottom:8px;background:var(--bg)}
+.nttitle{width:100%;border:1px solid transparent;border-radius:8px;padding:4px 8px;margin-left:-8px;
+  font:700 22px var(--sans);letter-spacing:-.02em;background:transparent}
+.nttitle:hover{border-color:var(--line)}
 .ntbody{width:100%;min-height:420px;border:1px solid var(--line);border-radius:8px;padding:12px;font:13.5px/1.6 var(--mono);background:var(--bg);resize:vertical}
 .mdview{font-size:14px;line-height:1.65}
 .mdview h2{font-size:20px;margin:14px 0 6px}
@@ -175,10 +177,12 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .mdview code{background:var(--bg2);border-radius:4px;padding:1px 5px;font:12.5px var(--mono)}
 .mdview .mdgap{height:8px}
 .wiki{color:var(--green);border-bottom:1px dashed var(--green-dim);cursor:pointer}
-.nttoolbar{display:flex;gap:5px;align-items:center;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;padding:6px 8px;margin-bottom:8px;background:var(--bg2)}
+.nttoolbar{display:flex;gap:5px;align-items:center;flex-wrap:wrap;padding:4px 0;margin-bottom:6px;
+  opacity:.45;transition:opacity .15s}
+.editor:hover .nttoolbar,.editor:focus-within .nttoolbar{opacity:1}
 .ntb{min-width:30px;text-align:center}
-.richedit{border:1px solid var(--green-dim);border-radius:8px;padding:14px 16px;min-height:420px;outline:none;background:var(--panel)}
-.richedit:focus{border-color:var(--green)}
+.richedit{border:1px solid transparent;border-radius:8px;padding:10px 12px;margin-left:-12px;min-height:420px;outline:none;background:transparent}
+.richedit:focus{border-color:var(--line);box-shadow:none}
 .richedit pre{white-space:pre-wrap}
 .ev-psy{background:rgba(122,79,192,.12);color:#7a4fc0}
 .cb.done.pschk,.pschk.done{background:var(--green-dim);border-color:var(--green-dim)}
