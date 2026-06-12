@@ -405,12 +405,17 @@ function bindNotes(page) {
   };
   // пока редактор открыт, правки можно дописать при любом уходе со страницы
   window.ntFlush = (ntEditing && page && !(page.locked && ntCache[page.id] == null)) ? saveData : null;
-  // автосохранение по мере набора (3 сек тишины)
-  for (const id of ['ntBody', 'ntRich'])
+  // автосохранение: 1.5 сек тишины при наборе; вставка из буфера пишется сразу
+  for (const id of ['ntBody', 'ntRich']) {
     $(id)?.addEventListener('input', () => {
       clearTimeout(ntAutoT);
-      ntAutoT = setTimeout(() => saveData(true), 3000);
+      ntAutoT = setTimeout(() => saveData(true), 1500);
     });
+    $(id)?.addEventListener('paste', () => {
+      clearTimeout(ntAutoT);
+      ntAutoT = setTimeout(() => saveData(true), 250);   // даём DOM принять вставку — и пишем
+    });
+  }
   const save = async () => {
     clearTimeout(ntAutoT);
     if (!await saveData()) return;   // ошибка показана — правки не выбрасываем
