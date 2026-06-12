@@ -63,15 +63,19 @@ test('колесо: замер, перезапись в тот же день, д
   assert.equal(psy.wheel(db).latest.scores[a1.id], 10, 'оценка зажата в 1..10');
 });
 
-test('календарь: практика вт/чт проецируется в месяц, выполненная помечена', () => {
+test('практики НЕ захламляют календарь, но дни считаются для психологии и дашборда', () => {
   const db = freshDb();
   psy.addPractice(db, { name: 'Тревоги', kind: 'schedule', days: '2,4', time: '19:00' });
   const p = psy.listPractices(db)[0];
-  const june = cal.calendar(db, '2026-06').items.filter(i => i.type === 'practice');
+  // в календаре практик нет — по решению пользователя
+  assert.equal(cal.calendar(db, '2026-06').items.filter(i => i.type === 'practice').length, 0);
+  // но occurrences живы: вт/чт июня для раздела психологии и плитки «Сегодня»
+  const june = psy.monthOccurrences(db, '2026-06', '2026-06-01', '2026-06-30');
   assert.ok(june.length >= 8, 'все вт и чт июня');
   assert.ok(june.every(i => ['2', '4'].includes(String(((new Date(i.date + 'T00:00:00').getDay() + 6) % 7) + 1))));
   psy.logPractice(db, p.id, { date: '2026-06-11' });   // чт
-  const done = cal.calendar(db, '2026-06').items.find(i => i.type === 'practice' && i.date === '2026-06-11');
+  const done = psy.monthOccurrences(db, '2026-06', '2026-06-01', '2026-06-30')
+    .find(i => i.date === '2026-06-11');
   assert.equal(done.done, true);
 });
 

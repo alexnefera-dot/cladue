@@ -1,6 +1,7 @@
 import { calendar } from './cal.js';
 import { listFin, getSetting } from './fin.js';
 import { listRoutines, listPeople, sortRoutines } from './life.js';
+import { monthOccurrences } from './psy.js';
 
 const iso = d => d.toISOString().slice(0, 10);
 
@@ -85,7 +86,9 @@ export function buildToday(db) {
     zones: {
       paymentsWeek: payments7.length,
       debtsOverdue: debtsOverdue.length,
-      practicesToday: all.filter(i => i.type === 'practice' && i.date === today && !i.done).length,
+      // практики не в календаре — берём напрямую из психологии
+      practicesToday: monthOccurrences(db, today.slice(0, 7), today, today)
+        .filter(i => i.date === today && !i.done).length,
     },
     people: {
       birthdays: people.filter(p => p.days_to_birthday != null && p.days_to_birthday <= 30)
