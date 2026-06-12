@@ -461,3 +461,18 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => console.log(`Pipboy прототип: http://localhost:${PORT}`
   + (lanUrl() ? ` · с телефона (тот же Wi-Fi): ${lanUrl()}` : '')));
+
+// ===== Авто-курсы: бережно к источникам — обновляем не чаще раза в 4 часа,
+// проверяем раз в 30 минут (ручная кнопка в Финансах работает как раньше)
+const RATES_TTL = 4 * 3600e3;
+async function autoRates() {
+  const last = db.prepare('SELECT MAX(updated_at) AS u FROM rates WHERE price IS NOT NULL').get().u;
+  const age = last ? Date.now() - Date.parse(last.replace(' ', 'T') + 'Z') : Infinity;
+  if (age < RATES_TTL) return;
+  try {
+    const r = await fin.ratesRefresh(db);
+    console.log('Курсы обновлены автоматически' + (r.errors.length ? ` (часть источников молчит: ${r.errors.length})` : ''));
+  } catch (e) { console.log('Авто-курсы не получились (обновишь кнопкой):', e.message); }
+}
+autoRates();
+setInterval(autoRates, 30 * 60e3).unref();

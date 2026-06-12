@@ -70,8 +70,12 @@ export function toggleNode(db, id) {
 // добавление с авто-типизацией («?» → вопрос и т.п.) — для ручного ввода; импорт не трогает
 export function addChildAuto(db, parent_id, title) {
   const node = addChild(db, parent_id, title);
+  const patch = {};
   const k = suggestKind(title);
-  return k ? updateNode(db, node.id, { kind: k }) : node;
+  if (k) patch.kind = k;
+  const d = suggestDate(title);   // «август», «до 2028» в тексте → срок сразу
+  if (d) patch.due_date = d.date;
+  return Object.keys(patch).length ? updateNode(db, node.id, patch) : node;
 }
 
 export function addChild(db, parent_id, title, is_category = 0) {

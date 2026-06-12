@@ -84,7 +84,8 @@ test('бивалютный портфель: $ конвертируется в �
 test('курсы: строки созданы, ручной ввод работает', () => {
   const db = freshDb();
   const rates = db.prepare('SELECT * FROM rates').all();
-  assert.equal(rates.length, 4);
+  assert.equal(rates.length, 6, 'золото, EURUSD, BTC + SCHD/IVV/VHT');
+  assert.ok(!rates.some(r => r.symbol === '^SPX'), '^SPX заменён на ETF');
   const r = fin.rateSet(db, 'BTCUSD', 62734);
   assert.equal(r.price, 62734);
   assert.ok(r.updated_at);

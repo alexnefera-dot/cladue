@@ -26,6 +26,9 @@ export function portfolioTree(db) {
     const children = (byP[r.id] ?? []).map(calc);
     const isLeaf = r.kind === 'asset' || !children.length;
     const eur = isLeaf ? (toEur(r.value, r.currency) ?? 0) : children.reduce((s, k) => s + k.eur, 0);
+    // валютный разрез категории: сколько лежит в $ и в € (в родных валютах)
+    const usdPart = isLeaf ? (r.currency === '$' ? (r.value ?? 0) : 0) : children.reduce((s, k) => s + k.usdPart, 0);
+    const eurPart = isLeaf ? (r.currency !== '$' ? (r.value ?? 0) : 0) : children.reduce((s, k) => s + k.eurPart, 0);
     // прирост честный: считаем только пары, где задана цена покупки (в €)
     const invested = isLeaf ? toEur(r.buy_value, r.currency)
       : children.some(k => k.invested != null) ? children.reduce((s, k) => s + (k.invested ?? 0), 0) : null;
@@ -33,7 +36,7 @@ export function portfolioTree(db) {
       : children.some(k => k.investedCur != null) ? children.reduce((s, k) => s + (k.investedCur ?? 0), 0) : null;
     const target = r.target_value != null ? r.target_value
       : children.some(k => k.target != null) ? children.reduce((s, k) => s + (k.target ?? 0), 0) : null;
-    return { ...r, children, eur, value: isLeaf ? r.value : eur, invested, investedCur, target };
+    return { ...r, children, eur, usdPart, eurPart, value: isLeaf ? r.value : eur, invested, investedCur, target };
   };
   return (byP['root'] ?? []).map(calc);
 }
@@ -128,7 +131,8 @@ export function recordSnapshot(db) {
 export function delItem(db, id) { db.prepare('DELETE FROM portfolio_items WHERE id = ?').run(id); }
 
 // ===== Курсы: публичные источники без ключей, с фолбэками. Наружу уходят только тикеры. =====
-const RATE_LABELS = { 'XAUUSD': 'Золото', 'EURUSD': 'EUR/USD', 'BTCUSD': 'BTC', '^SPX': 'S&P 500' };
+const RATE_LABELS = { 'XAUUSD': 'Золото', 'EURUSD': 'EUR/USD', 'BTCUSD': 'BTC',
+  'SCHD': 'SCHD', 'IVV': 'IVV', 'VHT': 'VHT' };
 
 async function jget(url) {
   const r = await fetch(url, {
@@ -162,10 +166,11 @@ const RATE_SOURCES = {
     async () => (await (await jget('https://api.coingecko.com/api/v3/simple/price?ids=pax-gold&vs_currencies=usd')).json())['pax-gold'].usd,
     () => stooqOne('xauusd'),
   ],
-  '^SPX': [
-    async () => (await (await jget('https://query1.finance.yahoo.com/v8/finance/chart/%5EGSPC?range=1d&interval=1d')).json()).chart.result[0].meta.regularMarketPrice,
-    () => stooqOne('%5Espx'),
-  ],
+  // американские ETF: Yahoo → stooq (тикер.us)
+  ...Object.fromEntries(['SCHD', 'IVV', 'VHT'].map(sym => [sym, [
+    async () => (await (await jget(`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?range=1d&interval=1d`)).json()).chart.result[0].meta.regularMarketPrice,
+    () => stooqOne(sym.toLowerCase() + '.us'),
+  ]])),
 };
 
 export async function ratesRefresh(db) {

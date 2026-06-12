@@ -407,7 +407,11 @@ export function ensureEnergy(db) {
 
 // Строки курсов, чтобы их можно было править вручную даже без сети
 export function ensureRates(db) {
-  const defs = [['XAUUSD', 'Золото'], ['EURUSD', 'EUR/USD'], ['BTCUSD', 'BTC'], ['^SPX', 'S&P 500']];
+  // ^SPX заменён на ETF пользователя: SCHD / IVV / VHT
+  db.prepare(`UPDATE portfolio_items SET rate_symbol = NULL WHERE rate_symbol = '^SPX'`).run();
+  db.prepare(`DELETE FROM rates WHERE symbol = '^SPX'`).run();
+  const defs = [['XAUUSD', 'Золото'], ['EURUSD', 'EUR/USD'], ['BTCUSD', 'BTC'],
+    ['SCHD', 'SCHD'], ['IVV', 'IVV'], ['VHT', 'VHT']];
   for (const [sym, label] of defs)
     db.prepare('INSERT OR IGNORE INTO rates(symbol, label) VALUES(?,?)').run(sym, label);
 }

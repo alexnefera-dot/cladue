@@ -34,10 +34,11 @@ const parseNum = s => {
 };
 const ACCT = { bank: 'банк', broker: 'брокер', cash: 'кэш', crypto: 'крипто', deposit: 'вклад', safe: 'ячейка' };
 const ATYPES = ['крипто', 'кеш', 'баланс', 'недвижка', 'авто', 'акции', 'золото', 'облигации'];
-const RSYMS = ['BTCUSD', 'XAUUSD', '^SPX'];
+const RSYMS = ['BTCUSD', 'XAUUSD', 'SCHD', 'IVV', 'VHT'];
 const STEPK = { buy: ['купить', 'ok'], sell: ['продать', 'p1'], transfer: ['перевод', 'p2'] };
 const PERIOD = { monthly: 'мес', yearly: 'год', once: 'разово' };
-const RATE_FMT = { 'XAUUSD': v => '$' + fmt(v), 'EURUSD': v => v?.toFixed(4), 'BTCUSD': v => '$' + fmt(v), '^SPX': v => fmt(v) };
+const RATE_FMT = { 'XAUUSD': v => '$' + fmt(v), 'EURUSD': v => v?.toFixed(4), 'BTCUSD': v => '$' + fmt(v),
+  'SCHD': v => '$' + fmt(v), 'IVV': v => '$' + fmt(v), 'VHT': v => '$' + fmt(v) };
 
 window.loadFin = async function () {
   finData = await finApi.list();
@@ -47,10 +48,15 @@ window.loadFin = async function () {
 };
 
 // ===== Портфель: строки таблицы =====
+// свёрнутые узлы — переживают перерисовку и перезапуск
+const portFold = new Set(JSON.parse(localStorage.portFold ?? '[]'));
+const savePortFold = () => localStorage.portFold = JSON.stringify([...portFold]);
+
 function portRows(it, depth) {
   const target = finTab === 'target';
   const editable = it.kind === 'asset' || !it.children.length;
   const rowCls = it.kind === 'block' ? 'pblock' : it.kind === 'section' ? 'psection' : '';
+  const folded = portFold.has(it.id);
   let cells;
   if (target) {
     cells = `<td class="r num muted">${fmtE(it.eur)}</td>
@@ -59,19 +65,24 @@ function portRows(it, depth) {
   } else {
     const g = it.invested != null && it.invested ? (it.investedCur - it.invested) / it.invested * 100 : null;
     const cur = it.currency ?? '€';
+    // у категорий — итог в € + разрез по валютам, если внутри обе
+    const split = !editable && it.usdPart > 0 && it.eurPart > 0
+      ? `<div class="meta">€ ${fmt(it.eurPart)} + $ ${fmt(it.usdPart)}</div>` : '';
     const valueCell = it.auto
       ? `<td class="r num acc" title="авто: ${it.qty} × курс ${it.rate_symbol}">⚡ ${fmt(it.value)} $</td>`
       : editable
         ? `<td class="r num acc"><span class="pill btn" data-fcur="${it.id}:${cur}" title="сменить валюту">${cur}</span>
             <span class="ed" data-fe="items:${it.id}:value:num" title="текущая стоимость (клик)">${it.value != null ? fmt(it.value) : '—'}</span></td>`
-        : `<td class="r num acc">${fmtE(it.eur)}</td>`;
+        : `<td class="r num acc">${fmtE(it.eur)}${split}</td>`;
     cells = `<td class="r num muted ${editable ? 'ed' : ''}" ${editable ? `data-fe="items:${it.id}:buy_value:num" title="цена покупки (клик)"` : ''}>${editable ? (it.buy_value != null ? fmt(it.buy_value) : '—') : (it.invested != null ? fmt(it.invested) : '')}</td>
       <td class="r num">${g != null ? `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</span>` : ''}</td>
       ${valueCell}`;
   }
   return `<tr class="${rowCls}">
     <td style="padding-left:${8 + depth * 22}px">
+      ${it.children.length ? `<span class="caret" data-pfold="${it.id}" title="${folded ? 'развернуть' : 'свернуть'}">${folded ? '▸' : '▾'}</span>` : ''}
       <span class="ed" data-fe="items:${it.id}:name:text" title="клик — переименовать">${fesc(it.name)}</span>
+      ${folded ? `<span class="meta">· ${it.children.length} внутри</span>` : ''}
       ${editable && it.asset_type ? `<span class="pill" data-ftype="${it.id}" title="тип актива — клик">${fesc(it.asset_type)}</span>` : ''}
       ${it.rate_symbol ? `<span class="pill btn" data-fqty="${it.id}" title="количество — клик">${it.qty ?? '?'} × ${fesc(it.rate_symbol)}</span>` : ''}
       ${it.is_loan ? '<span class="pill p2">🤝 займ</span>' : ''}
@@ -81,11 +92,11 @@ function portRows(it, depth) {
       ${!target && it.kind === 'block' ? `<span class="rowbtn" data-fadd="section:${it.id}" title="добавить раздел">＋</span>` : ''}
       ${!target && it.kind === 'section' ? `<span class="rowbtn" data-fadd="asset:${it.id}" title="добавить актив">＋</span>` : ''}
       ${!target && editable && !it.asset_type ? `<span class="rowbtn" data-ftype="${it.id}" title="задать тип актива">⊙</span>` : ''}
-      ${!target && editable ? `<span class="rowbtn" data-frate="${it.id}" title="${it.rate_symbol ? 'автоцена: сменить/убрать тикер' : 'автоцена по курсу (BTC/золото/S&P)'}">⚡</span>` : ''}
+      ${!target && editable ? `<span class="rowbtn" data-frate="${it.id}" title="${it.rate_symbol ? 'автоцена: сменить/убрать тикер' : 'автоцена по курсу (BTC, золото, SCHD/IVV/VHT)'}">⚡</span>` : ''}
       ${!target && editable ? `<span class="rowbtn" data-loanflag="${it.id}:${it.is_loan ? 1 : 0}" title="${it.is_loan ? 'убрать значок займа' : 'пометить как займ'}">🤝</span>` : ''}
       ${!target ? `<span class="rowbtn del" data-findel="items:${it.id}">✕</span>` : ''}
     </td>
-  </tr>` + it.children.map(c => portRows(c, depth + 1)).join('');
+  </tr>` + (folded ? '' : it.children.map(c => portRows(c, depth + 1)).join(''));
 }
 
 // ===== Секции =====
@@ -95,6 +106,7 @@ function secPortfolio(d, s) {
   <div class="viewtabs">
     <span class="pill btn ${finTab === 'fact' ? 'ok' : ''}" data-fintab="fact">Факт</span>
     <span class="pill btn ${finTab === 'target' ? 'ok' : ''}" data-fintab="target">Целевой портфель</span>
+    <span class="pill btn" id="pfoldAll" style="margin-left:auto">${portFold.size ? '▾ развернуть всё' : '▸ свернуть всё'}</span>
   </div>
   <div class="card">
     <table class="fintable porttable">
@@ -401,7 +413,7 @@ function renderFin() {
     + (show('plans') ? secPlans(d) : '')
     + (show('prop') ? secProps(d) : '')
     + (show('fire') ? secFire(d, s) : '')
-    + `<div class="footer-hint">Бивалютно: € и $ по курсу EURUSD. ⚡ — автоцена «количество × курс» (BTC, золото, S&P). Ввод понимает «100k», «1.2m», даты — и 01.07.2026. Платежи и траты видны в календаре и радаре задач.</div>`;
+    + `<div class="footer-hint">Бивалютно: € и $ по курсу EURUSD. ⚡ — автоцена «количество × курс» (BTC, золото, SCHD/IVV/VHT). Ввод понимает «100k», «1.2m», даты — и 01.07.2026. Платежи и траты видны в календаре и радаре задач.</div>`;
   bindFin();
 }
 
@@ -452,6 +464,21 @@ function bindFin() {
     el.addEventListener('click', () => inlineVal(el, 'num', v => finApi.rateSet(el.dataset.rate, v))));
   document.querySelectorAll('[data-fintab]').forEach(el =>
     el.addEventListener('click', () => { finTab = el.dataset.fintab; renderFin(); }));
+  document.querySelectorAll('[data-pfold]').forEach(el =>
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = +el.dataset.pfold;
+      portFold.has(id) ? portFold.delete(id) : portFold.add(id);
+      savePortFold(); renderFin();
+    }));
+  $('pfoldAll')?.addEventListener('click', () => {
+    if (portFold.size) portFold.clear();
+    else {
+      const walk = it => { if (it.children.length) { portFold.add(it.id); it.children.forEach(walk); } };
+      finData.portfolio.forEach(walk);
+    }
+    savePortFold(); renderFin();
+  });
   document.querySelectorAll('[data-fcur]').forEach(el =>
     el.addEventListener('click', async () => {
       const [id, cur] = el.dataset.fcur.split(':');

@@ -274,3 +274,13 @@ test('рулетка спонтанности: только живые идеи 
   core.updateNode(db, t.id, { kind: 'task' });
   assert.equal(core.rollIdea(db), null);
 });
+
+test('создание: распознанная дата ставится сразу (тип + срок)', () => {
+  const db = freshDb();
+  const inbox = catByTitle(db, 'Инбокс');
+  const n = core.addChildAuto(db, inbox.id, 'Продать X5 в августе');
+  assert.equal(n.kind, 'task');
+  assert.match(n.due_date ?? '', /-08-31$/, 'август → конец августа');
+  const q = core.addChildAuto(db, inbox.id, 'Стоит ли менять резину?');
+  assert.ok(!q.due_date, 'без месяца в тексте срока нет');
+});
