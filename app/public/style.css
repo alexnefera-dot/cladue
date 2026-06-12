@@ -237,3 +237,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 /* Многострочное поле добавления в Целях */
 .addbar textarea{flex:1;border:1px solid var(--line);border-radius:9px;padding:8px 11px;
   font:13px/1.45 var(--sans);background:var(--panel);resize:none;overflow-y:auto;min-height:36px;max-height:240px}
+
+/* Блок текста внутри записи: виден прямо в дереве под заголовком */
+.noteblock{white-space:pre-wrap;font-size:12px;color:var(--muted);margin-top:3px;line-height:1.45;
+  display:-webkit-box;-webkit-line-clamp:8;-webkit-box-orient:vertical;overflow:hidden}

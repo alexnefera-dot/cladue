@@ -79,9 +79,8 @@ function nodeRow(n, depth, idx) {
     ${caret}${marker}
     ${n.priority ? `<span class="pill ${n.priority}">${n.priority}</span>` : ''}
     ${(n.kind === 'task' || n.kind === 'decision') ? `<span class="pill ${kc}">${kl}</span>` : ''}
-    <span class="t ${done ? 'done' : ''}">${esc(n.title)}</span>
+    <span class="t ${done ? 'done' : ''}">${esc(n.title)}${n.note ? `<div class="noteblock">${esc(n.note)}</div>` : ''}</span>
     ${n.blocked ? '<span class="meta">⛔</span>' : ''}
-    ${n.note ? '<span class="meta" title="внутри блок текста — открой карточку">▤</span>' : ''}
     ${n.repeat ? '<span class="meta" title="повторяющаяся">🔁</span>' : ''}
     ${n.due_date ? `<span class="meta">${n.due_date}</span>` : ''}
     <span class="rowbtn" data-addchild="${n.id}" title="добавить вложенную">＋</span>
@@ -519,22 +518,28 @@ function startInlineEdit(id) {
   const input = document.createElement('textarea');
   input.className = 'inlineedit';
   input.rows = 1;
-  input.value = n.title;
+  // правится запись целиком: первая строка — заголовок, остальное — блок текста
+  input.value = n.title + (n.note ? '\n' + n.note : '');
+  input.title = 'Enter — новая строка · ⌘/Ctrl+Enter — сохранить · клик мимо — сохранить';
   t.replaceWith(input);
   const grow = () => { input.style.height = 'auto'; input.style.height = (input.scrollHeight + 2) + 'px'; };
   input.addEventListener('input', grow);
-  input.focus(); input.select();
+  input.focus();
+  input.setSelectionRange(n.title.length, n.title.length);
   grow();
   let saved = false;
   const save = async () => {
     if (saved) return; saved = true;
-    const v = input.value.replace(/\s*\n\s*/g, ' ').trim();   // заголовок — одна логическая строка
-    if (v && v !== n.title) await api.patch(id, { title: v });
+    const lines = input.value.replace(/\s+$/, '').split('\n');
+    const title = lines[0].trim();
+    const note = lines.slice(1).join('\n').trim();
+    if (title && (title !== n.title || note !== (n.note ?? '')))
+      await api.patch(id, { title, note });
     await load();
   };
   input.addEventListener('click', ev => ev.stopPropagation());
   input.addEventListener('keydown', ev => {
-    if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); save(); }
+    if (ev.key === 'Enter' && (ev.metaKey || ev.ctrlKey)) { ev.preventDefault(); save(); }
     if (ev.key === 'Escape') { saved = true; load(); }
   });
   input.addEventListener('blur', save);
