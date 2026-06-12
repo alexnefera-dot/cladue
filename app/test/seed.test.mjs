@@ -81,7 +81,8 @@ test('демо-сид: сегодня, трекинг, прогнозы и им�
   const c = q2 => db.prepare(q2).get().c;
   assert.ok(c('SELECT count(*) AS c FROM checkins') === 10, 'история чек-инов');
   assert.equal(db.prepare('SELECT count(*) AS c FROM checkins WHERE date = ?').get(today).c, 0, 'сегодня не занят');
-  assert.equal(c('SELECT count(*) AS c FROM metrics'), 3);
+  assert.equal(c('SELECT count(*) AS c FROM metrics'), 12, '3 числовых примера + 9 колонок дневника');
+  assert.equal(c(`SELECT count(*) AS c FROM metrics WHERE type = 'bool'`), 9, 'колонки из гугл-таблицы');
   assert.ok(c('SELECT count(*) AS c FROM metric_log') >= 12, 'история метрик');
   // прогнозы: калибровка считается
   const f = fin.forecasts(db);

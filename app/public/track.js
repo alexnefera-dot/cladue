@@ -7,7 +7,7 @@ const trApi = {
   mAdd: b => fetch('/api/track/metrics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }),
   mDel: id => fetch('/api/track/metrics/' + id, { method: 'DELETE' }),
   mRen: (id, b) => fetch('/api/track/metrics/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }),
-  mVal: (id, value) => fetch(`/api/track/metrics/${id}/value`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value }) }),
+  mVal: (id, value, date) => fetch(`/api/track/metrics/${id}/value`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value, date }) }),
 };
 
 const tresc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -59,28 +59,56 @@ function renderTrack() {
     </div>
   </div>
 
-  <div class="sec">Мои метрики · значение за сегодня правится кликом</div>
-  <div class="card">
-    ${d.metrics.map(mt => `
-      <div class="task">
-        <span class="t ed" data-trren="${mt.id}" title="клик — переименовать">${tresc(mt.name)}</span>
-        <span class="pill">${{ number: 'число', bool: 'да/нет', scale: '1–10' }[mt.type]}${mt.unit ? ' · ' + tresc(mt.unit) : ''}</span>
-        ${sparkBars(mt.history, mt.type)}
-        ${mt.type === 'bool'
-          ? `<span class="cb ${mt.today ? 'done' : ''}" data-trbool="${mt.id}:${mt.today ? 1 : 0}"></span>`
-          : `<span class="ed num" data-trval="${mt.id}" title="значение за сегодня">${mt.today ?? '—'}</span>`}
-        <span class="meta">${mt.total} зап.</span>
-        <span class="rowbtn del" data-trdel="${mt.id}">✕</span>
-      </div>`).join('') || '<div class="empty">создай первую метрику: кофе, падл-часы, страницы, вес…</div>'}
-    <div class="task finadd">
-      <input id="trName" placeholder="новая метрика (кофе, падл-часы, страницы…)">
-      <select id="trType"><option value="number">число</option><option value="bool">да/нет</option><option value="scale">шкала 1–10</option></select>
+  <div class="sec">Дневник · как твоя таблица: строка — день, колонка — что отмечаешь</div>
+  <div class="card" style="overflow-x:auto">
+    ${diaryGrid(d)}
+    <div class="task finadd" style="margin-top:8px">
+      <input id="trName" placeholder="новая колонка (Подъём не в 10, Книга, Падл…)">
+      <select id="trType"><option value="bool">отметка ✓</option><option value="number">число</option><option value="scale">шкала 1–10</option></select>
       <input id="trUnit" placeholder="ед. (опц.)" style="width:90px">
-      <span class="pill btn ok" id="trAdd">＋</span>
+      <span class="pill btn ok" id="trAdd">＋ колонка</span>
     </div>
   </div>
-  <div class="footer-hint">Спарклайн — последние 14 дней. Корреляции по накопленному — добавим, когда будет 2–3 недели данных.</div>`;
+
+  ${d.metrics.some(mt => mt.type !== 'bool') ? `
+  <div class="sec">Динамика чисел · 14 дней</div>
+  <div class="card">
+    ${d.metrics.filter(mt => mt.type !== 'bool').map(mt => `
+      <div class="task">
+        <span class="t">${tresc(mt.name)}</span>
+        <span class="pill">${mt.type === 'scale' ? '1–10' : 'число'}${mt.unit ? ' · ' + tresc(mt.unit) : ''}</span>
+        ${sparkBars(mt.history, mt.type)}
+        <span class="meta">${mt.total} зап.</span>
+      </div>`).join('')}
+  </div>` : ''}
+  <div class="footer-hint">Клик по ячейке — отметка/значение за тот день (можно задним числом). Клик по заголовку — переименовать, ✕ — удалить колонку с историей.</div>`;
   bindTrack();
+}
+
+// сетка «дата × колонки» как в гугл-таблице: последние 14 дней, сегодня сверху
+function diaryGrid(d) {
+  if (!d.metrics.length) return '<div class="empty">добавь первую колонку — и отмечай день кликом</div>';
+  const iso = n => new Date(Date.now() - n * 864e5).toISOString().slice(0, 10);
+  const WDS = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+  const days = Array.from({ length: 14 }, (_, n) => iso(n));
+  const val = Object.fromEntries(d.metrics.map(mt => [mt.id, Object.fromEntries(mt.history.map(h => [h.date, h.value]))]));
+  const cell = (mt, date) => {
+    const v = val[mt.id][date];
+    if (mt.type === 'bool')
+      return `<td class="cell ${v ? 'on' : ''}" data-trcell="${mt.id}:${date}:bool:${v ? 1 : 0}">${v ? '✓' : ''}</td>`;
+    return `<td class="cell num" data-trcell="${mt.id}:${date}:num:${v ?? ''}">${v ?? ''}</td>`;
+  };
+  return `<table class="diary">
+    <tr><th style="text-align:left">Дата</th>${d.metrics.map(mt => `
+      <th><span class="ed" data-trren="${mt.id}" title="клик — переименовать">${tresc(mt.name)}</span>${mt.unit ? `<br><span class="meta">${tresc(mt.unit)}</span>` : ''}
+      <span class="rowbtn del" data-trdel="${mt.id}">✕</span></th>`).join('')}</tr>
+    ${days.map(date => {
+      const dt = new Date(date + 'T00:00:00');
+      return `<tr class="${date === days[0] ? 'todayrow' : ''}">
+        <td class="num">${date === days[0] ? '<b>сегодня</b>' : `${String(dt.getDate()).padStart(2, '0')}.${String(dt.getMonth() + 1).padStart(2, '0')} ${WDS[dt.getDay()]}`}</td>
+        ${d.metrics.map(mt => cell(mt, date)).join('')}</tr>`;
+    }).join('')}
+  </table>`;
 }
 
 function bindTrack() {
@@ -91,17 +119,16 @@ function bindTrack() {
       await trApi.checkin(+el.dataset.trmood, note);
       window.loadTrack();
     }));
-  document.querySelectorAll('#screen-track [data-trval]').forEach(el =>
+  document.querySelectorAll('#screen-track [data-trcell]').forEach(el =>
     el.addEventListener('click', async () => {
-      const v = prompt('Значение за сегодня:', el.textContent.trim().replace('—', ''));
-      if (v == null || v.trim() === '' || isNaN(parseFloat(v.replace(',', '.')))) return;
-      await trApi.mVal(+el.dataset.trval, parseFloat(v.replace(',', '.')));
-      window.loadTrack();
-    }));
-  document.querySelectorAll('#screen-track [data-trbool]').forEach(el =>
-    el.addEventListener('click', async () => {
-      const [id, cur] = el.dataset.trbool.split(':');
-      await trApi.mVal(+id, cur === '1' ? 0 : 1);
+      const [id, date, type, cur] = el.dataset.trcell.split(':');
+      if (type === 'bool') {
+        await trApi.mVal(+id, cur === '1' ? 0 : 1, date);
+      } else {
+        const v = prompt(`Значение за ${date}:`, cur);
+        if (v == null || v.trim() === '' || isNaN(parseFloat(v.replace(',', '.')))) return;
+        await trApi.mVal(+id, parseFloat(v.replace(',', '.')), date);
+      }
       window.loadTrack();
     }));
   document.querySelectorAll('#screen-track [data-trren]').forEach(el =>

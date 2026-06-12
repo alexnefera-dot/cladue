@@ -34,6 +34,7 @@ export function seedDemo(db) {
   seedForecasts(db);
   seedProperties(db);
   seedSnapshotPast(db);
+  seedDiary(db);
 }
 
 // ===== Цели: ~25 записей с типами, сроками, связями и парой-дублем =====
@@ -276,6 +277,14 @@ function seedMetrics(db) {
   for (const [n, v] of [[-12, 1.5], [-5, 3], [-1, 1.5]]) life.setMetricValue(db, p, v, rel(n));
   const e = id('Испанский (пример)');
   for (const [n, v] of [[-4, 30], [-2, 25], [-1, 20]]) life.setMetricValue(db, e, v, rel(n));
+}
+
+// ===== Дневник: колонки-отметки из гугл-таблицы пользователя (его реальный список) =====
+function seedDiary(db) {
+  if (db.prepare(`SELECT count(*) AS c FROM metrics WHERE name = 'Подъем не в 10'`).get().c > 0) return;
+  for (const name of ['Подъем не в 10', 'Ютуб при работе', 'Тревога (не в 20:00)', 'Инвестиции в будние',
+    'Майндсет урок', 'Книга', 'Недвижка / Авто', 'Психолог', 'Падл'])
+    life.addMetric(db, { name, type: 'bool' });
 }
 
 // ===== Прогнозы: два открытых + два проверенных (чтобы калибровка считалась) =====

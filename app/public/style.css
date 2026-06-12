@@ -171,3 +171,16 @@ body{background:var(--bg);color:var(--text);font:14px/1.45 var(--sans);height:10
 .hm i.l1{background:#cdeedd}.hm i.l2{background:#8fd6b0}.hm i.l3{background:#1e9e57}
 .sparkrow{display:inline-flex;align-items:flex-end;gap:2px;height:22px;min-width:60px}
 .sparkrow i{display:block;width:5px;background:var(--green-dim);border-radius:2px 2px 0 0}
+
+/* Трекинг: дневник-сетка как гугл-таблица */
+.diary{border-collapse:collapse;min-width:100%;font-size:12.5px}
+.diary th{font-size:10.5px;letter-spacing:.3px;color:var(--muted);padding:4px 8px;text-align:center;vertical-align:bottom;border-bottom:1px solid var(--line);max-width:96px;line-height:1.25}
+.diary td{padding:3px 8px;text-align:center;border-bottom:1px solid var(--line)}
+.diary td:first-child{text-align:left;white-space:nowrap;color:var(--muted);font-size:11.5px}
+.diary td.cell{cursor:pointer;min-width:36px}
+.diary td.cell:hover{background:var(--panel2)}
+.diary td.on{color:var(--green);font-weight:700;background:var(--green-soft)}
+.diary tr.todayrow td{background:rgba(30,158,87,.05)}
+.diary tr.todayrow td.on{background:var(--green-soft)}
+.diary th .rowbtn{visibility:hidden}
+.diary th:hover .rowbtn{visibility:visible}
