@@ -21,17 +21,18 @@ test('портфель: дерево блоков, суммы разделов �
   assert.equal(d.summary.portfolioTotal, 475000);
 });
 
-test('прирост: считается только по активам с ценой покупки', () => {
+test('прирост: без цены покупки она равна текущей (вклад 0%), с ценой — честная пара', () => {
   const db = freshDb();
   const d0 = fin.listFin(db);
-  assert.equal(d0.summary.growth, null, 'без цен покупки прироста нет');
+  assert.equal(d0.summary.growth.invested, 475000, 'без цен покупки вложено = текущая');
+  assert.equal(d0.summary.growth.abs, 0, 'прирост нулевой, а не пустой');
   const start = db.prepare(`SELECT id FROM portfolio_items WHERE name = 'Start'`).get();
   fin.patchItem(db, start.id, { buy_value: 80000 });
   const d1 = fin.listFin(db);
-  assert.equal(d1.summary.growth.invested, 80000);
-  assert.equal(d1.summary.growth.current, 100000, 'текущая только по активам с покупкой');
+  assert.equal(d1.summary.growth.invested, 455000, '375000 (по текущей) + 80000 (покупка Start)');
+  assert.equal(d1.summary.growth.current, 475000);
   assert.equal(d1.summary.growth.abs, 20000);
-  assert.ok(Math.abs(d1.summary.growth.pct - 25) < 0.01);
+  assert.ok(Math.abs(d1.summary.growth.pct - 20000 / 455000 * 100) < 0.01);
 });
 
 test('целевой портфель: target на любом уровне, у блока — свой или сумма детей', () => {

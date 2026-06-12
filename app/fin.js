@@ -32,10 +32,11 @@ export function portfolioTree(db) {
     // валютный разрез категории: сколько лежит в $ и в € (в родных валютах)
     const usdPart = isLeaf ? (r.currency === '$' ? (r.value ?? 0) : 0) : children.reduce((s, k) => s + k.usdPart, 0);
     const eurPart = isLeaf ? (r.currency !== '$' ? (r.value ?? 0) : 0) : children.reduce((s, k) => s + k.eurPart, 0);
-    // прирост честный: считаем только пары, где задана цена покупки (в €)
-    const invested = isLeaf ? toEur(r.buy_value, r.currency)
+    // прирост: цена покупки не задана — приравнивается к текущей (вклад в % нулевой)
+    const buyEff = r.buy_value ?? r.value;
+    const invested = isLeaf ? (buyEff != null ? (toEur(buyEff, r.currency) ?? 0) : null)
       : children.some(k => k.invested != null) ? children.reduce((s, k) => s + (k.invested ?? 0), 0) : null;
-    const investedCur = isLeaf ? (r.buy_value != null ? (toEur(r.value, r.currency) ?? 0) : null)
+    const investedCur = isLeaf ? (r.value != null ? (toEur(r.value, r.currency) ?? 0) : null)
       : children.some(k => k.investedCur != null) ? children.reduce((s, k) => s + (k.investedCur ?? 0), 0) : null;
     const target = r.target_value != null ? r.target_value
       : children.some(k => k.target != null) ? children.reduce((s, k) => s + (k.target ?? 0), 0) : null;

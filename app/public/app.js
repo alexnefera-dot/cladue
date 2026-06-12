@@ -81,6 +81,7 @@ function nodeRow(n, depth, idx) {
     ${(n.kind === 'task' || n.kind === 'decision') ? `<span class="pill ${kc}">${kl}</span>` : ''}
     <span class="t ${done ? 'done' : ''}">${esc(n.title)}</span>
     ${n.blocked ? '<span class="meta">⛔</span>' : ''}
+    ${n.note ? '<span class="meta" title="внутри блок текста — открой карточку">▤</span>' : ''}
     ${n.repeat ? '<span class="meta" title="повторяющаяся">🔁</span>' : ''}
     ${n.due_date ? `<span class="meta">${n.due_date}</span>` : ''}
     <span class="rowbtn" data-addchild="${n.id}" title="добавить вложенную">＋</span>
@@ -601,18 +602,23 @@ document.getElementById('bulkClear').addEventListener('click', () => {
   renderBoard();
 });
 
-// ===== Добавление: поле многострочное. Enter — отправить (несколько строк = импорт
-// с вложенностью по отступам), Shift+Enter — новая строка. Вставка попадает в поле — можно править.
+// ===== Добавление: поле многострочное. Enter — отправить, Shift+Enter — новая строка.
+// Несколько строк: Enter разбивает на записи (вложенность по отступам),
+// ⌘/Ctrl+Enter или кнопка «одной записью» — первая строка заголовок, остальное блок-заметка.
 const addT = document.getElementById('addTitle');
 const growAdd = () => { addT.style.height = 'auto'; addT.style.height = Math.min(addT.scrollHeight + 2, 240) + 'px'; };
-addT.addEventListener('input', growAdd);
-addT.addEventListener('keydown', async e => {
-  if (e.key !== 'Enter' || e.shiftKey) return;
-  e.preventDefault();
+
+async function submitAdd(asBlock) {
   const text = addT.value.replace(/\s+$/, '');
   if (!text.trim()) return;
   const inbox = state.nodes.find(n => n.is_category && n.title.includes('Инбокс'));
-  if (text.includes('\n')) {
+  const lines = text.split('\n');
+  if (lines.length > 1 && asBlock) {
+    // одна запись: заголовок + блок текста в заметке
+    const node = await api.add({ title: lines[0].trim(), parent_id: selected ?? null });
+    await api.patch(node.id, { note: lines.slice(1).join('\n').trim() });
+    if (selected) collapsed.delete(selected);
+  } else if (lines.length > 1) {
     const target = selected ?? inbox?.id ?? null;
     const r = await api.import({ parent_id: target, text });
     if (target) collapsed.delete(target);
@@ -622,8 +628,34 @@ addT.addEventListener('keydown', async e => {
     if (selected) collapsed.delete(selected);
   }
   addT.value = '';
+  document.getElementById('addModeBar')?.remove();
   growAdd();
   await load();
+}
+
+addT.addEventListener('input', () => {
+  growAdd();
+  // подсказка режимов появляется, когда строк несколько
+  const multi = addT.value.includes('\n');
+  let bar = document.getElementById('addModeBar');
+  if (multi && !bar) {
+    bar = document.createElement('div');
+    bar.id = 'addModeBar';
+    bar.className = 'btnrow';
+    bar.style.margin = '-6px 0 10px';
+    bar.innerHTML = `
+      <span class="pill btn ok" id="amSplit" title="Enter">⤓ разбить на записи (вложенность по отступам)</span>
+      <span class="pill btn" id="amBlock" title="⌘+Enter">▤ одной записью: заголовок + блок текста</span>`;
+    addT.closest('.addbar').after(bar);
+    bar.querySelector('#amSplit').addEventListener('click', () => submitAdd(false));
+    bar.querySelector('#amBlock').addEventListener('click', () => submitAdd(true));
+  }
+  if (!multi && bar) bar.remove();
+});
+addT.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || e.shiftKey) return;
+  e.preventDefault();
+  submitAdd(e.metaKey || e.ctrlKey);
 });
 
 

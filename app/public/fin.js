@@ -63,7 +63,9 @@ function portRows(it, depth) {
       <td class="r num ed acc" data-fe="items:${it.id}:target_value:num" title="клик — целевая сумма">${it.target != null ? fmtE(it.target) : '—'}</td>
       <td class="r">${it.target != null ? `<span class="pill ${it.eur - it.target >= 0 ? 'ok' : 'p1'}">Δ ${fmt(it.eur - it.target)}</span>` : ''}</td>`;
   } else {
-    const g = it.invested != null && it.invested ? (it.investedCur - it.invested) / it.invested * 100 : null;
+    // лист без своей цены покупки прирост не показывает (он по определению 0)
+    const g = it.invested != null && it.invested && !(editable && it.buy_value == null)
+      ? (it.investedCur - it.invested) / it.invested * 100 : null;
     const cur = it.currency ?? '€';
     // у категорий — итог в € + разрез по валютам, если внутри обе
     const split = !editable && it.usdPart > 0 && it.eurPart > 0
@@ -74,7 +76,7 @@ function portRows(it, depth) {
         ? `<td class="r num acc"><span class="pill btn" data-fcur="${it.id}:${cur}" title="сменить валюту">${cur}</span>
             <span class="ed" data-fe="items:${it.id}:value:num" title="текущая стоимость (клик)">${it.value != null ? fmt(it.value) : '—'}</span></td>`
         : `<td class="r num acc">${fmtE(it.eur)}${split}</td>`;
-    cells = `<td class="r num muted ${editable ? 'ed' : ''}" ${editable ? `data-fe="items:${it.id}:buy_value:num" title="цена покупки (клик)"` : ''}>${editable ? (it.buy_value != null ? fmt(it.buy_value) : '—') : (it.invested != null ? fmt(it.invested) : '')}</td>
+    cells = `<td class="r num muted ${editable ? 'ed' : ''}" ${editable ? `data-fe="items:${it.id}:buy_value:num" title="цена покупки (клик) · не задана — равна текущей"` : ''}>${editable ? (it.buy_value != null ? fmt(it.buy_value) : (it.value != null ? '≈ ' + fmt(it.value) : '—')) : (it.invested != null ? fmt(it.invested) : '')}</td>
       <td class="r num">${g != null ? `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</span>` : ''}</td>
       ${valueCell}`;
   }
