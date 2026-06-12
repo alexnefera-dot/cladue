@@ -161,8 +161,22 @@ function secAccounts(d) {
   </div>`;
 }
 
-function renderTx(tx) {
+function renderTx(tx, budget) {
   const maxCat = tx.categories[0]?.[1] ?? 1;
+  // базовый минимум месяца: уложились или перерасход
+  const isCurrent = tx.month === finIso(new Date()).slice(0, 7);
+  const over = budget ? tx.expense - budget : 0;
+  const pct = budget ? Math.min(100, tx.expense / budget * 100) : 0;
+  const budgetBar = `
+    <div style="padding:8px 0;border-bottom:1px solid var(--line)">
+      <div class="kv"><span>БАЗОВЫЙ МИНИМУМ / МЕС
+        <b class="ed num" id="txBudget" title="клик — задать базовый минимум">${budget ? fmt(budget) + ' €' : '＋ задать'}</b></span>
+        ${budget ? `<b class="num ${over > 0 ? 'down' : 'up'}">${over > 0
+          ? `перерасход +${fmt(over)} €${isCurrent ? '' : ' ✗'}`
+          : (isCurrent ? `остаток ${fmt(-over)} €` : `уложились ✓ (+${fmt(-over)} € в запасе)`)}</b>` : ''}
+      </div>
+      ${budget ? `<div class="bar" style="margin-top:4px"><i style="width:${pct}%;${over > 0 ? 'background:var(--red)' : ''}"></i></div>` : ''}
+    </div>`;
   return `
   <div class="sec">Расходы и доходы</div>
   <div class="card">
@@ -173,6 +187,7 @@ function renderTx(tx) {
       <span class="meta">расход: <b class="down">${fmt(tx.expense)} €</b> · доход: <b class="up">${fmt(tx.income)} €</b> · итого: ${fmt(tx.income - tx.expense)} €</span>
       <span class="pill btn" id="monefyToggle" style="margin-left:auto">⤓ Monefy CSV</span>
     </div>
+    ${budgetBar}
     ${showMonefy ? `
       <div style="padding:8px 0">
         <textarea id="monefyCsv" rows="6" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:8px;font:12px var(--mono)" placeholder="Вставь CSV-экспорт Monefy (с заголовком). Разделитель ; или , — определю. Минус = расход."></textarea>
@@ -435,7 +450,7 @@ function renderFin() {
   document.getElementById('screen-fin').innerHTML = head
     + (show('port') ? (hidden('port') ? veiled('Портфель', 'port') : secPortfolio(d, s)) : '')
     + (show('acc') ? (hidden('acc') ? veiled('Счета', 'acc') : secAccounts(d)) : '')
-    + (show('flow') ? renderTx(d.tx) : '')
+    + (show('flow') ? renderTx(d.tx, d.budget) : '')
     + (show('debts') ? secDebts(d) : '')
     + (show('plans') ? secPlans(d) : '')
     + (show('prop') ? secProps(d) : '')
@@ -647,6 +662,14 @@ function bindFin() {
   $('txPrev')?.addEventListener('click', () => { finTxMonth = shiftYm(finTxMonth, -1); window.loadFin(); });
   $('txNext')?.addEventListener('click', () => { finTxMonth = shiftYm(finTxMonth, 1); window.loadFin(); });
   $('monefyToggle')?.addEventListener('click', () => { showMonefy = !showMonefy; renderFin(); });
+  $('txBudget')?.addEventListener('click', async () => {
+    const v = prompt('Базовый минимум на месяц, € (еда, быт, обязательные траты):', finData.budget ?? '');
+    if (v == null) return;
+    const n = parseNum(v);
+    await fetch('/api/setting', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'monthly_budget', value: n ?? '' }) });
+    window.loadFin();
+  });
   $('monefyGo')?.addEventListener('click', async () => {
     const csv = $('monefyCsv').value;
     if (!csv.trim()) return;

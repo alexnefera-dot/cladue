@@ -398,7 +398,7 @@ const server = http.createServer(async (req, res) => {
 
     if (p === '/api/setting' && req.method === 'POST') {
       const b = await body(req);
-      if (!['activity_month'].includes(b.key)) return json(res, 400, { error: 'unknown key' });
+      if (!['activity_month', 'monthly_budget'].includes(b.key)) return json(res, 400, { error: 'unknown key' });
       fin.setSetting(db, b.key, b.value ?? '');
       return json(res, 200, { ok: true });
     }

@@ -92,6 +92,7 @@ export function listFin(db) {
     forecasts: forecasts(db),
     properties: listProperties(db),
     fire: fireCalc(db, portfolioTotal),
+    budget: parseFloat(getSetting(db, 'monthly_budget', '')) || null,   // базовый минимум месяца
     macro: db.prepare('SELECT * FROM macro_notes ORDER BY date DESC, id DESC').all(),
     rates: db.prepare('SELECT * FROM rates').all(),
     summary: {
