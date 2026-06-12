@@ -411,7 +411,8 @@ function renderFin() {
       <div class="meta">${d.accounts.length} счетов</div></div>
     <div class="card"><div class="meta">ПОРТФЕЛЬ · ФАКТ</div>
       <div class="bignum">${hidden('port') ? '—' : `${fmtE(s.portfolioTotal)} <span style="font-size:14px;color:var(--muted)">· ${fmt(s.portfolioTotalUsd)} $</span>`}</div>
-      <div class="meta">${hidden('port') ? 'значения скрыты — 👁 наверху' : `курс ${s.rate?.toFixed(4)}${d.snapshotDelta ? ` · с ${d.snapshotDelta.since}: ${d.snapshotDelta.abs >= 0 ? '+' : ''}${fmt(d.snapshotDelta.abs)} €` : ''}${s.growth ? ` · прирост: ${s.growth.abs >= 0 ? '+' : ''}${fmt(s.growth.abs)} € (${s.growth.pct.toFixed(1)}%)` : ''}`}</div></div>
+      <div class="meta">${hidden('port') ? 'значения скрыты — 👁 наверху'
+        : (s.growth ? `прирост: ${s.growth.abs >= 0 ? '+' : ''}${fmt(s.growth.abs)} € (${s.growth.pct.toFixed(1)}%)` : '')}</div></div>
     <div class="card"><div class="meta">ОБЯЗАТЕЛЬСТВА / МЕС</div>
       <div class="bignum">${hide ? '—' : fmt(s.monthlyObligations) + ' €'}</div>
       <div class="meta">${s.upcoming.length ? `ближайшие 30 дней: ${s.upcoming.length}` : 'на месяц тихо'}</div></div>
