@@ -69,7 +69,7 @@ function renderCal() {
     <input id="evTitle" placeholder="название (🎂 ДР мамы, созвон…)">
     <input id="evDate" placeholder="2026-06-19" style="width:110px">
     <input id="evTime" placeholder="чч:мм" style="width:70px">
-    <select id="evRecur"><option value="none">однократно</option><option value="yearly">каждый год</option><option value="monthly">каждый месяц</option></select>
+    <select id="evRecur"><option value="none">однократно</option><option value="weekly">каждую неделю</option><option value="monthly">каждый месяц</option><option value="yearly">каждый год</option></select>
     <span class="pill btn ok" id="evAdd">＋</span>
   </div></div>
 

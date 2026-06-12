@@ -19,9 +19,11 @@ function occurrences(startDate, recur, first, last) {
   const out = [];
   let d = startDate;
   // отматываем максимум на 50 лет вперёд от стартовой даты
-  for (let i = 0; i < 600 && d <= last; i++) {
+  for (let i = 0; i < 2700 && d <= last; i++) {
     if (d >= first) out.push(d);
-    d = addMonths(d, recur === 'yearly' ? 12 : 1);
+    d = recur === 'weekly'
+      ? new Date(Date.parse(d) + 7 * 864e5).toISOString().slice(0, 10)
+      : addMonths(d, recur === 'yearly' ? 12 : 1);
   }
   return out;
 }

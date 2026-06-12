@@ -96,3 +96,15 @@ test('синк статусов: задача ↔ шаг в обе сторон�
   assert.equal(db.prepare('SELECT task_id FROM steps WHERE id = ?').get(st.id).task_id, null, 'связь очищена');
   assert.equal(items(db, '2026-07', 'step').length, 1, 'шаг снова виден в календаре сам');
 });
+
+test('событие каждую неделю: курс вт/чт раскладывается по месяцу', () => {
+  const db = freshDb();
+  cal.addEvent(db, { title: 'Словацкий', date: '2026-06-02', time: '18:00', recur: 'weekly' });   // вт
+  cal.addEvent(db, { title: 'Словацкий', date: '2026-06-04', time: '18:00', recur: 'weekly' });   // чт
+  const june = cal.calendar(db, '2026-06').items.filter(i => i.title === 'Словацкий');
+  assert.equal(june.length, 9, 'все вт и чт июня (5 вт + 4 чт)');
+  assert.ok(june.every(i => i.time === '18:00'));
+  // и в следующем месяце продолжается
+  const july = cal.calendar(db, '2026-07').items.filter(i => i.title === 'Словацкий');
+  assert.ok(july.length >= 8);
+});
