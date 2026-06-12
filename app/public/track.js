@@ -60,6 +60,7 @@ function renderTrack() {
     <div class="task finadd" style="margin-top:8px">
       <input id="trName" placeholder="новая колонка (Подъём не в 10, Книга, Падл…)">
       <select id="trType"><option value="bool">отметка ✓</option><option value="number">число</option><option value="scale">шкала 1–10</option></select>
+      <select id="trPol"><option value="plus">📈 прогресс</option><option value="minus">📉 регресс</option></select>
       <input id="trUnit" placeholder="ед. (опц.)" style="width:90px">
       <span class="pill btn ok" id="trAdd">＋ колонка</span>
     </div>
@@ -88,11 +89,11 @@ function monthTable(monthly) {
   const cols = monthly[0].metrics;   // набор колонок одинаков для всех месяцев
   return `<table class="diary" style="margin-top:6px">
     <tr><th style="text-align:left">Месяц</th>
-      ${cols.map(c => `<th>${tresc(c.name)}${c.type !== 'bool' && c.unit ? `<br><span class="meta">${tresc(c.unit)}</span>` : ''}</th>`).join('')}
+      ${cols.map(c => `<th class="${c.polarity === 'minus' ? 'badname' : ''}">${tresc(c.name)}${c.type !== 'bool' && c.unit ? `<br><span class="meta">${tresc(c.unit)}</span>` : ''}</th>`).join('')}
       <th>🙂 ср.</th><th>☑ задач</th><th>↻ рутин</th></tr>
     ${monthly.map((mo, i) => `<tr class="${i === 0 ? 'todayrow' : ''}">
       <td class="num">${i === 0 ? '<b>' + label(mo.ym) + '</b>' : label(mo.ym)}</td>
-      ${mo.metrics.map(c => `<td class="${c.type === 'bool' && c.value ? 'on' : 'num'}">${c.value ?? ''}</td>`).join('')}
+      ${mo.metrics.map(c => `<td class="${c.type === 'bool' && c.value ? (c.polarity === 'minus' ? 'bad' : 'on') : 'num'}">${c.value ?? ''}</td>`).join('')}
       <td class="num">${mo.mood ?? ''}</td><td class="num">${mo.tasksDone || ''}</td><td class="num">${mo.routinesDone || ''}</td>
     </tr>`).join('')}
   </table>`;
@@ -107,13 +108,15 @@ function diaryGrid(d) {
   const val = Object.fromEntries(d.metrics.map(mt => [mt.id, Object.fromEntries(mt.history.map(h => [h.date, h.value]))]));
   const cell = (mt, date) => {
     const v = val[mt.id][date];
+    const bad = mt.polarity === 'minus';
     if (mt.type === 'bool')
-      return `<td class="cell ${v ? 'on' : ''}" data-trcell="${mt.id}:${date}:bool:${v ? 1 : 0}">${v ? '✓' : ''}</td>`;
+      return `<td class="cell ${v ? (bad ? 'bad' : 'on') : ''}" data-trcell="${mt.id}:${date}:bool:${v ? 1 : 0}">${v ? (bad ? '✗' : '✓') : ''}</td>`;
     return `<td class="cell num" data-trcell="${mt.id}:${date}:num:${v ?? ''}">${v ?? ''}</td>`;
   };
   return `<table class="diary">
     <tr><th style="text-align:left">Дата</th>${d.metrics.map(mt => `
-      <th draggable="true" data-mcol="${mt.id}" title="тащи — поменять порядок колонок"><span class="ed" data-trren="${mt.id}" title="клик — переименовать">${tresc(mt.name)}</span>${mt.unit ? `<br><span class="meta">${tresc(mt.unit)}</span>` : ''}
+      <th draggable="true" data-mcol="${mt.id}" title="тащи — поменять порядок · регресс/прогресс переключается в карточке колонки"><span class="ed ${mt.polarity === 'minus' ? 'badname' : ''}" data-trren="${mt.id}" title="клик — переименовать">${tresc(mt.name)}</span>${mt.unit ? `<br><span class="meta">${tresc(mt.unit)}</span>` : ''}
+      <span class="rowbtn" data-trpol="${mt.id}:${mt.polarity ?? 'plus'}" title="${mt.polarity === 'minus' ? 'это регресс — клик: сделать прогрессом' : 'это прогресс — клик: сделать регрессом'}">${mt.polarity === 'minus' ? '📉' : '📈'}</span>
       <span class="rowbtn del" data-trdel="${mt.id}">✕</span></th>`).join('')}</tr>
     ${days.map(date => {
       const dt = new Date(date + 'T00:00:00');
@@ -174,6 +177,12 @@ function bindTrack() {
       }
       window.loadTrack();
     }));
+  document.querySelectorAll('#screen-track [data-trpol]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const [id, cur] = el.dataset.trpol.split(':');
+      await trApi.mRen(+id, { polarity: cur === 'minus' ? 'plus' : 'minus' });
+      window.loadTrack();
+    }));
   document.querySelectorAll('#screen-track [data-trren]').forEach(el =>
     el.addEventListener('click', async () => {
       const v = prompt('Название метрики:', el.textContent.trim());
@@ -186,7 +195,7 @@ function bindTrack() {
   $('trAdd')?.addEventListener('click', async () => {
     const name = $('trName').value.trim();
     if (!name) return;
-    await trApi.mAdd({ name, type: $('trType').value, unit: $('trUnit').value.trim() });
+    await trApi.mAdd({ name, type: $('trType').value, unit: $('trUnit').value.trim(), polarity: $('trPol').value });
     window.loadTrack();
   });
 }

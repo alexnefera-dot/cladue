@@ -236,3 +236,17 @@ test('колонки дневника переставляются drag&drop', (
   life.reorderMetric(db, id('А'), id('Б'), 'after');
   assert.equal(order(), 'ВБА');
 });
+
+test('полярность метрик: регрессы помечены, переключаются, видны в итогах', () => {
+  const db = freshDb();
+  life.importOldTracking(db);
+  const m = name => db.prepare('SELECT * FROM metrics WHERE name = ?').get(name);
+  assert.equal(m('Ютуб при работе').polarity, 'minus', 'известный регресс размечен');
+  assert.equal(m('Зал').polarity, 'plus');
+  life.patchMetric(db, m('Зал').id, { polarity: 'minus' });
+  assert.equal(m('Зал').polarity, 'minus', 'переключение работает');
+  life.addMetric(db, { name: 'Срыв диеты', type: 'bool', polarity: 'minus' });
+  assert.equal(m('Срыв диеты').polarity, 'minus');
+  const jan = life.monthlyStats(db, 12).find(s => s.ym.endsWith('-01'));
+  assert.ok(jan.metrics.every(x => 'polarity' in x), 'полярность в итогах месяцев');
+});

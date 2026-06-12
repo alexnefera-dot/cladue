@@ -273,3 +273,10 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 /* DnD колонок дневника */
 .diary th.dropbefore{box-shadow:inset 3px 0 0 var(--green)}
 .diary th.dropafter{box-shadow:inset -3px 0 0 var(--green)}
+
+/* Регресс в трекинге: красные кресты и цифры */
+.diary td.bad{color:var(--red);font-weight:700;background:rgba(204,68,68,.07)}
+.diary tr.todayrow td.bad{background:rgba(204,68,68,.10)}
+.diary .badname,.diary th.badname{color:var(--red)}
+.diary th .rowbtn{opacity:1;visibility:hidden}
+.diary th:hover .rowbtn{visibility:visible}

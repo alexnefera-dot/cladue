@@ -367,7 +367,8 @@ function seedDiary(db) {
   if (db.prepare(`SELECT count(*) AS c FROM metrics WHERE name = 'Ютуб при работе'`).get().c > 0) return;
   for (const name of ['Ютуб при работе', 'Тревога (не в 20:00)', 'Инвестиции в будние',
     'Майндсет урок', 'Книга', 'Недвижка / Авто', 'Психолог', 'Падл'])
-    life.addMetric(db, { name, type: 'bool' });
+    life.addMetric(db, { name, type: 'bool',
+      polarity: ['Ютуб при работе', 'Тревога (не в 20:00)'].includes(name) ? 'minus' : 'plus' });
 }
 
 // ===== Прогнозы: два открытых + два проверенных (чтобы калибровка считалась) =====

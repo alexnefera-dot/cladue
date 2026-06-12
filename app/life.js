@@ -143,11 +143,11 @@ export function checkins(db, days = 30) {
 // ===== Свои метрики =====
 export function addMetric(db, b) {
   const ord = db.prepare('SELECT COALESCE(MAX(ord),0)+1 AS o FROM metrics').get().o;
-  db.prepare('INSERT INTO metrics(name, type, unit, ord) VALUES(?,?,?,?)')
-    .run(b.name, b.type ?? 'number', b.unit ?? '', ord);
+  db.prepare('INSERT INTO metrics(name, type, unit, ord, polarity) VALUES(?,?,?,?,?)')
+    .run(b.name, b.type ?? 'number', b.unit ?? '', ord, b.polarity ?? 'plus');
 }
 export function patchMetric(db, id, b) {
-  for (const k of ['name', 'type', 'unit'])
+  for (const k of ['name', 'type', 'unit', 'polarity'])
     if (k in b) db.prepare(`UPDATE metrics SET ${k} = ? WHERE id = ?`).run(b[k], id);
 }
 export function delMetric(db, id) { db.prepare('DELETE FROM metrics WHERE id = ?').run(id); }
@@ -189,14 +189,14 @@ export function routineHeatmap(db, days = 112) {
 
 // ===== Итоги по месяцам: краткая статистика для динамики (текущий — первым) =====
 export function monthlyStats(db, months = 6) {
-  const defs = db.prepare('SELECT id, name, type, unit FROM metrics ORDER BY ord, id').all();
+  const defs = db.prepare('SELECT id, name, type, unit, polarity FROM metrics ORDER BY ord, id').all();
   const now = new Date();
   const out = [];
   for (let i = 0; i < months; i++) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     const metrics = defs.map(mt => ({
-      id: mt.id, name: mt.name, type: mt.type, unit: mt.unit,
+      id: mt.id, name: mt.name, type: mt.type, unit: mt.unit, polarity: mt.polarity,
       // отметки — сколько раз за месяц; числа — среднее за месяц
       value: mt.type === 'bool'
         ? db.prepare(`SELECT count(*) AS v FROM metric_log WHERE metric_id = ? AND value > 0 AND substr(date,1,7) = ?`).get(mt.id, ym).v || null
@@ -239,6 +239,10 @@ export function importOldTracking(db) {
     const id = byNorm[normName(name)];
     if (id) { ins.run(id, date); n++; }
   }
+  // известные регрессы пользователя — красные ✗, а не зелёные ✓
+  db.prepare(`UPDATE metrics SET polarity = 'minus' WHERE name IN
+    ('Ютуб при работе', 'Тревога (не в 20:00)', 'Тревога(не в 20:00)',
+     'Приоритеная задача не выбрана', 'Подъем не в 10')`).run();
   db.prepare(`INSERT INTO settings(key, value) VALUES('track_import_v1','1')
     ON CONFLICT(key) DO UPDATE SET value = '1'`).run();
   return { imported: n, months: payload.months };

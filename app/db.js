@@ -308,6 +308,14 @@ export function createDb(path = ':memory:') {
   // фиксированное время рутины (HH:MM) — для сортировки и напоминаний
   const rcols = db.prepare('PRAGMA table_info(routines)').all().map(c => c.name);
   if (!rcols.includes('time')) db.exec(`ALTER TABLE routines ADD COLUMN time TEXT`);
+  // полярность метрики дневника: plus — прогресс (зелёная ✓), minus — регресс (красный ✗)
+  const mcols = db.prepare('PRAGMA table_info(metrics)').all().map(c => c.name);
+  if (!mcols.includes('polarity')) {
+    db.exec(`ALTER TABLE metrics ADD COLUMN polarity TEXT NOT NULL DEFAULT 'plus'`);
+    db.prepare(`UPDATE metrics SET polarity = 'minus' WHERE name IN
+      ('Ютуб при работе', 'Тревога (не в 20:00)', 'Тревога(не в 20:00)',
+       'Приоритеная задача не выбрана', 'Подъем не в 10')`).run();
+  }
   // чипы интересов у людей
   const ppl = db.prepare('PRAGMA table_info(people)').all().map(c => c.name);
   if (!ppl.includes('tags')) db.exec(`ALTER TABLE people ADD COLUMN tags TEXT NOT NULL DEFAULT ''`);
