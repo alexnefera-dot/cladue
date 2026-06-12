@@ -151,6 +151,14 @@ export function checkPsyPass(db, password) {
 }
 export function psyHasPass(db) { return !!getSetting(db, 'psy_pass_hash', ''); }
 
+// ===== Общий замок разделов (Цели/Финансы/Инфо/Психология) — тот же честный UI-замок
+export function setLockPass(db, password) { setSetting(db, 'lock_pw_hash', password ? hash(password) : ''); }
+export function lockEnabled(db) { return !!getSetting(db, 'lock_pw_hash', ''); }
+export function checkLockPass(db, password) {
+  const h = getSetting(db, 'lock_pw_hash', '');
+  return !h || h === hash(password ?? '');
+}
+
 // ===== Демо =====
 export function seedPsy(db) {
   ensureWheel(db);

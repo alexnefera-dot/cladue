@@ -208,6 +208,7 @@ function pathOf(id) {
 }
 
 async function showCard(id, { silent = false } = {}) {
+  if (window.isLocked?.('list')) return;   // закрытая зона не светит карточку
   selected = id;
   if (!silent) { picked = new Set([id]); document.getElementById('insp').classList.add('open'); }
   renderBoard();
@@ -622,18 +623,86 @@ addT.addEventListener('keydown', async e => {
 });
 
 
+// ===== Замок разделов: Цели/Финансы/Инфо/Психология по умолчанию закрыты =====
+// Честный UI-замок прототипа (как у Психологии); настоящие шифрованные зоны — нативная фаза.
+const LOCKED_SCREENS = new Set(['list', 'fin', 'notes', 'psy']);
+let lockOn = true;            // до ответа сервера считаем, что закрыто
+let currentScr = 'today';
+fetch('/api/lock').then(r => r.json()).then(i => {
+  lockOn = i.enabled;
+  if (!lockOn && document.getElementById('lockpane').style.display !== 'none') showScreen(currentScr);
+}).catch(() => {});
+window.isLocked = scr => LOCKED_SCREENS.has(scr) && lockOn && sessionStorage.pbUnlocked !== '1';
+window.lockNow = () => { sessionStorage.removeItem('pbUnlocked'); showScreen('today'); };
+
+const wbB64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const wbUn = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+const touchAvail = () => !!(window.PublicKeyCredential && window.isSecureContext);
+async function touchIdRegister() {
+  const cred = await navigator.credentials.create({ publicKey: {
+    rp: { name: 'Pipboy' },
+    user: { id: crypto.getRandomValues(new Uint8Array(16)), name: 'pipboy', displayName: 'Pipboy' },
+    challenge: crypto.getRandomValues(new Uint8Array(32)),
+    pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+    authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
+    timeout: 60000,
+  } });
+  localStorage.pbTouchId = wbB64(cred.rawId);
+}
+async function touchIdUnlock() {
+  await navigator.credentials.get({ publicKey: {
+    challenge: crypto.getRandomValues(new Uint8Array(32)),
+    allowCredentials: [{ type: 'public-key', id: wbUn(localStorage.pbTouchId) }],
+    userVerification: 'required', timeout: 60000,
+  } });
+  return true;
+}
+
+function renderLockPane(scr) {
+  const pane = document.getElementById('lockpane');
+  pane.innerHTML = `
+  <div style="max-width:430px;margin:9vh auto 0;text-align:center">
+    <div style="font-size:44px;margin-bottom:6px">🔒</div>
+    <h2>Раздел под замком</h2>
+    <div class="muted" style="margin:6px 0 16px">Цели, Финансы, Инфо и Психология закрыты по умолчанию</div>
+    <div class="task finadd" style="border:0;justify-content:center">
+      <input id="lockPw" type="password" placeholder="пароль" style="flex:1;max-width:240px">
+      <span class="pill btn ok" id="lockGo">открыть</span>
+      ${touchAvail() && localStorage.pbTouchId ? '<span class="pill btn" id="lockTouch">👆 Touch ID</span>' : ''}
+    </div>
+    <div class="meta" style="margin-top:12px">на телефоне — по паролю; Face ID будет в нативной версии</div>
+  </div>`;
+  const done = () => { sessionStorage.pbUnlocked = '1'; showScreen(scr); };
+  const go = async () => {
+    const r = await fetch('/api/lock/unlock', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: document.getElementById('lockPw').value }) });
+    if (!r.ok) { alert('Неверный пароль'); return; }
+    done();
+  };
+  document.getElementById('lockGo').addEventListener('click', go);
+  document.getElementById('lockPw').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+  document.getElementById('lockTouch')?.addEventListener('click', async () => {
+    try { await touchIdUnlock(); done(); } catch { /* отменил — остаётся пароль */ }
+  });
+  document.getElementById('lockPw').focus();
+}
+
 // ===== Переключение экранов =====
 const SCREENS = { today: 'loadToday', list: null, fin: 'loadFin', cal: 'loadCal', people: 'loadPeople', routines: 'loadRoutines', notes: 'loadNotes', psy: 'loadPsy', track: 'loadTrack', settings: 'loadSettings' };
 window.showScreen = function (scr) {
+  currentScr = scr;
+  const locked = window.isLocked(scr);
   document.querySelectorAll('.side .item').forEach(i =>
     i.classList.toggle('active', i.dataset.screen === scr));
   for (const key of Object.keys(SCREENS))
-    document.getElementById('screen-' + key).style.display = key === scr ? 'block' : 'none';
+    document.getElementById('screen-' + key).style.display = (!locked && key === scr) ? 'block' : 'none';
+  document.getElementById('lockpane').style.display = locked ? 'block' : 'none';
+  if (locked) renderLockPane(scr);
   // правая панель (карточка записи) имеет смысл только в Задачах
   const insp = document.querySelector('.insp');
-  insp.style.display = scr === 'list' ? 'block' : 'none';
+  insp.style.display = (!locked && scr === 'list') ? 'block' : 'none';
   insp.classList.remove('open');   // телефон: оверлей закрывается при смене экрана
-  if (SCREENS[scr] && window[SCREENS[scr]]) window[SCREENS[scr]]();
+  if (!locked && SCREENS[scr] && window[SCREENS[scr]]) window[SCREENS[scr]]();
 };
 // телефон: ✕ в карточке закрывает оверлей
 document.getElementById('insp').addEventListener('click', e => {
@@ -694,6 +763,22 @@ window.loadSettings = async function () {
         <span class="meta">хранится 20 последних · авто-бэкап раз в день при запуске</span>
       </div>
     </div>
+    <div class="card"><div class="meta">🔒 ЗАМОК РАЗДЕЛОВ · Цели / Финансы / Инфо / Психология</div>
+      <div class="task" style="border:0;flex-wrap:wrap">
+        ${lockOn
+          ? `<span class="pill ok">замок включён</span>
+             <span class="pill btn" id="lkChange">сменить пароль</span>
+             <span class="pill btn" id="lkNow">🔒 заблокировать сейчас</span>
+             <span class="pill btn danger" id="lkOff">снять замок</span>`
+          : `<span class="pill btn ok" id="lkSet">задать пароль — включить замок</span>`}
+        ${touchAvail()
+          ? (localStorage.pbTouchId
+            ? '<span class="pill ok">👆 Touch ID включён</span><span class="pill btn" id="lkTouchOff">убрать Touch ID</span>'
+            : (lockOn ? '<span class="pill btn" id="lkTouchOn">👆 включить Touch ID</span>' : ''))
+          : ''}
+      </div>
+      <div class="meta">по умолчанию разделы закрыты в каждой новой сессии · на Mac открываются по пальцу, на телефоне — пароль (Face ID будет в нативной версии) · это UI-замок прототипа, настоящее шифрование зон — нативная фаза</div>
+    </div>
     <div class="card"><div class="meta">🧹 ТЕСТОВЫЕ ДАННЫЕ</div>
       <div class="task" style="border:0">
         ${info.demoWiped
@@ -715,6 +800,48 @@ window.loadSettings = async function () {
   box.querySelector('#exportBtn').addEventListener('click', async () => {
     const r = await fetch('/api/export', { method: 'POST' }).then(x => x.json());
     alert(r.error ? r.error : `Экспортировано ${r.files.length} файлов:\n${r.dir}\n\n(папка открыта в Finder)`);
+  });
+  const lockPass = (old, password) => fetch('/api/lock/pass', { method: 'POST',
+    headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ old, password }) });
+  box.querySelector('#lkSet')?.addEventListener('click', async () => {
+    const pw = prompt('Пароль замка (для всех четырёх разделов):');
+    if (!pw?.trim()) return;
+    if (prompt('Повтори пароль:') !== pw) { alert('Пароли не совпали'); return; }
+    await lockPass('', pw.trim());
+    lockOn = true;
+    sessionStorage.pbUnlocked = '1';   // эту сессию не выбрасываем
+    alert('Замок включён. Новая сессия откроется по паролю' + (touchAvail() ? ' или Touch ID (включи ниже).' : '.'));
+    window.loadSettings();
+  });
+  box.querySelector('#lkChange')?.addEventListener('click', async () => {
+    const old = prompt('Текущий пароль:');
+    if (old == null) return;
+    const pw = prompt('Новый пароль:');
+    if (!pw?.trim()) return;
+    const r = await lockPass(old, pw.trim());
+    alert(r.ok ? 'Пароль сменён' : 'Неверный текущий пароль');
+  });
+  box.querySelector('#lkOff')?.addEventListener('click', async () => {
+    const old = prompt('Пароль (подтверждение снятия замка):');
+    if (old == null) return;
+    const r = await lockPass(old, '');
+    if (!r.ok) { alert('Неверный пароль'); return; }
+    lockOn = false;
+    delete localStorage.pbTouchId;
+    window.loadSettings();
+  });
+  box.querySelector('#lkNow')?.addEventListener('click', () => window.lockNow());
+  box.querySelector('#lkTouchOn')?.addEventListener('click', async () => {
+    const pw = prompt('Пароль замка (подтверждение):');
+    const ok = await fetch('/api/lock/unlock', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pw ?? '' }) });
+    if (!ok.ok) { alert('Неверный пароль'); return; }
+    try { await touchIdRegister(); alert('Touch ID включён для этого устройства'); window.loadSettings(); }
+    catch (e) { alert('Не получилось: ' + e.message); }
+  });
+  box.querySelector('#lkTouchOff')?.addEventListener('click', () => {
+    delete localStorage.pbTouchId;
+    window.loadSettings();
   });
   box.querySelector('#trashClear')?.addEventListener('click', async () => {
     if (!confirm(`Очистить корзину безвозвратно? Записей: ${rows.length}.`)) return;
@@ -753,6 +880,7 @@ document.getElementById('searchbox').addEventListener('input', e => {
     const q = e.target.value.trim();
     const box = document.getElementById('searchres');
     if (!q) { box.innerHTML = ''; return; }
+    if (window.isLocked?.('list')) { box.innerHTML = '<div>🔒 поиск идёт по закрытым разделам — открой замок</div>'; return; }
     const [res, pages] = await Promise.all([
       api.search(q),
       fetch('/api/pages/search?q=' + encodeURIComponent(q)).then(r => r.json()).catch(() => []),

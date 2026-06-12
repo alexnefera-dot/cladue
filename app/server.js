@@ -238,6 +238,21 @@ const server = http.createServer(async (req, res) => {
         decisions: psy.acceptedDecisions(db),
         hasPass: psy.psyHasPass(db),
       });
+    // ===== Общий замок разделов: Цели/Финансы/Инфо/Психология =====
+    if (p === '/api/lock' && req.method === 'GET')
+      return json(res, 200, { enabled: psy.lockEnabled(db) });
+    if (p === '/api/lock/unlock' && req.method === 'POST') {
+      const b = await body(req);
+      return psy.checkLockPass(db, b.password)
+        ? json(res, 200, { ok: true })
+        : json(res, 403, { error: 'неверный пароль' });
+    }
+    if (p === '/api/lock/pass' && req.method === 'POST') {
+      const b = await body(req);
+      if (psy.lockEnabled(db) && !psy.checkLockPass(db, b.old ?? '')) return json(res, 403, { error: 'неверный текущий пароль' });
+      psy.setLockPass(db, b.password ?? '');
+      return json(res, 200, { ok: true });
+    }
     if (p === '/api/psy/unlock' && req.method === 'POST') {
       const b = await body(req);
       return psy.checkPsyPass(db, b.password)

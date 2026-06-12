@@ -137,3 +137,15 @@ test('сектора пользователя: 10 штук на русском; 
   psy.ensureWheel(db);   // повторно — не трогает
   assert.equal(psy.wheel(db).areas.length, 10);
 });
+
+test('общий замок разделов: включение, проверка, смена, снятие', () => {
+  const db = freshDb();
+  assert.equal(psy.lockEnabled(db), false);
+  assert.equal(psy.checkLockPass(db, 'что угодно'), true, 'без пароля всё открыто');
+  psy.setLockPass(db, 'секрет');
+  assert.equal(psy.lockEnabled(db), true);
+  assert.equal(psy.checkLockPass(db, 'секрет'), true);
+  assert.equal(psy.checkLockPass(db, 'не тот'), false);
+  psy.setLockPass(db, '');   // снятие
+  assert.equal(psy.lockEnabled(db), false);
+});
