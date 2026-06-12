@@ -114,6 +114,14 @@ export function wheel(db) {
 export function patchArea(db, id, b) {
   for (const k of ['name', 'ideal', 'current_desc', 'next_desc', 'step'])
     if (k in b) db.prepare(`UPDATE wheel_areas SET ${k} = ? WHERE id = ?`).run(b[k], id);
+  // шаг изменился — открытая задача этого сектора переименовывается следом
+  // (срок/приоритет/отметки не трогаем; видно везде: Цели, Задачник, календарь)
+  if ('step' in b && b.step?.trim()) {
+    const area = db.prepare('SELECT name FROM wheel_areas WHERE id = ?').get(id);
+    const tasks = db.prepare(`SELECT id FROM nodes WHERE is_category = 0
+      AND note LIKE ? AND (status IS NULL OR status != 'done')`).all(`%сектор «${area.name}»%`);
+    for (const t of tasks) updateNode(db, t.id, { title: b.step.trim() });
+  }
 }
 
 // замер: оценки по областям на дату (повторный ввод в тот же день перезаписывает)

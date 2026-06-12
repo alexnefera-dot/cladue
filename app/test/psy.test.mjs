@@ -194,3 +194,18 @@ test('шаг колеса → задача в схожей категории, �
   const r3 = psy.wheelStepToTask(db, social.id);
   assert.ok(r3.category.length > 0);
 });
+
+test('смена шага колеса обновляет открытую задачу сектора', () => {
+  const db = freshDb();
+  psy.ensureWheel(db);
+  const h = db.prepare(`SELECT id FROM wheel_areas WHERE name = 'Здоровье и спорт'`).get();
+  psy.patchArea(db, h.id, { step: 'записаться в зал' });
+  const t = psy.wheelStepToTask(db, h.id).node;
+  psy.patchArea(db, h.id, { step: 'зал 2 раза в неделю' });
+  const after = db.prepare('SELECT * FROM nodes WHERE id = ?').get(t.id);
+  assert.equal(after.title, 'зал 2 раза в неделю', 'задача переименована вслед за шагом');
+  // закрытую задачу не трогаем
+  db.prepare(`UPDATE nodes SET status = 'done' WHERE id = ?`).run(t.id);
+  psy.patchArea(db, h.id, { step: 'новый шаг' });
+  assert.equal(db.prepare('SELECT title FROM nodes WHERE id = ?').get(t.id).title, 'зал 2 раза в неделю');
+});

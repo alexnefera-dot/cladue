@@ -234,7 +234,7 @@ function ntTree() {
   ntPages.forEach(p => (byP[p.parent_id ?? 'root'] ??= []).push(p));
   const walk = (p, depth) => {
     const kids = byP[p.id] ?? [];
-    return `<div class="ntitem ${ntSel === p.id ? 'active' : ''}" data-ntopen="${p.id}" draggable="true" style="padding-left:${8 + depth * 14}px">
+    return `<div class="ntitem ${ntSel === p.id ? 'active' : ''} ${kids.length ? 'ntparent' : ''}" data-ntopen="${p.id}" draggable="true" style="padding-left:${8 + depth * 14}px">
       ${kids.length ? `<span class="caret" data-ntfold="${p.id}">${ntFold.has(p.id) ? '▸' : '▾'}</span>` : '<span class="caret"></span>'}
       ${p.locked ? '🔒 ' : ''}${p.node_id ? '☑ ' : ''}${nesc(p.title)}</div>`
       + (ntFold.has(p.id) ? '' : kids.map(k => walk(k, depth + 1)).join(''));
