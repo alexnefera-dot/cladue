@@ -23,10 +23,13 @@ const nesc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': 
 function mdRender(src) {
   const inline = s => s
     .replace(/\[\[([^\]]+)\]\]/g, (_, n) => `<a class="wiki" data-wiki="${nesc(n)}">${nesc(n)}</a>`)
+    .replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+    .replace(/~~([^~\n]+)~~/g, '<s>$1</s>')
+    .replace(/&lt;u&gt;([^&]*?)&lt;\/u&gt;/g, '<u>$1</u>')
     .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
     .replace(/(^|\W)\*([^*\n]+)\*(?=\W|$)/g, '$1<i>$2</i>')
     .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank">$1</a>');
+    .replace(/(?<!["'=\]])(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank">$1</a>');
   const lines = nesc(src).split('\n');
   let out = '', code = false, tbl = false;
   const lst = [];   // стек открытых списков: {type, ind}
@@ -79,9 +82,16 @@ function htmlToMd(root) {
       if (tag === 'BR') s += '\n';
       else if (tag === 'B' || tag === 'STRONG') s += '**' + inline(n) + '**';
       else if (tag === 'I' || tag === 'EM') s += '*' + inline(n) + '*';
-      else if (tag === 'S' || tag === 'STRIKE' || tag === 'DEL') s += inline(n);
+      else if (tag === 'S' || tag === 'STRIKE' || tag === 'DEL') s += '~~' + inline(n) + '~~';
+      else if (tag === 'U') s += '<u>' + inline(n) + '</u>';
       else if (tag === 'CODE') s += '`' + inline(n) + '`';
-      else if (tag === 'A') s += n.dataset?.wiki ? `[[${n.dataset.wiki}]]` : (n.getAttribute('href') ?? inline(n));
+      else if (tag === 'A') {
+        const href = n.getAttribute('href');
+        const txt = inline(n).trim();
+        s += n.dataset?.wiki ? `[[${n.dataset.wiki}]]`
+          : href && txt && txt !== href ? `[${txt}](${href})`
+          : (href ?? txt);
+      }
       else s += inline(n);
     }
     return s;
@@ -96,7 +106,8 @@ function htmlToMd(root) {
       if (ch.tagName !== 'LI') continue;
       i++;
       const subs = [...ch.children].filter(c => c.tagName === 'UL' || c.tagName === 'OL');
-      const own = inline({ childNodes: [...ch.childNodes].filter(c => !subs.includes(c)) }).trim();
+      let own = inline({ childNodes: [...ch.childNodes].filter(c => !subs.includes(c)) }).trim();
+      own = own.replace(/^(☑\s*)~~(.*)~~$/, '$1$2');   // зачёркнутость чеклиста — из [x], не из ~~
       const marker = ordered ? `${i}. ` : '- ';
       const pad = '  '.repeat(depth);
       parts.push(own.startsWith('☑') ? pad + marker + '[x] ' + own.replace(/^☑\s*/, '')
