@@ -227,7 +227,7 @@ async function renderNotes() {
           <span class="pill btn danger" id="ntDel">🗑</span>
         </div>
         <div class="meta" style="margin:4px 0 14px">обновлено ${page.updated_at.slice(0, 16).replace('T', ' ')}</div>
-        <div class="mdview">${content.trim() ? mdRender(content) : '<span class="muted">пусто — нажми ✎</span>'}</div>
+        <div class="mdview" id="ntView" title="клик по тексту — редактировать">${content.trim() ? mdRender(content) : '<span class="muted">пусто — кликни сюда и пиши</span>'}</div>
         ${back.length ? `<div class="sec" style="margin-top:22px">↩ Бэклинки — ссылаются сюда</div>
           ${back.map(b => `<div class="ritem" data-ntopen="${b.id}"><div class="rt">${nesc(b.title)}</div></div>`).join('')}` : ''}`}
     </div>
@@ -269,6 +269,11 @@ function bindNotes(page) {
     if (t?.trim()) { const p = await ntApi.add({ title: t.trim(), parent_id: ntSel }); window.loadNotes(p.id); }
   });
   $('ntEdit')?.addEventListener('click', () => { ntEditing = true; renderNotes(); });
+  // клик по тексту страницы — сразу в редактор (ссылки продолжают работать)
+  $('ntView')?.addEventListener('click', e => {
+    if (e.target.closest('a')) return;
+    ntEditing = true; renderNotes();
+  });
   $('ntDel')?.addEventListener('click', async () => {
     const kids = ntPages.filter(p => p.parent_id === ntSel).length;
     if (confirm(`Удалить страницу «${page.title}»${kids ? ' с подстраницами' : ''}?`)) {

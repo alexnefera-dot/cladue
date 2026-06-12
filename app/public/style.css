@@ -260,3 +260,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .mdtable th,.mdtable td{border:1px solid var(--line);padding:5px 10px;text-align:left}
 .mdtable th{background:var(--bg2);font-weight:600;font-size:12px}
 .mdtable tr:nth-child(even) td{background:var(--bg)}
+
+/* Просмотр страницы Инфо: кликабельная зона редактирования */
+#ntView{cursor:text;min-height:240px;border-radius:8px}
+#ntView:hover{background:rgba(30,158,87,.025)}
