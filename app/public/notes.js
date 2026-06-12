@@ -416,6 +416,28 @@ function bindNotes(page) {
       ntAutoT = setTimeout(() => saveData(true), 250);   // даём DOM принять вставку — и пишем
     });
   }
+  // умная вставка в визуальный редактор: Notion кладёт таблицы как текст с табами,
+  // а текст — как markdown; превращаем в нормальные таблицы/списки на лету
+  $('ntRich')?.addEventListener('paste', e => {
+    const html = e.clipboardData.getData('text/html');
+    const text = e.clipboardData.getData('text/plain').replace(/\r/g, '');
+    if (/<table/i.test(html)) return;   // настоящая таблица — браузер вставит сам
+    const rows = text.split('\n').filter(l => l.trim());
+    if (rows.length > 1 && rows.every(r => r.includes('\t'))) {
+      // таб-таблица (Notion/Excel) → таблица
+      e.preventDefault();
+      const md = ['| ' + rows[0].split('\t').join(' | ') + ' |',
+        '| ' + rows[0].split('\t').map(() => '---').join(' | ') + ' |',
+        ...rows.slice(1).map(r => '| ' + r.split('\t').join(' | ') + ' |')].join('\n');
+      document.execCommand('insertHTML', false, mdRender(md));
+      return;
+    }
+    // markdown-текст (заголовки/списки/чеклисты/жирный) → оформленный вид
+    if (!html && /^(#{1,3}|[-*]|\d+[.)])\s|\*\*|\[\[|^\|.*\|/m.test(text)) {
+      e.preventDefault();
+      document.execCommand('insertHTML', false, mdRender(text));
+    }
+  });
   const save = async () => {
     clearTimeout(ntAutoT);
     if (!await saveData()) return;   // ошибка показана — правки не выбрасываем
