@@ -192,7 +192,8 @@ function renderPsy() {
             <td class="ed" data-aredit="${a.id}:current_desc">${pesc(a.current_desc) || '＋ опиши текущее состояние'}</td>
             <td class="ed" data-aredit="${a.id}:ideal">${pesc(a.ideal) || '—'}</td>
             <td class="ed" data-aredit="${a.id}:next_desc">${pesc(a.next_desc) || '—'}</td>
-            <td class="ed" data-aredit="${a.id}:step" style="${a.step ? 'color:var(--green);font-weight:600' : ''}">${pesc(a.step) || '＋ задать шаг'}</td>
+            <td><span class="ed" data-aredit="${a.id}:step" style="${a.step ? 'color:var(--green);font-weight:600' : ''}">${pesc(a.step) || '＋ задать шаг'}</span>
+              ${a.step ? `<span class="pill btn ok" data-areatask="${a.id}" title="создать задачу в подходящей категории Целей">☑ в цели</span>` : ''}</td>
           </tr>
         </table>
       </div>`;
@@ -299,6 +300,14 @@ function bindPsy() {
   $('psRunCancel')?.addEventListener('click', () => { psyRun = null; renderPsy(); });
   document.querySelectorAll('.pschk').forEach(el =>
     el.addEventListener('click', () => el.classList.toggle('done')));
+  document.querySelectorAll('#screen-psy [data-areatask]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const r = await fetch(`/api/psy/areas/${el.dataset.areatask}/task`, { method: 'POST' }).then(x => x.json());
+      if (r.error) { alert(r.error); return; }
+      alert(r.existed
+        ? `Эта задача уже в Целях — категория «${r.category}»`
+        : `Создана задача в «${r.category}». Закроешь её — обнови замер сектора и поставь следующий шаг.`);
+    }));
   document.querySelectorAll('#screen-psy [data-aredit]').forEach(el =>
     el.addEventListener('click', async () => {
       const [id, field] = el.dataset.aredit.split(':');

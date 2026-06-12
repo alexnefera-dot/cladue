@@ -159,6 +159,34 @@ export function checkLockPass(db, password) {
   return !h || h === hash(password ?? '');
 }
 
+// ===== Шаг сектора колеса → задача в Целях (в схожую категорию, иначе в Инбокс) =====
+import { listCategories, addChild, updateNode } from './core.js';
+
+const AREA_CAT = {   // сектор → ключевое слово категории пользователя
+  'Работа': 'Работа', 'Семья и дети': 'Семья', 'Партнёр': 'Семья',
+  'Саморазвитие и обучение': 'Развитие', 'Здоровье и спорт': 'Здоровье',
+  'Социализация': 'Жизнь', 'Дом': 'Жизнь', 'Деньги и инвестиции': 'Финансы',
+  'Отдых и хобби': 'Отдых', 'Перспективы будущего': 'Глобальные',
+};
+
+export function wheelStepToTask(db, areaId) {
+  const area = db.prepare('SELECT * FROM wheel_areas WHERE id = ?').get(areaId);
+  if (!area) throw new Error('сектор не найден');
+  if (!area.step?.trim()) throw new Error('у сектора нет шага — сначала задай его');
+  const cats = listCategories(db);
+  const key = AREA_CAT[area.name];
+  const target = (key && cats.find(c => c.title.includes(key)))
+    ?? cats.find(c => c.title.includes('Инбокс'));
+  // идемпотентно: открытая задача с этим шагом уже есть — возвращаем её
+  const dup = db.prepare(`SELECT id FROM nodes WHERE is_category = 0 AND title = ?
+    AND parent_id = ? AND (status IS NULL OR status != 'done')`).get(area.step.trim(), target.id);
+  if (dup) return { node: db.prepare('SELECT * FROM nodes WHERE id = ?').get(dup.id), category: target.title, existed: true };
+  const node = addChild(db, target.id, area.step.trim());
+  updateNode(db, node.id, { kind: 'task', priority: 'P2',
+    note: `шаг колеса · сектор «${area.name}»` });
+  return { node: db.prepare('SELECT * FROM nodes WHERE id = ?').get(node.id), category: target.title, existed: false };
+}
+
 // ===== Техника «Позитивное намерение» — каркас пользователя (не демо, создаётся один раз) =====
 export const POSITIVE_INTENT_STEPS = [
   'Ситуация: что произошло, что я сделал/почувствовал?',

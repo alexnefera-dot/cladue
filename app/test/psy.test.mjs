@@ -172,3 +172,25 @@ test('позитивное намерение: техника создаётся
   psy.ensurePositiveIntent(db);
   assert.equal(psy.listPractices(db).filter(p => p.name === 'Позитивное намерение').length, 0);
 });
+
+test('шаг колеса → задача в схожей категории, идемпотентно', () => {
+  const db = freshDb();
+  psy.ensureWheel(db);
+  const health = db.prepare(`SELECT id FROM wheel_areas WHERE name = 'Здоровье и спорт'`).get();
+  assert.throws(() => psy.wheelStepToTask(db, health.id), /нет шага/);
+  psy.patchArea(db, health.id, { step: 'записаться в зал до пятницы' });
+  const r1 = psy.wheelStepToTask(db, health.id);
+  assert.equal(r1.existed, false);
+  assert.equal(r1.category.includes('Здоровье'), true, 'легло в Жизнь → Здоровье');
+  assert.equal(r1.node.kind, 'task');
+  assert.match(r1.node.note, /сектор «Здоровье и спорт»/);
+  // повторный клик не плодит дубль
+  const r2 = psy.wheelStepToTask(db, health.id);
+  assert.equal(r2.existed, true);
+  assert.equal(r2.node.id, r1.node.id);
+  // сектор без явного маппинга → Инбокс не падает
+  const social = db.prepare(`SELECT id FROM wheel_areas WHERE name = 'Социализация'`).get();
+  psy.patchArea(db, social.id, { step: 'позвать пацанов на падл' });
+  const r3 = psy.wheelStepToTask(db, social.id);
+  assert.ok(r3.category.length > 0);
+});
