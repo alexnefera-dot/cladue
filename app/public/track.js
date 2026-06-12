@@ -113,7 +113,7 @@ function diaryGrid(d) {
   };
   return `<table class="diary">
     <tr><th style="text-align:left">Дата</th>${d.metrics.map(mt => `
-      <th><span class="ed" data-trren="${mt.id}" title="клик — переименовать">${tresc(mt.name)}</span>${mt.unit ? `<br><span class="meta">${tresc(mt.unit)}</span>` : ''}
+      <th draggable="true" data-mcol="${mt.id}" title="тащи — поменять порядок колонок"><span class="ed" data-trren="${mt.id}" title="клик — переименовать">${tresc(mt.name)}</span>${mt.unit ? `<br><span class="meta">${tresc(mt.unit)}</span>` : ''}
       <span class="rowbtn del" data-trdel="${mt.id}">✕</span></th>`).join('')}</tr>
     ${days.map(date => {
       const dt = new Date(date + 'T00:00:00');
@@ -124,7 +124,37 @@ function diaryGrid(d) {
   </table>`;
 }
 
+let trColDrag = null;
+function bindTrackDnd() {
+  const clear = () => document.querySelectorAll('.diary th.dropbefore,.diary th.dropafter')
+    .forEach(x => x.classList.remove('dropbefore', 'dropafter'));
+  document.querySelectorAll('#screen-track .diary th[data-mcol]').forEach(th => {
+    th.addEventListener('dragstart', () => { trColDrag = +th.dataset.mcol; });
+    th.addEventListener('dragover', e => {
+      if (trColDrag == null || +th.dataset.mcol === trColDrag) return;
+      e.preventDefault();
+      const r = th.getBoundingClientRect();
+      th.classList.remove('dropbefore', 'dropafter');
+      th.classList.add((e.clientX - r.left) / r.width < 0.5 ? 'dropbefore' : 'dropafter');
+    });
+    th.addEventListener('dragleave', () => th.classList.remove('dropbefore', 'dropafter'));
+    th.addEventListener('drop', async e => {
+      e.preventDefault();
+      const where = th.classList.contains('dropbefore') ? 'before' : 'after';
+      clear();
+      if (trColDrag == null) return;
+      await fetch(`/api/track/metrics/${trColDrag}/reorder`, { method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ref_id: +th.dataset.mcol, where }) });
+      trColDrag = null;
+      window.loadTrack();
+    });
+    th.addEventListener('dragend', clear);
+  });
+}
+
 function bindTrack() {
+  bindTrackDnd();
   const $ = id => document.getElementById(id);
   document.querySelectorAll('#screen-track [data-trmood]').forEach(el =>
     el.addEventListener('click', async () => {

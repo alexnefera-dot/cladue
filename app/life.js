@@ -211,3 +211,46 @@ export function monthlyStats(db, months = 6) {
   }
   return out;
 }
+
+// ===== Импорт старого трекинга (xlsx пользователя, разово; данные в import/track2026.json) =====
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+const normName = s => String(s).toLowerCase().replace(/\s+/g, '');
+
+export function importOldTracking(db) {
+  if (db.prepare(`SELECT value FROM settings WHERE key = 'track_import_v1'`).get()?.value === '1') return;
+  let payload;
+  try {
+    payload = JSON.parse(readFileSync(fileURLToPath(new URL('./import/track2026.json', import.meta.url)), 'utf8'));
+  } catch { return; }   // файла нет — нечего импортировать
+  // колонки: совпадение по имени без пробелов, недостающие создаются отметками
+  const byNorm = {};
+  for (const m of db.prepare('SELECT id, name FROM metrics').all()) byNorm[normName(m.name)] = m.id;
+  for (const name of payload.columns) {
+    if (byNorm[normName(name)]) continue;
+    addMetric(db, { name, type: 'bool' });
+    byNorm[normName(name)] = db.prepare('SELECT id FROM metrics WHERE name = ?').get(name).id;
+  }
+  const ins = db.prepare(`INSERT INTO metric_log(metric_id, date, value) VALUES(?,?,1)
+    ON CONFLICT(metric_id, date) DO NOTHING`);
+  let n = 0;
+  for (const [name, date] of payload.marks) {
+    const id = byNorm[normName(name)];
+    if (id) { ins.run(id, date); n++; }
+  }
+  db.prepare(`INSERT INTO settings(key, value) VALUES('track_import_v1','1')
+    ON CONFLICT(key) DO UPDATE SET value = '1'`).run();
+  return { imported: n, months: payload.months };
+}
+
+// перестановка колонок дневника (drag&drop заголовков)
+export function reorderMetric(db, id, refId, where = 'after') {
+  if (id === refId) return;
+  const all = db.prepare('SELECT id FROM metrics ORDER BY ord, id').all().map(r => r.id).filter(x => x !== id);
+  const at = all.indexOf(refId);
+  if (at === -1) throw new Error('сосед не найден');
+  all.splice(at + (where === 'after' ? 1 : 0), 0, id);
+  const up = db.prepare('UPDATE metrics SET ord = ? WHERE id = ?');
+  all.forEach((mid, i) => up.run(i + 1, mid));
+}

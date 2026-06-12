@@ -206,3 +206,33 @@ test('дашборд: недельные цели и чек-ин в payload', ()
   assert.equal(t.weekGoals.done, 1);
   assert.equal(t.checkin.mood, 3);
 });
+
+test('импорт старого трекинга: колонки создаются, история ложится, повторно не льётся', () => {
+  const db = freshDb();
+  const r = life.importOldTracking(db);
+  assert.ok(r.imported >= 200, 'отметки из xlsx: ' + r.imported);
+  const names = db.prepare('SELECT name FROM metrics').all().map(x => x.name);
+  for (const n of ['Зал', 'Переезд', 'Решение сложных задач жизни', 'Приоритеная задача не выбрана'])
+    assert.ok(names.includes(n), 'новая колонка: ' + n);
+  assert.ok(!names.includes('Подъем не в 10'), 'исключённая колонка не вернулась');
+  const total = db.prepare('SELECT count(*) AS c FROM metric_log').get().c;
+  assert.equal(life.importOldTracking(db), undefined, 'флаг стоит — повтор не льёт');
+  assert.equal(db.prepare('SELECT count(*) AS c FROM metric_log').get().c, total);
+  // история видна в итогах месяцев (январь не пустой)
+  const stats = life.monthlyStats(db, 12);
+  const jan = stats.find(s => s.ym.endsWith('-01'));
+  assert.ok(jan && jan.metrics.some(m => m.value >= 1), 'январь в итогах');
+});
+
+test('колонки дневника переставляются drag&drop', () => {
+  const db = freshDb();
+  life.addMetric(db, { name: 'А', type: 'bool' });
+  life.addMetric(db, { name: 'Б', type: 'bool' });
+  life.addMetric(db, { name: 'В', type: 'bool' });
+  const id = n => db.prepare('SELECT id FROM metrics WHERE name = ?').get(n).id;
+  const order = () => db.prepare('SELECT name FROM metrics ORDER BY ord, id').all().map(r => r.name).join('');
+  life.reorderMetric(db, id('В'), id('А'), 'before');
+  assert.equal(order(), 'ВАБ');
+  life.reorderMetric(db, id('А'), id('Б'), 'after');
+  assert.equal(order(), 'ВБА');
+});

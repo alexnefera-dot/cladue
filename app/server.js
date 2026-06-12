@@ -32,6 +32,15 @@ psy.ensureWheel(db);      // секторы колеса — это структ
 psy.ensurePositiveIntent(db); // техника «Позитивное намерение» с 7 вопросами
 ensureEnergy(db);         // ⚡ Энергия жизни + Банк впечатлений — тоже структура
 notes.ensureInfoTree(db); // ветки Инфо: Finance / Mindset / Fun / Work / Health
+{ // старый трекинг из гугл-таблицы: колонки + история отметок, разово
+  const imp = life.importOldTracking(db);
+  if (imp) {
+    console.log(`Импорт старого трекинга: отметок=${imp.imported}`);
+    if (imp.months?.length)   // заметки листа «Month» — страницей в Инфо
+      notes.addPage(db, { title: 'Трекинг — заметки месяцев', content:
+        imp.months.map(([mon, txt]) => `## ${mon}\n\n${txt}`).join('\n\n') });
+  }
+}
 if (!demoWiped(db)) {     // после «удалить демо-данные» сиды не доливаются никогда
   if (db.prepare('SELECT count(*) AS c FROM accounts').get().c === 0) {
     seedFin(db);
@@ -369,6 +378,11 @@ const server = http.createServer(async (req, res) => {
       if (!b.name?.trim()) return json(res, 400, { error: 'name required' });
       life.addMetric(db, b);
       return json(res, 201, { ok: true });
+    }
+    if ((m = p.match(/^\/api\/track\/metrics\/(\d+)\/reorder$/)) && req.method === 'POST') {
+      const b = await body(req);
+      try { life.reorderMetric(db, +m[1], +b.ref_id, b.where === 'before' ? 'before' : 'after'); return json(res, 200, { ok: true }); }
+      catch (e) { return json(res, 400, { error: e.message }); }
     }
     if ((m = p.match(/^\/api\/track\/metrics\/(\d+)\/value$/)) && req.method === 'POST') {
       const b = await body(req);
