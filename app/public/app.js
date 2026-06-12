@@ -689,6 +689,14 @@ window.loadSettings = async function () {
         <span class="meta">хранится 20 последних · авто-бэкап раз в день при запуске</span>
       </div>
     </div>
+    <div class="card"><div class="meta">🧹 ТЕСТОВЫЕ ДАННЫЕ</div>
+      <div class="task" style="border:0">
+        ${info.demoWiped
+          ? '<span class="meta">демо удалено — система работает только на твоих данных</span>'
+          : `<span class="pill btn danger" id="wipeBtn">удалить все демо-данные</span>
+             <span class="meta">уберёт всё с пометкой «(пример)» и тестовые наполнения; категории, блоки портфеля и колонки дневника останутся. Назад не вернутся.</span>`}
+      </div>
+    </div>
     <div class="card"><div class="meta">📱 С ТЕЛЕФОНА</div>
       ${info.lan
         ? `<div class="kv">Адрес в домашней сети <b class="num">${esc(info.lan)}</b></div>
@@ -702,6 +710,12 @@ window.loadSettings = async function () {
   box.querySelector('#exportBtn').addEventListener('click', async () => {
     const r = await fetch('/api/export', { method: 'POST' }).then(x => x.json());
     alert(r.error ? r.error : `Экспортировано ${r.files.length} файлов:\n${r.dir}\n\n(папка открыта в Finder)`);
+  });
+  box.querySelector('#wipeBtn')?.addEventListener('click', async () => {
+    if (!confirm('Удалить ВСЕ тестовые данные?\n\nУйдёт всё с пометкой «(пример)», тестовые страницы Инфо, история чек-инов и замеры колеса. Твои категории, блоки портфеля и колонки дневника останутся.\n\nВернуть будет нельзя.')) return;
+    const r = await fetch('/api/demo/wipe', { method: 'POST' }).then(x => x.json());
+    alert(`Готово: удалено ${r.deleted} записей. Система чистая — наполняем твоим.`);
+    location.reload();
   });
   box.querySelector('#backupBtn').addEventListener('click', async () => {
     const r = await fetch('/api/backup', { method: 'POST' }).then(x => x.json());

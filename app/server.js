@@ -9,7 +9,7 @@ import * as cal from './cal.js';
 import { buildToday } from './today.js';
 import * as life from './life.js';
 import * as notes from './notes.js';
-import { seedDemo } from './seed.js';
+import { seedDemo, wipeDemo, demoWiped } from './seed.js';
 import * as psy from './psy.js';
 import { exportAll, backupDb, lastBackupDate } from './export.js';
 import { execFile } from 'node:child_process';
@@ -22,16 +22,19 @@ const PORT = Number(process.env.PORT ?? 7777);
 const fresh = DB_PATH === ':memory:' || !existsSync(DB_PATH);
 const db = createDb(DB_PATH);
 if (fresh) { seed(db); console.log('БД создана: категории готовы, вставляй блоки через «⤓ Импорт» →', DB_PATH); }
-if (db.prepare('SELECT count(*) AS c FROM accounts').get().c === 0) {
-  seedFin(db);
-  console.log('Финансы наполнены примерами (всё с пометкой «пример» — удаляй и заводи своё)');
-}
 ensurePortfolio(db);
 ensureRates(db);
-notes.seedPages(db);      // демо-страницы Инфо при пустом разделе
-life.seedPeople(db);      // 5 тестовых людей при пустом разделе
-seedDemo(db);             // демо-данные по всем разделам (только в пустые)
-psy.seedPsy(db);          // практики, колесо, рабочий лог
+psy.ensureWheel(db);      // секторы колеса — это структура, не демо
+if (!demoWiped(db)) {     // после «удалить демо-данные» сиды не доливаются никогда
+  if (db.prepare('SELECT count(*) AS c FROM accounts').get().c === 0) {
+    seedFin(db);
+    console.log('Финансы наполнены примерами (всё с пометкой «пример» — удаляй и заводи своё)');
+  }
+  notes.seedPages(db);    // демо-страницы Инфо
+  life.seedPeople(db);    // 5 тестовых людей
+  seedDemo(db);           // демо-данные по всем разделам
+  psy.seedPsy(db);        // практики, колесо, рабочий лог
+}
 notes.pruneTrash(db);     // корзина: чистим старше 30 дней
 // авто-бэкап: не чаще раза в день
 if (DB_PATH !== ':memory:' && lastBackupDate(ROOT) !== new Date().toISOString().slice(0, 10)) {
@@ -77,7 +80,8 @@ const server = http.createServer(async (req, res) => {
   try {
     let m;
     if (p === '/api/tree' && req.method === 'GET') return json(res, 200, core.listTree(db));
-    if (p === '/api/info' && req.method === 'GET') return json(res, 200, { lan: lanUrl() });
+    if (p === '/api/info' && req.method === 'GET') return json(res, 200, { lan: lanUrl(), demoWiped: demoWiped(db) });
+    if (p === '/api/demo/wipe' && req.method === 'POST') return json(res, 200, wipeDemo(db));
     if (p === '/api/nodes' && req.method === 'POST') {
       const b = await body(req);
       if (!b.title?.trim()) return json(res, 400, { error: 'title required' });

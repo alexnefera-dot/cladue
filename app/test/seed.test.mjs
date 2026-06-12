@@ -1,9 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createDb, seed, seedFin, ensurePortfolio, ensureRates } from '../db.js';
-import { seedDemo } from '../seed.js';
+import { seedDemo, wipeDemo, demoWiped } from '../seed.js';
 import { seedPages } from '../notes.js';
 import { seedPeople } from '../life.js';
+import { seedPsy } from '../psy.js';
 import { buildToday } from '../today.js';
 import * as cal from '../cal.js';
 import * as fin from '../fin.js';
@@ -12,7 +13,7 @@ import * as core from '../core.js';
 function fullDb() {
   const db = createDb(':memory:');
   seed(db); seedFin(db); ensurePortfolio(db); ensureRates(db);
-  seedPages(db); seedPeople(db); seedDemo(db);
+  seedPages(db); seedPeople(db); seedDemo(db); seedPsy(db);
   return db;
 }
 
@@ -97,4 +98,30 @@ test('демо-сид: сегодня, трекинг, прогнозы и им�
   assert.ok(t.zones.paymentsWeek >= 1, 'регламент в платежах недели');
   // снапшоты: прошлые точки для дельты
   assert.ok(c('SELECT count(*) AS c FROM snapshots') >= 2, 'история нетворса');
+});
+
+test('зачистка демо: всё «(пример)» уходит, структура остаётся, сиды не возвращаются', () => {
+  const db = fullDb();
+  const r = wipeDemo(db);
+  assert.ok(r.deleted > 50, 'удалено существенно: ' + r.deleted);
+  assert.equal(demoWiped(db), true);
+  const c = q => db.prepare(q).get().c;
+  // нигде не осталось пометок
+  for (const [table, col] of [['nodes', 'title'], ['pages', 'title'], ['routines', 'name'], ['people', 'name'],
+    ['events', 'title'], ['transactions', 'note'], ['debts', 'name'], ['steps', 'title'], ['obligations', 'name'],
+    ['properties', 'name'], ['forecasts', 'statement'], ['accounts', 'name'], ['practices', 'name'],
+    ['metrics', 'name'], ['portfolio_items', 'name'], ['macro_notes', 'thesis']])
+    assert.equal(c(`SELECT count(*) AS c FROM ${table} WHERE ${col} LIKE '%(пример)%'`), 0, table + ' чист');
+  assert.equal(c('SELECT count(*) AS c FROM checkins'), 0);
+  assert.equal(c('SELECT count(*) AS c FROM wheel_scores'), 0);
+  assert.equal(c('SELECT count(*) AS c FROM snapshots'), 0);
+  // структура пользователя на месте
+  assert.ok(c('SELECT count(*) AS c FROM nodes WHERE is_category = 1') >= 20, 'категории целы');
+  assert.ok(c(`SELECT count(*) AS c FROM portfolio_items WHERE kind = 'block'`) >= 4, 'блоки портфеля целы');
+  assert.equal(c(`SELECT count(*) AS c FROM metrics WHERE type = 'bool'`), 8, 'колонки дневника целы');
+  assert.equal(c('SELECT count(*) AS c FROM wheel_areas'), 10, 'секторы колеса целы');
+  // FTS не находит удалённое, повторный сид не льётся
+  seedDemo(db);
+  assert.equal(c(`SELECT count(*) AS c FROM nodes WHERE title LIKE '%(пример)%'`), 0, 'сид не вернулся');
+  assert.equal(core.search(db, 'налоги за 2025').length, 0, 'FTS вычищен');
 });

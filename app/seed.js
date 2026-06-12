@@ -18,6 +18,7 @@ function cat(db, title, parentTitle = null) {
 }
 
 export function seedDemo(db) {
+  if (demoWiped(db)) return;   // пользователь удалил демо — больше не доливаем
   seedNodes(db);
   seedRoutines(db);
   seedEvents(db);
@@ -35,6 +36,82 @@ export function seedDemo(db) {
   seedProperties(db);
   seedSnapshotPast(db);
   seedDiary(db);
+}
+
+export function demoWiped(db) {
+  return db.prepare(`SELECT value FROM settings WHERE key = 'demo_wiped'`).get()?.value === '1';
+}
+
+// ===== Полная зачистка тестовых данных. Структура пользователя (категории, блоки портфеля,
+// колонки дневника, секторы колеса) остаётся. После зачистки сиды не доливаются никогда. =====
+export function wipeDemo(db) {
+  let n = 0;
+  const run = (sql, ...args) => { n += db.prepare(sql).run(...args).changes; };
+
+  // Цели: помеченные записи со всеми потомками + их связи/лог/FTS
+  const ids = db.prepare(`WITH RECURSIVE del(id) AS (
+      SELECT id FROM nodes WHERE title LIKE '%(пример)%'
+      UNION SELECT x.id FROM nodes x JOIN del d ON x.parent_id = d.id
+    ) SELECT id FROM del`).all().map(r => r.id);
+  if (ids.length) {
+    const ph = ids.map(() => '?').join(',');
+    run(`DELETE FROM node_fts WHERE rowid IN (${ph})`, ...ids);
+    run(`DELETE FROM links WHERE from_id IN (${ph}) OR to_id IN (${ph})`, ...ids, ...ids);
+    run(`DELETE FROM dismissed WHERE a IN (${ph}) OR b IN (${ph})`, ...ids, ...ids);
+    run(`DELETE FROM node_log WHERE node_id IN (${ph})`, ...ids);
+    db.prepare(`UPDATE steps SET task_id = NULL WHERE task_id IN (${ph})`).run(...ids);
+    run(`DELETE FROM nodes WHERE id IN (${ph})`, ...ids);
+  }
+
+  // Инфо: посеянные страницы (точный список сидов) + помеченные
+  const seededTitles = ['📌 Принципы', 'База знаний', 'Инвестиции', 'Облигации: шпаргалка',
+    'Сравнение городов', '✈️ План переезда', 'Журнал решений'];
+  for (const p of db.prepare(`SELECT id, title FROM pages`).all()) {
+    if (seededTitles.includes(p.title) || p.title.includes('(пример')) {
+      run('DELETE FROM page_fts WHERE rowid = ?', p.id);
+      run('DELETE FROM pages WHERE id = ?', p.id);
+    }
+  }
+  db.prepare(`UPDATE pages SET parent_id = NULL
+    WHERE parent_id IS NOT NULL AND parent_id NOT IN (SELECT id FROM pages)`).run();
+
+  // Рутины, люди, события, финансы
+  run(`DELETE FROM routine_log WHERE routine_id IN (SELECT id FROM routines WHERE name LIKE '%(пример)%')`);
+  run(`DELETE FROM routines WHERE name LIKE '%(пример)%'`);
+  run(`DELETE FROM contact_log WHERE person_id IN (SELECT id FROM people WHERE name LIKE '%(пример)%')`);
+  run(`DELETE FROM people WHERE name LIKE '%(пример)%'`);
+  run(`DELETE FROM events WHERE title LIKE '%(пример)%'`);
+  run(`DELETE FROM transactions WHERE note LIKE '%(пример)%'`);
+  run(`DELETE FROM debts WHERE name LIKE '%(пример)%'`);
+  run(`DELETE FROM steps WHERE title LIKE '%(пример)%'`);
+  run(`DELETE FROM obligations WHERE name LIKE '%(пример)%'`);   // ловит и регламенты «X5 (пример): …»
+  run(`DELETE FROM properties WHERE name LIKE '%(пример)%'`);
+  run(`DELETE FROM forecasts WHERE statement LIKE '%(пример)%'`);
+  run(`DELETE FROM accounts WHERE name LIKE '%(пример)%'`);
+  run(`DELETE FROM macro_notes WHERE thesis LIKE '%(пример)%'`);
+  const pids = db.prepare(`WITH RECURSIVE del(id) AS (
+      SELECT id FROM portfolio_items WHERE name LIKE '%(пример)%'
+      UNION SELECT x.id FROM portfolio_items x JOIN del d ON x.parent_id = d.id
+    ) SELECT id FROM del`).all().map(r => r.id);
+  if (pids.length) run(`DELETE FROM portfolio_items WHERE id IN (${pids.map(() => '?').join(',')})`, ...pids);
+  run(`DELETE FROM snapshots`);   // история нетворса пересчитается с реальных цифр
+
+  // Психология: тестовые практики, замеры колеса, рабочий лог; секторы остаются
+  run(`DELETE FROM practice_log WHERE practice_id IN (SELECT id FROM practices WHERE name LIKE '%(пример)%')`);
+  run(`DELETE FROM practices WHERE name LIKE '%(пример)%'`);
+  run(`DELETE FROM wheel_scores`);
+  run(`UPDATE wheel_areas SET ideal = '', next_desc = '', step = '' WHERE step LIKE '%(пример)%'`);
+  run(`DELETE FROM work_log WHERE note LIKE '%(пример)%'`);
+
+  // Трекинг: тестовая история; колонки дневника пользователя остаются
+  run(`DELETE FROM checkins`);
+  run(`DELETE FROM metric_log WHERE metric_id IN (SELECT id FROM metrics WHERE name LIKE '%(пример)%')`);
+  run(`DELETE FROM metrics WHERE name LIKE '%(пример)%'`);
+  run(`DELETE FROM settings WHERE key = 'activity_month'`);
+
+  db.prepare(`INSERT INTO settings(key, value) VALUES('demo_wiped','1')
+    ON CONFLICT(key) DO UPDATE SET value = '1'`).run();
+  return { deleted: n };
 }
 
 // ===== Цели: ~25 записей с типами, сроками, связями и парой-дублем =====
