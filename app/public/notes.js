@@ -425,11 +425,18 @@ function bindNotes(page) {
     // заголовки/списки/таблицы/жирный остаются, мусорные стили выбрасываются
     if (html && /<(table|h[1-6]|ul|ol|li|b|strong|i|em|blockquote|pre|p|br)[\s>/]/i.test(html)) {
       e.preventDefault();
-      const tmp = document.createElement('div');
-      tmp.innerHTML = html;
-      tmp.querySelectorAll('script,style,meta,link,head,title').forEach(x => x.remove());
-      const md = htmlToMd(tmp);
-      document.execCommand('insertHTML', false, md.trim() ? mdRender(md) : nesc(text));
+      try {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html;
+        tmp.querySelectorAll('script,style,meta,link,head,title').forEach(x => x.remove());
+        const md = htmlToMd(tmp);
+        let ok = false;
+        if (md.trim()) ok = document.execCommand('insertHTML', false, mdRender(md));
+        // не вставилось (Safari/пустая конвертация) — вставляем как текст, ничего не теряем
+        if (!ok) document.execCommand('insertText', false, text || tmp.textContent || '');
+      } catch {
+        document.execCommand('insertText', false, text);
+      }
       return;
     }
     const rows = text.split('\n').filter(l => l.trim());
