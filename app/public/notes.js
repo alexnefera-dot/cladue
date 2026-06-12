@@ -140,6 +140,68 @@ function htmlToMd(root) {
   return out.join('\n\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
 }
 
+// ===== Буфер обмена → markdown (общая логика для вставки в редактор и в просмотр) =====
+function clipboardToMd(html, text) {
+  if (html && /<(table|h[1-6]|ul|ol|li|b|strong|i|em|blockquote|pre|p|br)[\s>/]/i.test(html)) {
+    try {
+      const tmp = document.createElement('div');
+      tmp.innerHTML = html;
+      tmp.querySelectorAll('script,style,meta,link,head,title').forEach(x => x.remove());
+      const md = htmlToMd(tmp).trim();
+      if (md) return md;
+    } catch { /* падаем на текст */ }
+  }
+  const t = (text ?? '').replace(/\r/g, '');
+  const rows = t.split('\n').filter(l => l.trim());
+  if (rows.length > 1 && rows.every(r => r.includes('\t')))
+    return ['| ' + rows[0].split('\t').join(' | ') + ' |',
+      '| ' + rows[0].split('\t').map(() => '---').join(' | ') + ' |',
+      ...rows.slice(1).map(r => '| ' + r.split('\t').join(' | ') + ' |')].join('\n');
+  return t;
+}
+
+// вставка HTML в позицию курсора contenteditable — надёжнее execCommand (Safari)
+function ntInsertHtml(htmlStr) {
+  const rich = document.getElementById('ntRich');
+  if (!rich) return false;
+  rich.focus();
+  const sel = window.getSelection();
+  let range = sel.rangeCount ? sel.getRangeAt(0) : null;
+  if (!range || !rich.contains(range.commonAncestorContainer)) {
+    range = document.createRange();
+    range.selectNodeContents(rich);
+    range.collapse(false);
+  }
+  range.deleteContents();
+  const frag = range.createContextualFragment(htmlStr);
+  const last = frag.lastChild;
+  range.insertNode(frag);
+  if (last) {
+    range.setStartAfter(last);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+  return true;
+}
+
+// вставка прямо в ПРОСМОТР страницы: дописываем в конец без открытия редактора
+document.addEventListener('paste', async e => {
+  if (document.getElementById('screen-notes')?.style.display === 'none') return;
+  if (ntEditing || !ntSel) return;
+  if (e.target.closest('input,textarea,[contenteditable]')) return;
+  const page = ntPages.find(p => p.id === ntSel);
+  if (!page || page.locked) return;
+  e.preventDefault();
+  const md = clipboardToMd(e.clipboardData.getData('text/html'), e.clipboardData.getData('text/plain'));
+  if (!md.trim()) return;
+  const cur = await ntApi.get(ntSel);
+  await ntApi.patch(ntSel, { content: (cur.content?.trim() ? cur.content.replace(/\s+$/, '') + '\n\n' : '') + md });
+  const sb = document.getElementById('statusbar');
+  if (sb) sb.textContent = `✓ вставлено в конец страницы · ${md.trim().length} симв.`;
+  window.loadNotes(ntSel);
+});
+
 window.loadNotes = async function (openId) {
   await flushNotes();   // незаконченная правка не теряется при любом переходе
   ntPages = await ntApi.list();
@@ -416,44 +478,17 @@ function bindNotes(page) {
       ntAutoT = setTimeout(() => saveData(true), 250);   // даём DOM принять вставку — и пишем
     });
   }
-  // умная вставка в визуальный редактор: Notion кладёт таблицы как текст с табами,
-  // а текст — как markdown; превращаем в нормальные таблицы/списки на лету
+  // умная вставка в визуальный редактор: HTML/таб-таблицы/markdown → наш чистый формат.
+  // Вставляем через Range API (execCommand в Safari ненадёжен), при любом сбое — текстом.
   $('ntRich')?.addEventListener('paste', e => {
+    e.preventDefault();
     const html = e.clipboardData.getData('text/html');
     const text = e.clipboardData.getData('text/plain').replace(/\r/g, '');
-    // HTML-разметка (Notion, сайты, Word, заметки): нормализуем через наш конвертер —
-    // заголовки/списки/таблицы/жирный остаются, мусорные стили выбрасываются
-    if (html && /<(table|h[1-6]|ul|ol|li|b|strong|i|em|blockquote|pre|p|br)[\s>/]/i.test(html)) {
-      e.preventDefault();
-      try {
-        const tmp = document.createElement('div');
-        tmp.innerHTML = html;
-        tmp.querySelectorAll('script,style,meta,link,head,title').forEach(x => x.remove());
-        const md = htmlToMd(tmp);
-        let ok = false;
-        if (md.trim()) ok = document.execCommand('insertHTML', false, mdRender(md));
-        // не вставилось (Safari/пустая конвертация) — вставляем как текст, ничего не теряем
-        if (!ok) document.execCommand('insertText', false, text || tmp.textContent || '');
-      } catch {
-        document.execCommand('insertText', false, text);
-      }
-      return;
-    }
-    const rows = text.split('\n').filter(l => l.trim());
-    if (rows.length > 1 && rows.every(r => r.includes('\t'))) {
-      // таб-таблица (Notion/Excel) → таблица
-      e.preventDefault();
-      const md = ['| ' + rows[0].split('\t').join(' | ') + ' |',
-        '| ' + rows[0].split('\t').map(() => '---').join(' | ') + ' |',
-        ...rows.slice(1).map(r => '| ' + r.split('\t').join(' | ') + ' |')].join('\n');
-      document.execCommand('insertHTML', false, mdRender(md));
-      return;
-    }
-    // markdown-текст (заголовки/списки/чеклисты/жирный) → оформленный вид
-    if (!html && /^(#{1,3}|[-*]|\d+[.)])\s|\*\*|\[\[|^\|.*\|/m.test(text)) {
-      e.preventDefault();
-      document.execCommand('insertHTML', false, mdRender(text));
-    }
+    const md = clipboardToMd(html, text);
+    if (!ntInsertHtml(md.trim() ? mdRender(md) : `<p>${nesc(text)}</p>`))
+      document.execCommand('insertText', false, text);   // редактор не найден — крайний случай
+    clearTimeout(ntAutoT);
+    ntAutoT = setTimeout(() => saveData(true), 250);
   });
   const save = async () => {
     clearTimeout(ntAutoT);
