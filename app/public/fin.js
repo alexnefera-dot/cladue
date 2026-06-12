@@ -430,7 +430,7 @@ function renderFin() {
     + (show('debts') ? secDebts(d) : '')
     + (show('plans') ? secPlans(d) : '')
     + (show('prop') ? secProps(d) : '')
-    + (show('fire') ? secFire(d, s) : '')
+    + (show('fire') ? (hidden('fire') ? veiled('FIRE · Макро', 'fire') : secFire(d, s)) : '')
     + `<div class="footer-hint">Бивалютно: € и $ по курсу EURUSD. ⚡ — автоцена «количество × курс» (BTC, золото, SCHD/IVV/VHT). Ввод понимает «100k», «1.2m», даты — и 01.07.2026. Платежи и траты видны в календаре и радаре задач.</div>`;
   bindFin();
 }
