@@ -29,9 +29,9 @@ function sparkBars(history, type) {
 
 function renderTrack() {
   const d = trData;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = (d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)(new Date());
   const todayCheckin = d.checkins.find(c => c.date === today);
-  const avg7 = d.checkins.filter(c => c.date >= new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10));
+  const avg7 = d.checkins.filter(c => c.date >= (d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)(new Date(Date.now() - 7 * 864e5)));
 
   document.getElementById('screen-track').innerHTML = `
   <h2 style="margin-bottom:2px">Трекинг</h2>
@@ -102,7 +102,7 @@ function monthTable(monthly) {
 // сетка «дата × колонки» как в гугл-таблице: последние 14 дней, сегодня сверху
 function diaryGrid(d) {
   if (!d.metrics.length) return '<div class="empty">добавь первую колонку — и отмечай день кликом</div>';
-  const iso = n => new Date(Date.now() - n * 864e5).toISOString().slice(0, 10);
+  const iso = n => (d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)(new Date(Date.now() - n * 864e5));
   const WDS = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
   const days = Array.from({ length: 14 }, (_, n) => iso(n));
   const val = Object.fromEntries(d.metrics.map(mt => [mt.id, Object.fromEntries(mt.history.map(h => [h.date, h.value]))]));

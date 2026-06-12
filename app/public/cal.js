@@ -1,5 +1,6 @@
 /* Календарь: единая лента — задачи · платежи · шаги · события */
-let calMonth = new Date().toISOString().slice(0, 7);
+const calIso = (d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);   // локальная дата, не UTC
+let calMonth = calIso(new Date()).slice(0, 7);
 let calData = null;
 
 const calApi = {
@@ -30,7 +31,7 @@ function renderCal() {
   const [y, m] = calMonth.split('-').map(Number);
   const daysIn = new Date(Date.UTC(y, m, 0)).getUTCDate();
   const firstDow = (new Date(Date.UTC(y, m - 1, 1)).getUTCDay() + 6) % 7; // пн=0
-  const today = new Date().toISOString().slice(0, 10);
+  const today = calIso(new Date());
   const byDate = {};
   for (const it of calData.items) (byDate[it.date] ??= []).push(it);
 
@@ -95,7 +96,7 @@ function bindCal() {
   const $ = id => document.getElementById(id);
   $('calPrev').addEventListener('click', () => { calMonth = shiftMonth(calMonth, -1); window.loadCal(); });
   $('calNext').addEventListener('click', () => { calMonth = shiftMonth(calMonth, 1); window.loadCal(); });
-  $('calToday').addEventListener('click', () => { calMonth = new Date().toISOString().slice(0, 7); window.loadCal(); });
+  $('calToday').addEventListener('click', () => { calMonth = calIso(new Date()).slice(0, 7); window.loadCal(); });
   $('evAdd').addEventListener('click', async () => {
     const title = $('evTitle').value.trim(), date = $('evDate').value.trim();
     if (!title || !/^\d{4}-\d{2}-\d{2}$/.test(date)) { alert('Нужны название и дата в формате 2026-06-19'); return; }

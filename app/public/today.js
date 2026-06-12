@@ -202,7 +202,7 @@ async function rollIdea() {
   document.getElementById('tdRollClose').addEventListener('click', () => { box.innerHTML = ''; });
   document.getElementById('tdRollTake').addEventListener('click', async () => {
     const now = new Date();
-    const sat = new Date(Date.now() + ((6 - now.getDay() + 7) % 7) * 864e5).toISOString().slice(0, 10);
+    const sat = (d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)(new Date(Date.now() + ((6 - now.getDay() + 7) % 7) * 864e5));
     await fetch('/api/nodes/' + idea.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ kind: 'task', due_date: sat }) });
     box.innerHTML = `<div class="suggest">🎉 «${tesc(idea.title)}» запланировано на субботу ${sat.slice(8)}.${sat.slice(5, 7)} — увидишь в задачах и календаре.</div>`;

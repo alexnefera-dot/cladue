@@ -6,7 +6,8 @@ export function audit(db) {
   const c = q => db.prepare(q).get().c;
   const out = [];
   const add = (section, status, item, hint = '') => out.push({ section, status, item, hint });
-  const today = new Date().toISOString().slice(0, 10);
+  const d0 = new Date();
+  const today = `${d0.getFullYear()}-${String(d0.getMonth() + 1).padStart(2, '0')}-${String(d0.getDate()).padStart(2, '0')}`;
 
   // Цели
   const untyped = c(`SELECT count(*) AS c FROM nodes WHERE is_category = 0 AND kind IS NULL`);
@@ -21,14 +22,14 @@ export function audit(db) {
     AND due_date IS NULL AND status IS NOT 'done'`);
   if (p01NoDate) add('Цели', 'warn', `важных задач без срока: ${p01NoDate}`, 'P0/P1 без даты не попадут в неделю');
   const weekGoals = c(`SELECT count(*) AS c FROM nodes WHERE kind IN ('task','decision')
-    AND due_date BETWEEN date('now','weekday 1','-7 days') AND date('now','weekday 0')`);
+    AND due_date BETWEEN date('now','localtime','weekday 1','-7 days') AND date('now','localtime','weekday 0')`);
   if (!weekGoals) add('Цели', 'warn', 'нет задач со сроком на этой неделе', 'поставь 3–5 — оживут недельные цели');
 
   // Финансы
   const accounts = c('SELECT count(*) AS c FROM accounts');
   if (!accounts) add('Финансы', 'warn', 'счета не заведены');
   else {
-    const stale = c(`SELECT count(*) AS c FROM accounts WHERE julianday('now') - julianday(balance_updated_at) > 14`);
+    const stale = c(`SELECT count(*) AS c FROM accounts WHERE julianday('now','localtime') - julianday(balance_updated_at) > 14`);
     add('Финансы', stale ? 'warn' : 'ok', stale ? `балансы протухли (>14 дн): ${stale} из ${accounts}` : `счета: ${accounts}, балансы свежие`);
   }
   const assets = c(`SELECT count(*) AS c FROM portfolio_items WHERE kind = 'asset'`);
@@ -42,7 +43,7 @@ export function audit(db) {
     add('Финансы', 'warn', 'у активов нет типов', '⊙ у строки — аллокация по типам оживёт');
   if (!c('SELECT count(*) AS c FROM obligations')) add('Финансы', 'warn', 'нет обязательств/подписок', 'радар платежей пуст');
   if (!c('SELECT count(*) AS c FROM properties')) add('Финансы', 'warn', 'имущество не заведено', 'X5/квартира с регламентами');
-  if (!c(`SELECT count(*) AS c FROM transactions WHERE date >= date('now','-30 days')`))
+  if (!c(`SELECT count(*) AS c FROM transactions WHERE date >= date('now','localtime','-30 days')`))
     add('Финансы', 'warn', 'расходов за 30 дней нет', 'вноси вручную или кинь Monefy CSV');
   if (getSetting(db, 'fire_target') == null) add('Финансы', 'warn', 'FIRE не настроен', 'цель/доходность/взнос');
   if (!c('SELECT count(*) AS c FROM forecasts')) add('Финансы', 'warn', 'журнал прогнозов пуст', 'калибровка не считается');
@@ -60,18 +61,18 @@ export function audit(db) {
 
   // Рутины, трекинг, психология
   if (!c('SELECT count(*) AS c FROM routines')) add('Рутины', 'warn', 'рутины не заведены');
-  else if (!c(`SELECT count(*) AS c FROM routine_log WHERE date >= date('now','-3 days')`))
+  else if (!c(`SELECT count(*) AS c FROM routine_log WHERE date >= date('now','localtime','-3 days')`))
     add('Рутины', 'warn', 'нет отметок за 3 дня', 'отмечай на «Сегодня»');
   else add('Рутины', 'ok', 'отметки идут');
-  if (!c(`SELECT count(*) AS c FROM checkins WHERE date >= date('now','-7 days')`))
+  if (!c(`SELECT count(*) AS c FROM checkins WHERE date >= date('now','localtime','-7 days')`))
     add('Трекинг', 'warn', 'чек-инов за неделю нет', '10 секунд на «Сегодня»');
-  if (!c(`SELECT count(*) AS c FROM metric_log WHERE date >= date('now','-7 days')`))
+  if (!c(`SELECT count(*) AS c FROM metric_log WHERE date >= date('now','localtime','-7 days')`))
     add('Трекинг', 'warn', 'дневник за неделю пуст', 'клик по ячейке за день');
   if (!c('SELECT count(*) AS c FROM wheel_scores')) add('Психология', 'warn', 'колесо без замеров', 'первый реальный замер');
   else add('Психология', 'ok', 'замеры колеса есть');
   if (!c(`SELECT count(*) AS c FROM wheel_areas WHERE step != ''`))
     add('Психология', 'warn', 'нет шагов по секторам', 'таблица движения под колесом');
-  if (!c(`SELECT count(*) AS c FROM practice_log WHERE date >= date('now','-14 days')`))
+  if (!c(`SELECT count(*) AS c FROM practice_log WHERE date >= date('now','localtime','-14 days')`))
     add('Психология', 'warn', 'практики 2 недели не проходились');
 
   // Инфо

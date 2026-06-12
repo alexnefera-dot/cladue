@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { getSetting, setSetting } from './fin.js';
 
-const iso = d => d.toISOString().slice(0, 10);
+const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;   // локальная дата
 const today = () => iso(new Date());
 
 // ===== Расписание практик =====

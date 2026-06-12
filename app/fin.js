@@ -1,6 +1,7 @@
 import { addChild, updateNode } from './core.js';
 
-const today = () => new Date().toISOString().slice(0, 10);
+// локальная дата (не UTC): сутки переключаются в полночь пользователя
+const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
 // Курс EURUSD: долларов за 1 евро (из полосы курсов; дефолт, если не загружен)
 export function eurUsdRate(db) {

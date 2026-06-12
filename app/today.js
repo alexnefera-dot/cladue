@@ -3,7 +3,7 @@ import { listFin, getSetting } from './fin.js';
 import { listRoutines, listPeople, sortRoutines } from './life.js';
 import { monthOccurrences } from './psy.js';
 
-const iso = d => d.toISOString().slice(0, 10);
+const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;   // локальная дата: сутки переключаются в твою полночь, не по UTC
 
 // «Движение недели»: закрытое за 7 дней, сгруппированное по корневым категориям
 function movement(db) {

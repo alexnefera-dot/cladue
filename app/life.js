@@ -1,4 +1,4 @@
-const iso = d => d.toISOString().slice(0, 10);
+const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;   // локальная дата: сутки переключаются в твою полночь, не по UTC
 const today = () => iso(new Date());
 
 // ===== Рутины =====
@@ -136,7 +136,7 @@ export function setCheckin(db, mood, note = '', date = today()) {
     ON CONFLICT(date) DO UPDATE SET mood = excluded.mood, note = excluded.note`).run(date, m, note);
 }
 export function checkins(db, days = 30) {
-  return db.prepare(`SELECT * FROM checkins WHERE date >= date('now', ?) ORDER BY date DESC`)
+  return db.prepare(`SELECT * FROM checkins WHERE date >= date('now','localtime', ?) ORDER BY date DESC`)
     .all(`-${days} days`);
 }
 
@@ -161,7 +161,7 @@ export function listMetrics(db, days = 14) {
   const t = today();
   return db.prepare('SELECT * FROM metrics ORDER BY ord, id').all().map(mt => {
     const hist = db.prepare(`
-      SELECT date, value FROM metric_log WHERE metric_id = ? AND date >= date('now', ?)
+      SELECT date, value FROM metric_log WHERE metric_id = ? AND date >= date('now','localtime', ?)
       ORDER BY date`).all(mt.id, `-${days} days`);
     return {
       ...mt,
@@ -177,7 +177,7 @@ export function routineHeatmap(db, days = 112) {
   const total = db.prepare('SELECT count(*) AS c FROM routines').get().c;
   const rows = db.prepare(`
     SELECT date, count(*) AS done FROM routine_log
-    WHERE date >= date('now', ?) GROUP BY date`).all(`-${days} days`);
+    WHERE date >= date('now','localtime', ?) GROUP BY date`).all(`-${days} days`);
   const byDate = Object.fromEntries(rows.map(r => [r.date, r.done]));
   const out = [];
   for (let i = days - 1; i >= 0; i--) {

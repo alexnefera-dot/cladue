@@ -89,7 +89,7 @@ async function routineReminderTick() {
       || Notification.permission !== 'granted') return;
   const now = new Date();
   const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-  const key = 'rtNotified:' + now.toISOString().slice(0, 10);
+  const key = 'rtNotified:' + (d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)(now);
   const notified = new Set(JSON.parse(localStorage.getItem(key) ?? '[]'));
   let rows;
   try { rows = await lfApi.routines(); } catch { return; }

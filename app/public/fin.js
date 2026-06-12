@@ -2,7 +2,8 @@
 let finData = null;
 let finTab = 'fact';        // факт | целевой (портфель)
 let finSection = 'all';     // подвкладка раздела
-let finTxMonth = new Date().toISOString().slice(0, 7);
+const finIso = (d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);   // локальная дата
+let finTxMonth = finIso(new Date()).slice(0, 7);
 let showMonefy = false;
 let finHide = true;        // каждый заход начинается со скрытых значений — открываются только глазками
 let finShown = new Set();  // точечно раскрытые разделы (до общего скрытия/перезагрузки)
@@ -44,7 +45,7 @@ const RATE_FMT = { 'XAUUSD': v => '$' + fmt(v), 'EURUSD': v => v?.toFixed(4), 'B
 
 window.loadFin = async function () {
   finData = await finApi.list();
-  if (finTxMonth !== new Date().toISOString().slice(0, 7))
+  if (finTxMonth !== finIso(new Date()).slice(0, 7))
     finData.tx = await finApi.txMonth(finTxMonth);
   renderFin();
 };
@@ -191,7 +192,7 @@ function renderTx(tx) {
       </div>`).join('')}
     ${tx.rows.length > 15 ? `<div class="empty">…и ещё ${tx.rows.length - 15} за месяц</div>` : ''}
     <div class="task finadd">
-      <input id="txDate" value="${new Date().toISOString().slice(0, 10)}" style="width:105px">
+      <input id="txDate" value="${finIso(new Date())}" style="width:105px">
       <select id="txDir"><option value="expense">расход</option><option value="income">доход</option></select>
       <input id="txCat" placeholder="категория" style="width:120px">
       <input id="txAmount" placeholder="сумма" style="width:90px">

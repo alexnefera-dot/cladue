@@ -139,8 +139,9 @@ function prioGroups() {
 }
 
 function dateGroups() {
-  const today = new Date().toISOString().slice(0, 10);
-  const week = new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10);
+  const locIso = (d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+  const today = locIso(new Date());
+  const week = locIso(new Date(Date.now() + 7 * 864e5));
   const g = { '⚠ просрочено': [], 'сегодня': [], 'эта неделя': [], 'позже': [], 'без срока': [] };
   for (const n of actionable()) {
     if (!n.due_date) g['без срока'].push(n);

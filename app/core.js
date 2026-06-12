@@ -20,7 +20,7 @@ function shiftRepeat(iso, repeat) {
 
 // ===== Лог задачи: датированные записи хода =====
 export function addNodeLog(db, nodeId, note, date) {
-  db.prepare('INSERT INTO node_log(node_id, note, date) VALUES(?,?,COALESCE(?, date(\'now\')))')
+  db.prepare('INSERT INTO node_log(node_id, note, date) VALUES(?,?,COALESCE(?, date(\'now\',\'localtime\')))')
     .run(nodeId, note, date ?? null);
 }
 export function listNodeLog(db, nodeId, limit = 10) {

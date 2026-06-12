@@ -54,7 +54,7 @@ if (!demoWiped(db)) {     // после «удалить демо-данные»
 }
 notes.pruneTrash(db);     // корзина: чистим старше 30 дней
 // авто-бэкап: не чаще раза в день
-if (DB_PATH !== ':memory:' && lastBackupDate(ROOT) !== new Date().toISOString().slice(0, 10)) {
+if (DB_PATH !== ':memory:' && lastBackupDate(ROOT) !== (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })()) {
   const f = backupDb(DB_PATH, ROOT);
   if (f) console.log('Авто-бэкап базы:', f);
 }

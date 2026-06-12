@@ -6,7 +6,7 @@ import * as life from './life.js';
 import * as cal from './cal.js';
 import { addPage, listPages } from './notes.js';
 
-const iso = d => d.toISOString().slice(0, 10);
+const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;   // локальная дата: сутки переключаются в твою полночь, не по UTC
 const rel = n => iso(new Date(Date.now() + n * 864e5));
 
 function cat(db, title, parentTitle = null) {
