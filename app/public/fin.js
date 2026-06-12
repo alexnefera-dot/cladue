@@ -5,6 +5,7 @@ let finSection = 'all';     // подвкладка раздела
 let finTxMonth = new Date().toISOString().slice(0, 7);
 let showMonefy = false;
 let finHide = localStorage.finHide !== '0';   // по умолчанию суммы скрыты
+let finShown = new Set();                     // точечно раскрытые разделы (до общего скрытия/перезагрузки)
 
 const finApi = {
   list: () => fetch('/api/fin').then(r => r.json()),
@@ -382,7 +383,9 @@ function secFire(d, s) {
 function renderFin() {
   const d = finData, s = d.summary;
   const hide = finHide;
-  const accStr = hide ? '—'
+  // точечное раскрытие: кнопка в свёрнутой карточке открывает только её раздел
+  const hidden = key => hide && !finShown.has(key);
+  const accStr = hidden('acc') ? '—'
     : Object.entries(s.accountsByCurrency).map(([c, v]) => `${fmt(v)} ${c}`).join(' · ') || '—';
   const head = `
   <div class="ratesbar">
@@ -400,8 +403,8 @@ function renderFin() {
       <div class="bignum" style="font-size:16px">${accStr}</div>
       <div class="meta">${d.accounts.length} счетов</div></div>
     <div class="card"><div class="meta">ПОРТФЕЛЬ · ФАКТ</div>
-      <div class="bignum">${hide ? '—' : `${fmtE(s.portfolioTotal)} <span style="font-size:14px;color:var(--muted)">· ${fmt(s.portfolioTotalUsd)} $</span>`}</div>
-      <div class="meta">${hide ? 'значения скрыты — 👁 наверху' : `курс ${s.rate?.toFixed(4)}${d.snapshotDelta ? ` · с ${d.snapshotDelta.since}: ${d.snapshotDelta.abs >= 0 ? '+' : ''}${fmt(d.snapshotDelta.abs)} €` : ''}${s.growth ? ` · прирост: ${s.growth.abs >= 0 ? '+' : ''}${fmt(s.growth.abs)} € (${s.growth.pct.toFixed(1)}%)` : ''}`}</div></div>
+      <div class="bignum">${hidden('port') ? '—' : `${fmtE(s.portfolioTotal)} <span style="font-size:14px;color:var(--muted)">· ${fmt(s.portfolioTotalUsd)} $</span>`}</div>
+      <div class="meta">${hidden('port') ? 'значения скрыты — 👁 наверху' : `курс ${s.rate?.toFixed(4)}${d.snapshotDelta ? ` · с ${d.snapshotDelta.since}: ${d.snapshotDelta.abs >= 0 ? '+' : ''}${fmt(d.snapshotDelta.abs)} €` : ''}${s.growth ? ` · прирост: ${s.growth.abs >= 0 ? '+' : ''}${fmt(s.growth.abs)} € (${s.growth.pct.toFixed(1)}%)` : ''}`}</div></div>
     <div class="card"><div class="meta">ОБЯЗАТЕЛЬСТВА / МЕС</div>
       <div class="bignum">${hide ? '—' : fmt(s.monthlyObligations) + ' €'}</div>
       <div class="meta">${s.upcoming.length ? `ближайшие 30 дней: ${s.upcoming.length}` : 'на месяц тихо'}</div></div>
@@ -411,18 +414,18 @@ function renderFin() {
       .map(([k, l]) => `<span class="pill btn ${finSection === k ? 'ok' : ''}" data-fsec="${k}">${l}</span>`).join(' ')}
   </div>`;
 
-  // в скрытом режиме портфель и счета свёрнуты целиком — раскрываются глазом
-  const veiled = name => `
+  // в скрытом режиме портфель и счета свёрнуты целиком; кнопка открывает только свой раздел
+  const veiled = (name, key) => `
   <div class="sec">${name}</div>
   <div class="card"><div class="task" style="border:0">
     <span class="t muted">свёрнуто — значения скрыты</span>
-    <span class="pill btn ok" data-fineye><s>👁</s> показать</span>
+    <span class="pill btn ok" data-fshow="${key}"><s>👁</s> показать ${name.toLowerCase()}</span>
   </div></div>`;
 
   const show = k => finSection === 'all' || finSection === k;
   document.getElementById('screen-fin').innerHTML = head
-    + (show('port') ? (hide ? veiled('Портфель') : secPortfolio(d, s)) : '')
-    + (show('acc') ? (hide ? veiled('Счета') : secAccounts(d)) : '')
+    + (show('port') ? (hidden('port') ? veiled('Портфель', 'port') : secPortfolio(d, s)) : '')
+    + (show('acc') ? (hidden('acc') ? veiled('Счета', 'acc') : secAccounts(d)) : '')
     + (show('flow') ? renderTx(d.tx) : '')
     + (show('debts') ? secDebts(d) : '')
     + (show('plans') ? secPlans(d) : '')
@@ -479,9 +482,14 @@ function bindFin() {
     el.addEventListener('click', () => inlineVal(el, 'num', v => finApi.rateSet(el.dataset.rate, v))));
   document.querySelectorAll('[data-fintab]').forEach(el =>
     el.addEventListener('click', () => { finTab = el.dataset.fintab; renderFin(); }));
-  const eyeToggle = () => { finHide = !finHide; localStorage.finHide = finHide ? '1' : '0'; renderFin(); };
-  $('finEye')?.addEventListener('click', eyeToggle);
-  document.querySelectorAll('[data-fineye]').forEach(el => el.addEventListener('click', eyeToggle));
+  $('finEye')?.addEventListener('click', () => {
+    finHide = !finHide;
+    localStorage.finHide = finHide ? '1' : '0';
+    finShown.clear();   // верхний глаз управляет всем сразу
+    renderFin();
+  });
+  document.querySelectorAll('[data-fshow]').forEach(el =>
+    el.addEventListener('click', () => { finShown.add(el.dataset.fshow); renderFin(); }));
   document.querySelectorAll('[data-pfold]').forEach(el =>
     el.addEventListener('click', e => {
       e.stopPropagation();
