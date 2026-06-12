@@ -697,11 +697,25 @@ let lockOn = true;            // до ответа сервера считаем
 let currentScr = 'today';
 fetch('/api/lock').then(r => r.json()).then(i => {
   lockOn = i.enabled;
+  refreshLockBadges();
   if (!lockOn && document.getElementById('lockpane').style.display !== 'none') showScreen(currentScr);
 }).catch(() => {});
 fetch('/api/info').then(r => r.json()).then(i => { window.pbVersion = i.version; }).catch(() => {});
 window.isLocked = scr => LOCKED_SCREENS.has(scr) && lockOn && sessionStorage.pbUnlocked !== '1';
 window.lockNow = () => { sessionStorage.removeItem('pbUnlocked'); showScreen('today'); };
+
+// замочки у закрытых разделов в сайдбаре: 🔒 закрыто, 🔓 после разблокировки
+const navBase = {};
+function refreshLockBadges() {
+  document.querySelectorAll('.side .item[data-screen]').forEach(el => {
+    const scr = el.dataset.screen;
+    if (!LOCKED_SCREENS.has(scr)) return;
+    navBase[scr] ??= el.textContent.trim();
+    el.textContent = lockOn
+      ? `${window.isLocked(scr) ? '🔒' : '🔓'} ${navBase[scr].replace(/^\S+\s/, '')}`
+      : navBase[scr];
+  });
+}
 
 const wbB64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
 const wbUn = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
@@ -772,6 +786,7 @@ window.showScreen = function (scr) {
   const insp = document.querySelector('.insp');
   insp.style.display = (!locked && scr === 'list') ? 'block' : 'none';
   insp.classList.remove('open');   // телефон: оверлей закрывается при смене экрана
+  refreshLockBadges();
   if (!locked && SCREENS[scr] && window[SCREENS[scr]]) window[SCREENS[scr]]();
 };
 // телефон: ✕ в карточке закрывает оверлей

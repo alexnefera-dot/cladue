@@ -54,7 +54,7 @@ window.loadFin = async function () {
 const portFold = new Set(JSON.parse(localStorage.portFold ?? '[]'));
 const savePortFold = () => localStorage.portFold = JSON.stringify([...portFold]);
 
-function portRows(it, depth) {
+function portRows(it, depth, ctx) {
   const target = finTab === 'target';
   const editable = it.kind === 'asset' || !it.children.length;
   const rowCls = it.kind === 'block' ? 'pblock' : it.kind === 'section' ? 'psection' : '';
@@ -78,11 +78,17 @@ function portRows(it, depth) {
         ? `<td class="r num acc"><span class="pill btn" data-fcur="${it.id}:${cur}" title="сменить валюту">${cur}</span>
             <span class="ed" data-fe="items:${it.id}:value:num" title="текущая стоимость (клик)">${it.value != null ? fmt(it.value) : '—'}</span></td>`
         : `<td class="r num acc">${fmtE(it.eur)}${split}</td>`;
+    const pTot = ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
+    const pPar = depth > 0 && ctx?.parentEur > 0 && it.eur > 0 ? it.eur / ctx.parentEur * 100 : null;
+    const shareCell = `<td class="r" style="width:84px">
+      ${pTot != null ? `<div class="num">${pTot.toFixed(1)}%</div>` : ''}
+      ${pPar != null ? `<div class="meta" title="доля внутри родительской категории">${pPar.toFixed(0)}% катег.</div>` : ''}</td>`;
     cells = `<td class="r num muted ${editable ? 'ed' : ''}" ${editable ? `data-fe="items:${it.id}:buy_value:num" title="цена покупки (клик) · не задана — равна текущей"` : ''}>${editable ? (it.buy_value != null ? fmt(it.buy_value) : (it.value != null ? '≈ ' + fmt(it.value) : '—')) : (it.invested != null ? fmt(it.invested) : '')}</td>
       <td class="r num">${g != null ? `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</span>` : ''}</td>
-      ${valueCell}`;
+      ${valueCell}
+      ${shareCell}`;
   }
-  return `<tr class="${rowCls}">
+  return `<tr class="${rowCls}" draggable="${!target}" data-pid="${it.id}">
     <td style="padding-left:${8 + depth * 22}px">
       ${it.children.length ? `<span class="caret" data-pfold="${it.id}" title="${folded ? 'развернуть' : 'свернуть'}">${folded ? '▸' : '▾'}</span>` : ''}
       <span class="ed" data-fe="items:${it.id}:name:text" title="клик — переименовать">${fesc(it.name)}</span>
@@ -101,7 +107,7 @@ function portRows(it, depth) {
       ${!target && editable ? `<span class="rowbtn" data-loanflag="${it.id}:${it.is_loan ? 1 : 0}" title="${it.is_loan ? 'убрать значок займа' : 'пометить как займ'}">🤝</span>` : ''}
       ${!target ? `<span class="rowbtn del" data-findel="items:${it.id}">✕</span>` : ''}
     </td>
-  </tr>` + (folded ? '' : it.children.map(c => portRows(c, depth + 1)).join(''));
+  </tr>` + (folded ? '' : it.children.map(c => portRows(c, depth + 1, ctx && { total: ctx.total, parentEur: it.eur })).join(''));
 }
 
 // ===== Секции =====
@@ -117,8 +123,8 @@ function secPortfolio(d, s) {
     <table class="fintable porttable">
       ${finTab === 'target'
         ? '<tr><th>Название</th><th class="r">Факт</th><th class="r">Цель</th><th class="r">Δ</th><th></th></tr>'
-        : '<tr><th>Название</th><th class="r">Покупка</th><th class="r">Прирост</th><th class="r">Текущая</th><th></th></tr>'}
-      ${d.portfolio.map(b => portRows(b, 0)).join('')}
+        : '<tr><th>Название</th><th class="r">Покупка</th><th class="r">Прирост</th><th class="r">Текущая</th><th class="r">Доля</th><th></th></tr>'}
+      ${d.portfolio.map(b => portRows(b, 0, { total: s.portfolioTotal, parentEur: s.portfolioTotal })).join('')}
     </table>
     ${finTab === 'target' ? '<div class="empty" style="padding-top:8px">Целевые суммы ставь на любом уровне. Δ — факт минус цель.</div>' : ''}
   </div>
@@ -497,6 +503,38 @@ function bindFin() {
       portFold.has(id) ? portFold.delete(id) : portFold.add(id);
       savePortFold(); renderFin();
     }));
+  // DnD портфеля: середина — вложить, края — поставить выше/ниже
+  let pDrag = null;
+  const pClear = () => document.querySelectorAll('.porttable tr.dropinto,.porttable tr.dropbefore,.porttable tr.dropafter')
+    .forEach(x => x.classList.remove('dropinto', 'dropbefore', 'dropafter'));
+  document.querySelectorAll('.porttable tr[data-pid]').forEach(tr => {
+    tr.addEventListener('dragstart', () => { pDrag = +tr.dataset.pid; });
+    tr.addEventListener('dragover', e => {
+      if (pDrag == null || +tr.dataset.pid === pDrag) return;
+      e.preventDefault();
+      const r = tr.getBoundingClientRect();
+      const y = (e.clientY - r.top) / r.height;
+      tr.classList.remove('dropinto', 'dropbefore', 'dropafter');
+      tr.classList.add(y < 0.3 ? 'dropbefore' : y > 0.7 ? 'dropafter' : 'dropinto');
+    });
+    tr.addEventListener('dragleave', () => tr.classList.remove('dropinto', 'dropbefore', 'dropafter'));
+    tr.addEventListener('drop', async e => {
+      e.preventDefault();
+      const zone = tr.classList.contains('dropbefore') ? 'before'
+        : tr.classList.contains('dropafter') ? 'after' : 'into';
+      pClear();
+      if (pDrag == null) return;
+      const url = zone === 'into'
+        ? [`/api/fin/items/${pDrag}/move`, { parent_id: +tr.dataset.pid }]
+        : [`/api/fin/items/${pDrag}/reorder`, { ref_id: +tr.dataset.pid, where: zone }];
+      const r = await fetch(url[0], { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(url[1]) }).then(x => x.json());
+      if (r.error) alert(r.error);
+      pDrag = null;
+      window.loadFin();
+    });
+    tr.addEventListener('dragend', pClear);
+  });
   $('pfoldAll')?.addEventListener('click', () => {
     if (portFold.size) portFold.clear();
     else {

@@ -1,5 +1,6 @@
 /* Инфо: страницы-заметки — дерево, визуальный редактор (WYSIWYG ↔ markdown), [[вики]], бэклинки */
 let ntPages = [], ntSel = null, ntEditing = false, ntMode = 'rich'; // rich | md
+let ntAutoT = null;   // таймер автосейва (общий — гасится при каждом рендере)
 const ntFold = new Set();
 const ntPw = {};      // пароли открытых в этой сессии страниц
 const ntCache = {};   // расшифрованное содержимое
@@ -148,6 +149,7 @@ const TOOLBAR = [
 ];
 
 async function renderNotes() {
+  clearTimeout(ntAutoT);   // правка ушла из DOM — хвостовой автосейв не нужен
   const page = ntSel ? await ntApi.get(ntSel) : null;
   const needPw = page?.locked && ntCache[page.id] == null;
   const content = page ? (page.locked ? (ntCache[page.id] ?? '') : page.content) : '';
@@ -254,7 +256,13 @@ function bindNotes(page) {
     el.addEventListener('mousedown', e => e.preventDefault()); // не терять выделение
     el.addEventListener('click', () => { TOOLBAR[+el.dataset.ntb][2](); $('ntRich')?.focus(); });
   });
-  const currentMd = () => ntMode === 'rich' ? htmlToMd($('ntRich')) : $('ntBody').value;
+  const currentMd = () => {
+    if (ntMode !== 'rich') return $('ntBody').value;
+    const md = htmlToMd($('ntRich'));
+    // страховка: если конвертация дала пустоту, а текст в редакторе есть — берём как есть
+    if (!md.trim() && $('ntRich')?.innerText.trim()) return $('ntRich').innerText;
+    return md;
+  };
   $('ntModeMd')?.addEventListener('click', () => {
     page.content = htmlToMd($('ntRich'));   // переносим правки между режимами
     ntMode = 'md'; renderNotes();
@@ -265,18 +273,19 @@ function bindNotes(page) {
   });
   const saveData = async () => {
     const title = $('ntTitle')?.value.trim() || page.title;
+    const md = currentMd();
     try {
       if (page.locked) {
-        const r = await ntApi.lock(ntSel, { password: ntPw[ntSel], content: currentMd() });
+        const r = await ntApi.lock(ntSel, { password: ntPw[ntSel], content: md });
         if (r.error) { alert('Не сохранилось: ' + r.error); return false; }
-        ntCache[ntSel] = currentMd();
+        ntCache[ntSel] = md;
         await ntApi.patch(ntSel, { title });
       } else {
-        const r = await ntApi.patch(ntSel, { title, content: currentMd() });
+        const r = await ntApi.patch(ntSel, { title, content: md });
         if (r?.error) { alert('Не сохранилось: ' + r.error); return false; }
       }
       const sb = document.getElementById('statusbar');
-      if (sb) sb.textContent = `✓ Инфо сохранено ${new Date().toTimeString().slice(0, 8)}`;
+      if (sb) sb.textContent = `✓ Инфо сохранено ${new Date().toTimeString().slice(0, 8)} · ${md.trim().length} симв. (стр. ${ntSel})`;
       return true;
     } catch (e) {
       alert('Не сохранилось: ' + e.message);
@@ -286,7 +295,6 @@ function bindNotes(page) {
   // пока редактор открыт, правки можно дописать при любом уходе со страницы
   window.ntFlush = (ntEditing && page && !(page.locked && ntCache[page.id] == null)) ? saveData : null;
   // автосохранение по мере набора (3 сек тишины)
-  let ntAutoT = null;
   for (const id of ['ntBody', 'ntRich'])
     $(id)?.addEventListener('input', () => {
       clearTimeout(ntAutoT);

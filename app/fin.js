@@ -132,6 +132,40 @@ export function recordSnapshot(db) {
   const total = portfolioTree(db).reduce((s, b) => s + b.eur, 0);
   db.prepare('INSERT OR IGNORE INTO snapshots(date, portfolio_eur) VALUES(?,?)').run(today(), total);
 }
+// ===== Перемещение в портфеле: вложить / поставить рядом (drag&drop) =====
+function assertNoCycle(db, id, parentId) {
+  if (parentId == null) return;
+  if (id === parentId) throw new Error('сам в себя нельзя');
+  const desc = db.prepare(`
+    WITH RECURSIVE r(x) AS (
+      SELECT id FROM portfolio_items WHERE parent_id = ?
+      UNION SELECT p.id FROM portfolio_items p JOIN r ON p.parent_id = r.x
+    ) SELECT 1 AS hit FROM r WHERE x = ? LIMIT 1`).get(id, parentId);
+  if (desc) throw new Error('нельзя внутрь собственной ветки');
+}
+
+export function moveItem(db, id, parentId) {
+  const target = parentId == null ? null : db.prepare('SELECT * FROM portfolio_items WHERE id = ?').get(parentId);
+  if (parentId != null && !target) throw new Error('цель не найдена');
+  if (target?.kind === 'asset') throw new Error('внутрь актива нельзя — кинь на раздел или рядом');
+  assertNoCycle(db, id, parentId);
+  const ord = db.prepare('SELECT COALESCE(MAX(ord),0)+1 AS o FROM portfolio_items WHERE parent_id IS ?').get(parentId).o;
+  db.prepare('UPDATE portfolio_items SET parent_id = ?, ord = ? WHERE id = ?').run(parentId, ord, id);
+}
+
+export function reorderItem(db, id, refId, where = 'after') {
+  if (id === refId) throw new Error('self');
+  const ref = db.prepare('SELECT id, parent_id FROM portfolio_items WHERE id = ?').get(refId);
+  if (!ref) throw new Error('сосед не найден');
+  assertNoCycle(db, id, ref.parent_id);
+  const siblings = db.prepare('SELECT id FROM portfolio_items WHERE parent_id IS ? ORDER BY ord, id')
+    .all(ref.parent_id).map(r => r.id).filter(x => x !== id);
+  siblings.splice(siblings.indexOf(refId) + (where === 'after' ? 1 : 0), 0, id);
+  db.prepare('UPDATE portfolio_items SET parent_id = ? WHERE id = ?').run(ref.parent_id, id);
+  const up = db.prepare('UPDATE portfolio_items SET ord = ? WHERE id = ?');
+  siblings.forEach((sid, i) => up.run(i + 1, sid));
+}
+
 export function delItem(db, id) { db.prepare('DELETE FROM portfolio_items WHERE id = ?').run(id); }
 
 // ===== Курсы: публичные источники без ключей, с фолбэками. Наружу уходят только тикеры. =====

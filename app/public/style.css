@@ -249,3 +249,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 /* подсветка только что добавленной записи */
 .task.flash{animation:flash 1.4s ease-out}
 @keyframes flash{0%,40%{background:var(--green-soft)}100%{background:transparent}}
+
+/* DnD в портфеле: те же зоны, что в Целях */
+.porttable tr.dropbefore td{box-shadow:inset 0 3px 0 var(--green)}
+.porttable tr.dropafter td{box-shadow:inset 0 -3px 0 var(--green)}
+.porttable tr.dropinto td{background:var(--green-soft)}

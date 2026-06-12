@@ -453,6 +453,16 @@ const server = http.createServer(async (req, res) => {
       fin.delMacro(db, +m[1]);
       return json(res, 200, { ok: true });
     }
+    if ((m = p.match(/^\/api\/fin\/items\/(\d+)\/move$/)) && req.method === 'POST') {
+      const b = await body(req);
+      try { fin.moveItem(db, +m[1], b.parent_id ?? null); return json(res, 200, { ok: true }); }
+      catch (e) { return json(res, 400, { error: e.message }); }
+    }
+    if ((m = p.match(/^\/api\/fin\/items\/(\d+)\/reorder$/)) && req.method === 'POST') {
+      const b = await body(req);
+      try { fin.reorderItem(db, +m[1], +b.ref_id, b.where === 'before' ? 'before' : 'after'); return json(res, 200, { ok: true }); }
+      catch (e) { return json(res, 400, { error: e.message }); }
+    }
     const finMap = {
       accounts: ['addAccount', 'patchAccount', 'delAccount'],
       classes: ['addClass', 'patchClass', 'delClass'],

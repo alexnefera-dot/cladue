@@ -324,3 +324,22 @@ test('имущество: объект, регламент с префиксом
   assert.equal(fin.listProperties(db).length, 0);
   assert.equal(db.prepare('SELECT count(*) AS c FROM obligations WHERE property_id IS NOT NULL').get().c, 0);
 });
+
+test('портфель DnD: вложить и поставить рядом, циклы и активы-родители запрещены', () => {
+  const db = freshDb();
+  const growth = db.prepare(`SELECT id FROM portfolio_items WHERE name = 'Блок роста'`).get().id;
+  const frozen = db.prepare(`SELECT id FROM portfolio_items WHERE name LIKE 'Заморож%'`).get().id;
+  const re = db.prepare(`SELECT id FROM portfolio_items WHERE name = 'Недвижимость'`).get().id;
+  const x5 = db.prepare(`SELECT id FROM portfolio_items WHERE name = 'X5'`).get().id;
+  // вложить: X5 из Пассивов в Недвижимость
+  fin.moveItem(db, x5, re);
+  assert.equal(db.prepare('SELECT parent_id FROM portfolio_items WHERE id = ?').get(x5).parent_id, re);
+  // рядом: Недвижимость перед Блоком роста — переезжает в корень
+  fin.reorderItem(db, re, growth, 'before');
+  const roots = db.prepare('SELECT id, name FROM portfolio_items WHERE parent_id IS NULL ORDER BY ord, id').all();
+  assert.ok(roots.findIndex(r => r.id === re) === roots.findIndex(r => r.id === growth) - 1, 'недвижимость прямо перед ростом');
+  // запреты
+  assert.throws(() => fin.moveItem(db, frozen, x5), /актива/);
+  assert.throws(() => fin.moveItem(db, re, re), /сам в себя/);
+  assert.throws(() => fin.reorderItem(db, re, x5, 'after'), /сам в себя|ветки/);
+});
