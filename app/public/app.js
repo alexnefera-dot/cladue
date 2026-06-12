@@ -720,8 +720,9 @@ function refreshLockBadges() {
     const scr = el.dataset.screen;
     if (!LOCKED_SCREENS.has(scr)) return;
     navBase[scr] ??= el.textContent.trim();
-    el.textContent = lockOn
-      ? `${window.isLocked(scr) ? '🔒' : '🔓'} ${navBase[scr].replace(/^\S+\s/, '')}`
+    // закрыто — 🔒 вместо значка; открыто — родной значок раздела
+    el.textContent = lockOn && window.isLocked(scr)
+      ? `🔒 ${navBase[scr].replace(/^\S+\s/, '')}`
       : navBase[scr];
   });
 }
