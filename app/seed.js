@@ -281,8 +281,14 @@ function seedMetrics(db) {
 
 // ===== Дневник: колонки-отметки из гугл-таблицы пользователя (его реальный список) =====
 function seedDiary(db) {
-  if (db.prepare(`SELECT count(*) AS c FROM metrics WHERE name = 'Подъем не в 10'`).get().c > 0) return;
-  for (const name of ['Подъем не в 10', 'Ютуб при работе', 'Тревога (не в 20:00)', 'Инвестиции в будние',
+  // «Подъем не в 10» исключён по просьбе пользователя — вычищаем и из старых баз
+  const old = db.prepare(`SELECT id FROM metrics WHERE name = 'Подъем не в 10'`).get();
+  if (old) {
+    db.prepare('DELETE FROM metric_log WHERE metric_id = ?').run(old.id);
+    db.prepare('DELETE FROM metrics WHERE id = ?').run(old.id);
+  }
+  if (db.prepare(`SELECT count(*) AS c FROM metrics WHERE name = 'Ютуб при работе'`).get().c > 0) return;
+  for (const name of ['Ютуб при работе', 'Тревога (не в 20:00)', 'Инвестиции в будние',
     'Майндсет урок', 'Книга', 'Недвижка / Авто', 'Психолог', 'Падл'])
     life.addMetric(db, { name, type: 'bool' });
 }

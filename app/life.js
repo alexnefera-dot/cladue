@@ -186,3 +186,28 @@ export function routineHeatmap(db, days = 112) {
   }
   return out;
 }
+
+// ===== Итоги по месяцам: краткая статистика для динамики (текущий — первым) =====
+export function monthlyStats(db, months = 6) {
+  const defs = db.prepare('SELECT id, name, type, unit FROM metrics ORDER BY ord, id').all();
+  const now = new Date();
+  const out = [];
+  for (let i = 0; i < months; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const metrics = defs.map(mt => ({
+      id: mt.id, name: mt.name, type: mt.type, unit: mt.unit,
+      // отметки — сколько раз за месяц; числа — среднее за месяц
+      value: mt.type === 'bool'
+        ? db.prepare(`SELECT count(*) AS v FROM metric_log WHERE metric_id = ? AND value > 0 AND substr(date,1,7) = ?`).get(mt.id, ym).v || null
+        : db.prepare(`SELECT ROUND(AVG(value),1) AS v FROM metric_log WHERE metric_id = ? AND substr(date,1,7) = ?`).get(mt.id, ym).v,
+    }));
+    const mood = db.prepare(`SELECT ROUND(AVG(mood),1) AS v FROM checkins WHERE substr(date,1,7) = ?`).get(ym).v;
+    const tasksDone = db.prepare(`SELECT count(*) AS c FROM nodes
+      WHERE is_category = 0 AND status IN ('done','accepted') AND substr(updated_at,1,7) = ?`).get(ym).c;
+    const routinesDone = db.prepare(`SELECT count(*) AS c FROM routine_log WHERE substr(date,1,7) = ?`).get(ym).c;
+    const empty = mood == null && !tasksDone && !routinesDone && metrics.every(m => m.value == null);
+    if (i === 0 || !empty) out.push({ ym, metrics, mood, tasksDone, routinesDone });
+  }
+  return out;
+}

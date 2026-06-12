@@ -209,7 +209,7 @@ function pathOf(id) {
 
 async function showCard(id, { silent = false } = {}) {
   selected = id;
-  if (!silent) { picked = new Set([id]); }
+  if (!silent) { picked = new Set([id]); document.getElementById('insp').classList.add('open'); }
   renderBoard();
   const [s, nodeLog] = await Promise.all([
     api.suggest(id),
@@ -220,6 +220,7 @@ async function showCard(id, { silent = false } = {}) {
 
   if (n.is_category) {
     document.getElementById('insp').innerHTML = `
+      <span class="insp-close">✕</span>
       <h3>Категория</h3>
       <div class="title">${esc(n.title)}</div>
       <div class="muted">${esc(pathOf(id) || 'верхний уровень')}</div>
@@ -240,6 +241,7 @@ async function showCard(id, { silent = false } = {}) {
   const subCount = (() => { let c = 0; const w = x => (byParent[x] ?? []).forEach(k => { c++; w(k.id); }); w(id); return c; })();
 
   document.getElementById('insp').innerHTML = `
+    <span class="insp-close">✕</span>
     <h3>Оригинал</h3>
     <div class="title">${esc(n.title)}</div>
     <div class="muted" style="margin-bottom:4px">${esc(pathOf(id) || 'корень')}</div>
@@ -624,9 +626,17 @@ window.showScreen = function (scr) {
   for (const key of Object.keys(SCREENS))
     document.getElementById('screen-' + key).style.display = key === scr ? 'block' : 'none';
   // правая панель (карточка записи) имеет смысл только в Задачах
-  document.querySelector('.insp').style.display = scr === 'list' ? 'block' : 'none';
+  const insp = document.querySelector('.insp');
+  insp.style.display = scr === 'list' ? 'block' : 'none';
+  insp.classList.remove('open');   // телефон: оверлей закрывается при смене экрана
   if (SCREENS[scr] && window[SCREENS[scr]]) window[SCREENS[scr]]();
 };
+// телефон: ✕ в карточке закрывает оверлей
+document.getElementById('insp').addEventListener('click', e => {
+  if (e.target.classList.contains('insp-close')) document.getElementById('insp').classList.remove('open');
+});
+// PWA: установка на хоумскрин (iPhone: Поделиться → На экран «Домой»)
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 document.querySelectorAll('.side .item[data-screen]').forEach(el =>
   el.addEventListener('click', () => showScreen(el.dataset.screen)));
 // открыть карточку записи из другого экрана (календарь и т.п.)
@@ -650,7 +660,10 @@ window.preflightOk = async function (id) {
 
 // ===== Настройки: корзина, экспорт, бэкап =====
 window.loadSettings = async function () {
-  const rows = await fetch('/api/trash').then(x => x.json());
+  const [rows, info] = await Promise.all([
+    fetch('/api/trash').then(x => x.json()),
+    fetch('/api/info').then(x => x.json()).catch(() => ({})),
+  ]);
   document.getElementById('screen-settings').innerHTML = `
   <h2 style="margin-bottom:2px">Настройки</h2>
   <div class="muted" style="margin-bottom:14px">данные принадлежат тебе: корзина, экспорт в открытые форматы, бэкапы базы</div>
@@ -675,6 +688,13 @@ window.loadSettings = async function () {
         <span class="pill btn ok" id="backupBtn">сделать бэкап сейчас</span>
         <span class="meta">хранится 20 последних · авто-бэкап раз в день при запуске</span>
       </div>
+    </div>
+    <div class="card"><div class="meta">📱 С ТЕЛЕФОНА</div>
+      ${info.lan
+        ? `<div class="kv">Адрес в домашней сети <b class="num">${esc(info.lan)}</b></div>
+           <div class="meta" style="margin-top:6px">открой в Safari на iPhone (тот же Wi-Fi, Mac включён) →
+           Поделиться → «На экран “Домой”» — будет как приложение. Данные не покидают Mac.</div>`
+        : '<div class="empty">сеть не найдена — проверь Wi-Fi</div>'}
     </div>
   </div>`;
 

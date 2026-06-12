@@ -13,6 +13,7 @@ import { seedDemo } from './seed.js';
 import * as psy from './psy.js';
 import { exportAll, backupDb, lastBackupDate } from './export.js';
 import { execFile } from 'node:child_process';
+import os from 'node:os';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const DB_PATH = process.env.PIPBOY_DB ?? join(ROOT, 'data.db');
@@ -48,7 +49,16 @@ if (DB_PATH !== ':memory:' && lastBackupDate(ROOT) !== new Date().toISOString().
 }
 fin.recordSnapshot(db);   // история нетворса: один замер в день
 
-const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
+const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml',
+  '.png': 'image/png', '.json': 'application/json' };
+
+// адрес в домашней сети — открыть с телефона; данные при этом не покидают Mac
+function lanUrl() {
+  for (const list of Object.values(os.networkInterfaces()))
+    for (const i of list ?? [])
+      if (i.family === 'IPv4' && !i.internal) return `http://${i.address}:${PORT}`;
+  return null;
+}
 
 function json(res, code, data) {
   res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -67,6 +77,7 @@ const server = http.createServer(async (req, res) => {
   try {
     let m;
     if (p === '/api/tree' && req.method === 'GET') return json(res, 200, core.listTree(db));
+    if (p === '/api/info' && req.method === 'GET') return json(res, 200, { lan: lanUrl() });
     if (p === '/api/nodes' && req.method === 'POST') {
       const b = await body(req);
       if (!b.title?.trim()) return json(res, 400, { error: 'title required' });
@@ -300,7 +311,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, {
         checkins: life.checkins(db),
         metrics: life.listMetrics(db),
-        heatmap: life.routineHeatmap(db),
+        monthly: life.monthlyStats(db),
       });
     if (p === '/api/track/checkin' && req.method === 'POST') {
       const b = await body(req);
@@ -440,4 +451,5 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => console.log(`Pipboy прототип: http://localhost:${PORT}`));
+server.listen(PORT, () => console.log(`Pipboy прототип: http://localhost:${PORT}`
+  + (lanUrl() ? ` · с телефона (тот же Wi-Fi): ${lanUrl()}` : '')));

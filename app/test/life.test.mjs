@@ -165,6 +165,32 @@ test('тепловая карта рутин: считает выполнено/
   assert.equal(heat.at(-1).total, 2);
 });
 
+test('итоги по месяцам: отметки считаются, числа усредняются, настроение и рутины входят', () => {
+  const db = freshDb();
+  life.addMetric(db, { name: 'Книга', type: 'bool' });
+  life.addMetric(db, { name: 'Вес', type: 'number', unit: 'кг' });
+  const [book, weight] = db.prepare('SELECT id FROM metrics ORDER BY id').all().map(r => r.id);
+  const today = new Date();
+  const d = n => iso(new Date(today.getFullYear(), today.getMonth(), today.getDate() - n));
+  life.setMetricValue(db, book, 1, d(0));
+  life.setMetricValue(db, book, 1, d(1));
+  life.setMetricValue(db, book, 0, d(2));          // снятая отметка не считается
+  life.setMetricValue(db, weight, 84, d(1));
+  life.setMetricValue(db, weight, 82, d(0));
+  life.setCheckin(db, 3, '', d(0));
+  life.setCheckin(db, 1, '', d(1));
+  life.addRoutine(db, { name: 'А' });
+  life.toggleRoutineToday(db, life.listRoutines(db)[0].id);
+  const stats = life.monthlyStats(db, 2);
+  const cur = stats[0];
+  // все значения могли уехать в прошлый месяц только на стыке — тогда смотрим его
+  const mo = cur.metrics.some(m => m.value != null) ? cur : stats[1];
+  assert.equal(mo.metrics.find(m => m.name === 'Книга').value >= 1, true, 'отметки за месяц');
+  assert.ok(mo.metrics.find(m => m.name === 'Вес').value >= 82, 'среднее число');
+  assert.ok(mo.mood >= 1 && mo.mood <= 3, 'среднее настроение');
+  assert.ok(stats.reduce((s, x) => s + x.routinesDone, 0) >= 1, 'рутины в итогах');
+});
+
 test('дашборд: недельные цели и чек-ин в payload', () => {
   const db = freshDb();
   const inbox = inboxOf(db);

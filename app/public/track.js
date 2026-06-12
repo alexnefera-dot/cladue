@@ -31,7 +31,6 @@ function renderTrack() {
   const d = trData;
   const today = new Date().toISOString().slice(0, 10);
   const todayCheckin = d.checkins.find(c => c.date === today);
-  const heat = d.heatmap;
   const avg7 = d.checkins.filter(c => c.date >= new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10));
 
   document.getElementById('screen-track').innerHTML = `
@@ -49,13 +48,9 @@ function renderTrack() {
       <div style="font-size:15px;letter-spacing:2px;margin-top:4px">${
         d.checkins.slice(0, 30).reverse().map(c => `<span title="${c.date}${c.note ? ': ' + tresc(c.note) : ''}">${MOOD[c.mood]}</span>`).join('') || '<span class="meta">пока пусто</span>'}</div>
     </div>
-    <div class="card">
-      <div class="meta">РУТИНЫ · ТЕПЛОВАЯ КАРТА 16 НЕДЕЛЬ (выполнено из ${heat[heat.length - 1]?.total ?? 0})</div>
-      <div class="hm" style="margin-top:8px">${heat.map(h => {
-        const ratio = h.total ? h.done / h.total : 0;
-        const cls = !h.done ? '' : ratio < 0.4 ? 'l1' : ratio < 0.8 ? 'l2' : 'l3';
-        return `<i class="${cls}" title="${h.date}: ${h.done}/${h.total}"></i>`;
-      }).join('')}</div>
+    <div class="card" style="overflow-x:auto">
+      <div class="meta">ИТОГИ ПО МЕСЯЦАМ · отметки — сколько раз, числа — среднее</div>
+      ${monthTable(d.monthly)}
     </div>
   </div>
 
@@ -83,6 +78,24 @@ function renderTrack() {
   </div>` : ''}
   <div class="footer-hint">Клик по ячейке — отметка/значение за тот день (можно задним числом). Клик по заголовку — переименовать, ✕ — удалить колонку с историей.</div>`;
   bindTrack();
+}
+
+// итоги по месяцам: динамика одной строкой на месяц
+function monthTable(monthly) {
+  if (!monthly?.length) return '<div class="empty">появится с первыми отметками</div>';
+  const MONL = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+  const label = ym => `${MONL[+ym.slice(5) - 1]} ${ym.slice(2, 4)}`;
+  const cols = monthly[0].metrics;   // набор колонок одинаков для всех месяцев
+  return `<table class="diary" style="margin-top:6px">
+    <tr><th style="text-align:left">Месяц</th>
+      ${cols.map(c => `<th>${tresc(c.name)}${c.type !== 'bool' && c.unit ? `<br><span class="meta">${tresc(c.unit)}</span>` : ''}</th>`).join('')}
+      <th>🙂 ср.</th><th>☑ задач</th><th>↻ рутин</th></tr>
+    ${monthly.map((mo, i) => `<tr class="${i === 0 ? 'todayrow' : ''}">
+      <td class="num">${i === 0 ? '<b>' + label(mo.ym) + '</b>' : label(mo.ym)}</td>
+      ${mo.metrics.map(c => `<td class="${c.type === 'bool' && c.value ? 'on' : 'num'}">${c.value ?? ''}</td>`).join('')}
+      <td class="num">${mo.mood ?? ''}</td><td class="num">${mo.tasksDone || ''}</td><td class="num">${mo.routinesDone || ''}</td>
+    </tr>`).join('')}
+  </table>`;
 }
 
 // сетка «дата × колонки» как в гугл-таблице: последние 14 дней, сегодня сверху
