@@ -514,7 +514,11 @@ const server = http.createServer(async (req, res) => {
     const full = join(ROOT, 'public', file);
     if (!full.startsWith(join(ROOT, 'public')) || !existsSync(full))
       return json(res, 404, { error: 'not found' });
-    res.writeHead(200, { 'Content-Type': MIME[extname(full)] ?? 'application/octet-stream' });
+    res.writeHead(200, {
+      'Content-Type': MIME[extname(full)] ?? 'application/octet-stream',
+      // локальный сервер: кэш запрещён, чтобы обновления подхватывались без ⌘⇧R
+      'Cache-Control': 'no-store',
+    });
     res.end(readFileSync(full));
   } catch (e) {
     json(res, 500, { error: e.message });
