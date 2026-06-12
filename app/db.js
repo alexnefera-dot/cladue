@@ -326,6 +326,7 @@ export function createDb(path = ':memory:') {
   // колесо ради движения: идеал (10), следующий уровень и шаг по каждому сектору
   const wac = db.prepare('PRAGMA table_info(wheel_areas)').all().map(c => c.name);
   if (!wac.includes('ideal')) db.exec(`ALTER TABLE wheel_areas ADD COLUMN ideal TEXT NOT NULL DEFAULT ''`);
+  if (!wac.includes('current_desc')) db.exec(`ALTER TABLE wheel_areas ADD COLUMN current_desc TEXT NOT NULL DEFAULT ''`);
   if (!wac.includes('next_desc')) db.exec(`ALTER TABLE wheel_areas ADD COLUMN next_desc TEXT NOT NULL DEFAULT ''`);
   if (!wac.includes('step')) db.exec(`ALTER TABLE wheel_areas ADD COLUMN step TEXT NOT NULL DEFAULT ''`);
   return db;

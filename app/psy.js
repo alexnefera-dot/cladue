@@ -112,7 +112,7 @@ export function wheel(db) {
 
 // поля движения сектора: идеал («что такое 10»), следующий уровень, шаг
 export function patchArea(db, id, b) {
-  for (const k of ['name', 'ideal', 'next_desc', 'step'])
+  for (const k of ['name', 'ideal', 'current_desc', 'next_desc', 'step'])
     if (k in b) db.prepare(`UPDATE wheel_areas SET ${k} = ? WHERE id = ?`).run(b[k], id);
 }
 

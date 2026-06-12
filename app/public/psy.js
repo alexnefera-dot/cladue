@@ -181,13 +181,15 @@ function renderPsy() {
       <div class="card">
         <table class="fintable" style="table-layout:fixed">
           <tr>
-            <th style="width:140px">${pesc(a.name)} · уровень</th>
+            <th style="width:120px">${pesc(a.name)} · уровень</th>
+            <th>${cur ?? '?'} — текущее: что есть сейчас</th>
             <th>10 — идеал</th>
             <th>${next} — следующий уровень</th>
             <th>Шаг</th>
           </tr>
           <tr>
             <td class="num" style="font-size:18px;font-weight:700">${cur ?? '—'}${cur != null ? ' → ' + next : ''}</td>
+            <td class="ed" data-aredit="${a.id}:current_desc">${pesc(a.current_desc) || '＋ опиши текущее состояние'}</td>
             <td class="ed" data-aredit="${a.id}:ideal">${pesc(a.ideal) || '—'}</td>
             <td class="ed" data-aredit="${a.id}:next_desc">${pesc(a.next_desc) || '—'}</td>
             <td class="ed" data-aredit="${a.id}:step" style="${a.step ? 'color:var(--green);font-weight:600' : ''}">${pesc(a.step) || '＋ задать шаг'}</td>
@@ -300,7 +302,7 @@ function bindPsy() {
   document.querySelectorAll('#screen-psy [data-aredit]').forEach(el =>
     el.addEventListener('click', async () => {
       const [id, field] = el.dataset.aredit.split(':');
-      const label = { ideal: 'Как выглядит «10» в этом секторе?', next_desc: 'Как выглядит следующий уровень (+1)?', step: 'Конкретный шаг к следующему уровню:' }[field];
+      const label = { current_desc: 'Что есть сейчас — почему такая оценка?', ideal: 'Как выглядит «10» в этом секторе?', next_desc: 'Как выглядит следующий уровень (+1)?', step: 'Конкретный шаг к следующему уровню:' }[field];
       const v = prompt(label, el.textContent.trim().replace('＋ задать шаг', '').replace('—', ''));
       if (v == null) return;
       await fetch('/api/psy/areas/' + id, { method: 'PATCH',
