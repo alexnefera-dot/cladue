@@ -26,6 +26,7 @@ ensurePortfolio(db);
 ensureRates(db);
 psy.ensureWheel(db);      // секторы колеса — это структура, не демо
 ensureEnergy(db);         // ⚡ Энергия жизни + Банк впечатлений — тоже структура
+notes.ensureInfoTree(db); // ветки Инфо: Finance / Mindset / Fun / Work / Health
 if (!demoWiped(db)) {     // после «удалить демо-данные» сиды не доливаются никогда
   if (db.prepare('SELECT count(*) AS c FROM accounts').get().c === 0) {
     seedFin(db);

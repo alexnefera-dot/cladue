@@ -92,3 +92,20 @@ test('демо-страницы: сидятся один раз, приватн�
   assert.match(notes.unlockPage(db, secret.id, '1234').content, /зашифровано/);
   assert.equal(pages.filter(p => p.title === 'Журнал решений').length, 1, 'без дублей');
 });
+
+test('каркас Инфо: ветки пользователя создаются один раз и переживают зачистку демо', () => {
+  const db = freshDb();
+  notes.ensureInfoTree(db);
+  notes.ensureInfoTree(db);   // идемпотентность
+  const pages = notes.listPages(db);
+  const fin = pages.find(p => p.title === 'Finance' && !p.parent_id);
+  assert.ok(fin, 'Finance в корне');
+  const finKids = pages.filter(p => p.parent_id === fin.id).map(p => p.title);
+  assert.deepEqual(finKids, ['Macro', 'ETF/BTC/GOLD', 'Property', 'Passives']);
+  const ms = pages.find(p => p.title === 'Mindset');
+  assert.equal(pages.filter(p => p.parent_id === ms.id).length, 5);
+  const fun = pages.find(p => p.title === 'Fun');
+  assert.equal(pages.find(p => p.title === 'Cars').parent_id, fun.id);
+  assert.ok(pages.find(p => p.title === 'Work') && pages.find(p => p.title === 'Health'));
+  assert.equal(pages.filter(p => p.title === 'Finance').length, 1, 'без дублей');
+});

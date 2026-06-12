@@ -26,6 +26,21 @@ export function listPages(db) {
 
 // Демо-страницы из макета — потрогать редактор, ссылки и пароль (удаляемо).
 // Льётся и поверх своих страниц, но один раз (метка — «План переезда»).
+// ===== Каркас веток Инфо (структура пользователя, не демо; создаётся один раз) =====
+export function ensureInfoTree(db) {
+  if (db.prepare(`SELECT value FROM settings WHERE key = 'info_tree_v1'`).get()?.value === '1') return;
+  const mk = (title, parent_id = null) => addPage(db, { title, parent_id }).id;
+  const fin = mk('Finance');
+  for (const t of ['Macro', 'ETF/BTC/GOLD', 'Property', 'Passives']) mk(t, fin);
+  const ms = mk('Mindset');
+  for (const t of ['Books', 'Регламент 2026', 'Курс', 'Инсайты и установки', 'Глобальный план']) mk(t, ms);
+  mk('Cars', mk('Fun'));
+  mk('Work');
+  mk('Health');
+  db.prepare(`INSERT INTO settings(key, value) VALUES('info_tree_v1','1')
+    ON CONFLICT(key) DO UPDATE SET value = '1'`).run();
+}
+
 export function seedPages(db) {
   if (db.prepare(`SELECT count(*) AS c FROM pages WHERE title LIKE '%План переезда%'`).get().c > 0) return;
   const princ = addPage(db, { title: '📌 Принципы', content:
