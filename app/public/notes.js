@@ -235,7 +235,7 @@ async function renderNotes() {
           ${page.node_id ? `<span class="pill ok btn" data-ntnode="${page.node_id}">☑ к записи</span>` : ''}
           <span class="pill btn ok" id="ntEdit">✎ редактировать</span>
           <span class="pill btn" id="ntHist" title="прошлые версии страницы">⏪ история</span>
-          <span class="pill btn" id="ntLockBtn">${page.locked ? '🔓 снять пароль' : '🔒 пароль'}</span>
+          ${page.locked ? '<span class="pill btn" id="ntLockBtn">🔓 снять пароль</span>' : ''}
           <span class="pill btn" id="ntAddChild">＋ подстраница</span>
           <span class="pill btn danger" id="ntDel">🗑</span>
         </div>
@@ -456,14 +456,7 @@ function bindNotes(page) {
         delete ntPw[ntSel]; delete ntCache[ntSel];
         window.loadNotes(ntSel);
       }
-    } else {
-      const pw = prompt('Задай пароль для этой страницы (содержимое будет зашифровано, из поиска уйдёт):');
-      if (!pw?.trim()) return;
-      const r = await ntApi.lock(ntSel, { password: pw.trim() });
-      if (r.error) { alert(r.error); return; }
-      ntPw[ntSel] = pw.trim();
-      ntCache[ntSel] = page.content;
-      window.loadNotes(ntSel);
     }
+    // пароли на отдельные страницы убраны: раздел Инфо и так под общим замком
   });
 }
