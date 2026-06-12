@@ -421,7 +421,17 @@ function bindNotes(page) {
   $('ntRich')?.addEventListener('paste', e => {
     const html = e.clipboardData.getData('text/html');
     const text = e.clipboardData.getData('text/plain').replace(/\r/g, '');
-    if (/<table/i.test(html)) return;   // настоящая таблица — браузер вставит сам
+    // HTML-разметка (Notion, сайты, Word, заметки): нормализуем через наш конвертер —
+    // заголовки/списки/таблицы/жирный остаются, мусорные стили выбрасываются
+    if (html && /<(table|h[1-6]|ul|ol|li|b|strong|i|em|blockquote|pre|p|br)[\s>/]/i.test(html)) {
+      e.preventDefault();
+      const tmp = document.createElement('div');
+      tmp.innerHTML = html;
+      tmp.querySelectorAll('script,style,meta,link,head,title').forEach(x => x.remove());
+      const md = htmlToMd(tmp);
+      document.execCommand('insertHTML', false, md.trim() ? mdRender(md) : nesc(text));
+      return;
+    }
     const rows = text.split('\n').filter(l => l.trim());
     if (rows.length > 1 && rows.every(r => r.includes('\t'))) {
       // таб-таблица (Notion/Excel) → таблица
