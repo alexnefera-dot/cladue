@@ -297,6 +297,8 @@ const server = http.createServer(async (req, res) => {
       return f ? json(res, 200, { file: f }) : json(res, 400, { error: 'база в памяти — бэкапить нечего' });
     }
     if (p === '/api/trash' && req.method === 'GET') return json(res, 200, notes.listTrash(db));
+    if (p === '/api/trash/clear' && req.method === 'POST')
+      return json(res, 200, { cleared: db.prepare('DELETE FROM trash').run().changes });
     if ((m = p.match(/^\/api\/trash\/(\d+)\/restore$/)) && req.method === 'POST') {
       const row = db.prepare('SELECT * FROM trash WHERE id = ?').get(+m[1]);
       if (!row) return json(res, 404, { error: 'not found' });

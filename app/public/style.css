@@ -233,3 +233,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
   .insp-close{display:flex}
   .hint{display:none}
 }
+
+/* Многострочное поле добавления в Целях */
+.addbar textarea{flex:1;border:1px solid var(--line);border-radius:9px;padding:8px 11px;
+  font:13px/1.45 var(--sans);background:var(--panel);resize:none;overflow-y:auto;min-height:36px;max-height:240px}

@@ -596,24 +596,28 @@ document.getElementById('bulkClear').addEventListener('click', () => {
   renderBoard();
 });
 
-// ===== Добавление строки (вставка нескольких строк = импорт) =====
-document.getElementById('addTitle').addEventListener('paste', async e => {
-  const text = e.clipboardData.getData('text');
-  if (!text.includes('\n')) return;
+// ===== Добавление: поле многострочное. Enter — отправить (несколько строк = импорт
+// с вложенностью по отступам), Shift+Enter — новая строка. Вставка попадает в поле — можно править.
+const addT = document.getElementById('addTitle');
+const growAdd = () => { addT.style.height = 'auto'; addT.style.height = Math.min(addT.scrollHeight + 2, 240) + 'px'; };
+addT.addEventListener('input', growAdd);
+addT.addEventListener('keydown', async e => {
+  if (e.key !== 'Enter' || e.shiftKey) return;
   e.preventDefault();
+  const text = addT.value.replace(/\s+$/, '');
+  if (!text.trim()) return;
   const inbox = state.nodes.find(n => n.is_category && n.title.includes('Инбокс'));
-  const target = selected ?? inbox?.id ?? null;
-  const r = await api.import({ parent_id: target, text });
-  if (target) collapsed.delete(target);
-  e.target.value = '';
-  await load();
-  document.getElementById('statusbar').textContent += ` · ⤓ импортировано: ${r.imported}`;
-});
-document.getElementById('addTitle').addEventListener('keydown', async e => {
-  if (e.key !== 'Enter' || !e.target.value.trim()) return;
-  await api.add({ title: e.target.value.trim(), parent_id: selected ?? null });
-  if (selected) collapsed.delete(selected);
-  e.target.value = '';
+  if (text.includes('\n')) {
+    const target = selected ?? inbox?.id ?? null;
+    const r = await api.import({ parent_id: target, text });
+    if (target) collapsed.delete(target);
+    document.getElementById('statusbar').textContent += ` · ⤓ импортировано: ${r.imported}`;
+  } else {
+    await api.add({ title: text.trim(), parent_id: selected ?? null });
+    if (selected) collapsed.delete(selected);
+  }
+  addT.value = '';
+  growAdd();
   await load();
 });
 
@@ -668,7 +672,8 @@ window.loadSettings = async function () {
   <h2 style="margin-bottom:2px">Настройки</h2>
   <div class="muted" style="margin-bottom:14px">данные принадлежат тебе: корзина, экспорт в открытые форматы, бэкапы базы</div>
   <div class="fingrid">
-    <div class="card"><div class="meta">🗑 КОРЗИНА</div>
+    <div class="card"><div class="meta">🗑 КОРЗИНА
+      ${rows.length ? '<span class="pill btn danger" id="trashClear" style="float:right">✕ очистить корзину</span>' : ''}</div>
       ${rows.map(t => `
         <div class="task">
           <span class="t">${esc(t.label)}</span>
@@ -710,6 +715,11 @@ window.loadSettings = async function () {
   box.querySelector('#exportBtn').addEventListener('click', async () => {
     const r = await fetch('/api/export', { method: 'POST' }).then(x => x.json());
     alert(r.error ? r.error : `Экспортировано ${r.files.length} файлов:\n${r.dir}\n\n(папка открыта в Finder)`);
+  });
+  box.querySelector('#trashClear')?.addEventListener('click', async () => {
+    if (!confirm(`Очистить корзину безвозвратно? Записей: ${rows.length}.`)) return;
+    await fetch('/api/trash/clear', { method: 'POST' });
+    window.loadSettings();
   });
   box.querySelector('#wipeBtn')?.addEventListener('click', async () => {
     if (!confirm('Удалить ВСЕ тестовые данные?\n\nУйдёт всё с пометкой «(пример)», тестовые страницы Инфо, история чек-инов и замеры колеса. Твои категории, блоки портфеля и колонки дневника останутся.\n\nВернуть будет нельзя.')) return;
