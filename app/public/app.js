@@ -515,21 +515,25 @@ function startInlineEdit(id) {
   const n = state.nodes.find(x => x.id === id);
   const t = row?.querySelector('.t');
   if (!n || !t || row.querySelector('.inlineedit')) return;
-  const input = document.createElement('input');
+  const input = document.createElement('textarea');
   input.className = 'inlineedit';
+  input.rows = 1;
   input.value = n.title;
   t.replaceWith(input);
+  const grow = () => { input.style.height = 'auto'; input.style.height = (input.scrollHeight + 2) + 'px'; };
+  input.addEventListener('input', grow);
   input.focus(); input.select();
+  grow();
   let saved = false;
   const save = async () => {
     if (saved) return; saved = true;
-    const v = input.value.trim();
+    const v = input.value.replace(/\s*\n\s*/g, ' ').trim();   // заголовок — одна логическая строка
     if (v && v !== n.title) await api.patch(id, { title: v });
     await load();
   };
   input.addEventListener('click', ev => ev.stopPropagation());
   input.addEventListener('keydown', ev => {
-    if (ev.key === 'Enter') save();
+    if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); save(); }
     if (ev.key === 'Escape') { saved = true; load(); }
   });
   input.addEventListener('blur', save);

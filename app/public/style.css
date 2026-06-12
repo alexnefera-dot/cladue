@@ -99,7 +99,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .bulkbar select{border:1px solid var(--line);border-radius:7px;padding:5px 8px;font:12px var(--sans);background:var(--panel)}
 .pill.danger{color:var(--red);border-color:var(--red)}
 .pill.danger:hover{background:rgba(204,68,68,.08)}
-.inlineedit{flex:1;border:1px solid var(--green-dim);border-radius:6px;padding:3px 7px;font:13.5px var(--sans);background:var(--panel)}
+.inlineedit{flex:1;border:1px solid var(--green-dim);border-radius:6px;padding:3px 7px;font:13.5px/1.45 var(--sans);background:var(--panel);resize:none;overflow:hidden;min-height:26px}
 #noteEdit{width:100%;border:1px solid var(--line);border-radius:7px;padding:7px 9px;font:12.5px/1.5 var(--sans);background:var(--panel);resize:vertical;margin-bottom:4px}
 .importpanel textarea{min-height:240px}
 .rowbtn{font:13px var(--mono);color:var(--muted);padding:0 5px;border-radius:5px;cursor:pointer;opacity:0;flex:0 0 auto}
