@@ -28,13 +28,25 @@ function mdRender(src) {
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank">$1</a>');
   const lines = nesc(src).split('\n');
-  let out = '', list = null, code = false;
+  let out = '', list = null, code = false, tbl = false;
   const closeList = () => { if (list) { out += `</${list}>`; list = null; } };
+  const closeTbl = () => { if (tbl) { out += '</table>'; tbl = false; } };
   for (const raw of lines) {
-    if (raw.trim().startsWith('```')) { closeList(); code = !code; out += code ? '<pre>' : '</pre>'; continue; }
+    if (raw.trim().startsWith('```')) { closeList(); closeTbl(); code = !code; out += code ? '<pre>' : '</pre>'; continue; }
     if (code) { out += raw + '\n'; continue; }
     const l = raw.trimEnd();
     let m;
+    // таблица: | ячейка | ячейка |
+    if (/^\s*\|.*\|\s*$/.test(l)) {
+      const cells = l.trim().replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+      if (cells.every(c => /^:?-{2,}:?$/.test(c))) continue;   // разделительная строка
+      closeList();
+      const head = !tbl;
+      if (!tbl) { out += '<table class="mdtable">'; tbl = true; }
+      out += '<tr>' + cells.map(c => head ? `<th>${inline(c)}</th>` : `<td>${inline(c)}</td>`).join('') + '</tr>';
+      continue;
+    }
+    closeTbl();
     if ((m = l.match(/^(#{1,3})\s+(.*)/))) { closeList(); out += `<h${m[1].length + 1}>${inline(m[2])}</h${m[1].length + 1}>`; }
     else if ((m = l.match(/^\s*[-*]\s+\[( |x)\]\s+(.*)/i))) {
       if (list !== 'ul') { closeList(); out += '<ul>'; list = 'ul'; }
@@ -53,6 +65,7 @@ function mdRender(src) {
     else { closeList(); out += `<p>${inline(l)}</p>`; }
   }
   closeList();
+  closeTbl();
   if (code) out += '</pre>';
   return out;
 }
@@ -91,6 +104,16 @@ function htmlToMd(root) {
     else if (tag === 'OL') out.push([...n.children].map((li, i) => `${i + 1}. ` + inline(li).trim()).join('\n'));
     else if (tag === 'BLOCKQUOTE') out.push(inline(n).trim().split('\n').map(l => '> ' + l).join('\n'));
     else if (tag === 'PRE') out.push('```\n' + n.textContent.replace(/\n$/, '') + '\n```');
+    else if (tag === 'TABLE') {
+      const trs = [...n.querySelectorAll('tr')];
+      const row = tr => '| ' + [...tr.children]
+        .map(td => inline(td).trim().replace(/\|/g, '\\|').replace(/\n+/g, ' ')).join(' | ') + ' |';
+      if (trs.length) {
+        const lines = [row(trs[0]), '| ' + [...trs[0].children].map(() => '---').join(' | ') + ' |',
+          ...trs.slice(1).map(row)];
+        out.push(lines.join('\n'));
+      }
+    }
     else if (n.classList?.contains('mdgap')) out.push('');
     else {
       const t = inline(n).trim();

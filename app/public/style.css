@@ -254,3 +254,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .porttable tr.dropbefore td{box-shadow:inset 0 3px 0 var(--green)}
 .porttable tr.dropafter td{box-shadow:inset 0 -3px 0 var(--green)}
 .porttable tr.dropinto td{background:var(--green-soft)}
+
+/* Таблицы в Инфо (вставка из заметок айфона / markdown) */
+.mdtable{border-collapse:collapse;margin:8px 0;font-size:13px}
+.mdtable th,.mdtable td{border:1px solid var(--line);padding:5px 10px;text-align:left}
+.mdtable th{background:var(--bg2);font-weight:600;font-size:12px}
+.mdtable tr:nth-child(even) td{background:var(--bg)}
