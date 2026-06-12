@@ -4,6 +4,7 @@ let finTab = 'fact';        // факт | целевой (портфель)
 let finSection = 'all';     // подвкладка раздела
 let finTxMonth = new Date().toISOString().slice(0, 7);
 let showMonefy = false;
+let finHide = localStorage.finHide !== '0';   // по умолчанию суммы скрыты
 
 const finApi = {
   list: () => fetch('/api/fin').then(r => r.json()),
@@ -380,7 +381,9 @@ function secFire(d, s) {
 
 function renderFin() {
   const d = finData, s = d.summary;
-  const accStr = Object.entries(s.accountsByCurrency).map(([c, v]) => `${fmt(v)} ${c}`).join(' · ') || '—';
+  const hide = finHide;
+  const accStr = hide ? '—'
+    : Object.entries(s.accountsByCurrency).map(([c, v]) => `${fmt(v)} ${c}`).join(' · ') || '—';
   const head = `
   <div class="ratesbar">
     ${d.rates.map(r => `<span class="ratepill">
@@ -389,6 +392,7 @@ function renderFin() {
       ${r.change_pct != null ? `<span class="${r.change_pct >= 0 ? 'up' : 'down'}">${r.change_pct >= 0 ? '▲' : '▼'}${Math.abs(r.change_pct).toFixed(2)}%</span>` : ''}
     </span>`).join('')}
     <span class="pill btn" id="ratesRefresh">↻ обновить</span>
+    <span class="pill btn" id="finEye" style="margin-left:auto" title="${hide ? 'показать значения' : 'скрыть значения'}">${hide ? '<s>👁</s> показать' : '👁 скрыть'}</span>
     <span class="meta">${d.rates[0]?.updated_at ? 'обн. ' + d.rates[0].updated_at.slice(0, 16).replace('T', ' ') : 'курсы не загружались'}</span>
   </div>
   <div class="fingrid">
@@ -396,10 +400,10 @@ function renderFin() {
       <div class="bignum" style="font-size:16px">${accStr}</div>
       <div class="meta">${d.accounts.length} счетов</div></div>
     <div class="card"><div class="meta">ПОРТФЕЛЬ · ФАКТ</div>
-      <div class="bignum">${fmtE(s.portfolioTotal)} <span style="font-size:14px;color:var(--muted)">· ${fmt(s.portfolioTotalUsd)} $</span></div>
-      <div class="meta">курс ${s.rate?.toFixed(4)}${d.snapshotDelta ? ` · с ${d.snapshotDelta.since}: ${d.snapshotDelta.abs >= 0 ? '+' : ''}${fmt(d.snapshotDelta.abs)} €` : ''}${s.growth ? ` · прирост: ${s.growth.abs >= 0 ? '+' : ''}${fmt(s.growth.abs)} € (${s.growth.pct.toFixed(1)}%)` : ''}</div></div>
+      <div class="bignum">${hide ? '—' : `${fmtE(s.portfolioTotal)} <span style="font-size:14px;color:var(--muted)">· ${fmt(s.portfolioTotalUsd)} $</span>`}</div>
+      <div class="meta">${hide ? 'значения скрыты — 👁 наверху' : `курс ${s.rate?.toFixed(4)}${d.snapshotDelta ? ` · с ${d.snapshotDelta.since}: ${d.snapshotDelta.abs >= 0 ? '+' : ''}${fmt(d.snapshotDelta.abs)} €` : ''}${s.growth ? ` · прирост: ${s.growth.abs >= 0 ? '+' : ''}${fmt(s.growth.abs)} € (${s.growth.pct.toFixed(1)}%)` : ''}`}</div></div>
     <div class="card"><div class="meta">ОБЯЗАТЕЛЬСТВА / МЕС</div>
-      <div class="bignum">${fmt(s.monthlyObligations)} €</div>
+      <div class="bignum">${hide ? '—' : fmt(s.monthlyObligations) + ' €'}</div>
       <div class="meta">${s.upcoming.length ? `ближайшие 30 дней: ${s.upcoming.length}` : 'на месяц тихо'}</div></div>
   </div>
   <div class="viewtabs">
@@ -407,10 +411,18 @@ function renderFin() {
       .map(([k, l]) => `<span class="pill btn ${finSection === k ? 'ok' : ''}" data-fsec="${k}">${l}</span>`).join(' ')}
   </div>`;
 
+  // в скрытом режиме портфель и счета свёрнуты целиком — раскрываются глазом
+  const veiled = name => `
+  <div class="sec">${name}</div>
+  <div class="card"><div class="task" style="border:0">
+    <span class="t muted">свёрнуто — значения скрыты</span>
+    <span class="pill btn ok" data-fineye><s>👁</s> показать</span>
+  </div></div>`;
+
   const show = k => finSection === 'all' || finSection === k;
   document.getElementById('screen-fin').innerHTML = head
-    + (show('port') ? secPortfolio(d, s) : '')
-    + (show('acc') ? secAccounts(d) : '')
+    + (show('port') ? (hide ? veiled('Портфель') : secPortfolio(d, s)) : '')
+    + (show('acc') ? (hide ? veiled('Счета') : secAccounts(d)) : '')
     + (show('flow') ? renderTx(d.tx) : '')
     + (show('debts') ? secDebts(d) : '')
     + (show('plans') ? secPlans(d) : '')
@@ -467,6 +479,9 @@ function bindFin() {
     el.addEventListener('click', () => inlineVal(el, 'num', v => finApi.rateSet(el.dataset.rate, v))));
   document.querySelectorAll('[data-fintab]').forEach(el =>
     el.addEventListener('click', () => { finTab = el.dataset.fintab; renderFin(); }));
+  const eyeToggle = () => { finHide = !finHide; localStorage.finHide = finHide ? '1' : '0'; renderFin(); };
+  $('finEye')?.addEventListener('click', eyeToggle);
+  document.querySelectorAll('[data-fineye]').forEach(el => el.addEventListener('click', eyeToggle));
   document.querySelectorAll('[data-pfold]').forEach(el =>
     el.addEventListener('click', e => {
       e.stopPropagation();
