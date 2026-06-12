@@ -540,7 +540,10 @@ function startInlineEdit(id) {
   };
   input.addEventListener('click', ev => ev.stopPropagation());
   input.addEventListener('keydown', ev => {
-    if (ev.key === 'Enter' && (ev.metaKey || ev.ctrlKey)) { ev.preventDefault(); save(); }
+    // привычный Enter сохраняет, пока запись однострочная; в блоке Enter — новая строка
+    if (ev.key === 'Enter' && (ev.metaKey || ev.ctrlKey || (!ev.shiftKey && !input.value.includes('\n')))) {
+      ev.preventDefault(); save();
+    }
     if (ev.key === 'Escape') { saved = true; load(); }
   });
   input.addEventListener('blur', save);
@@ -619,29 +622,45 @@ document.getElementById('bulkClear').addEventListener('click', () => {
 const addT = document.getElementById('addTitle');
 const growAdd = () => { addT.style.height = 'auto'; addT.style.height = Math.min(addT.scrollHeight + 2, 240) + 'px'; };
 
+// раскрыть путь до записи, проскроллить и подсветить — ничего не «исчезает»
+function revealNode(id) {
+  let n = state.nodes.find(x => x.id === id);
+  while (n && n.parent_id != null) {
+    collapsed.delete(n.parent_id);
+    n = state.nodes.find(x => x.id === n.parent_id);
+  }
+  renderBoard();
+  const row = document.querySelector(`.task[data-id="${id}"]`);
+  if (row) {
+    row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    row.classList.add('flash');
+    setTimeout(() => row.classList.remove('flash'), 1400);
+  }
+}
+
 async function submitAdd(asBlock) {
   const text = addT.value.replace(/\s+$/, '');
   if (!text.trim()) return;
   const inbox = state.nodes.find(n => n.is_category && n.title.includes('Инбокс'));
   const lines = text.split('\n');
+  let created = null, target = null;
   if (lines.length > 1 && asBlock) {
     // одна запись: заголовок + блок текста в заметке
-    const node = await api.add({ title: lines[0].trim(), parent_id: selected ?? null });
-    await api.patch(node.id, { note: lines.slice(1).join('\n').trim() });
-    if (selected) collapsed.delete(selected);
+    created = await api.add({ title: lines[0].trim(), parent_id: selected ?? null });
+    await api.patch(created.id, { note: lines.slice(1).join('\n').trim() });
   } else if (lines.length > 1) {
-    const target = selected ?? inbox?.id ?? null;
+    target = selected ?? inbox?.id ?? null;
     const r = await api.import({ parent_id: target, text });
-    if (target) collapsed.delete(target);
     document.getElementById('statusbar').textContent += ` · ⤓ импортировано: ${r.imported}`;
   } else {
-    await api.add({ title: text.trim(), parent_id: selected ?? null });
-    if (selected) collapsed.delete(selected);
+    created = await api.add({ title: text.trim(), parent_id: selected ?? null });
   }
   addT.value = '';
   document.getElementById('addModeBar')?.remove();
   growAdd();
   await load();
+  if (created) revealNode(created.id);
+  else if (target) { collapsed.delete(target); renderBoard(); }
 }
 
 addT.addEventListener('input', () => {
