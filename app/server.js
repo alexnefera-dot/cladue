@@ -16,6 +16,10 @@ import { execFile } from 'node:child_process';
 import os from 'node:os';
 
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
+// версия = короткий хэш коммита: видно в шапке, помогает понять «обновился ли я»
+let VERSION = 'dev';
+execFile('git', ['log', '-1', '--format=%h · %ad', '--date=format:%d.%m %H:%M'], { cwd: ROOT },
+  (e, out) => { if (!e && out.trim()) VERSION = out.trim(); });
 const DB_PATH = process.env.PIPBOY_DB ?? join(ROOT, 'data.db');
 const PORT = Number(process.env.PORT ?? 7777);
 
@@ -83,7 +87,8 @@ const server = http.createServer(async (req, res) => {
   try {
     let m;
     if (p === '/api/tree' && req.method === 'GET') return json(res, 200, core.listTree(db));
-    if (p === '/api/info' && req.method === 'GET') return json(res, 200, { lan: lanUrl(), demoWiped: demoWiped(db) });
+    if (p === '/api/info' && req.method === 'GET')
+      return json(res, 200, { lan: lanUrl(), demoWiped: demoWiped(db), version: VERSION });
     if (p === '/api/demo/wipe' && req.method === 'POST') return json(res, 200, wipeDemo(db));
     if (p === '/api/roulette' && req.method === 'GET') return json(res, 200, { idea: core.rollIdea(db) });
     if (p === '/api/nodes' && req.method === 'POST') {

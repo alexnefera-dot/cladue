@@ -53,7 +53,8 @@ function renderStatus() {
   const inbox = inboxId ? state.nodes.filter(n => n.parent_id === inboxId).length : 0;
   const pct = real.length ? Math.round(typed / real.length * 100) : 0;
   document.getElementById('statusbar').textContent =
-    `разобрано: ${typed} из ${real.length} (${pct}%) · связей: ${state.links.length} · заблокировано: ${blocked} · в инбоксе: ${inbox}`;
+    `разобрано: ${typed} из ${real.length} (${pct}%) · связей: ${state.links.length} · заблокировано: ${blocked} · в инбоксе: ${inbox}`
+    + (window.pbVersion ? ` · ${window.pbVersion}` : '');
 }
 
 function nodeRow(n, depth, idx) {
@@ -698,6 +699,7 @@ fetch('/api/lock').then(r => r.json()).then(i => {
   lockOn = i.enabled;
   if (!lockOn && document.getElementById('lockpane').style.display !== 'none') showScreen(currentScr);
 }).catch(() => {});
+fetch('/api/info').then(r => r.json()).then(i => { window.pbVersion = i.version; }).catch(() => {});
 window.isLocked = scr => LOCKED_SCREENS.has(scr) && lockOn && sessionStorage.pbUnlocked !== '1';
 window.lockNow = () => { sessionStorage.removeItem('pbUnlocked'); showScreen('today'); };
 

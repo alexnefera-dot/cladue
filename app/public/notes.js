@@ -265,29 +265,46 @@ function bindNotes(page) {
   });
   const saveData = async () => {
     const title = $('ntTitle')?.value.trim() || page.title;
-    if (page.locked) {
-      const r = await ntApi.lock(ntSel, { password: ntPw[ntSel], content: currentMd() });
-      if (r.error) { alert(r.error); return; }
-      ntCache[ntSel] = currentMd();
-      await ntApi.patch(ntSel, { title });
-    } else {
-      await ntApi.patch(ntSel, { title, content: currentMd() });
+    try {
+      if (page.locked) {
+        const r = await ntApi.lock(ntSel, { password: ntPw[ntSel], content: currentMd() });
+        if (r.error) { alert('Не сохранилось: ' + r.error); return false; }
+        ntCache[ntSel] = currentMd();
+        await ntApi.patch(ntSel, { title });
+      } else {
+        const r = await ntApi.patch(ntSel, { title, content: currentMd() });
+        if (r?.error) { alert('Не сохранилось: ' + r.error); return false; }
+      }
+      const sb = document.getElementById('statusbar');
+      if (sb) sb.textContent = `✓ Инфо сохранено ${new Date().toTimeString().slice(0, 8)}`;
+      return true;
+    } catch (e) {
+      alert('Не сохранилось: ' + e.message);
+      return false;
     }
   };
   // пока редактор открыт, правки можно дописать при любом уходе со страницы
   window.ntFlush = (ntEditing && page && !(page.locked && ntCache[page.id] == null)) ? saveData : null;
+  // автосохранение по мере набора (3 сек тишины)
+  let ntAutoT = null;
+  for (const id of ['ntBody', 'ntRich'])
+    $(id)?.addEventListener('input', () => {
+      clearTimeout(ntAutoT);
+      ntAutoT = setTimeout(saveData, 3000);
+    });
   const save = async () => {
-    await saveData();
+    clearTimeout(ntAutoT);
+    if (!await saveData()) return;   // ошибка показана — правки не выбрасываем
     window.ntFlush = null;
     ntEditing = false;
     window.loadNotes(ntSel);
   };
   $('ntSave')?.addEventListener('click', save);
-  $('ntCancel')?.addEventListener('click', () => { window.ntFlush = null; ntEditing = false; renderNotes(); });
+  $('ntCancel')?.addEventListener('click', () => { clearTimeout(ntAutoT); window.ntFlush = null; ntEditing = false; renderNotes(); });
   for (const id of ['ntBody', 'ntRich'])
     $(id)?.addEventListener('keydown', e => {
       if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); save(); }
-      if (e.key === 'Escape') { window.ntFlush = null; ntEditing = false; renderNotes(); }
+      if (e.key === 'Escape') { clearTimeout(ntAutoT); window.ntFlush = null; ntEditing = false; renderNotes(); }
     });
   ($('ntRich') ?? $('ntBody'))?.focus();
 
