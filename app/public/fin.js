@@ -146,6 +146,7 @@ function secAccounts(d) {
       <div class="task">
         <span class="pill">${ACCT[a.type] ?? a.type}</span>
         <span class="t ed" data-fe="accounts:${a.id}:name:text">${fesc(a.name)}</span>
+        <span class="ed meta" data-fe="accounts:${a.id}:note:text" style="flex:1" title="пометка: сохраняем, тратим, подушка…">${a.note ? '💬 ' + fesc(a.note) : '＋ пометка'}</span>
         ${a.stale_days > 21 ? `<span class="meta amber">⚠ ${a.stale_days} дн.</span>` : `<span class="meta">обн. ${a.balance_updated_at.slice(0, 10)}</span>`}
         <span class="ed num" data-fe="accounts:${a.id}:balance:num">${fmt(a.balance)} ${fesc(a.currency)}</span>
         <span class="rowbtn del" data-findel="accounts:${a.id}">✕</span>
