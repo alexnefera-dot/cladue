@@ -255,3 +255,22 @@ test('авто-типизация при ручном добавлении; им
   const imported = core.listTree(db).nodes.filter(n => n.title.includes('х5') || n.title.includes('Наталье'));
   assert.ok(imported.every(n => n.kind === null), 'импорт сохраняет строки нетронутыми');
 });
+
+test('рулетка спонтанности: только живые идеи без срока, с путём и возрастом', () => {
+  const db = freshDb();
+  const inbox = catByTitle(db, 'Инбокс');
+  assert.equal(core.rollIdea(db), null, 'без идей — пусто');
+  const n = core.addChild(db, inbox.id, 'Картинг с пацанами');
+  core.updateNode(db, n.id, { kind: 'idea' });
+  const r = core.rollIdea(db);
+  assert.equal(r.id, n.id);
+  assert.ok(r.path.includes('Инбокс'), 'путь до идеи');
+  assert.equal(r.days, 0, 'свежая');
+  // взятая на дату идея из рулетки уходит
+  core.updateNode(db, n.id, { due_date: '2026-08-01' });
+  assert.equal(core.rollIdea(db), null, 'запланированная не выпадает');
+  // задачи не выпадают
+  const t = core.addChild(db, inbox.id, 'Просто задача');
+  core.updateNode(db, t.id, { kind: 'task' });
+  assert.equal(core.rollIdea(db), null);
+});

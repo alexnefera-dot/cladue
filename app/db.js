@@ -397,6 +397,14 @@ export function ensurePortfolio(db) {
   ins(pas, 'MX5', 'asset', { value: 30000 });
 }
 
+// Структура «Энергия жизни»: желания/впечатления — анти-шаблон. Это каркас, не демо.
+export function ensureEnergy(db) {
+  let energy = db.prepare(`SELECT id FROM nodes WHERE is_category = 1 AND parent_id IS NULL AND title LIKE '%Энергия жизни%'`).get()?.id;
+  if (!energy) energy = insertNode(db, null, '⚡ Энергия жизни', { is_category: 1 });
+  if (!db.prepare(`SELECT id FROM nodes WHERE is_category = 1 AND parent_id = ? AND title LIKE '%Банк впечатлений%'`).get(energy))
+    insertNode(db, energy, 'Банк впечатлений', { is_category: 1 });
+}
+
 // Строки курсов, чтобы их можно было править вручную даже без сети
 export function ensureRates(db) {
   const defs = [['XAUUSD', 'Золото'], ['EURUSD', 'EUR/USD'], ['BTCUSD', 'BTC'], ['^SPX', 'S&P 500']];

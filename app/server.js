@@ -2,7 +2,7 @@ import http from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
 import { join, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createDb, seed, seedFin, ensurePortfolio, ensureRates } from './db.js';
+import { createDb, seed, seedFin, ensurePortfolio, ensureRates, ensureEnergy } from './db.js';
 import * as core from './core.js';
 import * as fin from './fin.js';
 import * as cal from './cal.js';
@@ -25,6 +25,7 @@ if (fresh) { seed(db); console.log('БД создана: категории го
 ensurePortfolio(db);
 ensureRates(db);
 psy.ensureWheel(db);      // секторы колеса — это структура, не демо
+ensureEnergy(db);         // ⚡ Энергия жизни + Банк впечатлений — тоже структура
 if (!demoWiped(db)) {     // после «удалить демо-данные» сиды не доливаются никогда
   if (db.prepare('SELECT count(*) AS c FROM accounts').get().c === 0) {
     seedFin(db);
@@ -82,6 +83,7 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/tree' && req.method === 'GET') return json(res, 200, core.listTree(db));
     if (p === '/api/info' && req.method === 'GET') return json(res, 200, { lan: lanUrl(), demoWiped: demoWiped(db) });
     if (p === '/api/demo/wipe' && req.method === 'POST') return json(res, 200, wipeDemo(db));
+    if (p === '/api/roulette' && req.method === 'GET') return json(res, 200, { idea: core.rollIdea(db) });
     if (p === '/api/nodes' && req.method === 'POST') {
       const b = await body(req);
       if (!b.title?.trim()) return json(res, 400, { error: 'title required' });

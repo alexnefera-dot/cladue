@@ -57,9 +57,11 @@ function renderToday() {
   <div class="muted" style="margin-bottom:14px">${WD[dt.getDay()]}, ${dt.getDate()} ${MON[dt.getMonth()]} ·
     просрочено: ${d.overdue.length} · сделано за неделю: ${d.movement.total} 👏</div>
 
-  <div class="addbar" style="margin:0 0 14px">
+  <div class="addbar" style="margin:0 0 6px">
     <input id="tdQuick" placeholder="＋ Быстрый ввод в Инбокс (Enter) — мысль, задача, что угодно; разберёшь потом">
+    <span class="pill btn" id="tdRoll" title="рулетка спонтанности: случайная идея из твоих же списков">🎲</span>
   </div>
+  <div id="tdRollBox" style="margin:0 0 14px"></div>
 
   <div class="fingrid" style="grid-template-columns:repeat(4,1fr)">
     <div class="card"><div class="meta">МЕСЯЦ АКТИВНОСТИ</div>
@@ -171,11 +173,40 @@ function bindToday() {
     const v = prompt('Тема месяца (например: 🎾 Июнь — падл):', tdData.activityMonth ?? '');
     if (v != null) { await tdApi.setSetting('activity_month', v.trim()); window.loadToday(); }
   });
+  document.getElementById('tdRoll')?.addEventListener('click', rollIdea);
   document.getElementById('tdQuick')?.addEventListener('keydown', async e => {
     if (e.key !== 'Enter' || !e.target.value.trim()) return;
     await tdApi.add({ title: e.target.value.trim(), parent_id: tdData.inboxId });
     e.target.value = '';
     window.loadToday();
+  });
+}
+
+// ===== Рулетка спонтанности: случайная идея из своих списков против шаблонных выходных =====
+async function rollIdea() {
+  const box = document.getElementById('tdRollBox');
+  const { idea } = await fetch('/api/roulette').then(r => r.json());
+  if (!idea) {
+    box.innerHTML = `<div class="suggest">🎲 Живых идей нет — кидай хотелки в <b>⚡ Энергия жизни → Банк впечатлений</b>
+      (тип «идея»), и рулетке будет что доставать.</div>`;
+    return;
+  }
+  box.innerHTML = `<div class="suggest">🎲 А как насчёт: <b>${tesc(idea.title)}</b>
+    <span class="meta">${tesc(idea.path)}${idea.days ? ` · лежит ${idea.days} дн` : ' · свежая'}</span>
+    <span class="btnrow" style="display:inline-flex;margin-left:8px">
+      <span class="pill btn ok" id="tdRollTake">беру на выходные</span>
+      <span class="pill btn" id="tdRollAgain">ещё 🎲</span>
+      <span class="pill btn" id="tdRollClose">✕</span>
+    </span></div>`;
+  document.getElementById('tdRollAgain').addEventListener('click', rollIdea);
+  document.getElementById('tdRollClose').addEventListener('click', () => { box.innerHTML = ''; });
+  document.getElementById('tdRollTake').addEventListener('click', async () => {
+    const now = new Date();
+    const sat = new Date(Date.now() + ((6 - now.getDay() + 7) % 7) * 864e5).toISOString().slice(0, 10);
+    await fetch('/api/nodes/' + idea.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind: 'task', due_date: sat }) });
+    box.innerHTML = `<div class="suggest">🎉 «${tesc(idea.title)}» запланировано на субботу ${sat.slice(8)}.${sat.slice(5, 7)} — увидишь в задачах и календаре.</div>`;
+    window.loadToday && setTimeout(() => { document.getElementById('tdRollBox') && window.loadToday(); }, 1600);
   });
 }
 

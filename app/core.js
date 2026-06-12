@@ -406,6 +406,26 @@ export function suggestForNode(db, id) {
   };
 }
 
+// ===== Рулетка спонтанности: случайная живая идея из собственного бэклога.
+// Детерминированный рандом по своим записям — никаких рекомендаций извне.
+export function rollIdea(db) {
+  const n = db.prepare(`SELECT id, title, created_at FROM nodes
+    WHERE is_category = 0 AND kind = 'idea'
+      AND (status IS NULL OR status NOT IN ('done','accepted'))
+      AND due_date IS NULL
+    ORDER BY RANDOM() LIMIT 1`).get();
+  if (!n) return null;
+  const path = [];
+  let p = db.prepare('SELECT parent_id FROM nodes WHERE id = ?').get(n.id)?.parent_id;
+  while (p) {
+    const r = db.prepare('SELECT title, parent_id FROM nodes WHERE id = ?').get(p);
+    path.unshift(r.title);
+    p = r.parent_id;
+  }
+  const days = Math.max(0, Math.floor((Date.now() - Date.parse(n.created_at.replace(' ', 'T') + 'Z')) / 864e5));
+  return { id: n.id, title: n.title, path: path.join(' › '), days };
+}
+
 export function search(db, q) {
   const toks = tokens(q);
   if (!toks.length) return [];
