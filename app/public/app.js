@@ -4,7 +4,10 @@ let picked = new Set();         // мультивыбор
 let visibleOrder = [];          // порядок видимых строк (для Shift-выбора)
 let view = 'tree';              // tree | tasker
 let taskerView = 'prio';        // prio | dates | groups
-const collapsed = new Set();
+// свёрнутость дерева Целей: переживает перезапуск; при первом запуске всё свёрнуто
+const collapsed = new Set(JSON.parse(localStorage.goalsFold ?? 'null') ?? []);
+let foldInit = localStorage.goalsFold != null;
+const saveFold = () => localStorage.goalsFold = JSON.stringify([...collapsed]);
 
 const KIND = { task: ['задача','ok'], decision: ['решение','dec'], question: ['вопрос','p2'],
                principle: ['принцип','p1'], idea: ['идея',''], worry: ['тревога','p0'] };
@@ -31,6 +34,11 @@ function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<':
 
 async function load() {
   state = await api.tree();
+  if (!foldInit) {   // первый запуск: всё свёрнуто — видна только структура
+    const hasKids = new Set(state.nodes.map(n => n.parent_id).filter(Boolean));
+    state.nodes.forEach(n => { if (hasKids.has(n.id)) collapsed.add(n.id); });
+    foldInit = true;
+  }
   renderBoard();
   renderStatus();
   if (selected) showCard(selected, { silent: true });
@@ -91,6 +99,7 @@ function nodeRow(n, depth, idx) {
 }
 
 function renderBoard() {
+  saveFold();
   byParent = {};
   for (const n of state.nodes) (byParent[n.parent_id ?? 'root'] ??= []).push(n);
   document.querySelectorAll('#viewtabs [data-vw]').forEach(t =>

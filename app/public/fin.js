@@ -4,8 +4,8 @@ let finTab = 'fact';        // факт | целевой (портфель)
 let finSection = 'all';     // подвкладка раздела
 let finTxMonth = new Date().toISOString().slice(0, 7);
 let showMonefy = false;
-let finHide = localStorage.finHide !== '0';   // по умолчанию суммы скрыты
-let finShown = new Set();                     // точечно раскрытые разделы (до общего скрытия/перезагрузки)
+let finHide = true;        // каждый заход начинается со скрытых значений — открываются только глазками
+let finShown = new Set();  // точечно раскрытые разделы (до общего скрытия/перезагрузки)
 
 const finApi = {
   list: () => fetch('/api/fin').then(r => r.json()),
@@ -490,8 +490,7 @@ function bindFin() {
     el.addEventListener('click', () => { finTab = el.dataset.fintab; renderFin(); }));
   $('finEye')?.addEventListener('click', () => {
     finHide = !finHide;
-    localStorage.finHide = finHide ? '1' : '0';
-    finShown.clear();   // верхний глаз управляет всем сразу
+    finShown.clear();   // верхний глаз управляет всем сразу; на диск выбор не пишем
     renderFin();
   });
   document.querySelectorAll('[data-fshow]').forEach(el =>
