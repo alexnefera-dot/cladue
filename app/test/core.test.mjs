@@ -284,3 +284,26 @@ test('создание: распознанная дата ставится ср�
   const q = core.addChildAuto(db, inbox.id, 'Стоит ли менять резину?');
   assert.ok(!q.due_date, 'без месяца в тексте срока нет');
 });
+
+test('порядок: запись ставится выше/ниже соседа, циклы запрещены', () => {
+  const db = freshDb();
+  const inbox = catByTitle(db, 'Инбокс');
+  const a = core.addChild(db, inbox.id, 'А');
+  const b = core.addChild(db, inbox.id, 'Б');
+  const c = core.addChild(db, inbox.id, 'В');
+  const order = () => core.listTree(db).nodes
+    .filter(n => n.parent_id === inbox.id).map(n => n.title).join('');
+  assert.equal(order(), 'АБВ');
+  core.reorderNode(db, c.id, a.id, 'before');
+  assert.equal(order(), 'ВАБ');
+  core.reorderNode(db, a.id, b.id, 'after');
+  assert.equal(order(), 'ВБА');
+  // перенос из другой ветки: встаёт рядом с соседом, а не в конец
+  const other = catByTitle(db, 'Налоги');
+  const x = core.addChild(db, other.id, 'Х');
+  core.reorderNode(db, x.id, b.id, 'before');
+  assert.equal(order(), 'ВХБА');
+  // нельзя поставить родителя рядом с собственным потомком
+  const child = core.addChild(db, a.id, 'внутри А');
+  assert.throws(() => core.reorderNode(db, a.id, child.id, 'after'), /descendant/);
+});

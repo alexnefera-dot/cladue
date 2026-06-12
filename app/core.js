@@ -114,6 +114,29 @@ export function importBlock(db, parent_id, text) {
 }
 
 // ===== Перемещение узла (раскидывание по категориям) =====
+// поставить запись прямо перед/после соседа (при необходимости — с переносом к его родителю)
+export function reorderNode(db, id, refId, where = 'after') {
+  if (id === refId) throw new Error('self');
+  const ref = db.prepare('SELECT id, parent_id FROM nodes WHERE id = ?').get(refId);
+  if (!ref) throw new Error('ref not found');
+  if (ref.parent_id === id) throw new Error('cannot move into own descendant');
+  if (ref.parent_id != null) {
+    const desc = db.prepare(`
+      WITH RECURSIVE r(x) AS (
+        SELECT id FROM nodes WHERE parent_id = ?
+        UNION SELECT n.id FROM nodes n JOIN r ON n.parent_id = r.x
+      ) SELECT 1 AS hit FROM r WHERE x = ? LIMIT 1`).get(id, ref.parent_id);
+    if (desc) throw new Error('cannot move into own descendant');
+  }
+  const siblings = db.prepare('SELECT id FROM nodes WHERE parent_id IS ? ORDER BY ord, id')
+    .all(ref.parent_id).map(r => r.id).filter(x => x !== id);
+  siblings.splice(siblings.indexOf(refId) + (where === 'after' ? 1 : 0), 0, id);
+  db.prepare(`UPDATE nodes SET parent_id = ?, updated_at = datetime('now') WHERE id = ?`).run(ref.parent_id, id);
+  const up = db.prepare('UPDATE nodes SET ord = ? WHERE id = ?');
+  siblings.forEach((sid, i) => up.run(i + 1, sid));
+  return getNode(db, id);
+}
+
 export function moveNode(db, id, new_parent_id) {
   if (id === new_parent_id) throw new Error('self-parent');
   if (new_parent_id != null) {

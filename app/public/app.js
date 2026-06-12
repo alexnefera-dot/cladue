@@ -17,6 +17,7 @@ const api = {
   toggle: id => fetch(`/api/nodes/${id}/toggle`, { method: 'POST' }).then(r => r.json()),
   add: b => fetch('/api/nodes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json()),
   move: (id, parent_id) => fetch(`/api/nodes/${id}/move`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ parent_id }) }).then(r => r.json()),
+  reorder: (id, ref_id, where) => fetch(`/api/nodes/${id}/reorder`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ref_id, where }) }).then(r => r.json()),
   import: b => fetch('/api/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json()),
   link: b => fetch('/api/links', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json()),
   del: id => fetch('/api/nodes/' + id, { method: 'DELETE' }).then(r => r.json()),
@@ -545,8 +546,10 @@ function startInlineEdit(id) {
   input.addEventListener('blur', save);
 }
 
-// ===== Drag & drop: вложенность любого в любое =====
+// ===== Drag & drop: середина строки — вложить, верхний/нижний край — поставить выше/ниже =====
 let draggedId = null;
+const dropClear = () => document.querySelectorAll('.dropinto,.dropbefore,.dropafter')
+  .forEach(x => x.classList.remove('dropinto', 'dropbefore', 'dropafter'));
 document.addEventListener('dragstart', e => {
   const row = e.target.closest('.task[data-id]');
   if (!row) return;
@@ -558,31 +561,34 @@ document.addEventListener('dragover', e => {
   const row = e.target.closest('.task[data-id]');
   if (!row || picked.has(+row.dataset.id)) return;
   e.preventDefault();
-  row.classList.add('dropinto');
+  const r = row.getBoundingClientRect();
+  const y = (e.clientY - r.top) / r.height;
+  row.classList.remove('dropinto', 'dropbefore', 'dropafter');
+  row.classList.add(y < 0.3 ? 'dropbefore' : y > 0.7 ? 'dropafter' : 'dropinto');
 });
 document.addEventListener('dragleave', e => {
-  e.target.closest('.task[data-id]')?.classList.remove('dropinto');
+  e.target.closest('.task[data-id]')?.classList.remove('dropinto', 'dropbefore', 'dropafter');
 });
 document.addEventListener('drop', async e => {
   const row = e.target.closest('.task[data-id]');
-  document.querySelectorAll('.dropinto').forEach(x => x.classList.remove('dropinto'));
+  const zone = row?.classList.contains('dropbefore') ? 'before'
+    : row?.classList.contains('dropafter') ? 'after' : 'into';
+  dropClear();
   if (!row || draggedId == null) return;
   e.preventDefault();
   const target = +row.dataset.id;
-  const ids = picked.has(draggedId) ? [...picked] : [draggedId];
+  let ids = picked.has(draggedId) ? [...picked] : [draggedId];
+  if (zone === 'after') ids = ids.reverse();   // чтобы порядок выбранных сохранился
   for (const mid of ids) {
     if (mid === target) continue;
-    const r = await api.move(mid, target);
+    const r = zone === 'into' ? await api.move(mid, target) : await api.reorder(mid, target, zone);
     if (r.error) { alert(`«${state.nodes.find(n => n.id === mid)?.title}»: ${r.error}`); }
   }
-  collapsed.delete(target);
+  if (zone === 'into') collapsed.delete(target);
   draggedId = null;
   await load();
 });
-document.addEventListener('dragend', () => {
-  document.querySelectorAll('.dropinto').forEach(x => x.classList.remove('dropinto'));
-  draggedId = null;
-});
+document.addEventListener('dragend', dropClear);
 
 // ===== Массовое перемещение =====
 document.getElementById('bulkGo').addEventListener('click', async () => {

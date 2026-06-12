@@ -92,6 +92,11 @@ const server = http.createServer(async (req, res) => {
         ? core.addChild(db, b.parent_id ?? null, b.title.trim(), 1)
         : core.addChildAuto(db, b.parent_id ?? null, b.title.trim()));
     }
+    if ((m = p.match(/^\/api\/nodes\/(\d+)\/reorder$/)) && req.method === 'POST') {
+      const b = await body(req);
+      try { return json(res, 200, core.reorderNode(db, +m[1], +b.ref_id, b.where === 'before' ? 'before' : 'after')); }
+      catch (e) { return json(res, 400, { error: e.message }); }
+    }
     if ((m = p.match(/^\/api\/nodes\/(\d+)\/log$/))) {
       if (req.method === 'GET') return json(res, 200, core.listNodeLog(db, +m[1]));
       if (req.method === 'POST') {
