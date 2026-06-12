@@ -115,6 +115,10 @@ function htmlToMd(root) {
       }
     }
     else if (n.classList?.contains('mdgap')) out.push('');
+    else if (n.querySelector?.('ul,ol,table,h1,h2,h3,h4,blockquote,pre')) {
+      // браузер завернул блоки в DIV/P — разбираем содержимое рекурсивно, списки не плющим
+      out.push(htmlToMd(n).trim());
+    }
     else {
       const t = inline(n).trim();
       out.push(t); // P/DIV и неизвестные теги — как текст
