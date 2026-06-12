@@ -191,6 +191,12 @@ export function createDb(path = ':memory:') {
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+    CREATE TABLE IF NOT EXISTS page_revisions(
+      id INTEGER PRIMARY KEY,
+      page_id INTEGER NOT NULL REFERENCES pages(id) ON DELETE CASCADE,
+      content TEXT NOT NULL,
+      saved_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
     CREATE VIRTUAL TABLE IF NOT EXISTS page_fts USING fts5(title_norm, content_norm);
 
     -- ===== Психология (этап 4) =====

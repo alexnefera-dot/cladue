@@ -28,8 +28,9 @@ function mdRender(src) {
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank">$1</a>');
   const lines = nesc(src).split('\n');
-  let out = '', list = null, code = false, tbl = false;
-  const closeList = () => { if (list) { out += `</${list}>`; list = null; } };
+  let out = '', code = false, tbl = false;
+  const lst = [];   // стек открытых списков: {type, ind}
+  const closeList = () => { while (lst.length) out += `</${lst.pop().type}>`; };
   const closeTbl = () => { if (tbl) { out += '</table>'; tbl = false; } };
   for (const raw of lines) {
     if (raw.trim().startsWith('```')) { closeList(); closeTbl(); code = !code; out += code ? '<pre>' : '</pre>'; continue; }
@@ -48,17 +49,15 @@ function mdRender(src) {
     }
     closeTbl();
     if ((m = l.match(/^(#{1,3})\s+(.*)/))) { closeList(); out += `<h${m[1].length + 1}>${inline(m[2])}</h${m[1].length + 1}>`; }
-    else if ((m = l.match(/^\s*[-*]\s+\[( |x)\]\s+(.*)/i))) {
-      if (list !== 'ul') { closeList(); out += '<ul>'; list = 'ul'; }
-      out += `<li>${m[1].trim() ? '☑ <s>' + inline(m[2]) + '</s>' : '☐ ' + inline(m[2])}</li>`;
-    }
-    else if ((m = l.match(/^\s*[-*]\s+(.*)/))) {
-      if (list !== 'ul') { closeList(); out += '<ul>'; list = 'ul'; }
-      out += `<li>${inline(m[1])}</li>`;
-    }
-    else if ((m = l.match(/^\s*\d+[.)]\s+(.*)/))) {
-      if (list !== 'ol') { closeList(); out += '<ol>'; list = 'ol'; }
-      out += `<li>${inline(m[1])}</li>`;
+    else if ((m = l.match(/^(\s*)(?:[-*]|(\d+)[.)])\s+(.*)$/))) {
+      // список с вложенностью: 2 пробела отступа = уровень
+      const ind = Math.floor(m[1].replace(/\t/g, '  ').length / 2);
+      const type = m[2] != null ? 'ol' : 'ul';
+      while (lst.length && lst.at(-1).ind > ind) out += `</${lst.pop().type}>`;
+      if (lst.length && lst.at(-1).ind === ind && lst.at(-1).type !== type) out += `</${lst.pop().type}>`;
+      if (!lst.length || lst.at(-1).ind < ind) { out += `<${type}>`; lst.push({ type, ind }); }
+      const chk = m[3].match(/^\[( |x)\]\s+(.*)$/i);
+      out += `<li>${chk ? (chk[1].trim() ? '☑ <s>' + inline(chk[2]) + '</s>' : '☐ ' + inline(chk[2])) : inline(m[3])}</li>`;
     }
     else if ((m = l.match(/^>\s?(.*)/))) { closeList(); out += `<blockquote>${inline(m[1])}</blockquote>`; }
     else if (!l.trim()) { closeList(); out += '<div class="mdgap"><br></div>'; }
@@ -87,11 +86,25 @@ function htmlToMd(root) {
     }
     return s;
   };
-  const liMd = (li, marker) => {
-    let t = inline(li).trim();
-    if (t.startsWith('☑')) return marker + '[x] ' + t.replace(/^☑\s*/, '');
-    if (t.startsWith('☐')) return marker + '[ ] ' + t.replace(/^☐\s*/, '');
-    return marker.replace('[x] ', '').replace('[ ] ', '') + t;
+  // список (с подсписками): UL/OL внутри li или соседом в родительском списке
+  const listMd = (n, depth = 0) => {
+    const ordered = n.tagName === 'OL';
+    const parts = [];
+    let i = 0;
+    for (const ch of n.children) {
+      if (ch.tagName === 'UL' || ch.tagName === 'OL') { parts.push(listMd(ch, depth + 1)); continue; }
+      if (ch.tagName !== 'LI') continue;
+      i++;
+      const subs = [...ch.children].filter(c => c.tagName === 'UL' || c.tagName === 'OL');
+      const own = inline({ childNodes: [...ch.childNodes].filter(c => !subs.includes(c)) }).trim();
+      const marker = ordered ? `${i}. ` : '- ';
+      const pad = '  '.repeat(depth);
+      parts.push(own.startsWith('☑') ? pad + marker + '[x] ' + own.replace(/^☑\s*/, '')
+        : own.startsWith('☐') ? pad + marker + '[ ] ' + own.replace(/^☐\s*/, '')
+        : pad + marker + own);
+      for (const s of subs) parts.push(listMd(s, depth + 1));
+    }
+    return parts.join('\n');
   };
   let out = [];
   for (const n of root.childNodes) {
@@ -100,8 +113,7 @@ function htmlToMd(root) {
     if (tag === 'H1' || tag === 'H2') out.push('# ' + inline(n).trim());
     else if (tag === 'H3') out.push('## ' + inline(n).trim());
     else if (tag === 'H4') out.push('### ' + inline(n).trim());
-    else if (tag === 'UL') out.push([...n.children].map(li => liMd(li, '- ')).join('\n'));
-    else if (tag === 'OL') out.push([...n.children].map((li, i) => `${i + 1}. ` + inline(li).trim()).join('\n'));
+    else if (tag === 'UL' || tag === 'OL') out.push(listMd(n));
     else if (tag === 'BLOCKQUOTE') out.push(inline(n).trim().split('\n').map(l => '> ' + l).join('\n'));
     else if (tag === 'PRE') out.push('```\n' + n.textContent.replace(/\n$/, '') + '\n```');
     else if (tag === 'TABLE') {
@@ -149,7 +161,7 @@ function ntTree() {
   ntPages.forEach(p => (byP[p.parent_id ?? 'root'] ??= []).push(p));
   const walk = (p, depth) => {
     const kids = byP[p.id] ?? [];
-    return `<div class="ntitem ${ntSel === p.id ? 'active' : ''}" data-ntopen="${p.id}" style="padding-left:${8 + depth * 14}px">
+    return `<div class="ntitem ${ntSel === p.id ? 'active' : ''}" data-ntopen="${p.id}" draggable="true" style="padding-left:${8 + depth * 14}px">
       ${kids.length ? `<span class="caret" data-ntfold="${p.id}">${ntFold.has(p.id) ? '▸' : '▾'}</span>` : '<span class="caret"></span>'}
       ${p.locked ? '🔒 ' : ''}${p.node_id ? '☑ ' : ''}${nesc(p.title)}</div>`
       + (ntFold.has(p.id) ? '' : kids.map(k => walk(k, depth + 1)).join(''));
@@ -222,11 +234,13 @@ async function renderNotes() {
           <h1 style="flex:1;margin:0">${nesc(page.title)}</h1>
           ${page.node_id ? `<span class="pill ok btn" data-ntnode="${page.node_id}">☑ к записи</span>` : ''}
           <span class="pill btn ok" id="ntEdit">✎ редактировать</span>
+          <span class="pill btn" id="ntHist" title="прошлые версии страницы">⏪ история</span>
           <span class="pill btn" id="ntLockBtn">${page.locked ? '🔓 снять пароль' : '🔒 пароль'}</span>
           <span class="pill btn" id="ntAddChild">＋ подстраница</span>
           <span class="pill btn danger" id="ntDel">🗑</span>
         </div>
         <div class="meta" style="margin:4px 0 14px">обновлено ${page.updated_at.slice(0, 16).replace('T', ' ')}</div>
+        <div id="ntHistBox"></div>
         <div class="mdview" id="ntView" title="клик по тексту — редактировать">${content.trim() ? mdRender(content) : '<span class="muted">пусто — кликни сюда и пиши</span>'}</div>
         ${back.length ? `<div class="sec" style="margin-top:22px">↩ Бэклинки — ссылаются сюда</div>
           ${back.map(b => `<div class="ritem" data-ntopen="${b.id}"><div class="rt">${nesc(b.title)}</div></div>`).join('')}` : ''}`}
@@ -235,8 +249,46 @@ async function renderNotes() {
   bindNotes(page);
 }
 
+// DnD дерева страниц: середина — вложить, края — поставить выше/ниже
+let ntDrag = null;
+function bindNtDnd() {
+  const clear = () => document.querySelectorAll('.ntitem.dropinto,.ntitem.dropbefore,.ntitem.dropafter')
+    .forEach(x => x.classList.remove('dropinto', 'dropbefore', 'dropafter'));
+  document.querySelectorAll('.notes-tree .ntitem[data-ntopen]').forEach(el => {
+    el.addEventListener('dragstart', () => { ntDrag = +el.dataset.ntopen; });
+    el.addEventListener('dragover', e => {
+      if (ntDrag == null || +el.dataset.ntopen === ntDrag) return;
+      e.preventDefault();
+      const r = el.getBoundingClientRect();
+      const y = (e.clientY - r.top) / r.height;
+      el.classList.remove('dropinto', 'dropbefore', 'dropafter');
+      el.classList.add(y < 0.3 ? 'dropbefore' : y > 0.7 ? 'dropafter' : 'dropinto');
+    });
+    el.addEventListener('dragleave', () => el.classList.remove('dropinto', 'dropbefore', 'dropafter'));
+    el.addEventListener('drop', async e => {
+      e.preventDefault();
+      const zone = el.classList.contains('dropbefore') ? 'before'
+        : el.classList.contains('dropafter') ? 'after' : 'into';
+      clear();
+      if (ntDrag == null) return;
+      await flushNotes();
+      const tid = +el.dataset.ntopen;
+      const url = zone === 'into'
+        ? [`/api/pages/${ntDrag}/move`, { parent_id: tid }]
+        : [`/api/pages/${ntDrag}/reorder`, { ref_id: tid, where: zone }];
+      const r = await fetch(url[0], { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(url[1]) }).then(x => x.json());
+      if (r.error) alert(r.error);
+      ntDrag = null;
+      window.loadNotes();
+    });
+    el.addEventListener('dragend', clear);
+  });
+}
+
 function bindNotes(page) {
   const $ = id => document.getElementById(id);
+  bindNtDnd();
   document.querySelectorAll('#screen-notes [data-ntfold]').forEach(el =>
     el.addEventListener('click', e => {
       e.stopPropagation();
@@ -269,6 +321,22 @@ function bindNotes(page) {
     if (t?.trim()) { const p = await ntApi.add({ title: t.trim(), parent_id: ntSel }); window.loadNotes(p.id); }
   });
   $('ntEdit')?.addEventListener('click', () => { ntEditing = true; renderNotes(); });
+  $('ntHist')?.addEventListener('click', async () => {
+    const box = $('ntHistBox');
+    if (box.innerHTML) { box.innerHTML = ''; return; }
+    const revs = await fetch(`/api/pages/${ntSel}/revisions`).then(r => r.json());
+    box.innerHTML = revs.map(r => `
+      <div class="ritem"><div class="rt">${r.saved_at.slice(0, 16).replace('T', ' ')} · ${r.len} симв.</div>
+        <div class="rm">${nesc(r.preview)}… <span class="pill btn ok" data-ntrev="${r.id}">восстановить</span></div></div>`).join('')
+      || '<div class="empty">версий пока нет — они копятся при правках (не чаще раза в 10 минут)</div>';
+    box.querySelectorAll('[data-ntrev]').forEach(el =>
+      el.addEventListener('click', async () => {
+        if (!confirm('Вернуть эту версию? Текущий текст уйдёт в историю.')) return;
+        const r = await fetch(`/api/pages/${ntSel}/revisions/${el.dataset.ntrev}/restore`, { method: 'POST' }).then(x => x.json());
+        if (r.error) { alert(r.error); return; }
+        window.loadNotes(ntSel);
+      }));
+  });
   // клик по тексту страницы — сразу в редактор (ссылки продолжают работать)
   $('ntView')?.addEventListener('click', e => {
     if (e.target.closest('a')) return;
@@ -303,9 +371,20 @@ function bindNotes(page) {
     page.content = $('ntBody').value;
     ntMode = 'rich'; renderNotes();
   });
-  const saveData = async () => {
+  const saveData = async (isAuto = false) => {
     const title = $('ntTitle')?.value.trim() || page.title;
     const md = currentMd();
+    // предохранитель: текст резко сократился — автосейв молчать не имеет права
+    const oldLen = ((page.locked ? ntCache[ntSel] : page.content) ?? '').trim().length;
+    const newLen = md.trim().length;
+    if (oldLen > 200 && newLen < oldLen * 0.3) {
+      if (isAuto) {
+        const sb = document.getElementById('statusbar');
+        if (sb) sb.textContent = `⚠ автосейв пропущен: текст сократился ${oldLen} → ${newLen} симв. — сохрани кнопкой или отмени`;
+        return false;
+      }
+      if (!confirm(`Текст стал сильно короче (${oldLen} → ${newLen} симв.). Точно сохранить?\n\nЕсли это ошибка — «Отмена», прежние версии есть в «истории».`)) return false;
+    }
     try {
       if (page.locked) {
         const r = await ntApi.lock(ntSel, { password: ntPw[ntSel], content: md });
@@ -330,7 +409,7 @@ function bindNotes(page) {
   for (const id of ['ntBody', 'ntRich'])
     $(id)?.addEventListener('input', () => {
       clearTimeout(ntAutoT);
-      ntAutoT = setTimeout(saveData, 3000);
+      ntAutoT = setTimeout(() => saveData(true), 3000);
     });
   const save = async () => {
     clearTimeout(ntAutoT);

@@ -143,9 +143,56 @@ export function addPage(db, b) {
   return getPage(db, id);
 }
 
+// ===== Перемещение страниц: вложить / поставить рядом (drag&drop в дереве) =====
+function assertPageNoCycle(db, id, parentId) {
+  if (parentId == null) return;
+  if (id === parentId) throw new Error('сам в себя нельзя');
+  const desc = db.prepare(`
+    WITH RECURSIVE r(x) AS (
+      SELECT id FROM pages WHERE parent_id = ?
+      UNION SELECT p.id FROM pages p JOIN r ON p.parent_id = r.x
+    ) SELECT 1 AS hit FROM r WHERE x = ? LIMIT 1`).get(id, parentId);
+  if (desc) throw new Error('нельзя внутрь собственной подстраницы');
+}
+
+export function reorderPage(db, id, refId, where = 'after') {
+  if (id === refId) throw new Error('self');
+  const ref = db.prepare('SELECT id, parent_id FROM pages WHERE id = ?').get(refId);
+  if (!ref) throw new Error('сосед не найден');
+  assertPageNoCycle(db, id, ref.parent_id);
+  const siblings = db.prepare('SELECT id FROM pages WHERE parent_id IS ? ORDER BY ord, id')
+    .all(ref.parent_id).map(r => r.id).filter(x => x !== id);
+  siblings.splice(siblings.indexOf(refId) + (where === 'after' ? 1 : 0), 0, id);
+  db.prepare('UPDATE pages SET parent_id = ? WHERE id = ?').run(ref.parent_id, id);
+  const up = db.prepare('UPDATE pages SET ord = ? WHERE id = ?');
+  siblings.forEach((sid, i) => up.run(i + 1, sid));
+}
+
+// ===== История версий страницы =====
+export function pageRevisions(db, pageId) {
+  return db.prepare(`SELECT id, saved_at, length(content) AS len, substr(content, 1, 90) AS preview
+    FROM page_revisions WHERE page_id = ? ORDER BY id DESC`).all(pageId);
+}
+export function restoreRevision(db, pageId, revId) {
+  const rev = db.prepare('SELECT * FROM page_revisions WHERE id = ? AND page_id = ?').get(revId, pageId);
+  if (!rev) throw new Error('ревизия не найдена');
+  return patchPage(db, pageId, { content: rev.content });   // текущий текст сам уйдёт в историю
+}
+
 export function patchPage(db, id, b) {
   const before = getPage(db, id);
   if (before?.locked && 'content' in b) throw new Error('страница под паролем — сохраняй через lock');
+  // история версий: прошлый текст уходит в ревизии, чтобы любой сбой был обратим.
+  // Спам автосейва не вымывает историю: не чаще одной ревизии в 10 минут.
+  if ('content' in b && before && !before.locked && before.content !== b.content && before.content.trim()) {
+    const last = db.prepare('SELECT saved_at FROM page_revisions WHERE page_id = ? ORDER BY id DESC LIMIT 1').get(id);
+    const recent = last && Date.now() - Date.parse(last.saved_at.replace(' ', 'T') + 'Z') < 10 * 60e3;
+    if (!recent) {
+      db.prepare('INSERT INTO page_revisions(page_id, content) VALUES(?,?)').run(id, before.content);
+      db.prepare(`DELETE FROM page_revisions WHERE page_id = ? AND id NOT IN
+        (SELECT id FROM page_revisions WHERE page_id = ? ORDER BY id DESC LIMIT 20)`).run(id, id);
+    }
+  }
   for (const k of ['title', 'content'])
     if (k in b) db.prepare(`UPDATE pages SET ${k} = ?, updated_at = datetime('now') WHERE id = ?`).run(b[k], id);
   if (('title' in b || 'content' in b) && !before?.locked) {

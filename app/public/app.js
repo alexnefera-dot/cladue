@@ -894,8 +894,9 @@ window.loadSettings = async function () {
     if (prompt('Повтори пароль:') !== pw) { alert('Пароли не совпали'); return; }
     await lockPass('', pw.trim());
     lockOn = true;
-    sessionStorage.pbUnlocked = '1';   // эту сессию не выбрасываем
-    alert('Замок включён. Новая сессия откроется по паролю' + (touchAvail() ? ' или Touch ID (включи ниже).' : '.'));
+    sessionStorage.removeItem('pbUnlocked');   // закрываем сразу — вместо контента будет заглушка
+    refreshLockBadges();
+    alert('Замок включён: Цели, Финансы, Инфо и Психология закрыты. Открываются паролем' + (touchAvail() ? ' или Touch ID (включи здесь же).' : '.'));
     window.loadSettings();
   });
   box.querySelector('#lkChange')?.addEventListener('click', async () => {

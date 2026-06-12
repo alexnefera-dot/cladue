@@ -264,3 +264,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 /* Просмотр страницы Инфо: кликабельная зона редактирования */
 #ntView{cursor:text;min-height:240px;border-radius:8px}
 #ntView:hover{background:rgba(30,158,87,.025)}
+
+/* DnD дерева страниц Инфо */
+.ntitem.dropbefore{box-shadow:inset 0 3px 0 var(--green)}
+.ntitem.dropafter{box-shadow:inset 0 -3px 0 var(--green)}
+.ntitem.dropinto{outline:2px dashed var(--green);outline-offset:-2px;background:var(--green-soft)}

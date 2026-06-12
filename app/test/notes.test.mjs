@@ -109,3 +109,31 @@ test('каркас Инфо: ветки пользователя создают�
   assert.ok(pages.find(p => p.title === 'Work') && pages.find(p => p.title === 'Health'));
   assert.equal(pages.filter(p => p.title === 'Finance').length, 1, 'без дублей');
 });
+
+test('история версий: прошлый текст сохраняется, восстановление работает, спам не вымывает', () => {
+  const db = freshDb();
+  const p = notes.addPage(db, { title: 'Док', content: 'первая версия текста' });
+  notes.patchPage(db, p.id, { content: 'вторая версия' });
+  let revs = notes.pageRevisions(db, p.id);
+  assert.equal(revs.length, 1);
+  assert.equal(revs[0].preview, 'первая версия текста');
+  // вторая правка сразу — ревизия не плодится (троттлинг 10 мин)
+  notes.patchPage(db, p.id, { content: 'третья версия' });
+  assert.equal(notes.pageRevisions(db, p.id).length, 1, 'спам автосейва не вымывает историю');
+  // восстановление
+  notes.restoreRevision(db, p.id, revs[0].id);
+  assert.equal(notes.getPage(db, p.id).content, 'первая версия текста');
+});
+
+test('дерево страниц: вложить и поставить рядом, циклы запрещены', () => {
+  const db = freshDb();
+  const a = notes.addPage(db, { title: 'А' });
+  const b = notes.addPage(db, { title: 'Б' });
+  const c = notes.addPage(db, { title: 'В' });
+  notes.movePage(db, c.id, a.id);                     // В внутрь А
+  assert.equal(notes.getPage(db, c.id).parent_id, a.id);
+  notes.reorderPage(db, b.id, c.id, 'before');        // Б рядом с В (внутри А, перед ним)
+  const kids = notes.listPages(db).filter(x => x.parent_id === a.id).map(x => x.title);
+  assert.deepEqual(kids, ['Б', 'В']);
+  assert.throws(() => notes.movePage(db, a.id, c.id), /подстраниц|descendant/);
+});
