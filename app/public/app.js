@@ -874,6 +874,13 @@ window.loadSettings = async function () {
       </div>
       <div class="meta">по умолчанию разделы закрыты в каждой новой сессии · на Mac открываются по пальцу, на телефоне — пароль (Face ID будет в нативной версии) · это UI-замок прототипа, настоящее шифрование зон — нативная фаза</div>
     </div>
+    <div class="card"><div class="meta">🧭 РЕВИЗИЯ НАПОЛНЕНИЯ</div>
+      <div class="task" style="border:0">
+        <span class="pill btn ok" id="auditBtn">проверить, где пусто</span>
+        <span class="meta">детерминированные проверки по базе: пустые разделы, протухшие балансы, задачи без сроков</span>
+      </div>
+      <div id="auditBox"></div>
+    </div>
     <div class="card"><div class="meta">🧹 ТЕСТОВЫЕ ДАННЫЕ</div>
       <div class="task" style="border:0">
         ${info.demoWiped
@@ -938,6 +945,17 @@ window.loadSettings = async function () {
   box.querySelector('#lkTouchOff')?.addEventListener('click', () => {
     delete localStorage.pbTouchId;
     window.loadSettings();
+  });
+  box.querySelector('#auditBtn')?.addEventListener('click', async () => {
+    const rows = await fetch('/api/audit').then(x => x.json());
+    const warns = rows.filter(r => r.status === 'warn');
+    const oks = rows.filter(r => r.status === 'ok');
+    box.querySelector('#auditBox').innerHTML =
+      (warns.length ? warns.map(r => `<div class="task" style="padding:4px 0">
+          <span class="pill p1">${esc(r.section)}</span><span class="t">${esc(r.item)}</span>
+          <span class="meta">${esc(r.hint)}</span></div>`).join('')
+        : '<div class="empty">пробелов не найдено — всё наполнено 👏</div>')
+      + (oks.length ? `<div class="meta" style="margin-top:8px">в порядке: ${oks.map(r => `${r.section} (${r.item})`).join(' · ')}</div>` : '');
   });
   box.querySelector('#trashClear')?.addEventListener('click', async () => {
     if (!confirm(`Очистить корзину безвозвратно? Записей: ${rows.length}.`)) return;
