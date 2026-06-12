@@ -288,3 +288,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 /* Редактор Инфо всегда активен: подсказка в пустой странице */
 .richedit:empty::before{content:attr(data-ph);color:var(--muted)}
 .richedit{min-height:380px}
+
+/* DnD в календаре: подсветка дня-цели */
+.cal .d.dropinto{outline:2px dashed var(--green);outline-offset:-2px;background:var(--green-soft)}
+.cal .ev[draggable="true"]{cursor:grab}

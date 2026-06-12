@@ -42,9 +42,16 @@ function renderCal() {
     const items = byDate[date] ?? [];
     cells += `<div class="d ${date === today ? 'today' : ''}" data-date="${date}">
       <div class="n">${day}</div>
-      ${items.slice(0, 4).map(it => `
-        <div class="ev ${TYPE_CLS[it.type]} ${it.done ? 'evdone' : ''}" ${it.type === 'task' ? `data-nid="${it.id}"` : ''} title="${cesc(it.title)}">
-          ${it.time ? it.time + ' ' : ''}${cesc(it.title)}${it.amount ? ' · ' + cfmt(it.amount) : ''}</div>`).join('')}
+      ${items.slice(0, 4).map(it => {
+        // перетаскивается то, у чего есть одна своя дата; повторы/ДР/практики — нет
+        const draggable = it.type === 'task' || it.type === 'step'
+          || (it.type === 'money') || (it.type === 'event' && it.recur === 'none' && !it.bday);
+        return `
+        <div class="ev ${TYPE_CLS[it.type]} ${it.done ? 'evdone' : ''}" ${it.type === 'task' ? `data-nid="${it.id}"` : ''}
+          ${draggable ? `draggable="true" data-calmv="${it.type}:${it.id}"` : ''}
+          title="${cesc(it.title)}${draggable ? ' · тащи на другой день — срок изменится везде' : ''}">
+          ${it.time ? it.time + ' ' : ''}${cesc(it.title)}${it.amount ? ' · ' + cfmt(it.amount) : ''}</div>`;
+      }).join('')}
       ${items.length > 4 ? `<div class="ev">+${items.length - 4} ещё…</div>` : ''}
     </div>`;
   }
@@ -94,6 +101,33 @@ function renderCal() {
 
 function bindCal() {
   const $ = id => document.getElementById(id);
+  // DnD: перетащил на день — дата меняется в первоисточнике (задача/шаг/платёж/событие)
+  let calDrag = null;
+  document.querySelectorAll('#screen-cal [data-calmv]').forEach(el => {
+    el.addEventListener('dragstart', e => { calDrag = el.dataset.calmv; e.stopPropagation(); });
+  });
+  document.querySelectorAll('#screen-cal .cal .d[data-date]').forEach(cell => {
+    cell.addEventListener('dragover', e => { if (calDrag) { e.preventDefault(); cell.classList.add('dropinto'); } });
+    cell.addEventListener('dragleave', () => cell.classList.remove('dropinto'));
+    cell.addEventListener('drop', async e => {
+      e.preventDefault();
+      cell.classList.remove('dropinto');
+      if (!calDrag) return;
+      const [type, id] = calDrag.split(':');
+      calDrag = null;
+      const date = cell.dataset.date;
+      const req = {
+        task: [`/api/nodes/${id}`, { due_date: date }, 'PATCH'],
+        event: [`/api/events/${id}`, { date }, 'PATCH'],
+        step: [`/api/fin/steps/${id}`, { planned_date: date }, 'PATCH'],
+        money: [`/api/fin/obligations/${id}`, { next_date: date }, 'PATCH'],
+      }[type];
+      const r = await fetch(req[0], { method: req[2], headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req[1]) }).then(x => x.json()).catch(() => ({}));
+      if (r?.error) alert(r.error);
+      window.loadCal();
+    });
+  });
   $('calPrev').addEventListener('click', () => { calMonth = shiftMonth(calMonth, -1); window.loadCal(); });
   $('calNext').addEventListener('click', () => { calMonth = shiftMonth(calMonth, 1); window.loadCal(); });
   $('calToday').addEventListener('click', () => { calMonth = calIso(new Date()).slice(0, 7); window.loadCal(); });
