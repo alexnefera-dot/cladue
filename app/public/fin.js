@@ -190,7 +190,7 @@ function secPortfolio(d, s) {
             <b class="num">${fmt(v)} € · ${(v / s.portfolioTotal * 100).toFixed(1)}% общей</b></div>
           <div class="meta" style="margin:0 0 5px 17px">${Object.entries(d.byTypeBlocks?.[t] ?? {})
             .sort((a, b) => b[1] - a[1])
-            .map(([blk, eur]) => `${fesc(blk)}: ${d.blockEur?.[blk] ? (eur / d.blockEur[blk] * 100).toFixed(0) : '—'}% категории`)
+            .map(([blk, eur]) => `${d.blockEur?.[blk] ? (eur / d.blockEur[blk] * 100).toFixed(0) : '—'}% от «${fesc(blk)}»`)
             .join(' · ')}</div>`).join('')}
       </div>
     </div>
