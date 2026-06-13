@@ -71,15 +71,21 @@ export function listFin(db) {
     n.children.forEach(c => walkLoan(c, [...path, n.name]));
   };
   portfolio.forEach(b => walkLoan(b, []));
-  // аллокация по типам активов (поверх блоков), в €
+  // аллокация по типам активов (поверх блоков), в € + разрез по блокам-категориям
   const byType = {};
-  const walkType = n => {
+  const byTypeBlocks = {};   // тип → { блок: € }
+  const walkType = (n, root) => {
     if (n.kind === 'asset' || !n.children.length) {
-      if (n.eur) byType[n.asset_type ?? 'без типа'] = (byType[n.asset_type ?? 'без типа'] ?? 0) + n.eur;
+      if (n.eur) {
+        const t = n.asset_type ?? 'без типа';
+        byType[t] = (byType[t] ?? 0) + n.eur;
+        (byTypeBlocks[t] ??= {})[root.name] = ((byTypeBlocks[t] ?? {})[root.name] ?? 0) + n.eur;
+      }
     }
-    n.children.forEach(walkType);
+    n.children.forEach(c => walkType(c, root));
   };
-  portfolio.forEach(walkType);
+  portfolio.forEach(b => walkType(b, b));
+  const blockEur = Object.fromEntries(portfolio.map(b => [b.name, b.eur]));
   const debts = db.prepare('SELECT * FROM debts ORDER BY due_date IS NULL, due_date').all()
     .map(d => ({ ...d, overdue_days: d.due_date
       ? Math.floor((Date.parse(today()) - Date.parse(d.due_date)) / 864e5) : null }));
@@ -88,6 +94,7 @@ export function listFin(db) {
     accounts, portfolio, steps, obligations, loans, debts,
     snapshotDelta: snaps.length === 2 ? { since: snaps[1].date, abs: snaps[0].portfolio_eur - snaps[1].portfolio_eur } : null,
     byType: Object.entries(byType).sort((a, b) => b[1] - a[1]),
+    byTypeBlocks, blockEur,
     tx: txMonth(db, today().slice(0, 7)),
     forecasts: forecasts(db),
     properties: listProperties(db),

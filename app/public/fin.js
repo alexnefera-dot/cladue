@@ -184,10 +184,14 @@ function secPortfolio(d, s) {
     <div class="meta" style="margin-bottom:6px">АЛЛОКАЦИЯ ПО ТИПАМ АКТИВОВ (⊙ у строки — задать тип)</div>
     <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;padding:6px 0">
       ${allocPie(d.byType, s.portfolioTotal)}
-      <div style="flex:1;min-width:220px">
+      <div style="flex:1;min-width:240px">
         ${d.byType.map(([t, v], i) => `
           <div class="kv"><span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${PIE_COLORS[i % PIE_COLORS.length]};margin-right:7px"></i>${fesc(t)}</span>
-            <b class="num">${fmt(v)} € · ${(v / s.portfolioTotal * 100).toFixed(1)}%</b></div>`).join('')}
+            <b class="num">${fmt(v)} € · ${(v / s.portfolioTotal * 100).toFixed(1)}% общей</b></div>
+          <div class="meta" style="margin:0 0 5px 17px">${Object.entries(d.byTypeBlocks?.[t] ?? {})
+            .sort((a, b) => b[1] - a[1])
+            .map(([blk, eur]) => `${fesc(blk)}: ${d.blockEur?.[blk] ? (eur / d.blockEur[blk] * 100).toFixed(0) : '—'}% категории`)
+            .join(' · ')}</div>`).join('')}
       </div>
     </div>
   </div>` : ''}`;
