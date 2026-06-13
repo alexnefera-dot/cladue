@@ -931,21 +931,6 @@ window.loadSettings = async function () {
       </div>
       <div id="auditBox"></div>
     </div>
-    <div class="card"><div class="meta">🧹 ТЕСТОВЫЕ ДАННЫЕ</div>
-      <div class="task" style="border:0">
-        ${info.demoWiped
-          ? '<span class="meta">демо удалено — система работает только на твоих данных</span>'
-          : `<span class="pill btn danger" id="wipeBtn">удалить все демо-данные</span>
-             <span class="meta">уберёт всё с пометкой «(пример)» и тестовые наполнения; категории, блоки портфеля и колонки дневника останутся. Назад не вернутся.</span>`}
-      </div>
-    </div>
-    ${isNativeApp() ? '' : `<div class="card"><div class="meta">📱 С ТЕЛЕФОНА</div>
-      ${info.lan
-        ? `<div class="kv">Адрес в домашней сети <b class="num">${esc(info.lan)}</b></div>
-           <div class="meta" style="margin-top:6px">открой в Safari на iPhone (тот же Wi-Fi, Mac включён) →
-           Поделиться → «На экран “Домой”» — будет как приложение. Данные не покидают Mac.</div>`
-        : '<div class="empty">сеть не найдена — проверь Wi-Fi</div>'}
-    </div>`}
   </div>`;
 
   const box = document.getElementById('screen-settings');
@@ -1020,12 +1005,6 @@ window.loadSettings = async function () {
     if (!confirm(`Очистить корзину безвозвратно? Записей: ${rows.length}.`)) return;
     await fetch('/api/trash/clear', { method: 'POST' });
     window.loadSettings();
-  });
-  box.querySelector('#wipeBtn')?.addEventListener('click', async () => {
-    if (!confirm('Удалить ВСЕ тестовые данные?\n\nУйдёт всё с пометкой «(пример)», тестовые страницы Инфо, история чек-инов и замеры колеса. Твои категории, блоки портфеля и колонки дневника останутся.\n\nВернуть будет нельзя.')) return;
-    const r = await fetch('/api/demo/wipe', { method: 'POST' }).then(x => x.json());
-    alert(`Готово: удалено ${r.deleted} записей. Система чистая — наполняем твоим.`);
-    location.reload();
   });
   fetch('/api/fin').then(x => x.json()).then(() => {}).catch(() => {});
   // путь внешнего бэкапа
