@@ -3,3 +3,9 @@ node_modules/
 app/demo.db
 app/export/
 app/backups/
+
+# Xcode (личные настройки и сборка — не коммитим, сам проект коммитим)
+native/**/xcuserdata/
+native/**/*.xcuserstate
+native/**/DerivedData/
+.DS_Store

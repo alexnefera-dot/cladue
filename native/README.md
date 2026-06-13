@@ -6,26 +6,37 @@
 
 ## Что нужно (один раз)
 1. Xcode из App Store (бесплатно, большой — ставится долго).
-2. Для iPhone позже: Apple Developer Program ($99/год). Для Mac не обязателен.
+2. Node.js (`brew install node`) — сервер крутится локально рядом с приложением.
+3. Для iPhone позже: Apple Developer Program ($99/год). Для Mac не обязателен.
 
-## Сборка Mac-версии (по шагам, делаем вместе)
-1. Открой Xcode → Create New Project → **macOS** → **App** → Next.
-2. Product Name: `Pipboy` · Interface: **SwiftUI** · Language: **Swift** → создай
-   проект в любой папке (например ~/Downloads).
-3. В созданном проекте удали стандартные `PipboyApp.swift` и `ContentView.swift`.
-4. Перетащи в проект 5 файлов из этой папки (native/Pipboy/):
-   PipboyApp.swift, WebView.swift, AuthGate.swift, ServerProcess.swift, Notifications.swift.
-5. Слева выбери проект → target Pipboy → вкладка **Signing & Capabilities**:
-   - сними галку **App Sandbox** (нужно, чтобы запускать node и ходить на localhost),
-     или добавь исключения для сети.
-   - в **Info** добавь ключ `App Transport Security Settings` →
-     `Allow Arbitrary Loads` = YES (для http://localhost).
-   - системные напоминания работают сразу (UserNotifications), отдельная capability
-     для локальных пушей не нужна — при первом включении тумблера в «Рутины»
-     macOS сам спросит разрешение.
-6. Проверь путь к репозиторию в ServerProcess.swift (repoRoot):
-   по умолчанию ~/Downloads/cladue — поправь, если папка в другом месте.
-7. Нажми ▶ (Run). Должно открыться окно с Touch ID, затем приложение.
+## Запуск Mac-версии — проект уже в репозитории
+Проект готов и лежит прямо здесь (`native/Pipboy.xcodeproj`), файлы подключены
+ссылками — ничего перетаскивать и настраивать не нужно.
+
+1. Клонируй репозиторий **строго в `~/Downloads/cladue`** (этот путь зашит в
+   ServerProcess.swift как repoRoot; хочешь другую папку — поправь там одну строку):
+   ```
+   git clone <repo-url> ~/Downloads/cladue
+   ```
+2. Открой `~/Downloads/cladue/native/Pipboy.xcodeproj` в Xcode.
+3. Нажми ▶ (Run). Подпись стоит «Sign to Run Locally» — Apple-аккаунт не нужен;
+   песочница выключена, ATS для http://localhost прописан в Info.plist.
+4. Откроется Touch ID → приложение. При первом включении тумблера «🔔 системные
+   напоминания» в «Рутины» macOS спросит разрешение на уведомления — разреши.
+
+> Если Xcode попросит выбрать команду подписи — оставь **Sign to Run Locally**
+> (или выбери свой личный Apple ID team, тогда подпись будет стабильнее).
+
+## Обновления — больше никакого перетаскивания
+Веб-код приложение тянет само: ServerProcess при каждом запуске делает `git pull`
+в `~/Downloads/cladue` и перезапускает сервер. Достаточно переоткрыть приложение.
+
+Если менялись и Swift-файлы оболочки — обнови репозиторий и пересобери:
+- в Xcode: **Source Control → Pull…**, затем ▶ Run; **или**
+- в терминале: `git -C ~/Downloads/cladue pull`, затем ▶ Run в Xcode.
+
+Файлы подключены ссылками на `native/Pipboy/*.swift`, поэтому `pull` обновляет их
+на месте — Xcode видит свежий код сразу, копировать ничего не надо.
 
 ## Дальше
 - Уведомления о рутинах — готово (Notifications.swift): тумблер «🔔 системные
