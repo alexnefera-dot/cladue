@@ -1,3 +1,14 @@
+// API-ключ замка: добавляется ко всем запросам; без него сервер отвечает 401
+{
+  const origFetch = window.fetch.bind(window);
+  window.fetch = (url, opts = {}) => {
+    if (String(url).startsWith('/api/') && localStorage.pbKey) {
+      opts.headers = { ...(opts.headers ?? {}), 'X-Pipboy-Key': localStorage.pbKey };
+    }
+    return origFetch(url, opts);
+  };
+}
+
 let state = null;
 let selected = null;            // строка, чья карточка открыта
 let picked = new Set();         // мультивыбор
@@ -771,7 +782,7 @@ function renderLockPane(scr) {
     <div class="task finadd" style="border:0;justify-content:center">
       <input id="lockPw" type="password" placeholder="пароль" style="flex:1;max-width:240px">
       <span class="pill btn ok" id="lockGo">открыть</span>
-      ${touchAvail() && localStorage.pbTouchId ? '<span class="pill btn" id="lockTouch">👆 Touch ID</span>' : ''}
+      ${touchAvail() && localStorage.pbTouchId && localStorage.pbKey ? '<span class="pill btn" id="lockTouch">👆 Touch ID</span>' : ''}
     </div>
     <div class="meta" style="margin-top:12px">на телефоне — по паролю; Face ID будет в нативной версии</div>
   </div>`;
@@ -780,6 +791,8 @@ function renderLockPane(scr) {
     const r = await fetch('/api/lock/unlock', { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password: document.getElementById('lockPw').value }) });
     if (!r.ok) { alert('Неверный пароль'); return; }
+    const j = await r.json();
+    if (j.key) localStorage.pbKey = j.key;   // ключ API на это устройство
     done();
   };
   document.getElementById('lockGo').addEventListener('click', go);
@@ -873,6 +886,10 @@ window.loadSettings = async function () {
         <span class="pill btn ok" id="backupBtn">сделать бэкап сейчас</span>
         <span class="meta">хранится 20 последних · авто-бэкап раз в день при запуске</span>
       </div>
+      <div class="task" style="border:0">
+        <span class="meta">внешняя папка (доп. копия):</span>
+        <span class="ed meta" id="backupDir" title="клик — задать путь (внешний диск/облачная папка НЕ рекомендуется)">＋ путь</span>
+      </div>
     </div>
     <div class="card"><div class="meta">🔒 ЗАМОК РАЗДЕЛОВ · Цели / Финансы / Инфо / Психология</div>
       <div class="task" style="border:0;flex-wrap:wrap">
@@ -927,6 +944,9 @@ window.loadSettings = async function () {
     if (prompt('Повтори пароль:') !== pw) { alert('Пароли не совпали'); return; }
     await lockPass('', pw.trim());
     lockOn = true;
+    const u = await fetch('/api/lock/unlock', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pw.trim() }) }).then(x => x.json()).catch(() => ({}));
+    if (u.key) localStorage.pbKey = u.key;     // API-ключ: без него запросы получат 401
     sessionStorage.removeItem('pbUnlocked');   // закрываем сразу — вместо контента будет заглушка
     refreshLockBadges();
     alert('Замок включён: Цели, Финансы, Инфо и Психология закрыты. Открываются паролем' + (touchAvail() ? ' или Touch ID (включи здесь же).' : '.'));
@@ -938,6 +958,11 @@ window.loadSettings = async function () {
     const pw = prompt('Новый пароль:');
     if (!pw?.trim()) return;
     const r = await lockPass(old, pw.trim());
+    if (r.ok) {
+      const u = await fetch('/api/lock/unlock', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pw.trim() }) }).then(x => x.json()).catch(() => ({}));
+      if (u.key) localStorage.pbKey = u.key;
+    }
     alert(r.ok ? 'Пароль сменён' : 'Неверный текущий пароль');
   });
   box.querySelector('#lkOff')?.addEventListener('click', async () => {
@@ -947,6 +972,7 @@ window.loadSettings = async function () {
     if (!r.ok) { alert('Неверный пароль'); return; }
     lockOn = false;
     delete localStorage.pbTouchId;
+    delete localStorage.pbKey;
     window.loadSettings();
   });
   box.querySelector('#lkNow')?.addEventListener('click', () => window.lockNow());
@@ -984,6 +1010,21 @@ window.loadSettings = async function () {
     alert(`Готово: удалено ${r.deleted} записей. Система чистая — наполняем твоим.`);
     location.reload();
   });
+  fetch('/api/fin').then(x => x.json()).then(() => {}).catch(() => {});
+  // путь внешнего бэкапа
+  const bd = box.querySelector('#backupDir');
+  if (bd) {
+    fetch('/api/info').then(x => x.json()).catch(() => ({}));
+    bd.textContent = localStorage.backupDirShown ?? '＋ путь';
+    bd.addEventListener('click', async () => {
+      const v = prompt('Папка для дополнительной копии бэкапа (например /Volumes/Backup/pipboy):', localStorage.backupDirShown ?? '');
+      if (v == null) return;
+      await fetch('/api/setting', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'backup_dir', value: v.trim() }) });
+      localStorage.backupDirShown = v.trim();
+      window.loadSettings();
+    });
+  }
   box.querySelector('#backupBtn').addEventListener('click', async () => {
     const r = await fetch('/api/backup', { method: 'POST' }).then(x => x.json());
     alert(r.error ? r.error : `Бэкап создан:\n${r.file}\n\nХранится 20 последних; авто-бэкап — раз в день при запуске.`);

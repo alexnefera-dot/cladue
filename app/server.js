@@ -55,7 +55,7 @@ if (!demoWiped(db)) {     // после «удалить демо-данные»
 notes.pruneTrash(db);     // корзина: чистим старше 30 дней
 // авто-бэкап: не чаще раза в день
 if (DB_PATH !== ':memory:' && lastBackupDate(ROOT) !== (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })()) {
-  const f = backupDb(DB_PATH, ROOT);
+  const f = backupDb(DB_PATH, ROOT, fin.getSetting(db, 'backup_dir', '') || null);
   if (f) console.log('Авто-бэкап базы:', f);
 }
 {
@@ -91,11 +91,23 @@ async function body(req) {
   return raw ? JSON.parse(raw) : {};
 }
 
+// ===== Защита API: замок действует и на уровне HTTP, не только в UI.
+// Без ключа кто угодно в той же Wi-Fi-сети мог читать базу напрямую через API.
+const API_OPEN = new Set(['/api/lock', '/api/lock/unlock', '/api/info']);
+function apiAuthorized(req, p) {
+  if (!p.startsWith('/api/')) return true;          // статика открыта
+  if (API_OPEN.has(p)) return true;                 // вход в замок и версия
+  if (!psy.lockEnabled(db)) return true;            // замок выключен — как раньше
+  const key = req.headers['x-pipboy-key'];
+  return !!key && key === (db.prepare(`SELECT value FROM settings WHERE key = 'lock_pw_hash'`).get()?.value ?? '');
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   const p = url.pathname;
   try {
     let m;
+    if (!apiAuthorized(req, p)) return json(res, 401, { error: 'заперто — введи пароль замка' });
     if (p === '/api/tree' && req.method === 'GET') return json(res, 200, core.listTree(db));
     if (p === '/api/info' && req.method === 'GET')
       return json(res, 200, { lan: lanUrl(), demoWiped: demoWiped(db), version: VERSION });
@@ -279,7 +291,8 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/lock/unlock' && req.method === 'POST') {
       const b = await body(req);
       return psy.checkLockPass(db, b.password)
-        ? json(res, 200, { ok: true })
+        ? json(res, 200, { ok: true,
+            key: db.prepare(`SELECT value FROM settings WHERE key = 'lock_pw_hash'`).get()?.value ?? '' })
         : json(res, 403, { error: 'неверный пароль' });
     }
     if (p === '/api/lock/pass' && req.method === 'POST') {
@@ -347,7 +360,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, r);
     }
     if (p === '/api/backup' && req.method === 'POST') {
-      const f = backupDb(DB_PATH, ROOT);
+      const f = backupDb(DB_PATH, ROOT, fin.getSetting(db, 'backup_dir', '') || null);
       return f ? json(res, 200, { file: f }) : json(res, 400, { error: 'база в памяти — бэкапить нечего' });
     }
     if (p === '/api/trash' && req.method === 'GET') return json(res, 200, notes.listTrash(db));
@@ -403,7 +416,7 @@ const server = http.createServer(async (req, res) => {
 
     if (p === '/api/setting' && req.method === 'POST') {
       const b = await body(req);
-      if (!['activity_month', 'monthly_budget'].includes(b.key)) return json(res, 400, { error: 'unknown key' });
+      if (!['activity_month', 'monthly_budget', 'backup_dir'].includes(b.key)) return json(res, 400, { error: 'unknown key' });
       fin.setSetting(db, b.key, b.value ?? '');
       return json(res, 200, { ok: true });
     }

@@ -92,7 +92,7 @@ export function exportAll(db, rootDir) {
 }
 
 // Бэкап файла базы; держим последние 20
-export function backupDb(dbPath, rootDir) {
+export function backupDb(dbPath, rootDir, externalDir = null) {
   if (!dbPath || dbPath === ':memory:' || !existsSync(dbPath)) return null;
   const dir = join(rootDir, 'backups');
   mkdirSync(dir, { recursive: true });
@@ -100,6 +100,13 @@ export function backupDb(dbPath, rootDir) {
   copyFileSync(dbPath, file);
   const all = readdirSync(dir).filter(f => f.endsWith('.db')).sort();
   for (const f of all.slice(0, Math.max(0, all.length - 20))) unlinkSync(join(dir, f));
+  // внешняя папка (Time Machine, внешний диск): диск умер — бэкап выжил
+  if (externalDir) {
+    try {
+      mkdirSync(externalDir, { recursive: true });
+      copyFileSync(dbPath, join(externalDir, `pipboy-${stamp()}.db`));
+    } catch { /* папка недоступна (диск не подключён) — локальный бэкап всё равно есть */ }
+  }
   return file;
 }
 
