@@ -264,3 +264,24 @@ test('планируемые рутины: не попадают в активн
   assert.equal(life.listRoutines(db).length, 2, 'активирована');
   assert.equal(life.plannedRoutines(db).length, 0);
 });
+
+test('лента напоминаний: рутины по времени, платежи за remind_days, ДР', async () => {
+  const { upcomingNotifications } = await import('../notify.js');
+  const db = freshDb();
+  life.addRoutine(db, { name: 'Таблетка', time: '08:00' });
+  life.addRoutine(db, { name: 'Вечером', time: '23:59' });
+  const fin2 = await import('../fin.js');
+  const tIso = (n => { const d = new Date(Date.now() + n * 864e5); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; });
+  fin2.addObligation(db, { name: 'Аренда', amount: 120, period: 'monthly', next_date: tIso(2), remind_days: 5 });
+  fin2.addObligation(db, { name: 'Далёкий', amount: 9, period: 'monthly', next_date: tIso(20), remind_days: 5 });
+  const bd = tIso(0).slice(5);
+  life.addPerson(db, { name: 'Мама', birthday: bd });
+  const now = new Date(); now.setHours(12, 0);
+  const items = upcomingNotifications(db, now);
+  const keys = items.map(i => i.key).join(' ');
+  assert.ok(keys.includes('routine:'), 'утренняя рутина (08:00 < 12:00) в ленте');
+  assert.ok(!items.some(i => i.title.includes('Вечером')), '23:59 ещё не пора');
+  assert.ok(items.some(i => i.title.includes('Аренда')), 'платёж в окне напоминания');
+  assert.ok(!items.some(i => i.title.includes('Далёкий')), 'далёкий платёж молчит');
+  assert.ok(items.some(i => i.category === 'people' && i.title.includes('Мама')), 'ДР сегодня');
+});

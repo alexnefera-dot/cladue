@@ -13,6 +13,7 @@ import { seedDemo, wipeDemo, demoWiped } from './seed.js';
 import * as psy from './psy.js';
 import { exportAll, backupDb, lastBackupDate } from './export.js';
 import { audit } from './audit.js';
+import { upcomingNotifications } from './notify.js';
 import { execFile } from 'node:child_process';
 import os from 'node:os';
 
@@ -113,6 +114,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { lan: lanUrl(), demoWiped: demoWiped(db), version: VERSION });
     if (p === '/api/demo/wipe' && req.method === 'POST') return json(res, 200, wipeDemo(db));
     if (p === '/api/audit' && req.method === 'GET') return json(res, 200, audit(db));
+    if (p === '/api/notify/upcoming' && req.method === 'GET') return json(res, 200, upcomingNotifications(db));
     if (p === '/api/roulette' && req.method === 'GET') return json(res, 200, { idea: core.rollIdea(db) });
     if (p === '/api/nodes' && req.method === 'POST') {
       const b = await body(req);

@@ -38,14 +38,18 @@ app.on('window-all-closed', () => { /* живём в доке, сервер не
 app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 app.on('before-quit', () => serverProc?.kill());
 
-// Нативные уведомления Mac: опрашиваем ядро о ближайших напоминаниях (рутины с временем)
+// Нативные уведомления Mac: единая лента ядра /api/notify/upcoming.
+// Своя озвучка на категорию; каждый ключ показываем один раз в день.
+const SOUND = { routine: 'Glass', money: 'Funk', event: 'Ping', people: 'Hero' };
+const shown = new Set();
 setInterval(async () => {
   try {
-    const r = await fetch(`http://127.0.0.1:${PORT}/api/routines`).then(x => x.json());
-    const now = new Date();
-    const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    for (const rt of Array.isArray(r) ? r : [])
-      if (rt.time === hhmm && !rt.done)
-        new Notification({ title: '⏰ ' + rt.name, body: `Рутина на ${rt.time}` }).show();
-  } catch { /* сервер занят/замок — пропускаем тик */ }
+    const items = await fetch(`http://127.0.0.1:${PORT}/api/notify/upcoming`).then(x => x.json());
+    for (const n of Array.isArray(items) ? items : []) {
+      if (shown.has(n.key)) continue;
+      shown.add(n.key);
+      new Notification({ title: n.title, body: n.body, sound: SOUND[n.category] ?? 'Glass' }).show();
+    }
+    if (shown.size > 500) shown.clear();   // ключи дневные — память не растим
+  } catch { /* сервер занят или замок без ключа — пропускаем тик */ }
 }, 60_000);
