@@ -44,5 +44,14 @@ struct WebView: NSViewRepresentable {
             a.window.initialFirstResponder = field
             completionHandler(a.runModal() == .alertFirstButtonReturn ? field.stringValue : nil)
         }
+        // Ссылки target="_blank" (ссылки внутри заметок Инфо). Без этого WKWebView
+        // молча их игнорирует — клик по ссылке в заметке не открывал ничего.
+        // Открываем во внешнем браузере, лишнее окно приложения не плодим.
+        func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
+                     for navigationAction: WKNavigationAction,
+                     windowFeatures: WKWindowFeatures) -> WKWebView? {
+            if let url = navigationAction.request.url { NSWorkspace.shared.open(url) }
+            return nil
+        }
     }
 }
