@@ -1,17 +1,21 @@
 import Foundation
 
-// Поднимает Node-сервер (app/server.js) рядом с приложением и
-// на каждом запуске сам подтягивает свежий код (git pull) — обновляться
-// = просто перезапустить Pipboy, без Запустить.command.
+// Поднимает Node-сервер (app/server.js) рядом и подтягивает свежий код.
+// ВСЁ делает в фоновом потоке — главный поток (UI) не блокируется,
+// поэтому никаких зависаний/SIGTERM.
 final class ServerProcess: ObservableObject {
     private var proc: Process?
 
     func start() {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            self?.run()
+        }
+    }
+
+    private func run() {
         let repo = repoRoot()
-        // авто-обновление веб-кода
-        runGitPull(in: repo)
-        // уже поднят на 7777? — ничего не делаем
-        if ping() { return }
+        runGitPull(in: repo)            // авто-обновление веб-кода (в фоне)
+        if ping() { return }           // уже поднят на 7777 — ничего не делаем
         guard let node = findNode() else {
             NSLog("Pipboy: node не найден — установи Node.js")
             return
@@ -30,8 +34,17 @@ final class ServerProcess: ObservableObject {
         let p = Process()
         p.executableURL = git
         p.arguments = ["-C", repo.path, "pull", "--quiet"]
-        try? p.run()
-        p.waitUntilExit()   // ждём обновления перед стартом сервера
+        // не зависнуть на запросе пароля git: отключаем интерактивность
+        var env = ProcessInfo.processInfo.environment
+        env["GIT_TERMINAL_PROMPT"] = "0"
+        p.environment = env
+        do {
+            try p.run()
+            // ждём максимум 8 секунд — если дольше, бросаем и идём дальше
+            let deadline = Date().addingTimeInterval(8)
+            while p.isRunning && Date() < deadline { usleep(100_000) }
+            if p.isRunning { p.terminate() }
+        } catch { /* git недоступен — просто стартуем сервер на текущем коде */ }
     }
 
     private func ping() -> Bool {
@@ -58,7 +71,6 @@ final class ServerProcess: ObservableObject {
         return nil
     }
 
-    // Путь к репозиторию cladue. По умолчанию ~/Downloads/cladue.
     private func repoRoot() -> URL {
         FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Downloads/cladue")
