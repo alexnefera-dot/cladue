@@ -305,6 +305,9 @@ export function createDb(path = ':memory:') {
   // регламент имущества хранится как обязательство, привязанное к объекту
   const ocols = db.prepare('PRAGMA table_info(obligations)').all().map(c => c.name);
   if (!ocols.includes('property_id')) db.exec(`ALTER TABLE obligations ADD COLUMN property_id INTEGER`);
+  // планируемые рутины: хочу внести, но ещё не в расписании
+  const rpl = db.prepare('PRAGMA table_info(routines)').all().map(c => c.name);
+  if (!rpl.includes('planned')) db.exec(`ALTER TABLE routines ADD COLUMN planned INTEGER NOT NULL DEFAULT 0`);
   // фиксированное время рутины (HH:MM) — для сортировки и напоминаний
   const rcols = db.prepare('PRAGMA table_info(routines)').all().map(c => c.name);
   if (!rcols.includes('time')) db.exec(`ALTER TABLE routines ADD COLUMN time TEXT`);

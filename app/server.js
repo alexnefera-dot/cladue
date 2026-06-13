@@ -178,6 +178,7 @@ const server = http.createServer(async (req, res) => {
 
     // ===== Рутины и Люди =====
     if (p === '/api/routines' && req.method === 'GET') return json(res, 200, life.listRoutines(db));
+    if (p === '/api/routines/planned' && req.method === 'GET') return json(res, 200, life.plannedRoutines(db));
     if (p === '/api/routines' && req.method === 'POST') {
       const b = await body(req);
       if (!b.name?.trim()) return json(res, 400, { error: 'name required' });

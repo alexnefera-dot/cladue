@@ -5,8 +5,13 @@ const today = () => iso(new Date());
 export function listRoutines(db) {
   const t = today();
   const doneToday = new Set(db.prepare('SELECT routine_id FROM routine_log WHERE date = ?').all(t).map(r => r.routine_id));
-  return db.prepare('SELECT * FROM routines ORDER BY ord, id').all()
+  return db.prepare('SELECT * FROM routines WHERE planned = 0 ORDER BY ord, id').all()
     .map(r => ({ ...r, done: doneToday.has(r.id), streak: routineStreak(db, r.id) }));
+}
+
+// планируемые: хочу внести, но в расписание ещё не поставил
+export function plannedRoutines(db) {
+  return db.prepare('SELECT * FROM routines WHERE planned = 1 ORDER BY ord, id').all();
 }
 
 export function routineStreak(db, id) {
@@ -20,11 +25,11 @@ export function routineStreak(db, id) {
 
 export function addRoutine(db, b) {
   const ord = db.prepare('SELECT COALESCE(MAX(ord),0)+1 AS o FROM routines').get().o;
-  db.prepare('INSERT INTO routines(name, slot, time, ord, note) VALUES(?,?,?,?,?)')
-    .run(b.name, b.slot ?? 'утро', b.time ?? null, ord, b.note ?? '');
+  db.prepare('INSERT INTO routines(name, slot, time, ord, note, planned) VALUES(?,?,?,?,?,?)')
+    .run(b.name, b.slot ?? 'утро', b.time ?? null, ord, b.note ?? '', b.planned ? 1 : 0);
 }
 export function patchRoutine(db, id, b) {
-  for (const k of ['name', 'slot', 'time', 'note'])
+  for (const k of ['name', 'slot', 'time', 'note', 'planned'])
     if (k in b) db.prepare(`UPDATE routines SET ${k} = ? WHERE id = ?`).run(b[k], id);
 }
 export function delRoutine(db, id) { db.prepare('DELETE FROM routines WHERE id = ?').run(id); }
@@ -174,7 +179,7 @@ export function listMetrics(db, days = 14) {
 
 // ===== Тепловая карта рутин: выполнено/всего по дням =====
 export function routineHeatmap(db, days = 112) {
-  const total = db.prepare('SELECT count(*) AS c FROM routines').get().c;
+  const total = db.prepare('SELECT count(*) AS c FROM routines WHERE planned = 0').get().c;
   const rows = db.prepare(`
     SELECT date, count(*) AS done FROM routine_log
     WHERE date >= date('now','localtime', ?) GROUP BY date`).all(`-${days} days`);

@@ -17,6 +17,7 @@ const SLOTS = ['утро', 'день', 'вечер'];
 // ===== Рутины =====
 window.loadRoutines = async function () {
   const rows = await lfApi.routines();
+  const planned = await fetch('/api/routines/planned').then(r => r.json()).catch(() => []);
   document.getElementById('screen-routines').innerHTML = `
   <h2 style="margin-bottom:2px">Рутины</h2>
   <div class="muted" style="margin-bottom:14px">микро-действия отдельно от задач · пропуск не висит долгом · сегодня: ${rows.filter(r => r.done).length}/${rows.length}</div>
@@ -39,6 +40,18 @@ window.loadRoutines = async function () {
     <input id="rtTime" placeholder="чч:мм (опц.)" style="width:95px">
     <span class="pill btn ok" id="rtAdd">＋</span>
   </div></div>
+  <div class="card"><div class="meta">ПЛАНИРУЕМЫЕ · хочу внести, но ещё не в расписании</div>
+    ${planned.map(r => `
+      <div class="task">
+        <span class="t ed" data-lfplren="${r.id}" title="клик — переименовать">${lesc(r.name)}</span>
+        <span class="pill btn ok" data-lfplgo="${r.id}" title="перенести в расписание">→ в расписание</span>
+        <span class="rowbtn del" data-lfpldel="${r.id}">✕</span>
+      </div>`).join('') || '<div class="empty">пусто — кидай сюда идеи рутин, до которых пока не дошли руки</div>'}
+    <div class="task finadd">
+      <input id="rtPlanName" placeholder="планируемая рутина: медитация, растяжка, испанский утром…">
+      <span class="pill btn ok" id="rtPlanAdd">＋</span>
+    </div>
+  </div>
   <div class="card"><div class="task" style="border:0">
     <span class="pill btn ${localStorage.rtNotifyOn === '1' ? 'ok' : ''}" id="rtNotify">🔔 напоминания в браузере: ${localStorage.rtNotifyOn === '1' ? 'вкл' : 'выкл'}</span>
     <span class="meta">рутина с ⏰ временем пришлёт уведомление, пока приложение открыто · в мобильной версии будут системные пуши</span>
@@ -72,6 +85,34 @@ window.loadRoutines = async function () {
     localStorage.rtNotifyOn = '1';
     window.loadRoutines();
   });
+  // планируемые: добавить / активировать / переименовать / удалить
+  document.getElementById('rtPlanAdd')?.addEventListener('click', async () => {
+    const name = document.getElementById('rtPlanName').value.trim();
+    if (!name) return;
+    await lfApi.rAdd({ name, planned: true });
+    window.loadRoutines();
+  });
+  document.querySelectorAll('#screen-routines [data-lfplgo]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const slot = prompt('Слот: утро / день / вечер', 'утро');
+      if (slot == null) return;
+      const t = prompt('Фиксированное время чч:мм (пусто — без времени):') ?? '';
+      await lfApi.rPatch(+el.dataset.lfplgo, {
+        planned: 0,
+        slot: ['утро', 'день', 'вечер'].includes(slot.trim()) ? slot.trim() : 'утро',
+        time: /^([01]?\d|2[0-3]):[0-5]\d$/.test(t.trim()) ? t.trim().padStart(5, '0') : null,
+      });
+      window.loadRoutines();
+    }));
+  document.querySelectorAll('#screen-routines [data-lfplren]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const v = prompt('Название:', el.textContent.trim());
+      if (v?.trim()) { await lfApi.rPatch(+el.dataset.lfplren, { name: v.trim() }); window.loadRoutines(); }
+    }));
+  document.querySelectorAll('#screen-routines [data-lfpldel]').forEach(el =>
+    el.addEventListener('click', async () => {
+      if (confirm('Удалить планируемую рутину?')) { await lfApi.rDel(+el.dataset.lfpldel); window.loadRoutines(); }
+    }));
   document.getElementById('rtAdd')?.addEventListener('click', async () => {
     const name = document.getElementById('rtName').value.trim();
     if (!name) return;

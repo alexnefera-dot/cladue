@@ -250,3 +250,17 @@ test('полярность метрик: регрессы помечены, пе
   const jan = life.monthlyStats(db, 12).find(s => s.ym.endsWith('-01'));
   assert.ok(jan.metrics.every(x => 'polarity' in x), 'полярность в итогах месяцев');
 });
+
+test('планируемые рутины: не попадают в активные/дашборд/карту, активация переносит', () => {
+  const db = freshDb();
+  life.addRoutine(db, { name: 'Активная' });
+  life.addRoutine(db, { name: 'Медитация', planned: true });
+  assert.deepEqual(life.listRoutines(db).map(r => r.name), ['Активная'], 'планируемая не в активных');
+  assert.deepEqual(life.plannedRoutines(db).map(r => r.name), ['Медитация']);
+  assert.equal(life.routineHeatmap(db, 7).at(-1).total, 1, 'карта считает только активные');
+  assert.equal(buildToday(db).routines.length, 1, 'дашборд без планируемых');
+  const med = life.plannedRoutines(db)[0];
+  life.patchRoutine(db, med.id, { planned: 0, slot: 'утро', time: '07:30' });
+  assert.equal(life.listRoutines(db).length, 2, 'активирована');
+  assert.equal(life.plannedRoutines(db).length, 0);
+});
