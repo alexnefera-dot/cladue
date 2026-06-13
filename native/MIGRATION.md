@@ -29,15 +29,24 @@ iPhone + синхронизация. Это и есть старт iPhone-фаз
 > поэтому берём swift-sqlcipher, а не GRDB.
 
 ## Этапы
-0. **Каркас:** открыть шифрованную БД, ключ в Keychain под палец;
-   scheme-handler отдаёт статику + заглушки API. Разовый импорт текущего
-   `app/data.db` в зашифрованную базу.
-1. **Чтение:** `tree, fin, psy, today, track, calendar, pages` — UI рисуется
-   из Swift-данных.
+0. ✅ **Каркас:** шифр-база (SQLCipher) открыта, ключ в Keychain; разовый импорт
+   `app/data.db` → зашифрованную базу (47 таблиц, 623 записи).
+1. 🔄 **Чтение** через `WKURLSchemeHandler` (схема `pipboy://`, флаг
+   `WebView.useNativeData`). Готово: `info, lock, tree, pages, trash`.
+   Осталось портировать (read): `routines, people, calendar, search,
+   fin, psy, today, track, page(single), node_log, suggest`.
 2. **Запись:** create/edit/delete по разделам.
 3. **Убрать Node** (ServerProcess) — когда достигнут паритет.
 4. **iPhone-таргет** на том же слое + синк (SQLite session/changesets, парный
    ключ для шифрования канала по Wi-Fi).
+
+### Как проверять Этап 1
+- В консоли при входе: `Pipboy 1: нативный /api/tree — узлов:N связей:M`
+  (N должно совпасть с числом задач из Этапа 0b).
+- Превью интерфейса целиком: `WebView.useNativeData = true` → приложение грузит
+  `pipboy://` и читает из зашифрованной базы. Дашборд/финансы/психология пока
+  пустые (эндпоинты не портированы) — это ожидаемо; экран целей рисуется из
+  нативного слоя. Для рабочего пользования верни `false`.
 
 ## Карта backend (что переносим из app/*.js)
 | Node-модуль | Зона |

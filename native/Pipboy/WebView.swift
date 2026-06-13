@@ -8,15 +8,23 @@ import AppKit
 struct WebView: NSViewRepresentable {
     let url: URL
 
+    // ЭТАП 1: источник данных интерфейса.
+    //   false → Node (http://localhost:7777), рабочий режим;
+    //   true  → нативный зашифрованный слой через pipboy:// (превью, читающие экраны).
+    static let useNativeData = false
+
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeNSView(context: Context) -> WKWebView {
         // Мост для системных напоминаний: JS шлёт расписание в pipboyReminders.
         let cfg = WKWebViewConfiguration()
         cfg.userContentController.add(context.coordinator.notifier, name: "pipboyReminders")
+        // Нативный слой данных: обработчик схемы pipboy:// (статика + /api/* из шифр-базы).
+        cfg.setURLSchemeHandler(context.coordinator.scheme, forURLScheme: PipboySchemeHandler.scheme)
         let v = WKWebView(frame: .zero, configuration: cfg)
         v.uiDelegate = context.coordinator
-        v.load(URLRequest(url: url))
+        let start = Self.useNativeData ? URL(string: "pipboy://app/index.html")! : url
+        v.load(URLRequest(url: start))
         return v
     }
     func updateNSView(_ v: WKWebView, context: Context) {}
@@ -24,6 +32,8 @@ struct WebView: NSViewRepresentable {
     final class Coordinator: NSObject, WKUIDelegate {
         // Сильная ссылка на планировщик напоминаний (его держит и userContentController).
         let notifier = NotificationManager()
+        // Обработчик нативного слоя данных (читает из зашифрованной базы).
+        let scheme = PipboySchemeHandler()
 
         // alert(...)
         func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String,

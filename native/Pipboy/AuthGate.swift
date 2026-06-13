@@ -53,6 +53,12 @@ struct AuthGate: View {
                 let tables = try db.scalarInt("SELECT count(*) FROM sqlite_master WHERE type='table'")
                 let nodes = (try? db.scalarInt("SELECT count(*) FROM nodes")) ?? 0
                 NSLog("Pipboy 0b: зашифрованная база — таблиц:\(tables) задач:\(nodes)")
+                // Этап 1: проверяем нативный /api/tree (тот же ответ, что давал Node).
+                let (treeData, _) = try Api.handle(path: "/api/tree", query: nil, db: db)
+                let obj = try JSONSerialization.jsonObject(with: treeData) as? [String: Any]
+                let treeNodes = (obj?["nodes"] as? [[String: Any]])?.count ?? -1
+                let links = (obj?["links"] as? [[String: Any]])?.count ?? -1
+                NSLog("Pipboy 1: нативный /api/tree — узлов:\(treeNodes) связей:\(links)")
             } catch {
                 NSLog("Pipboy 0b: ошибка шифр-базы: \(error)")
             }

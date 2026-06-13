@@ -60,6 +60,53 @@ final class Database {
         return sqlite3_step(stmt) == SQLITE_ROW ? Int(sqlite3_column_int64(stmt, 0)) : 0
     }
 
+    // Строки запроса как массив словарей (как node:sqlite .all()).
+    func rows(_ sql: String, _ params: [Any?] = []) throws -> [[String: Any]] {
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(handle, sql, -1, &stmt, nil) == SQLITE_OK else {
+            throw Failure.sql(String(cString: sqlite3_errmsg(handle)))
+        }
+        defer { sqlite3_finalize(stmt) }
+        let transient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+        for (i, p) in params.enumerated() {
+            let idx = Int32(i + 1)
+            switch p {
+            case nil, is NSNull:        sqlite3_bind_null(stmt, idx)
+            case let v as Bool:         sqlite3_bind_int64(stmt, idx, v ? 1 : 0)
+            case let v as Int:          sqlite3_bind_int64(stmt, idx, Int64(v))
+            case let v as Double:       sqlite3_bind_double(stmt, idx, v)
+            case let v as String:       sqlite3_bind_text(stmt, idx, v, -1, transient)
+            default:                    sqlite3_bind_text(stmt, idx, "\(p!)", -1, transient)
+            }
+        }
+        var out: [[String: Any]] = []
+        let cols = sqlite3_column_count(stmt)
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            var row: [String: Any] = [:]
+            for c in 0..<cols {
+                let name = String(cString: sqlite3_column_name(stmt, c))
+                switch sqlite3_column_type(stmt, c) {
+                case SQLITE_INTEGER: row[name] = Int(sqlite3_column_int64(stmt, c))
+                case SQLITE_FLOAT:   row[name] = sqlite3_column_double(stmt, c)
+                case SQLITE_NULL:    row[name] = NSNull()
+                default:
+                    if let t = sqlite3_column_text(stmt, c) { row[name] = String(cString: t) }
+                    else { row[name] = NSNull() }
+                }
+            }
+            out.append(row)
+        }
+        return out
+    }
+
+    // Замок включён, если в settings есть непустой lock_pw_hash.
+    func lockEnabled() throws -> Bool {
+        if let v = try rows("SELECT value FROM settings WHERE key = 'lock_pw_hash'").first?["value"] as? String {
+            return !v.isEmpty
+        }
+        return false
+    }
+
     // Этап 0a: дымовая проверка, что зашифрованная база живая.
     func smokeTest() throws -> Int {
         try exec("CREATE TABLE IF NOT EXISTS _smoke(id INTEGER PRIMARY KEY, at TEXT)")
