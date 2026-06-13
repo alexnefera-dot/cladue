@@ -987,6 +987,35 @@ window.loadSettings = async function () {
     }));
 };
 
+// ===== Глобальные клавиши ежедневного пользования =====
+// q — быстрый ввод в Инбокс с любого экрана; / — фокус в поиск (вне полей ввода)
+document.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.target.closest('input,textarea,select,[contenteditable]')) return;
+  if (e.key === '/') { e.preventDefault(); document.getElementById('searchbox').focus(); return; }
+  if (e.key !== 'q' && e.key !== 'й') return;
+  e.preventDefault();
+  if (document.getElementById('qcap')) return;
+  const box = document.createElement('div');
+  box.id = 'qcap';
+  box.innerHTML = `<input id="qcapIn" placeholder="в Инбокс… (Enter — добавить, Esc — закрыть)">`;
+  document.body.appendChild(box);
+  const inp = box.querySelector('input');
+  inp.focus();
+  const close = () => box.remove();
+  inp.addEventListener('keydown', async ev => {
+    if (ev.key === 'Escape') return close();
+    if (ev.key !== 'Enter' || !inp.value.trim()) return;
+    await api.add({ title: inp.value.trim(), parent_id: null });
+    const sb = document.getElementById('statusbar');
+    if (sb) sb.textContent = `✓ в Инбокс: «${inp.value.trim().slice(0, 40)}»`;
+    close();
+    if (currentScr === 'list') load();
+    if (currentScr === 'today') window.loadToday?.();
+  });
+  inp.addEventListener('blur', close);
+});
+
 // ===== Поиск =====
 let st;
 document.getElementById('searchbox').addEventListener('input', e => {

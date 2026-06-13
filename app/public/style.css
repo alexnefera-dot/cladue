@@ -295,3 +295,15 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 
 /* Инфо: родительские ветки в дереве — жирнее */
 .ntitem.ntparent{font-weight:650}
+
+/* Сайдбар: группа редких разделов */
+.navgap{font:600 9.5px var(--mono);letter-spacing:1.6px;color:var(--muted);text-transform:uppercase;
+  margin:14px 11px 4px;opacity:.7}
+.side .item.dim{font-weight:500;opacity:.78}
+.side .item.dim:hover,.side .item.dim.active{opacity:1}
+
+/* Быстрый ввод по клавише q — поверх любого экрана */
+#qcap{position:fixed;top:14vh;left:50%;transform:translateX(-50%);z-index:200;width:min(560px,90vw);
+  background:var(--panel);border:1px solid var(--green-dim);border-radius:12px;box-shadow:var(--shadow-md);padding:10px}
+#qcap input{width:100%;border:0;font:15px var(--sans);background:transparent}
+#qcap input:focus{box-shadow:none;border:0 !important}
