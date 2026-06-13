@@ -11,7 +11,10 @@ struct WebView: NSViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeNSView(context: Context) -> WKWebView {
-        let v = WKWebView()
+        // Мост для системных напоминаний: JS шлёт расписание в pipboyReminders.
+        let cfg = WKWebViewConfiguration()
+        cfg.userContentController.add(context.coordinator.notifier, name: "pipboyReminders")
+        let v = WKWebView(frame: .zero, configuration: cfg)
         v.uiDelegate = context.coordinator
         v.load(URLRequest(url: url))
         return v
@@ -19,6 +22,9 @@ struct WebView: NSViewRepresentable {
     func updateNSView(_ v: WKWebView, context: Context) {}
 
     final class Coordinator: NSObject, WKUIDelegate {
+        // Сильная ссылка на планировщик напоминаний (его держит и userContentController).
+        let notifier = NotificationManager()
+
         // alert(...)
         func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String,
                      initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping () -> Void) {

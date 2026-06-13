@@ -13,20 +13,24 @@
 2. Product Name: `Pipboy` · Interface: **SwiftUI** · Language: **Swift** → создай
    проект в любой папке (например ~/Downloads).
 3. В созданном проекте удали стандартные `PipboyApp.swift` и `ContentView.swift`.
-4. Перетащи в проект 4 файла из этой папки (native/Pipboy/):
-   PipboyApp.swift, WebView.swift, AuthGate.swift, ServerProcess.swift.
+4. Перетащи в проект 5 файлов из этой папки (native/Pipboy/):
+   PipboyApp.swift, WebView.swift, AuthGate.swift, ServerProcess.swift, Notifications.swift.
 5. Слева выбери проект → target Pipboy → вкладка **Signing & Capabilities**:
    - сними галку **App Sandbox** (нужно, чтобы запускать node и ходить на localhost),
      или добавь исключения для сети.
    - в **Info** добавь ключ `App Transport Security Settings` →
      `Allow Arbitrary Loads` = YES (для http://localhost).
+   - системные напоминания работают сразу (UserNotifications), отдельная capability
+     для локальных пушей не нужна — при первом включении тумблера в «Рутины»
+     macOS сам спросит разрешение.
 6. Проверь путь к репозиторию в ServerProcess.swift (repoRoot):
    по умолчанию ~/Downloads/cladue — поправь, если папка в другом месте.
 7. Нажми ▶ (Run). Должно открыться окно с Touch ID, затем приложение.
 
 ## Дальше
-- Mac работает → собираем уведомления (UNUserNotificationCenter из ленты
-  /api/notify/upcoming, свой звук на категорию).
+- Уведомления о рутинах — готово (Notifications.swift): тумблер «🔔 системные
+  напоминания» в «Рутины» шлёт расписание в UNUserNotificationCenter, пуш
+  приходит ежедневно в ⏰ время даже при закрытом окне.
 - iPhone: тот же WKWebView, но данные — локальная SQLite на устройстве
   (Node на телефоне не крутится); синк с Mac по Wi-Fi. Отдельный таргет.
 

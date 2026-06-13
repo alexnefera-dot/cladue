@@ -17,6 +17,7 @@ const SLOTS = ['утро', 'день', 'вечер'];
 // ===== Рутины =====
 window.loadRoutines = async function () {
   const rows = await lfApi.routines();
+  pbSyncReminders(rows);
   const planned = await fetch('/api/routines/planned').then(r => r.json()).catch(() => []);
   document.getElementById('screen-routines').innerHTML = `
   <h2 style="margin-bottom:2px">Рутины</h2>
@@ -53,8 +54,8 @@ window.loadRoutines = async function () {
     </div>
   </div>
   <div class="card"><div class="task" style="border:0">
-    <span class="pill btn ${localStorage.rtNotifyOn === '1' ? 'ok' : ''}" id="rtNotify">🔔 напоминания в браузере: ${localStorage.rtNotifyOn === '1' ? 'вкл' : 'выкл'}</span>
-    <span class="meta">рутина с ⏰ временем пришлёт уведомление, пока приложение открыто · в мобильной версии будут системные пуши</span>
+    <span class="pill btn ${localStorage.rtNotifyOn === '1' ? 'ok' : ''}" id="rtNotify">🔔 ${pbReminderBridge ? 'системные напоминания' : 'напоминания в браузере'}: ${localStorage.rtNotifyOn === '1' ? 'вкл' : 'выкл'}</span>
+    <span class="meta">${pbReminderBridge ? 'рутина с ⏰ временем пришлёт системный пуш каждый день в это время — даже если окно закрыто' : 'рутина с ⏰ временем пришлёт уведомление, пока приложение открыто · в приложении будут системные пуши'}</span>
   </div></div>
   <div class="footer-hint">Стрик 🔥 — подряд отмеченные дни. Тепловая карта и привязка к практикам — этап 4.</div>`;
 
@@ -80,9 +81,15 @@ window.loadRoutines = async function () {
     }));
   document.getElementById('rtNotify')?.addEventListener('click', async () => {
     if (localStorage.rtNotifyOn === '1') { localStorage.rtNotifyOn = '0'; window.loadRoutines(); return; }
-    const perm = await Notification.requestPermission();
-    if (perm !== 'granted') { alert('Браузер не дал разрешение на уведомления'); return; }
-    localStorage.rtNotifyOn = '1';
+    if (pbReminderBridge) {
+      // Нативное приложение само спросит разрешение на уведомления при первом расписании.
+      localStorage.rtNotifyOn = '1';
+    } else {
+      if (typeof Notification === 'undefined') { alert('Уведомления здесь не поддерживаются'); return; }
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') { alert('Браузер не дал разрешение на уведомления'); return; }
+      localStorage.rtNotifyOn = '1';
+    }
     window.loadRoutines();
   });
   // планируемые: добавить / активировать / переименовать / удалить
@@ -123,9 +130,23 @@ window.loadRoutines = async function () {
   });
 };
 
-// ===== Напоминания: пока вкладка открыта, рутина с ⏰ шлёт браузерное уведомление.
-// То же поле time станет источником системных пушей в мобильной версии.
+// ===== Напоминания о рутинах =====
+// В нативном приложении (WKWebView) Web Notifications не работают — расписание
+// уходит в системный планировщик macOS/iOS через мост window.webkit. В обычном
+// браузере остаётся фолбэк: пока вкладка открыта, рутина с ⏰ шлёт уведомление.
+const pbReminderBridge = window.webkit?.messageHandlers?.pipboyReminders || null;
+
+// Отдаём нативу полное расписание рутин с временем — он перепланирует ежедневные
+// пуши (идемпотентно: повторный вызов заменяет прежние). enabled=false — снять все.
+function pbSyncReminders(rows) {
+  if (!pbReminderBridge) return;
+  const enabled = localStorage.rtNotifyOn === '1';
+  const routines = (rows || []).filter(r => r.time).map(r => ({ id: r.id, name: r.name, time: r.time }));
+  try { pbReminderBridge.postMessage({ enabled, routines }); } catch {}
+}
+
 async function routineReminderTick() {
+  if (pbReminderBridge) return; // нативный планировщик уже всё расписал, тик не нужен
   if (localStorage.rtNotifyOn !== '1' || typeof Notification === 'undefined'
       || Notification.permission !== 'granted') return;
   const now = new Date();
