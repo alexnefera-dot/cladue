@@ -43,8 +43,16 @@ enum Importer {
     }
 
     private static func export(from source: URL, to target: URL, key: Data) throws {
+        // Работаем с копией data.db, чтобы не трогать живой файл, открытый Node,
+        // и чтобы соединение можно было открыть на запись (sqlcipher_export пишет
+        // в присоединённую зашифрованную базу — при READONLY-соединении это падает).
+        let tmp = FileManager.default.temporaryDirectory
+            .appendingPathComponent("pipboy-import-\(UUID().uuidString).db")
+        try FileManager.default.copyItem(at: source, to: tmp)
+        defer { try? FileManager.default.removeItem(at: tmp) }
+
         var src: OpaquePointer?
-        guard sqlite3_open_v2(source.path, &src, SQLITE_OPEN_READONLY, nil) == SQLITE_OK else {
+        guard sqlite3_open_v2(tmp.path, &src, SQLITE_OPEN_READWRITE, nil) == SQLITE_OK else {
             let msg = String(cString: sqlite3_errmsg(src)); sqlite3_close(src)
             throw Failure.sql(msg)
         }
