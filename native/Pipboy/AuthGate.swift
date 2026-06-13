@@ -44,6 +44,9 @@ struct AuthGate: View {
     static func smokeTestEncryptedDB() {
         DispatchQueue.global().async {
             do {
+                NSLog(Database.sqlcipherActive
+                    ? "Pipboy: SQLCipher активен (шифрование доступно)"
+                    : "Pipboy: ВНИМАНИЕ — SQLCipher НЕ подключён к таргету, идёт системный SQLite без шифрования")
                 let key = try Keychain.databaseKey()
                 Importer.importIfNeeded(encryptedKey: key)        // Этап 0b: разовый импорт
                 let db = try Database(key: key)

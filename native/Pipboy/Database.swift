@@ -10,6 +10,16 @@ import SQLite3
 final class Database {
     enum Failure: Error { case open(Int32), sql(String) }
 
+    // true, если в сборку реально вкомпилён SQLCipher (продукт привязан к таргету).
+    // Если false — используется системный SQLite БЕЗ шифрования (PRAGMA key молчит).
+    static let sqlcipherActive: Bool = {
+        #if canImport(SQLCipher)
+        return true
+        #else
+        return false
+        #endif
+    }()
+
     private var handle: OpaquePointer?
 
     init(key: Data) throws {
