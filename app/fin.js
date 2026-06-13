@@ -92,6 +92,7 @@ export function listFin(db) {
     forecasts: forecasts(db),
     properties: listProperties(db),
     fire: fireCalc(db, portfolioTotal),
+    income: listIncome(db),
     budget: parseFloat(getSetting(db, 'monthly_budget', '')) || null,   // базовый минимум месяца
     macro: db.prepare('SELECT * FROM macro_notes ORDER BY date DESC, id DESC').all(),
     rates: db.prepare('SELECT * FROM rates').all(),
@@ -102,6 +103,11 @@ export function listFin(db) {
       rate,
       growth: invested ? { invested, current: investedCur, abs: investedCur - invested, pct: (investedCur - invested) / invested * 100 } : null,
       monthlyObligations: obligations.filter(o => o.period === 'monthly').reduce((s, o) => s + o.amount, 0),
+      // пассивный доход в месяц: ежемесячные + годовые/12 (в их валютах суммируем по-простому в €-эквиваленте)
+      monthlyIncome: listIncome(db).reduce((s, i) => {
+        const eur = i.currency === '$' ? i.amount / rate : i.amount;
+        return s + (i.period === 'monthly' ? eur : i.period === 'yearly' ? eur / 12 : 0);
+      }, 0),
       upcoming: obligations.filter(o => o.days_left != null && o.days_left <= 30),
     },
   };
@@ -116,6 +122,20 @@ export function addItem(db, b) {
 export function patchItem(db, id, b) {
   for (const k of ['name', 'buy_value', 'value', 'target_value', 'currency', 'is_loan', 'loan_due', 'asset_type', 'qty', 'rate_symbol', 'note'])
     if (k in b) db.prepare(`UPDATE portfolio_items SET ${k} = ? WHERE id = ?`).run(b[k], id);
+}
+
+// ===== Пассивный доход: аренда, депозиты, дивиденды =====
+export function addIncome(db, b) {
+  db.prepare('INSERT INTO passive_income(name, amount, currency, period, next_date, note) VALUES(?,?,?,?,?,?)')
+    .run(b.name, b.amount ?? 0, b.currency ?? '€', b.period ?? 'monthly', b.next_date ?? null, b.note ?? '');
+}
+export function patchIncome(db, id, b) {
+  for (const k of ['name', 'amount', 'currency', 'period', 'next_date', 'note'])
+    if (k in b) db.prepare(`UPDATE passive_income SET ${k} = ? WHERE id = ?`).run(b[k], id);
+}
+export function delIncome(db, id) { db.prepare('DELETE FROM passive_income WHERE id = ?').run(id); }
+export function listIncome(db) {
+  return db.prepare('SELECT * FROM passive_income ORDER BY period, id').all();
 }
 
 // ===== Долги (мои и мне; плановые из портфеля — отдельно, через 🤝) =====

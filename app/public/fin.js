@@ -129,6 +129,28 @@ function secPortfolio(d, s) {
     </table>
     ${finTab === 'target' ? '<div class="empty" style="padding-top:8px">Целевые суммы ставь на любом уровне. Δ — факт минус цель.</div>' : ''}
   </div>
+  ${finTab === 'fact' ? `
+  <div class="card">
+    <div class="meta" style="margin-bottom:6px">💸 ПАССИВНЫЙ ДОХОД · ~${fmt(s.monthlyIncome)} € / мес</div>
+    ${d.income.map(i => `
+      <div class="task">
+        <span class="t ed" data-fe="income:${i.id}:name:text">${fesc(i.name)}</span>
+        <span class="pill btn" data-incper="${i.id}:${i.period}" title="период — клик">${PERIOD[i.period] ?? i.period}</span>
+        ${i.next_date ? `<span class="ed meta num" data-fe="income:${i.id}:next_date:date" title="следующее поступление">${i.next_date}</span>`
+          : `<span class="ed meta" data-fe="income:${i.id}:next_date:date" title="дата следующего поступления">＋ дата</span>`}
+        <span class="pill btn" data-inccur="${i.id}:${i.currency}" title="сменить валюту">${fesc(i.currency)}</span>
+        <span class="ed num acc" data-fe="income:${i.id}:amount:num">${fmt(i.amount)}</span>
+        <span class="rowbtn del" data-findel="income:${i.id}">✕</span>
+      </div>`).join('') || '<div class="empty">аренда, депозиты, дивиденды — доходность и период</div>'}
+    <div class="task finadd">
+      <input id="incName" placeholder="источник: аренда Belgravia, депозит…">
+      <input id="incAmount" placeholder="сумма" style="width:90px">
+      <select id="incCur"><option>€</option><option>$</option></select>
+      <select id="incPer"><option value="monthly">в месяц</option><option value="yearly">в год</option><option value="once">разово</option></select>
+      <input id="incDate" placeholder="дата (опц.)" style="width:105px">
+      <span class="pill btn ok" id="incAdd">＋</span>
+    </div>
+  </div>` : ''}
   ${finTab === 'fact' && d.byType.length ? `
   <div class="card">
     <div class="meta" style="margin-bottom:6px">АЛЛОКАЦИЯ ПО ТИПАМ АКТИВОВ (⊙ у строки — задать тип)</div>
@@ -551,6 +573,28 @@ function bindFin() {
       window.loadFin();
     });
     tr.addEventListener('dragend', pClear);
+  });
+  // пассивный доход: период/валюта/добавление
+  document.querySelectorAll('[data-incper]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const [id, cur] = el.dataset.incper.split(':');
+      const next = { monthly: 'yearly', yearly: 'once', once: 'monthly' }[cur];
+      await finApi.patch('income', +id, { period: next });
+      window.loadFin();
+    }));
+  document.querySelectorAll('[data-inccur]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const [id, cur] = el.dataset.inccur.split(':');
+      await finApi.patch('income', +id, { currency: cur === '€' ? '$' : '€' });
+      window.loadFin();
+    }));
+  $('incAdd')?.addEventListener('click', async () => {
+    const name = $('incName').value.trim();
+    if (!name) return;
+    await finApi.add('income', { name, amount: parseNum($('incAmount').value) ?? 0,
+      currency: $('incCur').value, period: $('incPer').value,
+      next_date: /^\d{4}-\d{2}-\d{2}$/.test($('incDate').value.trim()) ? $('incDate').value.trim() : null });
+    window.loadFin();
   });
   $('pfoldAll')?.addEventListener('click', () => {
     if (portFold.size) portFold.clear();

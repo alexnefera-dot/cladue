@@ -343,3 +343,21 @@ test('портфель DnD: вложить и поставить рядом, ц�
   assert.throws(() => fin.moveItem(db, re, re), /сам в себя/);
   assert.throws(() => fin.reorderItem(db, re, x5, 'after'), /сам в себя|ветки/);
 });
+
+test('пассивный доход: CRUD, месячный итог с годовыми/12 и валютой', () => {
+  const db = freshDb();
+  fin.rateSet(db, 'EURUSD', 1.25);
+  fin.addIncome(db, { name: 'Аренда Belgravia', amount: 1200, period: 'monthly' });
+  fin.addIncome(db, { name: 'Депозит', amount: 600, period: 'yearly' });
+  fin.addIncome(db, { name: 'Дивиденды SCHD', amount: 125, currency: '$', period: 'yearly' });
+  fin.addIncome(db, { name: 'Кэшбек разовый', amount: 999, period: 'once' });
+  const d = fin.listFin(db);
+  assert.equal(d.income.length, 4);
+  // 1200 + 600/12 + (125/1.25)/12 = 1200 + 50 + 8.33
+  assert.ok(Math.abs(d.summary.monthlyIncome - (1200 + 50 + 100 / 12)) < 0.01, 'разовое не в месячном итоге');
+  const dep = d.income.find(i => i.name === 'Депозит');
+  fin.patchIncome(db, dep.id, { amount: 1200, next_date: '2026-07-01' });
+  assert.equal(fin.listIncome(db).find(i => i.id === dep.id).next_date, '2026-07-01');
+  fin.delIncome(db, dep.id);
+  assert.equal(fin.listIncome(db).length, 3);
+});

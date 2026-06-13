@@ -132,6 +132,15 @@ export function createDb(path = ':memory:') {
       status TEXT NOT NULL DEFAULT 'waiting',  -- waiting|received
       note TEXT NOT NULL DEFAULT ''
     );
+    CREATE TABLE IF NOT EXISTS passive_income( -- пассивный доход: аренда, депозиты, дивиденды
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      amount REAL NOT NULL DEFAULT 0,
+      currency TEXT NOT NULL DEFAULT '€',
+      period TEXT NOT NULL DEFAULT 'monthly',  -- monthly|yearly|once
+      next_date TEXT,
+      note TEXT NOT NULL DEFAULT ''
+    );
     CREATE TABLE IF NOT EXISTS settings(
       key TEXT PRIMARY KEY,
       value TEXT

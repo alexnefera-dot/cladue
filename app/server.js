@@ -503,8 +503,9 @@ const server = http.createServer(async (req, res) => {
       items: ['addItem', 'patchItem', 'delItem'],
       tx: ['addTx', 'patchTx', 'delTx'],
       debts: ['addDebt', 'patchDebt', 'delDebt'],
+      income: ['addIncome', 'patchIncome', 'delIncome'],
     };
-    if ((m = p.match(/^\/api\/fin\/(accounts|classes|steps|obligations|items|tx|debts)(?:\/(\d+))?$/))) {
+    if ((m = p.match(/^\/api\/fin\/(accounts|classes|steps|obligations|items|tx|debts|income)(?:\/(\d+))?$/))) {
       const [addF, patchF, delF] = finMap[m[1]];
       if (req.method === 'POST' && !m[2]) { fin[addF](db, await body(req)); return json(res, 201, { ok: true }); }
       if (req.method === 'PATCH' && m[2]) { fin[patchF](db, +m[2], await body(req)); return json(res, 200, { ok: true }); }
