@@ -95,10 +95,95 @@ enum Api {
         case "/api/trash":
             return (try json(try db.rows(
                 "SELECT id, kind, label, created_at FROM trash ORDER BY id DESC LIMIT 30")), 200)
+        case "/api/routines":
+            return (try routines(db), 200)
+        case "/api/routines/planned":
+            return (try json(try db.rows("SELECT * FROM routines WHERE planned = 1 ORDER BY ord, id")), 200)
+        case "/api/people":
+            return (try people(db), 200)
         default:
             throw Unsupported(path: path)
         }
     }
+
+    // /api/routines: активные рутины + отметка «сегодня» + стрик — порт life.listRoutines.
+    static func routines(_ db: Database) throws -> Data {
+        let done = Set(try db.rows("SELECT routine_id FROM routine_log WHERE date = ?", [localToday()])
+            .compactMap { $0["routine_id"] as? Int })
+        var rows = try db.rows("SELECT * FROM routines WHERE planned = 0 ORDER BY ord, id")
+        for i in rows.indices {
+            let id = rows[i]["id"] as? Int ?? -1
+            rows[i]["done"] = done.contains(id)
+            rows[i]["streak"] = try routineStreak(db, id)
+        }
+        return try json(rows)
+    }
+
+    static func routineStreak(_ db: Database, _ id: Int) throws -> Int {
+        let dates = Set(try db.rows("SELECT date FROM routine_log WHERE routine_id = ?", [id])
+            .compactMap { $0["date"] as? String })
+        let f = localDateFormatter()
+        let cal = Calendar.current
+        var day = Date()
+        if !dates.contains(f.string(from: day)) { day = cal.date(byAdding: .day, value: -1, to: day)! }
+        var s = 0
+        while s < 3650 && dates.contains(f.string(from: day)) {
+            s += 1
+            day = cal.date(byAdding: .day, value: -1, to: day)!
+        }
+        return s
+    }
+
+    // /api/people: ДР, контакт-ритм, связанные задачи, лог — порт life.listPeople.
+    static func people(_ db: Database) throws -> Data {
+        let today = ymdUTC.date(from: localToday()) ?? Date()
+        let nodes = try db.rows("SELECT id, title FROM nodes WHERE is_category = 0 AND status IS NOT 'done'")
+        var people = try db.rows("SELECT * FROM people ORDER BY name")
+        for i in people.indices {
+            let p = people[i]
+            let name = (p["name"] as? String ?? "").lowercased()
+            people[i]["days_to_birthday"] = daysToBirthday(p["birthday"] as? String)
+            let rhythm = p["rhythm_days"] as? Int ?? 0
+            let since: Int? = (p["last_contact"] as? String).flatMap { ymdUTC.date(from: $0) }
+                .map { Int(floor(today.timeIntervalSince($0) / 86400)) }
+            people[i]["since_contact"] = since ?? NSNull()
+            if rhythm > 0, let since { people[i]["overdue_contact"] = max(0, since - rhythm) }
+            else if rhythm > 0 { people[i]["overdue_contact"] = 1 }
+            else { people[i]["overdue_contact"] = NSNull() }
+            let pid = p["id"] as? Int ?? -1
+            let tasks = nodes.filter { ($0["title"] as? String ?? "").lowercased().contains(name) }.prefix(3)
+            people[i]["tasks"] = Array(tasks)
+            people[i]["logs"] = try db.rows(
+                "SELECT date, note FROM contact_log WHERE person_id = ? ORDER BY date DESC, id DESC LIMIT 3", [pid])
+        }
+        return try json(people)
+    }
+
+    // Дней до ближайшего ДР (UTC, как Date.parse в Node). nil → NSNull.
+    private static func daysToBirthday(_ birthday: String?) -> Any {
+        guard let b = birthday,
+              let r = b.range(of: "[0-9]{2}-[0-9]{2}$", options: .regularExpression) else { return NSNull() }
+        let parts = b[r].split(separator: "-")
+        guard parts.count == 2, let m = Int(parts[0]), let d = Int(parts[1]) else { return NSNull() }
+        var cal = Calendar(identifier: .gregorian); cal.timeZone = TimeZone(identifier: "UTC")!
+        let c = cal.dateComponents([.year, .month, .day], from: Date())
+        let todayUTC = cal.date(from: DateComponents(year: c.year, month: c.month, day: c.day))!
+        var next = cal.date(from: DateComponents(year: c.year, month: m, day: d))!
+        if next < todayUTC { next = cal.date(from: DateComponents(year: c.year! + 1, month: m, day: d))! }
+        return Int((next.timeIntervalSince(todayUTC) / 86400).rounded())
+    }
+
+    // Локальная дата YYYY-MM-DD (сутки переключаются в твою полночь, как в Node).
+    private static func localToday() -> String { localDateFormatter().string(from: Date()) }
+    private static func localDateFormatter() -> DateFormatter {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; f.locale = Locale(identifier: "en_US_POSIX")
+        return f
+    }
+    private static let ymdUTC: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"
+        f.timeZone = TimeZone(identifier: "UTC"); f.locale = Locale(identifier: "en_US_POSIX")
+        return f
+    }()
 
     // /api/tree: все узлы (с флагом blocked) + связи — порт core.listTree.
     static func tree(_ db: Database) throws -> Data {
