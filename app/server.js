@@ -99,6 +99,10 @@ function apiAuthorized(req, p) {
   if (!p.startsWith('/api/')) return true;          // статика открыта
   if (API_OPEN.has(p)) return true;                 // вход в замок и версия
   if (!psy.lockEnabled(db)) return true;            // замок выключен — как раньше
+  // лента напоминаний — только с этого же Mac (Electron-оболочка), сеть заперта
+  const loopback = req.socket.remoteAddress === '127.0.0.1' || req.socket.remoteAddress === '::1'
+    || req.socket.remoteAddress === '::ffff:127.0.0.1';
+  if (p === '/api/notify/upcoming' && loopback) return true;
   const key = req.headers['x-pipboy-key'];
   return !!key && key === (db.prepare(`SELECT value FROM settings WHERE key = 'lock_pw_hash'`).get()?.value ?? '');
 }
