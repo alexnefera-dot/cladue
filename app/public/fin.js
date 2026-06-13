@@ -111,6 +111,34 @@ function portRows(it, depth, ctx) {
   </tr>` + (folded ? '' : it.children.map(c => portRows(c, depth + 1, ctx && { total: ctx.total, parentEur: it.eur })).join(''));
 }
 
+// диаграмма аллокации: доли с процентами внутри, каждая своим цветом
+const PIE_COLORS = ['#1e9e57', '#2a76b5', '#a87708', '#7a4fc0', '#c43f3f',
+  '#0e8f8f', '#b5519c', '#6b8e23', '#d2691e', '#5b6b7c'];
+
+function allocPie(byType, total) {
+  const R = 86, C = 110;
+  let a0 = -Math.PI / 2;
+  const slices = byType.map(([name, v], i) => {
+    const frac = v / total;
+    const a1 = a0 + frac * 2 * Math.PI;
+    const large = a1 - a0 > Math.PI ? 1 : 0;
+    const p = a => [C + R * Math.cos(a), C + R * Math.sin(a)];
+    const [x0, y0] = p(a0), [x1, y1] = p(a1);
+    const mid = (a0 + a1) / 2;
+    const [lx, ly] = [C + R * 0.62 * Math.cos(mid), C + R * 0.62 * Math.sin(mid)];
+    const path = frac > 0.999
+      ? `<circle cx="${C}" cy="${C}" r="${R}" fill="${PIE_COLORS[i % PIE_COLORS.length]}"/>`
+      : `<path d="M${C},${C} L${x0.toFixed(1)},${y0.toFixed(1)} A${R},${R} 0 ${large} 1 ${x1.toFixed(1)},${y1.toFixed(1)} Z"
+          fill="${PIE_COLORS[i % PIE_COLORS.length]}"/>`;
+    const label = frac >= 0.055
+      ? `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle" dominant-baseline="middle"
+          fill="#fff" font-size="13" font-weight="700">${(frac * 100).toFixed(frac < 0.1 ? 1 : 0)}%</text>` : '';
+    a0 = a1;
+    return path + label;
+  }).join('');
+  return `<svg viewBox="0 0 220 220" width="220" height="220" style="flex:0 0 auto">${slices}</svg>`;
+}
+
 // ===== Секции =====
 function secPortfolio(d, s) {
   return `
@@ -154,9 +182,14 @@ function secPortfolio(d, s) {
   ${finTab === 'fact' && d.byType.length ? `
   <div class="card">
     <div class="meta" style="margin-bottom:6px">АЛЛОКАЦИЯ ПО ТИПАМ АКТИВОВ (⊙ у строки — задать тип)</div>
-    ${d.byType.map(([t, v]) => `
-      <div class="kv"><span>${fesc(t)}</span><b class="num">${fmt(v)} € · ${(v / s.portfolioTotal * 100).toFixed(1)}%</b></div>
-      <div class="bar" style="margin:2px 0 6px"><i style="width:${v / d.byType[0][1] * 100}%"></i></div>`).join('')}
+    <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;padding:6px 0">
+      ${allocPie(d.byType, s.portfolioTotal)}
+      <div style="flex:1;min-width:220px">
+        ${d.byType.map(([t, v], i) => `
+          <div class="kv"><span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${PIE_COLORS[i % PIE_COLORS.length]};margin-right:7px"></i>${fesc(t)}</span>
+            <b class="num">${fmt(v)} € · ${(v / s.portfolioTotal * 100).toFixed(1)}%</b></div>`).join('')}
+      </div>
+    </div>
   </div>` : ''}`;
 }
 
