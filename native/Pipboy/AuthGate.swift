@@ -29,7 +29,7 @@ struct AuthGate: View {
                 DispatchQueue.main.async {
                     if ok {
                         unlocked = true
-                        Self.smokeTestEncryptedDB(context: ctx)   // Этап 0a (временно)
+                        Self.smokeTestEncryptedDB()   // Этап 0b (временно)
                     } else { error = "Не удалось разблокировать" }
                 }
             }
@@ -41,10 +41,10 @@ struct AuthGate: View {
     // Этап 0a (временная проверка): открыть зашифрованную базу тем же пальцем.
     // В фоне и с перехватом — если что-то не так, приложение продолжает работать.
     // Результат смотри в консоли Xcode: «Pipboy 0a: …». Удалим, когда слой созреет.
-    static func smokeTestEncryptedDB(context: LAContext) {
+    static func smokeTestEncryptedDB() {
         DispatchQueue.global().async {
             do {
-                let key = try Keychain.databaseKey(context: context)
+                let key = try Keychain.databaseKey()
                 Importer.importIfNeeded(encryptedKey: key)        // Этап 0b: разовый импорт
                 let db = try Database(key: key)
                 let tables = try db.scalarInt("SELECT count(*) FROM sqlite_master WHERE type='table'")
