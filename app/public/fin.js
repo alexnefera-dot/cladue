@@ -140,24 +140,10 @@ function allocPie(byType, total) {
 }
 
 // ===== Секции =====
-function secPortfolio(d, s) {
+// пассивный доход — всегда открыт, скрытие портфеля его не прячет
+function secIncome(d, s) {
   return `
-  <div class="sec">Портфель · блоки → разделы → активы · всё правится кликом</div>
-  <div class="viewtabs">
-    <span class="pill btn ${finTab === 'fact' ? 'ok' : ''}" data-fintab="fact">Факт</span>
-    <span class="pill btn ${finTab === 'target' ? 'ok' : ''}" data-fintab="target">Целевой портфель</span>
-    <span class="pill btn" id="pfoldAll" style="margin-left:auto">${portFold.size ? '▾ развернуть всё' : '▸ свернуть всё'}</span>
-  </div>
-  <div class="card">
-    <table class="fintable porttable">
-      ${finTab === 'target'
-        ? '<tr><th>Название</th><th class="r">Факт</th><th class="r">Цель</th><th class="r">Δ</th><th></th></tr>'
-        : '<tr><th>Название</th><th class="r">Покупка</th><th class="r">Прирост</th><th class="r">Текущая</th><th class="r">Доля</th><th></th></tr>'}
-      ${d.portfolio.map(b => portRows(b, 0, { total: s.portfolioTotal, parentEur: s.portfolioTotal })).join('')}
-    </table>
-    ${finTab === 'target' ? '<div class="empty" style="padding-top:8px">Целевые суммы ставь на любом уровне. Δ — факт минус цель.</div>' : ''}
-  </div>
-  ${finTab === 'fact' ? `
+  <div class="sec">Пассивный доход</div>
   <div class="card">
     <div class="meta" style="margin-bottom:6px">💸 ПАССИВНЫЙ ДОХОД · ~${fmt(s.monthlyIncome)} € / мес</div>
     ${d.income.map(i => `
@@ -178,7 +164,27 @@ function secPortfolio(d, s) {
       <input id="incDate" placeholder="дата (опц.)" style="width:105px">
       <span class="pill btn ok" id="incAdd">＋</span>
     </div>
-  </div>` : ''}
+  </div>`;
+}
+
+
+function secPortfolio(d, s) {
+  return `
+  <div class="sec">Портфель · блоки → разделы → активы · всё правится кликом</div>
+  <div class="viewtabs">
+    <span class="pill btn ${finTab === 'fact' ? 'ok' : ''}" data-fintab="fact">Факт</span>
+    <span class="pill btn ${finTab === 'target' ? 'ok' : ''}" data-fintab="target">Целевой портфель</span>
+    <span class="pill btn" id="pfoldAll" style="margin-left:auto">${portFold.size ? '▾ развернуть всё' : '▸ свернуть всё'}</span>
+  </div>
+  <div class="card">
+    <table class="fintable porttable">
+      ${finTab === 'target'
+        ? '<tr><th>Название</th><th class="r">Факт</th><th class="r">Цель</th><th class="r">Δ</th><th></th></tr>'
+        : '<tr><th>Название</th><th class="r">Покупка</th><th class="r">Прирост</th><th class="r">Текущая</th><th class="r">Доля</th><th></th></tr>'}
+      ${d.portfolio.map(b => portRows(b, 0, { total: s.portfolioTotal, parentEur: s.portfolioTotal })).join('')}
+    </table>
+    ${finTab === 'target' ? '<div class="empty" style="padding-top:8px">Целевые суммы ставь на любом уровне. Δ — факт минус цель.</div>' : ''}
+  </div>
   ${finTab === 'fact' && d.byType.length ? `
   <div class="card">
     <div class="meta" style="margin-bottom:6px">АЛЛОКАЦИЯ ПО ТИПАМ АКТИВОВ (⊙ у строки — задать тип)</div>
@@ -508,6 +514,7 @@ function renderFin() {
   const show = k => finSection === 'all' || finSection === k;
   document.getElementById('screen-fin').innerHTML = head
     + (show('port') ? (hidden('port') ? veiled('Портфель', 'port') : secPortfolio(d, s)) : '')
+    + (show('port') ? secIncome(d, s) : '')
     + (show('acc') ? (hidden('acc') ? veiled('Счета', 'acc') : secAccounts(d)) : '')
     + (show('flow') ? renderTx(d.tx, d.budget) : '')
     + (show('debts') ? secDebts(d) : '')
