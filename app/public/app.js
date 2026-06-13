@@ -716,6 +716,18 @@ addT.addEventListener('keydown', e => {
 const LOCKED_SCREENS = new Set(['list', 'fin', 'notes', 'psy']);
 let lockOn = true;            // до ответа сервера считаем, что закрыто
 let currentScr = 'today';
+// нативный лаунчер Mac разблокировал замок и передал ключ через ?key=… —
+// принимаем его и не показываем веб-замок повторно
+try {
+  const u = new URL(location.href);
+  const k = u.searchParams.get('key');
+  if (k) {
+    localStorage.pbKey = k;
+    sessionStorage.pbUnlocked = '1';
+    u.searchParams.delete('key');
+    history.replaceState(null, '', u.pathname + (u.search || ''));
+  }
+} catch { /* нет location/history (тестовая среда) — пропускаем */ }
 fetch('/api/lock').then(r => r.json()).then(i => {
   lockOn = i.enabled;
   refreshLockBadges();

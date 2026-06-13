@@ -1,10 +1,11 @@
 #!/bin/zsh
-# Двойной клик: сервер работает в фоне (переживает закрытие окна),
-# а каждый клик просто открывает окно-приложение. Без терминала, без Electron.
+# Двойной клик: сервер в фоне + НАТИВНЫЙ замок macOS на старте.
+# Сначала системное окно с паролем, потом приложение открывается уже разблокированным.
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 URL="http://localhost:7777"
+osa() { /usr/bin/osascript "$@"; }
 
-# сервер ещё не поднят? — обновим код и запустим в фоне
+# 1) поднять сервер в фоне, если ещё не запущен
 if ! /usr/bin/curl -s -o /dev/null --max-time 1 "$URL"; then
   cd "$ROOT"; /usr/bin/git pull --quiet 2>/dev/null
   cd "$ROOT/app"
@@ -16,11 +17,29 @@ if ! /usr/bin/curl -s -o /dev/null --max-time 1 "$URL"; then
   for i in {1..60}; do /usr/bin/curl -s -o /dev/null --max-time 1 "$URL" && break; sleep 0.25; done
 fi
 
-# открыть окно-приложение (Chrome/Brave/Edge — без вкладок и адресной строки)
+# 2) замок включён? — нативное окно пароля macOS
+KEY=""
+LOCK="$(/usr/bin/curl -s --max-time 2 "$URL/api/lock")"
+if echo "$LOCK" | grep -q '"enabled":true'; then
+  while true; do
+    PW="$(osa -e 'display dialog "Pipboy — пароль" default answer "" with hidden answer with title "Pipboy" buttons {"Отмена","Войти"} default button "Войти" with icon note' -e 'text returned of result' 2>/dev/null)"
+    [ $? -ne 0 ] && exit 0          # нажали «Отмена» — не открываем
+    ESC="${PW//\\/\\\\}"; ESC="${ESC//\"/\\\"}"
+    RESP="$(/usr/bin/curl -s --max-time 3 -X POST "$URL/api/lock/unlock" -H 'Content-Type: application/json' -d "{\"password\":\"$ESC\"}")"
+    KEY="$(echo "$RESP" | sed -n 's/.*"key":"\([^"]*\)".*/\1/p')"
+    [ -n "$KEY" ] && break
+    osa -e 'display dialog "Неверный пароль" with title "Pipboy" buttons {"Ещё раз"} default button "Ещё раз" with icon stop' >/dev/null 2>&1
+  done
+  OPEN_URL="$URL/?key=$KEY"
+else
+  OPEN_URL="$URL"
+fi
+
+# 3) открыть окно-приложение (Chrome/Brave/Edge без вкладок), иначе браузер
 for B in \
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
   "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser" \
   "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"; do
-  [ -x "$B" ] && { "$B" --app="$URL" --window-size=1380,900 >/dev/null 2>&1 & exit 0; }
+  [ -x "$B" ] && { "$B" --app="$OPEN_URL" --window-size=1380,900 >/dev/null 2>&1 & exit 0; }
 done
-open "$URL"
+open "$OPEN_URL"
