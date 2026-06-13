@@ -765,7 +765,10 @@ function refreshLockBadges() {
 
 const wbB64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
 const wbUn = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
-const touchAvail = () => !!(window.PublicKeyCredential && window.isSecureContext);
+// В нативном приложении (WKWebView) WebAuthn-палец не работает — палец там на
+// уровне macOS при запуске (AuthGate), а на loopback разделы и так авто-открыты.
+const isNativeApp = () => !!(window.webkit && window.webkit.messageHandlers);
+const touchAvail = () => !isNativeApp() && !!(window.PublicKeyCredential && window.isSecureContext);
 async function touchIdRegister() {
   const cred = await navigator.credentials.create({ publicKey: {
     rp: { name: 'Pipboy' },
@@ -936,13 +939,13 @@ window.loadSettings = async function () {
              <span class="meta">уберёт всё с пометкой «(пример)» и тестовые наполнения; категории, блоки портфеля и колонки дневника останутся. Назад не вернутся.</span>`}
       </div>
     </div>
-    <div class="card"><div class="meta">📱 С ТЕЛЕФОНА</div>
+    ${isNativeApp() ? '' : `<div class="card"><div class="meta">📱 С ТЕЛЕФОНА</div>
       ${info.lan
         ? `<div class="kv">Адрес в домашней сети <b class="num">${esc(info.lan)}</b></div>
            <div class="meta" style="margin-top:6px">открой в Safari на iPhone (тот же Wi-Fi, Mac включён) →
            Поделиться → «На экран “Домой”» — будет как приложение. Данные не покидают Mac.</div>`
         : '<div class="empty">сеть не найдена — проверь Wi-Fi</div>'}
-    </div>
+    </div>`}
   </div>`;
 
   const box = document.getElementById('screen-settings');
