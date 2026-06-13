@@ -714,18 +714,28 @@ fetch('/api/info').then(r => r.json()).then(i => { window.pbVersion = i.version;
 window.isLocked = scr => LOCKED_SCREENS.has(scr) && lockOn && sessionStorage.pbUnlocked !== '1';
 window.lockNow = () => { sessionStorage.removeItem('pbUnlocked'); showScreen('today'); };
 
-// замочки у закрытых разделов в сайдбаре: 🔒 закрыто, 🔓 после разблокировки
-const navBase = {};
+// замочки у закрытых разделов: 🔒 вместо иконки, после разблокировки — родная иконка
 function refreshLockBadges() {
   document.querySelectorAll('.side .item[data-screen]').forEach(el => {
     const scr = el.dataset.screen;
     if (!LOCKED_SCREENS.has(scr)) return;
-    navBase[scr] ??= el.textContent.trim();
-    // закрыто — 🔒 вместо значка; открыто — родной значок раздела
-    el.textContent = lockOn && window.isLocked(scr)
-      ? `🔒 ${navBase[scr].replace(/^\S+\s/, '')}`
-      : navBase[scr];
+    const ni = el.querySelector('.ni');
+    if (ni) ni.textContent = lockOn && window.isLocked(scr) ? '🔒' : el.dataset.ico;
   });
+}
+
+// группа «Ещё» (Люди, Рутины): свёрнута по умолчанию, состояние запоминается
+{
+  const box = () => document.getElementById('navMoreBox');
+  const caret = () => document.getElementById('navMoreCaret');
+  const setOpen = open => {
+    box().style.display = open ? 'block' : 'none';
+    caret().textContent = open ? '▾' : '▸';
+    localStorage.navMore = open ? '1' : '0';
+  };
+  setOpen(localStorage.navMore === '1');
+  document.getElementById('navMore').addEventListener('click', () =>
+    setOpen(box().style.display === 'none'));
 }
 
 const wbB64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
@@ -789,6 +799,11 @@ window.showScreen = function (scr) {
   const locked = window.isLocked(scr);
   document.querySelectorAll('.side .item').forEach(i =>
     i.classList.toggle('active', i.dataset.screen === scr));
+  if (scr === 'people' || scr === 'routines') {
+    document.getElementById('navMoreBox').style.display = 'block';
+    document.getElementById('navMoreCaret').textContent = '▾';
+    localStorage.navMore = '1';
+  }
   for (const key of Object.keys(SCREENS))
     document.getElementById('screen-' + key).style.display = (!locked && key === scr) ? 'block' : 'none';
   document.getElementById('lockpane').style.display = locked ? 'block' : 'none';

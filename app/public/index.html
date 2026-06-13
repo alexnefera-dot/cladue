@@ -19,18 +19,20 @@
 </div>
 <div class="layout">
   <nav class="side">
-    <div class="item" data-screen="today">◉ Сегодня</div>
-    <div class="item" data-screen="list">⚑ Цели</div>
-    <div class="item" data-screen="fin">◈ Финансы</div>
-    <div class="item" data-screen="cal">▦ Календарь</div>
-    <div class="item" data-screen="track">📊 Трекинг</div>
-    <div class="item" data-screen="notes">▤ Инфо</div>
-    <div class="navgap">реже</div>
-    <div class="item dim" data-screen="people">☻ Люди</div>
-    <div class="item dim" data-screen="routines">↻ Рутины</div>
-    <div class="item dim" data-screen="psy">◎ Психология</div>
+    <div class="item" data-screen="today" data-ico="☀️"><span class="ni">☀️</span>Сегодня</div>
+    <div class="item" data-screen="list" data-ico="🎯"><span class="ni">🎯</span>Цели</div>
+    <div class="item" data-screen="fin" data-ico="💰"><span class="ni">💰</span>Финансы</div>
+    <div class="item" data-screen="cal" data-ico="📅"><span class="ni">📅</span>Календарь</div>
+    <div class="item" data-screen="track" data-ico="📊"><span class="ni">📊</span>Трекинг</div>
+    <div class="item" data-screen="psy" data-ico="🧠"><span class="ni">🧠</span>Психология</div>
+    <div class="item" data-screen="notes" data-ico="📒"><span class="ni">📒</span>Инфо</div>
+    <div class="item" id="navMore"><span class="ni" id="navMoreCaret">▸</span>Ещё</div>
+    <div id="navMoreBox" style="display:none">
+      <div class="item" data-screen="people" data-ico="👥"><span class="ni">👥</span>Люди</div>
+      <div class="item" data-screen="routines" data-ico="🔁"><span class="ni">🔁</span>Рутины</div>
+    </div>
     <div class="bottom">
-      <div class="item" data-screen="settings">⚙ Настройки</div>
+      <div class="item" data-screen="settings" data-ico="⚙️"><span class="ni">⚙️</span>Настройки</div>
       <input id="searchbox" placeholder="⌕ поиск (х5 найдёт и X5)" style="margin-top:8px">
       <div id="searchres"></div>
     </div>

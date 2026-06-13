@@ -307,3 +307,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
   background:var(--panel);border:1px solid var(--green-dim);border-radius:12px;box-shadow:var(--shadow-md);padding:10px}
 #qcap input{width:100%;border:0;font:15px var(--sans);background:transparent}
 #qcap input:focus{box-shadow:none;border:0 !important}
+
+/* Иконки сайдбара крупнее, группа «Ещё» */
+.side .item .ni{font-size:16px;margin-right:9px;display:inline-block;width:20px;text-align:center;vertical-align:-1px}
+#navMoreBox .item{padding-left:18px}
+#navMore{color:var(--muted);font-weight:500}
