@@ -24,16 +24,23 @@ struct PipboyApp: App {
     }
 }
 
-// Растягивает окно на всю видимую область экрана (без режима «во весь экран»).
+// Разворачивает окно на всю видимую область экрана. С повтором —
+// окно может появиться позже самого view, поэтому ждём его.
 struct WindowMaximizer: NSViewRepresentable {
     func makeNSView(context: Context) -> NSView {
         let v = NSView()
-        DispatchQueue.main.async {
-            if let w = v.window, let screen = w.screen ?? NSScreen.main {
-                w.setFrame(screen.visibleFrame, display: true, animate: false)
-            }
-        }
+        maximize(v, attempts: 0)
         return v
     }
     func updateNSView(_ nsView: NSView, context: Context) {}
+
+    private func maximize(_ v: NSView, attempts: Int) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            if let w = v.window, let screen = w.screen ?? NSScreen.main {
+                w.setFrame(screen.visibleFrame, display: true, animate: false)
+            } else if attempts < 30 {
+                maximize(v, attempts: attempts + 1)
+            }
+        }
+    }
 }
