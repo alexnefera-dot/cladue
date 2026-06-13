@@ -45,10 +45,13 @@ struct AuthGate: View {
         DispatchQueue.global().async {
             do {
                 let key = try Keychain.databaseKey(context: context)
-                let n = try Database(key: key).smokeTest()
-                NSLog("Pipboy 0a: зашифрованная база открыта, _smoke=\(n)")
+                Importer.importIfNeeded(encryptedKey: key)        // Этап 0b: разовый импорт
+                let db = try Database(key: key)
+                let tables = try db.scalarInt("SELECT count(*) FROM sqlite_master WHERE type='table'")
+                let nodes = (try? db.scalarInt("SELECT count(*) FROM nodes")) ?? 0
+                NSLog("Pipboy 0b: зашифрованная база — таблиц:\(tables) задач:\(nodes)")
             } catch {
-                NSLog("Pipboy 0a: ошибка шифр-базы: \(error)")
+                NSLog("Pipboy 0b: ошибка шифр-базы: \(error)")
             }
         }
     }
