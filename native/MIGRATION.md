@@ -13,12 +13,20 @@ iPhone + синхронизация. Это и есть старт iPhone-фаз
   переносим обработчики «на паритет», сверяясь с этими ожиданиями.
 
 ## Стек
-- **GRDB.swift + SQLCipher** (через Swift Package Manager). Зрелая библиотека,
-  шифрование встроено. SPM ≠ npm: пакеты компилируются Xcode из исходников,
-  без postinstall-загрузок бинарников — то, что ломало Electron, тут не повторится.
+- **`skiptools/swift-sqlcipher`** (через Swift Package Manager) — чистый SPM-пакет,
+  внутри уже собран **SQLCipher (шифрованный SQLite) + FTS5**, без CocoaPods и без
+  внешних шагов сборки. SPM ≠ npm: компилируется Xcode из исходников, без
+  postinstall-загрузок — то, что ломало Electron, тут не повторится.
+  - Даёт C-API `sqlite3` (`import SQLCipher`) — ложится почти 1:1 на то, как
+    `server.js` работает с `node:sqlite` (`prepare/get/all/run`), поэтому SQL-строки
+    переносятся механически. Поверх — тонкая Swift-обёртка (~50 строк), GRDB не нужен.
 - **Keychain** (Security.framework) — хранит ключ базы, доступ под `LAContext`
-  (Touch ID). Файл базы = шифр, пока не приложил палец, даже на залогиненном Маке.
+  (Touch ID). Файл базы = шифр (SQLCipher, `PRAGMA key`), пока не приложил палец,
+  даже на залогиненном Маке.
 - **WKURLSchemeHandler** — мост UI↔данные по тем же путям `/api/*`.
+
+> Замечание: обычный GRDB через SPM шифровать НЕ умеет (SPM не собирает SQLCipher) —
+> поэтому берём swift-sqlcipher, а не GRDB.
 
 ## Этапы
 0. **Каркас:** открыть шифрованную БД, ключ в Keychain под палец;
@@ -49,6 +57,12 @@ Swift в этой среде я не компилирую (нет macOS/Xcode). 
 Для нативной работы здесь это неизбежно — закладываемся на цикл «сборка ↔ правка».
 
 ## Что нужно от тебя один раз (Этап 0)
-Добавить пакет в Xcode (пара кликов, не через правку файла проекта вслепую):
-File → Add Package Dependencies → `https://github.com/groue/GRDB.swift` →
-продукт **GRDB** (вариант со SQLCipher). Хэндлы напишу я.
+В Xcode: убрать пакет GRDB (если добавил) и добавить вместо него
+File → Add Package Dependencies → `https://github.com/skiptools/swift-sqlcipher`
+→ продукт **SQLCipher**. Хэндлы и обёртку напишу я.
+
+> С этого момента файл проекта (`project.pbxproj`) ведёт твой Xcode — я его больше
+> не трогаю, чтобы не ловить конфликты при `git pull`. Новые .swift-файлы, что я
+> добавляю, нужно один раз подключить (Add Files to «Pipboy», галку Copy снять —
+> файлы уже на месте), и periodically коммить `project.pbxproj`, чтобы git был
+> актуальным.

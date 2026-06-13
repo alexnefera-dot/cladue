@@ -27,12 +27,29 @@ struct AuthGate: View {
             ctx.evaluatePolicy(.deviceOwnerAuthentication,
                                localizedReason: "Доступ к Pipboy") { ok, e in
                 DispatchQueue.main.async {
-                    if ok { unlocked = true }
-                    else { error = "Не удалось разблокировать" }
+                    if ok {
+                        unlocked = true
+                        Self.smokeTestEncryptedDB(context: ctx)   // Этап 0a (временно)
+                    } else { error = "Не удалось разблокировать" }
                 }
             }
         } else {
             error = "Аутентификация недоступна на этом Mac"
+        }
+    }
+
+    // Этап 0a (временная проверка): открыть зашифрованную базу тем же пальцем.
+    // В фоне и с перехватом — если что-то не так, приложение продолжает работать.
+    // Результат смотри в консоли Xcode: «Pipboy 0a: …». Удалим, когда слой созреет.
+    static func smokeTestEncryptedDB(context: LAContext) {
+        DispatchQueue.global().async {
+            do {
+                let key = try Keychain.databaseKey(context: context)
+                let n = try Database(key: key).smokeTest()
+                NSLog("Pipboy 0a: зашифрованная база открыта, _smoke=\(n)")
+            } catch {
+                NSLog("Pipboy 0a: ошибка шифр-базы: \(error)")
+            }
         }
     }
 }
