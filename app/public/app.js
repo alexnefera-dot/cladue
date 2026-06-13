@@ -730,8 +730,10 @@ try {
 } catch { /* нет location/history (тестовая среда) — пропускаем */ }
 fetch('/api/lock').then(r => r.json()).then(i => {
   lockOn = i.enabled;
+  if (i.localUnlock) sessionStorage.pbUnlocked = '1';   // ты за своим Mac — секции открыты
   refreshLockBadges();
-  if (!lockOn && document.getElementById('lockpane').style.display !== 'none') showScreen(currentScr);
+  if (document.getElementById('lockpane').style.display !== 'none' && !window.isLocked(currentScr))
+    showScreen(currentScr);
 }).catch(() => {});
 fetch('/api/info').then(r => r.json()).then(i => { window.pbVersion = i.version; }).catch(() => {});
 window.isLocked = scr => LOCKED_SCREENS.has(scr) && lockOn && sessionStorage.pbUnlocked !== '1';

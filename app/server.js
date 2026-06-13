@@ -293,8 +293,13 @@ const server = http.createServer(async (req, res) => {
         hasPass: psy.psyHasPass(db),
       });
     // ===== Общий замок разделов: Цели/Финансы/Инфо/Психология =====
-    if (p === '/api/lock' && req.method === 'GET')
-      return json(res, 200, { enabled: psy.lockEnabled(db) });
+    if (p === '/api/lock' && req.method === 'GET') {
+      const ra = req.socket.remoteAddress ?? '';
+      const local = ra === '127.0.0.1' || ra === '::1' || ra === '::ffff:127.0.0.1';
+      // ты физически за этим Mac (вход + Touch ID пройдены) — секции открыты сразу.
+      // Пароль секций требуется только удалённым устройствам (телефон).
+      return json(res, 200, { enabled: psy.lockEnabled(db), localUnlock: local });
+    }
     if (p === '/api/lock/unlock' && req.method === 'POST') {
       const b = await body(req);
       return psy.checkLockPass(db, b.password)
