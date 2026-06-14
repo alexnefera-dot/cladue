@@ -125,6 +125,11 @@ enum Api {
         case "/api/fin/tx":
             let ym = queryValue(query, "month") ?? String(localToday().prefix(7))
             return (try json(try txMonth(db, ym)), 200)
+        case "/api/calendar":
+            let ym = queryValue(query, "month") ?? String(localToday().prefix(7))
+            return (try json(try calendar(db, ym)), 200)
+        case "/api/today":
+            return (try todayDash(db), 200)
         default:
             throw Unsupported(path: path)
         }
@@ -419,6 +424,255 @@ enum Api {
             props[i]["rules"] = rules
         }
         return props
+    }
+
+    // ===== Календарь (порт cal.calendar + occurrences/birthdays) =====
+    static func calendar(_ db: Database, _ ym: String) throws -> [String: Any] {
+        guard ym.range(of: "^[0-9]{4}-[0-9]{2}$", options: .regularExpression) != nil,
+              let y = Int(ym.prefix(4)), let m = Int(ym.suffix(2)) else {
+            throw Unsupported(path: "calendar:\(ym)")
+        }
+        var cal = Calendar(identifier: .gregorian); cal.timeZone = TimeZone(identifier: "UTC")!
+        let first = ym + "-01"
+        let lastDay = cal.range(of: .day, in: .month,
+            for: cal.date(from: DateComponents(year: y, month: m, day: 1))!)!.count
+        let last = ym + "-" + String(format: "%02d", lastDay)
+        var items: [[String: Any]] = []
+        for t in try db.rows("""
+            SELECT id, title, kind, status, priority, due_date FROM nodes
+            WHERE due_date BETWEEN ? AND ? AND kind IN ('task','decision')
+            """, [first, last]) {
+            let st = t["status"] as? String ?? ""
+            items.append(["date": t["due_date"] ?? NSNull(), "type": "task", "id": t["id"] ?? NSNull(),
+                "title": t["title"] ?? NSNull(), "done": ["done", "accepted"].contains(st),
+                "kind": t["kind"] ?? NSNull(), "priority": t["priority"] ?? NSNull()])
+        }
+        for s in try db.rows("SELECT * FROM steps WHERE planned_date BETWEEN ? AND ? AND task_id IS NULL", [first, last]) {
+            let kind = s["kind"] as? String ?? ""
+            let label = ["buy": "Купить", "sell": "Продать", "transfer": "Перевод"][kind] ?? kind
+            items.append(["date": s["planned_date"] ?? NSNull(), "type": "step", "id": s["id"] ?? NSNull(),
+                "title": label + ": " + (s["title"] as? String ?? ""),
+                "done": (s["status"] as? String) == "done", "amount": s["amount"] ?? NSNull()])
+        }
+        for o in try db.rows("SELECT * FROM obligations WHERE next_date IS NOT NULL") {
+            let recur = (o["period"] as? String) == "once" ? "none" : (o["period"] as? String)
+            for d in occurrences(o["next_date"] as? String, recur, first, last) {
+                items.append(["date": d, "type": "money", "id": o["id"] ?? NSNull(), "title": o["name"] ?? NSNull(),
+                    "amount": o["amount"] ?? NSNull(), "currency": o["currency"] ?? NSNull(), "okind": o["kind"] ?? NSNull()])
+            }
+        }
+        for e in try db.rows("SELECT * FROM events") {
+            for d in occurrences(e["date"] as? String, e["recur"] as? String, first, last) {
+                items.append(["date": d, "type": "event", "id": e["id"] ?? NSNull(), "title": e["title"] ?? NSNull(),
+                    "time": e["time"] ?? NSNull(), "recur": e["recur"] ?? NSNull()])
+            }
+        }
+        for p in try birthdays(db) {
+            let md = p["mmdd"] as? String ?? ""
+            let d = ym + "-" + String(md.suffix(2))
+            if String(md.prefix(2)) == String(ym.suffix(2)) && d >= first && d <= last {
+                items.append(["date": d, "type": "event", "id": "p\(intval(p["id"]))",
+                    "title": "🎂 " + (p["name"] as? String ?? ""), "recur": "yearly", "bday": true])
+            }
+        }
+        items.sort { a, b in
+            let da = a["date"] as? String ?? "", dbb = b["date"] as? String ?? ""
+            if da != dbb { return da < dbb }
+            return (a["time"] as? String ?? "") < (b["time"] as? String ?? "")
+        }
+        return ["month": ym, "first": first, "last": last, "items": items]
+    }
+
+    // Развёртка повторов: список дат вхождения в [first, last] (ISO-строки сравниваются лексикографически).
+    private static func occurrences(_ startDate: String?, _ recur: String?, _ first: String, _ last: String) -> [String] {
+        guard let startDate, !startDate.isEmpty else { return [] }
+        if recur == nil || recur == "none" || recur == "" {
+            return (startDate >= first && startDate <= last) ? [startDate] : []
+        }
+        var out: [String] = []; var d = startDate; var i = 0
+        while i < 2700 && d <= last {
+            if d >= first { out.append(d) }
+            if recur == "weekly", let dt = ymdUTC.date(from: d) {
+                d = ymdUTC.string(from: dt.addingTimeInterval(7 * 86400))
+            } else {
+                d = addMonths(d, recur == "yearly" ? 12 : 1)
+            }
+            i += 1
+        }
+        return out
+    }
+
+    private static func addMonths(_ iso: String, _ months: Int) -> String {
+        var cal = Calendar(identifier: .gregorian); cal.timeZone = TimeZone(identifier: "UTC")!
+        guard let d = ymdUTC.date(from: String(iso.prefix(10))),
+              let r = cal.date(byAdding: .month, value: months, to: d) else { return iso }
+        return ymdUTC.string(from: r)
+    }
+
+    private static func birthdays(_ db: Database) throws -> [[String: Any]] {
+        var out: [[String: Any]] = []
+        for p in try db.rows("SELECT id, name, birthday FROM people WHERE birthday IS NOT NULL") {
+            if let b = p["birthday"] as? String,
+               let r = b.range(of: "[0-9]{2}-[0-9]{2}$", options: .regularExpression) {
+                out.append(["id": p["id"] ?? NSNull(), "name": p["name"] ?? NSNull(), "mmdd": String(b[r])])
+            }
+        }
+        return out
+    }
+
+    // Вхождения практик за месяц (для дашборда) — порт psy.monthOccurrences.
+    static func monthOccurrences(_ db: Database, _ ym: String, _ first: String, _ last: String) throws -> [[String: Any]] {
+        var items: [[String: Any]] = []
+        let logged = Set(try db.rows("SELECT practice_id, date FROM practice_log WHERE date BETWEEN ? AND ?", [first, last])
+            .compactMap { l -> String? in
+                guard let pid = l["practice_id"] as? Int, let d = l["date"] as? String else { return nil }
+                return "\(pid):\(d)"
+            })
+        for p in try db.rows("SELECT * FROM practices WHERE days != ''") {
+            let days = p["days"] as? String
+            for day in 1...31 {
+                let date = ym + "-" + String(format: "%02d", day)
+                if date < first || date > last { continue }
+                if occursOn(days, date) {
+                    items.append(["date": date, "type": "practice", "id": p["id"] ?? NSNull(),
+                        "title": p["name"] ?? NSNull(), "time": p["time"] ?? NSNull(),
+                        "done": logged.contains("\(intval(p["id"])):\(date)")])
+                }
+            }
+        }
+        return items
+    }
+
+    // ===== Дашборд «Сегодня» (порт today.buildToday + movement/sortRoutines) =====
+    static func todayDash(_ db: Database) throws -> Data {
+        let t = localToday()
+        let cal = Calendar.current
+        let tomorrow = localDateFormatter().string(from: cal.date(byAdding: .day, value: 1, to: Date())!)
+        let weekEnd = localDateFormatter().string(from: cal.date(byAdding: .day, value: 7, to: Date())!)
+        func taskRows(_ cond: String) throws -> [[String: Any]] {
+            try db.rows("""
+                SELECT id, title, kind, priority, due_date, repeat FROM nodes
+                WHERE kind IN ('task','decision') AND status IN ('todo','open') AND \(cond)
+                ORDER BY priority IS NULL, priority, due_date
+                """, [t])
+        }
+        let overdue = try taskRows("due_date < ?")
+        let dueToday = try taskRows("due_date = ?")
+        // лента: текущий + следующий месяц, без дублей
+        let ym = String(t.prefix(7))
+        let nextYm = String(addMonths(ym + "-01", 1).prefix(7))
+        var seen = Set<String>(); var all: [[String: Any]] = []
+        for src in [try calendar(db, ym), try calendar(db, nextYm)] {
+            for i in (src["items"] as? [[String: Any]]) ?? [] {
+                let key = "\(i["type"] ?? ""):\(i["id"] ?? ""):\(i["date"] ?? "")"
+                if seen.insert(key).inserted { all.append(i) }
+            }
+        }
+        func dateOf(_ i: [String: Any]) -> String { i["date"] as? String ?? "" }
+        let week = all.filter { dateOf($0) > t && dateOf($0) <= weekEnd && !(($0["done"] as? Bool) ?? false) }
+        let events = all.filter { ($0["type"] as? String) == "event" && (dateOf($0) == t || dateOf($0) == tomorrow) }
+        let payments7 = all.filter { ($0["type"] as? String) == "money" && dateOf($0) >= t && dateOf($0) <= weekEnd }
+        // финансы → просроченные долги/займы
+        let finObj = (try? JSONSerialization.jsonObject(with: try fin(db))) as? [String: Any] ?? [:]
+        var debtsOverdue = (finObj["debts"] as? [[String: Any]] ?? [])
+            .filter { ($0["overdue_days"] as? Int).map { $0 > 0 } ?? false }
+        for l in (finObj["loans"] as? [[String: Any]] ?? []) where (l["overdue_days"] as? Int).map({ $0 > 0 }) ?? false {
+            debtsOverdue.append(["id": "loan\(intval(l["id"]))", "name": (l["name"] as? String ?? "") + " (займ из портфеля)",
+                "amount": l["value"] ?? NSNull(), "currency": l["currency"] ?? NSNull(),
+                "direction": "owed_to_me", "overdue_days": l["overdue_days"] ?? NSNull()])
+        }
+        // люди → ближайшие ДР и просроченные контакты
+        let peopleArr = (try? JSONSerialization.jsonObject(with: try people(db))) as? [[String: Any]] ?? []
+        let bdays = peopleArr.filter { ($0["days_to_birthday"] as? Int).map { $0 <= 30 } ?? false }
+            .sorted { ($0["days_to_birthday"] as? Int ?? 0) < ($1["days_to_birthday"] as? Int ?? 0) }.prefix(5)
+        let overdueContacts = peopleArr.filter { ($0["overdue_contact"] as? Int).map { $0 > 0 } ?? false }
+            .sorted { ($0["overdue_contact"] as? Int ?? 0) > ($1["overdue_contact"] as? Int ?? 0) }.prefix(5)
+        // недельные цели (пн–вс)
+        let now = Date()
+        let wd = (cal.component(.weekday, from: now) + 5) % 7   // 0=Пн..6=Вс
+        let monday = localDateFormatter().string(from: cal.date(byAdding: .day, value: -wd, to: now)!)
+        let sunday = localDateFormatter().string(from: cal.date(byAdding: .day, value: 6 - wd, to: now)!)
+        let wg = try db.rows("""
+            SELECT count(*) AS total, SUM(CASE WHEN status IN ('done','accepted') THEN 1 ELSE 0 END) AS done
+            FROM nodes WHERE kind IN ('task','decision') AND due_date BETWEEN ? AND ?
+            """, [monday, sunday]).first
+        let checkin = try db.rows("SELECT mood, note FROM checkins WHERE date = ?", [t]).first
+        let real = (try db.rows("SELECT count(*) AS c FROM nodes WHERE is_category = 0").first?["c"] as? Int) ?? 0
+        let typed = (try db.rows("SELECT count(*) AS c FROM nodes WHERE is_category = 0 AND kind IS NOT NULL").first?["c"] as? Int) ?? 0
+        let inboxCat = try db.rows("SELECT id FROM nodes WHERE is_category = 1 AND title LIKE '%Инбокс%'").first
+        let inboxId = inboxCat.map { intval($0["id"]) }
+        let inbox = inboxId != nil
+            ? ((try db.rows("SELECT count(*) AS c FROM nodes WHERE parent_id = ?", [inboxId!]).first?["c"] as? Int) ?? 0) : 0
+        let practicesToday = (try monthOccurrences(db, ym, t, t))
+            .filter { dateOf($0) == t && !(($0["done"] as? Bool) ?? false) }.count
+        let routinesArr = (try? JSONSerialization.jsonObject(with: try routines(db))) as? [[String: Any]] ?? []
+        let result: [String: Any] = [
+            "date": t,
+            "activityMonth": (try db.rows("SELECT value FROM settings WHERE key = 'activity_month'").first?["value"]) ?? NSNull(),
+            "routines": sortRoutines(routinesArr),
+            "overdue": overdue, "dueToday": dueToday, "week": week, "events": events,
+            "zones": ["paymentsWeek": payments7.count, "debtsOverdue": debtsOverdue.count, "practicesToday": practicesToday],
+            "people": ["birthdays": Array(bdays), "overdueContacts": Array(overdueContacts)],
+            "movement": try movement(db),
+            "weekGoals": ["total": (wg?["total"] as? Int) ?? 0, "done": (wg?["done"] as? Int) ?? 0],
+            "checkin": checkin.map { $0 as Any } ?? NSNull(),
+            "debtsOverdue": debtsOverdue,
+            "inboxId": inboxId.map { $0 as Any } ?? NSNull(), "inbox": inbox,
+            "progress": ["typed": typed, "total": real],
+        ]
+        return try json(result)
+    }
+
+    // Движение недели: закрытое за 7 дней по корневым категориям — порт today.movement.
+    static func movement(_ db: Database) throws -> [String: Any] {
+        let nodes = try db.rows("SELECT id, parent_id, title, is_category FROM nodes")
+        var byId: [Int: [String: Any]] = [:]
+        for n in nodes { byId[intval(n["id"])] = n }
+        func rootOf(_ start: [String: Any]) -> String {
+            var cur = start
+            while let pid = cur["parent_id"] as? Int, let p = byId[pid] {
+                if intval(p["is_category"]) != 0 && (p["parent_id"] as? Int) == nil {
+                    return p["title"] as? String ?? "прочее"
+                }
+                cur = p
+            }
+            return intval(cur["is_category"]) != 0 ? (cur["title"] as? String ?? "прочее") : "прочее"
+        }
+        let done = try db.rows("""
+            SELECT id FROM nodes WHERE is_category = 0
+              AND status IN ('done','accepted') AND updated_at >= datetime('now','-7 days')
+            """)
+        var byCat: [String: Int] = [:]
+        for d in done { if let node = byId[intval(d["id"])] { byCat[rootOf(node), default: 0] += 1 } }
+        return ["total": done.count,
+                "top": byCat.sorted { $0.value > $1.value }.prefix(3).map { [$0.key, $0.value] as [Any] }]
+    }
+
+    // Сортировка рутин для дашборда — порт life.sortRoutines.
+    static func sortRoutines(_ rows: [[String: Any]]) -> [[String: Any]] {
+        let now = Date(); let c = Calendar.current
+        let hhmm = String(format: "%02d:%02d", c.component(.hour, from: now), c.component(.minute, from: now))
+        let slotOrd = ["утро": 0, "день": 1, "вечер": 2]
+        var arr = rows.map { r -> [String: Any] in
+            var n = r
+            let done = (r["done"] as? Bool) ?? false
+            let time = r["time"] as? String
+            n["due"] = !done && (time != nil && !(time!.isEmpty)) && (time! <= hhmm)
+            return n
+        }
+        arr.sort { a, b in
+            let ad = (a["done"] as? Bool) ?? false, bd = (b["done"] as? Bool) ?? false
+            if ad != bd { return !ad }
+            let at = a["time"] as? String, bt = b["time"] as? String
+            let aHas = at != nil && !(at!.isEmpty), bHas = bt != nil && !(bt!.isEmpty)
+            if aHas != bHas { return aHas }
+            if aHas, bHas, at! != bt! { return at! < bt! }
+            let ao = slotOrd[a["slot"] as? String ?? ""] ?? 9
+            let bo = slotOrd[b["slot"] as? String ?? ""] ?? 9
+            if ao != bo { return ao < bo }
+            return intval(a["ord"]) < intval(b["ord"])
+        }
+        return arr
     }
 
     // ===== Числовые / датовые помощники =====
