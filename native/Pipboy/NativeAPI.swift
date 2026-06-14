@@ -95,6 +95,14 @@ enum Api {
     }
 
     static func get(path: String, query: String?, db: Database) throws -> (Data, Int) {
+        // параметрические GET (карточка-инспектор узла)
+        if let m = match(path, "^/api/suggest/([0-9]+)$") {
+            return (try suggest(db, id: Int(m[1]) ?? -1), 200)
+        }
+        if let m = match(path, "^/api/nodes/([0-9]+)/log$") {
+            return (try json(try db.rows(
+                "SELECT * FROM node_log WHERE node_id = ? ORDER BY date DESC, id DESC LIMIT 10", [Int(m[1]) ?? -1])), 200)
+        }
         switch path {
         case "/api/info":
             return (try json(["lan": NSNull(), "demoWiped": true, "version": "native"]), 200)
@@ -177,6 +185,42 @@ enum Api {
             return (try json(try moveNode(db, id: Int(m[1]) ?? -1, newParent: parent) ?? [:]), 200)
         }
         throw Unsupported(path: "\(method) \(path)")
+    }
+
+    // Карточка-инспектор узла: сам узел + подсказка типа + существующие связи.
+    // (умные подсказки-связи по токенам и контекст ветки — добавлю отдельным срезом)
+    static func suggest(_ db: Database, id: Int) throws -> Data {
+        guard let t = try getNode(db, id) else { return try json(NSNull()) }
+        let hasKind = !(t["kind"] is NSNull) && t["kind"] != nil
+        let kind: Any = hasKind ? NSNull() : (suggestKind(t["title"] as? String ?? "") ?? NSNull())
+        let confirmed = try db.rows("""
+            SELECT l.id AS link_id, l.type, l.from_id, l.to_id, n.title, n.status, n.kind AS nkind
+            FROM links l JOIN nodes n ON n.id = CASE WHEN l.from_id = ? THEN l.to_id ELSE l.from_id END
+            WHERE l.from_id = ? OR l.to_id = ?
+            """, [id, id, id])
+        let result: [String: Any] = [
+            "node": t, "kind": kind, "date": NSNull(), "links": [],
+            "context": ["principles": [], "decisions": [], "payments": []],
+            "confirmed": confirmed,
+        ]
+        return try json(result)
+    }
+
+    private static func regexTest(_ s: String, _ pattern: String) -> Bool {
+        guard let re = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { return false }
+        return re.firstMatch(in: s, range: NSRange(s.startIndex..., in: s)) != nil
+    }
+    // Авто-тип по тексту — порт core.suggestKind.
+    private static func suggestKind(_ title: String) -> String? {
+        let t = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        if regexTest(t, "(боюсь|страшно|тревож|переживаю|волнуюсь|а вдруг|а если)") { return "worry" }
+        if regexTest(t, "^(стоит ли|как мы|что лучше|или\\b)") { return "decision" }
+        if regexTest(t, "\\?\\s*$") { return "question" }
+        let letters = t.filter { $0.isLetter }.count
+        let upper = t.filter { $0.isUppercase }.count
+        if letters >= 5 && Double(upper) / Double(letters) > 0.7 { return "principle" }
+        if regexTest(t, "^(понять|продать|купить|найти|находим|написать|посмотреть|посмотрим|использовать|сделать|назначить|подумать|сформулирую|формулирую|изучить|закрыть|общаемся|ведем|ведём|завести|положить|оплатить|проверить|узнать|записаться|выбрать|решить)") { return "task" }
+        return nil
     }
 
     // ----- Узлы целей (порт core.js: insert/update/toggle/reorder/move/delete) -----
