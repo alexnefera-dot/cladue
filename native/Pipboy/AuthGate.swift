@@ -65,6 +65,12 @@ struct AuthGate: View {
                 let blocks = (fin?["portfolio"] as? [[String: Any]])?.count ?? -1
                 let total = ((fin?["summary"] as? [String: Any])?["portfolioTotal"] as? Double) ?? -1
                 NSLog("Pipboy 1: нативный /api/fin — блоков:\(blocks) портфель €\(Int(total))")
+                // Этап 1: дашборд (тянет календарь+финансы+людей — самый связанный эндпоинт).
+                let (tdData, _) = try Api.handle(path: "/api/today", query: nil, db: db)
+                let td = try JSONSerialization.jsonObject(with: tdData) as? [String: Any]
+                let rout = (td?["routines"] as? [[String: Any]])?.count ?? -1
+                let over = (td?["overdue"] as? [[String: Any]])?.count ?? -1
+                NSLog("Pipboy 1: нативный /api/today — рутин:\(rout) просрочено:\(over)")
             } catch {
                 NSLog("Pipboy 0b: ошибка шифр-базы: \(error)")
             }
