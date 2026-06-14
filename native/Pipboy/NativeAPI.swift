@@ -22,9 +22,12 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
 
     func webView(_ webView: WKWebView, start task: WKURLSchemeTask) {
         let url = task.request.url ?? URL(string: "pipboy://app/")!
+        let method = task.request.httpMethod ?? "GET"
+        // Тело POST/PATCH приходит в заголовке X-Pipboy-Body (WKURLSchemeHandler глотает httpBody).
+        let bodyHeader = task.request.value(forHTTPHeaderField: "X-Pipboy-Body")
         queue.async {
             do {
-                let (data, mime, status) = try self.respond(to: url)
+                let (data, mime, status) = try self.respond(to: url, method: method, bodyHeader: bodyHeader)
                 let resp = HTTPURLResponse(url: url, statusCode: status, httpVersion: "HTTP/1.1",
                     headerFields: ["Content-Type": mime, "Cache-Control": "no-store"])!
                 task.didReceive(resp)
@@ -41,11 +44,15 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
 
     func webView(_ webView: WKWebView, stop task: WKURLSchemeTask) {}
 
-    private func respond(to url: URL) throws -> (Data, String, Int) {
+    private func respond(to url: URL, method: String, bodyHeader: String?) throws -> (Data, String, Int) {
         let path = url.path.isEmpty ? "/" : url.path
         if path.hasPrefix("/api/") {
-            NSLog("Pipboy native ← %@", path)   // подтверждение: данные идут через pipboy://, не Node
-            let (data, status) = try Api.handle(path: path, query: url.query, db: try database())
+            NSLog("Pipboy native ← %@ %@", method, path)   // подтверждение: данные идут через pipboy://
+            var body: [String: Any]? = nil
+            if let raw = bodyHeader?.removingPercentEncoding, let d = raw.data(using: .utf8) {
+                body = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any]
+            }
+            let (data, status) = try Api.handle(method: method, path: path, query: url.query, body: body, db: try database())
             return (data, "application/json", status)
         }
         return try staticFile(path)
@@ -82,7 +89,12 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
 enum Api {
     struct Unsupported: Error { let path: String }
 
-    static func handle(path: String, query: String?, db: Database) throws -> (Data, Int) {
+    static func handle(method: String, path: String, query: String?, body: [String: Any]?, db: Database) throws -> (Data, Int) {
+        if method == "GET" { return try get(path: path, query: query, db: db) }
+        return try write(method: method, path: path, body: body ?? [:], db: db)
+    }
+
+    static func get(path: String, query: String?, db: Database) throws -> (Data, Int) {
         switch path {
         case "/api/info":
             return (try json(["lan": NSNull(), "demoWiped": true, "version": "native"]), 200)
@@ -133,6 +145,178 @@ enum Api {
             return (try todayDash(db), 200)
         default:
             throw Unsupported(path: path)
+        }
+    }
+
+    // ===== ЗАПИСЬ (Этап 2). Пока — узлы целей; остальные разделы добавляем срезами. =====
+    static func write(method: String, path: String, body: [String: Any], db: Database) throws -> (Data, Int) {
+        if method == "POST", path == "/api/nodes" {
+            guard let title = (body["title"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !title.isEmpty else { return (try json(["error": "title required"]), 400) }
+            let parent = numOpt(body["parent_id"]).map { Int($0) }
+            let id = try insertNode(db, parentId: parent, title: title, note: "",
+                                    isCategory: intval(body["is_category"]) != 0 ? 1 : 0)
+            return (try json(try getNode(db, id) ?? [:]), 201)
+        }
+        if let m = match(path, "^/api/nodes/([0-9]+)$") {
+            let id = Int(m[1]) ?? -1
+            if method == "PATCH" { return (try json(try updateNode(db, id: id, fields: body) ?? [:]), 200) }
+            if method == "DELETE" { return (try json(try deleteNode(db, id: id)), 200) }
+        }
+        if let m = match(path, "^/api/nodes/([0-9]+)/toggle$"), method == "POST" {
+            return (try json(try toggleNode(db, id: Int(m[1]) ?? -1) ?? [:]), 200)
+        }
+        if let m = match(path, "^/api/nodes/([0-9]+)/reorder$"), method == "POST" {
+            guard let ref = numOpt(body["ref_id"]).map({ Int($0) }) else { return (try json(["error": "ref_id"]), 400) }
+            let w = (body["where"] as? String) == "before" ? "before" : "after"
+            do { return (try json(try reorderNode(db, id: Int(m[1]) ?? -1, refId: ref, where: w) ?? [:]), 200) }
+            catch { return (try json(["error": "\(error)"]), 400) }
+        }
+        if let m = match(path, "^/api/nodes/([0-9]+)/move$"), method == "POST" {
+            let parent = numOpt(body["parent_id"]).map { Int($0) }
+            return (try json(try moveNode(db, id: Int(m[1]) ?? -1, newParent: parent) ?? [:]), 200)
+        }
+        throw Unsupported(path: "\(method) \(path)")
+    }
+
+    // ----- Узлы целей (порт core.js: insert/update/toggle/reorder/move/delete) -----
+    private static let HOMO: [Character: Character] = ["а": "a", "е": "e", "о": "o", "с": "c", "р": "p",
+        "х": "x", "у": "y", "к": "k", "в": "b", "м": "m", "т": "t"]
+    private static func norm(_ s: String) -> String { String(s.lowercased().map { HOMO[$0] ?? $0 }) }
+    private static let PATCHABLE = ["title", "note", "kind", "status", "priority", "due_date", "answer", "repeat"]
+
+    static func getNode(_ db: Database, _ id: Int) throws -> [String: Any]? {
+        try db.rows("SELECT * FROM nodes WHERE id = ?", [id]).first
+    }
+
+    static func insertNode(_ db: Database, parentId: Int?, title: String, note: String, isCategory: Int) throws -> Int {
+        let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM nodes WHERE parent_id IS ?", [parentId]).first?["o"]))
+        let id = try db.run("INSERT INTO nodes(parent_id, ord, title, note, is_category) VALUES(?,?,?,?,?)",
+                            [parentId, ord, title, note, isCategory])
+        try db.run("INSERT INTO node_fts(rowid, title_norm, note_norm) VALUES(?,?,?)", [id, norm(title), norm(note)])
+        return id
+    }
+
+    static func updateNode(_ db: Database, id: Int, fields: [String: Any]) throws -> [String: Any]? {
+        var f = fields
+        var keys = PATCHABLE.filter { f[$0] != nil }
+        if keys.isEmpty { return try getNode(db, id) }
+        if keys.contains("kind") && f["status"] == nil {
+            let kind = f["kind"] as? String
+            f["status"] = kind == "decision" ? "open" : (kind == "task" ? "todo" : NSNull())
+            keys.append("status")
+        }
+        let sets = keys.map { "\($0) = ?" }.joined(separator: ", ")
+        var params: [Any?] = keys.map { f[$0] }
+        params.append(id)
+        try db.run("UPDATE nodes SET \(sets), updated_at = datetime('now') WHERE id = ?", params)
+        if keys.contains("title") || keys.contains("note"), let t = try getNode(db, id) {
+            try db.run("UPDATE node_fts SET title_norm = ?, note_norm = ? WHERE rowid = ?",
+                       [norm(t["title"] as? String ?? ""), norm(t["note"] as? String ?? ""), id])
+        }
+        return try getNode(db, id)
+    }
+
+    static func addNodeLog(_ db: Database, nodeId: Int, note: String) throws {
+        try db.run("INSERT INTO node_log(node_id, note, date) VALUES(?,?,date('now','localtime'))", [nodeId, note])
+    }
+
+    static func toggleNode(_ db: Database, id: Int) throws -> [String: Any]? {
+        guard let t = try getNode(db, id) else { return nil }
+        let kind = t["kind"] as? String
+        guard kind == "task" || kind == "decision" else { return t }
+        let status = t["status"] as? String
+        let next = kind == "decision" ? (status == "open" ? "accepted" : "open")
+                                      : (status == "done" ? "todo" : "done")
+        if next == "done", kind == "task",
+           let rep = t["repeat"] as? String, !rep.isEmpty, let due = t["due_date"] as? String {
+            try addNodeLog(db, nodeId: id, note: "✓ выполнено (повтор \(rep))")
+            var n = try updateNode(db, id: id, fields: ["due_date": shiftRepeat(due, rep)]) ?? [:]
+            n["repeated"] = true
+            return n
+        }
+        let res = try updateNode(db, id: id, fields: ["status": next])
+        try db.run("UPDATE steps SET status = ? WHERE task_id = ?", [next == "done" ? "done" : "planned", id])
+        return res
+    }
+
+    private static func shiftRepeat(_ iso: String, _ rep: String) -> String {
+        if rep == "weekly", let d = ymdUTC.date(from: iso) {
+            return ymdUTC.string(from: d.addingTimeInterval(7 * 86400))
+        }
+        return addMonths(iso, rep == "yearly" ? 12 : 1)
+    }
+
+    static func reorderNode(_ db: Database, id: Int, refId: Int, where w: String) throws -> [String: Any]? {
+        if id == refId { throw Unsupported(path: "self") }
+        guard let ref = try db.rows("SELECT id, parent_id FROM nodes WHERE id = ?", [refId]).first else {
+            throw Unsupported(path: "ref not found")
+        }
+        let refParent = numOpt(ref["parent_id"]).map { Int($0) }
+        if refParent == id { throw Unsupported(path: "descendant") }
+        if let rp = refParent {
+            let desc = try db.rows("""
+                WITH RECURSIVE r(x) AS (
+                  SELECT id FROM nodes WHERE parent_id = ?
+                  UNION SELECT n.id FROM nodes n JOIN r ON n.parent_id = r.x
+                ) SELECT 1 FROM r WHERE x = ? LIMIT 1
+                """, [id, rp])
+            if !desc.isEmpty { throw Unsupported(path: "descendant") }
+        }
+        var siblings = try db.rows("SELECT id FROM nodes WHERE parent_id IS ? ORDER BY ord, id", [refParent])
+            .compactMap { $0["id"] as? Int }.filter { $0 != id }
+        if let idx = siblings.firstIndex(of: refId) { siblings.insert(id, at: idx + (w == "after" ? 1 : 0)) }
+        else { siblings.append(id) }
+        try db.run("UPDATE nodes SET parent_id = ?, updated_at = datetime('now') WHERE id = ?", [refParent, id])
+        for (i, sid) in siblings.enumerated() { try db.run("UPDATE nodes SET ord = ? WHERE id = ?", [i + 1, sid]) }
+        return try getNode(db, id)
+    }
+
+    static func moveNode(_ db: Database, id: Int, newParent: Int?) throws -> [String: Any]? {
+        if let np = newParent {
+            if np == id { throw Unsupported(path: "self-parent") }
+            let desc = try db.rows("""
+                WITH RECURSIVE r(x) AS (
+                  SELECT id FROM nodes WHERE parent_id = ?
+                  UNION SELECT n.id FROM nodes n JOIN r ON n.parent_id = r.x
+                ) SELECT 1 FROM r WHERE x = ? LIMIT 1
+                """, [id, np])
+            if !desc.isEmpty { throw Unsupported(path: "descendant") }
+        }
+        let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM nodes WHERE parent_id IS ?", [newParent]).first?["o"]))
+        try db.run("UPDATE nodes SET parent_id = ?, ord = ?, updated_at = datetime('now') WHERE id = ?", [newParent, ord, id])
+        return try getNode(db, id)
+    }
+
+    static func deleteNode(_ db: Database, id: Int) throws -> [String: Any] {
+        guard let root = try getNode(db, id) else { return ["count": 0, "trash_id": NSNull()] }
+        let rows = try db.rows("""
+            WITH RECURSIVE r(x, depth) AS (
+              SELECT ?, 0 UNION ALL
+              SELECT n.id, r.depth + 1 FROM nodes n JOIN r ON n.parent_id = r.x
+            ) SELECT n.*, r.depth AS _depth FROM r JOIN nodes n ON n.id = r.x ORDER BY r.depth, n.ord
+            """, [id])
+        let ids = Set(rows.compactMap { $0["id"] as? Int })
+        let links = try db.rows("SELECT * FROM links")
+            .filter { ids.contains(intval($0["from_id"])) || ids.contains(intval($0["to_id"])) }
+        let stepRefs = try db.rows("SELECT id AS step_id, task_id FROM steps WHERE task_id IS NOT NULL")
+            .filter { ids.contains(intval($0["task_id"])) }
+        let label = (root["title"] as? String ?? "") + (rows.count > 1 ? " (+\(rows.count - 1) влож.)" : "")
+        let payload = String(data: try json(["rows": rows, "links": links, "stepRefs": stepRefs]), encoding: .utf8) ?? "{}"
+        let trashId = try db.run("INSERT INTO trash(kind, label, payload) VALUES(?,?,?)", ["nodes", label, payload])
+        for x in ids {
+            try db.run("DELETE FROM node_fts WHERE rowid = ?", [x])
+            try db.run("UPDATE steps SET task_id = NULL WHERE task_id = ?", [x])
+        }
+        try db.run("DELETE FROM nodes WHERE id = ?", [id])
+        return ["count": rows.count, "trash_id": trashId]
+    }
+
+    private static func match(_ s: String, _ pattern: String) -> [String]? {
+        guard let re = try? NSRegularExpression(pattern: pattern),
+              let m = re.firstMatch(in: s, range: NSRange(s.startIndex..., in: s)) else { return nil }
+        return (0..<m.numberOfRanges).map { i in
+            Range(m.range(at: i), in: s).map { String(s[$0]) } ?? ""
         }
     }
 

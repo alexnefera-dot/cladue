@@ -54,19 +54,19 @@ struct AuthGate: View {
                 let nodes = (try? db.scalarInt("SELECT count(*) FROM nodes")) ?? 0
                 NSLog("Pipboy 0b: зашифрованная база — таблиц:\(tables) задач:\(nodes)")
                 // Этап 1: проверяем нативный /api/tree (тот же ответ, что давал Node).
-                let (treeData, _) = try Api.handle(path: "/api/tree", query: nil, db: db)
+                let (treeData, _) = try Api.handle(method: "GET", path: "/api/tree", query: nil, body: nil, db: db)
                 let obj = try JSONSerialization.jsonObject(with: treeData) as? [String: Any]
                 let treeNodes = (obj?["nodes"] as? [[String: Any]])?.count ?? -1
                 let links = (obj?["links"] as? [[String: Any]])?.count ?? -1
                 NSLog("Pipboy 1: нативный /api/tree — узлов:\(treeNodes) связей:\(links)")
                 // Этап 1: проверяем тяжёлый /api/fin (портфель + конвертация валют).
-                let (finData, _) = try Api.handle(path: "/api/fin", query: nil, db: db)
+                let (finData, _) = try Api.handle(method: "GET", path: "/api/fin", query: nil, body: nil, db: db)
                 let fin = try JSONSerialization.jsonObject(with: finData) as? [String: Any]
                 let blocks = (fin?["portfolio"] as? [[String: Any]])?.count ?? -1
                 let total = ((fin?["summary"] as? [String: Any])?["portfolioTotal"] as? Double) ?? -1
                 NSLog("Pipboy 1: нативный /api/fin — блоков:\(blocks) портфель €\(Int(total))")
                 // Этап 1: дашборд (тянет календарь+финансы+людей — самый связанный эндпоинт).
-                let (tdData, _) = try Api.handle(path: "/api/today", query: nil, db: db)
+                let (tdData, _) = try Api.handle(method: "GET", path: "/api/today", query: nil, body: nil, db: db)
                 let td = try JSONSerialization.jsonObject(with: tdData) as? [String: Any]
                 let rout = (td?["routines"] as? [[String: Any]])?.count ?? -1
                 let over = (td?["overdue"] as? [[String: Any]])?.count ?? -1

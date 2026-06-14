@@ -60,13 +60,7 @@ final class Database {
         return sqlite3_step(stmt) == SQLITE_ROW ? Int(sqlite3_column_int64(stmt, 0)) : 0
     }
 
-    // Строки запроса как массив словарей (как node:sqlite .all()).
-    func rows(_ sql: String, _ params: [Any?] = []) throws -> [[String: Any]] {
-        var stmt: OpaquePointer?
-        guard sqlite3_prepare_v2(handle, sql, -1, &stmt, nil) == SQLITE_OK else {
-            throw Failure.sql(String(cString: sqlite3_errmsg(handle)))
-        }
-        defer { sqlite3_finalize(stmt) }
+    private func bind(_ stmt: OpaquePointer?, _ params: [Any?]) {
         let transient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
         for (i, p) in params.enumerated() {
             let idx = Int32(i + 1)
@@ -79,6 +73,31 @@ final class Database {
             default:                    sqlite3_bind_text(stmt, idx, "\(p!)", -1, transient)
             }
         }
+    }
+
+    // INSERT/UPDATE/DELETE; возвращает last_insert_rowid (для INSERT).
+    @discardableResult
+    func run(_ sql: String, _ params: [Any?] = []) throws -> Int {
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(handle, sql, -1, &stmt, nil) == SQLITE_OK else {
+            throw Failure.sql(String(cString: sqlite3_errmsg(handle)))
+        }
+        defer { sqlite3_finalize(stmt) }
+        bind(stmt, params)
+        guard sqlite3_step(stmt) == SQLITE_DONE else {
+            throw Failure.sql(String(cString: sqlite3_errmsg(handle)))
+        }
+        return Int(sqlite3_last_insert_rowid(handle))
+    }
+
+    // Строки запроса как массив словарей (как node:sqlite .all()).
+    func rows(_ sql: String, _ params: [Any?] = []) throws -> [[String: Any]] {
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(handle, sql, -1, &stmt, nil) == SQLITE_OK else {
+            throw Failure.sql(String(cString: sqlite3_errmsg(handle)))
+        }
+        defer { sqlite3_finalize(stmt) }
+        bind(stmt, params)
         var out: [[String: Any]] = []
         let cols = sqlite3_column_count(stmt)
         while sqlite3_step(stmt) == SQLITE_ROW {

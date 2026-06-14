@@ -1,9 +1,14 @@
 // API-ключ замка: добавляется ко всем запросам; без него сервер отвечает 401
 {
   const origFetch = window.fetch.bind(window);
+  const native = location.protocol === 'pipboy:';   // нативная оболочка (WKURLSchemeHandler)
   window.fetch = (url, opts = {}) => {
-    if (String(url).startsWith('/api/') && localStorage.pbKey) {
-      opts.headers = { ...(opts.headers ?? {}), 'X-Pipboy-Key': localStorage.pbKey };
+    if (String(url).startsWith('/api/')) {
+      if (localStorage.pbKey) opts.headers = { ...(opts.headers ?? {}), 'X-Pipboy-Key': localStorage.pbKey };
+      // WKURLSchemeHandler не отдаёт тело POST/PATCH — дублируем его в заголовок (ASCII-safe).
+      if (native && typeof opts.body === 'string') {
+        opts.headers = { ...(opts.headers ?? {}), 'X-Pipboy-Body': encodeURIComponent(opts.body) };
+      }
     }
     return origFetch(url, opts);
   };
