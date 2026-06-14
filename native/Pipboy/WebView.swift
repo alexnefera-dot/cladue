@@ -8,10 +8,8 @@ import AppKit
 struct WebView: NSViewRepresentable {
     let url: URL
 
-    // ЭТАП 1: источник данных интерфейса.
-    //   false → Node (http://localhost:7777), рабочий режим;
-    //   true  → нативный зашифрованный слой через pipboy:// (превью, читающие экраны).
-    static let useNativeData = false
+    // Этап 3: источник данных — всегда нативный зашифрованный слой (pipboy://). Node убран.
+    static let useNativeData = true
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 

@@ -22,6 +22,7 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         while key == nil && tries < 50 { usleep(100_000); key = KeyHolder.shared.key; tries += 1 }
         guard let k = key else { throw Database.Failure.open(0) }
         let made = try Database(key: k)
+        try? made.run("DELETE FROM trash WHERE created_at < datetime('now','-30 days')")  // авто-очистка корзины
         db = made
         return made
     }
@@ -53,7 +54,6 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
     private func respond(to url: URL, method: String, bodyHeader: String?) throws -> (Data, String, Int) {
         let path = url.path.isEmpty ? "/" : url.path
         if path.hasPrefix("/api/") {
-            NSLog("Pipboy native ← %@ %@", method, path)   // подтверждение: данные идут через pipboy://
             var body: [String: Any]? = nil
             if let raw = bodyHeader?.removingPercentEncoding, let d = raw.data(using: .utf8) {
                 body = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any]
@@ -1057,8 +1057,15 @@ enum Api {
                 { dig(jsonGet("https://query1.finance.yahoo.com/v8/finance/chart/\(sym)?range=1d&interval=1d"), ["chart", "result", 0, "meta", "regularMarketPrice"]) },
                 { stooq(sym.lowercased() + ".us") }]))
         }
-        for (sym, srcs) in sources {
-            guard let price = firstOf(srcs) else { errors.append("\(sym): нет ответа"); continue }
+        // запросы по символам — параллельно (иначе серийная очередь висит до ~30с)
+        var prices: [String: Double] = [:]
+        let lock = NSLock()
+        DispatchQueue.concurrentPerform(iterations: sources.count) { idx in
+            let (sym, srcs) = sources[idx]
+            if let p = firstOf(srcs) { lock.lock(); prices[sym] = p; lock.unlock() }
+        }
+        for (sym, _) in sources {
+            guard let price = prices[sym] else { errors.append("\(sym): нет ответа"); continue }
             let prev = anyNum(try db.rows("SELECT price FROM rates WHERE symbol = ?", [sym]).first?["price"])
             let chg: Any = (prev != nil && prev! != 0) ? (price - prev!) / prev! * 100 : NSNull()
             try db.run("INSERT INTO rates(symbol, label, price, change_pct, updated_at) VALUES(?,?,?,?,datetime('now')) ON CONFLICT(symbol) DO UPDATE SET price = excluded.price, change_pct = excluded.change_pct, updated_at = excluded.updated_at",
@@ -1607,6 +1614,7 @@ enum Api {
         }
         let portfolio = try portfolioTree(db)
         let portfolioTotal = portfolio.reduce(0.0) { $0 + ($1["eur"] as? Double ?? 0) }
+        try? db.run("INSERT OR IGNORE INTO snapshots(date, portfolio_eur) VALUES(?,?)", [localToday(), portfolioTotal])  // снимок раз в день
         let portfolioTotalUsd = portfolioTotal * rate
         let invested = portfolio.reduce(0.0) { $0 + ($1["invested"] as? Double ?? 0) }
         let investedCur = portfolio.reduce(0.0) { $0 + ($1["investedCur"] as? Double ?? 0) }
