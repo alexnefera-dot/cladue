@@ -37,10 +37,10 @@ export function calendar(db, ym) {
   const items = [];
 
   for (const t of db.prepare(`
-    SELECT id, title, kind, status, priority, due_date FROM nodes
+    SELECT id, title, kind, status, priority, due_date, due_time FROM nodes
     WHERE due_date BETWEEN ? AND ? AND kind IN ('task','decision')`).all(first, last))
     items.push({ date: t.due_date, type: 'task', id: t.id, title: t.title,
-                 done: ['done', 'accepted'].includes(t.status), kind: t.kind, priority: t.priority });
+                 done: ['done', 'accepted'].includes(t.status), kind: t.kind, priority: t.priority, time: t.due_time });
 
   // шаги с привязанной задачей в календарь не попадают — их представляет сама задача
   for (const s of db.prepare(`SELECT * FROM steps WHERE planned_date BETWEEN ? AND ? AND task_id IS NULL`).all(first, last))
