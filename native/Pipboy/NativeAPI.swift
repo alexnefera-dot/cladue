@@ -73,7 +73,11 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         return FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Downloads/cladue/app/public", isDirectory: true)
         #else
-        return (Bundle.main.resourceURL ?? Bundle.main.bundleURL).appendingPathComponent("public", isDirectory: true)
+        // в бандле фронт может лежать как папка public/ (folder reference) или плоско (group)
+        let res = Bundle.main.resourceURL ?? Bundle.main.bundleURL
+        let withPublic = res.appendingPathComponent("public", isDirectory: true)
+        if FileManager.default.fileExists(atPath: withPublic.appendingPathComponent("index.html").path) { return withPublic }
+        return res
         #endif
     }
 
