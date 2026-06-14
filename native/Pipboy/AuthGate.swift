@@ -59,6 +59,12 @@ struct AuthGate: View {
                 let treeNodes = (obj?["nodes"] as? [[String: Any]])?.count ?? -1
                 let links = (obj?["links"] as? [[String: Any]])?.count ?? -1
                 NSLog("Pipboy 1: нативный /api/tree — узлов:\(treeNodes) связей:\(links)")
+                // Этап 1: проверяем тяжёлый /api/fin (портфель + конвертация валют).
+                let (finData, _) = try Api.handle(path: "/api/fin", query: nil, db: db)
+                let fin = try JSONSerialization.jsonObject(with: finData) as? [String: Any]
+                let blocks = (fin?["portfolio"] as? [[String: Any]])?.count ?? -1
+                let total = ((fin?["summary"] as? [String: Any])?["portfolioTotal"] as? Double) ?? -1
+                NSLog("Pipboy 1: нативный /api/fin — блоков:\(blocks) портфель €\(Int(total))")
             } catch {
                 NSLog("Pipboy 0b: ошибка шифр-базы: \(error)")
             }
