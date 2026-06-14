@@ -6,7 +6,7 @@ import SQLite3
 #endif
 
 // Зашифрованная база (SQLCipher). Ключ — из Keychain под Touch ID.
-// Тонкая обёртка над C-API sqlite3: на неё будут ложиться SQL-строки из server.js.
+// Тонкая обёртка над C-API sqlite3 (на неё легли SQL-запросы нативного слоя).
 final class Database {
     enum Failure: Error { case open(Int32), sql(String) }
 

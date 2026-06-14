@@ -6,11 +6,7 @@ import AppKit
 // Coordinator реализует WKUIDelegate — без него в WKWebView НЕ работают
 // JS alert/confirm/prompt (молча проваливались: «Удалить?», «Очистить корзину?» и т.п.).
 struct WebView: NSViewRepresentable {
-    let url: URL
-
-    // Этап 3: источник данных — всегда нативный зашифрованный слой (pipboy://). Node убран.
-    static let useNativeData = true
-
+    // Этап 3: интерфейс и данные — всегда из зашифрованной базы через pipboy://. Node убран.
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeNSView(context: Context) -> WKWebView {
@@ -21,8 +17,7 @@ struct WebView: NSViewRepresentable {
         cfg.setURLSchemeHandler(context.coordinator.scheme, forURLScheme: PipboySchemeHandler.scheme)
         let v = WKWebView(frame: .zero, configuration: cfg)
         v.uiDelegate = context.coordinator
-        let start = Self.useNativeData ? URL(string: "pipboy://app/index.html")! : url
-        v.load(URLRequest(url: start))
+        v.load(URLRequest(url: URL(string: "pipboy://app/index.html")!))
         return v
     }
     func updateNSView(_ v: WKWebView, context: Context) {}

@@ -12,7 +12,7 @@ struct PipboyApp: App {
         WindowGroup("Pipboy") {
             ZStack {
                 if unlocked {
-                    WebView(url: URL(string: "http://localhost:7777")!)
+                    WebView()
                         .ignoresSafeArea()
                 } else {
                     AuthGate(unlocked: $unlocked)
