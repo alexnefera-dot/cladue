@@ -32,9 +32,10 @@ iPhone + синхронизация. Это и есть старт iPhone-фаз
 0. ✅ **Каркас:** шифр-база (SQLCipher) открыта, ключ в Keychain; разовый импорт
    `app/data.db` → зашифрованную базу (47 таблиц, 623 записи).
 1. 🔄 **Чтение** через `WKURLSchemeHandler` (схема `pipboy://`, флаг
-   `WebView.useNativeData`). Готово: `info, lock, tree, pages, trash`.
-   Осталось портировать (read): `routines, people, calendar, search,
-   fin, psy, today, track, page(single), node_log, suggest`.
+   `WebView.useNativeData`). Готово: `info, lock, tree, pages, trash,
+   routines, routines/planned, people, psy, track`.
+   Осталось портировать (read): `fin, today, calendar, search,
+   page(single), node_log, suggest`.
 2. **Запись:** create/edit/delete по разделам.
 3. **Убрать Node** (ServerProcess) — когда достигнут паритет.
 4. **iPhone-таргет** на том же слое + синк (SQLite session/changesets, парный
