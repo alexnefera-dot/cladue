@@ -169,7 +169,7 @@ enum Api {
         if let m = match(path, "^/api/nodes/([0-9]+)/reorder$"), method == "POST" {
             guard let ref = numOpt(body["ref_id"]).map({ Int($0) }) else { return (try json(["error": "ref_id"]), 400) }
             let w = (body["where"] as? String) == "before" ? "before" : "after"
-            do { return (try json(try reorderNode(db, id: Int(m[1]) ?? -1, refId: ref, where: w) ?? [:]), 200) }
+            do { return (try json(try reorderNode(db, id: Int(m[1]) ?? -1, refId: ref, pos: w) ?? [:]), 200) }
             catch { return (try json(["error": "\(error)"]), 400) }
         }
         if let m = match(path, "^/api/nodes/([0-9]+)/move$"), method == "POST" {
@@ -203,7 +203,8 @@ enum Api {
         if keys.isEmpty { return try getNode(db, id) }
         if keys.contains("kind") && f["status"] == nil {
             let kind = f["kind"] as? String
-            f["status"] = kind == "decision" ? "open" : (kind == "task" ? "todo" : NSNull())
+            let status: Any = kind == "decision" ? "open" : (kind == "task" ? "todo" : NSNull())
+            f["status"] = status
             keys.append("status")
         }
         let sets = keys.map { "\($0) = ?" }.joined(separator: ", ")
@@ -247,7 +248,7 @@ enum Api {
         return addMonths(iso, rep == "yearly" ? 12 : 1)
     }
 
-    static func reorderNode(_ db: Database, id: Int, refId: Int, where w: String) throws -> [String: Any]? {
+    static func reorderNode(_ db: Database, id: Int, refId: Int, pos w: String) throws -> [String: Any]? {
         if id == refId { throw Unsupported(path: "self") }
         guard let ref = try db.rows("SELECT id, parent_id FROM nodes WHERE id = ?", [refId]).first else {
             throw Unsupported(path: "ref not found")
