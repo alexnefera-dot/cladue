@@ -201,11 +201,18 @@ enum Api {
         return try db.rows("SELECT n.* FROM node_fts JOIN nodes n ON n.id = node_fts.rowid WHERE node_fts MATCH ? ORDER BY bm25(node_fts) LIMIT 20", [m])
     }
     static func rollIdea(_ db: Database) throws -> Any {
-        guard let n = try db.rows("""
-            SELECT id, title, created_at FROM nodes WHERE is_category = 0 AND kind = 'idea'
-              AND (status IS NULL OR status NOT IN ('done','accepted')) AND due_date IS NULL
-            ORDER BY RANDOM() LIMIT 1
-            """).first else { return NSNull() }
+        // живая хотелка: тип «идея» ИЛИ внутри категории «Банк впечатлений» (любого типа)
+        var sql = """
+            SELECT id, title, created_at FROM nodes WHERE is_category = 0
+              AND (status IS NULL OR status NOT IN ('done','accepted')) AND due_date IS NULL AND (kind = 'idea'
+            """
+        var params: [Any?] = []
+        if let bank = try db.rows("SELECT id FROM nodes WHERE is_category = 1 AND title LIKE '%впечатлен%'").first {
+            sql += " OR id IN (WITH RECURSIVE r(x) AS (SELECT id FROM nodes WHERE parent_id = ? UNION SELECT n.id FROM nodes n JOIN r ON n.parent_id = r.x) SELECT x FROM r)"
+            params.append(intval(bank["id"]))
+        }
+        sql += ") ORDER BY RANDOM() LIMIT 1"
+        guard let n = try db.rows(sql, params).first else { return NSNull() }
         var path: [String] = []
         var p = numOpt(n["parent_id"]).map { Int($0) }
         while let pid = p, let r = try getNode(db, pid) {
