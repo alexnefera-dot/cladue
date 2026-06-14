@@ -101,6 +101,18 @@ enum Api {
             return (try json(try db.rows("SELECT * FROM routines WHERE planned = 1 ORDER BY ord, id")), 200)
         case "/api/people":
             return (try people(db), 200)
+        case "/api/psy":
+            return (try json([
+                "practices": try psyPractices(db),
+                "wheel": try psyWheel(db),
+                "worklog": try db.rows("SELECT * FROM work_log ORDER BY date DESC, id DESC LIMIT 20"),
+                "decisions": try db.rows("""
+                    SELECT id, title, answer, updated_at FROM nodes
+                    WHERE kind = 'decision' AND status = 'accepted'
+                    ORDER BY updated_at DESC LIMIT 30
+                    """),
+                "hasPass": try settingNonEmpty(db, "psy_pass_hash"),
+            ]), 200)
         default:
             throw Unsupported(path: path)
         }
@@ -157,6 +169,86 @@ enum Api {
                 "SELECT date, note FROM contact_log WHERE person_id = ? ORDER BY date DESC, id DESC LIMIT 3", [pid])
         }
         return try json(people)
+    }
+
+    // /api/psy → практики (steps/today/done/runs/streak) — порт psy.listPractices.
+    static func psyPractices(_ db: Database) throws -> [[String: Any]] {
+        let t = localToday()
+        let doneToday = Set(try db.rows("SELECT practice_id FROM practice_log WHERE date = ?", [t])
+            .compactMap { $0["practice_id"] as? Int })
+        var rows = try db.rows("SELECT * FROM practices ORDER BY ord, id")
+        for i in rows.indices {
+            let id = rows[i]["id"] as? Int ?? -1
+            let days = rows[i]["days"] as? String
+            // steps хранится JSON-строкой → разбираем в массив
+            if let s = rows[i]["steps"] as? String,
+               let parsed = try? JSONSerialization.jsonObject(with: Data(s.utf8)) {
+                rows[i]["steps"] = parsed
+            } else { rows[i]["steps"] = [] }
+            rows[i]["today"] = occursOn(days, t)
+            rows[i]["done"] = doneToday.contains(id)
+            rows[i]["runs"] = (try db.rows("SELECT count(*) AS c FROM practice_log WHERE practice_id = ?", [id])
+                .first?["c"] as? Int) ?? 0
+            rows[i]["streak"] = try practiceStreak(db, id: id, days: days)
+        }
+        return rows
+    }
+
+    // Колесо: сектора, даты замеров, последняя и предыдущая оценки — порт psy.wheel.
+    static func psyWheel(_ db: Database) throws -> [String: Any] {
+        let areas = try db.rows("SELECT * FROM wheel_areas ORDER BY ord, id")
+        let dates = try db.rows("SELECT DISTINCT date FROM wheel_scores ORDER BY date DESC")
+            .compactMap { $0["date"] as? String }
+        func scores(_ date: String) throws -> [String: Any] {
+            var m: [String: Any] = [:]
+            for r in try db.rows("SELECT area_id, score FROM wheel_scores WHERE date = ?", [date]) {
+                if let aid = r["area_id"] as? Int { m[String(aid)] = r["score"] ?? NSNull() }
+            }
+            return m
+        }
+        var out: [String: Any] = ["areas": areas, "dates": dates]
+        out["latest"] = dates.indices.contains(0) ? ["date": dates[0], "scores": try scores(dates[0])] : NSNull()
+        out["prev"] = dates.indices.contains(1) ? ["date": dates[1], "scores": try scores(dates[1])] : NSNull()
+        return out
+    }
+
+    // Практика наступает сегодня? days = daily | workdays | "1,3,5" (Пн=1..Вс=7).
+    private static func occursOn(_ days: String?, _ dateIso: String) -> Bool {
+        guard let days, !days.isEmpty else { return false }
+        if days == "daily" { return true }
+        guard let date = localDateFormatter().date(from: dateIso) else { return false }
+        let w = Calendar.current.component(.weekday, from: date)   // Вс=1..Сб=7
+        let wd = ((w + 5) % 7) + 1                                  // Пн=1..Вс=7
+        if days == "workdays" { return wd <= 5 }
+        return days.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.contains(String(wd))
+    }
+
+    private static func practiceStreak(_ db: Database, id: Int, days: String?) throws -> Int {
+        guard let days, !days.isEmpty else { return 0 }
+        let dates = Set(try db.rows("SELECT date FROM practice_log WHERE practice_id = ?", [id])
+            .compactMap { $0["date"] as? String })
+        let f = localDateFormatter(); let cal = Calendar.current
+        var d = Date()
+        if occursOn(days, f.string(from: d)) && !dates.contains(f.string(from: d)) {
+            d = cal.date(byAdding: .day, value: -1, to: d)!
+        }
+        var streak = 0
+        for _ in 0..<365 {
+            let day = f.string(from: d)
+            if occursOn(days, day) {
+                if !dates.contains(day) { break }
+                streak += 1
+            }
+            d = cal.date(byAdding: .day, value: -1, to: d)!
+        }
+        return streak
+    }
+
+    private static func settingNonEmpty(_ db: Database, _ key: String) throws -> Bool {
+        if let v = try db.rows("SELECT value FROM settings WHERE key = ?", [key]).first?["value"] as? String {
+            return !v.isEmpty
+        }
+        return false
     }
 
     // Дней до ближайшего ДР (UTC, как Date.parse в Node). nil → NSNull.
