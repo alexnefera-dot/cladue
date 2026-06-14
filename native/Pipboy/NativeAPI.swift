@@ -69,8 +69,10 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         var rel = (path == "/") ? "index.html" : path
         if rel.hasPrefix("/") { rel.removeFirst() }
         let base = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Downloads/cladue/app/public", isDirectory: true)
-        let file = base.appendingPathComponent(rel)
+            .appendingPathComponent("Downloads/cladue/app/public", isDirectory: true).standardizedFileURL
+        let file = base.appendingPathComponent(rel).standardizedFileURL
+        // защита от обхода каталога (../): файл обязан оставаться внутри public
+        guard file.path == base.path || file.path.hasPrefix(base.path + "/") else { throw Database.Failure.open(404) }
         let data = try Data(contentsOf: file)
         return (data, mime(file.pathExtension), 200)
     }
