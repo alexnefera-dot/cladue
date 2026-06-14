@@ -601,7 +601,7 @@ enum Api {
         for k in cols where body[k] != nil {
             // accounts.balance: трогаем и дату обновления
             if table == "accounts" && k == "balance" {
-                try db.run("UPDATE accounts SET balance = ?, balance_updated_at = datetime('now') WHERE id = ?", [body[k], id])
+                try db.run("UPDATE accounts SET balance = ?, balance_updated_at = datetime('now','localtime') WHERE id = ?", [body[k], id])
             } else {
                 try db.run("UPDATE \(table) SET \(k) = ? WHERE id = ?", [body[k], id])
             }
@@ -610,7 +610,7 @@ enum Api {
         if table == "steps", body["status"] != nil {
             if let taskId = try db.rows("SELECT task_id FROM steps WHERE id = ?", [id]).first?["task_id"] as? Int {
                 let st = (body["status"] as? String) == "done" ? "done" : "todo"
-                try db.run("UPDATE nodes SET status = ?, updated_at = datetime('now') WHERE id = ? AND kind = 'task'", [st, taskId])
+                try db.run("UPDATE nodes SET status = ?, updated_at = datetime('now','localtime') WHERE id = ? AND kind = 'task'", [st, taskId])
             }
         }
     }
@@ -733,7 +733,7 @@ enum Api {
             content = newContent ?? old
         } else { content = newContent ?? (p["content"] as? String ?? "") }
         let enc = try PageCrypto.encrypt(password: password, text: content)
-        try db.run("UPDATE pages SET enc = ?, locked = 1, content = '', updated_at = datetime('now') WHERE id = ?", [enc, id])
+        try db.run("UPDATE pages SET enc = ?, locked = 1, content = '', updated_at = datetime('now','localtime') WHERE id = ?", [enc, id])
         try db.run("DELETE FROM page_fts WHERE rowid = ?", [id])
         return try getPage(db, id) ?? [:]
     }
@@ -741,7 +741,7 @@ enum Api {
         guard let p = try getPage(db, id), intval(p["locked"]) != 0 else { throw Unsupported(path: "страница не под паролем") }
         let content = try PageCrypto.decrypt(password: password, encStr: p["enc"] as? String ?? "")
         if remove {
-            try db.run("UPDATE pages SET enc = NULL, locked = 0, content = ?, updated_at = datetime('now') WHERE id = ?", [content, id])
+            try db.run("UPDATE pages SET enc = NULL, locked = 0, content = ?, updated_at = datetime('now','localtime') WHERE id = ?", [content, id])
             try db.run("INSERT INTO page_fts(rowid, title_norm, content_norm) VALUES(?,?,?)", [id, norm(p["title"] as? String ?? ""), norm(content)])
         }
         return ["content": content]
@@ -835,7 +835,7 @@ enum Api {
             }
         }
         for k in ["title", "content"] where body[k] != nil {
-            try db.run("UPDATE pages SET \(k) = ?, updated_at = datetime('now') WHERE id = ?", [body[k], id])
+            try db.run("UPDATE pages SET \(k) = ?, updated_at = datetime('now','localtime') WHERE id = ?", [body[k], id])
         }
         if (body["title"] != nil || body["content"] != nil) && !locked, let p = try getPage(db, id) {
             try db.run("UPDATE page_fts SET title_norm = ?, content_norm = ? WHERE rowid = ?",
@@ -1068,7 +1068,7 @@ enum Api {
             guard let price = prices[sym] else { errors.append("\(sym): нет ответа"); continue }
             let prev = anyNum(try db.rows("SELECT price FROM rates WHERE symbol = ?", [sym]).first?["price"])
             let chg: Any = (prev != nil && prev! != 0) ? (price - prev!) / prev! * 100 : NSNull()
-            try db.run("INSERT INTO rates(symbol, label, price, change_pct, updated_at) VALUES(?,?,?,?,datetime('now')) ON CONFLICT(symbol) DO UPDATE SET price = excluded.price, change_pct = excluded.change_pct, updated_at = excluded.updated_at",
+            try db.run("INSERT INTO rates(symbol, label, price, change_pct, updated_at) VALUES(?,?,?,?,datetime('now','localtime')) ON CONFLICT(symbol) DO UPDATE SET price = excluded.price, change_pct = excluded.change_pct, updated_at = excluded.updated_at",
                 [sym, labels[sym] ?? sym, price, chg])
         }
         let rates = try db.rows("SELECT * FROM rates")
@@ -1123,7 +1123,7 @@ enum Api {
         }
         if let m = match(path, "^/api/fin/forecasts/([0-9]+)/resolve$"), method == "POST" {
             let outcome = (body["outcome"] as? Bool == true || intval(body["outcome"]) != 0) ? 1 : 0
-            try db.run("UPDATE forecasts SET outcome = ?, resolved_at = datetime('now') WHERE id = ?", [outcome, Int(m[1]) ?? -1])
+            try db.run("UPDATE forecasts SET outcome = ?, resolved_at = datetime('now','localtime') WHERE id = ?", [outcome, Int(m[1]) ?? -1])
             return (ok(), 200)
         }
         if let m = match(path, "^/api/fin/forecasts/([0-9]+)$"), method == "DELETE" {
@@ -1148,7 +1148,7 @@ enum Api {
         }
         if let m = match(path, "^/api/rates/([^/]+)$"), method == "PATCH" {
             let sym = m[1].removingPercentEncoding ?? m[1]
-            try db.run("UPDATE rates SET price = ?, change_pct = NULL, updated_at = datetime('now') WHERE symbol = ?", [num(body["price"]), sym])
+            try db.run("UPDATE rates SET price = ?, change_pct = NULL, updated_at = datetime('now','localtime') WHERE symbol = ?", [num(body["price"]), sym])
             return (try json(try db.rows("SELECT * FROM rates WHERE symbol = ?", [sym]).first ?? [:]), 200)
         }
         return nil
@@ -1367,7 +1367,7 @@ enum Api {
         let sets = keys.map { "\($0) = ?" }.joined(separator: ", ")
         var params: [Any?] = keys.map { f[$0] }
         params.append(id)
-        try db.run("UPDATE nodes SET \(sets), updated_at = datetime('now') WHERE id = ?", params)
+        try db.run("UPDATE nodes SET \(sets), updated_at = datetime('now','localtime') WHERE id = ?", params)
         if keys.contains("title") || keys.contains("note"), let t = try getNode(db, id) {
             try db.run("UPDATE node_fts SET title_norm = ?, note_norm = ? WHERE rowid = ?",
                        [norm(t["title"] as? String ?? ""), norm(t["note"] as? String ?? ""), id])
@@ -1425,7 +1425,7 @@ enum Api {
             .compactMap { $0["id"] as? Int }.filter { $0 != id }
         if let idx = siblings.firstIndex(of: refId) { siblings.insert(id, at: idx + (w == "after" ? 1 : 0)) }
         else { siblings.append(id) }
-        try db.run("UPDATE nodes SET parent_id = ?, updated_at = datetime('now') WHERE id = ?", [refParent, id])
+        try db.run("UPDATE nodes SET parent_id = ?, updated_at = datetime('now','localtime') WHERE id = ?", [refParent, id])
         for (i, sid) in siblings.enumerated() { try db.run("UPDATE nodes SET ord = ? WHERE id = ?", [i + 1, sid]) }
         return try getNode(db, id)
     }
@@ -1442,7 +1442,7 @@ enum Api {
             if !desc.isEmpty { throw Unsupported(path: "descendant") }
         }
         let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM nodes WHERE parent_id IS ?", [newParent]).first?["o"]))
-        try db.run("UPDATE nodes SET parent_id = ?, ord = ?, updated_at = datetime('now') WHERE id = ?", [newParent, ord, id])
+        try db.run("UPDATE nodes SET parent_id = ?, ord = ?, updated_at = datetime('now','localtime') WHERE id = ?", [newParent, ord, id])
         return try getNode(db, id)
     }
 
@@ -1984,7 +1984,7 @@ enum Api {
         }
         let done = try db.rows("""
             SELECT id FROM nodes WHERE is_category = 0
-              AND status IN ('done','accepted') AND updated_at >= datetime('now','-7 days')
+              AND status IN ('done','accepted') AND updated_at >= datetime('now','localtime','-7 days')
             """)
         var byCat: [String: Int] = [:]
         for d in done { if let node = byId[intval(d["id"])] { byCat[rootOf(node), default: 0] += 1 } }
