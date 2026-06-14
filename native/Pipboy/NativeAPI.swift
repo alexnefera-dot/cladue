@@ -107,6 +107,9 @@ enum Api {
             return (try json(try db.rows(
                 "SELECT id, saved_at, length(content) AS len, substr(content,1,90) AS preview FROM page_revisions WHERE page_id = ? ORDER BY id DESC", [Int(m[1]) ?? -1])), 200)
         }
+        if let m = match(path, "^/api/pages/([0-9]+)/backlinks$") {
+            return (try json(try backlinks(db, id: Int(m[1]) ?? -1)), 200)
+        }
         if let m = match(path, "^/api/pages/([0-9]+)$") {
             guard var pg = try getPage(db, Int(m[1]) ?? -1) else { return (try json(["error": "not found"]), 404) }
             pg.removeValue(forKey: "enc")   // шифротекст наружу не отдаём
@@ -160,9 +163,48 @@ enum Api {
             return (try json(try calendar(db, ym)), 200)
         case "/api/today":
             return (try todayDash(db), 200)
+        case "/api/wiki":
+            return (try json(try resolveWiki(db, name: queryValue(query, "name") ?? "")), 200)
+        case "/api/pages/search":
+            return (try json(try searchPages(db, q: queryValue(query, "q") ?? "")), 200)
         default:
             throw Unsupported(path: path)
         }
+    }
+
+    static func backlinks(_ db: Database, id: Int) throws -> [[String: Any]] {
+        guard let p = try getPage(db, id) else { return [] }
+        let needle = ("[[" + (p["title"] as? String ?? "") + "]]").lowercased()
+        return try db.rows("SELECT id, title, content FROM pages WHERE id != ?", [id])
+            .filter { ($0["content"] as? String ?? "").lowercased().contains(needle) }
+            .map { ["id": $0["id"] ?? NSNull(), "title": $0["title"] ?? NSNull()] }
+    }
+    static func resolveWiki(_ db: Database, name: String) throws -> [String: Any] {
+        let target = norm(name)
+        if let page = try db.rows("SELECT id, title FROM pages").first(where: { norm($0["title"] as? String ?? "") == target }) {
+            return ["type": "page", "id": page["id"] ?? NSNull()]
+        }
+        if let node = try db.rows("SELECT id, title FROM nodes WHERE is_category = 0").first(where: { norm($0["title"] as? String ?? "") == target }) {
+            return ["type": "node", "id": node["id"] ?? NSNull()]
+        }
+        return [:]
+    }
+    static func searchPages(_ db: Database, q: String) throws -> [[String: Any]] {
+        let toks = tokens(q)
+        if toks.isEmpty { return [] }
+        let m = toks.map { "\"\($0.replacingOccurrences(of: "\"", with: ""))\"*" }.joined(separator: " ")
+        return try db.rows("SELECT p.id, p.title FROM page_fts JOIN pages p ON p.id = page_fts.rowid WHERE page_fts MATCH ? ORDER BY bm25(page_fts) LIMIT 10", [m])
+    }
+    private static let STOP: Set<String> = ["и", "в", "на", "с", "по", "за", "до", "от", "для", "не", "что", "как", "это",
+        "или", "у", "мы", "я", "к", "о", "же", "бы", "из", "со", "свой", "наш", "еще", "ещё", "при", "то", "ли", "если",
+        "есть", "будет", "надо", "чтоб", "чтобы", "когда", "раз", "the", "to", "of", "and", "a", "in", "is"]
+    private static func tokens(_ s: String) -> [String] {
+        var seen = Set<String>(); var out: [String] = []
+        for t in norm(s).split(whereSeparator: { !($0.isLetter || $0.isNumber) }).map(String.init)
+            where t.count >= 2 && !STOP.contains(t) {
+            if seen.insert(t).inserted { out.append(t) }
+        }
+        return out
     }
 
     // ===== ЗАПИСЬ (Этап 2). Пока — узлы целей; остальные разделы добавляем срезами. =====
