@@ -1,7 +1,9 @@
 import SwiftUI
 import LocalAuthentication
 
-// Нативный замок macOS: Touch ID, при отсутствии — системный пароль.
+// Нативный замок macOS: Touch ID (или системный пароль). Тем же проходом
+// достаём ключ базы из Keychain под биометрией и кладём в KeyHolder —
+// scheme-handler берёт уже готовый ключ, второго запроса пальца нет.
 struct AuthGate: View {
     @Binding var unlocked: Bool
     @State private var error = ""
@@ -22,58 +24,21 @@ struct AuthGate: View {
         let ctx = LAContext()
         ctx.localizedFallbackTitle = "Ввести пароль"
         var err: NSError?
-        // .deviceOwnerAuthentication = Touch ID, а если недоступен — системный пароль Mac
         if ctx.canEvaluatePolicy(.deviceOwnerAuthentication, error: &err) {
-            ctx.evaluatePolicy(.deviceOwnerAuthentication,
-                               localizedReason: "Доступ к Pipboy") { ok, e in
-                DispatchQueue.main.async {
-                    if ok {
-                        unlocked = true
-                        Self.smokeTestEncryptedDB()   // Этап 0b (временно)
-                    } else { error = "Не удалось разблокировать" }
+            ctx.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "Доступ к Pipboy") { ok, _ in
+                if ok {
+                    // ключ базы под тем же пальцем (без второго запроса) → держателю
+                    KeyHolder.shared.key = try? Keychain.databaseKey(context: ctx)
+                    DispatchQueue.main.async { unlocked = true }
+                    DispatchQueue.global().async {
+                        if let key = KeyHolder.shared.key { Importer.importIfNeeded(encryptedKey: key) }
+                    }
+                } else {
+                    DispatchQueue.main.async { error = "Не удалось разблокировать" }
                 }
             }
         } else {
             error = "Аутентификация недоступна на этом Mac"
-        }
-    }
-
-    // Этап 0a (временная проверка): открыть зашифрованную базу тем же пальцем.
-    // В фоне и с перехватом — если что-то не так, приложение продолжает работать.
-    // Результат смотри в консоли Xcode: «Pipboy 0a: …». Удалим, когда слой созреет.
-    static func smokeTestEncryptedDB() {
-        DispatchQueue.global().async {
-            do {
-                NSLog(Database.sqlcipherActive
-                    ? "Pipboy: SQLCipher активен (шифрование доступно)"
-                    : "Pipboy: ВНИМАНИЕ — SQLCipher НЕ подключён к таргету, идёт системный SQLite без шифрования")
-                let key = try Keychain.databaseKey()
-                Importer.importIfNeeded(encryptedKey: key)        // Этап 0b: разовый импорт
-                let db = try Database(key: key)
-                let tables = try db.scalarInt("SELECT count(*) FROM sqlite_master WHERE type='table'")
-                let nodes = (try? db.scalarInt("SELECT count(*) FROM nodes")) ?? 0
-                NSLog("Pipboy 0b: зашифрованная база — таблиц:\(tables) задач:\(nodes)")
-                // Этап 1: проверяем нативный /api/tree (тот же ответ, что давал Node).
-                let (treeData, _) = try Api.handle(method: "GET", path: "/api/tree", query: nil, body: nil, db: db)
-                let obj = try JSONSerialization.jsonObject(with: treeData) as? [String: Any]
-                let treeNodes = (obj?["nodes"] as? [[String: Any]])?.count ?? -1
-                let links = (obj?["links"] as? [[String: Any]])?.count ?? -1
-                NSLog("Pipboy 1: нативный /api/tree — узлов:\(treeNodes) связей:\(links)")
-                // Этап 1: проверяем тяжёлый /api/fin (портфель + конвертация валют).
-                let (finData, _) = try Api.handle(method: "GET", path: "/api/fin", query: nil, body: nil, db: db)
-                let fin = try JSONSerialization.jsonObject(with: finData) as? [String: Any]
-                let blocks = (fin?["portfolio"] as? [[String: Any]])?.count ?? -1
-                let total = ((fin?["summary"] as? [String: Any])?["portfolioTotal"] as? Double) ?? -1
-                NSLog("Pipboy 1: нативный /api/fin — блоков:\(blocks) портфель €\(Int(total))")
-                // Этап 1: дашборд (тянет календарь+финансы+людей — самый связанный эндпоинт).
-                let (tdData, _) = try Api.handle(method: "GET", path: "/api/today", query: nil, body: nil, db: db)
-                let td = try JSONSerialization.jsonObject(with: tdData) as? [String: Any]
-                let rout = (td?["routines"] as? [[String: Any]])?.count ?? -1
-                let over = (td?["overdue"] as? [[String: Any]])?.count ?? -1
-                NSLog("Pipboy 1: нативный /api/today — рутин:\(rout) просрочено:\(over)")
-            } catch {
-                NSLog("Pipboy 0b: ошибка шифр-базы: \(error)")
-            }
         }
     }
 }

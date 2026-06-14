@@ -1,5 +1,7 @@
 import Foundation
 import WebKit
+import CryptoKit
+import AppKit
 
 // ЭТАП 1 — нативный слой чтения.
 // WKURLSchemeHandler перехватывает запросы интерфейса (тот же фронт из app/public)
@@ -15,7 +17,11 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
 
     private func database() throws -> Database {
         if let db { return db }
-        let made = try Database(key: try Keychain.databaseKey())
+        // ключ кладёт AuthGate под пальцем; ждём недолго, если ещё не готов
+        var key = KeyHolder.shared.key, tries = 0
+        while key == nil && tries < 50 { usleep(100_000); key = KeyHolder.shared.key; tries += 1 }
+        guard let k = key else { throw Database.Failure.open(0) }
+        let made = try Database(key: k)
         db = made
         return made
     }
@@ -110,6 +116,14 @@ enum Api {
         if let m = match(path, "^/api/pages/([0-9]+)/backlinks$") {
             return (try json(try backlinks(db, id: Int(m[1]) ?? -1)), 200)
         }
+        if let m = match(path, "^/api/psy/practices/([0-9]+)/logs$") {
+            return (try json(try db.rows("SELECT * FROM practice_log WHERE practice_id = ? ORDER BY date DESC, id DESC LIMIT 5", [Int(m[1]) ?? -1])
+                .map { r -> [String: Any] in
+                    var x = r
+                    if let s = r["answers"] as? String, let a = try? JSONSerialization.jsonObject(with: Data(s.utf8)) { x["answers"] = a }
+                    return x
+                }), 200)
+        }
         if let m = match(path, "^/api/pages/([0-9]+)$") {
             guard var pg = try getPage(db, Int(m[1]) ?? -1) else { return (try json(["error": "not found"]), 404) }
             pg.removeValue(forKey: "enc")   // шифротекст наружу не отдаём
@@ -167,9 +181,63 @@ enum Api {
             return (try json(try resolveWiki(db, name: queryValue(query, "name") ?? "")), 200)
         case "/api/pages/search":
             return (try json(try searchPages(db, q: queryValue(query, "q") ?? "")), 200)
+        case "/api/search":
+            return (try json(try searchNodes(db, q: queryValue(query, "q") ?? "")), 200)
+        case "/api/roulette":
+            return (try json(["idea": try rollIdea(db)]), 200)
+        case "/api/audit":
+            return (try json(try audit(db)), 200)
+        case "/api/categories":
+            return (try json(try listCategories(db)), 200)
         default:
             throw Unsupported(path: path)
         }
+    }
+
+    static func searchNodes(_ db: Database, q: String) throws -> [[String: Any]] {
+        let toks = tokens(q)
+        if toks.isEmpty { return [] }
+        let m = toks.map { "\"\($0.replacingOccurrences(of: "\"", with: ""))\"*" }.joined(separator: " ")
+        return try db.rows("SELECT n.* FROM node_fts JOIN nodes n ON n.id = node_fts.rowid WHERE node_fts MATCH ? ORDER BY bm25(node_fts) LIMIT 20", [m])
+    }
+    static func rollIdea(_ db: Database) throws -> Any {
+        guard let n = try db.rows("""
+            SELECT id, title, created_at FROM nodes WHERE is_category = 0 AND kind = 'idea'
+              AND (status IS NULL OR status NOT IN ('done','accepted')) AND due_date IS NULL
+            ORDER BY RANDOM() LIMIT 1
+            """).first else { return NSNull() }
+        var path: [String] = []
+        var p = numOpt(n["parent_id"]).map { Int($0) }
+        while let pid = p, let r = try getNode(db, pid) {
+            path.insert(r["title"] as? String ?? "", at: 0)
+            p = numOpt(r["parent_id"]).map { Int($0) }
+        }
+        var days = 0
+        if let ca = n["created_at"] as? String, let d = sqliteDate(ca) { days = max(0, Int(Date().timeIntervalSince(d) / 86400)) }
+        return ["id": n["id"] ?? NSNull(), "title": n["title"] ?? NSNull(), "path": path.joined(separator: " › "), "days": days]
+    }
+    static func audit(_ db: Database) throws -> [[String: Any]] {
+        var out: [[String: Any]] = []
+        func add(_ s: String, _ st: String, _ item: String, _ hint: String = "") { out.append(["section": s, "status": st, "item": item, "hint": hint]) }
+        func c(_ sql: String) -> Int { (((try? db.rows(sql))?.first?["c"]) as? Int) ?? 0 }
+        let real = c("SELECT count(*) AS c FROM nodes WHERE is_category = 0")
+        let untyped = c("SELECT count(*) AS c FROM nodes WHERE is_category = 0 AND kind IS NULL")
+        if real == 0 { add("Цели", "warn", "записей нет вообще", "вставь свои списки в поле импорта") }
+        else if untyped > real / 2 { add("Цели", "warn", "разобрано мало: без типа \(untyped) из \(real)", "пройдись по инбоксу") }
+        else { add("Цели", "ok", "записей \(real), без типа \(untyped)") }
+        let p01 = c("SELECT count(*) AS c FROM nodes WHERE kind = 'task' AND priority IN ('P0','P1') AND due_date IS NULL AND status IS NOT 'done'")
+        if p01 > 0 { add("Цели", "warn", "важных задач без срока: \(p01)", "P0/P1 без даты не попадут в неделю") }
+        let accs = c("SELECT count(*) AS c FROM accounts")
+        if accs == 0 { add("Финансы", "warn", "счета не заведены") }
+        else {
+            let stale = c("SELECT count(*) AS c FROM accounts WHERE julianday('now','localtime') - julianday(balance_updated_at) > 14")
+            add("Финансы", stale > 0 ? "warn" : "ok", stale > 0 ? "балансы протухли (>14 дн): \(stale) из \(accs)" : "счета: \(accs), балансы свежие")
+        }
+        let pages = c("SELECT count(*) AS c FROM pages")
+        add("Инфо", pages > 0 ? "ok" : "warn", pages > 0 ? "страниц: \(pages)" : "страниц нет")
+        let checkinToday = c("SELECT count(*) AS c FROM checkins WHERE date = date('now','localtime')")
+        add("Трекинг", checkinToday > 0 ? "ok" : "warn", checkinToday > 0 ? "чек-ин сегодня есть" : "нет чек-ина сегодня", "10 секунд в дашборде")
+        return out
     }
 
     static func backlinks(_ db: Database, id: Int) throws -> [[String: Any]] {
@@ -213,8 +281,14 @@ enum Api {
             guard let title = (body["title"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
                   !title.isEmpty else { return (try json(["error": "title required"]), 400) }
             let parent = numOpt(body["parent_id"]).map { Int($0) }
-            let id = try insertNode(db, parentId: parent, title: title, note: "",
-                                    isCategory: intval(body["is_category"]) != 0 ? 1 : 0)
+            let isCat = intval(body["is_category"]) != 0
+            let id = try insertNode(db, parentId: parent, title: title, note: "", isCategory: isCat ? 1 : 0)
+            if !isCat {   // авто-тип по тексту (как addChildAuto в Node)
+                var patch: [String: Any] = [:]
+                if let k = suggestKind(title) { patch["kind"] = k }
+                if let d = suggestDate(title) { patch["due_date"] = d }
+                if !patch.isEmpty { _ = try updateNode(db, id: id, fields: patch) }
+            }
             return (try json(try getNode(db, id) ?? [:]), 201)
         }
         if let m = match(path, "^/api/nodes/([0-9]+)$") {
@@ -416,6 +490,86 @@ enum Api {
             try db.run("DELETE FROM trash WHERE id = ?", [Int(m[1]) ?? -1]); return (ok(), 200)
         }
 
+        // ----- Цели: импорт-блок, связи, объединение, план -----
+        if method == "POST", path == "/api/import" {
+            guard let text = body["text"] as? String, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                return (try json(["error": "text required"]), 400)
+            }
+            return (try json(["imported": try importBlock(db, parentId: numOpt(body["parent_id"]).map { Int($0) }, text: text)]), 201)
+        }
+        if method == "POST", path == "/api/links" {
+            do { try addLink(db, from: intval(body["from_id"]), to: intval(body["to_id"]), type: body["type"] as? String ?? "related"); return (ok(201), 201) }
+            catch { return (errJson(error), 400) }
+        }
+        if let m = match(path, "^/api/links/([0-9]+)$"), method == "DELETE" {
+            try db.run("DELETE FROM links WHERE id = ?", [Int(m[1]) ?? -1]); return (ok(), 200)
+        }
+        if method == "POST", path == "/api/dismiss" {
+            let a = intval(body["a"]), b = intval(body["b"]); let lo = min(a, b), hi = max(a, b)
+            try db.run("INSERT OR IGNORE INTO dismissed(a, b) VALUES(?,?)", [lo, hi]); return (ok(), 200)
+        }
+        if method == "POST", path == "/api/merge" {
+            do { return (try json(try mergeNodes(db, keepId: intval(body["keep"]), dupId: intval(body["dup"])) ?? [:]), 200) }
+            catch { return (errJson(error), 400) }
+        }
+        if let m = match(path, "^/api/nodes/([0-9]+)/plan$"), method == "POST" {
+            do { return (try json(try planPage(db, nodeId: Int(m[1]) ?? -1)), 201) } catch { return (errJson(error), 400) }
+        }
+        // ----- Трекинг: reorder метрик -----
+        if let m = match(path, "^/api/track/metrics/([0-9]+)/reorder$"), method == "POST" {
+            guard let ref = numOpt(body["ref_id"]).map({ Int($0) }) else { return (try json(["error": "ref_id"]), 400) }
+            do { try reorderSimple(db, "metrics", id: Int(m[1]) ?? -1, refId: ref, pos: (body["where"] as? String) == "before" ? "before" : "after"); return (ok(), 200) }
+            catch { return (errJson(error), 400) }
+        }
+        // ----- Пароли разделов (sha256 UI-замок) -----
+        if method == "POST", path == "/api/lock/unlock" {
+            if checkPass(db, "lock_pw_hash", body["password"] as? String ?? "") {
+                let key = try db.rows("SELECT value FROM settings WHERE key = 'lock_pw_hash'").first?["value"] as? String ?? ""
+                return (try json(["ok": true, "key": key]), 200)
+            }
+            return (try json(["error": "неверный пароль"]), 403)
+        }
+        if method == "POST", path == "/api/lock/pass" {
+            let enabled = try db.lockEnabled()
+            if enabled && !checkPass(db, "lock_pw_hash", body["old"] as? String ?? "") {
+                return (try json(["error": "неверный текущий пароль"]), 403)
+            }
+            try setSetting(db, "lock_pw_hash", passOrEmpty(body["password"] as? String))
+            return (ok(), 200)
+        }
+        if method == "POST", path == "/api/psy/unlock" {
+            if checkPass(db, "psy_pass_hash", body["password"] as? String ?? "") { return (ok(), 200) }
+            return (try json(["error": "неверный пароль"]), 403)
+        }
+        if method == "POST", path == "/api/psy/pass" {
+            let hasPass = try settingNonEmpty(db, "psy_pass_hash")
+            if hasPass && !checkPass(db, "psy_pass_hash", body["old"] as? String ?? "") {
+                return (try json(["error": "неверный текущий пароль"]), 403)
+            }
+            try setSetting(db, "psy_pass_hash", passOrEmpty(body["password"] as? String))
+            return (ok(), 200)
+        }
+        // ----- Инфо: ревизия версий, пароль на заметку -----
+        if let m = match(path, "^/api/pages/([0-9]+)/revisions/([0-9]+)/restore$"), method == "POST" {
+            do { return (try json(try restoreRevision(db, pageId: Int(m[1]) ?? -1, revId: Int(m[2]) ?? -1) ?? [:]), 200) }
+            catch { return (errJson(error), 400) }
+        }
+        if let m = match(path, "^/api/pages/([0-9]+)/lock$"), method == "POST" {
+            do { var pg = try lockPage(db, id: Int(m[1]) ?? -1, password: body["password"] as? String ?? "", newContent: body["content"] as? String); pg.removeValue(forKey: "enc"); return (try json(pg), 200) }
+            catch { return (errJson(error), 400) }
+        }
+        if let m = match(path, "^/api/pages/([0-9]+)/unlock$"), method == "POST" {
+            do { return (try json(try unlockPage(db, id: Int(m[1]) ?? -1, password: body["password"] as? String ?? "", remove: (body["remove"] as? Bool == true) || intval(body["remove"]) != 0)), 200) }
+            catch { return (errJson(error), 403) }
+        }
+        // ----- Экспорт, импорт Monefy -----
+        if method == "POST", path == "/api/export" {
+            return (try json(try exportAll(db)), 200)
+        }
+        if method == "POST", path == "/api/fin/monefy" {
+            do { return (try json(["imported": try importMonefy(db, body["csv"] as? String ?? "")]), 201) } catch { return (errJson(error), 400) }
+        }
+
         // ----- Финансы -----
         if method == "POST", path == "/api/backup" {
             return (try json(try backup(db)), 200)
@@ -468,6 +622,172 @@ enum Api {
         else { try db.run("INSERT INTO routine_log(routine_id, date) VALUES(?,?)", [id, t]) }
         return !has
     }
+
+    // ----- Пароли разделов (sha256 'pipboy:'+pw) -----
+    private static func passHash(_ s: String) -> String {
+        SHA256.hash(data: Data(("pipboy:" + s).utf8)).map { String(format: "%02x", $0) }.joined()
+    }
+    static func checkPass(_ db: Database, _ key: String, _ pw: String) -> Bool {
+        let h = (((try? db.rows("SELECT value FROM settings WHERE key = ?", [key]))?.first?["value"]) as? String) ?? ""
+        return h.isEmpty || h == passHash(pw)
+    }
+    private static func passOrEmpty(_ pw: String?) -> String { (pw?.isEmpty == false) ? passHash(pw!) : "" }
+
+    // ----- Импорт-блок целей -----
+    static func importBlock(_ db: Database, parentId: Int?, text: String) throws -> Int {
+        let rows = parseOutline(text)
+        var stack: [(level: Int, id: Int?)] = [(-1, parentId)]
+        var count = 0
+        for r in rows {
+            while stack.count > 1 && stack.last!.level >= r.level { stack.removeLast() }
+            let id = try insertNode(db, parentId: stack.last!.id, title: r.title, note: "", isCategory: 0)
+            stack.append((r.level, id)); count += 1
+        }
+        return count
+    }
+    private static func parseOutline(_ text: String) -> [(level: Int, title: String)] {
+        var items: [(indent: Int, title: String)] = []
+        for raw in text.replacingOccurrences(of: "\r", with: "").split(separator: "\n", omittingEmptySubsequences: false) {
+            let line = String(raw)
+            if line.trimmingCharacters(in: .whitespaces).isEmpty { continue }
+            let indent = line.prefix { $0 == " " || $0 == "\t" }.reduce(0) { $0 + ($1 == "\t" ? 4 : 1) }
+            var title = line.trimmingCharacters(in: .whitespaces)
+            if let r = title.range(of: "^(?:[0-9]+[.)]|[-*•◦▪‣o])\\s+", options: .regularExpression) { title.removeSubrange(r) }
+            title = title.trimmingCharacters(in: .whitespaces)
+            if !title.isEmpty { items.append((indent, title)) }
+        }
+        let levels = Array(Set(items.map { $0.indent })).sorted()
+        return items.map { (levels.firstIndex(of: $0.indent) ?? 0, $0.title) }
+    }
+
+    // ----- Связи / объединение -----
+    static func addLink(_ db: Database, from: Int, to: Int, type: String) throws {
+        if from == to { throw Unsupported(path: "self-link") }
+        if type == "blocks", try reaches(db, from: to, to: from) { throw Unsupported(path: "cycle") }
+        try db.run("INSERT OR IGNORE INTO links(from_id, to_id, type) VALUES(?,?,?)", [from, to, type])
+    }
+    private static func reaches(_ db: Database, from: Int, to: Int) throws -> Bool {
+        !(try db.rows("WITH RECURSIVE r(id) AS (SELECT to_id FROM links WHERE from_id = ? AND type = 'blocks' UNION SELECT l.to_id FROM links l JOIN r ON l.from_id = r.id AND l.type = 'blocks') SELECT 1 FROM r WHERE id = ? LIMIT 1", [from, to]).isEmpty)
+    }
+    static func mergeNodes(_ db: Database, keepId: Int, dupId: Int) throws -> [String: Any]? {
+        if keepId == dupId { throw Unsupported(path: "same node") }
+        guard let keep = try getNode(db, keepId), let dup = try getNode(db, dupId) else { throw Unsupported(path: "not found") }
+        for ch in try db.rows("SELECT id FROM nodes WHERE parent_id = ? ORDER BY ord", [dupId]) {
+            let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM nodes WHERE parent_id IS ?", [keepId]).first?["o"]))
+            try db.run("UPDATE nodes SET parent_id = ?, ord = ? WHERE id = ?", [keepId, ord, intval(ch["id"])])
+        }
+        for l in try db.rows("SELECT * FROM links WHERE from_id = ? OR to_id = ?", [dupId, dupId]) {
+            let from = intval(l["from_id"]) == dupId ? keepId : intval(l["from_id"])
+            let to = intval(l["to_id"]) == dupId ? keepId : intval(l["to_id"])
+            try db.run("DELETE FROM links WHERE id = ?", [intval(l["id"])])
+            if from != to { try db.run("INSERT OR IGNORE INTO links(from_id, to_id, type) VALUES(?,?,?)", [from, to, l["type"] ?? "related"]) }
+        }
+        var fields: [String: Any] = [:]
+        let kDue = keep["due_date"] as? String, dDue = dup["due_date"] as? String
+        if let dd = dDue, !dd.isEmpty, (kDue?.isEmpty != false || dd < (kDue ?? "~")) { fields["due_date"] = dd }
+        let kPr = keep["priority"] as? String, dPr = dup["priority"] as? String
+        if let dp = dPr, !dp.isEmpty, (kPr?.isEmpty != false || dp < (kPr ?? "~")) { fields["priority"] = dp }
+        if (keep["kind"] is NSNull || keep["kind"] == nil), !(dup["kind"] is NSNull), dup["kind"] != nil { fields["kind"] = dup["kind"]!; fields["status"] = dup["status"] ?? NSNull() }
+        fields["note"] = [keep["note"] as? String ?? "", "[объединено] \(dup["title"] as? String ?? "")", dup["note"] as? String ?? ""].filter { !$0.isEmpty }.joined(separator: "\n")
+        _ = try updateNode(db, id: keepId, fields: fields)
+        try db.run("DELETE FROM node_fts WHERE rowid = ?", [dupId])
+        try db.run("DELETE FROM nodes WHERE id = ?", [dupId])
+        return try getNode(db, keepId)
+    }
+    static func planPage(_ db: Database, nodeId: Int) throws -> [String: Any] {
+        if let existing = try db.rows("SELECT * FROM pages WHERE node_id = ?", [nodeId]).first { return existing }
+        guard let node = try getNode(db, nodeId) else { throw Unsupported(path: "node not found") }
+        let rootId: Int
+        if let root = try db.rows("SELECT id FROM pages WHERE title = 'Планы задач' AND parent_id IS NULL").first { rootId = intval(root["id"]) }
+        else { rootId = intval(try addPage(db, title: "Планы задач", body: [:])["id"]) }
+        let title = node["title"] as? String ?? "", noteV = node["note"] as? String ?? ""
+        let content = "# План: \(title)\n\nКонтекст: \(noteV.isEmpty ? "—" : noteV)\n\n## Рассуждение\n\n- \n\n## Шаги\n\n- [ ] \n"
+        return try addPage(db, title: title, body: ["parent_id": rootId, "node_id": nodeId, "content": content])
+    }
+    static func restoreRevision(_ db: Database, pageId: Int, revId: Int) throws -> [String: Any]? {
+        guard let rev = try db.rows("SELECT * FROM page_revisions WHERE id = ? AND page_id = ?", [revId, pageId]).first else { throw Unsupported(path: "ревизия не найдена") }
+        return try patchPage(db, id: pageId, body: ["content": rev["content"] ?? ""])
+    }
+    static func reorderSimple(_ db: Database, _ table: String, id: Int, refId: Int, pos: String) throws {
+        if id == refId { return }
+        var all = try db.rows("SELECT id FROM \(table) ORDER BY ord, id").compactMap { $0["id"] as? Int }.filter { $0 != id }
+        guard let at = all.firstIndex(of: refId) else { throw Unsupported(path: "сосед не найден") }
+        all.insert(id, at: at + (pos == "after" ? 1 : 0))
+        for (i, mid) in all.enumerated() { try db.run("UPDATE \(table) SET ord = ? WHERE id = ?", [i + 1, mid]) }
+    }
+
+    // ----- Пароль на заметку (AES-GCM + scrypt, см. Crypto.swift) -----
+    static func lockPage(_ db: Database, id: Int, password: String, newContent: String?) throws -> [String: Any] {
+        guard let p = try getPage(db, id) else { throw Unsupported(path: "not found") }
+        if password.isEmpty { throw Unsupported(path: "пустой пароль") }
+        let content: String
+        if intval(p["locked"]) != 0 {
+            let old = try PageCrypto.decrypt(password: password, encStr: p["enc"] as? String ?? "")
+            content = newContent ?? old
+        } else { content = newContent ?? (p["content"] as? String ?? "") }
+        let enc = try PageCrypto.encrypt(password: password, text: content)
+        try db.run("UPDATE pages SET enc = ?, locked = 1, content = '', updated_at = datetime('now') WHERE id = ?", [enc, id])
+        try db.run("DELETE FROM page_fts WHERE rowid = ?", [id])
+        return try getPage(db, id) ?? [:]
+    }
+    static func unlockPage(_ db: Database, id: Int, password: String, remove: Bool) throws -> [String: Any] {
+        guard let p = try getPage(db, id), intval(p["locked"]) != 0 else { throw Unsupported(path: "страница не под паролем") }
+        let content = try PageCrypto.decrypt(password: password, encStr: p["enc"] as? String ?? "")
+        if remove {
+            try db.run("UPDATE pages SET enc = NULL, locked = 0, content = ?, updated_at = datetime('now') WHERE id = ?", [content, id])
+            try db.run("INSERT INTO page_fts(rowid, title_norm, content_norm) VALUES(?,?,?)", [id, norm(p["title"] as? String ?? ""), norm(content)])
+        }
+        return ["content": content]
+    }
+
+    // ----- Экспорт / импорт Monefy -----
+    static func exportAll(_ db: Database) throws -> [String: Any] {
+        let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Downloads/cladue/app/export", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let tables = ["nodes", "links", "accounts", "portfolio_items", "obligations", "passive_income", "debts", "transactions",
+                      "events", "routines", "people", "pages", "practices", "wheel_areas", "wheel_scores", "metrics", "forecasts",
+                      "properties", "settings", "rates"]
+        var dump: [String: Any] = [:]
+        for t in tables { dump[t] = (try? db.rows("SELECT * FROM \(t)")) ?? [] }
+        let file = dir.appendingPathComponent("data.json")
+        try JSONSerialization.data(withJSONObject: dump, options: [.prettyPrinted]).write(to: file)
+        NSWorkspace.shared.open(dir)
+        return ["dir": dir.path, "files": [file.path]]
+    }
+    static func importMonefy(_ db: Database, _ csv: String) throws -> Int {
+        let lines = csv.replacingOccurrences(of: "\r", with: "").split(separator: "\n").map(String.init).filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        if lines.count < 2 { return 0 }
+        let delim: Character = lines[0].filter { $0 == ";" }.count >= lines[0].filter { $0 == "," }.count ? ";" : ","
+        func split(_ l: String) -> [String] { l.split(separator: delim, omittingEmptySubsequences: false).map { $0.trimmingCharacters(in: CharacterSet(charactersIn: "\" ")) } }
+        let head = split(lines[0]).map { $0.lowercased() }
+        func col(_ names: [String]) -> Int { head.firstIndex(where: { h in names.contains(where: { h.contains($0) }) }) ?? -1 }
+        let iDate = col(["date", "дата"]), iAmount = col(["amount", "сумма"]), iCat = col(["category", "категория"]), iCur = col(["currency", "валюта"]), iNote = col(["description", "note", "описание"])
+        if iDate < 0 || iAmount < 0 { throw Unsupported(path: "не нашёл колонки date/amount") }
+        var count = 0
+        for line in lines.dropFirst() {
+            let c = split(line)
+            guard iAmount < c.count, iDate < c.count,
+                  let amount = Double(c[iAmount].replacingOccurrences(of: " ", with: "").replacingOccurrences(of: ",", with: ".")),
+                  let date = parseAnyDate(c[iDate]) else { continue }
+            try finAdd(db, "tx", [
+                "date": date, "amount": abs(amount), "direction": amount < 0 ? "expense" : "income",
+                "category": (iCat >= 0 && iCat < c.count && !c[iCat].isEmpty) ? c[iCat] : "прочее",
+                "currency": (iCur >= 0 && iCur < c.count && !c[iCur].isEmpty) ? normCur(c[iCur]) : "€",
+                "note": (iNote >= 0 && iNote < c.count) ? c[iNote] : "", "source": "monefy"])
+            count += 1
+        }
+        return count
+    }
+    private static func parseAnyDate(_ s: String) -> String? {
+        let t = s.trimmingCharacters(in: .whitespaces)
+        if regexTest(t, "^[0-9]{4}-[0-9]{2}-[0-9]{2}") { return String(t.prefix(10)) }
+        let parts = t.split(whereSeparator: { $0 == "/" || $0 == "." || $0 == "-" }).map(String.init)
+        if parts.count >= 3, let d = Int(parts[0]), let m = Int(parts[1]), let y = Int(parts[2]), y > 1900 {
+            return String(format: "%04d-%02d-%02d", y, m, d)
+        }
+        return nil
+    }
+    private static func normCur(_ s: String) -> String { (s.uppercased().contains("USD") || s.contains("$")) ? "$" : "€" }
 
     // ----- Узлы-помощники -----
     static func addChild(_ db: Database, parentId: Int?, title: String) throws -> [String: Any]? {
@@ -908,19 +1228,78 @@ enum Api {
     // (умные подсказки-связи по токенам и контекст ветки — добавлю отдельным срезом)
     static func suggest(_ db: Database, id: Int) throws -> Data {
         guard let t = try getNode(db, id) else { return try json(NSNull()) }
+        let title = t["title"] as? String ?? "", note = t["note"] as? String ?? ""
+        // семья = сам + предки + потомки
+        var family: Set<Int> = [id]
+        var cur: Int? = id
+        while let c = cur, let n = try getNode(db, c), let p = numOpt(n["parent_id"]).map({ Int($0) }) { family.insert(p); cur = p }
+        for d in try db.rows("WITH RECURSIVE r(x) AS (SELECT id FROM nodes WHERE parent_id = ? UNION SELECT n.id FROM nodes n JOIN r ON n.parent_id = r.x) SELECT x FROM r", [id]) { family.insert(intval(d["x"])) }
+        let linked = Set(try db.rows("SELECT from_id AS x FROM links WHERE to_id = ? UNION SELECT to_id FROM links WHERE from_id = ?", [id, id]).map { intval($0["x"]) })
+        var dism: Set<Int> = []
+        for r in try db.rows("SELECT a, b FROM dismissed") { let a = intval(r["a"]), b = intval(r["b"]); if a == id { dism.insert(b) } else if b == id { dism.insert(a) } }
+        let myToks = tokens(title + " " + note)
+        var candidates: [[String: Any]] = []
+        if !myToks.isEmpty {
+            let q = myToks.map { "\"\($0.replacingOccurrences(of: "\"", with: ""))\"" }.joined(separator: " OR ")
+            for c in try db.rows("SELECT n.*, bm25(node_fts) AS rank FROM node_fts JOIN nodes n ON n.id = node_fts.rowid WHERE node_fts MATCH ? ORDER BY rank LIMIT 20", [q]) {
+                let cid = intval(c["id"])
+                if family.contains(cid) || linked.contains(cid) || dism.contains(cid) { continue }
+                let common = tokens((c["title"] as? String ?? "") + " " + (c["note"] as? String ?? "")).filter { myToks.contains($0) }
+                let reason = "совпадение: " + common.prefix(4).joined(separator: ", ")
+                if reason.count > 12 { candidates.append(["node": c, "reason": reason, "kind": "mention"]) }
+            }
+        }
+        if let due = t["due_date"] as? String, !due.isEmpty {
+            for c in try db.rows("SELECT * FROM nodes WHERE due_date IS NOT NULL AND id != ? AND abs(julianday(due_date) - julianday(?)) <= 60", [id, due]) {
+                let cid = intval(c["id"])
+                if family.contains(cid) || linked.contains(cid) || dism.contains(cid) { continue }
+                candidates.append(["node": c, "reason": "дата рядом: \(c["due_date"] as? String ?? "")", "kind": "time"])
+            }
+        }
+        var seen: Set<Int> = []; var links: [[String: Any]] = []
+        for c in candidates { let nid = intval((c["node"] as? [String: Any])?["id"]); if seen.insert(nid).inserted { links.append(c) }; if links.count >= 8 { break } }
+        // контекст ветки
+        var branchRoot = t
+        while let p = numOpt(branchRoot["parent_id"]).map({ Int($0) }), let pp = try getNode(db, p), intval(pp["is_category"]) == 0 { branchRoot = pp }
+        var branchIds: Set<Int> = [intval(branchRoot["id"])]
+        for d in try db.rows("WITH RECURSIVE r(x) AS (SELECT id FROM nodes WHERE parent_id = ? UNION SELECT n.id FROM nodes n JOIN r ON n.parent_id = r.x) SELECT x FROM r", [intval(branchRoot["id"])]) { branchIds.insert(intval(d["x"])) }
+        branchIds.remove(id)
+        func inBranch(_ rows: [[String: Any]]) -> [[String: Any]] { rows.filter { branchIds.contains(intval($0["id"])) } }
+        let principles = inBranch(try db.rows("SELECT * FROM nodes WHERE kind = 'principle'"))
+        let decisions = inBranch(try db.rows("SELECT * FROM nodes WHERE kind = 'decision' AND status = 'open'"))
+        var payments: [[String: Any]] = []
+        if let due = t["due_date"] as? String, !due.isEmpty {
+            payments = try db.rows("SELECT * FROM obligations WHERE next_date IS NOT NULL AND abs(julianday(next_date) - julianday(?)) <= 60 ORDER BY next_date", [due])
+        }
+        let confirmed = try db.rows("SELECT l.id AS link_id, l.type, l.from_id, l.to_id, n.title, n.status, n.kind AS nkind FROM links l JOIN nodes n ON n.id = CASE WHEN l.from_id = ? THEN l.to_id ELSE l.from_id END WHERE l.from_id = ? OR l.to_id = ?", [id, id, id])
         let hasKind = !(t["kind"] is NSNull) && t["kind"] != nil
-        let kind: Any = hasKind ? NSNull() : (suggestKind(t["title"] as? String ?? "") ?? NSNull())
-        let confirmed = try db.rows("""
-            SELECT l.id AS link_id, l.type, l.from_id, l.to_id, n.title, n.status, n.kind AS nkind
-            FROM links l JOIN nodes n ON n.id = CASE WHEN l.from_id = ? THEN l.to_id ELSE l.from_id END
-            WHERE l.from_id = ? OR l.to_id = ?
-            """, [id, id, id])
+        let hasDue = !(t["due_date"] is NSNull) && (t["due_date"] as? String)?.isEmpty == false
         let result: [String: Any] = [
-            "node": t, "kind": kind, "date": NSNull(), "links": [],
-            "context": ["principles": [], "decisions": [], "payments": []],
+            "node": t,
+            "kind": hasKind ? NSNull() : (suggestKind(title) ?? NSNull()),
+            "date": hasDue ? NSNull() : (suggestDate(title).map { $0 as Any } ?? NSNull()),
+            "links": links, "context": ["principles": principles, "decisions": decisions, "payments": payments],
             "confirmed": confirmed,
         ]
         return try json(result)
+    }
+    private static let MONTHS: [(String, Int)] = [("январ", 1), ("феврал", 2), ("март", 3), ("апрел", 4), ("ма[йя]", 5), ("июн", 6),
+        ("июл", 7), ("август", 8), ("сентябр", 9), ("октябр", 10), ("ноябр", 11), ("декабр", 12)]
+    private static func suggestDate(_ title: String) -> String? {
+        let t = title.lowercased()
+        if let r = t.range(of: "до\\s+(20[0-9][0-9])", options: .regularExpression) {
+            let yr = String(t[r]).components(separatedBy: CharacterSet.decimalDigits.inverted).filter { !$0.isEmpty }.last
+            if let y = yr.flatMap({ Int($0) }) { return "\(y - 1)-12-31" }
+        }
+        let now = Date(); let cal = Calendar.current
+        let curY = cal.component(.year, from: now), curM = cal.component(.month, from: now)
+        for (pat, m) in MONTHS where regexTest(t, "(?:^|[^а-яёa-z])(?:\(pat))") {
+            let y = m < curM ? curY + 1 : curY
+            var c = Calendar(identifier: .gregorian); c.timeZone = TimeZone(identifier: "UTC")!
+            let last = c.range(of: .day, in: .month, for: c.date(from: DateComponents(year: y, month: m, day: 1))!)!.count
+            return String(format: "%04d-%02d-%02d", y, m, last)
+        }
+        return nil
     }
 
     private static func regexTest(_ s: String, _ pattern: String) -> Bool {

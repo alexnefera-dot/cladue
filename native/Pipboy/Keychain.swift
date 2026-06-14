@@ -1,53 +1,82 @@
 import Foundation
 import Security
+import LocalAuthentication
 
-// Ключ шифрования базы хранится в keychain приложения.
-// Доступ к самому приложению уже под Touch ID (AuthGate на входе), поэтому
-// здесь — обычная запись без биометрического access-control: так работает под
-// «Sign to Run Locally» без Apple-команды и спец-прав (иначе keychain отдаёт
-// errSecMissingEntitlement / -34018). Привязку к Secure Enclave добавим, когда
-// заведём команду подписи под iPhone.
+// Общий держатель ключа базы: AuthGate читает ключ под пальцем один раз и кладёт
+// сюда; scheme-handler берёт уже расшифрованный ключ (без повторного запроса).
+final class KeyHolder {
+    static let shared = KeyHolder()
+    var key: Data?
+}
+
+// Ключ шифрования базы. Хранится в Keychain под биометрией (Secure Enclave ACL,
+// .userPresence = Touch ID или системный пароль). С миграцией старого «плоского»
+// ключа: значение сохраняется, чтобы зашифрованная база всегда открывалась.
+// Любой сбой защищённого хранилища → откат к плоскому ключу (не теряем доступ).
 enum Keychain {
-    enum Failure: Error { case status(OSStatus) }
+    enum Failure: Error { case status(OSStatus), noKey }
 
     private static let service = "com.pipboy.app"
     private static let account = "db-key"
 
-    // Возвращает ключ базы (создаёт 32 случайных байта при первом запуске).
-    static func databaseKey() throws -> Data {
-        if let existing = try read() { return existing }
-        let key = randomBytes(32)
-        try store(key)
+    static func databaseKey(context: LAContext) throws -> Data {
+        if let k = readProtected(context: context) { return k }      // уже под биометрией
+        if let old = readPlain() {                                    // миграция старого
+            storeProtected(old, context: context)                     // best-effort апгрейд
+            return old
+        }
+        let key = randomBytes(32)                                     // первый запуск
+        if !storeProtected(key, context: context) { try storePlain(key) }  // фолбэк, если DP недоступен
         return key
     }
 
-    private static func read() throws -> Data? {
-        let query: [String: Any] = [
+    // ----- защищённое (data-protection keychain, биометрия) -----
+    private static func readProtected(context: LAContext) -> Data? {
+        let q: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecAttrService as String: service, kSecAttrAccount as String: account,
+            kSecReturnData as String: true, kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecUseDataProtectionKeychain as String: true,
+            kSecUseAuthenticationContext as String: context,
         ]
         var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        switch status {
-        case errSecSuccess: return item as? Data
-        case errSecItemNotFound: return nil
-        default: throw Failure.status(status)
-        }
+        return SecItemCopyMatching(q as CFDictionary, &item) == errSecSuccess ? item as? Data : nil
     }
 
-    private static func store(_ key: Data) throws {
-        let query: [String: Any] = [
+    @discardableResult
+    private static func storeProtected(_ key: Data, context: LAContext) -> Bool {
+        guard let access = SecAccessControlCreateWithFlags(nil,
+            kSecAttrAccessibleWhenUnlockedThisDeviceOnly, [.userPresence], nil) else { return false }
+        let q: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
+            kSecAttrService as String: service, kSecAttrAccount as String: account,
+            kSecValueData as String: key, kSecAttrAccessControl as String: access,
+            kSecUseDataProtectionKeychain as String: true,
+            kSecUseAuthenticationContext as String: context,
+        ]
+        SecItemDelete(q as CFDictionary)
+        return SecItemAdd(q as CFDictionary, nil) == errSecSuccess
+    }
+
+    // ----- старое плоское (file keychain) -----
+    private static func readPlain() -> Data? {
+        let q: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service, kSecAttrAccount as String: account,
+            kSecReturnData as String: true, kSecMatchLimit as String: kSecMatchLimitOne,
+        ]
+        var item: CFTypeRef?
+        return SecItemCopyMatching(q as CFDictionary, &item) == errSecSuccess ? item as? Data : nil
+    }
+    private static func storePlain(_ key: Data) throws {
+        let q: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service, kSecAttrAccount as String: account,
             kSecValueData as String: key,
         ]
-        SecItemDelete(query as CFDictionary)
-        let status = SecItemAdd(query as CFDictionary, nil)
-        guard status == errSecSuccess else { throw Failure.status(status) }
+        SecItemDelete(q as CFDictionary)
+        let st = SecItemAdd(q as CFDictionary, nil)
+        guard st == errSecSuccess else { throw Failure.status(st) }
     }
 
     private static func randomBytes(_ n: Int) -> Data {
