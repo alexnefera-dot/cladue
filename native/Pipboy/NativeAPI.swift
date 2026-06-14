@@ -120,6 +120,11 @@ enum Api {
                 "metrics": try trackMetrics(db),
                 "monthly": try trackMonthly(db),
             ]), 200)
+        case "/api/fin":
+            return (try fin(db), 200)
+        case "/api/fin/tx":
+            let ym = queryValue(query, "month") ?? String(localToday().prefix(7))
+            return (try json(try txMonth(db, ym)), 200)
         default:
             throw Unsupported(path: path)
         }
@@ -187,6 +192,267 @@ enum Api {
             }
         }
         return out
+    }
+
+    // ===== Финансы (порт fin.listFin/portfolioTree/eurUsdRate и помощников) =====
+
+    // Курс EURUSD: долларов за 1 евро (дефолт 1.08).
+    static func eurUsdRate(_ db: Database) throws -> Double {
+        let v = num(try db.rows("SELECT price FROM rates WHERE symbol = 'EURUSD'").first?["price"])
+        return v != 0 ? v : 1.08
+    }
+
+    // Дерево портфеля: листья — в родной валюте, агрегаты — в € по курсу.
+    static func portfolioTree(_ db: Database) throws -> [[String: Any]] {
+        let rate = try eurUsdRate(db)
+        let toEur: (Double?, String?) -> Double? = { v, cur in
+            guard let v else { return nil }
+            return cur == "$" ? v / rate : v
+        }
+        var prices: [String: Double] = [:]
+        for r in try db.rows("SELECT symbol, price FROM rates") {
+            if let s = r["symbol"] as? String { prices[s] = num(r["price"]) }
+        }
+        var rows: [[String: Any]] = []
+        for var r in try db.rows("SELECT * FROM portfolio_items ORDER BY parent_id NULLS FIRST, ord, id") {
+            if let sym = r["rate_symbol"] as? String, numOpt(r["qty"]) != nil {
+                if let price = prices[sym] {
+                    r["value"] = num(r["qty"]) * price; r["currency"] = "$"; r["auto"] = true
+                } else { r["no_rate"] = true }
+            }
+            rows.append(r)
+        }
+        var byParent: [String: [[String: Any]]] = [:]
+        for r in rows {
+            let key = numOpt(r["parent_id"]) == nil ? "root" : String(intval(r["parent_id"]))
+            byParent[key, default: []].append(r)
+        }
+        return (byParent["root"] ?? []).map { calcNode($0, byParent, toEur) }
+    }
+
+    private static func calcNode(_ r: [String: Any], _ byParent: [String: [[String: Any]]],
+                                 _ toEur: (Double?, String?) -> Double?) -> [String: Any] {
+        var node = r
+        let children = (byParent[String(intval(r["id"]))] ?? []).map { calcNode($0, byParent, toEur) }
+        let isLeaf = (r["kind"] as? String) == "asset" || children.isEmpty
+        let value = numOpt(r["value"]); let cur = r["currency"] as? String
+        func sum(_ key: String) -> Double { children.reduce(0.0) { $0 + ($1[key] as? Double ?? 0) } }
+        func anyNonNull(_ key: String) -> Bool { children.contains { ($0[key] as? Double) != nil } }
+        let eur = isLeaf ? (toEur(value, cur) ?? 0) : sum("eur")
+        let usdPart = isLeaf ? (cur == "$" ? (value ?? 0) : 0) : sum("usdPart")
+        let eurPart = isLeaf ? (cur != "$" ? (value ?? 0) : 0) : sum("eurPart")
+        let buyEff = numOpt(r["buy_value"]) ?? value
+        let invested: Double? = isLeaf ? (buyEff != nil ? (toEur(buyEff, cur) ?? 0) : nil)
+            : (anyNonNull("invested") ? sum("invested") : nil)
+        let investedCur: Double? = isLeaf ? (value != nil ? (toEur(value, cur) ?? 0) : nil)
+            : (anyNonNull("investedCur") ? sum("investedCur") : nil)
+        let target: Double? = numOpt(r["target_value"]) ?? (anyNonNull("target") ? sum("target") : nil)
+        node["children"] = children
+        node["eur"] = eur; node["usdPart"] = usdPart; node["eurPart"] = eurPart
+        node["value"] = isLeaf ? (r["value"] ?? NSNull()) : eur
+        node["invested"] = invested ?? NSNull()
+        node["investedCur"] = investedCur ?? NSNull()
+        node["target"] = target ?? NSNull()
+        return node
+    }
+
+    static func fin(_ db: Database) throws -> Data {
+        let rate = try eurUsdRate(db)
+        let t = localToday()
+        var accounts = try db.rows("SELECT * FROM accounts ORDER BY id")
+        for i in accounts.indices {
+            let bu = (accounts[i]["balance_updated_at"] as? String).map { String($0.prefix(10)) }
+            accounts[i]["stale_days"] = bu.flatMap { dayDiff($0, t) }.map { Int(floor($0)) } ?? 0
+        }
+        let portfolio = try portfolioTree(db)
+        let portfolioTotal = portfolio.reduce(0.0) { $0 + ($1["eur"] as? Double ?? 0) }
+        let portfolioTotalUsd = portfolioTotal * rate
+        let invested = portfolio.reduce(0.0) { $0 + ($1["invested"] as? Double ?? 0) }
+        let investedCur = portfolio.reduce(0.0) { $0 + ($1["investedCur"] as? Double ?? 0) }
+        let steps = try db.rows("SELECT * FROM steps ORDER BY status = 'done', planned_date IS NULL, planned_date, id")
+        var obligations = try db.rows("SELECT * FROM obligations ORDER BY next_date IS NULL, next_date")
+        for i in obligations.indices {
+            obligations[i]["days_left"] = (obligations[i]["next_date"] as? String)
+                .flatMap { dayDiff(t, $0) }.map { Int(ceil($0)) } ?? NSNull()
+        }
+        var byCur: [String: Double] = [:]
+        for a in accounts { byCur[a["currency"] as? String ?? "", default: 0] += num(a["balance"]) }
+        // займы — зеркало активов с флагом is_loan
+        var loans: [[String: Any]] = []
+        func walkLoan(_ n: [String: Any], _ path: [String]) {
+            let children = n["children"] as? [[String: Any]] ?? []
+            let isLeaf = (n["kind"] as? String) == "asset" || children.isEmpty
+            if intval(n["is_loan"]) != 0 && isLeaf {
+                let due = n["loan_due"] as? String
+                loans.append([
+                    "id": n["id"] ?? NSNull(), "name": n["name"] ?? NSNull(),
+                    "value": n["value"] ?? NSNull(), "currency": (n["currency"] as? String) ?? "€",
+                    "loan_due": due ?? NSNull(), "path": path.joined(separator: " → "),
+                    "overdue_days": due.flatMap { dayDiff($0, t) }.map { Int(floor($0)) } ?? NSNull(),
+                ])
+            }
+            for c in children { walkLoan(c, path + [n["name"] as? String ?? ""]) }
+        }
+        for b in portfolio { walkLoan(b, []) }
+        // аллокация по типам активов
+        var byType: [String: Double] = [:]
+        var byTypeBlocks: [String: [String: Double]] = [:]
+        func walkType(_ n: [String: Any], _ rootName: String) {
+            let children = n["children"] as? [[String: Any]] ?? []
+            let isLeaf = (n["kind"] as? String) == "asset" || children.isEmpty
+            if isLeaf, let e = n["eur"] as? Double, e != 0 {
+                let ty = n["asset_type"] as? String ?? "без типа"
+                byType[ty, default: 0] += e
+                byTypeBlocks[ty, default: [:]][rootName, default: 0] += e
+            }
+            for c in children { walkType(c, rootName) }
+        }
+        for b in portfolio { walkType(b, b["name"] as? String ?? "") }
+        var blockEur: [String: Any] = [:]
+        for b in portfolio { blockEur[b["name"] as? String ?? ""] = b["eur"] ?? 0 }
+        var debts = try db.rows("SELECT * FROM debts ORDER BY due_date IS NULL, due_date")
+        for i in debts.indices {
+            debts[i]["overdue_days"] = (debts[i]["due_date"] as? String)
+                .flatMap { dayDiff($0, t) }.map { Int(floor($0)) } ?? NSNull()
+        }
+        let snaps = try db.rows("SELECT * FROM snapshots ORDER BY date DESC LIMIT 2")
+        let snapshotDelta: Any = snaps.count == 2
+            ? ["since": snaps[1]["date"] ?? NSNull(),
+               "abs": num(snaps[0]["portfolio_eur"]) - num(snaps[1]["portfolio_eur"])]
+            : NSNull()
+        let income = try db.rows("SELECT * FROM passive_income ORDER BY period, id")
+        let monthlyIncome = income.reduce(0.0) { acc, i in
+            let eur = (i["currency"] as? String) == "$" ? num(i["amount"]) / rate : num(i["amount"])
+            let p = i["period"] as? String
+            return acc + (p == "monthly" ? eur : p == "yearly" ? eur / 12 : 0)
+        }
+        let monthlyObligations = obligations.filter { ($0["period"] as? String) == "monthly" }
+            .reduce(0.0) { $0 + num($1["amount"]) }
+        let upcoming = obligations.filter { ($0["days_left"] as? Int).map { $0 <= 30 } ?? false }
+        let budgetStr = try db.rows("SELECT value FROM settings WHERE key = 'monthly_budget'").first?["value"] as? String
+        let budget: Any = budgetStr.flatMap { Double($0) }.flatMap { $0 != 0 ? $0 : nil } ?? NSNull()
+        let growth: Any = invested != 0
+            ? ["invested": invested, "current": investedCur,
+               "abs": investedCur - invested, "pct": (investedCur - invested) / invested * 100]
+            : NSNull()
+        let byTypeSorted: [[Any]] = byType.sorted { $0.value > $1.value }.map { [$0.key, $0.value] }
+        let summary: [String: Any] = [
+            "accountsByCurrency": byCur,
+            "portfolioTotal": portfolioTotal, "portfolioTotalUsd": portfolioTotalUsd, "rate": rate,
+            "growth": growth, "monthlyObligations": monthlyObligations,
+            "monthlyIncome": monthlyIncome, "upcoming": upcoming,
+        ]
+        let tx = try txMonth(db, String(t.prefix(7)))
+        let fc = try forecasts(db)
+        let props = try properties(db)
+        let fireV = try fireCalc(db, capital: portfolioTotal)
+        let macro = try db.rows("SELECT * FROM macro_notes ORDER BY date DESC, id DESC")
+        let rates = try db.rows("SELECT * FROM rates")
+        let result: [String: Any] = [
+            "accounts": accounts, "portfolio": portfolio, "steps": steps,
+            "obligations": obligations, "loans": loans, "debts": debts,
+            "snapshotDelta": snapshotDelta,
+            "byType": byTypeSorted, "byTypeBlocks": byTypeBlocks, "blockEur": blockEur,
+            "tx": tx, "forecasts": fc, "properties": props, "fire": fireV,
+            "income": income, "budget": budget, "macro": macro, "rates": rates,
+            "summary": summary,
+        ]
+        return try json(result)
+    }
+
+    static func txMonth(_ db: Database, _ ym: String) throws -> [String: Any] {
+        let rows = try db.rows("SELECT * FROM transactions WHERE date LIKE ? ORDER BY date DESC, id DESC", [ym + "%"])
+        func sumDir(_ dir: String) -> Double {
+            rows.filter { ($0["direction"] as? String) == dir }.reduce(0.0) { $0 + num($1["amount"]) }
+        }
+        var byCat: [String: Double] = [:]
+        for tx in rows where (tx["direction"] as? String) == "expense" {
+            byCat[tx["category"] as? String ?? "", default: 0] += num(tx["amount"])
+        }
+        return ["month": ym, "rows": rows, "expense": sumDir("expense"), "income": sumDir("income"),
+                "categories": byCat.sorted { $0.value > $1.value }.map { [$0.key, $0.value] as [Any] }]
+    }
+
+    static func fireCalc(_ db: Database, capital: Double) throws -> [String: Any] {
+        func setting(_ k: String, _ def: Double) throws -> Double {
+            if let v = try db.rows("SELECT value FROM settings WHERE key = ?", [k]).first?["value"] as? String,
+               let d = Double(v) { return d }
+            return def
+        }
+        let target = try setting("fire_target", 0)
+        let annual = try setting("fire_return_pct", 5)
+        let monthly = try setting("fire_monthly_savings", 0)
+        if target == 0 { return ["target": 0] }
+        let r = pow(1 + annual / 100, 1.0 / 12) - 1
+        var cap = capital, months = 0
+        while cap < target && months < 1200 { cap = cap * (1 + r) + monthly; months += 1 }
+        let cal = Calendar.current; let now = Date()
+        let curMonth = cal.component(.month, from: now) - 1
+        let curYear = cal.component(.year, from: now)
+        return [
+            "target": target, "annual": annual, "monthly": monthly,
+            "progressPct": min(100, capital / target * 100),
+            "months": months >= 1200 ? NSNull() : months,
+            "reachedYear": months >= 1200 ? NSNull() : curYear + Int(floor(Double(curMonth + months) / 12)),
+        ]
+    }
+
+    static func forecasts(_ db: Database) throws -> [String: Any] {
+        let rows = try db.rows("SELECT * FROM forecasts ORDER BY outcome IS NOT NULL, due_date IS NULL, due_date, id DESC")
+        let resolved = rows.filter { ($0["outcome"] as? Double) != nil || ($0["outcome"] as? Int) != nil }
+        let calibration: Any = resolved.isEmpty ? NSNull()
+            : 100 - resolved.reduce(0.0) { $0 + abs(num($1["confidence"]) - num($1["outcome"]) * 100) } / Double(resolved.count)
+        return ["rows": rows, "calibration": calibration, "resolvedCount": resolved.count]
+    }
+
+    static func properties(_ db: Database) throws -> [[String: Any]] {
+        let t = localToday()
+        var props = try db.rows("SELECT * FROM properties ORDER BY category, name")
+        for i in props.indices {
+            var rules = try db.rows(
+                "SELECT * FROM obligations WHERE property_id = ? ORDER BY next_date IS NULL, next_date",
+                [intval(props[i]["id"])])
+            for j in rules.indices {
+                rules[j]["days_left"] = (rules[j]["next_date"] as? String)
+                    .flatMap { dayDiff(t, $0) }.map { Int(ceil($0)) } ?? NSNull()
+            }
+            props[i]["rules"] = rules
+        }
+        return props
+    }
+
+    // ===== Числовые / датовые помощники =====
+    private static func num(_ v: Any?) -> Double {
+        if let d = v as? Double { return d }
+        if let i = v as? Int { return Double(i) }
+        return 0
+    }
+    private static func numOpt(_ v: Any?) -> Double? {
+        if let d = v as? Double { return d }
+        if let i = v as? Int { return Double(i) }
+        return nil
+    }
+    private static func intval(_ v: Any?) -> Int {
+        if let i = v as? Int { return i }
+        if let d = v as? Double { return Int(d) }
+        return 0
+    }
+    // Разница в днях (UTC midnight, как Date.parse в Node): from → to.
+    private static func dayDiff(_ from: String, _ to: String) -> Double? {
+        guard let a = ymdUTC.date(from: String(from.prefix(10))),
+              let b = ymdUTC.date(from: String(to.prefix(10))) else { return nil }
+        return b.timeIntervalSince(a) / 86400
+    }
+    private static func queryValue(_ query: String?, _ key: String) -> String? {
+        guard let query else { return nil }
+        for pair in query.split(separator: "&") {
+            let kv = pair.split(separator: "=", maxSplits: 1)
+            if kv.first.map(String.init) == key {
+                let v = kv.count > 1 ? String(kv[1]) : ""
+                return v.removingPercentEncoding ?? v
+            }
+        }
+        return nil
     }
 
     // /api/routines: активные рутины + отметка «сегодня» + стрик — порт life.listRoutines.
