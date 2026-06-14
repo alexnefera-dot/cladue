@@ -19,7 +19,9 @@ enum Importer {
             }
             guard let source = plaintextSourceURL(),
                   FileManager.default.fileExists(atPath: source.path) else {
-                NSLog("Pipboy 0b: data.db не найдена — чистый старт, импорт не нужен")
+                // нет data.db (iOS / чистый Mac) → засеять каркас категорий
+                try? Api.seedIfEmpty(try Database(key: key))
+                NSLog("Pipboy: чистый старт — каркас категорий создан")
                 return
             }
             try export(from: source, to: target, key: key)

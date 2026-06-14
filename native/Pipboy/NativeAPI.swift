@@ -1359,6 +1359,21 @@ enum Api {
         try db.rows("SELECT * FROM nodes WHERE id = ?", [id]).first
     }
 
+    // Каркас категорий для чистой установки (iOS / свежий Mac) — порт db.seed().
+    static func seedIfEmpty(_ db: Database) throws {
+        if ((try db.rows("SELECT count(*) AS c FROM nodes").first?["c"]) as? Int ?? 0) > 0 { return }
+        func cat(_ parent: Int?, _ title: String) throws -> Int { try insertNode(db, parentId: parent, title: title, note: "", isCategory: 1) }
+        _ = try cat(nil, "📥 Инбокс")
+        let fin = try cat(nil, "Финансы"); for c in ["Налоги", "Платежи", "Балансы", "Траты", "Активы", "Пассивы"] { _ = try cat(fin, c) }
+        let leg = try cat(nil, "Легализация"); _ = try cat(leg, "ВНЖ")
+        let work = try cat(nil, "Работа"); for c in ["Рост", "Проекты"] { _ = try cat(work, c) }
+        let life = try cat(nil, "Жизнь"); for c in ["Семья", "Развитие", "Здоровье", "Отдых"] { _ = try cat(life, c) }
+        let hist = try cat(nil, "История и расчёты"); for c in ["Налоговые расчёты", "История"] { _ = try cat(hist, c) }
+        let fears = try cat(nil, "Страхи / Вопросы"); let trev = try cat(fears, "Тревоги")
+        for c in ["Налоги", "Покупки", "ВНЖ", "Балансы", "Брокеры", "Семья", "Работа", "Принятые"] { _ = try cat(trev, c) }
+        _ = try cat(nil, "Глобальные цели")
+    }
+
     static func insertNode(_ db: Database, parentId: Int?, title: String, note: String, isCategory: Int) throws -> Int {
         let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM nodes WHERE parent_id IS ?", [parentId]).first?["o"]))
         let id = try db.run("INSERT INTO nodes(parent_id, ord, title, note, is_category) VALUES(?,?,?,?,?)",
