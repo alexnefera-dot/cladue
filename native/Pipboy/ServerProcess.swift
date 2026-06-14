@@ -1,20 +1,21 @@
 import Foundation
 
-// Этап 3: Node убран. Данные — в зашифрованной базе через нативный слой (NativeAPI),
-// интерфейс грузится из pipboy://. Здесь остаётся только авто-обновление веб-фронта:
-// при запуске делаем git pull в репозитории, чтобы app/public был свежим.
-// (Swift-изменения подтянутся тем же pull, но требуют пересборки в Xcode.)
+// Авто-обновление веб-фронта на Маке: при запуске git pull в репозитории, чтобы
+// app/public был свежим. На iOS фронт вшит в бандл — здесь ничего не делаем.
 final class ServerProcess: ObservableObject {
     func start() {
+        #if os(macOS)
         DispatchQueue.global(qos: .utility).async { Self.gitPull(in: Self.repoRoot()) }
+        #endif
     }
 
+    #if os(macOS)
     private static func gitPull(in repo: URL) {
         guard let git = firstExecutable(["/usr/bin/git", "/opt/homebrew/bin/git", "/usr/local/bin/git"]) else { return }
         let p = Process(); p.executableURL = git
         p.arguments = ["-C", repo.path, "pull", "--quiet", "--rebase", "--autostash"]
         var env = ProcessInfo.processInfo.environment
-        env["GIT_TERMINAL_PROMPT"] = "0"     // не виснуть на запросе пароля git
+        env["GIT_TERMINAL_PROMPT"] = "0"
         p.environment = env
         do {
             try p.run()
@@ -23,7 +24,6 @@ final class ServerProcess: ObservableObject {
             if p.isRunning { p.terminate() }
         } catch { /* git недоступен — работаем на текущем коде */ }
     }
-
     private static func firstExecutable(_ paths: [String]) -> URL? {
         for p in paths where FileManager.default.isExecutableFile(atPath: p) { return URL(fileURLWithPath: p) }
         return nil
@@ -31,4 +31,5 @@ final class ServerProcess: ObservableObject {
     private static func repoRoot() -> URL {
         FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Downloads/cladue")
     }
+    #endif
 }

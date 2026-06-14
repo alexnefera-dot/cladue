@@ -1,7 +1,9 @@
 import Foundation
 import WebKit
 import CryptoKit
+#if canImport(AppKit)
 import AppKit
+#endif
 
 // ЭТАП 1 — нативный слой чтения.
 // WKURLSchemeHandler перехватывает запросы интерфейса (тот же фронт из app/public)
@@ -65,12 +67,21 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         return try staticFile(path)
     }
 
-    // Тот же фронт из репозитория app/public (host в pipboy://app/... игнорируем).
+    // Корень фронта: Mac — клон на диске (обновляется git pull); iOS — вшит в бандл.
+    static var webRoot: URL {
+        #if os(macOS)
+        return FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Downloads/cladue/app/public", isDirectory: true)
+        #else
+        return (Bundle.main.resourceURL ?? Bundle.main.bundleURL).appendingPathComponent("public", isDirectory: true)
+        #endif
+    }
+
+    // Тот же фронт из app/public (host в pipboy://app/... игнорируем).
     private func staticFile(_ path: String) throws -> (Data, String, Int) {
         var rel = (path == "/") ? "index.html" : path
         if rel.hasPrefix("/") { rel.removeFirst() }
-        let base = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Downloads/cladue/app/public", isDirectory: true).standardizedFileURL
+        let base = Self.webRoot.standardizedFileURL
         let file = base.appendingPathComponent(rel).standardizedFileURL
         // защита от обхода каталога (../): файл обязан оставаться внутри public
         guard file.path == base.path || file.path.hasPrefix(base.path + "/") else { throw Database.Failure.open(404) }
@@ -761,7 +772,9 @@ enum Api {
         for t in tables { dump[t] = (try? db.rows("SELECT * FROM \(t)")) ?? [] }
         let file = dir.appendingPathComponent("data.json")
         try JSONSerialization.data(withJSONObject: dump, options: [.prettyPrinted]).write(to: file)
-        NSWorkspace.shared.open(dir)
+        #if os(macOS)
+        NSWorkspace.shared.open(dir)   // открыть папку в Finder (на iOS — позже share sheet)
+        #endif
         return ["dir": dir.path, "files": [file.path]]
     }
     static func importMonefy(_ db: Database, _ csv: String) throws -> Int {
