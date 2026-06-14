@@ -19,6 +19,7 @@ const TYPE_CLS = { task: 'ev-task', money: 'ev-money', step: 'ev-step', event: '
 window.loadCal = async function () {
   calData = await calApi.month(calMonth);
   renderCal();
+  window.pbSyncAllReminders?.();   // события могли измениться — пересобрать пуши
 };
 
 function shiftMonth(ym, d) {

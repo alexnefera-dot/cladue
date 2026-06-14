@@ -2,53 +2,67 @@ import Foundation
 import UserNotifications
 import WebKit
 
-// Системные напоминания о рутинах.
-// JS шлёт расписание через window.webkit.messageHandlers.pipboyReminders.postMessage(...):
-//   { enabled: Bool, routines: [{ id, name, time:"HH:MM" }] }
-// Планируем ежедневные ПОВТОРЯЮЩИЕСЯ пуши — они срабатывают, даже когда окно
-// Pipboy закрыто (в отличие от Web Notifications, которых в WKWebView просто нет).
-final class NotificationManager: NSObject, WKScriptMessageHandler {
-    // Префикс наших идентификаторов — чтобы при пересинхронизации снимать только свои.
-    private static let prefix = "routine-"
+// Системные напоминания: рутины (ежедневно в ⏰) и события календаря (в дату/время).
+// JS шлёт полное расписание через window.webkit.messageHandlers.pipboyReminders:
+//   { enabled: Bool, items: [{ id, title, body, hour, minute, daily?, year?, month?, day? }] }
+// Планируем UNCalendarNotificationTrigger — пуши срабатывают даже при закрытом окне,
+// а делегат показывает их и когда Pipboy на переднем плане (со звуком).
+final class NotificationManager: NSObject, WKScriptMessageHandler, UNUserNotificationCenterDelegate {
+    override init() {
+        super.init()
+        UNUserNotificationCenter.current().delegate = self
+    }
 
     // Приём расписания из JS.
     func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
         guard let body = message.body as? [String: Any] else { return }
         let enabled = (body["enabled"] as? Bool) ?? false
-        let routines = (body["routines"] as? [[String: Any]]) ?? []
+        let items = (body["items"] as? [[String: Any]]) ?? []
         if enabled {
-            // Первый раз покажет системный запрос разрешения; дальше просто вернёт статус.
-            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { [weak self] _, _ in
-                self?.reschedule(enabled: true, routines: routines)
+            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { [weak self] _, _ in
+                self?.reschedule(items: items)
             }
         } else {
-            reschedule(enabled: false, routines: [])
+            reschedule(items: [])
         }
     }
 
-    // Снимаем прежние напоминания Pipboy и ставим заново (идемпотентно).
-    private func reschedule(enabled: Bool, routines: [[String: Any]]) {
+    // Показывать баннер+звук, даже когда приложение активно.
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
+                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        completionHandler([.banner, .sound, .list])
+    }
+
+    // Снимаем прежние наши напоминания и ставим заново (идемпотентно).
+    private func reschedule(items: [[String: Any]]) {
         let center = UNUserNotificationCenter.current()
         center.getPendingNotificationRequests { reqs in
-            let ours = reqs.map { $0.identifier }.filter { $0.hasPrefix(Self.prefix) }
+            let ours = reqs.map { $0.identifier }.filter { $0.hasPrefix("routine-") || $0.hasPrefix("event-") }
             center.removePendingNotificationRequests(withIdentifiers: ours)
-            guard enabled else { return }
-            for r in routines {
-                guard let name = r["name"] as? String, let time = r["time"] as? String else { continue }
-                let id: String
-                if let n = r["id"] as? Int { id = String(n) }
-                else if let n = r["id"] as? Double { id = String(Int(n)) }
-                else { continue }
-                let parts = time.split(separator: ":")
-                guard parts.count == 2, let h = Int(parts[0]), let m = Int(parts[1]) else { continue }
-                var when = DateComponents(); when.hour = h; when.minute = m
+            for it in items {
+                guard let id = it["id"] as? String, let title = it["title"] as? String else { continue }
                 let content = UNMutableNotificationContent()
-                content.title = "⏰ \(name)"
-                content.body = "Рутина на \(time) — пора."
+                content.title = title
+                content.body = (it["body"] as? String) ?? ""
                 content.sound = .default
-                let trigger = UNCalendarNotificationTrigger(dateMatching: when, repeats: true)
-                center.add(UNNotificationRequest(identifier: Self.prefix + id, content: content, trigger: trigger))
+                var when = DateComponents()
+                when.hour = Self.intOf(it["hour"]); when.minute = Self.intOf(it["minute"])
+                let trigger: UNCalendarNotificationTrigger
+                if (it["daily"] as? Bool) ?? false {
+                    trigger = UNCalendarNotificationTrigger(dateMatching: when, repeats: true)
+                } else {
+                    when.year = Self.intOf(it["year"]); when.month = Self.intOf(it["month"]); when.day = Self.intOf(it["day"])
+                    if let date = Calendar.current.date(from: when), date < Date() { continue }   // только будущее
+                    trigger = UNCalendarNotificationTrigger(dateMatching: when, repeats: false)
+                }
+                center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
             }
         }
+    }
+
+    private static func intOf(_ v: Any?) -> Int {
+        if let i = v as? Int { return i }
+        if let d = v as? Double { return Int(d) }
+        return 0
     }
 }

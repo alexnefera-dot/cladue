@@ -55,7 +55,7 @@ window.loadRoutines = async function () {
   </div>
   <div class="card"><div class="task" style="border:0">
     <span class="pill btn ${localStorage.rtNotifyOn === '1' ? 'ok' : ''}" id="rtNotify">🔔 ${pbReminderBridge ? 'системные напоминания' : 'напоминания в браузере'}: ${localStorage.rtNotifyOn === '1' ? 'вкл' : 'выкл'}</span>
-    <span class="meta">${pbReminderBridge ? 'рутина с ⏰ временем пришлёт системный пуш каждый день в это время — даже если окно закрыто' : 'рутина с ⏰ временем пришлёт уведомление, пока приложение открыто · в приложении будут системные пуши'}</span>
+    <span class="meta">${pbReminderBridge ? 'рутины с ⏰ и события календаря со временем шлют системный пуш по времени — даже если окно закрыто' : 'рутина с ⏰ временем пришлёт уведомление, пока приложение открыто · в приложении будут системные пуши'}</span>
   </div></div>
   <div class="footer-hint">Стрик 🔥 — подряд отмеченные дни. Тепловая карта и привязка к практикам — этап 4.</div>`;
 
@@ -136,14 +136,39 @@ window.loadRoutines = async function () {
 // браузере остаётся фолбэк: пока вкладка открыта, рутина с ⏰ шлёт уведомление.
 const pbReminderBridge = window.webkit?.messageHandlers?.pipboyReminders || null;
 
-// Отдаём нативу полное расписание рутин с временем — он перепланирует ежедневные
-// пуши (идемпотентно: повторный вызов заменяет прежние). enabled=false — снять все.
-function pbSyncReminders(rows) {
+// Единое расписание напоминаний → нативный планировщик: рутины (ежедневно в ⏰)
+// и события календаря (в их дату/время). Идемпотентно — заменяет прежние.
+window.pbSyncAllReminders = async function () {
   if (!pbReminderBridge) return;
-  const enabled = localStorage.rtNotifyOn === '1';
-  const routines = (rows || []).filter(r => r.time).map(r => ({ id: r.id, name: r.name, time: r.time }));
-  try { pbReminderBridge.postMessage({ enabled, routines }); } catch {}
-}
+  if (localStorage.rtNotifyOn == null) localStorage.rtNotifyOn = '1';   // в нативе по умолчанию вкл
+  if (localStorage.rtNotifyOn !== '1') { try { pbReminderBridge.postMessage({ enabled: false, items: [] }); } catch {} return; }
+  const items = [];
+  try {
+    for (const r of await lfApi.routines()) if (r.time) {
+      const [h, m] = r.time.split(':').map(Number);
+      items.push({ id: 'routine-' + r.id, title: '⏰ ' + r.name, body: `Рутина на ${r.time} — пора`, hour: h, minute: m, daily: true });
+    }
+  } catch {}
+  try {
+    const now = new Date();
+    const ym = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const seen = new Set();
+    for (const mo of [ym(now), ym(next)]) {
+      const cal = await fetch('/api/calendar?month=' + mo).then(r => r.json()).catch(() => ({}));
+      for (const i of (cal.items || [])) {
+        if (i.type !== 'event' || !i.time || i.done) continue;
+        const key = i.id + ':' + i.date; if (seen.has(key)) continue; seen.add(key);
+        const [y, mm, d] = String(i.date).split('-').map(Number);
+        const [h, min] = i.time.split(':').map(Number);
+        items.push({ id: 'event-' + i.id + '-' + i.date, title: '📅 ' + i.title, body: `Событие в ${i.time}`,
+          year: y, month: mm, day: d, hour: h, minute: min });
+      }
+    }
+  } catch {}
+  try { pbReminderBridge.postMessage({ enabled: true, items }); } catch {}
+};
+function pbSyncReminders() { window.pbSyncAllReminders(); }   // совместимость со старыми вызовами
 
 async function routineReminderTick() {
   if (pbReminderBridge) return; // нативный планировщик уже всё расписал, тик не нужен
@@ -164,6 +189,7 @@ async function routineReminderTick() {
 }
 setInterval(routineReminderTick, 30000);
 routineReminderTick();
+if (pbReminderBridge) window.pbSyncAllReminders();   // первичная синхронизация при загрузке
 
 // ===== Люди =====
 window.loadPeople = async function () {
