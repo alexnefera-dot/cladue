@@ -203,7 +203,10 @@ enum Api {
         if keys.isEmpty { return try getNode(db, id) }
         if keys.contains("kind") && f["status"] == nil {
             let kind = f["kind"] as? String
-            let status: Any = kind == "decision" ? "open" : (kind == "task" ? "todo" : NSNull())
+            let status: Any
+            if kind == "decision" { status = "open" }
+            else if kind == "task" { status = "todo" }
+            else { status = NSNull() }
             f["status"] = status
             keys.append("status")
         }
