@@ -44,6 +44,7 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
     private func respond(to url: URL) throws -> (Data, String, Int) {
         let path = url.path.isEmpty ? "/" : url.path
         if path.hasPrefix("/api/") {
+            NSLog("Pipboy native ← %@", path)   // подтверждение: данные идут через pipboy://, не Node
             let (data, status) = try Api.handle(path: path, query: url.query, db: try database())
             return (data, "application/json", status)
         }
