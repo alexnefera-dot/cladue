@@ -37,7 +37,7 @@ final class NotificationManager: NSObject, WKScriptMessageHandler, UNUserNotific
     private func reschedule(items: [[String: Any]]) {
         let center = UNUserNotificationCenter.current()
         center.getPendingNotificationRequests { reqs in
-            let ours = reqs.map { $0.identifier }.filter { $0.hasPrefix("routine-") || $0.hasPrefix("event-") }
+            let ours = reqs.map { $0.identifier }.filter { $0.hasPrefix("routine-") || $0.hasPrefix("event-") || $0.hasPrefix("practice-") }
             center.removePendingNotificationRequests(withIdentifiers: ours)
             for it in items {
                 guard let id = it["id"] as? String, let title = it["title"] as? String else { continue }
@@ -45,8 +45,20 @@ final class NotificationManager: NSObject, WKScriptMessageHandler, UNUserNotific
                 content.title = title
                 content.body = (it["body"] as? String) ?? ""
                 content.sound = .default
-                var when = DateComponents()
-                when.hour = Self.intOf(it["hour"]); when.minute = Self.intOf(it["minute"])
+                let h = Self.intOf(it["hour"]), m = Self.intOf(it["minute"])
+                if let weekdays = it["weekdays"] as? [Any] {
+                    // практика по дням недели (ISO Пн=1..Вс=7) → отдельный повтор на каждый день
+                    for wdAny in weekdays {
+                        let iso = Self.intOf(wdAny)
+                        guard iso >= 1, iso <= 7 else { continue }
+                        var when = DateComponents(); when.hour = h; when.minute = m
+                        when.weekday = (iso % 7) + 1   // ISO → Apple (Вс=1..Сб=7)
+                        let trig = UNCalendarNotificationTrigger(dateMatching: when, repeats: true)
+                        center.add(UNNotificationRequest(identifier: "\(id)-wd\(iso)", content: content, trigger: trig))
+                    }
+                    continue
+                }
+                var when = DateComponents(); when.hour = h; when.minute = m
                 let trigger: UNCalendarNotificationTrigger
                 if (it["daily"] as? Bool) ?? false {
                     trigger = UNCalendarNotificationTrigger(dateMatching: when, repeats: true)

@@ -168,6 +168,18 @@ window.pbSyncAllReminders = async function () {
       }
     }
   } catch {}
+  try {   // практики психологии: по дням недели в своё время
+    const psy = await fetch('/api/psy').then(r => r.json()).catch(() => ({}));
+    for (const p of (psy.practices || [])) {
+      if (!p.time || !p.days) continue;
+      const [h, min] = p.time.split(':').map(Number);
+      let wds;
+      if (p.days === 'daily') wds = [1, 2, 3, 4, 5, 6, 7];
+      else if (p.days === 'workdays') wds = [1, 2, 3, 4, 5];
+      else wds = String(p.days).split(',').map(s => Number(s.trim())).filter(n => n >= 1 && n <= 7);
+      if (wds.length) items.push({ id: 'practice-' + p.id, title: '◎ ' + p.name, body: `Практика в ${p.time}`, weekdays: wds, hour: h, minute: min });
+    }
+  } catch {}
   try { pbReminderBridge.postMessage({ enabled: true, items }); } catch {}
 };
 function pbSyncReminders() { window.pbSyncAllReminders(); }   // совместимость со старыми вызовами

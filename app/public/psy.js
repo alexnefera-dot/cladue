@@ -24,6 +24,7 @@ const daysLabel = d => !d ? 'без расписания' : (DAYSL[d] ?? d.split
 window.loadPsy = async function () {
   psyData = await psyApi.get();
   renderPsy();
+  window.pbSyncAllReminders?.();   // практики могли измениться — пересобрать пуши
 };
 
 function radarSvg(wheelData) {
