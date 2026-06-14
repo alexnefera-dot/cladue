@@ -294,6 +294,7 @@ export function createDb(path = ':memory:') {
   const cols = db.prepare('PRAGMA table_info(nodes)').all().map(c => c.name);
   if (!cols.includes('answer')) db.exec('ALTER TABLE nodes ADD COLUMN answer TEXT');
   if (!cols.includes('repeat')) db.exec('ALTER TABLE nodes ADD COLUMN repeat TEXT'); // weekly|monthly|yearly
+  if (!cols.includes('due_time')) db.exec('ALTER TABLE nodes ADD COLUMN due_time TEXT'); // время задачи HH:MM для пуша
   // рубли убраны: всё в € (доллар — по желанию на конкретной записи)
   db.exec(`UPDATE accounts SET currency = '€' WHERE currency = '₽'`);
   db.exec(`UPDATE obligations SET currency = '€' WHERE currency = '₽'`);

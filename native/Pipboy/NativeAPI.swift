@@ -23,6 +23,7 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         guard let k = key else { throw Database.Failure.open(0) }
         let made = try Database(key: k)
         try? made.run("DELETE FROM trash WHERE created_at < datetime('now','-30 days')")  // авто-очистка корзины
+        try? made.run("ALTER TABLE nodes ADD COLUMN due_time TEXT")  // миграция: время у задач (тихо, если уже есть)
         db = made
         return made
     }
@@ -1339,7 +1340,7 @@ enum Api {
     private static let HOMO: [Character: Character] = ["а": "a", "е": "e", "о": "o", "с": "c", "р": "p",
         "х": "x", "у": "y", "к": "k", "в": "b", "м": "m", "т": "t"]
     private static func norm(_ s: String) -> String { String(s.lowercased().map { HOMO[$0] ?? $0 }) }
-    private static let PATCHABLE = ["title", "note", "kind", "status", "priority", "due_date", "answer", "repeat"]
+    private static let PATCHABLE = ["title", "note", "kind", "status", "priority", "due_date", "due_time", "answer", "repeat"]
 
     static func getNode(_ db: Database, _ id: Int) throws -> [String: Any]? {
         try db.rows("SELECT * FROM nodes WHERE id = ?", [id]).first
@@ -1785,13 +1786,13 @@ enum Api {
         let last = ym + "-" + String(format: "%02d", lastDay)
         var items: [[String: Any]] = []
         for t in try db.rows("""
-            SELECT id, title, kind, status, priority, due_date FROM nodes
+            SELECT id, title, kind, status, priority, due_date, due_time FROM nodes
             WHERE due_date BETWEEN ? AND ? AND kind IN ('task','decision')
             """, [first, last]) {
             let st = t["status"] as? String ?? ""
             items.append(["date": t["due_date"] ?? NSNull(), "type": "task", "id": t["id"] ?? NSNull(),
                 "title": t["title"] ?? NSNull(), "done": ["done", "accepted"].contains(st),
-                "kind": t["kind"] ?? NSNull(), "priority": t["priority"] ?? NSNull()])
+                "kind": t["kind"] ?? NSNull(), "priority": t["priority"] ?? NSNull(), "time": t["due_time"] ?? NSNull()])
         }
         for s in try db.rows("SELECT * FROM steps WHERE planned_date BETWEEN ? AND ? AND task_id IS NULL", [first, last]) {
             let kind = s["kind"] as? String ?? ""

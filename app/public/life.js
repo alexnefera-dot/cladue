@@ -157,11 +157,13 @@ window.pbSyncAllReminders = async function () {
     for (const mo of [ym(now), ym(next)]) {
       const cal = await fetch('/api/calendar?month=' + mo).then(r => r.json()).catch(() => ({}));
       for (const i of (cal.items || [])) {
-        if (i.type !== 'event' || !i.time || i.done) continue;
-        const key = i.id + ':' + i.date; if (seen.has(key)) continue; seen.add(key);
+        if (i.done || !i.time || (i.type !== 'event' && i.type !== 'task')) continue;
+        const key = i.type + ':' + i.id + ':' + i.date; if (seen.has(key)) continue; seen.add(key);
         const [y, mm, d] = String(i.date).split('-').map(Number);
         const [h, min] = i.time.split(':').map(Number);
-        items.push({ id: 'event-' + i.id + '-' + i.date, title: '📅 ' + i.title, body: `Событие в ${i.time}`,
+        const task = i.type === 'task';
+        items.push({ id: (task ? 'event-task-' : 'event-') + i.id + '-' + i.date,
+          title: (task ? '✓ ' : '📅 ') + i.title, body: `${task ? 'Задача' : 'Событие'} в ${i.time}`,
           year: y, month: mm, day: d, hour: h, minute: min });
       }
     }

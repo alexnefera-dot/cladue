@@ -4,7 +4,7 @@ export function getNode(db, id) {
   return db.prepare('SELECT * FROM nodes WHERE id = ?').get(id);
 }
 
-const PATCHABLE = ['title', 'note', 'kind', 'status', 'priority', 'due_date', 'answer', 'repeat'];
+const PATCHABLE = ['title', 'note', 'kind', 'status', 'priority', 'due_date', 'due_time', 'answer', 'repeat'];
 
 // сдвиг срока повторяющейся задачи
 function shiftRepeat(iso, repeat) {

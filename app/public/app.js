@@ -321,11 +321,12 @@ async function showCard(id, { silent = false } = {}) {
     <div class="btnrow">${prioBtns} ${n.priority ? `<span class="pill btn" data-setprio="">сбросить</span>` : ''}</div>
 
     <h3>Срок</h3>
-    <div class="kv"><span>${n.due_date ?? 'не задан'}</span>
+    <div class="kv"><span>${n.due_date ?? 'не задан'}${n.due_time ? ' в ' + n.due_time : ''}</span>
       ${n.due_date ? `<span class="pill btn" data-setdate="">убрать</span>` : ''}</div>
     ${s.date ? `<div class="suggest">💡 ${esc(s.date.reason)} →
       <span class="pill btn ok" data-setdate="${s.date.date}">поставить ${s.date.date}</span></div>` : ''}
     <input id="dateInput" placeholder="или вручную: 2026-08-31" value="">
+    ${n.due_date ? `<input id="timeInput" placeholder="время для пуша: 14:30 (Enter · пусто — убрать)" value="${n.due_time ?? ''}" style="margin-top:4px">` : ''}
 
     ${s.confirmed.length ? `<h3>Связи (подтверждённые)</h3>` + s.confirmed.map(l => `
       <div class="ritem"><div class="rt">${LINKLABEL[l.type] ?? l.type}${l.from_id === id && l.type === 'blocks' ? ' →' : l.type === 'blocks' ? ' ←' : ''} ${esc(l.title)}</div>
@@ -385,6 +386,12 @@ async function showCard(id, { silent = false } = {}) {
       await api.patch(id, { due_date: e.target.value });
       await load();
     }
+  });
+  document.getElementById('timeInput')?.addEventListener('keydown', async e => {
+    if (e.key !== 'Enter') return;
+    const v = e.target.value.trim();
+    if (v === '') { await api.patch(id, { due_time: null }); await load(); return; }
+    if (/^([01]?\d|2[0-3]):[0-5]\d$/.test(v)) { await api.patch(id, { due_time: v.padStart(5, '0') }); await load(); }
   });
 }
 
@@ -931,6 +938,12 @@ window.loadSettings = async function () {
         ? 'на Mac: вход по пальцу при запуске разблокирует всё · через 10 минут простоя разделы закрываются сами — снова по пальцу'
         : 'по умолчанию разделы закрыты в каждой новой сессии · на Mac открываются по пальцу, на телефоне — пароль · настоящее шифрование зон — нативная фаза'}</div>
     </div>
+    <div class="card"><div class="meta">🔔 УВЕДОМЛЕНИЯ</div>
+      <div class="task" style="border:0">
+        <span class="pill btn ${localStorage.rtNotifyOn !== '0' ? 'ok' : ''}" id="notifToggle">${localStorage.rtNotifyOn !== '0' ? 'включены' : 'выключены'}</span>
+        <span class="meta">рутины с ⏰ и события календаря со временем шлют системный пуш по времени · разрешение спрашивает macOS</span>
+      </div>
+    </div>
     <div class="card"><div class="meta">🧭 РЕВИЗИЯ НАПОЛНЕНИЯ</div>
       <div class="task" style="border:0">
         <span class="pill btn ok" id="auditBtn">проверить, где пусто</span>
@@ -995,6 +1008,11 @@ window.loadSettings = async function () {
   });
   box.querySelector('#lkTouchOff')?.addEventListener('click', () => {
     delete localStorage.pbTouchId;
+    window.loadSettings();
+  });
+  box.querySelector('#notifToggle')?.addEventListener('click', () => {
+    localStorage.rtNotifyOn = (localStorage.rtNotifyOn !== '0') ? '0' : '1';
+    window.pbSyncAllReminders?.();
     window.loadSettings();
   });
   box.querySelector('#auditBtn')?.addEventListener('click', async () => {
