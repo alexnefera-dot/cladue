@@ -113,9 +113,80 @@ enum Api {
                     """),
                 "hasPass": try settingNonEmpty(db, "psy_pass_hash"),
             ]), 200)
+        case "/api/track":
+            return (try json([
+                "checkins": try db.rows(
+                    "SELECT * FROM checkins WHERE date >= date('now','localtime', ?) ORDER BY date DESC", ["-30 days"]),
+                "metrics": try trackMetrics(db),
+                "monthly": try trackMonthly(db),
+            ]), 200)
         default:
             throw Unsupported(path: path)
         }
+    }
+
+    // /api/track → метрики с историей за 14 дней — порт life.listMetrics.
+    static func trackMetrics(_ db: Database) throws -> [[String: Any]] {
+        let t = localToday()
+        var rows = try db.rows("SELECT * FROM metrics ORDER BY ord, id")
+        for i in rows.indices {
+            let id = rows[i]["id"] as? Int ?? -1
+            let hist = try db.rows(
+                "SELECT date, value FROM metric_log WHERE metric_id = ? AND date >= date('now','localtime', ?) ORDER BY date",
+                [id, "-14 days"])
+            rows[i]["history"] = hist
+            rows[i]["today"] = hist.first(where: { ($0["date"] as? String) == t })?["value"] ?? NSNull()
+            rows[i]["total"] = (try db.rows("SELECT count(*) AS c FROM metric_log WHERE metric_id = ?", [id])
+                .first?["c"] as? Int) ?? 0
+        }
+        return rows
+    }
+
+    // Помесячная сводка за 6 месяцев — порт life.monthlyStats.
+    static func trackMonthly(_ db: Database) throws -> [[String: Any]] {
+        let defs = try db.rows("SELECT id, name, type, unit, polarity FROM metrics ORDER BY ord, id")
+        let cal = Calendar.current
+        var out: [[String: Any]] = []
+        for i in 0..<6 {
+            guard let d = cal.date(byAdding: .month, value: -i, to: Date()) else { continue }
+            let c = cal.dateComponents([.year, .month], from: d)
+            let ym = String(format: "%04d-%02d", c.year!, c.month!)
+            var metrics: [[String: Any]] = []
+            for mt in defs {
+                let id = mt["id"] as? Int ?? -1
+                let value: Any
+                if (mt["type"] as? String) == "bool" {
+                    let cnt = (try db.rows(
+                        "SELECT count(*) AS v FROM metric_log WHERE metric_id = ? AND value > 0 AND substr(date,1,7) = ?",
+                        [id, ym]).first?["v"] as? Int) ?? 0
+                    value = cnt > 0 ? cnt : NSNull()
+                } else {
+                    let v = try db.rows(
+                        "SELECT ROUND(AVG(value),1) AS v FROM metric_log WHERE metric_id = ? AND substr(date,1,7) = ?",
+                        [id, ym]).first?["v"]
+                    value = (v == nil || v is NSNull) ? NSNull() : v!
+                }
+                metrics.append([
+                    "id": id, "name": mt["name"] ?? NSNull(), "type": mt["type"] ?? NSNull(),
+                    "unit": mt["unit"] ?? NSNull(), "polarity": mt["polarity"] ?? NSNull(), "value": value,
+                ])
+            }
+            let mood = try db.rows("SELECT ROUND(AVG(mood),1) AS v FROM checkins WHERE substr(date,1,7) = ?", [ym])
+                .first?["v"] ?? NSNull()
+            let tasksDone = (try db.rows("""
+                SELECT count(*) AS c FROM nodes
+                WHERE is_category = 0 AND status IN ('done','accepted') AND substr(updated_at,1,7) = ?
+                """, [ym]).first?["c"] as? Int) ?? 0
+            let routinesDone = (try db.rows("SELECT count(*) AS c FROM routine_log WHERE substr(date,1,7) = ?", [ym])
+                .first?["c"] as? Int) ?? 0
+            let empty = (mood is NSNull) && tasksDone == 0 && routinesDone == 0
+                && metrics.allSatisfy { $0["value"] is NSNull }
+            if i == 0 || !empty {
+                out.append(["ym": ym, "metrics": metrics, "mood": mood,
+                            "tasksDone": tasksDone, "routinesDone": routinesDone])
+            }
+        }
+        return out
     }
 
     // /api/routines: активные рутины + отметка «сегодня» + стрик — порт life.listRoutines.
