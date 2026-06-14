@@ -103,6 +103,15 @@ enum Api {
             return (try json(try db.rows(
                 "SELECT * FROM node_log WHERE node_id = ? ORDER BY date DESC, id DESC LIMIT 10", [Int(m[1]) ?? -1])), 200)
         }
+        if let m = match(path, "^/api/pages/([0-9]+)/revisions$") {
+            return (try json(try db.rows(
+                "SELECT id, saved_at, length(content) AS len, substr(content,1,90) AS preview FROM page_revisions WHERE page_id = ? ORDER BY id DESC", [Int(m[1]) ?? -1])), 200)
+        }
+        if let m = match(path, "^/api/pages/([0-9]+)$") {
+            guard var pg = try getPage(db, Int(m[1]) ?? -1) else { return (try json(["error": "not found"]), 404) }
+            pg.removeValue(forKey: "enc")   // шифротекст наружу не отдаём
+            return (try json(pg), 200)
+        }
         switch path {
         case "/api/info":
             return (try json(["lan": NSNull(), "demoWiped": true, "version": "native"]), 200)
@@ -184,7 +193,565 @@ enum Api {
             let parent = numOpt(body["parent_id"]).map { Int($0) }
             return (try json(try moveNode(db, id: Int(m[1]) ?? -1, newParent: parent) ?? [:]), 200)
         }
+        if let m = match(path, "^/api/nodes/([0-9]+)/log$"), method == "POST" {
+            guard let note = (body["note"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !note.isEmpty else { return (try json(["error": "note required"]), 400) }
+            try addNodeLog(db, nodeId: Int(m[1]) ?? -1, note: note)
+            return (try json(["ok": true]), 201)
+        }
+        if let m = match(path, "^/api/nodelog/([0-9]+)$"), method == "DELETE" {
+            try db.run("DELETE FROM node_log WHERE id = ?", [Int(m[1]) ?? -1]); return (ok(), 200)
+        }
+
+        // ----- Рутины -----
+        if method == "POST", path == "/api/routines" {
+            guard let name = name(body) else { return (nameErr(), 400) }
+            let ord = nextOrd(db, "SELECT COALESCE(MAX(ord),0)+1 AS o FROM routines")
+            try db.run("INSERT INTO routines(name, slot, time, ord, note, planned) VALUES(?,?,?,?,?,?)",
+                [name, body["slot"] as? String ?? "утро", body["time"] ?? NSNull(), ord, body["note"] as? String ?? "",
+                 (body["planned"] as? Bool == true || intval(body["planned"]) != 0) ? 1 : 0])
+            return (ok(201), 201)
+        }
+        if let m = match(path, "^/api/routines/([0-9]+)/check$"), method == "POST" {
+            return (try json(["done": try toggleRoutineToday(db, Int(m[1]) ?? -1)]), 200)
+        }
+        if let m = match(path, "^/api/routines/([0-9]+)$") {
+            let id = Int(m[1]) ?? -1
+            if method == "PATCH" { try patchCols(db, "routines", id, ["name", "slot", "time", "note", "planned"], body); return (ok(), 200) }
+            if method == "DELETE" { try db.run("DELETE FROM routines WHERE id = ?", [id]); return (ok(), 200) }
+        }
+
+        // ----- Люди -----
+        if method == "POST", path == "/api/people" {
+            guard let name = name(body) else { return (nameErr(), 400) }
+            try db.run("INSERT INTO people(name, birthday, rhythm_days, last_contact, note) VALUES(?,?,?,?,?)",
+                [name, body["birthday"] ?? NSNull(), body["rhythm_days"] ?? NSNull(), body["last_contact"] ?? NSNull(), body["note"] as? String ?? ""])
+            return (ok(201), 201)
+        }
+        if let m = match(path, "^/api/people/([0-9]+)/contacted$"), method == "POST" {
+            let id = Int(m[1]) ?? -1
+            try db.run("UPDATE people SET last_contact = ? WHERE id = ?", [localToday(), id])
+            if let note = (body["note"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty {
+                try db.run("INSERT INTO contact_log(person_id, note) VALUES(?,?)", [id, note])
+            }
+            return (ok(), 200)
+        }
+        if let m = match(path, "^/api/people/([0-9]+)$") {
+            let id = Int(m[1]) ?? -1
+            if method == "PATCH" { try patchCols(db, "people", id, ["name", "birthday", "rhythm_days", "last_contact", "tags", "note"], body); return (ok(), 200) }
+            if method == "DELETE" { try db.run("DELETE FROM people WHERE id = ?", [id]); return (ok(), 200) }
+        }
+
+        // ----- Инфо: страницы -----
+        if method == "POST", path == "/api/pages" {
+            guard let title = name(body, "title") else { return (try json(["error": "title required"]), 400) }
+            return (try json(try addPage(db, title: title, body: body)), 201)
+        }
+        if let m = match(path, "^/api/pages/([0-9]+)/reorder$"), method == "POST" {
+            guard let ref = numOpt(body["ref_id"]).map({ Int($0) }) else { return (try json(["error": "ref_id"]), 400) }
+            do { try reorderPage(db, id: Int(m[1]) ?? -1, refId: ref, pos: (body["where"] as? String) == "before" ? "before" : "after"); return (ok(), 200) }
+            catch { return (errJson(error), 400) }
+        }
+        if let m = match(path, "^/api/pages/([0-9]+)/move$"), method == "POST" {
+            do { return (try json(try movePage(db, id: Int(m[1]) ?? -1, parent: numOpt(body["parent_id"]).map { Int($0) }) ?? [:]), 200) }
+            catch { return (errJson(error), 400) }
+        }
+        if let m = match(path, "^/api/pages/([0-9]+)$") {
+            let id = Int(m[1]) ?? -1
+            if method == "PATCH" { do { return (try json(try patchPage(db, id: id, body: body) ?? [:]), 200) } catch { return (errJson(error), 400) } }
+            if method == "DELETE" { return (try json(try delPage(db, id: id)), 200) }
+        }
+
+        // ----- Психология -----
+        if method == "POST", path == "/api/psy/practices" {
+            guard let name = name(body) else { return (nameErr(), 400) }
+            let ord = nextOrd(db, "SELECT COALESCE(MAX(ord),0)+1 AS o FROM practices")
+            let steps = String(data: (try? json(body["steps"] ?? [])) ?? Data("[]".utf8), encoding: .utf8) ?? "[]"
+            try db.run("INSERT INTO practices(name, kind, days, time, steps, note, ord) VALUES(?,?,?,?,?,?,?)",
+                [name, body["kind"] as? String ?? "schedule", body["days"] as? String ?? "", body["time"] ?? NSNull(), steps, body["note"] as? String ?? "", ord])
+            return (ok(201), 201)
+        }
+        if let m = match(path, "^/api/psy/practices/([0-9]+)/log$"), method == "POST" {
+            let answers = String(data: (try? json(body["answers"] ?? [])) ?? Data("[]".utf8), encoding: .utf8) ?? "[]"
+            try db.run("INSERT INTO practice_log(practice_id, date, note, answers) VALUES(?,?,?,?)",
+                [Int(m[1]) ?? -1, body["date"] as? String ?? localToday(), body["note"] as? String ?? "", answers])
+            return (ok(201), 201)
+        }
+        if let m = match(path, "^/api/psy/practices/([0-9]+)$") {
+            let id = Int(m[1]) ?? -1
+            if method == "PATCH" {
+                try patchCols(db, "practices", id, ["name", "kind", "days", "time", "note"], body)
+                if body["steps"] != nil {
+                    let steps = String(data: (try? json(body["steps"] ?? [])) ?? Data("[]".utf8), encoding: .utf8) ?? "[]"
+                    try db.run("UPDATE practices SET steps = ? WHERE id = ?", [steps, id])
+                }
+                return (ok(), 200)
+            }
+            if method == "DELETE" { try db.run("DELETE FROM practices WHERE id = ?", [id]); return (ok(), 200) }
+        }
+        if method == "POST", path == "/api/psy/wheel" {
+            if let scores = body["scores"] as? [String: Any] {
+                for (areaId, score) in scores {
+                    let s = max(1, min(10, Int(num(score).rounded())))
+                    try db.run("INSERT INTO wheel_scores(date, area_id, score) VALUES(?,?,?) ON CONFLICT(date, area_id) DO UPDATE SET score = excluded.score",
+                        [localToday(), Int(areaId) ?? -1, s])
+                }
+            }
+            return (try json(try psyWheel(db)), 200)
+        }
+        if let m = match(path, "^/api/psy/areas/([0-9]+)/task$"), method == "POST" {
+            do { return (try json(try wheelStepToTask(db, areaId: Int(m[1]) ?? -1)), 201) } catch { return (errJson(error), 400) }
+        }
+        if let m = match(path, "^/api/psy/areas/([0-9]+)$"), method == "PATCH" {
+            try patchAreaStep(db, id: Int(m[1]) ?? -1, body: body); return (ok(), 200)
+        }
+        if method == "POST", path == "/api/psy/worklog" {
+            guard let note = (body["note"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty else { return (try json(["error": "note required"]), 400) }
+            try db.run("INSERT INTO work_log(date, note) VALUES(?,?)", [localToday(), note]); return (ok(201), 201)
+        }
+        if let m = match(path, "^/api/psy/worklog/([0-9]+)$"), method == "DELETE" {
+            try db.run("DELETE FROM work_log WHERE id = ?", [Int(m[1]) ?? -1]); return (ok(), 200)
+        }
+
+        // ----- Трекинг -----
+        if method == "POST", path == "/api/track/checkin" {
+            let mood = max(1, min(3, Int(num(body["mood"]).rounded())))
+            try db.run("INSERT INTO checkins(date, mood, note) VALUES(?,?,?) ON CONFLICT(date) DO UPDATE SET mood = excluded.mood, note = excluded.note",
+                [localToday(), mood, body["note"] as? String ?? ""])
+            return (ok(), 200)
+        }
+        if method == "POST", path == "/api/track/metrics" {
+            guard let name = name(body) else { return (nameErr(), 400) }
+            let ord = nextOrd(db, "SELECT COALESCE(MAX(ord),0)+1 AS o FROM metrics")
+            try db.run("INSERT INTO metrics(name, type, unit, ord, polarity) VALUES(?,?,?,?,?)",
+                [name, body["type"] as? String ?? "number", body["unit"] as? String ?? "", ord, body["polarity"] as? String ?? "plus"])
+            return (ok(201), 201)
+        }
+        if let m = match(path, "^/api/track/metrics/([0-9]+)/value$"), method == "POST" {
+            try db.run("INSERT INTO metric_log(metric_id, date, value) VALUES(?,?,?) ON CONFLICT(metric_id, date) DO UPDATE SET value = excluded.value",
+                [Int(m[1]) ?? -1, body["date"] as? String ?? localToday(), num(body["value"])])
+            return (ok(), 200)
+        }
+        if let m = match(path, "^/api/track/metrics/([0-9]+)$") {
+            let id = Int(m[1]) ?? -1
+            if method == "PATCH" { try patchCols(db, "metrics", id, ["name", "type", "unit", "polarity"], body); return (ok(), 200) }
+            if method == "DELETE" { try db.run("DELETE FROM metrics WHERE id = ?", [id]); return (ok(), 200) }
+        }
+
+        // ----- Настройки -----
+        if method == "POST", path == "/api/setting" {
+            guard let key = body["key"] as? String, ["activity_month", "monthly_budget", "backup_dir"].contains(key) else {
+                return (try json(["error": "unknown key"]), 400)
+            }
+            try setSetting(db, key, body["value"]); return (ok(), 200)
+        }
+
+        // ----- Календарь (события) -----
+        if method == "POST", path == "/api/events" {
+            guard let title = name(body, "title"),
+                  let date = body["date"] as? String, regexTest(date, "^[0-9]{4}-[0-9]{2}-[0-9]{2}$") else {
+                return (try json(["error": "title и date обязательны"]), 400)
+            }
+            try db.run("INSERT INTO events(title, date, time, recur, note) VALUES(?,?,?,?,?)",
+                [title, date, body["time"] ?? NSNull(), body["recur"] as? String ?? "none", body["note"] as? String ?? ""])
+            return (ok(201), 201)
+        }
+        if let m = match(path, "^/api/events/([0-9]+)$") {
+            let id = Int(m[1]) ?? -1
+            if method == "PATCH" { try patchCols(db, "events", id, ["title", "date", "time", "recur", "note"], body); return (ok(), 200) }
+            if method == "DELETE" { try db.run("DELETE FROM events WHERE id = ?", [id]); return (ok(), 200) }
+        }
+
+        // ----- Корзина -----
+        if method == "POST", path == "/api/trash/clear" {
+            let n = try db.run("DELETE FROM trash"); _ = n
+            return (try json(["cleared": db.changes()]), 200)
+        }
+        if let m = match(path, "^/api/trash/([0-9]+)/restore$"), method == "POST" {
+            return (try restoreTrash(db, id: Int(m[1]) ?? -1), 200)
+        }
+        if let m = match(path, "^/api/trash/([0-9]+)$"), method == "DELETE" {
+            try db.run("DELETE FROM trash WHERE id = ?", [Int(m[1]) ?? -1]); return (ok(), 200)
+        }
+
+        // ----- Финансы -----
+        if let r = try finWrite(method: method, path: path, body: body, db: db) { return r }
+
         throw Unsupported(path: "\(method) \(path)")
+    }
+
+    // Хелперы записи
+    private static func ok(_ code: Int = 200) -> Data { (try? json(["ok": true])) ?? Data() }
+    private static func nameErr() -> Data { (try? json(["error": "name required"])) ?? Data() }
+    private static func errJson(_ e: Error) -> Data { (try? json(["error": "\(e)"])) ?? Data() }
+    private static func name(_ body: [String: Any], _ key: String = "name") -> String? {
+        let v = (body[key] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return (v?.isEmpty == false) ? v : nil
+    }
+    private static func nextOrd(_ db: Database, _ sql: String) -> Int {
+        ((try? db.rows(sql))?.first?["o"] as? Int) ?? 1
+    }
+    static func patchCols(_ db: Database, _ table: String, _ id: Int, _ cols: [String], _ body: [String: Any]) throws {
+        for k in cols where body[k] != nil {
+            // accounts.balance: трогаем и дату обновления
+            if table == "accounts" && k == "balance" {
+                try db.run("UPDATE accounts SET balance = ?, balance_updated_at = datetime('now') WHERE id = ?", [body[k], id])
+            } else {
+                try db.run("UPDATE \(table) SET \(k) = ? WHERE id = ?", [body[k], id])
+            }
+        }
+        // steps.status → синк привязанной задачи
+        if table == "steps", body["status"] != nil {
+            if let taskId = try db.rows("SELECT task_id FROM steps WHERE id = ?", [id]).first?["task_id"] as? Int {
+                let st = (body["status"] as? String) == "done" ? "done" : "todo"
+                try db.run("UPDATE nodes SET status = ?, updated_at = datetime('now') WHERE id = ? AND kind = 'task'", [st, taskId])
+            }
+        }
+    }
+    static func setSetting(_ db: Database, _ key: String, _ value: Any?) throws {
+        let v: String
+        if let s = value as? String { v = s }
+        else if let i = value as? Int { v = String(i) }
+        else if let d = value as? Double { v = d == d.rounded() ? String(Int(d)) : String(d) }
+        else { v = "" }
+        try db.run("INSERT INTO settings(key, value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", [key, v])
+    }
+    static func toggleRoutineToday(_ db: Database, _ id: Int) throws -> Bool {
+        let t = localToday()
+        let has = !(try db.rows("SELECT 1 AS x FROM routine_log WHERE routine_id = ? AND date = ?", [id, t]).isEmpty)
+        if has { try db.run("DELETE FROM routine_log WHERE routine_id = ? AND date = ?", [id, t]) }
+        else { try db.run("INSERT INTO routine_log(routine_id, date) VALUES(?,?)", [id, t]) }
+        return !has
+    }
+
+    // ----- Узлы-помощники -----
+    static func addChild(_ db: Database, parentId: Int?, title: String) throws -> [String: Any]? {
+        let id = try insertNode(db, parentId: parentId, title: title, note: "", isCategory: 0)
+        return try getNode(db, id)
+    }
+    static func listCategories(_ db: Database) throws -> [[String: Any]] {
+        try db.rows("SELECT * FROM nodes WHERE is_category = 1 ORDER BY parent_id NULLS FIRST, ord")
+    }
+
+    // ----- Инфо: страницы (порт notes.js) -----
+    static func getPage(_ db: Database, _ id: Int) throws -> [String: Any]? {
+        try db.rows("SELECT * FROM pages WHERE id = ?", [id]).first
+    }
+    static func addPage(_ db: Database, title: String, body: [String: Any]) throws -> [String: Any] {
+        let parent = numOpt(body["parent_id"]).map { Int($0) }
+        let content = body["content"] as? String ?? ""
+        let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM pages WHERE parent_id IS ?", [parent]).first?["o"]))
+        let id = try db.run("INSERT INTO pages(parent_id, ord, title, content, node_id) VALUES(?,?,?,?,?)",
+            [parent, ord, title, content, numOpt(body["node_id"]).map { Int($0) }])
+        try db.run("INSERT INTO page_fts(rowid, title_norm, content_norm) VALUES(?,?,?)", [id, norm(title), norm(content)])
+        return try getPage(db, id) ?? [:]
+    }
+    static func patchPage(_ db: Database, id: Int, body: [String: Any]) throws -> [String: Any]? {
+        let before = try getPage(db, id)
+        let locked = intval(before?["locked"]) != 0
+        if locked && body["content"] != nil { throw Unsupported(path: "страница под паролем — сохраняй через lock") }
+        if body["content"] != nil, let before, !locked {
+            let newC = body["content"] as? String ?? "", oldC = before["content"] as? String ?? ""
+            if oldC != newC && !oldC.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                var recent = false
+                if let last = try db.rows("SELECT saved_at FROM page_revisions WHERE page_id = ? ORDER BY id DESC LIMIT 1", [id]).first?["saved_at"] as? String,
+                   let d = sqliteDate(last) { recent = Date().timeIntervalSince(d) < 600 }
+                if !recent {
+                    try db.run("INSERT INTO page_revisions(page_id, content) VALUES(?,?)", [id, oldC])
+                    try db.run("DELETE FROM page_revisions WHERE page_id = ? AND id NOT IN (SELECT id FROM page_revisions WHERE page_id = ? ORDER BY id DESC LIMIT 20)", [id, id])
+                }
+            }
+        }
+        for k in ["title", "content"] where body[k] != nil {
+            try db.run("UPDATE pages SET \(k) = ?, updated_at = datetime('now') WHERE id = ?", [body[k], id])
+        }
+        if (body["title"] != nil || body["content"] != nil) && !locked, let p = try getPage(db, id) {
+            try db.run("UPDATE page_fts SET title_norm = ?, content_norm = ? WHERE rowid = ?",
+                [norm(p["title"] as? String ?? ""), norm(p["content"] as? String ?? ""), id])
+        }
+        return try getPage(db, id)
+    }
+    static func movePage(_ db: Database, id: Int, parent: Int?) throws -> [String: Any]? {
+        if let p = parent {
+            if p == id { throw Unsupported(path: "self-parent") }
+            let desc = try db.rows("WITH RECURSIVE r(x) AS (SELECT id FROM pages WHERE parent_id = ? UNION SELECT p.id FROM pages p JOIN r ON p.parent_id = r.x) SELECT 1 FROM r WHERE x = ? LIMIT 1", [id, p])
+            if !desc.isEmpty { throw Unsupported(path: "descendant") }
+        }
+        let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM pages WHERE parent_id IS ?", [parent]).first?["o"]))
+        try db.run("UPDATE pages SET parent_id = ?, ord = ? WHERE id = ?", [parent, ord, id])
+        return try getPage(db, id)
+    }
+    static func reorderPage(_ db: Database, id: Int, refId: Int, pos: String) throws {
+        if id == refId { throw Unsupported(path: "self") }
+        guard let ref = try db.rows("SELECT id, parent_id FROM pages WHERE id = ?", [refId]).first else { throw Unsupported(path: "сосед не найден") }
+        let rp = numOpt(ref["parent_id"]).map { Int($0) }
+        if rp == id { throw Unsupported(path: "descendant") }
+        if let rpp = rp {
+            let desc = try db.rows("WITH RECURSIVE r(x) AS (SELECT id FROM pages WHERE parent_id = ? UNION SELECT p.id FROM pages p JOIN r ON p.parent_id = r.x) SELECT 1 FROM r WHERE x = ? LIMIT 1", [id, rpp])
+            if !desc.isEmpty { throw Unsupported(path: "descendant") }
+        }
+        var siblings = try db.rows("SELECT id FROM pages WHERE parent_id IS ? ORDER BY ord, id", [rp]).compactMap { $0["id"] as? Int }.filter { $0 != id }
+        if let idx = siblings.firstIndex(of: refId) { siblings.insert(id, at: idx + (pos == "after" ? 1 : 0)) } else { siblings.append(id) }
+        try db.run("UPDATE pages SET parent_id = ? WHERE id = ?", [rp, id])
+        for (i, sid) in siblings.enumerated() { try db.run("UPDATE pages SET ord = ? WHERE id = ?", [i + 1, sid]) }
+    }
+    static func delPage(_ db: Database, id: Int) throws -> [String: Any] {
+        guard let root = try getPage(db, id) else { return ["count": 0, "trash_id": NSNull()] }
+        let rows = try db.rows("WITH RECURSIVE r(x, depth) AS (SELECT ?, 0 UNION ALL SELECT p.id, r.depth+1 FROM pages p JOIN r ON p.parent_id = r.x) SELECT p.*, r.depth AS _depth FROM r JOIN pages p ON p.id = r.x ORDER BY r.depth, p.ord", [id])
+        let label = "▤ " + (root["title"] as? String ?? "") + (rows.count > 1 ? " (+\(rows.count - 1) подстр.)" : "")
+        let payload = String(data: try json(["rows": rows]), encoding: .utf8) ?? "{}"
+        let trashId = try db.run("INSERT INTO trash(kind, label, payload) VALUES(?,?,?)", ["pages", label, payload])
+        for r in rows { try db.run("DELETE FROM page_fts WHERE rowid = ?", [intval(r["id"])]) }
+        try db.run("DELETE FROM pages WHERE id = ?", [id])
+        return ["count": rows.count, "trash_id": trashId]
+    }
+    private static func sqliteDate(_ s: String) -> Date? {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        f.timeZone = TimeZone(identifier: "UTC"); f.locale = Locale(identifier: "en_US_POSIX")
+        return f.date(from: s)
+    }
+
+    // ----- Психология: сектор колеса → задача, правка шага -----
+    private static let AREA_CAT: [String: String] = ["Работа": "Работа", "Семья и дети": "Семья", "Партнёр": "Семья",
+        "Саморазвитие и обучение": "Развитие", "Здоровье и спорт": "Здоровье", "Социализация": "Жизнь", "Дом": "Жизнь",
+        "Деньги и инвестиции": "Финансы", "Отдых и хобби": "Отдых", "Перспективы будущего": "Глобальные"]
+    static func patchAreaStep(_ db: Database, id: Int, body: [String: Any]) throws {
+        try patchCols(db, "wheel_areas", id, ["name", "ideal", "current_desc", "next_desc", "step"], body)
+        if let step = (body["step"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines), !step.isEmpty {
+            let areaName = try db.rows("SELECT name FROM wheel_areas WHERE id = ?", [id]).first?["name"] as? String ?? ""
+            for t in try db.rows("SELECT id FROM nodes WHERE is_category = 0 AND note LIKE ? AND (status IS NULL OR status != 'done')", ["%сектор «\(areaName)»%"]) {
+                _ = try updateNode(db, id: intval(t["id"]), fields: ["title": step])
+            }
+        }
+    }
+    static func wheelStepToTask(_ db: Database, areaId: Int) throws -> Data {
+        guard let area = try db.rows("SELECT * FROM wheel_areas WHERE id = ?", [areaId]).first else { throw Unsupported(path: "сектор не найден") }
+        let step = (area["step"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if step.isEmpty { throw Unsupported(path: "у сектора нет шага — сначала задай его") }
+        let areaName = area["name"] as? String ?? ""
+        let cats = try listCategories(db)
+        let target = AREA_CAT[areaName].flatMap { k in cats.first { ($0["title"] as? String ?? "").contains(k) } }
+            ?? cats.first { ($0["title"] as? String ?? "").contains("Инбокс") }
+        guard let target else { throw Unsupported(path: "категория не найдена") }
+        let targetId = intval(target["id"])
+        if let dup = try db.rows("SELECT id FROM nodes WHERE is_category = 0 AND title = ? AND parent_id = ? AND (status IS NULL OR status != 'done')", [step, targetId]).first {
+            return try json(["node": try getNode(db, intval(dup["id"])) ?? [:], "category": target["title"] ?? NSNull(), "existed": true])
+        }
+        let node = try addChild(db, parentId: targetId, title: step) ?? [:]
+        _ = try updateNode(db, id: intval(node["id"]), fields: ["kind": "task", "priority": "P2", "note": "шаг колеса · сектор «\(areaName)»"])
+        return try json(["node": try getNode(db, intval(node["id"])) ?? [:], "category": target["title"] ?? NSNull(), "existed": false])
+    }
+
+    // ----- Корзина: восстановление -----
+    static func restoreTrash(_ db: Database, id: Int) throws -> Data {
+        guard let row = try db.rows("SELECT * FROM trash WHERE id = ?", [id]).first else { return try json(["error": "not found"]) }
+        let kind = row["kind"] as? String ?? "nodes"
+        let payload = ((try? JSONSerialization.jsonObject(with: Data((row["payload"] as? String ?? "{}").utf8))) as? [String: Any]) ?? [:]
+        let newId = kind == "pages" ? try restorePages(db, payload) : try restoreNodes(db, payload)
+        try db.run("DELETE FROM trash WHERE id = ?", [id])
+        return try json(["restored": newId.map { $0 as Any } ?? NSNull(), "kind": kind])
+    }
+    static func restoreNodes(_ db: Database, _ payload: [String: Any]) throws -> Int? {
+        let rows = payload["rows"] as? [[String: Any]] ?? []
+        var map: [Int: Int] = [:]
+        let inboxId = (try db.rows("SELECT id FROM nodes WHERE is_category = 1 AND title LIKE '%Инбокс%'").first).map { intval($0["id"]) }
+        for r in rows {
+            let origParent = numOpt(r["parent_id"]).map { Int($0) }
+            var parent: Int? = origParent.flatMap { map[$0] }
+            if parent == nil, let op = origParent { parent = (try getNode(db, op) != nil) ? op : inboxId }
+            let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM nodes WHERE parent_id IS ?", [parent]).first?["o"]))
+            let newId = try db.run("INSERT INTO nodes(parent_id, ord, title, note, is_category, kind, status, priority, due_date, answer) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                [parent, ord, r["title"] ?? "", r["note"] ?? "", intval(r["is_category"]), r["kind"] ?? NSNull(), r["status"] ?? NSNull(), r["priority"] ?? NSNull(), r["due_date"] ?? NSNull(), r["answer"] ?? NSNull()])
+            map[intval(r["id"])] = newId
+            try db.run("INSERT INTO node_fts(rowid, title_norm, note_norm) VALUES(?,?,?)", [newId, norm(r["title"] as? String ?? ""), norm(r["note"] as? String ?? "")])
+        }
+        for l in (payload["links"] as? [[String: Any]] ?? []) {
+            let from = map[intval(l["from_id"])] ?? ((try getNode(db, intval(l["from_id"])) != nil) ? intval(l["from_id"]) : nil)
+            let to = map[intval(l["to_id"])] ?? ((try getNode(db, intval(l["to_id"])) != nil) ? intval(l["to_id"]) : nil)
+            if let from, let to, from != to {
+                try db.run("INSERT OR IGNORE INTO links(from_id, to_id, type) VALUES(?,?,?)", [from, to, l["type"] ?? "related"])
+            }
+        }
+        for s in (payload["stepRefs"] as? [[String: Any]] ?? []) {
+            if let nt = map[intval(s["task_id"])] { try db.run("UPDATE steps SET task_id = ? WHERE id = ? AND task_id IS NULL", [nt, intval(s["step_id"])]) }
+        }
+        return rows.first.flatMap { map[intval($0["id"])] }
+    }
+    static func restorePages(_ db: Database, _ payload: [String: Any]) throws -> Int? {
+        let rows = payload["rows"] as? [[String: Any]] ?? []
+        var map: [Int: Int] = [:]
+        for r in rows {
+            let origParent = numOpt(r["parent_id"]).map { Int($0) }
+            var parent: Int? = origParent.flatMap { map[$0] }
+            if parent == nil, let op = origParent { parent = (try getPage(db, op) != nil) ? op : nil }
+            let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM pages WHERE parent_id IS ?", [parent]).first?["o"]))
+            let newId = try db.run("INSERT INTO pages(parent_id, ord, title, content, node_id, locked, enc) VALUES(?,?,?,?,?,?,?)",
+                [parent, ord, r["title"] ?? "", r["content"] ?? "", r["node_id"] ?? NSNull(), intval(r["locked"]), r["enc"] ?? NSNull()])
+            map[intval(r["id"])] = newId
+            if intval(r["locked"]) == 0 {
+                try db.run("INSERT INTO page_fts(rowid, title_norm, content_norm) VALUES(?,?,?)", [newId, norm(r["title"] as? String ?? ""), norm(r["content"] as? String ?? "")])
+            }
+        }
+        return rows.first.flatMap { map[intval($0["id"])] }
+    }
+
+    // ----- Финансы: запись -----
+    private static let finTable = ["accounts": "accounts", "classes": "portfolio_classes", "steps": "steps",
+        "obligations": "obligations", "items": "portfolio_items", "tx": "transactions", "debts": "debts", "income": "passive_income"]
+    private static let finCols: [String: [String]] = [
+        "accounts": ["name", "type", "currency", "note", "balance"],
+        "classes": ["name", "value", "target_pct", "note"],
+        "steps": ["kind", "title", "amount", "planned_date", "condition", "status", "note"],
+        "obligations": ["name", "amount", "currency", "period", "next_date", "remind_days", "kind", "note"],
+        "items": ["name", "buy_value", "value", "target_value", "currency", "is_loan", "loan_due", "asset_type", "qty", "rate_symbol", "note"],
+        "tx": ["date", "amount", "currency", "direction", "category", "note"],
+        "debts": ["name", "amount", "currency", "direction", "due_date", "note"],
+        "income": ["name", "amount", "currency", "period", "next_date", "note"]]
+
+    static func finWrite(method: String, path: String, body: [String: Any], db: Database) throws -> (Data, Int)? {
+        if let m = match(path, "^/api/fin/(accounts|classes|steps|obligations|items|tx|debts|income)(?:/([0-9]+))?$") {
+            let entity = m[1], idStr = m[2], table = finTable[entity] ?? entity
+            if method == "POST" && idStr.isEmpty { try finAdd(db, entity, body); return (ok(201), 201) }
+            if method == "PATCH" && !idStr.isEmpty { try patchCols(db, table, Int(idStr) ?? -1, finCols[entity] ?? [], body); return (ok(), 200) }
+            if method == "DELETE" && !idStr.isEmpty { try db.run("DELETE FROM \(table) WHERE id = ?", [Int(idStr) ?? -1]); return (ok(), 200) }
+        }
+        if let m = match(path, "^/api/fin/items/([0-9]+)/move$"), method == "POST" {
+            do { try finMoveItem(db, id: Int(m[1]) ?? -1, parent: numOpt(body["parent_id"]).map { Int($0) }); return (ok(), 200) } catch { return (errJson(error), 400) }
+        }
+        if let m = match(path, "^/api/fin/items/([0-9]+)/reorder$"), method == "POST" {
+            guard let ref = numOpt(body["ref_id"]).map({ Int($0) }) else { return (try json(["error": "ref_id"]), 400) }
+            do { try finReorderItem(db, id: Int(m[1]) ?? -1, refId: ref, pos: (body["where"] as? String) == "before" ? "before" : "after"); return (ok(), 200) } catch { return (errJson(error), 400) }
+        }
+        if let m = match(path, "^/api/fin/obligations/([0-9]+)/pay$"), method == "POST" {
+            return (try json(try payObligation(db, id: Int(m[1]) ?? -1)), 200)
+        }
+        if let m = match(path, "^/api/fin/steps/([0-9]+)/task$"), method == "POST" {
+            do { return (try json(try stepToTask(db, stepId: Int(m[1]) ?? -1)), 201) } catch { return (errJson(error), 400) }
+        }
+        if method == "POST", path == "/api/fin/fire" {
+            for k in ["fire_target", "fire_return_pct", "fire_monthly_savings"] where body[k] != nil { try setSetting(db, k, body[k]) }
+            return (ok(), 200)
+        }
+        if method == "POST", path == "/api/fin/forecasts" {
+            guard let st = name(body, "statement") else { return (try json(["error": "statement required"]), 400) }
+            try db.run("INSERT INTO forecasts(statement, confidence, due_date) VALUES(?,?,?)", [st, intval(body["confidence"]), body["due_date"] ?? NSNull()])
+            return (ok(201), 201)
+        }
+        if let m = match(path, "^/api/fin/forecasts/([0-9]+)/resolve$"), method == "POST" {
+            let outcome = (body["outcome"] as? Bool == true || intval(body["outcome"]) != 0) ? 1 : 0
+            try db.run("UPDATE forecasts SET outcome = ?, resolved_at = datetime('now') WHERE id = ?", [outcome, Int(m[1]) ?? -1])
+            return (ok(), 200)
+        }
+        if let m = match(path, "^/api/fin/forecasts/([0-9]+)$"), method == "DELETE" {
+            try db.run("DELETE FROM forecasts WHERE id = ?", [Int(m[1]) ?? -1]); return (ok(), 200)
+        }
+        if method == "POST", path == "/api/fin/properties" {
+            guard let nm = name(body) else { return (nameErr(), 400) }
+            try db.run("INSERT INTO properties(name, category, note) VALUES(?,?,?)", [nm, body["category"] as? String ?? "прочее", body["note"] as? String ?? ""])
+            return (ok(201), 201)
+        }
+        if let m = match(path, "^/api/fin/properties/([0-9]+)$") {
+            let id = Int(m[1]) ?? -1
+            if method == "PATCH" { try patchCols(db, "properties", id, ["name", "category", "note"], body); return (ok(), 200) }
+            if method == "DELETE" { try db.run("DELETE FROM properties WHERE id = ?", [id]); return (ok(), 200) }
+        }
+        if method == "POST", path == "/api/fin/macro" {
+            try db.run("INSERT INTO macro_notes(phase, thesis) VALUES(?,?)", [body["phase"] as? String ?? "", body["thesis"] as? String ?? ""])
+            return (ok(201), 201)
+        }
+        if let m = match(path, "^/api/fin/macro/([0-9]+)$"), method == "DELETE" {
+            try db.run("DELETE FROM macro_notes WHERE id = ?", [Int(m[1]) ?? -1]); return (ok(), 200)
+        }
+        if let m = match(path, "^/api/rates/([^/]+)$"), method == "PATCH" {
+            let sym = m[1].removingPercentEncoding ?? m[1]
+            try db.run("UPDATE rates SET price = ?, change_pct = NULL, updated_at = datetime('now') WHERE symbol = ?", [num(body["price"]), sym])
+            return (try json(try db.rows("SELECT * FROM rates WHERE symbol = ?", [sym]).first ?? [:]), 200)
+        }
+        return nil
+    }
+
+    static func finAdd(_ db: Database, _ entity: String, _ b: [String: Any]) throws {
+        switch entity {
+        case "accounts":
+            try db.run("INSERT INTO accounts(name, type, currency, balance) VALUES(?,?,?,?)",
+                [b["name"] as? String ?? "", b["type"] as? String ?? "bank", b["currency"] as? String ?? "€", num(b["balance"])])
+        case "classes":
+            let ord = nextOrd(db, "SELECT COALESCE(MAX(ord),0)+1 AS o FROM portfolio_classes")
+            try db.run("INSERT INTO portfolio_classes(name, value, target_pct, ord) VALUES(?,?,?,?)",
+                [b["name"] as? String ?? "", num(b["value"]), num(b["target_pct"]), ord])
+        case "steps":
+            try db.run("INSERT INTO steps(kind, title, amount, planned_date, condition, note) VALUES(?,?,?,?,?,?)",
+                [b["kind"] as? String ?? "buy", b["title"] as? String ?? "", b["amount"] ?? NSNull(), b["planned_date"] ?? NSNull(), b["condition"] as? String ?? "", b["note"] as? String ?? ""])
+        case "obligations":
+            try db.run("INSERT INTO obligations(name, amount, currency, period, next_date, remind_days, kind, note) VALUES(?,?,?,?,?,?,?,?)",
+                [b["name"] as? String ?? "", num(b["amount"]), b["currency"] as? String ?? "€", b["period"] as? String ?? "monthly",
+                 b["next_date"] ?? NSNull(), intval(b["remind_days"] ?? 5), b["kind"] as? String ?? "liability", b["note"] as? String ?? ""])
+        case "items":
+            let parent = numOpt(b["parent_id"]).map { Int($0) }
+            let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM portfolio_items WHERE parent_id IS ?", [parent]).first?["o"]))
+            try db.run("INSERT INTO portfolio_items(parent_id, ord, name, kind, buy_value, value, target_value, currency) VALUES(?,?,?,?,?,?,?,?)",
+                [parent, ord, b["name"] as? String ?? "", b["kind"] as? String ?? "asset", b["buy_value"] ?? NSNull(), b["value"] ?? NSNull(), b["target_value"] ?? NSNull(), b["currency"] as? String ?? "€"])
+        case "tx":
+            try db.run("INSERT INTO transactions(date, amount, currency, direction, category, note, source) VALUES(?,?,?,?,?,?,?)",
+                [b["date"] as? String ?? localToday(), abs(num(b["amount"])), b["currency"] as? String ?? "€",
+                 b["direction"] as? String ?? "expense", name(b, "category") ?? "прочее", b["note"] as? String ?? "", b["source"] as? String ?? "manual"])
+        case "debts":
+            try db.run("INSERT INTO debts(name, amount, currency, direction, due_date, note) VALUES(?,?,?,?,?,?)",
+                [b["name"] as? String ?? "", num(b["amount"]), b["currency"] as? String ?? "€", b["direction"] as? String ?? "owed_to_me", b["due_date"] ?? NSNull(), b["note"] as? String ?? ""])
+        case "income":
+            try db.run("INSERT INTO passive_income(name, amount, currency, period, next_date, note) VALUES(?,?,?,?,?,?)",
+                [b["name"] as? String ?? "", num(b["amount"]), b["currency"] as? String ?? "€", b["period"] as? String ?? "monthly", b["next_date"] ?? NSNull(), b["note"] as? String ?? ""])
+        default: break
+        }
+    }
+    static func finMoveItem(_ db: Database, id: Int, parent: Int?) throws {
+        if let p = parent {
+            if p == id { throw Unsupported(path: "self") }
+            let desc = try db.rows("WITH RECURSIVE r(x) AS (SELECT id FROM portfolio_items WHERE parent_id = ? UNION SELECT n.id FROM portfolio_items n JOIN r ON n.parent_id = r.x) SELECT 1 FROM r WHERE x = ? LIMIT 1", [id, p])
+            if !desc.isEmpty { throw Unsupported(path: "descendant") }
+        }
+        let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM portfolio_items WHERE parent_id IS ?", [parent]).first?["o"]))
+        try db.run("UPDATE portfolio_items SET parent_id = ?, ord = ? WHERE id = ?", [parent, ord, id])
+    }
+    static func finReorderItem(_ db: Database, id: Int, refId: Int, pos: String) throws {
+        if id == refId { throw Unsupported(path: "self") }
+        guard let ref = try db.rows("SELECT id, parent_id FROM portfolio_items WHERE id = ?", [refId]).first else { throw Unsupported(path: "ref not found") }
+        let rp = numOpt(ref["parent_id"]).map { Int($0) }
+        if rp == id { throw Unsupported(path: "descendant") }
+        if let rpp = rp {
+            let desc = try db.rows("WITH RECURSIVE r(x) AS (SELECT id FROM portfolio_items WHERE parent_id = ? UNION SELECT n.id FROM portfolio_items n JOIN r ON n.parent_id = r.x) SELECT 1 FROM r WHERE x = ? LIMIT 1", [id, rpp])
+            if !desc.isEmpty { throw Unsupported(path: "descendant") }
+        }
+        var siblings = try db.rows("SELECT id FROM portfolio_items WHERE parent_id IS ? ORDER BY ord, id", [rp]).compactMap { $0["id"] as? Int }.filter { $0 != id }
+        if let idx = siblings.firstIndex(of: refId) { siblings.insert(id, at: idx + (pos == "after" ? 1 : 0)) } else { siblings.append(id) }
+        try db.run("UPDATE portfolio_items SET parent_id = ? WHERE id = ?", [rp, id])
+        for (i, sid) in siblings.enumerated() { try db.run("UPDATE portfolio_items SET ord = ? WHERE id = ?", [i + 1, sid]) }
+    }
+    static func payObligation(_ db: Database, id: Int) throws -> [String: Any] {
+        guard let o = try db.rows("SELECT * FROM obligations WHERE id = ?", [id]).first, let nd = o["next_date"] as? String else {
+            return try db.rows("SELECT * FROM obligations WHERE id = ?", [id]).first ?? [:]
+        }
+        let period = o["period"] as? String
+        let next: Any
+        if period == "monthly" { next = addMonths(nd, 1) }
+        else if period == "yearly" { next = addMonths(nd, 12) }
+        else { next = NSNull() }
+        try db.run("UPDATE obligations SET next_date = ? WHERE id = ?", [next, id])
+        return try db.rows("SELECT * FROM obligations WHERE id = ?", [id]).first ?? [:]
+    }
+    static func stepToTask(_ db: Database, stepId: Int) throws -> Data {
+        guard let s = try db.rows("SELECT * FROM steps WHERE id = ?", [stepId]).first else { throw Unsupported(path: "step not found") }
+        if let taskId = numOpt(s["task_id"]).map({ Int($0) }), let existing = try getNode(db, taskId) {
+            var e = existing; e["already"] = true; return try json(e)
+        }
+        let fin = try db.rows("SELECT id FROM nodes WHERE is_category = 1 AND title = 'Финансы' AND parent_id IS NULL").first
+        let KIND = ["buy": "Купить", "sell": "Продать", "transfer": "Перевести"]
+        let kind = s["kind"] as? String ?? ""
+        let node = try addChild(db, parentId: fin.map { intval($0["id"]) }, title: "\(KIND[kind] ?? kind): \(s["title"] as? String ?? "")") ?? [:]
+        let noteParts = ["из плана шагов портфеля", numOpt(s["amount"]) != nil ? "сумма: \(intval(s["amount"]))" : "", (s["condition"] as? String).flatMap { $0.isEmpty ? nil : "условие: \($0)" } ?? ""].filter { !$0.isEmpty }
+        let updated = try updateNode(db, id: intval(node["id"]), fields: ["kind": "task", "due_date": s["planned_date"] ?? NSNull(), "note": noteParts.joined(separator: " · ")]) ?? [:]
+        try db.run("UPDATE steps SET task_id = ? WHERE id = ?", [intval(node["id"]), stepId])
+        return try json(updated)
     }
 
     // Карточка-инспектор узла: сам узел + подсказка типа + существующие связи.

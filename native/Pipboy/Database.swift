@@ -118,6 +118,9 @@ final class Database {
         return out
     }
 
+    // Число строк, затронутых последним INSERT/UPDATE/DELETE.
+    func changes() -> Int { Int(sqlite3_changes(handle)) }
+
     // Замок включён, если в settings есть непустой lock_pw_hash.
     func lockEnabled() throws -> Bool {
         if let v = try rows("SELECT value FROM settings WHERE key = 'lock_pw_hash'").first?["value"] as? String {
