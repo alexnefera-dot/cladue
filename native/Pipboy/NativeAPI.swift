@@ -417,6 +417,9 @@ enum Api {
         }
 
         // ----- Финансы -----
+        if method == "POST", path == "/api/backup" {
+            return (try json(try backup(db)), 200)
+        }
         if let r = try finWrite(method: method, path: path, body: body, db: db) { return r }
 
         throw Unsupported(path: "\(method) \(path)")
@@ -640,6 +643,107 @@ enum Api {
         return rows.first.flatMap { map[intval($0["id"])] }
     }
 
+    // ----- Бэкап зашифрованной базы (копия файла, последние 20) -----
+    static func backup(_ db: Database) throws -> [String: Any] {
+        let fm = FileManager.default
+        let src = try Database.fileURL()
+        let dir = src.deletingLastPathComponent().appendingPathComponent("backups", isDirectory: true)
+        try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd_HH-mm"; f.locale = Locale(identifier: "en_US_POSIX")
+        let stamp = f.string(from: Date())
+        let dst = dir.appendingPathComponent("pipboy-\(stamp).db")
+        try? fm.removeItem(at: dst)
+        try fm.copyItem(at: src, to: dst)
+        let all = ((try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)) ?? [])
+            .filter { $0.pathExtension == "db" }.sorted { $0.lastPathComponent < $1.lastPathComponent }
+        if all.count > 20 { for old in all.prefix(all.count - 20) { try? fm.removeItem(at: old) } }
+        if let ext = try db.rows("SELECT value FROM settings WHERE key='backup_dir'").first?["value"] as? String, !ext.isEmpty {
+            let extDir = URL(fileURLWithPath: ext)
+            try? fm.createDirectory(at: extDir, withIntermediateDirectories: true)
+            try? fm.copyItem(at: src, to: extDir.appendingPathComponent("pipboy-\(stamp).db"))
+        }
+        return ["file": dst.path]
+    }
+
+    // ----- Курсы тикеров: единственное, что покидает машину (по кнопке) -----
+    private static func httpGet(_ urlStr: String) -> Data? {
+        guard let url = URL(string: urlStr) else { return nil }
+        var req = URLRequest(url: url, timeoutInterval: 8)
+        req.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)", forHTTPHeaderField: "User-Agent")
+        req.setValue("application/json,text/csv,*/*", forHTTPHeaderField: "Accept")
+        var out: Data?
+        let sem = DispatchSemaphore(value: 0)
+        URLSession.shared.dataTask(with: req) { d, resp, _ in
+            if let http = resp as? HTTPURLResponse, http.statusCode == 200 { out = d }
+            sem.signal()
+        }.resume()
+        _ = sem.wait(timeout: .now() + 10)
+        return out
+    }
+    private static func jsonGet(_ urlStr: String) -> Any? {
+        httpGet(urlStr).flatMap { try? JSONSerialization.jsonObject(with: $0) }
+    }
+    private static func anyNum(_ v: Any?) -> Double? {
+        if let d = v as? Double { return d }
+        if let i = v as? Int { return Double(i) }
+        if let s = v as? String { return Double(s) }
+        return nil
+    }
+    private static func dig(_ obj: Any?, _ path: [Any]) -> Double? {
+        var cur = obj
+        for k in path {
+            if let key = k as? String { cur = (cur as? [String: Any])?[key] }
+            else if let idx = k as? Int { let arr = cur as? [Any]; cur = (arr != nil && idx < arr!.count) ? arr![idx] : nil }
+        }
+        return anyNum(cur)
+    }
+    private static func stooq(_ sym: String) -> Double? {
+        guard let d = httpGet("https://stooq.com/q/l/?s=\(sym)&f=sd2t2ohlcv&h&e=csv"),
+              let text = String(data: d, encoding: .utf8) else { return nil }
+        let lines = text.trimmingCharacters(in: .whitespacesAndNewlines).split(separator: "\n")
+        guard lines.count >= 2 else { return nil }
+        let cols = lines[1].split(separator: ",", omittingEmptySubsequences: false)
+        return cols.count > 6 ? Double(cols[6]) : nil
+    }
+    static func ratesRefresh(_ db: Database) throws -> Data {
+        var errors: [String] = []
+        let labels = ["XAUUSD": "Золото", "EURUSD": "EUR/USD", "BTCUSD": "BTC", "SCHD": "SCHD", "IVV": "IVV", "VHT": "VHT"]
+        func firstOf(_ srcs: [() -> Double?]) -> Double? {
+            for s in srcs { if let p = s(), p.isFinite, p > 0 { return p } }
+            return nil
+        }
+        var sources: [(String, [() -> Double?])] = [
+            ("EURUSD", [
+                { dig(jsonGet("https://api.frankfurter.app/latest?from=EUR&to=USD"), ["rates", "USD"]) },
+                { dig(jsonGet("https://open.er-api.com/v6/latest/EUR"), ["rates", "USD"]) },
+                { stooq("eurusd") }]),
+            ("BTCUSD", [
+                { dig(jsonGet("https://api.coinbase.com/v2/prices/BTC-USD/spot"), ["data", "amount"]) },
+                { dig(jsonGet("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"), ["bitcoin", "usd"]) },
+                { stooq("btcusd") }]),
+            ("XAUUSD", [
+                { dig(jsonGet("https://api.coingecko.com/api/v3/simple/price?ids=pax-gold&vs_currencies=usd"), ["pax-gold", "usd"]) },
+                { stooq("xauusd") }]),
+        ]
+        for sym in ["SCHD", "IVV", "VHT"] {
+            sources.append((sym, [
+                { dig(jsonGet("https://query1.finance.yahoo.com/v8/finance/chart/\(sym)?range=1d&interval=1d"), ["chart", "result", 0, "meta", "regularMarketPrice"]) },
+                { stooq(sym.lowercased() + ".us") }]))
+        }
+        for (sym, srcs) in sources {
+            guard let price = firstOf(srcs) else { errors.append("\(sym): нет ответа"); continue }
+            let prev = anyNum(try db.rows("SELECT price FROM rates WHERE symbol = ?", [sym]).first?["price"])
+            let chg: Any = (prev != nil && prev! != 0) ? (price - prev!) / prev! * 100 : NSNull()
+            try db.run("INSERT INTO rates(symbol, label, price, change_pct, updated_at) VALUES(?,?,?,?,datetime('now')) ON CONFLICT(symbol) DO UPDATE SET price = excluded.price, change_pct = excluded.change_pct, updated_at = excluded.updated_at",
+                [sym, labels[sym] ?? sym, price, chg])
+        }
+        let rates = try db.rows("SELECT * FROM rates")
+        if rates.allSatisfy({ $0["price"] is NSNull || $0["price"] == nil }) {
+            return try json(["error": "ни один источник не ответил: " + errors.joined(separator: "; ")])
+        }
+        return try json(["rates": rates, "errors": errors])
+    }
+
     // ----- Финансы: запись -----
     private static let finTable = ["accounts": "accounts", "classes": "portfolio_classes", "steps": "steps",
         "obligations": "obligations", "items": "portfolio_items", "tx": "transactions", "debts": "debts", "income": "passive_income"]
@@ -654,6 +758,7 @@ enum Api {
         "income": ["name", "amount", "currency", "period", "next_date", "note"]]
 
     static func finWrite(method: String, path: String, body: [String: Any], db: Database) throws -> (Data, Int)? {
+        if method == "POST", path == "/api/rates/refresh" { return (try ratesRefresh(db), 200) }
         if let m = match(path, "^/api/fin/(accounts|classes|steps|obligations|items|tx|debts|income)(?:/([0-9]+))?$") {
             let entity = m[1], idStr = m[2], table = finTable[entity] ?? entity
             if method == "POST" && idStr.isEmpty { try finAdd(db, entity, body); return (ok(201), 201) }
