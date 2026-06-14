@@ -566,8 +566,11 @@ enum Api {
             try db.run("INSERT INTO node_fts(rowid, title_norm, note_norm) VALUES(?,?,?)", [newId, norm(r["title"] as? String ?? ""), norm(r["note"] as? String ?? "")])
         }
         for l in (payload["links"] as? [[String: Any]] ?? []) {
-            let from = map[intval(l["from_id"])] ?? ((try getNode(db, intval(l["from_id"])) != nil) ? intval(l["from_id"]) : nil)
-            let to = map[intval(l["to_id"])] ?? ((try getNode(db, intval(l["to_id"])) != nil) ? intval(l["to_id"]) : nil)
+            let fromId = intval(l["from_id"]), toId = intval(l["to_id"])
+            let from: Int?
+            if let mapped = map[fromId] { from = mapped } else { from = (try getNode(db, fromId) != nil) ? fromId : nil }
+            let to: Int?
+            if let mapped = map[toId] { to = mapped } else { to = (try getNode(db, toId) != nil) ? toId : nil }
             if let from, let to, from != to {
                 try db.run("INSERT OR IGNORE INTO links(from_id, to_id, type) VALUES(?,?,?)", [from, to, l["type"] ?? "related"])
             }
