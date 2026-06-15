@@ -43,10 +43,14 @@ struct PipboyApp: App {
             .onAppear { server.start(); idle.start() }
             .onReceive(idle.$locked) { locked in if locked { unlocked = false } }
             .onReceive(sync.$appliedCount) { c in if c > 0 { reloadToken += 1 } }   // синхрон применён → перезагрузить фронт+данные
-            .onChange(of: unlocked) { now in if now { idle.resumeAfterUnlock() } }
+            .onChange(of: unlocked) { now in
+                if now { idle.resumeAfterUnlock(); sync.autoStart() }   // открыли → авто-синхрон (если пара есть)
+                else { sync.autoStop() }
+            }
             #if os(iOS)
             .onChange(of: scenePhase) { phase in
-                if phase == .background { unlocked = false }   // ушёл из приложения → замок
+                if phase == .background { unlocked = false; sync.autoStop() }   // ушёл из приложения → замок
+                else if phase == .active && unlocked { sync.autoStart() }       // вернулся → синхрон
             }
             #endif
         }
@@ -62,19 +66,25 @@ struct PipboyApp: App {
 struct SyncPanel: View {
     @ObservedObject var sync: SyncService
     @Environment(\.dismiss) private var dismiss
+    @State private var auto = SyncTrust.autoEnabled
 
     var body: some View {
         VStack(spacing: 14) {
             Text("Синхронизация Mac ↔ iPhone").font(.headline)
-            Text(sync.status.isEmpty ? "оба устройства в одной Wi-Fi · на Mac жми «раздать», тут — «получить»" : sync.status)
+            Text(SyncTrust.paired ? "пара установлена · синхрон идёт автоматически при открытии"
+                                  : "первая связка: на Mac «Раздать», тут «Получить», сверь код")
+                .font(.caption).foregroundStyle(SyncTrust.paired ? Color.green : Color.gray).multilineTextAlignment(.center)
+            Text(sync.status.isEmpty ? "оба устройства в одной Wi-Fi" : sync.status)
                 .font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
             if !sync.sas.isEmpty {
                 Text("код сверки: \(sync.sas)").font(.title2.weight(.bold).monospacedDigit())
                 Text("должен совпасть на обоих устройствах").font(.caption).foregroundStyle(.secondary)
             }
+            Toggle("Авто-синхрон", isOn: $auto)
+                .onChange(of: auto) { v in SyncTrust.autoEnabled = v; if v { sync.autoStart() } else { sync.autoStop() } }
             VStack(spacing: 10) {
                 Button { sync.receive() } label: {
-                    Text("Получить данные с Mac").frame(maxWidth: .infinity)
+                    Text(SyncTrust.paired ? "Синхронизировать сейчас" : "Получить данные с Mac").frame(maxWidth: .infinity)
                 }.buttonStyle(.borderedProminent)
                 Button { sync.host() } label: {
                     Text("Раздать данные").frame(maxWidth: .infinity)
@@ -83,7 +93,7 @@ struct SyncPanel: View {
                     Text("Стоп").frame(maxWidth: .infinity)
                 }.buttonStyle(.bordered)
             }
-            Text("получатель ПОЛНОСТЬЮ заменяет свои данные · ничего не уходит в облако")
+            Text("правки сходятся двусторонне · ничего не уходит в облако")
                 .font(.caption2).foregroundStyle(.secondary).multilineTextAlignment(.center)
             Button("Закрыть") { dismiss() }.padding(.top, 4)
         }

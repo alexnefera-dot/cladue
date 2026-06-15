@@ -2583,6 +2583,38 @@ enum Api {
     }
 }
 
+// Постоянная пара устройств: устойчивый identity-ключ (X25519) + доверенный пир.
+// Хранится локально (UserDefaults) — НЕ синхронизируется. После первой сверки кода
+// пир запоминается, и дальше авто-синхрон идёт без кода.
+enum SyncTrust {
+    private static let idKey = "pipboy.sync.identity"
+    private static let peerKey = "pipboy.sync.peer"
+    private static let autoKey = "pipboy.sync.auto"
+
+    static func identity() -> Curve25519.KeyAgreement.PrivateKey {
+        let d = UserDefaults.standard
+        if let b64 = d.string(forKey: idKey), let raw = Data(base64Encoded: b64),
+           let k = try? Curve25519.KeyAgreement.PrivateKey(rawRepresentation: raw) { return k }
+        let k = Curve25519.KeyAgreement.PrivateKey()
+        d.set(k.rawRepresentation.base64EncodedString(), forKey: idKey)
+        return k
+    }
+    static var trustedPeer: Data? {
+        get { UserDefaults.standard.string(forKey: peerKey).flatMap { Data(base64Encoded: $0) } }
+        set {
+            if let v = newValue { UserDefaults.standard.set(v.base64EncodedString(), forKey: peerKey) }
+            else { UserDefaults.standard.removeObject(forKey: peerKey) }
+        }
+    }
+    static func isTrusted(_ pub: Data) -> Bool { trustedPeer == pub }
+    static var paired: Bool { trustedPeer != nil }
+    static var autoEnabled: Bool {
+        get { UserDefaults.standard.object(forKey: autoKey) == nil ? true : UserDefaults.standard.bool(forKey: autoKey) }
+        set { UserDefaults.standard.set(newValue, forKey: autoKey) }
+    }
+}
+
+
 // ===== Транспорт синхронизации по локальной сети (этап 1: Mac → iPhone) =====
 // host (обычно Mac): объявляет Bonjour _pipboy._tcp и на подключение шлёт снимок базы.
 // receive (обычно iPhone): находит сервис, подключается, принимает снимок и заменяет
@@ -2602,12 +2634,17 @@ final class SyncService: ObservableObject {
     private var listener: NWListener?
     private var browser: NWBrowser?
     private var connection: NWConnection?
-    private var priv = Curve25519.KeyAgreement.PrivateKey()
+    private let priv = SyncTrust.identity()   // постоянный identity-ключ (пара устройств)
     private var browseRetries = 0
+    private var pendingPeer: Data?            // pub-ключ пира текущего обмена → запомнить при успехе
+    private var busy = false                  // идёт обмен — не запускать второй параллельно
+    private var lastDone = Date.distantPast   // антидребезг авто-синхрона
+    private var autoMode = false              // авто-обмен: только с уже доверенным пиром, без кода
+    private var autoTimer: Timer?
 
     // ----- раздать данные (источник) -----
-    func host() {
-        priv = Curve25519.KeyAgreement.PrivateKey()
+    func host(auto: Bool = false) {
+        autoMode = auto
         stop(); say("поднимаю раздачу…")
         do {
             let params = NWParameters.tcp
@@ -2616,14 +2653,14 @@ final class SyncService: ObservableObject {
             l.service = NWListener.Service(name: "Pipboy", type: Self.serviceType)
             l.newConnectionHandler = { [weak self] conn in
                 guard let self else { return }
-                if self.connection != nil { conn.cancel(); return }   // одно подключение за раз
+                if self.busy || self.connection != nil { conn.cancel(); return }   // одно подключение за раз
                 self.connection = conn
                 self.begin(conn, role: .host)
             }
             l.stateUpdateHandler = { [weak self] st in
                 guard let self else { return }
                 switch st {
-                case .ready: self.say("✅ раздаю · открой «Получить» на iPhone и сверь код")
+                case .ready: self.say(SyncTrust.paired ? "✅ авто-раздача · жду iPhone" : "✅ раздаю · открой «Получить» на iPhone и сверь код")
                 case .waiting(let e): self.say("⏳ жду сеть (\(Self.human(e))) · разреши «локальную сеть», если спросит")
                 case .failed(let e): self.say("ошибка хоста: \(Self.human(e))")
                 default: break
@@ -2634,11 +2671,27 @@ final class SyncService: ObservableObject {
         } catch { say("не удалось поднять хост: \(error)") }
     }
 
+    // ===== Авто-синхрон: Mac постоянно раздаёт, iPhone синхронится при открытии =====
+    func autoStart() {
+        guard SyncTrust.paired, SyncTrust.autoEnabled else { return }
+        #if os(macOS)
+        host(auto: true)                     // слушаем постоянно, пере-принимаем после каждого обмена
+        #else
+        autoSyncNow()
+        autoTimer?.invalidate()
+        autoTimer = Timer.scheduledTimer(withTimeInterval: 120, repeats: true) { [weak self] _ in self?.autoSyncNow() }
+        #endif
+    }
+    func autoStop() { autoTimer?.invalidate(); autoTimer = nil; stop() }
+    private func autoSyncNow() {
+        guard SyncTrust.paired, SyncTrust.autoEnabled, !busy, Date().timeIntervalSince(lastDone) > 15 else { return }
+        autoMode = true; browseRetries = 0; startBrowse()
+    }
+
     // ----- получить данные (приёмник) -----
-    func receive() { browseRetries = 0; startBrowse() }
+    func receive() { autoMode = false; browseRetries = 0; startBrowse() }
 
     private func startBrowse() {
-        priv = Curve25519.KeyAgreement.PrivateKey()
         stop(); say("ищу Mac в той же Wi-Fi…")
         let params = NWParameters.tcp
         params.includePeerToPeer = true
@@ -2701,13 +2754,13 @@ final class SyncService: ObservableObject {
     private func say(_ s: String) { DispatchQueue.main.async { self.status = s; self.onStatus?(s) } }
 
     private func begin(_ conn: NWConnection, role: Role) {
-        say("соединяюсь…")
+        busy = true; say("соединяюсь…")
         conn.stateUpdateHandler = { [weak self] st in
             guard let self else { return }
             switch st {
             case .ready: self.handshake(conn, role: role)
             case .waiting(let e): self.say("⏳ соединение ждёт (\(Self.human(e)))…")
-            case .failed(let e): self.say("соединение разорвано: \(Self.human(e))")
+            case .failed(let e): self.say("соединение разорвано: \(Self.human(e))"); self.finish(ok: false)
             case .cancelled: break
             default: break
             }
@@ -2715,26 +2768,45 @@ final class SyncService: ObservableObject {
         conn.start(queue: .main)
     }
 
-    // обмен публичными ключами → общий ключ + SAS-код
+    // Конец обмена: снять busy; на Mac в авто-режиме — снова готов принять следующий.
+    private func finish(ok: Bool) {
+        busy = false
+        let wasPaired = SyncTrust.paired
+        if ok { lastDone = Date(); if let p = pendingPeer { SyncTrust.trustedPeer = p } }   // запомнить пир
+        pendingPeer = nil
+        connection?.cancel(); connection = nil   // листенер в авто-режиме остаётся — примет следующий
+        if ok && !wasPaired { DispatchQueue.main.async { self.autoStart() } }   // первая связка прошла → включить авто
+    }
+
+    // обмен публичными ключами → общий ключ (+ код сверки, если пир ещё не знаком)
     private func handshake(_ conn: NWConnection, role: Role) {
         say("обмен ключами…")
         send(conn, priv.publicKey.rawRepresentation) { [weak self] ok in
-            guard let self, ok else { self?.say("сбой отправки ключа"); return }
+            guard let self, ok else { self?.say("сбой отправки ключа"); self?.finish(ok: false); return }
             self.recv(conn) { [weak self] data in
                 guard let self else { return }
                 guard let data,
                       let theirPub = try? Curve25519.KeyAgreement.PublicKey(rawRepresentation: data),
                       let shared = try? self.priv.sharedSecretFromKeyAgreement(with: theirPub) else {
-                    self.say("не удалось согласовать ключ"); return
+                    self.say("не удалось согласовать ключ"); self.finish(ok: false); return
                 }
+                // в авто-режиме связываемся ТОЛЬКО с уже доверенным устройством (без авто-пары с чужим)
+                if self.autoMode && !SyncTrust.isTrusted(data) {
+                    self.say("незнакомое устройство — нужна ручная связка"); self.finish(ok: false); return
+                }
+                self.pendingPeer = data
                 let key = shared.hkdfDerivedSymmetricKey(using: SHA256.self,
                     salt: Data("pipboy-sync".utf8), sharedInfo: Data("v1".utf8), outputByteCount: 32)
-                let sasKey = shared.hkdfDerivedSymmetricKey(using: SHA256.self,
-                    salt: Data("pipboy-sas".utf8), sharedInfo: Data("v1".utf8), outputByteCount: 4)
-                let b = sasKey.withUnsafeBytes { Array($0) }
-                let n = (UInt32(b[0]) << 24 | UInt32(b[1]) << 16 | UInt32(b[2]) << 8 | UInt32(b[3])) % 1_000_000
-                self.sas = String(format: "%06u", n)
-                self.say("код сверки \(self.sas) — он должен совпасть на втором устройстве")
+                if SyncTrust.isTrusted(data) {
+                    self.say("устройство знакомо · синхронизирую…")     // пара установлена — без кода
+                } else {
+                    let sasKey = shared.hkdfDerivedSymmetricKey(using: SHA256.self,
+                        salt: Data("pipboy-sas".utf8), sharedInfo: Data("v1".utf8), outputByteCount: 4)
+                    let b = sasKey.withUnsafeBytes { Array($0) }
+                    let n = (UInt32(b[0]) << 24 | UInt32(b[1]) << 16 | UInt32(b[2]) << 8 | UInt32(b[3])) % 1_000_000
+                    self.sas = String(format: "%06u", n)
+                    self.say("код сверки \(self.sas) — сверь на втором устройстве (первая связка)")
+                }
                 if role == .host { self.hostExchange(conn, key: key) } else { self.clientExchange(conn, key: key) }
             }
         }
@@ -2750,37 +2822,39 @@ final class SyncService: ObservableObject {
                 DispatchQueue.main.async {
                     self.say("отправляю данные…")
                     self.send(conn, sealed) { ok in
-                        guard ok else { self.say("сбой отправки"); return }
+                        guard ok else { self.say("сбой отправки"); self.finish(ok: false); return }
                         self.say("жду изменения со второго устройства…")
                         self.recv(conn) { data in
-                            guard let data else { self.say("нет ответа"); return }
+                            guard let data else { self.say("нет ответа"); self.finish(ok: false); return }
                             self.mergeIncoming(data, key: key) { ok in
-                                if ok { self.say("синхронизировано ✓ · код \(self.sas)"); self.appliedCount += 1 }
+                                if ok { self.say("синхронизировано ✓\(SyncTrust.paired ? "" : " · код \(self.sas)")"); self.appliedCount += 1 }
+                                self.finish(ok: ok)
                             }
                         }
                     }
                 }
-            } catch { self.say("ошибка снимка: \(error)") }
+            } catch { self.say("ошибка снимка: \(error)"); self.finish(ok: false) }
         }
     }
 
     private func clientExchange(_ conn: NWConnection, key: SymmetricKey) {
         say("принимаю данные…")
         recv(conn) { data in
-            guard let data else { self.say("нет данных"); return }
+            guard let data else { self.say("нет данных"); self.finish(ok: false); return }
             self.mergeIncoming(data, key: key) { merged in
-                guard merged else { return }
+                guard merged else { self.finish(ok: false); return }
                 DispatchQueue.global().async {
                     do {
                         let sealed = try self.sealedSnapshot(key)   // своё (уже после слияния) — хосту
                         DispatchQueue.main.async {
                             self.say("отправляю свои изменения…")
                             self.send(conn, sealed) { ok in
-                                self.say(ok ? "синхронизировано ✓ · код \(self.sas)" : "сбой отправки")
+                                self.say(ok ? "синхронизировано ✓\(SyncTrust.paired ? "" : " · код \(self.sas)")" : "сбой отправки")
                                 self.appliedCount += 1
+                                self.finish(ok: ok)
                             }
                         }
-                    } catch { self.say("ошибка снимка: \(error)") }
+                    } catch { self.say("ошибка снимка: \(error)"); self.finish(ok: false) }
                 }
             }
         }
