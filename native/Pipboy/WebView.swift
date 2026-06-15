@@ -15,6 +15,13 @@ struct WebView {
     fileprivate func makeWebView(_ coordinator: Coordinator) -> WKWebView {
         let cfg = WKWebViewConfiguration()
         cfg.userContentController.add(coordinator.notifier, name: "pipboyReminders")
+        // Нативный гейт — Touch ID/Face ID при запуске, поэтому веб-замок разделов лишний.
+        // Помечаем сессию разблокированной ДО app.js (document-start), чтобы замок не
+        // всплывал ни при какой версии фронта и не зависел от ответа /api/lock.
+        let unlock = WKUserScript(
+            source: "try{sessionStorage.setItem('pbUnlocked','1')}catch(e){}",
+            injectionTime: .atDocumentStart, forMainFrameOnly: true)
+        cfg.userContentController.addUserScript(unlock)
         cfg.setURLSchemeHandler(coordinator.scheme, forURLScheme: PipboySchemeHandler.scheme)
         let v = WKWebView(frame: .zero, configuration: cfg)
         v.uiDelegate = coordinator
