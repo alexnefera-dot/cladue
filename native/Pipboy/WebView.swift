@@ -10,7 +10,9 @@ import UIKit
 // на Mac — NSViewRepresentable, на iOS — UIViewRepresentable. Coordinator общий:
 // мост напоминаний + scheme-handler + JS-диалоги (alert/confirm/prompt) и внешние ссылки.
 struct WebView {
-    func makeCoordinator() -> Coordinator { Coordinator() }
+    let sync: SyncService                       // общий с нативной панелью синхрона
+    var reloadToken: Int = 0                    // ++ → перезагрузить страницу (после синхрона)
+    func makeCoordinator() -> Coordinator { Coordinator(sync: sync) }
 
     fileprivate func makeWebView(_ coordinator: Coordinator) -> WKWebView {
         let cfg = WKWebViewConfiguration()
@@ -34,22 +36,24 @@ struct WebView {
     final class Coordinator: NSObject, WKUIDelegate, WKScriptMessageHandler {
         let notifier = NotificationManager()
         let scheme = PipboySchemeHandler()
-        let sync = SyncService()
+        let sync: SyncService
         weak var webView: WKWebView?
+        var lastReload = 0                       // последний применённый reloadToken
+
+        init(sync: SyncService) { self.sync = sync; super.init() }
 
         // Веб шлёт {action:'host'|'receive'} → запускаем синхрон, статус возвращаем в UI
         // через window.pbSync(текст); после применения снимка перезагружаем страницу.
         func userContentController(_ uc: WKUserContentController, didReceive message: WKScriptMessage) {
             guard message.name == "pipboySync" else { return }
             let action = (message.body as? [String: Any])?["action"] as? String ?? (message.body as? String) ?? ""
-            let status: (String) -> Void = { [weak self] s in
+            sync.onStatus = { [weak self] s in
                 let esc = s.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "'", with: "\\'")
                 self?.webView?.evaluateJavaScript("window.pbSync&&window.pbSync('\(esc)')", completionHandler: nil)
             }
-            let applied: () -> Void = { [weak self] in self?.webView?.reload() }
-            if action == "host" { sync.host(status: status, applied: applied) }
-            else if action == "receive" { sync.receive(status: status, applied: applied) }
-            else if action == "stop" { sync.stop(); status("остановлено") }
+            if action == "host" { sync.host() }
+            else if action == "receive" { sync.receive() }
+            else if action == "stop" { sync.stop(); sync.onStatus?("остановлено") }
         }
 
         // ----- target=_blank ссылки → внешний браузер -----
@@ -129,11 +133,21 @@ struct WebView {
 #if os(macOS)
 extension WebView: NSViewRepresentable {
     func makeNSView(context: Context) -> WKWebView { makeWebView(context.coordinator) }
-    func updateNSView(_ nsView: WKWebView, context: Context) {}
+    func updateNSView(_ nsView: WKWebView, context: Context) { reloadIfNeeded(nsView, context.coordinator) }
 }
 #else
 extension WebView: UIViewRepresentable {
     func makeUIView(context: Context) -> WKWebView { makeWebView(context.coordinator) }
-    func updateUIView(_ uiView: WKWebView, context: Context) {}
+    func updateUIView(_ uiView: WKWebView, context: Context) { reloadIfNeeded(uiView, context.coordinator) }
 }
 #endif
+
+extension WebView {
+    // Перезагрузить страницу, когда reloadToken вырос (после применения снимка синхрона).
+    fileprivate func reloadIfNeeded(_ view: WKWebView, _ coordinator: Coordinator) {
+        if reloadToken != coordinator.lastReload {
+            coordinator.lastReload = reloadToken
+            view.reload()
+        }
+    }
+}

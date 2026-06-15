@@ -76,18 +76,29 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         return try staticFile(path)
     }
 
-    // Корень фронта: Mac — клон на диске (обновляется git pull); iOS — вшит в бандл.
+    // Корень фронта: Mac — клон на диске (обновляется git pull); iOS — фронт,
+    // прилетевший по Wi-Fi (свежее бандла), иначе вшитый в бандл.
     static var webRoot: URL {
         #if os(macOS)
         return FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Downloads/cladue/app/public", isDirectory: true)
         #else
+        if let o = webOverrideDir { return o }   // фронт, полученный по синхрону
         // в бандле фронт может лежать как папка public/ (folder reference) или плоско (group)
         let res = Bundle.main.resourceURL ?? Bundle.main.bundleURL
         let withPublic = res.appendingPathComponent("public", isDirectory: true)
         if FileManager.default.fileExists(atPath: withPublic.appendingPathComponent("index.html").path) { return withPublic }
         return res
         #endif
+    }
+
+    // Куда синхрон кладёт обновлённый фронт на iPhone (рядом с базой, вне бандла).
+    static var webDir: URL { (try? Database.fileURL())?.deletingLastPathComponent()
+        .appendingPathComponent("web", isDirectory: true)
+        ?? URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("web") }
+    static var webOverrideDir: URL? {
+        let d = webDir
+        return FileManager.default.fileExists(atPath: d.appendingPathComponent("index.html").path) ? d : nil
     }
 
     // Тот же фронт из app/public (host в pipboy://app/... игнорируем).
@@ -2339,11 +2350,42 @@ enum Api {
         "practices", "practice_log", "wheel_areas", "wheel_scores", "work_log", "forecasts",
         "properties", "checkins", "metrics", "metric_log", "node_log", "trash"]
 
-    // Полный снимок базы — словарь {table: [строки]}. Источник истины для переноса.
+    // Полный снимок базы + сам фронтенд — словарь {table: [строки]} и {путь: base64}.
+    // Источник истины для переноса: данные И веб-интерфейс едут одним пакетом, чтобы
+    // правки фронта доезжали на iPhone по Wi-Fi без пересборки в Xcode.
     static func syncSnapshot(_ db: Database) throws -> [String: Any] {
         var tables: [String: Any] = [:]
         for t in syncTables { tables[t] = (try? db.rows("SELECT * FROM \(t)")) ?? [] }
-        return ["version": 1, "generated_at": isoNow(), "tables": tables]
+        return ["version": 2, "generated_at": isoNow(), "tables": tables, "web": frontendBundle()]
+    }
+
+    // Все файлы фронта (из webRoot источника) в base64. На Mac webRoot = живой app/public.
+    static func frontendBundle() -> [String: String] {
+        var out: [String: String] = [:]
+        let base = PipboySchemeHandler.webRoot.standardizedFileURL
+        guard let en = FileManager.default.enumerator(at: base, includingPropertiesForKeys: [.isRegularFileKey]) else { return out }
+        for case let url as URL in en {
+            guard (try? url.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true else { continue }
+            let rel = url.standardizedFileURL.path.replacingOccurrences(of: base.path + "/", with: "")
+            if rel.contains("..") { continue }
+            if let data = try? Data(contentsOf: url) { out[rel] = data.base64EncodedString() }
+        }
+        return out
+    }
+
+    // Записать полученный фронт в webDir (iPhone) — webRoot станет читать отсюда.
+    static func applyFrontend(_ web: [String: String]) throws {
+        let fm = FileManager.default
+        let base = PipboySchemeHandler.webDir
+        try? fm.removeItem(at: base)
+        try fm.createDirectory(at: base, withIntermediateDirectories: true)
+        for (rel, b64) in web {
+            if rel.contains("..") || rel.hasPrefix("/") { continue }
+            guard let data = Data(base64Encoded: b64) else { continue }
+            let dest = base.appendingPathComponent(rel)
+            try? fm.createDirectory(at: dest.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try? data.write(to: dest)
+        }
     }
 
     // Применить снимок «заменой»: получатель полностью берёт данные отправителя.
@@ -2382,6 +2424,8 @@ enum Api {
             try? db.run("ROLLBACK")
             throw error
         }
+        // фронт — вне транзакции БД: если приехал, обновляем веб-интерфейс на приёмнике
+        if let web = snapshot["web"] as? [String: String], !web.isEmpty { try? applyFrontend(web) }
     }
 
     private static func isoNow() -> String {
@@ -2397,21 +2441,23 @@ enum Api {
 // выводится на обоих для визуальной сверки против MITM. Без TLS-сертификатов и паролей.
 // Внимание: требует ключей Info.plist (NSLocalNetworkUsageDescription, NSBonjourServices)
 // и разрешения «локальная сеть» на iPhone при первом запуске.
-final class SyncService {
+final class SyncService: ObservableObject {
     static let serviceType = "_pipboy._tcp"
     enum Role { case host, client }
+
+    @Published var status = ""              // для нативной панели (SwiftUI)
+    @Published var sas = ""                 // 6-значный код сверки (одинаков на обоих)
+    @Published var appliedCount = 0         // ++ после применения снимка → перезагрузка WebView
+    var onStatus: ((String) -> Void)?       // зеркало статуса в веб-карточку (Mac)
 
     private var listener: NWListener?
     private var browser: NWBrowser?
     private var connection: NWConnection?
-    private let priv = Curve25519.KeyAgreement.PrivateKey()
-    private var status: (String) -> Void = { _ in }
-    private var applied: () -> Void = {}
-    private var sas = "——————"   // 6-значный код сверки (одинаков на обоих устройствах)
+    private var priv = Curve25519.KeyAgreement.PrivateKey()
 
     // ----- раздать данные (источник) -----
-    func host(status: @escaping (String) -> Void, applied: @escaping () -> Void) {
-        self.status = status; self.applied = applied
+    func host() {
+        priv = Curve25519.KeyAgreement.PrivateKey()
         stop(); say("жду второе устройство в той же сети…")
         do {
             let params = NWParameters.tcp
@@ -2433,8 +2479,8 @@ final class SyncService {
     }
 
     // ----- получить данные (приёмник) -----
-    func receive(status: @escaping (String) -> Void, applied: @escaping () -> Void) {
-        self.status = status; self.applied = applied
+    func receive() {
+        priv = Curve25519.KeyAgreement.PrivateKey()
         stop(); say("ищу источник в той же сети…")
         let params = NWParameters.tcp
         params.includePeerToPeer = true
@@ -2458,7 +2504,7 @@ final class SyncService {
         connection?.cancel(); connection = nil
     }
 
-    private func say(_ s: String) { DispatchQueue.main.async { self.status(s) } }
+    private func say(_ s: String) { DispatchQueue.main.async { self.status = s; self.onStatus?(s) } }
 
     private func begin(_ conn: NWConnection, role: Role) {
         say("соединяюсь…")
@@ -2530,7 +2576,7 @@ final class SyncService {
                         throw Api.Unsupported(path: "плохой снимок") }
                     guard let k = KeyHolder.shared.key else { throw Database.Failure.open(0) }
                     try Api.syncApplyReplace(try Database(key: k), snap)
-                    DispatchQueue.main.async { self.say("данные получены ✓ · код \(self.sas) (сверь с Mac)"); self.applied() }
+                    DispatchQueue.main.async { self.say("данные получены ✓ · код \(self.sas) (сверь с Mac)"); self.appliedCount += 1 }
                 } catch { self.say("ошибка применения: \(error)") }
             }
         }
