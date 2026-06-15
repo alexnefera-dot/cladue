@@ -726,8 +726,14 @@ addT.addEventListener('keydown', e => {
 // ===== Замок разделов: Цели/Финансы/Инфо/Психология по умолчанию закрыты =====
 // Честный UI-замок прототипа (как у Психологии); настоящие шифрованные зоны — нативная фаза.
 const LOCKED_SCREENS = new Set(['list', 'fin', 'notes', 'psy']);
-let lockOn = true;            // до ответа сервера считаем, что закрыто
+// В нативном приложении (Mac/iPhone) веб-замок разделов не нужен и вреден:
+// настоящий гейт — Touch ID / Face ID при запуске (AuthGate), а при бездействии
+// всё блокируется системно. Поэтому в нативе разделы открыты сразу и не зависят
+// от ответа /api/lock. Веб-замок остаётся только для браузерного прототипа.
+const inNativeApp = !!(window.webkit && window.webkit.messageHandlers);
+let lockOn = !inNativeApp;    // в браузере до ответа сервера считаем, что закрыто
 let currentScr = 'today';
+if (inNativeApp) sessionStorage.pbUnlocked = '1';
 // нативный лаунчер Mac разблокировал замок и передал ключ через ?key=… —
 // принимаем его и не показываем веб-замок повторно
 try {
@@ -740,7 +746,7 @@ try {
     history.replaceState(null, '', u.pathname + (u.search || ''));
   }
 } catch { /* нет location/history (тестовая среда) — пропускаем */ }
-fetch('/api/lock').then(r => r.json()).then(i => {
+if (!inNativeApp) fetch('/api/lock').then(r => r.json()).then(i => {
   lockOn = i.enabled;
   if (i.localUnlock) sessionStorage.pbUnlocked = '1';   // ты за своим Mac — секции открыты
   refreshLockBadges();
