@@ -26,13 +26,13 @@ struct AuthGate: View {
         var err: NSError?
         if ctx.canEvaluatePolicy(.deviceOwnerAuthentication, error: &err) {
             ctx.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "Доступ к Pipboy") { ok, _ in
+                // completion уже на фоновом потоке: готовим базу (импорт/сид) ДО показа UI,
+                // чтобы первый /api/tree не попал на пустую/полузасеянную базу (гонка старта).
                 if ok {
-                    // ключ базы под тем же пальцем (без второго запроса) → держателю
-                    KeyHolder.shared.key = try? Keychain.databaseKey(context: ctx)
+                    let key = try? Keychain.databaseKey(context: ctx)
+                    KeyHolder.shared.key = key
+                    if let key { Importer.importIfNeeded(encryptedKey: key) }
                     DispatchQueue.main.async { unlocked = true }
-                    DispatchQueue.global().async {
-                        if let key = KeyHolder.shared.key { Importer.importIfNeeded(encryptedKey: key) }
-                    }
                 } else {
                     DispatchQueue.main.async { error = "Не удалось разблокировать" }
                 }
