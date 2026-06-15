@@ -40,8 +40,12 @@ enum Importer {
     }
 
     private static func plaintextSourceURL() -> URL? {
-        FileManager.default.homeDirectoryForCurrentUser
+        #if os(macOS)
+        return FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Downloads/cladue/app/data.db")
+        #else
+        return nil   // на iOS нет data.db — чистый старт + сид категорий
+        #endif
     }
 
     private static func export(from source: URL, to target: URL, key: Data) throws {

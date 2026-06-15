@@ -767,7 +767,12 @@ enum Api {
 
     // ----- Экспорт / импорт Monefy -----
     static func exportAll(_ db: Database) throws -> [String: Any] {
+        #if os(macOS)
         let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Downloads/cladue/app/export", isDirectory: true)
+        #else
+        let dir = try FileManager.default.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+            .appendingPathComponent("export", isDirectory: true)
+        #endif
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let tables = ["nodes", "links", "accounts", "portfolio_items", "obligations", "passive_income", "debts", "transactions",
                       "events", "routines", "people", "pages", "practices", "wheel_areas", "wheel_scores", "metrics", "forecasts",
