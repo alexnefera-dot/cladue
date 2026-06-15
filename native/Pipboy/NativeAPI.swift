@@ -16,6 +16,9 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
     // Все обращения к sqlite-соединению сериализуем — одно соединение, один поток.
     private let queue = DispatchQueue(label: "pipboy.nativeapi")
     private var db: Database?
+    // Живые задачи (трогаем только из main, где WebKit зовёт start/stop) — чтобы НЕ
+    // отвечать отменённой задаче: на iOS это роняет WebContent-процесс.
+    private var active = Set<ObjectIdentifier>()
 
     private func database() throws -> Database {
         if let db { return db }
@@ -31,28 +34,33 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
     }
 
     func webView(_ webView: WKWebView, start task: WKURLSchemeTask) {
+        let id = ObjectIdentifier(task)
+        active.insert(id)   // start вызывается WebKit на main
         let url = task.request.url ?? URL(string: "pipboy://app/")!
         let method = task.request.httpMethod ?? "GET"
-        // Тело POST/PATCH приходит в заголовке X-Pipboy-Body (WKURLSchemeHandler глотает httpBody).
         let bodyHeader = task.request.value(forHTTPHeaderField: "X-Pipboy-Body")
         queue.async {
-            do {
-                let (data, mime, status) = try self.respond(to: url, method: method, bodyHeader: bodyHeader)
-                let resp = HTTPURLResponse(url: url, statusCode: status, httpVersion: "HTTP/1.1",
-                    headerFields: ["Content-Type": mime, "Cache-Control": "no-store"])!
-                task.didReceive(resp)
-                task.didReceive(data)
-                task.didFinish()
-            } catch {
+            var result: (Data, String, Int)
+            do { result = try self.respond(to: url, method: method, bodyHeader: bodyHeader) }
+            catch {
                 let body = "{\"error\":\"\(error)\"}".data(using: .utf8) ?? Data()
-                let resp = HTTPURLResponse(url: url, statusCode: 500, httpVersion: "HTTP/1.1",
-                    headerFields: ["Content-Type": "application/json"])!
-                task.didReceive(resp); task.didReceive(body); task.didFinish()
+                result = (body, "application/json", 500)
+            }
+            // отвечаем на main и только если задача ещё жива (иначе краш web-процесса на iOS)
+            DispatchQueue.main.async {
+                guard self.active.remove(id) != nil else { return }
+                let resp = HTTPURLResponse(url: url, statusCode: result.2, httpVersion: "HTTP/1.1",
+                    headerFields: ["Content-Type": result.1, "Cache-Control": "no-store"])!
+                task.didReceive(resp)
+                task.didReceive(result.0)
+                task.didFinish()
             }
         }
     }
 
-    func webView(_ webView: WKWebView, stop task: WKURLSchemeTask) {}
+    func webView(_ webView: WKWebView, stop task: WKURLSchemeTask) {
+        active.remove(ObjectIdentifier(task))   // отменена — больше не трогаем
+    }
 
     private func respond(to url: URL, method: String, bodyHeader: String?) throws -> (Data, String, Int) {
         let path = url.path.isEmpty ? "/" : url.path
