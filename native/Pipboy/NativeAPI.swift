@@ -1,6 +1,7 @@
 import Foundation
 import WebKit
 import CryptoKit
+import Network
 #if canImport(AppKit)
 import AppKit
 #endif
@@ -2326,5 +2327,238 @@ enum Api {
 
     static func json(_ obj: Any) throws -> Data {
         try JSONSerialization.data(withJSONObject: obj, options: [])
+    }
+
+    // ===== Синхронизация Mac↔iPhone: снимок всей базы и его применение =====
+    // Все реальные таблицы данных (FTS-таблицы node_fts/page_fts производные —
+    // их не переносим, а перестраиваем из nodes/pages после применения снимка).
+    static let syncTables = ["nodes", "links", "dismissed", "accounts", "portfolio_classes",
+        "steps", "obligations", "portfolio_items", "rates", "events", "transactions",
+        "receivables", "passive_income", "settings", "macro_notes", "debts", "snapshots",
+        "routines", "routine_log", "people", "contact_log", "pages", "page_revisions",
+        "practices", "practice_log", "wheel_areas", "wheel_scores", "work_log", "forecasts",
+        "properties", "checkins", "metrics", "metric_log", "node_log", "trash"]
+
+    // Полный снимок базы — словарь {table: [строки]}. Источник истины для переноса.
+    static func syncSnapshot(_ db: Database) throws -> [String: Any] {
+        var tables: [String: Any] = [:]
+        for t in syncTables { tables[t] = (try? db.rows("SELECT * FROM \(t)")) ?? [] }
+        return ["version": 1, "generated_at": isoNow(), "tables": tables]
+    }
+
+    // Применить снимок «заменой»: получатель полностью берёт данные отправителя.
+    // Для бутстрапа (iPhone пустой) это ровно то, что нужно. Двусторонний LWW — отдельный этап.
+    static func syncApplyReplace(_ db: Database, _ snapshot: [String: Any]) throws {
+        guard let tables = snapshot["tables"] as? [String: Any] else { throw Unsupported(path: "плохой снимок") }
+        try db.run("PRAGMA foreign_keys = OFF")   // на время массовой замены — вне транзакции (внутри PRAGMA игнорится)
+        defer { try? db.run("PRAGMA foreign_keys = ON") }
+        try db.run("BEGIN")
+        do {
+            for t in syncTables {
+                try db.run("DELETE FROM \(t)")
+                guard let rows = tables[t] as? [[String: Any]] else { continue }
+                for row in rows {
+                    let cols = Array(row.keys)
+                    guard !cols.isEmpty else { continue }
+                    let colList = cols.map { "\"\($0)\"" }.joined(separator: ",")
+                    let marks = cols.map { _ in "?" }.joined(separator: ",")
+                    let vals: [Any?] = cols.map { c in let v = row[c]; return (v is NSNull) ? nil : v }
+                    try db.run("INSERT INTO \(t)(\(colList)) VALUES(\(marks))", vals)
+                }
+            }
+            // перестроить поисковые индексы (norm — гомоглифы кириллица↔латиница)
+            try db.run("DELETE FROM node_fts")
+            for n in try db.rows("SELECT id, title, note FROM nodes") {
+                try db.run("INSERT INTO node_fts(rowid, title_norm, note_norm) VALUES(?,?,?)",
+                           [n["id"], norm(n["title"] as? String ?? ""), norm(n["note"] as? String ?? "")])
+            }
+            try db.run("DELETE FROM page_fts")
+            for p in try db.rows("SELECT id, title, content FROM pages") {
+                try db.run("INSERT INTO page_fts(rowid, title_norm, content_norm) VALUES(?,?,?)",
+                           [p["id"], norm(p["title"] as? String ?? ""), norm(p["content"] as? String ?? "")])
+            }
+            try db.run("COMMIT")
+        } catch {
+            try? db.run("ROLLBACK")
+            throw error
+        }
+    }
+
+    private static func isoNow() -> String {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        f.locale = Locale(identifier: "en_US_POSIX"); return f.string(from: Date())
+    }
+}
+
+// ===== Транспорт синхронизации по локальной сети (этап 1: Mac → iPhone) =====
+// host (обычно Mac): объявляет Bonjour _pipboy._tcp и на подключение шлёт снимок базы.
+// receive (обычно iPhone): находит сервис, подключается, принимает снимок и заменяет
+// им свои данные. Канал — эфемерный X25519 (ECDH) + AES-GCM; 6-значный код (SAS)
+// выводится на обоих для визуальной сверки против MITM. Без TLS-сертификатов и паролей.
+// Внимание: требует ключей Info.plist (NSLocalNetworkUsageDescription, NSBonjourServices)
+// и разрешения «локальная сеть» на iPhone при первом запуске.
+final class SyncService {
+    static let serviceType = "_pipboy._tcp"
+    enum Role { case host, client }
+
+    private var listener: NWListener?
+    private var browser: NWBrowser?
+    private var connection: NWConnection?
+    private let priv = Curve25519.KeyAgreement.PrivateKey()
+    private var status: (String) -> Void = { _ in }
+    private var applied: () -> Void = {}
+    private var sas = "——————"   // 6-значный код сверки (одинаков на обоих устройствах)
+
+    // ----- раздать данные (источник) -----
+    func host(status: @escaping (String) -> Void, applied: @escaping () -> Void) {
+        self.status = status; self.applied = applied
+        stop(); say("жду второе устройство в той же сети…")
+        do {
+            let params = NWParameters.tcp
+            params.includePeerToPeer = true
+            let l = try NWListener(using: params)
+            l.service = NWListener.Service(name: "Pipboy", type: Self.serviceType)
+            l.newConnectionHandler = { [weak self] conn in
+                guard let self else { return }
+                if self.connection != nil { conn.cancel(); return }   // одно подключение за раз
+                self.connection = conn
+                self.begin(conn, role: .host)
+            }
+            l.stateUpdateHandler = { [weak self] st in
+                if case .failed(let e) = st { self?.say("ошибка хоста: \(e)") }
+            }
+            l.start(queue: .main)
+            listener = l
+        } catch { say("не удалось поднять хост: \(error)") }
+    }
+
+    // ----- получить данные (приёмник) -----
+    func receive(status: @escaping (String) -> Void, applied: @escaping () -> Void) {
+        self.status = status; self.applied = applied
+        stop(); say("ищу источник в той же сети…")
+        let params = NWParameters.tcp
+        params.includePeerToPeer = true
+        let b = NWBrowser(for: .bonjour(type: Self.serviceType, domain: nil), using: params)
+        b.browseResultsChangedHandler = { [weak self] results, _ in
+            guard let self, self.connection == nil, let first = results.first else { return }
+            let conn = NWConnection(to: first.endpoint, using: params)
+            self.connection = conn
+            self.begin(conn, role: .client)
+        }
+        b.stateUpdateHandler = { [weak self] st in
+            if case .failed(let e) = st { self?.say("ошибка поиска: \(e)") }
+        }
+        b.start(queue: .main)
+        browser = b
+    }
+
+    func stop() {
+        listener?.cancel(); listener = nil
+        browser?.cancel(); browser = nil
+        connection?.cancel(); connection = nil
+    }
+
+    private func say(_ s: String) { DispatchQueue.main.async { self.status(s) } }
+
+    private func begin(_ conn: NWConnection, role: Role) {
+        say("соединяюсь…")
+        conn.stateUpdateHandler = { [weak self] st in
+            guard let self else { return }
+            switch st {
+            case .ready: self.handshake(conn, role: role)
+            case .failed(let e): self.say("соединение разорвано: \(e)")
+            case .cancelled: break
+            default: break
+            }
+        }
+        conn.start(queue: .main)
+    }
+
+    // обмен публичными ключами → общий ключ + SAS-код
+    private func handshake(_ conn: NWConnection, role: Role) {
+        say("обмен ключами…")
+        send(conn, priv.publicKey.rawRepresentation) { [weak self] ok in
+            guard let self, ok else { self?.say("сбой отправки ключа"); return }
+            self.recv(conn) { [weak self] data in
+                guard let self else { return }
+                guard let data,
+                      let theirPub = try? Curve25519.KeyAgreement.PublicKey(rawRepresentation: data),
+                      let shared = try? self.priv.sharedSecretFromKeyAgreement(with: theirPub) else {
+                    self.say("не удалось согласовать ключ"); return
+                }
+                let key = shared.hkdfDerivedSymmetricKey(using: SHA256.self,
+                    salt: Data("pipboy-sync".utf8), sharedInfo: Data("v1".utf8), outputByteCount: 32)
+                let sasKey = shared.hkdfDerivedSymmetricKey(using: SHA256.self,
+                    salt: Data("pipboy-sas".utf8), sharedInfo: Data("v1".utf8), outputByteCount: 4)
+                let b = sasKey.withUnsafeBytes { Array($0) }
+                let n = (UInt32(b[0]) << 24 | UInt32(b[1]) << 16 | UInt32(b[2]) << 8 | UInt32(b[3])) % 1_000_000
+                self.sas = String(format: "%06u", n)
+                self.say("код сверки \(self.sas) — он должен совпасть на втором устройстве")
+                if role == .host { self.hostSend(conn, key: key) } else { self.clientReceive(conn, key: key) }
+            }
+        }
+    }
+
+    private func hostSend(_ conn: NWConnection, key: SymmetricKey) {
+        say("готовлю снимок…")
+        DispatchQueue.global().async {
+            do {
+                guard let k = KeyHolder.shared.key else { throw Database.Failure.open(0) }
+                let snap = try Api.syncSnapshot(try Database(key: k))
+                let plain = try JSONSerialization.data(withJSONObject: snap)
+                guard let sealed = try AES.GCM.seal(plain, using: key).combined else {
+                    throw Api.Unsupported(path: "seal") }
+                DispatchQueue.main.async {
+                    self.say("отправляю данные…")
+                    self.send(conn, sealed) { ok in
+                        self.say(ok ? "данные отправлены ✓ · код \(self.sas) (сверь с iPhone)" : "сбой отправки")
+                    }
+                }
+            } catch { self.say("ошибка снимка: \(error)") }
+        }
+    }
+
+    private func clientReceive(_ conn: NWConnection, key: SymmetricKey) {
+        say("принимаю данные…")
+        recv(conn) { [weak self] data in
+            guard let self else { return }
+            guard let data else { self.say("нет данных"); return }
+            DispatchQueue.global().async {
+                do {
+                    let plain = try AES.GCM.open(try AES.GCM.SealedBox(combined: data), using: key)
+                    guard let snap = try JSONSerialization.jsonObject(with: plain) as? [String: Any] else {
+                        throw Api.Unsupported(path: "плохой снимок") }
+                    guard let k = KeyHolder.shared.key else { throw Database.Failure.open(0) }
+                    try Api.syncApplyReplace(try Database(key: k), snap)
+                    DispatchQueue.main.async { self.say("данные получены ✓ · код \(self.sas) (сверь с Mac)"); self.applied() }
+                } catch { self.say("ошибка применения: \(error)") }
+            }
+        }
+    }
+
+    // ----- кадрирование: UInt32 BE длина + полезная нагрузка -----
+    private func send(_ conn: NWConnection, _ payload: Data, done: @escaping (Bool) -> Void) {
+        let n = UInt32(payload.count)
+        var frame = Data([UInt8(n >> 24 & 0xff), UInt8(n >> 16 & 0xff), UInt8(n >> 8 & 0xff), UInt8(n & 0xff)])
+        frame.append(payload)
+        conn.send(content: frame, completion: .contentProcessed { err in
+            DispatchQueue.main.async { done(err == nil) } })
+    }
+
+    private func recv(_ conn: NWConnection, done: @escaping (Data?) -> Void) {
+        conn.receive(minimumIncompleteLength: 4, maximumLength: 4) { hdr, _, _, err in
+            guard let hdr, hdr.count == 4, err == nil else { DispatchQueue.main.async { done(nil) }; return }
+            let n = hdr.reduce(0) { ($0 << 8) | Int($1) }
+            self.recvExactly(conn, n, Data(), done)
+        }
+    }
+
+    private func recvExactly(_ conn: NWConnection, _ remaining: Int, _ acc: Data, _ done: @escaping (Data?) -> Void) {
+        if remaining <= 0 { DispatchQueue.main.async { done(acc) }; return }
+        conn.receive(minimumIncompleteLength: 1, maximumLength: remaining) { part, _, _, err in
+            guard let part, !part.isEmpty, err == nil else { DispatchQueue.main.async { done(nil) }; return }
+            var next = acc; next.append(part)
+            self.recvExactly(conn, remaining - part.count, next, done)
+        }
     }
 }

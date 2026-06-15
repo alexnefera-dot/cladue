@@ -31,5 +31,11 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Pipboy синхронизирует данные между Mac и iPhone напрямую по локальной сети — без облака.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_pipboy._tcp</string>
+	</array>
 </dict>
 </plist>

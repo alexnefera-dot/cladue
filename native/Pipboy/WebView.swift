@@ -22,16 +22,35 @@ struct WebView {
             source: "try{sessionStorage.setItem('pbUnlocked','1')}catch(e){}",
             injectionTime: .atDocumentStart, forMainFrameOnly: true)
         cfg.userContentController.addUserScript(unlock)
+        cfg.userContentController.add(coordinator, name: "pipboySync")   // веб → нативный синхрон
         cfg.setURLSchemeHandler(coordinator.scheme, forURLScheme: PipboySchemeHandler.scheme)
         let v = WKWebView(frame: .zero, configuration: cfg)
         v.uiDelegate = coordinator
+        coordinator.webView = v
         v.load(URLRequest(url: URL(string: "pipboy://app/index.html")!))
         return v
     }
 
-    final class Coordinator: NSObject, WKUIDelegate {
+    final class Coordinator: NSObject, WKUIDelegate, WKScriptMessageHandler {
         let notifier = NotificationManager()
         let scheme = PipboySchemeHandler()
+        let sync = SyncService()
+        weak var webView: WKWebView?
+
+        // Веб шлёт {action:'host'|'receive'} → запускаем синхрон, статус возвращаем в UI
+        // через window.pbSync(текст); после применения снимка перезагружаем страницу.
+        func userContentController(_ uc: WKUserContentController, didReceive message: WKScriptMessage) {
+            guard message.name == "pipboySync" else { return }
+            let action = (message.body as? [String: Any])?["action"] as? String ?? (message.body as? String) ?? ""
+            let status: (String) -> Void = { [weak self] s in
+                let esc = s.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "'", with: "\\'")
+                self?.webView?.evaluateJavaScript("window.pbSync&&window.pbSync('\(esc)')", completionHandler: nil)
+            }
+            let applied: () -> Void = { [weak self] in self?.webView?.reload() }
+            if action == "host" { sync.host(status: status, applied: applied) }
+            else if action == "receive" { sync.receive(status: status, applied: applied) }
+            else if action == "stop" { sync.stop(); status("остановлено") }
+        }
 
         // ----- target=_blank ссылки → внешний браузер -----
         func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,

@@ -755,6 +755,8 @@ if (!inNativeApp) fetch('/api/lock').then(r => r.json()).then(i => {
 }).catch(() => {});
 fetch('/api/info').then(r => r.json()).then(i => { window.pbVersion = i.version; }).catch(() => {});
 window.isLocked = scr => LOCKED_SCREENS.has(scr) && lockOn && sessionStorage.pbUnlocked !== '1';
+// статус нативного Wi-Fi синхрона приходит из Swift (evaluateJavaScript) → в карточку настроек
+window.pbSync = msg => { const e = document.getElementById('syncStatus'); if (e) e.textContent = msg; };
 window.lockNow = () => { sessionStorage.removeItem('pbUnlocked'); showScreen('today'); };
 
 // замочки у закрытых разделов: 🔒 вместо иконки, после разблокировки — родная иконка
@@ -950,6 +952,16 @@ window.loadSettings = async function () {
         <span class="meta">рутины с ⏰ и события календаря со временем шлют системный пуш по времени · разрешение спрашивает macOS</span>
       </div>
     </div>
+    ${inNativeApp ? `
+    <div class="card"><div class="meta">📡 СИНХРОНИЗАЦИЯ ПО WI-FI · Mac ↔ iPhone</div>
+      <div class="task" style="border:0;flex-wrap:wrap">
+        <span class="pill btn ok" id="syncHost">раздать данные (источник)</span>
+        <span class="pill btn" id="syncRecv">получить данные (приёмник)</span>
+        <span class="pill btn danger" id="syncStop">стоп</span>
+      </div>
+      <div class="meta" id="syncStatus">оба устройства в одной Wi-Fi · на источнике жми «раздать», на приёмнике «получить» · сверь код на обоих</div>
+      <div class="meta">приёмник ПОЛНОСТЬЮ заменяет свои данные данными источника · ничего не уходит в облако</div>
+    </div>` : ''}
     <div class="card"><div class="meta">🧭 РЕВИЗИЯ НАПОЛНЕНИЯ</div>
       <div class="task" style="border:0">
         <span class="pill btn ok" id="auditBtn">проверить, где пусто</span>
@@ -1021,6 +1033,16 @@ window.loadSettings = async function () {
     window.pbSyncAllReminders?.();
     window.loadSettings();
   });
+  // синхрон по Wi-Fi (только в нативном приложении): веб → нативный мост pipboySync
+  const syncBridge = window.webkit?.messageHandlers?.pipboySync;
+  if (syncBridge) {
+    box.querySelector('#syncHost')?.addEventListener('click', () => syncBridge.postMessage({ action: 'host' }));
+    box.querySelector('#syncRecv')?.addEventListener('click', () => {
+      if (confirm('Приёмник ПОЛНОСТЬЮ заменит свои данные данными источника. Продолжить?'))
+        syncBridge.postMessage({ action: 'receive' });
+    });
+    box.querySelector('#syncStop')?.addEventListener('click', () => syncBridge.postMessage({ action: 'stop' }));
+  }
   box.querySelector('#auditBtn')?.addEventListener('click', async () => {
     const rows = await fetch('/api/audit').then(x => x.json());
     const warns = rows.filter(r => r.status === 'warn');
