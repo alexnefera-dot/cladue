@@ -30,6 +30,7 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         let made = try Database(key: k)
         try? made.run("DELETE FROM trash WHERE created_at < datetime('now','-30 days')")  // авто-очистка корзины
         try? made.run("ALTER TABLE nodes ADD COLUMN due_time TEXT")  // миграция: время у задач (тихо, если уже есть)
+        Api.ensureSyncSchema(made)   // updated_at + триггеры + tombstones — отслеживание правок для синхрона
         db = made
         return made
     }
@@ -2350,14 +2351,70 @@ enum Api {
         "practices", "practice_log", "wheel_areas", "wheel_scores", "work_log", "forecasts",
         "properties", "checkins", "metrics", "metric_log", "node_log", "trash"]
 
-    // Полный снимок базы + сам фронтенд — словарь {table: [строки]} и {путь: base64}.
-    // Источник истины для переноса: данные И веб-интерфейс едут одним пакетом, чтобы
-    // правки фронта доезжали на iPhone по Wi-Fi без пересборки в Xcode.
+    // Таблицы с одним ключом → двусторонний merge по updated_at (LWW) + tombstones.
+    static let syncKeyed: [(String, String)] = [
+        ("nodes", "id"), ("links", "id"), ("accounts", "id"), ("portfolio_classes", "id"),
+        ("steps", "id"), ("obligations", "id"), ("portfolio_items", "id"), ("events", "id"),
+        ("transactions", "id"), ("receivables", "id"), ("passive_income", "id"), ("macro_notes", "id"),
+        ("debts", "id"), ("routines", "id"), ("people", "id"), ("contact_log", "id"),
+        ("pages", "id"), ("page_revisions", "id"), ("practices", "id"), ("practice_log", "id"),
+        ("wheel_areas", "id"), ("wheel_scores", "id"), ("work_log", "id"), ("forecasts", "id"),
+        ("properties", "id"), ("metrics", "id"), ("node_log", "id"), ("trash", "id"),
+        ("settings", "key"), ("rates", "symbol"), ("snapshots", "date"), ("checkins", "date")]
+    // Таблицы с составным ключом (логи/отметки) → простое объединение, без tombstones.
+    static let syncUnion = ["dismissed", "routine_log", "metric_log"]
+
+    // Миграция для синхрона: updated_at на всех таблицах + триггеры (поддерживают
+    // updated_at на правках и пишут tombstones при удалении — БЕЗ изменения кода мутаций).
+    // Всё через try? — даже если что-то не так, открытие базы не падает. Время — localtime
+    // (как updateNode), один пользователь = один часовой пояс, сравнения корректны.
+    static func ensureSyncSchema(_ db: Database) {
+        try? db.run("CREATE TABLE IF NOT EXISTS sync_tombstones(tbl TEXT, row_key TEXT, deleted_at TEXT, PRIMARY KEY(tbl,row_key))")
+        for (t, k) in syncKeyed {
+            try? db.run("ALTER TABLE \(t) ADD COLUMN updated_at TEXT")          // тихо, если уже есть
+            try? db.run("UPDATE \(t) SET updated_at = datetime('now','localtime') WHERE updated_at IS NULL")
+            // новая строка из приложения без времени → проставить (merge-вставки время задают сами)
+            try? db.run("""
+                CREATE TRIGGER IF NOT EXISTS \(t)_stamp AFTER INSERT ON \(t)
+                WHEN NEW.updated_at IS NULL
+                BEGIN UPDATE \(t) SET updated_at = datetime('now','localtime') WHERE \(k) = NEW.\(k); END
+                """)
+            // правка в приложении (updated_at не менялся самим запросом) → проставить время
+            try? db.run("""
+                CREATE TRIGGER IF NOT EXISTS \(t)_touch AFTER UPDATE ON \(t)
+                WHEN OLD.updated_at = NEW.updated_at
+                BEGIN UPDATE \(t) SET updated_at = datetime('now','localtime') WHERE \(k) = NEW.\(k); END
+                """)
+            // удаление → tombstone (чтобы удаление доехало на второе устройство)
+            try? db.run("""
+                CREATE TRIGGER IF NOT EXISTS \(t)_tomb AFTER DELETE ON \(t)
+                BEGIN INSERT OR REPLACE INTO sync_tombstones(tbl,row_key,deleted_at)
+                      VALUES('\(t)', OLD.\(k), datetime('now','localtime')); END
+                """)
+        }
+    }
+
+    // Полный снимок: данные + tombstones + фронтенд. Источник истины для слияния.
     static func syncSnapshot(_ db: Database) throws -> [String: Any] {
+        ensureSyncSchema(db)
         var tables: [String: Any] = [:]
         for t in syncTables { tables[t] = (try? db.rows("SELECT * FROM \(t)")) ?? [] }
-        return ["version": 2, "generated_at": isoNow(), "tables": tables, "web": frontendBundle()]
+        let tomb = (try? db.rows("SELECT tbl, row_key, deleted_at FROM sync_tombstones")) ?? []
+        return ["version": 3, "generated_at": isoNow(), "tables": tables, "tombstones": tomb, "web": frontendBundle()]
     }
+
+    // Бэкап файла зашифрованной базы перед слиянием (на всякий случай, держим 10 последних).
+    static func backupDB() {
+        guard let src = try? Database.fileURL(), FileManager.default.fileExists(atPath: src.path) else { return }
+        let dir = src.deletingLastPathComponent().appendingPathComponent("backups", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let stamp = isoNow().replacingOccurrences(of: ":", with: "-").replacingOccurrences(of: " ", with: "_")
+        try? FileManager.default.copyItem(at: src, to: dir.appendingPathComponent("pipboy-\(stamp).db"))
+        if let all = try? FileManager.default.contentsOfDirectory(atPath: dir.path).filter({ $0.hasSuffix(".db") }).sorted() {
+            for f in all.dropLast(10) { try? FileManager.default.removeItem(at: dir.appendingPathComponent(f)) }
+        }
+    }
+
 
     // Все файлы фронта (из webRoot источника) в base64. На Mac webRoot = живой app/public.
     static func frontendBundle() -> [String: String] {
@@ -2408,17 +2465,7 @@ enum Api {
                     try db.run("INSERT INTO \(t)(\(colList)) VALUES(\(marks))", vals)
                 }
             }
-            // перестроить поисковые индексы (norm — гомоглифы кириллица↔латиница)
-            try db.run("DELETE FROM node_fts")
-            for n in try db.rows("SELECT id, title, note FROM nodes") {
-                try db.run("INSERT INTO node_fts(rowid, title_norm, note_norm) VALUES(?,?,?)",
-                           [n["id"], norm(n["title"] as? String ?? ""), norm(n["note"] as? String ?? "")])
-            }
-            try db.run("DELETE FROM page_fts")
-            for p in try db.rows("SELECT id, title, content FROM pages") {
-                try db.run("INSERT INTO page_fts(rowid, title_norm, content_norm) VALUES(?,?,?)",
-                           [p["id"], norm(p["title"] as? String ?? ""), norm(p["content"] as? String ?? "")])
-            }
+            try rebuildFTS(db)   // перестроить поисковые индексы из nodes/pages
             try db.run("COMMIT")
         } catch {
             try? db.run("ROLLBACK")
@@ -2426,6 +2473,108 @@ enum Api {
         }
         // фронт — вне транзакции БД: если приехал, обновляем веб-интерфейс на приёмнике
         if let web = snapshot["web"] as? [String: String], !web.isEmpty { try? applyFrontend(web) }
+    }
+
+    // Двусторонний merge: вставка новых, LWW по updated_at для существующих,
+    // применение tombstones (удаления). Перед слиянием — авто-бэкап базы.
+    static func syncApplyMerge(_ db: Database, _ snapshot: [String: Any]) throws {
+        ensureSyncSchema(db)
+        backupDB()
+        guard let tables = snapshot["tables"] as? [String: Any] else { throw Unsupported(path: "плохой снимок") }
+        let peerTomb = (snapshot["tombstones"] as? [[String: Any]]) ?? []
+        try db.run("PRAGMA foreign_keys = OFF")
+        defer { try? db.run("PRAGMA foreign_keys = ON") }
+        try db.run("BEGIN")
+        do {
+            // 1) строки: вставить новые / обновить более свежими (LWW)
+            for (t, key) in syncKeyed {
+                guard let rows = tables[t] as? [[String: Any]] else { continue }
+                for row in rows {
+                    guard let rkAny = row[key], !(rkAny is NSNull) else { continue }
+                    let rk = "\(rkAny)"
+                    let inTs = (row["updated_at"] as? String) ?? ""
+                    // локально удалено позже, чем правка с того устройства → удаление побеждает
+                    if let delTs = scalarStr(db, "SELECT deleted_at FROM sync_tombstones WHERE tbl=? AND row_key=?", [t, rk]),
+                       delTs >= inTs { continue }
+                    if !existsRow(db, t, key, rkAny) {
+                        try upsertRow(db, t, row, replaceKey: nil, keyCol: key, rk: rkAny)        // новой строки нет → вставить
+                    } else if inTs > (scalarStr(db, "SELECT updated_at FROM \(t) WHERE \(key)=?", [rkAny]) ?? "") {
+                        try upsertRow(db, t, row, replaceKey: true, keyCol: key, rk: rkAny)        // входящая свежее → обновить
+                    }   // иначе локальная свежее → оставить
+                }
+            }
+            // 2) применить входящие удаления
+            for tomb in peerTomb {
+                guard let t = tomb["tbl"] as? String,
+                      let pair = syncKeyed.first(where: { $0.0 == t }),
+                      let rkAny = tomb["row_key"], !(rkAny is NSNull) else { continue }
+                let key = pair.1
+                let del = (tomb["deleted_at"] as? String) ?? ""
+                let rk = "\(rkAny)"
+                if let localTs = scalarStr(db, "SELECT updated_at FROM \(t) WHERE \(key)=?", [rkAny]), del > localTs {
+                    try db.run("DELETE FROM \(t) WHERE \(key)=?", [rkAny])   // триггер запишет локальный tombstone
+                }
+                let cur = scalarStr(db, "SELECT deleted_at FROM sync_tombstones WHERE tbl=? AND row_key=?", [t, rk])
+                if cur == nil || del > (cur ?? "") {
+                    try db.run("INSERT OR REPLACE INTO sync_tombstones(tbl,row_key,deleted_at) VALUES(?,?,?)", [t, rk, del])
+                }
+            }
+            // 3) union-таблицы (логи/отметки) — добавить недостающее
+            for t in syncUnion {
+                guard let rows = tables[t] as? [[String: Any]] else { continue }
+                for row in rows {
+                    let cols = Array(row.keys); guard !cols.isEmpty else { continue }
+                    let colList = cols.map { "\"\($0)\"" }.joined(separator: ",")
+                    let marks = cols.map { _ in "?" }.joined(separator: ",")
+                    let vals: [Any?] = cols.map { c in let v = row[c]; return (v is NSNull) ? nil : v }
+                    try db.run("INSERT OR IGNORE INTO \(t)(\(colList)) VALUES(\(marks))", vals)
+                }
+            }
+            try rebuildFTS(db)
+            try db.run("COMMIT")
+        } catch {
+            try? db.run("ROLLBACK")
+            throw error
+        }
+        if let web = snapshot["web"] as? [String: String], !web.isEmpty { try? applyFrontend(web) }
+    }
+
+    // Вставка/обновление строки целиком из словаря (updated_at берём из строки, чтобы
+    // НЕ сработал touch-триггер и сохранилось время отправителя).
+    private static func upsertRow(_ db: Database, _ t: String, _ row: [String: Any], replaceKey: Bool?, keyCol: String, rk: Any) throws {
+        var r = row
+        if r["updated_at"] == nil || r["updated_at"] is NSNull { r["updated_at"] = isoNow() }
+        let cols = Array(r.keys); guard !cols.isEmpty else { return }
+        let vals: [Any?] = cols.map { c in let v = r[c]; return (v is NSNull) ? nil : v }
+        if replaceKey == true {
+            let sets = cols.map { "\"\($0)\" = ?" }.joined(separator: ", ")
+            try db.run("UPDATE \(t) SET \(sets) WHERE \(keyCol) = ?", vals + [rk])
+        } else {
+            let colList = cols.map { "\"\($0)\"" }.joined(separator: ",")
+            let marks = cols.map { _ in "?" }.joined(separator: ",")
+            try db.run("INSERT INTO \(t)(\(colList)) VALUES(\(marks))", vals)
+        }
+    }
+
+    private static func scalarStr(_ db: Database, _ sql: String, _ params: [Any?]) -> String? {
+        (try? db.rows(sql, params))?.first?.values.first as? String
+    }
+
+    private static func existsRow(_ db: Database, _ t: String, _ key: String, _ rk: Any) -> Bool {
+        ((try? db.rows("SELECT 1 AS x FROM \(t) WHERE \(key) = ? LIMIT 1", [rk]))?.isEmpty == false)
+    }
+
+    private static func rebuildFTS(_ db: Database) throws {
+        try db.run("DELETE FROM node_fts")
+        for n in try db.rows("SELECT id, title, note FROM nodes") {
+            try db.run("INSERT INTO node_fts(rowid, title_norm, note_norm) VALUES(?,?,?)",
+                       [n["id"], norm(n["title"] as? String ?? ""), norm(n["note"] as? String ?? "")])
+        }
+        try db.run("DELETE FROM page_fts")
+        for p in try db.rows("SELECT id, title, content FROM pages") {
+            try db.run("INSERT INTO page_fts(rowid, title_norm, content_norm) VALUES(?,?,?)",
+                       [p["id"], norm(p["title"] as? String ?? ""), norm(p["content"] as? String ?? "")])
+        }
     }
 
     private static func isoNow() -> String {
@@ -2586,44 +2735,76 @@ final class SyncService: ObservableObject {
                 let n = (UInt32(b[0]) << 24 | UInt32(b[1]) << 16 | UInt32(b[2]) << 8 | UInt32(b[3])) % 1_000_000
                 self.sas = String(format: "%06u", n)
                 self.say("код сверки \(self.sas) — он должен совпасть на втором устройстве")
-                if role == .host { self.hostSend(conn, key: key) } else { self.clientReceive(conn, key: key) }
+                if role == .host { self.hostExchange(conn, key: key) } else { self.clientExchange(conn, key: key) }
             }
         }
     }
 
-    private func hostSend(_ conn: NWConnection, key: SymmetricKey) {
+    // Двусторонний обмен: обе стороны шлют снимок и сливают встречный (LWW + tombstones).
+    // host: отправляет своё → ждёт встречное → merge. client: принимает → merge → шлёт своё.
+    private func hostExchange(_ conn: NWConnection, key: SymmetricKey) {
         say("готовлю снимок…")
         DispatchQueue.global().async {
             do {
-                guard let k = KeyHolder.shared.key else { throw Database.Failure.open(0) }
-                let snap = try Api.syncSnapshot(try Database(key: k))
-                let plain = try JSONSerialization.data(withJSONObject: snap)
-                guard let sealed = try AES.GCM.seal(plain, using: key).combined else {
-                    throw Api.Unsupported(path: "seal") }
+                let sealed = try self.sealedSnapshot(key)
                 DispatchQueue.main.async {
                     self.say("отправляю данные…")
                     self.send(conn, sealed) { ok in
-                        self.say(ok ? "данные отправлены ✓ · код \(self.sas) (сверь с iPhone)" : "сбой отправки")
+                        guard ok else { self.say("сбой отправки"); return }
+                        self.say("жду изменения со второго устройства…")
+                        self.recv(conn) { data in
+                            guard let data else { self.say("нет ответа"); return }
+                            self.mergeIncoming(data, key: key) { ok in
+                                if ok { self.say("синхронизировано ✓ · код \(self.sas)"); self.appliedCount += 1 }
+                            }
+                        }
                     }
                 }
             } catch { self.say("ошибка снимка: \(error)") }
         }
     }
 
-    private func clientReceive(_ conn: NWConnection, key: SymmetricKey) {
+    private func clientExchange(_ conn: NWConnection, key: SymmetricKey) {
         say("принимаю данные…")
-        recv(conn) { [weak self] data in
-            guard let self else { return }
+        recv(conn) { data in
             guard let data else { self.say("нет данных"); return }
-            DispatchQueue.global().async {
-                do {
-                    let plain = try AES.GCM.open(try AES.GCM.SealedBox(combined: data), using: key)
-                    guard let snap = try JSONSerialization.jsonObject(with: plain) as? [String: Any] else {
-                        throw Api.Unsupported(path: "плохой снимок") }
-                    guard let k = KeyHolder.shared.key else { throw Database.Failure.open(0) }
-                    try Api.syncApplyReplace(try Database(key: k), snap)
-                    DispatchQueue.main.async { self.say("данные получены ✓ · код \(self.sas) (сверь с Mac)"); self.appliedCount += 1 }
-                } catch { self.say("ошибка применения: \(error)") }
+            self.mergeIncoming(data, key: key) { merged in
+                guard merged else { return }
+                DispatchQueue.global().async {
+                    do {
+                        let sealed = try self.sealedSnapshot(key)   // своё (уже после слияния) — хосту
+                        DispatchQueue.main.async {
+                            self.say("отправляю свои изменения…")
+                            self.send(conn, sealed) { ok in
+                                self.say(ok ? "синхронизировано ✓ · код \(self.sas)" : "сбой отправки")
+                                self.appliedCount += 1
+                            }
+                        }
+                    } catch { self.say("ошибка снимка: \(error)") }
+                }
+            }
+        }
+    }
+
+    private func sealedSnapshot(_ key: SymmetricKey) throws -> Data {
+        guard let k = KeyHolder.shared.key else { throw Database.Failure.open(0) }
+        let snap = try Api.syncSnapshot(try Database(key: k))
+        let plain = try JSONSerialization.data(withJSONObject: snap)
+        guard let sealed = try AES.GCM.seal(plain, using: key).combined else { throw Api.Unsupported(path: "seal") }
+        return sealed
+    }
+
+    private func mergeIncoming(_ data: Data, key: SymmetricKey, then: @escaping (Bool) -> Void) {
+        DispatchQueue.global().async {
+            do {
+                let plain = try AES.GCM.open(try AES.GCM.SealedBox(combined: data), using: key)
+                guard let snap = try JSONSerialization.jsonObject(with: plain) as? [String: Any] else {
+                    throw Api.Unsupported(path: "плохой снимок") }
+                guard let k = KeyHolder.shared.key else { throw Database.Failure.open(0) }
+                try Api.syncApplyMerge(try Database(key: k), snap)
+                DispatchQueue.main.async { then(true) }
+            } catch {
+                DispatchQueue.main.async { self.say("ошибка применения: \(error)"); then(false) }
             }
         }
     }
