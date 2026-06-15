@@ -2454,11 +2454,12 @@ final class SyncService: ObservableObject {
     private var browser: NWBrowser?
     private var connection: NWConnection?
     private var priv = Curve25519.KeyAgreement.PrivateKey()
+    private var browseRetries = 0
 
     // ----- раздать данные (источник) -----
     func host() {
         priv = Curve25519.KeyAgreement.PrivateKey()
-        stop(); say("жду второе устройство в той же сети…")
+        stop(); say("поднимаю раздачу…")
         do {
             let params = NWParameters.tcp
             params.includePeerToPeer = true
@@ -2471,7 +2472,13 @@ final class SyncService: ObservableObject {
                 self.begin(conn, role: .host)
             }
             l.stateUpdateHandler = { [weak self] st in
-                if case .failed(let e) = st { self?.say("ошибка хоста: \(e)") }
+                guard let self else { return }
+                switch st {
+                case .ready: self.say("✅ раздаю · открой «Получить» на iPhone и сверь код")
+                case .waiting(let e): self.say("⏳ жду сеть (\(Self.human(e))) · разреши «локальную сеть», если спросит")
+                case .failed(let e): self.say("ошибка хоста: \(Self.human(e))")
+                default: break
+                }
             }
             l.start(queue: .main)
             listener = l
@@ -2479,23 +2486,61 @@ final class SyncService: ObservableObject {
     }
 
     // ----- получить данные (приёмник) -----
-    func receive() {
+    func receive() { browseRetries = 0; startBrowse() }
+
+    private func startBrowse() {
         priv = Curve25519.KeyAgreement.PrivateKey()
-        stop(); say("ищу источник в той же сети…")
+        stop(); say("ищу Mac в той же Wi-Fi…")
         let params = NWParameters.tcp
         params.includePeerToPeer = true
         let b = NWBrowser(for: .bonjour(type: Self.serviceType, domain: nil), using: params)
         b.browseResultsChangedHandler = { [weak self] results, _ in
             guard let self, self.connection == nil, let first = results.first else { return }
+            self.say("нашёл Mac · соединяюсь…")
             let conn = NWConnection(to: first.endpoint, using: params)
             self.connection = conn
             self.begin(conn, role: .client)
         }
         b.stateUpdateHandler = { [weak self] st in
-            if case .failed(let e) = st { self?.say("ошибка поиска: \(e)") }
+            guard let self else { return }
+            switch st {
+            case .ready: self.say("ищу Mac… (на Mac должно быть нажато «раздать»)")
+            case .waiting(let e): self.handleBrowseIssue(e)
+            case .failed(let e): self.handleBrowseIssue(e)
+            default: break
+            }
         }
         b.start(queue: .main)
         browser = b
+    }
+
+    // -65555 NoAuth / -65570 PolicyDenied: первый запрос вызывает системный диалог
+    // «локальной сети» и падает — повторяем после того, как пользователь разрешит.
+    private func handleBrowseIssue(_ e: NWError) {
+        if Self.isLocalNetworkDenied(e) {
+            if browseRetries < 5 {
+                browseRetries += 1
+                say("разреши доступ к локальной сети · повторяю \(browseRetries)/5…")
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in self?.startBrowse() }
+            } else {
+                say("нет доступа к локальной сети. Настройки → Приватность → Локальная сеть → включи Pipboy, потом «Получить»")
+            }
+        } else {
+            say("поиск: \(Self.human(e))")
+        }
+    }
+
+    private static func isLocalNetworkDenied(_ e: NWError) -> Bool {
+        if case let .dns(code) = e { return code == -65555 || code == -65570 }
+        return false
+    }
+
+    static func human(_ e: NWError) -> String {
+        if case let .dns(code) = e {
+            if code == -65555 || code == -65570 { return "нет доступа к локальной сети" }
+            return "dns \(code)"
+        }
+        return "\(e)"
     }
 
     func stop() {
@@ -2512,7 +2557,8 @@ final class SyncService: ObservableObject {
             guard let self else { return }
             switch st {
             case .ready: self.handshake(conn, role: role)
-            case .failed(let e): self.say("соединение разорвано: \(e)")
+            case .waiting(let e): self.say("⏳ соединение ждёт (\(Self.human(e)))…")
+            case .failed(let e): self.say("соединение разорвано: \(Self.human(e))")
             case .cancelled: break
             default: break
             }
