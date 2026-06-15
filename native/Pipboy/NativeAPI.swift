@@ -1378,17 +1378,64 @@ enum Api {
 
     // Каркас категорий для чистой установки (iOS / свежий Mac) — порт db.seed().
     static func seedIfEmpty(_ db: Database) throws {
-        if ((try db.rows("SELECT count(*) AS c FROM nodes").first?["c"]) as? Int ?? 0) > 0 { return }
-        func cat(_ parent: Int?, _ title: String) throws -> Int { try insertNode(db, parentId: parent, title: title, note: "", isCategory: 1) }
-        _ = try cat(nil, "📥 Инбокс")
-        let fin = try cat(nil, "Финансы"); for c in ["Налоги", "Платежи", "Балансы", "Траты", "Активы", "Пассивы"] { _ = try cat(fin, c) }
-        let leg = try cat(nil, "Легализация"); _ = try cat(leg, "ВНЖ")
-        let work = try cat(nil, "Работа"); for c in ["Рост", "Проекты"] { _ = try cat(work, c) }
-        let life = try cat(nil, "Жизнь"); for c in ["Семья", "Развитие", "Здоровье", "Отдых"] { _ = try cat(life, c) }
-        let hist = try cat(nil, "История и расчёты"); for c in ["Налоговые расчёты", "История"] { _ = try cat(hist, c) }
-        let fears = try cat(nil, "Страхи / Вопросы"); let trev = try cat(fears, "Тревоги")
-        for c in ["Налоги", "Покупки", "ВНЖ", "Балансы", "Брокеры", "Семья", "Работа", "Принятые"] { _ = try cat(trev, c) }
-        _ = try cat(nil, "Глобальные цели")
+        try db.ensureSchema()   // на iOS/чистом Mac таблиц ещё нет — создаём перед сидом
+        if ((try db.rows("SELECT count(*) AS c FROM nodes").first?["c"]) as? Int ?? 0) == 0 {
+            func cat(_ parent: Int?, _ title: String) throws -> Int { try insertNode(db, parentId: parent, title: title, note: "", isCategory: 1) }
+            _ = try cat(nil, "📥 Инбокс")
+            let fin = try cat(nil, "Финансы"); for c in ["Налоги", "Платежи", "Балансы", "Траты", "Активы", "Пассивы"] { _ = try cat(fin, c) }
+            let leg = try cat(nil, "Легализация"); _ = try cat(leg, "ВНЖ")
+            let work = try cat(nil, "Работа"); for c in ["Рост", "Проекты"] { _ = try cat(work, c) }
+            let life = try cat(nil, "Жизнь"); for c in ["Семья", "Развитие", "Здоровье", "Отдых"] { _ = try cat(life, c) }
+            let hist = try cat(nil, "История и расчёты"); for c in ["Налоговые расчёты", "История"] { _ = try cat(hist, c) }
+            let fears = try cat(nil, "Страхи / Вопросы"); let trev = try cat(fears, "Тревоги")
+            for c in ["Налоги", "Покупки", "ВНЖ", "Балансы", "Брокеры", "Семья", "Работа", "Принятые"] { _ = try cat(trev, c) }
+            _ = try cat(nil, "Глобальные цели")
+        }
+        // как server.js на старте: каркас портфеля, строки курсов, ⚡ Энергия жизни
+        try ensurePortfolio(db)
+        try ensureRates(db)
+        try ensureEnergy(db)
+    }
+
+    // Каркас портфеля: 4 блока + замороженный капитал с примерами (порт ensurePortfolio).
+    private static func ensurePortfolio(_ db: Database) throws {
+        if ((try db.rows("SELECT count(*) AS c FROM portfolio_items").first?["c"]) as? Int ?? 0) > 0 { return }
+        func ins(_ parent: Int?, _ name: String, _ kind: String, value: Double? = nil) throws -> Int {
+            let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM portfolio_items WHERE parent_id IS ?", [parent]).first?["o"]))
+            return try db.run("INSERT INTO portfolio_items(parent_id, ord, name, kind, value) VALUES(?,?,?,?,?)",
+                              [parent, ord, name, kind, value as Any?])
+        }
+        _ = try ins(nil, "Блок защиты", "block")
+        _ = try ins(nil, "Блок роста", "block")
+        _ = try ins(nil, "Блок развития", "block")
+        let frozen = try ins(nil, "Замороженный капитал", "block")
+        let re = try ins(frozen, "Недвижимость", "section")
+        _ = try ins(re, "Start", "asset", value: 100000)
+        _ = try ins(re, "Belgravia", "asset", value: 300000)
+        let pas = try ins(frozen, "Пассивы", "section")
+        _ = try ins(pas, "X5", "asset", value: 45000)
+        _ = try ins(pas, "MX5", "asset", value: 30000)
+    }
+
+    // Строки курсов, чтобы их можно было править вручную даже без сети (порт ensureRates).
+    private static func ensureRates(_ db: Database) throws {
+        try db.run("UPDATE portfolio_items SET rate_symbol = NULL WHERE rate_symbol = '^SPX'")
+        try db.run("DELETE FROM rates WHERE symbol = '^SPX'")
+        let defs = [("XAUUSD", "Золото"), ("EURUSD", "EUR/USD"), ("BTCUSD", "BTC"),
+                    ("SCHD", "SCHD"), ("IVV", "IVV"), ("VHT", "VHT")]
+        for (sym, label) in defs {
+            try db.run("INSERT OR IGNORE INTO rates(symbol, label) VALUES(?,?)", [sym, label])
+        }
+    }
+
+    // ⚡ Энергия жизни + Банк впечатлений — структура против шаблона (порт ensureEnergy).
+    private static func ensureEnergy(_ db: Database) throws {
+        var energy = (try db.rows("SELECT id FROM nodes WHERE is_category = 1 AND parent_id IS NULL AND title LIKE '%Энергия жизни%'").first?["id"]) as? Int
+        if energy == nil { energy = try insertNode(db, parentId: nil, title: "⚡ Энергия жизни", note: "", isCategory: 1) }
+        if let e = energy,
+           (try db.rows("SELECT id FROM nodes WHERE is_category = 1 AND parent_id = ? AND title LIKE '%Банк впечатлений%'", [e]).first) == nil {
+            _ = try insertNode(db, parentId: e, title: "Банк впечатлений", note: "", isCategory: 1)
+        }
     }
 
     static func insertNode(_ db: Database, parentId: Int?, title: String, note: String, isCategory: Int) throws -> Int {
