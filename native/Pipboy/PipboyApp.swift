@@ -22,7 +22,8 @@ struct PipboyApp: App {
             ZStack {
                 if unlocked {
                     WebView(sync: sync, reloadToken: reloadToken).ignoresSafeArea()
-                    #if os(iOS)
+                        // Нативная кнопка синхрона на ОБОИХ платформах — не зависит от
+                        // веб-кнопки/моста, поэтому «раздать»/«получить» работает надёжно.
                         .overlay(alignment: .bottomTrailing) {
                             Button { showSync = true } label: {
                                 Image(systemName: "arrow.triangle.2.circlepath")
@@ -32,7 +33,6 @@ struct PipboyApp: App {
                             .buttonStyle(.plain).padding(.trailing, 16).padding(.bottom, 30)
                         }
                         .sheet(isPresented: $showSync) { SyncPanel(sync: sync) }
-                    #endif
                 } else {
                     AuthGate(unlocked: $unlocked)
                 }
