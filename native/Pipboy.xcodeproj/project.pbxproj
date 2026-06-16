@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -12,7 +12,43 @@
 		300000000000000000000003 /* PipboyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000003 /* PipboyApp.swift */; };
 		300000000000000000000004 /* ServerProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000004 /* ServerProcess.swift */; };
 		300000000000000000000005 /* WebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000005 /* WebView.swift */; };
+		6E6B7E502FDF3DBD00EF7C4E /* Crypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E6B7E4F2FDF3DBD00EF7C4E /* Crypto.swift */; };
+		6E7421E12FDF6AA800F483D5 /* ServerProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000004 /* ServerProcess.swift */; };
+		6E7421E22FDF6AA800F483D5 /* Crypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E6B7E4F2FDF3DBD00EF7C4E /* Crypto.swift */; };
+		6E7421E32FDF6AA800F483D5 /* AuthGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000001 /* AuthGate.swift */; };
+		6E7421E42FDF6AA800F483D5 /* Importer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EB1DDDE2FDE1FB0003EF2A8 /* Importer.swift */; };
+		6E7421E52FDF6AA800F483D5 /* PipboyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000003 /* PipboyApp.swift */; };
+		6E7421E62FDF6AA800F483D5 /* Database.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EB1DDDA2FDE1E65003EF2A8 /* Database.swift */; };
+		6E7421E72FDF6AA800F483D5 /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000002 /* Notifications.swift */; };
+		6E7421E82FDF6AA800F483D5 /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EB1DDDB2FDE1E65003EF2A8 /* Keychain.swift */; };
+		6E7421E92FDF6AA800F483D5 /* NativeAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EB1DDE52FDE2878003EF2A8 /* NativeAPI.swift */; };
+		6E7421EA2FDF6AA800F483D5 /* WebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200000000000000000000005 /* WebView.swift */; };
+		6E74220C2FDF75E400F483D5 /* SQLCipher in Frameworks */ = {isa = PBXBuildFile; productRef = 6E74220B2FDF75E400F483D5 /* SQLCipher */; };
+		6E74220E2FDF75E400F483D5 /* SQLiteDB in Frameworks */ = {isa = PBXBuildFile; productRef = 6E74220D2FDF75E400F483D5 /* SQLiteDB */; };
+		6EB1DDDC2FDE1E65003EF2A8 /* Database.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EB1DDDA2FDE1E65003EF2A8 /* Database.swift */; };
+		6EB1DDDD2FDE1E65003EF2A8 /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EB1DDDB2FDE1E65003EF2A8 /* Keychain.swift */; };
+		6EB1DDDF2FDE1FB0003EF2A8 /* Importer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EB1DDDE2FDE1FB0003EF2A8 /* Importer.swift */; };
+		6EB1DDE22FDE2295003EF2A8 /* SQLCipher in Frameworks */ = {isa = PBXBuildFile; productRef = 6EB1DDE12FDE2295003EF2A8 /* SQLCipher */; };
+		6EB1DDE42FDE2295003EF2A8 /* SQLiteDB in Frameworks */ = {isa = PBXBuildFile; productRef = 6EB1DDE32FDE2295003EF2A8 /* SQLiteDB */; };
+		6EB1DDE62FDE2878003EF2A8 /* NativeAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EB1DDE52FDE2878003EF2A8 /* NativeAPI.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		6E7421C72FDF625E00F483D5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 100000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6E7421B62FDF625D00F483D5;
+			remoteInfo = "Pipboy iOS";
+		};
+		6E7421D12FDF625E00F483D5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 100000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6E7421B62FDF625D00F483D5;
+			remoteInfo = "Pipboy iOS";
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		100000000000000000000006 /* Pipboy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pipboy.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -22,10 +58,49 @@
 		200000000000000000000004 /* ServerProcess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerProcess.swift; sourceTree = "<group>"; };
 		200000000000000000000005 /* WebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebView.swift; sourceTree = "<group>"; };
 		200000000000000000000006 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		6E6B7E4F2FDF3DBD00EF7C4E /* Crypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Crypto.swift; sourceTree = "<group>"; };
+		6E7421B72FDF625D00F483D5 /* Pipboy iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Pipboy iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		6E7421C62FDF625E00F483D5 /* Pipboy iOSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Pipboy iOSTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		6E7421D02FDF625E00F483D5 /* Pipboy iOSUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Pipboy iOSUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		6EB1DDDA2FDE1E65003EF2A8 /* Database.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Database.swift; sourceTree = "<group>"; };
+		6EB1DDDB2FDE1E65003EF2A8 /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
+		6EB1DDDE2FDE1FB0003EF2A8 /* Importer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Importer.swift; sourceTree = "<group>"; };
+		6EB1DDE52FDE2878003EF2A8 /* NativeAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeAPI.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		6E7421B82FDF625D00F483D5 /* Pipboy iOS */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = "Pipboy iOS"; sourceTree = "<group>"; };
+		6E7421C92FDF625E00F483D5 /* Pipboy iOSTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = "Pipboy iOSTests"; sourceTree = "<group>"; };
+		6E7421D32FDF625E00F483D5 /* Pipboy iOSUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = "Pipboy iOSUITests"; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		400000000000000000000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6EB1DDE42FDE2295003EF2A8 /* SQLiteDB in Frameworks */,
+				6EB1DDE22FDE2295003EF2A8 /* SQLCipher in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6E7421B42FDF625D00F483D5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6E74220E2FDF75E400F483D5 /* SQLiteDB in Frameworks */,
+				6E74220C2FDF75E400F483D5 /* SQLCipher in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6E7421C32FDF625E00F483D5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6E7421CD2FDF625E00F483D5 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -39,6 +114,10 @@
 			isa = PBXGroup;
 			children = (
 				100000000000000000000003 /* Pipboy */,
+				6E7421B82FDF625D00F483D5 /* Pipboy iOS */,
+				6E7421C92FDF625E00F483D5 /* Pipboy iOSTests */,
+				6E7421D32FDF625E00F483D5 /* Pipboy iOSUITests */,
+				6E74220A2FDF75E400F483D5 /* Frameworks */,
 				100000000000000000000004 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -46,6 +125,11 @@
 		100000000000000000000003 /* Pipboy */ = {
 			isa = PBXGroup;
 			children = (
+				6E6B7E4F2FDF3DBD00EF7C4E /* Crypto.swift */,
+				6EB1DDE52FDE2878003EF2A8 /* NativeAPI.swift */,
+				6EB1DDDE2FDE1FB0003EF2A8 /* Importer.swift */,
+				6EB1DDDA2FDE1E65003EF2A8 /* Database.swift */,
+				6EB1DDDB2FDE1E65003EF2A8 /* Keychain.swift */,
 				200000000000000000000003 /* PipboyApp.swift */,
 				200000000000000000000005 /* WebView.swift */,
 				200000000000000000000001 /* AuthGate.swift */,
@@ -60,8 +144,18 @@
 			isa = PBXGroup;
 			children = (
 				100000000000000000000006 /* Pipboy.app */,
+				6E7421B72FDF625D00F483D5 /* Pipboy iOS.app */,
+				6E7421C62FDF625E00F483D5 /* Pipboy iOSTests.xctest */,
+				6E7421D02FDF625E00F483D5 /* Pipboy iOSUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		6E74220A2FDF75E400F483D5 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -84,6 +178,76 @@
 			productReference = 100000000000000000000006 /* Pipboy.app */;
 			productType = "com.apple.product-type.application";
 		};
+		6E7421B62FDF625D00F483D5 /* Pipboy iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6E7421D82FDF625E00F483D5 /* Build configuration list for PBXNativeTarget "Pipboy iOS" */;
+			buildPhases = (
+				6E7421B32FDF625D00F483D5 /* Sources */,
+				6E7421B42FDF625D00F483D5 /* Frameworks */,
+				6E7421B52FDF625D00F483D5 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				6E7421B82FDF625D00F483D5 /* Pipboy iOS */,
+			);
+			name = "Pipboy iOS";
+			packageProductDependencies = (
+				6E74220B2FDF75E400F483D5 /* SQLCipher */,
+				6E74220D2FDF75E400F483D5 /* SQLiteDB */,
+			);
+			productName = "Pipboy iOS";
+			productReference = 6E7421B72FDF625D00F483D5 /* Pipboy iOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+		6E7421C52FDF625E00F483D5 /* Pipboy iOSTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6E7421DB2FDF625E00F483D5 /* Build configuration list for PBXNativeTarget "Pipboy iOSTests" */;
+			buildPhases = (
+				6E7421C22FDF625E00F483D5 /* Sources */,
+				6E7421C32FDF625E00F483D5 /* Frameworks */,
+				6E7421C42FDF625E00F483D5 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				6E7421C82FDF625E00F483D5 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				6E7421C92FDF625E00F483D5 /* Pipboy iOSTests */,
+			);
+			name = "Pipboy iOSTests";
+			packageProductDependencies = (
+			);
+			productName = "Pipboy iOSTests";
+			productReference = 6E7421C62FDF625E00F483D5 /* Pipboy iOSTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		6E7421CF2FDF625E00F483D5 /* Pipboy iOSUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6E7421DE2FDF625E00F483D5 /* Build configuration list for PBXNativeTarget "Pipboy iOSUITests" */;
+			buildPhases = (
+				6E7421CC2FDF625E00F483D5 /* Sources */,
+				6E7421CD2FDF625E00F483D5 /* Frameworks */,
+				6E7421CE2FDF625E00F483D5 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				6E7421D22FDF625E00F483D5 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				6E7421D32FDF625E00F483D5 /* Pipboy iOSUITests */,
+			);
+			name = "Pipboy iOSUITests";
+			packageProductDependencies = (
+			);
+			productName = "Pipboy iOSUITests";
+			productReference = 6E7421D02FDF625E00F483D5 /* Pipboy iOSUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -91,11 +255,22 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1500;
+				LastSwiftUpdateCheck = 1620;
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
 					100000000000000000000005 = {
 						CreatedOnToolsVersion = 15.0;
+					};
+					6E7421B62FDF625D00F483D5 = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					6E7421C52FDF625E00F483D5 = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = 6E7421B62FDF625D00F483D5;
+					};
+					6E7421CF2FDF625E00F483D5 = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = 6E7421B62FDF625D00F483D5;
 					};
 				};
 			};
@@ -108,17 +283,44 @@
 				Base,
 			);
 			mainGroup = 100000000000000000000002;
+			packageReferences = (
+				6EB1DDE02FDE2295003EF2A8 /* XCRemoteSwiftPackageReference "swift-sqlcipher" */,
+			);
 			productRefGroup = 100000000000000000000004 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				100000000000000000000005 /* Pipboy */,
+				6E7421B62FDF625D00F483D5 /* Pipboy iOS */,
+				6E7421C52FDF625E00F483D5 /* Pipboy iOSTests */,
+				6E7421CF2FDF625E00F483D5 /* Pipboy iOSUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		400000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6E7421B52FDF625D00F483D5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6E7421C42FDF625E00F483D5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6E7421CE2FDF625E00F483D5 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -134,15 +336,110 @@
 			files = (
 				300000000000000000000003 /* PipboyApp.swift in Sources */,
 				300000000000000000000005 /* WebView.swift in Sources */,
+				6E6B7E502FDF3DBD00EF7C4E /* Crypto.swift in Sources */,
 				300000000000000000000001 /* AuthGate.swift in Sources */,
+				6EB1DDDF2FDE1FB0003EF2A8 /* Importer.swift in Sources */,
 				300000000000000000000004 /* ServerProcess.swift in Sources */,
+				6EB1DDE62FDE2878003EF2A8 /* NativeAPI.swift in Sources */,
 				300000000000000000000002 /* Notifications.swift in Sources */,
+				6EB1DDDC2FDE1E65003EF2A8 /* Database.swift in Sources */,
+				6EB1DDDD2FDE1E65003EF2A8 /* Keychain.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6E7421B32FDF625D00F483D5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6E7421E12FDF6AA800F483D5 /* ServerProcess.swift in Sources */,
+				6E7421E22FDF6AA800F483D5 /* Crypto.swift in Sources */,
+				6E7421E32FDF6AA800F483D5 /* AuthGate.swift in Sources */,
+				6E7421E42FDF6AA800F483D5 /* Importer.swift in Sources */,
+				6E7421E52FDF6AA800F483D5 /* PipboyApp.swift in Sources */,
+				6E7421E62FDF6AA800F483D5 /* Database.swift in Sources */,
+				6E7421E72FDF6AA800F483D5 /* Notifications.swift in Sources */,
+				6E7421E82FDF6AA800F483D5 /* Keychain.swift in Sources */,
+				6E7421E92FDF6AA800F483D5 /* NativeAPI.swift in Sources */,
+				6E7421EA2FDF6AA800F483D5 /* WebView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6E7421C22FDF625E00F483D5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6E7421CC2FDF625E00F483D5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		6E7421C82FDF625E00F483D5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6E7421B62FDF625D00F483D5 /* Pipboy iOS */;
+			targetProxy = 6E7421C72FDF625E00F483D5 /* PBXContainerItemProxy */;
+		};
+		6E7421D22FDF625E00F483D5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6E7421B62FDF625D00F483D5 /* Pipboy iOS */;
+			targetProxy = 6E7421D12FDF625E00F483D5 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		600000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6D7A8LBJG4;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Pipboy/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pipboy.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		600000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6D7A8LBJG4;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Pipboy/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pipboy.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 		600000000000000000000003 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -189,47 +486,379 @@
 			};
 			name = Release;
 		};
-		600000000000000000000001 /* Debug */ = {
+		6E7421D92FDF625E00F483D5 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "-";
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				ENABLE_HARDENED_RUNTIME = NO;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Pipboy/Info.plist;
+				DEVELOPMENT_ASSET_PATHS = "\"Pipboy iOS/Preview Content\"";
+				DEVELOPMENT_TEAM = 6D7A8LBJG4;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Pipboy-iOS-Info.plist";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Разблокировка Pipboy по Face ID";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Синхронизация Mac ↔ iPhone по локальной сети";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
-					"@executable_path/../Frameworks",
+					"@executable_path/Frameworks",
 				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.pipboy.app;
+				MTL_FAST_MATH = YES;
+				NEW_SETTING = "";
+				PRODUCT_BUNDLE_IDENTIFIER = "local.pipboy.Pipboy-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
-		600000000000000000000002 /* Release */ = {
+		6E7421DA2FDF625E00F483D5 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "-";
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				ENABLE_HARDENED_RUNTIME = NO;
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Pipboy/Info.plist;
+				DEVELOPMENT_ASSET_PATHS = "\"Pipboy iOS/Preview Content\"";
+				DEVELOPMENT_TEAM = 6D7A8LBJG4;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Pipboy-iOS-Info.plist";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Разблокировка Pipboy по Face ID";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Синхронизация Mac ↔ iPhone по локальной сети";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
-					"@executable_path/../Frameworks",
+					"@executable_path/Frameworks",
 				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.pipboy.app;
+				MTL_FAST_MATH = YES;
+				NEW_SETTING = "";
+				PRODUCT_BUNDLE_IDENTIFIER = "local.pipboy.Pipboy-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		6E7421DC2FDF625E00F483D5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6D7A8LBJG4;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "local.pipboy.Pipboy-iOSTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Pipboy iOS.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Pipboy iOS";
+			};
+			name = Debug;
+		};
+		6E7421DD2FDF625E00F483D5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6D7A8LBJG4;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "local.pipboy.Pipboy-iOSTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Pipboy iOS.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Pipboy iOS";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		6E7421DF2FDF625E00F483D5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6D7A8LBJG4;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "local.pipboy.Pipboy-iOSUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Pipboy iOS";
+			};
+			name = Debug;
+		};
+		6E7421E02FDF625E00F483D5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6D7A8LBJG4;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "local.pipboy.Pipboy-iOSUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Pipboy iOS";
+				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
 		};
@@ -254,7 +883,68 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		6E7421D82FDF625E00F483D5 /* Build configuration list for PBXNativeTarget "Pipboy iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6E7421D92FDF625E00F483D5 /* Debug */,
+				6E7421DA2FDF625E00F483D5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		6E7421DB2FDF625E00F483D5 /* Build configuration list for PBXNativeTarget "Pipboy iOSTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6E7421DC2FDF625E00F483D5 /* Debug */,
+				6E7421DD2FDF625E00F483D5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		6E7421DE2FDF625E00F483D5 /* Build configuration list for PBXNativeTarget "Pipboy iOSUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6E7421DF2FDF625E00F483D5 /* Debug */,
+				6E7421E02FDF625E00F483D5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		6EB1DDE02FDE2295003EF2A8 /* XCRemoteSwiftPackageReference "swift-sqlcipher" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/skiptools/swift-sqlcipher";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.10.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		6E74220B2FDF75E400F483D5 /* SQLCipher */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6EB1DDE02FDE2295003EF2A8 /* XCRemoteSwiftPackageReference "swift-sqlcipher" */;
+			productName = SQLCipher;
+		};
+		6E74220D2FDF75E400F483D5 /* SQLiteDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6EB1DDE02FDE2295003EF2A8 /* XCRemoteSwiftPackageReference "swift-sqlcipher" */;
+			productName = SQLiteDB;
+		};
+		6EB1DDE12FDE2295003EF2A8 /* SQLCipher */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6EB1DDE02FDE2295003EF2A8 /* XCRemoteSwiftPackageReference "swift-sqlcipher" */;
+			productName = SQLCipher;
+		};
+		6EB1DDE32FDE2295003EF2A8 /* SQLiteDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6EB1DDE02FDE2295003EF2A8 /* XCRemoteSwiftPackageReference "swift-sqlcipher" */;
+			productName = SQLiteDB;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 100000000000000000000001 /* Project object */;
 }

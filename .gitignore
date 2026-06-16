@@ -12,3 +12,6 @@ native/**/DerivedData/
 
 # build artifacts
 Pipboy.app/
+
+xcuserdata/
+*.xcuserstate
