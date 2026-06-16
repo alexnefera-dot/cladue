@@ -12,7 +12,6 @@ struct PipboyApp: App {
     @StateObject private var sync = SyncService()
     @State private var unlocked = false
     @State private var reloadToken = 0          // ++ после применения снимка → перезагрузка фронта
-    @State private var showSync = false
     #if os(iOS)
     @Environment(\.scenePhase) private var scenePhase
     #endif
@@ -21,18 +20,9 @@ struct PipboyApp: App {
         WindowGroup("Pipboy") {
             ZStack {
                 if unlocked {
+                    // Управление синхроном живёт в Настройках (веб), авто работает в фоне —
+                    // отдельной плавающей кнопки нет.
                     WebView(sync: sync, reloadToken: reloadToken).ignoresSafeArea()
-                        // Нативная кнопка синхрона на ОБОИХ платформах — не зависит от
-                        // веб-кнопки/моста, поэтому «раздать»/«получить» работает надёжно.
-                        .overlay(alignment: .bottomTrailing) {
-                            Button { showSync = true } label: {
-                                Image(systemName: "arrow.triangle.2.circlepath")
-                                    .font(.system(size: 17, weight: .bold)).foregroundStyle(.white)
-                                    .padding(13).background(Color.accentColor, in: Circle()).shadow(radius: 3)
-                            }
-                            .buttonStyle(.plain).padding(.trailing, 16).padding(.bottom, 30)
-                        }
-                        .sheet(isPresented: $showSync) { SyncPanel(sync: sync) }
                 } else {
                     AuthGate(unlocked: $unlocked)
                 }
@@ -57,47 +47,6 @@ struct PipboyApp: App {
         #if os(macOS)
         .windowStyle(.hiddenTitleBar)
         #endif
-    }
-}
-
-// Нативная панель синхрона (iPhone): триггер не зависит от веб-фронта в бандле,
-// поэтому работает, даже если bundled app.js ещё старый. На приёмнике «Получить»
-// заменяет данные данными источника И обновляет сам фронт (приедет по Wi-Fi).
-struct SyncPanel: View {
-    @ObservedObject var sync: SyncService
-    @Environment(\.dismiss) private var dismiss
-    @State private var auto = SyncTrust.autoEnabled
-
-    var body: some View {
-        VStack(spacing: 14) {
-            Text("Синхронизация Mac ↔ iPhone").font(.headline)
-            Text(SyncTrust.paired ? "пара установлена · синхрон идёт автоматически при открытии"
-                                  : "первая связка: на Mac «Раздать», тут «Получить», сверь код")
-                .font(.caption).foregroundStyle(SyncTrust.paired ? Color.green : Color.gray).multilineTextAlignment(.center)
-            Text(sync.status.isEmpty ? "оба устройства в одной Wi-Fi" : sync.status)
-                .font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
-            if !sync.sas.isEmpty {
-                Text("код сверки: \(sync.sas)").font(.title2.weight(.bold).monospacedDigit())
-                Text("должен совпасть на обоих устройствах").font(.caption).foregroundStyle(.secondary)
-            }
-            Toggle("Авто-синхрон", isOn: $auto)
-                .onChange(of: auto) { v in SyncTrust.autoEnabled = v; if v { sync.autoStart() } else { sync.autoStop() } }
-            VStack(spacing: 10) {
-                Button { sync.receive() } label: {
-                    Text(SyncTrust.paired ? "Синхронизировать сейчас" : "Получить данные с Mac").frame(maxWidth: .infinity)
-                }.buttonStyle(.borderedProminent)
-                Button { sync.host() } label: {
-                    Text("Раздать данные").frame(maxWidth: .infinity)
-                }.buttonStyle(.bordered)
-                Button { sync.stop() } label: {
-                    Text("Стоп").frame(maxWidth: .infinity)
-                }.buttonStyle(.bordered)
-            }
-            Text("правки сходятся двусторонне · ничего не уходит в облако")
-                .font(.caption2).foregroundStyle(.secondary).multilineTextAlignment(.center)
-            Button("Закрыть") { dismiss() }.padding(.top, 4)
-        }
-        .padding(24).frame(maxWidth: 460)
     }
 }
 

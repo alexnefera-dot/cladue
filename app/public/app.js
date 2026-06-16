@@ -757,6 +757,13 @@ fetch('/api/info').then(r => r.json()).then(i => { window.pbVersion = i.version;
 window.isLocked = scr => LOCKED_SCREENS.has(scr) && lockOn && sessionStorage.pbUnlocked !== '1';
 // статус нативного Wi-Fi синхрона приходит из Swift (evaluateJavaScript) → в карточку настроек
 window.pbSync = msg => { const e = document.getElementById('syncStatus'); if (e) e.textContent = msg; };
+// состояние пары/авто приходит из Swift → обновляем тумблер и статус пары
+window.pbSyncState = st => {
+  const a = document.getElementById('syncAuto');
+  if (a) { a.dataset.on = st.auto ? '1' : '0'; a.textContent = 'авто-синхрон: ' + (st.auto ? 'вкл' : 'выкл'); a.classList.toggle('ok', !!st.auto); }
+  const p = document.getElementById('syncPair');
+  if (p) p.textContent = st.paired ? '✓ пара установлена' : 'пара ещё не создана — синхронизируй один раз на обоих устройствах';
+};
 window.lockNow = () => { sessionStorage.removeItem('pbUnlocked'); showScreen('today'); };
 
 // замочки у закрытых разделов: 🔒 вместо иконки, после разблокировки — родная иконка
@@ -953,14 +960,15 @@ window.loadSettings = async function () {
       </div>
     </div>
     ${inNativeApp ? `
-    <div class="card"><div class="meta">📡 СИНХРОНИЗАЦИЯ ПО WI-FI · Mac ↔ iPhone</div>
+    <div class="card"><div class="meta">📡 СИНХРОНИЗАЦИЯ Mac ↔ iPhone</div>
       <div class="task" style="border:0;flex-wrap:wrap">
-        <span class="pill btn ok" id="syncHost">раздать данные (источник)</span>
-        <span class="pill btn" id="syncRecv">получить данные (приёмник)</span>
+        <span class="pill btn" id="syncAuto" data-on="1">авто-синхрон: …</span>
+        <span class="pill btn ok" id="syncNow">синхронизировать сейчас</span>
         <span class="pill btn danger" id="syncStop">стоп</span>
       </div>
-      <div class="meta" id="syncStatus">оба устройства в одной Wi-Fi · на источнике жми «раздать», на приёмнике «получить» · сверь код на обоих</div>
-      <div class="meta">приёмник ПОЛНОСТЬЮ заменяет свои данные данными источника · ничего не уходит в облако</div>
+      <div class="meta" id="syncPair"></div>
+      <div class="meta" id="syncStatus">авто работает в фоне при открытии · первый раз нажми «синхронизировать» на обоих устройствах и сверь код</div>
+      <div class="meta">правки сходятся двусторонне · ничего не уходит в облако</div>
     </div>` : ''}
     <div class="card"><div class="meta">🧭 РЕВИЗИЯ НАПОЛНЕНИЯ</div>
       <div class="task" style="border:0">
@@ -1036,12 +1044,13 @@ window.loadSettings = async function () {
   // синхрон по Wi-Fi (только в нативном приложении): веб → нативный мост pipboySync
   const syncBridge = window.webkit?.messageHandlers?.pipboySync;
   if (syncBridge) {
-    box.querySelector('#syncHost')?.addEventListener('click', () => syncBridge.postMessage({ action: 'host' }));
-    box.querySelector('#syncRecv')?.addEventListener('click', () => {
-      if (confirm('Приёмник ПОЛНОСТЬЮ заменит свои данные данными источника. Продолжить?'))
-        syncBridge.postMessage({ action: 'receive' });
-    });
+    box.querySelector('#syncNow')?.addEventListener('click', () => syncBridge.postMessage({ action: 'sync' }));
     box.querySelector('#syncStop')?.addEventListener('click', () => syncBridge.postMessage({ action: 'stop' }));
+    box.querySelector('#syncAuto')?.addEventListener('click', () => {
+      const turnOn = document.getElementById('syncAuto').dataset.on !== '1';   // тумблер
+      syncBridge.postMessage({ action: 'auto', on: turnOn });
+    });
+    syncBridge.postMessage({ action: 'state' });   // подтянуть текущее состояние пары/авто
   }
   box.querySelector('#auditBtn')?.addEventListener('click', async () => {
     const rows = await fetch('/api/audit').then(x => x.json());

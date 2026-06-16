@@ -29,6 +29,7 @@ struct WebView {
         let v = WKWebView(frame: .zero, configuration: cfg)
         v.uiDelegate = coordinator
         coordinator.webView = v
+        coordinator.bindSyncStatus()   // статус синхрона (в т.ч. авто-фонового) → в карточку Настроек
         v.load(URLRequest(url: URL(string: "pipboy://app/index.html")!))
         return v
     }
@@ -42,18 +43,43 @@ struct WebView {
 
         init(sync: SyncService) { self.sync = sync; super.init() }
 
-        // Веб шлёт {action:'host'|'receive'} → запускаем синхрон, статус возвращаем в UI
-        // через window.pbSync(текст); после применения снимка перезагружаем страницу.
-        func userContentController(_ uc: WKUserContentController, didReceive message: WKScriptMessage) {
-            guard message.name == "pipboySync" else { return }
-            let action = (message.body as? [String: Any])?["action"] as? String ?? (message.body as? String) ?? ""
+        // Зеркалим статус синхрона в веб (window.pbSync) — один раз, чтобы и авто-фоновый
+        // обмен показывался в Настройках, а не только инициированный из веба.
+        func bindSyncStatus() {
             sync.onStatus = { [weak self] s in
                 let esc = s.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "'", with: "\\'")
                 self?.webView?.evaluateJavaScript("window.pbSync&&window.pbSync('\(esc)')", completionHandler: nil)
             }
-            if action == "host" { sync.host() }
-            else if action == "receive" { sync.receive() }
-            else if action == "stop" { sync.stop(); sync.onStatus?("остановлено") }
+        }
+
+        // Веб (Настройки) шлёт действия синхрона. Управление целиком в Настройках,
+        // авто работает в фоне.
+        func userContentController(_ uc: WKUserContentController, didReceive message: WKScriptMessage) {
+            guard message.name == "pipboySync" else { return }
+            let body = message.body as? [String: Any]
+            let action = body?["action"] as? String ?? (message.body as? String) ?? ""
+            switch action {
+            case "sync", "host", "receive":           // «синхронизировать сейчас» / первая связка (роль по платформе)
+                #if os(macOS)
+                if action == "receive" { sync.receive() } else { sync.host() }
+                #else
+                if action == "host" { sync.host() } else { sync.receive() }
+                #endif
+            case "stop": sync.stop(); sync.onStatus?("остановлено")
+            case "auto":
+                let on = body?["on"] as? Bool ?? true
+                SyncTrust.autoEnabled = on
+                if on { sync.autoStart() } else { sync.autoStop() }
+                pushState()
+            case "state": pushState()
+            default: break
+            }
+        }
+
+        // Текущее состояние пары/авто → в веб (window.pbSyncState).
+        private func pushState() {
+            let js = "window.pbSyncState&&window.pbSyncState({paired:\(SyncTrust.paired),auto:\(SyncTrust.autoEnabled)})"
+            webView?.evaluateJavaScript(js, completionHandler: nil)
         }
 
         // ----- target=_blank ссылки → внешний браузер -----
@@ -122,7 +148,10 @@ struct WebView {
         }
         private static func topViewController() -> UIViewController? {
             let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
-            var top = scenes.flatMap { $0.windows }.first { $0.isKeyWindow }?.rootViewController
+            let windows = scenes.flatMap { $0.windows }
+            // isKeyWindow в SwiftUI-WKWebView бывает nil → откат к первому окну с rootVC,
+            // иначе алерт (confirm удаления и т.п.) молча не показывается
+            var top = (windows.first { $0.isKeyWindow } ?? windows.first { $0.rootViewController != nil } ?? windows.first)?.rootViewController
             while let p = top?.presentedViewController { top = p }
             return top
         }
