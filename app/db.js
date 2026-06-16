@@ -113,6 +113,11 @@ export function createDb(path = ':memory:') {
       recur TEXT NOT NULL DEFAULT 'none',      -- none|monthly|yearly
       note TEXT NOT NULL DEFAULT ''
     );
+    CREATE TABLE IF NOT EXISTS event_done(      -- закрытые («выполнено») даты событий — повтор НЕ удаляется
+      event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+      date TEXT NOT NULL,
+      UNIQUE(event_id, date)
+    );
     CREATE TABLE IF NOT EXISTS transactions(    -- расходы/доходы (вручную или Monefy)
       id INTEGER PRIMARY KEY,
       date TEXT NOT NULL,

@@ -199,6 +199,10 @@ final class Database {
           id INTEGER PRIMARY KEY, title TEXT NOT NULL, date TEXT NOT NULL, time TEXT,
           recur TEXT NOT NULL DEFAULT 'none', note TEXT NOT NULL DEFAULT ''
         );
+        CREATE TABLE IF NOT EXISTS event_done(
+          event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+          date TEXT NOT NULL, UNIQUE(event_id, date)
+        );
         CREATE TABLE IF NOT EXISTS transactions(
           id INTEGER PRIMARY KEY, date TEXT NOT NULL, amount REAL NOT NULL,
           currency TEXT NOT NULL DEFAULT '€', direction TEXT NOT NULL DEFAULT 'expense',

@@ -50,7 +50,7 @@ export function buildToday(db) {
     .filter(i => { const k = i.type + ':' + i.id + ':' + i.date; return !seen.has(k) && seen.add(k); });
 
   const week = all.filter(i => i.date > today && i.date <= weekEnd && !i.done);
-  const events = all.filter(i => i.type === 'event' && (i.date === today || i.date === tomorrow));
+  const events = all.filter(i => i.type === 'event' && (i.date === today || i.date === tomorrow) && !i.done);
   const payments7 = all.filter(i => i.type === 'money' && i.date >= today && i.date <= weekEnd);
 
   const fin = listFin(db);

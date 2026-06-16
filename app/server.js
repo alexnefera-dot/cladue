@@ -443,6 +443,10 @@ const server = http.createServer(async (req, res) => {
       cal.addEvent(db, b);
       return json(res, 201, { ok: true });
     }
+    if ((m = p.match(/^\/api\/events\/(\d+)\/done$/)) && req.method === 'POST') {
+      const b = await body(req);
+      return json(res, 200, cal.toggleEventDone(db, +m[1], b.date));
+    }
     if ((m = p.match(/^\/api\/events\/(\d+)$/))) {
       if (req.method === 'PATCH') { cal.patchEvent(db, +m[1], await body(req)); return json(res, 200, { ok: true }); }
       if (req.method === 'DELETE') { cal.delEvent(db, +m[1]); return json(res, 200, { ok: true }); }

@@ -12,6 +12,14 @@ export function patchEvent(db, id, b) {
 }
 export function delEvent(db, id) { db.prepare('DELETE FROM events WHERE id = ?').run(id); }
 
+// Закрыть/открыть конкретную дату события («выполнено»), не удаляя само событие.
+export function toggleEventDone(db, id, date) {
+  const has = db.prepare('SELECT 1 FROM event_done WHERE event_id = ? AND date = ?').get(id, date);
+  if (has) db.prepare('DELETE FROM event_done WHERE event_id = ? AND date = ?').run(id, date);
+  else db.prepare('INSERT OR IGNORE INTO event_done(event_id, date) VALUES(?,?)').run(id, date);
+  return { done: !has };
+}
+
 // Повторы в диапазоне [first..last]
 function occurrences(startDate, recur, first, last) {
   if (!startDate) return [];
@@ -53,9 +61,11 @@ export function calendar(db, ym) {
       items.push({ date: d, type: 'money', id: o.id, title: o.name, amount: o.amount,
                    currency: o.currency, okind: o.kind });
 
+  const eventDone = new Set(db.prepare('SELECT event_id, date FROM event_done').all().map(r => r.event_id + ':' + r.date));
   for (const e of db.prepare('SELECT * FROM events').all())
     for (const d of occurrences(e.date, e.recur, first, last))
-      items.push({ date: d, type: 'event', id: e.id, title: e.title, time: e.time, recur: e.recur });
+      items.push({ date: d, type: 'event', id: e.id, title: e.title, time: e.time, recur: e.recur,
+                   done: eventDone.has(e.id + ':' + d) });
 
   // практики в календарь не проецируются (по решению пользователя):
   // они живут в Психологии и на дашборде «Сегодня»

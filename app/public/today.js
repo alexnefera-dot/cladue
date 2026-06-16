@@ -106,7 +106,7 @@ function renderToday() {
         ${d.events.map(e => `<div class="task">
           <span class="meta num">${e.date === d.date ? 'сегодня' : 'завтра'}${e.time ? ' ' + e.time : ''}</span>
           <span class="t">${tesc(e.title)}</span>
-          ${typeof e.id === 'number' ? `<span class="pill btn ok" data-tdevent="${e.id}" data-recur="${e.recur ?? 'none'}" title="прошёл — закрыть">✓</span>` : ''}</div>`).join('') || '<div class="empty">тихо</div>'}
+          ${typeof e.id === 'number' ? `<span class="pill btn ok" data-tdevent="${e.id}" data-date="${e.date}" title="прошёл — закрыть (повтор не удаляется)">✓</span>` : ''}</div>`).join('') || '<div class="empty">тихо</div>'}
       </div>
       <div class="sec">Люди</div>
       <div class="card">
@@ -155,10 +155,9 @@ function bindToday() {
   document.querySelectorAll('#screen-today [data-tdcontact]').forEach(el =>
     el.addEventListener('click', async () => { await tdApi.contacted(+el.dataset.tdcontact); window.loadToday(); }));
   document.querySelectorAll('#screen-today [data-tdevent]').forEach(el =>
-    el.addEventListener('click', async () => {
-      const recur = el.dataset.recur;   // повторяющееся удалит все будущие — спросим
-      if (recur && recur !== 'none' && !confirm('Это повторяющееся событие. Удалить его совсем?')) return;
-      await fetch('/api/events/' + el.dataset.tdevent, { method: 'DELETE' });
+    el.addEventListener('click', async () => {   // закрыть дату как «выполнено», событие/повтор остаётся
+      await fetch('/api/events/' + el.dataset.tdevent + '/done', { method: 'POST',
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: el.dataset.date }) });
       window.loadToday();
     }));
   document.querySelectorAll('#screen-today [data-tdopen]').forEach(el =>

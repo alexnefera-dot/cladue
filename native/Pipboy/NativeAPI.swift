@@ -518,6 +518,14 @@ enum Api {
                 [title, date, body["time"] ?? NSNull(), body["recur"] as? String ?? "none", body["note"] as? String ?? ""])
             return (ok(201), 201)
         }
+        if let m = match(path, "^/api/events/([0-9]+)/done$"), method == "POST" {
+            let id = Int(m[1]) ?? -1
+            let date = body["date"] as? String ?? ""
+            let has = !(try db.rows("SELECT 1 AS x FROM event_done WHERE event_id = ? AND date = ?", [id, date]).isEmpty)
+            if has { try db.run("DELETE FROM event_done WHERE event_id = ? AND date = ?", [id, date]) }
+            else { try db.run("INSERT OR IGNORE INTO event_done(event_id, date) VALUES(?,?)", [id, date]) }
+            return (try json(["done": !has]), 200)
+        }
         if let m = match(path, "^/api/events/([0-9]+)$") {
             let id = Int(m[1]) ?? -1
             if method == "PATCH" { try patchCols(db, "events", id, ["title", "date", "time", "recur", "note"], body); return (ok(), 200) }
@@ -1913,10 +1921,12 @@ enum Api {
                     "amount": o["amount"] ?? NSNull(), "currency": o["currency"] ?? NSNull(), "okind": o["kind"] ?? NSNull()])
             }
         }
+        let eventDone = Set(try db.rows("SELECT event_id, date FROM event_done").map { "\(intval($0["event_id"])):\($0["date"] as? String ?? "")" })
         for e in try db.rows("SELECT * FROM events") {
             for d in occurrences(e["date"] as? String, e["recur"] as? String, first, last) {
                 items.append(["date": d, "type": "event", "id": e["id"] ?? NSNull(), "title": e["title"] ?? NSNull(),
-                    "time": e["time"] ?? NSNull(), "recur": e["recur"] ?? NSNull()])
+                    "time": e["time"] ?? NSNull(), "recur": e["recur"] ?? NSNull(),
+                    "done": eventDone.contains("\(intval(e["id"])):\(d)")])
             }
         }
         for p in try birthdays(db) {
@@ -2022,7 +2032,7 @@ enum Api {
         }
         func dateOf(_ i: [String: Any]) -> String { i["date"] as? String ?? "" }
         let week = all.filter { dateOf($0) > t && dateOf($0) <= weekEnd && !(($0["done"] as? Bool) ?? false) }
-        let events = all.filter { ($0["type"] as? String) == "event" && (dateOf($0) == t || dateOf($0) == tomorrow) }
+        let events = all.filter { ($0["type"] as? String) == "event" && (dateOf($0) == t || dateOf($0) == tomorrow) && !(($0["done"] as? Bool) ?? false) }
         let payments7 = all.filter { ($0["type"] as? String) == "money" && dateOf($0) >= t && dateOf($0) <= weekEnd }
         // финансы → просроченные долги/займы
         let finObj = (try? JSONSerialization.jsonObject(with: try fin(db))) as? [String: Any] ?? [:]
@@ -2349,7 +2359,7 @@ enum Api {
         "receivables", "passive_income", "settings", "macro_notes", "debts", "snapshots",
         "routines", "routine_log", "people", "contact_log", "pages", "page_revisions",
         "practices", "practice_log", "wheel_areas", "wheel_scores", "work_log", "forecasts",
-        "properties", "checkins", "metrics", "metric_log", "node_log", "trash"]
+        "properties", "checkins", "metrics", "metric_log", "node_log", "trash", "event_done"]
 
     // Таблицы с одним ключом → двусторонний merge по updated_at (LWW) + tombstones.
     static let syncKeyed: [(String, String)] = [
@@ -2362,7 +2372,7 @@ enum Api {
         ("properties", "id"), ("metrics", "id"), ("node_log", "id"), ("trash", "id"),
         ("settings", "key"), ("rates", "symbol"), ("snapshots", "date"), ("checkins", "date")]
     // Таблицы с составным ключом (логи/отметки) → простое объединение, без tombstones.
-    static let syncUnion = ["dismissed", "routine_log", "metric_log"]
+    static let syncUnion = ["dismissed", "routine_log", "metric_log", "event_done"]
 
     // Миграция для синхрона: updated_at на всех таблицах + триггеры (поддерживают
     // updated_at на правках и пишут tombstones при удалении — БЕЗ изменения кода мутаций).
@@ -2370,6 +2380,8 @@ enum Api {
     // (как updateNode), один пользователь = один часовой пояс, сравнения корректны.
     static func ensureSyncSchema(_ db: Database) {
         try? db.run("CREATE TABLE IF NOT EXISTS sync_tombstones(tbl TEXT, row_key TEXT, deleted_at TEXT, PRIMARY KEY(tbl,row_key))")
+        // закрытые («выполнено») даты событий — миграция существующих баз (повтор не удаляется)
+        try? db.run("CREATE TABLE IF NOT EXISTS event_done(event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE, date TEXT NOT NULL, UNIQUE(event_id, date))")
         for (t, k) in syncKeyed {
             try? db.run("ALTER TABLE \(t) ADD COLUMN updated_at TEXT")          // тихо, если уже есть
             try? db.run("UPDATE \(t) SET updated_at = datetime('now','localtime') WHERE updated_at IS NULL")
