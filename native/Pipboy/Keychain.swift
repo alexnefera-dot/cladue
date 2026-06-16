@@ -22,19 +22,26 @@ enum Keychain {
 
     static func databaseKey(context: LAContext) throws -> Data {
         switch readProtected(context: context) {
-        case .found(let k): return k                                  // уже под биометрией
+        case .found(let k): ensurePlainFallback(k); return k          // под биометрией + гарантируем копию для восстановления
         case .error(let st): throw Failure.status(st)                 // транзиентный сбой — НЕ генерируем новый (иначе осиротим базу)
         case .absent: break
         }
         switch readPlain() {
-        case .found(let old): storeProtected(old, context: context); return old   // миграция старого «плоского»
+        case .found(let old): storeProtected(old, context: context); return old   // система удалила биометрический (сброс пароля) → восстановили из обычной копии
         case .error(let st): throw Failure.status(st)
         case .absent: break
         }
         // оба чтения вернули «нет ключа» наверняка → действительно первый запуск
         let key = randomBytes(32)
-        if !storeProtected(key, context: context) { try storePlain(key) }  // фолбэк, если DP недоступен
+        let prot = storeProtected(key, context: context)
+        let plain = storePlain(key)                                   // ВСЕГДА держим обычную копию (вариант 1: восстановление при сбросе пароля)
+        if !prot && !plain { throw Failure.noKey }                    // нигде не сохранилось — лучше упасть, чем осиротить базу позже
         return key
+    }
+
+    // Гарантируем, что обычная (восстановительная) копия ключа существует.
+    private static func ensurePlainFallback(_ key: Data) {
+        if case .absent = readPlain() { _ = storePlain(key) }
     }
 
     // ----- защищённое (data-protection keychain, биометрия) -----
@@ -81,15 +88,15 @@ enum Keychain {
         if st == errSecItemNotFound { return .absent }
         return .error(st)
     }
-    private static func storePlain(_ key: Data) throws {
+    @discardableResult
+    private static func storePlain(_ key: Data) -> Bool {
         let q: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service, kSecAttrAccount as String: account,
             kSecValueData as String: key,
         ]
         SecItemDelete(q as CFDictionary)
-        let st = SecItemAdd(q as CFDictionary, nil)
-        guard st == errSecSuccess else { throw Failure.status(st) }
+        return SecItemAdd(q as CFDictionary, nil) == errSecSuccess
     }
 
     private static func randomBytes(_ n: Int) -> Data {
