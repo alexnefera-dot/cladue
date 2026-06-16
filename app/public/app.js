@@ -877,7 +877,9 @@ document.getElementById('insp').addEventListener('click', e => {
   if (e.target.classList.contains('insp-close')) document.getElementById('insp').classList.remove('open');
 });
 // PWA: установка на хоумскрин (iPhone: Поделиться → На экран «Домой»)
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+// В нативном приложении service worker не нужен и вреден (мог бы кэшировать старый
+// фронт, мешая обновлению по Wi-Fi); регистрируем только в обычном браузере.
+if (!inNativeApp && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 document.querySelectorAll('.side .item[data-screen]').forEach(el =>
   el.addEventListener('click', () => showScreen(el.dataset.screen)));
 // открыть карточку записи из другого экрана (календарь и т.п.)

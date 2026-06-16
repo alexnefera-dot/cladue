@@ -9,3 +9,6 @@ native/**/xcuserdata/
 native/**/*.xcuserstate
 native/**/DerivedData/
 .DS_Store
+
+# build artifacts
+Pipboy.app/

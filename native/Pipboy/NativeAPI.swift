@@ -867,7 +867,7 @@ enum Api {
         let parent = numOpt(body["parent_id"]).map { Int($0) }
         let content = body["content"] as? String ?? ""
         let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM pages WHERE parent_id IS ?", [parent]).first?["o"]))
-        let id = try db.run("INSERT INTO pages(parent_id, ord, title, content, node_id) VALUES(?,?,?,?,?)",
+        let id = try db.run("INSERT INTO pages(parent_id, ord, title, content, node_id, updated_at) VALUES(?,?,?,?,?, datetime('now','localtime'))",
             [parent, ord, title, content, numOpt(body["node_id"]).map { Int($0) }])
         try db.run("INSERT INTO page_fts(rowid, title_norm, content_norm) VALUES(?,?,?)", [id, norm(title), norm(content)])
         return try getPage(db, id) ?? [:]
@@ -986,7 +986,7 @@ enum Api {
             var parent: Int? = origParent.flatMap { map[$0] }
             if parent == nil, let op = origParent { parent = (try getNode(db, op) != nil) ? op : inboxId }
             let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM nodes WHERE parent_id IS ?", [parent]).first?["o"]))
-            let newId = try db.run("INSERT INTO nodes(parent_id, ord, title, note, is_category, kind, status, priority, due_date, answer) VALUES(?,?,?,?,?,?,?,?,?,?)",
+            let newId = try db.run("INSERT INTO nodes(parent_id, ord, title, note, is_category, kind, status, priority, due_date, answer, updated_at) VALUES(?,?,?,?,?,?,?,?,?,?, datetime('now','localtime'))",
                 [parent, ord, r["title"] ?? "", r["note"] ?? "", intval(r["is_category"]), r["kind"] ?? NSNull(), r["status"] ?? NSNull(), r["priority"] ?? NSNull(), r["due_date"] ?? NSNull(), r["answer"] ?? NSNull()])
             map[intval(r["id"])] = newId
             try db.run("INSERT INTO node_fts(rowid, title_norm, note_norm) VALUES(?,?,?)", [newId, norm(r["title"] as? String ?? ""), norm(r["note"] as? String ?? "")])
@@ -1014,7 +1014,7 @@ enum Api {
             var parent: Int? = origParent.flatMap { map[$0] }
             if parent == nil, let op = origParent { parent = (try getPage(db, op) != nil) ? op : nil }
             let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM pages WHERE parent_id IS ?", [parent]).first?["o"]))
-            let newId = try db.run("INSERT INTO pages(parent_id, ord, title, content, node_id, locked, enc) VALUES(?,?,?,?,?,?,?)",
+            let newId = try db.run("INSERT INTO pages(parent_id, ord, title, content, node_id, locked, enc, updated_at) VALUES(?,?,?,?,?,?,?, datetime('now','localtime'))",
                 [parent, ord, r["title"] ?? "", r["content"] ?? "", r["node_id"] ?? NSNull(), intval(r["locked"]), r["enc"] ?? NSNull()])
             map[intval(r["id"])] = newId
             if intval(r["locked"]) == 0 {
@@ -1461,7 +1461,9 @@ enum Api {
 
     static func insertNode(_ db: Database, parentId: Int?, title: String, note: String, isCategory: Int) throws -> Int {
         let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM nodes WHERE parent_id IS ?", [parentId]).first?["o"]))
-        let id = try db.run("INSERT INTO nodes(parent_id, ord, title, note, is_category) VALUES(?,?,?,?,?)",
+        // updated_at ставим в localtime (как правки/tombstones) — иначе новый узел по UTC-дефолту
+        // выглядит «старше» tombstone переиспользованного id и merge его удаляет (исчезает после синхрона)
+        let id = try db.run("INSERT INTO nodes(parent_id, ord, title, note, is_category, updated_at) VALUES(?,?,?,?,?, datetime('now','localtime'))",
                             [parentId, ord, title, note, isCategory])
         try db.run("INSERT INTO node_fts(rowid, title_norm, note_norm) VALUES(?,?,?)", [id, norm(title), norm(note)])
         return id
