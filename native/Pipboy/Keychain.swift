@@ -15,23 +15,30 @@ final class KeyHolder {
 // Любой сбой защищённого хранилища → откат к плоскому ключу (не теряем доступ).
 enum Keychain {
     enum Failure: Error { case status(OSStatus), noKey }
+    private enum Read { case found(Data), absent, error(OSStatus) }   // absent ≠ ошибка: только absent даёт право генерировать новый ключ
 
     private static let service = "com.pipboy.app"
     private static let account = "db-key"
 
     static func databaseKey(context: LAContext) throws -> Data {
-        if let k = readProtected(context: context) { return k }      // уже под биометрией
-        if let old = readPlain() {                                    // миграция старого
-            storeProtected(old, context: context)                     // best-effort апгрейд
-            return old
+        switch readProtected(context: context) {
+        case .found(let k): return k                                  // уже под биометрией
+        case .error(let st): throw Failure.status(st)                 // транзиентный сбой — НЕ генерируем новый (иначе осиротим базу)
+        case .absent: break
         }
-        let key = randomBytes(32)                                     // первый запуск
+        switch readPlain() {
+        case .found(let old): storeProtected(old, context: context); return old   // миграция старого «плоского»
+        case .error(let st): throw Failure.status(st)
+        case .absent: break
+        }
+        // оба чтения вернули «нет ключа» наверняка → действительно первый запуск
+        let key = randomBytes(32)
         if !storeProtected(key, context: context) { try storePlain(key) }  // фолбэк, если DP недоступен
         return key
     }
 
     // ----- защищённое (data-protection keychain, биометрия) -----
-    private static func readProtected(context: LAContext) -> Data? {
+    private static func readProtected(context: LAContext) -> Read {
         let q: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service, kSecAttrAccount as String: account,
@@ -40,7 +47,10 @@ enum Keychain {
             kSecUseAuthenticationContext as String: context,
         ]
         var item: CFTypeRef?
-        return SecItemCopyMatching(q as CFDictionary, &item) == errSecSuccess ? item as? Data : nil
+        let st = SecItemCopyMatching(q as CFDictionary, &item)
+        if st == errSecSuccess, let d = item as? Data { return .found(d) }
+        if st == errSecItemNotFound { return .absent }
+        return .error(st)
     }
 
     @discardableResult
@@ -59,14 +69,17 @@ enum Keychain {
     }
 
     // ----- старое плоское (file keychain) -----
-    private static func readPlain() -> Data? {
+    private static func readPlain() -> Read {
         let q: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service, kSecAttrAccount as String: account,
             kSecReturnData as String: true, kSecMatchLimit as String: kSecMatchLimitOne,
         ]
         var item: CFTypeRef?
-        return SecItemCopyMatching(q as CFDictionary, &item) == errSecSuccess ? item as? Data : nil
+        let st = SecItemCopyMatching(q as CFDictionary, &item)
+        if st == errSecSuccess, let d = item as? Data { return .found(d) }
+        if st == errSecItemNotFound { return .absent }
+        return .error(st)
     }
     private static func storePlain(_ key: Data) throws {
         let q: [String: Any] = [

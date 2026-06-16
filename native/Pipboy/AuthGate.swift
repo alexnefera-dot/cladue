@@ -29,10 +29,15 @@ struct AuthGate: View {
                 // completion уже на фоновом потоке: готовим базу (импорт/сид) ДО показа UI,
                 // чтобы первый /api/tree не попал на пустую/полузасеянную базу (гонка старта).
                 if ok {
-                    let key = try? Keychain.databaseKey(context: ctx)
-                    KeyHolder.shared.key = key
-                    if let key { Importer.importIfNeeded(encryptedKey: key) }
-                    DispatchQueue.main.async { unlocked = true }
+                    // ключ берём ТОЛЬКО при успехе; при сбое НЕ открываем (иначе пустой экран
+                    // без ключа), а просим повторить — база при этом не трогается.
+                    if let key = try? Keychain.databaseKey(context: ctx) {
+                        KeyHolder.shared.key = key
+                        Importer.importIfNeeded(encryptedKey: key)
+                        DispatchQueue.main.async { unlocked = true }
+                    } else {
+                        DispatchQueue.main.async { error = "Не удалось получить ключ базы — попробуй ещё раз" }
+                    }
                 } else {
                     DispatchQueue.main.async { error = "Не удалось разблокировать" }
                 }
