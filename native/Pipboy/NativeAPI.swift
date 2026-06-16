@@ -1188,6 +1188,19 @@ enum Api {
             try db.run("INSERT INTO properties(name, category, note) VALUES(?,?,?)", [nm, body["category"] as? String ?? "прочее", body["note"] as? String ?? ""])
             return (ok(201), 201)
         }
+        if let m = match(path, "^/api/fin/properties/([0-9]+)/rules$"), method == "POST" {
+            let pid = Int(m[1]) ?? -1
+            guard let rn = name(body) else { return (nameErr(), 400) }
+            guard let pname = (try db.rows("SELECT name FROM properties WHERE id = ?", [pid]).first?["name"]) as? String else {
+                return (try json(["error": "объект не найден"]), 400)
+            }
+            // регламент имущества = обязательство, привязанное к объекту (порт fin.addRule)
+            try db.run("INSERT INTO obligations(name, amount, currency, period, next_date, remind_days, kind, property_id) VALUES(?,?,?,?,?,?,'liability',?)",
+                ["\(pname): \(rn)", num(body["amount"]), body["currency"] as? String ?? "€",
+                 body["period"] as? String ?? "yearly", body["next_date"] ?? NSNull(),
+                 intval(body["remind_days"] ?? 7), pid])
+            return (ok(201), 201)
+        }
         if let m = match(path, "^/api/fin/properties/([0-9]+)$") {
             let id = Int(m[1]) ?? -1
             if method == "PATCH" { try patchCols(db, "properties", id, ["name", "category", "note"], body); return (ok(), 200) }
