@@ -1,0 +1,194 @@
+/* ============================================================================
+   Pipboy — iPhone usability layer
+   Грузится ПОСЛЕ style.css. Всё внутри @media — десктоп (Mac) не меняется.
+   Цели: крупные тач-таргеты, нижняя таб-панель (как iOS), одна колонка,
+   читаемое/редактируемое Инфо, карточка записи как нижний лист.
+   ============================================================================ */
+
+@media (max-width: 768px) {
+
+  /* ---------- база ---------- */
+  html, body { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+  body { font-size: 16px; }
+  h2 { font-size: 22px; }
+  .meta { font-size: 12.5px; }
+  .muted, .empty { font-size: 14px; }
+  /* инпуты 16px → iOS не зумит при фокусе */
+  input, select, textarea { font-size: 16px !important; }
+
+  /* ---------- титлбар (с учётом «чёлки») ---------- */
+  .titlebar {
+    height: calc(46px + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top) 14px 0;
+    justify-content: center;
+  }
+  .titlebar .name { font-size: 13px; }
+  .titlebar .status { display: none; }
+
+  /* ---------- layout: одна колонка, нав снизу ---------- */
+  .layout { flex-direction: column; }
+  .main {
+    flex: 1; padding: 14px 14px calc(80px + env(safe-area-inset-bottom));
+    -webkit-overflow-scrolling: touch;
+  }
+  .hint { display: none; }              /* подсказки-инструкции прячем — занимают экран */
+  .footer-hint { font-size: 12px; }
+
+  /* ====================================================================
+     НИЖНЯЯ ТАБ-ПАНЕЛЬ (вместо ломающейся верхней ленты)
+     ==================================================================== */
+  .side {
+    position: fixed; left: 0; right: 0; bottom: 0; top: auto; z-index: 100;
+    width: 100%; height: auto;
+    flex-direction: row; align-items: stretch; gap: 0;
+    padding: 5px 4px calc(5px + env(safe-area-inset-bottom));
+    background: rgba(238,240,244,.94); backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-right: 0; border-bottom: 0; border-top: 1px solid var(--line2);
+    overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .side::-webkit-scrollbar { display: none; }
+
+  /* сворачивание «Ещё» на телефоне выключаем — все пункты сразу в ленте */
+  #navMore { display: none !important; }
+  #navMoreBox { display: contents !important; }
+  .navgap { display: none; }
+  .side .bottom { display: contents; margin: 0; }   /* «Настройки» и поиск — в общую ленту */
+
+  .side .item {
+    flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; min-width: 62px; padding: 6px 7px 4px; border-radius: 12px;
+    font-size: 10px; font-weight: 600; letter-spacing: .1px; white-space: nowrap;
+    color: var(--nav); opacity: 1 !important; -webkit-tap-highlight-color: rgba(30,158,87,.12);
+  }
+  .side .item .ni { font-size: 23px; margin: 0; width: auto; line-height: 1; }
+  .side .item.active { background: transparent; color: var(--green); }
+  .side .item:hover { background: transparent; }
+  .side .item.dim { opacity: 1 !important; font-weight: 600; }
+
+  /* поиск — компактным полем в конце ленты */
+  #searchbox {
+    flex: 0 0 auto; width: 140px; align-self: center; margin: 0 6px;
+    height: 40px; border-radius: 12px; padding: 0 12px;
+  }
+  #searchres {
+    position: fixed; left: 10px; right: 10px; bottom: calc(86px + env(safe-area-inset-bottom)); top: auto;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px; z-index: 120;
+    max-height: 50vh; overflow: auto; box-shadow: var(--shadow-md); padding: 6px;
+  }
+  #searchres div { padding: 11px 10px; font-size: 15px; }
+
+  /* ====================================================================
+     ТАЧ-ТАРГЕТЫ: pills, кнопки, чекбоксы, кареты
+     ==================================================================== */
+  .pill { font-size: 13px; padding: 7px 13px; line-height: 1.15; }
+  .pill.btn { min-height: 36px; display: inline-flex; align-items: center; }
+  .btnrow { gap: 8px; }
+
+  .cb { width: 26px; height: 26px; border-radius: 7px; }
+  .cb.done::after { font-size: 17px; line-height: 26px; }
+
+  .caret { width: 36px; font-size: 16px; padding: 8px 0; }
+  .bullet { min-width: 22px; font-size: 13px; }
+
+  /* строки списка — просторнее, действия всегда видны (нет hover на тач) */
+  .task { padding: 12px 4px; gap: 12px; min-height: 48px; }
+  .task:hover { background: transparent; }
+  .t { font-size: 15.5px; line-height: 1.35; }
+  .rowbtn { opacity: 1 !important; font-size: 19px; padding: 7px 9px; }
+
+  /* ---------- карточки и сетки: одна колонка ---------- */
+  .card { padding: 14px 15px; border-radius: 14px; overflow-x: auto; }
+  .fingrid { grid-template-columns: 1fr !important; gap: 12px; }
+  .lockcard { font-size: 15px; padding: 14px; }
+  .viewtabs .pill, .pill.ok, .pill.danger { font-size: 13px; }
+  .viewtabs { gap: 8px; }
+
+  /* ---------- поля добавления: в столбик, полная ширина ---------- */
+  .addbar { flex-direction: column; gap: 8px; }
+  .addbar textarea, .addbar input, .addbar > .pill, .addbar select { width: 100%; }
+  .addbar textarea { min-height: 50px; padding: 12px; }
+  .finadd { flex-wrap: wrap; gap: 8px; }
+  .finadd input, .finadd select { height: 44px; padding: 0 12px; flex: 1 1 46%; }
+  .bulkbar { flex-wrap: wrap; }
+
+  /* ====================================================================
+     ИНФО (заметки): стек, читаемо, удобно править
+     ==================================================================== */
+  .notes-wrap { flex-direction: column; min-height: auto; border: 0; box-shadow: none; background: transparent; gap: 10px; }
+  .notes-tree {
+    width: 100%; flex: 0 0 auto; max-height: 34vh; overflow: auto;
+    border: 1px solid var(--line); border-right: 1px solid var(--line); border-radius: 12px;
+    background: var(--bg2); font-size: 15px; padding: 8px;
+  }
+  .ntitem { padding: 11px 10px; font-size: 15px; border-radius: 9px; }
+  .editor { padding: 0; }
+  .nttitle { font-size: 24px; margin-left: 0; padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; }
+  .nttitle:hover { border-color: var(--line); }
+  .richedit, .ntbody {
+    font: 16px/1.7 var(--sans) !important; min-height: 52vh; padding: 14px; margin-left: 0;
+    border: 1px solid var(--line); border-radius: 10px; background: var(--panel);
+  }
+  .ntbody { font-family: var(--mono) !important; }
+  #ntView, .mdview { font-size: 16px; line-height: 1.7; min-height: 50vh; }
+  .mdview h2 { font-size: 22px; } .mdview h3 { font-size: 18px; } .mdview h4 { font-size: 16px; }
+  .mdview ul, .mdview ol { margin-left: 20px; }
+  /* тулбар форматирования — всегда видимый, липкий сверху, крупные кнопки */
+  .nttoolbar {
+    opacity: 1 !important; position: sticky; top: 0; z-index: 5;
+    background: var(--bg); gap: 5px; padding: 8px 0; overflow-x: auto; -webkit-overflow-scrolling: touch;
+  }
+  .nttoolbar::-webkit-scrollbar { display: none; }
+  .ntb {
+    min-width: 42px; min-height: 40px; font-size: 16px; flex: 0 0 auto;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid var(--line); border-radius: 9px; background: var(--panel);
+  }
+
+  /* ====================================================================
+     КАРТОЧКА ЗАПИСИ (инспектор) — нижний лист на весь низ
+     ==================================================================== */
+  .insp { display: none !important; }
+  .insp.open {
+    display: block !important; position: fixed; left: 0; right: 0; bottom: 0; top: auto;
+    width: 100%; max-height: 88vh; overflow-y: auto; z-index: 130;
+    border-radius: 20px 20px 0 0; border-left: 0; border-top: 1px solid var(--line);
+    box-shadow: 0 -12px 44px rgba(0,0,0,.28);
+    padding: 16px 16px calc(20px + env(safe-area-inset-bottom));
+    font-size: 15px;
+  }
+  .insp.open::before {   /* «ручка» листа */
+    content: ""; display: block; width: 40px; height: 5px; border-radius: 99px;
+    background: var(--line2); margin: -4px auto 12px;
+  }
+  .insp-close { display: flex; width: 40px; height: 40px; font-size: 18px; }
+  .insp .title { font-size: 18px; }
+  .insp h3 { font-size: 11px; }
+  .kv { padding: 8px 0; font-size: 15px; }
+  .ritem { padding: 11px 11px; }
+  .ritem .rt { font-size: 14px; }
+
+  /* ====================================================================
+     Таблицы (Финансы/портфель/трекинг) — горизонтальный скролл, не сжатие
+     ==================================================================== */
+  .fintable, .porttable, .diary { font-size: 14px; }
+  .fintable td, .porttable td, .diary td { padding: 10px 8px; }
+  .ratesbar { gap: 10px 16px; font-size: 13px; padding: 10px 14px; }
+  .bignum { font-size: 22px; }
+
+  /* ---------- Календарь: компактные читаемые дни ---------- */
+  .cal .d { min-height: 60px; font-size: 11px; padding: 4px 5px; }
+  .cal .h { font-size: 9px; padding: 5px 2px; letter-spacing: 0; }
+  .cal .d .n { font-size: 11px; }
+  .ev { font-size: 10px; padding: 2px 4px; }
+  .calhead { gap: 8px; flex-wrap: wrap; }
+}
+
+/* очень узкие телефоны (SE и пр.) */
+@media (max-width: 360px) {
+  .side .item { min-width: 56px; padding: 6px 4px 4px; }
+  .side .item span:not(.ni) { font-size: 9px; }
+  .side .item .ni { font-size: 21px; }
+  #searchbox { width: 120px; }
+}
