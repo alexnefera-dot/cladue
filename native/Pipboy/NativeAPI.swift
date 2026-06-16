@@ -2641,6 +2641,7 @@ final class SyncService: ObservableObject {
     private var lastDone = Date.distantPast   // антидребезг авто-синхрона
     private var autoMode = false              // авто-обмен: только с уже доверенным пиром, без кода
     private var autoTimer: Timer?
+    private var watchdog: Timer?              // обрывает зависший обмен, чтобы busy не залип навсегда
 
     // ----- раздать данные (источник) -----
     func host(auto: Bool = false) {
@@ -2746,6 +2747,8 @@ final class SyncService: ObservableObject {
     }
 
     func stop() {
+        watchdog?.invalidate(); watchdog = nil
+        busy = false; pendingPeer = nil
         listener?.cancel(); listener = nil
         browser?.cancel(); browser = nil
         connection?.cancel(); connection = nil
@@ -2754,7 +2757,7 @@ final class SyncService: ObservableObject {
     private func say(_ s: String) { DispatchQueue.main.async { self.status = s; self.onStatus?(s) } }
 
     private func begin(_ conn: NWConnection, role: Role) {
-        busy = true; say("соединяюсь…")
+        busy = true; armWatchdog(); say("соединяюсь…")
         conn.stateUpdateHandler = { [weak self] st in
             guard let self else { return }
             switch st {
@@ -2769,7 +2772,16 @@ final class SyncService: ObservableObject {
     }
 
     // Конец обмена: снять busy; на Mac в авто-режиме — снова готов принять следующий.
+    private func armWatchdog() {
+        watchdog?.invalidate()
+        watchdog = Timer.scheduledTimer(withTimeInterval: 60, repeats: false) { [weak self] _ in
+            guard let self, self.busy else { return }
+            self.say("тайм-аут синхрона — обрываю"); self.finish(ok: false)
+        }
+    }
+
     private func finish(ok: Bool) {
+        watchdog?.invalidate(); watchdog = nil
         busy = false
         let wasPaired = SyncTrust.paired
         if ok { lastDone = Date(); if let p = pendingPeer { SyncTrust.trustedPeer = p } }   // запомнить пир

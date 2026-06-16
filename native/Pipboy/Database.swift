@@ -34,6 +34,7 @@ final class Database {
         let hex = key.map { String(format: "%02x", $0) }.joined()
         try exec("PRAGMA key = \"x'\(hex)'\"")
         try exec("PRAGMA foreign_keys = ON")
+        try exec("PRAGMA busy_timeout = 5000")   // во время слияния второе соединение ждёт, а не падает с BUSY
         // Первое чтение служебной таблицы расшифрует заголовок — проверка ключа.
         try exec("SELECT count(*) FROM sqlite_master")
     }
