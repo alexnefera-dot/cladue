@@ -63,7 +63,9 @@ final class NotificationManager: NSObject, WKScriptMessageHandler, UNUserNotific
                 if (it["daily"] as? Bool) ?? false {
                     trigger = UNCalendarNotificationTrigger(dateMatching: when, repeats: true)
                 } else {
-                    when.year = Self.intOf(it["year"]); when.month = Self.intOf(it["month"]); when.day = Self.intOf(it["day"])
+                    let y = Self.intOf(it["year"]), mo = Self.intOf(it["month"]), d = Self.intOf(it["day"])
+                    guard y > 0, mo > 0, d > 0 else { continue }   // без полной даты не ставим «мертвый» триггер
+                    when.year = y; when.month = mo; when.day = d
                     if let date = Calendar.current.date(from: when), date < Date() { continue }   // только будущее
                     trigger = UNCalendarNotificationTrigger(dateMatching: when, repeats: false)
                 }
