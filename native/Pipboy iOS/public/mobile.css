@@ -185,6 +185,36 @@
   .calhead { gap: 8px; flex-wrap: wrap; }
 }
 
+/* ---------- полировка ---------- */
+@media (max-width: 768px) {
+  /* активный таб — заметная «таблетка» */
+  .side .item.active { background: var(--green-soft); color: var(--green); }
+
+  /* оверлеи/панели — на всю ширину телефона, с учётом safe-area */
+  #qcap { width: min(94vw, 560px); top: 12vh; }
+  #qcap input { font-size: 16px; }
+  #lockpane { padding: 0 14px; }
+  .importpanel { padding: 14px; }
+  .importpanel textarea { min-height: 180px; font-size: 13px; }
+  .movesel, .importpanel select { width: 100%; height: 42px; }
+
+  /* группа «Ещё»-разделов сайдбара: на телефоне без отступа-подгруппы */
+  #navMoreBox .item { padding-left: 7px; }
+
+  /* модальные select/диалоги — крупнее */
+  select { height: 44px; }
+  .finadd select, .bulkbar select { height: 42px; }
+
+  /* секционные заголовки чуть крупнее для читаемости */
+  .sec { font-size: 11px; margin: 22px 0 8px; }
+
+  /* psy/track «колесо» и спарклайны не должны выезжать */
+  .hm, .sparkrow { max-width: 100%; }
+
+  /* таблица дневника трекинга: первая колонка-имя не обрезается агрессивно */
+  .diary td:first-child { font-size: 13px; max-width: 130px; white-space: normal; }
+}
+
 /* очень узкие телефоны (SE и пр.) */
 @media (max-width: 360px) {
   .side .item { min-width: 56px; padding: 6px 4px 4px; }
