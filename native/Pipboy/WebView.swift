@@ -51,6 +51,14 @@ struct WebView {
                 self?.webView?.evaluateJavaScript("window.pbSync&&window.pbSync('\(esc)')", completionHandler: nil)
                 if s.contains("✓") { self?.pushState() }   // обмен прошёл → сразу обновить «пара установлена»/авто
             }
+            // первая связка: показать код сверки + кнопки «совпадает/нет» в карточке Настроек
+            sync.onSas = { [weak self] code in
+                let esc = code.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "'", with: "\\'")
+                self?.webView?.evaluateJavaScript("window.pbSyncSas&&window.pbSyncSas('\(esc)')", completionHandler: nil)
+            }
+            sync.onSasClear = { [weak self] in
+                self?.webView?.evaluateJavaScript("window.pbSyncSasClear&&window.pbSyncSasClear()", completionHandler: nil)
+            }
         }
 
         // Веб (Настройки) шлёт действия синхрона. Управление целиком в Настройках,
@@ -66,6 +74,8 @@ struct WebView {
                 #else
                 if action == "host" { sync.host() } else { sync.receive() }
                 #endif
+            case "confirmSas":                        // пользователь сверил код первой связки
+                sync.confirmSas(body?["ok"] as? Bool ?? false)
             case "stop": sync.stop(); sync.onStatus?("остановлено")
             case "auto":
                 let on = body?["on"] as? Bool ?? true

@@ -796,6 +796,22 @@ window.pbSyncState = st => {
   const p = document.getElementById('syncPair');
   if (p) p.textContent = st.paired ? '✓ пара установлена' : 'пара ещё не создана — синхронизируй один раз на обоих устройствах';
 };
+// первая связка: Swift прислал код сверки — показываем его и кнопки подтверждения.
+// Снимок НЕ уходит с устройства, пока не подтвердишь «совпадает» здесь и на втором.
+window.pbSyncSas = code => {
+  const box = document.getElementById('syncSasBox');
+  if (!box) return;
+  box.style.display = 'block';
+  box.innerHTML = `<div class="task" style="border:0;flex-wrap:wrap;gap:8px;margin:6px 0">
+    <b style="font:700 24px var(--mono);letter-spacing:4px">${esc(code)}</b>
+    <span class="meta" style="flex:1 1 100%">сверь код со вторым устройством и подтверди на обоих, что он совпадает</span>
+    <span class="pill btn ok" id="syncSasYes">✓ совпадает</span>
+    <span class="pill btn danger" id="syncSasNo">✗ не совпадает</span></div>`;
+  const br = window.webkit?.messageHandlers?.pipboySync;
+  document.getElementById('syncSasYes').onclick = () => { br?.postMessage({ action: 'confirmSas', ok: true }); window.pbSyncSasClear(); };
+  document.getElementById('syncSasNo').onclick = () => { br?.postMessage({ action: 'confirmSas', ok: false }); window.pbSyncSasClear(); };
+};
+window.pbSyncSasClear = () => { const b = document.getElementById('syncSasBox'); if (b) { b.style.display = 'none'; b.innerHTML = ''; } };
 window.lockNow = () => { sessionStorage.removeItem('pbUnlocked'); showScreen('today'); };
 
 // замочки у закрытых разделов: 🔒 вместо иконки, после разблокировки — родная иконка
@@ -1011,6 +1027,7 @@ window.loadSettings = async function () {
         <span class="pill btn danger" id="syncStop">стоп</span>
       </div>
       <div class="meta" id="syncPair"></div>
+      <div id="syncSasBox" style="display:none"></div>
       <div class="meta" id="syncStatus">авто работает в фоне при открытии · первый раз нажми «синхронизировать» на обоих устройствах и сверь код</div>
       <div class="meta">правки сходятся двусторонне · ничего не уходит в облако</div>
     </div>` : ''}

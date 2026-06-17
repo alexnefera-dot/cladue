@@ -2680,6 +2680,8 @@ final class SyncService: ObservableObject {
     @Published var sas = ""                 // 6-значный код сверки (одинаков на обоих)
     @Published var appliedCount = 0         // ++ после применения снимка → перезагрузка WebView
     var onStatus: ((String) -> Void)?       // зеркало статуса в веб-карточку (Mac)
+    var onSas: ((String) -> Void)?          // показать код сверки + кнопки «совпадает/нет» в вебе
+    var onSasClear: (() -> Void)?           // спрятать блок сверки кода
 
     private var listener: NWListener?
     private var browser: NWBrowser?
@@ -2692,6 +2694,7 @@ final class SyncService: ObservableObject {
     private var autoMode = false              // авто-обмен: только с уже доверенным пиром, без кода
     private var autoTimer: Timer?
     private var watchdog: Timer?              // обрывает зависший обмен, чтобы busy не залип навсегда
+    private var confirmCont: ((Bool) -> Void)?   // продолжение гейта сверки кода (ждёт «совпадает/нет»)
 
     // ----- раздать данные (источник) -----
     func host(auto: Bool = false) {
@@ -2798,7 +2801,7 @@ final class SyncService: ObservableObject {
 
     func stop() {
         watchdog?.invalidate(); watchdog = nil
-        busy = false; pendingPeer = nil
+        busy = false; pendingPeer = nil; confirmCont = nil; onSasClear?()
         listener?.cancel(); listener = nil
         browser?.cancel(); browser = nil
         connection?.cancel(); connection = nil
@@ -2822,9 +2825,9 @@ final class SyncService: ObservableObject {
     }
 
     // Конец обмена: снять busy; на Mac в авто-режиме — снова готов принять следующий.
-    private func armWatchdog() {
+    private func armWatchdog(_ secs: TimeInterval = 60) {
         watchdog?.invalidate()
-        watchdog = Timer.scheduledTimer(withTimeInterval: 60, repeats: false) { [weak self] _ in
+        watchdog = Timer.scheduledTimer(withTimeInterval: secs, repeats: false) { [weak self] _ in
             guard let self, self.busy else { return }
             self.say("тайм-аут синхрона — обрываю"); self.finish(ok: false)
         }
@@ -2833,6 +2836,7 @@ final class SyncService: ObservableObject {
     private func finish(ok: Bool) {
         watchdog?.invalidate(); watchdog = nil
         busy = false
+        confirmCont = nil; onSasClear?()   // снять незакрытый гейт сверки кода
         let wasPaired = SyncTrust.paired
         if ok { lastDone = Date(); if let p = pendingPeer { SyncTrust.trustedPeer = p } }   // запомнить пир
         pendingPeer = nil
@@ -2859,19 +2863,58 @@ final class SyncService: ObservableObject {
                 self.pendingPeer = data
                 let key = shared.hkdfDerivedSymmetricKey(using: SHA256.self,
                     salt: Data("pipboy-sync".utf8), sharedInfo: Data("v1".utf8), outputByteCount: 32)
+                let proceed = { [weak self] in
+                    guard let self else { return }
+                    if role == .host { self.hostExchange(conn, key: key) } else { self.clientExchange(conn, key: key) }
+                }
                 if SyncTrust.isTrusted(data) {
-                    self.say("устройство знакомо · синхронизирую…")     // пара установлена — без кода
+                    self.say("устройство знакомо · синхронизирую…")     // пара уже сверена — без кода
+                    proceed()
                 } else {
                     let sasKey = shared.hkdfDerivedSymmetricKey(using: SHA256.self,
                         salt: Data("pipboy-sas".utf8), sharedInfo: Data("v1".utf8), outputByteCount: 4)
                     let b = sasKey.withUnsafeBytes { Array($0) }
                     let n = (UInt32(b[0]) << 24 | UInt32(b[1]) << 16 | UInt32(b[2]) << 8 | UInt32(b[3])) % 1_000_000
                     self.sas = String(format: "%06u", n)
-                    self.say("код сверки \(self.sas) — сверь на втором устройстве (первая связка)")
+                    self.say("код сверки \(self.sas) — сверь и подтверди на обоих устройствах")
+                    // первая связка: НИЧЕГО не отправляем, пока оба не подтвердят совпадение кода
+                    self.confirmGate(conn) { [weak self] bothOk in
+                        guard let self else { return }
+                        if bothOk { proceed() }
+                        else { self.say("связка отменена — код не подтверждён"); self.finish(ok: false) }
+                    }
                 }
-                if role == .host { self.hostExchange(conn, key: key) } else { self.clientExchange(conn, key: key) }
             }
         }
+    }
+
+    // Гейт первой связки (anti-MITM): показываем код, ждём ЛОКАЛЬНОГО «совпадает», обмениваемся
+    // решениями (1 байт) и продолжаем ТОЛЬКО если подтвердили обе стороны. До этого снимок не
+    // покидает устройство и пир не запоминается. Окно сверки шире — перезапускаем watchdog.
+    private func confirmGate(_ conn: NWConnection, _ done: @escaping (Bool) -> Void) {
+        armWatchdog(180)
+        DispatchQueue.main.async {
+            self.onSas?(self.sas)
+            self.confirmCont = { [weak self] localOk in
+                guard let self else { done(false); return }
+                self.onSasClear?()
+                self.send(conn, Data([localOk ? 1 : 0])) { sent in
+                    guard sent else { done(false); return }
+                    self.say(localOk ? "жду подтверждения на втором устройстве…" : "отменяю…")
+                    self.recv(conn) { data in
+                        let peerOk = (data?.first == 1)
+                        done(localOk && peerOk)
+                    }
+                }
+            }
+        }
+    }
+
+    // Веб/нативная панель прислала результат сверки кода.
+    func confirmSas(_ ok: Bool) {
+        let c = confirmCont; confirmCont = nil
+        if c == nil { return }   // нет активного гейта — игнор
+        c?(ok)
     }
 
     // Двусторонний обмен: обе стороны шлют снимок и сливают встречный (LWW + tombstones).
