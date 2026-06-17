@@ -588,6 +588,7 @@ function startInlineEdit(id) {
   input.value = n.title + (n.note ? '\n' + n.note : '');
   input.title = 'Enter — новая строка · ⌘/Ctrl+Enter — сохранить · клик мимо — сохранить';
   t.replaceWith(input);
+  row.classList.add('editing');   // телефон: поле правки занимает всю ширину строки (см. mobile.css)
   const grow = () => { input.style.height = 'auto'; input.style.height = (input.scrollHeight + 2) + 'px'; };
   input.addEventListener('input', grow);
   input.focus();
@@ -902,6 +903,15 @@ window.showScreen = function (scr) {
   insp.classList.remove('open');   // телефон: оверлей закрывается при смене экрана
   refreshLockBadges();
   if (!locked && SCREENS[scr] && window[SCREENS[scr]]) window[SCREENS[scr]]();
+};
+
+// Автосинхрон применился: МЯГКО обновить текущий экран (перезагрузить его данные),
+// НЕ перезагружая страницу и не сбрасывая навигацию на «Сегодня». Пропускаем, если
+// идёт правка/ввод (потеряется) или открыта карточка записи.
+window.pbSyncApplied = () => {
+  if (document.querySelector('.inlineedit, .editing, input:focus, textarea:focus, [contenteditable="true"]:focus')) return;
+  if (document.querySelector('.insp.open')) return;
+  try { if (currentScr === 'list') load(); else if (window[SCREENS[currentScr]]) window[SCREENS[currentScr]](); } catch {}
 };
 // телефон: ✕ в карточке закрывает оверлей
 document.getElementById('insp').addEventListener('click', e => {

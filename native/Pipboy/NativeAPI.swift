@@ -2504,11 +2504,13 @@ enum Api {
 
     // Двусторонний merge: вставка новых, LWW по updated_at для существующих,
     // применение tombstones (удаления). Перед слиянием — авто-бэкап базы.
-    static func syncApplyMerge(_ db: Database, _ snapshot: [String: Any]) throws {
+    @discardableResult
+    static func syncApplyMerge(_ db: Database, _ snapshot: [String: Any]) throws -> Int {
         ensureSyncSchema(db)
         backupDB()
         guard let tables = snapshot["tables"] as? [String: Any] else { throw Unsupported(path: "плохой снимок") }
         let peerTomb = (snapshot["tombstones"] as? [[String: Any]]) ?? []
+        var changed = 0   // сколько РЕАЛЬНЫХ изменений данных применили (0 → экран не дёргаем)
         try db.run("PRAGMA foreign_keys = OFF")
         defer { try? db.run("PRAGMA foreign_keys = ON") }
         try db.run("BEGIN")
@@ -2524,9 +2526,9 @@ enum Api {
                     if let delTs = scalarStr(db, "SELECT deleted_at FROM sync_tombstones WHERE tbl=? AND row_key=?", [t, rk]),
                        delTs >= inTs { continue }
                     if !existsRow(db, t, key, rkAny) {
-                        try upsertRow(db, t, row, replaceKey: nil, keyCol: key, rk: rkAny)        // новой строки нет → вставить
+                        try upsertRow(db, t, row, replaceKey: nil, keyCol: key, rk: rkAny); changed += 1   // новой строки нет → вставить
                     } else if inTs > (scalarStr(db, "SELECT updated_at FROM \(t) WHERE \(key)=?", [rkAny]) ?? "") {
-                        try upsertRow(db, t, row, replaceKey: true, keyCol: key, rk: rkAny)        // входящая свежее → обновить
+                        try upsertRow(db, t, row, replaceKey: true, keyCol: key, rk: rkAny); changed += 1   // входящая свежее → обновить
                     }   // иначе локальная свежее → оставить
                 }
             }
@@ -2539,7 +2541,7 @@ enum Api {
                 let del = (tomb["deleted_at"] as? String) ?? ""
                 let rk = "\(rkAny)"
                 if let localTs = scalarStr(db, "SELECT updated_at FROM \(t) WHERE \(key)=?", [rkAny]), del > localTs {
-                    try db.run("DELETE FROM \(t) WHERE \(key)=?", [rkAny])   // триггер запишет локальный tombstone
+                    try db.run("DELETE FROM \(t) WHERE \(key)=?", [rkAny]); changed += 1   // триггер запишет локальный tombstone
                 }
                 let cur = scalarStr(db, "SELECT deleted_at FROM sync_tombstones WHERE tbl=? AND row_key=?", [t, rk])
                 if cur == nil || del > (cur ?? "") {
@@ -2554,7 +2556,7 @@ enum Api {
                     let colList = cols.map { "\"\($0)\"" }.joined(separator: ",")
                     let marks = cols.map { _ in "?" }.joined(separator: ",")
                     let vals: [Any?] = cols.map { c in let v = row[c]; return (v is NSNull) ? nil : v }
-                    try db.run("INSERT OR IGNORE INTO \(t)(\(colList)) VALUES(\(marks))", vals)
+                    try db.run("INSERT OR IGNORE INTO \(t)(\(colList)) VALUES(\(marks))", vals); changed += db.changes()
                 }
             }
             try rebuildFTS(db)
@@ -2564,6 +2566,7 @@ enum Api {
             throw error
         }
         if let web = snapshot["web"] as? [String: String], !web.isEmpty { try? applyFrontend(web) }
+        return changed
     }
 
     // Вставка/обновление строки целиком из словаря (updated_at берём из строки, чтобы
@@ -2866,7 +2869,7 @@ final class SyncService: ObservableObject {
                         self.recv(conn) { data in
                             guard let data else { self.say("нет ответа"); self.finish(ok: false); return }
                             self.mergeIncoming(data, key: key) { ok in
-                                if ok { self.say("синхронизировано ✓\(SyncTrust.paired ? "" : " · код \(self.sas)")"); self.appliedCount += 1 }
+                                if ok { self.say("синхронизировано ✓\(SyncTrust.paired ? "" : " · код \(self.sas)")") }
                                 self.finish(ok: ok)
                             }
                         }
@@ -2889,7 +2892,6 @@ final class SyncService: ObservableObject {
                             self.say("отправляю свои изменения…")
                             self.send(conn, sealed) { ok in
                                 self.say(ok ? "синхронизировано ✓\(SyncTrust.paired ? "" : " · код \(self.sas)")" : "сбой отправки")
-                                self.appliedCount += 1
                                 self.finish(ok: ok)
                             }
                         }
@@ -2914,8 +2916,9 @@ final class SyncService: ObservableObject {
                 guard let snap = try JSONSerialization.jsonObject(with: plain) as? [String: Any] else {
                     throw Api.Unsupported(path: "плохой снимок") }
                 guard let k = KeyHolder.shared.key else { throw Database.Failure.open(0) }
-                try Api.syncApplyMerge(try Database(key: k), snap)
-                DispatchQueue.main.async { then(true) }
+                let changed = try Api.syncApplyMerge(try Database(key: k), snap)
+                // дёргаем экран ТОЛЬКО если реально что-то изменилось (иначе фоновый синхрон незаметен)
+                DispatchQueue.main.async { if changed > 0 { self.appliedCount += 1 }; then(true) }
             } catch {
                 DispatchQueue.main.async { self.say("ошибка применения: \(error)"); then(false) }
             }

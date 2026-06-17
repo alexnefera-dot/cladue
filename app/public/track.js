@@ -100,8 +100,32 @@ function monthTable(monthly) {
 }
 
 // сетка «дата × колонки» как в гугл-таблице: последние 14 дней, сегодня сверху
+// телефон: метрики строками, последние 7 дней — ячейками (data-trcell те же — биндинги работают)
+function diaryMobile(d) {
+  const iso = n => (x => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`)(new Date(Date.now() - n * 864e5));
+  const days = Array.from({ length: 7 }, (_, n) => iso(n));
+  const val = Object.fromEntries(d.metrics.map(mt => [mt.id, Object.fromEntries(mt.history.map(h => [h.date, h.value]))]));
+  return d.metrics.map(mt => {
+    const bad = mt.polarity === 'minus';
+    const cells = days.map((date, i) => {
+      const v = val[mt.id][date];
+      const dd = i === 0 ? 'сег' : String(new Date(date + 'T00:00:00').getDate());
+      const inner = `<i class="md">${dd}</i><b class="mv">${mt.type === 'bool' ? (v ? (bad ? '✗' : '✓') : '·') : (v ?? '·')}</b>`;
+      const cls = mt.type === 'bool' ? (v ? (bad ? 'bad' : 'on') : '') : 'num';
+      return `<span class="mcell ${cls}${i === 0 ? ' today' : ''}" data-trcell="${mt.id}:${date}:${mt.type === 'bool' ? 'bool:' + (v ? 1 : 0) : 'num:' + (v ?? '')}">${inner}</span>`;
+    }).join('');
+    return `<div class="card mrow">
+      <div class="mrow-h"><span class="ed ${bad ? 'badname' : ''}" data-trren="${mt.id}" title="переименовать">${tresc(mt.name)}</span>${mt.unit ? ` <span class="meta">${tresc(mt.unit)}</span>` : ''}
+        <span class="rowbtn" data-trpol="${mt.id}:${mt.polarity ?? 'plus'}" title="прогресс/регресс" style="margin-left:auto">${bad ? '📉' : '📈'}</span>
+        <span class="rowbtn del" data-trdel="${mt.id}">✕</span></div>
+      <div class="mcells">${cells}</div>
+    </div>`;
+  }).join('');
+}
+
 function diaryGrid(d) {
   if (!d.metrics.length) return '<div class="empty">добавь первую колонку — и отмечай день кликом</div>';
+  if (window.matchMedia('(max-width: 768px)').matches) return diaryMobile(d);
   const iso = n => (d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)(new Date(Date.now() - n * 864e5));
   const WDS = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
   const days = Array.from({ length: 14 }, (_, n) => iso(n));

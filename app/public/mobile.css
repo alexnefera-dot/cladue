@@ -114,6 +114,13 @@
   #screen-list .task { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   #screen-list .task.lpready { background: var(--green-soft); box-shadow: inset 0 0 0 2px var(--green-dim); }
   .inlineedit { -webkit-user-select: text; user-select: text; }
+  /* правка строки: поле на всю ширину строки, под контролами (иначе зажимается до букв) */
+  #screen-list .task.editing { flex-wrap: wrap; align-items: center; }
+  #screen-list .task.editing .inlineedit {
+    flex: 1 1 100%; width: 100%; min-width: 0; order: 9; margin-top: 5px;
+    font-size: 16px; min-height: 48px; line-height: 1.4; padding: 9px 11px;
+  }
+  #screen-list .task.editing .meta, #screen-list .task.editing .noteblock { display: none; }
 
   /* ---------- карточки и сетки: одна колонка, плотнее ---------- */
   .card { padding: 11px 12px; border-radius: 13px; overflow-x: auto; margin-bottom: 7px; }
@@ -234,6 +241,19 @@
   .secmob-r > .meta { font-size: 11px; text-transform: uppercase; letter-spacing: .3px; }
   .secmob-r .ed { font-size: 14px; line-height: 1.4; }
   .secmob-r .pill.btn { align-self: flex-start; margin-top: 4px; }
+
+  /* === Трекинг: метрики строками, дни — тапабельными ячейками === */
+  .mrow { padding: 10px 12px; }
+  .mrow-h { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+  .mrow-h .rowbtn { opacity: 1 !important; font-size: 15px; }
+  .mcells { display: flex; gap: 5px; }
+  .mcell { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 6px 2px;
+    border: 1px solid var(--line); border-radius: 8px; background: var(--bg); min-width: 0; }
+  .mcell .md { font: 9px var(--mono); color: var(--muted); }
+  .mcell .mv { font: 600 15px var(--mono); }
+  .mcell.today { border-color: var(--green-dim); border-width: 2px; }
+  .mcell.on { background: var(--green-soft); color: var(--green); }
+  .mcell.bad { background: rgba(204, 68, 68, .08); color: var(--red); }
 
   /* ---------- Календарь: дни выше, номер крупнее ---------- */
   .cal .d { min-height: 66px; font-size: 11px; padding: 4px 4px; }

@@ -173,11 +173,13 @@ extension WebView: UIViewRepresentable {
 #endif
 
 extension WebView {
-    // Перезагрузить страницу, когда reloadToken вырос (после применения снимка синхрона).
+    // Синхрон применился — обновляем ТЕКУЩИЙ экран мягко (без перезагрузки страницы),
+    // чтобы приложение не «подпрыгивало» и не сбрасывало навигацию на «Сегодня».
+    // Новый фронт (если прилетел по Wi-Fi) подхватится при следующем запуске.
     fileprivate func reloadIfNeeded(_ view: WKWebView, _ coordinator: Coordinator) {
         if reloadToken != coordinator.lastReload {
             coordinator.lastReload = reloadToken
-            view.reload()
+            view.evaluateJavaScript("window.pbSyncApplied && window.pbSyncApplied()", completionHandler: nil)
         }
     }
 }
