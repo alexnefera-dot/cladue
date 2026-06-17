@@ -5,7 +5,15 @@
    читаемое/редактируемое Инфо, карточка записи как нижний лист.
    ============================================================================ */
 
+/* отступ вложенности — через --d (десктоп: как было; на телефоне шаг меньше) */
+#board .task { padding-left: calc(6px + var(--d, 0) * 24px); }
+.porttable td.pname { padding-left: calc(8px + var(--d, 0) * 22px); }
+
 @media (max-width: 768px) {
+
+  /* меньше шаг вложенности — длинные ветки помещаются */
+  #board .task { padding-left: calc(4px + var(--d, 0) * 13px) !important; }
+  .porttable td.pname { padding-left: calc(6px + var(--d, 0) * 12px) !important; }
 
   /* ---------- база ---------- */
   html, body { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
@@ -92,14 +100,18 @@
   .caret { width: 36px; font-size: 16px; padding: 8px 0; }
   .bullet { min-width: 22px; font-size: 13px; }
 
-  /* строки списка — просторнее, действия всегда видны (нет hover на тач) */
-  .task { padding: 12px 4px; gap: 12px; min-height: 48px; }
+  /* строки списка — компактнее (чтобы влезало), но тап-зоны достаточно крупные */
+  .task { padding: 7px 2px; gap: 8px; min-height: 38px; }
   .task:hover { background: transparent; }
-  .t { font-size: 15.5px; line-height: 1.35; }
-  .rowbtn { opacity: 1 !important; font-size: 19px; padding: 7px 9px; }
+  .t { font-size: 15px; line-height: 1.3; }
+  .meta { font-size: 11px; }                 /* даты/счётчики — вторичны, мельче */
+  .rowbtn { opacity: 1 !important; font-size: 17px; padding: 5px 7px; }
+  .caret { width: 30px; padding: 5px 0; }    /* поменьше, не съедает ширину */
+  .bullet { min-width: 18px; }
+  .noteblock { -webkit-line-clamp: 3; font-size: 11.5px; }  /* текст записи — короткий превью */
 
-  /* ---------- карточки и сетки: одна колонка ---------- */
-  .card { padding: 14px 15px; border-radius: 14px; overflow-x: auto; }
+  /* ---------- карточки и сетки: одна колонка, плотнее ---------- */
+  .card { padding: 11px 12px; border-radius: 13px; overflow-x: auto; margin-bottom: 7px; }
   .fingrid { grid-template-columns: 1fr !important; gap: 12px; }
   .lockcard { font-size: 15px; padding: 14px; }
   .viewtabs .pill, .pill.ok, .pill.danger { font-size: 13px; }
@@ -116,19 +128,20 @@
   /* ====================================================================
      ИНФО (заметки): стек, читаемо, удобно править
      ==================================================================== */
-  .notes-wrap { flex-direction: column; min-height: auto; border: 0; box-shadow: none; background: transparent; gap: 10px; }
+  .notes-wrap { flex-direction: column; min-height: auto; border: 0; box-shadow: none; background: transparent; gap: 8px; }
+  /* дерево разделов — компактный список сверху, занимает мало места */
   .notes-tree {
-    width: 100%; flex: 0 0 auto; max-height: 34vh; overflow: auto;
-    border: 1px solid var(--line); border-right: 1px solid var(--line); border-radius: 12px;
-    background: var(--bg2); font-size: 15px; padding: 8px;
+    width: 100%; flex: 0 0 auto; max-height: 26vh; overflow: auto;
+    border: 1px solid var(--line); border-right: 1px solid var(--line); border-radius: 11px;
+    background: var(--bg2); font-size: 14.5px; padding: 6px;
   }
-  .ntitem { padding: 11px 10px; font-size: 15px; border-radius: 9px; }
+  .ntitem { padding: 8px 9px; font-size: 14.5px; border-radius: 8px; }
   .editor { padding: 0; }
-  .nttitle { font-size: 24px; margin-left: 0; padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; }
+  .nttitle { font-size: 22px; margin-left: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; }
   .nttitle:hover { border-color: var(--line); }
   .richedit, .ntbody {
-    font: 16px/1.7 var(--sans) !important; min-height: 52vh; padding: 14px; margin-left: 0;
-    border: 1px solid var(--line); border-radius: 10px; background: var(--panel);
+    font: 16px/1.6 var(--sans) !important; min-height: 46vh; padding: 12px; margin-left: 0;
+    border: 1px solid var(--line); border-radius: 9px; background: var(--panel);
   }
   .ntbody { font-family: var(--mono) !important; }
   #ntView, .mdview { font-size: 16px; line-height: 1.7; min-height: 50vh; }
@@ -177,11 +190,11 @@
   .ratesbar { gap: 10px 16px; font-size: 13px; padding: 10px 14px; }
   .bignum { font-size: 22px; }
 
-  /* ---------- Календарь: компактные читаемые дни ---------- */
-  .cal .d { min-height: 60px; font-size: 11px; padding: 4px 5px; }
-  .cal .h { font-size: 9px; padding: 5px 2px; letter-spacing: 0; }
-  .cal .d .n { font-size: 11px; }
-  .ev { font-size: 10px; padding: 2px 4px; }
+  /* ---------- Календарь: дни выше, номер крупнее ---------- */
+  .cal .d { min-height: 66px; font-size: 11px; padding: 4px 4px; }
+  .cal .h { font-size: 9px; padding: 5px 1px; letter-spacing: 0; }
+  .cal .d .n { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+  .ev { font-size: 10.5px; padding: 2px 4px; line-height: 1.25; }
   .calhead { gap: 8px; flex-wrap: wrap; }
 }
 

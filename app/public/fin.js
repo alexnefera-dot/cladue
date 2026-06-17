@@ -90,7 +90,7 @@ function portRows(it, depth, ctx) {
       ${shareCell}`;
   }
   return `<tr class="${rowCls}" draggable="${!target}" data-pid="${it.id}">
-    <td style="padding-left:${8 + depth * 22}px">
+    <td class="pname" style="--d:${depth}">
       ${it.children.length ? `<span class="caret" data-pfold="${it.id}" title="${folded ? 'развернуть' : 'свернуть'}">${folded ? '▸' : '▾'}</span>` : ''}
       <span class="ed" data-fe="items:${it.id}:name:text" title="клик — переименовать">${fesc(it.name)}</span>
       ${folded ? `<span class="meta">· ${it.children.length} внутри</span>` : ''}

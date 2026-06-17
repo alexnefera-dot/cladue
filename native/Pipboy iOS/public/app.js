@@ -89,7 +89,7 @@ function nodeRow(n, depth, idx) {
     : '<span class="caret"></span>';
   const isPicked = picked.has(n.id);
   if (n.is_category) {
-    return `<div class="task cat ${isPicked ? 'sel' : ''}" data-id="${n.id}" style="padding-left:${6 + depth * 24}px">
+    return `<div class="task cat ${isPicked ? 'sel' : ''}" data-id="${n.id}" style="--d:${depth}">
       ${caret}<span class="folder">▣</span><span class="t top">${esc(n.title)}</span>
       <span class="meta">${countItems(n.id)}</span>
       <span class="rowbtn" data-addchild="${n.id}" title="добавить внутрь">＋</span></div>`;
@@ -101,7 +101,7 @@ function nodeRow(n, depth, idx) {
       ? `<span class="cb ${n.kind === 'decision' ? 'dec' : ''} ${done ? 'done' : ''}" data-toggle="${n.id}"></span>`
       : `<span class="pill ${kc}">${kl}</span>`;
   return `<div class="task ${n.blocked ? 'blocked' : ''} ${isPicked ? 'sel' : ''}" draggable="true"
-      data-id="${n.id}" style="padding-left:${6 + depth * 24}px">
+      data-id="${n.id}" style="--d:${depth}">
     ${caret}${marker}
     ${n.priority ? `<span class="pill ${n.priority}">${n.priority}</span>` : ''}
     ${(n.kind === 'task' || n.kind === 'decision') ? `<span class="pill ${kc}">${kl}</span>` : ''}
@@ -519,7 +519,7 @@ function addChildInput(pid) {
   if (!row) return;
   const div = document.createElement('div');
   div.className = 'task';
-  div.style.paddingLeft = ((parseInt(row.style.paddingLeft) || 6) + 24) + 'px';
+  div.style.setProperty('--d', (parseInt(row.style.getPropertyValue('--d')) || 0) + 1);
   div.innerHTML = '<span class="caret"></span><span class="bullet">＋</span>';
   const input = document.createElement('input');
   input.className = 'inlineedit';
