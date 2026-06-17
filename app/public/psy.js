@@ -178,6 +178,15 @@ function renderPsy() {
     ${w.areas.map(a => {
       const cur = w.latest?.scores?.[a.id] ?? null;
       const next = cur != null ? Math.min(10, cur + 1) : '+1';
+      if (window.matchMedia('(max-width: 768px)').matches) return `
+      <div class="card secmob">
+        <div class="secmob-h">${pesc(a.name)} <b class="num">${cur ?? '—'}${cur != null ? ' → ' + next : ''}</b></div>
+        <div class="secmob-r"><span class="meta">сейчас (${cur ?? '?'})</span><div class="ed" data-aredit="${a.id}:current_desc">${pesc(a.current_desc) || '＋ опиши текущее состояние'}</div></div>
+        <div class="secmob-r"><span class="meta">идеал (10)</span><div class="ed" data-aredit="${a.id}:ideal">${pesc(a.ideal) || '—'}</div></div>
+        <div class="secmob-r"><span class="meta">следующий (+1)</span><div class="ed" data-aredit="${a.id}:next_desc">${pesc(a.next_desc) || '—'}</div></div>
+        <div class="secmob-r"><span class="meta">шаг</span><div class="ed" data-aredit="${a.id}:step" style="${a.step ? 'color:var(--green);font-weight:600' : ''}">${pesc(a.step) || '＋ задать шаг'}</div>
+          ${a.step ? `<span class="pill btn ok" data-areatask="${a.id}" title="создать задачу в Целях">☑ в цели</span>` : ''}</div>
+      </div>`;
       return `
       <div class="card">
         <table class="fintable" style="table-layout:fixed">

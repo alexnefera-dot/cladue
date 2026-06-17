@@ -195,6 +195,29 @@
   .ratesbar { gap: 10px 16px; font-size: 13px; padding: 10px 14px; }
   .bignum { font-size: 22px; }
 
+  /* портфель карточками в столбик (вместо широкой таблицы) */
+  .pcards { display: flex; flex-direction: column; gap: 5px; }
+  .pcard { border: 1px solid var(--line); border-radius: 10px; background: var(--panel);
+    padding: 8px 10px; margin-left: calc(var(--d, 0) * 12px); }
+  .pcard.block { background: var(--bg2); }
+  .pc-top { display: flex; align-items: center; gap: 7px; }
+  .pc-name { flex: 1; font-size: 15px; border-bottom: 1px dashed var(--line); }
+  .pcard.block .pc-name { font-weight: 700; border-bottom: 0; }
+  .pcard.section .pc-name { font-weight: 600; }
+  .pc-val { font: 600 15px var(--mono); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .pc-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 4px; font-size: 12px; }
+  .pc-meta:empty { display: none; }
+  .pc-actions { margin-left: auto; display: flex; gap: 4px; }
+  .pc-actions .rowbtn { opacity: 1 !important; font-size: 13px; padding: 4px 6px; }
+
+  /* психология: секторы колеса карточками (вместо 5-колоночной таблицы) */
+  .secmob-h { font-weight: 600; font-size: 15px; margin-bottom: 4px; overflow: hidden; }
+  .secmob-h b { float: right; font-size: 17px; color: var(--green); }
+  .secmob-r { display: flex; flex-direction: column; gap: 2px; padding: 7px 0; border-top: 1px solid var(--bg2); }
+  .secmob-r > .meta { font-size: 11px; text-transform: uppercase; letter-spacing: .3px; }
+  .secmob-r .ed { font-size: 14px; line-height: 1.4; }
+  .secmob-r .pill.btn { align-self: flex-start; margin-top: 4px; }
+
   /* ---------- Календарь: дни выше, номер крупнее ---------- */
   .cal .d { min-height: 66px; font-size: 11px; padding: 4px 4px; }
   .cal .h { font-size: 9px; padding: 5px 1px; letter-spacing: 0; }

@@ -111,6 +111,41 @@ function portRows(it, depth, ctx) {
   </tr>` + (folded ? '' : it.children.map(c => portRows(c, depth + 1, ctx && { total: ctx.total, parentEur: it.eur })).join(''));
 }
 
+const finIsMobile = () => window.matchMedia('(max-width: 768px)').matches;
+
+// телефон: портфель карточками в столбик вместо широкой таблицы (data-* те же — биндинги работают)
+function portCard(it, depth, ctx) {
+  const target = finTab === 'target';
+  const editable = it.kind === 'asset' || !it.children.length;
+  const folded = portFold.has(it.id);
+  const cur = it.currency ?? '€';
+  const val = target ? `<span class="num">${fmtE(it.eur)}</span>`
+    : editable ? `<span class="ed num" data-fe="items:${it.id}:value:num">${it.value != null ? fmt(it.value) : '—'}</span> <span class="meta">${cur}</span>`
+    : `<span class="num">${fmtE(it.eur)}</span>`;
+  const g = (!target && it.invested != null && it.invested && !(editable && it.buy_value == null)) ? (it.investedCur - it.invested) / it.invested * 100 : null;
+  const pTot = !target && ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
+  const meta = target
+    ? `<span class="ed" data-fe="items:${it.id}:target_value:num">цель: ${it.target != null ? fmtE(it.target) : '—'}</span>
+       ${it.target != null ? `<span class="pill ${it.eur - it.target >= 0 ? 'ok' : 'p1'}">Δ ${fmt(it.eur - it.target)}</span>` : ''}`
+    : `${g != null ? `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</span>` : ''}
+       ${pTot != null ? `<span class="meta">${pTot.toFixed(1)}% портфеля</span>` : ''}
+       ${it.is_loan ? '<span class="pill p2">🤝</span>' : ''}
+       ${it.rate_symbol ? `<span class="pill btn" data-fqty="${it.id}">${it.qty ?? '?'}×${fesc(it.rate_symbol)}</span>` : ''}`;
+  const actions = target ? '' : `
+    ${it.kind === 'block' ? `<span class="rowbtn" data-fadd="section:${it.id}">＋ раздел</span>` : ''}
+    ${it.kind === 'section' ? `<span class="rowbtn" data-fadd="asset:${it.id}">＋ актив</span>` : ''}
+    ${editable ? `<span class="rowbtn" data-frate="${it.id}" title="автоцена">⚡</span>` : ''}
+    <span class="rowbtn del" data-findel="items:${it.id}">✕</span>`;
+  return `<div class="pcard ${it.kind}" style="--d:${depth}" data-pid="${it.id}">
+    <div class="pc-top">
+      ${it.children.length ? `<span class="caret" data-pfold="${it.id}">${folded ? '▸' : '▾'}</span>` : '<span class="caret"></span>'}
+      <span class="ed pc-name" data-fe="items:${it.id}:name:text">${fesc(it.name)}</span>
+      <span class="pc-val">${val}</span>
+    </div>
+    <div class="pc-meta">${meta}${folded ? `<span class="meta">· ${it.children.length} внутри</span>` : ''}<span class="pc-actions">${actions}</span></div>
+  </div>` + (folded ? '' : it.children.map(c => portCard(c, depth + 1, ctx && { total: ctx.total, parentEur: it.eur })).join(''));
+}
+
 // диаграмма аллокации: доли с процентами внутри, каждая своим цветом
 const PIE_COLORS = ['#1e9e57', '#2a76b5', '#a87708', '#7a4fc0', '#c43f3f',
   '#0e8f8f', '#b5519c', '#6b8e23', '#d2691e', '#5b6b7c'];
@@ -177,12 +212,14 @@ function secPortfolio(d, s) {
     <span class="pill btn" id="pfoldAll" style="margin-left:auto">${portFold.size ? '▾ развернуть всё' : '▸ свернуть всё'}</span>
   </div>
   <div class="card">
-    <table class="fintable porttable">
+    ${finIsMobile()
+      ? `<div class="pcards">${d.portfolio.map(b => portCard(b, 0, { total: s.portfolioTotal, parentEur: s.portfolioTotal })).join('') || '<div class="empty">портфель пуст</div>'}</div>`
+      : `<table class="fintable porttable">
       ${finTab === 'target'
         ? '<tr><th>Название</th><th class="r">Факт</th><th class="r">Цель</th><th class="r">Δ</th><th></th></tr>'
         : '<tr><th>Название</th><th class="r">Покупка</th><th class="r">Прирост</th><th class="r">Текущая</th><th class="r">Доля</th><th></th></tr>'}
       ${d.portfolio.map(b => portRows(b, 0, { total: s.portfolioTotal, parentEur: s.portfolioTotal })).join('')}
-    </table>
+    </table>`}
     ${finTab === 'target' ? '<div class="empty" style="padding-top:8px">Целевые суммы ставь на любом уровне. Δ — факт минус цель.</div>' : ''}
   </div>
   ${finTab === 'fact' && d.byType.length ? `
