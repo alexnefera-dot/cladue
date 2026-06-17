@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pipboy · Second Brain — мокап концепций</title>
+<title>Pipboy · Second Brain — живые концепции</title>
 <style>
   :root{
     --bg:#f6f7f9; --bg2:#eef0f4; --panel:#fff; --panel2:#e9edf1;
@@ -17,311 +17,396 @@
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
   .titlebar{height:42px;background:var(--bg2);border-bottom:1px solid var(--line);display:flex;align-items:center;
-    justify-content:center;font:600 12px var(--mono);color:var(--green);letter-spacing:1px;position:sticky;top:0;z-index:10}
+    justify-content:center;font:600 12px var(--mono);color:var(--green);letter-spacing:1px;position:sticky;top:0;z-index:30}
   .wrap{max-width:1180px;margin:0 auto;padding:20px 22px 60px}
-  .lead{margin:6px 0 16px}
   .lead h1{font-size:22px;letter-spacing:-.02em;margin:0 0 4px}
-  .lead p{color:var(--muted);margin:0;max-width:760px}
+  .lead p{color:var(--muted);margin:0;max-width:780px}
 
-  /* вкладки-концепции */
   .tabs{display:flex;gap:8px;margin:18px 0 16px;flex-wrap:wrap}
   .tab{border:1px solid var(--line);background:var(--panel);border-radius:11px;padding:9px 15px;cursor:pointer;
     font-weight:600;color:var(--nav);box-shadow:var(--shadow-sm);transition:.12s}
-  .tab small{display:block;font-weight:500;font-size:11px;color:var(--muted);letter-spacing:.2px}
+  .tab small{display:block;font-weight:500;font-size:11px;color:var(--muted)}
   .tab:hover{border-color:var(--green-dim)}
   .tab.on{background:var(--green-soft);border-color:var(--green-dim);color:var(--green)}
   .tab.on small{color:var(--green-dim)}
-
-  .view{display:none}
-  .view.on{display:block;animation:fade .2s ease}
-  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  .view{display:none}.view.on{display:block;animation:fade .2s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
 
   .sec{font:600 10.5px var(--mono);letter-spacing:1.6px;color:var(--green);text-transform:uppercase;margin:18px 0 8px}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:10px;box-shadow:var(--shadow-sm)}
-  .muted{color:var(--muted)} .mono{font-family:var(--mono)}
-  .pill{display:inline-flex;align-items:center;gap:4px;font:600 11px var(--mono);padding:3px 9px;border-radius:20px;
-    background:var(--bg2);color:var(--muted);letter-spacing:.3px}
+  .muted{color:var(--muted)}
+  .pill{display:inline-flex;align-items:center;gap:4px;font:600 11px var(--mono);padding:3px 9px;border-radius:20px;background:var(--bg2);color:var(--muted)}
   .pill.goal{background:rgba(30,158,87,.12);color:var(--green)}
   .pill.note{background:rgba(42,118,181,.12);color:var(--blue)}
   .pill.person{background:rgba(168,119,8,.14);color:var(--amber)}
   .pill.money{background:rgba(196,63,63,.12);color:var(--red)}
   .pill.area{background:rgba(107,79,181,.13);color:var(--violet)}
-  .tag{font-size:11px;color:var(--blue);background:rgba(42,118,181,.08);border-radius:5px;padding:1px 6px;cursor:pointer}
-
-  .grid2{display:grid;grid-template-columns:1.3fr .9fr;gap:14px}
-  .grid-para{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-  .grid-daily{display:grid;grid-template-columns:1.4fr .9fr;gap:14px}
-  @media(max-width:820px){.grid2,.grid-daily{grid-template-columns:1fr}.grid-para{grid-template-columns:1fr 1fr}}
-
-  /* === граф === */
-  .nodelist{max-height:430px;overflow:auto}
-  .node{display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:9px;cursor:pointer;border:1px solid transparent}
-  .node:hover{background:var(--bg2)}
-  .node.sel{background:var(--green-soft);border-color:var(--green-dim)}
-  .node .t{flex:1;font-weight:600}
-  .hub h2{margin:2px 0 2px;font-size:20px;letter-spacing:-.02em}
-  .link{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--bg2);cursor:pointer}
-  .link:hover .lt{color:var(--green)}
-  .link .arrow{font-family:var(--mono);color:var(--muted);font-size:12px;width:22px}
-  .link .lt{flex:1}
-  .backlinks .bl{padding:8px 10px;border:1px dashed var(--line2);border-radius:9px;margin-bottom:6px;font-size:13px}
-  .backlinks .bl b{color:var(--text)} .backlinks .bl .q{color:var(--muted)}
-  svg .edge{stroke:var(--line2);stroke-width:1.5}
-  svg .ndot{cursor:pointer}
-  svg text{font:600 10px var(--sans);fill:var(--text)}
-
-  /* === PARA === */
-  .col{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;box-shadow:var(--shadow-sm)}
-  .col h3{margin:2px 4px 8px;font-size:13px;display:flex;align-items:center;gap:6px}
-  .col h3 .c{margin-left:auto;font:600 11px var(--mono);color:var(--muted)}
-  .item{background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 10px;margin-bottom:7px;font-size:13px;cursor:grab}
-  .item:hover{border-color:var(--green-dim)}
-  .item .meta{font-size:11px;color:var(--muted);margin-top:3px;display:flex;gap:6px;flex-wrap:wrap}
-  .bar{height:5px;border-radius:99px;background:var(--bg2);overflow:hidden;margin-top:5px}
-  .bar i{display:block;height:100%;background:var(--green-dim)}
-  .inbox{display:flex;align-items:center;gap:10px;border:1px dashed var(--green-dim);background:var(--green-soft);
-    border-radius:11px;padding:10px 14px;margin-bottom:14px}
-  .inbox input{flex:1;border:1px solid var(--line);border-radius:8px;padding:9px 11px;font:14px var(--sans);background:#fff}
-
-  /* === дневник === */
-  .daily{font-size:14.5px;line-height:1.75}
-  .daily .ln{padding:1px 0}
-  .daily .wl{color:var(--green);font-weight:600;cursor:pointer;border-bottom:1px solid var(--green-soft)}
-  .daily .todo{color:var(--muted)}
-  .daily h4{margin:14px 0 4px;font:600 12px var(--mono);letter-spacing:1px;color:var(--muted);text-transform:uppercase}
-  .lref h3{font-size:13px;margin:0 0 8px;display:flex;align-items:center;gap:6px}
-  .lref .src{font-size:12px;color:var(--muted);margin:7px 0 2px}
-  .lref .q{font-size:13px;border-left:2px solid var(--green-dim);padding-left:8px;margin-bottom:8px}
+  .tag{font-size:11px;color:var(--blue);background:rgba(42,118,181,.08);border-radius:5px;padding:1px 6px}
   .hint{font-size:12px;color:var(--muted);margin-top:8px}
   kbd{font:11px var(--mono);background:var(--bg2);border:1px solid var(--line2);border-bottom-width:2px;border-radius:5px;padding:1px 5px}
   .foot{margin-top:26px;padding-top:14px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}
+  input,textarea{font-family:var(--sans)}
+  input:focus{outline:none;border-color:var(--green-dim);box-shadow:0 0 0 3px var(--green-soft)}
+
+  .grid2{display:grid;grid-template-columns:1.3fr .9fr;gap:14px}
+  @media(max-width:820px){.grid2{grid-template-columns:1fr}}
+
+  /* === граф === */
+  .filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  .chip{font:600 11px var(--mono);padding:4px 10px;border-radius:20px;border:1px solid var(--line);background:var(--panel);cursor:pointer;color:var(--muted)}
+  .chip.on{background:var(--green-soft);border-color:var(--green-dim);color:var(--green)}
+  .srch{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:13px var(--sans);background:var(--panel);margin-bottom:8px}
+  .nodelist{max-height:360px;overflow:auto}
+  .node{display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:9px;cursor:pointer;border:1px solid transparent}
+  .node:hover{background:var(--bg2)}.node.sel{background:var(--green-soft);border-color:var(--green-dim)}
+  .node .t{flex:1;font-weight:600}
+  .crumbs{font-size:12px;color:var(--muted);margin-bottom:6px;min-height:16px}
+  .crumbs a{color:var(--green);cursor:pointer}
+  .hub h2{margin:2px 0;font-size:20px;letter-spacing:-.02em}
+  .link{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--bg2);cursor:pointer}
+  .link:hover .lt{color:var(--green)}
+  .link .arrow{font-family:var(--mono);color:var(--muted);font-size:12px;width:20px}.link .lt{flex:1}
+  .bl{padding:8px 10px;border:1px dashed var(--line2);border-radius:9px;margin-bottom:6px;font-size:13px;cursor:pointer}
+  .bl:hover{border-color:var(--green-dim)}
+  svg .edge{stroke:var(--line2);stroke-width:1.5}svg .ndot{cursor:pointer}svg text{font:600 10px var(--sans);fill:var(--text)}
+
+  /* === PARA === */
+  .inbox{display:flex;align-items:center;gap:10px;border:1px dashed var(--green-dim);background:var(--green-soft);border-radius:11px;padding:8px 12px;margin-bottom:12px}
+  .inbox input{flex:1;border:1px solid var(--line);border-radius:8px;padding:9px 11px;font:14px var(--sans);background:#fff}
+  .grid-para{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  @media(max-width:820px){.grid-para{grid-template-columns:1fr 1fr}}
+  .col{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;box-shadow:var(--shadow-sm);min-height:120px}
+  .col h3{margin:2px 4px 8px;font-size:13px;display:flex;align-items:center;gap:6px}
+  .col h3 .c{margin-left:auto;font:600 11px var(--mono);color:var(--muted)}
+  .col.drop{outline:2px dashed var(--green-dim);outline-offset:-4px;background:var(--green-soft)}
+  .item{background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 10px;margin-bottom:7px;font-size:13px;cursor:grab}
+  .item:hover{border-color:var(--green-dim)}.item.drag{opacity:.4}
+  .item .meta{font-size:11px;color:var(--muted);margin-top:3px}
+  .col.inboxcol{grid-column:1/-1;min-height:auto}
+  .col.inboxcol .items{display:flex;gap:7px;flex-wrap:wrap}.col.inboxcol .item{margin:0}
+
+  /* === дневник === */
+  .grid-daily{display:grid;grid-template-columns:1.4fr .9fr;gap:14px}
+  @media(max-width:820px){.grid-daily{grid-template-columns:1fr}}
+  .cap{position:relative;margin-bottom:10px}
+  .cap input{width:100%;border:1px solid var(--line);border-radius:9px;padding:11px 12px;font:14.5px var(--sans);background:var(--panel)}
+  .acpop{position:absolute;left:0;right:0;top:46px;background:var(--panel);border:1px solid var(--line2);border-radius:10px;box-shadow:var(--shadow-md);z-index:20;overflow:hidden;display:none}
+  .acpop div{padding:8px 11px;cursor:pointer;display:flex;align-items:center;gap:7px}
+  .acpop div:hover,.acpop div.k{background:var(--green-soft)}
+  .daily{font-size:14.5px;line-height:1.7}
+  .ln{padding:2px 0;display:flex;gap:7px;align-items:baseline}
+  .ln .bullet{color:var(--line2)}
+  .wl{color:var(--green);font-weight:600;cursor:pointer;border-bottom:1px solid var(--green-soft)}
+  .done{color:var(--muted);text-decoration:line-through}
+  .lref .src{font-size:12px;color:var(--muted);margin:8px 0 2px}
+  .lref .q{font-size:13px;border-left:2px solid var(--green-dim);padding-left:8px;margin-bottom:4px}
+  .lref .q .new{background:rgba(30,158,87,.16);border-radius:3px;padding:0 3px}
+  .pagesel{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  .pagesel .chip.on{background:var(--green-soft);border-color:var(--green-dim);color:var(--green)}
 </style>
 </head>
 <body>
-<div class="titlebar">PIPBOY · SECOND BRAIN — МОКАП (концепты, не рабочий экран)</div>
+<div class="titlebar">PIPBOY · SECOND BRAIN — ЖИВЫЕ КОНЦЕПЦИИ (мокап)</div>
 <div class="wrap">
-
   <div class="lead">
-    <h1>Три способа сделать из Pipboy «второй мозг»</h1>
-    <p>Каждая вкладка — отдельная парадигма организации Целей, Инфо и остальных разделов.
-       Кликай узлы и ссылки — это интерактивно. Цифры и названия взяты твои, для наглядности.</p>
+    <h1>Три способа сделать из Pipboy «второй мозг» — теперь кликаются</h1>
+    <p>① Граф: фильтруй по типу, ищи, ходи по связям и бэклинкам.
+       ② PARA: <b>перетаскивай</b> карточки между корзинами и из инбокса.
+       ③ Дневник: пиши в капче, набери <kbd>[[</kbd> для автодополнения — упоминания справа собираются вживую.</p>
   </div>
 
   <div class="tabs">
-    <div class="tab on" data-v="graph">① Граф связей<small>всё — узлы, бэклинки везде</small></div>
-    <div class="tab" data-v="para">② PARA<small>Проекты · Сферы · Ресурсы · Архив</small></div>
-    <div class="tab" data-v="daily">③ Дневник-капча<small>пишешь → связи сами собираются</small></div>
+    <div class="tab on" data-v="graph">① Граф связей<small>фильтры · поиск · навигация</small></div>
+    <div class="tab" data-v="para">② PARA<small>drag-drop по корзинам</small></div>
+    <div class="tab" data-v="daily">③ Дневник-капча<small>[[автодополнение]] · живые связи</small></div>
   </div>
 
-  <!-- ============ КОНЦЕПТ 1: ГРАФ СВЯЗЕЙ ============ -->
+  <!-- ① ГРАФ -->
   <div class="view on" id="v-graph">
-    <p class="muted" style="margin:0 0 12px">
-      Идея: цель, заметка, человек, платёж, сектор колеса — <b>один тип объекта «узел»</b>.
-      Любой линкуется к любому через <span class="tag">[[имя]]</span>, и у каждого видно «кто на меня ссылается».
-      Разделы остаются, но поверх них — единая сеть.
-    </p>
     <div class="grid2">
-      <div>
-        <div class="card">
-          <div class="sec" style="margin-top:0">Узлы — любой тип, один список</div>
-          <div class="nodelist" id="nodelist"></div>
-        </div>
+      <div class="card">
+        <div class="sec" style="margin-top:0">Узлы — любой тип в одной сети</div>
+        <input class="srch" id="gsearch" placeholder="поиск по узлам…">
+        <div class="filters" id="gfilters"></div>
+        <div class="nodelist" id="nodelist"></div>
       </div>
       <div>
-        <div class="card hub" id="hub"></div>
-        <div class="card backlinks">
-          <div class="sec" style="margin-top:0">↩ Сюда ссылаются (бэклинки)</div>
-          <div id="backlinks"></div>
-        </div>
-        <div class="card">
-          <div class="sec" style="margin-top:0">Локальный граф</div>
-          <svg id="minigraph" viewBox="0 0 320 190" width="100%" height="190"></svg>
-        </div>
+        <div class="card hub"><div class="crumbs" id="crumbs"></div><div id="hubbody"></div></div>
+        <div class="card"><div class="sec" style="margin-top:0">↩ Сюда ссылаются</div><div id="backlinks"></div></div>
+        <div class="card"><div class="sec" style="margin-top:0">Локальный граф</div>
+          <svg id="minigraph" viewBox="0 0 320 190" width="100%" height="190"></svg></div>
       </div>
     </div>
   </div>
 
-  <!-- ============ КОНЦЕПТ 2: PARA ============ -->
+  <!-- ② PARA -->
   <div class="view" id="v-para">
-    <p class="muted" style="margin:0 0 12px">
-      Идея Building a Second Brain: всё живёт в четырёх корзинах по <b>степени действия</b>, а не по теме.
-      Цели = <b>Проекты</b> (есть финиш), постоянные области = <b>Сферы</b>, справочник/Инфо = <b>Ресурсы</b>,
-      завершённое уходит в <b>Архив</b>. Сверху — инбокс-капча.
-    </p>
     <div class="inbox">
       <span class="pill">＋ ИНБОКС</span>
-      <input placeholder="Быстро кинуть мысль/задачу/ссылку — разложишь по корзинам потом" disabled>
-      <span class="pill goal">5 не разобрано</span>
+      <input id="inboxin" placeholder="Кинь мысль и Enter — появится карточкой, перетащи в нужную корзину">
+    </div>
+    <div class="col inboxcol" data-bucket="inbox" style="margin-bottom:12px">
+      <h3>📥 Не разобрано <span class="c" id="c-inbox"></span></h3>
+      <div class="items" id="b-inbox"></div>
     </div>
     <div class="grid-para">
-      <div class="col">
-        <h3>🎯 Проекты <span class="c">3 актив.</span></h3>
-        <div class="item"><b>Belgravia — сдать в аренду</b><div class="bar"><i style="width:70%"></i></div>
-          <div class="meta"><span class="pill money">платёж 14 дн</span><span>дедлайн 01.08</span></div></div>
-        <div class="item"><b>Падл — лига к сентябрю</b><div class="bar"><i style="width:40%"></i></div>
-          <div class="meta"><span>тренировки 2/нед</span></div></div>
-        <div class="item"><b>Ремонт MacBook-сетапа</b><div class="bar"><i style="width:20%"></i></div></div>
-      </div>
-      <div class="col">
-        <h3>🔄 Сферы <span class="c">постоянно</span></h3>
-        <div class="item"><b>💰 Финансы / FIRE</b><div class="meta"><span class="pill area">колесо: 7/10</span><span>прогресс 31%</span></div></div>
-        <div class="item"><b>🧠 Психология</b><div class="meta"><span>практик сегодня: 1</span></div></div>
-        <div class="item"><b>❤️ Отношения</b><div class="meta"><span>Мама · созвон через 3 дн</span></div></div>
-        <div class="item"><b>🏃 Здоровье / тело</b><div class="meta"><span>рутины 4/6</span></div></div>
-      </div>
-      <div class="col">
-        <h3>📚 Ресурсы <span class="c">Инфо</span></h3>
-        <div class="item"><b>Чек-лист сдачи квартиры</b><div class="meta"><span class="tag">[[Belgravia]]</span></div></div>
-        <div class="item"><b>Падл — техника удара</b><div class="meta"><span class="tag">[[Падл]]</span></div></div>
-        <div class="item"><b>Тезисы по рынку / макро</b><div class="meta"><span class="tag">[[FIRE]]</span></div></div>
-        <div class="item"><b>Идеи на выходные (банк)</b></div>
-      </div>
-      <div class="col">
-        <h3>🗄️ Архив <span class="c">сделано</span></h3>
-        <div class="item muted"><b>Переезд в новую кв.</b><div class="meta"><span>закрыт 03.2026</span></div></div>
-        <div class="item muted"><b>Страховка авто 2025</b></div>
-        <div class="item muted"><b>Отпуск · Грузия</b></div>
-      </div>
+      <div class="col" data-bucket="proj"><h3>🎯 Проекты <span class="c" id="c-proj"></span></h3><div id="b-proj"></div></div>
+      <div class="col" data-bucket="area"><h3>🔄 Сферы <span class="c" id="c-area"></span></h3><div id="b-area"></div></div>
+      <div class="col" data-bucket="res"><h3>📚 Ресурсы <span class="c" id="c-res"></span></h3><div id="b-res"></div></div>
+      <div class="col" data-bucket="arch"><h3>🗄️ Архив <span class="c" id="c-arch"></span></h3><div id="b-arch"></div></div>
     </div>
-    <p class="hint">Перетаскивание между корзинами (в мокапе выключено) = «повысить/понизить» приоритет:
-      идея из Инбокса → Ресурс → когда берёшь в работу → Проект → готово → Архив.</p>
+    <p class="hint">Перетаскивание = «повысить/понизить»: Инбокс → Ресурс → берёшь в работу → Проект → готово → Архив.
+      Счётчики живые.</p>
   </div>
 
-  <!-- ============ КОНЦЕПТ 3: ДНЕВНИК-КАПЧА ============ -->
+  <!-- ③ ДНЕВНИК -->
   <div class="view" id="v-daily">
-    <p class="muted" style="margin:0 0 12px">
-      Идея Logseq/Roam: точка входа — <b>заметка дня</b>. Пишешь свободно, ставишь <span class="tag">[[ссылки]]</span>,
-      и всё само складывается в страницы целей/людей/тем (справа — «связанные упоминания»). Цели и Инфо
-      <b>вырастают из ежедневной капчи</b>, а не заводятся вручную.
-    </p>
     <div class="grid-daily">
       <div class="card">
         <div class="sec" style="margin-top:0">📅 Сегодня · вторник, 17 июня</div>
-        <div class="daily">
-          <div class="ln todo">☐ позвонить агенту <span class="wl" data-l="Дима">[[Дима]]</span> по <span class="wl" data-l="Belgravia">[[Belgravia]]</span> — уточнить дату показа</div>
-          <div class="ln">мысль: если аренда выходит ниже 4% — лучше держать в <span class="wl" data-l="FIRE">[[FIRE]]</span>-портфеле, посчитать</div>
-          <div class="ln todo">☑ тренировка <span class="wl" data-l="Падл">[[Падл]]</span> — отработал бэкхенд, колено ок</div>
-          <div class="ln">у <span class="wl" data-l="Мама">[[Мама]]</span> ДР через 3 недели — придумать подарок</div>
-          <h4>вечер</h4>
-          <div class="ln">чек-ин дня 🙂 · энергия 7/10 · благодарность: спокойный день</div>
-          <div class="ln muted">＋ пиши что угодно — <kbd>[[</kbd> предложит цель, человека или тему…</div>
+        <div class="cap">
+          <input id="capin" placeholder="Пиши что угодно. Набери [[ — предложу цель/человека/тему. Enter — добавить строку." autocomplete="off">
+          <div class="acpop" id="acpop"></div>
         </div>
-        <p class="hint">Никаких форм. Захват в одном поле, структура появляется из ссылок.</p>
+        <div class="daily" id="dailylog"></div>
+        <p class="hint">Никаких форм: одна строка ввода, структура появляется из <span class="tag">[[ссылок]]</span>.</p>
       </div>
-      <div class="card lref" id="lref"></div>
+      <div class="card lref">
+        <div class="sec" style="margin-top:0">↩ Страница и её упоминания</div>
+        <div class="pagesel" id="pagesel"></div>
+        <div id="lrefbody"></div>
+      </div>
     </div>
   </div>
 
   <div class="foot">
-    Мокап статичный (концепции для сравнения). Что из этого встроить в Pipboy — реально:
-    Инфо уже умеет <span class="tag">[[ссылки]]</span> и бэклинки, так что граф (①) — это распространить их
-    на цели/людей/финансы; PARA (②) — это «линза»-фильтр над текущими целями; дневник (③) — новый экран капчи.
-    Скажи, какая ближе — соберу кликабельный прототип на реальных данных.
+    Это мокап (логика игрушечная, но живая). Реально для Pipboy: граф ① — распространить уже работающие
+    в Инфо <span class="tag">[[ссылки]]</span>+бэклинки на цели/людей/финансы; PARA ② — линза-фильтр над целями;
+    дневник ③ — новый экран капчи с агрегатором упоминаний. Скажешь, какой — перенесу на твои реальные данные через API.
   </div>
 </div>
 
 <script>
-// ---------- данные мокапа (твой домен) ----------
+//==================== общий домен ====================
 const NODES = {
   Belgravia:{type:'goal',label:'Belgravia — сдать в аренду',meta:'Проект · недвижимость · дедлайн 01.08',
     links:[['→','Дима','person','агент по показу'],['→','Чек-лист сдачи','note','что подготовить'],
-           ['◈','Аренда · платёж','money','€1 800 / мес'],['↑','FIRE','goal','вклад в цель капитала']]},
-  FIRE:{type:'goal',label:'FIRE — финансовая независимость',meta:'Сфера · цель капитала · прогресс 31%',
-    links:[['→','Тезисы по макро','note','когда докупать'],['◈','Портфель','money','€312 400'],
-           ['↓','Belgravia','goal','доход от аренды']]},
-  'Падл':{type:'goal',label:'Падл — лига к сентябрю',meta:'Проект · спорт · 2 тренировки/нед',
+           ['◈','Аренда · платёж','money','€1 800 / мес'],['↑','FIRE','goal','вклад в капитал']]},
+  FIRE:{type:'goal',label:'FIRE — финансовая независимость',meta:'Сфера · цель капитала · 31%',
+    links:[['→','Тезисы по макро','note','когда докупать'],['◈','Портфель','money','€312 400'],['↓','Belgravia','goal','доход аренды']]},
+  'Падл':{type:'goal',label:'Падл — лига к сентябрю',meta:'Проект · спорт · 2 трен/нед',
     links:[['→','Техника удара','note','заметки с корта'],['↑','Здоровье','area','тело/энергия']]},
-  'Дима':{type:'person',label:'Дима (агент)',meta:'Человек · ритм связи: 14 дн',
-    links:[['↓','Belgravia','goal','ведёт показ'],['◈','Комиссия','money','€900 разово']]},
-  'Мама':{type:'person',label:'Мама',meta:'Человек · ДР через 21 дн · созвон 3 дн',
-    links:[['↑','Отношения','area','важная связь']]},
+  'Дима':{type:'person',label:'Дима (агент)',meta:'Человек · ритм 14 дн',
+    links:[['↓','Belgravia','goal','ведёт показ'],['◈','Комиссия','money','€900']]},
+  'Мама':{type:'person',label:'Мама',meta:'Человек · ДР 21 дн',links:[['↑','Отношения','area','важная связь']]},
   'Чек-лист сдачи':{type:'note',label:'Чек-лист сдачи квартиры',meta:'Инфо · ресурс',
-    links:[['↓','Belgravia','goal','к проекту'],['→','Аренда · платёж','money','депозит/первый мес']]},
-  'Тезисы по макро':{type:'note',label:'Тезисы по рынку / макро',meta:'Инфо · ресурс',
-    links:[['↓','FIRE','goal','стратегия докупки']]},
-  'Портфель':{type:'money',label:'Портфель · €312 400',meta:'Финансы · активы',
-    links:[['↑','FIRE','goal','тело капитала']]},
-  'Здоровье':{type:'area',label:'Здоровье / тело',meta:'Сфера · колесо баланса 6/10',
-    links:[['↓','Падл','goal','активность месяца']]},
-  'Отношения':{type:'area',label:'Отношения',meta:'Сфера · колесо баланса 8/10',
-    links:[['↓','Мама','person','созвоны']]},
+    links:[['↓','Belgravia','goal','к проекту'],['→','Аренда · платёж','money','депозит']]},
+  'Тезисы по макро':{type:'note',label:'Тезисы по рынку',meta:'Инфо · ресурс',links:[['↓','FIRE','goal','стратегия']]},
+  'Техника удара':{type:'note',label:'Падл — техника удара',meta:'Инфо · ресурс',links:[['↓','Падл','goal','с корта']]},
+  'Портфель':{type:'money',label:'Портфель · €312 400',meta:'Финансы · активы',links:[['↑','FIRE','goal','тело капитала']]},
+  'Аренда · платёж':{type:'money',label:'Аренда · €1 800/мес',meta:'Финансы · поток',links:[['↓','Belgravia','goal','доход']]},
+  'Здоровье':{type:'area',label:'Здоровье / тело',meta:'Сфера · колесо 6/10',links:[['↓','Падл','goal','активность']]},
+  'Отношения':{type:'area',label:'Отношения',meta:'Сфера · колесо 8/10',links:[['↓','Мама','person','созвоны']]},
 };
 const TYPE_RU={goal:'цель',note:'инфо',person:'человек',money:'финансы',area:'сфера'};
-// кто на кого ссылается (бэклинки) — обратный индекс
-const BACK={};
-for(const [id,n] of Object.entries(NODES))
-  for(const [,target,, q] of n.links)(BACK[target]??=[]).push({from:id,fromType:n.type,q});
+const TYPE_COL={goal:'#1e9e57',note:'#2a76b5',person:'#a87708',money:'#c43f3f',area:'#6b4fb5'};
 
-// ---------- вкладки ----------
+//==================== вкладки ====================
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t));
-  const v=t.dataset.v;
-  document.querySelectorAll('.view').forEach(x=>x.classList.toggle('on',x.id==='v-'+v));
+  document.querySelectorAll('.view').forEach(x=>x.classList.toggle('on',x.id==='v-'+t.dataset.v));
 });
 
-// ---------- концепт 1: граф ----------
-const nodelist=document.getElementById('nodelist');
-nodelist.innerHTML=Object.entries(NODES).map(([id,n])=>
-  `<div class="node" data-id="${id}"><span class="pill ${n.type}">${TYPE_RU[n.type]}</span><span class="t">${n.label}</span></div>`).join('');
-function selectNode(id){
-  const n=NODES[id]; if(!n)return;
-  document.querySelectorAll('.node').forEach(x=>x.classList.toggle('sel',x.dataset.id===id));
-  document.getElementById('hub').innerHTML=
+//==================== ① ГРАФ ====================
+const BACK={};
+for(const [id,n] of Object.entries(NODES))
+  for(const [,target,,q] of n.links)(BACK[target]??=[]).push({from:id,q});
+let gFilter='all', gQuery='', gCur='Belgravia', gHist=[];
+
+const gfilters=document.getElementById('gfilters');
+gfilters.innerHTML=['all','goal','area','note','person','money']
+  .map(t=>`<span class="chip ${t==='all'?'on':''}" data-f="${t}">${t==='all'?'все':TYPE_RU[t]}</span>`).join('');
+gfilters.onclick=e=>{const c=e.target.closest('.chip');if(!c)return;gFilter=c.dataset.f;
+  gfilters.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x===c));renderNodes();};
+document.getElementById('gsearch').oninput=e=>{gQuery=e.target.value.toLowerCase();renderNodes();};
+
+function renderNodes(){
+  const list=document.getElementById('nodelist');
+  list.innerHTML=Object.entries(NODES)
+    .filter(([id,n])=>(gFilter==='all'||n.type===gFilter)&&(!gQuery||(id+n.label).toLowerCase().includes(gQuery)))
+    .map(([id,n])=>`<div class="node ${id===gCur?'sel':''}" data-id="${id}">
+      <span class="pill ${n.type}">${TYPE_RU[n.type]}</span><span class="t">${n.label}</span></div>`).join('')
+    || '<div class="muted" style="padding:8px">ничего не найдено</div>';
+}
+function go(id,push=true){
+  if(!NODES[id])return;
+  if(push&&id!==gCur){gHist.push(gCur);if(gHist.length>6)gHist.shift();}
+  gCur=id; const n=NODES[id];
+  document.getElementById('crumbs').innerHTML = gHist.length
+    ? 'путь: '+gHist.map(h=>`<a data-h="${h}">${h}</a>`).join(' › ')+` › <b>${id}</b>` : '';
+  document.getElementById('hubbody').innerHTML=
     `<div class="sec" style="margin-top:0"><span class="pill ${n.type}">${TYPE_RU[n.type]}</span></div>
      <h2>${n.label}</h2><div class="muted" style="margin-bottom:6px">${n.meta}</div>
-     <div class="sec">→ Связи этого узла</div>
-     ${n.links.map(([a,t,ty,q])=>`<div class="link" data-id="${t}">
-        <span class="arrow">${a}</span><span class="pill ${ty}">${TYPE_RU[ty]}</span>
-        <span class="lt">${t}</span><span class="muted" style="font-size:12px">${q}</span></div>`).join('')}`;
+     <div class="sec">→ Связи</div>
+     ${n.links.map(([a,t,ty,q])=>`<div class="link" data-id="${t}"><span class="arrow">${a}</span>
+        <span class="pill ${ty}">${TYPE_RU[ty]}</span><span class="lt">${t}</span>
+        <span class="muted" style="font-size:12px">${q}</span></div>`).join('')}`;
   const bl=BACK[id]||[];
   document.getElementById('backlinks').innerHTML = bl.length
-    ? bl.map(b=>`<div class="bl"><span class="pill ${b.fromType}">${TYPE_RU[b.fromType]}</span>
-        <b>${NODES[b.from]?NODES[b.from].label:b.from}</b> <span class="q">— ${b.q}</span></div>`).join('')
+    ? bl.map(b=>`<div class="bl" data-id="${b.from}"><span class="pill ${NODES[b.from].type}">${TYPE_RU[NODES[b.from].type]}</span>
+        <b>${NODES[b.from].label}</b> <span class="muted">— ${b.q}</span></div>`).join('')
     : '<div class="muted" style="font-size:13px">пока никто не ссылается</div>';
-  document.querySelectorAll('#hub .link').forEach(l=>l.onclick=()=>selectNode(l.dataset.id));
-  drawGraph(id);
+  renderNodes(); drawGraph(id);
 }
-document.addEventListener('click',e=>{const nd=e.target.closest('.node');if(nd)selectNode(nd.dataset.id);});
-
+document.getElementById('v-graph').addEventListener('click',e=>{
+  const nd=e.target.closest('.node'); const lk=e.target.closest('.link'); const bl=e.target.closest('.bl'); const h=e.target.closest('[data-h]');
+  if(h){const t=h.dataset.h;gHist=gHist.slice(0,gHist.indexOf(t));go(t,false);}
+  else if(nd)go(nd.dataset.id); else if(lk)go(lk.dataset.id); else if(bl)go(bl.dataset.id);
+});
 function drawGraph(center){
-  const n=NODES[center]; const svg=document.getElementById('minigraph');
+  const n=NODES[center], svg=document.getElementById('minigraph');
   const neigh=[...new Set([...n.links.map(l=>l[1]),...(BACK[center]||[]).map(b=>b.from)])].slice(0,6);
   const cx=160,cy=95; let edges='',dots='';
   neigh.forEach((id,i)=>{
-    const ang=(Math.PI*2*i)/neigh.length - Math.PI/2;
-    const x=cx+Math.cos(ang)*115, y=cy+Math.sin(ang)*70;
+    const ang=(Math.PI*2*i)/neigh.length-Math.PI/2, x=cx+Math.cos(ang)*118, y=cy+Math.sin(ang)*68;
     const ty=NODES[id]?NODES[id].type:'note';
-    const col={goal:'#1e9e57',note:'#2a76b5',person:'#a87708',money:'#c43f3f',area:'#6b4fb5'}[ty];
     edges+=`<line class="edge" x1="${cx}" y1="${cy}" x2="${x}" y2="${y}"/>`;
-    const short=(NODES[id]?id:id).slice(0,12);
-    dots+=`<g class="ndot" onclick="selectNode('${id.replace(/'/g,"")}')">
-        <circle cx="${x}" cy="${y}" r="7" fill="${col}"/>
-        <text x="${x}" y="${y-11}" text-anchor="middle">${short}</text></g>`;
+    dots+=`<g class="ndot" data-g="${id}"><circle cx="${x}" cy="${y}" r="7" fill="${TYPE_COL[ty]}"/>
+      <text x="${x}" y="${y-11}" text-anchor="middle">${id.slice(0,11)}</text></g>`;
   });
-  svg.innerHTML=edges+dots+
-    `<circle cx="${cx}" cy="${cy}" r="11" fill="#141e28"/>
-     <text x="${cx}" y="${cy+24}" text-anchor="middle" style="font-weight:700">${center.slice(0,16)}</text>`;
+  svg.innerHTML=edges+dots+`<circle cx="${cx}" cy="${cy}" r="11" fill="#141e28"/>
+    <text x="${cx}" y="${cy+24}" text-anchor="middle" style="font-weight:700">${center.slice(0,16)}</text>`;
+  svg.querySelectorAll('.ndot').forEach(g=>g.onclick=()=>go(g.dataset.g));
 }
-selectNode('Belgravia');
+go('Belgravia',false);
 
-// ---------- концепт 3: связанные упоминания ----------
-const LREF={
-  'Belgravia':[['17 июня · заметка дня','позвонить [[Дима]] по [[Belgravia]] — дата показа'],
-               ['12 июня','депозит пришёл, готовлю [[Чек-лист сдачи]]']],
-  'Дима':[['17 июня','позвонить [[Дима]] по показу'],['03 июня','[[Дима]] прислал договор — проверить']],
-  'FIRE':[['17 июня','аренда ниже 4% → держать в [[FIRE]]'],['10 июня','довнёс €1 200 в [[Портфель]]']],
-  'Падл':[['17 июня','тренировка [[Падл]] — бэкхенд'],['15 июня','записался в лигу']],
-  'Мама':[['17 июня','у [[Мама]] ДР через 3 недели — подарок']],
-};
-function lref(id){
-  const box=document.getElementById('lref'); const rows=LREF[id]||[];
-  box.innerHTML=`<h3><span class="pill goal">страница</span> ${id}</h3>
-    <div class="muted" style="font-size:12px;margin-bottom:6px">↩ Связанные упоминания — собраны автоматически из всех дней:</div>`+
-    rows.map(([src,q])=>`<div class="src">${src}</div><div class="q">${q.replace(/\[\[([^\]]+)\]\]/g,'<b style="color:var(--green)">$1</b>')}</div>`).join('')+
-    `<p class="hint">Ничего не копировал вручную — страница «${id}» наполняется тем, что ты пишешь в днях.</p>`;
+//==================== ② PARA (drag-drop) ====================
+let PARA=[
+  {id:1,t:'Belgravia — сдать в аренду',b:'proj',m:'дедлайн 01.08 · платёж 14 дн'},
+  {id:2,t:'Падл — лига к сентябрю',b:'proj',m:'тренировки 2/нед'},
+  {id:3,t:'💰 Финансы / FIRE',b:'area',m:'колесо 7/10 · 31%'},
+  {id:4,t:'🧠 Психология',b:'area',m:'практик сегодня: 1'},
+  {id:5,t:'❤️ Отношения',b:'area',m:'Мама · созвон 3 дн'},
+  {id:6,t:'Чек-лист сдачи квартиры',b:'res',m:'[[Belgravia]]'},
+  {id:7,t:'Тезисы по рынку / макро',b:'res',m:'[[FIRE]]'},
+  {id:8,t:'Переезд в новую квартиру',b:'arch',m:'закрыт 03.2026'},
+  {id:9,t:'Купить подарок маме на ДР',b:'inbox',m:''},
+  {id:10,t:'Идея: подкаст по выходным',b:'inbox',m:''},
+];
+let pid=100, dragId=null;
+function renderPara(){
+  for(const b of ['inbox','proj','area','res','arch']){
+    const box=document.getElementById('b-'+b);
+    const items=PARA.filter(x=>x.b===b);
+    box.innerHTML=items.map(x=>`<div class="item" draggable="true" data-id="${x.id}">
+      <div>${x.t}</div>${x.m?`<div class="meta">${x.m.replace(/\[\[([^\]]+)\]\]/g,'<span class="tag">[[$1]]</span>')}</div>`:''}</div>`).join('')
+      || (b==='inbox'?'<div class="muted" style="font-size:12px;padding:4px">пусто — разобрал всё 👏</div>':'');
+    document.getElementById('c-'+b).textContent=items.length;
+  }
+  document.querySelectorAll('#v-para .item').forEach(it=>{
+    it.ondragstart=()=>{dragId=+it.dataset.id;it.classList.add('drag');};
+    it.ondragend=()=>{it.classList.remove('drag');dragId=null;};
+  });
 }
-document.querySelectorAll('.daily .wl').forEach(w=>w.onclick=()=>lref(w.dataset.l));
-lref('Belgravia');
+document.querySelectorAll('#v-para .col').forEach(col=>{
+  col.ondragover=e=>{e.preventDefault();col.classList.add('drop');};
+  col.ondragleave=()=>col.classList.remove('drop');
+  col.ondrop=e=>{e.preventDefault();col.classList.remove('drop');
+    const it=PARA.find(x=>x.id===dragId); if(it){it.b=col.dataset.bucket;renderPara();}};
+});
+document.getElementById('inboxin').addEventListener('keydown',e=>{
+  if(e.key!=='Enter'||!e.target.value.trim())return;
+  PARA.unshift({id:++pid,t:e.target.value.trim(),b:'inbox',m:''}); e.target.value=''; renderPara();
+});
+renderPara();
+
+//==================== ③ ДНЕВНИК-КАПЧА ====================
+let LOG=[
+  {txt:'позвонить агенту [[Дима]] по [[Belgravia]] — уточнить дату показа',todo:true,done:false},
+  {txt:'мысль: если аренда ниже 4% — держать в [[FIRE]]-портфеле, посчитать',todo:false},
+  {txt:'тренировка [[Падл]] — отработал бэкхенд, колено ок',todo:true,done:true},
+  {txt:'у [[Мама]] ДР через 3 недели — придумать подарок',todo:false},
+];
+const SEED={ // прошлые упоминания (как будто из других дней)
+  Belgravia:[['12 июня','депозит пришёл, готовлю [[Чек-лист сдачи]]']],
+  'Дима':[['03 июня','[[Дима]] прислал договор — проверить']],
+  FIRE:[['10 июня','довнёс €1 200 в [[Портфель]]']],
+  'Падл':[['15 июня','записался в лигу']], 'Мама':[],
+};
+let curPage='Belgravia';
+const NAMES=Object.keys(NODES);
+const hl=s=>s.replace(/\[\[([^\]]+)\]\]/g,'<span class="wl" data-l="$1">$1</span>');
+
+function renderDaily(){
+  document.getElementById('dailylog').innerHTML=LOG.map((l,i)=>
+    `<div class="ln"><span class="bullet">${l.todo?(l.done?'☑':'☐'):'•'}</span>
+      <span class="${l.done?'done':''}">${hl(l.txt)}</span></div>`).join('');
+  document.querySelectorAll('#dailylog .wl').forEach(w=>w.onclick=()=>selPage(w.dataset.l));
+  // селектор страниц = все упомянутые узлы
+  const mentioned=[...new Set([...Object.keys(SEED),...LOG.flatMap(l=>[...l.txt.matchAll(/\[\[([^\]]+)\]\]/g)].map(m=>m[1]))])];
+  document.getElementById('pagesel').innerHTML=mentioned.map(p=>
+    `<span class="chip ${p===curPage?'on':''}" data-p="${p}">${p}</span>`).join('');
+  renderLref();
+}
+function renderLref(){
+  const fromLog=LOG.map((l,idx)=>({src:'сегодня · 17 июня',q:l.txt,fresh:l._fresh}))
+    .filter(r=>new RegExp('\\[\\['+curPage.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\]\\]').test(r.q));
+  const rows=[...(SEED[curPage]||[]).map(([src,q])=>({src,q})),...fromLog];
+  document.getElementById('lrefbody').innerHTML=
+    `<div class="muted" style="font-size:12px;margin-bottom:4px">Собрано автоматически из всех дней — ничего не копировал вручную:</div>`+
+    (rows.length?rows.map(r=>`<div class="src">${r.src}</div>
+       <div class="q">${r.q.replace(/\[\[([^\]]+)\]\]/g,(m,n)=>n===curPage?`<span class="new">${n}</span>`:`<b style="color:var(--green)">${n}</b>`)}</div>`).join('')
+      :'<div class="muted" style="font-size:13px">упоминаний пока нет</div>');
+}
+function selPage(p){curPage=p;document.querySelectorAll('#pagesel .chip').forEach(c=>c.classList.toggle('on',c.dataset.p===p));renderLref();
+  document.querySelectorAll('#pagesel .chip').forEach(c=>{if(c.dataset.p===p)c.scrollIntoView({block:'nearest'});});}
+document.getElementById('pagesel').addEventListener('click',e=>{const c=e.target.closest('.chip');if(c)selPage(c.dataset.p);});
+
+// капча + автодополнение [[
+const capin=document.getElementById('capin'), acpop=document.getElementById('acpop');
+let acItems=[], acK=-1;
+function openAc(q){
+  const matches=NAMES.filter(n=>n.toLowerCase().includes(q.toLowerCase())).slice(0,6);
+  acItems=[...matches, q?('＋ создать «'+q+'»'):null].filter(Boolean);
+  acK=0;
+  acpop.innerHTML=acItems.map((m,i)=>{
+    const known=NODES[m];
+    return `<div class="${i===0?'k':''}" data-i="${i}">${known?`<span class="pill ${known.type}">${TYPE_RU[known.type]}</span>`:'<span class="pill">новый</span>'} ${m}</div>`;
+  }).join('');
+  acpop.style.display='block';
+}
+function closeAc(){acpop.style.display='none';acItems=[];acK=-1;}
+function applyAc(i){
+  const pick=acItems[i]; if(!pick)return;
+  const name=pick.startsWith('＋ создать')?pick.replace(/^＋ создать «(.+)»$/,'$1'):pick;
+  capin.value=capin.value.replace(/\[\[[^\]]*$/,'[['+name+']] ');
+  closeAc(); capin.focus();
+}
+capin.addEventListener('input',()=>{
+  const m=capin.value.match(/\[\[([^\]]*)$/);   // открытая, незакрытая [[…
+  if(m)openAc(m[1]); else closeAc();
+});
+capin.addEventListener('keydown',e=>{
+  if(acpop.style.display==='block'){
+    if(e.key==='ArrowDown'){e.preventDefault();acK=(acK+1)%acItems.length;}
+    else if(e.key==='ArrowUp'){e.preventDefault();acK=(acK-1+acItems.length)%acItems.length;}
+    else if(e.key==='Enter'||e.key==='Tab'){e.preventDefault();applyAc(acK);return;}
+    else if(e.key==='Escape'){closeAc();return;}
+    acpop.querySelectorAll('div').forEach((d,i)=>d.classList.toggle('k',i===acK));
+    return;
+  }
+  if(e.key==='Enter'&&capin.value.trim()){
+    const txt=capin.value.trim();
+    const todo=/^(☐|\[\s?\]|todo|надо|сделать)/i.test(txt);
+    LOG.push({txt:txt.replace(/^(☐|\[\s?\])\s*/,''),todo,done:false,_fresh:true});
+    capin.value='';
+    // если строка упоминает текущую страницу — она тут же появится справа
+    const lastMention=[...txt.matchAll(/\[\[([^\]]+)\]\]/g)].map(m=>m[1]);
+    renderDaily(); if(lastMention.length)selPage(lastMention[lastMention.length-1]);
+  }
+});
+acpop.addEventListener('click',e=>{const d=e.target.closest('[data-i]');if(d)applyAc(+d.dataset.i);});
+renderDaily();
 </script>
 </body>
 </html>
