@@ -49,6 +49,7 @@ struct WebView {
             sync.onStatus = { [weak self] s in
                 let esc = s.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "'", with: "\\'")
                 self?.webView?.evaluateJavaScript("window.pbSync&&window.pbSync('\(esc)')", completionHandler: nil)
+                if s.contains("✓") { self?.pushState() }   // обмен прошёл → сразу обновить «пара установлена»/авто
             }
         }
 
