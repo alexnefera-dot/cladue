@@ -262,6 +262,31 @@
   .ev { font-size: 10.5px; padding: 2px 4px; line-height: 1.25; }
   .calhead { gap: 8px; flex-wrap: wrap; }
 
+  /* ====================================================================
+     ДАШБОРД «Сегодня»: сводка чипами, чек-ин, действия в одну колонку
+     ==================================================================== */
+  .tdchips { display: flex; gap: 8px; margin-bottom: 12px; }
+  .tdchip {
+    flex: 1 1 0; min-width: 0; text-align: center; padding: 10px 6px;
+    border: 1px solid var(--line); border-radius: 13px; background: var(--panel);
+  }
+  .tdchip b { display: block; font: 700 21px var(--mono); line-height: 1.1; }
+  .tdchip span { font-size: 11px; color: var(--muted); display: block; margin-top: 2px; }
+  .tdchip.red { border-color: var(--red); background: rgba(204, 68, 68, .06); }
+  .tdchip.red b { color: var(--red); }
+
+  /* чек-ин дня — заметная карточка-действие (10 секунд) */
+  .tdcheck {
+    display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+    border: 1px solid var(--line); border-radius: 14px; background: var(--bg2);
+  }
+  .tdcheck .tdc-q { flex: 1; font-size: 15px; font-weight: 600; }
+  .tdcheck .tdc-moods { display: flex; gap: 8px; }
+  .tdcheck .tdc-moods .pill.btn { font-size: 19px; min-height: 42px; padding: 6px 12px; }
+  .tdcheck.done { cursor: pointer; }
+  .tdcheck .tdc-mood { font-size: 24px; }
+  .tdcheck .tdc-txt { flex: 1; font-size: 15px; }
+
   /* мобильная агенда: список событий по дням вместо тесной сетки */
   .agday { padding: 9px 13px; }
   .agday.today { border-color: var(--green-dim); box-shadow: 0 0 0 1px var(--green-soft), var(--shadow-sm); }

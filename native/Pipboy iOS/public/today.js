@@ -46,7 +46,10 @@ window.preflightTodayOk = async function (id) {
   return !lines.length || confirm(`🛫 Pre-flight «${t.title}»:\n\n${lines.join('\n')}\n\nВсё учтено — закрываем?`);
 };
 
+const tdIsMobile = () => window.matchMedia('(max-width: 768px)').matches;
+
 function renderToday() {
+  if (tdIsMobile()) return renderTodayMobile();
   const d = tdData;
   const dt = new Date(d.date + 'T00:00:00');
   const pct = d.progress.total ? Math.round(d.progress.typed / d.progress.total * 100) : 0;
@@ -138,6 +141,114 @@ function renderToday() {
     </div>
   </div>
   <div class="footer-hint">Отметки синхронизируются со списком, шагами и календарём. Рутины: пропуск не висит долгом — день закрылся и всё.</div>`;
+
+  bindToday();
+}
+
+// ===== Мобильный дашборд: одна колонка, по приоритету действий, крупные тач-таргеты =====
+function renderTodayMobile() {
+  const d = tdData;
+  const dt = new Date(d.date + 'T00:00:00');
+  const pct = d.progress.total ? Math.round(d.progress.typed / d.progress.total * 100) : 0;
+  const rDone = d.routines.filter(r => r.done).length;
+  const moods = ['', '😞', '😐', '🙂'];
+
+  // компактная строка-задача для телефона (крупная зона тапа)
+  const mTask = t => `<div class="task">
+    <span class="cb ${t.kind === 'decision' ? 'dec' : ''}" data-tdtoggle="${t.id}"></span>
+    ${t.priority ? `<span class="pill ${t.priority}">${t.priority}</span>` : ''}
+    <span class="t" data-tdopen="${t.id}">${tesc(t.title)}</span>
+    ${t.repeat ? '<span class="meta">🔁</span>' : ''}
+    ${t.due_date ? `<span class="meta">${t.due_date}</span>` : ''}
+  </div>`;
+
+  const checkin = d.checkin
+    ? `<div class="tdcheck done" id="tdCheckinRedo">
+         <span class="tdc-mood">${moods[d.checkin.mood]}</span>
+         <span class="tdc-txt">${tesc(d.checkin.note) || 'день отмечен'}</span>
+         <span class="meta">изменить</span></div>`
+    : `<div class="tdcheck">
+         <span class="tdc-q">Как день?</span>
+         <span class="tdc-moods">
+           <span class="pill btn" data-tdmood="1">😞</span>
+           <span class="pill btn" data-tdmood="2">😐</span>
+           <span class="pill btn" data-tdmood="3">🙂</span></span></div>`;
+
+  document.getElementById('screen-today').innerHTML = `
+  <h2 style="margin-bottom:2px">Сегодня</h2>
+  <div class="muted" style="margin-bottom:12px">${WD[dt.getDay()]}, ${dt.getDate()} ${MON[dt.getMonth()]}</div>
+
+  <div class="tdchips">
+    <div class="tdchip ${d.overdue.length ? 'red' : ''}"><b>${d.dueToday.length + d.overdue.length}</b><span>дел${d.overdue.length ? ` · ${d.overdue.length} просроч.` : ''}</span></div>
+    <div class="tdchip"><b>${rDone}/${d.routines.length}</b><span>рутины</span></div>
+    <div class="tdchip"><b>${d.movement.total}</b><span>за неделю 👏</span></div>
+  </div>
+
+  ${checkin}
+
+  <div class="addbar" style="margin:14px 0 6px">
+    <input id="tdQuick" placeholder="＋ Быстро в Инбокс — мысль, задача, что угодно">
+    <span class="pill btn" id="tdRoll" title="случайная идея из твоих списков">🎲 идея</span>
+  </div>
+  <div id="tdRollBox" style="margin:0 0 8px"></div>
+
+  ${d.overdue.length ? `<div class="sec" style="color:var(--red)">⚠ Просрочено</div>
+  <div class="card">${d.overdue.map(mTask).join('')}</div>` : ''}
+
+  <div class="sec">Задачи на сегодня</div>
+  <div class="card">${d.dueToday.map(mTask).join('') ||
+    '<div class="empty">сроков на сегодня нет</div>'}</div>
+
+  <div class="sec">Рутины · ${rDone}/${d.routines.length}</div>
+  <div class="card">
+    ${d.routines.slice(0, 6).map(r => `
+      <div class="task">
+        <span class="cb ${r.done ? 'done' : ''}" data-tdroutine="${r.id}"></span>
+        ${r.time ? `<span class="meta num ${r.due ? 'amber' : ''}">${r.time}</span>` : ''}
+        <span class="t ${r.done ? 'done' : ''}">${tesc(r.name)}</span>
+        ${r.due ? '<span class="pill p1">пора!</span>' : ''}
+        ${r.streak ? `<span class="meta">🔥 ${r.streak}</span>` : ''}
+      </div>`).join('') || '<div class="empty">добавь рутины в разделе ↻</div>'}
+    ${d.routines.length > 6 ? `<div class="meta" style="cursor:pointer;padding-top:6px" data-tdgoto="routines">все ${d.routines.length} →</div>` : ''}</div>
+
+  ${d.events.length ? `<div class="sec">События · сегодня и завтра</div>
+  <div class="card">
+    ${d.events.map(e => `<div class="task">
+      <span class="meta num">${e.date === d.date ? 'сегодня' : 'завтра'}${e.time ? ' ' + e.time : ''}</span>
+      <span class="t">${tesc(e.title)}</span>
+      ${typeof e.id === 'number' ? `<span class="pill btn ok" data-tdevent="${e.id}" data-date="${e.date}" title="прошёл — закрыть">✓</span>` : ''}</div>`).join('')}
+  </div>` : ''}
+
+  ${(d.people.birthdays.length || d.people.overdueContacts.length) ? `<div class="sec">Люди</div>
+  <div class="card">
+    ${d.people.birthdays.map(p => `<div class="task">
+      <span class="t">🎂 ${tesc(p.name)}</span>
+      <span class="meta ${p.days_to_birthday <= 7 ? 'amber' : ''}">${p.days_to_birthday === 0 ? 'СЕГОДНЯ!' : 'через ' + p.days_to_birthday + ' дн'}</span></div>`).join('')}
+    ${d.people.overdueContacts.map(p => `<div class="task">
+      <span class="t amber">☎ ${tesc(p.name)}</span>
+      <span class="pill btn ok" data-tdcontact="${p.id}">связались ✓</span></div>`).join('')}
+  </div>` : ''}
+
+  <div class="sec">Приватные зоны</div>
+  <div class="lockcard" data-tdgoto="fin" style="cursor:pointer">🔒 <div><b>Финансы:</b> платежей на неделе: ${d.zones.paymentsWeek}${d.zones.debtsOverdue ? ` · просрочено долгов: ${d.zones.debtsOverdue}` : ''}<br>
+    <span class="meta">суммы скрыты · клик — открыть</span></div></div>
+  <div class="lockcard" data-tdgoto="psy" style="margin-top:8px;cursor:pointer">🔒 <div><b>Психология:</b> практик сегодня: ${d.zones.practicesToday ?? 0}<br>
+    <span class="meta">детали скрыты · клик — открыть</span></div></div>
+
+  <div class="sec">Фокус месяца · цели недели</div>
+  <div class="card">
+    <div class="task"><span class="t"><span class="ed" id="tdActivity" title="тема месяца">${d.activityMonth ? tesc(d.activityMonth) : '＋ задать тему месяца'}</span></span></div>
+    <div class="task"><span class="t">Недельные цели</span><span class="meta num">${d.weekGoals.done} / ${d.weekGoals.total}</span></div>
+    <div class="bar"><i style="width:${d.weekGoals.total ? d.weekGoals.done / d.weekGoals.total * 100 : 0}%"></i></div>
+    <div class="meta" style="margin-top:6px">разобрано: ${pct}% · инбокс: ${d.inbox}</div>
+  </div>
+
+  ${d.movement.top.length ? `<div class="sec">▲ Движение недели</div>
+  <div class="card">
+    ${d.movement.top.map(([cat, n]) => `<div class="task">
+      <span class="pill ok">⚑ ${tesc(cat)}</span>
+      <span class="t">${n} ${n === 1 ? 'шаг' : 'шага(ов)'}</span></div>`).join('')}
+  </div>` : ''}`;
 
   bindToday();
 }
