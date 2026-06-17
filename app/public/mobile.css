@@ -129,7 +129,12 @@
      ИНФО (заметки): стек, читаемо, удобно править
      ==================================================================== */
   .notes-wrap { flex-direction: column; min-height: auto; border: 0; box-shadow: none; background: transparent; gap: 8px; }
-  /* дерево разделов — компактный список сверху, занимает мало места */
+  /* телефон: разделы — выпадающим списком, редактор на весь экран */
+  .ntpick { display: flex; gap: 8px; align-items: center; width: 100%; }
+  .ntpicksel { flex: 1; height: 46px; border: 1px solid var(--line); border-radius: 11px;
+    background: var(--panel); padding: 0 12px; font-size: 16px; }
+  .ntpick .pill.btn { min-height: 46px; }
+  /* (дерево на телефоне не рендерится — стили ниже остаются для совместимости) */
   .notes-tree {
     width: 100%; flex: 0 0 auto; max-height: 26vh; overflow: auto;
     border: 1px solid var(--line); border-right: 1px solid var(--line); border-radius: 11px;
@@ -196,6 +201,13 @@
   .cal .d .n { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
   .ev { font-size: 10.5px; padding: 2px 4px; line-height: 1.25; }
   .calhead { gap: 8px; flex-wrap: wrap; }
+
+  /* мобильная агенда: список событий по дням вместо тесной сетки */
+  .agday { padding: 9px 13px; }
+  .agday.today { border-color: var(--green-dim); box-shadow: 0 0 0 1px var(--green-soft), var(--shadow-sm); }
+  .agdate { font: 700 12px var(--mono); color: var(--green); letter-spacing: .4px; margin-bottom: 4px; }
+  .agday .task { min-height: 40px; }
+  .agday .task:last-child { border-bottom: 0; }
 }
 
 /* ---------- полировка ---------- */

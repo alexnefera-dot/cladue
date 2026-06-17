@@ -242,6 +242,28 @@ function ntTree() {
   return (byP['root'] ?? []).map(p => walk(p, 0)).join('');
 }
 
+const ntMobile = () => window.matchMedia('(max-width: 768px)').matches;
+
+// плоский список страниц с глубиной — для выпадающего выбора на телефоне
+function ntFlat() {
+  const byP = {};
+  ntPages.forEach(p => (byP[p.parent_id ?? 'root'] ??= []).push(p));
+  const out = [];
+  const walk = (p, depth) => { out.push({ ...p, depth }); (byP[p.id] ?? []).forEach(k => walk(k, depth + 1)); };
+  (byP['root'] ?? []).forEach(p => walk(p, 0));
+  return out;
+}
+
+// телефон: разделы — выпадающим списком, редактор на весь экран
+function ntPickerMobile() {
+  const flat = ntFlat();
+  const opts = flat.map(p => `<option value="${p.id}"${ntSel === p.id ? ' selected' : ''}>${'　'.repeat(p.depth)}${p.locked ? '🔒 ' : ''}${nesc(p.title)}</option>`).join('');
+  return `<div class="ntpick">
+    <select id="ntPick" class="ntpicksel">${flat.length ? opts : '<option value="">страниц нет</option>'}</select>
+    <span class="pill btn ok" id="ntAddRoot" title="новая страница">＋ стр.</span>
+  </div>`;
+}
+
 const TOOLBAR = [
   ['h2', 'Заголовок', () => document.execCommand('formatBlock', false, 'h2')],
   ['h3', 'Подзаголовок', () => document.execCommand('formatBlock', false, 'h3')],
@@ -269,10 +291,10 @@ async function renderNotes() {
   const back = page && !needPw ? await ntApi.backlinks(page.id) : [];
   document.getElementById('screen-notes').innerHTML = `
   <div class="notes-wrap">
-    <div class="notes-tree">
+    ${ntMobile() ? ntPickerMobile() : `<div class="notes-tree">
       ${ntTree() || '<div class="empty">страниц нет</div>'}
       <div class="ntitem" style="color:var(--green)" id="ntAddRoot">＋ Новая страница</div>
-    </div>
+    </div>`}
     <div class="editor">
       ${!page ? `<div class="muted">Выбери страницу слева или создай новую.<br><br>
           В редакторе — панель оформления как в Ворде; <b>[[Название]]</b> — ссылка на страницу или запись.
@@ -355,6 +377,9 @@ function bindNtDnd() {
 function bindNotes(page) {
   const $ = id => document.getElementById(id);
   bindNtDnd();
+  $('ntPick')?.addEventListener('change', async e => {   // телефон: выбор раздела из списка
+    await flushNotes(); ntSel = +e.target.value || null; ntEditing = false; renderNotes();
+  });
   document.querySelectorAll('#screen-notes [data-ntfold]').forEach(el =>
     el.addEventListener('click', e => {
       e.stopPropagation();

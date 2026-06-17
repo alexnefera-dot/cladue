@@ -14,7 +14,39 @@ const calApi = {
 const cesc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const cfmt = n => n == null ? '' : Math.round(n).toLocaleString('ru-RU');
 const MONTHS_RU = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+const MONTHS_SHORT = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+const WD_SHORT = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
 const TYPE_CLS = { task: 'ev-task', money: 'ev-money', step: 'ev-step', event: 'ev-cal', practice: 'ev-psy' };
+const calIsMobile = () => window.matchMedia('(max-width: 768px)').matches;
+
+// одна строка ленты/повестки (переиспользуется в десктоп-повестке и мобильной агенде)
+function calRow(it) {
+  const label = { task: it.kind === 'decision' ? 'решение' : 'задача', money: it.okind === 'subscription' ? 'подписка' : 'платёж',
+    step: 'шаг', event: it.recur === 'yearly' ? '🎂/год' : 'событие', practice: '◎ практика' }[it.type];
+  return `<div class="task">
+    <span class="meta num" style="min-width:64px">${it.date.slice(5)}${it.time ? ' ' + it.time : ''}</span>
+    ${it.type === 'task' ? `<span class="cb ${it.done ? 'done' : ''}" data-caltoggle="${it.id}"></span>` : ''}
+    <span class="pill ${it.type === 'money' ? 'p1' : it.type === 'task' ? 'ok' : it.type === 'step' ? 'p2' : ''}">${label}</span>
+    <span class="t ${it.done ? 'done' : ''}" ${it.type === 'task' ? `data-nid="${it.id}" style="cursor:pointer" title="открыть карточку"` : ''}>${cesc(it.title)}</span>
+    ${it.amount ? `<span class="meta num">${cfmt(it.amount)} ${cesc(it.currency ?? '€')}</span>` : ''}
+    ${it.type === 'money' ? `<span class="pill btn ok" data-calpay="${it.id}" title="оплачено">✓</span>` : ''}
+    ${it.type === 'event' && !it.bday ? `<span class="rowbtn del" data-evdel="${it.id}">✕</span>` : ''}
+  </div>`;
+}
+
+// мобильная агенда: события видимого месяца, сгруппированы по дням
+function calAgenda(byDate, today) {
+  const days = Object.keys(byDate).sort();
+  if (!days.length) return '<div class="card"><div class="empty">в этом месяце событий нет — добавь ниже</div></div>';
+  return days.map(date => {
+    const d = new Date(date + 'T00:00:00');
+    const isToday = date === today;
+    return `<div class="card agday${isToday ? ' today' : ''}">
+      <div class="agdate">${d.getDate()} ${MONTHS_SHORT[d.getMonth()]} · ${WD_SHORT[d.getDay()]}${isToday ? ' · сегодня' : ''}</div>
+      ${byDate[date].map(calRow).join('')}
+    </div>`;
+  }).join('');
+}
 
 window.loadCal = async function () {
   calData = await calApi.month(calMonth);
@@ -59,6 +91,7 @@ function renderCal() {
 
   // повестка: ближайшие 2 недели от сегодня (внутри месяца)
   const horizon = calData.items.filter(it => it.date >= today).slice(0, 25);
+  const mobile = calIsMobile();
 
   document.getElementById('screen-cal').innerHTML = `
   <div class="calhead">
@@ -68,10 +101,10 @@ function renderCal() {
     <span class="pill btn" id="calToday">сегодня</span>
     <span class="meta">лента: дедлайны задач · платежи · шаги портфеля · события</span>
   </div>
-  <div class="cal">
+  ${mobile ? calAgenda(byDate, today) : `<div class="cal">
     ${['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map(d => `<div class="h">${d}</div>`).join('')}
     ${cells}
-  </div>
+  </div>`}
 
   <div class="sec">＋ Событие (ДР, встреча, напоминание)</div>
   <div class="card"><div class="task finadd">
@@ -82,20 +115,10 @@ function renderCal() {
     <span class="pill btn ok" id="evAdd">＋</span>
   </div></div>
 
-  <div class="sec">Повестка · ближайшее</div>
+  ${mobile ? '' : `<div class="sec">Повестка · ближайшее</div>
   <div class="card">
-    ${horizon.map(it => `
-      <div class="task">
-        <span class="meta num" style="min-width:78px">${it.date.slice(5)}${it.time ? ' ' + it.time : ''}</span>
-        ${it.type === 'task' ? `<span class="cb ${it.done ? 'done' : ''}" data-caltoggle="${it.id}"></span>` : ''}
-        <span class="pill ${it.type === 'money' ? 'p1' : it.type === 'task' ? 'ok' : it.type === 'step' ? 'p2' : ''}">${
-          { task: it.kind === 'decision' ? 'решение' : 'задача', money: it.okind === 'subscription' ? 'подписка' : 'платёж', step: 'шаг', event: it.recur === 'yearly' ? '🎂/год' : 'событие', practice: '◎ практика' }[it.type]}</span>
-        <span class="t ${it.done ? 'done' : ''}" ${it.type === 'task' ? `data-nid="${it.id}" style="cursor:pointer" title="открыть карточку"` : ''}>${cesc(it.title)}</span>
-        ${it.amount ? `<span class="meta num">${cfmt(it.amount)} ${cesc(it.currency ?? '€')}</span>` : ''}
-        ${it.type === 'money' ? `<span class="pill btn ok" data-calpay="${it.id}" title="оплачено">✓</span>` : ''}
-        ${it.type === 'event' && !it.bday ? `<span class="rowbtn del" data-evdel="${it.id}">✕</span>` : ''}
-      </div>`).join('') || '<div class="empty">впереди пусто — добавь событие или поставь сроки задачам</div>'}
-  </div>
+    ${horizon.map(calRow).join('') || '<div class="empty">впереди пусто — добавь событие или поставь сроки задачам</div>'}
+  </div>`}
   <div class="footer-hint">Клик по задаче — её карточка в списке. «✓» у задачи в повестке — выполнено (отметка уйдёт в список и цель). Платёж «✓» — сдвинуть на период.</div>`;
   bindCal();
 }
