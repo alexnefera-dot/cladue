@@ -81,8 +81,15 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
     // прилетевший по Wi-Fi (свежее бандла), иначе вшитый в бандл.
     static var webRoot: URL {
         #if os(macOS)
-        return FileManager.default.homeDirectoryForCurrentUser
+        // dev: живой клон на диске (правки видны сразу, обновляется git pull)
+        let dev = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Downloads/cladue/app/public", isDirectory: true)
+        if FileManager.default.fileExists(atPath: dev.appendingPathComponent("index.html").path) { return dev }
+        // упаковано: фронт из бандла .app (public/ как folder reference) — .app самодостаточен
+        let res = Bundle.main.resourceURL ?? Bundle.main.bundleURL
+        let withPublic = res.appendingPathComponent("public", isDirectory: true)
+        if FileManager.default.fileExists(atPath: withPublic.appendingPathComponent("index.html").path) { return withPublic }
+        return res
         #else
         if let o = webOverrideDir { return o }   // фронт, полученный по синхрону
         // в бандле фронт может лежать как папка public/ (folder reference) или плоско (group)
