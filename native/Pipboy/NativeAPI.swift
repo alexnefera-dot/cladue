@@ -2737,6 +2737,12 @@ final class SyncService: ObservableObject {
         #endif
     }
     func autoStop() { autoTimer?.invalidate(); autoTimer = nil; stop() }
+    // Сбросить пару: следующий синхрон снова потребует сверки кода (смена/потеря устройства, тест).
+    func unpair() {
+        SyncTrust.trustedPeer = nil
+        autoStop()
+        say("пара сброшена — при следующей связке сверишь код заново")
+    }
     private func autoSyncNow() {
         guard SyncTrust.paired, SyncTrust.autoEnabled, !busy, Date().timeIntervalSince(lastDone) > 15 else { return }
         autoMode = true; browseRetries = 0; startBrowse()

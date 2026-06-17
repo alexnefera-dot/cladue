@@ -76,6 +76,8 @@ struct WebView {
                 #endif
             case "confirmSas":                        // пользователь сверил код первой связки
                 sync.confirmSas(body?["ok"] as? Bool ?? false)
+            case "unpair": sync.unpair(); pushState()
+
             case "stop": sync.stop(); sync.onStatus?("остановлено")
             case "auto":
                 let on = body?["on"] as? Bool ?? true

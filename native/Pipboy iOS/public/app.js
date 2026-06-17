@@ -1025,6 +1025,7 @@ window.loadSettings = async function () {
         <span class="pill btn" id="syncAuto" data-on="1">авто-синхрон: …</span>
         <span class="pill btn ok" id="syncNow">синхронизировать сейчас</span>
         <span class="pill btn danger" id="syncStop">стоп</span>
+        <span class="pill btn" id="syncUnpair" title="забыть устройство — следующая связка снова потребует сверки кода">разорвать пару</span>
       </div>
       <div class="meta" id="syncPair"></div>
       <div id="syncSasBox" style="display:none"></div>
@@ -1107,6 +1108,10 @@ window.loadSettings = async function () {
   if (syncBridge) {
     box.querySelector('#syncNow')?.addEventListener('click', () => syncBridge.postMessage({ action: 'sync' }));
     box.querySelector('#syncStop')?.addEventListener('click', () => syncBridge.postMessage({ action: 'stop' }));
+    box.querySelector('#syncUnpair')?.addEventListener('click', () => {
+      if (confirm('Разорвать пару? Данные останутся на месте; при следующей связке нужно будет заново сверить код на обоих устройствах.'))
+        syncBridge.postMessage({ action: 'unpair' });
+    });
     box.querySelector('#syncAuto')?.addEventListener('click', () => {
       const turnOn = document.getElementById('syncAuto').dataset.on !== '1';   // тумблер
       syncBridge.postMessage({ action: 'auto', on: turnOn });
