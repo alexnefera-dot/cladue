@@ -145,8 +145,8 @@ final class Database {
           is_category INTEGER NOT NULL DEFAULT 0,
           kind TEXT, status TEXT, priority TEXT, due_date TEXT,
           answer TEXT, "repeat" TEXT, due_time TEXT,
-          created_at TEXT NOT NULL DEFAULT (datetime('now')),
-          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+          created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
         );
         CREATE TABLE IF NOT EXISTS links(
           id INTEGER PRIMARY KEY,
@@ -254,8 +254,8 @@ final class Database {
           parent_id INTEGER REFERENCES pages(id) ON DELETE CASCADE,
           ord INTEGER NOT NULL DEFAULT 0, title TEXT NOT NULL,
           content TEXT NOT NULL DEFAULT '', node_id INTEGER,
-          created_at TEXT NOT NULL DEFAULT (datetime('now')),
-          updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+          created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
           locked INTEGER NOT NULL DEFAULT 0, enc TEXT
         );
         CREATE TABLE IF NOT EXISTS page_revisions(

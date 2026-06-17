@@ -15,7 +15,7 @@ const psyApi = {
   workDel: id => fetch('/api/psy/worklog/' + id, { method: 'DELETE' }),
 };
 
-const pesc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const pesc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const KINDP = { schedule: ['расписание', 'ok'], technique: ['техника', 'p2'], checklist: ['чеклист', 'p1'] };
 const DAYSL = { daily: 'каждый день', workdays: 'раб. дни' };
 const PSY_WD = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];

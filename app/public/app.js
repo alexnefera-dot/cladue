@@ -46,7 +46,7 @@ const api = {
   search: q => fetch('/api/search?q=' + encodeURIComponent(q)).then(r => r.json()),
 };
 
-function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
 async function load() {
   state = await api.tree();

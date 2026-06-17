@@ -2484,7 +2484,7 @@ enum Api {
                 try db.run("DELETE FROM \(t)")
                 guard let rows = tables[t] as? [[String: Any]] else { continue }
                 for row in rows {
-                    let cols = Array(row.keys)
+                    let cols = knownKeys(db, t, row)
                     guard !cols.isEmpty else { continue }
                     let colList = cols.map { "\"\($0)\"" }.joined(separator: ",")
                     let marks = cols.map { _ in "?" }.joined(separator: ",")
@@ -2505,7 +2505,7 @@ enum Api {
     // Двусторонний merge: вставка новых, LWW по updated_at для существующих,
     // применение tombstones (удаления). Перед слиянием — авто-бэкап базы.
     @discardableResult
-    static func syncApplyMerge(_ db: Database, _ snapshot: [String: Any]) throws -> Int {
+    static func syncApplyMerge(_ db: Database, _ snapshot: [String: Any], applyWeb: Bool = true) throws -> Int {
         ensureSyncSchema(db)
         backupDB()
         guard let tables = snapshot["tables"] as? [String: Any] else { throw Unsupported(path: "плохой снимок") }
@@ -2552,7 +2552,7 @@ enum Api {
             for t in syncUnion {
                 guard let rows = tables[t] as? [[String: Any]] else { continue }
                 for row in rows {
-                    let cols = Array(row.keys); guard !cols.isEmpty else { continue }
+                    let cols = knownKeys(db, t, row); guard !cols.isEmpty else { continue }
                     let colList = cols.map { "\"\($0)\"" }.joined(separator: ",")
                     let marks = cols.map { _ in "?" }.joined(separator: ",")
                     let vals: [Any?] = cols.map { c in let v = row[c]; return (v is NSNull) ? nil : v }
@@ -2565,16 +2565,36 @@ enum Api {
             try? db.run("ROLLBACK")
             throw error
         }
-        if let web = snapshot["web"] as? [String: String], !web.isEmpty { try? applyFrontend(web) }
+        // фронт принимаем ТОЛЬКО от уже доверенного устройства: не давать незнакомому пиру
+        // в окне первой связки подменить веб-интерфейс (= исполнение кода в WebView)
+        if applyWeb, let web = snapshot["web"] as? [String: String], !web.isEmpty { try? applyFrontend(web) }
         return changed
     }
 
     // Вставка/обновление строки целиком из словаря (updated_at берём из строки, чтобы
     // НЕ сработал touch-триггер и сохранилось время отправителя).
+    // Реальные колонки таблицы (кэш). Имя таблицы — из жёстких списков syncKeyed/syncUnion/syncTables,
+    // не из входящих данных, поэтому интерполяция в PRAGMA безопасна.
+    private static var colCache: [String: Set<String>] = [:]
+    private static func tableColumns(_ db: Database, _ t: String) -> Set<String> {
+        if let c = colCache[t] { return c }
+        let names = (try? db.rows("PRAGMA table_info(\(t))"))?.compactMap { $0["name"] as? String } ?? []
+        let set = Set(names)
+        if !set.isEmpty { colCache[t] = set }
+        return set
+    }
+    // Отбрасываем пришедшие от пира колонки, которых нет в нашей схеме (битая/другой версии строка
+    // не должна валить всю транзакцию слияния; неизвестные поля просто игнорируем).
+    private static func knownKeys(_ db: Database, _ t: String, _ row: [String: Any]) -> [String] {
+        let known = tableColumns(db, t)
+        let cols = Array(row.keys)
+        return known.isEmpty ? cols : cols.filter { known.contains($0) }
+    }
+
     private static func upsertRow(_ db: Database, _ t: String, _ row: [String: Any], replaceKey: Bool?, keyCol: String, rk: Any) throws {
         var r = row
         if r["updated_at"] == nil || r["updated_at"] is NSNull { r["updated_at"] = isoNow() }
-        let cols = Array(r.keys); guard !cols.isEmpty else { return }
+        let cols = knownKeys(db, t, r); guard !cols.isEmpty, cols.contains(keyCol) else { return }
         let vals: [Any?] = cols.map { c in let v = r[c]; return (v is NSNull) ? nil : v }
         if replaceKey == true {
             let sets = cols.map { "\"\($0)\" = ?" }.joined(separator: ", ")
@@ -2916,7 +2936,9 @@ final class SyncService: ObservableObject {
                 guard let snap = try JSONSerialization.jsonObject(with: plain) as? [String: Any] else {
                     throw Api.Unsupported(path: "плохой снимок") }
                 guard let k = KeyHolder.shared.key else { throw Database.Failure.open(0) }
-                let changed = try Api.syncApplyMerge(try Database(key: k), snap)
+                // фронт берём только от уже доверенного пира (после первой сверки кода)
+                let trusted = SyncTrust.isTrusted(self.pendingPeer ?? Data())
+                let changed = try Api.syncApplyMerge(try Database(key: k), snap, applyWeb: trusted)
                 // дёргаем экран ТОЛЬКО если реально что-то изменилось (иначе фоновый синхрон незаметен)
                 DispatchQueue.main.async { if changed > 0 { self.appliedCount += 1 }; then(true) }
             } catch {
@@ -2934,10 +2956,13 @@ final class SyncService: ObservableObject {
             DispatchQueue.main.async { done(err == nil) } })
     }
 
+    private static let maxFrame = 256 * 1024 * 1024   // потолок кадра: персональный снимок сильно меньше; защита от OOM-кадра от пира в сети
+
     private func recv(_ conn: NWConnection, done: @escaping (Data?) -> Void) {
         conn.receive(minimumIncompleteLength: 4, maximumLength: 4) { hdr, _, _, err in
             guard let hdr, hdr.count == 4, err == nil else { DispatchQueue.main.async { done(nil) }; return }
             let n = hdr.reduce(0) { ($0 << 8) | Int($1) }
+            guard n >= 0, n <= Self.maxFrame else { DispatchQueue.main.async { done(nil) }; return }   // заявлена несуразная длина → рвём
             self.recvExactly(conn, n, Data(), done)
         }
     }

@@ -26,7 +26,7 @@ const finApi = {
 
 const fmt = n => n == null ? '—' : Math.round(n).toLocaleString('ru-RU');
 const fmtE = n => n == null ? '—' : fmt(n) + ' €';
-const fesc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fesc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const parseNum = s => {
   let t = String(s).trim().toLowerCase().replace(/\s/g, '').replace(',', '.');
   let mul = 1;

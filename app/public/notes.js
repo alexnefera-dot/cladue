@@ -17,7 +17,7 @@ const ntApi = {
   unlock: (id, b) => fetch(`/api/pages/${id}/unlock`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json()),
 };
 
-const nesc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const nesc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // ===== markdown → HTML =====
 function mdRender(src) {
@@ -86,7 +86,8 @@ function htmlToMd(root) {
       else if (tag === 'U') s += '<u>' + inline(n) + '</u>';
       else if (tag === 'CODE') s += '`' + inline(n) + '`';
       else if (tag === 'A') {
-        const href = n.getAttribute('href');
+        let href = n.getAttribute('href');
+        if (href && /^\s*(javascript|data|vbscript):/i.test(href)) href = null;   // не тащим опасные схемы в markdown
         const txt = inline(n).trim();
         s += n.dataset?.wiki ? `[[${n.dataset.wiki}]]`
           : href && txt && txt !== href ? `[${txt}](${href})`

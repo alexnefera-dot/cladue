@@ -11,7 +11,7 @@ const lfApi = {
   pDel: id => fetch('/api/people/' + id, { method: 'DELETE' }),
   pContact: id => fetch(`/api/people/${id}/contacted`, { method: 'POST' }),
 };
-const lesc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const lesc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const SLOTS = ['утро', 'день', 'вечер'];
 
 // ===== Рутины =====
