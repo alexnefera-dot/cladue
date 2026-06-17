@@ -177,9 +177,11 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .mdview code{background:var(--bg2);border-radius:4px;padding:1px 5px;font:12.5px var(--mono)}
 .mdview .mdgap{height:8px}
 .wiki{color:var(--green);border-bottom:1px dashed var(--green-dim);cursor:pointer}
-.nttoolbar{display:flex;gap:5px;align-items:center;flex-wrap:wrap;padding:4px 0;margin-bottom:6px;
-  opacity:.45;transition:opacity .15s}
-.editor:hover .nttoolbar,.editor:focus-within .nttoolbar{opacity:1}
+/* панель оформления скрыта, пока не начал править текст (фокус в редакторе) */
+.nttoolbar{display:flex;gap:5px;align-items:center;flex-wrap:wrap;
+  max-height:0;opacity:0;overflow:hidden;margin:0;padding:0;
+  transition:max-height .18s ease,opacity .15s,margin .18s,padding .18s}
+.editor:focus-within .nttoolbar{max-height:84px;opacity:1;margin-bottom:6px;padding:4px 0}
 .ntb{min-width:30px;text-align:center}
 .richedit{border:1px solid transparent;border-radius:8px;padding:10px 12px;margin-left:-12px;min-height:420px;outline:none;background:transparent}
 .richedit:focus{border-color:var(--line);box-shadow:none}

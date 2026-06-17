@@ -149,7 +149,10 @@
   /* ====================================================================
      ИНФО (заметки): стек, читаемо, удобно править
      ==================================================================== */
-  .notes-wrap { flex-direction: column; min-height: auto; border: 0; box-shadow: none; background: transparent; gap: 8px; }
+  /* единый скролл — вся страница Инфо; без вложенных областей прокрутки, иначе
+     редактор «зацепляет» жест и страница не листается */
+  .notes-wrap { flex-direction: column; min-height: auto; border: 0; box-shadow: none; background: transparent; gap: 8px; overflow: visible; }
+  .editor { overflow: visible; }
   /* телефон: разделы — выпадающим списком, редактор на весь экран */
   .ntpick { display: flex; gap: 8px; align-items: center; width: 100%; }
   .ntpicksel { flex: 1; height: 46px; border: 1px solid var(--line); border-radius: 11px;
@@ -176,11 +179,13 @@
   #ntView, .mdview { font-size: 16px; line-height: 1.7; min-height: 50vh; }
   .mdview h2 { font-size: 22px; } .mdview h3 { font-size: 18px; } .mdview h4 { font-size: 16px; }
   .mdview ul, .mdview ol { margin-left: 20px; }
-  /* тулбар форматирования — всегда видимый, липкий сверху, крупные кнопки */
+  /* тулбар форматирования: появляется при правке (фокус в редакторе), липкий сверху,
+     прокручивается вбок; крупные кнопки */
   .nttoolbar {
-    opacity: 1 !important; position: sticky; top: 0; z-index: 5;
-    background: var(--bg); gap: 5px; padding: 8px 0; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    position: sticky; top: 0; z-index: 5; flex-wrap: nowrap;
+    background: var(--bg); gap: 5px; overflow-x: auto; -webkit-overflow-scrolling: touch;
   }
+  .editor:focus-within .nttoolbar { max-height: 56px; padding: 8px 0; }
   .nttoolbar::-webkit-scrollbar { display: none; }
   .ntb {
     min-width: 42px; min-height: 40px; font-size: 16px; flex: 0 0 auto;
@@ -217,12 +222,22 @@
   .fintable, .porttable, .diary { font-size: 14px; }
   .fintable td, .porttable td, .diary td { padding: 10px 8px; }
 
-  /* финансы: длинные строки (счета/долги/обязательства/расходы) переносят хвост
-     на вторую строку вместо горизонтального скролла; сумма прижата вправо */
-  #screen-fin .card .task { flex-wrap: wrap; row-gap: 5px; }
-  #screen-fin .card .task > .num,
-  #screen-fin .card .task > .ed.num { margin-left: auto; }
-  #screen-fin .card .task.finadd > .num { margin-left: 0; }
+  /* финансы: строки счетов/долгов/расходов/обязательств — двухстрочной карточкой
+     (имя + сумма сверху, метки и кнопки снизу) вместо сжатия в одну линию */
+  .frow { padding: 9px 4px; border-bottom: 1px solid var(--bg2); }
+  .frow:last-child { border-bottom: 0; }
+  .fr-top { display: flex; align-items: baseline; gap: 8px; }
+  .fr-name { flex: 1; min-width: 0; font-size: 15px; line-height: 1.3; }
+  .fr-name.done { color: var(--muted); text-decoration: line-through; }
+  .fr-amt { flex: 0 0 auto; font: 600 15px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .fr-amt.down { color: var(--red); } .fr-amt.up { color: var(--green); }
+  .fr-bot { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; margin-top: 5px; }
+  .fr-bot:empty { display: none; }
+  .fr-bot .meta { font-size: 12px; }
+  .fr-bot .ed.meta { border-bottom: 1px dashed var(--line); }
+  .fr-act { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+  .fr-act .rowbtn { opacity: 1 !important; font-size: 15px; padding: 4px 7px; }
+  .frow .cb { flex: 0 0 auto; }
   .ratesbar { gap: 10px 16px; font-size: 13px; padding: 10px 14px; }
   .bignum { font-size: 22px; }
 

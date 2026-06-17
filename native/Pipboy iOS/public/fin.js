@@ -113,6 +113,15 @@ function portRows(it, depth, ctx) {
 
 const finIsMobile = () => window.matchMedia('(max-width: 768px)').matches;
 
+// телефон: строка финансов двухстрочной карточкой — имя и сумма сверху, метки/кнопки снизу.
+// Внутренние span'ы (с data-fe / data-*) переезжают как есть, поэтому биндинги не трогаем.
+function fRow({ lead = '', name, amount = '', meta = '', actions = '', cls = '' }) {
+  return `<div class="frow ${cls}">
+    <div class="fr-top">${lead}<span class="fr-name${cls.includes('done') ? ' done' : ''}">${name}</span>${amount ? `<span class="fr-amt">${amount}</span>` : ''}</div>
+    ${meta || actions ? `<div class="fr-bot">${meta}${actions ? `<span class="fr-act">${actions}</span>` : ''}</div>` : ''}
+  </div>`;
+}
+
 // телефон: портфель карточками в столбик вместо широкой таблицы (data-* те же — биндинги работают)
 function portCard(it, depth, ctx) {
   const target = finTab === 'target';
@@ -244,7 +253,14 @@ function secAccounts(d) {
   return `
   <div class="sec">Счета · название и баланс правятся кликом</div>
   <div class="card">
-    ${d.accounts.map(a => `
+    ${d.accounts.map(a => finIsMobile() ? fRow({
+        lead: `<span class="pill">${ACCT[a.type] ?? a.type}</span>`,
+        name: `<span class="ed" data-fe="accounts:${a.id}:name:text">${fesc(a.name)}</span>`,
+        amount: `<span class="ed" data-fe="accounts:${a.id}:balance:num">${fmt(a.balance)} ${fesc(a.currency)}</span>`,
+        meta: `<span class="ed meta" data-fe="accounts:${a.id}:note:text" title="пометка">${a.note ? '💬 ' + fesc(a.note) : '＋ пометка'}</span>`
+          + (a.stale_days > 21 ? `<span class="meta amber">⚠ ${a.stale_days} дн.</span>` : `<span class="meta">обн. ${a.balance_updated_at.slice(0, 10)}</span>`),
+        actions: `<span class="rowbtn del" data-findel="accounts:${a.id}">✕</span>`,
+      }) : `
       <div class="task">
         <span class="pill">${ACCT[a.type] ?? a.type}</span>
         <span class="t ed" data-fe="accounts:${a.id}:name:text">${fesc(a.name)}</span>
@@ -298,7 +314,16 @@ function renderTx(tx, budget) {
     ${tx.categories.length ? `<div style="padding:8px 0 4px">` + tx.categories.slice(0, 6).map(([cat, sum]) => `
       <div class="kv"><span>${fesc(cat)}</span><b class="num">${fmt(sum)} €</b></div>
       <div class="bar" style="margin:2px 0 6px"><i style="width:${sum / maxCat * 100}%"></i></div>`).join('') + '</div>' : ''}
-    ${tx.rows.slice(0, 15).map(t => `
+    ${tx.rows.slice(0, 15).map(t => finIsMobile() ? fRow({
+        cls: t.direction === 'income' ? 'up' : '',
+        lead: `<span class="pill ${t.direction === 'income' ? 'ok' : 'p1'}">${t.direction === 'income' ? 'доход' : 'расход'}</span>`,
+        name: `<span class="ed" data-fe="tx:${t.id}:note:text">${fesc(t.note) || '—'}</span>`,
+        amount: `<span class="ed ${t.direction === 'income' ? 'up' : 'down'}" data-fe="tx:${t.id}:amount:num">${fmt(t.amount)} ${fesc(t.currency)}</span>`,
+        meta: `<span class="meta num">${t.date.slice(5)}</span>`
+          + `<span class="ed meta" data-fe="tx:${t.id}:category:text">${fesc(t.category)}</span>`
+          + (t.source === 'monefy' ? '<span class="meta">monefy</span>' : ''),
+        actions: `<span class="rowbtn del" data-findel="tx:${t.id}">✕</span>`,
+      }) : `
       <div class="task">
         <span class="meta num">${t.date.slice(5)}</span>
         <span class="pill ${t.direction === 'income' ? 'ok' : 'p1'}">${t.direction === 'income' ? 'доход' : 'расход'}</span>
@@ -325,7 +350,14 @@ function secDebts(d) {
   return `
   <div class="sec">Долги</div>
   <div class="card">
-    ${d.debts.map(x => `
+    ${d.debts.map(x => finIsMobile() ? fRow({
+        lead: `<span class="pill ${x.direction === 'i_owe' ? 'p0' : 'ok'}" data-ddir="${x.id}:${x.direction}" title="клик — поменять направление" style="cursor:pointer">${x.direction === 'i_owe' ? 'я должен' : 'мне должны'}</span>`,
+        name: `<span class="ed" data-fe="debts:${x.id}:name:text">${fesc(x.name)}</span>`,
+        amount: `<span class="ed" data-fe="debts:${x.id}:amount:num">${fmt(x.amount)}</span>`,
+        meta: `<span class="ed meta ${x.overdue_days > 0 ? 'amber' : ''}" data-fe="debts:${x.id}:due_date:date">${x.due_date ?? '+срок'}${x.overdue_days > 0 ? ` · просрочен ${x.overdue_days} дн ⚠` : ''}</span>`
+          + `<span class="pill btn" data-dcur="${x.id}:${x.currency}" title="сменить валюту">${fesc(x.currency)}</span>`,
+        actions: `<span class="rowbtn del" data-findel="debts:${x.id}">✕</span>`,
+      }) : `
       <div class="task">
         <span class="pill ${x.direction === 'i_owe' ? 'p0' : 'ok'}" data-ddir="${x.id}:${x.direction}" title="клик — поменять направление" style="cursor:pointer">${x.direction === 'i_owe' ? 'я должен' : 'мне должны'}</span>
         <span class="t ed" data-fe="debts:${x.id}:name:text">${fesc(x.name)}</span>
@@ -362,6 +394,18 @@ function secPlans(d) {
     ${d.steps.map(st => {
       const [kl, kc] = STEPK[st.kind] ?? [st.kind, ''];
       const done = st.status === 'done';
+      const stepAct = (st.task_id
+        ? `<span class="pill ok btn" data-stepopen="${st.task_id}" title="открыть задачу">↗ в задачах</span>`
+        : !done ? `<span class="pill btn" data-steptask="${st.id}" title="внести в общий список задач">→ задача</span>` : '');
+      if (finIsMobile()) return fRow({
+        cls: done ? 'done' : '',
+        lead: `<span class="cb ${done ? 'done' : ''}" data-stepdone="${st.id}"></span><span class="pill ${kc}">${kl}</span>`,
+        name: `<span class="${done ? 'done' : 'ed'}" ${done ? '' : `data-fe="steps:${st.id}:title:text"`}>${fesc(st.title)}</span>`,
+        amount: `<span class="ed" data-fe="steps:${st.id}:amount:num">${st.amount ? fmt(st.amount) : '+сумма'}</span>`,
+        meta: `<span class="ed meta" data-fe="steps:${st.id}:planned_date:date">${st.planned_date ?? '+дата'}</span>`
+          + `<span class="ed meta" data-fe="steps:${st.id}:condition:text">${st.condition ? 'усл: ' + fesc(st.condition) : '+условие'}</span>`,
+        actions: stepAct + `<span class="rowbtn del" data-findel="steps:${st.id}">✕</span>`,
+      });
       return `<div class="task">
         <span class="cb ${done ? 'done' : ''}" data-stepdone="${st.id}"></span>
         <span class="pill ${kc}">${kl}</span>
@@ -384,7 +428,17 @@ function secPlans(d) {
 
   <div class="sec">Обязательства, подписки и плановые траты · «✓» = оплачено</div>
   <div class="card">
-    ${d.obligations.map(o => `
+    ${d.obligations.map(o => finIsMobile() ? fRow({
+        lead: `<span class="pill ${o.kind === 'subscription' ? 'p2' : 'p1'}">${o.kind === 'subscription' ? 'подписка' : o.period === 'once' ? 'трата' : 'пассив'}</span>`,
+        name: `<span class="ed" data-fe="obligations:${o.id}:name:text">${fesc(o.name)}</span>`,
+        amount: `<span class="ed" data-fe="obligations:${o.id}:amount:num">${fmt(o.amount)} ${fesc(o.currency)}</span>`,
+        meta: `<span class="meta">/ ${PERIOD[o.period]}</span>`
+          + (o.next_date
+            ? `<span class="ed meta ${o.days_left <= o.remind_days ? 'amber' : ''}" data-fe="obligations:${o.id}:next_date:date">${o.next_date} (${o.days_left} дн.)</span>`
+            : `<span class="ed meta" data-fe="obligations:${o.id}:next_date:date">+дата</span>`),
+        actions: (o.next_date ? `<span class="pill btn ok" data-oblpay="${o.id}">✓</span>` : '')
+          + `<span class="rowbtn del" data-findel="obligations:${o.id}">✕</span>`,
+      }) : `
       <div class="task">
         <span class="pill ${o.kind === 'subscription' ? 'p2' : 'p1'}">${o.kind === 'subscription' ? 'подписка' : o.period === 'once' ? 'трата' : 'пассив'}</span>
         <span class="t ed" data-fe="obligations:${o.id}:name:text">${fesc(o.name)}</span>

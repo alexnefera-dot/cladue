@@ -330,3 +330,9 @@ async function rollIdea() {
 
 // «Сегодня» — стартовый экран
 showScreen('today');
+// после перезагрузки фронта (новый фронт по Wi-Fi / рестарт WebView) возвращаемся на тот
+// же экран, где был, — синхрон не должен «скидывать на главную»
+try {
+  const s = sessionStorage.pbScreen;
+  if (s && s !== 'today' && typeof SCREENS !== 'undefined' && s in SCREENS) showScreen(s);
+} catch {}

@@ -885,6 +885,7 @@ window.showScreen = function (scr) {
   // незаконченная правка в Инфо дозаписывается при уходе с экрана
   if (scr !== 'notes' && window.ntFlush) { const f = window.ntFlush; window.ntFlush = null; f(); }
   currentScr = scr;
+  try { sessionStorage.pbScreen = scr; } catch {}   // переживает мягкий рестарт/перезагрузку фронта
   const locked = window.isLocked(scr);
   document.querySelectorAll('.side .item').forEach(i =>
     i.classList.toggle('active', i.dataset.screen === scr));
