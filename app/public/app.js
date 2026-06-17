@@ -398,6 +398,7 @@ async function showCard(id, { silent = false } = {}) {
 // ===== Клики: выбор, мультивыбор, действия =====
 document.addEventListener('click', async e => {
   const el = e.target;
+  if (window._lpFired) { window._lpFired = false; return; }   // был долгий тап (правка) — клик не открывает карточку
   const id = selected;
   if (el.dataset.fold) {
     const f = +el.dataset.fold;
@@ -510,6 +511,36 @@ document.addEventListener('click', async e => {
 });
 
 let lastClick = { id: null, t: 0 };
+
+// Телефон: долгое нажатие на строку цели → правка текста (двойной тап неудобен).
+// Правку запускаем на touchend (в жесте) — иначе iOS не покажет клавиатуру.
+// Короткий тап остаётся «открыть карточку».
+(() => {
+  let timer = null, sx = 0, sy = 0, row = null;
+  const IGNORE = '.cb,.caret,.rowbtn,.pill,input,textarea,[data-toggle],[data-fold],[data-addchild],[data-del],[data-delrow]';
+  document.addEventListener('touchstart', e => {
+    const r = e.target.closest('#screen-list .task[data-id]');
+    if (!r || e.target.closest(IGNORE)) { row = null; return; }
+    row = r; sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+    timer = setTimeout(() => r.classList.add('lpready'), 400);   // визуальный сигнал «держишь — правка»
+  }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    if (!row) return;
+    if (Math.abs(e.touches[0].clientX - sx) > 10 || Math.abs(e.touches[0].clientY - sy) > 10) {
+      clearTimeout(timer); row.classList.remove('lpready'); row = null;
+    }
+  }, { passive: true });
+  document.addEventListener('touchend', () => {
+    if (!row) return;
+    clearTimeout(timer);
+    if (row.classList.contains('lpready')) {
+      row.classList.remove('lpready');
+      window._lpFired = true; setTimeout(() => window._lpFired = false, 700);
+      startInlineEdit(+row.dataset.id);
+    }
+    row = null;
+  }, { passive: true });
+})();
 
 // «＋»: поле новой строки прямо под родителем; Enter — сохранить и добавить ещё
 function addChildInput(pid) {

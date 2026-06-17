@@ -110,12 +110,26 @@
   .bullet { min-width: 18px; }
   .noteblock { -webkit-line-clamp: 3; font-size: 11.5px; }  /* текст записи — короткий превью */
 
+  /* долгое нажатие на строку цели → правка: визуальный сигнал + без iOS-выделения */
+  #screen-list .task { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  #screen-list .task.lpready { background: var(--green-soft); box-shadow: inset 0 0 0 2px var(--green-dim); }
+  .inlineedit { -webkit-user-select: text; user-select: text; }
+
   /* ---------- карточки и сетки: одна колонка, плотнее ---------- */
   .card { padding: 11px 12px; border-radius: 13px; overflow-x: auto; margin-bottom: 7px; }
   .fingrid { grid-template-columns: 1fr !important; gap: 12px; }
   .lockcard { font-size: 15px; padding: 14px; }
-  .viewtabs .pill, .pill.ok, .pill.danger { font-size: 13px; }
-  .viewtabs { gap: 8px; }
+  .pill.ok, .pill.danger { font-size: 13px; }
+  /* меню-ряды (разделы финансов, Факт/Целевой, Дерево/Задачник) — горизонтальный
+     скролл, не ломаются переносом */
+  .viewtabs { gap: 7px; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 3px; }
+  .viewtabs::-webkit-scrollbar { display: none; }
+  .viewtabs .pill { flex: 0 0 auto; font-size: 13px; }
+  #pfoldAll { margin-left: 8px !important; }
+  .ratesbar { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .ratesbar::-webkit-scrollbar { display: none; }
+  .ratesbar > * { flex: 0 0 auto; }
+  .ratesbar #finEye { margin-left: 8px !important; }
 
   /* ---------- поля добавления: в столбик, полная ширина ---------- */
   .addbar { flex-direction: column; gap: 8px; }
@@ -144,10 +158,13 @@
   .editor { padding: 0; }
   .nttitle { font-size: 22px; margin-left: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; }
   .nttitle:hover { border-color: var(--line); }
-  .richedit, .ntbody {
+  .richedit, .ntbody, #ntView {
     font: 16px/1.6 var(--sans) !important; min-height: 46vh; padding: 12px; margin-left: 0;
     border: 1px solid var(--line); border-radius: 9px; background: var(--panel);
+    touch-action: pan-y;   /* перетаскивание по редактору ЛИСТАЕТ страницу, тап — ставит курсор */
   }
+  /* страница Инфо листается плавно, без «застреваний» на редакторе */
+  #screen-notes { touch-action: pan-y; }
   .ntbody { font-family: var(--mono) !important; }
   #ntView, .mdview { font-size: 16px; line-height: 1.7; min-height: 50vh; }
   .mdview h2 { font-size: 22px; } .mdview h3 { font-size: 18px; } .mdview h4 { font-size: 16px; }
