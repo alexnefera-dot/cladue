@@ -216,6 +216,13 @@
      ==================================================================== */
   .fintable, .porttable, .diary { font-size: 14px; }
   .fintable td, .porttable td, .diary td { padding: 10px 8px; }
+
+  /* финансы: длинные строки (счета/долги/обязательства/расходы) переносят хвост
+     на вторую строку вместо горизонтального скролла; сумма прижата вправо */
+  #screen-fin .card .task { flex-wrap: wrap; row-gap: 5px; }
+  #screen-fin .card .task > .num,
+  #screen-fin .card .task > .ed.num { margin-left: auto; }
+  #screen-fin .card .task.finadd > .num { margin-left: 0; }
   .ratesbar { gap: 10px 16px; font-size: 13px; padding: 10px 14px; }
   .bignum { font-size: 22px; }
 
