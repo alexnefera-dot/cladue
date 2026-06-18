@@ -349,6 +349,11 @@ const server = http.createServer(async (req, res) => {
       try { return json(res, 200, spheres.assign(db, b.kind, +b.id, b.areaId != null ? +b.areaId : null)); }
       catch (e) { return json(res, 400, { error: e.message }); }
     }
+    if (p === '/api/spheres/default' && req.method === 'POST') {
+      const b = await body(req);
+      return json(res, 200, spheres.setDefault(db, b.kind, b.areaId != null ? +b.areaId : null));
+    }
+    if (p === '/api/spheres/automap' && req.method === 'POST') return json(res, 200, spheres.autoMapCategories(db));
     if (p === '/api/psy/wheel' && req.method === 'POST') {
       const b = await body(req);
       psy.saveWheel(db, b.scores ?? {});

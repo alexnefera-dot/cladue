@@ -5,6 +5,32 @@
 
 import { routineStreak } from './life.js';
 import { practiceStreak } from './psy.js';
+import { getSetting, setSetting } from './fin.js';
+import { norm } from './db.js';
+
+// Дефолтная привязка целых секций к сфере: вся секция течёт в свою сферу сама.
+// (Цели — авто по категориям; Люди/Трекинг/Психология — по дефолту секции; Инфо/Рутины — вручную.)
+export function getDefaults(db) {
+  try { return JSON.parse(getSetting(db, 'sphere_defaults', '{}')) || {}; } catch { return {}; }
+}
+export function setDefault(db, kind, areaId) {
+  const d = getDefaults(db);
+  if (areaId == null) delete d[kind]; else d[kind] = areaId;
+  setSetting(db, 'sphere_defaults', JSON.stringify(d));
+  return d;
+}
+// Авто-разложить верхние категории Целей по сферам с совпадающим именем (нормализованно).
+export function autoMapCategories(db) {
+  const areas = db.prepare('SELECT id, name FROM wheel_areas').all().map(a => ({ id: a.id, n: norm(a.name) }));
+  const cats = db.prepare('SELECT id, title FROM nodes WHERE is_category = 1 AND parent_id IS NULL AND area_id IS NULL').all();
+  let mapped = 0;
+  for (const c of cats) {
+    const cn = norm(c.title);
+    const hit = areas.find(a => a.n && (cn.includes(a.n) || a.n.includes(cn)));
+    if (hit) { db.prepare('UPDATE nodes SET area_id = ? WHERE id = ?').run(hit.id, c.id); mapped++; }
+  }
+  return { mapped };
+}
 
 const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const TODAY = () => iso(new Date());
@@ -41,6 +67,10 @@ export function buildSpheres(db) {
     `SELECT id, title, status, due_date, priority, area_id, note FROM nodes WHERE is_category = 0`
   ).all();
   const belongs = (t, a) => resolve(t.id) === a.id || (t.note || '').includes(`сектор «${a.name}»`);
+  const defaults = getDefaults(db);
+  // строка WHERE: своя привязка ИЛИ (если секция по умолчанию ведёт в эту сферу) ничейные
+  const whereFor = (kind, areaId) =>
+    defaults[kind] === areaId ? '(area_id = ? OR area_id IS NULL)' : 'area_id = ?';
 
   return areas.map(a => {
     const sc = db.prepare('SELECT date, score FROM wheel_scores WHERE area_id = ? ORDER BY date DESC LIMIT 8').all(a.id);
@@ -58,12 +88,17 @@ export function buildSpheres(db) {
       doneToday: !!db.prepare('SELECT 1 FROM routine_log WHERE routine_id = ? AND date = ?').get(r.id, todayIso),
     }));
 
-    // метрики (ручной тег)
-    const tracking = db.prepare('SELECT id, name, unit, type FROM metrics WHERE area_id = ? ORDER BY ord, id').all(a.id).map(m => metricBlock(db, m));
+    // метрики (трекинг) — авто, если секция по умолчанию ведёт в эту сферу
+    const tracking = db.prepare(`SELECT id, name, unit, type FROM metrics WHERE ${whereFor('metric', a.id)} ORDER BY ord, id`).all(a.id).map(m => metricBlock(db, m));
 
-    // практики (ручной тег)
-    const practices = db.prepare('SELECT * FROM practices WHERE area_id = ? ORDER BY ord, id').all(a.id).map(p => ({
+    // практики (психология) — авто по дефолту секции
+    const practices = db.prepare(`SELECT * FROM practices WHERE ${whereFor('practice', a.id)} ORDER BY ord, id`).all(a.id).map(p => ({
       id: p.id, name: p.name, streak: practiceStreak(db, p),
+    }));
+
+    // люди (социализация) — авто по дефолту секции
+    const people = db.prepare(`SELECT id, name, rhythm_days, last_contact FROM people WHERE ${whereFor('person', a.id)} ORDER BY id`).all(a.id).map(p => ({
+      id: p.id, name: p.name, rhythm: p.rhythm_days || null, last: p.last_contact || null,
     }));
 
     // финансы — обязательства/подписки сферы (ручной тег)
@@ -90,13 +125,13 @@ export function buildSpheres(db) {
       id: a.id, name: a.name,
       ideal: a.ideal || '', current_desc: a.current_desc || '', next_desc: a.next_desc || '', step: a.step || '',
       score: sc[0]?.score ?? null, prev: sc[1]?.score ?? null, history: sc.map(s => s.score).reverse(),
-      tasks, routines, tracking, practices, fin, progress,
+      tasks, routines, tracking, practices, people, fin, progress,
     };
   });
 }
 
-// Привязать/отвязать элемент к сфере. kind: routine|metric|practice|obligation|category
-const TBL = { routine: 'routines', metric: 'metrics', practice: 'practices', obligation: 'obligations', category: 'nodes' };
+// Привязать/отвязать элемент к сфере. kind: routine|metric|practice|obligation|category|person
+const TBL = { routine: 'routines', metric: 'metrics', practice: 'practices', obligation: 'obligations', category: 'nodes', person: 'people' };
 export function assign(db, kind, id, areaId) {
   const t = TBL[kind];
   if (!t) throw new Error('unknown kind');
@@ -104,13 +139,16 @@ export function assign(db, kind, id, areaId) {
   return { ok: true };
 }
 
-// Что можно привязать: списки с текущей привязкой (area_id), чтобы UI показал «свободные» и «занятые».
+// Что можно привязать + сферы + текущие дефолты секций (для авто-панели).
 export function pool(db) {
   return {
+    areas: db.prepare('SELECT id, name FROM wheel_areas ORDER BY ord, id').all(),
+    defaults: getDefaults(db),
     routines: db.prepare('SELECT id, name, area_id FROM routines ORDER BY ord, id').all(),
     metrics: db.prepare('SELECT id, name, area_id FROM metrics ORDER BY ord, id').all(),
     practices: db.prepare('SELECT id, name, area_id FROM practices ORDER BY ord, id').all(),
     obligations: db.prepare('SELECT id, name, area_id FROM obligations ORDER BY id').all(),
+    people: db.prepare('SELECT id, name, area_id FROM people ORDER BY id').all(),
     categories: db.prepare(`SELECT id, title, area_id FROM nodes WHERE is_category = 1 AND parent_id IS NULL ORDER BY ord, id`).all(),
   };
 }

@@ -116,6 +116,9 @@ function sphDetail(s, i) {
   // практики
   if (s.practices.length) h += block('🧠 Практики', 'Психология', s.practices.map(p => `
     <div class="task"><span class="t">${sesc(p.name)}</span><span class="meta">🔥 ${p.streak}</span></div>`).join(''));
+  // люди (социализация)
+  if (s.people && s.people.length) h += block('☻ Люди', 'Люди', s.people.map(p => `
+    <div class="task"><span class="t">${sesc(p.name)}</span><span class="meta">${p.rhythm ? 'ритм ' + p.rhythm + 'д' : ''}${p.last ? ' · посл. ' + p.last : ''}</span></div>`).join(''));
   // финансы
   if (s.fin.length) h += block('💰 Финансы сферы', 'Финансы', s.fin.map(f => `
     <div class="task"><span class="t">${sesc(f.name)}</span><span class="meta num">${f.amount} ${sesc(f.currency)} / ${sesc(f.period)}</span></div>`).join(''));
@@ -137,12 +140,20 @@ function sphConnEditor(s) {
       ${other.length ? `<span class="muted" style="font-size:11px">· занято в др. сферах: ${other.length}</span>` : ''}
       ${!items.length ? '<span class="muted" style="font-size:12px">пусто</span>' : ''}</div>`;
   };
+  const def = sphPool.defaults || {};
+  const defT = (kind, label) => { const on = def[kind] === s.id; return `<span class="sph-pi ${on ? 'on' : ''}" data-def="${kind}:${on ? '' : s.id}">${on ? '✓ ' : '＋ '}${label}</span>`; };
   return `<div class="card sph-conn"><div class="sec" style="margin-top:0">🔗 Связи сферы · что входит сюда</div>
-    <div class="muted" style="font-size:12px;margin-bottom:8px">Категории целей тащат свои задачи (авто). Остальное привяжи вручную — клик добавляет/убирает.</div>
+    <div class="sph-cg"><div class="sph-cgl">⚡ Вся секция по умолчанию → в эту сферу</div>
+      ${defT('person', 'Люди')}${defT('metric', 'Трекинг')}${defT('practice', 'Психология')}
+      <div class="muted" style="font-size:11px;margin-top:3px">включил — вся секция течёт сюда сама (отдельные элементы можно перетегать ниже)</div></div>
+    <div class="sph-cg"><div class="sph-cgl">🎯 Цели</div>
+      <span class="sph-pi" id="sphAutomap">↪ разложить категории по сферам (по именам)</span></div>
     ${grp('category', '🎯 Категории целей (авто-задачи)', sphPool.categories, 'title')}
+    <div class="muted" style="font-size:11px;margin:2px 0 8px">Инфо и рутины — вручную:</div>
     ${grp('routine', '↻ Рутины', sphPool.routines, 'name')}
-    ${grp('metric', '📊 Метрики трекинга', sphPool.metrics, 'name')}
-    ${grp('practice', '🧠 Практики', sphPool.practices, 'name')}
+    ${grp('metric', '📊 Метрики (если не вся секция)', sphPool.metrics, 'name')}
+    ${grp('practice', '🧠 Практики (если не вся секция)', sphPool.practices, 'name')}
+    ${grp('person', '☻ Люди (если не вся секция)', sphPool.people, 'name')}
     ${grp('obligation', '💰 Обязательства/подписки', sphPool.obligations, 'name')}
   </div>`;
 }
@@ -154,13 +165,22 @@ function bindDetail(s) {
     if (sphEditConn && !sphPool) sphPool = await sphApi.pool();
     renderSpheres();
   };
-  // привязать/отвязать
+  // привязать/отвязать отдельный элемент
   document.querySelectorAll('#screen-spheres [data-as]').forEach(el => el.onclick = async () => {
     const [kind, id, area] = el.dataset.as.split(':');
     await sphApi.assign(kind, +id, +area || null);
-    sphPool = await sphApi.pool();
-    sphData = await sphApi.load();
-    renderSpheres();
+    sphPool = await sphApi.pool(); sphData = await sphApi.load(); renderSpheres();
+  });
+  // вся секция по умолчанию → эта сфера (или выключить)
+  document.querySelectorAll('#screen-spheres [data-def]').forEach(el => el.onclick = async () => {
+    const [kind, area] = el.dataset.def.split(':');
+    await fetch('/api/spheres/default', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind, areaId: area ? +area : null }) });
+    sphPool = await sphApi.pool(); sphData = await sphApi.load(); renderSpheres();
+  });
+  document.getElementById('sphAutomap')?.addEventListener('click', async () => {
+    const r = await fetch('/api/spheres/automap', { method: 'POST' }).then(x => x.json());
+    alert(`Сопоставлено категорий по именам сфер: ${r.mapped}`);
+    sphPool = await sphApi.pool(); sphData = await sphApi.load(); renderSpheres();
   });
   // оценка → Колесо
   const sc = document.getElementById('sphScore'); let cur = s.score ?? 0;
