@@ -8,6 +8,28 @@ const sesc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<':
 const SPH_COL = ['#1e9e57', '#c43f3f', '#a87708', '#6b4fb5', '#2a76b5', '#364656'];
 const SPH_KIND = { task: ['задача', 'ok'], decision: ['решение', 'dec'], question: ['вопрос', 'p2'], principle: ['принцип', 'p1'], idea: ['идея', ''], worry: ['тревога', 'p0'] };
 const colOf = i => SPH_COL[i % SPH_COL.length];
+// дни от сегодня до даты ISO (yyyy-mm-dd); null если не дата
+const sphDaysTo = iso => { if (!iso) return null; const d = new Date(iso + 'T00:00:00'); return isNaN(d) ? null : Math.round((d - new Date(new Date().toDateString())) / 864e5); };
+// бейдж дедлайна: просрочено / горит (≤3д) / скоро (≤14д); иначе просто дата
+function sphDue(iso) {
+  const days = sphDaysTo(iso);
+  if (days == null) return iso ? `<span class="meta">${sesc(iso)}</span>` : '';
+  if (days < 0) return `<span class="sphb fire">просрочено ${-days}д</span>`;
+  if (days === 0) return `<span class="sphb fire">сегодня</span>`;
+  if (days <= 3) return `<span class="sphb fire">${days}д</span>`;
+  if (days <= 14) return `<span class="sphb soon">${sesc(iso)} · ${days}д</span>`;
+  return `<span class="meta">${sesc(iso)}</span>`;
+}
+// статус контакта по ритму: пора / скоро / норм
+function sphContact(p) {
+  const since = sphDaysTo(p.last) != null ? -sphDaysTo(p.last) : null;   // дней назад
+  if (!p.rhythm) return p.last ? `<span class="meta">${since}д назад</span>` : '<span class="meta">нет контакта</span>';
+  if (since == null) return `<span class="sphb soon">ритм ${p.rhythm}д · нет контакта</span>`;
+  const over = since - p.rhythm;
+  if (over >= 0) return `<span class="sphb fire">пора · ${since}д назад</span>`;
+  if (over >= -2) return `<span class="sphb soon">скоро · ${since}/${p.rhythm}д</span>`;
+  return `<span class="meta">${since}д назад · ритм ${p.rhythm}д</span>`;
+}
 
 const sphApi = {
   load: () => fetch('/api/spheres').then(r => r.json()),
@@ -249,7 +271,7 @@ function sphDetail(s, i) {
         ${(t.kind === 'task' || t.kind === 'decision') ? `<span class="pill ${kc}">${kl}</span>` : ''}
         <span class="t ${done ? 'done' : ''}" data-tnode="${t.id}">${sesc(t.title)}${t.note ? `<div class="noteblock">${sesc(t.note)}</div>` : ''}</span>
         ${t.answer ? `<span class="meta">→ ${sesc(t.answer)}</span>` : ''}
-        ${t.due ? `<span class="meta">${t.due}</span>` : ''}
+        ${t.due ? sphDue(t.due) : ''}
         <span class="rowbtn" data-pri="${t.id}:${t.priority || ''}" title="приоритет">⚑</span>
         <span class="rowbtn" data-due="${t.id}" title="срок">📅</span>
         <span class="rowbtn del" data-del="${t.id}" title="удалить">✕</span></div>`;
@@ -272,7 +294,7 @@ function sphDetail(s, i) {
     <div class="task"><span class="t">${sesc(p.name)}${p.wk ? `<div class="sphwk">${p.wk.map(d => `<i class="${d ? 'on' : ''}"></i>`).join('')}</div>` : ''}</span><span class="meta strk">🔥 ${p.streak}</span></div>`).join(''));
   // люди (социализация)
   if (s.people && s.people.length) h += block('☻ Люди', 'Люди', s.people.map(p => `
-    <div class="task"><span class="t">${sesc(p.name)}</span><span class="meta">${p.rhythm ? 'ритм ' + p.rhythm + 'д' : ''}${p.last ? ' · посл. ' + p.last : ''}</span></div>`).join(''));
+    <div class="task"><span class="t">${sesc(p.name)}</span>${sphContact(p)}</div>`).join(''));
   // финансовые показатели (числа, только в денежной сфере) — FIRE без суммы
   if (s.finance) { const f = s.finance, money = n => n == null ? '—' : Math.round(n).toLocaleString('ru-RU');
     h += block('📈 Финансовые показатели', 'Финансы', `
@@ -290,21 +312,21 @@ function sphDetail(s, i) {
       if (!items.length) continue;
       const sum = items.reduce((x, f) => x + (f.amount || 0), 0);
       html += `<div class="task sphcat"><b class="t">${label}</b><span class="meta num">Σ ${money(sum)} €</span></div>`
-        + items.map(f => `<div class="task" style="padding-left:16px"><span class="t">${sesc(f.name)}</span>${f.next_date ? `<span class="meta">${f.next_date}</span>` : ''}<span class="meta num">${f.amount} ${sesc(f.currency)}</span></div>`).join('');
+        + items.map(f => `<div class="task" style="padding-left:16px"><span class="t">${sesc(f.name)}</span>${sphDue(f.next_date)}<span class="meta num">${f.amount} ${sesc(f.currency)}</span></div>`).join('');
     }
     h += block('💰 Платежи · по периодам', 'Финансы', html);
   }
   // долги
   if (s.debts && s.debts.length) h += block('🤝 Долги', 'Финансы', s.debts.map(x => `
     <div class="task"><span class="pill ${x.direction === 'i_owe' ? 'p0' : 'ok'}">${x.direction === 'i_owe' ? 'я должен' : 'мне должны'}</span>
-      <span class="t">${sesc(x.name)}</span>${x.due_date ? `<span class="meta">${x.due_date}</span>` : ''}<span class="meta num">${x.amount} ${sesc(x.currency)}</span></div>`).join(''));
+      <span class="t">${sesc(x.name)}</span>${sphDue(x.due_date)}<span class="meta num">${x.amount} ${sesc(x.currency)}</span></div>`).join(''));
   // план шагов
   if (s.steps && s.steps.length) h += block('🪜 План шагов', 'Финансы', s.steps.map(st => `
     <div class="task"><span class="pill ${st.kind === 'sell' ? 'p1' : 'ok'}">${({ buy: 'купить', sell: 'продать', transfer: 'перевод' })[st.kind] || st.kind}</span>
-      <span class="t">${sesc(st.title)}</span>${st.planned_date ? `<span class="meta">${st.planned_date}</span>` : ''}${st.amount ? `<span class="meta num">${st.amount}</span>` : ''}</div>`).join(''));
+      <span class="t">${sesc(st.title)}</span>${sphDue(st.planned_date)}${st.amount ? `<span class="meta num">${st.amount}</span>` : ''}</div>`).join(''));
   // события
   if (s.events && s.events.length) h += block('📅 События сферы', 'Календарь', s.events.map(e => `
-    <div class="task"><span class="meta num">${e.date}${e.time ? ' ' + e.time : ''}</span><span class="t">${sesc(e.title)}</span></div>`).join(''));
+    <div class="task"><span class="t">${sesc(e.title)}${e.time ? ` <span class="meta">${e.time}</span>` : ''}</span>${sphDue(e.date)}</div>`).join(''));
   // инфо — кликабельно, открывает нужную страницу в Инфо
   if (s.info && s.info.length) h += block('📒 Инфо сферы', 'Инфо', s.info.map(p => `
     <div class="task"><span class="t" data-page="${p.id}" style="cursor:pointer">📄 ${sesc(p.title)}</span></div>`).join(''));
@@ -407,6 +429,7 @@ function ensureSphStyle() {
     .sph-momt{font-size:12.5px;color:var(--muted)}
     .pbar2{flex:1;max-width:160px;height:7px;border-radius:99px;background:var(--bg2);overflow:hidden;margin:0 6px}.pbar2 i{display:block;height:100%;background:var(--green-dim)}
     .sphwk{display:flex;gap:3px;margin-top:4px}.sphwk i{width:11px;height:11px;border-radius:3px;background:var(--bg2)}.sphwk i.on{background:var(--green-dim)}.sphwk i.miss{background:rgba(196,63,63,.18)}
+    .sphb{font:600 10px var(--mono);border-radius:20px;padding:2px 8px;white-space:nowrap}.sphb.fire{background:rgba(196,63,63,.12);color:var(--red)}.sphb.soon{background:rgba(168,119,8,.14);color:var(--amber)}
     .strk{color:var(--amber)!important;font-weight:600}
     .catrow{display:flex;align-items:center;gap:10px;padding:5px 0;border-top:1px solid var(--bg2)}.catrow:first-child{border-top:0}
     .catt{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.catt.on{font-weight:700;color:var(--green)}
