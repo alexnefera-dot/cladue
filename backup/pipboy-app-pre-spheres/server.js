@@ -11,7 +11,6 @@ import * as life from './life.js';
 import * as notes from './notes.js';
 import { seedDemo, wipeDemo, demoWiped } from './seed.js';
 import * as psy from './psy.js';
-import * as spheres from './spheres.js';
 import { exportAll, backupDb, lastBackupDate } from './export.js';
 import { audit } from './audit.js';
 import { upcomingNotifications } from './notify.js';
@@ -32,7 +31,6 @@ if (fresh) { seed(db); console.log('БД создана: категории го
 ensurePortfolio(db);
 ensureRates(db);
 psy.ensureWheel(db);      // секторы колеса — это структура, не демо
-if (!fin.getSetting(db, 'sphere_defaults', null)) spheres.autoConfig(db); // первый запуск: связи секций — сами
 psy.ensurePositiveIntent(db); // техника «Позитивное намерение» с 7 вопросами
 ensureEnergy(db);         // ⚡ Энергия жизни + Банк впечатлений — тоже структура
 notes.ensureInfoTree(db); // ветки Инфо: Finance / Mindset / Fun / Work / Health
@@ -45,7 +43,7 @@ notes.ensureInfoTree(db); // ветки Инфо: Finance / Mindset / Fun / Work
         imp.months.map(([mon, txt]) => `## ${mon}\n\n${txt}`).join('\n\n') });
   }
 }
-if (!demoWiped(db) && !process.env.PIPBOY_NOSEED) {   // PIPBOY_NOSEED=1 — работать на реальной базе без демо-наполнения
+if (!demoWiped(db)) {     // после «удалить демо-данные» сиды не доливаются никогда
   if (db.prepare('SELECT count(*) AS c FROM accounts').get().c === 0) {
     seedFin(db);
     console.log('Финансы наполнены примерами (всё с пометкой «пример» — удаляй и заводи своё)');
@@ -343,21 +341,6 @@ const server = http.createServer(async (req, res) => {
       if (req.method === 'PATCH') { psy.patchPractice(db, +m[1], await body(req)); return json(res, 200, { ok: true }); }
       if (req.method === 'DELETE') { psy.delPractice(db, +m[1]); return json(res, 200, { ok: true }); }
     }
-    if (p === '/api/spheres' && req.method === 'GET') return json(res, 200, spheres.buildSpheres(db));
-    if (p === '/api/spheres/pool' && req.method === 'GET') return json(res, 200, spheres.pool(db));
-    if (p === '/api/spheres/categories' && req.method === 'GET') return json(res, 200, spheres.categories(db));
-    if (p === '/api/spheres/tagpool' && req.method === 'GET') return json(res, 200, spheres.tagPool(db));
-    if (p === '/api/spheres/assign' && req.method === 'POST') {
-      const b = await body(req);
-      try { return json(res, 200, spheres.assign(db, b.kind, +b.id, b.areaId != null ? +b.areaId : null)); }
-      catch (e) { return json(res, 400, { error: e.message }); }
-    }
-    if (p === '/api/spheres/default' && req.method === 'POST') {
-      const b = await body(req);
-      return json(res, 200, spheres.setDefault(db, b.kind, b.areaId != null ? +b.areaId : null));
-    }
-    if (p === '/api/spheres/automap' && req.method === 'POST') return json(res, 200, spheres.autoMapCategories(db));
-    if (p === '/api/spheres/auto' && req.method === 'POST') return json(res, 200, spheres.autoConfig(db, true));
     if (p === '/api/psy/wheel' && req.method === 'POST') {
       const b = await body(req);
       psy.saveWheel(db, b.scores ?? {});

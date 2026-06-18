@@ -311,7 +311,6 @@ async function renderNotes() {
       : `
         <div class="row" style="display:flex;align-items:center;gap:8px">
           <input id="ntTitle" class="nttitle" value="${nesc(page.title)}" style="flex:1;margin:0">
-          ${window.sphSelHtml ? window.sphSelHtml('page', page.id, page.area_id) : ''}
           ${page.node_id ? `<span class="pill ok btn" data-ntnode="${page.node_id}">☑ к записи</span>` : ''}
           <span class="pill btn" id="ntHist" title="прошлые версии — восстановить любую">⏪ история</span>
           ${page.locked ? '<span class="pill btn" id="ntLockBtn">🔓 снять пароль</span>' : ''}

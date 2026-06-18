@@ -92,7 +92,6 @@ function nodeRow(n, depth, idx) {
     return `<div class="task cat ${isPicked ? 'sel' : ''}" data-id="${n.id}" style="--d:${depth}">
       ${caret}<span class="folder">▣</span><span class="t top">${esc(n.title)}</span>
       <span class="meta">${countItems(n.id)}</span>
-      ${window.sphSelHtml ? window.sphSelHtml('category', n.id, n.area_id) : ''}
       <span class="rowbtn" data-addchild="${n.id}" title="добавить внутрь">＋</span></div>`;
   }
   const [kl, kc] = n.kind ? (KIND[n.kind] ?? [n.kind, '']) : [null, null];
@@ -897,7 +896,7 @@ function renderLockPane(scr) {
 }
 
 // ===== Переключение экранов =====
-const SCREENS = { today: 'loadToday', spheres: 'loadSpheres', list: null, fin: 'loadFin', cal: 'loadCal', people: 'loadPeople', routines: 'loadRoutines', notes: 'loadNotes', psy: 'loadPsy', track: 'loadTrack', settings: 'loadSettings' };
+const SCREENS = { today: 'loadToday', list: null, fin: 'loadFin', cal: 'loadCal', people: 'loadPeople', routines: 'loadRoutines', notes: 'loadNotes', psy: 'loadPsy', track: 'loadTrack', settings: 'loadSettings' };
 window.showScreen = function (scr) {
   // незаконченная правка в Инфо дозаписывается при уходе с экрана
   if (scr !== 'notes' && window.ntFlush) { const f = window.ntFlush; window.ntFlush = null; f(); }
