@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#eef0f3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Pipboy">
+<title>Pipboy</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+<div class="titlebar">
+  <span class="name">▣ PIPBOY</span>
+  <span class="status" id="statusbar"></span>
+</div>
+<div class="layout">
+  <nav class="side">
+    <div class="item" data-screen="today" data-ico="☀️"><span class="ni">☀️</span>Сегодня</div>
+    <div class="item" data-screen="spheres" data-ico="🧭"><span class="ni">🧭</span>Сферы</div>
+    <div class="item" data-screen="list" data-ico="🎯"><span class="ni">🎯</span>Цели</div>
+    <div class="item" data-screen="fin" data-ico="💰"><span class="ni">💰</span>Финансы</div>
+    <div class="item" data-screen="cal" data-ico="📅"><span class="ni">📅</span>Календарь</div>
+    <div class="item" data-screen="track" data-ico="📊"><span class="ni">📊</span>Трекинг</div>
+    <div class="item" data-screen="psy" data-ico="🧠"><span class="ni">🧠</span>Психология</div>
+    <div class="item" data-screen="notes" data-ico="📒"><span class="ni">📒</span>Инфо</div>
+    <div class="item" id="navMore"><span class="ni" id="navMoreCaret">▸</span>Ещё</div>
+    <div id="navMoreBox" style="display:none">
+      <div class="item" data-screen="people" data-ico="👥"><span class="ni">👥</span>Люди</div>
+      <div class="item" data-screen="routines" data-ico="🔁"><span class="ni">🔁</span>Рутины</div>
+    </div>
+    <div class="bottom">
+      <div class="item" data-screen="settings" data-ico="⚙️"><span class="ni">⚙️</span>Настройки</div>
+      <input id="searchbox" placeholder="⌕ поиск (х5 найдёт и X5)" style="margin-top:8px">
+      <div id="searchres"></div>
+    </div>
+  </nav>
+  <main class="main">
+    <div id="lockpane" style="display:none"></div>
+    <div id="screen-today" style="display:none"></div>
+    <div id="screen-spheres" style="display:none"></div>
+    <div id="screen-people" style="display:none"></div>
+    <div id="screen-routines" style="display:none"></div>
+    <div id="screen-track" style="display:none"></div>
+    <div id="screen-notes" style="display:none"></div>
+    <div id="screen-psy" style="display:none"></div>
+    <div id="screen-fin" style="display:none"></div>
+    <div id="screen-cal" style="display:none"></div>
+    <div id="screen-settings" style="display:none"></div>
+    <div id="screen-list">
+    <div class="addbar" style="margin:0 0 10px">
+      <textarea id="addTitle" rows="1" placeholder="＋ Добавить (Enter — отправить, Shift+Enter — новая строка) · можно список из нескольких пунктов или целый блок с отступами — вложенность сохранится"></textarea>
+      <span class="pill btn" id="addCatBtn" title="новая категория верхнего уровня">＋ категория</span>
+    </div>
+    <div class="viewtabs" id="viewtabs">
+      <span class="pill btn ok" data-vw="tree">⚑ Дерево целей</span>
+      <span class="pill btn" data-vw="tasker">☑ Задачник</span>
+    </div>
+    <div class="hint">Перетащи строку на другую — станет её ребёнком (любые типы). ⌘-клик / Shift-клик — мультивыбор.
+      Двойной клик по строке — правка текста.</div>
+    <div id="bulkbar" class="bulkbar" style="display:none">
+      <span id="bulkCount"></span>
+      <select id="bulkTarget"></select>
+      <span class="pill btn ok" id="bulkGo">переместить выбранные</span>
+      <span class="pill btn danger" id="bulkDel">🗑 удалить выбранные</span>
+      <span class="pill btn" id="bulkClear">✕ снять выделение</span>
+    </div>
+    <div id="board"></div>
+    </div>
+  </main>
+  <aside class="insp" id="insp"><h3>Карточка записи</h3>
+    <div class="muted">Кликни строку в списке — здесь откроется её карточка: тип (задача/решение/вопрос…), срок, приоритет, заметка, перемещение в категорию, связи и предложения системы.</div>
+  </aside>
+</div>
+<script src="app.js"></script>
+<script src="fin.js"></script>
+<script src="cal.js"></script>
+<script src="life.js"></script>
+<script src="notes.js"></script>
+<script src="psy.js"></script>
+<script src="track.js"></script>
+<script src="today.js"></script>
+<script src="spheres.js"></script>
+</body>
+</html>

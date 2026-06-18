@@ -1,0 +1,4 @@
+data.db
+backups/
+export/
+node_modules/
