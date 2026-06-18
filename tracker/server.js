@@ -345,6 +345,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (p === '/api/spheres' && req.method === 'GET') return json(res, 200, spheres.buildSpheres(db));
     if (p === '/api/spheres/pool' && req.method === 'GET') return json(res, 200, spheres.pool(db));
+    if (p === '/api/spheres/categories' && req.method === 'GET') return json(res, 200, spheres.categories(db));
     if (p === '/api/spheres/assign' && req.method === 'POST') {
       const b = await body(req);
       try { return json(res, 200, spheres.assign(db, b.kind, +b.id, b.areaId != null ? +b.areaId : null)); }

@@ -3,7 +3,7 @@
    рутины/метрики/практики/финансы привязываются вручную («🔗 связи»).
    Правки идут в настоящие данные (Колесо, задачи, area_id через /api/spheres/assign). */
 
-let sphData = null, sphPool = null, sphOpen = null, sphEditConn = false;
+let sphData = null, sphPool = null, sphOpen = null, sphEditConn = false, sphCatMap = false, sphCats = null;
 const sesc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const SPH_COL = ['#1e9e57', '#c43f3f', '#a87708', '#6b4fb5', '#2a76b5', '#364656'];
 const colOf = i => SPH_COL[i % SPH_COL.length];
@@ -11,6 +11,7 @@ const colOf = i => SPH_COL[i % SPH_COL.length];
 const sphApi = {
   load: () => fetch('/api/spheres').then(r => r.json()),
   pool: () => fetch('/api/spheres/pool').then(r => r.json()),
+  categories: () => fetch('/api/spheres/categories').then(r => r.json()),
   assign: (kind, id, areaId) => fetch('/api/spheres/assign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind, id, areaId }) }),
   score: (id, n) => fetch('/api/psy/wheel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ scores: { [id]: n } }) }),
   patch: (id, b) => fetch('/api/psy/areas/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }),
@@ -39,6 +40,7 @@ window.openSphere = function (id) { sphOpen = id; sphEditConn = false; showScree
 
 function renderSpheres() {
   const el = document.getElementById('screen-spheres');
+  if (sphCatMap) { el.innerHTML = sphCatmap(); bindCatmap(); return; }
   if (sphOpen == null) { el.innerHTML = sphOverview(); bindOverview(); return; }
   const s = sphData.find(x => x.id === sphOpen);
   if (!s) { sphOpen = null; return renderSpheres(); }
@@ -55,8 +57,9 @@ function sphOverview() {
     .map(([l, id]) => `${l}→<b>${an(id) || '—'}</b>`).join(' · ');
   return `<h2 style="margin-bottom:2px">Сферы жизни</h2>
     <div class="muted" style="margin-bottom:8px">средний баланс ${avg}/10 · 10 = куда идём, оценка = где сейчас, шаг = что делаем. Всё на реальных данных.</div>
-    <div class="card" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+    <div class="card" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
       <span class="pill btn ok" id="sphAuto">🪄 авто-настроить связи</span>
+      <span class="pill btn" id="sphCatBtn">🎯 цели → сферы</span>
       <span class="muted" style="font-size:12px">секции сами в свои сферы: ${route} · цели — по категориям</span></div>
     <div class="sph-ov">${sphData.map((s, i) => {
       const links = s.routines.length + s.tracking.length + s.practices.length + s.fin.length + s.tasks.length;
@@ -75,6 +78,42 @@ function bindOverview() {
     const lines = Object.entries(r.defaults).map(([k, v]) => `${({ person: 'Люди', metric: 'Трекинг', practice: 'Психология', obligation: 'Финансы' })[k]} → ${v || 'нет подходящей сферы'}`);
     alert(`Авто-настройка связей:\n\n${lines.join('\n')}\n\nКатегорий целей разложено: ${r.categoriesMapped}`);
     window.loadSpheres();
+  });
+  document.getElementById('sphCatBtn')?.addEventListener('click', async () => {
+    sphCats = await sphApi.categories(); sphCatMap = true; renderSpheres();
+  });
+}
+
+// Маппер «Цели → сферы»: дерево категорий с отступами, у каждой — выбор сферы.
+// Тег на категории наследуется всеми вложенными целями (вложенность сохраняется).
+function sphCatmap() {
+  const cats = sphCats || [], areas = sphPool?.areas || [];
+  const byP = {}; cats.forEach(c => (byP[c.parent_id ?? 'root'] ??= []).push(c));
+  let rows = '';
+  const walk = (c, depth) => {
+    const tagged = c.area_id != null;
+    rows += `<div class="catrow" style="padding-left:${depth * 18}px">
+      <span class="catt ${tagged ? 'on' : ''}">${depth ? '↳ ' : ''}${sesc(c.title)}</span>
+      <select data-cat="${c.id}"><option value="">— наследует/не задано</option>
+        ${areas.map(a => `<option value="${a.id}" ${c.area_id === a.id ? 'selected' : ''}>${sesc(a.name)}</option>`).join('')}</select></div>`;
+    (byP[c.id] || []).forEach(k => walk(k, depth + 1));
+  };
+  (byP['root'] || []).forEach(c => walk(c, 0));
+  return `<div class="sph-crumb"><a id="sphBackCat">← Сферы</a> · <span class="pill btn" id="sphAutomapCat">🪄 авто по именам</span></div>
+    <h2 style="margin-bottom:2px">Цели → сферы</h2>
+    <div class="muted" style="margin-bottom:12px">Привяжи категорию к сфере — <b>все вложенные цели наследуют её</b>. Названия и вложенность не меняем. Вложенной можно задать свою сферу (переопределит родителя).</div>
+    <div class="card">${rows || '<div class="empty">категорий нет</div>'}</div>`;
+}
+function bindCatmap() {
+  document.getElementById('sphBackCat').onclick = () => { sphCatMap = false; renderSpheres(); };
+  document.getElementById('sphAutomapCat').onclick = async () => {
+    const r = await fetch('/api/spheres/automap', { method: 'POST' }).then(x => x.json());
+    alert(`Разложено категорий по именам сфер: ${r.mapped}`);
+    sphCats = await sphApi.categories(); renderSpheres();
+  };
+  document.querySelectorAll('#screen-spheres [data-cat]').forEach(sel => sel.onchange = async () => {
+    await sphApi.assign('category', +sel.dataset.cat, sel.value ? +sel.value : null);
+    sphCats = await sphApi.categories(); sphData = await sphApi.load(); renderSpheres();
   });
 }
 
@@ -244,6 +283,9 @@ function ensureSphStyle() {
     .sph-momn{font:700 30px var(--mono);color:var(--green);line-height:1}.sph-momn small{font-size:14px;color:var(--muted)}
     .sph-momt{font-size:12.5px;color:var(--muted)}
     .pbar2{flex:1;max-width:160px;height:7px;border-radius:99px;background:var(--bg2);overflow:hidden;margin:0 6px}.pbar2 i{display:block;height:100%;background:var(--green-dim)}
+    .catrow{display:flex;align-items:center;gap:10px;padding:5px 0;border-top:1px solid var(--bg2)}.catrow:first-child{border-top:0}
+    .catt{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.catt.on{font-weight:700;color:var(--green)}
+    .catrow select{flex:0 0 auto;max-width:190px;border:1px solid var(--line);border-radius:8px;padding:5px 8px;font:12.5px var(--sans);background:var(--bg)}
     [data-edit]{cursor:text}
     @media(max-width:768px){
       .sph-ov{grid-template-columns:1fr}

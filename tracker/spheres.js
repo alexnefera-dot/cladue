@@ -151,6 +151,11 @@ export function buildSpheres(db) {
   });
 }
 
+// Все категории целей (дерево) с текущей привязкой — для экрана «Цели → сферы».
+export function categories(db) {
+  return db.prepare('SELECT id, title, parent_id, area_id FROM nodes WHERE is_category = 1 ORDER BY ord, id').all();
+}
+
 // Привязать/отвязать элемент к сфере. kind: routine|metric|practice|obligation|category|person
 const TBL = { routine: 'routines', metric: 'metrics', practice: 'practices', obligation: 'obligations', category: 'nodes', person: 'people' };
 export function assign(db, kind, id, areaId) {
