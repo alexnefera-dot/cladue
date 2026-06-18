@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pipboy · Идеи на будущее — мокапы</title>
+<style>
+  :root{
+    --bg:#f6f7f9;--bg2:#eef0f4;--panel:#fff;--line:#e2e7ed;--line2:#d6dce4;
+    --green:#1e9e57;--green-dim:#5cb585;--green-soft:rgba(30,158,87,.10);
+    --text:#141e28;--muted:#4f5f6f;--nav:#364656;--amber:#a87708;--red:#c43f3f;--blue:#2a76b5;--violet:#6b4fb5;
+    --shadow-sm:0 1px 2px rgba(18,28,45,.05),0 1px 4px rgba(18,28,45,.05);--shadow-md:0 8px 26px rgba(18,28,45,.12);
+    --mono:"SF Mono","JetBrains Mono",ui-monospace,monospace;--sans:-apple-system,"SF Pro Text","Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+  .titlebar{min-height:40px;background:var(--bg2);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:center;gap:8px;font:600 12px var(--mono);color:var(--green);letter-spacing:.6px;position:sticky;top:0;z-index:20;padding:6px 14px;text-align:center}
+  .navbar{position:sticky;top:52px;z-index:15;background:rgba(238,240,244,.92);backdrop-filter:saturate(180%) blur(14px);border-bottom:1px solid var(--line)}
+  .navin{max-width:1100px;margin:0 auto;display:flex;gap:5px;align-items:center;padding:8px 18px;overflow-x:auto}
+  .navin::-webkit-scrollbar{display:none}
+  .nb{flex:0 0 auto;display:flex;align-items:center;gap:7px;padding:6px 12px;border-radius:10px;cursor:pointer;font-weight:600;font-size:13px;color:var(--nav);border:1px solid transparent;white-space:nowrap}
+  .nb:hover{background:var(--panel)}.nb.on{background:var(--panel);border-color:var(--line2);box-shadow:var(--shadow-sm)}
+
+  .page{max-width:1100px;margin:0 auto;padding:18px 18px 80px}
+  h1{font-size:23px;letter-spacing:-.02em;margin:0 0 2px}
+  h2.sec{font-size:15px;margin:22px 0 10px;display:flex;align-items:center;gap:8px}
+  .muted{color:var(--muted)}
+  .lead{color:var(--muted);font-size:13.5px;margin-bottom:8px;max-width:760px}
+  .why{background:var(--green-soft);border:1px solid var(--green-dim);border-radius:11px;padding:10px 13px;font-size:13px;margin:0 0 16px}
+  .why b{color:var(--green)}.why .base{color:var(--muted);display:block;margin-top:4px;font-size:12.5px}
+  .why .base b{color:var(--amber)}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  @media(max-width:860px){.grid2,.grid3{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-sm);padding:14px 16px;margin-bottom:14px}
+  .clbl{font:600 10.5px var(--mono);letter-spacing:1px;color:var(--nav);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:7px}
+  .clbl .src{color:var(--muted);font-weight:500}
+  .row{display:flex;align-items:center;gap:9px;padding:7px 0;border-top:1px solid var(--bg2);font-size:13.5px}.row:first-child{border-top:0}
+  .row .tt{flex:1;min-width:0}.row .tt .s2{font-size:11px;color:var(--muted)}.row .tt.done{color:var(--muted);text-decoration:line-through}
+  .cb{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line2);flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;cursor:pointer}.cb.on{background:var(--green);border-color:var(--green)}
+  .badge{font:600 10px var(--mono);border-radius:20px;padding:2px 8px;white-space:nowrap}
+  .badge.fire{background:rgba(196,63,63,.12);color:var(--red)}.badge.soon{background:rgba(168,119,8,.14);color:var(--amber)}.badge.ok{background:var(--green-soft);color:var(--green)}.badge.idle{background:var(--bg2);color:var(--muted)}.badge.new{background:rgba(42,118,181,.12);color:var(--blue)}.badge.violet{background:rgba(107,79,181,.12);color:var(--violet)}
+  .num{font:600 13px var(--mono);white-space:nowrap}
+  .strk{font:600 11px var(--mono);color:var(--amber)}
+  .pbar{flex:0 0 90px;height:6px;border-radius:99px;background:var(--bg2);overflow:hidden}.pbar i{display:block;height:100%;background:var(--green-dim)}
+  .pct{font:600 11px var(--mono);color:var(--muted);width:36px;text-align:right}
+  .wk{display:flex;gap:3px}.wk i{width:11px;height:11px;border-radius:3px;background:var(--bg2)}.wk i.on{background:var(--green-dim)}.wk i.miss{background:rgba(196,63,63,.18)}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:3px 9px;margin:0 5px 5px 0;cursor:pointer}
+  .chip:hover{border-color:var(--green-dim)}
+  .chip.sph{background:var(--green-soft);border-color:var(--green-dim);color:var(--green);font-weight:600}
+  .chip.note{border-left:2px solid var(--violet)}
+  .chip.task{border-left:2px solid var(--green)}
+  .chip.person{border-left:2px solid var(--blue)}
+
+  /* roadmap / путь к 10 */
+  .roadmap .rm{display:flex;gap:10px;align-items:baseline;padding:6px 0;border-top:1px solid var(--bg2);font-size:13.5px}.roadmap .rm:first-child{border-top:0}
+  .roadmap .rk{font:700 10px var(--mono);color:var(--muted);width:38px;flex:0 0 auto}
+  .roadmap .rm.done .rt{color:var(--muted);text-decoration:line-through}
+  .roadmap .rm.here{background:rgba(168,119,8,.08);border-radius:8px;margin:0 -8px;padding:6px 8px}.roadmap .rm.here .rt{font-weight:700}
+
+  /* KPI hero tiles */
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;box-shadow:var(--shadow-sm)}
+  .kpi .kn{font-size:11.5px;color:var(--muted)}.kpi .kv{font:700 26px var(--mono);line-height:1.1;margin:3px 0}.kpi .kv small{font-size:13px;color:var(--muted)}
+  .kpi .kd{font:600 11px var(--mono)}.kpi .kd.up{color:var(--green)}.kpi .kd.down{color:var(--red)}
+
+  /* heatmap */
+  .heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,1fr);gap:3px;overflow-x:auto;padding-bottom:4px}
+  .heat i{width:13px;height:13px;border-radius:3px;background:var(--bg2)}
+  .heat i.l1{background:#cfeadb}.heat i.l2{background:#9ed4b4}.heat i.l3{background:#5cb585}.heat i.l4{background:#1e9e57}
+  .legend{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);margin-top:8px}
+  .legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+
+  /* inbox triage */
+  .inbox .it{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--bg2)}.inbox .it:first-child{border-top:0}
+  .inbox .it .ic{font-size:18px;flex:0 0 auto}
+  .inbox .it .ib{flex:1;min-width:0}.inbox .it .ib .ttl{font-size:13.5px}.inbox .it .ib .meta{font-size:11.5px;color:var(--muted)}
+  .triage{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+  .tbtn{font-size:11.5px;border:1px solid var(--line);border-radius:8px;padding:3px 9px;cursor:pointer;background:var(--bg)}
+  .tbtn:hover{border-color:var(--green-dim);color:var(--green)}
+
+  /* radar over time + lines */
+  .lines{position:relative}
+  svg.linechart{width:100%;height:140px;display:block}
+
+  /* weekly review */
+  .rev-step{display:flex;gap:10px;padding:9px 0;border-top:1px solid var(--bg2);align-items:flex-start}.rev-step:first-child{border-top:0}
+  .rev-step .n{width:22px;height:22px;border-radius:50%;background:var(--green-soft);color:var(--green);font:700 12px var(--mono);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .scoreset{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}.scoreset b{width:26px;height:26px;border-radius:7px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font:600 12px var(--mono);cursor:pointer;color:var(--muted)}.scoreset b.on{background:var(--green);color:#fff;border-color:var(--green)}
+
+  /* graph */
+  .graphwrap{display:flex;justify-content:center}
+  .foot{margin-top:22px;color:var(--muted);font-size:12.5px;border-top:1px solid var(--line);padding-top:14px}
+  .pill{display:inline-block;font:600 10px var(--mono);border-radius:20px;padding:2px 8px;background:var(--bg2);color:var(--muted)}
+  .tag{font-size:11px;background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:2px 7px;margin-right:5px}
+</style>
+</head>
+<body>
+<div class="titlebar">PIPBOY · ИДЕИ НА БУДУЩЕЕ — это мокапы, не финал. Листай вкладки, отмечай что заходит. Всё ляжет на текущую базу.</div>
+<div class="navbar"><div class="navin" id="navin"></div></div>
+<div class="page" id="page"></div>
+
+<script>
+const SPH=[
+  {id:'money',ic:'💰',col:'#c43f3f',name:'Деньги',score:7},
+  {id:'health',ic:'🏃',col:'#1e9e57',name:'Здоровье',score:6},
+  {id:'growth',ic:'📚',col:'#6b4fb5',name:'Развитие',score:5},
+  {id:'rel',ic:'❤️',col:'#a87708',name:'Отношения',score:8},
+  {id:'home',ic:'🛡',col:'#364656',name:'Дом/быт',score:5},
+  {id:'work',ic:'💼',col:'#2a76b5',name:'Работа',score:7},
+  {id:'rest',ic:'🌿',col:'#2a76b5',name:'Отдых',score:4},
+  {id:'future',ic:'🔭',col:'#6b4fb5',name:'Перспективы',score:5},
+];
+const TABS=[
+  ['road','🗺','Путь к 10 (вехи)'],
+  ['brain','🧠','Second brain · связи'],
+  ['inbox','📥','Инбокс · быстрый захват'],
+  ['review','🔄','Недельная ревизия'],
+  ['focus','🎯','Фокус дня'],
+  ['heat','🔥','Карта активности'],
+  ['trend','📈','Баланс во времени'],
+  ['money','💎','Эталон-дашборд'],
+];
+let view='road';
+function go(v){view=v;render();window.scrollTo({top:0})}
+
+function ring(score,col,size=46){const r=size/2-4,C=2*Math.PI*r;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#eef0f4" stroke-width="5"/><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${col}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${C*score/10} ${C}" transform="rotate(-90 ${size/2} ${size/2})"/><text x="${size/2}" y="${size/2+5}" text-anchor="middle" style="font:700 ${size*.32}px var(--mono);fill:var(--text)">${score}</text></svg>`}
+function spark(vals,w=80,h=22,col='#5cb585'){const p=2,mn=Math.min(...vals),mx=Math.max(...vals),rng=(mx-mn)||1;const pts=vals.map((v,i)=>[p+i*(w-2*p)/(vals.length-1),h-p-((v-mn)/rng)*(h-2*p)]);return `<svg width="${w}" height="${h}" style="vertical-align:middle"><polyline fill="none" stroke="${col}" stroke-width="1.6" points="${pts.map(p=>p.join(',')).join(' ')}"/><circle cx="${pts.at(-1)[0]}" cy="${pts.at(-1)[1]}" r="2.2" fill="${col}"/></svg>`}
+function wk(arr){return `<div class="wk">${arr.map(d=>`<i class="${d===1?'on':d===-1?'miss':''}"></i>`).join('')}</div>`}
+function why(html){return `<div class="why">${html}</div>`}
+
+function navbar(){document.getElementById('navin').innerHTML=
+  TABS.map(([id,ic,nm])=>`<div class="nb ${view===id?'on':''}" data-go="${id}">${ic} ${nm}</div>`).join('');
+  document.querySelectorAll('#navin [data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go))}
+
+/* ───────────────────────── 1. ПУТЬ К 10 — ВЕХИ ───────────────────────── */
+function vRoad(){
+  const ms=[
+    {at:2,t:'Подушка 6 месяцев расходов',done:1},
+    {at:3,t:'€300к капитала',done:1},
+    {at:4,t:'Норма сбережений 40% + ребаланс раз в квартал',here:1},
+    {at:6,t:'€500к + доход с аренды Belgravia'},
+    {at:8,t:'€800к, диверсификация'},
+    {at:10,t:'Пассивный доход ≥ расходов — свобода'},
+  ];
+  return `<h1>🗺 Путь к 10 — дорожная карта вехами</h1>
+  <p class="lead">Сейчас у сферы только «шаг к +1». Идея: лестница из 5–6 вех от текущей оценки до 10, с маркером «ты здесь». Видно не только следующий шаг, но и весь маршрут — куда вообще идём.</p>
+  ${why('<b>Зачем:</b> сфера перестаёт быть «оценка + один шаг» и становится маршрутом. Веха закрыта → можно поднять оценку. <span class="base">Как ляжет на базу: новая мини-таблица <b>area_milestones</b> (area_id, уровень 1–10, текст, done). Рендерится как блок в сфере. Не трогает существующее.</span>')}
+  <div class="grid2">
+    <div class="card">
+      <div class="clbl">💰 Деньги · путь к 10 <span class="src">· редактируется в сфере</span></div>
+      <div class="roadmap">${ms.map(m=>`<div class="rm ${m.done?'done':''} ${m.here?'here':''}"><span class="rk">${m.at}/10</span><span class="rt">${m.t}</span>${m.here?'<span class="badge soon">ты здесь</span>':(m.done?'<span style="color:var(--green-dim)">✓</span>':'<span class="badge idle">впереди</span>')}</div>`).join('')}</div>
+    </div>
+    <div class="card">
+      <div class="clbl">🏃 Здоровье · путь к 10</div>
+      <div class="roadmap">
+        <div class="rm done"><span class="rk">3/10</span><span class="rt">Режим сна 7.5ч</span><span style="color:var(--green-dim)">✓</span></div>
+        <div class="rm done"><span class="rk">5/10</span><span class="rt">Зарядка в рутину + падл 2×/нед</span><span style="color:var(--green-dim)">✓</span></div>
+        <div class="rm here"><span class="rk">6/10</span><span class="rt">Растяжка после падла — бережём колено</span><span class="badge soon">ты здесь</span></div>
+        <div class="rm"><span class="rk">8/10</span><span class="rt">10к шагов + силовая на стабилизаторы</span><span class="badge idle">впереди</span></div>
+        <div class="rm"><span class="rk">10/10</span><span class="rt">Энергия 8/10 стабильно весь сезон</span><span class="badge idle">впереди</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="card"><div class="clbl">как это выглядит в шапке сферы</div>
+    <div class="row"><span class="tt"><b>Прогресс по вехам</b><div class="s2">3 из 6 закрыто · следующая на 6/10</div></span><span class="pbar" style="flex:0 0 160px"><i style="width:50%"></i></span><span class="pct">50%</span></div>
+    <div class="row"><span class="tt">Подсказка: закрыл веху → кнопка «поднять оценку сферы до N»</span><span class="badge ok">авто-связь с Колесом</span></div>
+  </div>`;
+}
+
+/* ───────────────────────── 2. SECOND BRAIN — СВЯЗИ ───────────────────────── */
+function vBrain(){
+  // мини-граф: центр = заметка, вокруг связанные сущности
+  const nodes=[
+    {x:300,y:120,r:30,c:'#6b4fb5',l:'Стратегия\nребаланса',big:1},
+    {x:120,y:60,r:18,c:'#1e9e57',l:'Цель: €500к'},
+    {x:480,y:70,r:18,c:'#c43f3f',l:'Сфера Деньги'},
+    {x:90,y:200,r:16,c:'#2a76b5',l:'Дима (агент)'},
+    {x:300,y:235,r:16,c:'#a87708',l:'Задача: ребаланс 15.07'},
+    {x:500,y:210,r:16,c:'#6b4fb5',l:'Заметка: тезисы рынка'},
+  ];
+  const edges=[[0,1],[0,2],[0,3],[0,4],[0,5]];
+  const W=560,H=280;
+  const graph=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:560px;height:auto">
+    ${edges.map(([a,b])=>`<line x1="${nodes[a].x}" y1="${nodes[a].y}" x2="${nodes[b].x}" y2="${nodes[b].y}" stroke="#d6dce4" stroke-width="1.5"/>`).join('')}
+    ${nodes.map(n=>`<g><circle cx="${n.x}" cy="${n.y}" r="${n.r}" fill="${n.c}" opacity="${n.big?'.18':'.14'}" stroke="${n.c}" stroke-width="1.5"/>
+      ${n.l.split('\n').map((t,i,a)=>`<text x="${n.x}" y="${n.y+4+(i-(a.length-1)/2)*12}" text-anchor="middle" style="font:600 ${n.big?11:9.5}px var(--sans);fill:var(--text)">${t}</text>`).join('')}</g>`).join('')}
+  </svg>`;
+  return `<h1>🧠 Second brain — связи между всем</h1>
+  <p class="lead">Методика «второго мозга»: всё связано. У любой заметки, цели, человека — видно, с чем оно связано (бэклинки) и в какой сфере живёт. Кликнул мысль → попал в её окружение. Знания не теряются в плоских списках.</p>
+  ${why('<b>Зачем:</b> идея/заметка обрастает контекстом сама. «Почему я это записал» всегда под рукой. <span class="base">Как ляжет на базу: лёгкая таблица <b>links</b> (from_type,from_id,to_type,to_id) + парсинг [[ссылок]] в заметках. Бэклинки = обратный запрос. Граф — просто отрисовка связей.</span>')}
+  <div class="grid2">
+    <div class="card"><div class="clbl">🕸 Карта связей одной заметки <span class="src">· «Стратегия ребаланса»</span></div>
+      <div class="graphwrap">${graph}</div>
+      <div class="muted" style="font-size:12px;text-align:center">клик по узлу → переход к нему · линия = связь</div>
+    </div>
+    <div>
+      <div class="card"><div class="clbl">🔗 Бэклинки <span class="src">· что ссылается сюда</span></div>
+        <div class="row"><span class="chip task">🎯 Ребаланс портфеля · 15.07</span></div>
+        <div class="row"><span class="chip note">📝 Тезисы по рынку</span></div>
+        <div class="row"><span class="chip person">☻ Дима — обсудить аренду</span></div>
+        <div class="row"><span class="chip sph">💰 Сфера: Деньги</span></div>
+      </div>
+      <div class="card"><div class="clbl">✨ Прогрессивное выделение <span class="src">· distill</span></div>
+        <p style="font-size:13px;margin:0 0 6px">Ребаланс делаю <mark style="background:rgba(168,119,8,.25)">раз в квартал по отклонению &gt;5%</mark>. Продаю просевшее против тезисов, докупаю по плану. <b style="background:var(--green-soft);padding:1px 4px;border-radius:4px">Главное: не трогать ядро портфеля.</b></p>
+        <div class="muted" style="font-size:12px">Два слоя выделения: жёлтым — важное, зелёным жирным — суть. Длинная заметка читается за 5 сек.</div>
+      </div>
+    </div>
+  </div>
+  <div class="card"><div class="clbl">📌 «Связать с…» — единый виджет у любой сущности</div>
+    <div class="row"><span class="tt">У задачи / заметки / человека — строка «связи»:</span></div>
+    <div style="margin-top:8px"><span class="chip sph">💰 Деньги</span><span class="chip note">📝 Тезисы рынка</span><span class="chip task">🎯 Ребаланс</span><span class="chip" style="border-style:dashed">＋ связать…</span></div>
+  </div>`;
+}
+
+/* ───────────────────────── 3. ИНБОКС — БЫСТРЫЙ ЗАХВАТ ───────────────────────── */
+function vInbox(){
+  const items=[
+    {ic:'💡',ttl:'Если аренда даёт <4% — выгоднее индекс, чем недвига',meta:'захвачено вчера 23:10',sug:'Деньги'},
+    {ic:'✅',ttl:'Записаться на чек-ап к врачу',meta:'сегодня 08:40',sug:'Здоровье'},
+    {ic:'📝',ttl:'Книга «Психология денег» — выписать главы 4,7',meta:'сегодня 12:05',sug:'Развитие'},
+    {ic:'☻',ttl:'Позвонить маме — 3 дня молчания',meta:'сегодня 14:20',sug:'Отношения'},
+    {ic:'💭',ttl:'Веломаршрут вдоль реки на выходные',meta:'2 дня назад',sug:'Отдых'},
+  ];
+  return `<h1>📥 Инбокс — поймал мысль, разложил потом</h1>
+  <p class="lead">Сердце second-brain: <b>Capture</b>. Одно поле «кинуть мысль» отовсюду — не думая, куда. Потом за 10 секунд триаж: в задачу / в заметку / в сферу / в идею. Голова разгружена, ничего не теряется.</p>
+  ${why('<b>Зачем:</b> ноль трения на захват. Идея в 23:00 не пропадёт. <span class="base">Как ляжет на базу: таблица <b>inbox</b> (text, created_at, status). Кнопки триажа создают узел в Целях / страницу в Инфо / тег сферы — теми же API, что уже есть.</span>')}
+  <div class="grid2">
+    <div class="card">
+      <div class="clbl">⚡ Быстрый захват</div>
+      <div style="border:1px dashed var(--line2);border-radius:10px;padding:11px 13px;color:var(--muted)">Кинуть мысль одной строкой… <span class="pill" style="float:right">⌘+N отовсюду</span></div>
+      <div class="muted" style="font-size:12px;margin-top:8px">Без выбора раздела. Просто фиксируешь. Разложишь — когда будет минута.</div>
+    </div>
+    <div class="card">
+      <div class="clbl">📊 Состояние головы</div>
+      <div class="kpis">
+        <div class="kpi"><div class="kn">в инбоксе</div><div class="kv">5</div><div class="kd down">+3 за сегодня</div></div>
+        <div class="kpi"><div class="kn">разобрано за нед</div><div class="kv">18</div><div class="kd up">чисто к 0 в пт</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="card inbox">
+    <div class="clbl">🗂 Триаж · разложить по сферам</div>
+    ${items.map(it=>`<div class="it"><span class="ic">${it.ic}</span><div class="ib">
+      <div class="ttl">${it.ttl}</div><div class="meta">${it.meta} · 🤖 предлагаю сферу: <b>${it.sug}</b></div>
+      <div class="triage"><span class="tbtn">→ 🎯 в задачу</span><span class="tbtn">→ 📝 в заметку</span><span class="tbtn">→ 💭 в идею сферы</span><span class="tbtn">→ 🗃 в архив</span></div>
+    </div></div>`).join('')}
+  </div>
+  <div class="muted" style="font-size:12px">«🤖 предлагаю» — без ИИ, по ключевым словам (как авто-привязка сфер уже работает). Просто подсказка, решаешь ты.</div>`;
+}
+
+/* ───────────────────────── 4. НЕДЕЛЬНАЯ РЕВИЗИЯ ───────────────────────── */
+function vReview(){
+  return `<h1>🔄 Недельная ревизия — 10 минут в воскресенье</h1>
+  <p class="lead">Ритуал поддержки системы (second-brain «maintain»). Раз в неделю мастер ведёт по шагам: что закрыто, что застряло, обнови оценки сфер, выбери фокус на неделю. Колесо не протухает.</p>
+  ${why('<b>Зачем:</b> система живёт, только если её еженедельно «причёсывать». Это превращает Сферы из витрины в рабочий цикл. <span class="base">Как ляжет на базу: чистый экран-обёртка над тем, что есть (задачи, рутины, Колесо, инбокс). Ничего нового в БД, кроме записи «ревизия проведена».</span>')}
+  <div class="grid2">
+    <div class="card">
+      <div class="clbl">мастер ревизии · шаг за шагом</div>
+      <div class="rev-step"><span class="n">1</span><div><b>Разбери инбокс до нуля</b><div class="muted" style="font-size:12.5px">осталось 5 мыслей — разложить</div></div></div>
+      <div class="rev-step"><span class="n">2</span><div><b>Что застряло?</b><div class="muted" style="font-size:12.5px">3 задачи без движения &gt;14 дней — закрыть/перенести/удалить</div></div></div>
+      <div class="rev-step"><span class="n">3</span><div><b>Обнови оценки сфер</b>
+        <div class="scoreset">${[1,2,3,4,5,6,7,8,9,10].map(i=>`<b class="${i<=6?'on':''}">${i}</b>`).join('')}</div>
+        <div class="muted" style="font-size:12px">Здоровье: было 6 → ?</div></div></div>
+      <div class="rev-step"><span class="n">4</span><div><b>Выбери 3 фокуса на неделю</b><div class="muted" style="font-size:12.5px">по одному шагу из проседающих сфер</div></div></div>
+    </div>
+    <div class="card">
+      <div class="clbl">итог недели · авто из данных</div>
+      <div class="row"><span class="tt">✅ Задач закрыто</span><span class="num">12</span></div>
+      <div class="row"><span class="tt">🔥 Рутины — дисциплина</span><span class="pbar"><i style="width:82%"></i></span><span class="pct">82%</span></div>
+      <div class="row"><span class="tt">📉 Просело</span><span class="badge fire">Отдых 4/10</span></div>
+      <div class="row"><span class="tt">📈 Выросло</span><span class="badge ok">Развитие +1</span></div>
+      <div class="row"><span class="tt">⚠️ Горит на след. неделе</span><span class="badge soon">Легализация · 5 дн</span></div>
+      <div class="row"><span class="tt">☻ Давно не общались</span><span class="badge fire">Мама · 3 дня</span></div>
+      <div style="margin-top:10px"><span class="badge ok">провести ревизию →</span></div>
+    </div>
+  </div>`;
+}
+
+/* ───────────────────────── 5. ФОКУС ДНЯ ───────────────────────── */
+function vFocus(){
+  return `<h1>🎯 Фокус дня — командный центр «Сегодня»</h1>
+  <p class="lead">Альтернатива/дополнение к «Сегодня»: один экран, который отвечает «что делать прямо сейчас». Тянет из проседающих сфер по 1 шагу, показывает что горит, рутины на сегодня и один большой шаг к +1.</p>
+  ${why('<b>Зачем:</b> утром не выбираешь из 100 задач — система предлагает 3 правильных. <span class="base">Как ляжет на базу: целиком из существующих данных (приоритеты задач, due, рутины сегодня, шаги сфер). Ноль новых таблиц.</span>')}
+  <div class="grid3">
+    <div class="card" style="grid-column:span 2">
+      <div class="clbl">🎯 Три фокуса на сегодня <span class="src">· по одному из ключевых сфер</span></div>
+      <div class="row"><span class="cb"></span><span class="tt">Подать документы на легализацию<div class="s2">🛡 Дом · шаг к +1</div></span><span class="badge fire">горит 5 дн</span></div>
+      <div class="row"><span class="cb"></span><span class="tt">Ребаланс портфеля<div class="s2">💰 Деньги · шаг к +1</div></span><span class="badge soon">15.07</span></div>
+      <div class="row"><span class="cb"></span><span class="tt">Позвонить маме<div class="s2">❤️ Отношения · ритм просрочен</div></span><span class="badge fire">3 дня</span></div>
+    </div>
+    <div class="card">
+      <div class="clbl">↻ Рутины сегодня</div>
+      <div class="row"><span class="cb on">✓</span><span class="tt">Зарядка</span><span class="strk">🔥18</span></div>
+      <div class="row"><span class="cb on">✓</span><span class="tt">Витамины</span><span class="strk">🔥42</span></div>
+      <div class="row"><span class="cb"></span><span class="tt">10к шагов</span><span class="strk">🔥4</span></div>
+      <div class="row"><span class="cb"></span><span class="tt">Испанский 20м</span><span class="strk">🔥6</span></div>
+    </div>
+  </div>
+  <div class="grid3">
+    ${[['💰','Деньги',7],['🏃','Здоровье',6],['🛡','Дом',5]].map(([ic,nm,sc])=>`<div class="card" style="display:flex;align-items:center;gap:12px">${ring(sc,'#1e9e57',44)}<div><b>${ic} ${nm}</b><div class="muted" style="font-size:12px">следующий шаг подтянут сюда</div></div></div>`).join('')}
+  </div>`;
+}
+
+/* ───────────────────────── 6. КАРТА АКТИВНОСТИ ───────────────────────── */
+function vHeat(){
+  const cells=Array.from({length:7*22},()=>{const r=Math.random();return r>.8?4:r>.6?3:r>.4?2:r>.2?1:0});
+  const heat=`<div class="heat">${cells.map(l=>`<i class="${l?'l'+l:''}"></i>`).join('')}</div>`;
+  return `<h1>🔥 Карта активности — год одним взглядом</h1>
+  <p class="lead">Контрибьюшн-граф как на GitHub, но по жизни: каждый день — насколько ты двигал сферы (закрытые задачи + рутины + замеры). Видно полосы дисциплины и провалы. Очень мотивирует не рвать цепочку.</p>
+  ${why('<b>Зачем:</b> длинная обратная связь, которой нет в дневных списках. Видишь паттерны: «в отпуске всё встало», «ноябрь — провал по здоровью». <span class="base">Как ляжет на базу: чистый агрегат по логам (routine_log, metric_log, закрытые nodes) по дате. Только чтение, без новых таблиц.</span>')}
+  <div class="card"><div class="clbl">активность · последние ~5 месяцев</div>${heat}
+    <div class="legend">меньше <i style="background:var(--bg2)"></i><i style="background:#cfeadb"></i><i style="background:#9ed4b4"></i><i style="background:#5cb585"></i><i style="background:#1e9e57"></i> больше · клик по дню → что было сделано</div>
+  </div>
+  <div class="grid3">
+    <div class="card"><div class="clbl">🔥 Текущая серия</div><div class="kpi" style="border:0;box-shadow:none;padding:0"><div class="kv">23 <small>дня подряд</small></div><div class="kd up">личный рекорд 31</div></div></div>
+    <div class="card"><div class="clbl">📊 Активных дней / мес</div><div class="kpi" style="border:0;box-shadow:none;padding:0"><div class="kv">24<small>/30</small></div><div class="kd up">+3 к прошлому</div></div></div>
+    <div class="card"><div class="clbl">⚖️ Самая заброшенная</div><div class="kpi" style="border:0;box-shadow:none;padding:0"><div class="kv" style="font-size:18px">🌿 Отдых</div><div class="kd down">14 дней без касания</div></div></div>
+  </div>`;
+}
+
+/* ───────────────────────── 7. БАЛАНС ВО ВРЕМЕНИ ───────────────────────── */
+function vTrend(){
+  const series=[
+    {nm:'Деньги',col:'#c43f3f',v:[6,6,7,7,7,7,7]},
+    {nm:'Здоровье',col:'#1e9e57',v:[5,5,6,6,7,6,6]},
+    {nm:'Отношения',col:'#a87708',v:[7,7,8,8,8,8,8]},
+    {nm:'Отдых',col:'#2a76b5',v:[5,4,4,4,4,4,4]},
+  ];
+  const W=560,H=140,p=24;
+  const x=i=>p+i*(W-2*p)/6, y=v=>H-p-(v-1)/9*(H-2*p);
+  const chart=`<svg class="linechart" viewBox="0 0 ${W} ${H}">
+    ${[2,4,6,8,10].map(g=>`<line x1="${p}" y1="${y(g)}" x2="${W-p}" y2="${y(g)}" stroke="#eef0f4"/><text x="2" y="${y(g)+3}" style="font:9px var(--mono);fill:#9aa7b4">${g}</text>`).join('')}
+    ${series.map(s=>`<polyline fill="none" stroke="${s.col}" stroke-width="2" points="${s.v.map((v,i)=>`${x(i)},${y(v)}`).join(' ')}"/><circle cx="${x(6)}" cy="${y(s.v[6])}" r="2.6" fill="${s.col}"/>`).join('')}
+  </svg>`;
+  return `<h1>📈 Баланс во времени — куда едет Колесо</h1>
+  <p class="lead">Колесо показывает срез «сейчас». А тут — динамика каждого сектора за полгода. Сразу видно, что растёт, что сползает, и не обманываешь ли себя («кажется, здоровьем занимаюсь» — а линия вниз).</p>
+  ${why('<b>Зачем:</b> тренд честнее моментальной оценки. Решения — по направлению, а не по настроению дня. <span class="base">Как ляжет на базу: данные уже есть в <b>wheel_scores</b> (история замеров по датам). Только график.</span>')}
+  <div class="card"><div class="clbl">оценки сфер · 6 замеров</div>${chart}
+    <div style="margin-top:6px">${series.map(s=>`<span class="tag" style="border-left:3px solid ${s.col}">${s.nm} ${s.v[6]}${s.v[6]>s.v[0]?' ↑':s.v[6]<s.v[0]?' ↓':' ='}</span>`).join('')}</div>
+  </div>
+  <div class="grid2">
+    <div class="card"><div class="clbl">📉 Требует внимания</div>
+      <div class="row"><span class="tt">Отдых</span>${spark([5,4,4,4,4,4,4],90,22,'#c43f3f')}<span class="badge fire">−1 за полгода</span></div>
+      <div class="row"><span class="tt">Дом/быт</span>${spark([6,5,5,4,5,5,5],90,22,'#a87708')}<span class="badge soon">плато</span></div>
+    </div>
+    <div class="card"><div class="clbl">📈 На подъёме</div>
+      <div class="row"><span class="tt">Здоровье</span>${spark([5,5,6,6,7,6,6],90,22)}<span class="badge ok">+1</span></div>
+      <div class="row"><span class="tt">Отношения</span>${spark([7,7,8,8,8,8,8],90,22)}<span class="badge ok">+1, держится</span></div>
+    </div>
+  </div>`;
+}
+
+/* ───────────────────────── 8. ЭТАЛОН-ДАШБОРД (ДЕНЬГИ) ───────────────────────── */
+function vMoney(){
+  return `<h1>💎 Эталон-дашборд — «Деньги» как образец</h1>
+  <p class="lead">Как может выглядеть доведённая до ума сфера: KPI-плитки сверху, путь к 10, живые числа, платёжный календарь, трекинг с целями. По этому лекалу подтянем остальные.</p>
+  ${why('<b>Зачем:</b> образец «дашборда успеха», от которого пляшем для всех сфер. <span class="base">Как ляжет на базу: 90% уже есть (финансы, FIRE, платежи, метрики с целью). Новое — KPI-шапка и вехи.</span>')}
+  <div class="card">
+    <div class="clbl">💰 Деньги · ключевые сигналы</div>
+    <div class="kpis">
+      <div class="kpi"><div class="kn">Капитал → цель €1.0М</div><div class="kv">€312к</div><div class="kd up">31% ${spark([305,307,306,309,310,311,312],50,16)}</div></div>
+      <div class="kpi"><div class="kn">FIRE прогресс</div><div class="kv">31<small>%</small></div><div class="kd up">+2% за квартал</div></div>
+      <div class="kpi"><div class="kn">Норма сбережений 🎯40%</div><div class="kv">31<small>%</small></div><div class="kd down">ниже цели</div></div>
+      <div class="kpi"><div class="kn">Расход / бюджет</div><div class="kv">€3.18<small>к</small></div><div class="kd up">из €3.5к</div></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card"><div class="clbl">🗺 путь к 10</div>
+      <div class="roadmap">
+        <div class="rm done"><span class="rk">3/10</span><span class="rt">€300к капитала</span><span style="color:var(--green-dim)">✓</span></div>
+        <div class="rm here"><span class="rk">4/10</span><span class="rt">Норма сбережений 40%</span><span class="badge soon">ты здесь</span></div>
+        <div class="rm"><span class="rk">6/10</span><span class="rt">€500к + аренда Belgravia</span><span class="badge idle">впереди</span></div>
+        <div class="rm"><span class="rk">10/10</span><span class="rt">Пассивный доход ≥ расходов</span><span class="badge idle">впереди</span></div>
+      </div>
+    </div>
+    <div class="card"><div class="clbl">📅 платёжный календарь</div>
+      <div class="row"><span class="tt">Налоги Q2</span><span class="badge soon">15.07 · 27д</span><span class="num">€1 200</span></div>
+      <div class="row"><span class="tt">Вернуть долг другу</span><span class="badge fire">30.06 · 12д</span><span class="num">€500</span></div>
+      <div class="row"><span class="tt">Аренда офиса</span><span class="badge idle">ежемес.</span><span class="num">€620</span></div>
+    </div>
+  </div>
+  <div class="card"><div class="clbl">📊 трекинг с целями</div>
+    <div class="row"><span class="tt">Капитал<div class="s2">🎯 €1.0М · 31%</div></span>${spark([305,307,306,309,310,311,312])}<span class="num">€312к</span></div>
+    <div class="row"><span class="tt">Норма сбережений<div class="s2">🎯 40% · 78% к цели</div></span>${spark([24,26,28,27,30,31,31])}<span class="num">31%</span></div>
+  </div>`;
+}
+
+const VIEWS={road:vRoad,brain:vBrain,inbox:vInbox,review:vReview,focus:vFocus,heat:vHeat,trend:vTrend,money:vMoney};
+function render(){navbar();
+  document.getElementById('page').innerHTML=(VIEWS[view]||vRoad)()+
+    `<div class="foot">Это <b>мокапы идей</b>, не реализованное. Каждая помечена «как ляжет на текущую базу» — почти всё это надстройки над тем, что уже есть (Цели, Инфо, Колесо, Трекинг, логи), без слома данных. Скажи, что заходит — соберём по очереди. Методика: second brain (захват → разложить → связать → ревизия) поверх твоих Сфер.</div>`;
+}
+render();
+</script>
+</body>
+</html>
