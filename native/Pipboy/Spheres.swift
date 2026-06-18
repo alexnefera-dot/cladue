@@ -89,6 +89,14 @@ extension Api {
     private static func sphIso(_ d: Date) -> String {
         let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; f.locale = Locale(identifier: "en_US_POSIX"); return f.string(from: d)
     }
+    // последние 7 дней отметок (старое→новое) для рутины/практики — недельная полоса успеха
+    private static func last7Hits(_ db: Database, _ table: String, _ idCol: String, _ id: Int) -> [Int] {
+        let cal = Calendar.current
+        let days: [String] = stride(from: 6, through: 0, by: -1).map { sphIso(cal.date(byAdding: .day, value: -$0, to: Date()) ?? Date()) }
+        let hit = Set((try? db.rows("SELECT date FROM \(table) WHERE \(idCol) = ? AND date >= ?", [id, days.first ?? ""]))?
+            .compactMap { ($0["date"] as? String).map { String($0.prefix(10)) } } ?? [])
+        return days.map { hit.contains($0) ? 1 : 0 }
+    }
 
     // ===== главный сборщик =====
     static func buildSpheres(_ db: Database) throws -> [[String: Any]] {
@@ -150,7 +158,7 @@ extension Api {
             for r in try db.rows("SELECT id, name FROM routines WHERE area_id = ? ORDER BY ord, id", [aid]) {
                 let rid = r["id"] as? Int ?? -1
                 let done = (try? db.rows("SELECT 1 AS x FROM routine_log WHERE routine_id = ? AND date = ?", [rid, todayIso]))?.isEmpty == false
-                routines.append(["id": rid, "name": r["name"] ?? "", "streak": (try? routineStreak(db, rid)) ?? 0, "doneToday": done])
+                routines.append(["id": rid, "name": r["name"] ?? "", "streak": (try? routineStreak(db, rid)) ?? 0, "doneToday": done, "wk": last7Hits(db, "routine_log", "routine_id", rid)])
             }
 
             // метрики (трекинг) — по дефолту секции
@@ -163,7 +171,7 @@ extension Api {
             var practices: [[String: Any]] = []
             for p in try db.rows("SELECT * FROM practices WHERE \(whereClause("practice", aid)) ORDER BY ord, id", [aid]) {
                 let pid = p["id"] as? Int ?? -1
-                practices.append(["id": pid, "name": p["name"] ?? "", "streak": (try? practiceStreak(db, id: pid, days: p["days"] as? String)) ?? 0])
+                practices.append(["id": pid, "name": p["name"] ?? "", "streak": (try? practiceStreak(db, id: pid, days: p["days"] as? String)) ?? 0, "wk": last7Hits(db, "practice_log", "practice_id", pid)])
             }
 
             // люди (социализация) — по дефолту секции

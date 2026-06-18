@@ -28,7 +28,7 @@ function sphSpark(vals, w = 74, h = 18) {
   if (!vals || vals.length < 2) return '<span class="muted" style="font-size:11px">мало данных</span>';
   const p = 2, mn = Math.min(...vals), mx = Math.max(...vals), rng = (mx - mn) || 1;
   const pts = vals.map((v, i) => [p + i * (w - 2 * p) / (vals.length - 1), h - p - ((v - mn) / rng) * (h - 2 * p)]);
-  return `<svg width="${w}" height="${h}" style="vertical-align:middle"><polyline fill="none" stroke="#5cb585" stroke-width="1.6" points="${pts.map(p => p.join(',')).join(' ')}"/></svg>`;
+  return `<svg width="${w}" height="${h}" style="vertical-align:middle"><polyline fill="none" stroke="#5cb585" stroke-width="1.6" points="${pts.map(p => p.join(',')).join(' ')}"/><circle cx="${pts.at(-1)[0]}" cy="${pts.at(-1)[1]}" r="2.2" fill="#1e9e57"/></svg>`;
 }
 
 window.loadSpheres = async function () {
@@ -105,16 +105,10 @@ function renderSpheres() {
 function sphOverview() {
   const scored = sphData.filter(s => s.score != null);
   const avg = scored.length ? (scored.reduce((a, s) => a + s.score, 0) / scored.length).toFixed(1) : '–';
-  const an = id => (sphPool?.areas || []).find(a => a.id === id)?.name;
-  const d = sphPool?.defaults || {};
-  const route = [['Люди', d.person], ['Трекинг', d.metric], ['Психология', d.practice], ['Финансы', d.obligation]]
-    .map(([l, id]) => `${l}→<b>${an(id) || '—'}</b>`).join(' · ');
   return `<h2 style="margin-bottom:2px">Сферы жизни</h2>
     <div class="muted" style="margin-bottom:8px">средний баланс ${avg}/10 · 10 = куда идём, оценка = где сейчас, шаг = что делаем. Всё на реальных данных.</div>
     <div class="card" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
-      <span class="pill btn ok" id="sphAuto">🪄 авто-настроить</span>
-      <span class="pill btn" id="sphTagBtn">🏷 привязка</span>
-      <span class="muted" style="font-size:12px">секции сами: ${route} · цели/инфо/рутины — в «привязке»</span></div>
+      <span class="pill btn" id="sphTagBtn">🏷 привязка</span></div>
     <div class="sph-ov">${sphData.map((s, i) => {
       const links = s.routines.length + s.tracking.length + s.practices.length + s.fin.length + s.tasks.length;
       return `<div class="sph-card" data-open="${s.id}">
@@ -127,12 +121,6 @@ function sphOverview() {
 }
 function bindOverview() {
   document.querySelectorAll('#screen-spheres [data-open]').forEach(c => c.onclick = () => { sphOpen = +c.dataset.open; renderSpheres(); });
-  document.getElementById('sphAuto')?.addEventListener('click', async () => {
-    const r = await fetch('/api/spheres/auto', { method: 'POST' }).then(x => x.json());
-    const lines = Object.entries(r.defaults).map(([k, v]) => `${({ person: 'Люди', metric: 'Трекинг', practice: 'Психология', obligation: 'Финансы' })[k]} → ${v || 'нет подходящей сферы'}`);
-    alert(`Авто-настройка связей:\n\n${lines.join('\n')}\n\nКатегорий целей разложено: ${r.categoriesMapped}`);
-    window.loadSpheres();
-  });
   document.getElementById('sphTagBtn')?.addEventListener('click', async () => {
     sphTagData = await sphApi.tagpool(); sphTag = true; renderSpheres();
   });
@@ -275,13 +263,13 @@ function sphDetail(s, i) {
 
   // рутины
   if (s.routines.length) h += block('↻ Рутины', 'Рутины', s.routines.map(r => `
-    <div class="task"><span class="cb ${r.doneToday ? 'done' : ''}"></span><span class="t">${sesc(r.name)}</span><span class="meta">🔥 ${r.streak}</span></div>`).join(''));
+    <div class="task"><span class="cb ${r.doneToday ? 'done' : ''}"></span><span class="t">${sesc(r.name)}${r.wk ? `<div class="sphwk">${r.wk.map(d => `<i class="${d ? 'on' : 'miss'}"></i>`).join('')}</div>` : ''}</span><span class="meta strk">🔥 ${r.streak}</span></div>`).join(''));
   // трекинг
   if (s.tracking.length) h += block('📊 Трекинг · 7 дней', 'Трекинг', s.tracking.map(m => `
     <div class="task"><span class="t">${sesc(m.name)}</span>${sphSpark(m.s)}<span class="meta num">${m.v ?? '–'} ${sesc(m.unit)}</span></div>`).join(''));
   // практики
   if (s.practices.length) h += block('🧠 Практики', 'Психология', s.practices.map(p => `
-    <div class="task"><span class="t">${sesc(p.name)}</span><span class="meta">🔥 ${p.streak}</span></div>`).join(''));
+    <div class="task"><span class="t">${sesc(p.name)}${p.wk ? `<div class="sphwk">${p.wk.map(d => `<i class="${d ? 'on' : ''}"></i>`).join('')}</div>` : ''}</span><span class="meta strk">🔥 ${p.streak}</span></div>`).join(''));
   // люди (социализация)
   if (s.people && s.people.length) h += block('☻ Люди', 'Люди', s.people.map(p => `
     <div class="task"><span class="t">${sesc(p.name)}</span><span class="meta">${p.rhythm ? 'ритм ' + p.rhythm + 'д' : ''}${p.last ? ' · посл. ' + p.last : ''}</span></div>`).join(''));
@@ -418,6 +406,8 @@ function ensureSphStyle() {
     .sph-momn{font:700 30px var(--mono);color:var(--green);line-height:1}.sph-momn small{font-size:14px;color:var(--muted)}
     .sph-momt{font-size:12.5px;color:var(--muted)}
     .pbar2{flex:1;max-width:160px;height:7px;border-radius:99px;background:var(--bg2);overflow:hidden;margin:0 6px}.pbar2 i{display:block;height:100%;background:var(--green-dim)}
+    .sphwk{display:flex;gap:3px;margin-top:4px}.sphwk i{width:11px;height:11px;border-radius:3px;background:var(--bg2)}.sphwk i.on{background:var(--green-dim)}.sphwk i.miss{background:rgba(196,63,63,.18)}
+    .strk{color:var(--amber)!important;font-weight:600}
     .catrow{display:flex;align-items:center;gap:10px;padding:5px 0;border-top:1px solid var(--bg2)}.catrow:first-child{border-top:0}
     .catt{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.catt.on{font-weight:700;color:var(--green)}
     .catrow select{flex:0 0 auto;max-width:190px;border:1px solid var(--line);border-radius:8px;padding:5px 8px;font:12.5px var(--sans);background:var(--bg)}
