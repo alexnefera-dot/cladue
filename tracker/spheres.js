@@ -56,9 +56,8 @@ export function autoConfig(db, force = false) {
 const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const TODAY = () => iso(new Date());
 
-// Сфера узла = area_id ближайшего предка (включая себя), у кого он задан.
-function nodeAreaResolver(db) {
-  const rows = db.prepare('SELECT id, parent_id, area_id FROM nodes').all();
+// Сфера элемента дерева = area_id ближайшего предка (включая себя), у кого он задан.
+function treeResolver(rows) {
   const byId = new Map(rows.map(r => [r.id, r]));
   const memo = new Map();
   return function resolve(id) {
@@ -70,6 +69,7 @@ function nodeAreaResolver(db) {
     return area;
   };
 }
+const nodeAreaResolver = db => treeResolver(db.prepare('SELECT id, parent_id, area_id FROM nodes').all());
 
 function metricBlock(db, m) {
   const rows = db.prepare('SELECT date, value FROM metric_log WHERE metric_id = ? ORDER BY date DESC LIMIT 7').all(m.id).reverse();
@@ -88,6 +88,8 @@ export function buildSpheres(db) {
     `SELECT id, title, status, due_date, priority, area_id, note FROM nodes WHERE is_category = 0`
   ).all();
   const belongs = (t, a) => resolve(t.id) === a.id || (t.note || '').includes(`сектор «${a.name}»`);
+  const allPages = db.prepare('SELECT id, title, parent_id, area_id, node_id FROM pages').all();
+  const resolvePage = treeResolver(allPages.map(p => ({ id: p.id, parent_id: p.parent_id, area_id: p.area_id })));
   const defaults = getDefaults(db);
   // строка WHERE: своя привязка ИЛИ (если секция по умолчанию ведёт в эту сферу) ничейные
   const whereFor = (kind, areaId) =>
@@ -122,6 +124,9 @@ export function buildSpheres(db) {
       id: p.id, name: p.name, rhythm: p.rhythm_days || null, last: p.last_contact || null,
     }));
 
+    // инфо — страницы сферы (тег на странице/разделе, вложенные наследуют)
+    const info = allPages.filter(p => resolvePage(p.id) === a.id).slice(0, 12).map(p => ({ id: p.id, title: p.title }));
+
     // финансы — обязательства/подписки сферы (ручной тег)
     const fin = db.prepare('SELECT id, name, amount, currency, period, next_date FROM obligations WHERE area_id = ? ORDER BY id').all(a.id);
 
@@ -146,7 +151,7 @@ export function buildSpheres(db) {
       id: a.id, name: a.name,
       ideal: a.ideal || '', current_desc: a.current_desc || '', next_desc: a.next_desc || '', step: a.step || '',
       score: sc[0]?.score ?? null, prev: sc[1]?.score ?? null, history: sc.map(s => s.score).reverse(),
-      tasks, routines, tracking, practices, people, fin, progress,
+      tasks, routines, tracking, practices, people, info, fin, progress,
     };
   });
 }
@@ -156,8 +161,18 @@ export function categories(db) {
   return db.prepare('SELECT id, title, parent_id, area_id FROM nodes WHERE is_category = 1 ORDER BY ord, id').all();
 }
 
-// Привязать/отвязать элемент к сфере. kind: routine|metric|practice|obligation|category|person
-const TBL = { routine: 'routines', metric: 'metrics', practice: 'practices', obligation: 'obligations', category: 'nodes', person: 'people' };
+// Сводный пул для экрана привязки: категории целей, страницы Инфо (дерево), рутины + сферы.
+export function tagPool(db) {
+  return {
+    areas: db.prepare('SELECT id, name FROM wheel_areas ORDER BY ord, id').all(),
+    categories: db.prepare('SELECT id, title, parent_id, area_id FROM nodes WHERE is_category = 1 ORDER BY ord, id').all(),
+    pages: db.prepare('SELECT id, title, parent_id, area_id FROM pages ORDER BY ord, id').all(),
+    routines: db.prepare('SELECT id, name, area_id FROM routines WHERE planned = 0 ORDER BY ord, id').all(),
+  };
+}
+
+// Привязать/отвязать элемент к сфере. kind: routine|metric|practice|obligation|category|person|page
+const TBL = { routine: 'routines', metric: 'metrics', practice: 'practices', obligation: 'obligations', category: 'nodes', person: 'people', page: 'pages' };
 export function assign(db, kind, id, areaId) {
   const t = TBL[kind];
   if (!t) throw new Error('unknown kind');

@@ -1,9 +1,9 @@
 /* Сферы — экран поверх реальных данных Pipboy.
-   Сфера = сектор Колеса. Гибрид-тег: категории Целей тащат задачи (авто),
-   рутины/метрики/практики/финансы привязываются вручную («🔗 связи»).
-   Правки идут в настоящие данные (Колесо, задачи, area_id через /api/spheres/assign). */
+   Сфера = сектор Колеса. Привязка у источника (экран «🏷 привязка»): тег на
+   категории Целей / странице Инфо / рутине, вложенные наследуют; Психология/
+   Трекинг/Финансы/Люди — по дефолту секции (авто). area_id через /api/spheres/assign. */
 
-let sphData = null, sphPool = null, sphOpen = null, sphEditConn = false, sphCatMap = false, sphCats = null;
+let sphData = null, sphPool = null, sphOpen = null, sphTag = false, sphTagData = null;
 const sesc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const SPH_COL = ['#1e9e57', '#c43f3f', '#a87708', '#6b4fb5', '#2a76b5', '#364656'];
 const colOf = i => SPH_COL[i % SPH_COL.length];
@@ -11,7 +11,7 @@ const colOf = i => SPH_COL[i % SPH_COL.length];
 const sphApi = {
   load: () => fetch('/api/spheres').then(r => r.json()),
   pool: () => fetch('/api/spheres/pool').then(r => r.json()),
-  categories: () => fetch('/api/spheres/categories').then(r => r.json()),
+  tagpool: () => fetch('/api/spheres/tagpool').then(r => r.json()),
   assign: (kind, id, areaId) => fetch('/api/spheres/assign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind, id, areaId }) }),
   score: (id, n) => fetch('/api/psy/wheel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ scores: { [id]: n } }) }),
   patch: (id, b) => fetch('/api/psy/areas/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }),
@@ -36,11 +36,11 @@ window.loadSpheres = async function () {
   renderSpheres();
 };
 // открыть конкретную сферу из «Сегодня» (полоса сфер) — без отдельной загрузки
-window.openSphere = function (id) { sphOpen = id; sphEditConn = false; showScreen('spheres'); };
+window.openSphere = function (id) { sphOpen = id; showScreen('spheres'); };
 
 function renderSpheres() {
   const el = document.getElementById('screen-spheres');
-  if (sphCatMap) { el.innerHTML = sphCatmap(); bindCatmap(); return; }
+  if (sphTag) { el.innerHTML = sphTagHub(); bindTagHub(); return; }
   if (sphOpen == null) { el.innerHTML = sphOverview(); bindOverview(); return; }
   const s = sphData.find(x => x.id === sphOpen);
   if (!s) { sphOpen = null; return renderSpheres(); }
@@ -58,9 +58,9 @@ function sphOverview() {
   return `<h2 style="margin-bottom:2px">Сферы жизни</h2>
     <div class="muted" style="margin-bottom:8px">средний баланс ${avg}/10 · 10 = куда идём, оценка = где сейчас, шаг = что делаем. Всё на реальных данных.</div>
     <div class="card" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
-      <span class="pill btn ok" id="sphAuto">🪄 авто-настроить связи</span>
-      <span class="pill btn" id="sphCatBtn">🎯 цели → сферы</span>
-      <span class="muted" style="font-size:12px">секции сами в свои сферы: ${route} · цели — по категориям</span></div>
+      <span class="pill btn ok" id="sphAuto">🪄 авто-настроить</span>
+      <span class="pill btn" id="sphTagBtn">🏷 привязка</span>
+      <span class="muted" style="font-size:12px">секции сами: ${route} · цели/инфо/рутины — в «привязке»</span></div>
     <div class="sph-ov">${sphData.map((s, i) => {
       const links = s.routines.length + s.tracking.length + s.practices.length + s.fin.length + s.tasks.length;
       return `<div class="sph-card" data-open="${s.id}">
@@ -72,48 +72,66 @@ function sphOverview() {
     }).join('')}</div>`;
 }
 function bindOverview() {
-  document.querySelectorAll('#screen-spheres [data-open]').forEach(c => c.onclick = () => { sphOpen = +c.dataset.open; sphEditConn = false; renderSpheres(); });
+  document.querySelectorAll('#screen-spheres [data-open]').forEach(c => c.onclick = () => { sphOpen = +c.dataset.open; renderSpheres(); });
   document.getElementById('sphAuto')?.addEventListener('click', async () => {
     const r = await fetch('/api/spheres/auto', { method: 'POST' }).then(x => x.json());
     const lines = Object.entries(r.defaults).map(([k, v]) => `${({ person: 'Люди', metric: 'Трекинг', practice: 'Психология', obligation: 'Финансы' })[k]} → ${v || 'нет подходящей сферы'}`);
     alert(`Авто-настройка связей:\n\n${lines.join('\n')}\n\nКатегорий целей разложено: ${r.categoriesMapped}`);
     window.loadSpheres();
   });
-  document.getElementById('sphCatBtn')?.addEventListener('click', async () => {
-    sphCats = await sphApi.categories(); sphCatMap = true; renderSpheres();
+  document.getElementById('sphTagBtn')?.addEventListener('click', async () => {
+    sphTagData = await sphApi.tagpool(); sphTag = true; renderSpheres();
   });
 }
 
-// Маппер «Цели → сферы»: дерево категорий с отступами, у каждой — выбор сферы.
-// Тег на категории наследуется всеми вложенными целями (вложенность сохраняется).
-function sphCatmap() {
-  const cats = sphCats || [], areas = sphPool?.areas || [];
-  const byP = {}; cats.forEach(c => (byP[c.parent_id ?? 'root'] ??= []).push(c));
-  let rows = '';
+// Хаб привязки: тегируем у источника. Дерево (категории целей, страницы Инфо) —
+// тег наследуется вложенными; рутины — плоский список. Выпадашка = выбор сферы.
+function tagTree(rows, kind, areas) {
+  const byP = {}; rows.forEach(c => (byP[c.parent_id ?? 'root'] ??= []).push(c));
+  const nameKey = rows[0] && 'title' in rows[0] ? 'title' : 'name';
+  let out = '';
   const walk = (c, depth) => {
-    const tagged = c.area_id != null;
-    rows += `<div class="catrow" style="padding-left:${depth * 18}px">
-      <span class="catt ${tagged ? 'on' : ''}">${depth ? '↳ ' : ''}${sesc(c.title)}</span>
-      <select data-cat="${c.id}"><option value="">— наследует/не задано</option>
+    out += `<div class="catrow" style="padding-left:${depth * 16}px">
+      <span class="catt ${c.area_id != null ? 'on' : ''}">${depth ? '↳ ' : ''}${sesc(c[nameKey])}</span>
+      <select data-tag="${kind}:${c.id}"><option value="">— наследует/нет</option>
         ${areas.map(a => `<option value="${a.id}" ${c.area_id === a.id ? 'selected' : ''}>${sesc(a.name)}</option>`).join('')}</select></div>`;
     (byP[c.id] || []).forEach(k => walk(k, depth + 1));
   };
   (byP['root'] || []).forEach(c => walk(c, 0));
-  return `<div class="sph-crumb"><a id="sphBackCat">← Сферы</a> · <span class="pill btn" id="sphAutomapCat">🪄 авто по именам</span></div>
-    <h2 style="margin-bottom:2px">Цели → сферы</h2>
-    <div class="muted" style="margin-bottom:12px">Привяжи категорию к сфере — <b>все вложенные цели наследуют её</b>. Названия и вложенность не меняем. Вложенной можно задать свою сферу (переопределит родителя).</div>
-    <div class="card">${rows || '<div class="empty">категорий нет</div>'}</div>`;
+  return out || '<div class="empty">пусто</div>';
 }
-function bindCatmap() {
-  document.getElementById('sphBackCat').onclick = () => { sphCatMap = false; renderSpheres(); };
-  document.getElementById('sphAutomapCat').onclick = async () => {
+function tagFlat(rows, kind, areas) {
+  return rows.map(c => `<div class="catrow">
+    <span class="catt ${c.area_id != null ? 'on' : ''}">${sesc(c.name)}</span>
+    <select data-tag="${kind}:${c.id}"><option value="">— не задано</option>
+      ${areas.map(a => `<option value="${a.id}" ${c.area_id === a.id ? 'selected' : ''}>${sesc(a.name)}</option>`).join('')}</select></div>`).join('') || '<div class="empty">пусто</div>';
+}
+function sphTagHub() {
+  const t = sphTagData || {}, areas = t.areas || [];
+  const dn = id => (areas.find(a => a.id === id) || {}).name;
+  const dd = sphPool?.defaults || {};
+  return `<div class="sph-crumb"><a id="sphBackTag">← Сферы</a> · <span class="pill btn" id="sphAutomapTag">🪄 авто по именам</span></div>
+    <h2 style="margin-bottom:2px">Привязка к сферам</h2>
+    <div class="muted" style="margin-bottom:6px">Тегируешь у источника, вложенные <b>наследуют</b> (можно переопределить). Названия/структуру не трогаем.</div>
+    <div class="card" style="font-size:12.5px;color:var(--muted);margin-bottom:12px">⚡ По умолчанию (авто): Люди→<b>${dn(dd.person) || '—'}</b> · Трекинг→<b>${dn(dd.metric) || '—'}</b> · Психология→<b>${dn(dd.practice) || '—'}</b> · Финансы→<b>${dn(dd.obligation) || '—'}</b> — отдельно тегать не нужно.</div>
+    <div class="sec" style="margin-top:0">🎯 Цели · категории (разделы и подразделы)</div>
+    <div class="card">${tagTree(t.categories || [], 'category', areas)}</div>
+    <div class="sec">📒 Инфо · страницы и разделы</div>
+    <div class="card">${tagTree(t.pages || [], 'page', areas)}</div>
+    <div class="sec">↻ Рутины · по одной (бывают разные)</div>
+    <div class="card">${tagFlat(t.routines || [], 'routine', areas)}</div>`;
+}
+function bindTagHub() {
+  document.getElementById('sphBackTag').onclick = () => { sphTag = false; renderSpheres(); };
+  document.getElementById('sphAutomapTag').onclick = async () => {
     const r = await fetch('/api/spheres/automap', { method: 'POST' }).then(x => x.json());
-    alert(`Разложено категорий по именам сфер: ${r.mapped}`);
-    sphCats = await sphApi.categories(); renderSpheres();
+    alert(`Разложено категорий целей по именам сфер: ${r.mapped}`);
+    sphTagData = await sphApi.tagpool(); renderSpheres();
   };
-  document.querySelectorAll('#screen-spheres [data-cat]').forEach(sel => sel.onchange = async () => {
-    await sphApi.assign('category', +sel.dataset.cat, sel.value ? +sel.value : null);
-    sphCats = await sphApi.categories(); sphData = await sphApi.load(); renderSpheres();
+  document.querySelectorAll('#screen-spheres [data-tag]').forEach(sel => sel.onchange = async () => {
+    const [kind, id] = sel.dataset.tag.split(':');
+    await sphApi.assign(kind, +id, sel.value ? +sel.value : null);
+    sphTagData = await sphApi.tagpool(); sphData = await sphApi.load(); renderSpheres();
   });
 }
 
@@ -123,7 +141,7 @@ function block(label, jump, inner) {
 
 function sphDetail(s, i) {
   const col = colOf(i);
-  let h = `<div class="sph-crumb"><a id="sphBack">← Сферы</a> · <span class="pill btn" id="sphConnBtn">🔗 связи</span></div>
+  let h = `<div class="sph-crumb"><a id="sphBack">← Сферы</a></div>
     <div class="sph-hero">
       <div class="sph-hs">${sphRing(s.score, col, 70)}<div style="margin-top:4px">${sphSpark(s.history)}</div></div>
       <div class="sph-hi"><h2 style="margin:0 0 4px">${sesc(s.name)}</h2>
@@ -135,8 +153,6 @@ function sphDetail(s, i) {
     <div class="sph-step-box"><span class="sph-l">СЛЕДУЮЩИЙ ШАГ</span><b data-edit="step">${s.step ? sesc(s.step) : 'задать шаг (клик)'}</b>
       ${s.next_desc ? `<div class="muted" style="font-size:12.5px;margin-top:3px" data-edit="next_desc">${sesc(s.next_desc)}</div>` : ''}
       <div style="margin-top:7px"><span class="pill btn" id="sphStepTask">＋ шаг в задачи</span></div></div>`;
-
-  if (sphEditConn) h += sphConnEditor(s);
 
   // живой прогресс из данных
   const pr = s.progress || {};
@@ -174,6 +190,9 @@ function sphDetail(s, i) {
   // финансы
   if (s.fin.length) h += block('💰 Финансы сферы', 'Финансы', s.fin.map(f => `
     <div class="task"><span class="t">${sesc(f.name)}</span><span class="meta num">${f.amount} ${sesc(f.currency)} / ${sesc(f.period)}</span></div>`).join(''));
+  // инфо
+  if (s.info && s.info.length) h += block('📒 Инфо сферы', 'Инфо', s.info.map(p => `
+    <div class="task"><span class="t">${sesc(p.title)}</span></div>`).join(''));
 
   // ревизия
   h += `<div class="sec">🪞 Ревизия · оценка сферы</div><div class="card">
@@ -182,58 +201,8 @@ function sphDetail(s, i) {
   return h;
 }
 
-function sphConnEditor(s) {
-  if (!sphPool) return `<div class="card"><div class="muted">загрузка связей…</div></div>`;
-  const grp = (kind, label, items, nameKey) => {
-    const mine = items.filter(x => x.area_id === s.id), free = items.filter(x => x.area_id == null), other = items.filter(x => x.area_id != null && x.area_id !== s.id);
-    return `<div class="sph-cg"><div class="sph-cgl">${label}</div>
-      ${mine.map(x => `<span class="sph-pi on" data-as="${kind}:${x.id}:0">✓ ${sesc(x[nameKey])}</span>`).join('')}
-      ${free.map(x => `<span class="sph-pi" data-as="${kind}:${x.id}:${s.id}">＋ ${sesc(x[nameKey])}</span>`).join('')}
-      ${other.length ? `<span class="muted" style="font-size:11px">· занято в др. сферах: ${other.length}</span>` : ''}
-      ${!items.length ? '<span class="muted" style="font-size:12px">пусто</span>' : ''}</div>`;
-  };
-  const def = sphPool.defaults || {};
-  const defT = (kind, label) => { const on = def[kind] === s.id; return `<span class="sph-pi ${on ? 'on' : ''}" data-def="${kind}:${on ? '' : s.id}">${on ? '✓ ' : '＋ '}${label}</span>`; };
-  return `<div class="card sph-conn"><div class="sec" style="margin-top:0">🔗 Связи сферы · что входит сюда</div>
-    <div class="sph-cg"><div class="sph-cgl">⚡ Вся секция по умолчанию → в эту сферу</div>
-      ${defT('person', 'Люди')}${defT('metric', 'Трекинг')}${defT('practice', 'Психология')}
-      <div class="muted" style="font-size:11px;margin-top:3px">включил — вся секция течёт сюда сама (отдельные элементы можно перетегать ниже)</div></div>
-    <div class="sph-cg"><div class="sph-cgl">🎯 Цели</div>
-      <span class="sph-pi" id="sphAutomap">↪ разложить категории по сферам (по именам)</span></div>
-    ${grp('category', '🎯 Категории целей (авто-задачи)', sphPool.categories, 'title')}
-    <div class="muted" style="font-size:11px;margin:2px 0 8px">Инфо и рутины — вручную:</div>
-    ${grp('routine', '↻ Рутины', sphPool.routines, 'name')}
-    ${grp('metric', '📊 Метрики (если не вся секция)', sphPool.metrics, 'name')}
-    ${grp('practice', '🧠 Практики (если не вся секция)', sphPool.practices, 'name')}
-    ${grp('person', '☻ Люди (если не вся секция)', sphPool.people, 'name')}
-    ${grp('obligation', '💰 Обязательства/подписки', sphPool.obligations, 'name')}
-  </div>`;
-}
-
 function bindDetail(s) {
-  document.getElementById('sphBack').onclick = () => { sphOpen = null; sphEditConn = false; renderSpheres(); };
-  document.getElementById('sphConnBtn').onclick = async () => {
-    sphEditConn = !sphEditConn;
-    if (sphEditConn && !sphPool) sphPool = await sphApi.pool();
-    renderSpheres();
-  };
-  // привязать/отвязать отдельный элемент
-  document.querySelectorAll('#screen-spheres [data-as]').forEach(el => el.onclick = async () => {
-    const [kind, id, area] = el.dataset.as.split(':');
-    await sphApi.assign(kind, +id, +area || null);
-    sphPool = await sphApi.pool(); sphData = await sphApi.load(); renderSpheres();
-  });
-  // вся секция по умолчанию → эта сфера (или выключить)
-  document.querySelectorAll('#screen-spheres [data-def]').forEach(el => el.onclick = async () => {
-    const [kind, area] = el.dataset.def.split(':');
-    await fetch('/api/spheres/default', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind, areaId: area ? +area : null }) });
-    sphPool = await sphApi.pool(); sphData = await sphApi.load(); renderSpheres();
-  });
-  document.getElementById('sphAutomap')?.addEventListener('click', async () => {
-    const r = await fetch('/api/spheres/automap', { method: 'POST' }).then(x => x.json());
-    alert(`Сопоставлено категорий по именам сфер: ${r.mapped}`);
-    sphPool = await sphApi.pool(); sphData = await sphApi.load(); renderSpheres();
-  });
+  document.getElementById('sphBack').onclick = () => { sphOpen = null; renderSpheres(); };
   // оценка → Колесо
   const sc = document.getElementById('sphScore'); let cur = s.score ?? 0;
   sc.innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => `<b class="${i <= cur ? 'on' : ''}" data-s="${i}">${i}</b>`).join('');
