@@ -116,6 +116,7 @@ function diaryMobile(d) {
     }).join('');
     return `<div class="card mrow">
       <div class="mrow-h"><span class="ed ${bad ? 'badname' : ''}" data-trren="${mt.id}" title="переименовать">${tresc(mt.name)}</span>${mt.unit ? ` <span class="meta">${tresc(mt.unit)}</span>` : ''}
+        <span class="rowbtn" data-trtgt="${mt.id}:${mt.target ?? ''}" title="цель метрики">🎯${mt.target != null ? ' ' + mt.target : ''}</span>
         <span class="rowbtn" data-trpol="${mt.id}:${mt.polarity ?? 'plus'}" title="прогресс/регресс" style="margin-left:auto">${bad ? '📉' : '📈'}</span>
         <span class="rowbtn del" data-trdel="${mt.id}">✕</span></div>
       <div class="mcells">${cells}</div>
@@ -141,6 +142,7 @@ function diaryGrid(d) {
     <tr><th style="text-align:left">Дата</th>${d.metrics.map(mt => `
       <th draggable="true" data-mcol="${mt.id}" title="тащи — поменять порядок · регресс/прогресс переключается в карточке колонки"><span class="ed ${mt.polarity === 'minus' ? 'badname' : ''}" data-trren="${mt.id}" title="клик — переименовать">${tresc(mt.name)}</span>${mt.unit ? `<br><span class="meta">${tresc(mt.unit)}</span>` : ''}
       <span class="rowbtn" data-trpol="${mt.id}:${mt.polarity ?? 'plus'}" title="${mt.polarity === 'minus' ? 'это регресс — клик: сделать прогрессом' : 'это прогресс — клик: сделать регрессом'}">${mt.polarity === 'minus' ? '📉' : '📈'}</span>
+      <span class="rowbtn" data-trtgt="${mt.id}:${mt.target ?? ''}" title="цель метрики">🎯${mt.target != null ? ' ' + mt.target : ''}</span>
       <span class="rowbtn del" data-trdel="${mt.id}">✕</span></th>`).join('')}</tr>
     ${days.map(date => {
       const dt = new Date(date + 'T00:00:00');
@@ -205,6 +207,15 @@ function bindTrack() {
     el.addEventListener('click', async () => {
       const [id, cur] = el.dataset.trpol.split(':');
       await trApi.mRen(+id, { polarity: cur === 'minus' ? 'plus' : 'minus' });
+      window.loadTrack();
+    }));
+  document.querySelectorAll('#screen-track [data-trtgt]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const [id, cur] = el.dataset.trtgt.split(':');
+      const v = prompt('Цель метрики (число; пусто — убрать):', cur);
+      if (v === null) return;
+      const t = v.trim().replace(',', '.');
+      await trApi.mRen(+id, { target: t === '' ? null : parseFloat(t) });
       window.loadTrack();
     }));
   document.querySelectorAll('#screen-track [data-trren]').forEach(el =>

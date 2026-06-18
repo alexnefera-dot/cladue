@@ -543,7 +543,7 @@ enum Api {
         }
         if let m = match(path, "^/api/track/metrics/([0-9]+)$") {
             let id = Int(m[1]) ?? -1
-            if method == "PATCH" { try patchCols(db, "metrics", id, ["name", "type", "unit", "polarity"], body); return (ok(), 200) }
+            if method == "PATCH" { try patchCols(db, "metrics", id, ["name", "type", "unit", "polarity", "target"], body); return (ok(), 200) }
             if method == "DELETE" { try db.run("DELETE FROM metrics WHERE id = ?", [id]); return (ok(), 200) }
         }
 

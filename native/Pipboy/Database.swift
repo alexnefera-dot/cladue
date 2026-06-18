@@ -304,7 +304,7 @@ final class Database {
         CREATE TABLE IF NOT EXISTS metrics(
           id INTEGER PRIMARY KEY, name TEXT NOT NULL, type TEXT NOT NULL DEFAULT 'number',
           unit TEXT NOT NULL DEFAULT '', ord INTEGER NOT NULL DEFAULT 0,
-          polarity TEXT NOT NULL DEFAULT 'plus'
+          polarity TEXT NOT NULL DEFAULT 'plus', target REAL
         );
         CREATE TABLE IF NOT EXISTS metric_log(
           metric_id INTEGER NOT NULL REFERENCES metrics(id) ON DELETE CASCADE,

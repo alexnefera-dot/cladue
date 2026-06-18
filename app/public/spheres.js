@@ -287,8 +287,10 @@ function sphDetail(s, i) {
   if (s.routines.length) h += block('↻ Рутины', 'Рутины', s.routines.map(r => `
     <div class="task"><span class="cb ${r.doneToday ? 'done' : ''}"></span><span class="t">${sesc(r.name)}${r.wk ? `<div class="sphwk">${r.wk.map(d => `<i class="${d ? 'on' : 'miss'}"></i>`).join('')}</div>` : ''}</span><span class="meta strk">🔥 ${r.streak}</span></div>`).join(''));
   // трекинг
-  if (s.tracking.length) h += block('📊 Трекинг · 7 дней', 'Трекинг', s.tracking.map(m => `
-    <div class="task"><span class="t">${sesc(m.name)}</span>${sphSpark(m.s)}<span class="meta num">${m.v ?? '–'} ${sesc(m.unit)}</span></div>`).join(''));
+  if (s.tracking.length) h += block('📊 Трекинг · 7 дней', 'Трекинг', s.tracking.map(m => {
+    const pct = (m.target != null && m.v != null && m.target) ? Math.round(m.v / m.target * 100) : null;
+    return `<div class="task"><span class="t">${sesc(m.name)}${m.target != null ? `<div class="tgt">🎯 ${m.target}${sesc(m.unit)}${pct != null ? ` · ${pct}%` : ''}</div>` : ''}</span>${sphSpark(m.s)}<span class="meta num">${m.v ?? '–'} ${sesc(m.unit)}</span></div>`;
+  }).join(''));
   // практики
   if (s.practices.length) h += block('🧠 Практики', 'Психология', s.practices.map(p => `
     <div class="task"><span class="t">${sesc(p.name)}${p.wk ? `<div class="sphwk">${p.wk.map(d => `<i class="${d ? 'on' : ''}"></i>`).join('')}</div>` : ''}</span><span class="meta strk">🔥 ${p.streak}</span></div>`).join(''));
@@ -430,6 +432,7 @@ function ensureSphStyle() {
     .pbar2{flex:1;max-width:160px;height:7px;border-radius:99px;background:var(--bg2);overflow:hidden;margin:0 6px}.pbar2 i{display:block;height:100%;background:var(--green-dim)}
     .sphwk{display:flex;gap:3px;margin-top:4px}.sphwk i{width:11px;height:11px;border-radius:3px;background:var(--bg2)}.sphwk i.on{background:var(--green-dim)}.sphwk i.miss{background:rgba(196,63,63,.18)}
     .sphb{font:600 10px var(--mono);border-radius:20px;padding:2px 8px;white-space:nowrap}.sphb.fire{background:rgba(196,63,63,.12);color:var(--red)}.sphb.soon{background:rgba(168,119,8,.14);color:var(--amber)}
+    .tgt{font-size:11px;color:var(--amber);margin-top:2px}
     .strk{color:var(--amber)!important;font-weight:600}
     .catrow{display:flex;align-items:center;gap:10px;padding:5px 0;border-top:1px solid var(--bg2)}.catrow:first-child{border-top:0}
     .catt{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.catt.on{font-weight:700;color:var(--green)}

@@ -10,6 +10,7 @@ extension Api {
         for t in ["nodes", "routines", "metrics", "practices", "obligations", "people", "pages", "events", "debts", "steps"] {
             try? db.run("ALTER TABLE \(t) ADD COLUMN area_id INTEGER REFERENCES wheel_areas(id) ON DELETE SET NULL")
         }
+        try? db.run("ALTER TABLE metrics ADD COLUMN target REAL")   // цель метрики (полоса к цели)
     }
 
     // ----- дефолты секций -----
@@ -163,8 +164,10 @@ extension Api {
 
             // метрики (трекинг) — по дефолту секции
             var tracking: [[String: Any]] = []
-            for m in try db.rows("SELECT id, name, unit, type FROM metrics WHERE \(whereClause("metric", aid)) ORDER BY ord, id", [aid]) {
-                tracking.append(try sphMetricBlock(db, m["id"] as? Int ?? -1, m["name"] as? String ?? "", m["unit"] as? String ?? "", m["type"] as? String ?? ""))
+            for m in try db.rows("SELECT id, name, unit, type, target FROM metrics WHERE \(whereClause("metric", aid)) ORDER BY ord, id", [aid]) {
+                var blk = try sphMetricBlock(db, m["id"] as? Int ?? -1, m["name"] as? String ?? "", m["unit"] as? String ?? "", m["type"] as? String ?? "")
+                blk["target"] = m["target"] ?? NSNull()
+                tracking.append(blk)
             }
 
             // практики (психология) — по дефолту секции
