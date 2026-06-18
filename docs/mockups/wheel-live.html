@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pipboy · Колесо + живая панель — мокап</title>
+<style>
+  :root{
+    --bg:#f6f7f9;--bg2:#eef0f4;--panel:#fff;--line:#e2e7ed;--line2:#d6dce4;
+    --green:#1e9e57;--green-dim:#5cb585;--green-soft:rgba(30,158,87,.10);
+    --text:#141e28;--muted:#4f5f6f;--nav:#364656;--amber:#a87708;--red:#c43f3f;--blue:#2a76b5;--violet:#6b4fb5;
+    --shadow-sm:0 1px 2px rgba(18,28,45,.05),0 1px 4px rgba(18,28,45,.05);--shadow-md:0 6px 20px rgba(18,28,45,.10);
+    --mono:"SF Mono","JetBrains Mono",ui-monospace,monospace;--sans:-apple-system,"SF Pro Text","Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+  .titlebar{height:40px;background:var(--bg2);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:center;font:600 12px var(--mono);color:var(--green);letter-spacing:1px;position:sticky;top:0;z-index:5}
+  .wrap{max-width:980px;margin:0 auto;padding:16px 22px 50px}
+  h1{font-size:22px;letter-spacing:-.02em;margin:0 0 2px}
+  .status{color:var(--muted);font-size:13px;margin-bottom:14px}.status b{color:var(--text)}.status .fire{color:var(--amber)}
+  .muted{color:var(--muted)}
+
+  .layout{display:grid;grid-template-columns:360px 1fr;gap:18px;align-items:start}
+  @media(max-width:780px){.layout{grid-template-columns:1fr}}
+
+  /* колесо + легенда */
+  .wheelcard{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-sm);padding:14px;text-align:center}
+  .legend{margin-top:8px;display:flex;flex-direction:column;gap:3px;text-align:left}
+  .lg{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:9px;cursor:pointer;border:1px solid transparent}
+  .lg:hover{background:var(--bg2)}.lg.sel{background:var(--green-soft);border-color:var(--green-dim)}
+  .lg .d{width:11px;height:11px;border-radius:3px;flex:0 0 auto}
+  .lg .n{flex:1;font-weight:600;font-size:13px}
+  .lg .s{font:700 13px var(--mono)}
+  .avg{margin-top:8px;font:600 12px var(--mono);color:var(--muted)}
+
+  /* панель сферы (на том же экране) */
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-sm);padding:16px 18px}
+  .ptop{display:flex;align-items:center;gap:12px}
+  .ptop .pic{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:22px;flex:0 0 auto}
+  .ptop h2{margin:0;font-size:19px}
+  .ptop .sc{margin-left:auto;text-align:right}.ptop .sc b{font:700 26px var(--mono);color:var(--green);line-height:1}.ptop .sc small{font-size:11px;color:var(--muted);display:block}
+  .dest{background:var(--green-soft);border:1px solid var(--green-dim);border-radius:10px;padding:8px 12px;font-size:13.5px;margin:12px 0 6px}.dest b{color:var(--green)}
+
+  .track{position:relative;height:30px;margin:10px 0 2px}
+  .track .rail{position:absolute;top:13px;left:0;right:0;height:6px;border-radius:99px;background:var(--bg2)}
+  .track .fill{position:absolute;top:13px;left:0;height:6px;border-radius:99px;background:linear-gradient(90deg,var(--green-dim),var(--green))}
+  .track .tick{position:absolute;top:9px;width:2px;height:14px;background:var(--line2)}
+  .track .tick.done{background:var(--green-dim)}.track .tick.next{background:var(--amber);width:3px;height:18px;top:7px}
+  .track .you{position:absolute;top:-4px;transform:translateX(-50%);font:700 11px var(--mono);color:var(--green)}
+  .track .you::after{content:"▼";display:block;text-align:center;font-size:9px}
+  .track .z,.track .t10{position:absolute;top:20px;font:600 9px var(--mono);color:var(--muted)}.track .z{left:0}.track .t10{right:0}
+  .calc{font-size:12px;color:var(--muted);margin-bottom:8px}.calc b{color:var(--text)}
+
+  .step{background:rgba(168,119,8,.08);border-radius:9px;padding:9px 12px;font-size:14px;margin:8px 0}
+  .step .lb{font:600 9px var(--mono);letter-spacing:.6px;color:var(--amber);display:block;margin-bottom:1px}
+  .step b{font-weight:700}
+
+  .clbl{font:600 10px var(--mono);letter-spacing:1.2px;color:var(--green);text-transform:uppercase;margin:14px 0 7px}
+  .conn{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:5px 9px;cursor:pointer}
+  .chip:hover{border-color:var(--green-dim)}
+  .chip .ic{font-size:13px}.chip .ct{font:600 10px var(--mono);color:var(--muted);background:var(--panel);border-radius:5px;padding:1px 5px}
+  .chip.off{opacity:.4;cursor:default}
+  .pmore{font-size:11px;color:var(--muted);margin-top:8px}
+  .foot{margin-top:18px;padding-top:14px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="titlebar">PIPBOY · КОЛЕСО + ЖИВАЯ ПАНЕЛЬ — один экран, без вложенности</div>
+<div class="wrap">
+  <h1>Колесо жизни</h1>
+  <div class="status" id="status"></div>
+  <div class="layout">
+    <div>
+      <div class="wheelcard">
+        <svg id="wheel" width="320" height="320" viewBox="0 0 320 320"></svg>
+        <div class="legend" id="legend"></div>
+        <div class="avg" id="avg"></div>
+      </div>
+    </div>
+    <div class="panel" id="panel"></div>
+  </div>
+  <div class="foot">Один экран: колесо — наглядный обзор всех сфер, справа — выбранная сфера (куда на 10 / где сейчас / шаг + связи во все разделы). Кликаешь сектор — панель меняется. Никаких переходов и «назад». Колесо ведёшь не ты — оценки берутся из ревизии и данных.</div>
+</div>
+
+<script>
+const COL={health:'#1e9e57',money:'#c43f3f',relations:'#a87708',growth:'#6b4fb5',rest:'#2a76b5',work:'#364656'};
+const SECT={goals:['🎯','Цели'],money:['💰','Финансы'],routines:['↻','Рутины'],tracking:['📊','Трекинг'],psy:['🧠','Психология'],info:['📝','Инфо'],people:['☻','Люди'],calendar:['📅','Календарь']};
+const SORDER=['goals','money','routines','tracking','psy','info','people','calendar'];
+
+const S={
+  health:{icon:'🏃',name:'Здоровье / тело',score:6,dest:'энергия 8/10 стабильно, форма, падл без травм',
+    calc:'<b>6/10</b> — из недельной ревизии + трекинга сна/энергии',
+    ms:[{at:3,done:true},{at:5,done:true},{at:6,done:true},{at:7,next:true},{at:8},{at:10}],
+    next:'добавить растяжку после падла (бережём колено)',
+    conn:{goals:'2 задачи',routines:'3 рутины 🔥',tracking:'сон 7.2 · энергия 7',psy:'дыхание 🔥9',info:'2 заметки',people:'Аня',calendar:'чек-ап',money:''}},
+  money:{icon:'💰',name:'Деньги / FIRE',score:7,dest:'пассивный доход ≥ расходов, свобода',
+    calc:'<b>7/10</b> ← 31% капитала от цели + ход проектов (из Портфеля)',
+    ms:[{at:2,done:true},{at:3,done:true},{at:4,next:true},{at:6},{at:8},{at:10}],
+    next:'ребаланс портфеля + поднять норму сбережений до 40%',
+    conn:{goals:'Belgravia 70%',money:'€312к · аренда €1.8к',routines:'расходы 🔥12',tracking:'капитал ↗',info:'тезисы рынка',calendar:'ребаланс 15.07',psy:'',people:''}},
+  relations:{icon:'❤️',name:'Отношения',score:8,dest:'тёплый круг, никого не теряю из виду',
+    calc:'<b>8/10</b> — ревизия + ритм контактов',
+    ms:[{at:4,done:true},{at:6,done:true},{at:8,next:true},{at:10}],
+    next:'созвон с мамой (3 дня молчания) + подарок на ДР',
+    conn:{people:'мама 3дн · ДР 21дн',calendar:'ДР мамы',goals:'',money:'',routines:'',tracking:'',psy:'',info:''}},
+  growth:{icon:'📚',name:'Развитие',score:5,dest:'испанский B1, системное обучение, навык',
+    calc:'<b>5/10</b> ← 15% курса A2→B1',
+    ms:[{at:1,done:true},{at:2,next:true},{at:5},{at:8},{at:10}],
+    next:'закрепить 20 минут испанского как ежедневную рутину',
+    conn:{goals:'B1 15%',routines:'учёба 🔥6 · Anki',tracking:'35 мин/день',psy:'фокус 🔥7',info:'2 конспекта',calendar:'тест A2',money:'',people:''}},
+  rest:{icon:'🌿',name:'Отдых',score:4,dest:'восстановление без вины, хобби, отпуска',
+    calc:'<b>4/10</b> — ревизия (проседает)',
+    ms:[{at:2,next:true},{at:5},{at:8},{at:10}],
+    next:'один полный выходной без задач на этой неделе',
+    conn:{info:'идеи на выходные',goals:'',money:'',routines:'',tracking:'',psy:'',people:'',calendar:''}},
+  work:{icon:'💼',name:'Дело / карьера',score:6,dest:'рост в деле, что даёт деньги и смысл',
+    calc:'<b>6/10</b> — ревизия',
+    ms:[{at:3,done:true},{at:5,next:true},{at:8},{at:10}],
+    next:'2 часа глубокой работы в день над главным проектом',
+    conn:{goals:'проект квартала',routines:'глубокая работа 🔥3',tracking:'',money:'',psy:'',info:'',people:'',calendar:''}},
+};
+const ORDER=['health','money','relations','growth','rest','work'];
+let sel='money';
+
+//==== колесо ====
+function wheel(){const cx=160,cy=160,R=128,n=ORDER.length,step=2*Math.PI/n;let out='';
+  for(let g=1;g<=5;g++)out+=`<circle cx="${cx}" cy="${cy}" r="${R*g/5}" fill="none" stroke="#e8ebef" stroke-width="1"/>`;
+  ORDER.forEach((id,i)=>{const sc=S[id].score,a0=i*step-Math.PI/2,a1=(i+1)*step-Math.PI/2,r=R*sc/10;
+    const p=a=>[cx+r*Math.cos(a),cy+r*Math.sin(a)];const[x0,y0]=p(a0),[x1,y1]=p(a1);
+    const o=sel===id?'1':'.78';
+    out+=`<path d="M${cx},${cy} L${x0},${y0} A${r},${r} 0 0 1 ${x1},${y1} Z" fill="${COL[id]}" fill-opacity="${o}" stroke="#fff" stroke-width="${sel===id?2.5:1.5}" style="cursor:pointer" data-go="${id}"/>`;
+    const[lx,ly]=[cx+(R+18)*Math.cos((a0+a1)/2),cy+(R+18)*Math.sin((a0+a1)/2)];
+    out+=`<text x="${lx}" y="${ly}" text-anchor="middle" style="font:600 10px var(--sans);fill:var(--nav);pointer-events:none">${S[id].icon}</text>`;});
+  document.getElementById('wheel').innerHTML=out;
+  document.querySelectorAll('#wheel [data-go]').forEach(p=>p.onclick=()=>pick(p.dataset.go));
+}
+function legend(){document.getElementById('legend').innerHTML=ORDER.map(id=>
+  `<div class="lg ${sel===id?'sel':''}" data-go="${id}"><span class="d" style="background:${COL[id]}"></span>
+    <span class="n">${S[id].icon} ${S[id].name}</span><span class="s" style="color:${COL[id]}">${S[id].score}</span></div>`).join('');
+  document.querySelectorAll('#legend [data-go]').forEach(l=>l.onclick=()=>pick(l.dataset.go));
+  document.getElementById('avg').textContent='средний баланс: '+(ORDER.reduce((a,id)=>a+S[id].score,0)/ORDER.length).toFixed(1)+'/10';
+}
+
+//==== панель сферы (тот же экран) ====
+function panel(){const d=S[sel];const last=d.ms[d.ms.length-1].at;
+  const track=`<div class="track"><div class="rail"></div><div class="fill" style="width:${d.score*10}%"></div>
+    ${d.ms.map(m=>`<div class="tick ${m.done?'done':''} ${m.next?'next':''}" style="left:${m.at*10}%"></div>`).join('')}
+    <div class="you" style="left:${d.score*10}%">${d.score}</div><div class="z">0</div><div class="t10">10 ✦</div></div>`;
+  const chips=SORDER.map(k=>{const v=d.conn[k]||'';const[ic,nm]=SECT[k];
+    return v?`<span class="chip" data-sect="${k}"><span class="ic">${ic}</span>${v}<span class="ct">${nm}</span></span>`
+            :`<span class="chip off"><span class="ic">${ic}</span><span class="ct">${nm}</span></span>`;}).join('');
+  const filled=SORDER.filter(k=>d.conn[k]).length;
+  document.getElementById('panel').innerHTML=`
+    <div class="ptop"><div class="pic" style="background:${COL[sel]}22">${d.icon}</div>
+      <h2>${d.name}</h2><div class="sc"><b>${d.score}</b><small>из 10</small></div></div>
+    <div class="dest">🎯 <b>10 = ${d.dest}</b></div>
+    ${track}
+    <div class="calc">где сейчас: ${d.calc}</div>
+    <div class="step"><span class="lb">ТЫ ЗДЕСЬ → СЛЕДУЮЩИЙ ШАГ</span><b>${d.next}</b></div>
+    <div class="clbl">🔗 связано · ${filled} из 8 разделов</div>
+    <div class="conn">${chips}</div>
+    <div class="pmore">Серое — раздел не задействован. Клик по связи → в реальном приложении прыжок в раздел (данные живут там, тут только нить и прогресс).</div>`;
+  document.querySelectorAll('#panel [data-sect]').forEach(c=>c.onclick=()=>alert('Переход в раздел «'+SECT[c.dataset.sect][1]+'» — элементы живут там, сюда стянута связь и прогресс.'));
+}
+function pick(id){sel=id;wheel();legend();panel();}
+
+document.getElementById('status').innerHTML='<b>6 сфер</b> на одном экране · по каждой видно куда идёшь и следующий шаг · <span class="fire">2 дела требуют внимания</span> (налоги, легализация)';
+wheel();legend();panel();
+</script>
+</body>
+</html>
