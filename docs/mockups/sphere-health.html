@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pipboy · Сфера «Здоровье» — мокап</title>
+<style>
+  :root{
+    --bg:#f6f7f9;--bg2:#eef0f4;--panel:#fff;--line:#e2e7ed;--line2:#d6dce4;
+    --green:#1e9e57;--green-dim:#5cb585;--green-soft:rgba(30,158,87,.10);
+    --text:#141e28;--muted:#4f5f6f;--nav:#364656;--amber:#a87708;--red:#c43f3f;--blue:#2a76b5;--violet:#6b4fb5;
+    --shadow-sm:0 1px 2px rgba(18,28,45,.05),0 1px 4px rgba(18,28,45,.05);--shadow-md:0 6px 20px rgba(18,28,45,.10);
+    --mono:"SF Mono","JetBrains Mono",ui-monospace,monospace;--sans:-apple-system,"SF Pro Text","Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+  .titlebar{height:40px;background:var(--bg2);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:center;
+    font:600 12px var(--mono);color:var(--green);letter-spacing:1px;position:sticky;top:0;z-index:5}
+  .wrap{max-width:980px;margin:0 auto;padding:18px 22px 60px}
+  .crumb{font-size:12px;color:var(--muted);margin-bottom:10px}
+  .crumb b{color:var(--text)}
+
+  .callout{background:var(--green-soft);border:1px solid var(--green-dim);border-radius:11px;padding:10px 14px;margin-bottom:16px;font-size:13px}
+  .callout b{color:var(--green)}
+
+  /* hero сферы */
+  .hero{display:flex;gap:18px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow-sm);margin-bottom:14px}
+  .hero .ring{flex:0 0 auto}
+  .hero .info{flex:1;min-width:0}
+  .hero h1{font-size:22px;margin:0 0 2px;letter-spacing:-.02em}
+  .hero .aim{color:var(--text);font-size:14.5px}
+  .hero .aim .lbl{font:600 10px var(--mono);letter-spacing:1.4px;color:var(--green);text-transform:uppercase;display:block;margin-bottom:2px}
+  .hero .meta{color:var(--muted);font-size:12.5px;margin-top:8px;display:flex;gap:14px;flex-wrap:wrap}
+  .spark{vertical-align:middle}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:760px){.grid{grid-template-columns:1fr}.hero{flex-direction:column;text-align:center}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:13px 16px;box-shadow:var(--shadow-sm)}
+  .card.span2{grid-column:1/-1}
+  .chead{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .chead h3{font-size:14px;margin:0}
+  .src{margin-left:auto;font:600 10px var(--mono);letter-spacing:.4px;color:var(--muted);background:var(--bg2);border:1px solid var(--line);
+    border-radius:20px;padding:3px 9px;cursor:default;white-space:nowrap}
+  .src b{color:var(--nav)}
+
+  .row{display:flex;align-items:center;gap:9px;padding:7px 0;border-top:1px solid var(--bg2)}
+  .row:first-of-type{border-top:0}
+  .row .t{flex:1}.row .t.done{color:var(--muted);text-decoration:line-through}
+  .cb{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--line2);flex:0 0 auto;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff}
+  .cb.on{background:var(--green);border-color:var(--green)}
+  .pill{display:inline-flex;align-items:center;gap:4px;font:600 11px var(--mono);padding:2px 8px;border-radius:20px;background:var(--bg2);color:var(--muted)}
+  .pill.green{background:var(--green-soft);color:var(--green)}.pill.amber{background:rgba(168,119,8,.14);color:var(--amber)}
+  .bar{height:6px;border-radius:99px;background:var(--bg2);overflow:hidden;margin-top:6px}.bar i{display:block;height:100%;background:var(--green-dim)}
+  .metric{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--bg2)}
+  .metric:first-of-type{border-top:0}
+  .metric .mn{flex:1}.metric .mv{font:600 15px var(--mono)}.metric .mv small{font-size:11px;color:var(--muted)}
+  .link{color:var(--blue);font-weight:600;text-decoration:none;cursor:pointer}
+  .muted{color:var(--muted)}
+
+  .review{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:14px 16px;box-shadow:var(--shadow-sm);margin-top:14px}
+  .review textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:10px;font:14px var(--sans);min-height:60px;resize:vertical}
+  .review textarea:focus{outline:none;border-color:var(--green-dim);box-shadow:0 0 0 3px var(--green-soft)}
+  .scoreset{display:flex;gap:5px;margin:6px 0 10px}
+  .scoreset b{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;
+    font:600 13px var(--mono);cursor:pointer;color:var(--muted)}
+  .scoreset b.on{background:var(--green);color:#fff;border-color:var(--green)}
+  .btn{display:inline-flex;align-items:center;gap:6px;background:var(--green);color:#fff;border:0;border-radius:9px;padding:9px 16px;font:600 13px var(--sans);cursor:pointer}
+  .saved{color:var(--green);font-size:12px;margin-left:10px}
+  .foot{margin-top:22px;padding-top:14px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="titlebar">PIPBOY · СФЕРА «ЗДОРОВЬЕ» — МОКАП МОДЕЛИ (сфера сворачивает существующее)</div>
+<div class="wrap">
+  <div class="crumb">🧠 Колесо баланса › <b>Здоровье / тело</b></div>
+
+  <div class="callout">
+    💡 <b>Ни одна строка здесь не заведена заново.</b> Всё помечено тегом «Здоровье» в своём разделе
+    (Рутины, Трекинг, Психология, Цели, Инфо) и стянуто сюда. У каждого блока справа — <b>откуда он</b>.
+    Поменяешь рутину в Рутинах — поменяется и тут. Это сборка, а не дубль.
+  </div>
+
+  <!-- HERO: сфера + ориентир + оценка -->
+  <div class="hero">
+    <div class="ring">
+      <svg width="104" height="104" viewBox="0 0 104 104">
+        <circle cx="52" cy="52" r="44" fill="none" stroke="#eef0f4" stroke-width="11"/>
+        <circle id="ring" cx="52" cy="52" r="44" fill="none" stroke="#1e9e57" stroke-width="11"
+          stroke-linecap="round" transform="rotate(-90 52 52)"/>
+        <text x="52" y="49" text-anchor="middle" font="700 26px sans-serif" style="font:700 26px var(--sans);fill:var(--text)"><tspan id="scoreNum">6</tspan></text>
+        <text x="52" y="66" text-anchor="middle" style="font:600 10px var(--mono);fill:var(--muted)">из 10</text>
+      </svg>
+    </div>
+    <div class="info">
+      <h1>Здоровье / тело</h1>
+      <div class="aim"><span class="lbl">Ориентир — куда идём</span>
+        Энергия и форма на 8/10: играть в падл без травм, спать 7.5ч, чувствовать лёгкость.</div>
+      <div class="meta">
+        <span>📈 оценка сектора: <b id="scoreTxt">6</b>/10 <svg class="spark" id="hist" width="74" height="18"></svg></span>
+        <span>🎯 проектов: 2</span><span>↻ рутин: 3</span><span>🔥 лучший стрик: 18</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- ПРОЕКТЫ (из Целей) -->
+    <div class="card">
+      <div class="chead"><h3>🎯 Проекты сферы</h3><span class="src">из <b>Цели</b></span></div>
+      <div class="row"><span class="t">Падл — лига к сентябрю</span><span class="pill green">40%</span></div>
+      <div class="bar"><i style="width:40%"></i></div>
+      <div class="row" style="margin-top:6px"><span class="t">Наладить сон (режим 7.5ч)</span><span class="pill amber">в работе</span></div>
+      <div class="bar"><i style="width:55%"></i></div>
+      <div class="muted" style="font-size:12px;margin-top:8px">Конечные, со сроком — двигают сектор. Задачи внутри них живут в Целях.</div>
+    </div>
+
+    <!-- РУТИНЫ (из Рутин) -->
+    <div class="card">
+      <div class="chead"><h3>↻ Рутины сферы · сегодня</h3><span class="src">из <b>Рутины</b></span></div>
+      <div id="routines"></div>
+      <div class="muted" style="font-size:12px;margin-top:8px"><span id="rdone">2</span>/3 на сегодня · отметка пишется в Рутины, не дублируется</div>
+    </div>
+
+    <!-- ТРЕКИНГ (из Трекинга) -->
+    <div class="card">
+      <div class="chead"><h3>📊 Показатели · 7 дней</h3><span class="src">из <b>Трекинг</b></span></div>
+      <div class="metric"><span class="mn">Сон</span><svg class="spark" width="80" height="20" data-spark="7.0,6.5,7.2,6.8,7.5,7.4,7.2"></svg><span class="mv">7.2<small>ч</small></span></div>
+      <div class="metric"><span class="mn">Энергия</span><svg class="spark" width="80" height="20" data-spark="6,7,6,7,8,7,7"></svg><span class="mv">7<small>/10</small></span></div>
+      <div class="metric"><span class="mn">Шаги</span><svg class="spark" width="80" height="20" data-spark="8,6,9,7,11,5,8"></svg><span class="mv">8.1<small>к</small></span></div>
+      <div class="metric"><span class="mn">Вес</span><svg class="spark" width="80" height="20" data-spark="78.4,78.2,78.3,78.0,77.9,78.1,77.8"></svg><span class="mv">77.8<small>кг</small></span></div>
+    </div>
+
+    <!-- ПРАКТИКИ (из Психологии) -->
+    <div class="card">
+      <div class="chead"><h3>🧘 Практики тела</h3><span class="src">из <b>Психология</b></span></div>
+      <div class="row"><span class="cb on">✓</span><span class="t done">Дыхание 5 мин (утро)</span><span class="pill">🔥 9</span></div>
+      <div class="row"><span class="cb">&nbsp;</span><span class="t">Растяжка после падла</span><span class="pill">по тренировкам</span></div>
+      <div class="muted" style="font-size:12px;margin-top:8px">Практики и их задачи остаются в Психологии — сюда стянут только то, что про тело.</div>
+    </div>
+
+    <!-- ГЛУБЖЕ (из Инфо) -->
+    <div class="card span2">
+      <div class="chead"><h3>📝 Глубже по теме</h3><span class="src">ссылки в <b>Инфо</b> · не копии</span></div>
+      <div style="display:flex;gap:18px;flex-wrap:wrap">
+        <a class="link">→ Падл — техника удара</a>
+        <a class="link">→ Протокол сна (свет, кофеин, режим)</a>
+        <a class="link">→ План питания / дефицит</a>
+      </div>
+      <div class="muted" style="font-size:12px;margin-top:8px">Открывается заметка в Инфо — текст живёт там в одном месте, сфера лишь ссылается.</div>
+    </div>
+  </div>
+
+  <!-- НАСТРОЙКА СЕБЯ: ревизия -->
+  <div class="review">
+    <div class="chead"><h3>🪞 Настройка себя · еженедельная ревизия</h3><span class="src">обновляет <b>Колесо</b></span></div>
+    <div class="muted" style="font-size:13px;margin-bottom:4px">Как сектор «Здоровье» на этой неделе? (это и есть «дневник настройки» — оценка + одна мысль)</div>
+    <div class="scoreset" id="scoreset"></div>
+    <textarea id="refl" placeholder="Одна строка: что происходит со здоровьем, что подкрутить на следующей неделе…">Сон выровнялся, энергия выросла. Падл 2× держу. Подтянуть растяжку — колено напоминает.</textarea>
+    <div style="margin-top:8px"><button class="btn" id="saveBtn">Сохранить ревизию</button><span class="saved" id="savedTxt"></span></div>
+  </div>
+
+  <div class="foot">
+    Мокап одной сферы. Суть модели: <b>Колесо → сфера (ориентир + оценка) → проекты → исполнение из своих разделов</b>.
+    Новый ввод — только один тег «сфера» на существующих элементах + строка ревизии. Экранов не прибавляется:
+    «Цели» становятся проектами под сферами, а Колесо — хабом «куда я иду по всем сферам».
+  </div>
+</div>
+
+<script>
+// кольцо оценки
+let score=6;
+const R=44, C=2*Math.PI*R;
+function paintScore(){
+  document.getElementById('ring').setAttribute('stroke-dasharray',`${C*score/10} ${C}`);
+  document.getElementById('scoreNum').textContent=score;
+  document.getElementById('scoreTxt').textContent=score;
+  document.querySelectorAll('#scoreset b').forEach(b=>b.classList.toggle('on',+b.dataset.s<=score));
+}
+// история оценок (мини-спарк)
+function spark(svg,vals){
+  const w=+svg.getAttribute('width'),h=+svg.getAttribute('height'),p=2;
+  const mn=Math.min(...vals),mx=Math.max(...vals),rng=(mx-mn)||1;
+  const pts=vals.map((v,i)=>[p+i*(w-2*p)/(vals.length-1), h-p-((v-mn)/rng)*(h-2*p)]);
+  svg.innerHTML=`<polyline fill="none" stroke="#5cb585" stroke-width="1.6" points="${pts.map(p=>p.join(',')).join(' ')}"/>`+
+    `<circle cx="${pts.at(-1)[0]}" cy="${pts.at(-1)[1]}" r="2.3" fill="#1e9e57"/>`;
+}
+spark(document.getElementById('hist'),[5,5,6,6,7,6]);
+document.querySelectorAll('[data-spark]').forEach(s=>spark(s,s.dataset.spark.split(',').map(Number)));
+
+// шкала оценки
+const ss=document.getElementById('scoreset');
+ss.innerHTML=[1,2,3,4,5,6,7,8,9,10].map(i=>`<b data-s="${i}">${i}</b>`).join('');
+ss.onclick=e=>{const b=e.target.closest('b');if(b){score=+b.dataset.s;paintScore();}};
+paintScore();
+
+// рутины сферы (отметка живёт «в Рутинах» — тут визуально)
+const ROUT=[{t:'Зарядка / мобилити',streak:18,done:true},{t:'Витамины + миноксидил',streak:42,done:true},{t:'10 000 шагов',streak:4,done:false}];
+function paintRout(){
+  document.getElementById('routines').innerHTML=ROUT.map((r,i)=>
+    `<div class="row"><span class="cb ${r.done?'on':''}" data-r="${i}">${r.done?'✓':'&nbsp;'}</span>
+      <span class="t ${r.done?'done':''}">${r.t}</span><span class="pill">🔥 ${r.streak}</span></div>`).join('');
+  document.getElementById('rdone').textContent=ROUT.filter(r=>r.done).length;
+  document.querySelectorAll('#routines .cb').forEach(cb=>cb.onclick=()=>{const r=ROUT[+cb.dataset.r];r.done=!r.done;r.streak+=r.done?1:-1;paintRout();});
+}
+paintRout();
+
+// практики (визуальный тоггл)
+document.querySelectorAll('.card .cb').forEach(cb=>{if(cb.closest('#routines'))return;
+  cb.onclick=()=>{const on=cb.classList.toggle('on');cb.innerHTML=on?'✓':'&nbsp;';
+    const t=cb.parentElement.querySelector('.t');if(t)t.classList.toggle('done',on);};});
+
+// ревизия → localStorage
+const KEY='pipboy_sphere_health';
+try{const s=JSON.parse(localStorage.getItem(KEY));if(s){score=s.score??6;document.getElementById('refl').value=s.refl??document.getElementById('refl').value;paintScore();}}catch{}
+document.getElementById('saveBtn').onclick=()=>{
+  localStorage.setItem(KEY,JSON.stringify({score,refl:document.getElementById('refl').value,at:new Date().toLocaleString('ru')}));
+  document.getElementById('savedTxt').textContent='✓ сохранено · оценка ушла в Колесо';
+  setTimeout(()=>document.getElementById('savedTxt').textContent='',2500);
+};
+</script>
+</body>
+</html>
