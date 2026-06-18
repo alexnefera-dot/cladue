@@ -34,6 +34,8 @@ window.loadSpheres = async function () {
   sphData = await sphApi.load();
   renderSpheres();
 };
+// открыть конкретную сферу из «Сегодня» (полоса сфер) — без отдельной загрузки
+window.openSphere = function (id) { sphOpen = id; sphEditConn = false; showScreen('spheres'); };
 
 function renderSpheres() {
   const el = document.getElementById('screen-spheres');
