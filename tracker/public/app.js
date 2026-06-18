@@ -92,6 +92,7 @@ function nodeRow(n, depth, idx) {
     return `<div class="task cat ${isPicked ? 'sel' : ''}" data-id="${n.id}" style="--d:${depth}">
       ${caret}<span class="folder">▣</span><span class="t top">${esc(n.title)}</span>
       <span class="meta">${countItems(n.id)}</span>
+      ${window.sphSelHtml ? window.sphSelHtml('category', n.id, n.area_id) : ''}
       <span class="rowbtn" data-addchild="${n.id}" title="добавить внутрь">＋</span></div>`;
   }
   const [kl, kc] = n.kind ? (KIND[n.kind] ?? [n.kind, '']) : [null, null];

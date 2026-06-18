@@ -21,7 +21,7 @@ function decrypt(password, encStr) {
 }
 
 export function listPages(db) {
-  return db.prepare('SELECT id, parent_id, ord, title, node_id, locked, updated_at FROM pages ORDER BY parent_id NULLS FIRST, ord, id').all();
+  return db.prepare('SELECT id, parent_id, ord, title, node_id, locked, updated_at, area_id FROM pages ORDER BY parent_id NULLS FIRST, ord, id').all();
 }
 
 // Демо-страницы из макета — потрогать редактор, ссылки и пароль (удаляемо).

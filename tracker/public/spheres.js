@@ -38,6 +38,20 @@ window.loadSpheres = async function () {
 // открыть конкретную сферу из «Сегодня» (полоса сфер) — без отдельной загрузки
 window.openSphere = function (id) { sphOpen = id; showScreen('spheres'); };
 
+// ---- Инлайн-привязка к сфере прямо в Целях/Инфо: общий <select> + делегированный обработчик ----
+(() => { const st = document.createElement('style'); st.textContent =
+  '.sphsel{font:11px var(--sans);border:1px solid var(--line);border-radius:6px;padding:2px 4px;background:var(--bg);color:var(--muted);max-width:140px;flex:0 0 auto}.sphsel:focus{outline:none;border-color:var(--green-dim)}';
+  document.head.appendChild(st); })();
+window.SPH_AREAS = [];
+fetch('/api/spheres/pool').then(r => r.json()).then(p => { window.SPH_AREAS = p.areas || []; }).catch(() => {});
+window.sphSelHtml = (kind, id, areaId) => `<select class="sphsel" data-sphsel="${kind}:${id}" title="сфера жизни" onclick="event.stopPropagation()">
+  <option value="">· сфера</option>${(window.SPH_AREAS || []).map(a => `<option value="${a.id}"${areaId === a.id ? ' selected' : ''}>${String(a.name).replace(/[<>&"]/g, '')}</option>`).join('')}</select>`;
+document.addEventListener('change', async e => {
+  const sel = e.target.closest && e.target.closest('.sphsel'); if (!sel) return;
+  const [kind, id] = sel.dataset.sphsel.split(':');
+  await fetch('/api/spheres/assign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind, id: +id, areaId: sel.value ? +sel.value : null }) });
+});
+
 function renderSpheres() {
   const el = document.getElementById('screen-spheres');
   if (sphTag) { el.innerHTML = sphTagHub(); bindTagHub(); return; }
@@ -168,21 +182,38 @@ function sphDetail(s, i) {
       : ''}
     ${parts.join('') || '<div class="empty">привяжи задачи (категорию) и рутины через «🔗 связи» — посчитаю прогресс сам, без ручного ведения</div>'}</div>`;
 
-  // задачи сферы — с вложенностью, как в Целях; работаем прямо тут (Сферы = рабочий раздел)
+  // задачи сферы — с вложенностью, как в Целях; сворачиваемые (по умолчанию свёрнуто),
+  // состояние сохраняется; работаем прямо тут (Сферы = рабочий раздел)
   const rootCat = (s.tasks.find(t => t.cat && t.depth === 0) || {}).id;
-  h += block('🎯 Задачи сферы', 'Цели', (s.tasks.length ? s.tasks.map(t => t.cat
-    ? `<div class="task sphcat" style="padding-left:${t.depth * 16}px"><b class="t">${sesc(t.title)}</b>
+  const T = s.tasks;
+  const expanded = new Set(JSON.parse(localStorage.sphFold || '[]'));
+  const hasKids = new Set();
+  for (let i = 0; i < T.length; i++) if (T[i].cat && T[i + 1] && T[i + 1].depth > T[i].depth) hasKids.add(T[i].id);
+  let rows = '', hide = Infinity;
+  for (const t of T) {
+    if (t.depth > hide) continue;          // внутри свёрнутой ветки — пропускаем
+    hide = Infinity;
+    if (t.cat) {
+      const kids = hasKids.has(t.id), col = !expanded.has(t.id);
+      rows += `<div class="task sphcat" style="padding-left:${t.depth * 16}px">
+        ${kids ? `<span class="caret" data-sphfold="${t.id}">${col ? '▸' : '▾'}</span>` : '<span class="caret"></span>'}
+        <b class="t">${sesc(t.title)}</b>
         <span class="rowbtn" data-addtask="${t.id}" title="задача сюда">＋</span>
-        <span class="rowbtn" data-addcat="${t.id}" title="подкатегория">⊞</span></div>`
-    : `<div class="task" style="padding-left:${t.depth * 16}px"><span class="cb ${t.done ? 'done' : ''}" data-tog="${t.id}"></span>
+        <span class="rowbtn" data-addcat="${t.id}" title="подкатегория">⊞</span></div>`;
+      if (kids && col) hide = t.depth;
+    } else {
+      rows += `<div class="task" style="padding-left:${t.depth * 16}px"><span class="cb ${t.done ? 'done' : ''}" data-tog="${t.id}"></span>
         ${t.priority ? `<span class="pill ${t.priority}">${t.priority}</span>` : ''}
         <span class="t ${t.done ? 'done' : ''}" data-tnode="${t.id}">${sesc(t.title)}</span>${t.due ? `<span class="meta">${t.due}</span>` : ''}
         <span class="rowbtn" data-pri="${t.id}:${t.priority || ''}" title="приоритет">⚑</span>
         <span class="rowbtn" data-due="${t.id}" title="срок">📅</span>
-        <span class="rowbtn del" data-del="${t.id}" title="удалить">✕</span></div>`).join('') : '')
+        <span class="rowbtn del" data-del="${t.id}" title="удалить">✕</span></div>`;
+    }
+  }
+  h += block('🎯 Задачи сферы', 'Цели', rows
     + (rootCat
       ? `<div class="task finadd"><input class="sphadd" data-addroot="${rootCat}" placeholder="＋ задача в сферу (Enter)"></div>`
-      : '<div class="empty">привяжи категорию целей в «🏷 привязка» — и заводи задачи прямо тут</div>'));
+      : '<div class="empty">привяжи категорию целей в Целях — и заводи задачи прямо тут</div>'));
 
   // рутины
   if (s.routines.length) h += block('↻ Рутины', 'Рутины', s.routines.map(r => `
@@ -251,6 +282,13 @@ function bindDetail(s) {
   document.querySelectorAll('#screen-spheres [data-addroot]').forEach(inp => inp.addEventListener('keydown', async e => {
     if (e.key === 'Enter' && inp.value.trim()) { await node('', 'POST', { title: inp.value.trim(), parent_id: +inp.dataset.addroot }); inp.value = ''; reload(); }
   }));
+  // сворачивание категорий (по умолчанию свёрнуто, состояние в localStorage)
+  document.querySelectorAll('#screen-spheres [data-sphfold]').forEach(el => el.onclick = () => {
+    const ex = new Set(JSON.parse(localStorage.sphFold || '[]')); const id = +el.dataset.sphfold;
+    ex.has(id) ? ex.delete(id) : ex.add(id);
+    localStorage.sphFold = JSON.stringify([...ex]);
+    renderSpheres();   // мгновенно, без запроса
+  });
   document.getElementById('sphApplyMom')?.addEventListener('click', async () => {
     if (s.progress?.momentum != null) { await sphApi.score(s.id, s.progress.momentum); window.loadSpheres(); }
   });
