@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pipboy · Сферы жизни — мокап</title>
+<style>
+  :root{
+    --bg:#f6f7f9;--bg2:#eef0f4;--panel:#fff;--line:#e2e7ed;--line2:#d6dce4;
+    --green:#1e9e57;--green-dim:#5cb585;--green-soft:rgba(30,158,87,.10);
+    --text:#141e28;--muted:#4f5f6f;--nav:#364656;--amber:#a87708;--red:#c43f3f;--blue:#2a76b5;--violet:#6b4fb5;
+    --shadow-sm:0 1px 2px rgba(18,28,45,.05),0 1px 4px rgba(18,28,45,.05);--shadow-md:0 8px 26px rgba(18,28,45,.12);
+    --mono:"SF Mono","JetBrains Mono",ui-monospace,monospace;--sans:-apple-system,"SF Pro Text","Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+  .titlebar{height:40px;background:var(--bg2);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:center;font:600 12px var(--mono);color:var(--green);letter-spacing:1px;position:sticky;top:0;z-index:5}
+  .wrap{max-width:840px;margin:0 auto;padding:16px 20px 60px}
+  h1{font-size:22px;letter-spacing:-.02em;margin:0 0 10px}
+  .muted{color:var(--muted)}
+
+  /* ===== верхний дашборд: строка сфер (типа колеса, не в виде колеса) ===== */
+  .dash{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-sm);padding:12px 14px;margin-bottom:8px;position:sticky;top:40px;z-index:4}
+  .dashrow{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
+  .dashrow::-webkit-scrollbar{display:none}
+  .dchip{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;padding:4px 8px;border-radius:10px;min-width:64px}
+  .dchip:hover{background:var(--bg2)}.dchip.sel{background:var(--green-soft)}
+  .dring{position:relative}
+  .dchip .dn{font-size:10.5px;color:var(--muted);text-align:center;line-height:1.1;font-weight:600}
+  .dchip .du{position:absolute;top:-2px;right:-2px;width:9px;height:9px;border-radius:50%;background:var(--red);border:1.5px solid var(--panel)}
+  .dashfoot{font-size:12px;color:var(--muted);margin-top:8px;display:flex;gap:14px;flex-wrap:wrap}
+  .dashfoot b{color:var(--text)} .dashfoot .fire{color:var(--amber);font-weight:600}
+
+  /* ===== аккордеон сфер ===== */
+  .sph{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-sm);margin-bottom:9px;overflow:hidden;transition:box-shadow .15s}
+  .sph.open{box-shadow:var(--shadow-md)}
+  .sph.dim{opacity:.5}
+  .shead{display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer}
+  .shead .ic{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:21px;flex:0 0 auto}
+  .shead .hh{flex:1;min-width:0}
+  .shead .hn{font-weight:700;font-size:15.5px}
+  .shead .hnext{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .shead .hnext b{color:var(--amber)}
+  .shead .hsc{font:700 20px var(--mono);flex:0 0 auto}
+  .shead .hsc small{font-size:11px;color:var(--muted);font-weight:400}
+  .shead .car{color:var(--line2);font-size:12px;margin-left:4px;transition:transform .15s}
+  .sph.open .shead .car{transform:rotate(90deg)}
+
+  /* свёрнуто: актуальные задачи строкой */
+  .briefs{padding:0 16px 12px 68px;display:flex;flex-wrap:wrap;gap:6px}
+  .sph.open .briefs{display:none}
+  .tchip{font-size:12px;background:var(--bg2);border:1px solid var(--line);border-radius:7px;padding:3px 8px;display:inline-flex;gap:6px;align-items:center}
+  .tchip .st{font-size:10px}
+  .tchip.fire{border-color:var(--red);background:rgba(196,63,63,.06)}
+
+  /* раскрыто */
+  .body{display:none;padding:4px 16px 16px}
+  .sph.open .body{display:block}
+  .dest{background:var(--green-soft);border:1px solid var(--green-dim);border-radius:10px;padding:8px 12px;font-size:13.5px;margin:4px 0 10px}.dest b{color:var(--green)}
+  .track{position:relative;height:28px;margin:6px 0 2px}
+  .track .rail{position:absolute;top:12px;left:0;right:0;height:6px;border-radius:99px;background:var(--bg2)}
+  .track .fill{position:absolute;top:12px;left:0;height:6px;border-radius:99px;background:linear-gradient(90deg,var(--green-dim),var(--green))}
+  .track .tick{position:absolute;top:8px;width:2px;height:14px;background:var(--line2)}.track .tick.done{background:var(--green-dim)}.track .tick.next{background:var(--amber);width:3px;height:18px;top:6px}
+  .track .you{position:absolute;top:-5px;transform:translateX(-50%);font:700 11px var(--mono);color:var(--green)}.track .you::after{content:"▼";display:block;text-align:center;font-size:9px}
+  .calc{font-size:12px;color:var(--muted);margin-bottom:8px}.calc b{color:var(--text)}
+  .step{background:rgba(168,119,8,.08);border-radius:9px;padding:9px 12px;margin:8px 0}
+  .step .lb{font:600 9px var(--mono);letter-spacing:.6px;color:var(--amber);display:block;margin-bottom:2px}
+  .step b{font-weight:700}.step ul{margin:6px 0 0;padding-left:18px;font-size:13px}.step li{padding:1px 0}
+
+  .sub{margin-top:12px}
+  .slbl{font:600 10px var(--mono);letter-spacing:1.2px;color:var(--green);text-transform:uppercase;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+  .slbl .go{margin-left:auto;font-size:10px;color:var(--muted);cursor:pointer}
+  .trow{display:flex;align-items:center;gap:9px;padding:6px 0;border-top:1px solid var(--bg2);font-size:13.5px}.trow:first-child{border-top:0}
+  .trow .cb{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line2);flex:0 0 auto;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff}
+  .trow .cb.on{background:var(--green);border-color:var(--green)}
+  .trow .tt{flex:1}.trow .tt.done{color:var(--muted);text-decoration:line-through}
+  .badge{font:600 10px var(--mono);border-radius:20px;padding:2px 8px;white-space:nowrap}
+  .badge.fire{background:rgba(196,63,63,.12);color:var(--red)}.badge.soon{background:rgba(168,119,8,.14);color:var(--amber)}.badge.ok{background:var(--green-soft);color:var(--green)}.badge.idle{background:var(--bg2);color:var(--muted)}
+  .idea{font-size:13px;color:var(--text);background:var(--bg2);border-radius:8px;padding:7px 10px;margin-bottom:5px;border-left:2px solid var(--violet)}
+  .conn{display:flex;flex-wrap:wrap;gap:6px}
+  .cc{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:5px 9px;cursor:pointer}.cc:hover{border-color:var(--green-dim)}
+  .cc .lab{font:600 10px var(--mono);color:var(--muted);background:var(--panel);border-radius:5px;padding:1px 5px}
+  .foot{margin-top:20px;padding-top:14px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="titlebar">PIPBOY · СФЕРЫ ЖИЗНИ — Цели ⊕ Колесо на одном экране</div>
+<div class="wrap">
+  <h1>Сферы жизни</h1>
+
+  <div class="dash">
+    <div class="dashrow" id="dashrow"></div>
+    <div class="dashfoot" id="dashfoot"></div>
+  </div>
+
+  <div id="list"></div>
+
+  <div class="foot">Свёрнуто — актуальные задачи сферы. Кликнул — раскрылась тут же, остальные ушли в тень (фокус на одной). Внутри: 10/где/шаг + задачи (с датами/статусом), идеи/рассуждения и связи во все разделы. Сверху — дашборд-строка «типа колеса». «Опора» — сфера-фундамент (налоги/легализация), её 10 = «всё под контролем».</div>
+</div>
+
+<script>
+const SPHERES=[
+  {id:'money',ic:'💰',col:'#c43f3f',name:'Деньги / FIRE',score:7,type:'рост',
+    dest:'пассивный доход ≥ расходов — свобода не работать ради денег',
+    calc:'<b>7/10</b> ← 31% капитала от цели €1.0М (из Портфеля) + ход проектов',
+    ms:[{at:2,done:1},{at:3,done:1},{at:4,next:1},{at:6},{at:8},{at:10}],
+    next:'поднять норму сбережений до 40% и ребалансировать портфель',
+    forStep:['посчитать текущую норму сбережений','продать просевшее, докупить по тезисам','настроить авто-перевод'],
+    tasks:[{t:'Ребаланс портфеля',d:'15.07',s:'soon'},{t:'Сдать Belgravia в аренду',d:'эта неделя',s:'fire'},{t:'Закрыть долг другу €500',d:'до 30.06',s:'soon'}],
+    ideas:['Если аренда даёт <4% — выгоднее держать в индексе, чем в недвиге','Подумать про второй источник дохода к 2027'],
+    conn:{'💰 Портфель €312к':'Финансы','◈ аренда €1.8к/мес':'Финансы','↻ заносить расходы 🔥12':'Рутины','📊 капитал ↗':'Трекинг','📝 тезисы рынка':'Инфо','☻ Дима (агент)':'Люди'}},
+
+  {id:'health',ic:'🏃',col:'#1e9e57',name:'Здоровье / тело',score:6,type:'рост',
+    dest:'энергия 8/10 стабильно, форма, падл без травм весь сезон',
+    calc:'<b>6/10</b> — недельная ревизия + трекинг сна и энергии',
+    ms:[{at:3,done:1},{at:5,done:1},{at:6,done:1},{at:7,next:1},{at:8},{at:10}],
+    next:'добавить растяжку после падла — бережём колено',
+    forStep:['10 мин растяжки в рутину «после падла»','записаться на массаж раз в 2 нед'],
+    tasks:[{t:'Падл-тренировка с Аней',d:'вт/чт',s:'ok'},{t:'Чек-ап у врача',d:'запланировать',s:'idle'},{t:'10 000 шагов',d:'ежедневно',s:'soon'}],
+    ideas:['Колено ноет после резких — нужна силовая на стабилизаторы','Сон лучше, когда нет экрана за час до'],
+    conn:{'🎯 падл-лига 40%':'Цели','↻ зарядка 🔥18 · витамины 🔥42':'Рутины','📊 сон 7.2 · энергия 7':'Трекинг','🧠 дыхание 🔥9':'Психология','📝 протокол сна':'Инфо','☻ Аня':'Люди'}},
+
+  {id:'support',ic:'🛡',col:'#364656',name:'Опора / быт',score:5,type:'опора',
+    dest:'всё оформлено и под контролем: документы, налоги, обязательства — ничего не горит',
+    calc:'<b>5/10</b> — близкий дедлайн (легализация) + 1 устаревший баланс',
+    ms:[{at:3,done:1},{at:5,next:1},{at:8},{at:10}],
+    next:'подать документы на легализацию до 30.06 (осталось 12 дней)',
+    forStep:['собрать справки','сделать перевод','записаться на подачу'],
+    tasks:[{t:'Легализация — подать документы',d:'30.06',s:'fire'},{t:'Налоги Q2 — €1 200',d:'15.07',s:'soon'},{t:'Обновить баланс Tinkoff',d:'устарел 24 дн',s:'idle'},{t:'Adobe €60 — оставить или отменить',d:'через 3 дня',s:'soon'}],
+    ideas:['Пассивы тянут €X/мес — пересмотреть подписки раз в квартал','Сделать чек-лист «документы и сроки», чтобы не держать в голове'],
+    conn:{'◈ пассивы/обязательства':'Финансы','💰 балансы счетов':'Финансы','📅 дедлайны':'Календарь','📝 чек-лист документов':'Инфо'}},
+
+  {id:'growth',ic:'📚',col:'#6b4fb5',name:'Развитие',score:5,type:'рост',
+    dest:'испанский B1, системное обучение, навык который монетизируется',
+    calc:'<b>5/10</b> ← 15% курса A2→B1',
+    ms:[{at:1,done:1},{at:2,next:1},{at:5},{at:8},{at:10}],
+    next:'закрепить 20 минут испанского как ежедневную рутину',
+    forStep:['поставить напоминание на 8:00','неделя без пропусков'],
+    tasks:[{t:'Испанский — урок',d:'ежедневно',s:'soon'},{t:'Сдать тест A2',d:'месяц',s:'idle'}],
+    ideas:['После B1 — подумать про монетизацию навыка'],
+    conn:{'🎯 B1 15%':'Цели','↻ учёба 🔥6 · Anki':'Рутины','📊 35 мин/день':'Трекинг','🧠 фокус 🔥7':'Психология','📝 конспекты':'Инфо'}},
+
+  {id:'relations',ic:'❤️',col:'#a87708',name:'Отношения',score:8,type:'рост',
+    dest:'тёплый ближний круг, никого не теряю из виду',
+    calc:'<b>8/10</b> — ревизия + ритм контактов',
+    ms:[{at:4,done:1},{at:6,done:1},{at:8,next:1},{at:10}],
+    next:'созвон с мамой — 3 дня молчания',
+    forStep:['позвонить сегодня вечером'],
+    tasks:[{t:'Созвон с мамой',d:'3 дня молчания',s:'soon'},{t:'Подарок маме на ДР',d:'через 21 дн',s:'idle'}],
+    ideas:['Завести «важные даты» чтобы не пропускать'],
+    conn:{'☻ мама · друзья':'Люди','🎂 ДР через 21 дн':'Календарь'}},
+
+  {id:'rest',ic:'🌿',col:'#2a76b5',name:'Отдых / энергия',score:4,type:'рост',
+    dest:'восстановление без вины: качественные выходные, хобби, отпуска',
+    calc:'<b>4/10</b> — ревизия (сфера проседает)',
+    ms:[{at:2,next:1},{at:5},{at:8},{at:10}],
+    next:'один полный выходной без задач на этой неделе',
+    forStep:['заблокировать субботу в календаре'],
+    tasks:[{t:'Выходной без задач',d:'суббота',s:'idle'}],
+    ideas:['Веломаршрут вдоль реки','Новый бар в центре'],
+    conn:{'📝 идеи на выходные':'Инфо'}},
+];
+let openId=null;
+
+//==== мини-кольцо для дашборда ====
+function ring(score,col,size=38){const r=size/2-4,C=2*Math.PI*r;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#eef0f4" stroke-width="4"/>
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${col}" stroke-width="4" stroke-linecap="round"
+      stroke-dasharray="${C*score/10} ${C}" transform="rotate(-90 ${size/2} ${size/2})"/>
+    <text x="${size/2}" y="${size/2+4}" text-anchor="middle" style="font:700 12px var(--mono);fill:var(--text)">${score}</text></svg>`;}
+
+function hasFire(s){return s.tasks.some(t=>t.s==='fire');}
+function nextStep(s){return s.next;}
+
+function renderDash(){
+  document.getElementById('dashrow').innerHTML=SPHERES.map(s=>
+    `<div class="dchip ${openId===s.id?'sel':''}" data-go="${s.id}">
+      <div class="dring">${ring(s.score,s.col)}${hasFire(s)?'<span class="du"></span>':''}</div>
+      <div class="dn">${s.ic} ${s.name.split(' ')[0]}</div></div>`).join('');
+  const avg=(SPHERES.reduce((a,s)=>a+s.score,0)/SPHERES.length).toFixed(1);
+  const fires=SPHERES.filter(hasFire).length;
+  document.getElementById('dashfoot').innerHTML=`<span>средний баланс: <b>${avg}/10</b></span>
+    <span class="fire">🔴 ${fires} сферы требуют внимания</span><span>по каждой виден следующий шаг</span>`;
+  document.querySelectorAll('#dashrow [data-go]').forEach(d=>d.onclick=()=>toggle(d.dataset.go,true));
+}
+
+function badge(s){return {fire:'🔴 горит',soon:'⏳ скоро',ok:'✓ ок',idle:'• открыто'}[s]||s;}
+function renderList(){
+  document.getElementById('list').innerHTML=SPHERES.map(s=>{
+    const open=openId===s.id, dim=openId&&!open;
+    const briefs=s.tasks.slice(0,3).map(t=>`<span class="tchip ${t.s==='fire'?'fire':''}"><span class="st">${({fire:'🔴',soon:'⏳',ok:'✓',idle:'•'})[t.s]}</span>${t.t}${t.d?` · ${t.d}`:''}</span>`).join('');
+    return `<div class="sph ${open?'open':''} ${dim?'dim':''}" data-id="${s.id}">
+      <div class="shead" data-head="${s.id}">
+        <div class="ic" style="background:${s.col}22">${s.ic}</div>
+        <div class="hh"><div class="hn">${s.ic?'':''}${s.name}</div><div class="hnext">→ <b>${s.next}</b></div></div>
+        <div class="hsc" style="color:${s.col}">${s.score}<small>/10</small></div><span class="car">▶</span>
+      </div>
+      <div class="briefs">${briefs}</div>
+      <div class="body">
+        <div class="dest">🎯 <b>10 = ${s.dest}</b> <span class="muted" style="font-size:11px">· сфера: ${s.type}</span></div>
+        <div class="track"><div class="rail"></div><div class="fill" style="width:${s.score*10}%"></div>
+          ${s.ms.map(m=>`<div class="tick ${m.done?'done':''} ${m.next?'next':''}" style="left:${m.at*10}%"></div>`).join('')}
+          <div class="you" style="left:${s.score*10}%">${s.score}</div></div>
+        <div class="calc">где сейчас: ${s.calc}</div>
+        <div class="step"><span class="lb">СЛЕДУЮЩИЙ ШАГ — И ЧТО ДЛЯ НЕГО НАДО</span><b>${s.next}</b>
+          <ul>${s.forStep.map(f=>`<li>${f}</li>`).join('')}</ul></div>
+
+        <div class="sub"><div class="slbl">🎯 Задачи · с датами и статусом<span class="go" data-jump="Цели">в Цели →</span></div>
+          ${s.tasks.map((t,i)=>`<div class="trow"><span class="cb" data-task="${s.id}:${i}"></span>
+            <span class="tt">${t.t}</span><span class="badge ${t.s}">${t.d||badge(t.s)}</span></div>`).join('')}</div>
+
+        <div class="sub"><div class="slbl">💭 Идеи и рассуждения<span class="go" data-jump="Цели">из заметок цели</span></div>
+          ${s.ideas.map(t=>`<div class="idea">${t}</div>`).join('')}</div>
+
+        <div class="sub"><div class="slbl">🔗 Связи по приложению</div>
+          <div class="conn">${Object.entries(s.conn).map(([t,lab])=>`<span class="cc" data-jump="${lab}">${t}<span class="lab">${lab}</span></span>`).join('')}</div></div>
+      </div>
+    </div>`;}).join('');
+  document.querySelectorAll('[data-head]').forEach(h=>h.onclick=()=>toggle(h.dataset.head));
+  document.querySelectorAll('[data-task]').forEach(c=>c.onclick=e=>{e.stopPropagation();c.classList.toggle('on');c.textContent=c.classList.contains('on')?'✓':'';c.parentElement.querySelector('.tt').classList.toggle('done');});
+  document.querySelectorAll('[data-jump]').forEach(j=>j.onclick=e=>{e.stopPropagation();alert('Переход в раздел «'+j.dataset.jump+'» — элементы живут там, тут собрана связь и прогресс.');});
+}
+function toggle(id,scroll){openId=openId===id?null:id;renderDash();renderList();
+  if(scroll&&openId){const el=document.querySelector(`.sph[data-id="${id}"]`);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});}}
+
+renderDash();renderList();
+</script>
+</body>
+</html>
