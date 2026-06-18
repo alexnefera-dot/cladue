@@ -497,6 +497,17 @@ enum Api {
         if let m = match(path, "^/api/psy/areas/([0-9]+)$"), method == "PATCH" {
             try patchAreaStep(db, id: Int(m[1]) ?? -1, body: body); return (ok(), 200)
         }
+        if method == "POST", path == "/api/psy/areas" {
+            let name = (body["name"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            guard !name.isEmpty else { return (try json(["error": "name required"]), 400) }
+            try db.run("INSERT INTO wheel_areas(name, ord) VALUES(?, (SELECT COALESCE(MAX(ord), 0) + 1 FROM wheel_areas))", [name])
+            return (try json(try psyWheel(db)), 201)
+        }
+        if let m = match(path, "^/api/psy/areas/([0-9]+)$"), method == "DELETE" {
+            // замеры сектора уходят каскадом (wheel_scores), теги area_id обнуляются (ON DELETE SET NULL)
+            try db.run("DELETE FROM wheel_areas WHERE id = ?", [Int(m[1]) ?? -1])
+            return (try json(try psyWheel(db)), 200)
+        }
         if method == "POST", path == "/api/psy/worklog" {
             guard let note = (body["note"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty else { return (try json(["error": "note required"]), 400) }
             try db.run("INSERT INTO work_log(date, note) VALUES(?,?)", [localToday(), note]); return (ok(201), 201)

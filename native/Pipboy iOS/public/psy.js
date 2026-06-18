@@ -174,13 +174,13 @@ function renderPsy() {
         <div class="meta" style="margin-top:6px">Пунктир на радаре — предыдущий замер. История: ${w.dates.join(' · ') || 'пока нет'}</div>
       </div>
     </div>
-    <div class="sec">Движение по секторам · все ячейки правятся кликом</div>
+    <div class="sec">Движение по секторам · все ячейки правятся кликом <span class="pill btn" id="psAreaAdd" style="float:right" title="новый сектор Колеса = новая сфера">➕ сектор</span></div>
     ${w.areas.map(a => {
       const cur = w.latest?.scores?.[a.id] ?? null;
       const next = cur != null ? Math.min(10, cur + 1) : '+1';
       if (window.matchMedia('(max-width: 768px)').matches) return `
       <div class="card secmob">
-        <div class="secmob-h">${pesc(a.name)} <b class="num">${cur ?? '—'}${cur != null ? ' → ' + next : ''}</b></div>
+        <div class="secmob-h">${pesc(a.name)} <b class="num">${cur ?? '—'}${cur != null ? ' → ' + next : ''}</b><span data-aredel="${a.id}" title="удалить сектор" style="float:right;cursor:pointer;color:var(--muted)">🗑</span></div>
         <div class="secmob-r"><span class="meta">сейчас (${cur ?? '?'})</span><div class="ed" data-aredit="${a.id}:current_desc">${pesc(a.current_desc) || '＋ опиши текущее состояние'}</div></div>
         <div class="secmob-r"><span class="meta">идеал (10)</span><div class="ed" data-aredit="${a.id}:ideal">${pesc(a.ideal) || '—'}</div></div>
         <div class="secmob-r"><span class="meta">следующий (+1)</span><div class="ed" data-aredit="${a.id}:next_desc">${pesc(a.next_desc) || '—'}</div></div>
@@ -191,7 +191,7 @@ function renderPsy() {
       <div class="card">
         <table class="fintable" style="table-layout:fixed">
           <tr>
-            <th style="width:120px">${pesc(a.name)} · уровень</th>
+            <th style="width:120px">${pesc(a.name)} · уровень <span data-aredel="${a.id}" title="удалить сектор" style="float:right;cursor:pointer;color:var(--muted);font-weight:400">🗑</span></th>
             <th>${cur ?? '?'} — текущее: что есть сейчас</th>
             <th>10 — идеал</th>
             <th>${next} — следующий уровень</th>
@@ -326,6 +326,23 @@ function bindPsy() {
       if (v == null) return;
       await fetch('/api/psy/areas/' + id, { method: 'PATCH',
         headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: v.trim() }) });
+      window.loadPsy();
+    }));
+  $('psAreaAdd')?.addEventListener('click', async () => {
+    const name = prompt('Название нового сектора Колеса (станет новой сферой):');
+    if (name == null || !name.trim()) return;
+    await fetch('/api/psy/areas', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name.trim() }) });
+    window.SPH_AREAS = [];                 // список сфер изменился — пересоберём при следующем заходе
+    window.ensureSphAreas?.(true);
+    window.loadPsy();
+  });
+  document.querySelectorAll('#screen-psy [data-aredel]').forEach(el =>
+    el.addEventListener('click', async () => {
+      if (!confirm('Удалить сектор? Его замеры Колеса удалятся, а привязки целей/инфо к этой сфере просто сбросятся.')) return;
+      await fetch('/api/psy/areas/' + el.dataset.aredel, { method: 'DELETE' });
+      window.SPH_AREAS = [];
+      window.ensureSphAreas?.(true);
       window.loadPsy();
     }));
   $('psWheelSave')?.addEventListener('click', async () => {
