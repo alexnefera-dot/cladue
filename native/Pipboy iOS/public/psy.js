@@ -175,12 +175,13 @@ function renderPsy() {
       </div>
     </div>
     <div class="sec">Движение по секторам · все ячейки правятся кликом <span class="pill btn" id="psAreaAdd" style="float:right" title="новый сектор Колеса = новая сфера">➕ сектор</span></div>
-    ${w.areas.map(a => {
+    ${w.areas.map((a, ai, arr) => {
       const cur = w.latest?.scores?.[a.id] ?? null;
       const next = cur != null ? Math.min(10, cur + 1) : '+1';
+      const move = `<span style="float:right;font-weight:400;display:inline-flex;gap:9px;align-items:center">${ai > 0 ? `<span data-aremove="${a.id}:${arr[ai - 1].id}:before" title="выше" style="cursor:pointer;color:var(--muted)">↑</span>` : ''}${ai < arr.length - 1 ? `<span data-aremove="${a.id}:${arr[ai + 1].id}:after" title="ниже" style="cursor:pointer;color:var(--muted)">↓</span>` : ''}<span data-aredel="${a.id}" title="удалить сектор" style="cursor:pointer;color:var(--muted)">🗑</span></span>`;
       if (window.matchMedia('(max-width: 768px)').matches) return `
       <div class="card secmob">
-        <div class="secmob-h"><span class="ed" data-aredit="${a.id}:name">${pesc(a.name)}</span> <b class="num">${cur ?? '—'}${cur != null ? ' → ' + next : ''}</b><span data-aredel="${a.id}" title="удалить сектор" style="float:right;cursor:pointer;color:var(--muted)">🗑</span></div>
+        <div class="secmob-h"><span class="ed" data-aredit="${a.id}:name">${pesc(a.name)}</span> <b class="num">${cur ?? '—'}${cur != null ? ' → ' + next : ''}</b>${move}</div>
         <div class="secmob-r"><span class="meta">сейчас (${cur ?? '?'})</span><div class="ed" data-aredit="${a.id}:current_desc">${pesc(a.current_desc) || '＋ опиши текущее состояние'}</div></div>
         <div class="secmob-r"><span class="meta">идеал (10)</span><div class="ed" data-aredit="${a.id}:ideal">${pesc(a.ideal) || '—'}</div></div>
         <div class="secmob-r"><span class="meta">+1 — что хотим</span><div class="ed" data-aredit="${a.id}:next_desc">${pesc(a.next_desc) || '—'}</div></div>
@@ -190,7 +191,7 @@ function renderPsy() {
       <div class="card">
         <table class="fintable" style="table-layout:fixed">
           <tr>
-            <th style="width:120px"><span class="ed" data-aredit="${a.id}:name">${pesc(a.name)}</span> · уровень <span data-aredel="${a.id}" title="удалить сектор" style="float:right;cursor:pointer;color:var(--muted);font-weight:400">🗑</span></th>
+            <th style="width:120px"><span class="ed" data-aredit="${a.id}:name">${pesc(a.name)}</span> · уровень ${move}</th>
             <th>${cur ?? '?'} — сейчас: что есть</th>
             <th>10 — идеал</th>
             <th>${next} — +1: что хотим</th>
@@ -333,6 +334,16 @@ function bindPsy() {
     el.addEventListener('click', async () => {
       if (!confirm('Удалить сектор? Его замеры Колеса удалятся, а привязки целей/инфо к этой сфере просто сбросятся.')) return;
       await fetch('/api/psy/areas/' + el.dataset.aredel, { method: 'DELETE' });
+      window.SPH_AREAS = [];
+      window.ensureSphAreas?.(true);
+      window.loadPsy();
+    }));
+  // ↑/↓ — порядок секторов Колеса (он же порядок сфер)
+  document.querySelectorAll('#screen-psy [data-aremove]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const [id, ref, where] = el.dataset.aremove.split(':');
+      await fetch(`/api/psy/areas/${id}/reorder`, { method: 'POST',
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ref: +ref, where }) });
       window.SPH_AREAS = [];
       window.ensureSphAreas?.(true);
       window.loadPsy();

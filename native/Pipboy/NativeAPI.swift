@@ -508,6 +508,12 @@ enum Api {
             try db.run("DELETE FROM wheel_areas WHERE id = ?", [Int(m[1]) ?? -1])
             return (try json(try psyWheel(db)), 200)
         }
+        if let m = match(path, "^/api/psy/areas/([0-9]+)/reorder$"), method == "POST" {
+            guard let ref = numOpt(body["ref"]).map({ Int($0) }) else { return (try json(["error": "ref required"]), 400) }
+            // порядок секторов = порядок сфер (везде ORDER BY ord, id)
+            do { try reorderSimple(db, "wheel_areas", id: Int(m[1]) ?? -1, refId: ref, pos: (body["where"] as? String) == "before" ? "before" : "after"); return (try json(try psyWheel(db)), 200) }
+            catch { return (errJson(error), 400) }
+        }
         if method == "POST", path == "/api/psy/worklog" {
             guard let note = (body["note"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines), !note.isEmpty else { return (try json(["error": "note required"]), 400) }
             try db.run("INSERT INTO work_log(date, note) VALUES(?,?)", [localToday(), note]); return (ok(201), 201)
