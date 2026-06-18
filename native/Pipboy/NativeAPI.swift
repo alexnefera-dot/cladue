@@ -193,7 +193,7 @@ enum Api {
             return (try tree(db), 200)
         case "/api/pages":
             return (try json(try db.rows(
-                "SELECT id, parent_id, ord, title, node_id, locked, updated_at FROM pages ORDER BY parent_id NULLS FIRST, ord, id")), 200)
+                "SELECT id, parent_id, ord, title, node_id, locked, updated_at, area_id FROM pages ORDER BY parent_id NULLS FIRST, ord, id")), 200)
         case "/api/trash":
             return (try json(try db.rows(
                 "SELECT id, kind, label, created_at FROM trash ORDER BY id DESC LIMIT 30")), 200)
