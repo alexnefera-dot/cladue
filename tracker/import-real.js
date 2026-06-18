@@ -24,6 +24,16 @@ catch (e) { console.error('Не прочитать data.json:', e.message); proc
 const db = createDb(dbPath);   // схема + миграции (area_id и пр.)
 const tablesInDb = new Set(db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(r => r.name));
 
+// СОХРАНЯЕМ привязки к сферам (area_id) и дефолты — их нет в экспорте, иначе пере-импорт их сотрёт.
+// Так переезд на актуальную рабочую базу не теряет распределение по сферам (id строк стабильны).
+const TAG_TABLES = ['nodes', 'routines', 'metrics', 'practices', 'obligations', 'people', 'pages', 'events', 'debts', 'steps'];
+const savedTags = {}; let savedDefaults = null;
+for (const t of TAG_TABLES) {
+  if (!tablesInDb.has(t)) continue;
+  try { savedTags[t] = db.prepare(`SELECT id, area_id FROM ${t} WHERE area_id IS NOT NULL`).all(); } catch { savedTags[t] = []; }
+}
+try { savedDefaults = db.prepare("SELECT value FROM settings WHERE key = 'sphere_defaults'").get()?.value ?? null; } catch {}
+
 db.exec('PRAGMA foreign_keys = OFF');
 let total = 0, skipped = [];
 for (const [t, rows] of Object.entries(dump)) {
@@ -48,9 +58,20 @@ for (const [t, rows] of Object.entries(dump)) {
   console.log(`  ${t}: ${n}`);
   total += n;
 }
+// ВОССТАНАВЛИВАЕМ привязки к сферам по id (импорт их обнулил)
+let restored = 0;
+for (const t of TAG_TABLES) {
+  for (const r of savedTags[t] || []) {
+    try { restored += db.prepare(`UPDATE ${t} SET area_id = ? WHERE id = ?`).run(r.area_id, r.id).changes; } catch {}
+  }
+}
+if (savedDefaults != null) {
+  try { db.prepare("INSERT OR REPLACE INTO settings(key, value) VALUES('sphere_defaults', ?)").run(savedDefaults); } catch {}
+}
 db.exec('PRAGMA foreign_keys = ON');
 
 console.log(`\nИмпортировано строк: ${total} → ${dbPath}`);
+if (restored) console.log(`Сохранено привязок к сферам: ${restored} (пере-импорт их не теряет)`);
 if (skipped.length) console.log(`Пропущены таблицы (нет в трекере): ${skipped.join(', ')}`);
 console.log(`\nЗапуск на этих данных:\n  PIPBOY_DB=${dbPath} PIPBOY_NOSEED=1 node server.js`);
 console.log('Логи отметок (стрики/история) в экспорт пока не попадают — стрики будут с нуля.');

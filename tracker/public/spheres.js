@@ -175,16 +175,16 @@ function sphDetail(s, i) {
       ${s.next_desc ? `<div class="muted" style="font-size:12.5px;margin-top:3px" data-edit="next_desc">${sesc(s.next_desc)}</div>` : ''}
       <div style="margin-top:7px"><span class="pill btn" id="sphStepTask">＋ шаг в задачи</span></div></div>`;
 
-  // живой прогресс из данных
+  // живой прогресс из данных (без дублей с блоками ниже)
   const pr = s.progress || {};
   const parts = [];
-  if (pr.tasksTotal) parts.push(`<div class="task"><span class="t">Задачи выполнено</span><span class="pbar2"><i style="width:${Math.round(pr.tasksDone / pr.tasksTotal * 100)}%"></i></span><span class="meta num">${pr.tasksDone}/${pr.tasksTotal}</span></div>`);
-  if (pr.adherence != null) parts.push(`<div class="task"><span class="t">Дисциплина рутин · 14 дн</span><span class="pbar2"><i style="width:${Math.round(pr.adherence * 100)}%"></i></span><span class="meta num">${Math.round(pr.adherence * 100)}%</span></div>`);
-  if (pr.trends && pr.trends.length) parts.push(`<div class="task"><span class="t">Тренд метрик</span><span class="meta">${pr.trends.map(t => `${sesc(t.name)} ${t.dir > 0 ? '↗' : t.dir < 0 ? '↘' : '→'}`).join(' · ')}</span></div>`);
+  if (pr.tasksTotal) parts.push(`<div class="task"><span class="t">Задачи</span><span class="pbar2"><i style="width:${Math.round(pr.tasksDone / pr.tasksTotal * 100)}%"></i></span><span class="meta num">${pr.tasksDone}/${pr.tasksTotal}</span></div>`);
+  if (s.routines.length) { const rd = s.routines.filter(r => r.doneToday).length;
+    parts.push(`<div class="task"><span class="t">Рутины сегодня</span><span class="pbar2"><i style="width:${Math.round(rd / s.routines.length * 100)}%"></i></span><span class="meta num">${rd}/${s.routines.length}</span></div>`); }
   h += `<div class="sec">📈 Прогресс по данным <span class="muted" style="font-weight:400">· считается сам</span></div><div class="card">
     ${pr.momentum != null
       ? `<div class="sph-mom"><div class="sph-momn">${pr.momentum}<small>/10</small></div>
-           <div class="sph-momt">движение по реальным данным (задачи + рутины)<br>
+           <div class="sph-momt">движение по данным (задачи + дисциплина рутин за 2 нед)<br>
              <span class="pill btn ok" id="sphApplyMom">поставить как оценку сферы</span></div></div>`
       : ''}
     ${parts.join('') || '<div class="empty">привяжи задачи (категорию) и рутины через «🔗 связи» — посчитаю прогресс сам, без ручного ведения</div>'}</div>`;
@@ -243,17 +243,27 @@ function sphDetail(s, i) {
   // люди (социализация)
   if (s.people && s.people.length) h += block('☻ Люди', 'Люди', s.people.map(p => `
     <div class="task"><span class="t">${sesc(p.name)}</span><span class="meta">${p.rhythm ? 'ритм ' + p.rhythm + 'д' : ''}${p.last ? ' · посл. ' + p.last : ''}</span></div>`).join(''));
-  // финансовые показатели (числа, только в денежной сфере)
+  // финансовые показатели (числа, только в денежной сфере) — FIRE без суммы
   if (s.finance) { const f = s.finance, money = n => n == null ? '—' : Math.round(n).toLocaleString('ru-RU');
     h += block('📈 Финансовые показатели', 'Финансы', `
-      <div class="task"><span class="t">Капитал</span><span class="meta num">${money(f.capital)} €</span></div>
+      ${f.firePct != null ? `<div class="task"><span class="t">FIRE · прогресс</span><span class="pbar2"><i style="width:${Math.min(100, f.firePct)}%"></i></span><span class="meta num">${f.firePct.toFixed(1)}%</span></div>` : ''}
       <div class="task"><span class="t">Расход за месяц</span><span class="meta num">${money(f.expense)} €${f.budget ? ' / ' + money(f.budget) : ''}</span></div>
-      <div class="task"><span class="t">Пассивный доход/мес</span><span class="meta num">${money(f.income)} €</span></div>
-      ${f.firePct != null ? `<div class="task"><span class="t">FIRE</span><span class="meta num">${f.firePct.toFixed(1)}%</span></div>` : ''}`);
+      <div class="task"><span class="t">Пассивный доход/мес</span><span class="meta num">${money(f.income)} €</span></div>`);
   }
-  // платежи/обязательства
-  if (s.fin.length) h += block('💰 Платежи и обязательства', 'Финансы', s.fin.map(f => `
-    <div class="task"><span class="t">${sesc(f.name)}</span>${f.next_date ? `<span class="meta">${f.next_date}</span>` : ''}<span class="meta num">${f.amount} ${sesc(f.currency)} / ${sesc(f.period)}</span></div>`).join(''));
+  // платежи — делим по периодам с суммами (статистика «что платить мес/год/разово»)
+  if (s.fin.length) {
+    const money = n => Math.round(n).toLocaleString('ru-RU');
+    const grp = { monthly: ['Ежемесячно', []], yearly: ['Ежегодно', []], once: ['Разово', []] };
+    for (const f of s.fin) (grp[f.period] || (grp[f.period] = [f.period, []]))[1].push(f);
+    let html = '';
+    for (const [per, [label, items]] of Object.entries(grp)) {
+      if (!items.length) continue;
+      const sum = items.reduce((x, f) => x + (f.amount || 0), 0);
+      html += `<div class="task sphcat"><b class="t">${label}</b><span class="meta num">Σ ${money(sum)} €</span></div>`
+        + items.map(f => `<div class="task" style="padding-left:16px"><span class="t">${sesc(f.name)}</span>${f.next_date ? `<span class="meta">${f.next_date}</span>` : ''}<span class="meta num">${f.amount} ${sesc(f.currency)}</span></div>`).join('');
+    }
+    h += block('💰 Платежи · по периодам', 'Финансы', html);
+  }
   // долги
   if (s.debts && s.debts.length) h += block('🤝 Долги', 'Финансы', s.debts.map(x => `
     <div class="task"><span class="pill ${x.direction === 'i_owe' ? 'p0' : 'ok'}">${x.direction === 'i_owe' ? 'я должен' : 'мне должны'}</span>
@@ -265,9 +275,9 @@ function sphDetail(s, i) {
   // события
   if (s.events && s.events.length) h += block('📅 События сферы', 'Календарь', s.events.map(e => `
     <div class="task"><span class="meta num">${e.date}${e.time ? ' ' + e.time : ''}</span><span class="t">${sesc(e.title)}</span></div>`).join(''));
-  // инфо
+  // инфо — кликабельно, открывает нужную страницу в Инфо
   if (s.info && s.info.length) h += block('📒 Инфо сферы', 'Инфо', s.info.map(p => `
-    <div class="task"><span class="t">${sesc(p.title)}</span></div>`).join(''));
+    <div class="task"><span class="t" data-page="${p.id}" style="cursor:pointer">📄 ${sesc(p.title)}</span></div>`).join(''));
 
   // ревизия
   h += `<div class="sec">🪞 Ревизия · оценка сферы</div><div class="card">
@@ -292,6 +302,8 @@ function bindDetail(s) {
   document.querySelectorAll('#screen-spheres [data-tog]').forEach(c => c.onclick = async () => { await sphApi.toggle(+c.dataset.tog); window.loadSpheres(); });
   // клик по задаче — открыть в Целях (полная карточка: текст/заметки/связи)
   document.querySelectorAll('#screen-spheres [data-tnode]').forEach(el => el.onclick = () => { if (window.openNode) window.openNode(+el.dataset.tnode); });
+  // клик по странице инфо — открыть нужную заметку в разделе Инфо
+  document.querySelectorAll('#screen-spheres [data-page]').forEach(el => el.onclick = () => { if (window.openPage) window.openPage(+el.dataset.page); });
   // ===== работа с задачами прямо в сфере (через node-API Целей) =====
   const node = (id, m, b) => fetch('/api/nodes' + (id ? '/' + id : ''), { method: m, headers: { 'Content-Type': 'application/json' }, body: b ? JSON.stringify(b) : undefined });
   const reload = () => window.loadSpheres();
