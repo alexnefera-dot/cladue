@@ -32,10 +32,12 @@ function tdSphStrip() {
   return `<div class="sec" style="margin-top:0">🧭 Сферы · куда идём</div>
     <div class="tdsph">${list.map((s, i) => {
       const m = s.progress?.momentum, col = TDSPH_COL[i % TDSPH_COL.length];
+      const prog = m != null ? m : s.score;
       return `<div class="tdsph-c" data-sphopen="${s.id}">
         <div class="tdsph-top"><span class="tdsph-s" style="background:${col}">${s.score ?? '–'}</span><span class="tdsph-n">${tesc(s.name)}</span></div>
         <div class="tdsph-x">${s.step ? '→ ' + tesc(s.step) : '<span class="muted">шаг не задан</span>'}</div>
-        ${m != null ? `<div class="tdsph-m">момент ${m}/10</div>` : ''}</div>`;
+        ${prog != null ? `<div class="tdsph-bar"><i style="width:${prog * 10}%;background:${col}"></i></div>
+          <div class="tdsph-m">${m != null ? 'прогресс ' + m + '/10' : 'оценка ' + s.score + '/10'}${s.progress?.tasksTotal ? ` · задачи ${s.progress.tasksDone}/${s.progress.tasksTotal}` : ''}</div>` : ''}</div>`;
     }).join('')}</div>`;
 }
 function ensureTdSphStyle() {
@@ -48,7 +50,9 @@ function ensureTdSphStyle() {
     .tdsph-top{display:flex;align-items:center;gap:8px}.tdsph-s{width:28px;height:28px;border-radius:8px;color:#fff;font:700 13px var(--mono);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
     .tdsph-n{font-weight:700;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .tdsph-x{font-size:12px;color:var(--muted);margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .tdsph-m{font:600 10.5px var(--mono);color:var(--green);margin-top:4px}`;
+    .tdsph-bar{height:5px;border-radius:99px;background:var(--bg2);overflow:hidden;margin-top:7px}.tdsph-bar i{display:block;height:100%}
+    .tdsph-m{font:600 10.5px var(--mono);color:var(--green);margin-top:4px}
+    @media(max-width:768px){.tdsph-c{width:158px;padding:9px 10px}.tdsph-n{font-size:12.5px}}`;
   document.head.appendChild(st);
 }
 

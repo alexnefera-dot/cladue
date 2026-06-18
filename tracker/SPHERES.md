@@ -25,8 +25,22 @@
 
 ```
 cd tracker
-node server.js        # http://localhost:7777
+node server.js        # http://localhost:7777  (демо-база)
 ```
+
+### На реальной базе (попробовать на своих данных)
+
+Только **plaintext** SQLite-база Pipboy (node:sqlite). Зашифрованную базу нативного
+приложения (SQLCipher) напрямую не открыть — для неё нужен экспорт→импорт.
+
+```
+cp /путь/к/твоей/data.db ~/pipboy-real-copy.db          # работаем на КОПИИ
+PIPBOY_DB=~/pipboy-real-copy.db PIPBOY_NOSEED=1 node server.js
+```
+
+- `PIPBOY_DB` — путь к базе (миграция area_id добавляется неразрушающе).
+- `PIPBOY_NOSEED=1` — не доливать демо-данные в реальную базу.
+- Сферы свяжутся сами по названиям секторов твоего Колеса (кнопка «🪄» — пересобрать).
 
 ## Дальше (v0.2)
 

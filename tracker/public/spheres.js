@@ -244,7 +244,16 @@ function ensureSphStyle() {
     .sph-momn{font:700 30px var(--mono);color:var(--green);line-height:1}.sph-momn small{font-size:14px;color:var(--muted)}
     .sph-momt{font-size:12.5px;color:var(--muted)}
     .pbar2{flex:1;max-width:160px;height:7px;border-radius:99px;background:var(--bg2);overflow:hidden;margin:0 6px}.pbar2 i{display:block;height:100%;background:var(--green-dim)}
-    [data-edit]{cursor:text}`;
+    [data-edit]{cursor:text}
+    @media(max-width:768px){
+      .sph-ov{grid-template-columns:1fr}
+      .sph-hero{flex-direction:column;text-align:center;gap:10px;padding:14px}
+      .sph-mom{flex-direction:column;align-items:flex-start;gap:6px}
+      .sph-scoreset b{width:28px;height:28px}
+      .sph-pi{font-size:13px;padding:6px 11px}
+      .sph-dest{font-size:13.5px}
+      .pbar2{max-width:none}
+    }`;
   const st = document.createElement('style'); st.id = 'sph-style'; st.textContent = css;
   document.head.appendChild(st);
 }

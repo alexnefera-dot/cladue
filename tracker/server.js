@@ -45,7 +45,7 @@ notes.ensureInfoTree(db); // ветки Инфо: Finance / Mindset / Fun / Work
         imp.months.map(([mon, txt]) => `## ${mon}\n\n${txt}`).join('\n\n') });
   }
 }
-if (!demoWiped(db)) {     // после «удалить демо-данные» сиды не доливаются никогда
+if (!demoWiped(db) && !process.env.PIPBOY_NOSEED) {   // PIPBOY_NOSEED=1 — работать на реальной базе без демо-наполнения
   if (db.prepare('SELECT count(*) AS c FROM accounts').get().c === 0) {
     seedFin(db);
     console.log('Финансы наполнены примерами (всё с пометкой «пример» — удаляй и заводи своё)');
