@@ -31,7 +31,7 @@ function sphSpark(vals, w = 74, h = 18) {
 
 window.loadSpheres = async function () {
   ensureSphStyle();
-  sphData = await sphApi.load();
+  [sphData, sphPool] = await Promise.all([sphApi.load(), sphApi.pool()]);
   renderSpheres();
 };
 // открыть конкретную сферу из «Сегодня» (полоса сфер) — без отдельной загрузки
@@ -49,8 +49,15 @@ function renderSpheres() {
 function sphOverview() {
   const scored = sphData.filter(s => s.score != null);
   const avg = scored.length ? (scored.reduce((a, s) => a + s.score, 0) / scored.length).toFixed(1) : '–';
+  const an = id => (sphPool?.areas || []).find(a => a.id === id)?.name;
+  const d = sphPool?.defaults || {};
+  const route = [['Люди', d.person], ['Трекинг', d.metric], ['Психология', d.practice], ['Финансы', d.obligation]]
+    .map(([l, id]) => `${l}→<b>${an(id) || '—'}</b>`).join(' · ');
   return `<h2 style="margin-bottom:2px">Сферы жизни</h2>
-    <div class="muted" style="margin-bottom:14px">средний баланс ${avg}/10 · сектора Колеса как трассы: 10 = куда идём, оценка = где сейчас, шаг = что делаем. Всё на реальных данных.</div>
+    <div class="muted" style="margin-bottom:8px">средний баланс ${avg}/10 · 10 = куда идём, оценка = где сейчас, шаг = что делаем. Всё на реальных данных.</div>
+    <div class="card" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+      <span class="pill btn ok" id="sphAuto">🪄 авто-настроить связи</span>
+      <span class="muted" style="font-size:12px">секции сами в свои сферы: ${route} · цели — по категориям</span></div>
     <div class="sph-ov">${sphData.map((s, i) => {
       const links = s.routines.length + s.tracking.length + s.practices.length + s.fin.length + s.tasks.length;
       return `<div class="sph-card" data-open="${s.id}">
@@ -63,6 +70,12 @@ function sphOverview() {
 }
 function bindOverview() {
   document.querySelectorAll('#screen-spheres [data-open]').forEach(c => c.onclick = () => { sphOpen = +c.dataset.open; sphEditConn = false; renderSpheres(); });
+  document.getElementById('sphAuto')?.addEventListener('click', async () => {
+    const r = await fetch('/api/spheres/auto', { method: 'POST' }).then(x => x.json());
+    const lines = Object.entries(r.defaults).map(([k, v]) => `${({ person: 'Люди', metric: 'Трекинг', practice: 'Психология', obligation: 'Финансы' })[k]} → ${v || 'нет подходящей сферы'}`);
+    alert(`Авто-настройка связей:\n\n${lines.join('\n')}\n\nКатегорий целей разложено: ${r.categoriesMapped}`);
+    window.loadSpheres();
+  });
 }
 
 function block(label, jump, inner) {

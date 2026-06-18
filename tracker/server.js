@@ -32,6 +32,7 @@ if (fresh) { seed(db); console.log('БД создана: категории го
 ensurePortfolio(db);
 ensureRates(db);
 psy.ensureWheel(db);      // секторы колеса — это структура, не демо
+if (!fin.getSetting(db, 'sphere_defaults', null)) spheres.autoConfig(db); // первый запуск: связи секций — сами
 psy.ensurePositiveIntent(db); // техника «Позитивное намерение» с 7 вопросами
 ensureEnergy(db);         // ⚡ Энергия жизни + Банк впечатлений — тоже структура
 notes.ensureInfoTree(db); // ветки Инфо: Finance / Mindset / Fun / Work / Health
@@ -354,6 +355,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, spheres.setDefault(db, b.kind, b.areaId != null ? +b.areaId : null));
     }
     if (p === '/api/spheres/automap' && req.method === 'POST') return json(res, 200, spheres.autoMapCategories(db));
+    if (p === '/api/spheres/auto' && req.method === 'POST') return json(res, 200, spheres.autoConfig(db, true));
     if (p === '/api/psy/wheel' && req.method === 'POST') {
       const b = await body(req);
       psy.saveWheel(db, b.scores ?? {});

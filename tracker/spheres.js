@@ -32,6 +32,27 @@ export function autoMapCategories(db) {
   return { mapped };
 }
 
+// Автоматизм: каждую секцию направить в подходящую сферу ПО СМЫСЛУ (без ручных тумблеров).
+const AUTO_KEYS = {
+  person: ['социал', 'отнош', 'друз', 'общени', 'семь', 'партн'],
+  metric: ['развит', 'обучен', 'рост', 'прогресс'],
+  practice: ['развит', 'обучен', 'психолог', 'осознан', 'менталь', 'смысл', 'перспектив'],
+  obligation: ['деньг', 'финанс', 'инвест', 'капитал', 'быт', 'дом'],
+};
+export function autoConfig(db, force = false) {
+  const areas = db.prepare('SELECT id, name FROM wheel_areas ORDER BY ord, id').all().map(a => ({ id: a.id, n: a.name.toLowerCase(), name: a.name }));
+  const d = getDefaults(db); const report = {};
+  for (const [kind, keys] of Object.entries(AUTO_KEYS)) {
+    if (!force && d[kind] != null) { report[kind] = areas.find(a => a.id === d[kind])?.name ?? '(задано)'; continue; }
+    let hit = null;                                   // приоритет — по порядку ключей (точный смысл раньше запасного)
+    for (const k of keys) { hit = areas.find(a => a.n.includes(k)); if (hit) break; }
+    if (hit) { d[kind] = hit.id; report[kind] = hit.name; } else report[kind] = null;
+  }
+  setSetting(db, 'sphere_defaults', JSON.stringify(d));
+  const cat = autoMapCategories(db);
+  return { defaults: report, categoriesMapped: cat.mapped };
+}
+
 const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const TODAY = () => iso(new Date());
 
