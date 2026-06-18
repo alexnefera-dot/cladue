@@ -812,7 +812,8 @@ enum Api {
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let tables = ["nodes", "links", "accounts", "portfolio_items", "obligations", "passive_income", "debts", "transactions",
                       "events", "routines", "people", "pages", "practices", "wheel_areas", "wheel_scores", "metrics", "forecasts",
-                      "properties", "settings", "rates"]
+                      "properties", "settings", "rates",
+                      "routine_log", "metric_log", "practice_log", "contact_log"]   // логи отметок → стрики/история в трекере
         var dump: [String: Any] = [:]
         for t in tables { dump[t] = (try? db.rows("SELECT * FROM \(t)")) ?? [] }
         let file = dir.appendingPathComponent("data.json")
