@@ -6,6 +6,7 @@
 let sphData = null, sphPool = null, sphOpen = null, sphTag = false, sphTagData = null;
 const sesc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const SPH_COL = ['#1e9e57', '#c43f3f', '#a87708', '#6b4fb5', '#2a76b5', '#364656'];
+const SPH_KIND = { task: ['задача', 'ok'], decision: ['решение', 'dec'], question: ['вопрос', 'p2'], principle: ['принцип', 'p1'], idea: ['идея', ''], worry: ['тревога', 'p0'] };
 const colOf = i => SPH_COL[i % SPH_COL.length];
 
 const sphApi = {
@@ -133,7 +134,9 @@ function sphTagHub() {
     <div class="sec">📒 Инфо · страницы и разделы</div>
     <div class="card">${tagTree(t.pages || [], 'page', areas)}</div>
     <div class="sec">↻ Рутины · по одной (бывают разные)</div>
-    <div class="card">${tagFlat(t.routines || [], 'routine', areas)}</div>`;
+    <div class="card">${tagFlat(t.routines || [], 'routine', areas)}</div>
+    <div class="sec">📅 События · по одному</div>
+    <div class="card">${tagFlat(t.events || [], 'event', areas)}</div>`;
 }
 function bindTagHub() {
   document.getElementById('sphBackTag').onclick = () => { sphTag = false; renderSpheres(); };
@@ -202,9 +205,18 @@ function sphDetail(s, i) {
         <span class="rowbtn" data-addcat="${t.id}" title="подкатегория">⊞</span></div>`;
       if (kids && col) hide = t.depth;
     } else {
-      rows += `<div class="task" style="padding-left:${t.depth * 16}px"><span class="cb ${t.done ? 'done' : ''}" data-tog="${t.id}"></span>
+      // формат как в Целях: маркер по типу, приоритет, заголовок + заметка (шире), ответ, срок
+      const done = t.status === 'done' || t.status === 'accepted';
+      const [kl, kc] = t.kind ? (SPH_KIND[t.kind] ?? [t.kind, '']) : [null, null];
+      const marker = !t.kind ? '<span class="bullet">•</span>'
+        : (t.kind === 'task' || t.kind === 'decision') ? `<span class="cb ${t.kind === 'decision' ? 'dec' : ''} ${done ? 'done' : ''}" data-tog="${t.id}"></span>`
+          : `<span class="pill ${kc}">${kl}</span>`;
+      rows += `<div class="task" style="padding-left:${t.depth * 16}px">${marker}
         ${t.priority ? `<span class="pill ${t.priority}">${t.priority}</span>` : ''}
-        <span class="t ${t.done ? 'done' : ''}" data-tnode="${t.id}">${sesc(t.title)}</span>${t.due ? `<span class="meta">${t.due}</span>` : ''}
+        ${(t.kind === 'task' || t.kind === 'decision') ? `<span class="pill ${kc}">${kl}</span>` : ''}
+        <span class="t ${done ? 'done' : ''}" data-tnode="${t.id}">${sesc(t.title)}${t.note ? `<div class="noteblock">${sesc(t.note)}</div>` : ''}</span>
+        ${t.answer ? `<span class="meta">→ ${sesc(t.answer)}</span>` : ''}
+        ${t.due ? `<span class="meta">${t.due}</span>` : ''}
         <span class="rowbtn" data-pri="${t.id}:${t.priority || ''}" title="приоритет">⚑</span>
         <span class="rowbtn" data-due="${t.id}" title="срок">📅</span>
         <span class="rowbtn del" data-del="${t.id}" title="удалить">✕</span></div>`;
@@ -230,6 +242,9 @@ function sphDetail(s, i) {
   // финансы
   if (s.fin.length) h += block('💰 Финансы сферы', 'Финансы', s.fin.map(f => `
     <div class="task"><span class="t">${sesc(f.name)}</span><span class="meta num">${f.amount} ${sesc(f.currency)} / ${sesc(f.period)}</span></div>`).join(''));
+  // события
+  if (s.events && s.events.length) h += block('📅 События сферы', 'Календарь', s.events.map(e => `
+    <div class="task"><span class="meta num">${e.date}${e.time ? ' ' + e.time : ''}</span><span class="t">${sesc(e.title)}</span></div>`).join(''));
   // инфо
   if (s.info && s.info.length) h += block('📒 Инфо сферы', 'Инфо', s.info.map(p => `
     <div class="task"><span class="t">${sesc(p.title)}</span></div>`).join(''));

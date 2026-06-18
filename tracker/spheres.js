@@ -89,7 +89,7 @@ export function buildSpheres(db) {
   ).all();
   const belongs = (t, a) => resolve(t.id) === a.id || (t.note || '').includes(`сектор «${a.name}»`);
   // полное дерево узлов целей — чтобы показать задачи сферы с вложенностью, как в Целях
-  const allNodes = db.prepare('SELECT id, parent_id, title, is_category, kind, status, due_date, priority, note FROM nodes ORDER BY ord, id').all();
+  const allNodes = db.prepare('SELECT id, parent_id, title, is_category, kind, status, due_date, priority, note, answer FROM nodes ORDER BY ord, id').all();
   const nodeById = new Map(allNodes.map(n => [n.id, n]));
   // поддерево сферы: открытые задачи + их категории-предки (пока предок резолвится в эту сферу)
   function taskTree(a) {
@@ -108,7 +108,8 @@ export function buildSpheres(db) {
     const out = [];
     const walk = (n, depth) => {
       out.push({ id: n.id, title: n.title, cat: n.is_category === 1, done: n.status === 'done',
-        kind: n.kind || null, due: n.due_date || null, priority: n.priority || null, depth });
+        kind: n.kind || null, status: n.status || null, due: n.due_date || null, priority: n.priority || null,
+        note: n.note || '', answer: n.answer || null, depth });
       (kids[n.id] || []).forEach(c => walk(c, depth + 1));
     };
     (kids['root'] || []).forEach(n => walk(n, 0));
@@ -151,9 +152,11 @@ export function buildSpheres(db) {
 
     // инфо — страницы сферы (тег на странице/разделе, вложенные наследуют)
     const info = allPages.filter(p => resolvePage(p.id) === a.id).slice(0, 12).map(p => ({ id: p.id, title: p.title }));
+    // события сферы (ручной тег)
+    const events = db.prepare('SELECT id, title, date, time FROM events WHERE area_id = ? ORDER BY date, id LIMIT 12').all(a.id);
 
-    // финансы — обязательства/подписки сферы (ручной тег)
-    const fin = db.prepare('SELECT id, name, amount, currency, period, next_date FROM obligations WHERE area_id = ? ORDER BY id').all(a.id);
+    // финансы — обязательства/подписки/платежи сферы (по дефолту секции, как остальное)
+    const fin = db.prepare(`SELECT id, name, amount, currency, period, next_date FROM obligations WHERE ${whereFor('obligation', a.id)} ORDER BY id`).all(a.id);
 
     // ===== живой прогресс из реальных данных (без ручного ведения) =====
     const rIds = routines.map(r => r.id);
@@ -176,7 +179,7 @@ export function buildSpheres(db) {
       id: a.id, name: a.name,
       ideal: a.ideal || '', current_desc: a.current_desc || '', next_desc: a.next_desc || '', step: a.step || '',
       score: sc[0]?.score ?? null, prev: sc[1]?.score ?? null, history: sc.map(s => s.score).reverse(),
-      tasks, routines, tracking, practices, people, info, fin, progress,
+      tasks, routines, tracking, practices, people, info, events, fin, progress,
     };
   });
 }
@@ -193,11 +196,12 @@ export function tagPool(db) {
     categories: db.prepare('SELECT id, title, parent_id, area_id FROM nodes WHERE is_category = 1 ORDER BY ord, id').all(),
     pages: db.prepare('SELECT id, title, parent_id, area_id FROM pages ORDER BY ord, id').all(),
     routines: db.prepare('SELECT id, name, area_id FROM routines WHERE planned = 0 ORDER BY ord, id').all(),
+    events: db.prepare('SELECT id, title AS name, area_id FROM events ORDER BY date, id').all(),
   };
 }
 
 // Привязать/отвязать элемент к сфере. kind: routine|metric|practice|obligation|category|person|page
-const TBL = { routine: 'routines', metric: 'metrics', practice: 'practices', obligation: 'obligations', category: 'nodes', person: 'people', page: 'pages' };
+const TBL = { routine: 'routines', metric: 'metrics', practice: 'practices', obligation: 'obligations', category: 'nodes', person: 'people', page: 'pages', event: 'events' };
 export function assign(db, kind, id, areaId) {
   const t = TBL[kind];
   if (!t) throw new Error('unknown kind');
