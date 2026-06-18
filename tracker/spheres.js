@@ -88,6 +88,32 @@ export function buildSpheres(db) {
     `SELECT id, title, status, due_date, priority, area_id, note FROM nodes WHERE is_category = 0`
   ).all();
   const belongs = (t, a) => resolve(t.id) === a.id || (t.note || '').includes(`сектор «${a.name}»`);
+  // полное дерево узлов целей — чтобы показать задачи сферы с вложенностью, как в Целях
+  const allNodes = db.prepare('SELECT id, parent_id, title, is_category, kind, status, due_date, priority, note FROM nodes ORDER BY ord, id').all();
+  const nodeById = new Map(allNodes.map(n => [n.id, n]));
+  // поддерево сферы: открытые задачи + их категории-предки (пока предок резолвится в эту сферу)
+  function taskTree(a) {
+    const inc = new Set();
+    for (const n of allNodes) {
+      if (n.is_category || n.status === 'done' || !belongs(n, a)) continue;
+      let cur = n;
+      while (cur && resolve(cur.id) === a.id) { inc.add(cur.id); cur = cur.parent_id != null ? nodeById.get(cur.parent_id) : null; }
+    }
+    const kids = {};
+    for (const n of allNodes) {
+      if (!inc.has(n.id)) continue;
+      const p = (n.parent_id != null && inc.has(n.parent_id)) ? n.parent_id : 'root';
+      (kids[p] ??= []).push(n);
+    }
+    const out = [];
+    const walk = (n, depth) => {
+      out.push({ id: n.id, title: n.title, cat: n.is_category === 1, done: n.status === 'done',
+        kind: n.kind || null, due: n.due_date || null, priority: n.priority || null, depth });
+      (kids[n.id] || []).forEach(c => walk(c, depth + 1));
+    };
+    (kids['root'] || []).forEach(n => walk(n, 0));
+    return out.slice(0, 120);
+  }
   const allPages = db.prepare('SELECT id, title, parent_id, area_id, node_id FROM pages').all();
   const resolvePage = treeResolver(allPages.map(p => ({ id: p.id, parent_id: p.parent_id, area_id: p.area_id })));
   const defaults = getDefaults(db);
@@ -98,12 +124,11 @@ export function buildSpheres(db) {
   return areas.map(a => {
     const sc = db.prepare('SELECT date, score FROM wheel_scores WHERE area_id = ? ORDER BY date DESC LIMIT 8').all(a.id);
 
-    // задачи сферы: все (для прогресса) и открытые (для показа)
+    // задачи сферы: все (для прогресса) и дерево с вложенностью (для показа, как в Целях)
     const areaTasks = allTasks.filter(t => belongs(t, a));
     const tasksTotal = areaTasks.length;
     const tasksDone = areaTasks.filter(t => t.status === 'done').length;
-    const tasks = areaTasks.filter(t => t.status !== 'done').slice(0, 10)
-      .map(t => ({ id: t.id, title: t.title, done: false, due: t.due_date || null, priority: t.priority || null }));
+    const tasks = taskTree(a);
 
     // рутины (ручной тег)
     const routines = db.prepare('SELECT id, name FROM routines WHERE area_id = ? ORDER BY ord, id').all(a.id).map(r => ({

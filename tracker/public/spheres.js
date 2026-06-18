@@ -67,7 +67,7 @@ function sphOverview() {
         <div class="sph-ct">${sphRing(s.score, colOf(i), 40)}<div class="sph-cn">${sesc(s.name)}</div><div class="sph-cs" style="color:${colOf(i)}">${s.score ?? '–'}</div></div>
         <div class="sph-ideal">🎯 ${s.ideal ? sesc(s.ideal) : '<span class="muted">задать «10» — клик внутрь</span>'}</div>
         <div class="sph-step">→ ${s.step ? '<b>' + sesc(s.step) + '</b>' : '<span class="muted">нет шага</span>'}</div>
-        <div class="sph-meta">🎯 ${s.tasks.length} · ↻ ${s.routines.length} · 📊 ${s.tracking.length} · 🧠 ${s.practices.length} · 💰 ${s.fin.length}</div>
+        <div class="sph-meta">🎯 ${s.tasks.filter(t => !t.cat).length} · ↻ ${s.routines.length} · 📊 ${s.tracking.length} · 🧠 ${s.practices.length} · 💰 ${s.fin.length}</div>
       </div>`;
     }).join('')}</div>`;
 }
@@ -168,12 +168,13 @@ function sphDetail(s, i) {
       : ''}
     ${parts.join('') || '<div class="empty">привяжи задачи (категорию) и рутины через «🔗 связи» — посчитаю прогресс сам, без ручного ведения</div>'}</div>`;
 
-  // задачи
-  h += block('🎯 Задачи сектора', 'Цели', s.tasks.length ? s.tasks.map(t => `
-    <div class="task"><span class="cb ${t.done ? 'done' : ''}" data-tog="${t.id}"></span>
+  // задачи сферы — с вложенностью, как в Целях (категории = заголовки, задачи = чекбоксы)
+  h += block('🎯 Задачи сферы', 'Цели', s.tasks.length ? s.tasks.map(t => t.cat
+    ? `<div class="task sphcat" style="padding-left:${t.depth * 16}px"><b class="t">${sesc(t.title)}</b></div>`
+    : `<div class="task" style="padding-left:${t.depth * 16}px"><span class="cb ${t.done ? 'done' : ''}" data-tog="${t.id}"></span>
       ${t.priority ? `<span class="pill ${t.priority}">${t.priority}</span>` : ''}
-      <span class="t ${t.done ? 'done' : ''}">${sesc(t.title)}</span>${t.due ? `<span class="meta">${t.due}</span>` : ''}</div>`).join('')
-    : '<div class="empty">нет задач — привяжи категорию целей в «🔗 связи» или нажми «＋ шаг в задачи»</div>');
+      <span class="t ${t.done ? 'done' : ''}" data-tnode="${t.id}">${sesc(t.title)}</span>${t.due ? `<span class="meta">${t.due}</span>` : ''}</div>`).join('')
+    : '<div class="empty">нет задач — привяжи категорию целей в «🏷 привязка» или нажми «＋ шаг в задачи»</div>');
 
   // рутины
   if (s.routines.length) h += block('↻ Рутины', 'Рутины', s.routines.map(r => `
@@ -215,6 +216,8 @@ function bindDetail(s) {
     if (v != null) { await sphApi.patch(s.id, { [f]: v.trim() }); window.loadSpheres(); }
   });
   document.querySelectorAll('#screen-spheres [data-tog]').forEach(c => c.onclick = async () => { await sphApi.toggle(+c.dataset.tog); window.loadSpheres(); });
+  // клик по задаче — открыть её в Целях (полноценно работать: правка/срок/подзадачи)
+  document.querySelectorAll('#screen-spheres [data-tnode]').forEach(el => el.onclick = () => { if (window.openNode) window.openNode(+el.dataset.tnode); });
   document.getElementById('sphApplyMom')?.addEventListener('click', async () => {
     if (s.progress?.momentum != null) { await sphApi.score(s.id, s.progress.momentum); window.loadSpheres(); }
   });
@@ -255,6 +258,8 @@ function ensureSphStyle() {
     .catrow{display:flex;align-items:center;gap:10px;padding:5px 0;border-top:1px solid var(--bg2)}.catrow:first-child{border-top:0}
     .catt{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.catt.on{font-weight:700;color:var(--green)}
     .catrow select{flex:0 0 auto;max-width:190px;border:1px solid var(--line);border-radius:8px;padding:5px 8px;font:12.5px var(--sans);background:var(--bg)}
+    .task.sphcat{border-top:0;padding-top:9px}.task.sphcat b{font-size:13px;color:var(--nav)}
+    #screen-spheres [data-tnode]{cursor:pointer}#screen-spheres [data-tnode]:hover{color:var(--green)}
     [data-edit]{cursor:text}
     @media(max-width:768px){
       .sph-ov{grid-template-columns:1fr}
