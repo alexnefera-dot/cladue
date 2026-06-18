@@ -5,7 +5,7 @@
 
 import { routineStreak } from './life.js';
 import { practiceStreak } from './psy.js';
-import { getSetting, setSetting } from './fin.js';
+import { getSetting, setSetting, listFin } from './fin.js';
 import { norm } from './db.js';
 
 // Дефолтная привязка целых секций к сфере: вся секция течёт в свою сферу сама.
@@ -121,6 +121,16 @@ export function buildSpheres(db) {
   // строка WHERE: своя привязка ИЛИ (если секция по умолчанию ведёт в эту сферу) ничейные
   const whereFor = (kind, areaId) =>
     defaults[kind] === areaId ? '(area_id = ? OR area_id IS NULL)' : 'area_id = ?';
+  // финансовые числа считаем один раз — показываем в денежной сфере (дефолт обязательств)
+  const finArea = defaults.obligation;
+  let finNums = null;
+  if (finArea != null) {
+    try {
+      const f = listFin(db);
+      finNums = { capital: f.summary.portfolioTotal, expense: f.tx?.expense ?? null,
+        income: f.summary.monthlyIncome, firePct: f.fire?.progressPct ?? null, budget: f.budget };
+    } catch { finNums = null; }
+  }
 
   return areas.map(a => {
     const sc = db.prepare('SELECT date, score FROM wheel_scores WHERE area_id = ? ORDER BY date DESC LIMIT 8').all(a.id);
@@ -155,8 +165,11 @@ export function buildSpheres(db) {
     // события сферы (ручной тег)
     const events = db.prepare('SELECT id, title, date, time FROM events WHERE area_id = ? ORDER BY date, id LIMIT 12').all(a.id);
 
-    // финансы — обязательства/подписки/платежи сферы (по дефолту секции, как остальное)
+    // финансы — обязательства/платежи + долги + план шагов (всё по дефолту денежной секции)
     const fin = db.prepare(`SELECT id, name, amount, currency, period, next_date FROM obligations WHERE ${whereFor('obligation', a.id)} ORDER BY id`).all(a.id);
+    const debts = db.prepare(`SELECT id, name, amount, currency, direction, due_date FROM debts WHERE ${whereFor('obligation', a.id)} ORDER BY id`).all(a.id);
+    const steps = db.prepare(`SELECT id, kind, title, amount, planned_date FROM steps WHERE status = 'planned' AND ${whereFor('obligation', a.id)} ORDER BY id`).all(a.id);
+    const finance = (a.id === finArea) ? finNums : null;
 
     // ===== живой прогресс из реальных данных (без ручного ведения) =====
     const rIds = routines.map(r => r.id);
@@ -179,7 +192,7 @@ export function buildSpheres(db) {
       id: a.id, name: a.name,
       ideal: a.ideal || '', current_desc: a.current_desc || '', next_desc: a.next_desc || '', step: a.step || '',
       score: sc[0]?.score ?? null, prev: sc[1]?.score ?? null, history: sc.map(s => s.score).reverse(),
-      tasks, routines, tracking, practices, people, info, events, fin, progress,
+      tasks, routines, tracking, practices, people, info, events, fin, debts, steps, finance, progress,
     };
   });
 }
@@ -197,11 +210,13 @@ export function tagPool(db) {
     pages: db.prepare('SELECT id, title, parent_id, area_id FROM pages ORDER BY ord, id').all(),
     routines: db.prepare('SELECT id, name, area_id FROM routines WHERE planned = 0 ORDER BY ord, id').all(),
     events: db.prepare('SELECT id, title AS name, area_id FROM events ORDER BY date, id').all(),
+    debts: db.prepare('SELECT id, name, area_id FROM debts ORDER BY id').all(),
+    steps: db.prepare("SELECT id, title AS name, area_id FROM steps WHERE status = 'planned' ORDER BY id").all(),
   };
 }
 
 // Привязать/отвязать элемент к сфере. kind: routine|metric|practice|obligation|category|person|page
-const TBL = { routine: 'routines', metric: 'metrics', practice: 'practices', obligation: 'obligations', category: 'nodes', person: 'people', page: 'pages', event: 'events' };
+const TBL = { routine: 'routines', metric: 'metrics', practice: 'practices', obligation: 'obligations', category: 'nodes', person: 'people', page: 'pages', event: 'events', debt: 'debts', step: 'steps' };
 export function assign(db, kind, id, areaId) {
   const t = TBL[kind];
   if (!t) throw new Error('unknown kind');

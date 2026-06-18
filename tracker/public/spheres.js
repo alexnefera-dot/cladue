@@ -136,7 +136,11 @@ function sphTagHub() {
     <div class="sec">↻ Рутины · по одной (бывают разные)</div>
     <div class="card">${tagFlat(t.routines || [], 'routine', areas)}</div>
     <div class="sec">📅 События · по одному</div>
-    <div class="card">${tagFlat(t.events || [], 'event', areas)}</div>`;
+    <div class="card">${tagFlat(t.events || [], 'event', areas)}</div>
+    <div class="sec">💰 Долги · по умолчанию → деньги, можно переопределить</div>
+    <div class="card">${tagFlat(t.debts || [], 'debt', areas)}</div>
+    <div class="sec">🪜 План шагов</div>
+    <div class="card">${tagFlat(t.steps || [], 'step', areas)}</div>`;
 }
 function bindTagHub() {
   document.getElementById('sphBackTag').onclick = () => { sphTag = false; renderSpheres(); };
@@ -239,9 +243,25 @@ function sphDetail(s, i) {
   // люди (социализация)
   if (s.people && s.people.length) h += block('☻ Люди', 'Люди', s.people.map(p => `
     <div class="task"><span class="t">${sesc(p.name)}</span><span class="meta">${p.rhythm ? 'ритм ' + p.rhythm + 'д' : ''}${p.last ? ' · посл. ' + p.last : ''}</span></div>`).join(''));
-  // финансы
-  if (s.fin.length) h += block('💰 Финансы сферы', 'Финансы', s.fin.map(f => `
-    <div class="task"><span class="t">${sesc(f.name)}</span><span class="meta num">${f.amount} ${sesc(f.currency)} / ${sesc(f.period)}</span></div>`).join(''));
+  // финансовые показатели (числа, только в денежной сфере)
+  if (s.finance) { const f = s.finance, money = n => n == null ? '—' : Math.round(n).toLocaleString('ru-RU');
+    h += block('📈 Финансовые показатели', 'Финансы', `
+      <div class="task"><span class="t">Капитал</span><span class="meta num">${money(f.capital)} €</span></div>
+      <div class="task"><span class="t">Расход за месяц</span><span class="meta num">${money(f.expense)} €${f.budget ? ' / ' + money(f.budget) : ''}</span></div>
+      <div class="task"><span class="t">Пассивный доход/мес</span><span class="meta num">${money(f.income)} €</span></div>
+      ${f.firePct != null ? `<div class="task"><span class="t">FIRE</span><span class="meta num">${f.firePct.toFixed(1)}%</span></div>` : ''}`);
+  }
+  // платежи/обязательства
+  if (s.fin.length) h += block('💰 Платежи и обязательства', 'Финансы', s.fin.map(f => `
+    <div class="task"><span class="t">${sesc(f.name)}</span>${f.next_date ? `<span class="meta">${f.next_date}</span>` : ''}<span class="meta num">${f.amount} ${sesc(f.currency)} / ${sesc(f.period)}</span></div>`).join(''));
+  // долги
+  if (s.debts && s.debts.length) h += block('🤝 Долги', 'Финансы', s.debts.map(x => `
+    <div class="task"><span class="pill ${x.direction === 'i_owe' ? 'p0' : 'ok'}">${x.direction === 'i_owe' ? 'я должен' : 'мне должны'}</span>
+      <span class="t">${sesc(x.name)}</span>${x.due_date ? `<span class="meta">${x.due_date}</span>` : ''}<span class="meta num">${x.amount} ${sesc(x.currency)}</span></div>`).join(''));
+  // план шагов
+  if (s.steps && s.steps.length) h += block('🪜 План шагов', 'Финансы', s.steps.map(st => `
+    <div class="task"><span class="pill ${st.kind === 'sell' ? 'p1' : 'ok'}">${({ buy: 'купить', sell: 'продать', transfer: 'перевод' })[st.kind] || st.kind}</span>
+      <span class="t">${sesc(st.title)}</span>${st.planned_date ? `<span class="meta">${st.planned_date}</span>` : ''}${st.amount ? `<span class="meta num">${st.amount}</span>` : ''}</div>`).join(''));
   // события
   if (s.events && s.events.length) h += block('📅 События сферы', 'Календарь', s.events.map(e => `
     <div class="task"><span class="meta num">${e.date}${e.time ? ' ' + e.time : ''}</span><span class="t">${sesc(e.title)}</span></div>`).join(''));
