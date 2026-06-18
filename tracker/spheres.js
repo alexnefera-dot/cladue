@@ -1,36 +1,95 @@
-// Сферы жизни = секторы Колеса (wheel_areas) + история оценок + привязанные задачи.
-// Строится ПОВЕРХ существующих данных Pipboy — отдельного хранилища нет, всё реальное:
-//   ideal       — «10», к чему идём
-//   score       — где сейчас (последняя оценка колеса), history — динамика
-//   step        — следующий шаг (он же связан с задачей сектора)
-//   tasks       — открытые задачи сектора (по конвенции note LIKE '%сектор «имя»%')
-// Дальше сюда же подтянем рутины/трекинг/практики через тег сферы (v0.2).
+// Сферы жизни = секторы Колеса (wheel_areas) + всё, что к ним привязано.
+// Гибрид-тег area_id: категории Целей привязываются и тащат свои задачи (авто),
+// рутины/метрики/практики/обязательства привязываются вручную.
+// Отдельного хранилища нет — всё поверх реальных таблиц Pipboy.
+
+import { routineStreak } from './life.js';
+import { practiceStreak } from './psy.js';
+
+const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const TODAY = () => iso(new Date());
+
+// Сфера узла = area_id ближайшего предка (включая себя), у кого он задан.
+function nodeAreaResolver(db) {
+  const rows = db.prepare('SELECT id, parent_id, area_id FROM nodes').all();
+  const byId = new Map(rows.map(r => [r.id, r]));
+  const memo = new Map();
+  return function resolve(id) {
+    if (memo.has(id)) return memo.get(id);
+    const chain = [];
+    let cur = byId.get(id), area = null;
+    while (cur) { chain.push(cur.id); if (cur.area_id != null) { area = cur.area_id; break; } cur = cur.parent_id != null ? byId.get(cur.parent_id) : null; }
+    for (const c of chain) memo.set(c, area);
+    return area;
+  };
+}
+
+function metricBlock(db, m) {
+  const rows = db.prepare('SELECT date, value FROM metric_log WHERE metric_id = ? ORDER BY date DESC LIMIT 7').all(m.id).reverse();
+  return { id: m.id, name: m.name, unit: m.unit, type: m.type,
+    v: rows.length ? rows[rows.length - 1].value : null, s: rows.map(r => r.value) };
+}
 
 export function buildSpheres(db) {
   const areas = db.prepare('SELECT * FROM wheel_areas ORDER BY ord, id').all();
+  const resolve = nodeAreaResolver(db);
+  const todayIso = TODAY();
+
+  // открытые задачи с привязкой к сфере (через категорию) или по конвенции сектора
+  const openTasks = db.prepare(
+    `SELECT id, title, status, due_date, priority, area_id, note FROM nodes
+     WHERE is_category = 0 AND (status IS NULL OR status != 'done')`
+  ).all();
+
   return areas.map(a => {
-    const sc = db.prepare(
-      'SELECT date, score FROM wheel_scores WHERE area_id = ? ORDER BY date DESC LIMIT 8'
-    ).all(a.id);
-    const tasks = db.prepare(
-      `SELECT id, title, status, due_date, priority FROM nodes
-       WHERE is_category = 0 AND note LIKE ?
-       ORDER BY (status = 'done'), COALESCE(due_date, '9999-99-99')`
-    ).all(`%сектор «${a.name}»%`);
+    const sc = db.prepare('SELECT date, score FROM wheel_scores WHERE area_id = ? ORDER BY date DESC LIMIT 8').all(a.id);
+
+    // задачи: своя привязка (area_id ветки) ИЛИ старая конвенция note LIKE «сектор «имя»»
+    const tasks = openTasks.filter(t => resolve(t.id) === a.id || (t.note || '').includes(`сектор «${a.name}»`))
+      .slice(0, 10).map(t => ({ id: t.id, title: t.title, done: false, due: t.due_date || null, priority: t.priority || null }));
+
+    // рутины (ручной тег)
+    const routines = db.prepare('SELECT id, name FROM routines WHERE area_id = ? ORDER BY ord, id').all(a.id).map(r => ({
+      id: r.id, name: r.name, streak: routineStreak(db, r.id),
+      doneToday: !!db.prepare('SELECT 1 FROM routine_log WHERE routine_id = ? AND date = ?').get(r.id, todayIso),
+    }));
+
+    // метрики (ручной тег)
+    const tracking = db.prepare('SELECT id, name, unit, type FROM metrics WHERE area_id = ? ORDER BY ord, id').all(a.id).map(m => metricBlock(db, m));
+
+    // практики (ручной тег)
+    const practices = db.prepare('SELECT * FROM practices WHERE area_id = ? ORDER BY ord, id').all(a.id).map(p => ({
+      id: p.id, name: p.name, streak: practiceStreak(db, p),
+    }));
+
+    // финансы — обязательства/подписки сферы (ручной тег)
+    const fin = db.prepare('SELECT id, name, amount, currency, period, next_date FROM obligations WHERE area_id = ? ORDER BY id').all(a.id);
+
     return {
-      id: a.id,
-      name: a.name,
-      ideal: a.ideal || '',
-      current_desc: a.current_desc || '',
-      next_desc: a.next_desc || '',
-      step: a.step || '',
-      score: sc[0]?.score ?? null,
-      prev: sc[1]?.score ?? null,
-      history: sc.map(s => s.score).reverse(),
-      tasks: tasks.map(t => ({
-        id: t.id, title: t.title, done: t.status === 'done',
-        due: t.due_date || null, priority: t.priority || null,
-      })),
+      id: a.id, name: a.name,
+      ideal: a.ideal || '', current_desc: a.current_desc || '', next_desc: a.next_desc || '', step: a.step || '',
+      score: sc[0]?.score ?? null, prev: sc[1]?.score ?? null, history: sc.map(s => s.score).reverse(),
+      tasks, routines, tracking, practices, fin,
     };
   });
+}
+
+// Привязать/отвязать элемент к сфере. kind: routine|metric|practice|obligation|category
+const TBL = { routine: 'routines', metric: 'metrics', practice: 'practices', obligation: 'obligations', category: 'nodes' };
+export function assign(db, kind, id, areaId) {
+  const t = TBL[kind];
+  if (!t) throw new Error('unknown kind');
+  db.prepare(`UPDATE ${t} SET area_id = ? WHERE id = ?`).run(areaId ?? null, id);
+  return { ok: true };
+}
+
+// Что можно привязать: списки с текущей привязкой (area_id), чтобы UI показал «свободные» и «занятые».
+export function pool(db) {
+  return {
+    routines: db.prepare('SELECT id, name, area_id FROM routines ORDER BY ord, id').all(),
+    metrics: db.prepare('SELECT id, name, area_id FROM metrics ORDER BY ord, id').all(),
+    practices: db.prepare('SELECT id, name, area_id FROM practices ORDER BY ord, id').all(),
+    obligations: db.prepare('SELECT id, name, area_id FROM obligations ORDER BY id').all(),
+    categories: db.prepare(`SELECT id, title, area_id FROM nodes WHERE is_category = 1 AND parent_id IS NULL ORDER BY ord, id`).all(),
+  };
 }

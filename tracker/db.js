@@ -347,6 +347,11 @@ export function createDb(path = ':memory:') {
   if (!wac.includes('current_desc')) db.exec(`ALTER TABLE wheel_areas ADD COLUMN current_desc TEXT NOT NULL DEFAULT ''`);
   if (!wac.includes('next_desc')) db.exec(`ALTER TABLE wheel_areas ADD COLUMN next_desc TEXT NOT NULL DEFAULT ''`);
   if (!wac.includes('step')) db.exec(`ALTER TABLE wheel_areas ADD COLUMN step TEXT NOT NULL DEFAULT ''`);
+  // Сферы (гибрид): тег area_id — категории Целей привязываются авто, остальное вручную.
+  for (const tbl of ['nodes', 'routines', 'metrics', 'practices', 'obligations']) {
+    const c = db.prepare(`PRAGMA table_info(${tbl})`).all().map(x => x.name);
+    if (!c.includes('area_id')) db.exec(`ALTER TABLE ${tbl} ADD COLUMN area_id INTEGER REFERENCES wheel_areas(id) ON DELETE SET NULL`);
+  }
   return db;
 }
 

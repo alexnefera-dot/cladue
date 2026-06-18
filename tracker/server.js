@@ -343,6 +343,12 @@ const server = http.createServer(async (req, res) => {
       if (req.method === 'DELETE') { psy.delPractice(db, +m[1]); return json(res, 200, { ok: true }); }
     }
     if (p === '/api/spheres' && req.method === 'GET') return json(res, 200, spheres.buildSpheres(db));
+    if (p === '/api/spheres/pool' && req.method === 'GET') return json(res, 200, spheres.pool(db));
+    if (p === '/api/spheres/assign' && req.method === 'POST') {
+      const b = await body(req);
+      try { return json(res, 200, spheres.assign(db, b.kind, +b.id, b.areaId != null ? +b.areaId : null)); }
+      catch (e) { return json(res, 400, { error: e.message }); }
+    }
     if (p === '/api/psy/wheel' && req.method === 'POST') {
       const b = await body(req);
       psy.saveWheel(db, b.scores ?? {});
