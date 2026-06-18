@@ -195,27 +195,26 @@ function sphDetail(s, i) {
   const T = s.tasks;
   const expanded = new Set(JSON.parse(localStorage.sphFold || '[]'));
   const hasKids = new Set();
-  for (let i = 0; i < T.length; i++) if (T[i].cat && T[i + 1] && T[i + 1].depth > T[i].depth) hasKids.add(T[i].id);
+  for (let i = 0; i < T.length; i++) if (T[i + 1] && T[i + 1].depth > T[i].depth) hasKids.add(T[i].id);   // ЛЮБОЙ узел с детьми
   let rows = '', hide = Infinity;
   for (const t of T) {
     if (t.depth > hide) continue;          // внутри свёрнутой ветки — пропускаем
     hide = Infinity;
+    const kids = hasKids.has(t.id), col = kids && !expanded.has(t.id);
+    const caret = kids ? `<span class="caret" data-sphfold="${t.id}">${col ? '▸' : '▾'}</span>` : '<span class="caret"></span>';
     if (t.cat) {
-      const kids = hasKids.has(t.id), col = !expanded.has(t.id);
       rows += `<div class="task sphcat" style="padding-left:${t.depth * 16}px">
-        ${kids ? `<span class="caret" data-sphfold="${t.id}">${col ? '▸' : '▾'}</span>` : '<span class="caret"></span>'}
-        <b class="t">${sesc(t.title)}</b>
+        ${caret}<b class="t">${sesc(t.title)}</b>
         <span class="rowbtn" data-addtask="${t.id}" title="задача сюда">＋</span>
         <span class="rowbtn" data-addcat="${t.id}" title="подкатегория">⊞</span></div>`;
-      if (kids && col) hide = t.depth;
     } else {
-      // формат как в Целях: маркер по типу, приоритет, заголовок + заметка (шире), ответ, срок
+      // формат как в Целях: каретка (если есть подпункты), маркер по типу, приоритет, заголовок + заметка
       const done = t.status === 'done' || t.status === 'accepted';
       const [kl, kc] = t.kind ? (SPH_KIND[t.kind] ?? [t.kind, '']) : [null, null];
       const marker = !t.kind ? '<span class="bullet">•</span>'
         : (t.kind === 'task' || t.kind === 'decision') ? `<span class="cb ${t.kind === 'decision' ? 'dec' : ''} ${done ? 'done' : ''}" data-tog="${t.id}"></span>`
           : `<span class="pill ${kc}">${kl}</span>`;
-      rows += `<div class="task" style="padding-left:${t.depth * 16}px">${marker}
+      rows += `<div class="task" style="padding-left:${t.depth * 16}px">${caret}${marker}
         ${t.priority ? `<span class="pill ${t.priority}">${t.priority}</span>` : ''}
         ${(t.kind === 'task' || t.kind === 'decision') ? `<span class="pill ${kc}">${kl}</span>` : ''}
         <span class="t ${done ? 'done' : ''}" data-tnode="${t.id}">${sesc(t.title)}${t.note ? `<div class="noteblock">${sesc(t.note)}</div>` : ''}</span>
@@ -225,6 +224,7 @@ function sphDetail(s, i) {
         <span class="rowbtn" data-due="${t.id}" title="срок">📅</span>
         <span class="rowbtn del" data-del="${t.id}" title="удалить">✕</span></div>`;
     }
+    if (col) hide = t.depth;          // свёрнут (категория ИЛИ пункт с подпунктами) — прячем потомков
   }
   h += block('🎯 Задачи сферы', 'Цели', rows
     + (rootCat
