@@ -40,6 +40,7 @@ window.loadSpheres = async function () {
       '<h2>Сферы жизни</h2><div class="card" style="margin-top:12px"><div class="muted">Раздел «Сферы» пока недоступен в этой сборке приложения — нужна установка обновления (нативная часть). В веб-версии работает.</div></div>';
     return;
   }
+  if (sphPool?.areas?.length) { window.SPH_AREAS = sphPool.areas; window.refreshSphSelects?.(); }
   if (!Array.isArray(sphData)) {   // бэкенд вернул ошибку вместо списка — не роняем экран
     const msg = (sphData && sphData.error) ? sphData.error : 'не удалось загрузить сферы';
     document.getElementById('screen-spheres').innerHTML =
@@ -56,12 +57,38 @@ window.openSphere = function (id) { sphOpen = id; showScreen('spheres'); };
   '.sphsel{font:11px var(--sans);border:1px solid var(--line);border-radius:6px;padding:2px 4px;background:var(--bg);color:var(--muted);max-width:140px;flex:0 0 auto}.sphsel:focus{outline:none;border-color:var(--green-dim)}';
   document.head.appendChild(st); })();
 window.SPH_AREAS = [];
-fetch('/api/spheres/pool').then(r => r.json()).then(p => { window.SPH_AREAS = p.areas || []; }).catch(() => {});
-window.sphSelHtml = (kind, id, areaId) => `<select class="sphsel" data-sphsel="${kind}:${id}" title="сфера жизни" onclick="event.stopPropagation()">
-  <option value="">· сфера</option>${(window.SPH_AREAS || []).map(a => `<option value="${a.id}"${areaId === a.id ? ' selected' : ''}>${String(a.name).replace(/[<>&"]/g, '')}</option>`).join('')}</select>`;
+const sphOptions = areaId => `<option value="">· сфера</option>` +
+  (window.SPH_AREAS || []).map(a => `<option value="${a.id}"${String(areaId ?? '') === String(a.id) ? ' selected' : ''}>${String(a.name).replace(/[<>&"]/g, '')}</option>`).join('');
+window.sphSelHtml = (kind, id, areaId) =>
+  `<select class="sphsel" data-sphsel="${kind}:${id}" data-area="${areaId ?? ''}" title="сфера жизни" onclick="event.stopPropagation()">${sphOptions(areaId)}</select>`;
+// Дозаполнить уже отрисованные выпадашки (список сфер мог прийти позже их рендера)
+window.refreshSphSelects = () => document.querySelectorAll('select.sphsel').forEach(sel => {
+  const a = sel.dataset.area; sel.innerHTML = sphOptions(a === '' || a == null ? null : +a);
+});
+// Список сфер грузим лениво и с повтором: первый запрос мог уйти ДО разблокировки замка (401),
+// тогда window.SPH_AREAS навсегда оставался пустым и в Целях/Инфо нечего было выбрать.
+let sphAreasLoading = false;
+window.ensureSphAreas = async force => {
+  if ((window.SPH_AREAS.length && !force) || sphAreasLoading) return;
+  sphAreasLoading = true;
+  try {
+    const p = await fetch('/api/spheres/pool').then(r => r.ok ? r.json() : null);
+    if (p && Array.isArray(p.areas) && p.areas.length) { window.SPH_AREAS = p.areas; window.refreshSphSelects(); }
+  } catch {}
+  sphAreasLoading = false;
+};
+window.ensureSphAreas();
+// Инлайн-выпадашки в Целях/Инфо могут появиться раньше, чем загрузились сферы — дозаполняем.
+new MutationObserver(muts => {
+  if (window.SPH_AREAS.length) return;   // уже есть — sphSelHtml отрисует сам
+  for (const m of muts) for (const n of m.addedNodes) {
+    if (n.nodeType === 1 && (n.matches?.('select.sphsel') || n.querySelector?.('select.sphsel'))) { window.ensureSphAreas(); return; }
+  }
+}).observe(document.body, { childList: true, subtree: true });
 document.addEventListener('change', async e => {
   const sel = e.target.closest && e.target.closest('.sphsel'); if (!sel) return;
   const [kind, id] = sel.dataset.sphsel.split(':');
+  sel.dataset.area = sel.value;   // запомнить выбор, чтобы пережить дозаполнение/ре-рендер
   await fetch('/api/spheres/assign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind, id: +id, areaId: sel.value ? +sel.value : null }) });
 });
 
