@@ -31,6 +31,10 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         try? made.run("DELETE FROM trash WHERE created_at < datetime('now','-30 days')")  // авто-очистка корзины
         try? made.run("ALTER TABLE nodes ADD COLUMN due_time TEXT")  // миграция: время у задач (тихо, если уже есть)
         Api.ensureSyncSchema(made)   // updated_at + триггеры + tombstones — отслеживание правок для синхрона
+        Api.ensureSpheresSchema(made)   // area_id на таблицах — раздел «Сферы»
+        if (try? made.rows("SELECT value FROM settings WHERE key = 'sphere_defaults'"))?.first == nil {
+            try? Api.autoConfigSpheres(made)   // первый запуск: связи секций раскладываются сами
+        }
         db = made
         return made
     }
@@ -147,6 +151,11 @@ enum Api {
     }
 
     static func get(path: String, query: String?, db: Database) throws -> (Data, Int) {
+        // ----- Сферы -----
+        if path == "/api/spheres" { return (try json(try buildSpheres(db)), 200) }
+        if path == "/api/spheres/pool" { return (try json(try spherePool(db)), 200) }
+        if path == "/api/spheres/tagpool" { return (try json(try sphereTagPool(db)), 200) }
+        if path == "/api/spheres/categories" { return (try json(try sphereCategories(db)), 200) }
         // параметрические GET (карточка-инспектор узла)
         if let m = match(path, "^/api/suggest/([0-9]+)$") {
             return (try suggest(db, id: Int(m[1]) ?? -1), 200)
@@ -330,6 +339,20 @@ enum Api {
 
     // ===== ЗАПИСЬ (Этап 2). Пока — узлы целей; остальные разделы добавляем срезами. =====
     static func write(method: String, path: String, body: [String: Any], db: Database) throws -> (Data, Int) {
+        // ----- Сферы: привязка/дефолты/автонастройка -----
+        if method == "POST", path == "/api/spheres/assign" {
+            guard let kind = body["kind"] as? String, let id = numOpt(body["id"]).map({ Int($0) }) else { return (try json(["error": "kind/id required"]), 400) }
+            let area = numOpt(body["areaId"]).map { Int($0) }
+            do { try sphereAssign(db, kind, id, area); return (try json(["ok": true]), 200) }
+            catch { return (try json(["error": "\(error)"]), 400) }
+        }
+        if method == "POST", path == "/api/spheres/default" {
+            guard let kind = body["kind"] as? String else { return (try json(["error": "kind required"]), 400) }
+            let area = numOpt(body["areaId"]).map { Int($0) }
+            return (try json(try sphereSetDefault(db, kind, area)), 200)
+        }
+        if method == "POST", path == "/api/spheres/automap" { return (try json(["mapped": try autoMapCategories(db)]), 200) }
+        if method == "POST", path == "/api/spheres/auto" { return (try json(try autoConfigSpheres(db, force: true)), 200) }
         if method == "POST", path == "/api/nodes" {
             guard let title = (body["title"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
                   !title.isEmpty else { return (try json(["error": "title required"]), 400) }
@@ -1411,7 +1434,7 @@ enum Api {
     // ----- Узлы целей (порт core.js: insert/update/toggle/reorder/move/delete) -----
     private static let HOMO: [Character: Character] = ["а": "a", "е": "e", "о": "o", "с": "c", "р": "p",
         "х": "x", "у": "y", "к": "k", "в": "b", "м": "m", "т": "t"]
-    private static func norm(_ s: String) -> String { String(s.lowercased().map { HOMO[$0] ?? $0 }) }
+    static func norm(_ s: String) -> String { String(s.lowercased().map { HOMO[$0] ?? $0 }) }
     private static let PATCHABLE = ["title", "note", "kind", "status", "priority", "due_date", "due_time", "answer", "repeat"]
 
     static func getNode(_ db: Database, _ id: Int) throws -> [String: Any]? {
@@ -2299,7 +2322,7 @@ enum Api {
         return days.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.contains(String(wd))
     }
 
-    private static func practiceStreak(_ db: Database, id: Int, days: String?) throws -> Int {
+    static func practiceStreak(_ db: Database, id: Int, days: String?) throws -> Int {
         guard let days, !days.isEmpty else { return 0 }
         let dates = Set(try db.rows("SELECT date FROM practice_log WHERE practice_id = ?", [id])
             .compactMap { $0["date"] as? String })
