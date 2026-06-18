@@ -168,13 +168,21 @@ function sphDetail(s, i) {
       : ''}
     ${parts.join('') || '<div class="empty">привяжи задачи (категорию) и рутины через «🔗 связи» — посчитаю прогресс сам, без ручного ведения</div>'}</div>`;
 
-  // задачи сферы — с вложенностью, как в Целях (категории = заголовки, задачи = чекбоксы)
-  h += block('🎯 Задачи сферы', 'Цели', s.tasks.length ? s.tasks.map(t => t.cat
-    ? `<div class="task sphcat" style="padding-left:${t.depth * 16}px"><b class="t">${sesc(t.title)}</b></div>`
+  // задачи сферы — с вложенностью, как в Целях; работаем прямо тут (Сферы = рабочий раздел)
+  const rootCat = (s.tasks.find(t => t.cat && t.depth === 0) || {}).id;
+  h += block('🎯 Задачи сферы', 'Цели', (s.tasks.length ? s.tasks.map(t => t.cat
+    ? `<div class="task sphcat" style="padding-left:${t.depth * 16}px"><b class="t">${sesc(t.title)}</b>
+        <span class="rowbtn" data-addtask="${t.id}" title="задача сюда">＋</span>
+        <span class="rowbtn" data-addcat="${t.id}" title="подкатегория">⊞</span></div>`
     : `<div class="task" style="padding-left:${t.depth * 16}px"><span class="cb ${t.done ? 'done' : ''}" data-tog="${t.id}"></span>
-      ${t.priority ? `<span class="pill ${t.priority}">${t.priority}</span>` : ''}
-      <span class="t ${t.done ? 'done' : ''}" data-tnode="${t.id}">${sesc(t.title)}</span>${t.due ? `<span class="meta">${t.due}</span>` : ''}</div>`).join('')
-    : '<div class="empty">нет задач — привяжи категорию целей в «🏷 привязка» или нажми «＋ шаг в задачи»</div>');
+        ${t.priority ? `<span class="pill ${t.priority}">${t.priority}</span>` : ''}
+        <span class="t ${t.done ? 'done' : ''}" data-tnode="${t.id}">${sesc(t.title)}</span>${t.due ? `<span class="meta">${t.due}</span>` : ''}
+        <span class="rowbtn" data-pri="${t.id}:${t.priority || ''}" title="приоритет">⚑</span>
+        <span class="rowbtn" data-due="${t.id}" title="срок">📅</span>
+        <span class="rowbtn del" data-del="${t.id}" title="удалить">✕</span></div>`).join('') : '')
+    + (rootCat
+      ? `<div class="task finadd"><input class="sphadd" data-addroot="${rootCat}" placeholder="＋ задача в сферу (Enter)"></div>`
+      : '<div class="empty">привяжи категорию целей в «🏷 привязка» — и заводи задачи прямо тут</div>'));
 
   // рутины
   if (s.routines.length) h += block('↻ Рутины', 'Рутины', s.routines.map(r => `
@@ -216,8 +224,33 @@ function bindDetail(s) {
     if (v != null) { await sphApi.patch(s.id, { [f]: v.trim() }); window.loadSpheres(); }
   });
   document.querySelectorAll('#screen-spheres [data-tog]').forEach(c => c.onclick = async () => { await sphApi.toggle(+c.dataset.tog); window.loadSpheres(); });
-  // клик по задаче — открыть её в Целях (полноценно работать: правка/срок/подзадачи)
+  // клик по задаче — открыть в Целях (полная карточка: текст/заметки/связи)
   document.querySelectorAll('#screen-spheres [data-tnode]').forEach(el => el.onclick = () => { if (window.openNode) window.openNode(+el.dataset.tnode); });
+  // ===== работа с задачами прямо в сфере (через node-API Целей) =====
+  const node = (id, m, b) => fetch('/api/nodes' + (id ? '/' + id : ''), { method: m, headers: { 'Content-Type': 'application/json' }, body: b ? JSON.stringify(b) : undefined });
+  const reload = () => window.loadSpheres();
+  document.querySelectorAll('#screen-spheres [data-del]').forEach(el => el.onclick = async () => {
+    if (confirm('Удалить задачу? (уедет в корзину Целей)')) { await node(el.dataset.del, 'DELETE'); reload(); }
+  });
+  document.querySelectorAll('#screen-spheres [data-pri]').forEach(el => el.onclick = async () => {
+    const [id, cur] = el.dataset.pri.split(':'); const order = ['', 'P0', 'P1', 'P2'];
+    await node(id, 'PATCH', { priority: order[(order.indexOf(cur) + 1) % order.length] || null }); reload();
+  });
+  document.querySelectorAll('#screen-spheres [data-due]').forEach(el => el.onclick = async () => {
+    const v = prompt('Срок (ГГГГ-ММ-ДД, пусто — убрать):'); if (v === null) return;
+    await node(el.dataset.due, 'PATCH', { due_date: v.trim() || null }); reload();
+  });
+  document.querySelectorAll('#screen-spheres [data-addtask]').forEach(el => el.onclick = async () => {
+    const t = prompt('Новая задача:'); if (!t?.trim()) return;
+    await node('', 'POST', { title: t.trim(), parent_id: +el.dataset.addtask }); reload();
+  });
+  document.querySelectorAll('#screen-spheres [data-addcat]').forEach(el => el.onclick = async () => {
+    const t = prompt('Новая подкатегория:'); if (!t?.trim()) return;
+    await node('', 'POST', { title: t.trim(), parent_id: +el.dataset.addcat, is_category: 1 }); reload();
+  });
+  document.querySelectorAll('#screen-spheres [data-addroot]').forEach(inp => inp.addEventListener('keydown', async e => {
+    if (e.key === 'Enter' && inp.value.trim()) { await node('', 'POST', { title: inp.value.trim(), parent_id: +inp.dataset.addroot }); inp.value = ''; reload(); }
+  }));
   document.getElementById('sphApplyMom')?.addEventListener('click', async () => {
     if (s.progress?.momentum != null) { await sphApi.score(s.id, s.progress.momentum); window.loadSpheres(); }
   });
