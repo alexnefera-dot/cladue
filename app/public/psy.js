@@ -180,30 +180,28 @@ function renderPsy() {
       const next = cur != null ? Math.min(10, cur + 1) : '+1';
       if (window.matchMedia('(max-width: 768px)').matches) return `
       <div class="card secmob">
-        <div class="secmob-h">${pesc(a.name)} <b class="num">${cur ?? '—'}${cur != null ? ' → ' + next : ''}</b><span data-aredel="${a.id}" title="удалить сектор" style="float:right;cursor:pointer;color:var(--muted)">🗑</span></div>
+        <div class="secmob-h"><span class="ed" data-aredit="${a.id}:name">${pesc(a.name)}</span> <b class="num">${cur ?? '—'}${cur != null ? ' → ' + next : ''}</b><span data-aredel="${a.id}" title="удалить сектор" style="float:right;cursor:pointer;color:var(--muted)">🗑</span></div>
         <div class="secmob-r"><span class="meta">сейчас (${cur ?? '?'})</span><div class="ed" data-aredit="${a.id}:current_desc">${pesc(a.current_desc) || '＋ опиши текущее состояние'}</div></div>
         <div class="secmob-r"><span class="meta">идеал (10)</span><div class="ed" data-aredit="${a.id}:ideal">${pesc(a.ideal) || '—'}</div></div>
-        <div class="secmob-r"><span class="meta">следующий (+1)</span><div class="ed" data-aredit="${a.id}:next_desc">${pesc(a.next_desc) || '—'}</div></div>
-        <div class="secmob-r"><span class="meta">шаг</span><div class="ed" data-aredit="${a.id}:step" style="${a.step ? 'color:var(--green);font-weight:600' : ''}">${pesc(a.step) || '＋ задать шаг'}</div>
-          ${a.step ? `<span class="pill btn ok" data-areatask="${a.id}" title="создать задачу в Целях">☑ в цели</span>` : ''}</div>
+        <div class="secmob-r"><span class="meta">+1 — что хотим</span><div class="ed" data-aredit="${a.id}:next_desc">${pesc(a.next_desc) || '—'}</div></div>
+        <div class="secmob-r"><span class="meta">шаг к +1</span><div class="ed" data-aredit="${a.id}:step" style="${a.step ? 'color:var(--green);font-weight:600' : ''}">${pesc(a.step) || '＋ задать шаг'}</div></div>
       </div>`;
       return `
       <div class="card">
         <table class="fintable" style="table-layout:fixed">
           <tr>
-            <th style="width:120px">${pesc(a.name)} · уровень <span data-aredel="${a.id}" title="удалить сектор" style="float:right;cursor:pointer;color:var(--muted);font-weight:400">🗑</span></th>
-            <th>${cur ?? '?'} — текущее: что есть сейчас</th>
+            <th style="width:120px"><span class="ed" data-aredit="${a.id}:name">${pesc(a.name)}</span> · уровень <span data-aredel="${a.id}" title="удалить сектор" style="float:right;cursor:pointer;color:var(--muted);font-weight:400">🗑</span></th>
+            <th>${cur ?? '?'} — сейчас: что есть</th>
             <th>10 — идеал</th>
-            <th>${next} — следующий уровень</th>
-            <th>Шаг</th>
+            <th>${next} — +1: что хотим</th>
+            <th>Шаг к +1</th>
           </tr>
           <tr>
             <td class="num" style="font-size:18px;font-weight:700">${cur ?? '—'}${cur != null ? ' → ' + next : ''}</td>
             <td class="ed" data-aredit="${a.id}:current_desc">${pesc(a.current_desc) || '＋ опиши текущее состояние'}</td>
             <td class="ed" data-aredit="${a.id}:ideal">${pesc(a.ideal) || '—'}</td>
             <td class="ed" data-aredit="${a.id}:next_desc">${pesc(a.next_desc) || '—'}</td>
-            <td><span class="ed" data-aredit="${a.id}:step" style="${a.step ? 'color:var(--green);font-weight:600' : ''}">${pesc(a.step) || '＋ задать шаг'}</span>
-              ${a.step ? `<span class="pill btn ok" data-areatask="${a.id}" title="создать задачу в подходящей категории Целей">☑ в цели</span>` : ''}</td>
+            <td><span class="ed" data-aredit="${a.id}:step" style="${a.step ? 'color:var(--green);font-weight:600' : ''}">${pesc(a.step) || '＋ задать шаг'}</span></td>
           </tr>
         </table>
       </div>`;
@@ -310,22 +308,16 @@ function bindPsy() {
   $('psRunCancel')?.addEventListener('click', () => { psyRun = null; renderPsy(); });
   document.querySelectorAll('.pschk').forEach(el =>
     el.addEventListener('click', () => el.classList.toggle('done')));
-  document.querySelectorAll('#screen-psy [data-areatask]').forEach(el =>
-    el.addEventListener('click', async () => {
-      const r = await fetch(`/api/psy/areas/${el.dataset.areatask}/task`, { method: 'POST' }).then(x => x.json());
-      if (r.error) { alert(r.error); return; }
-      alert(r.existed
-        ? `Эта задача уже в Целях — категория «${r.category}»`
-        : `Создана задача в «${r.category}». Закроешь её — обнови замер сектора и поставь следующий шаг.`);
-    }));
   document.querySelectorAll('#screen-psy [data-aredit]').forEach(el =>
     el.addEventListener('click', async () => {
       const [id, field] = el.dataset.aredit.split(':');
-      const label = { current_desc: 'Что есть сейчас — почему такая оценка?', ideal: 'Как выглядит «10» в этом секторе?', next_desc: 'Как выглядит следующий уровень (+1)?', step: 'Конкретный шаг к следующему уровню:' }[field];
-      const v = prompt(label, el.textContent.trim().replace('＋ задать шаг', '').replace('—', ''));
+      const label = { name: 'Название сектора (обновится и в Сферах):', current_desc: 'Что есть сейчас — почему такая оценка?', ideal: 'Как выглядит «10» в этом секторе?', next_desc: 'Что хотим сделать для +1 (следующий уровень)?', step: 'Конкретный шаг к +1:' }[field];
+      const v = prompt(label, el.textContent.trim().replace('＋ задать шаг', '').replace('＋ опиши текущее состояние', '').replace('—', ''));
       if (v == null) return;
       await fetch('/api/psy/areas/' + id, { method: 'PATCH',
         headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: v.trim() }) });
+      window.SPH_AREAS = [];                 // любое изменение сектора подтянется в Сферы/выпадашки
+      window.ensureSphAreas?.(true);
       window.loadPsy();
     }));
   $('psAreaAdd')?.addEventListener('click', async () => {

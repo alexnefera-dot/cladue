@@ -204,15 +204,18 @@ function sphDetail(s, i) {
   let h = `<div class="sph-crumb"><a id="sphBack">← Сферы</a></div>
     <div class="sph-hero">
       <div class="sph-hs">${sphRing(s.score, col, 70)}<div style="margin-top:4px">${sphSpark(s.history)}</div></div>
-      <div class="sph-hi"><h2 style="margin:0 0 4px">${sesc(s.name)}</h2>
-        <div class="sph-dest" data-edit="ideal">🎯 <b>10 = ${s.ideal ? sesc(s.ideal) : 'задать цель (клик)'}</b></div></div>
+      <div class="sph-hi"><h2 style="margin:0 0 2px">${sesc(s.name)}</h2>
+        <div class="muted" style="font-size:12px">путь к 10 · ступень за ступенью (клик по строке — правка)</div></div>
     </div>
     <div class="sph-track"><div class="sph-rail"></div><div class="sph-fill" style="width:${(s.score ?? 0) * 10}%;background:${col}"></div>
       <div class="sph-you" style="left:${(s.score ?? 0) * 10}%">${s.score ?? '–'}</div><span class="sph-z">0</span><span class="sph-t10">10 ✦</span></div>
-    <div class="muted" style="font-size:12.5px;margin-top:4px" data-edit="current_desc">где сейчас: ${s.current_desc ? sesc(s.current_desc) : '<span class="muted">описать (клик)</span>'}</div>
-    <div class="sph-step-box"><span class="sph-l">СЛЕДУЮЩИЙ ШАГ</span><b data-edit="step">${s.step ? sesc(s.step) : 'задать шаг (клик)'}</b>
-      ${s.next_desc ? `<div class="muted" style="font-size:12.5px;margin-top:3px" data-edit="next_desc">${sesc(s.next_desc)}</div>` : ''}
-      <div style="margin-top:7px"><span class="pill btn" id="sphStepTask">＋ шаг в задачи</span></div></div>`;
+    <div class="card sph-ladder">
+      <div class="sph-rung" data-edit="ideal"><span class="sph-rl">🎯 10 — идеал</span><span class="sph-rv">${s.ideal ? sesc(s.ideal) : '<span class="muted">каким будет «10» (клик)</span>'}</span></div>
+      <div class="sph-rung" data-edit="current_desc"><span class="sph-rl">📍 сейчас (${s.score ?? '?'})</span><span class="sph-rv">${s.current_desc ? sesc(s.current_desc) : '<span class="muted">почему такая оценка (клик)</span>'}</span></div>
+      <div class="sph-rung" data-edit="next_desc"><span class="sph-rl">⬆️ +1 — что хотим</span><span class="sph-rv">${s.next_desc ? sesc(s.next_desc) : '<span class="muted">как выглядит следующая ступень (клик)</span>'}</span></div>
+      <div class="sph-rung step" data-edit="step"><span class="sph-rl">👉 шаг к +1</span><span class="sph-rv">${s.step ? '<b>' + sesc(s.step) + '</b>' : '<span class="muted">конкретный шаг (клик)</span>'}</span></div>
+    </div>
+    <div style="margin:7px 0 2px"><span class="pill btn" id="sphStepTask">＋ шаг в задачи</span> <span class="muted" style="font-size:12px">шаги для +1 ведёшь задачами и трекингом ниже ↓</span></div>`;
 
   // живой прогресс из данных (без дублей с блоками ниже)
   const pr = s.progress || {};
@@ -334,7 +337,7 @@ function bindDetail(s) {
   // правка полей сектора → wheel_areas
   document.querySelectorAll('#screen-spheres [data-edit]').forEach(el => el.onclick = async () => {
     const f = el.dataset.edit;
-    const labels = { ideal: 'Цель (10 = …):', step: 'Следующий шаг:', current_desc: 'Где сейчас (описание):', next_desc: 'Что для шага надо:' };
+    const labels = { ideal: 'Идеал (каким будет «10»):', current_desc: 'Где сейчас — почему такая оценка:', next_desc: 'Что хотим сделать для +1 (следующий уровень):', step: 'Конкретный шаг к +1:' };
     const v = prompt(labels[f], s[f] || '');
     if (v != null) { await sphApi.patch(s.id, { [f]: v.trim() }); window.loadSpheres(); }
   });
@@ -397,12 +400,15 @@ function ensureSphStyle() {
     .sph-crumb{font-size:12px;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:10px}.sph-crumb a{color:var(--green);cursor:pointer}
     .sph-hero{display:flex;gap:18px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow-sm);padding:16px 18px}
     .sph-hi{flex:1;min-width:0}.sph-hs{text-align:center;flex:0 0 auto}
-    .sph-dest{background:var(--green-soft);border:1px solid var(--green-dim);border-radius:10px;padding:8px 12px;font-size:14px;cursor:text}.sph-dest b{color:var(--green)}
+    .sph-ladder{margin-top:12px;padding:2px 14px}
+    .sph-rung{display:flex;gap:12px;align-items:baseline;padding:9px 0;border-top:1px solid var(--bg2);cursor:text}.sph-rung:first-child{border-top:0}
+    .sph-rl{flex:0 0 116px;font:600 11px var(--mono);color:var(--muted)}
+    .sph-rv{flex:1;min-width:0;font-size:13.5px;line-height:1.45}
+    .sph-rung.step{background:rgba(168,119,8,.07);border-radius:9px;margin:2px -8px 0;padding:10px 8px}.sph-rung.step .sph-rl{color:var(--amber)}.sph-rung.step .sph-rv b{color:var(--amber)}
     .sph-track{position:relative;height:32px;margin:14px 0 2px}.sph-rail{position:absolute;top:13px;left:0;right:0;height:7px;border-radius:99px;background:var(--bg2)}
     .sph-fill{position:absolute;top:13px;left:0;height:7px;border-radius:99px}
     .sph-you{position:absolute;top:-4px;transform:translateX(-50%);font:700 12px var(--mono);color:var(--green)}.sph-you::after{content:"▼";display:block;text-align:center;font-size:10px}
     .sph-z,.sph-t10{position:absolute;top:23px;font:600 9px var(--mono);color:var(--muted)}.sph-z{left:0}.sph-t10{right:0}
-    .sph-step-box{background:rgba(168,119,8,.08);border-radius:10px;padding:11px 14px;margin-top:12px}.sph-step-box .sph-l{font:600 9px var(--mono);letter-spacing:.6px;color:var(--amber);display:block;margin-bottom:1px}.sph-step-box b{font-size:15px;cursor:text}
     .sph-scoreset{display:flex;gap:5px;flex-wrap:wrap}.sph-scoreset b{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font:600 13px var(--mono);cursor:pointer;color:var(--muted)}.sph-scoreset b.on{background:var(--green);color:#fff;border-color:var(--green)}
     .sph-conn{border:1px solid var(--green-dim)}
     .sph-cg{margin-bottom:9px}.sph-cgl{font:600 10px var(--mono);letter-spacing:.6px;color:var(--nav);text-transform:uppercase;margin-bottom:5px}
@@ -424,7 +430,7 @@ function ensureSphStyle() {
       .sph-mom{flex-direction:column;align-items:flex-start;gap:6px}
       .sph-scoreset b{width:28px;height:28px}
       .sph-pi{font-size:13px;padding:6px 11px}
-      .sph-dest{font-size:13.5px}
+      .sph-rung{flex-direction:column;gap:2px;padding:8px 0}.sph-rl{flex-basis:auto}
       .pbar2{max-width:none}
     }`;
   const st = document.createElement('style'); st.id = 'sph-style'; st.textContent = css;
