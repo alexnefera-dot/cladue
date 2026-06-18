@@ -216,6 +216,8 @@ function renderTodayMobile() {
   <h2 style="margin-bottom:2px">Сегодня</h2>
   <div class="muted" style="margin-bottom:12px">${WD[dt.getDay()]}, ${dt.getDate()} ${MON[dt.getMonth()]}</div>
 
+  ${tdSphStrip()}
+
   <div class="tdchips">
     <div class="tdchip ${d.overdue.length ? 'red' : ''}"><b>${d.dueToday.length + d.overdue.length}</b><span>дел${d.overdue.length ? ` · ${d.overdue.length} просроч.` : ''}</span></div>
     <div class="tdchip"><b>${rDone}/${d.routines.length}</b><span>рутины</span></div>
