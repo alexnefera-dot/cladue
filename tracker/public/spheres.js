@@ -84,6 +84,20 @@ function sphDetail(s, i) {
 
   if (sphEditConn) h += sphConnEditor(s);
 
+  // живой прогресс из данных
+  const pr = s.progress || {};
+  const parts = [];
+  if (pr.tasksTotal) parts.push(`<div class="task"><span class="t">Задачи выполнено</span><span class="pbar2"><i style="width:${Math.round(pr.tasksDone / pr.tasksTotal * 100)}%"></i></span><span class="meta num">${pr.tasksDone}/${pr.tasksTotal}</span></div>`);
+  if (pr.adherence != null) parts.push(`<div class="task"><span class="t">Дисциплина рутин · 14 дн</span><span class="pbar2"><i style="width:${Math.round(pr.adherence * 100)}%"></i></span><span class="meta num">${Math.round(pr.adherence * 100)}%</span></div>`);
+  if (pr.trends && pr.trends.length) parts.push(`<div class="task"><span class="t">Тренд метрик</span><span class="meta">${pr.trends.map(t => `${sesc(t.name)} ${t.dir > 0 ? '↗' : t.dir < 0 ? '↘' : '→'}`).join(' · ')}</span></div>`);
+  h += `<div class="sec">📈 Прогресс по данным <span class="muted" style="font-weight:400">· считается сам</span></div><div class="card">
+    ${pr.momentum != null
+      ? `<div class="sph-mom"><div class="sph-momn">${pr.momentum}<small>/10</small></div>
+           <div class="sph-momt">движение по реальным данным (задачи + рутины)<br>
+             <span class="pill btn ok" id="sphApplyMom">поставить как оценку сферы</span></div></div>`
+      : ''}
+    ${parts.join('') || '<div class="empty">привяжи задачи (категорию) и рутины через «🔗 связи» — посчитаю прогресс сам, без ручного ведения</div>'}</div>`;
+
   // задачи
   h += block('🎯 Задачи сектора', 'Цели', s.tasks.length ? s.tasks.map(t => `
     <div class="task"><span class="cb ${t.done ? 'done' : ''}" data-tog="${t.id}"></span>
@@ -158,6 +172,9 @@ function bindDetail(s) {
     if (v != null) { await sphApi.patch(s.id, { [f]: v.trim() }); window.loadSpheres(); }
   });
   document.querySelectorAll('#screen-spheres [data-tog]').forEach(c => c.onclick = async () => { await sphApi.toggle(+c.dataset.tog); window.loadSpheres(); });
+  document.getElementById('sphApplyMom')?.addEventListener('click', async () => {
+    if (s.progress?.momentum != null) { await sphApi.score(s.id, s.progress.momentum); window.loadSpheres(); }
+  });
   document.getElementById('sphStepTask').onclick = async () => {
     if (!s.step?.trim()) { alert('Сначала задай шаг (клик по «следующий шаг»).'); return; }
     const r = await sphApi.stepTask(s.id).then(x => x.json()).catch(() => ({ error: 'ошибка' }));
@@ -188,6 +205,10 @@ function ensureSphStyle() {
     .sph-cg{margin-bottom:9px}.sph-cgl{font:600 10px var(--mono);letter-spacing:.6px;color:var(--nav);text-transform:uppercase;margin-bottom:5px}
     .sph-pi{display:inline-flex;align-items:center;font-size:12.5px;background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:4px 9px;margin:0 5px 5px 0;cursor:pointer}
     .sph-pi:hover{border-color:var(--green-dim)}.sph-pi.on{background:var(--green-soft);border-color:var(--green-dim);color:var(--green)}
+    .sph-mom{display:flex;align-items:center;gap:14px;padding-bottom:9px;margin-bottom:6px;border-bottom:1px solid var(--bg2)}
+    .sph-momn{font:700 30px var(--mono);color:var(--green);line-height:1}.sph-momn small{font-size:14px;color:var(--muted)}
+    .sph-momt{font-size:12.5px;color:var(--muted)}
+    .pbar2{flex:1;max-width:160px;height:7px;border-radius:99px;background:var(--bg2);overflow:hidden;margin:0 6px}.pbar2 i{display:block;height:100%;background:var(--green-dim)}
     [data-edit]{cursor:text}`;
   const st = document.createElement('style'); st.id = 'sph-style'; st.textContent = css;
   document.head.appendChild(st);

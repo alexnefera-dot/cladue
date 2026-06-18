@@ -34,19 +34,23 @@ export function buildSpheres(db) {
   const areas = db.prepare('SELECT * FROM wheel_areas ORDER BY ord, id').all();
   const resolve = nodeAreaResolver(db);
   const todayIso = TODAY();
+  const d14 = new Date(); d14.setDate(d14.getDate() - 13); const since14 = iso(d14);
 
-  // открытые задачи с привязкой к сфере (через категорию) или по конвенции сектора
-  const openTasks = db.prepare(
-    `SELECT id, title, status, due_date, priority, area_id, note FROM nodes
-     WHERE is_category = 0 AND (status IS NULL OR status != 'done')`
+  // все задачи (для доли выполненного) + открытые (для показа)
+  const allTasks = db.prepare(
+    `SELECT id, title, status, due_date, priority, area_id, note FROM nodes WHERE is_category = 0`
   ).all();
+  const belongs = (t, a) => resolve(t.id) === a.id || (t.note || '').includes(`сектор «${a.name}»`);
 
   return areas.map(a => {
     const sc = db.prepare('SELECT date, score FROM wheel_scores WHERE area_id = ? ORDER BY date DESC LIMIT 8').all(a.id);
 
-    // задачи: своя привязка (area_id ветки) ИЛИ старая конвенция note LIKE «сектор «имя»»
-    const tasks = openTasks.filter(t => resolve(t.id) === a.id || (t.note || '').includes(`сектор «${a.name}»`))
-      .slice(0, 10).map(t => ({ id: t.id, title: t.title, done: false, due: t.due_date || null, priority: t.priority || null }));
+    // задачи сферы: все (для прогресса) и открытые (для показа)
+    const areaTasks = allTasks.filter(t => belongs(t, a));
+    const tasksTotal = areaTasks.length;
+    const tasksDone = areaTasks.filter(t => t.status === 'done').length;
+    const tasks = areaTasks.filter(t => t.status !== 'done').slice(0, 10)
+      .map(t => ({ id: t.id, title: t.title, done: false, due: t.due_date || null, priority: t.priority || null }));
 
     // рутины (ручной тег)
     const routines = db.prepare('SELECT id, name FROM routines WHERE area_id = ? ORDER BY ord, id').all(a.id).map(r => ({
@@ -65,11 +69,28 @@ export function buildSpheres(db) {
     // финансы — обязательства/подписки сферы (ручной тег)
     const fin = db.prepare('SELECT id, name, amount, currency, period, next_date FROM obligations WHERE area_id = ? ORDER BY id').all(a.id);
 
+    // ===== живой прогресс из реальных данных (без ручного ведения) =====
+    const rIds = routines.map(r => r.id);
+    let adherence = null;
+    if (rIds.length) {
+      const marks = db.prepare(
+        `SELECT count(*) AS c FROM routine_log WHERE date >= ? AND routine_id IN (${rIds.map(() => '?').join(',')})`
+      ).get(since14, ...rIds).c;
+      adherence = Math.min(1, marks / (rIds.length * 14));
+    }
+    const trends = tracking.filter(m => m.s.length >= 2)
+      .map(m => ({ name: m.name, dir: Math.sign((m.s.at(-1) ?? 0) - (m.s[0] ?? 0)) }));
+    const signals = [];
+    if (tasksTotal) signals.push(tasksDone / tasksTotal);
+    if (adherence != null) signals.push(adherence);
+    const momentum = signals.length ? Math.round(signals.reduce((x, y) => x + y, 0) / signals.length * 10) : null;
+    const progress = { tasksDone, tasksTotal, adherence, trends, momentum };
+
     return {
       id: a.id, name: a.name,
       ideal: a.ideal || '', current_desc: a.current_desc || '', next_desc: a.next_desc || '', step: a.step || '',
       score: sc[0]?.score ?? null, prev: sc[1]?.score ?? null, history: sc.map(s => s.score).reverse(),
-      tasks, routines, tracking, practices, fin,
+      tasks, routines, tracking, practices, fin, progress,
     };
   });
 }
