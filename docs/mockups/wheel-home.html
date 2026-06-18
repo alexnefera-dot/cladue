@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pipboy · Колесо → Сферы — мокап</title>
+<style>
+  :root{
+    --bg:#f6f7f9;--bg2:#eef0f4;--panel:#fff;--line:#e2e7ed;--line2:#d6dce4;
+    --green:#1e9e57;--green-dim:#5cb585;--green-soft:rgba(30,158,87,.10);
+    --text:#141e28;--muted:#4f5f6f;--nav:#364656;--amber:#a87708;--red:#c43f3f;--blue:#2a76b5;--violet:#6b4fb5;
+    --shadow-sm:0 1px 2px rgba(18,28,45,.05),0 1px 4px rgba(18,28,45,.05);--shadow-md:0 6px 20px rgba(18,28,45,.10);
+    --mono:"SF Mono","JetBrains Mono",ui-monospace,monospace;--sans:-apple-system,"SF Pro Text","Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+  .titlebar{height:40px;background:var(--bg2);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:center;
+    font:600 12px var(--mono);color:var(--green);letter-spacing:1px;position:sticky;top:0;z-index:5}
+  .wrap{max-width:1000px;margin:0 auto;padding:18px 22px 60px}
+  .crumb{font-size:12px;color:var(--muted);margin-bottom:12px}.crumb a{color:var(--green);cursor:pointer}.crumb b{color:var(--text)}
+  h1{font-size:23px;letter-spacing:-.02em;margin:0 0 2px}
+  .sub{color:var(--muted);margin-bottom:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:13px 16px;box-shadow:var(--shadow-sm)}
+  .muted{color:var(--muted)}
+  .pill{display:inline-flex;align-items:center;gap:4px;font:600 11px var(--mono);padding:2px 8px;border-radius:20px;background:var(--bg2);color:var(--muted)}
+  .pill.green{background:var(--green-soft);color:var(--green)}.pill.amber{background:rgba(168,119,8,.14);color:var(--amber)}
+  .src{margin-left:auto;font:600 10px var(--mono);color:var(--muted);background:var(--bg2);border:1px solid var(--line);border-radius:20px;padding:3px 9px;white-space:nowrap}
+  .src b{color:var(--nav)}
+  .bar{height:6px;border-radius:99px;background:var(--bg2);overflow:hidden;margin-top:6px}.bar i{display:block;height:100%;background:var(--green-dim)}
+  .spark{vertical-align:middle}
+
+  /* ===== ГЛАВНАЯ: колесо ===== */
+  .home{display:grid;grid-template-columns:380px 1fr;gap:20px;align-items:start}
+  @media(max-width:800px){.home{grid-template-columns:1fr}}
+  .wheelbox{text-align:center}
+  .wheelbox .avg{font:700 13px var(--mono);color:var(--muted);margin-top:6px}
+  .seclist{display:flex;flex-direction:column;gap:9px}
+  .seccard{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:11px 14px;box-shadow:var(--shadow-sm);cursor:pointer;transition:.12s}
+  .seccard:hover{border-color:var(--green-dim);transform:translateX(2px)}
+  .secscore{width:38px;height:38px;border-radius:10px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font:700 15px var(--mono);color:#fff}
+  .secmain{flex:1;min-width:0}
+  .secmain .sn{font-weight:700}
+  .secmain .next{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .secmain .next b{color:var(--amber)}
+  .secprog{font:600 11px var(--mono);color:var(--muted);flex:0 0 auto;text-align:right}
+
+  /* ===== СТРАНИЦА СФЕРЫ ===== */
+  .hero{display:flex;gap:18px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow-sm);margin-bottom:14px}
+  .hero .info{flex:1;min-width:0}.hero h1{margin:0 0 2px}
+  .hero .aim .lbl{font:600 10px var(--mono);letter-spacing:1.4px;color:var(--green);text-transform:uppercase;display:block;margin-bottom:2px}
+  .hero .meta{color:var(--muted);font-size:12.5px;margin-top:8px;display:flex;gap:14px;flex-wrap:wrap}
+  @media(max-width:600px){.hero{flex-direction:column;text-align:center}}
+
+  .path{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:13px 16px;box-shadow:var(--shadow-sm);margin-bottom:14px}
+  .chead{display:flex;align-items:center;gap:8px;margin-bottom:8px}.chead h3{font-size:14px;margin:0}
+  .pstep{display:flex;align-items:center;gap:9px;padding:6px 0;border-top:1px solid var(--bg2)}
+  .pstep:first-of-type{border-top:0}
+  .pstep .cb{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line2);flex:0 0 auto;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff}
+  .pstep .cb.on{background:var(--green);border-color:var(--green)}
+  .pstep .pt{flex:1}.pstep .pt.done{color:var(--muted);text-decoration:line-through}
+  .pstep.next{background:rgba(168,119,8,.07);border-radius:8px;margin:2px -8px;padding:8px;border-top:0}
+  .pstep.next .pt{font-weight:700}
+  .pstep .nb{font:600 9px var(--mono);background:var(--amber);color:#fff;border-radius:5px;padding:2px 6px;letter-spacing:.5px}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:760px){.grid{grid-template-columns:1fr}}
+  .span2{grid-column:1/-1}
+  .row{display:flex;align-items:center;gap:9px;padding:7px 0;border-top:1px solid var(--bg2)}.row:first-of-type{border-top:0}
+  .row .t{flex:1}.row .t.done{color:var(--muted);text-decoration:line-through}
+  .cb2{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--line2);flex:0 0 auto;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff}
+  .cb2.on{background:var(--green);border-color:var(--green)}
+  .metric{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--bg2)}.metric:first-of-type{border-top:0}
+  .metric .mn{flex:1}.metric .mv{font:600 15px var(--mono)}.metric .mv small{font-size:11px;color:var(--muted)}
+  .link{color:var(--blue);font-weight:600;cursor:pointer}
+  .review{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:14px 16px;box-shadow:var(--shadow-sm);margin-top:14px}
+  .review textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:10px;font:14px var(--sans);min-height:54px;resize:vertical}
+  .review textarea:focus,.scoreset b:focus{outline:none}
+  .review textarea:focus{border-color:var(--green-dim);box-shadow:0 0 0 3px var(--green-soft)}
+  .scoreset{display:flex;gap:5px;margin:6px 0 10px;flex-wrap:wrap}
+  .scoreset b{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font:600 13px var(--mono);cursor:pointer;color:var(--muted)}
+  .scoreset b.on{background:var(--green);color:#fff;border-color:var(--green)}
+  .btn{background:var(--green);color:#fff;border:0;border-radius:9px;padding:9px 16px;font:600 13px var(--sans);cursor:pointer}
+  .saved{color:var(--green);font-size:12px;margin-left:10px}
+  .callout{background:var(--green-soft);border:1px solid var(--green-dim);border-radius:11px;padding:9px 13px;margin-bottom:14px;font-size:12.5px}
+  .callout b{color:var(--green)}
+  .foot{margin-top:22px;padding-top:14px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="titlebar">PIPBOY · КОЛЕСО → СФЕРЫ — МОКАП (главная и страницы сфер)</div>
+<div class="wrap" id="app"></div>
+
+<script>
+//================= данные сфер =================
+const COL={health:'#1e9e57',money:'#c43f3f',relations:'#a87708',growth:'#6b4fb5',rest:'#2a76b5',work:'#364656'};
+const SECTORS={
+  health:{name:'Здоровье / тело',icon:'🏃',score:6,hist:[5,5,6,6,7,6],
+    aim:'Энергия и форма на 8/10: играть в падл без травм, спать 7.5ч, лёгкость в теле.',
+    path:[ // «цель 10 пунктов» из Колеса — путь сектора
+      {t:'Убрать поздние перекусы',done:true},{t:'Режим сна 7.5ч в будни',done:true},
+      {t:'Зарядка/мобилити в ежедневные рутины',done:true},
+      {t:'Добавить растяжку после падла (колено)',done:false},
+      {t:'10 000 шагов каждый день',done:false},{t:'Силовая 1×/нед',done:false},
+      {t:'Чек-ап у врача + анализы',done:false},{t:'Питание: лёгкий дефицит',done:false},
+      {t:'Падл без травм весь сезон',done:false},{t:'Энергия стабильно 8/10',done:false}],
+    projects:[{t:'Падл — лига к сентябрю',pct:40,status:'40%'},{t:'Наладить сон (режим 7.5ч)',pct:55,status:'в работе'}],
+    routines:[{t:'Зарядка / мобилити',streak:18,done:true},{t:'Витамины + миноксидил',streak:42,done:true},{t:'10 000 шагов',streak:4,done:false}],
+    tracking:[{n:'Сон',u:'ч',v:'7.2',s:[7.0,6.5,7.2,6.8,7.5,7.4,7.2]},{n:'Энергия',u:'/10',v:'7',s:[6,7,6,7,8,7,7]},
+              {n:'Шаги',u:'к',v:'8.1',s:[8,6,9,7,11,5,8]},{n:'Вес',u:'кг',v:'77.8',s:[78.4,78.2,78.3,78.0,77.9,78.1,77.8]}],
+    practices:[{t:'Дыхание 5 мин (утро)',meta:'🔥 9',done:true},{t:'Растяжка после падла',meta:'по тренировкам',done:false}],
+    info:['Падл — техника удара','Протокол сна (свет, кофеин, режим)','План питания / дефицит']},
+
+  growth:{name:'Развитие',icon:'📚',score:5,hist:[4,4,5,5,5,5],
+    aim:'Системно расти: испанский до B1, 30 книг/год, навык, который монетизируется.',
+    path:[
+      {t:'Выбрать курс A2→B1',done:true},{t:'20 мин испанского в расписание (рутина)',done:true},
+      {t:'Сдать промежуточный тест A2',done:false},
+      {t:'Читать 3–4 книги в месяц',done:false},{t:'Anki: 200 активных карточек',done:false},
+      {t:'Разговорный клуб 1×/нед',done:false},{t:'Прочесть 1 проф. книгу по делу',done:false},
+      {t:'Завести конспекты в Инфо',done:false},{t:'Сдать экзамен B1',done:false},
+      {t:'Применить навык на реальной задаче',done:false}],
+    projects:[{t:'Испанский — B1 за полгода',pct:15,status:'15%'},{t:'30 книг за год',pct:33,status:'10/30'}],
+    routines:[{t:'Испанский 20 мин',streak:6,done:true},{t:'Чтение 20 страниц',streak:11,done:true},{t:'Anki карточки',streak:2,done:false}],
+    tracking:[{n:'Минут учёбы',u:'мин',v:'35',s:[20,0,40,30,25,50,35]},{n:'Страниц/день',u:'стр',v:'18',s:[12,20,0,25,18,22,18]},
+              {n:'Слов в Anki',u:'',v:'164',s:[120,130,138,145,150,158,164]}],
+    practices:[{t:'Фокус-сессия 25 мин',meta:'🔥 7',done:true},{t:'Вечерняя рефлексия учёбы',meta:'',done:false}],
+    info:['Книги и курсы','Конспект: испанская грамматика','Заметки по делу/навыку']},
+
+  // остальные секторы — пока сводкой (путь/исполнение по тому же шаблону, данных меньше)
+  money:{name:'Деньги / FIRE',icon:'💰',score:7,hist:[6,6,7,7,7,7],aim:'Пассивный доход ≥ расходов к 2032.',
+    path:[{t:'Подушка 6 мес',done:true},{t:'Авто-инвест ежемесячно',done:true},{t:'Ребаланс по тезисам',done:false},{t:'Закрыть долг другу',done:false},{t:'Сдать Belgravia в аренду',done:false}],
+    projects:[{t:'Belgravia — аренда',pct:70,status:'70%'}],routines:[{t:'Занести расходы',streak:12,done:true}],
+    tracking:[{n:'Капитал',u:'€',v:'312к',s:[300,303,305,308,309,311,312]}],info:['Тезисы по рынку']},
+  relations:{name:'Отношения',icon:'❤️',score:8,hist:[7,7,8,8,8,8],aim:'Тёплый ближний круг, никого не теряю из виду.',
+    path:[{t:'Созвон с мамой ритмом',done:true},{t:'Не пропускать ДР',done:true},{t:'Встреча с друзьями 2×/мес',done:false}],
+    routines:[{t:'Позвонить близким',streak:5,done:false}],info:['Список важных дат']},
+  rest:{name:'Отдых',icon:'🌿',score:4,hist:[5,4,4,4,4,4],aim:'Восстановление без вины: качественные выходные, хобби.',
+    path:[{t:'Один полный выходной без задач',done:false},{t:'Хобби вне экрана',done:false},{t:'Отпуск раз в квартал',done:false}],
+    info:['Идеи на выходные']},
+  work:{name:'Дело / карьера',icon:'💼',score:6,hist:[6,6,6,6,6,6],aim:'Расти в деле, которое приносит и деньги, и смысл.',
+    path:[{t:'Определить главный проект квартала',done:true},{t:'Глубокая работа 2ч/день',done:false}],
+    routines:[{t:'Глубокая работа',streak:3,done:true}]},
+};
+const ORDER=['health','money','relations','growth','rest','work'];
+
+//================= роутер =================
+let route='main';
+function go(r){route=r;render();window.scrollTo(0,0);}
+function render(){route==='main'?renderHome():renderSphere(route);}
+
+//================= спарклайн / кольцо =================
+function spark(vals,w=80,h=20){const p=2,mn=Math.min(...vals),mx=Math.max(...vals),rng=(mx-mn)||1;
+  const pts=vals.map((v,i)=>[p+i*(w-2*p)/(vals.length-1),h-p-((v-mn)/rng)*(h-2*p)]);
+  return `<svg class="spark" width="${w}" height="${h}"><polyline fill="none" stroke="#5cb585" stroke-width="1.6" points="${pts.map(p=>p.join(',')).join(' ')}"/><circle cx="${pts.at(-1)[0]}" cy="${pts.at(-1)[1]}" r="2.3" fill="#1e9e57"/></svg>`;}
+function ring(score,color,size=104){const r=size/2-8,C=2*Math.PI*r;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#eef0f4" stroke-width="11"/>
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="11" stroke-linecap="round"
+      stroke-dasharray="${C*score/10} ${C}" transform="rotate(-90 ${size/2} ${size/2})"/>
+    <text x="${size/2}" y="${size/2-2}" text-anchor="middle" style="font:700 ${size*.26}px var(--sans);fill:var(--text)">${score}</text>
+    <text x="${size/2}" y="${size/2+14}" text-anchor="middle" style="font:600 10px var(--mono);fill:var(--muted)">из 10</text></svg>`;}
+
+//================= ГЛАВНАЯ: колесо =================
+function wheelSvg(){
+  const cx=190,cy=190,R=150,n=ORDER.length,step=2*Math.PI/n;let out='';
+  // кольца-сетка
+  for(let g=1;g<=5;g++)out+=`<circle cx="${cx}" cy="${cy}" r="${R*g/5}" fill="none" stroke="#e2e7ed" stroke-width="1"/>`;
+  ORDER.forEach((id,i)=>{
+    const s=SECTORS[id],a0=i*step-Math.PI/2,a1=(i+1)*step-Math.PI/2,r=R*s.score/10;
+    const p=(a,rr)=>[cx+rr*Math.cos(a),cy+rr*Math.sin(a)];
+    const[x0,y0]=p(a0,r),[x1,y1]=p(a1,r);
+    out+=`<path d="M${cx},${cy} L${x0},${y0} A${r},${r} 0 0 1 ${x1},${y1} Z" fill="${COL[id]}" fill-opacity=".82" stroke="#fff" stroke-width="1.5" style="cursor:pointer" data-go="${id}"/>`;
+    const[lx,ly]=p((a0+a1)/2,R+22);
+    out+=`<text x="${lx}" y="${ly}" text-anchor="middle" style="font:600 11px var(--sans);fill:var(--nav);pointer-events:none">${s.icon} ${s.name.split(' ')[0]}</text>`;
+  });
+  return `<svg width="380" height="380" viewBox="0 0 380 380">${out}</svg>`;
+}
+function nextStep(s){const i=s.path?s.path.findIndex(p=>!p.done):-1;return i>=0?{txt:s.path[i].t,done:s.path.filter(p=>p.done).length,total:s.path.length}:null;}
+function renderHome(){
+  const avg=(ORDER.reduce((a,id)=>a+SECTORS[id].score,0)/ORDER.length).toFixed(1);
+  document.getElementById('app').innerHTML=`
+    <h1>Колесо баланса — главная</h1>
+    <div class="sub">Все сферы жизни на одном экране: оценка, прогресс и «следующий шаг» по каждой. Клик — внутрь сферы.</div>
+    <div class="callout">💡 Это <b>хаб «куда я иду»</b>. Каждый сектор — отдельная сфера со своим путём (10 пунктов) и стянутым исполнением из Рутин/Трекинга/Целей/Психологии/Инфо.</div>
+    <div class="home">
+      <div class="wheelbox"><div id="wheel"></div><div class="avg">средний баланс: ${avg}/10</div></div>
+      <div class="seclist">${ORDER.map(id=>{const s=SECTORS[id],ns=nextStep(s);
+        return `<div class="seccard" data-go="${id}">
+          <div class="secscore" style="background:${COL[id]}">${s.score}</div>
+          <div class="secmain"><div class="sn">${s.icon} ${s.name}</div>
+            <div class="next">${ns?`следующий шаг: <b>${ns.txt}</b>`:'путь не задан'}</div></div>
+          <div class="secprog">${ns?ns.done+'/'+ns.total:''}<br><span class="muted">путь</span></div>
+        </div>`;}).join('')}</div>
+    </div>
+    <div class="foot">«Цели» переезжают сюда как <b>проекты под сферами</b>, а Колесо из картинки-оценки становится рабочим хабом.
+      Здоровье и Развитие расписаны полностью — открой их.</div>`;
+  document.getElementById('wheel').innerHTML=wheelSvg();
+  document.querySelectorAll('[data-go]').forEach(el=>el.onclick=()=>go(el.dataset.go));
+}
+
+//================= СТРАНИЦА СФЕРЫ =================
+function block(title,src,html){return `<div class="card"><div class="chead"><h3>${title}</h3><span class="src">${src}</span></div>${html}</div>`;}
+function renderSphere(id){
+  const s=SECTORS[id];const ns=nextStep(s);const nextIdx=s.path?s.path.findIndex(p=>!p.done):-1;
+  const ex=[];
+  if(s.projects)ex.push(block('🎯 Проекты сферы','из <b>Цели</b>',
+    s.projects.map(p=>`<div class="row"><span class="t">${p.t}</span><span class="pill green">${p.status}</span></div><div class="bar"><i style="width:${p.pct}%"></i></div>`).join('')));
+  if(s.routines)ex.push(block('↻ Рутины · сегодня','из <b>Рутины</b>',
+    s.routines.map((r,i)=>`<div class="row"><span class="cb2 ${r.done?'on':''}" data-rt="${i}">${r.done?'✓':''}</span><span class="t ${r.done?'done':''}">${r.t}</span><span class="pill">🔥 ${r.streak}</span></div>`).join('')));
+  if(s.tracking)ex.push(block('📊 Показатели · 7 дней','из <b>Трекинг</b>',
+    s.tracking.map(m=>`<div class="metric"><span class="mn">${m.n}</span>${spark(m.s)}<span class="mv">${m.v}<small>${m.u}</small></span></div>`).join('')));
+  if(s.practices)ex.push(block('🧘 Практики','из <b>Психология</b>',
+    s.practices.map(p=>`<div class="row"><span class="cb2 ${p.done?'on':''}">${p.done?'✓':''}</span><span class="t ${p.done?'done':''}">${p.t}</span>${p.meta?`<span class="pill">${p.meta}</span>`:''}</div>`).join('')));
+  if(s.info)ex.push(`<div class="card span2"><div class="chead"><h3>📝 Глубже по теме</h3><span class="src">ссылки в <b>Инфо</b> · не копии</span></div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap">${s.info.map(t=>`<span class="link">→ ${t}</span>`).join('')}</div></div>`);
+
+  document.getElementById('app').innerHTML=`
+    <div class="crumb"><a data-home>🧠 Колесо</a> › <b>${s.name}</b></div>
+    <div class="hero">${ring(s.score,COL[id])}
+      <div class="info"><h1>${s.icon} ${s.name}</h1>
+        <div class="aim"><span class="lbl">Ориентир — куда идём</span>${s.aim}</div>
+        <div class="meta"><span>📈 оценка: <b>${s.score}</b>/10 ${spark(s.hist,74,18)}</span>
+          ${ns?`<span>🧭 путь: ${ns.done}/${ns.total}</span>`:''}
+          ${s.projects?`<span>🎯 проектов: ${s.projects.length}</span>`:''}</div></div></div>
+
+    ${s.path?`<div class="path"><div class="chead"><h3>🧭 Путь сектора — 10 пунктов к цели</h3><span class="src">из <b>Колесо</b></span></div>
+      ${s.path.map((p,i)=>`<div class="pstep ${i===nextIdx?'next':''}">
+        <span class="cb ${p.done?'on':''}" data-step="${i}">${p.done?'✓':''}</span>
+        <span class="pt ${p.done?'done':''}">${p.t}</span>
+        ${i===nextIdx?'<span class="nb">СЛЕДУЮЩИЙ</span>':''}</div>`).join('')}
+      <div class="bar"><i style="width:${ns?ns.done/ns.total*100:0}%"></i></div>
+      <div class="muted" style="font-size:12px;margin-top:6px">Это и есть «цель сектора» из Колеса: 10 конкретных пунктов, видно где ты и что дальше.</div>
+    </div>`:''}
+
+    <div class="callout">💡 Блоки ниже <b>стянуты из своих разделов</b> (бейдж справа — откуда). Ни одной строки заново: тег «${s.name.split(' ')[0]}» один раз — и всё собирается сюда.</div>
+    <div class="grid">${ex.join('')}</div>
+
+    <div class="review"><div class="chead"><h3>🪞 Настройка себя · ревизия</h3><span class="src">обновляет <b>Колесо</b></span></div>
+      <div class="muted" style="font-size:13px;margin-bottom:4px">Оценка сектора + одна мысль «что подкрутить». Это и есть «дневник настройки себя».</div>
+      <div class="scoreset" id="scoreset"></div>
+      <textarea id="refl" placeholder="что происходит в этой сфере, что поменять на след. неделе…"></textarea>
+      <div style="margin-top:8px"><button class="btn" id="saveBtn">Сохранить ревизию</button><span class="saved" id="savedTxt"></span></div></div>
+
+    <div class="foot">Страница сферы = ориентир + путь (из Колеса) + исполнение (стянуто из разделов) + ревизия. Новый ввод за тобой: один тег на элементах и строка ревизии.</div>`;
+
+  // интерактив
+  document.querySelector('[data-home]').onclick=()=>go('main');
+  let sc=s.score;
+  const ss=document.getElementById('scoreset');ss.innerHTML=[1,2,3,4,5,6,7,8,9,10].map(i=>`<b data-s="${i}" class="${i<=sc?'on':''}">${i}</b>`).join('');
+  ss.onclick=e=>{const b=e.target.closest('b');if(b){sc=+b.dataset.s;ss.querySelectorAll('b').forEach(x=>x.classList.toggle('on',+x.dataset.s<=sc));}};
+  const KEY='pipboy_sphere_'+id;
+  try{const v=JSON.parse(localStorage.getItem(KEY));if(v){sc=v.score??sc;document.getElementById('refl').value=v.refl||'';ss.querySelectorAll('b').forEach(x=>x.classList.toggle('on',+x.dataset.s<=sc));}}catch{}
+  document.getElementById('saveBtn').onclick=()=>{localStorage.setItem(KEY,JSON.stringify({score:sc,refl:document.getElementById('refl').value}));
+    SECTORS[id].score=sc;document.getElementById('savedTxt').textContent='✓ ушло в Колесо';setTimeout(()=>document.getElementById('savedTxt').textContent='',2200);};
+  document.querySelectorAll('[data-step]').forEach(c=>c.onclick=()=>{const p=s.path[+c.dataset.step];p.done=!p.done;renderSphere(id);});
+  document.querySelectorAll('[data-rt]').forEach(c=>c.onclick=()=>{const r=s.routines[+c.dataset.rt];r.done=!r.done;r.streak+=r.done?1:-1;renderSphere(id);});
+  document.querySelectorAll('.grid .cb2:not([data-rt])').forEach(c=>c.onclick=()=>{const on=c.classList.toggle('on');c.textContent=on?'✓':'';c.parentElement.querySelector('.t').classList.toggle('done',on);});
+  document.querySelectorAll('.link').forEach(l=>l.onclick=()=>alert('Откроется заметка в разделе Инфо — текст живёт там в одном месте.'));
+}
+
+render();
+</script>
+</body>
+</html>
