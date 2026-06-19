@@ -19,14 +19,14 @@ const TDSPH_COL = ['#1e9e57', '#c43f3f', '#a87708', '#6b4fb5', '#2a76b5', '#3646
 window.loadToday = async function () {
   const [d, sph] = await Promise.all([
     tdApi.get(),
-    fetch('/api/spheres').then(r => r.json()).catch(() => []),
+    fetch('/api/spheres').then(r => r.json()).then(x => Array.isArray(x) ? x : []).catch(() => []),
   ]);
   tdData = d; window.tdSpheres = sph;
   renderToday();
 };
 // полоса сфер на «Сегодня»: направление сверху, ежедневное — ниже. Клик — внутрь сферы.
 function tdSphStrip() {
-  const list = window.tdSpheres || [];
+  const list = Array.isArray(window.tdSpheres) ? window.tdSpheres : [];
   if (!list.length) return '';
   ensureTdSphStyle();
   return `<div class="sec" style="margin-top:0">🧭 Сферы · куда идём</div>

@@ -164,7 +164,9 @@ extension Api {
 
             // метрики (трекинг) — по дефолту секции
             var tracking: [[String: Any]] = []
-            for m in try db.rows("SELECT id, name, unit, type, target FROM metrics WHERE \(whereClause("metric", aid)) ORDER BY ord, id", [aid]) {
+            // SELECT * — устойчиво к отсутствию колонки target (если миграция ещё не прошла,
+            // не роняем весь сбор сфер; target просто будет NSNull)
+            for m in try db.rows("SELECT * FROM metrics WHERE \(whereClause("metric", aid)) ORDER BY ord, id", [aid]) {
                 var blk = try sphMetricBlock(db, m["id"] as? Int ?? -1, m["name"] as? String ?? "", m["unit"] as? String ?? "", m["type"] as? String ?? "")
                 blk["target"] = m["target"] ?? NSNull()
                 tracking.append(blk)
