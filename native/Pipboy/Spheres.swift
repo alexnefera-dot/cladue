@@ -217,6 +217,7 @@ extension Api {
             let scores = sc.compactMap { $0["score"] as? Int }
             let scoreVal: Any = sc.first.flatMap { $0["score"] } ?? NSNull()
             let prevVal: Any = sc.count > 1 ? (sc[1]["score"] ?? NSNull()) : NSNull()
+            let milestones = try db.rows("SELECT id, level, title FROM area_milestones WHERE area_id = ? ORDER BY level, id", [aid])
             result.append([
                 "id": aid, "name": aname,
                 "ideal": a["ideal"] ?? "", "current_desc": a["current_desc"] ?? "", "next_desc": a["next_desc"] ?? "", "step": a["step"] ?? "",
@@ -224,7 +225,7 @@ extension Api {
                 "history": Array(scores.reversed()),
                 "tasks": tasks, "routines": routines, "tracking": tracking, "practices": practices,
                 "people": people, "info": Array(info), "events": events, "fin": fin, "debts": debts, "steps": steps,
-                "finance": finance, "progress": progress,
+                "finance": finance, "progress": progress, "milestones": milestones,
             ])
         }
         return result

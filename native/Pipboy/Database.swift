@@ -285,6 +285,12 @@ final class Database {
           area_id INTEGER NOT NULL REFERENCES wheel_areas(id) ON DELETE CASCADE,
           score INTEGER NOT NULL, UNIQUE(date, area_id)
         );
+        CREATE TABLE IF NOT EXISTS area_milestones(
+          id INTEGER PRIMARY KEY,
+          area_id INTEGER NOT NULL REFERENCES wheel_areas(id) ON DELETE CASCADE,
+          level INTEGER NOT NULL DEFAULT 5, title TEXT NOT NULL DEFAULT '',
+          ord INTEGER NOT NULL DEFAULT 0
+        );
         CREATE TABLE IF NOT EXISTS work_log(
           id INTEGER PRIMARY KEY, date TEXT NOT NULL DEFAULT (date('now')),
           note TEXT NOT NULL DEFAULT ''

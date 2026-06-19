@@ -40,6 +40,9 @@ const sphApi = {
   patch: (id, b) => fetch('/api/psy/areas/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }),
   stepTask: id => fetch('/api/psy/areas/' + id + '/task', { method: 'POST' }),
   toggle: id => fetch('/api/nodes/' + id + '/toggle', { method: 'POST' }),
+  msAdd: (areaId, level, title) => fetch('/api/spheres/milestone', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ areaId, level, title }) }),
+  msPatch: (id, b) => fetch('/api/spheres/milestone/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }),
+  msDel: id => fetch('/api/spheres/milestone/' + id, { method: 'DELETE' }),
 };
 
 function sphRing(score, col, size = 48) {
@@ -209,6 +212,36 @@ function block(label, jump, inner) {
   return `<div class="sec">${label} <span class="muted" style="font-weight:400">· ${jump}</span></div><div class="card">${inner}</div>`;
 }
 
+// KPI-плитка метрики: иконка, имя, значение, % к цели (или спарклайн, если цели нет)
+function sphKpiTile(m) {
+  const pct = (m.target != null && m.target && m.v != null) ? Math.round(m.v / m.target * 100) : null;
+  const sub = pct != null
+    ? `<div class="sphk-bar"><i style="width:${Math.max(0, Math.min(100, pct))}%"></i></div><div class="sphk-p">${pct}% → ${m.target}${sesc(m.unit)}</div>`
+    : `<div class="sphk-p">${m.s && m.s.length > 1 ? sphSpark(m.s, 72, 16) : '<span class="muted">задай цель 🎯</span>'}</div>`;
+  return `<div class="sphk"><div class="sphk-n">📊 ${sesc(m.name)}</div><div class="sphk-v">${m.v ?? '–'}<small>${sesc(m.unit)}</small></div>${sub}</div>`;
+}
+// дорожная карта «путь к 10»: вехи по уровням, «ты здесь» по оценке, правка прямо тут
+function sphRoadmap(s) {
+  const ms = (s.milestones || []).slice().sort((a, b) => a.level - b.level);
+  const score = s.score ?? 0;
+  const hereIdx = ms.findIndex(m => m.level > score);
+  const done = ms.filter(m => m.level <= score).length;
+  const rows = ms.map((m, idx) => {
+    const isDone = m.level <= score, here = idx === hereIdx;
+    return `<div class="sph-rm ${isDone ? 'done' : ''} ${here ? 'here' : ''}">
+      <span class="sph-rk">${m.level}/10</span>
+      <span class="sph-rt" data-msedit="${m.id}" title="клик — правка">${m.title ? sesc(m.title) : '<span class="muted">без названия</span>'}</span>
+      ${here ? `<span class="pill btn ok" data-msreach="${s.id}:${m.level}" title="поставить оценку ${m.level}">✓ достиг</span>`
+        : (isDone ? '<span style="color:var(--green-dim)">✓</span>' : '<span class="sphb">впереди</span>')}
+      <span class="rowbtn del" data-msdel="${m.id}">✕</span>
+    </div>`;
+  }).join('');
+  const head = ms.length ? `<div class="task" style="border:0;padding:2px 0"><span class="t muted" style="font-size:12px">пройдено ${done}/${ms.length} вех</span><span class="pbar2" style="max-width:150px"><i style="width:${Math.round(done / ms.length * 100)}%"></i></span></div>` : '';
+  return block('🗺 Путь к 10 · вехи', 'редактируется тут',
+    head + (rows || '<div class="empty">добавь вехи маршрута к 10 ↓</div>')
+    + `<div class="task finadd"><input class="sphmsadd" data-msadd="${s.id}" placeholder="＋ веха: «6 €500к капитала» (уровень + текст) · Enter"></div>`);
+}
+
 function sphDetail(s, i) {
   const col = colOf(i);
   let h = `<div class="sph-crumb"><a id="sphBack">← Сферы</a></div>
@@ -226,6 +259,11 @@ function sphDetail(s, i) {
       <div class="sph-rung step" data-edit="step"><span class="sph-rl">👉 шаг к +1</span><span class="sph-rv">${s.step ? '<b>' + sesc(s.step) + '</b>' : '<span class="muted">конкретный шаг (клик)</span>'}</span></div>
     </div>
     <div style="margin:7px 0 2px"><span class="pill btn" id="sphStepTask">＋ шаг в задачи</span> <span class="muted" style="font-size:12px">шаги для +1 ведёшь задачами и трекингом ниже ↓</span></div>`;
+
+  // KPI-шапка: все метрики сферы как % к цели отдельными плитками
+  if (s.tracking && s.tracking.length) h += `<div class="sphkpi">${s.tracking.map(sphKpiTile).join('')}</div>`;
+  // путь к 10 — дорожная карта вехами (редактируется прямо тут)
+  h += sphRoadmap(s);
 
   // живой прогресс из данных (без дублей с блоками ниже)
   const pr = s.progress || {};
@@ -354,6 +392,23 @@ function bindDetail(s) {
     if (v != null) { await sphApi.patch(s.id, { [f]: v.trim() }); window.loadSpheres(); }
   });
   document.querySelectorAll('#screen-spheres [data-tog]').forEach(c => c.onclick = async () => { await sphApi.toggle(+c.dataset.tog); window.loadSpheres(); });
+  // вехи «пути к 10»
+  document.querySelectorAll('#screen-spheres [data-msedit]').forEach(el => el.onclick = async () => {
+    const v = prompt('Текст вехи:', el.textContent.trim()); if (v == null) return;
+    await sphApi.msPatch(+el.dataset.msedit, { title: v.trim() }); window.loadSpheres();
+  });
+  document.querySelectorAll('#screen-spheres [data-msdel]').forEach(el => el.onclick = async () => {
+    if (confirm('Удалить веху?')) { await sphApi.msDel(+el.dataset.msdel); window.loadSpheres(); }
+  });
+  document.querySelectorAll('#screen-spheres [data-msreach]').forEach(el => el.onclick = async () => {
+    const [id, level] = el.dataset.msreach.split(':'); await sphApi.score(+id, +level); window.loadSpheres();
+  });
+  document.querySelectorAll('#screen-spheres [data-msadd]').forEach(el => el.addEventListener('keydown', async e => {
+    if (e.key !== 'Enter' || !el.value.trim()) return;
+    const parts = el.value.trim().split(/\s+/); let level = parseInt(parts[0], 10), title;
+    if (level >= 1 && level <= 10) title = parts.slice(1).join(' '); else { level = (s.score ?? 0) + 1; title = el.value.trim(); }
+    await sphApi.msAdd(+el.dataset.msadd, Math.max(1, Math.min(10, level)), title.trim()); window.loadSpheres();
+  }));
   // клик по задаче — открыть в Целях (полная карточка: текст/заметки/связи)
   document.querySelectorAll('#screen-spheres [data-tnode]').forEach(el => el.onclick = () => { if (window.openNode) window.openNode(+el.dataset.tnode); });
   // клик по странице инфо — открыть нужную заметку в разделе Инфо
@@ -434,6 +489,16 @@ function ensureSphStyle() {
     .sphb{font:600 10px var(--mono);border-radius:20px;padding:2px 8px;white-space:nowrap}.sphb.fire{background:rgba(196,63,63,.12);color:var(--red)}.sphb.soon{background:rgba(168,119,8,.14);color:var(--amber)}
     .tgt{font-size:11px;color:var(--amber);margin-top:2px}
     .strk{color:var(--amber)!important;font-weight:600}
+    .sphkpi{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin:12px 0 4px}
+    .sphk{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:9px 11px;box-shadow:var(--shadow-sm)}
+    .sphk-n{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .sphk-v{font:700 19px var(--mono);line-height:1.1;margin:2px 0}.sphk-v small{font-size:11px;color:var(--muted);margin-left:2px}
+    .sphk-bar{height:5px;border-radius:99px;background:var(--bg2);overflow:hidden;margin-top:4px}.sphk-bar i{display:block;height:100%;background:var(--green-dim)}
+    .sphk-p{font:600 10px var(--mono);color:var(--muted);margin-top:4px}
+    .sph-rm{display:flex;gap:9px;align-items:center;padding:6px 0;border-top:1px solid var(--bg2);font-size:13.5px}.sph-rm:first-child{border-top:0}
+    .sph-rk{font:700 10px var(--mono);color:var(--muted);width:38px;flex:0 0 auto}
+    .sph-rt{flex:1;min-width:0;cursor:text}.sph-rm.done .sph-rt{color:var(--muted);text-decoration:line-through}
+    .sph-rm.here{background:rgba(168,119,8,.08);border-radius:8px;margin:0 -8px;padding:6px 8px}.sph-rm.here .sph-rt{font-weight:700}
     .catrow{display:flex;align-items:center;gap:10px;padding:5px 0;border-top:1px solid var(--bg2)}.catrow:first-child{border-top:0}
     .catt{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.catt.on{font-weight:700;color:var(--green)}
     .catrow select{flex:0 0 auto;max-width:190px;border:1px solid var(--line);border-radius:8px;padding:5px 8px;font:12.5px var(--sans);background:var(--bg)}

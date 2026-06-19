@@ -354,6 +354,23 @@ enum Api {
         }
         if method == "POST", path == "/api/spheres/automap" { return (try json(["mapped": try autoMapCategories(db)]), 200) }
         if method == "POST", path == "/api/spheres/auto" { return (try json(try autoConfigSpheres(db, force: true)), 200) }
+        // ----- Вехи «пути к 10» -----
+        if method == "POST", path == "/api/spheres/milestone" {
+            guard let area = numOpt(body["areaId"]).map({ Int($0) }) else { return (try json(["error": "areaId required"]), 400) }
+            let level = max(1, min(10, Int(num(body["level"]).rounded())))
+            let title = (body["title"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            try db.run("INSERT INTO area_milestones(area_id, level, title, ord) VALUES(?,?,?, (SELECT COALESCE(MAX(ord),0)+1 FROM area_milestones))", [area, level, title])
+            return (ok(201), 201)
+        }
+        if let m = match(path, "^/api/spheres/milestone/([0-9]+)$") {
+            let id = Int(m[1]) ?? -1
+            if method == "PATCH" {
+                if let t = body["title"] as? String { try db.run("UPDATE area_milestones SET title = ? WHERE id = ?", [t, id]) }
+                if body["level"] != nil { try db.run("UPDATE area_milestones SET level = ? WHERE id = ?", [max(1, min(10, Int(num(body["level"]).rounded()))), id]) }
+                return (ok(), 200)
+            }
+            if method == "DELETE" { try db.run("DELETE FROM area_milestones WHERE id = ?", [id]); return (ok(), 200) }
+        }
         if method == "POST", path == "/api/nodes" {
             guard let title = (body["title"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
                   !title.isEmpty else { return (try json(["error": "title required"]), 400) }
