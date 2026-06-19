@@ -1,0 +1,6 @@
+# Пример файла для пакетного режима:  python migrate.py --batch domains.csv
+# По одной паре в строке: старый_домен,новый_домен
+# Пустые строки и строки с # игнорируются.
+
+old-site-one.ru,new-site-one.ru
+old-site-two.ru,new-site-two.ru

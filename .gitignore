@@ -1,0 +1,16 @@
+# Секреты — НИКОГДА не коммитим
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Локальные списки доменов
+domains.csv
+
+# Редакторы / ОС
+.DS_Store
+.idea/
+.vscode/
