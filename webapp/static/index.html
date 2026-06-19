@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Site Migrator</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <div class="brand">🚚 Site Migrator</div>
+    <div class="spacer"></div>
+    <span id="token-status" class="badge"></span>
+    <button id="btn-settings" class="ghost">⚙ Токены</button>
+  </header>
+
+  <nav id="tabs" class="tabs"></nav>
+
+  <main id="panel" class="panel"></main>
+
+  <!-- Модальное окно токенов -->
+  <div id="settings" class="modal hidden">
+    <div class="modal-card">
+      <h2>Токены</h2>
+      <label>Cloudflare API Token
+        <input id="cf-token" type="password" placeholder="оставьте пустым, чтобы не менять" autocomplete="off">
+      </label>
+      <label>Яндекс OAuth-токен
+        <input id="ya-token" type="password" placeholder="оставьте пустым, чтобы не менять" autocomplete="off">
+      </label>
+      <p class="hint">Хранятся локально в <code>data/settings.json</code> (в git не попадают).
+        Как их получить — в <code>README.md</code>.</p>
+      <div class="row-end">
+        <button id="settings-cancel" class="ghost">Закрыть</button>
+        <button id="settings-save" class="primary">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

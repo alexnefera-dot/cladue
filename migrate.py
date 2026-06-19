@@ -19,30 +19,11 @@ import sys
 
 from migrator.cloudflare import Cloudflare
 from migrator.config import Config
+from migrator.domains import apex, normalize_domain, redirect_hosts
 from migrator.http import ApiError
 from migrator.yandex import Yandex
 
 VERIFY_TYPES = {"dns": "DNS_RECORD", "html": "HTML_FILE", "meta": "META_TAG"}
-
-
-def normalize_domain(value):
-    """Голый домен: без схемы и без пути. www сохраняется как есть."""
-    value = value.strip().lower()
-    for prefix in ("https://", "http://"):
-        if value.startswith(prefix):
-            value = value[len(prefix):]
-    return value.rstrip("/").split("/")[0]
-
-
-def apex(domain):
-    """Домен без префикса www (для поиска зоны Cloudflare)."""
-    return domain[4:] if domain.startswith("www.") else domain
-
-
-def redirect_hosts(old):
-    """Хосты, которые должны редиректиться: домен и его www-версия."""
-    base = apex(old)
-    return [base, f"www.{base}"]
 
 
 def place_proof(cf, new, kind, uin):

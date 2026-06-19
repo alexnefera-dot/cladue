@@ -67,6 +67,20 @@ class Cloudflare:
         return True
 
     # --- редирект (Single Redirect через Rulesets API) ---
+    def find_redirect(self, zone_id, host):
+        """Целевой адрес редиректа, созданного этим скриптом для host, или None."""
+        entry = self._req(
+            "GET", f"/zones/{zone_id}/rulesets/phases/{REDIRECT_PHASE}/entrypoint",
+            allow_404=True,
+        )
+        if not entry:
+            return None
+        for rule in entry.get("rules", []) or []:
+            desc = rule.get("description") or ""
+            if MARKER in desc and host in desc and " -> " in desc:
+                return desc.split(" -> ", 1)[1].strip()
+        return None
+
     def set_redirect(self, zone_id, match_hosts, target_base, status_code=301):
         """Правило редиректа всех путей перечисленных хостов на target_base с сохранением пути.
 
