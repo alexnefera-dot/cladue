@@ -30,6 +30,7 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         let made = try Database(key: k)
         try? made.run("DELETE FROM trash WHERE created_at < datetime('now','-30 days')")  // авто-очистка корзины
         try? made.run("ALTER TABLE nodes ADD COLUMN due_time TEXT")  // миграция: время у задач (тихо, если уже есть)
+        try? made.run("ALTER TABLE routines ADD COLUMN days TEXT NOT NULL DEFAULT ''")  // дни недели рутины (пусто = каждый день)
         Api.ensureSyncSchema(made)   // updated_at + триггеры + tombstones — отслеживание правок для синхрона
         Api.ensureSpheresSchema(made)   // area_id на таблицах — раздел «Сферы»
         if (try? made.rows("SELECT value FROM settings WHERE key = 'sphere_defaults'"))?.first == nil {
@@ -399,9 +400,9 @@ enum Api {
         if method == "POST", path == "/api/routines" {
             guard let name = name(body) else { return (nameErr(), 400) }
             let ord = nextOrd(db, "SELECT COALESCE(MAX(ord),0)+1 AS o FROM routines")
-            try db.run("INSERT INTO routines(name, slot, time, ord, note, planned) VALUES(?,?,?,?,?,?)",
+            try db.run("INSERT INTO routines(name, slot, time, ord, note, planned, days) VALUES(?,?,?,?,?,?,?)",
                 [name, body["slot"] as? String ?? "утро", body["time"] ?? NSNull(), ord, body["note"] as? String ?? "",
-                 (body["planned"] as? Bool == true || intval(body["planned"]) != 0) ? 1 : 0])
+                 (body["planned"] as? Bool == true || intval(body["planned"]) != 0) ? 1 : 0, body["days"] as? String ?? ""])
             return (ok(201), 201)
         }
         if let m = match(path, "^/api/routines/([0-9]+)/check$"), method == "POST" {
@@ -409,7 +410,7 @@ enum Api {
         }
         if let m = match(path, "^/api/routines/([0-9]+)$") {
             let id = Int(m[1]) ?? -1
-            if method == "PATCH" { try patchCols(db, "routines", id, ["name", "slot", "time", "note", "planned"], body); return (ok(), 200) }
+            if method == "PATCH" { try patchCols(db, "routines", id, ["name", "slot", "time", "note", "planned", "days"], body); return (ok(), 200) }
             if method == "DELETE" { try db.run("DELETE FROM routines WHERE id = ?", [id]); return (ok(), 200) }
         }
 

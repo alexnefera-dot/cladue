@@ -13,6 +13,32 @@ const lfApi = {
 };
 const lesc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const SLOTS = ['утро', 'день', 'вечер'];
+const DOW = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];   // ISO Пн=1..Вс=7
+// дни недели рутины: '' / 'daily' = каждый день; 'workdays' = Пн–Пт; CSV '1,3,5'
+window.rtDaySet = days => {
+  if (!days || days === 'daily') return new Set();          // пусто = каждый день
+  if (days === 'workdays') return new Set([1, 2, 3, 4, 5]);
+  return new Set(String(days).split(',').map(s => +s.trim()).filter(n => n >= 1 && n <= 7));
+};
+window.rtActiveToday = (days, now = new Date()) => {
+  const set = window.rtDaySet(days);
+  if (!set.size) return true;                                // каждый день
+  return set.has((now.getDay() + 6) % 7 + 1);               // JS Вс=0 → ISO
+};
+window.rtDaysShort = days => {
+  const set = window.rtDaySet(days);
+  if (!set.size) return '';                                  // каждый день — без метки
+  if (set.size === 5 && [1, 2, 3, 4, 5].every(d => set.has(d))) return 'Пн–Пт';
+  return [...set].sort((a, b) => a - b).map(d => DOW[d - 1]).join(' ');
+};
+(() => { if (document.getElementById('rt-days-style')) return;
+  const st = document.createElement('style'); st.id = 'rt-days-style';
+  st.textContent = '.rtdays{display:flex;gap:3px;align-items:center;flex-wrap:wrap;margin-top:3px}'
+    + '.rtd{font:600 10px var(--mono);color:var(--muted);background:var(--bg2);border:1px solid var(--line);border-radius:5px;padding:2px 5px;cursor:pointer;user-select:none}'
+    + '.rtd.on{background:var(--green);color:#fff;border-color:var(--green)}'
+    + '.rtd-lbl{font-size:11px;color:var(--muted);margin-left:3px}'
+    + '.task.rt-off{opacity:.5}';
+  document.head.appendChild(st); })();
 
 // ===== Рутины =====
 window.loadRoutines = async function () {
@@ -21,18 +47,21 @@ window.loadRoutines = async function () {
   const planned = await fetch('/api/routines/planned').then(r => r.json()).catch(() => []);
   document.getElementById('screen-routines').innerHTML = `
   <h2 style="margin-bottom:2px">Рутины</h2>
-  <div class="muted" style="margin-bottom:14px">микро-действия отдельно от задач · пропуск не висит долгом · сегодня: ${rows.filter(r => r.done).length}/${rows.length}</div>
+  <div class="muted" style="margin-bottom:14px">микро-действия отдельно от задач · пропуск не висит долгом · сегодня: ${rows.filter(r => window.rtActiveToday(r.days) && r.done).length}/${rows.filter(r => window.rtActiveToday(r.days)).length}</div>
   <div class="fingrid">
     ${SLOTS.map(slot => `
       <div class="card"><div class="meta">${slot.toUpperCase()}</div>
-        ${rows.filter(r => r.slot === slot).map(r => `
-          <div class="task">
+        ${rows.filter(r => r.slot === slot).map(r => {
+          const set = window.rtDaySet(r.days), off = !window.rtActiveToday(r.days);
+          return `
+          <div class="task${off ? ' rt-off' : ''}">
             <span class="cb ${r.done ? 'done' : ''}" data-lfcheck="${r.id}"></span>
             <span class="t ${r.done ? 'done' : ''} ed" data-lfren="${r.id}" title="клик — переименовать">${lesc(r.name)}</span>
             <span class="ed meta num" data-lftime="${r.id}" title="фикс. время — напоминание (клик)">${r.time ? '⏰ ' + r.time : '+время'}</span>
             ${r.streak ? `<span class="meta">🔥 ${r.streak}</span>` : ''}
             <span class="rowbtn del" data-lfdel="${r.id}">✕</span>
-          </div>`).join('') || '<div class="empty">пусто</div>'}
+            <div class="rtdays" data-lfdaysid="${r.id}">${DOW.map((d, i) => `<span class="rtd ${set.has(i + 1) ? 'on' : ''}" data-d="${i + 1}">${d}</span>`).join('')}${set.size ? '' : '<span class="rtd-lbl">каждый день</span>'}</div>
+          </div>`; }).join('') || '<div class="empty">пусто</div>'}
       </div>`).join('')}
   </div>
   <div class="card"><div class="task finadd">
@@ -61,6 +90,15 @@ window.loadRoutines = async function () {
 
   document.querySelectorAll('#screen-routines [data-lfcheck]').forEach(el =>
     el.addEventListener('click', async () => { await lfApi.rCheck(+el.dataset.lfcheck); window.loadRoutines(); }));
+  // переключить день недели рутины: пусто/все 7 = каждый день, иначе CSV (Пн=1..Вс=7)
+  document.querySelectorAll('#screen-routines [data-lfdaysid] .rtd').forEach(el =>
+    el.addEventListener('click', async () => {
+      const wrap = el.closest('[data-lfdaysid]'), id = +wrap.dataset.lfdaysid;
+      const cur = new Set([...wrap.querySelectorAll('.rtd.on')].map(x => +x.dataset.d));
+      const d = +el.dataset.d; cur.has(d) ? cur.delete(d) : cur.add(d);
+      const days = (cur.size === 0 || cur.size === 7) ? '' : [...cur].sort((a, b) => a - b).join(',');
+      await lfApi.rPatch(id, { days }); window.loadRoutines();
+    }));
   document.querySelectorAll('#screen-routines [data-lfren]').forEach(el =>
     el.addEventListener('click', async () => {
       const v = prompt('Название рутины:', el.textContent.trim());
@@ -146,7 +184,10 @@ window.pbSyncAllReminders = async function () {
   try {
     for (const r of await lfApi.routines()) if (r.time) {
       const [h, m] = r.time.split(':').map(Number);
-      items.push({ id: 'routine-' + r.id, title: '⏰ ' + r.name, body: `Рутина на ${r.time} — пора`, hour: h, minute: m, daily: true });
+      const base = { id: 'routine-' + r.id, title: '⏰ ' + r.name, body: `Рутина на ${r.time} — пора`, hour: h, minute: m };
+      const set = window.rtDaySet(r.days);
+      if (!set.size) items.push({ ...base, daily: true });               // каждый день
+      else items.push({ ...base, weekdays: [...set] });                  // только выбранные дни
     }
   } catch {}
   try {

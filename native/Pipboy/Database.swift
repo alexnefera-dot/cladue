@@ -233,7 +233,7 @@ final class Database {
         CREATE TABLE IF NOT EXISTS routines(
           id INTEGER PRIMARY KEY, name TEXT NOT NULL, slot TEXT NOT NULL DEFAULT 'утро',
           ord INTEGER NOT NULL DEFAULT 0, note TEXT NOT NULL DEFAULT '',
-          planned INTEGER NOT NULL DEFAULT 0, time TEXT
+          planned INTEGER NOT NULL DEFAULT 0, time TEXT, days TEXT NOT NULL DEFAULT ''
         );
         CREATE TABLE IF NOT EXISTS routine_log(
           routine_id INTEGER NOT NULL REFERENCES routines(id) ON DELETE CASCADE,

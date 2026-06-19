@@ -89,7 +89,8 @@ function renderToday() {
   const d = tdData;
   const dt = new Date(d.date + 'T00:00:00');
   const pct = d.progress.total ? Math.round(d.progress.typed / d.progress.total * 100) : 0;
-  const rDone = d.routines.filter(r => r.done).length;
+  const rts = d.routines.filter(r => !window.rtActiveToday || window.rtActiveToday(r.days));   // только рутины на сегодня
+  const rDone = rts.filter(r => r.done).length;
 
   document.getElementById('screen-today').innerHTML = `
   <h2 style="margin-bottom:2px">Сегодня</h2>
@@ -121,8 +122,8 @@ function renderToday() {
              <span class="pill btn" data-tdmood="2" style="font-size:16px">😐</span>
              <span class="pill btn" data-tdmood="3" style="font-size:16px">🙂</span></div>
            <div class="meta">какой день? 10 секунд · 📊 Трекинг</div>`}</div>
-    <div class="card"><div class="meta">РУТИНЫ · ${rDone}/${d.routines.length} · по времени</div>
-      ${d.routines.slice(0, 5).map(r => `
+    <div class="card"><div class="meta">РУТИНЫ · ${rDone}/${rts.length} · по времени</div>
+      ${rts.slice(0, 5).map(r => `
         <div class="task" style="padding:4px 0">
           <span class="cb ${r.done ? 'done' : ''}" data-tdroutine="${r.id}"></span>
           ${r.time ? `<span class="meta num ${r.due ? 'amber' : ''}">${r.time}</span>` : ''}
@@ -130,7 +131,7 @@ function renderToday() {
           ${r.due ? '<span class="pill p1">пора!</span>' : ''}
           ${r.streak ? `<span class="meta">🔥 ${r.streak}</span>` : ''}
         </div>`).join('') || '<div class="empty">добавь рутины в разделе ↻</div>'}
-      ${d.routines.length > 5 ? `<div class="meta" style="cursor:pointer" data-tdgoto="routines">все ${d.routines.length} →</div>` : ''}</div>
+      ${rts.length > 5 ? `<div class="meta" style="cursor:pointer" data-tdgoto="routines">все ${rts.length} →</div>` : ''}</div>
   </div>
 
   ${d.overdue.length ? `<div class="sec" style="color:var(--red)">⚠ Просрочено</div>
@@ -188,7 +189,8 @@ function renderTodayMobile() {
   const d = tdData;
   const dt = new Date(d.date + 'T00:00:00');
   const pct = d.progress.total ? Math.round(d.progress.typed / d.progress.total * 100) : 0;
-  const rDone = d.routines.filter(r => r.done).length;
+  const rts = d.routines.filter(r => !window.rtActiveToday || window.rtActiveToday(r.days));   // только рутины на сегодня
+  const rDone = rts.filter(r => r.done).length;
   const moods = ['', '😞', '😐', '🙂'];
 
   // компактная строка-задача для телефона (крупная зона тапа)
@@ -239,9 +241,9 @@ function renderTodayMobile() {
   <div class="card">${d.dueToday.map(mTask).join('') ||
     '<div class="empty">сроков на сегодня нет</div>'}</div>
 
-  <div class="sec">Рутины · ${rDone}/${d.routines.length}</div>
+  <div class="sec">Рутины · ${rDone}/${rts.length}</div>
   <div class="card">
-    ${d.routines.slice(0, 6).map(r => `
+    ${rts.slice(0, 6).map(r => `
       <div class="task">
         <span class="cb ${r.done ? 'done' : ''}" data-tdroutine="${r.id}"></span>
         ${r.time ? `<span class="meta num ${r.due ? 'amber' : ''}">${r.time}</span>` : ''}
@@ -249,7 +251,7 @@ function renderTodayMobile() {
         ${r.due ? '<span class="pill p1">пора!</span>' : ''}
         ${r.streak ? `<span class="meta">🔥 ${r.streak}</span>` : ''}
       </div>`).join('') || '<div class="empty">добавь рутины в разделе ↻</div>'}
-    ${d.routines.length > 6 ? `<div class="meta" style="cursor:pointer;padding-top:6px" data-tdgoto="routines">все ${d.routines.length} →</div>` : ''}</div>
+    ${rts.length > 6 ? `<div class="meta" style="cursor:pointer;padding-top:6px" data-tdgoto="routines">все ${rts.length} →</div>` : ''}</div>
 
   ${d.events.length ? `<div class="sec">События · сегодня и завтра</div>
   <div class="card">
