@@ -7,6 +7,7 @@ from .http import ApiError
 
 MARKER = "[site-migrator]"
 REDIRECT_PHASE = "http_request_dynamic_redirect"
+REDIRECT_RULE_NAME = "redirect-all"
 
 
 class Cloudflare:
@@ -67,8 +68,13 @@ class Cloudflare:
         return True
 
     # --- редирект (Single Redirect через Rulesets API) ---
-    def find_redirect(self, zone_id, host):
-        """Целевой адрес редиректа, созданного этим скриптом для host, или None."""
+    def find_redirect(self, zone_id, host=None):
+        """Целевой адрес действующего редиректа в зоне или None.
+
+        Понимает оба формата правил: статический target_url.value (семантика
+        исполнителя) и concat(...) с сохранением пути, а также старое описание
+        вида '... -> https://target'.
+        """
         entry = self._req(
             "GET", f"/zones/{zone_id}/rulesets/phases/{REDIRECT_PHASE}/entrypoint",
             allow_404=True,
@@ -76,8 +82,19 @@ class Cloudflare:
         if not entry:
             return None
         for rule in entry.get("rules", []) or []:
+            if rule.get("action") != "redirect":
+                continue
+            target_url = (
+                ((rule.get("action_parameters") or {}).get("from_value") or {})
+                .get("target_url") or {}
+            )
+            if target_url.get("value"):
+                return target_url["value"]
+            expr = target_url.get("expression") or ""
+            if '"' in expr:  # concat("https://target", ...)
+                return expr.split('"')[1]
             desc = rule.get("description") or ""
-            if MARKER in desc and host in desc and " -> " in desc:
+            if " -> " in desc:
                 return desc.split(" -> ", 1)[1].strip()
         return None
 
@@ -121,3 +138,70 @@ class Cloudflare:
                 self._req("DELETE",
                           f"/zones/{zone_id}/rulesets/{ruleset_id}/rules/{existing['id']}")
         self._req("POST", f"/zones/{zone_id}/rulesets/{ruleset_id}/rules", json_body=rule)
+
+    def upsert_redirect_all(self, zone_id, target, status_code=301):
+        """Заменяет весь ruleset фазы редиректа одним правилом: всё → https://target.
+
+        Семантика исполнителя: сохраняется query-строка, путь сбрасывается на корень.
+        """
+        rule = {
+            "action": "redirect",
+            "expression": "true",
+            "description": REDIRECT_RULE_NAME,
+            "action_parameters": {"from_value": {
+                "status_code": status_code,
+                "target_url": {"value": f"https://{target}"},
+                "preserve_query_string": True,
+            }},
+        }
+        self._req(
+            "PUT", f"/zones/{zone_id}/rulesets/phases/{REDIRECT_PHASE}/entrypoint",
+            json_body={"rules": [rule]},
+        )
+
+    # --- онбординг новой зоны ---
+    def create_zone(self, domain, account_id):
+        """Создаёт зону; если она уже есть в аккаунте — возвращает её id (идемпотентно)."""
+        try:
+            result = self._req("POST", "/zones", json_body={
+                "name": domain, "account": {"id": account_id}, "jump_start": False,
+            })
+            return result["id"]
+        except ApiError:
+            existing = self.get_zone_id(domain)
+            if existing:
+                return existing
+            raise
+
+    def patch_setting(self, zone_id, name, value):
+        """PATCH одной настройки зоны (ssl, always_use_https, tls_1_3, …)."""
+        return self._req("PATCH", f"/zones/{zone_id}/settings/{name}",
+                         json_body={"value": value})
+
+    def patch_bot_management(self, zone_id, **fields):
+        """PUT настроек бот-менеджмента (ai_bots_protection, cf_robots_variant, …)."""
+        return self._req("PUT", f"/zones/{zone_id}/bot_management", json_body=fields)
+
+    def get_nameservers(self, zone_id):
+        result = self._req("GET", f"/zones/{zone_id}")
+        return (result or {}).get("name_servers", [])
+
+    # --- Workers Routes ---
+    def list_worker_routes(self, zone_id):
+        return self._req("GET", f"/zones/{zone_id}/workers/routes") or []
+
+    def add_worker_route(self, zone_id, pattern, script):
+        """Привязывает существующий воркер script к pattern. Идемпотентно по pattern.
+
+        Возвращает 'created' | 'updated' | 'exists'.
+        """
+        for route in self.list_worker_routes(zone_id):
+            if route.get("pattern") == pattern:
+                if route.get("script") == script:
+                    return "exists"
+                self._req("PUT", f"/zones/{zone_id}/workers/routes/{route['id']}",
+                         json_body={"pattern": pattern, "script": script})
+                return "updated"
+        self._req("POST", f"/zones/{zone_id}/workers/routes",
+                 json_body={"pattern": pattern, "script": script})
+        return "created"
