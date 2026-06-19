@@ -200,7 +200,7 @@ function renderPanel() {
   );
   card.append(grid);
   card.append(el("button", { class: "ghost small", style: "margin:2px 0 4px",
-    onclick: doNewMigration }, "↻ Новый переезд (текущий новый домен → в зеркала)"));
+    onclick: doNewMigration }, "↻ Новый переезд (домен из поля → в зеркала)"));
 
   const verify = el("select", { onchange: (e) => { p.verify = e.target.value; persistProjects(); } },
     el("option", { value: "dns" }, "DNS — авто через Cloudflare"),
@@ -327,15 +327,24 @@ async function doMigrate() {
   } catch (e) { toast(e.message, true); } finally { setBusy(false); }
 }
 
-async function onCsvChosen(e) {
-  const file = e.target.files[0];
-  e.target.value = "";           // позволить выбрать тот же файл снова
-  if (!file) return;
-  setBusy(true, "Разбираю CSV…");
+function fileToB64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).split(",")[1] || "");
+    r.onerror = () => reject(new Error("Не удалось прочитать файл " + file.name));
+    r.readAsDataURL(file);
+  });
+}
+
+async function onFilesChosen(e) {
+  const files = [...e.target.files];
+  e.target.value = "";           // позволить выбрать те же файлы снова
+  if (!files.length) return;
+  setBusy(true, "Читаю файлы…");
   try {
-    const text = await file.text();
-    const res = await api("POST", "/api/import-csv", { csv: text, projects: state.projects });
-    if (!res.projects.length) { toast("В CSV не нашлось проектов. " + res.summary, true); return; }
+    const payload = await Promise.all(files.map(async (f) => ({ name: f.name, b64: await fileToB64(f) })));
+    const res = await api("POST", "/api/import-files", { files: payload, projects: state.projects });
+    if (!res.projects.length) { toast("В файлах не нашлось проектов. " + res.summary, true); return; }
     if (!confirm(`${res.summary}\n\nЗаменить текущий список проектов найденными?`)) return;
     state.projects = res.projects;
     state.active = 0;
@@ -533,7 +542,7 @@ async function init() {
   $("#btn-settings").addEventListener("click", openSettings);
   $("#btn-import").addEventListener("click", doImportCF);
   $("#btn-import-csv").addEventListener("click", () => $("#csv-file").click());
-  $("#csv-file").addEventListener("change", onCsvChosen);
+  $("#csv-file").addEventListener("change", onFilesChosen);
   $("#settings-cancel").addEventListener("click", closeSettings);
   $("#settings-save").addEventListener("click", saveSettings);
   $("#add-account").addEventListener("click", () => $("#accounts").append(accountRow(null)));

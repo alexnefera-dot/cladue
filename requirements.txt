@@ -1,4 +1,6 @@
 # Site Migrator — зависимости.
 # Cloudflare, Spaceship и Яндекс работают на стандартной библиотеке Python.
-# Единственная внешняя зависимость — SSH-клиент для управления сервером ISPmanager.
+# paramiko — SSH-клиент для управления сервером ISPmanager.
+# openpyxl — чтение .xlsx при импорте проектов (каждый лист = вкладка).
 paramiko>=3.4.0
+openpyxl>=3.1.0

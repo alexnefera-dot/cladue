@@ -364,6 +364,100 @@ def import_from_csv(csv_text, existing_projects=None):
             "summary": f"проектов: {len(projects)}, зеркал: {sum(len(p['mirrors']) for p in projects)}"}
 
 
+def _summary(projects):
+    return f"проектов: {len(projects)}, зеркал: {sum(len(p['mirrors']) for p in projects)}"
+
+
+def _group_projects(records, existing_projects=None):
+    """records: итерируемое из (row, source_name). Группирует по «Целевой домен»;
+    source_name (имя листа) становится названием новой вкладки."""
+    existing = {normalize_domain(p.get("new_domain", "")): p
+                for p in (existing_projects or []) if p.get("new_domain")}
+    groups, seen, new_account, source = {}, set(), {}, {}
+    for row, src in records:
+        target = normalize_domain((row.get("Целевой домен") or "").strip())
+        mirror = normalize_domain((row.get("Домен") or "").strip())
+        account = _acc((row.get("Профиль") or "").strip())
+        if not target or not mirror or (target, mirror) in seen:
+            continue
+        seen.add((target, mirror))
+        groups.setdefault(target, []).append({"domain": mirror, "account": account})
+        if src and target not in source:
+            source[target] = src
+        if normalize_domain((row.get("Новый домен") or "").strip()) == target and target not in new_account:
+            new_account[target] = account
+    projects = []
+    for target, mirrors in sorted(groups.items()):
+        prev = existing.get(target)
+        project = _project_from(target, mirrors, new_account.get(target, ""), prev)
+        if not prev and source.get(target):
+            project["name"] = source[target]
+        projects.append(project)
+    return projects
+
+
+def _csv_rows(text):
+    """Строки CSV как список dict со стрипнутыми ключами-заголовками."""
+    sample = text[:4096]
+    try:
+        delim = csv.Sniffer().sniff(sample, delimiters=";,\t").delimiter
+    except csv.Error:
+        first = sample.splitlines()[0] if sample.splitlines() else ""
+        delim = ";" if first.count(";") >= first.count(",") else ","
+    reader = csv.DictReader(io.StringIO(text), delimiter=delim)
+    cols = [(c or "").strip() for c in (reader.fieldnames or [])]
+    if "Домен" not in cols or "Целевой домен" not in cols:
+        raise ConfigError("Нужны колонки «Домен» и «Целевой домен» (как в domains.csv).")
+    return [{(k or "").strip(): (v or "") for k, v in row.items()} for row in reader]
+
+
+def _xlsx_records(data):
+    """Из .xlsx: (row, имя_листа) по всем листам, где есть нужные колонки."""
+    import openpyxl  # ленивый импорт — нужен только при импорте xlsx
+
+    workbook = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+    try:
+        for sheet in workbook.worksheets:
+            header = None
+            for raw in sheet.iter_rows(values_only=True):
+                if header is None:
+                    header = [(str(c).strip() if c is not None else "") for c in raw]
+                    if "Домен" not in header or "Целевой домен" not in header:
+                        break  # лист не похож на список доменов — пропускаем
+                    continue
+                row = {h: ("" if (i >= len(raw) or raw[i] is None) else str(raw[i]).strip())
+                       for i, h in enumerate(header) if h}
+                yield row, sheet.title
+    finally:
+        workbook.close()
+
+
+def import_from_files(files, existing_projects=None):
+    """Проекты из нескольких файлов: .csv/.txt и .xlsx (каждый лист = вкладка)."""
+    import base64
+
+    records = []
+    for f in files or []:
+        name = (f.get("name") or "").lower()
+        try:
+            data = base64.b64decode(f.get("b64") or "")
+        except Exception:
+            continue
+        if name.endswith(".xlsx"):
+            try:
+                records.extend(_xlsx_records(data))
+            except ImportError:
+                raise ConfigError("Для .xlsx нужен openpyxl — выполни: pip install -r requirements.txt")
+        else:
+            text = data.decode("utf-8-sig", errors="replace").lstrip("﻿")
+            try:
+                records.extend((r, "") for r in _csv_rows(text))
+            except ConfigError:
+                continue  # файл без нужных колонок — пропускаем
+    projects = _group_projects(records, existing_projects)
+    return {"projects": projects, "summary": _summary(projects)}
+
+
 # ------------------------------ импорт из Cloudflare ------------------------ #
 def import_from_cloudflare(existing_projects=None):
     """Реконструирует проекты по всем CF-аккаунтам: какие зоны куда редиректят.
