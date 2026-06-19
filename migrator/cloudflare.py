@@ -35,6 +35,17 @@ class Cloudflare:
         result = self._req("GET", "/zones", params={"name": domain})
         return result[0]["id"] if result else None
 
+    def list_zones(self):
+        """Все зоны аккаунта как [{id, name}] (с постраничной выборкой)."""
+        zones, page = [], 1
+        while True:
+            result = self._req("GET", "/zones", params={"per_page": 50, "page": page}) or []
+            zones.extend({"id": z["id"], "name": z["name"]} for z in result)
+            if len(result) < 50:
+                break
+            page += 1
+        return zones
+
     # --- DNS-записи ---
     def list_dns(self, zone_id, type=None, name=None):
         return self._req("GET", f"/zones/{zone_id}/dns_records",

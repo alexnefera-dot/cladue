@@ -298,6 +298,23 @@ async function doMigrate() {
   } catch (e) { toast(e.message, true); } finally { setBusy(false); }
 }
 
+async function doImportCF() {
+  if (!(state.settings.cf_accounts || []).length)
+    return toast("Сначала добавьте CF-аккаунты в Настройках", true);
+  if (!confirm("Просканировать все CF-аккаунты и собрать проекты из существующих редиректов?\nМожет занять до минуты.")) return;
+  setBusy(true, "Импорт из Cloudflare (сканирую зоны)…");
+  try {
+    const res = await api("POST", "/api/import-cloudflare", { projects: state.projects });
+    if (!res.projects.length) { toast("Редиректов не найдено. " + res.summary, true); return; }
+    if (!confirm(`${res.summary}\n\nЗаменить текущий список проектов найденными?`)) return;
+    state.projects = res.projects;
+    state.active = 0;
+    await api("POST", "/api/projects", { projects: state.projects });
+    render();
+    toast("Импортировано — " + res.summary);
+  } catch (e) { toast(e.message, true); } finally { setBusy(false); }
+}
+
 async function doCheck() {
   const p = activeProject(); if (!p) return;
   setBusy(true, "Проверяю статус…");
@@ -443,6 +460,7 @@ async function saveSettings() {
 // ---------- старт ----------
 async function init() {
   $("#btn-settings").addEventListener("click", openSettings);
+  $("#btn-import").addEventListener("click", doImportCF);
   $("#settings-cancel").addEventListener("click", closeSettings);
   $("#settings-save").addEventListener("click", saveSettings);
   $("#add-account").addEventListener("click", () => $("#accounts").append(accountRow(null)));

@@ -89,6 +89,9 @@ class Handler(BaseHTTPRequestHandler):
     def _migrate(self, body):
         return service.migrate_mirrors(body["project"], dry_run=bool(body.get("dry_run")))
 
+    def _import_cf(self, body):
+        return service.import_from_cloudflare(body.get("projects"))
+
     def _check(self, body):
         return service.check_status(body["project"])
 
@@ -104,6 +107,7 @@ class Handler(BaseHTTPRequestHandler):
         "/api/run-full": _run_full,
         "/api/step": _step,
         "/api/migrate": _migrate,
+        "/api/import-cloudflare": _import_cf,
         "/api/check": _check,
         "/api/yandex/prepare": _yandex_prepare,
         "/api/yandex/verify": _yandex_verify,

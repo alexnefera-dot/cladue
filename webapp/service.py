@@ -286,6 +286,57 @@ def check_status(project):
     return out
 
 
+# ------------------------------ импорт из Cloudflare ------------------------ #
+def import_from_cloudflare(existing_projects=None):
+    """Реконструирует проекты по всем CF-аккаунтам: какие зоны куда редиректят.
+
+    Зона с действующим редиректом → зеркало; цель редиректа → новый домен проекта.
+    Для уже существующих проектов (по новому домену) сохраняются воркер/донор/имя.
+    """
+    existing = {normalize_domain(p.get("new_domain", "")): p
+                for p in (existing_projects or []) if p.get("new_domain")}
+    accounts = [a for a in store.load_settings().get("cf_accounts", []) if a.get("api_token")]
+    if not accounts:
+        raise ConfigError("Нет CF-аккаунтов с токеном (см. Настройки).")
+
+    mirrors_by_target = {}   # целевой домен -> [{domain, account}]
+    zone_account = {}        # имя зоны -> аккаунт (где она найдена)
+    scanned = 0
+    for acc in accounts:
+        cf = Cloudflare(acc["api_token"])
+        for zone in cf.list_zones():
+            scanned += 1
+            zone_account.setdefault(zone["name"], acc["name"])
+            try:
+                target = cf.find_redirect(zone["id"])
+            except ApiError:
+                target = None
+            if target:
+                t = normalize_domain(target)
+                if t and t != zone["name"]:
+                    mirrors_by_target.setdefault(t, []).append(
+                        {"domain": zone["name"], "account": acc["name"]})
+
+    projects = []
+    for target, mirrors in sorted(mirrors_by_target.items()):
+        prev = existing.get(target)
+        projects.append({
+            "id": prev.get("id") if prev else "p_" + target.replace(".", "_"),
+            "name": prev.get("name") if prev else target.split(".")[0],
+            "new_domain": target,
+            "new_account": (prev.get("new_account") if prev else "") or zone_account.get(target, ""),
+            "worker": prev.get("worker", "") if prev else "",
+            "donor_domain": prev.get("donor_domain", "") if prev else "",
+            "verify": prev.get("verify", "dns") if prev else "dns",
+            "mirrors": mirrors,
+        })
+    return {
+        "projects": projects,
+        "scanned": scanned,
+        "summary": f"аккаунтов: {len(accounts)}, зон просканировано: {scanned}, проектов найдено: {len(projects)}",
+    }
+
+
 # ----------------------------------- Яндекс --------------------------------- #
 def yandex_prepare(project):
     new = _new_domain(project)
