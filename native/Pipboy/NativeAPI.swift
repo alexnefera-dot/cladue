@@ -2743,6 +2743,19 @@ final class SyncService: ObservableObject {
     private var autoTimer: Timer?
     private var watchdog: Timer?              // обрывает зависший обмен, чтобы busy не залип навсегда
     private var confirmCont: ((Bool) -> Void)?   // продолжение гейта сверки кода (ждёт «совпадает/нет»)
+    private var bgCompletion: ((Bool) -> Void)?  // колбэк завершения для фоновой задачи (BGAppRefreshTask)
+
+    static weak var shared: SyncService?      // ссылка для фоновой задачи (один экземпляр в приложении)
+    init() { SyncService.shared = self }
+
+    // Один проход синхрона для «мягкого фона»: как autoSyncNow, но с колбэком завершения.
+    // Вызывается из BGAppRefreshTask только когда ключ базы ещё в памяти.
+    func backgroundSyncOnce(_ completion: @escaping (Bool) -> Void) {
+        guard SyncTrust.paired, SyncTrust.autoEnabled, !busy else { completion(false); return }
+        bgCompletion = completion
+        autoMode = true; browseRetries = 0
+        startBrowse()
+    }
 
     // ----- раздать данные (источник) -----
     func host(auto: Bool = false) {
@@ -2895,6 +2908,7 @@ final class SyncService: ObservableObject {
         if ok { lastDone = Date(); if let p = pendingPeer { SyncTrust.trustedPeer = p } }   // запомнить пир
         pendingPeer = nil
         connection?.cancel(); connection = nil   // листенер в авто-режиме остаётся — примет следующий
+        if let cb = bgCompletion { bgCompletion = nil; DispatchQueue.main.async { cb(ok) } }   // завершить фоновую задачу
         if ok && !wasPaired { DispatchQueue.main.async { self.autoStart() } }   // первая связка прошла → включить авто
     }
 

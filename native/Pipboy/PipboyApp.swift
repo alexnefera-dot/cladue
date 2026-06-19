@@ -14,6 +14,7 @@ struct PipboyApp: App {
     @State private var reloadToken = 0          // ++ после применения снимка → перезагрузка фронта
     #if os(iOS)
     @Environment(\.scenePhase) private var scenePhase
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate   // регистрирует фоновый синхрон при старте
     #endif
 
     var body: some Scene {
@@ -39,7 +40,7 @@ struct PipboyApp: App {
             }
             #if os(iOS)
             .onChange(of: scenePhase) { phase in
-                if phase == .background { unlocked = false; sync.autoStop() }   // ушёл из приложения → замок
+                if phase == .background { unlocked = false; sync.autoStop(); BackgroundSync.schedule() }   // запер + заявка на фоновый синхрон
                 else if phase == .active && unlocked { sync.autoStart() }       // вернулся → синхрон
             }
             #endif
