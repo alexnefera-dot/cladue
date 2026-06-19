@@ -49,9 +49,13 @@
       </section>
 
       <section>
-        <h3>Яндекс.Вебмастер</h3>
-        <label>OAuth-токен<input id="ya-token" type="password" autocomplete="off"
-          placeholder="оставьте пустым, чтобы не менять"></label>
+        <h3>Яндекс.Вебмастер — аккаунты по брендам</h3>
+        <p class="hint">Добавь по аккаунту на каждый Вебмастер. Во вкладке выберешь нужный.
+          Пустой токен при сохранении не затирает сохранённый.</p>
+        <div id="ya-accounts"></div>
+        <button id="add-ya-account" class="ghost small">+ аккаунт Яндекса</button>
+        <label style="margin-top:12px">Общий токен (если у вкладки не выбран свой)
+          <input id="ya-token" type="password" autocomplete="off" placeholder="необязательно"></label>
       </section>
 
       <div class="row-end">

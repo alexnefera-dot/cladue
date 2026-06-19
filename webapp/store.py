@@ -91,6 +91,23 @@ def _merge_settings(current, incoming):
             result.append(merged)
         out["cf_accounts"] = result
 
+    if "yandex_accounts" in incoming:
+        existing = {a.get("name"): a for a in (out.get("yandex_accounts") or [])}
+        result = []
+        for acc in incoming["yandex_accounts"] or []:
+            name = _clean(acc.get("name") or "")
+            if not name:
+                continue
+            merged = dict(existing.get(name, {}))
+            merged["name"] = name
+            token = _clean(acc.get("api_token") or "")
+            if token:
+                merged["api_token"] = token
+            else:
+                merged.setdefault("api_token", "")
+            result.append(merged)
+        out["yandex_accounts"] = result
+
     return out
 
 
@@ -117,6 +134,13 @@ def get_yandex_token():
     return load_settings().get("yandex_token") or os.environ.get("YANDEX_OAUTH_TOKEN")
 
 
+def get_yandex_account(name):
+    for a in load_settings().get("yandex_accounts", []):
+        if a.get("name") == name:
+            return a.get("api_token")
+    return None
+
+
 def get_server_ip():
     return load_settings().get("server_ip") or "5.45.75.15"
 
@@ -130,10 +154,14 @@ def masked_settings():
         "has_account_id": bool(a.get("account_id")),
         "has_spaceship": bool(a.get("spaceship_api_key") and a.get("spaceship_api_secret")),
     } for a in s.get("cf_accounts", [])]
+    ya_accounts = [{"name": a.get("name", ""), "has_token": bool(a.get("api_token"))}
+                   for a in s.get("yandex_accounts", [])]
     ssh = s.get("ssh", {})
     return {
         "cf_accounts": accounts,
         "account_names": [a.get("name", "") for a in s.get("cf_accounts", [])],
+        "yandex_accounts": ya_accounts,
+        "yandex_account_names": [a.get("name", "") for a in s.get("yandex_accounts", [])],
         "ssh": {
             "host": ssh.get("host", ""),
             "port": ssh.get("port", 22),

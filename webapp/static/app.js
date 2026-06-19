@@ -79,7 +79,8 @@ function renderTabs() {
 function addProject() {
   state.projects.push({
     id: "p_" + Date.now(), name: "Проект " + (state.projects.length + 1),
-    new_domain: "", new_account: "", worker: "", donor_domain: "", verify: "dns",
+    new_domain: "", new_account: "", worker: "", donor_domain: "",
+    verify: "dns", yandex_account: "",
     mirrors: [{ domain: "", account: "" }],
   });
   state.active = state.projects.length - 1;
@@ -102,6 +103,15 @@ function accountSelect(value, onchange) {
   const sel = el("select", { onchange: (e) => onchange(e.target.value) },
     el("option", { value: "" }, "— аккаунт —"),
     accountNames().map((n) => el("option", { value: n }, n)));
+  sel.value = value || "";
+  return sel;
+}
+
+function yandexSelect(value, onchange) {
+  const names = state.settings.yandex_account_names || [];
+  const sel = el("select", { onchange: (e) => onchange(e.target.value) },
+    el("option", { value: "" }, "— общий токен —"),
+    names.map((n) => el("option", { value: n }, n)));
   sel.value = value || "";
   return sel;
 }
@@ -189,13 +199,18 @@ function renderPanel() {
         oninput: (e) => { p.donor_domain = e.target.value; persistProjects(); } })),
   );
   card.append(grid);
+  card.append(el("button", { class: "ghost small", style: "margin:2px 0 4px",
+    onclick: doNewMigration }, "↻ Новый переезд (текущий новый домен → в зеркала)"));
 
   const verify = el("select", { onchange: (e) => { p.verify = e.target.value; persistProjects(); } },
-    el("option", { value: "dns" }, "Яндекс: DNS — авто через Cloudflare"),
-    el("option", { value: "html" }, "Яндекс: HTML-файл — вручную"),
-    el("option", { value: "meta" }, "Яндекс: мета-тег — вручную"));
+    el("option", { value: "dns" }, "DNS — авто через Cloudflare"),
+    el("option", { value: "html" }, "HTML-файл — вручную"),
+    el("option", { value: "meta" }, "мета-тег — вручную"));
   verify.value = p.verify || "dns";
-  card.append(field("Подтверждение прав в Яндексе", verify, true));
+  card.append(el("div", { class: "grid-fields" },
+    field("Аккаунт Яндекса (Вебмастер)",
+      yandexSelect(p.yandex_account, (v) => { p.yandex_account = v; persistProjects(); })),
+    field("Подтверждение прав в Яндексе", verify)));
 
   card.append(el("div", { class: "section-title" }, "Старые зеркала (откуда редирект)"));
   const list = el("div", {});
@@ -251,6 +266,20 @@ function mirrorsOf(p) {
   return (p.mirrors || []).map((m) => normDomain(m.domain)).filter(Boolean);
 }
 function allOk(arr) { return arr.every((x) => x.ok); }
+
+function doNewMigration() {
+  const p = activeProject(); if (!p) return;
+  const cur = normDomain(p.new_domain);
+  if (!cur) return toast("Поле «Новый домен» пустое — нечего ротировать", true);
+  if (!confirm(`Начать новый переезд?\n\n${cur} переедет в список зеркал (аккаунт: ${p.new_account || "—"}),\nполе «Новый домен» очистится — впишешь следующий.`)) return;
+  if (!p.mirrors.some((m) => normDomain(m.domain) === cur))
+    p.mirrors.unshift({ domain: cur, account: p.new_account || "" });
+  p.new_domain = "";
+  delete statuses[p.id];
+  persistProjects();
+  render();
+  toast(`${cur} добавлен в зеркала. Впиши новый домен и жми «Поднять новый домен».`);
+}
 
 async function doRunFull() {
   const p = activeProject(); if (!p) return;
@@ -426,6 +455,24 @@ function renderAccounts() {
   else box.append(accountRow(null));
 }
 
+function yandexAccountRow(acc) {
+  acc = acc || { name: "", has_token: false };
+  return el("div", { class: "account-row" },
+    el("label", {}, "Название (бренд/аккаунт)",
+      el("input", { class: "ya-name", type: "text", value: acc.name || "", placeholder: "напр. azino" })),
+    el("label", {}, "OAuth-токен",
+      el("input", { class: "ya-tok", type: "password", autocomplete: "off",
+        placeholder: acc.has_token ? "задан — пусто=без изменений" : "OAuth-токен" })),
+    el("button", { class: "row-del ghost small",
+      onclick: (e) => e.target.closest(".account-row").remove() }, "Удалить"));
+}
+
+function renderYandexAccounts() {
+  const box = $("#ya-accounts");
+  box.replaceChildren();
+  (state.settings.yandex_accounts || []).forEach((a) => box.append(yandexAccountRow(a)));
+}
+
 function openSettings() {
   const s = state.settings || {};
   const ssh = s.ssh || {};
@@ -441,20 +488,26 @@ function openSettings() {
   $("#ispmgr-password").placeholder = ssh.has_ispmgr_password ? "задан — пусто=без изменений" : "пароль";
   $("#ya-token").placeholder = s.has_yandex_token ? "задан — пусто=без изменений" : "OAuth-токен";
   renderAccounts();
+  renderYandexAccounts();
   $("#settings").classList.remove("hidden");
 }
 function closeSettings() { $("#settings").classList.add("hidden"); }
 
 function collectSettings() {
-  const accounts = [...document.querySelectorAll(".account-row")].map((row) => ({
+  const accounts = [...document.querySelectorAll("#accounts .account-row")].map((row) => ({
     name: $(".acc-name", row).value,
     api_token: $(".acc-token", row).value,
     account_id: $(".acc-aid", row).value,
     spaceship_api_key: $(".acc-spk", row).value,
     spaceship_api_secret: $(".acc-sps", row).value,
   })).filter((a) => a.name.trim());
+  const yaAccounts = [...document.querySelectorAll("#ya-accounts .account-row")].map((row) => ({
+    name: $(".ya-name", row).value,
+    api_token: $(".ya-tok", row).value,
+  })).filter((a) => a.name.trim());
   return {
     cf_accounts: accounts,
+    yandex_accounts: yaAccounts,
     ssh: {
       host: $("#ssh-host").value, port: $("#ssh-port").value, user: $("#ssh-user").value,
       password: $("#ssh-password").value, ispmgr_user: $("#ispmgr-user").value,
@@ -484,6 +537,7 @@ async function init() {
   $("#settings-cancel").addEventListener("click", closeSettings);
   $("#settings-save").addEventListener("click", saveSettings);
   $("#add-account").addEventListener("click", () => $("#accounts").append(accountRow(null)));
+  $("#add-ya-account").addEventListener("click", () => $("#ya-accounts").append(yandexAccountRow(null)));
 
   try {
     const data = await api("GET", "/api/state");

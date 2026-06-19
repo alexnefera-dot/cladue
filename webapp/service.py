@@ -64,10 +64,15 @@ def _isp():
     )
 
 
-def _yandex():
-    token = store.get_yandex_token()
+def _yandex(project=None):
+    """Токен Яндекса: сперва аккаунт вкладки, иначе общий из Настроек."""
+    token = None
+    if project and project.get("yandex_account"):
+        token = store.get_yandex_account(project["yandex_account"])
     if not token:
-        raise ConfigError("Не задан OAuth-токен Яндекса (см. Настройки).")
+        token = store.get_yandex_token()
+    if not token:
+        raise ConfigError("Не задан токен Яндекса (Настройки → Яндекс-аккаунты или общий токен).")
     return Yandex(token)
 
 
@@ -404,7 +409,7 @@ def import_from_cloudflare(existing_projects=None):
 # ----------------------------------- Яндекс --------------------------------- #
 def yandex_prepare(project):
     new = _new_domain(project)
-    ya = _yandex()
+    ya = _yandex(project)
     user_id = ya.get_user_id()
     host_id = ya.add_host(user_id, f"https://{new}:443", new)
     info = ya.get_verification(user_id, host_id)
@@ -427,7 +432,7 @@ def yandex_prepare(project):
 
 def yandex_verify(project, method="dns", timeout=180):
     new = _new_domain(project)
-    ya = _yandex()
+    ya = _yandex(project)
     user_id = ya.get_user_id()
     host_id = ya.add_host(user_id, f"https://{new}:443", new)
     info = ya.get_verification(user_id, host_id)
