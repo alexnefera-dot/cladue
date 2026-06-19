@@ -6,6 +6,9 @@
 
 from __future__ import annotations
 
+import csv
+import io
+
 from migrator.cloudflare import Cloudflare
 from migrator.domains import apex, normalize_domain
 from migrator.http import ApiError
@@ -286,6 +289,76 @@ def check_status(project):
     return out
 
 
+# ---------------------------------- импорт из CSV --------------------------- #
+def _acc(name):
+    """Имя CF-аккаунта из CSV: кириллическая с (U+0441) → латинская c."""
+    return (name or "").strip().replace("с", "c")
+
+
+def _project_from(target, mirrors, new_account, prev):
+    return {
+        "id": prev.get("id") if prev else "p_" + target.replace(".", "_"),
+        "name": prev.get("name") if prev else target.split(".")[0],
+        "new_domain": target,
+        "new_account": (prev.get("new_account") if prev else "") or new_account,
+        "worker": prev.get("worker", "") if prev else "",
+        "donor_domain": prev.get("donor_domain", "") if prev else "",
+        "verify": prev.get("verify", "dns") if prev else "dns",
+        "mirrors": mirrors,
+    }
+
+
+def import_from_csv(csv_text, existing_projects=None):
+    """Строит проекты из domains.csv (колонки Домен; Профиль; Целевой домен; Новый домен).
+
+    Группирует по «Целевой домен»: зеркала = «Домен» каждой строки, новый домен = цель.
+    Для уже существующих проектов сохраняет воркер/донор/имя.
+    """
+    text = (csv_text or "").lstrip("﻿")
+    if not text.strip():
+        raise ConfigError("Пустой CSV.")
+    sample = text[:4096]
+    try:
+        delim = csv.Sniffer().sniff(sample, delimiters=";,\t").delimiter
+    except csv.Error:
+        first = sample.splitlines()[0] if sample.splitlines() else ""
+        delim = ";" if first.count(";") >= first.count(",") else ","
+    reader = csv.DictReader(io.StringIO(text), delimiter=delim)
+    cols = {(c or "").strip(): c for c in (reader.fieldnames or [])}
+    if "Домен" not in cols or "Целевой домен" not in cols:
+        raise ConfigError("Нужны колонки «Домен» и «Целевой домен» (как в domains.csv).")
+
+    def cell(row, name):
+        key = cols.get(name)
+        return (row.get(key, "") or "").strip() if key else ""
+
+    existing = {normalize_domain(p.get("new_domain", "")): p
+                for p in (existing_projects or []) if p.get("new_domain")}
+    groups, seen = {}, {}
+    new_account_by_target = {}
+    for row in reader:
+        target = normalize_domain(cell(row, "Целевой домен"))
+        mirror = normalize_domain(cell(row, "Домен"))
+        account = _acc(cell(row, "Профиль"))
+        if not target or not mirror:
+            continue
+        key = (target, mirror)
+        if key in seen:
+            continue
+        seen[key] = True
+        groups.setdefault(target, []).append({"domain": mirror, "account": account})
+        new_dom = normalize_domain(cell(row, "Новый домен"))
+        if new_dom == target and target not in new_account_by_target:
+            new_account_by_target[target] = account
+
+    projects = [
+        _project_from(target, mirrors, new_account_by_target.get(target, ""), existing.get(target))
+        for target, mirrors in sorted(groups.items())
+    ]
+    return {"projects": projects,
+            "summary": f"проектов: {len(projects)}, зеркал: {sum(len(p['mirrors']) for p in projects)}"}
+
+
 # ------------------------------ импорт из Cloudflare ------------------------ #
 def import_from_cloudflare(existing_projects=None):
     """Реконструирует проекты по всем CF-аккаунтам: какие зоны куда редиректят.
@@ -317,19 +390,10 @@ def import_from_cloudflare(existing_projects=None):
                     mirrors_by_target.setdefault(t, []).append(
                         {"domain": zone["name"], "account": acc["name"]})
 
-    projects = []
-    for target, mirrors in sorted(mirrors_by_target.items()):
-        prev = existing.get(target)
-        projects.append({
-            "id": prev.get("id") if prev else "p_" + target.replace(".", "_"),
-            "name": prev.get("name") if prev else target.split(".")[0],
-            "new_domain": target,
-            "new_account": (prev.get("new_account") if prev else "") or zone_account.get(target, ""),
-            "worker": prev.get("worker", "") if prev else "",
-            "donor_domain": prev.get("donor_domain", "") if prev else "",
-            "verify": prev.get("verify", "dns") if prev else "dns",
-            "mirrors": mirrors,
-        })
+    projects = [
+        _project_from(target, mirrors, zone_account.get(target, ""), existing.get(target))
+        for target, mirrors in sorted(mirrors_by_target.items())
+    ]
     return {
         "projects": projects,
         "scanned": scanned,

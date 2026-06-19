@@ -298,6 +298,24 @@ async function doMigrate() {
   } catch (e) { toast(e.message, true); } finally { setBusy(false); }
 }
 
+async function onCsvChosen(e) {
+  const file = e.target.files[0];
+  e.target.value = "";           // позволить выбрать тот же файл снова
+  if (!file) return;
+  setBusy(true, "Разбираю CSV…");
+  try {
+    const text = await file.text();
+    const res = await api("POST", "/api/import-csv", { csv: text, projects: state.projects });
+    if (!res.projects.length) { toast("В CSV не нашлось проектов. " + res.summary, true); return; }
+    if (!confirm(`${res.summary}\n\nЗаменить текущий список проектов найденными?`)) return;
+    state.projects = res.projects;
+    state.active = 0;
+    await api("POST", "/api/projects", { projects: state.projects });
+    render();
+    toast("Импортировано — " + res.summary);
+  } catch (err) { toast(err.message, true); } finally { setBusy(false); }
+}
+
 async function doImportCF() {
   if (!(state.settings.cf_accounts || []).length)
     return toast("Сначала добавьте CF-аккаунты в Настройках", true);
@@ -461,6 +479,8 @@ async function saveSettings() {
 async function init() {
   $("#btn-settings").addEventListener("click", openSettings);
   $("#btn-import").addEventListener("click", doImportCF);
+  $("#btn-import-csv").addEventListener("click", () => $("#csv-file").click());
+  $("#csv-file").addEventListener("change", onCsvChosen);
   $("#settings-cancel").addEventListener("click", closeSettings);
   $("#settings-save").addEventListener("click", saveSettings);
   $("#add-account").addEventListener("click", () => $("#accounts").append(accountRow(null)));

@@ -92,6 +92,9 @@ class Handler(BaseHTTPRequestHandler):
     def _import_cf(self, body):
         return service.import_from_cloudflare(body.get("projects"))
 
+    def _import_csv(self, body):
+        return service.import_from_csv(body.get("csv", ""), body.get("projects"))
+
     def _check(self, body):
         return service.check_status(body["project"])
 
@@ -108,6 +111,7 @@ class Handler(BaseHTTPRequestHandler):
         "/api/step": _step,
         "/api/migrate": _migrate,
         "/api/import-cloudflare": _import_cf,
+        "/api/import-csv": _import_csv,
         "/api/check": _check,
         "/api/yandex/prepare": _yandex_prepare,
         "/api/yandex/verify": _yandex_verify,
