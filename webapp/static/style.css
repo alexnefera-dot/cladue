@@ -182,3 +182,28 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1
   animation: spin .8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Настройки (расширенные) */
+.modal-card.wide { width: min(680px, 94vw); max-height: 88vh; overflow-y: auto; }
+.modal-card section { border-top: 1px solid var(--line); padding-top: 14px; margin-top: 16px; }
+.modal-card section:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+.modal-card h3 { margin: 0 0 8px; font-size: 15px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+button.small { padding: 5px 10px; font-size: 13px; }
+.account-row { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;
+  padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: #fbfcfe; }
+.account-row label { font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+.account-row .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.account-row .row-del { align-self: flex-end; }
+
+/* Поля проекта */
+.grid-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.grid-fields .full { grid-column: 1 / -1; }
+.mirror select { min-width: 150px; flex: 0 0 auto; }
+
+/* Действия */
+.actions-steps { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;
+  padding-top: 12px; border-top: 1px dashed var(--line); }
+.actions-steps .label { width: 100%; font-size: 12px; color: var(--muted); margin-bottom: 2px; }
+.dry-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); margin-left: auto; }
+.dry-toggle input { width: auto; }

@@ -43,10 +43,9 @@ class Handler(BaseHTTPRequestHandler):
         if self.path.startswith("/static/"):
             return self._static(self.path[len("/static/"):])
         if self.path == "/api/state":
-            cf, ya = store.get_tokens()
             return self._send(200, {
                 "projects": store.load_projects(),
-                "settings": {"cloudflare": bool(cf), "yandex": bool(ya)},
+                "settings": store.masked_settings(),
             })
         return self._send(404, {"error": "not found"})
 
@@ -68,18 +67,30 @@ class Handler(BaseHTTPRequestHandler):
         return {"ok": True}
 
     def _save_settings(self, body):
-        store.save_settings({
-            "cloudflare_token": (body.get("cloudflare_token") or "").strip(),
-            "yandex_token": (body.get("yandex_token") or "").strip(),
-        })
-        cf, ya = store.get_tokens()
-        return {"cloudflare": bool(cf), "yandex": bool(ya)}
+        store.save_settings(body.get("settings", {}))
+        return store.masked_settings()
 
-    def _check(self, body):
-        return service.check_project(body["project"])
+    def _run_full(self, body):
+        return service.run_full(body["project"], dry_run=bool(body.get("dry_run")))
+
+    def _step(self, body):
+        steps = {
+            "create-site": service.create_isp_site,
+            "copy-files": service.copy_files,
+            "cf-onboard": service.cf_onboard,
+            "ssl": service.issue_ssl,
+            "worker": service.bind_worker,
+        }
+        fn = steps.get(body.get("step"))
+        if fn is None:
+            raise service.ConfigError(f"Неизвестный шаг: {body.get('step')}")
+        return fn(body["project"], dry_run=bool(body.get("dry_run")))
 
     def _migrate(self, body):
-        return service.migrate_project(body["project"])
+        return service.migrate_mirrors(body["project"], dry_run=bool(body.get("dry_run")))
+
+    def _check(self, body):
+        return service.check_status(body["project"])
 
     def _yandex_prepare(self, body):
         return service.yandex_prepare(body["project"])
@@ -90,8 +101,10 @@ class Handler(BaseHTTPRequestHandler):
     _POST_ROUTES = {
         "/api/projects": _save_projects,
         "/api/settings": _save_settings,
-        "/api/check": _check,
+        "/api/run-full": _run_full,
+        "/api/step": _step,
         "/api/migrate": _migrate,
+        "/api/check": _check,
         "/api/yandex/prepare": _yandex_prepare,
         "/api/yandex/verify": _yandex_verify,
     }

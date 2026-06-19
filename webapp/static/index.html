@@ -11,25 +11,46 @@
     <div class="brand">🚚 Site Migrator</div>
     <div class="spacer"></div>
     <span id="token-status" class="badge"></span>
-    <button id="btn-settings" class="ghost">⚙ Токены</button>
+    <button id="btn-settings" class="ghost">⚙ Настройки</button>
   </header>
 
   <nav id="tabs" class="tabs"></nav>
-
   <main id="panel" class="panel"></main>
 
-  <!-- Модальное окно токенов -->
+  <!-- Настройки -->
   <div id="settings" class="modal hidden">
-    <div class="modal-card">
-      <h2>Токены</h2>
-      <label>Cloudflare API Token
-        <input id="cf-token" type="password" placeholder="оставьте пустым, чтобы не менять" autocomplete="off">
-      </label>
-      <label>Яндекс OAuth-токен
-        <input id="ya-token" type="password" placeholder="оставьте пустым, чтобы не менять" autocomplete="off">
-      </label>
-      <p class="hint">Хранятся локально в <code>data/settings.json</code> (в git не попадают).
-        Как их получить — в <code>README.md</code>.</p>
+    <div class="modal-card wide">
+      <h2>Настройки</h2>
+
+      <section>
+        <h3>Cloudflare-аккаунты</h3>
+        <p class="hint">Один аккаунт со старыми зеркалами, второй с новыми доменами.
+          Пустые поля при сохранении не затирают уже сохранённые секреты.</p>
+        <div id="accounts"></div>
+        <button id="add-account" class="ghost small">+ аккаунт</button>
+      </section>
+
+      <section>
+        <h3>Сервер (SSH + ISPmanager)</h3>
+        <div class="grid2">
+          <label>SSH host<input id="ssh-host" type="text" placeholder="5.45.75.15"></label>
+          <label>SSH порт<input id="ssh-port" type="text" placeholder="22"></label>
+          <label>SSH логин<input id="ssh-user" type="text" placeholder="cfagent"></label>
+          <label>SSH пароль<input id="ssh-password" type="password" autocomplete="off"></label>
+          <label>ISPmgr логин<input id="ispmgr-user" type="text" placeholder="root"></label>
+          <label>ISPmgr пароль<input id="ispmgr-password" type="password" autocomplete="off"></label>
+          <label>ISPmgr host<input id="ispmgr-host" type="text" placeholder="5.45.75.15"></label>
+          <label>Email (для LE)<input id="ssh-email" type="text" placeholder="admin@site.ru"></label>
+          <label>IP сервера (A-записи)<input id="server-ip" type="text" placeholder="5.45.75.15"></label>
+        </div>
+      </section>
+
+      <section>
+        <h3>Яндекс.Вебмастер</h3>
+        <label>OAuth-токен<input id="ya-token" type="password" autocomplete="off"
+          placeholder="оставьте пустым, чтобы не менять"></label>
+      </section>
+
       <div class="row-end">
         <button id="settings-cancel" class="ghost">Закрыть</button>
         <button id="settings-save" class="primary">Сохранить</button>
@@ -38,7 +59,6 @@
   </div>
 
   <div id="toast" class="toast hidden"></div>
-
   <script src="/static/app.js"></script>
 </body>
 </html>
