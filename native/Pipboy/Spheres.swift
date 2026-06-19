@@ -11,6 +11,15 @@ extension Api {
             try? db.run("ALTER TABLE \(t) ADD COLUMN area_id INTEGER REFERENCES wheel_areas(id) ON DELETE SET NULL")
         }
         try? db.run("ALTER TABLE metrics ADD COLUMN target REAL")   // цель метрики (полоса к цели)
+        // вехи «пути к 10» — создаём на каждом старте (ensureSchema идёт только при сиде)
+        try? db.run("""
+            CREATE TABLE IF NOT EXISTS area_milestones(
+              id INTEGER PRIMARY KEY,
+              area_id INTEGER NOT NULL REFERENCES wheel_areas(id) ON DELETE CASCADE,
+              level INTEGER NOT NULL DEFAULT 5, title TEXT NOT NULL DEFAULT '',
+              ord INTEGER NOT NULL DEFAULT 0
+            )
+            """)
     }
 
     // ----- дефолты секций -----
@@ -217,7 +226,7 @@ extension Api {
             let scores = sc.compactMap { $0["score"] as? Int }
             let scoreVal: Any = sc.first.flatMap { $0["score"] } ?? NSNull()
             let prevVal: Any = sc.count > 1 ? (sc[1]["score"] ?? NSNull()) : NSNull()
-            let milestones = try db.rows("SELECT id, level, title FROM area_milestones WHERE area_id = ? ORDER BY level, id", [aid])
+            let milestones = (try? db.rows("SELECT id, level, title FROM area_milestones WHERE area_id = ? ORDER BY level, id", [aid])) ?? []   // не роняем сбор, если таблицы ещё нет
             result.append([
                 "id": aid, "name": aname,
                 "ideal": a["ideal"] ?? "", "current_desc": a["current_desc"] ?? "", "next_desc": a["next_desc"] ?? "", "step": a["step"] ?? "",
