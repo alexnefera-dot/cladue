@@ -364,6 +364,27 @@ def import_from_csv(csv_text, existing_projects=None):
             "summary": f"проектов: {len(projects)}, зеркал: {sum(len(p['mirrors']) for p in projects)}"}
 
 
+_FIELD_SYNONYMS = {
+    "Домен": ["домен", "зеркало", "зеркала", "старое зеркало", "старый домен", "старые зеркала"],
+    "Профиль": ["профиль", "аккаунт", "cf-аккаунт", "cf аккаунт", "cloudflare"],
+    "Целевой домен": ["целевой домен", "целевой", "актуальный", "актуальный домен",
+                       "рабочий", "рабочий домен", "текущий", "текущий домен"],
+    "Новый домен": ["новый домен"],
+    "Вкладка": ["вкладка", "название вкладки", "название", "проект", "бренд"],
+}
+_HEADER_TO_FIELD = {syn: canon for canon, syns in _FIELD_SYNONYMS.items() for syn in syns}
+
+
+def _canon_map(headers):
+    """{оригинальный заголовок: каноническое поле} для известных синонимов."""
+    out = {}
+    for h in headers:
+        field = _HEADER_TO_FIELD.get((h or "").strip().lower())
+        if field:
+            out[h] = field
+    return out
+
+
 def _summary(projects):
     return f"проектов: {len(projects)}, зеркал: {sum(len(p['mirrors']) for p in projects)}"
 
@@ -378,12 +399,13 @@ def _group_projects(records, existing_projects=None):
         target = normalize_domain((row.get("Целевой домен") or "").strip())
         mirror = normalize_domain((row.get("Домен") or "").strip())
         account = _acc((row.get("Профиль") or "").strip())
+        tabname = (row.get("Вкладка") or "").strip()
         if not target or not mirror or (target, mirror) in seen:
             continue
         seen.add((target, mirror))
         groups.setdefault(target, []).append({"domain": mirror, "account": account})
-        if src and target not in source:
-            source[target] = src
+        if (tabname or src) and target not in source:
+            source[target] = tabname or src       # имя вкладки: колонка «Вкладка» → имя листа
         if normalize_domain((row.get("Новый домен") or "").strip()) == target and target not in new_account:
             new_account[target] = account
     projects = []
@@ -397,7 +419,7 @@ def _group_projects(records, existing_projects=None):
 
 
 def _csv_rows(text):
-    """Строки CSV как список dict со стрипнутыми ключами-заголовками."""
+    """Строки CSV как список dict с каноническими ключами (синонимы заголовков понимаются)."""
     sample = text[:4096]
     try:
         delim = csv.Sniffer().sniff(sample, delimiters=";,\t").delimiter
@@ -405,28 +427,42 @@ def _csv_rows(text):
         first = sample.splitlines()[0] if sample.splitlines() else ""
         delim = ";" if first.count(";") >= first.count(",") else ","
     reader = csv.DictReader(io.StringIO(text), delimiter=delim)
-    cols = [(c or "").strip() for c in (reader.fieldnames or [])]
-    if "Домен" not in cols or "Целевой домен" not in cols:
-        raise ConfigError("Нужны колонки «Домен» и «Целевой домен» (как в domains.csv).")
-    return [{(k or "").strip(): (v or "") for k, v in row.items()} for row in reader]
+    cmap = _canon_map([(c or "").strip() for c in (reader.fieldnames or [])])
+    fields = set(cmap.values())
+    if "Домен" not in fields or "Целевой домен" not in fields:
+        raise ConfigError("Нужны колонки: зеркало (Домен/Зеркало) и рабочий домен (Целевой/Актуальный/Рабочий).")
+    rows = []
+    for row in reader:
+        canon = {}
+        for key, value in row.items():
+            field = cmap.get((key or "").strip())
+            if field:
+                canon[field] = (value or "").strip()
+        rows.append(canon)
+    return rows
 
 
 def _xlsx_records(data):
-    """Из .xlsx: (row, имя_листа) по всем листам, где есть нужные колонки."""
+    """Из .xlsx: (row, имя_листа) по всем листам с нужными колонками (синонимы понимаются)."""
     import openpyxl  # ленивый импорт — нужен только при импорте xlsx
 
     workbook = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
     try:
         for sheet in workbook.worksheets:
-            header = None
+            headers = cmap = None
             for raw in sheet.iter_rows(values_only=True):
-                if header is None:
-                    header = [(str(c).strip() if c is not None else "") for c in raw]
-                    if "Домен" not in header or "Целевой домен" not in header:
+                if headers is None:
+                    headers = [(str(c).strip() if c is not None else "") for c in raw]
+                    cmap = _canon_map(headers)
+                    if "Домен" not in cmap.values() or "Целевой домен" not in cmap.values():
                         break  # лист не похож на список доменов — пропускаем
                     continue
-                row = {h: ("" if (i >= len(raw) or raw[i] is None) else str(raw[i]).strip())
-                       for i, h in enumerate(header) if h}
+                row = {}
+                for i, h in enumerate(headers):
+                    field = cmap.get(h)
+                    if field:
+                        val = raw[i] if i < len(raw) else None
+                        row[field] = "" if val is None else str(val).strip()
                 yield row, sheet.title
     finally:
         workbook.close()
