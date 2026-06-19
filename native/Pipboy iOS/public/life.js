@@ -64,12 +64,15 @@ window.loadRoutines = async function () {
           </div>`; }).join('') || '<div class="empty">пусто</div>'}
       </div>`).join('')}
   </div>
-  <div class="card"><div class="task finadd">
-    <input id="rtName" placeholder="новая рутина: таблетка, миноксидил, отжимания 3×15…">
-    <select id="rtSlot">${SLOTS.map(s => `<option>${s}</option>`).join('')}</select>
-    <input id="rtTime" placeholder="чч:мм (опц.)" style="width:95px">
-    <span class="pill btn ok" id="rtAdd">＋</span>
-  </div></div>
+  <div class="card">
+    <div class="task finadd">
+      <input id="rtName" placeholder="новая рутина: таблетка, миноксидил, отжимания 3×15…">
+      <select id="rtSlot">${SLOTS.map(s => `<option>${s}</option>`).join('')}</select>
+      <input id="rtTime" placeholder="чч:мм (опц.)" style="width:95px">
+      <span class="pill btn ok" id="rtAdd">＋</span>
+    </div>
+    <div class="rtdays" id="rtNewDays" style="margin-top:8px">${DOW.map((d, i) => `<span class="rtd" data-nd="${i + 1}">${d}</span>`).join('')}<span class="rtd-lbl">дни недели · не выбрано = каждый день</span></div>
+  </div>
   <div class="card"><div class="meta">ПЛАНИРУЕМЫЕ · хочу внести, но ещё не в расписании</div>
     ${planned.map(r => `
       <div class="task">
@@ -158,12 +161,16 @@ window.loadRoutines = async function () {
     el.addEventListener('click', async () => {
       if (confirm('Удалить планируемую рутину?')) { await lfApi.rDel(+el.dataset.lfpldel); window.loadRoutines(); }
     }));
+  // выбор дней недели в форме создания (локальное состояние, без запроса)
+  document.querySelectorAll('#rtNewDays .rtd').forEach(el => el.addEventListener('click', () => el.classList.toggle('on')));
   document.getElementById('rtAdd')?.addEventListener('click', async () => {
     const name = document.getElementById('rtName').value.trim();
     if (!name) return;
     const t = document.getElementById('rtTime').value.trim();
+    const sel = [...document.querySelectorAll('#rtNewDays .rtd.on')].map(x => +x.dataset.nd);
+    const days = (sel.length === 0 || sel.length === 7) ? '' : sel.sort((a, b) => a - b).join(',');
     await lfApi.rAdd({ name, slot: document.getElementById('rtSlot').value,
-      time: /^([01]?\d|2[0-3]):[0-5]\d$/.test(t) ? t.padStart(5, '0') : null });
+      time: /^([01]?\d|2[0-3]):[0-5]\d$/.test(t) ? t.padStart(5, '0') : null, days });
     window.loadRoutines();
   });
 };
