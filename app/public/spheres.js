@@ -212,13 +212,38 @@ function block(label, jump, inner) {
   return `<div class="sec">${label} <span class="muted" style="font-weight:400">· ${jump}</span></div><div class="card">${inner}</div>`;
 }
 
-// KPI-плитка метрики: иконка, имя, значение, % к цели (или спарклайн, если цели нет)
+// универсальная KPI-плитка: иконка+имя, крупное значение, опц. полоса %, подпись
+function sphTile(icon, name, big, sub, pct, cls = '') {
+  const bar = pct != null ? `<div class="sphk-bar"><i style="width:${Math.max(0, Math.min(100, pct))}%"></i></div>` : '';
+  return `<div class="sphk"><div class="sphk-n">${icon} ${sesc(name)}</div><div class="sphk-v">${big}</div>${bar}${sub ? `<div class="sphk-p ${cls}">${sub}</div>` : ''}</div>`;
+}
+// KPI-плитка метрики: % к цели (или спарклайн, если цели нет)
 function sphKpiTile(m) {
   const pct = (m.target != null && m.target && m.v != null) ? Math.round(m.v / m.target * 100) : null;
   const sub = pct != null
     ? `<div class="sphk-bar"><i style="width:${Math.max(0, Math.min(100, pct))}%"></i></div><div class="sphk-p">${pct}% → ${m.target}${sesc(m.unit)}</div>`
     : `<div class="sphk-p">${m.s && m.s.length > 1 ? sphSpark(m.s, 72, 16) : '<span class="muted">задай цель 🎯</span>'}</div>`;
   return `<div class="sphk"><div class="sphk-n">📊 ${sesc(m.name)}</div><div class="sphk-v">${m.v ?? '–'}<small>${sesc(m.unit)}</small></div>${sub}</div>`;
+}
+// финансовые авто-сигналы (только денежная сфера) — из реальных чисел Финансов
+function sphFinTiles(f) {
+  const money = n => n == null ? '–' : Math.round(n).toLocaleString('ru-RU');
+  const t = [];
+  t.push(sphTile('💰', f.fireTarget ? 'Капитал → FIRE' : 'Капитал', `€${money(f.capital)}`,
+    f.fireTarget ? `${(f.firePct ?? 0).toFixed(0)}% от €${money(f.fireTarget)}` : '', f.fireTarget ? f.firePct : null));
+  if (f.yieldPct != null) t.push(sphTile('📈', 'Доходность', `${f.yieldPct >= 0 ? '+' : ''}${f.yieldPct.toFixed(1)}%`, 'на вложенное', null, f.yieldPct >= 0 ? 'up' : 'down'));
+  if (f.firePct != null) t.push(sphTile('🔥', 'FIRE прогресс', `${f.firePct.toFixed(0)}<small>%</small>`, f.fireYear ? `к ~${f.fireYear}` : '', f.firePct));
+  t.push(sphTile('💸', 'Расход / бюджет', `€${money(f.expense)}`, f.budget ? `из €${money(f.budget)}` : '', f.budget ? Math.round(f.expense / f.budget * 100) : null));
+  if (f.income) t.push(sphTile('🪙', 'Пассивный доход', `€${money(f.income)}`, 'в месяц'));
+  return t.join('');
+}
+// движковые авто-сигналы для ЛЮБОЙ сферы — из того, что и так считается
+function sphEngineTiles(s) {
+  const pr = s.progress || {}, t = [];
+  if (pr.momentum != null) t.push(`<div class="sphk"><div class="sphk-n">⚡ Моментум</div><div class="sphk-v">${pr.momentum}<small>/10</small></div><div class="sphk-bar"><i style="width:${pr.momentum * 10}%"></i></div><div class="sphk-p"><span class="pill btn ok" id="sphApplyMom" style="font-size:9px;padding:1px 7px">→ оценка</span></div></div>`);
+  if (pr.tasksTotal) { const p = Math.round(pr.tasksDone / pr.tasksTotal * 100); t.push(sphTile('🎯', 'Задачи', `${p}<small>%</small>`, `${pr.tasksDone}/${pr.tasksTotal}`, p)); }
+  if (typeof pr.adherence === 'number') { const p = Math.round(pr.adherence * 100); t.push(sphTile('↻', 'Рутины · 2 нед', `${p}<small>%</small>`, 'дисциплина', p)); }
+  return t.join('');
 }
 // дорожная карта «путь к 10»: вехи по уровням, «ты здесь» по оценке, правка прямо тут
 function sphRoadmap(s) {
@@ -260,24 +285,14 @@ function sphDetail(s, i) {
     </div>
     <div style="margin:7px 0 2px"><span class="pill btn" id="sphStepTask">＋ шаг в задачи</span> <span class="muted" style="font-size:12px">шаги для +1 ведёшь задачами и трекингом ниже ↓</span></div>`;
 
-  // KPI-шапка: все метрики сферы как % к цели отдельными плитками
-  if (s.tracking && s.tracking.length) h += `<div class="sphkpi">${s.tracking.map(sphKpiTile).join('')}</div>`;
+  // 🔑 Ключевые сигналы: финансы (авто, деньги) + движок (моментум/задачи/рутины) + метрики с целями
+  let kpi = '';
+  if (s.finance) kpi += sphFinTiles(s.finance);
+  kpi += sphEngineTiles(s);
+  if (s.tracking && s.tracking.length) kpi += s.tracking.map(sphKpiTile).join('');
+  if (kpi) h += `<div class="sec">🔑 Ключевые сигналы <span class="muted" style="font-weight:400">· авто из данных${s.tracking && s.tracking.length ? ' + метрики' : ''}</span></div><div class="card"><div class="sphkpi">${kpi}</div></div>`;
   // путь к 10 — дорожная карта вехами (редактируется прямо тут)
   h += sphRoadmap(s);
-
-  // живой прогресс из данных (без дублей с блоками ниже)
-  const pr = s.progress || {};
-  const parts = [];
-  if (pr.tasksTotal) parts.push(`<div class="task"><span class="t">Задачи</span><span class="pbar2"><i style="width:${Math.round(pr.tasksDone / pr.tasksTotal * 100)}%"></i></span><span class="meta num">${pr.tasksDone}/${pr.tasksTotal}</span></div>`);
-  if (s.routines.length) { const rd = s.routines.filter(r => r.doneToday).length;
-    parts.push(`<div class="task"><span class="t">Рутины сегодня</span><span class="pbar2"><i style="width:${Math.round(rd / s.routines.length * 100)}%"></i></span><span class="meta num">${rd}/${s.routines.length}</span></div>`); }
-  h += `<div class="sec">📈 Прогресс по данным <span class="muted" style="font-weight:400">· считается сам</span></div><div class="card">
-    ${pr.momentum != null
-      ? `<div class="sph-mom"><div class="sph-momn">${pr.momentum}<small>/10</small></div>
-           <div class="sph-momt">движение по данным (задачи + дисциплина рутин за 2 нед)<br>
-             <span class="pill btn ok" id="sphApplyMom">поставить как оценку сферы</span></div></div>`
-      : ''}
-    ${parts.join('') || '<div class="empty">привяжи задачи (категорию) и рутины через «🔗 связи» — посчитаю прогресс сам, без ручного ведения</div>'}</div>`;
 
   // задачи сферы — с вложенностью, как в Целях; сворачиваемые (по умолчанию свёрнуто),
   // состояние сохраняется; работаем прямо тут (Сферы = рабочий раздел)
@@ -335,13 +350,7 @@ function sphDetail(s, i) {
   // люди (социализация)
   if (s.people && s.people.length) h += block('☻ Люди', 'Люди', s.people.map(p => `
     <div class="task"><span class="t">${sesc(p.name)}</span>${sphContact(p)}</div>`).join(''));
-  // финансовые показатели (числа, только в денежной сфере) — FIRE без суммы
-  if (s.finance) { const f = s.finance, money = n => n == null ? '—' : Math.round(n).toLocaleString('ru-RU');
-    h += block('📈 Финансовые показатели', 'Финансы', `
-      ${f.firePct != null ? `<div class="task"><span class="t">FIRE · прогресс</span><span class="pbar2"><i style="width:${Math.min(100, f.firePct)}%"></i></span><span class="meta num">${f.firePct.toFixed(1)}%</span></div>` : ''}
-      <div class="task"><span class="t">Расход за месяц</span><span class="meta num">${money(f.expense)} €${f.budget ? ' / ' + money(f.budget) : ''}</span></div>
-      <div class="task"><span class="t">Пассивный доход/мес</span><span class="meta num">${money(f.income)} €</span></div>`);
-  }
+  // (финансовые числа теперь в шапке «🔑 Ключевые сигналы» — авто из Финансов)
   // платежи — делим по периодам с суммами (статистика «что платить мес/год/разово»)
   if (s.fin.length) {
     const money = n => Math.round(n).toLocaleString('ru-RU');
@@ -494,7 +503,7 @@ function ensureSphStyle() {
     .sphk-n{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .sphk-v{font:700 19px var(--mono);line-height:1.1;margin:2px 0}.sphk-v small{font-size:11px;color:var(--muted);margin-left:2px}
     .sphk-bar{height:5px;border-radius:99px;background:var(--bg2);overflow:hidden;margin-top:4px}.sphk-bar i{display:block;height:100%;background:var(--green-dim)}
-    .sphk-p{font:600 10px var(--mono);color:var(--muted);margin-top:4px}
+    .sphk-p{font:600 10px var(--mono);color:var(--muted);margin-top:4px}.sphk-p.up{color:var(--green)}.sphk-p.down{color:var(--red)}
     .sph-rm{display:flex;gap:9px;align-items:center;padding:6px 0;border-top:1px solid var(--bg2);font-size:13.5px}.sph-rm:first-child{border-top:0}
     .sph-rk{font:700 10px var(--mono);color:var(--muted);width:38px;flex:0 0 auto}
     .sph-rt{flex:1;min-width:0;cursor:text}.sph-rm.done .sph-rt{color:var(--muted);text-decoration:line-through}

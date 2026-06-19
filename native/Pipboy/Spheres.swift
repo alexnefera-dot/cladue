@@ -142,11 +142,15 @@ extension Api {
            let summary = finObj["summary"] as? [String: Any] {
             let tx = finObj["tx"] as? [String: Any]
             let fireV = finObj["fire"] as? [String: Any]
+            let growth = summary["growth"] as? [String: Any]
             finNums = [
                 "capital": summary["portfolioTotal"] ?? NSNull(),
                 "expense": tx?["expense"] ?? NSNull(),
                 "income": summary["monthlyIncome"] ?? NSNull(),
                 "firePct": fireV?["progressPct"] ?? NSNull(),
+                "fireTarget": fireV?["target"] ?? NSNull(),
+                "fireYear": fireV?["reachedYear"] ?? NSNull(),
+                "yieldPct": growth?["pct"] ?? NSNull(),
                 "budget": finObj["budget"] ?? NSNull(),
             ]
         }
