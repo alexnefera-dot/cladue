@@ -52,15 +52,15 @@ window.loadRoutines = async function () {
     ${SLOTS.map(slot => `
       <div class="card"><div class="meta">${slot.toUpperCase()}</div>
         ${rows.filter(r => r.slot === slot).map(r => {
-          const set = window.rtDaySet(r.days), off = !window.rtActiveToday(r.days);
+          const off = !window.rtActiveToday(r.days), dlbl = window.rtDaysShort(r.days);
           return `
           <div class="task${off ? ' rt-off' : ''}">
             <span class="cb ${r.done ? 'done' : ''}" data-lfcheck="${r.id}"></span>
             <span class="t ${r.done ? 'done' : ''} ed" data-lfren="${r.id}" title="клик — переименовать">${lesc(r.name)}</span>
             <span class="ed meta num" data-lftime="${r.id}" title="фикс. время — напоминание (клик)">${r.time ? '⏰ ' + r.time : '+время'}</span>
+            ${dlbl ? `<span class="meta" title="дни недели задаются при создании">${dlbl}</span>` : ''}
             ${r.streak ? `<span class="meta">🔥 ${r.streak}</span>` : ''}
             <span class="rowbtn del" data-lfdel="${r.id}">✕</span>
-            <div class="rtdays" data-lfdaysid="${r.id}">${DOW.map((d, i) => `<span class="rtd ${set.has(i + 1) ? 'on' : ''}" data-d="${i + 1}">${d}</span>`).join('')}${set.size ? '' : '<span class="rtd-lbl">каждый день</span>'}</div>
           </div>`; }).join('') || '<div class="empty">пусто</div>'}
       </div>`).join('')}
   </div>
@@ -93,15 +93,6 @@ window.loadRoutines = async function () {
 
   document.querySelectorAll('#screen-routines [data-lfcheck]').forEach(el =>
     el.addEventListener('click', async () => { await lfApi.rCheck(+el.dataset.lfcheck); window.loadRoutines(); }));
-  // переключить день недели рутины: пусто/все 7 = каждый день, иначе CSV (Пн=1..Вс=7)
-  document.querySelectorAll('#screen-routines [data-lfdaysid] .rtd').forEach(el =>
-    el.addEventListener('click', async () => {
-      const wrap = el.closest('[data-lfdaysid]'), id = +wrap.dataset.lfdaysid;
-      const cur = new Set([...wrap.querySelectorAll('.rtd.on')].map(x => +x.dataset.d));
-      const d = +el.dataset.d; cur.has(d) ? cur.delete(d) : cur.add(d);
-      const days = (cur.size === 0 || cur.size === 7) ? '' : [...cur].sort((a, b) => a - b).join(',');
-      await lfApi.rPatch(id, { days }); window.loadRoutines();
-    }));
   document.querySelectorAll('#screen-routines [data-lfren]').forEach(el =>
     el.addEventListener('click', async () => {
       const v = prompt('Название рутины:', el.textContent.trim());
