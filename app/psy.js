@@ -62,7 +62,7 @@ export function logPractice(db, id, b = {}) {
   db.prepare('INSERT INTO practice_log(practice_id, date, note, answers) VALUES(?,?,?,?)')
     .run(id, b.date ?? today(), b.note ?? '', JSON.stringify(b.answers ?? []));
 }
-export function practiceLogs(db, id, limit = 5) {
+export function practiceLogs(db, id, limit = 200) {
   return db.prepare('SELECT * FROM practice_log WHERE practice_id = ? ORDER BY date DESC, id DESC LIMIT ?')
     .all(id, limit).map(l => ({ ...l, answers: JSON.parse(l.answers) }));
 }
@@ -274,6 +274,26 @@ export function ensureWinsDiary(db) {
     addPractice(db, { name: 'Дневник Побед', kind: 'technique', steps: WINS_DIARY_STEPS,
       note: 'закрепляю успех: ситуация → результат → чувства → новые выводы о себе и мире' });
   setSetting(db, 'win_v1', '1');
+}
+
+// ===== Разобранные случаи в журнал «Дневника мыслей» (внесено один раз) =====
+export const THOUGHT_DIARY_ENTRIES = [
+  ['19:00 Собираюсь решить задачи, хвосты где есть сложные решения',
+   'Нужно чуть позже, собраться силами, возможно сейчас ещё можно не париться и потом подумаю (50)',
+   'Беспокойство (90)',
+   'Откладываю и не сажусь за задачу, нахожу причины не успевать. Нужно расписать текущее видение, там где сомневаюсь — указать, пересмотреть через какое время и почему.'],
+  ['18:00 Планирую разговор с Серым по переводам',
+   'Сейчас уже поздно, выходной, не хочу беспокоить, надо просчитать всё (90)',
+   'Сомнение (100)',
+   'Надо посчитать спокойно, спланировать удобный для двоих день и свои ожидания. Ставлю задачу в неудобный момент, не подумав, что хочу получить точно и устроит ли меня какой из вариантов.'],
+];
+export function seedThoughtDiaryEntries(db) {
+  if (getSetting(db, 'td_seed_v1', '') === '1') return;
+  const p = db.prepare(`SELECT id FROM practices WHERE name LIKE 'Дневник мыслей%' AND name NOT LIKE '%(пример)%'`).get();
+  if (!p) return;   // практики ещё нет — попробуем при следующем запуске
+  if (db.prepare('SELECT count(*) AS c FROM practice_log WHERE practice_id = ?').get(p.id).c === 0)
+    for (const answers of THOUGHT_DIARY_ENTRIES) logPractice(db, p.id, { answers });
+  setSetting(db, 'td_seed_v1', '1');
 }
 
 // ===== Демо =====

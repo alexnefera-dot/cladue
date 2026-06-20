@@ -42,6 +42,7 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         Api.ensureThoughtDiary(made)   // техника «Дневник мыслей» (журнал таблицей) — один раз
         Api.ensureExperienceDiary(made)   // техника «Дневник Опыта» — один раз
         Api.ensureWinsDiary(made)   // техника «Дневник Побед» — один раз
+        Api.seedThoughtDiaryEntries(made)   // разобранные случаи в журнал «Дневника мыслей» — один раз
         if (try? made.rows("SELECT value FROM settings WHERE key = 'sphere_defaults'"))?.first == nil {
             try? Api.autoConfigSpheres(made)   // первый запуск: связи секций раскладываются сами
         }
@@ -187,7 +188,7 @@ enum Api {
             return (try json(try backlinks(db, id: Int(m[1]) ?? -1)), 200)
         }
         if let m = match(path, "^/api/psy/practices/([0-9]+)/logs$") {
-            return (try json(try db.rows("SELECT * FROM practice_log WHERE practice_id = ? ORDER BY date DESC, id DESC LIMIT 5", [Int(m[1]) ?? -1])
+            return (try json(try db.rows("SELECT * FROM practice_log WHERE practice_id = ? ORDER BY date DESC, id DESC LIMIT 200", [Int(m[1]) ?? -1])
                 .map { r -> [String: Any] in
                     var x = r
                     if let s = r["answers"] as? String, let a = try? JSONSerialization.jsonObject(with: Data(s.utf8)) { x["answers"] = a }
@@ -1595,6 +1596,32 @@ enum Api {
             "Что чувствовал? (1–100)",
             "Какие новые выводы выбираю сделать о себе, людях, мире, возможностях, силе, безопасности — и о чём напоминать себе в следующих подобных ситуациях?",
         ], note: "закрепляю успех: ситуация → результат → чувства → новые выводы о себе и мире")
+    }
+
+    // Разобранные случаи в журнал «Дневника мыслей» — вносим один раз (флаг td_seed_v1),
+    // только если журнал пуст (чтобы не задвоить при синхроне Mac↔iPhone).
+    static func seedThoughtDiaryEntries(_ db: Database) {
+        if ((try? db.rows("SELECT value FROM settings WHERE key = 'td_seed_v1'"))?.first?["value"]) as? String == "1" { return }
+        guard let pid = ((try? db.rows("SELECT id FROM practices WHERE name LIKE 'Дневник мыслей%' AND name NOT LIKE '%(пример)%'"))?.first?["id"]) as? Int else { return }
+        let count = ((try? db.rows("SELECT count(*) AS c FROM practice_log WHERE practice_id = ?", [pid]))?.first?["c"]) as? Int ?? 0
+        if count == 0 {
+            let entries: [[String]] = [
+                ["19:00 Собираюсь решить задачи, хвосты где есть сложные решения",
+                 "Нужно чуть позже, собраться силами, возможно сейчас ещё можно не париться и потом подумаю (50)",
+                 "Беспокойство (90)",
+                 "Откладываю и не сажусь за задачу, нахожу причины не успевать. Нужно расписать текущее видение, там где сомневаюсь — указать, пересмотреть через какое время и почему."],
+                ["18:00 Планирую разговор с Серым по переводам",
+                 "Сейчас уже поздно, выходной, не хочу беспокоить, надо просчитать всё (90)",
+                 "Сомнение (100)",
+                 "Надо посчитать спокойно, спланировать удобный для двоих день и свои ожидания. Ставлю задачу в неудобный момент, не подумав, что хочу получить точно и устроит ли меня какой из вариантов."],
+            ]
+            for answers in entries {
+                let aj = String(data: (try? JSONSerialization.data(withJSONObject: answers)) ?? Data("[]".utf8), encoding: .utf8) ?? "[]"
+                try? db.run("INSERT INTO practice_log(practice_id, date, note, answers) VALUES(?,?,?,?)",
+                    [pid, localToday(), "", aj])
+            }
+        }
+        try? setSetting(db, "td_seed_v1", "1")
     }
 
     // Каркас портфеля: 4 блока + замороженный капитал с примерами (порт ensurePortfolio).

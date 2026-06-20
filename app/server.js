@@ -38,6 +38,7 @@ psy.ensureThoughtTesting(db); // техника «Тестирование мы�
 psy.ensureThoughtDiary(db); // техника «Дневник мыслей» (CBT thought record), журнал таблицей
 psy.ensureExperienceDiary(db); // техника «Дневник Опыта» (5 шагов)
 psy.ensureWinsDiary(db); // техника «Дневник Побед» (4 шага)
+psy.seedThoughtDiaryEntries(db); // разобранные случаи в журнал «Дневника мыслей» (один раз)
 ensureEnergy(db);         // ⚡ Энергия жизни + Банк впечатлений — тоже структура
 notes.ensureInfoTree(db); // ветки Инфо: Finance / Mindset / Fun / Work / Health
 { // старый трекинг из гугл-таблицы: колонки + история отметок, разово
