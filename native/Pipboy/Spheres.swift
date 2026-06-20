@@ -8,15 +8,15 @@ extension Api {
     // ----- схема: area_id на таблицах (тихая миграция) -----
     static func ensureSpheresSchema(_ db: Database) {
         for t in ["nodes", "routines", "metrics", "practices", "obligations", "people", "pages", "events", "debts", "steps"] {
-            try? db.run("ALTER TABLE \(t) ADD COLUMN area_id INTEGER REFERENCES wheel_areas(id) ON DELETE SET NULL")
+            _ = try? db.run("ALTER TABLE \(t) ADD COLUMN area_id INTEGER REFERENCES wheel_areas(id) ON DELETE SET NULL")
         }
-        try? db.run("ALTER TABLE metrics ADD COLUMN target REAL")   // цель метрики (полоса к цели)
-        try? db.run("ALTER TABLE routines ADD COLUMN archived INTEGER NOT NULL DEFAULT 0")    // архив рутин (не удалять из истории)
-        try? db.run("ALTER TABLE practices ADD COLUMN archived INTEGER NOT NULL DEFAULT 0")   // архив практик
+        _ = try? db.run("ALTER TABLE metrics ADD COLUMN target REAL")   // цель метрики (полоса к цели)
+        _ = try? db.run("ALTER TABLE routines ADD COLUMN archived INTEGER NOT NULL DEFAULT 0")    // архив рутин (не удалять из истории)
+        _ = try? db.run("ALTER TABLE practices ADD COLUMN archived INTEGER NOT NULL DEFAULT 0")   // архив практик
         // отдых/восстановление: способы кайфануть по контексту (будни/выходные/глобально)
-        try? db.run("CREATE TABLE IF NOT EXISTS rest_ideas(id INTEGER PRIMARY KEY, text TEXT NOT NULL DEFAULT '', scope TEXT NOT NULL DEFAULT 'weekday', ord INTEGER NOT NULL DEFAULT 0)")
+        _ = try? db.run("CREATE TABLE IF NOT EXISTS rest_ideas(id INTEGER PRIMARY KEY, text TEXT NOT NULL DEFAULT '', scope TEXT NOT NULL DEFAULT 'weekday', ord INTEGER NOT NULL DEFAULT 0)")
         // вехи «пути к 10» — создаём на каждом старте (ensureSchema идёт только при сиде)
-        try? db.run("""
+        _ = try? db.run("""
             CREATE TABLE IF NOT EXISTS area_milestones(
               id INTEGER PRIMARY KEY,
               area_id INTEGER NOT NULL REFERENCES wheel_areas(id) ON DELETE CASCADE,
@@ -129,7 +129,7 @@ extension Api {
             if sched.isEmpty || sched.contains(iso) { expected += 1 }
             guard let nxt = cal.date(byAdding: .day, value: 1, to: d) else { break }; d = nxt
         }
-        let done = (try? db.scalarInt("SELECT count(DISTINCT date) FROM \(table) WHERE \(idCol) = ? AND date >= ?", [id, fromISO])) ?? 0
+        let done = (try? db.rows("SELECT count(DISTINCT date) AS c FROM \(table) WHERE \(idCol) = ? AND date >= ?", [id, fromISO]))?.first?["c"] as? Int ?? 0
         return expected > 0 ? min(100, Int((Double(done) / Double(expected) * 100).rounded())) : 0
     }
 
@@ -264,7 +264,7 @@ extension Api {
             let progress: [String: Any] = ["tasksDone": tasksDone, "tasksTotal": tasksTotal, "adherence": adherence, "trends": trends, "momentum": momentum]
 
             let scores = sc.compactMap { $0["score"] as? Int }
-            let scoreVal: Any = sc.first.flatMap { $0["score"] } ?? NSNull()
+            let scoreVal: Any = sc.first?["score"] ?? NSNull()
             let prevVal: Any = sc.count > 1 ? (sc[1]["score"] ?? NSNull()) : NSNull()
             let milestones = (try? db.rows("SELECT id, level, title FROM area_milestones WHERE area_id = ? ORDER BY level, id", [aid])) ?? []   // не роняем сбор, если таблицы ещё нет
             result.append([
