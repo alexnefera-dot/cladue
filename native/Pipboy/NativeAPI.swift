@@ -60,7 +60,10 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
             var result: (Data, String, Int)
             do { result = try self.respond(to: url, method: method, bodyHeader: bodyHeader) }
             catch {
-                let body = "{\"error\":\"\(error)\"}".data(using: .utf8) ?? Data()
+                // корректно кодируем ошибку в JSON: текст ошибки мог содержать кавычки/переводы строк
+                // и ломать тело ответа — тогда фронт ловил парс-ошибку и показывал общий фолбэк
+                let body = (try? JSONSerialization.data(withJSONObject: ["error": String(describing: error)]))
+                    ?? Data("{\"error\":\"internal\"}".utf8)
                 result = (body, "application/json", 500)
             }
             // отвечаем на main и только если задача ещё жива (иначе краш web-процесса на iOS)

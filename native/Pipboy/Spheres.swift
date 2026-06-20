@@ -186,6 +186,7 @@ extension Api {
 
         var result: [[String: Any]] = []
         for a in areas {
+          do {
             let aid = a["id"] as? Int ?? -1
             let aname = a["name"] as? String ?? ""
             let sc = try db.rows("SELECT date, score FROM wheel_scores WHERE area_id = ? ORDER BY date DESC LIMIT 8", [aid])
@@ -278,6 +279,7 @@ extension Api {
                 "people": people, "info": Array(info), "events": events, "fin": fin, "debts": debts, "steps": steps,
                 "finance": finance, "progress": progress, "milestones": milestones,
             ])
+          } catch { continue }   // одна проблемная сфера не валит весь экран Сфер
         }
         return result
     }
