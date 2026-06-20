@@ -285,7 +285,9 @@ export function createDb(path = ':memory:') {
       name TEXT NOT NULL,
       type TEXT NOT NULL DEFAULT 'number',     -- number|bool|scale (1..10)
       unit TEXT NOT NULL DEFAULT '',
-      ord INTEGER NOT NULL DEFAULT 0
+      ord INTEGER NOT NULL DEFAULT 0,
+      polarity TEXT NOT NULL DEFAULT 'plus',   -- plus|minus (рост = плохо)
+      target REAL                              -- целевое значение (KPI)
     );
     CREATE TABLE IF NOT EXISTS metric_log(
       metric_id INTEGER NOT NULL REFERENCES metrics(id) ON DELETE CASCADE,
@@ -352,6 +354,8 @@ export function createDb(path = ':memory:') {
       ('Ютуб при работе', 'Тревога (не в 20:00)', 'Тревога(не в 20:00)',
        'Приоритеная задача не выбрана', 'Подъем не в 10')`).run();
   }
+  // целевое значение метрики (KPI). Без неё buildSpheres падал «no such column: target» → сферы ломались
+  if (!mcols.includes('target')) db.exec(`ALTER TABLE metrics ADD COLUMN target REAL`);
   // категория практики: обучение/мотивация/убеждения/опыт/сценарии/разное
   const prc = db.prepare('PRAGMA table_info(practices)').all().map(c => c.name);
   if (!prc.includes('category')) db.exec(`ALTER TABLE practices ADD COLUMN category TEXT NOT NULL DEFAULT ''`);

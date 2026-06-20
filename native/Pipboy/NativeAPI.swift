@@ -37,6 +37,8 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         _ = try? made.run("ALTER TABLE passive_income ADD COLUMN asset_type TEXT NOT NULL DEFAULT ''")  // тип актива
         _ = try? made.run("CREATE TABLE IF NOT EXISTS attachments(id INTEGER PRIMARY KEY, page_id INTEGER, name TEXT NOT NULL DEFAULT '', mime TEXT NOT NULL DEFAULT 'application/octet-stream', data TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')))")  // вложения Инфо (картинки/PDF)
         _ = try? made.run("ALTER TABLE practices ADD COLUMN category TEXT NOT NULL DEFAULT ''")  // категория практики
+        _ = try? made.run("ALTER TABLE metrics ADD COLUMN target REAL")                          // KPI метрики — без неё сферы падали
+        _ = try? made.run("ALTER TABLE metrics ADD COLUMN polarity TEXT NOT NULL DEFAULT 'plus'") // полярность метрики
         Api.ensureSyncSchema(made)   // updated_at + триггеры + tombstones — отслеживание правок для синхрона
         Api.ensureSpheresSchema(made)   // area_id на таблицах — раздел «Сферы»
         Api.ensureThoughtTesting(made)   // техника «Тестирование мыслей» (КПТ) — один раз
