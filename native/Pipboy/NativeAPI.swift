@@ -42,6 +42,7 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         Api.ensureThoughtDiary(made)   // техника «Дневник мыслей» (журнал таблицей) — один раз
         Api.ensureExperienceDiary(made)   // техника «Дневник Опыта» — один раз
         Api.ensureWinsDiary(made)   // техника «Дневник Побед» — один раз
+        Api.ensurePositiveIntent(made)   // техника «Позитивное намерение» (+ обновление формулировки шагов)
         Api.seedThoughtDiaryEntries(made)   // разобранные случаи в журнал «Дневника мыслей» — один раз
         if (try? made.rows("SELECT value FROM settings WHERE key = 'sphere_defaults'"))?.first == nil {
             try? Api.autoConfigSpheres(made)   // первый запуск: связи секций раскладываются сами
@@ -1601,6 +1602,33 @@ enum Api {
             "Что чувствовал? (1–100)",
             "Какие новые выводы выбираю сделать о себе, людях, мире, возможностях, силе, безопасности — и о чём напоминать себе в следующих подобных ситуациях?",
         ], note: "закрепляю успех: ситуация → результат → чувства → новые выводы о себе и мире")
+    }
+
+    // Техника «Позитивное намерение» — 7 шагов. Создаёт практику (флаг pi_v1) и один раз
+    // обновляет формулировку шагов у уже существующей практики (флаг pi_steps_v2).
+    static func ensurePositiveIntent(_ db: Database) {
+        let steps = [
+            "1. Поведение / убеждение. Что делаю, что не делаю, какой результат, что думаю?",
+            "2. Принятие. Есть причины, разрешаю это. Это сейчас лучший способ. Разрешаю себе понять и найти лучший способ.",
+            "3. Позитивное намерение. Чтобы что получить? От чего защититься? Какие ситуации, чувства, ощущения?",
+            "4. Что в результате? Насколько поведение/убеждение из п.1 помогает реализации позитивного намерения из п.3 (1–10)?",
+            "5. Побочные эффекты? Какую цену я плачу? Какие нежелательные эффекты получаю от убеждения/поведения из п.1? Что теряю?",
+            "6. Альтернативное поведение/мышление. Какое мышление и поведение поможет реализовать позитивное намерение (п.3) с меньшими побочными эффектами и большей эффективностью? Чему научиться, какой опыт получить?",
+            "7. Конкретные действия. Какой первый шаг я выбираю (эксперимент)?",
+        ]
+        let stepsJson = String(data: (try? JSONSerialization.data(withJSONObject: steps)) ?? Data("[]".utf8), encoding: .utf8) ?? "[]"
+        if let row = (try? db.rows("SELECT id FROM practices WHERE name LIKE 'Позитивное намерение%' AND name NOT LIKE '%(пример)%'"))?.first {
+            if ((try? db.rows("SELECT value FROM settings WHERE key = 'pi_steps_v2'"))?.first?["value"]) as? String != "1" {
+                try? db.run("UPDATE practices SET steps = ? WHERE id = ?", [stepsJson, intval(row["id"])])
+            }
+        } else if ((try? db.rows("SELECT value FROM settings WHERE key = 'pi_v1'"))?.first?["value"]) as? String != "1" {
+            let ord = nextOrd(db, "SELECT COALESCE(MAX(ord),0)+1 AS o FROM practices")
+            try? db.run("INSERT INTO practices(name, kind, days, time, steps, note, ord) VALUES(?,?,?,?,?,?,?)",
+                ["Позитивное намерение", "technique", "", NSNull(), stepsJson,
+                 "за поведением/убеждением стоит позитивное намерение — найди его, оцени цену и подбери более эффективную альтернативу", ord])
+        }
+        try? setSetting(db, "pi_v1", "1")
+        try? setSetting(db, "pi_steps_v2", "1")
     }
 
     // Разобранные случаи в журнал «Дневника мыслей» — вносим один раз (флаг td_seed_v1),
