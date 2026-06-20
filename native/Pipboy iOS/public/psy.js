@@ -109,6 +109,7 @@ function journalTable(p, rows, big = false) {
 
 // Открыть журнал на весь экран — удобно пересматривать большую таблицу.
 function openJournalModal(p, rows) {
+  document.querySelectorAll('.jov').forEach(o => o.remove());   // не стопать оверлеи
   const ov = document.createElement('div');
   ov.className = 'jov';
   ov.innerHTML = `<div class="jbox">
