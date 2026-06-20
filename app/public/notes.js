@@ -341,14 +341,14 @@ async function renderNotes() {
         ${ntMode === 'rich' ? `
           <div class="nttoolbar">
             ${TOOLBAR.map(([label, hint], i) => `<span class="pill btn ntb" data-ntb="${i}" title="${hint}">${nesc(label)}</span>`).join('')}
-            <label class="pill btn ntb" title="вставить картинку или PDF" style="cursor:pointer">📎 файл<input type="file" id="ntFile" accept="image/*,application/pdf" style="display:none"></label>
+            <label class="pill btn ntb" title="вставить картинку или PDF" style="cursor:pointer">📎 файл<input type="file" id="ntFile" accept="image/*,application/pdf" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none"></label>
             <span class="pill btn" id="ntModeMd" title="редактировать как markdown" style="margin-left:auto">&lt;/&gt; markdown</span>
           </div>
           <div id="ntRich" class="mdview richedit" contenteditable="true" spellcheck="false" data-ph="пиши здесь — сохранится само">${mdRender(content)}</div>`
         : `
           <div class="nttoolbar">
             <span class="meta">markdown-режим: # заголовок · - список · - [ ] чеклист · > цитата · [[ссылка]]</span>
-            <label class="pill btn ntb" title="вставить картинку или PDF" style="cursor:pointer">📎 файл<input type="file" id="ntFile" accept="image/*,application/pdf" style="display:none"></label>
+            <label class="pill btn ntb" title="вставить картинку или PDF" style="cursor:pointer">📎 файл<input type="file" id="ntFile" accept="image/*,application/pdf" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none"></label>
             <span class="pill btn" id="ntModeRich" style="margin-left:auto">Aa визуальный</span>
           </div>
           <textarea id="ntBody" class="ntbody">${nesc(content)}</textarea>`}
@@ -512,6 +512,11 @@ function bindNotes(page) {
   };
   // пока редактор открыт, правки можно дописать при любом уходе со страницы
   window.ntFlush = (ntEditing && page && !(page.locked && ntCache[page.id] == null)) ? saveData : null;
+  // панель оформления: скрыта, пока не кликнул в текст; дальше остаётся (класс не снимаем),
+  // чтобы клики по самой панели (📎 и т.п.) её не сворачивали и контент не прыгал
+  const editorEl = document.querySelector('#screen-notes .editor');
+  for (const id of ['ntBody', 'ntRich'])
+    $(id)?.addEventListener('focus', () => editorEl?.classList.add('nt-on'));
   // автосохранение: 1.5 сек тишины при наборе; вставка из буфера пишется сразу
   for (const id of ['ntBody', 'ntRich']) {
     $(id)?.addEventListener('input', () => {

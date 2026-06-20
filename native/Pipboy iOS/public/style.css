@@ -181,8 +181,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .attlink{color:var(--green);border-bottom:1px dashed var(--green-dim);cursor:pointer}
 /* панель оформления закреплена сверху редактора (видна при скролле и при клике по 📎) */
 .nttoolbar{display:flex;gap:5px;align-items:center;flex-wrap:wrap;
-  position:sticky;top:0;z-index:6;background:var(--panel);
-  margin:0 0 8px;padding:8px 0 6px;border-bottom:1px solid var(--line)}
+  max-height:0;opacity:0;overflow:hidden;margin:0;padding:0;
+  transition:max-height .2s ease,opacity .15s,margin .2s,padding .2s}
+.editor.nt-on .nttoolbar{max-height:140px;opacity:1;margin:0 0 8px;padding:6px 0;border-bottom:1px solid var(--line);overflow:visible}
 .ntb{min-width:30px;text-align:center}
 .richedit{border:1px solid transparent;border-radius:8px;padding:10px 12px;margin-left:-12px;min-height:420px;outline:none;background:transparent}
 .richedit:focus{border-color:var(--line);box-shadow:none}
