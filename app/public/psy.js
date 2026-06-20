@@ -96,11 +96,15 @@ function practiceCard(p) {
 }
 
 // Журнал техники таблицей: строка — случай (дата), колонки — шаги. Наглядно для пересмотра.
+// Колонки берём по числу ответов (и по шагам, если они заданы) — журнал виден даже без steps.
 function journalTable(p, rows, big = false) {
   if (!rows.length) return '<div class="empty">журнал пуст</div>';
-  const heads = p.steps.map(s => `<th>${pesc(s)}</th>`).join('');
+  const steps = Array.isArray(p.steps) ? p.steps : [];
+  const ncol = Math.max(steps.length, ...rows.map(l => (Array.isArray(l.answers) ? l.answers.length : 0)));
+  if (!ncol) return '<div class="empty">в записях нет ответов</div>';
+  const heads = Array.from({ length: ncol }, (_, i) => `<th>${pesc(steps[i] ?? ('Шаг ' + (i + 1)))}</th>`).join('');
   const body = rows.map(l => {
-    const cells = p.steps.map((_, i) => `<td>${pesc(l.answers?.[i] ?? '') || '—'}</td>`).join('');
+    const cells = Array.from({ length: ncol }, (_, i) => `<td>${pesc(l.answers?.[i] ?? '') || '—'}</td>`).join('');
     return `<tr><td class="jdate">${l.date}${l.note ? `<div class="jnote">${pesc(l.note)}</div>` : ''}</td>${cells}</tr>`;
   }).join('');
   return `<div class="jrnl-wrap${big ? ' big' : ''}"><table class="jrnl">

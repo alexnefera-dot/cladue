@@ -1544,10 +1544,12 @@ enum Api {
     // Техника-практика, создаваемая один раз (флаг в settings). Через try? — открытие базы не падает,
     // если таблицы ещё нет. Имя-проверка не плодит дубли при синхроне Mac↔iPhone.
     private static func seedTechniqueOnce(_ db: Database, flag: String, name: String, steps: [String], note: String) {
-        if ((try? db.rows("SELECT value FROM settings WHERE key = ?", [flag]))?.first?["value"]) as? String == "1" { return }
-        let exists = ((try? db.rows("SELECT id FROM practices WHERE name LIKE ? AND name NOT LIKE '%(пример)%'", [name + "%"]))?.first) != nil
-        if !exists {
-            let stepsJson = String(data: (try? JSONSerialization.data(withJSONObject: steps)) ?? Data("[]".utf8), encoding: .utf8) ?? "[]"
+        let stepsJson = String(data: (try? JSONSerialization.data(withJSONObject: steps)) ?? Data("[]".utf8), encoding: .utf8) ?? "[]"
+        if let row = (try? db.rows("SELECT id, steps FROM practices WHERE name LIKE ? AND name NOT LIKE '%(пример)%'", [name + "%"]))?.first {
+            // практика уже есть: если шаги пустые (создана раньше без них) — дозаполнить
+            let s = (row["steps"] as? String) ?? ""
+            if s.isEmpty || s == "[]" { try? db.run("UPDATE practices SET steps = ? WHERE id = ?", [stepsJson, intval(row["id"])]) }
+        } else if ((try? db.rows("SELECT value FROM settings WHERE key = ?", [flag]))?.first?["value"]) as? String != "1" {
             let ord = nextOrd(db, "SELECT COALESCE(MAX(ord),0)+1 AS o FROM practices")
             try? db.run("INSERT INTO practices(name, kind, days, time, steps, note, ord) VALUES(?,?,?,?,?,?,?)",
                 [name, "technique", "", NSNull(), stepsJson, note, ord])

@@ -205,12 +205,20 @@ export const POSITIVE_INTENT_STEPS = [
   'Проверка экологичности: кому/чему это может навредить?',
   'Якорь: когда и где применю новый способ впервые?',
 ];
+// Техника-практика, создаваемая один раз (флаг). Если практика уже есть, но шаги пустые
+// (создана раньше без них) — дозаполняем, чтобы журнал показывал колонки по шагам.
+function seedTechnique(db, flag, name, steps, note) {
+  const existing = db.prepare(`SELECT id, steps FROM practices WHERE name LIKE ? AND name NOT LIKE '%(пример)%'`).get(name + '%');
+  if (existing) {
+    if (!existing.steps || existing.steps === '[]') db.prepare('UPDATE practices SET steps = ? WHERE id = ?').run(JSON.stringify(steps), existing.id);
+  } else if (getSetting(db, flag, '') !== '1') {
+    addPractice(db, { name, kind: 'technique', steps, note });
+  }
+  setSetting(db, flag, '1');
+}
 export function ensurePositiveIntent(db) {
-  if (getSetting(db, 'pi_v1', '') === '1') return;
-  if (!db.prepare(`SELECT id FROM practices WHERE name LIKE 'Позитивное намерение%' AND name NOT LIKE '%(пример)%'`).get())
-    addPractice(db, { name: 'Позитивное намерение', kind: 'technique', steps: POSITIVE_INTENT_STEPS,
-      note: 'за нежелательным поведением стоит позитивное намерение — найди его и дай ему лучший способ' });
-  setSetting(db, 'pi_v1', '1');
+  seedTechnique(db, 'pi_v1', 'Позитивное намерение', POSITIVE_INTENT_STEPS,
+    'за нежелательным поведением стоит позитивное намерение — найди его и дай ему лучший способ');
 }
 
 // ===== Техника «Тестирование мыслей» (когнитивная реструктуризация, КПТ) — создаётся один раз =====
@@ -223,11 +231,8 @@ export const THOUGHT_TESTING_STEPS = [
   '✅ Результат. Насколько теперь верю в изначальную мысль (1–100)? Какой силы первые эмоции?',
 ];
 export function ensureThoughtTesting(db) {
-  if (getSetting(db, 'tt_v1', '') === '1') return;
-  if (!db.prepare(`SELECT id FROM practices WHERE name LIKE 'Тестирование мыслей%' AND name NOT LIKE '%(пример)%'`).get())
-    addPractice(db, { name: 'Тестирование мыслей', kind: 'technique', steps: THOUGHT_TESTING_STEPS,
-      note: 'когнитивная реструктуризация: проверяю мысль на реалистичность и пользу, выбираю более полезную' });
-  setSetting(db, 'tt_v1', '1');
+  seedTechnique(db, 'tt_v1', 'Тестирование мыслей', THOUGHT_TESTING_STEPS,
+    'когнитивная реструктуризация: проверяю мысль на реалистичность и пользу, выбираю более полезную');
 }
 
 // ===== Техника «Дневник мыслей» (CBT thought record) — журнал случаев таблицей =====
@@ -238,11 +243,8 @@ export const THOUGHT_DIARY_STEPS = [
   'Поведение (что хочу делать? что делаю?)',
 ];
 export function ensureThoughtDiary(db) {
-  if (getSetting(db, 'td_v1', '') === '1') return;
-  if (!db.prepare(`SELECT id FROM practices WHERE name LIKE 'Дневник мыслей%' AND name NOT LIKE '%(пример)%'`).get())
-    addPractice(db, { name: 'Дневник мыслей', kind: 'technique', steps: THOUGHT_DIARY_STEPS,
-      note: 'ловлю случай: ситуация → мысли → эмоции (1–100) → поведение. Журнал копится таблицей для пересмотра' });
-  setSetting(db, 'td_v1', '1');
+  seedTechnique(db, 'td_v1', 'Дневник мыслей', THOUGHT_DIARY_STEPS,
+    'ловлю случай: ситуация → мысли → эмоции (1–100) → поведение. Журнал копится таблицей для пересмотра');
 }
 
 // ===== Техника «Дневник Опыта» — разбор случая, где себя остановил =====
@@ -254,11 +256,8 @@ export const EXPERIENCE_DIARY_STEPS = [
   'Планирование. Как хочу поступить в следующий раз? Как думать, говорить, действовать?',
 ];
 export function ensureExperienceDiary(db) {
-  if (getSetting(db, 'exp_v1', '') === '1') return;
-  if (!db.prepare(`SELECT id FROM practices WHERE name LIKE 'Дневник Опыта%' AND name NOT LIKE '%(пример)%'`).get())
-    addPractice(db, { name: 'Дневник Опыта', kind: 'technique', steps: EXPERIENCE_DIARY_STEPS,
-      note: 'разбираю случай, где себя остановил: ситуация → чувства → мысли → принятие → план на будущее' });
-  setSetting(db, 'exp_v1', '1');
+  seedTechnique(db, 'exp_v1', 'Дневник Опыта', EXPERIENCE_DIARY_STEPS,
+    'разбираю случай, где себя остановил: ситуация → чувства → мысли → принятие → план на будущее');
 }
 
 // ===== Техника «Дневник Побед» — закрепляю успех и новые выводы =====
@@ -269,11 +268,8 @@ export const WINS_DIARY_STEPS = [
   'Какие новые выводы выбираю сделать о себе, людях, мире, возможностях, силе, безопасности — и о чём напоминать себе в следующих подобных ситуациях?',
 ];
 export function ensureWinsDiary(db) {
-  if (getSetting(db, 'win_v1', '') === '1') return;
-  if (!db.prepare(`SELECT id FROM practices WHERE name LIKE 'Дневник Побед%' AND name NOT LIKE '%(пример)%'`).get())
-    addPractice(db, { name: 'Дневник Побед', kind: 'technique', steps: WINS_DIARY_STEPS,
-      note: 'закрепляю успех: ситуация → результат → чувства → новые выводы о себе и мире' });
-  setSetting(db, 'win_v1', '1');
+  seedTechnique(db, 'win_v1', 'Дневник Побед', WINS_DIARY_STEPS,
+    'закрепляю успех: ситуация → результат → чувства → новые выводы о себе и мире');
 }
 
 // ===== Разобранные случаи в журнал «Дневника мыслей» (внесено один раз) =====

@@ -73,7 +73,11 @@ window.loadSpheres = async function () {
       `<h2>Сферы жизни</h2><div class="card" style="margin-top:12px"><div class="muted">Не удалось собрать сферы: ${sesc(String(msg))}</div></div>`;
     return;
   }
-  renderSpheres();
+  try { renderSpheres(); }
+  catch (e) {   // ошибка отрисовки не должна оставлять белый экран — показываем причину
+    document.getElementById('screen-spheres').innerHTML =
+      `<h2>Сферы жизни</h2><div class="card" style="margin-top:12px"><div class="muted">Сферы не отрисовались: ${sesc(String(e && e.message || e))}</div></div>`;
+  }
 };
 // открыть конкретную сферу из «Сегодня» (полоса сфер) — без отдельной загрузки
 window.openSphere = function (id) { sphOpen = id; showScreen('spheres'); };
