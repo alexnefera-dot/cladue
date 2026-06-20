@@ -106,7 +106,7 @@ function taskLine(t) {
     ${t.kind === 'decision' ? '<span class="pill dec">решение</span>' : ''}
     <span class="t" data-tdopen="${t.id}" style="cursor:pointer">${tesc(t.title)}</span>
     ${t.repeat ? '<span class="meta">🔁</span>' : ''}
-    <span class="meta ed" data-tddate="${t.id}" title="изменить срок">${t.due_date ?? '＋ срок'}</span>
+    <span class="meta ed" data-tddate="${t.id}" data-tdtime="${t.due_time ?? ''}" title="изменить срок и время">${t.due_date ? t.due_date + (t.due_time ? ' · ' + t.due_time : '') : '＋ срок'}</span>
   </div>`;
 }
 
@@ -243,7 +243,7 @@ function renderTodayMobile() {
     ${t.priority ? `<span class="pill ${t.priority}">${t.priority}</span>` : ''}
     <span class="t" data-tdopen="${t.id}">${tesc(t.title)}</span>
     ${t.repeat ? '<span class="meta">🔁</span>' : ''}
-    <span class="meta ed" data-tddate="${t.id}" title="изменить срок">${t.due_date ?? '＋ срок'}</span>
+    <span class="meta ed" data-tddate="${t.id}" data-tdtime="${t.due_time ?? ''}" title="изменить срок и время">${t.due_date ? t.due_date + (t.due_time ? ' · ' + t.due_time : '') : '＋ срок'}</span>
   </div>`;
 
   const checkin = d.checkin
@@ -380,11 +380,13 @@ function bindToday() {
   document.querySelectorAll('#screen-today [data-tddate]').forEach(el =>
     el.addEventListener('click', async e => {
       e.stopPropagation();
-      const cur = /^\d{4}-\d{2}-\d{2}$/.test(el.textContent.trim()) ? el.textContent.trim() : null;
-      const v = await window.pickDate(cur, { title: 'Срок задачи' });
+      const cur = (el.textContent.trim().match(/^\d{4}-\d{2}-\d{2}/) || [null])[0];
+      const curTime = /^\d{2}:\d{2}$/.test(el.dataset.tdtime || '') ? el.dataset.tdtime : '';
+      const v = await window.pickDate(cur, { title: 'Срок и время задачи', withTime: true, time: curTime });
       if (v === undefined) return;   // отмена — ничего не меняем
+      const body = { due_date: v.date || null, due_time: v.date ? (v.time || null) : null };  // время без даты не имеет смысла
       await fetch('/api/nodes/' + el.dataset.tddate, { method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ due_date: v || null }) });
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       window.loadToday();
     }));
   document.querySelectorAll('#screen-today [data-tdgoto]').forEach(el =>

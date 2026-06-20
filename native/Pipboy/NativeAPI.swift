@@ -2316,7 +2316,7 @@ enum Api {
         let weekEnd = localDateFormatter().string(from: cal.date(byAdding: .day, value: 7, to: Date())!)
         func taskRows(_ cond: String) throws -> [[String: Any]] {
             try db.rows("""
-                SELECT id, title, kind, priority, due_date, repeat FROM nodes
+                SELECT id, title, kind, priority, due_date, due_time, repeat FROM nodes
                 WHERE kind IN ('task','decision') AND status IN ('todo','open') AND \(cond)
                 ORDER BY priority IS NULL, priority, due_date
                 """, [t])

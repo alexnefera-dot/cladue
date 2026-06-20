@@ -35,7 +35,7 @@ export function buildToday(db) {
   const weekEnd = iso(new Date(Date.now() + 7 * 864e5));
 
   const taskRows = st => db.prepare(`
-    SELECT id, title, kind, priority, due_date, repeat FROM nodes
+    SELECT id, title, kind, priority, due_date, due_time, repeat FROM nodes
     WHERE kind IN ('task','decision') AND status IN ('todo','open') AND ${st}
     ORDER BY priority IS NULL, priority, due_date`).all(today);
   const overdue = taskRows(`due_date < ?`);

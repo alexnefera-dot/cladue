@@ -1280,15 +1280,18 @@ window.pickDate = function (current, opts = {}) {
       .dpbox{background:var(--panel);border-radius:14px;padding:16px;box-shadow:var(--shadow-md);min-width:240px}
       .dphd{font:600 12px var(--mono);color:var(--nav);letter-spacing:.5px;margin-bottom:10px}
       .dpin{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;font:15px var(--sans);background:var(--bg);color:var(--text)}
+      .dptime{margin-top:8px}
       .dprow{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}`;
     document.head.appendChild(st);
   }
   return new Promise(resolve => {
     const valid = /^\d{4}-\d{2}-\d{2}$/.test(current || '') ? current : '';
+    const vTime = /^\d{2}:\d{2}$/.test(opts.time || '') ? opts.time : '';
     const ov = document.createElement('div'); ov.className = 'dpov';
     ov.innerHTML = `<div class="dpbox">
       <div class="dphd">${(opts.title || 'ВЫБЕРИ ДАТУ').toUpperCase()}</div>
       <input type="date" class="dpin" value="${valid}">
+      ${opts.withTime ? `<input type="time" class="dpin dptime" value="${vTime}" title="время (необязательно)">` : ''}
       <div class="dprow">
         ${opts.clear === false ? '' : '<span class="pill btn" data-dp="clear">убрать</span>'}
         <span class="pill btn" data-dp="cancel">отмена</span>
@@ -1296,17 +1299,21 @@ window.pickDate = function (current, opts = {}) {
       </div></div>`;
     document.body.appendChild(ov);
     const inp = ov.querySelector('.dpin');
+    const tinp = ov.querySelector('.dptime');
     setTimeout(() => { inp.focus(); try { inp.showPicker?.(); } catch {} }, 30);
+    // withTime: возвращаем { date, time }; иначе — строку даты (как раньше)
+    const okVal = () => opts.withTime ? { date: inp.value || null, time: tinp?.value || null } : (inp.value || undefined);
+    const clearVal = () => opts.withTime ? { date: null, time: null } : null;
     const close = v => { ov.remove(); resolve(v); };
     ov.addEventListener('click', e => {
       if (e.target === ov) return close(undefined);
       const a = e.target.dataset.dp;
-      if (a === 'ok') close(inp.value || undefined);
-      else if (a === 'clear') close(null);
+      if (a === 'ok') close(okVal());
+      else if (a === 'clear') close(clearVal());
       else if (a === 'cancel') close(undefined);
     });
-    inp.addEventListener('keydown', e => {
-      if (e.key === 'Enter') close(inp.value || undefined);
+    for (const el of [inp, tinp]) el?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') close(okVal());
       else if (e.key === 'Escape') close(undefined);
     });
   });
