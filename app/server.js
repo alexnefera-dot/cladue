@@ -234,6 +234,19 @@ const server = http.createServer(async (req, res) => {
       try { notes.reorderPage(db, +m[1], +b.ref_id, b.where === 'before' ? 'before' : 'after'); return json(res, 200, { ok: true }); }
       catch (e) { return json(res, 400, { error: e.message }); }
     }
+    if ((m = p.match(/^\/api\/pages\/(\d+)\/attachments$/)) && req.method === 'POST') {
+      const b = await body(req);
+      return json(res, 201, notes.addAttachment(db, +m[1], b));
+    }
+    if ((m = p.match(/^\/api\/attachments\/(\d+)$/)) && req.method === 'GET') {
+      const a = notes.getAttachment(db, +m[1]);
+      if (!a) { res.writeHead(404); return res.end('not found'); }
+      const buf = Buffer.from(a.data || '', 'base64');
+      res.writeHead(200, { 'Content-Type': a.mime || 'application/octet-stream',
+        'Content-Length': buf.length, 'Cache-Control': 'private, max-age=31536000',
+        'Content-Disposition': `inline; filename*=UTF-8''${encodeURIComponent(a.name)}` });
+      return res.end(buf);
+    }
     if ((m = p.match(/^\/api\/pages\/(\d+)\/revisions$/)) && req.method === 'GET')
       return json(res, 200, notes.pageRevisions(db, +m[1]));
     if ((m = p.match(/^\/api\/pages\/(\d+)\/revisions\/(\d+)\/restore$/)) && req.method === 'POST') {

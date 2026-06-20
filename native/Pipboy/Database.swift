@@ -264,6 +264,12 @@ final class Database {
           content TEXT NOT NULL, saved_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
         CREATE VIRTUAL TABLE IF NOT EXISTS page_fts USING fts5(title_norm, content_norm);
+        CREATE TABLE IF NOT EXISTS attachments(
+          id INTEGER PRIMARY KEY,
+          page_id INTEGER REFERENCES pages(id) ON DELETE CASCADE,
+          name TEXT NOT NULL DEFAULT '', mime TEXT NOT NULL DEFAULT 'application/octet-stream',
+          data TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+        );
         CREATE TABLE IF NOT EXISTS practices(
           id INTEGER PRIMARY KEY, name TEXT NOT NULL, kind TEXT NOT NULL DEFAULT 'schedule',
           days TEXT NOT NULL DEFAULT '', time TEXT, steps TEXT NOT NULL DEFAULT '[]',

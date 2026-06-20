@@ -216,7 +216,14 @@ export function createDb(path = ':memory:') {
       saved_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
     CREATE VIRTUAL TABLE IF NOT EXISTS page_fts USING fts5(title_norm, content_norm);
-
+    CREATE TABLE IF NOT EXISTS attachments(    -- вложения страниц Инфо: картинки/PDF (base64, хранится в зашифрованной базе)
+      id INTEGER PRIMARY KEY,
+      page_id INTEGER REFERENCES pages(id) ON DELETE CASCADE,
+      name TEXT NOT NULL DEFAULT '',
+      mime TEXT NOT NULL DEFAULT 'application/octet-stream',
+      data TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
     -- ===== Психология (этап 4) =====
     CREATE TABLE IF NOT EXISTS practices(
       id INTEGER PRIMARY KEY,

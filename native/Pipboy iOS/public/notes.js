@@ -22,8 +22,10 @@ const nesc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<':
 // ===== markdown → HTML =====
 function mdRender(src) {
   const inline = s => s
+    .replace(/!\[([^\]]*)\]\((\/api\/attachments\/\d+|https?:[^)\s]+)\)/g, '<img src="$2" alt="$1" class="mdimg">')
     .replace(/\[\[([^\]]+)\]\]/g, (_, n) => `<a class="wiki" data-wiki="${nesc(n)}">${nesc(n)}</a>`)
-    .replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+    .replace(/\[([^\]]+)\]\((\/api\/attachments\/\d+|https?:[^)\s]+)\)/g, (_, t, u) =>
+      u.startsWith('/api/') ? `<a href="${u}" class="attlink">${t}</a>` : `<a href="${u}" target="_blank">${t}</a>`)
     .replace(/~~([^~\n]+)~~/g, '<s>$1</s>')
     .replace(/&lt;u&gt;([^&]*?)&lt;\/u&gt;/g, '<u>$1</u>')
     .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
@@ -80,6 +82,7 @@ function htmlToMd(root) {
       if (n.nodeType === 3) { s += n.textContent; continue; }
       const tag = n.tagName;
       if (tag === 'BR') s += '\n';
+      else if (tag === 'IMG') { const src = n.getAttribute('src') || ''; if (!/^\s*(javascript|vbscript):/i.test(src)) s += `![${n.getAttribute('alt') || ''}](${src})`; }
       else if (tag === 'B' || tag === 'STRONG') s += '**' + inline(n) + '**';
       else if (tag === 'I' || tag === 'EM') s += '*' + inline(n) + '*';
       else if (tag === 'S' || tag === 'STRIKE' || tag === 'DEL') s += '~~' + inline(n) + '~~';
@@ -122,7 +125,8 @@ function htmlToMd(root) {
   for (const n of root.childNodes) {
     if (n.nodeType === 3) { if (n.textContent.trim()) out.push(n.textContent.trim()); continue; }
     const tag = n.tagName;
-    if (tag === 'H1' || tag === 'H2') out.push('# ' + inline(n).trim());
+    if (tag === 'IMG') { const src = n.getAttribute('src') || ''; if (!/^\s*(javascript|vbscript):/i.test(src)) out.push(`![${n.getAttribute('alt') || ''}](${src})`); }
+    else if (tag === 'H1' || tag === 'H2') out.push('# ' + inline(n).trim());
     else if (tag === 'H3') out.push('## ' + inline(n).trim());
     else if (tag === 'H4') out.push('### ' + inline(n).trim());
     else if (tag === 'UL' || tag === 'OL') out.push(listMd(n));
@@ -323,12 +327,16 @@ async function renderNotes() {
         ${ntMode === 'rich' ? `
           <div class="nttoolbar">
             ${TOOLBAR.map(([label, hint], i) => `<span class="pill btn ntb" data-ntb="${i}" title="${hint}">${nesc(label)}</span>`).join('')}
+            <span class="pill btn" id="ntAttach" title="вставить картинку или PDF">📎 файл</span>
+            <input type="file" id="ntFile" accept="image/*,application/pdf" style="display:none">
             <span class="pill btn" id="ntModeMd" title="редактировать как markdown" style="margin-left:auto">&lt;/&gt; markdown</span>
           </div>
           <div id="ntRich" class="mdview richedit" contenteditable="true" spellcheck="false" data-ph="пиши здесь — сохранится само">${mdRender(content)}</div>`
         : `
           <div class="nttoolbar">
             <span class="meta">markdown-режим: # заголовок · - список · - [ ] чеклист · > цитата · [[ссылка]]</span>
+            <span class="pill btn" id="ntAttach" title="вставить картинку или PDF">📎 файл</span>
+            <input type="file" id="ntFile" accept="image/*,application/pdf" style="display:none">
             <span class="pill btn" id="ntModeRich" style="margin-left:auto">Aa визуальный</span>
           </div>
           <textarea id="ntBody" class="ntbody">${nesc(content)}</textarea>`}
@@ -506,6 +514,9 @@ function bindNotes(page) {
   // умная вставка: HTML/таб-таблицы/markdown → наш формат. Сначала execCommand
   // (он дружит с ⌘Z), если не вставилось (Safari) — Range API; потерь не бывает.
   $('ntRich')?.addEventListener('paste', e => {
+    // вставка картинки из буфера (скриншот, копи-пейст) → грузим как вложение
+    const imgFile = [...(e.clipboardData.files || [])].find(f => f.type.startsWith('image/'));
+    if (imgFile) { e.preventDefault(); uploadAttachment(imgFile); return; }
     e.preventDefault();
     const html = e.clipboardData.getData('text/html');
     const text = e.clipboardData.getData('text/plain').replace(/\r/g, '');
@@ -518,6 +529,57 @@ function bindNotes(page) {
     if (!ok || rich.innerHTML === before) ntInsertHtml(htmlOut);
     clearTimeout(ntAutoT);
     ntAutoT = setTimeout(() => saveData(true), 250);
+  });
+
+  // ===== Вложения: картинки/PDF — кнопка 📎, drag&drop, вставка из буфера =====
+  const uploadAttachment = async (file) => {
+    if (!file || !ntSel) return;
+    const MAXMB = 25;
+    if (file.size > MAXMB * 1024 * 1024) { alert(`Файл больше ${MAXMB} МБ — слишком крупный для базы.`); return; }
+    const sb = document.getElementById('statusbar');
+    if (sb) sb.textContent = `⏳ загружаю ${file.name}…`;
+    try {
+      const data = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(String(r.result).split(',')[1] || '');
+        r.onerror = () => rej(new Error('чтение файла'));
+        r.readAsDataURL(file);
+      });
+      const meta = await fetch(`/api/pages/${ntSel}/attachments`, { method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: file.name, mime: file.type || 'application/octet-stream', data }) }).then(r => r.json());
+      if (!meta || meta.error || !meta.url) { alert('Не загрузилось: ' + (meta?.error || 'ошибка')); return; }
+      const isImg = (file.type || '').startsWith('image/');
+      if (ntMode === 'rich') {
+        ntInsertHtml(isImg ? `<img src="${meta.url}" alt="${nesc(file.name)}" class="mdimg">`
+          : `<a href="${meta.url}" class="attlink">📎 ${nesc(file.name)}</a>&nbsp;`);
+      } else {
+        const ta = $('ntBody');
+        const ins = isImg ? `\n![${file.name}](${meta.url})\n` : `\n[📎 ${file.name}](${meta.url})\n`;
+        const at = ta.selectionStart ?? ta.value.length;
+        ta.value = ta.value.slice(0, at) + ins + ta.value.slice(at);
+      }
+      if (sb) sb.textContent = `✓ вставлено: ${file.name}`;
+      clearTimeout(ntAutoT);
+      ntAutoT = setTimeout(() => saveData(true), 250);
+    } catch (err) {
+      alert('Не загрузилось: ' + err.message);
+    }
+  };
+  $('ntAttach')?.addEventListener('click', () => $('ntFile')?.click());
+  $('ntFile')?.addEventListener('change', e => { uploadAttachment(e.target.files[0]); e.target.value = ''; });
+  // перетащил файл в редактор — грузим
+  $('ntRich')?.addEventListener('dragover', e => { if (e.dataTransfer?.types?.includes('Files')) e.preventDefault(); });
+  $('ntRich')?.addEventListener('drop', e => {
+    const f = [...(e.dataTransfer?.files || [])].find(x => x.type.startsWith('image/') || x.type === 'application/pdf');
+    if (f) { e.preventDefault(); uploadAttachment(f); }
+  });
+  // клик по вложению-ссылке (PDF) — открыть в новой вкладке, не редактируем
+  $('ntRich')?.addEventListener('click', e => {
+    const a = e.target.closest('a.attlink');
+    if (!a) return;
+    e.preventDefault();
+    window.open(a.getAttribute('href'), '_blank');
   });
   // заголовок сохраняется сам, ⌘Enter — сохранить немедленно
   $('ntTitle')?.addEventListener('input', () => {

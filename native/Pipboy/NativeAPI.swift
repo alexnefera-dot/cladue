@@ -35,6 +35,7 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         try? made.run("ALTER TABLE passive_income ADD COLUMN rate REAL NOT NULL DEFAULT 0")         // % доходности
         try? made.run("ALTER TABLE passive_income ADD COLUMN rate_period TEXT NOT NULL DEFAULT 'yearly'")  // период ставки: yearly|monthly
         try? made.run("ALTER TABLE passive_income ADD COLUMN asset_type TEXT NOT NULL DEFAULT ''")  // тип актива
+        try? made.run("CREATE TABLE IF NOT EXISTS attachments(id INTEGER PRIMARY KEY, page_id INTEGER, name TEXT NOT NULL DEFAULT '', mime TEXT NOT NULL DEFAULT 'application/octet-stream', data TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')))")  // вложения Инфо (картинки/PDF)
         Api.ensureSyncSchema(made)   // updated_at + триггеры + tombstones — отслеживание правок для синхрона
         Api.ensureSpheresSchema(made)   // area_id на таблицах — раздел «Сферы»
         if (try? made.rows("SELECT value FROM settings WHERE key = 'sphere_defaults'"))?.first == nil {
@@ -76,6 +77,10 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
     private func respond(to url: URL, method: String, bodyHeader: String?) throws -> (Data, String, Int) {
         let path = url.path.isEmpty ? "/" : url.path
         if path.hasPrefix("/api/") {
+            // вложения Инфо отдаём бинарём с настоящим MIME (картинки/PDF), а не JSON
+            if method == "GET", let (data, mime) = try Api.attachmentBinary(try database(), path: path) {
+                return (data, mime, 200)
+            }
             var body: [String: Any]? = nil
             if let raw = bodyHeader?.removingPercentEncoding, let d = raw.data(using: .utf8) {
                 body = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any]
@@ -472,6 +477,12 @@ enum Api {
         if method == "POST", path == "/api/pages" {
             guard let title = name(body, "title") else { return (try json(["error": "title required"]), 400) }
             return (try json(try addPage(db, title: title, body: body)), 201)
+        }
+        if let m = match(path, "^/api/pages/([0-9]+)/attachments$"), method == "POST" {
+            let pid = Int(m[1]) ?? -1
+            let nid = try db.run("INSERT INTO attachments(page_id, name, mime, data) VALUES(?,?,?,?)",
+                [pid, body["name"] as? String ?? "", body["mime"] as? String ?? "application/octet-stream", body["data"] as? String ?? ""])
+            return (try json(["id": nid, "name": body["name"] ?? "", "mime": body["mime"] ?? "", "url": "/api/attachments/\(nid)"]), 201)
         }
         if let m = match(path, "^/api/pages/([0-9]+)/reorder$"), method == "POST" {
             guard let ref = numOpt(body["ref_id"]).map({ Int($0) }) else { return (try json(["error": "ref_id"]), 400) }
@@ -1010,8 +1021,19 @@ enum Api {
         let payload = String(data: try json(["rows": rows]), encoding: .utf8) ?? "{}"
         let trashId = try db.run("INSERT INTO trash(kind, label, payload) VALUES(?,?,?)", ["pages", label, payload])
         for r in rows { try db.run("DELETE FROM page_fts WHERE rowid = ?", [intval(r["id"])]) }
+        for r in rows { try db.run("DELETE FROM attachments WHERE page_id = ?", [intval(r["id"])]) }
         try db.run("DELETE FROM pages WHERE id = ?", [id])
         return ["count": rows.count, "trash_id": trashId]
+    }
+
+    // Вложение страницы Инфо → бинарь (base64 → Data) + MIME. nil, если путь не про вложение или его нет.
+    static func attachmentBinary(_ db: Database, path: String) throws -> (Data, String)? {
+        guard let m = match(path, "^/api/attachments/([0-9]+)$") else { return nil }
+        guard let row = try db.rows("SELECT name, mime, data FROM attachments WHERE id = ?", [Int(m[1]) ?? -1]).first
+        else { return nil }
+        let mime = row["mime"] as? String ?? "application/octet-stream"
+        let data = Data(base64Encoded: row["data"] as? String ?? "") ?? Data()
+        return (data, mime)
     }
     private static func sqliteDate(_ s: String) -> Date? {
         let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd HH:mm:ss"
@@ -2462,7 +2484,7 @@ enum Api {
     static let syncTables = ["nodes", "links", "dismissed", "accounts", "portfolio_classes",
         "steps", "obligations", "portfolio_items", "rates", "events", "transactions",
         "receivables", "passive_income", "settings", "macro_notes", "debts", "snapshots",
-        "routines", "routine_log", "people", "contact_log", "pages", "page_revisions",
+        "routines", "routine_log", "people", "contact_log", "pages", "page_revisions", "attachments",
         "practices", "practice_log", "wheel_areas", "wheel_scores", "work_log", "forecasts",
         "properties", "checkins", "metrics", "metric_log", "node_log", "trash", "event_done"]
 
@@ -2472,7 +2494,7 @@ enum Api {
         ("steps", "id"), ("obligations", "id"), ("portfolio_items", "id"), ("events", "id"),
         ("transactions", "id"), ("receivables", "id"), ("passive_income", "id"), ("macro_notes", "id"),
         ("debts", "id"), ("routines", "id"), ("people", "id"), ("contact_log", "id"),
-        ("pages", "id"), ("page_revisions", "id"), ("practices", "id"), ("practice_log", "id"),
+        ("pages", "id"), ("page_revisions", "id"), ("attachments", "id"), ("practices", "id"), ("practice_log", "id"),
         ("wheel_areas", "id"), ("wheel_scores", "id"), ("work_log", "id"), ("forecasts", "id"),
         ("properties", "id"), ("metrics", "id"), ("node_log", "id"), ("trash", "id"),
         ("settings", "key"), ("rates", "symbol"), ("snapshots", "date"), ("checkins", "date")]

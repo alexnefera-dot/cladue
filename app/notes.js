@@ -133,6 +133,17 @@ export function getPage(db, id) {
   return db.prepare('SELECT * FROM pages WHERE id = ?').get(id);
 }
 
+// ===== Вложения страниц: картинки / PDF (base64 в зашифрованной базе) =====
+export function addAttachment(db, pageId, b) {
+  db.prepare('INSERT INTO attachments(page_id, name, mime, data) VALUES(?,?,?,?)')
+    .run(pageId ?? null, b.name ?? '', b.mime ?? 'application/octet-stream', b.data ?? '');
+  const id = db.prepare('SELECT last_insert_rowid() AS id').get().id;
+  return { id, name: b.name ?? '', mime: b.mime ?? '', url: '/api/attachments/' + id };
+}
+export function getAttachment(db, id) {
+  return db.prepare('SELECT id, page_id, name, mime, data FROM attachments WHERE id = ?').get(id);
+}
+
 export function addPage(db, b) {
   const ord = db.prepare('SELECT COALESCE(MAX(ord),0)+1 AS o FROM pages WHERE parent_id IS ?').get(b.parent_id ?? null).o;
   db.prepare('INSERT INTO pages(parent_id, ord, title, content, node_id) VALUES(?,?,?,?,?)')
@@ -260,7 +271,10 @@ export function delPage(db, id) {
     'pages', '▤ ' + root.title + (rows.length > 1 ? ` (+${rows.length - 1} подстр.)` : ''),
     JSON.stringify({ rows }));
   const trash_id = db.prepare('SELECT last_insert_rowid() AS id').get().id;
-  for (const r of rows) db.prepare('DELETE FROM page_fts WHERE rowid = ?').run(r.id);
+  for (const r of rows) {
+    db.prepare('DELETE FROM page_fts WHERE rowid = ?').run(r.id);
+    db.prepare('DELETE FROM attachments WHERE page_id = ?').run(r.id);
+  }
   db.prepare('DELETE FROM pages WHERE id = ?').run(id);
   return { count: rows.length, trash_id };
 }
