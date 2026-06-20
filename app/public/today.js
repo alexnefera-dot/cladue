@@ -23,7 +23,7 @@ window.loadToday = async function () {
     fetch('/api/spheres').then(r => r.json()).then(x => Array.isArray(x) ? x : []).catch(() => []),
     fetch('/api/rest').then(r => r.json()).then(x => Array.isArray(x) ? x : []).catch(() => []),
   ]);
-  window.tdSpheres = sph; window.tdRest = rest;
+  window.tdSpheres = sph; window.tdRestList = rest;
   const el = document.getElementById('screen-today');
   // не белый экран: если /api/today не отдал нормальные данные — показываем причину
   if (!d || d.error || !d.progress || !Array.isArray(d.routines)) {
@@ -41,7 +41,7 @@ window.loadToday = async function () {
 };
 // блок «Кайф и восстановление»: способы отдохнуть по контексту дня + глобальные
 function tdRest() {
-  const all = Array.isArray(window.tdRest) ? window.tdRest : [];
+  const all = Array.isArray(window.tdRestList) ? window.tdRestList : [];
   const wkEnd = [0, 6].includes(new Date().getDay());
   const ctx = wkEnd ? 'weekend' : 'weekday', ctxLabel = wkEnd ? 'выходные' : 'будни';
   const todayList = all.filter(r => r.scope === ctx), globalList = all.filter(r => r.scope === 'global');
@@ -344,7 +344,7 @@ function bindToday() {
     el.addEventListener('click', async () => { await fetch('/api/rest/' + el.dataset.restdel, { method: 'DELETE' }); window.loadToday(); }));
   document.getElementById('tdRestRoll')?.addEventListener('click', () => {
     const wkEnd = [0, 6].includes(new Date().getDay());
-    const list = (Array.isArray(window.tdRest) ? window.tdRest : []).filter(r => r.scope === (wkEnd ? 'weekend' : 'weekday'));
+    const list = (Array.isArray(window.tdRestList) ? window.tdRestList : []).filter(r => r.scope === (wkEnd ? 'weekend' : 'weekday'));
     if (list.length) alert('🌿 Сегодня восстановись так:\n\n' + list[Math.floor(Math.random() * list.length)].text);
   });
   document.querySelectorAll('#screen-today [data-tdtoggle]').forEach(el =>
