@@ -40,6 +40,7 @@ const sphApi = {
   patch: (id, b) => fetch('/api/psy/areas/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }),
   stepTask: id => fetch('/api/psy/areas/' + id + '/task', { method: 'POST' }),
   toggle: id => fetch('/api/nodes/' + id + '/toggle', { method: 'POST' }),
+  setDef: (kind, areaId) => fetch('/api/spheres/default', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind, areaId }) }),
   msAdd: (areaId, level, title) => fetch('/api/spheres/milestone', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ areaId, level, title }) }),
   msPatch: (id, b) => fetch('/api/spheres/milestone/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }),
   msDel: id => fetch('/api/spheres/milestone/' + id, { method: 'DELETE' }),
@@ -175,13 +176,16 @@ function tagFlat(rows, kind, areas) {
 }
 function sphTagHub() {
   const t = sphTagData || {}, areas = t.areas || [];
-  const dn = id => (areas.find(a => a.id === id) || {}).name;
   const dd = sphPool?.defaults || {};
   return `<div class="sph-crumb"><a id="sphBackTag">← Сферы</a> · <span class="pill btn" id="sphAutomapTag">🪄 авто по именам</span></div>
     <h2 style="margin-bottom:2px">Привязка к сферам</h2>
     <div class="muted" style="margin-bottom:6px">Тегируешь у источника, вложенные <b>наследуют</b> (можно переопределить). Названия/структуру не трогаем.</div>
-    <div class="card" style="font-size:12.5px;color:var(--muted);margin-bottom:12px">⚡ По умолчанию (авто): Люди→<b>${dn(dd.person) || '—'}</b> · Трекинг→<b>${dn(dd.metric) || '—'}</b> · Психология→<b>${dn(dd.practice) || '—'}</b> · Финансы→<b>${dn(dd.obligation) || '—'}</b> — отдельно тегать не нужно.</div>
-    <div class="sec" style="margin-top:0">🎯 Цели · категории (разделы и подразделы)</div>
+    <div class="sec" style="margin-top:0">⚡ Секции целиком → сфера</div>
+    <div class="card"><div class="muted" style="font-size:12px;margin-bottom:6px">Куда по умолчанию попадают Люди / Трекинг / Психология / Финансы. <b>Психология = практики (майндсет)</b> — выбери здесь свою сферу.</div>
+      ${[['person', '☻ Люди'], ['metric', '📊 Трекинг'], ['practice', '🧠 Психология · практики'], ['obligation', '💰 Финансы']].map(([kind, label]) => `<div class="catrow">
+        <span class="catt ${dd[kind] != null ? 'on' : ''}">${label}</span>
+        <select data-secdef="${kind}"><option value="">— не задано</option>${areas.map(a => `<option value="${a.id}" ${dd[kind] === a.id ? 'selected' : ''}>${sesc(a.name)}</option>`).join('')}</select></div>`).join('')}</div>
+    <div class="sec">🎯 Цели · категории (разделы и подразделы)</div>
     <div class="card">${tagTree(t.categories || [], 'category', areas)}</div>
     <div class="sec">📒 Инфо · страницы и разделы</div>
     <div class="card">${tagTree(t.pages || [], 'page', areas)}</div>
@@ -205,6 +209,12 @@ function bindTagHub() {
     const [kind, id] = sel.dataset.tag.split(':');
     await sphApi.assign(kind, +id, sel.value ? +sel.value : null);
     sphTagData = await sphApi.tagpool(); sphData = await sphApi.load(); renderSpheres();
+  });
+  // секция целиком → сфера (Психология=практики/майндсет, Трекинг, Люди, Финансы)
+  document.querySelectorAll('#screen-spheres [data-secdef]').forEach(sel => sel.onchange = async () => {
+    await sphApi.setDef(sel.dataset.secdef, sel.value ? +sel.value : null);
+    [sphPool, sphData] = await Promise.all([sphApi.pool(), sphApi.load()]);
+    renderSpheres();
   });
 }
 
