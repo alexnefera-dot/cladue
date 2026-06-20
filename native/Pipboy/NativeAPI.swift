@@ -39,6 +39,7 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         Api.ensureSyncSchema(made)   // updated_at + триггеры + tombstones — отслеживание правок для синхрона
         Api.ensureSpheresSchema(made)   // area_id на таблицах — раздел «Сферы»
         Api.ensureThoughtTesting(made)   // техника «Тестирование мыслей» (КПТ) — один раз
+        Api.ensureThoughtDiary(made)   // техника «Дневник мыслей» (журнал таблицей) — один раз
         if (try? made.rows("SELECT value FROM settings WHERE key = 'sphere_defaults'"))?.first == nil {
             try? Api.autoConfigSpheres(made)   // первый запуск: связи секций раскладываются сами
         }
@@ -1537,27 +1538,40 @@ enum Api {
         try ensureEnergy(db)
     }
 
-    // Техника «Тестирование мыслей» (когнитивная реструктуризация, КПТ) — создаётся один раз.
-    // Через try? — даже при отсутствии таблицы открытие базы не падает. Имя-проверка не плодит дубли при синхроне.
-    static func ensureThoughtTesting(_ db: Database) {
-        if ((try? db.rows("SELECT value FROM settings WHERE key = 'tt_v1'"))?.first?["value"]) as? String == "1" { return }
-        let exists = ((try? db.rows("SELECT id FROM practices WHERE name LIKE 'Тестирование мыслей%' AND name NOT LIKE '%(пример)%'"))?.first) != nil
+    // Техника-практика, создаваемая один раз (флаг в settings). Через try? — открытие базы не падает,
+    // если таблицы ещё нет. Имя-проверка не плодит дубли при синхроне Mac↔iPhone.
+    private static func seedTechniqueOnce(_ db: Database, flag: String, name: String, steps: [String], note: String) {
+        if ((try? db.rows("SELECT value FROM settings WHERE key = ?", [flag]))?.first?["value"]) as? String == "1" { return }
+        let exists = ((try? db.rows("SELECT id FROM practices WHERE name LIKE ? AND name NOT LIKE '%(пример)%'", [name + "%"]))?.first) != nil
         if !exists {
-            let steps = [
-                "🧠 Мысли. Какая у меня есть мысль о себе, людях или мире? (насколько верю в неё, 1–100?)",
-                "❤️ Чувства. Что я чувствую в ответ на эту мысль? (сила чувств, 1–100?)",
-                "➕ Аргументы «За». Что говорит в пользу полезности и/или реалистичности этой мысли?",
-                "➖ Аргументы «Против». Что говорит о её вредности и/или нереалистичности? И что опровергает аргументы «за»?",
-                "🔄 Реалистичные и полезные мысли. Как может быть по-другому? Какие более реалистичные и полезные мысли можно выбрать теперь — под мои цели?",
-                "✅ Результат. Насколько теперь верю в изначальную мысль (1–100)? Какой силы первые эмоции?",
-            ]
             let stepsJson = String(data: (try? JSONSerialization.data(withJSONObject: steps)) ?? Data("[]".utf8), encoding: .utf8) ?? "[]"
             let ord = nextOrd(db, "SELECT COALESCE(MAX(ord),0)+1 AS o FROM practices")
             try? db.run("INSERT INTO practices(name, kind, days, time, steps, note, ord) VALUES(?,?,?,?,?,?,?)",
-                ["Тестирование мыслей", "technique", "", NSNull(), stepsJson,
-                 "когнитивная реструктуризация: проверяю мысль на реалистичность и пользу, выбираю более полезную", ord])
+                [name, "technique", "", NSNull(), stepsJson, note, ord])
         }
-        try? setSetting(db, "tt_v1", "1")
+        try? setSetting(db, flag, "1")
+    }
+
+    // Техника «Тестирование мыслей» (когнитивная реструктуризация, КПТ) — создаётся один раз.
+    static func ensureThoughtTesting(_ db: Database) {
+        seedTechniqueOnce(db, flag: "tt_v1", name: "Тестирование мыслей", steps: [
+            "🧠 Мысли. Какая у меня есть мысль о себе, людях или мире? (насколько верю в неё, 1–100?)",
+            "❤️ Чувства. Что я чувствую в ответ на эту мысль? (сила чувств, 1–100?)",
+            "➕ Аргументы «За». Что говорит в пользу полезности и/или реалистичности этой мысли?",
+            "➖ Аргументы «Против». Что говорит о её вредности и/или нереалистичности? И что опровергает аргументы «за»?",
+            "🔄 Реалистичные и полезные мысли. Как может быть по-другому? Какие более реалистичные и полезные мысли можно выбрать теперь — под мои цели?",
+            "✅ Результат. Насколько теперь верю в изначальную мысль (1–100)? Какой силы первые эмоции?",
+        ], note: "когнитивная реструктуризация: проверяю мысль на реалистичность и пользу, выбираю более полезную")
+    }
+
+    // Техника «Дневник мыслей» (CBT thought record) — журнал случаев таблицей, создаётся один раз.
+    static func ensureThoughtDiary(_ db: Database) {
+        seedTechniqueOnce(db, flag: "td_v1", name: "Дневник мыслей", steps: [
+            "Ситуация (что произошло / происходит?)",
+            "«Мысли» (что думаю о себе, ситуации, мире, людях?)",
+            "Эмоции 1–100 (что чувствую и насколько сильно? напр. «Беспокойство (90)»)",
+            "Поведение (что хочу делать? что делаю?)",
+        ], note: "ловлю случай: ситуация → мысли → эмоции (1–100) → поведение. Журнал копится таблицей для пересмотра")
     }
 
     // Каркас портфеля: 4 блока + замороженный капитал с примерами (порт ensurePortfolio).

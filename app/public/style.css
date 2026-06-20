@@ -289,6 +289,31 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .diary th .rowbtn{opacity:1;visibility:hidden}
 .diary th:hover .rowbtn{visibility:visible}
 
+/* Журнал техники таблицей: строка — случай, колонки — шаги (CBT thought record) */
+.jrnl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;-webkit-overflow-scrolling:touch}
+.jrnl{border-collapse:collapse;width:100%;font-size:12.5px;line-height:1.45}
+.jrnl th{background:var(--panel2);color:var(--muted);font-size:10.5px;font-weight:600;letter-spacing:.2px;
+  text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);
+  vertical-align:top;min-width:140px;white-space:normal}
+.jrnl th:first-child{min-width:60px;position:sticky;left:0;z-index:1}
+.jrnl td{padding:6px 8px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);
+  vertical-align:top;text-align:left;white-space:pre-wrap;max-width:300px}
+.jrnl td:last-child,.jrnl th:last-child{border-right:0}
+.jrnl tbody tr:hover td{background:var(--panel2)}
+.jrnl td.jdate{white-space:nowrap;color:var(--muted);font-size:11.5px;position:sticky;left:0;background:var(--panel)}
+.jrnl tbody tr:hover td.jdate{background:var(--panel2)}
+.jrnl .jnote{color:var(--muted);font-size:10.5px;margin-top:3px;white-space:normal;max-width:120px}
+/* во весь экран */
+.jov{position:fixed;inset:0;background:rgba(18,28,45,.5);z-index:80;display:flex;
+  align-items:center;justify-content:center;padding:20px}
+.jbox{background:var(--panel);border-radius:14px;box-shadow:var(--shadow-md);
+  max-width:96vw;max-height:92vh;display:flex;flex-direction:column;overflow:hidden}
+.jhead{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.jhead b{flex:1;font-size:14px}
+.jbox .jrnl-wrap{overflow:auto;border:0;border-radius:0;max-height:84vh}
+.jbox .jrnl th{min-width:180px}
+.jbox .jrnl td{max-width:420px}
+
 /* Редактор Инфо всегда активен: подсказка в пустой странице */
 .richedit:empty::before{content:attr(data-ph);color:var(--muted)}
 .richedit{min-height:380px}

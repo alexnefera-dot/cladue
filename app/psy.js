@@ -230,6 +230,21 @@ export function ensureThoughtTesting(db) {
   setSetting(db, 'tt_v1', '1');
 }
 
+// ===== Техника «Дневник мыслей» (CBT thought record) — журнал случаев таблицей =====
+export const THOUGHT_DIARY_STEPS = [
+  'Ситуация (что произошло / происходит?)',
+  '«Мысли» (что думаю о себе, ситуации, мире, людях?)',
+  'Эмоции 1–100 (что чувствую и насколько сильно? напр. «Беспокойство (90)»)',
+  'Поведение (что хочу делать? что делаю?)',
+];
+export function ensureThoughtDiary(db) {
+  if (getSetting(db, 'td_v1', '') === '1') return;
+  if (!db.prepare(`SELECT id FROM practices WHERE name LIKE 'Дневник мыслей%' AND name NOT LIKE '%(пример)%'`).get())
+    addPractice(db, { name: 'Дневник мыслей', kind: 'technique', steps: THOUGHT_DIARY_STEPS,
+      note: 'ловлю случай: ситуация → мысли → эмоции (1–100) → поведение. Журнал копится таблицей для пересмотра' });
+  setSetting(db, 'td_v1', '1');
+}
+
 // ===== Демо =====
 export function seedPsy(db) {
   ensureWheel(db);

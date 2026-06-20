@@ -81,17 +81,45 @@ function practiceCard(p) {
         : `<span class="pill btn ok" data-psrun="${p.id}">▶ пройти ${p.kind === 'technique' ? 'технику' : 'чеклист'}</span>`}
       <span class="pill btn" data-pslogs="${p.id}">журнал</span>
     </div>
-    ${psyOpenLogs?.id === p.id ? `<div style="margin-top:8px">${psyOpenLogs.rows.map(l => `
-      <div class="ritem"><div class="rt">${l.date}${l.note ? ' — ' + pesc(l.note) : ''}</div>
-      ${l.answers.some(a => a) && p.kind === 'technique' ? `
-        <table class="diary" style="margin:6px 0 2px">
-          ${l.answers.map((a, i) => a ? `<tr>
-            <td style="text-align:left;color:var(--muted);width:42%;vertical-align:top">${pesc(p.steps[i] ?? i + 1)}</td>
-            <td style="text-align:left;white-space:pre-wrap">${pesc(a)}</td></tr>` : '').join('')}
-        </table>`
-      : l.answers.length ? `<div class="rm">${l.answers.map((a, i) => a ? `${i + 1}. ${pesc(a)}` : '').filter(Boolean).join('<br>')}</div>` : ''}</div>`).join('')
-      || '<div class="empty">журнал пуст — пройди технику, каждый случай ляжет сюда табличкой</div>'}</div>` : ''}
+    ${psyOpenLogs?.id === p.id ? `<div style="margin-top:8px">
+      ${p.kind === 'technique'
+        ? (psyOpenLogs.rows.length
+            ? `<div class="task" style="padding:0 0 6px"><span class="meta">журнал · ${psyOpenLogs.rows.length} зап.</span>
+                 <span class="pill btn" data-psexpand="${p.id}" style="margin-left:auto" title="открыть на весь экран">⛶ развернуть</span></div>
+               ${journalTable(p, psyOpenLogs.rows)}`
+            : '<div class="empty">журнал пуст — пройди технику, каждый случай ляжет сюда строкой таблицы</div>')
+        : (psyOpenLogs.rows.map(l => `<div class="ritem"><div class="rt">${l.date}${l.note ? ' — ' + pesc(l.note) : ''}</div>
+            ${l.answers.length ? `<div class="rm">${l.answers.map((a, i) => a ? `${i + 1}. ${pesc(a)}` : '').filter(Boolean).join('<br>')}</div>` : ''}</div>`).join('')
+            || '<div class="empty">журнал пуст</div>')}
+    </div>` : ''}
   </div>`;
+}
+
+// Журнал техники таблицей: строка — случай (дата), колонки — шаги. Наглядно для пересмотра.
+function journalTable(p, rows, big = false) {
+  if (!rows.length) return '<div class="empty">журнал пуст</div>';
+  const heads = p.steps.map(s => `<th>${pesc(s)}</th>`).join('');
+  const body = rows.map(l => {
+    const cells = p.steps.map((_, i) => `<td>${pesc(l.answers?.[i] ?? '') || '—'}</td>`).join('');
+    return `<tr><td class="jdate">${l.date}${l.note ? `<div class="jnote">${pesc(l.note)}</div>` : ''}</td>${cells}</tr>`;
+  }).join('');
+  return `<div class="jrnl-wrap${big ? ' big' : ''}"><table class="jrnl">
+    <thead><tr><th>Дата</th>${heads}</tr></thead><tbody>${body}</tbody></table></div>`;
+}
+
+// Открыть журнал на весь экран — удобно пересматривать большую таблицу.
+function openJournalModal(p, rows) {
+  const ov = document.createElement('div');
+  ov.className = 'jov';
+  ov.innerHTML = `<div class="jbox">
+    <div class="jhead"><b>${pesc(p.name)} · журнал (${rows.length})</b>
+      <span class="pill btn" data-jclose>✕ закрыть</span></div>
+    ${journalTable(p, rows, true)}</div>`;
+  document.body.appendChild(ov);
+  const close = () => { ov.remove(); document.removeEventListener('keydown', onKey); };
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  ov.addEventListener('click', e => { if (e.target === ov || e.target.closest('[data-jclose]')) close(); });
+  document.addEventListener('keydown', onKey);
 }
 
 function runPanel(p) {
@@ -267,6 +295,11 @@ function bindPsy() {
       const id = +el.dataset.pslogs;
       psyOpenLogs = psyOpenLogs?.id === id ? null : { id, rows: await psyApi.pLogs(id) };
       renderPsy();
+    }));
+  document.querySelectorAll('#screen-psy [data-psexpand]').forEach(el =>
+    el.addEventListener('click', () => {
+      const p = psyData.practices.find(x => x.id === +el.dataset.psexpand);
+      if (p && psyOpenLogs?.id === p.id) openJournalModal(p, psyOpenLogs.rows);
     }));
   document.querySelectorAll('#screen-psy [data-psren]').forEach(el =>
     el.addEventListener('click', async () => {
