@@ -327,16 +327,14 @@ async function renderNotes() {
         ${ntMode === 'rich' ? `
           <div class="nttoolbar">
             ${TOOLBAR.map(([label, hint], i) => `<span class="pill btn ntb" data-ntb="${i}" title="${hint}">${nesc(label)}</span>`).join('')}
-            <span class="pill btn" id="ntAttach" title="вставить картинку или PDF">📎 файл</span>
-            <input type="file" id="ntFile" accept="image/*,application/pdf" style="display:none">
+            <label class="pill btn ntb" title="вставить картинку или PDF" style="cursor:pointer">📎 файл<input type="file" id="ntFile" accept="image/*,application/pdf" style="display:none"></label>
             <span class="pill btn" id="ntModeMd" title="редактировать как markdown" style="margin-left:auto">&lt;/&gt; markdown</span>
           </div>
           <div id="ntRich" class="mdview richedit" contenteditable="true" spellcheck="false" data-ph="пиши здесь — сохранится само">${mdRender(content)}</div>`
         : `
           <div class="nttoolbar">
             <span class="meta">markdown-режим: # заголовок · - список · - [ ] чеклист · > цитата · [[ссылка]]</span>
-            <span class="pill btn" id="ntAttach" title="вставить картинку или PDF">📎 файл</span>
-            <input type="file" id="ntFile" accept="image/*,application/pdf" style="display:none">
+            <label class="pill btn ntb" title="вставить картинку или PDF" style="cursor:pointer">📎 файл<input type="file" id="ntFile" accept="image/*,application/pdf" style="display:none"></label>
             <span class="pill btn" id="ntModeRich" style="margin-left:auto">Aa визуальный</span>
           </div>
           <textarea id="ntBody" class="ntbody">${nesc(content)}</textarea>`}
@@ -566,7 +564,7 @@ function bindNotes(page) {
       alert('Не загрузилось: ' + err.message);
     }
   };
-  $('ntAttach')?.addEventListener('click', () => $('ntFile')?.click());
+  // 📎 файл — <label> открывает пикер нативно (программный .click() по скрытому input WKWebView блокирует)
   $('ntFile')?.addEventListener('change', e => { uploadAttachment(e.target.files[0]); e.target.value = ''; });
   // перетащил файл в редактор — грузим
   $('ntRich')?.addEventListener('dragover', e => { if (e.dataTransfer?.types?.includes('Files')) e.preventDefault(); });
