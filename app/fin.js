@@ -110,10 +110,10 @@ export function listFin(db) {
       rate,
       growth: invested ? { invested, current: investedCur, abs: investedCur - invested, pct: (investedCur - invested) / invested * 100 } : null,
       monthlyObligations: obligations.filter(o => o.period === 'monthly').reduce((s, o) => s + o.amount, 0),
-      // пассивный доход в месяц: ежемесячные + годовые/12 (в их валютах суммируем по-простому в €-эквиваленте)
+      // пассивный доход в месяц: тело×ставка (или фикс. сумма), в €-эквиваленте
       monthlyIncome: listIncome(db).reduce((s, i) => {
-        const eur = i.currency === '$' ? i.amount / rate : i.amount;
-        return s + (i.period === 'monthly' ? eur : i.period === 'yearly' ? eur / 12 : 0);
+        const m = incomeMonthly(i);
+        return s + (i.currency === '$' ? m / rate : m);
       }, 0),
       upcoming: obligations.filter(o => o.days_left != null && o.days_left <= 30),
     },
@@ -132,12 +132,21 @@ export function patchItem(db, id, b) {
 }
 
 // ===== Пассивный доход: аренда, депозиты, дивиденды =====
+// доход в месяц в своей валюте: из тела×ставки, если заданы; иначе из фиксированной суммы
+export function incomeMonthly(i) {
+  if ((i.principal ?? 0) > 0 && (i.rate ?? 0) > 0) {
+    const perPeriod = i.principal * i.rate / 100;
+    return i.rate_period === 'monthly' ? perPeriod : perPeriod / 12;
+  }
+  return i.period === 'monthly' ? i.amount : i.period === 'yearly' ? i.amount / 12 : 0;
+}
 export function addIncome(db, b) {
-  db.prepare('INSERT INTO passive_income(name, amount, currency, period, next_date, note) VALUES(?,?,?,?,?,?)')
-    .run(b.name, b.amount ?? 0, b.currency ?? '€', b.period ?? 'monthly', b.next_date ?? null, b.note ?? '');
+  db.prepare('INSERT INTO passive_income(name, amount, currency, period, next_date, note, principal, rate, rate_period, asset_type) VALUES(?,?,?,?,?,?,?,?,?,?)')
+    .run(b.name, b.amount ?? 0, b.currency ?? '€', b.period ?? 'monthly', b.next_date ?? null, b.note ?? '',
+      b.principal ?? 0, b.rate ?? 0, b.rate_period ?? 'yearly', b.asset_type ?? '');
 }
 export function patchIncome(db, id, b) {
-  for (const k of ['name', 'amount', 'currency', 'period', 'next_date', 'note'])
+  for (const k of ['name', 'amount', 'currency', 'period', 'next_date', 'note', 'principal', 'rate', 'rate_period', 'asset_type'])
     if (k in b) db.prepare(`UPDATE passive_income SET ${k} = ? WHERE id = ?`).run(b[k], id);
 }
 export function delIncome(db, id) { db.prepare('DELETE FROM passive_income WHERE id = ?').run(id); }

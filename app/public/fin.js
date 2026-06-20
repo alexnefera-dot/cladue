@@ -184,30 +184,54 @@ function allocPie(byType, total) {
 }
 
 // ===== Секции =====
+// доход в месяц в своей валюте: из тела×ставки, если заданы; иначе из фиксированной суммы
+function incMonthly(i) {
+  if ((i.principal ?? 0) > 0 && (i.rate ?? 0) > 0) {
+    const per = i.principal * i.rate / 100;
+    return i.rate_period === 'monthly' ? per : per / 12;
+  }
+  return i.period === 'monthly' ? i.amount : i.period === 'yearly' ? i.amount / 12 : 0;
+}
+const RATEPER = { yearly: 'год', monthly: 'мес' };
+const ASSET_TYPES = ['депозит', 'аренда', 'дивиденды', 'облигации', 'кэшбэк', 'роялти', 'прочее'];
+
 // пассивный доход — всегда открыт, скрытие портфеля его не прячет
 function secIncome(d, s) {
   return `
   <div class="sec">Пассивный доход</div>
   <div class="card">
     <div class="meta" style="margin-bottom:6px">💸 ПАССИВНЫЙ ДОХОД · ~${fmt(s.monthlyIncome)} € / мес</div>
-    ${d.income.map(i => `
+    ${d.income.map(i => {
+      const calc = (i.principal ?? 0) > 0 && (i.rate ?? 0) > 0;   // считаем из тела×ставки
+      return `
       <div class="task">
         <span class="t ed" data-fe="income:${i.id}:name:text">${fesc(i.name)}</span>
+        <span class="pill btn" data-inctype="${i.id}" title="тип актива — клик">${fesc(i.asset_type) || '＋ тип'}</span>
+        ${calc ? `
+        <span class="ed meta num" data-fe="income:${i.id}:principal:num" title="тело инвестиции/депозита">${fmt(i.principal)}</span>
+        <span class="pill btn" data-inccur="${i.id}:${i.currency}" title="сменить валюту">${fesc(i.currency)}</span>
+        <span class="ed meta num" data-fe="income:${i.id}:rate:num" title="% доходности">${(+i.rate).toLocaleString('ru-RU')}%</span>
+        <span class="pill btn" data-incrper="${i.id}:${i.rate_period}" title="период ставки — клик">/${RATEPER[i.rate_period] ?? 'год'}</span>
+        <span class="num acc" title="расчётный доход">= ${fmt(incMonthly(i))} ${fesc(i.currency)}/мес</span>`
+        : `
         <span class="pill btn" data-incper="${i.id}:${i.period}" title="период — клик">${PERIOD[i.period] ?? i.period}</span>
+        <span class="pill btn" data-inccur="${i.id}:${i.currency}" title="сменить валюту">${fesc(i.currency)}</span>
+        <span class="ed num acc" data-fe="income:${i.id}:amount:num" title="фикс. сумма">${fmt(i.amount)}</span>`}
         ${i.next_date ? `<span class="ed meta num" data-fe="income:${i.id}:next_date:date" title="следующее поступление">${i.next_date}</span>`
           : `<span class="ed meta" data-fe="income:${i.id}:next_date:date" title="дата следующего поступления">＋ дата</span>`}
-        <span class="pill btn" data-inccur="${i.id}:${i.currency}" title="сменить валюту">${fesc(i.currency)}</span>
-        <span class="ed num acc" data-fe="income:${i.id}:amount:num">${fmt(i.amount)}</span>
         <span class="rowbtn del" data-findel="income:${i.id}">✕</span>
-      </div>`).join('') || '<div class="empty">аренда, депозиты, дивиденды — доходность и период</div>'}
+      </div>`;
+    }).join('') || '<div class="empty">депозиты, аренда, дивиденды — тело инвестиции и % доходности → доход в месяц</div>'}
     <div class="task finadd">
-      <input id="incName" placeholder="источник: аренда Belgravia, депозит…">
-      <input id="incAmount" placeholder="сумма" style="width:90px">
+      <input id="incName" placeholder="источник: депозит Тинькофф, аренда…">
+      <select id="incType">${ASSET_TYPES.map(t => `<option>${t}</option>`).join('')}</select>
+      <input id="incPrincipal" placeholder="сумма вложения" style="width:120px">
       <select id="incCur"><option>€</option><option>$</option></select>
-      <select id="incPer"><option value="monthly">в месяц</option><option value="yearly">в год</option><option value="once">разово</option></select>
-      <input id="incDate" type="date" title="дата (опц.)" style="width:150px">
+      <input id="incRate" placeholder="% дох." style="width:70px">
+      <select id="incRatePer"><option value="yearly">% в год</option><option value="monthly">% в мес</option></select>
       <span class="pill btn ok" id="incAdd">＋</span>
     </div>
+    <div class="meta" style="margin-top:4px;opacity:.7">Доход считается: сумма × % (нормируется в месяц). Для фикс. поступления оставь % пустым и впиши сумму после добавления.</div>
   </div>`;
 }
 
@@ -724,12 +748,27 @@ function bindFin() {
       await finApi.patch('income', +id, { currency: cur === '€' ? '$' : '€' });
       window.loadFin();
     }));
+  document.querySelectorAll('[data-incrper]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const [id, rp] = el.dataset.incrper.split(':');
+      await finApi.patch('income', +id, { rate_period: rp === 'monthly' ? 'yearly' : 'monthly' });
+      window.loadFin();
+    }));
+  document.querySelectorAll('[data-inctype]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const cur = el.textContent.replace('＋ тип', '').trim();
+      const next = ASSET_TYPES[(ASSET_TYPES.indexOf(cur) + 1) % ASSET_TYPES.length];
+      await finApi.patch('income', +el.dataset.inctype, { asset_type: next });
+      window.loadFin();
+    }));
   $('incAdd')?.addEventListener('click', async () => {
     const name = $('incName').value.trim();
     if (!name) return;
-    await finApi.add('income', { name, amount: parseNum($('incAmount').value) ?? 0,
-      currency: $('incCur').value, period: $('incPer').value,
-      next_date: /^\d{4}-\d{2}-\d{2}$/.test($('incDate').value.trim()) ? $('incDate').value.trim() : null });
+    const principal = parseNum($('incPrincipal').value) ?? 0;
+    const rate = parseNum($('incRate').value) ?? 0;
+    await finApi.add('income', { name, asset_type: $('incType').value,
+      principal, rate, rate_period: $('incRatePer').value,
+      currency: $('incCur').value, period: 'monthly', amount: 0 });
     window.loadFin();
   });
   $('pfoldAll')?.addEventListener('click', () => {

@@ -31,6 +31,10 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         try? made.run("DELETE FROM trash WHERE created_at < datetime('now','-30 days')")  // авто-очистка корзины
         try? made.run("ALTER TABLE nodes ADD COLUMN due_time TEXT")  // миграция: время у задач (тихо, если уже есть)
         try? made.run("ALTER TABLE routines ADD COLUMN days TEXT NOT NULL DEFAULT ''")  // дни недели рутины (пусто = каждый день)
+        try? made.run("ALTER TABLE passive_income ADD COLUMN principal REAL NOT NULL DEFAULT 0")    // тело инвестиции/депозита
+        try? made.run("ALTER TABLE passive_income ADD COLUMN rate REAL NOT NULL DEFAULT 0")         // % доходности
+        try? made.run("ALTER TABLE passive_income ADD COLUMN rate_period TEXT NOT NULL DEFAULT 'yearly'")  // период ставки: yearly|monthly
+        try? made.run("ALTER TABLE passive_income ADD COLUMN asset_type TEXT NOT NULL DEFAULT ''")  // тип актива
         Api.ensureSyncSchema(made)   // updated_at + триггеры + tombstones — отслеживание правок для синхрона
         Api.ensureSpheresSchema(made)   // area_id на таблицах — раздел «Сферы»
         if (try? made.rows("SELECT value FROM settings WHERE key = 'sphere_defaults'"))?.first == nil {
@@ -1221,7 +1225,7 @@ enum Api {
         "items": ["name", "buy_value", "value", "target_value", "currency", "is_loan", "loan_due", "asset_type", "qty", "rate_symbol", "note"],
         "tx": ["date", "amount", "currency", "direction", "category", "note"],
         "debts": ["name", "amount", "currency", "direction", "due_date", "note"],
-        "income": ["name", "amount", "currency", "period", "next_date", "note"]]
+        "income": ["name", "amount", "currency", "period", "next_date", "note", "principal", "rate", "rate_period", "asset_type"]]
 
     static func finWrite(method: String, path: String, body: [String: Any], db: Database) throws -> (Data, Int)? {
         if method == "POST", path == "/api/rates/refresh" { return (try ratesRefresh(db), 200) }
@@ -1328,8 +1332,9 @@ enum Api {
             try db.run("INSERT INTO debts(name, amount, currency, direction, due_date, note) VALUES(?,?,?,?,?,?)",
                 [b["name"] as? String ?? "", num(b["amount"]), b["currency"] as? String ?? "€", b["direction"] as? String ?? "owed_to_me", b["due_date"] ?? NSNull(), b["note"] as? String ?? ""])
         case "income":
-            try db.run("INSERT INTO passive_income(name, amount, currency, period, next_date, note) VALUES(?,?,?,?,?,?)",
-                [b["name"] as? String ?? "", num(b["amount"]), b["currency"] as? String ?? "€", b["period"] as? String ?? "monthly", b["next_date"] ?? NSNull(), b["note"] as? String ?? ""])
+            try db.run("INSERT INTO passive_income(name, amount, currency, period, next_date, note, principal, rate, rate_period, asset_type) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                [b["name"] as? String ?? "", num(b["amount"]), b["currency"] as? String ?? "€", b["period"] as? String ?? "monthly", b["next_date"] ?? NSNull(), b["note"] as? String ?? "",
+                 num(b["principal"]), num(b["rate"]), b["rate_period"] as? String ?? "yearly", b["asset_type"] as? String ?? ""])
         default: break
         }
     }
@@ -1880,9 +1885,16 @@ enum Api {
             : NSNull()
         let income = try db.rows("SELECT * FROM passive_income ORDER BY period, id")
         let monthlyIncome = income.reduce(0.0) { acc, i in
-            let eur = (i["currency"] as? String) == "$" ? num(i["amount"]) / rate : num(i["amount"])
-            let p = i["period"] as? String
-            return acc + (p == "monthly" ? eur : p == "yearly" ? eur / 12 : 0)
+            let principal = num(i["principal"]), irate = num(i["rate"])
+            let m: Double
+            if principal > 0 && irate > 0 {
+                let perPeriod = principal * irate / 100
+                m = (i["rate_period"] as? String) == "monthly" ? perPeriod : perPeriod / 12
+            } else {
+                let p = i["period"] as? String
+                m = p == "monthly" ? num(i["amount"]) : p == "yearly" ? num(i["amount"]) / 12 : 0
+            }
+            return acc + ((i["currency"] as? String) == "$" ? m / rate : m)
         }
         let monthlyObligations = obligations.filter { ($0["period"] as? String) == "monthly" }
             .reduce(0.0) { $0 + num($1["amount"]) }

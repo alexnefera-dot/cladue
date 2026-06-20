@@ -144,7 +144,11 @@ export function createDb(path = ':memory:') {
       currency TEXT NOT NULL DEFAULT '€',
       period TEXT NOT NULL DEFAULT 'monthly',  -- monthly|yearly|once
       next_date TEXT,
-      note TEXT NOT NULL DEFAULT ''
+      note TEXT NOT NULL DEFAULT '',
+      principal REAL NOT NULL DEFAULT 0,        -- сумма инвестиции/депозита
+      rate REAL NOT NULL DEFAULT 0,             -- % доходности
+      rate_period TEXT NOT NULL DEFAULT 'yearly', -- период ставки: yearly|monthly
+      asset_type TEXT NOT NULL DEFAULT ''       -- тип актива (депозит, аренда, дивиденды…)
     );
     CREATE TABLE IF NOT EXISTS settings(
       key TEXT PRIMARY KEY,
@@ -320,6 +324,12 @@ export function createDb(path = ':memory:') {
   // регламент имущества хранится как обязательство, привязанное к объекту
   const ocols = db.prepare('PRAGMA table_info(obligations)').all().map(c => c.name);
   if (!ocols.includes('property_id')) db.exec(`ALTER TABLE obligations ADD COLUMN property_id INTEGER`);
+  // пассивный доход: тело инвестиции/депозита + ставка доходности (доход считается из них)
+  const inccols = db.prepare('PRAGMA table_info(passive_income)').all().map(c => c.name);
+  if (!inccols.includes('principal')) db.exec(`ALTER TABLE passive_income ADD COLUMN principal REAL NOT NULL DEFAULT 0`);
+  if (!inccols.includes('rate')) db.exec(`ALTER TABLE passive_income ADD COLUMN rate REAL NOT NULL DEFAULT 0`);
+  if (!inccols.includes('rate_period')) db.exec(`ALTER TABLE passive_income ADD COLUMN rate_period TEXT NOT NULL DEFAULT 'yearly'`);
+  if (!inccols.includes('asset_type')) db.exec(`ALTER TABLE passive_income ADD COLUMN asset_type TEXT NOT NULL DEFAULT ''`);
   // планируемые рутины: хочу внести, но ещё не в расписании
   const rpl = db.prepare('PRAGMA table_info(routines)').all().map(c => c.name);
   if (!rpl.includes('planned')) db.exec(`ALTER TABLE routines ADD COLUMN planned INTEGER NOT NULL DEFAULT 0`);
