@@ -472,8 +472,9 @@ function bindDetail(s) {
     await node(id, 'PATCH', { priority: order[(order.indexOf(cur) + 1) % order.length] || null }); reload();
   });
   document.querySelectorAll('#screen-spheres [data-due]').forEach(el => el.onclick = async () => {
-    const v = prompt('Срок (ГГГГ-ММ-ДД, пусто — убрать):'); if (v === null) return;
-    await node(el.dataset.due, 'PATCH', { due_date: v.trim() || null }); reload();
+    const v = await window.pickDate(null, { title: 'Срок задачи' });
+    if (v === undefined) return;                  // отмена
+    await node(el.dataset.due, 'PATCH', { due_date: v || null }); reload();   // null — убрать
   });
   document.querySelectorAll('#screen-spheres [data-addtask]').forEach(el => el.onclick = async () => {
     const t = prompt('Новая задача:'); if (!t?.trim()) return;

@@ -205,7 +205,7 @@ function secIncome(d, s) {
       <input id="incAmount" placeholder="сумма" style="width:90px">
       <select id="incCur"><option>€</option><option>$</option></select>
       <select id="incPer"><option value="monthly">в месяц</option><option value="yearly">в год</option><option value="once">разово</option></select>
-      <input id="incDate" placeholder="дата (опц.)" style="width:105px">
+      <input id="incDate" type="date" title="дата (опц.)" style="width:150px">
       <span class="pill btn ok" id="incAdd">＋</span>
     </div>
   </div>`;
@@ -371,7 +371,7 @@ function secDebts(d) {
       <input id="dbName" placeholder="кто и за что">
       <input id="dbAmount" placeholder="сумма" style="width:90px">
       <select id="dbCur"><option>€</option><option>$</option></select>
-      <input id="dbDate" placeholder="срок" style="width:105px">
+      <input id="dbDate" type="date" title="срок" style="width:150px">
       <span class="pill btn ok" id="dbAdd">＋</span>
     </div>
     ${d.loans.length ? `<div class="meta" style="margin:10px 0 4px">ПЛАНОВЫЕ · ЗАЙМЫ ИЗ ПОРТФЕЛЯ (🤝)</div>` +
@@ -454,7 +454,7 @@ function secPlans(d) {
       <input id="obName" placeholder="название (кредит, аренда, разовая крупная трата…)">
       <input id="obAmount" placeholder="сумма" style="width:90px">
       <select id="obPeriod"><option value="monthly">мес</option><option value="yearly">год</option><option value="once">разово</option></select>
-      <input id="obDate" placeholder="след. дата" style="width:105px">
+      <input id="obDate" type="date" title="след. дата" style="width:150px">
       <span class="pill btn ok" id="obAdd">＋</span>
     </div>
     <div class="empty">Крупная плановая трата = «разово» с датой: попадёт в календарь и в радар задач.</div>
@@ -491,7 +491,7 @@ function secProps(d) {
           <input data-rulename="${p.id}" placeholder="ТО, страховка, счётчики…">
           <input data-ruleamount="${p.id}" placeholder="€" style="width:60px">
           <select data-ruleperiod="${p.id}"><option value="yearly">год</option><option value="monthly">мес</option><option value="once">разово</option></select>
-          <input data-ruledate="${p.id}" placeholder="дата" style="width:100px">
+          <input data-ruledate="${p.id}" type="date" title="дата" style="width:150px">
           <span class="pill btn ok" data-ruleadd="${p.id}">＋</span>
         </div>
       </div>`).join('')}
@@ -552,7 +552,7 @@ function secFire(d, s) {
       <div class="task finadd">
         <input id="fcText" placeholder="прогноз: «коррекция S&P до конца года»…">
         <input id="fcConf" placeholder="%" style="width:55px">
-        <input id="fcDue" placeholder="срок" style="width:100px">
+        <input id="fcDue" type="date" title="срок" style="width:150px">
         <span class="pill btn ok" id="fcAdd">＋</span>
       </div>
     </div>
@@ -619,9 +619,10 @@ function renderFin() {
 function inlineVal(el, type, onSave) {
   const input = document.createElement('input');
   input.className = 'inlineedit';
-  input.style.maxWidth = type === 'text' ? '220px' : '120px';
+  input.style.maxWidth = type === 'text' ? '220px' : (type === 'date' ? '150px' : '120px');
   input.placeholder = el.textContent.trim();
   if (type === 'text') input.value = el.textContent.trim().replace(/^(усл: |\+.*)/, '');
+  if (type === 'date') { input.type = 'date'; const c = el.textContent.trim(); if (/^\d{4}-\d{2}-\d{2}$/.test(c)) input.value = c; }
   el.replaceWith(input);
   input.focus(); if (type === 'text') input.select();
   let done = false;

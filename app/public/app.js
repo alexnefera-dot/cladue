@@ -326,7 +326,7 @@ async function showCard(id, { silent = false } = {}) {
       ${n.due_date ? `<span class="pill btn" data-setdate="">убрать</span>` : ''}</div>
     ${s.date ? `<div class="suggest">💡 ${esc(s.date.reason)} →
       <span class="pill btn ok" data-setdate="${s.date.date}">поставить ${s.date.date}</span></div>` : ''}
-    <input id="dateInput" placeholder="или вручную: 2026-08-31" value="">
+    <input id="dateInput" type="date" title="выбрать срок" value="${n.due_date ?? ''}">
     ${n.due_date ? `<input id="timeInput" placeholder="время для пуша: 14:30 (Enter · пусто — убрать)" value="${n.due_time ?? ''}" style="margin-top:4px">` : ''}
 
     ${s.confirmed.length ? `<h3>Связи (подтверждённые)</h3>` + s.confirmed.map(l => `
@@ -382,8 +382,8 @@ async function showCard(id, { silent = false } = {}) {
     if (r.error) alert(r.error);
     await load();
   });
-  document.getElementById('dateInput')?.addEventListener('keydown', async e => {
-    if (e.key === 'Enter' && /^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) {
+  document.getElementById('dateInput')?.addEventListener('change', async e => {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) {
       await api.patch(id, { due_date: e.target.value });
       await load();
     }
@@ -1268,3 +1268,45 @@ load();
     ta.addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') save(); });
   };
 })();
+
+// ===== Глобальный выбор даты: нативный календарик в поповере (замена prompt'ов даты) =====
+// Promise: строка 'YYYY-MM-DD' — выбрана; null — убрать; undefined — отмена.
+window.pickDate = function (current, opts = {}) {
+  if (!document.getElementById('dpov-style')) {
+    const st = document.createElement('style'); st.id = 'dpov-style';
+    st.textContent = `
+      .dpov{position:fixed;inset:0;background:rgba(18,28,45,.38);z-index:70;display:flex;align-items:center;justify-content:center}
+      .dpbox{background:var(--panel);border-radius:14px;padding:16px;box-shadow:var(--shadow-md);min-width:240px}
+      .dphd{font:600 12px var(--mono);color:var(--nav);letter-spacing:.5px;margin-bottom:10px}
+      .dpin{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;font:15px var(--sans);background:var(--bg);color:var(--text)}
+      .dprow{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}`;
+    document.head.appendChild(st);
+  }
+  return new Promise(resolve => {
+    const valid = /^\d{4}-\d{2}-\d{2}$/.test(current || '') ? current : '';
+    const ov = document.createElement('div'); ov.className = 'dpov';
+    ov.innerHTML = `<div class="dpbox">
+      <div class="dphd">${(opts.title || 'ВЫБЕРИ ДАТУ').toUpperCase()}</div>
+      <input type="date" class="dpin" value="${valid}">
+      <div class="dprow">
+        ${opts.clear === false ? '' : '<span class="pill btn" data-dp="clear">убрать</span>'}
+        <span class="pill btn" data-dp="cancel">отмена</span>
+        <span class="pill btn ok" data-dp="ok">ок</span>
+      </div></div>`;
+    document.body.appendChild(ov);
+    const inp = ov.querySelector('.dpin');
+    setTimeout(() => { inp.focus(); try { inp.showPicker?.(); } catch {} }, 30);
+    const close = v => { ov.remove(); resolve(v); };
+    ov.addEventListener('click', e => {
+      if (e.target === ov) return close(undefined);
+      const a = e.target.dataset.dp;
+      if (a === 'ok') close(inp.value || undefined);
+      else if (a === 'clear') close(null);
+      else if (a === 'cancel') close(undefined);
+    });
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') close(inp.value || undefined);
+      else if (e.key === 'Escape') close(undefined);
+    });
+  });
+};

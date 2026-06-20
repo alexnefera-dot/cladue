@@ -302,7 +302,7 @@ window.loadPeople = async function () {
   <div class="fingrid" style="grid-template-columns:1fr 1fr">${rows.map(card).join('')}</div>
   <div class="card"><div class="task finadd">
     <input id="ppName" placeholder="имя (Мама, Дима…)">
-    <input id="ppBd" placeholder="ДР: 06-19" style="width:110px">
+    <input id="ppBd" type="date" title="день рождения" style="width:150px">
     <input id="ppRh" placeholder="ритм, дн" style="width:80px">
     <input id="ppTags" placeholder="чипы: падл, авто" style="width:160px">
     <span class="pill btn ok" id="ppAdd">＋</span>
@@ -336,11 +336,10 @@ window.loadPeople = async function () {
     }));
   document.querySelectorAll('#screen-people [data-lfpbd]').forEach(el =>
     el.addEventListener('click', async () => {
-      const v = prompt('День рождения (2026-06-19, 06-19 или пусто — убрать):');
-      if (v == null) return;
-      const t = v.trim();
-      if (t && !/^(\d{4}-)?\d{2}-\d{2}$/.test(t)) { alert('Формат: 2026-06-19 или 06-19'); return; }
-      await lfApi.pPatch(+el.dataset.lfpbd, { birthday: t || null });
+      const cur = el.textContent.trim().split(' ·')[0];
+      const v = await window.pickDate(cur, { title: 'День рождения' });
+      if (v === undefined) return;
+      await lfApi.pPatch(+el.dataset.lfpbd, { birthday: v || null });
       reload();
     }));
   document.querySelectorAll('#screen-people [data-lfprh]').forEach(el =>
