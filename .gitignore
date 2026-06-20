@@ -15,3 +15,6 @@ Pipboy.app/
 
 xcuserdata/
 *.xcuserstate
+package-lock.json
+app/package-lock.json
+app/node_modules/
