@@ -288,6 +288,32 @@ window.loadNotes = async function (openId) {
 };
 window.openPage = id => { showScreen('notes'); window.loadNotes(id); };
 
+// Встроенный просмотрщик вложений (PDF и пр.): модалка с iframe прямо в приложении.
+// Не через window.open — в нативе он уходит во внешнее приложение по схеме pipboy:// («выбери приложение», всё серое).
+function openAttachmentViewer(url, name) {
+  if (!document.getElementById('attov-style')) {
+    const st = document.createElement('style'); st.id = 'attov-style';
+    st.textContent = `
+      .attov{position:fixed;inset:0;background:rgba(18,28,45,.55);z-index:90;display:flex;align-items:center;justify-content:center;padding:24px}
+      .attbox{background:var(--panel);border-radius:14px;box-shadow:var(--shadow-md);width:min(1000px,94vw);height:90vh;display:flex;flex-direction:column;overflow:hidden}
+      .atthd{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line)}
+      .atthd b{flex:1;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .attframe{flex:1;border:0;width:100%;background:var(--bg2)}`;
+    document.head.appendChild(st);
+  }
+  document.querySelectorAll('.attov').forEach(o => o.remove());
+  const ov = document.createElement('div');
+  ov.className = 'attov';
+  ov.innerHTML = `<div class="attbox">
+    <div class="atthd"><b>${nesc(name || 'вложение')}</b><span class="pill btn" data-attclose>✕ закрыть</span></div>
+    <iframe class="attframe" src="${url}"></iframe></div>`;
+  document.body.appendChild(ov);
+  const close = () => { ov.remove(); document.removeEventListener('keydown', onKey); };
+  const onKey = e => { if (e.key === 'Escape') close(); };
+  ov.addEventListener('click', e => { if (e.target === ov || e.target.closest('[data-attclose]')) close(); });
+  document.addEventListener('keydown', onKey);
+}
+
 // автосохранение: если редактор открыт с правками — дописываем перед уходом
 async function flushNotes() {
   const f = window.ntFlush;
@@ -383,7 +409,7 @@ async function renderNotes() {
           <span class="pill btn" id="ntAddChild">＋ подстраница</span>
           <span class="pill btn danger" id="ntDel">🗑</span>
         </div>
-        <div class="meta" style="margin:4px 0 10px">обновлено ${page.updated_at.slice(0, 16).replace('T', ' ')} · сохраняется само · ⌘Z — откат · <b style="color:var(--green)">ред.v8 ✦</b></div>
+        <div class="meta" style="margin:4px 0 10px">обновлено ${page.updated_at.slice(0, 16).replace('T', ' ')} · сохраняется само · ⌘Z — откат · <b style="color:var(--green)">ред.v9 ✦</b></div>
         <div id="ntHistBox"></div>
         ${ntMode === 'rich' ? `
           <div class="nttoolbar">
@@ -666,12 +692,13 @@ function bindNotes(page) {
     const f = [...(e.dataTransfer?.files || [])].find(x => x.type.startsWith('image/') || x.type === 'application/pdf');
     if (f) { e.preventDefault(); uploadAttachment(f); }
   });
-  // клик по вложению-ссылке (PDF) — открыть в новой вкладке, не редактируем
+  // клик по вложению-ссылке (PDF и пр.) — открыть во встроенном просмотрщике,
+  // НЕ через window.open: в нативе он уходит во внешнее приложение по схеме pipboy:// (серые приложения)
   $('ntRich')?.addEventListener('click', e => {
     const a = e.target.closest('a.attlink');
     if (!a) return;
     e.preventDefault();
-    window.open(a.getAttribute('href'), '_blank');
+    openAttachmentViewer(a.getAttribute('href'), a.textContent.replace(/^📎\s*/, ''));
   });
   // заголовок сохраняется сам, ⌘Enter — сохранить немедленно
   $('ntTitle')?.addEventListener('input', () => {

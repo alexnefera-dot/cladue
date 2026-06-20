@@ -901,7 +901,7 @@ const SCREENS = { today: 'loadToday', spheres: 'loadSpheres', list: null, fin: '
 window.showScreen = function (scr) {
   // незаконченная правка в Инфо дозаписывается при уходе с экрана
   if (scr !== 'notes' && window.ntFlush) { const f = window.ntFlush; window.ntFlush = null; f(); }
-  document.querySelectorAll('.jov').forEach(o => o.remove());   // закрыть оставшийся оверлей журнала при смене экрана
+  document.querySelectorAll('.jov,.attov').forEach(o => o.remove());   // закрыть оставшиеся оверлеи (журнал/просмотр вложения) при смене экрана
   currentScr = scr;
   try { sessionStorage.pbScreen = scr; } catch {}   // переживает мягкий рестарт/перезагрузку фронта
   const locked = window.isLocked(scr);
