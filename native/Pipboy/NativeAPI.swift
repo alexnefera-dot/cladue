@@ -30,6 +30,8 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         let made = try Database(key: k)
         _ = try? made.run("DELETE FROM trash WHERE created_at < datetime('now','-30 days')")  // авто-очистка корзины
         _ = try? made.run("ALTER TABLE nodes ADD COLUMN due_time TEXT")  // миграция: время у задач (тихо, если уже есть)
+        _ = try? made.run("ALTER TABLE nodes ADD COLUMN answer TEXT")    // формулировка решения — buildSpheres селектит явно, без неё сферы падали
+        _ = try? made.run("ALTER TABLE nodes ADD COLUMN \"repeat\" TEXT") // повтор задачи (weekly|monthly|yearly)
         _ = try? made.run("ALTER TABLE routines ADD COLUMN days TEXT NOT NULL DEFAULT ''")  // дни недели рутины (пусто = каждый день)
         _ = try? made.run("ALTER TABLE passive_income ADD COLUMN principal REAL NOT NULL DEFAULT 0")    // тело инвестиции/депозита
         _ = try? made.run("ALTER TABLE passive_income ADD COLUMN rate REAL NOT NULL DEFAULT 0")         // % доходности
