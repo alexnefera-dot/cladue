@@ -653,8 +653,8 @@ function bindNotes(page) {
       const f = await window.pbPickFile();        // нативный системный пикер
       if (f && f.data) await uploadAttachmentData(f.name, f.mime, f.data);
     } else if (window.webkit) {
-      // нативное приложение, но моста нет → не пересобран Xcode с новым WebView.swift
-      alert('📎 v6: нативный мост файлов НЕ найден. Пересобери приложение в Xcode (⇧⌘K → Run). Если у даты нет метки «ред.v8 ✦» — фронт тоже старый.');
+      const sb = document.getElementById('statusbar');   // нативный бинарь без моста → нужна пересборка
+      if (sb) sb.textContent = '📎 нужен свежий бинарь: пересобери приложение в Xcode (⇧⌘K → Run)';
     } else {
       $('ntFile')?.click();                       // обычный браузер
     }
