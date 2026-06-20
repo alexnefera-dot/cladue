@@ -2158,7 +2158,7 @@ enum Api {
         let inboxId = inboxCat.map { intval($0["id"]) }
         let inbox = inboxId != nil
             ? ((try db.rows("SELECT count(*) AS c FROM nodes WHERE parent_id = ?", [inboxId!]).first?["c"] as? Int) ?? 0) : 0
-        let practicesToday = (try monthOccurrences(db, ym, t, t))
+        let practicesToday = ((try? monthOccurrences(db, ym, t, t)) ?? [])
             .filter { dateOf($0) == t && !(($0["done"] as? Bool) ?? false) }.count
         let routinesArr = (try? JSONSerialization.jsonObject(with: try routines(db))) as? [[String: Any]] ?? []
         let result: [String: Any] = [

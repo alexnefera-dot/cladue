@@ -17,13 +17,27 @@ const MON = ['января', 'февраля', 'марта', 'апреля', 'м
 
 const TDSPH_COL = ['#1e9e57', '#c43f3f', '#a87708', '#6b4fb5', '#2a76b5', '#364656'];
 window.loadToday = async function () {
-  const [d, sph, rest] = await Promise.all([
-    tdApi.get(),
+  let d, sph = [], rest = [];
+  [d, sph, rest] = await Promise.all([
+    tdApi.get().catch(e => ({ error: String(e) })),
     fetch('/api/spheres').then(r => r.json()).then(x => Array.isArray(x) ? x : []).catch(() => []),
     fetch('/api/rest').then(r => r.json()).then(x => Array.isArray(x) ? x : []).catch(() => []),
   ]);
-  tdData = d; window.tdSpheres = sph; window.tdRest = rest;
-  renderToday();
+  window.tdSpheres = sph; window.tdRest = rest;
+  const el = document.getElementById('screen-today');
+  // не белый экран: если /api/today не отдал нормальные данные — показываем причину
+  if (!d || d.error || !d.progress || !Array.isArray(d.routines)) {
+    if (el) el.innerHTML = `<h2 style="margin-bottom:8px">Сегодня</h2>
+      <div class="card" style="color:var(--red)">Не удалось загрузить «Сегодня».<br>
+      <span class="meta">${tesc(d && d.error ? d.error : 'нет данных от /api/today')}</span></div>`;
+    return;
+  }
+  tdData = d;
+  try { renderToday(); }
+  catch (e) {
+    if (el) el.innerHTML = `<h2 style="margin-bottom:8px">Сегодня</h2>
+      <div class="card" style="color:var(--red)">Ошибка отрисовки: <span class="meta">${tesc(String(e && e.message || e))}</span></div>`;
+  }
 };
 // блок «Кайф и восстановление»: способы отдохнуть по контексту дня + глобальные
 function tdRest() {
