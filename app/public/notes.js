@@ -382,7 +382,7 @@ async function renderNotes() {
           <span class="pill btn" id="ntAddChild">＋ подстраница</span>
           <span class="pill btn danger" id="ntDel">🗑</span>
         </div>
-        <div class="meta" style="margin:4px 0 10px">обновлено ${page.updated_at.slice(0, 16).replace('T', ' ')} · сохраняется само · ⌘Z — откат · <b style="color:var(--green)">ред.v6 ✦</b></div>
+        <div class="meta" style="margin:4px 0 10px">обновлено ${page.updated_at.slice(0, 16).replace('T', ' ')} · сохраняется само · ⌘Z — откат · <b style="color:var(--green)">ред.v7 ✦</b></div>
         <div id="ntHistBox"></div>
         ${ntMode === 'rich' ? `
           <div class="nttoolbar">
@@ -649,10 +649,13 @@ function bindNotes(page) {
   // <input type=file>); в браузере — обычный input
   $('ntAttachBtn')?.addEventListener('click', async () => {
     if (window.webkit?.messageHandlers?.pipboyFile && window.pbPickFile) {
-      const f = await window.pbPickFile();
+      const f = await window.pbPickFile();        // нативный системный пикер
       if (f && f.data) await uploadAttachmentData(f.name, f.mime, f.data);
+    } else if (window.webkit) {
+      // нативное приложение, но моста нет → не пересобран Xcode с новым WebView.swift
+      alert('📎 v6: нативный мост файлов НЕ найден. Пересобери приложение в Xcode (⇧⌘K → Run). Если у даты нет метки «ред.v7 ✦» — фронт тоже старый.');
     } else {
-      $('ntFile')?.click();
+      $('ntFile')?.click();                       // обычный браузер
     }
   });
   $('ntFile')?.addEventListener('change', e => { uploadAttachment(e.target.files[0]); e.target.value = ''; });
