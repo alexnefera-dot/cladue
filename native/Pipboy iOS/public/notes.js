@@ -238,11 +238,11 @@ function ntInsertHtml(htmlStr) {
   if (!rich) return false;
   rich.focus();
   const sel = window.getSelection();
-  let range = sel.rangeCount ? sel.getRangeAt(0) : null;
-  if (!range || !rich.contains(range.commonAncestorContainer)) {
-    // выделение потерялось (клик по 📎/панели) — берём последнюю позицию курсора в тексте
-    range = (ntSavedRange && rich.contains(ntSavedRange.commonAncestorContainer)) ? ntSavedRange.cloneRange() : null;
-  }
+  // приоритет — запомненная позиция курсора: после focus() live-выделение часто прыгает в начало,
+  // а нативный пикер/панель уводят фокус. Так файл/картинка ложатся туда, где стоял курсор.
+  let range = null;
+  if (ntSavedRange && rich.contains(ntSavedRange.commonAncestorContainer)) range = ntSavedRange.cloneRange();
+  else if (sel.rangeCount && rich.contains(sel.getRangeAt(0).commonAncestorContainer)) range = sel.getRangeAt(0);
   if (!range) {
     range = document.createRange();
     range.selectNodeContents(rich);
@@ -257,6 +257,7 @@ function ntInsertHtml(htmlStr) {
     range.collapse(true);
     sel.removeAllRanges();
     sel.addRange(range);
+    ntSavedRange = range.cloneRange();   // следующая вставка пойдёт после этой, а не в начало
   }
   return true;
 }
@@ -382,7 +383,7 @@ async function renderNotes() {
           <span class="pill btn" id="ntAddChild">＋ подстраница</span>
           <span class="pill btn danger" id="ntDel">🗑</span>
         </div>
-        <div class="meta" style="margin:4px 0 10px">обновлено ${page.updated_at.slice(0, 16).replace('T', ' ')} · сохраняется само · ⌘Z — откат · <b style="color:var(--green)">ред.v7 ✦</b></div>
+        <div class="meta" style="margin:4px 0 10px">обновлено ${page.updated_at.slice(0, 16).replace('T', ' ')} · сохраняется само · ⌘Z — откат · <b style="color:var(--green)">ред.v8 ✦</b></div>
         <div id="ntHistBox"></div>
         ${ntMode === 'rich' ? `
           <div class="nttoolbar">
@@ -653,7 +654,7 @@ function bindNotes(page) {
       if (f && f.data) await uploadAttachmentData(f.name, f.mime, f.data);
     } else if (window.webkit) {
       // нативное приложение, но моста нет → не пересобран Xcode с новым WebView.swift
-      alert('📎 v6: нативный мост файлов НЕ найден. Пересобери приложение в Xcode (⇧⌘K → Run). Если у даты нет метки «ред.v7 ✦» — фронт тоже старый.');
+      alert('📎 v6: нативный мост файлов НЕ найден. Пересобери приложение в Xcode (⇧⌘K → Run). Если у даты нет метки «ред.v8 ✦» — фронт тоже старый.');
     } else {
       $('ntFile')?.click();                       // обычный браузер
     }
