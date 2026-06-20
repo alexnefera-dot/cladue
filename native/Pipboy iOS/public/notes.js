@@ -191,6 +191,36 @@ function clipboardToMd(html, text) {
   return t;
 }
 
+// ===== Хранение страницы как HTML (а не markdown) — нативное редактирование списков/отступов =====
+// Маркер в начале content помечает HTML-страницы. Без маркера — легаси-markdown (рендерим как раньше).
+const HTML_MARK = '<!--pbhtml-->';
+const isHtmlContent = c => typeof c === 'string' && c.startsWith(HTML_MARK);
+// чистим вставленный/сохраняемый HTML: убираем скрипты и опасные атрибуты, оформление оставляем
+function sanitizeHtml(html) {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html || '';
+  tmp.querySelectorAll('script,style,meta,link,head,title,iframe,object,embed,noscript').forEach(x => x.remove());
+  tmp.querySelectorAll('*').forEach(el => {
+    for (const a of [...el.attributes]) {
+      const n = a.name.toLowerCase();
+      if (n.startsWith('on')) el.removeAttribute(a.name);                                   // onclick и т.п.
+      else if ((n === 'href' || n === 'src') && /^\s*(javascript|vbscript):/i.test(a.value)) el.removeAttribute(a.name);
+      else if (n === 'href' && /^\s*data:/i.test(a.value)) el.removeAttribute(a.name);      // data: только для картинок (src)
+    }
+  });
+  return tmp.innerHTML;
+}
+// content → HTML для contenteditable (легаси-markdown рендерим, HTML отдаём как есть)
+function contentToHtml(content) {
+  return isHtmlContent(content) ? sanitizeHtml(content.slice(HTML_MARK.length)) : mdRender(content || '');
+}
+// content → markdown для режима «</> markdown»
+function contentToMd(content) {
+  if (!isHtmlContent(content)) return content || '';
+  const tmp = document.createElement('div'); tmp.innerHTML = content.slice(HTML_MARK.length);
+  return htmlToMd(tmp);
+}
+
 // вставка HTML в позицию курсора contenteditable — надёжнее execCommand (Safari)
 function ntInsertHtml(htmlStr) {
   const rich = document.getElementById('ntRich');
@@ -349,14 +379,14 @@ async function renderNotes() {
             <label class="pill btn ntb" title="вставить картинку или PDF" style="cursor:pointer">📎 файл<input type="file" id="ntFile" accept="image/*,application/pdf" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none"></label>
             <span class="pill btn" id="ntModeMd" title="редактировать как markdown" style="margin-left:auto">&lt;/&gt; markdown</span>
           </div>
-          <div id="ntRich" class="mdview richedit" contenteditable="true" spellcheck="false" data-ph="пиши здесь — сохранится само">${mdRender(content)}</div>`
+          <div id="ntRich" class="mdview richedit" contenteditable="true" spellcheck="false" data-ph="пиши здесь — сохранится само">${contentToHtml(content)}</div>`
         : `
           <div class="nttoolbar">
             <span class="meta">markdown-режим: # заголовок · - список · - [ ] чеклист · > цитата · [[ссылка]]</span>
             <label class="pill btn ntb" title="вставить картинку или PDF" style="cursor:pointer">📎 файл<input type="file" id="ntFile" accept="image/*,application/pdf" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none"></label>
             <span class="pill btn" id="ntModeRich" style="margin-left:auto">Aa визуальный</span>
           </div>
-          <textarea id="ntBody" class="ntbody">${nesc(content)}</textarea>`}
+          <textarea id="ntBody" class="ntbody">${nesc(contentToMd(content))}</textarea>`}
         ${back.length ? `<div class="sec" style="margin-top:22px">↩ Бэклинки — ссылаются сюда</div>
           ${back.map(b => `<div class="ritem" data-ntopen="${b.id}"><div class="rt">${nesc(b.title)}</div></div>`).join('')}` : ''}`}
     </div>
@@ -468,19 +498,14 @@ function bindNotes(page) {
     el.addEventListener('mousedown', e => e.preventDefault()); // не терять выделение
     el.addEventListener('click', () => { TOOLBAR[+el.dataset.ntb][2](); $('ntRich')?.focus(); });
   });
-  const currentMd = () => {
-    if (ntMode !== 'rich') return $('ntBody').value;
-    const md = htmlToMd($('ntRich'));
-    // страховка: если конвертация дала пустоту, а текст в редакторе есть — берём как есть
-    if (!md.trim() && $('ntRich')?.innerText.trim()) return $('ntRich').innerText;
-    return md;
-  };
+  // содержимое для сохранения: rich → HTML (с маркером), md → чистый markdown
+  const currentMd = () => ntMode === 'rich' ? HTML_MARK + sanitizeHtml($('ntRich').innerHTML) : $('ntBody').value;
   $('ntModeMd')?.addEventListener('click', () => {
-    page.content = htmlToMd($('ntRich'));   // переносим правки между режимами
+    page.content = HTML_MARK + sanitizeHtml($('ntRich').innerHTML);   // переносим правки между режимами
     ntMode = 'md'; renderNotes();
   });
   $('ntModeRich')?.addEventListener('click', () => {
-    page.content = $('ntBody').value;
+    page.content = $('ntBody').value;   // markdown без маркера → отрисуется в HTML
     ntMode = 'rich'; renderNotes();
   });
   const saveData = async (isAuto = false) => {
@@ -541,24 +566,27 @@ function bindNotes(page) {
       ntAutoT = setTimeout(() => saveData(true), 250);   // даём DOM принять вставку — и пишем
     });
   }
-  // умная вставка: HTML/таб-таблицы/markdown → наш формат. Сначала execCommand
-  // (он дружит с ⌘Z), если не вставилось (Safari) — Range API; потерь не бывает.
+  // вставка: картинку из буфера грузим вложением; HTML вставляем нативно (списки/жирный/курсив
+  // сохраняются), очистив опасное; простой текст вставляет сам браузер
   $('ntRich')?.addEventListener('paste', e => {
-    // вставка картинки из буфера (скриншот, копи-пейст) → грузим как вложение
     const imgFile = [...(e.clipboardData.files || [])].find(f => f.type.startsWith('image/'));
     if (imgFile) { e.preventDefault(); uploadAttachment(imgFile); return; }
-    e.preventDefault();
     const html = e.clipboardData.getData('text/html');
-    const text = e.clipboardData.getData('text/plain').replace(/\r/g, '');
-    const md = clipboardToMd(html, text);
-    const htmlOut = md.trim() ? mdRender(md) : `<p>${nesc(text)}</p>`;
-    const rich = $('ntRich');
-    const before = rich.innerHTML;
-    let ok = false;
-    try { ok = document.execCommand('insertHTML', false, htmlOut); } catch { ok = false; }
-    if (!ok || rich.innerHTML === before) ntInsertHtml(htmlOut);
+    if (html && html.trim()) {
+      e.preventDefault();
+      const clean = sanitizeHtml(html);
+      if (!document.execCommand('insertHTML', false, clean)) ntInsertHtml(clean);
+      clearTimeout(ntAutoT);
+      ntAutoT = setTimeout(() => saveData(true), 250);
+    }
+  });
+  // Tab/Shift+Tab — вложенность списка (и отступ абзаца), как в Notes
+  $('ntRich')?.addEventListener('keydown', e => {
+    if (e.key !== 'Tab') return;
+    e.preventDefault();
+    document.execCommand(e.shiftKey ? 'outdent' : 'indent');
     clearTimeout(ntAutoT);
-    ntAutoT = setTimeout(() => saveData(true), 250);
+    ntAutoT = setTimeout(() => saveData(true), 800);
   });
 
   // ===== Вложения: картинки/PDF — кнопка 📎, drag&drop, вставка из буфера =====

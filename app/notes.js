@@ -311,9 +311,10 @@ export function pruneTrash(db, days = 30) {
 export function backlinks(db, id) {
   const p = getPage(db, id);
   if (!p) return [];
-  const needle = ('[[' + p.title + ']]').toLowerCase();
+  const t = p.title.toLowerCase();
+  const md = '[[' + t + ']]', html = 'data-wiki="' + t + '"';   // markdown-вики и HTML-вики
   return db.prepare('SELECT id, title, content FROM pages WHERE id != ?').all(id)
-    .filter(x => x.content.toLowerCase().includes(needle))
+    .filter(x => { const c = x.content.toLowerCase(); return c.includes(md) || c.includes(html); })
     .map(({ id, title }) => ({ id, title }));
 }
 

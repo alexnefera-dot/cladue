@@ -327,9 +327,10 @@ enum Api {
 
     static func backlinks(_ db: Database, id: Int) throws -> [[String: Any]] {
         guard let p = try getPage(db, id) else { return [] }
-        let needle = ("[[" + (p["title"] as? String ?? "") + "]]").lowercased()
+        let t = (p["title"] as? String ?? "").lowercased()
+        let md = "[[" + t + "]]", html = "data-wiki=\"" + t + "\""   // markdown-вики и HTML-вики
         return try db.rows("SELECT id, title, content FROM pages WHERE id != ?", [id])
-            .filter { ($0["content"] as? String ?? "").lowercased().contains(needle) }
+            .filter { let c = ($0["content"] as? String ?? "").lowercased(); return c.contains(md) || c.contains(html) }
             .map { ["id": $0["id"] ?? NSNull(), "title": $0["title"] ?? NSNull()] }
     }
     static func resolveWiki(_ db: Database, name: String) throws -> [String: Any] {
