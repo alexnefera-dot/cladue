@@ -240,9 +240,14 @@ function sphFinTiles(f) {
 // движковые авто-сигналы для ЛЮБОЙ сферы — из того, что и так считается
 function sphEngineTiles(s) {
   const pr = s.progress || {}, t = [];
-  if (pr.momentum != null) t.push(`<div class="sphk"><div class="sphk-n">⚡ Моментум</div><div class="sphk-v">${pr.momentum}<small>/10</small></div><div class="sphk-bar"><i style="width:${pr.momentum * 10}%"></i></div><div class="sphk-p"><span class="pill btn ok" id="sphApplyMom" style="font-size:9px;padding:1px 7px">→ оценка</span></div></div>`);
   if (pr.tasksTotal) { const p = Math.round(pr.tasksDone / pr.tasksTotal * 100); t.push(sphTile('🎯', 'Задачи', `${p}<small>%</small>`, `${pr.tasksDone}/${pr.tasksTotal}`, p)); }
   if (typeof pr.adherence === 'number') { const p = Math.round(pr.adherence * 100); t.push(sphTile('↻', 'Рутины · 2 нед', `${p}<small>%</small>`, 'дисциплина', p)); }
+  // психология / майндсет: дисциплина практик за 7 дней (из недельных полос)
+  if (s.practices && s.practices.length) {
+    const hits = s.practices.reduce((a, p) => a + (p.wk || []).reduce((x, d) => x + (d ? 1 : 0), 0), 0);
+    const max = s.practices.length * 7, p = max ? Math.round(hits / max * 100) : 0;
+    t.push(sphTile('🧠', 'Практики · 7 дн', `${p}<small>%</small>`, 'майндсет', p));
+  }
   return t.join('');
 }
 // дорожная карта «путь к 10»: вехи по уровням, «ты здесь» по оценке, правка прямо тут
@@ -289,8 +294,10 @@ function sphDetail(s, i) {
   let kpi = '';
   if (s.finance) kpi += sphFinTiles(s.finance);
   kpi += sphEngineTiles(s);
-  if (s.tracking && s.tracking.length) kpi += s.tracking.map(sphKpiTile).join('');
-  if (kpi) h += `<div class="sec">🔑 Ключевые сигналы <span class="muted" style="font-weight:400">· авто из данных${s.tracking && s.tracking.length ? ' + метрики' : ''}</span></div><div class="card"><div class="sphkpi">${kpi}</div></div>`;
+  // в шапке — только метрики С ЦЕЛЬЮ (краткий итог), остальной трекинг остаётся блоком ниже
+  const kpiMetrics = (s.tracking || []).filter(m => m.target != null && m.target);
+  if (kpiMetrics.length) kpi += kpiMetrics.map(sphKpiTile).join('');
+  if (kpi) h += `<div class="sec">🔑 Ключевые сигналы <span class="muted" style="font-weight:400">· авто из данных${kpiMetrics.length ? ' + цели метрик' : ''}</span></div><div class="card"><div class="sphkpi">${kpi}</div></div>`;
   // путь к 10 — дорожная карта вехами (редактируется прямо тут)
   h += sphRoadmap(s);
 
@@ -453,9 +460,6 @@ function bindDetail(s) {
     ex.has(id) ? ex.delete(id) : ex.add(id);
     localStorage.sphFold = JSON.stringify([...ex]);
     renderSpheres();   // мгновенно, без запроса
-  });
-  document.getElementById('sphApplyMom')?.addEventListener('click', async () => {
-    if (s.progress?.momentum != null) { await sphApi.score(s.id, s.progress.momentum); window.loadSpheres(); }
   });
   document.getElementById('sphStepTask').onclick = async () => {
     if (!s.step?.trim()) { alert('Сначала задай шаг (клик по «следующий шаг»).'); return; }
