@@ -20,6 +20,17 @@ const ntApi = {
 
 const nesc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+// Нативный выбор файла через мост Swift (WKWebView не открывает <input type=file>).
+// Promise → { name, mime, data(base64) } или null (отмена/нет моста). Swift зовёт window.pbFilePicked.
+window.pbPickFile = function () {
+  const h = window.webkit?.messageHandlers?.pipboyFile;
+  if (!h) return Promise.resolve(null);
+  return new Promise(resolve => {
+    window.pbFilePicked = f => { window.pbFilePicked = null; resolve(f && f.data ? f : null); };
+    try { h.postMessage({}); } catch { resolve(null); }
+  });
+};
+
 // ===== markdown → HTML =====
 function mdRender(src) {
   const inline = s => s
@@ -371,19 +382,19 @@ async function renderNotes() {
           <span class="pill btn" id="ntAddChild">＋ подстраница</span>
           <span class="pill btn danger" id="ntDel">🗑</span>
         </div>
-        <div class="meta" style="margin:4px 0 10px">обновлено ${page.updated_at.slice(0, 16).replace('T', ' ')} · сохраняется само · ⌘Z — откат · <b style="color:var(--green)">ред.v5 ✦</b></div>
+        <div class="meta" style="margin:4px 0 10px">обновлено ${page.updated_at.slice(0, 16).replace('T', ' ')} · сохраняется само · ⌘Z — откат · <b style="color:var(--green)">ред.v6 ✦</b></div>
         <div id="ntHistBox"></div>
         ${ntMode === 'rich' ? `
           <div class="nttoolbar">
             ${TOOLBAR.map(([label, hint], i) => `<span class="pill btn ntb" data-ntb="${i}" title="${hint}">${nesc(label)}</span>`).join('')}
-            <span class="pill btn ntb ntfilewrap" title="вставить картинку или PDF">📎 файл<input type="file" id="ntFile" accept="image/*,application/pdf"></span>
+            <span class="pill btn ntb" id="ntAttachBtn" title="вставить картинку или PDF">📎 файл</span><input type="file" id="ntFile" accept="image/*,application/pdf" style="display:none">
             <span class="pill btn" id="ntModeMd" title="редактировать как markdown" style="margin-left:auto">&lt;/&gt; markdown</span>
           </div>
           <div id="ntRich" class="mdview richedit" contenteditable="true" spellcheck="false" data-ph="пиши здесь — сохранится само">${contentToHtml(content)}</div>`
         : `
           <div class="nttoolbar">
             <span class="meta">markdown-режим: # заголовок · - список · - [ ] чеклист · > цитата · [[ссылка]]</span>
-            <span class="pill btn ntb ntfilewrap" title="вставить картинку или PDF">📎 файл<input type="file" id="ntFile" accept="image/*,application/pdf"></span>
+            <span class="pill btn ntb" id="ntAttachBtn" title="вставить картинку или PDF">📎 файл</span><input type="file" id="ntFile" accept="image/*,application/pdf" style="display:none">
             <span class="pill btn" id="ntModeRich" style="margin-left:auto">Aa визуальный</span>
           </div>
           <textarea id="ntBody" class="ntbody">${nesc(contentToMd(content))}</textarea>`}
@@ -590,12 +601,40 @@ function bindNotes(page) {
   });
 
   // ===== Вложения: картинки/PDF — кнопка 📎, drag&drop, вставка из буфера =====
+  // вставка уже загруженного вложения (после POST) в текст
+  const insertAttachment = (meta, name, mime) => {
+    const isImg = (mime || '').startsWith('image/');
+    if (ntMode === 'rich') {
+      ntInsertHtml(isImg ? `<img src="${meta.url}" alt="${nesc(name)}" class="mdimg">`
+        : `<a href="${meta.url}" class="attlink">📎 ${nesc(name)}</a>&nbsp;`);
+    } else {
+      const ta = $('ntBody');
+      const ins = isImg ? `\n![${name}](${meta.url})\n` : `\n[📎 ${name}](${meta.url})\n`;
+      const at = ta.selectionStart ?? ta.value.length;
+      ta.value = ta.value.slice(0, at) + ins + ta.value.slice(at);
+    }
+    clearTimeout(ntAutoT);
+    ntAutoT = setTimeout(() => saveData(true), 250);
+  };
+  // загрузка по готовому base64 (нативный пикер даёт сразу base64)
+  const uploadAttachmentData = async (name, mime, base64) => {
+    if (!base64 || !ntSel) return;
+    const sb = document.getElementById('statusbar');
+    if (sb) sb.textContent = `⏳ загружаю ${name}…`;
+    try {
+      const meta = await fetch(`/api/pages/${ntSel}/attachments`, { method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, mime: mime || 'application/octet-stream', data: base64 }) }).then(r => r.json());
+      if (!meta || meta.error || !meta.url) { alert('Не загрузилось: ' + (meta?.error || 'ошибка')); return; }
+      insertAttachment(meta, name, mime);
+      if (sb) sb.textContent = `✓ вставлено: ${name}`;
+    } catch (err) { alert('Не загрузилось: ' + err.message); }
+  };
+  // загрузка File (веб-инпут, drag&drop, вставка картинки) — читаем в base64 и грузим
   const uploadAttachment = async (file) => {
     if (!file || !ntSel) return;
     const MAXMB = 25;
     if (file.size > MAXMB * 1024 * 1024) { alert(`Файл больше ${MAXMB} МБ — слишком крупный для базы.`); return; }
-    const sb = document.getElementById('statusbar');
-    if (sb) sb.textContent = `⏳ загружаю ${file.name}…`;
     try {
       const data = await new Promise((res, rej) => {
         const r = new FileReader();
@@ -603,29 +642,19 @@ function bindNotes(page) {
         r.onerror = () => rej(new Error('чтение файла'));
         r.readAsDataURL(file);
       });
-      const meta = await fetch(`/api/pages/${ntSel}/attachments`, { method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: file.name, mime: file.type || 'application/octet-stream', data }) }).then(r => r.json());
-      if (!meta || meta.error || !meta.url) { alert('Не загрузилось: ' + (meta?.error || 'ошибка')); return; }
-      const isImg = (file.type || '').startsWith('image/');
-      if (ntMode === 'rich') {
-        ntInsertHtml(isImg ? `<img src="${meta.url}" alt="${nesc(file.name)}" class="mdimg">`
-          : `<a href="${meta.url}" class="attlink">📎 ${nesc(file.name)}</a>&nbsp;`);
-      } else {
-        const ta = $('ntBody');
-        const ins = isImg ? `\n![${file.name}](${meta.url})\n` : `\n[📎 ${file.name}](${meta.url})\n`;
-        const at = ta.selectionStart ?? ta.value.length;
-        ta.value = ta.value.slice(0, at) + ins + ta.value.slice(at);
-      }
-      if (sb) sb.textContent = `✓ вставлено: ${file.name}`;
-      clearTimeout(ntAutoT);
-      ntAutoT = setTimeout(() => saveData(true), 250);
-    } catch (err) {
-      alert('Не загрузилось: ' + err.message);
-    }
+      await uploadAttachmentData(file.name, file.type || 'application/octet-stream', data);
+    } catch (err) { alert('Не загрузилось: ' + err.message); }
   };
-  // 📎 файл — прозрачный input лежит поверх кнопки: клик идёт прямо по input,
-  // поэтому WKWebView открывает выбор файла (label/программный .click() он блокирует)
+  // 📎 файл: в нативном приложении — системный пикер через мост (WKWebView не отдаёт
+  // <input type=file>); в браузере — обычный input
+  $('ntAttachBtn')?.addEventListener('click', async () => {
+    if (window.webkit?.messageHandlers?.pipboyFile && window.pbPickFile) {
+      const f = await window.pbPickFile();
+      if (f && f.data) await uploadAttachmentData(f.name, f.mime, f.data);
+    } else {
+      $('ntFile')?.click();
+    }
+  });
   $('ntFile')?.addEventListener('change', e => { uploadAttachment(e.target.files[0]); e.target.value = ''; });
   // перетащил файл в редактор — грузим
   $('ntRich')?.addEventListener('dragover', e => { if (e.dataTransfer?.types?.includes('Files')) e.preventDefault(); });

@@ -1,5 +1,6 @@
 import SwiftUI
 @preconcurrency import WebKit
+import UniformTypeIdentifiers
 #if os(macOS)
 import AppKit
 #else
@@ -25,6 +26,7 @@ struct WebView {
             injectionTime: .atDocumentStart, forMainFrameOnly: true)
         cfg.userContentController.addUserScript(unlock)
         cfg.userContentController.add(coordinator, name: "pipboySync")   // веб → нативный синхрон
+        cfg.userContentController.add(coordinator, name: "pipboyFile")    // веб → нативный выбор файла (WKWebView не отдаёт <input type=file>)
         cfg.setURLSchemeHandler(coordinator.scheme, forURLScheme: PipboySchemeHandler.scheme)
         let v = WKWebView(frame: .zero, configuration: cfg)
         v.uiDelegate = coordinator
@@ -64,6 +66,7 @@ struct WebView {
         // Веб (Настройки) шлёт действия синхрона. Управление целиком в Настройках,
         // авто работает в фоне.
         func userContentController(_ uc: WKUserContentController, didReceive message: WKScriptMessage) {
+            if message.name == "pipboyFile" { pickFileNative(); return }
             guard message.name == "pipboySync" else { return }
             let body = message.body as? [String: Any]
             let action = body?["action"] as? String ?? (message.body as? String) ?? ""
@@ -93,6 +96,56 @@ struct WebView {
         private func pushState() {
             let js = "window.pbSyncState&&window.pbSyncState({paired:\(SyncTrust.paired),auto:\(SyncTrust.autoEnabled)})"
             webView?.evaluateJavaScript(js, completionHandler: nil)
+        }
+
+        // ----- Нативный выбор файла (WKWebView не открывает системный <input type=file>) -----
+        func pickFileNative() {
+            DispatchQueue.main.async { [weak self] in
+                #if os(macOS)
+                let panel = NSOpenPanel()
+                panel.canChooseFiles = true; panel.canChooseDirectories = false; panel.allowsMultipleSelection = false
+                panel.allowedFileTypes = ["png", "jpg", "jpeg", "gif", "heic", "heif", "webp", "bmp", "tiff", "tif", "pdf"]
+                if panel.runModal() == .OK, let url = panel.url, let data = try? Data(contentsOf: url) {
+                    self?.deliverFile(url, data)
+                } else {
+                    self?.filePicked(nil)
+                }
+                #else
+                let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.image, .pdf], asCopy: true)
+                picker.delegate = self
+                picker.allowsMultipleSelection = false
+                Self.topViewController()?.present(picker, animated: true)
+                #endif
+            }
+        }
+
+        func deliverFile(_ url: URL, _ data: Data) {
+            if data.count > 25 * 1024 * 1024 {
+                webView?.evaluateJavaScript("alert('Файл больше 25 МБ — слишком крупный');window.pbFilePicked&&window.pbFilePicked(null)", completionHandler: nil)
+                return
+            }
+            let b64 = data.base64EncodedString()   // только [A-Za-z0-9+/=] — безопасно в JS-строке
+            let name = url.lastPathComponent.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "'", with: "\\'")
+            let mime = Self.mimeForExt(url.pathExtension)
+            webView?.evaluateJavaScript("window.pbFilePicked&&window.pbFilePicked({name:'\(name)',mime:'\(mime)',data:'\(b64)'})", completionHandler: nil)
+        }
+
+        func filePicked(_ v: String?) {
+            webView?.evaluateJavaScript("window.pbFilePicked&&window.pbFilePicked(\(v ?? "null"))", completionHandler: nil)
+        }
+
+        static func mimeForExt(_ ext: String) -> String {
+            switch ext.lowercased() {
+            case "png": return "image/png"
+            case "jpg", "jpeg": return "image/jpeg"
+            case "gif": return "image/gif"
+            case "webp": return "image/webp"
+            case "heic", "heif": return "image/heic"
+            case "bmp": return "image/bmp"
+            case "tiff", "tif": return "image/tiff"
+            case "pdf": return "application/pdf"
+            default: return "application/octet-stream"
+            }
         }
 
         // ----- target=_blank ссылки → внешний браузер -----
@@ -171,6 +224,18 @@ struct WebView {
         #endif
     }
 }
+
+#if os(iOS)
+extension WebView.Coordinator: UIDocumentPickerDelegate {
+    func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+        guard let url = urls.first else { filePicked(nil); return }
+        let access = url.startAccessingSecurityScopedResource()
+        defer { if access { url.stopAccessingSecurityScopedResource() } }
+        if let data = try? Data(contentsOf: url) { deliverFile(url, data) } else { filePicked(nil) }
+    }
+    func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) { filePicked(nil) }
+}
+#endif
 
 #if os(macOS)
 extension WebView: NSViewRepresentable {
