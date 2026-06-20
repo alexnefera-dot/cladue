@@ -1219,3 +1219,52 @@ document.getElementById('searchbox').addEventListener('input', e => {
 });
 
 load();
+
+// ===== Быстрый захват: плавающая кнопка (＋) + лист с опц. датой/разделом → в Цели =====
+(() => {
+  const capEsc = s => String(s).replace(/[<>&"]/g, '');
+  const st = document.createElement('style');
+  st.textContent = `
+    #capFab{position:fixed;right:18px;bottom:calc(72px + env(safe-area-inset-bottom));width:52px;height:52px;border-radius:50%;background:var(--green);color:#fff;font:300 30px/52px var(--sans);text-align:center;box-shadow:0 6px 18px rgba(18,28,45,.28);cursor:pointer;z-index:50;user-select:none}
+    #capFab:active{transform:scale(.94)}
+    #capModal{position:fixed;inset:0;background:rgba(18,28,45,.38);z-index:60;display:none;align-items:flex-end;justify-content:center}
+    #capSheet{background:var(--panel);border-radius:16px 16px 0 0;width:100%;max-width:520px;padding:16px 16px calc(18px + env(safe-area-inset-bottom));box-shadow:var(--shadow-md)}
+    @media(min-width:760px){#capModal{align-items:center}#capSheet{border-radius:16px}}
+    #capSheet textarea,#capSheet input,#capSheet select{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;font:14px var(--sans);background:var(--bg);margin-bottom:8px;color:var(--text)}
+    #capSheet .crow{display:flex;gap:8px}#capSheet .crow>*{flex:1;margin-bottom:0}
+    .capbtns{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}`;
+  document.head.appendChild(st);
+  const fab = document.createElement('div'); fab.id = 'capFab'; fab.textContent = '＋'; fab.title = 'Быстрый захват → Цели';
+  const modal = document.createElement('div'); modal.id = 'capModal';
+  document.body.appendChild(fab); document.body.appendChild(modal);
+  const close = () => { modal.style.display = 'none'; modal.innerHTML = ''; };
+  fab.onclick = async () => {
+    const cats = await fetch('/api/spheres/categories').then(r => r.json()).catch(() => []);
+    const inbox = cats.find(c => /инбокс/i.test(c.title || ''));
+    const byP = {}; cats.forEach(c => (byP[c.parent_id ?? 'root'] ??= []).push(c));
+    let opts = `<option value="${inbox ? inbox.id : ''}">📥 Инбокс</option>`;
+    const walk = (c, d) => { if (inbox && c.id === inbox.id) return; opts += `<option value="${c.id}">${'　'.repeat(d)}${capEsc(c.title)}</option>`; (byP[c.id] || []).forEach(k => walk(k, d + 1)); };
+    (byP['root'] || []).forEach(c => walk(c, 0));
+    modal.innerHTML = `<div id="capSheet">
+      <div style="font:600 12px var(--mono);color:var(--nav);letter-spacing:.5px;margin-bottom:10px">⚡ БЫСТРЫЙ ЗАХВАТ → ЦЕЛИ</div>
+      <textarea id="capText" rows="2" placeholder="мысль, задача, что угодно…"></textarea>
+      <div class="crow"><input id="capDate" type="date" title="дата (необязательно)"><select id="capSec" title="раздел">${opts}</select></div>
+      <div class="capbtns"><span class="pill btn" id="capCancel">отмена</span><span class="pill btn ok" id="capSave">сохранить</span></div></div>`;
+    modal.style.display = 'flex';
+    modal.onclick = e => { if (e.target === modal) close(); };
+    document.getElementById('capCancel').onclick = close;
+    const ta = document.getElementById('capText'); ta.focus();
+    const save = async () => {
+      const title = ta.value.trim(); if (!title) return;
+      const sec = document.getElementById('capSec').value, date = document.getElementById('capDate').value;
+      const r = await fetch('/api/nodes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, parent_id: sec ? +sec : null, is_category: 0 }) }).then(x => x.json()).catch(() => null);
+      if (date && r && r.id) await fetch('/api/nodes/' + r.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ due_date: date }) });
+      close();
+      const cur = document.querySelector('#screen-today')?.style.display !== 'none';
+      if (cur && typeof window.loadToday === 'function') window.loadToday();
+      else if (typeof load === 'function') load();
+    };
+    document.getElementById('capSave').onclick = save;
+    ta.addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') save(); });
+  };
+})();

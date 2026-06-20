@@ -24,21 +24,17 @@ window.loadToday = async function () {
   tdData = d; window.tdSpheres = sph;
   renderToday();
 };
-// полоса сфер на «Сегодня»: направление сверху, ежедневное — ниже. Клик — внутрь сферы.
+// Фокус дня: по одному шагу из ключевых (проседающих) сфер — до 5. Клик — внутрь сферы.
 function tdSphStrip() {
-  const list = Array.isArray(window.tdSpheres) ? window.tdSpheres : [];
+  const list = (Array.isArray(window.tdSpheres) ? window.tdSpheres : []).slice()
+    .sort((a, b) => (a.score ?? 10) - (b.score ?? 10)).slice(0, 5);   // до 5, самые проседающие — выше
   if (!list.length) return '';
   ensureTdSphStyle();
-  return `<div class="sec" style="margin-top:0">🧭 Сферы · куда идём</div>
-    <div class="tdsph">${list.map((s, i) => {
-      const m = s.progress?.momentum, col = TDSPH_COL[i % TDSPH_COL.length];
-      const prog = m != null ? m : s.score;
-      return `<div class="tdsph-c" data-sphopen="${s.id}">
-        <div class="tdsph-top"><span class="tdsph-s" style="background:${col}">${s.score ?? '–'}</span><span class="tdsph-n">${tesc(s.name)}</span></div>
-        <div class="tdsph-x">${s.step ? '→ ' + tesc(s.step) : '<span class="muted">шаг не задан</span>'}</div>
-        ${prog != null ? `<div class="tdsph-bar"><i style="width:${prog * 10}%;background:${col}"></i></div>
-          <div class="tdsph-m">${m != null ? 'прогресс ' + m + '/10' : 'оценка ' + s.score + '/10'}${s.progress?.tasksTotal ? ` · задачи ${s.progress.tasksDone}/${s.progress.tasksTotal}` : ''}</div>` : ''}</div>`;
-    }).join('')}</div>`;
+  return `<div class="sec" style="margin-top:0">🎯 Фокус дня · по шагу из ключевых сфер</div>
+    <div class="card">${list.map((s, i) => `<div class="task tdfoc" data-sphopen="${s.id}">
+      <span class="tdfoc-d" style="background:${TDSPH_COL[i % TDSPH_COL.length]}"></span>
+      <span class="t">${s.step ? tesc(s.step) : '<span class="muted">шаг не задан — открой сферу</span>'}<div class="tdfoc-s">${tesc(s.name)} · ${s.score ?? '–'}/10</div></span>
+      <span class="meta">→</span></div>`).join('')}</div>`;
 }
 function ensureTdSphStyle() {
   if (document.getElementById('tdsph-style')) return;
@@ -52,6 +48,8 @@ function ensureTdSphStyle() {
     .tdsph-x{font-size:12px;color:var(--muted);margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .tdsph-bar{height:5px;border-radius:99px;background:var(--bg2);overflow:hidden;margin-top:7px}.tdsph-bar i{display:block;height:100%}
     .tdsph-m{font:600 10.5px var(--mono);color:var(--green);margin-top:4px}
+    .tdfoc{cursor:pointer}.tdfoc-d{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+    .tdfoc-s{font-size:11.5px;color:var(--muted);margin-top:2px}
     @media(max-width:768px){.tdsph-c{width:158px;padding:9px 10px}.tdsph-n{font-size:12.5px}}`;
   document.head.appendChild(st);
 }
