@@ -187,6 +187,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
   transition:max-height .2s ease,opacity .15s,margin .2s,padding .2s}
 .editor.nt-on .nttoolbar{max-height:140px;opacity:1;margin:0 0 8px;padding:6px 0;border-bottom:1px solid var(--line);overflow:visible}
 .ntb{min-width:30px;text-align:center}
+/* 📎: прозрачный file-input поверх кнопки — прямой клик по input открывает пикер в WKWebView */
+.ntfilewrap{position:relative;overflow:hidden}
+.ntfilewrap>input[type=file]{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0}
 .richedit{border:1px solid transparent;border-radius:8px;padding:10px 12px;margin-left:-12px;min-height:420px;outline:none;background:transparent}
 .richedit:focus{border-color:var(--line);box-shadow:none}
 .richedit pre{white-space:pre-wrap}
