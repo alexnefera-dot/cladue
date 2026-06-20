@@ -34,6 +34,7 @@ ensureRates(db);
 psy.ensureWheel(db);      // секторы колеса — это структура, не демо
 if (!fin.getSetting(db, 'sphere_defaults', null)) spheres.autoConfig(db); // первый запуск: связи секций — сами
 psy.ensurePositiveIntent(db); // техника «Позитивное намерение» с 7 вопросами
+psy.ensureThoughtTesting(db); // техника «Тестирование мыслей» (КПТ) с 6 шагами
 ensureEnergy(db);         // ⚡ Энергия жизни + Банк впечатлений — тоже структура
 notes.ensureInfoTree(db); // ветки Инфо: Finance / Mindset / Fun / Work / Health
 { // старый трекинг из гугл-таблицы: колонки + история отметок, разово
