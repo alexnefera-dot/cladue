@@ -76,6 +76,18 @@ function mdRender(src) {
 
 // ===== HTML (из contenteditable) → markdown =====
 function htmlToMd(root) {
+  // оформление часто приходит инлайн-стилем (font-weight/italic у span), а не тегами <b>/<i>
+  // (так копирует WebKit, Google Docs, Word). Сохраняем жирный/курсив/подчёркивание и из стилей.
+  const styleWrap = (n, inner) => {
+    if (!inner.trim() || !n.style) return inner;
+    const fw = n.style.fontWeight || '', fs = n.style.fontStyle || '';
+    const td = (n.style.textDecorationLine || n.style.textDecoration || '');
+    if (fs === 'italic' || fs === 'oblique') inner = '*' + inner + '*';
+    if (fw === 'bold' || fw === 'bolder' || parseInt(fw, 10) >= 600) inner = '**' + inner + '**';
+    if (td.includes('line-through')) inner = '~~' + inner + '~~';
+    if (td.includes('underline')) inner = '<u>' + inner + '</u>';
+    return inner;
+  };
   const inline = node => {
     let s = '';
     for (const n of node.childNodes) {
@@ -96,7 +108,7 @@ function htmlToMd(root) {
           : href && txt && txt !== href ? `[${txt}](${href})`
           : (href ?? txt);
       }
-      else s += inline(n);
+      else s += styleWrap(n, inline(n));   // span/div со стилем bold/italic — сохраняем оформление
     }
     return s;
   };
@@ -148,8 +160,8 @@ function htmlToMd(root) {
       out.push(htmlToMd(n).trim());
     }
     else {
-      const t = inline(n).trim();
-      out.push(t); // P/DIV и неизвестные теги — как текст
+      const t = styleWrap(n, inline(n).trim());   // P/DIV/SPAN: текст + сохраняем bold/italic из стиля
+      out.push(t);
     }
   }
   // схлопываем тройные пустые строки
@@ -158,7 +170,9 @@ function htmlToMd(root) {
 
 // ===== Буфер обмена → markdown (общая логика для вставки в редактор и в просмотр) =====
 function clipboardToMd(html, text) {
-  if (html && /<(table|h[1-6]|ul|ol|li|b|strong|i|em|blockquote|pre|p|br)[\s>/]/i.test(html)) {
+  // любой HTML с разметкой пробуем превратить в markdown (оформление часто в span/div со стилем,
+  // а не в тегах <b>/<i> — тогда старое условие его не ловило и стирало жирный/курсив)
+  if (html && /<(span|div|font|a|table|h[1-6]|ul|ol|li|b|strong|i|em|u|s|blockquote|pre|p|br)[\s>/]/i.test(html)) {
     try {
       const tmp = document.createElement('div');
       tmp.innerHTML = html;
