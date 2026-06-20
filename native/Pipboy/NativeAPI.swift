@@ -36,6 +36,7 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         _ = try? made.run("ALTER TABLE passive_income ADD COLUMN rate_period TEXT NOT NULL DEFAULT 'yearly'")  // период ставки: yearly|monthly
         _ = try? made.run("ALTER TABLE passive_income ADD COLUMN asset_type TEXT NOT NULL DEFAULT ''")  // тип актива
         _ = try? made.run("CREATE TABLE IF NOT EXISTS attachments(id INTEGER PRIMARY KEY, page_id INTEGER, name TEXT NOT NULL DEFAULT '', mime TEXT NOT NULL DEFAULT 'application/octet-stream', data TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')))")  // вложения Инфо (картинки/PDF)
+        _ = try? made.run("ALTER TABLE practices ADD COLUMN category TEXT NOT NULL DEFAULT ''")  // категория практики
         Api.ensureSyncSchema(made)   // updated_at + триггеры + tombstones — отслеживание правок для синхрона
         Api.ensureSpheresSchema(made)   // area_id на таблицах — раздел «Сферы»
         Api.ensureThoughtTesting(made)   // техника «Тестирование мыслей» (КПТ) — один раз
@@ -43,6 +44,7 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         Api.ensureExperienceDiary(made)   // техника «Дневник Опыта» — один раз
         Api.ensureWinsDiary(made)   // техника «Дневник Побед» — один раз
         Api.ensureTuningDiary(made)   // техника «Дневник настройки» (+ заполнение образа себя) — один раз
+        Api.ensurePracticeCategories(made)   // категории практик по умолчанию — один раз
         Api.ensurePositiveIntent(made)   // техника «Позитивное намерение» (+ обновление формулировки шагов)
         Api.seedThoughtDiaryEntries(made)   // разобранные случаи в журнал «Дневника мыслей» — один раз
         if (try? made.rows("SELECT value FROM settings WHERE key = 'sphere_defaults'"))?.first == nil {
@@ -527,7 +529,7 @@ enum Api {
         if let m = match(path, "^/api/psy/practices/([0-9]+)$") {
             let id = Int(m[1]) ?? -1
             if method == "PATCH" {
-                try patchCols(db, "practices", id, ["name", "kind", "days", "time", "note", "archived"], body)
+                try patchCols(db, "practices", id, ["name", "kind", "days", "time", "note", "archived", "category"], body)
                 if body["steps"] != nil {
                     let steps = String(data: (try? json(body["steps"] ?? [])) ?? Data("[]".utf8), encoding: .utf8) ?? "[]"
                     try db.run("UPDATE practices SET steps = ? WHERE id = ?", [steps, id])
@@ -1603,6 +1605,21 @@ enum Api {
             "Что чувствовал? (1–100)",
             "Какие новые выводы выбираю сделать о себе, людях, мире, возможностях, силе, безопасности — и о чём напоминать себе в следующих подобных ситуациях?",
         ], note: "закрепляю успех: ситуация → результат → чувства → новые выводы о себе и мире")
+    }
+
+    // Категории практик по умолчанию для известных техник — один раз (psy_cat_v1),
+    // только если категория ещё не задана. Дальше пользователь меняет вручную.
+    static func ensurePracticeCategories(_ db: Database) {
+        if ((try? db.rows("SELECT value FROM settings WHERE key = 'psy_cat_v1'"))?.first?["value"]) as? String == "1" { return }
+        let defaults: [(String, String)] = [
+            ("Позитивное намерение", "убеждения"), ("Тестирование мыслей", "убеждения"),
+            ("Дневник мыслей", "опыт"), ("Дневник Опыта", "опыт"),
+            ("Дневник Побед", "мотивация"), ("Дневник настройки", "сценарии"),
+        ]
+        for (name, cat) in defaults {
+            try? db.run("UPDATE practices SET category = ? WHERE name LIKE ? AND (category IS NULL OR category = '') AND name NOT LIKE '%(пример)%'", [cat, name + "%"])
+        }
+        try? setSetting(db, "psy_cat_v1", "1")
     }
 
     // Техника «Дневник настройки» — объёмный образ себя (какой я / что делаю / что имею).

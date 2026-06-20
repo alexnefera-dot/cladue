@@ -39,6 +39,7 @@ psy.ensureThoughtDiary(db); // техника «Дневник мыслей» (C
 psy.ensureExperienceDiary(db); // техника «Дневник Опыта» (5 шагов)
 psy.ensureWinsDiary(db); // техника «Дневник Побед» (4 шага)
 psy.ensureTuningDiary(db); // техника «Дневник настройки» (объёмный образ себя)
+psy.ensurePracticeCategories(db); // категории практик по умолчанию (один раз)
 psy.seedThoughtDiaryEntries(db); // разобранные случаи в журнал «Дневника мыслей» (один раз)
 ensureEnergy(db);         // ⚡ Энергия жизни + Банк впечатлений — тоже структура
 notes.ensureInfoTree(db); // ветки Инфо: Finance / Mindset / Fun / Work / Health

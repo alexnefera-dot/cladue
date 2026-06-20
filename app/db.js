@@ -233,6 +233,7 @@ export function createDb(path = ':memory:') {
       time TEXT,                               -- HH:MM для расписания
       steps TEXT NOT NULL DEFAULT '[]',        -- JSON: шаги техники / пункты чеклиста
       note TEXT NOT NULL DEFAULT '',
+      category TEXT NOT NULL DEFAULT '',        -- обучение|мотивация|убеждения|опыт|сценарии|разное
       ord INTEGER NOT NULL DEFAULT 0
     );
     CREATE TABLE IF NOT EXISTS practice_log(
@@ -351,6 +352,9 @@ export function createDb(path = ':memory:') {
       ('Ютуб при работе', 'Тревога (не в 20:00)', 'Тревога(не в 20:00)',
        'Приоритеная задача не выбрана', 'Подъем не в 10')`).run();
   }
+  // категория практики: обучение/мотивация/убеждения/опыт/сценарии/разное
+  const prc = db.prepare('PRAGMA table_info(practices)').all().map(c => c.name);
+  if (!prc.includes('category')) db.exec(`ALTER TABLE practices ADD COLUMN category TEXT NOT NULL DEFAULT ''`);
   // чипы интересов у людей
   const ppl = db.prepare('PRAGMA table_info(people)').all().map(c => c.name);
   if (!ppl.includes('tags')) db.exec(`ALTER TABLE people ADD COLUMN tags TEXT NOT NULL DEFAULT ''`);

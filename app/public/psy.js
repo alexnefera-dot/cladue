@@ -17,6 +17,8 @@ const psyApi = {
 
 const pesc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const KINDP = { schedule: ['расписание', 'ok'], technique: ['техника', 'p2'], checklist: ['чеклист', 'p1'] };
+const PSY_CATS = ['обучение', 'мотивация', 'убеждения', 'опыт', 'сценарии', 'разное'];
+const psyCatOf = p => PSY_CATS.includes(p.category) ? p.category : 'разное';
 const DAYSL = { daily: 'каждый день', workdays: 'раб. дни' };
 const PSY_WD = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
 const daysLabel = d => !d ? 'без расписания' : (DAYSL[d] ?? d.split(',').map(x => PSY_WD[+x - 1]).join('/'));
@@ -73,6 +75,7 @@ function practiceCard(p) {
       <span class="rowbtn del" data-psdel="${p.id}">✕</span>
     </div>
     <div class="kv">Расписание <b class="ed" data-psdays="${p.id}">${daysLabel(p.days)}${p.time ? ' · ' + p.time : ''}</b></div>
+    <div class="kv">Категория <select class="pscatsel" data-pscat="${p.id}">${PSY_CATS.map(c => `<option${psyCatOf(p) === c ? ' selected' : ''}>${c}</option>`).join('')}</select></div>
     <div class="kv">Выполнений <b>${p.runs}${p.streak ? ' · 🔥 ' + p.streak : ''}</b></div>
     ${p.note ? `<div class="meta" style="margin:4px 0">${pesc(p.note)}</div>` : ''}
     <div class="btnrow" style="margin-top:6px">
@@ -190,8 +193,13 @@ function renderPsy() {
         ${p.time ? `<span class="meta num">${p.time}</span>` : ''}
         <span class="t">${pesc(p.name)}</span>
         ${p.streak ? `<span class="meta">🔥 ${p.streak}</span>` : ''}</div>`).join('')}</div>` : ''}
-    <div class="sec">Все практики · ＋ создать внизу</div>
-    <div class="fingrid" style="grid-template-columns:1fr 1fr">${activeP.map(practiceCard).join('')}</div>
+    <div class="sec">Все практики · по категориям · ＋ создать внизу</div>
+    ${PSY_CATS.map(cat => {
+      const list = activeP.filter(p => psyCatOf(p) === cat);
+      if (!list.length) return '';
+      return `<div class="psgrp">${cat}</div>
+        <div class="fingrid" style="grid-template-columns:1fr 1fr">${list.map(practiceCard).join('')}</div>`;
+    }).join('')}
     ${archP.length ? `<div class="sec">📦 Архив · ${archP.length} · не считаются, история сохранена</div>
       <div class="card">${archP.map(p => `<div class="task">
         <span class="t">${pesc(p.name)}</span><span class="meta">${daysLabel(p.days)}</span>
@@ -336,6 +344,11 @@ function bindPsy() {
       if (v == null) return;
       const [days, time] = v.split('@').map(s => s.trim());
       await psyApi.pPatch(+el.dataset.psdays, { days: days ?? '', time: time || null });
+      window.loadPsy();
+    }));
+  document.querySelectorAll('#screen-psy [data-pscat]').forEach(el =>
+    el.addEventListener('change', async () => {
+      await psyApi.pPatch(+el.dataset.pscat, { category: el.value });
       window.loadPsy();
     }));
   document.querySelectorAll('#screen-psy [data-psdel]').forEach(el =>

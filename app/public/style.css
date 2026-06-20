@@ -326,6 +326,10 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .jvq{font-weight:600;font-size:12.5px;line-height:1.4;margin:9px 0 2px;color:var(--text)}
 .jva{font-size:13px;line-height:1.55;color:var(--muted)}
 .jbox .jvent{margin:8px 14px}
+/* Практики по категориям */
+.psgrp{font:600 11px var(--mono);letter-spacing:1px;text-transform:uppercase;color:var(--nav);
+  margin:18px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--line)}
+.pscatsel{font:12px var(--sans);border:1px solid var(--line);border-radius:6px;padding:2px 5px;background:var(--bg);color:var(--text)}
 
 /* Редактор Инфо всегда активен: подсказка в пустой странице */
 .richedit:empty::before{content:attr(data-ph);color:var(--muted)}

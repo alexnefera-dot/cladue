@@ -273,7 +273,7 @@ final class Database {
         CREATE TABLE IF NOT EXISTS practices(
           id INTEGER PRIMARY KEY, name TEXT NOT NULL, kind TEXT NOT NULL DEFAULT 'schedule',
           days TEXT NOT NULL DEFAULT '', time TEXT, steps TEXT NOT NULL DEFAULT '[]',
-          note TEXT NOT NULL DEFAULT '', ord INTEGER NOT NULL DEFAULT 0
+          note TEXT NOT NULL DEFAULT '', category TEXT NOT NULL DEFAULT '', ord INTEGER NOT NULL DEFAULT 0
         );
         CREATE TABLE IF NOT EXISTS practice_log(
           id INTEGER PRIMARY KEY,

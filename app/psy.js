@@ -52,9 +52,27 @@ export function addPractice(db, b) {
          JSON.stringify(b.steps ?? []), b.note ?? '', ord);
 }
 export function patchPractice(db, id, b) {
-  for (const k of ['name', 'kind', 'days', 'time', 'note'])
+  for (const k of ['name', 'kind', 'days', 'time', 'note', 'category', 'archived'])
     if (k in b) db.prepare(`UPDATE practices SET ${k} = ? WHERE id = ?`).run(b[k], id);
   if ('steps' in b) db.prepare('UPDATE practices SET steps = ? WHERE id = ?').run(JSON.stringify(b.steps), id);
+}
+
+// Категории практик по умолчанию для известных техник — назначаем один раз (psy_cat_v1),
+// только если категория ещё не задана. Пользователь меняет вручную в карточке.
+export const PSY_CAT_DEFAULTS = {
+  'Позитивное намерение': 'убеждения',
+  'Тестирование мыслей': 'убеждения',
+  'Дневник мыслей': 'опыт',
+  'Дневник Опыта': 'опыт',
+  'Дневник Побед': 'мотивация',
+  'Дневник настройки': 'сценарии',
+};
+export function ensurePracticeCategories(db) {
+  if (getSetting(db, 'psy_cat_v1', '') === '1') return;
+  for (const [name, cat] of Object.entries(PSY_CAT_DEFAULTS))
+    db.prepare(`UPDATE practices SET category = ? WHERE name LIKE ? AND (category IS NULL OR category = '') AND name NOT LIKE '%(пример)%'`)
+      .run(cat, name + '%');
+  setSetting(db, 'psy_cat_v1', '1');
 }
 export function delPractice(db, id) { db.prepare('DELETE FROM practices WHERE id = ?').run(id); }
 
