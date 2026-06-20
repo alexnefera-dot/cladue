@@ -28,14 +28,14 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         while key == nil && tries < 50 { usleep(100_000); key = KeyHolder.shared.key; tries += 1 }
         guard let k = key else { throw Database.Failure.open(0) }
         let made = try Database(key: k)
-        try? made.run("DELETE FROM trash WHERE created_at < datetime('now','-30 days')")  // авто-очистка корзины
-        try? made.run("ALTER TABLE nodes ADD COLUMN due_time TEXT")  // миграция: время у задач (тихо, если уже есть)
-        try? made.run("ALTER TABLE routines ADD COLUMN days TEXT NOT NULL DEFAULT ''")  // дни недели рутины (пусто = каждый день)
-        try? made.run("ALTER TABLE passive_income ADD COLUMN principal REAL NOT NULL DEFAULT 0")    // тело инвестиции/депозита
-        try? made.run("ALTER TABLE passive_income ADD COLUMN rate REAL NOT NULL DEFAULT 0")         // % доходности
-        try? made.run("ALTER TABLE passive_income ADD COLUMN rate_period TEXT NOT NULL DEFAULT 'yearly'")  // период ставки: yearly|monthly
-        try? made.run("ALTER TABLE passive_income ADD COLUMN asset_type TEXT NOT NULL DEFAULT ''")  // тип актива
-        try? made.run("CREATE TABLE IF NOT EXISTS attachments(id INTEGER PRIMARY KEY, page_id INTEGER, name TEXT NOT NULL DEFAULT '', mime TEXT NOT NULL DEFAULT 'application/octet-stream', data TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')))")  // вложения Инфо (картинки/PDF)
+        _ = try? made.run("DELETE FROM trash WHERE created_at < datetime('now','-30 days')")  // авто-очистка корзины
+        _ = try? made.run("ALTER TABLE nodes ADD COLUMN due_time TEXT")  // миграция: время у задач (тихо, если уже есть)
+        _ = try? made.run("ALTER TABLE routines ADD COLUMN days TEXT NOT NULL DEFAULT ''")  // дни недели рутины (пусто = каждый день)
+        _ = try? made.run("ALTER TABLE passive_income ADD COLUMN principal REAL NOT NULL DEFAULT 0")    // тело инвестиции/депозита
+        _ = try? made.run("ALTER TABLE passive_income ADD COLUMN rate REAL NOT NULL DEFAULT 0")         // % доходности
+        _ = try? made.run("ALTER TABLE passive_income ADD COLUMN rate_period TEXT NOT NULL DEFAULT 'yearly'")  // период ставки: yearly|monthly
+        _ = try? made.run("ALTER TABLE passive_income ADD COLUMN asset_type TEXT NOT NULL DEFAULT ''")  // тип актива
+        _ = try? made.run("CREATE TABLE IF NOT EXISTS attachments(id INTEGER PRIMARY KEY, page_id INTEGER, name TEXT NOT NULL DEFAULT '', mime TEXT NOT NULL DEFAULT 'application/octet-stream', data TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')))")  // вложения Инфо (картинки/PDF)
         Api.ensureSyncSchema(made)   // updated_at + триггеры + tombstones — отслеживание правок для синхрона
         Api.ensureSpheresSchema(made)   // area_id на таблицах — раздел «Сферы»
         Api.ensureThoughtTesting(made)   // техника «Тестирование мыслей» (КПТ) — один раз
@@ -1551,10 +1551,10 @@ enum Api {
         if let row = (try? db.rows("SELECT id, steps FROM practices WHERE name LIKE ? AND name NOT LIKE '%(пример)%'", [name + "%"]))?.first {
             // практика уже есть: если шаги пустые (создана раньше без них) — дозаполнить
             let s = (row["steps"] as? String) ?? ""
-            if s.isEmpty || s == "[]" { try? db.run("UPDATE practices SET steps = ? WHERE id = ?", [stepsJson, intval(row["id"])]) }
+            if s.isEmpty || s == "[]" { _ = try? db.run("UPDATE practices SET steps = ? WHERE id = ?", [stepsJson, intval(row["id"])]) }
         } else if ((try? db.rows("SELECT value FROM settings WHERE key = ?", [flag]))?.first?["value"]) as? String != "1" {
             let ord = nextOrd(db, "SELECT COALESCE(MAX(ord),0)+1 AS o FROM practices")
-            try? db.run("INSERT INTO practices(name, kind, days, time, steps, note, ord) VALUES(?,?,?,?,?,?,?)",
+            _ = try? db.run("INSERT INTO practices(name, kind, days, time, steps, note, ord) VALUES(?,?,?,?,?,?,?)",
                 [name, "technique", "", NSNull(), stepsJson, note, ord])
         }
         try? setSetting(db, flag, "1")
@@ -1622,7 +1622,7 @@ enum Api {
             ]
             for answers in entries {
                 let aj = String(data: (try? JSONSerialization.data(withJSONObject: answers)) ?? Data("[]".utf8), encoding: .utf8) ?? "[]"
-                try? db.run("INSERT INTO practice_log(practice_id, date, note, answers) VALUES(?,?,?,?)",
+                _ = try? db.run("INSERT INTO practice_log(practice_id, date, note, answers) VALUES(?,?,?,?)",
                     [pid, localToday(), "", aj])
             }
         }
@@ -1943,7 +1943,7 @@ enum Api {
         }
         let portfolio = try portfolioTree(db)
         let portfolioTotal = portfolio.reduce(0.0) { $0 + ($1["eur"] as? Double ?? 0) }
-        try? db.run("INSERT OR IGNORE INTO snapshots(date, portfolio_eur) VALUES(?,?)", [localToday(), portfolioTotal])  // снимок раз в день
+        _ = try? db.run("INSERT OR IGNORE INTO snapshots(date, portfolio_eur) VALUES(?,?)", [localToday(), portfolioTotal])  // снимок раз в день
         let portfolioTotalUsd = portfolioTotal * rate
         let invested = portfolio.reduce(0.0) { $0 + ($1["invested"] as? Double ?? 0) }
         let investedCur = portfolio.reduce(0.0) { $0 + ($1["investedCur"] as? Double ?? 0) }
@@ -2599,26 +2599,26 @@ enum Api {
     // Всё через try? — даже если что-то не так, открытие базы не падает. Время — localtime
     // (как updateNode), один пользователь = один часовой пояс, сравнения корректны.
     static func ensureSyncSchema(_ db: Database) {
-        try? db.run("CREATE TABLE IF NOT EXISTS sync_tombstones(tbl TEXT, row_key TEXT, deleted_at TEXT, PRIMARY KEY(tbl,row_key))")
+        _ = try? db.run("CREATE TABLE IF NOT EXISTS sync_tombstones(tbl TEXT, row_key TEXT, deleted_at TEXT, PRIMARY KEY(tbl,row_key))")
         // закрытые («выполнено») даты событий — миграция существующих баз (повтор не удаляется)
-        try? db.run("CREATE TABLE IF NOT EXISTS event_done(event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE, date TEXT NOT NULL, UNIQUE(event_id, date))")
+        _ = try? db.run("CREATE TABLE IF NOT EXISTS event_done(event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE, date TEXT NOT NULL, UNIQUE(event_id, date))")
         for (t, k) in syncKeyed {
-            try? db.run("ALTER TABLE \(t) ADD COLUMN updated_at TEXT")          // тихо, если уже есть
-            try? db.run("UPDATE \(t) SET updated_at = datetime('now','localtime') WHERE updated_at IS NULL")
+            _ = try? db.run("ALTER TABLE \(t) ADD COLUMN updated_at TEXT")          // тихо, если уже есть
+            _ = try? db.run("UPDATE \(t) SET updated_at = datetime('now','localtime') WHERE updated_at IS NULL")
             // новая строка из приложения без времени → проставить (merge-вставки время задают сами)
-            try? db.run("""
+            _ = try? db.run("""
                 CREATE TRIGGER IF NOT EXISTS \(t)_stamp AFTER INSERT ON \(t)
                 WHEN NEW.updated_at IS NULL
                 BEGIN UPDATE \(t) SET updated_at = datetime('now','localtime') WHERE \(k) = NEW.\(k); END
                 """)
             // правка в приложении (updated_at не менялся самим запросом) → проставить время
-            try? db.run("""
+            _ = try? db.run("""
                 CREATE TRIGGER IF NOT EXISTS \(t)_touch AFTER UPDATE ON \(t)
                 WHEN OLD.updated_at = NEW.updated_at
                 BEGIN UPDATE \(t) SET updated_at = datetime('now','localtime') WHERE \(k) = NEW.\(k); END
                 """)
             // удаление → tombstone (чтобы удаление доехало на второе устройство)
-            try? db.run("""
+            _ = try? db.run("""
                 CREATE TRIGGER IF NOT EXISTS \(t)_tomb AFTER DELETE ON \(t)
                 BEGIN INSERT OR REPLACE INTO sync_tombstones(tbl,row_key,deleted_at)
                       VALUES('\(t)', OLD.\(k), datetime('now','localtime')); END
@@ -2682,7 +2682,7 @@ enum Api {
     static func syncApplyReplace(_ db: Database, _ snapshot: [String: Any]) throws {
         guard let tables = snapshot["tables"] as? [String: Any] else { throw Unsupported(path: "плохой снимок") }
         try db.run("PRAGMA foreign_keys = OFF")   // на время массовой замены — вне транзакции (внутри PRAGMA игнорится)
-        defer { try? db.run("PRAGMA foreign_keys = ON") }
+        defer { _ = try? db.run("PRAGMA foreign_keys = ON") }
         try db.run("BEGIN")
         do {
             for t in syncTables {
@@ -2700,7 +2700,7 @@ enum Api {
             try rebuildFTS(db)   // перестроить поисковые индексы из nodes/pages
             try db.run("COMMIT")
         } catch {
-            try? db.run("ROLLBACK")
+            _ = try? db.run("ROLLBACK")
             throw error
         }
         // фронт — вне транзакции БД: если приехал, обновляем веб-интерфейс на приёмнике
@@ -2717,7 +2717,7 @@ enum Api {
         let peerTomb = (snapshot["tombstones"] as? [[String: Any]]) ?? []
         var changed = 0   // сколько РЕАЛЬНЫХ изменений данных применили (0 → экран не дёргаем)
         try db.run("PRAGMA foreign_keys = OFF")
-        defer { try? db.run("PRAGMA foreign_keys = ON") }
+        defer { _ = try? db.run("PRAGMA foreign_keys = ON") }
         try db.run("BEGIN")
         do {
             // 1) строки: вставить новые / обновить более свежими (LWW)
@@ -2767,7 +2767,7 @@ enum Api {
             try rebuildFTS(db)
             try db.run("COMMIT")
         } catch {
-            try? db.run("ROLLBACK")
+            _ = try? db.run("ROLLBACK")
             throw error
         }
         // фронт принимаем ТОЛЬКО от уже доверенного устройства: не давать незнакомому пиру
