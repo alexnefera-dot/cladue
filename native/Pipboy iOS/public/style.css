@@ -314,6 +314,20 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .jbox .jrnl th{min-width:180px}
 .jbox .jrnl td{max-width:420px}
 
+/* Прохождение техники: крупные многострочные поля, без наезжания строк */
+.runcard .psrow{margin:10px 0;display:flex;flex-direction:column;gap:5px}
+.runcard .pslbl{font-weight:600;font-size:13px;line-height:1.4;color:var(--text)}
+.runcard .psans{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:8px;
+  padding:8px 10px;font:13px/1.5 var(--sans);background:var(--panel);color:var(--text);resize:vertical;min-height:38px}
+.runcard .psans:focus{outline:none;border-color:var(--green-dim)}
+.runlong .psans{min-height:84px}
+/* Вертикальный журнал объёмных дневников: вопрос → ответ */
+.jvent{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0;background:var(--panel)}
+.jvdate{font:600 11.5px var(--mono);color:var(--nav);letter-spacing:.3px;margin-bottom:6px}
+.jvq{font-weight:600;font-size:12.5px;line-height:1.4;margin:9px 0 2px;color:var(--text)}
+.jva{font-size:13px;line-height:1.55;color:var(--muted)}
+.jbox .jvent{margin:8px 14px}
+
 /* Редактор Инфо всегда активен: подсказка в пустой странице */
 .richedit:empty::before{content:attr(data-ph);color:var(--muted)}
 .richedit{min-height:380px}

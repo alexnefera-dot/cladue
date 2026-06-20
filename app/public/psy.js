@@ -102,6 +102,14 @@ function journalTable(p, rows, big = false) {
   const steps = Array.isArray(p.steps) ? p.steps : [];
   const ncol = Math.max(steps.length, ...rows.map(l => (Array.isArray(l.answers) ? l.answers.length : 0)));
   if (!ncol) return '<div class="empty">в записях нет ответов</div>';
+  // объёмные дневники (много шагов) — вертикально: вопрос → ответ, а не узкой таблицей
+  if (ncol > 6) {
+    return rows.map(l => `<div class="jvent">
+      <div class="jvdate">${l.date}${l.note ? ' · ' + pesc(l.note) : ''}</div>
+      ${Array.from({ length: ncol }, (_, i) => (l.answers?.[i] ?? '').toString().trim()
+        ? `<div class="jvq">${pesc(steps[i] ?? ('Шаг ' + (i + 1)))}</div><div class="jva">${pesc(l.answers[i]).replace(/\n/g, '<br>')}</div>` : '').join('')}
+    </div>`).join('');
+  }
   const heads = Array.from({ length: ncol }, (_, i) => `<th>${pesc(steps[i] ?? ('Шаг ' + (i + 1)))}</th>`).join('');
   const body = rows.map(l => {
     const cells = Array.from({ length: ncol }, (_, i) => `<td>${pesc(l.answers?.[i] ?? '') || '—'}</td>`).join('');
@@ -128,12 +136,14 @@ function openJournalModal(p, rows) {
 }
 
 function runPanel(p) {
+  const last = Array.isArray(p._last) ? p._last : [];
+  const longForm = p.kind === 'technique' && p.steps.length > 6;   // объёмные дневники — крупные поля
   return `
-  <div class="card" style="border-color:var(--green-dim)">
-    <div class="meta">${p.kind === 'technique' ? 'ТЕХНИКА · отвечай по шагам' : 'ЧЕКЛИСТ · пройди перед действием'} — ${pesc(p.name)}</div>
+  <div class="card runcard${longForm ? ' runlong' : ''}" style="border-color:var(--green-dim)">
+    <div class="meta">${p.kind === 'technique' ? 'ТЕХНИКА · отвечай по шагам' + (last.some(a => a) ? ' · поля с прошлого ответа — правь и сохраняй' : '') : 'ЧЕКЛИСТ · пройди перед действием'} — ${pesc(p.name)}</div>
     ${p.steps.map((s, i) => p.kind === 'technique'
-      ? `<div style="margin:8px 0"><b>${i + 1}. ${pesc(s)}</b><br>
-          <input class="psans" data-i="${i}" placeholder="ответ…" style="width:100%;border:1px solid var(--line);border-radius:7px;padding:6px 8px;margin-top:4px;font:13px var(--sans)"></div>`
+      ? `<div class="psrow"><label class="pslbl">${i + 1}. ${pesc(s)}</label>
+          <textarea class="psans" data-i="${i}" rows="${longForm ? 4 : 2}" placeholder="ответ…">${pesc(last[i] ?? '')}</textarea></div>`
       : `<div class="task"><span class="cb pschk" data-i="${i}"></span><span class="t">${pesc(s)}</span></div>`).join('')}
     <div class="btnrow" style="margin-top:8px">
       <span class="pill btn ok" id="psRunSave">завершить и записать в журнал</span>
@@ -290,8 +300,11 @@ function bindPsy() {
       window.loadPsy();
     }));
   document.querySelectorAll('#screen-psy [data-psrun]').forEach(el =>
-    el.addEventListener('click', () => {
-      psyRun = psyData.practices.find(p => p.id === +el.dataset.psrun);
+    el.addEventListener('click', async () => {
+      const p = psyData.practices.find(x => x.id === +el.dataset.psrun);
+      // техника: подгружаем прошлый ответ, чтобы можно было править, а не вносить заново
+      if (p?.kind === 'technique') { try { const logs = await psyApi.pLogs(p.id); p._last = logs[0]?.answers ?? []; } catch {} }
+      psyRun = p;
       renderPsy();
       document.querySelector('.psans')?.focus();
     }));
