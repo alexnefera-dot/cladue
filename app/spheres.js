@@ -74,6 +74,7 @@ const nodeAreaResolver = db => treeResolver(db.prepare('SELECT id, parent_id, ar
 function metricBlock(db, m) {
   const rows = db.prepare('SELECT date, value FROM metric_log WHERE metric_id = ? ORDER BY date DESC LIMIT 7').all(m.id).reverse();
   return { id: m.id, name: m.name, unit: m.unit, type: m.type,
+    target: m.target ?? null, polarity: m.polarity ?? 'plus',
     v: rows.length ? rows[rows.length - 1].value : null, s: rows.map(r => r.value) };
 }
 
@@ -148,7 +149,7 @@ export function buildSpheres(db) {
     }));
 
     // метрики (трекинг) — авто, если секция по умолчанию ведёт в эту сферу
-    const tracking = db.prepare(`SELECT id, name, unit, type FROM metrics WHERE ${whereFor('metric', a.id)} ORDER BY ord, id`).all(a.id).map(m => metricBlock(db, m));
+    const tracking = db.prepare(`SELECT id, name, unit, type, target, polarity FROM metrics WHERE ${whereFor('metric', a.id)} ORDER BY ord, id`).all(a.id).map(m => metricBlock(db, m));
 
     // практики (психология) — авто по дефолту секции
     const practices = db.prepare(`SELECT * FROM practices WHERE ${whereFor('practice', a.id)} ORDER BY ord, id`).all(a.id).map(p => ({

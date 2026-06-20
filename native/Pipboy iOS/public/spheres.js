@@ -226,9 +226,27 @@ function block(label, jump, inner) {
 function sphPoolRow(it) {
   const mp = Math.max(0, Math.min(100, it.monthPct ?? 0)), yp = Math.max(0, Math.min(100, it.yearPct ?? 0));
   return `<div class="sphpool">
-    <span class="sphpool-n">${sesc(it.name)}${it.doneToday ? ' <span class="sphpool-today">сегодня ✓</span>' : ''}</span>
-    <span class="sphpool-bar"><i style="width:${mp}%"></i></span>
+    <span class="sphpool-n">${sesc(it.name)}${it.doneToday ? ' <span class="sphpool-today">сегодня ✓</span>' : ''}${it.streak ? ` <span class="sphpool-st">🔥${it.streak}</span>` : ''}</span>
+    <span class="sphpool-bar" title="месяц ${mp}% · год ${yp}%"><b style="width:${yp}%"></b><i style="width:${mp}%"></i></span>
     <span class="sphpool-p">${mp}<small>%мес</small> · ${yp}<small>%год</small></span>
+  </div>`;
+}
+// трекинг-метрика пулом: для негатива (polarity=minus) — красный, рост = плохо (красный тренд)
+function sphTrackPool(m) {
+  const neg = m.polarity === 'minus';
+  const s = Array.isArray(m.s) ? m.s : [];
+  const trend = s.length >= 2 ? (s[s.length - 1] - s[0]) : 0;
+  const good = neg ? trend < 0 : trend > 0;               // для негатива «вниз» — хорошо
+  const arrow = trend === 0 ? '·' : (trend > 0 ? '▲' : '▼');
+  const tcls = trend === 0 ? '' : (good ? 'up' : 'down');
+  const pct = (m.target != null && m.target && m.v != null) ? Math.round(m.v / m.target * 100) : null;
+  const bar = pct != null
+    ? `<span class="sphpool-bar ${neg ? 'neg' : ''}"><i style="width:${Math.max(0, Math.min(100, pct))}%"></i></span>`
+    : `<span class="sphpool-spark">${s.length > 1 ? sphSpark(s, 84, 14) : '<span class="muted" style="font-size:11px">нет данных</span>'}</span>`;
+  return `<div class="sphpool ${neg ? 'neg' : ''}">
+    <span class="sphpool-n">${sesc(m.name)}${neg ? ' <span class="sphpool-neg">негатив</span>' : ''}</span>
+    ${bar}
+    <span class="sphpool-p"><span class="sphtrend ${tcls}">${arrow}</span> ${m.v ?? '–'}<small>${sesc(m.unit)}</small>${pct != null ? ` · ${pct}%` : ''}</span>
   </div>`;
 }
 // универсальная KPI-плитка: иконка+имя, крупное значение, опц. полоса %, подпись
@@ -364,11 +382,8 @@ function sphDetail(s, i) {
 
   // рутины — пул с прогресс-баром (% месяц/год), не числом
   if (s.routines.length) h += block('↻ Рутины · пул', 'Рутины', s.routines.map(sphPoolRow).join(''));
-  // трекинг
-  if (s.tracking.length) h += block('📊 Трекинг · 7 дней', 'Трекинг', s.tracking.map(m => {
-    const pct = (m.target != null && m.v != null && m.target) ? Math.round(m.v / m.target * 100) : null;
-    return `<div class="task"><span class="t">${sesc(m.name)}${m.target != null ? `<div class="tgt">🎯 ${m.target}${sesc(m.unit)}${pct != null ? ` · ${pct}%` : ''}</div>` : ''}</span>${sphSpark(m.s)}<span class="meta num">${m.v ?? '–'} ${sesc(m.unit)}</span></div>`;
-  }).join(''));
+  // трекинг — пул (как рутины); негативные метрики красным, рост = плохо
+  if (s.tracking.length) h += block('📊 Трекинг · пул', 'Трекинг', s.tracking.map(sphTrackPool).join(''));
   // практики — пул с прогресс-баром (% месяц/год)
   if (s.practices.length) h += block('🧠 Практики · пул', 'Психология', s.practices.map(sphPoolRow).join(''));
   // люди (социализация)
@@ -519,7 +534,15 @@ function ensureSphStyle() {
     .sphpool{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--bg2)}.sphpool:first-child{border-top:0}
     .sphpool-n{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .sphpool-today{font:600 10px var(--mono);color:var(--green)}
-    .sphpool-bar{flex:0 0 84px;height:7px;border-radius:99px;background:var(--bg2);overflow:hidden}.sphpool-bar i{display:block;height:100%;background:var(--green-dim)}
+    .sphpool-st{font:600 10px var(--mono);color:var(--amber)}
+    .sphpool-neg{font:600 9px var(--mono);color:var(--red);background:rgba(196,63,63,.12);border-radius:20px;padding:1px 6px}
+    .sphpool-bar{position:relative;flex:0 0 84px;height:7px;border-radius:99px;background:var(--bg2);overflow:hidden}
+    .sphpool-bar b,.sphpool-bar i{position:absolute;left:0;top:0;height:100%;border-radius:99px}
+    .sphpool-bar b{background:var(--green-dim);opacity:.28}.sphpool-bar i{background:var(--green-dim)}
+    .sphpool-bar.neg i{background:var(--red)}
+    .sphpool-spark{flex:0 0 84px;display:flex;justify-content:flex-end}
+    .sphpool.neg .sphpool-n{color:var(--red)}
+    .sphtrend{font-size:10px}.sphtrend.up{color:var(--green)}.sphtrend.down{color:var(--red)}
     .sphpool-p{font:600 11px var(--mono);color:var(--muted);white-space:nowrap}.sphpool-p small{font-size:9px;opacity:.65}
     .sphb{font:600 10px var(--mono);border-radius:20px;padding:2px 8px;white-space:nowrap}.sphb.fire{background:rgba(196,63,63,.12);color:var(--red)}.sphb.soon{background:rgba(168,119,8,.14);color:var(--amber)}
     .tgt{font-size:11px;color:var(--amber);margin-top:2px}
