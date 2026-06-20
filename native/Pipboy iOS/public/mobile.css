@@ -181,7 +181,9 @@
   .mdview ul, .mdview ol { margin-left: 20px; }
   /* тулбар форматирования: появляется при правке (фокус в редакторе), липкий сверху,
      прокручивается вбок; крупные кнопки */
+  #screen-notes { height: auto; }   /* на телефоне скроллит страница, а не редактор */
   .nttoolbar {
+    position: sticky; top: 0; z-index: 5;
     flex-wrap: nowrap; background: var(--bg); gap: 5px;
     max-height: 0; opacity: 0; padding: 0; margin: 0; overflow: hidden;
     transition: max-height .2s ease, opacity .15s, padding .2s, margin .2s;

@@ -371,19 +371,19 @@ async function renderNotes() {
           <span class="pill btn" id="ntAddChild">＋ подстраница</span>
           <span class="pill btn danger" id="ntDel">🗑</span>
         </div>
-        <div class="meta" style="margin:4px 0 10px">обновлено ${page.updated_at.slice(0, 16).replace('T', ' ')} · сохраняется само · ⌘Z — откат · <b style="color:var(--green)">ред.v3 ✦</b></div>
+        <div class="meta" style="margin:4px 0 10px">обновлено ${page.updated_at.slice(0, 16).replace('T', ' ')} · сохраняется само · ⌘Z — откат · <b style="color:var(--green)">ред.v4 ✦</b></div>
         <div id="ntHistBox"></div>
         ${ntMode === 'rich' ? `
           <div class="nttoolbar">
             ${TOOLBAR.map(([label, hint], i) => `<span class="pill btn ntb" data-ntb="${i}" title="${hint}">${nesc(label)}</span>`).join('')}
-            <label class="pill btn ntb" title="вставить картинку или PDF" style="cursor:pointer">📎 файл<input type="file" id="ntFile" accept="image/*,application/pdf" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none"></label>
+            <span class="pill btn ntb" id="ntAttachBtn" title="вставить картинку или PDF">📎 файл</span><input type="file" id="ntFile" accept="image/*,application/pdf" style="display:none">
             <span class="pill btn" id="ntModeMd" title="редактировать как markdown" style="margin-left:auto">&lt;/&gt; markdown</span>
           </div>
           <div id="ntRich" class="mdview richedit" contenteditable="true" spellcheck="false" data-ph="пиши здесь — сохранится само">${contentToHtml(content)}</div>`
         : `
           <div class="nttoolbar">
             <span class="meta">markdown-режим: # заголовок · - список · - [ ] чеклист · > цитата · [[ссылка]]</span>
-            <label class="pill btn ntb" title="вставить картинку или PDF" style="cursor:pointer">📎 файл<input type="file" id="ntFile" accept="image/*,application/pdf" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none"></label>
+            <span class="pill btn ntb" id="ntAttachBtn" title="вставить картинку или PDF">📎 файл</span><input type="file" id="ntFile" accept="image/*,application/pdf" style="display:none">
             <span class="pill btn" id="ntModeRich" style="margin-left:auto">Aa визуальный</span>
           </div>
           <textarea id="ntBody" class="ntbody">${nesc(contentToMd(content))}</textarea>`}
@@ -624,7 +624,8 @@ function bindNotes(page) {
       alert('Не загрузилось: ' + err.message);
     }
   };
-  // 📎 файл — <label> открывает пикер нативно (программный .click() по скрытому input WKWebView блокирует)
+  // 📎 файл — клик по кнопке открывает выбор файла (программный click внутри жеста)
+  $('ntAttachBtn')?.addEventListener('click', () => $('ntFile')?.click());
   $('ntFile')?.addEventListener('change', e => { uploadAttachment(e.target.files[0]); e.target.value = ''; });
   // перетащил файл в редактор — грузим
   $('ntRich')?.addEventListener('dragover', e => { if (e.dataTransfer?.types?.includes('Files')) e.preventDefault(); });
