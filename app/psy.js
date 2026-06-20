@@ -245,6 +245,37 @@ export function ensureThoughtDiary(db) {
   setSetting(db, 'td_v1', '1');
 }
 
+// ===== Техника «Дневник Опыта» — разбор случая, где себя остановил =====
+export const EXPERIENCE_DIARY_STEPS = [
+  'Ситуация. Что было? Что сделал / не сделал?',
+  'Чувства. Что я там чувствовал? (1–100)',
+  'Мысли. Какими мыслями себя остановил?',
+  'Принятие и разрешение. Есть причины — какие?',
+  'Планирование. Как хочу поступить в следующий раз? Как думать, говорить, действовать?',
+];
+export function ensureExperienceDiary(db) {
+  if (getSetting(db, 'exp_v1', '') === '1') return;
+  if (!db.prepare(`SELECT id FROM practices WHERE name LIKE 'Дневник Опыта%' AND name NOT LIKE '%(пример)%'`).get())
+    addPractice(db, { name: 'Дневник Опыта', kind: 'technique', steps: EXPERIENCE_DIARY_STEPS,
+      note: 'разбираю случай, где себя остановил: ситуация → чувства → мысли → принятие → план на будущее' });
+  setSetting(db, 'exp_v1', '1');
+}
+
+// ===== Техника «Дневник Побед» — закрепляю успех и новые выводы =====
+export const WINS_DIARY_STEPS = [
+  'Ситуация. Какая ситуация? Что я сделал и как?',
+  'Что в результате? Какие реакции, факты?',
+  'Что чувствовал? (1–100)',
+  'Какие новые выводы выбираю сделать о себе, людях, мире, возможностях, силе, безопасности — и о чём напоминать себе в следующих подобных ситуациях?',
+];
+export function ensureWinsDiary(db) {
+  if (getSetting(db, 'win_v1', '') === '1') return;
+  if (!db.prepare(`SELECT id FROM practices WHERE name LIKE 'Дневник Побед%' AND name NOT LIKE '%(пример)%'`).get())
+    addPractice(db, { name: 'Дневник Побед', kind: 'technique', steps: WINS_DIARY_STEPS,
+      note: 'закрепляю успех: ситуация → результат → чувства → новые выводы о себе и мире' });
+  setSetting(db, 'win_v1', '1');
+}
+
 // ===== Демо =====
 export function seedPsy(db) {
   ensureWheel(db);
