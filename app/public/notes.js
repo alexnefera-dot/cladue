@@ -1,6 +1,7 @@
 /* Инфо: страницы-заметки — дерево, визуальный редактор (WYSIWYG ↔ markdown), [[вики]], бэклинки */
 let ntPages = [], ntSel = null, ntEditing = false, ntMode = 'rich'; // rich | md
 let ntAutoT = null;   // таймер автосейва (общий — гасится при каждом рендере)
+let ntSavedRange = null;   // последняя позиция курсора в #ntRich — чтобы вставлять файл/картинку туда, а не в конец
 const ntFold = new Set();
 const ntPw = {};      // пароли открытых в этой сессии страниц
 const ntCache = {};   // расшифрованное содержимое
@@ -198,6 +199,10 @@ function ntInsertHtml(htmlStr) {
   const sel = window.getSelection();
   let range = sel.rangeCount ? sel.getRangeAt(0) : null;
   if (!range || !rich.contains(range.commonAncestorContainer)) {
+    // выделение потерялось (клик по 📎/панели) — берём последнюю позицию курсора в тексте
+    range = (ntSavedRange && rich.contains(ntSavedRange.commonAncestorContainer)) ? ntSavedRange.cloneRange() : null;
+  }
+  if (!range) {
     range = document.createRange();
     range.selectNodeContents(rich);
     range.collapse(false);
@@ -517,6 +522,14 @@ function bindNotes(page) {
   const editorEl = document.querySelector('#screen-notes .editor');
   for (const id of ['ntBody', 'ntRich'])
     $(id)?.addEventListener('focus', () => editorEl?.classList.add('nt-on'));
+  // запоминаем позицию курсора в тексте — чтобы файл/картинка вставлялись туда, куда ты ткнул
+  ntSavedRange = null;
+  const saveRange = () => {
+    const s = window.getSelection();
+    if (s.rangeCount && $('ntRich')?.contains(s.getRangeAt(0).commonAncestorContainer)) ntSavedRange = s.getRangeAt(0).cloneRange();
+  };
+  $('ntRich')?.addEventListener('keyup', saveRange);
+  $('ntRich')?.addEventListener('mouseup', saveRange);
   // автосохранение: 1.5 сек тишины при наборе; вставка из буфера пишется сразу
   for (const id of ['ntBody', 'ntRich']) {
     $(id)?.addEventListener('input', () => {
