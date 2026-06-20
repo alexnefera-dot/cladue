@@ -13,6 +13,8 @@ extension Api {
         try? db.run("ALTER TABLE metrics ADD COLUMN target REAL")   // цель метрики (полоса к цели)
         try? db.run("ALTER TABLE routines ADD COLUMN archived INTEGER NOT NULL DEFAULT 0")    // архив рутин (не удалять из истории)
         try? db.run("ALTER TABLE practices ADD COLUMN archived INTEGER NOT NULL DEFAULT 0")   // архив практик
+        // отдых/восстановление: способы кайфануть по контексту (будни/выходные/глобально)
+        try? db.run("CREATE TABLE IF NOT EXISTS rest_ideas(id INTEGER PRIMARY KEY, text TEXT NOT NULL DEFAULT '', scope TEXT NOT NULL DEFAULT 'weekday', ord INTEGER NOT NULL DEFAULT 0)")
         // вехи «пути к 10» — создаём на каждом старте (ensureSchema идёт только при сиде)
         try? db.run("""
             CREATE TABLE IF NOT EXISTS area_milestones(

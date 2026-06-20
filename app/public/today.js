@@ -17,13 +17,33 @@ const MON = ['января', 'февраля', 'марта', 'апреля', 'м
 
 const TDSPH_COL = ['#1e9e57', '#c43f3f', '#a87708', '#6b4fb5', '#2a76b5', '#364656'];
 window.loadToday = async function () {
-  const [d, sph] = await Promise.all([
+  const [d, sph, rest] = await Promise.all([
     tdApi.get(),
     fetch('/api/spheres').then(r => r.json()).then(x => Array.isArray(x) ? x : []).catch(() => []),
+    fetch('/api/rest').then(r => r.json()).then(x => Array.isArray(x) ? x : []).catch(() => []),
   ]);
-  tdData = d; window.tdSpheres = sph;
+  tdData = d; window.tdSpheres = sph; window.tdRest = rest;
   renderToday();
 };
+// блок «Кайф и восстановление»: способы отдохнуть по контексту дня + глобальные
+function tdRest() {
+  const all = Array.isArray(window.tdRest) ? window.tdRest : [];
+  const wkEnd = [0, 6].includes(new Date().getDay());
+  const ctx = wkEnd ? 'weekend' : 'weekday', ctxLabel = wkEnd ? 'выходные' : 'будни';
+  const todayList = all.filter(r => r.scope === ctx), globalList = all.filter(r => r.scope === 'global');
+  const row = r => `<div class="task"><span class="t">${tesc(r.text)}</span><span class="rowbtn del" data-restdel="${r.id}">✕</span></div>`;
+  return `<div class="sec">🌿 Кайф и восстановление · ${ctxLabel} <span class="muted" style="font-weight:400">· не пропускай отдых</span></div>
+    <div class="card">
+      ${todayList.length ? todayList.map(row).join('') : `<div class="empty">добавь, чем восстановишься в ${ctxLabel} ↓</div>`}
+      ${globalList.length ? `<div class="meta" style="margin-top:8px">🌍 Глобально · отпуск/поездки</div>${globalList.map(row).join('')}` : ''}
+      <div class="task finadd" style="margin-top:6px">
+        <input id="tdRestInput" placeholder="＋ способ отдохнуть / кайфануть">
+        <select id="tdRestScope"><option value="weekday"${ctx === 'weekday' ? ' selected' : ''}>будни</option><option value="weekend"${ctx === 'weekend' ? ' selected' : ''}>выходные</option><option value="global">глобально</option></select>
+        <span class="pill btn ok" id="tdRestAdd">＋</span>
+      </div>
+      ${todayList.length ? `<div style="margin-top:6px"><span class="pill btn" id="tdRestRoll">🎲 выбери и отдохни сейчас</span></div>` : ''}
+    </div>`;
+}
 // Фокус дня: по одному шагу из ключевых (проседающих) сфер — до 5. Клик — внутрь сферы.
 function tdSphStrip() {
   const list = (Array.isArray(window.tdSpheres) ? window.tdSpheres : []).slice()
@@ -96,6 +116,7 @@ function renderToday() {
     просрочено: ${d.overdue.length} · сделано за неделю: ${d.movement.total} 👏</div>
 
   ${tdSphStrip()}
+  ${tdRest()}
 
   <div class="addbar" style="margin:0 0 6px">
     <input id="tdQuick" placeholder="＋ Быстрый ввод в Инбокс (Enter) — мысль, задача, что угодно; разберёшь потом">
@@ -217,6 +238,7 @@ function renderTodayMobile() {
   <div class="muted" style="margin-bottom:12px">${WD[dt.getDay()]}, ${dt.getDate()} ${MON[dt.getMonth()]}</div>
 
   ${tdSphStrip()}
+  ${tdRest()}
 
   <div class="tdchips">
     <div class="tdchip ${d.overdue.length ? 'red' : ''}"><b>${d.dueToday.length + d.overdue.length}</b><span>дел${d.overdue.length ? ` · ${d.overdue.length} просроч.` : ''}</span></div>
@@ -296,6 +318,21 @@ function renderTodayMobile() {
 function bindToday() {
   document.querySelectorAll('#screen-today [data-sphopen]').forEach(el =>
     el.addEventListener('click', () => window.openSphere?.(+el.dataset.sphopen)));
+  // отдых/восстановление
+  const restAdd = async () => {
+    const inp = document.getElementById('tdRestInput'); const text = inp?.value.trim(); if (!text) return;
+    await fetch('/api/rest', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, scope: document.getElementById('tdRestScope').value }) });
+    window.loadToday();
+  };
+  document.getElementById('tdRestAdd')?.addEventListener('click', restAdd);
+  document.getElementById('tdRestInput')?.addEventListener('keydown', e => { if (e.key === 'Enter') restAdd(); });
+  document.querySelectorAll('#screen-today [data-restdel]').forEach(el =>
+    el.addEventListener('click', async () => { await fetch('/api/rest/' + el.dataset.restdel, { method: 'DELETE' }); window.loadToday(); }));
+  document.getElementById('tdRestRoll')?.addEventListener('click', () => {
+    const wkEnd = [0, 6].includes(new Date().getDay());
+    const list = (Array.isArray(window.tdRest) ? window.tdRest : []).filter(r => r.scope === (wkEnd ? 'weekend' : 'weekday'));
+    if (list.length) alert('🌿 Сегодня восстановись так:\n\n' + list[Math.floor(Math.random() * list.length)].text);
+  });
   document.querySelectorAll('#screen-today [data-tdtoggle]').forEach(el =>
     el.addEventListener('click', async e => {
       e.stopPropagation();

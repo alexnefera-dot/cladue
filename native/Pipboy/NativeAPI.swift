@@ -152,6 +152,7 @@ enum Api {
     }
 
     static func get(path: String, query: String?, db: Database) throws -> (Data, Int) {
+        if path == "/api/rest" { return (try json(try db.rows("SELECT id, text, scope FROM rest_ideas ORDER BY ord, id")), 200) }
         // ----- Сферы -----
         if path == "/api/spheres" { return (try json(try buildSpheres(db)), 200) }
         if path == "/api/spheres/pool" { return (try json(try spherePool(db)), 200) }
@@ -351,6 +352,17 @@ enum Api {
             guard let kind = body["kind"] as? String else { return (try json(["error": "kind required"]), 400) }
             let area = numOpt(body["areaId"]).map { Int($0) }
             return (try json(try sphereSetDefault(db, kind, area)), 200)
+        }
+        // ----- Отдых/восстановление -----
+        if method == "POST", path == "/api/rest" {
+            let text = (body["text"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            guard !text.isEmpty else { return (try json(["error": "text required"]), 400) }
+            let scope = ["weekday", "weekend", "global"].contains(body["scope"] as? String ?? "") ? (body["scope"] as! String) : "weekday"
+            try db.run("INSERT INTO rest_ideas(text, scope, ord) VALUES(?,?, (SELECT COALESCE(MAX(ord),0)+1 FROM rest_ideas))", [text, scope])
+            return (ok(201), 201)
+        }
+        if let m = match(path, "^/api/rest/([0-9]+)$"), method == "DELETE" {
+            try db.run("DELETE FROM rest_ideas WHERE id = ?", [Int(m[1]) ?? -1]); return (ok(), 200)
         }
         if method == "POST", path == "/api/spheres/automap" { return (try json(["mapped": try autoMapCategories(db)]), 200) }
         if method == "POST", path == "/api/spheres/auto" { return (try json(try autoConfigSpheres(db, force: true)), 200) }
