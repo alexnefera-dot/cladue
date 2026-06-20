@@ -89,7 +89,7 @@ function renderToday() {
   const d = tdData;
   const dt = new Date(d.date + 'T00:00:00');
   const pct = d.progress.total ? Math.round(d.progress.typed / d.progress.total * 100) : 0;
-  const rts = d.routines.filter(r => !window.rtActiveToday || window.rtActiveToday(r.days));   // только рутины на сегодня
+  const rts = d.routines.filter(r => !r.archived && (!window.rtActiveToday || window.rtActiveToday(r.days)));   // только активные рутины на сегодня
   const rDone = rts.filter(r => r.done).length;
 
   document.getElementById('screen-today').innerHTML = `
@@ -189,7 +189,7 @@ function renderTodayMobile() {
   const d = tdData;
   const dt = new Date(d.date + 'T00:00:00');
   const pct = d.progress.total ? Math.round(d.progress.typed / d.progress.total * 100) : 0;
-  const rts = d.routines.filter(r => !window.rtActiveToday || window.rtActiveToday(r.days));   // только рутины на сегодня
+  const rts = d.routines.filter(r => !r.archived && (!window.rtActiveToday || window.rtActiveToday(r.days)));   // только активные рутины на сегодня
   const rDone = rts.filter(r => r.done).length;
   const moods = ['', '😞', '😐', '🙂'];
 

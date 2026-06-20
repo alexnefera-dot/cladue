@@ -11,6 +11,8 @@ extension Api {
             try? db.run("ALTER TABLE \(t) ADD COLUMN area_id INTEGER REFERENCES wheel_areas(id) ON DELETE SET NULL")
         }
         try? db.run("ALTER TABLE metrics ADD COLUMN target REAL")   // цель метрики (полоса к цели)
+        try? db.run("ALTER TABLE routines ADD COLUMN archived INTEGER NOT NULL DEFAULT 0")    // архив рутин (не удалять из истории)
+        try? db.run("ALTER TABLE practices ADD COLUMN archived INTEGER NOT NULL DEFAULT 0")   // архив практик
         // вехи «пути к 10» — создаём на каждом старте (ensureSchema идёт только при сиде)
         try? db.run("""
             CREATE TABLE IF NOT EXISTS area_milestones(
@@ -107,6 +109,27 @@ extension Api {
             .compactMap { ($0["date"] as? String).map { String($0.prefix(10)) } } ?? [])
         return days.map { hit.contains($0) ? 1 : 0 }
     }
+    // расписание дней недели рутины/практики (ISO Пн=1..Вс=7); пусто = каждый день
+    private static func parseDaySet(_ spec: String?) -> Set<Int> {
+        guard let s = spec, !s.isEmpty, s != "daily" else { return [] }
+        if s == "workdays" { return [1, 2, 3, 4, 5] }
+        return Set(s.split(separator: ",").compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }.filter { $0 >= 1 && $0 <= 7 })
+    }
+    // % выполнения за период: отмеченные дни / ожидаемые по расписанию (с fromISO по сегодня)
+    private static func schedPct(_ db: Database, _ table: String, _ idCol: String, _ id: Int, _ daysSpec: String?, _ fromISO: String) -> Int {
+        let cal = Calendar.current
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; f.locale = Locale(identifier: "en_US_POSIX")
+        guard let from = f.date(from: fromISO) else { return 0 }
+        let sched = parseDaySet(daysSpec)
+        var expected = 0, d = cal.startOfDay(for: from); let end = cal.startOfDay(for: Date())
+        while d <= end {
+            let iso = ((cal.component(.weekday, from: d) + 5) % 7) + 1   // Apple Вс=1 → ISO Пн=1
+            if sched.isEmpty || sched.contains(iso) { expected += 1 }
+            guard let nxt = cal.date(byAdding: .day, value: 1, to: d) else { break }; d = nxt
+        }
+        let done = (try? db.scalarInt("SELECT count(DISTINCT date) FROM \(table) WHERE \(idCol) = ? AND date >= ?", [id, fromISO])) ?? 0
+        return expected > 0 ? min(100, Int((Double(done) / Double(expected) * 100).rounded())) : 0
+    }
 
     // ===== главный сборщик =====
     static func buildSpheres(_ db: Database) throws -> [[String: Any]] {
@@ -114,6 +137,9 @@ extension Api {
         let resolve = makeResolver(try db.rows("SELECT id, parent_id, area_id FROM nodes"))
         let todayIso = sphIso(Date())
         let since14 = sphIso(Calendar.current.date(byAdding: .day, value: -13, to: Date()) ?? Date())
+        let calM = Calendar.current
+        let monthFrom = sphIso(calM.date(from: calM.dateComponents([.year, .month], from: Date())) ?? Date())   // 1-е число месяца
+        let yearFrom = sphIso(calM.date(from: calM.dateComponents([.year], from: Date())) ?? Date())             // 1 января
 
         let allTasks = try db.rows("SELECT id, title, status, due_date, priority, area_id, note FROM nodes WHERE is_category = 0")
         let allNodes = try db.rows("SELECT id, parent_id, title, is_category, kind, status, due_date, priority, note, answer FROM nodes ORDER BY ord, id")
@@ -167,12 +193,16 @@ extension Api {
             let tasksDone = areaTasks.filter { ($0["status"] as? String) == "done" }.count
             let tasks = sphereTaskTree(aid, aname, allNodes, nodeById, resolve, belongs)
 
-            // рутины
+            // рутины (пул, % за месяц/год; архивные не выводим)
             var routines: [[String: Any]] = []
-            for r in try db.rows("SELECT id, name FROM routines WHERE area_id = ? ORDER BY ord, id", [aid]) {
+            for r in try db.rows("SELECT id, name, days FROM routines WHERE area_id = ? AND COALESCE(archived,0) = 0 ORDER BY ord, id", [aid]) {
                 let rid = r["id"] as? Int ?? -1
+                let dsp = r["days"] as? String
                 let done = (try? db.rows("SELECT 1 AS x FROM routine_log WHERE routine_id = ? AND date = ?", [rid, todayIso]))?.isEmpty == false
-                routines.append(["id": rid, "name": r["name"] ?? "", "streak": (try? routineStreak(db, rid)) ?? 0, "doneToday": done, "wk": last7Hits(db, "routine_log", "routine_id", rid)])
+                routines.append(["id": rid, "name": r["name"] ?? "", "streak": (try? routineStreak(db, rid)) ?? 0, "doneToday": done,
+                    "wk": last7Hits(db, "routine_log", "routine_id", rid),
+                    "monthPct": schedPct(db, "routine_log", "routine_id", rid, dsp, monthFrom),
+                    "yearPct": schedPct(db, "routine_log", "routine_id", rid, dsp, yearFrom)])
             }
 
             // метрики (трекинг) — по дефолту секции
@@ -185,11 +215,15 @@ extension Api {
                 tracking.append(blk)
             }
 
-            // практики (психология) — по дефолту секции
+            // практики (психология) — пул, % за месяц/год; архивные не выводим
             var practices: [[String: Any]] = []
-            for p in try db.rows("SELECT * FROM practices WHERE \(whereClause("practice", aid)) ORDER BY ord, id", [aid]) {
+            for p in try db.rows("SELECT * FROM practices WHERE \(whereClause("practice", aid)) AND COALESCE(archived,0) = 0 ORDER BY ord, id", [aid]) {
                 let pid = p["id"] as? Int ?? -1
-                practices.append(["id": pid, "name": p["name"] ?? "", "streak": (try? practiceStreak(db, id: pid, days: p["days"] as? String)) ?? 0, "wk": last7Hits(db, "practice_log", "practice_id", pid)])
+                let dsp = p["days"] as? String
+                practices.append(["id": pid, "name": p["name"] ?? "", "streak": (try? practiceStreak(db, id: pid, days: dsp)) ?? 0,
+                    "wk": last7Hits(db, "practice_log", "practice_id", pid),
+                    "monthPct": schedPct(db, "practice_log", "practice_id", pid, dsp, monthFrom),
+                    "yearPct": schedPct(db, "practice_log", "practice_id", pid, dsp, yearFrom)])
             }
 
             // люди (социализация) — по дефолту секции

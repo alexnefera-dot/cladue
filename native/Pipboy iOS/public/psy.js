@@ -69,6 +69,7 @@ function practiceCard(p) {
       <span class="t ed" data-psren="${p.id}" style="font-weight:600">${pesc(p.name)}</span>
       ${p.today && !p.done ? '<span class="pill p1">сегодня</span>' : ''}
       ${p.done ? '<span class="pill ok">✓ сегодня</span>' : ''}
+      <span class="rowbtn" data-psarch="${p.id}" title="в архив (история сохранится)">📦</span>
       <span class="rowbtn del" data-psdel="${p.id}">✕</span>
     </div>
     <div class="kv">Расписание <b class="ed" data-psdays="${p.id}">${daysLabel(p.days)}${p.time ? ' · ' + p.time : ''}</b></div>
@@ -136,7 +137,8 @@ function renderPsy() {
   const tabs = [['practices', 'Практики'], ['wheel', 'Колесо'], ['work', 'Рабочий лог'], ['decisions', 'Принятые']];
   let bodyHtml = '';
   if (psyTab === 'practices') {
-    const today = d.practices.filter(p => p.today && !p.done);
+    const activeP = d.practices.filter(p => !p.archived), archP = d.practices.filter(p => p.archived);
+    const today = activeP.filter(p => p.today && !p.done);
     bodyHtml = `
     ${psyRun ? runPanel(psyRun) : ''}
     ${today.length ? `<div class="sec" style="margin-top:0">Сегодня по расписанию</div>
@@ -146,7 +148,12 @@ function renderPsy() {
         <span class="t">${pesc(p.name)}</span>
         ${p.streak ? `<span class="meta">🔥 ${p.streak}</span>` : ''}</div>`).join('')}</div>` : ''}
     <div class="sec">Все практики · ＋ создать внизу</div>
-    <div class="fingrid" style="grid-template-columns:1fr 1fr">${d.practices.map(practiceCard).join('')}</div>
+    <div class="fingrid" style="grid-template-columns:1fr 1fr">${activeP.map(practiceCard).join('')}</div>
+    ${archP.length ? `<div class="sec">📦 Архив · ${archP.length} · не считаются, история сохранена</div>
+      <div class="card">${archP.map(p => `<div class="task">
+        <span class="t">${pesc(p.name)}</span><span class="meta">${daysLabel(p.days)}</span>
+        <span class="pill btn ok" data-psunarch="${p.id}">♻ вернуть</span>
+        <span class="rowbtn del" data-psdel="${p.id}">✕</span></div>`).join('')}</div>` : ''}
     <div class="card"><div class="task finadd">
       <select id="psKind"><option value="schedule">расписание</option><option value="technique">техника</option><option value="checklist">чеклист</option></select>
       <input id="psName" placeholder="название практики">
@@ -284,6 +291,10 @@ function bindPsy() {
     el.addEventListener('click', async () => {
       if (confirm('Удалить практику с журналом?')) { await psyApi.pDel(+el.dataset.psdel); window.loadPsy(); }
     }));
+  document.querySelectorAll('#screen-psy [data-psarch]').forEach(el =>
+    el.addEventListener('click', async () => { await psyApi.pPatch(+el.dataset.psarch, { archived: 1 }); window.loadPsy(); }));
+  document.querySelectorAll('#screen-psy [data-psunarch]').forEach(el =>
+    el.addEventListener('click', async () => { await psyApi.pPatch(+el.dataset.psunarch, { archived: 0 }); window.loadPsy(); }));
   document.querySelectorAll('#screen-psy [data-pswdel]').forEach(el =>
     el.addEventListener('click', async () => { await psyApi.workDel(+el.dataset.pswdel); window.loadPsy(); }));
 

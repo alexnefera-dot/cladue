@@ -427,7 +427,7 @@ enum Api {
         }
         if let m = match(path, "^/api/routines/([0-9]+)$") {
             let id = Int(m[1]) ?? -1
-            if method == "PATCH" { try patchCols(db, "routines", id, ["name", "slot", "time", "note", "planned", "days"], body); return (ok(), 200) }
+            if method == "PATCH" { try patchCols(db, "routines", id, ["name", "slot", "time", "note", "planned", "days", "archived"], body); return (ok(), 200) }
             if method == "DELETE" { try db.run("DELETE FROM routines WHERE id = ?", [id]); return (ok(), 200) }
         }
 
@@ -490,7 +490,7 @@ enum Api {
         if let m = match(path, "^/api/psy/practices/([0-9]+)$") {
             let id = Int(m[1]) ?? -1
             if method == "PATCH" {
-                try patchCols(db, "practices", id, ["name", "kind", "days", "time", "note"], body)
+                try patchCols(db, "practices", id, ["name", "kind", "days", "time", "note", "archived"], body)
                 if body["steps"] != nil {
                     let steps = String(data: (try? json(body["steps"] ?? [])) ?? Data("[]".utf8), encoding: .utf8) ?? "[]"
                     try db.run("UPDATE practices SET steps = ? WHERE id = ?", [steps, id])

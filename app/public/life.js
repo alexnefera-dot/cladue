@@ -44,14 +44,15 @@ window.rtDaysShort = days => {
 window.loadRoutines = async function () {
   const rows = await lfApi.routines();
   pbSyncReminders(rows);
+  const active = rows.filter(r => !r.archived), arch = rows.filter(r => r.archived);
   const planned = await fetch('/api/routines/planned').then(r => r.json()).catch(() => []);
   document.getElementById('screen-routines').innerHTML = `
   <h2 style="margin-bottom:2px">Рутины</h2>
-  <div class="muted" style="margin-bottom:14px">микро-действия отдельно от задач · пропуск не висит долгом · сегодня: ${rows.filter(r => window.rtActiveToday(r.days) && r.done).length}/${rows.filter(r => window.rtActiveToday(r.days)).length}</div>
+  <div class="muted" style="margin-bottom:14px">микро-действия отдельно от задач · пропуск не висит долгом · сегодня: ${active.filter(r => window.rtActiveToday(r.days) && r.done).length}/${active.filter(r => window.rtActiveToday(r.days)).length}</div>
   <div class="fingrid">
     ${SLOTS.map(slot => `
       <div class="card"><div class="meta">${slot.toUpperCase()}</div>
-        ${rows.filter(r => r.slot === slot).map(r => {
+        ${active.filter(r => r.slot === slot).map(r => {
           const off = !window.rtActiveToday(r.days), dlbl = window.rtDaysShort(r.days);
           return `
           <div class="task${off ? ' rt-off' : ''}">
@@ -60,6 +61,7 @@ window.loadRoutines = async function () {
             <span class="ed meta num" data-lftime="${r.id}" title="фикс. время — напоминание (клик)">${r.time ? '⏰ ' + r.time : '+время'}</span>
             ${dlbl ? `<span class="meta" title="дни недели задаются при создании">${dlbl}</span>` : ''}
             ${r.streak ? `<span class="meta">🔥 ${r.streak}</span>` : ''}
+            <span class="rowbtn" data-lfarch="${r.id}" title="в архив (история сохранится)">📦</span>
             <span class="rowbtn del" data-lfdel="${r.id}">✕</span>
           </div>`; }).join('') || '<div class="empty">пусто</div>'}
       </div>`).join('')}
@@ -85,6 +87,12 @@ window.loadRoutines = async function () {
       <span class="pill btn ok" id="rtPlanAdd">＋</span>
     </div>
   </div>
+  ${arch.length ? `<div class="card"><div class="meta">📦 АРХИВ · ${arch.length} · не считаются, но история сохранена</div>
+    ${arch.map(r => `<div class="task rt-off">
+      <span class="t">${lesc(r.name)}</span>${window.rtDaysShort(r.days) ? `<span class="meta">${window.rtDaysShort(r.days)}</span>` : ''}
+      <span class="pill btn ok" data-lfunarch="${r.id}" title="вернуть в активные">♻ вернуть</span>
+      <span class="rowbtn del" data-lfdel="${r.id}" title="удалить навсегда">✕</span>
+    </div>`).join('')}</div>` : ''}
   <div class="card"><div class="task" style="border:0">
     <span class="pill btn ${localStorage.rtNotifyOn === '1' ? 'ok' : ''}" id="rtNotify">🔔 ${pbReminderBridge ? 'системные напоминания' : 'напоминания в браузере'}: ${localStorage.rtNotifyOn === '1' ? 'вкл' : 'выкл'}</span>
     <span class="meta">${pbReminderBridge ? 'рутины с ⏰ и события календаря со временем шлют системный пуш по времени — даже если окно закрыто' : 'рутина с ⏰ временем пришлёт уведомление, пока приложение открыто · в приложении будут системные пуши'}</span>
@@ -102,6 +110,10 @@ window.loadRoutines = async function () {
     el.addEventListener('click', async () => {
       if (confirm('Удалить рутину (с историей отметок)?')) { await lfApi.rDel(+el.dataset.lfdel); window.loadRoutines(); }
     }));
+  document.querySelectorAll('#screen-routines [data-lfarch]').forEach(el =>
+    el.addEventListener('click', async () => { await lfApi.rPatch(+el.dataset.lfarch, { archived: 1 }); window.loadRoutines(); }));
+  document.querySelectorAll('#screen-routines [data-lfunarch]').forEach(el =>
+    el.addEventListener('click', async () => { await lfApi.rPatch(+el.dataset.lfunarch, { archived: 0 }); window.loadRoutines(); }));
   document.querySelectorAll('#screen-routines [data-lftime]').forEach(el =>
     el.addEventListener('click', async () => {
       const v = prompt('Фиксированное время (чч:мм, пусто — убрать):', el.textContent.replace('⏰', '').trim());
@@ -180,7 +192,7 @@ window.pbSyncAllReminders = async function () {
   if (localStorage.rtNotifyOn !== '1') { try { pbReminderBridge.postMessage({ enabled: false, items: [] }); } catch {} return; }
   const items = [];
   try {
-    for (const r of await lfApi.routines()) if (r.time) {
+    for (const r of await lfApi.routines()) if (r.time && !r.archived) {
       const [h, m] = r.time.split(':').map(Number);
       const base = { id: 'routine-' + r.id, title: '⏰ ' + r.name, body: `Рутина на ${r.time} — пора`, hour: h, minute: m };
       const set = window.rtDaySet(r.days);

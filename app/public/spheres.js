@@ -222,6 +222,15 @@ function block(label, jump, inner) {
   return `<div class="sec">${label} <span class="muted" style="font-weight:400">· ${jump}</span></div><div class="card">${inner}</div>`;
 }
 
+// строка пула рутины/практики: имя + прогресс-бар % за месяц + подпись «мес/год»
+function sphPoolRow(it) {
+  const mp = Math.max(0, Math.min(100, it.monthPct ?? 0)), yp = Math.max(0, Math.min(100, it.yearPct ?? 0));
+  return `<div class="sphpool">
+    <span class="sphpool-n">${sesc(it.name)}${it.doneToday ? ' <span class="sphpool-today">сегодня ✓</span>' : ''}</span>
+    <span class="sphpool-bar"><i style="width:${mp}%"></i></span>
+    <span class="sphpool-p">${mp}<small>%мес</small> · ${yp}<small>%год</small></span>
+  </div>`;
+}
 // универсальная KPI-плитка: иконка+имя, крупное значение, опц. полоса %, подпись
 function sphTile(icon, name, big, sub, pct, cls = '') {
   const bar = pct != null ? `<div class="sphk-bar"><i style="width:${Math.max(0, Math.min(100, pct))}%"></i></div>` : '';
@@ -353,17 +362,15 @@ function sphDetail(s, i) {
       ? `<div class="task finadd"><input class="sphadd" data-addroot="${rootCat}" placeholder="＋ задача в сферу (Enter)"></div>`
       : '<div class="empty">привяжи категорию целей в Целях — и заводи задачи прямо тут</div>'));
 
-  // рутины
-  if (s.routines.length) h += block('↻ Рутины', 'Рутины', s.routines.map(r => `
-    <div class="task"><span class="cb ${r.doneToday ? 'done' : ''}"></span><span class="t">${sesc(r.name)}${r.wk ? `<div class="sphwk">${r.wk.map(d => `<i class="${d ? 'on' : 'miss'}"></i>`).join('')}</div>` : ''}</span><span class="meta strk">🔥 ${r.streak}</span></div>`).join(''));
+  // рутины — пул с прогресс-баром (% месяц/год), не числом
+  if (s.routines.length) h += block('↻ Рутины · пул', 'Рутины', s.routines.map(sphPoolRow).join(''));
   // трекинг
   if (s.tracking.length) h += block('📊 Трекинг · 7 дней', 'Трекинг', s.tracking.map(m => {
     const pct = (m.target != null && m.v != null && m.target) ? Math.round(m.v / m.target * 100) : null;
     return `<div class="task"><span class="t">${sesc(m.name)}${m.target != null ? `<div class="tgt">🎯 ${m.target}${sesc(m.unit)}${pct != null ? ` · ${pct}%` : ''}</div>` : ''}</span>${sphSpark(m.s)}<span class="meta num">${m.v ?? '–'} ${sesc(m.unit)}</span></div>`;
   }).join(''));
-  // практики
-  if (s.practices.length) h += block('🧠 Практики', 'Психология', s.practices.map(p => `
-    <div class="task"><span class="t">${sesc(p.name)}${p.wk ? `<div class="sphwk">${p.wk.map(d => `<i class="${d ? 'on' : ''}"></i>`).join('')}</div>` : ''}</span><span class="meta strk">🔥 ${p.streak}</span></div>`).join(''));
+  // практики — пул с прогресс-баром (% месяц/год)
+  if (s.practices.length) h += block('🧠 Практики · пул', 'Психология', s.practices.map(sphPoolRow).join(''));
   // люди (социализация)
   if (s.people && s.people.length) h += block('☻ Люди', 'Люди', s.people.map(p => `
     <div class="task"><span class="t">${sesc(p.name)}</span>${sphContact(p)}</div>`).join(''));
@@ -509,6 +516,11 @@ function ensureSphStyle() {
     .sph-momt{font-size:12.5px;color:var(--muted)}
     .pbar2{flex:1;max-width:160px;height:7px;border-radius:99px;background:var(--bg2);overflow:hidden;margin:0 6px}.pbar2 i{display:block;height:100%;background:var(--green-dim)}
     .sphwk{display:flex;gap:3px;margin-top:4px}.sphwk i{width:11px;height:11px;border-radius:3px;background:var(--bg2)}.sphwk i.on{background:var(--green-dim)}.sphwk i.miss{background:rgba(196,63,63,.18)}
+    .sphpool{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--bg2)}.sphpool:first-child{border-top:0}
+    .sphpool-n{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .sphpool-today{font:600 10px var(--mono);color:var(--green)}
+    .sphpool-bar{flex:0 0 84px;height:7px;border-radius:99px;background:var(--bg2);overflow:hidden}.sphpool-bar i{display:block;height:100%;background:var(--green-dim)}
+    .sphpool-p{font:600 11px var(--mono);color:var(--muted);white-space:nowrap}.sphpool-p small{font-size:9px;opacity:.65}
     .sphb{font:600 10px var(--mono);border-radius:20px;padding:2px 8px;white-space:nowrap}.sphb.fire{background:rgba(196,63,63,.12);color:var(--red)}.sphb.soon{background:rgba(168,119,8,.14);color:var(--amber)}
     .tgt{font-size:11px;color:var(--amber);margin-top:2px}
     .strk{color:var(--amber)!important;font-weight:600}
