@@ -59,16 +59,13 @@ function sphSpark(vals, w = 74, h = 18) {
 
 window.loadSpheres = async function () {
   ensureSphStyle();
-  try {
-    [sphData, sphPool] = await Promise.all([sphApi.load(), sphApi.pool()]);
-  } catch {
-    document.getElementById('screen-spheres').innerHTML =
-      '<h2>Сферы жизни</h2><div class="card" style="margin-top:12px"><div class="muted">Раздел «Сферы» пока недоступен в этой сборке приложения — нужна установка обновления (нативная часть). В веб-версии работает.</div></div>';
-    return;
-  }
+  // два эндпоинта независимо: падение пула (селекторы сфер) не должно убивать обзор сфер
+  let pErr = '';
+  try { sphData = await sphApi.load(); } catch (e) { sphData = { error: 'сеть: ' + (e && e.message || e) }; }
+  try { sphPool = await sphApi.pool(); } catch (e) { sphPool = null; pErr = String(e && e.message || e); }
   if (sphPool?.areas?.length) { window.SPH_AREAS = sphPool.areas; window.refreshSphSelects?.(); }
-  if (!Array.isArray(sphData)) {   // бэкенд вернул ошибку вместо списка — не роняем экран
-    const msg = (sphData && sphData.error) ? sphData.error : 'не удалось загрузить сферы';
+  if (!Array.isArray(sphData)) {   // бэкенд вернул ошибку вместо списка — показываем настоящую причину
+    const msg = (sphData && sphData.error) ? sphData.error : (pErr || 'не удалось загрузить сферы');
     document.getElementById('screen-spheres').innerHTML =
       `<h2>Сферы жизни</h2><div class="card" style="margin-top:12px"><div class="muted">Не удалось собрать сферы: ${sesc(String(msg))}</div></div>`;
     return;

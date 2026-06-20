@@ -331,25 +331,25 @@ extension Api {
     }
     static func sphereTagPool(_ db: Database) throws -> [String: Any] {
         [
-            "areas": try db.rows("SELECT id, name FROM wheel_areas ORDER BY ord, id"),
-            "categories": try db.rows("SELECT id, title, parent_id, area_id FROM nodes WHERE is_category = 1 ORDER BY ord, id"),
-            "pages": try db.rows("SELECT id, title, parent_id, area_id FROM pages ORDER BY ord, id"),
-            "routines": try db.rows("SELECT id, name, area_id FROM routines WHERE planned = 0 ORDER BY ord, id"),
-            "events": try db.rows("SELECT id, title AS name, area_id FROM events ORDER BY date, id"),
-            "debts": try db.rows("SELECT id, name, area_id FROM debts ORDER BY id"),
-            "steps": try db.rows("SELECT id, title AS name, area_id FROM steps WHERE status = 'planned' ORDER BY id"),
+            "areas": (try? db.rows("SELECT id, name FROM wheel_areas ORDER BY ord, id")) ?? [],
+            "categories": (try? db.rows("SELECT id, title, parent_id, area_id FROM nodes WHERE is_category = 1 ORDER BY ord, id")) ?? [],
+            "pages": (try? db.rows("SELECT id, title, parent_id, area_id FROM pages ORDER BY ord, id")) ?? [],
+            "routines": (try? db.rows("SELECT id, name, area_id FROM routines WHERE planned = 0 ORDER BY ord, id")) ?? [],
+            "events": (try? db.rows("SELECT id, title AS name, area_id FROM events ORDER BY date, id")) ?? [],
+            "debts": (try? db.rows("SELECT id, name, area_id FROM debts ORDER BY id")) ?? [],
+            "steps": (try? db.rows("SELECT id, title AS name, area_id FROM steps WHERE status = 'planned' ORDER BY id")) ?? [],
         ]
     }
     static func spherePool(_ db: Database) throws -> [String: Any] {
         [
-            "areas": try db.rows("SELECT id, name FROM wheel_areas ORDER BY ord, id"),
+            "areas": (try? db.rows("SELECT id, name FROM wheel_areas ORDER BY ord, id")) ?? [],
             "defaults": sphereDefaults(db),
-            "routines": try db.rows("SELECT id, name, area_id FROM routines ORDER BY ord, id"),
-            "metrics": try db.rows("SELECT id, name, area_id FROM metrics ORDER BY ord, id"),
-            "practices": try db.rows("SELECT id, name, area_id FROM practices ORDER BY ord, id"),
-            "obligations": try db.rows("SELECT id, name, area_id FROM obligations ORDER BY id"),
-            "people": try db.rows("SELECT id, name, area_id FROM people ORDER BY id"),
-            "categories": try db.rows("SELECT id, title, area_id FROM nodes WHERE is_category = 1 AND parent_id IS NULL ORDER BY ord, id"),
+            "routines": (try? db.rows("SELECT id, name, area_id FROM routines ORDER BY ord, id")) ?? [],
+            "metrics": (try? db.rows("SELECT id, name, area_id FROM metrics ORDER BY ord, id")) ?? [],
+            "practices": (try? db.rows("SELECT id, name, area_id FROM practices ORDER BY ord, id")) ?? [],
+            "obligations": (try? db.rows("SELECT id, name, area_id FROM obligations ORDER BY id")) ?? [],
+            "people": (try? db.rows("SELECT id, name, area_id FROM people ORDER BY id")) ?? [],
+            "categories": (try? db.rows("SELECT id, title, area_id FROM nodes WHERE is_category = 1 AND parent_id IS NULL ORDER BY ord, id")) ?? [],
         ]
     }
     static let sphereTbl: [String: String] = ["routine": "routines", "metric": "metrics", "practice": "practices",
