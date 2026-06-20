@@ -371,7 +371,7 @@ async function renderNotes() {
           <span class="pill btn" id="ntAddChild">＋ подстраница</span>
           <span class="pill btn danger" id="ntDel">🗑</span>
         </div>
-        <div class="meta" style="margin:4px 0 10px">обновлено ${page.updated_at.slice(0, 16).replace('T', ' ')} · сохраняется само · ⌘Z — откат</div>
+        <div class="meta" style="margin:4px 0 10px">обновлено ${page.updated_at.slice(0, 16).replace('T', ' ')} · сохраняется само · ⌘Z — откат · <b style="color:var(--green)">ред.v3 ✦</b></div>
         <div id="ntHistBox"></div>
         ${ntMode === 'rich' ? `
           <div class="nttoolbar">
