@@ -1,6 +1,17 @@
 /* «Сегодня» — по макету: месяц активности · рутины · задачи дня · события · люди · зоны · движение */
 let tdData = null;
 
+// Активна ли рутина сегодня по расписанию дней (ISO Пн=1..Вс=7; пусто/daily = каждый день).
+// Самодостаточно — не зависит от загрузки life.js, иначе фильтр дней мог отключаться и показывать ВСЕ рутины.
+function tdRoutineToday(days) {
+  if (window.rtActiveToday) return window.rtActiveToday(days);
+  if (!days || days === 'daily') return true;
+  const set = days === 'workdays' ? new Set([1, 2, 3, 4, 5])
+    : new Set(String(days).split(',').map(s => +s.trim()).filter(n => n >= 1 && n <= 7));
+  if (!set.size) return true;
+  return set.has((new Date().getDay() + 6) % 7 + 1);
+}
+
 const tdApi = {
   get: () => fetch('/api/today').then(r => r.json()),
   toggle: id => fetch(`/api/nodes/${id}/toggle`, { method: 'POST' }),
@@ -121,7 +132,7 @@ function renderToday() {
   const d = tdData;
   const dt = new Date(d.date + 'T00:00:00');
   const pct = d.progress.total ? Math.round(d.progress.typed / d.progress.total * 100) : 0;
-  const rts = d.routines.filter(r => !r.archived && (!window.rtActiveToday || window.rtActiveToday(r.days)));   // только активные рутины на сегодня
+  const rts = d.routines.filter(r => !r.archived && tdRoutineToday(r.days));   // только активные рутины на сегодня
   const rDone = rts.filter(r => r.done).length;
 
   document.getElementById('screen-today').innerHTML = `
@@ -222,7 +233,7 @@ function renderTodayMobile() {
   const d = tdData;
   const dt = new Date(d.date + 'T00:00:00');
   const pct = d.progress.total ? Math.round(d.progress.typed / d.progress.total * 100) : 0;
-  const rts = d.routines.filter(r => !r.archived && (!window.rtActiveToday || window.rtActiveToday(r.days)));   // только активные рутины на сегодня
+  const rts = d.routines.filter(r => !r.archived && tdRoutineToday(r.days));   // только активные рутины на сегодня
   const rDone = rts.filter(r => r.done).length;
   const moods = ['', '😞', '😐', '🙂'];
 

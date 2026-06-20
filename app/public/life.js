@@ -45,6 +45,7 @@ window.loadRoutines = async function () {
   const rows = await lfApi.routines();
   pbSyncReminders(rows);
   const active = rows.filter(r => !r.archived), arch = rows.filter(r => r.archived);
+  const offToday = active.filter(r => !window.rtActiveToday(r.days));   // запланированы на другие дни — не мешаем сегодняшним
   const planned = await fetch('/api/routines/planned').then(r => r.json()).catch(() => []);
   document.getElementById('screen-routines').innerHTML = `
   <h2 style="margin-bottom:2px">Рутины</h2>
@@ -52,10 +53,10 @@ window.loadRoutines = async function () {
   <div class="fingrid">
     ${SLOTS.map(slot => `
       <div class="card"><div class="meta">${slot.toUpperCase()}</div>
-        ${active.filter(r => r.slot === slot).map(r => {
-          const off = !window.rtActiveToday(r.days), dlbl = window.rtDaysShort(r.days);
+        ${active.filter(r => r.slot === slot && window.rtActiveToday(r.days)).map(r => {
+          const dlbl = window.rtDaysShort(r.days);
           return `
-          <div class="task${off ? ' rt-off' : ''}">
+          <div class="task">
             <span class="cb ${r.done ? 'done' : ''}" data-lfcheck="${r.id}"></span>
             <span class="t ${r.done ? 'done' : ''} ed" data-lfren="${r.id}" title="клик — переименовать">${lesc(r.name)}</span>
             <span class="ed meta num" data-lftime="${r.id}" title="фикс. время — напоминание (клик)">${r.time ? '⏰ ' + r.time : '+время'}</span>
@@ -63,9 +64,18 @@ window.loadRoutines = async function () {
             ${r.streak ? `<span class="meta">🔥 ${r.streak}</span>` : ''}
             <span class="rowbtn" data-lfarch="${r.id}" title="в архив (история сохранится)">📦</span>
             <span class="rowbtn del" data-lfdel="${r.id}">✕</span>
-          </div>`; }).join('') || '<div class="empty">пусто</div>'}
+          </div>`; }).join('') || '<div class="empty">сегодня нет</div>'}
       </div>`).join('')}
   </div>
+  ${offToday.length ? `<div class="card"><div class="meta">СЕГОДНЯ НЕ ПО РАСПИСАНИЮ · ${offToday.length} · по другим дням недели</div>
+    ${offToday.map(r => `<div class="task rt-off">
+      <span class="t ed" data-lfren="${r.id}" title="клик — переименовать">${lesc(r.name)}</span>
+      ${r.time ? `<span class="meta num">⏰ ${r.time}</span>` : ''}
+      <span class="meta">${window.rtDaysShort(r.days)}</span>
+      ${r.streak ? `<span class="meta">🔥 ${r.streak}</span>` : ''}
+      <span class="rowbtn" data-lfarch="${r.id}" title="в архив">📦</span>
+      <span class="rowbtn del" data-lfdel="${r.id}">✕</span>
+    </div>`).join('')}</div>` : ''}
   <div class="card">
     <div class="task finadd">
       <input id="rtName" placeholder="новая рутина: таблетка, миноксидил, отжимания 3×15…">
