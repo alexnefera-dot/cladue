@@ -182,10 +182,10 @@
   /* тулбар форматирования: появляется при правке (фокус в редакторе), липкий сверху,
      прокручивается вбок; крупные кнопки */
   .nttoolbar {
-    position: sticky; top: 0; z-index: 5; flex-wrap: nowrap;
+    position: sticky; top: 0; z-index: 6; flex-wrap: nowrap;
     background: var(--bg); gap: 5px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    padding: 8px 0; margin-bottom: 6px; border-bottom: 1px solid var(--line);
   }
-  .editor:focus-within .nttoolbar { max-height: 56px; padding: 8px 0; }
   .nttoolbar::-webkit-scrollbar { display: none; }
   .ntb {
     min-width: 42px; min-height: 40px; font-size: 16px; flex: 0 0 auto;

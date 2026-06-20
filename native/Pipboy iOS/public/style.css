@@ -179,11 +179,10 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .wiki{color:var(--green);border-bottom:1px dashed var(--green-dim);cursor:pointer}
 .mdimg{max-width:100%;height:auto;border-radius:8px;margin:6px 0;display:block;border:1px solid var(--line)}
 .attlink{color:var(--green);border-bottom:1px dashed var(--green-dim);cursor:pointer}
-/* панель оформления скрыта, пока не начал править текст (фокус в редакторе) */
+/* панель оформления закреплена сверху редактора (видна при скролле и при клике по 📎) */
 .nttoolbar{display:flex;gap:5px;align-items:center;flex-wrap:wrap;
-  max-height:0;opacity:0;overflow:hidden;margin:0;padding:0;
-  transition:max-height .18s ease,opacity .15s,margin .18s,padding .18s}
-.editor:focus-within .nttoolbar{max-height:84px;opacity:1;margin-bottom:6px;padding:4px 0}
+  position:sticky;top:0;z-index:6;background:var(--panel);
+  margin:0 0 8px;padding:8px 0 6px;border-bottom:1px solid var(--line)}
 .ntb{min-width:30px;text-align:center}
 .richedit{border:1px solid transparent;border-radius:8px;padding:10px 12px;margin-left:-12px;min-height:420px;outline:none;background:transparent}
 .richedit:focus{border-color:var(--line);box-shadow:none}
