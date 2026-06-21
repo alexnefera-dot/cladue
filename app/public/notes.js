@@ -206,6 +206,17 @@ function clipboardToMd(html, text) {
 // Маркер в начале content помечает HTML-страницы. Без маркера — легаси-markdown (рендерим как раньше).
 const HTML_MARK = '<!--pbhtml-->';
 const isHtmlContent = c => typeof c === 'string' && c.startsWith(HTML_MARK);
+// inline-style из буфера (Apple Notes/Notion) оставляем ТОЛЬКО для текстового оформления.
+// Позиционирование/геометрию (position, margin, display, width…) выкидываем — иначе чужой
+// CSS протекает в редактор и строки накладываются друг на друга («текст поверх текста»).
+const KEEP_STYLE = new Set(['color', 'text-align', 'font-weight', 'font-style',
+  'text-decoration', 'text-decoration-line', 'text-decoration-style', 'text-decoration-color']);
+function cleanStyle(el) {
+  const keep = [];
+  for (const prop of el.style) if (KEEP_STYLE.has(prop)) keep.push(`${prop}:${el.style.getPropertyValue(prop)}`);
+  if (keep.length) el.setAttribute('style', keep.join(';'));
+  else el.removeAttribute('style');
+}
 // чистим вставленный/сохраняемый HTML: убираем скрипты и опасные атрибуты, оформление оставляем
 function sanitizeHtml(html) {
   const tmp = document.createElement('div');
@@ -215,6 +226,7 @@ function sanitizeHtml(html) {
     for (const a of [...el.attributes]) {
       const n = a.name.toLowerCase();
       if (n.startsWith('on')) el.removeAttribute(a.name);                                   // onclick и т.п.
+      else if (n === 'style') cleanStyle(el);                                               // выкинуть position/margin/… из вставки
       else if ((n === 'href' || n === 'src') && /^\s*(javascript|vbscript):/i.test(a.value)) el.removeAttribute(a.name);
       else if (n === 'href' && /^\s*data:/i.test(a.value)) el.removeAttribute(a.name);      // data: только для картинок (src)
     }
