@@ -405,6 +405,7 @@ enum Api {
             if method == "PATCH" {
                 if let t = body["title"] as? String { try db.run("UPDATE area_milestones SET title = ? WHERE id = ?", [t, id]) }
                 if body["level"] != nil { try db.run("UPDATE area_milestones SET level = ? WHERE id = ?", [max(1, min(10, Int(num(body["level"]).rounded()))), id]) }
+                if body["progress"] != nil { try db.run("UPDATE area_milestones SET progress = ? WHERE id = ?", [max(0, min(10, Int(num(body["progress"]).rounded()))), id]) }   // прогресс вехи 0→10
                 return (ok(), 200)
             }
             if method == "DELETE" { try db.run("DELETE FROM area_milestones WHERE id = ?", [id]); return (ok(), 200) }

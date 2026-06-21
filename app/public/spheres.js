@@ -288,26 +288,27 @@ function sphEngineTiles(s) {
   }
   return t.join('');
 }
-// дорожная карта «путь к 10»: вехи по уровням, «ты здесь» по оценке, правка прямо тут
+// «Путь к 10»: каждая веха — самостоятельная цель со своим прогрессом 0→10.
+// Жмёшь +1 при действии по ней; на 10 закрывается (зачёркивается). Создавать можно сколько угодно.
 function sphRoadmap(s) {
-  const ms = (s.milestones || []).slice().sort((a, b) => a.level - b.level);
-  const score = s.score ?? 0;
-  const hereIdx = ms.findIndex(m => m.level > score);
-  const done = ms.filter(m => m.level <= score).length;
-  const rows = ms.map((m, idx) => {
-    const isDone = m.level <= score, here = idx === hereIdx;
-    return `<div class="sph-rm ${isDone ? 'done' : ''} ${here ? 'here' : ''}">
-      <span class="sph-rk">${m.level}/10</span>
-      <span class="sph-rt" data-msedit="${m.id}" title="клик — правка">${m.title ? sesc(m.title) : '<span class="muted">без названия</span>'}</span>
-      ${here ? `<span class="pill btn ok" data-msreach="${s.id}:${m.level}" title="поставить оценку ${m.level}">✓ достиг</span>`
-        : (isDone ? '<span style="color:var(--green-dim)">✓</span>' : '<span class="sphb">впереди</span>')}
+  const ms = (s.milestones || []).slice();   // в порядке добавления
+  const done = ms.filter(m => (m.progress ?? 0) >= 10).length;
+  const rows = ms.map(m => {
+    const p = Math.max(0, Math.min(10, m.progress ?? 0)), isDone = p >= 10;
+    return `<div class="sph-rm ${isDone ? 'done' : ''}">
+      <span class="sph-rk">${p}/10</span>
+      <span class="pbar2 sph-rmbar"><i style="width:${p * 10}%"></i></span>
+      <span class="sph-rt" data-msedit="${m.id}" title="клик — переименовать">${m.title ? sesc(m.title) : '<span class="muted">без названия</span>'}</span>
+      ${isDone ? '<span style="color:var(--green-dim);font-size:12px">✓ закрыта</span>'
+        : `<span class="pill btn ok" data-msinc="${m.id}:${p}" title="+1 к прогрессу">+1</span>`}
+      ${p > 0 ? `<span class="rowbtn" data-msdec="${m.id}:${p}" title="−1">−</span>` : ''}
       <span class="rowbtn del" data-msdel="${m.id}">✕</span>
     </div>`;
   }).join('');
-  const head = ms.length ? `<div class="task" style="border:0;padding:2px 0"><span class="t muted" style="font-size:12px">пройдено ${done}/${ms.length} вех</span><span class="pbar2" style="max-width:150px"><i style="width:${Math.round(done / ms.length * 100)}%"></i></span></div>` : '';
-  return block('🗺 Путь к 10 · вехи', 'редактируется тут',
-    head + (rows || '<div class="empty">добавь вехи маршрута к 10 ↓</div>')
-    + `<div class="task finadd"><input class="sphmsadd" data-msadd="${s.id}" placeholder="＋ веха: «6 €500к капитала» (уровень + текст) · Enter"></div>`);
+  const head = ms.length ? `<div class="task" style="border:0;padding:2px 0"><span class="t muted" style="font-size:12px">закрыто ${done}/${ms.length} вех</span></div>` : '';
+  return block('🗺 Путь к 10 · вехи-цели', 'каждая со своим прогрессом',
+    head + (rows || '<div class="empty">добавь цели-вехи маршрута ↓</div>')
+    + `<div class="task finadd"><input class="sphmsadd" data-msadd="${s.id}" placeholder="＋ веха-цель: «накопить €500к», «выучить C2»… · Enter"></div>`);
 }
 
 function sphDetail(s, i) {
@@ -449,20 +450,17 @@ function bindDetail(s) {
   document.querySelectorAll('#screen-spheres [data-msdel]').forEach(el => el.onclick = async () => {
     if (confirm('Удалить веху?')) { await sphApi.msDel(+el.dataset.msdel); window.loadSpheres(); }
   });
-  document.querySelectorAll('#screen-spheres [data-msreach]').forEach(el => el.onclick = async () => {
-    const [id, level] = el.dataset.msreach.split(':'); await sphApi.score(+id, +level); window.loadSpheres();
+  // +1 / −1 к прогрессу вехи (0→10; на 10 закрывается)
+  document.querySelectorAll('#screen-spheres [data-msinc]').forEach(el => el.onclick = async () => {
+    const [id, p] = el.dataset.msinc.split(':'); await sphApi.msPatch(+id, { progress: Math.min(10, +p + 1) }); window.loadSpheres();
+  });
+  document.querySelectorAll('#screen-spheres [data-msdec]').forEach(el => el.onclick = async () => {
+    const [id, p] = el.dataset.msdec.split(':'); await sphApi.msPatch(+id, { progress: Math.max(0, +p - 1) }); window.loadSpheres();
   });
   document.querySelectorAll('#screen-spheres [data-msadd]').forEach(el => el.addEventListener('keydown', async e => {
     if (e.key !== 'Enter' || !el.value.trim()) return;
-    const parts = el.value.trim().split(/\s+/); let level = parseInt(parts[0], 10), title;
-    if (level >= 1 && level <= 10) title = parts.slice(1).join(' ');
-    else {
-      // без явного уровня — следующий по порядку (выше всех вех и текущей оценки),
-      // чтобы вехи не слипались на одном уровне и «достиг» закрывал по одной
-      const top = Math.max(s.score ?? 0, ...(s.milestones || []).map(m => m.level || 0), 0);
-      level = top + 1; title = el.value.trim();
-    }
-    await sphApi.msAdd(+el.dataset.msadd, Math.max(1, Math.min(10, level)), title.trim()); window.loadSpheres();
+    await sphApi.msAdd(+el.dataset.msadd, 5, el.value.trim());   // level не используется в прогресс-логике; прогресс стартует с 0
+    window.loadSpheres();
   }));
   // клик по задаче — открыть в Целях (полная карточка: текст/заметки/связи)
   document.querySelectorAll('#screen-spheres [data-tnode]').forEach(el => el.onclick = () => { if (window.openNode) window.openNode(+el.dataset.tnode); });
@@ -566,6 +564,7 @@ function ensureSphStyle() {
     .sph-rt{flex:1;min-width:0;cursor:text}.sph-rm.done .sph-rt{color:var(--muted);text-decoration:line-through}
     .sph-rm.here{background:rgba(168,119,8,.08);border-radius:8px;margin:0 -8px;padding:6px 8px}.sph-rm.here .sph-rt{font-weight:700}
     .sph-rm .rowbtn{opacity:.55}.sph-rm:hover .rowbtn{opacity:1}   /* ✕ вехи всегда видна (строка не .task — иначе удалить нельзя) */
+    .sph-rmbar{width:56px;flex:0 0 auto}
     .catrow{display:flex;align-items:center;gap:10px;padding:5px 0;border-top:1px solid var(--bg2)}.catrow:first-child{border-top:0}
     .catt{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.catt.on{font-weight:700;color:var(--green)}
     .catrow select{flex:0 0 auto;max-width:190px;border:1px solid var(--line);border-radius:8px;padding:5px 8px;font:12.5px var(--sans);background:var(--bg)}

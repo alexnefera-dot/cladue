@@ -22,9 +22,11 @@ extension Api {
               id INTEGER PRIMARY KEY,
               area_id INTEGER NOT NULL REFERENCES wheel_areas(id) ON DELETE CASCADE,
               level INTEGER NOT NULL DEFAULT 5, title TEXT NOT NULL DEFAULT '',
+              progress INTEGER NOT NULL DEFAULT 0,
               ord INTEGER NOT NULL DEFAULT 0
             )
             """)
+        _ = try? db.run("ALTER TABLE area_milestones ADD COLUMN progress INTEGER NOT NULL DEFAULT 0")   // прогресс вехи 0→10 (миграция старых баз)
     }
 
     // ----- дефолты секций -----
@@ -269,7 +271,7 @@ extension Api {
             let scores = sc.compactMap { $0["score"] as? Int }
             let scoreVal: Any = sc.first?["score"] ?? NSNull()
             let prevVal: Any = sc.count > 1 ? (sc[1]["score"] ?? NSNull()) : NSNull()
-            let milestones = (try? db.rows("SELECT id, level, title FROM area_milestones WHERE area_id = ? ORDER BY level, id", [aid])) ?? []   // не роняем сбор, если таблицы ещё нет
+            let milestones = (try? db.rows("SELECT id, level, title, progress FROM area_milestones WHERE area_id = ? ORDER BY ord, id", [aid])) ?? []   // прогресс-вехи; не роняем сбор, если таблицы ещё нет
             result.append([
                 "id": aid, "name": aname,
                 "ideal": a["ideal"] ?? "", "current_desc": a["current_desc"] ?? "", "next_desc": a["next_desc"] ?? "", "step": a["step"] ?? "",
