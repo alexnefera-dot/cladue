@@ -44,6 +44,15 @@ const sphApi = {
   msAdd: (areaId, level, title) => fetch('/api/spheres/milestone', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ areaId, level, title }) }),
   msPatch: (id, b) => fetch('/api/spheres/milestone/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }),
   msDel: id => fetch('/api/spheres/milestone/' + id, { method: 'DELETE' }),
+  // метрики: ввод значения (без date → сервер сам берёт ключ периода) и создание (вернёт {id})
+  mVal: (id, value, date) => fetch('/api/track/metrics/' + id + '/value', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(date ? { value, date } : { value }) }),
+  mAdd: b => fetch('/api/track/metrics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json()),
+  // FAQ сферы: вопрос→ответ
+  qAdd: (areaId, question, answer) => fetch('/api/spheres/question', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ areaId, question, answer }) }).then(r => r.json()),
+  qPatch: (id, b) => fetch('/api/spheres/question/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }),
+  qDel: id => fetch('/api/spheres/question/' + id, { method: 'DELETE' }),
+  // создание задачи (вернёт ноду с id) — для «вопрос → задача»
+  nodeAdd: b => fetch('/api/nodes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json()),
 };
 
 function sphRing(score, col, size = 48) {
@@ -232,7 +241,9 @@ function sphPoolRow(it) {
     <span class="sphpool-p">${mp}<small>%мес</small> · ${yp}<small>%год</small></span>
   </div>`;
 }
-// трекинг-метрика пулом: для негатива (polarity=minus) — красный, рост = плохо (красный тренд)
+// трекинг-метрика пулом: ввод значения за текущий период прямо тут.
+// bool → галочка «выполнил»; number/scale → клик-ввод; счётчик (computed) → read-only авто.
+const CAD_TAG = { daily: 'день', weekly: 'неделя', monthly: 'месяц' };
 function sphTrackPool(m) {
   const neg = m.polarity === 'minus';
   const s = Array.isArray(m.s) ? m.s : [];
@@ -240,14 +251,25 @@ function sphTrackPool(m) {
   const good = neg ? trend < 0 : trend > 0;               // для негатива «вниз» — хорошо
   const arrow = trend === 0 ? '·' : (trend > 0 ? '▲' : '▼');
   const tcls = trend === 0 ? '' : (good ? 'up' : 'down');
+  const computed = !!m.computed, cad = CAD_TAG[m.cadence] || 'день';
+  const cur = (m.cur === null || m.cur === undefined) ? null : m.cur;
   const pct = (m.target != null && m.target && m.v != null) ? Math.round(m.v / m.target * 100) : null;
   const bar = pct != null
     ? `<span class="sphpool-bar ${neg ? 'neg' : ''}"><i style="width:${Math.max(0, Math.min(100, pct))}%"></i></span>`
     : `<span class="sphpool-spark">${s.length > 1 ? sphSpark(s, 84, 14) : '<span class="muted" style="font-size:11px">нет данных</span>'}</span>`;
+  let ctl;
+  if (computed) {
+    ctl = `<span class="sphpool-p"><span class="sphtrend ${tcls}">${arrow}</span> ${m.v ?? 0}<small> авто</small></span>`;
+  } else if (m.type === 'bool') {
+    const on = cur != null && cur > 0;
+    ctl = `<span class="pill btn ${on ? 'ok' : ''}" data-sphmcheck="${m.id}:${on ? 1 : 0}" title="отметить за ${cad}">${on ? 'выполнил ✓' : 'отметить'}</span>`;
+  } else {
+    ctl = `<span class="sphpool-p" data-sphmval="${m.id}" style="cursor:pointer" title="ввести за ${cad}"><span class="sphtrend ${tcls}">${arrow}</span> ${cur ?? (m.v ?? '–')}<small>${sesc(m.unit)}</small>${pct != null ? ` · ${pct}%` : ''} ✎</span>`;
+  }
   return `<div class="sphpool ${neg ? 'neg' : ''}">
-    <span class="sphpool-n">${sesc(m.name)}${neg ? ' <span class="sphpool-neg">негатив</span>' : ''}</span>
+    <span class="sphpool-n">${sesc(m.name)} <span class="sphpool-st">${cad}</span>${computed ? ' <span class="sphpool-st">счётчик</span>' : ''}${neg ? ' <span class="sphpool-neg">негатив</span>' : ''}</span>
     ${bar}
-    <span class="sphpool-p"><span class="sphtrend ${tcls}">${arrow}</span> ${m.v ?? '–'}<small>${sesc(m.unit)}</small>${pct != null ? ` · ${pct}%` : ''}</span>
+    ${ctl}
   </div>`;
 }
 // универсальная KPI-плитка: иконка+имя, крупное значение, опц. полоса %, подпись
@@ -311,6 +333,28 @@ function sphRoadmap(s) {
     + `<div class="task finadd"><input class="sphmsadd" data-msadd="${s.id}" placeholder="＋ веха-цель: «накопить €500к», «выучить C2»… · Enter"></div>`);
 }
 
+// FAQ сферы: вопрос→ответ (сворачивается); из вопроса — «→ задача» / «→ метрика».
+function sphFaq(s) {
+  const qs = s.questions || [];
+  const rows = qs.map(q => {
+    const ans = q.answer ? sesc(q.answer).replace(/\n/g, '<br>') : '<span class="muted">нет ответа — клик, чтобы добавить</span>';
+    const taskBadge = q.node_id
+      ? `<span class="pill btn ${q.node_status === 'done' ? 'ok' : 'p2'}" data-qopen="${q.node_id}" title="открыть задачу">${q.node_status === 'done' ? '✓ задача' : '🎯 задача'}</span>`
+      : `<span class="rowbtn" data-qtask="${q.id}" title="сделать задачу из вопроса">→ задача</span>`;
+    const metricBadge = q.metric_id
+      ? '<span class="pill">📊 метрика</span>'
+      : `<span class="rowbtn" data-qmetric="${q.id}" title="сделать метрику из вопроса">→ метрика</span>`;
+    return `<div class="sph-faq">
+      <div class="sph-faqq"><span class="sph-faqt" data-qedit="${q.id}" title="клик — изменить вопрос">${q.question ? sesc(q.question) : '<span class="muted">без вопроса</span>'}</span>
+        ${taskBadge}${metricBadge}<span class="rowbtn del" data-qdel="${q.id}">✕</span></div>
+      <div class="sph-faqa" data-qans="${q.id}" title="клик — изменить ответ">${ans}</div>
+    </div>`;
+  }).join('');
+  return block('🧩 Вопросы сферы', 'рефлексия → действие',
+    (rows || '<div class="empty">сформулируй ключевые вопросы сферы ↓</div>')
+    + `<div class="task finadd"><input class="sphqadd" data-qadd="${s.id}" placeholder="＋ вопрос сферы… · Enter"></div>`);
+}
+
 function sphDetail(s, i) {
   const col = colOf(i);
   let h = `<div class="sph-crumb"><a id="sphBack">← Сферы</a></div>
@@ -339,6 +383,7 @@ function sphDetail(s, i) {
   if (kpi) h += `<div class="sec">🔑 Ключевые сигналы <span class="muted" style="font-weight:400">· авто из данных${kpiMetrics.length ? ' + цели метрик' : ''}</span></div><div class="card"><div class="sphkpi">${kpi}</div></div>`;
   // путь к 10 — дорожная карта вехами (редактируется прямо тут)
   h += sphRoadmap(s);
+  h += sphFaq(s);
 
   // задачи сферы — с вложенностью, как в Целях; сворачиваемые (по умолчанию свёрнуто),
   // состояние сохраняется; работаем прямо тут (Сферы = рабочий раздел)
@@ -385,7 +430,9 @@ function sphDetail(s, i) {
   // рутины — пул с прогресс-баром (% месяц/год), не числом
   if (s.routines.length) h += block('↻ Рутины · пул', 'Рутины', s.routines.map(sphPoolRow).join(''));
   // трекинг — пул (как рутины); негативные метрики красным, рост = плохо
-  if (s.tracking.length) h += block('📊 Трекинг · пул', 'Трекинг', s.tracking.map(sphTrackPool).join(''));
+  h += block('📊 Трекинг · пул', 'Трекинг',
+    (s.tracking.length ? s.tracking.map(sphTrackPool).join('') : '<div class="empty">пока нет метрик ↓</div>')
+    + `<div class="task finadd"><input class="sphmadd" data-sphmadd="${s.id}" placeholder="＋ метрика: «вес», «оценка тревоги»… · Enter"></div>`);
   // практики — пул с прогресс-баром (% месяц/год)
   if (s.practices.length) h += block('🧠 Практики · пул', 'Психология', s.practices.map(sphPoolRow).join(''));
   // люди (социализация)
@@ -462,6 +509,71 @@ function bindDetail(s) {
     await sphApi.msAdd(+el.dataset.msadd, 5, el.value.trim());   // level не используется в прогресс-логике; прогресс стартует с 0
     window.loadSpheres();
   }));
+  // ===== метрики прямо в сфере: галочка / ввод значения / создание =====
+  document.querySelectorAll('#screen-spheres [data-sphmcheck]').forEach(el => el.onclick = async () => {
+    const [id, cur] = el.dataset.sphmcheck.split(':');
+    await sphApi.mVal(+id, cur === '1' ? 0 : 1);   // без date → сервер берёт ключ периода метрики
+    window.loadSpheres();
+  });
+  document.querySelectorAll('#screen-spheres [data-sphmval]').forEach(el => el.onclick = async () => {
+    const v = prompt('Значение за период:'); if (v == null) return;
+    const n = parseFloat(String(v).replace(',', '.')); if (isNaN(n)) return;
+    await sphApi.mVal(+el.dataset.sphmval, n); window.loadSpheres();
+  });
+  document.querySelectorAll('#screen-spheres [data-sphmadd]').forEach(el => el.addEventListener('keydown', async e => {
+    if (e.key !== 'Enter' || !el.value.trim()) return;
+    const name = el.value.trim();
+    const t = prompt('Тип метрики: 1 — оценка 1–10, 2 — число, 3 — галочка, 4 — счётчик', '1'); if (t == null) return;
+    const cad = ({ '1': 'daily', '2': 'weekly', '3': 'monthly' })[prompt('Частота: 1 — день, 2 — неделя (вс), 3 — месяц', '1')] || 'daily';
+    const body = { name, cadence: cad };
+    if (t === '4') {   // авто-счётчик: источник + период (по умолчанию месяц)
+      body.type = 'number';
+      body.source = ({ '1': 'milestones', '2': 'practices', '3': 'tasks', '4': 'routines' })[prompt('Считать: 1 — закрытые вехи, 2 — практики, 3 — задачи, 4 — рутины', '1')] || 'milestones';
+      if (cad === 'daily') body.cadence = 'monthly';
+    } else if (t === '3') { body.type = 'bool'; }
+    else { body.type = t === '2' ? 'number' : 'scale'; if (body.type === 'number') body.unit = (prompt('Единица (кг, €, шт…):') || '').trim(); }
+    const r = await sphApi.mAdd(body);
+    if (r && r.id) await sphApi.assign('metric', r.id, +el.dataset.sphmadd);
+    window.loadSpheres();
+  }));
+  // ===== FAQ сферы: CRUD + «→ задача» / «→ метрика» =====
+  document.querySelectorAll('#screen-spheres [data-qadd]').forEach(el => el.addEventListener('keydown', async e => {
+    if (e.key !== 'Enter' || !el.value.trim()) return;
+    await sphApi.qAdd(+el.dataset.qadd, el.value.trim(), ''); window.loadSpheres();
+  }));
+  document.querySelectorAll('#screen-spheres [data-qedit]').forEach(el => el.onclick = async () => {
+    const cur = el.textContent.trim(); const v = prompt('Вопрос:', cur === 'без вопроса' ? '' : cur); if (v == null) return;
+    await sphApi.qPatch(+el.dataset.qedit, { question: v }); window.loadSpheres();
+  });
+  document.querySelectorAll('#screen-spheres [data-qans]').forEach(el => el.onclick = async () => {
+    const q = (s.questions || []).find(x => x.id === +el.dataset.qans);
+    const v = prompt('Ответ:', q && q.answer ? q.answer : ''); if (v == null) return;
+    await sphApi.qPatch(+el.dataset.qans, { answer: v }); window.loadSpheres();
+  });
+  document.querySelectorAll('#screen-spheres [data-qdel]').forEach(el => el.onclick = async () => {
+    if (confirm('Удалить вопрос?')) { await sphApi.qDel(+el.dataset.qdel); window.loadSpheres(); }
+  });
+  document.querySelectorAll('#screen-spheres [data-qopen]').forEach(el => el.onclick = () => { if (window.openNode) window.openNode(+el.dataset.qopen); });
+  document.querySelectorAll('#screen-spheres [data-qtask]').forEach(el => el.onclick = async () => {
+    const qid = +el.dataset.qtask, q = (s.questions || []).find(x => x.id === qid);
+    const title = prompt('Задача из вопроса:', q ? q.question : ''); if (!title || !title.trim()) return;
+    const n = await sphApi.nodeAdd({ title: title.trim() });
+    if (n && n.id) {
+      await fetch('/api/nodes/' + n.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: 'task' }) });
+      await sphApi.assign('category', n.id, s.id);   // area_id ставится только через assign (не PATCH)
+      await sphApi.qPatch(qid, { node_id: n.id });
+    }
+    window.loadSpheres();
+  });
+  document.querySelectorAll('#screen-spheres [data-qmetric]').forEach(el => el.onclick = async () => {
+    const qid = +el.dataset.qmetric, q = (s.questions || []).find(x => x.id === qid);
+    const name = prompt('Метрика из вопроса:', q ? q.question : ''); if (!name || !name.trim()) return;
+    const t = prompt('Тип: 1 — оценка 1–10, 2 — число, 3 — галочка', '1'); if (t == null) return;
+    const cad = ({ '1': 'daily', '2': 'weekly', '3': 'monthly' })[prompt('Частота: 1 — день, 2 — неделя, 3 — месяц', '1')] || 'daily';
+    const r = await sphApi.mAdd({ name: name.trim(), cadence: cad, type: t === '3' ? 'bool' : (t === '2' ? 'number' : 'scale') });
+    if (r && r.id) { await sphApi.assign('metric', r.id, s.id); await sphApi.qPatch(qid, { metric_id: r.id }); }
+    window.loadSpheres();
+  });
   // клик по задаче — открыть в Целях (полная карточка: текст/заметки/связи)
   document.querySelectorAll('#screen-spheres [data-tnode]').forEach(el => el.onclick = () => { if (window.openNode) window.openNode(+el.dataset.tnode); });
   // клик по странице инфо — открыть нужную заметку в разделе Инфо
@@ -565,6 +677,11 @@ function ensureSphStyle() {
     .sph-rm.here{background:rgba(168,119,8,.08);border-radius:8px;margin:0 -8px;padding:6px 8px}.sph-rm.here .sph-rt{font-weight:700}
     .sph-rm .rowbtn{opacity:.55}.sph-rm:hover .rowbtn{opacity:1}   /* ✕ вехи всегда видна (строка не .task — иначе удалить нельзя) */
     .sph-rmbar{width:56px;flex:0 0 auto}
+    .sph-faq{padding:8px 0;border-top:1px solid var(--bg2)}.sph-faq:first-child{border-top:0}
+    .sph-faqq{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .sph-faqt{flex:1;min-width:120px;font-weight:600;font-size:13.5px;cursor:text}
+    .sph-faqa{margin-top:4px;font-size:13px;color:var(--muted);cursor:text;white-space:pre-wrap}
+    .sph-faq .rowbtn{opacity:.6}.sph-faq:hover .rowbtn{opacity:1}
     .catrow{display:flex;align-items:center;gap:10px;padding:5px 0;border-top:1px solid var(--bg2)}.catrow:first-child{border-top:0}
     .catt{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.catt.on{font-weight:700;color:var(--green)}
     .catrow select{flex:0 0 auto;max-width:190px;border:1px solid var(--line);border-radius:8px;padding:5px 8px;font:12.5px var(--sans);background:var(--bg)}

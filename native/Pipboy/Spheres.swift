@@ -27,6 +27,21 @@ extension Api {
             )
             """)
         _ = try? db.run("ALTER TABLE area_milestones ADD COLUMN progress INTEGER NOT NULL DEFAULT 0")   // прогресс вехи 0→10 (миграция старых баз)
+        // частота/источник метрик + даты закрытия для счётчиков «за период»
+        _ = try? db.run("ALTER TABLE metrics ADD COLUMN cadence TEXT NOT NULL DEFAULT 'daily'")        // daily|weekly|monthly
+        _ = try? db.run("ALTER TABLE metrics ADD COLUMN source TEXT")                                   // авто-счётчик: milestones|practices|tasks|routines (NULL = ручная)
+        _ = try? db.run("ALTER TABLE area_milestones ADD COLUMN completed_at TEXT")                     // дата закрытия вехи (progress>=10)
+        _ = try? db.run("ALTER TABLE nodes ADD COLUMN completed_at TEXT")                               // дата закрытия задачи (status done)
+        // FAQ сферы: вопрос→ответ, опц. связь с задачей/метрикой
+        _ = try? db.run("""
+            CREATE TABLE IF NOT EXISTS area_questions(
+              id INTEGER PRIMARY KEY,
+              area_id INTEGER NOT NULL REFERENCES wheel_areas(id) ON DELETE CASCADE,
+              question TEXT NOT NULL DEFAULT '', answer TEXT NOT NULL DEFAULT '',
+              node_id INTEGER, metric_id INTEGER,
+              ord INTEGER NOT NULL DEFAULT 0
+            )
+            """)
     }
 
     // ----- дефолты секций -----
@@ -136,6 +151,65 @@ extension Api {
         return expected > 0 ? min(100, Int((Double(done) / Double(expected) * 100).rounded())) : 0
     }
 
+    // ключ периода метрики (один лог на период): daily→день, weekly→воскресенье недели, monthly→1-е число
+    static func periodKey(_ cadence: String, _ base: Date = Date()) -> String {
+        let cal = Calendar.current
+        switch cadence {
+        case "weekly":
+            let wd = cal.component(.weekday, from: base)        // Apple Вс=1..Сб=7
+            let toSun = (8 - wd) % 7                            // дней до ближайшего воскресенья (Вс=0)
+            return sphIso(cal.date(byAdding: .day, value: toSun, to: base) ?? base)
+        case "monthly":
+            return sphIso(cal.date(from: cal.dateComponents([.year, .month], from: base)) ?? base)
+        default:
+            return sphIso(base)
+        }
+    }
+    // диапазон периода [start, end] (ISO) для заданного ключа/частоты — для счётчиков и итогов
+    static func periodRange(_ cadence: String, _ base: Date = Date()) -> (String, String) {
+        let cal = Calendar.current
+        switch cadence {
+        case "weekly":
+            let wd = cal.component(.weekday, from: base)
+            let toMon = (wd + 5) % 7                            // дней назад до понедельника
+            let mon = cal.date(byAdding: .day, value: -toMon, to: base) ?? base
+            return (sphIso(mon), sphIso(cal.date(byAdding: .day, value: 6, to: mon) ?? base))
+        case "monthly":
+            let first = cal.date(from: cal.dateComponents([.year, .month], from: base)) ?? base
+            let next = cal.date(byAdding: .month, value: 1, to: first) ?? base
+            return (sphIso(first), sphIso(cal.date(byAdding: .day, value: -1, to: next) ?? base))
+        default:
+            let d = sphIso(base); return (d, d)
+        }
+    }
+    // снап явной ISO-даты к ключу периода метрики (для записи значения за нужный период)
+    static func snapISO(_ cadence: String, _ iso: String) -> String {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; f.locale = Locale(identifier: "en_US_POSIX")
+        guard let d = f.date(from: String(iso.prefix(10))) else { return iso }
+        return periodKey(cadence, d)
+    }
+    // счётчик закрытого за период для counter-метрики (по источнику и сфере)
+    static func countClosed(_ db: Database, _ source: String, _ areaId: Int, _ from: String, _ to: String) -> Int {
+        let sql: String, params: [Any?]
+        switch source {
+        case "milestones":
+            sql = "SELECT COUNT(*) AS c FROM area_milestones WHERE area_id = ? AND completed_at IS NOT NULL AND completed_at >= ? AND completed_at <= ?"
+            params = [areaId, from, to]
+        case "tasks":
+            sql = "SELECT COUNT(*) AS c FROM nodes WHERE area_id = ? AND status IN ('done','accepted') AND completed_at IS NOT NULL AND completed_at >= ? AND completed_at <= ?"
+            params = [areaId, from, to]
+        case "practices":
+            sql = "SELECT COUNT(*) AS c FROM practice_log WHERE date >= ? AND date <= ? AND practice_id IN (SELECT id FROM practices WHERE area_id = ?)"
+            params = [from, to, areaId]
+        case "routines":
+            sql = "SELECT COUNT(*) AS c FROM routine_log WHERE date >= ? AND date <= ? AND routine_id IN (SELECT id FROM routines WHERE area_id = ?)"
+            params = [from, to, areaId]
+        default:
+            return 0
+        }
+        return (try? db.rows(sql, params))?.first?["c"] as? Int ?? 0
+    }
+
     // ===== главный сборщик =====
     static func buildSpheres(_ db: Database) throws -> [[String: Any]] {
         let areas = try db.rows("SELECT * FROM wheel_areas ORDER BY ord, id")
@@ -216,10 +290,7 @@ extension Api {
             // SELECT * — устойчиво к отсутствию колонки target (если миграция ещё не прошла,
             // не роняем весь сбор сфер; target просто будет NSNull)
             for m in try db.rows("SELECT * FROM metrics WHERE \(whereClause("metric", aid)) ORDER BY ord, id", [aid]) {
-                var blk = try sphMetricBlock(db, m["id"] as? Int ?? -1, m["name"] as? String ?? "", m["unit"] as? String ?? "", m["type"] as? String ?? "")
-                blk["target"] = m["target"] ?? NSNull()
-                blk["polarity"] = m["polarity"] ?? "plus"   // negative (minus) — рост = плохо, красным
-                tracking.append(blk)
+                tracking.append(try sphMetricBlock(db, m, aid))
             }
 
             // практики (психология) — пул, % за месяц/год; архивные не выводим
@@ -272,6 +343,14 @@ extension Api {
             let scoreVal: Any = sc.first?["score"] ?? NSNull()
             let prevVal: Any = sc.count > 1 ? (sc[1]["score"] ?? NSNull()) : NSNull()
             let milestones = (try? db.rows("SELECT id, level, title, progress FROM area_milestones WHERE area_id = ? ORDER BY ord, id", [aid])) ?? []   // прогресс-вехи; не роняем сбор, если таблицы ещё нет
+            // FAQ сферы: вопрос→ответ; для связанной задачи подтягиваем её статус для бейджа
+            let questions: [[String: Any]] = ((try? db.rows("SELECT id, question, answer, node_id, metric_id FROM area_questions WHERE area_id = ? ORDER BY ord, id", [aid])) ?? []).map { row in
+                var q = row
+                if let nid = row["node_id"] as? Int, let n = nodeById[nid] {
+                    q["node_status"] = n["status"] ?? NSNull(); q["node_title"] = n["title"] ?? NSNull()
+                }
+                return q
+            }
             result.append([
                 "id": aid, "name": aname,
                 "ideal": a["ideal"] ?? "", "current_desc": a["current_desc"] ?? "", "next_desc": a["next_desc"] ?? "", "step": a["step"] ?? "",
@@ -279,17 +358,81 @@ extension Api {
                 "history": Array(scores.reversed()),
                 "tasks": tasks, "routines": routines, "tracking": tracking, "practices": practices,
                 "people": people, "info": Array(info), "events": events, "fin": fin, "debts": debts, "steps": steps,
-                "finance": finance, "progress": progress, "milestones": milestones,
+                "finance": finance, "progress": progress, "milestones": milestones, "questions": questions,
             ])
           } catch { continue }   // одна проблемная сфера не валит весь экран Сфер
         }
         return result
     }
 
-    private static func sphMetricBlock(_ db: Database, _ id: Int, _ name: String, _ unit: String, _ type: String) throws -> [String: Any] {
-        let rows = Array(try db.rows("SELECT date, value FROM metric_log WHERE metric_id = ? ORDER BY date DESC LIMIT 7", [id]).reversed())
-        let s = rows.compactMap { ($0["value"] as? Double) ?? ($0["value"] as? Int).map(Double.init) }
-        return ["id": id, "name": name, "unit": unit, "type": type, "v": s.last ?? NSNull(), "s": s]
+    // ===== отчёты =====
+    // сводка по всем сферам за период: механический счёт закрытого (рутины/практики/вехи/задачи)
+    static func reportSpheres(_ db: Database, _ period: String) throws -> [String: Any] {
+        let cadence = period == "week" ? "weekly" : "monthly"
+        let (from, to) = periodRange(cadence)
+        var rows: [[String: Any]] = []
+        for a in try db.rows("SELECT id, name FROM wheel_areas ORDER BY ord, id") {
+            let aid = a["id"] as? Int ?? -1
+            rows.append([
+                "id": aid, "name": a["name"] as? String ?? "",
+                "routines": countClosed(db, "routines", aid, from, to),
+                "practices": countClosed(db, "practices", aid, from, to),
+                "milestones": countClosed(db, "milestones", aid, from, to),
+                "tasks": countClosed(db, "tasks", aid, from, to),
+            ])
+        }
+        return ["from": from, "to": to, "period": period, "rows": rows]
+    }
+    // месячная динамика: по каждой сфере серия средних оценок (wheel_scores) за N месяцев
+    static func reportDynamics(_ db: Database, _ months: Int) throws -> [String: Any] {
+        let n = max(1, min(24, months)); let cal = Calendar.current
+        var labels: [String] = []
+        for i in stride(from: n - 1, through: 0, by: -1) {
+            let d = cal.date(byAdding: .month, value: -i, to: Date()) ?? Date()
+            labels.append(String(sphIso(cal.date(from: cal.dateComponents([.year, .month], from: d)) ?? d).prefix(7)))
+        }
+        var series: [[String: Any]] = []
+        for a in try db.rows("SELECT id, name FROM wheel_areas ORDER BY ord, id") {
+            let aid = a["id"] as? Int ?? -1
+            let vals: [Any] = labels.map { ym in
+                let avg = (try? db.rows("SELECT AVG(score) AS a FROM wheel_scores WHERE area_id = ? AND substr(date,1,7) = ?", [aid, ym]))?.first?["a"]
+                return (avg as? Double).map { ($0 * 10).rounded() / 10 } ?? NSNull()
+            }
+            series.append(["id": aid, "name": a["name"] as? String ?? "", "values": vals])
+        }
+        return ["labels": labels, "series": series]
+    }
+
+    private static func sphMetricBlock(_ db: Database, _ m: [String: Any], _ aid: Int) throws -> [String: Any] {
+        let id = m["id"] as? Int ?? -1
+        let cadence = m["cadence"] as? String ?? "daily"
+        let source = (m["source"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+        var blk: [String: Any] = [
+            "id": id, "name": m["name"] as? String ?? "", "unit": m["unit"] as? String ?? "",
+            "type": m["type"] as? String ?? "number", "cadence": cadence,
+            "target": m["target"] ?? NSNull(), "polarity": m["polarity"] ?? "plus",
+            "source": source ?? NSNull(),
+        ]
+        if let src = source {
+            // авто-счётчик: значение = закрытое за период; серия по последним 6 периодам
+            let cal = Calendar.current
+            let unit: Calendar.Component = cadence == "monthly" ? .month : (cadence == "weekly" ? .weekOfYear : .day)
+            var series: [Double] = []
+            for i in stride(from: 5, through: 0, by: -1) {
+                let base = cal.date(byAdding: unit, value: -i, to: Date()) ?? Date()
+                let (from, to) = periodRange(cadence, base)
+                series.append(Double(countClosed(db, src, aid, from, to)))
+            }
+            blk["s"] = series; blk["v"] = series.last ?? 0; blk["cur"] = series.last ?? 0; blk["computed"] = true
+        } else {
+            // ручная метрика: последние 7 периодов + значение текущего периода (cur)
+            let rows = Array(try db.rows("SELECT date, value FROM metric_log WHERE metric_id = ? ORDER BY date DESC LIMIT 7", [id]).reversed())
+            let s = rows.compactMap { ($0["value"] as? Double) ?? ($0["value"] as? Int).map(Double.init) }
+            let pk = periodKey(cadence)
+            let cur = (try? db.rows("SELECT value FROM metric_log WHERE metric_id = ? AND date = ?", [id, pk]))?.first?["value"]
+            blk["s"] = s; blk["v"] = s.last ?? NSNull(); blk["cur"] = cur ?? NSNull(); blk["period"] = pk
+        }
+        return blk
     }
 
     // поддерево задач сферы (открытые + категории-предки), как в Целях

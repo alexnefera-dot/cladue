@@ -181,6 +181,8 @@ enum Api {
         // ----- Сферы -----
         if path == "/api/spheres" { return (try json(try buildSpheres(db)), 200) }
         if path == "/api/spheres/pool" { return (try json(try spherePool(db)), 200) }
+        if path == "/api/reports/spheres" { return (try json(try reportSpheres(db, queryValue(query, "period") ?? "month")), 200) }
+        if path == "/api/reports/dynamics" { return (try json(try reportDynamics(db, Int(queryValue(query, "months") ?? "6") ?? 6)), 200) }
         if path == "/api/spheres/tagpool" { return (try json(try sphereTagPool(db)), 200) }
         if path == "/api/spheres/categories" { return (try json(try sphereCategories(db)), 200) }
         // параметрические GET (карточка-инспектор узла)
@@ -405,10 +407,35 @@ enum Api {
             if method == "PATCH" {
                 if let t = body["title"] as? String { try db.run("UPDATE area_milestones SET title = ? WHERE id = ?", [t, id]) }
                 if body["level"] != nil { try db.run("UPDATE area_milestones SET level = ? WHERE id = ?", [max(1, min(10, Int(num(body["level"]).rounded()))), id]) }
-                if body["progress"] != nil { try db.run("UPDATE area_milestones SET progress = ? WHERE id = ?", [max(0, min(10, Int(num(body["progress"]).rounded()))), id]) }   // прогресс вехи 0→10
+                if body["progress"] != nil {
+                    let p = max(0, min(10, Int(num(body["progress"]).rounded())))
+                    try db.run("UPDATE area_milestones SET progress = ? WHERE id = ?", [p, id])   // прогресс вехи 0→10
+                    // дата закрытия (первая фиксируется, при откате <10 сбрасывается) — для счётчиков «закрытые вехи за период»
+                    if p >= 10 { try db.run("UPDATE area_milestones SET completed_at = COALESCE(completed_at, ?) WHERE id = ?", [localToday(), id]) }
+                    else { try db.run("UPDATE area_milestones SET completed_at = NULL WHERE id = ?", [id]) }
+                }
                 return (ok(), 200)
             }
             if method == "DELETE" { try db.run("DELETE FROM area_milestones WHERE id = ?", [id]); return (ok(), 200) }
+        }
+        // ----- FAQ сферы: вопрос→ответ (+ опц. связь с задачей/метрикой) -----
+        if method == "POST", path == "/api/spheres/question" {
+            guard let area = numOpt(body["areaId"]).map({ Int($0) }) else { return (try json(["error": "areaId required"]), 400) }
+            let q = (body["question"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let a = body["answer"] as? String ?? ""
+            let id = try db.run("INSERT INTO area_questions(area_id, question, answer, ord) VALUES(?,?,?, (SELECT COALESCE(MAX(ord),0)+1 FROM area_questions))", [area, q, a])
+            return (try json(["id": id]), 201)
+        }
+        if let m = match(path, "^/api/spheres/question/([0-9]+)$") {
+            let id = Int(m[1]) ?? -1
+            if method == "PATCH" {
+                if let q = body["question"] as? String { try db.run("UPDATE area_questions SET question = ? WHERE id = ?", [q, id]) }
+                if let a = body["answer"] as? String { try db.run("UPDATE area_questions SET answer = ? WHERE id = ?", [a, id]) }
+                if body["node_id"] != nil { try db.run("UPDATE area_questions SET node_id = ? WHERE id = ?", [numOpt(body["node_id"]).map { Int($0) }, id]) }
+                if body["metric_id"] != nil { try db.run("UPDATE area_questions SET metric_id = ? WHERE id = ?", [numOpt(body["metric_id"]).map { Int($0) }, id]) }
+                return (ok(), 200)
+            }
+            if method == "DELETE" { try db.run("DELETE FROM area_questions WHERE id = ?", [id]); return (ok(), 200) }
         }
         if method == "POST", path == "/api/nodes" {
             guard let title = (body["title"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -595,18 +622,23 @@ enum Api {
         if method == "POST", path == "/api/track/metrics" {
             guard let name = name(body) else { return (nameErr(), 400) }
             let ord = nextOrd(db, "SELECT COALESCE(MAX(ord),0)+1 AS o FROM metrics")
-            try db.run("INSERT INTO metrics(name, type, unit, ord, polarity) VALUES(?,?,?,?,?)",
-                [name, body["type"] as? String ?? "number", body["unit"] as? String ?? "", ord, body["polarity"] as? String ?? "plus"])
-            return (ok(201), 201)
+            let mid = try db.run("INSERT INTO metrics(name, type, unit, ord, polarity, cadence, source) VALUES(?,?,?,?,?,?,?)",
+                [name, body["type"] as? String ?? "number", body["unit"] as? String ?? "", ord, body["polarity"] as? String ?? "plus",
+                 body["cadence"] as? String ?? "daily", (body["source"] as? String).flatMap { $0.isEmpty ? nil : $0 }])
+            return (try json(["id": mid]), 201)
         }
         if let m = match(path, "^/api/track/metrics/([0-9]+)/value$"), method == "POST" {
+            let mid = Int(m[1]) ?? -1
+            let cadence = (try? db.rows("SELECT cadence FROM metrics WHERE id = ?", [mid]))?.first?["cadence"] as? String ?? "daily"
+            // дату снапим к ключу периода метрики (день/воскресенье/месяц) → одно значение на период
+            let date = (body["date"] as? String).map { snapISO(cadence, $0) } ?? periodKey(cadence)
             try db.run("INSERT INTO metric_log(metric_id, date, value) VALUES(?,?,?) ON CONFLICT(metric_id, date) DO UPDATE SET value = excluded.value",
-                [Int(m[1]) ?? -1, body["date"] as? String ?? localToday(), num(body["value"])])
+                [mid, date, num(body["value"])])
             return (ok(), 200)
         }
         if let m = match(path, "^/api/track/metrics/([0-9]+)$") {
             let id = Int(m[1]) ?? -1
-            if method == "PATCH" { try patchCols(db, "metrics", id, ["name", "type", "unit", "polarity", "target"], body); return (ok(), 200) }
+            if method == "PATCH" { try patchCols(db, "metrics", id, ["name", "type", "unit", "polarity", "target", "cadence", "source"], body); return (ok(), 200) }
             if method == "DELETE" { try db.run("DELETE FROM metrics WHERE id = ?", [id]); return (ok(), 200) }
         }
 
@@ -1830,6 +1862,9 @@ enum Api {
         }
         let res = try updateNode(db, id: id, fields: ["status": next])
         try db.run("UPDATE steps SET status = ? WHERE task_id = ?", [next == "done" ? "done" : "planned", id])
+        // дата закрытия задачи — для счётчиков «закрытые задачи за период»
+        if next == "done" || next == "accepted" { try? db.run("UPDATE nodes SET completed_at = COALESCE(completed_at, ?) WHERE id = ?", [localToday(), id]) }
+        else { try? db.run("UPDATE nodes SET completed_at = NULL WHERE id = ?", [id]) }
         return res
     }
 

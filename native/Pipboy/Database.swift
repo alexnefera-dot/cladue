@@ -146,7 +146,8 @@ final class Database {
           kind TEXT, status TEXT, priority TEXT, due_date TEXT,
           answer TEXT, "repeat" TEXT, due_time TEXT,
           created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
-          updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+          updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+          completed_at TEXT
         );
         CREATE TABLE IF NOT EXISTS links(
           id INTEGER PRIMARY KEY,
@@ -296,6 +297,15 @@ final class Database {
           area_id INTEGER NOT NULL REFERENCES wheel_areas(id) ON DELETE CASCADE,
           level INTEGER NOT NULL DEFAULT 5, title TEXT NOT NULL DEFAULT '',
           progress INTEGER NOT NULL DEFAULT 0,
+          ord INTEGER NOT NULL DEFAULT 0,
+          completed_at TEXT
+        );
+        CREATE TABLE IF NOT EXISTS area_questions(
+          id INTEGER PRIMARY KEY,
+          area_id INTEGER NOT NULL REFERENCES wheel_areas(id) ON DELETE CASCADE,
+          question TEXT NOT NULL DEFAULT '', answer TEXT NOT NULL DEFAULT '',
+          node_id INTEGER REFERENCES nodes(id) ON DELETE SET NULL,
+          metric_id INTEGER REFERENCES metrics(id) ON DELETE SET NULL,
           ord INTEGER NOT NULL DEFAULT 0
         );
         CREATE TABLE IF NOT EXISTS work_log(
@@ -317,7 +327,8 @@ final class Database {
         CREATE TABLE IF NOT EXISTS metrics(
           id INTEGER PRIMARY KEY, name TEXT NOT NULL, type TEXT NOT NULL DEFAULT 'number',
           unit TEXT NOT NULL DEFAULT '', ord INTEGER NOT NULL DEFAULT 0,
-          polarity TEXT NOT NULL DEFAULT 'plus', target REAL
+          polarity TEXT NOT NULL DEFAULT 'plus', target REAL,
+          cadence TEXT NOT NULL DEFAULT 'daily', source TEXT
         );
         CREATE TABLE IF NOT EXISTS metric_log(
           metric_id INTEGER NOT NULL REFERENCES metrics(id) ON DELETE CASCADE,

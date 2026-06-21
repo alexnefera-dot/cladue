@@ -897,7 +897,7 @@ function renderLockPane(scr) {
 }
 
 // ===== Переключение экранов =====
-const SCREENS = { today: 'loadToday', spheres: 'loadSpheres', list: null, fin: 'loadFin', cal: 'loadCal', people: 'loadPeople', routines: 'loadRoutines', notes: 'loadNotes', psy: 'loadPsy', track: 'loadTrack', settings: 'loadSettings' };
+const SCREENS = { today: 'loadToday', spheres: 'loadSpheres', reports: 'loadReports', list: null, fin: 'loadFin', cal: 'loadCal', people: 'loadPeople', routines: 'loadRoutines', notes: 'loadNotes', psy: 'loadPsy', track: 'loadTrack', settings: 'loadSettings' };
 window.showScreen = function (scr) {
   // незаконченная правка в Инфо дозаписывается при уходе с экрана
   if (scr !== 'notes' && window.ntFlush) { const f = window.ntFlush; window.ntFlush = null; f(); }
