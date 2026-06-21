@@ -455,7 +455,13 @@ function bindDetail(s) {
   document.querySelectorAll('#screen-spheres [data-msadd]').forEach(el => el.addEventListener('keydown', async e => {
     if (e.key !== 'Enter' || !el.value.trim()) return;
     const parts = el.value.trim().split(/\s+/); let level = parseInt(parts[0], 10), title;
-    if (level >= 1 && level <= 10) title = parts.slice(1).join(' '); else { level = (s.score ?? 0) + 1; title = el.value.trim(); }
+    if (level >= 1 && level <= 10) title = parts.slice(1).join(' ');
+    else {
+      // без явного уровня — следующий по порядку (выше всех вех и текущей оценки),
+      // чтобы вехи не слипались на одном уровне и «достиг» закрывал по одной
+      const top = Math.max(s.score ?? 0, ...(s.milestones || []).map(m => m.level || 0), 0);
+      level = top + 1; title = el.value.trim();
+    }
     await sphApi.msAdd(+el.dataset.msadd, Math.max(1, Math.min(10, level)), title.trim()); window.loadSpheres();
   }));
   // клик по задаче — открыть в Целях (полная карточка: текст/заметки/связи)
@@ -559,6 +565,7 @@ function ensureSphStyle() {
     .sph-rk{font:700 10px var(--mono);color:var(--muted);width:38px;flex:0 0 auto}
     .sph-rt{flex:1;min-width:0;cursor:text}.sph-rm.done .sph-rt{color:var(--muted);text-decoration:line-through}
     .sph-rm.here{background:rgba(168,119,8,.08);border-radius:8px;margin:0 -8px;padding:6px 8px}.sph-rm.here .sph-rt{font-weight:700}
+    .sph-rm .rowbtn{opacity:.55}.sph-rm:hover .rowbtn{opacity:1}   /* ✕ вехи всегда видна (строка не .task — иначе удалить нельзя) */
     .catrow{display:flex;align-items:center;gap:10px;padding:5px 0;border-top:1px solid var(--bg2)}.catrow:first-child{border-top:0}
     .catt{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.catt.on{font-weight:700;color:var(--green)}
     .catrow select{flex:0 0 auto;max-width:190px;border:1px solid var(--line);border-radius:8px;padding:5px 8px;font:12.5px var(--sans);background:var(--bg)}
