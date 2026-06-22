@@ -183,6 +183,9 @@ enum Api {
         if path == "/api/spheres/pool" { return (try json(try spherePool(db)), 200) }
         if path == "/api/reports/spheres" { return (try json(try reportSpheres(db, queryValue(query, "period") ?? "month")), 200) }
         if path == "/api/reports/dynamics" { return (try json(try reportDynamics(db, Int(queryValue(query, "months") ?? "6") ?? 6)), 200) }
+        if let m = match(path, "^/api/track/metrics/([0-9]+)/logs$") {   // все записи метрики (дата+значение) — просмотр/чистка
+            return (try json(try db.rows("SELECT date, value FROM metric_log WHERE metric_id = ? ORDER BY date DESC", [Int(m[1]) ?? -1])), 200)
+        }
         if path == "/api/spheres/tagpool" { return (try json(try sphereTagPool(db)), 200) }
         if path == "/api/spheres/categories" { return (try json(try sphereCategories(db)), 200) }
         // параметрические GET (карточка-инспектор узла)
@@ -625,11 +628,20 @@ enum Api {
             let mid = try db.run("INSERT INTO metrics(name, type, unit, ord, polarity, cadence, source) VALUES(?,?,?,?,?,?,?)",
                 [name, body["type"] as? String ?? "number", body["unit"] as? String ?? "", ord, body["polarity"] as? String ?? "plus",
                  body["cadence"] as? String ?? "daily", (body["source"] as? String).flatMap { $0.isEmpty ? nil : $0 }])
+            try db.run("DELETE FROM metric_log WHERE metric_id = ?", [mid])   // новая метрика стартует чистой (SQLite переиспользует id удалённых — старые записи не должны прилипнуть)
             return (try json(["id": mid]), 201)
         }
-        if let m = match(path, "^/api/track/metrics/([0-9]+)/value$"), method == "POST" {
+        if let m = match(path, "^/api/track/metrics/([0-9]+)/value$") {
             let mid = Int(m[1]) ?? -1
             let cadence = (try? db.rows("SELECT cadence FROM metrics WHERE id = ?", [mid]))?.first?["cadence"] as? String ?? "daily"
+            if method == "DELETE" {   // удалить запись за дату; без даты — очистить ВСЕ записи метрики
+                if let dRaw = body["date"] as? String {
+                    try db.run("DELETE FROM metric_log WHERE metric_id = ? AND date = ?", [mid, snapISO(cadence, dRaw)])
+                } else {
+                    try db.run("DELETE FROM metric_log WHERE metric_id = ?", [mid])
+                }
+                return (ok(), 200)
+            }
             // дату снапим к ключу периода метрики (день/воскресенье/месяц) → одно значение на период
             let date = (body["date"] as? String).map { snapISO(cadence, $0) } ?? periodKey(cadence)
             try db.run("INSERT INTO metric_log(metric_id, date, value) VALUES(?,?,?) ON CONFLICT(metric_id, date) DO UPDATE SET value = excluded.value",
