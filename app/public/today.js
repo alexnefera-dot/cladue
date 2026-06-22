@@ -21,6 +21,7 @@ const tdApi = {
   setSetting: (key, value) => fetch('/api/setting', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key, value }) }),
   setCheckin: (mood, note) => fetch('/api/track/checkin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mood, note }) }),
   practiceLog: id => fetch(`/api/psy/practices/${id}/log`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ note: '' }) }),
+  metricVal: (id, value) => fetch(`/api/track/metrics/${id}/value`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value }) }),
 };
 
 const tesc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -178,6 +179,30 @@ function tdFinance() {
     <div class="card">${body}</div>`;
 }
 
+// Оценить сегодня: метрики-оценки к внесению — дневные каждый день, недельные в воскресенье.
+// Результат пишется в метрику (mVal без даты → ключ периода), итоги месяца видны в Трекинге/отчётах.
+function tdMetricsDue() {
+  const spheres = Array.isArray(window.tdSpheres) ? window.tdSpheres : [];
+  const isSunday = new Date().getDay() === 0;
+  const seen = new Set(), due = [];
+  spheres.forEach(s => (s.tracking || []).forEach(m => {
+    if (seen.has(m.id)) return;
+    seen.add(m.id);
+    if (m.computed) return;                              // авто-счётчики не оцениваются вручную
+    if (m.cur !== null && m.cur !== undefined) return;   // уже оценено за текущий период
+    if (m.cadence === 'daily') due.push({ id: m.id, name: m.name, type: m.type, period: 'день' });
+    else if (m.cadence === 'weekly' && isSunday) due.push({ id: m.id, name: m.name, type: m.type, period: 'неделя' });
+  }));
+  if (!due.length) return '';
+  return `<div class="sec">📊 Оценить сегодня · ${due.length}</div>
+    <div class="card">${due.map(m => `<div class="task">
+      <span class="t">${tesc(m.name)} <span class="meta">· ${m.period}</span></span>
+      ${m.type === 'bool'
+        ? `<span class="pill btn" data-tdmcheck="${m.id}">отметить ✓</span>`
+        : `<span class="pill btn ok" data-tdmval="${m.id}" data-scale="${m.type === 'scale' ? '1' : '0'}">оценить</span>`}
+    </div>`).join('')}</div>`;
+}
+
 function taskLine(t) {
   return `<div class="task">
     <span class="cb ${t.kind === 'decision' ? 'dec' : ''}" data-tdtoggle="${t.id}"></span>
@@ -264,6 +289,7 @@ function renderToday() {
   <div class="card">${d.dueToday.map(taskLine).join('') ||
     '<div class="empty">сроков на сегодня нет — поставь дедлайны в Задачах</div>'}</div>
 
+  ${tdMetricsDue()}
   ${tdPractices()}
 
   <div class="fingrid" style="grid-template-columns:1fr 1fr">
@@ -375,6 +401,7 @@ function renderTodayMobile() {
       </div>`).join('') || '<div class="empty">добавь рутины в разделе ↻</div>'}
     ${rts.length > 6 ? `<div class="meta" style="cursor:pointer;padding-top:6px" data-tdgoto="routines">все ${rts.length} →</div>` : ''}</div>
 
+  ${tdMetricsDue()}
   ${tdPractices()}
 
   ${d.events.length ? `<div class="sec">События · сегодня и завтра</div>
@@ -444,6 +471,16 @@ function bindToday() {
     el.addEventListener('click', async () => { await tdApi.routineCheck(+el.dataset.tdroutine); window.loadToday(); }));
   document.querySelectorAll('#screen-today [data-tdpractice]').forEach(el =>
     el.addEventListener('click', async () => { await tdApi.practiceLog(+el.dataset.tdpractice); window.loadToday(); }));
+  document.querySelectorAll('#screen-today [data-tdmval]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const scale = el.dataset.scale === '1';
+      const v = prompt(scale ? 'Оценка 1–10:' : 'Значение:'); if (v == null) return;
+      let n = parseFloat(String(v).replace(',', '.')); if (isNaN(n)) return;
+      if (scale) n = Math.max(1, Math.min(10, Math.round(n)));
+      await tdApi.metricVal(+el.dataset.tdmval, n); window.loadToday();
+    }));
+  document.querySelectorAll('#screen-today [data-tdmcheck]').forEach(el =>
+    el.addEventListener('click', async () => { await tdApi.metricVal(+el.dataset.tdmcheck, 1); window.loadToday(); }));
   document.querySelectorAll('#screen-today [data-tdcontact]').forEach(el =>
     el.addEventListener('click', async () => { await tdApi.contacted(+el.dataset.tdcontact); window.loadToday(); }));
   document.querySelectorAll('#screen-today [data-tdevent]').forEach(el =>
