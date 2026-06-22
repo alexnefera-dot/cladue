@@ -37,7 +37,7 @@ window.loadToday = async function () {
     fetch('/api/psy').then(r => r.json()).catch(() => ({})),
   ]);
   window.tdSpheres = sph; window.tdRestList = rest;
-  window.tdPractices = Array.isArray(psy.practices) ? psy.practices : [];
+  window.tdPracticeList = Array.isArray(psy.practices) ? psy.practices : [];
   const el = document.getElementById('screen-today');
   // не белый экран: если /api/today не отдал нормальные данные — показываем причину
   if (!d || d.error || !d.progress || !Array.isArray(d.routines)) {
@@ -103,7 +103,7 @@ function ensureTdSphStyle() {
 
 // Практики дня (психология) — прямо на главной с отметкой (раньше было под замком 🔒).
 function tdPractices() {
-  const all = Array.isArray(window.tdPractices) ? window.tdPractices : [];
+  const all = Array.isArray(window.tdPracticeList) ? window.tdPracticeList : [];
   const today = all.filter(p => p.today && !p.archived);
   if (!today.length) return '';
   const done = today.filter(p => p.done).length;
