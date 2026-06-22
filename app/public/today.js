@@ -74,8 +74,32 @@ function tdRest() {
       ${todayList.length ? `<div style="margin-top:6px"><span class="pill btn" id="tdRestRoll">🎲 выбери и отдохни сейчас</span></div>` : ''}
     </div>`;
 }
-// иконка сферы: цветной кружок с первой буквой названия (без оценок — чтобы не накручивать себя)
+// эмодзи-иконка сферы по названию (автоподбор по ключевым словам)
+function sphEmoji(name) {
+  const n = (name || '').toLowerCase();
+  const map = [
+    [/здоров|спорт|тел[оа]|фитнес|трениров|питани|диет/, '💪'],
+    [/финанс|деньг|капитал|инвест|бюджет|доход|богат/, '💰'],
+    [/семь|дет[ие]|родител|жен[аы]|муж|брак/, '👨‍👩‍👧'],
+    [/социал|друз|общени|связи|нетворк/, '👥'],
+    [/дом|быт|жиль|квартир|ремонт|уют/, '🏠'],
+    [/психолог|майндсет|ментал|эмоци|тревог|осознан|медитац/, '🧠'],
+    [/работ|карьер|бизнес|дел[оа]|проект|професс/, '💼'],
+    [/будущ|перспектив|план|мечт|визи|стратег/, '🔭'],
+    [/отдых|хобби|кайф|развлеч|досуг|восстанов/, '🌴'],
+    [/развит|обучен|учеб|знани|образ|навык|курс|рост/, '📚'],
+    [/духов|смысл|вера|ценност/, '🕊️'],
+    [/отношен|любов|партн[её]р|пара|романт/, '❤️'],
+    [/путешеств|поездк|стран/, '✈️'],
+    [/творч|искусств|музык|креатив/, '🎨'],
+  ];
+  for (const [re, e] of map) if (re.test(n)) return e;
+  return null;
+}
+// иконка сферы: эмодзи на лёгком цветном фоне; если название не распознано — буква. Без оценок (не накручивать себя)
 function tdSphIcon(name, col, size = 36) {
+  const e = sphEmoji(name);
+  if (e) return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${col}22;display:flex;align-items:center;justify-content:center;font-size:${Math.round(size * 0.5)}px;flex:0 0 auto">${e}</div>`;
   const ch = (name || '?').trim().charAt(0).toUpperCase();
   return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${col};color:#fff;display:flex;align-items:center;justify-content:center;font:700 ${Math.round(size * 0.42)}px var(--mono);flex:0 0 auto">${tesc(ch)}</div>`;
 }
