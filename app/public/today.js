@@ -186,6 +186,7 @@ function tdMetricsDue() {
   const isSunday = new Date().getDay() === 0;
   const seen = new Set(), due = [];
   spheres.forEach(s => (s.tracking || []).forEach(m => {
+    if (!m.own) return;                                  // только метрики, ЯВНО привязанные к сфере (не общие, подтянутые по дефолту секции)
     if (seen.has(m.id)) return;
     seen.add(m.id);
     if (m.computed) return;                              // авто-счётчики не оцениваются вручную

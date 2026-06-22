@@ -412,6 +412,7 @@ extension Api {
             "type": m["type"] as? String ?? "number", "cadence": cadence,
             "target": m["target"] ?? NSNull(), "polarity": m["polarity"] ?? "plus",
             "source": source ?? NSNull(),
+            "own": (m["area_id"] as? Int) == aid,   // метрика ЯВНО привязана к этой сфере (а не подтянута по дефолту секции)
         ]
         if let src = source {
             // авто-счётчик: значение = закрытое за период; серия по последним 6 периодам
