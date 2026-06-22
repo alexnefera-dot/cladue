@@ -185,19 +185,21 @@ function tdMetricsDue() {
   const spheres = Array.isArray(window.tdSpheres) ? window.tdSpheres : [];
   const isSunday = new Date().getDay() === 0;
   const seen = new Set(), due = [];
-  spheres.forEach(s => (s.tracking || []).forEach(m => {
+  spheres.forEach((s, si) => (s.tracking || []).forEach(m => {
     if (!m.own) return;                                  // только метрики, ЯВНО привязанные к сфере (не общие, подтянутые по дефолту секции)
     if (seen.has(m.id)) return;
     seen.add(m.id);
     if (m.computed) return;                              // авто-счётчики не оцениваются вручную
     if (m.cur !== null && m.cur !== undefined) return;   // уже оценено за текущий период
-    if (m.cadence === 'daily') due.push({ id: m.id, name: m.name, type: m.type, period: 'день' });
-    else if (m.cadence === 'weekly' && isSunday) due.push({ id: m.id, name: m.name, type: m.type, period: 'неделя' });
+    const meta = { id: m.id, name: m.name, type: m.type, sphere: s.name, col: TDSPH_COL[si % TDSPH_COL.length] };
+    if (m.cadence === 'daily') due.push({ ...meta, period: 'день' });
+    else if (m.cadence === 'weekly' && isSunday) due.push({ ...meta, period: 'неделя' });
   }));
   if (!due.length) return '';
   return `<div class="sec">📊 Оценить сегодня · ${due.length}</div>
-    <div class="card">${due.map(m => `<div class="task">
-      <span class="t">${tesc(m.name)} <span class="meta">· ${m.period}</span></span>
+    <div class="card">${due.map(m => `<div class="task" style="gap:10px">
+      ${tdSphIcon(m.sphere, m.col, 24)}
+      <span class="t">${tesc(m.name)} <span class="meta">· ${tesc(m.sphere)} · ${m.period}</span></span>
       ${m.type === 'bool'
         ? `<span class="pill btn" data-tdmcheck="${m.id}">отметить ✓</span>`
         : `<span class="pill btn ok" data-tdmval="${m.id}" data-scale="${m.type === 'scale' ? '1' : '0'}">оценить</span>`}
