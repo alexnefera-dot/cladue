@@ -20,6 +20,7 @@ const tdApi = {
   add: b => fetch('/api/nodes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }),
   setSetting: (key, value) => fetch('/api/setting', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key, value }) }),
   setCheckin: (mood, note) => fetch('/api/track/checkin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mood, note }) }),
+  practiceLog: id => fetch(`/api/psy/practices/${id}/log`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ note: '' }) }),
 };
 
 const tesc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -28,13 +29,15 @@ const MON = ['января', 'февраля', 'марта', 'апреля', 'м
 
 const TDSPH_COL = ['#1e9e57', '#c43f3f', '#a87708', '#6b4fb5', '#2a76b5', '#364656'];
 window.loadToday = async function () {
-  let d, sph = [], rest = [];
-  [d, sph, rest] = await Promise.all([
+  let d, sph = [], rest = [], psy = {};
+  [d, sph, rest, psy] = await Promise.all([
     tdApi.get().catch(e => ({ error: String(e) })),
     fetch('/api/spheres').then(r => r.json()).then(x => Array.isArray(x) ? x : []).catch(() => []),
     fetch('/api/rest').then(r => r.json()).then(x => Array.isArray(x) ? x : []).catch(() => []),
+    fetch('/api/psy').then(r => r.json()).catch(() => ({})),
   ]);
   window.tdSpheres = sph; window.tdRestList = rest;
+  window.tdPractices = Array.isArray(psy.practices) ? psy.practices : [];
   const el = document.getElementById('screen-today');
   // не белый экран: если /api/today не отдал нормальные данные — показываем причину
   if (!d || d.error || !d.progress || !Array.isArray(d.routines)) {
@@ -69,13 +72,12 @@ function tdRest() {
       ${todayList.length ? `<div style="margin-top:6px"><span class="pill btn" id="tdRestRoll">🎲 выбери и отдохни сейчас</span></div>` : ''}
     </div>`;
 }
-// Фокус дня: по одному шагу из ключевых (проседающих) сфер — до 5. Клик — внутрь сферы.
+// Фокус дня: по одному шагу из КАЖДОЙ сферы, в твоём порядке (как в разделе «Сферы»). Клик — внутрь сферы.
 function tdSphStrip() {
-  const list = (Array.isArray(window.tdSpheres) ? window.tdSpheres : []).slice()
-    .sort((a, b) => (a.score ?? 10) - (b.score ?? 10)).slice(0, 5);   // до 5, самые проседающие — выше
+  const list = (Array.isArray(window.tdSpheres) ? window.tdSpheres : []).slice();   // все сферы в своём порядке (ord)
   if (!list.length) return '';
   ensureTdSphStyle();
-  return `<div class="sec" style="margin-top:0">🎯 Фокус дня · по шагу из ключевых сфер</div>
+  return `<div class="sec" style="margin-top:0">🎯 Фокус дня · по шагу из сфер</div>
     <div class="card">${list.map((s, i) => `<div class="task tdfoc" data-sphopen="${s.id}">
       <span class="tdfoc-d" style="background:${TDSPH_COL[i % TDSPH_COL.length]}"></span>
       <span class="t">${s.step ? tesc(s.step) : '<span class="muted">шаг не задан — открой сферу</span>'}<div class="tdfoc-s">${tesc(s.name)} · ${s.score ?? '–'}/10</div></span>
@@ -97,6 +99,21 @@ function ensureTdSphStyle() {
     .tdfoc-s{font-size:11.5px;color:var(--muted);margin-top:2px}
     @media(max-width:768px){.tdsph-c{width:158px;padding:9px 10px}.tdsph-n{font-size:12.5px}}`;
   document.head.appendChild(st);
+}
+
+// Практики дня (психология) — прямо на главной с отметкой (раньше было под замком 🔒).
+function tdPractices() {
+  const all = Array.isArray(window.tdPractices) ? window.tdPractices : [];
+  const today = all.filter(p => p.today && !p.archived);
+  if (!today.length) return '';
+  const done = today.filter(p => p.done).length;
+  return `<div class="sec">🧠 Практики сегодня · ${done}/${today.length}</div>
+    <div class="card">${today.map(p => `<div class="task">
+      <span class="cb ${p.done ? 'done' : ''}"${p.done ? '' : ` data-tdpractice="${p.id}"`}></span>
+      ${p.time ? `<span class="meta num">${tesc(p.time)}</span>` : ''}
+      <span class="t ${p.done ? 'done' : ''}">${tesc(p.name)}</span>
+      ${p.streak ? `<span class="meta">🔥 ${p.streak}</span>` : ''}
+    </div>`).join('')}</div>`;
 }
 
 function taskLine(t) {
@@ -185,6 +202,8 @@ function renderToday() {
   <div class="card">${d.dueToday.map(taskLine).join('') ||
     '<div class="empty">сроков на сегодня нет — поставь дедлайны в Задачах</div>'}</div>
 
+  ${tdPractices()}
+
   <div class="fingrid" style="grid-template-columns:1fr 1fr">
     <div>
       <div class="sec" style="margin-top:0">События · сегодня и завтра</div>
@@ -211,8 +230,6 @@ function renderToday() {
       <div class="sec" style="margin-top:0">Приватные зоны</div>
       <div class="lockcard" data-tdgoto="fin" style="cursor:pointer">🔒 <div><b>Финансы:</b> платежей на неделе: ${d.zones.paymentsWeek}${d.zones.debtsOverdue ? ` · просроченных долгов: ${d.zones.debtsOverdue}` : ''}<br>
         <span class="meta">суммы скрыты · клик — открыть раздел (в нативной версии — по паролю)</span></div></div>
-      <div class="lockcard" data-tdgoto="psy" style="margin-top:10px;cursor:pointer">🔒 <div><b>Психология:</b> практик сегодня: ${d.zones.practicesToday ?? 0}<br>
-        <span class="meta">детали скрыты · клик — открыть раздел</span></div></div>
       <div class="sec">▲ Движение недели</div>
       <div class="card">
         ${d.movement.top.map(([cat, n]) => `<div class="task">
@@ -298,6 +315,8 @@ function renderTodayMobile() {
       </div>`).join('') || '<div class="empty">добавь рутины в разделе ↻</div>'}
     ${rts.length > 6 ? `<div class="meta" style="cursor:pointer;padding-top:6px" data-tdgoto="routines">все ${rts.length} →</div>` : ''}</div>
 
+  ${tdPractices()}
+
   ${d.events.length ? `<div class="sec">События · сегодня и завтра</div>
   <div class="card">
     ${d.events.map(e => `<div class="task">
@@ -319,8 +338,6 @@ function renderTodayMobile() {
   <div class="sec">Приватные зоны</div>
   <div class="lockcard" data-tdgoto="fin" style="cursor:pointer">🔒 <div><b>Финансы:</b> платежей на неделе: ${d.zones.paymentsWeek}${d.zones.debtsOverdue ? ` · просрочено долгов: ${d.zones.debtsOverdue}` : ''}<br>
     <span class="meta">суммы скрыты · клик — открыть</span></div></div>
-  <div class="lockcard" data-tdgoto="psy" style="margin-top:8px;cursor:pointer">🔒 <div><b>Психология:</b> практик сегодня: ${d.zones.practicesToday ?? 0}<br>
-    <span class="meta">детали скрыты · клик — открыть</span></div></div>
 
   <div class="sec">Фокус месяца · цели недели</div>
   <div class="card">
@@ -367,6 +384,8 @@ function bindToday() {
     }));
   document.querySelectorAll('#screen-today [data-tdroutine]').forEach(el =>
     el.addEventListener('click', async () => { await tdApi.routineCheck(+el.dataset.tdroutine); window.loadToday(); }));
+  document.querySelectorAll('#screen-today [data-tdpractice]').forEach(el =>
+    el.addEventListener('click', async () => { await tdApi.practiceLog(+el.dataset.tdpractice); window.loadToday(); }));
   document.querySelectorAll('#screen-today [data-tdcontact]').forEach(el =>
     el.addEventListener('click', async () => { await tdApi.contacted(+el.dataset.tdcontact); window.loadToday(); }));
   document.querySelectorAll('#screen-today [data-tdevent]').forEach(el =>
