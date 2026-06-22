@@ -825,19 +825,7 @@ function refreshLockBadges() {
   });
 }
 
-// группа «Ещё» (Люди, Рутины): свёрнута по умолчанию, состояние запоминается
-{
-  const box = () => document.getElementById('navMoreBox');
-  const caret = () => document.getElementById('navMoreCaret');
-  const setOpen = open => {
-    box().style.display = open ? 'block' : 'none';
-    caret().textContent = open ? '▾' : '▸';
-    localStorage.navMore = open ? '1' : '0';
-  };
-  setOpen(localStorage.navMore === '1');
-  document.getElementById('navMore').addEventListener('click', () =>
-    setOpen(box().style.display === 'none'));
-}
+// Люди и Рутины — постоянно в навигации (группа «Ещё» убрана)
 
 const wbB64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
 const wbUn = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
@@ -897,7 +885,7 @@ function renderLockPane(scr) {
 }
 
 // ===== Переключение экранов =====
-const SCREENS = { today: 'loadToday', spheres: 'loadSpheres', reports: 'loadReports', list: null, fin: 'loadFin', cal: 'loadCal', people: 'loadPeople', routines: 'loadRoutines', notes: 'loadNotes', psy: 'loadPsy', track: 'loadTrack', settings: 'loadSettings' };
+const SCREENS = { today: 'loadToday', spheres: 'loadSpheres', list: null, fin: 'loadFin', cal: 'loadCal', people: 'loadPeople', routines: 'loadRoutines', notes: 'loadNotes', psy: 'loadPsy', track: 'loadTrack', settings: 'loadSettings' };
 window.showScreen = function (scr) {
   // незаконченная правка в Инфо дозаписывается при уходе с экрана
   if (scr !== 'notes' && window.ntFlush) { const f = window.ntFlush; window.ntFlush = null; f(); }
@@ -907,11 +895,6 @@ window.showScreen = function (scr) {
   const locked = window.isLocked(scr);
   document.querySelectorAll('.side .item').forEach(i =>
     i.classList.toggle('active', i.dataset.screen === scr));
-  if (scr === 'people' || scr === 'routines') {
-    document.getElementById('navMoreBox').style.display = 'block';
-    document.getElementById('navMoreCaret').textContent = '▾';
-    localStorage.navMore = '1';
-  }
   for (const key of Object.keys(SCREENS))
     document.getElementById('screen-' + key).style.display = (!locked && key === scr) ? 'block' : 'none';
   document.getElementById('lockpane').style.display = locked ? 'block' : 'none';

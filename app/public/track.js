@@ -34,7 +34,7 @@ function renderTrack() {
   const avg7 = d.checkins.filter(c => c.date >= (d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)(new Date(Date.now() - 7 * 864e5)));
 
   document.getElementById('screen-track').innerHTML = `
-  <h2 style="margin-bottom:2px">Трекинг</h2>
+  <h2 style="margin-bottom:2px">Трекинг и отчёты</h2>
   <div class="muted" style="margin-bottom:14px">кастомный и без фанатизма: трекай только то, что сам создал; пропуски — норма</div>
 
   <div class="fingrid" style="grid-template-columns:1fr 2fr">
@@ -77,8 +77,10 @@ function renderTrack() {
         <span class="meta">${mt.total} зап.</span>
       </div>`).join('')}
   </div>` : ''}
-  <div class="footer-hint">Клик по ячейке — отметка/значение за тот день (можно задним числом). Клик по заголовку — переименовать, ✕ — удалить колонку с историей.</div>`;
+  <div class="footer-hint">Клик по ячейке — отметка/значение за тот день (можно задним числом). Клик по заголовку — переименовать, ✕ — удалить колонку с историей.</div>
+  <div id="trackReports" style="margin-top:18px"></div>`;
   bindTrack();
+  window.loadReports?.();   // отчёты встроены прямо под трекингом (объединены в один раздел)
 }
 
 // итоги по месяцам: динамика одной строкой на месяц
