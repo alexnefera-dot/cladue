@@ -74,16 +74,28 @@ function tdRest() {
       ${todayList.length ? `<div style="margin-top:6px"><span class="pill btn" id="tdRestRoll">🎲 выбери и отдохни сейчас</span></div>` : ''}
     </div>`;
 }
-// Фокус дня: по одному шагу из КАЖДОЙ сферы, в твоём порядке (как в разделе «Сферы»). Клик — внутрь сферы.
+// кольцо-оценка сферы: дуга = score/10, число внутри, цвет сферы
+function tdRing(score, col, size = 38) {
+  const r = size / 2 - 3, C = 2 * Math.PI * r, sc = Math.max(0, Math.min(10, score ?? 0));
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="flex:0 0 auto" aria-hidden="true">
+    <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="var(--bg2)" stroke-width="3.5"/>
+    <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${col}" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - sc / 10)).toFixed(1)}" transform="rotate(-90 ${size / 2} ${size / 2})"/>
+    <text x="${size / 2}" y="${size / 2}" text-anchor="middle" dominant-baseline="central" style="font:700 ${Math.round(size * 0.34)}px var(--mono);fill:var(--text)">${score ?? '–'}</text>
+  </svg>`;
+}
+// Фокус дня: по одной сфере — кольцо-оценка слева, название + шаг справа. Клик — внутрь сферы.
 function tdSphStrip() {
   const list = (Array.isArray(window.tdSpheres) ? window.tdSpheres : []).slice();   // все сферы в своём порядке (ord)
   if (!list.length) return '';
   ensureTdSphStyle();
-  return `<div class="sec" style="margin-top:0">🎯 Фокус дня · по шагу из сфер</div>
-    <div class="card">${list.map((s, i) => `<div class="task tdfoc" data-sphopen="${s.id}">
-      <span class="tdfoc-d" style="background:${TDSPH_COL[i % TDSPH_COL.length]}"></span>
-      <span class="t">${s.step ? tesc(s.step) : '<span class="muted">шаг не задан — открой сферу</span>'}<div class="tdfoc-s">${tesc(s.name)} · ${s.score ?? '–'}/10</div></span>
-      <span class="meta">→</span></div>`).join('')}</div>`;
+  return `<div class="sec" style="margin-top:0">🎯 Фокус дня · по сферам</div>
+    <div class="card">${list.map((s, i) => `<div class="tdfoc" data-sphopen="${s.id}">
+      ${tdRing(s.score, TDSPH_COL[i % TDSPH_COL.length])}
+      <div class="tdfoc-txt">
+        <div class="tdfoc-n">${tesc(s.name)}</div>
+        <div class="tdfoc-s">${s.step ? tesc(s.step) : '<span class="muted">шаг не задан — открой сферу</span>'}</div>
+      </div>
+      <span class="tdfoc-arr">›</span></div>`).join('')}</div>`;
 }
 function ensureTdSphStyle() {
   if (document.getElementById('tdsph-style')) return;
@@ -97,8 +109,12 @@ function ensureTdSphStyle() {
     .tdsph-x{font-size:12px;color:var(--muted);margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .tdsph-bar{height:5px;border-radius:99px;background:var(--bg2);overflow:hidden;margin-top:7px}.tdsph-bar i{display:block;height:100%}
     .tdsph-m{font:600 10.5px var(--mono);color:var(--green);margin-top:4px}
-    .tdfoc{cursor:pointer}.tdfoc-d{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
-    .tdfoc-s{font-size:11.5px;color:var(--muted);margin-top:2px}
+    .tdfoc{display:flex;align-items:center;gap:12px;padding:10px 4px;border-top:1px solid var(--bg2);cursor:pointer}
+    .tdfoc:first-child{border-top:0}
+    .tdfoc-txt{flex:1;min-width:0}
+    .tdfoc-n{font-size:14.5px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .tdfoc-s{font-size:12.5px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .tdfoc-arr{color:var(--muted);font-size:20px;flex:0 0 auto;line-height:1}
     @media(max-width:768px){.tdsph-c{width:158px;padding:9px 10px}.tdsph-n{font-size:12.5px}}`;
   document.head.appendChild(st);
 }
