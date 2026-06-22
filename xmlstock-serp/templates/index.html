@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XMLStock SERP — ТОП выдачи Яндекса</title>
+<style>
+  :root { --bg:#0f1419; --card:#1a2029; --line:#2b3440; --txt:#e6edf3; --muted:#9aa7b4;
+          --acc:#ffcc00; --acc2:#3b82f6; --ok:#3fb950; --err:#f85149; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt);
+         font:14px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif; }
+  .wrap { max-width:1040px; margin:0 auto; padding:24px 18px 60px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  h1 span { color:var(--acc); }
+  .sub { color:var(--muted); margin:0 0 20px; font-size:13px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px;
+          padding:18px; margin-bottom:16px; }
+  label { display:block; font-size:12px; color:var(--muted); margin-bottom:4px; }
+  input, select, textarea { width:100%; background:#0d1117; color:var(--txt);
+          border:1px solid var(--line); border-radius:8px; padding:9px 10px; font-size:14px; }
+  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--acc2); }
+  textarea { resize:vertical; min-height:200px; font-family:ui-monospace,Menlo,Consolas,monospace; }
+  .grid { display:grid; gap:12px; }
+  .g2 { grid-template-columns:1fr 1fr; }
+  .g3 { grid-template-columns:1fr 1fr 1fr; }
+  .g4 { grid-template-columns:repeat(4,1fr); }
+  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  button { cursor:pointer; border:none; border-radius:8px; padding:10px 18px;
+           font-size:14px; font-weight:600; }
+  .btn-go { background:var(--acc); color:#1a1a1a; }
+  .btn-go:disabled { opacity:.5; cursor:not-allowed; }
+  .btn-ghost { background:transparent; color:var(--txt); border:1px solid var(--line); }
+  .btn-dl { background:var(--ok); color:#06210e; }
+  .btn-cancel { background:transparent; color:var(--err); border:1px solid var(--err); }
+  .hint { font-size:12px; color:var(--muted); margin-top:6px; }
+  a { color:var(--acc2); }
+  .bar { height:10px; background:#0d1117; border-radius:6px; overflow:hidden; border:1px solid var(--line); }
+  .bar > i { display:block; height:100%; width:0; background:var(--acc2); transition:width .3s; }
+  .stat { display:flex; gap:22px; flex-wrap:wrap; margin:12px 0; font-size:13px; }
+  .stat b { font-size:18px; display:block; }
+  .stat .ok b { color:var(--ok); } .stat .er b { color:var(--err); }
+  .log { max-height:240px; overflow:auto; font-family:ui-monospace,Menlo,Consolas,monospace;
+         font-size:12px; background:#0d1117; border:1px solid var(--line); border-radius:8px; padding:10px; }
+  .log div { padding:1px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .log .e { color:var(--err); } .log .z { color:var(--muted); }
+  .msg { padding:10px 12px; border-radius:8px; margin-bottom:12px; font-size:13px; }
+  .msg.err { background:rgba(248,81,73,.12); border:1px solid var(--err); color:#ffb3ae; }
+  .hidden { display:none; }
+  .count { float:right; color:var(--muted); font-weight:400; }
+  details summary { cursor:pointer; color:var(--muted); font-size:13px; }
+  fieldset { border:1px solid var(--line); border-radius:8px; padding:12px; margin:0; }
+  legend { color:var(--muted); font-size:12px; padding:0 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>XMLStock <span>SERP</span> — выгрузка ТОП выдачи</h1>
+  <p class="sub">Локальный сбор ТОП-N результатов Яндекса (живая выдача) по списку ключей через API xmlstock.com.</p>
+
+  <div id="msg" class="msg err hidden"></div>
+
+  <!-- НАСТРОЙКИ -->
+  <div class="card" id="form">
+    <fieldset style="margin-bottom:14px">
+      <legend>Доступ xmlstock</legend>
+      <div class="grid g2">
+        <div><label>User ID</label><input id="user" placeholder="например 12345"></div>
+        <div><label>API key</label><input id="key" placeholder="ваш ключ из кабинета"></div>
+      </div>
+      <div class="hint">Берётся в личном кабинете xmlstock.com → раздел API. Сохраняется только в этом браузере (localStorage).</div>
+    </fieldset>
+
+    <fieldset style="margin-bottom:14px">
+      <legend>Параметры поиска</legend>
+      <div class="grid g4">
+        <div>
+          <label>Движок</label>
+          <select id="engine">
+            <option value="yandex_live" selected>Яндекс — Live (живая выдача)</option>
+            <option value="yandex_xml">Яндекс — XML лимиты</option>
+            <option value="google_live">Google — Live</option>
+            <option value="google_xml">Google — XML</option>
+            <option value="custom">Свой URL…</option>
+          </select>
+        </div>
+        <div>
+          <label>Регион (lr)</label>
+          <input id="lr" value="213" placeholder="213 = Москва">
+        </div>
+        <div>
+          <label>Домен</label>
+          <input id="domain" placeholder="ru / com (необяз.)">
+        </div>
+        <div>
+          <label>Устройство</label>
+          <select id="device">
+            <option value="">— по умолчанию —</option>
+            <option value="desktop">Десктоп</option>
+            <option value="mobile">Мобайл</option>
+            <option value="tablet">Планшет</option>
+          </select>
+        </div>
+      </div>
+      <div id="customWrap" class="hidden" style="margin-top:12px">
+        <label>Свой URL эндпоинта</label>
+        <input id="endpoint" placeholder="https://xmlstock.com/yandex/live/">
+        <div class="hint">Вставьте точный адрес из вашего кабинета, если стандартный не подходит.</div>
+      </div>
+    </fieldset>
+
+    <details style="margin-bottom:14px">
+      <summary>Дополнительно (скорость, ретраи)</summary>
+      <div class="grid g4" style="margin-top:12px">
+        <div><label>ТОП, шт. (1–50)</label><input id="top_n" type="number" value="10" min="1" max="50"></div>
+        <div><label>Параллельно (1–20)</label><input id="workers" type="number" value="5" min="1" max="20"></div>
+        <div><label>Пауза, сек</label><input id="delay" type="number" value="0" min="0" step="0.1"></div>
+        <div><label>Ретраи</label><input id="retries" type="number" value="2" min="0" max="5"></div>
+      </div>
+      <div class="hint">Если xmlstock возвращает ошибки лимита (RPS) — уменьшите «Параллельно» или добавьте «Паузу».</div>
+    </details>
+
+    <label>Запросы — по одному в строке <span class="count" id="qcount">0</span></label>
+    <textarea id="queries" placeholder="купить окна в москве&#10;пластиковые окна цена&#10;остекление балкона&#10;..."></textarea>
+    <div class="hint">Можно вставить 200–300 ключей разом. Дубликаты убираются автоматически.</div>
+
+    <div class="row" style="margin-top:16px">
+      <button class="btn-go" id="go">▶ Запустить сбор</button>
+      <button class="btn-ghost" id="clear">Очистить запросы</button>
+    </div>
+  </div>
+
+  <!-- ПРОГРЕСС -->
+  <div class="card hidden" id="progress">
+    <div class="bar"><i id="barFill"></i></div>
+    <div class="stat">
+      <div><span class="muted">Готово</span><b id="sDone">0 / 0</b></div>
+      <div class="ok"><span class="muted">Статус</span><b id="sStatus">—</b></div>
+      <div class="er"><span class="muted">Ошибки</span><b id="sErr">0</b></div>
+    </div>
+    <div class="row" style="margin-bottom:12px">
+      <button class="btn-dl hidden" id="dlXlsx">⬇ Скачать XLSX</button>
+      <button class="btn-dl hidden" id="dlCsv">⬇ Скачать CSV</button>
+      <button class="btn-cancel hidden" id="cancel">■ Остановить</button>
+    </div>
+    <label>Лента обработки (последние)</label>
+    <div class="log" id="log"></div>
+  </div>
+
+  <p class="sub" style="text-align:center">
+    Запущено локально на вашем компьютере · данные никуда не уходят, кроме API xmlstock.
+  </p>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const FIELDS = ["user","key","engine","lr","domain","device","endpoint","top_n","workers","delay","retries","queries"];
+
+// --- сохранение/восстановление настроек ---
+function save(){ const o={}; FIELDS.forEach(f=>o[f]=$(f).value); localStorage.setItem("xmlstock_serp", JSON.stringify(o)); }
+function load(){
+  try{ const o=JSON.parse(localStorage.getItem("xmlstock_serp")||"{}");
+    FIELDS.forEach(f=>{ if(o[f]!==undefined && $(f)) $(f).value=o[f]; }); }catch(e){}
+}
+load();
+FIELDS.forEach(f=> $(f) && $(f).addEventListener("input", save));
+
+function countQ(){
+  const n = $("queries").value.split("\n").map(s=>s.trim()).filter(Boolean).length;
+  $("qcount").textContent = n + " стр.";
+}
+$("queries").addEventListener("input", countQ); countQ();
+
+$("engine").addEventListener("change", ()=>{
+  $("customWrap").classList.toggle("hidden", $("engine").value!=="custom");
+});
+$("engine").dispatchEvent(new Event("change"));
+
+$("clear").onclick = ()=>{ $("queries").value=""; countQ(); save(); };
+
+function showErr(t){ const m=$("msg"); m.textContent=t; m.classList.remove("hidden"); window.scrollTo({top:0,behavior:"smooth"}); }
+function hideErr(){ $("msg").classList.add("hidden"); }
+
+let poll = null, jobId = null;
+
+$("go").onclick = async ()=>{
+  hideErr();
+  const payload = {};
+  FIELDS.forEach(f=> payload[f]=$(f).value);
+  if(!payload.user || !payload.key){ showErr("Заполните User ID и API key."); return; }
+  if(!payload.queries.trim()){ showErr("Добавьте хотя бы один запрос."); return; }
+
+  $("go").disabled = true;
+  try{
+    const r = await fetch("/api/run", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)});
+    const d = await r.json();
+    if(!r.ok){ showErr(d.error||"Ошибка запуска"); $("go").disabled=false; return; }
+    jobId = d.job_id;
+    startUI(d.total);
+    poll = setInterval(refresh, 1000);
+    refresh();
+  }catch(e){ showErr("Не удалось связаться с сервером: "+e); $("go").disabled=false; }
+};
+
+function startUI(total){
+  $("progress").classList.remove("hidden");
+  $("log").innerHTML=""; $("sErr").textContent="0";
+  $("sDone").textContent="0 / "+total; $("barFill").style.width="0%";
+  $("sStatus").textContent="идёт…";
+  $("dlXlsx").classList.add("hidden"); $("dlCsv").classList.add("hidden");
+  $("cancel").classList.remove("hidden");
+  $("progress").scrollIntoView({behavior:"smooth"});
+}
+
+async function refresh(){
+  if(!jobId) return;
+  let d;
+  try{ d = await (await fetch("/api/status/"+jobId)).json(); }catch(e){ return; }
+  if(d.error) return;
+
+  const pct = d.total ? Math.round(d.done/d.total*100) : 0;
+  $("barFill").style.width = pct+"%";
+  $("sDone").textContent = d.done+" / "+d.total;
+  $("sErr").textContent = d.errors_count;
+
+  $("log").innerHTML = (d.recent||[]).slice().reverse().map(r=>{
+    if(r.error) return `<div class="e">✗ ${esc(r.query)} — ${esc(r.error)}</div>`;
+    const cls = r.count? "" : "z";
+    return `<div class="${cls}">✓ ${esc(r.query)} — ${r.count} рез.</div>`;
+  }).join("");
+
+  if(d.status!=="running"){
+    clearInterval(poll); poll=null; $("go").disabled=false;
+    $("cancel").classList.add("hidden");
+    const label = {done:"готово ✓", cancelled:"остановлено", error:"ошибка"}[d.status]||d.status;
+    $("sStatus").textContent = label;
+    if(d.fatal) showErr("Сбой: "+d.fatal);
+    if(d.has_xlsx) $("dlXlsx").classList.remove("hidden");
+    if(d.has_csv) $("dlCsv").classList.remove("hidden");
+  }
+}
+
+$("cancel").onclick = async ()=>{ if(jobId){ await fetch("/api/cancel/"+jobId,{method:"POST"}); $("sStatus").textContent="останавливаю…"; } };
+$("dlXlsx").onclick = ()=>{ if(jobId) location.href="/api/download/"+jobId+"?fmt=xlsx"; };
+$("dlCsv").onclick  = ()=>{ if(jobId) location.href="/api/download/"+jobId+"?fmt=csv"; };
+
+function esc(s){ return (s||"").replace(/[&<>]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+</script>
+</body>
+</html>
