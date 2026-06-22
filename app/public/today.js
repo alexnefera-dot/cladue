@@ -74,23 +74,19 @@ function tdRest() {
       ${todayList.length ? `<div style="margin-top:6px"><span class="pill btn" id="tdRestRoll">🎲 выбери и отдохни сейчас</span></div>` : ''}
     </div>`;
 }
-// кольцо-оценка сферы: дуга = score/10, число внутри, цвет сферы
-function tdRing(score, col, size = 38) {
-  const r = size / 2 - 3, C = 2 * Math.PI * r, sc = Math.max(0, Math.min(10, score ?? 0));
-  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="flex:0 0 auto" aria-hidden="true">
-    <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="var(--bg2)" stroke-width="3.5"/>
-    <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${col}" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${(C * (1 - sc / 10)).toFixed(1)}" transform="rotate(-90 ${size / 2} ${size / 2})"/>
-    <text x="${size / 2}" y="${size / 2}" text-anchor="middle" dominant-baseline="central" style="font:700 ${Math.round(size * 0.34)}px var(--mono);fill:var(--text)">${score ?? '–'}</text>
-  </svg>`;
+// иконка сферы: цветной кружок с первой буквой названия (без оценок — чтобы не накручивать себя)
+function tdSphIcon(name, col, size = 36) {
+  const ch = (name || '?').trim().charAt(0).toUpperCase();
+  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${col};color:#fff;display:flex;align-items:center;justify-content:center;font:700 ${Math.round(size * 0.42)}px var(--mono);flex:0 0 auto">${tesc(ch)}</div>`;
 }
-// Фокус дня: по одной сфере — кольцо-оценка слева, название + шаг справа. Клик — внутрь сферы.
+// Фокус дня: по одной сфере — иконка слева, название + шаг справа. Клик — внутрь сферы.
 function tdSphStrip() {
   const list = (Array.isArray(window.tdSpheres) ? window.tdSpheres : []).slice();   // все сферы в своём порядке (ord)
   if (!list.length) return '';
   ensureTdSphStyle();
   return `<div class="sec" style="margin-top:0">🎯 Фокус дня · по сферам</div>
     <div class="card">${list.map((s, i) => `<div class="tdfoc" data-sphopen="${s.id}">
-      ${tdRing(s.score, TDSPH_COL[i % TDSPH_COL.length])}
+      ${tdSphIcon(s.name, TDSPH_COL[i % TDSPH_COL.length])}
       <div class="tdfoc-txt">
         <div class="tdfoc-n">${tesc(s.name)}</div>
         <div class="tdfoc-s">${s.step ? tesc(s.step) : '<span class="muted">шаг не задан — открой сферу</span>'}</div>
