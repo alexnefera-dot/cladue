@@ -126,19 +126,19 @@ function tdFinance() {
   const debts = Array.isArray(f.debts) ? f.debts : [];
   const week = obs.filter(o => o.days_left != null && o.days_left >= 0 && o.days_left <= 7);
   const overdue = debts.filter(x => (x.overdue_days ?? 0) > 0);
-  const rowsW = week.map(o => `<div class="task">
+  const rowsW = week.map(o => `<div class="task" data-tdgoto="fin" style="cursor:pointer">
       <span class="t">${tesc(o.name)}</span>
       <span class="meta num">${money(o.amount, o.currency)}</span>
       <span class="meta ${o.days_left <= 2 ? 'amber' : ''}">${o.days_left === 0 ? 'сегодня' : o.days_left + 'д'}</span></div>`).join('');
-  const rowsD = overdue.map(x => `<div class="task">
+  const rowsD = overdue.map(x => `<div class="task" data-tdgoto="fin" style="cursor:pointer">
       <span class="t amber">${tesc(x.name)}</span>
       <span class="meta num">${money(x.amount, x.currency)}</span>
       <span class="meta">просрочка ${x.overdue_days}д</span></div>`).join('');
   const body = (week.length || overdue.length)
     ? (week.length ? `<div class="meta" style="margin-bottom:4px">Платежи на неделе</div>${rowsW}` : '')
       + (overdue.length ? `<div class="meta" style="margin:6px 0 4px;color:var(--red)">Просроченные долги</div>${rowsD}` : '')
-    : '<div class="empty">платежей и долгов на неделе нет</div>';
-  return `<div class="sec" style="margin-top:0">💰 Финансы · неделя <span class="muted" style="font-weight:400;cursor:pointer" data-tdgoto="fin">· весь раздел →</span></div>
+    : '<div class="empty" data-tdgoto="fin" style="cursor:pointer">платежей и долгов на неделе нет · открыть раздел →</div>';
+  return `<div class="sec" data-tdgoto="fin" style="margin-top:0;cursor:pointer">💰 Финансы · неделя <span class="muted" style="font-weight:400">· весь раздел →</span></div>
     <div class="card">${body}</div>`;
 }
 
