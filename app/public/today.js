@@ -29,15 +29,17 @@ const MON = ['января', 'февраля', 'марта', 'апреля', 'м
 
 const TDSPH_COL = ['#1e9e57', '#c43f3f', '#a87708', '#6b4fb5', '#2a76b5', '#364656'];
 window.loadToday = async function () {
-  let d, sph = [], rest = [], psy = {};
-  [d, sph, rest, psy] = await Promise.all([
+  let d, sph = [], rest = [], psy = {}, finx = {};
+  [d, sph, rest, psy, finx] = await Promise.all([
     tdApi.get().catch(e => ({ error: String(e) })),
     fetch('/api/spheres').then(r => r.json()).then(x => Array.isArray(x) ? x : []).catch(() => []),
     fetch('/api/rest').then(r => r.json()).then(x => Array.isArray(x) ? x : []).catch(() => []),
     fetch('/api/psy').then(r => r.json()).catch(() => ({})),
+    fetch('/api/fin').then(r => r.json()).catch(() => ({})),
   ]);
   window.tdSpheres = sph; window.tdRestList = rest;
   window.tdPracticeList = Array.isArray(psy.practices) ? psy.practices : [];
+  window.tdFin = finx || {};
   const el = document.getElementById('screen-today');
   // не белый экран: если /api/today не отдал нормальные данные — показываем причину
   if (!d || d.error || !d.progress || !Array.isArray(d.routines)) {
@@ -111,9 +113,33 @@ function tdPractices() {
     <div class="card">${today.map(p => `<div class="task">
       <span class="cb ${p.done ? 'done' : ''}"${p.done ? '' : ` data-tdpractice="${p.id}"`}></span>
       ${p.time ? `<span class="meta num">${tesc(p.time)}</span>` : ''}
-      <span class="t ${p.done ? 'done' : ''}">${tesc(p.name)}</span>
+      <span class="t ${p.done ? 'done' : ''}" data-tdgoto="psy" style="cursor:pointer" title="открыть в Психологии">${tesc(p.name)}</span>
       ${p.streak ? `<span class="meta">🔥 ${p.streak}</span>` : ''}
     </div>`).join('')}</div>`;
+}
+
+// Финансы на главной: платежи недели + просроченные долги (с суммами). Клик → раздел Финансы.
+function tdFinance() {
+  const f = window.tdFin || {};
+  const money = (n, c) => n == null ? '' : Math.round(Number(n) || 0).toLocaleString('ru-RU') + (c || '€');
+  const obs = Array.isArray(f.obligations) ? f.obligations : [];
+  const debts = Array.isArray(f.debts) ? f.debts : [];
+  const week = obs.filter(o => o.days_left != null && o.days_left >= 0 && o.days_left <= 7);
+  const overdue = debts.filter(x => (x.overdue_days ?? 0) > 0);
+  const rowsW = week.map(o => `<div class="task">
+      <span class="t">${tesc(o.name)}</span>
+      <span class="meta num">${money(o.amount, o.currency)}</span>
+      <span class="meta ${o.days_left <= 2 ? 'amber' : ''}">${o.days_left === 0 ? 'сегодня' : o.days_left + 'д'}</span></div>`).join('');
+  const rowsD = overdue.map(x => `<div class="task">
+      <span class="t amber">${tesc(x.name)}</span>
+      <span class="meta num">${money(x.amount, x.currency)}</span>
+      <span class="meta">просрочка ${x.overdue_days}д</span></div>`).join('');
+  const body = (week.length || overdue.length)
+    ? (week.length ? `<div class="meta" style="margin-bottom:4px">Платежи на неделе</div>${rowsW}` : '')
+      + (overdue.length ? `<div class="meta" style="margin:6px 0 4px;color:var(--red)">Просроченные долги</div>${rowsD}` : '')
+    : '<div class="empty">платежей и долгов на неделе нет</div>';
+  return `<div class="sec" style="margin-top:0">💰 Финансы · неделя <span class="muted" style="font-weight:400;cursor:pointer" data-tdgoto="fin">· весь раздел →</span></div>
+    <div class="card">${body}</div>`;
 }
 
 function taskLine(t) {
@@ -227,9 +253,7 @@ function renderToday() {
       </div>
     </div>
     <div>
-      <div class="sec" style="margin-top:0">Приватные зоны</div>
-      <div class="lockcard" data-tdgoto="fin" style="cursor:pointer">🔒 <div><b>Финансы:</b> платежей на неделе: ${d.zones.paymentsWeek}${d.zones.debtsOverdue ? ` · просроченных долгов: ${d.zones.debtsOverdue}` : ''}<br>
-        <span class="meta">суммы скрыты · клик — открыть раздел (в нативной версии — по паролю)</span></div></div>
+      ${tdFinance()}
       <div class="sec">▲ Движение недели</div>
       <div class="card">
         ${d.movement.top.map(([cat, n]) => `<div class="task">
@@ -335,9 +359,7 @@ function renderTodayMobile() {
       <span class="pill btn ok" data-tdcontact="${p.id}">связались ✓</span></div>`).join('')}
   </div>` : ''}
 
-  <div class="sec">Приватные зоны</div>
-  <div class="lockcard" data-tdgoto="fin" style="cursor:pointer">🔒 <div><b>Финансы:</b> платежей на неделе: ${d.zones.paymentsWeek}${d.zones.debtsOverdue ? ` · просрочено долгов: ${d.zones.debtsOverdue}` : ''}<br>
-    <span class="meta">суммы скрыты · клик — открыть</span></div></div>
+  ${tdFinance()}
 
   <div class="sec">Фокус месяца · цели недели</div>
   <div class="card">
