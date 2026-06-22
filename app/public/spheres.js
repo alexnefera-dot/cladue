@@ -336,7 +336,7 @@ function sphRoadmap(s) {
 // FAQ сферы: вопрос→ответ (сворачивается); из вопроса — «→ задача» / «→ метрика».
 function sphFaq(s) {
   const qs = s.questions || [];
-  const rows = qs.map(q => {
+  const rows = qs.map((q, i) => {
     const ans = q.answer ? sesc(q.answer).replace(/\n/g, '<br>') : '<span class="muted">нет ответа — клик, чтобы добавить</span>';
     const taskBadge = q.node_id
       ? `<span class="pill btn ${q.node_status === 'done' ? 'ok' : 'p2'}" data-qopen="${q.node_id}" title="открыть задачу">${q.node_status === 'done' ? '✓ задача' : '🎯 задача'}</span>`
@@ -345,7 +345,7 @@ function sphFaq(s) {
       ? '<span class="pill">📊 метрика</span>'
       : `<span class="rowbtn" data-qmetric="${q.id}" title="сделать метрику из вопроса">→ метрика</span>`;
     return `<div class="sph-faq">
-      <div class="sph-faqq"><span class="sph-faqt" data-qedit="${q.id}" title="клик — изменить вопрос">${q.question ? sesc(q.question) : '<span class="muted">без вопроса</span>'}</span>
+      <div class="sph-faqq"><span class="sph-faqnum">${i + 1}.</span><span class="sph-faqt" data-qedit="${q.id}" title="клик — изменить вопрос">${q.question ? sesc(q.question) : '<span class="muted">без вопроса</span>'}</span>
         ${taskBadge}${metricBadge}<span class="rowbtn del" data-qdel="${q.id}">✕</span></div>
       <div class="sph-faqa" data-qans="${q.id}" title="клик — изменить ответ">${ans}</div>
     </div>`;
@@ -679,6 +679,7 @@ function ensureSphStyle() {
     .sph-rmbar{width:56px;flex:0 0 auto}
     .sph-faq{padding:8px 0;border-top:1px solid var(--bg2)}.sph-faq:first-child{border-top:0}
     .sph-faqq{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .sph-faqnum{font:700 12px var(--mono);color:var(--muted);flex:0 0 auto}
     .sph-faqt{flex:1;min-width:120px;font-weight:600;font-size:13.5px;cursor:text}
     .sph-faqa{margin-top:4px;font-size:13px;color:var(--muted);cursor:text;white-space:pre-wrap}
     .sph-faq .rowbtn{opacity:.6}.sph-faq:hover .rowbtn{opacity:1}
