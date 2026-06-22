@@ -139,14 +139,13 @@ function openJournalModal(p, rows) {
 }
 
 function runPanel(p) {
-  const last = Array.isArray(p._last) ? p._last : [];
   const longForm = p.kind === 'technique' && p.steps.length > 6;   // объёмные дневники — крупные поля
   return `
   <div class="card runcard${longForm ? ' runlong' : ''}" style="border-color:var(--green-dim)">
-    <div class="meta">${p.kind === 'technique' ? 'ТЕХНИКА · отвечай по шагам' + (last.some(a => a) ? ' · поля с прошлого ответа — правь и сохраняй' : '') : 'ЧЕКЛИСТ · пройди перед действием'} — ${pesc(p.name)}</div>
+    <div class="meta">${p.kind === 'technique' ? 'ТЕХНИКА · отвечай по шагам (новый прогон — поля чистые, прошлое в журнале ниже)' : 'ЧЕКЛИСТ · пройди перед действием'} — ${pesc(p.name)}</div>
     ${p.steps.map((s, i) => p.kind === 'technique'
       ? `<div class="psrow"><label class="pslbl">${i + 1}. ${pesc(s)}</label>
-          <textarea class="psans" data-i="${i}" rows="${longForm ? 4 : 2}" placeholder="ответ…">${pesc(last[i] ?? '')}</textarea></div>`
+          <textarea class="psans" data-i="${i}" rows="${longForm ? 4 : 2}" placeholder="ответ…"></textarea></div>`
       : `<div class="task"><span class="cb pschk" data-i="${i}"></span><span class="t">${pesc(s)}</span></div>`).join('')}
     <div class="btnrow" style="margin-top:8px">
       <span class="pill btn ok" id="psRunSave">завершить и записать в журнал</span>
@@ -310,8 +309,6 @@ function bindPsy() {
   document.querySelectorAll('#screen-psy [data-psrun]').forEach(el =>
     el.addEventListener('click', async () => {
       const p = psyData.practices.find(x => x.id === +el.dataset.psrun);
-      // техника: подгружаем прошлый ответ, чтобы можно было править, а не вносить заново
-      if (p?.kind === 'technique') { try { const logs = await psyApi.pLogs(p.id); p._last = logs[0]?.answers ?? []; } catch {} }
       psyRun = p;
       renderPsy();
       document.querySelector('.psans')?.focus();
