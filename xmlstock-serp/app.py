@@ -39,12 +39,17 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# Пресеты эндпоинтов xmlstock. Если у вас в кабинете другой адрес —
-# выберите «Свой URL» в интерфейсе и вставьте точную ссылку.
+# Пресеты эндпоинтов xmlstock. У xmlstock единый путь для Яндекса —
+# /yandex/xml/ (живая выдача или XML-лимиты определяются вашим тарифом),
+# и /google/xml/ для Google. Если в кабинете другой адрес — выберите
+# «Свой URL» в интерфейсе и вставьте точную ссылку.
 ENDPOINTS = {
-    "yandex_live": "https://xmlstock.com/yandex/live/",
+    "yandex": "https://xmlstock.com/yandex/xml/",
+    "google": "https://xmlstock.com/google/xml/",
+    # обратная совместимость со старыми сохранёнными значениями
+    "yandex_live": "https://xmlstock.com/yandex/xml/",
     "yandex_xml": "https://xmlstock.com/yandex/xml/",
-    "google_live": "https://xmlstock.com/google/live/",
+    "google_live": "https://xmlstock.com/google/xml/",
     "google_xml": "https://xmlstock.com/google/xml/",
 }
 
@@ -330,7 +335,7 @@ def api_run():
     if not queries:
         return jsonify({"error": "Список запросов пуст."}), 400
 
-    engine = data.get("engine") or "yandex_live"
+    engine = data.get("engine") or "yandex"
     endpoint = (data.get("endpoint") or "").strip() or ENDPOINTS.get(engine)
     if not endpoint or not endpoint.lower().startswith(("http://", "https://")):
         return jsonify({"error": "Некорректный URL эндпоинта."}), 400
