@@ -74,7 +74,7 @@ function renderTrack() {
         <span class="t">${tresc(mt.name)}</span>
         <span class="pill">${mt.type === 'scale' ? '1–10' : 'число'}${mt.unit ? ' · ' + tresc(mt.unit) : ''}</span>
         ${sparkBars(mt.history, mt.type)}
-        <span class="meta">${mt.total} зап.</span>
+        <span class="meta" title="сколько раз ты вносил оценку за всё время">внёс ${mt.total} раз</span>
       </div>`).join('')}
   </div>` : ''}
   <div class="footer-hint">Клик по ячейке — отметка/значение за тот день (можно задним числом). Клик по заголовку — переименовать, ✕ — удалить колонку с историей.</div>
