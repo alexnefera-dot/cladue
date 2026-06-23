@@ -452,6 +452,19 @@ function secPlans(d) {
 
   <div class="sec">Обязательства, подписки и плановые траты · «✓» = оплачено</div>
   <div class="card">
+    ${(() => {
+      const rate = (d.rates.find(r => r.symbol === 'EURUSD')?.price) || 1.08;
+      const toEur = o => (o.currency === '$' ? (o.amount || 0) / rate : (o.amount || 0));   // суммы в €
+      const bp = { monthly: 0, yearly: 0, once: 0 };
+      (d.obligations || []).forEach(o => { if (bp[o.period] != null) bp[o.period] += toEur(o); });
+      const yr = bp.monthly * 12 + bp.yearly + bp.once;   // всего затрат за год
+      return `<div class="task" style="flex-wrap:wrap;gap:14px;border-bottom:1px solid var(--line);padding-bottom:9px;margin-bottom:7px">
+        <span class="meta">в мес: <b class="num">${hide ? '—' : fmt(bp.monthly) + ' €'}</b></span>
+        <span class="meta">в год: <b class="num">${hide ? '—' : fmt(bp.yearly) + ' €'}</b></span>
+        <span class="meta">разовые: <b class="num">${hide ? '—' : fmt(bp.once) + ' €'}</b></span>
+        <span class="meta" style="margin-left:auto">всего затрат за год: <b class="num">${hide ? '—' : fmt(yr) + ' €'}</b></span>
+      </div>`;
+    })()}
     ${d.obligations.map(o => finIsMobile() ? fRow({
         lead: `<span class="pill ${o.kind === 'subscription' ? 'p2' : 'p1'}">${o.kind === 'subscription' ? 'подписка' : o.period === 'once' ? 'трата' : 'пассив'}</span>`,
         name: `<span class="ed" data-fe="obligations:${o.id}:name:text">${fesc(o.name)}</span>`,
@@ -617,9 +630,6 @@ function renderFin() {
       <div class="bignum">${hidden('port') ? '—' : `${fmt(usd)} $ <span style="font-size:14px;color:var(--muted)">· ${fmt(eur)} €</span>`}</div>
       <div class="meta">${hidden('port') ? 'значения скрыты — 👁 наверху' : `$ ${tot > 0 ? 100 - pe : 0}% · € ${pe}% от портфеля`}</div></div>`;
     })()}
-    <div class="card"><div class="meta">ОБЯЗАТЕЛЬСТВА / МЕС</div>
-      <div class="bignum">${hide ? '—' : fmt(s.monthlyObligations) + ' €'}</div>
-      <div class="meta">${s.upcoming.length ? `ближайшие 30 дней: ${s.upcoming.length}` : 'на месяц тихо'}</div></div>
   </div>
   <div class="viewtabs">
     ${[['all', 'Всё'], ['port', 'Портфель'], ['acc', 'Счета'], ['flow', 'Расходы'], ['debts', 'Долги'], ['plans', 'Планы'], ['prop', 'Имущество'], ['fire', 'FIRE·Макро']]
