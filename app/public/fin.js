@@ -609,6 +609,14 @@ function renderFin() {
       <div class="bignum">${hidden('port') ? '—' : `${fmtE(s.portfolioTotal)} <span style="font-size:14px;color:var(--muted)">· ${fmt(s.portfolioTotalUsd)} $</span>`}</div>
       <div class="meta">${hidden('port') ? 'значения скрыты — 👁 наверху'
         : (s.growth ? `прирост: ${s.growth.abs >= 0 ? '+' : ''}${fmt(s.growth.abs)} € (${s.growth.pct.toFixed(1)}%)` : '')}</div></div>
+    ${(() => {
+      const usd = (d.portfolio || []).reduce((a, b) => a + (b.usdPart || 0), 0);   // все позиции в $
+      const eur = (d.portfolio || []).reduce((a, b) => a + (b.eurPart || 0), 0);   // все позиции в €
+      const tot = s.portfolioTotal || 0, pe = tot > 0 ? Math.round(eur / tot * 100) : 0;   // €-часть от портфеля; $-часть = остаток
+      return `<div class="card"><div class="meta">ПОЗИЦИИ · USD / EUR</div>
+      <div class="bignum">${hidden('port') ? '—' : `${fmt(usd)} $ <span style="font-size:14px;color:var(--muted)">· ${fmt(eur)} €</span>`}</div>
+      <div class="meta">${hidden('port') ? 'значения скрыты — 👁 наверху' : `$ ${tot > 0 ? 100 - pe : 0}% · € ${pe}% от портфеля`}</div></div>`;
+    })()}
     <div class="card"><div class="meta">ОБЯЗАТЕЛЬСТВА / МЕС</div>
       <div class="bignum">${hide ? '—' : fmt(s.monthlyObligations) + ' €'}</div>
       <div class="meta">${s.upcoming.length ? `ближайшие 30 дней: ${s.upcoming.length}` : 'на месяц тихо'}</div></div>
