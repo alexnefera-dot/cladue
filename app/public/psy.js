@@ -144,7 +144,7 @@ function runPanel(p) {
   const longForm = p.kind === 'technique' && p.steps.length > 6;   // объёмные дневники — крупные поля
   return `
   <div class="card runcard${longForm ? ' runlong' : ''}" style="border-color:var(--green-dim)">
-    <div class="meta">${p.kind === 'technique' ? 'ТЕХНИКА · отвечай по шагам' + (editing ? ' · правишь сегодняшнюю запись' : ' · новая запись за сегодня') : 'ЧЕКЛИСТ · пройди перед действием'} — ${pesc(p.name)}</div>
+    <div class="meta">${p.kind === 'technique' ? 'ТЕХНИКА · отвечай по шагам' + (editing ? ' · правишь текущую запись' : ' · новая запись') : 'ЧЕКЛИСТ · пройди перед действием'} — ${pesc(p.name)}</div>
     ${p.steps.map((s, i) => p.kind === 'technique'
       ? `<div class="psrow"><label class="pslbl">${i + 1}. ${pesc(s)}</label>
           <textarea class="psans" data-i="${i}" rows="${longForm ? 4 : 2}" placeholder="ответ…">${pesc(last[i] ?? '')}</textarea></div>`
@@ -311,14 +311,21 @@ function bindPsy() {
   document.querySelectorAll('#screen-psy [data-psrun]').forEach(el =>
     el.addEventListener('click', async () => {
       const p = psyData.practices.find(x => x.id === +el.dataset.psrun);
-      // редактируем СЕГОДНЯШНЮЮ запись (если уже заполнял сегодня); прошлые дни не тянем
+      // дневник (длинная техника) — продолжаем ТЕКУЩУЮ (последнюю) запись и правим её;
+      // короткая практика-оценка — только сегодняшняя, иначе чистые поля
       if (p?.kind === 'technique') {
         try {
-          const today = (d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)(new Date());
           const logs = await psyApi.pLogs(p.id);
-          const todayLog = (logs || []).find(l => String(l.date).slice(0, 10) === today);
-          p._last = todayLog && Array.isArray(todayLog.answers) ? todayLog.answers : [];
-        } catch { p._last = []; }
+          let src = null;
+          if (p.steps.length > 6) {                       // дневник: берём ту запись, что есть (последнюю)
+            src = (logs || [])[0] || null;
+          } else {                                        // практика: только сегодняшняя
+            const today = (d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)(new Date());
+            src = (logs || []).find(l => String(l.date).slice(0, 10) === today) || null;
+          }
+          p._last = src && Array.isArray(src.answers) ? src.answers : [];
+          p._editDate = (p.steps.length > 6 && src) ? String(src.date).slice(0, 10) : null;   // дневник правит ту же запись (по её дате)
+        } catch { p._last = []; p._editDate = null; }
       }
       psyRun = p;
       renderPsy();
@@ -385,7 +392,7 @@ function bindPsy() {
       const checked = [...document.querySelectorAll('.pschk')].filter(c => c.classList.contains('done')).length;
       note = `пройдено ${checked}/${psyRun.steps.length}`;
     }
-    await psyApi.pLog(psyRun.id, { answers, note });
+    await psyApi.pLog(psyRun.id, psyRun._editDate ? { answers, note, date: psyRun._editDate } : { answers, note });
     psyRun = null;
     window.loadPsy();
   });
