@@ -459,10 +459,10 @@ function secPlans(d) {
       (d.obligations || []).forEach(o => { if (bp[o.period] != null) bp[o.period] += toEur(o); });
       const yr = bp.monthly * 12 + bp.yearly + bp.once;   // всего затрат за год
       return `<div class="task" style="flex-wrap:wrap;gap:14px;border-bottom:1px solid var(--line);padding-bottom:9px;margin-bottom:7px">
-        <span class="meta">в мес: <b class="num">${hide ? '—' : fmt(bp.monthly) + ' €'}</b></span>
-        <span class="meta">в год: <b class="num">${hide ? '—' : fmt(bp.yearly) + ' €'}</b></span>
-        <span class="meta">разовые: <b class="num">${hide ? '—' : fmt(bp.once) + ' €'}</b></span>
-        <span class="meta" style="margin-left:auto">всего затрат за год: <b class="num">${hide ? '—' : fmt(yr) + ' €'}</b></span>
+        <span class="meta">в мес: <b class="num">${finHide ? '—' : fmt(bp.monthly) + ' €'}</b></span>
+        <span class="meta">в год: <b class="num">${finHide ? '—' : fmt(bp.yearly) + ' €'}</b></span>
+        <span class="meta">разовые: <b class="num">${finHide ? '—' : fmt(bp.once) + ' €'}</b></span>
+        <span class="meta" style="margin-left:auto">всего затрат за год: <b class="num">${finHide ? '—' : fmt(yr) + ' €'}</b></span>
       </div>`;
     })()}
     ${d.obligations.map(o => finIsMobile() ? fRow({
