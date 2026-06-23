@@ -552,8 +552,9 @@ enum Api {
             guard let name = name(body) else { return (nameErr(), 400) }
             let ord = nextOrd(db, "SELECT COALESCE(MAX(ord),0)+1 AS o FROM practices")
             let steps = String(data: (try? json(body["steps"] ?? [])) ?? Data("[]".utf8), encoding: .utf8) ?? "[]"
-            try db.run("INSERT INTO practices(name, kind, days, time, steps, note, ord) VALUES(?,?,?,?,?,?,?)",
-                [name, body["kind"] as? String ?? "schedule", body["days"] as? String ?? "", body["time"] ?? NSNull(), steps, body["note"] as? String ?? "", ord])
+            try db.run("INSERT INTO practices(name, kind, days, time, steps, note, ord, continuous) VALUES(?,?,?,?,?,?,?,?)",
+                [name, body["kind"] as? String ?? "schedule", body["days"] as? String ?? "", body["time"] ?? NSNull(), steps, body["note"] as? String ?? "", ord,
+                 (body["continuous"] as? Bool == true || intval(body["continuous"]) != 0) ? 1 : 0])
             return (ok(201), 201)
         }
         if let m = match(path, "^/api/psy/practices/([0-9]+)/log$"), method == "POST" {
@@ -568,7 +569,7 @@ enum Api {
         if let m = match(path, "^/api/psy/practices/([0-9]+)$") {
             let id = Int(m[1]) ?? -1
             if method == "PATCH" {
-                try patchCols(db, "practices", id, ["name", "kind", "days", "time", "note", "archived", "category"], body)
+                try patchCols(db, "practices", id, ["name", "kind", "days", "time", "note", "archived", "category", "continuous"], body)
                 if body["steps"] != nil {
                     let steps = String(data: (try? json(body["steps"] ?? [])) ?? Data("[]".utf8), encoding: .utf8) ?? "[]"
                     try db.run("UPDATE practices SET steps = ? WHERE id = ?", [steps, id])

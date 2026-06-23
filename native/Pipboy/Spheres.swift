@@ -14,6 +14,7 @@ extension Api {
         _ = try? db.run("ALTER TABLE routines ADD COLUMN archived INTEGER NOT NULL DEFAULT 0")    // архив рутин (не удалять из истории)
         _ = try? db.run("ALTER TABLE practices ADD COLUMN archived INTEGER NOT NULL DEFAULT 0")   // архив практик
         _ = try? db.run("ALTER TABLE practices ADD COLUMN days TEXT NOT NULL DEFAULT ''")          // дни недели практики (старые базы без колонки → monthOccurrences не падает)
+        _ = try? db.run("ALTER TABLE practices ADD COLUMN continuous INTEGER NOT NULL DEFAULT 0")  // «дневник»: продолжаем последнюю запись (1); обычная практика (0) — всегда чистая
         // отдых/восстановление: способы кайфануть по контексту (будни/выходные/глобально)
         _ = try? db.run("CREATE TABLE IF NOT EXISTS rest_ideas(id INTEGER PRIMARY KEY, text TEXT NOT NULL DEFAULT '', scope TEXT NOT NULL DEFAULT 'weekday', ord INTEGER NOT NULL DEFAULT 0)")
         // вехи «пути к 10» — создаём на каждом старте (ensureSchema идёт только при сиде)

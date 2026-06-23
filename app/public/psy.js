@@ -83,6 +83,7 @@ function practiceCard(p) {
         ? `<span class="pill btn ok" data-psdo="${p.id}">✓ выполнено (с заметкой)</span>`
         : `<span class="pill btn ok" data-psrun="${p.id}">▶ пройти ${p.kind === 'technique' ? 'технику' : 'чеклист'}</span>`}
       <span class="pill btn" data-pslogs="${p.id}">журнал</span>
+      ${p.kind === 'technique' ? `<span class="pill btn ${p.continuous ? 'ok' : ''}" data-psdiary="${p.id}:${p.continuous ? 1 : 0}" title="дневник — продолжать последнюю запись; иначе каждый раз чисто">📔 ${p.continuous ? 'дневник' : 'сделать дневником'}</span>` : ''}
     </div>
     ${psyOpenLogs?.id === p.id ? `<div style="margin-top:8px">
       ${p.kind === 'technique'
@@ -311,10 +312,10 @@ function bindPsy() {
   document.querySelectorAll('#screen-psy [data-psrun]').forEach(el =>
     el.addEventListener('click', async () => {
       const p = psyData.practices.find(x => x.id === +el.dataset.psrun);
-      // ТОЛЬКО дневник (длинная техника, >6 шагов) продолжает текущую (последнюю) запись и правит её;
+      // ТОЛЬКО дневник (флаг continuous) продолжает текущую (последнюю) запись и правит её;
       // все остальные практики — всегда чистые поля, ничего не подтягиваем (новый прогон)
       p._last = []; p._editDate = null;
-      if (p?.kind === 'technique' && p.steps.length > 6) {
+      if (p?.kind === 'technique' && p.continuous) {
         try {
           const logs = await psyApi.pLogs(p.id);
           const src = (logs || [])[0] || null;
@@ -325,6 +326,12 @@ function bindPsy() {
       psyRun = p;
       renderPsy();
       document.querySelector('.psans')?.focus();
+    }));
+  document.querySelectorAll('#screen-psy [data-psdiary]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const [id, cur] = el.dataset.psdiary.split(':');
+      await psyApi.pPatch(+id, { continuous: cur === '1' ? 0 : 1 });   // переключить «дневник»
+      window.loadPsy();
     }));
   document.querySelectorAll('#screen-psy [data-pslogs]').forEach(el =>
     el.addEventListener('click', async () => {
