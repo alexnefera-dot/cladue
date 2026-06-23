@@ -557,9 +557,12 @@ enum Api {
             return (ok(201), 201)
         }
         if let m = match(path, "^/api/psy/practices/([0-9]+)/log$"), method == "POST" {
+            let pid = Int(m[1]) ?? -1
             let answers = String(data: (try? json(body["answers"] ?? [])) ?? Data("[]".utf8), encoding: .utf8) ?? "[]"
-            try db.run("INSERT INTO practice_log(practice_id, date, note, answers) VALUES(?,?,?,?)",
-                [Int(m[1]) ?? -1, body["date"] as? String ?? localToday(), body["note"] as? String ?? "", answers])
+            let date = body["date"] as? String ?? localToday()
+            // одна запись на день: редактируем сегодняшнюю, не плодим (дневник/практика работают с текущей записью)
+            try db.run("DELETE FROM practice_log WHERE practice_id = ? AND date = ?", [pid, date])
+            try db.run("INSERT INTO practice_log(practice_id, date, note, answers) VALUES(?,?,?,?)", [pid, date, body["note"] as? String ?? "", answers])
             return (ok(201), 201)
         }
         if let m = match(path, "^/api/psy/practices/([0-9]+)$") {

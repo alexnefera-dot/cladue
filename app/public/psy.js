@@ -139,13 +139,15 @@ function openJournalModal(p, rows) {
 }
 
 function runPanel(p) {
+  const last = Array.isArray(p._last) ? p._last : [];
+  const editing = last.some(a => a);   // есть сегодняшняя запись → правим её, иначе пишем новую за сегодня
   const longForm = p.kind === 'technique' && p.steps.length > 6;   // объёмные дневники — крупные поля
   return `
   <div class="card runcard${longForm ? ' runlong' : ''}" style="border-color:var(--green-dim)">
-    <div class="meta">${p.kind === 'technique' ? 'ТЕХНИКА · отвечай по шагам (новый прогон — поля чистые, прошлое в журнале ниже)' : 'ЧЕКЛИСТ · пройди перед действием'} — ${pesc(p.name)}</div>
+    <div class="meta">${p.kind === 'technique' ? 'ТЕХНИКА · отвечай по шагам' + (editing ? ' · правишь сегодняшнюю запись' : ' · новая запись за сегодня') : 'ЧЕКЛИСТ · пройди перед действием'} — ${pesc(p.name)}</div>
     ${p.steps.map((s, i) => p.kind === 'technique'
       ? `<div class="psrow"><label class="pslbl">${i + 1}. ${pesc(s)}</label>
-          <textarea class="psans" data-i="${i}" rows="${longForm ? 4 : 2}" placeholder="ответ…"></textarea></div>`
+          <textarea class="psans" data-i="${i}" rows="${longForm ? 4 : 2}" placeholder="ответ…">${pesc(last[i] ?? '')}</textarea></div>`
       : `<div class="task"><span class="cb pschk" data-i="${i}"></span><span class="t">${pesc(s)}</span></div>`).join('')}
     <div class="btnrow" style="margin-top:8px">
       <span class="pill btn ok" id="psRunSave">завершить и записать в журнал</span>
@@ -309,6 +311,15 @@ function bindPsy() {
   document.querySelectorAll('#screen-psy [data-psrun]').forEach(el =>
     el.addEventListener('click', async () => {
       const p = psyData.practices.find(x => x.id === +el.dataset.psrun);
+      // редактируем СЕГОДНЯШНЮЮ запись (если уже заполнял сегодня); прошлые дни не тянем
+      if (p?.kind === 'technique') {
+        try {
+          const today = (d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)(new Date());
+          const logs = await psyApi.pLogs(p.id);
+          const todayLog = (logs || []).find(l => String(l.date).slice(0, 10) === today);
+          p._last = todayLog && Array.isArray(todayLog.answers) ? todayLog.answers : [];
+        } catch { p._last = []; }
+      }
       psyRun = p;
       renderPsy();
       document.querySelector('.psans')?.focus();
