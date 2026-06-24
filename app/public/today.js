@@ -105,17 +105,25 @@ function tdSphIcon(name, col, size = 36) {
   return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${col};color:#fff;display:flex;align-items:center;justify-content:center;font:700 ${Math.round(size * 0.42)}px var(--mono);flex:0 0 auto">${tesc(ch)}</div>`;
 }
 // Фокус дня: по одной сфере — иконка слева, название + шаг справа. Клик — внутрь сферы.
+// Фокус дня: активные вехи («путь к 10») из всех сфер — что добиваем. Клик — внутрь сферы.
 function tdSphStrip() {
-  const list = (Array.isArray(window.tdSpheres) ? window.tdSpheres : []).slice();   // все сферы в своём порядке (ord)
-  if (!list.length) return '';
+  const spheres = Array.isArray(window.tdSpheres) ? window.tdSpheres : [];
+  const items = [];
+  spheres.forEach((s, i) => (s.milestones || []).forEach(m => {
+    const p = Math.max(0, Math.min(10, m.progress ?? 0));
+    if (p >= 10) return;   // закрытые вехи не показываем — только незакрытые
+    items.push({ sid: s.id, sphere: s.name, col: TDSPH_COL[i % TDSPH_COL.length], title: m.title, p });
+  }));
+  if (!items.length) return '';
   ensureTdSphStyle();
-  return `<div class="sec" style="margin-top:0">🎯 Фокус дня · по сферам</div>
-    <div class="card">${list.map((s, i) => `<div class="tdfoc" data-sphopen="${s.id}">
-      ${tdSphIcon(s.name, TDSPH_COL[i % TDSPH_COL.length])}
+  return `<div class="sec" style="margin-top:0">🗺 Фокус дня · вехи (путь к 10)</div>
+    <div class="card">${items.map(m => `<div class="tdfoc" data-sphopen="${m.sid}">
+      ${tdSphIcon(m.sphere, m.col, 30)}
       <div class="tdfoc-txt">
-        <div class="tdfoc-n">${tesc(s.name)}</div>
-        <div class="tdfoc-s">${s.step ? tesc(s.step) : '<span class="muted">шаг не задан — открой сферу</span>'}</div>
+        <div class="tdfoc-n">${m.title ? tesc(m.title) : '<span class="muted">без названия</span>'}</div>
+        <div class="tdfoc-s">${tesc(m.sphere)} · ${m.p}/10</div>
       </div>
+      <span class="tdfoc-bar"><i style="width:${m.p * 10}%;background:${m.col}"></i></span>
       <span class="tdfoc-arr">›</span></div>`).join('')}</div>`;
 }
 function ensureTdSphStyle() {
@@ -135,6 +143,7 @@ function ensureTdSphStyle() {
     .tdfoc-txt{flex:1;min-width:0}
     .tdfoc-n{font-size:14.5px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .tdfoc-s{font-size:12.5px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .tdfoc-bar{width:48px;height:5px;border-radius:99px;background:var(--bg2);overflow:hidden;flex:0 0 auto}.tdfoc-bar i{display:block;height:100%}
     .tdfoc-arr{color:var(--muted);font-size:20px;flex:0 0 auto;line-height:1}
     @media(max-width:768px){.tdsph-c{width:158px;padding:9px 10px}.tdsph-n{font-size:12.5px}}`;
   document.head.appendChild(st);
