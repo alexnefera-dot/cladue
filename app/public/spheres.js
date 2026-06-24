@@ -148,7 +148,7 @@ function sphOverview() {
     <div class="sph-ov">${sphData.map((s, i) => {
       const links = s.routines.length + s.tracking.length + s.practices.length + s.fin.length + s.tasks.length;
       return `<div class="sph-card" data-open="${s.id}">
-        <div class="sph-ct">${sphRing(s.score, colOf(i), 40)}<div class="sph-cn">${sesc(s.name)}</div><div class="sph-cs" style="color:${colOf(i)}">${s.score ?? '–'}</div></div>
+        <div class="sph-ct">${sphRing(s.score, colOf(i), 40)}<div class="sph-cn">${(typeof sphEmoji === 'function' && sphEmoji(s.name)) ? sphEmoji(s.name) + ' ' : ''}${sesc(s.name)}</div><div class="sph-cs" style="color:${colOf(i)}">${s.score ?? '–'}</div></div>
         <div class="sph-ideal">🎯 ${s.ideal ? sesc(s.ideal) : '<span class="muted">задать «10» — клик внутрь</span>'}</div>
         <div class="sph-step">→ ${s.step ? '<b>' + sesc(s.step) + '</b>' : '<span class="muted">нет шага</span>'}</div>
         <div class="sph-meta">🎯 ${s.tasks.filter(t => !t.cat).length} · ↻ ${s.routines.length} · 📊 ${s.tracking.length} · 🧠 ${s.practices.length} · 💰 ${s.fin.length}</div>
