@@ -9,8 +9,8 @@ const trApi = {
   mRen: (id, b) => fetch('/api/track/metrics/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }),
   mVal: (id, value, date) => fetch(`/api/track/metrics/${id}/value`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value, date }) }),
   mLogs: id => fetch(`/api/track/metrics/${id}/logs`).then(r => r.json()),
-  mDelVal: (id, date) => fetch(`/api/track/metrics/${id}/value`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date }) }),
-  mClear: id => fetch(`/api/track/metrics/${id}/value`, { method: 'DELETE' }),
+  mDelVal: (id, date) => fetch(`/api/track/metrics/${id}/value`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ op: 'del', date }) }).then(r => r.json()),
+  mClear: id => fetch(`/api/track/metrics/${id}/value`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ op: 'clear' }) }).then(r => r.json()),
 };
 
 const tresc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

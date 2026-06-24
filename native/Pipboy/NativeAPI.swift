@@ -638,13 +638,15 @@ enum Api {
         if let m = match(path, "^/api/track/metrics/([0-9]+)/value$") {
             let mid = Int(m[1]) ?? -1
             let cadence = (try? db.rows("SELECT cadence FROM metrics WHERE id = ?", [mid]))?.first?["cadence"] as? String ?? "daily"
-            if method == "DELETE" {   // удалить запись за дату; без даты — очистить ВСЕ записи метрики
+            let op = body["op"] as? String
+            // удаление: DELETE-метод ИЛИ POST с op (схема pipboy:// может не пропускать DELETE — POST надёжнее)
+            if method == "DELETE" || op == "clear" || op == "del" {
                 if let dRaw = body["date"] as? String {
                     try db.run("DELETE FROM metric_log WHERE metric_id = ? AND date = ?", [mid, snapISO(cadence, dRaw)])
                 } else {
                     try db.run("DELETE FROM metric_log WHERE metric_id = ?", [mid])
                 }
-                return (ok(), 200)
+                return (try json(["deleted": db.changes()]), 200)
             }
             // дату снапим к ключу периода метрики (день/воскресенье/месяц) → одно значение на период
             let date = (body["date"] as? String).map { snapISO(cadence, $0) } ?? periodKey(cadence)
