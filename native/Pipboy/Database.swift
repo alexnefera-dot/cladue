@@ -299,7 +299,7 @@ final class Database {
           level INTEGER NOT NULL DEFAULT 5, title TEXT NOT NULL DEFAULT '',
           progress INTEGER NOT NULL DEFAULT 0,
           ord INTEGER NOT NULL DEFAULT 0,
-          completed_at TEXT
+          completed_at TEXT, pinned INTEGER NOT NULL DEFAULT 0
         );
         CREATE TABLE IF NOT EXISTS area_questions(
           id INTEGER PRIMARY KEY,

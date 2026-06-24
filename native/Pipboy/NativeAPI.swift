@@ -417,6 +417,7 @@ enum Api {
                     if p >= 10 { try db.run("UPDATE area_milestones SET completed_at = COALESCE(completed_at, ?) WHERE id = ?", [localToday(), id]) }
                     else { try db.run("UPDATE area_milestones SET completed_at = NULL WHERE id = ?", [id]) }
                 }
+                if body["pinned"] != nil { try db.run("UPDATE area_milestones SET pinned = ? WHERE id = ?", [intval(body["pinned"]) != 0 ? 1 : 0, id]) }   // закрепить → видна на главной
                 return (ok(), 200)
             }
             if method == "DELETE" { try db.run("DELETE FROM area_milestones WHERE id = ?", [id]); return (ok(), 200) }

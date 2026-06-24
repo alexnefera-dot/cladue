@@ -109,13 +109,18 @@ function tdSphIcon(name, col, size = 36) {
 function tdSphStrip() {
   const spheres = Array.isArray(window.tdSpheres) ? window.tdSpheres : [];
   const items = [];
+  let hasOpen = false;
   spheres.forEach((s, i) => (s.milestones || []).forEach(m => {
     const p = Math.max(0, Math.min(10, m.progress ?? 0));
-    if (p >= 10) return;   // закрытые вехи не показываем — только незакрытые
+    if (p >= 10) return;   // закрытые вехи не показываем
+    hasOpen = true;
+    if (!m.pinned) return;   // на главной — только закреплённые ⭐
     items.push({ sid: s.id, sphere: s.name, col: TDSPH_COL[i % TDSPH_COL.length], title: m.title, p });
   }));
-  if (!items.length) return '';
   ensureTdSphStyle();
+  if (!items.length) return hasOpen
+    ? `<div class="sec" style="margin-top:0">🗺 Фокус дня · вехи</div><div class="card"><div class="empty">закрепи вехи ⭐ в сферах — появятся здесь</div></div>`
+    : '';
   return `<div class="sec" style="margin-top:0">🗺 Фокус дня · вехи (путь к 10)</div>
     <div class="card">${items.map(m => `<div class="tdfoc" data-sphopen="${m.sid}">
       ${tdSphIcon(m.sphere, m.col, 30)}

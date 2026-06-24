@@ -321,6 +321,7 @@ function sphRoadmap(s) {
       <span class="sph-rk">${p}/10</span>
       <span class="pbar2 sph-rmbar"><i style="width:${p * 10}%"></i></span>
       <span class="sph-rt" data-msedit="${m.id}" title="клик — переименовать">${m.title ? sesc(m.title) : '<span class="muted">без названия</span>'}</span>
+      <span class="rowbtn" data-mspin="${m.id}:${m.pinned ? 1 : 0}" title="${m.pinned ? 'закреплена на «Сегодня» — снять' : 'закрепить на «Сегодня»'}" style="${m.pinned ? 'color:var(--amber);opacity:1' : ''}">${m.pinned ? '★' : '☆'}</span>
       ${isDone ? '<span style="color:var(--green-dim);font-size:12px">✓ закрыта</span>'
         : `<span class="pill btn ok" data-msinc="${m.id}:${p}" title="+1 к прогрессу">+1</span>`}
       ${p > 0 ? `<span class="rowbtn" data-msdec="${m.id}:${p}" title="−1">−</span>` : ''}
@@ -503,6 +504,9 @@ function bindDetail(s) {
   });
   document.querySelectorAll('#screen-spheres [data-msdec]').forEach(el => el.onclick = async () => {
     const [id, p] = el.dataset.msdec.split(':'); await sphApi.msPatch(+id, { progress: Math.max(0, +p - 1) }); window.loadSpheres();
+  });
+  document.querySelectorAll('#screen-spheres [data-mspin]').forEach(el => el.onclick = async () => {
+    const [id, pin] = el.dataset.mspin.split(':'); await sphApi.msPatch(+id, { pinned: pin === '1' ? 0 : 1 }); window.loadSpheres();
   });
   document.querySelectorAll('#screen-spheres [data-msadd]').forEach(el => el.addEventListener('keydown', async e => {
     if (e.key !== 'Enter' || !el.value.trim()) return;
