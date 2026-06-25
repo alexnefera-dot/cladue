@@ -376,7 +376,8 @@ def run_monitor(job_id, cfg):
                     if err:
                         with job["lock"]:
                             job["errors"].append({"round": rnd, "query": kw, "error": err})
-                    round_pos[kw] = {dom: find_position(results, dom) for dom in job["domains"]}
+                    doms = job["pairs_by_kw"].get(kw, [])
+                    round_pos[kw] = {dom: find_position(results, dom) for dom in doms}
 
             with job["lock"]:
                 job["snapshots"].append(
@@ -407,25 +408,24 @@ def run_monitor(job_id, cfg):
 
 
 def monitor_rows(job):
-    """Сводка по каждой паре ключ+домен: позиции по снятиям и средняя."""
+    """Сводка по каждой паре ключ+домен (только назначенные пары)."""
     snaps = job["snapshots"]
     rows = []
-    for kw in job["keywords"]:
-        for dom in job["domains"]:
-            positions = [s["positions"].get(kw, {}).get(dom) for s in snaps]
-            found = [p for p in positions if p is not None]
-            rows.append(
-                {
-                    "keyword": kw,
-                    "domain": dom,
-                    "positions": positions,
-                    "avg": round(sum(found) / len(found), 1) if found else None,
-                    "best": min(found) if found else None,
-                    "worst": max(found) if found else None,
-                    "found": len(found),
-                    "checks": len(snaps),
-                }
-            )
+    for kw, dom in job.get("pairs", []):
+        positions = [s["positions"].get(kw, {}).get(dom) for s in snaps]
+        found = [p for p in positions if p is not None]
+        rows.append(
+            {
+                "keyword": kw,
+                "domain": dom,
+                "positions": positions,
+                "avg": round(sum(found) / len(found), 1) if found else None,
+                "best": min(found) if found else None,
+                "worst": max(found) if found else None,
+                "found": len(found),
+                "checks": len(snaps),
+            }
+        )
     return rows
 
 
@@ -570,6 +570,12 @@ def _split_unique(raw, limit):
     return out[:limit]
 
 
+def _split_multi(raw):
+    """Домены в одном поле через запятую/пробел/перенос строки."""
+    s = (raw or "").replace(",", " ").replace(";", " ").replace("\r", " ").replace("\n", " ")
+    return [p for p in s.split() if p]
+
+
 @app.route("/api/monitor/run", methods=["POST"])
 def api_monitor_run():
     data = request.get_json(force=True, silent=True) or {}
@@ -579,17 +585,51 @@ def api_monitor_run():
     if not user or not key:
         return jsonify({"error": "Укажите User ID и API key из кабинета xmlstock."}), 400
 
-    keywords = _split_unique(data.get("keywords"), 50)
-    domains, seen = [], set()
-    for d in _split_unique(data.get("domains"), 20):
-        nd = normalize_domain(d)
-        if nd and nd not in seen:
-            seen.add(nd)
-            domains.append(nd)
-    if not keywords:
-        return jsonify({"error": "Добавьте хотя бы один ключ."}), 400
-    if not domains:
-        return jsonify({"error": "Добавьте хотя бы один домен."}), 400
+    # Блоки «домен(ы) + его ключи». Старый формат (общие keywords+domains)
+    # поддерживается как один блок ради совместимости.
+    def parse_group(g):
+        kws = _split_unique((g or {}).get("keywords"), 100)
+        doms, dseen = [], set()
+        for d in _split_multi((g or {}).get("domains")):
+            nd = normalize_domain(d)
+            if nd and nd not in dseen:
+                dseen.add(nd)
+                doms.append(nd)
+        return {"domains": doms, "keywords": kws} if (kws and doms) else None
+
+    raw_groups = data.get("groups")
+    groups = []
+    if isinstance(raw_groups, list) and raw_groups:
+        for g in raw_groups[:20]:
+            parsed = parse_group(g)
+            if parsed:
+                groups.append(parsed)
+    else:
+        parsed = parse_group({"keywords": data.get("keywords"), "domains": data.get("domains")})
+        if parsed:
+            groups.append(parsed)
+
+    if not groups:
+        return jsonify({"error": "Добавьте хотя бы один домен с его ключами."}), 400
+
+    # Уникальные ключи (запрашиваются 1 раз за раунд) и пары (ключ, домен).
+    keywords, kseen = [], set()
+    pairs, pairs_by_kw, pseen = [], {}, set()
+    for g in groups:
+        for kw in g["keywords"]:
+            if kw not in kseen:
+                kseen.add(kw)
+                keywords.append(kw)
+        for dom in g["domains"]:
+            for kw in g["keywords"]:
+                if (kw, dom) not in pseen:
+                    pseen.add((kw, dom))
+                    pairs.append([kw, dom])
+                pairs_by_kw.setdefault(kw, [])
+                if dom not in pairs_by_kw[kw]:
+                    pairs_by_kw[kw].append(dom)
+    keywords = keywords[:100]
+    all_domains = list(dict.fromkeys(d for g in groups for d in g["domains"]))
 
     engine = data.get("engine") or "yandex"
     endpoint = (data.get("endpoint") or "").strip() or ENDPOINTS.get(engine)
@@ -629,7 +669,10 @@ def api_monitor_run():
             "id": job_id,
             "status": "running",
             "keywords": keywords,
-            "domains": domains,
+            "domains": all_domains,
+            "groups": groups,
+            "pairs": pairs,
+            "pairs_by_kw": pairs_by_kw,
             "rounds_total": rounds_total,
             "rounds_done": 0,
             "interval_sec": interval_sec,
@@ -648,7 +691,8 @@ def api_monitor_run():
         {
             "job_id": job_id,
             "keywords": len(keywords),
-            "domains": domains,
+            "domains": all_domains,
+            "pairs": len(pairs),
             "rounds": rounds_total,
             "interval_sec": interval_sec,
             "depth": cfg["top_n"],

@@ -68,6 +68,9 @@
   .seq span { display:inline-block; min-width:20px; text-align:center; }
   .seq .miss { color:#5a6672; }
   .pill { font-size:12px; color:var(--muted); }
+  .mgroup { border:1px solid var(--line); border-radius:10px; padding:12px; margin-bottom:10px; background:rgba(13,17,23,.35); }
+  .mgroup .mg-keys { min-height:84px; margin-top:6px; }
+  .mg-del { padding:6px 12px; align-self:flex-end; }
 </style>
 </head>
 <body>
@@ -167,17 +170,13 @@
   <!-- ================= ВКЛАДКА 2: ТРЕКЕР ПОЗИЦИЙ ================= -->
   <div id="panel-track" class="hidden">
     <div class="card">
-      <div class="grid g2">
-        <div>
-          <label>Ключевые запросы — по одному в строке <span class="count" id="mkcount">0</span></label>
-          <textarea id="m_keywords" placeholder="купить окна в москве&#10;пластиковые окна цена&#10;остекление балкона"></textarea>
-          <div class="hint">Рекомендуется до ~10 ключей.</div>
-        </div>
-        <div>
-          <label>Ваши домены — по одному в строке</label>
-          <textarea id="m_domains" placeholder="mysite.ru&#10;myshop.ru"></textarea>
-          <div class="hint">Можно с www или https:// — всё равно приведётся к домену. Поддомены засчитываются.</div>
-        </div>
+      <label style="margin-bottom:8px">Домены и их ключи</label>
+      <div id="m_groups"></div>
+      <button class="btn-ghost" id="m_add" type="button" style="margin-top:2px">+ Добавить домен</button>
+      <div class="hint" style="margin-top:8px">
+        Каждый блок — отдельный домен со своими ключами (для двух проектов добавьте два блока).
+        Домен можно с www/https:// и путём — приведётся к чистому; поддомены и корень засчитываются.
+        В каждом снятии одинаковые ключи запрашиваются один раз.
       </div>
 
       <div class="grid g4" style="margin-top:12px">
@@ -217,7 +216,7 @@
 
       <div class="tbl-wrap">
         <table class="pos" id="m_table">
-          <thead><tr><th>Ключ</th><th>Домен</th><th>Средняя</th><th>Лучш.</th><th>Худш.</th><th>Нашли</th><th>Снимки →</th></tr></thead>
+          <thead><tr><th>Домен</th><th>Ключ</th><th>Средняя</th><th>Лучш.</th><th>Худш.</th><th>Нашли</th><th>Снимки →</th></tr></thead>
           <tbody id="m_tbody"></tbody>
         </table>
       </div>
@@ -235,7 +234,7 @@
 const $ = id => document.getElementById(id);
 const SHARED  = ["user","key","engine","lr","domain","device","endpoint"];
 const COLLECT = ["top_n","workers","delay","retries","queries"];
-const TRACK   = ["m_keywords","m_domains","m_depth","m_rounds","m_interval","m_workers"];
+const TRACK   = ["m_depth","m_rounds","m_interval","m_workers"];
 const ALL = [...SHARED, ...COLLECT, ...TRACK];
 
 // ---- сохранение/восстановление ----
@@ -266,8 +265,46 @@ $("engine").dispatchEvent(new Event("change"));
 // ---- счётчики строк ----
 function lines(id){ return $(id).value.split("\n").map(s=>s.trim()).filter(Boolean).length; }
 $("queries").addEventListener("input", ()=> $("qcount").textContent=lines("queries")+" стр.");
-$("m_keywords").addEventListener("input", ()=> $("mkcount").textContent=lines("m_keywords")+" стр.");
-$("qcount").textContent=lines("queries")+" стр."; $("mkcount").textContent=lines("m_keywords")+" стр.";
+$("qcount").textContent=lines("queries")+" стр.";
+
+// ---- блоки «домен + его ключи» (трекер) ----
+function mgCount(div){ const n=div.querySelector(".mg-keys").value.split("\n").map(s=>s.trim()).filter(Boolean).length;
+  div.querySelector(".mg-count").textContent = n+" ключ."; }
+function saveGroups(){
+  const g=[...document.querySelectorAll(".mgroup")].map(d=>({domain:d.querySelector(".mg-domain").value, keys:d.querySelector(".mg-keys").value}));
+  localStorage.setItem("xmlstock_groups", JSON.stringify(g));
+}
+function makeGroup(domain="", keys=""){
+  const div=document.createElement("div"); div.className="mgroup";
+  div.innerHTML=`<div class="row" style="justify-content:space-between;align-items:flex-end;gap:8px">
+      <div style="flex:1"><label>Домен (можно несколько через запятую)</label>
+      <input class="mg-domain" placeholder="spacewin.k4r.team"></div>
+      <button class="btn-ghost mg-del" type="button" title="Убрать блок">✕</button></div>
+    <label style="margin-top:8px">Ключи этого домена — по одному в строке <span class="count mg-count"></span></label>
+    <textarea class="mg-keys" placeholder="ключ 1&#10;ключ 2&#10;ключ 3"></textarea>`;
+  div.querySelector(".mg-domain").value=domain;
+  div.querySelector(".mg-keys").value=keys;
+  div.querySelector(".mg-del").onclick=()=>{ if(document.querySelectorAll(".mgroup").length>1){ div.remove(); saveGroups(); } };
+  div.querySelectorAll(".mg-domain,.mg-keys").forEach(el=> el.addEventListener("input", ()=>{ mgCount(div); saveGroups(); }));
+  mgCount(div);
+  return div;
+}
+function loadGroups(){
+  let g=[]; try{ g=JSON.parse(localStorage.getItem("xmlstock_groups")||"[]"); }catch(e){}
+  if(!g.length){
+    let od="",ok=""; try{ const o=JSON.parse(localStorage.getItem("xmlstock_serp")||"{}"); od=o.m_domains||""; ok=o.m_keywords||""; }catch(e){}
+    g=[{domain:od,keys:ok},{domain:"",keys:""}];
+  }
+  const c=$("m_groups"); c.innerHTML="";
+  g.forEach(x=> c.appendChild(makeGroup(x.domain||"", x.keys||"")));
+}
+function collectGroups(){
+  return [...document.querySelectorAll(".mgroup")].map(d=>({
+    domains:d.querySelector(".mg-domain").value, keywords:d.querySelector(".mg-keys").value
+  })).filter(x=> x.domains.trim() && x.keywords.trim());
+}
+$("m_add").onclick=()=>{ $("m_groups").appendChild(makeGroup()); saveGroups(); };
+loadGroups();
 function updatePlan(){ const r=+$("m_rounds").value||0, i=+$("m_interval").value||0;
   $("m_plan").textContent = `${r} снятий × ${i} мин ≈ ~${Math.round((r-1)*i)} мин общий прогон.`; }
 ["m_rounds","m_interval"].forEach(id=> $(id).addEventListener("input", updatePlan)); updatePlan();
@@ -322,13 +359,12 @@ let mPoll=null, mTick=null, mJob=null, mNextAt=null;
 
 $("m_go").onclick = async ()=>{
   hideErr();
-  const payload = {...shared(),
-    keywords:$("m_keywords").value, domains:$("m_domains").value,
+  const groups = collectGroups();
+  if(!$("user").value.trim() || !$("key").value.trim()){ showErr("Заполните User ID и API key."); return; }
+  if(!groups.length){ showErr("Добавьте хотя бы один домен с его ключами."); return; }
+  const payload = {...shared(), groups,
     depth:$("m_depth").value, rounds:$("m_rounds").value,
     interval_min:$("m_interval").value, workers:$("m_workers").value};
-  if(!payload.user || !payload.key){ showErr("Заполните User ID и API key."); return; }
-  if(!payload.keywords.trim()){ showErr("Добавьте хотя бы один ключ."); return; }
-  if(!payload.domains.trim()){ showErr("Добавьте хотя бы один домен."); return; }
   $("m_go").disabled=true;
   try{
     const r = await fetch("/api/monitor/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
@@ -347,14 +383,14 @@ function startMon(){
 }
 function posClass(p){ if(p==null) return "p-no"; if(p<=3) return "p-top"; if(p<=10) return "p-mid"; return "p-low"; }
 function renderRows(rows){
-  let lastKw=null;
+  let lastDom=null;
   $("m_tbody").innerHTML = rows.map(r=>{
-    const sep = r.keyword!==lastKw ? " kwsep":""; lastKw=r.keyword;
+    const sep = r.domain!==lastDom ? " kwsep":""; lastDom=r.domain;
     const seq = r.positions.map(p=> p==null? '<span class="miss">·</span>' : `<span>${p}</span>`).join(" ");
     const avg = r.avg==null ? '<span class="p-no">не найден</span>'
                             : `<span class="avg ${posClass(Math.round(r.avg))}">${r.avg}</span>`;
     return `<tr class="${sep}">
-      <td>${esc(r.keyword)}</td><td>${esc(r.domain)}</td>
+      <td>${esc(r.domain)}</td><td>${esc(r.keyword)}</td>
       <td>${avg}</td>
       <td>${r.best??"—"}</td><td>${r.worst??"—"}</td>
       <td class="pill">${r.found}/${r.checks}</td>
