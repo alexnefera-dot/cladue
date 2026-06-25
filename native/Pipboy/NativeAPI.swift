@@ -642,12 +642,15 @@ enum Api {
             let op = body["op"] as? String
             // удаление: DELETE-метод ИЛИ POST с op (схема pipboy:// может не пропускать DELETE — POST надёжнее)
             if method == "DELETE" || op == "clear" || op == "del" {
-                if let dRaw = body["date"] as? String {
-                    try db.run("DELETE FROM metric_log WHERE metric_id = ? AND date = ?", [mid, snapISO(cadence, dRaw)])
-                } else {
-                    try db.run("DELETE FROM metric_log WHERE metric_id = ?", [mid])
+                ensureSyncSchema(db)
+                let dates: [String] = (body["date"] as? String).map { [snapISO(cadence, $0)] }
+                    ?? ((try? db.rows("SELECT date FROM metric_log WHERE metric_id = ?", [mid]))?.compactMap { $0["date"] as? String } ?? [])
+                for d in dates {
+                    try db.run("DELETE FROM metric_log WHERE metric_id = ? AND date = ?", [mid, d])
+                    // надгробие: чтобы синк с телефона НЕ вернул удалённую запись (metric_log синкается union-ом)
+                    try? db.run("INSERT OR REPLACE INTO sync_tombstones(tbl, row_key, deleted_at) VALUES('metric_log', ?, ?)", ["\(mid)|\(d)", isoNow()])
                 }
-                return (try json(["deleted": db.changes()]), 200)
+                return (try json(["deleted": dates.count]), 200)
             }
             // дату снапим к ключу периода метрики (день/воскресенье/месяц) → одно значение на период
             let date = (body["date"] as? String).map { snapISO(cadence, $0) } ?? periodKey(cadence)
@@ -2917,6 +2920,10 @@ enum Api {
             for t in syncUnion {
                 guard let rows = tables[t] as? [[String: Any]] else { continue }
                 for row in rows {
+                    if t == "metric_log", let mid = row["metric_id"], let dt = row["date"] as? String,
+                       scalarStr(db, "SELECT deleted_at FROM sync_tombstones WHERE tbl = 'metric_log' AND row_key = ?", ["\(intval(mid))|\(dt)"]) != nil {
+                        continue   // запись метрики удалена на этом устройстве → не возвращаем из синка
+                    }
                     let cols = knownKeys(db, t, row); guard !cols.isEmpty else { continue }
                     let colList = cols.map { "\"\($0)\"" }.joined(separator: ",")
                     let marks = cols.map { _ in "?" }.joined(separator: ",")
