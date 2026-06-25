@@ -57,6 +57,11 @@ ENDPOINTS = {
 JOBS = {}
 JOBS_LOCK = Lock()
 
+# Хранилище задач трекера позиций.
+MONITORS = {}
+MON_LOCK = Lock()
+ACTIVE_MONITOR = {"id": None}
+
 
 # --------------------------------------------------------------------------- #
 #  Парсинг ответа                                                             #
@@ -67,6 +72,37 @@ def domain_from_url(url):
         return netloc[4:] if netloc.startswith("www.") else netloc
     except Exception:
         return ""
+
+
+def normalize_domain(value):
+    """Приводит «www.Site.ru/path» или «https://site.ru» к «site.ru»."""
+    s = (value or "").strip().lower()
+    if not s:
+        return ""
+    if "://" in s:
+        s = urlparse(s).netloc or s.split("://", 1)[1]
+    s = s.split("/")[0].strip()
+    if s.startswith("www."):
+        s = s[4:]
+    return s
+
+
+def _domain_matches(found, target):
+    if not found or not target:
+        return False
+    found = found.lower()
+    if found.startswith("www."):
+        found = found[4:]
+    return found == target or found.endswith("." + target)
+
+
+def find_position(results, target):
+    """Позиция целевого домена в выдаче (1-based) или None, если не найден."""
+    for i, r in enumerate(results, 1):
+        dom = r.get("domain") or domain_from_url(r.get("url", ""))
+        if _domain_matches(dom, target):
+            return i
+    return None
 
 
 def _is_retryable(error_text):
@@ -309,6 +345,83 @@ def _write_xlsx(path, long_rows, wide_rows, top_n):
 
 
 # --------------------------------------------------------------------------- #
+#  Трекер позиций: прогон по раундам                                          #
+# --------------------------------------------------------------------------- #
+def run_monitor(job_id, cfg):
+    job = MONITORS[job_id]
+    try:
+        for rnd in range(1, job["rounds_total"] + 1):
+            if job["cancel"].is_set():
+                break
+            round_pos = {}
+            with ThreadPoolExecutor(max_workers=cfg["workers"]) as ex:
+                futs = {
+                    ex.submit(fetch_one, cfg, kw, job["cancel"]): kw
+                    for kw in job["keywords"]
+                }
+                for fut in as_completed(futs):
+                    kw = futs[fut]
+                    try:
+                        results, err = fut.result()
+                    except Exception as e:  # noqa: BLE001
+                        results, err = [], f"исключение: {e}"
+                    if err:
+                        with job["lock"]:
+                            job["errors"].append({"round": rnd, "query": kw, "error": err})
+                    round_pos[kw] = {dom: find_position(results, dom) for dom in job["domains"]}
+
+            with job["lock"]:
+                job["snapshots"].append(
+                    {"round": rnd, "at": time.time(), "positions": round_pos}
+                )
+                job["rounds_done"] = rnd
+
+            # Пауза до следующего снятия (прерываемая), кроме последнего раунда.
+            if rnd < job["rounds_total"] and not job["cancel"].is_set():
+                target = time.time() + job["interval_sec"]
+                with job["lock"]:
+                    job["next_run_at"] = target
+                while time.time() < target and not job["cancel"].is_set():
+                    time.sleep(1)
+                with job["lock"]:
+                    job["next_run_at"] = None
+    except Exception as e:  # noqa: BLE001
+        with job["lock"]:
+            job["status"] = "error"
+            job["fatal"] = str(e)
+            job["next_run_at"] = None
+        return
+
+    with job["lock"]:
+        job["status"] = "cancelled" if job["cancel"].is_set() else "done"
+        job["finished_at"] = time.time()
+        job["next_run_at"] = None
+
+
+def monitor_rows(job):
+    """Сводка по каждой паре ключ+домен: позиции по снятиям и средняя."""
+    snaps = job["snapshots"]
+    rows = []
+    for kw in job["keywords"]:
+        for dom in job["domains"]:
+            positions = [s["positions"].get(kw, {}).get(dom) for s in snaps]
+            found = [p for p in positions if p is not None]
+            rows.append(
+                {
+                    "keyword": kw,
+                    "domain": dom,
+                    "positions": positions,
+                    "avg": round(sum(found) / len(found), 1) if found else None,
+                    "best": min(found) if found else None,
+                    "worst": max(found) if found else None,
+                    "found": len(found),
+                    "checks": len(snaps),
+                }
+            )
+    return rows
+
+
+# --------------------------------------------------------------------------- #
 #  HTTP-маршруты                                                              #
 # --------------------------------------------------------------------------- #
 @app.route("/")
@@ -436,6 +549,198 @@ def api_errors(job_id):
         return jsonify({"error": "Задача не найдена"}), 404
     with job["lock"]:
         return jsonify({"errors": job["errors"]})
+
+
+# --- Трекер позиций -------------------------------------------------------- #
+def _split_unique(raw, limit):
+    seen, out = set(), []
+    for line in (raw or "").replace("\r", "\n").split("\n"):
+        v = line.strip()
+        if v and v not in seen:
+            seen.add(v)
+            out.append(v)
+    return out[:limit]
+
+
+@app.route("/api/monitor/run", methods=["POST"])
+def api_monitor_run():
+    data = request.get_json(force=True, silent=True) or {}
+
+    user = (data.get("user") or "").strip()
+    key = (data.get("key") or "").strip()
+    if not user or not key:
+        return jsonify({"error": "Укажите User ID и API key из кабинета xmlstock."}), 400
+
+    keywords = _split_unique(data.get("keywords"), 50)
+    domains, seen = [], set()
+    for d in _split_unique(data.get("domains"), 20):
+        nd = normalize_domain(d)
+        if nd and nd not in seen:
+            seen.add(nd)
+            domains.append(nd)
+    if not keywords:
+        return jsonify({"error": "Добавьте хотя бы один ключ."}), 400
+    if not domains:
+        return jsonify({"error": "Добавьте хотя бы один домен."}), 400
+
+    engine = data.get("engine") or "yandex"
+    endpoint = (data.get("endpoint") or "").strip() or ENDPOINTS.get(engine)
+    if not endpoint or not endpoint.lower().startswith(("http://", "https://")):
+        return jsonify({"error": "Некорректный URL эндпоинта."}), 400
+
+    def clamp(val, lo, hi, default):
+        try:
+            return max(lo, min(hi, int(val)))
+        except (TypeError, ValueError):
+            return default
+
+    try:
+        interval_min = float(data.get("interval_min"))
+    except (TypeError, ValueError):
+        interval_min = 4.0
+    interval_sec = int(max(5, min(3600, interval_min * 60)))
+    rounds_total = clamp(data.get("rounds"), 1, 100, 10)
+
+    cfg = {
+        "user": user,
+        "key": key,
+        "endpoint": endpoint,
+        "lr": (data.get("lr") or "").strip(),
+        "domain": (data.get("domain") or "").strip(),
+        "device": (data.get("device") or "").strip(),
+        "top_n": clamp(data.get("depth"), 10, 100, 100),
+        "workers": clamp(data.get("workers"), 1, 10, 5),
+        "delay": 0.0,
+        "timeout": 30,
+        "retries": 2,
+    }
+
+    job_id = uuid.uuid4().hex
+    with MON_LOCK:
+        MONITORS[job_id] = {
+            "id": job_id,
+            "status": "running",
+            "keywords": keywords,
+            "domains": domains,
+            "rounds_total": rounds_total,
+            "rounds_done": 0,
+            "interval_sec": interval_sec,
+            "depth": cfg["top_n"],
+            "snapshots": [],
+            "errors": [],
+            "next_run_at": None,
+            "lock": Lock(),
+            "cancel": Event(),
+            "started_at": time.time(),
+        }
+        ACTIVE_MONITOR["id"] = job_id
+
+    Thread(target=run_monitor, args=(job_id, cfg), daemon=True).start()
+    return jsonify(
+        {
+            "job_id": job_id,
+            "keywords": len(keywords),
+            "domains": domains,
+            "rounds": rounds_total,
+            "interval_sec": interval_sec,
+            "depth": cfg["top_n"],
+        }
+    )
+
+
+@app.route("/api/monitor/status/<job_id>")
+def api_monitor_status(job_id):
+    job = MONITORS.get(job_id)
+    if not job:
+        return jsonify({"error": "Задача не найдена"}), 404
+    with job["lock"]:
+        nxt = job.get("next_run_at")
+        return jsonify(
+            {
+                "status": job["status"],
+                "rounds_total": job["rounds_total"],
+                "rounds_done": job["rounds_done"],
+                "interval_sec": job["interval_sec"],
+                "seconds_to_next": int(max(0, nxt - time.time())) if nxt else None,
+                "depth": job["depth"],
+                "domains": job["domains"],
+                "rows": monitor_rows(job),
+                "errors_count": len(job["errors"]),
+                "fatal": job.get("fatal"),
+            }
+        )
+
+
+@app.route("/api/monitor/cancel/<job_id>", methods=["POST"])
+def api_monitor_cancel(job_id):
+    job = MONITORS.get(job_id)
+    if not job:
+        return jsonify({"error": "Задача не найдена"}), 404
+    job["cancel"].set()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/monitor/active")
+def api_monitor_active():
+    jid = ACTIVE_MONITOR.get("id")
+    if jid and jid in MONITORS:
+        return jsonify({"job_id": jid, "status": MONITORS[jid]["status"]})
+    return jsonify({"job_id": None})
+
+
+@app.route("/api/monitor/download/<job_id>")
+def api_monitor_download(job_id):
+    job = MONITORS.get(job_id)
+    if not job:
+        return jsonify({"error": "Задача не найдена"}), 404
+    fmt = request.args.get("fmt", "csv")
+    with job["lock"]:
+        rows = monitor_rows(job)
+        n = len(job["snapshots"])
+    headers = (
+        ["keyword", "domain", "avg_position", "best", "worst", "found", "checks"]
+        + [f"round_{i}" for i in range(1, n + 1)]
+    )
+
+    def cells(r):
+        return (
+            [r["keyword"], r["domain"], r["avg"], r["best"], r["worst"], r["found"], r["checks"]]
+            + [p if p is not None else "" for p in r["positions"]]
+        )
+
+    if fmt == "xlsx":
+        try:
+            from openpyxl import Workbook
+        except Exception:
+            return jsonify({"error": "openpyxl не установлен"}), 400
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "positions"
+        ws.append(headers)
+        for r in rows:
+            ws.append(cells(r))
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        return send_file(
+            buf,
+            as_attachment=True,
+            download_name=f"positions_{job_id[:8]}.xlsx",
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
+    sbuf = io.StringIO()
+    w = csv.writer(sbuf, delimiter=";")
+    w.writerow(headers)
+    for r in rows:
+        w.writerow(cells(r))
+    payload = ("﻿" + sbuf.getvalue()).encode("utf-8")
+    return send_file(
+        io.BytesIO(payload),
+        as_attachment=True,
+        download_name=f"positions_{job_id[:8]}.csv",
+        mimetype="text/csv",
+    )
 
 
 def _open_browser(url):

@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>XMLStock SERP — ТОП выдачи Яндекса</title>
+<title>XMLStock SERP — ТОП выдачи и трекер позиций</title>
 <style>
   :root { --bg:#0f1419; --card:#1a2029; --line:#2b3440; --txt:#e6edf3; --muted:#9aa7b4;
-          --acc:#ffcc00; --acc2:#3b82f6; --ok:#3fb950; --err:#f85149; }
+          --acc:#ffcc00; --acc2:#3b82f6; --ok:#3fb950; --warn:#d29922; --err:#f85149; }
   * { box-sizing: border-box; }
   body { margin:0; background:var(--bg); color:var(--txt);
          font:14px/1.5 -apple-system,Segoe UI,Roboto,Arial,sans-serif; }
-  .wrap { max-width:1040px; margin:0 auto; padding:24px 18px 60px; }
+  .wrap { max-width:1100px; margin:0 auto; padding:24px 18px 60px; }
   h1 { font-size:20px; margin:0 0 4px; }
   h1 span { color:var(--acc); }
   .sub { color:var(--muted); margin:0 0 20px; font-size:13px; }
@@ -20,10 +20,9 @@
   input, select, textarea { width:100%; background:#0d1117; color:var(--txt);
           border:1px solid var(--line); border-radius:8px; padding:9px 10px; font-size:14px; }
   input:focus, select:focus, textarea:focus { outline:none; border-color:var(--acc2); }
-  textarea { resize:vertical; min-height:200px; font-family:ui-monospace,Menlo,Consolas,monospace; }
+  textarea { resize:vertical; min-height:150px; font-family:ui-monospace,Menlo,Consolas,monospace; }
   .grid { display:grid; gap:12px; }
   .g2 { grid-template-columns:1fr 1fr; }
-  .g3 { grid-template-columns:1fr 1fr 1fr; }
   .g4 { grid-template-columns:repeat(4,1fr); }
   .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
   button { cursor:pointer; border:none; border-radius:8px; padding:10px 18px;
@@ -40,7 +39,7 @@
   .stat { display:flex; gap:22px; flex-wrap:wrap; margin:12px 0; font-size:13px; }
   .stat b { font-size:18px; display:block; }
   .stat .ok b { color:var(--ok); } .stat .er b { color:var(--err); }
-  .log { max-height:240px; overflow:auto; font-family:ui-monospace,Menlo,Consolas,monospace;
+  .log { max-height:220px; overflow:auto; font-family:ui-monospace,Menlo,Consolas,monospace;
          font-size:12px; background:#0d1117; border:1px solid var(--line); border-radius:8px; padding:10px; }
   .log div { padding:1px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .log .e { color:var(--err); } .log .z { color:var(--muted); }
@@ -51,27 +50,44 @@
   details summary { cursor:pointer; color:var(--muted); font-size:13px; }
   fieldset { border:1px solid var(--line); border-radius:8px; padding:12px; margin:0; }
   legend { color:var(--muted); font-size:12px; padding:0 6px; }
+  /* tabs */
+  .tabs { display:flex; gap:6px; margin-bottom:16px; }
+  .tab { background:transparent; color:var(--muted); border:1px solid var(--line);
+         border-radius:9px; padding:9px 16px; }
+  .tab.active { background:var(--card); color:var(--txt); border-color:var(--acc2); }
+  /* таблица позиций */
+  .tbl-wrap { overflow:auto; border:1px solid var(--line); border-radius:8px; }
+  table.pos { border-collapse:collapse; width:100%; font-size:13px; }
+  table.pos th, table.pos td { padding:8px 10px; text-align:left; white-space:nowrap; }
+  table.pos th { background:#0d1117; color:var(--muted); position:sticky; top:0; font-weight:600; }
+  table.pos td { border-top:1px solid var(--line); }
+  table.pos tr.kwsep td { border-top:2px solid #3a4655; }
+  .avg { font-weight:700; }
+  .p-top { color:var(--ok); } .p-mid { color:var(--warn); } .p-low { color:var(--txt); }
+  .p-no  { color:var(--err); }
+  .seq span { display:inline-block; min-width:20px; text-align:center; }
+  .seq .miss { color:#5a6672; }
+  .pill { font-size:12px; color:var(--muted); }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>XMLStock <span>SERP</span> — выгрузка ТОП выдачи</h1>
-  <p class="sub">Локальный сбор ТОП-N результатов Яндекса (живая выдача) по списку ключей через API xmlstock.com.</p>
+  <h1>XMLStock <span>SERP</span> — выгрузка ТОП и трекер позиций</h1>
+  <p class="sub">Локальная работа с живой выдачей Яндекса (и Google) через API xmlstock.com.</p>
 
   <div id="msg" class="msg err hidden"></div>
 
-  <!-- НАСТРОЙКИ -->
-  <div class="card" id="form">
+  <!-- ОБЩИЙ ДОСТУП (для обеих вкладок) -->
+  <div class="card">
     <fieldset style="margin-bottom:14px">
       <legend>Доступ xmlstock</legend>
       <div class="grid g2">
         <div><label>User ID</label><input id="user" placeholder="например 12345"></div>
         <div><label>API key</label><input id="key" placeholder="ваш ключ из кабинета"></div>
       </div>
-      <div class="hint">Берётся в личном кабинете xmlstock.com → раздел API. Сохраняется только в этом браузере (localStorage).</div>
+      <div class="hint">Берётся в кабинете xmlstock.com → раздел API. Сохраняется только в этом браузере.</div>
     </fieldset>
-
-    <fieldset style="margin-bottom:14px">
+    <fieldset>
       <legend>Параметры поиска</legend>
       <div class="grid g4">
         <div>
@@ -82,14 +98,8 @@
             <option value="custom">Свой URL…</option>
           </select>
         </div>
-        <div>
-          <label>Регион (lr)</label>
-          <input id="lr" value="213" placeholder="213 = Москва">
-        </div>
-        <div>
-          <label>Домен</label>
-          <input id="domain" placeholder="ru / com (необяз.)">
-        </div>
+        <div><label>Регион (lr)</label><input id="lr" value="213" placeholder="213 = Москва"></div>
+        <div><label>Домен</label><input id="domain" placeholder="ru / com (необяз.)"></div>
         <div>
           <label>Устройство</label>
           <select id="device">
@@ -103,146 +113,285 @@
       <div id="customWrap" class="hidden" style="margin-top:12px">
         <label>Свой URL эндпоинта</label>
         <input id="endpoint" placeholder="https://xmlstock.com/yandex/xml/">
-        <div class="hint">Вставьте точный адрес из вашего кабинета, если стандартный не подходит.</div>
       </div>
     </fieldset>
+  </div>
 
-    <details style="margin-bottom:14px">
-      <summary>Дополнительно (скорость, ретраи)</summary>
-      <div class="grid g4" style="margin-top:12px">
-        <div><label>ТОП, шт. (1–50)</label><input id="top_n" type="number" value="10" min="1" max="50"></div>
-        <div><label>Параллельно (1–20)</label><input id="workers" type="number" value="5" min="1" max="20"></div>
-        <div><label>Пауза, сек</label><input id="delay" type="number" value="0" min="0" step="0.1"></div>
-        <div><label>Ретраи</label><input id="retries" type="number" value="2" min="0" max="5"></div>
+  <!-- ВКЛАДКИ -->
+  <div class="tabs">
+    <button class="tab active" data-tab="collect">📥 Сбор ТОП</button>
+    <button class="tab" data-tab="track">📈 Трекер позиций</button>
+  </div>
+
+  <!-- ================= ВКЛАДКА 1: СБОР ТОП ================= -->
+  <div id="panel-collect">
+    <div class="card">
+      <details style="margin-bottom:14px">
+        <summary>Дополнительно (скорость, ретраи)</summary>
+        <div class="grid g4" style="margin-top:12px">
+          <div><label>ТОП, шт. (1–50)</label><input id="top_n" type="number" value="10" min="1" max="50"></div>
+          <div><label>Параллельно (1–20)</label><input id="workers" type="number" value="5" min="1" max="20"></div>
+          <div><label>Пауза, сек</label><input id="delay" type="number" value="0" min="0" step="0.1"></div>
+          <div><label>Ретраи</label><input id="retries" type="number" value="2" min="0" max="5"></div>
+        </div>
+        <div class="hint">При ошибках лимита (RPS) уменьшите «Параллельно» или добавьте «Паузу».</div>
+      </details>
+
+      <label>Запросы — по одному в строке <span class="count" id="qcount">0</span></label>
+      <textarea id="queries" placeholder="купить окна в москве&#10;пластиковые окна цена&#10;остекление балкона&#10;..."></textarea>
+      <div class="hint">Можно вставить 200–300 ключей разом. Дубликаты убираются автоматически.</div>
+
+      <div class="row" style="margin-top:16px">
+        <button class="btn-go" id="go">▶ Запустить сбор</button>
+        <button class="btn-ghost" id="clear">Очистить запросы</button>
       </div>
-      <div class="hint">Если xmlstock возвращает ошибки лимита (RPS) — уменьшите «Параллельно» или добавьте «Паузу».</div>
-    </details>
+    </div>
 
-    <label>Запросы — по одному в строке <span class="count" id="qcount">0</span></label>
-    <textarea id="queries" placeholder="купить окна в москве&#10;пластиковые окна цена&#10;остекление балкона&#10;..."></textarea>
-    <div class="hint">Можно вставить 200–300 ключей разом. Дубликаты убираются автоматически.</div>
-
-    <div class="row" style="margin-top:16px">
-      <button class="btn-go" id="go">▶ Запустить сбор</button>
-      <button class="btn-ghost" id="clear">Очистить запросы</button>
+    <div class="card hidden" id="progress">
+      <div class="bar"><i id="barFill"></i></div>
+      <div class="stat">
+        <div><span class="muted">Готово</span><b id="sDone">0 / 0</b></div>
+        <div class="ok"><span class="muted">Статус</span><b id="sStatus">—</b></div>
+        <div class="er"><span class="muted">Ошибки</span><b id="sErr">0</b></div>
+      </div>
+      <div class="row" style="margin-bottom:12px">
+        <button class="btn-dl hidden" id="dlXlsx">⬇ Скачать XLSX</button>
+        <button class="btn-dl hidden" id="dlCsv">⬇ Скачать CSV</button>
+        <button class="btn-cancel hidden" id="cancel">■ Остановить</button>
+      </div>
+      <label>Лента обработки (последние)</label>
+      <div class="log" id="log"></div>
     </div>
   </div>
 
-  <!-- ПРОГРЕСС -->
-  <div class="card hidden" id="progress">
-    <div class="bar"><i id="barFill"></i></div>
-    <div class="stat">
-      <div><span class="muted">Готово</span><b id="sDone">0 / 0</b></div>
-      <div class="ok"><span class="muted">Статус</span><b id="sStatus">—</b></div>
-      <div class="er"><span class="muted">Ошибки</span><b id="sErr">0</b></div>
+  <!-- ================= ВКЛАДКА 2: ТРЕКЕР ПОЗИЦИЙ ================= -->
+  <div id="panel-track" class="hidden">
+    <div class="card">
+      <div class="grid g2">
+        <div>
+          <label>Ключевые запросы — по одному в строке <span class="count" id="mkcount">0</span></label>
+          <textarea id="m_keywords" placeholder="купить окна в москве&#10;пластиковые окна цена&#10;остекление балкона"></textarea>
+          <div class="hint">Рекомендуется до ~10 ключей.</div>
+        </div>
+        <div>
+          <label>Ваши домены — по одному в строке</label>
+          <textarea id="m_domains" placeholder="mysite.ru&#10;myshop.ru"></textarea>
+          <div class="hint">Можно с www или https:// — всё равно приведётся к домену. Поддомены засчитываются.</div>
+        </div>
+      </div>
+
+      <div class="grid g4" style="margin-top:12px">
+        <div>
+          <label>Глубина поиска</label>
+          <select id="m_depth">
+            <option value="100" selected>Топ-100</option>
+            <option value="50">Топ-50</option>
+            <option value="30">Топ-30</option>
+          </select>
+        </div>
+        <div><label>Снятий (раз)</label><input id="m_rounds" type="number" value="10" min="1" max="100"></div>
+        <div><label>Интервал, мин</label><input id="m_interval" type="number" value="4" min="0.1" max="60" step="0.5"></div>
+        <div><label>Параллельно</label><input id="m_workers" type="number" value="5" min="1" max="10"></div>
+      </div>
+      <div class="hint" id="m_plan">10 снятий × 4 мин ≈ ~36 мин общий прогон.</div>
+
+      <div class="row" style="margin-top:16px">
+        <button class="btn-go" id="m_go">▶ Запустить трекер</button>
+        <button class="btn-cancel hidden" id="m_stop">■ Остановить</button>
+      </div>
     </div>
-    <div class="row" style="margin-bottom:12px">
-      <button class="btn-dl hidden" id="dlXlsx">⬇ Скачать XLSX</button>
-      <button class="btn-dl hidden" id="dlCsv">⬇ Скачать CSV</button>
-      <button class="btn-cancel hidden" id="cancel">■ Остановить</button>
+
+    <div class="card hidden" id="m_panel">
+      <div class="row" style="justify-content:space-between">
+        <div class="stat" style="margin:0">
+          <div><span class="muted">Снято</span><b id="m_round">0 / 0</b></div>
+          <div class="ok"><span class="muted">Статус</span><b id="m_statusw">—</b></div>
+          <div><span class="muted">След. снятие</span><b id="m_next">—</b></div>
+        </div>
+        <div class="row">
+          <button class="btn-dl hidden" id="m_dlXlsx">⬇ XLSX</button>
+          <button class="btn-dl hidden" id="m_dlCsv">⬇ CSV</button>
+        </div>
+      </div>
+      <div class="bar" style="margin:10px 0 14px"><i id="m_barFill"></i></div>
+
+      <div class="tbl-wrap">
+        <table class="pos" id="m_table">
+          <thead><tr><th>Ключ</th><th>Домен</th><th>Средняя</th><th>Лучш.</th><th>Худш.</th><th>Нашли</th><th>Снимки →</th></tr></thead>
+          <tbody id="m_tbody"></tbody>
+        </table>
+      </div>
+      <div class="hint">«Средняя» считается по снятиям, где сайт найден в выдаче. «Нашли N/M» — в скольких снятиях сайт попал в выбранную глубину.</div>
+      <div class="hint err-text" id="m_err" style="color:var(--warn)"></div>
     </div>
-    <label>Лента обработки (последние)</label>
-    <div class="log" id="log"></div>
   </div>
 
-  <p class="sub" style="text-align:center">
+  <p class="sub" style="text-align:center; margin-top:24px">
     Запущено локально на вашем компьютере · данные никуда не уходят, кроме API xmlstock.
   </p>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
-const FIELDS = ["user","key","engine","lr","domain","device","endpoint","top_n","workers","delay","retries","queries"];
+const SHARED  = ["user","key","engine","lr","domain","device","endpoint"];
+const COLLECT = ["top_n","workers","delay","retries","queries"];
+const TRACK   = ["m_keywords","m_domains","m_depth","m_rounds","m_interval","m_workers"];
+const ALL = [...SHARED, ...COLLECT, ...TRACK];
 
-// --- сохранение/восстановление настроек ---
-function save(){ const o={}; FIELDS.forEach(f=>o[f]=$(f).value); localStorage.setItem("xmlstock_serp", JSON.stringify(o)); }
-function load(){
-  try{ const o=JSON.parse(localStorage.getItem("xmlstock_serp")||"{}");
-    FIELDS.forEach(f=>{ if(o[f]!==undefined && $(f)) $(f).value=o[f]; }); }catch(e){}
-}
+// ---- сохранение/восстановление ----
+function save(){ const o={}; ALL.forEach(f=>{ if($(f)) o[f]=$(f).value; }); localStorage.setItem("xmlstock_serp", JSON.stringify(o)); }
+function load(){ try{ const o=JSON.parse(localStorage.getItem("xmlstock_serp")||"{}");
+  ALL.forEach(f=>{ if(o[f]!==undefined && $(f)) $(f).value=o[f]; }); }catch(e){} }
 load();
-FIELDS.forEach(f=> $(f) && $(f).addEventListener("input", save));
+ALL.forEach(f=> $(f) && $(f).addEventListener("input", save));
 
-function countQ(){
-  const n = $("queries").value.split("\n").map(s=>s.trim()).filter(Boolean).length;
-  $("qcount").textContent = n + " стр.";
-}
-$("queries").addEventListener("input", countQ); countQ();
-
-$("engine").addEventListener("change", ()=>{
-  $("customWrap").classList.toggle("hidden", $("engine").value!=="custom");
-});
-$("engine").dispatchEvent(new Event("change"));
-
-$("clear").onclick = ()=>{ $("queries").value=""; countQ(); save(); };
-
+function esc(s){ return (s||"").replace(/[&<>]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
 function showErr(t){ const m=$("msg"); m.textContent=t; m.classList.remove("hidden"); window.scrollTo({top:0,behavior:"smooth"}); }
 function hideErr(){ $("msg").classList.add("hidden"); }
+function shared(){ const o={}; SHARED.forEach(f=>o[f]=$(f).value); return o; }
+function fmtTime(s){ if(s==null) return "—"; s=Math.max(0,Math.round(s)); const m=Math.floor(s/60), ss=String(s%60).padStart(2,"0"); return m+":"+ss; }
 
-let poll = null, jobId = null;
+// ---- вкладки ----
+document.querySelectorAll(".tab").forEach(t=> t.onclick = ()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+  t.classList.add("active");
+  $("panel-collect").classList.toggle("hidden", t.dataset.tab!=="collect");
+  $("panel-track").classList.toggle("hidden", t.dataset.tab!=="track");
+});
+
+// ---- движок / свой URL ----
+$("engine").addEventListener("change", ()=> $("customWrap").classList.toggle("hidden", $("engine").value!=="custom"));
+$("engine").dispatchEvent(new Event("change"));
+
+// ---- счётчики строк ----
+function lines(id){ return $(id).value.split("\n").map(s=>s.trim()).filter(Boolean).length; }
+$("queries").addEventListener("input", ()=> $("qcount").textContent=lines("queries")+" стр.");
+$("m_keywords").addEventListener("input", ()=> $("mkcount").textContent=lines("m_keywords")+" стр.");
+$("qcount").textContent=lines("queries")+" стр."; $("mkcount").textContent=lines("m_keywords")+" стр.";
+function updatePlan(){ const r=+$("m_rounds").value||0, i=+$("m_interval").value||0;
+  $("m_plan").textContent = `${r} снятий × ${i} мин ≈ ~${Math.round((r-1)*i)} мин общий прогон.`; }
+["m_rounds","m_interval"].forEach(id=> $(id).addEventListener("input", updatePlan)); updatePlan();
+
+// ===================== ВКЛАДКА 1: СБОР ТОП =====================
+let poll=null, jobId=null;
+$("clear").onclick = ()=>{ $("queries").value=""; $("qcount").textContent="0 стр."; save(); };
 
 $("go").onclick = async ()=>{
   hideErr();
-  const payload = {};
-  FIELDS.forEach(f=> payload[f]=$(f).value);
+  const payload = {...shared()}; COLLECT.forEach(f=> payload[f]=$(f).value);
   if(!payload.user || !payload.key){ showErr("Заполните User ID и API key."); return; }
   if(!payload.queries.trim()){ showErr("Добавьте хотя бы один запрос."); return; }
-
-  $("go").disabled = true;
+  $("go").disabled=true;
   try{
-    const r = await fetch("/api/run", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)});
+    const r = await fetch("/api/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
     const d = await r.json();
     if(!r.ok){ showErr(d.error||"Ошибка запуска"); $("go").disabled=false; return; }
-    jobId = d.job_id;
-    startUI(d.total);
-    poll = setInterval(refresh, 1000);
-    refresh();
-  }catch(e){ showErr("Не удалось связаться с сервером: "+e); $("go").disabled=false; }
+    jobId=d.job_id; startUI(d.total); poll=setInterval(refresh,1000); refresh();
+  }catch(e){ showErr("Нет связи с сервером: "+e); $("go").disabled=false; }
 };
-
 function startUI(total){
-  $("progress").classList.remove("hidden");
-  $("log").innerHTML=""; $("sErr").textContent="0";
-  $("sDone").textContent="0 / "+total; $("barFill").style.width="0%";
-  $("sStatus").textContent="идёт…";
-  $("dlXlsx").classList.add("hidden"); $("dlCsv").classList.add("hidden");
-  $("cancel").classList.remove("hidden");
+  $("progress").classList.remove("hidden"); $("log").innerHTML=""; $("sErr").textContent="0";
+  $("sDone").textContent="0 / "+total; $("barFill").style.width="0%"; $("sStatus").textContent="идёт…";
+  $("dlXlsx").classList.add("hidden"); $("dlCsv").classList.add("hidden"); $("cancel").classList.remove("hidden");
   $("progress").scrollIntoView({behavior:"smooth"});
 }
-
 async function refresh(){
-  if(!jobId) return;
-  let d;
-  try{ d = await (await fetch("/api/status/"+jobId)).json(); }catch(e){ return; }
+  if(!jobId) return; let d;
+  try{ d=await (await fetch("/api/status/"+jobId)).json(); }catch(e){ return; }
   if(d.error) return;
-
-  const pct = d.total ? Math.round(d.done/d.total*100) : 0;
-  $("barFill").style.width = pct+"%";
-  $("sDone").textContent = d.done+" / "+d.total;
-  $("sErr").textContent = d.errors_count;
-
-  $("log").innerHTML = (d.recent||[]).slice().reverse().map(r=>{
+  const pct = d.total? Math.round(d.done/d.total*100):0;
+  $("barFill").style.width=pct+"%"; $("sDone").textContent=d.done+" / "+d.total; $("sErr").textContent=d.errors_count;
+  $("log").innerHTML=(d.recent||[]).slice().reverse().map(r=>{
     if(r.error) return `<div class="e">✗ ${esc(r.query)} — ${esc(r.error)}</div>`;
-    const cls = r.count? "" : "z";
-    return `<div class="${cls}">✓ ${esc(r.query)} — ${r.count} рез.</div>`;
+    return `<div class="${r.count?"":"z"}">✓ ${esc(r.query)} — ${r.count} рез.</div>`;
   }).join("");
-
   if(d.status!=="running"){
-    clearInterval(poll); poll=null; $("go").disabled=false;
-    $("cancel").classList.add("hidden");
-    const label = {done:"готово ✓", cancelled:"остановлено", error:"ошибка"}[d.status]||d.status;
-    $("sStatus").textContent = label;
+    clearInterval(poll); poll=null; $("go").disabled=false; $("cancel").classList.add("hidden");
+    $("sStatus").textContent={done:"готово ✓",cancelled:"остановлено",error:"ошибка"}[d.status]||d.status;
     if(d.fatal) showErr("Сбой: "+d.fatal);
     if(d.has_xlsx) $("dlXlsx").classList.remove("hidden");
     if(d.has_csv) $("dlCsv").classList.remove("hidden");
   }
 }
-
 $("cancel").onclick = async ()=>{ if(jobId){ await fetch("/api/cancel/"+jobId,{method:"POST"}); $("sStatus").textContent="останавливаю…"; } };
-$("dlXlsx").onclick = ()=>{ if(jobId) location.href="/api/download/"+jobId+"?fmt=xlsx"; };
-$("dlCsv").onclick  = ()=>{ if(jobId) location.href="/api/download/"+jobId+"?fmt=csv"; };
+$("dlXlsx").onclick = ()=> jobId && (location.href="/api/download/"+jobId+"?fmt=xlsx");
+$("dlCsv").onclick  = ()=> jobId && (location.href="/api/download/"+jobId+"?fmt=csv");
 
-function esc(s){ return (s||"").replace(/[&<>]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+// ===================== ВКЛАДКА 2: ТРЕКЕР =====================
+let mPoll=null, mTick=null, mJob=null, mNextAt=null;
+
+$("m_go").onclick = async ()=>{
+  hideErr();
+  const payload = {...shared(),
+    keywords:$("m_keywords").value, domains:$("m_domains").value,
+    depth:$("m_depth").value, rounds:$("m_rounds").value,
+    interval_min:$("m_interval").value, workers:$("m_workers").value};
+  if(!payload.user || !payload.key){ showErr("Заполните User ID и API key."); return; }
+  if(!payload.keywords.trim()){ showErr("Добавьте хотя бы один ключ."); return; }
+  if(!payload.domains.trim()){ showErr("Добавьте хотя бы один домен."); return; }
+  $("m_go").disabled=true;
+  try{
+    const r = await fetch("/api/monitor/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    const d = await r.json();
+    if(!r.ok){ showErr(d.error||"Ошибка запуска"); $("m_go").disabled=false; return; }
+    mJob=d.job_id; startMon(); mPoll=setInterval(mRefresh,3000); mRefresh();
+  }catch(e){ showErr("Нет связи с сервером: "+e); $("m_go").disabled=false; }
+};
+function startMon(){
+  $("m_panel").classList.remove("hidden"); $("m_tbody").innerHTML=""; $("m_err").textContent="";
+  $("m_statusw").textContent="идёт…"; $("m_barFill").style.width="0%";
+  $("m_dlXlsx").classList.add("hidden"); $("m_dlCsv").classList.add("hidden"); $("m_stop").classList.remove("hidden");
+  if(mTick) clearInterval(mTick);
+  mTick=setInterval(()=>{ if(mNextAt!=null) $("m_next").textContent=fmtTime((mNextAt-Date.now())/1000); },1000);
+  $("m_panel").scrollIntoView({behavior:"smooth"});
+}
+function posClass(p){ if(p==null) return "p-no"; if(p<=3) return "p-top"; if(p<=10) return "p-mid"; return "p-low"; }
+function renderRows(rows){
+  let lastKw=null;
+  $("m_tbody").innerHTML = rows.map(r=>{
+    const sep = r.keyword!==lastKw ? " kwsep":""; lastKw=r.keyword;
+    const seq = r.positions.map(p=> p==null? '<span class="miss">·</span>' : `<span>${p}</span>`).join(" ");
+    const avg = r.avg==null ? '<span class="p-no">не найден</span>'
+                            : `<span class="avg ${posClass(Math.round(r.avg))}">${r.avg}</span>`;
+    return `<tr class="${sep}">
+      <td>${esc(r.keyword)}</td><td>${esc(r.domain)}</td>
+      <td>${avg}</td>
+      <td>${r.best??"—"}</td><td>${r.worst??"—"}</td>
+      <td class="pill">${r.found}/${r.checks}</td>
+      <td class="seq">${seq}</td></tr>`;
+  }).join("");
+}
+async function mRefresh(){
+  if(!mJob) return; let d;
+  try{ d=await (await fetch("/api/monitor/status/"+mJob)).json(); }catch(e){ return; }
+  if(d.error) return;
+  $("m_round").textContent = d.rounds_done+" / "+d.rounds_total;
+  $("m_barFill").style.width = (d.rounds_total? Math.round(d.rounds_done/d.rounds_total*100):0)+"%";
+  renderRows(d.rows||[]);
+  if(d.errors_count) $("m_err").textContent = "Ошибок запросов: "+d.errors_count+" (см. интервал/лимиты).";
+  mNextAt = (d.seconds_to_next!=null) ? Date.now()+d.seconds_to_next*1000 : null;
+  $("m_next").textContent = d.status==="running" ? fmtTime(d.seconds_to_next) : "—";
+
+  if(d.status!=="running"){
+    clearInterval(mPoll); mPoll=null; if(mTick){ clearInterval(mTick); mTick=null; }
+    $("m_go").disabled=false; $("m_stop").classList.add("hidden"); mNextAt=null;
+    $("m_statusw").textContent={done:"готово ✓",cancelled:"остановлено",error:"ошибка"}[d.status]||d.status;
+    if(d.fatal) showErr("Сбой: "+d.fatal);
+    if(d.rounds_done>0){ $("m_dlXlsx").classList.remove("hidden"); $("m_dlCsv").classList.remove("hidden"); }
+  }
+}
+$("m_stop").onclick = async ()=>{ if(mJob){ await fetch("/api/monitor/cancel/"+mJob,{method:"POST"}); $("m_statusw").textContent="останавливаю…"; } };
+$("m_dlXlsx").onclick = ()=> mJob && (location.href="/api/monitor/download/"+mJob+"?fmt=xlsx");
+$("m_dlCsv").onclick  = ()=> mJob && (location.href="/api/monitor/download/"+mJob+"?fmt=csv");
+
+// ---- переподключение к уже идущему трекеру (если перезагрузили страницу) ----
+(async ()=>{
+  try{
+    const a = await (await fetch("/api/monitor/active")).json();
+    if(a.job_id){ mJob=a.job_id; document.querySelector('.tab[data-tab="track"]').click();
+      startMon(); mPoll=setInterval(mRefresh,3000); mRefresh(); }
+  }catch(e){}
+})();
 </script>
 </body>
 </html>
