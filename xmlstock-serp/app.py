@@ -88,12 +88,20 @@ def normalize_domain(value):
 
 
 def _domain_matches(found, target):
+    """Совпадение домена в любую сторону: точное, либо один является
+    поддоменом другого. Так сайт ловится и если ввели корень (k4r.team —
+    поймает spacewin.k4r.team), и если ввели поддомен (spacewin.k4r.team —
+    поймает и корень k4r.team). Путь/раздел и www роли не играют."""
     if not found or not target:
         return False
     found = found.lower()
     if found.startswith("www."):
         found = found[4:]
-    return found == target or found.endswith("." + target)
+    return (
+        found == target
+        or found.endswith("." + target)
+        or target.endswith("." + found)
+    )
 
 
 def find_position(results, target):
