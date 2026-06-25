@@ -39,19 +39,26 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# Пресеты эндпоинтов xmlstock. У xmlstock единый путь для Яндекса —
-# /yandex/xml/ (живая выдача или XML-лимиты определяются вашим тарифом),
-# и /google/xml/ для Google. Если в кабинете другой адрес — выберите
-# «Свой URL» в интерфейсе и вставьте точную ссылку.
+# Пресеты эндпоинтов xmlstock. У xmlstock РАЗНЫЕ адреса для живой выдачи (Live)
+# и официального Яндекс.XML. Какой использовать — зависит от того, какие лимиты
+# пополнены в аккаунте. Если адрес в кабинете другой — выберите «Свой URL».
+#   Live  (живая выдача, ~10 результатов на запрос): /yandexlive/xml/
+#   XML   (официальный Яндекс.XML, до 100 за запрос): /yandex/xml/
 ENDPOINTS = {
+    "yandex_live": "https://xmlstock.com/yandexlive/xml/",
     "yandex": "https://xmlstock.com/yandex/xml/",
+    "google_live": "https://xmlstock.com/googlelive/xml/",
     "google": "https://xmlstock.com/google/xml/",
     # обратная совместимость со старыми сохранёнными значениями
-    "yandex_live": "https://xmlstock.com/yandex/xml/",
     "yandex_xml": "https://xmlstock.com/yandex/xml/",
-    "google_live": "https://xmlstock.com/google/xml/",
     "google_xml": "https://xmlstock.com/google/xml/",
 }
+
+
+def _is_live(url):
+    """Эндпоинт живой выдачи (Live) — отдаёт максимум 10 результатов на запрос."""
+    u = (url or "").lower()
+    return "yandexlive" in u or "googlelive" in u or "/live/" in u
 
 # Хранилище задач в памяти процесса.
 JOBS = {}
@@ -201,22 +208,15 @@ def parse_response(text):
 # --------------------------------------------------------------------------- #
 #  Запрос к API                                                               #
 # --------------------------------------------------------------------------- #
-def fetch_one(cfg, query, cancel):
-    """Один запрос к xmlstock с ретраями. Возвращает (results, error)."""
-    if cancel.is_set():
-        return [], "отменено"
-    if cfg["delay"] > 0:
-        time.sleep(cfg["delay"])
-
-    groupby = (
-        f"attr=d.mode=deep.groups-on-page={cfg['top_n']}.docs-in-group=1"
-    )
+def _fetch_page(cfg, query, page, page_size, cancel):
+    """Один HTTP-запрос (одна страница) с ретраями. Возвращает (results, error)."""
+    groupby = f"attr=d.mode=deep.groups-on-page={page_size}.docs-in-group=1"
     params = {
         "user": cfg["user"],
         "key": cfg["key"],
         "query": query,
         "groupby": groupby,
-        "page": 0,
+        "page": page,
     }
     if cfg.get("lr"):
         params["lr"] = cfg["lr"]
@@ -248,9 +248,41 @@ def fetch_one(cfg, query, cancel):
             last_err = err
             time.sleep(min(2 ** attempt, 8))
             continue
-        return results[: cfg["top_n"]], err
+        return results, err
 
     return [], last_err or "не удалось выполнить запрос"
+
+
+def fetch_one(cfg, query, cancel):
+    """ТОП-N результатов по запросу. Живая выдача (Live) xmlstock отдаёт максимум
+    10 результатов на запрос, поэтому при большей глубине листаем страницы.
+    XML отдаёт до 100 за один запрос."""
+    if cancel.is_set():
+        return [], "отменено"
+
+    top_n = max(1, cfg["top_n"])
+    page_size = 10 if cfg.get("live") else min(top_n, 100)
+    pages = min((top_n + page_size - 1) // page_size, 10)  # предохранитель
+
+    collected, last_err = [], None
+    for p in range(pages):
+        if cancel.is_set():
+            break
+        if cfg["delay"] > 0:
+            time.sleep(cfg["delay"])
+        results, err = _fetch_page(cfg, query, p, page_size, cancel)
+        if err:
+            if not collected:
+                return [], err
+            last_err = err
+            break
+        if not results:
+            break
+        collected.extend(results)
+        if len(results) < page_size or len(collected) >= top_n:
+            break
+
+    return collected[:top_n], (None if collected else last_err)
 
 
 # --------------------------------------------------------------------------- #
@@ -477,6 +509,7 @@ def api_run():
         "user": user,
         "key": key,
         "endpoint": endpoint,
+        "live": _is_live(endpoint),
         "lr": (data.get("lr") or "").strip(),
         "domain": (data.get("domain") or "").strip(),
         "device": (data.get("device") or "").strip(),
@@ -653,6 +686,7 @@ def api_monitor_run():
         "user": user,
         "key": key,
         "endpoint": endpoint,
+        "live": _is_live(endpoint),
         "lr": (data.get("lr") or "").strip(),
         "domain": (data.get("domain") or "").strip(),
         "device": (data.get("device") or "").strip(),

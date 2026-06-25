@@ -96,8 +96,10 @@
         <div>
           <label>Движок</label>
           <select id="engine">
-            <option value="yandex" selected>Яндекс (живая выдача / XML)</option>
-            <option value="google">Google</option>
+            <option value="yandex_live" selected>Яндекс — живая выдача (Live)</option>
+            <option value="yandex">Яндекс — XML</option>
+            <option value="google_live">Google — живая выдача</option>
+            <option value="google">Google — XML</option>
             <option value="custom">Свой URL…</option>
           </select>
         </div>
@@ -113,9 +115,15 @@
           </select>
         </div>
       </div>
+      <div class="hint" style="margin-top:10px">
+        <b>Live</b> — живая выдача (как видит пользователь), но ~10 результатов на запрос:
+        за бо́льшей глубиной листаются страницы (больше запросов/лимитов).
+        <b>XML</b> — официальный Яндекс.XML, до 100 за запрос, дешевле, но выдача может
+        чуть отличаться от живой. Что использовать — зависит от того, какие лимиты пополнены у вас в xmlstock.
+      </div>
       <div id="customWrap" class="hidden" style="margin-top:12px">
         <label>Свой URL эндпоинта</label>
-        <input id="endpoint" placeholder="https://xmlstock.com/yandex/xml/">
+        <input id="endpoint" placeholder="https://xmlstock.com/yandexlive/xml/">
       </div>
     </fieldset>
   </div>
