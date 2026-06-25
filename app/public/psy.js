@@ -83,7 +83,7 @@ function practiceCard(p) {
         ? `<span class="pill btn ok" data-psdo="${p.id}">✓ выполнено (с заметкой)</span>`
         : `<span class="pill btn ok" data-psrun="${p.id}">${p.continuous ? '✏ вести дневник' : '▶ пройти ' + (p.kind === 'technique' ? 'технику' : 'чеклист')}</span>`}
       ${p.continuous ? '' : `<span class="pill btn" data-pslogs="${p.id}">журнал</span>`}
-      ${p.kind === 'technique' ? `<span class="pill btn ${p.continuous ? 'ok' : ''}" data-psdiary="${p.id}:${p.continuous ? 1 : 0}" title="дневник — одна запись, всегда редактируешь; иначе каждый раз чисто">📔 ${p.continuous ? 'дневник' : 'сделать дневником'}</span>` : ''}
+      ${p.kind === 'technique' ? `<span class="rowbtn" data-psdiary="${p.id}:${p.continuous ? 1 : 0}" title="${p.continuous ? 'дневник (одна запись) — снять' : 'сделать дневником: одна запись, всегда редактируешь'}" style="font-size:15px;${p.continuous ? 'opacity:1' : 'opacity:.4;filter:grayscale(1)'}">📔</span>` : ''}
     </div>
     ${psyOpenLogs?.id === p.id ? `<div style="margin-top:8px">
       ${p.kind === 'technique'
