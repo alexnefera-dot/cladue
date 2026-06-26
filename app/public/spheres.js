@@ -51,6 +51,7 @@ const sphApi = {
   qAdd: (areaId, question, answer) => fetch('/api/spheres/question', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ areaId, question, answer }) }).then(r => r.json()),
   qPatch: (id, b) => fetch('/api/spheres/question/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }),
   qDel: id => fetch('/api/spheres/question/' + id, { method: 'DELETE' }),
+  qReorder: (id, ref, where) => fetch('/api/spheres/question/' + id + '/reorder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ref, where }) }),
   // создание задачи (вернёт ноду с id) — для «вопрос → задача»
   nodeAdd: b => fetch('/api/nodes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json()),
 };
@@ -347,7 +348,7 @@ function sphFaq(s) {
       : `<span class="rowbtn" data-qmetric="${q.id}" title="сделать метрику из вопроса">→ метрика</span>`;
     return `<div class="sph-faq">
       <div class="sph-faqq"><span class="sph-faqnum">${i + 1}.</span><span class="sph-faqt" data-qedit="${q.id}" title="клик — изменить вопрос">${q.question ? sesc(q.question) : '<span class="muted">без вопроса</span>'}</span>
-        ${taskBadge}${metricBadge}<span class="rowbtn del" data-qdel="${q.id}">✕</span></div>
+        ${i > 0 ? `<span class="rowbtn" data-qup="${q.id}:${qs[i - 1].id}" title="выше">↑</span>` : ''}${i < qs.length - 1 ? `<span class="rowbtn" data-qdown="${q.id}:${qs[i + 1].id}" title="ниже">↓</span>` : ''}${taskBadge}${metricBadge}<span class="rowbtn del" data-qdel="${q.id}">✕</span></div>
       <div class="sph-faqa" data-qans="${q.id}" title="клик — изменить ответ">${ans}</div>
     </div>`;
   }).join('');
@@ -556,6 +557,12 @@ function bindDetail(s) {
   });
   document.querySelectorAll('#screen-spheres [data-qdel]').forEach(el => el.onclick = async () => {
     if (confirm('Удалить вопрос?')) { await sphApi.qDel(+el.dataset.qdel); window.loadSpheres(); }
+  });
+  document.querySelectorAll('#screen-spheres [data-qup]').forEach(el => el.onclick = async () => {
+    const [id, ref] = el.dataset.qup.split(':'); await sphApi.qReorder(+id, +ref, 'before'); window.loadSpheres();
+  });
+  document.querySelectorAll('#screen-spheres [data-qdown]').forEach(el => el.onclick = async () => {
+    const [id, ref] = el.dataset.qdown.split(':'); await sphApi.qReorder(+id, +ref, 'after'); window.loadSpheres();
   });
   document.querySelectorAll('#screen-spheres [data-qopen]').forEach(el => el.onclick = () => { if (window.openNode) window.openNode(+el.dataset.qopen); });
   document.querySelectorAll('#screen-spheres [data-qtask]').forEach(el => el.onclick = async () => {

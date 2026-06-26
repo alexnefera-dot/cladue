@@ -441,6 +441,11 @@ enum Api {
             }
             if method == "DELETE" { try db.run("DELETE FROM area_questions WHERE id = ?", [id]); return (ok(), 200) }
         }
+        if let m = match(path, "^/api/spheres/question/([0-9]+)/reorder$"), method == "POST" {
+            guard let ref = numOpt(body["ref"]).map({ Int($0) }) else { return (try json(["error": "ref required"]), 400) }
+            do { try reorderSimple(db, "area_questions", id: Int(m[1]) ?? -1, refId: ref, pos: (body["where"] as? String) == "before" ? "before" : "after"); return (ok(), 200) }
+            catch { return (errJson(error), 400) }
+        }
         if method == "POST", path == "/api/nodes" {
             guard let title = (body["title"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
                   !title.isEmpty else { return (try json(["error": "title required"]), 400) }
