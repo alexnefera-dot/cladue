@@ -176,6 +176,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .mdview blockquote{border-left:3px solid var(--green-dim);padding-left:12px;color:var(--muted);margin:8px 0}
 .mdview pre{background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:10px;font:12.5px var(--mono);margin:8px 0;overflow-x:auto}
 .mdview code{background:var(--bg2);border-radius:4px;padding:1px 5px;font:12.5px var(--mono)}
+.mdview table{border-collapse:collapse;margin:8px 0;font-size:13px;max-width:100%}
+.mdview td,.mdview th{border:1px solid var(--line);padding:4px 8px;text-align:left;vertical-align:top}
+.mdview th{background:var(--bg2);font-weight:600}
 .mdview .mdgap{height:8px}
 .wiki{color:var(--green);border-bottom:1px dashed var(--green-dim);cursor:pointer}
 .mdimg{max-width:100%;height:auto;border-radius:8px;margin:6px 0;display:block;border:1px solid var(--line)}
