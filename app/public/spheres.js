@@ -346,9 +346,9 @@ function sphFaq(s) {
     const metricBadge = q.metric_id
       ? '<span class="pill">📊 метрика</span>'
       : `<span class="rowbtn" data-qmetric="${q.id}" title="сделать метрику из вопроса">→ метрика</span>`;
-    return `<div class="sph-faq">
-      <div class="sph-faqq"><span class="sph-faqnum">${i + 1}.</span><span class="sph-faqt" data-qedit="${q.id}" title="клик — изменить вопрос">${q.question ? sesc(q.question) : '<span class="muted">без вопроса</span>'}</span>
-        ${i > 0 ? `<span class="rowbtn" data-qup="${q.id}:${qs[i - 1].id}" title="выше">↑</span>` : ''}${i < qs.length - 1 ? `<span class="rowbtn" data-qdown="${q.id}:${qs[i + 1].id}" title="ниже">↓</span>` : ''}${taskBadge}${metricBadge}<span class="rowbtn del" data-qdel="${q.id}">✕</span></div>
+    return `<div class="sph-faq" draggable="true" data-qid="${q.id}">
+      <div class="sph-faqq"><span class="sph-faqnum" title="перетащи, чтобы переместить">⠿ ${i + 1}.</span><span class="sph-faqt" data-qedit="${q.id}" title="клик — изменить вопрос">${q.question ? sesc(q.question) : '<span class="muted">без вопроса</span>'}</span>
+        ${taskBadge}${metricBadge}<span class="rowbtn del" data-qdel="${q.id}">✕</span></div>
       <div class="sph-faqa" data-qans="${q.id}" title="клик — изменить ответ">${ans}</div>
     </div>`;
   }).join('');
@@ -558,11 +558,25 @@ function bindDetail(s) {
   document.querySelectorAll('#screen-spheres [data-qdel]').forEach(el => el.onclick = async () => {
     if (confirm('Удалить вопрос?')) { await sphApi.qDel(+el.dataset.qdel); window.loadSpheres(); }
   });
-  document.querySelectorAll('#screen-spheres [data-qup]').forEach(el => el.onclick = async () => {
-    const [id, ref] = el.dataset.qup.split(':'); await sphApi.qReorder(+id, +ref, 'before'); window.loadSpheres();
-  });
-  document.querySelectorAll('#screen-spheres [data-qdown]').forEach(el => el.onclick = async () => {
-    const [id, ref] = el.dataset.qdown.split(':'); await sphApi.qReorder(+id, +ref, 'after'); window.loadSpheres();
+  // FAQ-вопросы: перетаскивание (drag&drop) для смены порядка
+  let sphDragQ = null;
+  document.querySelectorAll('#screen-spheres .sph-faq[data-qid]').forEach(el => {
+    el.addEventListener('dragstart', e => { sphDragQ = +el.dataset.qid; e.dataTransfer.effectAllowed = 'move'; });
+    el.addEventListener('dragover', e => {
+      if (sphDragQ == null || +el.dataset.qid === sphDragQ) return;
+      e.preventDefault();
+      const r = el.getBoundingClientRect(), after = (e.clientY - r.top) / r.height > 0.5;
+      el.classList.remove('dropbefore', 'dropafter'); el.classList.add(after ? 'dropafter' : 'dropbefore');
+    });
+    el.addEventListener('dragleave', () => el.classList.remove('dropbefore', 'dropafter'));
+    el.addEventListener('drop', async e => {
+      e.preventDefault();
+      const after = el.classList.contains('dropafter'), target = +el.dataset.qid;
+      el.classList.remove('dropbefore', 'dropafter');
+      if (sphDragQ != null && sphDragQ !== target) { await sphApi.qReorder(sphDragQ, target, after ? 'after' : 'before'); window.loadSpheres(); }
+      sphDragQ = null;
+    });
+    el.addEventListener('dragend', () => { el.classList.remove('dropbefore', 'dropafter'); sphDragQ = null; });
   });
   document.querySelectorAll('#screen-spheres [data-qopen]').forEach(el => el.onclick = () => { if (window.openNode) window.openNode(+el.dataset.qopen); });
   document.querySelectorAll('#screen-spheres [data-qtask]').forEach(el => el.onclick = async () => {
@@ -688,7 +702,8 @@ function ensureSphStyle() {
     .sph-rm.here{background:rgba(168,119,8,.08);border-radius:8px;margin:0 -8px;padding:6px 8px}.sph-rm.here .sph-rt{font-weight:700}
     .sph-rm .rowbtn{opacity:.55}.sph-rm:hover .rowbtn{opacity:1}   /* ✕ вехи всегда видна (строка не .task — иначе удалить нельзя) */
     .sph-rmbar{width:56px;flex:0 0 auto}
-    .sph-faq{padding:8px 0;border-top:1px solid var(--bg2)}.sph-faq:first-child{border-top:0}
+    .sph-faq{padding:8px 0;border-top:1px solid var(--bg2);cursor:grab}.sph-faq:first-child{border-top:0}
+    .sph-faq.dropbefore{box-shadow:inset 0 2px 0 var(--green)}.sph-faq.dropafter{box-shadow:inset 0 -2px 0 var(--green)}
     .sph-faqq{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
     .sph-faqnum{font:700 12px var(--mono);color:var(--muted);flex:0 0 auto}
     .sph-faqt{flex:1;min-width:120px;font-weight:600;font-size:13.5px;cursor:text}
