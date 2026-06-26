@@ -563,14 +563,21 @@ enum Api {
             let answers = String(data: (try? json(body["answers"] ?? [])) ?? Data("[]".utf8), encoding: .utf8) ?? "[]"
             let cont = intval((try? db.rows("SELECT continuous FROM practices WHERE id = ?", [pid]))?.first?["continuous"]) != 0
             let date = body["date"] as? String ?? localToday()
+            let note = body["note"] as? String ?? ""
             if cont {
-                // дневник: ОДНА запись без журнала — всегда перезаписываем единственный текст
-                try db.run("DELETE FROM practice_log WHERE practice_id = ?", [pid])
-            } else {
-                // обычная практика: одна запись на день
-                try db.run("DELETE FROM practice_log WHERE practice_id = ? AND date = ?", [pid, date])
+                // дневник: ОДНА запись со СТАБИЛЬНЫМ id — UPDATE существующей (не пересоздаём id,
+                // иначе keyed-синк плодит записи и затирает). Лишние (legacy по дням) схлопываем.
+                if let lid = (try? db.rows("SELECT id FROM practice_log WHERE practice_id = ? ORDER BY id LIMIT 1", [pid]))?.first?["id"] {
+                    try db.run("DELETE FROM practice_log WHERE practice_id = ? AND id <> ?", [pid, lid])
+                    try db.run("UPDATE practice_log SET note = ?, answers = ?, date = ? WHERE id = ?", [note, answers, date, lid])
+                } else {
+                    try db.run("INSERT INTO practice_log(practice_id, date, note, answers) VALUES(?,?,?,?)", [pid, date, note, answers])
+                }
+                return (ok(201), 201)
             }
-            try db.run("INSERT INTO practice_log(practice_id, date, note, answers) VALUES(?,?,?,?)", [pid, date, body["note"] as? String ?? "", answers])
+            // обычная практика: одна запись на день
+            try db.run("DELETE FROM practice_log WHERE practice_id = ? AND date = ?", [pid, date])
+            try db.run("INSERT INTO practice_log(practice_id, date, note, answers) VALUES(?,?,?,?)", [pid, date, note, answers])
             return (ok(201), 201)
         }
         if let m = match(path, "^/api/psy/practices/([0-9]+)$") {
