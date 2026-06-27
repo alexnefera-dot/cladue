@@ -387,29 +387,40 @@ def _write_xlsx(path, long_rows, wide_rows, top_n):
 # --------------------------------------------------------------------------- #
 #  Трекер позиций: прогон по раундам                                          #
 # --------------------------------------------------------------------------- #
-def run_monitor(job_id, cfg):
+def run_monitor(job_id, cfg_base):
     job = MONITORS[job_id]
+    sources = job["sources"]
+    keywords = job["keywords"]
+    pairs_by_kw = job["pairs_by_kw"]
+    # Отдельный cfg на каждый источник (Live/XML отличаются endpoint и режимом).
+    scfg = {
+        s["name"]: {**cfg_base, "endpoint": s["endpoint"], "live": s["live"]}
+        for s in sources
+    }
     try:
         for rnd in range(1, job["rounds_total"] + 1):
             if job["cancel"].is_set():
                 break
-            round_pos = {}
-            with ThreadPoolExecutor(max_workers=cfg["workers"]) as ex:
+            round_pos = {s["name"]: {} for s in sources}
+            tasks = [(s["name"], kw) for s in sources for kw in keywords]
+            with ThreadPoolExecutor(max_workers=cfg_base["workers"]) as ex:
                 futs = {
-                    ex.submit(fetch_one, cfg, kw, job["cancel"]): kw
-                    for kw in job["keywords"]
+                    ex.submit(fetch_one, scfg[sname], kw, job["cancel"]): (sname, kw)
+                    for (sname, kw) in tasks
                 }
                 for fut in as_completed(futs):
-                    kw = futs[fut]
+                    sname, kw = futs[fut]
                     try:
                         results, err = fut.result()
                     except Exception as e:  # noqa: BLE001
                         results, err = [], f"исключение: {e}"
                     if err:
                         with job["lock"]:
-                            job["errors"].append({"round": rnd, "query": kw, "error": err})
-                    doms = job["pairs_by_kw"].get(kw, [])
-                    round_pos[kw] = {dom: find_position(results, dom) for dom in doms}
+                            job["errors"].append(
+                                {"round": rnd, "source": sname, "query": kw, "error": err}
+                            )
+                    doms = pairs_by_kw.get(kw, [])
+                    round_pos[sname][kw] = {dom: find_position(results, dom) for dom in doms}
 
             with job["lock"]:
                 job["snapshots"].append(
@@ -440,24 +451,29 @@ def run_monitor(job_id, cfg):
 
 
 def monitor_rows(job):
-    """Сводка по каждой паре ключ+домен (только назначенные пары)."""
+    """Сводка по парам ключ+домен (× источник, если их несколько: Live/XML)."""
     snaps = job["snapshots"]
+    sources = job.get("sources") or [{"name": "single", "label": None}]
+    multi = len(sources) > 1
     rows = []
     for kw, dom in job.get("pairs", []):
-        positions = [s["positions"].get(kw, {}).get(dom) for s in snaps]
-        found = [p for p in positions if p is not None]
-        rows.append(
-            {
-                "keyword": kw,
-                "domain": dom,
-                "positions": positions,
-                "avg": round(sum(found) / len(found), 1) if found else None,
-                "best": min(found) if found else None,
-                "worst": max(found) if found else None,
-                "found": len(found),
-                "checks": len(snaps),
-            }
-        )
+        for s in sources:
+            sn = s["name"]
+            positions = [snap["positions"].get(sn, {}).get(kw, {}).get(dom) for snap in snaps]
+            found = [p for p in positions if p is not None]
+            rows.append(
+                {
+                    "keyword": kw,
+                    "domain": dom,
+                    "source": s["label"] if multi else None,
+                    "positions": positions,
+                    "avg": round(sum(found) / len(found), 1) if found else None,
+                    "best": min(found) if found else None,
+                    "worst": max(found) if found else None,
+                    "found": len(found),
+                    "checks": len(snaps),
+                }
+            )
     return rows
 
 
@@ -665,9 +681,24 @@ def api_monitor_run():
     all_domains = list(dict.fromkeys(d for g in groups for d in g["domains"]))
 
     engine = data.get("engine") or "yandex"
-    endpoint = (data.get("endpoint") or "").strip() or ENDPOINTS.get(engine)
-    if not endpoint or not endpoint.lower().startswith(("http://", "https://")):
-        return jsonify({"error": "Некорректный URL эндпоинта."}), 400
+    custom = (data.get("endpoint") or "").strip()
+    both = bool(data.get("both"))
+    family = "google" if str(engine).startswith("google") else "yandex"
+
+    # Источники съёма. «both» — снять Live и XML одновременно (для сравнения).
+    if both:
+        pair = ("google_live", "google") if family == "google" else ("yandex_live", "yandex")
+        sources = [
+            {"name": "live", "label": "Live", "endpoint": ENDPOINTS[pair[0]], "live": True},
+            {"name": "xml", "label": "XML", "endpoint": ENDPOINTS[pair[1]], "live": False},
+        ]
+    else:
+        endpoint = custom or ENDPOINTS.get(engine)
+        if not endpoint or not endpoint.lower().startswith(("http://", "https://")):
+            return jsonify({"error": "Некорректный URL эндпоинта."}), 400
+        live = _is_live(endpoint)
+        sources = [{"name": "single", "label": "Live" if live else "XML",
+                    "endpoint": endpoint, "live": live}]
 
     def clamp(val, lo, hi, default):
         try:
@@ -679,14 +710,12 @@ def api_monitor_run():
         interval_min = float(data.get("interval_min"))
     except (TypeError, ValueError):
         interval_min = 4.0
-    interval_sec = int(max(5, min(3600, interval_min * 60)))
+    interval_sec = int(max(5, min(86400, interval_min * 60)))  # до 24 часов
     rounds_total = clamp(data.get("rounds"), 1, 100, 10)
 
-    cfg = {
+    cfg_base = {
         "user": user,
         "key": key,
-        "endpoint": endpoint,
-        "live": _is_live(endpoint),
         "lr": (data.get("lr") or "").strip(),
         "domain": (data.get("domain") or "").strip(),
         "device": (data.get("device") or "").strip(),
@@ -707,10 +736,11 @@ def api_monitor_run():
             "groups": groups,
             "pairs": pairs,
             "pairs_by_kw": pairs_by_kw,
+            "sources": sources,
             "rounds_total": rounds_total,
             "rounds_done": 0,
             "interval_sec": interval_sec,
-            "depth": cfg["top_n"],
+            "depth": cfg_base["top_n"],
             "snapshots": [],
             "errors": [],
             "next_run_at": None,
@@ -720,16 +750,18 @@ def api_monitor_run():
         }
         ACTIVE_MONITOR["id"] = job_id
 
-    Thread(target=run_monitor, args=(job_id, cfg), daemon=True).start()
+    Thread(target=run_monitor, args=(job_id, cfg_base), daemon=True).start()
     return jsonify(
         {
             "job_id": job_id,
             "keywords": len(keywords),
             "domains": all_domains,
             "pairs": len(pairs),
+            "sources": [s["label"] for s in sources],
+            "multi": len(sources) > 1,
             "rounds": rounds_total,
             "interval_sec": interval_sec,
-            "depth": cfg["top_n"],
+            "depth": cfg_base["top_n"],
         }
     )
 
@@ -750,6 +782,7 @@ def api_monitor_status(job_id):
                 "seconds_to_next": int(max(0, nxt - time.time())) if nxt else None,
                 "depth": job["depth"],
                 "domains": job["domains"],
+                "multi": len(job.get("sources", [])) > 1,
                 "rows": monitor_rows(job),
                 "errors_count": len(job["errors"]),
                 "fatal": job.get("fatal"),
@@ -783,14 +816,19 @@ def api_monitor_download(job_id):
     with job["lock"]:
         rows = monitor_rows(job)
         n = len(job["snapshots"])
+        multi = len(job.get("sources", [])) > 1
+    src_head = ["source"] if multi else []
     headers = (
-        ["keyword", "domain", "avg_position", "best", "worst", "found", "checks"]
+        ["keyword", "domain"] + src_head
+        + ["avg_position", "best", "worst", "found", "checks"]
         + [f"round_{i}" for i in range(1, n + 1)]
     )
 
     def cells(r):
         return (
-            [r["keyword"], r["domain"], r["avg"], r["best"], r["worst"], r["found"], r["checks"]]
+            [r["keyword"], r["domain"]]
+            + ([r["source"]] if multi else [])
+            + [r["avg"], r["best"], r["worst"], r["found"], r["checks"]]
             + [p if p is not None else "" for p in r["positions"]]
         )
 

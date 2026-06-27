@@ -191,16 +191,42 @@
         <div>
           <label>Глубина поиска</label>
           <select id="m_depth">
-            <option value="100" selected>Топ-100</option>
+            <option value="30" selected>Топ-30</option>
             <option value="50">Топ-50</option>
-            <option value="30">Топ-30</option>
+            <option value="100">Топ-100</option>
+            <option value="10">Топ-10</option>
           </select>
         </div>
         <div><label>Снятий (раз)</label><input id="m_rounds" type="number" value="10" min="1" max="100"></div>
-        <div><label>Интервал, мин</label><input id="m_interval" type="number" value="4" min="0.1" max="60" step="0.5"></div>
+        <div>
+          <label>Интервал</label>
+          <div class="row" style="gap:6px;flex-wrap:nowrap">
+            <input id="m_interval" type="number" value="1" min="0.1" step="0.5" style="flex:1">
+            <select id="m_interval_unit" style="width:auto">
+              <option value="min">мин</option>
+              <option value="hour" selected>час</option>
+            </select>
+          </div>
+        </div>
         <div><label>Параллельно</label><input id="m_workers" type="number" value="5" min="1" max="10"></div>
       </div>
-      <div class="hint" id="m_plan">10 снятий × 4 мин ≈ ~36 мин общий прогон.</div>
+      <div class="grid g2" style="margin-top:12px">
+        <div>
+          <label>Устройство выдачи</label>
+          <select id="m_device">
+            <option value="">Десктоп (по умолчанию)</option>
+            <option value="desktop">Десктоп</option>
+            <option value="mobile">Мобайл</option>
+            <option value="tablet">Планшет</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:flex-end">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;font-size:14px;color:var(--txt)">
+            <input type="checkbox" id="m_both" style="width:auto"> Снять <b>&nbsp;Live и XML&nbsp;</b> вместе (сравнение)
+          </label>
+        </div>
+      </div>
+      <div class="hint" id="m_plan"></div>
 
       <div class="row" style="margin-top:16px">
         <button class="btn-go" id="m_go">▶ Запустить трекер</button>
@@ -224,11 +250,12 @@
 
       <div class="tbl-wrap">
         <table class="pos" id="m_table">
-          <thead><tr><th>Домен</th><th>Ключ</th><th>Средняя</th><th>Лучш.</th><th>Худш.</th><th>Нашли</th><th>Снимки →</th></tr></thead>
+          <thead><tr><th>Домен</th><th>Ключ</th><th id="m_th_src" class="hidden">Источник</th><th>Средняя</th><th>Лучш.</th><th>Худш.</th><th>Нашли</th><th>Снимки →</th></tr></thead>
           <tbody id="m_tbody"></tbody>
         </table>
       </div>
       <div class="hint">«Средняя» считается по снятиям, где сайт найден в выдаче. «Нашли N/M» — в скольких снятиях сайт попал в выбранную глубину.</div>
+      <div class="hint hidden" id="m_stag" style="color:var(--warn)">⚠ Выдача между снятиями не меняется — вероятно кеш xmlstock или стабильный топ. Для реальной динамики увеличьте интервал (часы) — либо позиция просто устойчивая.</div>
       <div class="hint err-text" id="m_err" style="color:var(--warn)"></div>
     </div>
   </div>
@@ -242,15 +269,17 @@
 const $ = id => document.getElementById(id);
 const SHARED  = ["user","key","engine","lr","domain","device","endpoint"];
 const COLLECT = ["top_n","workers","delay","retries","queries"];
-const TRACK   = ["m_depth","m_rounds","m_interval","m_workers"];
+const TRACK   = ["m_depth","m_rounds","m_interval","m_interval_unit","m_workers","m_both"];
 const ALL = [...SHARED, ...COLLECT, ...TRACK];
 
 // ---- сохранение/восстановление ----
-function save(){ const o={}; ALL.forEach(f=>{ if($(f)) o[f]=$(f).value; }); localStorage.setItem("xmlstock_serp", JSON.stringify(o)); }
+function fval(el){ return el.type==="checkbox" ? el.checked : el.value; }
+function setval(el,v){ if(el.type==="checkbox") el.checked=!!v; else el.value=v; }
+function save(){ const o={}; ALL.forEach(f=>{ const el=$(f); if(el) o[f]=fval(el); }); localStorage.setItem("xmlstock_serp", JSON.stringify(o)); }
 function load(){ try{ const o=JSON.parse(localStorage.getItem("xmlstock_serp")||"{}");
-  ALL.forEach(f=>{ if(o[f]!==undefined && $(f)) $(f).value=o[f]; }); }catch(e){} }
+  ALL.forEach(f=>{ const el=$(f); if(o[f]!==undefined && el) setval(el,o[f]); }); }catch(e){} }
 load();
-ALL.forEach(f=> $(f) && $(f).addEventListener("input", save));
+ALL.forEach(f=> { const el=$(f); if(el){ el.addEventListener("input", save); el.addEventListener("change", save); } });
 
 function esc(s){ return (s||"").replace(/[&<>]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
 function showErr(t){ const m=$("msg"); m.textContent=t; m.classList.remove("hidden"); window.scrollTo({top:0,behavior:"smooth"}); }
@@ -269,6 +298,11 @@ document.querySelectorAll(".tab").forEach(t=> t.onclick = ()=>{
 // ---- движок / свой URL ----
 $("engine").addEventListener("change", ()=> $("customWrap").classList.toggle("hidden", $("engine").value!=="custom"));
 $("engine").dispatchEvent(new Event("change"));
+
+// ---- устройство: m_device на вкладке трекера зеркалит общий #device ----
+$("m_device").value = $("device").value;
+$("m_device").addEventListener("change", ()=>{ $("device").value=$("m_device").value; save(); });
+$("device").addEventListener("change", ()=>{ $("m_device").value=$("device").value; });
 
 // ---- счётчики строк ----
 function lines(id){ return $(id).value.split("\n").map(s=>s.trim()).filter(Boolean).length; }
@@ -313,9 +347,15 @@ function collectGroups(){
 }
 $("m_add").onclick=()=>{ $("m_groups").appendChild(makeGroup()); saveGroups(); };
 loadGroups();
-function updatePlan(){ const r=+$("m_rounds").value||0, i=+$("m_interval").value||0;
-  $("m_plan").textContent = `${r} снятий × ${i} мин ≈ ~${Math.round((r-1)*i)} мин общий прогон.`; }
-["m_rounds","m_interval"].forEach(id=> $(id).addEventListener("input", updatePlan)); updatePlan();
+function fmtDur(mins){ return mins>=60 ? (mins/60).toFixed(1).replace(/\.0$/,"")+" ч" : Math.round(mins)+" мин"; }
+function updatePlan(){
+  const r=+$("m_rounds").value||0, v=+$("m_interval").value||0, unit=$("m_interval_unit").value;
+  const stepMin=v*(unit==="hour"?60:1);
+  let t=`${r} снятий, интервал ${v} ${unit==="hour"?"ч":"мин"} ≈ прогон ~${fmtDur((r-1)*stepMin)}.`;
+  if($("m_both").checked) t+=" Режим Live+XML: запросов ×2.";
+  $("m_plan").textContent=t;
+}
+["m_rounds","m_interval","m_interval_unit","m_both"].forEach(id=> { $(id).addEventListener("input", updatePlan); $(id).addEventListener("change", updatePlan); }); updatePlan();
 
 // ===================== ВКЛАДКА 1: СБОР ТОП =====================
 let poll=null, jobId=null;
@@ -370,9 +410,11 @@ $("m_go").onclick = async ()=>{
   const groups = collectGroups();
   if(!$("user").value.trim() || !$("key").value.trim()){ showErr("Заполните User ID и API key."); return; }
   if(!groups.length){ showErr("Добавьте хотя бы один домен с его ключами."); return; }
-  const payload = {...shared(), groups,
+  const unit=$("m_interval_unit").value;
+  const interval_min=(+$("m_interval").value||0)*(unit==="hour"?60:1);
+  const payload = {...shared(), groups, both:$("m_both").checked,
     depth:$("m_depth").value, rounds:$("m_rounds").value,
-    interval_min:$("m_interval").value, workers:$("m_workers").value};
+    interval_min, workers:$("m_workers").value};
   $("m_go").disabled=true;
   try{
     const r = await fetch("/api/monitor/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
@@ -389,6 +431,7 @@ function startMon(){
   mTick=setInterval(()=>{ if(mNextAt!=null) $("m_next").textContent=fmtTime((mNextAt-Date.now())/1000); },1000);
   $("m_panel").scrollIntoView({behavior:"smooth"});
 }
+let mMulti=false;
 function posClass(p){ if(p==null) return "p-no"; if(p<=3) return "p-top"; if(p<=10) return "p-mid"; return "p-low"; }
 function renderRows(rows){
   let lastDom=null;
@@ -397,21 +440,31 @@ function renderRows(rows){
     const seq = r.positions.map(p=> p==null? '<span class="miss">·</span>' : `<span>${p}</span>`).join(" ");
     const avg = r.avg==null ? '<span class="p-no">не найден</span>'
                             : `<span class="avg ${posClass(Math.round(r.avg))}">${r.avg}</span>`;
+    const src = mMulti ? `<td>${esc(r.source||"")}</td>` : "";
     return `<tr class="${sep}">
-      <td>${esc(r.domain)}</td><td>${esc(r.keyword)}</td>
+      <td>${esc(r.domain)}</td><td>${esc(r.keyword)}</td>${src}
       <td>${avg}</td>
       <td>${r.best??"—"}</td><td>${r.worst??"—"}</td>
       <td class="pill">${r.found}/${r.checks}</td>
       <td class="seq">${seq}</td></tr>`;
   }).join("");
 }
+function checkStagnant(rows){
+  if(!rows.length) return false;
+  const n=rows[0].positions.length;
+  if(n<2) return false;
+  return rows.every(r=> r.positions[n-1]===r.positions[n-2]);
+}
 async function mRefresh(){
   if(!mJob) return; let d;
   try{ d=await (await fetch("/api/monitor/status/"+mJob)).json(); }catch(e){ return; }
   if(d.error) return;
+  mMulti = !!d.multi;
+  $("m_th_src").classList.toggle("hidden", !mMulti);
   $("m_round").textContent = d.rounds_done+" / "+d.rounds_total;
   $("m_barFill").style.width = (d.rounds_total? Math.round(d.rounds_done/d.rounds_total*100):0)+"%";
   renderRows(d.rows||[]);
+  $("m_stag").classList.toggle("hidden", !checkStagnant(d.rows||[]));
   if(d.errors_count) $("m_err").textContent = "Ошибок запросов: "+d.errors_count+" (см. интервал/лимиты).";
   mNextAt = (d.seconds_to_next!=null) ? Date.now()+d.seconds_to_next*1000 : null;
   $("m_next").textContent = d.status==="running" ? fmtTime(d.seconds_to_next) : "—";
