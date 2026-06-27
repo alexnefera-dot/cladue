@@ -265,8 +265,13 @@ function renderToday() {
   ${tdRest()}
 
   <div class="addbar" style="margin:0 0 6px">
-    <input id="tdQuick" placeholder="＋ Быстрый ввод в Инбокс (Enter) — мысль, задача, что угодно; разберёшь потом">
+    <input id="tdQuick" placeholder="＋ Новая задача или мысль — Enter без срока в Инбокс, или укажи дату ниже">
     <span class="pill btn" id="tdRoll" title="рулетка спонтанности: случайная идея из твоих же списков">🎲</span>
+  </div>
+  <div class="addbar tdwhen" style="margin:0 0 6px">
+    <input type="date" id="tdQuickDate" title="дата (пусто — задача уйдёт в Инбокс)">
+    <input type="time" id="tdQuickTime" title="время (учитывается только с датой)">
+    <span class="pill btn ok" id="tdQuickAdd" title="создать задачу">＋ добавить</span>
   </div>
   <div id="tdRollBox" style="margin:0 0 14px"></div>
 
@@ -394,8 +399,13 @@ function renderTodayMobile() {
   ${checkin}
 
   <div class="addbar" style="margin:14px 0 6px">
-    <input id="tdQuick" placeholder="＋ Быстро в Инбокс — мысль, задача, что угодно">
-    <span class="pill btn" id="tdRoll" title="случайная идея из твоих списков">🎲 идея</span>
+    <input id="tdQuick" placeholder="＋ Задача или мысль — Enter без срока в Инбокс">
+    <span class="pill btn" id="tdRoll" title="случайная идея из твоих списков">🎲</span>
+  </div>
+  <div class="addbar tdwhen" style="margin:0 0 6px">
+    <input type="date" id="tdQuickDate" title="дата (пусто — задача уйдёт в Инбокс)">
+    <input type="time" id="tdQuickTime" title="время (учитывается только с датой)">
+    <span class="pill btn ok" id="tdQuickAdd" title="создать задачу">＋ добавить</span>
   </div>
   <div id="tdRollBox" style="margin:0 0 8px"></div>
 
@@ -539,12 +549,20 @@ function bindToday() {
     if (v != null) { await tdApi.setSetting('activity_month', v.trim()); window.loadToday(); }
   });
   document.getElementById('tdRoll')?.addEventListener('click', rollIdea);
-  document.getElementById('tdQuick')?.addEventListener('keydown', async e => {
-    if (e.key !== 'Enter' || !e.target.value.trim()) return;
-    await tdApi.add({ title: e.target.value.trim(), parent_id: tdData.inboxId });
-    e.target.value = '';
+  // быстрый ввод: Enter или кнопка ＋. Указана дата → задача со сроком (видна в «Задачи на сегодня»/календаре); пусто → в Инбокс
+  const tdQuickCreate = async () => {
+    const inp = document.getElementById('tdQuick'); const title = inp?.value.trim(); if (!title) return;
+    const date = document.getElementById('tdQuickDate')?.value || '';
+    const time = document.getElementById('tdQuickTime')?.value || '';
+    const node = await tdApi.add({ title, parent_id: tdData.inboxId }).then(r => r.json()).catch(() => null);
+    if (date && node && node.id) {   // время без даты не имеет смысла → шлём срок только при выбранной дате
+      await fetch('/api/nodes/' + node.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind: 'task', due_date: date, due_time: time || null }) });
+    }
     window.loadToday();
-  });
+  };
+  document.getElementById('tdQuick')?.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.value.trim()) tdQuickCreate(); });
+  document.getElementById('tdQuickAdd')?.addEventListener('click', tdQuickCreate);
 }
 
 // ===== Рулетка спонтанности: случайная идея из своих списков против шаблонных выходных =====

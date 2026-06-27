@@ -35,6 +35,10 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .addbar{display:flex;gap:8px;margin-bottom:16px}
 .addbar select,.addbar input{border:1px solid var(--line);border-radius:9px;padding:8px 11px;font:13px var(--sans);background:var(--panel)}
 .addbar input{flex:1}
+.addbar.tdwhen{flex-wrap:wrap}
+.addbar.tdwhen input{flex:1 1 auto;width:auto;min-width:130px}
+.addbar.tdwhen input[type=time]{flex:0 0 auto;width:120px;min-width:0}
+.addbar.tdwhen .pill{flex:0 0 auto}
 .sec{font:600 10.5px var(--mono);letter-spacing:1.6px;color:var(--green);text-transform:uppercase;margin:20px 0 8px}
 .sec .pr{color:var(--muted);margin-left:6px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 16px;margin-bottom:8px;box-shadow:var(--shadow-sm)}
