@@ -29,6 +29,8 @@ const WD = ['воскресенье', 'понедельник', 'вторник'
 const MON = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
 
 const TDSPH_COL = ['#1e9e57', '#c43f3f', '#a87708', '#6b4fb5', '#2a76b5', '#364656'];
+// метка типа записи в списках дня (task/без типа — без метки, это обычная задача)
+const TD_KIND_LABEL = { decision: 'решение', question: 'вопрос', idea: 'идея', worry: 'тревога', principle: 'принцип' };
 window.loadToday = async function () {
   let d, sph = [], rest = [], psy = {}, finx = {};
   [d, sph, rest, psy, finx] = await Promise.all([
@@ -224,7 +226,7 @@ function taskLine(t) {
   return `<div class="task">
     <span class="cb ${t.kind === 'decision' ? 'dec' : ''}" data-tdtoggle="${t.id}"></span>
     ${t.priority ? `<span class="pill ${t.priority}">${t.priority}</span>` : ''}
-    ${t.kind === 'decision' ? '<span class="pill dec">решение</span>' : ''}
+    ${TD_KIND_LABEL[t.kind] ? `<span class="pill ${t.kind === 'decision' ? 'dec' : ''}">${TD_KIND_LABEL[t.kind]}</span>` : ''}
     <span class="t" data-tdopen="${t.id}" style="cursor:pointer">${tesc(t.title)}</span>
     ${t.repeat ? '<span class="meta">🔁</span>' : ''}
     <span class="meta ed" data-tddate="${t.id}" data-tdtime="${t.due_time ?? ''}" title="изменить срок и время">${t.due_date ? t.due_date + (t.due_time ? ' · ' + t.due_time : '') : '＋ срок'}</span>
@@ -366,6 +368,7 @@ function renderTodayMobile() {
   const mTask = t => `<div class="task">
     <span class="cb ${t.kind === 'decision' ? 'dec' : ''}" data-tdtoggle="${t.id}"></span>
     ${t.priority ? `<span class="pill ${t.priority}">${t.priority}</span>` : ''}
+    ${TD_KIND_LABEL[t.kind] ? `<span class="pill ${t.kind === 'decision' ? 'dec' : ''}">${TD_KIND_LABEL[t.kind]}</span>` : ''}
     <span class="t" data-tdopen="${t.id}">${tesc(t.title)}</span>
     ${t.repeat ? '<span class="meta">🔁</span>' : ''}
     <span class="meta ed" data-tddate="${t.id}" data-tdtime="${t.due_time ?? ''}" title="изменить срок и время">${t.due_date ? t.due_date + (t.due_time ? ' · ' + t.due_time : '') : '＋ срок'}</span>

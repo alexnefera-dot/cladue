@@ -21,7 +21,7 @@ const calIsMobile = () => window.matchMedia('(max-width: 768px)').matches;
 
 // одна строка ленты/повестки (переиспользуется в десктоп-повестке и мобильной агенде)
 function calRow(it) {
-  const label = { task: it.kind === 'decision' ? 'решение' : 'задача', money: it.okind === 'subscription' ? 'подписка' : 'платёж',
+  const label = { task: ({ decision: 'решение', question: 'вопрос', idea: 'идея', worry: 'тревога', principle: 'принцип' }[it.kind] || 'задача'), money: it.okind === 'subscription' ? 'подписка' : 'платёж',
     step: 'шаг', event: it.recur === 'yearly' ? '🎂/год' : 'событие', practice: '◎ практика' }[it.type];
   return `<div class="task">
     <span class="meta num" style="min-width:64px">${it.date.slice(5)}${it.time ? ' ' + it.time : ''}</span>
