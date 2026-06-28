@@ -1889,7 +1889,8 @@ enum Api {
     static func toggleNode(_ db: Database, id: Int) throws -> [String: Any]? {
         guard let t = try getNode(db, id) else { return nil }
         let kind = t["kind"] as? String
-        guard kind == "task" || kind == "decision" else { return t }
+        // узлы со сроком без типа (kind IS NULL) тоже считаем задачами — иначе их не отметить из «Сегодня»/календаря
+        guard intval(t["is_category"]) == 0, kind == "task" || kind == "decision" || kind == nil else { return t }
         let status = t["status"] as? String
         let next = kind == "decision" ? (status == "open" ? "accepted" : "open")
                                       : (status == "done" ? "todo" : "done")
@@ -2301,7 +2302,7 @@ enum Api {
         var items: [[String: Any]] = []
         for t in try db.rows("""
             SELECT id, title, kind, status, priority, due_date, due_time FROM nodes
-            WHERE due_date BETWEEN ? AND ? AND kind IN ('task','decision')
+            WHERE due_date BETWEEN ? AND ? AND is_category = 0 AND (kind IN ('task','decision') OR kind IS NULL)
             """, [first, last]) {
             let st = t["status"] as? String ?? ""
             items.append(["date": t["due_date"] ?? NSNull(), "type": "task", "id": t["id"] ?? NSNull(),
@@ -2415,7 +2416,8 @@ enum Api {
         func taskRows(_ cond: String) throws -> [[String: Any]] {
             try db.rows("""
                 SELECT id, title, kind, priority, due_date, due_time, repeat FROM nodes
-                WHERE kind IN ('task','decision') AND status IN ('todo','open') AND \(cond)
+                WHERE is_category = 0 AND (kind IN ('task','decision') OR kind IS NULL)
+                  AND (status IS NULL OR status NOT IN ('done','accepted')) AND \(cond)
                 ORDER BY priority IS NULL, priority, due_date
                 """, [t])
         }
@@ -2457,7 +2459,7 @@ enum Api {
         let sunday = localDateFormatter().string(from: cal.date(byAdding: .day, value: 6 - wd, to: now)!)
         let wg = try db.rows("""
             SELECT count(*) AS total, SUM(CASE WHEN status IN ('done','accepted') THEN 1 ELSE 0 END) AS done
-            FROM nodes WHERE kind IN ('task','decision') AND due_date BETWEEN ? AND ?
+            FROM nodes WHERE is_category = 0 AND (kind IN ('task','decision') OR kind IS NULL) AND due_date BETWEEN ? AND ?
             """, [monday, sunday]).first
         let checkin = try db.rows("SELECT mood, note FROM checkins WHERE date = ?", [t]).first
         let real = (try db.rows("SELECT count(*) AS c FROM nodes WHERE is_category = 0").first?["c"] as? Int) ?? 0
