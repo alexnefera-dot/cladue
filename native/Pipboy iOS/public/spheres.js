@@ -51,6 +51,7 @@ const sphApi = {
   qAdd: (areaId, question, answer) => fetch('/api/spheres/question', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ areaId, question, answer }) }).then(r => r.json()),
   qPatch: (id, b) => fetch('/api/spheres/question/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }),
   qDel: id => fetch('/api/spheres/question/' + id, { method: 'DELETE' }),
+  qReorder: (id, ref, where) => fetch('/api/spheres/question/' + id + '/reorder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ref, where }) }),
   // создание задачи (вернёт ноду с id) — для «вопрос → задача»
   nodeAdd: b => fetch('/api/nodes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json()),
 };
@@ -148,7 +149,7 @@ function sphOverview() {
     <div class="sph-ov">${sphData.map((s, i) => {
       const links = s.routines.length + s.tracking.length + s.practices.length + s.fin.length + s.tasks.length;
       return `<div class="sph-card" data-open="${s.id}">
-        <div class="sph-ct">${sphRing(s.score, colOf(i), 40)}<div class="sph-cn">${sesc(s.name)}</div><div class="sph-cs" style="color:${colOf(i)}">${s.score ?? '–'}</div></div>
+        <div class="sph-ct">${sphRing(s.score, colOf(i), 40)}<div class="sph-cn">${(typeof sphEmoji === 'function' && sphEmoji(s.name)) ? sphEmoji(s.name) + ' ' : ''}${sesc(s.name)}</div><div class="sph-cs" style="color:${colOf(i)}">${s.score ?? '–'}</div></div>
         <div class="sph-ideal">🎯 ${s.ideal ? sesc(s.ideal) : '<span class="muted">задать «10» — клик внутрь</span>'}</div>
         <div class="sph-step">→ ${s.step ? '<b>' + sesc(s.step) + '</b>' : '<span class="muted">нет шага</span>'}</div>
         <div class="sph-meta">🎯 ${s.tasks.filter(t => !t.cat).length} · ↻ ${s.routines.length} · 📊 ${s.tracking.length} · 🧠 ${s.practices.length} · 💰 ${s.fin.length}</div>
@@ -321,6 +322,7 @@ function sphRoadmap(s) {
       <span class="sph-rk">${p}/10</span>
       <span class="pbar2 sph-rmbar"><i style="width:${p * 10}%"></i></span>
       <span class="sph-rt" data-msedit="${m.id}" title="клик — переименовать">${m.title ? sesc(m.title) : '<span class="muted">без названия</span>'}</span>
+      <span class="rowbtn" data-mspin="${m.id}:${m.pinned ? 1 : 0}" title="${m.pinned ? 'закреплена на «Сегодня» — снять' : 'закрепить на «Сегодня»'}" style="${m.pinned ? 'color:var(--amber);opacity:1' : ''}">${m.pinned ? '★' : '☆'}</span>
       ${isDone ? '<span style="color:var(--green-dim);font-size:12px">✓ закрыта</span>'
         : `<span class="pill btn ok" data-msinc="${m.id}:${p}" title="+1 к прогрессу">+1</span>`}
       ${p > 0 ? `<span class="rowbtn" data-msdec="${m.id}:${p}" title="−1">−</span>` : ''}
@@ -336,7 +338,7 @@ function sphRoadmap(s) {
 // FAQ сферы: вопрос→ответ (сворачивается); из вопроса — «→ задача» / «→ метрика».
 function sphFaq(s) {
   const qs = s.questions || [];
-  const rows = qs.map(q => {
+  const rows = qs.map((q, i) => {
     const ans = q.answer ? sesc(q.answer).replace(/\n/g, '<br>') : '<span class="muted">нет ответа — клик, чтобы добавить</span>';
     const taskBadge = q.node_id
       ? `<span class="pill btn ${q.node_status === 'done' ? 'ok' : 'p2'}" data-qopen="${q.node_id}" title="открыть задачу">${q.node_status === 'done' ? '✓ задача' : '🎯 задача'}</span>`
@@ -344,8 +346,8 @@ function sphFaq(s) {
     const metricBadge = q.metric_id
       ? '<span class="pill">📊 метрика</span>'
       : `<span class="rowbtn" data-qmetric="${q.id}" title="сделать метрику из вопроса">→ метрика</span>`;
-    return `<div class="sph-faq">
-      <div class="sph-faqq"><span class="sph-faqt" data-qedit="${q.id}" title="клик — изменить вопрос">${q.question ? sesc(q.question) : '<span class="muted">без вопроса</span>'}</span>
+    return `<div class="sph-faq" draggable="true" data-qid="${q.id}">
+      <div class="sph-faqq"><span class="sph-faqnum" title="перетащи, чтобы переместить">⠿ ${i + 1}.</span><span class="sph-faqt" data-qedit="${q.id}" title="клик — изменить вопрос">${q.question ? sesc(q.question) : '<span class="muted">без вопроса</span>'}</span>
         ${taskBadge}${metricBadge}<span class="rowbtn del" data-qdel="${q.id}">✕</span></div>
       <div class="sph-faqa" data-qans="${q.id}" title="клик — изменить ответ">${ans}</div>
     </div>`;
@@ -504,6 +506,9 @@ function bindDetail(s) {
   document.querySelectorAll('#screen-spheres [data-msdec]').forEach(el => el.onclick = async () => {
     const [id, p] = el.dataset.msdec.split(':'); await sphApi.msPatch(+id, { progress: Math.max(0, +p - 1) }); window.loadSpheres();
   });
+  document.querySelectorAll('#screen-spheres [data-mspin]').forEach(el => el.onclick = async () => {
+    const [id, pin] = el.dataset.mspin.split(':'); await sphApi.msPatch(+id, { pinned: pin === '1' ? 0 : 1 }); window.loadSpheres();
+  });
   document.querySelectorAll('#screen-spheres [data-msadd]').forEach(el => el.addEventListener('keydown', async e => {
     if (e.key !== 'Enter' || !el.value.trim()) return;
     await sphApi.msAdd(+el.dataset.msadd, 5, el.value.trim());   // level не используется в прогресс-логике; прогресс стартует с 0
@@ -552,6 +557,26 @@ function bindDetail(s) {
   });
   document.querySelectorAll('#screen-spheres [data-qdel]').forEach(el => el.onclick = async () => {
     if (confirm('Удалить вопрос?')) { await sphApi.qDel(+el.dataset.qdel); window.loadSpheres(); }
+  });
+  // FAQ-вопросы: перетаскивание (drag&drop) для смены порядка
+  let sphDragQ = null;
+  document.querySelectorAll('#screen-spheres .sph-faq[data-qid]').forEach(el => {
+    el.addEventListener('dragstart', e => { sphDragQ = +el.dataset.qid; e.dataTransfer.effectAllowed = 'move'; });
+    el.addEventListener('dragover', e => {
+      if (sphDragQ == null || +el.dataset.qid === sphDragQ) return;
+      e.preventDefault();
+      const r = el.getBoundingClientRect(), after = (e.clientY - r.top) / r.height > 0.5;
+      el.classList.remove('dropbefore', 'dropafter'); el.classList.add(after ? 'dropafter' : 'dropbefore');
+    });
+    el.addEventListener('dragleave', () => el.classList.remove('dropbefore', 'dropafter'));
+    el.addEventListener('drop', async e => {
+      e.preventDefault();
+      const after = el.classList.contains('dropafter'), target = +el.dataset.qid;
+      el.classList.remove('dropbefore', 'dropafter');
+      if (sphDragQ != null && sphDragQ !== target) { await sphApi.qReorder(sphDragQ, target, after ? 'after' : 'before'); window.loadSpheres(); }
+      sphDragQ = null;
+    });
+    el.addEventListener('dragend', () => { el.classList.remove('dropbefore', 'dropafter'); sphDragQ = null; });
   });
   document.querySelectorAll('#screen-spheres [data-qopen]').forEach(el => el.onclick = () => { if (window.openNode) window.openNode(+el.dataset.qopen); });
   document.querySelectorAll('#screen-spheres [data-qtask]').forEach(el => el.onclick = async () => {
@@ -677,8 +702,10 @@ function ensureSphStyle() {
     .sph-rm.here{background:rgba(168,119,8,.08);border-radius:8px;margin:0 -8px;padding:6px 8px}.sph-rm.here .sph-rt{font-weight:700}
     .sph-rm .rowbtn{opacity:.55}.sph-rm:hover .rowbtn{opacity:1}   /* ✕ вехи всегда видна (строка не .task — иначе удалить нельзя) */
     .sph-rmbar{width:56px;flex:0 0 auto}
-    .sph-faq{padding:8px 0;border-top:1px solid var(--bg2)}.sph-faq:first-child{border-top:0}
+    .sph-faq{padding:8px 0;border-top:1px solid var(--bg2);cursor:grab}.sph-faq:first-child{border-top:0}
+    .sph-faq.dropbefore{box-shadow:inset 0 2px 0 var(--green)}.sph-faq.dropafter{box-shadow:inset 0 -2px 0 var(--green)}
     .sph-faqq{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .sph-faqnum{font:700 12px var(--mono);color:var(--muted);flex:0 0 auto}
     .sph-faqt{flex:1;min-width:120px;font-weight:600;font-size:13.5px;cursor:text}
     .sph-faqa{margin-top:4px;font-size:13px;color:var(--muted);cursor:text;white-space:pre-wrap}
     .sph-faq .rowbtn{opacity:.6}.sph-faq:hover .rowbtn{opacity:1}

@@ -8,6 +8,9 @@ const trApi = {
   mDel: id => fetch('/api/track/metrics/' + id, { method: 'DELETE' }),
   mRen: (id, b) => fetch('/api/track/metrics/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }),
   mVal: (id, value, date) => fetch(`/api/track/metrics/${id}/value`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value, date }) }),
+  mLogs: id => fetch(`/api/track/metrics/${id}/logs`).then(r => r.json()),
+  mDelVal: (id, date) => fetch(`/api/track/metrics/${id}/value`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ op: 'del', date }) }).then(r => r.json()),
+  mClear: id => fetch(`/api/track/metrics/${id}/value`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ op: 'clear' }) }).then(r => r.json()),
 };
 
 const tresc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -17,6 +20,35 @@ window.loadTrack = async function () {
   trData = await trApi.get();
   renderTrack();
 };
+
+// просмотр и чистка записей метрики (дата + значение) — модалка
+async function trShowLogs(id, name) {
+  let logs = [];
+  try { logs = await trApi.mLogs(id); } catch {}
+  const rows = (logs || []).map(l => `<div class="task" style="padding:5px 0">
+    <span class="t">${tresc(l.date)}</span>
+    <span class="meta num" style="flex:0 0 auto">${l.value}</span>
+    <span class="rowbtn del" data-trdval="${id}:${tresc(l.date)}" title="удалить запись">✕</span></div>`).join('') || '<div class="empty">записей нет</div>';
+  document.getElementById('trLogsOv')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'trLogsOv';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(18,28,45,.5);z-index:95;display:flex;align-items:center;justify-content:center;padding:24px';
+  ov.innerHTML = `<div style="background:var(--panel);border-radius:14px;max-width:440px;width:100%;max-height:82vh;overflow:auto;padding:16px;box-shadow:var(--shadow-md)" onclick="event.stopPropagation()">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <b style="flex:1;font-size:14px">${tresc(name)} · ${(logs || []).length} зап.</b>
+      ${(logs || []).length ? '<span class="pill btn danger" id="trClearAll">очистить все</span>' : ''}
+      <span class="pill btn" id="trLogsClose">✕ закрыть</span></div>
+    ${rows}</div>`;
+  document.body.appendChild(ov);
+  ov.addEventListener('click', () => ov.remove());
+  document.getElementById('trLogsClose').onclick = () => ov.remove();
+  const clr = document.getElementById('trClearAll');
+  if (clr) clr.onclick = async () => { if (confirm('Удалить ВСЕ записи этой метрики?')) { await trApi.mClear(id); ov.remove(); window.loadTrack(); } };
+  ov.querySelectorAll('[data-trdval]').forEach(el => el.onclick = async () => {
+    const i = el.dataset.trdval.indexOf(':'), mid = el.dataset.trdval.slice(0, i), date = el.dataset.trdval.slice(i + 1);
+    await trApi.mDelVal(+mid, date); window.loadTrack(); trShowLogs(id, name);
+  });
+}
 
 function sparkBars(history, type) {
   if (!history.length) return '<span class="meta">нет данных</span>';
@@ -34,7 +66,7 @@ function renderTrack() {
   const avg7 = d.checkins.filter(c => c.date >= (d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)(new Date(Date.now() - 7 * 864e5)));
 
   document.getElementById('screen-track').innerHTML = `
-  <h2 style="margin-bottom:2px">Трекинг</h2>
+  <h2 style="margin-bottom:2px">Трекинг и отчёты</h2>
   <div class="muted" style="margin-bottom:14px">кастомный и без фанатизма: трекай только то, что сам создал; пропуски — норма</div>
 
   <div class="fingrid" style="grid-template-columns:1fr 2fr">
@@ -74,11 +106,13 @@ function renderTrack() {
         <span class="t">${tresc(mt.name)}</span>
         <span class="pill">${mt.type === 'scale' ? '1–10' : 'число'}${mt.unit ? ' · ' + tresc(mt.unit) : ''}</span>
         ${sparkBars(mt.history, mt.type)}
-        <span class="meta">${mt.total} зап.</span>
+        <span class="meta" data-trlogs="${mt.id}" title="показать и почистить записи" style="cursor:pointer">внёс ${mt.total} раз ›</span>
       </div>`).join('')}
   </div>` : ''}
-  <div class="footer-hint">Клик по ячейке — отметка/значение за тот день (можно задним числом). Клик по заголовку — переименовать, ✕ — удалить колонку с историей.</div>`;
+  <div class="footer-hint">Клик по ячейке — отметка/значение за тот день (можно задним числом). Клик по заголовку — переименовать, ✕ — удалить колонку с историей.</div>
+  <div id="trackReports" style="margin-top:18px"></div>`;
   bindTrack();
+  window.loadReports?.();   // отчёты встроены прямо под трекингом (объединены в один раздел)
 }
 
 // итоги по месяцам: динамика одной строкой на месяц
@@ -185,6 +219,11 @@ function bindTrackDnd() {
 function bindTrack() {
   bindTrackDnd();
   const $ = id => document.getElementById(id);
+  document.querySelectorAll('#screen-track [data-trlogs]').forEach(el =>
+    el.addEventListener('click', () => {
+      const mt = (trData.metrics || []).find(x => x.id === +el.dataset.trlogs);
+      trShowLogs(+el.dataset.trlogs, mt ? mt.name : 'метрика');
+    }));
   document.querySelectorAll('#screen-track [data-trmood]').forEach(el =>
     el.addEventListener('click', async () => {
       const note = prompt('Заметка к дню (опционально):') ?? '';

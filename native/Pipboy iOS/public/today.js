@@ -20,6 +20,8 @@ const tdApi = {
   add: b => fetch('/api/nodes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }),
   setSetting: (key, value) => fetch('/api/setting', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key, value }) }),
   setCheckin: (mood, note) => fetch('/api/track/checkin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mood, note }) }),
+  practiceLog: id => fetch(`/api/psy/practices/${id}/log`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ note: '' }) }),
+  metricVal: (id, value) => fetch(`/api/track/metrics/${id}/value`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value }) }),
 };
 
 const tesc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -27,14 +29,20 @@ const WD = ['воскресенье', 'понедельник', 'вторник'
 const MON = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
 
 const TDSPH_COL = ['#1e9e57', '#c43f3f', '#a87708', '#6b4fb5', '#2a76b5', '#364656'];
+// метка типа записи в списках дня (task/без типа — без метки, это обычная задача)
+const TD_KIND_LABEL = { decision: 'решение', question: 'вопрос', idea: 'идея', worry: 'тревога', principle: 'принцип' };
 window.loadToday = async function () {
-  let d, sph = [], rest = [];
-  [d, sph, rest] = await Promise.all([
+  let d, sph = [], rest = [], psy = {}, finx = {};
+  [d, sph, rest, psy, finx] = await Promise.all([
     tdApi.get().catch(e => ({ error: String(e) })),
     fetch('/api/spheres').then(r => r.json()).then(x => Array.isArray(x) ? x : []).catch(() => []),
     fetch('/api/rest').then(r => r.json()).then(x => Array.isArray(x) ? x : []).catch(() => []),
+    fetch('/api/psy').then(r => r.json()).catch(() => ({})),
+    fetch('/api/fin').then(r => r.json()).catch(() => ({})),
   ]);
   window.tdSpheres = sph; window.tdRestList = rest;
+  window.tdPracticeList = Array.isArray(psy.practices) ? psy.practices : [];
+  window.tdFin = finx || {};
   const el = document.getElementById('screen-today');
   // не белый экран: если /api/today не отдал нормальные данные — показываем причину
   if (!d || d.error || !d.progress || !Array.isArray(d.routines)) {
@@ -69,17 +77,64 @@ function tdRest() {
       ${todayList.length ? `<div style="margin-top:6px"><span class="pill btn" id="tdRestRoll">🎲 выбери и отдохни сейчас</span></div>` : ''}
     </div>`;
 }
-// Фокус дня: по одному шагу из ключевых (проседающих) сфер — до 5. Клик — внутрь сферы.
+// эмодзи-иконка сферы по названию (автоподбор по ключевым словам)
+function sphEmoji(name) {
+  const n = (name || '').toLowerCase();
+  const map = [
+    [/здоров|спорт|тел[оа]|фитнес|трениров|питани|диет/, '💪'],
+    [/финанс|деньг|капитал|инвест|бюджет|доход|богат/, '💰'],
+    [/семь|дет[ие]|родител|жен[аы]|муж|брак/, '👨‍👩‍👧'],
+    [/социал|друз|общени|связи|нетворк/, '👥'],
+    [/дом|быт|жиль|квартир|ремонт|уют/, '🏠'],
+    [/психолог|майндсет|ментал|эмоци|тревог|осознан|медитац/, '🧠'],
+    [/работ|карьер|бизнес|дел[оа]|проект|професс/, '💼'],
+    [/будущ|перспектив|план|мечт|визи|стратег/, '🔭'],
+    [/отдых|хобби|кайф|развлеч|досуг|восстанов/, '🌴'],
+    [/развит|обучен|учеб|знани|образ|навык|курс|рост/, '📚'],
+    [/духов|смысл|вера|ценност/, '🕊️'],
+    [/отношен|любов|партн[её]р|пара|романт/, '❤️'],
+    [/путешеств|поездк|стран/, '✈️'],
+    [/творч|искусств|музык|креатив/, '🎨'],
+  ];
+  for (const [re, e] of map) if (re.test(n)) return e;
+  return null;
+}
+// иконка сферы: эмодзи на лёгком цветном фоне; если название не распознано — буква. Без оценок (не накручивать себя)
+function tdSphIcon(name, col, size = 36) {
+  const e = sphEmoji(name);
+  if (e) return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${col}22;display:flex;align-items:center;justify-content:center;font-size:${Math.round(size * 0.5)}px;flex:0 0 auto">${e}</div>`;
+  const ch = (name || '?').trim().charAt(0).toUpperCase();
+  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${col};color:#fff;display:flex;align-items:center;justify-content:center;font:700 ${Math.round(size * 0.42)}px var(--mono);flex:0 0 auto">${tesc(ch)}</div>`;
+}
+// Фокус дня: по одной сфере — иконка слева, название + шаг справа. Клик — внутрь сферы.
+// Фокус дня: активные вехи («путь к 10») из всех сфер — что добиваем. Клик — внутрь сферы.
 function tdSphStrip() {
-  const list = (Array.isArray(window.tdSpheres) ? window.tdSpheres : []).slice()
-    .sort((a, b) => (a.score ?? 10) - (b.score ?? 10)).slice(0, 5);   // до 5, самые проседающие — выше
-  if (!list.length) return '';
+  const spheres = Array.isArray(window.tdSpheres) ? window.tdSpheres : [];
+  const items = [];
+  let hasOpen = false;
+  spheres.forEach((s, i) => (s.milestones || []).forEach(m => {
+    const p = Math.max(0, Math.min(10, m.progress ?? 0));
+    if (p >= 10) return;   // закрытые вехи не показываем
+    hasOpen = true;
+    if (!m.pinned) return;   // на главной — только закреплённые ⭐
+    items.push({ mid: m.id, sid: s.id, sphere: s.name, col: TDSPH_COL[i % TDSPH_COL.length], title: m.title, p });
+  }));
   ensureTdSphStyle();
-  return `<div class="sec" style="margin-top:0">🎯 Фокус дня · по шагу из ключевых сфер</div>
-    <div class="card">${list.map((s, i) => `<div class="task tdfoc" data-sphopen="${s.id}">
-      <span class="tdfoc-d" style="background:${TDSPH_COL[i % TDSPH_COL.length]}"></span>
-      <span class="t">${s.step ? tesc(s.step) : '<span class="muted">шаг не задан — открой сферу</span>'}<div class="tdfoc-s">${tesc(s.name)} · ${s.score ?? '–'}/10</div></span>
-      <span class="meta">→</span></div>`).join('')}</div>`;
+  if (!items.length) return hasOpen
+    ? `<div class="sec" style="margin-top:0">🗺 Фокус дня · вехи</div><div class="card"><div class="empty">закрепи вехи ⭐ в сферах — появятся здесь</div></div>`
+    : '';
+  // ручной порядок «фокуса» (настройка focus_order) — перетаскиванием; вехи вне списка уходят в конец
+  const order = String(tdData?.focusOrder || '').split(',').filter(Boolean).map(Number);
+  if (order.length) items.sort((a, b) => (order.indexOf(a.mid) + 1 || 1e9) - (order.indexOf(b.mid) + 1 || 1e9));
+  return `<div class="sec" style="margin-top:0">🗺 Фокус дня · вехи (путь к 10) <span class="hintstar">тащи, чтобы расставить</span></div>
+    <div class="card">${items.map(m => `<div class="tdfoc" draggable="true" data-mid="${m.mid}" data-sphopen="${m.sid}">
+      ${tdSphIcon(m.sphere, m.col, 30)}
+      <div class="tdfoc-txt">
+        <div class="tdfoc-n">${m.title ? tesc(m.title) : '<span class="muted">без названия</span>'}</div>
+        <div class="tdfoc-s">${tesc(m.sphere)} · ${m.p}/10</div>
+      </div>
+      <span class="tdfoc-bar"><i style="width:${m.p * 10}%;background:${m.col}"></i></span>
+      <span class="tdfoc-arr">›</span></div>`).join('')}</div>`;
 }
 function ensureTdSphStyle() {
   if (document.getElementById('tdsph-style')) return;
@@ -93,17 +148,90 @@ function ensureTdSphStyle() {
     .tdsph-x{font-size:12px;color:var(--muted);margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .tdsph-bar{height:5px;border-radius:99px;background:var(--bg2);overflow:hidden;margin-top:7px}.tdsph-bar i{display:block;height:100%}
     .tdsph-m{font:600 10.5px var(--mono);color:var(--green);margin-top:4px}
-    .tdfoc{cursor:pointer}.tdfoc-d{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
-    .tdfoc-s{font-size:11.5px;color:var(--muted);margin-top:2px}
+    .tdfoc{display:flex;align-items:center;gap:12px;padding:10px 4px;border-top:1px solid var(--bg2);cursor:pointer}
+    .tdfoc:first-child{border-top:0}
+    .tdfoc-txt{flex:1;min-width:0}
+    .tdfoc-n{font-size:14.5px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .tdfoc-s{font-size:12.5px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .tdfoc-bar{width:48px;height:5px;border-radius:99px;background:var(--bg2);overflow:hidden;flex:0 0 auto}.tdfoc-bar i{display:block;height:100%}
+    .tdfoc-arr{color:var(--muted);font-size:20px;flex:0 0 auto;line-height:1}
+    .tdfoc[draggable=true]{cursor:grab}
+    .tdfoc.dropbefore{box-shadow:inset 0 2px 0 var(--green)}.tdfoc.dropafter{box-shadow:inset 0 -2px 0 var(--green)}
     @media(max-width:768px){.tdsph-c{width:158px;padding:9px 10px}.tdsph-n{font-size:12.5px}}`;
   document.head.appendChild(st);
+}
+
+// Практики дня (психология) — прямо на главной с отметкой (раньше было под замком 🔒).
+function tdPractices() {
+  const all = Array.isArray(window.tdPracticeList) ? window.tdPracticeList : [];
+  const today = all.filter(p => p.today && !p.archived);
+  if (!today.length) return '';
+  const done = today.filter(p => p.done).length;
+  return `<div class="sec">🧠 Практики сегодня · ${done}/${today.length}</div>
+    <div class="card">${today.map(p => `<div class="task">
+      <span class="cb ${p.done ? 'done' : ''}"${p.done ? '' : ` data-tdpractice="${p.id}"`}></span>
+      ${p.time ? `<span class="meta num">${tesc(p.time)}</span>` : ''}
+      <span class="t ${p.done ? 'done' : ''}" data-tdgoto="psy" style="cursor:pointer" title="открыть в Психологии">${tesc(p.name)}</span>
+      ${p.streak ? `<span class="meta">🔥 ${p.streak}</span>` : ''}
+    </div>`).join('')}</div>`;
+}
+
+// Финансы на главной: платежи недели + просроченные долги (с суммами). Клик → раздел Финансы.
+function tdFinance() {
+  const f = window.tdFin || {};
+  const money = (n, c) => n == null ? '' : Math.round(Number(n) || 0).toLocaleString('ru-RU') + (c || '€');
+  const obs = Array.isArray(f.obligations) ? f.obligations : [];
+  const debts = Array.isArray(f.debts) ? f.debts : [];
+  const week = obs.filter(o => o.days_left != null && o.days_left >= 0 && o.days_left <= 7);
+  const overdue = debts.filter(x => (x.overdue_days ?? 0) > 0);
+  const rowsW = week.map(o => `<div class="task" data-tdgoto="fin" style="cursor:pointer">
+      <span class="t">${tesc(o.name)}</span>
+      <span class="meta num">${money(o.amount, o.currency)}</span>
+      <span class="meta ${o.days_left <= 2 ? 'amber' : ''}">${o.days_left === 0 ? 'сегодня' : o.days_left + 'д'}</span></div>`).join('');
+  const rowsD = overdue.map(x => `<div class="task" data-tdgoto="fin" style="cursor:pointer">
+      <span class="t amber">${tesc(x.name)}</span>
+      <span class="meta num">${money(x.amount, x.currency)}</span>
+      <span class="meta">просрочка ${x.overdue_days}д</span></div>`).join('');
+  const body = (week.length || overdue.length)
+    ? (week.length ? `<div class="meta" style="margin-bottom:4px">Платежи на неделе</div>${rowsW}` : '')
+      + (overdue.length ? `<div class="meta" style="margin:6px 0 4px;color:var(--red)">Просроченные долги</div>${rowsD}` : '')
+    : '<div class="empty" data-tdgoto="fin" style="cursor:pointer">платежей и долгов на неделе нет · открыть раздел →</div>';
+  return `<div class="sec" data-tdgoto="fin" style="margin-top:0;cursor:pointer">💰 Финансы · неделя <span class="muted" style="font-weight:400">· весь раздел →</span></div>
+    <div class="card">${body}</div>`;
+}
+
+// Оценить сегодня: метрики-оценки к внесению — дневные каждый день, недельные в воскресенье.
+// Результат пишется в метрику (mVal без даты → ключ периода), итоги месяца видны в Трекинге/отчётах.
+function tdMetricsDue() {
+  const spheres = Array.isArray(window.tdSpheres) ? window.tdSpheres : [];
+  const isSunday = new Date().getDay() === 0;
+  const seen = new Set(), due = [];
+  spheres.forEach((s, si) => (s.tracking || []).forEach(m => {
+    if (!m.own) return;                                  // только метрики, ЯВНО привязанные к сфере (не общие, подтянутые по дефолту секции)
+    if (seen.has(m.id)) return;
+    seen.add(m.id);
+    if (m.computed) return;                              // авто-счётчики не оцениваются вручную
+    if (m.cur !== null && m.cur !== undefined) return;   // уже оценено за текущий период
+    const meta = { id: m.id, name: m.name, type: m.type, sphere: s.name, col: TDSPH_COL[si % TDSPH_COL.length] };
+    if (m.cadence === 'daily') due.push({ ...meta, period: 'день' });
+    else if (m.cadence === 'weekly' && isSunday) due.push({ ...meta, period: 'неделя' });
+  }));
+  if (!due.length) return '';
+  return `<div class="sec">📊 Оценить сегодня · ${due.length}</div>
+    <div class="card">${due.map(m => `<div class="task" style="gap:10px">
+      ${tdSphIcon(m.sphere, m.col, 24)}
+      <span class="t">${tesc(m.name)} <span class="meta">· ${tesc(m.sphere)} · ${m.period}</span></span>
+      ${m.type === 'bool'
+        ? `<span class="pill btn" data-tdmcheck="${m.id}">отметить ✓</span>`
+        : `<span class="pill btn ok" data-tdmval="${m.id}" data-scale="${m.type === 'scale' ? '1' : '0'}">оценить</span>`}
+    </div>`).join('')}</div>`;
 }
 
 function taskLine(t) {
   return `<div class="task">
     <span class="cb ${t.kind === 'decision' ? 'dec' : ''}" data-tdtoggle="${t.id}"></span>
     ${t.priority ? `<span class="pill ${t.priority}">${t.priority}</span>` : ''}
-    ${t.kind === 'decision' ? '<span class="pill dec">решение</span>' : ''}
+    ${TD_KIND_LABEL[t.kind] ? `<span class="pill ${t.kind === 'decision' ? 'dec' : ''}">${TD_KIND_LABEL[t.kind]}</span>` : ''}
     <span class="t" data-tdopen="${t.id}" style="cursor:pointer">${tesc(t.title)}</span>
     ${t.repeat ? '<span class="meta">🔁</span>' : ''}
     <span class="meta ed" data-tddate="${t.id}" data-tdtime="${t.due_time ?? ''}" title="изменить срок и время">${t.due_date ? t.due_date + (t.due_time ? ' · ' + t.due_time : '') : '＋ срок'}</span>
@@ -144,8 +272,13 @@ function renderToday() {
   ${tdRest()}
 
   <div class="addbar" style="margin:0 0 6px">
-    <input id="tdQuick" placeholder="＋ Быстрый ввод в Инбокс (Enter) — мысль, задача, что угодно; разберёшь потом">
+    <input id="tdQuick" placeholder="＋ Новая задача или мысль — Enter без срока в Инбокс, или укажи дату ниже">
     <span class="pill btn" id="tdRoll" title="рулетка спонтанности: случайная идея из твоих же списков">🎲</span>
+  </div>
+  <div class="addbar tdwhen" style="margin:0 0 6px">
+    <input type="date" id="tdQuickDate" title="дата (пусто — задача уйдёт в Инбокс)">
+    <input type="time" id="tdQuickTime" title="время (учитывается только с датой)">
+    <span class="pill btn ok" id="tdQuickAdd" title="создать задачу">＋ добавить</span>
   </div>
   <div id="tdRollBox" style="margin:0 0 14px"></div>
 
@@ -185,6 +318,9 @@ function renderToday() {
   <div class="card">${d.dueToday.map(taskLine).join('') ||
     '<div class="empty">сроков на сегодня нет — поставь дедлайны в Задачах</div>'}</div>
 
+  ${tdMetricsDue()}
+  ${tdPractices()}
+
   <div class="fingrid" style="grid-template-columns:1fr 1fr">
     <div>
       <div class="sec" style="margin-top:0">События · сегодня и завтра</div>
@@ -208,11 +344,7 @@ function renderToday() {
       </div>
     </div>
     <div>
-      <div class="sec" style="margin-top:0">Приватные зоны</div>
-      <div class="lockcard" data-tdgoto="fin" style="cursor:pointer">🔒 <div><b>Финансы:</b> платежей на неделе: ${d.zones.paymentsWeek}${d.zones.debtsOverdue ? ` · просроченных долгов: ${d.zones.debtsOverdue}` : ''}<br>
-        <span class="meta">суммы скрыты · клик — открыть раздел (в нативной версии — по паролю)</span></div></div>
-      <div class="lockcard" data-tdgoto="psy" style="margin-top:10px;cursor:pointer">🔒 <div><b>Психология:</b> практик сегодня: ${d.zones.practicesToday ?? 0}<br>
-        <span class="meta">детали скрыты · клик — открыть раздел</span></div></div>
+      ${tdFinance()}
       <div class="sec">▲ Движение недели</div>
       <div class="card">
         ${d.movement.top.map(([cat, n]) => `<div class="task">
@@ -241,6 +373,7 @@ function renderTodayMobile() {
   const mTask = t => `<div class="task">
     <span class="cb ${t.kind === 'decision' ? 'dec' : ''}" data-tdtoggle="${t.id}"></span>
     ${t.priority ? `<span class="pill ${t.priority}">${t.priority}</span>` : ''}
+    ${TD_KIND_LABEL[t.kind] ? `<span class="pill ${t.kind === 'decision' ? 'dec' : ''}">${TD_KIND_LABEL[t.kind]}</span>` : ''}
     <span class="t" data-tdopen="${t.id}">${tesc(t.title)}</span>
     ${t.repeat ? '<span class="meta">🔁</span>' : ''}
     <span class="meta ed" data-tddate="${t.id}" data-tdtime="${t.due_time ?? ''}" title="изменить срок и время">${t.due_date ? t.due_date + (t.due_time ? ' · ' + t.due_time : '') : '＋ срок'}</span>
@@ -274,8 +407,13 @@ function renderTodayMobile() {
   ${checkin}
 
   <div class="addbar" style="margin:14px 0 6px">
-    <input id="tdQuick" placeholder="＋ Быстро в Инбокс — мысль, задача, что угодно">
-    <span class="pill btn" id="tdRoll" title="случайная идея из твоих списков">🎲 идея</span>
+    <input id="tdQuick" placeholder="＋ Задача или мысль — Enter без срока в Инбокс">
+    <span class="pill btn" id="tdRoll" title="случайная идея из твоих списков">🎲</span>
+  </div>
+  <div class="addbar tdwhen" style="margin:0 0 6px">
+    <input type="date" id="tdQuickDate" title="дата (пусто — задача уйдёт в Инбокс)">
+    <input type="time" id="tdQuickTime" title="время (учитывается только с датой)">
+    <span class="pill btn ok" id="tdQuickAdd" title="создать задачу">＋ добавить</span>
   </div>
   <div id="tdRollBox" style="margin:0 0 8px"></div>
 
@@ -298,6 +436,9 @@ function renderTodayMobile() {
       </div>`).join('') || '<div class="empty">добавь рутины в разделе ↻</div>'}
     ${rts.length > 6 ? `<div class="meta" style="cursor:pointer;padding-top:6px" data-tdgoto="routines">все ${rts.length} →</div>` : ''}</div>
 
+  ${tdMetricsDue()}
+  ${tdPractices()}
+
   ${d.events.length ? `<div class="sec">События · сегодня и завтра</div>
   <div class="card">
     ${d.events.map(e => `<div class="task">
@@ -316,11 +457,7 @@ function renderTodayMobile() {
       <span class="pill btn ok" data-tdcontact="${p.id}">связались ✓</span></div>`).join('')}
   </div>` : ''}
 
-  <div class="sec">Приватные зоны</div>
-  <div class="lockcard" data-tdgoto="fin" style="cursor:pointer">🔒 <div><b>Финансы:</b> платежей на неделе: ${d.zones.paymentsWeek}${d.zones.debtsOverdue ? ` · просрочено долгов: ${d.zones.debtsOverdue}` : ''}<br>
-    <span class="meta">суммы скрыты · клик — открыть</span></div></div>
-  <div class="lockcard" data-tdgoto="psy" style="margin-top:8px;cursor:pointer">🔒 <div><b>Психология:</b> практик сегодня: ${d.zones.practicesToday ?? 0}<br>
-    <span class="meta">детали скрыты · клик — открыть</span></div></div>
+  ${tdFinance()}
 
   <div class="sec">Фокус месяца · цели недели</div>
   <div class="card">
@@ -343,6 +480,30 @@ function renderTodayMobile() {
 function bindToday() {
   document.querySelectorAll('#screen-today [data-sphopen]').forEach(el =>
     el.addEventListener('click', () => window.openSphere?.(+el.dataset.sphopen)));
+  // Фокус дня: drag&drop вех для ручного приоритета (порядок сохраняется в настройке focus_order — синхронится между устройствами)
+  let tdDragM = null;
+  document.querySelectorAll('#screen-today .tdfoc[data-mid]').forEach(el => {
+    el.addEventListener('dragstart', e => { tdDragM = +el.dataset.mid; e.dataTransfer.effectAllowed = 'move'; });
+    el.addEventListener('dragover', e => {
+      if (tdDragM == null || +el.dataset.mid === tdDragM) return;
+      e.preventDefault();
+      const r = el.getBoundingClientRect(), after = (e.clientY - r.top) / r.height > 0.5;
+      el.classList.remove('dropbefore', 'dropafter'); el.classList.add(after ? 'dropafter' : 'dropbefore');
+    });
+    el.addEventListener('dragleave', () => el.classList.remove('dropbefore', 'dropafter'));
+    el.addEventListener('drop', async e => {
+      e.preventDefault();
+      const after = el.classList.contains('dropafter'), target = +el.dataset.mid;
+      el.classList.remove('dropbefore', 'dropafter');
+      if (tdDragM == null || tdDragM === target) { tdDragM = null; return; }
+      const ids = [...document.querySelectorAll('#screen-today .tdfoc[data-mid]')].map(x => +x.dataset.mid).filter(id => id !== tdDragM);
+      ids.splice(ids.indexOf(target) + (after ? 1 : 0), 0, tdDragM);
+      tdDragM = null;
+      await tdApi.setSetting('focus_order', ids.join(','));
+      window.loadToday();
+    });
+    el.addEventListener('dragend', () => { el.classList.remove('dropbefore', 'dropafter'); tdDragM = null; });
+  });
   // отдых/восстановление
   const restAdd = async () => {
     const inp = document.getElementById('tdRestInput'); const text = inp?.value.trim(); if (!text) return;
@@ -367,6 +528,18 @@ function bindToday() {
     }));
   document.querySelectorAll('#screen-today [data-tdroutine]').forEach(el =>
     el.addEventListener('click', async () => { await tdApi.routineCheck(+el.dataset.tdroutine); window.loadToday(); }));
+  document.querySelectorAll('#screen-today [data-tdpractice]').forEach(el =>
+    el.addEventListener('click', async () => { await tdApi.practiceLog(+el.dataset.tdpractice); window.loadToday(); }));
+  document.querySelectorAll('#screen-today [data-tdmval]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const scale = el.dataset.scale === '1';
+      const v = prompt(scale ? 'Оценка 1–10:' : 'Значение:'); if (v == null) return;
+      let n = parseFloat(String(v).replace(',', '.')); if (isNaN(n)) return;
+      if (scale) n = Math.max(1, Math.min(10, Math.round(n)));
+      await tdApi.metricVal(+el.dataset.tdmval, n); window.loadToday();
+    }));
+  document.querySelectorAll('#screen-today [data-tdmcheck]').forEach(el =>
+    el.addEventListener('click', async () => { await tdApi.metricVal(+el.dataset.tdmcheck, 1); window.loadToday(); }));
   document.querySelectorAll('#screen-today [data-tdcontact]').forEach(el =>
     el.addEventListener('click', async () => { await tdApi.contacted(+el.dataset.tdcontact); window.loadToday(); }));
   document.querySelectorAll('#screen-today [data-tdevent]').forEach(el =>
@@ -408,12 +581,20 @@ function bindToday() {
     if (v != null) { await tdApi.setSetting('activity_month', v.trim()); window.loadToday(); }
   });
   document.getElementById('tdRoll')?.addEventListener('click', rollIdea);
-  document.getElementById('tdQuick')?.addEventListener('keydown', async e => {
-    if (e.key !== 'Enter' || !e.target.value.trim()) return;
-    await tdApi.add({ title: e.target.value.trim(), parent_id: tdData.inboxId });
-    e.target.value = '';
+  // быстрый ввод: Enter или кнопка ＋. Указана дата → задача со сроком (видна в «Задачи на сегодня»/календаре); пусто → в Инбокс
+  const tdQuickCreate = async () => {
+    const inp = document.getElementById('tdQuick'); const title = inp?.value.trim(); if (!title) return;
+    const date = document.getElementById('tdQuickDate')?.value || '';
+    const time = document.getElementById('tdQuickTime')?.value || '';
+    const node = await tdApi.add({ title, parent_id: tdData.inboxId }).then(r => r.json()).catch(() => null);
+    if (date && node && node.id) {   // время без даты не имеет смысла → шлём срок только при выбранной дате
+      await fetch('/api/nodes/' + node.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind: 'task', due_date: date, due_time: time || null }) });
+    }
     window.loadToday();
-  });
+  };
+  document.getElementById('tdQuick')?.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.value.trim()) tdQuickCreate(); });
+  document.getElementById('tdQuickAdd')?.addEventListener('click', tdQuickCreate);
 }
 
 // ===== Рулетка спонтанности: случайная идея из своих списков против шаблонных выходных =====

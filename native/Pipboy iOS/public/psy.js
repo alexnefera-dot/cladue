@@ -81,8 +81,9 @@ function practiceCard(p) {
     <div class="btnrow" style="margin-top:6px">
       ${p.kind === 'schedule'
         ? `<span class="pill btn ok" data-psdo="${p.id}">✓ выполнено (с заметкой)</span>`
-        : `<span class="pill btn ok" data-psrun="${p.id}">▶ пройти ${p.kind === 'technique' ? 'технику' : 'чеклист'}</span>`}
-      <span class="pill btn" data-pslogs="${p.id}">журнал</span>
+        : `<span class="pill btn ok" data-psrun="${p.id}">${p.continuous ? '✏ вести дневник' : '▶ пройти ' + (p.kind === 'technique' ? 'технику' : 'чеклист')}</span>`}
+      ${p.continuous ? '' : `<span class="pill btn" data-pslogs="${p.id}">журнал</span>`}
+      ${p.kind === 'technique' ? `<span class="rowbtn" data-psdiary="${p.id}:${p.continuous ? 1 : 0}" title="${p.continuous ? 'дневник (одна запись) — снять' : 'сделать дневником: одна запись, всегда редактируешь'}" style="font-size:15px;${p.continuous ? 'opacity:1' : 'opacity:.4;filter:grayscale(1)'}">📔</span>` : ''}
     </div>
     ${psyOpenLogs?.id === p.id ? `<div style="margin-top:8px">
       ${p.kind === 'technique'
@@ -140,10 +141,11 @@ function openJournalModal(p, rows) {
 
 function runPanel(p) {
   const last = Array.isArray(p._last) ? p._last : [];
+  const editing = last.some(a => a);   // есть сегодняшняя запись → правим её, иначе пишем новую за сегодня
   const longForm = p.kind === 'technique' && p.steps.length > 6;   // объёмные дневники — крупные поля
   return `
   <div class="card runcard${longForm ? ' runlong' : ''}" style="border-color:var(--green-dim)">
-    <div class="meta">${p.kind === 'technique' ? 'ТЕХНИКА · отвечай по шагам' + (last.some(a => a) ? ' · поля с прошлого ответа — правь и сохраняй' : '') : 'ЧЕКЛИСТ · пройди перед действием'} — ${pesc(p.name)}</div>
+    <div class="meta">${p.kind === 'technique' ? 'ТЕХНИКА · отвечай по шагам' + (editing ? ' · правишь текущую запись' : ' · новая запись') : 'ЧЕКЛИСТ · пройди перед действием'} — ${pesc(p.name)}</div>
     ${p.steps.map((s, i) => p.kind === 'technique'
       ? `<div class="psrow"><label class="pslbl">${i + 1}. ${pesc(s)}</label>
           <textarea class="psans" data-i="${i}" rows="${longForm ? 4 : 2}" placeholder="ответ…">${pesc(last[i] ?? '')}</textarea></div>`
@@ -310,11 +312,26 @@ function bindPsy() {
   document.querySelectorAll('#screen-psy [data-psrun]').forEach(el =>
     el.addEventListener('click', async () => {
       const p = psyData.practices.find(x => x.id === +el.dataset.psrun);
-      // техника: подгружаем прошлый ответ, чтобы можно было править, а не вносить заново
-      if (p?.kind === 'technique') { try { const logs = await psyApi.pLogs(p.id); p._last = logs[0]?.answers ?? []; } catch {} }
+      // ТОЛЬКО дневник (флаг continuous) продолжает текущую (последнюю) запись и правит её;
+      // все остальные практики — всегда чистые поля, ничего не подтягиваем (новый прогон)
+      p._last = []; p._editDate = null;
+      if (p?.kind === 'technique' && p.continuous) {
+        try {
+          const logs = await psyApi.pLogs(p.id);
+          const src = (logs || [])[0] || null;
+          p._last = src && Array.isArray(src.answers) ? src.answers : [];
+          p._editDate = src ? String(src.date).slice(0, 10) : null;
+        } catch { p._last = []; p._editDate = null; }
+      }
       psyRun = p;
       renderPsy();
       document.querySelector('.psans')?.focus();
+    }));
+  document.querySelectorAll('#screen-psy [data-psdiary]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const [id, cur] = el.dataset.psdiary.split(':');
+      await psyApi.pPatch(+id, { continuous: cur === '1' ? 0 : 1 });   // переключить «дневник»
+      window.loadPsy();
     }));
   document.querySelectorAll('#screen-psy [data-pslogs]').forEach(el =>
     el.addEventListener('click', async () => {
@@ -377,7 +394,7 @@ function bindPsy() {
       const checked = [...document.querySelectorAll('.pschk')].filter(c => c.classList.contains('done')).length;
       note = `пройдено ${checked}/${psyRun.steps.length}`;
     }
-    await psyApi.pLog(psyRun.id, { answers, note });
+    await psyApi.pLog(psyRun.id, psyRun._editDate ? { answers, note, date: psyRun._editDate } : { answers, note });
     psyRun = null;
     window.loadPsy();
   });

@@ -143,9 +143,9 @@ function renderBoard() {
 }
 
 // ===== Плоские виды поверх категорий =====
-function actionable() {  // типизированные задачи и решения, не закрытые
+function actionable() {  // всё «рабочее»: типизированные записи (задача/решение/вопрос/идея/принцип/тревога) + любая запись со сроком, не закрытое
   return state.nodes.filter(n => !n.is_category
-    && (n.kind === 'task' || n.kind === 'decision')
+    && (n.kind || n.due_date)
     && !['done', 'accepted'].includes(n.status));
 }
 
@@ -196,7 +196,7 @@ function renderFlat(groups, headerHtml = '') {
       items.map(n => {
         visibleOrder.push(n.id);
         const done = n.status === 'done' || n.status === 'accepted';
-        const [kl, kc] = KIND[n.kind];
+        const [kl, kc] = KIND[n.kind] ?? ['запись', ''];
         return `<div class="task ${n.blocked ? 'blocked' : ''} ${picked.has(n.id) ? 'sel' : ''}" data-id="${n.id}">
           <span class="cb ${n.kind === 'decision' ? 'dec' : ''} ${done ? 'done' : ''}" data-toggle="${n.id}"></span>
           ${n.priority ? `<span class="pill ${n.priority}">${n.priority}</span>` : ''}
@@ -207,7 +207,7 @@ function renderFlat(groups, headerHtml = '') {
           ${n.due_date ? `<span class="meta">${n.due_date}</span>` : ''}
         </div>`;
       }).join('') + '</div>').join('')
-    || '<div class="card"><div class="empty">Нет типизированных задач/решений — типизируй записи в дереве, и они появятся здесь</div></div>';
+    || '<div class="card"><div class="empty">Пусто — добавь записи со сроком или типом (задача/решение/вопрос/идея…), и они появятся здесь</div></div>';
   renderBulkbar();
 }
 
@@ -825,19 +825,7 @@ function refreshLockBadges() {
   });
 }
 
-// группа «Ещё» (Люди, Рутины): свёрнута по умолчанию, состояние запоминается
-{
-  const box = () => document.getElementById('navMoreBox');
-  const caret = () => document.getElementById('navMoreCaret');
-  const setOpen = open => {
-    box().style.display = open ? 'block' : 'none';
-    caret().textContent = open ? '▾' : '▸';
-    localStorage.navMore = open ? '1' : '0';
-  };
-  setOpen(localStorage.navMore === '1');
-  document.getElementById('navMore').addEventListener('click', () =>
-    setOpen(box().style.display === 'none'));
-}
+// Люди и Рутины — постоянно в навигации (группа «Ещё» убрана)
 
 const wbB64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
 const wbUn = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
@@ -897,7 +885,7 @@ function renderLockPane(scr) {
 }
 
 // ===== Переключение экранов =====
-const SCREENS = { today: 'loadToday', spheres: 'loadSpheres', reports: 'loadReports', list: null, fin: 'loadFin', cal: 'loadCal', people: 'loadPeople', routines: 'loadRoutines', notes: 'loadNotes', psy: 'loadPsy', track: 'loadTrack', settings: 'loadSettings' };
+const SCREENS = { today: 'loadToday', spheres: 'loadSpheres', list: null, fin: 'loadFin', cal: 'loadCal', people: 'loadPeople', routines: 'loadRoutines', notes: 'loadNotes', psy: 'loadPsy', track: 'loadTrack', settings: 'loadSettings' };
 window.showScreen = function (scr) {
   // незаконченная правка в Инфо дозаписывается при уходе с экрана
   if (scr !== 'notes' && window.ntFlush) { const f = window.ntFlush; window.ntFlush = null; f(); }
@@ -907,11 +895,6 @@ window.showScreen = function (scr) {
   const locked = window.isLocked(scr);
   document.querySelectorAll('.side .item').forEach(i =>
     i.classList.toggle('active', i.dataset.screen === scr));
-  if (scr === 'people' || scr === 'routines') {
-    document.getElementById('navMoreBox').style.display = 'block';
-    document.getElementById('navMoreCaret').textContent = '▾';
-    localStorage.navMore = '1';
-  }
   for (const key of Object.keys(SCREENS))
     document.getElementById('screen-' + key).style.display = (!locked && key === scr) ? 'block' : 'none';
   document.getElementById('lockpane').style.display = locked ? 'block' : 'none';
@@ -990,7 +973,7 @@ window.loadSettings = async function () {
     <div class="card"><div class="meta">🗄 БЭКАП БАЗЫ</div>
       <div class="task" style="border:0">
         <span class="pill btn ok" id="backupBtn">сделать бэкап сейчас</span>
-        <span class="meta">хранится 20 последних · авто-бэкап раз в день при запуске</span>
+        <span class="meta">хранится 20 последних · авто-бэкап раз в сутки при запуске · копия в iCloud Drive (Pipboy-backups)</span>
       </div>
       <div class="task" style="border:0">
         <span class="meta">внешняя папка (доп. копия):</span>
@@ -1153,7 +1136,7 @@ window.loadSettings = async function () {
   }
   box.querySelector('#backupBtn').addEventListener('click', async () => {
     const r = await fetch('/api/backup', { method: 'POST' }).then(x => x.json());
-    alert(r.error ? r.error : `Бэкап создан:\n${r.file}\n\nХранится 20 последних; авто-бэкап — раз в день при запуске.`);
+    alert(r.error ? r.error : `Бэкап создан:\n${r.file}\n\nХранится 20 последних; авто-бэкап — раз в сутки при запуске; копия уходит в iCloud Drive (папка Pipboy-backups).`);
   });
   box.querySelectorAll('[data-trrestore]').forEach(el =>
     el.addEventListener('click', async () => {

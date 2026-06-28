@@ -35,6 +35,10 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .addbar{display:flex;gap:8px;margin-bottom:16px}
 .addbar select,.addbar input{border:1px solid var(--line);border-radius:9px;padding:8px 11px;font:13px var(--sans);background:var(--panel)}
 .addbar input{flex:1}
+.addbar.tdwhen{flex-wrap:wrap}
+.addbar.tdwhen input{flex:1 1 auto;width:auto;min-width:130px}
+.addbar.tdwhen input[type=time]{flex:0 0 auto;width:120px;min-width:0}
+.addbar.tdwhen .pill{flex:0 0 auto}
 .sec{font:600 10.5px var(--mono);letter-spacing:1.6px;color:var(--green);text-transform:uppercase;margin:20px 0 8px}
 .sec .pr{color:var(--muted);margin-left:6px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 16px;margin-bottom:8px;box-shadow:var(--shadow-sm)}
@@ -176,6 +180,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .mdview blockquote{border-left:3px solid var(--green-dim);padding-left:12px;color:var(--muted);margin:8px 0}
 .mdview pre{background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:10px;font:12.5px var(--mono);margin:8px 0;overflow-x:auto}
 .mdview code{background:var(--bg2);border-radius:4px;padding:1px 5px;font:12.5px var(--mono)}
+.mdview table{border-collapse:collapse;margin:8px 0;font-size:13px;max-width:100%}
+.mdview td,.mdview th{border:1px solid var(--line);padding:4px 8px;text-align:left;vertical-align:top}
+.mdview th{background:var(--bg2);font-weight:600}
 .mdview .mdgap{height:8px}
 .wiki{color:var(--green);border-bottom:1px dashed var(--green-dim);cursor:pointer}
 .mdimg{max-width:100%;height:auto;border-radius:8px;margin:6px 0;display:block;border:1px solid var(--line)}

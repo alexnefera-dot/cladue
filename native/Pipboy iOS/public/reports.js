@@ -52,7 +52,7 @@ function lineChartSvg(labels, series, opts = {}) {
 
 window.loadReports = async function () {
   ensureRpStyle();
-  const el = document.getElementById('screen-reports');
+  const el = document.getElementById('trackReports') || document.getElementById('screen-reports');
   if (!el) return;
   el.innerHTML = '<div class="muted" style="padding:16px">Загружаю отчёты…</div>';
   let rep, dyn, spheres;
@@ -91,5 +91,5 @@ window.loadReports = async function () {
   h += `<div class="sec">📊 Метрики · текущий период</div><div class="card">${mh || '<div class="muted">метрик пока нет</div>'}</div>`;
 
   el.innerHTML = h;
-  document.querySelectorAll('#screen-reports [data-rpp]').forEach(b => b.onclick = () => { rpPeriod = b.dataset.rpp; window.loadReports(); });
+  el.querySelectorAll('[data-rpp]').forEach(b => b.onclick = () => { rpPeriod = b.dataset.rpp; window.loadReports(); });
 };
