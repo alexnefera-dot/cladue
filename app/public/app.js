@@ -143,9 +143,9 @@ function renderBoard() {
 }
 
 // ===== Плоские виды поверх категорий =====
-function actionable() {  // типизированные задачи и решения, не закрытые
+function actionable() {  // всё «рабочее»: типизированные записи (задача/решение/вопрос/идея/принцип/тревога) + любая запись со сроком, не закрытое
   return state.nodes.filter(n => !n.is_category
-    && (n.kind === 'task' || n.kind === 'decision')
+    && (n.kind || n.due_date)
     && !['done', 'accepted'].includes(n.status));
 }
 
@@ -196,7 +196,7 @@ function renderFlat(groups, headerHtml = '') {
       items.map(n => {
         visibleOrder.push(n.id);
         const done = n.status === 'done' || n.status === 'accepted';
-        const [kl, kc] = KIND[n.kind];
+        const [kl, kc] = KIND[n.kind] ?? ['запись', ''];
         return `<div class="task ${n.blocked ? 'blocked' : ''} ${picked.has(n.id) ? 'sel' : ''}" data-id="${n.id}">
           <span class="cb ${n.kind === 'decision' ? 'dec' : ''} ${done ? 'done' : ''}" data-toggle="${n.id}"></span>
           ${n.priority ? `<span class="pill ${n.priority}">${n.priority}</span>` : ''}
@@ -207,7 +207,7 @@ function renderFlat(groups, headerHtml = '') {
           ${n.due_date ? `<span class="meta">${n.due_date}</span>` : ''}
         </div>`;
       }).join('') + '</div>').join('')
-    || '<div class="card"><div class="empty">Нет типизированных задач/решений — типизируй записи в дереве, и они появятся здесь</div></div>';
+    || '<div class="card"><div class="empty">Пусто — добавь записи со сроком или типом (задача/решение/вопрос/идея…), и они появятся здесь</div></div>';
   renderBulkbar();
 }
 
