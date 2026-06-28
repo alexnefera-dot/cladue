@@ -1237,6 +1237,7 @@ enum Api {
             try? fm.createDirectory(at: extDir, withIntermediateDirectories: true)
             try? fm.copyItem(at: src, to: extDir.appendingPathComponent("pipboy-\(stamp).db"))
         }
+        backupOffsite(src, stamp)   // + оффсайт-копия в iCloud Drive
         return ["file": dst.path]
     }
 
@@ -2818,16 +2819,42 @@ enum Api {
         return ["version": 3, "generated_at": isoNow(), "tables": tables, "tombstones": tomb, "web": frontendBundle()]
     }
 
-    // Бэкап файла зашифрованной базы перед слиянием (на всякий случай, держим 10 последних).
-    static func backupDB() {
+    // Бэкап файла зашифрованной базы: локально (backups/, 10 последних) + оффсайт в iCloud Drive
+    // (Pipboy-backups/, 30 последних). daily=true → не чаще одного раза в сутки (авто-бэкап при запуске);
+    // daily=false → всегда (перед слиянием при синхроне, «на всякий случай»).
+    static func backupDB(daily: Bool = false) {
         guard let src = try? Database.fileURL(), FileManager.default.fileExists(atPath: src.path) else { return }
+        let fm = FileManager.default
         let dir = src.deletingLastPathComponent().appendingPathComponent("backups", isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        let stamp = isoNow().replacingOccurrences(of: ":", with: "-").replacingOccurrences(of: " ", with: "_")
-        try? FileManager.default.copyItem(at: src, to: dir.appendingPathComponent("pipboy-\(stamp).db"))
-        if let all = try? FileManager.default.contentsOfDirectory(atPath: dir.path).filter({ $0.hasSuffix(".db") }).sorted() {
-            for f in all.dropLast(10) { try? FileManager.default.removeItem(at: dir.appendingPathComponent(f)) }
+        try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        if daily {   // уже есть копия за сегодня — не плодим
+            let today = String(isoNow().prefix(10))
+            if let all = try? fm.contentsOfDirectory(atPath: dir.path),
+               all.contains(where: { $0.hasPrefix("pipboy-\(today)") && $0.hasSuffix(".db") }) { return }
         }
+        let stamp = isoNow().replacingOccurrences(of: ":", with: "-").replacingOccurrences(of: " ", with: "_")
+        try? fm.copyItem(at: src, to: dir.appendingPathComponent("pipboy-\(stamp).db"))
+        if let all = try? fm.contentsOfDirectory(atPath: dir.path).filter({ $0.hasSuffix(".db") }).sorted() {
+            for f in all.dropLast(10) { try? fm.removeItem(at: dir.appendingPathComponent(f)) }
+        }
+        backupOffsite(src, stamp)
+    }
+
+    // Оффсайт-копия в iCloud Drive (только macOS; если iCloud Drive не подключён — тихо пропускаем).
+    // Файл зашифрован SQLCipher, без ключа бесполезен, поэтому облачное хранение безопасно.
+    static func backupOffsite(_ src: URL, _ stamp: String) {
+        #if os(macOS)
+        let fm = FileManager.default
+        let cloud = fm.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Mobile Documents/com~apple~CloudDocs", isDirectory: true)
+        guard fm.fileExists(atPath: cloud.path) else { return }   // iCloud Drive выключен — оффсайт пропускаем
+        let dir = cloud.appendingPathComponent("Pipboy-backups", isDirectory: true)
+        try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        try? fm.copyItem(at: src, to: dir.appendingPathComponent("pipboy-\(stamp).db"))
+        if let all = try? fm.contentsOfDirectory(atPath: dir.path).filter({ $0.hasSuffix(".db") }).sorted() {
+            for f in all.dropLast(30) { try? fm.removeItem(at: dir.appendingPathComponent(f)) }
+        }
+        #endif
     }
 
 

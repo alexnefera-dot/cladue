@@ -35,8 +35,10 @@ struct PipboyApp: App {
             .onReceive(idle.$locked) { locked in if locked { unlocked = false } }
             .onReceive(sync.$appliedCount) { c in if c > 0 { reloadToken += 1 } }   // синхрон применён → перезагрузить фронт+данные
             .onChange(of: unlocked) { now in
-                if now { idle.resumeAfterUnlock(); sync.autoStart() }   // открыли → авто-синхрон (если пара есть)
-                else { sync.autoStop() }
+                if now {
+                    idle.resumeAfterUnlock(); sync.autoStart()          // открыли → авто-синхрон (если пара есть)
+                    DispatchQueue.global(qos: .utility).async { Api.backupDB(daily: true) }   // авто-бэкап раз в сутки (+ оффсайт в iCloud)
+                } else { sync.autoStop() }
             }
             #if os(iOS)
             .onChange(of: scenePhase) { phase in

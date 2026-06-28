@@ -973,7 +973,7 @@ window.loadSettings = async function () {
     <div class="card"><div class="meta">🗄 БЭКАП БАЗЫ</div>
       <div class="task" style="border:0">
         <span class="pill btn ok" id="backupBtn">сделать бэкап сейчас</span>
-        <span class="meta">хранится 20 последних · авто-бэкап раз в день при запуске</span>
+        <span class="meta">хранится 20 последних · авто-бэкап раз в сутки при запуске · копия в iCloud Drive (Pipboy-backups)</span>
       </div>
       <div class="task" style="border:0">
         <span class="meta">внешняя папка (доп. копия):</span>
@@ -1136,7 +1136,7 @@ window.loadSettings = async function () {
   }
   box.querySelector('#backupBtn').addEventListener('click', async () => {
     const r = await fetch('/api/backup', { method: 'POST' }).then(x => x.json());
-    alert(r.error ? r.error : `Бэкап создан:\n${r.file}\n\nХранится 20 последних; авто-бэкап — раз в день при запуске.`);
+    alert(r.error ? r.error : `Бэкап создан:\n${r.file}\n\nХранится 20 последних; авто-бэкап — раз в сутки при запуске; копия уходит в iCloud Drive (папка Pipboy-backups).`);
   });
   box.querySelectorAll('[data-trrestore]').forEach(el =>
     el.addEventListener('click', async () => {
