@@ -684,7 +684,7 @@ enum Api {
 
         // ----- Настройки -----
         if method == "POST", path == "/api/setting" {
-            guard let key = body["key"] as? String, ["activity_month", "monthly_budget", "backup_dir"].contains(key) else {
+            guard let key = body["key"] as? String, ["activity_month", "monthly_budget", "backup_dir", "focus_order"].contains(key) else {
                 return (try json(["error": "unknown key"]), 400)
             }
             try setSetting(db, key, body["value"]); return (ok(), 200)
@@ -2474,6 +2474,7 @@ enum Api {
         let result: [String: Any] = [
             "date": t,
             "activityMonth": (try db.rows("SELECT value FROM settings WHERE key = 'activity_month'").first?["value"]) ?? NSNull(),
+            "focusOrder": (try db.rows("SELECT value FROM settings WHERE key = 'focus_order'").first?["value"]) ?? NSNull(),
             "routines": sortRoutines(routinesArr),
             "overdue": overdue, "dueToday": dueToday, "week": week, "events": events,
             "zones": ["paymentsWeek": payments7.count, "debtsOverdue": debtsOverdue.count, "practicesToday": practicesToday],

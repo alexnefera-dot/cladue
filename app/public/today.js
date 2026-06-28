@@ -117,14 +117,17 @@ function tdSphStrip() {
     if (p >= 10) return;   // закрытые вехи не показываем
     hasOpen = true;
     if (!m.pinned) return;   // на главной — только закреплённые ⭐
-    items.push({ sid: s.id, sphere: s.name, col: TDSPH_COL[i % TDSPH_COL.length], title: m.title, p });
+    items.push({ mid: m.id, sid: s.id, sphere: s.name, col: TDSPH_COL[i % TDSPH_COL.length], title: m.title, p });
   }));
   ensureTdSphStyle();
   if (!items.length) return hasOpen
     ? `<div class="sec" style="margin-top:0">🗺 Фокус дня · вехи</div><div class="card"><div class="empty">закрепи вехи ⭐ в сферах — появятся здесь</div></div>`
     : '';
-  return `<div class="sec" style="margin-top:0">🗺 Фокус дня · вехи (путь к 10)</div>
-    <div class="card">${items.map(m => `<div class="tdfoc" data-sphopen="${m.sid}">
+  // ручной порядок «фокуса» (настройка focus_order) — перетаскиванием; вехи вне списка уходят в конец
+  const order = String(tdData?.focusOrder || '').split(',').filter(Boolean).map(Number);
+  if (order.length) items.sort((a, b) => (order.indexOf(a.mid) + 1 || 1e9) - (order.indexOf(b.mid) + 1 || 1e9));
+  return `<div class="sec" style="margin-top:0">🗺 Фокус дня · вехи (путь к 10) <span class="hintstar">тащи, чтобы расставить</span></div>
+    <div class="card">${items.map(m => `<div class="tdfoc" draggable="true" data-mid="${m.mid}" data-sphopen="${m.sid}">
       ${tdSphIcon(m.sphere, m.col, 30)}
       <div class="tdfoc-txt">
         <div class="tdfoc-n">${m.title ? tesc(m.title) : '<span class="muted">без названия</span>'}</div>
@@ -152,6 +155,8 @@ function ensureTdSphStyle() {
     .tdfoc-s{font-size:12.5px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .tdfoc-bar{width:48px;height:5px;border-radius:99px;background:var(--bg2);overflow:hidden;flex:0 0 auto}.tdfoc-bar i{display:block;height:100%}
     .tdfoc-arr{color:var(--muted);font-size:20px;flex:0 0 auto;line-height:1}
+    .tdfoc[draggable=true]{cursor:grab}
+    .tdfoc.dropbefore{box-shadow:inset 0 2px 0 var(--green)}.tdfoc.dropafter{box-shadow:inset 0 -2px 0 var(--green)}
     @media(max-width:768px){.tdsph-c{width:158px;padding:9px 10px}.tdsph-n{font-size:12.5px}}`;
   document.head.appendChild(st);
 }
@@ -475,6 +480,30 @@ function renderTodayMobile() {
 function bindToday() {
   document.querySelectorAll('#screen-today [data-sphopen]').forEach(el =>
     el.addEventListener('click', () => window.openSphere?.(+el.dataset.sphopen)));
+  // Фокус дня: drag&drop вех для ручного приоритета (порядок сохраняется в настройке focus_order — синхронится между устройствами)
+  let tdDragM = null;
+  document.querySelectorAll('#screen-today .tdfoc[data-mid]').forEach(el => {
+    el.addEventListener('dragstart', e => { tdDragM = +el.dataset.mid; e.dataTransfer.effectAllowed = 'move'; });
+    el.addEventListener('dragover', e => {
+      if (tdDragM == null || +el.dataset.mid === tdDragM) return;
+      e.preventDefault();
+      const r = el.getBoundingClientRect(), after = (e.clientY - r.top) / r.height > 0.5;
+      el.classList.remove('dropbefore', 'dropafter'); el.classList.add(after ? 'dropafter' : 'dropbefore');
+    });
+    el.addEventListener('dragleave', () => el.classList.remove('dropbefore', 'dropafter'));
+    el.addEventListener('drop', async e => {
+      e.preventDefault();
+      const after = el.classList.contains('dropafter'), target = +el.dataset.mid;
+      el.classList.remove('dropbefore', 'dropafter');
+      if (tdDragM == null || tdDragM === target) { tdDragM = null; return; }
+      const ids = [...document.querySelectorAll('#screen-today .tdfoc[data-mid]')].map(x => +x.dataset.mid).filter(id => id !== tdDragM);
+      ids.splice(ids.indexOf(target) + (after ? 1 : 0), 0, tdDragM);
+      tdDragM = null;
+      await tdApi.setSetting('focus_order', ids.join(','));
+      window.loadToday();
+    });
+    el.addEventListener('dragend', () => { el.classList.remove('dropbefore', 'dropafter'); tdDragM = null; });
+  });
   // отдых/восстановление
   const restAdd = async () => {
     const inp = document.getElementById('tdRestInput'); const text = inp?.value.trim(); if (!text) return;
