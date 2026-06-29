@@ -51,6 +51,7 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         Api.ensurePracticeCategories(made)   // категории практик по умолчанию — один раз
         Api.ensurePositiveIntent(made)   // техника «Позитивное намерение» (+ обновление формулировки шагов)
         Api.seedThoughtDiaryEntries(made)   // разобранные случаи в журнал «Дневника мыслей» — один раз
+        Api.dedupePractices(made)   // свести дубли практик по имени (расходятся после синхрона Mac↔iPhone с разными id)
         if (try? made.rows("SELECT value FROM settings WHERE key = 'sphere_defaults'"))?.first == nil {
             try? Api.autoConfigSpheres(made)   // первый запуск: связи секций раскладываются сами
         }
@@ -1701,6 +1702,29 @@ enum Api {
         try? setSetting(db, "psy_cat_v1", "1")
     }
 
+    // Свести дубли практик (одинаковое имя, появляются после синхрона Mac↔iPhone с разными id).
+    // Оставляем min(id), переносим всю историю отметок и заполненные поля; лишние удаляем —
+    // триггер ставит tombstone, и удаление расходится на другие устройства. Идемпотентно (нет дублей → no-op).
+    static func dedupePractices(_ db: Database) {
+        guard let groups = try? db.rows("SELECT name, COUNT(*) AS c, MIN(id) AS keep FROM practices GROUP BY name HAVING c > 1") else { return }
+        for g in groups {
+            let keep = intval(g["keep"])
+            guard let name = g["name"] as? String,
+                  let dups = try? db.rows("SELECT * FROM practices WHERE name = ? AND id <> ?", [name, keep]) else { continue }
+            for d in dups {
+                let did = intval(d["id"])
+                try? db.run("UPDATE practice_log SET practice_id = ? WHERE practice_id = ?", [keep, did])   // сохранить историю отметок
+                for col in ["steps", "note", "time", "days", "category"] {   // подтянуть заполненные поля, если у оставляемой пусто
+                    if let v = d[col] as? String, !v.isEmpty, v != "[]" {
+                        try? db.run("UPDATE practices SET \(col) = ? WHERE id = ? AND (\(col) IS NULL OR \(col) = '' OR \(col) = '[]')", [v, keep])
+                    }
+                }
+                if intval(d["continuous"]) == 1 { try? db.run("UPDATE practices SET continuous = 1 WHERE id = ?", [keep]) }
+                try? db.run("DELETE FROM practices WHERE id = ?", [did])   // tombstone → удаление дубля уедет на телефон
+            }
+        }
+    }
+
     // Техника «Дневник настройки» — объёмный образ себя (какой я / что делаю / что имею).
     // Создаём практику (17 вопросов) и один раз заполняем образ, если журнал пуст.
     static func ensureTuningDiary(_ db: Database) {
@@ -2984,6 +3008,7 @@ enum Api {
             _ = try? db.run("ROLLBACK")
             throw error
         }
+        if changed > 0 { dedupePractices(db) }   // свести дубли практик, принесённые синхроном (разные id с разных устройств)
         // фронт принимаем ТОЛЬКО от уже доверенного устройства: не давать незнакомому пиру
         // в окне первой связки подменить веб-интерфейс (= исполнение кода в WebView)
         if applyWeb, let web = snapshot["web"] as? [String: String], !web.isEmpty { try? applyFrontend(web) }
