@@ -1736,7 +1736,7 @@ enum Api {
     // Дефолтные расходы/доходы (списком): первичное заполнение из фактических транзакций месяца-базы 2026-06,
     // сгруппированных по направлению+категории. Один раз (флаг) и только если список пуст — ручные не перетираем.
     static func seedBudgetItems(_ db: Database) {
-        if ((try? db.rows("SELECT value FROM settings WHERE key = 'budget_seed_v1'"))?.first?["value"]) as? String == "1" { return }
+        if ((try? db.rows("SELECT value FROM settings WHERE key = 'budget_seed_v2'"))?.first?["value"]) as? String == "1" { return }
         let cnt = intval((try? db.rows("SELECT COUNT(*) AS c FROM budget_items"))?.first?["c"])
         if cnt == 0 {
             _ = try? db.run("""
@@ -1746,7 +1746,7 @@ enum Api {
                 GROUP BY direction, category
                 """)
         }
-        _ = try? setSetting(db, "budget_seed_v1", "1")
+        _ = try? setSetting(db, "budget_seed_v2", "1")
     }
 
     // Техника «Дневник настройки» — объёмный образ себя (какой я / что делаю / что имею).
