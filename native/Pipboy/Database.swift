@@ -210,6 +210,11 @@ final class Database {
           category TEXT NOT NULL DEFAULT 'прочее', note TEXT NOT NULL DEFAULT '',
           source TEXT NOT NULL DEFAULT 'manual'
         );
+        CREATE TABLE IF NOT EXISTS budget_items(
+          id INTEGER PRIMARY KEY, direction TEXT NOT NULL DEFAULT 'expense',
+          name TEXT NOT NULL DEFAULT '', amount REAL NOT NULL DEFAULT 0,
+          currency TEXT NOT NULL DEFAULT '€', ord INTEGER NOT NULL DEFAULT 0
+        );
         CREATE TABLE IF NOT EXISTS receivables(
           id INTEGER PRIMARY KEY, name TEXT NOT NULL, amount REAL NOT NULL,
           currency TEXT NOT NULL DEFAULT '€', expected_date TEXT,

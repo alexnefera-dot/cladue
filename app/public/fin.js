@@ -303,6 +303,48 @@ function secAccounts(d) {
   </div>`;
 }
 
+// Дефолтные расходы/доходы списком: суммы в месяц (база — факт за 2026-06), add/delete, средние (итого/мес) + баланс
+function renderBudget(items, rates) {
+  items = Array.isArray(items) ? items : [];
+  const rate = (Array.isArray(rates) ? rates.find(r => r.symbol === 'EURUSD')?.price : 0) || 1.08;
+  const eur = i => (i.currency === '$' ? (+i.amount || 0) / rate : (+i.amount || 0));
+  const exp = items.filter(i => i.direction !== 'income').sort((a, b) => eur(b) - eur(a));
+  const inc = items.filter(i => i.direction === 'income').sort((a, b) => eur(b) - eur(a));
+  const expTotal = exp.reduce((s, i) => s + eur(i), 0);
+  const incTotal = inc.reduce((s, i) => s + eur(i), 0);
+  const bal = incTotal - expTotal;
+  const row = i => finIsMobile() ? fRow({
+    name: `<span class="ed" data-fe="budget:${i.id}:name:text">${fesc(i.name) || '—'}</span>`,
+    amount: `<span class="ed ${i.direction === 'income' ? 'up' : 'down'}" data-fe="budget:${i.id}:amount:num">${fmt(i.amount)} ${fesc(i.currency)}</span>`,
+    actions: `<span class="rowbtn del" data-findel="budget:${i.id}">✕</span>`,
+  }) : `
+    <div class="task">
+      <span class="t ed" data-fe="budget:${i.id}:name:text">${fesc(i.name) || '—'}</span>
+      <span class="ed num ${i.direction === 'income' ? 'up' : 'down'}" data-fe="budget:${i.id}:amount:num">${fmt(i.amount)} ${fesc(i.currency)}</span>
+      <span class="rowbtn del" data-findel="budget:${i.id}">✕</span>
+    </div>`;
+  const addRow = dir => `
+    <div class="task finadd">
+      <input id="bud_${dir}_name" placeholder="${dir === 'income' ? 'статья дохода' : 'статья расхода'}">
+      <input id="bud_${dir}_amt" placeholder="сумма/мес" style="width:100px">
+      <span class="pill btn ok" data-budadd="${dir}">＋</span>
+    </div>`;
+  return `
+  <div class="sec">Расходы и доходы · среднее в месяц</div>
+  <div class="card">
+    <div class="kv" style="padding:6px 0;border-bottom:1px solid var(--line)">
+      <span class="meta">итого в месяц</span>
+      <span>расход <b class="down">${fmt(expTotal)} €</b> · доход <b class="up">${fmt(incTotal)} €</b> · баланс <b class="${bal >= 0 ? 'up' : 'down'}">${bal >= 0 ? '+' : ''}${fmt(bal)} €</b></span>
+    </div>
+    <div class="meta" style="margin:8px 0 2px">РАСХОДЫ · ${fmt(expTotal)} € / мес</div>
+    ${exp.map(row).join('') || '<div class="empty">добавь статьи расходов ↓</div>'}
+    ${addRow('expense')}
+    <div class="meta" style="margin:12px 0 2px">ДОХОДЫ · ${fmt(incTotal)} € / мес</div>
+    ${inc.map(row).join('') || '<div class="empty">добавь статьи доходов ↓</div>'}
+    ${addRow('income')}
+  </div>`;
+}
+
 function renderTx(tx, budget) {
   const maxCat = tx.categories[0]?.[1] ?? 1;
   // базовый минимум месяца: уложились или перерасход
@@ -649,7 +691,7 @@ function renderFin() {
     + (show('port') ? (hidden('port') ? veiled('Портфель', 'port') : secPortfolio(d, s)) : '')
     + (show('port') ? secIncome(d, s) : '')
     + (show('acc') ? (hidden('acc') ? veiled('Счета', 'acc') : secAccounts(d)) : '')
-    + (show('flow') ? renderTx(d.tx, d.budget) : '')
+    + (show('flow') ? renderBudget(d.budgetItems, d.rates) : '')
     + (show('debts') ? secDebts(d) : '')
     + (show('plans') ? secPlans(d) : '')
     + (show('prop') ? secProps(d) : '')
@@ -808,6 +850,15 @@ function bindFin() {
       const [kind, pid] = el.dataset.fadd.split(':');
       const name = prompt(kind === 'section' ? 'Название раздела:' : 'Название актива:');
       if (name?.trim()) { await finApi.add('items', { parent_id: +pid, name: name.trim(), kind }); window.loadFin(); }
+    }));
+  document.querySelectorAll('[data-budadd]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const dir = el.dataset.budadd;
+      const name = document.getElementById(`bud_${dir}_name`)?.value.trim();
+      const amt = parseNum(document.getElementById(`bud_${dir}_amt`)?.value);
+      if (!name) return;
+      await finApi.add('budget', { name, amount: amt ?? 0, direction: dir, currency: '€' });
+      window.loadFin();
     }));
   document.querySelectorAll('[data-findel]').forEach(el =>
     el.addEventListener('click', async () => {

@@ -52,6 +52,7 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         Api.ensurePositiveIntent(made)   // техника «Позитивное намерение» (+ обновление формулировки шагов)
         Api.seedThoughtDiaryEntries(made)   // разобранные случаи в журнал «Дневника мыслей» — один раз
         Api.dedupePractices(made)   // свести дубли практик по имени (расходятся после синхрона Mac↔iPhone с разными id)
+        Api.seedBudgetItems(made)   // дефолтные расходы/доходы: первичное заполнение из транзакций месяца-базы (2026-06)
         if (try? made.rows("SELECT value FROM settings WHERE key = 'sphere_defaults'"))?.first == nil {
             try? Api.autoConfigSpheres(made)   // первый запуск: связи секций раскладываются сами
         }
@@ -988,7 +989,7 @@ enum Api {
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let tables = ["nodes", "links", "accounts", "portfolio_items", "obligations", "passive_income", "debts", "transactions",
                       "events", "routines", "people", "pages", "practices", "wheel_areas", "wheel_scores", "metrics", "forecasts",
-                      "properties", "settings", "rates",
+                      "properties", "budget_items", "settings", "rates",
                       "routine_log", "metric_log", "practice_log", "contact_log"]   // логи отметок → стрики/история в трекере
         var dump: [String: Any] = [:]
         for t in tables { dump[t] = (try? db.rows("SELECT * FROM \(t)")) ?? [] }
@@ -1330,7 +1331,8 @@ enum Api {
 
     // ----- Финансы: запись -----
     private static let finTable = ["accounts": "accounts", "classes": "portfolio_classes", "steps": "steps",
-        "obligations": "obligations", "items": "portfolio_items", "tx": "transactions", "debts": "debts", "income": "passive_income"]
+        "obligations": "obligations", "items": "portfolio_items", "tx": "transactions", "debts": "debts", "income": "passive_income",
+        "budget": "budget_items"]
     private static let finCols: [String: [String]] = [
         "accounts": ["name", "type", "currency", "note", "balance"],
         "classes": ["name", "value", "target_pct", "note"],
@@ -1339,11 +1341,12 @@ enum Api {
         "items": ["name", "buy_value", "value", "target_value", "currency", "is_loan", "loan_due", "asset_type", "qty", "rate_symbol", "note"],
         "tx": ["date", "amount", "currency", "direction", "category", "note"],
         "debts": ["name", "amount", "currency", "direction", "due_date", "note"],
-        "income": ["name", "amount", "currency", "period", "next_date", "note", "principal", "rate", "rate_period", "asset_type"]]
+        "income": ["name", "amount", "currency", "period", "next_date", "note", "principal", "rate", "rate_period", "asset_type"],
+        "budget": ["name", "amount", "currency", "direction", "ord"]]
 
     static func finWrite(method: String, path: String, body: [String: Any], db: Database) throws -> (Data, Int)? {
         if method == "POST", path == "/api/rates/refresh" { return (try ratesRefresh(db), 200) }
-        if let m = match(path, "^/api/fin/(accounts|classes|steps|obligations|items|tx|debts|income)(?:/([0-9]+))?$") {
+        if let m = match(path, "^/api/fin/(accounts|classes|steps|obligations|items|tx|debts|income|budget)(?:/([0-9]+))?$") {
             let entity = m[1], idStr = m[2], table = finTable[entity] ?? entity
             if method == "POST" && idStr.isEmpty { try finAdd(db, entity, body); return (ok(201), 201) }
             if method == "PATCH" && !idStr.isEmpty { try patchCols(db, table, Int(idStr) ?? -1, finCols[entity] ?? [], body); return (ok(), 200) }
@@ -1449,6 +1452,10 @@ enum Api {
             try db.run("INSERT INTO passive_income(name, amount, currency, period, next_date, note, principal, rate, rate_period, asset_type) VALUES(?,?,?,?,?,?,?,?,?,?)",
                 [b["name"] as? String ?? "", num(b["amount"]), b["currency"] as? String ?? "€", b["period"] as? String ?? "monthly", b["next_date"] ?? NSNull(), b["note"] as? String ?? "",
                  num(b["principal"]), num(b["rate"]), b["rate_period"] as? String ?? "yearly", b["asset_type"] as? String ?? ""])
+        case "budget":
+            let ord = nextOrd(db, "SELECT COALESCE(MAX(ord),0)+1 AS o FROM budget_items")
+            try db.run("INSERT INTO budget_items(name, amount, currency, direction, ord) VALUES(?,?,?,?,?)",
+                [b["name"] as? String ?? "", num(b["amount"]), b["currency"] as? String ?? "€", b["direction"] as? String ?? "expense", ord])
         default: break
         }
     }
@@ -1723,6 +1730,22 @@ enum Api {
                 try? db.run("DELETE FROM practices WHERE id = ?", [did])   // tombstone → удаление дубля уедет на телефон
             }
         }
+    }
+
+    // Дефолтные расходы/доходы (списком): первичное заполнение из фактических транзакций месяца-базы 2026-06,
+    // сгруппированных по направлению+категории. Один раз (флаг) и только если список пуст — ручные не перетираем.
+    static func seedBudgetItems(_ db: Database) {
+        if ((try? db.rows("SELECT value FROM settings WHERE key = 'budget_seed_v1'"))?.first?["value"]) as? String == "1" { return }
+        let cnt = intval((try? db.rows("SELECT COUNT(*) AS c FROM budget_items"))?.first?["c"])
+        if cnt == 0 {
+            _ = try? db.run("""
+                INSERT INTO budget_items(direction, name, amount, currency)
+                SELECT direction, category, ROUND(SUM(amount), 2), MAX(currency)
+                FROM transactions WHERE substr(date,1,7) = '2026-06'
+                GROUP BY direction, category
+                """)
+        }
+        _ = try? setSetting(db, "budget_seed_v1", "1")
     }
 
     // Техника «Дневник настройки» — объёмный образ себя (какой я / что делаю / что имею).
@@ -2239,6 +2262,7 @@ enum Api {
         let props = try properties(db)
         let fireV = try fireCalc(db, capital: portfolioTotal)
         let macro = try db.rows("SELECT * FROM macro_notes ORDER BY date DESC, id DESC")
+        let budgetItems = try db.rows("SELECT * FROM budget_items ORDER BY direction DESC, ord, id")   // дефолтные расходы/доходы (списком)
         let rates = try db.rows("SELECT * FROM rates")
         let result: [String: Any] = [
             "accounts": accounts, "portfolio": portfolio, "steps": steps,
@@ -2246,7 +2270,7 @@ enum Api {
             "snapshotDelta": snapshotDelta,
             "byType": byTypeSorted, "byTypeBlocks": byTypeBlocks, "blockEur": blockEur,
             "tx": tx, "forecasts": fc, "properties": props, "fire": fireV,
-            "income": income, "budget": budget, "macro": macro, "rates": rates,
+            "income": income, "budget": budget, "budgetItems": budgetItems, "macro": macro, "rates": rates,
             "summary": summary,
         ]
         return try json(result)
@@ -2783,7 +2807,7 @@ enum Api {
     // Все реальные таблицы данных (FTS-таблицы node_fts/page_fts производные —
     // их не переносим, а перестраиваем из nodes/pages после применения снимка).
     static let syncTables = ["nodes", "links", "dismissed", "accounts", "portfolio_classes",
-        "steps", "obligations", "portfolio_items", "rates", "events", "transactions",
+        "steps", "obligations", "portfolio_items", "rates", "events", "transactions", "budget_items",
         "receivables", "passive_income", "settings", "macro_notes", "debts", "snapshots",
         "routines", "routine_log", "people", "contact_log", "pages", "page_revisions", "attachments",
         "practices", "practice_log", "wheel_areas", "wheel_scores", "work_log", "forecasts",
@@ -2794,7 +2818,7 @@ enum Api {
         ("nodes", "id"), ("links", "id"), ("accounts", "id"), ("portfolio_classes", "id"),
         ("steps", "id"), ("obligations", "id"), ("portfolio_items", "id"), ("events", "id"),
         ("transactions", "id"), ("receivables", "id"), ("passive_income", "id"), ("macro_notes", "id"),
-        ("debts", "id"), ("routines", "id"), ("people", "id"), ("contact_log", "id"),
+        ("budget_items", "id"), ("debts", "id"), ("routines", "id"), ("people", "id"), ("contact_log", "id"),
         ("pages", "id"), ("page_revisions", "id"), ("attachments", "id"), ("practices", "id"), ("practice_log", "id"),
         ("wheel_areas", "id"), ("wheel_scores", "id"), ("work_log", "id"), ("forecasts", "id"),
         ("properties", "id"), ("metrics", "id"), ("node_log", "id"), ("trash", "id"),
