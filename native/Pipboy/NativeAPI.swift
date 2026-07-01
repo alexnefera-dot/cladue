@@ -41,7 +41,8 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         _ = try? made.run("ALTER TABLE practices ADD COLUMN category TEXT NOT NULL DEFAULT ''")  // категория практики
         _ = try? made.run("ALTER TABLE metrics ADD COLUMN target REAL")                          // KPI метрики — без неё сферы падали
         _ = try? made.run("ALTER TABLE metrics ADD COLUMN polarity TEXT NOT NULL DEFAULT 'plus'") // полярность метрики
-        _ = try? made.run("CREATE TABLE IF NOT EXISTS budget_items(id INTEGER PRIMARY KEY, direction TEXT NOT NULL DEFAULT 'expense', name TEXT NOT NULL DEFAULT '', amount REAL NOT NULL DEFAULT 0, currency TEXT NOT NULL DEFAULT '€', ord INTEGER NOT NULL DEFAULT 0)")  // дефолтные расходы/доходы — миграция существующих баз (ensureSchema идёт только при сиде)
+        _ = try? made.run("CREATE TABLE IF NOT EXISTS budget_items(id INTEGER PRIMARY KEY, direction TEXT NOT NULL DEFAULT 'expense', name TEXT NOT NULL DEFAULT '', amount REAL NOT NULL DEFAULT 0, currency TEXT NOT NULL DEFAULT '€', ord INTEGER NOT NULL DEFAULT 0, month TEXT)")  // дефолтные расходы/доходы — миграция существующих баз (ensureSchema идёт только при сиде)
+        _ = try? made.run("ALTER TABLE budget_items ADD COLUMN month TEXT")   // доход — помесячно (YYYY-MM); расход — пусто (фикс/мес)
         Api.ensureSyncSchema(made)   // updated_at + триггеры + tombstones — отслеживание правок для синхрона
         Api.ensureSpheresSchema(made)   // area_id на таблицах — раздел «Сферы»
         Api.ensureThoughtTesting(made)   // техника «Тестирование мыслей» (КПТ) — один раз
@@ -1343,7 +1344,7 @@ enum Api {
         "tx": ["date", "amount", "currency", "direction", "category", "note"],
         "debts": ["name", "amount", "currency", "direction", "due_date", "note"],
         "income": ["name", "amount", "currency", "period", "next_date", "note", "principal", "rate", "rate_period", "asset_type"],
-        "budget": ["name", "amount", "currency", "direction", "ord"]]
+        "budget": ["name", "amount", "currency", "direction", "ord", "month"]]
 
     static func finWrite(method: String, path: String, body: [String: Any], db: Database) throws -> (Data, Int)? {
         if method == "POST", path == "/api/rates/refresh" { return (try ratesRefresh(db), 200) }
@@ -1455,8 +1456,8 @@ enum Api {
                  num(b["principal"]), num(b["rate"]), b["rate_period"] as? String ?? "yearly", b["asset_type"] as? String ?? ""])
         case "budget":
             let ord = nextOrd(db, "SELECT COALESCE(MAX(ord),0)+1 AS o FROM budget_items")
-            try db.run("INSERT INTO budget_items(name, amount, currency, direction, ord) VALUES(?,?,?,?,?)",
-                [b["name"] as? String ?? "", num(b["amount"]), b["currency"] as? String ?? "€", b["direction"] as? String ?? "expense", ord])
+            try db.run("INSERT INTO budget_items(name, amount, currency, direction, ord, month) VALUES(?,?,?,?,?,?)",
+                [b["name"] as? String ?? "", num(b["amount"]), b["currency"] as? String ?? "€", b["direction"] as? String ?? "expense", ord, b["month"] ?? NSNull()])
         default: break
         }
     }
@@ -1740,8 +1741,9 @@ enum Api {
         let cnt = intval((try? db.rows("SELECT COUNT(*) AS c FROM budget_items"))?.first?["c"])
         if cnt == 0 {
             _ = try? db.run("""
-                INSERT INTO budget_items(direction, name, amount, currency)
-                SELECT direction, category, ROUND(SUM(amount), 2), MAX(currency)
+                INSERT INTO budget_items(direction, name, amount, currency, month)
+                SELECT direction, category, ROUND(SUM(amount), 2), MAX(currency),
+                       CASE WHEN direction = 'income' THEN '2026-06' ELSE NULL END
                 FROM transactions WHERE substr(date,1,7) = '2026-06'
                 GROUP BY direction, category
                 """)

@@ -303,45 +303,60 @@ function secAccounts(d) {
   </div>`;
 }
 
-// Дефолтные расходы/доходы списком: суммы в месяц (база — факт за 2026-06), add/delete, средние (итого/мес) + баланс
+// Расходы (фикс сумма/мес) + доход по месяцам (среднее = сумма ÷ число месяцев). Итоги в месяц и в год (×12).
 function renderBudget(items, rates) {
   items = Array.isArray(items) ? items : [];
   const rate = (Array.isArray(rates) ? rates.find(r => r.symbol === 'EURUSD')?.price : 0) || 1.08;
-  const eur = i => (i.currency === '$' ? (+i.amount || 0) / rate : (+i.amount || 0));
+  const eur = i => (i.currency === '$' ? (+i.amount || 0) / rate : (+i.amount || 0));   // всё сводим в €
   const exp = items.filter(i => i.direction !== 'income').sort((a, b) => eur(b) - eur(a));
-  const inc = items.filter(i => i.direction === 'income').sort((a, b) => eur(b) - eur(a));
-  const expTotal = exp.reduce((s, i) => s + eur(i), 0);
-  const incTotal = inc.reduce((s, i) => s + eur(i), 0);
-  const bal = incTotal - expTotal;
-  const row = i => finIsMobile() ? fRow({
-    name: `<span class="ed" data-fe="budget:${i.id}:name:text">${fesc(i.name) || '—'}</span>`,
-    amount: `<span class="ed ${i.direction === 'income' ? 'up' : 'down'}" data-fe="budget:${i.id}:amount:num">${fmt(i.amount)} ${fesc(i.currency)}</span>`,
-    actions: `<span class="rowbtn del" data-findel="budget:${i.id}">✕</span>`,
-  }) : `
+  const inc = items.filter(i => i.direction === 'income').sort((a, b) => (b.month || '').localeCompare(a.month || ''));
+  const expMonth = exp.reduce((s, i) => s + eur(i), 0);                    // расходы в месяц
+  const nMonths = new Set(inc.map(i => i.month).filter(Boolean)).size || 1;
+  const incMonth = inc.reduce((s, i) => s + eur(i), 0) / nMonths;          // средний доход в месяц
+  const bal = incMonth - expMonth;
+  const m = v => fmt(v) + ' €';
+  const curSel = id => `<select id="${id}"><option value="€">€</option><option value="$">$</option></select>`;
+  const expRow = i => `
     <div class="task">
       <span class="t ed" data-fe="budget:${i.id}:name:text">${fesc(i.name) || '—'}</span>
-      <span class="ed num ${i.direction === 'income' ? 'up' : 'down'}" data-fe="budget:${i.id}:amount:num">${fmt(i.amount)} ${fesc(i.currency)}</span>
+      <span class="ed num down" data-fe="budget:${i.id}:amount:num">${fmt(i.amount)} ${fesc(i.currency)}</span>
       <span class="rowbtn del" data-findel="budget:${i.id}">✕</span>
     </div>`;
-  const addRow = dir => `
-    <div class="task finadd">
-      <input id="bud_${dir}_name" placeholder="${dir === 'income' ? 'статья дохода' : 'статья расхода'}">
-      <input id="bud_${dir}_amt" placeholder="сумма/мес" style="width:100px">
-      <span class="pill btn ok" data-budadd="${dir}">＋</span>
+  const incRow = i => `
+    <div class="task">
+      <span class="meta num" style="min-width:64px">${fesc(i.month) || '—'}</span>
+      <span class="t ed" data-fe="budget:${i.id}:name:text">${fesc(i.name) || 'доход'}</span>
+      <span class="ed num up" data-fe="budget:${i.id}:amount:num">${fmt(i.amount)} ${fesc(i.currency)}</span>
+      <span class="rowbtn del" data-findel="budget:${i.id}">✕</span>
     </div>`;
   return `
-  <div class="sec">Расходы и доходы · среднее в месяц</div>
+  <div class="sec">Расходы и доходы</div>
   <div class="card">
     <div class="kv" style="padding:6px 0;border-bottom:1px solid var(--line)">
-      <span class="meta">итого в месяц</span>
-      <span>расход <b class="down">${fmt(expTotal)} €</b> · доход <b class="up">${fmt(incTotal)} €</b> · баланс <b class="${bal >= 0 ? 'up' : 'down'}">${bal >= 0 ? '+' : ''}${fmt(bal)} €</b></span>
+      <span class="meta">в месяц</span>
+      <span>расход <b class="down">${m(expMonth)}</b> · доход <b class="up">${m(incMonth)}</b> · баланс <b class="${bal >= 0 ? 'up' : 'down'}">${bal >= 0 ? '+' : ''}${m(bal)}</b></span>
     </div>
-    <div class="meta" style="margin:8px 0 2px">РАСХОДЫ · ${fmt(expTotal)} € / мес</div>
-    ${exp.map(row).join('') || '<div class="empty">добавь статьи расходов ↓</div>'}
-    ${addRow('expense')}
-    <div class="meta" style="margin:12px 0 2px">ДОХОДЫ · ${fmt(incTotal)} € / мес</div>
-    ${inc.map(row).join('') || '<div class="empty">добавь статьи доходов ↓</div>'}
-    ${addRow('income')}
+    <div class="kv" style="padding:4px 0;border-bottom:1px solid var(--line)">
+      <span class="meta">в год (×12)</span>
+      <span class="meta">расход <b class="down">${m(expMonth * 12)}</b> · доход <b class="up">${m(incMonth * 12)}</b> · баланс <b class="${bal >= 0 ? 'up' : 'down'}">${bal >= 0 ? '+' : ''}${m(bal * 12)}</b></span>
+    </div>
+    <div class="meta" style="margin:8px 0 2px">РАСХОДЫ · ${m(expMonth)} / мес</div>
+    ${exp.map(expRow).join('') || '<div class="empty">добавь статьи расходов ↓</div>'}
+    <div class="task finadd">
+      <input id="bud_exp_name" placeholder="статья расхода">
+      <input id="bud_exp_amt" placeholder="сумма/мес" style="width:90px">
+      ${curSel('bud_exp_cur')}
+      <span class="pill btn ok" data-budadd="expense">＋</span>
+    </div>
+    <div class="meta" style="margin:12px 0 2px">ДОХОД ПО МЕСЯЦАМ · среднее ${m(incMonth)} / мес (${nMonths} мес)</div>
+    ${inc.map(incRow).join('') || '<div class="empty">внеси доход за каждый месяц ↓ — посчитаю среднее и годовой</div>'}
+    <div class="task finadd">
+      <input id="bud_inc_month" placeholder="ГГГГ-ММ" value="${finIso(new Date()).slice(0, 7)}" style="width:90px">
+      <input id="bud_inc_name" placeholder="источник (необяз.)" style="width:110px">
+      <input id="bud_inc_amt" placeholder="сумма" style="width:80px">
+      ${curSel('bud_inc_cur')}
+      <span class="pill btn ok" data-budadd="income">＋</span>
+    </div>
   </div>`;
 }
 
@@ -854,10 +869,23 @@ function bindFin() {
   document.querySelectorAll('[data-budadd]').forEach(el =>
     el.addEventListener('click', async () => {
       const dir = el.dataset.budadd;
-      const name = document.getElementById(`bud_${dir}_name`)?.value.trim();
-      const amt = parseNum(document.getElementById(`bud_${dir}_amt`)?.value);
-      if (!name) return;
-      await finApi.add('budget', { name, amount: amt ?? 0, direction: dir, currency: '€' });
+      if (dir === 'income') {
+        const amt = parseNum(document.getElementById('bud_inc_amt')?.value);
+        if (amt == null) return;
+        await finApi.add('budget', {
+          name: document.getElementById('bud_inc_name')?.value.trim() || 'доход',
+          amount: amt, direction: 'income',
+          currency: document.getElementById('bud_inc_cur')?.value || '€',
+          month: document.getElementById('bud_inc_month')?.value.trim() || '',
+        });
+      } else {
+        const name = document.getElementById('bud_exp_name')?.value.trim();
+        if (!name) return;
+        await finApi.add('budget', {
+          name, amount: parseNum(document.getElementById('bud_exp_amt')?.value) ?? 0,
+          direction: 'expense', currency: document.getElementById('bud_exp_cur')?.value || '€',
+        });
+      }
       window.loadFin();
     }));
   document.querySelectorAll('[data-findel]').forEach(el =>

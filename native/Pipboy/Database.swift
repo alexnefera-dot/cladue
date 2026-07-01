@@ -213,7 +213,8 @@ final class Database {
         CREATE TABLE IF NOT EXISTS budget_items(
           id INTEGER PRIMARY KEY, direction TEXT NOT NULL DEFAULT 'expense',
           name TEXT NOT NULL DEFAULT '', amount REAL NOT NULL DEFAULT 0,
-          currency TEXT NOT NULL DEFAULT '€', ord INTEGER NOT NULL DEFAULT 0
+          currency TEXT NOT NULL DEFAULT '€', ord INTEGER NOT NULL DEFAULT 0,
+          month TEXT
         );
         CREATE TABLE IF NOT EXISTS receivables(
           id INTEGER PRIMARY KEY, name TEXT NOT NULL, amount REAL NOT NULL,
