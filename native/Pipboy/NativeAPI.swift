@@ -3041,8 +3041,20 @@ enum Api {
         let cols = knownKeys(db, t, r); guard !cols.isEmpty, cols.contains(keyCol) else { return }
         let vals: [Any?] = cols.map { c in let v = r[c]; return (v is NSNull) ? nil : v }
         if replaceKey == true {
-            let sets = cols.map { "\"\($0)\" = ?" }.joined(separator: ", ")
-            try db.run("UPDATE \(t) SET \(sets) WHERE \(keyCol) = ?", vals + [rk])
+            // ПОЛЕВОЕ слияние: входящее ПУСТОЕ (NULL / пустая строка) НЕ затирает заполненное локально.
+            // Иначе правка одного поля на одном устройстве стирала бы поля, заполненные только на другом
+            // (так терялись валюты в портфеле, суммы/названия расходов). Числовой 0 пустым НЕ считается.
+            let local = (try? db.rows("SELECT * FROM \(t) WHERE \(keyCol) = ?", [rk]))?.first ?? [:]
+            func empty(_ v: Any?) -> Bool { v == nil || v is NSNull || (v as? String)?.isEmpty == true }
+            var setCols: [String] = []; var setVals: [Any?] = []
+            for c in cols where c != keyCol {
+                let inV = r[c]
+                if empty(inV) && !empty(local[c]) { continue }   // не затираем заполненное пустым
+                setCols.append(c); setVals.append(inV is NSNull ? nil : inV)
+            }
+            guard !setCols.isEmpty else { return }
+            let sets = setCols.map { "\"\($0)\" = ?" }.joined(separator: ", ")
+            try db.run("UPDATE \(t) SET \(sets) WHERE \(keyCol) = ?", setVals + [rk])
         } else {
             let colList = cols.map { "\"\($0)\"" }.joined(separator: ",")
             let marks = cols.map { _ in "?" }.joined(separator: ",")
