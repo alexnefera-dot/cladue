@@ -41,6 +41,7 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         _ = try? made.run("ALTER TABLE practices ADD COLUMN category TEXT NOT NULL DEFAULT ''")  // категория практики
         _ = try? made.run("ALTER TABLE metrics ADD COLUMN target REAL")                          // KPI метрики — без неё сферы падали
         _ = try? made.run("ALTER TABLE metrics ADD COLUMN polarity TEXT NOT NULL DEFAULT 'plus'") // полярность метрики
+        _ = try? made.run("CREATE TABLE IF NOT EXISTS budget_items(id INTEGER PRIMARY KEY, direction TEXT NOT NULL DEFAULT 'expense', name TEXT NOT NULL DEFAULT '', amount REAL NOT NULL DEFAULT 0, currency TEXT NOT NULL DEFAULT '€', ord INTEGER NOT NULL DEFAULT 0)")  // дефолтные расходы/доходы — миграция существующих баз (ensureSchema идёт только при сиде)
         Api.ensureSyncSchema(made)   // updated_at + триггеры + tombstones — отслеживание правок для синхрона
         Api.ensureSpheresSchema(made)   // area_id на таблицах — раздел «Сферы»
         Api.ensureThoughtTesting(made)   // техника «Тестирование мыслей» (КПТ) — один раз
