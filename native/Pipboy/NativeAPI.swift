@@ -2972,6 +2972,12 @@ enum Api {
     // применение tombstones (удаления). Перед слиянием — авто-бэкап базы.
     @discardableResult
     static func syncApplyMerge(_ db: Database, _ snapshot: [String: Any], applyWeb: Bool = true) throws -> Int {
+        // merge идёт по отдельному соединению, минуя database()/сид — гарантируем ПОЛНУЮ схему,
+        // иначе строки для ещё не созданных таблиц (wheel_areas, area_milestones, area_questions, budget_items…)
+        // молча отбрасываются (tableColumns пусто) и данные не приезжают на второе устройство.
+        try? db.ensureSchema()
+        ensureSpheresSchema(db)
+        _ = try? db.run("CREATE TABLE IF NOT EXISTS budget_items(id INTEGER PRIMARY KEY, direction TEXT NOT NULL DEFAULT 'expense', name TEXT NOT NULL DEFAULT '', amount REAL NOT NULL DEFAULT 0, currency TEXT NOT NULL DEFAULT '€', ord INTEGER NOT NULL DEFAULT 0, month TEXT)")
         ensureSyncSchema(db)
         backupDB()
         guard let tables = snapshot["tables"] as? [String: Any] else { throw Unsupported(path: "плохой снимок") }
