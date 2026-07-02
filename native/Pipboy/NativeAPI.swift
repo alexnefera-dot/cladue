@@ -43,8 +43,8 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         _ = try? made.run("ALTER TABLE metrics ADD COLUMN polarity TEXT NOT NULL DEFAULT 'plus'") // полярность метрики
         _ = try? made.run("CREATE TABLE IF NOT EXISTS budget_items(id INTEGER PRIMARY KEY, direction TEXT NOT NULL DEFAULT 'expense', name TEXT NOT NULL DEFAULT '', amount REAL NOT NULL DEFAULT 0, currency TEXT NOT NULL DEFAULT '€', ord INTEGER NOT NULL DEFAULT 0, month TEXT)")  // дефолтные расходы/доходы — миграция существующих баз (ensureSchema идёт только при сиде)
         _ = try? made.run("ALTER TABLE budget_items ADD COLUMN month TEXT")   // доход — помесячно (YYYY-MM); расход — пусто (фикс/мес)
+        Api.ensureSpheresSchema(made)   // таблицы сфер (area_milestones/area_questions) — до sync-схемы, чтобы им добавились updated_at/триггеры
         Api.ensureSyncSchema(made)   // updated_at + триггеры + tombstones — отслеживание правок для синхрона
-        Api.ensureSpheresSchema(made)   // area_id на таблицах — раздел «Сферы»
         Api.ensureThoughtTesting(made)   // техника «Тестирование мыслей» (КПТ) — один раз
         Api.ensureThoughtDiary(made)   // техника «Дневник мыслей» (журнал таблицей) — один раз
         Api.ensureExperienceDiary(made)   // техника «Дневник Опыта» — один раз
@@ -2813,7 +2813,7 @@ enum Api {
         "steps", "obligations", "portfolio_items", "rates", "events", "transactions", "budget_items",
         "receivables", "passive_income", "settings", "macro_notes", "debts", "snapshots",
         "routines", "routine_log", "people", "contact_log", "pages", "page_revisions", "attachments",
-        "practices", "practice_log", "wheel_areas", "wheel_scores", "work_log", "forecasts",
+        "practices", "practice_log", "wheel_areas", "wheel_scores", "area_milestones", "area_questions", "work_log", "forecasts",
         "properties", "checkins", "metrics", "metric_log", "node_log", "trash", "event_done"]
 
     // Таблицы с одним ключом → двусторонний merge по updated_at (LWW) + tombstones.
@@ -2823,7 +2823,7 @@ enum Api {
         ("transactions", "id"), ("receivables", "id"), ("passive_income", "id"), ("macro_notes", "id"),
         ("budget_items", "id"), ("debts", "id"), ("routines", "id"), ("people", "id"), ("contact_log", "id"),
         ("pages", "id"), ("page_revisions", "id"), ("attachments", "id"), ("practices", "id"), ("practice_log", "id"),
-        ("wheel_areas", "id"), ("wheel_scores", "id"), ("work_log", "id"), ("forecasts", "id"),
+        ("wheel_areas", "id"), ("wheel_scores", "id"), ("area_milestones", "id"), ("area_questions", "id"), ("work_log", "id"), ("forecasts", "id"),
         ("properties", "id"), ("metrics", "id"), ("node_log", "id"), ("trash", "id"),
         ("settings", "key"), ("rates", "symbol"), ("snapshots", "date"), ("checkins", "date")]
     // Таблицы с составным ключом (логи/отметки) → простое объединение, без tombstones.
