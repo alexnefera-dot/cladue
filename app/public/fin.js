@@ -335,6 +335,7 @@ function renderBudget(items, rates) {
   const incYear = inc.reduce((s, i) => s + eur(i), 0);              // годовой = сумма всех введённых
   const incQAvg = incYear / nQ;                                     // средний доход за квартал
   const incMonth = incQAvg / 3;                                     // средний доход в месяц (из квартального)
+  const incForecast = incQAvg * 4;                                  // прогноз года: средний квартал × 4
   const bal = incMonth - expMonth;
 
   return `
@@ -346,7 +347,7 @@ function renderBudget(items, rates) {
     </div>
     <div class="kv" style="padding:4px 0;border-bottom:1px solid var(--line)">
       <span class="meta">в год</span>
-      <span class="meta">расход <b class="down">${m(expMonth * 12)}</b> · доход <b class="up">${m(incYear)}</b> (сумма ${nQ} кв.)</span>
+      <span class="meta">расход <b class="down">${m(expMonth * 12)}</b> · доход факт <b class="up">${m(incYear)}</b> · прогноз <b class="up">${m(incForecast)}</b></span>
     </div>
 
     <div class="meta" style="margin:8px 0 2px">РАСХОДЫ · ${m(expMonth)} / мес · ${m(expMonth * 12)} / год</div>
@@ -358,7 +359,7 @@ function renderBudget(items, rates) {
       <span class="pill btn ok" data-budadd="expense">＋</span>
     </div>
 
-    <div class="meta" style="margin:12px 0 2px">ДОХОД · год ${m(incYear)} · средний ${m(incQAvg)}/кв · ${m(incMonth)}/мес</div>
+    <div class="meta" style="margin:12px 0 2px">ДОХОД · факт ${m(incYear)} · прогноз года ${m(incForecast)} · средн. ${m(incQAvg)}/кв · ${m(incMonth)}/мес</div>
     ${qKeys.length ? `<div class="btnrow" style="margin:2px 0 6px">${qKeys.slice().reverse().map(q => `<span class="pill ok">${q}: ${m(byQ[q])}</span>`).join('')}</div>` : ''}
     ${monthKeys.length ? monthKeys.map(mo => `
       <div class="kv" style="margin-top:6px;font-weight:700"><span>${fesc(mo)} <span class="meta" style="font-weight:400">${qOf(mo)}</span></span><span class="num up">${m(monthSum(mo))}</span></div>
