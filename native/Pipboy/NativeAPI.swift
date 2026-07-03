@@ -2232,7 +2232,7 @@ enum Api {
             : (anyNonNull("invested") ? sum("invested") : nil)
         let investedCur: Double? = isLeaf ? (value != nil ? (toEur(value, cur) ?? 0) : nil)
             : (anyNonNull("investedCur") ? sum("investedCur") : nil)
-        let target: Double? = numOpt(r["target_value"]) ?? (anyNonNull("target") ? sum("target") : nil)
+        let target: Double? = isLeaf ? numOpt(r["target_value"]).flatMap { toEur($0, cur) } : (anyNonNull("target") ? sum("target") : nil)   // план в €, агрегируется по узлам
         node["children"] = children
         node["eur"] = eur; node["usdPart"] = usdPart; node["eurPart"] = eurPart
         node["value"] = isLeaf ? (r["value"] ?? NSNull()) : eur
