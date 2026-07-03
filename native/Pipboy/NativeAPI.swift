@@ -1367,6 +1367,15 @@ enum Api {
 
     static func finWrite(method: String, path: String, body: [String: Any], db: Database) throws -> (Data, Int)? {
         if method == "POST", path == "/api/rates/refresh" { return (try ratesRefresh(db), 200) }
+        if let m = match(path, "^/api/fin/move/([0-9]+)$"), method == "DELETE" {   // удаление связки — откатить перелив целевых сумм
+            let id = Int(m[1]) ?? -1
+            if let mv = try db.rows("SELECT from_id, to_id, amount FROM target_moves WHERE id = ?", [id]).first {
+                let amt = num(mv["amount"])
+                if let f = numOpt(mv["from_id"]) { try db.run("UPDATE target_items SET value = COALESCE(value,0) + ? WHERE id = ?", [amt, Int(f)]) }
+                if let t = numOpt(mv["to_id"]) { try db.run("UPDATE target_items SET value = COALESCE(value,0) - ? WHERE id = ?", [amt, Int(t)]) }
+            }
+            try db.run("DELETE FROM target_moves WHERE id = ?", [id]); return (ok(), 200)
+        }
         if let m = match(path, "^/api/fin/(accounts|classes|steps|obligations|items|tx|debts|income|budget|tgt|move)(?:/([0-9]+))?$") {
             let entity = m[1], idStr = m[2], table = finTable[entity] ?? entity
             if method == "POST" && idStr.isEmpty { try finAdd(db, entity, body); return (ok(201), 201) }
@@ -1490,8 +1499,11 @@ enum Api {
             try db.run("INSERT INTO target_items(parent_id, ord, name, kind, value, currency, asset_type) VALUES(?,?,?,?,?,?,?)",
                 [parent, ord, b["name"] as? String ?? "", b["kind"] as? String ?? "asset", b["value"] ?? NSNull(), b["currency"] as? String ?? "€", b["asset_type"] ?? NSNull()])
         case "move":
-            try db.run("INSERT INTO target_moves(from_id, to_id, amount) VALUES(?,?,?)",
-                [numOpt(b["from_id"]).map { Int($0) } ?? NSNull(), numOpt(b["to_id"]).map { Int($0) } ?? NSNull(), num(b["amount"])])
+            let mvFrom = numOpt(b["from_id"]).map { Int($0) }, mvTo = numOpt(b["to_id"]).map { Int($0) }, mvAmt = num(b["amount"])
+            try db.run("INSERT INTO target_moves(from_id, to_id, amount) VALUES(?,?,?)", [mvFrom ?? NSNull(), mvTo ?? NSNull(), mvAmt])
+            // перелив целевых сумм: у источника меньше, у получателя больше
+            if let f = mvFrom { try db.run("UPDATE target_items SET value = COALESCE(value,0) - ? WHERE id = ?", [mvAmt, f]) }
+            if let t = mvTo { try db.run("UPDATE target_items SET value = COALESCE(value,0) + ? WHERE id = ?", [mvAmt, t]) }
         default: break
         }
     }
