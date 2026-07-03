@@ -104,12 +104,12 @@ function portRows(it, depth, ctx) {
       ${valueCell}
       ${shareCell}`;
   }
-  return `<tr class="${rowCls}" draggable="${!target}" data-pid="${it.id}">
+  return `<tr class="${rowCls}" draggable="true" data-pid="${it.id}">
     <td class="pname" style="--d:${depth}">
       ${it.children.length ? `<span class="caret" data-pfold="${it.id}" title="${folded ? 'развернуть' : 'свернуть'}">${folded ? '▸' : '▾'}</span>` : ''}
       <span class="ed" data-fe="${pfx}:${it.id}:name:text" title="клик — переименовать">${fesc(it.name)}</span>
       ${folded ? `<span class="meta">· ${it.children.length} внутри</span>` : ''}
-      ${!target && editable && it.asset_type ? `<span class="pill" data-ftype="${it.id}" title="тип актива — клик">${fesc(it.asset_type)}</span>` : ''}
+      ${editable && it.asset_type ? `<span class="pill" data-ftype="${it.id}" title="тип актива — клик">${fesc(it.asset_type)}</span>` : ''}
       ${!target && it.rate_symbol ? `<span class="pill btn" data-fqty="${it.id}" title="количество — клик">${it.qty ?? '?'} × ${fesc(it.rate_symbol)}</span>` : ''}
       ${!target && it.no_rate ? '<span class="pill p1" title="курс тикера ещё не загружен — обнови курсы (⟳ вверху)">нет курса</span>' : ''}
       ${!target && it.is_loan ? '<span class="pill p2">🤝 займ</span>' : ''}
@@ -118,7 +118,7 @@ function portRows(it, depth, ctx) {
     <td class="r" style="width:96px;white-space:nowrap">
       ${it.kind === 'block' ? `<span class="rowbtn" data-${target ? 'tgtadd' : 'fadd'}="section:${it.id}" title="добавить раздел">＋</span>` : ''}
       ${it.kind === 'section' ? `<span class="rowbtn" data-${target ? 'tgtadd' : 'fadd'}="asset:${it.id}" title="добавить актив">＋</span>` : ''}
-      ${!target && editable && !it.asset_type ? `<span class="rowbtn" data-ftype="${it.id}" title="задать тип актива">⊙</span>` : ''}
+      ${editable && !it.asset_type ? `<span class="rowbtn" data-ftype="${it.id}" title="задать тип актива">⊙</span>` : ''}
       ${!target && editable ? `<span class="rowbtn" data-frate="${it.id}" title="${it.rate_symbol ? 'автоцена: сменить/убрать тикер' : 'автоцена по курсу (BTC, золото, SCHD/IVV/VHT)'}">⚡</span>` : ''}
       ${!target && editable ? `<span class="rowbtn" data-loanflag="${it.id}:${it.is_loan ? 1 : 0}" title="${it.is_loan ? 'убрать значок займа' : 'пометить как займ'}">🤝</span>` : ''}
       <span class="rowbtn del" data-findel="${pfx}:${it.id}">✕</span>
@@ -848,9 +848,10 @@ function bindFin() {
         : tr.classList.contains('dropafter') ? 'after' : 'into';
       pClear();
       if (pDrag == null) return;
+      const ent = finTab === 'target' ? 'tgt' : 'items';   // целевой дерево тянется так же, но по target_items
       const url = zone === 'into'
-        ? [`/api/fin/items/${pDrag}/move`, { parent_id: +tr.dataset.pid }]
-        : [`/api/fin/items/${pDrag}/reorder`, { ref_id: +tr.dataset.pid, where: zone }];
+        ? [`/api/fin/${ent}/${pDrag}/move`, { parent_id: +tr.dataset.pid }]
+        : [`/api/fin/${ent}/${pDrag}/reorder`, { ref_id: +tr.dataset.pid, where: zone }];
       const r = await fetch(url[0], { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(url[1]) }).then(x => x.json());
       if (r.error) alert(r.error);
@@ -978,13 +979,14 @@ function bindFin() {
   document.querySelectorAll('[data-ftype]').forEach(el =>
     el.addEventListener('click', () => {
       const id = +el.dataset.ftype;
+      const ent = finTab === 'target' ? 'tgt' : 'items';
       const sel = document.createElement('select');
       sel.innerHTML = '<option value="">— тип актива —</option>'
         + ATYPES.map(t => `<option>${t}</option>`).join('') + '<option value="__none">убрать тип</option>';
       el.replaceWith(sel);
       sel.focus();
       sel.addEventListener('change', async () => {
-        await finApi.patch('items', id, { asset_type: sel.value === '__none' ? null : (sel.value || null) });
+        await finApi.patch(ent, id, { asset_type: sel.value === '__none' ? null : (sel.value || null) });
         window.loadFin();
       });
       sel.addEventListener('blur', () => window.loadFin());
