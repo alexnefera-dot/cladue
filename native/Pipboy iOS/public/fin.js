@@ -72,7 +72,7 @@ function portRows(it, depth, ctx) {
   let cells;
   if (target) {
     // целевой: та же таблица, что факт. Колонки Цель | Факт | Δ (факт − цель по совпадающему названию)
-    const factEur = ctx?.factByName?.[(it.name || '').trim().toLowerCase()];
+    const factEur = ctx?.factByPath?.[(ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase()];
     const cur = it.currency ?? '€';
     const goalCell = editable
       ? `<td class="r num acc"><span class="pill btn" data-fcur="${it.id}:${cur}" title="сменить валюту">${cur}</span> <span class="ed" data-fe="tgt:${it.id}:value:num" title="целевая сумма (клик)">${it.value != null ? fmt(it.value) : '—'}</span></td>`
@@ -123,7 +123,7 @@ function portRows(it, depth, ctx) {
       ${!target && editable ? `<span class="rowbtn" data-loanflag="${it.id}:${it.is_loan ? 1 : 0}" title="${it.is_loan ? 'убрать значок займа' : 'пометить как займ'}">🤝</span>` : ''}
       <span class="rowbtn del" data-findel="${pfx}:${it.id}">✕</span>
     </td>
-  </tr>` + (folded ? '' : it.children.map(c => portRows(c, depth + 1, { total: ctx?.total, parentEur: it.eur, tgt: target, factByName: ctx?.factByName })).join(''));
+  </tr>` + (folded ? '' : it.children.map(c => portRows(c, depth + 1, { total: ctx?.total, parentEur: it.eur, tgt: target, factByPath: ctx?.factByPath, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
 }
 
 const finIsMobile = () => window.matchMedia('(max-width: 768px)').matches;
@@ -151,7 +151,7 @@ function portCard(it, depth, ctx) {
   const pTot = !target && ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
   let meta;
   if (target) {
-    const factEur = ctx?.factByName?.[(it.name || '').trim().toLowerCase()];
+    const factEur = ctx?.factByPath?.[(ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase()];
     meta = `<span class="meta">факт ${factEur != null ? fmtE(factEur) : '—'}</span>
        ${factEur != null ? `<span class="pill ${factEur - it.eur >= 0 ? 'ok' : 'p1'}">${factEur - it.eur >= 0 ? '+' : ''}${fmt(factEur - it.eur)}</span>` : ''}`;
   } else {
@@ -173,7 +173,7 @@ function portCard(it, depth, ctx) {
       <span class="pc-val">${val}</span>
     </div>
     <div class="pc-meta">${meta}${folded ? `<span class="meta">· ${it.children.length} внутри</span>` : ''}<span class="pc-actions">${actions}</span></div>
-  </div>` + (folded ? '' : it.children.map(c => portCard(c, depth + 1, { total: ctx?.total, parentEur: it.eur, tgt: target, factByName: ctx?.factByName })).join(''));
+  </div>` + (folded ? '' : it.children.map(c => portCard(c, depth + 1, { total: ctx?.total, parentEur: it.eur, tgt: target, factByPath: ctx?.factByPath, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
 }
 
 // диаграмма аллокации: доли с процентами внутри, каждая своим цветом
@@ -260,11 +260,12 @@ function secIncome(d, s) {
 function secPortfolio(d, s) {
   const tgt = finTab === 'target';
   // карта факта по названию узла (все уровни) → сумма в €, для Δ перебор/недобор в целевом
-  const factByName = {};
-  if (tgt) { const w = ns => (ns || []).forEach(n => { const k = (n.name || '').trim().toLowerCase(); if (k) factByName[k] = (factByName[k] || 0) + (n.eur || 0); w(n.children); }); w(d.portfolio); }
+  // карта факта по ПОЛНОМУ ПУТИ узла (блок/раздел/актив), а не по имени — иначе одноимённые позиции складываются
+  const factByPath = {};
+  if (tgt) { const w = (ns, pre) => (ns || []).forEach(n => { const p = pre + '/' + (n.name || '').trim().toLowerCase(); factByPath[p] = (factByPath[p] || 0) + (n.eur || 0); w(n.children, p); }); w(d.portfolio, ''); }
   const tree = tgt ? (d.targetPortfolio || []) : (d.portfolio || []);
   const rootTotal = tgt ? tree.reduce((a, b) => a + (b.eur || 0), 0) : s.portfolioTotal;
-  const rctx = { total: rootTotal, parentEur: rootTotal, tgt, factByName };
+  const rctx = { total: rootTotal, parentEur: rootTotal, tgt, factByPath, path: '' };
   return `
   <div class="sec">Портфель · блоки → разделы → активы · всё правится кликом</div>
   <div class="viewtabs">
