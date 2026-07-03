@@ -262,6 +262,34 @@ function secIncome(d, s) {
 }
 
 
+// План ребаланса: из позиций с избытком (факт > цель) в позиции с дефицитом (факт < цель).
+// Жадно сопоставляем источники и получатели по листьям целевого дерева. Ярлык — «Блок · Позиция».
+function rebalanceMoves(tree, factByPath) {
+  const leaves = [];
+  const walk = (ns, pre, root) => (ns || []).forEach(n => {
+    const path = pre + '/' + (n.name || '').trim().toLowerCase();
+    const r = root || n.name;
+    const kids = n.children || [];
+    if (n.kind === 'asset' || !kids.length) {
+      const delta = (factByPath[path] || 0) - (n.eur || 0);   // >0 избыток (забрать), <0 дефицит (докупить)
+      if (Math.abs(delta) >= 1) leaves.push({ label: r && r !== n.name ? `${r} · ${n.name}` : n.name, delta });
+    }
+    walk(kids, path, r);
+  });
+  walk(tree, '', null);
+  const src = leaves.filter(l => l.delta > 0).sort((a, b) => b.delta - a.delta).map(l => ({ label: l.label, left: l.delta }));
+  const dst = leaves.filter(l => l.delta < 0).sort((a, b) => a.delta - b.delta).map(l => ({ label: l.label, need: -l.delta }));
+  const moves = []; let si = 0, di = 0;
+  while (si < src.length && di < dst.length) {
+    const a = src[si], b = dst[di], amt = Math.min(a.left, b.need);
+    moves.push({ from: a.label, to: b.label, amount: amt });
+    a.left -= amt; b.need -= amt;
+    if (a.left < 1) si++;
+    if (b.need < 1) di++;
+  }
+  return moves;
+}
+
 function secPortfolio(d, s) {
   const tgt = finTab === 'target';
   // карта факта по ПОЛНОМУ ПУТИ узла (блок/раздел/актив), а не по имени — иначе одноимённые позиции складываются
@@ -292,6 +320,12 @@ function secPortfolio(d, s) {
     </table>`}
     ${tgt ? `<div class="task finadd" style="margin-top:6px"><input id="tgt_block" placeholder="новый блок целевого" style="flex:1"><span class="pill btn ok" data-tgtadd="block:">＋ блок</span></div>` : ''}
   </div>
+  ${tgt ? (() => { const mv = rebalanceMoves(tree, factByPath); return `<div class="card">
+    <div class="meta" style="margin-bottom:6px">КУДА ДВИГАТЬ ДЕНЬГИ · план ребаланса (из избытка → в дефицит)</div>
+    ${mv.map(m => `<div class="task">
+      <span class="pill p1">${fesc(m.from)}</span><span class="meta" style="margin:0 5px">→</span><span class="pill ok">${fesc(m.to)}</span>
+      <span class="num" style="margin-left:auto">${fmt(m.amount)} €</span></div>`).join('') || '<div class="empty">баланс сходится — переносить нечего</div>'}
+  </div>` })() : ''}
   ${!tgt && d.byType.length ? `
   <div class="card">
     <div class="meta" style="margin-bottom:6px">АЛЛОКАЦИЯ ПО ТИПАМ АКТИВОВ (⊙ у строки — задать тип)</div>
