@@ -56,7 +56,7 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
             _ = try? made.run("DELETE FROM target_moves")
             _ = try? made.run("DELETE FROM target_items")
             _ = try? made.run("UPDATE settings SET value = '' WHERE key = 'target_seed_v1'")   // сброс флага → initTargetFromFact заполнит заново
-            _ = try? setSetting(made, "target_reset_v1", "1")
+            _ = try? Api.setSetting(made, "target_reset_v1", "1")
         }
         Api.initTargetFromFact(made)   // первый раз (и после сброса) — копируем структуру фактического портфеля в целевой
         _ = try? made.run("UPDATE target_items SET rate_symbol = NULL, qty = NULL WHERE rate_symbol IS NOT NULL")   // целевой — плановые суммы, без автоцены (иначе не отредактировать)
