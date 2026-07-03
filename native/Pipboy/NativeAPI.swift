@@ -43,7 +43,13 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         _ = try? made.run("ALTER TABLE metrics ADD COLUMN polarity TEXT NOT NULL DEFAULT 'plus'") // полярность метрики
         _ = try? made.run("CREATE TABLE IF NOT EXISTS budget_items(id INTEGER PRIMARY KEY, direction TEXT NOT NULL DEFAULT 'expense', name TEXT NOT NULL DEFAULT '', amount REAL NOT NULL DEFAULT 0, currency TEXT NOT NULL DEFAULT '€', ord INTEGER NOT NULL DEFAULT 0, month TEXT)")  // дефолтные расходы/доходы — миграция существующих баз (ensureSchema идёт только при сиде)
         _ = try? made.run("ALTER TABLE budget_items ADD COLUMN month TEXT")   // доход — помесячно (YYYY-MM); расход — пусто (фикс/мес)
-        _ = try? made.run("CREATE TABLE IF NOT EXISTS target_items(id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, ord INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL DEFAULT 'asset', value REAL, buy_value REAL, target_value REAL, currency TEXT NOT NULL DEFAULT '€', asset_type TEXT, qty REAL, rate_symbol TEXT, note TEXT)")  // целевой портфель — отдельное дерево (миграция существующих баз)
+        // целевой портфель — отдельное дерево. Если таблица осталась старой (плоской, без parent_id) — пересоздаём,
+        // иначе portfolioTree(ORDER BY parent_id) падает → /api/fin 500 → белый экран Финансов.
+        if !(((try? made.rows("PRAGMA table_info(target_items)")) ?? []).contains { ($0["name"] as? String) == "parent_id" }) {
+            _ = try? made.run("DROP TABLE IF EXISTS target_items")
+            _ = try? made.run("UPDATE settings SET value = '' WHERE key = 'target_seed_v1'")   // сброс → перезаполним копией факта
+        }
+        _ = try? made.run("CREATE TABLE IF NOT EXISTS target_items(id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, ord INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL DEFAULT 'asset', value REAL, buy_value REAL, target_value REAL, currency TEXT NOT NULL DEFAULT '€', asset_type TEXT, qty REAL, rate_symbol TEXT, note TEXT)")
         Api.initTargetFromFact(made)   // первый раз — копируем структуру фактического портфеля в целевой
         Api.ensureSpheresSchema(made)   // таблицы сфер (area_milestones/area_questions) — до sync-схемы, чтобы им добавились updated_at/триггеры
         Api.ensureSyncSchema(made)   // updated_at + триггеры + tombstones — отслеживание правок для синхрона
@@ -3016,6 +3022,9 @@ enum Api {
         try? db.ensureSchema()
         ensureSpheresSchema(db)
         _ = try? db.run("CREATE TABLE IF NOT EXISTS budget_items(id INTEGER PRIMARY KEY, direction TEXT NOT NULL DEFAULT 'expense', name TEXT NOT NULL DEFAULT '', amount REAL NOT NULL DEFAULT 0, currency TEXT NOT NULL DEFAULT '€', ord INTEGER NOT NULL DEFAULT 0, month TEXT)")
+        if !(((try? db.rows("PRAGMA table_info(target_items)")) ?? []).contains { ($0["name"] as? String) == "parent_id" }) {
+            _ = try? db.run("DROP TABLE IF EXISTS target_items")   // старая плоская схема → пересоздаём как дерево
+        }
         _ = try? db.run("CREATE TABLE IF NOT EXISTS target_items(id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, ord INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL DEFAULT 'asset', value REAL, buy_value REAL, target_value REAL, currency TEXT NOT NULL DEFAULT '€', asset_type TEXT, qty REAL, rate_symbol TEXT, note TEXT)")
         ensureSyncSchema(db)
         backupDB()

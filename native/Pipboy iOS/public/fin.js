@@ -44,10 +44,18 @@ const RATE_FMT = { 'XAUUSD': v => '$' + fmt(v), 'EURUSD': v => v?.toFixed(4), 'B
   'SCHD': v => '$' + fmt(v), 'IVV': v => '$' + fmt(v), 'VHT': v => '$' + fmt(v) };
 
 window.loadFin = async function () {
-  finData = await finApi.list();
-  if (finTxMonth !== finIso(new Date()).slice(0, 7))
-    finData.tx = await finApi.txMonth(finTxMonth);
-  renderFin();
+  const el = document.getElementById('screen-fin');
+  try {
+    finData = await finApi.list();
+    if (!finData || finData.error || !Array.isArray(finData.portfolio)) {   // бэкенд отдал ошибку — показываем причину, не белый экран
+      if (el) el.innerHTML = `<h2>Финансы</h2><div class="card" style="color:var(--red);margin-top:12px">Не удалось загрузить финансы: <span class="meta">${fesc(String((finData && finData.error) || 'нет данных'))}</span></div>`;
+      return;
+    }
+    if (finTxMonth !== finIso(new Date()).slice(0, 7)) finData.tx = await finApi.txMonth(finTxMonth);
+    renderFin();
+  } catch (e) {
+    if (el) el.innerHTML = `<h2>Финансы</h2><div class="card" style="color:var(--red);margin-top:12px">Ошибка отрисовки: <span class="meta">${fesc(String(e && e.message || e))}</span></div>`;
+  }
 };
 
 // ===== Портфель: строки таблицы =====
