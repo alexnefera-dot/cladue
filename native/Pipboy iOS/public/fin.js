@@ -259,7 +259,6 @@ function secIncome(d, s) {
 
 function secPortfolio(d, s) {
   const tgt = finTab === 'target';
-  // карта факта по названию узла (все уровни) → сумма в €, для Δ перебор/недобор в целевом
   // карта факта по ПОЛНОМУ ПУТИ узла (блок/раздел/актив), а не по имени — иначе одноимённые позиции складываются
   const factByPath = {};
   if (tgt) { const w = (ns, pre) => (ns || []).forEach(n => { const p = pre + '/' + (n.name || '').trim().toLowerCase(); factByPath[p] = (factByPath[p] || 0) + (n.eur || 0); w(n.children, p); }); w(d.portfolio, ''); }
@@ -273,6 +272,10 @@ function secPortfolio(d, s) {
     <span class="pill btn ${tgt ? 'ok' : ''}" data-fintab="target">Целевой портфель</span>
     <span class="pill btn" id="pfoldAll" style="margin-left:auto">${portFold.size ? '▾ развернуть всё' : '▸ свернуть всё'}</span>
   </div>
+  ${tgt ? `<div class="card"><div class="kv" style="font-weight:700;padding:2px 0">
+      <span>Капитал: есть <b class="num">${fmt(s.portfolioTotal)} €</b> · нужно на план <b class="num">${fmt(rootTotal)} €</b></span>
+      <span class="pill ${s.portfolioTotal - rootTotal >= 0 ? 'ok' : 'p1'}">${s.portfolioTotal - rootTotal >= 0 ? 'хватает · излишек +' : 'не хватает '}${fmt(s.portfolioTotal - rootTotal)} €</span>
+    </div></div>` : ''}
   <div class="card">
     ${finIsMobile()
       ? `<div class="pcards">${tree.map(b => portCard(b, 0, rctx)).join('') || '<div class="empty">пусто</div>'}</div>`
