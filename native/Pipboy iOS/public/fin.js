@@ -244,7 +244,7 @@ function secPortfolio(d, s) {
     <span class="pill btn ${finTab === 'target' ? 'ok' : ''}" data-fintab="target">Целевой портфель</span>
     <span class="pill btn" id="pfoldAll" style="margin-left:auto">${portFold.size ? '▾ развернуть всё' : '▸ свернуть всё'}</span>
   </div>
-  ${finTab === 'target' ? renderTargetPortfolio(d.targetItems, d.byType) : `
+  ${finTab === 'target' ? renderTargetPortfolio(d.targetPortfolio, d.portfolio) : `
   <div class="card">
     ${finIsMobile()
       ? `<div class="pcards">${d.portfolio.map(b => portCard(b, 0, { total: s.portfolioTotal, parentEur: s.portfolioTotal })).join('') || '<div class="empty">портфель пуст</div>'}</div>`
@@ -273,47 +273,54 @@ function secPortfolio(d, s) {
 
 // Целевой портфель — СВОЙ список пунктов по типам активов (не связан с фактическими позициями).
 // Перебор/недобор считаем по типу: факт (byType из фактического портфеля) минус цель (сумма целевых пунктов типа).
-function renderTargetPortfolio(targets, byType) {
+function renderTargetPortfolio(targets, fact) {
   targets = Array.isArray(targets) ? targets : [];
-  const rate = (Array.isArray(finData?.rates) ? finData.rates.find(r => r.symbol === 'EURUSD')?.price : 0) || 1.08;
-  const eur = i => (i.currency === '$' ? (+i.amount || 0) / rate : (+i.amount || 0));
-  const factByType = {}; (Array.isArray(byType) ? byType : []).forEach(([ty, v]) => { factByType[ty] = (factByType[ty] || 0) + v; });
-  const tgtByType = {}; targets.forEach(i => { const t = i.asset_type || 'прочее'; tgtByType[t] = (tgtByType[t] || 0) + eur(i); });
-  const types = [...new Set([...Object.keys(tgtByType), ...Object.keys(factByType)])].sort();
   const m = v => fmt(v) + ' €';
-  const totalFact = Object.values(factByType).reduce((a, b) => a + b, 0);
-  const totalGoal = Object.values(tgtByType).reduce((a, b) => a + b, 0);
-  const totalD = totalFact - totalGoal;
-  const delta = (fact, goal) => goal === 0
-    ? '<span class="meta">нет цели</span>'
-    : `<span class="pill ${fact - goal >= 0 ? 'ok' : 'p1'}">${fact - goal >= 0 ? 'перебор +' : 'недобор '}${m(fact - goal)}</span>`;
-  const summary = types.map(ty => {
-    const fact = factByType[ty] || 0, goal = tgtByType[ty] || 0;
-    return `<div class="kv"><span>${fesc(ty)}</span><span class="meta">факт <b>${m(fact)}</b> · цель <b>${m(goal)}</b> · ${delta(fact, goal)}</span></div>`;
-  }).join('');
-  const curSel = id => `<select id="${id}"><option value="€">€</option><option value="$">$</option></select>`;
-  const rows = targets.map(i => `
-    <div class="task">
-      <span class="pill" data-tgttype="${i.id}" title="тип — клик">${fesc(i.asset_type)}</span>
-      <span class="t ed" data-fe="tgt:${i.id}:name:text">${fesc(i.name) || '—'}</span>
-      <span class="ed num" data-fe="tgt:${i.id}:amount:num">${fmt(i.amount)} ${fesc(i.currency)}</span>
-      <span class="rowbtn del" data-findel="tgt:${i.id}">✕</span>
-    </div>`).join('');
+  // карта факта по названию узла (все уровни) → сумма в €, для Δ по совпадающим названиям
+  const factByName = {};
+  const walkFact = ns => (ns || []).forEach(n => {
+    const nm = (n.name || '').trim().toLowerCase();
+    if (nm) factByName[nm] = (factByName[nm] || 0) + (n.eur || 0);
+    walkFact(n.children);
+  });
+  walkFact(fact);
+  const kindLabel = k => k === 'block' ? 'блок' : k === 'section' ? 'раздел' : 'актив';
+  const node = (n, depth) => {
+    const nm = (n.name || '').trim().toLowerCase();
+    const tgtEur = n.eur || 0;
+    const factEur = factByName[nm];
+    const delta = factEur == null
+      ? '<span class="meta">нет в факте</span>'
+      : `<span class="pill ${factEur - tgtEur >= 0 ? 'ok' : 'p1'}">${factEur - tgtEur >= 0 ? 'перебор +' : 'недобор '}${m(factEur - tgtEur)}</span>`;
+    const isLeaf = n.kind === 'asset' || !(n.children || []).length;
+    return `
+      <div class="task" style="padding-left:${depth * 16}px">
+        <span class="pill">${kindLabel(n.kind)}</span>
+        <span class="t ed" data-fe="tgt:${n.id}:name:text">${fesc(n.name) || '—'}</span>
+        ${isLeaf
+          ? `<span class="ed num" data-fe="tgt:${n.id}:value:num" title="целевая сумма">${n.value != null ? fmt(n.value) : '—'} ${fesc(n.currency || '€')}</span>`
+          : `<span class="num">цель ${m(tgtEur)}</span>`}
+        ${delta}
+        ${n.kind === 'block' ? `<span class="rowbtn" data-tgtadd="section:${n.id}" title="+ раздел">＋</span>` : ''}
+        ${n.kind === 'section' ? `<span class="rowbtn" data-tgtadd="asset:${n.id}" title="+ актив">＋</span>` : ''}
+        <span class="rowbtn del" data-findel="tgt:${n.id}">✕</span>
+      </div>
+      ${(n.children || []).map(c => node(c, depth + 1)).join('')}`;
+  };
+  const totalTgt = targets.reduce((s, n) => s + (n.eur || 0), 0);
+  const totalFact = (Array.isArray(fact) ? fact : []).reduce((s, n) => s + (n.eur || 0), 0);
+  const totalD = totalFact - totalTgt;
   return `
   <div class="card">
-    <div class="meta" style="margin-bottom:6px">ПЕРЕБОР / НЕДОБОР ПО ТИПАМ (факт − цель)</div>
-    ${summary || '<div class="empty">добавь целевые пункты ниже — посчитаю отклонение от факта по типам</div>'}
-    <div class="kv" style="border-top:1px solid var(--line);margin-top:6px;padding-top:6px;font-weight:700"><span>ИТОГО</span><span>факт ${m(totalFact)} · цель ${m(totalGoal)} · <span class="pill ${totalD >= 0 ? 'ok' : 'p1'}">${totalD >= 0 ? '+' : ''}${m(totalD)}</span></span></div>
-  </div>
-  <div class="card">
-    <div class="meta" style="margin-bottom:6px">ЦЕЛЕВЫЕ ПУНКТЫ · свой список (не связан с фактическим портфелем)</div>
-    ${rows || '<div class="empty">пусто</div>'}
-    <div class="task finadd">
-      <select id="tgt_type">${ATYPES.map(t => `<option>${t}</option>`).join('')}</select>
-      <input id="tgt_name" placeholder="название цели" style="width:130px">
-      <input id="tgt_amt" placeholder="сумма" style="width:80px">
-      ${curSel('tgt_cur')}
-      <span class="pill btn ok" data-tgtadd="1">＋</span>
+    <div class="kv" style="padding:6px 0;border-bottom:1px solid var(--line)">
+      <span class="meta">итого</span>
+      <span>факт <b>${m(totalFact)}</b> · цель <b>${m(totalTgt)}</b> · <span class="pill ${totalD >= 0 ? 'ok' : 'p1'}">${totalD >= 0 ? '+' : ''}${m(totalD)}</span></span>
+    </div>
+    <div class="meta" style="margin:8px 0 4px">ЦЕЛЕВОЙ ПОРТФЕЛЬ · своё дерево (набор свой, не связан с фактом) · Δ = факт − цель по совпадающим названиям</div>
+    ${targets.map(n => node(n, 0)).join('') || '<div class="empty">пусто — добавь блок ↓</div>'}
+    <div class="task finadd" style="margin-top:6px">
+      <input id="tgt_block" placeholder="новый блок целевого" style="flex:1">
+      <span class="pill btn ok" data-tgtadd="block:">＋ блок</span>
     </div>
   </div>`;
 }
@@ -956,18 +963,11 @@ function bindFin() {
     }));
   document.querySelectorAll('[data-tgtadd]').forEach(el =>
     el.addEventListener('click', async () => {
-      const amt = parseNum(document.getElementById('tgt_amt')?.value);
-      const name = document.getElementById('tgt_name')?.value.trim();
-      const type = document.getElementById('tgt_type')?.value || 'прочее';
-      if (amt == null && !name) return;
-      await finApi.add('tgt', { name: name || type, amount: amt ?? 0, asset_type: type, currency: document.getElementById('tgt_cur')?.value || '€' });
-      window.loadFin();
-    }));
-  document.querySelectorAll('[data-tgttype]').forEach(el =>
-    el.addEventListener('click', async () => {
-      const cur = el.textContent.trim();
-      const next = ATYPES[(ATYPES.indexOf(cur) + 1) % ATYPES.length];
-      await finApi.patch('tgt', +el.dataset.tgttype, { asset_type: next });
+      const [kind, pid] = el.dataset.tgtadd.split(':');
+      const name = kind === 'block' ? document.getElementById('tgt_block')?.value.trim()
+        : prompt(kind === 'section' ? 'Название раздела:' : 'Название актива:');
+      if (!name || !name.trim()) return;
+      await finApi.add('tgt', { kind, parent_id: pid ? +pid : null, name: name.trim() });
       window.loadFin();
     }));
   document.querySelectorAll('[data-findel]').forEach(el =>

@@ -43,7 +43,8 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         _ = try? made.run("ALTER TABLE metrics ADD COLUMN polarity TEXT NOT NULL DEFAULT 'plus'") // полярность метрики
         _ = try? made.run("CREATE TABLE IF NOT EXISTS budget_items(id INTEGER PRIMARY KEY, direction TEXT NOT NULL DEFAULT 'expense', name TEXT NOT NULL DEFAULT '', amount REAL NOT NULL DEFAULT 0, currency TEXT NOT NULL DEFAULT '€', ord INTEGER NOT NULL DEFAULT 0, month TEXT)")  // дефолтные расходы/доходы — миграция существующих баз (ensureSchema идёт только при сиде)
         _ = try? made.run("ALTER TABLE budget_items ADD COLUMN month TEXT")   // доход — помесячно (YYYY-MM); расход — пусто (фикс/мес)
-        _ = try? made.run("CREATE TABLE IF NOT EXISTS target_items(id INTEGER PRIMARY KEY, name TEXT NOT NULL DEFAULT '', asset_type TEXT NOT NULL DEFAULT 'прочее', amount REAL NOT NULL DEFAULT 0, currency TEXT NOT NULL DEFAULT '€', ord INTEGER NOT NULL DEFAULT 0)")  // целевой портфель — свои пункты (миграция существующих баз)
+        _ = try? made.run("CREATE TABLE IF NOT EXISTS target_items(id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, ord INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL DEFAULT 'asset', value REAL, buy_value REAL, target_value REAL, currency TEXT NOT NULL DEFAULT '€', asset_type TEXT, qty REAL, rate_symbol TEXT, note TEXT)")  // целевой портфель — отдельное дерево (миграция существующих баз)
+        Api.initTargetFromFact(made)   // первый раз — копируем структуру фактического портфеля в целевой
         Api.ensureSpheresSchema(made)   // таблицы сфер (area_milestones/area_questions) — до sync-схемы, чтобы им добавились updated_at/триггеры
         Api.ensureSyncSchema(made)   // updated_at + триггеры + tombstones — отслеживание правок для синхрона
         Api.ensureThoughtTesting(made)   // техника «Тестирование мыслей» (КПТ) — один раз
@@ -1346,7 +1347,7 @@ enum Api {
         "debts": ["name", "amount", "currency", "direction", "due_date", "note"],
         "income": ["name", "amount", "currency", "period", "next_date", "note", "principal", "rate", "rate_period", "asset_type"],
         "budget": ["name", "amount", "currency", "direction", "ord", "month"],
-        "tgt": ["name", "amount", "currency", "asset_type", "ord"]]
+        "tgt": ["name", "value", "buy_value", "target_value", "currency", "asset_type", "qty", "rate_symbol", "note", "kind"]]
 
     static func finWrite(method: String, path: String, body: [String: Any], db: Database) throws -> (Data, Int)? {
         if method == "POST", path == "/api/rates/refresh" { return (try ratesRefresh(db), 200) }
@@ -1362,6 +1363,13 @@ enum Api {
         if let m = match(path, "^/api/fin/items/([0-9]+)/reorder$"), method == "POST" {
             guard let ref = numOpt(body["ref_id"]).map({ Int($0) }) else { return (try json(["error": "ref_id"]), 400) }
             do { try finReorderItem(db, id: Int(m[1]) ?? -1, refId: ref, pos: (body["where"] as? String) == "before" ? "before" : "after"); return (ok(), 200) } catch { return (errJson(error), 400) }
+        }
+        if let m = match(path, "^/api/fin/tgt/([0-9]+)/move$"), method == "POST" {
+            do { try finMoveItem(db, id: Int(m[1]) ?? -1, parent: numOpt(body["parent_id"]).map { Int($0) }, "target_items"); return (ok(), 200) } catch { return (errJson(error), 400) }
+        }
+        if let m = match(path, "^/api/fin/tgt/([0-9]+)/reorder$"), method == "POST" {
+            guard let ref = numOpt(body["ref_id"]).map({ Int($0) }) else { return (try json(["error": "ref_id"]), 400) }
+            do { try finReorderItem(db, id: Int(m[1]) ?? -1, refId: ref, pos: (body["where"] as? String) == "before" ? "before" : "after", "target_items"); return (ok(), 200) } catch { return (errJson(error), 400) }
         }
         if let m = match(path, "^/api/fin/obligations/([0-9]+)/pay$"), method == "POST" {
             return (try json(try payObligation(db, id: Int(m[1]) ?? -1)), 200)
@@ -1461,34 +1469,35 @@ enum Api {
             try db.run("INSERT INTO budget_items(name, amount, currency, direction, ord, month) VALUES(?,?,?,?,?,?)",
                 [b["name"] as? String ?? "", num(b["amount"]), b["currency"] as? String ?? "€", b["direction"] as? String ?? "expense", ord, b["month"] ?? NSNull()])
         case "tgt":
-            let ord = nextOrd(db, "SELECT COALESCE(MAX(ord),0)+1 AS o FROM target_items")
-            try db.run("INSERT INTO target_items(name, amount, currency, asset_type, ord) VALUES(?,?,?,?,?)",
-                [b["name"] as? String ?? "", num(b["amount"]), b["currency"] as? String ?? "€", b["asset_type"] as? String ?? "прочее", ord])
+            let parent = numOpt(b["parent_id"]).map { Int($0) }
+            let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM target_items WHERE parent_id IS ?", [parent]).first?["o"]))
+            try db.run("INSERT INTO target_items(parent_id, ord, name, kind, value, currency, asset_type) VALUES(?,?,?,?,?,?,?)",
+                [parent, ord, b["name"] as? String ?? "", b["kind"] as? String ?? "asset", b["value"] ?? NSNull(), b["currency"] as? String ?? "€", b["asset_type"] ?? NSNull()])
         default: break
         }
     }
-    static func finMoveItem(_ db: Database, id: Int, parent: Int?) throws {
+    static func finMoveItem(_ db: Database, id: Int, parent: Int?, _ table: String = "portfolio_items") throws {
         if let p = parent {
             if p == id { throw Unsupported(path: "self") }
-            let desc = try db.rows("WITH RECURSIVE r(x) AS (SELECT id FROM portfolio_items WHERE parent_id = ? UNION SELECT n.id FROM portfolio_items n JOIN r ON n.parent_id = r.x) SELECT 1 FROM r WHERE x = ? LIMIT 1", [id, p])
+            let desc = try db.rows("WITH RECURSIVE r(x) AS (SELECT id FROM \(table) WHERE parent_id = ? UNION SELECT n.id FROM \(table) n JOIN r ON n.parent_id = r.x) SELECT 1 FROM r WHERE x = ? LIMIT 1", [id, p])
             if !desc.isEmpty { throw Unsupported(path: "descendant") }
         }
-        let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM portfolio_items WHERE parent_id IS ?", [parent]).first?["o"]))
-        try db.run("UPDATE portfolio_items SET parent_id = ?, ord = ? WHERE id = ?", [parent, ord, id])
+        let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM \(table) WHERE parent_id IS ?", [parent]).first?["o"]))
+        try db.run("UPDATE \(table) SET parent_id = ?, ord = ? WHERE id = ?", [parent, ord, id])
     }
-    static func finReorderItem(_ db: Database, id: Int, refId: Int, pos: String) throws {
+    static func finReorderItem(_ db: Database, id: Int, refId: Int, pos: String, _ table: String = "portfolio_items") throws {
         if id == refId { throw Unsupported(path: "self") }
-        guard let ref = try db.rows("SELECT id, parent_id FROM portfolio_items WHERE id = ?", [refId]).first else { throw Unsupported(path: "ref not found") }
+        guard let ref = try db.rows("SELECT id, parent_id FROM \(table) WHERE id = ?", [refId]).first else { throw Unsupported(path: "ref not found") }
         let rp = numOpt(ref["parent_id"]).map { Int($0) }
         if rp == id { throw Unsupported(path: "descendant") }
         if let rpp = rp {
-            let desc = try db.rows("WITH RECURSIVE r(x) AS (SELECT id FROM portfolio_items WHERE parent_id = ? UNION SELECT n.id FROM portfolio_items n JOIN r ON n.parent_id = r.x) SELECT 1 FROM r WHERE x = ? LIMIT 1", [id, rpp])
+            let desc = try db.rows("WITH RECURSIVE r(x) AS (SELECT id FROM \(table) WHERE parent_id = ? UNION SELECT n.id FROM \(table) n JOIN r ON n.parent_id = r.x) SELECT 1 FROM r WHERE x = ? LIMIT 1", [id, rpp])
             if !desc.isEmpty { throw Unsupported(path: "descendant") }
         }
-        var siblings = try db.rows("SELECT id FROM portfolio_items WHERE parent_id IS ? ORDER BY ord, id", [rp]).compactMap { $0["id"] as? Int }.filter { $0 != id }
+        var siblings = try db.rows("SELECT id FROM \(table) WHERE parent_id IS ? ORDER BY ord, id", [rp]).compactMap { $0["id"] as? Int }.filter { $0 != id }
         if let idx = siblings.firstIndex(of: refId) { siblings.insert(id, at: idx + (pos == "after" ? 1 : 0)) } else { siblings.append(id) }
-        try db.run("UPDATE portfolio_items SET parent_id = ? WHERE id = ?", [rp, id])
-        for (i, sid) in siblings.enumerated() { try db.run("UPDATE portfolio_items SET ord = ? WHERE id = ?", [i + 1, sid]) }
+        try db.run("UPDATE \(table) SET parent_id = ? WHERE id = ?", [rp, id])
+        for (i, sid) in siblings.enumerated() { try db.run("UPDATE \(table) SET ord = ? WHERE id = ?", [i + 1, sid]) }
     }
     static func payObligation(_ db: Database, id: Int) throws -> [String: Any] {
         guard let o = try db.rows("SELECT * FROM obligations WHERE id = ?", [id]).first, let nd = o["next_date"] as? String else {
@@ -1755,6 +1764,28 @@ enum Api {
                 """)
         }
         _ = try? setSetting(db, "budget_seed_v2", "1")
+    }
+
+    // Целевой портфель: первичное заполнение структурой фактического (один раз, флаг).
+    // Копируем дерево portfolio_items → target_items, сохраняя иерархию (маппинг старый id → новый).
+    // Дальше целевой правится независимо; суммы — стартовые, пользователь меняет.
+    static func initTargetFromFact(_ db: Database) {
+        if ((try? db.rows("SELECT value FROM settings WHERE key = 'target_seed_v1'"))?.first?["value"]) as? String == "1" { return }
+        if intval((try? db.rows("SELECT COUNT(*) AS c FROM target_items"))?.first?["c"]) == 0,
+           let rows = try? db.rows("SELECT * FROM portfolio_items ORDER BY parent_id NULLS FIRST, ord, id") {
+            var map: [Int: Int] = [:]
+            for r in rows {
+                let oldParent = numOpt(r["parent_id"]).map { Int($0) }
+                let newParent: Any? = oldParent.flatMap { map[$0] }
+                if let newId = try? db.run("INSERT INTO target_items(parent_id, ord, name, kind, value, buy_value, target_value, currency, asset_type, qty, rate_symbol, note) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+                    [newParent ?? NSNull(), intval(r["ord"]), r["name"] ?? "", r["kind"] ?? "asset",
+                     r["value"] ?? NSNull(), r["buy_value"] ?? NSNull(), r["target_value"] ?? NSNull(),
+                     r["currency"] ?? "€", r["asset_type"] ?? NSNull(), r["qty"] ?? NSNull(), r["rate_symbol"] ?? NSNull(), r["note"] ?? NSNull()]) {
+                    map[intval(r["id"])] = newId
+                }
+            }
+        }
+        _ = try? setSetting(db, "target_seed_v1", "1")
     }
 
     // Техника «Дневник настройки» — объёмный образ себя (какой я / что делаю / что имею).
@@ -2119,7 +2150,7 @@ enum Api {
     }
 
     // Дерево портфеля: листья — в родной валюте, агрегаты — в € по курсу.
-    static func portfolioTree(_ db: Database) throws -> [[String: Any]] {
+    static func portfolioTree(_ db: Database, _ table: String = "portfolio_items") throws -> [[String: Any]] {
         let rate = try eurUsdRate(db)
         let toEur: (Double?, String?) -> Double? = { v, cur in
             guard let v else { return nil }
@@ -2130,7 +2161,7 @@ enum Api {
             if let s = r["symbol"] as? String { prices[s] = num(r["price"]) }
         }
         var rows: [[String: Any]] = []
-        for var r in try db.rows("SELECT * FROM portfolio_items ORDER BY parent_id NULLS FIRST, ord, id") {
+        for var r in try db.rows("SELECT * FROM \(table) ORDER BY parent_id NULLS FIRST, ord, id") {
             if let sym = r["rate_symbol"] as? String, numOpt(r["qty"]) != nil {
                 if let price = prices[sym] {
                     r["value"] = num(r["qty"]) * price; r["currency"] = "$"; r["auto"] = true
@@ -2272,7 +2303,7 @@ enum Api {
         let fireV = try fireCalc(db, capital: portfolioTotal)
         let macro = try db.rows("SELECT * FROM macro_notes ORDER BY date DESC, id DESC")
         let budgetItems = try db.rows("SELECT * FROM budget_items ORDER BY direction DESC, ord, id")   // дефолтные расходы/доходы (списком)
-        let targetItems = try db.rows("SELECT * FROM target_items ORDER BY asset_type, ord, id")   // целевой портфель — свои пункты по типам
+        let targetPortfolio = try portfolioTree(db, "target_items")   // целевой портфель — отдельное дерево (та же структура, своё наполнение)
         let rates = try db.rows("SELECT * FROM rates")
         let result: [String: Any] = [
             "accounts": accounts, "portfolio": portfolio, "steps": steps,
@@ -2280,7 +2311,7 @@ enum Api {
             "snapshotDelta": snapshotDelta,
             "byType": byTypeSorted, "byTypeBlocks": byTypeBlocks, "blockEur": blockEur,
             "tx": tx, "forecasts": fc, "properties": props, "fire": fireV,
-            "income": income, "budget": budget, "budgetItems": budgetItems, "targetItems": targetItems, "macro": macro, "rates": rates,
+            "income": income, "budget": budget, "budgetItems": budgetItems, "targetPortfolio": targetPortfolio, "macro": macro, "rates": rates,
             "summary": summary,
         ]
         return try json(result)
@@ -2985,7 +3016,7 @@ enum Api {
         try? db.ensureSchema()
         ensureSpheresSchema(db)
         _ = try? db.run("CREATE TABLE IF NOT EXISTS budget_items(id INTEGER PRIMARY KEY, direction TEXT NOT NULL DEFAULT 'expense', name TEXT NOT NULL DEFAULT '', amount REAL NOT NULL DEFAULT 0, currency TEXT NOT NULL DEFAULT '€', ord INTEGER NOT NULL DEFAULT 0, month TEXT)")
-        _ = try? db.run("CREATE TABLE IF NOT EXISTS target_items(id INTEGER PRIMARY KEY, name TEXT NOT NULL DEFAULT '', asset_type TEXT NOT NULL DEFAULT 'прочее', amount REAL NOT NULL DEFAULT 0, currency TEXT NOT NULL DEFAULT '€', ord INTEGER NOT NULL DEFAULT 0)")
+        _ = try? db.run("CREATE TABLE IF NOT EXISTS target_items(id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, ord INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL DEFAULT 'asset', value REAL, buy_value REAL, target_value REAL, currency TEXT NOT NULL DEFAULT '€', asset_type TEXT, qty REAL, rate_symbol TEXT, note TEXT)")
         ensureSyncSchema(db)
         backupDB()
         guard let tables = snapshot["tables"] as? [String: Any] else { throw Unsupported(path: "плохой снимок") }

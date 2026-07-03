@@ -217,9 +217,11 @@ final class Database {
           month TEXT
         );
         CREATE TABLE IF NOT EXISTS target_items(
-          id INTEGER PRIMARY KEY, name TEXT NOT NULL DEFAULT '',
-          asset_type TEXT NOT NULL DEFAULT 'прочее', amount REAL NOT NULL DEFAULT 0,
-          currency TEXT NOT NULL DEFAULT '€', ord INTEGER NOT NULL DEFAULT 0
+          id INTEGER PRIMARY KEY,
+          parent_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE,
+          ord INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL DEFAULT '',
+          kind TEXT NOT NULL DEFAULT 'asset', value REAL, buy_value REAL, target_value REAL,
+          currency TEXT NOT NULL DEFAULT '€', asset_type TEXT, qty REAL, rate_symbol TEXT, note TEXT
         );
         CREATE TABLE IF NOT EXISTS receivables(
           id INTEGER PRIMARY KEY, name TEXT NOT NULL, amount REAL NOT NULL,
