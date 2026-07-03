@@ -51,7 +51,14 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         }
         _ = try? made.run("CREATE TABLE IF NOT EXISTS target_items(id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, ord INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL DEFAULT 'asset', value REAL, buy_value REAL, target_value REAL, currency TEXT NOT NULL DEFAULT '€', asset_type TEXT, qty REAL, rate_symbol TEXT, note TEXT)")
         _ = try? made.run("CREATE TABLE IF NOT EXISTS target_moves(id INTEGER PRIMARY KEY, from_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, to_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, amount REAL NOT NULL DEFAULT 0)")  // ручные связки ребаланса
-        Api.initTargetFromFact(made)   // первый раз — копируем структуру фактического портфеля в целевой
+        // одноразовый сброс целевого по запросу: очистить и пересоздать свежей копией факта
+        if ((try? made.rows("SELECT value FROM settings WHERE key = 'target_reset_v1'"))?.first?["value"]) as? String != "1" {
+            _ = try? made.run("DELETE FROM target_moves")
+            _ = try? made.run("DELETE FROM target_items")
+            _ = try? made.run("UPDATE settings SET value = '' WHERE key = 'target_seed_v1'")   // сброс флага → initTargetFromFact заполнит заново
+            _ = try? setSetting(made, "target_reset_v1", "1")
+        }
+        Api.initTargetFromFact(made)   // первый раз (и после сброса) — копируем структуру фактического портфеля в целевой
         _ = try? made.run("UPDATE target_items SET rate_symbol = NULL, qty = NULL WHERE rate_symbol IS NOT NULL")   // целевой — плановые суммы, без автоцены (иначе не отредактировать)
         Api.ensureSpheresSchema(made)   // таблицы сфер (area_milestones/area_questions) — до sync-схемы, чтобы им добавились updated_at/триггеры
         Api.ensureSyncSchema(made)   // updated_at + триггеры + tombstones — отслеживание правок для синхрона
