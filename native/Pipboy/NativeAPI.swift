@@ -52,11 +52,12 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         _ = try? made.run("CREATE TABLE IF NOT EXISTS target_items(id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, ord INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL DEFAULT 'asset', value REAL, buy_value REAL, target_value REAL, currency TEXT NOT NULL DEFAULT '€', asset_type TEXT, qty REAL, rate_symbol TEXT, note TEXT)")
         _ = try? made.run("CREATE TABLE IF NOT EXISTS target_moves(id INTEGER PRIMARY KEY, from_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, to_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, amount REAL NOT NULL DEFAULT 0)")  // ручные связки ребаланса
         // одноразовый сброс целевого по запросу: очистить и пересоздать свежей копией факта
-        if ((try? made.rows("SELECT value FROM settings WHERE key = 'target_reset_v1'"))?.first?["value"]) as? String != "1" {
+        // (v2 — после починки перелива с конвертацией валют: старые кривые связки/суммы стираем)
+        if ((try? made.rows("SELECT value FROM settings WHERE key = 'target_reset_v2'"))?.first?["value"]) as? String != "1" {
             _ = try? made.run("DELETE FROM target_moves")
             _ = try? made.run("DELETE FROM target_items")
             _ = try? made.run("UPDATE settings SET value = '' WHERE key = 'target_seed_v1'")   // сброс флага → initTargetFromFact заполнит заново
-            _ = try? Api.setSetting(made, "target_reset_v1", "1")
+            _ = try? Api.setSetting(made, "target_reset_v2", "1")
         }
         Api.initTargetFromFact(made)   // первый раз (и после сброса) — копируем структуру фактического портфеля в целевой
         _ = try? made.run("UPDATE target_items SET rate_symbol = NULL, qty = NULL WHERE rate_symbol IS NOT NULL")   // целевой — плановые суммы, без автоцены (иначе не отредактировать)
@@ -1370,9 +1371,10 @@ enum Api {
         if let m = match(path, "^/api/fin/move/([0-9]+)$"), method == "DELETE" {   // удаление связки — откатить перелив целевых сумм
             let id = Int(m[1]) ?? -1
             if let mv = try db.rows("SELECT from_id, to_id, amount FROM target_moves WHERE id = ?", [id]).first {
-                let amt = num(mv["amount"])
-                if let f = numOpt(mv["from_id"]) { try db.run("UPDATE target_items SET value = COALESCE(value,0) + ? WHERE id = ?", [amt, Int(f)]) }
-                if let t = numOpt(mv["to_id"]) { try db.run("UPDATE target_items SET value = COALESCE(value,0) - ? WHERE id = ?", [amt, Int(t)]) }
+                let amt = num(mv["amount"])   // в €
+                let rate = (try? eurUsdRate(db)) ?? 1.08
+                if let f = numOpt(mv["from_id"]) { let fid = Int(f); let c = scalarStr(db, "SELECT currency FROM target_items WHERE id = ?", [fid]) ?? "€"; try db.run("UPDATE target_items SET value = COALESCE(value,0) + ? WHERE id = ?", [c == "$" ? amt * rate : amt, fid]) }
+                if let t = numOpt(mv["to_id"]) { let tid = Int(t); let c = scalarStr(db, "SELECT currency FROM target_items WHERE id = ?", [tid]) ?? "€"; try db.run("UPDATE target_items SET value = COALESCE(value,0) - ? WHERE id = ?", [c == "$" ? amt * rate : amt, tid]) }
             }
             try db.run("DELETE FROM target_moves WHERE id = ?", [id]); return (ok(), 200)
         }
@@ -1499,11 +1501,13 @@ enum Api {
             try db.run("INSERT INTO target_items(parent_id, ord, name, kind, value, currency, asset_type) VALUES(?,?,?,?,?,?,?)",
                 [parent, ord, b["name"] as? String ?? "", b["kind"] as? String ?? "asset", b["value"] ?? NSNull(), b["currency"] as? String ?? "€", b["asset_type"] ?? NSNull()])
         case "move":
-            let mvFrom = numOpt(b["from_id"]).map { Int($0) }, mvTo = numOpt(b["to_id"]).map { Int($0) }, mvAmt = num(b["amount"])
+            let mvFrom = numOpt(b["from_id"]).map { Int($0) }, mvTo = numOpt(b["to_id"]).map { Int($0) }
+            let mvAmt = num(b["amount"])   // сумма перевода в €; храним и отображаем в €
             try db.run("INSERT INTO target_moves(from_id, to_id, amount) VALUES(?,?,?)", [mvFrom ?? NSNull(), mvTo ?? NSNull(), mvAmt])
-            // перелив целевых сумм: у источника меньше, у получателя больше
-            if let f = mvFrom { try db.run("UPDATE target_items SET value = COALESCE(value,0) - ? WHERE id = ?", [mvAmt, f]) }
-            if let t = mvTo { try db.run("UPDATE target_items SET value = COALESCE(value,0) + ? WHERE id = ?", [mvAmt, t]) }
+            // перелив с конвертацией: value каждой позиции в своей валюте, сумма перевода — в €
+            let mvRate = (try? eurUsdRate(db)) ?? 1.08
+            if let f = mvFrom { let c = scalarStr(db, "SELECT currency FROM target_items WHERE id = ?", [f]) ?? "€"; try db.run("UPDATE target_items SET value = COALESCE(value,0) - ? WHERE id = ?", [c == "$" ? mvAmt * mvRate : mvAmt, f]) }
+            if let t = mvTo { let c = scalarStr(db, "SELECT currency FROM target_items WHERE id = ?", [t]) ?? "€"; try db.run("UPDATE target_items SET value = COALESCE(value,0) + ? WHERE id = ?", [c == "$" ? mvAmt * mvRate : mvAmt, t]) }
         default: break
         }
     }

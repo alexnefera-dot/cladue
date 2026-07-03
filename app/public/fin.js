@@ -161,8 +161,8 @@ function portCard(it, depth, ctx) {
     const path = (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase();
     const tPct = ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
     const links = [
-      ...(ctx?.movesBySrc?.[path] || []).map(mv => `<span class="meta"><span class="down">→ отдать ${fmt(mv.amount)}</span> в «${fesc(mv.toName)}»</span>`),
-      ...(ctx?.movesByDst?.[path] || []).map(mv => `<span class="meta"><span class="up">← добрать ${fmt(mv.amount)}</span> из «${fesc(mv.fromName)}»</span>`),
+      ...(ctx?.movesBySrc?.[path] || []).map(mv => `<span class="meta"><span class="down">→ отдать ${fmt(mv.amount)} €</span> в «${fesc(mv.toName)}» <span class="rowbtn del" data-movedel="${mv.id}" title="убрать связку">✕</span></span>`),
+      ...(ctx?.movesByDst?.[path] || []).map(mv => `<span class="meta"><span class="up">← добрать ${fmt(mv.amount)} €</span> из «${fesc(mv.fromName)}»</span>`),
     ].join(' ');
     meta = `${links}${tPct != null ? ` <span class="meta">${tPct.toFixed(1)}% плана</span>` : ''}`;
   } else {
