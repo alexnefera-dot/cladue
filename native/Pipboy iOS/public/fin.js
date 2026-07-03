@@ -80,12 +80,12 @@ function portRows(it, depth, ctx) {
       : `<td class="r num acc">${fmtE(it.eur)}</td>`;
     const tPct = ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
     const links = [
-      ...(ctx?.movesBySrc?.[path] || []).map(mv => `<div class="meta"><span class="down">→ отдать ${fmt(mv.amount)} €</span> в «${fesc(mv.toName)}»</div>`),
+      ...(ctx?.movesBySrc?.[path] || []).map(mv => `<div class="meta"><span class="down">→ отдать ${fmt(mv.amount)} €</span> в «${fesc(mv.toName)}» <span class="rowbtn del" data-movedel="${mv.id}" title="убрать связку">✕</span></div>`),
       ...(ctx?.movesByDst?.[path] || []).map(mv => `<div class="meta"><span class="up">← добрать ${fmt(mv.amount)} €</span> из «${fesc(mv.fromName)}»</div>`),
     ].join('');
-    const reb = links || (factEur != null && Math.abs(factEur - (it.eur || 0)) < 1 ? '<span class="pill ok">✓ на месте</span>' : '');
+    const moveBtn = editable ? `<span class="rowbtn" data-tgtmove="${it.id}" title="переложить в другую позицию">↦ переложить</span>` : '';
     cells = `${goalCell}
-      <td style="text-align:left;min-width:180px">${reb}</td>
+      <td style="text-align:left;min-width:200px">${links}${moveBtn}</td>
       <td class="r" style="width:56px">${tPct != null ? `<span class="meta num">${tPct.toFixed(1)}%</span>` : ''}</td>`;
   } else {
     // лист без своей цены покупки прирост не показывает (он по определению 0)
@@ -268,32 +268,6 @@ function secIncome(d, s) {
 }
 
 
-// План ребаланса: жадно сопоставляем листья с избытком (факт>цель) и дефицитом (факт<цель).
-// Возвращаем переводы с путями — чтобы показать связку прямо в строке источника и получателя.
-function rebalanceMoves(tree, factByPath) {
-  const leaves = [];
-  const walk = (ns, pre) => (ns || []).forEach(n => {
-    const path = pre + '/' + (n.name || '').trim().toLowerCase();
-    const kids = n.children || [];
-    if (n.kind === 'asset' || !kids.length) {
-      const delta = (factByPath[path] || 0) - (n.eur || 0);
-      if (Math.abs(delta) >= 1) leaves.push({ path, name: n.name, delta });
-    }
-    walk(kids, path);
-  });
-  walk(tree, '');
-  const src = leaves.filter(l => l.delta > 0).sort((a, b) => b.delta - a.delta).map(l => ({ ...l, left: l.delta }));
-  const dst = leaves.filter(l => l.delta < 0).sort((a, b) => a.delta - b.delta).map(l => ({ ...l, need: -l.delta }));
-  const moves = []; let si = 0, di = 0;
-  while (si < src.length && di < dst.length) {
-    const a = src[si], b = dst[di], amt = Math.min(a.left, b.need);
-    moves.push({ fromPath: a.path, toPath: b.path, fromName: a.name, toName: b.name, amount: amt });
-    a.left -= amt; b.need -= amt;
-    if (a.left < 1) si++;
-    if (b.need < 1) di++;
-  }
-  return moves;
-}
 
 function secPortfolio(d, s) {
   const tgt = finTab === 'target';
@@ -303,9 +277,16 @@ function secPortfolio(d, s) {
   const tree = tgt ? (d.targetPortfolio || []) : (d.portfolio || []);
   const rootTotal = tgt ? tree.reduce((a, b) => a + (b.eur || 0), 0) : s.portfolioTotal;
   const rctx = { total: rootTotal, parentEur: rootTotal, tgt, factByPath, path: '' };
-  if (tgt) {   // связки ребаланса по позициям (кто кому отдаёт)
+  if (tgt) {   // ручные связки ребаланса (из target_moves): сопоставляем id позиций с путём/именем
+    const byId = {};
+    const mapIds = (ns, pre) => (ns || []).forEach(n => { const p = pre + '/' + (n.name || '').trim().toLowerCase(); byId[n.id] = { path: p, name: n.name }; mapIds(n.children, p); });
+    mapIds(tree, '');
     rctx.movesBySrc = {}; rctx.movesByDst = {};
-    rebalanceMoves(tree, factByPath).forEach(m => { (rctx.movesBySrc[m.fromPath] ||= []).push(m); (rctx.movesByDst[m.toPath] ||= []).push(m); });
+    (d.targetMoves || []).forEach(mv => {
+      const a = byId[mv.from_id], b = byId[mv.to_id]; if (!a || !b) return;
+      (rctx.movesBySrc[a.path] ||= []).push({ id: mv.id, amount: mv.amount, toName: b.name });
+      (rctx.movesByDst[b.path] ||= []).push({ id: mv.id, amount: mv.amount, fromName: a.name });
+    });
   }
   return `
   <div class="sec">Портфель · блоки → разделы → активы · всё правится кликом</div>
@@ -995,6 +976,31 @@ function bindFin() {
       await finApi.add('tgt', { kind, parent_id: pid ? +pid : null, name: name.trim() });
       window.loadFin();
     }));
+  document.querySelectorAll('[data-tgtmove]').forEach(el =>
+    el.addEventListener('click', () => {
+      const fromId = +el.dataset.tgtmove;
+      const leaves = [];   // куда можно переложить — все позиции-листья целевого, кроме этой
+      const walk = (ns, pre) => (ns || []).forEach(n => {
+        const kids = n.children || [];
+        if ((n.kind === 'asset' || !kids.length) && n.id !== fromId) leaves.push({ id: n.id, label: pre ? `${pre} · ${n.name}` : n.name });
+        walk(kids, pre || n.name);
+      });
+      walk(finData.targetPortfolio || [], '');
+      if (!leaves.length) { alert('Некуда перекладывать — сначала добавь позиции в целевой'); return; }
+      const sel = document.createElement('select');
+      sel.innerHTML = '<option value="">— куда переложить —</option>' + leaves.map(l => `<option value="${l.id}">${fesc(l.label)}</option>`).join('');
+      el.replaceWith(sel); sel.focus();
+      sel.addEventListener('change', async () => {
+        const toId = +sel.value; if (!toId) { window.loadFin(); return; }
+        const amt = parseNum(prompt('Сколько переложить (€)?'));
+        if (amt == null || amt <= 0) { window.loadFin(); return; }
+        await finApi.add('move', { from_id: fromId, to_id: toId, amount: amt });
+        window.loadFin();
+      });
+      sel.addEventListener('blur', () => window.loadFin());
+    }));
+  document.querySelectorAll('[data-movedel]').forEach(el =>
+    el.addEventListener('click', async () => { await finApi.del('move', +el.dataset.movedel); window.loadFin(); }));
   document.querySelectorAll('[data-findel]').forEach(el =>
     el.addEventListener('click', async () => {
       const [ent, id] = el.dataset.findel.split(':');

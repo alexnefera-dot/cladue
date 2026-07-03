@@ -223,6 +223,12 @@ final class Database {
           kind TEXT NOT NULL DEFAULT 'asset', value REAL, buy_value REAL, target_value REAL,
           currency TEXT NOT NULL DEFAULT '€', asset_type TEXT, qty REAL, rate_symbol TEXT, note TEXT
         );
+        CREATE TABLE IF NOT EXISTS target_moves(
+          id INTEGER PRIMARY KEY,
+          from_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE,
+          to_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE,
+          amount REAL NOT NULL DEFAULT 0
+        );
         CREATE TABLE IF NOT EXISTS receivables(
           id INTEGER PRIMARY KEY, name TEXT NOT NULL, amount REAL NOT NULL,
           currency TEXT NOT NULL DEFAULT '€', expected_date TEXT,
