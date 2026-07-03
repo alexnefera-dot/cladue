@@ -77,9 +77,12 @@ function portRows(it, depth, ctx) {
     const goalCell = editable
       ? `<td class="r num acc"><span class="pill btn" data-fcur="${it.id}:${cur}" title="сменить валюту">${cur}</span> <span class="ed" data-fe="tgt:${it.id}:value:num" title="целевая сумма (клик)">${it.value != null ? fmt(it.value) : '—'}</span></td>`
       : `<td class="r num acc">${fmtE(it.eur)}</td>`;
+    // доля позиции в целевом портфеле (каким станет вес после ребаланса)
+    const tPct = ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
     cells = `${goalCell}
       <td class="r num muted">${factEur != null ? fmtE(factEur) : '—'}</td>
-      <td class="r">${factEur != null ? `<span class="pill ${factEur - it.eur >= 0 ? 'ok' : 'p1'}">${factEur - it.eur >= 0 ? '+' : ''}${fmt(factEur - it.eur)}</span>` : '<span class="meta">нет</span>'}</td>`;
+      <td class="r">${factEur != null ? `<span class="pill ${factEur - it.eur >= 0 ? 'ok' : 'p1'}">${factEur - it.eur >= 0 ? '+' : ''}${fmt(factEur - it.eur)}</span>` : '<span class="meta">нет</span>'}</td>
+      <td class="r" style="width:66px">${tPct != null ? `<span class="num">${tPct.toFixed(1)}%</span>` : ''}</td>`;
   } else {
     // лист без своей цены покупки прирост не показывает (он по определению 0)
     const g = it.invested != null && it.invested && !(editable && it.buy_value == null)
@@ -152,8 +155,10 @@ function portCard(it, depth, ctx) {
   let meta;
   if (target) {
     const factEur = ctx?.factByPath?.[(ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase()];
+    const tPct = ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
     meta = `<span class="meta">факт ${factEur != null ? fmtE(factEur) : '—'}</span>
-       ${factEur != null ? `<span class="pill ${factEur - it.eur >= 0 ? 'ok' : 'p1'}">${factEur - it.eur >= 0 ? '+' : ''}${fmt(factEur - it.eur)}</span>` : ''}`;
+       ${factEur != null ? `<span class="pill ${factEur - it.eur >= 0 ? 'ok' : 'p1'}">${factEur - it.eur >= 0 ? '+' : ''}${fmt(factEur - it.eur)}</span>` : ''}
+       ${tPct != null ? `<span class="meta">${tPct.toFixed(1)}% плана</span>` : ''}`;
   } else {
     meta = `${g != null ? `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</span>` : ''}
        ${pTot != null ? `<span class="meta">${pTot.toFixed(1)}% портфеля</span>` : ''}
@@ -281,7 +286,7 @@ function secPortfolio(d, s) {
       ? `<div class="pcards">${tree.map(b => portCard(b, 0, rctx)).join('') || '<div class="empty">пусто</div>'}</div>`
       : `<table class="fintable porttable">
       ${tgt
-        ? '<tr><th>Название</th><th class="r">Цель</th><th class="r">Факт</th><th class="r">Δ</th><th></th></tr>'
+        ? '<tr><th>Название</th><th class="r">Цель</th><th class="r">Факт</th><th class="r">Δ</th><th class="r">Доля</th><th></th></tr>'
         : '<tr><th>Название</th><th class="r">Покупка</th><th class="r">Прирост</th><th class="r">Текущая</th><th class="r">Доля</th><th></th></tr>'}
       ${tree.map(b => portRows(b, 0, rctx)).join('') || '<tr><td colspan="5"><div class="empty">пусто</div></td></tr>'}
     </table>`}
