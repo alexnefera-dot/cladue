@@ -71,22 +71,22 @@ function portRows(it, depth, ctx) {
   const folded = portFold.has(it.id);
   let cells;
   if (target) {
-    // целевой: та же таблица, что факт. Колонки Цель | Факт | Δ (факт − цель по совпадающему названию)
-    const factEur = ctx?.factByPath?.[(ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase()];
+    // целевой: Цель · Ребаланс (конкретные связки откуда→куда прямо в строке) · Доля
+    const path = (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase();
+    const factEur = ctx?.factByPath?.[path];
     const cur = it.currency ?? '€';
     const goalCell = editable
       ? `<td class="r num acc"><span class="pill btn" data-fcur="${it.id}:${cur}" title="сменить валюту">${cur}</span> <span class="ed" data-fe="tgt:${it.id}:value:num" title="целевая сумма (клик)">${it.value != null ? fmt(it.value) : '—'}</span></td>`
       : `<td class="r num acc">${fmtE(it.eur)}</td>`;
-    // доля в целевом (вес после ребаланса) + действие: излишек отдать / дефицит добрать
     const tPct = ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
-    const delta = factEur != null ? factEur - it.eur : null;   // >0 отдать излишек, <0 добрать до цели
-    const action = delta == null ? '<span class="meta">—</span>'
-      : Math.abs(delta) < 1 ? '<span class="pill ok">✓</span>'
-      : delta > 0 ? `<span class="pill p1" title="излишек — переложить в дефицитные">↗ отдать ${fmt(delta)}</span>`
-      : `<span class="pill" style="background:var(--green-soft);color:var(--green)" title="докупить до цели">↘ добрать ${fmt(-delta)}</span>`;
+    const links = [
+      ...(ctx?.movesBySrc?.[path] || []).map(mv => `<div class="meta"><span class="down">→ отдать ${fmt(mv.amount)} €</span> в «${fesc(mv.toName)}»</div>`),
+      ...(ctx?.movesByDst?.[path] || []).map(mv => `<div class="meta"><span class="up">← добрать ${fmt(mv.amount)} €</span> из «${fesc(mv.fromName)}»</div>`),
+    ].join('');
+    const reb = links || (factEur != null && Math.abs(factEur - (it.eur || 0)) < 1 ? '<span class="pill ok">✓ на месте</span>' : '');
     cells = `${goalCell}
-      <td class="r">${action}</td>
-      <td class="r" style="width:92px">${tPct != null ? `<div class="bar" style="margin:2px 0 1px"><i style="width:${Math.min(100, tPct)}%"></i></div><span class="meta num">${tPct.toFixed(1)}%</span>` : ''}</td>`;
+      <td style="text-align:left;min-width:180px">${reb}</td>
+      <td class="r" style="width:56px">${tPct != null ? `<span class="meta num">${tPct.toFixed(1)}%</span>` : ''}</td>`;
   } else {
     // лист без своей цены покупки прирост не показывает (он по определению 0)
     const g = it.invested != null && it.invested && !(editable && it.buy_value == null)
@@ -130,7 +130,7 @@ function portRows(it, depth, ctx) {
       ${!target && editable ? `<span class="rowbtn" data-loanflag="${it.id}:${it.is_loan ? 1 : 0}" title="${it.is_loan ? 'убрать значок займа' : 'пометить как займ'}">🤝</span>` : ''}
       <span class="rowbtn del" data-findel="${pfx}:${it.id}">✕</span>
     </td>
-  </tr>` + (folded ? '' : it.children.map(c => portRows(c, depth + 1, { total: ctx?.total, parentEur: it.eur, tgt: target, factByPath: ctx?.factByPath, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
+  </tr>` + (folded ? '' : it.children.map(c => portRows(c, depth + 1, { total: ctx?.total, parentEur: it.eur, tgt: target, factByPath: ctx?.factByPath, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
 }
 
 const finIsMobile = () => window.matchMedia('(max-width: 768px)').matches;
@@ -158,13 +158,13 @@ function portCard(it, depth, ctx) {
   const pTot = !target && ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
   let meta;
   if (target) {
-    const factEur = ctx?.factByPath?.[(ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase()];
+    const path = (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase();
     const tPct = ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
-    const delta = factEur != null ? factEur - it.eur : null;
-    const action = delta == null ? '' : Math.abs(delta) < 1 ? '<span class="pill ok">✓</span>'
-      : delta > 0 ? `<span class="pill p1">↗ отдать ${fmt(delta)}</span>`
-      : `<span class="pill" style="background:var(--green-soft);color:var(--green)">↘ добрать ${fmt(-delta)}</span>`;
-    meta = `${action} ${tPct != null ? `<span class="meta">${tPct.toFixed(1)}% плана</span>` : ''}`;
+    const links = [
+      ...(ctx?.movesBySrc?.[path] || []).map(mv => `<span class="meta"><span class="down">→ отдать ${fmt(mv.amount)}</span> в «${fesc(mv.toName)}»</span>`),
+      ...(ctx?.movesByDst?.[path] || []).map(mv => `<span class="meta"><span class="up">← добрать ${fmt(mv.amount)}</span> из «${fesc(mv.fromName)}»</span>`),
+    ].join(' ');
+    meta = `${links}${tPct != null ? ` <span class="meta">${tPct.toFixed(1)}% плана</span>` : ''}`;
   } else {
     meta = `${g != null ? `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</span>` : ''}
        ${pTot != null ? `<span class="meta">${pTot.toFixed(1)}% портфеля</span>` : ''}
@@ -184,7 +184,7 @@ function portCard(it, depth, ctx) {
       <span class="pc-val">${val}</span>
     </div>
     <div class="pc-meta">${meta}${folded ? `<span class="meta">· ${it.children.length} внутри</span>` : ''}<span class="pc-actions">${actions}</span></div>
-  </div>` + (folded ? '' : it.children.map(c => portCard(c, depth + 1, { total: ctx?.total, parentEur: it.eur, tgt: target, factByPath: ctx?.factByPath, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
+  </div>` + (folded ? '' : it.children.map(c => portCard(c, depth + 1, { total: ctx?.total, parentEur: it.eur, tgt: target, factByPath: ctx?.factByPath, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
 }
 
 // диаграмма аллокации: доли с процентами внутри, каждая своим цветом
@@ -268,6 +268,33 @@ function secIncome(d, s) {
 }
 
 
+// План ребаланса: жадно сопоставляем листья с избытком (факт>цель) и дефицитом (факт<цель).
+// Возвращаем переводы с путями — чтобы показать связку прямо в строке источника и получателя.
+function rebalanceMoves(tree, factByPath) {
+  const leaves = [];
+  const walk = (ns, pre) => (ns || []).forEach(n => {
+    const path = pre + '/' + (n.name || '').trim().toLowerCase();
+    const kids = n.children || [];
+    if (n.kind === 'asset' || !kids.length) {
+      const delta = (factByPath[path] || 0) - (n.eur || 0);
+      if (Math.abs(delta) >= 1) leaves.push({ path, name: n.name, delta });
+    }
+    walk(kids, path);
+  });
+  walk(tree, '');
+  const src = leaves.filter(l => l.delta > 0).sort((a, b) => b.delta - a.delta).map(l => ({ ...l, left: l.delta }));
+  const dst = leaves.filter(l => l.delta < 0).sort((a, b) => a.delta - b.delta).map(l => ({ ...l, need: -l.delta }));
+  const moves = []; let si = 0, di = 0;
+  while (si < src.length && di < dst.length) {
+    const a = src[si], b = dst[di], amt = Math.min(a.left, b.need);
+    moves.push({ fromPath: a.path, toPath: b.path, fromName: a.name, toName: b.name, amount: amt });
+    a.left -= amt; b.need -= amt;
+    if (a.left < 1) si++;
+    if (b.need < 1) di++;
+  }
+  return moves;
+}
+
 function secPortfolio(d, s) {
   const tgt = finTab === 'target';
   // карта факта по ПОЛНОМУ ПУТИ узла (блок/раздел/актив), а не по имени — иначе одноимённые позиции складываются
@@ -276,6 +303,10 @@ function secPortfolio(d, s) {
   const tree = tgt ? (d.targetPortfolio || []) : (d.portfolio || []);
   const rootTotal = tgt ? tree.reduce((a, b) => a + (b.eur || 0), 0) : s.portfolioTotal;
   const rctx = { total: rootTotal, parentEur: rootTotal, tgt, factByPath, path: '' };
+  if (tgt) {   // связки ребаланса по позициям (кто кому отдаёт)
+    rctx.movesBySrc = {}; rctx.movesByDst = {};
+    rebalanceMoves(tree, factByPath).forEach(m => { (rctx.movesBySrc[m.fromPath] ||= []).push(m); (rctx.movesByDst[m.toPath] ||= []).push(m); });
+  }
   return `
   <div class="sec">Портфель · блоки → разделы → активы · всё правится кликом</div>
   <div class="viewtabs">
