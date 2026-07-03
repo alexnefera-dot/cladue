@@ -64,15 +64,22 @@ const portFold = new Set(JSON.parse(localStorage.portFold ?? '[]'));
 const savePortFold = () => localStorage.portFold = JSON.stringify([...portFold]);
 
 function portRows(it, depth, ctx) {
-  const target = finTab === 'target';
+  const target = ctx?.tgt === true;
+  const pfx = target ? 'tgt' : 'items';
   const editable = it.kind === 'asset' || !it.children.length;
   const rowCls = it.kind === 'block' ? 'pblock' : it.kind === 'section' ? 'psection' : '';
   const folded = portFold.has(it.id);
   let cells;
   if (target) {
-    cells = `<td class="r num muted">${fmtE(it.eur)}</td>
-      <td class="r num ed acc" data-fe="items:${it.id}:target_value:num" title="клик — целевая сумма">${it.target != null ? fmtE(it.target) : '—'}</td>
-      <td class="r">${it.target != null ? `<span class="pill ${it.eur - it.target >= 0 ? 'ok' : 'p1'}">Δ ${fmt(it.eur - it.target)}</span>` : ''}</td>`;
+    // целевой: та же таблица, что факт. Колонки Цель | Факт | Δ (факт − цель по совпадающему названию)
+    const factEur = ctx?.factByName?.[(it.name || '').trim().toLowerCase()];
+    const cur = it.currency ?? '€';
+    const goalCell = editable
+      ? `<td class="r num acc"><span class="meta">${cur}</span> <span class="ed" data-fe="tgt:${it.id}:value:num" title="целевая сумма (клик)">${it.value != null ? fmt(it.value) : '—'}</span></td>`
+      : `<td class="r num acc">${fmtE(it.eur)}</td>`;
+    cells = `${goalCell}
+      <td class="r num muted">${factEur != null ? fmtE(factEur) : '—'}</td>
+      <td class="r">${factEur != null ? `<span class="pill ${factEur - it.eur >= 0 ? 'ok' : 'p1'}">${factEur - it.eur >= 0 ? '+' : ''}${fmt(factEur - it.eur)}</span>` : '<span class="meta">нет</span>'}</td>`;
   } else {
     // лист без своей цены покупки прирост не показывает (он по определению 0)
     const g = it.invested != null && it.invested && !(editable && it.buy_value == null)
@@ -100,23 +107,23 @@ function portRows(it, depth, ctx) {
   return `<tr class="${rowCls}" draggable="${!target}" data-pid="${it.id}">
     <td class="pname" style="--d:${depth}">
       ${it.children.length ? `<span class="caret" data-pfold="${it.id}" title="${folded ? 'развернуть' : 'свернуть'}">${folded ? '▸' : '▾'}</span>` : ''}
-      <span class="ed" data-fe="items:${it.id}:name:text" title="клик — переименовать">${fesc(it.name)}</span>
+      <span class="ed" data-fe="${pfx}:${it.id}:name:text" title="клик — переименовать">${fesc(it.name)}</span>
       ${folded ? `<span class="meta">· ${it.children.length} внутри</span>` : ''}
-      ${editable && it.asset_type ? `<span class="pill" data-ftype="${it.id}" title="тип актива — клик">${fesc(it.asset_type)}</span>` : ''}
-      ${it.rate_symbol ? `<span class="pill btn" data-fqty="${it.id}" title="количество — клик">${it.qty ?? '?'} × ${fesc(it.rate_symbol)}</span>` : ''}
-      ${it.no_rate ? '<span class="pill p1" title="курс тикера ещё не загружен — обнови курсы (⟳ вверху)">нет курса</span>' : ''}
-      ${it.is_loan ? '<span class="pill p2">🤝 займ</span>' : ''}
+      ${!target && editable && it.asset_type ? `<span class="pill" data-ftype="${it.id}" title="тип актива — клик">${fesc(it.asset_type)}</span>` : ''}
+      ${!target && it.rate_symbol ? `<span class="pill btn" data-fqty="${it.id}" title="количество — клик">${it.qty ?? '?'} × ${fesc(it.rate_symbol)}</span>` : ''}
+      ${!target && it.no_rate ? '<span class="pill p1" title="курс тикера ещё не загружен — обнови курсы (⟳ вверху)">нет курса</span>' : ''}
+      ${!target && it.is_loan ? '<span class="pill p2">🤝 займ</span>' : ''}
     </td>
     ${cells}
     <td class="r" style="width:96px;white-space:nowrap">
-      ${!target && it.kind === 'block' ? `<span class="rowbtn" data-fadd="section:${it.id}" title="добавить раздел">＋</span>` : ''}
-      ${!target && it.kind === 'section' ? `<span class="rowbtn" data-fadd="asset:${it.id}" title="добавить актив">＋</span>` : ''}
+      ${it.kind === 'block' ? `<span class="rowbtn" data-${target ? 'tgtadd' : 'fadd'}="section:${it.id}" title="добавить раздел">＋</span>` : ''}
+      ${it.kind === 'section' ? `<span class="rowbtn" data-${target ? 'tgtadd' : 'fadd'}="asset:${it.id}" title="добавить актив">＋</span>` : ''}
       ${!target && editable && !it.asset_type ? `<span class="rowbtn" data-ftype="${it.id}" title="задать тип актива">⊙</span>` : ''}
       ${!target && editable ? `<span class="rowbtn" data-frate="${it.id}" title="${it.rate_symbol ? 'автоцена: сменить/убрать тикер' : 'автоцена по курсу (BTC, золото, SCHD/IVV/VHT)'}">⚡</span>` : ''}
       ${!target && editable ? `<span class="rowbtn" data-loanflag="${it.id}:${it.is_loan ? 1 : 0}" title="${it.is_loan ? 'убрать значок займа' : 'пометить как займ'}">🤝</span>` : ''}
-      ${!target ? `<span class="rowbtn del" data-findel="items:${it.id}">✕</span>` : ''}
+      <span class="rowbtn del" data-findel="${pfx}:${it.id}">✕</span>
     </td>
-  </tr>` + (folded ? '' : it.children.map(c => portRows(c, depth + 1, ctx && { total: ctx.total, parentEur: it.eur })).join(''));
+  </tr>` + (folded ? '' : it.children.map(c => portRows(c, depth + 1, { total: ctx?.total, parentEur: it.eur, tgt: target, factByName: ctx?.factByName })).join(''));
 }
 
 const finIsMobile = () => window.matchMedia('(max-width: 768px)').matches;
@@ -132,35 +139,41 @@ function fRow({ lead = '', name, amount = '', meta = '', actions = '', cls = '' 
 
 // телефон: портфель карточками в столбик вместо широкой таблицы (data-* те же — биндинги работают)
 function portCard(it, depth, ctx) {
-  const target = finTab === 'target';
+  const target = ctx?.tgt === true;
+  const pfx = target ? 'tgt' : 'items';
   const editable = it.kind === 'asset' || !it.children.length;
   const folded = portFold.has(it.id);
   const cur = it.currency ?? '€';
-  const val = target ? `<span class="num">${fmtE(it.eur)}</span>`
-    : editable ? `<span class="ed num" data-fe="items:${it.id}:value:num">${it.value != null ? fmt(it.value) : '—'}</span> <span class="meta">${cur}</span>`
+  const val = editable
+    ? `<span class="ed num" data-fe="${pfx}:${it.id}:value:num">${it.value != null ? fmt(it.value) : '—'}</span> <span class="meta">${cur}</span>`
     : `<span class="num">${fmtE(it.eur)}</span>`;
   const g = (!target && it.invested != null && it.invested && !(editable && it.buy_value == null)) ? (it.investedCur - it.invested) / it.invested * 100 : null;
   const pTot = !target && ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
-  const meta = target
-    ? `<span class="ed" data-fe="items:${it.id}:target_value:num">цель: ${it.target != null ? fmtE(it.target) : '—'}</span>
-       ${it.target != null ? `<span class="pill ${it.eur - it.target >= 0 ? 'ok' : 'p1'}">Δ ${fmt(it.eur - it.target)}</span>` : ''}`
-    : `${g != null ? `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</span>` : ''}
+  let meta;
+  if (target) {
+    const factEur = ctx?.factByName?.[(it.name || '').trim().toLowerCase()];
+    meta = `<span class="meta">факт ${factEur != null ? fmtE(factEur) : '—'}</span>
+       ${factEur != null ? `<span class="pill ${factEur - it.eur >= 0 ? 'ok' : 'p1'}">${factEur - it.eur >= 0 ? '+' : ''}${fmt(factEur - it.eur)}</span>` : ''}`;
+  } else {
+    meta = `${g != null ? `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</span>` : ''}
        ${pTot != null ? `<span class="meta">${pTot.toFixed(1)}% портфеля</span>` : ''}
        ${it.is_loan ? '<span class="pill p2">🤝</span>' : ''}
        ${it.rate_symbol ? `<span class="pill btn" data-fqty="${it.id}">${it.qty ?? '?'}×${fesc(it.rate_symbol)}</span>` : ''}`;
-  const actions = target ? '' : `
-    ${it.kind === 'block' ? `<span class="rowbtn" data-fadd="section:${it.id}">＋ раздел</span>` : ''}
-    ${it.kind === 'section' ? `<span class="rowbtn" data-fadd="asset:${it.id}">＋ актив</span>` : ''}
-    ${editable ? `<span class="rowbtn" data-frate="${it.id}" title="автоцена">⚡</span>` : ''}
-    <span class="rowbtn del" data-findel="items:${it.id}">✕</span>`;
+  }
+  const addPfx = target ? 'tgtadd' : 'fadd';
+  const actions = `
+    ${it.kind === 'block' ? `<span class="rowbtn" data-${addPfx}="section:${it.id}">＋ раздел</span>` : ''}
+    ${it.kind === 'section' ? `<span class="rowbtn" data-${addPfx}="asset:${it.id}">＋ актив</span>` : ''}
+    ${!target && editable ? `<span class="rowbtn" data-frate="${it.id}" title="автоцена">⚡</span>` : ''}
+    <span class="rowbtn del" data-findel="${pfx}:${it.id}">✕</span>`;
   return `<div class="pcard ${it.kind}" style="--d:${depth}" data-pid="${it.id}">
     <div class="pc-top">
       ${it.children.length ? `<span class="caret" data-pfold="${it.id}">${folded ? '▸' : '▾'}</span>` : '<span class="caret"></span>'}
-      <span class="ed pc-name" data-fe="items:${it.id}:name:text">${fesc(it.name)}</span>
+      <span class="ed pc-name" data-fe="${pfx}:${it.id}:name:text">${fesc(it.name)}</span>
       <span class="pc-val">${val}</span>
     </div>
     <div class="pc-meta">${meta}${folded ? `<span class="meta">· ${it.children.length} внутри</span>` : ''}<span class="pc-actions">${actions}</span></div>
-  </div>` + (folded ? '' : it.children.map(c => portCard(c, depth + 1, ctx && { total: ctx.total, parentEur: it.eur })).join(''));
+  </div>` + (folded ? '' : it.children.map(c => portCard(c, depth + 1, { total: ctx?.total, parentEur: it.eur, tgt: target, factByName: ctx?.factByName })).join(''));
 }
 
 // диаграмма аллокации: доли с процентами внутри, каждая своим цветом
@@ -245,23 +258,32 @@ function secIncome(d, s) {
 
 
 function secPortfolio(d, s) {
+  const tgt = finTab === 'target';
+  // карта факта по названию узла (все уровни) → сумма в €, для Δ перебор/недобор в целевом
+  const factByName = {};
+  if (tgt) { const w = ns => (ns || []).forEach(n => { const k = (n.name || '').trim().toLowerCase(); if (k) factByName[k] = (factByName[k] || 0) + (n.eur || 0); w(n.children); }); w(d.portfolio); }
+  const tree = tgt ? (d.targetPortfolio || []) : (d.portfolio || []);
+  const rootTotal = tgt ? tree.reduce((a, b) => a + (b.eur || 0), 0) : s.portfolioTotal;
+  const rctx = { total: rootTotal, parentEur: rootTotal, tgt, factByName };
   return `
   <div class="sec">Портфель · блоки → разделы → активы · всё правится кликом</div>
   <div class="viewtabs">
-    <span class="pill btn ${finTab === 'fact' ? 'ok' : ''}" data-fintab="fact">Факт</span>
-    <span class="pill btn ${finTab === 'target' ? 'ok' : ''}" data-fintab="target">Целевой портфель</span>
+    <span class="pill btn ${!tgt ? 'ok' : ''}" data-fintab="fact">Факт</span>
+    <span class="pill btn ${tgt ? 'ok' : ''}" data-fintab="target">Целевой портфель</span>
     <span class="pill btn" id="pfoldAll" style="margin-left:auto">${portFold.size ? '▾ развернуть всё' : '▸ свернуть всё'}</span>
   </div>
-  ${finTab === 'target' ? renderTargetPortfolio(d.targetPortfolio, d.portfolio) : `
   <div class="card">
     ${finIsMobile()
-      ? `<div class="pcards">${d.portfolio.map(b => portCard(b, 0, { total: s.portfolioTotal, parentEur: s.portfolioTotal })).join('') || '<div class="empty">портфель пуст</div>'}</div>`
+      ? `<div class="pcards">${tree.map(b => portCard(b, 0, rctx)).join('') || '<div class="empty">пусто</div>'}</div>`
       : `<table class="fintable porttable">
-      <tr><th>Название</th><th class="r">Покупка</th><th class="r">Прирост</th><th class="r">Текущая</th><th class="r">Доля</th><th></th></tr>
-      ${d.portfolio.map(b => portRows(b, 0, { total: s.portfolioTotal, parentEur: s.portfolioTotal })).join('')}
+      ${tgt
+        ? '<tr><th>Название</th><th class="r">Цель</th><th class="r">Факт</th><th class="r">Δ</th><th></th></tr>'
+        : '<tr><th>Название</th><th class="r">Покупка</th><th class="r">Прирост</th><th class="r">Текущая</th><th class="r">Доля</th><th></th></tr>'}
+      ${tree.map(b => portRows(b, 0, rctx)).join('') || '<tr><td colspan="5"><div class="empty">пусто</div></td></tr>'}
     </table>`}
+    ${tgt ? `<div class="task finadd" style="margin-top:6px"><input id="tgt_block" placeholder="новый блок целевого" style="flex:1"><span class="pill btn ok" data-tgtadd="block:">＋ блок</span></div>` : ''}
   </div>
-  ${d.byType.length ? `
+  ${!tgt && d.byType.length ? `
   <div class="card">
     <div class="meta" style="margin-bottom:6px">АЛЛОКАЦИЯ ПО ТИПАМ АКТИВОВ (⊙ у строки — задать тип)</div>
     <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;padding:6px 0">
@@ -276,62 +298,9 @@ function secPortfolio(d, s) {
             .join(' · ')}</div>`).join('')}
       </div>
     </div>
-  </div>` : ''}`}`;
+  </div>` : ''}`;
 }
 
-// Целевой портфель — СВОЙ список пунктов по типам активов (не связан с фактическими позициями).
-// Перебор/недобор считаем по типу: факт (byType из фактического портфеля) минус цель (сумма целевых пунктов типа).
-function renderTargetPortfolio(targets, fact) {
-  targets = Array.isArray(targets) ? targets : [];
-  const m = v => fmt(v) + ' €';
-  // карта факта по названию узла (все уровни) → сумма в €, для Δ по совпадающим названиям
-  const factByName = {};
-  const walkFact = ns => (ns || []).forEach(n => {
-    const nm = (n.name || '').trim().toLowerCase();
-    if (nm) factByName[nm] = (factByName[nm] || 0) + (n.eur || 0);
-    walkFact(n.children);
-  });
-  walkFact(fact);
-  const kindLabel = k => k === 'block' ? 'блок' : k === 'section' ? 'раздел' : 'актив';
-  const node = (n, depth) => {
-    const nm = (n.name || '').trim().toLowerCase();
-    const tgtEur = n.eur || 0;
-    const factEur = factByName[nm];
-    const delta = factEur == null
-      ? '<span class="meta">нет в факте</span>'
-      : `<span class="pill ${factEur - tgtEur >= 0 ? 'ok' : 'p1'}">${factEur - tgtEur >= 0 ? 'перебор +' : 'недобор '}${m(factEur - tgtEur)}</span>`;
-    const isLeaf = n.kind === 'asset' || !(n.children || []).length;
-    return `
-      <div class="task" style="padding-left:${depth * 16}px">
-        <span class="pill">${kindLabel(n.kind)}</span>
-        <span class="t ed" data-fe="tgt:${n.id}:name:text">${fesc(n.name) || '—'}</span>
-        ${isLeaf
-          ? `<span class="ed num" data-fe="tgt:${n.id}:value:num" title="целевая сумма">${n.value != null ? fmt(n.value) : '—'} ${fesc(n.currency || '€')}</span>`
-          : `<span class="num">цель ${m(tgtEur)}</span>`}
-        ${delta}
-        ${n.kind === 'block' ? `<span class="rowbtn" data-tgtadd="section:${n.id}" title="+ раздел">＋</span>` : ''}
-        ${n.kind === 'section' ? `<span class="rowbtn" data-tgtadd="asset:${n.id}" title="+ актив">＋</span>` : ''}
-        <span class="rowbtn del" data-findel="tgt:${n.id}">✕</span>
-      </div>
-      ${(n.children || []).map(c => node(c, depth + 1)).join('')}`;
-  };
-  const totalTgt = targets.reduce((s, n) => s + (n.eur || 0), 0);
-  const totalFact = (Array.isArray(fact) ? fact : []).reduce((s, n) => s + (n.eur || 0), 0);
-  const totalD = totalFact - totalTgt;
-  return `
-  <div class="card">
-    <div class="kv" style="padding:6px 0;border-bottom:1px solid var(--line)">
-      <span class="meta">итого</span>
-      <span>факт <b>${m(totalFact)}</b> · цель <b>${m(totalTgt)}</b> · <span class="pill ${totalD >= 0 ? 'ok' : 'p1'}">${totalD >= 0 ? '+' : ''}${m(totalD)}</span></span>
-    </div>
-    <div class="meta" style="margin:8px 0 4px">ЦЕЛЕВОЙ ПОРТФЕЛЬ · своё дерево (набор свой, не связан с фактом) · Δ = факт − цель по совпадающим названиям</div>
-    ${targets.map(n => node(n, 0)).join('') || '<div class="empty">пусто — добавь блок ↓</div>'}
-    <div class="task finadd" style="margin-top:6px">
-      <input id="tgt_block" placeholder="новый блок целевого" style="flex:1">
-      <span class="pill btn ok" data-tgtadd="block:">＋ блок</span>
-    </div>
-  </div>`;
-}
 
 function secAccounts(d) {
   return `
