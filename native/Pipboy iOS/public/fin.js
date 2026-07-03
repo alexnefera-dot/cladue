@@ -244,18 +244,16 @@ function secPortfolio(d, s) {
     <span class="pill btn ${finTab === 'target' ? 'ok' : ''}" data-fintab="target">Целевой портфель</span>
     <span class="pill btn" id="pfoldAll" style="margin-left:auto">${portFold.size ? '▾ развернуть всё' : '▸ свернуть всё'}</span>
   </div>
+  ${finTab === 'target' ? renderTargetPortfolio(d.targetItems, d.byType) : `
   <div class="card">
     ${finIsMobile()
       ? `<div class="pcards">${d.portfolio.map(b => portCard(b, 0, { total: s.portfolioTotal, parentEur: s.portfolioTotal })).join('') || '<div class="empty">портфель пуст</div>'}</div>`
       : `<table class="fintable porttable">
-      ${finTab === 'target'
-        ? '<tr><th>Название</th><th class="r">Факт</th><th class="r">Цель</th><th class="r">Δ</th><th></th></tr>'
-        : '<tr><th>Название</th><th class="r">Покупка</th><th class="r">Прирост</th><th class="r">Текущая</th><th class="r">Доля</th><th></th></tr>'}
+      <tr><th>Название</th><th class="r">Покупка</th><th class="r">Прирост</th><th class="r">Текущая</th><th class="r">Доля</th><th></th></tr>
       ${d.portfolio.map(b => portRows(b, 0, { total: s.portfolioTotal, parentEur: s.portfolioTotal })).join('')}
     </table>`}
-    ${finTab === 'target' ? '<div class="empty" style="padding-top:8px">Целевые суммы ставь на любом уровне. Δ — факт минус цель.</div>' : ''}
   </div>
-  ${finTab === 'fact' && d.byType.length ? `
+  ${d.byType.length ? `
   <div class="card">
     <div class="meta" style="margin-bottom:6px">АЛЛОКАЦИЯ ПО ТИПАМ АКТИВОВ (⊙ у строки — задать тип)</div>
     <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;padding:6px 0">
@@ -270,7 +268,54 @@ function secPortfolio(d, s) {
             .join(' · ')}</div>`).join('')}
       </div>
     </div>
-  </div>` : ''}`;
+  </div>` : ''}`}`;
+}
+
+// Целевой портфель — СВОЙ список пунктов по типам активов (не связан с фактическими позициями).
+// Перебор/недобор считаем по типу: факт (byType из фактического портфеля) минус цель (сумма целевых пунктов типа).
+function renderTargetPortfolio(targets, byType) {
+  targets = Array.isArray(targets) ? targets : [];
+  const rate = (Array.isArray(finData?.rates) ? finData.rates.find(r => r.symbol === 'EURUSD')?.price : 0) || 1.08;
+  const eur = i => (i.currency === '$' ? (+i.amount || 0) / rate : (+i.amount || 0));
+  const factByType = {}; (Array.isArray(byType) ? byType : []).forEach(([ty, v]) => { factByType[ty] = (factByType[ty] || 0) + v; });
+  const tgtByType = {}; targets.forEach(i => { const t = i.asset_type || 'прочее'; tgtByType[t] = (tgtByType[t] || 0) + eur(i); });
+  const types = [...new Set([...Object.keys(tgtByType), ...Object.keys(factByType)])].sort();
+  const m = v => fmt(v) + ' €';
+  const totalFact = Object.values(factByType).reduce((a, b) => a + b, 0);
+  const totalGoal = Object.values(tgtByType).reduce((a, b) => a + b, 0);
+  const totalD = totalFact - totalGoal;
+  const delta = (fact, goal) => goal === 0
+    ? '<span class="meta">нет цели</span>'
+    : `<span class="pill ${fact - goal >= 0 ? 'ok' : 'p1'}">${fact - goal >= 0 ? 'перебор +' : 'недобор '}${m(fact - goal)}</span>`;
+  const summary = types.map(ty => {
+    const fact = factByType[ty] || 0, goal = tgtByType[ty] || 0;
+    return `<div class="kv"><span>${fesc(ty)}</span><span class="meta">факт <b>${m(fact)}</b> · цель <b>${m(goal)}</b> · ${delta(fact, goal)}</span></div>`;
+  }).join('');
+  const curSel = id => `<select id="${id}"><option value="€">€</option><option value="$">$</option></select>`;
+  const rows = targets.map(i => `
+    <div class="task">
+      <span class="pill" data-tgttype="${i.id}" title="тип — клик">${fesc(i.asset_type)}</span>
+      <span class="t ed" data-fe="tgt:${i.id}:name:text">${fesc(i.name) || '—'}</span>
+      <span class="ed num" data-fe="tgt:${i.id}:amount:num">${fmt(i.amount)} ${fesc(i.currency)}</span>
+      <span class="rowbtn del" data-findel="tgt:${i.id}">✕</span>
+    </div>`).join('');
+  return `
+  <div class="card">
+    <div class="meta" style="margin-bottom:6px">ПЕРЕБОР / НЕДОБОР ПО ТИПАМ (факт − цель)</div>
+    ${summary || '<div class="empty">добавь целевые пункты ниже — посчитаю отклонение от факта по типам</div>'}
+    <div class="kv" style="border-top:1px solid var(--line);margin-top:6px;padding-top:6px;font-weight:700"><span>ИТОГО</span><span>факт ${m(totalFact)} · цель ${m(totalGoal)} · <span class="pill ${totalD >= 0 ? 'ok' : 'p1'}">${totalD >= 0 ? '+' : ''}${m(totalD)}</span></span></div>
+  </div>
+  <div class="card">
+    <div class="meta" style="margin-bottom:6px">ЦЕЛЕВЫЕ ПУНКТЫ · свой список (не связан с фактическим портфелем)</div>
+    ${rows || '<div class="empty">пусто</div>'}
+    <div class="task finadd">
+      <select id="tgt_type">${ATYPES.map(t => `<option>${t}</option>`).join('')}</select>
+      <input id="tgt_name" placeholder="название цели" style="width:130px">
+      <input id="tgt_amt" placeholder="сумма" style="width:80px">
+      ${curSel('tgt_cur')}
+      <span class="pill btn ok" data-tgtadd="1">＋</span>
+    </div>
+  </div>`;
 }
 
 function secAccounts(d) {
@@ -334,8 +379,9 @@ function renderBudget(items, rates) {
   const nQ = qKeys.length || 1;
   const incYear = inc.reduce((s, i) => s + eur(i), 0);              // годовой = сумма всех введённых
   const incQAvg = incYear / nQ;                                     // средний доход за квартал
-  const incMonth = incQAvg / 3;                                     // средний доход в месяц (из квартального)
-  const incForecast = incQAvg * 4;                                  // прогноз года: средний квартал × 4
+  const lastQ = qKeys[qKeys.length - 1];                            // самый свежий квартал (qKeys по возрастанию)
+  const incMonth = (lastQ ? byQ[lastQ] : incQAvg) / 3;              // средний доход в месяц — по последнему кварталу
+  const incForecast = lastQ ? byQ[lastQ] * 4 : incYear;            // прогноз года: ПОСЛЕДНИЙ квартал × 4 (не среднее — доход падает)
   const bal = incMonth - expMonth;
 
   return `
@@ -359,7 +405,7 @@ function renderBudget(items, rates) {
       <span class="pill btn ok" data-budadd="expense">＋</span>
     </div>
 
-    <div class="meta" style="margin:12px 0 2px">ДОХОД · факт ${m(incYear)} · прогноз года ${m(incForecast)} · средн. ${m(incQAvg)}/кв · ${m(incMonth)}/мес</div>
+    <div class="meta" style="margin:12px 0 2px">ДОХОД · факт ${m(incYear)} · прогноз года ${m(incForecast)} (посл. кв.${lastQ ? ' ' + m(byQ[lastQ]) : ''} ×4) · ${m(incMonth)}/мес</div>
     ${qKeys.length ? `<div class="btnrow" style="margin:2px 0 6px">${qKeys.slice().reverse().map(q => `<span class="pill ok">${q}: ${m(byQ[q])}</span>`).join('')}</div>` : ''}
     ${monthKeys.length ? monthKeys.map(mo => `
       <div class="kv" style="margin-top:6px;font-weight:700"><span>${fesc(mo)} <span class="meta" style="font-weight:400">${qOf(mo)}</span></span><span class="num up">${m(monthSum(mo))}</span></div>
@@ -906,6 +952,22 @@ function bindFin() {
           direction: 'expense', currency: document.getElementById('bud_exp_cur')?.value || '€',
         });
       }
+      window.loadFin();
+    }));
+  document.querySelectorAll('[data-tgtadd]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const amt = parseNum(document.getElementById('tgt_amt')?.value);
+      const name = document.getElementById('tgt_name')?.value.trim();
+      const type = document.getElementById('tgt_type')?.value || 'прочее';
+      if (amt == null && !name) return;
+      await finApi.add('tgt', { name: name || type, amount: amt ?? 0, asset_type: type, currency: document.getElementById('tgt_cur')?.value || '€' });
+      window.loadFin();
+    }));
+  document.querySelectorAll('[data-tgttype]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const cur = el.textContent.trim();
+      const next = ATYPES[(ATYPES.indexOf(cur) + 1) % ATYPES.length];
+      await finApi.patch('tgt', +el.dataset.tgttype, { asset_type: next });
       window.loadFin();
     }));
   document.querySelectorAll('[data-findel]').forEach(el =>

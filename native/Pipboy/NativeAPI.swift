@@ -43,6 +43,7 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         _ = try? made.run("ALTER TABLE metrics ADD COLUMN polarity TEXT NOT NULL DEFAULT 'plus'") // полярность метрики
         _ = try? made.run("CREATE TABLE IF NOT EXISTS budget_items(id INTEGER PRIMARY KEY, direction TEXT NOT NULL DEFAULT 'expense', name TEXT NOT NULL DEFAULT '', amount REAL NOT NULL DEFAULT 0, currency TEXT NOT NULL DEFAULT '€', ord INTEGER NOT NULL DEFAULT 0, month TEXT)")  // дефолтные расходы/доходы — миграция существующих баз (ensureSchema идёт только при сиде)
         _ = try? made.run("ALTER TABLE budget_items ADD COLUMN month TEXT")   // доход — помесячно (YYYY-MM); расход — пусто (фикс/мес)
+        _ = try? made.run("CREATE TABLE IF NOT EXISTS target_items(id INTEGER PRIMARY KEY, name TEXT NOT NULL DEFAULT '', asset_type TEXT NOT NULL DEFAULT 'прочее', amount REAL NOT NULL DEFAULT 0, currency TEXT NOT NULL DEFAULT '€', ord INTEGER NOT NULL DEFAULT 0)")  // целевой портфель — свои пункты (миграция существующих баз)
         Api.ensureSpheresSchema(made)   // таблицы сфер (area_milestones/area_questions) — до sync-схемы, чтобы им добавились updated_at/триггеры
         Api.ensureSyncSchema(made)   // updated_at + триггеры + tombstones — отслеживание правок для синхрона
         Api.ensureThoughtTesting(made)   // техника «Тестирование мыслей» (КПТ) — один раз
@@ -1334,7 +1335,7 @@ enum Api {
     // ----- Финансы: запись -----
     private static let finTable = ["accounts": "accounts", "classes": "portfolio_classes", "steps": "steps",
         "obligations": "obligations", "items": "portfolio_items", "tx": "transactions", "debts": "debts", "income": "passive_income",
-        "budget": "budget_items"]
+        "budget": "budget_items", "tgt": "target_items"]
     private static let finCols: [String: [String]] = [
         "accounts": ["name", "type", "currency", "note", "balance"],
         "classes": ["name", "value", "target_pct", "note"],
@@ -1344,11 +1345,12 @@ enum Api {
         "tx": ["date", "amount", "currency", "direction", "category", "note"],
         "debts": ["name", "amount", "currency", "direction", "due_date", "note"],
         "income": ["name", "amount", "currency", "period", "next_date", "note", "principal", "rate", "rate_period", "asset_type"],
-        "budget": ["name", "amount", "currency", "direction", "ord", "month"]]
+        "budget": ["name", "amount", "currency", "direction", "ord", "month"],
+        "tgt": ["name", "amount", "currency", "asset_type", "ord"]]
 
     static func finWrite(method: String, path: String, body: [String: Any], db: Database) throws -> (Data, Int)? {
         if method == "POST", path == "/api/rates/refresh" { return (try ratesRefresh(db), 200) }
-        if let m = match(path, "^/api/fin/(accounts|classes|steps|obligations|items|tx|debts|income|budget)(?:/([0-9]+))?$") {
+        if let m = match(path, "^/api/fin/(accounts|classes|steps|obligations|items|tx|debts|income|budget|tgt)(?:/([0-9]+))?$") {
             let entity = m[1], idStr = m[2], table = finTable[entity] ?? entity
             if method == "POST" && idStr.isEmpty { try finAdd(db, entity, body); return (ok(201), 201) }
             if method == "PATCH" && !idStr.isEmpty { try patchCols(db, table, Int(idStr) ?? -1, finCols[entity] ?? [], body); return (ok(), 200) }
@@ -1458,6 +1460,10 @@ enum Api {
             let ord = nextOrd(db, "SELECT COALESCE(MAX(ord),0)+1 AS o FROM budget_items")
             try db.run("INSERT INTO budget_items(name, amount, currency, direction, ord, month) VALUES(?,?,?,?,?,?)",
                 [b["name"] as? String ?? "", num(b["amount"]), b["currency"] as? String ?? "€", b["direction"] as? String ?? "expense", ord, b["month"] ?? NSNull()])
+        case "tgt":
+            let ord = nextOrd(db, "SELECT COALESCE(MAX(ord),0)+1 AS o FROM target_items")
+            try db.run("INSERT INTO target_items(name, amount, currency, asset_type, ord) VALUES(?,?,?,?,?)",
+                [b["name"] as? String ?? "", num(b["amount"]), b["currency"] as? String ?? "€", b["asset_type"] as? String ?? "прочее", ord])
         default: break
         }
     }
@@ -2266,6 +2272,7 @@ enum Api {
         let fireV = try fireCalc(db, capital: portfolioTotal)
         let macro = try db.rows("SELECT * FROM macro_notes ORDER BY date DESC, id DESC")
         let budgetItems = try db.rows("SELECT * FROM budget_items ORDER BY direction DESC, ord, id")   // дефолтные расходы/доходы (списком)
+        let targetItems = try db.rows("SELECT * FROM target_items ORDER BY asset_type, ord, id")   // целевой портфель — свои пункты по типам
         let rates = try db.rows("SELECT * FROM rates")
         let result: [String: Any] = [
             "accounts": accounts, "portfolio": portfolio, "steps": steps,
@@ -2273,7 +2280,7 @@ enum Api {
             "snapshotDelta": snapshotDelta,
             "byType": byTypeSorted, "byTypeBlocks": byTypeBlocks, "blockEur": blockEur,
             "tx": tx, "forecasts": fc, "properties": props, "fire": fireV,
-            "income": income, "budget": budget, "budgetItems": budgetItems, "macro": macro, "rates": rates,
+            "income": income, "budget": budget, "budgetItems": budgetItems, "targetItems": targetItems, "macro": macro, "rates": rates,
             "summary": summary,
         ]
         return try json(result)
@@ -2810,7 +2817,7 @@ enum Api {
     // Все реальные таблицы данных (FTS-таблицы node_fts/page_fts производные —
     // их не переносим, а перестраиваем из nodes/pages после применения снимка).
     static let syncTables = ["nodes", "links", "dismissed", "accounts", "portfolio_classes",
-        "steps", "obligations", "portfolio_items", "rates", "events", "transactions", "budget_items",
+        "steps", "obligations", "portfolio_items", "rates", "events", "transactions", "budget_items", "target_items",
         "receivables", "passive_income", "settings", "macro_notes", "debts", "snapshots",
         "routines", "routine_log", "people", "contact_log", "pages", "page_revisions", "attachments",
         "practices", "practice_log", "wheel_areas", "wheel_scores", "area_milestones", "area_questions", "work_log", "forecasts",
@@ -2821,7 +2828,7 @@ enum Api {
         ("nodes", "id"), ("links", "id"), ("accounts", "id"), ("portfolio_classes", "id"),
         ("steps", "id"), ("obligations", "id"), ("portfolio_items", "id"), ("events", "id"),
         ("transactions", "id"), ("receivables", "id"), ("passive_income", "id"), ("macro_notes", "id"),
-        ("budget_items", "id"), ("debts", "id"), ("routines", "id"), ("people", "id"), ("contact_log", "id"),
+        ("budget_items", "id"), ("target_items", "id"), ("debts", "id"), ("routines", "id"), ("people", "id"), ("contact_log", "id"),
         ("pages", "id"), ("page_revisions", "id"), ("attachments", "id"), ("practices", "id"), ("practice_log", "id"),
         ("wheel_areas", "id"), ("wheel_scores", "id"), ("area_milestones", "id"), ("area_questions", "id"), ("work_log", "id"), ("forecasts", "id"),
         ("properties", "id"), ("metrics", "id"), ("node_log", "id"), ("trash", "id"),
@@ -2978,6 +2985,7 @@ enum Api {
         try? db.ensureSchema()
         ensureSpheresSchema(db)
         _ = try? db.run("CREATE TABLE IF NOT EXISTS budget_items(id INTEGER PRIMARY KEY, direction TEXT NOT NULL DEFAULT 'expense', name TEXT NOT NULL DEFAULT '', amount REAL NOT NULL DEFAULT 0, currency TEXT NOT NULL DEFAULT '€', ord INTEGER NOT NULL DEFAULT 0, month TEXT)")
+        _ = try? db.run("CREATE TABLE IF NOT EXISTS target_items(id INTEGER PRIMARY KEY, name TEXT NOT NULL DEFAULT '', asset_type TEXT NOT NULL DEFAULT 'прочее', amount REAL NOT NULL DEFAULT 0, currency TEXT NOT NULL DEFAULT '€', ord INTEGER NOT NULL DEFAULT 0)")
         ensureSyncSchema(db)
         backupDB()
         guard let tables = snapshot["tables"] as? [String: Any] else { throw Unsupported(path: "плохой снимок") }

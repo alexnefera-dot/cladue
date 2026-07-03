@@ -216,6 +216,11 @@ final class Database {
           currency TEXT NOT NULL DEFAULT '€', ord INTEGER NOT NULL DEFAULT 0,
           month TEXT
         );
+        CREATE TABLE IF NOT EXISTS target_items(
+          id INTEGER PRIMARY KEY, name TEXT NOT NULL DEFAULT '',
+          asset_type TEXT NOT NULL DEFAULT 'прочее', amount REAL NOT NULL DEFAULT 0,
+          currency TEXT NOT NULL DEFAULT '€', ord INTEGER NOT NULL DEFAULT 0
+        );
         CREATE TABLE IF NOT EXISTS receivables(
           id INTEGER PRIMARY KEY, name TEXT NOT NULL, amount REAL NOT NULL,
           currency TEXT NOT NULL DEFAULT '€', expected_date TEXT,
