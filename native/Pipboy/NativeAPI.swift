@@ -1502,11 +1502,13 @@ enum Api {
                 [parent, ord, b["name"] as? String ?? "", b["kind"] as? String ?? "asset", b["value"] ?? NSNull(), b["currency"] as? String ?? "€", b["asset_type"] ?? NSNull()])
         case "move":
             let mvFrom = numOpt(b["from_id"]).map { Int($0) }, mvTo = numOpt(b["to_id"]).map { Int($0) }
-            let mvAmt = num(b["amount"])   // сумма перевода в €; храним и отображаем в €
-            try db.run("INSERT INTO target_moves(from_id, to_id, amount) VALUES(?,?,?)", [mvFrom ?? NSNull(), mvTo ?? NSNull(), mvAmt])
-            // перелив с конвертацией: value каждой позиции в своей валюте, сумма перевода — в €
             let mvRate = (try? eurUsdRate(db)) ?? 1.08
-            if let f = mvFrom { let c = scalarStr(db, "SELECT currency FROM target_items WHERE id = ?", [f]) ?? "€"; try db.run("UPDATE target_items SET value = COALESCE(value,0) - ? WHERE id = ?", [c == "$" ? mvAmt * mvRate : mvAmt, f]) }
+            let mvFromCur = mvFrom.flatMap { scalarStr(db, "SELECT currency FROM target_items WHERE id = ?", [$0]) } ?? "€"
+            let mvInput = num(b["amount"])   // сумму вводят в валюте ИСТОЧНИКА (переношу доллары — ввожу доллары)
+            let mvAmt = mvFromCur == "$" ? mvInput / mvRate : mvInput   // храним якорь в €
+            try db.run("INSERT INTO target_moves(from_id, to_id, amount) VALUES(?,?,?)", [mvFrom ?? NSNull(), mvTo ?? NSNull(), mvAmt])
+            // списываем ровно введённую сумму из источника, зачисляем эквивалент получателю — каждый в своей валюте
+            if let f = mvFrom { try db.run("UPDATE target_items SET value = COALESCE(value,0) - ? WHERE id = ?", [mvFromCur == "$" ? mvAmt * mvRate : mvAmt, f]) }
             if let t = mvTo { let c = scalarStr(db, "SELECT currency FROM target_items WHERE id = ?", [t]) ?? "€"; try db.run("UPDATE target_items SET value = COALESCE(value,0) + ? WHERE id = ?", [c == "$" ? mvAmt * mvRate : mvAmt, t]) }
         default: break
         }

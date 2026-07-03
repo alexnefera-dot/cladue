@@ -80,8 +80,8 @@ function portRows(it, depth, ctx) {
       : `<td class="r num acc">${fmtE(it.eur)}</td>`;
     const tPct = ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
     const links = [
-      ...(ctx?.movesBySrc?.[path] || []).map(mv => `<div class="meta"><span class="down">→ отдать ${fmt(mv.amount)} €</span> в «${fesc(mv.toName)}» <span class="rowbtn del" data-movedel="${mv.id}" title="убрать связку">✕</span></div>`),
-      ...(ctx?.movesByDst?.[path] || []).map(mv => `<div class="meta"><span class="up">← добрать ${fmt(mv.amount)} €</span> из «${fesc(mv.fromName)}»</div>`),
+      ...(ctx?.movesBySrc?.[path] || []).map(mv => `<div class="meta"><span class="down">→ отдать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> в «${fesc(mv.toName)}» <span class="rowbtn del" data-movedel="${mv.id}" title="убрать связку">✕</span></div>`),
+      ...(ctx?.movesByDst?.[path] || []).map(mv => `<div class="meta"><span class="up">← добрать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> из «${fesc(mv.fromName)}»</div>`),
     ].join('');
     const moveBtn = editable ? `<span class="rowbtn" data-tgtmove="${it.id}" title="переложить в другую позицию">↦ переложить</span>` : '';
     cells = `${goalCell}
@@ -161,8 +161,8 @@ function portCard(it, depth, ctx) {
     const path = (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase();
     const tPct = ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
     const links = [
-      ...(ctx?.movesBySrc?.[path] || []).map(mv => `<span class="meta"><span class="down">→ отдать ${fmt(mv.amount)} €</span> в «${fesc(mv.toName)}» <span class="rowbtn del" data-movedel="${mv.id}" title="убрать связку">✕</span></span>`),
-      ...(ctx?.movesByDst?.[path] || []).map(mv => `<span class="meta"><span class="up">← добрать ${fmt(mv.amount)} €</span> из «${fesc(mv.fromName)}»</span>`),
+      ...(ctx?.movesBySrc?.[path] || []).map(mv => `<span class="meta"><span class="down">→ отдать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> в «${fesc(mv.toName)}» <span class="rowbtn del" data-movedel="${mv.id}" title="убрать связку">✕</span></span>`),
+      ...(ctx?.movesByDst?.[path] || []).map(mv => `<span class="meta"><span class="up">← добрать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> из «${fesc(mv.fromName)}»</span>`),
     ].join(' ');
     meta = `${links}${tPct != null ? ` <span class="meta">${tPct.toFixed(1)}% плана</span>` : ''}`;
   } else {
@@ -279,13 +279,15 @@ function secPortfolio(d, s) {
   const rctx = { total: rootTotal, parentEur: rootTotal, tgt, factByPath, path: '' };
   if (tgt) {   // ручные связки ребаланса (из target_moves): сопоставляем id позиций с путём/именем
     const byId = {};
-    const mapIds = (ns, pre) => (ns || []).forEach(n => { const p = pre + '/' + (n.name || '').trim().toLowerCase(); byId[n.id] = { path: p, name: n.name }; mapIds(n.children, p); });
+    const mapIds = (ns, pre) => (ns || []).forEach(n => { const p = pre + '/' + (n.name || '').trim().toLowerCase(); byId[n.id] = { path: p, name: n.name, cur: n.currency ?? '€' }; mapIds(n.children, p); });
     mapIds(tree, '');
+    const rate = d.rate || 1.08;
+    const inCur = (eur, cur) => cur === '$' ? eur * rate : eur;   // amount хранится в €, показываем в валюте стороны
     rctx.movesBySrc = {}; rctx.movesByDst = {};
     (d.targetMoves || []).forEach(mv => {
       const a = byId[mv.from_id], b = byId[mv.to_id]; if (!a || !b) return;
-      (rctx.movesBySrc[a.path] ||= []).push({ id: mv.id, amount: mv.amount, toName: b.name });
-      (rctx.movesByDst[b.path] ||= []).push({ id: mv.id, amount: mv.amount, fromName: a.name });
+      (rctx.movesBySrc[a.path] ||= []).push({ id: mv.id, amount: inCur(mv.amount, a.cur), cur: a.cur, toName: b.name });
+      (rctx.movesByDst[b.path] ||= []).push({ id: mv.id, amount: inCur(mv.amount, b.cur), cur: b.cur, fromName: a.name });
     });
   }
   return `
@@ -980,8 +982,10 @@ function bindFin() {
     el.addEventListener('click', () => {
       const fromId = +el.dataset.tgtmove;
       const leaves = [];   // куда можно переложить — все позиции-листья целевого, кроме этой
+      let fromCur = '€';   // валюта источника — в ней вводим сумму
       const walk = (ns, pre) => (ns || []).forEach(n => {
         const kids = n.children || [];
+        if (n.id === fromId) fromCur = n.currency ?? '€';
         if ((n.kind === 'asset' || !kids.length) && n.id !== fromId) leaves.push({ id: n.id, label: pre ? `${pre} · ${n.name}` : n.name });
         walk(kids, pre || n.name);
       });
@@ -992,7 +996,7 @@ function bindFin() {
       el.replaceWith(sel); sel.focus();
       sel.addEventListener('change', async () => {
         const toId = +sel.value; if (!toId) { window.loadFin(); return; }
-        const amt = parseNum(prompt('Сколько переложить (€)?'));
+        const amt = parseNum(prompt(`Сколько переложить (${fromCur})?`));
         if (amt == null || amt <= 0) { window.loadFin(); return; }
         await finApi.add('move', { from_id: fromId, to_id: toId, amount: amt });
         window.loadFin();
