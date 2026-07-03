@@ -77,12 +77,16 @@ function portRows(it, depth, ctx) {
     const goalCell = editable
       ? `<td class="r num acc"><span class="pill btn" data-fcur="${it.id}:${cur}" title="сменить валюту">${cur}</span> <span class="ed" data-fe="tgt:${it.id}:value:num" title="целевая сумма (клик)">${it.value != null ? fmt(it.value) : '—'}</span></td>`
       : `<td class="r num acc">${fmtE(it.eur)}</td>`;
-    // доля позиции в целевом портфеле (каким станет вес после ребаланса)
+    // доля в целевом (вес после ребаланса) + действие: излишек отдать / дефицит добрать
     const tPct = ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
+    const delta = factEur != null ? factEur - it.eur : null;   // >0 отдать излишек, <0 добрать до цели
+    const action = delta == null ? '<span class="meta">—</span>'
+      : Math.abs(delta) < 1 ? '<span class="pill ok">✓</span>'
+      : delta > 0 ? `<span class="pill p1" title="излишек — переложить в дефицитные">↗ отдать ${fmt(delta)}</span>`
+      : `<span class="pill" style="background:var(--green-soft);color:var(--green)" title="докупить до цели">↘ добрать ${fmt(-delta)}</span>`;
     cells = `${goalCell}
-      <td class="r num muted">${factEur != null ? fmtE(factEur) : '—'}</td>
-      <td class="r">${factEur != null ? `<span class="pill ${factEur - it.eur >= 0 ? 'ok' : 'p1'}">${factEur - it.eur >= 0 ? '+' : ''}${fmt(factEur - it.eur)}</span>` : '<span class="meta">нет</span>'}</td>
-      <td class="r" style="width:66px">${tPct != null ? `<span class="num">${tPct.toFixed(1)}%</span>` : ''}</td>`;
+      <td class="r">${action}</td>
+      <td class="r" style="width:92px">${tPct != null ? `<div class="bar" style="margin:2px 0 1px"><i style="width:${Math.min(100, tPct)}%"></i></div><span class="meta num">${tPct.toFixed(1)}%</span>` : ''}</td>`;
   } else {
     // лист без своей цены покупки прирост не показывает (он по определению 0)
     const g = it.invested != null && it.invested && !(editable && it.buy_value == null)
@@ -156,9 +160,11 @@ function portCard(it, depth, ctx) {
   if (target) {
     const factEur = ctx?.factByPath?.[(ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase()];
     const tPct = ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
-    meta = `<span class="meta">факт ${factEur != null ? fmtE(factEur) : '—'}</span>
-       ${factEur != null ? `<span class="pill ${factEur - it.eur >= 0 ? 'ok' : 'p1'}">${factEur - it.eur >= 0 ? '+' : ''}${fmt(factEur - it.eur)}</span>` : ''}
-       ${tPct != null ? `<span class="meta">${tPct.toFixed(1)}% плана</span>` : ''}`;
+    const delta = factEur != null ? factEur - it.eur : null;
+    const action = delta == null ? '' : Math.abs(delta) < 1 ? '<span class="pill ok">✓</span>'
+      : delta > 0 ? `<span class="pill p1">↗ отдать ${fmt(delta)}</span>`
+      : `<span class="pill" style="background:var(--green-soft);color:var(--green)">↘ добрать ${fmt(-delta)}</span>`;
+    meta = `${action} ${tPct != null ? `<span class="meta">${tPct.toFixed(1)}% плана</span>` : ''}`;
   } else {
     meta = `${g != null ? `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</span>` : ''}
        ${pTot != null ? `<span class="meta">${pTot.toFixed(1)}% портфеля</span>` : ''}
@@ -262,34 +268,6 @@ function secIncome(d, s) {
 }
 
 
-// План ребаланса: из позиций с избытком (факт > цель) в позиции с дефицитом (факт < цель).
-// Жадно сопоставляем источники и получатели по листьям целевого дерева. Ярлык — «Блок · Позиция».
-function rebalanceMoves(tree, factByPath) {
-  const leaves = [];
-  const walk = (ns, pre, root) => (ns || []).forEach(n => {
-    const path = pre + '/' + (n.name || '').trim().toLowerCase();
-    const r = root || n.name;
-    const kids = n.children || [];
-    if (n.kind === 'asset' || !kids.length) {
-      const delta = (factByPath[path] || 0) - (n.eur || 0);   // >0 избыток (забрать), <0 дефицит (докупить)
-      if (Math.abs(delta) >= 1) leaves.push({ label: r && r !== n.name ? `${r} · ${n.name}` : n.name, delta });
-    }
-    walk(kids, path, r);
-  });
-  walk(tree, '', null);
-  const src = leaves.filter(l => l.delta > 0).sort((a, b) => b.delta - a.delta).map(l => ({ label: l.label, left: l.delta }));
-  const dst = leaves.filter(l => l.delta < 0).sort((a, b) => a.delta - b.delta).map(l => ({ label: l.label, need: -l.delta }));
-  const moves = []; let si = 0, di = 0;
-  while (si < src.length && di < dst.length) {
-    const a = src[si], b = dst[di], amt = Math.min(a.left, b.need);
-    moves.push({ from: a.label, to: b.label, amount: amt });
-    a.left -= amt; b.need -= amt;
-    if (a.left < 1) si++;
-    if (b.need < 1) di++;
-  }
-  return moves;
-}
-
 function secPortfolio(d, s) {
   const tgt = finTab === 'target';
   // карта факта по ПОЛНОМУ ПУТИ узла (блок/раздел/актив), а не по имени — иначе одноимённые позиции складываются
@@ -314,18 +292,12 @@ function secPortfolio(d, s) {
       ? `<div class="pcards">${tree.map(b => portCard(b, 0, rctx)).join('') || '<div class="empty">пусто</div>'}</div>`
       : `<table class="fintable porttable">
       ${tgt
-        ? '<tr><th>Название</th><th class="r">Цель</th><th class="r">Факт</th><th class="r">Δ</th><th class="r">Доля</th><th></th></tr>'
+        ? '<tr><th>Название</th><th class="r">Цель</th><th class="r">Ребаланс</th><th class="r">Доля</th><th></th></tr>'
         : '<tr><th>Название</th><th class="r">Покупка</th><th class="r">Прирост</th><th class="r">Текущая</th><th class="r">Доля</th><th></th></tr>'}
       ${tree.map(b => portRows(b, 0, rctx)).join('') || '<tr><td colspan="5"><div class="empty">пусто</div></td></tr>'}
     </table>`}
     ${tgt ? `<div class="task finadd" style="margin-top:6px"><input id="tgt_block" placeholder="новый блок целевого" style="flex:1"><span class="pill btn ok" data-tgtadd="block:">＋ блок</span></div>` : ''}
   </div>
-  ${tgt ? (() => { const mv = rebalanceMoves(tree, factByPath); return `<div class="card">
-    <div class="meta" style="margin-bottom:6px">КУДА ДВИГАТЬ ДЕНЬГИ · план ребаланса (из избытка → в дефицит)</div>
-    ${mv.map(m => `<div class="task">
-      <span class="pill p1">${fesc(m.from)}</span><span class="meta" style="margin:0 5px">→</span><span class="pill ok">${fesc(m.to)}</span>
-      <span class="num" style="margin-left:auto">${fmt(m.amount)} €</span></div>`).join('') || '<div class="empty">баланс сходится — переносить нечего</div>'}
-  </div>` })() : ''}
   ${!tgt && d.byType.length ? `
   <div class="card">
     <div class="meta" style="margin-bottom:6px">АЛЛОКАЦИЯ ПО ТИПАМ АКТИВОВ (⊙ у строки — задать тип)</div>
