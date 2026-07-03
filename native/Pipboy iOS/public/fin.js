@@ -75,7 +75,7 @@ function portRows(it, depth, ctx) {
     const factEur = ctx?.factByName?.[(it.name || '').trim().toLowerCase()];
     const cur = it.currency ?? '€';
     const goalCell = editable
-      ? `<td class="r num acc"><span class="meta">${cur}</span> <span class="ed" data-fe="tgt:${it.id}:value:num" title="целевая сумма (клик)">${it.value != null ? fmt(it.value) : '—'}</span></td>`
+      ? `<td class="r num acc"><span class="pill btn" data-fcur="${it.id}:${cur}" title="сменить валюту">${cur}</span> <span class="ed" data-fe="tgt:${it.id}:value:num" title="целевая сумма (клик)">${it.value != null ? fmt(it.value) : '—'}</span></td>`
       : `<td class="r num acc">${fmtE(it.eur)}</td>`;
     cells = `${goalCell}
       <td class="r num muted">${factEur != null ? fmtE(factEur) : '—'}</td>
@@ -908,7 +908,8 @@ function bindFin() {
   document.querySelectorAll('[data-fcur]').forEach(el =>
     el.addEventListener('click', async () => {
       const [id, cur] = el.dataset.fcur.split(':');
-      await finApi.patch('items', +id, { currency: cur === '€' ? '$' : '€' });
+      const ent = finTab === 'target' ? 'tgt' : 'items';
+      await finApi.patch(ent, +id, { currency: cur === '€' ? '$' : '€' });
       window.loadFin();
     }));
   document.querySelectorAll('[data-fadd]').forEach(el =>
