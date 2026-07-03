@@ -51,6 +51,7 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         }
         _ = try? made.run("CREATE TABLE IF NOT EXISTS target_items(id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, ord INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL DEFAULT 'asset', value REAL, buy_value REAL, target_value REAL, currency TEXT NOT NULL DEFAULT '€', asset_type TEXT, qty REAL, rate_symbol TEXT, note TEXT)")
         Api.initTargetFromFact(made)   // первый раз — копируем структуру фактического портфеля в целевой
+        _ = try? made.run("UPDATE target_items SET rate_symbol = NULL, qty = NULL WHERE rate_symbol IS NOT NULL")   // целевой — плановые суммы, без автоцены (иначе не отредактировать)
         Api.ensureSpheresSchema(made)   // таблицы сфер (area_milestones/area_questions) — до sync-схемы, чтобы им добавились updated_at/триггеры
         Api.ensureSyncSchema(made)   // updated_at + триггеры + tombstones — отслеживание правок для синхрона
         Api.ensureThoughtTesting(made)   // техника «Тестирование мыслей» (КПТ) — один раз
@@ -1783,10 +1784,12 @@ enum Api {
             for r in rows {
                 let oldParent = numOpt(r["parent_id"]).map { Int($0) }
                 let newParent: Any? = oldParent.flatMap { map[$0] }
-                if let newId = try? db.run("INSERT INTO target_items(parent_id, ord, name, kind, value, buy_value, target_value, currency, asset_type, qty, rate_symbol, note) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+                // rate_symbol/qty НЕ копируем: в целевом (плановом) не нужна автоцена — иначе она перебивает плановую сумму.
+                // value берём как стартовую плановую (для авто-активов — текущая рыночная как ориентир).
+                let startVal = r["value"] ?? NSNull()
+                if let newId = try? db.run("INSERT INTO target_items(parent_id, ord, name, kind, value, currency, asset_type, note) VALUES(?,?,?,?,?,?,?,?)",
                     [newParent ?? NSNull(), intval(r["ord"]), r["name"] ?? "", r["kind"] ?? "asset",
-                     r["value"] ?? NSNull(), r["buy_value"] ?? NSNull(), r["target_value"] ?? NSNull(),
-                     r["currency"] ?? "€", r["asset_type"] ?? NSNull(), r["qty"] ?? NSNull(), r["rate_symbol"] ?? NSNull(), r["note"] ?? NSNull()]) {
+                     startVal, r["currency"] ?? "€", r["asset_type"] ?? NSNull(), r["note"] ?? NSNull()]) {
                     map[intval(r["id"])] = newId
                 }
             }
