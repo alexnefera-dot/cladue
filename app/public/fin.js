@@ -281,7 +281,7 @@ function secPortfolio(d, s) {
     const byId = {};
     const mapIds = (ns, pre) => (ns || []).forEach(n => { const p = pre + '/' + (n.name || '').trim().toLowerCase(); byId[n.id] = { path: p, name: n.name, cur: n.currency ?? '€' }; mapIds(n.children, p); });
     mapIds(tree, '');
-    const rate = d.rate || 1.08;
+    const rate = s.rate || d.rate || 1.08;   // курс лежит в summary (s.rate), не в d
     const inCur = (eur, cur) => cur === '$' ? eur * rate : eur;   // amount хранится в €, показываем в валюте стороны
     rctx.movesBySrc = {}; rctx.movesByDst = {};
     (d.targetMoves || []).forEach(mv => {
