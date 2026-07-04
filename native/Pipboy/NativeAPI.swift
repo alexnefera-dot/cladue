@@ -2345,6 +2345,21 @@ enum Api {
         let budgetItems = try db.rows("SELECT * FROM budget_items ORDER BY direction DESC, ord, id")   // дефолтные расходы/доходы (списком)
         let targetPortfolio = try portfolioTree(db, "target_items")   // целевой портфель — отдельное дерево (та же структура, своё наполнение)
         let targetMoves = try db.rows("SELECT * FROM target_moves")   // ручные связки ребаланса (откуда→куда)
+        // аллокация по типам активов для целевого (как в факте)
+        var tByType: [String: Double] = [:]
+        var tByTypeBlocks: [String: [String: Double]] = [:]
+        func walkTypeT(_ n: [String: Any], _ rootName: String) {
+            let children = n["children"] as? [[String: Any]] ?? []
+            let isLeaf = (n["kind"] as? String) == "asset" || children.isEmpty
+            if isLeaf, let e = n["eur"] as? Double, e != 0 {
+                let ty = n["asset_type"] as? String ?? "без типа"
+                tByType[ty, default: 0] += e
+                tByTypeBlocks[ty, default: [:]][rootName, default: 0] += e
+            }
+            for c in children { walkTypeT(c, rootName) }
+        }
+        for b in targetPortfolio { walkTypeT(b, b["name"] as? String ?? "") }
+        let tByTypeSorted: [[Any]] = tByType.sorted { $0.value > $1.value }.map { [$0.key, $0.value] }
         let rates = try db.rows("SELECT * FROM rates")
         let result: [String: Any] = [
             "accounts": accounts, "portfolio": portfolio, "steps": steps,
@@ -2352,7 +2367,7 @@ enum Api {
             "snapshotDelta": snapshotDelta,
             "byType": byTypeSorted, "byTypeBlocks": byTypeBlocks, "blockEur": blockEur,
             "tx": tx, "forecasts": fc, "properties": props, "fire": fireV,
-            "income": income, "budget": budget, "budgetItems": budgetItems, "targetPortfolio": targetPortfolio, "targetMoves": targetMoves, "macro": macro, "rates": rates,
+            "income": income, "budget": budget, "budgetItems": budgetItems, "targetPortfolio": targetPortfolio, "targetMoves": targetMoves, "targetByType": tByTypeSorted, "targetByTypeBlocks": tByTypeBlocks, "macro": macro, "rates": rates,
             "summary": summary,
         ]
         return try json(result)
