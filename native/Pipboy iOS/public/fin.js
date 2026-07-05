@@ -641,8 +641,8 @@ function secPlans(d) {
         amount: `<span class="ed" data-fe="obligations:${o.id}:amount:num">${fmt(o.amount)} ${fesc(o.currency)}</span>`,
         meta: `<span class="meta">/ ${PERIOD[o.period]}</span>`
           + (o.next_date
-            ? `<span class="ed meta ${o.days_left <= o.remind_days ? 'amber' : ''}" data-fe="obligations:${o.id}:next_date:date">${o.next_date} (${o.days_left} дн.)</span>`
-            : `<span class="ed meta" data-fe="obligations:${o.id}:next_date:date">+дата</span>`),
+            ? `<span class="ed meta ${o.days_left <= o.remind_days ? 'amber' : ''}" data-obldt="${o.id}" data-obltime="${o.due_time ?? ''}">${o.next_date}${o.due_time ? ' · ' + o.due_time : ''} (${o.days_left} дн.)</span>`
+            : `<span class="ed meta" data-obldt="${o.id}" data-obltime="">+дата</span>`),
         actions: (o.next_date ? `<span class="pill btn ok" data-oblpay="${o.id}">✓</span>` : '')
           + `<span class="rowbtn del" data-findel="obligations:${o.id}">✕</span>`,
       }) : `
@@ -651,9 +651,9 @@ function secPlans(d) {
         <span class="t ed" data-fe="obligations:${o.id}:name:text">${fesc(o.name)}</span>
         <span class="ed meta num" data-fe="obligations:${o.id}:amount:num">${fmt(o.amount)} ${fesc(o.currency)} / ${PERIOD[o.period]}</span>
         ${o.next_date
-          ? `<span class="ed meta ${o.days_left <= o.remind_days ? 'amber' : ''}" data-fe="obligations:${o.id}:next_date:date">${o.next_date} (${o.days_left} дн.)</span>
+          ? `<span class="ed meta ${o.days_left <= o.remind_days ? 'amber' : ''}" data-obldt="${o.id}" data-obltime="${o.due_time ?? ''}" title="дата и время — клик">${o.next_date}${o.due_time ? ' · ' + o.due_time : ''} (${o.days_left} дн.)</span>
              <span class="pill btn ok" data-oblpay="${o.id}">✓</span>`
-          : `<span class="ed meta" data-fe="obligations:${o.id}:next_date:date">+дата</span>`}
+          : `<span class="ed meta" data-obldt="${o.id}" data-obltime="" title="дата и время — клик">+дата</span>`}
         <span class="rowbtn del" data-findel="obligations:${o.id}">✕</span>
       </div>`).join('')}
     <div class="task finadd">
@@ -1060,6 +1060,17 @@ function bindFin() {
     el.addEventListener('click', () => window.openNode(+el.dataset.stepopen)));
   document.querySelectorAll('[data-oblpay]').forEach(el =>
     el.addEventListener('click', async () => { await finApi.pay(+el.dataset.oblpay); window.loadFin(); }));
+  document.querySelectorAll('[data-obldt]').forEach(el =>
+    el.addEventListener('click', async e => {   // дата + время платежа (как срок задачи)
+      e.stopPropagation();
+      const cur = (el.textContent.trim().match(/^\d{4}-\d{2}-\d{2}/) || [null])[0];
+      const curTime = /^\d{2}:\d{2}$/.test(el.dataset.obltime || '') ? el.dataset.obltime : '';
+      const v = await window.pickDate(cur, { title: 'Дата и время платежа', withTime: true, time: curTime });
+      if (v === undefined) return;
+      await fetch('/api/fin/obligations/' + el.dataset.obldt, { method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ next_date: v.date || null, due_time: v.date ? (v.time || null) : null }) });
+      window.loadFin();
+    }));
   // займы, типы, автоцена
   document.querySelectorAll('[data-loanflag]').forEach(el =>
     el.addEventListener('click', async () => {
