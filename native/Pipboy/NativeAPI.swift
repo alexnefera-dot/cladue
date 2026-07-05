@@ -3119,6 +3119,13 @@ enum Api {
                 let del = (tomb["deleted_at"] as? String) ?? ""
                 let rk = "\(rkAny)"
                 if let localTs = scalarStr(db, "SELECT updated_at FROM \(t) WHERE \(key)=?", [rkAny]), del > localTs {
+                    // удаление практики-дубля с одного устройства не должно уносить журнал/расписание на этом:
+                    // сперва переносим practice_log на одноимённую оставшуюся практику (иначе ON DELETE CASCADE
+                    // сотрёт записи, а их tombstone уедет обратно и удалит уже слитые — дневник пустел)
+                    if t == "practices", let nm = scalarStr(db, "SELECT name FROM practices WHERE id=?", [rkAny]),
+                       let keep = (try? db.rows("SELECT MIN(id) AS k FROM practices WHERE name=? AND id<>?", [nm, rkAny]))?.first?["k"], !(keep is NSNull) {
+                        try? db.run("UPDATE practice_log SET practice_id=? WHERE practice_id=?", [intval(keep), rkAny])
+                    }
                     try db.run("DELETE FROM \(t) WHERE \(key)=?", [rkAny]); changed += 1   // триггер запишет локальный tombstone
                 }
                 let cur = scalarStr(db, "SELECT deleted_at FROM sync_tombstones WHERE tbl=? AND row_key=?", [t, rk])
