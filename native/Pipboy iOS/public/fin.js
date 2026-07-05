@@ -620,7 +620,7 @@ function secPlans(d) {
     </div>
   </div>
 
-  <div class="sec">Обязательства, подписки и плановые траты · «✓» = оплачено</div>
+  <div class="sec">Обязательства, подписки и плановые траты · «✓» = оплачено · 🕐 клик по дате = дата и время</div>
   <div class="card">
     ${(() => {
       const rate = (d.rates.find(r => r.symbol === 'EURUSD')?.price) || 1.08;
