@@ -238,6 +238,19 @@ function taskLine(t) {
   </div>`;
 }
 
+// обязательство (платёж) — наравне с задачей: «оплатить» двигает дату на следующий период
+function obLine(o) {
+  const amt = Math.round(Number(o.amount) || 0).toLocaleString('ru-RU');
+  return `<div class="task">
+    <span class="pill p2" title="финансовое обязательство">◈ платёж</span>
+    <span class="t" data-tdopen-ob="${o.id}" style="cursor:pointer">${tesc(o.name)}</span>
+    <span class="meta num">${amt} ${tesc(o.currency || '€')}</span>
+    ${o.overdue_days ? `<span class="meta" style="color:var(--red)">просрочено ${o.overdue_days}д</span>` : ''}
+    <span class="meta ed" data-obdate="${o.id}" data-obtime="${o.due_time ?? ''}" title="изменить дату и время">${o.next_date || '＋ дата'}${o.due_time ? ' · ' + o.due_time : ''}</span>
+    <span class="pill btn ok" data-obpay="${o.id}" title="оплачено — сдвинуть на следующий период">оплатить ✓</span>
+  </div>`;
+}
+
 // pre-flight для P0/P1 (данные приоритета — в today payload)
 window.preflightTodayOk = async function (id) {
   const all = [...(tdData?.overdue ?? []), ...(tdData?.dueToday ?? [])];
@@ -311,11 +324,11 @@ function renderToday() {
       ${rts.length > 5 ? `<div class="meta" style="cursor:pointer" data-tdgoto="routines">все ${rts.length} →</div>` : ''}</div>
   </div>
 
-  ${d.overdue.length ? `<div class="sec" style="color:var(--red)">⚠ Просрочено</div>
-  <div class="card">${d.overdue.map(taskLine).join('')}</div>` : ''}
+  ${d.overdue.length || (d.obOverdue || []).length ? `<div class="sec" style="color:var(--red)">⚠ Просрочено</div>
+  <div class="card">${d.overdue.map(taskLine).join('')}${(d.obOverdue || []).map(obLine).join('')}</div>` : ''}
 
   <div class="sec">Задачи на сегодня</div>
-  <div class="card">${d.dueToday.map(taskLine).join('') ||
+  <div class="card">${(d.dueToday.map(taskLine).join('') + (d.obToday || []).map(obLine).join('')) ||
     '<div class="empty">сроков на сегодня нет — поставь дедлайны в Задачах</div>'}</div>
 
   ${tdMetricsDue()}
@@ -399,7 +412,7 @@ function renderTodayMobile() {
   ${tdRest()}
 
   <div class="tdchips">
-    <div class="tdchip ${d.overdue.length ? 'red' : ''}"><b>${d.dueToday.length + d.overdue.length}</b><span>дел${d.overdue.length ? ` · ${d.overdue.length} просроч.` : ''}</span></div>
+    <div class="tdchip ${d.overdue.length || (d.obOverdue || []).length ? 'red' : ''}"><b>${d.dueToday.length + d.overdue.length + (d.obToday || []).length + (d.obOverdue || []).length}</b><span>дел${d.overdue.length + (d.obOverdue || []).length ? ` · ${d.overdue.length + (d.obOverdue || []).length} просроч.` : ''}</span></div>
     <div class="tdchip"><b>${rDone}/${d.routines.length}</b><span>рутины</span></div>
     <div class="tdchip"><b>${d.movement.total}</b><span>за неделю 👏</span></div>
   </div>
@@ -417,11 +430,11 @@ function renderTodayMobile() {
   </div>
   <div id="tdRollBox" style="margin:0 0 8px"></div>
 
-  ${d.overdue.length ? `<div class="sec" style="color:var(--red)">⚠ Просрочено</div>
-  <div class="card">${d.overdue.map(mTask).join('')}</div>` : ''}
+  ${d.overdue.length || (d.obOverdue || []).length ? `<div class="sec" style="color:var(--red)">⚠ Просрочено</div>
+  <div class="card">${d.overdue.map(mTask).join('')}${(d.obOverdue || []).map(obLine).join('')}</div>` : ''}
 
   <div class="sec">Задачи на сегодня</div>
-  <div class="card">${d.dueToday.map(mTask).join('') ||
+  <div class="card">${(d.dueToday.map(mTask).join('') + (d.obToday || []).map(obLine).join('')) ||
     '<div class="empty">сроков на сегодня нет</div>'}</div>
 
   <div class="sec">Рутины · ${rDone}/${rts.length}</div>
@@ -562,6 +575,25 @@ function bindToday() {
         headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       window.loadToday();
     }));
+  document.querySelectorAll('#screen-today [data-obpay]').forEach(el =>
+    el.addEventListener('click', async () => {   // оплачено — сдвинуть дату на следующий период (или снять, если разовое)
+      await fetch('/api/fin/obligations/' + el.dataset.obpay + '/pay', { method: 'POST' });
+      window.loadToday();
+    }));
+  document.querySelectorAll('#screen-today [data-obdate]').forEach(el =>
+    el.addEventListener('click', async e => {
+      e.stopPropagation();
+      const cur = (el.textContent.trim().match(/^\d{4}-\d{2}-\d{2}/) || [null])[0];
+      const curTime = /^\d{2}:\d{2}$/.test(el.dataset.obtime || '') ? el.dataset.obtime : '';
+      const v = await window.pickDate(cur, { title: 'Дата и время платежа', withTime: true, time: curTime });
+      if (v === undefined) return;
+      const body = { next_date: v.date || null, due_time: v.date ? (v.time || null) : null };  // время без даты не имеет смысла
+      await fetch('/api/fin/obligations/' + el.dataset.obdate, { method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      window.loadToday();
+    }));
+  document.querySelectorAll('#screen-today [data-tdopen-ob]').forEach(el =>
+    el.addEventListener('click', () => showScreen('fin')));
   document.querySelectorAll('#screen-today [data-tdgoto]').forEach(el =>
     el.addEventListener('click', () => showScreen(el.dataset.tdgoto)));
   document.querySelectorAll('#screen-today [data-tdmood]').forEach(el =>

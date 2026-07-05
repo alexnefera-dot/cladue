@@ -32,6 +32,7 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         _ = try? made.run("ALTER TABLE nodes ADD COLUMN due_time TEXT")  // миграция: время у задач (тихо, если уже есть)
         _ = try? made.run("ALTER TABLE nodes ADD COLUMN answer TEXT")    // формулировка решения — buildSpheres селектит явно, без неё сферы падали
         _ = try? made.run("ALTER TABLE nodes ADD COLUMN \"repeat\" TEXT") // повтор задачи (weekly|monthly|yearly)
+        _ = try? made.run("ALTER TABLE obligations ADD COLUMN due_time TEXT")  // миграция: время у обязательств (как due_time задач)
         _ = try? made.run("ALTER TABLE routines ADD COLUMN days TEXT NOT NULL DEFAULT ''")  // дни недели рутины (пусто = каждый день)
         _ = try? made.run("ALTER TABLE passive_income ADD COLUMN principal REAL NOT NULL DEFAULT 0")    // тело инвестиции/депозита
         _ = try? made.run("ALTER TABLE passive_income ADD COLUMN rate REAL NOT NULL DEFAULT 0")         // % доходности
@@ -1358,7 +1359,7 @@ enum Api {
         "accounts": ["name", "type", "currency", "note", "balance"],
         "classes": ["name", "value", "target_pct", "note"],
         "steps": ["kind", "title", "amount", "planned_date", "condition", "status", "note"],
-        "obligations": ["name", "amount", "currency", "period", "next_date", "remind_days", "kind", "note"],
+        "obligations": ["name", "amount", "currency", "period", "next_date", "remind_days", "kind", "note", "due_time"],
         "items": ["name", "buy_value", "value", "target_value", "currency", "is_loan", "loan_due", "asset_type", "qty", "rate_symbol", "note"],
         "tx": ["date", "amount", "currency", "direction", "category", "note"],
         "debts": ["name", "amount", "currency", "direction", "due_date", "note"],
@@ -1473,9 +1474,9 @@ enum Api {
             try db.run("INSERT INTO steps(kind, title, amount, planned_date, condition, note) VALUES(?,?,?,?,?,?)",
                 [b["kind"] as? String ?? "buy", b["title"] as? String ?? "", b["amount"] ?? NSNull(), b["planned_date"] ?? NSNull(), b["condition"] as? String ?? "", b["note"] as? String ?? ""])
         case "obligations":
-            try db.run("INSERT INTO obligations(name, amount, currency, period, next_date, remind_days, kind, note) VALUES(?,?,?,?,?,?,?,?)",
+            try db.run("INSERT INTO obligations(name, amount, currency, period, next_date, remind_days, kind, note, due_time) VALUES(?,?,?,?,?,?,?,?,?)",
                 [b["name"] as? String ?? "", num(b["amount"]), b["currency"] as? String ?? "€", b["period"] as? String ?? "monthly",
-                 b["next_date"] ?? NSNull(), intval(b["remind_days"] ?? 5), b["kind"] as? String ?? "liability", b["note"] as? String ?? ""])
+                 b["next_date"] ?? NSNull(), intval(b["remind_days"] ?? 5), b["kind"] as? String ?? "liability", b["note"] as? String ?? "", b["due_time"] ?? NSNull()])
         case "items":
             let parent = numOpt(b["parent_id"]).map { Int($0) }
             let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM portfolio_items WHERE parent_id IS ?", [parent]).first?["o"]))
@@ -2568,6 +2569,12 @@ enum Api {
         }
         let overdue = try taskRows("due_date < ?")
         let dueToday = try taskRows("due_date = ?")
+        // обязательства с подошедшей/просроченной датой — наравне с задачами (пока не оплачены — оплата двигает next_date вперёд)
+        let obToday = try db.rows("SELECT id, name, amount, currency, next_date, due_time, period, kind FROM obligations WHERE next_date = ? ORDER BY due_time IS NULL, due_time", [t])
+        var obOverdue = try db.rows("SELECT id, name, amount, currency, next_date, due_time, period, kind FROM obligations WHERE next_date < ? ORDER BY next_date", [t])
+        for i in obOverdue.indices {
+            obOverdue[i]["overdue_days"] = (obOverdue[i]["next_date"] as? String).flatMap { dayDiff($0, t) }.map { Int(floor($0)) } ?? NSNull()
+        }
         // лента: текущий + следующий месяц, без дублей
         let ym = String(t.prefix(7))
         let nextYm = String(addMonths(ym + "-01", 1).prefix(7))
@@ -2621,7 +2628,7 @@ enum Api {
             "activityMonth": (try db.rows("SELECT value FROM settings WHERE key = 'activity_month'").first?["value"]) ?? NSNull(),
             "focusOrder": (try db.rows("SELECT value FROM settings WHERE key = 'focus_order'").first?["value"]) ?? NSNull(),
             "routines": sortRoutines(routinesArr),
-            "overdue": overdue, "dueToday": dueToday, "week": week, "events": events,
+            "overdue": overdue, "dueToday": dueToday, "obToday": obToday, "obOverdue": obOverdue, "week": week, "events": events,
             "zones": ["paymentsWeek": payments7.count, "debtsOverdue": debtsOverdue.count, "practicesToday": practicesToday],
             "people": ["birthdays": Array(bdays), "overdueContacts": Array(overdueContacts)],
             "movement": try movement(db),

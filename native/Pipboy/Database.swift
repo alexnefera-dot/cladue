@@ -182,7 +182,7 @@ final class Database {
           currency TEXT NOT NULL DEFAULT '€', period TEXT NOT NULL DEFAULT 'monthly',
           next_date TEXT, remind_days INTEGER NOT NULL DEFAULT 5,
           kind TEXT NOT NULL DEFAULT 'liability', note TEXT NOT NULL DEFAULT '',
-          property_id INTEGER
+          property_id INTEGER, due_time TEXT
         );
         CREATE TABLE IF NOT EXISTS portfolio_items(
           id INTEGER PRIMARY KEY,
