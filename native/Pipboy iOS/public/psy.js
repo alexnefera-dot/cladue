@@ -21,7 +21,12 @@ const PSY_CATS = ['обучение', 'мотивация', 'убеждения'
 const psyCatOf = p => PSY_CATS.includes(p.category) ? p.category : 'разное';
 const DAYSL = { daily: 'каждый день', workdays: 'раб. дни' };
 const PSY_WD = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
-const daysLabel = d => !d ? 'без расписания' : (DAYSL[d] ?? d.split(',').map(x => PSY_WD[+x - 1]).join('/'));
+const daysLabel = d => {
+  if (!d || !String(d).trim()) return 'без расписания';
+  if (DAYSL[d]) return DAYSL[d];
+  const s = String(d).split(',').map(x => PSY_WD[+x - 1]).filter(Boolean).join('/');   // отбрасываем мусорные/битые дни
+  return s || 'без расписания';
+};
 
 window.loadPsy = async function () {
   psyData = await psyApi.get();
