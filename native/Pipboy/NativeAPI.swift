@@ -2940,7 +2940,10 @@ enum Api {
         _ = try? db.run("CREATE TABLE IF NOT EXISTS event_done(event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE, date TEXT NOT NULL, UNIQUE(event_id, date))")
         for (t, k) in syncKeyed {
             _ = try? db.run("ALTER TABLE \(t) ADD COLUMN updated_at TEXT")          // тихо, если уже есть
-            _ = try? db.run("UPDATE \(t) SET updated_at = datetime('now','localtime') WHERE updated_at IS NULL")
+            // строки без времени (до sync-эры) помечаем ДРЕВНЕЙ датой, НЕ now: иначе при первом запуске
+            // sync-версии все строки разом «свежеют» и затирают реальные правки другого устройства (портфель
+            // откатывался к старым суммам). Древняя дата → любая настоящая правка выигрывает LWW.
+            _ = try? db.run("UPDATE \(t) SET updated_at = '2000-01-01 00:00:00' WHERE updated_at IS NULL")
             // новая строка из приложения без времени → проставить (merge-вставки время задают сами)
             _ = try? db.run("""
                 CREATE TRIGGER IF NOT EXISTS \(t)_stamp AFTER INSERT ON \(t)
