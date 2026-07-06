@@ -3194,7 +3194,13 @@ enum Api {
             // Иначе правка одного поля на одном устройстве стирала бы поля, заполненные только на другом
             // (так терялись валюты в портфеле, суммы/названия расходов). Числовой 0 пустым НЕ считается.
             let local = (try? db.rows("SELECT * FROM \(t) WHERE \(keyCol) = ?", [rk]))?.first ?? [:]
-            func empty(_ v: Any?) -> Bool { v == nil || v is NSNull || (v as? String)?.isEmpty == true }
+            // пустое: NULL/'' и «пустые» JSON-контейнеры ('[]'/'{}') — иначе пустой дневник ('[]' в answers)
+            // или пустые steps с одного устройства затирали заполненный текст на другом
+            func empty(_ v: Any?) -> Bool {
+                if v == nil || v is NSNull { return true }
+                if let s = (v as? String)?.trimmingCharacters(in: .whitespaces) { return s.isEmpty || s == "[]" || s == "{}" }
+                return false
+            }
             var setCols: [String] = []; var setVals: [Any?] = []
             for c in cols where c != keyCol {
                 let inV = r[c]
