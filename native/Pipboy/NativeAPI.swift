@@ -28,6 +28,11 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         while key == nil && tries < 50 { usleep(100_000); key = KeyHolder.shared.key; tries += 1 }
         guard let k = key else { throw Database.Failure.open(0) }
         let made = try Database(key: k)
+        // Служебные старт-операции (миграции, дедуп, applyTargetMoves, дефолты) не должны омолаживать updated_at:
+        // touch-триггеры персистентны, и со 2-го запуска они бы метили ВЕСЬ тронутый портфель временем «сейчас» —
+        // тогда позже запущенное устройство ложно «свежеет» и затирает другое при синхроне. Снимаем их здесь;
+        // ensureSyncSchema ниже пересоздаст. После этого updated_at двигают только реальные правки пользователя (runtime).
+        for (t, _) in Api.syncKeyed { _ = try? made.run("DROP TRIGGER IF EXISTS \(t)_touch") }
         _ = try? made.run("DELETE FROM trash WHERE created_at < datetime('now','-30 days')")  // авто-очистка корзины
         _ = try? made.run("ALTER TABLE nodes ADD COLUMN due_time TEXT")  // миграция: время у задач (тихо, если уже есть)
         _ = try? made.run("ALTER TABLE nodes ADD COLUMN answer TEXT")    // формулировка решения — buildSpheres селектит явно, без неё сферы падали
@@ -3296,7 +3301,11 @@ enum Api {
             _ = try? db.run("ROLLBACK")
             throw error
         }
-        if changed > 0 { dedupePractices(db); dedupeTreeItems(db, "portfolio_items", nil); dedupeTreeItems(db, "target_items", "target_moves") }   // свести дубли практик, факта и целевого, принесённые синхроном (разные id)
+        if changed > 0 {   // свести дубли практик, факта и целевого, принесённые синхроном (разные id)
+            for (t, _) in syncKeyed { _ = try? db.run("DROP TRIGGER IF EXISTS \(t)_touch") }   // дедуп не должен омолаживать updated_at
+            dedupePractices(db); dedupeTreeItems(db, "portfolio_items", nil); dedupeTreeItems(db, "target_items", "target_moves")
+            ensureSyncSchema(db)   // вернуть touch-триггеры
+        }
         // фронт принимаем ТОЛЬКО от уже доверенного устройства: не давать незнакомому пиру
         // в окне первой связки подменить веб-интерфейс (= исполнение кода в WebView)
         if applyWeb, let web = snapshot["web"] as? [String: String], !web.isEmpty { try? applyFrontend(web) }
