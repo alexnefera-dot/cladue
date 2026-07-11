@@ -62,8 +62,9 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
             _ = try? made.run("UPDATE settings SET value = '' WHERE key = 'target_seed_v1'")   // сброс флага → initTargetFromFact заполнит заново
             _ = try? Api.setSetting(made, "target_reset_v2", "1")
         }
+        Api.dedupeTreeItems(made, "portfolio_items", nil)   // сначала чистим ФАКТ от дублей (синхрон с разными id)
         Api.initTargetFromFact(made)   // первый раз (и после сброса) — копируем структуру фактического портфеля в целевой
-        Api.dedupeTargetItems(made)    // свести дубли категорий целевого (появляются после синхрона с разными id)
+        Api.dedupeTreeItems(made, "target_items", "target_moves")   // и целевой
         _ = try? made.run("UPDATE target_items SET rate_symbol = NULL, qty = NULL WHERE rate_symbol IS NOT NULL")   // целевой — плановые суммы, без автоцены (иначе не отредактировать)
         _ = try? made.run("UPDATE target_items SET target_value = value WHERE target_value IS NULL AND value IS NOT NULL")   // план по умолчанию = текущая стоимость (пока не задан вручную)
         Api.ensureSpheresSchema(made)   // таблицы сфер (area_milestones/area_questions) — до sync-схемы, чтобы им добавились updated_at/триггеры
@@ -1832,23 +1833,32 @@ enum Api {
         _ = try? setSetting(db, "target_seed_v1", "1")
     }
 
-    // Свести дубли категорий/позиций целевого (одинаковый parent+name с разными id — расходятся после синхрона
-    // Mac↔iPhone). Оставляем min(id); детей и связки ребаланса переносим на keep, лишние удаляем. Цикл: слияние
-    // одного уровня может открыть дубли уровнем ниже. Идемпотентно (нет дублей → выходим).
-    static func dedupeTargetItems(_ db: Database) {
+    // Свести дубли категорий/позиций дерева портфеля (одинаковый parent + имя, но разные id — расходятся после
+    // синхрона Mac↔iPhone). Имя сравниваем без учёта регистра и крайних пробелов. Оставляем min(id); заполненные
+    // поля, детей и связки переносим на keep, лишние удаляем. Цикл: слияние уровня может открыть дубли ниже.
+    static func dedupeTreeItems(_ db: Database, _ table: String, _ movesTable: String?) {
+        let mergeCols = ["value", "buy_value", "target_value", "asset_type", "region", "note", "rate_symbol", "qty"]
         for _ in 0..<30 {
-            guard let groups = try? db.rows("SELECT parent_id, name, COUNT(*) AS c, MIN(id) AS keep FROM target_items GROUP BY IFNULL(parent_id, -1), name HAVING c > 1"),
+            guard let groups = try? db.rows("SELECT MIN(id) AS keep, COUNT(*) AS c FROM \(table) GROUP BY IFNULL(parent_id,-1), LOWER(TRIM(name)) HAVING c > 1"),
                   !groups.isEmpty else { return }
             for g in groups {
                 let keep = intval(g["keep"])
-                guard let dups = try? db.rows("SELECT id FROM target_items WHERE IFNULL(parent_id,-1) = IFNULL(?,-1) AND name = ? AND id <> ?",
-                    [g["parent_id"] ?? NSNull(), g["name"] ?? "", keep]) else { continue }
+                guard let kp = (try? db.rows("SELECT parent_id, name FROM \(table) WHERE id=?", [keep]))?.first,
+                      let dups = try? db.rows("SELECT * FROM \(table) WHERE IFNULL(parent_id,-1)=IFNULL(?,-1) AND LOWER(TRIM(name))=LOWER(TRIM(?)) AND id<>?",
+                        [kp["parent_id"] ?? NSNull(), kp["name"] as? String ?? "", keep]) else { continue }
                 for d in dups {
                     let did = intval(d["id"])
-                    try? db.run("UPDATE target_items SET parent_id = ? WHERE parent_id = ?", [keep, did])   // детей на keep
-                    try? db.run("UPDATE target_moves SET from_id = ? WHERE from_id = ?", [keep, did])       // связки ребаланса
-                    try? db.run("UPDATE target_moves SET to_id = ? WHERE to_id = ?", [keep, did])
-                    try? db.run("DELETE FROM target_items WHERE id = ?", [did])
+                    for c in mergeCols {   // подтянуть заполненное с дубля, если у keep пусто (не теряем суммы/тип/регион)
+                        if let v = d[c], !(v is NSNull), !((v as? String)?.isEmpty ?? false) {
+                            try? db.run("UPDATE \(table) SET \(c)=? WHERE id=? AND (\(c) IS NULL OR \(c)='')", [v, keep])
+                        }
+                    }
+                    try? db.run("UPDATE \(table) SET parent_id=? WHERE parent_id=?", [keep, did])   // детей на keep
+                    if let mt = movesTable {
+                        try? db.run("UPDATE \(mt) SET from_id=? WHERE from_id=?", [keep, did])       // связки ребаланса
+                        try? db.run("UPDATE \(mt) SET to_id=? WHERE to_id=?", [keep, did])
+                    }
+                    try? db.run("DELETE FROM \(table) WHERE id=?", [did])
                 }
             }
         }
@@ -3169,12 +3179,14 @@ enum Api {
                        let keep = (try? db.rows("SELECT MIN(id) AS k FROM practices WHERE name=? AND id<>?", [nm, rkAny]))?.first?["k"], !(keep is NSNull) {
                         try? db.run("UPDATE practice_log SET practice_id=? WHERE practice_id=?", [intval(keep), rkAny])
                     }
-                    // то же для целевого: удаление дубля-категории не должно уносить вложенные позиции/связки
-                    if t == "target_items", let info = try? db.rows("SELECT parent_id, name FROM target_items WHERE id=?", [rkAny]).first,
-                       let keep = (try? db.rows("SELECT MIN(id) AS k FROM target_items WHERE IFNULL(parent_id,-1)=IFNULL(?,-1) AND name=? AND id<>?", [info["parent_id"] ?? NSNull(), info["name"] ?? "", rkAny]))?.first?["k"], !(keep is NSNull) {
-                        try? db.run("UPDATE target_items SET parent_id=? WHERE parent_id=?", [intval(keep), rkAny])
-                        try? db.run("UPDATE target_moves SET from_id=? WHERE from_id=?", [intval(keep), rkAny])
-                        try? db.run("UPDATE target_moves SET to_id=? WHERE to_id=?", [intval(keep), rkAny])
+                    // то же для факта и целевого: удаление дубля-категории не должно уносить вложенные позиции/связки
+                    if t == "portfolio_items" || t == "target_items", let info = try? db.rows("SELECT parent_id, name FROM \(t) WHERE id=?", [rkAny]).first,
+                       let keep = (try? db.rows("SELECT MIN(id) AS k FROM \(t) WHERE IFNULL(parent_id,-1)=IFNULL(?,-1) AND LOWER(TRIM(name))=LOWER(TRIM(?)) AND id<>?", [info["parent_id"] ?? NSNull(), info["name"] ?? "", rkAny]))?.first?["k"], !(keep is NSNull) {
+                        try? db.run("UPDATE \(t) SET parent_id=? WHERE parent_id=?", [intval(keep), rkAny])
+                        if t == "target_items" {
+                            try? db.run("UPDATE target_moves SET from_id=? WHERE from_id=?", [intval(keep), rkAny])
+                            try? db.run("UPDATE target_moves SET to_id=? WHERE to_id=?", [intval(keep), rkAny])
+                        }
                     }
                     try db.run("DELETE FROM \(t) WHERE \(key)=?", [rkAny]); changed += 1   // триггер запишет локальный tombstone
                 }
@@ -3204,7 +3216,7 @@ enum Api {
             _ = try? db.run("ROLLBACK")
             throw error
         }
-        if changed > 0 { dedupePractices(db); dedupeTargetItems(db) }   // свести дубли практик и категорий целевого, принесённые синхроном (разные id с разных устройств)
+        if changed > 0 { dedupePractices(db); dedupeTreeItems(db, "portfolio_items", nil); dedupeTreeItems(db, "target_items", "target_moves") }   // свести дубли практик, факта и целевого, принесённые синхроном (разные id)
         // фронт принимаем ТОЛЬКО от уже доверенного устройства: не давать незнакомому пиру
         // в окне первой связки подменить веб-интерфейс (= исполнение кода в WebView)
         if applyWeb, let web = snapshot["web"] as? [String: String], !web.isEmpty { try? applyFrontend(web) }
