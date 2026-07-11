@@ -946,13 +946,18 @@ window.preflightOk = async function (id) {
 
 // ===== Настройки: корзина, экспорт, бэкап =====
 window.loadSettings = async function () {
-  const [rows, info] = await Promise.all([
+  const [rows, info, ver] = await Promise.all([
     fetch('/api/trash').then(x => x.json()),
     fetch('/api/info').then(x => x.json()).catch(() => ({})),
+    fetch('/api/version').then(x => x.json()).catch(() => ({})),
   ]);
   document.getElementById('screen-settings').innerHTML = `
   <h2 style="margin-bottom:2px">Настройки</h2>
   <div class="muted" style="margin-bottom:14px">данные принадлежат тебе: корзина, экспорт в открытые форматы, бэкапы базы</div>
+  <div class="card"><div class="meta">ℹ ВЕРСИЯ ЭТОГО УСТРОЙСТВА</div>
+    <div class="bignum" style="font-size:18px">${esc(ver.platform || '?')} · сборка ${esc(ver.buildDate || '?')}</div>
+    <div class="meta">версия ${esc(ver.version || '?')} (билд ${esc(ver.build || '?')}) · сверь дату сборки на Mac и телефоне — должны совпасть перед синхроном</div>
+  </div>
   <div class="fingrid">
     <div class="card"><div class="meta">🗑 КОРЗИНА
       ${rows.length ? '<span class="pill btn danger" id="trashClear" style="float:right">✕ очистить корзину</span>' : ''}</div>

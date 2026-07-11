@@ -225,6 +225,23 @@ enum Api {
             return (try json(try db.rows("SELECT date, value FROM metric_log WHERE metric_id = ? ORDER BY date DESC", [Int(m[1]) ?? -1])), 200)
         }
         if path == "/api/spheres/tagpool" { return (try json(try sphereTagPool(db)), 200) }
+        if path == "/api/version" {   // платформа + дата сборки (по mtime бинаря) — видеть, обновлено ли устройство
+            #if os(macOS)
+            let platform = "Mac"
+            #else
+            let platform = "iPhone"
+            #endif
+            let ver = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+            let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
+            var buildDate = "?"
+            if let exe = Bundle.main.executableURL,
+               let attrs = try? FileManager.default.attributesOfItem(atPath: exe.path),
+               let d = attrs[.modificationDate] as? Date {
+                let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd HH:mm"; f.locale = Locale(identifier: "en_US_POSIX")
+                buildDate = f.string(from: d)
+            }
+            return (try json(["platform": platform, "version": ver, "build": build, "buildDate": buildDate]), 200)
+        }
         if path == "/api/spheres/categories" { return (try json(try sphereCategories(db)), 200) }
         // параметрические GET (карточка-инспектор узла)
         if let m = match(path, "^/api/suggest/([0-9]+)$") {
