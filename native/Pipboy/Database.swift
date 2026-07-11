@@ -191,7 +191,7 @@ final class Database {
           kind TEXT NOT NULL DEFAULT 'asset', buy_value REAL, value REAL,
           target_value REAL, note TEXT NOT NULL DEFAULT '',
           currency TEXT NOT NULL DEFAULT '€', is_loan INTEGER NOT NULL DEFAULT 0,
-          loan_due TEXT, asset_type TEXT, qty REAL, rate_symbol TEXT
+          loan_due TEXT, asset_type TEXT, qty REAL, rate_symbol TEXT, region TEXT
         );
         CREATE TABLE IF NOT EXISTS rates(
           symbol TEXT PRIMARY KEY, label TEXT, price REAL, change_pct REAL, updated_at TEXT

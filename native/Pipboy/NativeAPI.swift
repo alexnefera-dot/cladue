@@ -33,6 +33,8 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         _ = try? made.run("ALTER TABLE nodes ADD COLUMN answer TEXT")    // формулировка решения — buildSpheres селектит явно, без неё сферы падали
         _ = try? made.run("ALTER TABLE nodes ADD COLUMN \"repeat\" TEXT") // повтор задачи (weekly|monthly|yearly)
         _ = try? made.run("ALTER TABLE obligations ADD COLUMN due_time TEXT")  // миграция: время у обязательств (как due_time задач)
+        _ = try? made.run("ALTER TABLE portfolio_items ADD COLUMN region TEXT")  // регион инвестиции (SK/UA/AU/EU/WEB)
+        _ = try? made.run("ALTER TABLE target_items ADD COLUMN region TEXT")
         _ = try? made.run("ALTER TABLE routines ADD COLUMN days TEXT NOT NULL DEFAULT ''")  // дни недели рутины (пусто = каждый день)
         _ = try? made.run("ALTER TABLE passive_income ADD COLUMN principal REAL NOT NULL DEFAULT 0")    // тело инвестиции/депозита
         _ = try? made.run("ALTER TABLE passive_income ADD COLUMN rate REAL NOT NULL DEFAULT 0")         // % доходности
@@ -1360,12 +1362,12 @@ enum Api {
         "classes": ["name", "value", "target_pct", "note"],
         "steps": ["kind", "title", "amount", "planned_date", "condition", "status", "note"],
         "obligations": ["name", "amount", "currency", "period", "next_date", "remind_days", "kind", "note", "due_time"],
-        "items": ["name", "buy_value", "value", "target_value", "currency", "is_loan", "loan_due", "asset_type", "qty", "rate_symbol", "note"],
+        "items": ["name", "buy_value", "value", "target_value", "currency", "is_loan", "loan_due", "asset_type", "qty", "rate_symbol", "note", "region"],
         "tx": ["date", "amount", "currency", "direction", "category", "note"],
         "debts": ["name", "amount", "currency", "direction", "due_date", "note"],
         "income": ["name", "amount", "currency", "period", "next_date", "note", "principal", "rate", "rate_period", "asset_type"],
         "budget": ["name", "amount", "currency", "direction", "ord", "month"],
-        "tgt": ["name", "value", "buy_value", "target_value", "currency", "asset_type", "qty", "rate_symbol", "note", "kind"],
+        "tgt": ["name", "value", "buy_value", "target_value", "currency", "asset_type", "qty", "rate_symbol", "note", "kind", "region"],
         "move": ["from_id", "to_id", "amount"]]
 
     static func finWrite(method: String, path: String, body: [String: Any], db: Database) throws -> (Data, Int)? {
@@ -2297,6 +2299,21 @@ enum Api {
             for c in children { walkType(c, rootName) }
         }
         for b in portfolio { walkType(b, b["name"] as? String ?? "") }
+        // аллокация по регионам инвестиции (SK/UA/AU/EU/WEB)
+        var byRegion: [String: Double] = [:]
+        var byRegionBlocks: [String: [String: Double]] = [:]
+        func walkRegion(_ n: [String: Any], _ rootName: String) {
+            let children = n["children"] as? [[String: Any]] ?? []
+            let isLeaf = (n["kind"] as? String) == "asset" || children.isEmpty
+            if isLeaf, let e = n["eur"] as? Double, e != 0 {
+                let rg = (n["region"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "без региона"
+                byRegion[rg, default: 0] += e
+                byRegionBlocks[rg, default: [:]][rootName, default: 0] += e
+            }
+            for c in children { walkRegion(c, rootName) }
+        }
+        for b in portfolio { walkRegion(b, b["name"] as? String ?? "") }
+        let byRegionSorted: [[Any]] = byRegion.sorted { $0.value > $1.value }.map { [$0.key, $0.value] }
         var blockEur: [String: Any] = [:]
         for b in portfolio { blockEur[b["name"] as? String ?? ""] = b["eur"] ?? 0 }
         var debts = try db.rows("SELECT * FROM debts ORDER BY due_date IS NULL, due_date")
@@ -2366,7 +2383,7 @@ enum Api {
             "accounts": accounts, "portfolio": portfolio, "steps": steps,
             "obligations": obligations, "loans": loans, "debts": debts,
             "snapshotDelta": snapshotDelta,
-            "byType": byTypeSorted, "byTypeBlocks": byTypeBlocks, "blockEur": blockEur,
+            "byType": byTypeSorted, "byTypeBlocks": byTypeBlocks, "byRegion": byRegionSorted, "byRegionBlocks": byRegionBlocks, "blockEur": blockEur,
             "tx": tx, "forecasts": fc, "properties": props, "fire": fireV,
             "income": income, "budget": budget, "budgetItems": budgetItems, "targetPortfolio": targetPortfolio, "targetMoves": targetMoves, "targetByType": tByTypeSorted, "targetByTypeBlocks": tByTypeBlocks, "macro": macro, "rates": rates,
             "summary": summary,

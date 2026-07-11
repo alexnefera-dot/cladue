@@ -37,6 +37,7 @@ const parseNum = s => {
 };
 const ACCT = { bank: 'банк', broker: 'брокер', cash: 'кэш', crypto: 'крипто', deposit: 'вклад', safe: 'ячейка' };
 const ATYPES = ['крипто', 'кеш', 'баланс', 'недвижка', 'авто', 'акции', 'золото', 'облигации'];
+const REGIONS = ['SK', 'UA', 'AU', 'EU', 'WEB'];   // регион инвестиции
 const RSYMS = ['BTCUSD', 'XAUUSD', 'SCHD', 'IVV', 'VHT'];
 const STEPK = { buy: ['купить', 'ok'], sell: ['продать', 'p1'], transfer: ['перевод', 'p2'] };
 const PERIOD = { monthly: 'мес', yearly: 'год', once: 'разово' };
@@ -126,6 +127,7 @@ function portRows(it, depth, ctx) {
       <span class="ed" data-fe="${pfx}:${it.id}:name:text" title="клик — переименовать">${fesc(it.name)}</span>
       ${folded ? `<span class="meta">· ${it.children.length} внутри</span>` : ''}
       ${editable && it.asset_type ? `<span class="pill" data-ftype="${it.id}" title="тип актива — клик">${fesc(it.asset_type)}</span>` : ''}
+      ${editable && it.region ? `<span class="pill p2" data-fregion="${it.id}" title="регион инвестиции — клик">${fesc(it.region)}</span>` : ''}
       ${!target && it.rate_symbol ? `<span class="pill btn" data-fqty="${it.id}" title="количество — клик">${it.qty ?? '?'} × ${fesc(it.rate_symbol)}</span>` : ''}
       ${!target && it.no_rate ? '<span class="pill p1" title="курс тикера ещё не загружен — обнови курсы (⟳ вверху)">нет курса</span>' : ''}
       ${!target && it.is_loan ? '<span class="pill p2">🤝 займ</span>' : ''}
@@ -135,6 +137,7 @@ function portRows(it, depth, ctx) {
       ${it.kind === 'block' ? `<span class="rowbtn" data-${target ? 'tgtadd' : 'fadd'}="section:${it.id}" title="добавить раздел">＋</span>` : ''}
       ${it.kind === 'section' ? `<span class="rowbtn" data-${target ? 'tgtadd' : 'fadd'}="asset:${it.id}" title="добавить актив">＋</span>` : ''}
       ${editable && !it.asset_type ? `<span class="rowbtn" data-ftype="${it.id}" title="задать тип актива">⊙</span>` : ''}
+      ${editable && !it.region ? `<span class="rowbtn" data-fregion="${it.id}" title="задать регион (SK/UA/AU/EU/WEB)">🌍</span>` : ''}
       ${!target && editable ? `<span class="rowbtn" data-frate="${it.id}" title="${it.rate_symbol ? 'автоцена: сменить/убрать тикер' : 'автоцена по курсу (BTC, золото, SCHD/IVV/VHT)'}">⚡</span>` : ''}
       ${!target && editable ? `<span class="rowbtn" data-loanflag="${it.id}:${it.is_loan ? 1 : 0}" title="${it.is_loan ? 'убрать значок займа' : 'пометить как займ'}">🤝</span>` : ''}
       <span class="rowbtn del" data-findel="${pfx}:${it.id}">✕</span>
@@ -192,6 +195,7 @@ function portCard(it, depth, ctx) {
     ${it.kind === 'block' ? `<span class="rowbtn" data-${addPfx}="section:${it.id}">＋ раздел</span>` : ''}
     ${it.kind === 'section' ? `<span class="rowbtn" data-${addPfx}="asset:${it.id}">＋ актив</span>` : ''}
     ${!target && editable ? `<span class="rowbtn" data-frate="${it.id}" title="автоцена">⚡</span>` : ''}
+    ${editable ? `<span class="rowbtn" data-fregion="${it.id}" title="регион инвестиции (SK/UA/AU/EU/WEB)">🌍${it.region ? ' ' + fesc(it.region) : ''}</span>` : ''}
     <span class="rowbtn del" data-findel="${pfx}:${it.id}">✕</span>`;
   return `<div class="pcard ${it.kind}" style="--d:${depth}" data-pid="${it.id}">
     <div class="pc-top">
@@ -330,21 +334,30 @@ function secPortfolio(d, s) {
     </table>`}
     ${tgt ? `<div class="task finadd" style="margin-top:6px"><input id="tgt_block" placeholder="новый блок целевого" style="flex:1"><span class="pill btn ok" data-tgtadd="block:">＋ блок</span></div>` : ''}
   </div>
-  ${!tgt && d.byType.length ? `
-  <div class="card">
-    <div class="meta" style="margin-bottom:6px">АЛЛОКАЦИЯ ПО ТИПАМ АКТИВОВ (⊙ у строки — задать тип)</div>
-    <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;padding:6px 0">
-      ${allocPie(d.byType, s.portfolioTotal)}
-      <div style="flex:1;min-width:240px">
-        ${d.byType.map(([t, v], i) => `
-          <div class="kv"><span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${PIE_COLORS[i % PIE_COLORS.length]};margin-right:7px"></i>${fesc(t)}</span>
-            <b class="num">${fmt(v)} € · ${(v / s.portfolioTotal * 100).toFixed(1)}% общей</b></div>
-          <div class="meta" style="margin:0 0 5px 17px">${Object.entries(d.byTypeBlocks?.[t] ?? {})
-            .sort((a, b) => b[1] - a[1])
-            .map(([blk, eur]) => `${d.blockEur?.[blk] ? (eur / d.blockEur[blk] * 100).toFixed(0) : '—'}% от «${fesc(blk)}»`)
-            .join(' · ')}</div>`).join('')}
+  ${!tgt && (d.byType.length || (d.byRegion || []).length) ? `
+  <div class="fingrid" style="grid-template-columns:1fr 1fr">
+    ${d.byType.length ? `<div class="card">
+      <div class="meta" style="margin-bottom:6px">ПО ТИПАМ АКТИВОВ (⊙ у строки — задать тип)</div>
+      <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:6px 0">
+        ${allocPie(d.byType, s.portfolioTotal)}
+        <div style="flex:1;min-width:170px">
+          ${d.byType.map(([t, v], i) => `
+            <div class="kv"><span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${PIE_COLORS[i % PIE_COLORS.length]};margin-right:7px"></i>${fesc(t)}</span>
+              <b class="num">${fmt(v)} € · ${(v / s.portfolioTotal * 100).toFixed(1)}%</b></div>`).join('')}
+        </div>
       </div>
-    </div>
+    </div>` : ''}
+    ${(d.byRegion || []).length ? `<div class="card">
+      <div class="meta" style="margin-bottom:6px">ПО РЕГИОНАМ (🌍 у строки — SK/UA/AU/EU/WEB)</div>
+      <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:6px 0">
+        ${allocPie(d.byRegion, s.portfolioTotal)}
+        <div style="flex:1;min-width:170px">
+          ${d.byRegion.map(([t, v], i) => `
+            <div class="kv"><span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${PIE_COLORS[i % PIE_COLORS.length]};margin-right:7px"></i>${fesc(t)}</span>
+              <b class="num">${fmt(v)} € · ${(v / s.portfolioTotal * 100).toFixed(1)}%</b></div>`).join('')}
+        </div>
+      </div>
+    </div>` : ''}
   </div>` : ''}
   ${tgt && (d.targetByType || []).length && rootTotal > 0 ? `
   <div class="card">
@@ -1089,6 +1102,21 @@ function bindFin() {
       sel.focus();
       sel.addEventListener('change', async () => {
         await finApi.patch(ent, id, { asset_type: sel.value === '__none' ? null : (sel.value || null) });
+        window.loadFin();
+      });
+      sel.addEventListener('blur', () => window.loadFin());
+    }));
+  document.querySelectorAll('[data-fregion]').forEach(el =>
+    el.addEventListener('click', () => {
+      const id = +el.dataset.fregion;
+      const ent = finTab === 'target' ? 'tgt' : 'items';
+      const sel = document.createElement('select');
+      sel.innerHTML = '<option value="">— регион —</option>'
+        + REGIONS.map(r => `<option>${r}</option>`).join('') + '<option value="__none">убрать</option>';
+      el.replaceWith(sel);
+      sel.focus();
+      sel.addEventListener('change', async () => {
+        await finApi.patch(ent, id, { region: sel.value === '__none' ? null : (sel.value || null) });
         window.loadFin();
       });
       sel.addEventListener('blur', () => window.loadFin());
