@@ -65,6 +65,11 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         Api.dedupeTreeItems(made, "portfolio_items", nil)   // сначала чистим ФАКТ от дублей (синхрон с разными id)
         Api.initTargetFromFact(made)   // первый раз (и после сброса) — копируем структуру фактического портфеля в целевой
         Api.dedupeTreeItems(made, "target_items", "target_moves")   // и целевой
+        // разовая чистка целевого от ТОЧНЫХ дублей, раскиданных по разным категориям (последствие прошлых синхронов)
+        if ((try? made.rows("SELECT value FROM settings WHERE key = 'target_exact_dedup_v1'"))?.first?["value"]) as? String != "1" {
+            Api.dedupeTargetExact(made)
+            _ = try? Api.setSetting(made, "target_exact_dedup_v1", "1")
+        }
         _ = try? made.run("UPDATE target_items SET rate_symbol = NULL, qty = NULL WHERE rate_symbol IS NOT NULL")   // целевой — плановые суммы, без автоцены (иначе не отредактировать)
         _ = try? made.run("UPDATE target_items SET target_value = value WHERE target_value IS NULL AND value IS NOT NULL")   // план по умолчанию = текущая стоимость (пока не задан вручную)
         Api.ensureSpheresSchema(made)   // таблицы сфер (area_milestones/area_questions) — до sync-схемы, чтобы им добавились updated_at/триггеры
@@ -1859,6 +1864,35 @@ enum Api {
                         try? db.run("UPDATE \(mt) SET to_id=? WHERE to_id=?", [keep, did])
                     }
                     try? db.run("DELETE FROM \(table) WHERE id=?", [did])
+                }
+            }
+        }
+    }
+
+    // Разовая чистка целевого от ТОЧНЫХ дублей, раскиданных по разным категориям (одинаковое имя + value +
+    // валюта — идентичные копии от синхрона; parent игнорируем). Оставляем min(id), заполненные планы/поля,
+    // детей и связки переносим на keep. Агрессивно (игнор parent) → только точные совпадения и только целевой.
+    static func dedupeTargetExact(_ db: Database) {
+        let mergeCols = ["target_value", "buy_value", "asset_type", "region", "note"]
+        for _ in 0..<30 {
+            guard let groups = try? db.rows("SELECT MIN(id) AS keep, COUNT(*) AS c FROM target_items GROUP BY LOWER(TRIM(name)), IFNULL(value,-999999.0), IFNULL(currency,'€') HAVING c > 1"),
+                  !groups.isEmpty else { return }
+            for g in groups {
+                let keep = intval(g["keep"])
+                guard let kp = (try? db.rows("SELECT name, value, currency FROM target_items WHERE id=?", [keep]))?.first,
+                      let dups = try? db.rows("SELECT * FROM target_items WHERE LOWER(TRIM(name))=LOWER(TRIM(?)) AND IFNULL(value,-999999.0)=IFNULL(?,-999999.0) AND IFNULL(currency,'€')=IFNULL(?,'€') AND id<>?",
+                        [kp["name"] ?? "", kp["value"] ?? NSNull(), kp["currency"] ?? NSNull(), keep]) else { continue }
+                for d in dups {
+                    let did = intval(d["id"])
+                    for c in mergeCols {   // не терять план/тип/регион, если у keep пусто
+                        if let v = d[c], !(v is NSNull), !((v as? String)?.isEmpty ?? false) {
+                            try? db.run("UPDATE target_items SET \(c)=? WHERE id=? AND (\(c) IS NULL OR \(c)='')", [v, keep])
+                        }
+                    }
+                    try? db.run("UPDATE target_items SET parent_id=? WHERE parent_id=?", [keep, did])
+                    try? db.run("UPDATE target_moves SET from_id=? WHERE from_id=?", [keep, did])
+                    try? db.run("UPDATE target_moves SET to_id=? WHERE to_id=?", [keep, did])
+                    try? db.run("DELETE FROM target_items WHERE id=?", [did])
                 }
             }
         }
