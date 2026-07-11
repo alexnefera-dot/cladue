@@ -74,7 +74,7 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         _ = try? made.run("UPDATE target_items SET target_value = value WHERE target_value IS NULL AND value IS NOT NULL")   // план по умолчанию = текущая стоимость (пока не задан вручную)
         // разово применить связки ребаланса к суммам «Сейчас»: после синхрона связки приехали, а перелив — нет
         if ((try? made.rows("SELECT value FROM settings WHERE key = 'target_moves_apply_v1'"))?.first?["value"]) as? String != "1" {
-            if intval((try? made.rows("SELECT COUNT(*) AS c FROM target_moves"))?.first?["c"]) > 0 { Api.applyTargetMoves(made) }
+            if let mc = (try? made.rows("SELECT COUNT(*) AS c FROM target_moves"))?.first?["c"] as? Int, mc > 0 { Api.applyTargetMoves(made) }
             _ = try? Api.setSetting(made, "target_moves_apply_v1", "1")
         }
         Api.ensureSpheresSchema(made)   // таблицы сфер (area_milestones/area_questions) — до sync-схемы, чтобы им добавились updated_at/триггеры
