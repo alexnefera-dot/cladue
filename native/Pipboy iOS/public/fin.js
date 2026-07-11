@@ -37,7 +37,7 @@ const parseNum = s => {
 };
 const ACCT = { bank: 'банк', broker: 'брокер', cash: 'кэш', crypto: 'крипто', deposit: 'вклад', safe: 'ячейка' };
 const ATYPES = ['крипто', 'кеш', 'баланс', 'недвижка', 'авто', 'акции', 'золото', 'облигации'];
-const REGIONS = ['SK', 'UA', 'AU', 'EU', 'WEB'];   // регион инвестиции
+const REGIONS = ['SK', 'UA', 'AU', 'EU', 'WEB', 'USA', 'UAE', 'PT'];   // регион инвестиции
 const RSYMS = ['BTCUSD', 'XAUUSD', 'SCHD', 'IVV', 'VHT'];
 const STEPK = { buy: ['купить', 'ok'], sell: ['продать', 'p1'], transfer: ['перевод', 'p2'] };
 const PERIOD = { monthly: 'мес', yearly: 'год', once: 'разово' };
