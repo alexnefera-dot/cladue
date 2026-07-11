@@ -116,7 +116,7 @@ function portRows(it, depth, ctx) {
     const shareCell = `<td class="r" style="width:84px">
       ${pTot != null ? `<div class="num">${pTot.toFixed(1)}%</div>` : ''}
       ${pPar != null ? `<div class="meta" title="доля внутри родительской категории">${pPar.toFixed(0)}% катег.</div>` : ''}</td>`;
-    cells = `<td class="r num muted ${editable ? 'ed' : ''}" ${editable ? `data-fe="items:${it.id}:buy_value:num" title="цена покупки (клик) · не задана — равна текущей"` : ''}>${editable ? (it.buy_value != null ? fmt(it.buy_value) : (it.value != null ? '≈ ' + fmt(it.value) : '—')) : (it.invested != null ? fmt(it.invested) : '')}</td>
+    cells = `<td class="r num muted ${editable ? 'ed' : ''}" ${editable ? `data-fe="items:${it.id}:buy_value:num" title="цена покупки в валюте позиции (${fesc(cur)}) · не задана — равна текущей"` : ''}>${editable ? (it.buy_value != null ? fmt(it.buy_value) + ' ' + fesc(cur) : (it.value != null ? '≈ ' + fmt(it.value) + ' ' + fesc(cur) : '—')) : (it.invested != null ? fmt(it.invested) + ' €' : '')}</td>
       <td class="r num">${g != null ? `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</span>` : ''}</td>
       ${valueCell}
       ${shareCell}`;
