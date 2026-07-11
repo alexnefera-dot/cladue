@@ -72,6 +72,11 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         }
         _ = try? made.run("UPDATE target_items SET rate_symbol = NULL, qty = NULL WHERE rate_symbol IS NOT NULL")   // целевой — плановые суммы, без автоцены (иначе не отредактировать)
         _ = try? made.run("UPDATE target_items SET target_value = value WHERE target_value IS NULL AND value IS NOT NULL")   // план по умолчанию = текущая стоимость (пока не задан вручную)
+        // разово применить связки ребаланса к суммам «Сейчас»: после синхрона связки приехали, а перелив — нет
+        if ((try? made.rows("SELECT value FROM settings WHERE key = 'target_moves_apply_v1'"))?.first?["value"]) as? String != "1" {
+            if intval((try? made.rows("SELECT COUNT(*) AS c FROM target_moves"))?.first?["c"]) > 0 { Api.applyTargetMoves(made) }
+            _ = try? Api.setSetting(made, "target_moves_apply_v1", "1")
+        }
         Api.ensureSpheresSchema(made)   // таблицы сфер (area_milestones/area_questions) — до sync-схемы, чтобы им добавились updated_at/триггеры
         Api.ensureSyncSchema(made)   // updated_at + триггеры + tombstones — отслеживание правок для синхрона
         Api.ensureThoughtTesting(made)   // техника «Тестирование мыслей» (КПТ) — один раз
@@ -1899,6 +1904,25 @@ enum Api {
                     try? db.run("UPDATE target_moves SET to_id=? WHERE to_id=?", [keep, did])
                     try? db.run("DELETE FROM target_items WHERE id=?", [did])
                 }
+            }
+        }
+    }
+
+    // Применить связки ребаланса к суммам целевого: перелив (source −amount, receiver +amount) в валюте каждой
+    // позиции. Нужно после синхрона/сброса, когда связки (target_moves) приехали, а суммы остались как факт —
+    // перелив в модели применяется лишь при СОЗДАНИИ связки, синхрон его не переносит. Вызывать РОВНО один раз.
+    static func applyTargetMoves(_ db: Database) {
+        let rate = (try? eurUsdRate(db)) ?? 1.08
+        guard let moves = try? db.rows("SELECT from_id, to_id, amount FROM target_moves") else { return }
+        for mv in moves {
+            let amtEur = num(mv["amount"])   // amount хранится в €
+            if let f = numOpt(mv["from_id"]).map({ Int($0) }) {
+                let c = scalarStr(db, "SELECT currency FROM target_items WHERE id=?", [f]) ?? "€"
+                try? db.run("UPDATE target_items SET value = COALESCE(value,0) - ? WHERE id=?", [c == "$" ? amtEur * rate : amtEur, f])
+            }
+            if let t = numOpt(mv["to_id"]).map({ Int($0) }) {
+                let c = scalarStr(db, "SELECT currency FROM target_items WHERE id=?", [t]) ?? "€"
+                try? db.run("UPDATE target_items SET value = COALESCE(value,0) + ? WHERE id=?", [c == "$" ? amtEur * rate : amtEur, t])
             }
         }
     }
