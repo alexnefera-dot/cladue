@@ -55,12 +55,12 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         _ = try? made.run("CREATE TABLE IF NOT EXISTS target_items(id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, ord INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL DEFAULT 'asset', value REAL, buy_value REAL, target_value REAL, currency TEXT NOT NULL DEFAULT '€', asset_type TEXT, qty REAL, rate_symbol TEXT, note TEXT)")
         _ = try? made.run("CREATE TABLE IF NOT EXISTS target_moves(id INTEGER PRIMARY KEY, from_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, to_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, amount REAL NOT NULL DEFAULT 0)")  // ручные связки ребаланса
         // одноразовый сброс целевого по запросу: очистить и пересоздать свежей копией факта
-        // (v2 — после починки перелива с конвертацией валют: старые кривые связки/суммы стираем)
-        if ((try? made.rows("SELECT value FROM settings WHERE key = 'target_reset_v2'"))?.first?["value"]) as? String != "1" {
+        // (v3 — после дублей, раскиданных синхроном по разным категориям: стираем целевой начисто, пользователь пересоберёт)
+        if ((try? made.rows("SELECT value FROM settings WHERE key = 'target_reset_v3'"))?.first?["value"]) as? String != "1" {
             _ = try? made.run("DELETE FROM target_moves")
             _ = try? made.run("DELETE FROM target_items")
             _ = try? made.run("UPDATE settings SET value = '' WHERE key = 'target_seed_v1'")   // сброс флага → initTargetFromFact заполнит заново
-            _ = try? Api.setSetting(made, "target_reset_v2", "1")
+            _ = try? Api.setSetting(made, "target_reset_v3", "1")
         }
         Api.dedupeTreeItems(made, "portfolio_items", nil)   // сначала чистим ФАКТ от дублей (синхрон с разными id)
         Api.initTargetFromFact(made)   // первый раз (и после сброса) — копируем структуру фактического портфеля в целевой
