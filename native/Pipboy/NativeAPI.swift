@@ -3233,6 +3233,11 @@ enum Api {
         do {
             // 1) строки: вставить новые / обновить более свежими (LWW)
             for (t, key) in syncKeyed {
+                #if os(macOS)
+                // Mac — источник истины по портфелю: НЕ принимаем portfolio_items/target_items/target_moves
+                // с телефона (он редко правит и старым кодом шлёт омоложенное старьё). Mac→телефон раздаёт как обычно.
+                if t == "portfolio_items" || t == "target_items" || t == "target_moves" { continue }
+                #endif
                 guard let rows = tables[t] as? [[String: Any]] else { continue }
                 for row in rows {
                     guard let rkAny = row[key], !(rkAny is NSNull) else { continue }
@@ -3253,6 +3258,9 @@ enum Api {
                 guard let t = tomb["tbl"] as? String,
                       let pair = syncKeyed.first(where: { $0.0 == t }),
                       let rkAny = tomb["row_key"], !(rkAny is NSNull) else { continue }
+                #if os(macOS)
+                if t == "portfolio_items" || t == "target_items" || t == "target_moves" { continue }   // телефон не удаляет портфель Mac
+                #endif
                 let key = pair.1
                 let del = (tomb["deleted_at"] as? String) ?? ""
                 let rk = "\(rkAny)"
