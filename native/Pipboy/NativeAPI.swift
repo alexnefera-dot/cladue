@@ -3231,13 +3231,28 @@ enum Api {
         defer { _ = try? db.run("PRAGMA foreign_keys = ON") }
         try db.run("BEGIN")
         do {
+            #if os(iOS)
+            // Телефон зеркалит портфель с Mac (Mac — источник истины): полностью заменяем локальный портфель
+            // снимком, БЕЗ LWW — иначе телефонные строки со «свежими» датами не дают приехать портфелю с Mac.
+            // Только при НЕПУСТОМ снимке (защита от затирания портфеля пустышкой).
+            for pt in ["portfolio_items", "target_items", "target_moves"] {
+                guard let rows = tables[pt] as? [[String: Any]], !rows.isEmpty else { continue }
+                try? db.run("DELETE FROM \(pt)")
+                for row in rows {
+                    let cols = knownKeys(db, pt, row); if cols.isEmpty { continue }
+                    let colList = cols.map { "\"\($0)\"" }.joined(separator: ",")
+                    let marks = cols.map { _ in "?" }.joined(separator: ",")
+                    let vals: [Any?] = cols.map { c in let v = row[c]; return (v is NSNull) ? nil : v }
+                    try? db.run("INSERT INTO \(pt)(\(colList)) VALUES(\(marks))", vals)
+                }
+                changed += 1
+            }
+            #endif
             // 1) строки: вставить новые / обновить более свежими (LWW)
             for (t, key) in syncKeyed {
-                #if os(macOS)
-                // Mac — источник истины по портфелю: НЕ принимаем portfolio_items/target_items/target_moves
-                // с телефона (он редко правит и старым кодом шлёт омоложенное старьё). Mac→телефон раздаёт как обычно.
+                // портфель НЕ мержим построчно: Mac — источник истины (не принимает его с телефона),
+                // а телефон зеркалит его целиком снимком Mac (см. блок ниже). Обе платформы пропускают здесь.
                 if t == "portfolio_items" || t == "target_items" || t == "target_moves" { continue }
-                #endif
                 guard let rows = tables[t] as? [[String: Any]] else { continue }
                 for row in rows {
                     guard let rkAny = row[key], !(rkAny is NSNull) else { continue }
@@ -3258,9 +3273,8 @@ enum Api {
                 guard let t = tomb["tbl"] as? String,
                       let pair = syncKeyed.first(where: { $0.0 == t }),
                       let rkAny = tomb["row_key"], !(rkAny is NSNull) else { continue }
-                #if os(macOS)
-                if t == "portfolio_items" || t == "target_items" || t == "target_moves" { continue }   // телефон не удаляет портфель Mac
-                #endif
+                // портфель мимо tombstone-удалений: Mac не даёт телефону удалять свой, телефон зеркалит целиком выше
+                if t == "portfolio_items" || t == "target_items" || t == "target_moves" { continue }
                 let key = pair.1
                 let del = (tomb["deleted_at"] as? String) ?? ""
                 let rk = "\(rkAny)"
