@@ -5,10 +5,11 @@ declare(strict_types=1);
  * CLI-запуск анализа по папке с файлами (HTML/DOCX/текст).
  *
  * Использование:
- *   php cli.php <папка> [--domain=example.ru] [--keywords=keywords.json] [--out=report.json]
+ *   php cli.php <папка> [--domain=example.ru] [--keywords=brands.json] [--out=report.json]
  *
- * keywords.json (опционально) — сопоставление имени файла ключам/LSI:
- *   { "index.html": { "keyword": "купить окна", "lsi": ["пластиковые","монтаж"] }, ... }
+ * Бренд каждой страницы определяется автоматически по базе data/brands.
+ * brands.json (опционально) — принудительный выбор бренда для файла:
+ *   { "index.html": { "brand": "1win" }, ... }
  *
  * Берутся первые 7 файлов папки (в алфавитном порядке).
  */
@@ -59,8 +60,7 @@ foreach ($files as $f) {
         'url'      => $f,
         'file'     => "{$dir}/{$f}",
         'filename' => $f,
-        'keyword'  => (string) ($meta['keyword'] ?? ''),
-        'lsi'      => (array) ($meta['lsi'] ?? []),
+        'brand'    => (string) ($meta['brand'] ?? ''),   // необязательно; иначе авто-определение
     ];
 }
 
@@ -71,7 +71,15 @@ $json = json_encode($result, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 if ($opts['out'] !== '') {
     file_put_contents($opts['out'], $json);
     fwrite(STDERR, "Готово: {$opts['out']} (" . count($result['pages']) . " страниц)\n");
-    // краткая сводка проекта в stderr
+    // сводка по страницам: бренд + покрытие кликов
+    foreach ($result['pages'] as $pg) {
+        fwrite(STDERR, sprintf(
+            "  %-22s бренд=%-14s покрытие кликов=%.1f%% запросов=%d/%d\n",
+            mb_substr($pg['name'], 0, 22), $pg['brand'] ?? '—',
+            $pg['metrics']['clicks_coverage'] ?? 0,
+            $pg['metrics']['queries_found'] ?? 0, $pg['metrics']['queries_total'] ?? 0
+        ));
+    }
     $p = $result['project'];
     fwrite(STDERR, sprintf(
         "Проект: сироты=%d, тупики=%d, уникальность=%d%%, глубина=%d\n",

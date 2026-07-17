@@ -29,8 +29,7 @@ const PARAM_SCHEMA = [
   { cat: 'Тошнота и плотность (Баден-Баден)', icon: '🩺', params: [
     { id:'nausea_classic',  label:'Классическая тошнота',       unit:'',  norm:'< 7',    eval:v=>maxBand(v,7,9) },
     { id:'nausea_academic', label:'Академическая тошнота',      unit:'%', norm:'5–9%',   eval:v=>band(v,5,9,3,12) },
-    { id:'keyword_density_max', label:'Макс. плотность ключа',  unit:'%', norm:'< 4%',   eval:v=>maxBand(v,3,4) },
-    { id:'kw_exact_ratio',  label:'Доля точных вхождений',      unit:'%', norm:'< 30%',  eval:v=>maxBand(v,30,45) },
+    { id:'keyword_density_max', label:'Плотность гл. ключа',    unit:'%', norm:'< 4%',   eval:v=>maxBand(v,3,4) },
   ]},
 
   { cat: 'Водность', icon: '💧', params: [
@@ -50,12 +49,13 @@ const PARAM_SCHEMA = [
     { id:'readability_avg',     label:'Средний балл читаемости',unit:'',norm:'60–70',eval:v=>band(v,55,75,40,90) },
   ]},
 
-  { cat: 'Ключи и семантика (LSI)', icon: '🎯', params: [
-    { id:'kw_exact',     label:'Точных вхождений ключа', unit:'', norm:'1–3 / 1000 сл.', eval:v=>minBand(v,1,0.5) },
-    { id:'kw_first_para',label:'Ключ в 1-м абзаце',      unit:'', norm:'да',  eval:boolOk, bool:true },
-    { id:'kw_in_title',  label:'Ключ в Title',           unit:'', norm:'да',  eval:boolOk, bool:true },
-    { id:'kw_in_h1',     label:'Ключ в H1',              unit:'', norm:'да',  eval:boolOk, bool:true },
-    { id:'lsi_coverage', label:'Покрытие LSI-ядра',      unit:'%',norm:'> 60%',eval:v=>minBand(v,60,40) },
+  { cat: 'Семантика по базе бренда', icon: '🎯', params: [
+    { id:'clicks_coverage',   label:'Покрытие по кликам (трафик-потенциал)', unit:'%', norm:'> 60%', eval:v=>minBand(v,60,40) },
+    { id:'query_coverage',    label:'Покрытие запросов базы',  unit:'%', norm:'> 10%', eval:v=>minBand(v,10,5) },
+    { id:'queries_found',     label:'Найдено запросов базы',   unit:'',  norm:'—',     eval:()=>null },
+    { id:'top_in_title',      label:'Гл. запрос в Title',      unit:'',  norm:'да',    eval:boolOk, bool:true },
+    { id:'top_in_h1',         label:'Гл. запрос в H1',         unit:'',  norm:'да',    eval:boolOk, bool:true },
+    { id:'top_in_first_para', label:'Гл. запрос в 1-м абзаце', unit:'',  norm:'да',    eval:boolOk, bool:true },
   ]},
 
   { cat: 'Заголовки и структура', icon: '🏷️', params: [
@@ -113,8 +113,8 @@ const PROJECT_PARAMS = {
 
 // Категории для сводного балла страницы
 const SCORE_WEIGHTS = {
-  seo:        ['kw_in_title','kw_in_h1','title_len','desc_len','h1_count','kw_first_para','lsi_coverage','img_alt_filled'],
-  spam:       ['nausea_classic','nausea_academic','keyword_density_max','kw_exact_ratio','water_percent','strong_kw_spam'],
+  seo:        ['top_in_title','top_in_h1','title_len','desc_len','h1_count','top_in_first_para','clicks_coverage','query_coverage','img_alt_filled'],
+  spam:       ['nausea_classic','nausea_academic','keyword_density_max','water_percent','strong_kw_spam'],
   readability:['flesch_reading_ease','flesch_kincaid_grade','gunning_fog','sentence_avg_len'],
   structure:  ['h2_count','list_count','heading_hierarchy','media_richness','paragraph_long_count'],
 };

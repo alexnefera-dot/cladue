@@ -20,36 +20,46 @@ php -S localhost:8000
 #   http://localhost:8000/template/index.html
 ```
 
-На вкладке «Загрузка контента» заполните до 7 страниц (файл или вставка текста,
-ключ + LSI) и нажмите «Проанализировать». Форма отправит POST в `engine/analyze.php`,
-результат отрисуется на вкладке «Результаты».
+На вкладке «Загрузка контента» заполните до 7 страниц (файл или вставка текста).
+Ключи вводить **не нужно** — бренд и семантика определяются автоматически по
+[базе запросов](#база-брендов). Нажмите «Проанализировать» — форма отправит POST
+в `engine/analyze.php`, результат отрисуется на вкладке «Результаты».
 
 Кнопка «Показать демо-данные» рисует пример без сервера.
 
 ## Быстрый старт (командная строка)
 
 ```bash
-# анализ папки с файлами (берутся первые 7)
+# анализ папки с файлами (берутся первые 7); бренд определяется автоматически
 php engine/cli.php ./pages --domain=example.ru --out=report.json
 
-# с ключами и LSI по каждому файлу
-php engine/cli.php ./pages --keywords=keywords.json --out=report.json
+# принудительный выбор бренда для файла (необязательно)
+php engine/cli.php ./pages --keywords=brands.json --out=report.json
 ```
 
-`keywords.json`:
+`brands.json` (опционально):
 
 ```json
-{
-  "index.html": { "keyword": "купить окна", "lsi": ["пластиковые", "монтаж"] }
-}
+{ "1win-landing.html": { "brand": "1win" } }
 ```
+
+## База брендов
+
+`engine/data/` — семантическая база: **157 брендов**, **277 082 запроса** с
+частотностью кликов.
+
+- `brands-index.json` — индекс: имя бренда, суммарные клики, маркеры авто-определения.
+- `brands/<бренд>.json.gz` — запросы бренда `[[запрос, клики], …]` по убыванию кликов.
+
+Движок сам определяет бренд страницы (по вхождениям маркеров в контент),
+сопоставляет запросы бренда с текстом по морфологии и считает покрытие по кликам,
+покрытие запросов и список упущенных высокочастотных запросов.
 
 ## Проверка на тестовых данных
 
 ```bash
 php engine/tests/make-fixtures.php          # создаст 7 связанных страниц
-php engine/cli.php engine/tests/fixtures \
-    --keywords=engine/tests/keywords.json --out=/tmp/report.json
+php engine/cli.php engine/tests/fixtures --out=/tmp/report.json
 ```
 
 ## Формат результата (JSON)
@@ -58,11 +68,14 @@ php engine/cli.php engine/tests/fixtures \
 {
   "pages": [
     {
-      "name": "index.html",
-      "url": "index.html",
-      "keyword": ["купить окна"],
-      "metrics": { "words_total": 145, "nausea_classic": 5.6, ... },
-      "wordFreq": [["окна", 12], ...]
+      "name": "1win.html",
+      "url": "1win.html",
+      "brand": "1win",
+      "keyword": ["1win"],
+      "metrics": { "words_total": 145, "clicks_coverage": 70.4, "queries_found": 245, ... },
+      "wordFreq": [["1win", 12], ...],
+      "missingQueries": [{"q": "1win скачать", "clicks": 143001}, ...],
+      "foundQueries":   [{"q": "1win", "clicks": 453041}, ...]
     }
   ],
   "link":    [[0,1,1,...], ...],   // матрица перелинковки 7×7

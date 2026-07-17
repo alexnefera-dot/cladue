@@ -25,8 +25,7 @@ try {
 
     for ($i = 1; $i <= 7; $i++) {
         $name    = trim((string) ($_POST["name_{$i}"] ?? ''));
-        $keyword = trim((string) ($_POST["keyword_{$i}"] ?? ''));
-        $lsiRaw  = trim((string) ($_POST["lsi_{$i}"] ?? ''));
+        $brand   = trim((string) ($_POST["brand_{$i}"] ?? ''));   // необязательно: авто-определение по умолчанию
         $content = (string) ($_POST["content_{$i}"] ?? '');
 
         $filePath = null; $fileName = null;
@@ -38,8 +37,6 @@ try {
         // страница считается заполненной, если есть файл или контент
         if ($filePath === null && trim($content) === '') { continue; }
 
-        $lsi = array_values(array_filter(array_map('trim', explode(',', $lsiRaw)), fn($s) => $s !== ''));
-
         // url используется для резолва перелинковки: берём имя (файл/URL), затем имя загруженного файла
         $url = $name !== '' ? $name : ($fileName ?? "page-{$i}.html");
 
@@ -49,8 +46,7 @@ try {
             'file'     => $filePath,
             'filename' => $fileName,
             'html'     => $filePath === null ? $content : null,
-            'keyword'  => $keyword,
-            'lsi'      => $lsi,
+            'brand'    => $brand,
         ];
     }
 
@@ -60,6 +56,7 @@ try {
 
     $analyzer = new Analyzer($domain);
     $result = $analyzer->run($pages);
+    $result['brands'] = array_map(fn($b) => $b['name'], (new BrandBase())->index());
 
     echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 } catch (Throwable $e) {

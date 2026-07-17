@@ -8,6 +8,7 @@ require_once __DIR__ . '/TextMetrics.php';
 require_once __DIR__ . '/SeoMetrics.php';
 require_once __DIR__ . '/Similarity.php';
 require_once __DIR__ . '/LinkGraph.php';
+require_once __DIR__ . '/BrandBase.php';
 
 /**
  * Оркестратор анализа. На входе — до 7 страниц; на выходе — структура,
@@ -19,7 +20,12 @@ require_once __DIR__ . '/LinkGraph.php';
  */
 final class Analyzer
 {
-    public function __construct(private string $domain = '') {}
+    private BrandBase $brands;
+
+    public function __construct(private string $domain = '', ?BrandBase $brands = null)
+    {
+        $this->brands = $brands ?? new BrandBase();
+    }
 
     /** @param array<int,array<string,mixed>> $pages */
     public function run(array $pages): array
@@ -40,11 +46,23 @@ final class Analyzer
             /** @var Parser $parser */
             $parser = $pp['parser'];
             $in = $pp['input'];
-            $keyword = (string) ($in['keyword'] ?? '');
-            $lsi = (array) ($in['lsi'] ?? []);
 
             $tm = new TextMetrics($parser->text);
             $seo = new SeoMetrics($parser->dom, $parser->rawHtml);
+
+            // определение бренда: ручной выбор -> иначе авто по контенту
+            $brandOverride = trim((string) ($in['brand'] ?? ''));
+            $brandInfo = $brandOverride !== ''
+                ? $this->brands->byName($brandOverride)
+                : $this->brands->detect(mb_strtolower($parser->text, 'UTF-8') . ' ' . mb_strtolower($seo->title(), 'UTF-8'));
+            $semantics = $this->brandSemantics($tm, $seo, $brandInfo);
+
+            // страховка от ложного определения: если ни один запрос бренда не найден
+            // в тексте (авто-режим), считаем бренд неопределённым
+            if ($brandOverride === '' && $brandInfo && $semantics['queries_found'] === 0) {
+                $brandInfo = null;
+                $semantics = $this->brandSemantics($tm, $seo, null);
+            }
 
             $links = $seo->links($this->domain, (string) ($in['url'] ?? ''));
             $pageKeys[] = (string) ($in['url'] ?? $in['name'] ?? ("page-" . ($i + 1)));
@@ -54,11 +72,14 @@ final class Analyzer
             $texts[] = $parser->text;
 
             $out['pages'][] = [
-                'name'    => (string) ($in['name'] ?? ('Страница ' . ($i + 1))),
-                'url'     => (string) ($in['url'] ?? ''),
-                'keyword' => $keyword === '' ? [] : [$keyword],
-                'metrics' => $this->pageMetrics($tm, $seo, $keyword, $lsi, $links),
-                'wordFreq'=> $tm->topWords(10),
+                'name'     => (string) ($in['name'] ?? ('Страница ' . ($i + 1))),
+                'url'      => (string) ($in['url'] ?? ''),
+                'brand'    => $brandInfo['name'] ?? null,
+                'keyword'  => $semantics['main_keyword'] === '' ? [] : [$semantics['main_keyword']],
+                'metrics'  => $this->pageMetrics($tm, $seo, $semantics, $links),
+                'wordFreq' => $tm->topWords(10),
+                'missingQueries' => $semantics['missing_top'],
+                'foundQueries'   => $semantics['found_top'],
             ];
         }
 
@@ -96,25 +117,66 @@ final class Analyzer
         return Parser::fromText((string) ($p['text'] ?? ''));
     }
 
-    /** @return array<string,mixed> */
-    private function pageMetrics(TextMetrics $tm, SeoMetrics $seo, string $keyword, array $lsi, array $links): array
+    /**
+     * Семантика по базе бренда: покрытие запросов и кликов, топ-запрос,
+     * упущенные и найденные запросы. Заменяет ручной ввод ключей/LSI.
+     * @return array<string,mixed>
+     */
+    private function brandSemantics(TextMetrics $tm, SeoMetrics $seo, ?array $brandInfo): array
+    {
+        $empty = [
+            'main_keyword' => '', 'query_coverage' => 0.0, 'clicks_coverage' => 0.0,
+            'queries_found' => 0, 'queries_total' => 0, 'main_kw_density' => 0.0,
+            'top_in_title' => false, 'top_in_h1' => false, 'top_in_first_para' => false,
+            'missing_top' => [], 'found_top' => [],
+        ];
+        if (!$brandInfo) { return $empty; }
+
+        $queries = $this->brands->queries((string) ($brandInfo['file'] ?? ''));
+        if (!$queries) { return $empty; }
+
+        $stemSet = array_flip($tm->stems);
+        $firstParaStems = $tm->paragraphs ? array_flip(Morphology::stemPhrase($tm->paragraphs[0])) : [];
+
+        $found = 0; $clicksTotal = 0; $clicksFound = 0;
+        $missing = []; $foundList = [];
+        foreach ($queries as [$q, $clicks]) {
+            $clicks = (int) $clicks;
+            $clicksTotal += $clicks;
+            $need = Morphology::stemPhrase((string) $q);
+            if (Morphology::allStemsInSet($need, $stemSet)) {
+                $found++; $clicksFound += $clicks;
+                if (count($foundList) < 20) { $foundList[] = ['q' => $q, 'clicks' => $clicks]; }
+            } elseif (count($missing) < 20) {
+                $missing[] = ['q' => $q, 'clicks' => $clicks];   // упущенные (идут по убыванию кликов)
+            }
+        }
+
+        $mainKeyword = (string) ($queries[0][0] ?? '');
+        $title = $seo->title();
+        $h1 = $seo->h1Text();
+
+        return [
+            'main_keyword'    => $mainKeyword,
+            'query_coverage'  => round($found / max(count($queries), 1) * 100, 1),
+            'clicks_coverage' => round($clicksFound / max($clicksTotal, 1) * 100, 1),
+            'queries_found'   => $found,
+            'queries_total'   => count($queries),
+            'main_kw_density' => $tm->keywordDensity($mainKeyword),
+            'top_in_title'    => $mainKeyword !== '' && Morphology::allWordsInText($mainKeyword, Morphology::stemPhrase($title)),
+            'top_in_h1'       => $mainKeyword !== '' && Morphology::allWordsInText($mainKeyword, Morphology::stemPhrase($h1)),
+            'top_in_first_para' => $mainKeyword !== '' && Morphology::allStemsInSet(Morphology::stemPhrase($mainKeyword), $firstParaStems),
+            'missing_top'     => $missing,
+            'found_top'       => $foundList,
+        ];
+    }
+
+    /** @param array<string,mixed> $sem семантика из brandSemantics() */
+    private function pageMetrics(TextMetrics $tm, SeoMetrics $seo, array $sem, array $links): array
     {
         $title = $seo->title();
         $h1 = $seo->h1Text();
-        $inTitle = $keyword !== '' && Morphology::allWordsInText($keyword, Morphology::stemPhrase($title));
-        $inH1 = $keyword !== '' && Morphology::allWordsInText($keyword, Morphology::stemPhrase($h1));
-
-        $wordN = max($tm->wordCount(), 1);
-        $densities = [];
-        foreach (array_merge([$keyword], $lsi) as $k) {
-            if (trim((string) $k) !== '') { $densities[] = $tm->keywordDensity((string) $k); }
-        }
-        $kwDensityMax = $densities ? max($densities) : 0.0;
-        $kwExact = $tm->keywordExactCount($keyword);
-        // доля точных вхождений ключа среди всех вхождений слов ключа (риск переспама)
-        $exactRatio = $keyword !== '' && $kwExact > 0
-            ? min(100, round($tm->keywordDensity($keyword), 1))
-            : 0;
+        $mainKeyword = (string) $sem['main_keyword'];
 
         return [
             // объём
@@ -128,8 +190,7 @@ final class Analyzer
             // тошнота
             'nausea_classic'     => $tm->nauseaClassic(),
             'nausea_academic'    => $tm->nauseaAcademic(),
-            'keyword_density_max'=> $kwDensityMax,
-            'kw_exact_ratio'     => min(100, $exactRatio),
+            'keyword_density_max'=> $sem['main_kw_density'],
             // водность
             'water_percent'      => $tm->water(),
             'stopword_count'     => $tm->stopwordCount(),
@@ -141,12 +202,14 @@ final class Analyzer
             'flesch_kincaid_grade'=> $tm->fleschKincaidGrade(),
             'gunning_fog'        => $tm->gunningFog(),
             'readability_avg'    => $tm->readabilityAvg(),
-            // ключи
-            'kw_exact'           => $kwExact,
-            'kw_first_para'      => $tm->keywordInFirstParagraph($keyword),
-            'kw_in_title'        => $inTitle,
-            'kw_in_h1'           => $inH1,
-            'lsi_coverage'       => $this->lsiCoverage($tm, $lsi),
+            // семантика по базе бренда
+            'clicks_coverage'    => $sem['clicks_coverage'],
+            'query_coverage'     => $sem['query_coverage'],
+            'queries_found'      => $sem['queries_found'],
+            'queries_total'      => $sem['queries_total'],
+            'top_in_title'       => $sem['top_in_title'],
+            'top_in_h1'          => $sem['top_in_h1'],
+            'top_in_first_para'  => $sem['top_in_first_para'],
             // заголовки
             'h1_count'           => $seo->headingCount(1),
             'h1_title_diff'      => trim($h1) !== '' && mb_strtolower(trim($h1), 'UTF-8') !== mb_strtolower(trim($title), 'UTF-8'),
@@ -169,24 +232,13 @@ final class Analyzer
             // форматирование
             'list_count'         => $seo->listCount(),
             'strong_count'       => $seo->strongCount(),
-            'strong_kw_spam'     => $seo->strongKeywordSpam($keyword),
+            'strong_kw_spam'     => $seo->strongKeywordSpam($mainKeyword),
             'media_richness'     => $seo->mediaRichness(),
             // типографика
             'double_spaces'      => $tm->doubleSpaces(),
             'typo_quotes'        => $tm->badQuotes(),
             'caps_abuse'         => $tm->capsAbuse(),
         ];
-    }
-
-    private function lsiCoverage(TextMetrics $tm, array $lsi): float
-    {
-        $lsi = array_filter(array_map('trim', $lsi), fn($s) => $s !== '');
-        if (!$lsi) { return 0.0; }
-        $hit = 0;
-        foreach ($lsi as $w) {
-            if (Morphology::phraseInText($w, $tm->stems)) { $hit++; }
-        }
-        return round($hit / count($lsi) * 100, 0);
     }
 
     private function markDuplicateTitles(array &$pages): void

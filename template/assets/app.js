@@ -5,31 +5,33 @@
    ========================================================================== */
 
 const PAGE_COUNT = 7;
-// эндпоинт PHP-движка (Фаза 3). Путь относительно template/index.html
+// эндпоинты PHP-движка (Фаза 3). Пути относительно template/index.html
 const ANALYZE_ENDPOINT = '../engine/analyze.php';
+const BRANDS_ENDPOINT = '../engine/brands.php';
 const statusText = { ok:'норма', warn:'внимание', bad:'риск' };
 
 /* ---------- ДЕМО-ДАННЫЕ (в Фазе 3 заменяются ответом PHP) ------------------ */
 function demoData() {
-  const names = ['Главная','Услуга А','Услуга Б','О компании','Блог: гайд','Кейсы','Контакты'];
+  const names = ['1win','vavada','1xbet','pinco','leon','arkada','kent'];
   const pages = names.map((name, i) => {
     // псевдо-детерминированный разброс, без Math.random (для стабильности)
     const j = i + 1;
     return {
-      name, url: `/page-${j}.html`, keyword: ['ключ '+j],
+      name: name+'.html', url: `/${name}.html`, brand: name, keyword: [name],
       metrics: {
         words_total: 1800 - i*180, chars_no_spaces: 11000 - i*1200,
         words_unique_ratio: 62 - i*3, sentences_total: 120 - i*10,
         sentence_avg_len: 14 + (i%3)*4, paragraphs_total: 24 - i,
         paragraph_long_count: i%4,
         nausea_classic: 5.6 + i*0.5, nausea_academic: 7 + i*0.6,
-        keyword_density_max: 2.4 + i*0.4, kw_exact_ratio: 22 + i*4,
+        keyword_density_max: 2.4 + i*0.5,
         water_percent: 22 + i*2, stopword_count: 340 - i*20, filler_phrases: i%5,
         zipf_score: 82 - i*4,
         flesch_reading_ease: 64 - i*4, flesch_kincaid_grade: 8 + (i%3),
         gunning_fog: 11 + i, readability_avg: 63 - i*3,
-        kw_exact: 3 - (i%3)*0.5, kw_first_para: i!==3, kw_in_title: i!==6,
-        kw_in_h1: i!==4, lsi_coverage: 68 - i*5,
+        clicks_coverage: 72 - i*7, query_coverage: 14 - i,
+        queries_found: 240 - i*25, queries_total: 1890 - i*10,
+        top_in_title: i!==6, top_in_h1: i!==4, top_in_first_para: i!==3,
         h1_count: i===2 ? 2 : 1, h1_title_diff: i!==5, h2_count: 4 - (i%3),
         heading_hierarchy: i!==1,
         title_present: true, title_len: 58 - i*3, desc_present: i!==6,
@@ -40,8 +42,11 @@ function demoData() {
         media_richness: 5 - (i%4),
         double_spaces: i%3, typo_quotes: i%4, caps_abuse: i%2,
       },
-      wordFreq: [['услуга',18-i],['компания',14],['клиент',12],['заказ',9],['москва',8],
-                 ['цена',7],['качество',6],['срок',5],['опыт',4],['гарантия',3]],
+      wordFreq: [[name,18-i],['казино',14],['зеркало',12],['вход',9],['сайт',8],
+                 ['официальный',7],['бонус',6],['игра',5],['ставка',4],['онлайн',3]],
+      missingQueries: [{q:name+' скачать',clicks:143001-i*9000},{q:'промокод '+name,clicks:120587-i*8000},
+                       {q:name+' бонус',clicks:99021-i*7000},{q:name+' регистрация',clicks:88130-i*6000}],
+      foundQueries: [{q:name,clicks:453041-i*20000},{q:name+' официальный сайт',clicks:119273-i*8000}],
     };
   });
 
@@ -105,12 +110,8 @@ function renderForm() {
       <input type="file" name="file_${i}" accept=".html,.htm,.docx,.doc">
       <label>…или вставить контент (HTML/текст)</label>
       <textarea name="content_${i}" placeholder="Вставьте HTML или текст страницы"></textarea>
-      <div class="row">
-        <div><label>Ключевой запрос</label>
-          <input type="text" name="keyword_${i}" placeholder="основной ключ"></div>
-      </div>
-      <label>LSI / тематические слова (через запятую)</label>
-      <input type="text" name="lsi_${i}" placeholder="слово1, слово2, слово3">
+      <label>Бренд <span class="muted">(необязательно — по умолчанию определяется автоматически)</span></label>
+      <input type="text" name="brand_${i}" list="brands-list" placeholder="авто-определение по контенту">
     </div>`;
   }
   el.innerHTML = html;
@@ -123,10 +124,14 @@ function renderScoreboard(data) {
     const s = scores[i];
     const pill = (v)=> v===null ? '<span class="muted">—</span>'
       : `<span class="score-pill ${scoreColor(v)}">${v}</span>`;
+    const cc = p.metrics.clicks_coverage;
+    const ccPill = cc===undefined ? '<span class="muted">—</span>'
+      : `<span class="score-pill ${scoreColor(cc)}">${cc}%</span>`;
     return `<tr>
       <td>${i+1}</td>
-      <td><b>${p.name}</b><br><span class="muted" style="font-size:12px">${p.url}</span></td>
+      <td><b>${p.name}</b><br><span class="muted" style="font-size:12px">${p.brand||'—'}</span></td>
       <td>${p.metrics.words_total}</td>
+      <td>${ccPill}</td>
       <td>${pill(s.seo)}</td>
       <td>${pill(s.spam)}</td>
       <td>${pill(s.readability)}</td>
@@ -137,7 +142,7 @@ function renderScoreboard(data) {
   document.getElementById('scoreboard').innerHTML = `
     <table>
       <thead><tr>
-        <th>#</th><th>Страница</th><th>Слов</th>
+        <th>#</th><th>Страница / бренд</th><th>Слов</th><th>Клики</th>
         <th>SEO</th><th>Антиспам</th><th>Читаемость</th><th>Структура</th><th>Итого</th>
       </tr></thead>
       <tbody>${rows}</tbody>
@@ -184,14 +189,26 @@ function renderDetails(data) {
         <div class="bar-track"><div class="bar-fill" style="width:${Math.round(c/maxFreq*100)}%"></div></div>
         <span>${c}</span></div>`).join('');
 
+    // упущенные запросы (готовые рекомендации по трафику)
+    const fmt = n => n>=1000 ? Math.round(n/1000)+'k' : n;
+    const missing = (p.missingQueries||[]).map(m=>`
+      <div class="bar-row" style="grid-template-columns:1fr 60px">
+        <span>${m.q}</span><span class="txt-bad">${fmt(m.clicks)}</span></div>`).join('')
+      || '<p class="muted">Нет данных (бренд не определён).</p>';
+
+    const brandBadge = p.brand
+      ? `<span class="score-pill bg-ok">${p.brand}</span>`
+      : `<span class="score-pill bg-warn">бренд не определён</span>`;
+
     return `<div class="panel">
-      <h3>📄 ${pi+1}. ${p.name} <span class="pill">${p.url}</span></h3>
+      <h3>📄 ${pi+1}. ${p.name} ${brandBadge} <span class="pill">${p.url}</span></h3>
       <div class="grid cols-2">
         <div>${cats}</div>
         <div>
-          <h4>ТОП частотных слов</h4>
+          <h4>🚀 Упущенные запросы <span class="muted">(по кликам/мес — что добавить)</span></h4>
+          <div class="bars">${missing}</div>
+          <h4 style="margin-top:16px">ТОП частотных слов</h4>
           <div class="bars">${bars}</div>
-          <p class="muted" style="margin-top:14px">График Ципфа и полный список ключей/LSI подставляются PHP-движком в Фазе 3.</p>
         </div>
       </div>
     </div>`;
@@ -292,8 +309,18 @@ function switchTab(id) {
   document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active', v.id==='view-'+id));
 }
 
+async function loadBrandsList() {
+  try {
+    const res = await fetch(BRANDS_ENDPOINT);
+    const brands = await res.json();
+    const dl = document.getElementById('brands-list');
+    dl.innerHTML = brands.map(b=>`<option value="${b.name}">${b.name} · ${b.queries} запр.</option>`).join('');
+  } catch (e) { /* без сервера datalist просто пуст — не критично */ }
+}
+
 document.addEventListener('DOMContentLoaded', ()=>{
   renderForm();
+  loadBrandsList();
   document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.view)));
   document.getElementById('btn-demo').addEventListener('click', ()=>{ loadData(demoData()); switchTab('results'); });
   document.getElementById('btn-analyze').addEventListener('click', async (e)=>{

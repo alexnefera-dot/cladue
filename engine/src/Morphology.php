@@ -183,11 +183,20 @@ final class Morphology
     /** присутствуют ли ВСЕ слова ключа в тексте (не обязательно подряд) */
     public static function allWordsInText(string $phrase, array $textStems): bool
     {
-        $need = self::stemPhrase($phrase);
-        if (!$need) { return false; }
-        $set = array_flip($textStems);
-        foreach ($need as $stem) {
-            if (!isset($set[$stem])) { return false; }
+        return self::allStemsInSet(self::stemPhrase($phrase), array_flip($textStems));
+    }
+
+    /**
+     * Быстрый вариант: набор основ текста передаётся уже как хэш-множество
+     * (array_flip). Используется при сопоставлении тысяч запросов бренда.
+     * @param string[] $needStems
+     * @param array<string,int> $stemSet
+     */
+    public static function allStemsInSet(array $needStems, array $stemSet): bool
+    {
+        if (!$needStems) { return false; }
+        foreach ($needStems as $stem) {
+            if (!isset($stemSet[$stem])) { return false; }
         }
         return true;
     }
