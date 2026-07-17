@@ -70,7 +70,16 @@ function demoData() {
     [6,5,5,7,9,100,3],
     [3,2,2,3,2,3,100],
   ];
-  return { pages, link, shingle };
+  const orientation = {
+    brand:   {label:'Брендовые',            share:38.0, clicks:1250000},
+    access:  {label:'Доступ / зеркало',     share:29.0, clicks:960000},
+    official:{label:'Офиц. сайт',           share:14.0, clicks:460000},
+    games:   {label:'Игры / казино',        share:8.0,  clicks:260000},
+    bonus:   {label:'Бонусы / промокоды',   share:5.0,  clicks:165000},
+    app:     {label:'Приложение / скачать', share:4.0,  clicks:130000},
+    registr: {label:'Регистрация / кабинет',share:2.0,  clicks:66000},
+  };
+  return { pages, link, shingle, orientation };
 }
 
 /* ---------- вычисление сводных баллов ------------------------------------- */
@@ -271,23 +280,178 @@ function renderProject(data) {
 }
 
 /* ---------- рендер: рекомендации ------------------------------------------ */
-function renderRecommendations(data) {
-  const recs = [];
-  data.pages.forEach((p,i)=>{
-    PARAM_SCHEMA.forEach(g=>g.params.forEach(param=>{
-      const v=p.metrics[param.id]; if(v===undefined) return;
-      const st=param.eval(v,p);
-      if(st==='bad') recs.push({lvl:'bad', txt:`Стр. ${i+1} «${p.name}»: ${param.label} = ${v}${param.unit||''} (норма: ${param.norm})`});
-    }));
+// профиль ориентации: горизонтальные полосы долей по интентам
+function orientationBars(orientation) {
+  const themes = Object.values(orientation||{});
+  if (!themes.length) return '<p class="muted">Нет данных (бренд не определён).</p>';
+  const max = Math.max(...themes.map(t=>t.share), 1);
+  const fmt = n => n>=1000 ? Math.round(n/1000)+'k' : n;
+  return `<div class="bars">` + themes.map(t=>`
+    <div class="bar-row" style="grid-template-columns:170px 1fr 92px">
+      <span>${t.label}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(t.share/max*100)}%"></div></div>
+      <span>${t.share}% · ${fmt(t.clicks)}</span>
+    </div>`).join('') + `</div>`;
+}
+
+function renderOrientation(data) {
+  const el = document.getElementById('orientation');
+  if (!el) return;
+  el.innerHTML = `<p class="muted">На что ориентирован набор — распределение кликов покрытых запросов по смысловым кластерам.</p>`
+    + orientationBars(data.orientation);
+}
+
+/* ========================================================================== */
+/*  РЕЖИМ СРАВНЕНИЯ КОНКУРЕНТОВ (набор A vs набор B)                           */
+/* ========================================================================== */
+
+const COMPARE_ENDPOINT = '../engine/compare.php';
+
+// метрики для таблицы «рядом»; dir: up = больше лучше, down = меньше лучше, bool
+const COMPARE_METRICS = [
+  {id:'clicks_coverage',    label:'Покрытие по кликам',  unit:'%', dir:'up'},
+  {id:'query_coverage',     label:'Покрытие запросов',   unit:'%', dir:'up'},
+  {id:'queries_found',      label:'Найдено запросов',    unit:'',  dir:'up'},
+  {id:'words_total',        label:'Объём (слов)',        unit:'',  dir:'up'},
+  {id:'nausea_academic',    label:'Академ. тошнота',     unit:'%', dir:'down'},
+  {id:'water_percent',      label:'Водность',            unit:'%', dir:'down'},
+  {id:'keyword_density_max',label:'Плотность гл. ключа', unit:'%', dir:'down'},
+  {id:'flesch_reading_ease',label:'Читаемость (Флеш)',   unit:'',  dir:'up'},
+  {id:'h2_count',           label:'Подзаголовков H2',    unit:'',  dir:'up'},
+  {id:'img_alt_filled',     label:'Alt заполнен',        unit:'%', dir:'up'},
+  {id:'top_in_title',       label:'Гл. запрос в Title',  unit:'',  dir:'bool'},
+];
+
+// -1 = выигрывает A, 1 = B, 0 = ничья
+function cmpWinner(a, b, dir) {
+  if (a===undefined || b===undefined) return 0;
+  if (dir==='bool') return a===b ? 0 : (a ? -1 : 1);
+  if (a===b) return 0;
+  return dir==='up' ? (a>b?-1:1) : (a<b?-1:1);
+}
+
+function renderCompareForm() {
+  const ccard = (prefix, i) => `
+    <div class="page-card">
+      <h4><span class="num">${i}</span> ${prefix==='a_'?'A':'B'} · Страница ${i}</h4>
+      <label>Название / URL</label>
+      <input type="text" name="${prefix}name_${i}" placeholder="напр. /1win.html">
+      <label>Файл (HTML/DOCX)</label>
+      <input type="file" name="${prefix}file_${i}" accept=".html,.htm,.docx,.doc">
+      <label>…или вставить контент</label>
+      <textarea name="${prefix}content_${i}" placeholder="HTML или текст"></textarea>
+      <label>Бренд <span class="muted">(необязательно, авто)</span></label>
+      <input type="text" name="${prefix}brand_${i}" list="brands-list" placeholder="авто">
+    </div>`;
+  const grid = pfx => Array.from({length:PAGE_COUNT}, (_,k)=>ccard(pfx,k+1)).join('');
+  document.getElementById('setA-grid').innerHTML = `<div class="pages-grid">${grid('a_')}</div>`;
+  document.getElementById('setB-grid').innerHTML = `<div class="pages-grid">${grid('b_')}</div>`;
+}
+
+// таблица метрик «рядом» для пары страниц
+function compareMetricTable(ma, mb) {
+  const arrow = w => w===0 ? '<span class="muted">=</span>'
+    : w<0 ? '<span class="txt-ok">◀ A</span>' : '<span class="txt-ok">B ▶</span>';
+  const cell = (v, param) => v===undefined ? '—'
+    : (param.dir==='bool' ? (v?'да':'нет') : `${v}${param.unit}`);
+  const rows = COMPARE_METRICS.map(p=>{
+    const a=ma[p.id], b=mb[p.id], w=cmpWinner(a,b,p.dir);
+    let delta='';
+    if(p.dir!=='bool' && a!==undefined && b!==undefined){
+      const d=Math.round((b-a)*10)/10; delta = (d>0?'+':'')+d+p.unit;
+    }
+    return `<tr>
+      <td>${p.label}</td>
+      <td class="${w<0?'txt-ok':''}" style="text-align:right;font-weight:700">${cell(a,p)}</td>
+      <td class="${w>0?'txt-ok':''}" style="text-align:right;font-weight:700">${cell(b,p)}</td>
+      <td style="text-align:right" class="muted">${delta}</td>
+      <td style="text-align:center">${arrow(w)}</td>
+    </tr>`;
+  }).join('');
+  return `<table>
+    <thead><tr><th>Метрика</th><th style="text-align:right">A (ты)</th>
+      <th style="text-align:right">B (конкурент)</th><th style="text-align:right">Δ (B−A)</th><th>Лучше</th></tr></thead>
+    <tbody>${rows}</tbody></table>`;
+}
+
+function gapList(gap, cls) {
+  const fmt = n => n>=1000 ? Math.round(n/1000)+'k' : n;
+  if(!gap || !gap.length) return '<p class="muted">Разрыва нет.</p>';
+  return `<div class="bars">` + gap.slice(0,12).map(g=>`
+    <div class="bar-row" style="grid-template-columns:1fr 64px">
+      <span>${g.q}</span><span class="${cls}">${fmt(g.clicks)}</span></div>`).join('') + `</div>`;
+}
+
+function renderCompare(res) {
+  document.getElementById('compare-empty').classList.add('hidden');
+  const box = document.getElementById('compare-results');
+  box.classList.remove('hidden');
+
+  // 1) ориентация наборов рядом
+  let html = `<div class="panel"><h3>🎯 На что ориентированы наборы</h3>
+    <div class="grid cols-2">
+      <div><h4 style="color:var(--accent-2)">A · Ты</h4>${orientationBars(res.a.orientation)}</div>
+      <div><h4 style="color:var(--accent)">B · Конкурент</h4>${orientationBars(res.b.orientation)}</div>
+    </div></div>`;
+
+  // 2) пары по брендам
+  if(!res.pairs.length){
+    html += `<div class="panel empty">Общих брендов у наборов не найдено — сравнивать попарно нечего. Проверьте, что страницы про одни и те же бренды.</div>`;
+  }
+  res.pairs.forEach(pair=>{
+    const ma = res.a.pages[pair.aIndex].metrics;
+    const mb = res.b.pages[pair.bIndex].metrics;
+    html += `<div class="panel">
+      <h3>⚔️ Бренд: ${pair.brand}
+        <span class="pill">A: ${res.a.pages[pair.aIndex].name}</span>
+        <span class="pill">B: ${res.b.pages[pair.bIndex].name}</span></h3>
+      ${compareMetricTable(ma, mb)}
+      <div class="grid cols-2" style="margin-top:14px">
+        <div><h4>🚀 Закрывает конкурент (B), а ты нет</h4>${gapList(pair.gapBnotA,'txt-bad')}</div>
+        <div><h4>✅ Закрываешь ты (A), а конкурент нет</h4>${gapList(pair.gapAnotB,'txt-ok')}</div>
+      </div>
+    </div>`;
   });
-  const proj = data.project || computeProject(data);
-  PROJECT_PARAMS.linking.concat(PROJECT_PARAMS.uniqueness).forEach(p=>{
-    if(p.eval(proj[p.id])==='bad') recs.push({lvl:'bad', txt:`Проект: ${p.label} = ${proj[p.id]} (норма: ${p.norm})`});
-  });
-  const el = document.getElementById('recommendations');
-  if(!recs.length){ el.innerHTML='<div class="rec ok">Критичных проблем не найдено 🎉</div>'; return; }
-  el.innerHTML = `<p class="muted">Найдено проблем уровня «риск»: <b>${recs.length}</b></p>` +
-    recs.map(r=>`<div class="rec ${r.lvl}">${r.txt}</div>`).join('');
+
+  // 3) непарные бренды
+  if((res.onlyA&&res.onlyA.length)||(res.onlyB&&res.onlyB.length)){
+    html += `<div class="panel"><h3>Бренды без пары</h3>
+      <p>Только у тебя (A): <b>${res.onlyA.join(', ')||'—'}</b></p>
+      <p>Только у конкурента (B): <b>${res.onlyB.join(', ')||'—'}</b></p></div>`;
+  }
+  box.innerHTML = html;
+}
+
+function demoCompare() {
+  const d = demoData();
+  const mk = (cov)=>({name:'1win.html', brand:'1win', metrics:{
+    clicks_coverage:cov, query_coverage:cov/5, queries_found:Math.round(cov*4),
+    words_total:1500+cov*5, nausea_academic:8, water_percent:24, keyword_density_max:2.6,
+    flesch_reading_ease:60, h2_count:3, img_alt_filled:90, top_in_title:true }});
+  return {
+    a:{pages:[mk(60)], orientation:d.orientation},
+    b:{pages:[mk(76)], orientation:{
+      brand:{label:'Брендовые',share:34,clicks:1100000}, access:{label:'Доступ / зеркало',share:28,clicks:900000},
+      bonus:{label:'Бонусы / промокоды',share:12,clicks:390000}, app:{label:'Приложение / скачать',share:10,clicks:320000},
+      registr:{label:'Регистрация / кабинет',share:9,clicks:290000}, games:{label:'Игры / казино',share:7,clicks:230000}}},
+    pairs:[{brand:'1win', aIndex:0, bIndex:0,
+      gapBnotA:[{q:'1win casino',clicks:423448},{q:'1win регистрация',clicks:317347},{q:'1win скачать',clicks:143001},{q:'промокод 1win',clicks:120587}],
+      gapAnotB:[{q:'1win зеркало сайта',clicks:45000}]}],
+    onlyA:[], onlyB:['vavada']
+  };
+}
+
+async function submitCompare(btn) {
+  const form = document.getElementById('compare-form');
+  const old = btn.textContent; btn.textContent='⏳ Сравнение…'; btn.disabled=true;
+  try {
+    const res = await fetch(COMPARE_ENDPOINT, {method:'POST', body:new FormData(form)});
+    const json = await res.json();
+    if(json.error) throw new Error(json.error);
+    renderCompare(json);
+  } catch(err) {
+    alert('Не удалось сравнить: '+err.message+'\n\nЗапустите PHP-сервер (php -S localhost:8000) или нажмите «Демо-сравнение».');
+  } finally { btn.textContent=old; btn.disabled=false; }
 }
 
 /* ---------- инициализация ------------------------------------------------- */
@@ -301,7 +465,7 @@ function loadData(data) {
   renderMatrix('matrix-link', data.link, data.pages.map(p=>p.name), 'link');
   renderMatrix('matrix-shingle', data.shingle, data.pages.map(p=>p.name), 'shingle');
   renderProject(data);
-  renderRecommendations(data);
+  renderOrientation(data);
 }
 
 function switchTab(id) {
@@ -320,9 +484,12 @@ async function loadBrandsList() {
 
 document.addEventListener('DOMContentLoaded', ()=>{
   renderForm();
+  renderCompareForm();
   loadBrandsList();
   document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.view)));
   document.getElementById('btn-demo').addEventListener('click', ()=>{ loadData(demoData()); switchTab('results'); });
+  document.getElementById('btn-compare-demo').addEventListener('click', ()=>{ renderCompare(demoCompare()); });
+  document.getElementById('btn-compare').addEventListener('click', (e)=>{ e.preventDefault(); submitCompare(e.currentTarget); });
   document.getElementById('btn-analyze').addEventListener('click', async (e)=>{
     e.preventDefault();
     const form = document.getElementById('analyze-form');

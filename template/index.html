@@ -23,7 +23,8 @@
   <div class="tabs">
     <div class="tab active" data-view="input">1 · Загрузка контента</div>
     <div class="tab" data-view="results">2 · Результаты анализа</div>
-    <div class="tab" data-view="params">3 · Список параметров</div>
+    <div class="tab" data-view="compare">3 · Сравнение конкурентов</div>
+    <div class="tab" data-view="params">4 · Список параметров</div>
   </div>
 
   <!-- ================= ВКЛАДКА 1: ЗАГРУЗКА ================= -->
@@ -101,8 +102,8 @@
       <div id="project-metrics"></div>
 
       <div class="panel">
-        <h3>⚠️ Рекомендации (что править)</h3>
-        <div id="recommendations"></div>
+        <h3>🎯 На что ориентирован набор</h3>
+        <div id="orientation"></div>
       </div>
 
       <h2 style="margin:24px 0 12px">Детальный разбор по страницам</h2>
@@ -110,7 +111,33 @@
     </div>
   </section>
 
-  <!-- ================= ВКЛАДКА 3: СПИСОК ПАРАМЕТРОВ ================= -->
+  <!-- ================= ВКЛАДКА: СРАВНЕНИЕ КОНКУРЕНТОВ ================= -->
+  <section id="view-compare" class="view">
+    <form id="compare-form">
+      <div class="panel">
+        <h3>⚔️ Сравнение двух наборов</h3>
+        <p class="muted">Слева — <b>твои</b> страницы (A), справа — <b>конкурент</b> (B). Страницы сопоставляются по бренду автоматически. Ключи вводить не нужно.</p>
+        <div class="grid cols-2">
+          <div>
+            <h4 style="color:var(--accent-2)">A · Твои страницы</h4>
+            <div id="setA-grid"></div>
+          </div>
+          <div>
+            <h4 style="color:var(--accent)">B · Конкурент</h4>
+            <div id="setB-grid"></div>
+          </div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="btn-compare">⚔️ Сравнить наборы</button>
+        <button class="btn" id="btn-compare-demo" type="button">👁 Демо-сравнение</button>
+      </div>
+    </form>
+    <div id="compare-empty" class="panel empty">Загрузите оба набора и нажмите «Сравнить», либо нажмите «Демо-сравнение».</div>
+    <div id="compare-results" class="hidden"></div>
+  </section>
+
+  <!-- ================= ВКЛАДКА: СПИСОК ПАРАМЕТРОВ ================= -->
   <section id="view-params" class="view">
     <div class="panel">
       <h3>📋 Полный список параметров анализа</h3>

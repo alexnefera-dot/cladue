@@ -9,6 +9,7 @@ require_once __DIR__ . '/SeoMetrics.php';
 require_once __DIR__ . '/Similarity.php';
 require_once __DIR__ . '/LinkGraph.php';
 require_once __DIR__ . '/BrandBase.php';
+require_once __DIR__ . '/Intent.php';
 
 /**
  * Оркестратор анализа. На входе — до 7 страниц; на выходе — структура,
@@ -22,8 +23,11 @@ final class Analyzer
 {
     private BrandBase $brands;
 
-    public function __construct(private string $domain = '', ?BrandBase $brands = null)
-    {
+    public function __construct(
+        private string $domain = '',
+        ?BrandBase $brands = null,
+        private bool $fullQueries = false   // прикладывать полный список найденных запросов (для сравнения)
+    ) {
         $this->brands = $brands ?? new BrandBase();
     }
 
@@ -41,6 +45,8 @@ final class Analyzer
         $pageKeys = [];
         $pageLinks = [];
         $allAnchors = [];
+        $allFound = [];
+        $allBrandKeys = [];
 
         foreach ($parsed as $i => $pp) {
             /** @var Parser $parser */
@@ -71,7 +77,7 @@ final class Analyzer
 
             $texts[] = $parser->text;
 
-            $out['pages'][] = [
+            $page = [
                 'name'     => (string) ($in['name'] ?? ('Страница ' . ($i + 1))),
                 'url'      => (string) ($in['url'] ?? ''),
                 'brand'    => $brandInfo['name'] ?? null,
@@ -80,7 +86,14 @@ final class Analyzer
                 'wordFreq' => $tm->topWords(10),
                 'missingQueries' => $semantics['missing_top'],
                 'foundQueries'   => $semantics['found_top'],
+                'orientation'    => $semantics['orientation'],
             ];
+            if ($this->fullQueries) {
+                $page['foundAll'] = $semantics['found_all'];   // для разрыва запросов в сравнении
+            }
+            $out['pages'][] = $page;
+            $allFound = array_merge($allFound, $semantics['found_all']);
+            if ($brandInfo) { $allBrandKeys = array_merge($allBrandKeys, (array) ($brandInfo['keys'] ?? [])); }
         }
 
         // матрицы уровня проекта
@@ -105,6 +118,12 @@ final class Analyzer
             'dup_paragraphs'     => $this->dupParagraphs($texts),
         ];
 
+        // на что ориентирован весь набор: профиль интентов по всем найденным запросам
+        $out['orientation'] = Intent::profile($allFound, array_values(array_unique($allBrandKeys)));
+        $out['brandsDetected'] = array_values(array_unique(array_filter(
+            array_map(fn($p) => $p['brand'], $out['pages'])
+        )));
+
         return $out;
     }
 
@@ -128,7 +147,7 @@ final class Analyzer
             'main_keyword' => '', 'query_coverage' => 0.0, 'clicks_coverage' => 0.0,
             'queries_found' => 0, 'queries_total' => 0, 'main_kw_density' => 0.0,
             'top_in_title' => false, 'top_in_h1' => false, 'top_in_first_para' => false,
-            'missing_top' => [], 'found_top' => [],
+            'missing_top' => [], 'found_top' => [], 'found_all' => [], 'orientation' => [],
         ];
         if (!$brandInfo) { return $empty; }
 
@@ -138,14 +157,16 @@ final class Analyzer
         $stemSet = array_flip($tm->stems);
         $firstParaStems = $tm->paragraphs ? array_flip(Morphology::stemPhrase($tm->paragraphs[0])) : [];
 
+        $brandName = (string) ($brandInfo['name'] ?? '');
         $found = 0; $clicksTotal = 0; $clicksFound = 0;
-        $missing = []; $foundList = [];
+        $missing = []; $foundList = []; $foundAll = [];
         foreach ($queries as [$q, $clicks]) {
             $clicks = (int) $clicks;
             $clicksTotal += $clicks;
             $need = Morphology::stemPhrase((string) $q);
             if (Morphology::allStemsInSet($need, $stemSet)) {
                 $found++; $clicksFound += $clicks;
+                $foundAll[] = [$q, $clicks];
                 if (count($foundList) < 20) { $foundList[] = ['q' => $q, 'clicks' => $clicks]; }
             } elseif (count($missing) < 20) {
                 $missing[] = ['q' => $q, 'clicks' => $clicks];   // упущенные (идут по убыванию кликов)
@@ -168,6 +189,8 @@ final class Analyzer
             'top_in_first_para' => $mainKeyword !== '' && Morphology::allStemsInSet(Morphology::stemPhrase($mainKeyword), $firstParaStems),
             'missing_top'     => $missing,
             'found_top'       => $foundList,
+            'found_all'       => $foundAll,
+            'orientation'     => Intent::profile($foundAll, (array) ($brandInfo['keys'] ?? [])),
         ];
     }
 
