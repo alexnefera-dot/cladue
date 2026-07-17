@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Анализатор контента под Яндекс — 7 страниц с перелинковкой</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Шапка -->
+  <div class="top">
+    <div class="logo">Я</div>
+    <div>
+      <h1 style="margin:0">Анализатор контента под Яндекс</h1>
+      <div class="sub">7-страничный проект с перелинковкой · SEO + не-SEO параметры · офлайн-анализ</div>
+    </div>
+    <span class="badge">Фаза 2 · HTML-шаблон</span>
+  </div>
+
+  <!-- Вкладки -->
+  <div class="tabs">
+    <div class="tab active" data-view="input">1 · Загрузка контента</div>
+    <div class="tab" data-view="results">2 · Результаты анализа</div>
+    <div class="tab" data-view="params">3 · Список параметров</div>
+  </div>
+
+  <!-- ================= ВКЛАДКА 1: ЗАГРУЗКА ================= -->
+  <section id="view-input" class="view active">
+    <form id="analyze-form">
+      <div class="panel">
+        <h3>📥 Загрузка 7 страниц</h3>
+        <p class="muted">Для каждой страницы: загрузите HTML/DOCX-файл <b>или</b> вставьте контент, укажите ключ и LSI. Перелинковка между страницами определяется по внутренним ссылкам автоматически.</p>
+        <div id="pages-grid" class="pages-grid"><!-- строится из JS --></div>
+      </div>
+
+      <div class="panel">
+        <h3>⚙️ Настройки анализа</h3>
+        <div class="grid cols-2">
+          <div>
+            <label>Регион продвижения (для будущих проверок)</label>
+            <input type="text" name="region" placeholder="напр. Москва">
+            <label>Базовый домен (для различения внутренних/внешних ссылок)</label>
+            <input type="text" name="domain" placeholder="example.ru">
+          </div>
+          <div>
+            <label>Морфология ключей</label>
+            <select name="morphology">
+              <option value="lemma">Учитывать словоформы (лемматизация)</option>
+              <option value="exact">Только точные вхождения</option>
+            </select>
+            <label>Строгость норм под Яндекс</label>
+            <select name="strictness">
+              <option value="strict">Строгая (акцент на антиспам / Баден-Баден)</option>
+              <option value="normal">Обычная</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" id="btn-analyze">🔍 Проанализировать 7 страниц</button>
+        <button class="btn" id="btn-demo" type="button">👁 Показать демо-данные</button>
+      </div>
+      <p class="muted" style="margin-top:12px">Фаза 3: форма отправляется в локальный <code>analyze.php</code>, который парсит файлы, считает параметры и возвращает JSON. Кнопка «Демо-данные» показывает готовый вид результатов уже сейчас.</p>
+    </form>
+  </section>
+
+  <!-- ================= ВКЛАДКА 2: РЕЗУЛЬТАТЫ ================= -->
+  <section id="view-results" class="view">
+    <div id="results-empty" class="panel empty">
+      Данных пока нет. Нажмите <b>«Показать демо-данные»</b> на вкладке загрузки, чтобы увидеть шаблон в работе.
+    </div>
+    <div id="results-body" class="hidden">
+      <div class="panel">
+        <h3>🏁 Сводка по проекту</h3>
+        <div id="scoreboard"></div>
+      </div>
+
+      <div class="grid cols-2">
+        <div class="panel">
+          <h3>🔗 Матрица перелинковки 7×7</h3>
+          <p class="muted">Строка ссылается на столбец. Пустая строка = страница-тупик, пустой столбец = страница-сирота.</p>
+          <div id="matrix-link"></div>
+          <div class="legend"><span><span class="dot ok"></span> есть ссылка</span></div>
+        </div>
+        <div class="panel">
+          <h3>🧬 Матрица схожести 7×7 (шинглы)</h3>
+          <p class="muted">Взаимное совпадение контента. Высокие значения = риск внутренних дублей.</p>
+          <div id="matrix-shingle"></div>
+          <div class="legend">
+            <span><span class="dot ok"></span> &lt;15% ок</span>
+            <span><span class="dot warn"></span> 15–30%</span>
+            <span><span class="dot bad"></span> &gt;30% дубли</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="project-metrics"></div>
+
+      <div class="panel">
+        <h3>⚠️ Рекомендации (что править)</h3>
+        <div id="recommendations"></div>
+      </div>
+
+      <h2 style="margin:24px 0 12px">Детальный разбор по страницам</h2>
+      <div id="details"></div>
+    </div>
+  </section>
+
+  <!-- ================= ВКЛАДКА 3: СПИСОК ПАРАМЕТРОВ ================= -->
+  <section id="view-params" class="view">
+    <div class="panel">
+      <h3>📋 Полный список параметров анализа</h3>
+      <p class="muted">Формируется автоматически из реестра (<code>docs/parameters.md</code> → <code>assets/schema.js</code>). Это те параметры, что считает офлайн-движок.</p>
+      <div id="params-list"></div>
+    </div>
+  </section>
+
+</div>
+
+<script src="assets/schema.js"></script>
+<script src="assets/app.js"></script>
+<script>
+  // Вкладка 3: перечень всех параметров из схемы
+  (function(){
+    const el = document.getElementById('params-list');
+    let html = '';
+    const render = (title, list, hasUnit) => {
+      html += `<div class="cat"><div class="cat-head"><span>▸</span> ${title}</div><div class="cat-body">`;
+      list.forEach(p=>{ html += `<div class="p-row">
+        <span class="dot" style="background:#3a4560"></span>
+        <span class="p-label">${p.label} <span class="pill">${p.id}</span></span>
+        <span class="p-norm">норма: ${p.norm}</span>
+        <span class="p-val muted">${hasUnit?(p.unit||'—'):'—'}</span></div>`; });
+      html += `</div></div>`;
+    };
+    PARAM_SCHEMA.forEach(g=>render(g.icon+' '+g.cat, g.params, true));
+    render('🔗 Перелинковка (уровень проекта)', PROJECT_PARAMS.linking, false);
+    render('🧬 Уникальность (уровень проекта)', PROJECT_PARAMS.uniqueness, false);
+    el.innerHTML = html;
+  })();
+</script>
+</body>
+</html>
