@@ -5,6 +5,8 @@
    ========================================================================== */
 
 const PAGE_COUNT = 7;
+// эндпоинт PHP-движка (Фаза 3). Путь относительно template/index.html
+const ANALYZE_ENDPOINT = '../engine/analyze.php';
 const statusText = { ok:'норма', warn:'внимание', bad:'риск' };
 
 /* ---------- ДЕМО-ДАННЫЕ (в Фазе 3 заменяются ответом PHP) ------------------ */
@@ -233,7 +235,8 @@ function computeProject(data) {
 }
 
 function renderProject(data) {
-  const vals = computeProject(data);
+  // PHP-движок присылает готовый data.project; иначе считаем из матриц
+  const vals = data.project || computeProject(data);
   const block = (title, list) => {
     const rows = list.map(p=>{
       const v = vals[p.id]; const st = p.eval(v);
@@ -260,7 +263,7 @@ function renderRecommendations(data) {
       if(st==='bad') recs.push({lvl:'bad', txt:`Стр. ${i+1} «${p.name}»: ${param.label} = ${v}${param.unit||''} (норма: ${param.norm})`});
     }));
   });
-  const proj = computeProject(data);
+  const proj = data.project || computeProject(data);
   PROJECT_PARAMS.linking.concat(PROJECT_PARAMS.uniqueness).forEach(p=>{
     if(p.eval(proj[p.id])==='bad') recs.push({lvl:'bad', txt:`Проект: ${p.label} = ${proj[p.id]} (норма: ${p.norm})`});
   });
@@ -293,9 +296,24 @@ document.addEventListener('DOMContentLoaded', ()=>{
   renderForm();
   document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.view)));
   document.getElementById('btn-demo').addEventListener('click', ()=>{ loadData(demoData()); switchTab('results'); });
-  document.getElementById('btn-analyze').addEventListener('click', (e)=>{
+  document.getElementById('btn-analyze').addEventListener('click', async (e)=>{
     e.preventDefault();
-    // В Фазе 3: fetch('analyze.php', {method:'POST', body: new FormData(form)}) -> loadData(json)
-    alert('Фаза 3: здесь форма отправится в analyze.php, который вернёт JSON.\nПока нажмите «Демо-данные», чтобы увидеть шаблон в работе.');
+    const form = document.getElementById('analyze-form');
+    const btn = e.currentTarget;
+    const old = btn.textContent;
+    btn.textContent = '⏳ Анализ…'; btn.disabled = true;
+    try {
+      const res = await fetch(ANALYZE_ENDPOINT, { method:'POST', body: new FormData(form) });
+      const json = await res.json();
+      if (json.error) throw new Error(json.error);
+      loadData(json); switchTab('results');
+    } catch (err) {
+      alert('Не удалось выполнить анализ: ' + err.message +
+        '\n\nУбедитесь, что запущен локальный PHP:\n  php -S localhost:8000 -t .' +
+        '\nи открыт http://localhost:8000/template/index.html' +
+        '\n\nПока можно нажать «Показать демо-данные».');
+    } finally {
+      btn.textContent = old; btn.disabled = false;
+    }
   });
 });

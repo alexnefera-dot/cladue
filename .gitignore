@@ -1,0 +1,5 @@
+# генерируемые артефакты анализатора
+engine/tests/fixtures/
+engine/tests/report.json
+report.json
+*.log
