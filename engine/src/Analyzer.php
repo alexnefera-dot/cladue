@@ -47,6 +47,7 @@ final class Analyzer
         $allAnchors = [];
         $allFound = [];
         $allBrandKeys = [];
+        $pageIntents = [];
 
         foreach ($parsed as $i => $pp) {
             /** @var Parser $parser */
@@ -61,7 +62,11 @@ final class Analyzer
             $brandInfo = $brandOverride !== ''
                 ? $this->brands->byName($brandOverride)
                 : $this->brands->detect(mb_strtolower($parser->text, 'UTF-8') . ' ' . mb_strtolower($seo->title(), 'UTF-8'));
-            $semantics = $this->brandSemantics($tm, $seo, $brandInfo);
+
+            // бренд вне базы: заданный ключ есть, но в базе его нет -> ручной ключ
+            // (покрытие по базе не считаем, ключевые метрики — по этому ключу)
+            $manualKeyword = ($brandOverride !== '' && !$brandInfo) ? $brandOverride : '';
+            $semantics = $this->brandSemantics($tm, $seo, $brandInfo, $manualKeyword);
 
             // страховка от ложного определения: если ни один запрос бренда не найден
             // в тексте (авто-режим), считаем бренд неопределённым
@@ -69,6 +74,11 @@ final class Analyzer
                 $brandInfo = null;
                 $semantics = $this->brandSemantics($tm, $seo, null);
             }
+
+            // интент страницы: доминирующая тема по контенту (+ заголовки), с хинтом из имени/URL
+            $intentText = $seo->headingsText() . ' ' . $parser->text;
+            $intentHint = (string) ($in['name'] ?? '') . ' ' . (string) ($in['url'] ?? '');
+            $pageIntent = Intent::dominant($intentText, (array) ($brandInfo['keys'] ?? []), $intentHint);
 
             $links = $seo->links($this->domain, (string) ($in['url'] ?? ''));
             $pageKeys[] = (string) ($in['url'] ?? $in['name'] ?? ("page-" . ($i + 1)));
@@ -80,7 +90,9 @@ final class Analyzer
             $page = [
                 'name'     => (string) ($in['name'] ?? ('Страница ' . ($i + 1))),
                 'url'      => (string) ($in['url'] ?? ''),
-                'brand'    => $brandInfo['name'] ?? null,
+                'brand'    => $brandInfo['name'] ?? ($manualKeyword !== '' ? $manualKeyword : null),
+                'inBase'   => $brandInfo !== null,
+                'pageIntent' => $pageIntent,
                 'keyword'  => $semantics['main_keyword'] === '' ? [] : [$semantics['main_keyword']],
                 'metrics'  => $this->pageMetrics($tm, $seo, $semantics, $links),
                 'wordFreq' => $tm->topWords(10),
@@ -94,6 +106,7 @@ final class Analyzer
             $out['pages'][] = $page;
             $allFound = array_merge($allFound, $semantics['found_all']);
             if ($brandInfo) { $allBrandKeys = array_merge($allBrandKeys, (array) ($brandInfo['keys'] ?? [])); }
+            $pageIntents[] = ['theme' => $pageIntent, 'words' => $tm->wordCount()];
         }
 
         // матрицы уровня проекта
@@ -118,12 +131,42 @@ final class Analyzer
             'dup_paragraphs'     => $this->dupParagraphs($texts),
         ];
 
-        // на что ориентирован весь набор: профиль интентов по всем найденным запросам
-        $out['orientation'] = Intent::profile($allFound, array_values(array_unique($allBrandKeys)));
+        // на что ориентирован весь набор:
+        //  - если бренд(ы) в базе — профиль по покрытым запросам (взвешен кликами);
+        //  - иначе (бренд вне базы) — по интентам страниц, взвешено объёмом текста.
+        $out['orientation'] = $allFound
+            ? Intent::profile($allFound, array_values(array_unique($allBrandKeys)))
+            : $this->orientationFromPages($pageIntents);
+        $out['orientationSource'] = $allFound ? 'queries' : 'pages';
         $out['brandsDetected'] = array_values(array_unique(array_filter(
             array_map(fn($p) => $p['brand'], $out['pages'])
         )));
 
+        return $out;
+    }
+
+    /**
+     * Ориентация набора без базы: распределение по интентам страниц,
+     * взвешенное объёмом текста каждой страницы.
+     * @param array<int,array{theme:string,words:int}> $pageIntents
+     */
+    private function orientationFromPages(array $pageIntents): array
+    {
+        $byTheme = []; $total = 0;
+        foreach ($pageIntents as $p) {
+            $w = max(1, (int) $p['words']);
+            $byTheme[$p['theme']] = ($byTheme[$p['theme']] ?? 0) + $w;
+            $total += $w;
+        }
+        arsort($byTheme);
+        $out = [];
+        foreach ($byTheme as $theme => $w) {
+            $out[$theme] = [
+                'clicks' => $w,   // здесь «вес» = слова, не клики
+                'share'  => $total ? round($w / $total * 100, 1) : 0.0,
+                'label'  => $theme === 'brand' ? 'Брендовые' : ($theme === 'other' ? 'Прочее' : (Intent::THEMES[$theme]['label'] ?? $theme)),
+            ];
+        }
         return $out;
     }
 
@@ -141,7 +184,7 @@ final class Analyzer
      * упущенные и найденные запросы. Заменяет ручной ввод ключей/LSI.
      * @return array<string,mixed>
      */
-    private function brandSemantics(TextMetrics $tm, SeoMetrics $seo, ?array $brandInfo): array
+    private function brandSemantics(TextMetrics $tm, SeoMetrics $seo, ?array $brandInfo, string $manualKeyword = ''): array
     {
         $empty = [
             'main_keyword' => '', 'query_coverage' => 0.0, 'clicks_coverage' => 0.0,
@@ -149,6 +192,17 @@ final class Analyzer
             'top_in_title' => false, 'top_in_h1' => false, 'top_in_first_para' => false,
             'missing_top' => [], 'found_top' => [], 'found_all' => [], 'orientation' => [],
         ];
+        // бренд вне базы: считаем ключевые метрики по заданному ключу, без покрытия
+        if (!$brandInfo && $manualKeyword !== '') {
+            $firstParaStems = $tm->paragraphs ? array_flip(Morphology::stemPhrase($tm->paragraphs[0])) : [];
+            return array_merge($empty, [
+                'main_keyword'    => $manualKeyword,
+                'main_kw_density' => $tm->keywordDensity($manualKeyword),
+                'top_in_title'    => Morphology::allWordsInText($manualKeyword, Morphology::stemPhrase($seo->title())),
+                'top_in_h1'       => Morphology::allWordsInText($manualKeyword, Morphology::stemPhrase($seo->h1Text())),
+                'top_in_first_para' => Morphology::allStemsInSet(Morphology::stemPhrase($manualKeyword), $firstParaStems),
+            ]);
+        }
         if (!$brandInfo) { return $empty; }
 
         $queries = $this->brands->queries((string) ($brandInfo['file'] ?? ''));

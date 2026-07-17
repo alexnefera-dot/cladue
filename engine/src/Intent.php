@@ -47,6 +47,42 @@ final class Intent
         return 'other';
     }
 
+    /** транслит-хинт из имени файла/URL -> тема (когда контент не дал сигнала) */
+    private const HINTS = [
+        'access'  => ['zerkalo','zerkala','vhod','vxod','login','dostup','mirror'],
+        'registr' => ['registr','reg','signup','account'],
+        'bonus'   => ['bonus','promo','promokod','freespin','cashback'],
+        'app'     => ['app','skachat','download','mobile','apk','android','ios'],
+        'games'   => ['slot','game','casino','igr','ruletka','poker'],
+        'betting' => ['stavk','bet','sport','line'],
+        'money'   => ['vyvod','deposit','popoln','money'],
+        'official'=> ['main','index','home','official'],
+    ];
+
+    /**
+     * Доминирующая тема текста: тема с наибольшим числом срабатываний триггеров.
+     * Если контент не дал сигнала — пробуем хинт из имени/URL.
+     */
+    public static function dominant(string $text, array $brandKeys = [], string $hint = ''): string
+    {
+        // 1) явный хинт из имени/URL (страница названа по назначению) — приоритет
+        $h = mb_strtolower($hint, 'UTF-8');
+        foreach (self::HINTS as $theme => $words) {
+            foreach ($words as $w) {
+                if (mb_strpos($h, $w, 0, 'UTF-8') !== false) { return $theme; }
+            }
+        }
+        // 2) иначе — доминирующая тема по контенту
+        $t = mb_strtolower($text, 'UTF-8');
+        $best = 'other'; $bestN = 0;
+        foreach (self::THEMES as $key => $def) {
+            $n = 0;
+            foreach ($def['triggers'] as $tr) { $n += substr_count($t, $tr); }
+            if ($n > $bestN) { $bestN = $n; $best = $key; }
+        }
+        return $best;
+    }
+
     /**
      * Профиль ориентации: распределение кликов покрытых запросов по темам.
      * @param array<int,array{0:string,1:int}> $foundQueries [[query, clicks], ...]

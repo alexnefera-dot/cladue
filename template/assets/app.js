@@ -134,7 +134,9 @@ function renderScoreboard(data) {
     const pill = (v)=> v===null ? '<span class="muted">—</span>'
       : `<span class="score-pill ${scoreColor(v)}">${v}</span>`;
     const cc = p.metrics.clicks_coverage;
-    const ccPill = cc===undefined ? '<span class="muted">—</span>'
+    const outBase = p.brand && p.inBase===false;
+    const ccPill = outBase ? '<span class="muted" title="бренд вне базы">н/д</span>'
+      : cc===undefined ? '<span class="muted">—</span>'
       : `<span class="score-pill ${scoreColor(cc)}">${cc}%</span>`;
     return `<tr>
       <td>${i+1}</td>
@@ -206,7 +208,9 @@ function renderDetails(data) {
       || '<p class="muted">Нет данных (бренд не определён).</p>';
 
     const brandBadge = p.brand
-      ? `<span class="score-pill bg-ok">${p.brand}</span>`
+      ? (p.inBase===false
+          ? `<span class="score-pill bg-warn" title="нет в базе запросов — покрытие не считается">${p.brand} · вне базы</span>`
+          : `<span class="score-pill bg-ok">${p.brand}</span>`)
       : `<span class="score-pill bg-warn">бренд не определён</span>`;
 
     return `<div class="panel">
@@ -297,8 +301,10 @@ function orientationBars(orientation) {
 function renderOrientation(data) {
   const el = document.getElementById('orientation');
   if (!el) return;
-  el.innerHTML = `<p class="muted">На что ориентирован набор — распределение кликов покрытых запросов по смысловым кластерам.</p>`
-    + orientationBars(data.orientation);
+  const note = data.orientationSource==='pages'
+    ? 'Бренд(ы) вне базы — ориентация посчитана по интентам страниц (взвешено объёмом текста).'
+    : 'Распределение кликов покрытых запросов базы по смысловым кластерам.';
+  el.innerHTML = `<p class="muted">На что ориентирован набор. ${note}</p>` + orientationBars(data.orientation);
 }
 
 /* ========================================================================== */

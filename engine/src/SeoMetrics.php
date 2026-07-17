@@ -58,6 +58,17 @@ final class SeoMetrics
 
     public function headingCount(int $level): int { return $this->count("//h{$level}"); }
 
+    /** текст всех заголовков H1–H3 (для определения интента страницы) */
+    public function headingsText(): string
+    {
+        if (!$this->dom) { return ''; }
+        $parts = [];
+        foreach ($this->xp->query('//h1|//h2|//h3') ?: [] as $h) {
+            $parts[] = trim($h->textContent);
+        }
+        return implode(' ', $parts);
+    }
+
     /** корректность иерархии заголовков (нет пропуска уровней) */
     public function headingHierarchyOk(): bool
     {
