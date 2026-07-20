@@ -557,6 +557,124 @@ def resolve_redirect(url, cfg, cancel):
     return {"final_url": current, "status": status, "error": err}
 
 
+def _redir_row(it, res):
+    final_host = url_host(res["final_url"])
+    final_dom = registrable_domain(final_host)
+    src_dom = registrable_domain(it["host"])
+    return {
+        "source_url": it["url"], "source_host": it["host"],
+        "final_url": res["final_url"], "final_host": final_host,
+        "final_domain": final_dom, "redirected": bool(final_dom and final_dom != src_dom),
+        "status": res["status"], "error": res["error"],
+    }
+
+
+def _try_click(page):
+    """Best-effort клик по заметной кнопке/ссылке (для дорвеев с кнопкой-входом)."""
+    for w in ["играть", "войти", "продолж", "перейти", "начать", "получить",
+              "бонус", "play", "enter", "casino", "claim", "get", "continue"]:
+        try:
+            loc = page.get_by_text(re.compile(w, re.I))
+            if loc.count() > 0:
+                loc.first.click(timeout=1500)
+                return True
+        except Exception:
+            continue
+    try:
+        page.locator("a, button").first.click(timeout=1500)
+        return True
+    except Exception:
+        return False
+
+
+def _browser_resolve(ctx, url, cfg):
+    """Открывает страницу в реальном браузере и ждёт смены домена (JS/таймер/клик)."""
+    page = ctx.new_page()
+    src = registrable_domain(url_host(url))
+    try:
+        try:
+            page.goto(url if "://" in url else "http://" + url,
+                      wait_until="commit", timeout=cfg["timeout"] * 1000)
+        except Exception:
+            pass  # редирект-цепочка может «рвать» goto — дальше следим по page.url
+        waited, step = 0, 300
+        while waited < cfg["wait_ms"]:
+            cur = registrable_domain(url_host(page.url))
+            if cur and cur != src:
+                break
+            page.wait_for_timeout(step)
+            waited += step
+        final = page.url
+        if cfg.get("click") and registrable_domain(url_host(final)) == src:
+            if _try_click(page):
+                page.wait_for_timeout(min(cfg["wait_ms"], 4000))
+                final = page.url
+        return {"final_url": final, "status": None, "error": None}
+    except Exception as e:  # noqa: BLE001
+        return {"final_url": url, "status": None, "error": str(e)[:200]}
+    finally:
+        try:
+            page.close()
+        except Exception:
+            pass
+
+
+def _run_redirects_http(job, cfg, items):
+    with ThreadPoolExecutor(max_workers=cfg["workers"]) as ex:
+        futs = {ex.submit(resolve_redirect, it["url"], cfg, job["cancel"]): it for it in items}
+        for fut in as_completed(futs):
+            it = futs[fut]
+            try:
+                res = fut.result()
+            except Exception as e:  # noqa: BLE001
+                res = {"final_url": it["url"], "status": None, "error": str(e)[:200]}
+            with job["lock"]:
+                job["done"] += 1
+                job["rows"].append(_redir_row(it, res))
+
+
+def _run_redirects_browser(job, cfg, items):
+    try:
+        from playwright.sync_api import sync_playwright
+    except Exception:
+        with job["lock"]:
+            job["status"] = "error"
+            job["fatal"] = ("Браузерный режим требует Playwright. В папке проекта выполните: "
+                            "pip install playwright && playwright install chromium")
+        return
+    launch = {"headless": True}
+    exe = os.environ.get("PW_CHROMIUM_PATH")
+    if exe:
+        launch["executable_path"] = exe
+    mobile = ("iPhone" in cfg["ua"]) or ("Mobile" in cfg["ua"])
+    with sync_playwright() as p:
+        try:
+            browser = p.chromium.launch(**launch)
+        except Exception as e:  # noqa: BLE001
+            with job["lock"]:
+                job["status"] = "error"
+                job["fatal"] = ("Не удалось запустить Chromium: " + str(e)[:120] +
+                                " — выполните: playwright install chromium")
+            return
+        ctx = browser.new_context(
+            user_agent=cfg["ua"], ignore_https_errors=not cfg["verify"], locale="ru-RU",
+            viewport={"width": 390, "height": 844} if mobile else {"width": 1366, "height": 768},
+        )
+        if cfg.get("referer"):
+            ctx.set_extra_http_headers({"Referer": cfg["referer"]})
+        for it in items:
+            if job["cancel"].is_set():
+                break
+            res = _browser_resolve(ctx, it["url"], cfg)
+            with job["lock"]:
+                job["done"] += 1
+                job["rows"].append(_redir_row(it, res))
+        try:
+            browser.close()
+        except Exception:
+            pass
+
+
 def run_redirects(job_id, cfg, urls):
     job = REDIRJOBS[job_id]
     # Дедуп по ключу группировки (корневой домен или хост с поддоменом).
@@ -577,34 +695,19 @@ def run_redirects(job_id, cfg, urls):
         job["total"] = len(items)
 
     try:
-        with ThreadPoolExecutor(max_workers=cfg["workers"]) as ex:
-            futs = {ex.submit(resolve_redirect, it["url"], cfg, job["cancel"]): it for it in items}
-            for fut in as_completed(futs):
-                it = futs[fut]
-                try:
-                    res = fut.result()
-                except Exception as e:  # noqa: BLE001
-                    res = {"final_url": it["url"], "status": None, "error": str(e)[:200]}
-                final_host = url_host(res["final_url"])
-                final_dom = registrable_domain(final_host)
-                src_dom = registrable_domain(it["host"])
-                redirected = bool(final_dom and final_dom != src_dom)
-                with job["lock"]:
-                    job["done"] += 1
-                    job["rows"].append({
-                        "source_url": it["url"], "source_host": it["host"],
-                        "final_url": res["final_url"], "final_host": final_host,
-                        "final_domain": final_dom, "redirected": redirected,
-                        "status": res["status"], "error": res["error"],
-                    })
+        if cfg.get("engine_mode") == "browser":
+            _run_redirects_browser(job, cfg, items)
+        else:
+            _run_redirects_http(job, cfg, items)
     except Exception as e:  # noqa: BLE001
         with job["lock"]:
             job["status"] = "error"
-            job["fatal"] = str(e)
+            job["fatal"] = str(e)[:300]
         return
     with job["lock"]:
-        job["status"] = "cancelled" if job["cancel"].is_set() else "done"
-        job["finished_at"] = time.time()
+        if job["status"] == "running":
+            job["status"] = "cancelled" if job["cancel"].is_set() else "done"
+            job["finished_at"] = time.time()
 
 
 def redir_summary(rows):
@@ -1447,6 +1550,9 @@ def api_redirects_run():
     cfg = {
         "group_by": "root" if (data.get("group_by") or "root") == "root" else "host",
         "only_subdomains": bool(data.get("only_subdomains", True)),
+        "engine_mode": "browser" if data.get("engine_mode") == "browser" else "http",
+        "wait_ms": clamp(data.get("wait_ms"), 500, 20000, 5000),
+        "click": bool(data.get("click", False)),
         "ua": _UA[ua_key],
         "referer": "https://yandex.ru/" if data.get("referer", True) else "",
         "verify": bool(data.get("verify", False)),

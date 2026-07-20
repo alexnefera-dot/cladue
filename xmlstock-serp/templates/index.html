@@ -360,7 +360,30 @@
           <input type="checkbox" id="r_verify" style="width:auto"> Проверять SSL (по умолчанию выкл)
         </label>
       </div>
-      <div class="hint" style="margin-top:8px">Ловятся редиректы через HTTP (3xx), meta-refresh и простой JS (<code>location=…</code>). Обфусцированный JS браузером не разворачивается — такие останутся «без редиректа».</div>
+      <div class="grid g4" style="margin-top:12px">
+        <div>
+          <label>Режим</label>
+          <select id="r_mode">
+            <option value="http" selected>Быстрый (HTTP)</option>
+            <option value="browser">Браузер (Playwright)</option>
+          </select>
+        </div>
+        <div><label>Ожидание, сек (браузер)</label><input id="r_wait" type="number" value="5" min="0.5" max="20" step="0.5"></div>
+        <div style="display:flex;align-items:flex-end">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;font-size:13px;color:var(--txt)">
+            <input type="checkbox" id="r_click" style="width:auto"> Кликать кнопку входа
+          </label>
+        </div>
+        <div></div>
+      </div>
+      <div class="hint" style="margin-top:8px">
+        <b>Быстрый (HTTP)</b> — ловит HTTP 3xx, meta-refresh и простой JS (<code>location=…</code>); обфусцированный/таймерный JS не разворачивает.
+        <b>Браузер</b> — открывает страницу в Chromium, ждёт JS/таймер-редирект (как у дорвеев с «/ru/ru/…»), может кликнуть кнопку. Точнее, но медленнее (по одному сайту).
+      </div>
+      <div class="hint hidden" id="r_browser_note" style="margin-top:6px;color:var(--warn)">
+        Для браузерного режима нужен Playwright — один раз в папке проекта:
+        <code>pip install playwright && playwright install chromium</code>
+      </div>
 
       <div class="row" style="margin-top:16px">
         <button class="btn-go" id="r_go">▶ Прокликать</button>
@@ -697,13 +720,15 @@ $("s_dlCsv").onclick =()=> sJob && (location.href="/api/site/download/"+sJob+"?f
 
 // ===================== ВКЛАДКА 4: РЕДИРЕКТЫ =====================
 let rPoll=null, rJob=null;
-const REDIR_FIELDS=["r_urls","r_group","r_ua","r_timeout","r_workers","r_only_sub","r_referer","r_verify"];
+const REDIR_FIELDS=["r_urls","r_group","r_ua","r_timeout","r_workers","r_only_sub","r_referer","r_verify","r_mode","r_wait","r_click"];
 function saveRedir(){ const o={}; REDIR_FIELDS.forEach(f=>{const el=$(f); if(el)o[f]=fval(el);}); localStorage.setItem("xmlstock_redir",JSON.stringify(o)); }
 function loadRedir(){ try{ const o=JSON.parse(localStorage.getItem("xmlstock_redir")||"{}"); REDIR_FIELDS.forEach(f=>{const el=$(f); if(o[f]!==undefined&&el) setval(el,o[f]);}); }catch(e){} }
 loadRedir();
 REDIR_FIELDS.forEach(f=>{const el=$(f); if(el){el.addEventListener("input",saveRedir); el.addEventListener("change",saveRedir);}});
 $("r_urls").addEventListener("input", ()=> $("rcount").textContent=lines("r_urls")+" стр.");
 $("rcount").textContent=lines("r_urls")+" стр.";
+function updateRMode(){ $("r_browser_note").classList.toggle("hidden", $("r_mode").value!=="browser"); }
+$("r_mode").addEventListener("change", updateRMode); updateRMode();
 
 $("r_load").onclick = async ()=>{
   try{ const u=await (await fetch("/api/collect/last_urls")).json();
@@ -716,7 +741,8 @@ $("r_go").onclick = async ()=>{
   if(!$("r_urls").value.trim()){ showErr("Добавьте ссылки или загрузите из «Сбора ТОП»."); return; }
   const payload={urls:$("r_urls").value, group_by:$("r_group").value, ua:$("r_ua").value,
     timeout:$("r_timeout").value, workers:$("r_workers").value, only_subdomains:$("r_only_sub").checked,
-    referer:$("r_referer").checked, verify:$("r_verify").checked};
+    referer:$("r_referer").checked, verify:$("r_verify").checked,
+    engine_mode:$("r_mode").value, wait_ms:Math.round((+$("r_wait").value||5)*1000), click:$("r_click").checked};
   $("r_go").disabled=true;
   try{
     const r=await fetch("/api/redirects/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
