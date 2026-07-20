@@ -133,6 +133,7 @@
     <button class="tab active" data-tab="collect">📥 Сбор ТОП</button>
     <button class="tab" data-tab="track">📈 Трекер позиций</button>
     <button class="tab" data-tab="site">🔎 Индексация (site:)</button>
+    <button class="tab" data-tab="redir">🔀 Редиректы</button>
   </div>
 
   <!-- ================= ВКЛАДКА 1: СБОР ТОП ================= -->
@@ -311,6 +312,79 @@
     </div>
   </div>
 
+  <!-- ================= ВКЛАДКА 4: РЕДИРЕКТЫ ================= -->
+  <div id="panel-redir" class="hidden">
+    <div class="card">
+      <div class="row" style="justify-content:space-between;align-items:flex-end">
+        <label style="margin:0">Ссылки — по одной в строке <span class="count" id="rcount">0</span></label>
+        <button class="btn-ghost" id="r_load" type="button">↥ Взять URL из последнего «Сбора ТОП»</button>
+      </div>
+      <textarea id="r_urls" placeholder="https://onlybets.dj85i.team/&#10;https://spacewin.k4r.team/&#10;..."></textarea>
+      <div class="hint">Оставим по 1 ссылке на домен, прокликаем каждую и запишем, куда редиректит. Источник — выгрузка «Сбора ТОП» или свой список.</div>
+
+      <div class="grid g4" style="margin-top:12px">
+        <div>
+          <label>Группировать (дедуп)</label>
+          <select id="r_group">
+            <option value="root" selected>По корневому домену</option>
+            <option value="host">По хосту (с поддоменом)</option>
+          </select>
+        </div>
+        <div>
+          <label>User-Agent</label>
+          <select id="r_ua">
+            <option value="mobile" selected>Мобайл</option>
+            <option value="desktop">Десктоп</option>
+          </select>
+        </div>
+        <div><label>Таймаут, сек</label><input id="r_timeout" type="number" value="15" min="3" max="60"></div>
+        <div><label>Параллельно</label><input id="r_workers" type="number" value="10" min="1" max="30"></div>
+      </div>
+      <div class="row" style="margin-top:10px;gap:20px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;font-size:13px;color:var(--txt)">
+          <input type="checkbox" id="r_referer" checked style="width:auto"> Referer с Яндекса (триггерит клоаку)
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;font-size:13px;color:var(--txt)">
+          <input type="checkbox" id="r_verify" style="width:auto"> Проверять SSL (по умолчанию выкл)
+        </label>
+      </div>
+      <div class="hint" style="margin-top:8px">Ловятся редиректы через HTTP (3xx), meta-refresh и простой JS (<code>location=…</code>). Обфусцированный JS браузером не разворачивается — такие останутся «без редиректа».</div>
+
+      <div class="row" style="margin-top:16px">
+        <button class="btn-go" id="r_go">▶ Прокликать</button>
+        <button class="btn-cancel hidden" id="r_stop">■ Остановить</button>
+      </div>
+    </div>
+
+    <div class="card hidden" id="r_panel">
+      <div class="bar"><i id="r_barFill"></i></div>
+      <div class="stat">
+        <div><span class="muted">Обработано</span><b id="r_done">0 / 0</b></div>
+        <div class="ok"><span class="muted">Статус</span><b id="r_statusw">—</b></div>
+      </div>
+      <div class="row" style="margin-bottom:12px">
+        <button class="btn-dl hidden" id="r_dlXlsx">⬇ Скачать XLSX</button>
+        <button class="btn-dl hidden" id="r_dlCsv">⬇ Скачать CSV</button>
+      </div>
+
+      <label>Сводка — куда уходят сайты</label>
+      <div class="tbl-wrap" style="margin-bottom:16px">
+        <table class="pos">
+          <thead><tr><th>Целевой домен</th><th>Сайтов</th><th>Доля</th><th>&nbsp;</th></tr></thead>
+          <tbody id="r_sumbody"></tbody>
+        </table>
+      </div>
+
+      <label>Детали по сайтам</label>
+      <div class="tbl-wrap">
+        <table class="pos">
+          <thead><tr><th>Исходный хост</th><th>Редирект</th><th>Целевой домен</th><th>Финальный URL / ошибка</th><th>Код</th></tr></thead>
+          <tbody id="r_tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <p class="sub" style="text-align:center; margin-top:24px">
     Запущено локально на вашем компьютере · данные никуда не уходят, кроме API xmlstock.
   </p>
@@ -345,6 +419,7 @@ document.querySelectorAll(".tab").forEach(t=> t.onclick = ()=>{
   $("panel-collect").classList.toggle("hidden", t.dataset.tab!=="collect");
   $("panel-track").classList.toggle("hidden", t.dataset.tab!=="track");
   $("panel-site").classList.toggle("hidden", t.dataset.tab!=="site");
+  $("panel-redir").classList.toggle("hidden", t.dataset.tab!=="redir");
 });
 
 // ---- движок / свой URL ----
@@ -592,6 +667,75 @@ $("s_stop").onclick=async ()=>{ if(sJob){ await fetch("/api/site/cancel/"+sJob,{
 $("s_dlXlsx").onclick=()=> sJob && (location.href="/api/site/download/"+sJob+"?fmt=xlsx");
 $("s_dlCsv").onclick =()=> sJob && (location.href="/api/site/download/"+sJob+"?fmt=csv");
 
+// ===================== ВКЛАДКА 4: РЕДИРЕКТЫ =====================
+let rPoll=null, rJob=null;
+const REDIR_FIELDS=["r_urls","r_group","r_ua","r_timeout","r_workers","r_referer","r_verify"];
+function saveRedir(){ const o={}; REDIR_FIELDS.forEach(f=>{const el=$(f); if(el)o[f]=fval(el);}); localStorage.setItem("xmlstock_redir",JSON.stringify(o)); }
+function loadRedir(){ try{ const o=JSON.parse(localStorage.getItem("xmlstock_redir")||"{}"); REDIR_FIELDS.forEach(f=>{const el=$(f); if(o[f]!==undefined&&el) setval(el,o[f]);}); }catch(e){} }
+loadRedir();
+REDIR_FIELDS.forEach(f=>{const el=$(f); if(el){el.addEventListener("input",saveRedir); el.addEventListener("change",saveRedir);}});
+$("r_urls").addEventListener("input", ()=> $("rcount").textContent=lines("r_urls")+" стр.");
+$("rcount").textContent=lines("r_urls")+" стр.";
+
+$("r_load").onclick = async ()=>{
+  try{ const u=await (await fetch("/api/collect/last_urls")).json();
+    if(!u.urls || !u.urls.length){ showErr("Нет данных из «Сбора ТОП» — сначала запусти сбор на 1-й вкладке."); return; }
+    $("r_urls").value=u.urls.join("\n"); $("rcount").textContent=lines("r_urls")+" стр."; saveRedir(); hideErr();
+  }catch(e){ showErr("Не удалось получить URL: "+e); }
+};
+$("r_go").onclick = async ()=>{
+  hideErr();
+  if(!$("r_urls").value.trim()){ showErr("Добавьте ссылки или загрузите из «Сбора ТОП»."); return; }
+  const payload={urls:$("r_urls").value, group_by:$("r_group").value, ua:$("r_ua").value,
+    timeout:$("r_timeout").value, workers:$("r_workers").value,
+    referer:$("r_referer").checked, verify:$("r_verify").checked};
+  $("r_go").disabled=true;
+  try{
+    const r=await fetch("/api/redirects/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    const d=await r.json();
+    if(!r.ok){ showErr(d.error||"Ошибка запуска"); $("r_go").disabled=false; return; }
+    rJob=d.job_id; startRedir(); rPoll=setInterval(rRefresh,1000); rRefresh();
+  }catch(e){ showErr("Нет связи с сервером: "+e); $("r_go").disabled=false; }
+};
+function startRedir(){
+  $("r_panel").classList.remove("hidden"); $("r_tbody").innerHTML=""; $("r_sumbody").innerHTML="";
+  $("r_statusw").textContent="идёт…"; $("r_barFill").style.width="0%"; $("r_done").textContent="0 / 0";
+  $("r_dlXlsx").classList.add("hidden"); $("r_dlCsv").classList.add("hidden"); $("r_stop").classList.remove("hidden");
+  $("r_panel").scrollIntoView({behavior:"smooth"});
+}
+async function rRefresh(){
+  if(!rJob) return; let d;
+  try{ d=await (await fetch("/api/redirects/status/"+rJob)).json(); }catch(e){ return; }
+  if(d.error) return;
+  $("r_done").textContent=d.done+" / "+d.total;
+  $("r_barFill").style.width=(d.total?Math.round(d.done/d.total*100):0)+"%";
+  const s=d.summary||{targets:[]};
+  const maxp=(s.targets&&s.targets.length)? s.targets[0].percent : 100;
+  let sh=(s.targets||[]).map(t=>{
+    const w=maxp? Math.round(t.percent/maxp*100):0;
+    return `<tr><td>${esc(t.domain)}</td><td><b>${t.count}</b></td><td class="p-top">${t.percent}%</td>
+      <td style="min-width:150px"><div style="background:#0d1117;border-radius:5px;border:1px solid var(--line)"><i style="display:block;height:8px;width:${w}%;background:var(--acc2)"></i></div></td></tr>`;
+  }).join("");
+  if(s.no_redirect) sh+=`<tr><td class="miss">без редиректа</td><td>${s.no_redirect}</td><td class="miss">${s.no_redirect_percent}%</td><td></td></tr>`;
+  if(s.errors) sh+=`<tr><td class="p-no">ошибки</td><td>${s.errors}</td><td class="p-no">${s.errors_percent}%</td><td></td></tr>`;
+  $("r_sumbody").innerHTML=sh;
+  $("r_tbody").innerHTML=(d.rows||[]).map(r=>{
+    const red=r.error? '<span class="p-no">ошибка</span>' : (r.redirected? '<span class="p-top">да</span>' : '<span class="miss">нет</span>');
+    return `<tr><td>${esc(r.source_host)}</td><td>${red}</td><td>${esc(r.final_domain||"")}</td>
+      <td class="seq" style="max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.error||r.final_url)}</td>
+      <td class="pill">${r.status||"—"}</td></tr>`;
+  }).join("");
+  if(d.status!=="running"){
+    clearInterval(rPoll); rPoll=null; $("r_go").disabled=false; $("r_stop").classList.add("hidden");
+    $("r_statusw").textContent={done:"готово ✓",cancelled:"остановлено",error:"ошибка"}[d.status]||d.status;
+    if(d.fatal) showErr("Сбой: "+d.fatal);
+    if(d.done>0){ $("r_dlXlsx").classList.remove("hidden"); $("r_dlCsv").classList.remove("hidden"); }
+  }
+}
+$("r_stop").onclick=async ()=>{ if(rJob){ await fetch("/api/redirects/cancel/"+rJob,{method:"POST"}); $("r_statusw").textContent="останавливаю…"; } };
+$("r_dlXlsx").onclick=()=> rJob && (location.href="/api/redirects/download/"+rJob+"?fmt=xlsx");
+$("r_dlCsv").onclick =()=> rJob && (location.href="/api/redirects/download/"+rJob+"?fmt=csv");
+
 // ---- переподключение к уже идущим задачам (если перезагрузили страницу) ----
 (async ()=>{
   try{
@@ -602,6 +746,10 @@ $("s_dlCsv").onclick =()=> sJob && (location.href="/api/site/download/"+sJob+"?f
   try{
     const b = await (await fetch("/api/site/active")).json();
     if(b.job_id && b.status==="running"){ sJob=b.job_id; startSite(); sPoll=setInterval(sRefresh,1000); sRefresh(); }
+  }catch(e){}
+  try{
+    const rc = await (await fetch("/api/redirects/active")).json();
+    if(rc.job_id && rc.status==="running"){ rJob=rc.job_id; startRedir(); rPoll=setInterval(rRefresh,1000); rRefresh(); }
   }catch(e){}
 })();
 </script>

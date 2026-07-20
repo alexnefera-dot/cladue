@@ -15,6 +15,7 @@ import csv
 import io
 import json
 import os
+import re
 import time
 import uuid
 import webbrowser
@@ -22,7 +23,7 @@ import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from threading import Event, Lock, Thread
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import requests
 from flask import (
@@ -38,6 +39,15 @@ app = Flask(__name__)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+# Анализ редиректов ходит по «мусорным» сайтам с битыми сертификатами —
+# подавляем шум о непроверенном SSL (проверку можно включить в интерфейсе).
+try:  # pragma: no cover
+    import urllib3
+
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+except Exception:
+    pass
 
 # Пресеты эндпоинтов xmlstock. У xmlstock РАЗНЫЕ адреса для живой выдачи (Live)
 # и официального Яндекс.XML. Какой использовать — зависит от того, какие лимиты
@@ -73,6 +83,12 @@ ACTIVE_MONITOR = {"id": None}
 SITEJOBS = {}
 SITE_LOCK = Lock()
 ACTIVE_SITE = {"id": None}
+
+# Хранилище задач анализа редиректов + указатель на последний «Сбор ТОП».
+REDIRJOBS = {}
+REDIR_LOCK = Lock()
+ACTIVE_REDIR = {"id": None}
+LAST_COLLECT = {"id": None}
 
 
 # --------------------------------------------------------------------------- #
@@ -431,6 +447,157 @@ def run_site(job_id, cfg, domains):
 
 
 # --------------------------------------------------------------------------- #
+#  Анализ редиректов (куда ведут сайты из выдачи)                             #
+# --------------------------------------------------------------------------- #
+_TWO_LEVEL_SLD = {"co", "com", "net", "org", "gov", "edu", "ac", "or", "go", "pp"}
+
+
+def registrable_domain(host):
+    """Корневой (регистрируемый) домен без поддоменов. Эвристика последних 2-3 меток."""
+    host = (host or "").lower().strip().strip(".")
+    if host.startswith("www."):
+        host = host[4:]
+    parts = [p for p in host.split(".") if p]
+    if len(parts) <= 2:
+        return ".".join(parts)
+    if parts[-2] in _TWO_LEVEL_SLD:
+        return ".".join(parts[-3:])
+    return ".".join(parts[-2:])
+
+
+def url_host(url):
+    try:
+        netloc = urlparse(url if "://" in url else "http://" + url).netloc.lower()
+        return netloc.split("@")[-1].split(":")[0]
+    except Exception:
+        return ""
+
+
+_META_REFRESH_RE = re.compile(
+    r'<meta[^>]+http-equiv=["\']?refresh["\']?[^>]*content=["\']?\s*\d+\s*;\s*url=([^"\'>\s]+)',
+    re.I,
+)
+_JS_LOC_RE = re.compile(
+    r'(?:(?:window|document|top|self|parent)\s*\.\s*)?location\s*'
+    r'(?:\.\s*(?:href|assign|replace)\s*)?\s*(?:=|\()\s*["\']([^"\']+)["\']',
+    re.I,
+)
+
+
+def find_client_redirect(html, base):
+    """Мета-refresh или простой JS-редирект (window.location=...) на другой хост."""
+    if not html:
+        return None
+    m = _META_REFRESH_RE.search(html)
+    if m:
+        return urljoin(base, m.group(1).strip())
+    m = _JS_LOC_RE.search(html[:40000])
+    if m:
+        tgt = m.group(1).strip()
+        if tgt and not tgt.startswith("#") and "javascript:" not in tgt.lower():
+            return urljoin(base, tgt)
+    return None
+
+
+def resolve_redirect(url, cfg, cancel):
+    """Идёт по редиректам (HTTP 3xx + meta/JS) и возвращает финальный URL."""
+    if cancel.is_set():
+        return {"final_url": url, "status": None, "error": "отменено"}
+    headers = {"User-Agent": cfg["ua"], "Accept": "text/html,application/xhtml+xml,*/*",
+               "Accept-Language": "ru,en;q=0.8"}
+    if cfg.get("referer"):
+        headers["Referer"] = cfg["referer"]
+    current = url if "://" in url else "http://" + url
+    status, err = None, None
+    try:
+        for _ in range(4):  # до 4 клиентских хопов (meta/JS)
+            if cancel.is_set():
+                break
+            r = requests.get(current, headers=headers, timeout=cfg["timeout"],
+                             allow_redirects=True, verify=cfg["verify"])
+            status = r.status_code
+            final = r.url
+            ctype = (r.headers.get("Content-Type") or "").lower()
+            nxt = find_client_redirect(r.text, final) if "html" in ctype else None
+            if nxt and url_host(nxt) and url_host(nxt) != url_host(final):
+                current = nxt
+                continue
+            current = final
+            break
+    except requests.RequestException as e:
+        err = str(e)[:200]
+    return {"final_url": current, "status": status, "error": err}
+
+
+def run_redirects(job_id, cfg, urls):
+    job = REDIRJOBS[job_id]
+    # Дедуп по ключу группировки (корневой домен или хост с поддоменом).
+    key_root = cfg["group_by"] == "root"
+    seen, items = set(), []
+    for u in urls:
+        h = url_host(u)
+        if not h:
+            continue
+        k = registrable_domain(h) if key_root else h
+        if k and k not in seen:
+            seen.add(k)
+            items.append({"url": u, "host": h})
+    with job["lock"]:
+        job["total"] = len(items)
+
+    try:
+        with ThreadPoolExecutor(max_workers=cfg["workers"]) as ex:
+            futs = {ex.submit(resolve_redirect, it["url"], cfg, job["cancel"]): it for it in items}
+            for fut in as_completed(futs):
+                it = futs[fut]
+                try:
+                    res = fut.result()
+                except Exception as e:  # noqa: BLE001
+                    res = {"final_url": it["url"], "status": None, "error": str(e)[:200]}
+                final_host = url_host(res["final_url"])
+                final_dom = registrable_domain(final_host)
+                src_dom = registrable_domain(it["host"])
+                redirected = bool(final_dom and final_dom != src_dom)
+                with job["lock"]:
+                    job["done"] += 1
+                    job["rows"].append({
+                        "source_url": it["url"], "source_host": it["host"],
+                        "final_url": res["final_url"], "final_host": final_host,
+                        "final_domain": final_dom, "redirected": redirected,
+                        "status": res["status"], "error": res["error"],
+                    })
+    except Exception as e:  # noqa: BLE001
+        with job["lock"]:
+            job["status"] = "error"
+            job["fatal"] = str(e)
+        return
+    with job["lock"]:
+        job["status"] = "cancelled" if job["cancel"].is_set() else "done"
+        job["finished_at"] = time.time()
+
+
+def redir_summary(rows):
+    total = len(rows)
+    counts, no_redir, errs = {}, 0, 0
+    for r in rows:
+        if r.get("error"):
+            errs += 1
+        elif r["redirected"] and r["final_domain"]:
+            counts[r["final_domain"]] = counts.get(r["final_domain"], 0) + 1
+        else:
+            no_redir += 1
+
+    def pct(n):
+        return round(n / total * 100, 1) if total else 0
+
+    targets = [{"domain": d, "count": c, "percent": pct(c)}
+               for d, c in sorted(counts.items(), key=lambda x: -x[1])]
+    return {"total": total, "targets": targets,
+            "no_redirect": no_redir, "no_redirect_percent": pct(no_redir),
+            "errors": errs, "errors_percent": pct(errs)}
+
+
+# --------------------------------------------------------------------------- #
 #  Фоновая обработка пачки                                                    #
 # --------------------------------------------------------------------------- #
 def run_job(job_id, cfg, queries):
@@ -492,6 +659,7 @@ def run_job(job_id, cfg, queries):
         job["csv_path"] = csv_path
         job["xlsx_path"] = xlsx_path if xlsx_ok else None
         job["rows"] = len(long_rows)
+        job["result_urls"] = [r[2] for r in long_rows if r[2]]
         job["status"] = "cancelled" if job["cancel"].is_set() else "done"
         job["finished_at"] = time.time()
 
@@ -695,8 +863,10 @@ def api_run():
             "csv_path": None,
             "xlsx_path": None,
             "rows": 0,
+            "result_urls": [],
             "started_at": time.time(),
         }
+        LAST_COLLECT["id"] = job_id
 
     Thread(target=run_job, args=(job_id, cfg, queries), daemon=True).start()
     return jsonify({"job_id": job_id, "total": len(queries), "deduped": len(queries)})
@@ -1173,6 +1343,147 @@ def api_site_download(job_id):
     payload = ("﻿" + sbuf.getvalue()).encode("utf-8")
     return send_file(io.BytesIO(payload), as_attachment=True,
                      download_name=f"site_pages_{job_id[:8]}.csv", mimetype="text/csv")
+
+
+# --- Анализ редиректов ----------------------------------------------------- #
+_UA = {
+    "mobile": ("Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 "
+               "(KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"),
+    "desktop": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"),
+}
+
+
+@app.route("/api/collect/last_urls")
+def api_collect_last_urls():
+    jid = LAST_COLLECT.get("id")
+    job = JOBS.get(jid) if jid else None
+    if not job:
+        return jsonify({"urls": [], "status": None})
+    with job["lock"]:
+        return jsonify({"urls": job.get("result_urls", []), "status": job["status"]})
+
+
+@app.route("/api/redirects/run", methods=["POST"])
+def api_redirects_run():
+    data = request.get_json(force=True, silent=True) or {}
+    seen, urls = set(), []
+    for line in (data.get("urls") or "").replace("\r", "\n").split("\n"):
+        u = line.strip()
+        if u and u not in seen:
+            seen.add(u)
+            urls.append(u)
+    if not urls:
+        return jsonify({"error": "Добавьте ссылки (или загрузите из «Сбора ТОП»)."}), 400
+
+    def clamp(val, lo, hi, default):
+        try:
+            return max(lo, min(hi, int(val)))
+        except (TypeError, ValueError):
+            return default
+
+    ua_key = data.get("ua") if data.get("ua") in _UA else "mobile"
+    cfg = {
+        "group_by": "root" if (data.get("group_by") or "root") == "root" else "host",
+        "ua": _UA[ua_key],
+        "referer": "https://yandex.ru/" if data.get("referer", True) else "",
+        "verify": bool(data.get("verify", False)),
+        "timeout": clamp(data.get("timeout"), 3, 60, 15),
+        "workers": clamp(data.get("workers"), 1, 30, 10),
+    }
+
+    job_id = uuid.uuid4().hex
+    with REDIR_LOCK:
+        REDIRJOBS[job_id] = {
+            "id": job_id, "status": "running", "total": 0, "done": 0,
+            "rows": [], "lock": Lock(), "cancel": Event(), "started_at": time.time(),
+        }
+        ACTIVE_REDIR["id"] = job_id
+
+    Thread(target=run_redirects, args=(job_id, cfg, urls), daemon=True).start()
+    return jsonify({"job_id": job_id, "input": len(urls), "group_by": cfg["group_by"]})
+
+
+@app.route("/api/redirects/status/<job_id>")
+def api_redirects_status(job_id):
+    job = REDIRJOBS.get(job_id)
+    if not job:
+        return jsonify({"error": "Задача не найдена"}), 404
+    with job["lock"]:
+        rows = list(job["rows"])
+        return jsonify({"status": job["status"], "total": job["total"], "done": job["done"],
+                        "rows": rows, "summary": redir_summary(rows), "fatal": job.get("fatal")})
+
+
+@app.route("/api/redirects/cancel/<job_id>", methods=["POST"])
+def api_redirects_cancel(job_id):
+    job = REDIRJOBS.get(job_id)
+    if not job:
+        return jsonify({"error": "Задача не найдена"}), 404
+    job["cancel"].set()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/redirects/active")
+def api_redirects_active():
+    jid = ACTIVE_REDIR.get("id")
+    if jid and jid in REDIRJOBS:
+        return jsonify({"job_id": jid, "status": REDIRJOBS[jid]["status"]})
+    return jsonify({"job_id": None})
+
+
+@app.route("/api/redirects/download/<job_id>")
+def api_redirects_download(job_id):
+    job = REDIRJOBS.get(job_id)
+    if not job:
+        return jsonify({"error": "Задача не найдена"}), 404
+    fmt = request.args.get("fmt", "csv")
+    with job["lock"]:
+        rows = list(job["rows"])
+        summary = redir_summary(rows)
+    dcols = ["source_host", "source_url", "redirected", "final_domain", "final_url", "status", "error"]
+
+    def drow(r):
+        return [r["source_host"], r["source_url"], "да" if r["redirected"] else "нет",
+                r["final_domain"], r["final_url"], r["status"], r["error"] or ""]
+
+    if fmt == "xlsx":
+        try:
+            from openpyxl import Workbook
+        except Exception:
+            return jsonify({"error": "openpyxl не установлен"}), 400
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "redirects"
+        ws.append(dcols)
+        for r in rows:
+            ws.append(drow(r))
+        ws2 = wb.create_sheet("summary")
+        ws2.append(["target_domain", "sites", "percent"])
+        for t in summary["targets"]:
+            ws2.append([t["domain"], t["count"], t["percent"]])
+        ws2.append(["(без редиректа)", summary["no_redirect"], summary["no_redirect_percent"]])
+        ws2.append(["(ошибки)", summary["errors"], summary["errors_percent"]])
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        return send_file(buf, as_attachment=True, download_name=f"redirects_{job_id[:8]}.xlsx",
+                         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+    sbuf = io.StringIO()
+    w = csv.writer(sbuf, delimiter=";")
+    w.writerow(dcols)
+    for r in rows:
+        w.writerow(drow(r))
+    w.writerow([])
+    w.writerow(["target_domain", "sites", "percent"])
+    for t in summary["targets"]:
+        w.writerow([t["domain"], t["count"], t["percent"]])
+    w.writerow(["(без редиректа)", summary["no_redirect"], summary["no_redirect_percent"]])
+    w.writerow(["(ошибки)", summary["errors"], summary["errors_percent"]])
+    payload = ("﻿" + sbuf.getvalue()).encode("utf-8")
+    return send_file(io.BytesIO(payload), as_attachment=True,
+                     download_name=f"redirects_{job_id[:8]}.csv", mimetype="text/csv")
 
 
 def _open_browser(url):
