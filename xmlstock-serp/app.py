@@ -49,6 +49,26 @@ try:  # pragma: no cover
 except Exception:
     pass
 
+# Снимок последнего «Сбора ТОП» — хранится на диске, переживает перезагрузку
+# страницы и перезапуск сервера (пока не пересобрали новый).
+LAST_COLLECT_FILE = os.path.join(OUTPUT_DIR, "last_collect.json")
+
+
+def _save_last_collect(snap):
+    try:
+        with open(LAST_COLLECT_FILE, "w", encoding="utf-8") as f:
+            json.dump(snap, f, ensure_ascii=False)
+    except Exception:
+        pass
+
+
+def _load_last_collect():
+    try:
+        with open(LAST_COLLECT_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
 # Пресеты эндпоинтов xmlstock. У xmlstock РАЗНЫЕ адреса для живой выдачи (Live)
 # и официального Яндекс.XML. Какой использовать — зависит от того, какие лимиты
 # пополнены в аккаунте. Если адрес в кабинете другой — выберите «Свой URL».
@@ -465,6 +485,14 @@ def registrable_domain(host):
     return ".".join(parts[-2:])
 
 
+def is_subdomain(host):
+    """True, если это поддомен (а не корневой домен и не www.корень)."""
+    h = (host or "").lower().strip().strip(".")
+    if h.startswith("www."):
+        h = h[4:]
+    return bool(h) and h != registrable_domain(host)
+
+
 def url_host(url):
     try:
         netloc = urlparse(url if "://" in url else "http://" + url).netloc.lower()
@@ -533,13 +561,16 @@ def run_redirects(job_id, cfg, urls):
     job = REDIRJOBS[job_id]
     # Дедуп по ключу группировки (корневой домен или хост с поддоменом).
     key_root = cfg["group_by"] == "root"
+    only_sub = cfg.get("only_subdomains", True)
     seen, items = set(), []
     for u in urls:
         h = url_host(u)
         if not h:
             continue
+        if only_sub and not is_subdomain(h):  # только поддомены
+            continue
         k = registrable_domain(h) if key_root else h
-        if k and k not in seen:
+        if k and k not in seen:  # дедуп по корневому домену (или по хосту)
             seen.add(k)
             items.append({"url": u, "host": h})
     with job["lock"]:
@@ -655,13 +686,20 @@ def run_job(job_id, cfg, queries):
     _write_csv(csv_path, long_rows)
     xlsx_ok = _write_xlsx(xlsx_path, long_rows, wide_rows, cfg["top_n"])
 
+    result_urls = [r[2] for r in long_rows if r[2]]
     with job["lock"]:
         job["csv_path"] = csv_path
         job["xlsx_path"] = xlsx_path if xlsx_ok else None
         job["rows"] = len(long_rows)
-        job["result_urls"] = [r[2] for r in long_rows if r[2]]
+        job["result_urls"] = result_urls
         job["status"] = "cancelled" if job["cancel"].is_set() else "done"
         job["finished_at"] = time.time()
+    _save_last_collect({
+        "job_id": job_id, "at": time.time(),
+        "total": job["total"], "rows": len(long_rows),
+        "urls": result_urls,
+        "csv": csv_path, "xlsx": xlsx_path if xlsx_ok else None,
+    })
 
 
 def _write_csv(path, long_rows):
@@ -1356,12 +1394,35 @@ _UA = {
 
 @app.route("/api/collect/last_urls")
 def api_collect_last_urls():
-    jid = LAST_COLLECT.get("id")
-    job = JOBS.get(jid) if jid else None
-    if not job:
+    snap = _load_last_collect()
+    if not snap:
         return jsonify({"urls": [], "status": None})
-    with job["lock"]:
-        return jsonify({"urls": job.get("result_urls", []), "status": job["status"]})
+    return jsonify({"urls": snap.get("urls", []), "status": "done"})
+
+
+@app.route("/api/collect/last")
+def api_collect_last():
+    snap = _load_last_collect()
+    if not snap:
+        return jsonify({"exists": False})
+    return jsonify({
+        "exists": True, "at": snap.get("at"), "total": snap.get("total"),
+        "rows": snap.get("rows"), "urls_count": len(snap.get("urls", [])),
+        "has_csv": bool(snap.get("csv") and os.path.exists(snap["csv"])),
+        "has_xlsx": bool(snap.get("xlsx") and os.path.exists(snap["xlsx"])),
+    })
+
+
+@app.route("/api/collect/last_download")
+def api_collect_last_download():
+    snap = _load_last_collect()
+    if not snap:
+        return jsonify({"error": "Нет последнего сбора"}), 404
+    fmt = request.args.get("fmt", "csv")
+    path = snap.get("xlsx") if fmt == "xlsx" else snap.get("csv")
+    if not path or not os.path.exists(path):
+        return jsonify({"error": "Файл не найден"}), 404
+    return send_file(path, as_attachment=True, download_name=os.path.basename(path))
 
 
 @app.route("/api/redirects/run", methods=["POST"])
@@ -1385,6 +1446,7 @@ def api_redirects_run():
     ua_key = data.get("ua") if data.get("ua") in _UA else "mobile"
     cfg = {
         "group_by": "root" if (data.get("group_by") or "root") == "root" else "host",
+        "only_subdomains": bool(data.get("only_subdomains", True)),
         "ua": _UA[ua_key],
         "referer": "https://yandex.ru/" if data.get("referer", True) else "",
         "verify": bool(data.get("verify", False)),

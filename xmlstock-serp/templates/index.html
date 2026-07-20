@@ -138,6 +138,15 @@
 
   <!-- ================= ВКЛАДКА 1: СБОР ТОП ================= -->
   <div id="panel-collect">
+    <div class="card hidden" id="lastCollect" style="padding:12px 16px;border-color:var(--acc2)">
+      <div class="row" style="justify-content:space-between;align-items:center;gap:12px">
+        <div style="font-size:13px">📦 <b>Последний сбор</b> сохранён: <span id="lc_info" class="muted">—</span></div>
+        <div class="row" style="gap:8px">
+          <button class="btn-dl" id="lc_xlsx" style="padding:7px 12px">⬇ XLSX</button>
+          <button class="btn-dl" id="lc_csv" style="padding:7px 12px">⬇ CSV</button>
+        </div>
+      </div>
+    </div>
     <div class="card">
       <details style="margin-bottom:14px">
         <summary>Дополнительно (скорость, ретраи)</summary>
@@ -342,6 +351,9 @@
       </div>
       <div class="row" style="margin-top:10px;gap:20px">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;font-size:13px;color:var(--txt)">
+          <input type="checkbox" id="r_only_sub" checked style="width:auto"> Только поддомены (игнорировать корневые домены)
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;font-size:13px;color:var(--txt)">
           <input type="checkbox" id="r_referer" checked style="width:auto"> Referer с Яндекса (триггерит клоаку)
         </label>
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;font-size:13px;color:var(--txt)">
@@ -523,11 +535,27 @@ async function refresh(){
     if(d.fatal) showErr("Сбой: "+d.fatal);
     if(d.has_xlsx) $("dlXlsx").classList.remove("hidden");
     if(d.has_csv) $("dlCsv").classList.remove("hidden");
+    loadLastCollect();
   }
 }
 $("cancel").onclick = async ()=>{ if(jobId){ await fetch("/api/cancel/"+jobId,{method:"POST"}); $("sStatus").textContent="останавливаю…"; } };
 $("dlXlsx").onclick = ()=> jobId && (location.href="/api/download/"+jobId+"?fmt=xlsx");
 $("dlCsv").onclick  = ()=> jobId && (location.href="/api/download/"+jobId+"?fmt=csv");
+
+// ---- баннер последнего сбора (сохраняется до следующего сбора) ----
+async function loadLastCollect(){
+  try{ const d=await (await fetch("/api/collect/last")).json();
+    if(!d.exists){ $("lastCollect").classList.add("hidden"); return; }
+    const when = d.at ? new Date(d.at*1000).toLocaleString("ru-RU") : "";
+    $("lc_info").textContent = `${d.rows} строк · ${d.urls_count} URL · ${d.total} запросов · ${when}`;
+    $("lc_xlsx").style.display = d.has_xlsx ? "" : "none";
+    $("lc_csv").style.display = d.has_csv ? "" : "none";
+    $("lastCollect").classList.remove("hidden");
+  }catch(e){}
+}
+$("lc_xlsx").onclick=()=> location.href="/api/collect/last_download?fmt=xlsx";
+$("lc_csv").onclick =()=> location.href="/api/collect/last_download?fmt=csv";
+loadLastCollect();
 
 // ===================== ВКЛАДКА 2: ТРЕКЕР =====================
 let mPoll=null, mTick=null, mJob=null, mNextAt=null;
@@ -669,7 +697,7 @@ $("s_dlCsv").onclick =()=> sJob && (location.href="/api/site/download/"+sJob+"?f
 
 // ===================== ВКЛАДКА 4: РЕДИРЕКТЫ =====================
 let rPoll=null, rJob=null;
-const REDIR_FIELDS=["r_urls","r_group","r_ua","r_timeout","r_workers","r_referer","r_verify"];
+const REDIR_FIELDS=["r_urls","r_group","r_ua","r_timeout","r_workers","r_only_sub","r_referer","r_verify"];
 function saveRedir(){ const o={}; REDIR_FIELDS.forEach(f=>{const el=$(f); if(el)o[f]=fval(el);}); localStorage.setItem("xmlstock_redir",JSON.stringify(o)); }
 function loadRedir(){ try{ const o=JSON.parse(localStorage.getItem("xmlstock_redir")||"{}"); REDIR_FIELDS.forEach(f=>{const el=$(f); if(o[f]!==undefined&&el) setval(el,o[f]);}); }catch(e){} }
 loadRedir();
@@ -687,7 +715,7 @@ $("r_go").onclick = async ()=>{
   hideErr();
   if(!$("r_urls").value.trim()){ showErr("Добавьте ссылки или загрузите из «Сбора ТОП»."); return; }
   const payload={urls:$("r_urls").value, group_by:$("r_group").value, ua:$("r_ua").value,
-    timeout:$("r_timeout").value, workers:$("r_workers").value,
+    timeout:$("r_timeout").value, workers:$("r_workers").value, only_subdomains:$("r_only_sub").checked,
     referer:$("r_referer").checked, verify:$("r_verify").checked};
   $("r_go").disabled=true;
   try{
