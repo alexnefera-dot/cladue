@@ -69,6 +69,11 @@ MONITORS = {}
 MON_LOCK = Lock()
 ACTIVE_MONITOR = {"id": None}
 
+# Хранилище задач сбора страниц (оператор site:).
+SITEJOBS = {}
+SITE_LOCK = Lock()
+ACTIVE_SITE = {"id": None}
+
 
 # --------------------------------------------------------------------------- #
 #  Парсинг ответа                                                             #
@@ -283,6 +288,146 @@ def fetch_one(cfg, query, cancel):
             break
 
     return collected[:top_n], (None if collected else last_err)
+
+
+# --------------------------------------------------------------------------- #
+#  Сбор страниц сайта из индекса (оператор site:)                             #
+# --------------------------------------------------------------------------- #
+def clean_host(value):
+    """Хост для оператора site: — убираем схему/путь, но СОХРАНЯЕМ www/поддомен."""
+    s = (value or "").strip().lower()
+    if not s:
+        return ""
+    if "://" in s:
+        s = s.split("://", 1)[1]
+    return s.split("/")[0].strip()
+
+
+def parse_site(text):
+    """Разбор ответа для site:. Возвращает (docs[{url,title}], found:int|None, error)."""
+    text = (text or "").strip()
+    if not text:
+        return [], None, "пустой ответ"
+    if text[0] != "<":
+        docs, err = parse_response(text)
+        return docs, None, err
+    try:
+        root = ET.fromstring(text)
+    except ET.ParseError as e:
+        return [], None, f"ошибка XML: {e}"
+    err = root.find(".//response/error") or root.find(".//error")
+    if err is not None:
+        code = (err.get("code") or "").strip()
+        if code == "15":  # ничего не нашлось
+            return [], 0, None
+        return [], None, f"API {code}: {(err.text or '').strip()}"
+    found = None
+    for f in root.findall(".//found"):
+        if f.get("priority") == "phrase" and (f.text or "").strip().isdigit():
+            found = int(f.text.strip())
+            break
+    if found is None:
+        f = root.find(".//found")
+        if f is not None and (f.text or "").strip().isdigit():
+            found = int(f.text.strip())
+    docs = []
+    for doc in root.findall(".//doc"):
+        url = (doc.findtext("url") or "").strip()
+        if not url:
+            continue
+        te = doc.find("title")
+        title = "".join(te.itertext()).strip() if te is not None else ""
+        docs.append({"url": url, "title": title})
+    return docs, found, None
+
+
+def _fetch_site_page(cfg, query, page, page_size, cancel):
+    # Плоская выдача (mode=flat): для site: нельзя схлопывать по домену.
+    groupby = f'attr="".mode=flat.groups-on-page={page_size}.docs-in-group=1'
+    params = {"user": cfg["user"], "key": cfg["key"], "query": query,
+              "groupby": groupby, "page": page}
+    if cfg.get("lr"):
+        params["lr"] = cfg["lr"]
+    if cfg.get("device"):
+        params["device"] = cfg["device"]
+    last_err = None
+    for attempt in range(cfg["retries"] + 1):
+        if cancel.is_set():
+            return [], None, "отменено"
+        try:
+            r = requests.get(cfg["endpoint"], params=params, timeout=cfg["timeout"])
+        except requests.RequestException as e:
+            last_err = f"сеть: {e}"; time.sleep(min(2 ** attempt, 8)); continue
+        if r.status_code >= 500:
+            last_err = f"HTTP {r.status_code}"; time.sleep(min(2 ** attempt, 8)); continue
+        if r.status_code != 200:
+            return [], None, f"HTTP {r.status_code}: {r.text[:200]}"
+        docs, found, err = parse_site(r.text)
+        if err and _is_retryable(err) and attempt < cfg["retries"]:
+            last_err = err; time.sleep(min(2 ** attempt, 8)); continue
+        return docs, found, err
+    return [], None, last_err or "не удалось выполнить запрос"
+
+
+def fetch_site_pages(cfg, domain, cap, cancel):
+    """Собирает URL страниц домена из индекса Яндекса через site:, листая страницы."""
+    host = clean_host(domain)
+    query = f"{cfg['operator']}{host}"
+    page_size = 10 if cfg.get("live") else 100
+    max_pages = min((cap + page_size - 1) // page_size, 100)
+    urls, seen, found_total, err_out = [], set(), None, None
+    for p in range(max_pages):
+        if cancel.is_set():
+            break
+        if cfg["delay"] > 0:
+            time.sleep(cfg["delay"])
+        docs, found, err = _fetch_site_page(cfg, query, p, page_size, cancel)
+        if err:
+            if not urls:
+                err_out = err
+            break
+        if found_total is None:
+            found_total = found
+        if not docs:
+            break
+        new = 0
+        for d in docs:
+            if d["url"] not in seen:
+                seen.add(d["url"])
+                urls.append(d)
+                new += 1
+        if len(docs) < page_size or len(urls) >= cap or new == 0:
+            break
+    return {"domain": domain, "host": host, "urls": urls[:cap],
+            "found": found_total, "error": err_out, "collected": min(len(urls), cap)}
+
+
+def run_site(job_id, cfg, domains):
+    job = SITEJOBS[job_id]
+    try:
+        with ThreadPoolExecutor(max_workers=cfg["workers"]) as ex:
+            futs = {ex.submit(fetch_site_pages, cfg, d, cfg["max_urls"], job["cancel"]): d
+                    for d in domains}
+            for fut in as_completed(futs):
+                d = futs[fut]
+                try:
+                    res = fut.result()
+                except Exception as e:  # noqa: BLE001
+                    res = {"domain": d, "host": d, "urls": [], "found": None,
+                           "error": f"исключение: {e}", "collected": 0}
+                with job["lock"]:
+                    job["done"] += 1
+                    job["results"][d] = res
+                    if res.get("error"):
+                        job["errors"].append({"domain": d, "error": res["error"]})
+    except Exception as e:  # noqa: BLE001
+        with job["lock"]:
+            job["status"] = "error"
+            job["fatal"] = str(e)
+        return
+    with job["lock"]:
+        job["status"] = "cancelled" if job["cancel"].is_set() else "done"
+        job["finished_at"] = time.time()
 
 
 # --------------------------------------------------------------------------- #
@@ -865,6 +1010,169 @@ def api_monitor_download(job_id):
         download_name=f"positions_{job_id[:8]}.csv",
         mimetype="text/csv",
     )
+
+
+# --- Сбор страниц сайта (site:) -------------------------------------------- #
+@app.route("/api/site/run", methods=["POST"])
+def api_site_run():
+    data = request.get_json(force=True, silent=True) or {}
+    user = (data.get("user") or "").strip()
+    key = (data.get("key") or "").strip()
+    if not user or not key:
+        return jsonify({"error": "Укажите User ID и API key из кабинета xmlstock."}), 400
+
+    domains = [d for d in _split_unique(data.get("domains"), 200) if clean_host(d)]
+    if not domains:
+        return jsonify({"error": "Добавьте хотя бы один домен."}), 400
+
+    engine = data.get("engine") or "yandex"
+    custom = (data.get("endpoint") or "").strip()
+    endpoint = custom or ENDPOINTS.get(engine)
+    if not endpoint or not endpoint.lower().startswith(("http://", "https://")):
+        return jsonify({"error": "Некорректный URL эндпоинта."}), 400
+    # site: полнее и дешевле на XML — если выбран Live (без своего URL), берём XML.
+    if not custom and _is_live(endpoint):
+        endpoint = ENDPOINTS["google"] if str(engine).startswith("google") else ENDPOINTS["yandex"]
+
+    op = data.get("operator") or "site:"
+    if op not in ("site:", "host:"):
+        op = "site:"
+
+    def clamp(val, lo, hi, default):
+        try:
+            return max(lo, min(hi, int(val)))
+        except (TypeError, ValueError):
+            return default
+
+    cfg = {
+        "user": user, "key": key, "endpoint": endpoint, "live": _is_live(endpoint),
+        "operator": op,
+        "lr": (data.get("lr") or "").strip(),
+        "device": (data.get("device") or "").strip(),
+        "max_urls": clamp(data.get("max_urls"), 10, 1000, 1000),
+        "workers": clamp(data.get("workers"), 1, 10, 4),
+        "delay": 0.0, "timeout": 30, "retries": 2,
+    }
+
+    job_id = uuid.uuid4().hex
+    with SITE_LOCK:
+        SITEJOBS[job_id] = {
+            "id": job_id, "status": "running", "domains": domains,
+            "total": len(domains), "done": 0, "results": {}, "errors": [],
+            "lock": Lock(), "cancel": Event(), "started_at": time.time(),
+        }
+        ACTIVE_SITE["id"] = job_id
+
+    Thread(target=run_site, args=(job_id, cfg, domains), daemon=True).start()
+    return jsonify({"job_id": job_id, "total": len(domains),
+                    "operator": op, "max_urls": cfg["max_urls"]})
+
+
+@app.route("/api/site/status/<job_id>")
+def api_site_status(job_id):
+    job = SITEJOBS.get(job_id)
+    if not job:
+        return jsonify({"error": "Задача не найдена"}), 404
+    with job["lock"]:
+        rows, total_urls = [], 0
+        for d in job["domains"]:
+            r = job["results"].get(d)
+            if r:
+                total_urls += r["collected"]
+                rows.append({"domain": d, "found": r.get("found"),
+                             "collected": r["collected"], "error": r.get("error")})
+            else:
+                rows.append({"domain": d, "found": None, "collected": None, "error": None})
+        return jsonify({"status": job["status"], "total": job["total"], "done": job["done"],
+                        "rows": rows, "total_urls": total_urls,
+                        "errors_count": len(job["errors"]), "fatal": job.get("fatal")})
+
+
+@app.route("/api/site/cancel/<job_id>", methods=["POST"])
+def api_site_cancel(job_id):
+    job = SITEJOBS.get(job_id)
+    if not job:
+        return jsonify({"error": "Задача не найдена"}), 404
+    job["cancel"].set()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/site/active")
+def api_site_active():
+    jid = ACTIVE_SITE.get("id")
+    if jid and jid in SITEJOBS:
+        return jsonify({"job_id": jid, "status": SITEJOBS[jid]["status"]})
+    return jsonify({"job_id": None})
+
+
+@app.route("/api/site/urls/<job_id>")
+def api_site_urls(job_id):
+    job = SITEJOBS.get(job_id)
+    if not job:
+        return jsonify({"error": "Задача не найдена"}), 404
+    limit, out = 5000, []
+    with job["lock"]:
+        for d in job["domains"]:
+            r = job["results"].get(d)
+            if not r:
+                continue
+            for u in r["urls"]:
+                out.append({"domain": d, "url": u["url"], "title": u["title"]})
+                if len(out) >= limit:
+                    break
+            if len(out) >= limit:
+                break
+    return jsonify({"urls": out, "truncated": len(out) >= limit})
+
+
+@app.route("/api/site/download/<job_id>")
+def api_site_download(job_id):
+    job = SITEJOBS.get(job_id)
+    if not job:
+        return jsonify({"error": "Задача не найдена"}), 404
+    fmt = request.args.get("fmt", "csv")
+    with job["lock"]:
+        domains = list(job["domains"])
+        results = {d: job["results"].get(d) for d in domains}
+
+    if fmt == "xlsx":
+        try:
+            from openpyxl import Workbook
+        except Exception:
+            return jsonify({"error": "openpyxl не установлен"}), 400
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "urls"
+        ws.append(["domain", "url", "title"])
+        for d in domains:
+            r = results.get(d)
+            if not r:
+                continue
+            for u in r["urls"]:
+                ws.append([d, u["url"], u["title"]])
+        ws2 = wb.create_sheet("summary")
+        ws2.append(["domain", "found_estimate", "collected"])
+        for d in domains:
+            r = results.get(d) or {}
+            ws2.append([d, r.get("found"), r.get("collected", 0)])
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        return send_file(buf, as_attachment=True, download_name=f"site_pages_{job_id[:8]}.xlsx",
+                         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+    sbuf = io.StringIO()
+    w = csv.writer(sbuf, delimiter=";")
+    w.writerow(["domain", "url", "title"])
+    for d in domains:
+        r = results.get(d)
+        if not r:
+            continue
+        for u in r["urls"]:
+            w.writerow([d, u["url"], u["title"]])
+    payload = ("﻿" + sbuf.getvalue()).encode("utf-8")
+    return send_file(io.BytesIO(payload), as_attachment=True,
+                     download_name=f"site_pages_{job_id[:8]}.csv", mimetype="text/csv")
 
 
 def _open_browser(url):

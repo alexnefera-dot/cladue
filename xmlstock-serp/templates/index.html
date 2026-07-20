@@ -132,6 +132,7 @@
   <div class="tabs">
     <button class="tab active" data-tab="collect">📥 Сбор ТОП</button>
     <button class="tab" data-tab="track">📈 Трекер позиций</button>
+    <button class="tab" data-tab="site">🔎 Индексация (site:)</button>
   </div>
 
   <!-- ================= ВКЛАДКА 1: СБОР ТОП ================= -->
@@ -260,6 +261,56 @@
     </div>
   </div>
 
+  <!-- ================= ВКЛАДКА 3: ИНДЕКСАЦИЯ (site:) ================= -->
+  <div id="panel-site" class="hidden">
+    <div class="card">
+      <label>Домены — по одному в строке <span class="count" id="scount">0</span></label>
+      <textarea id="s_domains" placeholder="example.ru&#10;shop.example.ru&#10;another.ru"></textarea>
+      <div class="hint">Для каждого домена соберём все URL из индекса Яндекса через <code>site:домен</code>. Можно с www/https:// — приведётся к хосту.</div>
+
+      <div class="grid g4" style="margin-top:12px">
+        <div>
+          <label>Оператор</label>
+          <select id="s_operator">
+            <option value="site:" selected>site: (сайт + поддомены)</option>
+            <option value="host:">host: (только этот хост)</option>
+          </select>
+        </div>
+        <div><label>Макс. URL на домен</label><input id="s_max" type="number" value="1000" min="10" max="1000" step="10"></div>
+        <div><label>Параллельно</label><input id="s_workers" type="number" value="4" min="1" max="10"></div>
+        <div style="display:flex;align-items:flex-end"><div class="hint" style="margin:0">Яндекс отдаёт максимум ~1000 URL на домен.</div></div>
+      </div>
+      <div class="hint" style="margin-top:8px">Для <code>site:</code> используется движок <b>Яндекс — XML</b> (до 100 URL за запрос, до ~1000 всего). Если выбран Live — автоматически берётся XML.</div>
+
+      <div class="row" style="margin-top:16px">
+        <button class="btn-go" id="s_go">▶ Собрать страницы</button>
+        <button class="btn-cancel hidden" id="s_stop">■ Остановить</button>
+      </div>
+    </div>
+
+    <div class="card hidden" id="s_panel">
+      <div class="bar"><i id="s_barFill"></i></div>
+      <div class="stat">
+        <div><span class="muted">Доменов</span><b id="s_done">0 / 0</b></div>
+        <div class="ok"><span class="muted">Статус</span><b id="s_statusw">—</b></div>
+        <div><span class="muted">Всего URL</span><b id="s_total">0</b></div>
+      </div>
+      <div class="row" style="margin-bottom:12px">
+        <button class="btn-dl hidden" id="s_dlXlsx">⬇ Скачать XLSX</button>
+        <button class="btn-dl hidden" id="s_dlCsv">⬇ Скачать CSV</button>
+      </div>
+      <div class="tbl-wrap">
+        <table class="pos">
+          <thead><tr><th>Домен</th><th>Найдено (оценка Яндекса)</th><th>Собрано URL</th><th>Статус</th></tr></thead>
+          <tbody id="s_tbody"></tbody>
+        </table>
+      </div>
+      <label style="margin-top:14px">Предпросмотр URL</label>
+      <div class="log" id="s_preview" style="max-height:320px"></div>
+      <div class="hint" id="s_prevnote"></div>
+    </div>
+  </div>
+
   <p class="sub" style="text-align:center; margin-top:24px">
     Запущено локально на вашем компьютере · данные никуда не уходят, кроме API xmlstock.
   </p>
@@ -293,6 +344,7 @@ document.querySelectorAll(".tab").forEach(t=> t.onclick = ()=>{
   t.classList.add("active");
   $("panel-collect").classList.toggle("hidden", t.dataset.tab!=="collect");
   $("panel-track").classList.toggle("hidden", t.dataset.tab!=="track");
+  $("panel-site").classList.toggle("hidden", t.dataset.tab!=="site");
 });
 
 // ---- движок / свой URL ----
@@ -481,12 +533,75 @@ $("m_stop").onclick = async ()=>{ if(mJob){ await fetch("/api/monitor/cancel/"+m
 $("m_dlXlsx").onclick = ()=> mJob && (location.href="/api/monitor/download/"+mJob+"?fmt=xlsx");
 $("m_dlCsv").onclick  = ()=> mJob && (location.href="/api/monitor/download/"+mJob+"?fmt=csv");
 
-// ---- переподключение к уже идущему трекеру (если перезагрузили страницу) ----
+// ===================== ВКЛАДКА 3: ИНДЕКСАЦИЯ (site:) =====================
+let sPoll=null, sJob=null;
+const SITE_FIELDS=["s_domains","s_operator","s_max","s_workers"];
+function saveSite(){ const o={}; SITE_FIELDS.forEach(f=>{const el=$(f); if(el)o[f]=el.value;}); localStorage.setItem("xmlstock_site",JSON.stringify(o)); }
+function loadSite(){ try{ const o=JSON.parse(localStorage.getItem("xmlstock_site")||"{}"); SITE_FIELDS.forEach(f=>{ if(o[f]!==undefined && $(f)) $(f).value=o[f]; }); }catch(e){} }
+loadSite();
+SITE_FIELDS.forEach(f=>{ const el=$(f); if(el){ el.addEventListener("input",saveSite); el.addEventListener("change",saveSite);} });
+$("s_domains").addEventListener("input", ()=> $("scount").textContent=lines("s_domains")+" стр.");
+$("scount").textContent=lines("s_domains")+" стр.";
+
+$("s_go").onclick = async ()=>{
+  hideErr();
+  if(!$("user").value.trim()||!$("key").value.trim()){ showErr("Заполните User ID и API key."); return; }
+  if(!$("s_domains").value.trim()){ showErr("Добавьте хотя бы один домен."); return; }
+  const payload={...shared(), domains:$("s_domains").value, operator:$("s_operator").value,
+    max_urls:$("s_max").value, workers:$("s_workers").value};
+  $("s_go").disabled=true;
+  try{
+    const r=await fetch("/api/site/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    const d=await r.json();
+    if(!r.ok){ showErr(d.error||"Ошибка запуска"); $("s_go").disabled=false; return; }
+    sJob=d.job_id; startSite(); sPoll=setInterval(sRefresh,1000); sRefresh();
+  }catch(e){ showErr("Нет связи с сервером: "+e); $("s_go").disabled=false; }
+};
+function startSite(){
+  $("s_panel").classList.remove("hidden"); $("s_tbody").innerHTML=""; $("s_preview").innerHTML=""; $("s_prevnote").textContent="";
+  $("s_statusw").textContent="идёт…"; $("s_barFill").style.width="0%"; $("s_total").textContent="0";
+  $("s_dlXlsx").classList.add("hidden"); $("s_dlCsv").classList.add("hidden"); $("s_stop").classList.remove("hidden");
+  $("s_panel").scrollIntoView({behavior:"smooth"});
+}
+async function sRefresh(){
+  if(!sJob) return; let d;
+  try{ d=await (await fetch("/api/site/status/"+sJob)).json(); }catch(e){ return; }
+  if(d.error) return;
+  $("s_done").textContent=d.done+" / "+d.total;
+  $("s_barFill").style.width=(d.total?Math.round(d.done/d.total*100):0)+"%";
+  $("s_total").textContent=d.total_urls;
+  $("s_tbody").innerHTML=(d.rows||[]).map(r=>{
+    const st = r.error ? `<span class="p-no">${esc(r.error)}</span>`
+             : (r.collected==null ? '<span class="miss">…</span>' : '<span class="p-top">готово</span>');
+    return `<tr><td>${esc(r.domain)}</td><td>${r.found==null?"—":r.found}</td><td>${r.collected==null?"—":r.collected}</td><td>${st}</td></tr>`;
+  }).join("");
+  if(d.status!=="running"){
+    clearInterval(sPoll); sPoll=null; $("s_go").disabled=false; $("s_stop").classList.add("hidden");
+    $("s_statusw").textContent={done:"готово ✓",cancelled:"остановлено",error:"ошибка"}[d.status]||d.status;
+    if(d.fatal) showErr("Сбой: "+d.fatal);
+    if(d.total_urls>0){ $("s_dlXlsx").classList.remove("hidden"); $("s_dlCsv").classList.remove("hidden"); loadPreview(); }
+  }
+}
+async function loadPreview(){
+  try{ const u=await (await fetch("/api/site/urls/"+sJob)).json();
+    $("s_preview").innerHTML=(u.urls||[]).map(x=>`<div>${esc(x.domain)} — ${esc(x.url)}</div>`).join("");
+    $("s_prevnote").textContent = u.truncated ? "Показаны первые 5000 URL, полный список — в выгрузке." : `Показано ${(u.urls||[]).length} URL.`;
+  }catch(e){}
+}
+$("s_stop").onclick=async ()=>{ if(sJob){ await fetch("/api/site/cancel/"+sJob,{method:"POST"}); $("s_statusw").textContent="останавливаю…"; } };
+$("s_dlXlsx").onclick=()=> sJob && (location.href="/api/site/download/"+sJob+"?fmt=xlsx");
+$("s_dlCsv").onclick =()=> sJob && (location.href="/api/site/download/"+sJob+"?fmt=csv");
+
+// ---- переподключение к уже идущим задачам (если перезагрузили страницу) ----
 (async ()=>{
   try{
     const a = await (await fetch("/api/monitor/active")).json();
     if(a.job_id){ mJob=a.job_id; document.querySelector('.tab[data-tab="track"]').click();
       startMon(); mPoll=setInterval(mRefresh,3000); mRefresh(); }
+  }catch(e){}
+  try{
+    const b = await (await fetch("/api/site/active")).json();
+    if(b.job_id && b.status==="running"){ sJob=b.job_id; startSite(); sPoll=setInterval(sRefresh,1000); sRefresh(); }
   }catch(e){}
 })();
 </script>
