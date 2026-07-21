@@ -286,11 +286,19 @@
             <option value="host:">host: (только этот хост)</option>
           </select>
         </div>
-        <div><label>Макс. URL на домен</label><input id="s_max" type="number" value="1000" min="10" max="1000" step="10"></div>
+        <div><label>Макс. URL на домен</label><input id="s_max" type="number" value="1000" min="10" max="5000" step="100"></div>
         <div><label>Параллельно</label><input id="s_workers" type="number" value="4" min="1" max="10"></div>
-        <div style="display:flex;align-items:flex-end"><div class="hint" style="margin:0">Яндекс отдаёт максимум ~1000 URL на домен.</div></div>
+        <div style="display:flex;align-items:flex-end">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;font-size:13px;color:var(--txt)">
+            <input type="checkbox" id="s_deep" style="width:auto"> Глубокий сбор (дробление)
+          </label>
+        </div>
       </div>
-      <div class="hint" style="margin-top:8px">Для <code>site:</code> используется движок <b>Яндекс — XML</b> (до 100 URL за запрос, до ~1000 всего). Если выбран Live — автоматически берётся XML.</div>
+      <div class="hint" style="margin-top:8px">
+        Один запрос <code>site:</code> отдаёт максимум <b>~1000</b> URL (потолок Яндекса).
+        <b>Глубокий сбор</b> дробит на подразделы (<code>site:домен/раздел</code>) и собирает больше
+        (до «Макс. URL на домен», до 5000) — но тратит кратно больше запросов/лимитов.
+        Движок для <code>site:</code> — <b>Яндекс XML</b> (Live авто-переключается на XML).
 
       <div class="row" style="margin-top:16px">
         <button class="btn-go" id="s_go">▶ Собрать страницы</button>
@@ -661,9 +669,9 @@ $("m_dlCsv").onclick  = ()=> mJob && (location.href="/api/monitor/download/"+mJo
 
 // ===================== ВКЛАДКА 3: ИНДЕКСАЦИЯ (site:) =====================
 let sPoll=null, sJob=null;
-const SITE_FIELDS=["s_domains","s_operator","s_max","s_workers"];
-function saveSite(){ const o={}; SITE_FIELDS.forEach(f=>{const el=$(f); if(el)o[f]=el.value;}); localStorage.setItem("xmlstock_site",JSON.stringify(o)); }
-function loadSite(){ try{ const o=JSON.parse(localStorage.getItem("xmlstock_site")||"{}"); SITE_FIELDS.forEach(f=>{ if(o[f]!==undefined && $(f)) $(f).value=o[f]; }); }catch(e){} }
+const SITE_FIELDS=["s_domains","s_operator","s_max","s_workers","s_deep"];
+function saveSite(){ const o={}; SITE_FIELDS.forEach(f=>{const el=$(f); if(el)o[f]=fval(el);}); localStorage.setItem("xmlstock_site",JSON.stringify(o)); }
+function loadSite(){ try{ const o=JSON.parse(localStorage.getItem("xmlstock_site")||"{}"); SITE_FIELDS.forEach(f=>{const el=$(f); if(o[f]!==undefined && el) setval(el,o[f]); }); }catch(e){} }
 loadSite();
 SITE_FIELDS.forEach(f=>{ const el=$(f); if(el){ el.addEventListener("input",saveSite); el.addEventListener("change",saveSite);} });
 $("s_domains").addEventListener("input", ()=> $("scount").textContent=lines("s_domains")+" стр.");
@@ -674,7 +682,7 @@ $("s_go").onclick = async ()=>{
   if(!$("user").value.trim()||!$("key").value.trim()){ showErr("Заполните User ID и API key."); return; }
   if(!$("s_domains").value.trim()){ showErr("Добавьте хотя бы один домен."); return; }
   const payload={...shared(), domains:$("s_domains").value, operator:$("s_operator").value,
-    max_urls:$("s_max").value, workers:$("s_workers").value};
+    max_urls:$("s_max").value, workers:$("s_workers").value, deep:$("s_deep").checked};
   $("s_go").disabled=true;
   try{
     const r=await fetch("/api/site/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});

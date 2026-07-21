@@ -405,10 +405,8 @@ def _fetch_site_page(cfg, query, page, page_size, cancel):
     return [], None, last_err or "не удалось выполнить запрос"
 
 
-def fetch_site_pages(cfg, domain, cap, cancel):
-    """Собирает URL страниц домена из индекса Яндекса через site:, листая страницы."""
-    host = clean_host(domain)
-    query = f"{cfg['operator']}{host}"
+def _fetch_site_query(cfg, query, cap, cancel):
+    """Пагинация по ОДНОМУ запросу. Возвращает {urls, found, error}."""
     page_size = 10 if cfg.get("live") else 100
     max_pages = min((cap + page_size - 1) // page_size, 100)
     urls, seen, found_total, err_out = [], set(), None, None
@@ -434,8 +432,51 @@ def fetch_site_pages(cfg, domain, cap, cancel):
                 new += 1
         if len(docs) < page_size or len(urls) >= cap or new == 0:
             break
+    return {"urls": urls[:cap], "found": found_total, "error": err_out}
+
+
+def _path_segments(urls, limit):
+    """Топ первых сегментов пути (разделы сайта) по частоте — для дробления."""
+    freq = {}
+    for d in urls:
+        try:
+            path = urlparse(d["url"]).path
+        except Exception:
+            continue
+        seg = path.strip("/").split("/", 1)[0].strip()
+        if seg:
+            freq[seg] = freq.get(seg, 0) + 1
+    return [s for s, _ in sorted(freq.items(), key=lambda x: -x[1])[:limit]]
+
+
+def fetch_site_pages(cfg, domain, cap, cancel):
+    """Собирает URL страниц домена через site:. При «глубоком» режиме дробит по
+    разделам (site:домен/раздел), чтобы обойти потолок ~1000 на один запрос."""
+    host = clean_host(domain)
+    op = cfg["operator"]
+    base = _fetch_site_query(cfg, f"{op}{host}", min(cap, 1000), cancel)
+    urls = list(base["urls"])
+    seen = {d["url"] for d in urls}
+    found, err = base["found"], base["error"]
+
+    base_maxed = len(urls) >= min(cap, 1000)  # базовый запрос забит под завязку
+    more_exist = (found is None) or (found > len(urls))
+    if (cfg.get("deep") and not err and not cancel.is_set()
+            and len(urls) < cap and base_maxed and more_exist):
+        for seg in _path_segments(urls, 30):
+            if cancel.is_set() or len(urls) >= cap:
+                break
+            # тянем под-запрос полнее (его верхушка дублирует базу — новые URL глубже)
+            sub = _fetch_site_query(cfg, f"{op}{host}/{seg}", min(cap, 1000), cancel)
+            for d in sub["urls"]:
+                if d["url"] not in seen:
+                    seen.add(d["url"])
+                    urls.append(d)
+                    if len(urls) >= cap:
+                        break
+
     return {"domain": domain, "host": host, "urls": urls[:cap],
-            "found": found_total, "error": err_out, "collected": min(len(urls), cap)}
+            "found": found, "error": err, "collected": min(len(urls), cap)}
 
 
 def run_site(job_id, cfg, domains):
@@ -1358,9 +1399,10 @@ def api_site_run():
     cfg = {
         "user": user, "key": key, "endpoint": endpoint, "live": _is_live(endpoint),
         "operator": op,
+        "deep": bool(data.get("deep", False)),
         "lr": (data.get("lr") or "").strip(),
         "device": (data.get("device") or "").strip(),
-        "max_urls": clamp(data.get("max_urls"), 10, 1000, 1000),
+        "max_urls": clamp(data.get("max_urls"), 10, 5000, 1000),
         "workers": clamp(data.get("workers"), 1, 10, 4),
         "delay": 0.0, "timeout": 30, "retries": 2,
     }
