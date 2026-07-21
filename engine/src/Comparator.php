@@ -26,17 +26,26 @@ final class Comparator
         $brandIndexA = $this->brandIndex($a['pages']);
         $brandIndexB = $this->brandIndex($b['pages']);
 
+        // 1) пары по общему бренду (твоя страница vs конкурент по тому же бренду)
         $pairs = [];
         foreach ($brandIndexA as $brand => $ai) {
             if (!isset($brandIndexB[$brand])) { continue; }
             $bi = $brandIndexB[$brand];
-            $pairs[] = [
-                'brand'    => $brand,
-                'aIndex'   => $ai,
-                'bIndex'   => $bi,
-                'gapBnotA' => $this->gap($b['pages'][$bi], $a['pages'][$ai]),  // есть у конкурента, нет у тебя
-                'gapAnotB' => $this->gap($a['pages'][$ai], $b['pages'][$bi]),  // есть у тебя, нет у конкурента
-            ];
+            $pairs[] = $this->makePair($brand, $ai, $bi, $a, $b);
+        }
+        $pairedBy = 'brand';
+
+        // 2) если общих брендов нет — пары по типу страницы (main↔main, bonus↔bonus…)
+        if (!$pairs) {
+            $pairedBy = 'page';
+            $bByType = [];
+            foreach ($b['pages'] as $j => $p) { $bByType[$this->pageType($p)] = $j; }
+            foreach ($a['pages'] as $i => $p) {
+                $t = $this->pageType($p);
+                if (isset($bByType[$t])) {
+                    $pairs[] = $this->makePair($t, $i, $bByType[$t], $a, $b);
+                }
+            }
         }
 
         // очищаем тяжёлый foundAll из выдачи — он больше не нужен фронту
@@ -44,12 +53,35 @@ final class Comparator
         $this->stripFoundAll($b['pages']);
 
         return [
-            'a'     => $a,
-            'b'     => $b,
-            'pairs' => $pairs,
+            'a'        => $a,
+            'b'        => $b,
+            'pairs'    => $pairs,
+            'pairedBy' => $pairedBy,
             'onlyA' => array_values(array_diff(array_keys($brandIndexA), array_keys($brandIndexB))),
             'onlyB' => array_values(array_diff(array_keys($brandIndexB), array_keys($brandIndexA))),
         ];
+    }
+
+    private function makePair(string $label, int $ai, int $bi, array $a, array $b): array
+    {
+        return [
+            'brand'    => $label,
+            'aIndex'   => $ai,
+            'bIndex'   => $bi,
+            'gapBnotA' => $this->gap($b['pages'][$bi], $a['pages'][$ai]),
+            'gapAnotB' => $this->gap($a['pages'][$ai], $b['pages'][$bi]),
+        ];
+    }
+
+    /** тип страницы из имени/URL (main/zerkalo/vhod/…) */
+    private function pageType(array $page): string
+    {
+        $s = strtolower(($page['name'] ?? '') . ' ' . ($page['url'] ?? ''));
+        foreach (['main','zerkalo','vhod','registracia','bonus','slots','app'] as $t) {
+            if (str_contains($s, $t)) { return $t; }
+        }
+        if (str_contains($s, '/') && preg_match('#/\s*$#', $s)) { return 'main'; }
+        return $page['name'] ?? 'page';
     }
 
     /** бренд -> индекс первой страницы этого бренда */
