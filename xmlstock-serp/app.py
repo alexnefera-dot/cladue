@@ -459,10 +459,11 @@ def fetch_site_pages(cfg, domain, cap, cancel):
     seen = {d["url"] for d in urls}
     found, err = base["found"], base["error"]
 
-    base_maxed = len(urls) >= min(cap, 1000)  # базовый запрос забит под завязку
+    # Дробим, как только Яндекс сообщает, что результатов больше, чем удалось
+    # вытащить (по site: он часто отдаёт лишь ~200 на запрос, до 1000 не доходя).
     more_exist = (found is None) or (found > len(urls))
     if (cfg.get("deep") and not err and not cancel.is_set()
-            and len(urls) < cap and base_maxed and more_exist):
+            and len(urls) < cap and more_exist):
         for seg in _path_segments(urls, 30):
             if cancel.is_set() or len(urls) >= cap:
                 break
