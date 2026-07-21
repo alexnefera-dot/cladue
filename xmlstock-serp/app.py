@@ -435,47 +435,62 @@ def _fetch_site_query(cfg, query, cap, cancel):
     return {"urls": urls[:cap], "found": found_total, "error": err_out}
 
 
-def _path_segments(urls, limit):
-    """Топ первых сегментов пути (разделы сайта) по частоте — для дробления."""
+def _segments_at(docs, index, limit, min_count=2):
+    """Сегменты пути на позиции index (0=раздел, 1=подраздел) по частоте.
+    Берём только те, что встречаются >= min_count раз (это разделы, а не листовые
+    ID-страницы вроде /game/12345) — чтобы не дробить в пустоту."""
     freq = {}
-    for d in urls:
+    for d in docs:
         try:
-            path = urlparse(d["url"]).path
+            parts = [p for p in urlparse(d["url"]).path.split("/") if p]
         except Exception:
             continue
-        seg = path.strip("/").split("/", 1)[0].strip()
-        if seg:
-            freq[seg] = freq.get(seg, 0) + 1
-    return [s for s, _ in sorted(freq.items(), key=lambda x: -x[1])[:limit]]
+        if len(parts) > index:
+            seg = parts[index].strip()
+            if seg:
+                freq[seg] = freq.get(seg, 0) + 1
+    segs = [(s, c) for s, c in freq.items() if c >= min_count]
+    return [s for s, _ in sorted(segs, key=lambda x: -x[1])[:limit]]
+
+
+def _collect_site(cfg, op, host, path_segs, cap, cancel, urls, seen, depth, budget):
+    """Рекурсивно собирает site:домен[/раздел[/подраздел]], дробя при потолке."""
+    if cancel.is_set() or len(urls) >= cap or budget[0] <= 0:
+        return None, None
+    prefix = f"{op}{host}"
+    if path_segs:
+        prefix += "/" + "/".join(path_segs)
+    budget[0] -= 1
+    res = _fetch_site_query(cfg, prefix, min(cap, 1000), cancel)
+    got = res["urls"]
+    for d in got:
+        if d["url"] not in seen:
+            seen.add(d["url"])
+            urls.append(d)
+            if len(urls) >= cap:
+                break
+    found, err = res["found"], res["error"]
+    hit_cap = len(got) >= 100                       # запрос отдал полную порцию
+    more = (found is None) or (found > len(got))    # Яндекс говорит, что есть ещё
+    if (cfg.get("deep") and not err and depth < cfg.get("deep_levels", 2)
+            and hit_cap and more and len(urls) < cap and budget[0] > 0
+            and not cancel.is_set()):
+        for seg in _segments_at(got, len(path_segs), 30):
+            if cancel.is_set() or len(urls) >= cap or budget[0] <= 0:
+                break
+            _collect_site(cfg, op, host, path_segs + [seg], cap, cancel, urls, seen, depth + 1, budget)
+    return found, err
 
 
 def fetch_site_pages(cfg, domain, cap, cancel):
-    """Собирает URL страниц домена через site:. При «глубоком» режиме дробит по
-    разделам (site:домен/раздел), чтобы обойти потолок ~1000 на один запрос."""
+    """Собирает URL страниц домена через site:. В «глубоком» режиме рекурсивно
+    дробит по разделам и подразделам (до 2 уровней), обходя потолок ~200 на запрос.
+    Число под-запросов на домен ограничено бюджетом."""
     host = clean_host(domain)
     op = cfg["operator"]
-    base = _fetch_site_query(cfg, f"{op}{host}", min(cap, 1000), cancel)
-    urls = list(base["urls"])
-    seen = {d["url"] for d in urls}
-    found, err = base["found"], base["error"]
-
-    # Дробим, как только Яндекс сообщает, что результатов больше, чем удалось
-    # вытащить (по site: он часто отдаёт лишь ~200 на запрос, до 1000 не доходя).
-    more_exist = (found is None) or (found > len(urls))
-    if (cfg.get("deep") and not err and not cancel.is_set()
-            and len(urls) < cap and more_exist):
-        for seg in _path_segments(urls, 30):
-            if cancel.is_set() or len(urls) >= cap:
-                break
-            # тянем под-запрос полнее (его верхушка дублирует базу — новые URL глубже)
-            sub = _fetch_site_query(cfg, f"{op}{host}/{seg}", min(cap, 1000), cancel)
-            for d in sub["urls"]:
-                if d["url"] not in seen:
-                    seen.add(d["url"])
-                    urls.append(d)
-                    if len(urls) >= cap:
-                        break
-
+    urls, seen = [], set()
+    budget = [cfg.get("deep_budget", 60)]
+    found, err = _collect_site(cfg, op, host, [], cap, cancel, urls, seen, 0, budget)
     return {"domain": domain, "host": host, "urls": urls[:cap],
             "found": found, "error": err, "collected": min(len(urls), cap)}
 
@@ -1397,6 +1412,10 @@ def api_site_run():
         except (TypeError, ValueError):
             return default
 
+    try:
+        delay = max(0.0, min(5.0, float(data.get("delay"))))
+    except (TypeError, ValueError):
+        delay = 0.0
     cfg = {
         "user": user, "key": key, "endpoint": endpoint, "live": _is_live(endpoint),
         "operator": op,
@@ -1405,7 +1424,7 @@ def api_site_run():
         "device": (data.get("device") or "").strip(),
         "max_urls": clamp(data.get("max_urls"), 10, 5000, 1000),
         "workers": clamp(data.get("workers"), 1, 10, 4),
-        "delay": 0.0, "timeout": 30, "retries": 2,
+        "delay": delay, "timeout": 30, "retries": 2,
     }
 
     job_id = uuid.uuid4().hex
