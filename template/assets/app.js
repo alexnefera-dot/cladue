@@ -79,7 +79,18 @@ function demoData() {
     app:     {label:'Приложение / скачать', share:4.0,  clicks:130000},
     registr: {label:'Регистрация / кабинет',share:2.0,  clicks:66000},
   };
-  return { pages, link, shingle, orientation };
+  const stylistics = {
+    pages: 7, first_person_share: 86, you_address_share: 90, faq_share: 100, date_fresh_share: 100,
+    avg_numbers_100w: 2.3, avg_adj_pct: 9.1, avg_imperatives: 6, avg_faq_questions: 9,
+    entities: {'Вейджер':6,'Провайдеры':4,'KYC/AML':4,'Лицензия':3,'2FA':3,'Крипта':3,'RTP':2,'Поддержка 24/7':2},
+    foreign_brands: {},
+  };
+  pages.forEach((p,i)=>{ p.stylistics = {
+    style_class: i===0?'личный опыт (E-E-A-T)':'рекламно-инструктивный',
+    address: i%2? 'вы':'личный опыт', first_person: 8-i, second_person: 3, imperatives: 6+(i%3),
+    numbers_per_100w: 2+(i%3), adj_pct: 9, emoji: 12-i, date_freshness:true,
+    faq_present:true, faq_questions: 9-(i%3), entities_count: 12-i, foreign_brands: [] }; });
+  return { pages, link, shingle, orientation, stylistics, orientationSource:'pages' };
 }
 
 /* ---------- вычисление сводных баллов ------------------------------------- */
@@ -213,8 +224,22 @@ function renderDetails(data) {
           : `<span class="score-pill bg-ok">${p.brand}</span>`)
       : `<span class="score-pill bg-warn">бренд не определён</span>`;
 
+    const st = p.stylistics;
+    const styLine = st ? `<div class="row" style="gap:6px;flex-wrap:wrap;margin:2px 0 12px">
+        <span class="pill">${st.style_class||'—'}</span>
+        <span class="pill">обращение: ${st.address||'—'}</span>
+        <span class="pill">1-е лицо: ${st.first_person}</span>
+        <span class="pill">императивы: ${st.imperatives}</span>
+        <span class="pill">числа/100: ${st.numbers_per_100w}</span>
+        <span class="pill">FAQ: ${st.faq_questions} вопр.</span>
+        <span class="pill">сущностей: ${st.entities_count}</span>
+        ${st.date_freshness?'<span class="pill">📅 дата</span>':''}
+        ${(st.foreign_brands&&st.foreign_brands.length)?`<span class="pill" style="color:var(--bad)">⚠ чужой бренд</span>`:''}
+      </div>` : '';
+
     return `<div class="panel">
       <h3>📄 ${pi+1}. ${p.name} ${brandBadge} <span class="pill">${p.url}</span></h3>
+      ${styLine}
       <div class="grid cols-2">
         <div>${cats}</div>
         <div>
@@ -307,6 +332,44 @@ function renderOrientation(data) {
   el.innerHTML = `<p class="muted">На что ориентирован набор. ${note}</p>` + orientationBars(data.orientation);
 }
 
+// шкала доли 0–100% строкой
+function shareRow(label, val, unit='%') {
+  return `<div class="bar-row" style="grid-template-columns:200px 1fr 54px">
+    <span>${label}</span>
+    <div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,val)}%"></div></div>
+    <span>${val}${unit}</span></div>`;
+}
+
+function renderStylistics(data) {
+  const el = document.getElementById('stylistics');
+  if (!el) return;
+  const s = data.stylistics;
+  if (!s) { el.innerHTML = '<p class="muted">Нет данных стилистики.</p>'; return; }
+  const shares = `<div class="bars">`
+    + shareRow('Первое лицо / «мой опыт»', s.first_person_share)
+    + shareRow('Обращение «вы»', s.you_address_share)
+    + shareRow('FAQ на странице', s.faq_share)
+    + shareRow('Дата-стамп / свежесть', s.date_fresh_share)
+    + `</div>`;
+  const avgs = `<div class="row" style="margin-top:12px;gap:14px;flex-wrap:wrap">
+    <span class="pill">чисел/100 слов: <b>${s.avg_numbers_100w}</b></span>
+    <span class="pill">прилагательных: <b>${s.avg_adj_pct}%</b></span>
+    <span class="pill">императивов/стр: <b>${s.avg_imperatives}</b></span>
+    <span class="pill">вопросов FAQ/стр: <b>${s.avg_faq_questions}</b></span></div>`;
+  const ents = Object.keys(s.entities||{});
+  const entHtml = ents.length
+    ? `<h4 style="margin:16px 0 6px">Фактура / сущности (страниц с фактом)</h4>
+       <div class="row" style="gap:6px;flex-wrap:wrap">`
+       + ents.map(e=>`<span class="pill">${e} · ${s.entities[e]}</span>`).join('') + `</div>`
+    : '';
+  const foreign = Object.keys(s.foreign_brands||{});
+  const foreignHtml = foreign.length
+    ? `<div class="rec bad" style="margin-top:14px">⚠ Чужие бренды в тексте (остаток шаблона): <b>${foreign.join(', ')}</b></div>`
+    : `<div class="rec ok" style="margin-top:14px">Чужих брендов не найдено — генерация чистая.</div>`;
+  el.innerHTML = `<p class="muted">Как написан набор: тон, обращение, обязательные блоки и фактура. Доли — по страницам набора.</p>`
+    + shares + avgs + entHtml + foreignHtml;
+}
+
 /* ========================================================================== */
 /*  РЕЖИМ СРАВНЕНИЯ КОНКУРЕНТОВ (набор A vs набор B)                           */
 /* ========================================================================== */
@@ -380,6 +443,38 @@ function compareMetricTable(ma, mb) {
     <tbody>${rows}</tbody></table>`;
 }
 
+// стилистика A vs B рядом (по страницам пары)
+const STY_ROWS = [
+  {id:'style_class', label:'Стиль'},
+  {id:'address', label:'Обращение'},
+  {id:'first_person', label:'Первое лицо', dir:'up'},
+  {id:'imperatives', label:'Императивы', dir:'up'},
+  {id:'numbers_per_100w', label:'Числа/100 слов', dir:'up'},
+  {id:'faq_questions', label:'FAQ (вопросов)', dir:'up'},
+  {id:'entities_count', label:'Сущностей', dir:'up'},
+  {id:'emoji', label:'Эмодзи', dir:'up'},
+];
+function styCompare(sa, sb) {
+  if (!sa || !sb) return '<p class="muted">Нет данных стилистики.</p>';
+  const arrow = w => w===0 ? '<span class="muted">=</span>'
+    : w<0 ? '<span class="txt-ok">◀ A</span>' : '<span class="txt-ok">B ▶</span>';
+  const rows = STY_ROWS.map(r=>{
+    const a=sa[r.id], b=sb[r.id];
+    let w=0;
+    if(r.dir && typeof a==='number' && typeof b==='number') w = a===b?0:(a>b?-1:1);
+    return `<tr><td>${r.label}</td>
+      <td class="${w<0?'txt-ok':''}" style="text-align:right;font-weight:600">${a}</td>
+      <td class="${w>0?'txt-ok':''}" style="text-align:right;font-weight:600">${b}</td>
+      <td style="text-align:center">${r.dir?arrow(w):''}</td></tr>`;
+  }).join('');
+  const fa = (sa.foreign_brands||[]).length, fb = (sb.foreign_brands||[]).length;
+  const foreign = `<tr><td>Чужие бренды</td>
+    <td class="${fa?'txt-bad':'txt-ok'}" style="text-align:right">${fa||'нет'}</td>
+    <td class="${fb?'txt-bad':'txt-ok'}" style="text-align:right">${fb||'нет'}</td><td></td></tr>`;
+  return `<table><thead><tr><th>Стиль-метрика</th><th style="text-align:right">A</th>
+    <th style="text-align:right">B</th><th>Лучше</th></tr></thead><tbody>${rows}${foreign}</tbody></table>`;
+}
+
 function gapList(gap, cls) {
   const fmt = n => n>=1000 ? Math.round(n/1000)+'k' : n;
   if(!gap || !gap.length) return '<p class="muted">Разрыва нет.</p>';
@@ -404,18 +499,22 @@ function renderCompare(res) {
   if(!res.pairs.length){
     html += `<div class="panel empty">Общих брендов у наборов не найдено — сравнивать попарно нечего. Проверьте, что страницы про одни и те же бренды.</div>`;
   }
+  const pairWord = res.pairedBy==='page' ? 'Страница' : 'Бренд';
   res.pairs.forEach(pair=>{
-    const ma = res.a.pages[pair.aIndex].metrics;
-    const mb = res.b.pages[pair.bIndex].metrics;
+    const pa = res.a.pages[pair.aIndex], pb = res.b.pages[pair.bIndex];
+    const gaps = (pair.gapBnotA.length || pair.gapAnotB.length)
+      ? `<div class="grid cols-2" style="margin-top:14px">
+          <div><h4>🚀 Закрывает конкурент (B), а ты нет</h4>${gapList(pair.gapBnotA,'txt-bad')}</div>
+          <div><h4>✅ Закрываешь ты (A), а конкурент нет</h4>${gapList(pair.gapAnotB,'txt-ok')}</div>
+        </div>` : '';
     html += `<div class="panel">
-      <h3>⚔️ Бренд: ${pair.brand}
-        <span class="pill">A: ${res.a.pages[pair.aIndex].name}</span>
-        <span class="pill">B: ${res.b.pages[pair.bIndex].name}</span></h3>
-      ${compareMetricTable(ma, mb)}
-      <div class="grid cols-2" style="margin-top:14px">
-        <div><h4>🚀 Закрывает конкурент (B), а ты нет</h4>${gapList(pair.gapBnotA,'txt-bad')}</div>
-        <div><h4>✅ Закрываешь ты (A), а конкурент нет</h4>${gapList(pair.gapAnotB,'txt-ok')}</div>
-      </div>
+      <h3>⚔️ ${pairWord}: ${pair.brand}
+        <span class="pill">A: ${pa.name}${pa.brand?' · '+pa.brand:''}</span>
+        <span class="pill">B: ${pb.name}${pb.brand?' · '+pb.brand:''}</span></h3>
+      ${compareMetricTable(pa.metrics, pb.metrics)}
+      <h4 style="margin:16px 0 6px">✍️ Стилистика рядом</h4>
+      ${styCompare(pa.stylistics, pb.stylistics)}
+      ${gaps}
     </div>`;
   });
 
@@ -430,13 +529,17 @@ function renderCompare(res) {
 
 function demoCompare() {
   const d = demoData();
-  const mk = (cov)=>({name:'1win.html', brand:'1win', metrics:{
+  const sty = (fp,num,faq,ent)=>({style_class:fp>=3?'личный опыт (E-E-A-T)':'рекламно-инструктивный',
+    address:fp>=3?'личный опыт':'вы', first_person:fp, second_person:4, imperatives:12,
+    numbers_per_100w:num, faq_questions:faq, entities_count:ent, emoji:20, date_freshness:true, foreign_brands:[]});
+  const mk = (cov,st)=>({name:'1win.html', brand:'1win', stylistics:st, metrics:{
     clicks_coverage:cov, query_coverage:cov/5, queries_found:Math.round(cov*4),
     words_total:1500+cov*5, nausea_academic:8, water_percent:24, keyword_density_max:2.6,
     flesch_reading_ease:60, h2_count:3, img_alt_filled:90, top_in_title:true }});
   return {
-    a:{pages:[mk(60)], orientation:d.orientation},
-    b:{pages:[mk(76)], orientation:{
+    pairedBy:'brand',
+    a:{pages:[mk(60,sty(8,6,9,13))], orientation:d.orientation},
+    b:{pages:[mk(76,sty(1,12,0,11))], orientation:{
       brand:{label:'Брендовые',share:34,clicks:1100000}, access:{label:'Доступ / зеркало',share:28,clicks:900000},
       bonus:{label:'Бонусы / промокоды',share:12,clicks:390000}, app:{label:'Приложение / скачать',share:10,clicks:320000},
       registr:{label:'Регистрация / кабинет',share:9,clicks:290000}, games:{label:'Игры / казино',share:7,clicks:230000}}},
@@ -472,6 +575,7 @@ function loadData(data) {
   renderMatrix('matrix-shingle', data.shingle, data.pages.map(p=>p.name), 'shingle');
   renderProject(data);
   renderOrientation(data);
+  renderStylistics(data);
 }
 
 function switchTab(id) {
