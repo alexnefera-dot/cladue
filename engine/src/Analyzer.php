@@ -10,6 +10,7 @@ require_once __DIR__ . '/Similarity.php';
 require_once __DIR__ . '/LinkGraph.php';
 require_once __DIR__ . '/BrandBase.php';
 require_once __DIR__ . '/Intent.php';
+require_once __DIR__ . '/Stylistics.php';
 
 /**
  * Оркестратор анализа. На входе — до 7 страниц; на выходе — структура,
@@ -48,6 +49,7 @@ final class Analyzer
         $allFound = [];
         $allBrandKeys = [];
         $pageIntents = [];
+        $brandNames = array_map(fn($b) => (string) $b['name'], $this->brands->index());
 
         foreach ($parsed as $i => $pp) {
             /** @var Parser $parser */
@@ -87,12 +89,14 @@ final class Analyzer
 
             $texts[] = $parser->text;
 
+            $brandForStyle = (string) ($brandInfo['name'] ?? $manualKeyword);
             $page = [
                 'name'     => (string) ($in['name'] ?? ('Страница ' . ($i + 1))),
                 'url'      => (string) ($in['url'] ?? ''),
                 'brand'    => $brandInfo['name'] ?? ($manualKeyword !== '' ? $manualKeyword : null),
                 'inBase'   => $brandInfo !== null,
                 'pageIntent' => $pageIntent,
+                'stylistics' => Stylistics::of($tm, $seo, $brandForStyle, $brandNames),
                 'keyword'  => $semantics['main_keyword'] === '' ? [] : [$semantics['main_keyword']],
                 'metrics'  => $this->pageMetrics($tm, $seo, $semantics, $links),
                 'wordFreq' => $tm->topWords(10),
@@ -138,6 +142,7 @@ final class Analyzer
             ? Intent::profile($allFound, array_values(array_unique($allBrandKeys)))
             : $this->orientationFromPages($pageIntents);
         $out['orientationSource'] = $allFound ? 'queries' : 'pages';
+        $out['stylistics'] = $this->aggregateStylistics($out['pages']);
         $out['brandsDetected'] = array_values(array_unique(array_filter(
             array_map(fn($p) => $p['brand'], $out['pages'])
         )));
@@ -168,6 +173,33 @@ final class Analyzer
             ];
         }
         return $out;
+    }
+
+    /** сводная стилистическая подпись набора (доли и средние по страницам) */
+    private function aggregateStylistics(array $pages): array
+    {
+        $n = max(count($pages), 1);
+        $sum = fn($f) => array_sum(array_map($f, $pages));
+        $entities = [];
+        $foreign = [];
+        foreach ($pages as $p) {
+            foreach (($p['stylistics']['entities'] ?? []) as $e) { $entities[$e] = ($entities[$e] ?? 0) + 1; }
+            foreach (($p['stylistics']['foreign_brands'] ?? []) as $b) { $foreign[$b] = ($foreign[$b] ?? 0) + 1; }
+        }
+        arsort($entities);
+        return [
+            'pages'              => count($pages),
+            'first_person_share' => round($sum(fn($p) => ($p['stylistics']['first_person'] ?? 0) >= 2 ? 1 : 0) / $n * 100),
+            'you_address_share'  => round($sum(fn($p) => ($p['stylistics']['second_person'] ?? 0) >= 2 ? 1 : 0) / $n * 100),
+            'faq_share'          => round($sum(fn($p) => !empty($p['stylistics']['faq_present']) ? 1 : 0) / $n * 100),
+            'date_fresh_share'   => round($sum(fn($p) => !empty($p['stylistics']['date_freshness']) ? 1 : 0) / $n * 100),
+            'avg_numbers_100w'   => round($sum(fn($p) => $p['stylistics']['numbers_per_100w'] ?? 0) / $n, 1),
+            'avg_adj_pct'        => round($sum(fn($p) => $p['stylistics']['adj_pct'] ?? 0) / $n, 1),
+            'avg_imperatives'    => round($sum(fn($p) => $p['stylistics']['imperatives'] ?? 0) / $n, 1),
+            'avg_faq_questions'  => round($sum(fn($p) => $p['stylistics']['faq_questions'] ?? 0) / $n, 1),
+            'entities'           => $entities,
+            'foreign_brands'     => $foreign,
+        ];
     }
 
     private function parseInput(array $p): Parser
