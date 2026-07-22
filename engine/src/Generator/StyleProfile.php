@@ -62,6 +62,24 @@ final class StyleProfile
         );
     }
 
+    /** Стиль-профиль из конкретного сайта-донора (клонирование одного из 50). */
+    public static function fromDonor(array $donorStyle, Rng $rng): self
+    {
+        $fp = (bool) ($donorStyle['first_person'] ?? false);
+        $vy = (bool) ($donorStyle['vy'] ?? false);
+        $mode = $fp ? 'личный опыт (первое лицо)' : ($vy ? 'обращение на «вы»' : 'нейтрально-описательный');
+        return new self(
+            firstPerson: $fp,
+            vy: $vy,
+            addressMode: $mode,
+            numbersBias: 0.5, adjBias: 0.5, sizeBias: 0.5, // не используются в донор-режиме (цели заданы явно)
+            flourish: $rng->range(0.0, 0.3),
+            naming: 'balanced',
+            emojiSite: (bool) ($donorStyle['emoji_site'] ?? false),
+            persona: self::PERSONAS[$rng->int(0, count(self::PERSONAS) - 1)],
+        );
+    }
+
     public function toArray(): array
     {
         return [

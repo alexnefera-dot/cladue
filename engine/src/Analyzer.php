@@ -323,6 +323,7 @@ final class Analyzer
             'h1_count'           => $seo->headingCount(1),
             'h1_title_diff'      => trim($h1) !== '' && mb_strtolower(trim($h1), 'UTF-8') !== mb_strtolower(trim($title), 'UTF-8'),
             'h2_count'           => $seo->headingCount(2),
+            'h3_count'           => $seo->headingCount(3),
             'heading_hierarchy'  => $seo->headingHierarchyOk(),
             // метатеги
             'title_present'      => $title !== '',
@@ -340,6 +341,8 @@ final class Analyzer
             'viewport_meta'      => $seo->hasViewport(),
             // форматирование
             'list_count'         => $seo->listCount(),
+            'table_count'        => $seo->tableCount(),
+            'quote_count'        => $seo->quoteCount(),
             'strong_count'       => $seo->strongCount(),
             'strong_kw_spam'     => $seo->strongKeywordSpam($mainKeyword),
             'media_richness'     => $seo->mediaRichness(),

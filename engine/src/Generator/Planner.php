@@ -51,12 +51,14 @@ final class Planner
      *        Если не передан — сэмплируется из seed бренда/домена (та же связка → тот же стиль).
      * @return array сборочная спека (см. generate.php для формата вывода)
      */
-    public function plan(string $type, array $brand, ?StyleProfile $style = null): array
+    public function plan(string $type, array $brand, ?StyleProfile $style = null, ?array $donor = null): array
     {
         if (!isset($this->profile['types'][$type])) {
             throw new RuntimeException("Неизвестный тип страницы: $type");
         }
         $P = $this->profile['types'][$type];
+        // Донор-режим: цели тянем из конкретного сайта, а не из коридора корпуса.
+        $dp = ($donor !== null) ? ($donor['pages'][$type] ?? null) : null;
         $brandRu = $brand['ru']     ?? 'Бренд';
         $brandEn = $brand['en']     ?? 'Brand';
         $domain  = $brand['domain'] ?? 'example.win';
@@ -66,25 +68,41 @@ final class Planner
 
         // Стиль-профиль генерации: если не задан — детерминированно из бренда/домена
         // (одинаков для всех типов одной связки → единый тон на всех 7 страницах).
-        $style ??= StyleProfile::sample(new Rng('style:' . $brandRu . ':' . $brandEn . ':' . $domain));
+        // В донор-режиме стиль берётся из сайта-донора.
+        if ($style === null) {
+            $style = $donor !== null
+                ? StyleProfile::fromDonor($donor['style'] ?? [], new Rng('donor:' . $seed))
+                : StyleProfile::sample(new Rng('style:' . $brandRu . ':' . $brandEn . ':' . $domain));
+        }
 
-        // 1. Числовые цели — все из коридоров корпуса
+        // 1. Числовые цели. В донор-режиме — из значений сайта (±джиттер),
+        //    иначе — из коридоров корпуса.
+        // $key: имя поля в донор-профиле; $triple: коридор корпуса как фолбэк.
+        $Ti = fn(string $key, array $triple, int $min = 0)
+            => $dp !== null && isset($dp[$key])
+                ? max($min, (int) round($dp[$key] * $rng->range(0.9, 1.1)))
+                : $rng->triInt($triple);
+        $Tf = fn(string $key, array $triple, float $bias)
+            => $dp !== null && isset($dp[$key])
+                ? round((float) $dp[$key] * $rng->range(0.9, 1.1), 1)
+                : round($this->biased($rng, $triple, $bias), 1);
+
         $targets = [
-            'words'          => $rng->triInt($P['words']),
-            'h2'             => $rng->triInt($P['h2']),
-            'sections_total' => $rng->triInt($P['sections']),
-            'lists'          => $rng->triInt($P['lists']),
-            'tables'         => $rng->triInt($P['tables']),
-            'quotes'         => $rng->triInt($P['quotes']),
-            'strong'         => $rng->triInt($P['strong']),
-            'faq_count'      => $rng->triInt($P['faq']),
-            'entities'       => $rng->triInt($P['entities']),
-            // плотности — по позиции стиль-профиля (одинаковый уровень на всей связке) + малый джиттер
-            'numbers_per100' => round($this->biased($rng, $P['numbers_per100'], $style->numbersBias), 1),
-            'adj_pct'        => round($this->biased($rng, $P['adj_pct'], $style->adjBias), 1),
-            // эмодзи в теле — только если сайт «эмодзийный» и только у main
-            'emoji_body'     => ($style->emojiSite && $type === 'main') ? $rng->triInt($P['emoji_body']) : 0,
-            // именование бренда: en-heavy усиливает латиницу
+            'words'          => $Ti('words', $P['words']),
+            'h2'             => $Ti('h2', $P['h2'], 1),
+            'sections_total' => $Ti('sections', $P['sections'], 1),
+            'lists'          => $Ti('lists', $P['lists']),
+            'tables'         => $Ti('tables', $P['tables']),
+            'quotes'         => $Ti('quotes', $P['quotes']),
+            'strong'         => $Ti('strong', $P['strong']),
+            'faq_count'      => $Ti('faq', $P['faq']),
+            'entities'       => $Ti('entities', $P['entities']),
+            'numbers_per100' => $Tf('numbers_per100', $P['numbers_per100'], $style->numbersBias),
+            'adj_pct'        => $Tf('adj_pct', $P['adj_pct'], $style->adjBias),
+            // эмодзи в теле: в донор-режиме — как у донора; иначе только у эмодзи-сайта на main
+            'emoji_body'     => $dp !== null
+                ? ($style->emojiSite ? $Ti('emoji', $P['emoji_body']) : 0)
+                : (($style->emojiSite && $type === 'main') ? $rng->triInt($P['emoji_body']) : 0),
             'brand_ru'       => max(1, (int) round($P['brand_ru'] * $rng->range(0.7, 1.3))),
             'brand_en'       => max(1, (int) round($P['brand_en'] * $rng->range(0.7, 1.3) * ($style->naming === 'en-heavy' ? 1.15 : 0.85))),
         ];
@@ -96,8 +114,8 @@ final class Planner
             'address_mode'   => $style->addressMode,
             'persona'        => $style->firstPerson ? $style->persona : '',
             'flourish'       => round($style->flourish, 2),
-            'nausea_acad'    => round($rng->tri((float) $P['nausea_acad'][0], (float) $P['nausea_acad'][1], (float) $P['nausea_acad'][2]), 1),
-            'water'          => round($rng->tri((float) $P['water'][0], (float) $P['water'][1], (float) $P['water'][2]), 1),
+            'nausea_acad'    => $Tf('nausea_acad', $P['nausea_acad'], 0.5),
+            'water'          => $Tf('water', $P['water'], 0.5),
             'key_density'    => round($rng->tri((float) $P['key_density'][0], (float) $P['key_density'][1], (float) $P['key_density'][2]), 2),
         ];
 
@@ -212,6 +230,7 @@ final class Planner
             'domain'    => $domain,
             'date'      => $date,
             'seed'      => $seed,
+            'donor'     => $donor['name'] ?? null,
             'style'     => $style->toArray(),
             'targets'   => $targets,
             'tone'      => $tone,

@@ -131,6 +131,7 @@ final class SeoMetrics
     public function strongCount(): int { return $this->count('//strong|//b'); }
     public function emCount(): int { return $this->count('//em|//i'); }
     public function tableCount(): int { return $this->count('//table'); }
+    public function quoteCount(): int { return $this->count('//blockquote'); }
     public function videoCount(): int { return $this->count('//video|//iframe'); }
 
     public function mediaRichness(): int
