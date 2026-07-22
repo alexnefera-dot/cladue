@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/Rng.php';
+require_once __DIR__ . '/StyleProfile.php';
 
 /**
  * Планировщик страницы: по (тип, бренд, домен, дата, seed) сэмплирует
@@ -46,9 +47,11 @@ final class Planner
     }
 
     /**
+     * @param StyleProfile|null $style стиль-профиль ГЕНЕРАЦИИ (один на все 7 страниц).
+     *        Если не передан — сэмплируется из seed бренда/домена (та же связка → тот же стиль).
      * @return array сборочная спека (см. generate.php для формата вывода)
      */
-    public function plan(string $type, array $brand): array
+    public function plan(string $type, array $brand, ?StyleProfile $style = null): array
     {
         if (!isset($this->profile['types'][$type])) {
             throw new RuntimeException("Неизвестный тип страницы: $type");
@@ -61,6 +64,10 @@ final class Planner
         $seed    = $brand['seed']   ?? ($domain . ':' . $type);
         $rng     = new Rng($seed);
 
+        // Стиль-профиль генерации: если не задан — детерминированно из бренда/домена
+        // (одинаков для всех типов одной связки → единый тон на всех 7 страницах).
+        $style ??= StyleProfile::sample(new Rng('style:' . $brandRu . ':' . $brandEn . ':' . $domain));
+
         // 1. Числовые цели — все из коридоров корпуса
         $targets = [
             'words'          => $rng->triInt($P['words']),
@@ -72,21 +79,23 @@ final class Planner
             'strong'         => $rng->triInt($P['strong']),
             'faq_count'      => $rng->triInt($P['faq']),
             'entities'       => $rng->triInt($P['entities']),
-            'numbers_per100' => round($rng->tri((float) $P['numbers_per100'][0], (float) $P['numbers_per100'][1], (float) $P['numbers_per100'][2]), 1),
-            'emoji_body'     => $rng->triInt($P['emoji_body']),
-            'adj_pct'        => round($rng->tri((float) $P['adj_pct'][0], (float) $P['adj_pct'][1], (float) $P['adj_pct'][2]), 1),
+            // плотности — по позиции стиль-профиля (одинаковый уровень на всей связке) + малый джиттер
+            'numbers_per100' => round($this->biased($rng, $P['numbers_per100'], $style->numbersBias), 1),
+            'adj_pct'        => round($this->biased($rng, $P['adj_pct'], $style->adjBias), 1),
+            // эмодзи в теле — только если сайт «эмодзийный» и только у main
+            'emoji_body'     => ($style->emojiSite && $type === 'main') ? $rng->triInt($P['emoji_body']) : 0,
+            // именование бренда: en-heavy усиливает латиницу
             'brand_ru'       => max(1, (int) round($P['brand_ru'] * $rng->range(0.7, 1.3))),
-            'brand_en'       => max(1, (int) round($P['brand_en'] * $rng->range(0.7, 1.3))),
+            'brand_en'       => max(1, (int) round($P['brand_en'] * $rng->range(0.7, 1.3) * ($style->naming === 'en-heavy' ? 1.15 : 0.85))),
         ];
 
-        // 2. Тон — булевы доли из корпуса
-        $vy = $rng->chance((float) $P['p_vy']);
-        $fp = $rng->chance((float) $P['p_first_person']);
-        $addressModes = $this->pools['style']['address_modes'] ?? ['нейтрально-описательный'];
+        // 2. Тон — из стиль-профиля ГЕНЕРАЦИИ (одинаков на всех 7 страницах)
         $tone = [
-            'vy'             => $vy,
-            'first_person'   => $fp,
-            'address_mode'   => $fp ? 'личный опыт (первое лицо)' : ($vy ? 'обращение на «вы»' : 'нейтрально-описательный'),
+            'vy'             => $style->vy,
+            'first_person'   => $style->firstPerson,
+            'address_mode'   => $style->addressMode,
+            'persona'        => $style->firstPerson ? $style->persona : '',
+            'flourish'       => round($style->flourish, 2),
             'nausea_acad'    => round($rng->tri((float) $P['nausea_acad'][0], (float) $P['nausea_acad'][1], (float) $P['nausea_acad'][2]), 1),
             'water'          => round($rng->tri((float) $P['water'][0], (float) $P['water'][1], (float) $P['water'][2]), 1),
             'key_density'    => round($rng->tri((float) $P['key_density'][0], (float) $P['key_density'][1], (float) $P['key_density'][2]), 2),
@@ -203,12 +212,20 @@ final class Planner
             'domain'    => $domain,
             'date'      => $date,
             'seed'      => $seed,
+            'style'     => $style->toArray(),
             'targets'   => $targets,
             'tone'      => $tone,
             'semantics' => $P['sem_clusters'],
             'invariants'=> $this->pools['style']['invariants'] ?? [],
             'sections'  => $sections,
         ];
+    }
+
+    /** Значение по позиции стиль-профиля в коридоре + малый покадровый джиттер */
+    private function biased(Rng $rng, array $triple, float $bias): float
+    {
+        $u = max(0.0, min(1.0, $bias + $rng->range(-0.12, 0.12)));
+        return $rng->triU((float) $triple[0], (float) $triple[1], (float) $triple[2], $u);
     }
 
     /** Бернулли-выбор тем по вероятностям; FAQ и креатив — всегда */

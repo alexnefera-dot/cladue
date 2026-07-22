@@ -81,6 +81,23 @@ final class Rng
         return (int) round($this->tri((float) $min, (float) $med, (float) $max));
     }
 
+    /**
+     * Треугольная выборка по ЗАДАННОЙ позиции u∈[0,1] (инверсная CDF), без розыгрыша.
+     * Нужно, чтобы стиль-профиль генерации держал сайт «на одном уровне» коридора
+     * (напр. плотность цифр) одинаково на всех 7 страницах.
+     */
+    public function triU(float $min, float $mode, float $max, float $u): float
+    {
+        if ($max <= $min) { return $mode; }
+        $u = max(0.0, min(1.0, $u));
+        $mode = max($min, min($max, $mode));
+        $fc = ($mode - $min) / ($max - $min);
+        if ($u < $fc) {
+            return $min + sqrt($u * ($max - $min) * ($mode - $min));
+        }
+        return $max - sqrt((1 - $u) * ($max - $min) * ($max - $mode));
+    }
+
     /** случайный элемент массива */
     public function pick(array $arr): mixed
     {

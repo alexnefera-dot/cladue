@@ -16,6 +16,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/src/Generator/Planner.php';
 require_once __DIR__ . '/src/Generator/PromptBuilder.php';
+require_once __DIR__ . '/src/Generator/StyleProfile.php';
+require_once __DIR__ . '/src/Generator/Rng.php';
 
 $opts = [
     'type' => '', 'brand-ru' => 'Бренд', 'brand-en' => 'Brand',
@@ -44,10 +46,16 @@ $types = $opts['all'] ? $planner->types() : [$opts['type'] ?: 'main'];
 
 $outDir = is_string($opts['out-dir']) && $opts['out-dir'] !== '' ? rtrim($opts['out-dir'], '/') : '';
 
+// Стиль-профиль ГЕНЕРАЦИИ — один на всю связку (тон/манера едины на 7 страницах).
+// Seed от бренда/домена (+ --seed, если задан), НЕ от типа страницы.
+$genSeed = (is_string($opts['seed']) && $opts['seed'] !== '' ? $opts['seed'] . ':' : '')
+    . $opts['brand-ru'] . ':' . $opts['brand-en'] . ':' . $opts['domain'];
+$style = StyleProfile::sample(new Rng('style:' . $genSeed));
+
 foreach ($types as $type) {
     $seed = is_string($opts['seed']) ? $opts['seed'] : '';
     $seedForType = $seed !== '' ? ($seed . ':' . $type) : '';
-    $spec = $planner->plan($type, $brand($type, $seedForType));
+    $spec = $planner->plan($type, $brand($type, $seedForType), $style);
 
     $jsonStr = json_encode($spec, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     $promptStr = $builder->build($spec);
