@@ -33,18 +33,21 @@ $SETS = [
     'brand_ru_tok'=>'%brand_name_ru%','brand_en_tok'=>'%brand_name_en%',
   ],
   [
-    'id'=>'delo','tab'=>'Деловой «вы»','donor_key'=>'royal spin casino','donor_label'=>'Royal Spin (деловой)',
-    'register'=>'Деловой (обращение на «вы»)','origin'=>'ближайший донор делового регистра',
+    'id'=>'delo','tab'=>'Деловой «вы»','donor_key'=>'bitz','donor_label'=>'Bitz (деловой)',
+    'register'=>'Деловой (обращение на «вы»)','origin'=>'ближайший донор по профилю (делового регистра)',
     'desc'=>'Нейтрально-деловой обзор на «вы», без сленга. Структурный разбор площадки.',
-    'dir'=>'out','pages'=>['main','zerkalo','vhod','registracia','bonus','slots','app'],
-    'sub'=>[],'brand_ru_tok'=>'Казиновия','brand_en_tok'=>'Casinovia',
+    'dir'=>'out/linked','pages'=>['main','zerkalo','vhod','registracia','bonus','slots','app'],
+    'sub'=>['%brand_name_ru%'=>'Казиновия','%brand_name_en%'=>'Casinovia','%domain_name%'=>'casinovia.com','%date%'=>'июль 2026'],
+    'brand_ru_tok'=>'%brand_name_ru%','brand_en_tok'=>'%brand_name_en%',
   ],
   [
     'id'=>'derz','tab'=>'Дерзкий «ты»','donor_key'=>'cosmospin','donor_label'=>'Cosmospin',
     'register'=>'Дерзкий (на «ты», сленг+эмодзи)','origin'=>'писался под этого донора',
     'desc'=>'Разговорный, на «ты», со сленгом и эмодзи — «погнали по фактам».',
-    'dir'=>'cmp','pages'=>['main'],'files'=>['main'=>'gen_main_derz.html'],
-    'sub'=>[],'brand_ru_tok'=>'Космоспин','brand_en_tok'=>'Cosmospin',
+    'dir'=>'cmp','pages'=>['main','zerkalo','vhod','registracia','bonus','slots','app'],
+    'files'=>['main'=>'gen_main.html','zerkalo'=>'gen_zerkalo.html','vhod'=>'gen_vhod.html','registracia'=>'gen_registracia.html','bonus'=>'gen_bonus.html','slots'=>'gen_slots.html','app'=>'gen_app.html'],
+    'sub'=>['%brand_name_ru%'=>'Космоспин','%brand_name_en%'=>'Cosmospin','%domain_name%'=>'cosmospin.win','%date%'=>'июль 2026'],
+    'brand_ru_tok'=>'%brand_name_ru%','brand_en_tok'=>'%brand_name_en%',
   ],
 ];
 
