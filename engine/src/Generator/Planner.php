@@ -241,7 +241,7 @@ final class Planner
             'donor'     => $donor['name'] ?? null,
             'data_card' => $this->buildDataCard($rng, $type),
             'data_tables' => $this->buildDataTables($rng, $type),
-            'links'     => $this->buildLinks($type, $rng, $brandRu, $brandEn),
+            'links'     => $this->buildLinks($type, $rng, $brandRu, $brandEn, $donor),
             'register'  => $this->resolveRegister($style->register),
             'style'     => $style->toArray(),
             'targets'   => $targets,
@@ -537,29 +537,44 @@ final class Planner
     }
 
     /**
-     * Перелинковка 7×7: ссылки на 6 других страниц связки с ключевыми
-     * анкорами (ключ + бренд-переменная). Так набор связан, без сирот и тупиков.
+     * Перелинковка по реальному принципу корпуса:
+     * - число ссылок зависит от типа (main — хаб ~41, сателлиты 3–5) или от донора;
+     * - цели выбираются взвешенно (app/zerkalo/vhod/registracia/slots часто, bonus редко),
+     *   С ПОВТОРАМИ — одна цель может линковаться несколько раз из разных секций;
+     * - анкоры в основном чистые ключи, бренд-переменная лишь в ~4%.
      */
-    private function buildLinks(string $type, Rng $rng, string $brandRu, string $brandEn): array
+    private function buildLinks(string $type, Rng $rng, string $brandRu, string $brandEn, ?array $donor = null): array
     {
-        // путь → набор анкор-шаблонов (ключевые запросы кластера)
-        $pages = [
-            'main'        => ['path' => '/',            'anchors' => ["{ru} официальный сайт", "обзор {en}", "казино {ru}"]],
-            'zerkalo'     => ['path' => '/zerkalo',     'anchors' => ["{ru} зеркало", "рабочее зеркало {en}", "актуальное зеркало"]],
-            'vhod'        => ['path' => '/vhod',         'anchors' => ["вход в {ru}", "{en} вход", "авторизация {ru}"]],
-            'registracia' => ['path' => '/registracia', 'anchors' => ["регистрация в {ru}", "{en} регистрация", "как зарегистрироваться"]],
-            'bonus'       => ['path' => '/bonus',        'anchors' => ["бонусы {ru}", "{en} бонус", "промокоды {ru}"]],
-            'slots'       => ['path' => '/slots',        'anchors' => ["слоты {ru}", "игровые автоматы {en}", "играть в слоты"]],
-            'app'         => ['path' => '/app',          'anchors' => ["{ru} приложение", "скачать {en}", "мобильная версия"]],
-        ];
-        $out = [];
-        foreach ($pages as $t => $info) {
-            if ($t === $type) { continue; } // на себя не ссылаемся
-            $tpl = $rng->pick($info['anchors']);
-            $anchor = str_replace(['{ru}', '{en}'], [$brandRu, $brandEn], $tpl);
-            $out[] = ['path' => $info['path'], 'anchor' => $anchor];
+        $cfg = $this->pools['interlinking'] ?? [];
+        $paths = ['main'=>'/','zerkalo'=>'/zerkalo','vhod'=>'/vhod','registracia'=>'/registracia','bonus'=>'/bonus','slots'=>'/slots','app'=>'/app'];
+
+        // сколько ссылок ставить: из донора (если есть) иначе медиана типа
+        $n = $donor['pages'][$type]['intlinks']
+            ?? ($cfg['links_per_type'][$type] ?? 5);
+        $n = max(0, (int) round($n * $rng->range(0.9, 1.1)));
+
+        // веса целей (кроме самой страницы)
+        $weights = [];
+        foreach (($cfg['target_weights'] ?? []) as $t => $w) {
+            if ($t !== $type && isset($paths[$t])) { $weights[$t] = $w; }
         }
-        $rng->shuffle($out);
+        if ($weights === []) { return []; }
+
+        $brandRate = (float) ($cfg['brand_anchor_rate'] ?? 0.04);
+        $out = [];
+        for ($i = 0; $i < $n; $i++) {
+            $target = $rng->weighted($weights);            // с повторами
+            $anchors = $cfg['anchors'][$target] ?? [$target];
+            $tpl = $rng->pick($anchors);
+            // бренд лишь в ~4% анкоров; иначе убираем плейсхолдеры
+            if ($rng->chance($brandRate)) {
+                $anchor = str_replace(['{ru}', '{en}'], [$brandRu, $brandEn], $tpl);
+            } else {
+                $anchor = trim(preg_replace('/\{(ru|en)\}/', '', $tpl));
+                if ($anchor === '') { $anchor = $target; }
+            }
+            $out[] = ['path' => $paths[$target], 'anchor' => $anchor, 'target' => $target];
+        }
         return $out;
     }
 

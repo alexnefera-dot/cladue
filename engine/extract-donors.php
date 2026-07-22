@@ -60,6 +60,17 @@ foreach (glob(rtrim($root,'/') . '/*', GLOB_ONLYDIR) as $dir) {
         $p = $r['pages'][0]; $m = $p['metrics']; $s = $p['stylistics'];
         $have++;
         // лексические сигналы регистра из текста страницы
+        // число внутренних ссылок на ДРУГИЕ страницы связки (принцип перелинковки)
+        $pathmap = ['/'=>'main','/zerkalo'=>'zerkalo','/vhod'=>'vhod','/registracia'=>'registracia','/bonus'=>'bonus','/slots'=>'slots','/app'=>'app','/registration'=>'registracia','/login'=>'vhod','/mirror'=>'zerkalo','/slot'=>'slots'];
+        $intlinks = 0;
+        if (preg_match_all('#<a[^>]+href="([^"]+)"#i', $rawHtml, $hm)) {
+            foreach ($hm[1] as $href) {
+                $h = rtrim(trim($href), '/'); if ($h === '') { $h = '/'; }
+                $tt = $pathmap[$h] ?? ($pathmap['/' . preg_replace('#^.*/#', '', $h)] ?? null);
+                if ($tt !== null && $tt !== $t) { $intlinks++; }
+            }
+        }
+
         $txt = mb_strtolower(strip_tags(preg_replace('#<(script|style)[^>]*>.*?</\1>#is',' ',$rawHtml)));
         $reg['ty']   += preg_match_all('/\b(ты|тебе|тебя|тво(й|я|ё|и|его|ей)|тобой)\b/u', $txt);
         $reg['vy']   += preg_match_all('/\b(вы|вас|вам|ваш(а|е|и|его|ей)?)\b/u', $txt);
@@ -86,6 +97,7 @@ foreach (glob(rtrim($root,'/') . '/*', GLOB_ONLYDIR) as $dir) {
             'imperatives'    => $s['imperatives'],
             'nausea_acad'    => round((float)$m['nausea_academic'],1),
             'water'          => round((float)$m['water_percent'],1),
+            'intlinks'       => $intlinks,
         ];
         $fp[] = $s['first_person']; $vy[] = $s['second_person'];
         if ($t === 'main') $emo = $s['emoji'];
