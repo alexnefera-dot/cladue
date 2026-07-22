@@ -704,7 +704,7 @@ function startSite(){
 }
 function fmtPerOp(p){
   if(!p) return "";
-  const L={site:"site",host:"host",url:"url",rhost:"rhost",plain:"дом"};
+  const L={site:"site",host:"host",url:"url",rhost:"rhost",plain:"дом","поддомены":"поддом."};
   return Object.keys(L).filter(k=>p[k]!=null).map(k=>`${L[k]} ${p[k]}`).join(" · ");
 }
 async function sRefresh(){

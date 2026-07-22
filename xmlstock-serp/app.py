@@ -519,22 +519,20 @@ def _collect_for_operator(cfg, opname, host, cap, cancel, budget):
 
 
 def fetch_site_pages(cfg, domain, cap, cancel):
-    """Собирает URL страниц домена из индекса. В режиме «все операторы» гоняет
-    несколько конструкций (site/host/url/rhost/домен) и объединяет уникальные —
-    разные операторы показывают разные части индекса Яндекса. site/host при
-    «глубоком» режиме ещё и дробятся по разделам."""
+    """Собирает URL страниц домена из индекса. «Все операторы» гоняет несколько
+    конструкций (site/host/url/rhost/домен) и объединяет уникальные срезы индекса.
+    Затем перебирает найденные ПОДДОМЕНЫ по отдельности (site:поддомен) — страницы
+    часто размазаны по ним, а общий запрос упирается в потолок ~200."""
     host = clean_host(domain)
     target = registrable_domain(host)
     base_op = "host" if cfg.get("operator") == "host:" else "site"
-    ops = ["site", "host", "url", "rhost", "plain"] if cfg.get("multi_op") else [base_op]
-    per_op_budget = 20 if cfg.get("multi_op") else cfg.get("deep_budget", 60)
+    multi = cfg.get("multi_op")
+    ops = ["site", "host", "url", "rhost", "plain"] if multi else [base_op]
+    budget = [cfg.get("deep_budget", 120 if multi else 60)]
 
     union_seen, union_urls, per_op = set(), [], {}
-    base_found, base_err = None, None
-    for opname in ops:
-        if cancel.is_set() or len(union_urls) >= cap:
-            break
-        local, found, err = _collect_for_operator(cfg, opname, host, cap, cancel, [per_op_budget])
+
+    def merge(local):
         cnt = 0
         for d in local:
             if registrable_domain(url_host(d["url"])) != target:  # чужие URL — мимо
@@ -545,9 +543,35 @@ def fetch_site_pages(cfg, domain, cap, cancel):
                 union_urls.append(d)
                 if len(union_urls) >= cap:
                     break
-        per_op[opname] = cnt
+        return cnt
+
+    base_found, base_err = None, None
+    for opname in ops:
+        if cancel.is_set() or len(union_urls) >= cap or budget[0] <= 0:
+            break
+        local, found, err = _collect_for_operator(cfg, opname, host, cap, cancel, budget)
+        per_op[opname] = merge(local)
         if opname == base_op:
             base_found, base_err = found, err
+
+    # Перебор поддоменов: страницы часто на поддоменах (casino.домен и т.п.),
+    # а site:/rhost: упираются в общий потолок ~200. Добираем каждый по отдельности.
+    if (multi or cfg.get("deep")) and not cancel.is_set() and len(union_urls) < cap and budget[0] > 0:
+        subs, subseen = [], set()
+        for d in list(union_urls):
+            h = url_host(d["url"])
+            if (h and h != host and h not in subseen
+                    and registrable_domain(h) == target and is_subdomain(h)):
+                subseen.add(h)
+                subs.append(h)
+        added = 0
+        for sub in subs[:40]:
+            if cancel.is_set() or len(union_urls) >= cap or budget[0] <= 0:
+                break
+            local, _, _ = _collect_for_operator(cfg, "site", sub, cap, cancel, budget)
+            added += merge(local)
+        if subs:
+            per_op["поддомены"] = added
 
     return {"domain": domain, "host": host, "urls": union_urls[:cap],
             "found": base_found, "error": base_err,
