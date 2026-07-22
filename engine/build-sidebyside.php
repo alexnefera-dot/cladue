@@ -39,8 +39,10 @@ function cleanBody(string $html, string $brandRu, string $brandEn): string {
     $html = str_ireplace(array_keys($repl), array_values($repl), $html);
     return trim($html);
 }
-$realBody = cleanBody(file_get_contents($realF), 'Вован', 'Vovan');
-$genBody  = preg_replace('#<script[^>]*>.*?</script>#is', '', file_get_contents($genF));
+// подставляем демо-бренд с ОБЕИХ сторон (обе — шаблоны с %brand%), чтобы читалось ровно
+$demoRu = 'Монрополь'; $demoEn = 'Monropol';
+$realBody = cleanBody(file_get_contents($realF), $demoRu, $demoEn);
+$genBody  = cleanBody(preg_replace('#<script[^>]*>.*?</script>#is', '', file_get_contents($genF)), $demoRu, $demoEn);
 
 // строки сравнения
 $rows = '';
