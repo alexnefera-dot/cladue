@@ -72,6 +72,18 @@ foreach (glob(rtrim($root,'/') . '/*', GLOB_ONLYDIR) as $dir) {
         }
 
         $txt = mb_strtolower(strip_tags(preg_replace('#<(script|style)[^>]*>.*?</\1>#is',' ',$rawHtml)));
+
+        // семантические кластеры (плотность на 100 слов) — цель раскрытия семантики
+        $wc = max(1, (int) $m['words_total']);
+        $sem = [];
+        foreach (Intent::THEMES as $ck => $def) {
+            $cc = 0;
+            foreach ($def['triggers'] as $tr) { $cc += mb_substr_count($txt, $tr); }
+            $sem[$ck] = round($cc / $wc * 100, 1);
+        }
+        // бренд ру/англ (по плейсхолдерам корпуса) — параметр оптимизации
+        $brRu = substr_count($rawHtml, '%brand_name_ru%');
+        $brEn = substr_count($rawHtml, '%brand_name_en%');
         $reg['ty']   += preg_match_all('/\b(ты|тебе|тебя|тво(й|я|ё|и|его|ей)|тобой)\b/u', $txt);
         $reg['vy']   += preg_match_all('/\b(вы|вас|вам|ваш(а|е|и|его|ей)?)\b/u', $txt);
         $reg['excl'] += mb_substr_count($txt, '!');
@@ -98,6 +110,9 @@ foreach (glob(rtrim($root,'/') . '/*', GLOB_ONLYDIR) as $dir) {
             'nausea_acad'    => round((float)$m['nausea_academic'],1),
             'water'          => round((float)$m['water_percent'],1),
             'intlinks'       => $intlinks,
+            'brand_ru'       => $brRu,
+            'brand_en'       => $brEn,
+            'sem'            => $sem,
         ];
         $fp[] = $s['first_person']; $vy[] = $s['second_person'];
         if ($t === 'main') $emo = $s['emoji'];

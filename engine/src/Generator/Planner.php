@@ -103,8 +103,9 @@ final class Planner
             'emoji_body'     => $dp !== null
                 ? ($style->emojiSite ? $Ti('emoji', $P['emoji_body']) : 0)
                 : (($style->emojiSite && $type === 'main') ? $rng->triInt($P['emoji_body']) : 0),
-            'brand_ru'       => max(1, (int) round($P['brand_ru'] * $rng->range(0.7, 1.3))),
-            'brand_en'       => max(1, (int) round($P['brand_en'] * $rng->range(0.7, 1.3) * ($style->naming === 'en-heavy' ? 1.15 : 0.85))),
+            // бренд ру/англ: в донор-режиме — как у донора (важный параметр оптимизации), иначе из профиля
+            'brand_ru'       => $dp['brand_ru'] ?? max(1, (int) round($P['brand_ru'] * $rng->range(0.7, 1.3))),
+            'brand_en'       => $dp['brand_en'] ?? max(1, (int) round($P['brand_en'] * $rng->range(0.7, 1.3) * ($style->naming === 'en-heavy' ? 1.15 : 0.85))),
         ];
 
         // 2. Тон — из стиль-профиля ГЕНЕРАЦИИ (одинаков на всех 7 страницах)
@@ -246,7 +247,8 @@ final class Planner
             'style'     => $style->toArray(),
             'targets'   => $targets,
             'tone'      => $tone,
-            'semantics' => $P['sem_clusters'],
+            // семантические цели: в донор-режиме — плотности кластеров этого сайта, иначе медиана типа
+            'semantics' => $dp['sem'] ?? null ? $this->labelClusters($dp['sem']) : $P['sem_clusters'],
             'invariants'=> $this->pools['style']['invariants'] ?? [],
             'sections'  => $sections,
         ];
@@ -575,6 +577,20 @@ final class Planner
             }
             $out[] = ['path' => $paths[$target], 'anchor' => $anchor, 'target' => $target];
         }
+        return $out;
+    }
+
+    /** Кластерные id доноров → читаемые метки для промпта */
+    private function labelClusters(array $sem): array
+    {
+        $labels = [
+            'official'=>'офиц. сайт', 'access'=>'зеркало / доступ', 'registr'=>'регистрация',
+            'money'=>'платежи / вывод', 'bonus'=>'бонусы', 'games'=>'слоты / игры',
+            'app'=>'приложение', 'betting'=>'ставки / спорт', 'support'=>'поддержка / отзывы',
+        ];
+        $out = [];
+        foreach ($sem as $k => $v) { $out[$labels[$k] ?? $k] = $v; }
+        arsort($out);
         return $out;
     }
 
