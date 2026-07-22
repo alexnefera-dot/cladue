@@ -114,6 +114,7 @@ final class Planner
         $tablesLeft = max(1, $targets['tables']);   // ≥1 таблица — инвариант
         $quotesLeft = max(1, $targets['quotes']);    // ≥1 цитата — инвариант
         $listsLeft  = max(1, $targets['lists']);
+        $usedTopics = [];
 
         $idx = 0;
         foreach ($sectionPlan as $entry) {
@@ -123,12 +124,18 @@ final class Planner
             $level = $h2left > 0 ? 'H2' : 'H3';
             if ($level === 'H2') { $h2left--; }
 
-            // тема-фраза
-            if ($theme === 'ПРОЧЕЕ / креатив') {
-                $topic = $rng->chance(0.35) ? $rng->pick($crossTopics) : $rng->pick($topicPool ?: $crossTopics);
-            } else {
-                $topic = $rng->pick($topicPool ?: [$theme]) ?? $theme;
+            // тема-фраза (без дублей в пределах страницы, до 4 попыток)
+            $topic = null;
+            for ($try = 0; $try < 4; $try++) {
+                if ($theme === 'ПРОЧЕЕ / креатив') {
+                    $cand = $rng->chance(0.35) ? $rng->pick($crossTopics) : $rng->pick($topicPool ?: $crossTopics);
+                } else {
+                    $cand = $rng->pick($topicPool ?: [$theme]) ?? $theme;
+                }
+                if ($cand !== null && !in_array($cand, $usedTopics, true)) { $topic = $cand; break; }
+                $topic = $cand;
             }
+            $usedTopics[] = $topic;
 
             // заголовок: 80% креатив
             $headingStyle = $rng->weighted($this->profile['heading_pattern_weights']);
@@ -173,6 +180,10 @@ final class Planner
                 'fact_seeds'     => $facts,
             ];
         }
+
+        // 5b. Догарантировать инварианты блоков: ≥1 таблица и ≥1 цитата на странице
+        $this->ensureBlock($sections, 'table:спецификация', $tablesLeft, $rng);
+        $this->ensureBlock($sections, 'quote', $quotesLeft, $rng);
 
         // 6. FAQ — гарантированная секция
         $faqFrames = $this->pools['style']['faq_frames'] ?? array_keys($this->profile['faq_frame_weights']);
@@ -309,6 +320,27 @@ final class Planner
         return $choice;
     }
 
+    /** Если нужного блока (table/quote) нет ни в одной секции — конвертировать одну «none» */
+    private function ensureBlock(array &$sections, string $block, int $needLeft, Rng $rng): void
+    {
+        $kind = str_starts_with($block, 'table') ? 'table' : $block;
+        foreach ($sections as $s) {
+            if (isset($s['block']) && str_starts_with((string) $s['block'], $kind)) { return; }
+        }
+        // не нашли — ищем секцию с 'none' (или любую контентную) и ставим блок
+        $cand = [];
+        foreach ($sections as $i => $s) {
+            if (!isset($s['block'])) { continue; }
+            if ($s['block'] === 'none') { $cand[] = $i; }
+        }
+        if ($cand === []) {
+            foreach ($sections as $i => $s) { if (isset($s['block'])) { $cand[] = $i; } }
+        }
+        if ($cand === []) { return; }
+        $pick = $cand[$rng->int(0, count($cand) - 1)];
+        $sections[$pick]['block'] = $block;
+    }
+
     /** Сэмпл одного значения из числового слота */
     private function sampleValue(string $slotKey, Rng $rng): string
     {
@@ -332,7 +364,16 @@ final class Planner
     private function seedFacts(array $pool, Rng $rng, int $k): array
     {
         if ($pool === []) { return []; }
-        return $rng->sample($pool, $k);
+        return array_map([$this, 'scrubSeed'], $rng->sample($pool, $k));
+    }
+
+    /** Убрать из семени доменные токены, чужие бренд-URL и плейсхолдеры бренда */
+    private function scrubSeed(string $s): string
+    {
+        $s = preg_replace('/\{[^}]*бренд[^}]*\}/ui', 'бренд', $s) ?? $s;
+        $s = preg_replace('#\b[\w\-]+\.(?:net|com|ru|org|win|info|io|xyz|cc|bet|casino)\b#ui', '[домен]', $s) ?? $s;
+        $s = preg_replace('/\bhttps?:\/\/\S+/i', '[ссылка]', $s) ?? $s;
+        return trim($s);
     }
 
     private function loadFactPool(string $type): array
