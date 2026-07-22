@@ -21,6 +21,12 @@ $LABEL=['main'=>'главная','zerkalo'=>'зеркало','vhod'=>'вход',
 $TYPES=array_keys($LABEL);
 $DONORS=json_decode((string)file_get_contents(__DIR__.'/data/donors.json'),true)['sites'];
 $a=new Analyzer();
+// регистр донора — чтобы не советовать «вы» там, где он запрещён, и «я» вне экспертного
+function regOf(array $DONORS,string $donor):string{
+    $s=$DONORS[$donor]['style']??[];
+    if(!empty($s['register']))return (string)$s['register'];
+    if(!empty($s['first_person']))return 'expert'; if(!empty($s['vy']))return 'delovoy'; return 'neutral';
+}
 
 function measureP(Analyzer $a,string $t,string $raw):array{
  $r=$a->run([['name'=>$t,'url'=>"/$t",'html'=>$raw,'keyword'=>'','lsi'=>[]]]);$p=$r['pages'][0];$m=$p['metrics'];$s=$p['stylistics'];
@@ -46,6 +52,7 @@ copy("$SRC/runs.txt","$OUT/runs.txt");
 $totalFix=0;$pagesWithFix=0;
 foreach($runs as $run){
  $dp=$DONORS[$run['donor']]['pages']??[];
+ $reg=regOf($DONORS,$run['donor']);
  $od="$OUT/{$run['id']}"; if(!is_dir($od))mkdir($od,0777,true);
  foreach($TYPES as $t){
   $f="$SRC/{$run['id']}/$t.html"; if(!is_file($f))continue;
@@ -63,9 +70,9 @@ foreach($runs as $run){
     if($cur>$tg){$rm=(int)ceil(($cur-$tg)/100*$w); $fixes[]="ЦИФРЫ: слишком плотно ({$cur}/100 vs цель {$tg}). Убери ~{$rm} числовых упоминаний ИЗ ПРОЗЫ (проценты/суммы/сроки перепиши словами: «около трети», «за пару минут»). Числа в ТАБЛИЦАХ и в стартовой фактуре НЕ трогай.";}
     else{$ad=(int)ceil(($tg-$cur)/100*$w); $fixes[]="ЦИФРЫ: маловато ({$cur}/100 vs цель {$tg}). Добавь ~{$ad} конкретных чисел из фактуры (RTP, суммы, сроки).";}
   }
-  // сущности
+  // сущности (в т.ч. можно проредить строки игр в таблицах джекпотов/турниров — их число не сакрально)
   if(offx($o['entities'],$d['entities'])){ $diff=$o['entities']-$d['entities'];
-    if($diff>0)$fixes[]="СУЩНОСТИ: убери ~{$diff} названий игр/провайдеров (оставь ".$d['entities']."). Замени на общие слова («слот», «провайдер»).";
+    if($diff>0)$fixes[]="СУЩНОСТИ: убери ~{$diff} названий игр/провайдеров (оставь ".$d['entities']."). Сначала из прозы (замени на «слот»/«провайдер»); если этого мало — сократи число строк-игр в таблицах джекпотов/турниров (уменьши таблицу на 1–2 строки), НО таблицы фактуры (лояльность/платежи/паспорт) и бренд-переменные не трогай.";
   }
   // FAQ
   if(offx($o['faq'],$d['faq'])){ $diff=$o['faq']-$d['faq'];
@@ -79,9 +86,9 @@ foreach($runs as $run){
   if(offx($o['nausea_acad'],$d['nausea_acad'],true)&&$o['nausea_acad']>$d['nausea_acad']){
     $fixes[]="ТОШНОТА: {$o['nausea_acad']}% vs {$d['nausea_acad']}% — снизь повтор самых частых слов, замени синонимами.";
   }
-  // регистр
-  if(offx($o['vy'],$d['vy'])&&$d['vy']>=$o['vy']){ $diff=$d['vy']-$o['vy']; if($diff>=3)$fixes[]="РЕГИСТР «вы»: добавь ~$diff явных «вы/вам/ваш» (не только глагольные формы)."; }
-  if(offx($o['first_person'],$d['first_person'])&&$d['first_person']>=$o['first_person']){ $diff=$d['first_person']-$o['first_person']; if($diff>=4)$fixes[]="РЕГИСТР «я»: усиль первое лицо (+~$diff «я/мне/мой»)."; }
+  // регистр — советуем ТОЛЬКО то, что не противоречит регистру донора
+  if($reg==='delovoy' && offx($o['vy'],$d['vy']) && $d['vy']>=$o['vy']){ $diff=$d['vy']-$o['vy']; if($diff>=3)$fixes[]="РЕГИСТР «вы»: добавь ~$diff явных «вы/вам/ваш» (не только глагольные формы)."; }
+  if($reg==='expert' && offx($o['first_person'],$d['first_person']) && $d['first_person']>=$o['first_person']){ $diff=$d['first_person']-$o['first_person']; if($diff>=4)$fixes[]="РЕГИСТР «я»: усиль первое лицо (+~$diff «я/мне/мой»)."; }
   // семантические кластеры
   foreach(($d['sem']??[]) as $ck=>$dv){ if($dv<1.0)continue; $ov=$o['sem'][$ck]??0; if(!offx($ov,$dv,true))continue;
     $lab=Intent::THEMES[$ck]['label']??$ck; $trg=implode(', ',array_slice(Intent::THEMES[$ck]['triggers']??[],0,6));
