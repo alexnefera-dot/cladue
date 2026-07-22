@@ -239,6 +239,7 @@ final class Planner
             'date'      => $date,
             'seed'      => $seed,
             'donor'     => $donor['name'] ?? null,
+            'data_card' => $this->buildDataCard($rng, $type),
             'style'     => $style->toArray(),
             'targets'   => $targets,
             'tone'      => $tone,
@@ -383,6 +384,50 @@ final class Planner
         if ($cand === []) { return; }
         $pick = $cand[$rng->int(0, count($cand) - 1)];
         $sections[$pick]['block'] = $block;
+    }
+
+    /**
+     * «Спек-карта» — набор ИМЕНОВАННЫХ конкретных данных бренда (год, игроки,
+     * RTP, лицензии, крипта, платформы…). Это защита от «ИИ-водянистости»:
+     * реальные сайты выкладывают такие данные блоком и рассыпают по тексту.
+     */
+    private function buildDataCard(Rng $rng, string $type): array
+    {
+        $id = $this->pools['identity_facts'] ?? [];
+        $card = [];
+        // числовые именованные факты
+        $labels = [
+            'founding_year'   => 'Год основания',
+            'players_count'   => 'Игроков',
+            'games_count'     => 'Игр в каталоге',
+            'providers_count' => 'Провайдеров',
+            'payout_rate'     => 'Выплаты (RTP)',
+            'mirrors_count'   => 'Рабочих зеркал',
+        ];
+        foreach (($id['slots'] ?? []) as $slot) {
+            $v = $this->sampleValue($slot, $rng);
+            if ($v !== '') { $card[$labels[$slot] ?? $slot] = $v; }
+        }
+        // именованные сущности (лицензии, крипта, валюты, платформы, платёжки)
+        $entLabels = [
+            'licenses'  => 'Лицензия',
+            'crypto'    => 'Криптовалюты',
+            'currencies'=> 'Валюты',
+            'platforms' => 'Платформы',
+            'payments'  => 'Платёжные методы',
+        ];
+        foreach (($id['named_entities'] ?? []) as $poolKey) {
+            $pool = $this->pools['entities'][$poolKey] ?? [];
+            if ($pool === []) { continue; }
+            $k = $poolKey === 'licenses' ? 1 : $rng->int(3, 4);
+            $card[$entLabels[$poolKey] ?? $poolKey] = implode(', ', $rng->sample($pool, $k));
+        }
+        // бонусные суммы — как конкретика для main/bonus
+        if (in_array($type, ['main', 'bonus'], true)) {
+            $card['Приветственный бонус'] = $this->sampleValue('welcome_sum', $rng);
+            $card['Джекпот'] = $this->sampleValue('jackpot_sum', $rng);
+        }
+        return $card;
     }
 
     /** Сэмпл одного значения из числового слота */
