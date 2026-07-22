@@ -99,7 +99,7 @@ $html = "<meta charset='utf-8'><title>Генерация vs реальный с�
  . "<div class='summary'>📊 Совпадение формы с реальным сайтом: <b>$nearCount/$tot</b> метрик в пределах ±25%. Контент при этом другой — это клон <b>по форме</b>, а не копия текста.</div>"
  . "<div class='mtable'><table class='cmp'><thead><tr><th>Метрика</th><th style='color:var(--real)'>Реальный $donor</th><th style='color:var(--gen)'>Наш клон</th><th>≈</th><th>Коридор корпуса</th></tr></thead><tbody>$rows</tbody></table></div>"
  . "<div class='cols'>"
- . "<div class='col'><h2><span class='tag gen'>НАШ КЛОН</span> Granville · сгенерировано</h2><div class='doc'>$genBody</div></div>"
+ . "<div class='col'><h2><span class='tag gen'>НАШ КЛОН</span> сгенерировано (форма донора, свой контент)</h2><div class='doc'>$genBody</div></div>"
  . "<div class='col'><h2><span class='tag real'>РЕАЛЬНЫЙ</span> $donor · из корпуса</h2><div class='doc'>$realBody</div></div>"
  . "</div>"
  . "<div class='foot'>Наш клон — engine/generate.php --donor=$donor. Реальный — сайт $donor из корпуса 50 (бренд заменён на «Вован»). Метрики — движок v2.</div>"
