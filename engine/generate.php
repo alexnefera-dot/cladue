@@ -23,7 +23,7 @@ $opts = [
     'type' => '', 'brand-ru' => 'Бренд', 'brand-en' => 'Brand',
     'domain' => 'example.win', 'date' => '21 июля 2026', 'seed' => '',
     'out-dir' => '', 'all' => false, 'json' => false, 'prompt' => false, 'both' => false,
-    'donor' => '', 'list-donors' => false,
+    'donor' => '', 'list-donors' => false, 'register' => '',
 ];
 foreach (array_slice($argv, 1) as $a) {
     if (!str_starts_with($a, '--')) { continue; }
@@ -90,6 +90,12 @@ $genSeed = (is_string($opts['seed']) && $opts['seed'] !== '' ? $opts['seed'] . '
 $style = $donor !== null
     ? StyleProfile::fromDonor($donor['style'] ?? [], new Rng('donor-style:' . $genSeed))
     : StyleProfile::sample(new Rng('style:' . $genSeed));
+// явный override регистра (--register=derzkiy|delovoy|expert|razgovorny|neutral|reklamny)
+if (is_string($opts['register']) && $opts['register'] !== '') {
+    $style->register = $opts['register'];
+    if ($opts['register'] === 'expert') { $style->firstPerson = true; }
+    elseif (in_array($opts['register'], ['derzkiy', 'razgovorny'], true)) { $style->firstPerson = false; }
+}
 
 foreach ($types as $type) {
     $seed = is_string($opts['seed']) ? $opts['seed'] : '';

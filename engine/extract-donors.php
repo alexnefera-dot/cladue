@@ -13,6 +13,30 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/src/Analyzer.php';
 
+/**
+ * Классификатор регистра письма по лексическим сигналам сайта.
+ * Нормируем на 1000 слов и решаем по приоритету: слэнг → дерзкий/разговорный,
+ * иначе первое лицо → экспертный, «ты» → разговорный, восклицания → рекламный,
+ * «вы» → деловой, иначе → нейтральный.
+ */
+function classifyRegister(array $r): string
+{
+    $w = max(1, (int) $r['words']);
+    $k = 1000.0 / $w;
+    $slang = $r['slang'] * $k;
+    $excl  = $r['excl'] * $k;
+    $ty    = $r['ty'] * $k;
+    $vy    = $r['vy'] * $k;
+    $fp    = $r['fp'] * $k;
+
+    if ($slang >= 1.2) { return $excl >= 3 ? 'derzkiy' : 'razgovorny'; }
+    if ($fp >= 12 && $fp > $vy) { return 'expert'; }
+    if ($ty >= 4 && $ty > $vy) { return $excl >= 3 ? 'derzkiy' : 'razgovorny'; }
+    if ($excl >= 5) { return 'reklamny'; }
+    if ($vy >= 4) { return 'delovoy'; }
+    return 'neutral';
+}
+
 $root = $argv[1] ?? '';
 $out  = $argv[2] ?? (__DIR__ . '/data/donors.json');
 if ($root === '' || !is_dir($root)) {
@@ -27,12 +51,23 @@ foreach (glob(rtrim($root,'/') . '/*', GLOB_ONLYDIR) as $dir) {
     if (str_starts_with($name, '__')) continue;
     $have = 0; $pages = [];
     $fp=[]; $vy=[]; $emo=0;
+    $reg = ['ty'=>0,'vy'=>0,'excl'=>0,'slang'=>0,'fp'=>0,'words'=>0,'emoji'=>0]; // сигналы регистра
     foreach ($TYPES as $t) {
         $f = "$dir/$t.html";
         if (!is_file($f)) continue;
-        $r = $a->run([[ 'name'=>$t,'url'=>"$t.html",'html'=>file_get_contents($f),'keyword'=>'','lsi'=>[] ]]);
+        $rawHtml = file_get_contents($f);
+        $r = $a->run([[ 'name'=>$t,'url'=>"$t.html",'html'=>$rawHtml,'keyword'=>'','lsi'=>[] ]]);
         $p = $r['pages'][0]; $m = $p['metrics']; $s = $p['stylistics'];
         $have++;
+        // лексические сигналы регистра из текста страницы
+        $txt = mb_strtolower(strip_tags(preg_replace('#<(script|style)[^>]*>.*?</\1>#is',' ',$rawHtml)));
+        $reg['ty']   += preg_match_all('/\b(ты|тебе|тебя|тво(й|я|ё|и|его|ей)|тобой)\b/u', $txt);
+        $reg['vy']   += preg_match_all('/\b(вы|вас|вам|ваш(а|е|и|его|ей)?)\b/u', $txt);
+        $reg['excl'] += mb_substr_count($txt, '!');
+        $reg['slang']+= preg_match_all('/\b(бро|бабк\w+|кэш\b|вайб\w*|погнали|врыв\w+|дерзай|тупи\w*|качай|фартов\w+|куш|профит|хардкор\w*|движ\w+)\b/u', $txt);
+        $reg['fp']   += (int)$s['first_person'];
+        $reg['emoji']+= (int)$s['emoji'];
+        $reg['words']+= (int)$m['words_total'];
         $pages[$t] = [
             'words'          => $m['words_total'],
             'h2'             => $m['h2_count'],
@@ -65,6 +100,7 @@ foreach (glob(rtrim($root,'/') . '/*', GLOB_ONLYDIR) as $dir) {
             'emoji_site'   => $emo >= 3,
             'fp_avg'       => round($avg($fp),1),
             'vy_avg'       => round($avg($vy),1),
+            'register'     => classifyRegister($reg),
         ],
     ];
 }

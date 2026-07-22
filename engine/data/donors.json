@@ -145,7 +145,8 @@
                 "vy": true,
                 "emoji_site": true,
                 "fp_avg": 0.6,
-                "vy_avg": 7.9
+                "vy_avg": 7.9,
+                "register": "delovoy"
             }
         },
         "almyra": {
@@ -289,7 +290,8 @@
                 "vy": false,
                 "emoji_site": true,
                 "fp_avg": 0.3,
-                "vy_avg": 2.4
+                "vy_avg": 2.4,
+                "register": "neutral"
             }
         },
         "aurora": {
@@ -433,7 +435,8 @@
                 "vy": false,
                 "emoji_site": true,
                 "fp_avg": 36.1,
-                "vy_avg": 0.4
+                "vy_avg": 0.4,
+                "register": "expert"
             }
         },
         "avocado": {
@@ -577,7 +580,8 @@
                 "vy": false,
                 "emoji_site": true,
                 "fp_avg": 33.1,
-                "vy_avg": 1
+                "vy_avg": 1,
+                "register": "expert"
             }
         },
         "bet1000": {
@@ -721,7 +725,8 @@
                 "vy": false,
                 "emoji_site": true,
                 "fp_avg": 42.3,
-                "vy_avg": 2.6
+                "vy_avg": 2.6,
+                "register": "expert"
             }
         },
         "bethash": {
@@ -865,7 +870,8 @@
                 "vy": true,
                 "emoji_site": true,
                 "fp_avg": 0.1,
-                "vy_avg": 10
+                "vy_avg": 10,
+                "register": "razgovorny"
             }
         },
         "binobi": {
@@ -1009,7 +1015,8 @@
                 "vy": false,
                 "emoji_site": true,
                 "fp_avg": 15,
-                "vy_avg": 1.6
+                "vy_avg": 1.6,
+                "register": "expert"
             }
         },
         "bitcasino": {
@@ -1153,7 +1160,8 @@
                 "vy": false,
                 "emoji_site": true,
                 "fp_avg": 52.7,
-                "vy_avg": 1.3
+                "vy_avg": 1.3,
+                "register": "expert"
             }
         },
         "bitsler": {
@@ -1297,7 +1305,8 @@
                 "vy": false,
                 "emoji_site": true,
                 "fp_avg": 26.9,
-                "vy_avg": 2.7
+                "vy_avg": 2.7,
+                "register": "expert"
             }
         },
         "bitstarz": {
@@ -1441,7 +1450,8 @@
                 "vy": false,
                 "emoji_site": true,
                 "fp_avg": 21.6,
-                "vy_avg": 2.1
+                "vy_avg": 2.1,
+                "register": "expert"
             }
         },
         "bitz": {
@@ -1585,7 +1595,8 @@
                 "vy": true,
                 "emoji_site": true,
                 "fp_avg": 2.1,
-                "vy_avg": 7
+                "vy_avg": 7,
+                "register": "delovoy"
             }
         },
         "bollywood": {
@@ -1729,7 +1740,8 @@
                 "vy": true,
                 "emoji_site": true,
                 "fp_avg": 0.3,
-                "vy_avg": 3.6
+                "vy_avg": 3.6,
+                "register": "neutral"
             }
         },
         "casher": {
@@ -1873,7 +1885,8 @@
                 "vy": true,
                 "emoji_site": true,
                 "fp_avg": 1.6,
-                "vy_avg": 12.7
+                "vy_avg": 12.7,
+                "register": "delovoy"
             }
         },
         "casino scream": {
@@ -2017,7 +2030,8 @@
                 "vy": true,
                 "emoji_site": true,
                 "fp_avg": 1.3,
-                "vy_avg": 11.3
+                "vy_avg": 11.3,
+                "register": "delovoy"
             }
         },
         "cosmospin": {
@@ -2161,7 +2175,8 @@
                 "vy": false,
                 "emoji_site": true,
                 "fp_avg": 0.7,
-                "vy_avg": 0.3
+                "vy_avg": 0.3,
+                "register": "derzkiy"
             }
         },
         "crypto bet": {
@@ -2305,7 +2320,8 @@
                 "vy": false,
                 "emoji_site": true,
                 "fp_avg": 0.9,
-                "vy_avg": 2.4
+                "vy_avg": 2.4,
+                "register": "neutral"
             }
         },
         "cryptoboss": {
@@ -2449,7 +2465,8 @@
                 "vy": false,
                 "emoji_site": true,
                 "fp_avg": 43.4,
-                "vy_avg": 1
+                "vy_avg": 1,
+                "register": "expert"
             }
         },
         "empire": {
@@ -2593,7 +2610,8 @@
                 "vy": false,
                 "emoji_site": true,
                 "fp_avg": 0.7,
-                "vy_avg": 0.1
+                "vy_avg": 0.1,
+                "register": "derzkiy"
             }
         },
         "etc": {
@@ -2737,7 +2755,8 @@
                 "vy": false,
                 "emoji_site": true,
                 "fp_avg": 40.1,
-                "vy_avg": 1.9
+                "vy_avg": 1.9,
+                "register": "expert"
             }
         },
         "fairspin": {
@@ -2881,7 +2900,8 @@
                 "vy": true,
                 "emoji_site": true,
                 "fp_avg": 32.3,
-                "vy_avg": 3.9
+                "vy_avg": 3.9,
+                "register": "expert"
             }
         },
         "fans": {
@@ -3025,7 +3045,8 @@
                 "vy": true,
                 "emoji_site": true,
                 "fp_avg": 2.7,
-                "vy_avg": 10
+                "vy_avg": 10,
+                "register": "delovoy"
             }
         },
         "glory": {
@@ -3169,7 +3190,8 @@
                 "vy": true,
                 "emoji_site": true,
                 "fp_avg": 49.1,
-                "vy_avg": 3
+                "vy_avg": 3,
+                "register": "expert"
             }
         },
         "jetton games": {
@@ -3313,7 +3335,8 @@
                 "vy": false,
                 "emoji_site": true,
                 "fp_avg": 49.1,
-                "vy_avg": 1
+                "vy_avg": 1,
+                "register": "expert"
             }
         },
         "kairos slot": {
@@ -3457,7 +3480,8 @@
                 "vy": false,
                 "emoji_site": true,
                 "fp_avg": 38.7,
-                "vy_avg": 1.3
+                "vy_avg": 1.3,
+                "register": "expert"
             }
         },
         "lalabet": {
@@ -3601,7 +3625,8 @@
                 "vy": true,
                 "emoji_site": true,
                 "fp_avg": 0.3,
-                "vy_avg": 6.6
+                "vy_avg": 6.6,
+                "register": "delovoy"
             }
         },
         "loft": {
@@ -3745,7 +3770,8 @@
                 "vy": true,
                 "emoji_site": true,
                 "fp_avg": 11.1,
-                "vy_avg": 4
+                "vy_avg": 4,
+                "register": "expert"
             }
         },
         "magnet": {
@@ -3889,7 +3915,8 @@
                 "vy": true,
                 "emoji_site": true,
                 "fp_avg": 0,
-                "vy_avg": 4.1
+                "vy_avg": 4.1,
+                "register": "razgovorny"
             }
         },
         "megadice": {
@@ -4033,7 +4060,8 @@
                 "vy": false,
                 "emoji_site": true,
                 "fp_avg": 12.6,
-                "vy_avg": 1.6
+                "vy_avg": 1.6,
+                "register": "neutral"
             }
         },
         "monro": {
@@ -4177,7 +4205,8 @@
                 "vy": true,
                 "emoji_site": true,
                 "fp_avg": 26.4,
-                "vy_avg": 3.4
+                "vy_avg": 3.4,
+                "register": "expert"
             }
         },
         "onion": {
@@ -4321,7 +4350,8 @@
                 "vy": true,
                 "emoji_site": true,
                 "fp_avg": 0.9,
-                "vy_avg": 7.3
+                "vy_avg": 7.3,
+                "register": "delovoy"
             }
         },
         "punch": {
@@ -4465,7 +4495,8 @@
                 "vy": true,
                 "emoji_site": true,
                 "fp_avg": 1.1,
-                "vy_avg": 5.3
+                "vy_avg": 5.3,
+                "register": "delovoy"
             }
         },
         "ramenbet": {
@@ -4609,7 +4640,8 @@
                 "vy": false,
                 "emoji_site": true,
                 "fp_avg": 27.4,
-                "vy_avg": 1.6
+                "vy_avg": 1.6,
+                "register": "expert"
             }
         },
         "rebel": {
@@ -4753,7 +4785,8 @@
                 "vy": true,
                 "emoji_site": true,
                 "fp_avg": 0.7,
-                "vy_avg": 12
+                "vy_avg": 12,
+                "register": "delovoy"
             }
         },
         "royal spin casino": {
@@ -4897,7 +4930,8 @@
                 "vy": true,
                 "emoji_site": true,
                 "fp_avg": 0.7,
-                "vy_avg": 3.6
+                "vy_avg": 3.6,
+                "register": "delovoy"
             }
         },
         "royspins": {
@@ -5041,7 +5075,8 @@
                 "vy": false,
                 "emoji_site": true,
                 "fp_avg": 49.9,
-                "vy_avg": 0.7
+                "vy_avg": 0.7,
+                "register": "expert"
             }
         },
         "scoobybet": {
@@ -5185,7 +5220,8 @@
                 "vy": true,
                 "emoji_site": true,
                 "fp_avg": 4.3,
-                "vy_avg": 11.1
+                "vy_avg": 11.1,
+                "register": "delovoy"
             }
         },
         "slm games": {
@@ -5329,7 +5365,8 @@
                 "vy": false,
                 "emoji_site": true,
                 "fp_avg": 15,
-                "vy_avg": 1.6
+                "vy_avg": 1.6,
+                "register": "expert"
             }
         },
         "slotmaniax": {
@@ -5473,7 +5510,8 @@
                 "vy": false,
                 "emoji_site": true,
                 "fp_avg": 45,
-                "vy_avg": 0.7
+                "vy_avg": 0.7,
+                "register": "expert"
             }
         },
         "smokace": {
@@ -5617,7 +5655,8 @@
                 "vy": true,
                 "emoji_site": true,
                 "fp_avg": 0.6,
-                "vy_avg": 17.1
+                "vy_avg": 17.1,
+                "register": "delovoy"
             }
         },
         "spinarium": {
@@ -5761,7 +5800,8 @@
                 "vy": false,
                 "emoji_site": true,
                 "fp_avg": 48.3,
-                "vy_avg": 1.3
+                "vy_avg": 1.3,
+                "register": "expert"
             }
         },
         "taker": {
@@ -5905,7 +5945,8 @@
                 "vy": true,
                 "emoji_site": true,
                 "fp_avg": 27.9,
-                "vy_avg": 4
+                "vy_avg": 4,
+                "register": "expert"
             }
         },
         "trix": {
@@ -6049,7 +6090,8 @@
                 "vy": false,
                 "emoji_site": true,
                 "fp_avg": 50,
-                "vy_avg": 2.9
+                "vy_avg": 2.9,
+                "register": "expert"
             }
         },
         "ttr": {
@@ -6193,7 +6235,8 @@
                 "vy": true,
                 "emoji_site": true,
                 "fp_avg": 0.1,
-                "vy_avg": 4.9
+                "vy_avg": 4.9,
+                "register": "razgovorny"
             }
         },
         "unlim": {
@@ -6337,7 +6380,8 @@
                 "vy": true,
                 "emoji_site": true,
                 "fp_avg": 0.3,
-                "vy_avg": 3.7
+                "vy_avg": 3.7,
+                "register": "neutral"
             }
         },
         "uslotu": {
@@ -6481,7 +6525,8 @@
                 "vy": false,
                 "emoji_site": true,
                 "fp_avg": 51.1,
-                "vy_avg": 2.1
+                "vy_avg": 2.1,
+                "register": "expert"
             }
         },
         "vegasy": {
@@ -6625,7 +6670,8 @@
                 "vy": false,
                 "emoji_site": true,
                 "fp_avg": 0.1,
-                "vy_avg": 0.3
+                "vy_avg": 0.3,
+                "register": "derzkiy"
             }
         },
         "vibe": {
@@ -6769,7 +6815,8 @@
                 "vy": false,
                 "emoji_site": true,
                 "fp_avg": 53,
-                "vy_avg": 2.4
+                "vy_avg": 2.4,
+                "register": "expert"
             }
         },
         "vovan": {
@@ -6913,7 +6960,8 @@
                 "vy": true,
                 "emoji_site": true,
                 "fp_avg": 1.3,
-                "vy_avg": 10.6
+                "vy_avg": 10.6,
+                "register": "delovoy"
             }
         },
         "why": {
@@ -7057,7 +7105,8 @@
                 "vy": true,
                 "emoji_site": true,
                 "fp_avg": 1.1,
-                "vy_avg": 8.1
+                "vy_avg": 8.1,
+                "register": "neutral"
             }
         },
         "woody x": {
@@ -7201,7 +7250,8 @@
                 "vy": false,
                 "emoji_site": true,
                 "fp_avg": 1.1,
-                "vy_avg": 0.1
+                "vy_avg": 0.1,
+                "register": "razgovorny"
             }
         }
     }

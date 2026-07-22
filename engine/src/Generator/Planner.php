@@ -240,6 +240,7 @@ final class Planner
             'seed'      => $seed,
             'donor'     => $donor['name'] ?? null,
             'data_card' => $this->buildDataCard($rng, $type),
+            'register'  => $this->resolveRegister($style->register),
             'style'     => $style->toArray(),
             'targets'   => $targets,
             'tone'      => $tone,
@@ -472,6 +473,21 @@ final class Planner
         if ($raw === false) { return []; }
         $lines = preg_split('/\r?\n/', trim($raw)) ?: [];
         return array_values(array_filter(array_map('trim', $lines), static fn($l) => $l !== '' && mb_strlen($l) > 15));
+    }
+
+    /** Определение регистра (гайд + примеры фраз) из пула по id */
+    private function resolveRegister(string $id): array
+    {
+        $regs = $this->pools['style_registers'] ?? [];
+        $def = $regs[$id] ?? $regs['neutral'] ?? null;
+        if ($def === null) { return ['id' => $id, 'label' => $id, 'guide' => '', 'samples' => []]; }
+        return [
+            'id'      => $id,
+            'label'   => $def['label'] ?? $id,
+            'voice'   => $def['voice'] ?? '',
+            'guide'   => $def['guide'] ?? '',
+            'samples' => $def['samples'] ?? [],
+        ];
     }
 
     /** Общий кросс-пул тем (для инъекции в любой тип) */

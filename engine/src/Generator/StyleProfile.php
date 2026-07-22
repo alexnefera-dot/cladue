@@ -27,7 +27,13 @@ final class StyleProfile
         public string $naming,       // 'en-heavy' | 'balanced'
         public bool $emojiSite,      // использует ли сайт эмодзи в теле (актуально для main)
         public string $persona,      // имя для повествования от первого лица
+        public string $register = 'neutral', // ПАТТЕРН СТИЛЯ письма (см. pools.style_registers)
     ) {}
+
+    // Веса регистров по корпусу (expert доминирует, дерзких мало).
+    private const REGISTER_WEIGHTS = [
+        'expert' => 24, 'delovoy' => 13, 'neutral' => 6, 'razgovorny' => 4, 'derzkiy' => 3, 'reklamny' => 2,
+    ];
 
     private const PERSONAS = [
         'Алексей Никифоров', 'Игорь Савельев', 'Дмитрий Орлов', 'Максим Крылов',
@@ -48,6 +54,10 @@ final class StyleProfile
             $firstPerson = false; $vy = $rng->chance(0.3); $mode = 'нейтрально-описательный';
         }
 
+        $register = $rng->weighted(self::REGISTER_WEIGHTS);
+        // синхронизируем булевы флаги с выбранным регистром
+        if ($register === 'expert') { $firstPerson = true; }
+        elseif ($register === 'derzkiy' || $register === 'razgovorny') { $firstPerson = false; }
         return new self(
             firstPerson: $firstPerson,
             vy: $vy,
@@ -59,13 +69,15 @@ final class StyleProfile
             naming:      $rng->chance(0.6) ? 'en-heavy' : 'balanced',
             emojiSite:   $rng->chance(0.7),        // большинство main-страниц с эмодзи в теле
             persona:     self::PERSONAS[$rng->int(0, count(self::PERSONAS) - 1)],
+            register:    $register,
         );
     }
 
     /** Стиль-профиль из конкретного сайта-донора (клонирование одного из 50). */
     public static function fromDonor(array $donorStyle, Rng $rng): self
     {
-        $fp = (bool) ($donorStyle['first_person'] ?? false);
+        $register = (string) ($donorStyle['register'] ?? 'neutral');
+        $fp = (bool) ($donorStyle['first_person'] ?? false) || $register === 'expert';
         $vy = (bool) ($donorStyle['vy'] ?? false);
         $mode = $fp ? 'личный опыт (первое лицо)' : ($vy ? 'обращение на «вы»' : 'нейтрально-описательный');
         return new self(
@@ -77,6 +89,7 @@ final class StyleProfile
             naming: 'balanced',
             emojiSite: (bool) ($donorStyle['emoji_site'] ?? false),
             persona: self::PERSONAS[$rng->int(0, count(self::PERSONAS) - 1)],
+            register: $register,
         );
     }
 
@@ -93,6 +106,7 @@ final class StyleProfile
             'naming'       => $this->naming,
             'emoji_site'   => $this->emojiSite,
             'persona'      => $this->persona,
+            'register'     => $this->register,
         ];
     }
 }
