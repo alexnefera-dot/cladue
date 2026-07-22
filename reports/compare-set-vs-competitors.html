@@ -1,0 +1,155 @@
+<meta charset="utf-8">
+<title>Связка Казиновия против корпуса и конкурентов</title>
+<style>
+:root{--bg:#f6f8fc;--panel:#fff;--panel2:#eef2f8;--ink:#1a2230;--muted:#5d6b82;--line:#e2e7ef;
+ --ours:#1f9d6b;--corpus:#3f7bf0;--betchan:#d98a2a;--bob:#9163e0;--bad:#d23b40;
+ --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;}
+@media(prefers-color-scheme:dark){:root{--bg:#0e131c;--panel:#151d29;--panel2:#1b2431;--ink:#e7ecf5;--muted:#8b98b0;--line:#26303f;--ours:#33c08a;--corpus:#5b95ff;--betchan:#eaa54a;--bob:#a98bf0;--bad:#e5595c;}}
+:root[data-theme="dark"]{--bg:#0e131c;--panel:#151d29;--panel2:#1b2431;--ink:#e7ecf5;--muted:#8b98b0;--line:#26303f;--ours:#33c08a;--corpus:#5b95ff;--betchan:#eaa54a;--bob:#a98bf0;--bad:#e5595c;}
+:root[data-theme="light"]{--bg:#f6f8fc;--panel:#fff;--panel2:#eef2f8;--ink:#1a2230;--muted:#5d6b82;--line:#e2e7ef;--ours:#1f9d6b;--corpus:#3f7bf0;--betchan:#d98a2a;--bob:#9163e0;--bad:#d23b40;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--sans)}
+.wrap{max-width:1040px;margin:0 auto;padding:28px 20px 80px}
+.eyebrow{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700}
+h1{font-size:25px;margin:6px 0 8px;letter-spacing:-.02em}
+.lead{color:var(--muted);max-width:76ch}
+.verdict{margin-top:16px;padding:13px 16px;border-radius:11px;background:var(--panel2);border:1px solid var(--line);font-size:14px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin:18px 0 4px;font-size:12.5px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.d-ours{background:var(--ours)}.d-corpus{background:var(--corpus)}.d-betchan{background:var(--betchan)}.d-bob{background:var(--bob)}
+section{margin-top:30px}h2{font-size:18px;margin:0 0 4px}.hint{color:var(--muted);font-size:12.5px;margin:0 0 12px;max-width:78ch}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0}
+@media(max-width:760px){.cards{grid-template-columns:repeat(2,1fr)}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;position:relative;overflow:hidden}
+.card .bar{height:4px;border-radius:4px 4px 0 0;margin:-14px -14px 10px}
+.card.ours .bar{background:var(--ours)}.card.corpus .bar{background:var(--corpus)}.card.betchan .bar{background:var(--betchan)}.card.bob .bar{background:var(--bob)}
+.card h3{margin:0 0 1px;font-size:14.5px}.card .role{color:var(--muted);font-size:11.5px;min-height:28px}
+.card .big{font-family:var(--mono);font-size:24px;font-weight:700;margin-top:8px}
+.card .sub{color:var(--muted);font-size:11.5px}
+.bars{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.brow{display:grid;grid-template-columns:96px 1fr 52px;gap:10px;align-items:center;font-size:13px}
+.track{height:18px;background:var(--panel2);border-radius:5px;overflow:hidden;position:relative}
+.band{position:absolute;top:0;bottom:0;background:color-mix(in srgb,var(--corpus) 20%,transparent);border-left:1px dashed var(--corpus);border-right:1px dashed var(--corpus)}
+.fill{height:100%;border-radius:5px}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:11px;margin-top:6px}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:560px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right}
+th{color:var(--muted);font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em}
+td:first-child,th:first-child{text-align:left}
+tbody tr:last-child td{border-bottom:none}
+td.v{font-family:var(--mono)}
+.in{color:var(--ours);font-weight:700}.out{color:var(--bad)}
+.take{padding:11px 14px;border-left:3px solid var(--ours);background:var(--panel);border:1px solid var(--line);border-radius:9px;margin-top:9px;font-size:13.6px}
+.foot{color:var(--muted);font-size:12px;margin-top:26px;text-align:center}
+.pill{display:inline-block;font-size:11px;padding:1px 7px;border-radius:20px;background:var(--panel2);border:1px solid var(--line);color:var(--muted)}
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">Реверс-генератор · воспроизвести, не превзойти</div>
+  <h1>Связка «Казиновия» против корпуса и реальных конкурентов</h1>
+  <p class="lead">Сгенерированный набор из 7 страниц (один стиль-профиль) сопоставлен с медианой корпуса (50 сайтов генератора) и двумя реальными связками конкурентов — betchan и bob. Все метрики посчитаны движком v2. Цель — попасть <b>внутрь</b> распределения корпуса, а не превзойти его.</p>
+  <div class="verdict">🎯 <b>Связка ложится в корпус: 131/140 метрик (94%) в коридорах [p10..p90].</b> Плотность цифр <b style="color:var(--ours)">1.5/100</b> — внутри полосы корпуса (~1–3), тогда как у betchan <b style="color:var(--betchan)">7.0</b> (переоптимизация), у bob <b style="color:var(--bob)">3.3</b>. FAQ, дата-стамп и Schema — на всех 7 страницах, как у корпуса. Это «воспроизведение», а не прежний перегиб (ранний набор Nova давал 13.3 — вдвое-впятеро выше корпуса).</div>
+
+  <div class="legend">
+    <span><i class="dot d-ours"></i> Казиновия (наш набор)</span>
+    <span><i class="dot d-corpus"></i> Корпус (медиана 50 сайтов)</span>
+    <span><i class="dot d-betchan"></i> betchan (реальный)</span>
+    <span><i class="dot d-bob"></i> bob (реальный)</span>
+  </div>
+
+  <div class="cards" id="cards"></div>
+
+  <section>
+    <h2>Плотность цифр на 100 слов — ключевой сигнал «не превзойти»</h2>
+    <p class="hint">Полупрозрачная полоса — коридор корпуса (p10–p90) по типам, усреднённо ~1–3. Внутри полосы = воспроизведение; правее = переоптимизация (риск Баден-Бадена у Яндекса).</p>
+    <div class="bars" id="density"></div>
+  </section>
+
+  <section>
+    <h2>По типам страниц: наш набор vs медиана корпуса</h2>
+    <p class="hint">Зелёным — значение нашей связки в коридоре корпуса по данной метрике. Сравнение с корпусом (а не «больше=лучше»): цель — совпасть с медианой, не обогнать.</p>
+    <div class="tw"><table id="pertype"></table></div>
+  </section>
+
+  <section>
+    <h2>Подпись генератора: FAQ, объём, тошнота</h2>
+    <p class="hint">Отпечаток корпуса-генератора: FAQ на каждой странице, высокая тошнота на главной (~40%), «плавающий» объём. Реальные конкуренты этот отпечаток не держат.</p>
+    <div class="tw"><table id="signature"></table></div>
+  </section>
+
+  <section>
+    <h2>Выводы</h2>
+    <div class="take">✅ <b>Наш набор неотличим от сайта корпуса:</b> 94% метрик в коридорах, плотность цифр 1.5/100 в полосе, тошнота главной 40.8 ≈ медиана 40.1, FAQ+Schema на всех 7 страницах, единый «вы»-голос по всей связке.</div>
+    <div class="take" style="border-left-color:var(--betchan)"><b style="color:var(--betchan)">betchan</b> — переоптимизирован по цифрам (7.0/100, на главной и слотах 12.7) и почти без FAQ: это «плотный» индивидуальный сайт, а не профиль корпуса.</div>
+    <div class="take" style="border-left-color:var(--bob)"><b style="color:var(--bob)">bob</b> — объёмная главная (5147 слов) при низкой плотности (3.0) и почти отсутствующем FAQ: «водянистый» отдельный сайт, тоже вне медианного профиля.</div>
+    <div class="take">🧭 <b>Итог:</b> задача была воспроизвести генератор, а не победить конкретных конкурентов. Связка Казиновия садится в центр распределения корпуса; betchan и bob — два крайних частных случая по разные стороны.</div>
+  </section>
+
+  <div class="foot">Казиновия — samples/generated/demo1 (движок v2, verify.php). betchan, bob — реальные связки. Корпус — profile.json (медианы 50×7). Полосы — коридоры [p10..p90].</div>
+</div>
+
+<script>
+const TYPES=['main','zerkalo','vhod','registracia','bonus','slots','app'];
+// наш набор (demo1_bench)
+const OURS={main:{words:2782,num:2.1,faq:16,naus:40.8},zerkalo:{words:586,num:0.3,faq:5,naus:28.7},vhod:{words:648,num:0.9,faq:15,naus:32.4},registracia:{words:711,num:1.0,faq:17,naus:29.7},bonus:{words:503,num:1.6,faq:8,naus:26.2},slots:{words:662,num:2.4,faq:15,naus:26.1},app:{words:556,num:2.5,faq:14,naus:28.1}};
+// медиана корпуса (profile.json)
+const CORP={main:{words:3957,num:2.9,faq:14,naus:40.1},zerkalo:{words:506,num:1.4,faq:5,naus:23.4},vhod:{words:606,num:1.4,faq:12,naus:24.2},registracia:{words:579,num:1.0,faq:11,naus:25},bonus:{words:503,num:2.8,faq:6,naus:24.5},slots:{words:572,num:3.1,faq:10,naus:24.8},app:{words:556,num:1.7,faq:10,naus:23.4}};
+// коридор корпуса для num/100 [p10,p90]
+const NUMBAND={main:[1.7,5.4],zerkalo:[0.2,4.8],vhod:[0.3,4.5],registracia:[0.2,3.4],bonus:[0.4,8.1],slots:[0.8,6.3],app:[0.3,5.6]};
+// реальные конкуренты
+const BET={main:{words:1007,num:12.7,faq:0,naus:27.7},zerkalo:{words:325,num:5.8,faq:1,naus:24.6},vhod:{words:458,num:2.4,faq:4,naus:23.1},registracia:{words:399,num:4.5,faq:6,naus:24.1},bonus:{words:391,num:6.4,faq:0,naus:17.9},slots:{words:510,num:12.7,faq:2,naus:21.8},app:{words:404,num:4.7,faq:0,naus:20.8}};
+const BOB={main:{words:5147,num:3.0,faq:5,naus:38.4},zerkalo:{words:521,num:0.2,faq:3,naus:17.5},vhod:{words:567,num:1.9,faq:0,naus:21.3},registracia:{words:587,num:2.9,faq:0,naus:20.3},bonus:{words:909,num:6.2,faq:0,naus:31.7},slots:{words:499,num:5.8,faq:1,naus:13.6},app:{words:665,num:3.3,faq:0,naus:26.9}};
+
+const avg=(o,k)=>Math.round(TYPES.reduce((s,t)=>s+o[t][k],0)/TYPES.length*10)/10;
+const sum=(o,k)=>TYPES.reduce((s,t)=>s+o[t][k],0);
+const faqPages=o=>TYPES.filter(t=>o[t].faq>=3).length;
+
+// cards
+const CARDS=[
+ ['ours','Казиновия','наш набор — воспроизведение',avg(OURS,'num'),sum(OURS,'words')],
+ ['corpus','Корпус','медиана 50 сайтов генератора',avg(CORP,'num'),sum(CORP,'words')],
+ ['betchan','betchan','реальный · плотный',avg(BET,'num'),sum(BET,'words')],
+ ['bob','bob','реальный · объёмный',avg(BOB,'num'),sum(BOB,'words')],
+];
+const SRC=[OURS,CORP,BET,BOB];
+document.getElementById('cards').innerHTML=CARDS.map(([c,n,r,num,w],i)=>`
+ <div class="card ${c}"><div class="bar"></div>
+   <h3>${n}</h3><div class="role">${r}</div>
+   <div class="big">${num}</div><div class="sub">чисел на 100 слов (сред.)</div>
+   <div class="sub" style="margin-top:6px">Σ слов: <b>${w}</b> · FAQ на <b>${faqPages(SRC[i])}</b>/7 стр.</div>
+ </div>`).join('');
+
+// density bars with corpus band
+const maxD=13.3;
+document.getElementById('density').innerHTML=TYPES.map(t=>{
+  const band=NUMBAND[t];
+  const bandL=band[0]/maxD*100, bandW=(band[1]-band[0])/maxD*100;
+  const rows=[['ours',OURS],['betchan',BET],['bob',BOB]].map(([c,o])=>{
+    const v=o[t].num;
+    const col=c==='ours'?'var(--ours)':c==='betchan'?'var(--betchan)':'var(--bob)';
+    return `<div class="brow"><span class="pill">${c==='ours'?'наш':c}</span>
+      <div class="track"><div class="band" style="left:${bandL}%;width:${bandW}%"></div>
+        <div class="fill" style="width:${Math.min(100,v/maxD*100)}%;background:${col}"></div></div>
+      <span class="v" style="text-align:right;color:${col}">${v}</span></div>`;
+  }).join('');
+  return `<div><div style="font-size:12.5px;color:var(--muted);margin:2px 0 4px"><b>${t}</b> · коридор корпуса ${band[0]}–${band[1]}</div>${rows}</div>`;
+}).join('');
+
+// per-type table: ours vs corpus median, num & words, mark in-band
+const WORDBAND={main:[2796,5801],zerkalo:[320,773],vhod:[430,954],registracia:[416,979],bonus:[316,913],slots:[430,1091],app:[371,750]};
+function cell(v,band){const inb=v>=band[0]&&v<=band[1];return `<td class="v ${inb?'in':'out'}">${v}</td>`;}
+document.getElementById('pertype').innerHTML=
+ `<thead><tr><th>Тип</th><th>Наши слова</th><th>Корпус слов (медиана)</th><th>Наши цифры/100</th><th>Корпус (медиана)</th></tr></thead>
+  <tbody>${TYPES.map(t=>`<tr><td>${t}</td>${cell(OURS[t].words,WORDBAND[t])}<td class="v" style="color:var(--muted)">${CORP[t].words}</td>${cell(OURS[t].num,NUMBAND[t])}<td class="v" style="color:var(--muted)">${CORP[t].num}</td></tr>`).join('')}</tbody>`;
+
+// signature table: faq questions & nausea across sets
+document.getElementById('signature').innerHTML=
+ `<thead><tr><th>Тип</th><th>FAQ · наш</th><th>FAQ · betchan</th><th>FAQ · bob</th><th>Тошнота% · наш</th><th>Тошнота% · корпус</th></tr></thead>
+  <tbody>${TYPES.map(t=>`<tr><td>${t}</td>
+    <td class="v in">${OURS[t].faq}</td>
+    <td class="v" style="color:${BET[t].faq<3?'var(--bad)':'var(--muted)'}">${BET[t].faq}</td>
+    <td class="v" style="color:${BOB[t].faq<3?'var(--bad)':'var(--muted)'}">${BOB[t].faq}</td>
+    <td class="v">${OURS[t].naus}</td>
+    <td class="v" style="color:var(--muted)">${CORP[t].naus}</td></tr>`).join('')}</tbody>`;
+</script>
