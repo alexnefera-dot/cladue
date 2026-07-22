@@ -297,6 +297,9 @@
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;font-size:13px;color:var(--txt)">
           <input type="checkbox" id="s_multi" style="width:auto"> Все операторы (site + host + url + rhost + домен)
         </label>
+        <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)">
+          Макс. поддоменов <input id="s_subdomains" type="number" value="150" min="0" max="500" style="width:80px;padding:5px 8px">
+        </div>
       </div>
       <div class="hint" style="margin-top:8px">
         Один запрос <code>site:</code> отдаёт максимум <b>~1000</b> URL (потолок Яндекса).
@@ -673,7 +676,7 @@ $("m_dlCsv").onclick  = ()=> mJob && (location.href="/api/monitor/download/"+mJo
 
 // ===================== ВКЛАДКА 3: ИНДЕКСАЦИЯ (site:) =====================
 let sPoll=null, sJob=null;
-const SITE_FIELDS=["s_domains","s_operator","s_max","s_workers","s_delay","s_deep","s_multi"];
+const SITE_FIELDS=["s_domains","s_operator","s_max","s_workers","s_delay","s_deep","s_multi","s_subdomains"];
 function saveSite(){ const o={}; SITE_FIELDS.forEach(f=>{const el=$(f); if(el)o[f]=fval(el);}); localStorage.setItem("xmlstock_site",JSON.stringify(o)); }
 function loadSite(){ try{ const o=JSON.parse(localStorage.getItem("xmlstock_site")||"{}"); SITE_FIELDS.forEach(f=>{const el=$(f); if(o[f]!==undefined && el) setval(el,o[f]); }); }catch(e){} }
 loadSite();
@@ -687,7 +690,7 @@ $("s_go").onclick = async ()=>{
   if(!$("s_domains").value.trim()){ showErr("Добавьте хотя бы один домен."); return; }
   const payload={...shared(), domains:$("s_domains").value, operator:$("s_operator").value,
     max_urls:$("s_max").value, workers:$("s_workers").value, deep:$("s_deep").checked, delay:$("s_delay").value,
-    multi_op:$("s_multi").checked};
+    multi_op:$("s_multi").checked, subdomains:$("s_subdomains").value};
   $("s_go").disabled=true;
   try{
     const r=await fetch("/api/site/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});

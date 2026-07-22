@@ -527,8 +527,9 @@ def fetch_site_pages(cfg, domain, cap, cancel):
     target = registrable_domain(host)
     base_op = "host" if cfg.get("operator") == "host:" else "site"
     multi = cfg.get("multi_op")
+    sub_limit = cfg.get("deep_subdomains", 150)
     ops = ["site", "host", "url", "rhost", "plain"] if multi else [base_op]
-    budget = [cfg.get("deep_budget", 120 if multi else 60)]
+    budget = [cfg.get("deep_budget", (sub_limit * 2 + 60) if multi else 60)]
 
     union_seen, union_urls, per_op = set(), [], {}
 
@@ -565,7 +566,7 @@ def fetch_site_pages(cfg, domain, cap, cancel):
                 subseen.add(h)
                 subs.append(h)
         added = 0
-        for sub in subs[:40]:
+        for sub in subs[:sub_limit]:
             if cancel.is_set() or len(union_urls) >= cap or budget[0] <= 0:
                 break
             local, _, _ = _collect_for_operator(cfg, "site", sub, cap, cancel, budget)
@@ -1504,6 +1505,7 @@ def api_site_run():
         "operator": op,
         "deep": bool(data.get("deep", False)),
         "multi_op": bool(data.get("multi_op", False)),
+        "deep_subdomains": clamp(data.get("subdomains"), 0, 500, 150),
         "lr": (data.get("lr") or "").strip(),
         "device": (data.get("device") or "").strip(),
         "max_urls": clamp(data.get("max_urls"), 10, 5000, 1000),
