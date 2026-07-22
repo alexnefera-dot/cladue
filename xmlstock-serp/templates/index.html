@@ -290,9 +290,12 @@
         <div><label>Параллельно</label><input id="s_workers" type="number" value="4" min="1" max="10"></div>
         <div><label>Пауза, сек</label><input id="s_delay" type="number" value="0" min="0" max="5" step="0.1"></div>
       </div>
-      <div class="row" style="margin-top:10px">
+      <div class="row" style="margin-top:10px;gap:20px">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;font-size:13px;color:var(--txt)">
           <input type="checkbox" id="s_deep" style="width:auto"> Глубокий сбор (дробление по разделам, до 2 уровней)
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;font-size:13px;color:var(--txt)">
+          <input type="checkbox" id="s_multi" style="width:auto"> Все операторы (site + host + url + rhost + домен)
         </label>
       </div>
       <div class="hint" style="margin-top:8px">
@@ -320,7 +323,7 @@
       </div>
       <div class="tbl-wrap">
         <table class="pos">
-          <thead><tr><th>Домен</th><th>Найдено (оценка Яндекса)</th><th>Собрано URL</th><th>Статус</th></tr></thead>
+          <thead><tr><th>Домен</th><th>Найдено (оценка Яндекса)</th><th>Собрано URL</th><th>По операторам</th><th>Статус</th></tr></thead>
           <tbody id="s_tbody"></tbody>
         </table>
       </div>
@@ -670,7 +673,7 @@ $("m_dlCsv").onclick  = ()=> mJob && (location.href="/api/monitor/download/"+mJo
 
 // ===================== ВКЛАДКА 3: ИНДЕКСАЦИЯ (site:) =====================
 let sPoll=null, sJob=null;
-const SITE_FIELDS=["s_domains","s_operator","s_max","s_workers","s_delay","s_deep"];
+const SITE_FIELDS=["s_domains","s_operator","s_max","s_workers","s_delay","s_deep","s_multi"];
 function saveSite(){ const o={}; SITE_FIELDS.forEach(f=>{const el=$(f); if(el)o[f]=fval(el);}); localStorage.setItem("xmlstock_site",JSON.stringify(o)); }
 function loadSite(){ try{ const o=JSON.parse(localStorage.getItem("xmlstock_site")||"{}"); SITE_FIELDS.forEach(f=>{const el=$(f); if(o[f]!==undefined && el) setval(el,o[f]); }); }catch(e){} }
 loadSite();
@@ -683,7 +686,8 @@ $("s_go").onclick = async ()=>{
   if(!$("user").value.trim()||!$("key").value.trim()){ showErr("Заполните User ID и API key."); return; }
   if(!$("s_domains").value.trim()){ showErr("Добавьте хотя бы один домен."); return; }
   const payload={...shared(), domains:$("s_domains").value, operator:$("s_operator").value,
-    max_urls:$("s_max").value, workers:$("s_workers").value, deep:$("s_deep").checked, delay:$("s_delay").value};
+    max_urls:$("s_max").value, workers:$("s_workers").value, deep:$("s_deep").checked, delay:$("s_delay").value,
+    multi_op:$("s_multi").checked};
   $("s_go").disabled=true;
   try{
     const r=await fetch("/api/site/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
@@ -698,6 +702,11 @@ function startSite(){
   $("s_dlXlsx").classList.add("hidden"); $("s_dlCsv").classList.add("hidden"); $("s_stop").classList.remove("hidden");
   $("s_panel").scrollIntoView({behavior:"smooth"});
 }
+function fmtPerOp(p){
+  if(!p) return "";
+  const L={site:"site",host:"host",url:"url",rhost:"rhost",plain:"дом"};
+  return Object.keys(L).filter(k=>p[k]!=null).map(k=>`${L[k]} ${p[k]}`).join(" · ");
+}
 async function sRefresh(){
   if(!sJob) return; let d;
   try{ d=await (await fetch("/api/site/status/"+sJob)).json(); }catch(e){ return; }
@@ -708,7 +717,7 @@ async function sRefresh(){
   $("s_tbody").innerHTML=(d.rows||[]).map(r=>{
     const st = r.error ? `<span class="p-no">${esc(r.error)}</span>`
              : (r.collected==null ? '<span class="miss">…</span>' : '<span class="p-top">готово</span>');
-    return `<tr><td>${esc(r.domain)}</td><td>${r.found==null?"—":r.found}</td><td>${r.collected==null?"—":r.collected}</td><td>${st}</td></tr>`;
+    return `<tr><td>${esc(r.domain)}</td><td>${r.found==null?"—":r.found}</td><td>${r.collected==null?"—":r.collected}</td><td class="pill">${fmtPerOp(r.per_op)}</td><td>${st}</td></tr>`;
   }).join("");
   if(d.status!=="running"){
     clearInterval(sPoll); sPoll=null; $("s_go").disabled=false; $("s_stop").classList.add("hidden");

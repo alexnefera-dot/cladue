@@ -482,17 +482,76 @@ def _collect_site(cfg, op, host, path_segs, cap, cancel, urls, seen, depth, budg
     return found, err
 
 
-def fetch_site_pages(cfg, domain, cap, cancel):
-    """Собирает URL страниц домена через site:. В «глубоком» режиме рекурсивно
-    дробит по разделам и подразделам (до 2 уровней), обходя потолок ~200 на запрос.
-    Число под-запросов на домен ограничено бюджетом."""
-    host = clean_host(domain)
-    op = cfg["operator"]
+def _reverse_host(host):
+    parts = [p for p in (host or "").split(".") if p]
+    return ".".join(reversed(parts))
+
+
+def _operator_query(opname, host):
+    if opname == "host":
+        return f"host:{host}"
+    if opname == "url":
+        return f"url:{host}*"
+    if opname == "rhost":
+        return f"rhost:{_reverse_host(host)}.*"
+    if opname == "plain":
+        return host
+    return f"site:{host}"
+
+
+def _collect_for_operator(cfg, opname, host, cap, cancel, budget):
+    """URL для одного оператора. site/host — с рекурсивным дроблением по пути,
+    остальные (url/rhost/домен) — одиночным запросом."""
     urls, seen = [], set()
-    budget = [cfg.get("deep_budget", 60)]
-    found, err = _collect_site(cfg, op, host, [], cap, cancel, urls, seen, 0, budget)
-    return {"domain": domain, "host": host, "urls": urls[:cap],
-            "found": found, "error": err, "collected": min(len(urls), cap)}
+    if opname in ("site", "host"):
+        found, err = _collect_site(cfg, opname + ":", host, [], cap, cancel, urls, seen, 0, budget)
+    else:
+        found, err = None, None
+        if budget[0] > 0 and not cancel.is_set():
+            budget[0] -= 1
+            res = _fetch_site_query(cfg, _operator_query(opname, host), min(cap, 1000), cancel)
+            for d in res["urls"]:
+                if d["url"] not in seen:
+                    seen.add(d["url"])
+                    urls.append(d)
+            found, err = res["found"], res["error"]
+    return urls, found, err
+
+
+def fetch_site_pages(cfg, domain, cap, cancel):
+    """Собирает URL страниц домена из индекса. В режиме «все операторы» гоняет
+    несколько конструкций (site/host/url/rhost/домен) и объединяет уникальные —
+    разные операторы показывают разные части индекса Яндекса. site/host при
+    «глубоком» режиме ещё и дробятся по разделам."""
+    host = clean_host(domain)
+    target = registrable_domain(host)
+    base_op = "host" if cfg.get("operator") == "host:" else "site"
+    ops = ["site", "host", "url", "rhost", "plain"] if cfg.get("multi_op") else [base_op]
+    per_op_budget = 20 if cfg.get("multi_op") else cfg.get("deep_budget", 60)
+
+    union_seen, union_urls, per_op = set(), [], {}
+    base_found, base_err = None, None
+    for opname in ops:
+        if cancel.is_set() or len(union_urls) >= cap:
+            break
+        local, found, err = _collect_for_operator(cfg, opname, host, cap, cancel, [per_op_budget])
+        cnt = 0
+        for d in local:
+            if registrable_domain(url_host(d["url"])) != target:  # чужие URL — мимо
+                continue
+            cnt += 1
+            if d["url"] not in union_seen:
+                union_seen.add(d["url"])
+                union_urls.append(d)
+                if len(union_urls) >= cap:
+                    break
+        per_op[opname] = cnt
+        if opname == base_op:
+            base_found, base_err = found, err
+
+    return {"domain": domain, "host": host, "urls": union_urls[:cap],
+            "found": base_found, "error": base_err,
+            "collected": min(len(union_urls), cap), "per_op": per_op}
 
 
 def run_site(job_id, cfg, domains):
@@ -1420,6 +1479,7 @@ def api_site_run():
         "user": user, "key": key, "endpoint": endpoint, "live": _is_live(endpoint),
         "operator": op,
         "deep": bool(data.get("deep", False)),
+        "multi_op": bool(data.get("multi_op", False)),
         "lr": (data.get("lr") or "").strip(),
         "device": (data.get("device") or "").strip(),
         "max_urls": clamp(data.get("max_urls"), 10, 5000, 1000),
@@ -1453,7 +1513,8 @@ def api_site_status(job_id):
             if r:
                 total_urls += r["collected"]
                 rows.append({"domain": d, "found": r.get("found"),
-                             "collected": r["collected"], "error": r.get("error")})
+                             "collected": r["collected"], "error": r.get("error"),
+                             "per_op": r.get("per_op")})
             else:
                 rows.append({"domain": d, "found": None, "collected": None, "error": None})
         return jsonify({"status": job["status"], "total": job["total"], "done": job["done"],
