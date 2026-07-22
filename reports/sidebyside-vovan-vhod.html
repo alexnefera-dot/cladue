@@ -1,0 +1,298 @@
+<meta charset='utf-8'><title>Генерация vs реальный сайт (vovan/vhod)</title><style>:root{--bg:#f6f8fc;--panel:#fff;--panel2:#eef2f8;--ink:#1a2230;--muted:#5d6b82;--line:#e2e7ef;--gen:#1f9d6b;--real:#3f7bf0;--warn:#d98a2a;--mono:ui-monospace,Menlo,Consolas,monospace;--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;}
+@media(prefers-color-scheme:dark){:root{--bg:#0e131c;--panel:#151d29;--panel2:#1b2431;--ink:#e7ecf5;--muted:#8b98b0;--line:#26303f;--gen:#33c08a;--real:#5b95ff;--warn:#eaa54a;}}
+:root[data-theme="dark"]{--bg:#0e131c;--panel:#151d29;--panel2:#1b2431;--ink:#e7ecf5;--muted:#8b98b0;--line:#26303f;--gen:#33c08a;--real:#5b95ff;--warn:#eaa54a;}
+:root[data-theme="light"]{--bg:#f6f8fc;--panel:#fff;--panel2:#eef2f8;--ink:#1a2230;--muted:#5d6b82;--line:#e2e7ef;--gen:#1f9d6b;--real:#3f7bf0;--warn:#d98a2a;}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--sans)}
+.wrap{max-width:1160px;margin:0 auto;padding:24px 18px 70px}
+.eyebrow{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700}
+h1{font-size:23px;margin:6px 0 8px}.lead{color:var(--muted);max-width:80ch;font-size:14px}
+.summary{margin:14px 0;padding:12px 15px;border-radius:11px;background:var(--panel2);border:1px solid var(--line);font-size:14px}
+.mtable{overflow-x:auto;border:1px solid var(--line);border-radius:11px;margin:14px 0 22px}
+table.cmp{border-collapse:collapse;width:100%;font-size:13px;min-width:420px}
+table.cmp th,table.cmp td{padding:6px 10px;border-bottom:1px solid var(--line);text-align:right}
+table.cmp th{color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.03em}
+table.cmp td.m,table.cmp th:first-child{text-align:left;font-weight:600}
+table.cmp td.v{font-family:var(--mono)}td.v.real{color:var(--real)}td.v.gen{color:var(--gen)}
+td.mk{font-weight:700}td.mk.ok{color:var(--gen)}td.mk.warn{color:var(--warn)}td.band{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:820px){.cols{grid-template-columns:1fr}}
+.col h2{font-size:14px;margin:0 0 8px;display:flex;align-items:center;gap:8px}
+.tag{font-size:11px;font-weight:700;color:#fff;padding:2px 9px;border-radius:20px}
+.tag.gen{background:var(--gen)}.tag.real{background:var(--real)}
+.doc{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:20px 22px;height:70vh;overflow:auto}
+.doc :is(h1,h2){font-size:18px;margin:18px 0 7px;padding-top:7px;border-top:1px solid var(--line)}
+.doc h3{font-size:15px;margin:14px 0 5px}
+.doc p{margin:0 0 11px}.doc ul{margin:0 0 12px;padding-left:20px}.doc li{margin:3px 0}
+.doc table{border-collapse:collapse;width:100%;margin:6px 0 14px;font-size:13px;display:block;overflow-x:auto}
+.doc th,.doc td{border:1px solid var(--line);padding:6px 9px;text-align:left}
+.doc blockquote{margin:0 0 12px;padding:9px 13px;border-left:3px solid var(--muted);background:var(--panel2);border-radius:0 8px 8px 0;font-style:italic;color:var(--muted)}
+.doc strong{color:var(--ink)}.foot{color:var(--muted);font-size:12px;margin-top:22px;text-align:center}</style><div class='wrap'><div class='eyebrow'>Донор-режим · клон одного сайта · тип «vhod»</div><h1>Наша генерация против реального сайта <b>vovan</b></h1><p class='lead'>Слева — страница, собранная генератором в режиме клонирования донора <b>vovan</b>. Справа — реальная страница того же сайта того же типа. Форма (объём, H2, списки, таблицы, цитаты, тон, «вы») совпадает; контент — полностью свой, из пулов.</p><div class='summary'>📊 Совпадение формы с реальным сайтом: <b>11/15</b> метрик в пределах ±25%. Контент при этом другой — это клон <b>по форме</b>, а не копия текста.</div><div class='mtable'><table class='cmp'><thead><tr><th>Метрика</th><th style='color:var(--real)'>Реальный vovan</th><th style='color:var(--gen)'>Наш клон</th><th>≈</th><th>Коридор корпуса</th></tr></thead><tbody><tr><td class='m'>Слов</td><td class='v real'>588</td><td class='v gen'>543</td><td class='mk ok'>≈</td><td class='band'>[430–954]</td></tr><tr><td class='m'>H2</td><td class='v real'>2</td><td class='v gen'>2</td><td class='mk ok'>≈</td><td class='band'>[2–2]</td></tr><tr><td class='m'>Списков</td><td class='v real'>5</td><td class='v gen'>5</td><td class='mk ok'>≈</td><td class='band'>[2–6]</td></tr><tr><td class='m'>Таблиц</td><td class='v real'>1</td><td class='v gen'>1</td><td class='mk ok'>≈</td><td class='band'></td></tr><tr><td class='m'>Цитат</td><td class='v real'>2</td><td class='v gen'>2</td><td class='mk ok'>≈</td><td class='band'></td></tr><tr><td class='m'>strong</td><td class='v real'>5</td><td class='v gen'>7</td><td class='mk warn'>≠</td><td class='band'></td></tr><tr><td class='m'>FAQ</td><td class='v real'>1</td><td class='v gen'>1</td><td class='mk ok'>≈</td><td class='band'>[5–20]</td></tr><tr><td class='m'>Цифр/100</td><td class='v real'>2.2</td><td class='v gen'>1.3</td><td class='mk warn'>≠</td><td class='band'>[0.3–4.5]</td></tr><tr><td class='m'>Прилаг%</td><td class='v real'>13.4</td><td class='v gen'>12.3</td><td class='mk ok'>≈</td><td class='band'>[8.6–15.4]</td></tr><tr><td class='m'>Тошнота%</td><td class='v real'>26.9</td><td class='v gen'>24.5</td><td class='mk ok'>≈</td><td class='band'>[18.8–32.4]</td></tr><tr><td class='m'>Водность%</td><td class='v real'>27.2</td><td class='v gen'>29.7</td><td class='mk ok'>≈</td><td class='band'>[22.4–37.1]</td></tr><tr><td class='m'>«вы»</td><td class='v real'>10</td><td class='v gen'>10</td><td class='mk ok'>≈</td><td class='band'></td></tr><tr><td class='m'>Первое лицо</td><td class='v real'>2</td><td class='v gen'>0</td><td class='mk warn'>≠</td><td class='band'></td></tr><tr><td class='m'>Эмодзи</td><td class='v real'>0</td><td class='v gen'>0</td><td class='mk ok'>≈</td><td class='band'></td></tr><tr><td class='m'>Сущностей</td><td class='v real'>1</td><td class='v gen'>4</td><td class='mk warn'>≠</td><td class='band'></td></tr></tbody></table></div><div class='cols'><div class='col'><h2><span class='tag gen'>НАШ КЛОН</span> Granville · сгенерировано</h2><div class='doc'><p><strong>Гранвиль</strong>. Вход в Granville — это не только пара секунд у формы авторизации, но и защита ваших средств. Ниже собран практический разбор: как безопасно войти в аккаунт Granville, что делать при потере доступа и как не отдать пароль мошенникам, которые всегда рады лёгкой добыче.</p>
+
+<h2>Безопасный вход в Granville: щит для вашего аккаунта</h2>
+<p>Форму входа вы проходите за секунды, но именно она стоит на страже вашего баланса. Логин по почте или телефону, пароль, а при включённой защите — код подтверждения: этого достаточно, чтобы посторонний остался за дверью. Дальше — то, что превращает обычный вход в надёжную крепость.</p>
+
+<h3>Заполненный профиль — ключ к спокойному выводу</h3>
+<p>Пока профиль пуст, часть возможностей закрыта, а первый вывод рискует затянуться. Приведите данные в порядок заранее, и вход перестанет приносить сюрпризы:</p>
+<ul>
+<li>укажите <strong>настоящие</strong> имя, фамилию и дату рождения;</li>
+<li>привяжите проверенные почту и телефон;</li>
+<li>держите под рукой документ для верификации;</li>
+<li>проверьте, что контактные данные актуальны.</li>
+</ul>
+
+<h3>Пароль и двухфакторная защита — два рубежа</h3>
+<p>Надёжный пароль — первый рубеж обороны вашего аккаунта, а двухфакторная защита — второй. Даже если пароль утечёт, без одноразового кода вход не состоится, и ваши средства останутся при вас.</p>
+<ul>
+<li>берите пароль от <strong>12 символов</strong>, вперемешку буквы и цифры;</li>
+<li>не повторяйте один пароль на разных сайтах;</li>
+<li>храните пароли в менеджере, а не в заметках;</li>
+<li>включите подтверждение по коду в настройках безопасности.</li>
+</ul>
+<blockquote>«Мошенники обожают спешку: письмо про срочную проверку пароля — почти всегда ловушка. Настоящая площадка код по почте у вас не запрашивает».</blockquote>
+
+<h3>Осторожность против фишинга</h3>
+<p>Фишеры подменяют адреса и пугают срочной блокировкой, чтобы вы ввели пароль на чужой странице. Спокойствие и привычка проверять источник обесценивают их трюки:</p>
+<ul>
+<li>заходите на сайт из <strong>закладки</strong>, а не по ссылке из письма;</li>
+<li>сверяйте адрес в строке браузера перед вводом данных;</li>
+<li>не вводите код подтверждения там, где не уверены в источнике.</li>
+</ul>
+
+<h3>Что делать, если доступ к аккаунту потерян</h3>
+<p>Потеря пароля или блокировка на входе — ситуация рабочая и решаемая за <strong>3</strong> шага. Главное — не искать обходные пути на сомнительных страницах, а действовать по порядку:</p>
+<ul>
+<li>нажмите «Забыли пароль» и получите ссылку на почту;</li>
+<li>задайте новый пароль и сохраните его в менеджере;</li>
+<li>при блокировке напишите в поддержку и уточните статус.</li>
+</ul>
+<p>Ссылку для сброса вы получаете на привязанную почту в течение <strong>2 минут</strong>. Если аккаунт ушёл на проверку, вход обычно возвращается в течение <strong>24 часов</strong> после подтверждения данных.</p>
+
+<h3>Вход через рабочее зеркало</h3>
+<p>Когда основной адрес закрыт провайдером, доступ сохраняет зеркало — тот же аккаунт на запасном домене, с вашим балансом и историей. Логин и пароль остаются прежними, повторная регистрация не нужна, а найти рабочий адрес помогают проверенные источники:</p>
+<ul>
+<li>ссылка из личного кабинета или официального бота;</li>
+<li>письмо на привязанную почту;</li>
+<li>автопоиск адреса в мобильном приложении.</li>
+</ul>
+
+<h3>Быстрый аудит перед входом</h3>
+<p>Перед тем как ввести данные, пробегитесь по короткому списку — этот микро-аудит экономит и деньги, и нервы.</p>
+<table>
+<thead><tr><th>Что проверить</th><th>Зачем это нужно</th></tr></thead>
+<tbody>
+<tr><td>Адрес в строке браузера</td><td>чтобы не попасть на поддельную копию сайта</td></tr>
+<tr><td>Двухфакторная защита</td><td>второй барьер при утечке пароля</td></tr>
+<tr><td>Список активных сессий</td><td>увидеть чужой вход и закрыть его вовремя</td></tr>
+<tr><td>Срок действия кода</td><td>ввести код 2FA, пока он не устарел</td></tr>
+</tbody>
+</table>
+<blockquote>«Взял за правило открывать сайт только из закладки, а не по ссылке из письма. С тех пор про фишинг и чужие входы забыл».</blockquote>
+
+<h2>Частые вопросы</h2>
+<h3>Что делать, если на входе просят подтвердить личность?</h3>
+<p>Загрузите документ и подтверждение адреса в разделе верификации; обычно проверка занимает несколько часов, после чего вход и вывод снова работают штатно.</p>
+
+<p><em>Последнее обновление: 21 июля 2026 · granville.win</em></p>
+
+
+</div></div><div class='col'><h2><span class='tag real'>РЕАЛЬНЫЙ</span> vovan · из корпуса</h2><div class='doc'><p>Вован.</p>
+
+
+
+
+
+            <h2>Безопасность при входе в Vovan: как защитить доступ к своему аккаунту и не попасть на фишинг</h2>
+
+<p>Вход в ваш аккаунт — это не про одну победу, а про сохранность ваших средств и данных. Шулер знает много трюков, но вы же читаете это как опытный игрок: выиграет тот, кто лучше преступает через ловушки. Ниже — практическое руководство, чтобы вход оставался надежной крепостью.</p>
+
+<blockquote>Фишеры любят дилерские трюки: лошадка phishing, клик по фальшивым ссылкам и краже данных. Не становитесь их добычей — проверяйте адрес и не доверяйте всё подряд.</blockquote>
+
+<h3>1) Сильный пароль — ваш первый щит</h3>
+<ul>
+  <li>Используйте длинные пароли, 12 и более символов. Бери фразу, соединяй слова и цифры — получится крепко.</li>
+  <li>Смешивайте заглавные/строчные буквы, цифры и спецсимволы — иначе хакеры заскучают.</li>
+  <li>Не повторяйте пароль на разных сайтах. Один пароль откуда-то — не шифр, это клин в дверь.</li>
+  <li>Используйте менеджер паролей — он держит ключи под замком и вам не придется их запоминать.</li>
+  <li>Периодически меняйте пароль, но не забывайте хранить новые значения в надежном менеджере.</li>
+</ul>
+
+<h3>2) Двухфакторная аутентификация (2FA) — двойная страховка</h3>
+<p>2FA добавляет дополнительный слой защиты: даже если кто-то украдет ваш пароль, без временного кода вход будет невозможен.</p>
+<ol>
+  <li>Зайдите в настройки безопасности вашего аккаунта.</li>
+  <li>Включите двухфакторную аутентификацию и выберите метод (Google Authenticator, приложение-аутентификатор или SMS).</li>
+  <li>Настройте резервный код и сохраните его в надежном месте.</li>
+  <li>Периодически проверяйте активность входов — если видите незнакомый девайс, преступление можно остановить на старте.</li>
+</ol>
+
+<h3>3) Осторожная навигация: фишинг и вредоносные ссылки</h3>
+<p>Фишеры работают хитро: подменяют адреса, пишут срочные письма, пугают потерей аккаунта. Всегда проверяйте источник и не кликайте по странной почте или ссылке.</p>
+<blockquote>Не доверяйте письмам и сообщениями, которые требуют «быстрой проверки» вашего пароля. Никакие крупные сайты не запрашивают пароль по письму.</blockquote>
+<ul>
+  <li>Всегда заходите на сайт через вкладку в браузере или по сохраненной закладки — не через пришедшую ссылку.</li>
+  <li>Проверьте домен: Vovan.com, а не «Vovan.club» или прочие подмены.</li>
+  <li>Не вводите код 2FA там, где не уверены, что это свой сайт — сверяйте источник.</li>
+</ul>
+
+<h3>4) Быстрый контроль перед входом (таблица-микро-аудит)</h3>
+<div class="table-responsive"><table>
+  <thead>
+    <tr>
+      <th>Элемент</th>
+      <th>Что проверить</th>
+      <th>Комментарий</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Пароль</td>
+      <td>Сильный пароль (12+ символов)</td>
+      <td>Менеджер паролей поможет держать порядок</td>
+    </tr>
+    <tr>
+      <td>2FA</td>
+      <td>Включена ли двухфакторная аутентификация</td>
+      <td>Если нет — включайте немедленно</td>
+    </tr>
+    <tr>
+      <td>Активные устройства</td>
+      <td>Проверить список входов</td>
+      <td>Отключайте незнакомые устройства</td>
+    </tr>
+    <tr>
+      <td>Подозрительные письма</td>
+      <td>Не кликайте по сомнительным ссылкам</td>
+      <td>Проверяйте источник и домен</td>
+    </tr>
+    <tr>
+      <td>Зеркало</td>
+      <td>Доступ к сайту через зеркало, если основной сайт недоступен</td>
+      <td>Используйте официальный путь через Зеркало</td>
+    </tr>
+  </tbody>
+</table></div>
+
+<h3>5) Где найти помощь и как связаться</h3>
+<p>Если что-то пошло не так — не молчите. Быстрое реагирование — ваш лучший друг.</p>
+<ul>
+  <li>Зеркало: Зеркало</li>
+  <li>Бонусы и промокоды: Бонусы и промокоды</li>
+  <li>Регистрация: Регистрация — если аккаунта нет или требуется новая начальная настройка</li>
+  <li>Скачать приложение: Скачать приложение — удобство и дополнительная защита на мобильном</li>
+  <li>Игровые автоматы: Игровые автоматы — безопасная навигация внутри каталога</li>
+</ul>
+
+<h3>6) Действие (CTA): что сделать прямо сейчас</h3>
+<ol>
+  <li><strong>Включите 2FA</strong> в настройках безопасности и сохраните резервный код.</li>
+  <li><strong>Создайте сильный пароль</strong> и сохраните его в менеджере паролей.</li>
+  <li><strong>Проверьте активные устройства</strong> и уберите незнакомые входы.</li>
+  <li><strong>Зайдите через зеркало</strong> только по проверенным адресам, если основной сайт недоступен — Зеркало.</li>
+  <li><strong>Если нужно новое оформление учетной записи</strong>, перейдите в регистрацию и начните с чистого листа безопасности.</li>
+</ol>
+
+<p>Готовы к чистой, прозорливой игре? Ваша безопасность — главный ход. Сохраняйте спокойствие, соблюдайте правила и помните: безопасный вход — это победа без риска.</p>
+
+
+<h2>Ответы на вопросы</h2>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+    <div class="c-Ответы на частые вопросы">
+        <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+            <summary itemprop="name">Что делать, если забыл пароль?</summary>
+            <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+                <div itemprop="text"><p>Используйте функцию восстановления пароля на странице входа.</p></div>
+            </div>
+        </details>
+    </div>
+</div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+    <div class="c-Ответы на частые вопросы">
+        <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+            <summary itemprop="name">Как проверить, успешно ли прошла ставка?</summary>
+            <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+                <div itemprop="text"><p>Посмотрите в разделе "История ставок" на своем аккаунте.</p></div>
+            </div>
+        </details>
+    </div>
+</div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+    <div class="c-Ответы на частые вопросы">
+        <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+            <summary itemprop="name">Можно ли изменить валюту счета после регистрации?</summary>
+            <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+                <div itemprop="text"><p>Нет, после регистрации валюта счета не подлежит изменению.</p></div>
+            </div>
+        </details>
+    </div>
+</div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+    <div class="c-Ответы на частые вопросы">
+        <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+            <summary itemprop="name">Что делать, если произошел сбой в игре?</summary>
+            <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+                <div itemprop="text"><p>Перезагрузите страницу и проверьте статус игры в разделе "История".</p></div>
+            </div>
+        </details>
+    </div>
+</div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+    <div class="c-Ответы на частые вопросы">
+        <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+            <summary itemprop="name">Как узнать, есть ли у меня недочеты в верификации?</summary>
+            <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+                <div itemprop="text"><p>Загляните в раздел "Мой профиль" — там вся информация.</p></div>
+            </div>
+        </details>
+    </div>
+</div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+    <div class="c-Ответы на частые вопросы">
+        <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+            <summary itemprop="name">Что делать, если заблокировали аккаунт?</summary>
+            <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+                <div itemprop="text"><p>Свяжитесь с поддержкой через чат или email.</p></div>
+            </div>
+        </details>
+    </div>
+</div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+    <div class="c-Ответы на частые вопросы">
+        <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+            <summary itemprop="name">Как использовать бонусы на ставки?</summary>
+            <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+                <div itemprop="text"><p>Бонусы активируются в разделе "Мои бонусы" перед ставкой.</p></div>
+            </div>
+        </details>
+    </div>
+</div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+    <div class="c-Ответы на частые вопросы">
+        <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+            <summary itemprop="name">Могу ли я вернуть средства при ошибочной ставке?</summary>
+            <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+                <div itemprop="text"><p>К сожалению, отмена ставки возможна только в исключительных случаях.</p></div>
+            </div>
+        </details>
+    </div>
+</div>
+        
+        
+        <div class="button-container">
+          Вован
+        </div>
+
+        
+        <p>Последнее обновление vovan.win: 
+          <time datetime="%date%" itemprop="dateModified">
+            %date%          </time>
+        </p>
+      </div>
+</div></div></div></div><div class='foot'>Наш клон — engine/generate.php --donor=vovan. Реальный — сайт vovan из корпуса 50 (бренд заменён на «Вован»). Метрики — движок v2.</div></div>
