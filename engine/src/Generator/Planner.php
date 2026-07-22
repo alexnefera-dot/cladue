@@ -130,6 +130,7 @@ final class Planner
         $factPool = $this->loadFactPool($type);
         $topicPool = $this->pools['topics'][$type] ?? [];
         $crossTopics = $this->crossTopics();
+        $angles = $this->pools['topic_angles'] ?? [];
 
         $sections = [];
         $sections[] = [
@@ -151,13 +152,20 @@ final class Planner
             $level = $h2left > 0 ? 'H2' : 'H3';
             if ($level === 'H2') { $h2left--; }
 
-            // тема-фраза (без дублей в пределах страницы, до 4 попыток)
+            // тема-фраза = база (из пула типа/кросс) + часто «угол подачи».
+            // База × угол = сотни комбинаций → разные варианты при одном доноре.
+            // Дедуп по СОСТАВНОЙ теме (до 5 попыток).
             $topic = null;
-            for ($try = 0; $try < 4; $try++) {
+            for ($try = 0; $try < 5; $try++) {
                 if ($theme === 'ПРОЧЕЕ / креатив') {
-                    $cand = $rng->chance(0.35) ? $rng->pick($crossTopics) : $rng->pick($topicPool ?: $crossTopics);
+                    $base = $rng->chance(0.5) ? $rng->pick($crossTopics) : $rng->pick($topicPool ?: $crossTopics);
                 } else {
-                    $cand = $rng->pick($topicPool ?: [$theme]) ?? $theme;
+                    // ядро типа, но иногда подмешиваем кросс-тему — тоже источник разнообразия
+                    $base = $rng->chance(0.2) ? $rng->pick($crossTopics) : ($rng->pick($topicPool ?: [$theme]) ?? $theme);
+                }
+                $cand = $base;
+                if ($angles !== [] && $rng->chance(0.6)) {
+                    $cand = $base . ': ' . $rng->pick($angles);
                 }
                 if ($cand !== null && !in_array($cand, $usedTopics, true)) { $topic = $cand; break; }
                 $topic = $cand;
