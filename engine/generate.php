@@ -23,7 +23,7 @@ $opts = [
     'type' => '', 'brand-ru' => 'Бренд', 'brand-en' => 'Brand',
     'domain' => 'example.win', 'date' => '21 июля 2026', 'seed' => '',
     'out-dir' => '', 'all' => false, 'json' => false, 'prompt' => false, 'both' => false,
-    'donor' => '', 'list-donors' => false, 'register' => '',
+    'donor' => '', 'list-donors' => false, 'register' => '', 'brand-var' => false,
 ];
 foreach (array_slice($argv, 1) as $a) {
     if (!str_starts_with($a, '--')) { continue; }
@@ -33,6 +33,14 @@ foreach (array_slice($argv, 1) as $a) {
 }
 
 $mode = $opts['both'] ? 'both' : ($opts['json'] ? 'json' : 'prompt');
+
+// Бренд-переменная: подставляем шаблон-плейсхолдеры корпуса вместо реального имени
+if ($opts['brand-var'] === true) {
+    $opts['brand-ru'] = '%brand_name_ru%';
+    $opts['brand-en'] = '%brand_name_en%';
+    $opts['domain']   = '%domain_name%';
+    $opts['date']     = '%date%';
+}
 
 $planner = new Planner();
 $builder = new PromptBuilder();
@@ -101,6 +109,7 @@ foreach ($types as $type) {
     $seed = is_string($opts['seed']) ? $opts['seed'] : '';
     $seedForType = $seed !== '' ? ($seed . ':' . $type) : '';
     $spec = $planner->plan($type, $brand($type, $seedForType), $style, $donor);
+    if ($opts['brand-var'] === true) { $spec['brand_var'] = true; }
 
     $jsonStr = json_encode($spec, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     $promptStr = $builder->build($spec);

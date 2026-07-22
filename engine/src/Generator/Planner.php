@@ -241,6 +241,7 @@ final class Planner
             'donor'     => $donor['name'] ?? null,
             'data_card' => $this->buildDataCard($rng, $type),
             'data_tables' => $this->buildDataTables($rng, $type),
+            'links'     => $this->buildLinks($type, $rng, $brandRu, $brandEn),
             'register'  => $this->resolveRegister($style->register),
             'style'     => $style->toArray(),
             'targets'   => $targets,
@@ -533,6 +534,33 @@ final class Planner
         if ($raw === false) { return []; }
         $lines = preg_split('/\r?\n/', trim($raw)) ?: [];
         return array_values(array_filter(array_map('trim', $lines), static fn($l) => $l !== '' && mb_strlen($l) > 15));
+    }
+
+    /**
+     * Перелинковка 7×7: ссылки на 6 других страниц связки с ключевыми
+     * анкорами (ключ + бренд-переменная). Так набор связан, без сирот и тупиков.
+     */
+    private function buildLinks(string $type, Rng $rng, string $brandRu, string $brandEn): array
+    {
+        // путь → набор анкор-шаблонов (ключевые запросы кластера)
+        $pages = [
+            'main'        => ['path' => '/',            'anchors' => ["{ru} официальный сайт", "обзор {en}", "казино {ru}"]],
+            'zerkalo'     => ['path' => '/zerkalo',     'anchors' => ["{ru} зеркало", "рабочее зеркало {en}", "актуальное зеркало"]],
+            'vhod'        => ['path' => '/vhod',         'anchors' => ["вход в {ru}", "{en} вход", "авторизация {ru}"]],
+            'registracia' => ['path' => '/registracia', 'anchors' => ["регистрация в {ru}", "{en} регистрация", "как зарегистрироваться"]],
+            'bonus'       => ['path' => '/bonus',        'anchors' => ["бонусы {ru}", "{en} бонус", "промокоды {ru}"]],
+            'slots'       => ['path' => '/slots',        'anchors' => ["слоты {ru}", "игровые автоматы {en}", "играть в слоты"]],
+            'app'         => ['path' => '/app',          'anchors' => ["{ru} приложение", "скачать {en}", "мобильная версия"]],
+        ];
+        $out = [];
+        foreach ($pages as $t => $info) {
+            if ($t === $type) { continue; } // на себя не ссылаемся
+            $tpl = $rng->pick($info['anchors']);
+            $anchor = str_replace(['{ru}', '{en}'], [$brandRu, $brandEn], $tpl);
+            $out[] = ['path' => $info['path'], 'anchor' => $anchor];
+        }
+        $rng->shuffle($out);
+        return $out;
     }
 
     /** Определение регистра (гайд + примеры фраз) из пула по id */
