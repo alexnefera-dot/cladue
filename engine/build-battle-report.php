@@ -82,9 +82,10 @@ foreach ($runs as $run) {
         $don = isset($dprof[$t]) ? donorPage($dprof[$t]) : null;
         $data[$run['id']][$t] = ['our'=>$our,'don'=>$don];
         if($don){
-            foreach($PARAMS as $P){ $k=$P[0]; $dv=$don[$k]??null; if($dv===null||$dv==0)continue;
+            // сравниваем только там, где у донора значение достаточно велико (иначе деление на ~0 даёт шум)
+            foreach($PARAMS as $P){ $k=$P[0]; $dv=$don[$k]??null; $floor=$P[2]?0.8:3; if($dv===null||abs($dv)<$floor)continue;
                 $agg[$k][] = ($our[$k]-$dv)/max(abs($dv),1)*100; }
-            foreach(($don['sem']??[]) as $ck=>$dv){ if($dv<=0)continue; $ov=$our['sem'][$ck]??0; $aggSem[$ck][]=($ov-$dv)/max($dv,0.1)*100; }
+            foreach(($don['sem']??[]) as $ck=>$dv){ if($dv<1.0)continue; $ov=$our['sem'][$ck]??0; $aggSem[$ck][]=($ov-$dv)/max($dv,0.1)*100; }
         }
     }
 }
@@ -111,8 +112,8 @@ $perRunGreen=[];
 foreach($runs as $run){ $rid=$run['id']; $reg=$REG[$run['donor']]??''; $tot=0;$okc=0; $cells='';
     foreach($TYPES as $t){ if(!isset($data[$rid][$t])||!$data[$rid][$t]['don']){$cells.="<td class='m m-na'>—</td>";continue;}
         $o=$data[$rid][$t]['our'];$d=$data[$rid][$t]['don']; $ok=0;$n=0;
-        foreach($PARAMS as $P){$k=$P[0];$dv=$d[$k]??null;if($dv===null)continue;$n++;if(verdict($o[$k],$dv,$P[2])==='ok')$ok++;}
-        foreach(($d['sem']??[]) as $ck=>$dv){if($dv<=0)continue;$n++;if(verdict($o['sem'][$ck]??0,$dv,true)==='ok')$ok++;}
+        foreach($PARAMS as $P){$k=$P[0];$dv=$d[$k]??null;$floor=$P[2]?0.8:3;if($dv===null||abs($dv)<$floor)continue;$n++;if(verdict($o[$k],$dv,$P[2])==='ok')$ok++;}
+        foreach(($d['sem']??[]) as $ck=>$dv){if($dv<1.0)continue;$n++;if(verdict($o['sem'][$ck]??0,$dv,true)==='ok')$ok++;}
         $pct=$n?round($ok/$n*100):0; $cls=$pct>=70?'ok':($pct>=50?'warn':'bad');
         $cells.="<td class='m m-$cls' title='$ok/$n'>$pct</td>"; $tot+=$n;$okc+=$ok;
     }
