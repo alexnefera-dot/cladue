@@ -240,6 +240,7 @@ final class Planner
             'seed'      => $seed,
             'donor'     => $donor['name'] ?? null,
             'data_card' => $this->buildDataCard($rng, $type),
+            'data_tables' => $this->buildDataTables($rng, $type),
             'register'  => $this->resolveRegister($style->register),
             'style'     => $style->toArray(),
             'targets'   => $targets,
@@ -429,6 +430,65 @@ final class Planner
             $card['Джекпот'] = $this->sampleValue('jackpot_sum', $rng);
         }
         return $card;
+    }
+
+    /**
+     * Расширенная фактура — СТРУКТУРНЫЕ блоки-таблицы (турнирная сетка,
+     * история джекпотов, лимиты по уровням лояльности). Для main/bonus/slots.
+     */
+    private function buildDataTables(Rng $rng, string $type): array
+    {
+        $tables = [];
+        $games = $this->pools['entities']['games_slots'] ?? [];
+
+        if (in_array($type, ['main', 'bonus'], true)) {
+            // Турнирная сетка (3-4 турнира)
+            $names = ['Слот-баттл', 'Live-марафон', 'Сезонный кубок', 'Ночной турнир', 'Уик-энд гонка', 'Джекпот-квест'];
+            $rng->shuffle($names);
+            $grid = [];
+            $fundPool = [50000, 100000, 300000, 500000, 1000000];
+            $n = $rng->int(3, 4);
+            for ($i = 0; $i < $n; $i++) {
+                $fund = $rng->pick($fundPool);
+                $top = (int) round($fund * $rng->range(0.35, 0.6)); // топ-приз — доля фонда
+                $grid[] = [
+                    'Турнир'  => $names[$i],
+                    'Вход'    => $rng->pick(['0 ₽', '5 USD', '10 USD', '100 ₽', '500 ₽']),
+                    'Фонд'    => number_format($fund, 0, '', ' ') . ' ₽',
+                    'Топ-приз'=> number_format($top, 0, '', ' ') . ' ₽',
+                ];
+            }
+            $tables['Турнирная сетка (неделя)'] = $grid;
+
+            // Уровни лояльности: кэшбэк и лимит растут с уровнем
+            $cash = [5, 8, 10, 12, 15];
+            $lim  = ['50 000 ₽/сут', '100 000 ₽/сут', '300 000 ₽/сут', '500 000 ₽/сут', '1 000 000 ₽/сут'];
+            $lv = [];
+            for ($i = 1; $i <= 5; $i++) {
+                $lv[] = [
+                    'Уровень'     => (string) $i,
+                    'Кэшбэк'      => $cash[$i - 1] . '%',
+                    'Лимит вывода'=> $lim[$i - 1],
+                ];
+            }
+            $tables['Уровни лояльности'] = $lv;
+        }
+
+        if (in_array($type, ['main', 'slots'], true) && $games !== []) {
+            // История крупных джекпотов
+            $hist = [];
+            $picks = $rng->sample($games, $rng->int(3, 4));
+            foreach ($picks as $g) {
+                $hist[] = [
+                    'Игра'   => $g,
+                    'Выигрыш'=> $this->sampleValue('jackpot_sum', $rng),
+                    'Когда'  => $rng->pick(['на прошлой неделе', 'в этом месяце', 'месяц назад', 'в прошлом квартале']),
+                ];
+            }
+            $tables['Крупные джекпоты (история)'] = $hist;
+        }
+
+        return $tables;
     }
 
     /** Сэмпл одного значения из числового слота */

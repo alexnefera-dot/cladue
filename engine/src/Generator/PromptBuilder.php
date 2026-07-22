@@ -85,6 +85,20 @@ final class PromptBuilder
             $out[] = "";
         }
 
+        // Структурные таблицы фактуры (турнирная сетка, джекпоты, уровни)
+        if (!empty($spec['data_tables'])) {
+            $out[] = "## ГОТОВЫЕ ТАБЛИЦЫ (вставь как таблицы, значения — как есть)";
+            foreach ($spec['data_tables'] as $title => $rows) {
+                if (empty($rows)) { continue; }
+                $cols = array_keys($rows[0]);
+                $out[] = "**{$title}:** колонки — " . implode(' | ', $cols);
+                foreach ($rows as $r) {
+                    $out[] = "  · " . implode(' | ', array_values($r));
+                }
+            }
+            $out[] = "";
+        }
+
         // Тон
         $out[] = "## Тон";
         $addr = [];
