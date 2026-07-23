@@ -409,7 +409,25 @@ final class Planner
             'payout_rate'     => 'Выплаты (RTP)',
             'mirrors_count'   => 'Рабочих зеркал',
         ];
+        // Часть фактов «зажигает» отдельную семантическую категорию сущностей
+        // (провайдеры, RTP, лицензия, крипта, платежи, джекпот). На сателлитах
+        // донор держит МЕНЬШЕ категорий, поэтому фактуру делаем ТЕМАТИЧЕСКОЙ по типу:
+        // только релевантные странице категории, иначе счётчик сущностей улетает.
+        $allowCat = [
+            'main'        => ['providers_count','payout_rate','licenses','crypto','payments','jackpot'],
+            'slots'       => ['providers_count','payout_rate','licenses','jackpot'],
+            'bonus'       => ['licenses'],
+            'zerkalo'     => ['licenses'],
+            'registracia' => ['licenses'],
+            'vhod'        => [],
+            'app'         => [],
+        ];
+        $ok = $allowCat[$type] ?? ['licenses'];
+        $catDriverSlot = ['providers_count','payout_rate'];       // зажигают «Провайдеры»/«RTP»
+        $catDriverEnt  = ['licenses','crypto','payments'];        // зажигают «Лицензия»/«Крипта»/«Платежи»
+
         foreach (($id['slots'] ?? []) as $slot) {
+            if (in_array($slot, $catDriverSlot, true) && !in_array($slot, $ok, true)) { continue; }
             $v = $this->sampleValue($slot, $rng);
             if ($v !== '') { $card[$labels[$slot] ?? $slot] = $v; }
         }
@@ -422,14 +440,17 @@ final class Planner
             'payments'  => 'Платёжные методы',
         ];
         foreach (($id['named_entities'] ?? []) as $poolKey) {
+            if (in_array($poolKey, $catDriverEnt, true) && !in_array($poolKey, $ok, true)) { continue; }
             $pool = $this->pools['entities'][$poolKey] ?? [];
             if ($pool === []) { continue; }
-            $k = $poolKey === 'licenses' ? 1 : $rng->int(3, 4);
+            $k = $poolKey === 'licenses' ? 1 : $rng->int(2, 3);
             $card[$entLabels[$poolKey] ?? $poolKey] = implode(', ', $rng->sample($pool, $k));
         }
-        // бонусные суммы — как конкретика для main/bonus
+        // приветственный бонус — конкретика для main/bonus; джекпот только там, где «джекпот» в теме
         if (in_array($type, ['main', 'bonus'], true)) {
             $card['Приветственный бонус'] = $this->sampleValue('welcome_sum', $rng);
+        }
+        if (in_array('jackpot', $ok, true)) {
             $card['Джекпот'] = $this->sampleValue('jackpot_sum', $rng);
         }
         return $card;
