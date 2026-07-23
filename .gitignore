@@ -1,3 +1,8 @@
+# секреты — ключ Anthropic для realize.php (в репозиторий не попадает)
+engine/.anthropic-key
+.anthropic-key
+.env
+
 # генерируемые артефакты анализатора
 engine/tests/fixtures/
 engine/tests/report.json

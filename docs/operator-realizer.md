@@ -22,13 +22,26 @@ Planner ──► PromptBuilder ──► realize.php ──► механиче
 
 ## 2. Предусловия
 
-Нужен ключ Anthropic в окружении (одно из):
+Нужен ключ Anthropic. Способ **A** — переменная окружения (одно из):
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
 # или OAuth-токен:
 export ANTHROPIC_AUTH_TOKEN=...   # realize.php сам добавит Bearer + oauth beta-header
 ```
+
+Способ **B** — файл-ключ (если до настроек окружения не добраться). Положи ключ
+одной строкой в `engine/.anthropic-key` — `realize.php` подхватит его сам, когда
+переменных в окружении нет. Файл в `.gitignore`, в репозиторий не попадёт:
+
+```bash
+printf 'sk-ant-...\n' > engine/.anthropic-key   # sk-ant-… → x-api-key; иначе трактуется как OAuth-токен
+# другой путь: export ANTHROPIC_KEY_FILE=/secure/path/key
+```
+
+> Ключ — секрет: не вставляй его в чат/PR/код, только в переменную окружения или в этот gitignore-файл.
+
+Приоритет: `ANTHROPIC_API_KEY` → `ANTHROPIC_AUTH_TOKEN` → файл-ключ.
 
 PHP 8.x с расширениями `curl`, `dom`, `mbstring`, `json`. Прокси/CA среды (`HTTPS_PROXY`, `/root/.ccr/ca-bundle.crt`) подхватываются автоматически.
 

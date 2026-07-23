@@ -64,12 +64,26 @@ $body = [
 $payload = json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
 // ── авторизация ────────────────────────────────────────────────────────────
+// Приоритет: env ANTHROPIC_API_KEY → env ANTHROPIC_AUTH_TOKEN → файл-ключ.
+// Файл-ключ (фолбэк, если в окружении переменной нет): путь из ANTHROPIC_KEY_FILE
+// либо дефолт engine/.anthropic-key. Файл в .gitignore — в репозиторий не попадает.
 $headers = ['content-type: application/json', 'anthropic-version: 2023-06-01'];
-$apiKey = getenv('ANTHROPIC_API_KEY');
-$authTok = getenv('ANTHROPIC_AUTH_TOKEN');
-if ($apiKey) { $headers[] = 'x-api-key: ' . $apiKey; }
-elseif ($authTok) { $headers[] = 'authorization: Bearer ' . $authTok; $headers[] = 'anthropic-beta: oauth-2025-04-20'; }
-else { fwrite(STDERR, "нет ANTHROPIC_API_KEY / ANTHROPIC_AUTH_TOKEN в окружении\n"); exit(2); }
+$apiKey = getenv('ANTHROPIC_API_KEY') ?: '';
+$authTok = getenv('ANTHROPIC_AUTH_TOKEN') ?: '';
+if ($apiKey === '' && $authTok === '') {
+    $keyFile = getenv('ANTHROPIC_KEY_FILE') ?: (__DIR__ . '/.anthropic-key');
+    if (is_file($keyFile)) {
+        $fileKey = trim((string) file_get_contents($keyFile));
+        if ($fileKey !== '') {
+            // sk-ant-… → x-api-key; иначе трактуем как OAuth-токен
+            if (strncmp($fileKey, 'sk-ant-', 7) === 0) { $apiKey = $fileKey; }
+            else { $authTok = $fileKey; }
+        }
+    }
+}
+if ($apiKey !== '') { $headers[] = 'x-api-key: ' . $apiKey; }
+elseif ($authTok !== '') { $headers[] = 'authorization: Bearer ' . $authTok; $headers[] = 'anthropic-beta: oauth-2025-04-20'; }
+else { fwrite(STDERR, "нет ключа: задай ANTHROPIC_API_KEY/ANTHROPIC_AUTH_TOKEN в окружении\nлибо положи ключ в файл engine/.anthropic-key (одной строкой; он в .gitignore)\n"); exit(2); }
 
 // ── HTTP (raw curl; прокси и CA среды) ─────────────────────────────────────
 $ch = curl_init('https://api.anthropic.com/v1/messages');
