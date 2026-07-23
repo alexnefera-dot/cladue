@@ -253,3 +253,4 @@ $html = "<!--battle test--><meta charset='utf-8'><meta name='viewport' content='
 file_put_contents($OUT, $html);
 $avgAll = $perRunGreen ? round(array_sum($perRunGreen)/count($perRunGreen)) : 0;
 fwrite(STDERR, "→ $OUT | прогонов ".count($runs)." страниц $nPages | среднее совпадение $avgAll% | не готово: ".count($missing)."\n");
+echo "STATUS ".json_encode(['match'=>$avgAll,'pages'=>$nPages,'missing'=>count($missing),'perRun'=>$perRunGreen])."\n";

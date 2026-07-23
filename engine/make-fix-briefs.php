@@ -105,3 +105,4 @@ foreach($runs as $run){
  }
 }
 fwrite(STDERR,"→ $OUT | брифов по страницам, правок всего: $totalFix на $pagesWithFix страницах\n");
+echo "STATUS ".json_encode(['fixes'=>$totalFix,'pagesWithFix'=>$pagesWithFix])."\n";
