@@ -24,6 +24,7 @@ $opts = [
     'domain' => 'example.win', 'date' => '21 июля 2026', 'seed' => '',
     'out-dir' => '', 'all' => false, 'json' => false, 'prompt' => false, 'both' => false,
     'donor' => '', 'list-donors' => false, 'register' => '', 'brand-var' => false,
+    'opener' => false,   // бренд-зачин первым абзацем; по умолчанию ВЫКЛ
 ];
 foreach (array_slice($argv, 1) as $a) {
     if (!str_starts_with($a, '--')) { continue; }
@@ -110,6 +111,8 @@ foreach ($types as $type) {
     $seedForType = $seed !== '' ? ($seed . ':' . $type) : '';
     $spec = $planner->plan($type, $brand($type, $seedForType), $style, $donor);
     if ($opts['brand-var'] === true) { $spec['brand_var'] = true; }
+    // Опенер по умолчанию выключен; --opener включает бренд-зачин первым абзацем.
+    $spec['with_opener'] = ($opts['opener'] ?? false) === true;
 
     $jsonStr = json_encode($spec, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     $promptStr = $builder->build($spec);
