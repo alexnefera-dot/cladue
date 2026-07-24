@@ -97,6 +97,7 @@ final class Planner
             'strong'         => $Ti('strong', $P['strong']),
             'faq_count'      => $Ti('faq', $P['faq']),
             'entities'       => $Ti('entities', $P['entities']),
+            'imperatives'    => $Ti('imperatives', $P['imperatives']),
             'numbers_per100' => $Tf('numbers_per100', $P['numbers_per100'], $style->numbersBias),
             'adj_pct'        => $Tf('adj_pct', $P['adj_pct'], $style->adjBias),
             // эмодзи в теле: в донор-режиме — как у донора; иначе только у эмодзи-сайта на main
