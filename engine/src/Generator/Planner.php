@@ -414,17 +414,19 @@ final class Planner
         // донор держит МЕНЬШЕ категорий, поэтому фактуру делаем ТЕМАТИЧЕСКОЙ по типу:
         // только релевантные странице категории, иначе счётчик сущностей улетает.
         $allowCat = [
-            'main'        => ['providers_count','payout_rate','licenses','crypto','payments','jackpot'],
+            'main'        => ['providers_count','payout_rate','licenses','crypto','payments','jackpot','currencies','platforms'],
             'slots'       => ['providers_count','payout_rate','licenses','jackpot'],
             'bonus'       => ['licenses'],
             'zerkalo'     => ['licenses'],
             'registracia' => ['licenses'],
             'vhod'        => [],
-            'app'         => [],
+            'app'         => ['platforms'],
         ];
         $ok = $allowCat[$type] ?? ['licenses'];
         $catDriverSlot = ['providers_count','payout_rate'];       // зажигают «Провайдеры»/«RTP»
-        $catDriverEnt  = ['licenses','crypto','payments'];        // зажигают «Лицензия»/«Крипта»/«Платежи»
+        // ВСЕ именованные пулы гейтим по $ok, иначе currencies/platforms текут
+        // на каждую страницу и раздувают счётчик категорий-сущностей на сателлитах.
+        $catDriverEnt  = ['licenses','crypto','payments','currencies','platforms'];
 
         foreach (($id['slots'] ?? []) as $slot) {
             if (in_array($slot, $catDriverSlot, true) && !in_array($slot, $ok, true)) { continue; }
