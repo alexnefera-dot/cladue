@@ -114,6 +114,14 @@ php engine/realize.php --mode=fix --prompt=/tmp/brief-and-html.md --out=/tmp/run
 
 Полное сравнение по всем параметрам собирается отчётами: `engine/build-battle-report.php <dir> <out.html>` (нужен `runs.txt` в папке для мульти-прогона) и `engine/build-real-texts-viewer.php` (витрина реальных текстов).
 
+Сравнение одной связки с конкретным конкурентом + **отдельный разбор перелинковки** (объём ссылок vs донор, анкоры/разнообразие, граф достижимости, повтор слов):
+
+```bash
+php engine/compare-vs-donor.php <папка-связки> <донор> [out.html]
+```
+
+Печатает `STATUS {match, links_our, links_donor}` и, если задан `out.html`, пишет визуальный отчёт. Пример готового прогона — `samples/monro-vs-donor/` (p0 — one-shot, p1 — после verify-loop) и отчёты `reports/monro-*-vs-donor.html`.
+
 ---
 
 ## 7. Уникальность
