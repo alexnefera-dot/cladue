@@ -39,6 +39,8 @@ if (!isset($DONORS[$donor])) { fwrite(STDERR, "донор '$donor' не найд
 $reg  = $DONORS[$donor]['style']['register'] ?? 'neutral';
 $dpAll = $DONORS[$donor]['pages'];
 @mkdir($out, 0777, true);
+// метаданные прогона — чтобы check-batch.php знал донора/корпус пачки
+@file_put_contents("$out/meta.json", json_encode(['donor'=>$donor,'corpus'=>$corpus,'seed'=>$seed,'register'=>$reg], JSON_UNESCAPED_UNICODE));
 
 $analyzer = new Analyzer();
 $COST_IN = 0; $COST_OUT = 0;
