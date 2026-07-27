@@ -13,13 +13,16 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/src/Analyzer.php';
 
-$SRC = $argv[1] ?? '';
-$OUT = $argv[2] ?? '';
-if ($SRC==='' || $OUT==='') { fwrite(STDERR,"usage: make-fix-briefs.php <src> <out>\n"); exit(1); }
+$pos=[]; $CORPUS='';
+foreach(array_slice($argv,1) as $a){ if(preg_match('/^--corpus=(.*)$/',$a,$m)){$CORPUS=$m[1];} else {$pos[]=$a;} }
+$SRC = $pos[0] ?? '';
+$OUT = $pos[1] ?? '';
+if ($SRC==='' || $OUT==='') { fwrite(STDERR,"usage: make-fix-briefs.php <src> <out> [--corpus=dorgen]\n"); exit(1); }
 
 $LABEL=['main'=>'главная','zerkalo'=>'зеркало','vhod'=>'вход','registracia'=>'регистрация','bonus'=>'бонусы','slots'=>'слоты','app'=>'приложение'];
 $TYPES=array_keys($LABEL);
-$DONORS=json_decode((string)file_get_contents(__DIR__.'/data/donors.json'),true)['sites'];
+$donorsFile=($CORPUS==='dorgen'&&is_file(__DIR__.'/data-dorgen/donors.json'))?__DIR__.'/data-dorgen/donors.json':__DIR__.'/data/donors.json';
+$DONORS=json_decode((string)file_get_contents($donorsFile),true)['sites'];
 $a=new Analyzer();
 // регистр донора — чтобы не советовать «вы» там, где он запрещён, и «я» вне экспертного
 function regOf(array $DONORS,string $donor):string{
@@ -86,9 +89,18 @@ foreach($runs as $run){
   if(offx($o['nausea_acad'],$d['nausea_acad'],true)&&$o['nausea_acad']>$d['nausea_acad']){
     $fixes[]="ТОШНОТА: {$o['nausea_acad']}% vs {$d['nausea_acad']}% — снизь повтор самых частых слов, замени синонимами.";
   }
-  // регистр — советуем ТОЛЬКО то, что не противоречит регистру донора
-  if($reg==='delovoy' && offx($o['vy'],$d['vy']) && $d['vy']>=$o['vy']){ $diff=$d['vy']-$o['vy']; if($diff>=3)$fixes[]="РЕГИСТР «вы»: добавь ~$diff явных «вы/вам/ваш» (не только глагольные формы)."; }
-  if($reg==='expert' && offx($o['first_person'],$d['first_person']) && $d['first_person']>=$o['first_person']){ $diff=$d['first_person']-$o['first_person']; if($diff>=4)$fixes[]="РЕГИСТР «я»: усиль первое лицо (+~$diff «я/мне/мой»)."; }
+  // регистр «вы» (деловой)
+  if($reg==='delovoy' && offx($o['vy'],$d['vy'])){ $diff=$d['vy']-$o['vy'];
+    if($diff>=3)$fixes[]="РЕГИСТР «вы»: добавь ~$diff явных «вы/вам/ваш» (не только глагольные формы).";
+    elseif($diff<=-3)$fixes[]="РЕГИСТР «вы»: перебор — убери ~".abs($diff)." «вы/вам/ваш», часть переведи в безличные/описательные формы."; }
+  // регистр «я» (экспертный) — в обе стороны: добор ИЛИ подрезка перелёта
+  if($reg==='expert' && offx($o['first_person'],$d['first_person'])){ $diff=$d['first_person']-$o['first_person'];
+    if($diff>=4)$fixes[]="РЕГИСТР «я»: усиль первое лицо (+~$diff «я/мне/мой»).";
+    elseif($diff<=-4)$fixes[]="РЕГИСТР «я»: ПЕРЕБОР ({$o['first_person']} vs цель {$d['first_person']}) — убери ~".abs($diff)." «я/мне/мой», часть предложений переведи в безличные/описательные, не теряя фактуру."; }
+  // императивы (CTA) — числовая цель, в обе стороны
+  if(offx($o['imperatives'],$d['imperatives'])){ $diff=$d['imperatives']-$o['imperatives'];
+    if($diff>=3)$fixes[]="ИМПЕРАТИВЫ: маловато ({$o['imperatives']} vs цель {$d['imperatives']}) — добавь ~$diff CTA-глаголов («проверь/открой/забирай/жми»), но держи регистр.";
+    elseif($diff<=-3)$fixes[]="ИМПЕРАТИВЫ: перебор ({$o['imperatives']} vs цель {$d['imperatives']}) — убери ~".abs($diff)." команд, переведи в описательные утверждения."; }
   // семантические кластеры
   foreach(($d['sem']??[]) as $ck=>$dv){ if($dv<1.0)continue; $ov=$o['sem'][$ck]??0; if(!offx($ov,$dv,true))continue;
     $lab=Intent::THEMES[$ck]['label']??$ck; $trg=implode(', ',array_slice(Intent::THEMES[$ck]['triggers']??[],0,6));
