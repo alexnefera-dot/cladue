@@ -24,7 +24,9 @@ $opts = [
     'domain' => 'example.win', 'date' => '21 июля 2026', 'seed' => '',
     'out-dir' => '', 'all' => false, 'json' => false, 'prompt' => false, 'both' => false,
     'donor' => '', 'list-donors' => false, 'register' => '', 'brand-var' => false,
-    'opener' => false,   // бренд-зачин первым абзацем; по умолчанию ВЫКЛ
+    'opener' => false,      // бренд-зачин первым абзацем; по умолчанию ВЫКЛ
+    'no-opener' => false,   // явно выключить опенер (для corpus=dorgen, где он ВКЛ по умолчанию)
+    'corpus' => '',         // '' = наш корпус v1 (по умолчанию); 'dorgen' = референс конкурента (v2)
 ];
 foreach (array_slice($argv, 1) as $a) {
     if (!str_starts_with($a, '--')) { continue; }
@@ -43,12 +45,20 @@ if ($opts['brand-var'] === true) {
     $opts['date']     = '%date%';
 }
 
-$planner = new Planner();
+// Выбор корпуса: '' (v1, наш корпус 50 сайтов) или 'dorgen' (v2, референс конкурента).
+// v2 использует отдельный каталог engine/data-dorgen/ (профиль+доноры+пулы),
+// v1 полностью не тронут.
+$corpus = is_string($opts['corpus']) ? $opts['corpus'] : '';
+$dataDir = ($corpus === 'dorgen' && is_dir(__DIR__ . '/data-dorgen'))
+    ? __DIR__ . '/data-dorgen'
+    : __DIR__ . '/data';
+
+$planner = new Planner($dataDir);
 $builder = new PromptBuilder();
 
-// Донор-режим: загрузка пер-сайтовых профилей корпуса
+// Донор-режим: загрузка пер-сайтовых профилей выбранного корпуса
 $donors = [];
-$donorsPath = __DIR__ . '/data/donors.json';
+$donorsPath = $dataDir . '/donors.json';
 if (is_file($donorsPath)) {
     $donors = json_decode((string) file_get_contents($donorsPath), true)['sites'] ?? [];
 }
@@ -111,8 +121,11 @@ foreach ($types as $type) {
     $seedForType = $seed !== '' ? ($seed . ':' . $type) : '';
     $spec = $planner->plan($type, $brand($type, $seedForType), $style, $donor);
     if ($opts['brand-var'] === true) { $spec['brand_var'] = true; }
-    // Опенер по умолчанию выключен; --opener включает бренд-зачин первым абзацем.
-    $spec['with_opener'] = ($opts['opener'] ?? false) === true;
+    // Опенер: наш корпус (v1) — ВЫКЛ по умолчанию (--opener включает);
+    // dorgen (v2) — ВКЛ по умолчанию, как в их референсе (--no-opener выключает).
+    $spec['with_opener'] = $corpus === 'dorgen'
+        ? ($opts['no-opener'] !== true)
+        : (($opts['opener'] ?? false) === true);
 
     $jsonStr = json_encode($spec, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     $promptStr = $builder->build($spec);
