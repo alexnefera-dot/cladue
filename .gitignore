@@ -8,3 +8,7 @@ engine/tests/fixtures/
 engine/tests/report.json
 report.json
 *.log
+
+# сгенерированные прогоны (локально, не коммитить)
+runs/
+/tmp-runs/
