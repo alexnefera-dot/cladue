@@ -16,13 +16,22 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/src/Analyzer.php';
 
-$DIR   = $argv[1] ?? '';
-$DONOR = $argv[2] ?? '';
-$OUT   = $argv[3] ?? '';
+// позиционные: <dir> <donor> [out.html]; опц. --corpus=dorgen для сравнения с референсом конкурента
+$pos = []; $CORPUS = '';
+foreach (array_slice($argv, 1) as $a) {
+    if (preg_match('/^--corpus=(.*)$/', $a, $m)) { $CORPUS = $m[1]; }
+    else { $pos[] = $a; }
+}
+$DIR   = $pos[0] ?? '';
+$DONOR = $pos[1] ?? '';
+$OUT   = $pos[2] ?? '';
+$donorsFile = ($CORPUS === 'dorgen' && is_file(__DIR__ . '/data-dorgen/donors.json'))
+    ? __DIR__ . '/data-dorgen/donors.json'
+    : __DIR__ . '/data/donors.json';
 if ($DIR === '' || $DONOR === '') { fwrite(STDERR, "usage: compare-vs-donor.php <dir> <donor> [out.html]\n"); exit(1); }
 
-$sites = json_decode((string) file_get_contents(__DIR__ . '/data/donors.json'), true)['sites'] ?? [];
-if (!isset($sites[$DONOR])) { fwrite(STDERR, "донор '$DONOR' не найден в data/donors.json\n"); exit(1); }
+$sites = json_decode((string) file_get_contents($donorsFile), true)['sites'] ?? [];
+if (!isset($sites[$DONOR])) { fwrite(STDERR, "донор '$DONOR' не найден в " . basename($donorsFile) . "\n"); exit(1); }
 $D = $sites[$DONOR]['pages'];
 $a = new Analyzer();
 
