@@ -98,6 +98,10 @@ final class Planner
             'faq_count'      => $Ti('faq', $P['faq']),
             'entities'       => $Ti('entities', $P['entities']),
             'imperatives'    => $Ti('imperatives', $P['imperatives']),
+            // Обращение/лицо — числом, а не «да/нет»: иначе при сокращении команд
+            // реалайзер заодно вымывает «вы», и наоборот (связанные параметры).
+            'vy'             => $Ti('vy', $P['vy']),
+            'first_person'   => $Ti('first_person', $P['first_person']),
             'numbers_per100' => $Tf('numbers_per100', $P['numbers_per100'], $style->numbersBias),
             'adj_pct'        => $Tf('adj_pct', $P['adj_pct'], $style->adjBias),
             // эмодзи в теле: в донор-режиме — как у донора; иначе только у эмодзи-сайта на main
