@@ -85,26 +85,40 @@ if ($apiKey !== '') { $headers[] = 'x-api-key: ' . $apiKey; }
 elseif ($authTok !== '') { $headers[] = 'authorization: Bearer ' . $authTok; $headers[] = 'anthropic-beta: oauth-2025-04-20'; }
 else { fwrite(STDERR, "нет ключа: задай ANTHROPIC_API_KEY/ANTHROPIC_AUTH_TOKEN в окружении\nлибо положи ключ в файл engine/.anthropic-key (одной строкой; он в .gitignore)\n"); exit(2); }
 
-// ── HTTP (raw curl; прокси и CA среды) ─────────────────────────────────────
-$ch = curl_init('https://api.anthropic.com/v1/messages');
-curl_setopt_array($ch, [
-    CURLOPT_POST => true,
-    CURLOPT_POSTFIELDS => $payload,
-    CURLOPT_HTTPHEADER => $headers,
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_TIMEOUT => 600,
-]);
-if ($proxy = (getenv('HTTPS_PROXY') ?: getenv('https_proxy'))) { curl_setopt($ch, CURLOPT_PROXY, $proxy); }
-if (is_file('/root/.ccr/ca-bundle.crt')) { curl_setopt($ch, CURLOPT_CAINFO, '/root/.ccr/ca-bundle.crt'); }
-
-$resp = curl_exec($ch);
-if ($resp === false) { fwrite(STDERR, 'curl: ' . curl_error($ch) . "\n"); exit(3); }
-$code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
+// ── HTTP (raw curl; прокси и CA среды) с ретраями ──────────────────────────
+// Транзиентные сбои (таймаут/обрыв curl, 429/500/502/503/504/529 перегруз)
+// повторяем с экспоненциальным backoff — иначе один сбой убивает страницу.
+$maxAttempts = (int)($opts['retries'] ?? 4);
+$resp = false; $code = 0; $err = '';
+for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+    $ch = curl_init('https://api.anthropic.com/v1/messages');
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $payload,
+        CURLOPT_HTTPHEADER => $headers,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 900,
+        CURLOPT_CONNECTTIMEOUT => 30,
+    ]);
+    if ($proxy = (getenv('HTTPS_PROXY') ?: getenv('https_proxy'))) { curl_setopt($ch, CURLOPT_PROXY, $proxy); }
+    if (is_file('/root/.ccr/ca-bundle.crt')) { curl_setopt($ch, CURLOPT_CAINFO, '/root/.ccr/ca-bundle.crt'); }
+    $resp = curl_exec($ch);
+    $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $err  = $resp === false ? curl_error($ch) : '';
+    curl_close($ch);
+    $retryable = ($resp === false) || in_array($code, [429, 500, 502, 503, 504, 529], true);
+    if (!$retryable) break;
+    if ($attempt < $maxAttempts) {
+        $wait = (int) pow(2, $attempt); // 2,4,8,16с
+        fwrite(STDERR, "  попытка $attempt: " . ($resp===false ? "curl $err" : "HTTP $code") . " — повтор через {$wait}с\n");
+        sleep($wait);
+    }
+}
+if ($resp === false) { fwrite(STDERR, "curl не удался после $maxAttempts попыток: $err\n"); exit(3); }
 
 $data = json_decode((string)$resp, true);
 if ($code !== 200 || !is_array($data)) {
-    fwrite(STDERR, "HTTP $code: " . substr((string)$resp, 0, 500) . "\n"); exit(4);
+    fwrite(STDERR, "HTTP $code (после ретраев): " . substr((string)$resp, 0, 500) . "\n"); exit(4);
 }
 if (($data['stop_reason'] ?? '') === 'refusal') { fwrite(STDERR, "отказ модели (refusal)\n"); exit(5); }
 
