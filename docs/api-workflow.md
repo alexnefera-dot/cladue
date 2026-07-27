@@ -45,7 +45,14 @@ php engine/realize-run.php --donor=monro --seed=A --out=runs/A --verify
 
 # v2 (референс конкурента dorgen):
 php engine/realize-run.php --corpus=dorgen --donor=set199 --seed=A --out=runs/199A --verify
+
+# РЕКОМЕНДУЕТСЯ: главная блоками (снимает разброс 63–84% на длинной странице):
+php engine/realize-run.php --corpus=dorgen --donor=set267 --seed=A --out=runs/267A --blocks=3 --verify
 ```
+
+> `--blocks=3` режет главную на ~900-словные куски, реалайзит их по отдельности и
+> склеивает. Сателлиты остаются one-shot. Выходные токены те же — дублируется
+> только вход. Если блок не дописался, происходит фолбэк на цельную главную.
 Делает: планы → реалайз (1 вызов API/страницу) → перелинковка → verify-loop до
 порога. Пишет совпадение и стоимость, плюс `meta.json` (для check-batch).
 
