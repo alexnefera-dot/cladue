@@ -111,9 +111,39 @@ exec("php " . escapeshellarg("$ENGINE/generate.php") . " --all --donor=" . escap
 if (count(glob("$out/prompt-*.md")) < 7) { fwrite(STDERR, "промпты не сгенерились\n"); exit(2); }
 fwrite(STDERR, "донор $donor · регистр $reg · порог $thr%\n");
 
-// 2) реалайз p0 (1 вызов на страницу)
+// 2) реалайз p0 (1 вызов на страницу; главная — опц. блоками)
+// --blocks=N: длинную главную режем на N кусков по ~900 слов. Реалайзер держит
+// цели на коротком выходе стабильно, на 3000+ «плавает» (замер: 63–84% одним
+// промптом). Выходные токены те же, дублируется только вход.
+$blocks = (int)($opts['blocks'] ?? 0);
 foreach ($TYPES as $t) {
     if (!is_file("$out/prompt-$t.md")) continue;
+
+    if ($blocks >= 2 && $t === 'main') {
+        // спека главной → блоки → реалайз каждого → склейка
+        exec("php " . escapeshellarg("$ENGINE/generate.php") . " --type=main --donor=" . escapeshellarg($donor)
+           . " --brand-var --seed=" . escapeshellarg($seed) . $corpusArg . $openerArg
+           . " --json 2>/dev/null > " . escapeshellarg("$out/spec-main.json"));
+        exec("php " . escapeshellarg("$ENGINE/split-page.php") . " " . escapeshellarg("$out/spec-main.json")
+           . " " . escapeshellarg($out) . " --blocks=$blocks 2>/dev/null");
+        $bp = glob("$out/prompt-main-*.md");
+        if ($bp) {
+            natsort($bp); $okAll = true;
+            foreach (array_values($bp) as $i => $pf) {
+                $n = $i + 1;
+                $rc = callRealize($ENGINE, ['prompt'=>$pf,'out'=>"$out/main-$n.html",'effort'=>$effort,'register'=>$reg]);
+                fwrite(STDERR, "  реалайз main блок $n/" . count($bp) . ": " . ($rc===0?'ok':"ошибка($rc)") . "\n");
+                if ($rc !== 0) $okAll = false;
+            }
+            if ($okAll) {
+                exec("php " . escapeshellarg("$ENGINE/merge-blocks.php") . " " . escapeshellarg($out) . " main 2>/dev/null");
+                fwrite(STDERR, "  склейка main: " . (is_file("$out/main.html") ? 'ok' : 'не собралась') . "\n");
+                continue;
+            }
+            fwrite(STDERR, "  блоки не дописались — фолбэк на цельную главную\n");
+        }
+    }
+
     $rc = callRealize($ENGINE, ['prompt'=>"$out/prompt-$t.md",'out'=>"$out/$t.html",'effort'=>$effort,'register'=>$reg]);
     fwrite(STDERR, "  реалайз $t: " . ($rc===0?'ok':"ошибка($rc)") . "\n");
 }
