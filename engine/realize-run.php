@@ -31,7 +31,10 @@ if ($donor === '' || $out === '') { fwrite(STDERR, "usage: realize-run.php --don
 
 $ENGINE = __DIR__;
 $TYPES = ['main','zerkalo','vhod','registracia','bonus','slots','app'];
-$DONORS = json_decode((string)file_get_contents("$ENGINE/data/donors.json"), true)['sites'];
+$corpus = $opts['corpus'] ?? '';   // '' = наш корпус (v1); 'dorgen' = референс конкурента (v2)
+$donorsFile = ($corpus === 'dorgen' && is_file("$ENGINE/data-dorgen/donors.json"))
+    ? "$ENGINE/data-dorgen/donors.json" : "$ENGINE/data/donors.json";
+$DONORS = json_decode((string)file_get_contents($donorsFile), true)['sites'];
 if (!isset($DONORS[$donor])) { fwrite(STDERR, "донор '$donor' не найден\n"); exit(1); }
 $reg  = $DONORS[$donor]['style']['register'] ?? 'neutral';
 $dpAll = $DONORS[$donor]['pages'];
@@ -98,8 +101,11 @@ function callRealize(string $engine, array $args): int {
 }
 
 // 1) планы+промпты (бренд-переменные)
+$corpusArg = $corpus !== '' ? " --corpus=" . escapeshellarg($corpus) : '';
+$openerArg = isset($opts['opener']) ? " --opener" : (isset($opts['no-opener']) ? " --no-opener" : '');
 exec("php " . escapeshellarg("$ENGINE/generate.php") . " --all --donor=" . escapeshellarg($donor)
-   . " --brand-var --seed=" . escapeshellarg($seed) . " --out-dir=" . escapeshellarg($out) . " --prompt 2>/dev/null");
+   . " --brand-var --seed=" . escapeshellarg($seed) . " --out-dir=" . escapeshellarg($out)
+   . $corpusArg . $openerArg . " --prompt 2>/dev/null");
 if (count(glob("$out/prompt-*.md")) < 7) { fwrite(STDERR, "промпты не сгенерились\n"); exit(2); }
 fwrite(STDERR, "донор $donor · регистр $reg · порог $thr%\n");
 
