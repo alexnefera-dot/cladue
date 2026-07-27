@@ -16,6 +16,7 @@ import io
 import json
 import os
 import re
+import socket
 import time
 import uuid
 import webbrowser
@@ -109,6 +110,11 @@ REDIRJOBS = {}
 REDIR_LOCK = Lock()
 ACTIVE_REDIR = {"id": None}
 LAST_COLLECT = {"id": None}
+
+# Хранилище задач проверки живости доменов.
+LIVEJOBS = {}
+LIVE_LOCK = Lock()
+ACTIVE_LIVE = {"id": None}
 
 
 # --------------------------------------------------------------------------- #
@@ -870,6 +876,77 @@ def redir_summary(rows):
     return {"total": total, "targets": targets,
             "no_redirect": no_redir, "no_redirect_percent": pct(no_redir),
             "errors": errs, "errors_percent": pct(errs)}
+
+
+# --------------------------------------------------------------------------- #
+#  Проверка живости доменов (жив / мёртв)                                     #
+# --------------------------------------------------------------------------- #
+def _live_note(code, host, final_url):
+    fh = url_host(final_url)
+    if fh and registrable_domain(fh) != registrable_domain(host):
+        return "редирект на " + registrable_domain(fh)
+    if code and code >= 400:
+        return f"код {code}"
+    return "ок"
+
+
+def check_alive(domain, cfg, cancel):
+    """DNS + HTTP-проверка. Возвращает статус: жив / мёртв (нет DNS / не отвечает)."""
+    host = url_host(domain) or clean_host(domain)
+    base = {"domain": domain, "host": host}
+    if cancel.is_set():
+        return {**base, "alive": False, "status": None, "final_url": "", "note": "отменено", "error": None}
+    if not host:
+        return {**base, "alive": False, "status": None, "final_url": "", "note": "плохой домен", "error": None}
+    try:
+        socket.gethostbyname(host)
+    except Exception as e:  # noqa: BLE001
+        return {**base, "alive": False, "status": None, "final_url": "",
+                "note": "нет DNS", "error": str(e)[:120]}
+    headers = {"User-Agent": cfg["ua"], "Accept": "text/html,*/*"}
+    last = None
+    for scheme in ("https://", "http://"):
+        if cancel.is_set():
+            break
+        try:
+            r = requests.get(scheme + host, headers=headers, timeout=cfg["timeout"],
+                             allow_redirects=True, verify=False, stream=True)
+            code, final = r.status_code, r.url
+            try:
+                r.close()
+            except Exception:
+                pass
+            return {**base, "alive": True, "status": code, "final_url": final,
+                    "note": _live_note(code, host, final), "error": None}
+        except requests.RequestException as e:
+            last = str(e)[:120]
+    return {**base, "alive": False, "status": None, "final_url": "",
+            "note": "не отвечает", "error": last}
+
+
+def run_live(job_id, cfg, domains):
+    job = LIVEJOBS[job_id]
+    try:
+        with ThreadPoolExecutor(max_workers=cfg["workers"]) as ex:
+            futs = {ex.submit(check_alive, d, cfg, job["cancel"]): d for d in domains}
+            for fut in as_completed(futs):
+                try:
+                    res = fut.result()
+                except Exception as e:  # noqa: BLE001
+                    d = futs[fut]
+                    res = {"domain": d, "host": d, "alive": False, "status": None,
+                           "final_url": "", "note": "ошибка", "error": str(e)[:120]}
+                with job["lock"]:
+                    job["done"] += 1
+                    job["rows"].append(res)
+    except Exception as e:  # noqa: BLE001
+        with job["lock"]:
+            job["status"] = "error"
+            job["fatal"] = str(e)[:200]
+        return
+    with job["lock"]:
+        job["status"] = "cancelled" if job["cancel"].is_set() else "done"
+        job["finished_at"] = time.time()
 
 
 # --------------------------------------------------------------------------- #
@@ -1801,6 +1878,133 @@ def api_redirects_download(job_id):
     payload = ("﻿" + sbuf.getvalue()).encode("utf-8")
     return send_file(io.BytesIO(payload), as_attachment=True,
                      download_name=f"redirects_{job_id[:8]}.csv", mimetype="text/csv")
+
+
+@app.route("/api/collect/last_domains")
+def api_collect_last_domains():
+    """Уникальные хосты (домены с поддоменами) из последнего «Сбора ТОП»."""
+    snap = _load_last_collect()
+    if not snap:
+        return jsonify({"domains": []})
+    seen, out = set(), []
+    for u in snap.get("urls", []):
+        h = url_host(u)
+        if h and h not in seen:
+            seen.add(h)
+            out.append(h)
+    return jsonify({"domains": out})
+
+
+# --- Проверка живости доменов --------------------------------------------- #
+@app.route("/api/live/run", methods=["POST"])
+def api_live_run():
+    data = request.get_json(force=True, silent=True) or {}
+    seen, domains = set(), []
+    for line in (data.get("domains") or "").replace("\r", "\n").split("\n"):
+        h = url_host(line.strip()) or clean_host(line.strip())
+        if h and h not in seen:
+            seen.add(h)
+            domains.append(h)
+    if not domains:
+        return jsonify({"error": "Добавьте домены (или загрузите из «Сбора ТОП»)."}), 400
+
+    def clamp(val, lo, hi, default):
+        try:
+            return max(lo, min(hi, int(val)))
+        except (TypeError, ValueError):
+            return default
+
+    cfg = {
+        "ua": _UA.get(data.get("ua"), _UA["desktop"]),
+        "timeout": clamp(data.get("timeout"), 2, 30, 8),
+        "workers": clamp(data.get("workers"), 1, 40, 15),
+    }
+    job_id = uuid.uuid4().hex
+    with LIVE_LOCK:
+        LIVEJOBS[job_id] = {
+            "id": job_id, "status": "running", "total": len(domains), "done": 0,
+            "rows": [], "lock": Lock(), "cancel": Event(), "started_at": time.time(),
+        }
+        ACTIVE_LIVE["id"] = job_id
+    Thread(target=run_live, args=(job_id, cfg, domains), daemon=True).start()
+    return jsonify({"job_id": job_id, "total": len(domains)})
+
+
+@app.route("/api/live/status/<job_id>")
+def api_live_status(job_id):
+    job = LIVEJOBS.get(job_id)
+    if not job:
+        return jsonify({"error": "Задача не найдена"}), 404
+    with job["lock"]:
+        rows = list(job["rows"])
+        alive = sum(1 for r in rows if r["alive"])
+        return jsonify({"status": job["status"], "total": job["total"], "done": job["done"],
+                        "rows": rows, "alive": alive, "dead": len(rows) - alive,
+                        "fatal": job.get("fatal")})
+
+
+@app.route("/api/live/cancel/<job_id>", methods=["POST"])
+def api_live_cancel(job_id):
+    job = LIVEJOBS.get(job_id)
+    if not job:
+        return jsonify({"error": "Задача не найдена"}), 404
+    job["cancel"].set()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/live/active")
+def api_live_active():
+    jid = ACTIVE_LIVE.get("id")
+    if jid and jid in LIVEJOBS:
+        return jsonify({"job_id": jid, "status": LIVEJOBS[jid]["status"]})
+    return jsonify({"job_id": None})
+
+
+@app.route("/api/live/download/<job_id>")
+def api_live_download(job_id):
+    job = LIVEJOBS.get(job_id)
+    if not job:
+        return jsonify({"error": "Задача не найдена"}), 404
+    fmt = request.args.get("fmt", "csv")
+    with job["lock"]:
+        rows = list(job["rows"])
+
+    if fmt == "alive":  # только живые — списком, по одному в строке
+        payload = ("﻿" + "\n".join(r["host"] for r in rows if r["alive"])).encode("utf-8")
+        return send_file(io.BytesIO(payload), as_attachment=True,
+                         download_name=f"alive_{job_id[:8]}.txt", mimetype="text/plain")
+
+    cols = ["domain", "alive", "status", "note", "final_url", "error"]
+
+    def cells(r):
+        return [r["host"], "жив" if r["alive"] else "мёртв", r["status"] or "",
+                r["note"], r["final_url"], r["error"] or ""]
+
+    if fmt == "xlsx":
+        try:
+            from openpyxl import Workbook
+        except Exception:
+            return jsonify({"error": "openpyxl не установлен"}), 400
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "liveness"
+        ws.append(cols)
+        for r in rows:
+            ws.append(cells(r))
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        return send_file(buf, as_attachment=True, download_name=f"liveness_{job_id[:8]}.xlsx",
+                         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+    sbuf = io.StringIO()
+    w = csv.writer(sbuf, delimiter=";")
+    w.writerow(cols)
+    for r in rows:
+        w.writerow(cells(r))
+    payload = ("﻿" + sbuf.getvalue()).encode("utf-8")
+    return send_file(io.BytesIO(payload), as_attachment=True,
+                     download_name=f"liveness_{job_id[:8]}.csv", mimetype="text/csv")
 
 
 def _open_browser(url):

@@ -134,6 +134,7 @@
     <button class="tab" data-tab="track">📈 Трекер позиций</button>
     <button class="tab" data-tab="site">🔎 Индексация (site:)</button>
     <button class="tab" data-tab="redir">🔀 Редиректы</button>
+    <button class="tab" data-tab="live">✅ Живость</button>
   </div>
 
   <!-- ================= ВКЛАДКА 1: СБОР ТОП ================= -->
@@ -435,6 +436,46 @@
     </div>
   </div>
 
+  <!-- ================= ВКЛАДКА 5: ЖИВОСТЬ ================= -->
+  <div id="panel-live" class="hidden">
+    <div class="card">
+      <div class="row" style="justify-content:space-between;align-items:flex-end">
+        <label style="margin:0">Домены — по одному в строке <span class="count" id="lcount">0</span></label>
+        <button class="btn-ghost" id="l_load" type="button">↥ Домены из последнего «Сбора ТОП»</button>
+      </div>
+      <textarea id="l_domains" placeholder="onlybets.dj85i.team&#10;spacewin.k4r.team&#10;..."></textarea>
+      <div class="hint">Пингуем каждый домен (DNS + HTTP) и помечаем <b>жив / мёртв</b> — чтобы отсеять старьё. Можно с www/https:// и путём.</div>
+      <div class="grid g4" style="margin-top:12px">
+        <div><label>Таймаут, сек</label><input id="l_timeout" type="number" value="8" min="2" max="30"></div>
+        <div><label>Параллельно</label><input id="l_workers" type="number" value="15" min="1" max="40"></div>
+        <div></div><div></div>
+      </div>
+      <div class="row" style="margin-top:16px">
+        <button class="btn-go" id="l_go">▶ Проверить</button>
+        <button class="btn-cancel hidden" id="l_stop">■ Остановить</button>
+      </div>
+    </div>
+    <div class="card hidden" id="l_panel">
+      <div class="bar"><i id="l_barFill"></i></div>
+      <div class="stat">
+        <div><span class="muted">Проверено</span><b id="l_done">0 / 0</b></div>
+        <div class="ok"><span class="muted">Живых</span><b id="l_alive">0</b></div>
+        <div class="er"><span class="muted">Мёртвых</span><b id="l_dead">0</b></div>
+      </div>
+      <div class="row" style="margin-bottom:12px">
+        <button class="btn-dl hidden" id="l_dlAlive">⬇ Только живые (список)</button>
+        <button class="btn-dl hidden" id="l_dlXlsx">⬇ XLSX</button>
+        <button class="btn-dl hidden" id="l_dlCsv">⬇ CSV</button>
+      </div>
+      <div class="tbl-wrap">
+        <table class="pos">
+          <thead><tr><th>Домен</th><th>Статус</th><th>Код</th><th>Примечание</th></tr></thead>
+          <tbody id="l_tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <p class="sub" style="text-align:center; margin-top:24px">
     Запущено локально на вашем компьютере · данные никуда не уходят, кроме API xmlstock.
   </p>
@@ -470,6 +511,7 @@ document.querySelectorAll(".tab").forEach(t=> t.onclick = ()=>{
   $("panel-track").classList.toggle("hidden", t.dataset.tab!=="track");
   $("panel-site").classList.toggle("hidden", t.dataset.tab!=="site");
   $("panel-redir").classList.toggle("hidden", t.dataset.tab!=="redir");
+  $("panel-live").classList.toggle("hidden", t.dataset.tab!=="live");
 });
 
 // ---- движок / свой URL ----
@@ -811,6 +853,60 @@ $("r_stop").onclick=async ()=>{ if(rJob){ await fetch("/api/redirects/cancel/"+r
 $("r_dlXlsx").onclick=()=> rJob && (location.href="/api/redirects/download/"+rJob+"?fmt=xlsx");
 $("r_dlCsv").onclick =()=> rJob && (location.href="/api/redirects/download/"+rJob+"?fmt=csv");
 
+// ===================== ВКЛАДКА 5: ЖИВОСТЬ =====================
+let lPoll=null, lJob=null;
+const LIVE_FIELDS=["l_domains","l_timeout","l_workers"];
+function saveLive(){ const o={}; LIVE_FIELDS.forEach(f=>{const el=$(f); if(el)o[f]=el.value;}); localStorage.setItem("xmlstock_live",JSON.stringify(o)); }
+function loadLive(){ try{ const o=JSON.parse(localStorage.getItem("xmlstock_live")||"{}"); LIVE_FIELDS.forEach(f=>{ if(o[f]!==undefined&&$(f)) $(f).value=o[f]; }); }catch(e){} }
+loadLive();
+LIVE_FIELDS.forEach(f=>{const el=$(f); if(el) el.addEventListener("input",saveLive);});
+$("l_domains").addEventListener("input", ()=> $("lcount").textContent=lines("l_domains")+" стр.");
+$("lcount").textContent=lines("l_domains")+" стр.";
+$("l_load").onclick = async ()=>{
+  try{ const u=await (await fetch("/api/collect/last_domains")).json();
+    if(!u.domains || !u.domains.length){ showErr("Нет данных из «Сбора ТОП» — сначала сделай сбор."); return; }
+    $("l_domains").value=u.domains.join("\n"); $("lcount").textContent=lines("l_domains")+" стр."; saveLive(); hideErr();
+  }catch(e){ showErr("Не удалось получить домены: "+e); }
+};
+$("l_go").onclick = async ()=>{
+  hideErr();
+  if(!$("l_domains").value.trim()){ showErr("Добавьте домены или загрузите из «Сбора ТОП»."); return; }
+  const payload={domains:$("l_domains").value, timeout:$("l_timeout").value, workers:$("l_workers").value, ua:"desktop"};
+  $("l_go").disabled=true;
+  try{
+    const r=await fetch("/api/live/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    const d=await r.json();
+    if(!r.ok){ showErr(d.error||"Ошибка"); $("l_go").disabled=false; return; }
+    lJob=d.job_id; startLive(); lPoll=setInterval(lRefresh,1000); lRefresh();
+  }catch(e){ showErr("Нет связи: "+e); $("l_go").disabled=false; }
+};
+function startLive(){
+  $("l_panel").classList.remove("hidden"); $("l_tbody").innerHTML="";
+  $("l_alive").textContent="0"; $("l_dead").textContent="0"; $("l_done").textContent="0 / 0"; $("l_barFill").style.width="0%";
+  $("l_dlAlive").classList.add("hidden"); $("l_dlXlsx").classList.add("hidden"); $("l_dlCsv").classList.add("hidden"); $("l_stop").classList.remove("hidden");
+  $("l_panel").scrollIntoView({behavior:"smooth"});
+}
+async function lRefresh(){
+  if(!lJob) return; let d;
+  try{ d=await (await fetch("/api/live/status/"+lJob)).json(); }catch(e){ return; }
+  if(d.error) return;
+  $("l_done").textContent=d.done+" / "+d.total; $("l_alive").textContent=d.alive; $("l_dead").textContent=d.dead;
+  $("l_barFill").style.width=(d.total?Math.round(d.done/d.total*100):0)+"%";
+  $("l_tbody").innerHTML=(d.rows||[]).map(r=>{
+    const s = r.alive? '<span class="p-top">жив</span>' : '<span class="p-no">мёртв</span>';
+    return `<tr><td>${esc(r.host)}</td><td>${s}</td><td class="pill">${r.status||"—"}</td><td>${esc(r.note)}</td></tr>`;
+  }).join("");
+  if(d.status!=="running"){
+    clearInterval(lPoll); lPoll=null; $("l_go").disabled=false; $("l_stop").classList.add("hidden");
+    if(d.fatal) showErr("Сбой: "+d.fatal);
+    if(d.done>0){ $("l_dlAlive").classList.remove("hidden"); $("l_dlXlsx").classList.remove("hidden"); $("l_dlCsv").classList.remove("hidden"); }
+  }
+}
+$("l_stop").onclick=async ()=>{ if(lJob){ await fetch("/api/live/cancel/"+lJob,{method:"POST"}); } };
+$("l_dlAlive").onclick=()=> lJob && (location.href="/api/live/download/"+lJob+"?fmt=alive");
+$("l_dlXlsx").onclick=()=> lJob && (location.href="/api/live/download/"+lJob+"?fmt=xlsx");
+$("l_dlCsv").onclick =()=> lJob && (location.href="/api/live/download/"+lJob+"?fmt=csv");
+
 // ---- переподключение к уже идущим задачам (если перезагрузили страницу) ----
 (async ()=>{
   try{
@@ -825,6 +921,10 @@ $("r_dlCsv").onclick =()=> rJob && (location.href="/api/redirects/download/"+rJo
   try{
     const rc = await (await fetch("/api/redirects/active")).json();
     if(rc.job_id && rc.status==="running"){ rJob=rc.job_id; startRedir(); rPoll=setInterval(rRefresh,1000); rRefresh(); }
+  }catch(e){}
+  try{
+    const lc = await (await fetch("/api/live/active")).json();
+    if(lc.job_id && lc.status==="running"){ lJob=lc.job_id; startLive(); lPoll=setInterval(lRefresh,1000); lRefresh(); }
   }catch(e){}
 })();
 </script>
