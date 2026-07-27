@@ -75,6 +75,12 @@ foreach ($chunks as $bi => $chunk) {
     }
     // FAQ — целиком в последний блок
     $sub['targets']['faq_count'] = ($bi === $blocks - 1) ? ($spec['targets']['faq_count'] ?? 0) : 0;
+    // Плотность цифр: блок не видит чисел соседей и тратит свой бюджет целиком,
+    // поэтому на склейке они суммируются в перебор (замер: 4.8 при цели 2.9).
+    // Компенсируем занижением цели для блоков.
+    if (isset($sub['targets']['numbers_per100'])) {
+        $sub['targets']['numbers_per100'] = round((float) $sub['targets']['numbers_per100'] * 0.7, 1);
+    }
     // ссылки — свой ломоть
     $sub['links'] = $linkPer ? array_slice($links, $bi * $linkPer, $linkPer) : [];
 
