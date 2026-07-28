@@ -339,5 +339,23 @@
                 0
             ]
         }
+    },
+    "pages": {
+        "main": {
+            "path": "\/",
+            "entity_cats": [
+                "providers_count",
+                "payout_rate",
+                "licenses",
+                "crypto",
+                "payments",
+                "jackpot",
+                "currencies",
+                "platforms"
+            ],
+            "emoji": true,
+            "author_block": true,
+            "role": "standalone"
+        }
     }
 }

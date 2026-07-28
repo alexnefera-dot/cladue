@@ -19,6 +19,8 @@ final class Planner
     private array $profile;
     private array $pools;
     private string $factDir;
+    /** реестр страниц корпуса: путь, разрешённые категории сущностей, роли */
+    private array $pages = [];
 
     public function __construct(?string $dataDir = null, ?string $factDir = null)
     {
@@ -26,6 +28,11 @@ final class Planner
         $this->profile = $this->loadJson($dataDir . '/profile.json');
         $this->pools   = $this->loadJson($dataDir . '/pools/pools.json');
         $this->factDir = $factDir ?? (__DIR__ . '/../../../samples/fact-pool');
+        // Реестр страниц корпуса. Пока его нет в профиле, действуют зашитые
+        // умолчания корпусов v1/v2 (семь известных типов) — их поведение не
+        // меняется. Корпус v3 приносит свой реестр: там страниц бывает одна или
+        // двенадцать, и шесть типов, которых движок раньше не видел.
+        $this->pages = $this->profile['pages'] ?? [];
     }
 
     private function loadJson(string $path): array
@@ -44,6 +51,20 @@ final class Planner
     public function types(): array
     {
         return array_keys($this->profile['types']);
+    }
+
+    /**
+     * Можно ли этой странице нести элемент (эмодзи, авторский блок).
+     *
+     * В корпусах v1/v2 оба стояли только на главной, и это было зашито условием
+     * `$type === 'main'`. Корпус v3 показал, что правило корпусное, а не общее:
+     * в его связке эмодзи есть на всех двенадцати страницах. Поэтому решает
+     * реестр корпуса, а при его отсутствии — прежнее умолчание.
+     */
+    private function pageAllows(string $type, string $what, string $fallbackType): bool
+    {
+        if ($this->pages === []) { return $type === $fallbackType; }
+        return !empty($this->pages[$type][$what]);
     }
 
     /**
@@ -107,7 +128,7 @@ final class Planner
             // эмодзи в теле: в донор-режиме — как у донора; иначе только у эмодзи-сайта на main
             'emoji_body'     => $dp !== null
                 ? ($style->emojiSite ? $Ti('emoji', $P['emoji_body']) : 0)
-                : (($style->emojiSite && $type === 'main') ? $rng->triInt($P['emoji_body']) : 0),
+                : (($style->emojiSite && $this->pageAllows($type, 'emoji', 'main')) ? $rng->triInt($P['emoji_body']) : 0),
             // бренд ру/англ: в донор-режиме — как у донора (важный параметр оптимизации), иначе из профиля
             'brand_ru'       => $dp['brand_ru'] ?? max(1, (int) round($P['brand_ru'] * $rng->range(0.7, 1.3))),
             'brand_en'       => $dp['brand_en'] ?? max(1, (int) round($P['brand_en'] * $rng->range(0.7, 1.3) * ($style->naming === 'en-heavy' ? 1.15 : 0.85))),
@@ -253,7 +274,7 @@ final class Planner
             'donor_genre'  => $donor['style']['genre'] ?? null,
             // Авторский блок в референсах стоит ТОЛЬКО на главной (проверено:
             // на сателлитах 0 из 6 у всех доноров с автором).
-            'author_block' => !empty($donor['style']['author_block']) && $type === 'main',
+            'author_block' => !empty($donor['style']['author_block']) && $this->pageAllows($type, 'author_block', 'main'),
             'style'     => $style->toArray(),
             'targets'   => $targets,
             'tone'      => $tone,
@@ -432,7 +453,8 @@ final class Planner
             'vhod'        => [],
             'app'         => ['platforms'],
         ];
-        $ok = $allowCat[$type] ?? ['licenses'];
+        // Реестр корпуса главнее зашитой таблицы: у v3 есть типы, которых здесь нет.
+        $ok = $this->pages[$type]['entity_cats'] ?? ($allowCat[$type] ?? ['licenses']);
         $catDriverSlot = ['providers_count','payout_rate'];       // зажигают «Провайдеры»/«RTP»
         // ВСЕ именованные пулы гейтим по $ok, иначе currencies/platforms текут
         // на каждую страницу и раздувают счётчик категорий-сущностей на сателлитах.
@@ -582,6 +604,11 @@ final class Planner
     {
         $cfg = $this->pools['interlinking'] ?? [];
         $paths = ['main'=>'/','zerkalo'=>'/zerkalo','vhod'=>'/vhod','registracia'=>'/registracia','bonus'=>'/bonus','slots'=>'/slots','app'=>'/app'];
+        // Пути берём из реестра корпуса, если он есть: состав связки v3 другой.
+        if ($this->pages !== []) {
+            $paths = [];
+            foreach ($this->pages as $pt => $cfg) { $paths[$pt] = $cfg['path'] ?? ('/' . $pt); }
+        }
 
         // сколько ссылок ставить: из донора (если есть) иначе медиана типа
         $n = $donor['pages'][$type]['intlinks']

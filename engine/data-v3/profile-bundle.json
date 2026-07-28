@@ -3399,5 +3399,129 @@
                 120
             ]
         }
+    },
+    "pages": {
+        "app": {
+            "path": "\/app",
+            "entity_cats": [
+                "platforms"
+            ],
+            "emoji": true,
+            "author_block": false,
+            "role": "leaf"
+        },
+        "bonus": {
+            "path": "\/bonus",
+            "entity_cats": [
+                "licenses"
+            ],
+            "emoji": true,
+            "author_block": false,
+            "role": "leaf"
+        },
+        "info": {
+            "path": "\/info",
+            "entity_cats": [
+                "licenses",
+                "payments"
+            ],
+            "emoji": true,
+            "author_block": false,
+            "role": "leaf"
+        },
+        "main": {
+            "path": "\/",
+            "entity_cats": [
+                "providers_count",
+                "payout_rate",
+                "licenses",
+                "crypto",
+                "payments",
+                "jackpot",
+                "currencies",
+                "platforms"
+            ],
+            "emoji": true,
+            "author_block": false,
+            "role": "hub"
+        },
+        "news": {
+            "path": "\/news",
+            "entity_cats": [
+                "providers_count",
+                "jackpot"
+            ],
+            "emoji": true,
+            "author_block": false,
+            "role": "leaf"
+        },
+        "obzor": {
+            "path": "\/obzor",
+            "entity_cats": [
+                "providers_count",
+                "payout_rate",
+                "licenses",
+                "payments",
+                "jackpot"
+            ],
+            "emoji": true,
+            "author_block": false,
+            "role": "leaf"
+        },
+        "partnery": {
+            "path": "\/partnery",
+            "entity_cats": [
+                "payments",
+                "currencies"
+            ],
+            "emoji": true,
+            "author_block": false,
+            "role": "leaf"
+        },
+        "promo": {
+            "path": "\/promo",
+            "entity_cats": [
+                "licenses"
+            ],
+            "emoji": true,
+            "author_block": false,
+            "role": "leaf"
+        },
+        "registracia": {
+            "path": "\/registr",
+            "entity_cats": [
+                "licenses"
+            ],
+            "emoji": true,
+            "author_block": false,
+            "role": "leaf"
+        },
+        "slots": {
+            "path": "\/slots",
+            "entity_cats": [
+                "providers_count",
+                "payout_rate",
+                "jackpot"
+            ],
+            "emoji": true,
+            "author_block": false,
+            "role": "leaf"
+        },
+        "vhod": {
+            "path": "\/vhod",
+            "entity_cats": [],
+            "emoji": true,
+            "author_block": false,
+            "role": "leaf"
+        },
+        "zerkalo": {
+            "path": "\/zerkalo",
+            "entity_cats": [
+                "licenses"
+            ],
+            "emoji": true,
+            "author_block": false,
+            "role": "leaf"
+        }
     }
 }

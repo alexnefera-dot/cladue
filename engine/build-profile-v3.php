@@ -75,6 +75,15 @@ $single['_meta'] = [
 ];
 $single['types'] = ['main' => buildType($singlePages, $base['types']['main'], $MAP)];
 $single['types']['main']['intlinks'] = [0, 0, 0];
+// Реестр страниц: одна страница несёт весь сайт, поэтому ей разрешены ВСЕ
+// категории сущностей — сужать нечем и не для кого.
+$single['pages'] = ['main' => [
+    'path'         => '/',
+    'entity_cats'  => ['providers_count','payout_rate','licenses','crypto','payments','jackpot','currencies','platforms'],
+    'emoji'        => true,
+    'author_block' => true,
+    'role'         => 'standalone',
+]];
 
 // ── связка ─────────────────────────────────────────────────────────────────
 $bundleName = null;
@@ -90,6 +99,40 @@ if ($bundleName !== null) {
         $bundle['types'][$t] = buildType([$p], $baseType, $MAP);
         $bundle['types'][$t]['intlinks'] = [$p['intlinks'], $p['intlinks'], $p['intlinks']];
     }
+    // Реестр страниц связки. Пути — реальные слаги сайта (у регистрации он
+    // короче имени файла). Категории сущностей — по теме страницы; чтение
+    // показало, что шесть новых типов это та же рамка с другим словарём,
+    // поэтому категории им назначаются по той же логике, что привычным.
+    $CATS = [
+        'main'        => ['providers_count','payout_rate','licenses','crypto','payments','jackpot','currencies','platforms'],
+        'obzor'       => ['providers_count','payout_rate','licenses','payments','jackpot'],
+        'slots'       => ['providers_count','payout_rate','jackpot'],
+        'bonus'       => ['licenses'],
+        'promo'       => ['licenses'],
+        'registracia' => ['licenses'],
+        'vhod'        => [],
+        'zerkalo'     => ['licenses'],
+        'app'         => ['platforms'],
+        'news'        => ['providers_count','jackpot'],
+        'info'        => ['licenses','payments'],
+        'partnery'    => ['payments','currencies'],
+    ];
+    $PATHS = ['registracia' => '/registr'];
+    $bundle['pages'] = [];
+    foreach ($b['pages'] as $t => $p) {
+        $bundle['pages'][$t] = [
+            'path'         => $PATHS[$t] ?? ($t === 'main' ? '/' : "/$t"),
+            'entity_cats'  => $CATS[$t] ?? ['licenses'],
+            // Эмодзи есть на КАЖДОЙ странице связки (34–75), а не только на
+            // главной, как было в корпусах v1/v2.
+            'emoji'        => ($p['emoji'] ?? 0) > 0,
+            // Авторского блока нет нигде: формальный детектор давал ложные
+            // срабатывания на сюжетные слова и на скрытые JSON-LD болванки.
+            'author_block' => false,
+            'role'         => $t === 'main' ? 'hub' : 'leaf',
+        ];
+    }
+
     $allPages = array_values($b['pages']);
     $bundle['_meta'] = [
         'source' => 'data-v3/donors.json — связка ' . $bundleName,
