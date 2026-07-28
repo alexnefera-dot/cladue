@@ -85,12 +85,24 @@ function detectBrand(string $html, string $text): array
     };
     // Аббревиатуры из одних прописных (USDT, TON) под шаблоны не подходят
     // намеренно — иначе они перебивают настоящий бренд по частоте.
-    return [
+    $out = [
         'ru' => $pick('~[А-ЯЁ][а-яё]{2,}(?:[А-ЯЁ][а-яё]+)*~u',
                       '~[А-ЯЁ][а-яё]{2,}(?:[А-ЯЁ][а-яё]+)*\s[А-ЯЁ][а-яё]{2,}(?:[А-ЯЁ][а-яё]+)*~u'),
         'en' => $pick('~[A-Z][a-z]{2,}(?:[A-Z][a-z]+)*~u',
                       '~[A-Z][a-z]{2,}(?:[A-Z][a-z]+)*\s[A-Z][a-z]{2,}(?:[A-Z][a-z]+)*~u'),
     ];
+    // Запасной проход для имён, не похожих на слово: «1ГО», «1GO», аббревиатуры
+    // из прописных. Шаблоны выше их не ловят, а бренд бывает именно таким.
+    if ($out['ru'] === '' || $out['en'] === '') {
+        foreach (preg_split('~[^\p{L}\p{N}]+~u', $title, -1, PREG_SPLIT_NO_EMPTY) as $tok) {
+            if (mb_strlen($tok) < 2 || in_array(mb_strtolower($tok), $stop, true)) { continue; }
+            if (mb_substr_count($text, $tok) < 5) { continue; }
+            $isRu = (bool) preg_match('~[А-ЯЁа-яё]~u', $tok);
+            $key  = $isRu ? 'ru' : 'en';
+            if ($out[$key] === '') { $out[$key] = $tok; }
+        }
+    }
+    return $out;
 }
 
 $a = new Analyzer();
@@ -111,12 +123,11 @@ foreach (glob($ROOT . '/*', GLOB_ONLYDIR) as $dir) {
     $linkable = $types;
     unset($types['sitemap']);
 
-    // Чужая страница в наборе. В связке 7 файл registracia.htm принадлежит
-    // другому сайту целиком: 174 внутренние ссылки ведут на соседний домен,
-    // имя бренда — другое. Слаги при этом совпадают, поэтому по ссылкам такая
-    // страница неотличима от своей и тянет в профиль чужие параметры.
-    // Признак: собственные ссылки страницы почти целиком ведут не на тот хост,
-    // что у остальных страниц набора.
+    // Одна страница связки 7 принадлежит другому сайту (1GO вместо Пинап). Как
+    // донор структуры и стиля она полноценна: бренд у нас переменная и всё равно
+    // подменяется. Поэтому страница остаётся в профиле — просто её вставки
+    // считаются по её собственному имени бренда (см. постраничный детект ниже).
+    $foreign = [];
     $hostOf = [];
     foreach ($linkable as $t => $f) {
         if (preg_match_all('#href="(https?://[^/"]+)#i', (string) file_get_contents($f), $hm)) {
@@ -130,10 +141,7 @@ foreach (glob($ROOT . '/*', GLOB_ONLYDIR) as $dir) {
         arsort($tops);
         $setHost = array_key_first($tops);
         foreach ($hostOf as $t => $h) {
-            if ($h['top'] !== $setHost && $h['n'] >= 0.8 * $h['all']) {
-                fwrite(STDERR, sprintf("    ! %s/%s — чужой сайт (%s), из профиля исключена\n", $name, $t, $h['top']));
-                unset($types[$t]);
-            }
+            if ($h['top'] !== $setHost && $h['n'] >= 0.8 * $h['all']) { $foreign[] = $t; }
         }
     }
 
@@ -144,14 +152,14 @@ foreach (glob($ROOT . '/*', GLOB_ONLYDIR) as $dir) {
         $p = $r['pages'][0]; $m = $p['metrics']; $s = $p['stylistics'];
         $txt = strip_tags(preg_replace('#<(script|style)[^>]*>.*?</\1>#is', ' ', $raw));
 
-        // Заголовки страниц набора неравноценны: на одной есть оба написания, на
-        // другой только кириллица. Добираем недостающее написание по следующим,
-        // а не фиксируем всё по первой попавшейся странице.
-        if ($brand['ru'] === '' || $brand['en'] === '') {
-            $d = detectBrand($raw, $txt);
-            if ($brand['ru'] === '') { $brand['ru'] = $d['ru']; }
-            if ($brand['en'] === '') { $brand['en'] = $d['en']; }
-        }
+        // Бренд ищем на КАЖДОЙ странице: в связке 7 одна страница принадлежит
+        // другому сайту, и по имени набора её вставки считались бы нулями.
+        // Найденное на странице имя главнее набора; недостающее написание
+        // добираем по остальным страницам.
+        $own = detectBrand($raw, $txt);
+        if ($brand['ru'] === '') { $brand['ru'] = $own['ru']; }
+        if ($brand['en'] === '') { $brand['en'] = $own['en']; }
+        $pageBrand = ['ru' => $own['ru'] ?: $brand['ru'], 'en' => $own['en'] ?: $brand['en']];
 
         // ссылки на ДРУГИЕ страницы этого же набора — состав известен из файлов
         $intlinks = 0;
@@ -201,8 +209,10 @@ foreach (glob($ROOT . '/*', GLOB_ONLYDIR) as $dir) {
             'nausea_acad'    => round((float) $m['nausea_academic'], 1),
             'water'          => round((float) $m['water_percent'], 1),
             'intlinks'       => $intlinks,
-            'brand_ru'       => $brand['ru'] !== '' ? mb_substr_count($txt, $brand['ru']) : 0,
-            'brand_en'       => $brand['en'] !== '' ? mb_substr_count($txt, $brand['en']) : 0,
+            'brand_ru'       => $pageBrand['ru'] !== '' ? mb_substr_count($txt, $pageBrand['ru']) : 0,
+            'brand_en'       => $pageBrand['en'] !== '' ? mb_substr_count($txt, $pageBrand['en']) : 0,
+            'brand_own'      => $pageBrand,
+            'foreign'        => in_array($t, $foreign, true),
             'sem'            => $sem,
         ];
         $fp[] = (int) $s['first_person'];
