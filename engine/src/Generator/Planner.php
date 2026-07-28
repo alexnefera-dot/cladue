@@ -266,7 +266,7 @@ final class Planner
             'date'      => $date,
             'seed'      => $seed,
             'donor'     => $donor['name'] ?? null,
-            'data_card' => $this->buildDataCard($rng, $type),
+            'data_card' => $this->buildDataCard($rng, $type, $dp !== null ? (int) ($dp['entities'] ?? 0) : null),
             'data_tables' => $this->buildDataTables($rng, $type),
             'links'     => $this->buildLinks($type, $rng, $brandRu, $brandEn, $donor),
             'register'  => $this->resolveRegister($style->register),
@@ -446,7 +446,7 @@ final class Planner
      * RTP, лицензии, крипта, платформы…). Это защита от «ИИ-водянистости»:
      * реальные сайты выкладывают такие данные блоком и рассыпают по тексту.
      */
-    private function buildDataCard(Rng $rng, string $type): array
+    private function buildDataCard(Rng $rng, string $type, ?int $entCap = null): array
     {
         $id = $this->pools['identity_facts'] ?? [];
         $card = [];
@@ -474,6 +474,12 @@ final class Planner
         ];
         // Реестр корпуса главнее зашитой таблицы: у v3 есть типы, которых здесь нет.
         $ok = $this->pages[$type]['entity_cats'] ?? ($allowCat[$type] ?? ['licenses']);
+        // В донор-режиме список ещё и УРЕЗАЕТСЯ под цель донора по сущностям.
+        // Сущности считаются категориями, поэтому широкий список гарантирует
+        // перебор: у донора их три, а фактура предлагает восемь.
+        if ($entCap !== null && $entCap > 0 && count($ok) > $entCap) {
+            $ok = array_slice($ok, 0, $entCap);
+        }
         $catDriverSlot = ['providers_count','payout_rate'];       // зажигают «Провайдеры»/«RTP»
         // ВСЕ именованные пулы гейтим по $ok, иначе currencies/platforms текут
         // на каждую страницу и раздувают счётчик категорий-сущностей на сателлитах.
