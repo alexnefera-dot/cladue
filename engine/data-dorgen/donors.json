@@ -244,7 +244,9 @@
                 "emoji_site": true,
                 "fp_avg": 49.1,
                 "vy_avg": 1,
-                "register": "expert"
+                "register": "expert",
+                "genre": "личный дневник от «я»: бытовые детали, таблицы «Опыт автора», без подписи автора",
+                "author_block": false
             }
         },
         "set227": {
@@ -487,7 +489,9 @@
                 "emoji_site": true,
                 "fp_avg": 7.4,
                 "vy_avg": 5.4,
-                "register": "reklamny"
+                "register": "reklamny",
+                "genre": "рекламно-восторженный на «вы»: превосходные степени, псевдо-отзывы с именами, сравнительные таблицы",
+                "author_block": true
             }
         },
         "set229": {
@@ -730,7 +734,9 @@
                 "emoji_site": true,
                 "fp_avg": 1,
                 "vy_avg": 0.4,
-                "register": "razgovorny"
+                "register": "razgovorny",
+                "genre": "дружеский сленг на «ты» (чувак/бро/бабки) поверх сильного E-E-A-T-каркаса",
+                "author_block": true
             }
         },
         "set232": {
@@ -973,7 +979,9 @@
                 "emoji_site": true,
                 "fp_avg": 2,
                 "vy_avg": 0.4,
-                "register": "razgovorny"
+                "register": "razgovorny",
+                "genre": "промо-лендинг на «ты»: обложка с CTA и таймером, микро-истории игроков, анти-хайп рефрены («без развода, по-честному», «гарантий нет»)",
+                "author_block": false
             }
         },
         "set235": {
@@ -1216,7 +1224,9 @@
                 "emoji_site": true,
                 "fp_avg": 40.3,
                 "vy_avg": 2.4,
-                "register": "expert"
+                "register": "expert",
+                "genre": "экспертный от «я», нарратив «сравнил и остался», рефрен «Сравнил. Остался здесь.»",
+                "author_block": true
             }
         },
         "set240": {
@@ -1459,7 +1469,9 @@
                 "emoji_site": true,
                 "fp_avg": 2.6,
                 "vy_avg": 2,
-                "register": "razgovorny"
+                "register": "razgovorny",
+                "genre": "цинично-назидательное эссе на «ты»: развёрнутые метафоры, психология азарта, честный негатив и антиреклама",
+                "author_block": false
             }
         },
         "set242": {
@@ -1702,7 +1714,9 @@
                 "emoji_site": true,
                 "fp_avg": 1.4,
                 "vy_avg": 11.3,
-                "register": "delovoy"
+                "register": "delovoy",
+                "genre": "деловой на «вы» + инсайдерский тон: рефрен «от своих людей в индустрии», пошаговые инструкции по безопасности",
+                "author_block": true
             }
         },
         "set256": {
@@ -1945,7 +1959,9 @@
                 "emoji_site": true,
                 "fp_avg": 0.3,
                 "vy_avg": 0,
-                "register": "razgovorny"
+                "register": "razgovorny",
+                "genre": "максимально сленговый на «ты» (бро, бабло, не парься), «Лайфхак #N», без автора",
+                "author_block": false
             }
         },
         "set267": {
@@ -2188,7 +2204,9 @@
                 "emoji_site": true,
                 "fp_avg": 0.3,
                 "vy_avg": 16.6,
-                "register": "delovoy"
+                "register": "reklamny",
+                "genre": "люкс-глянец на «вы»: имиджевая премиум-реклама, метафора вечернего ритуала (Баден-Баден, шампанское), заголовки-«грани роскоши»",
+                "author_block": true
             }
         }
     }

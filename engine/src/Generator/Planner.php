@@ -249,6 +249,9 @@ final class Planner
             'data_tables' => $this->buildDataTables($rng, $type),
             'links'     => $this->buildLinks($type, $rng, $brandRu, $brandEn, $donor),
             'register'  => $this->resolveRegister($style->register),
+            // жанр и наличие авторского блока сняты вычиткой референсов
+            'donor_genre'  => $donor['style']['genre'] ?? null,
+            'author_block' => !empty($donor['style']['author_block']),
             'style'     => $style->toArray(),
             'targets'   => $targets,
             'tone'      => $tone,
