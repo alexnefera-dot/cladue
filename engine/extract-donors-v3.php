@@ -164,6 +164,12 @@ foreach (glob($ROOT . '/*', GLOB_ONLYDIR) as $dir) {
             'emoji'          => (int) $s['emoji'],
             'entities'       => (int) $s['entities_count'],
             'first_person'   => (int) $s['first_person'],
+            // Корпоративное «мы» — отдельная ось, которой в профиле v1/v2 не было:
+            // там first_person считал только единственное число. В этом корпусе
+            // набор 6 даёт «я» 0 при «мы» 45 — по старому полю он читается как
+            // безличный, хотя написан от лица службы. Считаем здесь, а не в
+            // src/Stylistics.php, чтобы не сдвинуть замеры корпуса v2.
+            'we'             => preg_match_all('~\b(мы|нас|нам|нами|наш|наша|наше|наши|нашего|нашей|наших|нашим|нашими)\b~u', mb_strtolower($txt)),
             'vy'             => (int) $s['second_person'],
             'imperatives'    => (int) $s['imperatives'],
             'nausea_acad'    => round((float) $m['nausea_academic'], 1),
