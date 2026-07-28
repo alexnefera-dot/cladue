@@ -111,6 +111,32 @@ foreach (glob($ROOT . '/*', GLOB_ONLYDIR) as $dir) {
     $linkable = $types;
     unset($types['sitemap']);
 
+    // Чужая страница в наборе. В связке 7 файл registracia.htm принадлежит
+    // другому сайту целиком: 174 внутренние ссылки ведут на соседний домен,
+    // имя бренда — другое. Слаги при этом совпадают, поэтому по ссылкам такая
+    // страница неотличима от своей и тянет в профиль чужие параметры.
+    // Признак: собственные ссылки страницы почти целиком ведут не на тот хост,
+    // что у остальных страниц набора.
+    $hostOf = [];
+    foreach ($linkable as $t => $f) {
+        if (preg_match_all('#href="(https?://[^/"]+)#i', (string) file_get_contents($f), $hm)) {
+            $cnt = array_count_values($hm[1]);
+            arsort($cnt);
+            $hostOf[$t] = ['top' => array_key_first($cnt), 'n' => reset($cnt), 'all' => array_sum($cnt)];
+        }
+    }
+    if (count($hostOf) > 2) {
+        $tops = array_count_values(array_column($hostOf, 'top'));
+        arsort($tops);
+        $setHost = array_key_first($tops);
+        foreach ($hostOf as $t => $h) {
+            if ($h['top'] !== $setHost && $h['n'] >= 0.8 * $h['all']) {
+                fwrite(STDERR, sprintf("    ! %s/%s — чужой сайт (%s), из профиля исключена\n", $name, $t, $h['top']));
+                unset($types[$t]);
+            }
+        }
+    }
+
     $pages = []; $fp = []; $vy = []; $emoMain = 0; $brand = ['ru'=>'','en'=>''];
     foreach ($types as $t => $f) {
         $raw = (string) file_get_contents($f);
@@ -203,6 +229,19 @@ foreach (glob($ROOT . '/*', GLOB_ONLYDIR) as $dir) {
     ];
     fwrite(STDERR, sprintf("  %-4s страниц %-3d бренд %s / %s\n",
         $name, count($pages), $brand['ru'] ?: '—', $brand['en'] ?: '—'));
+}
+
+// Профиль, снятый ЧТЕНИЕМ, имеет приоритет над формальными признаками: в корпусе
+// v2 классификатор ошибся на трёх донорах из девяти, а здесь формальный поиск
+// авторского блока дал пять ложных срабатываний из пяти на связке 7.
+$readFile = __DIR__ . '/data-v3/profile-read.json';
+if (is_file($readFile)) {
+    $read = json_decode((string) file_get_contents($readFile), true) ?: [];
+    foreach ($sets as $n => &$s) {
+        if (isset($read[$n])) { $s['read'] = $read[$n]; }
+    }
+    unset($s);
+    fwrite(STDERR, "  профиль чтения подмешан для " . count(array_intersect(array_keys($sets), array_keys($read))) . " наборов\n");
 }
 
 @mkdir(dirname($OUT), 0777, true);
