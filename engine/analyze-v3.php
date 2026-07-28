@@ -190,57 +190,219 @@ echo "\nSTATUS " . json_encode(['sets' => count($V3), 'singles' => count($single
 if ($OUT === '') { exit(0); }
 
 // ── HTML ───────────────────────────────────────────────────────────────────
-$H = "<meta charset='utf-8'><title>Корпус v3 — глубокий разбор</title><style>
-body{font:15px/1.55 -apple-system,Segoe UI,Roboto,sans-serif;max-width:1180px;margin:0 auto;padding:24px;color:#1a1a1a;background:#fafafa}
-h1{font-size:23px}h2{font-size:19px;margin-top:34px;border-bottom:2px solid #2563eb;padding-bottom:6px}
-table{border-collapse:collapse;width:100%;margin:10px 0;background:#fff;font-size:13px}
-th,td{border:1px solid #e3e3e3;padding:5px 8px;text-align:center}th{background:#f0f4ff;font-weight:600}
-td.l,th.l{text-align:left}.hd{font-weight:700}.na{color:#999}
-.note{background:#fff;border-left:3px solid #2563eb;padding:8px 14px;margin:10px 0}
-.hi{background:#fff4e5}.lo{background:#eef4ff}</style>
-<h1>Корпус v3 — глубокий разбор по нашим параметрам</h1>
-<p class='note'>Семь наборов: шесть одностраничников и одна связка на двенадцать страниц. Коридор — [p10 · медиана · p90]. Колонка v2 приведена только для сопоставления, корпус v2 не изменялся.</p>";
+$HOW = [
+    'words'          => ['Объём слов', 'Слова текста без разметки, скриптов и стилей.'],
+    'h2'             => ['H2', 'Число заголовков второго уровня.'],
+    'sections'       => ['Разделы H2+H3', 'H2 плюс H3 — сколько всего смысловых блоков на странице.'],
+    'lists'          => ['Списки', 'Число блоков ul и ol.'],
+    'tables'         => ['Таблицы', 'Число блоков table.'],
+    'quotes'         => ['Цитаты', 'Блоки blockquote — отзывы и врезки.'],
+    'strong'         => ['&lt;strong&gt;', 'Число выделений жирным в тексте.'],
+    'faq'            => ['FAQ', 'Вопросы, опознанные как FAQ: заголовок или жирная строка, оканчивающаяся вопросительным знаком.'],
+    'emoji'          => ['Эмодзи', 'Эмодзи в теле текста; навигация и меню не в счёт.'],
+    'entities'       => ['Сущности', 'Число КАТЕГОРИЙ именованных данных: лицензия, провайдеры, платежи, крипта, RTP, джекпот, поддержка и ещё шесть. Считаются категории, а не отдельные имена — два провайдера это одна сущность.'],
+    'first_person'   => ['«я»', 'Слова я, мне, мой, меня и формы.'],
+    'vy'             => ['«вы»', 'Слова вы, вас, вам, ваш и формы.'],
+    'imperatives'    => ['Императивы', 'Побудительные глаголы: жми, забирай, проверь, открой — CTA в теле текста.'],
+    'numbers_per100' => ['Цифры/100', 'Сколько чисел ЦИФРАМИ приходится на сто слов. Числа словами не считаются.'],
+    'adj_pct'        => ['Прилаг%', 'Доля прилагательных от всех слов.'],
+    'nausea_acad'    => ['Тошнота', 'Академическая тошнота: насколько часто повторяются самые частые слова. Высокая — норма для SEO-текста ниши.'],
+    'water'          => ['Водность%', 'Доля стоп-слов, вводных и связок. Низкая — телеграфный стиль, высокая — рассуждение.'],
+    'brand_ru'       => ['Бренд RU', 'Вхождений кириллического написания имени бренда.'],
+    'brand_en'       => ['Бренд EN', 'Вхождений латинского написания имени бренда.'],
+];
 
-$H .= "<h2>A. Состав</h2><table><tr><th class='l'>Набор</th><th>Страниц</th><th class='l'>Типы</th><th class='l'>Бренд</th></tr>";
-foreach ($V3 as $n => $s) {
-    $H .= "<tr><td class='l hd'>$n</td><td>{$s['shape']['page_count']}</td><td class='l'>"
-        . htmlspecialchars(implode(', ', $s['shape']['types'])) . "</td><td class='l'>"
-        . htmlspecialchars(($s['brand']['ru'] ?: '—') . ' / ' . ($s['brand']['en'] ?: '—')) . "</td></tr>";
+/** строка таблицы: значения по страницам + коридор набора */
+function rowFor(array $pages, string $k, array $order): string {
+    $out = '';
+    foreach ($order as $t) { $out .= '<td>' . fmt($pages[$t][$k]) . '</td>'; }
+    return $out;
 }
-$H .= "</table>";
 
-$H .= "<h2>B. Полная матрица параметров</h2><table><tr><th class='l'>Набор / страница</th>";
-foreach ($FIELDS as [$lab, $_]) { $H .= "<th>" . htmlspecialchars($lab) . "</th>"; }
-$H .= "</tr>";
-foreach ($V3 as $n => $s) {
-    foreach ($s['pages'] as $t => $p) {
-        $H .= "<tr><td class='l hd'>$n / $t</td>";
-        foreach ($FIELDS as $k => $_) { $H .= "<td>" . fmt($p[$k]) . "</td>"; }
-        $H .= "</tr>";
+$css = "<style>
+body{font:15px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;max-width:1400px;margin:0 auto;padding:24px;color:#1a1a1a;background:#fafafa}
+h1{font-size:24px}h2{font-size:20px;margin-top:38px;border-bottom:2px solid #2563eb;padding-bottom:6px}
+h3{font-size:16px;margin-top:24px;color:#333}
+table{border-collapse:collapse;width:100%;margin:12px 0;background:#fff;font-size:12.5px}
+th,td{border:1px solid #e3e3e3;padding:5px 7px;text-align:center;white-space:nowrap}
+th{background:#f0f4ff;font-weight:600}th.l,td.l{text-align:left;white-space:normal}
+.hd{font-weight:700;background:#fafbff}.cor{background:#f4f7ff;font-weight:700}
+.na{color:#999}.note{background:#fff;border-left:3px solid #2563eb;padding:10px 16px;margin:12px 0}
+.warn{background:#fff8e6;border-left:3px solid #e0a800;padding:10px 16px;margin:12px 0}
+.gloss td{text-align:left;white-space:normal;font-size:13px}
+.zero{background:#fdecea;color:#c5221f;font-weight:700}
+.hi{background:#e8f7ec}
+tr:hover td{background:#f7f9ff}
+</style>";
+
+$H = "<meta charset='utf-8'><title>Корпус v3 — разбор</title>$css
+<h1>Корпус v3 — разбор по нашим параметрам</h1>
+<p class='note'>Каждое число — замер нашего <code>Analyzer</code> по одной странице: тот же код, которым мерились корпуса v1 и v2.
+В корпусе <b>18 страниц</b>: шесть одностраничников и связка из двенадцати. Разбираются они отдельно, потому что сравнивать
+страницу, которая несёт весь сайт, со страницей внутри связки — некорректно.</p>";
+
+// ── 0. Глоссарий ───────────────────────────────────────────────────────────
+$H .= "<h2>0. Что означает каждый параметр</h2><table class='gloss'><tr><th class='l' style='width:150px'>Параметр</th><th class='l'>Как считается</th></tr>";
+foreach ($HOW as $k => [$lab, $desc]) { $H .= "<tr><td class='l hd'>$lab</td><td class='l'>" . $desc . "</td></tr>"; }
+$H .= "</table><p class='note'>Коридор <b>[p10 · медиана · p90]</b> — десятый процентиль, медиана и девяностый по всем страницам группы: между p10 и p90 лежат 80% значений. Это та же мерка, которой задаются цели генератора.</p>";
+
+// ── 1. Связка: 12 страниц ──────────────────────────────────────────────────
+foreach ($bundles as $bn => $bs) {
+    $order = array_keys($bs['pages']);
+    $H .= "<h2>1. Связка «{$bn}» — двенадцать страниц</h2>";
+    $H .= "<p class='note'>Строка — параметр, колонка — страница. Последняя колонка — коридор по этим двенадцати страницам. Красным отмечены нули там, где параметра нет вовсе.</p>";
+    $H .= "<table><tr><th class='l'>Параметр</th>";
+    foreach ($order as $t) { $H .= "<th>$t</th>"; }
+    $H .= "<th class='cor'>коридор</th></tr>";
+    foreach ($HOW as $k => [$lab, $_]) {
+        $vals = array_column($bs['pages'], $k);
+        $c = corridor($vals);
+        $allZero = (max($vals) == 0);
+        $H .= "<tr><td class='l hd'>$lab</td>";
+        foreach ($order as $t) {
+            $v = $bs['pages'][$t][$k];
+            $cls = $allZero ? 'zero' : '';
+            $H .= "<td class='$cls'>" . fmt($v) . "</td>";
+        }
+        $H .= "<td class='cor'>" . fmt($c[0]) . " · " . fmt($c[1]) . " · " . fmt($c[2]) . "</td></tr>";
     }
-}
-$H .= "</table>";
+    $H .= "</table>";
 
-$H .= "<h2>C. Коридоры</h2><table><tr><th class='l'>Параметр</th><th>Одностраничники</th><th>Связка (12 стр)</th><th>Корпус v2</th></tr>";
-foreach ($FIELDS as $k => [$lab, $_]) {
-    $a = corridor($colS[$k] ?? []); $b = corridor($colB[$k] ?? []); $c = corridor($colV2[$k] ?? []);
-    $H .= "<tr><td class='l hd'>" . htmlspecialchars($lab) . "</td>"
-        . "<td>" . fmt($a[0]) . " · <b>" . fmt($a[1]) . "</b> · " . fmt($a[2]) . "</td>"
-        . "<td>" . fmt($b[0]) . " · <b>" . fmt($b[1]) . "</b> · " . fmt($b[2]) . "</td>"
-        . "<td class='na'>" . fmt($c[0]) . " · " . fmt($c[1]) . " · " . fmt($c[2]) . "</td></tr>";
-}
-$H .= "</table>";
-
-$H .= "<h2>D. Семантические кластеры (плотность на 100 слов)</h2><table><tr><th class='l'>Набор</th>";
-foreach ($clusters as $c) { $H .= "<th>" . htmlspecialchars($c) . "</th>"; }
-$H .= "</tr>";
-foreach ($V3 as $n => $s) {
-    $H .= "<tr><td class='l hd'>$n</td>";
-    foreach ($clusters as $c) {
-        $v = array_column(array_column($s['pages'], 'sem'), $c);
-        $H .= "<td>" . fmt(corridor($v)[1]) . "</td>";
+    // семантика по страницам
+    $H .= "<h3>Семантические кластеры связки (плотность на 100 слов)</h3><table><tr><th class='l'>Кластер</th>";
+    foreach ($order as $t) { $H .= "<th>$t</th>"; }
+    $H .= "<th class='cor'>медиана</th></tr>";
+    foreach ($clusters as $cl) {
+        $vals = array_column(array_column($bs['pages'], 'sem'), $cl);
+        $H .= "<tr><td class='l hd'>$cl</td>";
+        foreach ($order as $t) { $H .= "<td>" . fmt($bs['pages'][$t]['sem'][$cl]) . "</td>"; }
+        $H .= "<td class='cor'>" . fmt(corridor($vals)[1]) . "</td></tr>";
     }
+    $H .= "</table>";
+}
+
+// ── 2. Одностраничники ─────────────────────────────────────────────────────
+$sOrder = array_keys($singles);
+$H .= "<h2>2. Шесть одностраничников</h2>";
+$H .= "<p class='note'>Здесь колонка — весь набор: у каждого ровно одна страница, которая несёт весь сайт целиком.</p>";
+$H .= "<table><tr><th class='l'>Параметр</th>";
+foreach ($sOrder as $n) { $H .= "<th>" . $n . '<br><small>' . htmlspecialchars($singles[$n]['brand']['ru'] ?: '—') . "</small></th>"; }
+$H .= "<th class='cor'>коридор</th></tr>";
+foreach ($HOW as $k => [$lab, $_]) {
+    $vals = [];
+    foreach ($sOrder as $n) { $vals[] = $singles[$n]['pages']['main'][$k]; }
+    $c = corridor($vals);
+    $H .= "<tr><td class='l hd'>$lab</td>";
+    foreach ($vals as $v) { $H .= "<td>" . fmt($v) . "</td>"; }
+    $H .= "<td class='cor'>" . fmt($c[0]) . " · " . fmt($c[1]) . " · " . fmt($c[2]) . "</td></tr>";
+}
+$H .= "</table>";
+
+$H .= "<h3>Семантические кластеры одностраничников</h3><table><tr><th class='l'>Кластер</th>";
+foreach ($sOrder as $n) { $H .= "<th>$n</th>"; }
+$H .= "</tr>";
+foreach ($clusters as $cl) {
+    $H .= "<tr><td class='l hd'>$cl</td>";
+    foreach ($sOrder as $n) { $H .= "<td>" . fmt($singles[$n]['pages']['main']['sem'][$cl]) . "</td>"; }
     $H .= "</tr>";
+}
+$H .= "</table>";
+
+// ── 3. Сравнение групп ─────────────────────────────────────────────────────
+$H .= "<h2>3. Одностраничник против страницы связки против корпуса v2</h2>";
+$H .= "<p class='note'>Медианы. Колонка v2 — прошлый корпус, для понимания, насколько v3 другой. Она справочная: корпус v2 не менялся.</p>";
+$H .= "<table><tr><th class='l'>Параметр</th><th>Одностраничники</th><th>Страница связки</th><th class='na'>Корпус v2</th><th class='l'>Вывод</th></tr>";
+foreach ($HOW as $k => [$lab, $_]) {
+    $s = corridor($colS[$k] ?? [])[1]; $b = corridor($colB[$k] ?? [])[1]; $v = corridor($colV2[$k] ?? [])[1];
+    if ($k === 'brand_ru' || $k === 'brand_en') {
+        $H .= "<tr><td class='l hd'>$lab</td><td>" . fmt($s) . "</td><td>" . fmt($b) . "</td><td class='na'>—</td>"
+           . "<td class='l'>с v2 несравнимо: там считались плейсхолдеры, которых в реальных страницах нет</td></tr>";
+        continue;
+    }
+    if ($b == 0 && $v == 0)      { $note = ''; }
+    elseif ($b == 0)             { $note = 'в связке НЕТ ВОВСЕ, в v2 медиана ' . fmt($v); }
+    elseif ($v == 0)             { $note = 'в v2 не было вовсе'; }
+    else {
+        $r = max($b, $v) / min($b, $v);
+        $note = $r >= 1.5 ? (($b > $v ? 'связка выше v2' : 'связка ниже v2') . ' в ' . fmt(round($r, 1)) . '×') : '';
+    }
+    $H .= "<tr><td class='l hd'>$lab</td><td>" . fmt($s) . "</td><td>" . fmt($b) . "</td><td class='na'>" . fmt($v) . "</td><td class='l'>$note</td></tr>";
+}
+$H .= "</table>";
+
+// ── 4. Линковка: матрица 12×12 ─────────────────────────────────────────────
+foreach ($bundles as $bn => $bs) {
+    $order = array_keys($bs['pages']);
+    $dir = "$ROOT/$bn";
+    $files = [];
+    foreach (array_merge(glob("$dir/*.htm") ?: [], glob("$dir/*.html") ?: []) as $f) {
+        $files[mb_strtolower(pathinfo($f, PATHINFO_FILENAME))] = $f;
+    }
+    $E = []; $anch = [];
+    foreach ($order as $t) {
+        if (!isset($files[$t])) { continue; }
+        $raw = (string) file_get_contents($files[$t]);
+        if (preg_match_all('#<a[^>]+href="([^"]+)"[^>]*>(.*?)</a>#is', $raw, $mm, PREG_SET_ORDER)) {
+            foreach ($mm as $m) {
+                $path = trim((string) parse_url(trim($m[1]), PHP_URL_PATH), '/');
+                $slug = $path === '' ? 'main' : mb_strtolower(basename($path));
+                $slug = ALIASES[$slug] ?? $slug;
+                if ($slug === $t || !isset($files[$slug])) { continue; }
+                $E[$t][$slug] = ($E[$t][$slug] ?? 0) + 1;
+                $anch[$t][] = mb_strtolower(trim(strip_tags($m[2])));
+            }
+        }
+    }
+    $H .= "<h2>4. Перелинковка связки «{$bn}» — кто на кого ссылается</h2>";
+    $H .= "<p class='note'>Строка — откуда, колонка — куда, число — сколько ссылок. Заполненная матрица без пустых клеток означает полную сетку: каждая страница ссылается на все остальные.</p>";
+    $H .= "<table><tr><th class='l'>откуда \\ куда</th>";
+    foreach ($order as $t) { $H .= "<th>$t</th>"; }
+    $H .= "<th class='cor'>всего</th></tr>";
+    foreach ($order as $from) {
+        $H .= "<tr><td class='l hd'>$from</td>";
+        $sum = 0;
+        foreach ($order as $to) {
+            if ($from === $to) { $H .= "<td class='na'>—</td>"; continue; }
+            $c = $E[$from][$to] ?? 0; $sum += $c;
+            $H .= "<td class='" . ($c ? 'hi' : 'zero') . "'>" . ($c ?: 0) . "</td>";
+        }
+        $H .= "<td class='cor'>$sum</td></tr>";
+    }
+    $H .= "<tr><td class='l hd'>входящих</td>";
+    foreach ($order as $to) {
+        $in = 0; foreach ($order as $from) { $in += $E[$from][$to] ?? 0; }
+        $H .= "<td class='cor'>$in</td>";
+    }
+    $H .= "<td class='cor'></td></tr></table>";
+
+    $H .= "<h3>Анкоры</h3><table><tr><th class='l'>Страница</th><th>Ссылок</th><th>Целей</th><th>Уникальных анкоров</th><th class='l'>Самый частый анкор</th></tr>";
+    foreach ($order as $t) {
+        $a = $anch[$t] ?? []; if (!$a) { continue; }
+        $ph = array_count_values($a); arsort($ph); $top = array_key_first($ph);
+        $H .= "<tr><td class='l hd'>$t</td><td>" . count($a) . "</td><td>" . count($E[$t] ?? []) . "</td>"
+            . "<td>" . round(count($ph) / max(1, count($a)) * 100) . "%</td>"
+            . "<td class='l'>" . htmlspecialchars((string) $top) . " ×" . $ph[$top] . "</td></tr>";
+    }
+    $H .= "</table>";
+}
+
+// ── 5. Авторский блок ──────────────────────────────────────────────────────
+$H .= "<h2>5. Авторский блок (E-E-A-T)</h2>";
+$H .= "<p class='warn'>Это <b>формальный</b> признак: поиск слов «автор», «эксперт», «редакция», «проверил», «стаж». Он даёт ложные срабатывания и требует проверки чтением — в корпусе v2 именно чтение поправило классификатор на трёх донорах из девяти.</p>";
+$H .= "<table><tr><th class='l'>Набор</th><th class='l'>Где найдено (в скобках — глубина страницы)</th></tr>";
+foreach ($V3 as $n => $s) {
+    $dir = "$ROOT/$n";
+    $hits = [];
+    foreach (array_merge(glob("$dir/*.htm") ?: [], glob("$dir/*.html") ?: []) as $f) {
+        $stem = pathinfo($f, PATHINFO_FILENAME);
+        $nm = mb_strlen($stem) > 14 ? 'main' : $stem;
+        if ($nm === 'sitemap') { continue; }
+        $txt = Parser::fromHtml((string) file_get_contents($f))->text;
+        if (preg_match($reAuthor, $txt, $m, PREG_OFFSET_CAPTURE)) {
+            $hits[] = $nm . ' (' . (int) round($m[0][1] / max(1, strlen($txt)) * 100) . '%)';
+        }
+    }
+    $H .= "<tr><td class='l hd'>$n</td><td class='l'>" . ($hits ? implode(', ', $hits) : '<span class=na>не найдено</span>') . "</td></tr>";
 }
 $H .= "</table>";
 
