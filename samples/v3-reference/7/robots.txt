@@ -1,0 +1,44 @@
+# robots.txt generated on 2026-07-28 14:36:32
+# Оптимизирован для БЫСТРОЙ индексации поддоменов
+# noarchive: все страницы отдают noarchive через meta в HTML (index.php, htmlmap)
+
+User-agent: *
+Allow: /
+Allow: /bonus
+Allow: /registracia
+Allow: /app
+Allow: /zerkalo
+Allow: /vhod
+Allow: /slots
+Allow: /news
+Allow: /info
+Allow: /promo
+Allow: /platezhi
+Allow: /otzyvy
+Allow: /vip
+Allow: /kontakty
+Allow: /sitemap.xml
+Allow: /img/
+Allow: /styles.php
+
+Disallow: /logs/
+Disallow: /content/
+Disallow: /config.php
+Disallow: /*?*utm_*
+
+# === ЯНДЕКС — максимальная индексация поддомена ===
+User-agent: Yandex
+Host: skazka1z.fun
+Allow: /
+
+User-agent: YandexBot
+Allow: /
+
+User-agent: YandexMobileBot
+Allow: /
+
+User-agent: YandexImages
+Allow: /img/
+
+# Карта сайта (полный URL для корректной индексации)
+Sitemap: https://skazka1z.fun/sitemap.xml
