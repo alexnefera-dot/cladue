@@ -150,6 +150,45 @@ if ($bundleName !== null) {
 file_put_contents("$DIR/profile-single.json", json_encode($single, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 file_put_contents("$DIR/profile-bundle.json", json_encode($bundle, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
-fwrite(STDERR, "→ $DIR/profile-single.json — типов 1, доноров " . count($singlePages) . "\n");
-fwrite(STDERR, "→ $DIR/profile-bundle.json — типов " . count($bundle['types']) . ", доноров 1\n");
-echo "STATUS " . json_encode(['single_donors' => count($singlePages), 'bundle_types' => count($bundle['types'])]) . "\n";
+// ── два каталога корпуса ───────────────────────────────────────────────────
+// Движок понимает корпус как каталог с profile.json, donors.json и pools/.
+// Значит «два генератора» — это два каталога, а не два движка: generate.php
+// работает с ними без единой новой строки.
+$mk = function (string $dir, array $profile, array $sites) {
+    @mkdir("$dir/pools", 0777, true);
+    file_put_contents("$dir/profile.json", json_encode($profile, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    file_put_contents("$dir/donors.json", json_encode(['sites' => $sites], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    // Пулы (секции, заголовки, интерлинкинг) пока общие с корпусом v2 —
+    // своих у v3 нет, а Planner без них не соберётся.
+    copy(__DIR__ . '/data-dorgen/pools/pools.json', "$dir/pools/pools.json");
+};
+
+// Профиль, снятый чтением, кладём в style — оттуда его берут Planner и
+// PromptBuilder. Без этого генератор видит донора «нейтрально-справочным»
+// вместо, скажем, лабораторного протокола замера.
+$withStyle = function (array $sites): array {
+    foreach ($sites as $n => &$s) {
+        $r = $s['read'] ?? [];
+        $s['style']['genre']        = $r['genre'] ?? null;
+        $s['style']['voice']        = $r['voice'] ?? null;
+        $s['style']['register_read'] = $r['register'] ?? null;
+        $s['style']['author_block'] = !empty($r['author_block']);
+        $s['style']['devices']      = $r['devices'] ?? [];
+        $s['style']['numbers_note'] = $r['numbers'] ?? null;
+        $s['style']['avoid']        = $r['no'] ?? [];
+        if (!empty($r['emoji_placement'])) { $s['style']['emoji_placement'] = $r['emoji_placement']; }
+        if (!empty($r['frame'])) { $s['style']['frame'] = $r['frame']; }
+        if (!empty($r['block'])) { $s['style']['block_formula'] = $r['block']; }
+    }
+    unset($s);
+    return $sites;
+};
+
+$singleSites = $withStyle(array_filter($donors, fn($s) => !empty($s['shape']['single'])));
+$bundleSites = $withStyle(array_filter($donors, fn($s) => empty($s['shape']['single'])));
+$mk(__DIR__ . '/data-v3-single', $single, $singleSites);
+$mk(__DIR__ . '/data-v3-bundle', $bundle, $bundleSites);
+
+fwrite(STDERR, "→ data-v3-single/  типов 1,  доноров " . count($singleSites) . "\n");
+fwrite(STDERR, "→ data-v3-bundle/  типов " . count($bundle['types']) . ", доноров " . count($bundleSites) . "\n");
+echo "STATUS " . json_encode(['single_donors' => count($singleSites), 'bundle_types' => count($bundle['types'])]) . "\n";

@@ -52,6 +52,27 @@ final class PromptBuilder
             if (!empty($spec['donor_genre'])) {
                 $out[] = "- ЖАНР РЕФЕРЕНСА (важнее местоимения — воспроизводи именно его): {$spec['donor_genre']}";
             }
+            // Профиль корпуса v3, снятый чтением. У корпусов v1/v2 этих полей
+            // нет, и промпт для них не меняется ни на строку.
+            if (!empty($spec['donor_voice'])) {
+                $out[] = "- КТО ГОВОРИТ: {$spec['donor_voice']}. Это главнее местоимений: от субъекта речи зависит и модальность (обещание или предостережение), и то, кем назван читатель.";
+            }
+            if (!empty($spec['donor_register'])) {
+                $out[] = "- ОБРАЩЕНИЕ: {$spec['donor_register']}.";
+            }
+            if (!empty($spec['donor_devices'])) {
+                $out[] = "- ПРИЁМЫ РЕФЕРЕНСА — воспроизводи их, это и есть его почерк:";
+                foreach ($spec['donor_devices'] as $d) { $out[] = "  · {$d}"; }
+            }
+            if (!empty($spec['donor_numbers'])) {
+                $out[] = "- КАК УСТРОЕНЫ ЧИСЛА: {$spec['donor_numbers']}";
+            }
+            if (!empty($spec['donor_emoji_where'])) {
+                $out[] = "- ГДЕ СТОЯТ ЭМОДЗИ: {$spec['donor_emoji_where']}";
+            }
+            if (!empty($spec['donor_avoid'])) {
+                $out[] = "- ЧЕГО В РЕФЕРЕНСЕ НЕТ — не добавляй: " . implode('; ', $spec['donor_avoid']) . ".";
+            }
             $out[] = "- ВАЖНО: регистр — это манера ПОВЕРХ фактов. Все цифры и данные из блока «ФАКТУРА» остаются точными.";
             $out[] = "";
         }

@@ -49,9 +49,13 @@ if ($opts['brand-var'] === true) {
 // v2 использует отдельный каталог engine/data-dorgen/ (профиль+доноры+пулы),
 // v1 полностью не тронут.
 $corpus = is_string($opts['corpus']) ? $opts['corpus'] : '';
-$dataDir = ($corpus === 'dorgen' && is_dir(__DIR__ . '/data-dorgen'))
-    ? __DIR__ . '/data-dorgen'
-    : __DIR__ . '/data';
+// v3 — два корпуса-каталога: одностраничники и связка. Это разные продукты
+// (шесть параметров из двадцати одного имеют непересекающиеся коридоры),
+// но движок для них один.
+$dataDir = __DIR__ . '/data';
+foreach (['dorgen' => 'data-dorgen', 'v3-single' => 'data-v3-single', 'v3-bundle' => 'data-v3-bundle'] as $c => $d) {
+    if ($corpus === $c && is_dir(__DIR__ . '/' . $d)) { $dataDir = __DIR__ . '/' . $d; }
+}
 
 $planner = new Planner($dataDir);
 $builder = new PromptBuilder();

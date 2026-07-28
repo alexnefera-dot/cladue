@@ -259,7 +259,7 @@ final class Planner
             'frames' => $faqPlan,
         ];
 
-        return [
+        $spec = [
             'type'      => $type,
             'brand'     => ['ru' => $brandRu, 'en' => $brandEn],
             'domain'    => $domain,
@@ -283,6 +283,25 @@ final class Planner
             'invariants'=> $this->pools['style']['invariants'] ?? [],
             'sections'  => $sections,
         ];
+
+        // Профиль, снятый ЧТЕНИЕМ текстов (корпус v3). Ключи добавляются только
+        // когда донор их несёт, поэтому спеки корпусов v1/v2 не меняются даже
+        // побайтно. Голос — новая ось, «кто говорит»: два донора v3 написаны
+        // про один бренд, оба содержат «мы», по числам почти неразличимы, и
+        // различает их только субъект речи.
+        $readMap = [
+            'donor_voice'       => 'voice',
+            'donor_register'    => 'register_read',
+            'donor_devices'     => 'devices',
+            'donor_numbers'     => 'numbers_note',
+            'donor_avoid'       => 'avoid',
+            'donor_emoji_where' => 'emoji_placement',
+        ];
+        foreach ($readMap as $specKey => $styleKey) {
+            if (!empty($donor['style'][$styleKey])) { $spec[$specKey] = $donor['style'][$styleKey]; }
+        }
+
+        return $spec;
     }
 
     /** Значение по позиции стиль-профиля в коридоре + малый покадровый джиттер */
