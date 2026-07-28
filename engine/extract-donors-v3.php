@@ -18,6 +18,10 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/src/Analyzer.php';
 
+/** Слаги в ссылках короче имён файлов: /registr → registracia.htm */
+const LINK_ALIASES = ['registr' => 'registracia', 'index' => 'main', 'reg' => 'registracia',
+                      'login' => 'vhod', 'mirror' => 'zerkalo', 'partner' => 'partnery'];
+
 $ROOT = $argv[1] ?? '';
 $OUT  = $argv[2] ?? (__DIR__ . '/data-v3/donors.json');
 if ($ROOT === '' || !is_dir($ROOT)) {
@@ -127,9 +131,13 @@ foreach (glob($ROOT . '/*', GLOB_ONLYDIR) as $dir) {
         $intlinks = 0;
         if (preg_match_all('#<a[^>]+href="([^"]+)"#i', $raw, $hm)) {
             foreach ($hm[1] as $href) {
-                $slug = mb_strtolower(pathinfo(rtrim(trim($href), '/'), PATHINFO_FILENAME));
-                if ($slug === '' || $slug === $t) { continue; }
-                if (isset($linkable[$slug]) || ($slug === 'index' && isset($linkable['main']))) { $intlinks++; }
+                // Ссылки абсолютные — разбираем именно path, иначе корень сайта
+                // читается как имя файла и ссылки на главную теряются.
+                $path = trim((string) parse_url(trim($href), PHP_URL_PATH), '/');
+                $slug = $path === '' ? 'main' : mb_strtolower(basename($path));
+                $slug = LINK_ALIASES[$slug] ?? $slug;
+                if ($slug === $t) { continue; }
+                if (isset($linkable[$slug])) { $intlinks++; }
             }
         }
 
