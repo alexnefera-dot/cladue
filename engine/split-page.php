@@ -65,6 +65,9 @@ foreach ($chunks as $bi => $chunk) {
     // опенер — только в первый блок
     if ($bi === 0 && $opener !== null) { array_unshift($sub['sections'], $opener); }
     $sub['with_opener'] = ($bi === 0) ? ($spec['with_opener'] ?? false) : false;
+    // Авторский блок стоит в начале страницы (в референсах позиция 3–9%),
+    // значит в блочной сборке — только в ПЕРВОМ блоке.
+    $sub['author_block'] = ($bi === 0) ? !empty($spec['author_block']) : false;
 
     // счётные цели — пропорционально; плотностные оставляем как есть
     foreach ($COUNTED as $k) {
