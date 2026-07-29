@@ -30,10 +30,8 @@ if ($site === null) { fwrite(STDERR, "донор '$DONOR' не найден\n");
 $D = $site['pages'];
 $pagesCfg = json_decode((string) file_get_contents($dataDir . '/profile.json'), true)['pages'] ?? [];
 
-// Словарь терминов берём из экстрактора, чтобы он был один на весь движок.
-$src = (string) file_get_contents(__DIR__ . '/extract-donors-v3.php');
-preg_match('~const NICHE_TERMS = \[.*?\];~s', $src, $mm);
-eval($mm[0] . ';');
+// Словарь профильной лексики — из NicheLexicon, один на весь движок.
+const NICHE_TERMS = NicheLexicon::TERMS;
 
 $F = [
     'words' => ['объём слов', 0], 'h2' => ['H2', 0], 'sections' => ['разделов H2+H3', 0],
@@ -45,15 +43,10 @@ $F = [
     'brand_ru' => ['бренд кириллицей', 0], 'brand_en' => ['бренд латиницей', 0],
     'paragraphs' => ['абзацев', 0], 'words_per_para' => ['слов в абзаце', 1],
     'providers_named' => ['названий студий в прозе', 0], 'games_named' => ['названий игр в прозе', 0],
+    'terms_total' => ['профильных терминов всего', 0],
     'intlinks' => ['ссылок внутри', 0],
 ];
 
-function proseOf(string $raw): string
-{
-    preg_match_all('~<(p|li)\b[^>]*>(.*?)</\1>~is', $raw, $pm);
-    $parts = array_map(fn($x) => preg_replace('~<[^>]+>~', ' ', $x), $pm[2] ?? []);
-    return preg_replace('~\s+~u', ' ', implode(' ', $parts));
-}
 function offx($our, $don, bool $rate = false): bool
 {
     if ($don === null) { return false; }
@@ -71,7 +64,7 @@ foreach (array_keys($D) as $t) {
     $r = $a->run([['name' => $t, 'url' => "/$t", 'html' => $raw, 'keyword' => '', 'lsi' => []]]);
     $p = $r['pages'][0]; $m = $p['metrics']; $s = $p['stylistics'];
     $txt = strip_tags(preg_replace('#<(script|style)[^>]*>.*?</\1>#is', ' ', $raw));
-    $prose = proseOf($raw);
+    $prose = NicheLexicon::prose($raw);
     preg_match_all('~<p\b[^>]*>(.*?)</p>~is', $raw, $pm);
     $paras = array_values(array_filter(
         array_map(fn($x) => trim(preg_replace('~\s+~u', ' ', strip_tags($x))), $pm[1] ?? []),
@@ -103,6 +96,7 @@ foreach (array_keys($D) as $t) {
             fn($x) => count(preg_split('~\s+~u', $x, -1, PREG_SPLIT_NO_EMPTY)), $paras)) / count($paras), 1) : 0,
         'providers_named' => NicheLexicon::countProviders($prose),
         'games_named' => NicheLexicon::countGames($prose),
+        'terms_total' => NicheLexicon::termsTotal($prose),
         'intlinks' => $intl,
     ];
 

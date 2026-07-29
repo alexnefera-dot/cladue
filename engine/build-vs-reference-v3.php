@@ -48,16 +48,13 @@ $F = [
     'brand_ru' => ['Бренд RU', 0], 'brand_en' => ['Бренд EN', 0],
     'paragraphs' => ['Абзацев', 0], 'words_per_para' => ['Слов в абзаце', 1],
     'providers_named' => ['Студий поимённо', 0], 'games_named' => ['Игр поимённо', 0],
+    // Профильная лексика целиком: сумма нишевых терминов в прозе. Состав
+    // отдельных терминов задаётся промптом, а этот параметр держит саму
+    // насыщенность — по ней связка отставала на пятую часть при совпадении
+    // всех прочих счётчиков.
+    'terms_total' => ['Профильных терминов', 0],
 ];
 if (!$isSingle) { $F['intlinks'] = ['Ссылок внутри', 0]; }
-
-/** Проза: только абзацы и пункты списков — плитки каталога и меню не текст. */
-function proseOf(string $raw): string
-{
-    preg_match_all('~<(p|li)\b[^>]*>(.*?)</\1>~is', $raw, $pm);
-    $parts = array_map(fn($x) => preg_replace('~<[^>]+>~', ' ', $x), $pm[2] ?? []);
-    return preg_replace('~\s+~u', ' ', implode(' ', $parts));
-}
 
 function offx($our, $don, bool $rate = false): bool
 {
@@ -103,8 +100,9 @@ function measure(Analyzer $a, string $t, string $raw, array $pagesCfg, array $br
         'numbers_per100' => round((float) $s['numbers_per_100w'], 1), 'adj_pct' => round((float) $s['adj_pct'], 1),
         'nausea_acad' => round((float) $m['nausea_academic'], 1), 'water' => round((float) $m['water_percent'], 1),
         'brand_ru' => $brRu, 'brand_en' => $brEn, 'intlinks' => $intl,
-        'providers_named' => NicheLexicon::countProviders(proseOf($raw)),
-        'games_named' => NicheLexicon::countGames(proseOf($raw)),
+        'providers_named' => NicheLexicon::countProviders(NicheLexicon::prose($raw)),
+        'terms_total' => NicheLexicon::termsTotal(NicheLexicon::prose($raw)),
+        'games_named' => NicheLexicon::countGames(NicheLexicon::prose($raw)),
         'paragraphs' => count($paras),
         'words_per_para' => $paras ? round(array_sum(array_map(
             fn($p) => count(preg_split('~\s+~u', $p, -1, PREG_SPLIT_NO_EMPTY)), $paras)) / count($paras), 1) : 0];

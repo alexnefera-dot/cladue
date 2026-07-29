@@ -47,17 +47,14 @@ $FIELDS = [
     // генерации не было вовсе при совпавшем счёте «сущностей».
     'paragraphs' => ['Абзацев', 0], 'words_per_para' => ['Слов/абзац', 1],
     'providers_named' => ['Студий поимённо', 0], 'games_named' => ['Игр поимённо', 0],
+    // Профильная лексика целиком: сумма нишевых терминов в прозе. Состав
+    // отдельных терминов задаётся промптом, а этот параметр держит саму
+    // насыщенность — по ней связка отставала на пятую часть при совпадении
+    // всех прочих счётчиков.
+    'terms_total' => ['Профильных терминов', 0],
 ];
 // Ссылки идут в зачёт только у связок.
 if (!$isSingle) { $FIELDS['intlinks'] = ['Ссылок внутри', 0]; }
-
-/** Проза: только абзацы и пункты списков — плитки каталога и меню не текст. */
-function proseOf(string $raw): string
-{
-    preg_match_all('~<(p|li)\b[^>]*>(.*?)</\1>~is', $raw, $pm);
-    $parts = array_map(fn($x) => preg_replace('~<[^>]+>~', ' ', $x), $pm[2] ?? []);
-    return preg_replace('~\s+~u', ' ', implode(' ', $parts));
-}
 
 /** в коридоре донора, если |наш−донор| <= max(25% донора, floor) */
 function offx($our, $don, bool $rate = false): bool
@@ -113,8 +110,9 @@ function measure(Analyzer $a, string $t, string $raw, array $pagesCfg, array $br
         'brand_ru' => $brRu, 'brand_en' => $brEn, 'intlinks' => $intl,
         // Те же выражения, что в extract-donors-v3.php: обе стороны обязаны
         // считаться одним правилом, иначе замер снова сойдётся сам с собой.
-        'providers_named' => NicheLexicon::countProviders(proseOf($raw)),
-        'games_named' => NicheLexicon::countGames(proseOf($raw)),
+        'providers_named' => NicheLexicon::countProviders(NicheLexicon::prose($raw)),
+        'terms_total' => NicheLexicon::termsTotal(NicheLexicon::prose($raw)),
+        'games_named' => NicheLexicon::countGames(NicheLexicon::prose($raw)),
         'paragraphs' => count($paras),
         'words_per_para' => $paras ? round(array_sum(array_map(
             fn($p) => count(preg_split('~\s+~u', $p, -1, PREG_SPLIT_NO_EMPTY)), $paras)) / count($paras), 1) : 0,
