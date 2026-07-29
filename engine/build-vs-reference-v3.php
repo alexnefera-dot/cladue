@@ -45,6 +45,8 @@ $F = [
     'numbers_per100' => ['Цифры/100', 1], 'adj_pct' => ['Прилаг%', 1],
     'nausea_acad' => ['Тошнота', 1], 'water' => ['Водность%', 1],
     'brand_ru' => ['Бренд RU', 0], 'brand_en' => ['Бренд EN', 0],
+    'paragraphs' => ['Абзацев', 0], 'words_per_para' => ['Слов в абзаце', 1],
+    'providers_named' => ['Студий поимённо', 0], 'games_named' => ['Игр поимённо', 0],
 ];
 if (!$isSingle) { $F['intlinks'] = ['Ссылок внутри', 0]; }
 
@@ -66,6 +68,11 @@ function measure(Analyzer $a, string $t, string $raw, array $pagesCfg, array $br
     $txt = strip_tags(preg_replace('#<(script|style)[^>]*>.*?</\1>#is', ' ', $raw));
     $brRu = substr_count($raw, '%brand_name_ru%') ?: ($brand['ru'] ? mb_substr_count($txt, $brand['ru']) : 0);
     $brEn = substr_count($raw, '%brand_name_en%') ?: ($brand['en'] ? mb_substr_count($txt, $brand['en']) : 0);
+    preg_match_all('~<p\b[^>]*>(.*?)</p>~is', $raw, $pm);
+    $paras = array_values(array_filter(
+        array_map(fn($x) => trim(preg_replace('~\s+~u', ' ', strip_tags($x))), $pm[1] ?? []),
+        fn($x) => mb_strlen($x) > 40
+    ));
     $intl = 0;
     if (preg_match_all('#<a[^>]+href="([^"]+)"#i', $raw, $hm)) {
         $paths = [];
@@ -86,7 +93,12 @@ function measure(Analyzer $a, string $t, string $raw, array $pagesCfg, array $br
         'vy' => (int) $s['second_person'], 'imperatives' => (int) $s['imperatives'],
         'numbers_per100' => round((float) $s['numbers_per_100w'], 1), 'adj_pct' => round((float) $s['adj_pct'], 1),
         'nausea_acad' => round((float) $m['nausea_academic'], 1), 'water' => round((float) $m['water_percent'], 1),
-        'brand_ru' => $brRu, 'brand_en' => $brEn, 'intlinks' => $intl];
+        'brand_ru' => $brRu, 'brand_en' => $brEn, 'intlinks' => $intl,
+        'providers_named' => preg_match_all('~\b(NetEnt|Pragmatic|Playson|Yggdrasil|Novomatic|Betsoft|Microgaming|Evolution|Igrosoft|Quickspin|Push Gaming|Nolimit|Amatic|BGaming|Endorphina|Red Tiger|Play.?n ?GO|Booongo|Habanero|Spinomenal|Thunderkick|ELK|Relax|Wazdan|Tom Horn|Kalamba|Playtech|Mascot|Onlyplay|Belatra|Gamzix|Fugaso)\b~ui', $txt),
+        'games_named' => preg_match_all('~\b(Gates of Olympus|Book of|Big Bass|Starburst|Sweet Bonanza|Wolf Gold|Dog House|Razor Shark|Money Train|Deadwood|Mega Moolah|Reactoonz|Extra Chilli|Fruit Party|Crazy Time|Aviator|Sugar Rush|Gonzo|Legacy of|Rise of|Buffalo|Wanted Dead|Le Pharaoh|Jet X)~ui', $txt),
+        'paragraphs' => count($paras),
+        'words_per_para' => $paras ? round(array_sum(array_map(
+            fn($p) => count(preg_split('~\s+~u', $p, -1, PREG_SPLIT_NO_EMPTY)), $paras)) / count($paras), 1) : 0];
 }
 
 /** читаемый текст референса: абзацами, без скриптов и меню */
