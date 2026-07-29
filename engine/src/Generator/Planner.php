@@ -330,6 +330,14 @@ final class Planner
         }
         if (isset($spec_entity_list)) { $spec['entity_list'] = $spec_entity_list; }
         if (!empty($dp['heading_samples'])) { $spec['heading_samples'] = $dp['heading_samples']; }
+        // Профильные термины донора со счётом. Суммарная плотность нишевой
+        // лексики у нас уже совпадала — расходился состав: референс держит
+        // несколько ударных опор, генерация растекалась по периферии.
+        if (!empty($dp['terms'])) {
+            $terms = $dp['terms'];
+            arsort($terms);
+            $spec['donor_terms'] = array_slice($terms, 0, 12, true);
+        }
 
         return $spec;
     }
