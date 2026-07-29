@@ -217,6 +217,26 @@ foreach (glob($ROOT . '/*', GLOB_ONLYDIR) as $dir) {
             // количество, не совпало ни одно имя.
             'entity_list'    => array_values($s['entities'] ?? []),
             'names'          => preg_match_all('~\b(' . FIRST_NAMES . ')\b~u', $txt),
+            // Абзацы. Поле было в профиле, но досталось от корпуса v1 и никогда
+            // не задавалось целью. Замер показал: у референса 448 абзацев на
+            // связку по 36 слов, у генерации 792 по 27. Данных при этом столько
+            // же — они просто размазаны по мелким кускам, и текст читается
+            // менее насыщенным. Отсюда же провалы водности.
+            'paragraphs'     => (function () use ($raw) {
+                preg_match_all('~<p\b[^>]*>(.*?)</p>~is', $raw, $pm);
+                $ps = array_filter(array_map(fn($x) => trim(preg_replace('~\s+~u', ' ', strip_tags($x))), $pm[1]),
+                    fn($x) => mb_strlen($x) > 40);
+                return count($ps);
+            })(),
+            'words_per_para'  => (function () use ($raw) {
+                preg_match_all('~<p\b[^>]*>(.*?)</p>~is', $raw, $pm);
+                $ps = array_values(array_filter(array_map(fn($x) => trim(preg_replace('~\s+~u', ' ', strip_tags($x))), $pm[1]),
+                    fn($x) => mb_strlen($x) > 40));
+                if (!$ps) { return 0; }
+                $w = 0;
+                foreach ($ps as $p) { $w += count(preg_split('~\s+~u', $p, -1, PREG_SPLIT_NO_EMPTY)); }
+                return round($w / count($ps), 1);
+            })(),
             // Доля заголовков с именем бренда. Референсы держат её очень высоко
             // (у части доноров 90–100%), генерация давала 3–19%: ключ уходил из
             // заголовков в тело, и структура расходилась при совпадении цифр.

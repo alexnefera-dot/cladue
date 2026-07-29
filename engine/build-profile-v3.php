@@ -32,6 +32,7 @@ $MAP = [
     'adj_pct' => 'adj_pct', 'first_person' => 'first_person', 'vy' => 'vy',
     'imperatives' => 'imperatives', 'emoji_body' => 'emoji', 'entities' => 'entities',
     'we' => 'we', 'names' => 'names', 'head_brand_pct' => 'head_brand_pct',
+    'paragraphs' => 'paragraphs', 'words_per_para' => 'words_per_para',
     'brand_ru' => 'brand_ru', 'brand_en' => 'brand_en',
 ];
 
