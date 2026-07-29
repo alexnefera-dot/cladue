@@ -142,6 +142,10 @@ final class Planner
         // Личные имена героев — тоже цель. Метрики этого не ловили: связка
         // совпадала по всем измеряемым полям, а имён давала 33 против 105.
         if (isset($P['names'])) { $targets['names'] = $Ti('names', $P['names']); }
+        // Доля заголовков с именем бренда и живые примеры заголовков донора.
+        // Без них ключ уходил из заголовков (референс 90–100%, генерация 3–19%),
+        // а описание приёма из профиля чтения превращалось в шаблон-префикс.
+        if (isset($dp['head_brand_pct'])) { $targets['head_brand_pct'] = (int) $dp['head_brand_pct']; }
         // Список категорий сущностей донора — поимённо. Счётчик считает 13
         // фиксированных категорий, и попасть в ЧИСЛО, не попав в ИМЕНА, легко:
         // замер дал совпадение по количеству при нулевом пересечении состава.
@@ -314,6 +318,7 @@ final class Planner
             if (!empty($donor['style'][$styleKey])) { $spec[$specKey] = $donor['style'][$styleKey]; }
         }
         if (isset($spec_entity_list)) { $spec['entity_list'] = $spec_entity_list; }
+        if (!empty($dp['heading_samples'])) { $spec['heading_samples'] = $dp['heading_samples']; }
 
         return $spec;
     }

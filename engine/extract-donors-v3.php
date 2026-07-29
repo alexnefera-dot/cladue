@@ -211,6 +211,26 @@ foreach (glob($ROOT . '/*', GLOB_ONLYDIR) as $dir) {
             // количество, не совпало ни одно имя.
             'entity_list'    => array_values($s['entities'] ?? []),
             'names'          => preg_match_all('~\b(' . FIRST_NAMES . ')\b~u', $txt),
+            // Доля заголовков с именем бренда. Референсы держат её очень высоко
+            // (у части доноров 90–100%), генерация давала 3–19%: ключ уходил из
+            // заголовков в тело, и структура расходилась при совпадении цифр.
+            'head_brand_pct' => (function () use ($raw, $pageBrand) {
+                preg_match_all('~<h[23][^>]*>(.*?)</h[23]>~is', $raw, $hm);
+                $hs = array_map(fn($x) => strip_tags($x), $hm[1]);
+                if (!$hs) { return 0; }
+                $n = 0;
+                foreach ($hs as $h) {
+                    if (($pageBrand['ru'] !== '' && mb_stripos($h, $pageBrand['ru']) !== false)
+                        || ($pageBrand['en'] !== '' && stripos($h, $pageBrand['en']) !== false)) { $n++; }
+                }
+                return (int) round($n / count($hs) * 100);
+            })(),
+            'heading_samples' => (function () use ($raw) {
+                preg_match_all('~<h[23][^>]*>(.*?)</h[23]>~is', $raw, $hm);
+                $hs = array_values(array_filter(array_map(
+                    fn($x) => trim(preg_replace('~\s+~u', ' ', strip_tags($x))), $hm[1])));
+                return array_slice($hs, 0, 8);
+            })(),
             'first_person'   => (int) $s['first_person'],
             // Корпоративное «мы» — отдельная ось, которой в профиле v1/v2 не было:
             // там first_person считал только единственное число. В этом корпусе

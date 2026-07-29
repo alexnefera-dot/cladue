@@ -31,7 +31,7 @@ $MAP = [
     'nausea_acad' => 'nausea_acad', 'water' => 'water', 'numbers_per100' => 'numbers_per100',
     'adj_pct' => 'adj_pct', 'first_person' => 'first_person', 'vy' => 'vy',
     'imperatives' => 'imperatives', 'emoji_body' => 'emoji', 'entities' => 'entities',
-    'we' => 'we', 'names' => 'names',
+    'we' => 'we', 'names' => 'names', 'head_brand_pct' => 'head_brand_pct',
     'brand_ru' => 'brand_ru', 'brand_en' => 'brand_en',
 ];
 
