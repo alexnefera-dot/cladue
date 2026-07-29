@@ -118,7 +118,12 @@ if ($bundleName !== null) {
         'info'        => ['licenses','payments'],
         'partnery'    => ['payments','currencies'],
     ];
-    $PATHS = ['registracia' => '/registr'];
+    // Пути ГЕНЕРАЦИИ обязаны совпадать с именами наших страниц. У сайта-донора
+    // регистрация лежит на /registr, и раньше этот слаг попадал в ссылки — сто
+    // с лишним битых href на набор, потому что файл называется registracia.html.
+    // Короткий слаг донора нужен только при ЧТЕНИИ его графа (карта синонимов
+    // в extract-donors-v3.php и analyze-v3.php), в генерацию он не идёт.
+    $PATHS = [];
     $bundle['pages'] = [];
     foreach ($b['pages'] as $t => $p) {
         $bundle['pages'][$t] = [

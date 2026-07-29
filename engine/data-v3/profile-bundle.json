@@ -3683,7 +3683,7 @@
             "role": "leaf"
         },
         "registracia": {
-            "path": "\/registr",
+            "path": "\/registracia",
             "entity_cats": [
                 "licenses"
             ],
