@@ -159,9 +159,20 @@ $mk = function (string $dir, array $profile, array $sites) {
     @mkdir("$dir/pools", 0777, true);
     file_put_contents("$dir/profile.json", json_encode($profile, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
     file_put_contents("$dir/donors.json", json_encode(['sites' => $sites], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    // Пулы (секции, заголовки, интерлинкинг) пока общие с корпусом v2 —
-    // своих у v3 нет, а Planner без них не соберётся.
-    copy(__DIR__ . '/data-dorgen/pools/pools.json', "$dir/pools/pools.json");
+    // Пулы (секции, заголовки, анкоры) пока общие с корпусом v2 — своих у v3
+    // нет, а Planner без них не соберётся.
+    $pools = json_decode((string) file_get_contents(__DIR__ . '/data-dorgen/pools/pools.json'), true);
+    // А вот веса перелинковки переписываем под состав корпуса. У v2 они
+    // описывают звезду из семи страниц; связка v3 — полная сетка из
+    // двенадцати, где каждая страница ссылается на все остальные. Со старыми
+    // весами пять новых типов не были бы целью ни разу.
+    $types = array_keys($profile['types'] ?? []);
+    if (count($types) > 1) {
+        $pools['interlinking']['target_weights'] = array_fill_keys($types, 1);
+        $pools['interlinking']['_note'] = 'Полная сетка: равные веса по всем ' . count($types)
+            . ' страницам, число ссылок берётся из донора постранично.';
+    }
+    file_put_contents("$dir/pools/pools.json", json_encode($pools, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 };
 
 // Профиль, снятый чтением, кладём в style — оттуда его берут Planner и
