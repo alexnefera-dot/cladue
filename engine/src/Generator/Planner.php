@@ -152,6 +152,11 @@ final class Planner
         // размазаны по мелким кускам, и текст читается менее насыщенным.
         if (isset($dp['paragraphs']))     { $targets['paragraphs'] = (int) $dp['paragraphs']; }
         if (isset($dp['words_per_para'])) { $targets['words_per_para'] = (float) $dp['words_per_para']; }
+        // Профильная конкретика поимённо. Счётчик сущностей считает КАТЕГОРИИ, и
+        // «один провайдер» с «сорока» для него одно и то же: у референса связки
+        // 25 упоминаний студий и 58 названий игр, у генерации выходило ноль.
+        if (isset($dp['providers_named'])) { $targets['providers_named'] = (int) $dp['providers_named']; }
+        if (isset($dp['games_named']))     { $targets['games_named'] = (int) $dp['games_named']; }
         // Список категорий сущностей донора — поимённо. Счётчик считает 13
         // фиксированных категорий, и попасть в ЧИСЛО, не попав в ИМЕНА, легко:
         // замер дал совпадение по количеству при нулевом пересечении состава.

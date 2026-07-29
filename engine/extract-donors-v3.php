@@ -222,6 +222,12 @@ foreach (glob($ROOT . '/*', GLOB_ONLYDIR) as $dir) {
             // связку по 36 слов, у генерации 792 по 27. Данных при этом столько
             // же — они просто размазаны по мелким кускам, и текст читается
             // менее насыщенным. Отсюда же провалы водности.
+            // Профильная конкретика — сколько НАЗВАНИЙ, а не категорий. Счётчик
+            // сущностей считает 13 категорий, и «один провайдер» с «сорока
+            // провайдерами» для него одно и то же. Замер связки: у референса 25
+            // упоминаний студий и 58 названий игр, у генерации ноль и ноль.
+            'providers_named' => preg_match_all('~\b(NetEnt|Pragmatic|Playson|Yggdrasil|Novomatic|Betsoft|Microgaming|Evolution|Igrosoft|Quickspin|Push Gaming|Nolimit|Amatic|BGaming|Endorphina|Red Tiger|Play.?n ?GO|Booongo|Habanero|Spinomenal|Thunderkick|ELK|Relax|Wazdan|Tom Horn|Kalamba|Playtech|Mascot|Onlyplay|Belatra|Gamzix|Fugaso)\b~ui', $txt),
+            'games_named'     => preg_match_all('~\b(Gates of Olympus|Book of|Big Bass|Starburst|Sweet Bonanza|Wolf Gold|Dog House|Razor Shark|Money Train|Deadwood|Mega Moolah|Reactoonz|Extra Chilli|Fruit Party|Crazy Time|Aviator|Sugar Rush|Gonzo|Legacy of|Rise of|Buffalo|Wanted Dead|Le Pharaoh|Jet X)~ui', $txt),
             'paragraphs'     => (function () use ($raw) {
                 preg_match_all('~<p\b[^>]*>(.*?)</p>~is', $raw, $pm);
                 $ps = array_filter(array_map(fn($x) => trim(preg_replace('~\s+~u', ' ', strip_tags($x))), $pm[1]),

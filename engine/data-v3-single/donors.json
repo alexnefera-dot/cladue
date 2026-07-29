@@ -31,6 +31,8 @@
                         "Лимиты\/сроки"
                     ],
                     "names": 0,
+                    "providers_named": 2,
+                    "games_named": 2,
                     "paragraphs": 72,
                     "words_per_para": 40,
                     "head_brand_pct": 100,
@@ -157,6 +159,8 @@
                         "Лимиты\/сроки"
                     ],
                     "names": 0,
+                    "providers_named": 10,
+                    "games_named": 1,
                     "paragraphs": 61,
                     "words_per_para": 52.3,
                     "head_brand_pct": 43,
@@ -279,6 +283,8 @@
                         "Лимиты\/сроки"
                     ],
                     "names": 6,
+                    "providers_named": 24,
+                    "games_named": 24,
                     "paragraphs": 40,
                     "words_per_para": 44.4,
                     "head_brand_pct": 50,
@@ -405,6 +411,8 @@
                         "Лимиты\/сроки"
                     ],
                     "names": 0,
+                    "providers_named": 0,
+                    "games_named": 5,
                     "paragraphs": 40,
                     "words_per_para": 48.9,
                     "head_brand_pct": 100,
@@ -535,6 +543,8 @@
                         "Лимиты\/сроки"
                     ],
                     "names": 5,
+                    "providers_named": 5,
+                    "games_named": 2,
                     "paragraphs": 66,
                     "words_per_para": 49.8,
                     "head_brand_pct": 90,
@@ -658,6 +668,8 @@
                         "Лимиты\/сроки"
                     ],
                     "names": 7,
+                    "providers_named": 0,
+                    "games_named": 0,
                     "paragraphs": 42,
                     "words_per_para": 42.8,
                     "head_brand_pct": 21,

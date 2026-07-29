@@ -33,6 +33,7 @@ $MAP = [
     'imperatives' => 'imperatives', 'emoji_body' => 'emoji', 'entities' => 'entities',
     'we' => 'we', 'names' => 'names', 'head_brand_pct' => 'head_brand_pct',
     'paragraphs' => 'paragraphs', 'words_per_para' => 'words_per_para',
+    'providers_named' => 'providers_named', 'games_named' => 'games_named',
     'brand_ru' => 'brand_ru', 'brand_en' => 'brand_en',
 ];
 
@@ -172,6 +173,19 @@ $mk = function (string $dir, array $profile, array $sites) {
     // описывают звезду из семи страниц; связка v3 — полная сетка из
     // двенадцати, где каждая страница ссылается на все остальные. Со старыми
     // весами пять новых типов не были бы целью ни разу.
+    // Инвариант «0 чужих брендов» пришёл из корпусов v1/v2 и для v3 неверен:
+    // референс связки называет провайдеров и слоты свободно — 25 и 58 упоминаний
+    // на набор, тогда как генерация давала ноль и ноль. Реалайзеры честно
+    // обобщали имена, потому что инвариант так велел. Запрещены только чужие
+    // казино-операторы, а не студии и тайтлы.
+    $inv = $pools['style']['invariants'] ?? [];
+    foreach ($inv as $i => $v) {
+        if (mb_stripos($v, 'чужих брендов') !== false) {
+            $inv[$i] = 'названия игр, студий-провайдеров, платёжных систем и лицензиаров — НУЖНЫ, они часть фактуры; запрещены только имена чужих казино-операторов';
+        }
+    }
+    $pools['style']['invariants'] = $inv;
+
     $types = array_keys($profile['types'] ?? []);
     if (count($types) > 1) {
         $pools['interlinking']['target_weights'] = array_fill_keys($types, 1);
