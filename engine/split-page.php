@@ -52,7 +52,7 @@ $blocks = count($chunks);
 
 // ── деление целей ──────────────────────────────────────────────────────────
 $COUNTED = ['words','h2','sections_total','lists','tables','quotes','strong','emoji_body',
-            'brand_ru','brand_en','imperatives','vy','first_person','we','entities'];
+            'brand_ru','brand_en','imperatives','vy','first_person','we','names','entities'];
 $builder = new PromptBuilder();
 $links = $spec['links'] ?? [];
 $linkPer = $links ? (int) ceil(count($links) / $blocks) : 0;
