@@ -17,6 +17,7 @@ declare(strict_types=1);
  */
 
 require_once __DIR__ . '/src/Analyzer.php';
+require_once __DIR__ . '/src/NicheLexicon.php';
 
 /** Слаги в ссылках короче имён файлов: /registr → registracia.htm */
 const LINK_ALIASES = ['registr' => 'registracia', 'index' => 'main', 'reg' => 'registracia',
@@ -68,6 +69,14 @@ const NICHE_TERMS = [
     'зеркало/домен'    => '~зеркал\w*|домен\w*|VPN|прокси~ui',
     'промокод'         => '~промокод\w*|бонус[- ]?код\w*~ui',
 ];
+
+/** Проза страницы: только абзацы и пункты списков, без плиток и меню. */
+function prose(string $raw): string
+{
+    preg_match_all('~<(p|li)\b[^>]*>(.*?)</\1>~is', $raw, $pm);
+    $parts = array_map(fn($x) => preg_replace('~<[^>]+>~', ' ', $x), $pm[2] ?? []);
+    return preg_replace('~\s+~u', ' ', implode(' ', $parts));
+}
 
 /** Тип страницы из имени файла. Длинное имя (сохранённая страница) → main. */
 function pageType(string $file): string
@@ -191,6 +200,12 @@ foreach (glob($ROOT . '/*', GLOB_ONLYDIR) as $dir) {
         $r = $a->run([['name'=>$t,'url'=>"/$t",'html'=>$raw,'keyword'=>'','lsi'=>[]]]);
         $p = $r['pages'][0]; $m = $p['metrics']; $s = $p['stylistics'];
         $txt = strip_tags(preg_replace('#<(script|style)[^>]*>.*?</\1>#is', ' ', $raw));
+        // Проза страницы — только абзацы и пункты списков. Та же поправка, что
+        // со ссылками: у сохранённой страницы названия игр стоят плитками
+        // каталога, а RTP — подписями в карточках. Считать их как текст значит
+        // требовать от прозы того, чего в прозе донора нет: по всей странице
+        // тайтлов 20, в абзацах — ни одного.
+        $prose = prose($raw);
 
         // Бренд ищем на КАЖДОЙ странице: в связке 7 одна страница принадлежит
         // другому сайту, и по имени набора её вставки считались бы нулями.
@@ -258,18 +273,18 @@ foreach (glob($ROOT . '/*', GLOB_ONLYDIR) as $dir) {
             // сущностей считает 13 категорий, и «один провайдер» с «сорока
             // провайдерами» для него одно и то же. Замер связки: у референса 25
             // упоминаний студий и 58 названий игр, у генерации ноль и ноль.
-            'providers_named' => preg_match_all('~\b(NetEnt|Pragmatic|Playson|Yggdrasil|Novomatic|Betsoft|Microgaming|Evolution|Igrosoft|Quickspin|Push Gaming|Nolimit|Amatic|BGaming|Endorphina|Red Tiger|Play.?n ?GO|Booongo|Habanero|Spinomenal|Thunderkick|ELK|Relax|Wazdan|Tom Horn|Kalamba|Playtech|Mascot|Onlyplay|Belatra|Gamzix|Fugaso)\b~ui', $txt),
-            'games_named'     => preg_match_all('~\b(Gates of Olympus|Book of|Big Bass|Starburst|Sweet Bonanza|Wolf Gold|Dog House|Razor Shark|Money Train|Deadwood|Mega Moolah|Reactoonz|Extra Chilli|Fruit Party|Crazy Time|Aviator|Sugar Rush|Gonzo|Legacy of|Rise of|Buffalo|Wanted Dead|Le Pharaoh|Jet X)~ui', $txt),
+            'providers_named' => NicheLexicon::countProviders($prose),
+            'games_named'     => NicheLexicon::countGames($prose),
             // Профильные ТЕРМИНЫ поимённо. Суммарная плотность нишевой лексики у
             // референса и генерации сходится (510 против 504 на 10 000 слов) —
             // расходится состав: у референса четыре ударных опоры (RTP ×157,
             // джекпот ×108, депозит ×122, промокод ×131 на связку), у нас вместо
             // них россыпь периферийных механик (множитель ×63, дисперсия ×20).
             // Кластерные цели этого не ловят: «слоты» набираются любым словом.
-            'terms'          => (function () use ($txt) {
+            'terms'          => (function () use ($prose) {
                 $out = [];
                 foreach (NICHE_TERMS as $lab => $re) {
-                    $c = preg_match_all($re, $txt);
+                    $c = preg_match_all($re, $prose);
                     if ($c > 0) { $out[$lab] = $c; }
                 }
                 return $out;

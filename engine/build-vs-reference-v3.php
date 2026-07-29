@@ -14,6 +14,7 @@ declare(strict_types=1);
  */
 
 require_once __DIR__ . '/src/Analyzer.php';
+require_once __DIR__ . '/src/NicheLexicon.php';
 
 $pos = []; $CORPUS = 'v3-single'; $BR = 'Казиновия'; $BE = 'Casinovia'; $DOM = 'casinovia.win'; $DATE = 'июль 2026';
 foreach (array_slice($argv, 1) as $a) {
@@ -49,6 +50,14 @@ $F = [
     'providers_named' => ['Студий поимённо', 0], 'games_named' => ['Игр поимённо', 0],
 ];
 if (!$isSingle) { $F['intlinks'] = ['Ссылок внутри', 0]; }
+
+/** Проза: только абзацы и пункты списков — плитки каталога и меню не текст. */
+function proseOf(string $raw): string
+{
+    preg_match_all('~<(p|li)\b[^>]*>(.*?)</\1>~is', $raw, $pm);
+    $parts = array_map(fn($x) => preg_replace('~<[^>]+>~', ' ', $x), $pm[2] ?? []);
+    return preg_replace('~\s+~u', ' ', implode(' ', $parts));
+}
 
 function offx($our, $don, bool $rate = false): bool
 {
@@ -94,8 +103,8 @@ function measure(Analyzer $a, string $t, string $raw, array $pagesCfg, array $br
         'numbers_per100' => round((float) $s['numbers_per_100w'], 1), 'adj_pct' => round((float) $s['adj_pct'], 1),
         'nausea_acad' => round((float) $m['nausea_academic'], 1), 'water' => round((float) $m['water_percent'], 1),
         'brand_ru' => $brRu, 'brand_en' => $brEn, 'intlinks' => $intl,
-        'providers_named' => preg_match_all('~\b(NetEnt|Pragmatic|Playson|Yggdrasil|Novomatic|Betsoft|Microgaming|Evolution|Igrosoft|Quickspin|Push Gaming|Nolimit|Amatic|BGaming|Endorphina|Red Tiger|Play.?n ?GO|Booongo|Habanero|Spinomenal|Thunderkick|ELK|Relax|Wazdan|Tom Horn|Kalamba|Playtech|Mascot|Onlyplay|Belatra|Gamzix|Fugaso)\b~ui', $txt),
-        'games_named' => preg_match_all('~\b(Gates of Olympus|Book of|Big Bass|Starburst|Sweet Bonanza|Wolf Gold|Dog House|Razor Shark|Money Train|Deadwood|Mega Moolah|Reactoonz|Extra Chilli|Fruit Party|Crazy Time|Aviator|Sugar Rush|Gonzo|Legacy of|Rise of|Buffalo|Wanted Dead|Le Pharaoh|Jet X)~ui', $txt),
+        'providers_named' => NicheLexicon::countProviders(proseOf($raw)),
+        'games_named' => NicheLexicon::countGames(proseOf($raw)),
         'paragraphs' => count($paras),
         'words_per_para' => $paras ? round(array_sum(array_map(
             fn($p) => count(preg_split('~\s+~u', $p, -1, PREG_SPLIT_NO_EMPTY)), $paras)) / count($paras), 1) : 0];

@@ -1,0 +1,77 @@
+<?php
+declare(strict_types=1);
+
+/**
+ * Поимённая профильная лексика: студии-провайдеры и названия игр.
+ *
+ * Списки берутся из пулов корпуса, а не пишутся в коде. Причина: пул — это то
+ * же самое, что генератор предлагает реалайзеру в промпте, и мерка обязана
+ * совпадать с предложением. Хардкод из двух десятков тайтлов давал ложный
+ * промах на своей же генерации: страница называла «San Quentin» и «Hall of
+ * Gods», а счётчик их не знал и писал ноль там, где названий было двенадцать.
+ *
+ * К пулам добавляются тайтлы, встреченные в референсах и отсутствующие в пуле —
+ * иначе донору занижался бы счёт по той же причине.
+ */
+final class NicheLexicon
+{
+    /** Тайтлы из референсов v3, которых нет в пулах. */
+    private const EXTRA_GAMES = [
+        'Razor Shark', "Jammin' Jars", 'Elvis Frog in Vegas', 'Cash Elevator',
+        'Deadwood', 'Extra Chilli', 'Mega Moolah', 'San Quentin', 'Hall of Gods',
+        'Fire in the Hole', 'Le Bandit', 'Le Pharaoh', 'Tome of Madness',
+        'Dead or Alive', 'Immortal Romance', 'Twin Spin', 'Space Wars',
+        'Book of Ra', 'Crazy Monkey', 'Fruit Cocktail', 'Resident',
+    ];
+    private const EXTRA_PROVIDERS = [
+        'Igrosoft', 'Novomatic', 'Amatic', 'Endorphina', 'Tom Horn', 'Kalamba',
+        'Mascot', 'Onlyplay', 'Belatra', 'Gamzix', 'Fugaso', 'ELK',
+    ];
+
+    private static array $cache = [];
+
+    /** @return array{0:string,1:string} регулярки [провайдеры, игры] */
+    public static function patterns(?string $dataDir = null): array
+    {
+        $dir = $dataDir ?? (__DIR__ . '/../data');
+        if (isset(self::$cache[$dir])) { return self::$cache[$dir]; }
+
+        $ent = [];
+        $file = $dir . '/pools/pools.json';
+        if (is_file($file)) {
+            $ent = json_decode((string) file_get_contents($file), true)['entities'] ?? [];
+        }
+        $games = array_merge(
+            $ent['games_slots'] ?? [], $ent['games_crash'] ?? [], $ent['games_live'] ?? [],
+            self::EXTRA_GAMES
+        );
+        $prov = array_merge($ent['providers'] ?? [], self::EXTRA_PROVIDERS);
+
+        return self::$cache[$dir] = [self::alt($prov), self::alt($games)];
+    }
+
+    /** Одно из названий, длинные раньше коротких — «Sweet Bonanza 1000» не должен съедаться «Sweet Bonanza». */
+    private static function alt(array $names): string
+    {
+        $names = array_values(array_unique(array_filter(array_map('trim', $names))));
+        usort($names, fn($a, $b) => mb_strlen($b) <=> mb_strlen($a));
+        $parts = [];
+        foreach ($names as $n) {
+            // Пробелы — любой пробельный, чтобы перенос строки в разметке не ломал счёт.
+            $parts[] = str_replace('\ ', '\s+', preg_quote($n, '~'));
+        }
+        return '~(?<![\w-])(' . implode('|', $parts) . ')(?![\w-])~ui';
+    }
+
+    public static function countProviders(string $text, ?string $dataDir = null): int
+    {
+        [$p] = self::patterns($dataDir);
+        return preg_match_all($p, $text);
+    }
+
+    public static function countGames(string $text, ?string $dataDir = null): int
+    {
+        [, $g] = self::patterns($dataDir);
+        return preg_match_all($g, $text);
+    }
+}
