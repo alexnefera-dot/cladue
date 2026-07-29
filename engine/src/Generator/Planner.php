@@ -139,6 +139,10 @@ final class Planner
         // 0 — параметр мерился, но никогда не задавался. Ключ появляется только
         // у корпусов, которые его несут, поэтому спеки v1/v2 не меняются.
         if (isset($P['we'])) { $targets['we'] = $Ti('we', $P['we']); }
+        // Список категорий сущностей донора — поимённо. Счётчик считает 13
+        // фиксированных категорий, и попасть в ЧИСЛО, не попав в ИМЕНА, легко:
+        // замер дал совпадение по количеству при нулевом пересечении состава.
+        if (!empty($dp['entity_list'])) { $spec_entity_list = $dp['entity_list']; }
 
         // 2. Тон — из стиль-профиля ГЕНЕРАЦИИ (одинаков на всех 7 страницах)
         $tone = [
@@ -306,6 +310,7 @@ final class Planner
         foreach ($readMap as $specKey => $styleKey) {
             if (!empty($donor['style'][$styleKey])) { $spec[$specKey] = $donor['style'][$styleKey]; }
         }
+        if (isset($spec_entity_list)) { $spec['entity_list'] = $spec_entity_list; }
 
         return $spec;
     }
