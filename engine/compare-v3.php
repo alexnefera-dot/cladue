@@ -40,6 +40,12 @@ $FIELDS = [
     'numbers_per100' => ['Цифры/100', 1], 'adj_pct' => ['Прилаг%', 1],
     'nausea_acad' => ['Тошнота', 1], 'water' => ['Водность%', 1],
     'brand_ru' => ['Бренд RU', 0], 'brand_en' => ['Бренд EN', 0],
+    // Четыре параметра, которых счётный замер не видел: он сходился сам с собой,
+    // пока обе стороны считались одним неверным правилом. Абзацы ловят дробление
+    // текста на строки, поимённые студии и тайтлы — профильность, которой в
+    // генерации не было вовсе при совпавшем счёте «сущностей».
+    'paragraphs' => ['Абзацев', 0], 'words_per_para' => ['Слов/абзац', 1],
+    'providers_named' => ['Студий поимённо', 0], 'games_named' => ['Игр поимённо', 0],
 ];
 // Ссылки идут в зачёт только у связок.
 if (!$isSingle) { $FIELDS['intlinks'] = ['Ссылок внутри', 0]; }
@@ -64,6 +70,13 @@ function measure(Analyzer $a, string $t, string $raw, array $pagesCfg, array $br
     // и другое: иначе замер даёт ложные нули на всю связку.
     $brRu = substr_count($raw, '%brand_name_ru%') ?: ($brand['ru'] ? mb_substr_count($txt, $brand['ru']) : 0);
     $brEn = substr_count($raw, '%brand_name_en%') ?: ($brand['en'] ? mb_substr_count($txt, $brand['en']) : 0);
+    // Абзацы: короткие обрывки (< 40 символов) — это подписи и строки-чипы,
+    // а не абзацы; порог тот же, что в экстракторе.
+    preg_match_all('~<p\b[^>]*>(.*?)</p>~is', $raw, $pm);
+    $paras = array_values(array_filter(
+        array_map(fn($x) => trim(preg_replace('~\s+~u', ' ', strip_tags($x))), $pm[1] ?? []),
+        fn($x) => mb_strlen($x) > 40
+    ));
     // ссылки на другие страницы набора
     $intl = 0;
     if (preg_match_all('#<a[^>]+href="([^"]+)"#i', $raw, $hm)) {
@@ -89,6 +102,13 @@ function measure(Analyzer $a, string $t, string $raw, array $pagesCfg, array $br
         'nausea_acad' => round((float) $m['nausea_academic'], 1),
         'water' => round((float) $m['water_percent'], 1),
         'brand_ru' => $brRu, 'brand_en' => $brEn, 'intlinks' => $intl,
+        // Те же выражения, что в extract-donors-v3.php: обе стороны обязаны
+        // считаться одним правилом, иначе замер снова сойдётся сам с собой.
+        'providers_named' => preg_match_all('~\b(NetEnt|Pragmatic|Playson|Yggdrasil|Novomatic|Betsoft|Microgaming|Evolution|Igrosoft|Quickspin|Push Gaming|Nolimit|Amatic|BGaming|Endorphina|Red Tiger|Play.?n ?GO|Booongo|Habanero|Spinomenal|Thunderkick|ELK|Relax|Wazdan|Tom Horn|Kalamba|Playtech|Mascot|Onlyplay|Belatra|Gamzix|Fugaso)\b~ui', $txt),
+        'games_named' => preg_match_all('~\b(Gates of Olympus|Book of|Big Bass|Starburst|Sweet Bonanza|Wolf Gold|Dog House|Razor Shark|Money Train|Deadwood|Mega Moolah|Reactoonz|Extra Chilli|Fruit Party|Crazy Time|Aviator|Sugar Rush|Gonzo|Legacy of|Rise of|Buffalo|Wanted Dead|Le Pharaoh|Jet X)~ui', $txt),
+        'paragraphs' => count($paras),
+        'words_per_para' => $paras ? round(array_sum(array_map(
+            fn($p) => count(preg_split('~\s+~u', $p, -1, PREG_SPLIT_NO_EMPTY)), $paras)) / count($paras), 1) : 0,
     ];
 }
 
