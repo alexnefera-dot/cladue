@@ -9,8 +9,10 @@ declare(strict_types=1);
 require_once __DIR__ . '/src/Analyzer.php';
 require_once __DIR__ . '/src/NicheLexicon.php';
 
-$DIR = $argv[1] ?? '';
-$REF = $argv[2] ?? '/tmp/old-bez-zachina/svyazka3';
+$args = array_values(array_filter(array_slice($argv, 1), fn($a) => $a !== '--no-signals'));
+$SIGNALS = !in_array('--no-signals', $argv, true);
+$DIR = $args[0] ?? '';
+$REF = $args[1] ?? '/tmp/old-bez-zachina/svyazka3';
 if ($DIR === '') { fwrite(STDERR, "usage: check-oldstyle.php <dir> [ref]\n"); exit(1); }
 
 $F = [
@@ -23,7 +25,17 @@ $F = [
     'paragraphs' => ['абзацев', 0], 'words_per_para' => ['слов в абзаце', 1],
     'games_named' => ['названий игр', 0], 'providers_named' => ['названий студий', 0],
     'terms_total' => ['профильных терминов', 0],
+    // Сигналы, найденные разбором двух удачных наборов: при совпадении всех
+    // привычных параметров расходились именно они.
+    'h3_per_h2'  => ['H3 на один H2', 1],
+    'h2_len'     => ['слов в заголовке', 1],
+    'h2_quest'   => ['заголовков-вопросов %', 1],
+    'cta'        => ['прямых призывов', 0],
+    'honest'     => ['мест с минусом или риском', 0],
 ];
+if (!$SIGNALS) {
+    foreach (['h3_per_h2', 'h2_len', 'h2_quest', 'cta', 'honest'] as $k) { unset($F[$k]); }
+}
 
 function measureOne(Analyzer $a, string $t, string $raw): array
 {
@@ -38,7 +50,21 @@ function measureOne(Analyzer $a, string $t, string $raw): array
     $wp = 0;
     foreach ($ps as $x) { $wp += count(preg_split('~\s+~u', NicheLexicon::unplaceholder($x), -1, PREG_SPLIT_NO_EMPTY)); }
     $prose = NicheLexicon::prose($norm);
+    $flat = trim(preg_replace('~\s+~u', ' ', strip_tags($norm)));
+    $hs = [];
+    if (preg_match_all('~<h2[^>]*>(.*?)</h2>~is', $norm, $hm)) {
+        foreach ($hm[1] as $h) {
+            $x = trim(preg_replace('~\s+~u', ' ', strip_tags($h)));
+            if ($x !== '') { $hs[] = $x; }
+        }
+    }
+    $h3n = preg_match_all('~<h3[^>]*>~i', $norm);
     return [
+        'h3_per_h2' => $hs ? round($h3n / count($hs), 1) : 0,
+        'h2_len' => $hs ? round(array_sum(array_map(fn($x) => count(preg_split('~\s+~u', $x, -1, PREG_SPLIT_NO_EMPTY)), $hs)) / count($hs), 1) : 0,
+        'h2_quest' => $hs ? round(count(array_filter($hs, fn($x) => mb_strpos($x, '?') !== false)) / count($hs) * 100, 1) : 0,
+        'cta' => preg_match_all('~\b(зарегистрируйся|играй|жми|получи|забери|активируй|скачай|попробуй|переходи|успей)\b~ui', $flat),
+        'honest' => preg_match_all('~\b(минус\w*|недостат\w*|риск\w*|осторожн\w*|не советую|не стоит|проигр\w*|потер\w*|обман\w*|развод\w*|ловушк\w*|подвох\w*|честно говоря|на самом деле|важно понимать)\b~ui', $flat),
         'words' => (int) $m['words_total'], 'h2' => (int) $m['h2_count'],
         'sections' => (int) ($m['h2_count'] + ($m['h3_count'] ?? 0)),
         'lists' => (int) $m['list_count'], 'strong' => (int) $m['strong_count'],

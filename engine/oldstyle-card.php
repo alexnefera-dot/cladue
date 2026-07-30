@@ -10,8 +10,11 @@ declare(strict_types=1);
 require_once __DIR__ . '/src/Analyzer.php';
 require_once __DIR__ . '/src/NicheLexicon.php';
 
-$SRC = $argv[1] ?? '/tmp/old-bez-zachina/svyazka3';
-$OUT = $argv[2] ?? '/tmp/oldstyle-cards';
+$args = array_values(array_filter(array_slice($argv, 1), fn($a) => $a !== '--no-signals'));
+$SIGNALS = !in_array('--no-signals', $argv, true);   // блок сигналов можно отключить,
+                                                     // чтобы воспроизвести прежний способ
+$SRC = $args[0] ?? '/tmp/old-bez-zachina/svyazka3';
+$OUT = $args[1] ?? '/tmp/oldstyle-cards';
 @mkdir($OUT, 0777, true);
 
 $a = new Analyzer();
@@ -31,6 +34,26 @@ foreach (glob("$SRC/*.html") as $f) {
     foreach ($ps as $x) { $wp += count(preg_split('~\s+~u', NicheLexicon::unplaceholder($x), -1, PREG_SPLIT_NO_EMPTY)); }
 
     $prose  = NicheLexicon::prose($norm);
+
+    // Сигналы, которых нет в основной линейке. Разбор двух удачных наборов
+    // показал, что при совпадении всех привычных параметров расходятся именно
+    // они: как устроен заголовок, продаёт ли текст, называет ли он минус.
+    $flat = trim(preg_replace('~\s+~u', ' ', strip_tags($norm)));
+    $wc   = max(1, count(preg_split('~\s+~u', $flat, -1, PREG_SPLIT_NO_EMPTY)));
+    $hs   = [];
+    if (preg_match_all('~<h2[^>]*>(.*?)</h2>~is', $norm, $hm)) {
+        foreach ($hm[1] as $h) {
+            $x = trim(preg_replace('~\s+~u', ' ', strip_tags($h)));
+            if ($x !== '') { $hs[] = $x; }
+        }
+    }
+    $h3n     = preg_match_all('~<h3[^>]*>~i', $norm);
+    $hQuest  = count(array_filter($hs, fn($x) => mb_strpos($x, '?') !== false));
+    $hColon  = count(array_filter($hs, fn($x) => mb_strpos($x, ':') !== false || mb_strpos($x, '—') !== false));
+    $hLen    = $hs ? round(array_sum(array_map(fn($x) => count(preg_split('~\s+~u', $x, -1, PREG_SPLIT_NO_EMPTY)), $hs)) / count($hs), 1) : 0;
+    $cta     = preg_match_all('~\b(зарегистрируйся|играй|жми|получи|забери|активируй|скачай|попробуй|переходи|успей)\b~ui', $flat);
+    $honest  = preg_match_all('~\b(минус\w*|недостат\w*|риск\w*|осторожн\w*|не советую|не стоит|проигр\w*|потер\w*|обман\w*|развод\w*|ловушк\w*|подвох\w*|честно говоря|на самом деле|важно понимать)\b~ui', $flat);
+    $bare    = preg_match_all('~\d[\d\s]*\s*(?:₽|руб|%|мин\b|час\w*|дн\w+|сут\w+|мб|гб|x\d)~ui', $flat);
     $terms  = NicheLexicon::termCounts($prose);
     arsort($terms);
     $top    = array_slice($terms, 0, 14, true);
@@ -69,6 +92,16 @@ foreach (glob("$SRC/*.html") as $f) {
         ? "- НАЧАЛО СТРАНИЦЫ: список-паспорт `<ul>` с фактами (год, каталог, отдача, лицензия) ДО первого заголовка — именно так открывается старый набор."
         : "- НАЧАЛО СТРАНИЦЫ: сразу заголовок H2, без списка-паспорта.";
     $L[] = "  Первые строки образца для примера ритма: «{$firstBlock}…»";
+    $L[] = '';
+    if ($SIGNALS) {
+    $L[] = '## Как устроен заголовок и как звучит страница';
+    $L[] = "- Заголовков H2 — **" . count($hs) . "**, подзаголовков H3 на каждый — **~" . ($hs ? round($h3n / count($hs), 1) : 0) . "**. Тема раскрывается вглубь подразделами, а не режется на новые H2.";
+    $L[] = "- Слов в заголовке — **~{$hLen}**; с двоеточием или тире — **" . ($hs ? round($hColon / count($hs) * 100) : 0) . "%**. Конструкция «запрос впереди, двоеточие, обещание угла».";
+    $L[] = "- Заголовков-вопросов — **" . ($hs ? round($hQuest / count($hs) * 100, 1) : 0) . "%**. Это НЕ FAQ-простыня: вопросительный заголовок здесь редкость.";
+    $L[] = "- Прямых призывов («жми», «забери», «играй», «скачай») — **{$cta}** на страницу. Страница объясняет, а не продаёт.";
+    $L[] = "- Мест, где прямо назван минус или риск («минус», «ловушка», «не стоит», «проиграть») — **{$honest}**. Это приём, а не оговорка: убрав их, текст глянцевеет.";
+    $L[] = "- Голых чисел с единицами («500 ₽», «96%», «за 15 минут») — **{$bare}**. Цифра идёт внутри рассуждения, а не строкой сводки.";
+    }
     $L[] = '';
     $L[] = '## Словарь: как говорит старый набор';
     $tt = [];
