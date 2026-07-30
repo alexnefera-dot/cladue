@@ -292,10 +292,25 @@ function get_offer($slug) {
  */
 function offers_cache_rebuild() {
     $rows = db()->query('SELECT slug, offer_url FROM campaigns')->fetchAll(PDO::FETCH_KEY_PAIR);
+    $file = __DIR__ . '/offers.php';
+
+    // ЗАЩИТА ОТ ПОТЕРИ ТРАФИКА.
+    // offers.php — единственный источник ссылок для go.php. Если база вернёт
+    // пустой список (сбой, пустая/подменённая база, недокачанный дамп), а крон
+    // перезапишет им файл, то ВСЕ рефки начнут отдавать 404 — тихо, до того как
+    // это заметят. Поэтому из крона (CLI) пустым списком рабочий кэш не затираем.
+    // Из панели пустой список допустим: там это осознанное действие человека
+    // (удалил последнюю кампанию).
+    $newN = is_array($rows) ? count($rows) : 0;
+    if ($newN === 0 && php_sapi_name() === 'cli') {
+        $cur  = is_file($file) ? @include $file : null;
+        $curN = is_array($cur) ? count($cur) : 0;
+        if ($curN > 0) return -1;   // -1 = не обновляли, файл оставлен как был
+    }
+
     $php = "<?php\n// АВТОГЕНЕРАЦИЯ. Не редактировать вручную — перезапишется.\n"
          . "// Обновлено: " . date('Y-m-d H:i:s') . "\n"
          . "return " . var_export($rows, true) . ";\n";
-    $file = __DIR__ . '/offers.php';
     $tmp  = $file . '.tmp';
     // пишем во временный и атомарно переименовываем — go.php никогда не увидит полу-записанный файл
     if (@file_put_contents($tmp, $php, LOCK_EX) !== false) {
@@ -841,18 +856,48 @@ function flood_check($ip, $limit, $window) {
 /**
  * Автоочистка: удаляет клики старше retention_days.
  * Срабатывает не чаще раза в сутки (метка last_cleanup в meta).
+ *
+ * ВАЖНО про нагрузку. Раньше эта функция вызывалась из панели и удаляла всё
+ * одним DELETE: юзер, открывший статистику, ждал удаления десятков тысяч
+ * строк (вплоть до таймаута PHP), а сам DELETE держал блокировки InnoDB и
+ * конфликтовал с импортом, который пишет в ту же таблицу.
+ *
+ * Теперь:
+ *   - чистим ТОЛЬКО из CLI (крон), веб-запросы сразу выходят;
+ *   - удаляем пачками по $batch строк, чтобы транзакции были короткими;
+ *   - за один заход удаляем не больше $maxBatches пачек, остальное догонит
+ *     следующий запуск. Так очистка никогда не растягивается надолго.
  */
-function maybe_cleanup($retentionDays) {
+function maybe_cleanup($retentionDays, $batch = 5000, $maxBatches = 20) {
     $retentionDays = (int)$retentionDays;
     if ($retentionDays <= 0) return 0;
+    if (php_sapi_name() !== 'cli') return 0;          // из панели не чистим
+
     $pdo  = db();
     $last = (int)($pdo->query("SELECT v FROM meta WHERE k='last_cleanup'")->fetchColumn() ?: 0);
     if (time() - $last < 86400) return 0;             // уже чистили сегодня
+
     $cutoff = time() - $retentionDays * 86400;
-    $st = $pdo->prepare('DELETE FROM clicks WHERE ts < ?');
-    $st->execute([$cutoff]);
+    $batch  = max(100, (int)$batch);
+
+    if (db_driver() === 'mysql') {
+        $st = $pdo->prepare('DELETE FROM clicks WHERE ts < ? LIMIT ' . $batch);
+    } else {
+        // SQLite собирается без SQLITE_ENABLE_UPDATE_DELETE_LIMIT — режем подзапросом
+        $st = $pdo->prepare('DELETE FROM clicks WHERE id IN
+                             (SELECT id FROM clicks WHERE ts < ? LIMIT ' . $batch . ')');
+    }
+
+    $total = 0;
+    for ($i = 0; $i < $maxBatches; $i++) {
+        $st->execute([$cutoff]);
+        $n = $st->rowCount();
+        $total += $n;
+        if ($n < $batch) break;                       // старых больше нет
+    }
+
     meta_upsert('last_cleanup', time());
-    return $st->rowCount();
+    return $total;
 }
 
 /**
@@ -968,9 +1013,12 @@ function panel_cache_flush() {
  * Ключи и аргументы должны совпадать с тем, что запрашивает stats.php.
  * Возвращает число прогретых ключей.
  */
-function panel_cache_warm() {
+function panel_cache_warm($budgetSec = 30) {
+    $t0         = microtime(true);
     $now        = time();
     $todayStart = strtotime('today');
+    $pdo        = db();
+
     $periods = [
         'today'     => [$todayStart,          $now + 1],
         'yesterday' => [$todayStart - 86400,  $todayStart],
@@ -978,11 +1026,9 @@ function panel_cache_warm() {
         '30d'       => [$now - 30 * 86400,    $now + 1],
     ];
 
-    $n = 0;
-    $pdo = db();
-    foreach ($periods as $key => [$from, $to]) {
-        // сводка по кампаниям — тот же запрос, что в stats.php
-        panel_cache("summary_$key", function () use ($pdo, $from, $to) {
+    // сводка по кампаниям — тот же запрос, что в stats.php
+    $summary = function ($from, $to) use ($pdo) {
+        return function () use ($pdo, $from, $to) {
             $st = $pdo->prepare("
                 SELECT cl.slug, COALESCE(c.name,'') AS name,
                        SUM(CASE WHEN cl.is_bot=0 THEN 1 ELSE 0 END)                       AS humans,
@@ -998,19 +1044,37 @@ function panel_cache_warm() {
             ");
             $st->execute([$from, $to]);
             return $st->fetchAll(PDO::FETCH_ASSOC);
-        });
-        panel_cache("geo_$key",     fn() => geo_stats($from, $to));
-        panel_cache("geocamp_$key", fn() => geo_by_campaign($from, null, $to));
-        $n += 3;
-    }
+        };
+    };
 
-    panel_cache('daily30',    fn() => daily_stats(30));
-    panel_cache('health',     fn() => service_health());
-    panel_cache('lastbycamp', fn() => db()->query(
+    // Порядок = приоритет. Сначала то, что открывается почти всегда (главная за
+    // «сегодня» + график), потом вкладка настроек, и только потом длинные периоды.
+    // Если бюджет времени выйдет — остаток посчитается лениво при первом открытии.
+    $jobs = [];
+    [$f, $t] = $periods['today'];
+    $jobs[] = ['summary_today', $summary($f, $t)];
+    $jobs[] = ['geo_today',     fn() => geo_stats($f, $t)];
+    $jobs[] = ['geocamp_today', fn() => geo_by_campaign($f, null, $t)];
+    $jobs[] = ['daily30',       fn() => daily_stats(30)];
+    $jobs[] = ['health',        fn() => service_health()];
+    $jobs[] = ['lastbycamp',    fn() => $pdo->query(
         "SELECT cl.slug, COALESCE(c.name,'') name, MAX(cl.ts) last
          FROM clicks cl LEFT JOIN campaigns c ON c.slug=cl.slug
-         GROUP BY cl.slug ORDER BY last DESC LIMIT 30")->fetchAll(PDO::FETCH_ASSOC));
-    return $n + 3;
+         GROUP BY cl.slug ORDER BY last DESC LIMIT 30")->fetchAll(PDO::FETCH_ASSOC)];
+    foreach (['yesterday', '7d', '30d'] as $key) {
+        [$pf, $pt] = $periods[$key];
+        $jobs[] = ["summary_$key", $summary($pf, $pt)];
+        $jobs[] = ["geo_$key",     fn() => geo_stats($pf, $pt)];
+        $jobs[] = ["geocamp_$key", fn() => geo_by_campaign($pf, null, $pt)];
+    }
+
+    $done = $skipped = 0;
+    foreach ($jobs as [$key, $build]) {
+        if ($budgetSec > 0 && (microtime(true) - $t0) >= $budgetSec) { $skipped++; continue; }
+        panel_cache($key, $build);
+        $done++;
+    }
+    return ['warmed' => $done, 'skipped' => $skipped, 'sec' => round(microtime(true) - $t0, 1)];
 }
 
 /**
