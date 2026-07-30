@@ -68,7 +68,7 @@ function db() {
             // считали даты так же, как PHP, и шапка не расходилась с графиком.
             PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4, time_zone = '+03:00'",
         ]);
-        db_create_tables_mysql($pdo);
+        db_ensure_schema($pdo, 'mysql');
     } else {
         // -------- SQLite --------
         $pdo = new PDO('sqlite:' . __DIR__ . '/' . $cfg['db_file']);
@@ -79,9 +79,32 @@ function db() {
         $pdo->exec('PRAGMA journal_mode = WAL');     // читатели не блокируют писателя
         $pdo->exec('PRAGMA synchronous = NORMAL');   // быстрее записи, безопасно при WAL
         $pdo->exec('PRAGMA wal_autocheckpoint = 400');
-        db_create_tables_sqlite($pdo);
+        db_ensure_schema($pdo, 'sqlite');
     }
     return $pdo;
+}
+
+/**
+ * Создать таблицы, если их ещё нет — но не на каждом запросе.
+ *
+ * Раньше db() гнал CREATE TABLE IF NOT EXISTS для всех семи таблиц при КАЖДОМ
+ * подключении. На боевой MySQL это ~0.7с накладных расходов на каждый запрос
+ * страницы и на каждый постбек. Теперь после успешного создания ставится
+ * маркер-файл, и дальше схема не трогается.
+ *
+ * Если маркер удалить (или снести каталог cache/), схема просто проверится
+ * заново — CREATE TABLE IF NOT EXISTS идемпотентен, данные не страдают.
+ */
+function db_ensure_schema(PDO $pdo, $driver) {
+    $marker = __DIR__ . '/cache/.schema_' . $driver;
+    if (is_file($marker)) return;
+
+    $driver === 'mysql' ? db_create_tables_mysql($pdo) : db_create_tables_sqlite($pdo);
+
+    cache_dir();
+    if (@file_put_contents($marker, (string)time()) !== false) {
+        cache_fix_owner($marker, 0664);
+    }
 }
 
 /** Создание таблиц под MySQL (InnoDB, utf8mb4). Идемпотентно. */
@@ -863,20 +886,41 @@ function meta_set($k, $v) {
  */
 define('PANEL_CACHE_VER', 2);   // 2 — добавлены депы (deps/dep_ru/dep_unlinked)
 
-function panel_cache($key, callable $build, $ttl = 3600) {
-    static $stamp = null;
+/**
+ * Выровнять владельца файла/каталога кэша по владельцу config.php.
+ *
+ * Кэш пишут два разных пользователя: панель под www-root и крон (прогрев) под
+ * root. Если файл останется root-овым, панель не сможет его перезаписать и кэш
+ * «застынет». Проверку «я root?» не делаем через posix_geteuid() — расширения
+ * posix на сервере нет; chown/chgrp просто вернут false у непривилегированного
+ * процесса, и это нормально.
+ */
+function cache_fix_owner($path, $mode) {
+    $owner = @fileowner(__DIR__ . '/config.php');
+    $group = @filegroup(__DIR__ . '/config.php');
+    if ($owner !== false) @chown($path, $owner);
+    if ($group !== false) @chgrp($path, $group);
+    @chmod($path, $mode);
+}
+
+/** Каталог кэша (создаётся при первом обращении, с правами под веб-процесс). */
+function cache_dir() {
     $dir = __DIR__ . '/cache';
     if (!is_dir($dir)) {
         @mkdir($dir, 0775, true);
-        // каталог мог создать крон (root) — иначе панель под www-root не запишет
-        if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
-            $owner = @fileowner(__DIR__ . '/config.php');
-            $group = @filegroup(__DIR__ . '/config.php');
-            if ($owner !== false) @chown($dir, $owner);
-            if ($group !== false) @chgrp($dir, $group);
-            @chmod($dir, 0775);
-        }
+        cache_fix_owner($dir, 0775);
     }
+    // содержимое кэша наружу не отдаём (на случай, если корневой .htaccess не применится)
+    $ht = $dir . '/.htaccess';
+    if (!is_file($ht) && @file_put_contents($ht, "Require all denied\n") !== false) {
+        cache_fix_owner($ht, 0664);
+    }
+    return $dir;
+}
+
+function panel_cache($key, callable $build, $ttl = 3600) {
+    static $stamp = null;
+    $dir = cache_dir();
 
     if ($stamp === null) {
         try { $stamp = (string)(int)meta_get('last_import', 0); }
@@ -899,16 +943,7 @@ function panel_cache($key, callable $build, $ttl = 3600) {
 
     $val = $build();
     @file_put_contents($file, serialize($val), LOCK_EX);
-
-    // Прогрев идёт из крона (root), а читает и перезаписывает кэш веб-процесс
-    // (www-root). Без этого root-овые файлы не дали бы панели обновить кэш.
-    if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
-        $owner = @fileowner(__DIR__ . '/config.php');
-        $group = @filegroup(__DIR__ . '/config.php');
-        if ($owner !== false) @chown($file, $owner);
-        if ($group !== false) @chgrp($file, $group);
-        @chmod($file, 0664);
-    }
+    cache_fix_owner($file, 0664);
 
     // подчищаем версии этого же ключа от прошлых импортов и прошлых версий схемы
     foreach (glob($dir . '/' . $safe . '_v*.cache') ?: [] as $old) {
