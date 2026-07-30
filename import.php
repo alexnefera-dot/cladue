@@ -148,6 +148,17 @@ try {
     // пересчитывает их на каждую перезагрузку.
     try { meta_upsert('last_import', time()); } catch (Throwable $e) { /* не критично */ }
 
+    // -------- 7. Прогрев кэша панели --------
+    // Метка только что сменилась, весь кэш инвалидирован. Считаем агрегаты здесь,
+    // чтобы первый заход в панель не ждал полного пересчёта (~12с на боевой базе).
+    try {
+        $t1 = microtime(true);
+        $warmed = panel_cache_warm();
+        say("кэш панели прогрет: $warmed ключей, " . round(microtime(true) - $t1, 1) . "с");
+    } catch (Throwable $e) {
+        say("! кэш панели не прогрет: " . $e->getMessage());
+    }
+
 } catch (Throwable $e) {
     // MySQL недоступен/ошибка — откатываемся, .processing остаётся, докатим позже
     if ($pdo->inTransaction()) $pdo->rollBack();

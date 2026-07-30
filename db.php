@@ -866,7 +866,17 @@ define('PANEL_CACHE_VER', 2);   // 2 — добавлены депы (deps/dep_r
 function panel_cache($key, callable $build, $ttl = 3600) {
     static $stamp = null;
     $dir = __DIR__ . '/cache';
-    if (!is_dir($dir)) @mkdir($dir, 0775, true);
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0775, true);
+        // каталог мог создать крон (root) — иначе панель под www-root не запишет
+        if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
+            $owner = @fileowner(__DIR__ . '/config.php');
+            $group = @filegroup(__DIR__ . '/config.php');
+            if ($owner !== false) @chown($dir, $owner);
+            if ($group !== false) @chgrp($dir, $group);
+            @chmod($dir, 0775);
+        }
+    }
 
     if ($stamp === null) {
         try { $stamp = (string)(int)meta_get('last_import', 0); }
@@ -890,6 +900,16 @@ function panel_cache($key, callable $build, $ttl = 3600) {
     $val = $build();
     @file_put_contents($file, serialize($val), LOCK_EX);
 
+    // Прогрев идёт из крона (root), а читает и перезаписывает кэш веб-процесс
+    // (www-root). Без этого root-овые файлы не дали бы панели обновить кэш.
+    if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
+        $owner = @fileowner(__DIR__ . '/config.php');
+        $group = @filegroup(__DIR__ . '/config.php');
+        if ($owner !== false) @chown($file, $owner);
+        if ($group !== false) @chgrp($file, $group);
+        @chmod($file, 0664);
+    }
+
     // подчищаем версии этого же ключа от прошлых импортов и прошлых версий схемы
     foreach (glob($dir . '/' . $safe . '_v*.cache') ?: [] as $old) {
         if ($old !== $file) @unlink($old);
@@ -900,6 +920,62 @@ function panel_cache($key, callable $build, $ttl = 3600) {
 /** Сбросить кэш панели целиком (после правки кампаний, очистки истории и т.п.). */
 function panel_cache_flush() {
     foreach (glob(__DIR__ . '/cache/*.cache') ?: [] as $f) @unlink($f);
+}
+
+/**
+ * Прогрев кэша панели — считает тяжёлые агрегаты заранее.
+ *
+ * Вызывается из import.php сразу после импорта: метка last_import только что
+ * сменилась, значит весь кэш инвалидирован, и первый заход в панель иначе ждал
+ * бы полного пересчёта (на боевой базе это ~12 секунд — вплоть до таймаута).
+ * Крон считает это за себя, и панель всегда открывается из готового кэша.
+ *
+ * Ключи и аргументы должны совпадать с тем, что запрашивает stats.php.
+ * Возвращает число прогретых ключей.
+ */
+function panel_cache_warm() {
+    $now        = time();
+    $todayStart = strtotime('today');
+    $periods = [
+        'today'     => [$todayStart,          $now + 1],
+        'yesterday' => [$todayStart - 86400,  $todayStart],
+        '7d'        => [$now - 7  * 86400,    $now + 1],
+        '30d'       => [$now - 30 * 86400,    $now + 1],
+    ];
+
+    $n = 0;
+    $pdo = db();
+    foreach ($periods as $key => [$from, $to]) {
+        // сводка по кампаниям — тот же запрос, что в stats.php
+        panel_cache("summary_$key", function () use ($pdo, $from, $to) {
+            $st = $pdo->prepare("
+                SELECT cl.slug, COALESCE(c.name,'') AS name,
+                       SUM(CASE WHEN cl.is_bot=0 THEN 1 ELSE 0 END)                       AS humans,
+                       COUNT(DISTINCT CASE WHEN cl.is_bot=0 THEN cl.ip END)               AS uniques,
+                       COUNT(DISTINCT CASE WHEN cl.is_bot=0 AND cl.country='RU' THEN cl.ip END) AS uniques_ru,
+                       SUM(CASE WHEN cl.is_bot=1 THEN 1 ELSE 0 END)                       AS bots,
+                       MAX(cl.ts)                                                         AS last_ts
+                FROM clicks cl
+                LEFT JOIN campaigns c ON c.slug = cl.slug
+                WHERE cl.ts >= ? AND cl.ts < ?
+                GROUP BY cl.slug
+                ORDER BY humans DESC, bots DESC
+            ");
+            $st->execute([$from, $to]);
+            return $st->fetchAll(PDO::FETCH_ASSOC);
+        });
+        panel_cache("geo_$key",     fn() => geo_stats($from, $to));
+        panel_cache("geocamp_$key", fn() => geo_by_campaign($from, null, $to));
+        $n += 3;
+    }
+
+    panel_cache('daily30',    fn() => daily_stats(30));
+    panel_cache('health',     fn() => service_health());
+    panel_cache('lastbycamp', fn() => db()->query(
+        "SELECT cl.slug, COALESCE(c.name,'') name, MAX(cl.ts) last
+         FROM clicks cl LEFT JOIN campaigns c ON c.slug=cl.slug
+         GROUP BY cl.slug ORDER BY last DESC LIMIT 30")->fetchAll(PDO::FETCH_ASSOC));
+    return $n + 3;
 }
 
 /**
