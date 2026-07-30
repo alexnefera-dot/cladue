@@ -7,3 +7,8 @@ RewriteRule ^go/([A-Za-z0-9_-]+)/?$ /go.php?l=$1 [L,QSA]
 <Files "stats.sqlite">
     Require all denied
 </Files>
+
+# Кэш агрегатов панели и накопитель кликов — не отдавать наружу
+<FilesMatch "\.(cache|log)$">
+    Require all denied
+</FilesMatch>

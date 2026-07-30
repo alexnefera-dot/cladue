@@ -144,10 +144,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check
     } elseif ($action === 'clear_history') {
         $res = clear_history();
         $msg = 'История очищена: удалено кликов ' . $res['clicks'] . ', конверсий ' . $res['conversions'] . '. Кампании сохранены.';
+        panel_cache_flush();   // данные удалены — кэш агрегатов больше не актуален
         $loc = 'stats.php?tab=settings&msg=' . rawurlencode($msg);
         header('Location: ' . $loc, true, 303);
         exit;
     }
+    panel_cache_flush();   // кампании изменились — сбрасываем кэш сводок
     $loc = 'stats.php?tab=campaigns&msg=' . rawurlencode($msg);
     header('Location: ' . $loc, true, 303);
     exit;
@@ -242,21 +244,25 @@ if ($tab === 'stats' && $detailSlug !== '') {
 
 } elseif ($tab === 'stats') {
     // --- СВОДКА за период: все кампании с кликами ---
-    $st = $pdo->prepare("
-        SELECT cl.slug, COALESCE(c.name,'') AS name,
-               SUM(CASE WHEN cl.is_bot=0 THEN 1 ELSE 0 END)                       AS humans,
-               COUNT(DISTINCT CASE WHEN cl.is_bot=0 THEN cl.ip END)               AS uniques,
-               COUNT(DISTINCT CASE WHEN cl.is_bot=0 AND cl.country='RU' THEN cl.ip END) AS uniques_ru,
-               SUM(CASE WHEN cl.is_bot=1 THEN 1 ELSE 0 END)                       AS bots,
-               MAX(cl.ts)                                                         AS last_ts
-        FROM clicks cl
-        LEFT JOIN campaigns c ON c.slug = cl.slug
-        WHERE cl.ts >= ? AND cl.ts < ?
-        GROUP BY cl.slug
-        ORDER BY humans DESC, bots DESC
-    ");
-    $st->execute([$from, $to]);
-    $today = $st->fetchAll(PDO::FETCH_ASSOC);
+    // Сводка кэшируется до следующего импорта: клики попадают в базу только
+    // кроном, поэтому пересчитывать её на каждую перезагрузку незачем.
+    $today = panel_cache("summary_$periodKey", function () use ($pdo, $from, $to) {
+        $st = $pdo->prepare("
+            SELECT cl.slug, COALESCE(c.name,'') AS name,
+                   SUM(CASE WHEN cl.is_bot=0 THEN 1 ELSE 0 END)                       AS humans,
+                   COUNT(DISTINCT CASE WHEN cl.is_bot=0 THEN cl.ip END)               AS uniques,
+                   COUNT(DISTINCT CASE WHEN cl.is_bot=0 AND cl.country='RU' THEN cl.ip END) AS uniques_ru,
+                   SUM(CASE WHEN cl.is_bot=1 THEN 1 ELSE 0 END)                       AS bots,
+                   MAX(cl.ts)                                                         AS last_ts
+            FROM clicks cl
+            LEFT JOIN campaigns c ON c.slug = cl.slug
+            WHERE cl.ts >= ? AND cl.ts < ?
+            GROUP BY cl.slug
+            ORDER BY humans DESC, bots DESC
+        ");
+        $st->execute([$from, $to]);
+        return $st->fetchAll(PDO::FETCH_ASSOC);
+    });
 
     // конверсии за период по кампаниям (с RU-разбивкой) — для таблицы
     $conv = conversions_by_slug($from, $to);
@@ -277,10 +283,12 @@ if ($tab === 'stats' && $detailSlug !== '') {
     $sumDep   = $convTot['dep'];
     $sumRegUnlinked = $convTot['reg_unlinked'];
 
-    $daily = daily_stats(30);   // для графика за месяц (всегда 30 дней)
+    // Тяжёлые агрегаты — из кэша (обновляются вместе с импортом).
+    // recent_conversions не кэшируем: замер показал ~5 мс, смысла нет.
+    $daily      = panel_cache('daily30',           fn() => daily_stats(30));
     $recentConv = recent_conversions(50);
-    $geo = geo_stats($from, $to);
-    $geoCamp = geo_by_campaign($from, null, $to);
+    $geo        = panel_cache("geo_$periodKey",     fn() => geo_stats($from, $to));
+    $geoCamp    = panel_cache("geocamp_$periodKey", fn() => geo_by_campaign($from, null, $to));
 
 } else {
     // --- вкладка «Кампании»: только справочник кампаний (без счётчиков кликов) ---
@@ -777,7 +785,7 @@ $msg = $_GET['msg'] ?? '';
   <h1>Настройки</h1>
 
   <?php
-    $hp = service_health();
+    $hp = panel_cache('health', fn() => service_health());
     $gaps = recent_gaps(100);
     $fmtAgo = function ($ts) use ($hp) {
         if (!$ts) return 'никогда';
@@ -841,9 +849,11 @@ $msg = $_GET['msg'] ?? '';
     <h2>Доступность рефок (по последнему клику)</h2>
     <div class="muted">Пассивный признак: когда по кампании последний раз был клик. Долгое молчание у активной кампании = повод проверить ссылку/домен.</div>
     <?php
-      $lastByCamp = db()->query("SELECT cl.slug, COALESCE(c.name,'') name, MAX(cl.ts) last
-                                 FROM clicks cl LEFT JOIN campaigns c ON c.slug=cl.slug
-                                 GROUP BY cl.slug ORDER BY last DESC LIMIT 30")->fetchAll(PDO::FETCH_ASSOC);
+      // MAX(ts) по всей таблице — на боевой базе ~1с, поэтому из кэша
+      $lastByCamp = panel_cache('lastbycamp', fn() => db()->query(
+          "SELECT cl.slug, COALESCE(c.name,'') name, MAX(cl.ts) last
+           FROM clicks cl LEFT JOIN campaigns c ON c.slug=cl.slug
+           GROUP BY cl.slug ORDER BY last DESC LIMIT 30")->fetchAll(PDO::FETCH_ASSOC));
     ?>
     <table class="sortable">
       <thead><tr><th data-sort="text">Кампания</th><th data-sort="text">Слаг</th><th data-sort="num">Последний клик</th></tr></thead>

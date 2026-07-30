@@ -837,6 +837,58 @@ function meta_set($k, $v) {
 }
 
 /**
+ * Кэш тяжёлых агрегатов панели.
+ *
+ * Клики попадают в базу только при импорте (крон, раз в час), поэтому
+ * пересчитывать сводки/график/гео на КАЖДУЮ перезагрузку панели незачем:
+ * до следующего импорта результат не изменится. Замер на боевой базе
+ * (889k кликов) показал 6.4с на одну перезагрузку, из них 45% — график
+ * за 30 дней и 23% — сводка по кампаниям.
+ *
+ * Ключ кэша включает метку последнего импорта (meta.last_import), поэтому
+ * после каждого импорта кэш инвалидируется сам, а между импортами живёт.
+ * $ttl — страховка на случай, если метки нет (старая база / импорт не писал).
+ *
+ * Файлы лежат в cache/ и создаются веб-процессом (панель). Крон эти функции
+ * не вызывает, так что конфликта прав root/www-root нет.
+ */
+function panel_cache($key, callable $build, $ttl = 3600) {
+    static $stamp = null;
+    $dir = __DIR__ . '/cache';
+    if (!is_dir($dir)) @mkdir($dir, 0775, true);
+
+    if ($stamp === null) {
+        try { $stamp = (string)(int)meta_get('last_import', 0); }
+        catch (Throwable $e) { $stamp = '0'; }
+    }
+
+    $safe = preg_replace('~[^\w.-]~', '_', (string)$key);
+    $file = $dir . '/' . $safe . '_' . $stamp . '.cache';
+
+    if (is_file($file) && (time() - (int)@filemtime($file)) < $ttl) {
+        $raw = @file_get_contents($file);
+        if ($raw !== false) {
+            $val = @unserialize($raw);
+            if ($val !== false || $raw === 'b:0;') return $val;   // false — валидное значение
+        }
+    }
+
+    $val = $build();
+    @file_put_contents($file, serialize($val), LOCK_EX);
+
+    // подчищаем версии этого же ключа от прошлых импортов
+    foreach (glob($dir . '/' . $safe . '_*.cache') ?: [] as $old) {
+        if ($old !== $file) @unlink($old);
+    }
+    return $val;
+}
+
+/** Сбросить кэш панели целиком (после правки кампаний, очистки истории и т.п.). */
+function panel_cache_flush() {
+    foreach (glob(__DIR__ . '/cache/*.cache') ?: [] as $f) @unlink($f);
+}
+
+/**
  * Heartbeat: отметка «сервис жив». Пишется не чаще раза в минуту (дёшево).
  * Если между прошлой отметкой и сейчас прошло >= $gapThreshold секунд —
  * значит был разрыв (возможный простой), и он записывается в журнал gaps
