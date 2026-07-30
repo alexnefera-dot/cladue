@@ -49,6 +49,7 @@ return [
     // (партнёрка вернёт его обратно в постбэке своим макросом).
     'clickid_param' => 'clickid',
 
+    'click_log' => '/var/www/www-root/data/www/sitegrator.com/clicks.log',
     // Фильтр доменов, к которым прокидывать clickid. РАБОТАЕТ ТАК:
     //   []  (пусто)  → clickid дописывается КО ВСЕМ офферам;
     //   [...] заполнен → только к перечисленным доменам (whitelist).
@@ -78,8 +79,8 @@ return [
     //                   на этот URL, вообще НЕ обращаясь к базе (даже на чтение!).
     //                   Полностью снимает нагрузку с MySQL. Статистики нет.
     // Вернуть норму: db_write => true, fallback_offer => ''.
-    'db_write'       => false,
-    'fallback_offer' => 'https://fnx-abs.net/di6viifma',
+    'db_write'       => true,
+    'fallback_offer' => '',
 
     // ============================================================
     // ===== Драйвер БД (SQLite / MySQL) =====
