@@ -1062,6 +1062,53 @@ function record_conversion($clickid, $status, $payout, $ip, $raw = '') {
 }
 
 /**
+ * Досвязать конверсии с кликами (лечит «не привязан»).
+ *
+ * Постбек почти всегда приходит РАНЬШЕ, чем клик доедет до MySQL: go.php пишет
+ * клик в clicks.log, а import.php переливает лог в базу по крону (раз в час).
+ * В момент постбека record_conversion() клика ещё не видит и ставит slug = NULL —
+ * в панели это «не привязан». Клик появляется в базе позже, но привязка сама
+ * не пересчитывалась — конверсия оставалась непривязанной навсегда.
+ *
+ * Функция проходит по конверсиям с пустым slug и подставляет slug клика с тем же
+ * clickid. Вызывается из import.php сразу после заливки кликов — то есть ровно
+ * тогда, когда в базе появились новые клики, к которым можно привязаться.
+ *
+ * $sinceDays — глубина просмотра (0 = вся история). Ограничение нужно, чтобы
+ * часовой крон не перебирал таблицу целиком; для разовой ретро-привязки
+ * вызывать с 0.
+ *
+ * Возвращает число досвязанных конверсий.
+ */
+function relink_conversions($sinceDays = 7) {
+    $pdo   = db();
+    $args  = [];
+    $since = null;
+    if ($sinceDays > 0) $since = time() - (int)$sinceDays * 86400;
+
+    if (db_driver() === 'mysql') {
+        $sql = "UPDATE conversions cv
+                JOIN clicks c ON c.clickid = cv.clickid
+                SET cv.slug = c.slug
+                WHERE cv.slug IS NULL AND cv.clickid <> ''";
+        if ($since !== null) { $sql .= ' AND cv.ts >= ?'; $args[] = $since; }
+    } else {
+        // SQLite не умеет UPDATE ... JOIN — коррелированный подзапрос
+        $sql = "UPDATE conversions
+                SET slug = (SELECT c.slug FROM clicks c
+                            WHERE c.clickid = conversions.clickid
+                            ORDER BY c.id DESC LIMIT 1)
+                WHERE slug IS NULL AND clickid <> ''
+                  AND EXISTS (SELECT 1 FROM clicks c WHERE c.clickid = conversions.clickid)";
+        if ($since !== null) { $sql .= ' AND ts >= ?'; $args[] = $since; }
+    }
+
+    $st = $pdo->prepare($sql);
+    $st->execute($args);
+    return $st->rowCount();
+}
+
+/**
  * ИТОГО конверсий за период — ВСЕ, включая непривязанные к кампании (slug IS NULL).
  * Возвращает ['reg'=>N,'dep'=>N,'reg_ru'=>N,'reg_unlinked'=>N,'payout'=>S].
  * Используется для счётчиков в шапке (чтобы совпадали с графиком и таблицей постбеков).
