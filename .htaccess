@@ -1,0 +1,9 @@
+# Красивые ссылки: /go/СЛАГ -> /go.php?l=СЛАГ
+# QSA сохраняет query-параметры (?site=..., ?s=...), чтобы они дошли до go.php
+RewriteEngine On
+RewriteRule ^go/([A-Za-z0-9_-]+)/?$ /go.php?l=$1 [L,QSA]
+
+# Запрет на скачивание файла базы напрямую из браузера
+<Files "stats.sqlite">
+    Require all denied
+</Files>

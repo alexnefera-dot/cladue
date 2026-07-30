@@ -1,0 +1,11 @@
+# Рантайм-данные редиректора — НЕ версионируем (генерируются на сервере)
+offers.php               # автогенерируемый кэш офферов (db.php/import.php)
+clicks.log               # накопитель кликов (go.php пишет, import.php читает)
+clicks.log.processing    # промежуточный файл импорта
+*.sqlite                 # локальная база (db_driver=sqlite)
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+
+# Прочее
+.DS_Store
