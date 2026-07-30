@@ -658,21 +658,28 @@ function sources_by_campaign($slug, $from, $to = null) {
 
     if (!$rows) return [];
 
-    // подсчёт регистраций по source (через привязку clickid к конверсиям)
-    $sqlR = "SELECT COALESCE(NULLIF(cl.source,''),'(прямые)') AS src, COUNT(*) AS regs
+    // подсчёт регистраций и депов по source (через привязку clickid к конверсиям)
+    $sqlR = "SELECT COALESCE(NULLIF(cl.source,''),'(прямые)') AS src,
+                    SUM(CASE WHEN cv.status IN('reg','registration','lead') THEN 1 ELSE 0 END) AS regs,
+                    SUM(CASE WHEN cv.status IN('dep','deposit','sale','ftd','purchase') THEN 1 ELSE 0 END) AS deps
              FROM conversions cv
              JOIN clicks cl ON cl.clickid = cv.clickid
-             WHERE cl.slug = ? AND cv.ts >= ?
-               AND cv.status IN ('reg','registration','lead')";
+             WHERE cl.slug = ? AND cv.ts >= ?";
     $argsR = [$slug, $from];
     if ($to !== null) { $sqlR .= ' AND cv.ts < ?'; $argsR[] = $to; }
     $sqlR .= ' GROUP BY src';
     $st = db()->prepare($sqlR);
     $st->execute($argsR);
-    $regs = [];
-    foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) $regs[$r['src']] = (int)$r['regs'];
+    $regs = $deps = [];
+    foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        $regs[$r['src']] = (int)$r['regs'];
+        $deps[$r['src']] = (int)$r['deps'];
+    }
 
-    foreach ($rows as &$r) $r['regs'] = $regs[$r['src']] ?? 0;
+    foreach ($rows as &$r) {
+        $r['regs'] = $regs[$r['src']] ?? 0;
+        $r['deps'] = $deps[$r['src']] ?? 0;
+    }
     unset($r);
     return $rows;
 }
@@ -712,16 +719,18 @@ function sources_grouped_by_campaign($slug, $from, $to = null) {
     foreach ($flat as $r) {
         $root = source_root($r['src']);
         if (!isset($groups[$root])) {
-            $groups[$root] = ['root' => $root, 'clicks' => 0, 'uniques' => 0, 'regs' => 0, 'subs' => []];
+            $groups[$root] = ['root' => $root, 'clicks' => 0, 'uniques' => 0, 'regs' => 0, 'deps' => 0, 'subs' => []];
         }
         $groups[$root]['clicks']  += (int)$r['clicks'];
         $groups[$root]['uniques'] += (int)$r['uniques'];
         $groups[$root]['regs']    += (int)$r['regs'];
+        $groups[$root]['deps']    += (int)($r['deps'] ?? 0);
         $groups[$root]['subs'][]  = [
             'source'  => $r['src'],
             'clicks'  => (int)$r['clicks'],
             'uniques' => (int)$r['uniques'],
             'regs'    => (int)$r['regs'],
+            'deps'    => (int)($r['deps'] ?? 0),
         ];
     }
 
@@ -852,6 +861,8 @@ function meta_set($k, $v) {
  * Файлы лежат в cache/ и создаются веб-процессом (панель). Крон эти функции
  * не вызывает, так что конфликта прав root/www-root нет.
  */
+define('PANEL_CACHE_VER', 2);   // 2 — добавлены депы (deps/dep_ru/dep_unlinked)
+
 function panel_cache($key, callable $build, $ttl = 3600) {
     static $stamp = null;
     $dir = __DIR__ . '/cache';
@@ -862,8 +873,11 @@ function panel_cache($key, callable $build, $ttl = 3600) {
         catch (Throwable $e) { $stamp = '0'; }
     }
 
+    // PANEL_CACHE_VER — версия структуры кэшируемых данных. Бампать, когда в
+    // агрегаты добавляются новые поля: иначе после деплоя панель прочитает
+    // старый файл, где этих полей ещё нет.
     $safe = preg_replace('~[^\w.-]~', '_', (string)$key);
-    $file = $dir . '/' . $safe . '_' . $stamp . '.cache';
+    $file = $dir . '/' . $safe . '_v' . PANEL_CACHE_VER . '_' . $stamp . '.cache';
 
     if (is_file($file) && (time() - (int)@filemtime($file)) < $ttl) {
         $raw = @file_get_contents($file);
@@ -876,8 +890,8 @@ function panel_cache($key, callable $build, $ttl = 3600) {
     $val = $build();
     @file_put_contents($file, serialize($val), LOCK_EX);
 
-    // подчищаем версии этого же ключа от прошлых импортов
-    foreach (glob($dir . '/' . $safe . '_*.cache') ?: [] as $old) {
+    // подчищаем версии этого же ключа от прошлых импортов и прошлых версий схемы
+    foreach (glob($dir . '/' . $safe . '_v*.cache') ?: [] as $old) {
         if ($old !== $file) @unlink($old);
     }
     return $val;
@@ -963,22 +977,33 @@ function daily_stats($days = 30) {
     $byDay = [];
     foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) $byDay[$r['d']] = $r;
 
-    // реги по дням — общие и RU-подсчёт через привязку по clickid
-    $rg = db()->prepare("SELECT $dayExpr d, COUNT(*) regs
-                         FROM conversions WHERE ts >= ? AND status IN('reg','registration','lead') GROUP BY d");
+    // реги и депы по дням — общие и RU-подсчёт через привязку по clickid.
+    // Считаются независимо: у одного игрока и рег, и деп — две отдельные строки.
+    $rg = db()->prepare("SELECT $dayExpr d,
+                                SUM(CASE WHEN status IN('reg','registration','lead') THEN 1 ELSE 0 END) regs,
+                                SUM(CASE WHEN status IN('dep','deposit','sale','ftd','purchase') THEN 1 ELSE 0 END) deps
+                         FROM conversions WHERE ts >= ? GROUP BY d");
     $rg->execute([$from]);
-    $regByDay = [];
-    foreach ($rg->fetchAll(PDO::FETCH_ASSOC) as $r) $regByDay[$r['d']] = (int)$r['regs'];
+    $regByDay = $depByDay = [];
+    foreach ($rg->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        $regByDay[$r['d']] = (int)$r['regs'];
+        $depByDay[$r['d']] = (int)$r['deps'];
+    }
 
-    // RU-реги: привязываем через clickid к клику и смотрим country='RU'
-    $rgRu = db()->prepare("SELECT " . sql_day('cv.ts') . " d, COUNT(*) regs
+    // RU-реги/депы: привязываем через clickid к клику и смотрим country='RU'
+    $rgRu = db()->prepare("SELECT " . sql_day('cv.ts') . " d,
+                                  SUM(CASE WHEN cv.status IN('reg','registration','lead') THEN 1 ELSE 0 END) regs,
+                                  SUM(CASE WHEN cv.status IN('dep','deposit','sale','ftd','purchase') THEN 1 ELSE 0 END) deps
         FROM conversions cv
         JOIN clicks cl ON cl.clickid = cv.clickid
-        WHERE cv.ts >= ? AND cv.status IN('reg','registration','lead') AND cl.country='RU'
+        WHERE cv.ts >= ? AND cl.country='RU'
         GROUP BY d");
     $rgRu->execute([$from]);
-    $regRuByDay = [];
-    foreach ($rgRu->fetchAll(PDO::FETCH_ASSOC) as $r) $regRuByDay[$r['d']] = (int)$r['regs'];
+    $regRuByDay = $depRuByDay = [];
+    foreach ($rgRu->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        $regRuByDay[$r['d']] = (int)$r['regs'];
+        $depRuByDay[$r['d']] = (int)$r['deps'];
+    }
 
     $out = [];
     for ($i = $days - 1; $i >= 0; $i--) {
@@ -991,6 +1016,8 @@ function daily_stats($days = 30) {
             'bots'        => (int)($byDay[$d]['bots']        ?? 0),
             'regs'        => (int)($regByDay[$d]   ?? 0),
             'regs_ru'     => (int)($regRuByDay[$d] ?? 0),
+            'deps'        => (int)($depByDay[$d]   ?? 0),
+            'deps_ru'     => (int)($depRuByDay[$d] ?? 0),
         ];
     }
     return $out;
@@ -1162,14 +1189,19 @@ function relink_conversions($sinceDays = 7) {
 
 /**
  * ИТОГО конверсий за период — ВСЕ, включая непривязанные к кампании (slug IS NULL).
- * Возвращает ['reg'=>N,'dep'=>N,'reg_ru'=>N,'reg_unlinked'=>N,'payout'=>S].
+ * Возвращает ['reg'=>N,'dep'=>N,'reg_ru'=>N,'dep_ru'=>N,'reg_unlinked'=>N,'dep_unlinked'=>N,'payout'=>S].
  * Используется для счётчиков в шапке (чтобы совпадали с графиком и таблицей постбеков).
+ *
+ * Реги и депы считаются НЕЗАВИСИМО по своему status: у одного игрока приходят
+ * два постбека (reg и dep) — это две строки в conversions, и деп ничего не
+ * отнимает у регов.
  */
 function conversions_totals($from, $to = null) {
     $sql = "SELECT
               SUM(CASE WHEN status IN('reg','registration','lead') THEN 1 ELSE 0 END) AS reg,
               SUM(CASE WHEN status IN('dep','deposit','sale','ftd','purchase') THEN 1 ELSE 0 END) AS dep,
               SUM(CASE WHEN status IN('reg','registration','lead') AND (slug IS NULL OR slug='') THEN 1 ELSE 0 END) AS reg_unlinked,
+              SUM(CASE WHEN status IN('dep','deposit','sale','ftd','purchase') AND (slug IS NULL OR slug='') THEN 1 ELSE 0 END) AS dep_unlinked,
               COALESCE(SUM(payout),0) AS payout
             FROM conversions WHERE ts >= ?";
     $args = [$from];
@@ -1178,21 +1210,26 @@ function conversions_totals($from, $to = null) {
     $st->execute($args);
     $r = $st->fetch(PDO::FETCH_ASSOC) ?: [];
 
-    // RU-реги (привязанные к RU-клику)
-    $sqlRu = "SELECT COUNT(*) FROM conversions cv
+    // RU-реги и RU-депы (привязанные к RU-клику) — одним запросом
+    $sqlRu = "SELECT
+                SUM(CASE WHEN cv.status IN('reg','registration','lead') THEN 1 ELSE 0 END) AS reg_ru,
+                SUM(CASE WHEN cv.status IN('dep','deposit','sale','ftd','purchase') THEN 1 ELSE 0 END) AS dep_ru
+              FROM conversions cv
               JOIN clicks cl ON cl.clickid = cv.clickid
-              WHERE cv.ts >= ? AND cv.status IN('reg','registration','lead') AND cl.country='RU'";
+              WHERE cv.ts >= ? AND cl.country='RU'";
     $argsRu = [$from];
     if ($to !== null) { $sqlRu .= ' AND cv.ts < ?'; $argsRu[] = $to; }
     $st = db()->prepare($sqlRu);
     $st->execute($argsRu);
-    $regRu = (int)$st->fetchColumn();
+    $ru = $st->fetch(PDO::FETCH_ASSOC) ?: [];
 
     return [
         'reg'          => (int)($r['reg'] ?? 0),
         'dep'          => (int)($r['dep'] ?? 0),
-        'reg_ru'       => $regRu,
+        'reg_ru'       => (int)($ru['reg_ru'] ?? 0),
+        'dep_ru'       => (int)($ru['dep_ru'] ?? 0),
         'reg_unlinked' => (int)($r['reg_unlinked'] ?? 0),
+        'dep_unlinked' => (int)($r['dep_unlinked'] ?? 0),
         'payout'       => (float)($r['payout'] ?? 0),
     ];
 }
@@ -1221,21 +1258,26 @@ function conversions_by_slug($from, $to = null) {
         $out[$r['slug']] = [
             'reg'=>(int)$r['reg'], 'dep'=>(int)$r['dep'],
             'other'=>(int)$r['other'], 'payout'=>(float)$r['payout'],
-            'reg_ru'=>0,
+            'reg_ru'=>0, 'dep_ru'=>0,
         ];
 
-    // RU-реги: привязка через clickid → country='RU'
-    $sqlRu = "SELECT cl.slug, COUNT(*) AS reg_ru
+    // RU-реги и RU-депы: привязка через clickid → country='RU'
+    $sqlRu = "SELECT cl.slug,
+                     SUM(CASE WHEN cv.status IN('reg','registration','lead') THEN 1 ELSE 0 END) AS reg_ru,
+                     SUM(CASE WHEN cv.status IN('dep','deposit','sale','ftd','purchase') THEN 1 ELSE 0 END) AS dep_ru
               FROM conversions cv
               JOIN clicks cl ON cl.clickid = cv.clickid
-              WHERE cv.ts >= ? AND cv.status IN('reg','registration','lead') AND cl.country='RU'";
+              WHERE cv.ts >= ? AND cl.country='RU'";
     $argsRu = [$from];
     if ($to !== null) { $sqlRu .= ' AND cv.ts < ?'; $argsRu[] = $to; }
     $sqlRu .= ' GROUP BY cl.slug';
     $st = db()->prepare($sqlRu);
     $st->execute($argsRu);
     foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
-        if (isset($out[$r['slug']])) $out[$r['slug']]['reg_ru'] = (int)$r['reg_ru'];
+        if (isset($out[$r['slug']])) {
+            $out[$r['slug']]['reg_ru'] = (int)$r['reg_ru'];
+            $out[$r['slug']]['dep_ru'] = (int)$r['dep_ru'];
+        }
     }
     return $out;
 }

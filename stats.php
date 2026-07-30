@@ -71,8 +71,8 @@ if (($_GET['export'] ?? '') !== '' && $_SERVER['REQUEST_METHOD'] === 'GET') {
     $out = fopen('php://output', 'w');
     fwrite($out, "\xEF\xBB\xBF"); // BOM, чтобы Excel понял UTF-8
     if ($exp === 'daily') {
-        fputcsv($out, ['date', 'clicks', 'unique', 'bots', 'regs']);
-        foreach (daily_stats(30) as $r) fputcsv($out, [$r['d'], $r['humans'], $r['uniques'], $r['bots'], $r['regs']]);
+        fputcsv($out, ['date', 'clicks', 'unique', 'bots', 'regs', 'deps']);
+        foreach (daily_stats(30) as $r) fputcsv($out, [$r['d'], $r['humans'], $r['uniques'], $r['bots'], $r['regs'], $r['deps'] ?? 0]);
     } elseif ($exp === 'clicks_full') {
         // подробно: каждый клик со всеми полями
         fputcsv($out, ['datetime', 'campaign', 'country', 'ip', 'clickid', 'source', 'is_bot', 'referer', 'user_agent']);
@@ -182,7 +182,7 @@ heartbeat($cfg['downtime_gap'] ?? 300);
 
 $detailSlug = ($tab === 'stats') ? trim((string)($_GET['slug'] ?? '')) : '';
 
-$today = []; $sumHumans = 0; $sumUniq = 0; $sumUniqRu = 0; $sumBots = 0; $sumReg = 0; $sumRegRu = 0; $sumDep = 0; $sumRegUnlinked = 0;
+$today = []; $sumHumans = 0; $sumUniq = 0; $sumUniqRu = 0; $sumBots = 0; $sumReg = 0; $sumRegRu = 0; $sumDep = 0; $sumDepRu = 0; $sumRegUnlinked = 0; $sumDepUnlinked = 0;
 $detailName = null; $detailDay = ['humans'=>0,'uniques'=>0,'bots'=>0]; $detailRows = [];
 $detailConv = ['reg'=>0,'dep'=>0,'other'=>0]; $detailConvRows = [];
 $detailPage = 1; $detailPages = 1; $detailTotal = 0;
@@ -270,9 +270,10 @@ if ($tab === 'stats' && $detailSlug !== '') {
     $convTot = conversions_totals($from, $to);
     $sumHumans = $sumUniq = $sumUniqRu = $sumBots = 0;
     foreach ($today as &$r) {
-        $c = $conv[$r['slug']] ?? ['reg'=>0,'dep'=>0,'reg_ru'=>0];
+        $c = $conv[$r['slug']] ?? ['reg'=>0,'dep'=>0,'reg_ru'=>0,'dep_ru'=>0];
         $r['reg'] = $c['reg']; $r['dep'] = $c['dep'];
         $r['reg_ru'] = $c['reg_ru'] ?? 0;
+        $r['dep_ru'] = $c['dep_ru'] ?? 0;
         $sumHumans += (int)$r['humans']; $sumUniq += (int)$r['uniques']; $sumBots += (int)$r['bots'];
         $sumUniqRu += (int)$r['uniques_ru'];
     }
@@ -281,7 +282,9 @@ if ($tab === 'stats' && $detailSlug !== '') {
     $sumReg   = $convTot['reg'];
     $sumRegRu = $convTot['reg_ru'];
     $sumDep   = $convTot['dep'];
+    $sumDepRu = $convTot['dep_ru'] ?? 0;
     $sumRegUnlinked = $convTot['reg_unlinked'];
+    $sumDepUnlinked = $convTot['dep_unlinked'] ?? 0;
 
     // Тяжёлые агрегаты — из кэша (обновляются вместе с импортом).
     // recent_conversions не кэшируем: замер показал ~5 мс, смысла нет.
@@ -430,7 +433,7 @@ $msg = $_GET['msg'] ?? '';
   <div class="bots-box">
     <span class="chip" style="background:#ecfdf5;border-color:#a7f3d0;color:#166534;font-size:14px">Юзеры (уники): <b style="color:#16a34a"><?= (int)$detailDay['uniques'] ?></b></span>
     <span class="chip" style="background:#faf5ff;border-color:#e9d5ff;color:#7e22ce">Реги: <b style="color:#a855f7"><?= (int)$detailConv['reg'] ?></b></span>
-    <span class="chip" style="background:#f0fdf4;border-color:#bbf7d0;color:#15803d">Депы: <b style="color:#16a34a"><?= (int)$detailConv['dep'] ?></b></span>
+    <span class="chip" style="background:#fff7ed;border-color:#fed7aa;color:#9a3412">Депы: <b style="color:#ea580c"><?= (int)$detailConv['dep'] ?></b></span>
     <span class="chip" style="background:#f6f7f9;border-color:#e2e4ea;color:#666">Клики (всего): <b><?= (int)$detailDay['humans'] ?></b></span>
   </div>
   <div class="bots-box" style="margin-top:-8px">
@@ -449,6 +452,7 @@ $msg = $_GET['msg'] ?? '';
       <th class="num">Клики</th>
       <th class="num">Уники</th>
       <th class="num">Реги</th>
+      <th class="num" title="Первые депозиты (FTD)">Депы</th>
       <th class="num">Доля уник.</th>
     </tr></thead>
     <tbody>
@@ -464,6 +468,7 @@ $msg = $_GET['msg'] ?? '';
         <td class="num"><?= (int)$g['clicks'] ?></td>
         <td class="num"><b><?= (int)$g['uniques'] ?></b></td>
         <td class="num"><?= (int)$g['regs'] ? '<b style="color:#a855f7">'.(int)$g['regs'].'</b>' : '0' ?></td>
+        <td class="num"><?= (int)($g['deps'] ?? 0) ? '<b style="color:#ea580c">'.(int)$g['deps'].'</b>' : '0' ?></td>
         <td class="num"><?= $srcTotalU ? round($g['uniques'] * 100 / $srcTotalU) . '%' : '—' ?></td>
       </tr>
       <?php if ($multi): foreach ($g['subs'] as $s): ?>
@@ -473,11 +478,12 @@ $msg = $_GET['msg'] ?? '';
         <td class="num" style="color:#888"><?= (int)$s['clicks'] ?></td>
         <td class="num"><?= (int)$s['uniques'] ?></td>
         <td class="num"><?= (int)$s['regs'] ? '<span style="color:#a855f7">'.(int)$s['regs'].'</span>' : '0' ?></td>
+        <td class="num"><?= (int)($s['deps'] ?? 0) ? '<span style="color:#ea580c">'.(int)$s['deps'].'</span>' : '0' ?></td>
         <td class="num" style="color:#aaa"><?= $srcTotalU ? round($s['uniques'] * 100 / $srcTotalU) . '%' : '—' ?></td>
       </tr>
       <?php endforeach; endif; ?>
       <?php endforeach; ?>
-      <?php if (!$detailSourceGroups): ?><tr><td colspan="6">За период данных нет.</td></tr><?php endif; ?>
+      <?php if (!$detailSourceGroups): ?><tr><td colspan="7">За период данных нет.</td></tr><?php endif; ?>
     </tbody>
   </table>
   <style>
@@ -532,7 +538,7 @@ $msg = $_GET['msg'] ?? '';
       <?php foreach ($detailConvRows as $r): $isreg = in_array($r['status'],['reg','registration','lead'],true); ?>
       <tr>
         <td><?= dt($r['ts']) ?></td>
-        <td><?= $isreg ? '<b style="color:#a855f7">'.h($r['status']).'</b>' : '<b style="color:#16a34a">'.h($r['status']).'</b>' ?></td>
+        <td><?= $isreg ? '<b style="color:#a855f7">'.h($r['status']).'</b>' : '<b style="color:#ea580c">'.h($r['status']).'</b>' ?></td>
         <td class="num"><?= (float)$r['payout'] ? h($r['payout']) : '—' ?></td>
         <td><code style="font-size:11px"><?= h($r['clickid']) ?></code></td>
         <td><?= ($r['country'] ?? '') !== '' ? country_flag($r['country']).' '.h($r['country']) : '—' ?></td>
@@ -581,12 +587,12 @@ $msg = $_GET['msg'] ?? '';
   <div class="bots-box">
     <span class="chip" style="background:#ecfdf5;border-color:#a7f3d0;color:#166534;font-size:14px">Юзеры (уники): <b style="color:#16a34a"><?= (int)$sumUniq ?></b></span>
     <span class="chip" style="background:#faf5ff;border-color:#e9d5ff;color:#7e22ce" title="Все регистрации за период. В скобках — не привязанные к кампании (постбек пришёл, но clickid не совпал с кликом).">Реги: <b style="color:#a855f7"><?= (int)$sumReg ?></b><?php if ($sumRegUnlinked > 0): ?> <span style="color:var(--muted)">(не привязано: <?= (int)$sumRegUnlinked ?>)</span><?php endif; ?></span>
-    <span class="chip" style="background:#f0fdf4;border-color:#bbf7d0;color:#15803d">Депы: <b style="color:#16a34a"><?= (int)$sumDep ?></b></span>
+    <span class="chip" style="background:#fff7ed;border-color:#fed7aa;color:#9a3412" title="Первые депозиты (FTD) за период — отдельное событие, не вместо реги. В скобках — не привязанные к кампании.">Депы: <b style="color:#ea580c"><?= (int)$sumDep ?></b><?php if ($sumDepUnlinked > 0): ?> <span style="color:var(--muted)">(не привязано: <?= (int)$sumDepUnlinked ?>)</span><?php endif; ?></span>
     <span class="chip" style="background:#f6f7f9;border-color:#e2e4ea;color:#666">Клики (всего): <b><?= (int)$sumHumans ?></b></span>
     <span class="chip" style="background:#fff4f4;border-color:#f3cccc;color:#92400e" title="Ботов отбито (в базу не пишутся). Сегодня / всего с момента установки.">Отбито ботов: <b style="color:var(--bot)"><?= (int)$botsCnt['today'] ?></b> <span style="color:var(--muted)">· всего <?= (int)$botsCnt['total'] ?></span></span>
   </div>
   <div class="bots-box" style="margin-top:-8px">
-    <span class="chip" style="background:#eff6ff;border-color:#bfdbfe;color:#1e40af;font-size:14px" title="Только юзеры со страной RU (по CF-IPCountry)">🇷🇺 <b>RU</b>: Уники <b style="color:#1d4ed8"><?= (int)$sumUniqRu ?></b> · Реги <b style="color:#7e22ce"><?= (int)$sumRegRu ?></b></span>
+    <span class="chip" style="background:#eff6ff;border-color:#bfdbfe;color:#1e40af;font-size:14px" title="Только юзеры со страной RU (по CF-IPCountry)">🇷🇺 <b>RU</b>: Уники <b style="color:#1d4ed8"><?= (int)$sumUniqRu ?></b> · Реги <b style="color:#7e22ce"><?= (int)$sumRegRu ?></b> · Депы <b style="color:#9a3412"><?= (int)$sumDepRu ?></b></span>
   </div>
   <div class="muted">
     Все кампании с кликами за выбранный период. Клик по строке — подробности кампании. Колонки сортируются — кликни по заголовку.
@@ -595,9 +601,9 @@ $msg = $_GET['msg'] ?? '';
   <?php
     // --- график за 30 дней (inline SVG, без внешних библиотек) ---
     $n = count($daily);
-    $todayRow = $n ? $daily[$n-1] : ['humans'=>0,'uniques'=>0,'bots'=>0,'regs'=>0];
+    $todayRow = $n ? $daily[$n-1] : ['humans'=>0,'uniques'=>0,'bots'=>0,'regs'=>0,'deps'=>0];
     $maxV = 1;
-    foreach ($daily as $r) $maxV = max($maxV, $r['uniques'], $r['regs'], $r['uniques_ru'], $r['regs_ru']);
+    foreach ($daily as $r) $maxV = max($maxV, $r['uniques'], $r['regs'], $r['uniques_ru'], $r['regs_ru'], $r['deps'] ?? 0);
     $W=920; $H=300; $pl=46; $pr=14; $pt=18; $pb=34;
     $plotW = $W-$pl-$pr; $plotH = $H-$pt-$pb;
     $xat = function($i) use($pl,$plotW,$n){ return $pl + ($n<=1?0:$plotW*$i/($n-1)); };
@@ -607,6 +613,8 @@ $msg = $_GET['msg'] ?? '';
       ['key'=>'uniques_ru', 'color'=>'#2563eb', 'label'=>'🇷🇺 Юзеры'],
       ['key'=>'regs',       'color'=>'#a855f7', 'label'=>'Реги'],
       ['key'=>'regs_ru',    'color'=>'#7e22ce', 'label'=>'🇷🇺 Реги'],
+      ['key'=>'deps',       'color'=>'#ea580c', 'label'=>'Депы (FTD)'],
+      ['key'=>'deps_ru',    'color'=>'#9a3412', 'label'=>'🇷🇺 Депы'],
     ];
   ?>
   <h1 style="margin-top:8px">График за месяц</h1>
@@ -626,9 +634,11 @@ $msg = $_GET['msg'] ?? '';
           'x' => round($xat($i), 1),
           'h' => (int)$r['humans'], 'u' => (int)$r['uniques'], 'r' => (int)$r['regs'], 'b' => (int)$r['bots'],
           'uru' => (int)$r['uniques_ru'], 'rru' => (int)$r['regs_ru'],
+          'dp' => (int)($r['deps'] ?? 0), 'dpru' => (int)($r['deps_ru'] ?? 0),
           'yh'  => round($yat($r['humans']),1),     'yu'  => round($yat($r['uniques']),1),
           'yr'  => round($yat($r['regs']),1),       'yb'  => round($yat($r['bots']),1),
           'yuru'=> round($yat($r['uniques_ru']),1), 'yrru'=> round($yat($r['regs_ru']),1),
+          'ydp' => round($yat($r['deps'] ?? 0),1),  'ydpru'=> round($yat($r['deps_ru'] ?? 0),1),
         ];
       }
       $band = $n > 1 ? $plotW / ($n - 1) : $plotW;
@@ -653,6 +663,8 @@ $msg = $_GET['msg'] ?? '';
         <circle id="dotURu" r="3.5" fill="#2563eb"></circle>
         <circle id="dotR" r="3.5" fill="#a855f7"></circle>
         <circle id="dotRRu" r="3.5" fill="#7e22ce"></circle>
+        <circle id="dotD" r="3.5" fill="#ea580c"></circle>
+        <circle id="dotDRu" r="3.5" fill="#9a3412"></circle>
       </g>
       <!-- зоны наведения по дням -->
       <?php foreach ($chartData as $i=>$c): ?>
@@ -669,7 +681,8 @@ $msg = $_GET['msg'] ?? '';
     var vline = document.getElementById('chartVline');
     var dots = document.getElementById('chartDots');
     var dU=document.getElementById('dotU'), dURu=document.getElementById('dotURu'),
-        dR=document.getElementById('dotR'), dRRu=document.getElementById('dotRRu');
+        dR=document.getElementById('dotR'), dRRu=document.getElementById('dotRRu'),
+        dD=document.getElementById('dotD'), dDRu=document.getElementById('dotDRu');
     function show(i, evt){
       var c=data[i]; if(!c) return;
       vline.setAttribute('x1',c.x); vline.setAttribute('x2',c.x); vline.style.visibility='visible';
@@ -677,10 +690,13 @@ $msg = $_GET['msg'] ?? '';
       dURu.setAttribute('cx',c.x); dURu.setAttribute('cy',c.yuru);
       dR.setAttribute('cx',c.x);   dR.setAttribute('cy',c.yr);
       dRRu.setAttribute('cx',c.x); dRRu.setAttribute('cy',c.yrru);
+      dD.setAttribute('cx',c.x);   dD.setAttribute('cy',c.ydp);
+      dDRu.setAttribute('cx',c.x); dDRu.setAttribute('cy',c.ydpru);
       dots.style.visibility='visible';
       tip.innerHTML='<b>'+c.d+'</b><br>'+
         '<span style="color:#6ee7a8">Юзеры:</span> '+c.u+' <span style="color:#93c5fd">(RU '+c.uru+')</span><br>'+
         '<span style="color:#d6b4ff">Реги:</span> '+c.r+' <span style="color:#c4b5fd">(RU '+c.rru+')</span><br>'+
+        '<span style="color:#fdba74">Депы:</span> '+c.dp+' <span style="color:#fed7aa">(RU '+c.dpru+')</span><br>'+
         '<span style="color:#aaa">Клики:</span> '+c.h;
       tip.style.opacity='1';
       var x=evt.clientX+14, y=evt.clientY+14;
@@ -696,7 +712,7 @@ $msg = $_GET['msg'] ?? '';
   </script>
 
   <h1>По кампаниям (<?= h($PERIODS[$periodKey]) ?>)</h1>
-  <div class="muted">Клик по строке — подробности кампании. Отдельно вынесены RU-показатели (уники и реги только из России).</div>
+  <div class="muted">Клик по строке — подробности кампании. Отдельно вынесены RU-показатели (уники, реги и депы только из России). Деп — отдельное событие: у одного игрока может быть и рега, и первый деп.</div>
   <table class="sortable rowlink">
     <thead><tr>
       <th data-sort="text">Кампания</th><th data-sort="text">Слаг</th>
@@ -704,6 +720,8 @@ $msg = $_GET['msg'] ?? '';
       <th class="num" data-sort="num" title="Только уники из RU">🇷🇺 Юзеры</th>
       <th class="num" data-sort="num" title="Все реги">Реги</th>
       <th class="num" data-sort="num" title="Реги привязанные к RU-клику">🇷🇺 Реги</th>
+      <th class="num" data-sort="num" title="Первые депозиты (FTD). Считаются отдельно от рег — не вместо них">Депы</th>
+      <th class="num" data-sort="num" title="Депы привязанные к RU-клику">🇷🇺 Депы</th>
       <th class="num" data-sort="num">Клики</th>
       <th>Топ гео (юзеры)</th>
       <th data-sort="num">Последний</th>
@@ -720,6 +738,8 @@ $msg = $_GET['msg'] ?? '';
         <td class="num"><?= (int)$r['uniques_ru'] ? '<b style="color:#1d4ed8">'.(int)$r['uniques_ru'].'</b>' : '<span style="color:#bbb">0</span>' ?></td>
         <td class="num"><?= (int)($r['reg'] ?? 0) ? '<b style="color:#a855f7">'.(int)$r['reg'].'</b>' : '0' ?></td>
         <td class="num"><?= (int)($r['reg_ru'] ?? 0) ? '<b style="color:#7e22ce">'.(int)$r['reg_ru'].'</b>' : '<span style="color:#bbb">0</span>' ?></td>
+        <td class="num"><?= (int)($r['dep'] ?? 0) ? '<b style="color:#ea580c">'.(int)$r['dep'].'</b>' : '0' ?></td>
+        <td class="num"><?= (int)($r['dep_ru'] ?? 0) ? '<b style="color:#9a3412">'.(int)$r['dep_ru'].'</b>' : '<span style="color:#bbb">0</span>' ?></td>
         <td class="num" style="color:#888"><?= (int)$r['humans'] ?></td>
         <td style="white-space:nowrap"><?php
           if ($tg) {
@@ -732,7 +752,7 @@ $msg = $_GET['msg'] ?? '';
         <td data-val="<?= (int)$r['last_ts'] ?>"><?= dt($r['last_ts']) ?></td>
       </tr>
       <?php endforeach; ?>
-      <?php if (!$today): ?><tr><td colspan="9">За выбранный период юзеров нет.</td></tr><?php endif; ?>
+      <?php if (!$today): ?><tr><td colspan="11">За выбранный период юзеров нет.</td></tr><?php endif; ?>
     </tbody>
   </table>
 
@@ -753,13 +773,23 @@ $msg = $_GET['msg'] ?? '';
   </table>
 
   <h1>Последние постбеки</h1>
-  <div class="muted">Входящие конверсии от партнёрки. «не привязан» — постбек пришёл, но clickid не совпал ни с одним кликом. (Показаны последние 50, не зависят от периода.)</div>
+  <div class="muted">Входящие конверсии от партнёрки. «не привязан» — постбек пришёл, но clickid не совпал ни с одним кликом. У одного игрока приходят два события: рега и первый деп — это две отдельные строки. (Показаны последние 50, не зависят от периода.)</div>
   <table class="sortable">
-    <thead><tr><th data-sort="text">Время</th><th data-sort="text">clickid</th><th data-sort="text">Кампания</th><th data-sort="text">Страна</th><th data-sort="text">Источник</th><th data-sort="text">Реферер</th><th data-sort="text">User-Agent</th><th data-sort="text">IP</th></tr></thead>
+    <thead><tr><th data-sort="text">Время</th><th data-sort="text">Событие</th><th data-sort="text">clickid</th><th data-sort="text">Кампания</th><th data-sort="text">Страна</th><th data-sort="text">Источник</th><th data-sort="text">Реферер</th><th data-sort="text">User-Agent</th><th data-sort="text">IP</th></tr></thead>
     <tbody>
       <?php foreach ($recentConv as $r): ?>
       <tr>
         <td><?= dt($r['ts']) ?></td>
+        <td><?php
+          $stt = strtolower((string)($r['status'] ?? ''));
+          if (in_array($stt, ['dep','deposit','sale','ftd','purchase'], true)) {
+            echo '<span class="chip" style="background:#fff7ed;border-color:#fed7aa;color:#9a3412">деп</span>';
+          } elseif (in_array($stt, ['reg','registration','lead'], true)) {
+            echo '<span class="chip" style="background:#faf5ff;border-color:#e9d5ff;color:#7e22ce">рега</span>';
+          } else {
+            echo '<span class="chip muted">'.h($stt !== '' ? $stt : '—').'</span>';
+          }
+        ?></td>
         <td><code style="font-size:11px"><?= h($r['clickid']) ?></code></td>
         <td><?= $r['slug'] ? '<code>'.h($r['slug']).'</code>' : '<span style="color:var(--bot)">не привязан</span>' ?></td>
         <td><?= ($r['country'] ?? '') !== '' ? country_flag($r['country']).' '.h($r['country']) : '—' ?></td>
@@ -776,7 +806,7 @@ $msg = $_GET['msg'] ?? '';
         ?></td>
       </tr>
       <?php endforeach; ?>
-      <?php if (!$recentConv): ?><tr><td colspan="8">Постбеков ещё не было.</td></tr><?php endif; ?>
+      <?php if (!$recentConv): ?><tr><td colspan="9">Постбеков ещё не было.</td></tr><?php endif; ?>
     </tbody>
   </table>
 
