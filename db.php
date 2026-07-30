@@ -929,7 +929,7 @@ function meta_set($k, $v) {
  * Файлы лежат в cache/ и создаются веб-процессом (панель). Крон эти функции
  * не вызывает, так что конфликта прав root/www-root нет.
  */
-define('PANEL_CACHE_VER', 2);   // 2 — добавлены депы (deps/dep_ru/dep_unlinked)
+define('PANEL_CACHE_VER', 3);   // 2 — депы; 3 — из daily_stats убрана RU-разбивка
 
 /**
  * Выровнять владельца файла/каталога кэша по владельцу config.php.
@@ -1141,10 +1141,9 @@ function daily_stats($days = 30) {
     $dayExpr = sql_day('ts');
     $st = db()->prepare("
         SELECT $dayExpr AS d,
-               SUM(CASE WHEN is_bot=0 THEN 1 ELSE 0 END)            AS humans,
-               COUNT(DISTINCT CASE WHEN is_bot=0 THEN ip END)       AS uniques,
-               COUNT(DISTINCT CASE WHEN is_bot=0 AND country='RU' THEN ip END) AS uniques_ru,
-               SUM(CASE WHEN is_bot=1 THEN 1 ELSE 0 END)            AS bots
+               SUM(CASE WHEN is_bot=0 THEN 1 ELSE 0 END)      AS humans,
+               COUNT(DISTINCT CASE WHEN is_bot=0 THEN ip END) AS uniques,
+               SUM(CASE WHEN is_bot=1 THEN 1 ELSE 0 END)      AS bots
         FROM clicks WHERE ts >= ?
         GROUP BY d
     ");
@@ -1165,34 +1164,21 @@ function daily_stats($days = 30) {
         $depByDay[$r['d']] = (int)$r['deps'];
     }
 
-    // RU-реги/депы: привязываем через clickid к клику и смотрим country='RU'
-    $rgRu = db()->prepare("SELECT " . sql_day('cv.ts') . " d,
-                                  SUM(CASE WHEN cv.status IN('reg','registration','lead') THEN 1 ELSE 0 END) regs,
-                                  SUM(CASE WHEN cv.status IN('dep','deposit','sale','ftd','purchase') THEN 1 ELSE 0 END) deps
-        FROM conversions cv
-        JOIN clicks cl ON cl.clickid = cv.clickid
-        WHERE cv.ts >= ? AND cl.country='RU'
-        GROUP BY d");
-    $rgRu->execute([$from]);
-    $regRuByDay = $depRuByDay = [];
-    foreach ($rgRu->fetchAll(PDO::FETCH_ASSOC) as $r) {
-        $regRuByDay[$r['d']] = (int)$r['regs'];
-        $depRuByDay[$r['d']] = (int)$r['deps'];
-    }
+    // RU-разбивка здесь не считается: график её больше не показывает, а она
+    // требовала JOIN conversions×clicks и COUNT(DISTINCT ... country='RU')
+    // по всей таблице кликов — самый дорогой кусок этого запроса.
+    // RU-колонки в сводке по кампаниям считаются отдельно (conversions_by_slug).
 
     $out = [];
     for ($i = $days - 1; $i >= 0; $i--) {
         $d = date('Y-m-d', time() - $i * 86400);
         $out[] = [
-            'd'           => $d,
-            'humans'      => (int)($byDay[$d]['humans']      ?? 0),
-            'uniques'     => (int)($byDay[$d]['uniques']     ?? 0),
-            'uniques_ru'  => (int)($byDay[$d]['uniques_ru']  ?? 0),
-            'bots'        => (int)($byDay[$d]['bots']        ?? 0),
-            'regs'        => (int)($regByDay[$d]   ?? 0),
-            'regs_ru'     => (int)($regRuByDay[$d] ?? 0),
-            'deps'        => (int)($depByDay[$d]   ?? 0),
-            'deps_ru'     => (int)($depRuByDay[$d] ?? 0),
+            'd'       => $d,
+            'humans'  => (int)($byDay[$d]['humans']  ?? 0),
+            'uniques' => (int)($byDay[$d]['uniques'] ?? 0),
+            'bots'    => (int)($byDay[$d]['bots']    ?? 0),
+            'regs'    => (int)($regByDay[$d] ?? 0),
+            'deps'    => (int)($depByDay[$d] ?? 0),
         ];
     }
     return $out;

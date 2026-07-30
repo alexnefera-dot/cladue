@@ -633,18 +633,15 @@ $msg = $_GET['msg'] ?? '';
     $n = count($daily);
     $todayRow = $n ? $daily[$n-1] : ['humans'=>0,'uniques'=>0,'bots'=>0,'regs'=>0,'deps'=>0];
     $maxV = 1;
-    foreach ($daily as $r) $maxV = max($maxV, $r['uniques'], $r['regs'], $r['uniques_ru'], $r['regs_ru'], $r['deps'] ?? 0);
+    foreach ($daily as $r) $maxV = max($maxV, $r['uniques'], $r['regs'], $r['deps'] ?? 0);
     $W=920; $H=300; $pl=46; $pr=14; $pt=18; $pb=34;
     $plotW = $W-$pl-$pr; $plotH = $H-$pt-$pb;
     $xat = function($i) use($pl,$plotW,$n){ return $pl + ($n<=1?0:$plotW*$i/($n-1)); };
     $yat = function($v) use($pt,$plotH,$maxV){ return $pt + $plotH - ($plotH*$v/$maxV); };
     $series = [
-      ['key'=>'uniques',    'color'=>'#16a34a', 'label'=>'Юзеры (уники)'],
-      ['key'=>'uniques_ru', 'color'=>'#2563eb', 'label'=>'🇷🇺 Юзеры'],
-      ['key'=>'regs',       'color'=>'#a855f7', 'label'=>'Реги'],
-      ['key'=>'regs_ru',    'color'=>'#7e22ce', 'label'=>'🇷🇺 Реги'],
-      ['key'=>'deps',       'color'=>'#ea580c', 'label'=>'Депы (FTD)'],
-      ['key'=>'deps_ru',    'color'=>'#9a3412', 'label'=>'🇷🇺 Депы'],
+      ['key'=>'uniques', 'color'=>'#16a34a', 'label'=>'Юзеры (уники)'],
+      ['key'=>'regs',    'color'=>'#a855f7', 'label'=>'Реги'],
+      ['key'=>'deps',    'color'=>'#ea580c', 'label'=>'Депы (FTD)'],
     ];
   ?>
   <h1 style="margin-top:8px">График за месяц</h1>
@@ -663,12 +660,10 @@ $msg = $_GET['msg'] ?? '';
           'd' => date('d.m.Y', strtotime($r['d'])),
           'x' => round($xat($i), 1),
           'h' => (int)$r['humans'], 'u' => (int)$r['uniques'], 'r' => (int)$r['regs'], 'b' => (int)$r['bots'],
-          'uru' => (int)$r['uniques_ru'], 'rru' => (int)$r['regs_ru'],
-          'dp' => (int)($r['deps'] ?? 0), 'dpru' => (int)($r['deps_ru'] ?? 0),
-          'yh'  => round($yat($r['humans']),1),     'yu'  => round($yat($r['uniques']),1),
-          'yr'  => round($yat($r['regs']),1),       'yb'  => round($yat($r['bots']),1),
-          'yuru'=> round($yat($r['uniques_ru']),1), 'yrru'=> round($yat($r['regs_ru']),1),
-          'ydp' => round($yat($r['deps'] ?? 0),1),  'ydpru'=> round($yat($r['deps_ru'] ?? 0),1),
+          'dp' => (int)($r['deps'] ?? 0),
+          'yh'  => round($yat($r['humans']),1), 'yu' => round($yat($r['uniques']),1),
+          'yr'  => round($yat($r['regs']),1),   'yb' => round($yat($r['bots']),1),
+          'ydp' => round($yat($r['deps'] ?? 0),1),
         ];
       }
       $band = $n > 1 ? $plotW / ($n - 1) : $plotW;
@@ -690,11 +685,8 @@ $msg = $_GET['msg'] ?? '';
       <!-- подсвеченные точки (скрыты до наведения) -->
       <g id="chartDots" style="visibility:hidden">
         <circle id="dotU" r="3.5" fill="#16a34a"></circle>
-        <circle id="dotURu" r="3.5" fill="#2563eb"></circle>
         <circle id="dotR" r="3.5" fill="#a855f7"></circle>
-        <circle id="dotRRu" r="3.5" fill="#7e22ce"></circle>
         <circle id="dotD" r="3.5" fill="#ea580c"></circle>
-        <circle id="dotDRu" r="3.5" fill="#9a3412"></circle>
       </g>
       <!-- зоны наведения по дням -->
       <?php foreach ($chartData as $i=>$c): ?>
@@ -710,23 +702,20 @@ $msg = $_GET['msg'] ?? '';
     var tip = document.getElementById('chartTip');
     var vline = document.getElementById('chartVline');
     var dots = document.getElementById('chartDots');
-    var dU=document.getElementById('dotU'), dURu=document.getElementById('dotURu'),
-        dR=document.getElementById('dotR'), dRRu=document.getElementById('dotRRu'),
-        dD=document.getElementById('dotD'), dDRu=document.getElementById('dotDRu');
+    var dU=document.getElementById('dotU'),
+        dR=document.getElementById('dotR'),
+        dD=document.getElementById('dotD');
     function show(i, evt){
       var c=data[i]; if(!c) return;
       vline.setAttribute('x1',c.x); vline.setAttribute('x2',c.x); vline.style.visibility='visible';
-      dU.setAttribute('cx',c.x);   dU.setAttribute('cy',c.yu);
-      dURu.setAttribute('cx',c.x); dURu.setAttribute('cy',c.yuru);
-      dR.setAttribute('cx',c.x);   dR.setAttribute('cy',c.yr);
-      dRRu.setAttribute('cx',c.x); dRRu.setAttribute('cy',c.yrru);
-      dD.setAttribute('cx',c.x);   dD.setAttribute('cy',c.ydp);
-      dDRu.setAttribute('cx',c.x); dDRu.setAttribute('cy',c.ydpru);
+      dU.setAttribute('cx',c.x); dU.setAttribute('cy',c.yu);
+      dR.setAttribute('cx',c.x); dR.setAttribute('cy',c.yr);
+      dD.setAttribute('cx',c.x); dD.setAttribute('cy',c.ydp);
       dots.style.visibility='visible';
       tip.innerHTML='<b>'+c.d+'</b><br>'+
-        '<span style="color:#6ee7a8">Юзеры:</span> '+c.u+' <span style="color:#93c5fd">(RU '+c.uru+')</span><br>'+
-        '<span style="color:#d6b4ff">Реги:</span> '+c.r+' <span style="color:#c4b5fd">(RU '+c.rru+')</span><br>'+
-        '<span style="color:#fdba74">Депы:</span> '+c.dp+' <span style="color:#fed7aa">(RU '+c.dpru+')</span><br>'+
+        '<span style="color:#6ee7a8">Юзеры:</span> '+c.u+'<br>'+
+        '<span style="color:#d6b4ff">Реги:</span> '+c.r+'<br>'+
+        '<span style="color:#fdba74">Депы:</span> '+c.dp+'<br>'+
         '<span style="color:#aaa">Клики:</span> '+c.h;
       tip.style.opacity='1';
       var x=evt.clientX+14, y=evt.clientY+14;
