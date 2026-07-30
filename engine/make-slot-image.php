@@ -25,6 +25,14 @@ $H      = (int) ($argv[4] ?? 630);
 $SEEDIN = $argv[5] ?? '';
 $LEDGER = getenv('SLOT_IMAGE_LEDGER') ?: __DIR__ . '/.image-ledger';
 
+// Барабаны с полями и затемнением не влезают в маленький холст: окно барабана
+// вырождается в отрицательную высоту, и разброс символа падает уже внутри
+// отрисовки. Дешевле сказать это сразу.
+if ($W < 320 || $H < 180) {
+    fwrite(STDERR, "холст {$W}x{$H} слишком мал, минимум 320x180\n");
+    exit(1);
+}
+
 $THEMES = [
     'fruit' => ['bg' => [[26, 12, 48], [86, 22, 74]],  'accent' => [255, 196, 60],  'symbols' => ['cherry', 'lemon', 'seven', 'bell', 'star']],
     'egypt' => ['bg' => [[30, 22, 10], [96, 68, 18]],  'accent' => [246, 214, 122], 'symbols' => ['pyramid', 'eye', 'scarab', 'coin', 'star']],
@@ -281,9 +289,25 @@ if ($data === null) {
 if (!is_dir(dirname($OUT))) { mkdir(dirname($OUT), 0777, true); }
 file_put_contents($OUT, $data);
 
+/**
+ * Готовый alt под то, что реально нарисовано. Дважды подряд текст приходил с
+ * alt про «скриншот личного кабинета», хотя на картинке барабаны: автор текста
+ * картинки не видит и описывает выдуманное. Поэтому описание выдаётся вместе с
+ * файлом.
+ */
+$RU = [
+    'cherry' => 'вишня', 'lemon' => 'лимон', 'seven' => 'семёрка', 'bell' => 'колокольчик',
+    'coin' => 'монета', 'star' => 'звезда', 'planet' => 'планета', 'rocket' => 'ракета',
+    'pyramid' => 'пирамида', 'eye' => 'глаз', 'scarab' => 'скарабей',
+];
+$names = array_map(fn($s) => $RU[$s] ?? $s, $info['symbols']);
+$alt   = sprintf('Барабаны игрового автомата: %s — иллюстрация к разбору отдачи в казино %%brand_name_ru%%',
+    implode(', ', $names));
+
 printf("→ %s (%s, %d барабанов: %s, %dx%d, %d байт, попыток %d)\n",
     $OUT, $info['theme'], $info['reels'], implode('/', $info['symbols']), $W, $H, strlen($data), $tries);
+printf("   alt: %s\n", $alt);
 echo "STATUS " . json_encode([
     'file' => $OUT, 'theme' => $info['theme'], 'seed' => $seed,
-    'md5' => md5($data), 'reels' => $info['reels'], 'symbols' => $info['symbols'],
+    'md5' => md5($data), 'reels' => $info['reels'], 'symbols' => $info['symbols'], 'alt' => $alt,
 ], JSON_UNESCAPED_UNICODE) . "\n";
