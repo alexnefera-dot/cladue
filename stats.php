@@ -592,7 +592,16 @@ $msg = $_GET['msg'] ?? '';
     <span class="chip" style="background:#fff4f4;border-color:#f3cccc;color:#92400e" title="Ботов отбито (в базу не пишутся). Сегодня / всего с момента установки.">Отбито ботов: <b style="color:var(--bot)"><?= (int)$botsCnt['today'] ?></b> <span style="color:var(--muted)">· всего <?= (int)$botsCnt['total'] ?></span></span>
   </div>
   <div class="bots-box" style="margin-top:-8px">
-    <span class="chip" style="background:#eff6ff;border-color:#bfdbfe;color:#1e40af;font-size:14px" title="Только юзеры со страной RU (по CF-IPCountry)">🇷🇺 <b>RU</b>: Уники <b style="color:#1d4ed8"><?= (int)$sumUniqRu ?></b> · Реги <b style="color:#7e22ce"><?= (int)$sumRegRu ?></b> · Депы <b style="color:#9a3412"><?= (int)$sumDepRu ?></b></span>
+    <?php
+      // Итог за 30 дней — не зависит от выбранного периода. Берём из уже
+      // посчитанного графика ($daily), поэтому лишних запросов к базе нет.
+      $monthReg = $monthDep = 0;
+      foreach ($daily as $dRow) {
+          $monthReg += (int)($dRow['regs'] ?? 0);
+          $monthDep += (int)($dRow['deps'] ?? 0);
+      }
+    ?>
+    <span class="chip" style="background:#f5f3ff;border-color:#ddd6fe;color:#5b21b6;font-size:14px" title="Итог за последние 30 дней (не зависит от выбранного периода)">За месяц: Реги <b style="color:#a855f7"><?= $monthReg ?></b> · Депы <b style="color:#ea580c"><?= $monthDep ?></b></span>
     <?php
       // Когда данные последний раз обновлялись. Клики попадают в базу только
       // при импорте (крон раз в час), поэтому важно видеть свежесть цифр —
