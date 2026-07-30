@@ -98,16 +98,23 @@ foreach ($T as $type => $tg) {
         $ok = abs($o[$k] - $want) <= max(0.25 * max(abs($want), 1), $rate ? 0.8 : 2.0);
         if ($ok) { $h++; } else { $miss[$lab][] = "$type {$o[$k]} vs {$want}"; }
     }
-    // односторонние сигналы
+    // Цифры и минусы — цели ДВУСТОРОННИЕ: уйти сильно ниже так же плохо, как
+    // выше. Призывы и вопросы в заголовках остаются потолком.
     foreach ([
-        ['голых цифр',  $o['facts'], $tg['facts_max'], 'max'],
-        ['минусов',     $o['minus'], $tg['minus_min'], 'min'],
+        ['голых цифр',  $o['facts'], $tg['facts_max'], 'both'],
+        ['минусов',     $o['minus'], $tg['minus_min'], 'both'],
         ['призывов',    $o['cta'],   0,                'max'],
         ['вопросов в заголовках %', $o['h2_quest'], 0, 'max'],
     ] as [$lab, $val, $lim, $dir]) {
         $c++;
-        $ok = $dir === 'max' ? $val <= $lim * 1.15 + 1 : $val >= $lim * 0.85;
-        if ($ok) { $h++; } else { $miss[$lab][] = "$type {$val} против " . ($dir === 'max' ? "≤{$lim}" : "≥{$lim}"); }
+        if ($dir === 'both') {
+            $ok = abs($val - $lim) <= max(0.25 * max($lim, 1), 2);
+            $want = "{$lim} ±25%";
+        } else {
+            $ok = $val <= $lim * 1.15 + 1;
+            $want = "≤{$lim}";
+        }
+        if ($ok) { $h++; } else { $miss[$lab][] = "$type {$val} против {$want}"; }
     }
     $hit += $h; $cnt += $c;
     printf("  %-13s %d/%d = %d%%\n", $type, $h, $c, round($h / $c * 100));
