@@ -61,15 +61,22 @@ foreach (array_keys($D) as $t) {
     foreach (["$DIR/$t.html", "$DIR/$t.htm"] as $f) { if (is_file($f)) { $file = $f; break; } }
     if ($file === null) { continue; }
     $raw = (string) file_get_contents($file);
-    $r = $a->run([['name' => $t, 'url' => "/$t", 'html' => $raw, 'keyword' => '', 'lsi' => []]]);
+    // Замер идёт по копии без плейсхолдеров: иначе одно имя бренда считается
+    // тремя словами и раздувает объём против донора.
+    $norm = NicheLexicon::unplaceholder($raw);
+    $r = $a->run([['name' => $t, 'url' => "/$t", 'html' => $norm, 'keyword' => '', 'lsi' => []]]);
     $p = $r['pages'][0]; $m = $p['metrics']; $s = $p['stylistics'];
-    $txt = strip_tags(preg_replace('#<(script|style)[^>]*>.*?</\1>#is', ' ', $raw));
-    $prose = NicheLexicon::prose($raw);
+    $txt = strip_tags(preg_replace('#<(script|style)[^>]*>.*?</\1>#is', ' ', $norm));
+    $prose = NicheLexicon::prose($norm);
+    // Абзацы берём из исходника: порог «длиннее 40 символов» отсекает подписи и
+    // строки-чипы, а замена плейсхолдера на короткое имя сдвигала бы этот порог.
+    // Слова же считаем по нормализованному тексту — там имя бренда одно слово.
     preg_match_all('~<p\b[^>]*>(.*?)</p>~is', $raw, $pm);
     $paras = array_values(array_filter(
         array_map(fn($x) => trim(preg_replace('~\s+~u', ' ', strip_tags($x))), $pm[1] ?? []),
         fn($x) => mb_strlen($x) > 40
     ));
+    $paras = array_map([NicheLexicon::class, 'unplaceholder'], $paras);
     $intl = 0;
     if (preg_match_all('#<a[^>]+href="([^"]+)"#i', $raw, $hm)) {
         $paths = [];

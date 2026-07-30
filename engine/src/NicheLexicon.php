@@ -87,6 +87,27 @@ final class NicheLexicon
         return preg_replace('~\s+~u', ' ', implode(' ', $flat));
     }
 
+
+    /**
+     * Плейсхолдеры бренда — один токен, а не три.
+     *
+     * `%brand_name_ru%` разбирается счётчиком слов на «brand», «name», «ru», и
+     * тридцать вставок дают под сотню лишних слов там, где у донора стоит одно
+     * имя. На объём это давало нам +2-3% на каждой странице, а заодно сдвигало
+     * среднюю длину абзаца и все доли, у которых слова в знаменателе.
+     */
+    public static function unplaceholder(string $raw): string
+    {
+        $map = [
+            '%brand_name_ru%' => 'Бренд',
+            '%brand_name_en%' => 'Brand',
+            '%domain_name%'   => 'brand.win',
+            '%date%'          => 'июль',
+        ];
+        $out = str_replace(array_keys($map), array_values($map), $raw);
+        return preg_replace('~%[a-z_]+%~', 'значение', $out);
+    }
+
     /** @return array<string,int> счёт по каждому термину, нули опущены */
     public static function termCounts(string $text): array
     {

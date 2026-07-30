@@ -68,11 +68,18 @@ function clean(string $html, string $EMOJI, array &$removed): string
 }
 
 $files = is_dir($target) ? glob(rtrim($target, '/') . '/*.html') : [$target];
-$totalRows = 0;
+$totalRows = 0; $totalLd = 0;
 foreach ($files as $f) {
     $src = (string) file_get_contents($f);
     $removed = [];
     $out = clean($src, $EMOJI, $removed);
+    // JSON-LD: реалайзеры дописывают схему в конец страницы по своей инициативе.
+    // Разрешённая разметка — только текстовая (h2/h3/p/ul/li/strong/em/a), а
+    // страница отдаётся как фрагмент в чужой шаблон, где схема своя.
+    $ld = 0;
+    $out = preg_replace('~\s*<script[^>]*ld\+json[^>]*>.*?</script>~is', '', $out, -1, $ld);
+    if ($ld) { $totalLd += $ld; printf("%-16s снят JSON-LD\n", basename($f)); }
+    if ($ld && !$removed && !$dry) { file_put_contents($f, preg_replace('~\n{3,}~', "\n\n", $out)); }
     if ($removed) {
         $totalRows += count($removed);
         printf("%-16s снято строк %d\n", basename($f), count($removed));
@@ -80,4 +87,4 @@ foreach ($files as $f) {
         if (!$dry) { file_put_contents($f, preg_replace('~\n{3,}~', "\n\n", $out)); }
     }
 }
-echo "STATUS " . json_encode(['files' => count($files), 'rows' => $totalRows, 'dry' => $dry]) . "\n";
+echo "STATUS " . json_encode(['files' => count($files), 'rows' => $totalRows, 'jsonld' => $totalLd, 'dry' => $dry]) . "\n";

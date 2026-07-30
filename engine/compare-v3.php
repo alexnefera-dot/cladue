@@ -69,20 +69,27 @@ $brand = $sites[$DONOR]['brand'] ?? ['ru' => '', 'en' => ''];
 
 function measure(Analyzer $a, string $t, string $raw, array $pagesCfg, array $brand): array
 {
-    $r = $a->run([['name' => $t, 'url' => "/$t", 'html' => $raw, 'keyword' => '', 'lsi' => []]]);
+    // Замер идёт по копии без плейсхолдеров: иначе одно имя бренда считается
+    // тремя словами и раздувает объём против донора.
+    $norm = NicheLexicon::unplaceholder($raw);
+    $r = $a->run([['name' => $t, 'url' => "/$t", 'html' => $norm, 'keyword' => '', 'lsi' => []]]);
     $p = $r['pages'][0]; $m = $p['metrics']; $s = $p['stylistics'];
-    $txt = strip_tags(preg_replace('#<(script|style)[^>]*>.*?</\1>#is', ' ', $raw));
+    $txt = strip_tags(preg_replace('#<(script|style)[^>]*>.*?</\1>#is', ' ', $norm));
     // Бренд в генерации — плейсхолдеры, в доноре — настоящее имя. Считаем и то
     // и другое: иначе замер даёт ложные нули на всю связку.
     $brRu = substr_count($raw, '%brand_name_ru%') ?: ($brand['ru'] ? mb_substr_count($txt, $brand['ru']) : 0);
     $brEn = substr_count($raw, '%brand_name_en%') ?: ($brand['en'] ? mb_substr_count($txt, $brand['en']) : 0);
     // Абзацы: короткие обрывки (< 40 символов) — это подписи и строки-чипы,
     // а не абзацы; порог тот же, что в экстракторе.
+    // Абзацы берём из исходника: порог «длиннее 40 символов» отсекает подписи и
+    // строки-чипы, а замена плейсхолдера на короткое имя сдвигала бы этот порог.
+    // Слова же считаем по нормализованному тексту — там имя бренда одно слово.
     preg_match_all('~<p\b[^>]*>(.*?)</p>~is', $raw, $pm);
     $paras = array_values(array_filter(
         array_map(fn($x) => trim(preg_replace('~\s+~u', ' ', strip_tags($x))), $pm[1] ?? []),
         fn($x) => mb_strlen($x) > 40
     ));
+    $paras = array_map([NicheLexicon::class, 'unplaceholder'], $paras);
     // ссылки на другие страницы набора
     $intl = 0;
     if (preg_match_all('#<a[^>]+href="([^"]+)"#i', $raw, $hm)) {
@@ -110,9 +117,9 @@ function measure(Analyzer $a, string $t, string $raw, array $pagesCfg, array $br
         'brand_ru' => $brRu, 'brand_en' => $brEn, 'intlinks' => $intl,
         // Те же выражения, что в extract-donors-v3.php: обе стороны обязаны
         // считаться одним правилом, иначе замер снова сойдётся сам с собой.
-        'providers_named' => NicheLexicon::countProviders(NicheLexicon::prose($raw)),
-        'terms_total' => NicheLexicon::termsTotal(NicheLexicon::prose($raw)),
-        'games_named' => NicheLexicon::countGames(NicheLexicon::prose($raw)),
+        'providers_named' => NicheLexicon::countProviders(NicheLexicon::prose($norm)),
+        'terms_total' => NicheLexicon::termsTotal(NicheLexicon::prose($norm)),
+        'games_named' => NicheLexicon::countGames(NicheLexicon::prose($norm)),
         'paragraphs' => count($paras),
         'words_per_para' => $paras ? round(array_sum(array_map(
             fn($p) => count(preg_split('~\s+~u', $p, -1, PREG_SPLIT_NO_EMPTY)), $paras)) / count($paras), 1) : 0,
