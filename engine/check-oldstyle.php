@@ -9,7 +9,13 @@ declare(strict_types=1);
 require_once __DIR__ . '/src/Analyzer.php';
 require_once __DIR__ . '/src/NicheLexicon.php';
 
-$args = array_values(array_filter(array_slice($argv, 1), fn($a) => $a !== '--no-signals'));
+$BRAND = ['ru' => '', 'en' => ''];
+foreach (array_slice($argv, 1) as $a) {
+    if (preg_match('~^--brand-ru=(.*)$~u', $a, $m)) { $BRAND['ru'] = $m[1]; }
+    if (preg_match('~^--brand-en=(.*)$~u', $a, $m)) { $BRAND['en'] = $m[1]; }
+}
+$args = array_values(array_filter(array_slice($argv, 1),
+    fn($a) => $a !== '--no-signals' && !str_starts_with($a, '--brand-')));
 $SIGNALS = !in_array('--no-signals', $argv, true);
 $DIR = $args[0] ?? '';
 $REF = $args[1] ?? '/tmp/old-bez-zachina/svyazka3';
@@ -75,8 +81,9 @@ function measureOne(Analyzer $a, string $t, string $raw): array
         'adj_pct' => round((float) $s['adj_pct'], 1),
         'nausea_acad' => round((float) $m['nausea_academic'], 1),
         'water' => round((float) $m['water_percent'], 1),
-        'brand_ru' => substr_count($raw, '%brand_name_ru%'),
-        'brand_en' => substr_count($raw, '%brand_name_en%'),
+        // Плейсхолдер у нас, настоящее имя у сохранённого референса.
+        'brand_ru' => substr_count($raw, '%brand_name_ru%') ?: ($GLOBALS['BRAND']['ru'] !== '' ? mb_substr_count(strip_tags($raw), $GLOBALS['BRAND']['ru']) : 0),
+        'brand_en' => substr_count($raw, '%brand_name_en%') ?: ($GLOBALS['BRAND']['en'] !== '' ? mb_substr_count(strip_tags($raw), $GLOBALS['BRAND']['en']) : 0),
         'paragraphs' => count($ps),
         'words_per_para' => $ps ? round($wp / count($ps), 1) : 0,
         'games_named' => NicheLexicon::countGames($prose),

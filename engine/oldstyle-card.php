@@ -10,7 +10,13 @@ declare(strict_types=1);
 require_once __DIR__ . '/src/Analyzer.php';
 require_once __DIR__ . '/src/NicheLexicon.php';
 
-$args = array_values(array_filter(array_slice($argv, 1), fn($a) => $a !== '--no-signals'));
+$BRAND = ['ru' => '', 'en' => ''];
+foreach (array_slice($argv, 1) as $a) {
+    if (preg_match('~^--brand-ru=(.*)$~u', $a, $m)) { $BRAND['ru'] = $m[1]; }
+    if (preg_match('~^--brand-en=(.*)$~u', $a, $m)) { $BRAND['en'] = $m[1]; }
+}
+$args = array_values(array_filter(array_slice($argv, 1),
+    fn($a) => $a !== '--no-signals' && !str_starts_with($a, '--brand-')));
 $SIGNALS = !in_array('--no-signals', $argv, true);   // блок сигналов можно отключить,
                                                      // чтобы воспроизвести прежний способ
 $SRC = $args[0] ?? '/tmp/old-bez-zachina/svyazka3';
@@ -19,6 +25,7 @@ $OUT = $args[1] ?? '/tmp/oldstyle-cards';
 
 $a = new Analyzer();
 foreach (glob("$SRC/*.html") as $f) {
+    // $BRAND и $SIGNALS — из глобальной области, скрипт однопроходный
     $t = pathinfo($f, PATHINFO_FILENAME);
     $raw = (string) file_get_contents($f);
     $norm = NicheLexicon::unplaceholder($raw);
@@ -85,7 +92,12 @@ foreach (glob("$SRC/*.html") as $f) {
     $L[] = "- Эмодзи **{$s['emoji']}**, вопросительных знаков **{$s['faq_questions']}**, цифр на 100 слов **" . round((float) $s['numbers_per_100w'], 1) . "**.";
     $L[] = "- Прилагательных **" . round((float) $s['adj_pct'], 1) . "%**, водность **" . round((float) $m['water_percent'], 1) . "%**, тошнота **" . round((float) $m['nausea_academic'], 1) . "%**.";
     $L[] = "- «я» **{$s['first_person']}**, «вы» **{$s['second_person']}**, императивов **{$s['imperatives']}**.";
-    $L[] = "- Бренд: кириллицей **" . substr_count($raw, '%brand_name_ru%') . "**, латиницей **" . substr_count($raw, '%brand_name_en%') . "**.";
+    // У сохранённых страниц конкурента бренд стоит настоящим именем, а не
+    // плейсхолдером: слепой подсчёт плейсхолдеров давал ноль и уводил генерацию
+    // в текст, где бренд почти не назван. Считаем имя, если оно передано.
+    $bru = substr_count($raw, '%brand_name_ru%') ?: ($BRAND['ru'] !== '' ? mb_substr_count(strip_tags($raw), $BRAND['ru']) : 0);
+    $ben = substr_count($raw, '%brand_name_en%') ?: ($BRAND['en'] !== '' ? mb_substr_count(strip_tags($raw), $BRAND['en']) : 0);
+    $L[] = "- Бренд: кириллицей **{$bru}**, латиницей **{$ben}** — в генерации это плейсхолдеры %brand_name_ru% и %brand_name_en%.";
     $L[] = "- Названий игр в прозе **" . NicheLexicon::countGames($prose) . "**, названий студий **" . NicheLexicon::countProviders($prose) . "**. В этом стиле их НАЗЫВАЮТ прямо в тексте.";
     $L[] = "- Блоков JSON-LD в конце страницы: **{$ld}** (как в образце; тип схемы бери тот же, что стоит в образце).";
     $L[] = $opensWithList
