@@ -593,6 +593,27 @@ $msg = $_GET['msg'] ?? '';
   </div>
   <div class="bots-box" style="margin-top:-8px">
     <span class="chip" style="background:#eff6ff;border-color:#bfdbfe;color:#1e40af;font-size:14px" title="Только юзеры со страной RU (по CF-IPCountry)">🇷🇺 <b>RU</b>: Уники <b style="color:#1d4ed8"><?= (int)$sumUniqRu ?></b> · Реги <b style="color:#7e22ce"><?= (int)$sumRegRu ?></b> · Депы <b style="color:#9a3412"><?= (int)$sumDepRu ?></b></span>
+    <?php
+      // Когда данные последний раз обновлялись. Клики попадают в базу только
+      // при импорте (крон раз в час), поэтому важно видеть свежесть цифр —
+      // и сразу заметить, если импорт встал (как было, когда крон падал молча).
+      $lastImport = (int)meta_get('last_import', 0);
+      $ago  = $lastImport ? time() - $lastImport : null;
+      $stale = $ago !== null && $ago > 5400;   // >1.5ч при часовом кроне — ненормально
+      if ($ago === null) {
+          $upd = 'ещё не обновлялись'; $col = ['#fff7ed','#fed7aa','#9a3412'];
+      } else {
+          if ($ago < 60)        $when = 'только что';
+          elseif ($ago < 3600)  $when = intdiv($ago, 60) . ' мин назад';
+          else                  $when = intdiv($ago, 3600) . ' ч ' . intdiv($ago % 3600, 60) . ' мин назад';
+          $upd = date('H:i', $lastImport) . ' · ' . $when;
+          $col = $stale ? ['#fff4f4','#f3cccc','#b91c1c'] : ['#f6f7f9','#e2e4ea','#666'];
+      }
+    ?>
+    <span class="chip" style="background:<?= $col[0] ?>;border-color:<?= $col[1] ?>;color:<?= $col[2] ?>"
+          title="Клики попадают в базу только при импорте (крон раз в час), поэтому статистика отстаёт от реального времени. Здесь — момент последнего импорта.<?= $stale ? ' Данные давно не обновлялись: проверь, отрабатывает ли крон.' : '' ?>">
+      <?= $stale ? '⚠ ' : '' ?>Обновлено: <b><?= h($upd) ?></b><?= $stale ? ' <span style="color:var(--muted)">— проверь крон</span>' : '' ?>
+    </span>
   </div>
   <div class="muted">
     Все кампании с кликами за выбранный период. Клик по строке — подробности кампании. Колонки сортируются — кликни по заголовку.
