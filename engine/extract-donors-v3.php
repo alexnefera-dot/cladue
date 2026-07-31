@@ -17,6 +17,7 @@ declare(strict_types=1);
  */
 
 require_once __DIR__ . '/src/Analyzer.php';
+require_once __DIR__ . '/src/PersonNames.php';
 require_once __DIR__ . '/src/NicheLexicon.php';
 
 /** Слаги в ссылках короче имён файлов: /registr → registracia.htm */
@@ -226,7 +227,7 @@ foreach (glob($ROOT . '/*', GLOB_ONLYDIR) as $dir) {
             // RTP — а у референса горят крипта, поддержка и лимиты. Совпало
             // количество, не совпало ни одно имя.
             'entity_list'    => array_values($s['entities'] ?? []),
-            'names'          => preg_match_all('~\b(' . FIRST_NAMES . ')\b~u', $txt),
+            'names'          => PersonNames::count($txt),
             // Абзацы. Поле было в профиле, но досталось от корпуса v1 и никогда
             // не задавалось целью. Замер показал: у референса 448 абзацев на
             // связку по 36 слов, у генерации 792 по 27. Данных при этом столько
