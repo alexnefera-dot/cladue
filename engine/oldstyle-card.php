@@ -7,8 +7,7 @@ declare(strict_types=1);
  *
  *   php oldstyle-card.php <папка-со-старым-набором> <куда-положить-карточки>
  */
-require_once __DIR__ . '/src/Analyzer.php';
-require_once __DIR__ . '/src/NicheLexicon.php';
+require_once __DIR__ . '/src/PageMetrics.php';
 
 $BRAND = ['ru' => '', 'en' => ''];
 foreach (array_slice($argv, 1) as $a) {
@@ -98,6 +97,13 @@ foreach (glob("$SRC/*.html") as $f) {
     $bru = substr_count($raw, '%brand_name_ru%') ?: ($BRAND['ru'] !== '' ? mb_substr_count(strip_tags($raw), $BRAND['ru']) : 0);
     $ben = substr_count($raw, '%brand_name_en%') ?: ($BRAND['en'] !== '' ? mb_substr_count(strip_tags($raw), $BRAND['en']) : 0);
     $L[] = "- Бренд: кириллицей **{$bru}**, латиницей **{$ben}** — в генерации это плейсхолдеры %brand_name_ru% и %brand_name_en%.";
+    // Где стоит имя — отдельный параметр: наборы сходились по сумме упоминаний
+    // и расходились по расположению, а именно оно и бросается в глаза.
+    $pm = PageMetrics::measure($a, $t, $raw, $BRAND);
+    $headTip = $pm['brand_in_h'] > 0
+        ? "имя стоит В ЗАГОЛОВКАХ — {$pm['brand_in_h']} раз на этой странице; воспроизведи саму формулу заголовка с брендом, но своими словами"
+        : 'в заголовках этой страницы бренда НЕТ — не вставляй';
+    $L[] = "- РАСПОЛОЖЕНИЕ бренда: {$headTip}. В первой трети текста имя названо **{$pm['brand_first_third']}** раз — начало страницы у образца именно такой плотности.";
     $L[] = "- Названий игр в прозе **" . NicheLexicon::countGames($prose) . "**, названий студий **" . NicheLexicon::countProviders($prose) . "**. В этом стиле их НАЗЫВАЮТ прямо в тексте.";
     $L[] = "- Блоков JSON-LD в конце страницы: **{$ld}** (как в образце; тип схемы бери тот же, что стоит в образце).";
     $L[] = $opensWithList

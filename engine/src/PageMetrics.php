@@ -22,6 +22,11 @@ final class PageMetrics
         'imperatives' => ['императивов', 0], 'numbers_per100' => ['цифр на 100 слов', 1],
         'adj_pct' => ['прилагательных %', 1], 'nausea_acad' => ['тошнота %', 1], 'water' => ['водность %', 1],
         'brand_ru' => ['бренд кириллицей', 0], 'brand_en' => ['бренд латиницей', 0],
+        // Общий счёт бренда сходился, а расположение расходилось: у образца
+        // имя стоит в заголовках главной и густо идёт в начале страницы, у
+        // повторов — размазано ровным слоем. Сумма этого не показывает.
+        'brand_in_h' => ['бренд в заголовках', 0],
+        'brand_first_third' => ['бренд в первой трети', 0],
         'paragraphs' => ['абзацев', 0], 'words_per_para' => ['слов в абзаце', 1],
         'games_named' => ['названий игр', 0], 'providers_named' => ['названий студий', 0],
         'terms_total' => ['профильных терминов', 0],
@@ -79,7 +84,24 @@ final class PageMetrics
         }
         $h3n = preg_match_all('~<h3[^>]*>~i', $norm);
 
+        // Где стоит бренд. Считается по СЫРОМУ тексту: у нас это плейсхолдеры,
+        // у сохранённого образца — настоящее имя, и обе формы надо ловить.
+        $brandRe = '~%brand_name_(?:ru|en)%'
+            . ($brand['ru'] !== '' ? '|' . preg_quote($brand['ru'], '~') : '')
+            . ($brand['en'] !== '' ? '|' . preg_quote($brand['en'], '~') : '') . '~ui';
+        $noScript = preg_replace('~<script\b.*?</script>~is', '', $raw);
+        $inH = 0;
+        if (preg_match_all('~<h[23][^>]*>(.*?)</h[23]>~is', $noScript, $hh)) {
+            foreach ($hh[1] as $x) { $inH += preg_match_all($brandRe, $x); }
+        }
+        // «Первая часть» — первая треть текста по словам, а не по длине html:
+        // разметка распределена неравномерно и сдвигала бы границу.
+        $words = preg_split('~\s+~u', trim(preg_replace('~\s+~u', ' ', strip_tags($noScript))), -1, PREG_SPLIT_NO_EMPTY);
+        $head  = implode(' ', array_slice($words, 0, max(1, (int) (count($words) / 3))));
+
         return [
+            'brand_in_h' => $inH,
+            'brand_first_third' => preg_match_all($brandRe, $head),
             'h3_per_h2' => $hs ? round($h3n / count($hs), 1) : 0,
             'h2_len' => $hs ? round(array_sum(array_map(fn($x) => count(preg_split('~\s+~u', $x, -1, PREG_SPLIT_NO_EMPTY)), $hs)) / count($hs), 1) : 0,
             'h2_quest' => $hs ? round(count(array_filter($hs, fn($x) => mb_strpos($x, '?') !== false)) / count($hs) * 100, 1) : 0,

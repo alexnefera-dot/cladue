@@ -41,6 +41,10 @@ $FIELDS = [
     'numbers_per100' => ['Цифры/100', 1], 'adj_pct' => ['Прилаг%', 1],
     'nausea_acad' => ['Тошнота', 1], 'water' => ['Водность%', 1],
     'brand_ru' => ['Бренд RU', 0], 'brand_en' => ['Бренд EN', 0],
+    // Экстрактор снимает эту долю с доноров давно, а в зачёт она не входила —
+    // и связка проходила замер целиком, поставив бренд в 82% заголовков там,
+    // где донор держит 13%. Сумма упоминаний при этом сходилась.
+    'head_brand_pct' => ['Бренд в заголовках %', 1],
     // Четыре параметра, которых счётный замер не видел: он сходился сам с собой,
     // пока обе стороны считались одним неверным правилом. Абзацы ловят дробление
     // текста на строки, поимённые студии и тайтлы — профильность, которой в
@@ -115,6 +119,18 @@ function measure(Analyzer $a, string $t, string $raw, array $pagesCfg, array $br
         'nausea_acad' => round((float) $m['nausea_academic'], 1),
         'water' => round((float) $m['water_percent'], 1),
         'brand_ru' => $brRu, 'brand_en' => $brEn, 'intlinks' => $intl,
+        // Доля заголовков с именем — считается по сырому html, как в экстракторе:
+        // и по плейсхолдеру у нас, и по настоящему имени у донора.
+        'head_brand_pct' => (function () use ($raw, $brand) {
+            preg_match_all('~<h[23][^>]*>(.*?)</h[23]>~is', preg_replace('~<script\b.*?</script>~is', '', $raw), $hm);
+            if (!$hm[1]) { return 0; }
+            $re = '~%brand_name_(?:ru|en)%'
+                . ($brand['ru'] ? '|' . preg_quote($brand['ru'], '~') : '')
+                . ($brand['en'] ? '|' . preg_quote($brand['en'], '~') : '') . '~ui';
+            $with = 0;
+            foreach ($hm[1] as $x) { if (preg_match($re, strip_tags($x))) { $with++; } }
+            return round($with / count($hm[1]) * 100, 1);
+        })(),
         // Те же выражения, что в extract-donors-v3.php: обе стороны обязаны
         // считаться одним правилом, иначе замер снова сойдётся сам с собой.
         'providers_named' => NicheLexicon::countProviders(NicheLexicon::prose($norm)),
