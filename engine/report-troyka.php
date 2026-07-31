@@ -16,8 +16,12 @@ declare(strict_types=1);
 require_once __DIR__ . '/src/PageMetrics.php';
 
 $OUT = $argv[1] ?? '/tmp/troyka.html';
+$NOTES = '';
 $COLS = [];
 foreach (array_slice($argv, 2) as $a) {
+    // вычитку человек пишет руками: её нельзя вывести из чисел, а без неё
+    // отчёт остаётся ведомостью
+    if (preg_match('~^--notes=(.*)$~', $a, $nm)) { $NOTES = is_file($nm[1]) ? (string) file_get_contents($nm[1]) : ''; continue; }
     [$dir, $label] = array_pad(explode('|', $a, 2), 2, '');
     if (!is_dir($dir)) { fwrite(STDERR, "нет папки: $dir\n"); exit(1); }
     $COLS[] = ['dir' => rtrim($dir, '/'), 'label' => $label !== '' ? $label : basename($dir)];
@@ -92,32 +96,58 @@ $h = fn($s) => htmlspecialchars((string) $s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8
 $B = [];
 $B[] = '<meta charset="utf-8"><title>Три набора рядом</title>';
 $B[] = '<style>
-:root{--bg:#fff;--fg:#181818;--mut:#6b6b6b;--line:#e3e3e3;--ok:#177245;--bad:#a4243b;--card:#fafafa}
-@media (prefers-color-scheme:dark){:root{--bg:#14161a;--fg:#e8e8e8;--mut:#9aa0a6;--line:#2a2e35;--ok:#5ec07c;--bad:#e2707f;--card:#1a1d22}}
-:root[data-theme=dark]{--bg:#14161a;--fg:#e8e8e8;--mut:#9aa0a6;--line:#2a2e35;--ok:#5ec07c;--bad:#e2707f;--card:#1a1d22}
-:root[data-theme=light]{--bg:#fff;--fg:#181818;--mut:#6b6b6b;--line:#e3e3e3;--ok:#177245;--bad:#a4243b;--card:#fafafa}
-body{background:var(--bg);color:var(--fg);font:16px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;margin:0;padding:28px}
+/* Нейтральные тона уведены в холодную сторону — под синий акцент таблиц;
+   чистый серый читался бы как «не выбирали». */
+:root{--bg:#fdfdfc;--fg:#1a1c20;--mut:#666c75;--line:#e2e4e8;--ok:#2f6f4f;--bad:#a8323f;--card:#f5f6f8;--accent:#2b5f8f}
+@media (prefers-color-scheme:dark){:root{--bg:#131519;--fg:#e6e8ec;--mut:#949aa4;--line:#282c33;--ok:#6fbf8f;--bad:#e08290;--card:#191c21;--accent:#7fb0dd}}
+:root[data-theme=dark]{--bg:#131519;--fg:#e6e8ec;--mut:#949aa4;--line:#282c33;--ok:#6fbf8f;--bad:#e08290;--card:#191c21;--accent:#7fb0dd}
+:root[data-theme=light]{--bg:#fdfdfc;--fg:#1a1c20;--mut:#666c75;--line:#e2e4e8;--ok:#2f6f4f;--bad:#a8323f;--card:#f5f6f8;--accent:#2b5f8f}
+body{background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;margin:0;padding:32px 20px}
 .wrap{max-width:1180px;margin:0 auto}
-h1{font-size:26px;margin:0 0 6px}h2{font-size:20px;margin:34px 0 10px;padding-top:14px;border-top:1px solid var(--line)}
-h3{font-size:16px;margin:20px 0 8px;color:var(--mut)}
-p.lead{color:var(--mut);margin:0 0 18px}
-.scroll{overflow-x:auto}
-table{border-collapse:collapse;width:100%;font-size:14px;margin:10px 0}
-th,td{border-bottom:1px solid var(--line);padding:7px 10px;text-align:right}
-th:first-child,td:first-child{text-align:left}
-thead th{color:var(--mut);font-weight:600;white-space:nowrap}
-.ok{color:var(--ok)}.bad{color:var(--bad);font-weight:600}
+h1{font-size:28px;line-height:1.2;margin:0 0 6px;text-wrap:balance}
+h2{font-size:20px;margin:38px 0 10px;padding-top:16px;border-top:1px solid var(--line);text-wrap:balance}
+h3{font-size:13px;margin:22px 0 8px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em}
+p.lead{color:var(--mut);margin:0 0 18px;max-width:68ch}
+.wrap>p{max-width:68ch}
+.scroll{overflow-x:auto;border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:14px;margin:10px 0;font-variant-numeric:tabular-nums}
+th,td{border-bottom:1px solid var(--line);padding:7px 12px;text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal}
+thead th{color:var(--mut);font-weight:600;font-size:13px}
+thead th:not(:first-child){color:var(--accent)}
+tbody tr:hover{background:var(--card)}
+.ok{color:var(--ok)}.bad{color:var(--bad);font-weight:700}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
-.card .who{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut);margin-bottom:8px}
-.card p{margin:0 0 10px}
-.q{border-left:3px solid var(--line);padding-left:12px;color:var(--mut);font-style:italic}
-ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:3px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px}
+.card .who{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin-bottom:10px}
+.card p{margin:0}
+.q{border-left:3px solid var(--accent);padding-left:12px;color:var(--mut);font-style:italic}
+ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </style>';
 $B[] = '<div class="wrap"><h1>Три набора рядом</h1>';
 $B[] = '<p class="lead">Мерка та же, по которой идёт приёмка: ' . count(PageMetrics::FIELDS)
      . ' параметров на страницу, коридор ±25% (не меньше 2 для счётных и 0.8 для долей). '
      . 'Красным помечено то, что вышло за коридор относительно первой колонки.</p>';
+
+// ——— вычитка
+if ($NOTES !== '') {
+    $B[] = '<h2>Вычитка</h2>';
+    foreach (preg_split('~\n{2,}~', trim($NOTES)) as $block) {
+        $lines = preg_split('~\n~', trim($block));
+        if (str_starts_with(trim($lines[0]), '## ')) {
+            $B[] = '<h3>' . $h(trim(substr(trim($lines[0]), 3))) . '</h3>';
+            array_shift($lines);
+        }
+        $items = array_values(array_filter($lines, fn($l) => str_starts_with(trim($l), '- ')));
+        if (count($items) === count(array_filter($lines, fn($l) => trim($l) !== ''))) {
+            $B[] = '<ul class="hd">';
+            foreach ($items as $l) { $B[] = '<li>' . $h(trim(substr(trim($l), 2))) . '</li>'; }
+            $B[] = '</ul>';
+        } elseif (trim(implode(' ', $lines)) !== '') {
+            $B[] = '<p>' . $h(trim(implode(' ', $lines))) . '</p>';
+        }
+    }
+}
 
 // ——— пересечения
 $B[] = '<h2>Пересечение текстов</h2>';
