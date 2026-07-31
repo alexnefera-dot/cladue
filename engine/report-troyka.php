@@ -14,6 +14,7 @@ declare(strict_types=1);
  */
 
 require_once __DIR__ . '/src/PageMetrics.php';
+require_once __DIR__ . '/src/Parser.php';
 
 $OUT = $argv[1] ?? '/tmp/troyka.html';
 $NOTES = '';
@@ -23,6 +24,18 @@ foreach (array_slice($argv, 2) as $a) {
     // отчёт остаётся ведомостью
     if (preg_match('~^--notes=(.*)$~', $a, $nm)) { $NOTES = is_file($nm[1]) ? (string) file_get_contents($nm[1]) : ''; continue; }
     [$dir, $label] = array_pad(explode('|', $a, 2), 2, '');
+    // Колонка-донор: `donor:<донор>:<корпус>:<папка-с-сохранёнными-страницами>`.
+    // Числа у сохранённой страницы нельзя брать замером «как есть» — там меню,
+    // подвал и баннеры сайта. Корпус хранит их уже очищенными, оттуда и берём;
+    // из самих файлов — только читаемый текст для кусков.
+    if (str_starts_with($dir, 'donor:')) {
+        [, $dn, $corp, $refDir] = array_pad(explode(':', $dir, 4), 4, '');
+        $file = __DIR__ . "/data-$corp/donors.json";
+        $site = json_decode((string) file_get_contents($file), true)['sites'][$dn] ?? null;
+        if (!$site) { fwrite(STDERR, "донор $dn не найден в $file\n"); exit(1); }
+        $COLS[] = ['donor' => $site['pages'], 'dir' => rtrim($refDir, '/'), 'label' => $label !== '' ? $label : "донор $dn"];
+        continue;
+    }
     if (!is_dir($dir)) { fwrite(STDERR, "нет папки: $dir\n"); exit(1); }
     $COLS[] = ['dir' => rtrim($dir, '/'), 'label' => $label !== '' ? $label : basename($dir)];
 }
@@ -31,13 +44,37 @@ if (count($COLS) < 2) {
     exit(1);
 }
 
-$TYPES = ['main', 'vhod', 'zerkalo', 'registracia', 'bonus', 'slots', 'app'];
+// Состав страниц берётся из наборов, а не задаётся списком: связка из
+// двенадцати и комплект из семи меряются одним отчётом.
+$TYPES = [];
+foreach ($COLS as $c) {
+    foreach (array_keys($c['donor'] ?? []) as $t) { $TYPES[$t] = 1; }
+    foreach (glob(($c['dir'] ?: '/nonexistent') . '/*.html') as $f) { $TYPES[pathinfo($f, PATHINFO_FILENAME)] = 1; }
+}
+$TYPES = array_keys($TYPES);
+sort($TYPES);
 $an = new Analyzer();
+
+// Донорская колонка знает не все поля линейки: у корпуса своя мерка. Показываем
+// пересечение, чтобы в таблице не было столбца из прочерков, плюс долю
+// заголовков с брендом — она есть только у корпуса.
+$FIELDS = PageMetrics::FIELDS;
+$FIELDS['head_brand_pct'] = ['бренд в заголовках %', 1];
+foreach ($COLS as $c) {
+    if (!isset($c['donor'])) { continue; }
+    $have = reset($c['donor']);
+    foreach (array_keys($FIELDS) as $k) { if (!array_key_exists($k, $have)) { unset($FIELDS[$k]); } }
+}
+
 
 /** мерка всех страниц каждой колонки */
 $M = [];
 foreach ($COLS as $i => $c) {
     foreach ($TYPES as $t) {
+        if (isset($c['donor'])) {
+            if (isset($c['donor'][$t])) { $M[$i][$t] = $c['donor'][$t]; }
+            continue;
+        }
         $f = "{$c['dir']}/$t.html";
         if (!is_file($f)) { continue; }
         $M[$i][$t] = PageMetrics::measure($an, $t, (string) file_get_contents($f));
@@ -45,9 +82,17 @@ foreach ($COLS as $i => $c) {
 }
 
 /** шинглы для попарных пересечений */
+function pageText(string $file): string
+{
+    // Сохранённая страница конкурента — это документ целиком, с меню и подвалом.
+    // Parser достаёт из неё читаемый текст; наши фрагменты идут как есть.
+    $raw = (string) file_get_contents($file);
+    return str_ends_with($file, '.htm') ? Parser::fromHtml($raw)->text : $raw;
+}
+
 function shingles(string $file, int $n = 6): array
 {
-    $t = mb_strtolower(strip_tags(NicheLexicon::unplaceholder((string) file_get_contents($file))));
+    $t = mb_strtolower(strip_tags(NicheLexicon::unplaceholder(pageText($file))));
     $t = preg_replace('~[^\p{L}\p{N}]+~u', ' ', $t);
     $w = preg_split('~\s+~u', trim((string) $t), -1, PREG_SPLIT_NO_EMPTY);
     $o = [];
@@ -63,7 +108,11 @@ function jacc(array $a, array $b): float
 $SH = [];
 foreach ($COLS as $i => $c) {
     $all = [];
-    foreach ($TYPES as $t) { if (is_file("{$c['dir']}/$t.html")) { $all += shingles("{$c['dir']}/$t.html"); } }
+    foreach ($TYPES as $t) {
+        foreach (["{$c['dir']}/$t.html", "{$c['dir']}/$t.htm"] as $f) {
+            if (is_file($f)) { $all += shingles($f); break; }
+        }
+    }
     $SH[$i] = $all;
 }
 
@@ -89,7 +138,12 @@ function pieces(string $file): array
 }
 
 $P = [];
-foreach ($COLS as $i => $c) { $P[$i] = pieces("{$c['dir']}/main.html"); }
+foreach ($COLS as $i => $c) {
+    foreach (["{$c['dir']}/main.html", "{$c['dir']}/main.htm"] as $f) {
+        if (is_file($f)) { $P[$i] = pieces($f); break; }
+    }
+    $P[$i] = $P[$i] ?? ['opener' => '', 'h2' => '', 'para' => '', 'quote' => '', 'headings' => []];
+}
 
 /** сборка html */
 $h = fn($s) => htmlspecialchars((string) $s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -171,13 +225,15 @@ foreach ($TYPES as $t) {
     $B[] = '<h2>' . $h($t) . '.html</h2><div class="scroll"><table><thead><tr><th>параметр</th>';
     foreach ($COLS as $c) { $B[] = '<th>' . $h($c['label']) . '</th>'; }
     $B[] = '</tr></thead><tbody>';
-    foreach (PageMetrics::FIELDS as $k => [$lab, $rate]) {
+    foreach ($FIELDS as $k => [$lab, $rate]) {
         $B[] = '<tr><td>' . $h($lab) . '</td>';
         foreach ($COLS as $i => $c) {
             $v = $M[$i][$t][$k] ?? '—';
+            if (is_array($v)) { $v = '—'; }
             $cls = '';
-            if ($i > 0 && isset($M[0][$t][$k])) {
-                $cls = PageMetrics::off($v, $M[0][$t][$k], (bool) $rate) ? ' class="bad"' : ' class="ok"';
+            // У корпуса часть чисел лежит строками — сравниваем как числа.
+            if ($i > 0 && isset($M[0][$t][$k]) && is_numeric($v) && is_numeric($M[0][$t][$k])) {
+                $cls = PageMetrics::off((float) $v, (float) $M[0][$t][$k], (bool) $rate) ? ' class="bad"' : ' class="ok"';
             }
             $B[] = '<td' . $cls . '>' . $h((string) $v) . '</td>';
         }
