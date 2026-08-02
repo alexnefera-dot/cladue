@@ -76,20 +76,22 @@ function portRows(it, depth, ctx) {
     const path = (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase();
     const factEur = ctx?.factByPath?.[path];
     const cur = it.currency ?? '€';
-    // «Сейчас» — текущее размещение (двигается переливами); «План» — сколько хочу получить (ввожу)
+    // Бэкенд применяет перелив к value сразу при создании связки — в базе лежит состояние ПОСЛЕ
+    // перестановок. Поэтому: «Сейчас» = старт (value − транзакции, его и правим руками),
+    // «Стало» = что вышло после всех транзакций «в» и «из» (то, что в базе).
+    const net = ctx?.netByPath?.[path] || 0;
+    const netCur = cur === '$' ? net * (ctx?.rate || 1.08) : net;   // в валюте позиции
+    const startVal = (it.value || 0) - netCur;
     const nowCell = editable
-      ? `<td class="r num acc"><span class="pill btn" data-fcur="${it.id}:${cur}" title="сменить валюту">${cur}</span> <span class="ed" data-fe="tgt:${it.id}:value:num" title="сейчас размещено (клик)">${it.value != null ? fmt(it.value) : '—'}</span></td>`
-      : `<td class="r num acc">${fmtE(it.eur)}</td>`;
+      ? `<td class="r num acc"><span class="pill btn" data-fcur="${it.id}:${cur}" title="сменить валюту">${cur}</span> <span class="ed" data-fe="tgt:${it.id}:value:num"${netCur ? ` data-feoff="${netCur}"` : ''} title="старт — сколько было до перестановок (клик)">${it.value != null ? fmt(startVal) : '—'}</span></td>`
+      : `<td class="r num acc">${fmtE((it.eur || 0) - net)}</td>`;
+    const becameShown = editable ? `${fmt(it.value || 0)} ${fesc(cur)}` : fmtE(it.eur);
+    const becameCell = `<td class="r num acc">${net === 0 ? becameShown
+      : `<span class="${net > 0 ? 'up' : 'down'}" title="старт ${editable ? fmt(startVal) + ' ' + fesc(cur) : fmtE((it.eur || 0) - net)} · транзакции ${net > 0 ? '+' : '−'}${fmt(Math.abs(editable ? netCur : net))} ${editable ? fesc(cur) : '€'}">${becameShown}</span>`}</td>`;
     const planCell = editable
       ? `<td class="r num acc"><span class="ed" data-fe="tgt:${it.id}:target_value:num" title="план — сколько хочу получить (клик)">${it.target_value != null ? fmt(it.target_value) : '—'}</span> <span class="meta">${fesc(cur)}</span></td>`
       : `<td class="r num acc">${it.target != null && it.target > 0 ? fmtE(it.target) : ''}</td>`;
-    // Переливы бэкенд применяет к value сразу при создании связки, поэтому «Сейчас» — это УЖЕ
-    // состояние после перестановок. Показываем обратное: «Было» = сейчас − переливы (до ребаланса).
-    const net = ctx?.netByPath?.[path] || 0;
-    const netCur = cur === '$' ? net * (ctx?.rate || 1.08) : net;   // в валюте позиции, как «Сейчас»
-    const wasShown = editable ? `${fmt((it.value || 0) - netCur)} ${fesc(cur)}` : fmtE((it.eur || 0) - net);
-    const wasCell = `<td class="r num">${net === 0 ? '' : `<span class="meta" title="до запланированных перестановок">${wasShown}</span>`}</td>`;
-    const gap = (it.target != null && it.target > 0) ? it.target - it.eur : null;   // план − сейчас (переливы уже в «сейчас»), в €
+    const gap = (it.target != null && it.target > 0) ? it.target - it.eur : null;   // план − стало, в €
     const gapCell = `<td class="r num">${gap == null ? '' : Math.abs(gap) < 1 ? '<span class="up">✓ в плане</span>' : gap > 0 ? `<span class="down">+${fmtE(gap)} добрать</span>` : `<span class="meta">−${fmtE(-gap)} перебор</span>`}</td>`;
     const tPct = ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;   // текущая доля (по «сейчас»)
     const planPct = ctx?.planTotal > 0 && it.target > 0 ? it.target / ctx.planTotal * 100 : null;   // планируемая доля (по плану)
@@ -100,7 +102,7 @@ function portRows(it, depth, ctx) {
       ...(ctx?.movesByDst?.[path] || []).map(mv => `<div class="meta"><span class="up">← добрать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> из «${fesc(mv.fromName)}»</div>`),
     ].join('');
     const moveBtn = editable ? `<span class="rowbtn" data-tgtmove="${it.id}" title="переложить в другую позицию">↦ переложить</span>` : '';
-    cells = `${wasCell}${nowCell}${planCell}${gapCell}
+    cells = `${nowCell}${becameCell}${planCell}${gapCell}
       <td style="text-align:left;min-width:180px">${links}${moveBtn}</td>
       <td class="r" style="width:82px">${shareStr}</td>`;
   } else {
@@ -169,7 +171,7 @@ function portCard(it, depth, ctx) {
   const editable = it.kind === 'asset' || !it.children.length;
   const folded = portFold.has(it.id);
   const cur = it.currency ?? '€';
-  const val = editable
+  let val = editable
     ? `<span class="ed num" data-fe="${pfx}:${it.id}:value:num">${it.value != null ? fmt(it.value) : '—'}</span> <span class="meta">${cur}</span>`
     : `<span class="num">${fmtE(it.eur)}</span>`;
   const g = (!target && it.invested != null && it.invested && !(editable && it.buy_value == null)) ? (it.investedCur - it.invested) / it.invested * 100 : null;
@@ -179,12 +181,17 @@ function portCard(it, depth, ctx) {
     const path = (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase();
     const tPct = ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
     const planPct = ctx?.planTotal > 0 && it.target > 0 ? it.target / ctx.planTotal * 100 : null;
-    // переливы уже применены к «сейчас» бэкендом — показываем, сколько было ДО перестановок
+    // в базе value уже с переливами: крупным числом показываем старт, «стало» — рядом в мете
     const net = ctx?.netByPath?.[path] || 0;
-    const netCur = cur === '$' ? net * (ctx?.rate || 1.08) : net;   // в валюте позиции, как «сейчас»
-    const wasStr = net === 0 ? ''
-      : `<span class="meta">было ${editable ? fmt((it.value || 0) - netCur) + ' ' + fesc(cur) : fmtE((it.eur || 0) - net)}</span>`;
-    const gap = (it.target != null && it.target > 0) ? it.target - it.eur : null;   // план − сейчас, в €
+    const netCur = cur === '$' ? net * (ctx?.rate || 1.08) : net;   // в валюте позиции
+    if (net !== 0) {
+      val = editable
+        ? `<span class="ed num" data-fe="tgt:${it.id}:value:num" data-feoff="${netCur}">${it.value != null ? fmt((it.value || 0) - netCur) : '—'}</span> <span class="meta">${cur}</span>`
+        : `<span class="num">${fmtE((it.eur || 0) - net)}</span>`;
+    }
+    const becameStr = net === 0 ? ''
+      : `<span class="${net > 0 ? 'up' : 'down'}">стало ${editable ? fmt(it.value || 0) + ' ' + fesc(cur) : fmtE(it.eur)}</span>`;
+    const gap = (it.target != null && it.target > 0) ? it.target - it.eur : null;   // план − стало, в €
     const planStr = editable
       ? `<span class="meta">план: <span class="ed" data-fe="tgt:${it.id}:target_value:num" title="сколько хочу получить (клик)">${it.target_value != null ? fmt(it.target_value) : '—'}</span> ${fesc(cur)}</span>`
       : (it.target != null && it.target > 0 ? `<span class="meta">план ${fmtE(it.target)}</span>` : '');
@@ -194,7 +201,7 @@ function portCard(it, depth, ctx) {
       ...(ctx?.movesByDst?.[path] || []).map(mv => `<span class="meta"><span class="up">← добрать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> из «${fesc(mv.fromName)}»</span>`),
     ].join(' ');
     const shareStr = (planPct == null && tPct == null) ? '' : `<span class="meta" title="планируемая / текущая доля">доля ${planPct != null ? planPct.toFixed(1) : '—'}% / ${tPct != null ? tPct.toFixed(1) : '—'}%</span>`;
-    meta = `${wasStr} ${planStr} ${gapStr}${links ? '<br>' + links : ''} ${shareStr}`;
+    meta = `${becameStr} ${planStr} ${gapStr}${links ? '<br>' + links : ''} ${shareStr}`;
   } else {
     meta = `${g != null ? `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</span>` : ''}
        ${pTot != null ? `<span class="meta">${pTot.toFixed(1)}% портфеля</span>` : ''}
@@ -315,11 +322,11 @@ function secPortfolio(d, s) {
     const mapIds = (ns, pre) => (ns || []).forEach(n => { const p = pre + '/' + (n.name || '').trim().toLowerCase(); byId[n.id] = { path: p, name: n.name, cur: n.currency ?? '€' }; mapIds(n.children, p); });
     mapIds(tree, '');
     const rate = s.rate || d.rate || 1.08;   // курс лежит в summary (s.rate), не в d
-    rctx.rate = rate;                        // нужен строкам: «Было» показываем в валюте позиции
+    rctx.rate = rate;                        // нужен строкам: суммы показываем в валюте позиции
     const inCur = (eur, cur) => cur === '$' ? eur * rate : eur;   // amount хранится в €, показываем в валюте стороны
     rctx.movesBySrc = {}; rctx.movesByDst = {}; rctx.netByPath = {};
-    // чистая дельта переливов в € — узлу и всем его предкам (пути = префиксы), чтобы «Было»
-    // сходилось и на разделах/блоках, а не только на листьях
+    // чистая дельта транзакций в € — узлу и всем его предкам (пути = префиксы), чтобы «Сейчас»
+    // и «Стало» сходились и на разделах/блоках, а не только на листьях
     const addNet = (path, delta) => {
       let p = '';
       for (const seg of path.split('/').filter(Boolean)) { p += '/' + seg; rctx.netByPath[p] = (rctx.netByPath[p] || 0) + delta; }
@@ -347,7 +354,7 @@ function secPortfolio(d, s) {
       ? `<div class="pcards">${tree.map(b => portCard(b, 0, rctx)).join('') || '<div class="empty">пусто</div>'}</div>`
       : `<table class="fintable porttable">
       ${tgt
-        ? '<tr><th>Название</th><th class="r" title="до запланированных перестановок">Было</th><th class="r" title="уже с учётом перестановок">Сейчас</th><th class="r">План</th><th class="r" title="план − сейчас">До цели</th><th class="r">Ребаланс</th><th class="r" title="планируемая / текущая">Доля пл/тек</th><th></th></tr>'
+        ? '<tr><th>Название</th><th class="r" title="старт — до перестановок">Сейчас</th><th class="r" title="после всех транзакций в и из">Стало</th><th class="r">План</th><th class="r" title="план − стало">До цели</th><th class="r">Ребаланс</th><th class="r" title="планируемая / текущая">Доля пл/тек</th><th></th></tr>'
         : '<tr><th>Название</th><th class="r">Покупка</th><th class="r">Прирост</th><th class="r">Текущая</th><th class="r">Доля</th><th></th></tr>'}
       ${tree.map(b => portRows(b, 0, rctx)).join('') || '<tr><td colspan="8"><div class="empty">пусто</div></td></tr>'}
     </table>`}
@@ -903,7 +910,9 @@ function bindFin() {
   document.querySelectorAll('[data-fe]').forEach(el =>
     el.addEventListener('click', () => {
       const [ent, id, field, type] = el.dataset.fe.split(':');
-      inlineVal(el, type, v => finApi.patch(ent, +id, { [field]: v }));
+      // feoff: поле показывает старт (value − транзакции), а в базе value уже с ними — вернём обратно
+      const off = +(el.dataset.feoff || 0);
+      inlineVal(el, type, v => finApi.patch(ent, +id, { [field]: off && typeof v === 'number' ? v + off : v }));
     }));
   document.querySelectorAll('[data-rate]').forEach(el =>
     el.addEventListener('click', () => inlineVal(el, 'num', v => finApi.rateSet(el.dataset.rate, v))));
@@ -1048,6 +1057,13 @@ function bindFin() {
     });
     walkF(finData.portfolio, '');
     const rate = finData.summary?.rate || 1.08;
+    // связки идут между листьями, поэтому дельту достаточно собрать по id (в €)
+    const netById = {};
+    (finData.targetMoves || []).forEach(mv => {
+      const a = +mv.amount || 0;
+      netById[mv.from_id] = (netById[mv.from_id] || 0) - a;
+      netById[mv.to_id] = (netById[mv.to_id] || 0) + a;
+    });
     const upd = [], miss = [];
     const walkT = (ns, pre) => (ns || []).forEach(n => {
       const p = pre + '/' + (n.name || '').trim().toLowerCase();
@@ -1055,8 +1071,10 @@ function bindFin() {
         if (fact[p] == null) miss.push(n.name);
         else {
           const cur = n.currency ?? '€';
-          const v = Math.round((cur === '$' ? fact[p] * rate : fact[p]) * 100) / 100;
-          if (Math.abs((n.value ?? 0) - v) >= 0.01) upd.push({ id: n.id, name: n.name, from: n.value ?? 0, to: v, cur });
+          const netCur = cur === '$' ? (netById[n.id] || 0) * rate : (netById[n.id] || 0);
+          const start = Math.round((cur === '$' ? fact[p] * rate : fact[p]) * 100) / 100;   // Факт = новый старт
+          const v = Math.round((start + netCur) * 100) / 100;                               // в базе — уже с транзакциями
+          if (Math.abs((n.value ?? 0) - v) >= 0.01) upd.push({ id: n.id, name: n.name, from: (n.value ?? 0) - netCur, to: start, cur, val: v });
         }
       }
       walkT(n.children, p);
@@ -1065,8 +1083,8 @@ function bindFin() {
     const missNote = miss.length ? `\n\nНет в Факте — не трогаю (${miss.length}): ${miss.slice(0, 8).join(', ')}${miss.length > 8 ? '…' : ''}` : '';
     if (!upd.length) { alert(`Обновлять нечего: совпадающие позиции уже равны Факту.${missNote}`); return; }
     const preview = upd.slice(0, 12).map(u => `· ${u.name}: ${fmt(u.from)} → ${fmt(u.to)} ${u.cur}`).join('\n');
-    if (!confirm(`Подтянуть «Сейчас» из Факта — ${upd.length} позиц.:\n\n${preview}${upd.length > 12 ? `\n…и ещё ${upd.length - 12}` : ''}${missNote}`)) return;
-    for (const u of upd) await finApi.patch('tgt', u.id, { value: u.to });
+    if (!confirm(`Подтянуть «Сейчас» (старт) из Факта — ${upd.length} позиц.:\n\n${preview}${upd.length > 12 ? `\n…и ещё ${upd.length - 12}` : ''}${missNote}`)) return;
+    for (const u of upd) await finApi.patch('tgt', u.id, { value: u.val });
     window.loadFin();
   });
   document.querySelectorAll('[data-tgtadd]').forEach(el =>
