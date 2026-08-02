@@ -332,7 +332,8 @@ function secPortfolio(d, s) {
         : '<tr><th>Название</th><th class="r">Покупка</th><th class="r">Прирост</th><th class="r">Текущая</th><th class="r">Доля</th><th></th></tr>'}
       ${tree.map(b => portRows(b, 0, rctx)).join('') || '<tr><td colspan="7"><div class="empty">пусто</div></td></tr>'}
     </table>`}
-    ${tgt ? `<div class="task finadd" style="margin-top:6px"><input id="tgt_block" placeholder="новый блок целевого" style="flex:1"><span class="pill btn ok" data-tgtadd="block:">＋ блок</span></div>` : ''}
+    ${tgt ? `<div class="task finadd" style="margin-top:6px"><input id="tgt_block" placeholder="новый блок целевого" style="flex:1"><span class="pill btn ok" data-tgtadd="block:">＋ блок</span></div>`
+      : `<div class="task finadd" style="margin-top:6px"><input id="fact_block" placeholder="новый блок портфеля (Крипта, Бизнес…)" style="flex:1"><span class="pill btn ok" data-fadd="block:">＋ блок</span></div>`}
   </div>
   ${!tgt && (d.byType.length || (d.byRegion || []).length) ? `
   <div class="fingrid" style="grid-template-columns:1fr 1fr">
@@ -991,8 +992,10 @@ function bindFin() {
   document.querySelectorAll('[data-fadd]').forEach(el =>
     el.addEventListener('click', async () => {
       const [kind, pid] = el.dataset.fadd.split(':');
-      const name = prompt(kind === 'section' ? 'Название раздела:' : 'Название актива:');
-      if (name?.trim()) { await finApi.add('items', { parent_id: +pid, name: name.trim(), kind }); window.loadFin(); }
+      // блок верхнего уровня берём из поля, вложенные — промптом; parent_id пустой → null (корень), а не 0
+      const name = kind === 'block' ? document.getElementById('fact_block')?.value.trim()
+        : prompt(kind === 'section' ? 'Название раздела:' : 'Название актива:');
+      if (name?.trim()) { await finApi.add('items', { parent_id: pid ? +pid : null, name: name.trim(), kind }); window.loadFin(); }
     }));
   document.querySelectorAll('[data-budadd]').forEach(el =>
     el.addEventListener('click', async () => {
