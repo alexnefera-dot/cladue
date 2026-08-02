@@ -86,9 +86,14 @@ function portRows(it, depth, ctx) {
     // «Станет» — сколько будет после запланированных переливов (сейчас ± ребаланс)
     const net = ctx?.netByPath?.[path] || 0;
     const willEur = (it.eur || 0) + net;
-    const willCell = `<td class="r num">${net === 0
-      ? `<span class="meta">${it.eur ? fmtE(it.eur) : ''}</span>`
-      : `<span class="${net > 0 ? 'up' : 'down'}" title="сейчас ${fmtE(it.eur)} ${net > 0 ? '+' : '−'} ${fmtE(Math.abs(net))} переливами">${fmtE(willEur)}</span>`}</td>`;
+    // показываем в валюте позиции (как «Сейчас»), иначе $-позиции читались бы в € и выглядели неверно
+    const netCur = cur === '$' ? net * (ctx?.rate || 1.08) : net;
+    const nowShown = editable ? `${fmt(it.value || 0)} ${fesc(cur)}` : fmtE(it.eur);
+    const willShown = editable ? `${fmt((it.value || 0) + netCur)} ${fesc(cur)}` : fmtE(willEur);
+    const hasWill = editable ? (it.value != null || net !== 0) : !!it.eur;
+    const willCell = `<td class="r num">${!hasWill ? '' : net === 0
+      ? `<span class="meta">${willShown}</span>`
+      : `<span class="${net > 0 ? 'up' : 'down'}" title="сейчас ${nowShown} · переливы ${net > 0 ? '+' : '−'}${fmt(Math.abs(editable ? netCur : net))} ${editable ? fesc(cur) : '€'}">${willShown}</span>`}</td>`;
     const gap = (it.target != null && it.target > 0) ? it.target - willEur : null;   // план − станет (с учётом переливов), в €
     const gapCell = `<td class="r num">${gap == null ? '' : Math.abs(gap) < 1 ? '<span class="up">✓ в плане</span>' : gap > 0 ? `<span class="down">+${fmtE(gap)} добрать</span>` : `<span class="meta">−${fmtE(-gap)} перебор</span>`}</td>`;
     const tPct = ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;   // текущая доля (по «сейчас»)
@@ -148,7 +153,7 @@ function portRows(it, depth, ctx) {
       ${!target && editable ? `<span class="rowbtn" data-loanflag="${it.id}:${it.is_loan ? 1 : 0}" title="${it.is_loan ? 'убрать значок займа' : 'пометить как займ'}">🤝</span>` : ''}
       <span class="rowbtn del" data-findel="${pfx}:${it.id}">✕</span>
     </td>
-  </tr>` + (folded ? '' : it.children.map(c => portRows(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, parentEur: it.eur, tgt: target, factByPath: ctx?.factByPath, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
+  </tr>` + (folded ? '' : it.children.map(c => portRows(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, parentEur: it.eur, tgt: target, factByPath: ctx?.factByPath, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
 }
 
 const finIsMobile = () => window.matchMedia('(max-width: 768px)').matches;
@@ -181,7 +186,9 @@ function portCard(it, depth, ctx) {
     const planPct = ctx?.planTotal > 0 && it.target > 0 ? it.target / ctx.planTotal * 100 : null;
     const net = ctx?.netByPath?.[path] || 0;                       // «станет» = сейчас ± переливы
     const willEur = (it.eur || 0) + net;
-    const willStr = net === 0 ? '' : `<span class="${net > 0 ? 'up' : 'down'}">станет ${fmtE(willEur)}</span>`;
+    const netCur = cur === '$' ? net * (ctx?.rate || 1.08) : net;   // в валюте позиции, как «сейчас»
+    const willStr = net === 0 ? ''
+      : `<span class="${net > 0 ? 'up' : 'down'}">станет ${editable ? fmt((it.value || 0) + netCur) + ' ' + fesc(cur) : fmtE(willEur)}</span>`;
     const gap = (it.target != null && it.target > 0) ? it.target - willEur : null;   // план − станет, в €
     const planStr = editable
       ? `<span class="meta">план: <span class="ed" data-fe="tgt:${it.id}:target_value:num" title="сколько хочу получить (клик)">${it.target_value != null ? fmt(it.target_value) : '—'}</span> ${fesc(cur)}</span>`
@@ -213,7 +220,7 @@ function portCard(it, depth, ctx) {
       <span class="pc-val">${val}</span>
     </div>
     <div class="pc-meta">${meta}${folded ? `<span class="meta">· ${it.children.length} внутри</span>` : ''}<span class="pc-actions">${actions}</span></div>
-  </div>` + (folded ? '' : it.children.map(c => portCard(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, parentEur: it.eur, tgt: target, factByPath: ctx?.factByPath, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
+  </div>` + (folded ? '' : it.children.map(c => portCard(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, parentEur: it.eur, tgt: target, factByPath: ctx?.factByPath, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
 }
 
 // диаграмма аллокации: доли с процентами внутри, каждая своим цветом
@@ -313,6 +320,7 @@ function secPortfolio(d, s) {
     const mapIds = (ns, pre) => (ns || []).forEach(n => { const p = pre + '/' + (n.name || '').trim().toLowerCase(); byId[n.id] = { path: p, name: n.name, cur: n.currency ?? '€' }; mapIds(n.children, p); });
     mapIds(tree, '');
     const rate = s.rate || d.rate || 1.08;   // курс лежит в summary (s.rate), не в d
+    rctx.rate = rate;                        // нужен строкам: «Станет» показываем в валюте позиции
     const inCur = (eur, cur) => cur === '$' ? eur * rate : eur;   // amount хранится в €, показываем в валюте стороны
     rctx.movesBySrc = {}; rctx.movesByDst = {}; rctx.netByPath = {};
     // чистая дельта переливов в € — узлу и всем его предкам (пути = префиксы), чтобы «Станет»
@@ -348,7 +356,7 @@ function secPortfolio(d, s) {
         : '<tr><th>Название</th><th class="r">Покупка</th><th class="r">Прирост</th><th class="r">Текущая</th><th class="r">Доля</th><th></th></tr>'}
       ${tree.map(b => portRows(b, 0, rctx)).join('') || '<tr><td colspan="8"><div class="empty">пусто</div></td></tr>'}
     </table>`}
-    ${tgt ? `<div class="task finadd" style="margin-top:6px"><input id="tgt_block" placeholder="новый блок целевого" style="flex:1"><span class="pill btn ok" data-tgtadd="block:">＋ блок</span></div>`
+    ${tgt ? `<div class="task finadd" style="margin-top:6px"><input id="tgt_block" placeholder="новый блок целевого" style="flex:1"><span class="pill btn ok" data-tgtadd="block:">＋ блок</span><span class="pill btn" id="tgtSyncNow" title="подтянуть «Сейчас» из Факта по совпадающим позициям (чего нет в Факте — не трогаем)">⟳ Сейчас из Факта</span></div>`
       : `<div class="task finadd" style="margin-top:6px"><input id="fact_block" placeholder="новый блок портфеля (Крипта, Бизнес…)" style="flex:1"><span class="pill btn ok" data-fadd="block:">＋ блок</span></div>`}
   </div>
   ${!tgt && (d.byType.length || (d.byRegion || []).length) ? `
@@ -1035,6 +1043,37 @@ function bindFin() {
       }
       window.loadFin();
     }));
+  // «Сейчас» в целевом ← суммы Факта по СОВПАДАЮЩЕМУ полному пути (блок/раздел/актив).
+  // Чего в Факте нет — не трогаем и ничего не создаём (без дублей).
+  document.getElementById('tgtSyncNow')?.addEventListener('click', async () => {
+    const fact = {};
+    const walkF = (ns, pre) => (ns || []).forEach(n => {
+      const p = pre + '/' + (n.name || '').trim().toLowerCase();
+      fact[p] = (fact[p] || 0) + (n.eur || 0); walkF(n.children, p);
+    });
+    walkF(finData.portfolio, '');
+    const rate = finData.summary?.rate || 1.08;
+    const upd = [], miss = [];
+    const walkT = (ns, pre) => (ns || []).forEach(n => {
+      const p = pre + '/' + (n.name || '').trim().toLowerCase();
+      if (n.kind === 'asset' || !(n.children || []).length) {         // суммы правим только у листьев
+        if (fact[p] == null) miss.push(n.name);
+        else {
+          const cur = n.currency ?? '€';
+          const v = Math.round((cur === '$' ? fact[p] * rate : fact[p]) * 100) / 100;
+          if (Math.abs((n.value ?? 0) - v) >= 0.01) upd.push({ id: n.id, name: n.name, from: n.value ?? 0, to: v, cur });
+        }
+      }
+      walkT(n.children, p);
+    });
+    walkT(finData.targetPortfolio, '');
+    const missNote = miss.length ? `\n\nНет в Факте — не трогаю (${miss.length}): ${miss.slice(0, 8).join(', ')}${miss.length > 8 ? '…' : ''}` : '';
+    if (!upd.length) { alert(`Обновлять нечего: совпадающие позиции уже равны Факту.${missNote}`); return; }
+    const preview = upd.slice(0, 12).map(u => `· ${u.name}: ${fmt(u.from)} → ${fmt(u.to)} ${u.cur}`).join('\n');
+    if (!confirm(`Подтянуть «Сейчас» из Факта — ${upd.length} позиц.:\n\n${preview}${upd.length > 12 ? `\n…и ещё ${upd.length - 12}` : ''}${missNote}`)) return;
+    for (const u of upd) await finApi.patch('tgt', u.id, { value: u.to });
+    window.loadFin();
+  });
   document.querySelectorAll('[data-tgtadd]').forEach(el =>
     el.addEventListener('click', async () => {
       const [kind, pid] = el.dataset.tgtadd.split(':');
