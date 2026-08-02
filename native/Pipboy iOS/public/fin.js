@@ -83,18 +83,13 @@ function portRows(it, depth, ctx) {
     const planCell = editable
       ? `<td class="r num acc"><span class="ed" data-fe="tgt:${it.id}:target_value:num" title="план — сколько хочу получить (клик)">${it.target_value != null ? fmt(it.target_value) : '—'}</span> <span class="meta">${fesc(cur)}</span></td>`
       : `<td class="r num acc">${it.target != null && it.target > 0 ? fmtE(it.target) : ''}</td>`;
-    // «Станет» — сколько будет после запланированных переливов (сейчас ± ребаланс)
+    // Переливы бэкенд применяет к value сразу при создании связки, поэтому «Сейчас» — это УЖЕ
+    // состояние после перестановок. Показываем обратное: «Было» = сейчас − переливы (до ребаланса).
     const net = ctx?.netByPath?.[path] || 0;
-    const willEur = (it.eur || 0) + net;
-    // показываем в валюте позиции (как «Сейчас»), иначе $-позиции читались бы в € и выглядели неверно
-    const netCur = cur === '$' ? net * (ctx?.rate || 1.08) : net;
-    const nowShown = editable ? `${fmt(it.value || 0)} ${fesc(cur)}` : fmtE(it.eur);
-    const willShown = editable ? `${fmt((it.value || 0) + netCur)} ${fesc(cur)}` : fmtE(willEur);
-    const hasWill = editable ? (it.value != null || net !== 0) : !!it.eur;
-    const willCell = `<td class="r num">${!hasWill ? '' : net === 0
-      ? `<span class="meta">${willShown}</span>`
-      : `<span class="${net > 0 ? 'up' : 'down'}" title="сейчас ${nowShown} · переливы ${net > 0 ? '+' : '−'}${fmt(Math.abs(editable ? netCur : net))} ${editable ? fesc(cur) : '€'}">${willShown}</span>`}</td>`;
-    const gap = (it.target != null && it.target > 0) ? it.target - willEur : null;   // план − станет (с учётом переливов), в €
+    const netCur = cur === '$' ? net * (ctx?.rate || 1.08) : net;   // в валюте позиции, как «Сейчас»
+    const wasShown = editable ? `${fmt((it.value || 0) - netCur)} ${fesc(cur)}` : fmtE((it.eur || 0) - net);
+    const wasCell = `<td class="r num">${net === 0 ? '' : `<span class="meta" title="до запланированных перестановок">${wasShown}</span>`}</td>`;
+    const gap = (it.target != null && it.target > 0) ? it.target - it.eur : null;   // план − сейчас (переливы уже в «сейчас»), в €
     const gapCell = `<td class="r num">${gap == null ? '' : Math.abs(gap) < 1 ? '<span class="up">✓ в плане</span>' : gap > 0 ? `<span class="down">+${fmtE(gap)} добрать</span>` : `<span class="meta">−${fmtE(-gap)} перебор</span>`}</td>`;
     const tPct = ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;   // текущая доля (по «сейчас»)
     const planPct = ctx?.planTotal > 0 && it.target > 0 ? it.target / ctx.planTotal * 100 : null;   // планируемая доля (по плану)
@@ -105,7 +100,7 @@ function portRows(it, depth, ctx) {
       ...(ctx?.movesByDst?.[path] || []).map(mv => `<div class="meta"><span class="up">← добрать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> из «${fesc(mv.fromName)}»</div>`),
     ].join('');
     const moveBtn = editable ? `<span class="rowbtn" data-tgtmove="${it.id}" title="переложить в другую позицию">↦ переложить</span>` : '';
-    cells = `${nowCell}${willCell}${planCell}${gapCell}
+    cells = `${wasCell}${nowCell}${planCell}${gapCell}
       <td style="text-align:left;min-width:180px">${links}${moveBtn}</td>
       <td class="r" style="width:82px">${shareStr}</td>`;
   } else {
@@ -184,12 +179,12 @@ function portCard(it, depth, ctx) {
     const path = (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase();
     const tPct = ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
     const planPct = ctx?.planTotal > 0 && it.target > 0 ? it.target / ctx.planTotal * 100 : null;
-    const net = ctx?.netByPath?.[path] || 0;                       // «станет» = сейчас ± переливы
-    const willEur = (it.eur || 0) + net;
+    // переливы уже применены к «сейчас» бэкендом — показываем, сколько было ДО перестановок
+    const net = ctx?.netByPath?.[path] || 0;
     const netCur = cur === '$' ? net * (ctx?.rate || 1.08) : net;   // в валюте позиции, как «сейчас»
-    const willStr = net === 0 ? ''
-      : `<span class="${net > 0 ? 'up' : 'down'}">станет ${editable ? fmt((it.value || 0) + netCur) + ' ' + fesc(cur) : fmtE(willEur)}</span>`;
-    const gap = (it.target != null && it.target > 0) ? it.target - willEur : null;   // план − станет, в €
+    const wasStr = net === 0 ? ''
+      : `<span class="meta">было ${editable ? fmt((it.value || 0) - netCur) + ' ' + fesc(cur) : fmtE((it.eur || 0) - net)}</span>`;
+    const gap = (it.target != null && it.target > 0) ? it.target - it.eur : null;   // план − сейчас, в €
     const planStr = editable
       ? `<span class="meta">план: <span class="ed" data-fe="tgt:${it.id}:target_value:num" title="сколько хочу получить (клик)">${it.target_value != null ? fmt(it.target_value) : '—'}</span> ${fesc(cur)}</span>`
       : (it.target != null && it.target > 0 ? `<span class="meta">план ${fmtE(it.target)}</span>` : '');
@@ -199,7 +194,7 @@ function portCard(it, depth, ctx) {
       ...(ctx?.movesByDst?.[path] || []).map(mv => `<span class="meta"><span class="up">← добрать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> из «${fesc(mv.fromName)}»</span>`),
     ].join(' ');
     const shareStr = (planPct == null && tPct == null) ? '' : `<span class="meta" title="планируемая / текущая доля">доля ${planPct != null ? planPct.toFixed(1) : '—'}% / ${tPct != null ? tPct.toFixed(1) : '—'}%</span>`;
-    meta = `${willStr} ${planStr} ${gapStr}${links ? '<br>' + links : ''} ${shareStr}`;
+    meta = `${wasStr} ${planStr} ${gapStr}${links ? '<br>' + links : ''} ${shareStr}`;
   } else {
     meta = `${g != null ? `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</span>` : ''}
        ${pTot != null ? `<span class="meta">${pTot.toFixed(1)}% портфеля</span>` : ''}
@@ -320,10 +315,10 @@ function secPortfolio(d, s) {
     const mapIds = (ns, pre) => (ns || []).forEach(n => { const p = pre + '/' + (n.name || '').trim().toLowerCase(); byId[n.id] = { path: p, name: n.name, cur: n.currency ?? '€' }; mapIds(n.children, p); });
     mapIds(tree, '');
     const rate = s.rate || d.rate || 1.08;   // курс лежит в summary (s.rate), не в d
-    rctx.rate = rate;                        // нужен строкам: «Станет» показываем в валюте позиции
+    rctx.rate = rate;                        // нужен строкам: «Было» показываем в валюте позиции
     const inCur = (eur, cur) => cur === '$' ? eur * rate : eur;   // amount хранится в €, показываем в валюте стороны
     rctx.movesBySrc = {}; rctx.movesByDst = {}; rctx.netByPath = {};
-    // чистая дельта переливов в € — узлу и всем его предкам (пути = префиксы), чтобы «Станет»
+    // чистая дельта переливов в € — узлу и всем его предкам (пути = префиксы), чтобы «Было»
     // сходилось и на разделах/блоках, а не только на листьях
     const addNet = (path, delta) => {
       let p = '';
@@ -352,7 +347,7 @@ function secPortfolio(d, s) {
       ? `<div class="pcards">${tree.map(b => portCard(b, 0, rctx)).join('') || '<div class="empty">пусто</div>'}</div>`
       : `<table class="fintable porttable">
       ${tgt
-        ? '<tr><th>Название</th><th class="r">Сейчас</th><th class="r" title="сейчас ± перестановки">Станет</th><th class="r">План</th><th class="r" title="план − станет">До цели</th><th class="r">Ребаланс</th><th class="r" title="планируемая / текущая">Доля пл/тек</th><th></th></tr>'
+        ? '<tr><th>Название</th><th class="r" title="до запланированных перестановок">Было</th><th class="r" title="уже с учётом перестановок">Сейчас</th><th class="r">План</th><th class="r" title="план − сейчас">До цели</th><th class="r">Ребаланс</th><th class="r" title="планируемая / текущая">Доля пл/тек</th><th></th></tr>'
         : '<tr><th>Название</th><th class="r">Покупка</th><th class="r">Прирост</th><th class="r">Текущая</th><th class="r">Доля</th><th></th></tr>'}
       ${tree.map(b => portRows(b, 0, rctx)).join('') || '<tr><td colspan="8"><div class="empty">пусто</div></td></tr>'}
     </table>`}
