@@ -343,6 +343,28 @@ function secPortfolio(d, s) {
       addNet(a.path, -mv.amount); addNet(b.path, mv.amount);   // mv.amount хранится в €
     });
   }
+  // Откуда берётся излишек/нехватка: есть − план = (есть − размещено) + (размещено − план).
+  // Первое слагаемое — капитал вне целевого, второе — позиции, где «Стало» больше «Плана».
+  let capWhere = '';
+  if (tgt && planTotal > 0) {
+    const outside = s.portfolioTotal - rootTotal;   // есть, но в целевой не заведено
+    const overPlan = rootTotal - planTotal;         // заведено, но сверх плана
+    const tops = [];
+    const walkOver = (ns, pre) => (ns || []).forEach(n => {
+      const kids = n.children || [];
+      if (n.kind === 'asset' || !kids.length) {
+        const over = (n.eur || 0) - (n.target || 0);
+        if (over > 1) tops.push({ name: pre ? `${pre} · ${n.name}` : n.name, over, noPlan: !(n.target > 0) });
+      }
+      walkOver(kids, pre || n.name);
+    });
+    walkOver(tree, '');
+    tops.sort((a, b) => b.over - a.over);
+    capWhere = `<div class="meta" style="flex-basis:100%;font-weight:400">
+      откуда: <b>${fmt(Math.abs(outside))} €</b> ${outside >= 0 ? 'есть, но не заведено в целевой' : 'заведено в целевой сверх того, что есть'}
+      · <b>${fmt(Math.abs(overPlan))} €</b> ${overPlan >= 0 ? 'стоит сверх плана' : 'не добрано до плана'}
+      ${tops.length ? `<br>сверх плана: ${tops.slice(0, 6).map(t => `${fesc(t.name)} <b>+${fmt(t.over)}</b>${t.noPlan ? ' <span class="meta">(плана нет)</span>' : ''}`).join(' · ')}${tops.length > 6 ? ` · …ещё ${tops.length - 6}` : ''}` : ''}</div>`;
+  }
   return `
   <div class="sec">Портфель · блоки → разделы → активы · всё правится кликом</div>
   <div class="viewtabs">
@@ -353,6 +375,7 @@ function secPortfolio(d, s) {
   ${tgt ? `<div class="card"><div class="kv" style="font-weight:700;padding:2px 0;flex-wrap:wrap;gap:8px">
       <span>Капитал: есть <b class="num">${fmt(s.portfolioTotal)} €</b>${planTotal > 0 ? ` · план <b class="num">${fmt(planTotal)} €</b>` : ''} · размещено <b class="num">${fmt(rootTotal)} €</b></span>
       ${planTotal > 0 ? `<span class="pill ${s.portfolioTotal - planTotal >= 0 ? 'ok' : 'p1'}">${s.portfolioTotal - planTotal >= 0 ? 'капитала хватает · излишек +' : 'капитала не хватает '}${fmt(s.portfolioTotal - planTotal)} €</span>` : '<span class="meta">впиши план в колонке «План», чтобы увидеть, хватает ли капитала</span>'}
+      ${capWhere}
     </div></div>` : ''}
   <div class="card">
     ${finIsMobile()
