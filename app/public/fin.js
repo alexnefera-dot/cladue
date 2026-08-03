@@ -93,10 +93,12 @@ function portRows(it, depth, ctx) {
       : `<td class="r num acc">${it.target != null && it.target > 0 ? fmtE(it.target) : ''}</td>`;
     const gap = (it.target != null && it.target > 0) ? it.target - it.eur : null;   // план − стало, в €
     const gapCell = `<td class="r num">${gap == null ? '' : Math.abs(gap) < 1 ? '<span class="up">✓ в плане</span>' : gap > 0 ? `<span class="down">+${fmtE(gap)} добрать</span>` : `<span class="meta">−${fmtE(-gap)} перебор</span>`}</td>`;
-    const tPct = ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;   // текущая доля (по «сейчас»)
-    const planPct = ctx?.planTotal > 0 && it.target > 0 ? it.target / ctx.planTotal * 100 : null;   // планируемая доля (по плану)
-    const shareStr = (planPct == null && tPct == null) ? '' :
-      `<span class="num" title="планируемая / текущая доля">${planPct != null ? planPct.toFixed(1) : '—'}% <span class="meta">/ ${tPct != null ? tPct.toFixed(1) : '—'}%</span></span>`;
+    // доля плана: основная — внутри своего блока, от всего целевого — мельче
+    const planPct = ctx?.planTotal > 0 && it.target > 0 ? it.target / ctx.planTotal * 100 : null;
+    const planCat = ctx?.blockTarget > 0 && it.target > 0 ? it.target / ctx.blockTarget * 100 : null;
+    const shareStr = (planPct == null && planCat == null) ? '' :
+      `${planCat != null ? `<div class="num" title="доля плана внутри своего блока">${planCat.toFixed(1)}% <span class="meta">кат.</span></div>` : ''}
+       ${planPct != null ? `<div class="${planCat != null ? 'meta' : 'num'}" title="доля плана от всего целевого">${planPct.toFixed(1)}%${planCat != null ? ' общ.' : ''}</div>` : ''}`;
     const links = [
       ...(ctx?.movesBySrc?.[path] || []).map(mv => `<div class="meta"><span class="down">→ отдать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> в «${fesc(mv.toName)}» <span class="rowbtn del" data-movedel="${mv.id}" title="убрать связку">✕</span></div>`),
       ...(ctx?.movesByDst?.[path] || []).map(mv => `<div class="meta"><span class="up">← добрать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> из «${fesc(mv.fromName)}»</div>`),
@@ -104,7 +106,7 @@ function portRows(it, depth, ctx) {
     const moveBtn = editable ? `<span class="rowbtn" data-tgtmove="${it.id}" title="переложить в другую позицию">↦ переложить</span>` : '';
     cells = `${nowCell}${becameCell}${planCell}${gapCell}
       <td style="text-align:left;min-width:180px">${links}${moveBtn}</td>
-      <td class="r" style="width:82px">${shareStr}</td>`;
+      <td class="r" style="width:92px">${shareStr}</td>`;
   } else {
     // лист без своей цены покупки прирост не показывает (он по определению 0)
     const g = it.invested != null && it.invested && !(editable && it.buy_value == null)
@@ -119,11 +121,12 @@ function portRows(it, depth, ctx) {
         ? `<td class="r num acc"><span class="pill btn" data-fcur="${it.id}:${cur}" title="сменить валюту">${cur}</span>
             <span class="ed" data-fe="items:${it.id}:value:num" title="текущая стоимость (клик)">${it.value != null ? fmt(it.value) : '—'}</span></td>`
         : `<td class="r num acc">${fmtE(it.eur)}${split}</td>`;
+    // основная доля — внутри своего блока (категории верхнего уровня), от всего портфеля — мельче
     const pTot = ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
-    const pPar = depth > 0 && ctx?.parentEur > 0 && it.eur > 0 ? it.eur / ctx.parentEur * 100 : null;
-    const shareCell = `<td class="r" style="width:84px">
-      ${pTot != null ? `<div class="num">${pTot.toFixed(1)}%</div>` : ''}
-      ${pPar != null ? `<div class="meta" title="доля внутри родительской категории">${pPar.toFixed(0)}% катег.</div>` : ''}</td>`;
+    const pCat = ctx?.blockEur > 0 && it.eur > 0 ? it.eur / ctx.blockEur * 100 : null;
+    const shareCell = `<td class="r" style="width:92px">
+      ${pCat != null ? `<div class="num" title="доля внутри своего блока">${pCat.toFixed(1)}% <span class="meta">кат.</span></div>` : ''}
+      ${pTot != null ? `<div class="${pCat != null ? 'meta' : 'num'}" title="доля от всего портфеля">${pTot.toFixed(1)}%${pCat != null ? ' общ.' : ''}</div>` : ''}</td>`;
     cells = `<td class="r num muted ${editable ? 'ed' : ''}" ${editable ? `data-fe="items:${it.id}:buy_value:num" title="цена покупки в валюте позиции (${fesc(cur)}) · не задана — равна текущей"` : ''}>${editable ? (it.buy_value != null ? fmt(it.buy_value) + ' ' + fesc(cur) : (it.value != null ? '≈ ' + fmt(it.value) + ' ' + fesc(cur) : '—')) : (it.invested != null ? fmt(it.invested) + ' €' : '')}</td>
       <td class="r num">${g != null ? `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</span>` : ''}</td>
       ${valueCell}
@@ -150,7 +153,7 @@ function portRows(it, depth, ctx) {
       ${!target && editable ? `<span class="rowbtn" data-loanflag="${it.id}:${it.is_loan ? 1 : 0}" title="${it.is_loan ? 'убрать значок займа' : 'пометить как займ'}">🤝</span>` : ''}
       <span class="rowbtn del" data-findel="${pfx}:${it.id}">✕</span>
     </td>
-  </tr>` + (folded ? '' : it.children.map(c => portRows(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, parentEur: it.eur, tgt: target, factByPath: ctx?.factByPath, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
+  </tr>` + (folded ? '' : it.children.map(c => portRows(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, parentEur: it.eur, blockEur: depth === 0 ? it.eur : ctx?.blockEur, blockTarget: depth === 0 ? it.target : ctx?.blockTarget, tgt: target, factByPath: ctx?.factByPath, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
 }
 
 const finIsMobile = () => window.matchMedia('(max-width: 768px)').matches;
@@ -176,10 +179,11 @@ function portCard(it, depth, ctx) {
     : `<span class="num">${fmtE(it.eur)}</span>`;
   const g = (!target && it.invested != null && it.invested && !(editable && it.buy_value == null)) ? (it.investedCur - it.invested) / it.invested * 100 : null;
   const pTot = !target && ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
+  const pCat = !target && ctx?.blockEur > 0 && it.eur > 0 ? it.eur / ctx.blockEur * 100 : null;   // внутри своего блока
   let meta;
   if (target) {
     const path = (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase();
-    const tPct = ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
+    const planCat = ctx?.blockTarget > 0 && it.target > 0 ? it.target / ctx.blockTarget * 100 : null;   // доля плана внутри блока
     const planPct = ctx?.planTotal > 0 && it.target > 0 ? it.target / ctx.planTotal * 100 : null;
     // в базе value уже с переливами: крупным числом показываем старт, «стало» — рядом в мете
     const net = ctx?.netByPath?.[path] || 0;
@@ -200,11 +204,12 @@ function portCard(it, depth, ctx) {
       ...(ctx?.movesBySrc?.[path] || []).map(mv => `<span class="meta"><span class="down">→ отдать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> в «${fesc(mv.toName)}» <span class="rowbtn del" data-movedel="${mv.id}" title="убрать связку">✕</span></span>`),
       ...(ctx?.movesByDst?.[path] || []).map(mv => `<span class="meta"><span class="up">← добрать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> из «${fesc(mv.fromName)}»</span>`),
     ].join(' ');
-    const shareStr = (planPct == null && tPct == null) ? '' : `<span class="meta" title="планируемая / текущая доля">доля ${planPct != null ? planPct.toFixed(1) : '—'}% / ${tPct != null ? tPct.toFixed(1) : '—'}%</span>`;
+    const shareStr = (planPct == null && planCat == null) ? '' : `<span class="meta" title="доля плана: от своего блока / от всего целевого">доля ${planCat != null ? `<b>${planCat.toFixed(1)}% кат.</b>` : ''}${planPct != null ? ` ${planPct.toFixed(1)}% общ.` : ''}</span>`;
     meta = `${becameStr} ${planStr} ${gapStr}${links ? '<br>' + links : ''} ${shareStr}`;
   } else {
     meta = `${g != null ? `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</span>` : ''}
-       ${pTot != null ? `<span class="meta">${pTot.toFixed(1)}% портфеля</span>` : ''}
+       ${pCat != null ? `<span class="meta" title="доля внутри своего блока"><b>${pCat.toFixed(1)}% кат.</b></span>` : ''}
+       ${pTot != null ? `<span class="meta" title="доля от всего портфеля">${pTot.toFixed(1)}%${pCat != null ? ' общ.' : ' портфеля'}</span>` : ''}
        ${it.is_loan ? '<span class="pill p2">🤝</span>' : ''}
        ${it.rate_symbol ? `<span class="pill btn" data-fqty="${it.id}">${it.qty ?? '?'}×${fesc(it.rate_symbol)}</span>` : ''}`;
   }
@@ -222,7 +227,7 @@ function portCard(it, depth, ctx) {
       <span class="pc-val">${val}</span>
     </div>
     <div class="pc-meta">${meta}${folded ? `<span class="meta">· ${it.children.length} внутри</span>` : ''}<span class="pc-actions">${actions}</span></div>
-  </div>` + (folded ? '' : it.children.map(c => portCard(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, parentEur: it.eur, tgt: target, factByPath: ctx?.factByPath, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
+  </div>` + (folded ? '' : it.children.map(c => portCard(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, parentEur: it.eur, blockEur: depth === 0 ? it.eur : ctx?.blockEur, blockTarget: depth === 0 ? it.target : ctx?.blockTarget, tgt: target, factByPath: ctx?.factByPath, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
 }
 
 // диаграмма аллокации: доли с процентами внутри, каждая своим цветом
@@ -354,8 +359,8 @@ function secPortfolio(d, s) {
       ? `<div class="pcards">${tree.map(b => portCard(b, 0, rctx)).join('') || '<div class="empty">пусто</div>'}</div>`
       : `<table class="fintable porttable">
       ${tgt
-        ? '<tr><th>Название</th><th class="r" title="старт — до перестановок">Сейчас</th><th class="r" title="после всех транзакций в и из">Стало</th><th class="r">План</th><th class="r" title="план − стало">До цели</th><th class="r">Ребаланс</th><th class="r" title="планируемая / текущая">Доля пл/тек</th><th></th></tr>'
-        : '<tr><th>Название</th><th class="r">Покупка</th><th class="r">Прирост</th><th class="r">Текущая</th><th class="r">Доля</th><th></th></tr>'}
+        ? '<tr><th>Название</th><th class="r" title="старт — до перестановок">Сейчас</th><th class="r" title="после всех транзакций в и из">Стало</th><th class="r">План</th><th class="r" title="план − стало">До цели</th><th class="r">Ребаланс</th><th class="r" title="доля плана: от своего блока / от всего целевого">Доля плана</th><th></th></tr>'
+        : '<tr><th>Название</th><th class="r">Покупка</th><th class="r">Прирост</th><th class="r">Текущая</th><th class="r" title="от своего блока / от всего портфеля">Доля</th><th></th></tr>'}
       ${tree.map(b => portRows(b, 0, rctx)).join('') || '<tr><td colspan="8"><div class="empty">пусто</div></td></tr>'}
     </table>`}
     ${tgt ? `<div class="task finadd" style="margin-top:6px"><input id="tgt_block" placeholder="новый блок целевого" style="flex:1"><span class="pill btn ok" data-tgtadd="block:">＋ блок</span><span class="pill btn" id="tgtSyncNow" title="подтянуть «Сейчас» из Факта по совпадающим позициям (чего нет в Факте — не трогаем)">⟳ Сейчас из Факта</span></div>`
