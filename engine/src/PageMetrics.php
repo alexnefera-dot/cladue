@@ -57,6 +57,12 @@ final class PageMetrics
         // девять семейств подряд, дали 0–2%: счётчик списков складывал ul и ol
         // в одно число, и тип никогда не проверялся.
         'ordered_pct' => ['нумерованных списков %', 1],
+        // У образцов три четверти анкоров встречаются ровно один раз: анкор —
+        // это слово внутри предложения, в нужном падеже («регистрацию»,
+        // «зарегистрировался», «зеркальную ссылку»). У нас — четверть: промпт
+        // задаёт анкоры списком с кратностью, и они вставляются словарной
+        // формой. Список промпта — это минимальный словарь, а не разнарядка.
+        'anchor_once_pct' => ['разовых анкоров %', 1],
         'paragraphs' => ['абзацев', 0], 'words_per_para' => ['слов в абзаце', 1],
         'games_named' => ['названий игр', 0], 'providers_named' => ['названий студий', 0],
         'terms_total' => ['профильных терминов', 0],
@@ -197,6 +203,16 @@ final class PageMetrics
             'table_cols' => $cols ? round(array_sum($cols) / count($cols), 1) : 0,
             'table_uniq_pct' => $headers ? round(count(array_unique($headers)) / count($headers) * 100, 1) : 0,
             // По разметке, а где её нет — по формуле «Имя / дата / оценка»
+            'anchor_once_pct' => (function () use ($noScript) {
+                if (!preg_match_all('~<a\b[^>]*>(.*?)</a>~is', $noScript, $am)) { return 0; }
+                $c = [];
+                foreach ($am[1] as $x) {
+                    $t = mb_strtolower(trim(preg_replace('~\s+~u', ' ', strip_tags($x))));
+                    if ($t !== '') { $c[$t] = ($c[$t] ?? 0) + 1; }
+                }
+                if (!$c) { return 0; }
+                return round(count(array_filter($c, fn($n) => $n === 1)) / count($c) * 100, 1);
+            })(),
             'ordered_pct' => (function () use ($noScript) {
                 $ol = preg_match_all('~<ol\b~i', $noScript);
                 $ul = preg_match_all('~<ul\b~i', $noScript);
