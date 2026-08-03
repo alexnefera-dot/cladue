@@ -80,12 +80,22 @@ final class Stylistics
             'latin'  => preg_match_all('/(?<![\p{L}])' . preg_quote($bl, '/') . '(?![\p{L}])/u', $low),
         ];
 
-        // чужие бренды (остаток шаблона)
+        // Чужие бренды (остаток шаблона). Названия игр вырезаются заранее:
+        // «Sweet» и «Gold» — сами по себе казино-бренды, и внутри «Sweet
+        // Bonanza 1000» и «Wolf Gold» они давали ложное срабатывание. Тайтлы
+        // предписаны фактурой промпта, а генерация из-за этого их выбрасывала —
+        // два самых частых названия корпуса уходили из текста.
+        $lowNoGames = $low;
+        if (class_exists('NicheLexicon')) {
+            [$provRe, $gameRe] = NicheLexicon::patterns();
+            if ($gameRe !== '') { $lowNoGames = (string) preg_replace('~' . $gameRe . '~ui', ' ', $lowNoGames); }
+            if ($provRe !== '') { $lowNoGames = (string) preg_replace('~' . $provRe . '~ui', ' ', $lowNoGames); }
+        }
         $foreign = [];
         foreach ($brandNames as $bn) {
             $bnl = mb_strtolower((string) $bn, 'UTF-8');
             if ($bnl === $bl || mb_strlen($bnl, 'UTF-8') < 4) { continue; }
-            if (preg_match('/(?<![\p{L}\d])' . preg_quote($bnl, '/') . '(?![\p{L}\d])/u', $low)) {
+            if (preg_match('/(?<![\p{L}\d])' . preg_quote($bnl, '/') . '(?![\p{L}\d])/u', $lowNoGames)) {
                 $foreign[] = $bn;
                 if (count($foreign) >= 5) { break; }
             }

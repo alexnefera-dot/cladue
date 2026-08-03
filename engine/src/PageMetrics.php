@@ -35,6 +35,12 @@ final class PageMetrics
         // тексту страницы.
         'faq_pairs' => ['пар «вопрос-ответ»', 0],
         'questions_total' => ['вопросов в тексте', 0],
+        // Опорные формулы и зачин — защита от «синонимизации ради тошноты»:
+        // плотность лексики у нас совпадала с образцом, а повтор уходил на
+        // служебные слова вместо ключей темы.
+        'anchors' => ['опорных формул', 0],
+        'opener_name' => ['зачин: имя с категорией', 1],
+        'opener_key' => ['зачин: ключ в начале', 1],
         'paragraphs' => ['абзацев', 0], 'words_per_para' => ['слов в абзаце', 1],
         'games_named' => ['названий игр', 0], 'providers_named' => ['названий студий', 0],
         'terms_total' => ['профильных терминов', 0],
@@ -46,6 +52,25 @@ final class PageMetrics
     ];
 
     public const SIGNALS = ['h3_per_h2', 'h2_len', 'h2_quest', 'cta', 'honest'];
+
+    /**
+     * Опорные формулы ниши. Список не выдуман: это словосочетания, которые
+     * нашлись у ВСЕХ восьми образцов корпуса при поиске общих n-грамм, — то
+     * есть скелет жанра, не зависящий от того, дневник это или реклама. Наши
+     * наборы держали их на 30–50% от образца, заменяя синонимами ради тошноты:
+     * «игровые автоматы» становились «слотами», «бонусы» — «поощрениями».
+     */
+    public const ANCHORS = [
+        '~\bофициальн\w+ сайт~ui',
+        '~\bигров\w+ автомат~ui',
+        '~\bбонус\w*\s+и\s+промокод~ui',
+        '~\bможно ли\b~ui',
+        '~\bличн\w+ кабинет~ui',
+        '~\bзеркал\w+ сайт~ui',
+        '~\bвывод\w*\s+средств~ui',
+        '~\bответы на\b~ui',
+        '~\bвход в\b~ui',
+    ];
 
     public static function fields(bool $withSignals): array
     {
@@ -116,11 +141,25 @@ final class PageMetrics
         }
         $fullText = trim(preg_replace('~\s+~u', ' ', strip_tags($noScript)));
 
+        $anchors = 0;
+        foreach (self::ANCHORS as $re) { $anchors += preg_match_all($re, $fullText); }
+
+        // Зачин: у всех восьми образцов первое предложение — имя бренда с
+        // категорией, а «официальный сайт» стоит в первых полусотне слов.
+        $first50 = implode(' ', array_slice(preg_split('~\s+~u', $fullText, -1, PREG_SPLIT_NO_EMPTY), 0, 50));
+        $nameRe  = '~^\s*(?:казино\s+|casino\s+)?(?:%brand_name_(?:ru|en)%'
+            . ($brand['ru'] !== '' ? '|' . preg_quote($brand['ru'], '~') : '')
+            . ($brand['en'] !== '' ? '|' . preg_quote($brand['en'], '~') : '')
+            . ')(?:\s+(?:казино|casino))?\s*[.!:—-]~ui';
+
         return [
             'brand_in_h' => $inH,
             'brand_first_third' => preg_match_all($brandRe, $head),
             'faq_pairs' => $faqPairs,
             'questions_total' => substr_count($fullText, '?'),
+            'anchors' => $anchors,
+            'opener_name' => preg_match($nameRe, $fullText) ? 1 : 0,
+            'opener_key' => preg_match('~официальн~ui', $first50) ? 1 : 0,
             'h3_per_h2' => $hs ? round($h3n / count($hs), 1) : 0,
             'h2_len' => $hs ? round(array_sum(array_map(fn($x) => count(preg_split('~\s+~u', $x, -1, PREG_SPLIT_NO_EMPTY)), $hs)) / count($hs), 1) : 0,
             'h2_quest' => $hs ? round(count(array_filter($hs, fn($x) => mb_strpos($x, '?') !== false)) / count($hs) * 100, 1) : 0,
