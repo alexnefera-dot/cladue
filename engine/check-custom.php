@@ -52,7 +52,15 @@ function measure(Analyzer $an, string $file): array
     }
     $h3 = preg_match_all('~<h3[^>]*>~i', $norm);
 
+    // Числа в таблицах против чисел россыпью: у победивших запусков значения с
+    // единицами стоят в сводках, а проза несёт суждение; у глянца наоборот.
+    $tbl = '';
+    if (preg_match_all('~<table\b.*?</table>~is', $norm, $tm)) { $tbl = implode(' ', $tm[0]); }
+    $numT = preg_match_all(RE_FACT, strip_tags($tbl));
+    $numP = preg_match_all(RE_FACT, strip_tags(preg_replace('~<table\b.*?</table>~is', ' ', $norm)));
+
     return [
+        'nums_in_tables' => ($numT + $numP) ? round($numT / ($numT + $numP) * 100, 1) : 0,
         'words' => (int) $m['words_total'], 'h2' => count($hs),
         'sections' => count($hs) + $h3,
         'lists' => (int) $m['list_count'], 'strong' => (int) $m['strong_count'],
@@ -105,11 +113,19 @@ foreach ($T as $type => $tg) {
         ['минусов',     $o['minus'], $tg['minus_min'], 'both'],
         ['призывов',    $o['cta'],   0,                'max'],
         ['вопросов в заголовках %', $o['h2_quest'], 0, 'max'],
+        // Два правила из разбора победивших запусков: эпитеты сверху ограничены,
+        // числа снизу обязаны сидеть в таблицах. Второе проверяется только там,
+        // где числа вообще есть, — иначе страница без цифр всегда «провалена».
+        ['прилагательных %', $o['adj_pct'], $tg['adj_pct_max'] ?? 12.0, 'max'],
+        ['чисел в таблицах %', $o['nums_in_tables'], $tg['nums_in_tables_pct'] ?? 60, 'min'],
     ] as [$lab, $val, $lim, $dir]) {
         $c++;
         if ($dir === 'both') {
             $ok = abs($val - $lim) <= max(0.25 * max($lim, 1), 2);
             $want = "{$lim} ±25%";
+        } elseif ($dir === 'min') {
+            $ok = $val >= $lim * 0.85;
+            $want = "≥{$lim}";
         } else {
             $ok = $val <= $lim * 1.15 + 1;
             $want = "≤{$lim}";
