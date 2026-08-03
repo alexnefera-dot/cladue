@@ -74,6 +74,12 @@ final class PageMetrics
         // подзаголовков начинается вопросительным словом («Что делать, если…»,
         // «Почему выплата идёт дольше»), а двоеточие — примерно в трети. У нас
         // наоборот: двоеточие в двух третях, вопросительных вдвое меньше.
+        // Все пять образцов открываются одинаково: абзац с именем, второй
+        // абзац, затем список-оглавление с эмодзи-маркерами. Карточка при этом
+        // писала «сразу заголовок H2, без списка-паспорта» — проверка искала
+        // <ul> в самом начале файла, а он третьим блоком, и всегда отвечала
+        // «нет». Приём был не просто не замечен, а прямо запрещён.
+        'lead_list' => ['список в зачине', 1],
         'h3_question_pct' => ['H3 с вопросительного слова %', 1],
         'h3_colon_pct' => ['H3 с двоеточием %', 1],
         'strong_lead_pct' => ['strong в начале блока %', 1],
@@ -256,6 +262,11 @@ final class PageMetrics
             'brand_ru' => substr_count($raw, '%brand_name_ru%') ?: ($brand['ru'] !== '' ? mb_substr_count(strip_tags($raw), $brand['ru']) : 0),
             'brand_en' => substr_count($raw, '%brand_name_en%') ?: ($brand['en'] !== '' ? mb_substr_count(strip_tags($raw), $brand['en']) : 0),
             'paragraphs' => count($ps),
+            'lead_list' => (function () use ($noScript) {
+                preg_match_all('~<(h2|h3|p|ul|ol|table|blockquote|dl)\b~i', $noScript, $bm);
+                $first = array_map('strtolower', array_slice($bm[1] ?? [], 0, 4));
+                return (in_array('ul', $first, true) || in_array('ol', $first, true)) ? 1 : 0;
+            })(),
             'h3_question_pct' => (function () use ($noScript) {
                 if (!preg_match_all('~<h3\b[^>]*>(.*?)</h3>~is', $noScript, $h3m)) { return 0; }
                 $tot = 0; $q = 0;
