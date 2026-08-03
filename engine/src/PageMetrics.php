@@ -47,6 +47,16 @@ final class PageMetrics
         // сорок три раза на пять наборов и две колонки.
         'table_cols' => ['колонок в таблице', 1],
         'table_uniq_pct' => ['уникальных шапок %', 1],
+        // Отзыв с именем, датой и оценкой 1–5. Приём распределяет роли: минус
+        // называет не автор, а игрок с оценкой «три из пяти», и автору не
+        // приходится критиковать площадку самому. У нас вместо этого цитата с
+        // подписью через тире — без оценки и без разметки.
+        'reviews_rated' => ['отзывов с оценкой', 0],
+        // Все восемь образцов держат 21–42% нумерованных списков: в <ol> идёт
+        // порядок действий, в <ul> — перечень без порядка. Наши наборы, все
+        // девять семейств подряд, дали 0–2%: счётчик списков складывал ul и ol
+        // в одно число, и тип никогда не проверялся.
+        'ordered_pct' => ['нумерованных списков %', 1],
         'paragraphs' => ['абзацев', 0], 'words_per_para' => ['слов в абзаце', 1],
         'games_named' => ['названий игр', 0], 'providers_named' => ['названий студий', 0],
         'terms_total' => ['профильных терминов', 0],
@@ -186,6 +196,14 @@ final class PageMetrics
             'opener_key' => preg_match('~официальн~ui', $first50) ? 1 : 0,
             'table_cols' => $cols ? round(array_sum($cols) / count($cols), 1) : 0,
             'table_uniq_pct' => $headers ? round(count(array_unique($headers)) / count($headers) * 100, 1) : 0,
+            // По разметке, а где её нет — по формуле «Имя / дата / оценка»
+            'ordered_pct' => (function () use ($noScript) {
+                $ol = preg_match_all('~<ol\b~i', $noScript);
+                $ul = preg_match_all('~<ul\b~i', $noScript);
+                return $ol + $ul ? round($ol / ($ol + $ul) * 100, 1) : 0;
+            })(),
+            'reviews_rated' => preg_match_all('~itemtype="https?://schema\.org/Comment"~i', $noScript)
+                ?: preg_match_all('~[А-ЯЁ][а-яё]{2,}\s*/\s*[^/<>]{0,24}/\s*[1-5]\b~u', $fullText),
             'h3_per_h2' => $hs ? round($h3n / count($hs), 1) : 0,
             'h2_len' => $hs ? round(array_sum(array_map(fn($x) => count(preg_split('~\s+~u', $x, -1, PREG_SPLIT_NO_EMPTY)), $hs)) / count($hs), 1) : 0,
             'h2_quest' => $hs ? round(count(array_filter($hs, fn($x) => mb_strpos($x, '?') !== false)) / count($hs) * 100, 1) : 0,
