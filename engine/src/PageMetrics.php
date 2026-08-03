@@ -79,6 +79,11 @@ final class PageMetrics
         // писала «сразу заголовок H2, без списка-паспорта» — проверка искала
         // <ul> в самом начале файла, а он третьим блоком, и всегда отвечала
         // «нет». Приём был не просто не замечен, а прямо запрещён.
+        // Словарь фактов. У образцов на весь набор два-шесть разных значений
+        // отдачи, и они повторяются; у нас семь-тринадцать — под каждое
+        // упоминание своё число. Читатель у образца видит одну и ту же цифру,
+        // у нас каждый раз новую.
+        'fact_values' => ['разных значений с %', 0],
         'lead_list' => ['список в зачине', 1],
         'h3_question_pct' => ['H3 с вопросительного слова %', 1],
         'h3_colon_pct' => ['H3 с двоеточием %', 1],
@@ -262,6 +267,10 @@ final class PageMetrics
             'brand_ru' => substr_count($raw, '%brand_name_ru%') ?: ($brand['ru'] !== '' ? mb_substr_count(strip_tags($raw), $brand['ru']) : 0),
             'brand_en' => substr_count($raw, '%brand_name_en%') ?: ($brand['en'] !== '' ? mb_substr_count(strip_tags($raw), $brand['en']) : 0),
             'paragraphs' => count($ps),
+            'fact_values' => (function () use ($fullText) {
+                preg_match_all('~\d{1,3}[.,]\d\s*%~u', $fullText, $fm);
+                return count(array_unique($fm[0] ?? []));
+            })(),
             'lead_list' => (function () use ($noScript) {
                 preg_match_all('~<(h2|h3|p|ul|ol|table|blockquote|dl)\b~i', $noScript, $bm);
                 $first = array_map('strtolower', array_slice($bm[1] ?? [], 0, 4));
