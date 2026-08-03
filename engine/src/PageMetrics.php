@@ -41,6 +41,12 @@ final class PageMetrics
         'anchors' => ['опорных формул', 0],
         'opener_name' => ['зачин: имя с категорией', 1],
         'opener_key' => ['зачин: ключ в начале', 1],
+        // Число таблиц мы воспроизводили, а таблица выходила другим объектом:
+        // у образцов шестнадцать таблиц — шестнадцать разных шапок и три
+        // колонки, третья под оценку или сравнение; у нас «Параметр | Значение»
+        // сорок три раза на пять наборов и две колонки.
+        'table_cols' => ['колонок в таблице', 1],
+        'table_uniq_pct' => ['уникальных шапок %', 1],
         'paragraphs' => ['абзацев', 0], 'words_per_para' => ['слов в абзаце', 1],
         'games_named' => ['названий игр', 0], 'providers_named' => ['названий студий', 0],
         'terms_total' => ['профильных терминов', 0],
@@ -144,6 +150,24 @@ final class PageMetrics
         $anchors = 0;
         foreach (self::ANCHORS as $re) { $anchors += preg_match_all($re, $fullText); }
 
+        // Форма таблицы: сколько колонок и повторяется ли шапка. Шапкой считаем
+        // строку <th>, а где её нет — первую строку таблицы.
+        $cols = []; $headers = [];
+        if (preg_match_all('~<table\b.*?</table>~is', $noScript, $tm2)) {
+            foreach ($tm2[0] as $tbl) {
+                preg_match_all('~<th\b[^>]*>(.*?)</th>~is', $tbl, $th);
+                $cells = $th[1];
+                if (!$cells && preg_match('~<tr\b.*?</tr>~is', $tbl, $fr)) {
+                    preg_match_all('~<td\b[^>]*>(.*?)</td>~is', $fr[0], $td);
+                    $cells = $td[1];
+                }
+                if (!$cells) { continue; }
+                $cols[] = count($cells);
+                $headers[] = mb_strtolower(implode('|', array_map(
+                    fn($c) => trim(preg_replace('~\s+~u', ' ', strip_tags($c))), $cells)));
+            }
+        }
+
         // Зачин: у всех восьми образцов первое предложение — имя бренда с
         // категорией, а «официальный сайт» стоит в первых полусотне слов.
         $first50 = implode(' ', array_slice(preg_split('~\s+~u', $fullText, -1, PREG_SPLIT_NO_EMPTY), 0, 50));
@@ -160,6 +184,8 @@ final class PageMetrics
             'anchors' => $anchors,
             'opener_name' => preg_match($nameRe, $fullText) ? 1 : 0,
             'opener_key' => preg_match('~официальн~ui', $first50) ? 1 : 0,
+            'table_cols' => $cols ? round(array_sum($cols) / count($cols), 1) : 0,
+            'table_uniq_pct' => $headers ? round(count(array_unique($headers)) / count($headers) * 100, 1) : 0,
             'h3_per_h2' => $hs ? round($h3n / count($hs), 1) : 0,
             'h2_len' => $hs ? round(array_sum(array_map(fn($x) => count(preg_split('~\s+~u', $x, -1, PREG_SPLIT_NO_EMPTY)), $hs)) / count($hs), 1) : 0,
             'h2_quest' => $hs ? round(count(array_filter($hs, fn($x) => mb_strpos($x, '?') !== false)) / count($hs) * 100, 1) : 0,
