@@ -70,6 +70,12 @@ final class PageMetrics
         // Жирным образец открывает пункт — «В надежности:», «Лимиты депозитов:»
         // — а мы выделяем кусок внутри фразы. Эмодзи у образца стоит маркером в
         // начале пункта и почти никогда в заголовке или посреди предложения.
+        // H3 совпадали по числу и длине, а строились иначе: у образца четверть
+        // подзаголовков начинается вопросительным словом («Что делать, если…»,
+        // «Почему выплата идёт дольше»), а двоеточие — примерно в трети. У нас
+        // наоборот: двоеточие в двух третях, вопросительных вдвое меньше.
+        'h3_question_pct' => ['H3 с вопросительного слова %', 1],
+        'h3_colon_pct' => ['H3 с двоеточием %', 1],
         'strong_lead_pct' => ['strong в начале блока %', 1],
         'emoji_inline' => ['эмодзи внутри фразы', 0],
         'para_spread' => ['разброс длины абзаца', 1],
@@ -250,6 +256,28 @@ final class PageMetrics
             'brand_ru' => substr_count($raw, '%brand_name_ru%') ?: ($brand['ru'] !== '' ? mb_substr_count(strip_tags($raw), $brand['ru']) : 0),
             'brand_en' => substr_count($raw, '%brand_name_en%') ?: ($brand['en'] !== '' ? mb_substr_count(strip_tags($raw), $brand['en']) : 0),
             'paragraphs' => count($ps),
+            'h3_question_pct' => (function () use ($noScript) {
+                if (!preg_match_all('~<h3\b[^>]*>(.*?)</h3>~is', $noScript, $h3m)) { return 0; }
+                $tot = 0; $q = 0;
+                foreach ($h3m[1] as $x) {
+                    $t = preg_replace('~^[^\w%]+~u', '', trim(preg_replace('~\s+~u', ' ', strip_tags($x))));
+                    if ($t === '') { continue; }
+                    $tot++;
+                    if (preg_match('~^(что|как|почему|где|когда|сколько|кто|куда|можно|зачем|нужно ли|стоит ли|чем)\b~ui', $t)) { $q++; }
+                }
+                return $tot ? round($q / $tot * 100, 1) : 0;
+            })(),
+            'h3_colon_pct' => (function () use ($noScript) {
+                if (!preg_match_all('~<h3\b[^>]*>(.*?)</h3>~is', $noScript, $h3m)) { return 0; }
+                $tot = 0; $c = 0;
+                foreach ($h3m[1] as $x) {
+                    $t = trim(preg_replace('~\s+~u', ' ', strip_tags($x)));
+                    if ($t === '') { continue; }
+                    $tot++;
+                    if (mb_strpos($t, ':') !== false || mb_strpos($t, '—') !== false) { $c++; }
+                }
+                return $tot ? round($c / $tot * 100, 1) : 0;
+            })(),
             'strong_lead_pct' => (function () use ($noScript) {
                 $tot = 0; $lead = 0;
                 if (preg_match_all('~<(li|p|dd|td)\b[^>]*>(.*?)</\1>~is', $noScript, $bm, PREG_SET_ORDER)) {
