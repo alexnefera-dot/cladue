@@ -67,6 +67,11 @@ final class PageMetrics
         // доли, а разброс был вдвое меньше. У образца абзацы от шести слов до
         // ста сорока — короткая реплика рядом с развёрнутой мыслью; у нас все
         // ровно по средней. Считаем и разброс, и края.
+        // Жирным образец открывает пункт — «В надежности:», «Лимиты депозитов:»
+        // — а мы выделяем кусок внутри фразы. Эмодзи у образца стоит маркером в
+        // начале пункта и почти никогда в заголовке или посреди предложения.
+        'strong_lead_pct' => ['strong в начале блока %', 1],
+        'emoji_inline' => ['эмодзи внутри фразы', 0],
         'para_spread' => ['разброс длины абзаца', 1],
         'para_short' => ['коротких абзацев', 0],
         'paragraphs' => ['абзацев', 0], 'words_per_para' => ['слов в абзаце', 1],
@@ -245,6 +250,34 @@ final class PageMetrics
             'brand_ru' => substr_count($raw, '%brand_name_ru%') ?: ($brand['ru'] !== '' ? mb_substr_count(strip_tags($raw), $brand['ru']) : 0),
             'brand_en' => substr_count($raw, '%brand_name_en%') ?: ($brand['en'] !== '' ? mb_substr_count(strip_tags($raw), $brand['en']) : 0),
             'paragraphs' => count($ps),
+            'strong_lead_pct' => (function () use ($noScript) {
+                $tot = 0; $lead = 0;
+                if (preg_match_all('~<(li|p|dd|td)\b[^>]*>(.*?)</\1>~is', $noScript, $bm, PREG_SET_ORDER)) {
+                    foreach ($bm as $b) {
+                        $n = preg_match_all('~<strong\b~i', $b[2]);
+                        if (!$n) { continue; }
+                        $tot += $n;
+                        if (preg_match('~^\s*<strong\b~i', $b[2])) { $lead++; }
+                    }
+                }
+                return $tot ? round($lead / $tot * 100, 1) : 0;
+            })(),
+            'emoji_inline' => (function () use ($noScript) {
+                // Эмодзи в начале пункта — это маркер, он у образца и есть.
+                // Считаем только те, что стоят ВНУТРИ фразы.
+                $any   = '~[\x{1F000}-\x{1FAFF}\x{2600}-\x{27BF}\x{2B00}-\x{2BFF}]~u';
+                $first = '~^[\x{1F000}-\x{1FAFF}\x{2600}-\x{27BF}\x{2B00}-\x{2BFF}]~u';
+                $n = 0;
+                if (preg_match_all('~<(li|p)\b[^>]*>(.*?)</\1>~is', $noScript, $bm, PREG_SET_ORDER)) {
+                    foreach ($bm as $b) {
+                        $t = trim(preg_replace('~\s+~u', ' ', strip_tags($b[2])));
+                        $all = preg_match_all($any, $t);
+                        if (!$all) { continue; }
+                        $n += $all - (preg_match($first, $t) ? 1 : 0);
+                    }
+                }
+                return $n;
+            })(),
             'para_spread' => (function () use ($ps) {
                 if (count($ps) < 2) { return 0; }
                 $len = array_map(fn($x) => count(preg_split('~\s+~u', $x, -1, PREG_SPLIT_NO_EMPTY)), $ps);
