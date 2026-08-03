@@ -63,6 +63,12 @@ final class PageMetrics
         // задаёт анкоры списком с кратностью, и они вставляются словарной
         // формой. Список промпта — это минимальный словарь, а не разнарядка.
         'anchor_once_pct' => ['разовых анкоров %', 1],
+        // Ловушка среднего: длина абзаца у нас совпадала с образцом до десятой
+        // доли, а разброс был вдвое меньше. У образца абзацы от шести слов до
+        // ста сорока — короткая реплика рядом с развёрнутой мыслью; у нас все
+        // ровно по средней. Считаем и разброс, и края.
+        'para_spread' => ['разброс длины абзаца', 1],
+        'para_short' => ['коротких абзацев', 0],
         'paragraphs' => ['абзацев', 0], 'words_per_para' => ['слов в абзаце', 1],
         'games_named' => ['названий игр', 0], 'providers_named' => ['названий студий', 0],
         'terms_total' => ['профильных терминов', 0],
@@ -239,6 +245,16 @@ final class PageMetrics
             'brand_ru' => substr_count($raw, '%brand_name_ru%') ?: ($brand['ru'] !== '' ? mb_substr_count(strip_tags($raw), $brand['ru']) : 0),
             'brand_en' => substr_count($raw, '%brand_name_en%') ?: ($brand['en'] !== '' ? mb_substr_count(strip_tags($raw), $brand['en']) : 0),
             'paragraphs' => count($ps),
+            'para_spread' => (function () use ($ps) {
+                if (count($ps) < 2) { return 0; }
+                $len = array_map(fn($x) => count(preg_split('~\s+~u', $x, -1, PREG_SPLIT_NO_EMPTY)), $ps);
+                $mean = array_sum($len) / count($len);
+                $var = 0;
+                foreach ($len as $l) { $var += ($l - $mean) ** 2; }
+                return round(sqrt($var / count($len)), 1);
+            })(),
+            'para_short' => count(array_filter($ps,
+                fn($x) => count(preg_split('~\s+~u', $x, -1, PREG_SPLIT_NO_EMPTY)) < 15)),
             'words_per_para' => $ps ? round($wp / count($ps), 1) : 0,
             'games_named' => NicheLexicon::countGames($prose),
             'providers_named' => NicheLexicon::countProviders($prose),

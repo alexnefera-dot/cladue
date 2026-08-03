@@ -88,8 +88,10 @@ final class Stylistics
         $lowNoGames = $low;
         if (class_exists('NicheLexicon')) {
             [$provRe, $gameRe] = NicheLexicon::patterns();
-            if ($gameRe !== '') { $lowNoGames = (string) preg_replace('~' . $gameRe . '~ui', ' ', $lowNoGames); }
-            if ($provRe !== '') { $lowNoGames = (string) preg_replace('~' . $provRe . '~ui', ' ', $lowNoGames); }
+            // patterns() отдаёт готовые выражения с разделителями — оборачивать их
+            // ещё раз нельзя, иначе шаблон рвётся на первом же «~».
+            if ($gameRe !== '') { $lowNoGames = (string) preg_replace($gameRe, ' ', $lowNoGames); }
+            if ($provRe !== '') { $lowNoGames = (string) preg_replace($provRe, ' ', $lowNoGames); }
         }
         $foreign = [];
         foreach ($brandNames as $bn) {
