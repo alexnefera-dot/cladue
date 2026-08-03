@@ -27,6 +27,14 @@ final class PageMetrics
         // повторов — размазано ровным слоем. Сумма этого не показывает.
         'brand_in_h' => ['бренд в заголовках', 0],
         'brand_first_third' => ['бренд в первой трети', 0],
+        // Приём, который пятнадцать наборов подряд не воспроизвели ни разу:
+        // у всех восьми образцов на связку приходится 50–75 пар «вопрос-ответ»,
+        // у нас ноль. Не заметили потому, что прежний счётчик вопросов смотрел
+        // на текст глазами парсера, а тот не видит блоки FAQ в <div>: на главной
+        // образца 16 вопросов, счётчик показывал 3. Эти два считаются по всему
+        // тексту страницы.
+        'faq_pairs' => ['пар «вопрос-ответ»', 0],
+        'questions_total' => ['вопросов в тексте', 0],
         'paragraphs' => ['абзацев', 0], 'words_per_para' => ['слов в абзаце', 1],
         'games_named' => ['названий игр', 0], 'providers_named' => ['названий студий', 0],
         'terms_total' => ['профильных терминов', 0],
@@ -99,9 +107,20 @@ final class PageMetrics
         $words = preg_split('~\s+~u', trim(preg_replace('~\s+~u', ' ', strip_tags($noScript))), -1, PREG_SPLIT_NO_EMPTY);
         $head  = implode(' ', array_slice($words, 0, max(1, (int) (count($words) / 3))));
 
+        // Пары «вопрос-ответ». Сначала по микроразметке — так их размечают
+        // образцы; если её нет, по структуре: заголовок или термин, который
+        // кончается вопросительным знаком.
+        $faqPairs = preg_match_all('~itemtype="https?://schema\.org/[Qq]uestion"~', $noScript);
+        if ($faqPairs === 0) {
+            $faqPairs = preg_match_all('~<(h[2-4]|dt|strong)\b[^>]*>[^<]*\?\s*</\1>~iu', $noScript);
+        }
+        $fullText = trim(preg_replace('~\s+~u', ' ', strip_tags($noScript)));
+
         return [
             'brand_in_h' => $inH,
             'brand_first_third' => preg_match_all($brandRe, $head),
+            'faq_pairs' => $faqPairs,
+            'questions_total' => substr_count($fullText, '?'),
             'h3_per_h2' => $hs ? round($h3n / count($hs), 1) : 0,
             'h2_len' => $hs ? round(array_sum(array_map(fn($x) => count(preg_split('~\s+~u', $x, -1, PREG_SPLIT_NO_EMPTY)), $hs)) / count($hs), 1) : 0,
             'h2_quest' => $hs ? round(count(array_filter($hs, fn($x) => mb_strpos($x, '?') !== false)) / count($hs) * 100, 1) : 0,
