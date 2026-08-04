@@ -16,6 +16,8 @@ HERE="$(cd "$(dirname "$0")/.." && pwd)"      # папка проекта = ро
 cd "$HERE"
 RUN_USER="${SUDO_USER:-$(id -un)}"
 PORT="${PORT:-5050}"
+HOST="${HOST:-127.0.0.1}"                      # 127.0.0.1 = только туннель; 0.0.0.0 = доступ по домен:порт (PUBLIC=1)
+[ "${PUBLIC:-0}" = "1" ] && HOST="0.0.0.0"
 AUTH_USER="${AUTH_USER:-admin}"
 AUTH_PASS="${AUTH_PASS:-}"                     # задайте, чтобы включить пароль:  AUTH_PASS=... bash deploy/setup.sh
 SERVICE_NAME="xmlstock-serp"
@@ -24,13 +26,22 @@ SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 echo "──────────────────────────────────────────────"
 echo "  Проект:              $HERE"
 echo "  Пользователь службы: $RUN_USER"
-echo "  Локальный порт:      $PORT (только 127.0.0.1)"
+if [ "$HOST" = "0.0.0.0" ]; then
+  echo "  Доступ:              наружу по адресу домен:$PORT (открыт для интернета)"
+else
+  echo "  Доступ:              только 127.0.0.1:$PORT (через SSH-туннель)"
+fi
 if [ -n "$AUTH_PASS" ]; then
   echo "  Пароль интерфейса:   включён (пользователь: $AUTH_USER)"
 else
   echo "  Пароль интерфейса:   выкл. (задайте AUTH_PASS=... если выставляете наружу)"
 fi
 echo "──────────────────────────────────────────────"
+if [ "$HOST" = "0.0.0.0" ] && [ -z "$AUTH_PASS" ]; then
+  echo "⚠ Внимание: доступ открыт наружу БЕЗ пароля. Кто угодно сможет пользоваться"
+  echo "  инструментом и вашим ключом xmlstock. Лучше: PUBLIC=1 AUTH_PASS=... bash deploy/setup.sh"
+  echo
+fi
 
 # необязательные строки авторизации для systemd-юнита
 AUTH_ENV=""
@@ -72,7 +83,7 @@ Wants=network-online.target
 Type=simple
 User=$RUN_USER
 WorkingDirectory=$HERE
-Environment=HOST=127.0.0.1
+Environment=HOST=$HOST
 Environment=PORT=$PORT
 Environment=NO_BROWSER=1
 $AUTH_ENV
@@ -96,26 +107,41 @@ else
   exit 1
 fi
 
-cat <<MSG
+echo
+echo "──────────────────────────────────────────────"
+echo "  ГОТОВО. Мониторинг работает на сервере 24/7."
+echo "──────────────────────────────────────────────"
+echo
+if [ "$HOST" = "0.0.0.0" ]; then
+  SRV_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+  cat <<MSG
+Интерфейс доступен прямо по адресу (порт $PORT смотрит наружу):
 
-──────────────────────────────────────────────
-  ГОТОВО. Мониторинг работает на сервере 24/7.
-──────────────────────────────────────────────
+    http://${SRV_IP:-<IP-сервера>}:$PORT
+    http://твой-домен:$PORT        (если домен указывает A-записью на этот сервер)
 
-Чтобы открыть интерфейс у СЕБЯ на маке — прокиньте SSH-туннель
-(замените <IP-сервера> на адрес VPS):
+⚠ ОБЯЗАТЕЛЬНО откройте порт $PORT в фаерволе, иначе не откроется:
+    • ISPmanager: «Настройки → Брандмауэр» → разрешить TCP $PORT
+    • либо в консоли:
+        sudo ufw allow $PORT/tcp                                   # Ubuntu/Debian
+        sudo firewall-cmd --permanent --add-port=$PORT/tcp && sudo firewall-cmd --reload   # Alma/CentOS
+MSG
+else
+  cat <<MSG
+Открой интерфейс у СЕБЯ на маке через SSH-туннель (замените <IP-сервера>):
 
     ssh -N -L $PORT:localhost:$PORT $RUN_USER@<IP-сервера>
 
-и, не закрывая это окно, откройте в браузере:
+и в браузере:  http://localhost:$PORT
+MSG
+fi
+cat <<MSG
 
-    http://localhost:$PORT
+Управление службой:
+    sudo systemctl status  $SERVICE_NAME
+    sudo systemctl restart $SERVICE_NAME
+    sudo systemctl stop    $SERVICE_NAME
+    journalctl -u $SERVICE_NAME -f
 
-Управление службой на сервере:
-    sudo systemctl status  $SERVICE_NAME     # состояние
-    sudo systemctl restart $SERVICE_NAME     # перезапустить
-    sudo systemctl stop    $SERVICE_NAME     # остановить
-    journalctl -u $SERVICE_NAME -f           # живые логи
-
-Файлы срезов лежат в:  $HERE/output/
+Файлы срезов:  $HERE/output/
 MSG
