@@ -1247,8 +1247,9 @@ def _whois_created(regdom, timeout):
     if not _WHOIS_BIN:
         return None
     try:
-        out = subprocess.run([_WHOIS_BIN, regdom], capture_output=True,
-                             text=True, timeout=timeout).stdout or ""
+        out = subprocess.run([_WHOIS_BIN, regdom], stdout=subprocess.PIPE,
+                             stderr=subprocess.DEVNULL, universal_newlines=True,
+                             timeout=timeout).stdout or ""
     except Exception:
         return None
     m = _WHOIS_DATE_RE.search(out)

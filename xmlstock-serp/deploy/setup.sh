@@ -50,25 +50,32 @@ if [ -n "$AUTH_PASS" ]; then
 Environment=AUTH_PASS=${AUTH_PASS}"
 fi
 
-# 1) python3
-if ! command -v python3 >/dev/null 2>&1; then
-  echo "✗ Не найден python3. Установите его и повторите:"
+# 1) python (берём новейший доступный: 3.12 → … → 3.8 → python3)
+PYBIN=""
+for p in python3.12 python3.11 python3.10 python3.9 python3.8 python3; do
+  if command -v "$p" >/dev/null 2>&1; then PYBIN="$p"; break; fi
+done
+if [ -z "$PYBIN" ]; then
+  echo "✗ Не найден Python 3. Установите его и повторите:"
   echo "    Ubuntu/Debian:  sudo apt update && sudo apt install -y python3 python3-venv python3-pip"
-  echo "    Alma/CentOS:    sudo dnf install -y python3 python3-pip"
+  echo "    Alma/CentOS 8:  sudo dnf install -y python39 python39-devel   (или python3.11)"
   exit 1
 fi
+echo "  Python:              $("$PYBIN" -V 2>&1) ($PYBIN)"
+echo
 
 # 2) venv + зависимости (создаём от текущего пользователя, не от root)
 if [ ! -d .venv ]; then
-  echo "→ Создаю виртуальное окружение (.venv)…"
-  if ! python3 -m venv .venv 2>/dev/null; then
-    echo "✗ Не удалось создать venv. На Ubuntu/Debian поставьте модуль venv:"
-    echo "    sudo apt install -y python3-venv"
+  echo "→ Создаю виртуальное окружение (.venv) на $PYBIN…"
+  if ! "$PYBIN" -m venv .venv 2>/dev/null; then
+    echo "✗ Не удалось создать venv. Поставьте модуль venv:"
+    echo "    Ubuntu/Debian:  sudo apt install -y python3-venv"
+    echo "    Alma/CentOS:    sudo dnf install -y python3-virtualenv   (или python3X-venv под вашу версию)"
     exit 1
   fi
 fi
 echo "→ Ставлю зависимости (Flask, requests, openpyxl)…"
-./.venv/bin/pip install --upgrade pip >/dev/null
+./.venv/bin/pip install --upgrade pip >/dev/null 2>&1 || true
 ./.venv/bin/pip install -r requirements.txt
 
 # 3) systemd-служба

@@ -106,7 +106,8 @@
 
 ## Установка
 
-Нужен Python 3.9+.
+Нужен Python 3.6+ (на сервере с Python 3.6, как в CentOS/AlmaLinux 8, ставится
+совместимый Flask 2.x автоматически).
 
 ```bash
 cd xmlstock-serp
