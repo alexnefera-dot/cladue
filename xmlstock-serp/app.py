@@ -12,6 +12,7 @@ XMLStock SERP — локальный сборщик ТОП-выдачи Янде
 """
 
 import csv
+import hmac
 import io
 import json
 import os
@@ -32,6 +33,7 @@ from urllib.parse import urljoin, urlparse
 import requests
 from flask import (
     Flask,
+    Response,
     jsonify,
     render_template,
     request,
@@ -52,6 +54,27 @@ try:  # pragma: no cover
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 except Exception:
     pass
+
+# Необязательная защита паролем — для случая, когда инструмент выставлен наружу
+# (публичный поддомен). Включается ТОЛЬКО если задан AUTH_PASS в окружении; при
+# локальном запуске на компьютере переменной нет — защита выключена, поведение
+# не меняется. На сервере добавьте в systemd-юнит:
+#   Environment=AUTH_USER=admin
+#   Environment=AUTH_PASS=длинный_пароль
+AUTH_USER = os.environ.get("AUTH_USER") or "admin"
+AUTH_PASS = os.environ.get("AUTH_PASS") or ""
+
+
+@app.before_request
+def _require_auth():
+    if not AUTH_PASS:
+        return None
+    a = request.authorization
+    if (a and hmac.compare_digest(a.username or "", AUTH_USER)
+            and hmac.compare_digest(a.password or "", AUTH_PASS)):
+        return None
+    return Response("Требуется авторизация.", 401,
+                    {"WWW-Authenticate": 'Basic realm="xmlstock-serp"'})
 
 # Снимок последнего «Сбора ТОП» — хранится на диске, переживает перезагрузку
 # страницы и перезапуск сервера (пока не пересобрали новый).

@@ -16,6 +16,8 @@ HERE="$(cd "$(dirname "$0")/.." && pwd)"      # папка проекта = ро
 cd "$HERE"
 RUN_USER="${SUDO_USER:-$(id -un)}"
 PORT="${PORT:-5050}"
+AUTH_USER="${AUTH_USER:-admin}"
+AUTH_PASS="${AUTH_PASS:-}"                     # задайте, чтобы включить пароль:  AUTH_PASS=... bash deploy/setup.sh
 SERVICE_NAME="xmlstock-serp"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 
@@ -23,7 +25,19 @@ echo "────────────────────────�
 echo "  Проект:              $HERE"
 echo "  Пользователь службы: $RUN_USER"
 echo "  Локальный порт:      $PORT (только 127.0.0.1)"
+if [ -n "$AUTH_PASS" ]; then
+  echo "  Пароль интерфейса:   включён (пользователь: $AUTH_USER)"
+else
+  echo "  Пароль интерфейса:   выкл. (задайте AUTH_PASS=... если выставляете наружу)"
+fi
 echo "──────────────────────────────────────────────"
+
+# необязательные строки авторизации для systemd-юнита
+AUTH_ENV=""
+if [ -n "$AUTH_PASS" ]; then
+  AUTH_ENV="Environment=AUTH_USER=${AUTH_USER}
+Environment=AUTH_PASS=${AUTH_PASS}"
+fi
 
 # 1) python3
 if ! command -v python3 >/dev/null 2>&1; then
@@ -61,6 +75,7 @@ WorkingDirectory=$HERE
 Environment=HOST=127.0.0.1
 Environment=PORT=$PORT
 Environment=NO_BROWSER=1
+$AUTH_ENV
 ExecStart=$HERE/.venv/bin/python $HERE/app.py
 Restart=on-failure
 RestartSec=5
