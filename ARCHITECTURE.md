@@ -208,6 +208,63 @@ postback.php читает её из `payout`/`sum`/`amount`; валюта ниг
 «Последних постбеках» и поле `deps` в CSV-экспорте. Цвет депов — оранжевый
 (реги фиолетовые, юзеры зелёные).
 
+## Инцидент: сервер падал, error.log рос до 1.6 ГБ
+
+Симптомы: сайт периодически ложился целиком (включая редиректы), в
+`/var/www/httpd-logs/sitegrator.com.error.log` — гигабайты, в них
+`AH01220: Timeout waiting for output from CGI script`.
+
+**Причина оказалась не в коде проекта, а в конфиге PHP сайта.** В
+`/var/www/php-bin-isp-php82/www-root/sitegrator.com/site.ini` было прописано
+`extension=sqlite3.so`, но такого модуля в PHP 8.2 на сервере нет (есть только
+`pdo_sqlite.so`). Каждый запуск PHP-CGI — то есть КАЖДЫЙ клик по рефке —
+спотыкался об это и писал строку в error_log:
+
+```
+198 528 строк из 200 000 (99.3%) = PHP Warning: Unable to load dynamic library 'sqlite3.so'
+всего в логе: 3 010 777 строк, из них таймаутов CGI: 317
+```
+
+При потоке редиректов это миллионы записей на диск в час. Постоянный I/O плюс
+лишняя работа на старте PHP → под пиком Apache копил процессы → nginx получал
+`upstream timed out` и `connect() failed` → сайт лежал.
+
+Лечение (одна строка):
+```bash
+INI=/var/www/php-bin-isp-php82/www-root/sitegrator.com/site.ini
+cp $INI $INI.bak
+sed -i 's/^extension=sqlite3\.so/;extension=sqlite3.so/' $INI
+truncate -s 0 /var/www/httpd-logs/sitegrator.com.error.log
+```
+`pdo_sqlite.so` НЕ трогаем — он рабочий, и именно он нужен sqlite-ветке db.php
+(класс `SQLite3` в коде не используется, только PDO). Проект всё равно на MySQL.
+
+Результат: error.log перестал расти вообще (0 байт за минуту под нагрузкой).
+
+⚠ ispmanager может перегенерировать `site.ini` при изменении настроек PHP сайта
+через панель. Если warning вернётся — убирать sqlite3 уже в настройках
+расширений сайта в самом ispmanager.
+
+Поставлена ротация, чтобы логи в принципе не разрастались:
+`/etc/logrotate.d/sitegrator` — `size 200M`, `rotate 3`, `compress`, `copytruncate`.
+
+### Как быстро найти, кто забивает лог
+
+Не выгружать гигабайты, а схлопнуть строки по смыслу (режем pid, client и все
+числа — тогда одинаковые ошибки сгруппируются):
+
+```bash
+LOG=/var/www/httpd-logs/sitegrator.com.error.log
+tail -200000 $LOG \
+  | sed -E 's/^\[[^]]*\] //; s/\[pid [0-9]+(:tid [0-9]+)?\] //; s/\[client [^]]*\] //; s/[0-9]+/N/g' \
+  | cut -c1-110 | sort | uniq -c | sort -rn | head -12
+```
+
+Проверить, виноват ли крон (он в :00) — распределение таймаутов по минуте часа:
+```bash
+grep -F "AH01220" $LOG | awk '{print $4}' | cut -d: -f2 | sort | uniq -c | sort -rn | head
+```
+
 ## Защита от перегрузки сервера
 
 Крон делает тяжёлую работу (импорт, агрегаты, очистка), поэтому предусмотрено
