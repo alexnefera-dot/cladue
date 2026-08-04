@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Сборка без модели: что закрывается механикой</title>
+<style>
+  :root { --bg:#fff; --fg:#1a1a1a; --mut:#666; --line:#e3e3e3; --note:#f4f4f4; --ok:#2f7d32; --bad:#b3261e; --warn:#8a6a00; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#16181c; --fg:#e6e6e6; --mut:#9aa0a6; --line:#2e3238; --note:#1e2126; --ok:#7ec783; --bad:#f2b8b5; --warn:#e0c060; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:28px 20px 60px; background:var(--bg); color:var(--fg);
+         font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; }
+  .wrap { max-width:1040px; margin:0 auto; }
+  h1 { font-size:26px; margin:0 0 6px; letter-spacing:-.01em; }
+  .sub { color:var(--mut); margin:0 0 24px; font-size:14px; }
+  h2 { font-size:19px; margin:38px 0 10px; padding-top:18px; border-top:1px solid var(--line); }
+  h3 { font-size:16px; margin:22px 0 8px; }
+  table { border-collapse:collapse; width:100%; font-size:14px; margin:12px 0 8px; }
+  th,td { border:1px solid var(--line); padding:7px 10px; text-align:left; vertical-align:top; }
+  th { background:var(--note); font-weight:600; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .ok { color:var(--ok); font-weight:600; } .bad { color:var(--bad); font-weight:600; } .warn { color:var(--warn); font-weight:600; }
+  .note { background:var(--note); border-radius:8px; padding:12px 15px; font-size:14.5px; margin:12px 0; }
+  .key { border-left:4px solid var(--warn); background:var(--note); border-radius:8px; padding:14px 16px; margin:16px 0; }
+  code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13.5px; background:var(--note); padding:1px 5px; border-radius:4px; }
+  pre { background:var(--note); border-radius:8px; padding:12px 14px; overflow-x:auto; font-size:13px; line-height:1.5; }
+  .scroll { overflow-x:auto; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Сборка без модели</h1>
+<p class="sub">Что удалось сделать движком, без единого обращения к API, и где именно он упирается.</p>
+
+<div class="note"><b>Что было в движке до сегодня.</b> Локального генератора текста в проекте не оказалось: <code>src/Generator/</code> — это Planner и PromptBuilder, они собирают <b>промпты</b>, а прозу пишет реалайзер через API. Поэтому «через движок без API» означало написать сам генератор. Написан: <code>engine/sborka.php</code> плюс банк фраз <code>pools/frames.json</code>.</div>
+
+<h2>Почему именно сборщик</h2>
+<p>Два прогона вслепую показали, что разрыв держится на двух вещах, и обе — про исполнение:</p>
+<ul>
+<li><b>Объём.</b> Писатель выдал 44% целевого, и за этим потянулись шесть промахов сразу.</li>
+<li><b>Самоповтор.</b> Пишущий из одной головы пересказывает на сателлите то, что уже объяснил на главной.</li>
+</ul>
+<p>Скрипт не имеет ни того, ни другого: он не устаёт и не помнит соседнюю страницу. Это и проверялось.</p>
+
+<h2>Что получилось структурно</h2>
+<div class="scroll">
+<table>
+<tr><th>Страница</th><th>Собрано</th><th>Цель</th><th>H2</th><th>Списков</th><th>FAQ</th></tr>
+<tr><td><b>main</b></td><td class="num ok">5715</td><td class="num">5826</td><td class="num">10</td><td class="num">23</td><td class="num">10</td></tr>
+<tr><td>registracia</td><td class="num ok">1188</td><td class="num">1029</td><td class="num">2</td><td class="num">1</td><td class="num">14</td></tr>
+<tr><td>slots</td><td class="num ok">987</td><td class="num">863</td><td class="num">2</td><td class="num">3</td><td class="num">9</td></tr>
+<tr><td>bonus</td><td class="num ok">945</td><td class="num">894</td><td class="num">2</td><td class="num">5</td><td class="num">5</td></tr>
+<tr><td>vhod</td><td class="num ok">914</td><td class="num">724</td><td class="num">2</td><td class="num">2</td><td class="num">13</td></tr>
+<tr><td>app</td><td class="num ok">671</td><td class="num">549</td><td class="num">2</td><td class="num">0</td><td class="num">9</td></tr>
+<tr><td>zerkalo</td><td class="num ok">470</td><td class="num">432</td><td class="num">2</td><td class="num">2</td><td class="num">2</td></tr>
+</table>
+</div>
+<p>Объём берётся точно — то, чего человек не сделал ни разу за два прогона. Раздел никогда не открывается списком, FAQ несёт микроразметку, нумерованные списки содержат порядок действий, маркированные — перечень со <code>strong</code>-ярлыком в начале пункта.</p>
+
+<h2>Где упирается — и это измерено</h2>
+<div class="key">
+Банк содержит <b>448 рамок на 3776 слов</b>. Одному набору <code>set199</code> нужно <b>10 317 слов</b>. То есть банк покрывает <b>37% одного набора</b>. Дальше сборщик вынужден брать те же фразы второй раз — и набор начинает пересказывать сам себя.
+</div>
+<div class="scroll">
+<table>
+<tr><th>Режим</th><th>Объём</th><th>Совпадение</th><th>Перекличка внутри набора</th></tr>
+<tr><td>обычный — мешок пополняется</td><td class="num ok">5715 / 5826 на главной</td><td class="num warn">63 %</td><td class="num bad">29.5 % — провал</td></tr>
+<tr><td><code>--strict</code> — мешок не пополняется</td><td class="num bad">3169 / 10 317 всего</td><td class="num warn">59 %</td><td class="num ok">4.4 % — норма</td></tr>
+</table>
+</div>
+<p>Строгий режим и есть честный замер ёмкости: <b>банка хватает на 31% набора при чистой уникальности</b>. Для одного набора нужно около 1225 рамок — втрое больше нынешнего.</p>
+
+<h3>И второе ограничение, менее очевидное</h3>
+<p>Две сборки с разными сидами пересекаются на <b>21.4%</b> при пороге 6%. Перестановка одних и тех же предложений уникальности не создаёт: рамка сегодня — это целое предложение, и сколько её ни тасуй, шинглы совпадают.</p>
+
+<h2>Итог по совпадению</h2>
+<table>
+<tr><th>Способ</th><th>Совпадение</th><th>Перекличка</th></tr>
+<tr><td>Рукой, два прохода + доводчик</td><td class="num warn">69 %</td><td class="num bad">12.5 %</td></tr>
+<tr><td>Сборщик, обычный режим + доводчик</td><td class="num warn">63 %</td><td class="num bad">29.5 %</td></tr>
+<tr><td>Сборщик, строгий режим</td><td class="num warn">59 %</td><td class="num ok">4.4 %</td></tr>
+<tr><td>Машинный клон через API (для сравнения)</td><td class="num ok">73–78 %</td><td class="num ok">0.3–2.7 %</td></tr>
+</table>
+<div class="note">Сборщик пока слабее и руки, и API. Но он единственный из трёх берёт объём точно, и он единственный работает без внешнего сервиса. Разница между 59% и 73% — это не архитектура, а наполнение банка.</div>
+
+<h2>Что нужно сделать дальше, по порядку</h2>
+<ol>
+<li><b>Утроить банк.</b> С 448 рамок до ~1300. Это авторская работа, а не программирование: рамки пишутся руками по разделам, как сейчас.</li>
+<li><b>Вариативность внутри рамки.</b> Сегодня рамка — целое предложение. Нужны взаимозаменяемые куски: зачин, ядро, хвост — чтобы один скелет давал десятки поверхностных форм и два сида расходились по шинглам.</li>
+<li><b>Морфология под гнёзда.</b> В движке есть <code>src/Morphology.php</code>, сейчас сборщик его не использует — из-за этого гнёзда заполняются только именительным падежом.</li>
+</ol>
+<p>После первого пункта сборщик выйдет на полный объём без самоповтора. После второго — начнёт давать неограниченное число разных наборов, что и было исходной целью проекта.</p>
+
+</div>
+</body>
+</html>
