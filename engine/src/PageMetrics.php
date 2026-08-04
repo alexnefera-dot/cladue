@@ -93,6 +93,7 @@ final class PageMetrics
         'para_short' => ['коротких абзацев', 0],
         'paragraphs' => ['абзацев', 0], 'words_per_para' => ['слов в абзаце', 1],
         'games_named' => ['названий игр', 0], 'providers_named' => ['названий студий', 0],
+        'names_uniq' => ['разных имён игр и студий', 0],
         'terms_total' => ['профильных терминов', 0],
         'h3_per_h2'  => ['H3 на один H2', 1],
         'h2_len'     => ['слов в заголовке', 1],
@@ -339,6 +340,7 @@ final class PageMetrics
             'words_per_para' => $ps ? round($wp / count($ps), 1) : 0,
             'games_named' => NicheLexicon::countGames($prose),
             'providers_named' => NicheLexicon::countProviders($prose),
+            'names_uniq' => NicheLexicon::uniqNames($prose),
             'terms_total' => NicheLexicon::termsTotal($prose),
             'terms' => NicheLexicon::termCounts($prose),
         ];

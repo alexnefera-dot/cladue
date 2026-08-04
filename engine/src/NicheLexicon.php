@@ -178,4 +178,22 @@ final class NicheLexicon
         [, $g] = self::patterns($dataDir);
         return preg_match_all($g, $text);
     }
+
+    /**
+     * РАЗНЫХ названий, а не упоминаний. Счёт упоминаний ничего не говорит о том,
+     * один это «Sweet Bonanza» шесть раз или шесть разных игр по разу, — а
+     * образец делает именно первое: 4–7 игр на весь набор, каждая по два-три
+     * раза, читатель успевает их запомнить.
+     */
+    public static function uniqNames(string $text, ?string $dataDir = null): int
+    {
+        [$p, $g] = self::patterns($dataDir);
+        $seen = [];
+        foreach ([$p, $g] as $re) {
+            if (preg_match_all($re, $text, $m)) {
+                foreach ($m[1] as $x) { $seen[mb_strtolower(preg_replace('~\s+~u', ' ', $x))] = 1; }
+            }
+        }
+        return count($seen);
+    }
 }
