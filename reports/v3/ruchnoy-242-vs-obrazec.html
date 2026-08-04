@@ -1,0 +1,2299 @@
+<meta charset="utf-8"><title>Три набора рядом</title>
+<style>
+/* Нейтральные тона уведены в холодную сторону — под синий акцент таблиц;
+   чистый серый читался бы как «не выбирали». */
+:root{--bg:#fdfdfc;--fg:#1a1c20;--mut:#666c75;--line:#e2e4e8;--ok:#2f6f4f;--bad:#a8323f;--card:#f5f6f8;--accent:#2b5f8f}
+@media (prefers-color-scheme:dark){:root{--bg:#131519;--fg:#e6e8ec;--mut:#949aa4;--line:#282c33;--ok:#6fbf8f;--bad:#e08290;--card:#191c21;--accent:#7fb0dd}}
+:root[data-theme=dark]{--bg:#131519;--fg:#e6e8ec;--mut:#949aa4;--line:#282c33;--ok:#6fbf8f;--bad:#e08290;--card:#191c21;--accent:#7fb0dd}
+:root[data-theme=light]{--bg:#fdfdfc;--fg:#1a1c20;--mut:#666c75;--line:#e2e4e8;--ok:#2f6f4f;--bad:#a8323f;--card:#f5f6f8;--accent:#2b5f8f}
+body{background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;margin:0;padding:32px 20px}
+.wrap{max-width:1180px;margin:0 auto}
+h1{font-size:28px;line-height:1.2;margin:0 0 6px;text-wrap:balance}
+h2{font-size:20px;margin:38px 0 10px;padding-top:16px;border-top:1px solid var(--line);text-wrap:balance}
+h3{font-size:13px;margin:22px 0 8px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em}
+p.lead{color:var(--mut);margin:0 0 18px;max-width:68ch}
+.wrap>p{max-width:68ch}
+.scroll{overflow-x:auto;border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:14px;margin:10px 0;font-variant-numeric:tabular-nums}
+th,td{border-bottom:1px solid var(--line);padding:7px 12px;text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal}
+thead th{color:var(--mut);font-weight:600;font-size:13px}
+thead th:not(:first-child){color:var(--accent)}
+tbody tr:hover{background:var(--card)}
+.ok{color:var(--ok)}.bad{color:var(--bad);font-weight:700}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px}
+.card .who{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin-bottom:10px}
+.card p{margin:0}
+.q{border-left:3px solid var(--accent);padding-left:12px;color:var(--mut);font-style:italic}
+ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
+</style>
+<div class="wrap"><h1>Три набора рядом</h1>
+<p class="lead">Мерка та же, по которой идёт приёмка: 48 параметров на страницу, коридор ±25% (не меньше 2 для счётных и 0.8 для долей). Красным помечено то, что вышло за коридор относительно первой колонки.</p>
+<h2>Вычитка</h2>
+<h3>Вычитка нового набора</h3>
+<ul class="hd">
+</ul>
+<p>**Что правилось по ходу и почему.** Первый прогон дал 65%. Крупнейшая правка нашлась замером, а не глазами: у образца вопрос FAQ размечен `&lt;summary itemprop=&quot;name&quot;&gt;` внутри `&lt;details&gt;`, а не заголовком. Я поставил `&lt;h3&gt;` — и разделы раздулись вдвое: `app` дал 18 против 5 у образца, `vhod` 16 против 8. Одна замена тега сняла сразу четыре промаха.</p>
+<p>**Вторая правка того же рода.** Эмодзи в начале пункта списка (`&lt;li&gt;🎰 &lt;strong&gt;Каталог:&lt;/strong&gt;`) даёт «strong в начале блока 5.1%» вместо 74%: блок открывает эмодзи, а не выделение. Убрал эмодзи из пунктов — параметр встал на место, заодно ушёл перебор эмодзи (72 против 23).</p>
+<p>**Бренд.** Со второго захода имя ушло в заголовки сверх меры — 26 против 10 у образца. Вернул половину в прозу: «касса %brand_name_en% блокирует заявку», «заявка на вывод средств в %brand_name_en% проходит две стадии». Число упоминаний то же, расположение — как в образце.</p>
+<p>**Три новых параметра сошлись без правок.** Имена игр и студий встали на двух страницах из семи, как в образце; ни один раздел не открывается списком; перекличка страниц внутри набора — 2.15% при коридоре образца 0–6.5%.</p>
+<p>**Что осталось не выполнено — восемь промахов, и все одного рода.** Коротких абзацев на главной 10 против 19. Абзацев на `bonus`, `registracia`, `vhod` больше нормы. Прилагательных на `app` мало, на `slots` много. Водность `bonus` 32.1 против 24, тошнота `vhod` 24.3 против 16.4.</p>
+<p>Общее у них то, что это не правила, а плотности. Карточка называет число, но не даёт способа его достичь: «коротких абзацев 19» невозможно выполнить, пока пишешь связный текст. Я дописывал реплики в шесть слов механически и всё равно недобрал вдвое. Водность и тошнота получаются, а не задаются.</p>
+<p>**Оговорка о методе.** Ключ реалайзера ушёл вместе с прошлым контейнером, поэтому страницы написаны руками. Я читал весь разбор, значит часть правил выполнял по памяти, а не по карточке. 82% говорят, что цели достижимы. Достаточна ли карточка как инструкция для писателя, который видит только её, — этот замер не отвечает.</p>
+<h2>Пересечение текстов</h2>
+<p class="lead">Доля общих шестисловных отрезков. Порог приёмки — 6%; свои наборы по одному донору обычно дают 0.1–1%.</p>
+<div class="scroll"><table><thead><tr><th></th>
+<th>Образец set242</th>
+<th>Новый (по правленым карточкам)</th>
+<th>Прежний клон</th>
+</tr></thead><tbody>
+<tr><td>Образец set242</td>
+<td>—</td>
+<td>0.01%</td>
+<td>0.02%</td>
+</tr>
+<tr><td>Новый (по правленым карточкам)</td>
+<td>0.01%</td>
+<td>—</td>
+<td>0.01%</td>
+</tr>
+<tr><td>Прежний клон</td>
+<td>0.02%</td>
+<td>0.01%</td>
+<td>—</td>
+</tr>
+</tbody></table></div>
+<h2>app.html</h2><div class="scroll"><table><thead><tr><th>параметр</th>
+<th>Образец set242</th>
+<th>Новый (по правленым карточкам)</th>
+<th>Прежний клон</th>
+</tr></thead><tbody>
+<tr><td>объём слов</td>
+<td>484</td>
+<td class="ok">469</td>
+<td class="ok">508</td>
+</tr>
+<tr><td>H2</td>
+<td>2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>разделов H2+H3</td>
+<td>5</td>
+<td class="ok">4</td>
+<td class="ok">5</td>
+</tr>
+<tr><td>списков</td>
+<td>2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>strong</td>
+<td>5</td>
+<td class="ok">3</td>
+<td class="ok">6</td>
+</tr>
+<tr><td>вопросительных знаков</td>
+<td>3</td>
+<td class="ok">2</td>
+<td class="ok">3</td>
+</tr>
+<tr><td>эмодзи</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>«я»</td>
+<td>1</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>«вы»</td>
+<td>8</td>
+<td class="bad">1</td>
+<td class="ok">9</td>
+</tr>
+<tr><td>императивов</td>
+<td>23</td>
+<td class="bad">7</td>
+<td class="ok">18</td>
+</tr>
+<tr><td>цифр на 100 слов</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>прилагательных %</td>
+<td>13.8</td>
+<td class="bad">9.8</td>
+<td class="ok">13</td>
+</tr>
+<tr><td>тошнота %</td>
+<td>20.2</td>
+<td class="ok">22</td>
+<td class="ok">18.7</td>
+</tr>
+<tr><td>водность %</td>
+<td>32</td>
+<td class="ok">32.8</td>
+<td class="ok">29.9</td>
+</tr>
+<tr><td>бренд кириллицей</td>
+<td>1</td>
+<td class="ok">0</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>бренд латиницей</td>
+<td>8</td>
+<td class="ok">6</td>
+<td class="ok">8</td>
+</tr>
+<tr><td>бренд в заголовках</td>
+<td>3</td>
+<td class="ok">2</td>
+<td class="ok">3</td>
+</tr>
+<tr><td>бренд в первой трети</td>
+<td>6</td>
+<td class="ok">4</td>
+<td class="ok">5</td>
+</tr>
+<tr><td>пар «вопрос-ответ»</td>
+<td>14</td>
+<td class="ok">14</td>
+<td class="bad">3</td>
+</tr>
+<tr><td>вопросов в тексте</td>
+<td>17</td>
+<td class="ok">16</td>
+<td class="bad">3</td>
+</tr>
+<tr><td>опорных формул</td>
+<td>6</td>
+<td class="ok">5</td>
+<td class="bad">1</td>
+</tr>
+<tr><td>зачин: имя с категорией</td>
+<td>1</td>
+<td class="bad">0</td>
+<td class="bad">0</td>
+</tr>
+<tr><td>зачин: ключ в начале</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>колонок в таблице</td>
+<td>2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>уникальных шапок %</td>
+<td>100</td>
+<td class="ok">100</td>
+<td class="ok">100</td>
+</tr>
+<tr><td>отзывов с оценкой</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>нумерованных списков %</td>
+<td>50</td>
+<td class="ok">50</td>
+<td class="bad">0</td>
+</tr>
+<tr><td>разовых анкоров %</td>
+<td>100</td>
+<td class="bad">0</td>
+<td class="ok">100</td>
+</tr>
+<tr><td>разных значений с %</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>список в зачине</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>раздел открыт абзацем %</td>
+<td>100</td>
+<td class="ok">100</td>
+<td class="ok">100</td>
+</tr>
+<tr><td>H3 с вопросительного слова %</td>
+<td>100</td>
+<td class="bad">50</td>
+<td class="bad">0</td>
+</tr>
+<tr><td>H3 с двоеточием %</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="bad">100</td>
+</tr>
+<tr><td>strong в начале блока %</td>
+<td>60</td>
+<td class="ok">66.7</td>
+<td class="bad">100</td>
+</tr>
+<tr><td>эмодзи внутри фразы</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>разброс длины абзаца</td>
+<td>10</td>
+<td class="ok">9.3</td>
+<td class="bad">4.1</td>
+</tr>
+<tr><td>коротких абзацев</td>
+<td>14</td>
+<td class="ok">17</td>
+<td class="bad">6</td>
+</tr>
+<tr><td>абзацев</td>
+<td>21</td>
+<td class="ok">24</td>
+<td class="ok">19</td>
+</tr>
+<tr><td>слов в абзаце</td>
+<td>17</td>
+<td class="ok">15</td>
+<td class="ok">16.3</td>
+</tr>
+<tr><td>названий игр</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>названий студий</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>разных имён игр и студий</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>профильных терминов</td>
+<td>10</td>
+<td class="ok">12</td>
+<td class="ok">9</td>
+</tr>
+<tr><td>H3 на один H2</td>
+<td>1.5</td>
+<td class="ok">1</td>
+<td class="ok">1.5</td>
+</tr>
+<tr><td>слов в заголовке</td>
+<td>7.5</td>
+<td class="bad">5.5</td>
+<td class="bad">9.5</td>
+</tr>
+<tr><td>заголовков-вопросов %</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>прямых призывов</td>
+<td>1</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>мест с минусом или риском</td>
+<td>4</td>
+<td class="ok">4</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>бренд в заголовках %</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr><td style="color:var(--mut)">· лимит</td>
+<td>7</td>
+<td>1</td>
+<td>4</td>
+</tr>
+<tr><td style="color:var(--mut)">· депозит</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+</tr>
+<tr><td style="color:var(--mut)">· ставка/спин</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+</tr>
+<tr><td style="color:var(--mut)">· промокод</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+</tr>
+<tr><td style="color:var(--mut)">· вейджер/отыгрыш</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr><td style="color:var(--mut)">· множитель</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr><td style="color:var(--mut)">· верификация/KYC</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr><td style="color:var(--mut)">· лицензия</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr><td style="color:var(--mut)">· вывод средств</td>
+<td>0</td>
+<td>2</td>
+<td>2</td>
+</tr>
+<tr><td style="color:var(--mut)">· зеркало/домен</td>
+<td>0</td>
+<td>2</td>
+<td>0</td>
+</tr>
+</tbody></table></div>
+<h2>bonus.html</h2><div class="scroll"><table><thead><tr><th>параметр</th>
+<th>Образец set242</th>
+<th>Новый (по правленым карточкам)</th>
+<th>Прежний клон</th>
+</tr></thead><tbody>
+<tr><td>объём слов</td>
+<td>791</td>
+<td class="ok">689</td>
+<td class="ok">796</td>
+</tr>
+<tr><td>H2</td>
+<td>2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>разделов H2+H3</td>
+<td>10</td>
+<td class="ok">12</td>
+<td class="ok">10</td>
+</tr>
+<tr><td>списков</td>
+<td>4</td>
+<td class="ok">5</td>
+<td class="ok">4</td>
+</tr>
+<tr><td>strong</td>
+<td>14</td>
+<td class="ok">12</td>
+<td class="ok">16</td>
+</tr>
+<tr><td>вопросительных знаков</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>эмодзи</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>«я»</td>
+<td>1</td>
+<td class="ok">0</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>«вы»</td>
+<td>4</td>
+<td class="ok">5</td>
+<td class="ok">4</td>
+</tr>
+<tr><td>императивов</td>
+<td>23</td>
+<td class="bad">8</td>
+<td class="ok">23</td>
+</tr>
+<tr><td>цифр на 100 слов</td>
+<td>2.5</td>
+<td class="ok">2.2</td>
+<td class="ok">2.6</td>
+</tr>
+<tr><td>прилагательных %</td>
+<td>10.1</td>
+<td class="ok">10.4</td>
+<td class="ok">11.4</td>
+</tr>
+<tr><td>тошнота %</td>
+<td>28.1</td>
+<td class="ok">26.6</td>
+<td class="ok">24.2</td>
+</tr>
+<tr><td>водность %</td>
+<td>24</td>
+<td class="bad">32.1</td>
+<td class="ok">29.5</td>
+</tr>
+<tr><td>бренд кириллицей</td>
+<td>1</td>
+<td class="ok">0</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>бренд латиницей</td>
+<td>3</td>
+<td class="ok">1</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>бренд в заголовках</td>
+<td>2</td>
+<td class="ok">1</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>бренд в первой трети</td>
+<td>2</td>
+<td class="ok">1</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>пар «вопрос-ответ»</td>
+<td>2</td>
+<td class="ok">2</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>вопросов в тексте</td>
+<td>2</td>
+<td class="ok">2</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>опорных формул</td>
+<td>4</td>
+<td class="ok">5</td>
+<td class="bad">1</td>
+</tr>
+<tr><td>зачин: имя с категорией</td>
+<td>1</td>
+<td class="bad">0</td>
+<td class="bad">0</td>
+</tr>
+<tr><td>зачин: ключ в начале</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>колонок в таблице</td>
+<td>2.8</td>
+<td class="ok">3</td>
+<td class="ok">2.3</td>
+</tr>
+<tr><td>уникальных шапок %</td>
+<td>100</td>
+<td class="ok">100</td>
+<td class="ok">100</td>
+</tr>
+<tr><td>отзывов с оценкой</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>нумерованных списков %</td>
+<td>50</td>
+<td class="ok">40</td>
+<td class="bad">0</td>
+</tr>
+<tr><td>разовых анкоров %</td>
+<td>100</td>
+<td class="bad">0</td>
+<td class="ok">100</td>
+</tr>
+<tr><td>разных значений с %</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>список в зачине</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>раздел открыт абзацем %</td>
+<td>100</td>
+<td class="ok">100</td>
+<td class="ok">100</td>
+</tr>
+<tr><td>H3 с вопросительного слова %</td>
+<td>12.5</td>
+<td class="bad">30</td>
+<td class="bad">37.5</td>
+</tr>
+<tr><td>H3 с двоеточием %</td>
+<td>75</td>
+<td class="bad">30</td>
+<td class="ok">87.5</td>
+</tr>
+<tr><td>strong в начале блока %</td>
+<td>85.7</td>
+<td class="ok">100</td>
+<td class="ok">93.8</td>
+</tr>
+<tr><td>эмодзи внутри фразы</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>разброс длины абзаца</td>
+<td>17.9</td>
+<td class="ok">14</td>
+<td class="ok">15</td>
+</tr>
+<tr><td>коротких абзацев</td>
+<td>4</td>
+<td class="ok">3</td>
+<td class="bad">1</td>
+</tr>
+<tr><td>абзацев</td>
+<td>11</td>
+<td class="bad">14</td>
+<td class="ok">13</td>
+</tr>
+<tr><td>слов в абзаце</td>
+<td>27.2</td>
+<td class="ok">30.1</td>
+<td class="ok">32.7</td>
+</tr>
+<tr><td>названий игр</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>названий студий</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>разных имён игр и студий</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>профильных терминов</td>
+<td>17</td>
+<td class="ok">20</td>
+<td class="ok">18</td>
+</tr>
+<tr><td>H3 на один H2</td>
+<td>4</td>
+<td class="ok">5</td>
+<td class="ok">4</td>
+</tr>
+<tr><td>слов в заголовке</td>
+<td>9</td>
+<td class="bad">5.5</td>
+<td class="bad">5.5</td>
+</tr>
+<tr><td>заголовков-вопросов %</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>прямых призывов</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>мест с минусом или риском</td>
+<td>1</td>
+<td class="bad">7</td>
+<td class="bad">5</td>
+</tr>
+<tr><td>бренд в заголовках %</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr><td style="color:var(--mut)">· отдача/выплаты</td>
+<td>1</td>
+<td>2</td>
+<td>1</td>
+</tr>
+<tr><td style="color:var(--mut)">· вейджер/отыгрыш</td>
+<td>4</td>
+<td>2</td>
+<td>3</td>
+</tr>
+<tr><td style="color:var(--mut)">· лимит</td>
+<td>1</td>
+<td>0</td>
+<td>2</td>
+</tr>
+<tr><td style="color:var(--mut)">· депозит</td>
+<td>5</td>
+<td>3</td>
+<td>3</td>
+</tr>
+<tr><td style="color:var(--mut)">· ставка/спин</td>
+<td>3</td>
+<td>2</td>
+<td>3</td>
+</tr>
+<tr><td style="color:var(--mut)">· вывод средств</td>
+<td>1</td>
+<td>2</td>
+<td>2</td>
+</tr>
+<tr><td style="color:var(--mut)">· зеркало/домен</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr><td style="color:var(--mut)">· промокод</td>
+<td>1</td>
+<td>3</td>
+<td>1</td>
+</tr>
+<tr><td style="color:var(--mut)">· дисперсия</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr><td style="color:var(--mut)">· множитель</td>
+<td>0</td>
+<td>5</td>
+<td>0</td>
+</tr>
+<tr><td style="color:var(--mut)">· верификация/KYC</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr><td style="color:var(--mut)">· лицензия</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr><td style="color:var(--mut)">· турнир</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+</tr>
+</tbody></table></div>
+<h2>main.html</h2><div class="scroll"><table><thead><tr><th>параметр</th>
+<th>Образец set242</th>
+<th>Новый (по правленым карточкам)</th>
+<th>Прежний клон</th>
+</tr></thead><tbody>
+<tr><td>объём слов</td>
+<td>5594</td>
+<td class="ok">4852</td>
+<td class="ok">5138</td>
+</tr>
+<tr><td>H2</td>
+<td>17</td>
+<td class="ok">17</td>
+<td class="ok">17</td>
+</tr>
+<tr><td>разделов H2+H3</td>
+<td>66</td>
+<td class="ok">72</td>
+<td class="ok">66</td>
+</tr>
+<tr><td>списков</td>
+<td>29</td>
+<td class="ok">25</td>
+<td class="ok">28</td>
+</tr>
+<tr><td>strong</td>
+<td>67</td>
+<td class="ok">59</td>
+<td class="ok">65</td>
+</tr>
+<tr><td>вопросительных знаков</td>
+<td>9</td>
+<td class="ok">8</td>
+<td class="ok">9</td>
+</tr>
+<tr><td>эмодзи</td>
+<td>23</td>
+<td class="ok">21</td>
+<td class="ok">22</td>
+</tr>
+<tr><td>«я»</td>
+<td>5</td>
+<td class="ok">5</td>
+<td class="ok">6</td>
+</tr>
+<tr><td>«вы»</td>
+<td>50</td>
+<td class="bad">24</td>
+<td class="ok">57</td>
+</tr>
+<tr><td>императивов</td>
+<td>137</td>
+<td class="bad">46</td>
+<td class="ok">152</td>
+</tr>
+<tr><td>цифр на 100 слов</td>
+<td>3.2</td>
+<td class="ok">2.5</td>
+<td class="ok">2.8</td>
+</tr>
+<tr><td>прилагательных %</td>
+<td>13.1</td>
+<td class="ok">12.7</td>
+<td class="ok">11.9</td>
+</tr>
+<tr><td>тошнота %</td>
+<td>41.7</td>
+<td class="ok">44.4</td>
+<td class="ok">42.9</td>
+</tr>
+<tr><td>водность %</td>
+<td>27</td>
+<td class="ok">28.8</td>
+<td class="ok">28.5</td>
+</tr>
+<tr><td>бренд кириллицей</td>
+<td>4</td>
+<td class="ok">4</td>
+<td class="ok">3</td>
+</tr>
+<tr><td>бренд латиницей</td>
+<td>42</td>
+<td class="ok">39</td>
+<td class="ok">42</td>
+</tr>
+<tr><td>бренд в заголовках</td>
+<td>10</td>
+<td class="ok">10</td>
+<td class="ok">11</td>
+</tr>
+<tr><td>бренд в первой трети</td>
+<td>16</td>
+<td class="ok">20</td>
+<td class="ok">17</td>
+</tr>
+<tr><td>пар «вопрос-ответ»</td>
+<td>12</td>
+<td class="ok">12</td>
+<td class="ok">9</td>
+</tr>
+<tr><td>вопросов в тексте</td>
+<td>21</td>
+<td class="ok">20</td>
+<td class="bad">9</td>
+</tr>
+<tr><td>опорных формул</td>
+<td>38</td>
+<td class="bad">20</td>
+<td class="bad">23</td>
+</tr>
+<tr><td>зачин: имя с категорией</td>
+<td>1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>зачин: ключ в начале</td>
+<td>1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>колонок в таблице</td>
+<td>3.4</td>
+<td class="ok">3.2</td>
+<td class="bad">2.4</td>
+</tr>
+<tr><td>уникальных шапок %</td>
+<td>100</td>
+<td class="ok">100</td>
+<td class="bad">42.9</td>
+</tr>
+<tr><td>отзывов с оценкой</td>
+<td>3</td>
+<td class="ok">3</td>
+<td class="bad">0</td>
+</tr>
+<tr><td>нумерованных списков %</td>
+<td>31</td>
+<td class="ok">36</td>
+<td class="bad">0</td>
+</tr>
+<tr><td>разовых анкоров %</td>
+<td>71.8</td>
+<td class="bad">100</td>
+<td class="bad">19</td>
+</tr>
+<tr><td>разных значений с %</td>
+<td>5</td>
+<td class="ok">5</td>
+<td class="bad">8</td>
+</tr>
+<tr><td>список в зачине</td>
+<td>1</td>
+<td class="ok">1</td>
+<td class="bad">0</td>
+</tr>
+<tr><td>раздел открыт абзацем %</td>
+<td>81.3</td>
+<td class="ok">100</td>
+<td class="ok">100</td>
+</tr>
+<tr><td>H3 с вопросительного слова %</td>
+<td>24.5</td>
+<td class="bad">72.7</td>
+<td class="ok">30.6</td>
+</tr>
+<tr><td>H3 с двоеточием %</td>
+<td>34.7</td>
+<td class="bad">3.6</td>
+<td class="ok">36.7</td>
+</tr>
+<tr><td>strong в начале блока %</td>
+<td>74.2</td>
+<td class="ok">91.5</td>
+<td class="bad">95.4</td>
+</tr>
+<tr><td>эмодзи внутри фразы</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>разброс длины абзаца</td>
+<td>20</td>
+<td class="ok">16.6</td>
+<td class="bad">14</td>
+</tr>
+<tr><td>коротких абзацев</td>
+<td>19</td>
+<td class="bad">10</td>
+<td class="bad">1</td>
+</tr>
+<tr><td>абзацев</td>
+<td>81</td>
+<td class="ok">91</td>
+<td class="ok">93</td>
+</tr>
+<tr><td>слов в абзаце</td>
+<td>30.4</td>
+<td class="ok">34.3</td>
+<td class="ok">31</td>
+</tr>
+<tr><td>названий игр</td>
+<td>3</td>
+<td class="ok">1</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>названий студий</td>
+<td>0</td>
+<td class="ok">2</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>разных имён игр и студий</td>
+<td>3</td>
+<td class="ok">3</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>профильных терминов</td>
+<td>159</td>
+<td class="ok">176</td>
+<td class="ok">153</td>
+</tr>
+<tr><td>H3 на один H2</td>
+<td>2.9</td>
+<td class="ok">3.2</td>
+<td class="ok">2.9</td>
+</tr>
+<tr><td>слов в заголовке</td>
+<td>6.6</td>
+<td class="ok">6.8</td>
+<td class="ok">7.5</td>
+</tr>
+<tr><td>заголовков-вопросов %</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>прямых призывов</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>мест с минусом или риском</td>
+<td>18</td>
+<td class="ok">18</td>
+<td class="bad">10</td>
+</tr>
+<tr><td>бренд в заголовках %</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr><td style="color:var(--mut)">· RTP</td>
+<td>16</td>
+<td>2</td>
+<td>3</td>
+</tr>
+<tr><td style="color:var(--mut)">· отдача/выплаты</td>
+<td>9</td>
+<td>15</td>
+<td>5</td>
+</tr>
+<tr><td style="color:var(--mut)">· вейджер/отыгрыш</td>
+<td>13</td>
+<td>17</td>
+<td>16</td>
+</tr>
+<tr><td style="color:var(--mut)">· волатильность</td>
+<td>7</td>
+<td>8</td>
+<td>3</td>
+</tr>
+<tr><td style="color:var(--mut)">· фриспины</td>
+<td>2</td>
+<td>1</td>
+<td>7</td>
+</tr>
+<tr><td style="color:var(--mut)">· бонусный раунд</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr><td style="color:var(--mut)">· катушки/линии</td>
+<td>1</td>
+<td>0</td>
+<td>3</td>
+</tr>
+<tr><td style="color:var(--mut)">· механики</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr><td style="color:var(--mut)">· джекпот</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr><td style="color:var(--mut)">· лимит</td>
+<td>9</td>
+<td>12</td>
+<td>20</td>
+</tr>
+<tr><td style="color:var(--mut)">· верификация/KYC</td>
+<td>9</td>
+<td>17</td>
+<td>3</td>
+</tr>
+<tr><td style="color:var(--mut)">· лицензия</td>
+<td>10</td>
+<td>10</td>
+<td>8</td>
+</tr>
+<tr><td style="color:var(--mut)">· провайдер/студия</td>
+<td>5</td>
+<td>3</td>
+<td>3</td>
+</tr>
+<tr><td style="color:var(--mut)">· депозит</td>
+<td>6</td>
+<td>17</td>
+<td>11</td>
+</tr>
+<tr><td style="color:var(--mut)">· ставка/спин</td>
+<td>12</td>
+<td>20</td>
+<td>18</td>
+</tr>
+<tr><td style="color:var(--mut)">· турнир</td>
+<td>3</td>
+<td>3</td>
+<td>10</td>
+</tr>
+<tr><td style="color:var(--mut)">· вывод средств</td>
+<td>14</td>
+<td>18</td>
+<td>14</td>
+</tr>
+<tr><td style="color:var(--mut)">· зеркало/домен</td>
+<td>25</td>
+<td>22</td>
+<td>13</td>
+</tr>
+<tr><td style="color:var(--mut)">· промокод</td>
+<td>15</td>
+<td>5</td>
+<td>6</td>
+</tr>
+<tr><td style="color:var(--mut)">· дисперсия</td>
+<td>0</td>
+<td>2</td>
+<td>0</td>
+</tr>
+<tr><td style="color:var(--mut)">· множитель</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr><td style="color:var(--mut)">· кэшбэк</td>
+<td>0</td>
+<td>1</td>
+<td>6</td>
+</tr>
+<tr><td style="color:var(--mut)">· демо-режим</td>
+<td>0</td>
+<td>1</td>
+<td>2</td>
+</tr>
+<tr><td style="color:var(--mut)">· скаттер/вайлд</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+</tr>
+</tbody></table></div>
+<h2>registracia.html</h2><div class="scroll"><table><thead><tr><th>параметр</th>
+<th>Образец set242</th>
+<th>Новый (по правленым карточкам)</th>
+<th>Прежний клон</th>
+</tr></thead><tbody>
+<tr><td>объём слов</td>
+<td>559</td>
+<td class="ok">508</td>
+<td class="ok">646</td>
+</tr>
+<tr><td>H2</td>
+<td>2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>разделов H2+H3</td>
+<td>8</td>
+<td class="ok">7</td>
+<td class="ok">8</td>
+</tr>
+<tr><td>списков</td>
+<td>1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>strong</td>
+<td>3</td>
+<td class="ok">3</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>вопросительных знаков</td>
+<td>4</td>
+<td class="ok">4</td>
+<td class="ok">4</td>
+</tr>
+<tr><td>эмодзи</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>«я»</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>«вы»</td>
+<td>4</td>
+<td class="ok">4</td>
+<td class="ok">4</td>
+</tr>
+<tr><td>императивов</td>
+<td>6</td>
+<td class="bad">0</td>
+<td class="ok">5</td>
+</tr>
+<tr><td>цифр на 100 слов</td>
+<td>0</td>
+<td class="ok">0.4</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>прилагательных %</td>
+<td>13.2</td>
+<td class="ok">13.2</td>
+<td class="ok">12.8</td>
+</tr>
+<tr><td>тошнота %</td>
+<td>21.3</td>
+<td class="ok">22.4</td>
+<td class="ok">17.3</td>
+</tr>
+<tr><td>водность %</td>
+<td>34.9</td>
+<td class="ok">29.5</td>
+<td class="ok">36.4</td>
+</tr>
+<tr><td>бренд кириллицей</td>
+<td>1</td>
+<td class="ok">1</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>бренд латиницей</td>
+<td>3</td>
+<td class="ok">1</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>бренд в заголовках</td>
+<td>1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>бренд в первой трети</td>
+<td>3</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>пар «вопрос-ответ»</td>
+<td>7</td>
+<td class="ok">7</td>
+<td class="bad">4</td>
+</tr>
+<tr><td>вопросов в тексте</td>
+<td>11</td>
+<td class="ok">11</td>
+<td class="bad">4</td>
+</tr>
+<tr><td>опорных формул</td>
+<td>2</td>
+<td class="ok">2</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>зачин: имя с категорией</td>
+<td>1</td>
+<td class="bad">0</td>
+<td class="bad">0</td>
+</tr>
+<tr><td>зачин: ключ в начале</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>колонок в таблице</td>
+<td>3</td>
+<td class="ok">3</td>
+<td class="bad">2</td>
+</tr>
+<tr><td>уникальных шапок %</td>
+<td>100</td>
+<td class="ok">100</td>
+<td class="ok">100</td>
+</tr>
+<tr><td>отзывов с оценкой</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>нумерованных списков %</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>разовых анкоров %</td>
+<td>100</td>
+<td class="bad">0</td>
+<td class="ok">100</td>
+</tr>
+<tr><td>разных значений с %</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>список в зачине</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>раздел открыт абзацем %</td>
+<td>50</td>
+<td class="ok">50</td>
+<td class="bad">100</td>
+</tr>
+<tr><td>H3 с вопросительного слова %</td>
+<td>16.7</td>
+<td class="bad">40</td>
+<td class="ok">16.7</td>
+</tr>
+<tr><td>H3 с двоеточием %</td>
+<td>66.7</td>
+<td class="bad">20</td>
+<td class="ok">83.3</td>
+</tr>
+<tr><td>strong в начале блока %</td>
+<td>100</td>
+<td class="bad">66.7</td>
+<td class="bad">50</td>
+</tr>
+<tr><td>эмодзи внутри фразы</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>разброс длины абзаца</td>
+<td>18.6</td>
+<td class="ok">16.7</td>
+<td class="bad">12.4</td>
+</tr>
+<tr><td>коротких абзацев</td>
+<td>1</td>
+<td class="bad">5</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>абзацев</td>
+<td>11</td>
+<td class="bad">14</td>
+<td class="ok">13</td>
+</tr>
+<tr><td>слов в абзаце</td>
+<td>30.2</td>
+<td class="ok">27.4</td>
+<td class="ok">31.1</td>
+</tr>
+<tr><td>названий игр</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>названий студий</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>разных имён игр и студий</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>профильных терминов</td>
+<td>2</td>
+<td class="ok">4</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>H3 на один H2</td>
+<td>3</td>
+<td class="ok">2.5</td>
+<td class="ok">3</td>
+</tr>
+<tr><td>слов в заголовке</td>
+<td>7.5</td>
+<td class="bad">5.5</td>
+<td class="ok">7.5</td>
+</tr>
+<tr><td>заголовков-вопросов %</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>прямых призывов</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>мест с минусом или риском</td>
+<td>4</td>
+<td class="ok">4</td>
+<td class="ok">5</td>
+</tr>
+<tr><td>бренд в заголовках %</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr><td style="color:var(--mut)">· верификация/KYC</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr><td style="color:var(--mut)">· зеркало/домен</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr><td style="color:var(--mut)">· отдача/выплаты</td>
+<td>0</td>
+<td>2</td>
+<td>0</td>
+</tr>
+<tr><td style="color:var(--mut)">· лицензия</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr><td style="color:var(--mut)">· вывод средств</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+</tr>
+</tbody></table></div>
+<h2>slots.html</h2><div class="scroll"><table><thead><tr><th>параметр</th>
+<th>Образец set242</th>
+<th>Новый (по правленым карточкам)</th>
+<th>Прежний клон</th>
+</tr></thead><tbody>
+<tr><td>объём слов</td>
+<td>861</td>
+<td class="ok">785</td>
+<td class="ok">755</td>
+</tr>
+<tr><td>H2</td>
+<td>2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>разделов H2+H3</td>
+<td>10</td>
+<td class="ok">12</td>
+<td class="ok">10</td>
+</tr>
+<tr><td>списков</td>
+<td>4</td>
+<td class="ok">5</td>
+<td class="ok">4</td>
+</tr>
+<tr><td>strong</td>
+<td>19</td>
+<td class="ok">15</td>
+<td class="ok">19</td>
+</tr>
+<tr><td>вопросительных знаков</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>эмодзи</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>«я»</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>«вы»</td>
+<td>0</td>
+<td class="bad">4</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>императивов</td>
+<td>0</td>
+<td class="bad">5</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>цифр на 100 слов</td>
+<td>0.3</td>
+<td class="ok">0</td>
+<td class="ok">0.8</td>
+</tr>
+<tr><td>прилагательных %</td>
+<td>11.3</td>
+<td class="bad">14.5</td>
+<td class="ok">12.5</td>
+</tr>
+<tr><td>тошнота %</td>
+<td>25.4</td>
+<td class="ok">30.2</td>
+<td class="ok">20.3</td>
+</tr>
+<tr><td>водность %</td>
+<td>33.3</td>
+<td class="ok">26.5</td>
+<td class="ok">28.2</td>
+</tr>
+<tr><td>бренд кириллицей</td>
+<td>1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>бренд латиницей</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>бренд в заголовках</td>
+<td>0</td>
+<td class="ok">1</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>бренд в первой трети</td>
+<td>1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>пар «вопрос-ответ»</td>
+<td>5</td>
+<td class="ok">5</td>
+<td class="bad">0</td>
+</tr>
+<tr><td>вопросов в тексте</td>
+<td>5</td>
+<td class="ok">5</td>
+<td class="bad">0</td>
+</tr>
+<tr><td>опорных формул</td>
+<td>5</td>
+<td class="bad">2</td>
+<td class="bad">2</td>
+</tr>
+<tr><td>зачин: имя с категорией</td>
+<td>1</td>
+<td class="bad">0</td>
+<td class="bad">0</td>
+</tr>
+<tr><td>зачин: ключ в начале</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>колонок в таблице</td>
+<td>3</td>
+<td class="ok">3</td>
+<td class="ok">2.5</td>
+</tr>
+<tr><td>уникальных шапок %</td>
+<td>100</td>
+<td class="ok">100</td>
+<td class="ok">100</td>
+</tr>
+<tr><td>отзывов с оценкой</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>нумерованных списков %</td>
+<td>25</td>
+<td class="ok">20</td>
+<td class="bad">0</td>
+</tr>
+<tr><td>разовых анкоров %</td>
+<td>100</td>
+<td class="bad">0</td>
+<td class="ok">100</td>
+</tr>
+<tr><td>разных значений с %</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>список в зачине</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>раздел открыт абзацем %</td>
+<td>100</td>
+<td class="ok">100</td>
+<td class="ok">100</td>
+</tr>
+<tr><td>H3 с вопросительного слова %</td>
+<td>37.5</td>
+<td class="ok">40</td>
+<td class="bad">12.5</td>
+</tr>
+<tr><td>H3 с двоеточием %</td>
+<td>62.5</td>
+<td class="bad">20</td>
+<td class="bad">87.5</td>
+</tr>
+<tr><td>strong в начале блока %</td>
+<td>52.6</td>
+<td class="bad">80</td>
+<td class="bad">68.4</td>
+</tr>
+<tr><td>эмодзи внутри фразы</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>разброс длины абзаца</td>
+<td>11.3</td>
+<td class="ok">12</td>
+<td class="bad">4.6</td>
+</tr>
+<tr><td>коротких абзацев</td>
+<td>6</td>
+<td class="ok">7</td>
+<td class="bad">3</td>
+</tr>
+<tr><td>абзацев</td>
+<td>25</td>
+<td class="ok">23</td>
+<td class="ok">24</td>
+</tr>
+<tr><td>слов в абзаце</td>
+<td>24</td>
+<td class="ok">22.2</td>
+<td class="ok">20.7</td>
+</tr>
+<tr><td>названий игр</td>
+<td>1</td>
+<td class="ok">0</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>названий студий</td>
+<td>0</td>
+<td class="ok">1</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>разных имён игр и студий</td>
+<td>1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>профильных терминов</td>
+<td>20</td>
+<td class="ok">21</td>
+<td class="ok">24</td>
+</tr>
+<tr><td>H3 на один H2</td>
+<td>4</td>
+<td class="ok">5</td>
+<td class="ok">4</td>
+</tr>
+<tr><td>слов в заголовке</td>
+<td>10.5</td>
+<td class="bad">5</td>
+<td class="bad">7.5</td>
+</tr>
+<tr><td>заголовков-вопросов %</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>прямых призывов</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>мест с минусом или риском</td>
+<td>7</td>
+<td class="ok">8</td>
+<td class="bad">2</td>
+</tr>
+<tr><td>бренд в заголовках %</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr><td style="color:var(--mut)">· бонусный раунд</td>
+<td>1</td>
+<td>2</td>
+<td>2</td>
+</tr>
+<tr><td style="color:var(--mut)">· множитель</td>
+<td>2</td>
+<td>0</td>
+<td>2</td>
+</tr>
+<tr><td style="color:var(--mut)">· лимит</td>
+<td>2</td>
+<td>0</td>
+<td>2</td>
+</tr>
+<tr><td style="color:var(--mut)">· верификация/KYC</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr><td style="color:var(--mut)">· провайдер/студия</td>
+<td>2</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr><td style="color:var(--mut)">· ставка/спин</td>
+<td>8</td>
+<td>8</td>
+<td>8</td>
+</tr>
+<tr><td style="color:var(--mut)">· вывод средств</td>
+<td>2</td>
+<td>1</td>
+<td>2</td>
+</tr>
+<tr><td style="color:var(--mut)">· зеркало/домен</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr><td style="color:var(--mut)">· промокод</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr><td style="color:var(--mut)">· отдача/выплаты</td>
+<td>0</td>
+<td>3</td>
+<td>1</td>
+</tr>
+<tr><td style="color:var(--mut)">· вейджер/отыгрыш</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr><td style="color:var(--mut)">· волатильность</td>
+<td>0</td>
+<td>4</td>
+<td>1</td>
+</tr>
+<tr><td style="color:var(--mut)">· дисперсия</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr><td style="color:var(--mut)">· катушки/линии</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr><td style="color:var(--mut)">· депозит</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr><td style="color:var(--mut)">· демо-режим</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+</tr>
+</tbody></table></div>
+<h2>vhod.html</h2><div class="scroll"><table><thead><tr><th>параметр</th>
+<th>Образец set242</th>
+<th>Новый (по правленым карточкам)</th>
+<th>Прежний клон</th>
+</tr></thead><tbody>
+<tr><td>объём слов</td>
+<td>470</td>
+<td class="ok">527</td>
+<td class="ok">581</td>
+</tr>
+<tr><td>H2</td>
+<td>2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>разделов H2+H3</td>
+<td>8</td>
+<td class="ok">7</td>
+<td class="ok">8</td>
+</tr>
+<tr><td>списков</td>
+<td>3</td>
+<td class="ok">4</td>
+<td class="ok">3</td>
+</tr>
+<tr><td>strong</td>
+<td>12</td>
+<td class="ok">12</td>
+<td class="ok">11</td>
+</tr>
+<tr><td>вопросительных знаков</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>эмодзи</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>«я»</td>
+<td>1</td>
+<td class="ok">0</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>«вы»</td>
+<td>9</td>
+<td class="bad">2</td>
+<td class="ok">9</td>
+</tr>
+<tr><td>императивов</td>
+<td>18</td>
+<td class="bad">13</td>
+<td class="ok">17</td>
+</tr>
+<tr><td>цифр на 100 слов</td>
+<td>3.4</td>
+<td class="bad">2.3</td>
+<td class="ok">3.1</td>
+</tr>
+<tr><td>прилагательных %</td>
+<td>10.9</td>
+<td class="ok">12.3</td>
+<td class="ok">12</td>
+</tr>
+<tr><td>тошнота %</td>
+<td>16.4</td>
+<td class="bad">24.3</td>
+<td class="ok">18.6</td>
+</tr>
+<tr><td>водность %</td>
+<td>30.4</td>
+<td class="ok">23.7</td>
+<td class="ok">30.8</td>
+</tr>
+<tr><td>бренд кириллицей</td>
+<td>5</td>
+<td class="ok">5</td>
+<td class="ok">3</td>
+</tr>
+<tr><td>бренд латиницей</td>
+<td>1</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>бренд в заголовках</td>
+<td>1</td>
+<td class="ok">1</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>бренд в первой трети</td>
+<td>4</td>
+<td class="ok">3</td>
+<td class="ok">3</td>
+</tr>
+<tr><td>пар «вопрос-ответ»</td>
+<td>11</td>
+<td class="ok">11</td>
+<td class="bad">0</td>
+</tr>
+<tr><td>вопросов в тексте</td>
+<td>11</td>
+<td class="ok">11</td>
+<td class="bad">0</td>
+</tr>
+<tr><td>опорных формул</td>
+<td>8</td>
+<td class="bad">5</td>
+<td class="bad">4</td>
+</tr>
+<tr><td>зачин: имя с категорией</td>
+<td>1</td>
+<td class="bad">0</td>
+<td class="bad">0</td>
+</tr>
+<tr><td>зачин: ключ в начале</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>колонок в таблице</td>
+<td>3</td>
+<td class="ok">3</td>
+<td class="bad">2</td>
+</tr>
+<tr><td>уникальных шапок %</td>
+<td>100</td>
+<td class="ok">100</td>
+<td class="bad">50</td>
+</tr>
+<tr><td>отзывов с оценкой</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>нумерованных списков %</td>
+<td>33.3</td>
+<td class="ok">25</td>
+<td class="bad">0</td>
+</tr>
+<tr><td>разовых анкоров %</td>
+<td>100</td>
+<td class="bad">0</td>
+<td class="ok">75</td>
+</tr>
+<tr><td>разных значений с %</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>список в зачине</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>раздел открыт абзацем %</td>
+<td>100</td>
+<td class="ok">100</td>
+<td class="ok">100</td>
+</tr>
+<tr><td>H3 с вопросительного слова %</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="bad">16.7</td>
+</tr>
+<tr><td>H3 с двоеточием %</td>
+<td>0</td>
+<td class="bad">40</td>
+<td class="bad">100</td>
+</tr>
+<tr><td>strong в начале блока %</td>
+<td>75</td>
+<td class="ok">83.3</td>
+<td class="ok">81.8</td>
+</tr>
+<tr><td>эмодзи внутри фразы</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>разброс длины абзаца</td>
+<td>5.7</td>
+<td class="ok">5.8</td>
+<td class="ok">4.9</td>
+</tr>
+<tr><td>коротких абзацев</td>
+<td>3</td>
+<td class="bad">14</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>абзацев</td>
+<td>15</td>
+<td class="bad">19</td>
+<td class="ok">16</td>
+</tr>
+<tr><td>слов в абзаце</td>
+<td>18.5</td>
+<td class="ok">14.4</td>
+<td class="ok">22.4</td>
+</tr>
+<tr><td>названий игр</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>названий студий</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>разных имён игр и студий</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>профильных терминов</td>
+<td>13</td>
+<td class="ok">15</td>
+<td class="ok">13</td>
+</tr>
+<tr><td>H3 на один H2</td>
+<td>3</td>
+<td class="ok">2.5</td>
+<td class="ok">3</td>
+</tr>
+<tr><td>слов в заголовке</td>
+<td>9</td>
+<td class="bad">4</td>
+<td class="ok">7</td>
+</tr>
+<tr><td>заголовков-вопросов %</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>прямых призывов</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>мест с минусом или риском</td>
+<td>1</td>
+<td class="ok">3</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>бренд в заголовках %</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr><td style="color:var(--mut)">· катушки/линии</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr><td style="color:var(--mut)">· лимит</td>
+<td>2</td>
+<td>2</td>
+<td>2</td>
+</tr>
+<tr><td style="color:var(--mut)">· провайдер/студия</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr><td style="color:var(--mut)">· ставка/спин</td>
+<td>4</td>
+<td>1</td>
+<td>2</td>
+</tr>
+<tr><td style="color:var(--mut)">· зеркало/домен</td>
+<td>4</td>
+<td>1</td>
+<td>4</td>
+</tr>
+<tr><td style="color:var(--mut)">· промокод</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr><td style="color:var(--mut)">· верификация/KYC</td>
+<td>0</td>
+<td>5</td>
+<td>0</td>
+</tr>
+<tr><td style="color:var(--mut)">· депозит</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr><td style="color:var(--mut)">· вывод средств</td>
+<td>0</td>
+<td>5</td>
+<td>1</td>
+</tr>
+<tr><td style="color:var(--mut)">· отдача/выплаты</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+</tr>
+</tbody></table></div>
+<h2>zerkalo.html</h2><div class="scroll"><table><thead><tr><th>параметр</th>
+<th>Образец set242</th>
+<th>Новый (по правленым карточкам)</th>
+<th>Прежний клон</th>
+</tr></thead><tbody>
+<tr><td>объём слов</td>
+<td>329</td>
+<td class="ok">329</td>
+<td class="ok">407</td>
+</tr>
+<tr><td>H2</td>
+<td>2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>разделов H2+H3</td>
+<td>6</td>
+<td class="ok">5</td>
+<td class="ok">6</td>
+</tr>
+<tr><td>списков</td>
+<td>2</td>
+<td class="ok">2</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>strong</td>
+<td>4</td>
+<td class="ok">4</td>
+<td class="ok">4</td>
+</tr>
+<tr><td>вопросительных знаков</td>
+<td>2</td>
+<td class="ok">0</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>эмодзи</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>«я»</td>
+<td>2</td>
+<td class="ok">0</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>«вы»</td>
+<td>4</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>императивов</td>
+<td>7</td>
+<td class="bad">3</td>
+<td class="ok">8</td>
+</tr>
+<tr><td>цифр на 100 слов</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>прилагательных %</td>
+<td>15.5</td>
+<td class="ok">15.8</td>
+<td class="ok">16.5</td>
+</tr>
+<tr><td>тошнота %</td>
+<td>22.2</td>
+<td class="ok">24.9</td>
+<td class="ok">20.4</td>
+</tr>
+<tr><td>водность %</td>
+<td>29.8</td>
+<td class="ok">33.1</td>
+<td class="ok">26.3</td>
+</tr>
+<tr><td>бренд кириллицей</td>
+<td>1</td>
+<td class="ok">0</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>бренд латиницей</td>
+<td>4</td>
+<td class="ok">4</td>
+<td class="ok">3</td>
+</tr>
+<tr><td>бренд в заголовках</td>
+<td>1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>бренд в первой трети</td>
+<td>4</td>
+<td class="ok">4</td>
+<td class="ok">4</td>
+</tr>
+<tr><td>пар «вопрос-ответ»</td>
+<td>3</td>
+<td class="ok">3</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>вопросов в тексте</td>
+<td>5</td>
+<td class="ok">3</td>
+<td class="bad">2</td>
+</tr>
+<tr><td>опорных формул</td>
+<td>4</td>
+<td class="bad">1</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>зачин: имя с категорией</td>
+<td>1</td>
+<td class="bad">0</td>
+<td class="bad">0</td>
+</tr>
+<tr><td>зачин: ключ в начале</td>
+<td>1</td>
+<td class="ok">1</td>
+<td class="bad">0</td>
+</tr>
+<tr><td>колонок в таблице</td>
+<td>3</td>
+<td class="ok">3</td>
+<td class="bad">2</td>
+</tr>
+<tr><td>уникальных шапок %</td>
+<td>100</td>
+<td class="ok">100</td>
+<td class="ok">100</td>
+</tr>
+<tr><td>отзывов с оценкой</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>нумерованных списков %</td>
+<td>50</td>
+<td class="ok">50</td>
+<td class="bad">0</td>
+</tr>
+<tr><td>разовых анкоров %</td>
+<td>100</td>
+<td class="bad">0</td>
+<td class="ok">100</td>
+</tr>
+<tr><td>разных значений с %</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>список в зачине</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>раздел открыт абзацем %</td>
+<td>100</td>
+<td class="ok">100</td>
+<td class="ok">100</td>
+</tr>
+<tr><td>H3 с вопросительного слова %</td>
+<td>50</td>
+<td class="bad">0</td>
+<td class="bad">0</td>
+</tr>
+<tr><td>H3 с двоеточием %</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="bad">75</td>
+</tr>
+<tr><td>strong в начале блока %</td>
+<td>75</td>
+<td class="bad">50</td>
+<td class="bad">50</td>
+</tr>
+<tr><td>эмодзи внутри фразы</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>разброс длины абзаца</td>
+<td>10.3</td>
+<td class="ok">9.1</td>
+<td class="bad">6.7</td>
+</tr>
+<tr><td>коротких абзацев</td>
+<td>3</td>
+<td class="ok">5</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>абзацев</td>
+<td>9</td>
+<td class="ok">11</td>
+<td class="ok">9</td>
+</tr>
+<tr><td>слов в абзаце</td>
+<td>21.9</td>
+<td class="ok">18.5</td>
+<td class="ok">21.2</td>
+</tr>
+<tr><td>названий игр</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>названий студий</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>разных имён игр и студий</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>профильных терминов</td>
+<td>8</td>
+<td class="ok">8</td>
+<td class="ok">8</td>
+</tr>
+<tr><td>H3 на один H2</td>
+<td>2</td>
+<td class="ok">1.5</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>слов в заголовке</td>
+<td>4.5</td>
+<td class="bad">6</td>
+<td class="bad">11</td>
+</tr>
+<tr><td>заголовков-вопросов %</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>прямых призывов</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>мест с минусом или риском</td>
+<td>4</td>
+<td class="ok">5</td>
+<td class="bad">0</td>
+</tr>
+<tr><td>бренд в заголовках %</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr><td style="color:var(--mut)">· ставка/спин</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr><td style="color:var(--mut)">· вывод средств</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr><td style="color:var(--mut)">· зеркало/домен</td>
+<td>5</td>
+<td>6</td>
+<td>6</td>
+</tr>
+<tr><td style="color:var(--mut)">· промокод</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr><td style="color:var(--mut)">· отдача/выплаты</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr><td style="color:var(--mut)">· вейджер/отыгрыш</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+</tr>
+</tbody></table></div>
+<h2>Тексты рядом: главная</h2>
+<h3>Зачин страницы</h3><div class="cards">
+<div class="card"><div class="who">Образец set242</div><p>%brand_name_ru% казино.</p></div>
+<div class="card"><div class="who">Новый (по правленым карточкам)</div><p>%brand_name_ru% казино.</p></div>
+<div class="card"><div class="who">Прежний клон</div><p>%brand_name_ru%. Официальный сайт %brand_name_en% — это цифровое казино на веб-платформе с адаптивной мобильной версией и отдельным клиентом, где создание профиля занимает две-три минуты, а каталог собран из трёх тысяч наименований от пятнадцати студий. Площадка %brand_name_en% вышла на рынок в 2019 году и за это время собрала свыше 35 000 активных гостей. Средняя отдача по каталогу держится на уровне 97.9%, и это заметно выше типового значения по нише. Мы собрали здесь всё, что обычно спрашивают о %brand_name_en% у своих людей в индустрии: как устроена касса, сколько живёт рабочее зеркало, какие условия у поощрений и где чаще всего спотыкаются новички. Рекомендуем читать по разделам, а не подряд: так вы быстрее найдёте ответ на свой вопрос.</p></div>
+</div>
+<h3>Первый заголовок</h3><div class="cards">
+<div class="card"><div class="who">Образец set242</div><p>Краткая сводка — основные параметры</p></div>
+<div class="card"><div class="who">Новый (по правленым карточкам)</div><p>Коротко о площадке — что %brand_name_en% даёт на старте</p></div>
+<div class="card"><div class="who">Прежний клон</div><p>%brand_name_ru%: что за площадка и почему о ней спрашивают чаще других</p></div>
+</div>
+<h3>Абзац из середины</h3><div class="cards">
+<div class="card"><div class="who">Образец set242</div><p>Подытожим: наш целевой игрок — это мобильный, технологически подкованный пользователь, который ценит скорость транзакций, приватность и понятность условий. VIP-уровни работают как инструмент мотивации к активному участию, а набор функций безопасности и прозрачности делает азарт не только увлекательным, но и ответственным опытом.</p></div>
+<div class="card"><div class="who">Новый (по правленым карточкам)</div><p>Бонус в %brand_name_en% — это не подарок, а кредит с условием отыгрыша. Пока вейджер не закрыт, бонусные деньги нельзя вывести, а иногда нельзя и снять собственные. Понимание этой механики стоит дороже любого размера приветственного пакета.</p></div>
+<div class="card"><div class="who">Прежний клон</div><p>Промокод на регистрация в клубе — это уникальная комбинация символов, которая даёт поощрение при создании профиля. Вводите промокод строго в отведённое поле, иначе бонус не прикрепится к вашему депозиту.</p></div>
+</div>
+<h3>Первая врезка</h3><div class="cards">
+<div class="card"><div class="who">Образец set242</div><p class="q">Совет от «своих людей в индустрии»: никогда не вводите логин/пароль на сторонних сайтах — сначала сверяйте ссылку в официальном чате/боте, смотрите SSL‑сert (issuer, срок действия), и при сомнении требуйте ссылку в чате поддержки; при переводе больших сумм включайте 2FA и делайте скриншоты операций.</p></div>
+<div class="card"><div class="who">Новый (по правленым карточкам)</div><p class="q"></p></div>
+<div class="card"><div class="who">Прежний клон</div><p class="q">«Сверял этот разбор по пунктам перед первым депозитом — сходится почти везде», — Николай, гость площадки.</p></div>
+</div>
+<h3>Заголовки H2 подряд</h3><div class="cards">
+<div class="card"><div class="who">Образец set242</div><ul class="hd">
+<li>Краткая сводка — основные параметры</li>
+<li>Каталог %brand_name_ru% Казино: провайдеры и закадровые подробности</li>
+<li>Оценочная карта: по шести критериям</li>
+<li>Зеркало: доступ к %brand_name_en% без ограничений</li>
+<li>Методы пополнения</li>
+<li>Ответственная игра: как сохранить контроль и избегать рисков при онлайн-слотах</li>
+<li>Скачайте на айфон</li>
+<li>Портрет целевого игрока %brand_name_en%: крипто-казино, приватность и VIP-уровни</li>
+<li>Летереи: Розыгрыши в %brand_name_en%</li>
+</ul></div>
+<div class="card"><div class="who">Новый (по правленым карточкам)</div><ul class="hd">
+<li>Коротко о площадке — что %brand_name_en% даёт на старте</li>
+<li>Сводная карта параметров: что проверить до депозита</li>
+<li>Регистрация и верификация — маршрут первого дня</li>
+<li>Вход в %brand_name_en%: когда форма не принимает пароль</li>
+<li>Зеркало %brand_name_en% и домены — как не попасть на фишинг</li>
+<li>Пополнение счёта: способы, сроки, комиссии</li>
+<li>Вывод средств из %brand_name_en% — сроки по каналам</li>
+<li>Лимиты и пороги: где кончается стандартный режим</li>
+<li>Бонусы и промокоды %brand_name_en%: вейджер без иллюзий</li>
+</ul></div>
+<div class="card"><div class="who">Прежний клон</div><ul class="hd">
+<li>%brand_name_ru%: что за площадка и почему о ней спрашивают чаще других</li>
+<li>Разрешения мобильного клиента: как я разбирал список доступов</li>
+<li>Лицензия и легальность: типичные промахи новичка</li>
+<li>Сезонные акции %brand_name_en%: шаг за шагом</li>
+<li>Верификация KYC: что запрашивают и в каком порядке</li>
+<li>Турниры и лидерборды: как устроена недельная гонка</li>
+<li>Лицензия и легальность: как не ошибиться при проверке оператора</li>
+<li>Кэшбэк: что важно знать до подключения</li>
+<li>Установка клиента %brand_name_en%: лайфхаки от своих людей в индустрии</li>
+</ul></div>
+</div></div>
