@@ -29,7 +29,7 @@ tbody tr:hover{background:var(--card)}
 ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </style>
 <div class="wrap"><h1>Три набора рядом</h1>
-<p class="lead">Мерка та же, по которой идёт приёмка: 48 параметров на страницу, коридор ±25% (не меньше 2 для счётных и 0.8 для долей). Красным помечено то, что вышло за коридор относительно первой колонки.</p>
+<p class="lead">Мерка та же, по которой идёт приёмка: 55 параметров на страницу, коридор ±25% (не меньше 2 для счётных и 0.8 для долей). Красным помечено то, что вышло за коридор относительно первой колонки.</p>
 <h2>Вычитка</h2>
 <h3>Вычитка нового набора</h3>
 <ul class="hd">
@@ -45,16 +45,16 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 <p class="lead">Доля общих шестисловных отрезков. Порог приёмки — 6%; свои наборы по одному донору обычно дают 0.1–1%.</p>
 <div class="scroll"><table><thead><tr><th></th>
 <th>Образец set242</th>
-<th>Новый (по правленым карточкам)</th>
+<th>Новый + голос</th>
 <th>Прежний клон</th>
 </tr></thead><tbody>
 <tr><td>Образец set242</td>
 <td>—</td>
-<td>0.01%</td>
+<td>0.04%</td>
 <td>0.02%</td>
 </tr>
-<tr><td>Новый (по правленым карточкам)</td>
-<td>0.01%</td>
+<tr><td>Новый + голос</td>
+<td>0.04%</td>
 <td>—</td>
 <td>0.01%</td>
 </tr>
@@ -66,12 +66,12 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tbody></table></div>
 <h2>app.html</h2><div class="scroll"><table><thead><tr><th>параметр</th>
 <th>Образец set242</th>
-<th>Новый (по правленым карточкам)</th>
+<th>Новый + голос</th>
 <th>Прежний клон</th>
 </tr></thead><tbody>
 <tr><td>объём слов</td>
 <td>484</td>
-<td class="ok">469</td>
+<td class="ok">509</td>
 <td class="ok">508</td>
 </tr>
 <tr><td>H2</td>
@@ -114,6 +114,41 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 <td class="bad">1</td>
 <td class="ok">9</td>
 </tr>
+<tr><td>«ты»</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>заголовков по теме страницы %</td>
+<td>60</td>
+<td class="ok">75</td>
+<td class="bad">20</td>
+</tr>
+<tr><td>реплик в кавычках</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>бытовых сравнений</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>зачинов «а на деле»</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>заявок на закрытое знание</td>
+<td>3</td>
+<td class="ok">3</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>шаблонов обращения</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
 <tr><td>императивов</td>
 <td>23</td>
 <td class="bad">7</td>
@@ -126,17 +161,17 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>прилагательных %</td>
 <td>13.8</td>
-<td class="bad">9.8</td>
+<td class="bad">10.2</td>
 <td class="ok">13</td>
 </tr>
 <tr><td>тошнота %</td>
 <td>20.2</td>
-<td class="ok">22</td>
+<td class="ok">21.2</td>
 <td class="ok">18.7</td>
 </tr>
 <tr><td>водность %</td>
 <td>32</td>
-<td class="ok">32.8</td>
+<td class="ok">33</td>
 <td class="ok">29.9</td>
 </tr>
 <tr><td>бренд кириллицей</td>
@@ -246,12 +281,12 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>разброс длины абзаца</td>
 <td>10</td>
-<td class="ok">9.3</td>
+<td class="ok">10.2</td>
 <td class="bad">4.1</td>
 </tr>
 <tr><td>коротких абзацев</td>
 <td>14</td>
-<td class="ok">17</td>
+<td class="ok">15</td>
 <td class="bad">6</td>
 </tr>
 <tr><td>абзацев</td>
@@ -261,7 +296,7 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>слов в абзаце</td>
 <td>17</td>
-<td class="ok">15</td>
+<td class="ok">16.7</td>
 <td class="ok">16.3</td>
 </tr>
 <tr><td>названий игр</td>
@@ -367,12 +402,12 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tbody></table></div>
 <h2>bonus.html</h2><div class="scroll"><table><thead><tr><th>параметр</th>
 <th>Образец set242</th>
-<th>Новый (по правленым карточкам)</th>
+<th>Новый + голос</th>
 <th>Прежний клон</th>
 </tr></thead><tbody>
 <tr><td>объём слов</td>
 <td>791</td>
-<td class="ok">689</td>
+<td class="ok">841</td>
 <td class="ok">796</td>
 </tr>
 <tr><td>H2</td>
@@ -382,7 +417,7 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>разделов H2+H3</td>
 <td>10</td>
-<td class="ok">12</td>
+<td class="ok">11</td>
 <td class="ok">10</td>
 </tr>
 <tr><td>списков</td>
@@ -407,37 +442,72 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>«я»</td>
 <td>1</td>
-<td class="ok">0</td>
+<td class="ok">1</td>
 <td class="ok">1</td>
 </tr>
 <tr><td>«вы»</td>
 <td>4</td>
-<td class="ok">5</td>
+<td class="ok">6</td>
 <td class="ok">4</td>
+</tr>
+<tr><td>«ты»</td>
+<td>0</td>
+<td class="ok">2</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>заголовков по теме страницы %</td>
+<td>30</td>
+<td class="bad">9.1</td>
+<td class="bad">50</td>
+</tr>
+<tr><td>реплик в кавычках</td>
+<td>2</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>бытовых сравнений</td>
+<td>1</td>
+<td class="ok">1</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>зачинов «а на деле»</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>заявок на закрытое знание</td>
+<td>5</td>
+<td class="ok">4</td>
+<td class="bad">1</td>
+</tr>
+<tr><td>шаблонов обращения</td>
+<td>11</td>
+<td class="bad">8</td>
+<td class="bad">0</td>
 </tr>
 <tr><td>императивов</td>
 <td>23</td>
-<td class="bad">8</td>
+<td class="bad">9</td>
 <td class="ok">23</td>
 </tr>
 <tr><td>цифр на 100 слов</td>
 <td>2.5</td>
-<td class="ok">2.2</td>
+<td class="ok">2.4</td>
 <td class="ok">2.6</td>
 </tr>
 <tr><td>прилагательных %</td>
 <td>10.1</td>
-<td class="ok">10.4</td>
+<td class="ok">10.2</td>
 <td class="ok">11.4</td>
 </tr>
 <tr><td>тошнота %</td>
 <td>28.1</td>
-<td class="ok">26.6</td>
+<td class="ok">27.1</td>
 <td class="ok">24.2</td>
 </tr>
 <tr><td>водность %</td>
 <td>24</td>
-<td class="bad">32.1</td>
+<td class="bad">30.8</td>
 <td class="ok">29.5</td>
 </tr>
 <tr><td>бренд кириллицей</td>
@@ -472,7 +542,7 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>опорных формул</td>
 <td>4</td>
-<td class="ok">5</td>
+<td class="ok">4</td>
 <td class="bad">1</td>
 </tr>
 <tr><td>зачин: имя с категорией</td>
@@ -527,12 +597,12 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>H3 с вопросительного слова %</td>
 <td>12.5</td>
-<td class="bad">30</td>
+<td class="bad">44.4</td>
 <td class="bad">37.5</td>
 </tr>
 <tr><td>H3 с двоеточием %</td>
 <td>75</td>
-<td class="bad">30</td>
+<td class="bad">0</td>
 <td class="ok">87.5</td>
 </tr>
 <tr><td>strong в начале блока %</td>
@@ -547,7 +617,7 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>разброс длины абзаца</td>
 <td>17.9</td>
-<td class="ok">14</td>
+<td class="ok">16.1</td>
 <td class="ok">15</td>
 </tr>
 <tr><td>коротких абзацев</td>
@@ -557,12 +627,12 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>абзацев</td>
 <td>11</td>
-<td class="bad">14</td>
+<td class="bad">18</td>
 <td class="ok">13</td>
 </tr>
 <tr><td>слов в абзаце</td>
 <td>27.2</td>
-<td class="ok">30.1</td>
+<td class="ok">32.9</td>
 <td class="ok">32.7</td>
 </tr>
 <tr><td>названий игр</td>
@@ -582,12 +652,12 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>профильных терминов</td>
 <td>17</td>
-<td class="ok">20</td>
+<td class="bad">22</td>
 <td class="ok">18</td>
 </tr>
 <tr><td>H3 на один H2</td>
 <td>4</td>
-<td class="ok">5</td>
+<td class="ok">4.5</td>
 <td class="ok">4</td>
 </tr>
 <tr><td>слов в заголовке</td>
@@ -632,7 +702,7 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td style="color:var(--mut)">· депозит</td>
 <td>5</td>
-<td>3</td>
+<td>4</td>
 <td>3</td>
 </tr>
 <tr><td style="color:var(--mut)">· ставка/спин</td>
@@ -662,7 +732,7 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td style="color:var(--mut)">· множитель</td>
 <td>0</td>
-<td>5</td>
+<td>6</td>
 <td>0</td>
 </tr>
 <tr><td style="color:var(--mut)">· верификация/KYC</td>
@@ -683,12 +753,12 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tbody></table></div>
 <h2>main.html</h2><div class="scroll"><table><thead><tr><th>параметр</th>
 <th>Образец set242</th>
-<th>Новый (по правленым карточкам)</th>
+<th>Новый + голос</th>
 <th>Прежний клон</th>
 </tr></thead><tbody>
 <tr><td>объём слов</td>
 <td>5594</td>
-<td class="ok">4852</td>
+<td class="ok">5261</td>
 <td class="ok">5138</td>
 </tr>
 <tr><td>H2</td>
@@ -723,7 +793,7 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>«я»</td>
 <td>5</td>
-<td class="ok">5</td>
+<td class="ok">7</td>
 <td class="ok">6</td>
 </tr>
 <tr><td>«вы»</td>
@@ -731,29 +801,64 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 <td class="bad">24</td>
 <td class="ok">57</td>
 </tr>
+<tr><td>«ты»</td>
+<td>12</td>
+<td class="ok">12</td>
+<td class="bad">0</td>
+</tr>
+<tr><td>заголовков по теме страницы %</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>реплик в кавычках</td>
+<td>4</td>
+<td class="ok">5</td>
+<td class="bad">12</td>
+</tr>
+<tr><td>бытовых сравнений</td>
+<td>2</td>
+<td class="ok">2</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>зачинов «а на деле»</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>заявок на закрытое знание</td>
+<td>19</td>
+<td class="ok">19</td>
+<td class="bad">3</td>
+</tr>
+<tr><td>шаблонов обращения</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
 <tr><td>императивов</td>
 <td>137</td>
-<td class="bad">46</td>
+<td class="bad">47</td>
 <td class="ok">152</td>
 </tr>
 <tr><td>цифр на 100 слов</td>
 <td>3.2</td>
-<td class="ok">2.5</td>
+<td class="bad">2.3</td>
 <td class="ok">2.8</td>
 </tr>
 <tr><td>прилагательных %</td>
 <td>13.1</td>
-<td class="ok">12.7</td>
+<td class="ok">12.3</td>
 <td class="ok">11.9</td>
 </tr>
 <tr><td>тошнота %</td>
 <td>41.7</td>
-<td class="ok">44.4</td>
+<td class="ok">45</td>
 <td class="ok">42.9</td>
 </tr>
 <tr><td>водность %</td>
 <td>27</td>
-<td class="ok">28.8</td>
+<td class="ok">29.8</td>
 <td class="ok">28.5</td>
 </tr>
 <tr><td>бренд кириллицей</td>
@@ -863,22 +968,22 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>разброс длины абзаца</td>
 <td>20</td>
-<td class="ok">16.6</td>
+<td class="ok">16</td>
 <td class="bad">14</td>
 </tr>
 <tr><td>коротких абзацев</td>
 <td>19</td>
-<td class="bad">10</td>
+<td class="bad">11</td>
 <td class="bad">1</td>
 </tr>
 <tr><td>абзацев</td>
 <td>81</td>
-<td class="ok">91</td>
+<td class="bad">104</td>
 <td class="ok">93</td>
 </tr>
 <tr><td>слов в абзаце</td>
 <td>30.4</td>
-<td class="ok">34.3</td>
+<td class="ok">34</td>
 <td class="ok">31</td>
 </tr>
 <tr><td>названий игр</td>
@@ -898,7 +1003,7 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>профильных терминов</td>
 <td>159</td>
-<td class="ok">176</td>
+<td class="ok">183</td>
 <td class="ok">153</td>
 </tr>
 <tr><td>H3 на один H2</td>
@@ -923,7 +1028,7 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>мест с минусом или риском</td>
 <td>18</td>
-<td class="ok">18</td>
+<td class="ok">21</td>
 <td class="bad">10</td>
 </tr>
 <tr><td>бренд в заголовках %</td>
@@ -938,17 +1043,17 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td style="color:var(--mut)">· отдача/выплаты</td>
 <td>9</td>
-<td>15</td>
+<td>17</td>
 <td>5</td>
 </tr>
 <tr><td style="color:var(--mut)">· вейджер/отыгрыш</td>
 <td>13</td>
-<td>17</td>
+<td>20</td>
 <td>16</td>
 </tr>
 <tr><td style="color:var(--mut)">· волатильность</td>
 <td>7</td>
-<td>8</td>
+<td>9</td>
 <td>3</td>
 </tr>
 <tr><td style="color:var(--mut)">· фриспины</td>
@@ -988,7 +1093,7 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td style="color:var(--mut)">· лицензия</td>
 <td>10</td>
-<td>10</td>
+<td>11</td>
 <td>8</td>
 </tr>
 <tr><td style="color:var(--mut)">· провайдер/студия</td>
@@ -1054,12 +1159,12 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tbody></table></div>
 <h2>registracia.html</h2><div class="scroll"><table><thead><tr><th>параметр</th>
 <th>Образец set242</th>
-<th>Новый (по правленым карточкам)</th>
+<th>Новый + голос</th>
 <th>Прежний клон</th>
 </tr></thead><tbody>
 <tr><td>объём слов</td>
 <td>559</td>
-<td class="ok">508</td>
+<td class="ok">615</td>
 <td class="ok">646</td>
 </tr>
 <tr><td>H2</td>
@@ -1084,7 +1189,7 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>вопросительных знаков</td>
 <td>4</td>
-<td class="ok">4</td>
+<td class="ok">3</td>
 <td class="ok">4</td>
 </tr>
 <tr><td>эмодзи</td>
@@ -1102,29 +1207,64 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 <td class="ok">4</td>
 <td class="ok">4</td>
 </tr>
+<tr><td>«ты»</td>
+<td>10</td>
+<td class="ok">10</td>
+<td class="bad">0</td>
+</tr>
+<tr><td>заголовков по теме страницы %</td>
+<td>25</td>
+<td class="bad">14.3</td>
+<td class="bad">37.5</td>
+</tr>
+<tr><td>реплик в кавычках</td>
+<td>3</td>
+<td class="ok">2</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>бытовых сравнений</td>
+<td>0</td>
+<td class="ok">1</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>зачинов «а на деле»</td>
+<td>4</td>
+<td class="ok">5</td>
+<td class="bad">0</td>
+</tr>
+<tr><td>заявок на закрытое знание</td>
+<td>1</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>шаблонов обращения</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
 <tr><td>императивов</td>
 <td>6</td>
-<td class="bad">0</td>
+<td class="bad">1</td>
 <td class="ok">5</td>
 </tr>
 <tr><td>цифр на 100 слов</td>
 <td>0</td>
-<td class="ok">0.4</td>
+<td class="ok">0.3</td>
 <td class="ok">0</td>
 </tr>
 <tr><td>прилагательных %</td>
 <td>13.2</td>
-<td class="ok">13.2</td>
+<td class="ok">12</td>
 <td class="ok">12.8</td>
 </tr>
 <tr><td>тошнота %</td>
 <td>21.3</td>
-<td class="ok">22.4</td>
+<td class="ok">22.9</td>
 <td class="ok">17.3</td>
 </tr>
 <tr><td>водность %</td>
 <td>34.9</td>
-<td class="ok">29.5</td>
+<td class="ok">31.7</td>
 <td class="ok">36.4</td>
 </tr>
 <tr><td>бренд кириллицей</td>
@@ -1154,7 +1294,7 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>вопросов в тексте</td>
 <td>11</td>
-<td class="ok">11</td>
+<td class="ok">10</td>
 <td class="bad">4</td>
 </tr>
 <tr><td>опорных формул</td>
@@ -1214,12 +1354,12 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>H3 с вопросительного слова %</td>
 <td>16.7</td>
-<td class="bad">40</td>
+<td class="bad">80</td>
 <td class="ok">16.7</td>
 </tr>
 <tr><td>H3 с двоеточием %</td>
 <td>66.7</td>
-<td class="bad">20</td>
+<td class="bad">0</td>
 <td class="ok">83.3</td>
 </tr>
 <tr><td>strong в начале блока %</td>
@@ -1234,22 +1374,22 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>разброс длины абзаца</td>
 <td>18.6</td>
-<td class="ok">16.7</td>
+<td class="ok">17.7</td>
 <td class="bad">12.4</td>
 </tr>
 <tr><td>коротких абзацев</td>
 <td>1</td>
-<td class="bad">5</td>
+<td class="bad">6</td>
 <td class="ok">1</td>
 </tr>
 <tr><td>абзацев</td>
 <td>11</td>
-<td class="bad">14</td>
+<td class="bad">18</td>
 <td class="ok">13</td>
 </tr>
 <tr><td>слов в абзаце</td>
 <td>30.2</td>
-<td class="ok">27.4</td>
+<td class="ok">27.7</td>
 <td class="ok">31.1</td>
 </tr>
 <tr><td>названий игр</td>
@@ -1279,7 +1419,7 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>слов в заголовке</td>
 <td>7.5</td>
-<td class="bad">5.5</td>
+<td class="bad">4.5</td>
 <td class="ok">7.5</td>
 </tr>
 <tr><td>заголовков-вопросов %</td>
@@ -1294,7 +1434,7 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>мест с минусом или риском</td>
 <td>4</td>
-<td class="ok">4</td>
+<td class="ok">3</td>
 <td class="ok">5</td>
 </tr>
 <tr><td>бренд в заголовках %</td>
@@ -1330,12 +1470,12 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tbody></table></div>
 <h2>slots.html</h2><div class="scroll"><table><thead><tr><th>параметр</th>
 <th>Образец set242</th>
-<th>Новый (по правленым карточкам)</th>
+<th>Новый + голос</th>
 <th>Прежний клон</th>
 </tr></thead><tbody>
 <tr><td>объём слов</td>
 <td>861</td>
-<td class="ok">785</td>
+<td class="ok">867</td>
 <td class="ok">755</td>
 </tr>
 <tr><td>H2</td>
@@ -1375,12 +1515,47 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>«вы»</td>
 <td>0</td>
-<td class="bad">4</td>
+<td class="ok">1</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>«ты»</td>
+<td>19</td>
+<td class="ok">19</td>
+<td class="bad">0</td>
+</tr>
+<tr><td>заголовков по теме страницы %</td>
+<td>40</td>
+<td class="ok">41.7</td>
+<td class="ok">30</td>
+</tr>
+<tr><td>реплик в кавычках</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>бытовых сравнений</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>зачинов «а на деле»</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>заявок на закрытое знание</td>
+<td>2</td>
+<td class="ok">2</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>шаблонов обращения</td>
+<td>0</td>
+<td class="ok">0</td>
 <td class="ok">0</td>
 </tr>
 <tr><td>императивов</td>
 <td>0</td>
-<td class="bad">5</td>
+<td class="ok">1</td>
 <td class="ok">0</td>
 </tr>
 <tr><td>цифр на 100 слов</td>
@@ -1390,17 +1565,17 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>прилагательных %</td>
 <td>11.3</td>
-<td class="bad">14.5</td>
+<td class="bad">14.6</td>
 <td class="ok">12.5</td>
 </tr>
 <tr><td>тошнота %</td>
 <td>25.4</td>
-<td class="ok">30.2</td>
+<td class="ok">28.5</td>
 <td class="ok">20.3</td>
 </tr>
 <tr><td>водность %</td>
 <td>33.3</td>
-<td class="ok">26.5</td>
+<td class="ok">28</td>
 <td class="ok">28.2</td>
 </tr>
 <tr><td>бренд кириллицей</td>
@@ -1510,7 +1685,7 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>разброс длины абзаца</td>
 <td>11.3</td>
-<td class="ok">12</td>
+<td class="ok">12.4</td>
 <td class="bad">4.6</td>
 </tr>
 <tr><td>коротких абзацев</td>
@@ -1520,12 +1695,12 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>абзацев</td>
 <td>25</td>
-<td class="ok">23</td>
+<td class="ok">25</td>
 <td class="ok">24</td>
 </tr>
 <tr><td>слов в абзаце</td>
 <td>24</td>
-<td class="ok">22.2</td>
+<td class="ok">23.9</td>
 <td class="ok">20.7</td>
 </tr>
 <tr><td>названий игр</td>
@@ -1545,7 +1720,7 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>профильных терминов</td>
 <td>20</td>
-<td class="ok">21</td>
+<td class="ok">22</td>
 <td class="ok">24</td>
 </tr>
 <tr><td>H3 на один H2</td>
@@ -1635,7 +1810,7 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td style="color:var(--mut)">· волатильность</td>
 <td>0</td>
-<td>4</td>
+<td>5</td>
 <td>1</td>
 </tr>
 <tr><td style="color:var(--mut)">· дисперсия</td>
@@ -1661,12 +1836,12 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tbody></table></div>
 <h2>vhod.html</h2><div class="scroll"><table><thead><tr><th>параметр</th>
 <th>Образец set242</th>
-<th>Новый (по правленым карточкам)</th>
+<th>Новый + голос</th>
 <th>Прежний клон</th>
 </tr></thead><tbody>
 <tr><td>объём слов</td>
 <td>470</td>
-<td class="ok">527</td>
+<td class="ok">557</td>
 <td class="ok">581</td>
 </tr>
 <tr><td>H2</td>
@@ -1709,6 +1884,41 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 <td class="bad">2</td>
 <td class="ok">9</td>
 </tr>
+<tr><td>«ты»</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>заголовков по теме страницы %</td>
+<td>25</td>
+<td class="ok">28.6</td>
+<td class="bad">12.5</td>
+</tr>
+<tr><td>реплик в кавычках</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>бытовых сравнений</td>
+<td>1</td>
+<td class="ok">1</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>зачинов «а на деле»</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>заявок на закрытое знание</td>
+<td>1</td>
+<td class="ok">1</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>шаблонов обращения</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
 <tr><td>императивов</td>
 <td>18</td>
 <td class="bad">13</td>
@@ -1716,22 +1926,22 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>цифр на 100 слов</td>
 <td>3.4</td>
-<td class="bad">2.3</td>
+<td class="bad">2.2</td>
 <td class="ok">3.1</td>
 </tr>
 <tr><td>прилагательных %</td>
 <td>10.9</td>
-<td class="ok">12.3</td>
+<td class="ok">12</td>
 <td class="ok">12</td>
 </tr>
 <tr><td>тошнота %</td>
 <td>16.4</td>
-<td class="bad">24.3</td>
+<td class="bad">23.3</td>
 <td class="ok">18.6</td>
 </tr>
 <tr><td>водность %</td>
 <td>30.4</td>
-<td class="ok">23.7</td>
+<td class="ok">24.6</td>
 <td class="ok">30.8</td>
 </tr>
 <tr><td>бренд кириллицей</td>
@@ -1826,7 +2036,7 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>H3 с двоеточием %</td>
 <td>0</td>
-<td class="bad">40</td>
+<td class="ok">0</td>
 <td class="bad">100</td>
 </tr>
 <tr><td>strong в начале блока %</td>
@@ -1841,12 +2051,12 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>разброс длины абзаца</td>
 <td>5.7</td>
-<td class="ok">5.8</td>
+<td class="ok">7.1</td>
 <td class="ok">4.9</td>
 </tr>
 <tr><td>коротких абзацев</td>
 <td>3</td>
-<td class="bad">14</td>
+<td class="bad">12</td>
 <td class="ok">1</td>
 </tr>
 <tr><td>абзацев</td>
@@ -1856,7 +2066,7 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>слов в абзаце</td>
 <td>18.5</td>
-<td class="ok">14.4</td>
+<td class="ok">16.2</td>
 <td class="ok">22.4</td>
 </tr>
 <tr><td>названий игр</td>
@@ -1901,7 +2111,7 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>мест с минусом или риском</td>
 <td>1</td>
-<td class="ok">3</td>
+<td class="bad">4</td>
 <td class="ok">0</td>
 </tr>
 <tr><td>бренд в заголовках %</td>
@@ -1962,12 +2172,12 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tbody></table></div>
 <h2>zerkalo.html</h2><div class="scroll"><table><thead><tr><th>параметр</th>
 <th>Образец set242</th>
-<th>Новый (по правленым карточкам)</th>
+<th>Новый + голос</th>
 <th>Прежний клон</th>
 </tr></thead><tbody>
 <tr><td>объём слов</td>
 <td>329</td>
-<td class="ok">329</td>
+<td class="ok">358</td>
 <td class="ok">407</td>
 </tr>
 <tr><td>H2</td>
@@ -2010,6 +2220,41 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 <td class="ok">2</td>
 <td class="ok">2</td>
 </tr>
+<tr><td>«ты»</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>заголовков по теме страницы %</td>
+<td>33.3</td>
+<td class="bad">20</td>
+<td class="bad">50</td>
+</tr>
+<tr><td>реплик в кавычках</td>
+<td>1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>бытовых сравнений</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>зачинов «а на деле»</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>заявок на закрытое знание</td>
+<td>2</td>
+<td class="ok">2</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>шаблонов обращения</td>
+<td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
 <tr><td>императивов</td>
 <td>7</td>
 <td class="bad">3</td>
@@ -2022,17 +2267,17 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>прилагательных %</td>
 <td>15.5</td>
-<td class="ok">15.8</td>
+<td class="ok">14.8</td>
 <td class="ok">16.5</td>
 </tr>
 <tr><td>тошнота %</td>
 <td>22.2</td>
-<td class="ok">24.9</td>
+<td class="ok">24</td>
 <td class="ok">20.4</td>
 </tr>
 <tr><td>водность %</td>
 <td>29.8</td>
-<td class="ok">33.1</td>
+<td class="ok">34.1</td>
 <td class="ok">26.3</td>
 </tr>
 <tr><td>бренд кириллицей</td>
@@ -2122,7 +2367,7 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>H3 с вопросительного слова %</td>
 <td>50</td>
-<td class="bad">0</td>
+<td class="bad">66.7</td>
 <td class="bad">0</td>
 </tr>
 <tr><td>H3 с двоеточием %</td>
@@ -2142,22 +2387,22 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>разброс длины абзаца</td>
 <td>10.3</td>
-<td class="ok">9.1</td>
+<td class="ok">7.9</td>
 <td class="bad">6.7</td>
 </tr>
 <tr><td>коротких абзацев</td>
 <td>3</td>
-<td class="ok">5</td>
+<td class="ok">4</td>
 <td class="ok">1</td>
 </tr>
 <tr><td>абзацев</td>
 <td>9</td>
-<td class="ok">11</td>
+<td class="bad">12</td>
 <td class="ok">9</td>
 </tr>
 <tr><td>слов в абзаце</td>
 <td>21.9</td>
-<td class="ok">18.5</td>
+<td class="ok">19.8</td>
 <td class="ok">21.2</td>
 </tr>
 <tr><td>названий игр</td>
@@ -2177,7 +2422,7 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>профильных терминов</td>
 <td>8</td>
-<td class="ok">8</td>
+<td class="ok">9</td>
 <td class="ok">8</td>
 </tr>
 <tr><td>H3 на один H2</td>
@@ -2187,7 +2432,7 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td>слов в заголовке</td>
 <td>4.5</td>
-<td class="bad">6</td>
+<td class="ok">5</td>
 <td class="bad">11</td>
 </tr>
 <tr><td>заголовков-вопросов %</td>
@@ -2237,29 +2482,29 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 </tr>
 <tr><td style="color:var(--mut)">· вейджер/отыгрыш</td>
 <td>0</td>
-<td>1</td>
+<td>2</td>
 <td>0</td>
 </tr>
 </tbody></table></div>
 <h2>Тексты рядом: главная</h2>
 <h3>Зачин страницы</h3><div class="cards">
 <div class="card"><div class="who">Образец set242</div><p>%brand_name_ru% казино.</p></div>
-<div class="card"><div class="who">Новый (по правленым карточкам)</div><p>%brand_name_ru% казино.</p></div>
+<div class="card"><div class="who">Новый + голос</div><p>%brand_name_ru% казино.</p></div>
 <div class="card"><div class="who">Прежний клон</div><p>%brand_name_ru%. Официальный сайт %brand_name_en% — это цифровое казино на веб-платформе с адаптивной мобильной версией и отдельным клиентом, где создание профиля занимает две-три минуты, а каталог собран из трёх тысяч наименований от пятнадцати студий. Площадка %brand_name_en% вышла на рынок в 2019 году и за это время собрала свыше 35 000 активных гостей. Средняя отдача по каталогу держится на уровне 97.9%, и это заметно выше типового значения по нише. Мы собрали здесь всё, что обычно спрашивают о %brand_name_en% у своих людей в индустрии: как устроена касса, сколько живёт рабочее зеркало, какие условия у поощрений и где чаще всего спотыкаются новички. Рекомендуем читать по разделам, а не подряд: так вы быстрее найдёте ответ на свой вопрос.</p></div>
 </div>
 <h3>Первый заголовок</h3><div class="cards">
 <div class="card"><div class="who">Образец set242</div><p>Краткая сводка — основные параметры</p></div>
-<div class="card"><div class="who">Новый (по правленым карточкам)</div><p>Коротко о площадке — что %brand_name_en% даёт на старте</p></div>
+<div class="card"><div class="who">Новый + голос</div><p>Коротко о площадке — что %brand_name_en% даёт на старте</p></div>
 <div class="card"><div class="who">Прежний клон</div><p>%brand_name_ru%: что за площадка и почему о ней спрашивают чаще других</p></div>
 </div>
 <h3>Абзац из середины</h3><div class="cards">
 <div class="card"><div class="who">Образец set242</div><p>Подытожим: наш целевой игрок — это мобильный, технологически подкованный пользователь, который ценит скорость транзакций, приватность и понятность условий. VIP-уровни работают как инструмент мотивации к активному участию, а набор функций безопасности и прозрачности делает азарт не только увлекательным, но и ответственным опытом.</p></div>
-<div class="card"><div class="who">Новый (по правленым карточкам)</div><p>Бонус в %brand_name_en% — это не подарок, а кредит с условием отыгрыша. Пока вейджер не закрыт, бонусные деньги нельзя вывести, а иногда нельзя и снять собственные. Понимание этой механики стоит дороже любого размера приветственного пакета.</p></div>
+<div class="card"><div class="who">Новый + голос</div><p>Отказ по такой заявке — обычное дело на первых месяцах: лимит поднимают тем, чья история операций уже читается как предсказуемая. Через полгода регулярной игры та же просьба проходит почти автоматически.</p></div>
 <div class="card"><div class="who">Прежний клон</div><p>Промокод на регистрация в клубе — это уникальная комбинация символов, которая даёт поощрение при создании профиля. Вводите промокод строго в отведённое поле, иначе бонус не прикрепится к вашему депозиту.</p></div>
 </div>
 <h3>Первая врезка</h3><div class="cards">
 <div class="card"><div class="who">Образец set242</div><p class="q">Совет от «своих людей в индустрии»: никогда не вводите логин/пароль на сторонних сайтах — сначала сверяйте ссылку в официальном чате/боте, смотрите SSL‑сert (issuer, срок действия), и при сомнении требуйте ссылку в чате поддержки; при переводе больших сумм включайте 2FA и делайте скриншоты операций.</p></div>
-<div class="card"><div class="who">Новый (по правленым карточкам)</div><p class="q"></p></div>
+<div class="card"><div class="who">Новый + голос</div><p class="q"></p></div>
 <div class="card"><div class="who">Прежний клон</div><p class="q">«Сверял этот разбор по пунктам перед первым депозитом — сходится почти везде», — Николай, гость площадки.</p></div>
 </div>
 <h3>Заголовки H2 подряд</h3><div class="cards">
@@ -2274,7 +2519,7 @@ ul.hd{margin:0;padding-left:18px;font-size:14px}ul.hd li{margin:4px 0}
 <li>Портрет целевого игрока %brand_name_en%: крипто-казино, приватность и VIP-уровни</li>
 <li>Летереи: Розыгрыши в %brand_name_en%</li>
 </ul></div>
-<div class="card"><div class="who">Новый (по правленым карточкам)</div><ul class="hd">
+<div class="card"><div class="who">Новый + голос</div><ul class="hd">
 <li>Коротко о площадке — что %brand_name_en% даёт на старте</li>
 <li>Сводная карта параметров: что проверить до депозита</li>
 <li>Регистрация и верификация — маршрут первого дня</li>
