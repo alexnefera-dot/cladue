@@ -65,7 +65,13 @@ function slots(Rng $r, array $pools): array
     $v = $pools['value_slots'] ?? [];
     $pick = function (string $k, string $def) use ($v, $r) {
         $list = $v[$k] ?? null;
-        if (is_array($list) && $list) { return (string) $list[$r->int(0, count($list) - 1)]; }
+        // в пуле значения лежат и списком, и картой — берём значения, а не ключи
+        if (is_array($list) && $list) {
+            $list = array_values($list);
+            $x = $list[$r->int(0, count($list) - 1)];
+            if (is_array($x)) { $x = array_values($x)[0] ?? null; }
+            if (is_scalar($x)) { return (string) $x; }
+        }
         return $def;
     };
     return [
@@ -108,10 +114,109 @@ final class Bag
     }
 }
 
+/**
+ * Развёртка вариаций. Рамка перестала быть цельным предложением: внутри неё
+ * стоят взаимозаменяемые куски в двойных скобках — ((так|вот так|или так)).
+ * Одна рамка с четырьмя такими местами по три варианта даёт 81 поверхностную
+ * форму, и два сида расходятся по шинглам, а не только по порядку фраз.
+ *
+ * Пустой вариант записывается как ((|текст)) — тогда кусок иногда исчезает
+ * целиком, и меняется не только слово, но и длина предложения.
+ */
+function expand(string $s, Rng $rng): string
+{
+    $guard = 0;
+    while (preg_match('~\(\(([^()]*)\)\)~u', $s, $m) && $guard++ < 40) {
+        $opts = explode('|', $m[1]);
+        $pick = $opts[$rng->int(0, count($opts) - 1)];
+        $s = preg_replace('~\(\(' . preg_quote($m[1], '~') . '\)\)~u', $pick, $s, 1);
+    }
+    $s = sinonim($s, $rng);
+    // двойные пробелы и пробел перед точкой — следы выпавших кусков
+    $s = preg_replace('~\s{2,}~u', ' ', $s);
+    $s = preg_replace('~\s+([,.;:!?])~u', '$1', $s);
+    return trim($s);
+}
+
 function fill(string $s, array $sl, string $brRu, string $brEn): string
 {
     $s = strtr($s, $sl);
     return strtr($s, ['{Б}' => $brEn, '{Бр}' => $brRu]);
+}
+
+/**
+ * Абзац из нескольких рамок в случайном порядке.
+ *
+ * Одна рамка на абзац давала два дефекта сразу. Первый: два сида расходились
+ * только порядком абзацев, а сами предложения совпадали дословно — пересечение
+ * между сборками держалось на 21%. Второй: абзац выходил в одно предложение,
+ * тогда как у образца их три-четыре и сорок слов.
+ *
+ * Склейка двух-трёх рамок в перемешанном порядке ломает шинглы на стыках
+ * (шестисловное окно попадает на границу двух разных фраз) и разом поднимает
+ * длину абзаца до корпусной. Связка между фразами берётся из короткого списка
+ * или не берётся вовсе — это ещё одна точка расхождения.
+ */
+/**
+ * Второй слой вариации: замена слова на равнозначное В ТОЙ ЖЕ ФОРМЕ.
+ *
+ * Вариации в скобках дали 3.3 формы на рамку — этого не хватило: две сборки с
+ * разными сидами всё ещё пересекались на 11.5% при пороге 6%. Причина в том,
+ * что рамка короткая, и шестисловное окно целиком помещается внутрь неё.
+ *
+ * Пары подобраны по форме, а не по смыслу: род, число и падеж совпадают, иначе
+ * замена ломает согласование. Движок склонять не умеет, поэтому каждая форма
+ * прописана отдельно — «площадка/платформа», «площадке/платформе» и так далее.
+ * Ни одна пара не меняет факт: это синонимы, а не другое утверждение.
+ */
+const SINONIMY = [
+    ['площадка', 'платформа'], ['площадки', 'платформы'], ['площадке', 'платформе'],
+    ['площадку', 'платформу'], ['площадкой', 'платформой'],
+    ['автомат', 'слот'], ['автомата', 'слота'], ['автоматы', 'слоты'],
+    ['автоматов', 'слотов'], ['автомате', 'слоте'], ['автоматам', 'слотам'],
+    ['спин', 'раунд'], ['спина', 'раунда'], ['спинов', 'раундов'], ['спины', 'раунды'],
+    ['отыгрыш', 'вейджер'], ['отыгрыша', 'вейджера'], ['отыгрышем', 'вейджером'],
+    ['деньги', 'средства'], ['денег', 'средств'], ['деньгами', 'средствами'],
+    ['проверка документов', 'верификация'], ['проверку документов', 'верификацию'],
+    ['проверки документов', 'верификации'], ['проверке документов', 'верификации'],
+    ['обычно', 'как правило'], ['сразу', 'немедленно'], ['часто', 'нередко'],
+    ['примерно', 'около'], ['почти всегда', 'в подавляющем большинстве случаев'],
+    ['стоит', 'имеет смысл'], ['нужно', 'требуется'], ['можно', 'допустимо'],
+    ['важно', 'существенно'], ['например', 'скажем'], ['поэтому', 'по этой причине'],
+];
+
+/** Пройтись по паре в обе стороны с заданной вероятностью. */
+function sinonim(string $s, Rng $rng): string
+{
+    foreach (SINONIMY as [$a, $b]) {
+        if ($rng->float() >= 0.5) { continue; }
+        $from = $rng->float() < 0.5 ? $a : $b;
+        $to   = $from === $a ? $b : $a;
+        $s = preg_replace('~(?<![\p{L}])' . preg_quote($from, '~') . '(?![\p{L}])~ui', $to, $s, 1);
+    }
+    return $s;
+}
+
+const SVYAZKI = ['', '', '', 'При этом ', 'Кроме того, ', 'Здесь же ', 'Добавлю, что ',
+    'Отдельно: ', 'И ещё одно: ', 'Заодно ', 'Стоит помнить: ', 'Правда, '];
+
+function para(array $parts, Rng $rng): string
+{
+    $parts = array_values(array_filter($parts));
+    if (!$parts) { return ''; }
+    for ($i = count($parts) - 1; $i > 0; $i--) {
+        $j = $rng->int(0, $i);
+        [$parts[$i], $parts[$j]] = [$parts[$j], $parts[$i]];
+    }
+    $out = [];
+    foreach ($parts as $k => $x) {
+        if ($k > 0) {
+            $sv = SVYAZKI[$rng->int(0, count(SVYAZKI) - 1)];
+            if ($sv !== '') { $x = $sv . mb_strtolower(mb_substr($x, 0, 1)) . mb_substr($x, 1); }
+        }
+        $out[] = $x;
+    }
+    return '<p>' . implode(' ', $out) . '</p>';
 }
 
 function words(string $html): int
@@ -149,10 +254,12 @@ foreach (PLAN as $type => $areas) {
 
     // ── зачин: одна-две фразы, как у образца ────────────────────────────
     $a0 = $areas[0];
+    $lead = [];
     foreach ([['tezis', $FRAMES[$a0]['tezis']], ['poyasnenie', $FRAMES[$a0]['poyasnenie']]] as [$k, $src]) {
         $x = $bag->take("$a0.$k", $src);
-        if ($x !== null) { $html[] = '<p>' . fill($x, $SL, $BR_RU, $BR_EN) . '</p>'; }
+        if ($x !== null) { $lead[] = expand(fill($x, $SL, $BR_RU, $BR_EN), $rng); }
     }
+    if ($lead) { $html[] = para($lead, $rng); }
 
     // ── разделы: H2 → абзац → (H3 → абзацы/список) ──────────────────────
     $h3left = $wantH3;
@@ -161,24 +268,32 @@ foreach (PLAN as $type => $areas) {
         $F = $FRAMES[$area];
         $h2t = $bag->take("$area.h2", $F['h2']);
         if ($h2t === null) { continue; }
-        $html[] = '<h2>' . fill($h2t, $SL, $BR_RU, $BR_EN) . '</h2>';
+        $html[] = '<h2>' . expand(fill($h2t, $SL, $BR_RU, $BR_EN), $rng) . '</h2>';
         // Раздел ВСЕГДА открывается абзацем: у девяти образцов на 283 заголовка
         // нет ни одного случая, когда сразу за H2 идёт список.
+        $intro = [];
         $tz = $bag->take("$area.tezis", $F['tezis']);
-        $html[] = '<p>' . fill($tz ?? $bag->take("$area.poyasnenie", $F['poyasnenie']) ?? '—', $SL, $BR_RU, $BR_EN) . '</p>';
+        if ($tz !== null) { $intro[] = expand(fill($tz, $SL, $BR_RU, $BR_EN), $rng); }
+        $ex = $bag->take("$area.poyasnenie", $F['poyasnenie']);
+        if ($ex !== null) { $intro[] = expand(fill($ex, $SL, $BR_RU, $BR_EN), $rng); }
+        if ($intro) { $html[] = para($intro, $rng); }
 
         $h3here = $wantH2 > 0 ? (int) floor($h3left / max(1, $wantH2 - $i)) : 0;
         $h3left -= $h3here;
         for ($j = 0; $j < $h3here; $j++) {
             $h3t = $bag->take("$area.h3", $F['h3']);
             if ($h3t === null) { continue; }
-            $html[] = '<h3>' . fill($h3t, $SL, $BR_RU, $BR_EN) . '</h3>';
-            $pt = $bag->take("$area.poyasnenie", $F['poyasnenie']);
-            if ($pt !== null) { $html[] = '<p>' . fill($pt, $SL, $BR_RU, $BR_EN) . '</p>'; }
-            if ($rng->float() < 0.45) {
-                $og = $bag->take("$area.ogovorka", $F['ogovorka']);
-                if ($og !== null) { $html[] = '<p>' . fill($og, $SL, $BR_RU, $BR_EN) . '</p>'; }
+            $html[] = '<h3>' . expand(fill($h3t, $SL, $BR_RU, $BR_EN), $rng) . '</h3>';
+            $body = [];
+            for ($q = 0, $qn = $rng->int(2, 3); $q < $qn; $q++) {
+                $pt = $bag->take("$area.poyasnenie", $F['poyasnenie']);
+                if ($pt !== null) { $body[] = expand(fill($pt, $SL, $BR_RU, $BR_EN), $rng); }
             }
+            if ($rng->float() < 0.55) {
+                $og = $bag->take("$area.ogovorka", $F['ogovorka']);
+                if ($og !== null) { $body[] = expand(fill($og, $SL, $BR_RU, $BR_EN), $rng); }
+            }
+            if ($body) { $html[] = para($body, $rng); }
             if ($lists < $wantLists && $rng->float() < 0.5) {
                 $useOl = $ol < $wantOl;
                 $src   = $useOl ? $F['shag'] : $F['punkt'];
@@ -187,7 +302,7 @@ foreach (PLAN as $type => $areas) {
                 for ($k = 0; $k < $n; $k++) {
                     $xr = $bag->take($area . ($useOl ? '.shag' : '.punkt'), $src);
                     if ($xr === null) { break; }
-                    $x = fill($xr, $SL, $BR_RU, $BR_EN);
+                    $x = expand(fill($xr, $SL, $BR_RU, $BR_EN), $rng);
                     // strong-ярлык в начале пункта — форма образца
                     if (!$useOl && str_contains($x, ':')) {
                         [$lab, $rest] = array_pad(explode(':', $x, 2), 2, '');
@@ -208,20 +323,24 @@ foreach (PLAN as $type => $areas) {
     while (words(implode(' ', $html)) < $wantWords * 0.95 && $guard++ < 400) {
         $area = $areas[$rng->int(0, count($areas) - 1)];
         $F = $FRAMES[$area];
-        $kind = $rng->float() < 0.6 ? 'poyasnenie' : 'ogovorka';
-        $x = $bag->take("$area.$kind", $F[$kind]);
-        if ($x === null) {
+        $chunk = [];
+        for ($q = 0, $qn = $rng->int(2, 3); $q < $qn; $q++) {
+            $kind = $rng->float() < 0.65 ? 'poyasnenie' : 'ogovorka';
+            $x = $bag->take("$area.$kind", $F[$kind]);
+            if ($x !== null) { $chunk[] = expand(fill($x, $SL, $BR_RU, $BR_EN), $rng); }
+        }
+        if (!$chunk) {
             if (count($bag->exhausted) >= count($FRAMES) * 2) { break; }
             continue;
         }
-        $html[] = '<p>' . fill($x, $SL, $BR_RU, $BR_EN) . '</p>';
+        $html[] = para($chunk, $rng);
     }
 
     // ── FAQ в микроразметке ─────────────────────────────────────────────
     if ($wantFaq > 0) {
-        $html[] = '<h2>' . fill('Частые вопросы о {Б}', $SL, $BR_RU, $BR_EN) . '</h2>';
+        $html[] = '<h2>' . expand(fill('((Частые вопросы|Вопросы и ответы|Что спрашивают чаще всего)) о {Б}', $SL, $BR_RU, $BR_EN), $rng) . '</h2>';
         $ip = $bag->take("$a0.poyasnenie", $FRAMES[$a0]['poyasnenie']);
-        if ($ip !== null) { $html[] = '<p>' . fill($ip, $SL, $BR_RU, $BR_EN) . '</p>'; }
+        if ($ip !== null) { $html[] = '<p>' . expand(fill($ip, $SL, $BR_RU, $BR_EN), $rng) . '</p>'; }
         $html[] = '<div itemscope itemtype="https://schema.org/FAQPage">';
         for ($i = 0; $i < $wantFaq; $i++) {
             $area = $areas[$i % count($areas)];
@@ -229,8 +348,8 @@ foreach (PLAN as $type => $areas) {
             $qr = $bag->take("$area.faq_q", $F['faq_q']);
             $ar = $bag->take("$area.faq_a", $F['faq_a']);
             if ($qr === null || $ar === null) { break; }
-            $q = fill($qr, $SL, $BR_RU, $BR_EN);
-            $aTxt = fill($ar, $SL, $BR_RU, $BR_EN);
+            $q = expand(fill($qr, $SL, $BR_RU, $BR_EN), $rng);
+            $aTxt = expand(fill($ar, $SL, $BR_RU, $BR_EN), $rng);
             $html[] = '<div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">'
                 . '<details><summary itemprop="name">' . $q . '</summary>'
                 . '<div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">'
