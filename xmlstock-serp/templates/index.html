@@ -135,6 +135,7 @@
     <button class="tab" data-tab="site">🔎 Индексация (site:)</button>
     <button class="tab" data-tab="redir">🔀 Редиректы</button>
     <button class="tab" data-tab="live">✅ Живость</button>
+    <button class="tab" data-tab="watch">🚀 Мониторинг 48ч</button>
   </div>
 
   <!-- ================= ВКЛАДКА 1: СБОР ТОП ================= -->
@@ -477,8 +478,105 @@
     </div>
   </div>
 
+  <!-- ================= ВКЛАДКА 6: МОНИТОРИНГ ЗАПУСКОВ (48ч) ================= -->
+  <div id="panel-watch" class="hidden">
+    <div class="card">
+      <div class="row" style="justify-content:space-between;align-items:flex-end">
+        <label style="margin:0">Запросы — по одному в строке <span class="count" id="wcount">0</span></label>
+        <button class="btn-ghost" id="w_load" type="button">↥ Взять запросы из «Сбора ТОП»</button>
+      </div>
+      <textarea id="w_queries" placeholder="1win&#10;кэт казино официальный&#10;мотор казино зеркало&#10;..."></textarea>
+      <div class="hint">
+        Один и тот же набор ключей снимается по расписанию несколько раз. Каждый срез — отдельный файл
+        <code>serp_ДАТА_ВРЕМЯ.xlsx</code> (и <code>.csv</code>) в папке <code>output/</code>. Дубликаты убираются.
+        Диффы срезов делаете на своей стороне.
+      </div>
+
+      <div class="grid g4" style="margin-top:12px">
+        <div>
+          <label>Глубина</label>
+          <select id="w_depth">
+            <option value="10" selected>Топ-10</option>
+            <option value="20">Топ-20</option>
+          </select>
+        </div>
+        <div>
+          <label>Интервал</label>
+          <div class="row" style="gap:6px;flex-wrap:nowrap">
+            <input id="w_interval" type="number" value="4" min="0.1" step="0.5" style="flex:1">
+            <select id="w_interval_unit" style="width:auto">
+              <option value="min">мин</option>
+              <option value="hour" selected>час</option>
+            </select>
+          </div>
+        </div>
+        <div><label>Срезов (раз)</label><input id="w_rounds" type="number" value="12" min="1" max="200"></div>
+        <div><label>Параллельно</label><input id="w_workers" type="number" value="5" min="1" max="20"></div>
+      </div>
+
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:14px 0 0;font-size:14px;color:var(--txt)">
+        <input type="checkbox" id="w_whois" checked style="width:auto"> Узнавать <b>&nbsp;дату регистрации&nbsp;</b> домена (RDAP → WHOIS) — отличить свежий запуск от «всплыл старый»
+      </label>
+      <div class="grid g4" id="w_whois_opts" style="margin-top:12px">
+        <div><label>RDAP параллельно</label><input id="w_whois_workers" type="number" value="4" min="1" max="10"></div>
+        <div><label>RDAP пауза, сек</label><input id="w_whois_delay" type="number" value="0.3" min="0" max="5" step="0.1"></div>
+        <div><label>RDAP таймаут, сек</label><input id="w_whois_timeout" type="number" value="15" min="5" max="60"></div>
+        <div><label>RDAP ретраи</label><input id="w_whois_retries" type="number" value="1" min="0" max="3"></div>
+      </div>
+
+      <div class="hint" id="w_plan" style="margin-top:10px"></div>
+      <div class="hint" style="margin-top:6px;color:var(--warn)">
+        ⚠ Прогон идёт, пока открыт терминал с <code>app.py</code>. На 48 часов не дайте маку заснуть —
+        запустите с <code>caffeinate</code>: <code>caffeinate -i python app.py</code>.
+        Готовые срезы уже лежат в <code>output/</code> и не пропадут.
+      </div>
+
+      <div class="row" style="margin-top:16px">
+        <button class="btn-go" id="w_go">▶ Запустить мониторинг</button>
+        <button class="btn-cancel hidden" id="w_stop">■ Остановить</button>
+      </div>
+    </div>
+
+    <div class="card hidden" id="w_panel">
+      <div class="stat">
+        <div><span class="muted">Срезов снято</span><b id="w_round">0 / 0</b></div>
+        <div class="ok"><span class="muted">Статус</span><b id="w_statusw">—</b></div>
+        <div><span class="muted">Фаза</span><b id="w_phase">—</b></div>
+        <div><span class="muted">След. срез через</span><b id="w_next">—</b></div>
+        <div><span class="muted">Новых доменов</span><b id="w_new">0</b></div>
+      </div>
+      <div class="bar" style="margin:6px 0 4px"><i id="w_barFill"></i></div>
+      <div class="hint" id="w_curline">—</div>
+      <div class="row" style="margin:12px 0">
+        <button class="btn-dl hidden" id="w_zipXlsx">⬇ Все срезы (XLSX .zip)</button>
+        <button class="btn-dl hidden" id="w_zipCsv">⬇ Все срезы (CSV .zip)</button>
+      </div>
+
+      <label>Срезы</label>
+      <div class="tbl-wrap" style="margin-bottom:16px">
+        <table class="pos">
+          <thead><tr><th>#</th><th>Время среза</th><th>Результатов</th><th>Новых доменов</th><th>С датой рег.</th><th>Не снято</th><th>Файл</th></tr></thead>
+          <tbody id="w_snaps"></tbody>
+        </table>
+      </div>
+
+      <label>Свежие домены с датой регистрации (последние)</label>
+      <div class="tbl-wrap">
+        <table class="pos">
+          <thead><tr><th>Домен (regdom)</th><th>Дата регистрации</th><th>Источник</th><th>Срез</th></tr></thead>
+          <tbody id="w_fresh"></tbody>
+        </table>
+      </div>
+      <div class="hint">
+        Свежий запуск — домен, зарегистрированный <b>в окне мониторинга</b> или за 1–3 дня до него.
+        «Всплыл старый» — дата регистрации давняя. Точную классификацию и кривые удобно строить по выгруженным файлам.
+      </div>
+    </div>
+  </div>
+
   <p class="sub" style="text-align:center; margin-top:24px">
-    Запущено локально на вашем компьютере · данные никуда не уходят, кроме API xmlstock.
+    Запущено локально на вашем компьютере · данные никуда не уходят, кроме API xmlstock
+    (мониторинг ещё дёргает RDAP/WHOIS для даты регистрации).
   </p>
 </div>
 
@@ -513,6 +611,7 @@ document.querySelectorAll(".tab").forEach(t=> t.onclick = ()=>{
   $("panel-site").classList.toggle("hidden", t.dataset.tab!=="site");
   $("panel-redir").classList.toggle("hidden", t.dataset.tab!=="redir");
   $("panel-live").classList.toggle("hidden", t.dataset.tab!=="live");
+  $("panel-watch").classList.toggle("hidden", t.dataset.tab!=="watch");
 });
 
 // ---- движок / свой URL ----
@@ -908,6 +1007,88 @@ $("l_dlAlive").onclick=()=> lJob && (location.href="/api/live/download/"+lJob+"?
 $("l_dlXlsx").onclick=()=> lJob && (location.href="/api/live/download/"+lJob+"?fmt=xlsx");
 $("l_dlCsv").onclick =()=> lJob && (location.href="/api/live/download/"+lJob+"?fmt=csv");
 
+// ===================== ВКЛАДКА 6: МОНИТОРИНГ ЗАПУСКОВ =====================
+let wPoll=null, wTick=null, wJob=null, wNextAt=null;
+const WATCH_FIELDS=["w_queries","w_depth","w_interval","w_interval_unit","w_rounds","w_workers","w_whois","w_whois_workers","w_whois_delay","w_whois_timeout","w_whois_retries"];
+function saveWatch(){ const o={}; WATCH_FIELDS.forEach(f=>{const el=$(f); if(el)o[f]=fval(el);}); localStorage.setItem("xmlstock_watch",JSON.stringify(o)); }
+function loadWatch(){ try{ const o=JSON.parse(localStorage.getItem("xmlstock_watch")||"{}"); WATCH_FIELDS.forEach(f=>{const el=$(f); if(o[f]!==undefined&&el) setval(el,o[f]);}); }catch(e){} }
+loadWatch();
+WATCH_FIELDS.forEach(f=>{const el=$(f); if(el){el.addEventListener("input",saveWatch); el.addEventListener("change",saveWatch);}});
+$("w_queries").addEventListener("input", ()=> $("wcount").textContent=lines("w_queries")+" стр.");
+$("wcount").textContent=lines("w_queries")+" стр.";
+function fmtClock(s){ if(s==null) return "—"; s=Math.max(0,Math.round(s)); const h=Math.floor(s/3600), m=Math.floor(s%3600/60), ss=s%60, p=n=>String(n).padStart(2,"0"); return h? `${h}:${p(m)}:${p(ss)}` : `${m}:${p(ss)}`; }
+function updateWhoisOpts(){ $("w_whois_opts").style.opacity=$("w_whois").checked?"1":".4"; }
+$("w_whois").addEventListener("change", updateWhoisOpts); updateWhoisOpts();
+function updateWPlan(){
+  const r=+$("w_rounds").value||0, v=+$("w_interval").value||0, unit=$("w_interval_unit").value;
+  const stepH=v*(unit==="hour"?1:1/60), total=(r-1)*stepH;
+  const th = total>=1 ? total.toFixed(1).replace(/\.0$/,"")+" ч" : Math.round(total*60)+" мин";
+  $("w_plan").textContent=`${r} срезов, интервал ${v} ${unit==="hour"?"ч":"мин"} → окно ~${th}. Запросов за прогон ≈ ${lines("w_queries")*r} (ключей × срезов).`;
+}
+["w_rounds","w_interval","w_interval_unit","w_queries"].forEach(id=>{ const el=$(id); if(el){el.addEventListener("input",updateWPlan);el.addEventListener("change",updateWPlan);} }); updateWPlan();
+$("w_load").onclick=()=>{ const v=$("queries").value.trim(); if(!v){ showErr("На вкладке «Сбор ТОП» пока нет запросов."); return; } $("w_queries").value=v; $("wcount").textContent=lines("w_queries")+" стр."; saveWatch(); updateWPlan(); hideErr(); };
+
+$("w_go").onclick = async ()=>{
+  hideErr();
+  if(!$("user").value.trim()||!$("key").value.trim()){ showErr("Заполните User ID и API key."); return; }
+  if(!$("w_queries").value.trim()){ showErr("Добавьте запросы для мониторинга."); return; }
+  const payload={...shared(), queries:$("w_queries").value, depth:$("w_depth").value,
+    interval:$("w_interval").value, interval_unit:$("w_interval_unit").value,
+    rounds:$("w_rounds").value, workers:$("w_workers").value,
+    do_whois:$("w_whois").checked, whois_workers:$("w_whois_workers").value,
+    whois_delay:$("w_whois_delay").value, whois_timeout:$("w_whois_timeout").value,
+    whois_retries:$("w_whois_retries").value};
+  $("w_go").disabled=true;
+  try{
+    const r=await fetch("/api/watch/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    const d=await r.json();
+    if(!r.ok){ showErr(d.error||"Ошибка запуска"); $("w_go").disabled=false; return; }
+    wJob=d.job_id; startWatch(); wPoll=setInterval(wRefresh,2000); wRefresh();
+  }catch(e){ showErr("Нет связи с сервером: "+e); $("w_go").disabled=false; }
+};
+function startWatch(){
+  $("w_panel").classList.remove("hidden"); $("w_snaps").innerHTML=""; $("w_fresh").innerHTML="";
+  $("w_statusw").textContent="идёт…"; $("w_barFill").style.width="0%"; $("w_new").textContent="0"; $("w_curline").textContent="—";
+  $("w_zipXlsx").classList.add("hidden"); $("w_zipCsv").classList.add("hidden"); $("w_stop").classList.remove("hidden");
+  if(wTick) clearInterval(wTick);
+  wTick=setInterval(()=>{ if(wNextAt!=null) $("w_next").textContent=fmtClock((wNextAt-Date.now())/1000); },1000);
+  $("w_panel").scrollIntoView({behavior:"smooth"});
+}
+async function wRefresh(){
+  if(!wJob) return; let d;
+  try{ d=await (await fetch("/api/watch/status/"+wJob)).json(); }catch(e){ return; }
+  if(d.error) return;
+  $("w_round").textContent=d.rounds_done+" / "+d.rounds_total;
+  $("w_phase").textContent=d.phase||"—";
+  $("w_new").textContent=d.total_new;
+  $("w_barFill").style.width=(d.rounds_total?Math.round(d.rounds_done/d.rounds_total*100):0)+"%";
+  let cur="—";
+  if(d.status==="running"){
+    if(d.phase && d.phase.indexOf("RDAP")>=0 && d.whois_total) cur=`RDAP: ${d.whois_done} / ${d.whois_total} доменов`;
+    else if(d.cur_total) cur=`сбор выдачи: ${d.cur_done} / ${d.cur_total} запросов`;
+  }
+  $("w_curline").textContent=cur;
+  $("w_snaps").innerHTML=(d.snapshots||[]).slice().reverse().map(s=>{
+    const t=(s.scrape_ts||"").replace("T"," ").slice(0,19);
+    const dl=s.xlsx?`<a href="/api/watch/file/${wJob}?name=${encodeURIComponent(s.xlsx)}">xlsx</a> · <a href="/api/watch/file/${wJob}?name=${encodeURIComponent(s.csv)}">csv</a>`:"—";
+    const miss=s.misses?`<span class="p-no">${s.misses}</span>`:"0";
+    return `<tr><td>${s.round}</td><td>${esc(t)}</td><td>${s.results}</td><td>${s.new_domains}</td><td class="p-top">${s.whois_found}</td><td>${miss}</td><td class="pill">${dl}</td></tr>`;
+  }).join("");
+  $("w_fresh").innerHTML=(d.fresh||[]).map(x=>`<tr><td>${esc(x.regdom)}</td><td class="p-top">${esc((x.created||"").replace("T"," ").slice(0,19))}</td><td class="pill">${esc(x.source||"")}</td><td>${x.round}</td></tr>`).join("");
+  wNextAt=(d.seconds_to_next!=null)?Date.now()+d.seconds_to_next*1000:null;
+  $("w_next").textContent=(d.status==="running"&&d.seconds_to_next!=null)?fmtClock(d.seconds_to_next):"—";
+  if((d.snapshots||[]).length){ $("w_zipXlsx").classList.remove("hidden"); $("w_zipCsv").classList.remove("hidden"); }
+  if(d.status!=="running"){
+    clearInterval(wPoll); wPoll=null; if(wTick){clearInterval(wTick);wTick=null;}
+    $("w_go").disabled=false; $("w_stop").classList.add("hidden"); wNextAt=null;
+    $("w_statusw").textContent={done:"готово ✓",cancelled:"остановлено",error:"ошибка"}[d.status]||d.status;
+    if(d.fatal) showErr("Сбой: "+d.fatal);
+  }
+}
+$("w_stop").onclick=async ()=>{ if(wJob){ await fetch("/api/watch/cancel/"+wJob,{method:"POST"}); $("w_statusw").textContent="останавливаю…"; } };
+$("w_zipXlsx").onclick=()=> wJob && (location.href="/api/watch/download_zip/"+wJob+"?fmt=xlsx");
+$("w_zipCsv").onclick =()=> wJob && (location.href="/api/watch/download_zip/"+wJob+"?fmt=csv");
+
 // ---- переподключение к уже идущим задачам (если перезагрузили страницу) ----
 (async ()=>{
   try{
@@ -926,6 +1107,10 @@ $("l_dlCsv").onclick =()=> lJob && (location.href="/api/live/download/"+lJob+"?f
   try{
     const lc = await (await fetch("/api/live/active")).json();
     if(lc.job_id && lc.status==="running"){ lJob=lc.job_id; startLive(); lPoll=setInterval(lRefresh,1000); lRefresh(); }
+  }catch(e){}
+  try{
+    const wc = await (await fetch("/api/watch/active")).json();
+    if(wc.job_id && wc.status==="running"){ wJob=wc.job_id; document.querySelector('.tab[data-tab="watch"]').click(); startWatch(); wPoll=setInterval(wRefresh,2000); wRefresh(); }
   }catch(e){}
 })();
 </script>

@@ -16,11 +16,14 @@ import io
 import json
 import os
 import re
+import shutil
 import socket
+import subprocess
 import time
 import uuid
 import webbrowser
 import xml.etree.ElementTree as ET
+import zipfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from threading import Event, Lock, Thread
@@ -115,6 +118,11 @@ LAST_COLLECT = {"id": None}
 LIVEJOBS = {}
 LIVE_LOCK = Lock()
 ACTIVE_LIVE = {"id": None}
+
+# Хранилище задач мониторинга запусков (частые срезы + дата регистрации).
+WATCHJOBS = {}
+WATCH_LOCK = Lock()
+ACTIVE_WATCH = {"id": None}
 
 
 # --------------------------------------------------------------------------- #
@@ -1150,6 +1158,299 @@ def monitor_rows(job):
 
 
 # --------------------------------------------------------------------------- #
+#  Дата регистрации домена: RDAP → WHOIS, с durable-кэшем                     #
+# --------------------------------------------------------------------------- #
+# «Настоящий запуск» дорвея нельзя доказать без даты регистрации домена.
+# RDAP (JSON) стабильнее классического WHOIS и покрывает все gTLD (.xyz/.top/
+# .buzz/.casino/.team/.click/…), а также .ru через бутстрап rdap.org. Один
+# запрос на домен за всё окно — результат кэшируется на диск и переживает
+# перезапуск сервера (и переиспользуется между прогонами).
+WHOIS_CACHE_FILE = os.path.join(OUTPUT_DIR, "whois_cache.json")
+_WHOIS_BIN = shutil.which("whois")
+_RDAP_URL = "https://rdap.org/domain/"
+_WHOIS_DATE_RE = re.compile(
+    r"(?:creation date|created on|created|registered on|registration date|"
+    r"registration time|domain registration date)\s*:?\s*"
+    r"(\d{4}-\d{2}-\d{2}(?:[ tT]\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?(?:z|[+-]\d{2}:?\d{2})?)?"
+    r"|\d{2}-[a-zA-Z]{3}-\d{4})",
+    re.I,
+)
+
+
+def _load_whois_cache():
+    try:
+        with open(WHOIS_CACHE_FILE, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def _save_whois_cache(cache):
+    try:
+        tmp = WHOIS_CACHE_FILE + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(cache, f, ensure_ascii=False)
+        os.replace(tmp, WHOIS_CACHE_FILE)
+    except Exception:
+        pass
+
+
+def _rdap_created(regdom, timeout):
+    """Дата регистрации через RDAP. Возвращает (iso_str|None, retry_bool)."""
+    try:
+        r = requests.get(_RDAP_URL + regdom, timeout=timeout,
+                         headers={"Accept": "application/rdap+json"},
+                         allow_redirects=True)
+    except requests.RequestException:
+        return None, True
+    if r.status_code == 429 or r.status_code >= 500:
+        return None, True
+    if r.status_code != 200:
+        return None, False
+    try:
+        data = r.json()
+    except Exception:
+        return None, False
+    for ev in (data.get("events") or []):
+        if ev.get("eventAction") == "registration":
+            d = (ev.get("eventDate") or "").strip()
+            if d:
+                return d, False
+    return None, False
+
+
+def _whois_created(regdom, timeout):
+    """Фолбэк на системный whois (есть в macOS). Возвращает строку-дату или None."""
+    if not _WHOIS_BIN:
+        return None
+    try:
+        out = subprocess.run([_WHOIS_BIN, regdom], capture_output=True,
+                             text=True, timeout=timeout).stdout or ""
+    except Exception:
+        return None
+    m = _WHOIS_DATE_RE.search(out)
+    return m.group(1).strip() if m else None
+
+
+def domain_created(regdom, cfg):
+    """RDAP с ретраями/бэкоффом, затем whois. Возвращает (created|None, source)."""
+    for attempt in range(cfg.get("whois_retries", 1) + 1):
+        created, retry = _rdap_created(regdom, cfg.get("whois_timeout", 15))
+        if created:
+            return created, "rdap"
+        if not retry:
+            break
+        time.sleep(min(2 ** attempt, 6))
+    w = _whois_created(regdom, cfg.get("whois_timeout", 15))
+    if w:
+        return w, "whois"
+    return None, ""
+
+
+# --------------------------------------------------------------------------- #
+#  Мониторинг запусков: частые срезы + дата регистрации                       #
+# --------------------------------------------------------------------------- #
+# Существующие колонки «Сбора ТОП» + 4 новых в конец (совместимо с пайплайном).
+WATCH_COLS = ["query", "position", "url", "title", "domain",
+              "scrape_ts", "regdom", "whois_created", "whois_source"]
+
+
+def _watch_build(queries, results_by_query, seen, scrape_ts):
+    """Сырьё среза. Возвращает (rows_raw, wide_rows, misses, snap_new, snap_new_set).
+    rows_raw: [(query, pos, url, title, host, regdom)]; snap_new — уникальные
+    regdom, впервые встреченные в этом окне (для них проставим whois_created).
+    misses — запросы, не отработавшие (ошибка/капча/таймаут), НЕ «пусто по делу»."""
+    rows_raw, wide_rows, misses = [], [], []
+    snap_new, snap_new_set = [], set()
+    for q in queries:
+        res, err = results_by_query.get(q, ([], None))
+        if err and not res:
+            misses.append(q)
+        for i, r in enumerate(res, 1):
+            host = (r.get("domain") or domain_from_url(r.get("url", ""))).lower()
+            rd = registrable_domain(host)
+            rows_raw.append((q, i, r["url"], r.get("title", ""), host, rd))
+            if rd and rd not in seen and rd not in snap_new_set:
+                snap_new_set.add(rd)
+                snap_new.append(rd)
+        wide_rows.append((q, [r["url"] for r in res]))
+    return rows_raw, wide_rows, misses, snap_new, snap_new_set
+
+
+def _write_watch_xlsx(path, rows, wide_rows, top_n):
+    try:
+        from openpyxl import Workbook
+    except Exception:
+        return False
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "results"
+    ws.append(WATCH_COLS)
+    for row in rows:
+        ws.append(row)
+    ws2 = wb.create_sheet("wide")
+    ws2.append(["query"] + [f"url_{i}" for i in range(1, top_n + 1)])
+    for q, urls in wide_rows:
+        ws2.append([q] + (list(urls) + [""] * top_n)[:top_n])
+    try:
+        wb.save(path)
+        return True
+    except Exception:
+        return False
+
+
+def _write_watch_csv(path, rows):
+    with open(path, "w", encoding="utf-8-sig", newline="") as f:
+        w = csv.writer(f, delimiter=";")
+        w.writerow(WATCH_COLS)
+        w.writerows(rows)
+
+
+def _watch_enrich(job, cfg, snap_new, cache):
+    """RDAP/WHOIS для новых regdom этого среза. Возвращает {regdom: (created, source)}
+    и обновляет durable-кэш. Считает прогресс в job (whois_done/whois_total)."""
+    mapping, todo = {}, []
+    for rd in snap_new:
+        if rd in cache:
+            mapping[rd] = (cache[rd].get("created"), cache[rd].get("source"))
+            with job["lock"]:
+                job["whois_done"] += 1
+        else:
+            todo.append(rd)
+    clock = Lock()
+
+    def work(rd):
+        if job["cancel"].is_set():
+            return rd, (None, "")
+        created, source = domain_created(rd, cfg)
+        if cfg["whois_delay"] > 0:
+            time.sleep(cfg["whois_delay"])
+        return rd, (created, source)
+
+    if todo:
+        with ThreadPoolExecutor(max_workers=cfg["whois_workers"]) as ex:
+            futs = {ex.submit(work, rd): rd for rd in todo}
+            for fut in as_completed(futs):
+                rd, (created, source) = fut.result()
+                with clock:
+                    mapping[rd] = (created, source)
+                    cache[rd] = {"created": created, "source": source}
+                with job["lock"]:
+                    job["whois_done"] += 1
+        _save_whois_cache(cache)
+    return mapping
+
+
+def run_watch(job_id, cfg, queries):
+    job = WATCHJOBS[job_id]
+    seen = set()                       # regdom, встреченные в этом окне
+    cache = _load_whois_cache()
+    try:
+        for rnd in range(1, job["rounds_total"] + 1):
+            if job["cancel"].is_set():
+                break
+            round_start = time.time()
+            scrape_dt = datetime.now().astimezone()
+            stamp = scrape_dt.strftime("%Y%m%d_%H%M%S")
+            scrape_ts = scrape_dt.isoformat(timespec="seconds")
+            with job["lock"]:
+                job["phase"] = "сбор выдачи"
+                job["cur_done"], job["cur_total"] = 0, len(queries)
+                job["whois_done"], job["whois_total"] = 0, 0
+
+            # 1) снять выдачу по всем запросам
+            rbq = {}
+            with ThreadPoolExecutor(max_workers=cfg["workers"]) as ex:
+                futs = {ex.submit(fetch_one, cfg, q, job["cancel"]): q for q in queries}
+                for fut in as_completed(futs):
+                    q = futs[fut]
+                    try:
+                        rbq[q] = fut.result()
+                    except Exception as e:  # noqa: BLE001
+                        rbq[q] = ([], f"исключение: {e}")
+                    with job["lock"]:
+                        job["cur_done"] += 1
+            if job["cancel"].is_set():
+                break
+
+            # 2) сырьё + новые regdom этого окна
+            rows_raw, wide_rows, misses, snap_new, snap_new_set = _watch_build(
+                queries, rbq, seen, scrape_ts)
+
+            # 3) дата регистрации для впервые виденных regdom
+            mapping = {}
+            if cfg["do_whois"] and snap_new and not job["cancel"].is_set():
+                with job["lock"]:
+                    job["phase"] = "дата регистрации (RDAP)"
+                    job["whois_total"] = len(snap_new)
+                mapping = _watch_enrich(job, cfg, snap_new, cache)
+            seen.update(snap_new_set)
+
+            # 4) строки: whois_created только у впервые виденных regdom
+            long_rows = []
+            for (q, i, url, title, host, rd) in rows_raw:
+                created, source = mapping.get(rd, (None, "")) if rd in snap_new_set else ("", "")
+                long_rows.append([q, i, url, title, host, scrape_ts, rd,
+                                  created or "", source or ""])
+
+            # 5) файлы среза: serp_ДАТА_ВРЕМЯ.xlsx/.csv (+ misses_*.txt)
+            xlsx_path = os.path.join(OUTPUT_DIR, f"serp_{stamp}.xlsx")
+            csv_path = os.path.join(OUTPUT_DIR, f"serp_{stamp}.csv")
+            xlsx_ok = _write_watch_xlsx(xlsx_path, long_rows, wide_rows, cfg["top_n"])
+            _write_watch_csv(csv_path, long_rows)
+            misses_path = None
+            if misses:
+                misses_path = os.path.join(OUTPUT_DIR, f"misses_{stamp}.txt")
+                try:
+                    with open(misses_path, "w", encoding="utf-8") as f:
+                        f.write("\n".join(misses))
+                except Exception:
+                    misses_path = None
+
+            fresh = sum(1 for rd in snap_new if mapping.get(rd, (None, ""))[0])
+            with job["lock"]:
+                job["snapshots"].append({
+                    "round": rnd, "at": round_start, "scrape_ts": scrape_ts,
+                    "xlsx": os.path.basename(xlsx_path) if xlsx_ok else None,
+                    "csv": os.path.basename(csv_path),
+                    "xlsx_path": xlsx_path if xlsx_ok else None,
+                    "csv_path": csv_path, "misses_path": misses_path,
+                    "results": len(long_rows), "misses": len(misses),
+                    "new_domains": len(snap_new), "whois_found": fresh,
+                })
+                job["rounds_done"] = rnd
+                job["total_new"] += len(snap_new)
+                for rd in snap_new:
+                    c, s = mapping.get(rd, (None, ""))
+                    if c:
+                        job["fresh_list"].append(
+                            {"regdom": rd, "created": c, "source": s, "round": rnd})
+                job["fresh_list"] = job["fresh_list"][-800:]
+                job["phase"] = "пауза"
+
+            # 6) периодическая пауза до следующего среза (прерываемая)
+            if rnd < job["rounds_total"] and not job["cancel"].is_set():
+                target = round_start + job["interval_sec"]
+                with job["lock"]:
+                    job["next_run_at"] = target
+                while time.time() < target and not job["cancel"].is_set():
+                    time.sleep(1)
+                with job["lock"]:
+                    job["next_run_at"] = None
+    except Exception as e:  # noqa: BLE001
+        with job["lock"]:
+            job["status"] = "error"
+            job["fatal"] = str(e)
+            job["next_run_at"] = None
+        return
+    with job["lock"]:
+        job["status"] = "cancelled" if job["cancel"].is_set() else "done"
+        job["finished_at"] = time.time()
+        job["next_run_at"] = None
+        job["phase"] = "—"
+
+
+# --------------------------------------------------------------------------- #
 #  HTTP-маршруты                                                              #
 # --------------------------------------------------------------------------- #
 @app.route("/")
@@ -2005,6 +2306,173 @@ def api_live_download(job_id):
     payload = ("﻿" + sbuf.getvalue()).encode("utf-8")
     return send_file(io.BytesIO(payload), as_attachment=True,
                      download_name=f"liveness_{job_id[:8]}.csv", mimetype="text/csv")
+
+
+# --- Мониторинг запусков (частые срезы + дата регистрации) ----------------- #
+@app.route("/api/watch/run", methods=["POST"])
+def api_watch_run():
+    data = request.get_json(force=True, silent=True) or {}
+    user = (data.get("user") or "").strip()
+    key = (data.get("key") or "").strip()
+    if not user or not key:
+        return jsonify({"error": "Укажите User ID и API key из кабинета xmlstock."}), 400
+
+    raw = data.get("queries") or ""
+    seen, queries = set(), []
+    for line in raw.replace("\r", "\n").split("\n"):
+        q = line.strip()
+        if q and q not in seen:
+            seen.add(q)
+            queries.append(q)
+    if not queries:
+        return jsonify({"error": "Список запросов пуст."}), 400
+
+    engine = data.get("engine") or "yandex"
+    endpoint = (data.get("endpoint") or "").strip() or ENDPOINTS.get(engine)
+    if not endpoint or not endpoint.lower().startswith(("http://", "https://")):
+        return jsonify({"error": "Некорректный URL эндпоинта."}), 400
+
+    def clamp(val, lo, hi, default):
+        try:
+            return max(lo, min(hi, int(val)))
+        except (TypeError, ValueError):
+            return default
+
+    def fnum(val, default):
+        try:
+            return max(0.0, float(val))
+        except (TypeError, ValueError):
+            return default
+
+    try:
+        interval_val = float(data.get("interval"))
+    except (TypeError, ValueError):
+        interval_val = 4.0
+    unit = data.get("interval_unit") or "hour"
+    interval_sec = int(max(10, min(86400, interval_val * (3600 if unit == "hour" else 60))))
+    rounds_total = clamp(data.get("rounds"), 1, 200, 12)
+
+    cfg = {
+        "user": user, "key": key, "endpoint": endpoint, "live": _is_live(endpoint),
+        "lr": (data.get("lr") or "").strip(),
+        "domain": (data.get("domain") or "").strip(),
+        "device": (data.get("device") or "").strip(),
+        "top_n": clamp(data.get("depth"), 1, 50, 10),
+        "workers": clamp(data.get("workers"), 1, 20, 5),
+        "delay": fnum(data.get("delay"), 0.0),
+        "timeout": 30, "retries": 2,
+        "do_whois": bool(data.get("do_whois", True)),
+        "whois_workers": clamp(data.get("whois_workers"), 1, 10, 4),
+        "whois_delay": fnum(data.get("whois_delay"), 0.3),
+        "whois_timeout": clamp(data.get("whois_timeout"), 5, 60, 15),
+        "whois_retries": clamp(data.get("whois_retries"), 0, 3, 1),
+    }
+
+    job_id = uuid.uuid4().hex
+    with WATCH_LOCK:
+        WATCHJOBS[job_id] = {
+            "id": job_id, "status": "running", "total_queries": len(queries),
+            "rounds_total": rounds_total, "rounds_done": 0,
+            "interval_sec": interval_sec, "depth": cfg["top_n"],
+            "do_whois": cfg["do_whois"], "phase": "старт",
+            "cur_done": 0, "cur_total": len(queries),
+            "whois_done": 0, "whois_total": 0,
+            "snapshots": [], "fresh_list": [], "total_new": 0,
+            "next_run_at": None, "lock": Lock(), "cancel": Event(),
+            "started_at": time.time(),
+        }
+        ACTIVE_WATCH["id"] = job_id
+    Thread(target=run_watch, args=(job_id, cfg, queries), daemon=True).start()
+    return jsonify({"job_id": job_id, "queries": len(queries),
+                    "rounds": rounds_total, "interval_sec": interval_sec,
+                    "whois": cfg["do_whois"], "whois_cli": bool(_WHOIS_BIN)})
+
+
+@app.route("/api/watch/status/<job_id>")
+def api_watch_status(job_id):
+    job = WATCHJOBS.get(job_id)
+    if not job:
+        return jsonify({"error": "Задача не найдена"}), 404
+    with job["lock"]:
+        nxt = job.get("next_run_at")
+        snaps = [{"round": s["round"], "scrape_ts": s["scrape_ts"],
+                  "xlsx": s["xlsx"], "csv": s["csv"],
+                  "results": s["results"], "misses": s["misses"],
+                  "new_domains": s["new_domains"], "whois_found": s["whois_found"],
+                  "has_misses": bool(s.get("misses_path"))}
+                 for s in job["snapshots"]]
+        return jsonify({
+            "status": job["status"], "phase": job.get("phase"),
+            "rounds_total": job["rounds_total"], "rounds_done": job["rounds_done"],
+            "interval_sec": job["interval_sec"],
+            "seconds_to_next": int(max(0, nxt - time.time())) if nxt else None,
+            "cur_done": job["cur_done"], "cur_total": job["cur_total"],
+            "whois_done": job["whois_done"], "whois_total": job["whois_total"],
+            "depth": job["depth"], "total_new": job.get("total_new", 0),
+            "snapshots": snaps, "fresh": job["fresh_list"][-60:][::-1],
+            "fatal": job.get("fatal"),
+        })
+
+
+@app.route("/api/watch/cancel/<job_id>", methods=["POST"])
+def api_watch_cancel(job_id):
+    job = WATCHJOBS.get(job_id)
+    if not job:
+        return jsonify({"error": "Задача не найдена"}), 404
+    job["cancel"].set()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/watch/active")
+def api_watch_active():
+    jid = ACTIVE_WATCH.get("id")
+    if jid and jid in WATCHJOBS:
+        return jsonify({"job_id": jid, "status": WATCHJOBS[jid]["status"]})
+    return jsonify({"job_id": None})
+
+
+@app.route("/api/watch/file/<job_id>")
+def api_watch_file(job_id):
+    job = WATCHJOBS.get(job_id)
+    if not job:
+        return jsonify({"error": "Задача не найдена"}), 404
+    name = request.args.get("name", "")
+    with job["lock"]:
+        allowed = {}
+        for s in job["snapshots"]:
+            if s.get("xlsx"):
+                allowed[s["xlsx"]] = s["xlsx_path"]
+            if s.get("csv"):
+                allowed[s["csv"]] = s["csv_path"]
+            if s.get("misses_path"):
+                allowed[os.path.basename(s["misses_path"])] = s["misses_path"]
+    path = allowed.get(name)
+    if not path or not os.path.exists(path):
+        return jsonify({"error": "Файл не найден"}), 404
+    return send_file(path, as_attachment=True, download_name=name)
+
+
+@app.route("/api/watch/download_zip/<job_id>")
+def api_watch_download_zip(job_id):
+    job = WATCHJOBS.get(job_id)
+    if not job:
+        return jsonify({"error": "Задача не найдена"}), 404
+    fmt = "csv" if request.args.get("fmt") == "csv" else "xlsx"
+    with job["lock"]:
+        snaps = list(job["snapshots"])
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        for s in snaps:
+            p = s.get("xlsx_path") if fmt == "xlsx" else s.get("csv_path")
+            if p and os.path.exists(p):
+                z.write(p, os.path.basename(p))
+            mp = s.get("misses_path")
+            if mp and os.path.exists(mp):
+                z.write(mp, os.path.basename(mp))
+    buf.seek(0)
+    return send_file(buf, as_attachment=True,
+                     download_name=f"watch_{job_id[:8]}_{fmt}.zip",
+                     mimetype="application/zip")
 
 
 def _open_browser(url):
