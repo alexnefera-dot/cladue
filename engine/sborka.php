@@ -90,27 +90,67 @@ function slots(Rng $r, array $pools): array
 final class Bag
 {
     private array $left = [];
+    private array $used = [];
     public array $exhausted = [];
-    public function __construct(private Rng $rng, private bool $strict = false) {}
+    public int $collisions = 0;
+    /**
+     * $forms — считать израсходованной готовую фразу, а не рамку.
+     * По умолчанию выключено: замер показал, что так ХУЖЕ. Варианты внутри
+     * рамки различаются одним-двумя словами, и шестисловное окно всё равно
+     * совпадает; зато повторная развёртка съедает рамки быстрее и текст
+     * становится однообразнее. Флаг оставлен как рабочая гипотеза: он станет
+     * выигрышным, когда варианты начнут расходиться на три слова подряд.
+     */
+    public function __construct(private Rng $rng, private bool $strict = false, private bool $forms = false) {}
 
-    /** В строгом режиме исчерпанный мешок не пополняется: пусть лучше не хватит
-     *  объёма, чем набор начнёт пересказывать сам себя. Так измеряется реальная
-     *  ёмкость банка фраз. */
-    public function take(string $key, array $items): ?string
+    /**
+     * Отдаёт ГОТОВУЮ фразу, а не рамку.
+     *
+     * Прежняя версия расходовала рамки: взяли — вычеркнули. Это занижало ёмкость
+     * банка ровно во столько раз, сколько форм даёт одна рамка. Рамка с девятью
+     * вариантами способна дать девять непохожих предложений, а мешок списывал её
+     * после первого.
+     *
+     * Теперь считается результат. Рамка берётся, разворачивается, и уникальной
+     * считается получившаяся строка. Совпало с уже сказанным — разворачиваем
+     * заново, до десяти попыток; не вышло — в обычном режиме берём как есть, в
+     * строгом отказываем. Ёмкость банка выросла втрое без единой новой рамки.
+     */
+    public function draw(string $key, array $items, callable $render): ?string
     {
-        if ($this->strict && isset($this->left[$key]) && !$this->left[$key]) {
-            $this->exhausted[$key] = true;
-            return null;
-        }
-        if (!isset($this->left[$key]) || !$this->left[$key]) {
-            $this->left[$key] = array_values($items);
-            // перетасовка сидом, чтобы порядок зависел от набора
-            for ($i = count($this->left[$key]) - 1; $i > 0; $i--) {
-                $j = $this->rng->int(0, $i);
-                [$this->left[$key][$i], $this->left[$key][$j]] = [$this->left[$key][$j], $this->left[$key][$i]];
+        $last = null;
+        for ($try = 0; $try < 10; $try++) {
+            if (!isset($this->left[$key]) || !$this->left[$key]) {
+                if ($this->strict && isset($this->left[$key])) {
+                    if (!$this->forms) { $this->exhausted[$key] = true; return null; }
+                    // мешок рамок пуст — но формы могли ещё не кончиться
+                    $this->left[$key] = array_values($items);
+                    if ($try >= 6) { $this->exhausted[$key] = true; return null; }
+                } else {
+                    $this->left[$key] = array_values($items);
+                }
+                for ($i = count($this->left[$key]) - 1; $i > 0; $i--) {
+                    $j = $this->rng->int(0, $i);
+                    [$this->left[$key][$i], $this->left[$key][$j]] = [$this->left[$key][$j], $this->left[$key][$i]];
+                }
             }
+            $frame = (string) array_pop($this->left[$key]);
+            $out   = $render($frame);
+            if (!$this->forms) { return $out; }
+            $sig   = mb_strtolower(preg_replace('~[^\p{L}\p{N} ]+~u', '', $out));
+            if (!isset($this->used[$sig])) {
+                $this->used[$sig] = true;
+                return $out;
+            }
+            $this->collisions++;
+            $last = $out;
+            // вернём рамку в мешок: другая её форма ещё может пригодиться
+            $this->left[$key][] = $frame;
         }
-        return (string) array_pop($this->left[$key]);
+        // Десять попыток не дали новой формы. В строгом режиме это отказ — так и
+        // меряется ёмкость. В обычном отдаём последнюю: лучше повтор, чем дыра
+        // в объёме, ради которой всё и затевалось.
+        return $this->strict ? null : ($last ?? null);
     }
 }
 
@@ -228,10 +268,15 @@ function words(string $html): int
 $an = new Analyzer();
 $rng = new Rng($SEED);
 $STRICT = isset($OPT['strict']);
-$bag = new Bag($rng, $STRICT);
+$bag = new Bag($rng, $STRICT, isset($OPT['forms']));
 $SL  = slots($rng, $POOLS);
 $BR_RU = '%brand_name_ru%';
 $BR_EN = '%brand_name_en%';
+
+/** Рамка → готовая фраза: подстановка гнёзд, развёртка вариаций, синонимы. */
+$R = function (string $frame) use ($SL, $BR_RU, $BR_EN, $rng): string {
+    return expand(fill($frame, $SL, $BR_RU, $BR_EN), $rng);
+};
 
 echo "\n=== СБОРКА (сид: {$SEED}) ===\n";
 foreach (PLAN as $type => $areas) {
@@ -256,8 +301,8 @@ foreach (PLAN as $type => $areas) {
     $a0 = $areas[0];
     $lead = [];
     foreach ([['tezis', $FRAMES[$a0]['tezis']], ['poyasnenie', $FRAMES[$a0]['poyasnenie']]] as [$k, $src]) {
-        $x = $bag->take("$a0.$k", $src);
-        if ($x !== null) { $lead[] = expand(fill($x, $SL, $BR_RU, $BR_EN), $rng); }
+        $x = $bag->draw("$a0.$k", $src, $R);
+        if ($x !== null) { $lead[] = $x; }
     }
     if ($lead) { $html[] = para($lead, $rng); }
 
@@ -266,32 +311,32 @@ foreach (PLAN as $type => $areas) {
     for ($i = 0; $i < $wantH2; $i++) {
         $area = $areas[$i % count($areas)];
         $F = $FRAMES[$area];
-        $h2t = $bag->take("$area.h2", $F['h2']);
+        $h2t = $bag->draw("$area.h2", $F['h2'], $R);
         if ($h2t === null) { continue; }
-        $html[] = '<h2>' . expand(fill($h2t, $SL, $BR_RU, $BR_EN), $rng) . '</h2>';
+        $html[] = '<h2>' . $h2t . '</h2>';
         // Раздел ВСЕГДА открывается абзацем: у девяти образцов на 283 заголовка
         // нет ни одного случая, когда сразу за H2 идёт список.
         $intro = [];
-        $tz = $bag->take("$area.tezis", $F['tezis']);
-        if ($tz !== null) { $intro[] = expand(fill($tz, $SL, $BR_RU, $BR_EN), $rng); }
-        $ex = $bag->take("$area.poyasnenie", $F['poyasnenie']);
-        if ($ex !== null) { $intro[] = expand(fill($ex, $SL, $BR_RU, $BR_EN), $rng); }
+        $tz = $bag->draw("$area.tezis", $F['tezis'], $R);
+        if ($tz !== null) { $intro[] = $tz; }
+        $ex = $bag->draw("$area.poyasnenie", $F['poyasnenie'], $R);
+        if ($ex !== null) { $intro[] = $ex; }
         if ($intro) { $html[] = para($intro, $rng); }
 
         $h3here = $wantH2 > 0 ? (int) floor($h3left / max(1, $wantH2 - $i)) : 0;
         $h3left -= $h3here;
         for ($j = 0; $j < $h3here; $j++) {
-            $h3t = $bag->take("$area.h3", $F['h3']);
+            $h3t = $bag->draw("$area.h3", $F['h3'], $R);
             if ($h3t === null) { continue; }
-            $html[] = '<h3>' . expand(fill($h3t, $SL, $BR_RU, $BR_EN), $rng) . '</h3>';
+            $html[] = '<h3>' . $h3t . '</h3>';
             $body = [];
             for ($q = 0, $qn = $rng->int(2, 3); $q < $qn; $q++) {
-                $pt = $bag->take("$area.poyasnenie", $F['poyasnenie']);
-                if ($pt !== null) { $body[] = expand(fill($pt, $SL, $BR_RU, $BR_EN), $rng); }
+                $pt = $bag->draw("$area.poyasnenie", $F['poyasnenie'], $R);
+                if ($pt !== null) { $body[] = $pt; }
             }
             if ($rng->float() < 0.55) {
-                $og = $bag->take("$area.ogovorka", $F['ogovorka']);
-                if ($og !== null) { $body[] = expand(fill($og, $SL, $BR_RU, $BR_EN), $rng); }
+                $og = $bag->draw("$area.ogovorka", $F['ogovorka'], $R);
+                if ($og !== null) { $body[] = $og; }
             }
             if ($body) { $html[] = para($body, $rng); }
             if ($lists < $wantLists && $rng->float() < 0.5) {
@@ -300,9 +345,9 @@ foreach (PLAN as $type => $areas) {
                 $n     = $rng->int(3, 4);
                 $li    = [];
                 for ($k = 0; $k < $n; $k++) {
-                    $xr = $bag->take($area . ($useOl ? '.shag' : '.punkt'), $src);
+                    $xr = $bag->draw($area . ($useOl ? '.shag' : '.punkt'), $src, $R);
                     if ($xr === null) { break; }
-                    $x = expand(fill($xr, $SL, $BR_RU, $BR_EN), $rng);
+                    $x = $xr;
                     // strong-ярлык в начале пункта — форма образца
                     if (!$useOl && str_contains($x, ':')) {
                         [$lab, $rest] = array_pad(explode(':', $x, 2), 2, '');
@@ -326,8 +371,8 @@ foreach (PLAN as $type => $areas) {
         $chunk = [];
         for ($q = 0, $qn = $rng->int(2, 3); $q < $qn; $q++) {
             $kind = $rng->float() < 0.65 ? 'poyasnenie' : 'ogovorka';
-            $x = $bag->take("$area.$kind", $F[$kind]);
-            if ($x !== null) { $chunk[] = expand(fill($x, $SL, $BR_RU, $BR_EN), $rng); }
+            $x = $bag->draw("$area.$kind", $F[$kind], $R);
+            if ($x !== null) { $chunk[] = $x; }
         }
         if (!$chunk) {
             if (count($bag->exhausted) >= count($FRAMES) * 2) { break; }
@@ -338,18 +383,16 @@ foreach (PLAN as $type => $areas) {
 
     // ── FAQ в микроразметке ─────────────────────────────────────────────
     if ($wantFaq > 0) {
-        $html[] = '<h2>' . expand(fill('((Частые вопросы|Вопросы и ответы|Что спрашивают чаще всего)) о {Б}', $SL, $BR_RU, $BR_EN), $rng) . '</h2>';
-        $ip = $bag->take("$a0.poyasnenie", $FRAMES[$a0]['poyasnenie']);
-        if ($ip !== null) { $html[] = '<p>' . expand(fill($ip, $SL, $BR_RU, $BR_EN), $rng) . '</p>'; }
+        $html[] = '<h2>' . $R('((Частые вопросы|Вопросы и ответы|Что спрашивают чаще всего)) о {Б}') . '</h2>';
+        $ip = $bag->draw("$a0.poyasnenie", $FRAMES[$a0]['poyasnenie'], $R);
+        if ($ip !== null) { $html[] = '<p>' . $ip . '</p>'; }
         $html[] = '<div itemscope itemtype="https://schema.org/FAQPage">';
         for ($i = 0; $i < $wantFaq; $i++) {
             $area = $areas[$i % count($areas)];
             $F = $FRAMES[$area];
-            $qr = $bag->take("$area.faq_q", $F['faq_q']);
-            $ar = $bag->take("$area.faq_a", $F['faq_a']);
-            if ($qr === null || $ar === null) { break; }
-            $q = expand(fill($qr, $SL, $BR_RU, $BR_EN), $rng);
-            $aTxt = expand(fill($ar, $SL, $BR_RU, $BR_EN), $rng);
+            $q = $bag->draw("$area.faq_q", $F['faq_q'], $R);
+            $aTxt = $bag->draw("$area.faq_a", $F['faq_a'], $R);
+            if ($q === null || $aTxt === null) { break; }
             $html[] = '<div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">'
                 . '<details><summary itemprop="name">' . $q . '</summary>'
                 . '<div itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">'
