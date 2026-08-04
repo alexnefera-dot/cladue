@@ -22,7 +22,7 @@ $MAP = [
  'brand_in_h'=>'ЗАГОЛОВКАХ|заголовках этой страницы бренда','brand_first_third'=>'первой трети',
  'faq_pairs'=>'FAQ','questions_total'=>'вопросительных знаков в тексте',
  'anchors'=>'Анкоры','opener_name'=>'НАЧАЛО СТРАНИЦЫ','opener_key'=>'НАЧАЛО СТРАНИЦЫ',
- 'table_cols'=>'колонк','table_uniq_pct'=>'шапк','reviews_rated'=>'Отзывы с оценкой|Отзывов с оценкой',
+ 'table_cols'=>'колонк|Таблиц на этой странице','table_uniq_pct'=>'шапк|уникальных шапок 0%','reviews_rated'=>'Отзывы с оценкой|Отзывов с оценкой',
  'ordered_pct'=>'нумерованных','anchor_once_pct'=>'ровно один раз','fact_values'=>'Словарь фактов',
  'lead_list'=>'зачине','h2_opens_para_pct'=>'Начало раздела','h3_question_pct'=>'вопросительным словом',
  'h3_colon_pct'=>'двоеточие','strong_lead_pct'=>'открывают блок','emoji_inline'=>'внутри фразы',
