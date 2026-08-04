@@ -85,6 +85,7 @@ final class PageMetrics
         // у нас каждый раз новую.
         'fact_values' => ['разных значений с %', 0],
         'lead_list' => ['список в зачине', 1],
+        'h2_opens_para_pct' => ['раздел открыт абзацем %', 1],
         'h3_question_pct' => ['H3 с вопросительного слова %', 1],
         'h3_colon_pct' => ['H3 с двоеточием %', 1],
         'strong_lead_pct' => ['strong в начале блока %', 1],
@@ -271,6 +272,22 @@ final class PageMetrics
             'fact_values' => (function () use ($fullText) {
                 preg_match_all('~\d{1,3}[.,]\d\s*%~u', $fullText, $fm);
                 return count(array_unique($fm[0] ?? []));
+            })(),
+            // Чем ОТКРЫВАЕТСЯ раздел. У девяти образцов после H2 ни разу — ни
+            // одного раза на 283 заголовка — не стоит список: сначала абзац,
+            // который вводит в тему, и только потом перечень. У нас раздел
+            // начинается со списка в каждом пятом случае. Обёртки div
+            // пропускаем: это вёрстка, а не решение о тексте.
+            'h2_opens_para_pct' => (function () use ($noScript) {
+                preg_match_all('~<(h2|h3|p|ul|ol|table|blockquote|dl)\b~i', $noScript, $bm);
+                $seq = array_map('strtolower', $bm[1] ?? []);
+                $tot = 0; $para = 0;
+                for ($i = 0; $i < count($seq) - 1; $i++) {
+                    if ($seq[$i] !== 'h2') { continue; }
+                    $tot++;
+                    if ($seq[$i + 1] === 'p') { $para++; }
+                }
+                return $tot ? round($para / $tot * 100, 1) : 0;
             })(),
             'lead_list' => (function () use ($noScript) {
                 preg_match_all('~<(h2|h3|p|ul|ol|table|blockquote|dl)\b~i', $noScript, $bm);
