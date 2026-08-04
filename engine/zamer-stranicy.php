@@ -1,8 +1,8 @@
 <?php
 require_once "/home/user/cladue/engine/src/PageMetrics.php";
-$t=$argv[1]; $dir=$argv[2]??"/home/user/cladue/samples/v3-final/ruchnoy-227";
+$t=$argv[1]; $dir=$argv[2]??"/home/user/cladue/samples/v3-final/ruchnoy-229";
 $a=new Analyzer(); $F=PageMetrics::fields(true);
-$R=PageMetrics::measure($a,$t,file_get_contents("/home/user/cladue/samples/dorgen-reference/set227/$t.html"),["ru"=>"","en"=>""]);
+$R=PageMetrics::measure($a,$t,file_get_contents("/home/user/cladue/samples/dorgen-reference/set229/$t.html"),["ru"=>"","en"=>""]);
 $O=PageMetrics::measure($a,$t,file_get_contents("$dir/$t.html"),["ru"=>"","en"=>""]);
 $h=0;$c=0;
 foreach($F as $k=>[$lab,$rate]){ $c++; $bad=PageMetrics::off($O[$k],$R[$k],(bool)$rate); if(!$bad)$h++;
