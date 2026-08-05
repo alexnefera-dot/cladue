@@ -84,7 +84,10 @@ function priyomy(string $raw): array
         'карточек слотов'          => $slots,
         'отзывов с оценкой'        => $revs,
         'звёзд ★☆'                 => preg_match_all('~[★☆]~u', $noTags),
-        'плашек-бейджей'           => preg_match_all('~(?is)class="[^"]*\b(pill|badge)\b[^"]*"~', $body),
+        'плашек-бейджей'           => preg_match_all(
+            '~(?is)class="[^"]*(?:\bpill\b|\bbadge\b|-tag\b|-perk\b|-label\b|-chip\b|-mark\b)[^"]*"~',
+            $body
+        ),
         'эмодзи всего'             => preg_match_all('~' . $EMO . '~u', $noTags),
         'эмодзи в заголовках'      => $emojiInH,
         'таблиц'                   => count($tm[0]),
