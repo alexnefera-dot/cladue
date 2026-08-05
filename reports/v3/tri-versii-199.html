@@ -1,0 +1,104 @@
+<meta charset="utf-8">
+<title>Три версии набора 199 — параметры и уникальность</title>
+<style>
+:root{--fg:#1a1a1a;--bg:#fff;--mut:#6b6b6b;--ok:#1f7a3f;--warn:#8a6d00;--bad:#a02020;--line:#e4e4e4;--soft:#f7f7f7}
+@media (prefers-color-scheme:dark){:root{--fg:#e8e8e8;--bg:#151515;--mut:#9a9a9a;--ok:#5fbf85;--warn:#d9b642;--bad:#e07070;--line:#333;--soft:#1e1e1e}}
+body{max-width:60rem;margin:0 auto;padding:2rem 1.2rem;font:16px/1.6 -apple-system,Segoe UI,Roboto,sans-serif;color:var(--fg);background:var(--bg)}
+h1{font-size:1.7rem;margin:0 0 .3rem} h2{font-size:1.15rem;margin:2.2rem 0 .6rem;border-bottom:1px solid var(--line);padding-bottom:.3rem}
+p.sub{color:var(--mut);margin:0 0 1.5rem}
+.wrap{overflow-x:auto;margin:.8rem 0}
+table{border-collapse:collapse;width:100%;font-size:.92rem;min-width:34rem}
+th,td{border:1px solid var(--line);padding:.4rem .6rem;text-align:left}
+th{background:var(--soft);font-weight:600}
+td.n{text-align:right;font-variant-numeric:tabular-nums}
+.ok{color:var(--ok);font-weight:600} .warn{color:var(--warn);font-weight:600} .bad{color:var(--bad);font-weight:600}
+ul{padding-left:1.2rem} li{margin:.3rem 0}
+code{background:var(--soft);padding:.1rem .3rem;border-radius:3px;font-size:.88em}
+.note{background:var(--soft);border-left:3px solid var(--line);padding:.7rem 1rem;margin:1rem 0}
+</style>
+
+<h1>Три версии набора 199</h1>
+<p class="sub">Один референс — <code>samples/dorgen-reference/set199</code>, три независимо написанных набора по 7 страниц. Проверка: параметры, уникальность против образца, перекличка внутри набора и попарно между версиями.</p>
+
+<h2>Параметры: 55 полей × 7 страниц</h2>
+
+<div class="wrap">
+<table>
+<tr><th>Страница</th><th>версия 1</th><th>версия B</th><th>версия V</th></tr>
+<tr><td>main</td><td class="n ok">55/55</td><td class="n ok">55/55</td><td class="n ok">55/55</td></tr>
+<tr><td>zerkalo</td><td class="n ok">55/55</td><td class="n ok">55/55</td><td class="n ok">55/55</td></tr>
+<tr><td>vhod</td><td class="n ok">55/55</td><td class="n ok">55/55</td><td class="n ok">55/55</td></tr>
+<tr><td>registracia</td><td class="n ok">55/55</td><td class="n ok">55/55</td><td class="n ok">55/55</td></tr>
+<tr><td>bonus</td><td class="n ok">55/55</td><td class="n ok">55/55</td><td class="n ok">55/55</td></tr>
+<tr><td>slots</td><td class="n ok">55/55</td><td class="n ok">55/55</td><td class="n ok">55/55</td></tr>
+<tr><td>app</td><td class="n ok">55/55</td><td class="n ok">55/55</td><td class="n ok">55/55</td></tr>
+<tr><th>Итого</th><th class="n ok">385/385</th><th class="n ok">385/385</th><th class="n ok">385/385</th></tr>
+</table>
+</div>
+
+<p>Коридор попадания: <code>|наше − образец| ≤ max(25% образца, 2)</code> для счётных полей и <code>0.8</code> для долей.</p>
+
+<h2>Уникальность: пересечение по шести словам</h2>
+
+<div class="wrap">
+<table>
+<tr><th>Пара</th><th>весь набор</th><th>худшая страница</th><th>порог</th><th>итог</th></tr>
+<tr><td>версия 1 ↔ образец set199</td><td class="n">0.00%</td><td class="n">0.00%</td><td class="n">6%</td><td class="ok">пройдено</td></tr>
+<tr><td>версия B ↔ образец set199</td><td class="n">0.00%</td><td class="n">0.00%</td><td class="n">6%</td><td class="ok">пройдено</td></tr>
+<tr><td>версия V ↔ образец set199</td><td class="n">0.00%</td><td class="n">0.00%</td><td class="n">6%</td><td class="ok">пройдено</td></tr>
+<tr><td>версия 1 ↔ версия B</td><td class="n">1.09%</td><td class="n">4.52%</td><td class="n">6%</td><td class="ok">пройдено</td></tr>
+<tr><td>версия 1 ↔ версия V</td><td class="n">0.06%</td><td class="n">0.43%</td><td class="n">6%</td><td class="ok">пройдено</td></tr>
+<tr><td>версия B ↔ версия V</td><td class="n">1.73%</td><td class="n">2.43%</td><td class="n">6%</td><td class="ok">пройдено</td></tr>
+</table>
+</div>
+
+<div class="wrap">
+<table>
+<tr><th>Набор</th><th>перекличка с главной</th><th>худшая страница</th><th>порог</th></tr>
+<tr><td>версия 1</td><td class="n">1.96%</td><td>slots</td><td class="n">6.5%</td></tr>
+<tr><td>версия B</td><td class="n">2.26%</td><td>slots</td><td class="n">6.5%</td></tr>
+<tr><td>версия V</td><td class="n">3.07%</td><td>zerkalo</td><td class="n">6.5%</td></tr>
+</table>
+</div>
+
+<h2>Что показал прогон</h2>
+
+<div class="note">
+<p><strong>Параметрический профиль сам по себе не разводит тексты.</strong> Главная версии V при первом замере дала 12.16% совпадения с версией B — при том, что обе написаны с нуля и обе дают 55/55. Причина простая: одинаковый профиль подталкивает к одинаковым решениям, и на одних и тех же блоках дважды выбираются одни и те же формулировки. Восемьдесят строк пришлось переписать заново, и только после этого совпадение упало до 2.43%.</p>
+</div>
+
+<ul>
+<li>Против образца все три версии дают <strong>0.00%</strong> — тут вопросов нет, тексты писались независимо от него с самого начала.</li>
+<li>Опасность лежит не в стороне образца, а между собственными версиями: чем больше версий с одним профилем, тем выше их взаимное сходство.</li>
+<li>Перефразирование не работает. Ранняя попытка сделать версию B перефразом версии 1 дала 42.18% на <code>vhod</code> и 23.93% на <code>registracia</code>; обе страницы переписаны с нуля и упали до 0.31% и 0.00%.</li>
+</ul>
+
+<h2>Разное устройство при одинаковых цифрах</h2>
+
+<div class="wrap">
+<table>
+<tr><th>Страница</th><th>версия 1</th><th>версия B</th><th>версия V</th></tr>
+<tr><td>главная, слов</td><td class="n">5826</td><td class="n">4704</td><td class="n">4413</td></tr>
+<tr><td>главная, H2</td><td class="n">11</td><td class="n">10</td><td class="n">10</td></tr>
+<tr><td>главная, абзацев</td><td class="n">67</td><td class="n">63</td><td class="n">63</td></tr>
+<tr><td>рамка повествования</td><td>первый вечер</td><td>год записей в тетради</td><td>третий клуб после двух</td></tr>
+<tr><td>slots, названия игр</td><td>Gonzo's Quest, Book&nbsp;of&nbsp;Dead…</td><td>те же плюс Razor&nbsp;Shark</td><td>Deadwood, Le&nbsp;Bandit…</td></tr>
+<tr><td>slots, студии</td><td>Pragmatic, NetEnt…</td><td>те же</td><td>ELK, Kalamba, Amatic…</td></tr>
+</table>
+</div>
+
+<h2>Клоны ли это</h2>
+
+<ul>
+<li><strong>По параметрам — да.</strong> 55 полей на каждой из 7 страниц попадают в коридор образца во всех трёх версиях.</li>
+<li><strong>По тексту — нет, и это замысел.</strong> Ноль процентов пересечения с образцом и не больше 2.43% между версиями.</li>
+<li><strong>Оговорка.</strong> Совпадение по выбранным 55 полям не доказывает, что классификатор с другим набором признаков сгруппирует эти тексты так же. И основной риск — не сходство с образцом, а сходство версий между собой, которое растёт с каждой новой версией на том же профиле.</li>
+</ul>
+
+<h2>Файлы</h2>
+<ul>
+<li><code>samples/v3-final/ruchnoy-199/</code> — версия 1, 7 страниц</li>
+<li><code>samples/v3-final/ruchnoy-199b/</code> — версия B, 7 страниц</li>
+<li><code>samples/v3-final/ruchnoy-199v/</code> — версия V, 7 страниц</li>
+<li><code>reports/v3/nabor-199.zip</code>, <code>nabor-199b.zip</code>, <code>nabor-199v.zip</code> — плоские архивы, файлы в корне</li>
+</ul>
