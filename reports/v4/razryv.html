@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Разрыв: наши 28 против 36 донорских</title>
+<style>
+  :root{--bg:#fbfaf7;--fg:#1c1a17;--dim:#6b6660;--line:#e0dcd4;--acc:#8a3b1e;--hi:#f3efe6;--ok:#2f6b3d;--bad:#9c2b1c;--warn:#8a6a1e}
+  @media (prefers-color-scheme:dark){:root{--bg:#16150f;--fg:#e8e4da;--dim:#948e84;--line:#33302a;--acc:#d9834f;--hi:#211f19;--ok:#77b083;--bad:#e07a63;--warn:#d3ab5c}}
+  :root[data-theme=dark]{--bg:#16150f;--fg:#e8e4da;--dim:#948e84;--line:#33302a;--acc:#d9834f;--hi:#211f19;--ok:#77b083;--bad:#e07a63;--warn:#d3ab5c}
+  :root[data-theme=light]{--bg:#fbfaf7;--fg:#1c1a17;--dim:#6b6660;--line:#e0dcd4;--acc:#8a3b1e;--hi:#f3efe6;--ok:#2f6b3d;--bad:#9c2b1c;--warn:#8a6a1e}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 Georgia,"Times New Roman",serif;-webkit-text-size-adjust:100%}
+  .wrap{max-width:940px;margin:0 auto;padding:48px 22px 96px}
+  h1{font-size:30px;line-height:1.2;margin:0 0 6px;font-weight:normal}
+  .sub{color:var(--dim);font-size:15px;margin:0 0 36px}
+  h2{font-size:22px;font-weight:normal;margin:56px 0 14px;padding-bottom:7px;border-bottom:2px solid var(--acc)}
+  h3{font-size:17px;font-weight:bold;margin:32px 0 8px}
+  p{margin:0 0 14px}
+  code{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.86em;background:var(--hi);padding:1px 5px;border-radius:3px}
+  pre{background:var(--hi);border-left:3px solid var(--line);padding:12px 14px;overflow-x:auto;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.55;margin:0 0 18px}
+  .scroll{overflow-x:auto;margin:0 0 20px;-webkit-overflow-scrolling:touch}
+  table{border-collapse:collapse;font-size:14px;min-width:100%}
+  th,td{padding:6px 12px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+  th{font-weight:bold;color:var(--dim);font-size:12.5px;text-transform:uppercase;letter-spacing:.04em}
+  td.n,th.n{text-align:right;font-family:ui-monospace,Menlo,Consolas,monospace}
+  .ok{color:var(--ok);font-weight:bold} .bad{color:var(--bad);font-weight:bold} .warn{color:var(--warn);font-weight:bold}
+  .key{background:var(--hi);border-left:3px solid var(--acc);padding:14px 18px;margin:22px 0}
+  .key p:last-child{margin:0}
+  ul,ol{margin:0 0 16px;padding-left:22px} li{margin:0 0 6px}
+  .lede{font-size:18px;line-height:1.6}
+  footer{margin-top:64px;padding-top:18px;border-top:1px solid var(--line);color:var(--dim);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Разрыв</h1>
+<p class="sub">Наши 28 версий против 36 донорских · проход 28 · <code>razbros-korpusa</code> + <code>razbor-zhanra</code> + новый <code>razryv.php</code></p>
+
+<p class="lede">Наш генератор воспроизводит себя гораздо ровнее донорского: 53 поля из 55 держатся в приёмочной полосе против их 24. Это не достоинство — <strong>мы держим в узкой полосе то, что у образца свободно, и промахиваемся там, где он жёсток</strong>.</p>
+
+<div class="scroll">
+<table>
+<tr><th></th><th class="n">наши 28</th><th class="n">доноры 36</th></tr>
+<tr><td>полей держится (из 55)</td><td class="n">53</td><td class="n">24</td></tr>
+<tr><td>полей плывёт</td><td class="n">2</td><td class="n">18</td></tr>
+<tr><td>полей не держится</td><td class="n">0</td><td class="n">13</td></tr>
+</table>
+</div>
+
+<h2>Догонять — доноры держат, мы стоим в другом месте</h2>
+<div class="scroll">
+<table>
+<tr><th>поле</th><th class="n">наша</th><th class="n">их</th><th class="n">допуск</th><th class="n">промах</th></tr>
+<tr><td><code>table_uniq_pct</code> уникальных шапок</td><td class="n">33,3</td><td class="n ok">100</td><td class="n">25</td><td class="n bad">+41,7</td></tr>
+<tr><td><code>ordered_pct</code> нумерованных списков</td><td class="n">0</td><td class="n">25</td><td class="n">6,25</td><td class="n bad">+18,8</td></tr>
+<tr><td><code>anchor_once_pct</code> разовых анкоров</td><td class="n">100</td><td class="n">74,45</td><td class="n">18,6</td><td class="n">+6,9</td></tr>
+<tr><td><code>words_per_para</code></td><td class="n">45,9</td><td class="n">31,75</td><td class="n">7,94</td><td class="n">+6,2</td></tr>
+<tr><td><code>fact_values</code> разных значений с %</td><td class="n">6</td><td class="n ok">1</td><td class="n">2</td><td class="n">+3</td></tr>
+<tr><td><code>h2_len</code> слов в заголовке</td><td class="n">3,7</td><td class="n">8,2</td><td class="n">2,05</td><td class="n">+2,45</td></tr>
+<tr><td><code>h2</code></td><td class="n">7</td><td class="n">12</td><td class="n">3</td><td class="n">+2</td></tr>
+<tr><td><code>numbers_per100</code></td><td class="n">4,15</td><td class="n">2,5</td><td class="n">0,8</td><td class="n">+0,85</td></tr>
+<tr><td><code>table_cols</code></td><td class="n">4</td><td class="n">2,9</td><td class="n">0,8</td><td class="n">+0,3</td></tr>
+<tr><td><code>lead_list</code> список в зачине</td><td class="n">0</td><td class="n">1</td><td class="n">0,8</td><td class="n">+0,2</td></tr>
+</table>
+</div>
+<p>Три из них — не подгонка, а смена приёма.</p>
+<p><strong><code>table_uniq_pct</code> 33,3 против 100.</strong> У нас две разные шапки на шесть таблиц — скопировано с эталона, у которого переключатель валют дублировал шапку трижды. На корпусе из тридцати шести сайтов правило другое: <strong>586 таблиц, 567 разных шапок</strong>.</p>
+<p><strong><code>anchor_once_pct</code> 100 против 74,45.</strong> Редкий случай, когда мы <em>переуникальны</em>. У доноров четверть анкоров повторяется — естественно, когда анкор однословный и стоит внутри фразы. У нас каждый свой, и это выдаёт список из промпта.</p>
+<p><strong><code>fact_values</code> 6 против 1.</strong> На главной у доноров одно-два разных значения с процентом, на весь корпус — шесть значений RTP. У нас тридцать шесть.</p>
+
+<h2>Отпустить — у доноров это шум, а мы держим</h2>
+<p>«Отпустить» значит не «игнорировать», а <strong>не держать в узкой полосе</strong>: разброс должен быть шире.</p>
+<div class="scroll">
+<table>
+<tr><th>поле</th><th class="n">наша</th><th class="n">их</th><th class="n">наш держ</th><th class="n">их держ</th></tr>
+<tr><td><code>h3_question_pct</code></td><td class="n">0</td><td class="n">21,8</td><td class="n bad">100 %</td><td class="n">39 %</td></tr>
+<tr><td><code>ty</code></td><td class="n">2</td><td class="n">23,5</td><td class="n bad">100 %</td><td class="n">19 %</td></tr>
+<tr><td><code>terms_total</code> профильные термины</td><td class="n">133,5</td><td class="n">98</td><td class="n bad">86 %</td><td class="n">44 %</td></tr>
+<tr><td><code>honest</code> минусы и риски</td><td class="n">16</td><td class="n">18</td><td class="n bad">86 %</td><td class="n">36 %</td></tr>
+<tr><td><code>brand_first_third</code></td><td class="n">28</td><td class="n">13,5</td><td class="n bad">86 %</td><td class="n">31 %</td></tr>
+<tr><td><code>para_short</code> коротких абзацев</td><td class="n">4</td><td class="n">10,5</td><td class="n bad">86 %</td><td class="n">28 %</td></tr>
+<tr><td><code>emoji</code></td><td class="n">36</td><td class="n">30</td><td class="n bad">82 %</td><td class="n">22 %</td></tr>
+<tr><td><code>brand_en</code></td><td class="n">7</td><td class="n">28</td><td class="n bad">79 %</td><td class="n">47 %</td></tr>
+<tr><td><code>lists</code></td><td class="n">0</td><td class="n">22,5</td><td class="n bad">79 %</td><td class="n">47 %</td></tr>
+<tr><td><code>first_person</code></td><td class="n">0,5</td><td class="n">3,5</td><td class="n bad">79 %</td><td class="n">28 %</td></tr>
+<tr><td><code>vy</code></td><td class="n">3</td><td class="n">13</td><td class="n bad">79 %</td><td class="n">22 %</td></tr>
+<tr><td><code>imperatives</code></td><td class="n">25</td><td class="n">29</td><td class="n bad">75 %</td><td class="n">22 %</td></tr>
+</table>
+</div>
+<p><code>h3_question_pct</code> = 0 <strong>у всех двадцати восьми версий</strong>. Это след давнего ремонта: поле ломалось на заголовках «Что…» и «Как…», и я переименовывал их раз за разом, пока не свёл к нулю. У доноров медиана 21,8 при разбросе от 8 до 47.</p>
+
+<h2>Сходится — тринадцать полей</h2>
+<p><code>letter</code>, <code>insider</code>, <code>myth</code> (три запрета — ноль у обоих), <code>water</code> 26,45 против 29,1, <code>h2_opens_para_pct</code>, <code>opener_key</code>, <code>nausea_acad</code> 40 против 37, <code>opener_name</code>, <code>h3_per_h2</code>, <code>adj_pct</code> 11,5 против 11,6, <code>cta</code>, <code>h2_quest</code>, <code>on_topic_pct</code>.</p>
+<p>Водность, тошнота и доля прилагательных сходятся почти точно — это те три поля, которые движок мерил с самого начала.</p>
+
+<h2>Мимо — не держит никто, но порядок величины разный</h2>
+<div class="scroll">
+<table>
+<tr><th>поле</th><th class="n">наша</th><th class="n">их</th><th class="n">промах</th></tr>
+<tr><td><code>strong_lead_pct</code> strong в начале блока</td><td class="n">0</td><td class="n">59,05</td><td class="n bad">+44,3</td></tr>
+<tr><td><code>brand_ru</code> бренд кириллицей</td><td class="n bad">45</td><td class="n">4</td><td class="n bad">+39</td></tr>
+<tr><td><code>h3_colon_pct</code> H3 с двоеточием</td><td class="n">0</td><td class="n">40,5</td><td class="n bad">+30,4</td></tr>
+<tr><td><code>strong</code></td><td class="n">33</td><td class="n">63,5</td><td class="n">+14,6</td></tr>
+<tr><td><code>sections</code> разделов H2+H3</td><td class="n">22</td><td class="n">47</td><td class="n">+13,3</td></tr>
+<tr><td><code>faq_pairs</code> пар «вопрос-ответ»</td><td class="n">0</td><td class="n">11</td><td class="n">+8,3</td></tr>
+</table>
+</div>
+<p><code>brand_ru</code> — сорок пять против четырёх. Мы ставим имя бренда кириллицей в одиннадцать раз чаще образца. Поле у доноров не держится (53 %), но их медиана четыре, а разброс 0–15: до нашей сорок пятой они не доходят никогда.</p>
+
+<h2>Устройство страницы</h2>
+<div class="scroll">
+<table>
+<tr><th></th><th class="n">доноры</th><th class="n">наши</th></tr>
+<tr><td>слов до первого H2, медиана</td><td class="n ok">169</td><td class="n bad">0</td></tr>
+<tr><td>официальный сайт + регистрация + зеркало в одном абзаце</td><td class="n ok">35/36</td><td class="n bad">1/28</td></tr>
+<tr><td>список-оглавление с эмодзи</td><td class="n ok">34/36</td><td class="n bad">1/28</td></tr>
+<tr><td>таблица-паспорт</td><td class="n ok">25/36</td><td class="n bad">0/28</td></tr>
+<tr><td>последний H2 — плюсы и минусы</td><td class="n">20/36</td><td class="n bad">1/28</td></tr>
+<tr><td>последний H2 — FAQ</td><td class="n">2/36</td><td class="n bad">19/28</td></tr>
+<tr><td>слов после последнего H2</td><td class="n">137</td><td class="n">261</td></tr>
+</table>
+</div>
+<p>Двадцать одна наша версия начинается сразу с H2. И девятнадцать из двадцати восьми <strong>заканчиваются блоком FAQ</strong> — а у доноров FAQ стоит предпоследним, после него идут плюсы и минусы или итоговый вердикт. Мы обрываем страницу там, где у образца ещё два раздела.</p>
+
+<h2>Заголовки: наш скелет повторяется, их — нет</h2>
+<div class="scroll">
+<table>
+<tr><th></th><th class="n">доноры</th><th class="n">наши</th></tr>
+<tr><td>заголовков всего</td><td class="n">3191</td><td class="n">601</td></tr>
+<tr><td>дословных повторов между сайтами</td><td class="n ok">32 (1 %)</td><td class="n bad">54 (9 %)</td></tr>
+<tr><td>слов в заголовке</td><td class="n">7</td><td class="n">3</td></tr>
+<tr><td>формула «ключ : хвост»</td><td class="n">54 %</td><td class="n">15 %</td></tr>
+</table>
+</div>
+<p>Находка, которую шинглы не ловили: шингл из шести слов через трёхсловный заголовок не проходит, и повтор оставался невидимым. Между нашими версиями дословно совпадают <strong>восемь H2 у восьми-десяти версий подряд</strong>:</p>
+<pre>10× %brand_name_ru% официальный сайт          b1 b2 b3 n1 n2 n3 s1 s2 s3 s4
+10× Бонусы %brand_name_ru% по валюте счёта    b1 b2 b3 n1 n2 n3 s1 s2 s3 s4
+10× Отзывы игроков %brand_name_ru%            b1 b2 b3 n1 n2 n3 s1 s2 s3 s4
+ 9× Вопросы и ответы %brand_name_ru%
+ 8× %brand_name_ru% регистрация
+ 8× Зеркало %brand_name_en%
+ 8× Провайдеры и автоматы %brand_name_en%
+ 8× Термины %brand_name_ru%</pre>
+<p>У доноров повторяются только служебные «Ответы на частые вопросы» и «FAQ». Причина ровно в формуле: их заголовок это «ключ : хвост», и хвост уникален у каждого сайта. Наш — голый ключ, и он повторяется автоматически.</p>
+
+<h2>Ключ в частотности</h2>
+<div class="scroll">
+<table>
+<tr><th>ключ</th><th class="n">ранг у доноров</th><th class="n">ранг у нас</th></tr>
+<tr><td><code>бонус*</code></td><td class="n">16</td><td class="n">75</td></tr>
+<tr><td><code>зеркал*</code></td><td class="n">22</td><td class="n">168</td></tr>
+<tr><td><code>казино</code></td><td class="n">33</td><td class="n bad">477</td></tr>
+<tr><td><code>регистрац*</code></td><td class="n">33</td><td class="n bad">548</td></tr>
+<tr><td><code>лиценз*</code></td><td class="n">154</td><td class="n">338</td></tr>
+<tr><td><code>слот*</code></td><td class="n">82</td><td class="n bad">872</td></tr>
+</table>
+</div>
+<p>Самое частое слово: у доноров «как» (14 сайтов), «для», «что», «это». <strong>У нас у всех двадцати восьми — плейсхолдер бренда.</strong> Мы ушли от плотности ключа дальше, чем образец.</p>
+
+<h2>Ритм и морфология</h2>
+<div class="scroll">
+<table>
+<tr><th></th><th class="n">доноры</th><th class="n">наши</th></tr>
+<tr><td>слов в абзаце</td><td class="n">25</td><td class="n bad">42</td></tr>
+<tr><td>абзацы ≤ 10 слов</td><td class="n">16,5 %</td><td class="n bad">1,8 %</td></tr>
+<tr><td>абзацы &gt; 60 слов</td><td class="n">6,3 %</td><td class="n bad">29,1 %</td></tr>
+<tr><td>слов в предложении</td><td class="n">13</td><td class="n">15</td></tr>
+<tr><td>предложения ≤ 5 слов</td><td class="n">14,1 %</td><td class="n">6,7 %</td></tr>
+<tr><td>абзац открыт <code>&lt;strong&gt;</code></td><td class="n">6,1 %</td><td class="n">1,9 %</td></tr>
+</table>
+</div>
+<p>Первое слово абзаца: у доноров <code>я</code> 8 %, <code>если</code> 5,9 %, <code>да</code> 2,6 %. У нас <code>не</code> 1,7 %, <code>полка</code> 1,5 %, <code>каталог</code> 1,4 % — существительное-тема вместо субъекта или условия.</p>
+<div class="scroll">
+<table>
+<tr><th>на 100 слов</th><th class="n">доноры</th><th class="n">наши</th></tr>
+<tr><td>инфинитив</td><td class="n ok">4,15</td><td class="n">2,52</td></tr>
+<tr><td>прошедшее</td><td class="n">2,63</td><td class="n">1,71</td></tr>
+<tr><td>страдательный залог</td><td class="n ok">0,63</td><td class="n bad">2,10</td></tr>
+<tr><td>условие «если»</td><td class="n ok">0,98</td><td class="n bad">0,13</td></tr>
+<tr><td>уступка «но/однако»</td><td class="n">0,47</td><td class="n">0,23</td></tr>
+<tr><td>вводное «например»</td><td class="n">0,05</td><td class="n">0</td></tr>
+</table>
+</div>
+<p><strong>Страдательный залог у нас втрое чаще</strong> (2,10 против 0,63). Мы пишем «счёт пополняется», они — «пополнить счёт».</p>
+<p><strong>Условных конструкций у нас в семь с половиной раз меньше</strong> (0,13 против 0,98). Их текст всё время говорит «если X, то Y» — наш описывает устройство.</p>
+
+<h2>Приёмы, которых у нас нет вовсе</h2>
+<div class="scroll">
+<table>
+<tr><th></th><th class="n">доноры</th><th class="n">наши</th></tr>
+<tr><td>FAQ на страницу</td><td class="n ok">61</td><td class="n bad">5,5</td></tr>
+<tr><td>слов в вопросе</td><td class="n">11</td><td class="n">6</td></tr>
+<tr><td>вопросов про сбой и отказ</td><td class="n">29 %</td><td class="n bad">1 %</td></tr>
+<tr><td>таблиц на сайт</td><td class="n">16, ячейка 4 слова</td><td class="n">—</td></tr>
+<tr><td>внутренних ссылок</td><td class="n ok">2853, 577 анкоров</td><td class="n bad">61, 17 анкоров</td></tr>
+<tr><td>анкоров-одиночек</td><td class="n">78 %</td><td class="n">29 %</td></tr>
+<tr><td>оценочная карта</td><td class="n">13/36</td><td class="n bad">0/28</td></tr>
+<tr><td>отзывы с <code>schema.org/Comment</code></td><td class="n">51</td><td class="n bad">0</td></tr>
+<tr><td>сленга на 100 слов</td><td class="n">0,52</td><td class="n bad">0,04</td></tr>
+<tr><td>сравнений «X это как Y» на сайт</td><td class="n ok">37,3</td><td class="n bad">1,4</td></tr>
+<tr><td>предупреждение : обещание</td><td class="n">7,5 : 1</td><td class="n">3 : 1</td></tr>
+<tr><td>призывов на сайт</td><td class="n">46,4</td><td class="n bad">2,9</td></tr>
+</table>
+</div>
+<div class="key">
+<p><strong>Сравнений 37,3 против 1,4.</strong> Механизм маски у нас отсутствует практически полностью. Именно он у доноров разводит тексты между собой при одинаковой фактуре — и именно на его отсутствии мы пять раз подряд ловили 15–30 % пересечения и лечили это переписыванием абзацев.</p>
+<p><strong>Анкоров 17 против 577.</strong> У нас шестьдесят одна внутренняя ссылка на весь корпус из двадцати восьми версий — по две на страницу. У доноров двадцать три на страницу.</p>
+</div>
+
+<h2>Короткий список к работе</h2>
+<div class="key">
+<p><strong>Взять:</strong></p>
+<ol>
+<li>зачин из трёх частей — абзац-паспорт (официальный сайт + регистрация + зеркало), список-оглавление с эмодзи, таблица «Атрибут | Значение»;</li>
+<li>заголовок по формуле «ключ : хвост», 7–8 слов — он же лечит повтор скелета между версиями;</li>
+<li>уникальная шапка у каждой таблицы, три колонки, третья — «зачем»;</li>
+<li>FAQ на шестьдесят вопросов, треть из них про сбой;</li>
+<li>финал: FAQ → итог или отзывы → плюсы и минусы;</li>
+<li>маска как механизм: «X — это Y» из одного предметного мира, порядка сорока сравнений на страницу;</li>
+<li>условная конструкция вместо описательной, активный залог вместо страдательного;</li>
+<li>абзац 25 слов, каждый шестой короче десяти.</li>
+</ol>
+<p><strong>Отпустить:</strong> объём страницы, число профильных терминов, упоминания бренда и их расположение, «вы» и «ты», императивы, эмодзи, короткие абзацы, вопросительные H3.</p>
+<p><strong>Сократить:</strong> значения с процентом — до одного-двух на страницу и шести на весь корпус; упоминания бренда кириллицей — с сорока пяти до примерно четырёх.</p>
+</div>
+
+<footer>
+<code>php engine/razryv.php reports/v4/razbros-nashi.json reports/v4/razbros-proza-main.json</code> ·
+выкладки <code>reports/v4/razryv.json</code>, <code>reports/v4/zhanr-nashi.json</code> ·
+текст <code>docs/v4-razryv.md</code>
+</footer>
+
+</div>
+</body>
+</html>
