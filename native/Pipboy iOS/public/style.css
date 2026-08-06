@@ -432,12 +432,13 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .porttable{min-width:1000px}                      /* не сжимаем колонки в кашу — лучше прокрутка */
 .porttable td,.porttable th{padding:7px 10px}
 .porttable td.sep,.porttable th.sep{border-left:1px solid var(--line)}   /* границы групп, иначе числа сливаются */
-.porttable td.now{font-weight:600}                /* «Сейчас» заметен, но не кричит */
-.porttable td.goal{font-weight:500}
-.porttable .sub{display:block;font:10.5px var(--mono);color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
+.porttable td.now,.porttable td.goal{font-weight:600;font-size:13px}   /* «Сейчас» и «Цель» — один кегль и вес */
+.porttable .sub{display:block;font:11px var(--mono);font-weight:400;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
 .porttable .dash{color:var(--line2)}
 .porttable .devpp{display:block;font-size:10.5px;margin-top:1px}
 .porttable .ed.pinned{color:var(--green);font-weight:600;border-bottom-color:var(--green-dim)}
 .porttable .ed.derived{color:var(--muted);font-weight:400}
 .porttable tr.pblock td{font-weight:600}          /* блоки выделяем фоном, вес не задираем */
 .porttable td.acc{font-weight:600;font-size:13px}
+.porttable td.goal .sub .ed{font-size:11px}
+.porttable td.goal .ed.pinned{color:var(--green)}

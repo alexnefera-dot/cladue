@@ -86,7 +86,7 @@ function portRows(it, depth, ctx) {
     const shareTot = ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
     const shareCat = ctx?.blockEur > 0 && it.eur > 0 ? it.eur / ctx.blockEur * 100 : null;
     const shareSub = shareTot == null ? '' :
-      `<span class="sub">${shareCat != null ? `${shareCat.toFixed(1)}% кат. · ` : ''}${shareTot.toFixed(1)}% общ.</span>`;
+      `<span class="sub" title="доля от всего портфеля / внутри своего блока">${shareTot.toFixed(1)}%${shareCat != null ? ` / ${shareCat.toFixed(1)}%` : ''}</span>`;
     const nowCell = it.auto
       ? `<td class="r num now sep" title="авто: ${it.qty} × курс ${fesc(it.rate_symbol)}">⚡ ${fmt(it.value)} $${shareSub}</td>`
       : editable
@@ -109,7 +109,7 @@ function portRows(it, depth, ctx) {
     const eurCell = `<span class="ed${it.planPin === 'eur' ? ' pinned' : ' derived'}" data-fe="tgt:${it.id}:target_value:num" title="цель суммой (клик закрепит её)">${planEurShown != null ? fmt(planEurShown) : '—'}</span>`;
     const planDiff = it.planPin && it.planKids && Math.abs((it.planEur || 0) - it.planKids) >= 1
       ? `<div class="meta" title="своя цель расходится с суммой целей внутри">по позициям ${fmtE(it.planKids)}</div>` : '';
-    const planCell = `<td class="r num goal sep">${pctCell}<span class="sub">${eurCell} ${fesc(cur)}</span>${planDiff}</td>`;
+    const planCell = `<td class="r num goal sep">${eurCell}<span class="sub">${pctCell}</span>${planDiff}</td>`;
     // Отклонение = «Стало» − «Цель»: положительное — перевес, отрицательное — недобор
     const becameEur = (it.eur || 0) + net;
     const dev = it.planEur != null && it.planEur > 0 ? becameEur - it.planEur : null;
