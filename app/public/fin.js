@@ -109,7 +109,9 @@ function portRows(it, depth, ctx) {
       ...(ctx?.movesBySrc?.[path] || []).map(mv => `<div class="meta"><span class="down">→ отдать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> в «${fesc(mv.toName)}» <span class="rowbtn del" data-movedel="${mv.id}" title="убрать связку">✕</span></div>`),
       ...(ctx?.movesByDst?.[path] || []).map(mv => `<div class="meta"><span class="up">← добрать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> из «${fesc(mv.fromName)}»</div>`),
     ].join('');
-    const moveBtn = editable ? `<span class="rowbtn" data-tgtmove="${it.id}" title="переложить в другую позицию">↦ переложить</span>` : '';
+    // у автопозиции value пересчитывается из qty × курс, поэтому списание переливом просто теряется —
+    // перекладывать из неё и в неё нельзя, иначе получатель получит деньги «из воздуха»
+    const moveBtn = editable && !it.auto ? `<span class="rowbtn" data-tgtmove="${it.id}" title="переложить в другую позицию">↦ переложить</span>` : '';
     cells = `${nowCell}${becameCell}${planCell}${gapCell}
       <td style="text-align:left;min-width:180px">${links}${moveBtn}</td>
       <td class="r" style="width:92px">${shareStr}</td>`;
@@ -376,7 +378,7 @@ function secPortfolio(d, s) {
       ? `<div class="pcards">${tree.map(b => portCard(b, 0, rctx)).join('') || '<div class="empty">пусто</div>'}</div>`
       : `<table class="fintable porttable">
       ${tgt
-        ? '<tr><th>Название</th><th class="r" title="старт — до перестановок">Сейчас</th><th class="r" title="после всех транзакций в и из">Стало</th><th class="r">План</th><th class="r" title="план − стало">До цели</th><th class="r">Ребаланс</th><th class="r" title="доля плана: от своего блока / от всего целевого">Доля плана</th><th></th></tr>'
+        ? '<tr><th>Название</th><th class="r" title="старт — до перестановок">Сейчас</th><th class="r" title="после всех транзакций в и из">Стало</th><th class="r">План</th><th class="r" title="план − стало">До цели</th><th class="r" title="задуманные переносы между позициями: применяются сразу, «Сейчас» = до них, «Стало» = после">Перестановки</th><th class="r" title="доля плана: от своего блока / от всего целевого">Доля плана</th><th></th></tr>'
         : '<tr><th>Название</th><th class="r">Покупка</th><th class="r">Прирост</th><th class="r">Текущая</th><th class="r" title="от своего блока / от всего портфеля">Доля</th><th></th></tr>'}
       ${tree.map(b => portRows(b, 0, rctx)).join('') || '<tr><td colspan="8"><div class="empty">пусто</div></td></tr>'}
     </table>`}
@@ -1170,7 +1172,7 @@ function bindFin() {
       const walk = (ns, pre) => (ns || []).forEach(n => {
         const kids = n.children || [];
         if (n.id === fromId) fromCur = n.currency ?? '€';
-        if ((n.kind === 'asset' || !kids.length) && n.id !== fromId) leaves.push({ id: n.id, label: pre ? `${pre} · ${n.name}` : n.name });
+        if ((n.kind === 'asset' || !kids.length) && n.id !== fromId && !n.auto) leaves.push({ id: n.id, label: pre ? `${pre} · ${n.name}` : n.name });
         walk(kids, pre || n.name);
       });
       walk(finData.targetPortfolio || [], '');
