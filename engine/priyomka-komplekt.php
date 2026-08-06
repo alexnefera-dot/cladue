@@ -190,7 +190,8 @@ if ($kanMax > 3.0) { $provaly['каннибализация'] = 1; }
 // Отпущенное поле обязано гулять ВОКРУГ донорской медианы. Считаем сумму по
 // комплекту и сравниваем с суммой донорских медиан: ниже 85 % — смещение.
 $smeshenie = [];
-foreach (['words' => 'объём', 'terms_total' => 'профильных терминов'] as $pole => $imya) {
+foreach (['words' => 'объём', 'terms_total' => 'профильных терминов',
+         'brand_en' => 'бренд латиницей', 'brand_ru' => 'бренд кириллицей'] as $pole => $imya) {
     $nashSum = 0; $ihSum = 0;
     foreach (PAGES_K as $p) {
         $c = PageMetrics::measure($a, $p, $stranicy[$p], ['ru' => '%brand_name_ru%', 'en' => '%brand_name_en%']);
