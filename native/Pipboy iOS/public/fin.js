@@ -79,25 +79,24 @@ function portRows(it, depth, ctx) {
     // Бэкенд применяет перелив к value сразу при создании связки — в базе лежит состояние ПОСЛЕ
     // перестановок. Поэтому: «Сейчас» = старт (value − транзакции, его и правим руками),
     // «Стало» = что вышло после всех транзакций «в» и «из» (то, что в базе).
-    // автоцена (qty × курс) пересчитывается при каждой загрузке, поэтому переливы к ней не применяем
-    const net = it.auto ? 0 : (ctx?.netByPath?.[path] || 0);
-    const netCur = cur === '$' ? net * (ctx?.rate || 1.08) : net;   // в валюте позиции
-    const startVal = (it.value || 0) - netCur;
+    // переносы — чистое наложение: «Сейчас» хранится как есть, «Стало» = «Сейчас» + переносы
+    const net = ctx?.netByPath?.[path] || 0;
+    const netCur = cur === '$' ? net * (ctx?.rate || 1.08) : net;   // в валюте позиции (у автоцены она '$')
     const nowCell = it.auto
       ? `<td class="r num acc" title="авто: ${it.qty} × курс ${fesc(it.rate_symbol)} — равно текущему">⚡ ${fmt(it.value)} $</td>`
       : editable
-        ? `<td class="r num acc"><span class="pill btn" data-fcur="${it.id}:${cur}" title="сменить валюту">${cur}</span> <span class="ed" data-fe="tgt:${it.id}:value:num"${netCur ? ` data-feoff="${netCur}"` : ''} title="старт — сколько было до перестановок (клик)">${it.value != null ? fmt(startVal) : '—'}</span></td>`
-        : `<td class="r num acc">${fmtE((it.eur || 0) - net)}</td>`;
-    const becameShown = editable ? `${fmt(it.value || 0)} ${fesc(cur)}` : fmtE(it.eur);
+        ? `<td class="r num acc"><span class="pill btn" data-fcur="${it.id}:${cur}" title="сменить валюту">${cur}</span> <span class="ed" data-fe="tgt:${it.id}:value:num" title="сколько размещено сейчас (клик)">${it.value != null ? fmt(it.value) : '—'}</span></td>`
+        : `<td class="r num acc">${fmtE(it.eur)}</td>`;
+    const becameShown = editable ? `${fmt((it.value || 0) + netCur)} ${fesc(cur)}` : fmtE((it.eur || 0) + net);
     const becameCell = `<td class="r num acc">${net === 0 ? becameShown
-      : `<span class="${net > 0 ? 'up' : 'down'}" title="старт ${editable ? fmt(startVal) + ' ' + fesc(cur) : fmtE((it.eur || 0) - net)} · транзакции ${net > 0 ? '+' : '−'}${fmt(Math.abs(editable ? netCur : net))} ${editable ? fesc(cur) : '€'}">${becameShown}</span>`}</td>`;
+      : `<span class="${net > 0 ? 'up' : 'down'}" title="сейчас ${editable ? fmt(it.value || 0) + ' ' + fesc(cur) : fmtE(it.eur)} · переносы ${net > 0 ? '+' : '−'}${fmt(Math.abs(editable ? netCur : net))} ${editable ? fesc(cur) : '€'}">${becameShown}</span>`}</td>`;
     // план правится на любом уровне: у раздела своё значение перекрывает сумму вложенных
     const ownPlan = it.target_value;
     const planShown = ownPlan != null ? fmt(ownPlan) : (it.planKids ? fmt(it.planKids) : '—');
     const planDiff = ownPlan != null && it.planKids && Math.abs((it.planEur || 0) - it.planKids) >= 1
       ? `<div class="meta" title="свой план раздела расходится с суммой планов внутри">по позициям ${fmtE(it.planKids)}</div>` : '';
     const planCell = `<td class="r num acc"><span class="ed${ownPlan == null && it.planKids ? ' meta' : ''}" data-fe="tgt:${it.id}:target_value:num" title="${editable ? 'план — сколько хочу получить (клик)' : 'план раздела — клик задаёт свой; сейчас показана сумма планов внутри'}">${planShown}</span> <span class="meta">${fesc(cur)}</span>${planDiff}</td>`;
-    const gap = (it.planEur != null && it.planEur > 0) ? it.planEur - it.eur : null;   // план − стало, в €
+    const gap = (it.planEur != null && it.planEur > 0) ? it.planEur - ((it.eur || 0) + net) : null;   // план − стало, в €
     const gapCell = `<td class="r num">${gap == null ? '' : Math.abs(gap) < 1 ? '<span class="up">✓ в плане</span>' : gap > 0 ? `<span class="down">+${fmtE(gap)} добрать</span>` : `<span class="meta">−${fmtE(-gap)} перебор</span>`}</td>`;
     // доля плана: основная — внутри своего блока, от всего целевого — мельче
     const planPct = ctx?.planTotal > 0 && it.planEur > 0 ? it.planEur / ctx.planTotal * 100 : null;
@@ -109,9 +108,7 @@ function portRows(it, depth, ctx) {
       ...(ctx?.movesBySrc?.[path] || []).map(mv => `<div class="meta"><span class="down">→ отдать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> в «${fesc(mv.toName)}» <span class="rowbtn del" data-movedel="${mv.id}" title="убрать связку">✕</span></div>`),
       ...(ctx?.movesByDst?.[path] || []).map(mv => `<div class="meta"><span class="up">← добрать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> из «${fesc(mv.fromName)}»</div>`),
     ].join('');
-    // у автопозиции value пересчитывается из qty × курс, поэтому списание переливом просто теряется —
-    // перекладывать из неё и в неё нельзя, иначе получатель получит деньги «из воздуха»
-    const moveBtn = editable && !it.auto ? `<span class="rowbtn" data-tgtmove="${it.id}" title="переложить в другую позицию">↦ переложить</span>` : '';
+    const moveBtn = editable ? `<span class="rowbtn" data-tgtmove="${it.id}" title="переложить в другую позицию">↦ переложить</span>` : '';
     cells = `${nowCell}${becameCell}${planCell}${gapCell}
       <td style="text-align:left;min-width:180px">${links}${moveBtn}</td>
       <td class="r" style="width:92px">${shareStr}</td>`;
@@ -182,7 +179,7 @@ function portCard(it, depth, ctx) {
   const editable = it.kind === 'asset' || !it.children.length;
   const folded = portFold.has(it.id);
   const cur = it.currency ?? '€';
-  let val = editable
+  const val = editable
     ? `<span class="ed num" data-fe="${pfx}:${it.id}:value:num">${it.value != null ? fmt(it.value) : '—'}</span> <span class="meta">${cur}</span>`
     : `<span class="num">${fmtE(it.eur)}</span>`;
   const g = (!target && it.invested != null && it.invested && !(editable && it.buy_value == null)) ? (it.investedCur - it.invested) / it.invested * 100 : null;
@@ -193,17 +190,12 @@ function portCard(it, depth, ctx) {
     const path = (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase();
     const planCat = ctx?.blockTarget > 0 && it.planEur > 0 ? it.planEur / ctx.blockTarget * 100 : null;   // доля плана внутри блока
     const planPct = ctx?.planTotal > 0 && it.planEur > 0 ? it.planEur / ctx.planTotal * 100 : null;
-    // в базе value уже с переливами: крупным числом показываем старт, «стало» — рядом в мете
+    // «Сейчас» показано крупным числом как есть; «стало» = плюс переносы
     const net = ctx?.netByPath?.[path] || 0;
     const netCur = cur === '$' ? net * (ctx?.rate || 1.08) : net;   // в валюте позиции
-    if (net !== 0) {
-      val = editable
-        ? `<span class="ed num" data-fe="tgt:${it.id}:value:num" data-feoff="${netCur}">${it.value != null ? fmt((it.value || 0) - netCur) : '—'}</span> <span class="meta">${cur}</span>`
-        : `<span class="num">${fmtE((it.eur || 0) - net)}</span>`;
-    }
     const becameStr = net === 0 ? ''
-      : `<span class="${net > 0 ? 'up' : 'down'}">стало ${editable ? fmt(it.value || 0) + ' ' + fesc(cur) : fmtE(it.eur)}</span>`;
-    const gap = (it.planEur != null && it.planEur > 0) ? it.planEur - it.eur : null;   // план − стало, в €
+      : `<span class="${net > 0 ? 'up' : 'down'}">стало ${editable ? fmt((it.value || 0) + netCur) + ' ' + fesc(cur) : fmtE((it.eur || 0) + net)}</span>`;
+    const gap = (it.planEur != null && it.planEur > 0) ? it.planEur - ((it.eur || 0) + net) : null;   // план − стало, в €
     const planStr = `<span class="meta">план: <span class="ed" data-fe="tgt:${it.id}:target_value:num" title="${editable ? 'сколько хочу получить (клик)' : 'план раздела — клик задаёт свой; сейчас сумма планов внутри'}">${it.target_value != null ? fmt(it.target_value) : (it.planKids ? fmt(it.planKids) : '—')}</span> ${fesc(cur)}</span>`;
     const gapStr = gap == null ? '' : Math.abs(gap) < 1 ? '<span class="up">✓ в плане</span>' : gap > 0 ? `<span class="down">+${fmtE(gap)} добрать</span>` : `<span class="meta">−${fmtE(-gap)} перебор</span>`;
     const links = [
@@ -934,9 +926,7 @@ function bindFin() {
   document.querySelectorAll('[data-fe]').forEach(el =>
     el.addEventListener('click', () => {
       const [ent, id, field, type] = el.dataset.fe.split(':');
-      // feoff: поле показывает старт (value − транзакции), а в базе value уже с ними — вернём обратно
-      const off = +(el.dataset.feoff || 0);
-      inlineVal(el, type, v => finApi.patch(ent, +id, { [field]: off && typeof v === 'number' ? v + off : v }));
+      inlineVal(el, type, v => finApi.patch(ent, +id, { [field]: v }));
     }));
   document.querySelectorAll('[data-rate]').forEach(el =>
     el.addEventListener('click', () => inlineVal(el, 'num', v => finApi.rateSet(el.dataset.rate, v))));
@@ -1081,13 +1071,6 @@ function bindFin() {
     });
     walkF(finData.portfolio, '');
     const rate = finData.summary?.rate || 1.08;
-    // связки идут между листьями, поэтому дельту достаточно собрать по id (в €)
-    const netById = {};
-    (finData.targetMoves || []).forEach(mv => {
-      const a = +mv.amount || 0;
-      netById[mv.from_id] = (netById[mv.from_id] || 0) - a;
-      netById[mv.to_id] = (netById[mv.to_id] || 0) + a;
-    });
     const upd = [], miss = [];
     const walkT = (ns, pre) => (ns || []).forEach(n => {
       const p = pre + '/' + (n.name || '').trim().toLowerCase();
@@ -1095,10 +1078,8 @@ function bindFin() {
         if (fact[p] == null) miss.push(n.name);
         else {
           const cur = n.currency ?? '€';
-          const netCur = cur === '$' ? (netById[n.id] || 0) * rate : (netById[n.id] || 0);
-          const start = Math.round((cur === '$' ? fact[p] * rate : fact[p]) * 100) / 100;   // Факт = новый старт
-          const v = Math.round((start + netCur) * 100) / 100;                               // в базе — уже с транзакциями
-          if (Math.abs((n.value ?? 0) - v) >= 0.01) upd.push({ id: n.id, name: n.name, from: (n.value ?? 0) - netCur, to: start, cur, val: v });
+          const v = Math.round((cur === '$' ? fact[p] * rate : fact[p]) * 100) / 100;   // «Сейчас» = сумма из Факта
+          if (Math.abs((n.value ?? 0) - v) >= 0.01) upd.push({ id: n.id, name: n.name, from: n.value ?? 0, to: v, cur, val: v });
         }
       }
       walkT(n.children, p);
@@ -1172,7 +1153,7 @@ function bindFin() {
       const walk = (ns, pre) => (ns || []).forEach(n => {
         const kids = n.children || [];
         if (n.id === fromId) fromCur = n.currency ?? '€';
-        if ((n.kind === 'asset' || !kids.length) && n.id !== fromId && !n.auto) leaves.push({ id: n.id, label: pre ? `${pre} · ${n.name}` : n.name });
+        if ((n.kind === 'asset' || !kids.length) && n.id !== fromId) leaves.push({ id: n.id, label: pre ? `${pre} · ${n.name}` : n.name });
         walk(kids, pre || n.name);
       });
       walk(finData.targetPortfolio || [], '');
