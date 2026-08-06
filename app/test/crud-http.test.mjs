@@ -185,8 +185,11 @@ test('Трекинг: метрика / значение / полярность /
   await j('/api/track/metrics', 'POST', { name: 'CRUD-метрика', type: 'bool', polarity: 'minus' });
   const m = (await j('/api/track')).metrics.find(x => x.name === 'CRUD-метрика');
   assert.ok(m && m.polarity === 'minus', 'метрика создана как регресс');
-  await j('/api/track/metrics/' + m.id + '/value', 'POST', { value: 1, date: '2026-06-13' });
-  assert.ok((await j('/api/track')).metrics.find(x => x.id === m.id).history.some(h => h.date === '2026-06-13'), 'отметка за день сохранена');
+  // история метрик отдаётся скользящим окном в 14 дней (life.listMetrics), поэтому дата
+  // должна быть относительной: захардкоженная со временем выпадает из окна и тест ломается
+  const day = new Date(Date.now() - 3 * 864e5).toISOString().slice(0, 10);
+  await j('/api/track/metrics/' + m.id + '/value', 'POST', { value: 1, date: day });
+  assert.ok((await j('/api/track')).metrics.find(x => x.id === m.id).history.some(h => h.date === day), 'отметка за день сохранена');
   await j('/api/track/metrics/' + m.id, 'PATCH', { name: 'CRUD-переим', polarity: 'plus' });
   assert.equal((await j('/api/track')).metrics.find(x => x.id === m.id).name, 'CRUD-переим', 'метрика переименована');
   await j('/api/track/checkin', 'POST', { mood: 3, note: 'хороший день' });
