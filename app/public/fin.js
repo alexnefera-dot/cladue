@@ -1,6 +1,6 @@
 /* Финансы: курсы · портфель (автоцена qty×курс) · счета · расходы · долги · планы · FIRE · макро */
 let finData = null;
-let finTab = 'fact';        // факт | целевой (портфель)
+// вкладок «Факт»/«Целевой» больше нет: дерево одно, экран один
 let finSection = 'all';     // подвкладка раздела
 const finIso = (d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);   // локальная дата
 let finTxMonth = finIso(new Date()).slice(0, 7);
@@ -66,13 +66,13 @@ let tgtMove = null;   // {from, to, amount} — раскрытая форма п
 const savePortFold = () => localStorage.portFold = JSON.stringify([...portFold]);
 
 function portRows(it, depth, ctx) {
-  const target = ctx?.tgt === true;
-  const pfx = target ? 'tgt' : 'items';
+  const target = true;   // экран один
+  const pfx = 'tgt';
   const editable = it.kind === 'asset' || !it.children.length;
   const rowCls = it.kind === 'block' ? 'pblock' : it.kind === 'section' ? 'psection' : '';
   const folded = portFold.has(it.id);
   let cells;
-  if (target) {
+  {
     // целевой: Цель · Ребаланс (конкретные связки откуда→куда прямо в строке) · Доля
     const path = (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase();
     const cur = it.currency ?? '€';
@@ -82,14 +82,23 @@ function portRows(it, depth, ctx) {
     // переносы — чистое наложение: «Сейчас» хранится как есть, «Стало» = «Сейчас» + переносы
     const net = ctx?.netByPath?.[path] || 0;
     const netCur = cur === '$' ? net * (ctx?.rate || 1.08) : net;   // в валюте позиции (у автоцены она '$')
+    // «Сейчас» несёт три вещи: сумму, долю и — если есть переносы — во что она превратится
+    const shareTot = ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
+    const shareCat = ctx?.blockEur > 0 && it.eur > 0 ? it.eur / ctx.blockEur * 100 : null;
+    const shareSub = shareTot == null ? '' :
+      `<span class="sub">${shareCat != null ? `${shareCat.toFixed(1)}% кат. · ` : ''}${shareTot.toFixed(1)}% общ.</span>`;
+    const becameSub = net === 0 ? '' :
+      `<span class="sub ${net > 0 ? 'up' : 'down'}" title="после запланированных переносов">станет ${editable ? fmt((it.value || 0) + netCur) + ' ' + fesc(cur) : fmtE((it.eur || 0) + net)}</span>`;
     const nowCell = it.auto
-      ? `<td class="r num acc" title="авто: ${it.qty} × курс ${fesc(it.rate_symbol)} — равно текущему">⚡ ${fmt(it.value)} $</td>`
+      ? `<td class="r num acc" title="авто: ${it.qty} × курс ${fesc(it.rate_symbol)}">⚡ ${fmt(it.value)} $${shareSub}${becameSub}</td>`
       : editable
-        ? `<td class="r num acc"><span class="pill btn" data-fcur="${it.id}:${cur}" title="сменить валюту">${cur}</span> <span class="ed" data-fe="tgt:${it.id}:value:num" title="сколько размещено сейчас (клик)">${it.value != null ? fmt(it.value) : '—'}</span></td>`
-        : `<td class="r num acc">${fmtE(it.eur)}</td>`;
-    const becameShown = editable ? `${fmt((it.value || 0) + netCur)} ${fesc(cur)}` : fmtE((it.eur || 0) + net);
-    const becameCell = `<td class="r num acc">${net === 0 ? becameShown
-      : `<span class="${net > 0 ? 'up' : 'down'}" title="сейчас ${editable ? fmt(it.value || 0) + ' ' + fesc(cur) : fmtE(it.eur)} · переносы ${net > 0 ? '+' : '−'}${fmt(Math.abs(editable ? netCur : net))} ${editable ? fesc(cur) : '€'}">${becameShown}</span>`}</td>`;
+        ? `<td class="r num acc"><span class="pill btn" data-fcur="${it.id}:${cur}" title="сменить валюту">${cur}</span> <span class="ed" data-fe="tgt:${it.id}:value:num" title="сколько размещено сейчас (клик)">${it.value != null ? fmt(it.value) : '—'}</span>${shareSub}${becameSub}</td>`
+        : `<td class="r num acc">${fmtE(it.eur)}${shareSub}${becameSub}</td>`;
+    // покупка и прирост — из прежней вкладки «Факт», они не дублируются нигде больше
+    const g = it.invested != null && it.invested && !(editable && it.buy_value == null)
+      ? (it.investedCur - it.invested) / it.invested * 100 : null;
+    const buyCell = `<td class="r num muted ${editable ? 'ed' : ''}" ${editable ? `data-fe="tgt:${it.id}:buy_value:num" title="цена покупки в валюте позиции (${fesc(cur)}) · не задана — равна текущей"` : ''}>${editable ? (it.buy_value != null ? fmt(it.buy_value) + ' ' + fesc(cur) : (it.value != null ? '≈ ' + fmt(it.value) + ' ' + fesc(cur) : '—')) : (it.invested != null ? fmt(it.invested) + ' €' : '')}</td>`;
+    const gainCell = `<td class="r num">${g != null ? `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</span>` : ''}</td>`;
     // Цель: одно поле задано, второе выведено. Клик по любому из них закрепляет именно его.
     const capT = ctx?.total || 0;
     const planPctShown = it.planPin === 'pct' ? it.target_pct
@@ -107,45 +116,14 @@ function portRows(it, depth, ctx) {
     const devCell = `<td class="r num">${dev == null ? '' : Math.abs(dev) < 1
       ? '<span class="up">✓ в цели</span>'
       : `<span class="${dev > 0 ? 'dev-over' : 'dev-under'}">${dev > 0 ? '+' : '−'}${fmtE(Math.abs(dev))}<span class="meta devpp">${devPP > 0 ? '+' : '−'}${Math.abs(devPP).toFixed(1)} п.п.</span></span>`}</td>`;
-    // доля плана: основная — внутри своего блока, от всего целевого — мельче
-    const planPct = ctx?.planTotal > 0 && it.planEur > 0 ? it.planEur / ctx.planTotal * 100 : null;
-    const planCat = ctx?.blockTarget > 0 && it.planEur > 0 ? it.planEur / ctx.blockTarget * 100 : null;
-    const shareStr = (planPct == null && planCat == null) ? '' :
-      `${planCat != null ? `<div class="num" title="доля плана внутри своего блока">${planCat.toFixed(1)}% <span class="meta">кат.</span></div>` : ''}
-       ${planPct != null ? `<div class="${planCat != null ? 'meta' : 'num'}" title="доля плана от всего целевого">${planPct.toFixed(1)}%${planCat != null ? ' общ.' : ''}</div>` : ''}`;
     const links = [
       ...(ctx?.movesBySrc?.[path] || []).map(mv => `<div class="meta"><span class="down">→ отдать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> в «${fesc(mv.toName)}» <span class="rowbtn del" data-movedel="${mv.id}" title="убрать связку">✕</span></div>`),
       ...(ctx?.movesByDst?.[path] || []).map(mv => `<div class="meta"><span class="up">← добрать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> из «${fesc(mv.fromName)}»</div>`),
     ].join('');
     const moveOpen = tgtMove?.from === it.id;
     const moveBtn = editable ? `<span class="rowbtn${moveOpen ? ' on' : ''}" data-tgtmove="${it.id}" title="переложить в другую позицию">↦ переложить</span>` : '';
-    cells = `${nowCell}${becameCell}${planCell}${devCell}
-      <td style="text-align:left;min-width:180px">${links}${moveBtn}</td>
-      <td class="r" style="width:92px">${shareStr}</td>`;
-  } else {
-    // лист без своей цены покупки прирост не показывает (он по определению 0)
-    const g = it.invested != null && it.invested && !(editable && it.buy_value == null)
-      ? (it.investedCur - it.invested) / it.invested * 100 : null;
-    const cur = it.currency ?? '€';
-    // у категорий — итог в € + разрез по валютам, если внутри обе
-    const split = !editable && it.usdPart > 0 && it.eurPart > 0
-      ? `<div class="meta">€ ${fmt(it.eurPart)} + $ ${fmt(it.usdPart)}</div>` : '';
-    const valueCell = it.auto
-      ? `<td class="r num acc" title="авто: ${it.qty} × курс ${it.rate_symbol}">⚡ ${fmt(it.value)} $</td>`
-      : editable
-        ? `<td class="r num acc"><span class="pill btn" data-fcur="${it.id}:${cur}" title="сменить валюту">${cur}</span>
-            <span class="ed" data-fe="items:${it.id}:value:num" title="текущая стоимость (клик)">${it.value != null ? fmt(it.value) : '—'}</span></td>`
-        : `<td class="r num acc">${fmtE(it.eur)}${split}</td>`;
-    // основная доля — внутри своего блока (категории верхнего уровня), от всего портфеля — мельче
-    const pTot = ctx?.total > 0 && it.eur > 0 ? it.eur / ctx.total * 100 : null;
-    const pCat = ctx?.blockEur > 0 && it.eur > 0 ? it.eur / ctx.blockEur * 100 : null;
-    const shareCell = `<td class="r" style="width:92px">
-      ${pCat != null ? `<div class="num" title="доля внутри своего блока">${pCat.toFixed(1)}% <span class="meta">кат.</span></div>` : ''}
-      ${pTot != null ? `<div class="${pCat != null ? 'meta' : 'num'}" title="доля от всего портфеля">${pTot.toFixed(1)}%${pCat != null ? ' общ.' : ''}</div>` : ''}</td>`;
-    cells = `<td class="r num muted ${editable ? 'ed' : ''}" ${editable ? `data-fe="items:${it.id}:buy_value:num" title="цена покупки в валюте позиции (${fesc(cur)}) · не задана — равна текущей"` : ''}>${editable ? (it.buy_value != null ? fmt(it.buy_value) + ' ' + fesc(cur) : (it.value != null ? '≈ ' + fmt(it.value) + ' ' + fesc(cur) : '—')) : (it.invested != null ? fmt(it.invested) + ' €' : '')}</td>
-      <td class="r num">${g != null ? `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</span>` : ''}</td>
-      ${valueCell}
-      ${shareCell}`;
+    cells = `${buyCell}${gainCell}${nowCell}${planCell}${devCell}
+      <td style="text-align:left;min-width:170px">${links}${moveBtn}</td>`;
   }
   return `<tr class="${rowCls}" draggable="true" data-pid="${it.id}">
     <td class="pname" style="--d:${depth}">
@@ -248,8 +226,8 @@ function tgtMoveForm(from, ctx) {
 }
 
 function portCard(it, depth, ctx) {
-  const target = ctx?.tgt === true;
-  const pfx = target ? 'tgt' : 'items';
+  const target = true;   // экран один
+  const pfx = 'tgt';
   const editable = it.kind === 'asset' || !it.children.length;
   const folded = portFold.has(it.id);
   const cur = it.currency ?? '€';
@@ -389,7 +367,7 @@ function secIncome(d, s) {
 
 
 function secPortfolio(d, s) {
-  const tgt = finTab === 'target';
+  const tgt = true;   // единый экран портфеля: и стоимость, и цели в одной таблице
   const tree = tgt ? (d.targetPortfolio || []) : (d.portfolio || []);
   const rootTotal = tgt ? tree.reduce((a, b) => a + (b.eur || 0), 0) : s.portfolioTotal;   // сейчас размещено в целевом
   // Цель узла задаётся долей ИЛИ суммой: закреплено то поле, что заполнено, второе выводится.
@@ -466,8 +444,6 @@ function secPortfolio(d, s) {
   return `
   <div class="sec">Портфель · блоки → разделы → активы · всё правится кликом</div>
   <div class="viewtabs">
-    <span class="pill btn ${!tgt ? 'ok' : ''}" data-fintab="fact">Факт</span>
-    <span class="pill btn ${tgt ? 'ok' : ''}" data-fintab="target">Целевой портфель</span>
     <span class="pill btn" id="pfoldAll" style="margin-left:auto">${portFold.size ? '▾ развернуть всё' : '▸ свернуть всё'}</span>
   </div>
   ${tgt ? `<div class="card"><div class="kv" style="font-weight:700;padding:2px 0;flex-wrap:wrap;gap:8px">
@@ -478,9 +454,13 @@ function secPortfolio(d, s) {
     ${finIsMobile()
       ? `<div class="pcards">${tree.map(b => portCard(b, 0, rctx)).join('') || '<div class="empty">пусто</div>'}</div>`
       : `<table class="fintable porttable">
-      ${tgt
-        ? '<tr><th>Название</th><th class="r" title="старт — до перестановок">Сейчас</th><th class="r" title="после всех транзакций в и из">Стало</th><th class="r" title="доля / сумма — заполненное закреплено, второе выводится">Цель % / €</th><th class="r" title="стало − цель">Отклонение</th><th class="r" title="задуманные переносы между позициями: применяются сразу, «Сейчас» = до них, «Стало» = после">Перестановки</th><th class="r" title="доля плана: от своего блока / от всего целевого">Доля плана</th><th></th></tr>'
-        : '<tr><th>Название</th><th class="r">Покупка</th><th class="r">Прирост</th><th class="r">Текущая</th><th class="r" title="от своего блока / от всего портфеля">Доля</th><th></th></tr>'}
+      <tr><th>Название</th>
+        <th class="r" title="цена покупки в валюте позиции">Покупка</th>
+        <th class="r">Прирост</th>
+        <th class="r" title="сколько размещено; под ним доля и, если есть переносы, «станет»">Сейчас</th>
+        <th class="r" title="доля / сумма — заполненное закреплено, второе выводится">Цель % / €</th>
+        <th class="r" title="стало − цель">Отклонение</th>
+        <th class="r">Перестановки</th><th></th></tr>
       ${tree.map(b => portRows(b, 0, rctx)).join('') || '<tr><td colspan="8"><div class="empty">пусто</div></td></tr>'}
     </table>`}
     ${tgt ? `<div class="task finadd" style="margin-top:6px"><input id="tgt_block" placeholder="новый блок целевого" style="flex:1"><span class="pill btn ok" data-tgtadd="block:">＋ блок</span></div>`
@@ -1081,8 +1061,6 @@ function bindFin() {
     }));
   document.querySelectorAll('[data-rate]').forEach(el =>
     el.addEventListener('click', () => inlineVal(el, 'num', v => finApi.rateSet(el.dataset.rate, v))));
-  document.querySelectorAll('[data-fintab]').forEach(el =>
-    el.addEventListener('click', () => { finTab = el.dataset.fintab; renderFin(); }));
   $('finEye')?.addEventListener('click', () => {
     finHide = !finHide;
     finShown.clear();   // верхний глаз управляет всем сразу; на диск выбор не пишем
@@ -1118,7 +1096,7 @@ function bindFin() {
         : tr.classList.contains('dropafter') ? 'after' : 'into';
       pClear();
       if (pDrag == null) return;
-      const ent = finTab === 'target' ? 'tgt' : 'items';   // целевой дерево тянется так же, но по target_items
+      const ent = 'tgt';   // дерево одно
       const url = zone === 'into'
         ? [`/api/fin/${ent}/${pDrag}/move`, { parent_id: +tr.dataset.pid }]
         : [`/api/fin/${ent}/${pDrag}/reorder`, { ref_id: +tr.dataset.pid, where: zone }];
@@ -1178,7 +1156,7 @@ function bindFin() {
   document.querySelectorAll('[data-fcur]').forEach(el =>
     el.addEventListener('click', async () => {
       const [id, cur] = el.dataset.fcur.split(':');
-      const ent = finTab === 'target' ? 'tgt' : 'items';
+      const ent = 'tgt';   // дерево одно
       await finApi.patch(ent, +id, { currency: cur === '€' ? '$' : '€' });
       window.loadFin();
     }));
@@ -1298,7 +1276,7 @@ function bindFin() {
   document.querySelectorAll('[data-ftype]').forEach(el =>
     el.addEventListener('click', () => {
       const id = +el.dataset.ftype;
-      const ent = finTab === 'target' ? 'tgt' : 'items';
+      const ent = 'tgt';   // дерево одно
       const sel = document.createElement('select');
       sel.innerHTML = '<option value="">— тип актива —</option>'
         + ATYPES.map(t => `<option>${t}</option>`).join('') + '<option value="__none">убрать тип</option>';
@@ -1313,7 +1291,7 @@ function bindFin() {
   document.querySelectorAll('[data-fregion]').forEach(el =>
     el.addEventListener('click', () => {
       const id = +el.dataset.fregion;
-      const ent = finTab === 'target' ? 'tgt' : 'items';
+      const ent = 'tgt';   // дерево одно
       const sel = document.createElement('select');
       sel.innerHTML = '<option value="">— регион —</option>'
         + REGIONS.map(r => `<option>${r}</option>`).join('') + '<option value="__none">убрать</option>';
@@ -1325,7 +1303,7 @@ function bindFin() {
       });
       sel.addEventListener('blur', () => window.loadFin());
     }));
-  const finEnt = () => finTab === 'target' ? 'tgt' : 'items';   // автоцена и количество живут в обеих вкладках
+  const finEnt = () => 'tgt';   // дерево одно
   document.querySelectorAll('[data-fqty]').forEach(el =>
     el.addEventListener('click', () => inlineVal(el, 'num', v => finApi.patch(finEnt(), +el.dataset.fqty, { qty: v }))));
   document.querySelectorAll('[data-frate]').forEach(el =>

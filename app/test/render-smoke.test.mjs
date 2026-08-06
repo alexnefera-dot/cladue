@@ -50,21 +50,30 @@ const DATA = {
   rates: [{ symbol: 'IVV', price: 500 }],
 };
 
-for (const tab of ['fact', 'target']) {
-  test(`портфель отрисовывается без ошибок: вкладка ${tab}`, () => {
-    const ctx = loadFin();
-    vm.runInContext(`finTab = ${JSON.stringify(tab)}`, ctx);   // let-биндинг живёт в лексической области скрипта
-    const html = ctx.secPortfolio(DATA, DATA.summary);
-    assert.equal(typeof html, 'string');
-    assert.ok(html.length > 500, 'разметка не пустая');
-  });
-}
+test('портфель отрисовывается без ошибок', () => {
+  const html = loadFin().secPortfolio(DATA, DATA.summary);
+  assert.equal(typeof html, 'string');
+  assert.ok(html.length > 500, 'разметка не пустая');
+});
+
+test('экран один: вкладок «Факт»/«Целевой» нет', () => {
+  const html = loadFin().secPortfolio(DATA, DATA.summary);
+  assert.ok(!html.includes('data-fintab'), 'переключатель вкладок остался');
+  assert.ok(!/>Факт</.test(html), 'вкладка «Факт» осталась');
+});
+
+test('строки совпадают с шапкой по числу колонок', () => {
+  const html = loadFin().secPortfolio(DATA, DATA.summary);
+  const head = html.match(/<tr><th>Название<\/th>[\s\S]*?<\/tr>/)[0];
+  const cols = (head.match(/<th/g) || []).length;
+  const rows = [...html.matchAll(/<tr class="[^"]*" draggable[\s\S]*?<\/tr>/g)];
+  assert.ok(rows.length > 0, 'строк нет');
+  for (const [r] of rows) assert.equal((r.match(/<td/g) || []).length, cols, 'строка не совпала с шапкой');
+});
 
 test('целевой: колонки и блок мониторинга на месте', () => {
-  const ctx = loadFin();
-  vm.runInContext("finTab = 'target'", ctx);
-  const html = ctx.secPortfolio(DATA, DATA.summary);
-  for (const part of ['Сейчас', 'Стало', 'Цель % / €', 'Отклонение', 'Перестановки',
+  const html = loadFin().secPortfolio(DATA, DATA.summary);
+  for (const part of ['Покупка', 'Прирост', 'Сейчас', 'Цель % / €', 'Отклонение', 'Перестановки',
                       'tgtdonut', 'btrack', 'btick', 'data-cat']) {
     assert.ok(html.includes(part), `в целевом нет «${part}»`);
   }
@@ -72,7 +81,6 @@ test('целевой: колонки и блок мониторинга на м�
 
 test('форма переноса появляется только по клику и нигде больше', () => {
   const ctx = loadFin();
-  vm.runInContext("finTab = 'target'", ctx);
   assert.ok(!ctx.secPortfolio(DATA, DATA.summary).includes('tgtform'), 'форма видна без клика');
   vm.runInContext('tgtMove = { from: 12, to: null, amount: null }', ctx);
   const open = ctx.secPortfolio(DATA, DATA.summary);
@@ -81,9 +89,7 @@ test('форма переноса появляется только по кли�
 });
 
 test('цель: закреплено то поле, что заполнено', () => {
-  const ctx = loadFin();
-  vm.runInContext("finTab = 'target'", ctx);
-  const html = ctx.secPortfolio(DATA, DATA.summary);
+  const html = loadFin().secPortfolio(DATA, DATA.summary);
   assert.ok(html.includes('target_pct'), 'нет поля доли');
   assert.ok(html.includes('ed pinned'), 'закреплённое поле не помечено');
 });
