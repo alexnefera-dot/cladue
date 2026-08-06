@@ -471,7 +471,71 @@ $out['тон'] = [
     'призывов на сайт' => round(($ton['призыв ты'] + $ton['призыв вы']) / $N, 1),
 ];
 
-// ── 15. каннибализация ──────────────────────────────────────────────
+// ── 15. регистр ─────────────────────────────────────────────────────
+// Маска сайта строится формулой «X — это Y», где Y берётся из мира метафоры:
+// «лицензия — это пламя», «лицензия — это семена», «документ — это капля в гроте».
+// Считаем и сам механизм, и общий сленговый фон, который у масок сквозной.
+$sleng = ['кайф', 'кринж', 'база', 'душно', 'изи', 'движ', 'мем', 'фарт', 'флекс', 'залип',
+    'вайб', 'хайп', 'краш', 'скилл', 'топчик', 'рофл', 'чилл', 'лут', 'пруф'];
+$slCnt = array_fill_keys($sleng, 0); $slSites = array_fill_keys($sleng, 0);
+$slSlov = 0; $sravnenij = 0;
+foreach ($dirs as $d) {
+    $t = '';
+    foreach (glob("$d/*.html") ?: [] as $f) { $t .= ' ' . mb_strtolower(chisto((string) file_get_contents($f))); }
+    $slSlov += count(slova($t));
+    $sravnenij += preg_match_all('~(?<![\p{L}])(?:это|—)\s+(?:как|это)\s~u', $t);
+    foreach ($sleng as $w) {
+        $c = preg_match_all('~(?<![\p{L}])' . $w . '~u', $t);
+        $slCnt[$w] += $c;
+        if ($c) { $slSites[$w]++; }
+    }
+}
+arsort($slCnt);
+$out['регистр'] = [
+    'сленга всего' => array_sum($slCnt),
+    'на 100 слов' => round(array_sum($slCnt) / max(1, $slSlov) * 100, 2),
+    'сравнений «X это как Y» на сайт' => round($sravnenij / $N, 1),
+];
+$chastye = [];
+foreach (array_slice(array_keys(array_filter($slCnt)), 0, 8) as $w) { $chastye[$w] = $slSites[$w] . "/$N"; }
+$out['регистр']['частые'] = $chastye;
+
+// ── 16. граф перелинковки ───────────────────────────────────────────
+// Матрица «страница → страница» по всему корпусу: видно и плотность сетки,
+// и страницы-сироты, на которые не ссылается вообще никто.
+$uzly = PAGES_Z;
+$mat = array_fill(0, count($uzly), array_fill(0, count($uzly), 0));
+$ishod = array_fill(0, count($uzly), 0);
+$sajtov = 0;
+foreach ($dirs as $d) {
+    $sajtov++;
+    foreach ($uzly as $i => $p) {
+        if (!is_file("$d/$p.html")) { continue; }
+        preg_match_all('~<a\s[^>]*href="(/[a-z]*)"~i', (string) file_get_contents("$d/$p.html"), $m);
+        $ishod[$i] += count($m[1]);
+        $est = [];
+        foreach ($m[1] as $href) {
+            $c = trim($href, '/');
+            if ($c === '') { $c = 'main'; }
+            $j = array_search($c, $uzly, true);
+            if ($j !== false && $j !== $i) { $est[$j] = 1; }
+        }
+        foreach (array_keys($est) as $j) { $mat[$i][$j]++; }
+    }
+}
+$vhod = array_fill(0, count($uzly), 0);
+foreach ($mat as $i => $row) { foreach ($row as $j => $v) { $vhod[$j] += $v; } }
+$out['граф'] = ['ссылок со страницы' => [], 'страниц ссылается на неё (из 6)' => []];
+foreach ($uzly as $i => $p) {
+    $out['граф']['ссылок со страницы'][$p] = round($ishod[$i] / max(1, $sajtov), 1);
+    $vh = count(array_filter($mat, fn($row) => ($row[$i] ?? 0) > 0));
+    $out['граф']['страниц ссылается на неё (из 6)'][$p] = $vh;
+}
+$siroty = [];
+foreach ($uzly as $i => $p) { if ($vhod[$i] === 0) { $siroty[] = $p; } }
+$out['граф']['сироты'] = $siroty ? implode(', ', $siroty) : '—';
+
+// ── 17. каннибализация ──────────────────────────────────────────────
 // Все семь страниц пишут об одном казино и покрывают пересекающиеся темы.
 // Если главная переиспользует свои же формулировки — это видно здесь.
 $shing = function (string $t): array {
