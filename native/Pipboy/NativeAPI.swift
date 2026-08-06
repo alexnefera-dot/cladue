@@ -40,7 +40,9 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         _ = try? made.run("ALTER TABLE obligations ADD COLUMN due_time TEXT")  // миграция: время у обязательств (как due_time задач)
         _ = try? made.run("ALTER TABLE portfolio_items ADD COLUMN region TEXT")  // регион инвестиции (SK/UA/AU/EU/WEB)
         _ = try? made.run("ALTER TABLE target_items ADD COLUMN region TEXT")
-        _ = try? made.run("ALTER TABLE target_items ADD COLUMN target_pct REAL")  // цель долей; заполнено одно из target_pct/target_value — оно и закреплено
+        _ = try? made.run("ALTER TABLE target_items ADD COLUMN target_pct REAL")
+        _ = try? made.run("ALTER TABLE target_items ADD COLUMN is_loan INTEGER NOT NULL DEFAULT 0")  // займы переехали из факта
+        _ = try? made.run("ALTER TABLE target_items ADD COLUMN loan_due TEXT")  // цель долей; заполнено одно из target_pct/target_value — оно и закреплено
         _ = try? made.run("DROP TABLE IF EXISTS portfolio_classes")  // мёртвая с рождения: в интерфейс не выводилась ни разу
         _ = try? made.run("ALTER TABLE routines ADD COLUMN days TEXT NOT NULL DEFAULT ''")  // дни недели рутины (пусто = каждый день)
         _ = try? made.run("ALTER TABLE passive_income ADD COLUMN principal REAL NOT NULL DEFAULT 0")    // тело инвестиции/депозита
@@ -59,32 +61,31 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
             _ = try? made.run("DROP TABLE IF EXISTS target_items")
             _ = try? made.run("UPDATE settings SET value = '' WHERE key = 'target_seed_v1'")   // сброс → перезаполним копией факта
         }
-        _ = try? made.run("CREATE TABLE IF NOT EXISTS target_items(id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, ord INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL DEFAULT 'asset', value REAL, buy_value REAL, target_value REAL, currency TEXT NOT NULL DEFAULT '€', asset_type TEXT, qty REAL, rate_symbol TEXT, note TEXT)")
+        _ = try? made.run("CREATE TABLE IF NOT EXISTS target_items(id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, ord INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL DEFAULT 'asset', value REAL, buy_value REAL, target_value REAL, target_pct REAL, currency TEXT NOT NULL DEFAULT '€', asset_type TEXT, qty REAL, rate_symbol TEXT, note TEXT, is_loan INTEGER NOT NULL DEFAULT 0, loan_due TEXT)")
         _ = try? made.run("CREATE TABLE IF NOT EXISTS target_moves(id INTEGER PRIMARY KEY, from_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, to_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, amount REAL NOT NULL DEFAULT 0)")  // ручные связки ребаланса
-        // одноразовый сброс целевого по запросу: очистить и пересоздать свежей копией ТЕКУЩЕГО факта
-        // (v5 — целевой содержал старый набор категорий, пересобираем из текущего portfolio_items)
-        if ((try? made.rows("SELECT value FROM settings WHERE key = 'target_reset_v5'"))?.first?["value"]) as? String != "1" {
-            _ = try? made.run("DELETE FROM target_moves")
-            _ = try? made.run("DELETE FROM target_items")
-            _ = try? made.run("UPDATE settings SET value = '' WHERE key = 'target_seed_v1'")   // сброс флага → initTargetFromFact заполнит заново
-            _ = try? Api.setSetting(made, "target_reset_v5", "1")
-        }
-        Api.dedupeTreeItems(made, "portfolio_items", nil)   // сначала чистим ФАКТ от дублей (синхрон с разными id)
-        Api.initTargetFromFact(made)   // первый раз (и после сброса) — копируем структуру фактического портфеля в целевой
+        // Сброс v5 (DELETE FROM target_items) снят: целевое дерево стало единственным,
+        // и такая миграция стёрла бы весь портфель. Флаг ставим, чтобы она не всплыла на старых базах.
+        _ = try? Api.setSetting(made, "target_reset_v5", "1")
+        Api.dedupeTreeItems(made, "portfolio_items", nil)   // старое дерево остаётся как страховка — чистим от дублей синхрона
         Api.dedupeTreeItems(made, "target_items", "target_moves")   // и целевой
         // разовая чистка целевого от ТОЧНЫХ дублей, раскиданных по разным категориям (последствие прошлых синхронов)
         if ((try? made.rows("SELECT value FROM settings WHERE key = 'target_exact_dedup_v1'"))?.first?["value"]) as? String != "1" {
             Api.dedupeTargetExact(made)
             _ = try? Api.setSetting(made, "target_exact_dedup_v1", "1")
         }
-        _ = try? made.run("UPDATE target_items SET rate_symbol = NULL, qty = NULL WHERE rate_symbol IS NOT NULL")   // целевой — плановые суммы, без автоцены (иначе не отредактировать)
-        _ = try? made.run("UPDATE target_items SET target_value = value WHERE target_value IS NULL AND value IS NOT NULL")   // план по умолчанию = текущая стоимость (пока не задан вручную)
+        _ = try? made.run("UPDATE target_items SET target_value = value WHERE target_value IS NULL AND target_pct IS NULL AND value IS NOT NULL")   // цель по умолчанию = текущая сумма; закреплённую долю не трогаем
         // разово применить связки ребаланса к суммам «Сейчас»: после синхрона связки приехали, а перелив — нет
         // Переносы больше не меняют value: «Сейчас» хранится как есть, «Стало» = «Сейчас» + переносы.
         // Ранее применённые переносы один раз возвращаем обратно, иначе суммы остались бы смещёнными.
         if ((try? made.rows("SELECT value FROM settings WHERE key = 'target_moves_unapply_v1'"))?.first?["value"]) as? String != "1" {
             Api.unapplyTargetMoves(made)
             _ = try? Api.setSetting(made, "target_moves_unapply_v1", "1")
+        }
+        // Одно дерево: целевое становится единственным. Фактическое остаётся в базе нетронутым —
+        // если слияние окажется неверным, данные не потеряны и таблицу можно поднять.
+        if ((try? made.rows("SELECT value FROM settings WHERE key = 'merge_trees_v1'"))?.first?["value"]) as? String != "1" {
+            Api.mergeFactIntoTarget(made)
+            _ = try? Api.setSetting(made, "merge_trees_v1", "1")
         }
         Api.ensureSpheresSchema(made)   // таблицы сфер (area_milestones/area_questions) — до sync-схемы, чтобы им добавились updated_at/триггеры
         Api.ensureSyncSchema(made)   // updated_at + триггеры + tombstones — отслеживание правок для синхрона
@@ -1393,7 +1394,7 @@ enum Api {
 
     // ----- Финансы: запись -----
     private static let finTable = ["accounts": "accounts", "steps": "steps",
-        "obligations": "obligations", "items": "portfolio_items", "tx": "transactions", "debts": "debts", "income": "passive_income",
+        "obligations": "obligations", "items": "target_items", "tx": "transactions", "debts": "debts", "income": "passive_income",
         "budget": "budget_items", "tgt": "target_items", "move": "target_moves"]
     private static let finCols: [String: [String]] = [
         "accounts": ["name", "type", "currency", "note", "balance"],
@@ -1504,8 +1505,8 @@ enum Api {
                  b["next_date"] ?? NSNull(), intval(b["remind_days"] ?? 5), b["kind"] as? String ?? "liability", b["note"] as? String ?? "", b["due_time"] ?? NSNull()])
         case "items":
             let parent = numOpt(b["parent_id"]).map { Int($0) }
-            let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM portfolio_items WHERE parent_id IS ?", [parent]).first?["o"]))
-            try db.run("INSERT INTO portfolio_items(parent_id, ord, name, kind, buy_value, value, target_value, currency) VALUES(?,?,?,?,?,?,?,?)",
+            let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM target_items WHERE parent_id IS ?", [parent]).first?["o"]))
+            try db.run("INSERT INTO target_items(parent_id, ord, name, kind, buy_value, value, target_value, currency) VALUES(?,?,?,?,?,?,?,?)",
                 [parent, ord, b["name"] as? String ?? "", b["kind"] as? String ?? "asset", b["buy_value"] ?? NSNull(), b["value"] ?? NSNull(), b["target_value"] ?? NSNull(), b["currency"] as? String ?? "€"])
         case "tx":
             try db.run("INSERT INTO transactions(date, amount, currency, direction, category, note, source) VALUES(?,?,?,?,?,?,?)",
@@ -1538,7 +1539,7 @@ enum Api {
         default: break
         }
     }
-    static func finMoveItem(_ db: Database, id: Int, parent: Int?, _ table: String = "portfolio_items") throws {
+    static func finMoveItem(_ db: Database, id: Int, parent: Int?, _ table: String = "target_items") throws {
         if let p = parent {
             if p == id { throw Unsupported(path: "self") }
             let desc = try db.rows("WITH RECURSIVE r(x) AS (SELECT id FROM \(table) WHERE parent_id = ? UNION SELECT n.id FROM \(table) n JOIN r ON n.parent_id = r.x) SELECT 1 FROM r WHERE x = ? LIMIT 1", [id, p])
@@ -1547,7 +1548,7 @@ enum Api {
         let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM \(table) WHERE parent_id IS ?", [parent]).first?["o"]))
         try db.run("UPDATE \(table) SET parent_id = ?, ord = ? WHERE id = ?", [parent, ord, id])
     }
-    static func finReorderItem(_ db: Database, id: Int, refId: Int, pos: String, _ table: String = "portfolio_items") throws {
+    static func finReorderItem(_ db: Database, id: Int, refId: Int, pos: String, _ table: String = "target_items") throws {
         if id == refId { throw Unsupported(path: "self") }
         guard let ref = try db.rows("SELECT id, parent_id FROM \(table) WHERE id = ?", [refId]).first else { throw Unsupported(path: "ref not found") }
         let rp = numOpt(ref["parent_id"]).map { Int($0) }
@@ -1828,33 +1829,58 @@ enum Api {
         _ = try? setSetting(db, "budget_seed_v2", "1")
     }
 
-    // Целевой портфель: первичное заполнение структурой фактического (один раз, флаг).
-    // Копируем дерево portfolio_items → target_items, сохраняя иерархию (маппинг старый id → новый).
-    // Дальше целевой правится независимо; суммы — стартовые, пользователь меняет.
-    static func initTargetFromFact(_ db: Database) {
-        if ((try? db.rows("SELECT value FROM settings WHERE key = 'target_seed_v1'"))?.first?["value"]) as? String == "1" { return }
-        if intval((try? db.rows("SELECT COUNT(*) AS c FROM target_items"))?.first?["c"]) == 0,
-           let rows = try? db.rows("SELECT * FROM portfolio_items ORDER BY parent_id NULLS FIRST, ord, id") {
-            var map: [Int: Int] = [:]
-            // проход 1: вставляем все узлы БЕЗ родителя, собираем маппинг старый→новый id.
-            // rate_symbol/qty НЕ копируем: в целевом (плановом) автоцена перебила бы плановую сумму.
-            // value — стартовая плановая (для авто-активов — текущая рыночная как ориентир).
+    // Слияние деревьев: целевое становится единственным, фактическое остаётся нетронутым как страховка.
+    // Факт ТОЛЬКО заполняет пробелы: позиции, которых в целевом нет, и пустые поля у совпавших.
+    // Значения целевого приоритетны — их пользователь правил руками.
+    static func mergeFactIntoTarget(_ db: Database) {
+        let key = { (n: [String: Any]) in ((n["name"] as? String) ?? "").trimmingCharacters(in: .whitespaces).lowercased() }
+        // карта «полный путь по именам» → id; строится обходом от корней, поэтому циклы невозможны
+        func paths(_ table: String) -> ([String: Int], [Int: String]) {
+            guard let rows = try? db.rows("SELECT id, parent_id, name FROM \(table)") else { return ([:], [:]) }
+            var kids: [Int: [[String: Any]]] = [:]
+            var roots: [[String: Any]] = []
             for r in rows {
-                if let newId = try? db.run("INSERT INTO target_items(parent_id, ord, name, kind, value, currency, asset_type, region, note) VALUES(NULL,?,?,?,?,?,?,?,?)",
-                    [intval(r["ord"]), r["name"] ?? "", r["kind"] ?? "asset",
-                     r["value"] ?? NSNull(), r["currency"] ?? "€", r["asset_type"] ?? NSNull(), r["region"] ?? NSNull(), r["note"] ?? NSNull()]) {
-                    map[intval(r["id"])] = newId
-                }
+                if let p = numOpt(r["parent_id"]).map({ Int($0) }) { kids[p, default: []].append(r) } else { roots.append(r) }
             }
-            // проход 2: проставляем parent_id по маппингу — не зависит от порядка вставки (id могли перемешаться
-            // после синхронов/дедупа, и ORDER BY parent_id не гарантирует «родитель раньше ребёнка»)
-            for r in rows {
-                if let op = numOpt(r["parent_id"]).map({ Int($0) }), let np = map[op], let nid = map[intval(r["id"])] {
-                    _ = try? db.run("UPDATE target_items SET parent_id = ? WHERE id = ?", [np, nid])
-                }
+            var byPath: [String: Int] = [:], byId: [Int: String] = [:]
+            func walk(_ n: [String: Any], _ pre: String) {
+                let id = intval(n["id"]), path = pre + "/" + key(n)
+                byPath[path] = id; byId[id] = path
+                for c in kids[id] ?? [] { walk(c, path) }
+            }
+            for r in roots { walk(r, "") }
+            return (byPath, byId)
+        }
+
+        guard let factRows = try? db.rows("SELECT * FROM portfolio_items"), !factRows.isEmpty else { return }
+        let (_, factPathById) = paths("portfolio_items")
+        var (tgtByPath, _) = paths("target_items")
+
+        // позиции факта, которых нет в целевом — создаём, родителей по пути (сортировка по длине пути даёт родителя раньше ребёнка)
+        let ordered = factRows.sorted { (factPathById[intval($0["id"])] ?? "").count < (factPathById[intval($1["id"])] ?? "").count }
+        for r in ordered {
+            guard let path = factPathById[intval(r["id"])], tgtByPath[path] == nil else { continue }
+            let parentPath = path.lastIndex(of: "/").map { String(path[path.startIndex..<$0]) } ?? ""
+            let parentId = parentPath.isEmpty ? nil : tgtByPath[parentPath]
+            let ord = intval(r["ord"])
+            if let newId = try? db.run("INSERT INTO target_items(parent_id, ord, name, kind, value, buy_value, currency, asset_type, region, note, is_loan, loan_due) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+                [parentId ?? NSNull(), ord, r["name"] ?? "", r["kind"] ?? "asset",
+                 r["value"] ?? NSNull(), r["buy_value"] ?? NSNull(), r["currency"] ?? "€",
+                 r["asset_type"] ?? NSNull(), r["region"] ?? NSNull(), r["note"] ?? NSNull(),
+                 intval(r["is_loan"]), r["loan_due"] ?? NSNull()]) {
+                tgtByPath[path] = newId
             }
         }
-        _ = try? setSetting(db, "target_seed_v1", "1")
+        // у совпавших — дозаполняем только пустые поля, ничего не перетирая
+        for r in factRows {
+            guard let path = factPathById[intval(r["id"])], let tid = tgtByPath[path] else { continue }
+            for col in ["buy_value", "asset_type", "region", "note", "loan_due"] where r[col] != nil {
+                _ = try? db.run("UPDATE target_items SET \(col) = ? WHERE id = ? AND \(col) IS NULL", [r[col]!, tid])
+            }
+            if intval(r["is_loan"]) == 1 {
+                _ = try? db.run("UPDATE target_items SET is_loan = 1 WHERE id = ? AND COALESCE(is_loan,0) = 0", [tid])
+            }
+        }
     }
 
     // Свести дубли категорий/позиций дерева портфеля (одинаковый parent + имя, но разные id — расходятся после
@@ -2046,10 +2072,10 @@ enum Api {
 
     // Каркас портфеля: 4 блока + замороженный капитал с примерами (порт ensurePortfolio).
     private static func ensurePortfolio(_ db: Database) throws {
-        if ((try db.rows("SELECT count(*) AS c FROM portfolio_items").first?["c"]) as? Int ?? 0) > 0 { return }
+        if ((try db.rows("SELECT count(*) AS c FROM target_items").first?["c"]) as? Int ?? 0) > 0 { return }
         func ins(_ parent: Int?, _ name: String, _ kind: String, value: Double? = nil) throws -> Int {
-            let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM portfolio_items WHERE parent_id IS ?", [parent]).first?["o"]))
-            return try db.run("INSERT INTO portfolio_items(parent_id, ord, name, kind, value) VALUES(?,?,?,?,?)",
+            let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM target_items WHERE parent_id IS ?", [parent]).first?["o"]))
+            return try db.run("INSERT INTO target_items(parent_id, ord, name, kind, value) VALUES(?,?,?,?,?)",
                               [parent, ord, name, kind, value as Any?])
         }
         _ = try ins(nil, "Блок защиты", "block")
@@ -2066,7 +2092,7 @@ enum Api {
 
     // Строки курсов, чтобы их можно было править вручную даже без сети (порт ensureRates).
     private static func ensureRates(_ db: Database) throws {
-        try db.run("UPDATE portfolio_items SET rate_symbol = NULL WHERE rate_symbol = '^SPX'")
+        try db.run("UPDATE target_items SET rate_symbol = NULL WHERE rate_symbol = '^SPX'")
         try db.run("DELETE FROM rates WHERE symbol = '^SPX'")
         let defs = [("XAUUSD", "Золото"), ("EURUSD", "EUR/USD"), ("BTCUSD", "BTC"),
                     ("SCHD", "SCHD"), ("IVV", "IVV"), ("VHT", "VHT")]
@@ -2299,7 +2325,7 @@ enum Api {
     }
 
     // Дерево портфеля: листья — в родной валюте, агрегаты — в € по курсу.
-    static func portfolioTree(_ db: Database, _ table: String = "portfolio_items") throws -> [[String: Any]] {
+    static func portfolioTree(_ db: Database, _ table: String = "target_items") throws -> [[String: Any]] {
         let rate = try eurUsdRate(db)
         let toEur: (Double?, String?) -> Double? = { v, cur in
             guard let v else { return nil }
@@ -2360,7 +2386,7 @@ enum Api {
             let bu = (accounts[i]["balance_updated_at"] as? String).map { String($0.prefix(10)) }
             accounts[i]["stale_days"] = bu.flatMap { dayDiff($0, t) }.map { Int(floor($0)) } ?? 0
         }
-        let portfolio = try portfolioTree(db)
+        let portfolio = try portfolioTree(db, "target_items")   // одно дерево на обе вкладки: факт и цель — разные колонки над ним
         let portfolioTotal = portfolio.reduce(0.0) { $0 + ($1["eur"] as? Double ?? 0) }
         _ = try? db.run("INSERT OR IGNORE INTO snapshots(date, portfolio_eur) VALUES(?,?)", [localToday(), portfolioTotal])  // снимок раз в день
         let portfolioTotalUsd = portfolioTotal * rate
@@ -2467,7 +2493,7 @@ enum Api {
         let fireV = try fireCalc(db, capital: portfolioTotal)
         let macro = try db.rows("SELECT * FROM macro_notes ORDER BY date DESC, id DESC")
         let budgetItems = try db.rows("SELECT * FROM budget_items ORDER BY direction DESC, ord, id")   // дефолтные расходы/доходы (списком)
-        let targetPortfolio = try portfolioTree(db, "target_items")   // целевой портфель — отдельное дерево (та же структура, своё наполнение)
+        let targetPortfolio = portfolio   // то же дерево: «Целевой» — это набор колонок, а не отдельные данные
         let targetMoves = try db.rows("SELECT * FROM target_moves")   // ручные связки ребаланса (откуда→куда)
         // аллокация по типам активов для целевого (как в факте)
         var tByType: [String: Double] = [:]

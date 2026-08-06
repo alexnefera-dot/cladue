@@ -75,7 +75,6 @@ function portRows(it, depth, ctx) {
   if (target) {
     // целевой: Цель · Ребаланс (конкретные связки откуда→куда прямо в строке) · Доля
     const path = (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase();
-    const factEur = ctx?.factByPath?.[path];
     const cur = it.currency ?? '€';
     // Бэкенд применяет перелив к value сразу при создании связки — в базе лежит состояние ПОСЛЕ
     // перестановок. Поэтому: «Сейчас» = старт (value − транзакции, его и правим руками),
@@ -170,7 +169,7 @@ function portRows(it, depth, ctx) {
       <span class="rowbtn del" data-findel="${pfx}:${it.id}">✕</span>
     </td>
   </tr>` + (target && tgtMove?.from === it.id ? tgtMoveForm(it, ctx) : '')
-    + (folded ? '' : it.children.map(c => portRows(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, parentEur: it.eur, blockEur: depth === 0 ? it.eur : ctx?.blockEur, blockTarget: depth === 0 ? it.planEur : ctx?.blockTarget, tgt: target, factByPath: ctx?.factByPath, tree: ctx?.tree, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
+    + (folded ? '' : it.children.map(c => portRows(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, parentEur: it.eur, blockEur: depth === 0 ? it.eur : ctx?.blockEur, blockTarget: depth === 0 ? it.planEur : ctx?.blockTarget, tgt: target, tree: ctx?.tree, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
 }
 
 const finIsMobile = () => window.matchMedia('(max-width: 768px)').matches;
@@ -304,7 +303,7 @@ function portCard(it, depth, ctx) {
       <span class="pc-val">${val}</span>
     </div>
     <div class="pc-meta">${meta}${folded ? `<span class="meta">· ${it.children.length} внутри</span>` : ''}<span class="pc-actions">${actions}</span></div>
-  </div>` + (folded ? '' : it.children.map(c => portCard(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, parentEur: it.eur, blockEur: depth === 0 ? it.eur : ctx?.blockEur, blockTarget: depth === 0 ? it.planEur : ctx?.blockTarget, tgt: target, factByPath: ctx?.factByPath, tree: ctx?.tree, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
+  </div>` + (folded ? '' : it.children.map(c => portCard(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, parentEur: it.eur, blockEur: depth === 0 ? it.eur : ctx?.blockEur, blockTarget: depth === 0 ? it.planEur : ctx?.blockTarget, tgt: target, tree: ctx?.tree, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
 }
 
 // диаграмма аллокации: доли с процентами внутри, каждая своим цветом
@@ -391,9 +390,6 @@ function secIncome(d, s) {
 
 function secPortfolio(d, s) {
   const tgt = finTab === 'target';
-  // карта факта по ПОЛНОМУ ПУТИ узла (блок/раздел/актив), а не по имени — иначе одноимённые позиции складываются
-  const factByPath = {};
-  if (tgt) { const w = (ns, pre) => (ns || []).forEach(n => { const p = pre + '/' + (n.name || '').trim().toLowerCase(); factByPath[p] = (factByPath[p] || 0) + (n.eur || 0); w(n.children, p); }); w(d.portfolio, ''); }
   const tree = tgt ? (d.targetPortfolio || []) : (d.portfolio || []);
   const rootTotal = tgt ? tree.reduce((a, b) => a + (b.eur || 0), 0) : s.portfolioTotal;   // сейчас размещено в целевом
   // Цель узла задаётся долей ИЛИ суммой: закреплено то поле, что заполнено, второе выводится.
@@ -445,7 +441,7 @@ function secPortfolio(d, s) {
     .filter(r => r.now > 0 || r.plan > 0)
     .sort((a, b) => Math.abs(b.devP) - Math.abs(a.devP));
   const catMaxP = Math.max(1, ...catRows.map(r => Math.max(r.nowP, r.planP)));
-  const rctx = { total: rootTotal, planTotal, parentEur: rootTotal, tgt, factByPath, tree, path: '' };
+  const rctx = { total: rootTotal, planTotal, parentEur: rootTotal, tgt, tree, path: '' };
   if (tgt) {   // ручные связки ребаланса (из target_moves): сопоставляем id позиций с путём/именем
     const byId = {};
     const mapIds = (ns, pre) => (ns || []).forEach(n => { const p = pre + '/' + (n.name || '').trim().toLowerCase(); byId[n.id] = { path: p, name: n.name, cur: n.currency ?? '€' }; mapIds(n.children, p); });
@@ -487,7 +483,7 @@ function secPortfolio(d, s) {
         : '<tr><th>Название</th><th class="r">Покупка</th><th class="r">Прирост</th><th class="r">Текущая</th><th class="r" title="от своего блока / от всего портфеля">Доля</th><th></th></tr>'}
       ${tree.map(b => portRows(b, 0, rctx)).join('') || '<tr><td colspan="8"><div class="empty">пусто</div></td></tr>'}
     </table>`}
-    ${tgt ? `<div class="task finadd" style="margin-top:6px"><input id="tgt_block" placeholder="новый блок целевого" style="flex:1"><span class="pill btn ok" data-tgtadd="block:">＋ блок</span><span class="pill btn" id="tgtSyncNow" title="подтянуть из Факта суммы и типы активов по совпадающим позициям (чего нет в Факте — не трогаем)">⟳ Суммы и типы из Факта</span><span class="pill btn" id="tgtBindRates" title="завести ETF / золото / BTC из Факта с привязкой к типу актива и курсу — позиция будет равна текущей и обновляться с курсом">⚡ ETF/золото/BTC из Факта</span></div>`
+    ${tgt ? `<div class="task finadd" style="margin-top:6px"><input id="tgt_block" placeholder="новый блок целевого" style="flex:1"><span class="pill btn ok" data-tgtadd="block:">＋ блок</span></div>`
       : `<div class="task finadd" style="margin-top:6px"><input id="fact_block" placeholder="новый блок портфеля (Крипта, Бизнес…)" style="flex:1"><span class="pill btn ok" data-fadd="block:">＋ блок</span></div>`}
   </div>
   ${!tgt && (d.byType.length || (d.byRegion || []).length) ? `
@@ -1216,90 +1212,6 @@ function bindFin() {
       }
       window.loadFin();
     }));
-  // «Сейчас» в целевом ← суммы Факта по СОВПАДАЮЩЕМУ полному пути (блок/раздел/актив).
-  // Чего в Факте нет — не трогаем и ничего не создаём (без дублей).
-  document.getElementById('tgtSyncNow')?.addEventListener('click', async () => {
-    const fact = {}, factType = {};
-    const walkF = (ns, pre) => (ns || []).forEach(n => {
-      const p = pre + '/' + (n.name || '').trim().toLowerCase();
-      fact[p] = (fact[p] || 0) + (n.eur || 0);
-      if (n.asset_type) factType[p] = n.asset_type;   // тип берём у той же позиции Факта
-      walkF(n.children, p);
-    });
-    walkF(finData.portfolio, '');
-    const rate = finData.summary?.rate || 1.08;
-    const upd = [], miss = [];
-    const walkT = (ns, pre) => (ns || []).forEach(n => {
-      const p = pre + '/' + (n.name || '').trim().toLowerCase();
-      if (n.kind === 'asset' || !(n.children || []).length) {         // суммы и типы правим только у листьев
-        if (fact[p] == null) miss.push(n.name);
-        else {
-          const cur = n.currency ?? '€';
-          const v = Math.round((cur === '$' ? fact[p] * rate : fact[p]) * 100) / 100;   // «Сейчас» = сумма из Факта
-          const ty = factType[p] ?? null;                                               // тип актива — оттуда же
-          const dv = Math.abs((n.value ?? 0) - v) >= 0.01, dt = ty != null && ty !== (n.asset_type ?? null);
-          if (dv || dt) upd.push({ id: n.id, name: n.name, from: n.value ?? 0, to: v, cur, val: dv ? v : null, ty: dt ? ty : null, wasTy: n.asset_type ?? null });
-        }
-      }
-      walkT(n.children, p);
-    });
-    walkT(finData.targetPortfolio, '');
-    const missNote = miss.length ? `\n\nНет в Факте — не трогаю (${miss.length}): ${miss.slice(0, 8).join(', ')}${miss.length > 8 ? '…' : ''}` : '';
-    if (!upd.length) { alert(`Обновлять нечего: суммы и типы уже совпадают с Фактом.${missNote}`); return; }
-    const preview = upd.slice(0, 12).map(u => `· ${u.name}: ${u.val != null ? `${fmt(u.from)} → ${fmt(u.to)} ${u.cur}` : ''}${u.val != null && u.ty ? ' · ' : ''}${u.ty ? `тип ${u.wasTy ?? '—'} → ${u.ty}` : ''}`).join('\n');
-    if (!confirm(`Подтянуть из Факта — ${upd.length} позиц. (суммы и типы активов):\n\n${preview}${upd.length > 12 ? `\n…и ещё ${upd.length - 12}` : ''}${missNote}`)) return;
-    for (const u of upd) {
-      const body = {};
-      if (u.val != null) body.value = u.val;
-      if (u.ty) body.asset_type = u.ty;
-      await finApi.patch('tgt', u.id, body);
-    }
-    window.loadFin();
-  });
-  // ETF / золото / BTC из Факта в целевой: позиция равна текущей и держится за курс.
-  // Привязываем тикер + количество + тип актива, поэтому value считается как qty × курс.
-  document.getElementById('tgtBindRates')?.addEventListener('click', async () => {
-    const key = n => (n.name || '').trim().toLowerCase();
-    const leaves = [];   // листья Факта с автоценой — это и есть ETF/золото/BTC
-    const walkF = (ns, pre, chain) => (ns || []).forEach(n => {
-      const p = pre + '/' + key(n), ch = [...chain, n];
-      if (n.rate_symbol) leaves.push({ path: p, chain: ch, node: n });
-      walkF(n.children, p, ch);
-    });
-    walkF(finData.portfolio, '', []);
-    if (!leaves.length) { alert('В Факте нет позиций с привязкой к курсу (⚡). Сначала привяжи тикер там.'); return; }
-    const tgtMap = () => { const m = {}; const w = (ns, pre) => (ns || []).forEach(n => { const p = pre + '/' + key(n); m[p] = n; w(n.children, p); }); w(finData.targetPortfolio, ''); return m; };
-    let map = tgtMap();
-    const willCreate = [], willBind = [];
-    leaves.forEach(l => {
-      let pre = '';
-      l.chain.forEach(n => { pre += '/' + key(n); if (!map[pre]) willCreate.push(pre); });
-      willBind.push(`${l.node.name} → ${l.node.qty ?? '?'} × ${l.node.rate_symbol}`);
-    });
-    const createNote = willCreate.length ? `\n\nБудет создано в целевом (${willCreate.length}): ${[...new Set(willCreate)].join(', ')}` : '';
-    if (!confirm(`Привязать к курсу ${willBind.length} позиц.:\n\n${willBind.map(b => '· ' + b).join('\n')}${createNote}`)) return;
-    for (let pass = 0; pass < 6; pass++) {           // создаём по одному уровню за проход: блок → раздел → актив
-      map = tgtMap();
-      const todo = [], seen = new Set();   // два актива могут просить один и тот же блок — создаём его один раз
-      for (const l of leaves) {
-        let pre = '', parentPath = '';
-        for (const n of l.chain) {
-          const prev = pre; pre += '/' + key(n);
-          if (!map[pre]) { if (!seen.has(pre)) { seen.add(pre); todo.push({ parentPath: prev, node: n }); } break; }
-          parentPath = pre;
-        }
-      }
-      if (!todo.length) break;
-      for (const t of todo) await finApi.add('tgt', { kind: t.node.kind, parent_id: t.parentPath ? map[t.parentPath].id : null, name: t.node.name });
-      finData = await finApi.list();
-    }
-    map = tgtMap();
-    for (const l of leaves) {
-      const t = map[l.path]; if (!t) continue;
-      await finApi.patch('tgt', t.id, { rate_symbol: l.node.rate_symbol, qty: l.node.qty, currency: '$', asset_type: l.node.asset_type ?? null });
-    }
-    window.loadFin();
-  });
   document.querySelectorAll('[data-tgtadd]').forEach(el =>
     el.addEventListener('click', async () => {
       const [kind, pid] = el.dataset.tgtadd.split(':');
