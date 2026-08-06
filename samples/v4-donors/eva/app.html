@@ -1,0 +1,366 @@
+<h2>
+  Блокировка приложения антивирусом %brand_name_en% — как распутать клубок и вернуть контроль
+</h2>
+<p>
+  Когда ты качаешь <strong>APK</strong> %brand_name_en% с офсайта и антивирус начинает жрать файлы — это не паника, а клубок: надо аккуратно размотать, найти узел и оценить рейтинг риска. Ниже — практическое руководство для крипто-анонов 20–35, которые ценят скорость вывода и презирают фиатные казино с вечными проверками. Технически жестко, но без фейков и модов — безопасность прежде всего.
+</p>
+<h3>
+  Почему антивирус блокирует приложение — короткий разбор клубка
+</h3>
+<ul>
+  <li>
+    <strong>Неизвестный источник</strong> — APK не из Play Market, подпись может быть не распознана.
+  </li>
+  <li>
+    <strong>Эвристика</strong> — поведение приложения (необычные сетевые запросы, обновления) срабатывает как подозрительное.
+  </li>
+  <li>
+    <strong>Ложный позитив</strong> — сигнатуры антивируса ошибаются, особенно с новыми релизами.
+  </li>
+  <li>
+    <strong>Модифицированная сборка</strong> — если APK не с официального сайта, есть риск внедрения вреда.
+  </li>
+</ul>
+<h3>
+  Быстрая дорожная карта — развязываем узел (шпаргалка)
+</h3>
+<div class="table-responsive">
+  <table>
+    <tbody>
+      <tr>
+        <th>
+          Шаг
+        </th>
+        <th>
+          Что сделать
+        </th>
+        <th>
+          Время
+        </th>
+        <th>
+          Риск
+        </th>
+      </tr>
+      <tr>
+        <td>
+          1
+        </td>
+        <td>
+          Проверить источник — скачано с официального сайта
+        </td>
+        <td>
+          1–2 мин
+        </td>
+        <td>
+          Низкий
+        </td>
+      </tr>
+      <tr>
+        <td>
+          2
+        </td>
+        <td>
+          Сравнить контрольную сумму (SHA256)
+        </td>
+        <td>
+          2–5 мин
+        </td>
+        <td>
+          Низкий
+        </td>
+      </tr>
+      <tr>
+        <td>
+          3
+        </td>
+        <td>
+          Проверить подпись APK (apksigner/jarsigner)
+        </td>
+        <td>
+          3–10 мин
+        </td>
+        <td>
+          Низкий/средний
+        </td>
+      </tr>
+      <tr>
+        <td>
+          4
+        </td>
+        <td>
+          Добавить исключение или временно отключить защиту
+        </td>
+        <td>
+          1–3 мин
+        </td>
+        <td>
+          Средний
+        </td>
+      </tr>
+      <tr>
+        <td>
+          5
+        </td>
+        <td>
+          Если не уверены — использовать зеркало или веб-версию
+        </td>
+        <td>
+          мгновенно
+        </td>
+        <td>
+          Низкий
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<h3>
+  Развернутая инструкция: шаг за шагом
+</h3>
+<ol>
+  <li>
+    <strong>Проверка источника</strong>
+    <p>
+      Качай APK только с официального сайта %brand_name_en%. Если у тебя возникли сомнения — используй зеркала: <a href="/zerkalo">/zerkalo</a>. Не лезь на сомнительные торренты и форумы с "модами". Модифицированный APK может дать тебе бан или кейлоггер в подарок.
+    </p>
+  </li>
+  <li>
+    <strong>Проверка контрольной суммы (SHA256)</strong>
+    <p>
+      На ПК: sha256sum %brand_name_en%.apk — получаешь хэш. Сравни с хэшем, опубликованным на сайте (если он есть). На Android можно использовать терминал (Termux) или приложения для хэша.
+    </p>
+    <blockquote>
+      Если хэши не совпадают — файл изменён. Сжечь его и скачать заново с офсайта.
+    </blockquote>
+  </li>
+  <li>
+    <strong>Проверка подписи APK</strong>
+    <p>
+      Проверяешь подпись через apksigner (Android SDK) или jarsigner. Пример:
+    </p>
+    <pre>apksigner verify --print-certs %brand_name_en%.apk</pre>
+    <p>
+      Посмотри, совпадает ли сертификат с тем, что в релиз-нотe или на офсайте. Если подпись отсутствует или выглядит чужой — бросай файл.
+    </p>
+  </li>
+  <li>
+    <strong>Разрешение в антивирусе / белый список</strong>
+    <p>
+      Если уверен в APK, добавь файл/папку в исключения антивируса. Краткая инструкция для популярных движков (общая схема):
+    </p>
+    <ul>
+      <li>
+        Открываешь настройки антивируса → раздел защиты в реальном времени или исключений.
+      </li>
+      <li>
+        Добавляешь путь к скачанному APK или к папке загрузок.
+      </li>
+      <li>
+        Попробуй временно отключить защиту на установку, затем включи обратно.
+      </li>
+    </ul>
+    <p>
+      Примеры интерфейсов: Avast — Settings → Troubleshooting → add exception; Kaspersky — Settings → Threats and Exclusions → add; Windows Defender — Virus &amp; threat protection → Manage settings → add exclusion.
+    </p>
+    <p>
+      <strong>Важно:</strong> отключай защиту только на минимально необходимое время и только если уверен в источнике.
+    </p>
+  </li>
+  <li>
+    <strong>Play Protect и Google</strong>
+    <p>
+      Если Google Play Protect ругается, можно в настройках Play → Play Protect → настройки → отключить сканирование для установки сторонних APK. Но это рискованно — лучше пройти шаги проверки подписи и хэша предварительно.
+    </p>
+  </li>
+  <li>
+    <strong>Альтернатива: веб-версия и зеркала</strong>
+    <p>
+      Если не хочешь разбираться с исключениями — используй веб-версию казино через зеркало <a href="/zerkalo">/zerkalo</a> или играй прямо в браузере (вход: <a href="/vhod">/vhod</a>, регистрация: <a href="/registracia">/registracia</a>). Мгновенно и без APK-танцев.
+    </p>
+  </li>
+  <li>
+    <strong>Контроль после установки</strong>
+    <p>
+      Мониторь сетевые подключения приложения. На Android можно использовать NetGuard/AFWall+, на ПК — Wireshark/Filters. Если апп лезет куда не надо — удаляй и пиши в службу поддержки.
+    </p>
+  </li>
+</ol>
+<h3>
+  Короткие советы — что делать, если AV всё равно блокирует
+</h3>
+<ul>
+  <li>
+    Скачай APK заново с другого зеркала: <a href="/zerkalo">/zerkalo</a>.
+  </li>
+  <li>
+    Проверь подпись и SHA256, как выше.
+  </li>
+  <li>
+    Установи и проверь пакет в песочнице или на старом устройстве без личных данных.
+  </li>
+  <li>
+    Если не уверен — играй в браузере или через официальный сайт: <a href="/slots">/slots</a>.
+  </li>
+</ul>
+<blockquote>
+  Блок внимания: если антивирус показывает поведение типа «клиент передаёт приватные ключи» — не шути с этим. Скачал не с офсайта — считай, ты в минусе. Всегда проверяй хэши и подпись.
+</blockquote>
+<h3>
+  Таблица частых антивирусов и куда тыкаем
+</h3>
+<div class="table-responsive">
+  <table>
+    <tbody>
+      <tr>
+        <th>
+          Антивирус
+        </th>
+        <th>
+          Где искать исключения
+        </th>
+        <th>
+          Совет анона
+        </th>
+      </tr>
+      <tr>
+        <td>
+          Windows Defender
+        </td>
+        <td>
+          Virus &amp; threat protection → Manage settings → Exclusions
+        </td>
+        <td>
+          Добавь папку загрузок, затем восстанови защиту после установки
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Kaspersky / ESET / Avira
+        </td>
+        <td>
+          Settings → Exclusions или Threats → Manage exclusions
+        </td>
+        <td>
+          Исключение по пути APK или по hash/signature
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Avast / AVG
+        </td>
+        <td>
+          Settings → Exceptions → Add file/folder
+        </td>
+        <td>
+          Отключи временно самозащиту только для установки
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Google Play Protect
+        </td>
+        <td>
+          Play Store → Play Protect → Scan settings
+        </td>
+        <td>
+          Отключать не рекомендуется — лучше проверять подпись
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<h3>
+  Финальный раунд — рейтинг безопасности: как подняться в топ
+</h3>
+<p>
+  Разматывая клубок, ты должен пройти три уровня: проверить источник, подтвердить целостность, минимизировать выключение защиты. Это твой рейтинг: чем чище процессы — тем выше твоя репутация в крипто-сети. И да, фиатные казино с долгими выводами завидуют нашему подходу — тут всё быстро и прозрачно, но безопасно.
+</p>
+<p>
+  Если нужна конкретная команда для проверки SHA256 или помощь с apksigner — кидай запрос, дам точный набор команд для Windows/Linux/Android. Пока держи голову холодной, клубок — под контролем.
+</p>
+<p>
+  Полезные ссылки: зеркало — <a href="/zerkalo">/zerkalo</a>, бонусы — <a href="/app">/bonus</a>, вход — <a href="/vhod">/vhod</a>, регистрация — <a href="/registracia">/registracia</a>, слоты — <a href="/slots">/slots</a>.
+</p>
+<h2>
+  Ответы на вопросы — распутываем клубок нюансов
+</h2>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-faq__question">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Что делать, если мобильное приложение не распознает мой адрес криптокошелька при регистрации?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Проверьте тип сети и формат адреса — приложение %brand_name_ru% принимает только стандартизированные блокчейн-протоколы и сразу отклоняет неподдерживаемые адреса.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-faq__question">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Почему при попытке вывести выигрыш в криптовалюте транзакция зависает в статусе «подтверждение»?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Возможен высокомер и загруженность сети блокчейн, задержка в подтверждениях — подождите несколько блоков или смените метод вывода.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-faq__question">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Можно ли играть в демо-режиме, если я отключил JavaScript в мобильном браузере?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Нет, демо-слоты требуют активного JavaScript для рендеринга и взаимодействия — это базовый узел в нашем кодовом клубке.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-faq__question">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Что делать, если приложение %brand_name_ru% показывает ошибку «Синхронизация кошелька не удалась» при попытке ввода ставки?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Перезапустите соединение с блокчейном в настройках приложения или смените RPC-сервер, чтобы распутать узел синхронизации.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-faq__question">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Почему мой баланс отображается неверно после нескольких ставок в слоты через VPN?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            VPN сбивает геолокацию и сервер может синхронизировать данные с задержкой или сбоем — отключайте VPN для чистого подключения.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
