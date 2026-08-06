@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Портфель — мониторинг и движение</title>
+<title>Целевой портфель — финальный макет</title>
 <style>
   :root {
     --bg:#FAFBF8; --surface:#FFFFFF; --surface-2:#F2F5F0;
@@ -11,188 +11,151 @@
     --accent:#2F7D4F; --accent-soft:#E4F0E7;
     --over:#B8722A; --over-soft:#F8EEE0;
     --under:#3F72A0; --under-soft:#E5EDF4;
-    --crit:#A8352F;
     --c1:#2F7D4F; --c2:#3F72A0; --c3:#B8722A; --c4:#7E5A96; --c5:#A8352F; --c6:#77857B;
     --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
     --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
   @media (prefers-color-scheme: dark) {
-    :root {
-      --bg:#10130F; --surface:#171B15; --surface-2:#1D231B;
+    :root { --bg:#10130F; --surface:#171B15; --surface-2:#1D231B;
       --text:#E6EBE4; --muted:#98A395; --border:#2A302A;
-      --accent:#6FCF97; --accent-soft:#1B2A20;
-      --over:#E0A458; --over-soft:#2A2318;
+      --accent:#6FCF97; --accent-soft:#1B2A20; --over:#E0A458; --over-soft:#2A2318;
       --under:#7FB0DA; --under-soft:#182430;
-      --crit:#E0736C;
-      --c1:#6FCF97; --c2:#7FB0DA; --c3:#E0A458; --c4:#B08FC7; --c5:#E0736C; --c6:#9AA79E;
-    }
+      --c1:#6FCF97; --c2:#7FB0DA; --c3:#E0A458; --c4:#B08FC7; --c5:#E0736C; --c6:#9AA79E; }
   }
-  :root[data-theme="dark"] {
-    --bg:#10130F; --surface:#171B15; --surface-2:#1D231B;
+  :root[data-theme="dark"] { --bg:#10130F; --surface:#171B15; --surface-2:#1D231B;
     --text:#E6EBE4; --muted:#98A395; --border:#2A302A;
-    --accent:#6FCF97; --accent-soft:#1B2A20;
-    --over:#E0A458; --over-soft:#2A2318;
+    --accent:#6FCF97; --accent-soft:#1B2A20; --over:#E0A458; --over-soft:#2A2318;
     --under:#7FB0DA; --under-soft:#182430;
-    --crit:#E0736C;
-    --c1:#6FCF97; --c2:#7FB0DA; --c3:#E0A458; --c4:#B08FC7; --c5:#E0736C; --c6:#9AA79E;
-  }
-  :root[data-theme="light"] {
-    --bg:#FAFBF8; --surface:#FFFFFF; --surface-2:#F2F5F0;
+    --c1:#6FCF97; --c2:#7FB0DA; --c3:#E0A458; --c4:#B08FC7; --c5:#E0736C; --c6:#9AA79E; }
+  :root[data-theme="light"] { --bg:#FAFBF8; --surface:#FFFFFF; --surface-2:#F2F5F0;
     --text:#1A1F1B; --muted:#5F6B62; --border:#E2E7E0;
-    --accent:#2F7D4F; --accent-soft:#E4F0E7;
-    --over:#B8722A; --over-soft:#F8EEE0;
+    --accent:#2F7D4F; --accent-soft:#E4F0E7; --over:#B8722A; --over-soft:#F8EEE0;
     --under:#3F72A0; --under-soft:#E5EDF4;
-    --crit:#A8352F;
-    --c1:#2F7D4F; --c2:#3F72A0; --c3:#B8722A; --c4:#7E5A96; --c5:#A8352F; --c6:#77857B;
-  }
+    --c1:#2F7D4F; --c2:#3F72A0; --c3:#B8722A; --c4:#7E5A96; --c5:#A8352F; --c6:#77857B; }
 
   * { box-sizing:border-box; }
-  body { margin:0; padding:0 20px 80px; background:var(--bg); color:var(--text);
-         font-family:var(--sans); font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased; }
-  .wrap { max-width:920px; margin:0 auto; display:flex; flex-direction:column; gap:44px; }
-  .prose { max-width:66ch; }
+  body { margin:0; padding:0 20px 72px; background:var(--bg); color:var(--text);
+         font-family:var(--sans); font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:960px; margin:0 auto; display:flex; flex-direction:column; gap:34px; }
 
-  header { padding:48px 0 16px; border-bottom:2px solid var(--text); display:flex; flex-direction:column; gap:12px; }
-  .eyebrow { font-family:var(--mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin:0; }
-  h1 { font-family:var(--mono); font-size:clamp(26px,4vw,36px); line-height:1.15; font-weight:600; margin:0; text-wrap:balance; }
-  h2 { font-family:var(--mono); font-size:20px; font-weight:600; margin:0; padding-bottom:8px; border-bottom:1px solid var(--border); text-wrap:balance; }
-  h3 { font-family:var(--mono); font-size:15px; font-weight:600; margin:0; }
-  p { margin:0; } .prose p + p { margin-top:11px; }
-  section { display:flex; flex-direction:column; gap:16px; }
-  code { font-family:var(--mono); font-size:.88em; background:var(--surface-2); padding:1px 5px; border-radius:3px; }
+  header { padding:44px 0 14px; border-bottom:2px solid var(--text); display:flex; flex-direction:column; gap:9px; }
+  .eyebrow { font-family:var(--mono); font-size:11.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin:0; }
+  h1 { font-family:var(--mono); font-size:clamp(25px,3.8vw,34px); line-height:1.15; font-weight:600; margin:0; }
+  h2 { font-family:var(--mono); font-size:13px; font-weight:600; margin:0; letter-spacing:.07em;
+       text-transform:uppercase; color:var(--muted); }
+  section { display:flex; flex-direction:column; gap:12px; }
+  p { margin:0; }
+  .cap { font-family:var(--mono); font-size:12px; color:var(--muted); }
   .num { font-family:var(--mono); font-variant-numeric:tabular-nums; white-space:nowrap; }
-  .over-t{color:var(--over)} .under-t{color:var(--under)} .ok-t{color:var(--accent)}
+  .over-t{color:var(--over)} .under-t{color:var(--under)} .ok-t{color:var(--accent)} .mut{color:var(--muted)}
 
-  .note { background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--accent);
-          padding:16px 18px; display:flex; flex-direction:column; gap:8px; font-size:15px; }
-  .note.warn { border-left-color:var(--over); }
-
-  /* ——— сводка ——— */
-  .strip { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1px;
+  /* сводка */
+  .strip { display:grid; grid-template-columns:repeat(auto-fit,minmax(148px,1fr)); gap:1px;
            background:var(--border); border:1px solid var(--border); }
-  .stat { background:var(--surface); padding:14px 16px; display:flex; flex-direction:column; gap:3px; }
-  .stat-k { font-family:var(--mono); font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); }
-  .stat-v { font-family:var(--mono); font-size:19px; font-variant-numeric:tabular-nums; }
+  .stat { background:var(--surface); padding:13px 15px; display:flex; flex-direction:column; gap:2px; }
+  .stat-k { font-family:var(--mono); font-size:10px; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); }
+  .stat-v { font-family:var(--mono); font-size:18px; font-variant-numeric:tabular-nums; }
 
-  /* ——— панель мониторинга: пирог + полосы ——— */
-  .mon { display:grid; grid-template-columns:190px 1fr; gap:22px; align-items:start;
-         background:var(--surface); border:1px solid var(--border); padding:20px; }
-  @media (max-width:720px) { .mon { grid-template-columns:1fr; } }
-  .pieblock { display:flex; flex-direction:column; align-items:center; gap:10px; }
-  .pie { width:150px; height:150px; border-radius:50%; }
-  .pie-cap { font-family:var(--mono); font-size:11px; color:var(--muted); }
-  .legend { display:flex; flex-direction:column; gap:4px; font-family:var(--mono); font-size:11px; color:var(--muted); width:100%; }
+  /* мониторинг */
+  .mon { display:grid; grid-template-columns:178px 1fr; gap:22px; align-items:start;
+         background:var(--surface); border:1px solid var(--border); padding:18px; }
+  @media (max-width:760px) { .mon { grid-template-columns:1fr; } }
+  .pieblock { display:flex; flex-direction:column; align-items:center; gap:9px; }
+  .pie { width:142px; height:142px; border-radius:50%; }
+  .legend { display:flex; flex-direction:column; gap:3px; font-family:var(--mono); font-size:10.5px; color:var(--muted); width:100%; }
   .legend span { display:flex; align-items:center; gap:6px; }
   .sw { width:9px; height:9px; border-radius:2px; flex:0 0 auto; }
 
-  /* ——— полосы «сейчас против цели» ——— */
-  .bars { display:flex; flex-direction:column; gap:7px; min-width:0; }
-  .bhead, .brow { display:grid; grid-template-columns:92px 1fr 52px 46px 54px; gap:9px; align-items:center;
+  .bars { display:flex; flex-direction:column; gap:6px; min-width:0; }
+  .bhead, .brow { display:grid; grid-template-columns:88px 1fr 48px 42px 52px; gap:9px; align-items:center;
                   font-family:var(--mono); font-size:11.5px; }
-  .bhead { font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
-  .bhead span:not(:first-child):not(:nth-child(2)) { text-align:right; }
-  .blab { color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .btrack { position:relative; height:20px; background:var(--surface-2); border-radius:2px; }
-  .bfill  { position:absolute; left:0; top:4px; bottom:4px; background:var(--accent); border-radius:2px 0 0 2px; }
-  .bover  { position:absolute; top:4px; bottom:4px; background:var(--over); border-radius:0 2px 2px 0; }
+  .bhead { font-size:9.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+  .bhead span+span { text-align:right; } .bhead span:nth-child(2) { text-align:left; }
+  .blab { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .btrack { position:relative; height:19px; background:var(--surface-2); border-radius:2px; }
+  .bfill { position:absolute; left:0; top:4px; bottom:4px; background:var(--accent); border-radius:2px 0 0 2px; }
+  .bover { position:absolute; top:4px; bottom:4px; background:var(--over); border-radius:0 2px 2px 0; }
   .bunder { position:absolute; top:4px; bottom:4px; border:1px dashed var(--under);
             background:var(--under-soft); border-radius:0 2px 2px 0; }
-  .btick  { position:absolute; top:-1px; bottom:-1px; width:2px; background:var(--text); }
-  .bnow, .btgt, .bgap { text-align:right; font-variant-numeric:tabular-nums; }
+  .btick { position:absolute; top:-1px; bottom:-1px; width:2px; background:var(--text); }
+  .bnow,.btgt,.bgap { text-align:right; font-variant-numeric:tabular-nums; }
   .btgt { color:var(--muted); }
 
+  /* таблица */
   .tablewrap { overflow-x:auto; border:1px solid var(--border); background:var(--surface); }
-  table { border-collapse:collapse; width:100%; font-size:14px; min-width:640px; }
-  th,td { text-align:left; padding:10px 13px; border-bottom:1px solid var(--border); }
-  th { font-family:var(--mono); font-size:11px; letter-spacing:.07em; text-transform:uppercase;
+  table { border-collapse:collapse; width:100%; font-size:13.5px; min-width:720px; }
+  th,td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  th { font-family:var(--mono); font-size:10px; letter-spacing:.07em; text-transform:uppercase;
        color:var(--muted); font-weight:600; background:var(--surface-2); white-space:nowrap; }
   td.r, th.r { text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums; white-space:nowrap; }
   tbody tr:last-child td { border-bottom:0; }
   .mono { font-family:var(--mono); }
-  .pin { font-family:var(--mono); font-size:10px; padding:1px 5px; border-radius:2px;
+  .sub { display:block; font-size:11px; color:var(--muted); }
+  .pin { font-family:var(--mono); font-size:9.5px; padding:1px 5px; border-radius:2px;
          background:var(--accent-soft); color:var(--accent); }
-  .derived { color:var(--muted); }
+  tr.open td { background:var(--surface-2); }
 
-  /* ——— шаги алгоритма ——— */
-  ol.steps { list-style:none; margin:0; padding:0; counter-reset:s; display:flex; flex-direction:column; gap:14px; }
-  ol.steps > li { counter-increment:s; display:grid; grid-template-columns:28px 1fr; gap:14px;
-                  background:var(--surface); border:1px solid var(--border); padding:16px 18px; }
-  ol.steps > li::before { content:counter(s); font-family:var(--mono); font-size:16px; font-weight:600; color:var(--accent); }
-  .step-body { display:flex; flex-direction:column; gap:9px; min-width:0; }
+  .rowbtn { font-family:var(--mono); font-size:11px; padding:3px 9px; border:1px solid var(--border);
+            border-radius:99px; color:var(--muted); white-space:nowrap; display:inline-block; }
+  .rowbtn.on { border-color:var(--accent); color:var(--accent); }
 
-  .pool { display:grid; grid-template-columns:1fr 1fr; gap:14px; font-family:var(--mono); font-size:12.5px; }
-  @media (max-width:600px) { .pool { grid-template-columns:1fr; } }
-  .pool-col { display:flex; flex-direction:column; gap:4px; }
-  .pool-h { font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); padding-bottom:3px; border-bottom:1px solid var(--border); }
-  .pool-r { display:flex; justify-content:space-between; gap:10px; }
+  /* раскрытая строка переноса */
+  td.formcell { background:var(--surface-2); padding:0; }
+  .form { border-left:3px solid var(--accent); padding:15px 18px; display:flex; flex-direction:column; gap:12px; }
+  .frow { display:grid; grid-template-columns:64px minmax(150px,190px) 1fr; gap:11px; align-items:center; }
+  @media (max-width:640px) { .frow { grid-template-columns:1fr; gap:4px; } }
+  .flab { font-family:var(--mono); font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+  .fval { font-family:var(--mono); font-size:13.5px; }
+  .fbox { border:1px solid var(--border); background:var(--surface); padding:6px 10px; border-radius:3px;
+          display:flex; justify-content:space-between; gap:8px; }
+  .fbox.amt { color:var(--accent); border-color:var(--accent); }
+  .fhint { font-family:var(--mono); font-size:11px; color:var(--muted); display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .quick { font-family:var(--mono); font-size:10.5px; padding:3px 8px; border:1px solid var(--border);
+           border-radius:99px; background:var(--surface); white-space:nowrap; }
 
-  .moves { display:flex; flex-direction:column; gap:7px; }
-  .move { display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center;
-          background:var(--surface); border:1px solid var(--border); padding:11px 14px; }
-  .move-txt { font-family:var(--mono); font-size:13px; display:flex; flex-wrap:wrap; gap:7px; align-items:baseline; }
-  .arrow { color:var(--muted); }
-  .btn { font-family:var(--mono); font-size:11.5px; padding:5px 11px; border:1px solid var(--accent);
-         color:var(--accent); background:transparent; border-radius:99px; white-space:nowrap; cursor:default; }
-  .btn.solid { background:var(--accent); color:var(--bg); border-color:var(--accent); }
-
-  /* ——— форма переноса ——— */
-  .form { background:var(--surface); border:1px solid var(--border); padding:18px 20px;
-          display:flex; flex-direction:column; gap:13px; }
-  .frow { display:grid; grid-template-columns:74px 190px 1fr; gap:12px; align-items:center; }
-  @media (max-width:640px) { .frow { grid-template-columns:1fr; gap:5px; } }
-  .flab { font-family:var(--mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
-  .fval { font-family:var(--mono); font-size:14px; }
-  .fval.sel, .fval.inp { border:1px solid var(--border); background:var(--surface-2);
-                         padding:7px 11px; border-radius:3px; display:flex; justify-content:space-between; }
-  .fval.inp { color:var(--accent); }
-  .caret { color:var(--muted); }
-  .fhint { font-family:var(--mono); font-size:11.5px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; color:var(--muted); }
-  .preview { display:grid; grid-template-columns:auto 1fr 1fr; gap:7px 14px; align-items:center;
-             background:var(--surface-2); padding:13px 15px; font-size:12.5px; }
+  .preview { background:var(--surface); border:1px solid var(--border); padding:11px 13px;
+             display:grid; grid-template-columns:auto 1fr auto; gap:6px 14px; align-items:center;
+             font-family:var(--mono); font-size:12px; }
   @media (max-width:640px) { .preview { grid-template-columns:1fr; } }
+  .pv-h { grid-column:1/-1; font-size:9.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+  .arr { color:var(--muted); padding:0 3px; }
+  .go { font-family:var(--mono); font-size:12px; padding:6px 15px; border-radius:99px;
+        background:var(--accent); color:var(--bg); border:1px solid var(--accent); white-space:nowrap; }
 
-  ul.plain { margin:0; padding-left:20px; display:flex; flex-direction:column; gap:6px; }
-  ul.plain li::marker { color:var(--muted); }
-  .verdict-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:14px; }
-  .card { background:var(--surface); border:1px solid var(--border); padding:16px; display:flex; flex-direction:column; gap:7px; }
-  .card p { font-size:14.5px; color:var(--muted); }
-  footer { border-top:1px solid var(--border); padding-top:18px; font-size:14px; color:var(--muted); }
+  .todo { display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:11px; }
+  .card { background:var(--surface); border:1px solid var(--border); padding:14px 16px;
+          display:flex; flex-direction:column; gap:5px; }
+  .card h3 { font-family:var(--mono); font-size:13px; font-weight:600; margin:0; }
+  .card p { font-size:13px; color:var(--muted); line-height:1.5; }
+  footer { border-top:1px solid var(--border); padding-top:15px; font-family:var(--mono); font-size:11.5px; color:var(--muted); }
 </style>
 </head>
 <body>
 <div class="wrap">
 
 <header>
-  <p class="eyebrow">Макет 2 · переосмысление</p>
+  <p class="eyebrow">Финальный макет · целевой портфель</p>
   <h1>Мониторинг и движение</h1>
 </header>
 
-<div class="note">
-  <p>Твоя рамка взята за основу: экран делает ровно две вещи — <strong>показывает состояние</strong> и <strong>предлагает движение</strong>. Всё, что не служит одному из двух, — шум и в макет не попало.</p>
-  <p>Убрано против прошлой версии: полосы допуска, неликвид, второй пирог. «Дрейф» переименован в <strong>отклонение</strong>.</p>
-</div>
-
-<!-- ===================== МОНИТОРИНГ ===================== -->
+<!-- ============ СВОДКА ============ -->
 <section>
-  <h2>Мониторинг</h2>
-  <div class="prose">
-    <p>Ты прав, что на чистом отклонении не видно ни «сейчас», ни «цели» — только искажение. Поэтому полоса устроена иначе: она показывает <strong>все три величины сразу</strong>. Заливка — сколько есть сейчас, чёрная риска — где цель, цветной хвост за риской — на сколько промахнулся.</p>
-    <p>Пирог оставил, но <strong>один</strong>. Это моё среднее: пирог и полосы отвечают на разные вопросы — «из чего состоит портфель» и «что не на месте». Два пирога рядом отвечают на один и тот же вопрос дважды, и вот это уже шум: разницу долей на глаз всё равно не вычислить, ради неё и нужны полосы.</p>
-  </div>
-
   <div class="strip">
     <div class="stat"><span class="stat-k">Капитал</span><span class="stat-v">476 157 €</span></div>
     <div class="stat"><span class="stat-k">Дальше всех</span><span class="stat-v over-t">+23,0 п.п.</span></div>
     <div class="stat"><span class="stat-k">Сверх цели</span><span class="stat-v over-t">114 306 €</span></div>
     <div class="stat"><span class="stat-k">Ниже цели</span><span class="stat-v under-t">114 306 €</span></div>
   </div>
+</section>
 
+<!-- ============ МОНИТОРИНГ ============ -->
+<section>
+  <h2>Мониторинг</h2>
   <div class="mon">
     <div class="pieblock">
       <div class="pie" style="background:conic-gradient(
         var(--c1) 0 63%, var(--c2) 63% 72.5%, var(--c3) 72.5% 78.8%,
         var(--c5) 78.8% 79%, var(--c6) 79% 100%)"></div>
-      <span class="pie-cap">состав сейчас</span>
       <div class="legend">
         <span><i class="sw" style="background:var(--c1)"></i>недвижка UA · 63,0%</span>
         <span><i class="sw" style="background:var(--c6)"></i>недвижка EU · 21,0%</span>
@@ -204,216 +167,168 @@
     </div>
 
     <div class="bars">
-      <div class="bhead">
-        <span>категория</span><span>сейчас против цели</span><span>сейчас</span><span>цель</span><span>откл.</span>
-      </div>
+      <div class="bhead"><span>категория</span><span>сейчас против цели</span><span>сейчас</span><span>цель</span><span>откл.</span></div>
 
-      <div class="brow">
-        <span class="blab">недвижка UA</span>
-        <span class="btrack">
-          <i class="bfill" style="width:61.5%"></i>
-          <i class="bover" style="left:61.5%;width:35.4%"></i>
-          <i class="btick" style="left:61.5%"></i>
-        </span>
-        <span class="bnow">63,0%</span><span class="btgt">40%</span><span class="bgap over-t">+23,0</span>
-      </div>
+      <div class="brow"><span class="blab">недвижка UA</span>
+        <span class="btrack"><i class="bfill" style="width:61.5%"></i><i class="bover" style="left:61.5%;width:35.4%"></i><i class="btick" style="left:61.5%"></i></span>
+        <span class="bnow">63,0%</span><span class="btgt">40%</span><span class="bgap over-t">+23,0</span></div>
 
-      <div class="brow">
-        <span class="blab">акции</span>
-        <span class="btrack">
-          <i class="bfill" style="width:14.6%"></i>
-          <i class="bunder" style="left:14.6%;width:16.2%"></i>
-          <i class="btick" style="left:30.8%"></i>
-        </span>
-        <span class="bnow">9,5%</span><span class="btgt">20%</span><span class="bgap under-t">−10,5</span>
-      </div>
+      <div class="brow"><span class="blab">акции</span>
+        <span class="btrack"><i class="bfill" style="width:14.6%"></i><i class="bunder" style="left:14.6%;width:16.2%"></i><i class="btick" style="left:30.8%"></i></span>
+        <span class="bnow">9,5%</span><span class="btgt">20%</span><span class="bgap under-t">−10,5</span></div>
 
-      <div class="brow">
-        <span class="blab">крипто</span>
-        <span class="btrack">
-          <i class="bunder" style="left:0;width:7.7%"></i>
-          <i class="btick" style="left:7.7%"></i>
-        </span>
-        <span class="bnow">0,0%</span><span class="btgt">5%</span><span class="bgap under-t">−5,0</span>
-      </div>
+      <div class="brow"><span class="blab">крипто</span>
+        <span class="btrack"><i class="bunder" style="left:0;width:7.7%"></i><i class="btick" style="left:7.7%"></i></span>
+        <span class="bnow">0,0%</span><span class="btgt">5%</span><span class="bgap under-t">−5,0</span></div>
 
-      <div class="brow">
-        <span class="blab">кеш</span>
-        <span class="btrack">
-          <i class="bfill" style="width:0.3%"></i>
-          <i class="bunder" style="left:0.3%;width:7.4%"></i>
-          <i class="btick" style="left:7.7%"></i>
-        </span>
-        <span class="bnow">0,2%</span><span class="btgt">5%</span><span class="bgap under-t">−4,8</span>
-      </div>
+      <div class="brow"><span class="blab">кеш</span>
+        <span class="btrack"><i class="bfill" style="width:0.3%"></i><i class="bunder" style="left:0.3%;width:7.4%"></i><i class="btick" style="left:7.7%"></i></span>
+        <span class="bnow">0,2%</span><span class="btgt">5%</span><span class="bgap under-t">−4,8</span></div>
 
-      <div class="brow">
-        <span class="blab">золото</span>
-        <span class="btrack">
-          <i class="bfill" style="width:9.7%"></i>
-          <i class="bunder" style="left:9.7%;width:5.7%"></i>
-          <i class="btick" style="left:15.4%"></i>
-        </span>
-        <span class="bnow">6,3%</span><span class="btgt">10%</span><span class="bgap under-t">−3,7</span>
-      </div>
+      <div class="brow"><span class="blab">золото</span>
+        <span class="btrack"><i class="bfill" style="width:9.7%"></i><i class="bunder" style="left:9.7%;width:5.7%"></i><i class="btick" style="left:15.4%"></i></span>
+        <span class="bnow">6,3%</span><span class="btgt">10%</span><span class="bgap under-t">−3,7</span></div>
 
-      <div class="brow">
-        <span class="blab">недвижка EU</span>
-        <span class="btrack">
-          <i class="bfill" style="width:30.8%"></i>
-          <i class="bover" style="left:30.8%;width:1.5%"></i>
-          <i class="btick" style="left:30.8%"></i>
-        </span>
-        <span class="bnow">21,0%</span><span class="btgt">20%</span><span class="bgap ok-t">+1,0</span>
-      </div>
+      <div class="brow"><span class="blab">недвижка EU</span>
+        <span class="btrack"><i class="bfill" style="width:30.8%"></i><i class="bover" style="left:30.8%;width:1.5%"></i><i class="btick" style="left:30.8%"></i></span>
+        <span class="bnow">21,0%</span><span class="btgt">20%</span><span class="bgap ok-t">+1,0</span></div>
     </div>
   </div>
-
-  <div class="note">
-    <p><strong>Как читается одна строка.</strong> «акции»: заливка доходит до 9,5% — столько есть. Риска стоит на 20% — туда целишься. Пунктирный участок между ними — недобор в 10,5 п.п. Строки отсортированы по величине отклонения, поэтому верхняя всегда та, что дальше всех от цели.</p>
-  </div>
+  <p class="cap">Заливка — сколько есть. Риска — цель. Хвост за риской — промах. Строки отсортированы по отклонению.</p>
 </section>
 
-<!-- ===================== ЦЕЛЬ ===================== -->
+<!-- ============ ТАБЛИЦА + ФОРМА ============ -->
 <section>
-  <h2>Цель: процент или сумма — что задал, то и держится</h2>
-  <div class="prose">
-    <p>Ты задаёшь одно из двух, второе считается. Разница в том, <strong>что переживает изменение капитала</strong>: закрепил процент — сумма пересчитается при росте портфеля; закрепил сумму — она останется, а процент поплывёт. Закреплённое поле помечено, второе показано приглушённым.</p>
-  </div>
-
+  <h2>Движение</h2>
   <div class="tablewrap">
     <table>
       <thead>
-        <tr><th>Категория</th><th class="r">Сейчас</th><th class="r">Цель %</th><th class="r">Цель €</th><th class="r">Отклонение</th><th>Что не так</th></tr>
+        <tr>
+          <th>Категория</th>
+          <th class="r">Сейчас</th>
+          <th class="r">Цель</th>
+          <th class="r">Отклонение</th>
+          <th class="r">Стало</th>
+          <th>Перестановки</th>
+        </tr>
       </thead>
       <tbody>
-        <tr>
-          <td class="mono">недвижка UA</td><td class="r">300 000</td>
-          <td class="r">40% <span class="pin">задано</span></td><td class="r derived">190 463</td>
-          <td class="r over-t">+109 537</td><td><span class="mono over-t">перевес</span></td>
+        <tr class="open">
+          <td class="mono">недвижка UA</td>
+          <td class="r">300 000<span class="sub">63,0%</span></td>
+          <td class="r">40% <span class="pin">задано</span><span class="sub">190 463 €</span></td>
+          <td class="r over-t">+109 537<span class="sub over-t">+23,0 п.п.</span></td>
+          <td class="r mut">300 000</td>
+          <td><span class="rowbtn on">↦ переложить</span></td>
         </tr>
         <tr>
-          <td class="mono">акции</td><td class="r">45 000</td>
-          <td class="r">20% <span class="pin">задано</span></td><td class="r derived">95 231</td>
-          <td class="r under-t">−50 231</td><td><span class="mono under-t">недобор</span></td>
+          <td class="formcell" colspan="6">
+            <div class="form">
+              <div class="frow">
+                <span class="flab">Куда</span>
+                <span class="fval fbox">акции <span class="mut">▾</span></span>
+                <span class="fhint under-t">не хватает 50 231 € · список отсортирован по недобору</span>
+              </div>
+              <div class="frow">
+                <span class="flab">Сколько</span>
+                <span class="fval fbox amt">50 000 <span class="mut">€</span></span>
+                <span class="fhint">
+                  <span class="quick">всё, что сверх · 109 537</span>
+                  <span class="quick">сколько не хватает · 50 231</span>
+                </span>
+              </div>
+
+              <div class="preview">
+                <span class="pv-h">станет после переноса</span>
+                <span>недвижка UA</span>
+                <span>300 000 <i class="arr">→</i> 250 000 €</span>
+                <span class="over-t">+23,0 <i class="arr">→</i> +12,5 п.п.</span>
+                <span>акции</span>
+                <span>45 000 <i class="arr">→</i> 95 000 €</span>
+                <span><span class="under-t">−10,5</span> <i class="arr">→</i> <span class="ok-t">≈ 0 п.п.</span></span>
+              </div>
+
+              <div class="frow">
+                <span class="flab"></span>
+                <span class="fval"><span class="go">переложить</span></span>
+                <span class="fhint">создастся обычная перестановка — её видно в строке и можно удалить</span>
+              </div>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="mono">акции</td>
+          <td class="r">45 000<span class="sub">9,5%</span></td>
+          <td class="r">20% <span class="pin">задано</span><span class="sub">95 231 €</span></td>
+          <td class="r under-t">−50 231<span class="sub under-t">−10,5 п.п.</span></td>
+          <td class="r mut">45 000</td>
+          <td><span class="rowbtn">↦ переложить</span></td>
         </tr>
         <tr>
-          <td class="mono">крипто</td><td class="r">0</td>
-          <td class="r derived">5,0%</td><td class="r">23 808 <span class="pin">задано</span></td>
-          <td class="r under-t">−23 808</td><td><span class="mono under-t">недобор</span></td>
+          <td class="mono">крипто</td>
+          <td class="r">0<span class="sub">0,0%</span></td>
+          <td class="r">23 808 € <span class="pin">задано</span><span class="sub">5,0%</span></td>
+          <td class="r under-t">−23 808<span class="sub under-t">−5,0 п.п.</span></td>
+          <td class="r mut">0</td>
+          <td><span class="rowbtn">↦ переложить</span></td>
         </tr>
         <tr>
-          <td class="mono">кеш</td><td class="r">1 157</td>
-          <td class="r">5% <span class="pin">задано</span></td><td class="r derived">23 808</td>
-          <td class="r under-t">−22 651</td><td><span class="mono under-t">недобор</span></td>
+          <td class="mono">кеш</td>
+          <td class="r">1 157<span class="sub">0,2%</span></td>
+          <td class="r">5% <span class="pin">задано</span><span class="sub">23 808 €</span></td>
+          <td class="r under-t">−22 651<span class="sub under-t">−4,8 п.п.</span></td>
+          <td class="r mut">1 157</td>
+          <td><span class="rowbtn">↦ переложить</span></td>
         </tr>
         <tr>
-          <td class="mono">золото</td><td class="r">30 000</td>
-          <td class="r">10% <span class="pin">задано</span></td><td class="r derived">47 616</td>
-          <td class="r under-t">−17 616</td><td><span class="mono under-t">недобор</span></td>
+          <td class="mono">золото</td>
+          <td class="r">30 000<span class="sub">6,3%</span></td>
+          <td class="r">10% <span class="pin">задано</span><span class="sub">47 616 €</span></td>
+          <td class="r under-t">−17 616<span class="sub under-t">−3,7 п.п.</span></td>
+          <td class="r mut">30 000</td>
+          <td><span class="rowbtn">↦ переложить</span></td>
         </tr>
         <tr>
-          <td class="mono">недвижка EU</td><td class="r">100 000</td>
-          <td class="r">20% <span class="pin">задано</span></td><td class="r derived">95 231</td>
-          <td class="r over-t">+4 769</td><td><span class="mono derived">перевес</span></td>
+          <td class="mono">недвижка EU</td>
+          <td class="r">100 000<span class="sub">21,0%</span></td>
+          <td class="r">20% <span class="pin">задано</span><span class="sub">95 231 €</span></td>
+          <td class="r over-t">+4 769<span class="sub over-t">+1,0 п.п.</span></td>
+          <td class="r mut">100 000</td>
+          <td><span class="rowbtn">↦ переложить</span></td>
         </tr>
       </tbody>
     </table>
   </div>
-  <p class="num" style="font-size:12.5px;color:var(--muted)">У «крипто» закреплена сумма — процент подстроился. У остальных наоборот.</p>
+  <p class="cap">Форма раскрывается строкой под позицией на всю ширину — тем же приёмом, что «↦ переложить» работает сейчас. Таблица не разъезжается, модалка не нужна.</p>
 </section>
 
-<!-- ===================== ДВИЖЕНИЕ ===================== -->
+<!-- ============ ЧТО ДЕЛАЕМ ============ -->
 <section>
-  <h2>Движение: решаешь ты, интерфейс считает последствия</h2>
-  <div class="prose">
-    <p>Автоподбор пар убран. Вместо списка советов, который непонятно куда выводить, — <strong>подсказка внутри самой операции</strong>: ты выбираешь откуда, куда и сколько, а экран на лету показывает, что станет с обеими сторонами.</p>
-    <p>Это не новый экран. Это та же кнопка «↦ переложить», которой ты пользуешься сегодня, только с числами вокруг неё.</p>
-  </div>
-
-  <h3 style="margin-top:6px">В строке таблицы — сколько есть свободного</h3>
-  <div class="tablewrap">
-    <table>
-      <thead><tr><th>Категория</th><th class="r">Сейчас</th><th class="r">Отклонение</th><th>Запас на перенос</th><th></th></tr></thead>
-      <tbody>
-        <tr><td class="mono">недвижка UA</td><td class="r">300 000</td><td class="r over-t">+109 537</td>
-            <td><span class="mono over-t">можно отдать 109 537</span></td>
-            <td class="r"><span class="btn">↦ переложить</span></td></tr>
-        <tr><td class="mono">акции</td><td class="r">45 000</td><td class="r under-t">−50 231</td>
-            <td><span class="mono under-t">не хватает 50 231</span></td>
-            <td class="r"><span class="btn">↦ переложить</span></td></tr>
-      </tbody>
-    </table>
-  </div>
-  <p style="font-size:14px;color:var(--muted);margin:0">Это не совет, а факт о позиции: сколько сверх цели можно снять и сколько недостаёт. Что с этим делать — решаешь ты.</p>
-
-  <h3 style="margin-top:14px">В форме переноса — что станет с обеими сторонами</h3>
-  <div class="form">
-    <div class="frow"><span class="flab">Откуда</span>
-      <span class="fval"><strong>недвижка UA</strong></span>
-      <span class="fhint over-t">сверх цели 109 537 €</span></div>
-    <div class="frow"><span class="flab">Куда</span>
-      <span class="fval sel">акции <span class="caret">▾</span></span>
-      <span class="fhint under-t">не хватает 50 231 €</span></div>
-    <div class="frow"><span class="flab">Сколько</span>
-      <span class="fval inp">50 000 €</span>
-      <span class="fhint"><span class="btn">всё, что сверх · 109 537</span> <span class="btn">сколько не хватает · 50 231</span></span></div>
-
-    <div class="preview">
-      <span class="pool-h" style="grid-column:1/-1">Станет после переноса</span>
-      <span class="mono">недвижка UA</span>
-      <span class="num">300 000 <span class="arrow">→</span> 250 000</span>
-      <span class="num"><span class="over-t">+23,0</span> <span class="arrow">→</span> <span class="over-t">+12,5 п.п.</span></span>
-      <span class="mono">акции</span>
-      <span class="num">45 000 <span class="arrow">→</span> 95 000</span>
-      <span class="num"><span class="under-t">−10,5</span> <span class="arrow">→</span> <span class="ok-t">−0,1 п.п.</span></span>
-    </div>
-    <div class="frow" style="border-top:1px solid var(--border);padding-top:12px">
-      <span class="flab"></span><span class="fval"><span class="btn solid">переложить</span></span>
-      <span class="fhint">создаётся обычная перестановка — её видно в строке и можно удалить</span></div>
-  </div>
-
-  <div class="note">
-    <p><strong>Две кнопки быстрого ввода</strong> — это всё, что осталось от автоподбора. Они не решают за тебя, а подставляют число, которое ты всё равно правишь: «всё, что сверх» — весь излишек источника, «сколько не хватает» — недобор получателя. Долю набираешь любую.</p>
-    <p><strong>Список «куда»</strong> отсортирован по величине недобора, так что сверху окажется позиция, которой недостаёт больше всех. Это подсказка порядком, а не выбором за тебя.</p>
-  </div>
-</section>
-
-<!-- ===================== ВЫВОДЫ ===================== -->
-<section>
-  <h2>Что меняется в коде</h2>
-  <div class="verdict-grid">
+  <h2>Что делаем в коде</h2>
+  <div class="todo">
     <div class="card">
       <h3>Цель в двух единицах</h3>
-      <p>Поле «План» плюс признак, что закреплено — процент или сумма. Второе значение выводится рядом приглушённым. Одна колонка в таблице, правка фронта и одно поле в схеме.</p>
+      <p>Задаёшь процент или сумму, второе выводится. Признак закрепления — одно поле в схеме, остальное фронт.</p>
     </div>
     <div class="card">
-      <h3>Колонка «Отклонение»</h3>
-      <p>Считается из цели, сортирует таблицу. Только фронт.</p>
+      <h3>Отклонение</h3>
+      <p>Заменяет «До цели»: в евро и в пунктах, сортирует таблицу. Только фронт.</p>
     </div>
     <div class="card">
-      <h3>Полосы «сейчас против цели»</h3>
-      <p>Заменяют аллокацию по плану, пирог «состав сейчас» остаётся. Только фронт.</p>
+      <h3>Полосы и один пирог</h3>
+      <p>Полосы «сейчас против цели» вместо аллокации по плану. Пирог состава остаётся. Только фронт.</p>
     </div>
     <div class="card">
-      <h3>Числа вокруг переноса</h3>
-      <p>«Можно отдать» и «не хватает» в строке, живой пересчёт обеих сторон в форме, две кнопки быстрого ввода. Автоподбора пар нет. Только фронт.</p>
+      <h3>Форма переноса</h3>
+      <p>Запас у источника, недобор у получателя, живой пересчёт обеих сторон, две кнопки быстрого ввода. Только фронт.</p>
     </div>
-  </div>
-
-  <div class="note">
-    <h3>Чего в макете намеренно нет</h3>
-    <ul class="plain">
-      <li><strong>Полос допуска</strong> — согласен, лишняя сущность. Ты и так видишь величину отклонения и решаешь сам, когда она значима.</li>
-      <li><strong>Флага «неликвид»</strong> — снято, раз всё может быть ликвидом.</li>
-      <li><strong>Второго пирога</strong> — его работу делают полосы, причём точнее.</li>
-      <li><strong>Автоподбора переносов</strong> — что и какими долями сливать, решаешь ты; интерфейс лишь показывает запас и последствия.</li>
-    </ul>
   </div>
 </section>
 
 <footer>
-  <p>Макет статический: числа зашиты, кнопки не активны. Пример посчитан на капитал 476 157 €, цели проставлены для иллюстрации. Суммы сходятся: перевес 114 306 = недобор, сумма отклонений в п.п. равна нулю.</p>
+  Числа: капитал 476 157 €, цели для примера. Сверх цели 114 306 = ниже цели, сумма отклонений в п.п. — ноль.
+  Перенос 50 000 € даёт +23,0 → +12,5 и −10,5 → ≈ 0 п.п. Макет статический.
 </footer>
 
 </div>
