@@ -114,7 +114,7 @@ function portRows(it, depth, ctx) {
     const planCell = `<td class="r num goal sep">${eurCell}<span class="sub">${pctCell}</span>${planDiff}</td>`;
     // Отклонение = «Стало» − «Цель»: положительное — перевес, отрицательное — недобор
     const becameEur = (it.eur || 0) + net;
-    const dev = it.planEur != null && it.planEur > 0 ? becameEur - it.planEur : null;
+    const dev = it.planEur != null ? becameEur - it.planEur : null;   // цель 0 — тоже цель: «здесь не хочу ничего»
     const devPP = dev != null && ctx?.total > 0 ? dev / ctx.total * 100 : null;
     const devCell = `<td class="r num">${dev == null ? '' : Math.abs(dev) < 1
       ? '<span class="up">✓ в цели</span>'
@@ -403,8 +403,7 @@ function secPortfolio(d, s) {
       if (n.kind === 'asset' || !kids.length) {
         const ty = n.asset_type || 'без типа';
         catNow[ty] = (catNow[ty] || 0) + (n.eur || 0);
-        const pv = n.planEur || 0;
-        if (pv > 0) { catPlan[ty] = (catPlan[ty] || 0) + pv; leafPlan += pv; }
+        if (n.planEur != null) { catPlan[ty] = (catPlan[ty] || 0) + n.planEur; leafPlan += n.planEur; }
       }
       kids.forEach(walkCat);
     };
@@ -426,6 +425,13 @@ function secPortfolio(d, s) {
       return Math.abs(b.devP) - Math.abs(a.devP);
     });
   const catMaxP = Math.max(1, ...catRows.map(r => Math.max(r.nowP, r.planP)));
+  // Капитал, не покрытый ни одной целью: без этой строки деньги молча растворяются
+  const capGap = rootTotal - planTotal;
+  const capNote = !tgt || rootTotal <= 0 ? '' : Math.abs(capGap) < 1
+    ? '<div class="bsum"><span class="ok-dev">✓ цели покрывают весь капитал</span></div>'
+    : capGap > 0
+      ? `<div class="bsum"><span class="dev-over">не распределено ${fmt(capGap)} €</span> <span class="meta">${(capGap / rootTotal * 100).toFixed(1)}% капитала без цели — эти деньги никуда не отнесены</span></div>`
+      : `<div class="bsum"><span class="dev-under">целей на ${fmt(-capGap)} € больше капитала</span> <span class="meta">сумма целей ${fmt(planTotal)} при ${fmt(rootTotal)} размещённых</span></div>`;
   const rctx = { total: rootTotal, planTotal, parentEur: rootTotal, tgt, tree, path: '' };
   if (tgt) {   // ручные связки ребаланса (из target_moves): сопоставляем id позиций с путём/именем
     const byId = {};
@@ -529,7 +535,7 @@ function secPortfolio(d, s) {
             <span class="v ${cls}">${r.devP >= 0 ? '+' : '−'}${Math.abs(r.devP).toFixed(1)}</span>
           </div>`;
         }).join('')}
-      </div></div>
+      </div>${capNote}</div>
     </div>
   </div>` : ''}`;
 }
