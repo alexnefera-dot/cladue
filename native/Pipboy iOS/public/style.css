@@ -375,7 +375,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 /* ═══ Целевой портфель: мониторинг и форма переноса ═══ */
 .tgtmon{display:grid;grid-template-columns:clamp(200px,26%,300px) 1fr;gap:22px;align-items:center;padding:4px 0}
 @media (max-width:820px){.tgtmon{grid-template-columns:1fr;justify-items:center}}
-.tgtdonut{display:flex;justify-content:center}
+.tgtdonut{display:flex;flex-direction:column;align-items:center;gap:8px}
 .tgtdonut svg{width:100%;height:auto;max-width:300px;display:block}   /* тянется по колонке — подписи растут вместе с ней */
 .tgtdonut .sl{transition:opacity .12s}
 .tgtdonut .sl.hi{opacity:.72}
@@ -462,3 +462,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .blab.btn:hover{color:var(--green)}
 .tgtdonut .sl.inner{opacity:.55}                  /* внутреннее кольцо — цель, приглушено */
 .tgtdonut .sl.hi{opacity:1;stroke:var(--text);stroke-width:1.5}
+.donutkey{display:flex;flex-direction:column;gap:3px;font:10.5px var(--mono);color:var(--muted)}
+.donutkey span{display:flex;align-items:center;gap:6px}
+.donutkey .kr{width:16px;height:7px;border-radius:2px;background:var(--muted);flex:0 0 auto}
+.donutkey .kr.inner{opacity:.5}
+.blab{display:flex;align-items:center;gap:6px}
+.csw{width:9px;height:9px;border-radius:2px;flex:0 0 auto}

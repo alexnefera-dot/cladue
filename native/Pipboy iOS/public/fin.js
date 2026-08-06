@@ -545,12 +545,15 @@ function secPortfolio(d, s) {
       ${monCrumbs.map((c, k) => `<span class="sepc">›</span><span class="crumb${k < monCrumbs.length - 1 ? ' btn' : ''}" data-moncrumb="${k}">${fesc(c.name)}</span>`).join('')}
     </div>` : ''}
     <div class="tgtmon">
-      <div class="tgtdonut">${catDonut(catRows, monTotal, monPlanTotal, monCrumbs.length ? monCrumbs[monCrumbs.length - 1].name : "весь портфель, €")}</div>
+      <div class="tgtdonut">
+        ${catDonut(catRows, monTotal, monPlanTotal)}
+        <div class="donutkey"><span><i class="kr outer"></i>снаружи — сейчас</span><span><i class="kr inner"></i>внутри — цель</span></div>
+      </div>
       <div class="barswrap"><div class="bars">
         <div class="bgrp"><span></span><span></span><span></span><i>сейчас</i><i>цель</i><i>отклонение</i></div>
         <div class="bhead"><span></span><span>${monCut === 'blocks' ? 'блок' : monCut === 'types' ? 'тип актива' : 'регион'}</span><span>сейчас против цели</span>
           <span>€</span><span>%</span><span>€</span><span>%</span><span>€</span><span>п.п.</span></div>
-        ${catRows.map(r => {
+        ${catRows.map((r, ri) => {
           const f = Math.min(r.nowP, r.planP) / catMaxP * 100;
           const over = r.nowP > r.planP ? (r.nowP - r.planP) / catMaxP * 100 : 0;
           const under = r.planP > r.nowP ? (r.planP - r.nowP) / catMaxP * 100 : 0;
@@ -559,7 +562,7 @@ function secPortfolio(d, s) {
           const cls = r.dev > 0 ? 'dev-over' : 'dev-under';
           return `<div class="brow" draggable="true" data-cat="${fesc(r.ty)}">
             <span class="bgrip" title="перетащить">⠿</span>
-            <span class="blab${r.drill ? " btn" : ""}"${r.drill ? ` data-mondrill="${r.id}"` : ""} title="${r.drill ? "посмотреть, что внутри" : ""}">${fesc(r.ty)}${r.drill ? " ›" : ""}</span>
+            <span class="blab${r.drill ? " btn" : ""}"${r.drill ? ` data-mondrill="${r.id}"` : ""} title="${r.drill ? "посмотреть, что внутри" : ""}"><i class="csw" style="background:${PIE_COLORS[ri % PIE_COLORS.length]}"></i>${fesc(r.ty)}${r.drill ? " ›" : ""}</span>
             <span class="btrack">${f > 0 ? `<i class="bfill" style="width:${f.toFixed(1)}%"></i>` : ''}${
               over ? `<i class="bover" style="left:${f.toFixed(1)}%;width:${over.toFixed(1)}%"></i>` : ''}${
               under ? `<i class="bunder" style="left:${f.toFixed(1)}%;width:${under.toFixed(1)}%"></i>` : ''}<i class="btick" style="left:${tick.toFixed(1)}%"></i></span>
@@ -576,7 +579,7 @@ function secPortfolio(d, s) {
 
 // Два вложенных кольца: внешнее — сейчас, внутреннее — цель. Порядок и цвета общие,
 // поэтому разрыв между полосами одного цвета и есть отклонение. Точные числа даёт список рядом.
-function catDonut(rows, total, planTotal, label) {
+function catDonut(rows, total, planTotal) {
   const CX = 84, CY = 84;
   const ring = (r0, r1, vals, sum, cls) => {
     if (!(sum > 0)) return '';
@@ -594,11 +597,18 @@ function catDonut(rows, total, planTotal, label) {
   };
   const outer = ring(58, 76, rows.map((r, i) => ({ ty: r.ty, val: r.now, i })), total, 'outer');
   const inner = ring(36, 52, rows.map((r, i) => ({ ty: r.ty, val: r.hasPlan ? r.plan : 0, i })), planTotal, 'inner');
-  return `<svg viewBox="0 0 168 168" role="img" aria-label="состав портфеля: сейчас и цель">
-    ${outer}${inner}
-    <text class="ct-v" x="84" y="82">${fmt(total)}</text>
-    <text class="ct-k" x="84" y="96">${fesc(label)}</text>
-    ${planTotal > 0 ? '' : '<text class="ct-k" x="84" y="108">цели не заданы</text>'}
+  // проценты пишем прямо на внешнем кольце — иначе цвет ни с чем не связан;
+  // мелкие сектора пропускаем, подписи налезали бы друг на друга
+  let ang = -90, labels = '';
+  rows.forEach(r => {
+    if (!(r.now > 0) || !(total > 0)) return;
+    const sweep = r.now / total * 360, mid = (ang + sweep / 2) * Math.PI / 180;
+    if (sweep >= 25) labels += `<text class="pl" x="${(84 + 67 * Math.cos(mid)).toFixed(1)}" y="${(84 + 67 * Math.sin(mid)).toFixed(1)}">${(r.now / total * 100).toFixed(0)}%</text>`;
+    ang += sweep;
+  });
+  return `<svg viewBox="0 0 168 168" role="img" aria-label="состав: сейчас и цель">
+    ${outer}${inner}${labels}
+    ${planTotal > 0 ? '' : '<text class="ct-k" x="84" y="88">цели не заданы</text>'}
   </svg>`;
 }
 
