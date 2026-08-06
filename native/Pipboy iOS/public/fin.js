@@ -356,6 +356,28 @@ function secPortfolio(d, s) {
   }
   const planTypeRows = Object.entries(planByType).sort((a, b) => b[1] - a[1]);
   const planPieTotal = planTypeRows.reduce((a, [, v]) => a + v, 0);
+  const rctx = { total: rootTotal, planTotal, parentEur: rootTotal, tgt, factByPath, path: '' };
+  if (tgt) {   // ручные связки ребаланса (из target_moves): сопоставляем id позиций с путём/именем
+    const byId = {};
+    const mapIds = (ns, pre) => (ns || []).forEach(n => { const p = pre + '/' + (n.name || '').trim().toLowerCase(); byId[n.id] = { path: p, name: n.name, cur: n.currency ?? '€' }; mapIds(n.children, p); });
+    mapIds(tree, '');
+    const rate = s.rate || d.rate || 1.08;   // курс лежит в summary (s.rate), не в d
+    rctx.rate = rate;                        // нужен строкам: суммы показываем в валюте позиции
+    const inCur = (eur, cur) => cur === '$' ? eur * rate : eur;   // amount хранится в €, показываем в валюте стороны
+    rctx.movesBySrc = {}; rctx.movesByDst = {}; rctx.netByPath = {};
+    // чистая дельта транзакций в € — узлу и всем его предкам (пути = префиксы), чтобы «Сейчас»
+    // и «Стало» сходились и на разделах/блоках, а не только на листьях
+    const addNet = (path, delta) => {
+      let p = '';
+      for (const seg of path.split('/').filter(Boolean)) { p += '/' + seg; rctx.netByPath[p] = (rctx.netByPath[p] || 0) + delta; }
+    };
+    (d.targetMoves || []).forEach(mv => {
+      const a = byId[mv.from_id], b = byId[mv.to_id]; if (!a || !b) return;
+      (rctx.movesBySrc[a.path] ||= []).push({ id: mv.id, amount: inCur(mv.amount, a.cur), cur: a.cur, toName: b.name });
+      (rctx.movesByDst[b.path] ||= []).push({ id: mv.id, amount: inCur(mv.amount, b.cur), cur: b.cur, fromName: a.name });
+      addNet(a.path, -mv.amount); addNet(b.path, mv.amount);   // mv.amount хранится в €
+    });
+  }
   return `
   <div class="sec">Портфель · блоки → разделы → активы · всё правится кликом</div>
   <div class="viewtabs">

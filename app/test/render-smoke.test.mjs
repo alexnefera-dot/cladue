@@ -1,0 +1,70 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import vm from 'node:vm';
+
+// public/fin.js — браузерный скрипт, он не импортируется и не покрыт остальными тестами.
+// Здесь он выполняется в песочнице с заглушками DOM и отрисовывается на обеих вкладках:
+// это ловит ReferenceError/TypeError в шаблонах, которые `node --check` пропускает,
+// потому что синтаксически файл остаётся корректным.
+
+const SRC = fileURLToPath(new URL('../public/fin.js', import.meta.url));
+
+function loadFin() {
+  const el = () => ({ addEventListener() {}, appendChild() {}, replaceWith() {}, focus() {},
+    classList: { add() {}, remove() {} }, dataset: {}, style: {}, innerHTML: '', value: '' });
+  const ctx = {
+    document: { querySelectorAll: () => [], getElementById: () => null, createElement: el, addEventListener() {} },
+    console, localStorage: { getItem: () => null, setItem() {} },
+    fetch: async () => ({ json: async () => ({}) }),
+    alert() {}, confirm: () => false, prompt: () => null,
+    matchMedia: () => ({ matches: false }), setTimeout, clearTimeout,
+  };
+  ctx.window = ctx; ctx.globalThis = ctx;
+  vm.createContext(ctx);
+  vm.runInContext(readFileSync(SRC, 'utf8'), ctx, { filename: 'fin.js' });
+  return ctx;
+}
+
+const leaf = (id, name, o = {}) => ({
+  id, name, kind: 'asset', children: [],
+  value: o.value ?? 100, eur: o.eur ?? 100, target: o.target ?? 100, target_value: o.target_value ?? 100,
+  currency: o.cur ?? '€', asset_type: o.ty ?? 'акции', ...o,
+});
+
+// целевой намеренно с «сложными» местами: свой план у раздела, $-позиция, автоцена и перенос между листьями
+const DATA = {
+  summary: { portfolioTotal: 1000, portfolioTotalUsd: 1080, rate: 1.08 },
+  portfolio: [{ id: 1, name: 'Блок', kind: 'block', value: 100, eur: 100,
+    children: [leaf(2, 'SCHD'), leaf(3, 'Квартира', { ty: 'недвижка UA' })] }],
+  targetPortfolio: [{ id: 10, name: 'Блок', kind: 'block', value: 300, eur: 300, target: 300,
+    children: [{ id: 11, name: 'Раздел', kind: 'section', currency: '€', target_value: 500, children: [
+      leaf(12, 'SCHD'),
+      leaf(13, 'BTC', { cur: '$', ty: 'крипто' }),
+      leaf(14, 'ETF', { cur: '$', auto: true, qty: 10, rate_symbol: 'IVV' }),
+    ] }] }],
+  targetMoves: [{ id: 1, from_id: 12, to_id: 13, amount: 50 }],
+  targetByType: [['акции', 100]], targetByTypeBlocks: { 'акции': { 'Блок': 100 } },
+  byType: [['акции', 100]], byRegion: [], byTypeBlocks: {}, byRegionBlocks: {}, blockEur: {},
+  rates: [{ symbol: 'IVV', price: 500 }],
+};
+
+for (const tab of ['fact', 'target']) {
+  test(`портфель отрисовывается без ошибок: вкладка ${tab}`, () => {
+    const ctx = loadFin();
+    vm.runInContext(`finTab = ${JSON.stringify(tab)}`, ctx);   // let-биндинг живёт в лексической области скрипта
+    const html = ctx.secPortfolio(DATA, DATA.summary);
+    assert.equal(typeof html, 'string');
+    assert.ok(html.length > 500, 'разметка не пустая');
+  });
+}
+
+test('целевой: колонки и аллокация по плану присутствуют', () => {
+  const ctx = loadFin();
+  vm.runInContext("finTab = 'target'", ctx);
+  const html = ctx.secPortfolio(DATA, DATA.summary);
+  for (const part of ['Сейчас', 'Стало', 'План', 'До цели', 'Перестановки', '% плана']) {
+    assert.ok(html.includes(part), `в целевом нет «${part}»`);
+  }
+});
