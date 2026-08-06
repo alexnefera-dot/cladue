@@ -190,8 +190,7 @@ if ($kanMax > 3.0) { $provaly['каннибализация'] = 1; }
 // Отпущенное поле обязано гулять ВОКРУГ донорской медианы. Считаем сумму по
 // комплекту и сравниваем с суммой донорских медиан: ниже 85 % — смещение.
 $smeshenie = [];
-foreach (['words' => 'объём', 'terms_total' => 'профильных терминов',
-         'brand_en' => 'бренд латиницей', 'brand_ru' => 'бренд кириллицей'] as $pole => $imya) {
+foreach (['words' => 'объём', 'terms_total' => 'профильных терминов'] as $pole => $imya) {
     $nashSum = 0; $ihSum = 0;
     foreach (PAGES_K as $p) {
         $c = PageMetrics::measure($a, $p, $stranicy[$p], ['ru' => '%brand_name_ru%', 'en' => '%brand_name_en%']);
@@ -201,6 +200,40 @@ foreach (['words' => 'объём', 'terms_total' => 'профильных тер
     $dolya = $ihSum ? $nashSum / $ihSum * 100 : 100;
     $smeshenie[$imya] = [round($nashSum) . ' из ' . round($ihSum), '≥85%', $dolya >= 85, round($dolya)];
 }
+
+// ── 4в. школа написания бренда ──────────────────────────────────────
+// Корпус делится надвое: 36 сайтов пишут бренд латиницей (кириллица — редкое
+// вкрапление, почти всегда на главной), 14 — только кириллицей. Комплект
+// обязан держаться одной школы и попадать в её коридор постранично.
+$brend = [];
+$sумLat = 0; $sумCyr = 0;
+$zamer = [];
+foreach (PAGES_K as $p) {
+    $c = PageMetrics::measure($a, $p, $stranicy[$p], ['ru' => '%brand_name_ru%', 'en' => '%brand_name_en%']);
+    $zamer[$p] = ['лат' => (int) $c['brand_en'], 'кир' => (int) $c['brand_ru']];
+    $sумLat += $zamer[$p]['лат']; $sумCyr += $zamer[$p]['кир'];
+}
+$shkola = $sумLat > 0 ? 'латиничная' : 'кириллическая';
+$norma = $profil['бренд'][$shkola] ?? null;
+$brend['школа'] = [$shkola, 'одна на комплект', true];
+if ($norma) {
+    foreach (PAGES_K as $p) {
+        foreach (['лат', 'кир'] as $pismo) {
+            $n = $norma['страницы'][$p][$pismo];
+            $niz = (int) $n['низ']; $verh = (int) $n['верх'];
+            // нижнюю границу не поднимаем выше нуля там, где у большинства доноров ноль
+            $ok = $zamer[$p][$pismo] >= $niz && $zamer[$p][$pismo] <= max($verh, $niz);
+            $brend[$p . ' · ' . $pismo] = [$zamer[$p][$pismo], $niz . '–' . $verh, $ok];
+        }
+    }
+    foreach (['лат' => $sумLat, 'кир' => $sумCyr] as $pismo => $s) {
+        $n = $norma['сумма'][$pismo];
+        $brend['сумма · ' . $pismo] = [$s, $n['низ'] . '–' . $n['верх'],
+            $s >= (int) $n['низ'] && $s <= (int) $n['верх']];
+    }
+}
+$brendOk = count(array_filter($brend, fn($x) => $x[2]));
+if ($brendOk < count($brend)) { $provaly['бренд'] = 1; }
 
 // ── 5. граф перелинковки ────────────────────────────────────────────
 $ishod = [];
@@ -289,6 +322,12 @@ echo "\n── смещение по отпущенным полям ──\n";
 foreach ($smeshenie as $n => [$est, $nado, $ok, $pct]) {
     echo '  ' . ($ok ? '·' : '✗') . ' ' . $pad($n, 24, true) . $pad($est, 16)
         . $pad($pct . '%', 7) . '   нужно ' . $nado . "\n";
+}
+
+echo "\n── бренд: школа написания ──\n";
+foreach ($brend as $n => [$est, $nado, $ok]) {
+    echo '  ' . ($ok ? '·' : '✗') . ' ' . $pad($n, 24, true) . $pad((string) $est, 8)
+        . '   норма ' . $nado . "\n";
 }
 
 echo "\n── граф перелинковки ──\n";

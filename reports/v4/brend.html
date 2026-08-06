@@ -1,0 +1,101 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Сверка бренда с оригиналами</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1c1a17;--dim:#6b6660;--line:#e0dcd4;--acc:#8a3b1e;--hi:#f3efe6;--ok:#2f6b3d;--bad:#9c2b1c}
+@media (prefers-color-scheme:dark){:root{--bg:#16150f;--fg:#e8e4da;--dim:#948e84;--line:#33302a;--acc:#d9834f;--hi:#211f19;--ok:#77b083;--bad:#e07a63}}
+:root[data-theme=dark]{--bg:#16150f;--fg:#e8e4da;--dim:#948e84;--line:#33302a;--acc:#d9834f;--hi:#211f19;--ok:#77b083;--bad:#e07a63}
+:root[data-theme=light]{--bg:#fbfaf7;--fg:#1c1a17;--dim:#6b6660;--line:#e0dcd4;--acc:#8a3b1e;--hi:#f3efe6;--ok:#2f6b3d;--bad:#9c2b1c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 Georgia,"Times New Roman",serif}
+.wrap{max-width:940px;margin:0 auto;padding:48px 22px 96px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px;font-weight:normal}
+.sub{color:var(--dim);font-size:15px;margin:0 0 36px}
+h2{font-size:22px;font-weight:normal;margin:52px 0 14px;padding-bottom:7px;border-bottom:2px solid var(--acc)}
+h3{font-size:17px;font-weight:bold;margin:30px 0 8px}
+p{margin:0 0 14px}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.86em;background:var(--hi);padding:1px 5px;border-radius:3px}
+pre{background:var(--hi);border-left:3px solid var(--line);padding:12px 14px;overflow-x:auto;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;line-height:1.5;margin:0 0 18px}
+.scroll{overflow-x:auto;margin:0 0 20px}
+table{border-collapse:collapse;font-size:14px;min-width:100%}
+th,td{padding:6px 12px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-weight:bold;color:var(--dim);font-size:12.5px;text-transform:uppercase;letter-spacing:.04em}
+td.n,th.n{text-align:right;font-family:ui-monospace,Menlo,Consolas,monospace}
+.ok{color:var(--ok);font-weight:bold}.bad{color:var(--bad);font-weight:bold}
+.key{background:var(--hi);border-left:3px solid var(--acc);padding:14px 18px;margin:22px 0}
+.key p:last-child{margin:0}
+blockquote{margin:0 0 12px;padding:9px 16px;border-left:3px solid var(--acc);background:var(--hi);font-size:15px}
+ul,ol{margin:0 0 16px;padding-left:22px}li{margin:0 0 6px}
+.lede{font-size:18px;line-height:1.6}
+footer{margin-top:64px;padding-top:18px;border-top:1px solid var(--line);color:var(--dim);font-size:13px}
+</style></head><body><div class="wrap">
+
+<h1>SeoMetrics</h1>
+
+<h1>Ру или англ — правда авторов, а не ошибка редактора</h1>
+<p class="sub">Сверка 9 сайтов до подстановки плейсхолдеров · 63 страницы · 326 выравненных замен</p>
+
+<p class="lede">Вопрос был поставлен прямо: соотношение кириллицы и латиницы в очищенном корпусе — это то, как писали авторы, или редактор напутал, когда чистил тексты под плейсхолдеры. Ответ: <strong>не напутал.</strong> Но сверка вскрыла другое — прежние цифры считались по всем 50 сайтам разом и потому врали.</p>
+
+<h2>Как сверялось</h2>
+<p>Считать вхождения по обе стороны бесполезно: в оригинале бренд стоит ещё и в шапке, подвале, тексте лицензии и облаке запросов, которых в очищенном тексте нет. Поэтому здесь не подсчёт, а выравнивание.</p>
+<p>Очищенный текст режется по плейсхолдерам на сегменты. Каждый сегмент ищется в тексте оригинала последовательно. <strong>Промежуток между двумя соседними сегментами — ровно то, что плейсхолдер собой заменил.</strong> Так видно не «сколько», а «что именно» стояло на каждом месте.</p>
+<p>Сошлось 60 страниц из 63. Не выровнялись <code>sykaaa/zerkalo</code>, <code>winline/main</code>, <code>zooma/main</code> — там оригинал правился после выгрузки.</p>
+
+<h2>Редактор не ошибся</h2>
+<div class="key">
+<p><strong>326 выравненных замен. Ни одного случая, когда кириллическое написание заменено латинским плейсхолдером или наоборот.</strong></p>
+</div>
+<div class="scroll"><table>
+<tr><th>плейсхолдер</th><th>что стояло в оригинале</th><th class="n">сколько</th></tr>
+<tr><td><code>%brand_name_en%</code></td><td>латиница — Rox, Selector, SpinTo, Turbo, Winline, Sykaaa, Sweet</td><td class="n ok">286</td></tr>
+<tr><td><code>%brand_name_ru%</code></td><td>кириллица — Рокс, Селектор, СпинТо, Турбо, Винлине, РаменБет, Свит, Зума Казино</td><td class="n ok">33</td></tr>
+<tr><td>—</td><td>не разобрано, граница сегмента</td><td class="n">7</td></tr>
+</table></div>
+<p>Контрольный счёт по зоне статьи: <code>ph_en=291</code> против 294 упоминаний латиницей в оригинале, <code>ph_ru=40</code> против 39 кириллицей. Восемь расхождений на 60 страниц, все ±1…2, разобраны поштучно — это не пропуски редактора, а границы зоны: в захват попадали шапка (<code>Официальный сайт Sykaaa</code>), подвал (<code>Лицензия Rox #479/JAZ</code>, <code>© Турбо N.V. is owned and operated by…</code>) и облако запросов.</p>
+<blockquote>🔍 Популярные запросы: Селектор пополнение счета · Хэллоуин Селектор Казино · Узбекистан Селектор Casino · Selector Top Game · Селектор генератор случайных чисел · Селектор высокие лимиты…</blockquote>
+<p>Это облако в тело статьи не входит и в очищенном корпусе его справедливо нет. Мерить наши тексты против него нельзя: там десятки вхождений бренда на страницу в обоих написаниях, и это отдельный блок, а не проза.</p>
+
+<h2>Главное: школ написания две</h2>
+<p>Корпус делится надвое, и внутри сайта письменность не смешивается. Сайт выбирает её на все семь страниц сразу.</p>
+<div class="scroll"><table>
+<tr><th>школа</th><th class="n">сайтов</th><th class="n">латиницей на комплект</th><th class="n">кириллицей на комплект</th></tr>
+<tr><td>латиничная</td><td class="n">36</td><td class="n">39 – <b>42</b> – 62</td><td class="n">5 – <b>7</b> – 13</td></tr>
+<tr><td>кириллическая</td><td class="n">14</td><td class="n bad">0</td><td class="n">13 – <b>14</b> – 17</td></tr>
+</table></div>
+<p>Кириллическая школа — это <code>vodka</code>, <code>atom</code>, <code>ramenbet</code>, <code>play fortuna</code>, <code>vavada</code>, <code>1win</code>, <code>beef</code>, <code>flagman</code>, <code>kometa</code>, <code>leon</code>, <code>zooma</code>, <code>pinco</code>, <code>mellstroy</code>, <code>motor</code>. Латиницы у них нет вообще — ноль на всех семи страницах.</p>
+<div class="key">
+<p>Именно эти 14 сайтов давали нулевой первый квартиль по латинице на каждом типе страницы. Из-за них выходило, будто нормальный донор бренд латиницей почти не пишет — а на деле 36 сайтов пишут его на главной по 23–37 раз.</p>
+</div>
+
+<h2>Коридоры по школам, постранично</h2>
+<div class="scroll"><table>
+<tr><th>страница</th><th class="n">латиничная: лат</th><th class="n">латиничная: кир</th><th class="n">кириллическая: кир</th><th class="n">наш chas-1</th></tr>
+<tr><td>main</td><td class="n">23 – <b>28</b> – 37</td><td class="n">2 – <b>4</b> – 7</td><td class="n">8 – <b>9</b> – 10</td><td class="n ok">26 лат · 5 кир</td></tr>
+<tr><td>app</td><td class="n">2 – <b>4</b> – 6</td><td class="n">0 – <b>0</b> – 1</td><td class="n">2 – <b>2</b> – 2</td><td class="n ok">5 · 0</td></tr>
+<tr><td>bonus</td><td class="n">1 – <b>2</b> – 3</td><td class="n">0 – <b>0</b> – 1</td><td class="n"><b>0</b></td><td class="n ok">3 · 0</td></tr>
+<tr><td>registracia</td><td class="n">1 – <b>2</b> – 5</td><td class="n"><b>0</b></td><td class="n"><b>0</b></td><td class="n ok">3 · 0</td></tr>
+<tr><td>slots</td><td class="n">1 – <b>2</b> – 4</td><td class="n"><b>0</b></td><td class="n"><b>0</b></td><td class="n ok">2 · 0</td></tr>
+<tr><td>vhod</td><td class="n">1 – <b>2</b> – 4</td><td class="n">0 – <b>0</b> – 1</td><td class="n"><b>0</b></td><td class="n ok">3 · 0</td></tr>
+<tr><td>zerkalo</td><td class="n">1 – <b>3</b> – 5</td><td class="n">0 – <b>0</b> – 1</td><td class="n">2 – <b>3</b> – 4</td><td class="n ok">3 · 0</td></tr>
+</table></div>
+
+<h2>Ответ на исходный вопрос</h2>
+<div class="key">
+<p><strong>Мало бренда на внутренних — так и надо.</strong> У латиничной школы на внутренней странице медиана 2 упоминания латиницей и <b>0</b> кириллицей, причём кириллический ноль стоит у 24–30 сайтов из 36. Бренд живёт на главной; внутренние страницы говорят о процедуре, а не о площадке.</p>
+</div>
+
+<h2>Что изменено в движке</h2>
+<ul>
+<li><code>engine/data-v4/profil-avgust.json</code> — новый раздел <code>бренд</code>: правило одной школы на комплект, коридоры обеих школ постранично и по сумме, состав групп, запись о сверке.</li>
+<li><code>engine/priyomka-komplekt.php</code> — <code>brand_en</code> и <code>brand_ru</code> убраны из шлюза «смещение», где они мерили смесь двух школ и потому ничего не значили. Вместо них раздел «бренд: школа написания»: школа определяется по самому комплекту, дальше каждая страница проверяется по коридору своей школы плюс сумма.</li>
+<li><code>engine/sverka-brenda.py</code> — сам инструмент выравнивания, чтобы сверку можно было повторить на любой новой выгрузке оригиналов.</li>
+<li><code>chas-1</code> — одно упоминание на главной переведено с латиницы на кириллицу: сумма кириллицей была 4 при норме 5–13. Под новой меркой комплект принят целиком.</li>
+</ul>
+
+<footer>
+<code>python3 engine/sverka-brenda.py &lt;папка-с-оригиналами&gt;</code> ·
+<code>php engine/priyomka-komplekt.php samples/v4-final/chas-1</code> ·
+выкладка <code>reports/v4/brend-sverka.json</code> ·
+протокол <code>docs/v4-brend-sverka.md</code>
+</footer>
+</div></body></html>
