@@ -36,7 +36,7 @@ const parseNum = s => {
   return isNaN(v) ? null : v * mul;
 };
 const ACCT = { bank: 'банк', broker: 'брокер', cash: 'кэш', crypto: 'крипто', deposit: 'вклад', safe: 'ячейка' };
-const ATYPES = ['крипто', 'кеш', 'баланс', 'недвижка', 'авто', 'акции', 'золото', 'облигации'];
+const ATYPES = ['крипто', 'кеш', 'баланс', 'недвижка EU', 'недвижка UA', 'авто', 'акции', 'золото', 'облигации'];
 const REGIONS = ['SK', 'UA', 'AU', 'EU', 'WEB', 'USA', 'UAE', 'PT'];   // регион инвестиции
 const RSYMS = ['BTCUSD', 'XAUUSD', 'SCHD', 'IVV', 'VHT'];
 const STEPK = { buy: ['купить', 'ok'], sell: ['продать', 'p1'], transfer: ['перевод', 'p2'] };
