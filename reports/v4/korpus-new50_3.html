@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Корпус доноров new50_3 — разбор</title>
+<style>
+  :root{--bg:#fbfaf7;--fg:#1c1a17;--dim:#6b6660;--line:#e0dcd4;--acc:#8a3b1e;--hi:#f3efe6;--ok:#2f6b3d;--bad:#9c2b1c}
+  @media (prefers-color-scheme:dark){:root{--bg:#16150f;--fg:#e8e4da;--dim:#948e84;--line:#33302a;--acc:#d9834f;--hi:#211f19;--ok:#77b083;--bad:#e07a63}}
+  :root[data-theme=dark]{--bg:#16150f;--fg:#e8e4da;--dim:#948e84;--line:#33302a;--acc:#d9834f;--hi:#211f19;--ok:#77b083;--bad:#e07a63}
+  :root[data-theme=light]{--bg:#fbfaf7;--fg:#1c1a17;--dim:#6b6660;--line:#e0dcd4;--acc:#8a3b1e;--hi:#f3efe6;--ok:#2f6b3d;--bad:#9c2b1c}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 Georgia,"Times New Roman",serif;-webkit-text-size-adjust:100%}
+  .wrap{max-width:920px;margin:0 auto;padding:48px 22px 96px}
+  h1{font-size:30px;line-height:1.2;margin:0 0 6px;font-weight:normal}
+  .sub{color:var(--dim);font-size:15px;margin:0 0 40px}
+  h2{font-size:22px;font-weight:normal;margin:52px 0 14px;padding-bottom:7px;border-bottom:2px solid var(--acc)}
+  h3{font-size:17px;font-weight:bold;margin:30px 0 8px}
+  p{margin:0 0 14px}
+  code{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.86em;background:var(--hi);padding:1px 5px;border-radius:3px}
+  pre{background:var(--hi);border-left:3px solid var(--line);padding:12px 14px;overflow-x:auto;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;line-height:1.5;margin:0 0 18px}
+  .scroll{overflow-x:auto;margin:0 0 20px;-webkit-overflow-scrolling:touch}
+  table{border-collapse:collapse;font-size:14px;min-width:100%}
+  th,td{padding:6px 12px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+  th{font-weight:bold;color:var(--dim);font-size:12.5px;text-transform:uppercase;letter-spacing:.04em}
+  td.n,th.n{text-align:right;font-family:ui-monospace,Menlo,Consolas,monospace}
+  .ok{color:var(--ok)} .bad{color:var(--bad);font-weight:bold}
+  .key{background:var(--hi);border-left:3px solid var(--acc);padding:14px 18px;margin:22px 0}
+  .key p:last-child{margin:0}
+  ul{margin:0 0 16px;padding-left:22px} li{margin:0 0 6px}
+  .lede{font-size:18px;line-height:1.6}
+  .tag{display:inline-block;font-size:12px;font-family:ui-monospace,Menlo,monospace;background:var(--hi);border:1px solid var(--line);border-radius:10px;padding:1px 9px;margin:0 4px 4px 0;white-space:nowrap}
+  footer{margin-top:64px;padding-top:18px;border-top:1px solid var(--line);color:var(--dim);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Корпус доноров <code>new50_3</code></h1>
+<p class="sub">50 сайтов × 7 страниц = 350 файлов · выпущены 3–4 августа 2026 за пять часов · разбор <code>engine/razbor-korpusa.php</code></p>
+
+<p class="lede">В одной поставке лежат две разные фабрики. Деление проходит не по тексту, а по устройству страницы, и оно двоичное — промежуточных случаев нет ни одного.</p>
+
+<div class="key">
+<p><strong>Принцип.</strong> Фабрика не подделывает уникальность — она покупает её выдумкой. Личная история со временем, суммой и цитатой интерфейса не повторяется между сайтами, потому что переиспользовать нечего: каждый раз выдумывается заново. Разметка решает вторую задачу — сигналы. Там, где фабрика попыталась получить и то и другое разом, она потеряла уникальность.</p>
+</div>
+
+<h2>Две школы</h2>
+
+<div class="scroll">
+<table>
+<tr><th></th><th>«проза»</th><th>«конструктор»</th></tr>
+<tr><td>сайтов</td><td class="n">36</td><td class="n">14</td></tr>
+<tr><td>слов на <code>main</code></td><td class="n">3 000 – 10 400</td><td class="n">1 300 – 2 600</td></tr>
+<tr><td>виджетов из библиотеки</td><td class="n">0–2</td><td class="n">ровно 9</td></tr>
+<tr><td>первое лицо на страницу</td><td class="n">5–279</td><td class="n">0–1</td></tr>
+<tr><td>взаимное пересечение <code>main</code></td><td class="n ok">0,03 %</td><td class="n bad">16,85 %</td></tr>
+<tr><td>пар выше 15 %</td><td class="n ok">0 из 630</td><td class="n bad">65 из 91</td></tr>
+</table>
+</div>
+
+<p><strong>Конструктор:</strong>
+<span class="tag">1win</span><span class="tag">atom</span><span class="tag">beef</span><span class="tag">flagman</span><span class="tag">kometa</span><span class="tag">leon</span><span class="tag">mellstroy</span><span class="tag">motor</span><span class="tag">pinco</span><span class="tag">play&nbsp;fortuna</span><span class="tag">ramenbet</span><span class="tag">vavada</span><span class="tag">vodka</span><span class="tag">zooma</span>
+— остальные 36 проза.</p>
+
+<p>Совпадение полное: у всех четырнадцати «конструкторов» счётчик первого лица ≤ 1, у всех тридцати шести «прозаиков» ≥ 2.</p>
+
+<h2>Что абузит «проза»</h2>
+
+<p>Каждый раздел — микрорассказ от первого лица с одним четырёхтактным сюжетом, и такт вынесен прямо в заголовок H3:</p>
+
+<pre>Начало: как всё началось в тот вечер
+Момент, когда я напрягся
+Развязка: что я понял после того случая
+Что я понял и как применяю это на практике</pre>
+
+<p>Так упаковывается <em>каждая</em> тема — провайдеры, зеркало, лицензия, бездеп, турниры, ответственная игра, плюсы и минусы. Восемь–двенадцать H2, под каждым четыре–пять H3-тактов.</p>
+
+<p>Внутри такта — предметная конкретика, которую модель придумывает свободно и которая поэтому не повторяется между сайтами: время (<code>23:47</code>, <code>00:02</code>), суммы (<code>3 000 USD</code>), сроки, цитаты интерфейса в кавычках, значения в <code>&lt;code&gt;</code>.</p>
+
+<p>Цена приёма — ноль. 630 пар, среднее пересечение <span class="ok"><strong>0,03 %</strong></span>. Это лучше, чем у нас: наш корпус из 22 версий держит худшую пару 5,97 % при пороге 6.</p>
+
+<h2>Что абузит «конструктор»</h2>
+
+<div class="scroll">
+<table>
+<tr><th>блок</th><th>вариантов</th><th>где стоит</th></tr>
+<tr><td><code>hero-value</code></td><td>v1–v4</td><td>main</td></tr>
+<tr><td><code>value-pillars</code></td><td>v1–v4</td><td>main</td></tr>
+<tr><td><code>slots-dashboard</code></td><td>v1–v4</td><td>main — 12 карточек <code>schema.org/Game</code></td></tr>
+<tr><td><code>recent-payouts-block</code></td><td>v1–v4</td><td>main, slots</td></tr>
+<tr><td><code>jackpot-strip</code></td><td>—</td><td>main, slots</td></tr>
+<tr><td><code>layout-block</code> + <code>page-thematic-block</code></td><td>v1–v4</td><td>все, кроме bonus</td></tr>
+<tr><td><code>review-quotes-list</code></td><td>—</td><td>все, кроме bonus</td></tr>
+<tr><td><code>faq-section</code></td><td>—</td><td>все семь</td></tr>
+<tr><td><code>info-block</code></td><td>—</td><td>vhod и выборочно</td></tr>
+</table>
+</div>
+
+<p>Наполнение берётся из фиксированных пулов и рандомизируется на сайт:</p>
+
+<pre>Кирилл    — 9 457 ₽     👸 Starlight Princess   45 минут назад
+Екатерина — 2 551 ₽     🦬 Buffalo King          3 мин назад
+Дарья     — 473 195 ₽   🔮 Madame Destiny       25 минут назад</pre>
+
+<p>Имя из русского пула, сумма случайная, слот из пула (эмодзи прибит к слоту намертво). Джекпоты гуляют в узком коридоре: МЕГА 15,4–16,2 млн, СУПЕР 4,3–4,5 млн, МИНИ 750–790 тыс. Ленты продублированы ×2 — заготовка под бегущую строку. Всё обёрнуто в <code>ItemList</code> / <code>ListItem</code>.</p>
+
+<h3>И здесь же провал</h3>
+
+<p>Подписи виджетов постоянны: «Прогрессивные джекпоты», «Последние выплаты», «Куда перейти», «минут назад», названия слотов и студий. На <code>main</code> виджеты дают <strong>44 % всего текста</strong> — 13 519 слов из 30 478 по четырнадцати сайтам, и это почти одни и те же ~950 слов.</p>
+
+<p><code>mellstroy/slots.html</code> и <code>vodka/slots.html</code> — <span class="bad">одна и та же страница</span>: 97 % пересечения, проза побайтово идентична, отличаются только случайные числа в виджетах и <code>variant-v1</code> против <code>variant-v2</code>.</p>
+
+<h2>Что общее у обеих школ</h2>
+
+<h3>Ноль картинок, ноль стилей, ноль скриптов</h3>
+<p>350 страниц — ни одного <code>&lt;img&gt;</code>, ни одного <code>&lt;style&gt;</code>, ни одного <code>&lt;script&gt;</code>. Обложки слотов текстовые (<code>slot-poster-fallback</code>). Фрагмент чистый, оформление живёт в теме сайта.</p>
+
+<h3>Плейсхолдеры движка публикации</h3>
+<div class="scroll">
+<table>
+<tr><th>подстановка</th><th class="n">вхождений</th></tr>
+<tr><td><code>%brand_name_en%</code></td><td class="n">1757</td></tr>
+<tr><td><code>%brand_name_ru%</code></td><td class="n">506</td></tr>
+<tr><td><code>%date%</code></td><td class="n">175</td></tr>
+<tr><td><code>%domain_name%</code></td><td class="n">35</td></tr>
+</table>
+</div>
+<p>Латиница к кириллице 3,5 : 1. Дата отзыва не пишется, а подставляется при публикации — отзыв всегда свежий.</p>
+
+<h3>FAQ как основной несущий приём</h3>
+<p>2664 пары <code>Question</code> / <code>Answer</code>, медиана 6 <code>&lt;details&gt;</code> на страницу, на <code>main</code> — 10. Вопросы сценарные, со временем и суммой: «В воскресенье в 22:10 я обнаружил две разные суммы бонуса», «Моя карта Visa была отклонена при пополнении в 03:27».</p>
+
+<h3>Сетка перелинковки</h3>
+<p>8150 внутренних ссылок на 350 страниц — 23 на страницу, всего на шесть адресов:</p>
+<pre>/app  2213   /  1825   /slots  1489   /registracia  989   /vhod  896   /zerkalo  735</pre>
+<p><code>/bonus</code> не получает ни одной ссылки — страница есть, входящих нет. При этом анкоров 864 разных, 69 % встречаются ровно один раз: сетка густая, но не штампованная.</p>
+
+<h3>Микроразметка на всём</h3>
+<div class="scroll">
+<table>
+<tr><th>тип</th><th class="n">штук</th><th>тип</th><th class="n">штук</th></tr>
+<tr><td>Answer</td><td class="n">2665</td><td>FAQPage</td><td class="n">98</td></tr>
+<tr><td>Question</td><td class="n">2664</td><td>Comment</td><td class="n">51</td></tr>
+<tr><td>ListItem</td><td class="n">521</td><td>Person</td><td class="n">51</td></tr>
+<tr><td>Game</td><td class="n">201</td><td>AggregateRating</td><td class="n">33</td></tr>
+<tr><td>ItemList</td><td class="n">112</td><td>WebPage / SiteNavigationElement</td><td class="n">14 / 14</td></tr>
+</table>
+</div>
+<p>Наши шесть эталонов из <code>v3-reference</code> не имеют schema.org вообще. Это самое крупное расхождение между поколениями доноров.</p>
+
+<h3>Прочие постоянные</h3>
+<ul>
+<li>Эмодзи 4906 штук, медиана 3 на страницу, на <code>main</code> — 57. Ведущие: 🎰 359, → 308, 🔥 260, 🚀 118, ❓ 115, ✅ 101.</li>
+<li>Доля текста вне <code>&lt;p&gt;</code> и <code>&lt;li&gt;</code> — 20–35 %. Тот же диапазон, что у шести старых эталонов (12–33 %). Постоянная этой фабрики независимо от школы.</li>
+</ul>
+
+<h2>Инвентарь по типам страниц (медианы)</h2>
+<div class="scroll">
+<table>
+<tr><th>страница</th><th class="n">байт</th><th class="n">слов</th><th class="n">h2</th><th class="n">h3</th><th class="n">p</th><th class="n">li</th><th class="n">табл</th><th class="n">details</th><th class="n">strong</th><th class="n">img</th><th class="n">a</th><th class="n">schema</th><th class="n">эмодзи</th></tr>
+<tr><td>main</td><td class="n">70 522</td><td class="n">3992</td><td class="n">11</td><td class="n">30</td><td class="n">66</td><td class="n">68</td><td class="n">8</td><td class="n">10</td><td class="n">60</td><td class="n">0</td><td class="n">58</td><td class="n">36</td><td class="n">57</td></tr>
+<tr><td>app</td><td class="n">16 377</td><td class="n">799</td><td class="n">2</td><td class="n">6</td><td class="n">18</td><td class="n">14</td><td class="n">1</td><td class="n">9</td><td class="n">9</td><td class="n">0</td><td class="n">6</td><td class="n">18</td><td class="n">1</td></tr>
+<tr><td>bonus</td><td class="n">12 373</td><td class="n">693</td><td class="n">2</td><td class="n">5</td><td class="n">11</td><td class="n">15</td><td class="n">1</td><td class="n">4</td><td class="n">8</td><td class="n">0</td><td class="n">6</td><td class="n">10</td><td class="n">1</td></tr>
+<tr><td>registracia</td><td class="n">17 652</td><td class="n">829</td><td class="n">2</td><td class="n">5</td><td class="n">18</td><td class="n">11</td><td class="n">1</td><td class="n">9</td><td class="n">10</td><td class="n">0</td><td class="n">6</td><td class="n">18</td><td class="n">1</td></tr>
+<tr><td>slots</td><td class="n">18 524</td><td class="n">914</td><td class="n">2</td><td class="n">5</td><td class="n">19</td><td class="n">14</td><td class="n">1</td><td class="n">9</td><td class="n">16</td><td class="n">0</td><td class="n">7</td><td class="n">24</td><td class="n">10</td></tr>
+<tr><td>vhod</td><td class="n">17 589</td><td class="n">842</td><td class="n">2</td><td class="n">6</td><td class="n">20</td><td class="n">16</td><td class="n">1</td><td class="n">8</td><td class="n">10</td><td class="n">0</td><td class="n">6</td><td class="n">16</td><td class="n">5</td></tr>
+<tr><td>zerkalo</td><td class="n">13 334</td><td class="n">681</td><td class="n">2</td><td class="n">6</td><td class="n">12</td><td class="n">14</td><td class="n">1</td><td class="n">4</td><td class="n">9</td><td class="n">0</td><td class="n">8</td><td class="n">10</td><td class="n">1</td></tr>
+</table>
+</div>
+
+<h2>Их собственный брак</h2>
+<ul>
+<li><code>arkada/main.html</code> содержит <code>&lt;td evolution="" gaming&lt;="" td=""&gt;</code> — голая угловая скобка в тексте. Любой парсер на <code>strip_tags</code> теряет на ней 46 КБ из 58, то есть четыре пятых страницы.</li>
+<li>Имена классов на кириллице с пробелами: <code>class="c-Ответы на частые вопросы"</code> — из одного класса получается четыре.</li>
+<li>Три разные реализации FAQ в одном корпусе: <code>faq-item</code>, <code>c-faq__*</code>, <code>c-Ответы…</code>. Библиотека собиралась слоями и не чистилась.</li>
+</ul>
+
+<h2>Как корпус доставали</h2>
+<p><code>unrar-free</code> (сборка 2004 года) на RAR5 отдавал семь файлов вместо пятидесяти архивов: расплющивал каталог и затирал одноимённые файлы, так что 50×7 схлопывалось в 7. <code>rarfile</code> не поднялся — <code>cryptography</code> роняет питон в <code>PanicException</code>. Контейнер разобран вручную: все 50 записей лежат методом <code>store</code>, данные вырезаются по смещению из заголовка.</p>
+<p>Правило на будущее: <strong>если корпус распаковался подозрительно маленьким, он распаковался неправильно.</strong></p>
+
+<h2>Вывод для нас — без плана генерации</h2>
+<div class="key">
+<p>Приёмы (карточки, отзывы, звёзды, плашки, таблицы) брать можно и нужно — но подписи внутри приёма обязаны быть переменной, а не константой шаблона. Иначе повторится история с общим CSS, только дороже: тогда паразитных было 14 %, здесь 17 % при вдвое меньшем тексте.</p>
+<p>Второе: уникальность у «прозы» держится не на синонимизации, а на выдуманной предметной конкретике — времени, сумме, цитате интерфейса. Переписывание формулировок стоило нам пяти провалов подряд; выдумка нового случая не стоит ничего.</p>
+</div>
+
+<footer>
+Разбор: <code>engine/razbor-korpusa.php samples/v4-donors --пары</code> ·
+машинная выкладка <code>reports/v4/korpus-new50_3.json</code> ·
+текст <code>docs/v4-donory-new50_3.md</code>
+</footer>
+
+</div>
+</body>
+</html>
