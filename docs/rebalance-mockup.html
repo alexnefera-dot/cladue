@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Портфель — макет: дрейф, график, перестановки</title>
+<title>Портфель — мониторинг и движение</title>
 <style>
   :root {
-    --bg: #FAFBF8; --surface: #FFFFFF; --surface-2: #F2F5F0;
-    --text: #1A1F1B; --muted: #5F6B62; --border: #E2E7E0;
-    --accent: #2F7D4F; --accent-soft: #E4F0E7;
-    --over: #B8722A; --over-soft: #F8EEE0;      /* перевес */
-    --under: #3F72A0; --under-soft: #E5EDF4;    /* недобор */
-    --crit: #A8352F; --crit-soft: #F9E7E5;
-    --c1: #2F7D4F; --c2: #3F72A0; --c3: #B8722A; --c4: #7E5A96; --c5: #A8352F; --c6: #77857B;
+    --bg:#FAFBF8; --surface:#FFFFFF; --surface-2:#F2F5F0;
+    --text:#1A1F1B; --muted:#5F6B62; --border:#E2E7E0;
+    --accent:#2F7D4F; --accent-soft:#E4F0E7;
+    --over:#B8722A; --over-soft:#F8EEE0;
+    --under:#3F72A0; --under-soft:#E5EDF4;
+    --crit:#A8352F;
+    --c1:#2F7D4F; --c2:#3F72A0; --c3:#B8722A; --c4:#7E5A96; --c5:#A8352F; --c6:#77857B;
     --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
     --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
@@ -23,7 +23,7 @@
       --accent:#6FCF97; --accent-soft:#1B2A20;
       --over:#E0A458; --over-soft:#2A2318;
       --under:#7FB0DA; --under-soft:#182430;
-      --crit:#E0736C; --crit-soft:#2C1B19;
+      --crit:#E0736C;
       --c1:#6FCF97; --c2:#7FB0DA; --c3:#E0A458; --c4:#B08FC7; --c5:#E0736C; --c6:#9AA79E;
     }
   }
@@ -33,7 +33,7 @@
     --accent:#6FCF97; --accent-soft:#1B2A20;
     --over:#E0A458; --over-soft:#2A2318;
     --under:#7FB0DA; --under-soft:#182430;
-    --crit:#E0736C; --crit-soft:#2C1B19;
+    --crit:#E0736C;
     --c1:#6FCF97; --c2:#7FB0DA; --c3:#E0A458; --c4:#B08FC7; --c5:#E0736C; --c6:#9AA79E;
   }
   :root[data-theme="light"] {
@@ -42,14 +42,14 @@
     --accent:#2F7D4F; --accent-soft:#E4F0E7;
     --over:#B8722A; --over-soft:#F8EEE0;
     --under:#3F72A0; --under-soft:#E5EDF4;
-    --crit:#A8352F; --crit-soft:#F9E7E5;
+    --crit:#A8352F;
     --c1:#2F7D4F; --c2:#3F72A0; --c3:#B8722A; --c4:#7E5A96; --c5:#A8352F; --c6:#77857B;
   }
 
-  * { box-sizing: border-box; }
+  * { box-sizing:border-box; }
   body { margin:0; padding:0 20px 80px; background:var(--bg); color:var(--text);
          font-family:var(--sans); font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased; }
-  .wrap { max-width:900px; margin:0 auto; display:flex; flex-direction:column; gap:44px; }
+  .wrap { max-width:920px; margin:0 auto; display:flex; flex-direction:column; gap:44px; }
   .prose { max-width:66ch; }
 
   header { padding:48px 0 16px; border-bottom:2px solid var(--text); display:flex; flex-direction:column; gap:12px; }
@@ -60,69 +60,86 @@
   p { margin:0; } .prose p + p { margin-top:11px; }
   section { display:flex; flex-direction:column; gap:16px; }
   code { font-family:var(--mono); font-size:.88em; background:var(--surface-2); padding:1px 5px; border-radius:3px; }
+  .num { font-family:var(--mono); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .over-t{color:var(--over)} .under-t{color:var(--under)} .ok-t{color:var(--accent)}
 
   .note { background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--accent);
           padding:16px 18px; display:flex; flex-direction:column; gap:8px; font-size:15px; }
   .note.warn { border-left-color:var(--over); }
 
+  /* ——— сводка ——— */
+  .strip { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1px;
+           background:var(--border); border:1px solid var(--border); }
+  .stat { background:var(--surface); padding:14px 16px; display:flex; flex-direction:column; gap:3px; }
+  .stat-k { font-family:var(--mono); font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); }
+  .stat-v { font-family:var(--mono); font-size:19px; font-variant-numeric:tabular-nums; }
+
+  /* ——— панель мониторинга: пирог + полосы ——— */
+  .mon { display:grid; grid-template-columns:190px 1fr; gap:22px; align-items:start;
+         background:var(--surface); border:1px solid var(--border); padding:20px; }
+  @media (max-width:720px) { .mon { grid-template-columns:1fr; } }
+  .pieblock { display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .pie { width:150px; height:150px; border-radius:50%; }
+  .pie-cap { font-family:var(--mono); font-size:11px; color:var(--muted); }
+  .legend { display:flex; flex-direction:column; gap:4px; font-family:var(--mono); font-size:11px; color:var(--muted); width:100%; }
+  .legend span { display:flex; align-items:center; gap:6px; }
+  .sw { width:9px; height:9px; border-radius:2px; flex:0 0 auto; }
+
+  /* ——— полосы «сейчас против цели» ——— */
+  .bars { display:flex; flex-direction:column; gap:7px; min-width:0; }
+  .bhead, .brow { display:grid; grid-template-columns:92px 1fr 52px 46px 54px; gap:9px; align-items:center;
+                  font-family:var(--mono); font-size:11.5px; }
+  .bhead { font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+  .bhead span:not(:first-child):not(:nth-child(2)) { text-align:right; }
+  .blab { color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .btrack { position:relative; height:20px; background:var(--surface-2); border-radius:2px; }
+  .bfill  { position:absolute; left:0; top:4px; bottom:4px; background:var(--accent); border-radius:2px 0 0 2px; }
+  .bover  { position:absolute; top:4px; bottom:4px; background:var(--over); border-radius:0 2px 2px 0; }
+  .bunder { position:absolute; top:4px; bottom:4px; border:1px dashed var(--under);
+            background:var(--under-soft); border-radius:0 2px 2px 0; }
+  .btick  { position:absolute; top:-1px; bottom:-1px; width:2px; background:var(--text); }
+  .bnow, .btgt, .bgap { text-align:right; font-variant-numeric:tabular-nums; }
+  .btgt { color:var(--muted); }
+
   .tablewrap { overflow-x:auto; border:1px solid var(--border); background:var(--surface); }
-  table { border-collapse:collapse; width:100%; font-size:14px; min-width:600px; }
+  table { border-collapse:collapse; width:100%; font-size:14px; min-width:640px; }
   th,td { text-align:left; padding:10px 13px; border-bottom:1px solid var(--border); }
   th { font-family:var(--mono); font-size:11px; letter-spacing:.07em; text-transform:uppercase;
        color:var(--muted); font-weight:600; background:var(--surface-2); white-space:nowrap; }
+  td.r, th.r { text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums; white-space:nowrap; }
   tbody tr:last-child td { border-bottom:0; }
-  .num { text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums; white-space:nowrap; }
-  .name { font-family:var(--mono); }
+  .mono { font-family:var(--mono); }
+  .pin { font-family:var(--mono); font-size:10px; padding:1px 5px; border-radius:2px;
+         background:var(--accent-soft); color:var(--accent); }
+  .derived { color:var(--muted); }
 
-  .chip { font-family:var(--mono); font-size:11px; padding:3px 8px; border-radius:99px; white-space:nowrap; display:inline-block; }
-  .chip.ok   { background:var(--accent-soft); color:var(--accent); }
-  .chip.over { background:var(--over-soft);   color:var(--over); }
-  .chip.under{ background:var(--under-soft);  color:var(--under); }
-  .chip.crit { background:var(--crit-soft);   color:var(--crit); }
-  .over-t { color:var(--over); } .under-t { color:var(--under); } .ok-t { color:var(--accent); }
+  /* ——— шаги алгоритма ——— */
+  ol.steps { list-style:none; margin:0; padding:0; counter-reset:s; display:flex; flex-direction:column; gap:14px; }
+  ol.steps > li { counter-increment:s; display:grid; grid-template-columns:28px 1fr; gap:14px;
+                  background:var(--surface); border:1px solid var(--border); padding:16px 18px; }
+  ol.steps > li::before { content:counter(s); font-family:var(--mono); font-size:16px; font-weight:600; color:var(--accent); }
+  .step-body { display:flex; flex-direction:column; gap:9px; min-width:0; }
 
-  /* ——— сравнение подач: пироги против полос ——— */
-  .compare { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:18px; align-items:start; }
-  .panel { background:var(--surface); border:1px solid var(--border); padding:18px; display:flex; flex-direction:column; gap:14px; }
-  .panel.bad-idea { opacity:.92; }
-  .panel-tag { font-family:var(--mono); font-size:11px; letter-spacing:.07em; text-transform:uppercase; }
-  .panel-tag.no { color:var(--crit); } .panel-tag.yes { color:var(--accent); }
+  .pool { display:grid; grid-template-columns:1fr 1fr; gap:14px; font-family:var(--mono); font-size:12.5px; }
+  @media (max-width:600px) { .pool { grid-template-columns:1fr; } }
+  .pool-col { display:flex; flex-direction:column; gap:4px; }
+  .pool-h { font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); padding-bottom:3px; border-bottom:1px solid var(--border); }
+  .pool-r { display:flex; justify-content:space-between; gap:10px; }
 
-  .pies { display:flex; gap:18px; justify-content:center; flex-wrap:wrap; }
-  .pie-unit { display:flex; flex-direction:column; align-items:center; gap:7px; }
-  .pie { width:124px; height:124px; border-radius:50%; }
-  .pie-cap { font-family:var(--mono); font-size:11px; color:var(--muted); }
-  .legend { display:flex; flex-wrap:wrap; gap:5px 12px; font-family:var(--mono); font-size:11px; color:var(--muted); }
-  .legend span { display:flex; align-items:center; gap:5px; }
-  .sw { width:9px; height:9px; border-radius:2px; display:inline-block; }
-
-  /* ——— расходящиеся полосы дрейфа ——— */
-  .bars { display:flex; flex-direction:column; gap:3px; }
-  .barrow { display:grid; grid-template-columns:96px 1fr 62px; gap:10px; align-items:center;
-            font-family:var(--mono); font-size:12px; }
-  .barlab { color:var(--muted); text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .track { position:relative; height:19px; background:var(--surface-2); border-radius:2px; }
-  .zero { position:absolute; left:50%; top:-2px; bottom:-2px; width:1px; background:var(--border); }
-  .band { position:absolute; top:0; bottom:0; background:var(--accent-soft); }
-  .bar { position:absolute; top:3px; bottom:3px; border-radius:2px; }
-  .bar.pos { background:var(--over); } .bar.neg { background:var(--under); }
-  .bar.crit { background:var(--crit); }
-  .barval { font-variant-numeric:tabular-nums; text-align:left; }
-  .axis { display:grid; grid-template-columns:96px 1fr 62px; gap:10px; font-family:var(--mono); font-size:10px; color:var(--muted); }
-  .axis-in { display:flex; justify-content:space-between; }
-
-  /* ——— перестановки ——— */
-  .moves { display:flex; flex-direction:column; gap:8px; }
+  .moves { display:flex; flex-direction:column; gap:7px; }
   .move { display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center;
-          background:var(--surface); border:1px solid var(--border); padding:12px 14px; }
-  .move-txt { font-family:var(--mono); font-size:13.5px; display:flex; flex-wrap:wrap; gap:7px; align-items:baseline; }
+          background:var(--surface); border:1px solid var(--border); padding:11px 14px; }
+  .move-txt { font-family:var(--mono); font-size:13px; display:flex; flex-wrap:wrap; gap:7px; align-items:baseline; }
   .arrow { color:var(--muted); }
   .btn { font-family:var(--mono); font-size:11.5px; padding:5px 11px; border:1px solid var(--accent);
          color:var(--accent); background:transparent; border-radius:99px; white-space:nowrap; cursor:default; }
-  .total { font-family:var(--mono); font-size:12px; color:var(--muted); padding-top:4px; }
+  .btn.solid { background:var(--accent); color:var(--bg); border-color:var(--accent); }
 
   ul.plain { margin:0; padding-left:20px; display:flex; flex-direction:column; gap:6px; }
   ul.plain li::marker { color:var(--muted); }
+  .verdict-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:14px; }
+  .card { background:var(--surface); border:1px solid var(--border); padding:16px; display:flex; flex-direction:column; gap:7px; }
+  .card p { font-size:14.5px; color:var(--muted); }
   footer { border-top:1px solid var(--border); padding-top:18px; font-size:14px; color:var(--muted); }
 </style>
 </head>
@@ -130,219 +147,263 @@
 <div class="wrap">
 
 <header>
-  <p class="eyebrow">Макет · три непонятных пункта</p>
-  <h1>Дрейф, один график и перестановки текущего</h1>
+  <p class="eyebrow">Макет 2 · переосмысление</p>
+  <h1>Мониторинг и движение</h1>
 </header>
 
 <div class="note">
-  <p>Числа ниже — пример на твою сумму <strong>476 157 €</strong>, цели проставлены для иллюстрации. Всё, что нужно, чтобы это заработало: <strong>цель задаётся процентом</strong>, а не суммой. Остальное считается из неё.</p>
+  <p>Твоя рамка взята за основу: экран делает ровно две вещи — <strong>показывает состояние</strong> и <strong>предлагает движение</strong>. Всё, что не служит одному из двух, — шум и в макет не попало.</p>
+  <p>Убрано против прошлой версии: полосы допуска, неликвид, второй пирог. «Дрейф» переименован в <strong>отклонение</strong>.</p>
 </div>
 
-<!-- ============ 1 ============ -->
+<!-- ===================== МОНИТОРИНГ ===================== -->
 <section>
-  <h2>1 · «Что делать» — это колонка дрейфа</h2>
+  <h2>Мониторинг</h2>
   <div class="prose">
-    <p>Дрейф — насколько доля позиции ушла от целевой, в процентных пунктах. Сам по себе он ничего не требует: портфель считается в норме, пока дрейф внутри <strong>полосы допуска</strong>. По правилу 5/25 полоса равна ±5 п.п. для целей от 20% и ±25% от самой цели для целей меньше 20%.</p>
-    <p>Смысл в сортировке: строки идут по величине дрейфа, и <strong>верхняя строка — то, чем стоит заняться</strong>. Сегодня такой строки в интерфейсе нет, есть только «До цели» в евро, которое не сравнивает позиции между собой.</p>
+    <p>Ты прав, что на чистом отклонении не видно ни «сейчас», ни «цели» — только искажение. Поэтому полоса устроена иначе: она показывает <strong>все три величины сразу</strong>. Заливка — сколько есть сейчас, чёрная риска — где цель, цветной хвост за риской — на сколько промахнулся.</p>
+    <p>Пирог оставил, но <strong>один</strong>. Это моё среднее: пирог и полосы отвечают на разные вопросы — «из чего состоит портфель» и «что не на месте». Два пирога рядом отвечают на один и тот же вопрос дважды, и вот это уже шум: разницу долей на глаз всё равно не вычислить, ради неё и нужны полосы.</p>
+  </div>
+
+  <div class="strip">
+    <div class="stat"><span class="stat-k">Капитал</span><span class="stat-v">476 157 €</span></div>
+    <div class="stat"><span class="stat-k">Дальше всех</span><span class="stat-v over-t">+23,0 п.п.</span></div>
+    <div class="stat"><span class="stat-k">Расхождение</span><span class="stat-v">114 306 €</span></div>
+    <div class="stat"><span class="stat-k">Переносов хватит</span><span class="stat-v ok-t">5</span></div>
+  </div>
+
+  <div class="mon">
+    <div class="pieblock">
+      <div class="pie" style="background:conic-gradient(
+        var(--c1) 0 63%, var(--c2) 63% 72.5%, var(--c3) 72.5% 78.8%,
+        var(--c5) 78.8% 79%, var(--c6) 79% 100%)"></div>
+      <span class="pie-cap">состав сейчас</span>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--c1)"></i>недвижка UA · 63,0%</span>
+        <span><i class="sw" style="background:var(--c6)"></i>недвижка EU · 21,0%</span>
+        <span><i class="sw" style="background:var(--c2)"></i>акции · 9,5%</span>
+        <span><i class="sw" style="background:var(--c3)"></i>золото · 6,3%</span>
+        <span><i class="sw" style="background:var(--c5)"></i>кеш · 0,2%</span>
+        <span><i class="sw" style="background:var(--c4)"></i>крипто · 0,0%</span>
+      </div>
+    </div>
+
+    <div class="bars">
+      <div class="bhead">
+        <span>категория</span><span>сейчас против цели</span><span>сейчас</span><span>цель</span><span>откл.</span>
+      </div>
+
+      <div class="brow">
+        <span class="blab">недвижка UA</span>
+        <span class="btrack">
+          <i class="bfill" style="width:61.5%"></i>
+          <i class="bover" style="left:61.5%;width:35.4%"></i>
+          <i class="btick" style="left:61.5%"></i>
+        </span>
+        <span class="bnow">63,0%</span><span class="btgt">40%</span><span class="bgap over-t">+23,0</span>
+      </div>
+
+      <div class="brow">
+        <span class="blab">акции</span>
+        <span class="btrack">
+          <i class="bfill" style="width:14.6%"></i>
+          <i class="bunder" style="left:14.6%;width:16.2%"></i>
+          <i class="btick" style="left:30.8%"></i>
+        </span>
+        <span class="bnow">9,5%</span><span class="btgt">20%</span><span class="bgap under-t">−10,5</span>
+      </div>
+
+      <div class="brow">
+        <span class="blab">крипто</span>
+        <span class="btrack">
+          <i class="bunder" style="left:0;width:7.7%"></i>
+          <i class="btick" style="left:7.7%"></i>
+        </span>
+        <span class="bnow">0,0%</span><span class="btgt">5%</span><span class="bgap under-t">−5,0</span>
+      </div>
+
+      <div class="brow">
+        <span class="blab">кеш</span>
+        <span class="btrack">
+          <i class="bfill" style="width:0.3%"></i>
+          <i class="bunder" style="left:0.3%;width:7.4%"></i>
+          <i class="btick" style="left:7.7%"></i>
+        </span>
+        <span class="bnow">0,2%</span><span class="btgt">5%</span><span class="bgap under-t">−4,8</span>
+      </div>
+
+      <div class="brow">
+        <span class="blab">золото</span>
+        <span class="btrack">
+          <i class="bfill" style="width:9.7%"></i>
+          <i class="bunder" style="left:9.7%;width:5.7%"></i>
+          <i class="btick" style="left:15.4%"></i>
+        </span>
+        <span class="bnow">6,3%</span><span class="btgt">10%</span><span class="bgap under-t">−3,7</span>
+      </div>
+
+      <div class="brow">
+        <span class="blab">недвижка EU</span>
+        <span class="btrack">
+          <i class="bfill" style="width:30.8%"></i>
+          <i class="bover" style="left:30.8%;width:1.5%"></i>
+          <i class="btick" style="left:30.8%"></i>
+        </span>
+        <span class="bnow">21,0%</span><span class="btgt">20%</span><span class="bgap ok-t">+1,0</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <p><strong>Как читается одна строка.</strong> «акции»: заливка доходит до 9,5% — столько есть. Риска стоит на 20% — туда целишься. Пунктирный участок между ними — недобор в 10,5 п.п. Строки отсортированы по величине отклонения, поэтому верхняя всегда та, что дальше всех от цели.</p>
+  </div>
+</section>
+
+<!-- ===================== ЦЕЛЬ ===================== -->
+<section>
+  <h2>Цель: процент или сумма — что задал, то и держится</h2>
+  <div class="prose">
+    <p>Ты задаёшь одно из двух, второе считается. Разница в том, <strong>что переживает изменение капитала</strong>: закрепил процент — сумма пересчитается при росте портфеля; закрепил сумму — она останется, а процент поплывёт. Закреплённое поле помечено, второе показано приглушённым.</p>
   </div>
 
   <div class="tablewrap">
     <table>
       <thead>
-        <tr>
-          <th class="name">Позиция</th>
-          <th class="num">Сейчас</th>
-          <th class="num">Доля</th>
-          <th class="num">Цель</th>
-          <th class="num">Полоса</th>
-          <th class="num">Дрейф</th>
-          <th>Что делать</th>
-        </tr>
+        <tr><th>Категория</th><th class="r">Сейчас</th><th class="r">Цель %</th><th class="r">Цель €</th><th class="r">Отклонение</th><th>Что не так</th></tr>
       </thead>
       <tbody>
         <tr>
-          <td class="name">недвижка UA</td><td class="num">300 000</td><td class="num">63,0%</td>
-          <td class="num">40%</td><td class="num">±5,0</td>
-          <td class="num over-t"><strong>+23,0</strong></td>
-          <td><span class="chip crit">отдать 109 537</span></td>
+          <td class="mono">недвижка UA</td><td class="r">300 000</td>
+          <td class="r">40% <span class="pin">задано</span></td><td class="r derived">190 463</td>
+          <td class="r over-t">+109 537</td><td><span class="mono over-t">перевес</span></td>
         </tr>
         <tr>
-          <td class="name">акции</td><td class="num">45 000</td><td class="num">9,5%</td>
-          <td class="num">20%</td><td class="num">±5,0</td>
-          <td class="num under-t"><strong>−10,5</strong></td>
-          <td><span class="chip under">добрать 50 231</span></td>
+          <td class="mono">акции</td><td class="r">45 000</td>
+          <td class="r">20% <span class="pin">задано</span></td><td class="r derived">95 231</td>
+          <td class="r under-t">−50 231</td><td><span class="mono under-t">недобор</span></td>
         </tr>
         <tr>
-          <td class="name">крипто</td><td class="num">0</td><td class="num">0,0%</td>
-          <td class="num">5%</td><td class="num">±1,25</td>
-          <td class="num under-t"><strong>−5,0</strong></td>
-          <td><span class="chip under">добрать 23 808</span></td>
+          <td class="mono">крипто</td><td class="r">0</td>
+          <td class="r derived">5,0%</td><td class="r">23 808 <span class="pin">задано</span></td>
+          <td class="r under-t">−23 808</td><td><span class="mono under-t">недобор</span></td>
         </tr>
         <tr>
-          <td class="name">кеш</td><td class="num">1 157</td><td class="num">0,2%</td>
-          <td class="num">5%</td><td class="num">±1,25</td>
-          <td class="num under-t"><strong>−4,8</strong></td>
-          <td><span class="chip under">добрать 22 651</span></td>
+          <td class="mono">кеш</td><td class="r">1 157</td>
+          <td class="r">5% <span class="pin">задано</span></td><td class="r derived">23 808</td>
+          <td class="r under-t">−22 651</td><td><span class="mono under-t">недобор</span></td>
         </tr>
         <tr>
-          <td class="name">золото</td><td class="num">30 000</td><td class="num">6,3%</td>
-          <td class="num">10%</td><td class="num">±2,5</td>
-          <td class="num under-t"><strong>−3,7</strong></td>
-          <td><span class="chip under">добрать 17 616</span></td>
+          <td class="mono">золото</td><td class="r">30 000</td>
+          <td class="r">10% <span class="pin">задано</span></td><td class="r derived">47 616</td>
+          <td class="r under-t">−17 616</td><td><span class="mono under-t">недобор</span></td>
         </tr>
         <tr>
-          <td class="name">недвижка EU</td><td class="num">100 000</td><td class="num">21,0%</td>
-          <td class="num">20%</td><td class="num">±5,0</td>
-          <td class="num ok-t"><strong>+1,0</strong></td>
-          <td><span class="chip ok">в норме</span></td>
+          <td class="mono">недвижка EU</td><td class="r">100 000</td>
+          <td class="r">20% <span class="pin">задано</span></td><td class="r derived">95 231</td>
+          <td class="r over-t">+4 769</td><td><span class="mono derived">перевес</span></td>
         </tr>
       </tbody>
     </table>
   </div>
-
-  <div class="note">
-    <p><strong>Что здесь нового по сравнению с сегодняшним экраном.</strong> «Цель» задаётся в процентах и не устаревает при росте капитала. «Полоса» показывает, какое отклонение ещё нормально. «Дрейф» сравнивает позиции между собой в одной шкале — евро этого не умеют, потому что 50 000 в недвижке и 50 000 в крипте значат разное.</p>
-  </div>
+  <p class="num" style="font-size:12.5px;color:var(--muted)">У «крипто» закреплена сумма — процент подстроился. У остальных наоборот.</p>
 </section>
 
-<!-- ============ 2 ============ -->
+<!-- ===================== ДВИЖЕНИЕ ===================== -->
 <section>
-  <h2>2 · Один график вместо двух пирогов</h2>
+  <h2>Движение: откуда берутся предлагаемые переносы</h2>
   <div class="prose">
-    <p>Два пирога рядом выглядят информативно, но решение по ним не принимается: чтобы понять, где перевес, надо вычитать доли в уме, а на глаз углы секторов не вычитаются. Полосовая диаграмма показывает сразу <em>разницу</em> — то единственное, ради чего сравнение и затевалось.</p>
+    <p>Это тот пункт, который был непонятен. Никакой магии здесь нет — четыре механических шага, всё считается из уже имеющихся чисел.</p>
   </div>
 
-  <div class="compare">
-    <div class="panel bad-idea">
-      <span class="panel-tag no">Как было бы с двумя пирогами</span>
-      <div class="pies">
-        <div class="pie-unit">
-          <div class="pie" style="background:conic-gradient(
-            var(--c1) 0 63%, var(--c2) 63% 72.5%, var(--c3) 72.5% 78.8%,
-            var(--c4) 78.8% 78.8%, var(--c5) 78.8% 79%, var(--c6) 79% 100%)"></div>
-          <span class="pie-cap">сейчас</span>
-        </div>
-        <div class="pie-unit">
-          <div class="pie" style="background:conic-gradient(
-            var(--c1) 0 40%, var(--c2) 40% 60%, var(--c3) 60% 70%,
-            var(--c4) 70% 75%, var(--c5) 75% 80%, var(--c6) 80% 100%)"></div>
-          <span class="pie-cap">цель</span>
-        </div>
-      </div>
-      <div class="legend">
-        <span><i class="sw" style="background:var(--c1)"></i>недвижка UA</span>
-        <span><i class="sw" style="background:var(--c2)"></i>акции</span>
-        <span><i class="sw" style="background:var(--c3)"></i>золото</span>
-        <span><i class="sw" style="background:var(--c4)"></i>крипто</span>
-        <span><i class="sw" style="background:var(--c5)"></i>кеш</span>
-        <span><i class="sw" style="background:var(--c6)"></i>недвижка EU</span>
-      </div>
-      <p style="font-size:14px;color:var(--muted);margin:0">Насколько недобраны акции? Придётся считать.</p>
-    </div>
+  <ol class="steps">
+    <li><div class="step-body">
+      <h3>Цель в евро для каждой категории</h3>
+      <p>Если закреплён процент — умножаем на капитал: <code>40% × 476 157 = 190 463</code>. Если закреплена сумма — берём как есть.</p>
+    </div></li>
 
-    <div class="panel">
-      <span class="panel-tag yes">Как предлагаю — полосы дрейфа</span>
-      <div class="bars">
-        <div class="barrow">
-          <span class="barlab">недвижка UA</span>
-          <span class="track"><i class="band" style="left:40%;width:20%"></i><i class="zero"></i>
-            <i class="bar crit" style="left:50%;width:46%"></i></span>
-          <span class="barval over-t">+23,0</span>
+    <li><div class="step-body">
+      <h3>Раскладываем на два списка</h3>
+      <p>Разница «сейчас минус цель»: положительная — в перевес, отрицательная — в недобор. Суммы двух списков всегда равны, потому что проценты дают в сумме 100%.</p>
+      <div class="pool">
+        <div class="pool-col">
+          <span class="pool-h">Перевес — откуда брать</span>
+          <span class="pool-r"><span>недвижка UA</span><span class="over-t">109 537</span></span>
+          <span class="pool-r"><span>недвижка EU</span><span class="over-t">4 769</span></span>
+          <span class="pool-r" style="border-top:1px solid var(--border);padding-top:3px"><span>итого</span><span>114 306</span></span>
         </div>
-        <div class="barrow">
-          <span class="barlab">акции</span>
-          <span class="track"><i class="band" style="left:40%;width:20%"></i><i class="zero"></i>
-            <i class="bar neg" style="right:50%;width:21%"></i></span>
-          <span class="barval under-t">−10,5</span>
-        </div>
-        <div class="barrow">
-          <span class="barlab">крипто</span>
-          <span class="track"><i class="band" style="left:47.5%;width:5%"></i><i class="zero"></i>
-            <i class="bar neg" style="right:50%;width:10%"></i></span>
-          <span class="barval under-t">−5,0</span>
-        </div>
-        <div class="barrow">
-          <span class="barlab">кеш</span>
-          <span class="track"><i class="band" style="left:47.5%;width:5%"></i><i class="zero"></i>
-            <i class="bar neg" style="right:50%;width:9.6%"></i></span>
-          <span class="barval under-t">−4,8</span>
-        </div>
-        <div class="barrow">
-          <span class="barlab">золото</span>
-          <span class="track"><i class="band" style="left:45%;width:10%"></i><i class="zero"></i>
-            <i class="bar neg" style="right:50%;width:7.4%"></i></span>
-          <span class="barval under-t">−3,7</span>
-        </div>
-        <div class="barrow">
-          <span class="barlab">недвижка EU</span>
-          <span class="track"><i class="band" style="left:40%;width:20%"></i><i class="zero"></i>
-            <i class="bar pos" style="left:50%;width:2%"></i></span>
-          <span class="barval ok-t">+1,0</span>
+        <div class="pool-col">
+          <span class="pool-h">Недобор — куда класть</span>
+          <span class="pool-r"><span>акции</span><span class="under-t">50 231</span></span>
+          <span class="pool-r"><span>крипто</span><span class="under-t">23 808</span></span>
+          <span class="pool-r"><span>кеш</span><span class="under-t">22 651</span></span>
+          <span class="pool-r"><span>золото</span><span class="under-t">17 616</span></span>
+          <span class="pool-r" style="border-top:1px solid var(--border);padding-top:3px"><span>итого</span><span>114 306</span></span>
         </div>
       </div>
-      <div class="axis"><span></span><span class="axis-in"><span>−25 п.п.</span><span>0</span><span>+25 п.п.</span></span><span></span></div>
-      <p style="font-size:14px;color:var(--muted);margin:0">Светлая зона за нулём — полоса допуска. Вышел за неё — видно мгновенно, считать не надо.</p>
-    </div>
-  </div>
-</section>
+    </div></li>
 
-<!-- ============ 3 ============ -->
-<section>
-  <h2>3 · Что переставить из уже имеющегося</h2>
-  <div class="prose">
-    <p>Здесь я тебя понял неверно в прошлый раз: речь не о раскладке новых поступлений, а о перетасовке <strong>текущего</strong>. Это меняет расчёт — источником становятся не деньги извне, а позиции с перевесом.</p>
-    <p>Важно, что для этого <strong>не нужен новый механизм</strong>: «Перестановки» уже есть и уже умеют переносить сумму из позиции в позицию. Не хватает только подсказки, какие переносы имеют смысл. Кнопка создаёт ровно ту связку, что ты сегодня заводишь руками через «↦ переложить».</p>
-  </div>
+    <li><div class="step-body">
+      <h3>Сливаем крупное с крупным</h3>
+      <p>Берём самый большой перевес и самый большой недобор, переносим меньшее из двух, вычёркиваем исчерпанное и повторяем. Так получается <strong>наименьшее число переносов</strong> — а не двадцать мелких, которые никто не станет делать.</p>
+      <p style="font-size:14px;color:var(--muted)">UA отдаёт акциям 50 231 — у UA остаётся 59 306. Дальше крипте 23 808, кешу 22 651, остаток 12 847 уходит золоту. Золоту не хватает 4 769 — их добавляет EU. Списки пусты, конец.</p>
+    </div></li>
+
+    <li><div class="step-body">
+      <h3>Каждая пара становится обычной перестановкой</h3>
+      <p>Это <strong>не новый механизм</strong>: «Перестановки» уже умеют переносить сумму из позиции в позицию. Кнопка создаёт ровно ту связку, что ты сегодня заводишь руками через «↦ переложить», — и её так же можно удалить.</p>
+    </div></li>
+  </ol>
 
   <div class="moves">
-    <div class="move">
-      <span class="move-txt"><strong>недвижка UA</strong> <span class="arrow">→</span> <strong>акции</strong>
-        <span class="num under-t">50 231 €</span></span>
-      <span class="btn">создать перестановку</span>
-    </div>
-    <div class="move">
-      <span class="move-txt"><strong>недвижка UA</strong> <span class="arrow">→</span> <strong>крипто</strong>
-        <span class="num under-t">23 808 €</span></span>
-      <span class="btn">создать перестановку</span>
-    </div>
-    <div class="move">
-      <span class="move-txt"><strong>недвижка UA</strong> <span class="arrow">→</span> <strong>кеш</strong>
-        <span class="num under-t">22 651 €</span></span>
-      <span class="btn">создать перестановку</span>
-    </div>
-    <div class="move">
-      <span class="move-txt"><strong>недвижка UA</strong> <span class="arrow">→</span> <strong>золото</strong>
-        <span class="num under-t">12 847 €</span></span>
-      <span class="btn">создать перестановку</span>
-    </div>
-    <div class="move">
-      <span class="move-txt"><strong>недвижка EU</strong> <span class="arrow">→</span> <strong>золото</strong>
-        <span class="num under-t">4 769 €</span></span>
-      <span class="btn">создать перестановку</span>
+    <div class="move"><span class="move-txt"><strong>недвижка UA</strong> <span class="arrow">→</span> <strong>акции</strong> <span class="num under-t">50 231 €</span></span><span class="btn">создать</span></div>
+    <div class="move"><span class="move-txt"><strong>недвижка UA</strong> <span class="arrow">→</span> <strong>крипто</strong> <span class="num under-t">23 808 €</span></span><span class="btn">создать</span></div>
+    <div class="move"><span class="move-txt"><strong>недвижка UA</strong> <span class="arrow">→</span> <strong>кеш</strong> <span class="num under-t">22 651 €</span></span><span class="btn">создать</span></div>
+    <div class="move"><span class="move-txt"><strong>недвижка UA</strong> <span class="arrow">→</span> <strong>золото</strong> <span class="num under-t">12 847 €</span></span><span class="btn">создать</span></div>
+    <div class="move"><span class="move-txt"><strong>недвижка EU</strong> <span class="arrow">→</span> <strong>золото</strong> <span class="num under-t">4 769 €</span></span><span class="btn">создать</span></div>
+    <div class="move" style="border-style:dashed">
+      <span class="move-txt derived">после всех пяти отклонение каждой категории — ноль</span>
+      <span class="btn solid">создать все</span>
     </div>
   </div>
-  <p class="total">Итого переносится 114 306 €. После них дрейф каждой позиции — ноль, «Стало» сходится с целью.</p>
 
   <div class="note warn">
-    <h3>Оговорка, без которой это бесполезно</h3>
-    <p>Половина твоего капитала — недвижимость и займы, которые не двигаются кнопкой. Подсказка, предлагающая «отдать 109 537 из недвижки UA», игнорировать реальность будет ровно один раз, после чего ты перестанешь на неё смотреть.</p>
-    <p>Поэтому позиции нужно уметь помечать как <strong>неликвид</strong>: они участвуют в долях и дрейфе (ты видишь перекос), но не предлагаются как источник переносов. Тогда подсказка будет раскладывать только то, что реально можно переставить, а по неликвиду честно скажет: «перекос есть, но переставить нечем».</p>
+    <p><strong>Подсказка ничего не исполняет.</strong> Она создаёт те же связки, которые ты завёл бы вручную, и «Стало» покажет результат до того, как ты что-то сделаешь в реальности. Захотел иначе — удалил связку или поправил сумму.</p>
   </div>
 </section>
 
+<!-- ===================== ВЫВОДЫ ===================== -->
 <section>
-  <h2>Что для этого нужно сделать</h2>
-  <ul class="plain">
-    <li><strong>Цель в процентах.</strong> Поле «План» принимает долю вместо суммы; сумма становится расчётной. Один раз перенести текущие планы: доля = план ÷ общий план.</li>
-    <li><strong>Колонка дрейфа и полосы.</strong> Считается из целей, правки только во фронте.</li>
-    <li><strong>Флаг «неликвид»</strong> у позиции — как сегодня 🤝 у займа, отдельная пометка.</li>
-    <li><strong>Подсказка переносов</strong> — раскладывает перевес ликвидных позиций по недобранным и создаёт обычные перестановки.</li>
-    <li><strong>График дрейфа</strong> вместо второго пирога в целевом.</li>
-  </ul>
+  <h2>Что меняется в коде</h2>
+  <div class="verdict-grid">
+    <div class="card">
+      <h3>Цель в двух единицах</h3>
+      <p>Поле «План» плюс признак, что закреплено — процент или сумма. Второе значение выводится рядом приглушённым. Одна колонка в таблице, правка фронта и одно поле в схеме.</p>
+    </div>
+    <div class="card">
+      <h3>Колонка «Отклонение»</h3>
+      <p>Считается из цели, сортирует таблицу. Только фронт.</p>
+    </div>
+    <div class="card">
+      <h3>Полосы «сейчас против цели»</h3>
+      <p>Заменяют аллокацию по плану, пирог «состав сейчас» остаётся. Только фронт.</p>
+    </div>
+    <div class="card">
+      <h3>Подсказка переносов</h3>
+      <p>Четыре шага выше, на выходе — обычные перестановки. Только фронт.</p>
+    </div>
+  </div>
+
+  <div class="note">
+    <h3>Чего в макете намеренно нет</h3>
+    <ul class="plain">
+      <li><strong>Полос допуска</strong> — согласен, лишняя сущность. Ты и так видишь величину отклонения и решаешь сам, когда она значима.</li>
+      <li><strong>Флага «неликвид»</strong> — снято, раз всё может быть ликвидом.</li>
+      <li><strong>Второго пирога</strong> — его работу делают полосы, причём точнее.</li>
+    </ul>
+  </div>
 </section>
 
 <footer>
-  <p>Макет статический — числа зашиты, кнопки не активны. Нужен, чтобы договориться о виде до того, как я начну править код.</p>
+  <p>Макет статический: числа зашиты, кнопки не активны. Пример посчитан на капитал 476 157 €, цели проставлены для иллюстрации. Суммы сходятся: перевес 114 306 = недобор, сумма отклонений в п.п. равна нулю.</p>
 </footer>
 
 </div>
