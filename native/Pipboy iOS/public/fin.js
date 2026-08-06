@@ -335,6 +335,7 @@ function secPortfolio(d, s) {
   // Аллокация целевого по ПЛАНУ: тип живёт на листьях, план берём эффективный (planEur).
   // Если у раздела свой план больше суммы позиций внутри, разница уходит в «не расписано».
   const planByType = {}, planByTypeBlocks = {}, planBlock = {};
+  let planNoType = 0, planNoTypeSum = 0, planNoPlan = 0;   // что осталось не определённым
   if (tgt) {
     let leafSum = 0;
     const walkPlan = (n, root) => {
@@ -343,11 +344,12 @@ function secPortfolio(d, s) {
         const v = n.planEur || 0;
         if (v > 0) {
           const ty = n.asset_type || 'без типа';
+          if (!n.asset_type) { planNoType++; planNoTypeSum += v; }
           planByType[ty] = (planByType[ty] || 0) + v;
           (planByTypeBlocks[ty] ||= {})[root] = ((planByTypeBlocks[ty] || {})[root] || 0) + v;
           planBlock[root] = (planBlock[root] || 0) + v;
           leafSum += v;
-        }
+        } else planNoPlan++;
       }
       kids.forEach(c => walkPlan(c, root));
     };
@@ -356,6 +358,16 @@ function secPortfolio(d, s) {
   }
   const planTypeRows = Object.entries(planByType).sort((a, b) => b[1] - a[1]);
   const planPieTotal = planTypeRows.reduce((a, [, v]) => a + v, 0);
+  // Сверка: сумма категорий должна совпасть с планом. Расходится, когда у раздела свой план
+  // МЕНЬШЕ суммы позиций внутри — тогда в аллокацию идут позиции, и пирог больше плана.
+  const planDiff = planPieTotal - planTotal;
+  const planCheck = !tgt || !planTypeRows.length ? '' : `<div class="meta" style="margin-top:10px;line-height:1.7">
+    ${Math.abs(planDiff) < 1
+      ? `<span class="up">✓ сумма категорий сходится с планом — ${fmtE(planTotal)}</span>`
+      : `<span class="down">⚠ категории ${fmtE(planPieTotal)} ≠ план ${fmtE(planTotal)}, расхождение ${fmtE(Math.abs(planDiff))}</span><br>у раздела свой план меньше суммы позиций внутри — в аллокацию идут позиции`}
+    ${planNoTypeSum > 1 ? `<br><span class="down">без типа: ${fmtE(planNoTypeSum)} в ${planNoType} позиц.</span> — задай тип кнопкой ⊙ в строке` : ''}
+    ${planNoPlan ? `<br>без плана: ${planNoPlan} позиц. — в аллокацию не попали` : ''}
+  </div>`;
   const rctx = { total: rootTotal, planTotal, parentEur: rootTotal, tgt, factByPath, path: '' };
   if (tgt) {   // ручные связки ребаланса (из target_moves): сопоставляем id позиций с путём/именем
     const byId = {};
@@ -444,6 +456,7 @@ function secPortfolio(d, s) {
         }).join('')}
       </div>
     </div>
+    ${planCheck}
   </div>` : ''}`;
 }
 
