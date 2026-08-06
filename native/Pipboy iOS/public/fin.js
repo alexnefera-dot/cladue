@@ -87,13 +87,14 @@ function portRows(it, depth, ctx) {
     const shareCat = ctx?.blockEur > 0 && it.eur > 0 ? it.eur / ctx.blockEur * 100 : null;
     const shareSub = shareTot == null ? '' :
       `<span class="sub">${shareCat != null ? `${shareCat.toFixed(1)}% кат. · ` : ''}${shareTot.toFixed(1)}% общ.</span>`;
-    const becameSub = net === 0 ? '' :
-      `<span class="sub ${net > 0 ? 'up' : 'down'}" title="после запланированных переносов">станет ${editable ? fmt((it.value || 0) + netCur) + ' ' + fesc(cur) : fmtE((it.eur || 0) + net)}</span>`;
     const nowCell = it.auto
-      ? `<td class="r num acc" title="авто: ${it.qty} × курс ${fesc(it.rate_symbol)}">⚡ ${fmt(it.value)} $${shareSub}${becameSub}</td>`
+      ? `<td class="r num now sep" title="авто: ${it.qty} × курс ${fesc(it.rate_symbol)}">⚡ ${fmt(it.value)} $${shareSub}</td>`
       : editable
-        ? `<td class="r num acc"><span class="pill btn" data-fcur="${it.id}:${cur}" title="сменить валюту">${cur}</span> <span class="ed" data-fe="tgt:${it.id}:value:num" title="сколько размещено сейчас (клик)">${it.value != null ? fmt(it.value) : '—'}</span>${shareSub}${becameSub}</td>`
-        : `<td class="r num acc">${fmtE(it.eur)}${shareSub}${becameSub}</td>`;
+        ? `<td class="r num now sep"><span class="pill btn" data-fcur="${it.id}:${cur}" title="сменить валюту">${cur}</span> <span class="ed" data-fe="tgt:${it.id}:value:num" title="сколько размещено сейчас (клик)">${it.value != null ? fmt(it.value) : '—'}</span>${shareSub}</td>`
+        : `<td class="r num now sep">${fmtE(it.eur)}${shareSub}</td>`;
+    // «Станет» — только когда переносы запланированы; иначе колонка молчит, а не повторяет «Сейчас»
+    const becameCell = `<td class="r num">${net === 0 ? '<span class="dash">—</span>'
+      : `<span class="${net > 0 ? 'up' : 'down'}" title="сейчас ${editable ? fmt(it.value || 0) : fmtE(it.eur)} ${net > 0 ? '+' : '−'} ${fmt(Math.abs(editable ? netCur : net))} переносами">→ ${editable ? fmt((it.value || 0) + netCur) : fmtE((it.eur || 0) + net)}</span>`}</td>`;
     // покупка и прирост — из прежней вкладки «Факт», они не дублируются нигде больше
     const g = it.invested != null && it.invested && !(editable && it.buy_value == null)
       ? (it.investedCur - it.invested) / it.invested * 100 : null;
@@ -104,11 +105,11 @@ function portRows(it, depth, ctx) {
     const planPctShown = it.planPin === 'pct' ? it.target_pct
       : (it.planEur != null && capT > 0 ? it.planEur / capT * 100 : null);
     const planEurShown = it.planPin === 'eur' ? it.target_value : (it.planEur != null ? it.planEur : null);
-    const pctCell = `<span class="ed${it.planPin === 'pct' ? ' pinned' : ' meta'}" data-fe="tgt:${it.id}:target_pct:num" title="цель долей (клик закрепит её)">${planPctShown != null ? planPctShown.toFixed(1) : '—'}%</span>`;
-    const eurCell = `<span class="ed${it.planPin === 'eur' ? ' pinned' : ' meta'}" data-fe="tgt:${it.id}:target_value:num" title="цель суммой (клик закрепит её)">${planEurShown != null ? fmt(planEurShown) : '—'}</span>`;
+    const pctCell = `<span class="ed${it.planPin === 'pct' ? ' pinned' : ' derived'}" data-fe="tgt:${it.id}:target_pct:num" title="цель долей (клик закрепит её)">${planPctShown != null ? planPctShown.toFixed(1) + '%' : '—'}</span>`;
+    const eurCell = `<span class="ed${it.planPin === 'eur' ? ' pinned' : ' derived'}" data-fe="tgt:${it.id}:target_value:num" title="цель суммой (клик закрепит её)">${planEurShown != null ? fmt(planEurShown) : '—'}</span>`;
     const planDiff = it.planPin && it.planKids && Math.abs((it.planEur || 0) - it.planKids) >= 1
       ? `<div class="meta" title="своя цель расходится с суммой целей внутри">по позициям ${fmtE(it.planKids)}</div>` : '';
-    const planCell = `<td class="r num acc">${pctCell} <span class="meta">/</span> ${eurCell}${planDiff}</td>`;
+    const planCell = `<td class="r num goal sep">${pctCell}<span class="sub">${eurCell} ${fesc(cur)}</span>${planDiff}</td>`;
     // Отклонение = «Стало» − «Цель»: положительное — перевес, отрицательное — недобор
     const becameEur = (it.eur || 0) + net;
     const dev = it.planEur != null && it.planEur > 0 ? becameEur - it.planEur : null;
@@ -122,8 +123,8 @@ function portRows(it, depth, ctx) {
     ].join('');
     const moveOpen = tgtMove?.from === it.id;
     const moveBtn = editable ? `<span class="rowbtn${moveOpen ? ' on' : ''}" data-tgtmove="${it.id}" title="переложить в другую позицию">↦ переложить</span>` : '';
-    cells = `${buyCell}${gainCell}${nowCell}${planCell}${devCell}
-      <td style="text-align:left;min-width:170px">${links}${moveBtn}</td>`;
+    cells = `${buyCell}${gainCell}${nowCell}${becameCell}${planCell}${devCell}
+      <td class="sep" style="text-align:left">${links}${moveBtn}</td>`;
   }
   return `<tr class="${rowCls}" draggable="true" data-pid="${it.id}">
     <td class="pname" style="--d:${depth}">
@@ -489,12 +490,13 @@ ${mergeDiag}
       ? `<div class="pcards">${tree.map(b => portCard(b, 0, rctx)).join('') || '<div class="empty">пусто</div>'}</div>`
       : `<table class="fintable porttable">
       <tr><th>Название</th>
-        <th class="r" title="цена покупки в валюте позиции">Покупка</th>
-        <th class="r">Прирост</th>
-        <th class="r" title="сколько размещено; под ним доля и, если есть переносы, «станет»">Сейчас</th>
-        <th class="r" title="доля / сумма — заполненное закреплено, второе выводится">Цель % / €</th>
-        <th class="r" title="стало − цель">Отклонение</th>
-        <th class="r">Перестановки</th><th></th></tr>
+        <th class="r" style="width:96px" title="цена покупки в валюте позиции">Покупка</th>
+        <th class="r" style="width:66px">Прирост</th>
+        <th class="r sep" style="width:116px" title="сколько размещено; под суммой — доля">Сейчас</th>
+        <th class="r" style="width:104px" title="сейчас плюс запланированные переносы">Станет</th>
+        <th class="r sep" style="width:126px" title="доля или сумма — заполненное закреплено, второе выводится">Цель</th>
+        <th class="r" style="width:118px" title="станет − цель">Отклонение</th>
+        <th class="sep" style="width:180px">Перестановки</th><th style="width:92px"></th></tr>
       ${tree.map(b => portRows(b, 0, rctx)).join('') || '<tr><td colspan="8"><div class="empty">пусто</div></td></tr>'}
     </table>`}
     ${tgt ? `<div class="task finadd" style="margin-top:6px"><input id="tgt_block" placeholder="новый блок целевого" style="flex:1"><span class="pill btn ok" data-tgtadd="block:">＋ блок</span></div>`
