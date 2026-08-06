@@ -19,6 +19,13 @@ declare(strict_types=1);
  * У каждого типа страницы своя мерка: главная держит 24 поля из 55, внутренние
  * по 30–35 — они короче и однообразнее, и требовать от них главную нельзя.
  *
+ * Отдельная проверка — СМЕЩЕНИЕ по отпущенным полям. Разброс у донора не даёт
+ * права систематически сидеть ниже его медианы: у него значения гуляют вокруг
+ * центра, а комплект, который по всем семи страницам лежит под ним, — это уже
+ * не разброс, а смещение. Первый наш комплект так и прошёл: объём 75 % от
+ * донорского, ссылки 38 %, и ни один шлюз этого не увидел, потому что words и
+ * ссылки были записаны в «отпустить».
+ *
  * Порог по параметрам — доля, а не «все до одного». Каждое поле по отдельности
  * держат 70–90 % доноров, но тридцать полей разом — это произведение
  * вероятностей, и его не берёт НИ ОДИН донорский комплект: медиана 90–94 %,
@@ -179,6 +186,21 @@ for ($i = 0; $i < count($imena); $i++) {
 $kanMax = max(max($mVn), max($vnVn));
 if ($kanMax > 3.0) { $provaly['каннибализация'] = 1; }
 
+// ── 4б. смещение по отпущенным полям ────────────────────────────────
+// Отпущенное поле обязано гулять ВОКРУГ донорской медианы. Считаем сумму по
+// комплекту и сравниваем с суммой донорских медиан: ниже 85 % — смещение.
+$smeshenie = [];
+foreach (['words' => 'объём', 'terms_total' => 'профильных терминов'] as $pole => $imya) {
+    $nashSum = 0; $ihSum = 0;
+    foreach (PAGES_K as $p) {
+        $c = PageMetrics::measure($a, $p, $stranicy[$p], ['ru' => '%brand_name_ru%', 'en' => '%brand_name_en%']);
+        $nashSum += (float) ($c[$pole] ?? 0);
+        $ihSum += (float) ($profil['страницы'][$p]['поля'][$pole]['цель'] ?? 0);
+    }
+    $dolya = $ihSum ? $nashSum / $ihSum * 100 : 100;
+    $smeshenie[$imya] = [round($nashSum) . ' из ' . round($ihSum), '≥85%', $dolya >= 85, round($dolya)];
+}
+
 // ── 5. граф перелинковки ────────────────────────────────────────────
 $ishod = [];
 foreach (PAGES_K as $p) {
@@ -194,16 +216,23 @@ foreach (PAGES_K as $p) {
     if ($p === 'main') { continue; }
     foreach ($ishod[$p] as $h) { if (trim($h, '/') === '') { $nazadNaGlavnuyu++; break; } }
 }
+$ssylokVsego = 0;
+foreach (PAGES_K as $p) { $ssylokVsego += count($ishod[$p]); }
+$ssylokCel = 0;
+foreach (PAGES_K as $p) { $ssylokCel += (int) ($profil['страницы'][$p]['жанр']['ссылок'] ?? 50); }
+$smeshenie['внутренних ссылок'] = [$ssylokVsego . ' из ' . $ssylokCel, '≥85%',
+    $ssylokVsego / max(1, $ssylokCel) * 100 >= 85, round($ssylokVsego / max(1, $ssylokCel) * 100)];
+
 $graf = [
-    'ссылок с главной' => [count($ishod['main']), '≥14', count($ishod['main']) >= 14],
+    'ссылок с главной' => [count($ishod['main']), '40–60', count($ishod['main']) >= 40 && count($ishod['main']) <= 60],
     'главная ведёт на типов' => [count($sGlavnoy), '≥4', count($sGlavnoy) >= 4],
     'входящих на /bonus' => [$vhodBonus, '0', $vhodBonus === 0],
     'внутренних, ведущих назад' => [$nazadNaGlavnuyu, '0–2', $nazadNaGlavnuyu <= 2],
 ];
 foreach (PAGES_K as $p) {
     if ($p === 'main') { continue; }
-    $graf["ссылок с /$p"] = [count($ishod[$p]), '1–14',
-        count($ishod[$p]) >= 1 && count($ishod[$p]) <= 14];
+    $graf["ссылок с /$p"] = [count($ishod[$p]), '3–11',
+        count($ishod[$p]) >= 3 && count($ishod[$p]) <= 11];
 }
 $grafOk = count(array_filter($graf, fn($x) => $x[2]));
 if ($grafOk < count($graf)) { $provaly['граф'] = 1; }
@@ -251,6 +280,14 @@ foreach ($vnutr as $p => $v) {
     echo '  ' . ($v['ок'] === $v['всего'] ? '·' : '✗') . ' ' . $pad($p, 13, true)
         . $pad($v['ок'] . '/' . $v['всего'], 6) . '  ' . mb_substr($v['первый H2'], 0, 46)
         . ($bad ? '   ✗ ' . implode(', ', $bad) : '') . "\n";
+}
+
+foreach ($smeshenie as $x) { if (!$x[2]) { $provaly['смещение'] = 1; } }
+
+echo "\n── смещение по отпущенным полям ──\n";
+foreach ($smeshenie as $n => [$est, $nado, $ok, $pct]) {
+    echo '  ' . ($ok ? '·' : '✗') . ' ' . $pad($n, 24, true) . $pad($est, 16)
+        . $pad($pct . '%', 7) . '   нужно ' . $nado . "\n";
 }
 
 echo "\n── граф перелинковки ──\n";
