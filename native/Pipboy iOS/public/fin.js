@@ -543,7 +543,7 @@ function catDonut(rows, total) {
     }
     ang = a1;
   });
-  return `<svg viewBox="0 0 168 168" width="168" height="168" role="img" aria-label="состав целевого портфеля">
+  return `<svg viewBox="0 0 168 168" role="img" aria-label="состав портфеля">
     ${out}${labels}
     <text class="ct-v" x="84" y="82">${fmt(total)}</text>
     <text class="ct-k" x="84" y="97">размещено, €</text>

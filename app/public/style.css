@@ -373,14 +373,15 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 #navMore{color:var(--muted);font-weight:500}
 
 /* ═══ Целевой портфель: мониторинг и форма переноса ═══ */
-.tgtmon{display:grid;grid-template-columns:186px 1fr;gap:18px;align-items:start;padding:4px 0}
+.tgtmon{display:grid;grid-template-columns:clamp(200px,26%,300px) 1fr;gap:22px;align-items:center;padding:4px 0}
 @media (max-width:820px){.tgtmon{grid-template-columns:1fr;justify-items:center}}
 .tgtdonut{display:flex;justify-content:center}
+.tgtdonut svg{width:100%;height:auto;max-width:300px;display:block}   /* тянется по колонке — подписи растут вместе с ней */
 .tgtdonut .sl{transition:opacity .12s}
 .tgtdonut .sl.hi{opacity:.72}
-.tgtdonut .pl{font:600 10.5px var(--mono);fill:#fff;text-anchor:middle;dominant-baseline:middle}
-.tgtdonut .ct-v{font:17px var(--mono);fill:var(--text);text-anchor:middle;font-variant-numeric:tabular-nums}
-.tgtdonut .ct-k{font:9px var(--mono);fill:var(--muted);text-anchor:middle;letter-spacing:.06em}
+.tgtdonut .pl{font:600 9px var(--mono);fill:#fff;text-anchor:middle;dominant-baseline:middle}
+.tgtdonut .ct-v{font:15px var(--mono);fill:var(--text);text-anchor:middle;font-variant-numeric:tabular-nums}
+.tgtdonut .ct-k{font:7.5px var(--mono);fill:var(--muted);text-anchor:middle;letter-spacing:.06em}
 
 .barswrap{overflow-x:auto;min-width:0;width:100%}
 .bars{display:flex;flex-direction:column;gap:5px;min-width:600px}
