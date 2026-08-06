@@ -138,9 +138,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .porttable{font-variant-numeric:tabular-nums}
 .porttable td{padding:7px 8px;border-bottom:1px solid var(--bg2)}
 .porttable tr:last-child td{border-bottom:0}
-.porttable tr.pblock td{background:var(--bg2);font-weight:700}
-.porttable tr.psection td{font-weight:600}
-.porttable td.acc{font-weight:700;font-size:13.5px}
+.porttable tr.pblock td{background:var(--bg2)}
+.porttable tr.psection td{font-weight:400}
+.porttable td.acc{font-size:13px}
 .porttable tr:hover .rowbtn{opacity:1}
 .ed{cursor:pointer;border-bottom:1px dashed var(--line)}
 .ed:hover{color:var(--green)}
@@ -433,14 +433,12 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .porttable{min-width:1000px}                      /* не сжимаем колонки в кашу — лучше прокрутка */
 .porttable td,.porttable th{padding:7px 10px}
 .porttable td.sep,.porttable th.sep{border-left:1px solid var(--line)}   /* границы групп, иначе числа сливаются */
-.porttable td.now,.porttable td.goal{font-weight:600;font-size:13px}   /* «Сейчас» и «Цель» — один кегль и вес */
+.porttable td.now,.porttable td.goal{font-weight:400;font-size:13px}   /* без жирности: в числовой колонке её работу делает выравнивание */
 .porttable .sub{display:block;font:11px var(--mono);font-weight:400;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
 .porttable .dash{color:var(--line2)}
 .porttable .devpp{display:block;font-size:10.5px;margin-top:1px}
 .porttable .ed.pinned{color:var(--green);font-weight:600;border-bottom-color:var(--green-dim)}
 .porttable .ed.derived{color:var(--muted);font-weight:400}
-.porttable tr.pblock td{font-weight:600}          /* блоки выделяем фоном, вес не задираем */
-.porttable td.acc{font-weight:600;font-size:13px}
 .porttable td.goal .sub .ed{font-size:11px}
 .porttable td.goal .ed.pinned{color:var(--green)}
 .bgrip{color:var(--line2);cursor:grab;font-size:11px;line-height:1;user-select:none}
@@ -448,3 +446,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .brow[draggable]{cursor:default}
 .brow.dropbefore{box-shadow:inset 0 2px 0 var(--green)}
 .brow.dropafter{box-shadow:inset 0 -2px 0 var(--green)}
+/* Иерархия — фоном и отступом, а не жирностью: иначе каждый новый раздел лезет в глаза */
+.porttable tr.pblock td{background:var(--bg2)}
+.porttable tr.pblock .pname{font-weight:600}
+.porttable tr.psection td,.porttable tr.psection .pname{font-weight:400}
