@@ -62,6 +62,7 @@ window.loadFin = async function () {
 // ===== Портфель: строки таблицы =====
 // свёрнутые узлы — переживают перерисовку и перезапуск
 const portFold = new Set(JSON.parse(localStorage.portFold ?? '[]'));
+let tgtMove = null;   // {from, to, amount} — раскрытая форма переноса; null = закрыта, нигде не показывается
 const savePortFold = () => localStorage.portFold = JSON.stringify([...portFold]);
 
 function portRows(it, depth, ctx) {
@@ -90,14 +91,23 @@ function portRows(it, depth, ctx) {
     const becameShown = editable ? `${fmt((it.value || 0) + netCur)} ${fesc(cur)}` : fmtE((it.eur || 0) + net);
     const becameCell = `<td class="r num acc">${net === 0 ? becameShown
       : `<span class="${net > 0 ? 'up' : 'down'}" title="сейчас ${editable ? fmt(it.value || 0) + ' ' + fesc(cur) : fmtE(it.eur)} · переносы ${net > 0 ? '+' : '−'}${fmt(Math.abs(editable ? netCur : net))} ${editable ? fesc(cur) : '€'}">${becameShown}</span>`}</td>`;
-    // план правится на любом уровне: у раздела своё значение перекрывает сумму вложенных
-    const ownPlan = it.target_value;
-    const planShown = ownPlan != null ? fmt(ownPlan) : (it.planKids ? fmt(it.planKids) : '—');
-    const planDiff = ownPlan != null && it.planKids && Math.abs((it.planEur || 0) - it.planKids) >= 1
-      ? `<div class="meta" title="свой план раздела расходится с суммой планов внутри">по позициям ${fmtE(it.planKids)}</div>` : '';
-    const planCell = `<td class="r num acc"><span class="ed${ownPlan == null && it.planKids ? ' meta' : ''}" data-fe="tgt:${it.id}:target_value:num" title="${editable ? 'план — сколько хочу получить (клик)' : 'план раздела — клик задаёт свой; сейчас показана сумма планов внутри'}">${planShown}</span> <span class="meta">${fesc(cur)}</span>${planDiff}</td>`;
-    const gap = (it.planEur != null && it.planEur > 0) ? it.planEur - ((it.eur || 0) + net) : null;   // план − стало, в €
-    const gapCell = `<td class="r num">${gap == null ? '' : Math.abs(gap) < 1 ? '<span class="up">✓ в плане</span>' : gap > 0 ? `<span class="down">+${fmtE(gap)} добрать</span>` : `<span class="meta">−${fmtE(-gap)} перебор</span>`}</td>`;
+    // Цель: одно поле задано, второе выведено. Клик по любому из них закрепляет именно его.
+    const capT = ctx?.total || 0;
+    const planPctShown = it.planPin === 'pct' ? it.target_pct
+      : (it.planEur != null && capT > 0 ? it.planEur / capT * 100 : null);
+    const planEurShown = it.planPin === 'eur' ? it.target_value : (it.planEur != null ? it.planEur : null);
+    const pctCell = `<span class="ed${it.planPin === 'pct' ? ' pinned' : ' meta'}" data-fe="tgt:${it.id}:target_pct:num" title="цель долей (клик закрепит её)">${planPctShown != null ? planPctShown.toFixed(1) : '—'}%</span>`;
+    const eurCell = `<span class="ed${it.planPin === 'eur' ? ' pinned' : ' meta'}" data-fe="tgt:${it.id}:target_value:num" title="цель суммой (клик закрепит её)">${planEurShown != null ? fmt(planEurShown) : '—'}</span>`;
+    const planDiff = it.planPin && it.planKids && Math.abs((it.planEur || 0) - it.planKids) >= 1
+      ? `<div class="meta" title="своя цель расходится с суммой целей внутри">по позициям ${fmtE(it.planKids)}</div>` : '';
+    const planCell = `<td class="r num acc">${pctCell} <span class="meta">/</span> ${eurCell}${planDiff}</td>`;
+    // Отклонение = «Стало» − «Цель»: положительное — перевес, отрицательное — недобор
+    const becameEur = (it.eur || 0) + net;
+    const dev = it.planEur != null && it.planEur > 0 ? becameEur - it.planEur : null;
+    const devPP = dev != null && ctx?.total > 0 ? dev / ctx.total * 100 : null;
+    const devCell = `<td class="r num">${dev == null ? '' : Math.abs(dev) < 1
+      ? '<span class="up">✓ в цели</span>'
+      : `<span class="${dev > 0 ? 'dev-over' : 'dev-under'}">${dev > 0 ? '+' : '−'}${fmtE(Math.abs(dev))}<span class="meta devpp">${devPP > 0 ? '+' : '−'}${Math.abs(devPP).toFixed(1)} п.п.</span></span>`}</td>`;
     // доля плана: основная — внутри своего блока, от всего целевого — мельче
     const planPct = ctx?.planTotal > 0 && it.planEur > 0 ? it.planEur / ctx.planTotal * 100 : null;
     const planCat = ctx?.blockTarget > 0 && it.planEur > 0 ? it.planEur / ctx.blockTarget * 100 : null;
@@ -108,8 +118,9 @@ function portRows(it, depth, ctx) {
       ...(ctx?.movesBySrc?.[path] || []).map(mv => `<div class="meta"><span class="down">→ отдать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> в «${fesc(mv.toName)}» <span class="rowbtn del" data-movedel="${mv.id}" title="убрать связку">✕</span></div>`),
       ...(ctx?.movesByDst?.[path] || []).map(mv => `<div class="meta"><span class="up">← добрать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> из «${fesc(mv.fromName)}»</div>`),
     ].join('');
-    const moveBtn = editable ? `<span class="rowbtn" data-tgtmove="${it.id}" title="переложить в другую позицию">↦ переложить</span>` : '';
-    cells = `${nowCell}${becameCell}${planCell}${gapCell}
+    const moveOpen = tgtMove?.from === it.id;
+    const moveBtn = editable ? `<span class="rowbtn${moveOpen ? ' on' : ''}" data-tgtmove="${it.id}" title="переложить в другую позицию">↦ переложить</span>` : '';
+    cells = `${nowCell}${becameCell}${planCell}${devCell}
       <td style="text-align:left;min-width:180px">${links}${moveBtn}</td>
       <td class="r" style="width:92px">${shareStr}</td>`;
   } else {
@@ -158,7 +169,8 @@ function portRows(it, depth, ctx) {
       ${!target && editable ? `<span class="rowbtn" data-loanflag="${it.id}:${it.is_loan ? 1 : 0}" title="${it.is_loan ? 'убрать значок займа' : 'пометить как займ'}">🤝</span>` : ''}
       <span class="rowbtn del" data-findel="${pfx}:${it.id}">✕</span>
     </td>
-  </tr>` + (folded ? '' : it.children.map(c => portRows(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, parentEur: it.eur, blockEur: depth === 0 ? it.eur : ctx?.blockEur, blockTarget: depth === 0 ? it.planEur : ctx?.blockTarget, tgt: target, factByPath: ctx?.factByPath, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
+  </tr>` + (target && tgtMove?.from === it.id ? tgtMoveForm(it, ctx) : '')
+    + (folded ? '' : it.children.map(c => portRows(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, parentEur: it.eur, blockEur: depth === 0 ? it.eur : ctx?.blockEur, blockTarget: depth === 0 ? it.planEur : ctx?.blockTarget, tgt: target, factByPath: ctx?.factByPath, tree: ctx?.tree, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
 }
 
 const finIsMobile = () => window.matchMedia('(max-width: 768px)').matches;
@@ -173,6 +185,69 @@ function fRow({ lead = '', name, amount = '', meta = '', actions = '', cls = '' 
 }
 
 // телефон: портфель карточками в столбик вместо широкой таблицы (data-* те же — биндинги работают)
+// Форма переноса: раскрывается строкой под позицией и больше нигде не появляется.
+// Считает последствия для обеих сторон до того, как перенос создан.
+function tgtMoveForm(from, ctx) {
+  const cap = ctx?.total || 0;
+  const rate = ctx?.rate || 1.08;
+  const eurOf = (n) => n.eur || 0;
+  const planOf = (n) => n.planEur || 0;
+  const devOf = (n, extra = 0) => planOf(n) > 0 ? (eurOf(n) + extra) - planOf(n) : null;
+  const pp = (v) => cap > 0 ? v / cap * 100 : 0;
+
+  // куда можно переложить — листья целевого, кроме этой; сверху те, кому недостаёт больше
+  const leaves = [];
+  const walk = (ns, pre) => (ns || []).forEach(n => {
+    const kids = n.children || [];
+    if ((n.kind === 'asset' || !kids.length) && n.id !== from.id) {
+      leaves.push({ n, label: pre ? `${pre} · ${n.name}` : n.name, need: Math.max(0, planOf(n) - eurOf(n)) });
+    }
+    walk(kids, pre || n.name);
+  });
+  walk(ctx?.tree || [], '');
+  leaves.sort((a, b) => b.need - a.need);
+
+  const to = leaves.find(l => l.n.id === tgtMove.to) || leaves[0];
+  const amt = tgtMove.amount;
+  const surplus = Math.max(0, eurOf(from) - planOf(from));
+  const need = to ? to.need : 0;
+  const curF = from.currency ?? '€';
+
+  const prev = (n, delta) => {
+    const d0 = devOf(n), d1 = devOf(n, delta);
+    const cls = (v) => v == null ? '' : Math.abs(pp(v)) < 0.05 ? 'ok-dev' : v > 0 ? 'dev-over' : 'dev-under';
+    return `<span class="mono">${fesc(n.name)}</span>
+      <span class="num">${fmt(eurOf(n))} <i class="arr">→</i> ${fmt(eurOf(n) + delta)} €</span>
+      <span class="num">${d0 == null ? '<span class="meta">цель не задана</span>'
+        : `<span class="${cls(d0)}">${d0 >= 0 ? '+' : '−'}${Math.abs(pp(d0)).toFixed(1)}</span> <i class="arr">→</i> <span class="${cls(d1)}">${d1 >= 0 ? '+' : '−'}${Math.abs(pp(d1)).toFixed(1)} п.п.</span>`}</span>`;
+  };
+
+  return `<tr class="tgtform-row"><td class="formcell" colspan="8"><div class="tgtform">
+    <div class="frow"><span class="flab">Куда</span>
+      <select class="fbox" id="tgtMoveTo">${leaves.map(l =>
+        `<option value="${l.n.id}"${to && l.n.id === to.n.id ? ' selected' : ''}>${fesc(l.label)}${l.need > 0 ? ` — не хватает ${fmt(l.need)}` : ''}</option>`).join('')}</select>
+      <span class="fhint">${need > 0 ? `<span class="dev-under">не хватает ${fmt(need)} €</span>` : '<span class="meta">эта позиция уже в цели</span>'} · список отсортирован по недобору</span>
+    </div>
+    <div class="frow"><span class="flab">Сколько</span>
+      <input class="fbox amt" id="tgtMoveAmt" inputmode="decimal" value="${amt ?? ''}" placeholder="0"> 
+      <span class="fhint">
+        ${surplus > 0 ? `<span class="quick" data-mvq="${Math.round(surplus)}">всё, что сверх · ${fmt(surplus)}</span>` : ''}
+        ${need > 0 ? `<span class="quick" data-mvq="${Math.round(need)}">сколько не хватает · ${fmt(need)}</span>` : ''}
+        <span class="meta">${fesc(curF)}</span>
+      </span>
+    </div>
+    ${amt > 0 && to ? `<div class="mvprev">
+      <span class="pv-h">станет после переноса</span>
+      ${prev(from, -(curF === '$' ? amt / rate : amt))}
+      ${prev(to.n, (curF === '$' ? amt / rate : amt))}
+    </div>` : ''}
+    <div class="frow"><span class="flab"></span>
+      <span><span class="pill btn ok" id="tgtMoveGo">переложить</span> <span class="pill btn" id="tgtMoveCancel">отмена</span></span>
+      <span class="fhint">создастся обычная перестановка — её видно в строке и можно удалить</span>
+    </div>
+  </div></td></tr>`;
+}
+
 function portCard(it, depth, ctx) {
   const target = ctx?.tgt === true;
   const pfx = target ? 'tgt' : 'items';
@@ -195,9 +270,13 @@ function portCard(it, depth, ctx) {
     const netCur = cur === '$' ? net * (ctx?.rate || 1.08) : net;   // в валюте позиции
     const becameStr = net === 0 ? ''
       : `<span class="${net > 0 ? 'up' : 'down'}">стало ${editable ? fmt((it.value || 0) + netCur) + ' ' + fesc(cur) : fmtE((it.eur || 0) + net)}</span>`;
-    const gap = (it.planEur != null && it.planEur > 0) ? it.planEur - ((it.eur || 0) + net) : null;   // план − стало, в €
-    const planStr = `<span class="meta">план: <span class="ed" data-fe="tgt:${it.id}:target_value:num" title="${editable ? 'сколько хочу получить (клик)' : 'план раздела — клик задаёт свой; сейчас сумма планов внутри'}">${it.target_value != null ? fmt(it.target_value) : (it.planKids ? fmt(it.planKids) : '—')}</span> ${fesc(cur)}</span>`;
-    const gapStr = gap == null ? '' : Math.abs(gap) < 1 ? '<span class="up">✓ в плане</span>' : gap > 0 ? `<span class="down">+${fmtE(gap)} добрать</span>` : `<span class="meta">−${fmtE(-gap)} перебор</span>`;
+    const gap = (it.planEur != null && it.planEur > 0) ? ((it.eur || 0) + net) - it.planEur : null;   // стало − цель, в €
+    const capT = ctx?.total || 0;
+    const pPct = it.planPin === 'pct' ? it.target_pct : (it.planEur != null && capT > 0 ? it.planEur / capT * 100 : null);
+    const pEur = it.planPin === 'eur' ? it.target_value : it.planEur;
+    const planStr = `<span class="meta">цель: <span class="ed${it.planPin === 'pct' ? ' pinned' : ''}" data-fe="tgt:${it.id}:target_pct:num" title="цель долей (клик закрепит её)">${pPct != null ? pPct.toFixed(1) : '—'}%</span> / <span class="ed${it.planPin === 'eur' ? ' pinned' : ''}" data-fe="tgt:${it.id}:target_value:num" title="цель суммой (клик закрепит её)">${pEur != null ? fmt(pEur) : '—'}</span> ${fesc(cur)}</span>`;
+    const gapStr = gap == null ? '' : Math.abs(gap) < 1 ? '<span class="up">✓ в цели</span>'
+      : gap > 0 ? `<span class="dev-over">перевес ${fmtE(gap)}</span>` : `<span class="dev-under">недобор ${fmtE(-gap)}</span>`;
     const links = [
       ...(ctx?.movesBySrc?.[path] || []).map(mv => `<span class="meta"><span class="down">→ отдать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> в «${fesc(mv.toName)}» <span class="rowbtn del" data-movedel="${mv.id}" title="убрать связку">✕</span></span>`),
       ...(ctx?.movesByDst?.[path] || []).map(mv => `<span class="meta"><span class="up">← добрать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> из «${fesc(mv.fromName)}»</span>`),
@@ -225,7 +304,7 @@ function portCard(it, depth, ctx) {
       <span class="pc-val">${val}</span>
     </div>
     <div class="pc-meta">${meta}${folded ? `<span class="meta">· ${it.children.length} внутри</span>` : ''}<span class="pc-actions">${actions}</span></div>
-  </div>` + (folded ? '' : it.children.map(c => portCard(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, parentEur: it.eur, blockEur: depth === 0 ? it.eur : ctx?.blockEur, blockTarget: depth === 0 ? it.planEur : ctx?.blockTarget, tgt: target, factByPath: ctx?.factByPath, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
+  </div>` + (folded ? '' : it.children.map(c => portCard(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, parentEur: it.eur, blockEur: depth === 0 ? it.eur : ctx?.blockEur, blockTarget: depth === 0 ? it.planEur : ctx?.blockTarget, tgt: target, factByPath: ctx?.factByPath, tree: ctx?.tree, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
 }
 
 // диаграмма аллокации: доли с процентами внутри, каждая своим цветом
@@ -317,46 +396,56 @@ function secPortfolio(d, s) {
   if (tgt) { const w = (ns, pre) => (ns || []).forEach(n => { const p = pre + '/' + (n.name || '').trim().toLowerCase(); factByPath[p] = (factByPath[p] || 0) + (n.eur || 0); w(n.children, p); }); w(d.portfolio, ''); }
   const tree = tgt ? (d.targetPortfolio || []) : (d.portfolio || []);
   const rootTotal = tgt ? tree.reduce((a, b) => a + (b.eur || 0), 0) : s.portfolioTotal;   // сейчас размещено в целевом
-  // План узла: своё target_value, если задано, иначе сумма планов вложенных. Бэкенд (calcNode)
-  // для узлов с детьми всегда отдаёт сумму и собственное target_value у них игнорирует.
+  // Цель узла задаётся долей ИЛИ суммой: закреплено то поле, что заполнено, второе выводится.
+  // Если своей цели нет — берём сумму вложенных. Бэкенд (calcNode) для узлов с детьми всегда
+  // отдаёт сумму и собственное target_value игнорирует, поэтому считаем здесь.
   if (tgt) {
     const rateP = s.rate || d.rate || 1.08;
     const setPlan = n => {
       const kids = n.children || [];
       kids.forEach(setPlan);
-      const own = n.target_value != null ? ((n.currency ?? '€') === '$' ? n.target_value / rateP : n.target_value) : null;
+      // доля считается от всего размещённого в целевом — от того же тотала, что и «Сейчас %»
+      const own = n.target_pct != null ? n.target_pct / 100 * rootTotal
+        : n.target_value != null ? ((n.currency ?? '€') === '$' ? n.target_value / rateP : n.target_value)
+        : null;
       const kidsSum = kids.reduce((a, c) => a + (c.planEur || 0), 0);
       n.planKids = kids.length ? kidsSum : null;   // сумма по вложенным — для подсказки о расхождении
-      n.planEur = own != null ? own : (kids.length ? (kidsSum || null) : (n.target ?? null));
+      n.planEur = own != null ? own : (kids.length ? (kidsSum || null) : null);
+      n.planPin = n.target_pct != null ? 'pct' : n.target_value != null ? 'eur' : null;   // что закреплено
     };
     tree.forEach(setPlan);
   }
   const planTotal = tgt ? tree.reduce((a, b) => a + (b.planEur || 0), 0) : 0;   // сумма планов верхнего уровня
-  // Аллокация целевого по ПЛАНУ: тип живёт на листьях, план берём эффективный (planEur).
-  // Если у раздела свой план больше суммы позиций внутри, разница уходит в «не расписано».
-  const planByType = {}, planByTypeBlocks = {}, planBlock = {};
+  // Мониторинг по категориям: у каждой — сколько есть сейчас и сколько нужно по цели.
+  // Тип живёт на листьях, поэтому и «сейчас», и «цель» собираем по ним же.
+  const catNow = {}, catPlan = {};
   if (tgt) {
-    let leafSum = 0;
-    const walkPlan = (n, root) => {
+    let leafPlan = 0;
+    const walkCat = n => {
       const kids = n.children || [];
       if (n.kind === 'asset' || !kids.length) {
-        const v = n.planEur || 0;
-        if (v > 0) {
-          const ty = n.asset_type || 'без типа';
-          planByType[ty] = (planByType[ty] || 0) + v;
-          (planByTypeBlocks[ty] ||= {})[root] = ((planByTypeBlocks[ty] || {})[root] || 0) + v;
-          planBlock[root] = (planBlock[root] || 0) + v;
-          leafSum += v;
-        }
+        const ty = n.asset_type || 'без типа';
+        catNow[ty] = (catNow[ty] || 0) + (n.eur || 0);
+        const pv = n.planEur || 0;
+        if (pv > 0) { catPlan[ty] = (catPlan[ty] || 0) + pv; leafPlan += pv; }
       }
-      kids.forEach(c => walkPlan(c, root));
+      kids.forEach(walkCat);
     };
-    tree.forEach(b => walkPlan(b, b.name || ''));
-    if (planTotal - leafSum > 1) planByType['не расписано по позициям'] = planTotal - leafSum;
+    tree.forEach(walkCat);
+    if (planTotal - leafPlan > 1) catPlan['не расписано'] = planTotal - leafPlan;
   }
-  const planTypeRows = Object.entries(planByType).sort((a, b) => b[1] - a[1]);
-  const planPieTotal = planTypeRows.reduce((a, [, v]) => a + v, 0);
-  const rctx = { total: rootTotal, planTotal, parentEur: rootTotal, tgt, factByPath, path: '' };
+  // строки мониторинга: сортируем по величине отклонения — сверху то, что дальше от цели
+  const catRows = [...new Set([...Object.keys(catNow), ...Object.keys(catPlan)])]
+    .map(ty => {
+      const now = catNow[ty] || 0, plan = catPlan[ty] || 0;
+      const nowP = rootTotal > 0 ? now / rootTotal * 100 : 0;
+      const planP = rootTotal > 0 ? plan / rootTotal * 100 : 0;
+      return { ty, now, plan, nowP, planP, dev: now - plan, devP: nowP - planP };
+    })
+    .filter(r => r.now > 0 || r.plan > 0)
+    .sort((a, b) => Math.abs(b.devP) - Math.abs(a.devP));
+  const catMaxP = Math.max(1, ...catRows.map(r => Math.max(r.nowP, r.planP)));
+  const rctx = { total: rootTotal, planTotal, parentEur: rootTotal, tgt, factByPath, tree, path: '' };
   if (tgt) {   // ручные связки ребаланса (из target_moves): сопоставляем id позиций с путём/именем
     const byId = {};
     const mapIds = (ns, pre) => (ns || []).forEach(n => { const p = pre + '/' + (n.name || '').trim().toLowerCase(); byId[n.id] = { path: p, name: n.name, cur: n.currency ?? '€' }; mapIds(n.children, p); });
@@ -394,7 +483,7 @@ function secPortfolio(d, s) {
       ? `<div class="pcards">${tree.map(b => portCard(b, 0, rctx)).join('') || '<div class="empty">пусто</div>'}</div>`
       : `<table class="fintable porttable">
       ${tgt
-        ? '<tr><th>Название</th><th class="r" title="старт — до перестановок">Сейчас</th><th class="r" title="после всех транзакций в и из">Стало</th><th class="r">План</th><th class="r" title="план − стало">До цели</th><th class="r" title="задуманные переносы между позициями: применяются сразу, «Сейчас» = до них, «Стало» = после">Перестановки</th><th class="r" title="доля плана: от своего блока / от всего целевого">Доля плана</th><th></th></tr>'
+        ? '<tr><th>Название</th><th class="r" title="старт — до перестановок">Сейчас</th><th class="r" title="после всех транзакций в и из">Стало</th><th class="r" title="доля / сумма — заполненное закреплено, второе выводится">Цель % / €</th><th class="r" title="стало − цель">Отклонение</th><th class="r" title="задуманные переносы между позициями: применяются сразу, «Сейчас» = до них, «Стало» = после">Перестановки</th><th class="r" title="доля плана: от своего блока / от всего целевого">Доля плана</th><th></th></tr>'
         : '<tr><th>Название</th><th class="r">Покупка</th><th class="r">Прирост</th><th class="r">Текущая</th><th class="r" title="от своего блока / от всего портфеля">Доля</th><th></th></tr>'}
       ${tree.map(b => portRows(b, 0, rctx)).join('') || '<tr><td colspan="8"><div class="empty">пусто</div></td></tr>'}
     </table>`}
@@ -426,25 +515,61 @@ function secPortfolio(d, s) {
       </div>
     </div>` : ''}
   </div>` : ''}
-  ${tgt && planTypeRows.length && planPieTotal > 0 ? `
+  ${tgt && catRows.length ? `
   <div class="card">
-    <div class="meta" style="margin-bottom:6px">АЛЛОКАЦИЯ ПО ТИПАМ АКТИВОВ · ЦЕЛЕВОЙ (по «Плану»; ⊙ у строки — задать тип)</div>
-    <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;padding:6px 0">
-      ${allocPie(planTypeRows, planPieTotal)}
-      <div style="flex:1;min-width:240px">
-        ${planTypeRows.map(([t, v], i) => {
-          const nowV = (d.targetByType || []).find(x => x[0] === t)?.[1] || 0;
-          const nowPct = rootTotal > 0 ? nowV / rootTotal * 100 : null;
-          const blocks = Object.entries(planByTypeBlocks[t] || {}).sort((a, b) => b[1] - a[1])
-            .map(([blk, pv]) => `${planBlock[blk] ? (pv / planBlock[blk] * 100).toFixed(0) : '—'}% от «${fesc(blk)}»`).join(' · ');
-          return `
-          <div class="kv"><span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${PIE_COLORS[i % PIE_COLORS.length]};margin-right:7px"></i>${fesc(t)}</span>
-            <b class="num">${fmtE(v)} · ${(v / planPieTotal * 100).toFixed(1)}% плана</b></div>
-          <div class="meta" style="margin:0 0 5px 17px">${nowPct != null ? `сейчас ${nowPct.toFixed(1)}% · ` : ''}${blocks}</div>`;
+    <div class="meta" style="margin-bottom:8px">МОНИТОРИНГ · СЕЙЧАС ПРОТИВ ЦЕЛИ (⊙ у строки — задать категорию)</div>
+    <div class="tgtmon">
+      <div class="tgtdonut">${catDonut(catRows, rootTotal)}</div>
+      <div class="barswrap"><div class="bars">
+        <div class="bgrp"><span></span><span></span><i>сейчас</i><i>цель</i><i>отклонение</i></div>
+        <div class="bhead"><span>категория</span><span>сейчас против цели</span>
+          <span>€</span><span>%</span><span>€</span><span>%</span><span>€</span><span>п.п.</span></div>
+        ${catRows.map(r => {
+          const f = Math.min(r.nowP, r.planP) / catMaxP * 100;
+          const over = r.nowP > r.planP ? (r.nowP - r.planP) / catMaxP * 100 : 0;
+          const under = r.planP > r.nowP ? (r.planP - r.nowP) / catMaxP * 100 : 0;
+          const tick = r.planP / catMaxP * 100;
+          const cls = Math.abs(r.devP) < 0.05 ? 'ok-dev' : r.dev > 0 ? 'dev-over' : 'dev-under';
+          return `<div class="brow" data-cat="${fesc(r.ty)}">
+            <span class="blab">${fesc(r.ty)}</span>
+            <span class="btrack">${f > 0 ? `<i class="bfill" style="width:${f.toFixed(1)}%"></i>` : ''}${
+              over ? `<i class="bover" style="left:${f.toFixed(1)}%;width:${over.toFixed(1)}%"></i>` : ''}${
+              under ? `<i class="bunder" style="left:${f.toFixed(1)}%;width:${under.toFixed(1)}%"></i>` : ''}<i class="btick" style="left:${tick.toFixed(1)}%"></i></span>
+            <span class="v">${fmt(r.now)}</span><span class="v meta">${r.nowP.toFixed(1)}%</span>
+            <span class="v">${r.plan ? fmt(r.plan) : '—'}</span><span class="v meta">${r.plan ? r.planP.toFixed(1) + '%' : '—'}</span>
+            <span class="v ${cls}">${r.dev >= 0 ? '+' : '−'}${fmt(Math.abs(r.dev))}</span>
+            <span class="v ${cls}">${r.devP >= 0 ? '+' : '−'}${Math.abs(r.devP).toFixed(1)}</span>
+          </div>`;
         }).join('')}
-      </div>
+      </div></div>
     </div>
   </div>` : ''}`;
+}
+
+// Бублик состава «сейчас»: доли подписаны на секторах, в центре — размещённый капитал.
+// Мелкие сектора не подписываем — подписи наезжают, они читаются в строках справа.
+function catDonut(rows, total) {
+  const CX = 84, CY = 84, RO = 72, RI = 46, LR = (RO + RI) / 2;
+  const pt = (r, a) => { const t = a * Math.PI / 180; return `${(CX + r * Math.cos(t)).toFixed(2)} ${(CY + r * Math.sin(t)).toFixed(2)}`; };
+  const vis = rows.filter(r => r.now > 0 && total > 0).sort((a, b) => b.now - a.now);
+  let ang = -90, out = '', labels = '';
+  vis.forEach((r, i) => {
+    const pct = r.now / total * 100, sweep = pct * 3.6, a0 = ang, a1 = ang + sweep;
+    const big = sweep > 180 ? 1 : 0;
+    out += `<path class="sl" data-cat="${fesc(r.ty)}" fill="${PIE_COLORS[i % PIE_COLORS.length]}" `
+      + `d="M ${pt(RO, a0)} A ${RO} ${RO} 0 ${big} 1 ${pt(RO, a1)} L ${pt(RI, a1)} A ${RI} ${RI} 0 ${big} 0 ${pt(RI, a0)} Z">`
+      + `<title>${fesc(r.ty)} — ${fmt(r.now)} € · ${pct.toFixed(1)}%</title></path>`;
+    if (pct >= 5) {
+      const m = (a0 + a1) / 2 * Math.PI / 180;
+      labels += `<text class="pl" x="${(CX + LR * Math.cos(m)).toFixed(1)}" y="${(CY + LR * Math.sin(m)).toFixed(1)}">${pct.toFixed(0)}%</text>`;
+    }
+    ang = a1;
+  });
+  return `<svg viewBox="0 0 168 168" width="168" height="168" role="img" aria-label="состав целевого портфеля">
+    ${out}${labels}
+    <text class="ct-v" x="84" y="82">${fmt(total)}</text>
+    <text class="ct-k" x="84" y="97">размещено, €</text>
+  </svg>`;
 }
 
 
@@ -953,7 +1078,10 @@ function bindFin() {
   document.querySelectorAll('[data-fe]').forEach(el =>
     el.addEventListener('click', () => {
       const [ent, id, field, type] = el.dataset.fe.split(':');
-      inlineVal(el, type, v => finApi.patch(ent, +id, { [field]: v }));
+      // цель хранится в одном из двух полей: заполненное и есть закреплённое, второе гасим
+      const twin = ent === 'tgt' && field === 'target_pct' ? 'target_value'
+        : ent === 'tgt' && field === 'target_value' ? 'target_pct' : null;
+      inlineVal(el, type, v => finApi.patch(ent, +id, twin ? { [field]: v, [twin]: null } : { [field]: v }));
     }));
   document.querySelectorAll('[data-rate]').forEach(el =>
     el.addEventListener('click', () => inlineVal(el, 'num', v => finApi.rateSet(el.dataset.rate, v))));
@@ -1181,31 +1309,39 @@ function bindFin() {
       await finApi.add('tgt', { kind, parent_id: pid ? +pid : null, name: name.trim() });
       window.loadFin();
     }));
+  // «↦ переложить» раскрывает форму строкой под позицией; повторный клик закрывает
+  // наведение связывает сектор бублика и строку мониторинга — цвет перестаёт быть единственной нитью
+  document.querySelectorAll('[data-cat]').forEach(el => {
+    const mark = on => document.querySelectorAll('[data-cat]').forEach(x => {
+      if (x.dataset.cat === el.dataset.cat) x.classList.toggle('hi', on);
+    });
+    el.addEventListener('mouseenter', () => mark(true));
+    el.addEventListener('mouseleave', () => mark(false));
+  });
   document.querySelectorAll('[data-tgtmove]').forEach(el =>
     el.addEventListener('click', () => {
-      const fromId = +el.dataset.tgtmove;
-      const leaves = [];   // куда можно переложить — все позиции-листья целевого, кроме этой
-      let fromCur = '€';   // валюта источника — в ней вводим сумму
-      const walk = (ns, pre) => (ns || []).forEach(n => {
-        const kids = n.children || [];
-        if (n.id === fromId) fromCur = n.currency ?? '€';
-        if ((n.kind === 'asset' || !kids.length) && n.id !== fromId) leaves.push({ id: n.id, label: pre ? `${pre} · ${n.name}` : n.name });
-        walk(kids, pre || n.name);
-      });
-      walk(finData.targetPortfolio || [], '');
-      if (!leaves.length) { alert('Некуда перекладывать — сначала добавь позиции в целевой'); return; }
-      const sel = document.createElement('select');
-      sel.innerHTML = '<option value="">— куда переложить —</option>' + leaves.map(l => `<option value="${l.id}">${fesc(l.label)}</option>`).join('');
-      el.replaceWith(sel); sel.focus();
-      sel.addEventListener('change', async () => {
-        const toId = +sel.value; if (!toId) { window.loadFin(); return; }
-        const amt = parseNum(prompt(`Сколько переложить (${fromCur})?`));
-        if (amt == null || amt <= 0) { window.loadFin(); return; }
-        await finApi.add('move', { from_id: fromId, to_id: toId, amount: amt });
-        window.loadFin();
-      });
-      sel.addEventListener('blur', () => window.loadFin());
+      const id = +el.dataset.tgtmove;
+      tgtMove = tgtMove?.from === id ? null : { from: id, to: null, amount: null };
+      renderFin();
     }));
+  const mvRerender = (focusAmt) => {
+    renderFin();
+    if (!focusAmt) return;
+    const a = document.getElementById('tgtMoveAmt');
+    if (a) { a.focus(); a.setSelectionRange(a.value.length, a.value.length); }   // перерисовка не должна выбивать курсор
+  };
+  document.getElementById('tgtMoveTo')?.addEventListener('change', e => { tgtMove.to = +e.target.value; renderFin(); });
+  document.getElementById('tgtMoveAmt')?.addEventListener('input', e => { tgtMove.amount = parseNum(e.target.value); mvRerender(true); });
+  document.querySelectorAll('[data-mvq]').forEach(el =>
+    el.addEventListener('click', () => { tgtMove.amount = +el.dataset.mvq; mvRerender(true); }));
+  document.getElementById('tgtMoveCancel')?.addEventListener('click', () => { tgtMove = null; renderFin(); });
+  document.getElementById('tgtMoveGo')?.addEventListener('click', async () => {
+    const to = tgtMove.to ?? +document.getElementById('tgtMoveTo')?.value;
+    if (!to || !(tgtMove.amount > 0)) return;
+    await finApi.add('move', { from_id: tgtMove.from, to_id: to, amount: tgtMove.amount });
+    tgtMove = null;
+    window.loadFin();
+  });
   document.querySelectorAll('[data-movedel]').forEach(el =>
     el.addEventListener('click', async () => { await finApi.del('move', +el.dataset.movedel); window.loadFin(); }));
   document.querySelectorAll('[data-findel]').forEach(el =>

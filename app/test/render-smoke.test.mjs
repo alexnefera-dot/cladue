@@ -60,11 +60,30 @@ for (const tab of ['fact', 'target']) {
   });
 }
 
-test('целевой: колонки и аллокация по плану присутствуют', () => {
+test('целевой: колонки и блок мониторинга на месте', () => {
   const ctx = loadFin();
   vm.runInContext("finTab = 'target'", ctx);
   const html = ctx.secPortfolio(DATA, DATA.summary);
-  for (const part of ['Сейчас', 'Стало', 'План', 'До цели', 'Перестановки', '% плана']) {
+  for (const part of ['Сейчас', 'Стало', 'Цель % / €', 'Отклонение', 'Перестановки',
+                      'tgtdonut', 'btrack', 'btick', 'data-cat']) {
     assert.ok(html.includes(part), `в целевом нет «${part}»`);
   }
+});
+
+test('форма переноса появляется только по клику и нигде больше', () => {
+  const ctx = loadFin();
+  vm.runInContext("finTab = 'target'", ctx);
+  assert.ok(!ctx.secPortfolio(DATA, DATA.summary).includes('tgtform'), 'форма видна без клика');
+  vm.runInContext('tgtMove = { from: 12, to: null, amount: null }', ctx);
+  const open = ctx.secPortfolio(DATA, DATA.summary);
+  assert.ok(open.includes('tgtform'), 'форма не раскрылась');
+  assert.equal((open.match(/class="tgtform-row"/g) || []).length, 1, 'форма должна быть ровно одна');
+});
+
+test('цель: закреплено то поле, что заполнено', () => {
+  const ctx = loadFin();
+  vm.runInContext("finTab = 'target'", ctx);
+  const html = ctx.secPortfolio(DATA, DATA.summary);
+  assert.ok(html.includes('target_pct'), 'нет поля доли');
+  assert.ok(html.includes('ed pinned'), 'закреплённое поле не помечено');
 });

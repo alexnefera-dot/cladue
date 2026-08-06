@@ -371,3 +371,59 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .side .item .ni{font-size:16px;margin-right:9px;display:inline-block;width:20px;text-align:center;vertical-align:-1px}
 #navMoreBox .item{padding-left:18px}
 #navMore{color:var(--muted);font-weight:500}
+
+/* ═══ Целевой портфель: мониторинг и форма переноса ═══ */
+.tgtmon{display:grid;grid-template-columns:186px 1fr;gap:18px;align-items:start;padding:4px 0}
+@media (max-width:820px){.tgtmon{grid-template-columns:1fr;justify-items:center}}
+.tgtdonut{display:flex;justify-content:center}
+.tgtdonut .sl{transition:opacity .12s}
+.tgtdonut .sl.hi{opacity:.72}
+.tgtdonut .pl{font:600 10.5px var(--mono);fill:#fff;text-anchor:middle;dominant-baseline:middle}
+.tgtdonut .ct-v{font:17px var(--mono);fill:var(--text);text-anchor:middle;font-variant-numeric:tabular-nums}
+.tgtdonut .ct-k{font:9px var(--mono);fill:var(--muted);text-anchor:middle;letter-spacing:.06em}
+
+.barswrap{overflow-x:auto;min-width:0;width:100%}
+.bars{display:flex;flex-direction:column;gap:5px;min-width:600px}
+.bgrp,.bhead,.brow{display:grid;grid-template-columns:96px 1fr 72px 46px 72px 44px 76px 50px;
+  gap:8px;align-items:center;font:11.5px var(--mono)}
+.bgrp{font-size:9px;letter-spacing:.06em;color:var(--muted)}
+.bgrp i{grid-column:span 2;text-align:center;font-style:normal;border-bottom:1px solid var(--line);padding-bottom:2px}
+.bhead{font-size:9.5px;letter-spacing:.06em;color:var(--muted)}
+.bhead span:nth-child(n+3){text-align:right}
+.brow{padding:2px 0;border-radius:5px;transition:background .12s}
+.brow.hi{background:var(--bg2)}
+.blab{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bars .v{text-align:right;font-variant-numeric:tabular-nums}
+.btrack{position:relative;height:18px;background:var(--bg2);border-radius:3px}
+.brow.hi .btrack{background:var(--panel)}
+.bfill{position:absolute;left:0;top:4px;bottom:4px;background:var(--green);border-radius:3px 0 0 3px}
+.bover{position:absolute;top:4px;bottom:4px;background:var(--amber);border-radius:0 3px 3px 0}
+.bunder{position:absolute;top:4px;bottom:4px;border:1px dashed var(--blue);
+  background:rgba(42,118,181,.10);border-radius:0 3px 3px 0}
+.btick{position:absolute;top:-1px;bottom:-1px;width:2px;background:var(--text)}
+
+.dev-over{color:var(--amber)}
+.dev-under{color:var(--blue)}
+.ok-dev{color:var(--green)}
+.devpp{display:block}
+.ed.pinned{color:var(--green);font-weight:600}
+
+/* форма переноса — строкой под позицией, больше нигде */
+.tgtform-row td.formcell{background:var(--bg2);padding:0}
+.tgtform{border-left:3px solid var(--green);padding:14px 16px;display:flex;flex-direction:column;gap:11px}
+.tgtform .frow{display:grid;grid-template-columns:64px minmax(170px,230px) 1fr;gap:11px;align-items:center}
+@media (max-width:640px){.tgtform .frow{grid-template-columns:1fr;gap:4px}}
+.tgtform .flab{font:10px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.tgtform .fbox{font:13px var(--mono);border:1px solid var(--line);background:var(--panel);
+  color:var(--text);padding:6px 9px;border-radius:6px;width:100%}
+.tgtform .fbox.amt{color:var(--green);border-color:var(--green-dim);font-variant-numeric:tabular-nums}
+.tgtform .fhint{font:11px var(--mono);color:var(--muted);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.tgtform .quick{font:10.5px var(--mono);padding:3px 9px;border:1px solid var(--line);
+  border-radius:99px;background:var(--panel);cursor:pointer;white-space:nowrap}
+.tgtform .quick:hover{border-color:var(--green-dim);background:var(--green-soft)}
+.mvprev{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;
+  display:grid;grid-template-columns:auto 1fr auto;gap:6px 14px;align-items:center;font:12px var(--mono)}
+@media (max-width:640px){.mvprev{grid-template-columns:1fr}}
+.mvprev .pv-h{grid-column:1/-1;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.mvprev .arr{color:var(--muted);padding:0 2px;font-style:normal}
+.rowbtn.on{color:var(--green);opacity:1}
