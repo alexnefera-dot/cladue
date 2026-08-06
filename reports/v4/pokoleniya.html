@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Два поколения одной фабрики</title>
+<style>
+  :root{--bg:#fbfaf7;--fg:#1c1a17;--dim:#6b6660;--line:#e0dcd4;--acc:#8a3b1e;--hi:#f3efe6;--ok:#2f6b3d;--bad:#9c2b1c;--warn:#8a6a1e}
+  @media (prefers-color-scheme:dark){:root{--bg:#16150f;--fg:#e8e4da;--dim:#948e84;--line:#33302a;--acc:#d9834f;--hi:#211f19;--ok:#77b083;--bad:#e07a63;--warn:#d3ab5c}}
+  :root[data-theme=dark]{--bg:#16150f;--fg:#e8e4da;--dim:#948e84;--line:#33302a;--acc:#d9834f;--hi:#211f19;--ok:#77b083;--bad:#e07a63;--warn:#d3ab5c}
+  :root[data-theme=light]{--bg:#fbfaf7;--fg:#1c1a17;--dim:#6b6660;--line:#e0dcd4;--acc:#8a3b1e;--hi:#f3efe6;--ok:#2f6b3d;--bad:#9c2b1c;--warn:#8a6a1e}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 Georgia,"Times New Roman",serif;-webkit-text-size-adjust:100%}
+  .wrap{max-width:940px;margin:0 auto;padding:48px 22px 96px}
+  h1{font-size:31px;line-height:1.2;margin:0 0 6px;font-weight:normal}
+  .sub{color:var(--dim);font-size:15px;margin:0 0 36px}
+  h2{font-size:22px;font-weight:normal;margin:56px 0 14px;padding-bottom:7px;border-bottom:2px solid var(--acc)}
+  h3{font-size:17px;font-weight:bold;margin:32px 0 8px}
+  p{margin:0 0 14px}
+  code{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.86em;background:var(--hi);padding:1px 5px;border-radius:3px}
+  pre{background:var(--hi);border-left:3px solid var(--line);padding:12px 14px;overflow-x:auto;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;line-height:1.55;margin:0 0 18px}
+  .scroll{overflow-x:auto;margin:0 0 20px;-webkit-overflow-scrolling:touch}
+  table{border-collapse:collapse;font-size:14px;min-width:100%}
+  th,td{padding:6px 12px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+  th{font-weight:bold;color:var(--dim);font-size:12.5px;text-transform:uppercase;letter-spacing:.04em}
+  td.n,th.n{text-align:right;font-family:ui-monospace,Menlo,Consolas,monospace}
+  .ok{color:var(--ok);font-weight:bold} .bad{color:var(--bad);font-weight:bold} .warn{color:var(--warn);font-weight:bold}
+  .key{background:var(--hi);border-left:3px solid var(--acc);padding:14px 18px;margin:22px 0}
+  .key p:last-child{margin:0}
+  .fix{background:var(--hi);border-left:3px solid var(--warn);padding:12px 16px;margin:20px 0;font-size:15px}
+  .fix p:last-child{margin:0}
+  ul,ol{margin:0 0 16px;padding-left:22px} li{margin:0 0 6px}
+  .lede{font-size:18px;line-height:1.6}
+  footer{margin-top:64px;padding-top:18px;border-top:1px solid var(--line);color:var(--dim);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Два поколения одной фабрики</h1>
+<p class="sub">Продолжение разбора · июль (50 сайтов) + август (50 сайтов) = 86 независимых генераций, 700 страниц · проходы 16–23</p>
+
+<p class="lede">Узкая полоса внутри одного корпуса ещё не значит настройку. Если промпт про поле молчит, модель всё равно выдаёт похожие значения — это привычка модели, а не решение фабрики. Отличить одно от другого можно только вторым выпуском: <strong>настройка переживает смену поколения, привычку правят</strong>.</p>
+
+<h2>Первое, что видно: виджеты — новинка августа</h2>
+<p>В июле «конструкторов» <strong>ноль из пятидесяти</strong>. Вся библиотека — <code>hero-value</code>, <code>value-pillars</code>, <code>slots-dashboard</code>, <code>recent-payouts-block</code>, <code>jackpot-strip</code>, <code>variant-v1..v4</code>, schema <code>Game</code> и <code>FAQPage</code> — появилась между 13 июля и 3 августа и накрыла четырнадцать сайтов из пятидесяти. Оценочная карта «по шести критериям» — тоже новинка: 0 из 50 в июле, 13 из 36 в августе.</p>
+
+<h2>Что пережило смену поколения — настройка</h2>
+<p>Поле попадает сюда только если держится в обоих корпусах и медиана не сдвинулась больше чем на 20 %.</p>
+<div class="scroll">
+<table>
+<tr><th>поле</th><th class="n">июль</th><th class="n">август</th><th class="n">сдвиг</th><th class="n">держ. июль</th><th class="n">держ. авг.</th></tr>
+<tr><td><code>table_uniq_pct</code> уникальных шапок</td><td class="n">100</td><td class="n">100</td><td class="n">0 %</td><td class="n ok">100 %</td><td class="n ok">100 %</td></tr>
+<tr><td><code>letter</code> шаблон обращения</td><td class="n">0</td><td class="n">0</td><td class="n">0 %</td><td class="n ok">100 %</td><td class="n ok">100 %</td></tr>
+<tr><td><code>insider</code> закрытое знание</td><td class="n">0</td><td class="n">0</td><td class="n">0 %</td><td class="n ok">98 %</td><td class="n ok">100 %</td></tr>
+<tr><td><code>myth</code> зачин «а на деле»</td><td class="n">0</td><td class="n">0</td><td class="n">0 %</td><td class="n ok">98 %</td><td class="n ok">100 %</td></tr>
+<tr><td><code>fact_values</code> значений с %</td><td class="n">1</td><td class="n">1</td><td class="n">0 %</td><td class="n ok">94 %</td><td class="n ok">89 %</td></tr>
+<tr><td><code>opener_key</code> ключ в зачине</td><td class="n">1</td><td class="n">1</td><td class="n">0 %</td><td class="n ok">94 %</td><td class="n ok">92 %</td></tr>
+<tr><td><code>lead_list</code> список в зачине</td><td class="n">1</td><td class="n">1</td><td class="n">0 %</td><td class="n ok">94 %</td><td class="n ok">97 %</td></tr>
+<tr><td><code>words_per_para</code></td><td class="n">31,3</td><td class="n">31,75</td><td class="n">+1 %</td><td class="n">82 %</td><td class="n">89 %</td></tr>
+<tr><td><code>table_cols</code></td><td class="n">2,95</td><td class="n">2,9</td><td class="n">−2 %</td><td class="n">90 %</td><td class="n">94 %</td></tr>
+<tr><td><code>h3_per_h2</code></td><td class="n">3</td><td class="n">2,9</td><td class="n">−3 %</td><td class="n">70 %</td><td class="n">86 %</td></tr>
+<tr><td><code>h2_len</code> слов в заголовке</td><td class="n">8,5</td><td class="n">8,2</td><td class="n">−4 %</td><td class="n ok">98 %</td><td class="n">92 %</td></tr>
+<tr><td><code>anchor_once_pct</code></td><td class="n">71,4</td><td class="n">74,45</td><td class="n">+4 %</td><td class="n">90 %</td><td class="n">92 %</td></tr>
+<tr><td><code>nausea_acad</code> тошнота</td><td class="n">39,15</td><td class="n">37,05</td><td class="n">−5 %</td><td class="n ok">100 %</td><td class="n">92 %</td></tr>
+<tr><td><code>water</code> водность</td><td class="n">27,65</td><td class="n">29,1</td><td class="n">+5 %</td><td class="n">90 %</td><td class="n ok">100 %</td></tr>
+<tr><td><code>ordered_pct</code></td><td class="n">23,65</td><td class="n">25</td><td class="n">+5 %</td><td class="n">60 %</td><td class="n">72 %</td></tr>
+<tr><td><code>para_spread</code></td><td class="n">19,7</td><td class="n">18,7</td><td class="n">−5 %</td><td class="n">60 %</td><td class="n">81 %</td></tr>
+<tr><td><code>h2_opens_para_pct</code></td><td class="n">84,5</td><td class="n">90,45</td><td class="n">+7 %</td><td class="n">90 %</td><td class="n ok">100 %</td></tr>
+<tr><td><code>adj_pct</code> прилагательных</td><td class="n">12,45</td><td class="n">11,6</td><td class="n">−7 %</td><td class="n">88 %</td><td class="n">83 %</td></tr>
+</table>
+</div>
+<p>Двадцать пять полей всего. Это и есть настройка фабрики, проверенная дважды на 86 генерациях.</p>
+
+<div class="fix">
+<p><strong>Уточнение к предыдущему отчёту.</strong> <code>words</code> и <code>paragraphs</code> сдвинулись мало (3925&nbsp;→&nbsp;4083 и 61&nbsp;→&nbsp;67), но держатся всего на 60–64 %. Это разные вещи, и я их раньше смешал: <strong>центр объёма настроен, объём конкретной страницы — нет.</strong> Медиана воспроизводится из поколения в поколение, а отдельная страница вокруг неё гуляет от 1883 до 9965 слов. Целиться в медиану можно, требовать её от каждой страницы — нельзя.</p>
+</div>
+
+<h2>Что правили — сюда фабрика прикладывала руки</h2>
+<div class="scroll">
+<table>
+<tr><th>поле</th><th class="n">июль</th><th class="n">август</th><th class="n">сдвиг</th></tr>
+<tr><td><code>opener_name</code> «Бренд — это…»</td><td class="n">1</td><td class="n">0</td><td class="n bad">−100 %</td></tr>
+<tr><td><code>first_person</code> «я»</td><td class="n">23,5</td><td class="n">3,5</td><td class="n bad">−85 %</td></tr>
+<tr><td><code>ty</code> «ты»</td><td class="n">4,5</td><td class="n">23,5</td><td class="n bad">+81 %</td></tr>
+<tr><td><code>compare</code> бытовых сравнений</td><td class="n">1</td><td class="n">3</td><td class="n bad">+67 %</td></tr>
+<tr><td><code>cta</code> прямых призывов</td><td class="n">0</td><td class="n">2</td><td class="n bad">+100 %</td></tr>
+<tr><td><code>emoji</code></td><td class="n">16</td><td class="n">30</td><td class="n bad">+47 %</td></tr>
+<tr><td><code>faq</code> вопросительных знаков</td><td class="n">4</td><td class="n">7</td><td class="n bad">+43 %</td></tr>
+<tr><td><code>games_named</code> / <code>names_uniq</code></td><td class="n">0 / 0</td><td class="n">0,5 / 2</td><td class="n bad">+100 %</td></tr>
+</table>
+</div>
+<p>Читается это как одно решение, разложенное на девять полей: <strong>фабрика сменила голос</strong>. В июле писали от первого лица («я проверял», медиана 23,5 упоминания) и открывали страницу формулой «Бренд — это…». В августе первое лицо срезали почти в семь раз, «ты» подняли вчетверо, добавили прямые призывы и вдвое больше эмодзи.</p>
+
+<div class="fix">
+<p><strong>Поправка.</strong> В прошлом отчёте я писал, что зачин никогда не начинается «Бренд — это…». Это верно для августа; в июле так открывалось большинство страниц (<code>opener_name</code>&nbsp;=&nbsp;1 при 90 % попаданий).</p>
+</div>
+
+<p><code>compare</code> втрое — прямое следствие масок. Метафора «рыбацкая артель», «костёр», «сталактитовый грот» и есть механизм производства бытовых сравнений. Маски появились вместе с ростом этого поля.</p>
+
+<h3>Эмодзи: где именно их прибавилось</h3>
+<div class="scroll">
+<table>
+<tr><th>место</th><th class="n">июль</th><th class="n">август</th><th class="n">во сколько</th></tr>
+<tr><td>в заголовке</td><td class="n">0,4</td><td class="n">10,6</td><td class="n bad">×26</td></tr>
+<tr><td>внутри фразы</td><td class="n">0,5</td><td class="n">9,5</td><td class="n bad">×19</td></tr>
+<tr><td>в начале пункта</td><td class="n">3,9</td><td class="n">12,3</td><td class="n">×3,2</td></tr>
+<tr><td>в ячейке таблицы</td><td class="n">10,1</td><td class="n">15,4</td><td class="n">×1,5</td></tr>
+</table>
+</div>
+<p>В июле эмодзи жили почти исключительно в ячейках таблиц. <strong>Наши шесть эталонов v3 принадлежат июльской школе</strong> — карточка эталона прямо говорит «в заголовках эмодзи нет ни одного». Августовская школа это правило отменила.</p>
+
+<h2>Что шум в обоих поколениях</h2>
+<div class="scroll">
+<table>
+<tr><th>поле</th><th class="n">держ. июль</th><th class="n">держ. август</th></tr>
+<tr><td><code>brand_first_third</code></td><td class="n bad">54 %</td><td class="n bad">31 %</td></tr>
+<tr><td><code>brand_ru</code></td><td class="n bad">40 %</td><td class="n bad">53 %</td></tr>
+<tr><td><code>brand_en</code></td><td class="n bad">46 %</td><td class="n bad">47 %</td></tr>
+<tr><td><code>terms_total</code> профильные термины</td><td class="n bad">48 %</td><td class="n bad">44 %</td></tr>
+<tr><td><code>imperatives</code></td><td class="n bad">18 %</td><td class="n bad">22 %</td></tr>
+<tr><td><code>vy</code></td><td class="n bad">16 %</td><td class="n bad">22 %</td></tr>
+<tr><td><code>honest</code> минусы и риски</td><td class="n bad">38 %</td><td class="n bad">36 %</td></tr>
+<tr><td><code>h3_question_pct</code></td><td class="n bad">36 %</td><td class="n bad">39 %</td></tr>
+<tr><td><code>strong</code></td><td class="n bad">30 %</td><td class="n">56 %</td></tr>
+<tr><td><code>lists</code></td><td class="n bad">40 %</td><td class="n bad">47 %</td></tr>
+</table>
+</div>
+<p><strong>Упоминания бренда и насыщенность терминами — шум, подтверждённый дважды.</strong> Подгонять под них нечего.</p>
+
+<h2>Самый жёсткий инвариант корпуса</h2>
+<div class="scroll">
+<table>
+<tr><th></th><th class="n">июль (300 стр.)</th><th class="n">август (216 стр.)</th></tr>
+<tr><td>ровно два H2</td><td class="n">97 %</td><td class="n ok">99 %</td></tr>
+<tr><td>последний H2 — это FAQ</td><td class="n">98 %</td><td class="n ok">100 %</td></tr>
+<tr><td>H3, медиана</td><td class="n">5</td><td class="n">5</td></tr>
+<tr><td>есть H3-инструкция</td><td class="n">60 %</td><td class="n">68 %</td></tr>
+</table>
+</div>
+<p><strong>216 из 216 августовских страниц заканчиваются блоком «Ответы на вопросы».</strong> Ни одного исключения на 516 страницах двух поколений.</p>
+<pre>H2  &lt;узкий срез темы, в маске сайта&gt;
+    H3 что это такое
+    H3 как найти / как сделать — пошагово
+    H3 таблица или чек-лист
+    H3 риски и безопасность
+    H3 итог
+H2  Ответы на вопросы   ← аккордеон &lt;details&gt;</pre>
+<p>Первый H2 — <strong>не сама тема, а срез темы</strong>. Страница <code>zerkalo</code> называется не «Зеркало», а:</p>
+<pre>Вывод средств через зеркало: как быстро и без заморочек   888starz
+Частые ошибки при использовании зеркал: как всё началось  arkada
+Причины блокировки и роль зеркал казино                   baboss
+Актуальное зеркало: как через зеркало ловить бонусы       cat
+Доступность бонусов и акций через зеркало на сегодня      clubnika
+как я проверяю подлинность зеркала — мой опыт             cactus</pre>
+<p>Так семь страниц одного сайта и пятьдесят сайтов одной темы не наступают друг другу на ноги.</p>
+
+<h2>Финал страницы — зеркало зачина</h2>
+<div class="scroll">
+<table>
+<tr><th>последний H2</th><th class="n">сколько сайтов</th></tr>
+<tr><td>плюсы и минусы</td><td class="n ok">20/36</td></tr>
+<tr><td>итог / вердикт / чек-лист</td><td class="n">8/36</td></tr>
+<tr><td>отзывы</td><td class="n">5/36</td></tr>
+<tr><td>FAQ</td><td class="n">2/36</td></tr>
+</table>
+</div>
+<p>92 % заканчиваются одним из четырёх. Предпоследний H2 — почти всегда FAQ (14), итог (11) или отзывы (8). Хвост читается так: <strong>FAQ → итог или отзывы → плюсы и минусы.</strong> После последнего H2 — 137 слов.</p>
+
+<h2>Каннибализации нет вообще</h2>
+<div class="scroll">
+<table>
+<tr><th></th><th class="n">среднее</th><th class="n">макс</th></tr>
+<tr><td>главная ↔ внутренние (август)</td><td class="n ok">0,18 %</td><td class="n">2,29 %</td></tr>
+<tr><td>внутренние между собой (август)</td><td class="n ok">0,06 %</td><td class="n">1,29 %</td></tr>
+<tr><td>главная ↔ внутренние (июль)</td><td class="n ok">0,31 %</td><td class="n">3,65 %</td></tr>
+</table>
+</div>
+<p>Все семь страниц пишут об одном казино, и главная содержит разделы «зеркало», «регистрация», «бонусы» — при том что для каждой из этих тем есть отдельная страница. <strong>Ни одной переиспользованной формулировки даже внутри одного сайта.</strong> Каждая из семисот страниц написана заново.</p>
+
+<h2>Морфология: язык инструкции, а не объяснения</h2>
+<div class="scroll">
+<table>
+<tr><th>форма, на 100 слов</th><th class="n">июль</th><th class="n">август</th></tr>
+<tr><td>инфинитив (<code>-ть/-ти</code>)</td><td class="n">4,13</td><td class="n ok">4,15</td></tr>
+<tr><td>прошедшее время</td><td class="n">3,02</td><td class="n">2,63</td></tr>
+<tr><td>условие «если»</td><td class="n">0,92</td><td class="n">0,98</td></tr>
+<tr><td>повелительное</td><td class="n">1,12</td><td class="n">0,83</td></tr>
+<tr><td>страдательный залог</td><td class="n">0,65</td><td class="n">0,63</td></tr>
+<tr><td>модальное «можно/нужно»</td><td class="n">0,42</td><td class="n ok">0,42</td></tr>
+<tr><td>уступка «но/однако»</td><td class="n">0,49</td><td class="n ok">0,47</td></tr>
+<tr><td>причина «потому что»</td><td class="n">0,05</td><td class="n">0,06</td></tr>
+<tr><td>вводное «например»</td><td class="n">0,07</td><td class="n">0,05</td></tr>
+</table>
+</div>
+<ol>
+<li><strong>Инфинитив — самая частая глагольная форма</strong>, вдвое чаще прошедшего. Текст живёт в форме «как сделать»: проверить, вывести, зарегистрироваться.</li>
+<li><strong>Условие есть, причины нет.</strong> «Если» — почти одно на сто слов, «потому что» — 0,06. Текст описывает не почему устроено так, а что делать, когда.</li>
+<li><strong>Примеров вводными словами не приводят.</strong> «Например» — 0,05. Конкретика встроена прямо в предложение, а не подвешена оборотом.</li>
+</ol>
+
+<h2>Абзац стоит сам по себе</h2>
+<p>Абзацев, открытых связкой (но / однако / поэтому / также / затем): <strong>0,5 % в июле, 0,7 % в августе.</strong> Открытых <code>&lt;strong&gt;</code> — 5,4 % и 6,1 %.</p>
+<p>Первое слово абзаца (август): <code>я</code> 8 %, <code>если</code> 5,9 %, <code>в</code> 4,2 %, <code>да</code> 2,6 %, <code>проверь</code> 1,5 %, <code>когда</code> 1,3 %, <code>проверьте</code> 1,3 %.</p>
+<p>Абзац открывается <strong>субъектом, условием, прямым ответом или командой</strong> — и почти никогда канцелярской связкой. «Да» и «Нет» — это ответы FAQ, начинающиеся прямо с вердикта.</p>
+
+<h2>Таблица — мини-инструкция, а не справка</h2>
+<p>586 таблиц, 6441 ячейка, медиана — 3 колонки, 5 строк, <strong>4 слова в ячейке</strong>, 20 % ячеек с цифрой.</p>
+<div class="scroll">
+<table>
+<tr><th>колонка</th><th>что в ней</th><th>частые подписи</th></tr>
+<tr><td>1</td><td>субъект</td><td>параметр (37), шаг (31), критерий (17), провайдер (15), ситуация (12), этап (10)</td></tr>
+<tr><td>2</td><td>что делать</td><td>описание (43), действие (25), что сделать (6), что проверить (5)</td></tr>
+<tr><td>3</td><td><strong>зачем</strong></td><td>почему важно (9), результат (7), что делать (7), зачем это важно (4), как исправить (4)</td></tr>
+</table>
+</div>
+<p>Разных подписей: 289 / 386 / 321. Третья колонка — не оценка и не сравнение, а <strong>оправдание действия</strong>. Это уточняет карточку <code>table_cols</code> в движке.</p>
+
+<h2>Анкор — одно слово внутри фразы</h2>
+<div class="scroll">
+<table>
+<tr><th></th><th class="n"></th></tr>
+<tr><td>внутренних ссылок</td><td class="n">2853</td></tr>
+<tr><td>стоят внутри <code>&lt;p&gt;</code> или <code>&lt;li&gt;</code></td><td class="n ok">91 %</td></tr>
+<tr><td>слов в анкоре, медиана</td><td class="n ok">1</td></tr>
+<tr><td>разных анкоров</td><td class="n">577</td></tr>
+<tr><td>встречаются ровно один раз</td><td class="n">78 %</td></tr>
+<tr><td>в косвенном падеже</td><td class="n">30 %</td></tr>
+</table>
+</div>
+<pre>Пройди <u>регистрацию</u> в 2 минуты…
+Смотри <u>зеркало</u>, если приложение «зависло»…
+Каждый новый игрок получает <u>промокод</u> от постоянных участников…
+следите за всеми фишками на <u>зеркале</u>! 🍀
+хотите узнать про <u>бонусы и промокоды</u>…
+учти всё по <u>регистрации</u> тут, чтобы лишний раз не дёргаться</pre>
+<p>Анкор — <strong>обычное слово предложения в нужном падеже</strong>. Уберите разметку — предложение не изменится ни на букву.</p>
+
+<h2>Типографика</h2>
+<div class="scroll">
+<table>
+<tr><th>знак, на сайт</th><th class="n">июль</th><th class="n">август</th></tr>
+<tr><td>дефис <code>-</code></td><td class="n">339</td><td class="n">388</td></tr>
+<tr><td>тире <code>—</code></td><td class="n">177</td><td class="n">224</td></tr>
+<tr><td>ёлочки <code>« »</code></td><td class="n">56</td><td class="n">77</td></tr>
+<tr><td>лапки <code>“ ”</code></td><td class="n">48</td><td class="n">61</td></tr>
+<tr><td>неразрывный дефис <code>‑</code> U+2011</td><td class="n ok">40</td><td class="n ok">59</td></tr>
+<tr><td>неразрывный пробел</td><td class="n">2,7</td><td class="n">4,3</td></tr>
+<tr><td>многоточие <code>…</code></td><td class="n">0,4</td><td class="n">0,8</td></tr>
+</table>
+</div>
+<p>Неразрывный дефис U+2011 — символ, который случайно не появляется: его ставят намеренно в «2‑5 минут», «крипто‑игроки», «онлайн‑казино». Сорок-шестьдесят штук на сайт в обоих поколениях. Обе пары кавычек идут вперемешку, многоточие практически не используют.</p>
+
+<h2>Итог по двум поколениям</h2>
+<div class="key">
+<p><strong>Настройка</strong> (пережила смену выпуска, 86 генераций): уникальная шапка у каждой таблицы · три запрещённых приёма · ключ в зачине · список в зачине · одно-два значения с процентом на страницу · 31 слово в абзаце · 3 колонки в таблице · 2,9 H3 на H2 · 8 слов в заголовке · 72–74 % разовых анкоров · водность 28–29 % · тошнота 37–39 на главной · 84–90 % разделов, открытых абзацем · ровно два H2 на внутренней странице · последний H2 = FAQ · инфинитив как несущая форма · условие вместо причины · анкор в одно слово внутри фразы · нулевая каннибализация.</p>
+<p><strong>Правили</strong> между выпусками: голос (я → ты), зачин («Бренд — это…» убрали), эмодзи (×26 в заголовках), маски и бытовые сравнения, прямые призывы, названия игр, словарь фактов (сузили вдвое), библиотека виджетов (новая), оценочная карта (новая).</p>
+<p><strong>Шум</strong> в обоих: объём конкретной страницы, профильные термины, упоминания бренда и их расположение, императивы, «вы», короткие абзацы, <code>strong</code>, двоеточия и вопросы в H3.</p>
+</div>
+
+<footer>
+<code>engine/sravnit-pokoleniya.php reports/v4/razbros-jul-main.json reports/v4/razbros-proza-main.json</code> ·
+<code>engine/razbor-zhanra.php samples/v4-donors-jul</code> ·
+выкладки <code>reports/v4/pokoleniya-main.json</code>, <code>reports/v4/zhanr-jul.json</code> ·
+текст <code>docs/v4-pokoleniya.md</code>
+</footer>
+
+</div>
+</body>
+</html>
