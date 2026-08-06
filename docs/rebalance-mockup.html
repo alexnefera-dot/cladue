@@ -135,6 +135,22 @@
          color:var(--accent); background:transparent; border-radius:99px; white-space:nowrap; cursor:default; }
   .btn.solid { background:var(--accent); color:var(--bg); border-color:var(--accent); }
 
+  /* ——— форма переноса ——— */
+  .form { background:var(--surface); border:1px solid var(--border); padding:18px 20px;
+          display:flex; flex-direction:column; gap:13px; }
+  .frow { display:grid; grid-template-columns:74px 190px 1fr; gap:12px; align-items:center; }
+  @media (max-width:640px) { .frow { grid-template-columns:1fr; gap:5px; } }
+  .flab { font-family:var(--mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+  .fval { font-family:var(--mono); font-size:14px; }
+  .fval.sel, .fval.inp { border:1px solid var(--border); background:var(--surface-2);
+                         padding:7px 11px; border-radius:3px; display:flex; justify-content:space-between; }
+  .fval.inp { color:var(--accent); }
+  .caret { color:var(--muted); }
+  .fhint { font-family:var(--mono); font-size:11.5px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; color:var(--muted); }
+  .preview { display:grid; grid-template-columns:auto 1fr 1fr; gap:7px 14px; align-items:center;
+             background:var(--surface-2); padding:13px 15px; font-size:12.5px; }
+  @media (max-width:640px) { .preview { grid-template-columns:1fr; } }
+
   ul.plain { margin:0; padding-left:20px; display:flex; flex-direction:column; gap:6px; }
   ul.plain li::marker { color:var(--muted); }
   .verdict-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:14px; }
@@ -167,8 +183,8 @@
   <div class="strip">
     <div class="stat"><span class="stat-k">Капитал</span><span class="stat-v">476 157 €</span></div>
     <div class="stat"><span class="stat-k">Дальше всех</span><span class="stat-v over-t">+23,0 п.п.</span></div>
-    <div class="stat"><span class="stat-k">Расхождение</span><span class="stat-v">114 306 €</span></div>
-    <div class="stat"><span class="stat-k">Переносов хватит</span><span class="stat-v ok-t">5</span></div>
+    <div class="stat"><span class="stat-k">Сверх цели</span><span class="stat-v over-t">114 306 €</span></div>
+    <div class="stat"><span class="stat-k">Ниже цели</span><span class="stat-v under-t">114 306 €</span></div>
   </div>
 
   <div class="mon">
@@ -309,64 +325,57 @@
 
 <!-- ===================== ДВИЖЕНИЕ ===================== -->
 <section>
-  <h2>Движение: откуда берутся предлагаемые переносы</h2>
+  <h2>Движение: решаешь ты, интерфейс считает последствия</h2>
   <div class="prose">
-    <p>Это тот пункт, который был непонятен. Никакой магии здесь нет — четыре механических шага, всё считается из уже имеющихся чисел.</p>
+    <p>Автоподбор пар убран. Вместо списка советов, который непонятно куда выводить, — <strong>подсказка внутри самой операции</strong>: ты выбираешь откуда, куда и сколько, а экран на лету показывает, что станет с обеими сторонами.</p>
+    <p>Это не новый экран. Это та же кнопка «↦ переложить», которой ты пользуешься сегодня, только с числами вокруг неё.</p>
   </div>
 
-  <ol class="steps">
-    <li><div class="step-body">
-      <h3>Цель в евро для каждой категории</h3>
-      <p>Если закреплён процент — умножаем на капитал: <code>40% × 476 157 = 190 463</code>. Если закреплена сумма — берём как есть.</p>
-    </div></li>
+  <h3 style="margin-top:6px">В строке таблицы — сколько есть свободного</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Категория</th><th class="r">Сейчас</th><th class="r">Отклонение</th><th>Запас на перенос</th><th></th></tr></thead>
+      <tbody>
+        <tr><td class="mono">недвижка UA</td><td class="r">300 000</td><td class="r over-t">+109 537</td>
+            <td><span class="mono over-t">можно отдать 109 537</span></td>
+            <td class="r"><span class="btn">↦ переложить</span></td></tr>
+        <tr><td class="mono">акции</td><td class="r">45 000</td><td class="r under-t">−50 231</td>
+            <td><span class="mono under-t">не хватает 50 231</span></td>
+            <td class="r"><span class="btn">↦ переложить</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="font-size:14px;color:var(--muted);margin:0">Это не совет, а факт о позиции: сколько сверх цели можно снять и сколько недостаёт. Что с этим делать — решаешь ты.</p>
 
-    <li><div class="step-body">
-      <h3>Раскладываем на два списка</h3>
-      <p>Разница «сейчас минус цель»: положительная — в перевес, отрицательная — в недобор. Суммы двух списков всегда равны, потому что проценты дают в сумме 100%.</p>
-      <div class="pool">
-        <div class="pool-col">
-          <span class="pool-h">Перевес — откуда брать</span>
-          <span class="pool-r"><span>недвижка UA</span><span class="over-t">109 537</span></span>
-          <span class="pool-r"><span>недвижка EU</span><span class="over-t">4 769</span></span>
-          <span class="pool-r" style="border-top:1px solid var(--border);padding-top:3px"><span>итого</span><span>114 306</span></span>
-        </div>
-        <div class="pool-col">
-          <span class="pool-h">Недобор — куда класть</span>
-          <span class="pool-r"><span>акции</span><span class="under-t">50 231</span></span>
-          <span class="pool-r"><span>крипто</span><span class="under-t">23 808</span></span>
-          <span class="pool-r"><span>кеш</span><span class="under-t">22 651</span></span>
-          <span class="pool-r"><span>золото</span><span class="under-t">17 616</span></span>
-          <span class="pool-r" style="border-top:1px solid var(--border);padding-top:3px"><span>итого</span><span>114 306</span></span>
-        </div>
-      </div>
-    </div></li>
+  <h3 style="margin-top:14px">В форме переноса — что станет с обеими сторонами</h3>
+  <div class="form">
+    <div class="frow"><span class="flab">Откуда</span>
+      <span class="fval"><strong>недвижка UA</strong></span>
+      <span class="fhint over-t">сверх цели 109 537 €</span></div>
+    <div class="frow"><span class="flab">Куда</span>
+      <span class="fval sel">акции <span class="caret">▾</span></span>
+      <span class="fhint under-t">не хватает 50 231 €</span></div>
+    <div class="frow"><span class="flab">Сколько</span>
+      <span class="fval inp">50 000 €</span>
+      <span class="fhint"><span class="btn">всё, что сверх · 109 537</span> <span class="btn">сколько не хватает · 50 231</span></span></div>
 
-    <li><div class="step-body">
-      <h3>Сливаем крупное с крупным</h3>
-      <p>Берём самый большой перевес и самый большой недобор, переносим меньшее из двух, вычёркиваем исчерпанное и повторяем. Так получается <strong>наименьшее число переносов</strong> — а не двадцать мелких, которые никто не станет делать.</p>
-      <p style="font-size:14px;color:var(--muted)">UA отдаёт акциям 50 231 — у UA остаётся 59 306. Дальше крипте 23 808, кешу 22 651, остаток 12 847 уходит золоту. Золоту не хватает 4 769 — их добавляет EU. Списки пусты, конец.</p>
-    </div></li>
-
-    <li><div class="step-body">
-      <h3>Каждая пара становится обычной перестановкой</h3>
-      <p>Это <strong>не новый механизм</strong>: «Перестановки» уже умеют переносить сумму из позиции в позицию. Кнопка создаёт ровно ту связку, что ты сегодня заводишь руками через «↦ переложить», — и её так же можно удалить.</p>
-    </div></li>
-  </ol>
-
-  <div class="moves">
-    <div class="move"><span class="move-txt"><strong>недвижка UA</strong> <span class="arrow">→</span> <strong>акции</strong> <span class="num under-t">50 231 €</span></span><span class="btn">создать</span></div>
-    <div class="move"><span class="move-txt"><strong>недвижка UA</strong> <span class="arrow">→</span> <strong>крипто</strong> <span class="num under-t">23 808 €</span></span><span class="btn">создать</span></div>
-    <div class="move"><span class="move-txt"><strong>недвижка UA</strong> <span class="arrow">→</span> <strong>кеш</strong> <span class="num under-t">22 651 €</span></span><span class="btn">создать</span></div>
-    <div class="move"><span class="move-txt"><strong>недвижка UA</strong> <span class="arrow">→</span> <strong>золото</strong> <span class="num under-t">12 847 €</span></span><span class="btn">создать</span></div>
-    <div class="move"><span class="move-txt"><strong>недвижка EU</strong> <span class="arrow">→</span> <strong>золото</strong> <span class="num under-t">4 769 €</span></span><span class="btn">создать</span></div>
-    <div class="move" style="border-style:dashed">
-      <span class="move-txt derived">после всех пяти отклонение каждой категории — ноль</span>
-      <span class="btn solid">создать все</span>
+    <div class="preview">
+      <span class="pool-h" style="grid-column:1/-1">Станет после переноса</span>
+      <span class="mono">недвижка UA</span>
+      <span class="num">300 000 <span class="arrow">→</span> 250 000</span>
+      <span class="num"><span class="over-t">+23,0</span> <span class="arrow">→</span> <span class="over-t">+12,5 п.п.</span></span>
+      <span class="mono">акции</span>
+      <span class="num">45 000 <span class="arrow">→</span> 95 000</span>
+      <span class="num"><span class="under-t">−10,5</span> <span class="arrow">→</span> <span class="ok-t">−0,1 п.п.</span></span>
     </div>
+    <div class="frow" style="border-top:1px solid var(--border);padding-top:12px">
+      <span class="flab"></span><span class="fval"><span class="btn solid">переложить</span></span>
+      <span class="fhint">создаётся обычная перестановка — её видно в строке и можно удалить</span></div>
   </div>
 
-  <div class="note warn">
-    <p><strong>Подсказка ничего не исполняет.</strong> Она создаёт те же связки, которые ты завёл бы вручную, и «Стало» покажет результат до того, как ты что-то сделаешь в реальности. Захотел иначе — удалил связку или поправил сумму.</p>
+  <div class="note">
+    <p><strong>Две кнопки быстрого ввода</strong> — это всё, что осталось от автоподбора. Они не решают за тебя, а подставляют число, которое ты всё равно правишь: «всё, что сверх» — весь излишек источника, «сколько не хватает» — недобор получателя. Долю набираешь любую.</p>
+    <p><strong>Список «куда»</strong> отсортирован по величине недобора, так что сверху окажется позиция, которой недостаёт больше всех. Это подсказка порядком, а не выбором за тебя.</p>
   </div>
 </section>
 
@@ -387,8 +396,8 @@
       <p>Заменяют аллокацию по плану, пирог «состав сейчас» остаётся. Только фронт.</p>
     </div>
     <div class="card">
-      <h3>Подсказка переносов</h3>
-      <p>Четыре шага выше, на выходе — обычные перестановки. Только фронт.</p>
+      <h3>Числа вокруг переноса</h3>
+      <p>«Можно отдать» и «не хватает» в строке, живой пересчёт обеих сторон в форме, две кнопки быстрого ввода. Автоподбора пар нет. Только фронт.</p>
     </div>
   </div>
 
@@ -398,6 +407,7 @@
       <li><strong>Полос допуска</strong> — согласен, лишняя сущность. Ты и так видишь величину отклонения и решаешь сам, когда она значима.</li>
       <li><strong>Флага «неликвид»</strong> — снято, раз всё может быть ликвидом.</li>
       <li><strong>Второго пирога</strong> — его работу делают полосы, причём точнее.</li>
+      <li><strong>Автоподбора переносов</strong> — что и какими долями сливать, решаешь ты; интерфейс лишь показывает запас и последствия.</li>
     </ul>
   </div>
 </section>
