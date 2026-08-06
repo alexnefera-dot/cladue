@@ -385,12 +385,12 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 
 .barswrap{overflow-x:auto;min-width:0;width:100%}
 .bars{display:flex;flex-direction:column;gap:5px;min-width:600px}
-.bgrp,.bhead,.brow{display:grid;grid-template-columns:96px 1fr 72px 46px 72px 44px 76px 50px;
+.bgrp,.bhead,.brow{display:grid;grid-template-columns:16px 96px 1fr 72px 46px 72px 44px 76px 50px;
   gap:8px;align-items:center;font:11.5px var(--mono)}
 .bgrp{font-size:9px;letter-spacing:.06em;color:var(--muted)}
 .bgrp i{grid-column:span 2;text-align:center;font-style:normal;border-bottom:1px solid var(--line);padding-bottom:2px}
 .bhead{font-size:9.5px;letter-spacing:.06em;color:var(--muted)}
-.bhead span:nth-child(n+3){text-align:right}
+.bhead span:nth-child(n+4){text-align:right}
 .brow{padding:2px 0;border-radius:5px;transition:background .12s}
 .brow.hi{background:var(--bg2)}
 .blab{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -443,3 +443,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .porttable td.acc{font-weight:600;font-size:13px}
 .porttable td.goal .sub .ed{font-size:11px}
 .porttable td.goal .ed.pinned{color:var(--green)}
+.bgrip{color:var(--line2);cursor:grab;font-size:11px;line-height:1;user-select:none}
+.brow:hover .bgrip{color:var(--muted)}
+.brow[draggable]{cursor:default}
+.brow.dropbefore{box-shadow:inset 0 2px 0 var(--green)}
+.brow.dropafter{box-shadow:inset 0 -2px 0 var(--green)}

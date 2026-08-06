@@ -62,6 +62,8 @@ window.loadFin = async function () {
 // ===== Портфель: строки таблицы =====
 // свёрнутые узлы — переживают перерисовку и перезапуск
 const portFold = new Set(JSON.parse(localStorage.portFold ?? '[]'));
+let catOrder = JSON.parse(localStorage.catOrder ?? '[]');   // ручной порядок строк мониторинга; пусто = по отклонению
+const saveCatOrder = () => localStorage.catOrder = JSON.stringify(catOrder);
 let tgtMove = null;   // {from, to, amount} — раскрытая форма переноса; null = закрыта, нигде не показывается
 const savePortFold = () => localStorage.portFold = JSON.stringify([...portFold]);
 
@@ -418,7 +420,11 @@ function secPortfolio(d, s) {
       return { ty, now, plan, nowP, planP, dev: now - plan, devP: nowP - planP };
     })
     .filter(r => r.now > 0 || r.plan > 0)
-    .sort((a, b) => Math.abs(b.devP) - Math.abs(a.devP));
+    .sort((a, b) => {   // вручную расставленные держат свои места, прочие — по величине отклонения
+      const ia = catOrder.indexOf(a.ty), ib = catOrder.indexOf(b.ty);
+      if (ia !== -1 || ib !== -1) return (ia === -1 ? 1e6 : ia) - (ib === -1 ? 1e6 : ib);
+      return Math.abs(b.devP) - Math.abs(a.devP);
+    });
   const catMaxP = Math.max(1, ...catRows.map(r => Math.max(r.nowP, r.planP)));
   const rctx = { total: rootTotal, planTotal, parentEur: rootTotal, tgt, tree, path: '' };
   if (tgt) {   // ручные связки ребаланса (из target_moves): сопоставляем id позиций с путём/именем
@@ -495,12 +501,15 @@ function secPortfolio(d, s) {
   </div>` : ''}
   ${tgt && catRows.length ? `
   <div class="card">
-    <div class="meta" style="margin-bottom:8px">МОНИТОРИНГ · СЕЙЧАС ПРОТИВ ЦЕЛИ (⊙ у строки — задать категорию)</div>
+    <div class="kv" style="margin-bottom:8px">
+      <span class="meta">МОНИТОРИНГ · СЕЙЧАС ПРОТИВ ЦЕЛИ (⊙ у строки — задать категорию; ⠿ — перетащить)</span>
+      ${catOrder.length ? '<span class="pill btn" id="catOrderReset" title="вернуть сортировку по величине отклонения">↕ по отклонению</span>' : ''}
+    </div>
     <div class="tgtmon">
       <div class="tgtdonut">${catDonut(catRows, rootTotal)}</div>
       <div class="barswrap"><div class="bars">
-        <div class="bgrp"><span></span><span></span><i>сейчас</i><i>цель</i><i>отклонение</i></div>
-        <div class="bhead"><span>категория</span><span>сейчас против цели</span>
+        <div class="bgrp"><span></span><span></span><span></span><i>сейчас</i><i>цель</i><i>отклонение</i></div>
+        <div class="bhead"><span></span><span>категория</span><span>сейчас против цели</span>
           <span>€</span><span>%</span><span>€</span><span>%</span><span>€</span><span>п.п.</span></div>
         ${catRows.map(r => {
           const f = Math.min(r.nowP, r.planP) / catMaxP * 100;
@@ -508,7 +517,8 @@ function secPortfolio(d, s) {
           const under = r.planP > r.nowP ? (r.planP - r.nowP) / catMaxP * 100 : 0;
           const tick = r.planP / catMaxP * 100;
           const cls = Math.abs(r.devP) < 0.05 ? 'ok-dev' : r.dev > 0 ? 'dev-over' : 'dev-under';
-          return `<div class="brow" data-cat="${fesc(r.ty)}">
+          return `<div class="brow" draggable="true" data-cat="${fesc(r.ty)}">
+            <span class="bgrip" title="перетащить">⠿</span>
             <span class="blab">${fesc(r.ty)}</span>
             <span class="btrack">${f > 0 ? `<i class="bfill" style="width:${f.toFixed(1)}%"></i>` : ''}${
               over ? `<i class="bover" style="left:${f.toFixed(1)}%;width:${over.toFixed(1)}%"></i>` : ''}${
@@ -1202,6 +1212,37 @@ function bindFin() {
       window.loadFin();
     }));
   // «↦ переложить» раскрывает форму строкой под позицией; повторный клик закрывает
+  // Перетаскивание строк мониторинга: группировка на усмотрение пользователя.
+  // Порядок живёт в localStorage — это вид, а не данные, и синхронизировать его между устройствами незачем.
+  let catDrag = null;
+  const catClear = () => document.querySelectorAll('.brow.dropbefore,.brow.dropafter')
+    .forEach(x => x.classList.remove('dropbefore', 'dropafter'));
+  document.querySelectorAll('.brow[draggable]').forEach(row => {
+    row.addEventListener('dragstart', e => { catDrag = row.dataset.cat; e.dataTransfer.effectAllowed = 'move'; });
+    row.addEventListener('dragover', e => {
+      if (catDrag == null || row.dataset.cat === catDrag) return;
+      e.preventDefault();
+      const r = row.getBoundingClientRect();
+      row.classList.remove('dropbefore', 'dropafter');
+      row.classList.add((e.clientY - r.top) / r.height < 0.5 ? 'dropbefore' : 'dropafter');
+    });
+    row.addEventListener('dragleave', () => row.classList.remove('dropbefore', 'dropafter'));
+    row.addEventListener('drop', e => {
+      e.preventDefault();
+      const after = row.classList.contains('dropafter');
+      catClear();
+      if (catDrag == null || row.dataset.cat === catDrag) return;
+      // порядок задаём от того, что видно на экране: иначе строки без ручной позиции прыгали бы
+      const shown = [...document.querySelectorAll('.brow[data-cat]')].map(x => x.dataset.cat);
+      const next = shown.filter(c => c !== catDrag);
+      next.splice(next.indexOf(row.dataset.cat) + (after ? 1 : 0), 0, catDrag);
+      catOrder = next; saveCatOrder(); catDrag = null; renderFin();
+    });
+    row.addEventListener('dragend', () => { catClear(); catDrag = null; });
+  });
+  document.getElementById('catOrderReset')?.addEventListener('click', () => {
+    catOrder = []; saveCatOrder(); renderFin();
+  });
   // наведение связывает сектор бублика и строку мониторинга — цвет перестаёт быть единственной нитью
   document.querySelectorAll('[data-cat]').forEach(el => {
     const mark = on => document.querySelectorAll('[data-cat]').forEach(x => {
