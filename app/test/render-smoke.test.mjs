@@ -74,7 +74,7 @@ test('строки совпадают с шапкой по числу колон
 test('целевой: колонки и блок мониторинга на месте', () => {
   const html = loadFin().secPortfolio(DATA, DATA.summary);
   for (const part of ['Покупка', 'Прирост', 'Сейчас', 'Станет', 'Цель', 'Отклонение', 'Перестановки',
-                      'tgtdonut', 'btrack', 'btick', 'data-cat']) {
+                      'stackwrap', 'stacklab', 'btrack', 'btick', 'data-cat']) {
     assert.ok(html.includes(part), `в целевом нет «${part}»`);
   }
 });

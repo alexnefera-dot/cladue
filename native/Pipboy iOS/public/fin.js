@@ -545,10 +545,7 @@ function secPortfolio(d, s) {
       ${monCrumbs.map((c, k) => `<span class="sepc">›</span><span class="crumb${k < monCrumbs.length - 1 ? ' btn' : ''}" data-moncrumb="${k}">${fesc(c.name)}</span>`).join('')}
     </div>` : ''}
     <div class="tgtmon">
-      <div class="tgtdonut">
-        ${catDonut(catRows, monTotal, monPlanTotal)}
-        <div class="donutkey"><span><i class="kr outer"></i>снаружи — сейчас</span><span><i class="kr inner"></i>внутри — цель</span></div>
-      </div>
+      ${catStack(catRows, monTotal, monPlanTotal)}
       <div class="barswrap"><div class="bars">
         <div class="bgrp"><span></span><span></span><span></span><i>сейчас</i><i>цель</i><i>отклонение</i></div>
         <div class="bhead"><span></span><span>${monCut === 'blocks' ? 'блок' : monCut === 'types' ? 'тип актива' : 'регион'}</span><span>сейчас против цели</span>
@@ -577,39 +574,25 @@ function secPortfolio(d, s) {
   </div>` : ''}`;
 }
 
-// Два вложенных кольца: внешнее — сейчас, внутреннее — цель. Порядок и цвета общие,
-// поэтому разрыв между полосами одного цвета и есть отклонение. Точные числа даёт список рядом.
-function catDonut(rows, total, planTotal) {
-  const CX = 84, CY = 84;
-  const ring = (r0, r1, vals, sum, cls) => {
-    if (!(sum > 0)) return '';
-    const pt = (r, a) => { const t = a * Math.PI / 180; return `${(CX + r * Math.cos(t)).toFixed(2)} ${(CY + r * Math.sin(t)).toFixed(2)}`; };
-    let ang = -90, out = '';
-    vals.forEach((v, i) => {
-      if (!(v.val > 0)) return;
-      const sweep = v.val / sum * 360, a0 = ang, a1 = ang + sweep, big = sweep > 180 ? 1 : 0;
-      out += `<path class="sl ${cls}" data-cat="${fesc(v.ty)}" fill="${PIE_COLORS[v.i % PIE_COLORS.length]}" `
-        + `d="M ${pt(r1, a0)} A ${r1} ${r1} 0 ${big} 1 ${pt(r1, a1)} L ${pt(r0, a1)} A ${r0} ${r0} 0 ${big} 0 ${pt(r0, a0)} Z">`
-        + `<title>${fesc(v.ty)} — ${cls === 'outer' ? 'сейчас' : 'цель'} ${fmt(v.val)} € · ${(v.val / sum * 100).toFixed(1)}%</title></path>`;
-      ang = a1;
-    });
-    return out;
+// Две полосы на 100%: «сейчас» и «цель» от одного левого края. Сравнивать длины
+// сегментов на параллельных полосах человек умеет, дуги на разных радиусах — нет.
+function catStack(rows, total, planTotal) {
+  const bar = (getter, sum, kind) => {
+    if (!(sum > 0)) return `<div class="stack empty">${kind === 'plan' ? 'цели не заданы' : 'пусто'}</div>`;
+    return `<div class="stack">${rows.map((r, i) => {
+      const v = getter(r);
+      if (!(v > 0)) return '';
+      const w = v / sum * 100;
+      // подпись влезает только в широкий сегмент; в узкий не пишем ничего — он читается в списке
+      const inner = w >= 15 ? `${fesc(r.ty)} ${w.toFixed(0)}%` : w >= 6 ? `${w.toFixed(0)}%` : '';
+      return `<i class="seg" data-cat="${fesc(r.ty)}" style="width:${w.toFixed(2)}%;background:${PIE_COLORS[i % PIE_COLORS.length]}"
+        title="${fesc(r.ty)} — ${kind === 'plan' ? 'цель' : 'сейчас'} ${fmt(v)} € · ${w.toFixed(1)}%"><b>${inner}</b></i>`;
+    }).join('')}</div>`;
   };
-  const outer = ring(58, 76, rows.map((r, i) => ({ ty: r.ty, val: r.now, i })), total, 'outer');
-  const inner = ring(36, 52, rows.map((r, i) => ({ ty: r.ty, val: r.hasPlan ? r.plan : 0, i })), planTotal, 'inner');
-  // проценты пишем прямо на внешнем кольце — иначе цвет ни с чем не связан;
-  // мелкие сектора пропускаем, подписи налезали бы друг на друга
-  let ang = -90, labels = '';
-  rows.forEach(r => {
-    if (!(r.now > 0) || !(total > 0)) return;
-    const sweep = r.now / total * 360, mid = (ang + sweep / 2) * Math.PI / 180;
-    if (sweep >= 25) labels += `<text class="pl" x="${(84 + 67 * Math.cos(mid)).toFixed(1)}" y="${(84 + 67 * Math.sin(mid)).toFixed(1)}">${(r.now / total * 100).toFixed(0)}%</text>`;
-    ang += sweep;
-  });
-  return `<svg viewBox="0 0 168 168" role="img" aria-label="состав: сейчас и цель">
-    ${outer}${inner}${labels}
-    ${planTotal > 0 ? '' : '<text class="ct-k" x="84" y="88">цели не заданы</text>'}
-  </svg>`;
+  return `<div class="stackwrap">
+    <div class="stackrow"><span class="stacklab">сейчас</span>${bar(r => r.now, total, 'now')}<span class="stacksum">${fmt(total)} €</span></div>
+    <div class="stackrow"><span class="stacklab">цель</span>${bar(r => r.hasPlan ? r.plan : 0, planTotal, 'plan')}<span class="stacksum">${planTotal > 0 ? fmt(planTotal) + ' €' : ''}</span></div>
+  </div>`;
 }
 
 
