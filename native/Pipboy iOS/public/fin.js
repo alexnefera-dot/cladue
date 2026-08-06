@@ -91,14 +91,17 @@ function portRows(it, depth, ctx) {
     const becameShown = editable ? `${fmt(it.value || 0)} ${fesc(cur)}` : fmtE(it.eur);
     const becameCell = `<td class="r num acc">${net === 0 ? becameShown
       : `<span class="${net > 0 ? 'up' : 'down'}" title="старт ${editable ? fmt(startVal) + ' ' + fesc(cur) : fmtE((it.eur || 0) - net)} · транзакции ${net > 0 ? '+' : '−'}${fmt(Math.abs(editable ? netCur : net))} ${editable ? fesc(cur) : '€'}">${becameShown}</span>`}</td>`;
-    const planCell = editable
-      ? `<td class="r num acc"><span class="ed" data-fe="tgt:${it.id}:target_value:num" title="план — сколько хочу получить (клик)">${it.target_value != null ? fmt(it.target_value) : '—'}</span> <span class="meta">${fesc(cur)}</span></td>`
-      : `<td class="r num acc">${it.target != null && it.target > 0 ? fmtE(it.target) : ''}</td>`;
-    const gap = (it.target != null && it.target > 0) ? it.target - it.eur : null;   // план − стало, в €
+    // план правится на любом уровне: у раздела своё значение перекрывает сумму вложенных
+    const ownPlan = it.target_value;
+    const planShown = ownPlan != null ? fmt(ownPlan) : (it.planKids ? fmt(it.planKids) : '—');
+    const planDiff = ownPlan != null && it.planKids && Math.abs((it.planEur || 0) - it.planKids) >= 1
+      ? `<div class="meta" title="свой план раздела расходится с суммой планов внутри">по позициям ${fmtE(it.planKids)}</div>` : '';
+    const planCell = `<td class="r num acc"><span class="ed${ownPlan == null && it.planKids ? ' meta' : ''}" data-fe="tgt:${it.id}:target_value:num" title="${editable ? 'план — сколько хочу получить (клик)' : 'план раздела — клик задаёт свой; сейчас показана сумма планов внутри'}">${planShown}</span> <span class="meta">${fesc(cur)}</span>${planDiff}</td>`;
+    const gap = (it.planEur != null && it.planEur > 0) ? it.planEur - it.eur : null;   // план − стало, в €
     const gapCell = `<td class="r num">${gap == null ? '' : Math.abs(gap) < 1 ? '<span class="up">✓ в плане</span>' : gap > 0 ? `<span class="down">+${fmtE(gap)} добрать</span>` : `<span class="meta">−${fmtE(-gap)} перебор</span>`}</td>`;
     // доля плана: основная — внутри своего блока, от всего целевого — мельче
-    const planPct = ctx?.planTotal > 0 && it.target > 0 ? it.target / ctx.planTotal * 100 : null;
-    const planCat = ctx?.blockTarget > 0 && it.target > 0 ? it.target / ctx.blockTarget * 100 : null;
+    const planPct = ctx?.planTotal > 0 && it.planEur > 0 ? it.planEur / ctx.planTotal * 100 : null;
+    const planCat = ctx?.blockTarget > 0 && it.planEur > 0 ? it.planEur / ctx.blockTarget * 100 : null;
     const shareStr = (planPct == null && planCat == null) ? '' :
       `${planCat != null ? `<div class="num" title="доля плана внутри своего блока">${planCat.toFixed(1)}% <span class="meta">кат.</span></div>` : ''}
        ${planPct != null ? `<div class="${planCat != null ? 'meta' : 'num'}" title="доля плана от всего целевого">${planPct.toFixed(1)}%${planCat != null ? ' общ.' : ''}</div>` : ''}`;
@@ -156,7 +159,7 @@ function portRows(it, depth, ctx) {
       ${!target && editable ? `<span class="rowbtn" data-loanflag="${it.id}:${it.is_loan ? 1 : 0}" title="${it.is_loan ? 'убрать значок займа' : 'пометить как займ'}">🤝</span>` : ''}
       <span class="rowbtn del" data-findel="${pfx}:${it.id}">✕</span>
     </td>
-  </tr>` + (folded ? '' : it.children.map(c => portRows(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, parentEur: it.eur, blockEur: depth === 0 ? it.eur : ctx?.blockEur, blockTarget: depth === 0 ? it.target : ctx?.blockTarget, tgt: target, factByPath: ctx?.factByPath, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
+  </tr>` + (folded ? '' : it.children.map(c => portRows(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, parentEur: it.eur, blockEur: depth === 0 ? it.eur : ctx?.blockEur, blockTarget: depth === 0 ? it.planEur : ctx?.blockTarget, tgt: target, factByPath: ctx?.factByPath, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
 }
 
 const finIsMobile = () => window.matchMedia('(max-width: 768px)').matches;
@@ -186,8 +189,8 @@ function portCard(it, depth, ctx) {
   let meta;
   if (target) {
     const path = (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase();
-    const planCat = ctx?.blockTarget > 0 && it.target > 0 ? it.target / ctx.blockTarget * 100 : null;   // доля плана внутри блока
-    const planPct = ctx?.planTotal > 0 && it.target > 0 ? it.target / ctx.planTotal * 100 : null;
+    const planCat = ctx?.blockTarget > 0 && it.planEur > 0 ? it.planEur / ctx.blockTarget * 100 : null;   // доля плана внутри блока
+    const planPct = ctx?.planTotal > 0 && it.planEur > 0 ? it.planEur / ctx.planTotal * 100 : null;
     // в базе value уже с переливами: крупным числом показываем старт, «стало» — рядом в мете
     const net = ctx?.netByPath?.[path] || 0;
     const netCur = cur === '$' ? net * (ctx?.rate || 1.08) : net;   // в валюте позиции
@@ -198,10 +201,8 @@ function portCard(it, depth, ctx) {
     }
     const becameStr = net === 0 ? ''
       : `<span class="${net > 0 ? 'up' : 'down'}">стало ${editable ? fmt(it.value || 0) + ' ' + fesc(cur) : fmtE(it.eur)}</span>`;
-    const gap = (it.target != null && it.target > 0) ? it.target - it.eur : null;   // план − стало, в €
-    const planStr = editable
-      ? `<span class="meta">план: <span class="ed" data-fe="tgt:${it.id}:target_value:num" title="сколько хочу получить (клик)">${it.target_value != null ? fmt(it.target_value) : '—'}</span> ${fesc(cur)}</span>`
-      : (it.target != null && it.target > 0 ? `<span class="meta">план ${fmtE(it.target)}</span>` : '');
+    const gap = (it.planEur != null && it.planEur > 0) ? it.planEur - it.eur : null;   // план − стало, в €
+    const planStr = `<span class="meta">план: <span class="ed" data-fe="tgt:${it.id}:target_value:num" title="${editable ? 'сколько хочу получить (клик)' : 'план раздела — клик задаёт свой; сейчас сумма планов внутри'}">${it.target_value != null ? fmt(it.target_value) : (it.planKids ? fmt(it.planKids) : '—')}</span> ${fesc(cur)}</span>`;
     const gapStr = gap == null ? '' : Math.abs(gap) < 1 ? '<span class="up">✓ в плане</span>' : gap > 0 ? `<span class="down">+${fmtE(gap)} добрать</span>` : `<span class="meta">−${fmtE(-gap)} перебор</span>`;
     const links = [
       ...(ctx?.movesBySrc?.[path] || []).map(mv => `<span class="meta"><span class="down">→ отдать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> в «${fesc(mv.toName)}» <span class="rowbtn del" data-movedel="${mv.id}" title="убрать связку">✕</span></span>`),
@@ -230,7 +231,7 @@ function portCard(it, depth, ctx) {
       <span class="pc-val">${val}</span>
     </div>
     <div class="pc-meta">${meta}${folded ? `<span class="meta">· ${it.children.length} внутри</span>` : ''}<span class="pc-actions">${actions}</span></div>
-  </div>` + (folded ? '' : it.children.map(c => portCard(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, parentEur: it.eur, blockEur: depth === 0 ? it.eur : ctx?.blockEur, blockTarget: depth === 0 ? it.target : ctx?.blockTarget, tgt: target, factByPath: ctx?.factByPath, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
+  </div>` + (folded ? '' : it.children.map(c => portCard(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, parentEur: it.eur, blockEur: depth === 0 ? it.eur : ctx?.blockEur, blockTarget: depth === 0 ? it.planEur : ctx?.blockTarget, tgt: target, factByPath: ctx?.factByPath, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
 }
 
 // диаграмма аллокации: доли с процентами внутри, каждая своим цветом
@@ -322,7 +323,21 @@ function secPortfolio(d, s) {
   if (tgt) { const w = (ns, pre) => (ns || []).forEach(n => { const p = pre + '/' + (n.name || '').trim().toLowerCase(); factByPath[p] = (factByPath[p] || 0) + (n.eur || 0); w(n.children, p); }); w(d.portfolio, ''); }
   const tree = tgt ? (d.targetPortfolio || []) : (d.portfolio || []);
   const rootTotal = tgt ? tree.reduce((a, b) => a + (b.eur || 0), 0) : s.portfolioTotal;   // сейчас размещено в целевом
-  const planTotal = tgt ? tree.reduce((a, b) => a + (b.target || 0), 0) : 0;   // сумма планов (target_value)
+  // План узла: своё target_value, если задано, иначе сумма планов вложенных. Бэкенд (calcNode)
+  // для узлов с детьми всегда отдаёт сумму и собственное target_value у них игнорирует.
+  if (tgt) {
+    const rateP = s.rate || d.rate || 1.08;
+    const setPlan = n => {
+      const kids = n.children || [];
+      kids.forEach(setPlan);
+      const own = n.target_value != null ? ((n.currency ?? '€') === '$' ? n.target_value / rateP : n.target_value) : null;
+      const kidsSum = kids.reduce((a, c) => a + (c.planEur || 0), 0);
+      n.planKids = kids.length ? kidsSum : null;   // сумма по вложенным — для подсказки о расхождении
+      n.planEur = own != null ? own : (kids.length ? (kidsSum || null) : (n.target ?? null));
+    };
+    tree.forEach(setPlan);
+  }
+  const planTotal = tgt ? tree.reduce((a, b) => a + (b.planEur || 0), 0) : 0;   // сумма планов верхнего уровня
   const tgtBlockEur = {}; if (tgt) tree.forEach(b => { tgtBlockEur[b.name || ''] = b.eur || 0; });   // сумма блока целевого — для «% от блока» в аллокации
   const rctx = { total: rootTotal, planTotal, parentEur: rootTotal, tgt, factByPath, path: '' };
   if (tgt) {   // ручные связки ребаланса (из target_moves): сопоставляем id позиций с путём/именем
