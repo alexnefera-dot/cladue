@@ -335,7 +335,6 @@ function secPortfolio(d, s) {
   // Аллокация целевого по ПЛАНУ: тип живёт на листьях, план берём эффективный (planEur).
   // Если у раздела свой план больше суммы позиций внутри, разница уходит в «не расписано».
   const planByType = {}, planByTypeBlocks = {}, planBlock = {};
-  let planNoType = 0, planNoTypeSum = 0, planNoPlan = 0;   // что осталось не определённым
   if (tgt) {
     let leafSum = 0;
     const walkPlan = (n, root) => {
@@ -344,12 +343,11 @@ function secPortfolio(d, s) {
         const v = n.planEur || 0;
         if (v > 0) {
           const ty = n.asset_type || 'без типа';
-          if (!n.asset_type) { planNoType++; planNoTypeSum += v; }
           planByType[ty] = (planByType[ty] || 0) + v;
           (planByTypeBlocks[ty] ||= {})[root] = ((planByTypeBlocks[ty] || {})[root] || 0) + v;
           planBlock[root] = (planBlock[root] || 0) + v;
           leafSum += v;
-        } else planNoPlan++;
+        }
       }
       kids.forEach(c => walkPlan(c, root));
     };
@@ -358,38 +356,6 @@ function secPortfolio(d, s) {
   }
   const planTypeRows = Object.entries(planByType).sort((a, b) => b[1] - a[1]);
   const planPieTotal = planTypeRows.reduce((a, [, v]) => a + v, 0);
-  // Сверка: сумма категорий должна совпасть с планом. Расходится, когда у раздела свой план
-  // МЕНЬШЕ суммы позиций внутри — тогда в аллокацию идут позиции, и пирог больше плана.
-  const planDiff = planPieTotal - planTotal;
-  const planCheck = !tgt || !planTypeRows.length ? '' : `<div class="meta" style="margin-top:10px;line-height:1.7">
-    ${Math.abs(planDiff) < 1
-      ? `<span class="up">✓ сумма категорий сходится с планом — ${fmtE(planTotal)}</span>`
-      : `<span class="down">⚠ категории ${fmtE(planPieTotal)} ≠ план ${fmtE(planTotal)}, расхождение ${fmtE(Math.abs(planDiff))}</span><br>у раздела свой план меньше суммы позиций внутри — в аллокацию идут позиции`}
-    ${planNoTypeSum > 1 ? `<br><span class="down">без типа: ${fmtE(planNoTypeSum)} в ${planNoType} позиц.</span> — задай тип кнопкой ⊙ в строке` : ''}
-    ${planNoPlan ? `<br>без плана: ${planNoPlan} позиц. — в аллокацию не попали` : ''}
-  </div>`;
-  const rctx = { total: rootTotal, planTotal, parentEur: rootTotal, tgt, factByPath, path: '' };
-  if (tgt) {   // ручные связки ребаланса (из target_moves): сопоставляем id позиций с путём/именем
-    const byId = {};
-    const mapIds = (ns, pre) => (ns || []).forEach(n => { const p = pre + '/' + (n.name || '').trim().toLowerCase(); byId[n.id] = { path: p, name: n.name, cur: n.currency ?? '€' }; mapIds(n.children, p); });
-    mapIds(tree, '');
-    const rate = s.rate || d.rate || 1.08;   // курс лежит в summary (s.rate), не в d
-    rctx.rate = rate;                        // нужен строкам: суммы показываем в валюте позиции
-    const inCur = (eur, cur) => cur === '$' ? eur * rate : eur;   // amount хранится в €, показываем в валюте стороны
-    rctx.movesBySrc = {}; rctx.movesByDst = {}; rctx.netByPath = {};
-    // чистая дельта транзакций в € — узлу и всем его предкам (пути = префиксы), чтобы «Сейчас»
-    // и «Стало» сходились и на разделах/блоках, а не только на листьях
-    const addNet = (path, delta) => {
-      let p = '';
-      for (const seg of path.split('/').filter(Boolean)) { p += '/' + seg; rctx.netByPath[p] = (rctx.netByPath[p] || 0) + delta; }
-    };
-    (d.targetMoves || []).forEach(mv => {
-      const a = byId[mv.from_id], b = byId[mv.to_id]; if (!a || !b) return;
-      (rctx.movesBySrc[a.path] ||= []).push({ id: mv.id, amount: inCur(mv.amount, a.cur), cur: a.cur, toName: b.name });
-      (rctx.movesByDst[b.path] ||= []).push({ id: mv.id, amount: inCur(mv.amount, b.cur), cur: b.cur, fromName: a.name });
-      addNet(a.path, -mv.amount); addNet(b.path, mv.amount);   // mv.amount хранится в €
-    });
-  }
   return `
   <div class="sec">Портфель · блоки → разделы → активы · всё правится кликом</div>
   <div class="viewtabs">
@@ -410,7 +376,7 @@ function secPortfolio(d, s) {
         : '<tr><th>Название</th><th class="r">Покупка</th><th class="r">Прирост</th><th class="r">Текущая</th><th class="r" title="от своего блока / от всего портфеля">Доля</th><th></th></tr>'}
       ${tree.map(b => portRows(b, 0, rctx)).join('') || '<tr><td colspan="8"><div class="empty">пусто</div></td></tr>'}
     </table>`}
-    ${tgt ? `<div class="task finadd" style="margin-top:6px"><input id="tgt_block" placeholder="новый блок целевого" style="flex:1"><span class="pill btn ok" data-tgtadd="block:">＋ блок</span><span class="pill btn" id="tgtSyncNow" title="подтянуть «Сейчас» из Факта по совпадающим позициям (чего нет в Факте — не трогаем)">⟳ Сейчас из Факта</span><span class="pill btn" id="tgtBindRates" title="завести ETF / золото / BTC из Факта с привязкой к типу актива и курсу — позиция будет равна текущей и обновляться с курсом">⚡ ETF/золото/BTC из Факта</span></div>`
+    ${tgt ? `<div class="task finadd" style="margin-top:6px"><input id="tgt_block" placeholder="новый блок целевого" style="flex:1"><span class="pill btn ok" data-tgtadd="block:">＋ блок</span><span class="pill btn" id="tgtSyncNow" title="подтянуть из Факта суммы и типы активов по совпадающим позициям (чего нет в Факте — не трогаем)">⟳ Суммы и типы из Факта</span><span class="pill btn" id="tgtBindRates" title="завести ETF / золото / BTC из Факта с привязкой к типу актива и курсу — позиция будет равна текущей и обновляться с курсом">⚡ ETF/золото/BTC из Факта</span></div>`
       : `<div class="task finadd" style="margin-top:6px"><input id="fact_block" placeholder="новый блок портфеля (Крипта, Бизнес…)" style="flex:1"><span class="pill btn ok" data-fadd="block:">＋ блок</span></div>`}
   </div>
   ${!tgt && (d.byType.length || (d.byRegion || []).length) ? `
@@ -456,7 +422,6 @@ function secPortfolio(d, s) {
         }).join('')}
       </div>
     </div>
-    ${planCheck}
   </div>` : ''}`;
 }
 
@@ -1104,32 +1069,41 @@ function bindFin() {
   // «Сейчас» в целевом ← суммы Факта по СОВПАДАЮЩЕМУ полному пути (блок/раздел/актив).
   // Чего в Факте нет — не трогаем и ничего не создаём (без дублей).
   document.getElementById('tgtSyncNow')?.addEventListener('click', async () => {
-    const fact = {};
+    const fact = {}, factType = {};
     const walkF = (ns, pre) => (ns || []).forEach(n => {
       const p = pre + '/' + (n.name || '').trim().toLowerCase();
-      fact[p] = (fact[p] || 0) + (n.eur || 0); walkF(n.children, p);
+      fact[p] = (fact[p] || 0) + (n.eur || 0);
+      if (n.asset_type) factType[p] = n.asset_type;   // тип берём у той же позиции Факта
+      walkF(n.children, p);
     });
     walkF(finData.portfolio, '');
     const rate = finData.summary?.rate || 1.08;
     const upd = [], miss = [];
     const walkT = (ns, pre) => (ns || []).forEach(n => {
       const p = pre + '/' + (n.name || '').trim().toLowerCase();
-      if (n.kind === 'asset' || !(n.children || []).length) {         // суммы правим только у листьев
+      if (n.kind === 'asset' || !(n.children || []).length) {         // суммы и типы правим только у листьев
         if (fact[p] == null) miss.push(n.name);
         else {
           const cur = n.currency ?? '€';
           const v = Math.round((cur === '$' ? fact[p] * rate : fact[p]) * 100) / 100;   // «Сейчас» = сумма из Факта
-          if (Math.abs((n.value ?? 0) - v) >= 0.01) upd.push({ id: n.id, name: n.name, from: n.value ?? 0, to: v, cur, val: v });
+          const ty = factType[p] ?? null;                                               // тип актива — оттуда же
+          const dv = Math.abs((n.value ?? 0) - v) >= 0.01, dt = ty != null && ty !== (n.asset_type ?? null);
+          if (dv || dt) upd.push({ id: n.id, name: n.name, from: n.value ?? 0, to: v, cur, val: dv ? v : null, ty: dt ? ty : null, wasTy: n.asset_type ?? null });
         }
       }
       walkT(n.children, p);
     });
     walkT(finData.targetPortfolio, '');
     const missNote = miss.length ? `\n\nНет в Факте — не трогаю (${miss.length}): ${miss.slice(0, 8).join(', ')}${miss.length > 8 ? '…' : ''}` : '';
-    if (!upd.length) { alert(`Обновлять нечего: совпадающие позиции уже равны Факту.${missNote}`); return; }
-    const preview = upd.slice(0, 12).map(u => `· ${u.name}: ${fmt(u.from)} → ${fmt(u.to)} ${u.cur}`).join('\n');
-    if (!confirm(`Подтянуть «Сейчас» (старт) из Факта — ${upd.length} позиц.:\n\n${preview}${upd.length > 12 ? `\n…и ещё ${upd.length - 12}` : ''}${missNote}`)) return;
-    for (const u of upd) await finApi.patch('tgt', u.id, { value: u.val });
+    if (!upd.length) { alert(`Обновлять нечего: суммы и типы уже совпадают с Фактом.${missNote}`); return; }
+    const preview = upd.slice(0, 12).map(u => `· ${u.name}: ${u.val != null ? `${fmt(u.from)} → ${fmt(u.to)} ${u.cur}` : ''}${u.val != null && u.ty ? ' · ' : ''}${u.ty ? `тип ${u.wasTy ?? '—'} → ${u.ty}` : ''}`).join('\n');
+    if (!confirm(`Подтянуть из Факта — ${upd.length} позиц. (суммы и типы активов):\n\n${preview}${upd.length > 12 ? `\n…и ещё ${upd.length - 12}` : ''}${missNote}`)) return;
+    for (const u of upd) {
+      const body = {};
+      if (u.val != null) body.value = u.val;
+      if (u.ty) body.asset_type = u.ty;
+      await finApi.patch('tgt', u.id, body);
+    }
     window.loadFin();
   });
   // ETF / золото / BTC из Факта в целевой: позиция равна текущей и держится за курс.
