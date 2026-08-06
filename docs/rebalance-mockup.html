@@ -50,30 +50,39 @@
   .over-t{color:var(--over)} .under-t{color:var(--under)} .ok-t{color:var(--accent)} .mut{color:var(--muted)}
 
   /* мониторинг */
-  .mon { display:grid; grid-template-columns:178px 1fr; gap:22px; align-items:start;
+  .mon { display:grid; grid-template-columns:186px 1fr; gap:20px; align-items:start;
          background:var(--surface); border:1px solid var(--border); padding:18px; }
-  @media (max-width:760px) { .mon { grid-template-columns:1fr; } }
-  .pieblock { display:flex; flex-direction:column; align-items:center; gap:9px; }
-  .pie { width:142px; height:142px; border-radius:50%; }
-  .legend { display:flex; flex-direction:column; gap:3px; font-family:var(--mono); font-size:10.5px; color:var(--muted); width:100%; }
-  .legend span { display:flex; align-items:center; gap:6px; }
-  .sw { width:9px; height:9px; border-radius:2px; flex:0 0 auto; }
+  @media (max-width:820px) { .mon { grid-template-columns:1fr; justify-items:center; } }
+  .pieblock { display:flex; justify-content:center; }
+  .sl { cursor:default; transition:opacity .12s; }
+  .sl.hi { opacity:.72; }
+  .pl { font-family:var(--mono); font-size:10.5px; fill:#fff; text-anchor:middle;
+        dominant-baseline:middle; font-weight:600; }
+  .ct-v { font-family:var(--mono); font-size:17px; fill:var(--text); text-anchor:middle;
+          font-variant-numeric:tabular-nums; }
+  .ct-k { font-family:var(--mono); font-size:9px; fill:var(--muted); text-anchor:middle;
+          letter-spacing:.06em; text-transform:uppercase; }
 
-  .bars { display:flex; flex-direction:column; gap:6px; min-width:0; }
-  .bhead, .brow { display:grid; grid-template-columns:92px 1fr 66px 66px 72px; gap:9px; align-items:center;
-                  font-family:var(--mono); font-size:11.5px; }
+  .barswrap { overflow-x:auto; min-width:0; width:100%; }
+  .bars { display:flex; flex-direction:column; gap:5px; min-width:600px; }
+  .bgrp, .bhead, .brow { display:grid; grid-template-columns:94px 1fr 72px 46px 72px 42px 76px 50px;
+                         gap:8px; align-items:center; font-family:var(--mono); font-size:11.5px; }
+  .bgrp { font-size:9px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+  .bgrp i { grid-column:span 2; text-align:center; font-style:normal;
+            border-bottom:1px solid var(--border); padding-bottom:2px; }
   .bhead { font-size:9.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
-  .bhead span+span { text-align:right; } .bhead span:nth-child(2) { text-align:left; }
+  .bhead span:nth-child(n+3) { text-align:right; }
+  .brow { padding:2px 0; border-radius:3px; transition:background .12s; }
+  .brow.hi { background:var(--surface-2); }
   .blab { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .btrack { position:relative; height:19px; background:var(--surface-2); border-radius:2px; }
+  .v { text-align:right; font-variant-numeric:tabular-nums; }
+  .btrack { position:relative; height:18px; background:var(--surface-2); border-radius:2px; }
+  .brow.hi .btrack { background:var(--bg); }
   .bfill { position:absolute; left:0; top:4px; bottom:4px; background:var(--accent); border-radius:2px 0 0 2px; }
   .bover { position:absolute; top:4px; bottom:4px; background:var(--over); border-radius:0 2px 2px 0; }
   .bunder { position:absolute; top:4px; bottom:4px; border:1px dashed var(--under);
             background:var(--under-soft); border-radius:0 2px 2px 0; }
   .btick { position:absolute; top:-1px; bottom:-1px; width:2px; background:var(--text); }
-  .bnow,.btgt,.bgap { text-align:right; font-variant-numeric:tabular-nums; }
-  .btgt { color:var(--muted); }
-  .bsub { display:block; font-size:9.5px; color:var(--muted); font-variant-numeric:tabular-nums; }
 
   /* таблица */
   .tablewrap { overflow-x:auto; border:1px solid var(--border); background:var(--surface); }
@@ -137,48 +146,74 @@
   <h2>Мониторинг</h2>
   <div class="mon">
     <div class="pieblock">
-      <div class="pie" style="background:conic-gradient(
-        var(--c1) 0 63%, var(--c2) 63% 72.5%, var(--c3) 72.5% 78.8%,
-        var(--c5) 78.8% 79%, var(--c6) 79% 100%)"></div>
-      <div class="legend">
-        <span><i class="sw" style="background:var(--c1)"></i>недвижка UA · 63,0% · 300 000 €</span>
-        <span><i class="sw" style="background:var(--c6)"></i>недвижка EU · 21,0% · 100 000 €</span>
-        <span><i class="sw" style="background:var(--c2)"></i>акции · 9,5% · 45 000 €</span>
-        <span><i class="sw" style="background:var(--c3)"></i>золото · 6,3% · 30 000 €</span>
-        <span><i class="sw" style="background:var(--c5)"></i>кеш · 0,2% · 1 157 €</span>
-        <span><i class="sw" style="background:var(--c4)"></i>крипто · 0,0% · 0 €</span>
+      <svg viewBox="0 0 168 168" width="168" height="168" role="img" aria-label="состав портфеля">
+      <path class="sl" data-k="недвижка UA" fill="var(--c1)" d="M 84.00 12.00 A 72 72 0 1 1 31.51 133.29 L 50.47 115.49 A 46 46 0 1 0 84.00 38.00 Z"><title>недвижка UA — 63.0%</title></path>
+      <path class="sl" data-k="недвижка EU" fill="var(--c6)" d="M 31.51 133.29 A 72 72 0 0 1 23.21 45.42 L 45.16 59.35 A 46 46 0 0 0 50.47 115.49 Z"><title>недвижка EU — 21.0%</title></path>
+      <path class="sl" data-k="акции" fill="var(--c2)" d="M 23.21 45.42 A 72 72 0 0 1 55.41 17.92 L 65.73 41.78 A 46 46 0 0 0 45.16 59.35 Z"><title>акции — 9.5%</title></path>
+      <path class="sl" data-k="золото" fill="var(--c3)" d="M 55.41 17.92 A 72 72 0 0 1 83.10 12.01 L 83.42 38.00 A 46 46 0 0 0 65.73 41.78 Z"><title>золото — 6.3%</title></path>
+      <path class="sl" data-k="кеш" fill="var(--c5)" d="M 83.10 12.01 A 72 72 0 0 1 84.00 12.00 L 84.00 38.00 A 46 46 0 0 0 83.42 38.00 Z"><title>кеш — 0.2%</title></path>
+      <text class="pl" x="138.1" y="107.4">63,0%</text>
+      <text class="pl" x="25.3" y="89.6">21,0%</text>
+      <text class="pl" x="45.7" y="39.1">9,5%</text>
+      <text class="pl" x="71.7" y="26.3">6,3%</text>
+      <text class="ct-v" x="84" y="82">476 157</text>
+      <text class="ct-k" x="84" y="97">капитал, €</text>
+      </svg>
+    </div>
+
+    <div class="barswrap">
+      <div class="bars">
+        <div class="bgrp"><span></span><span></span><i>сейчас</i><i>цель</i><i>отклонение</i></div>
+        <div class="bhead">
+          <span>категория</span><span>сейчас против цели</span>
+          <span>€</span><span>%</span><span>€</span><span>%</span><span>€</span><span>п.п.</span>
+        </div>
+        <div class="brow" data-k="недвижка UA">
+          <span class="blab">недвижка UA</span>
+          <span class="btrack"><i class="bfill" style="width:61.5%"></i><i class="bover" style="left:61.5%;width:35.4%"></i><i class="btick" style="left:61.5%"></i></span>
+          <span class="v">300 000</span><span class="v mut">63,0%</span>
+          <span class="v">190 463</span><span class="v mut">40%</span>
+          <span class="v over-t">+109 537</span><span class="v over-t">+23,0</span>
+        </div>
+        <div class="brow" data-k="акции">
+          <span class="blab">акции</span>
+          <span class="btrack"><i class="bfill" style="width:14.6%"></i><i class="bunder" style="left:14.6%;width:16.2%"></i><i class="btick" style="left:30.8%"></i></span>
+          <span class="v">45 000</span><span class="v mut">9,5%</span>
+          <span class="v">95 231</span><span class="v mut">20%</span>
+          <span class="v under-t">−50 231</span><span class="v under-t">−10,5</span>
+        </div>
+        <div class="brow" data-k="крипто">
+          <span class="blab">крипто</span>
+          <span class="btrack"><i class="bunder" style="left:0%;width:7.7%"></i><i class="btick" style="left:7.7%"></i></span>
+          <span class="v">0</span><span class="v mut">0,0%</span>
+          <span class="v">23 808</span><span class="v mut">5,0%</span>
+          <span class="v under-t">−23 808</span><span class="v under-t">−5,0</span>
+        </div>
+        <div class="brow" data-k="кеш">
+          <span class="blab">кеш</span>
+          <span class="btrack"><i class="bfill" style="width:0.3%"></i><i class="bunder" style="left:0.3%;width:7.4%"></i><i class="btick" style="left:7.7%"></i></span>
+          <span class="v">1 157</span><span class="v mut">0,2%</span>
+          <span class="v">23 808</span><span class="v mut">5%</span>
+          <span class="v under-t">−22 651</span><span class="v under-t">−4,8</span>
+        </div>
+        <div class="brow" data-k="золото">
+          <span class="blab">золото</span>
+          <span class="btrack"><i class="bfill" style="width:9.7%"></i><i class="bunder" style="left:9.7%;width:5.7%"></i><i class="btick" style="left:15.4%"></i></span>
+          <span class="v">30 000</span><span class="v mut">6,3%</span>
+          <span class="v">47 616</span><span class="v mut">10%</span>
+          <span class="v under-t">−17 616</span><span class="v under-t">−3,7</span>
+        </div>
+        <div class="brow" data-k="недвижка EU">
+          <span class="blab">недвижка EU</span>
+          <span class="btrack"><i class="bfill" style="width:30.8%"></i><i class="bover" style="left:30.8%;width:1.5%"></i><i class="btick" style="left:30.8%"></i></span>
+          <span class="v">100 000</span><span class="v mut">21,0%</span>
+          <span class="v">95 231</span><span class="v mut">20%</span>
+          <span class="v ok-t">+4 769</span><span class="v ok-t">+1,0</span>
+        </div>
       </div>
     </div>
-
-    <div class="bars">
-      <div class="bhead"><span>категория</span><span>сейчас против цели</span><span>сейчас</span><span>цель</span><span>откл.</span></div>
-
-      <div class="brow"><span class="blab">недвижка UA</span>
-        <span class="btrack"><i class="bfill" style="width:61.5%"></i><i class="bover" style="left:61.5%;width:35.4%"></i><i class="btick" style="left:61.5%"></i></span>
-        <span class="bnow">63,0%<i class="bsub">300 000</i></span><span class="btgt">40%<i class="bsub">190 463</i></span><span class="bgap over-t">+23,0<i class="bsub">+109 537</i></span></div>
-
-      <div class="brow"><span class="blab">акции</span>
-        <span class="btrack"><i class="bfill" style="width:14.6%"></i><i class="bunder" style="left:14.6%;width:16.2%"></i><i class="btick" style="left:30.8%"></i></span>
-        <span class="bnow">9,5%<i class="bsub">45 000</i></span><span class="btgt">20%<i class="bsub">95 231</i></span><span class="bgap under-t">−10,5<i class="bsub">−50 231</i></span></div>
-
-      <div class="brow"><span class="blab">крипто</span>
-        <span class="btrack"><i class="bunder" style="left:0;width:7.7%"></i><i class="btick" style="left:7.7%"></i></span>
-        <span class="bnow">0,0%<i class="bsub">0</i></span><span class="btgt">5%<i class="bsub">23 808</i></span><span class="bgap under-t">−5,0<i class="bsub">−23 808</i></span></div>
-
-      <div class="brow"><span class="blab">кеш</span>
-        <span class="btrack"><i class="bfill" style="width:0.3%"></i><i class="bunder" style="left:0.3%;width:7.4%"></i><i class="btick" style="left:7.7%"></i></span>
-        <span class="bnow">0,2%<i class="bsub">1 157</i></span><span class="btgt">5%<i class="bsub">23 808</i></span><span class="bgap under-t">−4,8<i class="bsub">−22 651</i></span></div>
-
-      <div class="brow"><span class="blab">золото</span>
-        <span class="btrack"><i class="bfill" style="width:9.7%"></i><i class="bunder" style="left:9.7%;width:5.7%"></i><i class="btick" style="left:15.4%"></i></span>
-        <span class="bnow">6,3%<i class="bsub">30 000</i></span><span class="btgt">10%<i class="bsub">47 616</i></span><span class="bgap under-t">−3,7<i class="bsub">−17 616</i></span></div>
-
-      <div class="brow"><span class="blab">недвижка EU</span>
-        <span class="btrack"><i class="bfill" style="width:30.8%"></i><i class="bover" style="left:30.8%;width:1.5%"></i><i class="btick" style="left:30.8%"></i></span>
-        <span class="bnow">21,0%<i class="bsub">100 000</i></span><span class="btgt">20%<i class="bsub">95 231</i></span><span class="bgap ok-t">+1,0<i class="bsub">+4 769</i></span></div>
-    </div>
   </div>
-  <p class="cap">Заливка — сколько есть. Риска — цель. Хвост за риской — промах. Строки отсортированы по отклонению. Под каждой долей — сумма в евро.</p>
+  <p class="cap">Заливка — сколько есть, риска — цель, хвост за риской — промах. Наведение на сектор подсвечивает строку и наоборот.</p>
 </section>
 
 <!-- ============ ТАБЛИЦА + ФОРМА ============ -->
@@ -316,5 +351,16 @@
 </footer>
 
 </div>
+
+<script>
+  // наведение на сектор подсвечивает строку и наоборот — связь по data-k
+  const mark = (k, on) =>
+    document.querySelectorAll('[data-k="' + (window.CSS ? CSS.escape(k) : k) + '"]')
+      .forEach(el => el.classList.toggle('hi', on));
+  document.querySelectorAll('[data-k]').forEach(el => {
+    el.addEventListener('mouseenter', () => mark(el.dataset.k, true));
+    el.addEventListener('mouseleave', () => mark(el.dataset.k, false));
+  });
+</script>
 </body>
 </html>
