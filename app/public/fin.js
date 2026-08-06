@@ -132,7 +132,6 @@ function portRows(it, depth, ctx) {
     <td class="pname" style="--d:${depth}">
       ${it.children.length ? `<span class="caret" data-pfold="${it.id}" title="${folded ? 'развернуть' : 'свернуть'}">${folded ? '▸' : '▾'}</span>` : ''}
       <span class="ed" data-fe="${pfx}:${it.id}:name:text" title="клик — переименовать">${fesc(it.name)}</span>
-      ${folded ? `<span class="meta">· ${it.children.length} внутри</span>` : ''}
       ${editable && it.asset_type ? `<span class="pill" data-ftype="${it.id}" title="тип актива — клик">${fesc(it.asset_type)}</span>` : ''}
       ${editable && it.region ? `<span class="pill p2" data-fregion="${it.id}" title="регион инвестиции — клик">${fesc(it.region)}</span>` : ''}
       ${it.rate_symbol ? `<span class="pill btn" data-fqty="${it.id}" title="количество — клик">${it.qty ?? '?'} × ${fesc(it.rate_symbol)}</span>` : ''}
@@ -283,7 +282,7 @@ function portCard(it, depth, ctx) {
       <span class="ed pc-name" data-fe="${pfx}:${it.id}:name:text">${fesc(it.name)}</span>
       <span class="pc-val">${val}</span>
     </div>
-    <div class="pc-meta">${meta}${folded ? `<span class="meta">· ${it.children.length} внутри</span>` : ''}<span class="pc-actions">${actions}</span></div>
+    <div class="pc-meta">${meta}<span class="pc-actions">${actions}</span></div>
   </div>` + (folded ? '' : it.children.map(c => portCard(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, parentEur: it.eur, blockEur: depth === 0 ? it.eur : ctx?.blockEur, blockTarget: depth === 0 ? it.planEur : ctx?.blockTarget, tgt: target, tree: ctx?.tree, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
 }
 
