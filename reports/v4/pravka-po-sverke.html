@@ -1,0 +1,119 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Правка по сверке: что закрыто</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1c1a17;--dim:#6b6660;--line:#e0dcd4;--acc:#8a3b1e;--hi:#f3efe6;--ok:#2f6b3d;--bad:#9c2b1c}
+@media (prefers-color-scheme:dark){:root{--bg:#16150f;--fg:#e8e4da;--dim:#948e84;--line:#33302a;--acc:#d9834f;--hi:#211f19;--ok:#77b083;--bad:#e07a63}}
+:root[data-theme=dark]{--bg:#16150f;--fg:#e8e4da;--dim:#948e84;--line:#33302a;--acc:#d9834f;--hi:#211f19;--ok:#77b083;--bad:#e07a63}
+:root[data-theme=light]{--bg:#fbfaf7;--fg:#1c1a17;--dim:#6b6660;--line:#e0dcd4;--acc:#8a3b1e;--hi:#f3efe6;--ok:#2f6b3d;--bad:#9c2b1c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 Georgia,"Times New Roman",serif}
+.wrap{max-width:940px;margin:0 auto;padding:48px 22px 96px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px;font-weight:normal}
+.sub{color:var(--dim);font-size:15px;margin:0 0 36px}
+h2{font-size:22px;font-weight:normal;margin:52px 0 14px;padding-bottom:7px;border-bottom:2px solid var(--acc)}
+h3{font-size:17px;font-weight:bold;margin:30px 0 8px}
+p{margin:0 0 14px}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.86em;background:var(--hi);padding:1px 5px;border-radius:3px}
+pre{background:var(--hi);border-left:3px solid var(--line);padding:12px 14px;overflow-x:auto;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;line-height:1.5;margin:0 0 18px}
+.scroll{overflow-x:auto;margin:0 0 20px}
+table{border-collapse:collapse;font-size:14px;min-width:100%}
+th,td{padding:6px 12px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-weight:bold;color:var(--dim);font-size:12.5px;text-transform:uppercase;letter-spacing:.04em}
+td.n,th.n{text-align:right;font-family:ui-monospace,Menlo,Consolas,monospace}
+.ok{color:var(--ok);font-weight:bold}.bad{color:var(--bad);font-weight:bold}
+.key{background:var(--hi);border-left:3px solid var(--acc);padding:14px 18px;margin:22px 0}
+.key p:last-child{margin:0}
+blockquote{margin:0 0 12px;padding:9px 16px;border-left:3px solid var(--acc);background:var(--hi);font-size:15px}
+ul,ol{margin:0 0 16px;padding-left:22px}li{margin:0 0 6px}
+.lede{font-size:18px;line-height:1.6}
+footer{margin-top:64px;padding-top:18px;border-top:1px solid var(--line);color:var(--dim);font-size:13px}
+</style></head><body><div class="wrap">
+
+<h1>SeoMetrics</h1>
+
+<h1>Правка по сверке с корпусом</h1>
+<p class="sub">Три комплекта · четыре приёма разметки, регистр, плотность ключа, бренд, оценочная карта</p>
+
+<p class="lede">Сплошная сверка нашла десять расхождений с донорами в полях, которые ни один шлюз не проверял. Ниже — что из этого закрыто, что осталось и почему.</p>
+
+<h2>Закрыто</h2>
+<h3>Четыре приёма разметки</h3>
+<div class="scroll"><table>
+<tr><th>что</th><th class="n">было</th><th class="n">стало</th><th class="n">донор</th></tr>
+<tr><td><code>strong</code> на главной</td><td class="n bad">71 / 5 / 4</td><td class="n ok">73 / 61 / 60</td><td class="n">54 – <b>67</b> – 90</td></tr>
+<tr><td><code>strong</code> на внутренних</td><td class="n bad">0 везде</td><td class="n ok">5 – 12</td><td class="n">4 – <b>6…11</b> – 18</td></tr>
+<tr><td>H3 с двоеточием, внутренние</td><td class="n bad">0 %</td><td class="n ok">25 – 60 %</td><td class="n">31 – 60 %</td></tr>
+<tr><td>выделение в начале пункта</td><td class="n bad">0 % на внутренних</td><td class="n ok">62 – 86 %</td><td class="n">55 – 75 %</td></tr>
+<tr><td>эмодзи на главной</td><td class="n bad">0</td><td class="n ok">25 – 30</td><td class="n">21 – <b>35</b> – 96</td></tr>
+<tr><td>эмодзи на внутренних</td><td class="n ok">0</td><td class="n ok">0</td><td class="n">0</td></tr>
+</table></div>
+<p>Все четыре лежали в «отпустить»: разброс широкий, поле держит меньше 70 % корпуса. Но нулей у доноров почти нет — приём есть у всех, меняется только доза. Это тот же класс ошибки, что был с объёмом и линковкой.</p>
+
+<h3>Плотность ключа</h3>
+<div class="scroll"><table>
+<tr><th>ранг слова</th><th class="n">было</th><th class="n">стало</th><th class="n">донор</th></tr>
+<tr><td>казино</td><td class="n bad">отсутствует</td><td class="n ok">21</td><td class="n">33</td></tr>
+<tr><td>бонус</td><td class="n">84</td><td class="n ok">16</td><td class="n">16</td></tr>
+<tr><td>зеркал…</td><td class="n">166</td><td class="n ok">18</td><td class="n">22</td></tr>
+<tr><td>регистрац…</td><td class="n">201</td><td class="n ok">61</td><td class="n">33</td></tr>
+<tr><td>слот…</td><td class="n bad">1353</td><td class="n">173</td><td class="n">82</td></tr>
+<tr><td>лиценз…</td><td class="n bad">1110</td><td class="n">193</td><td class="n">154</td></tr>
+</table></div>
+
+<h3>Регистр и ритм</h3>
+<div class="scroll"><table>
+<tr><th>что</th><th class="n">было</th><th class="n">стало</th><th class="n">донор</th></tr>
+<tr><td>сленга на 100 слов</td><td class="n bad">0,05</td><td class="n ok">0,46</td><td class="n">0,52</td></tr>
+<tr><td>«ты» на главной</td><td class="n bad">1</td><td class="n ok">14 – 19</td><td class="n">23,5</td></tr>
+<tr><td>повелительное наклонение</td><td class="n bad">0,32 %</td><td class="n ok">0,72 %</td><td class="n">0,83 %</td></tr>
+<tr><td>абзацы ≤10 слов</td><td class="n bad">3,7 %</td><td class="n ok">13,9 %</td><td class="n">16,5 %</td></tr>
+<tr><td>анкоров-одиночек</td><td class="n">55 %</td><td class="n ok">84 %</td><td class="n">78 %</td></tr>
+<tr><td>опорных формул в анкорах</td><td class="n">13</td><td class="n ok">23 – 29</td><td class="n">24</td></tr>
+</table></div>
+
+<h3>Бренд</h3>
+<div class="scroll"><table>
+<tr><th>что</th><th class="n">было</th><th class="n">стало</th><th class="n">донор</th></tr>
+<tr><td>бренд в заголовках, главная</td><td class="n bad">11 / 21 / 26</td><td class="n ok">11 / 11 / 11</td><td class="n">9</td></tr>
+<tr><td>бренд в заголовках, внутренние</td><td class="n bad">0 почти везде</td><td class="n ok">1 на страницу</td><td class="n">1 (нулей 4–18 из 36)</td></tr>
+<tr><td>латиницей на комплект</td><td class="n ok">45 / 44 / 42</td><td class="n ok">52 / 51 / 46</td><td class="n">39 – <b>42</b> – 62</td></tr>
+<tr><td>кириллицей на комплект</td><td class="n ok">5</td><td class="n ok">5</td><td class="n">5 – <b>7</b> – 13</td></tr>
+</table></div>
+<p>Счётчики <code>brand_en</code> и <code>brand_ru</code> и раньше лежали в коридоре — расходилось <b>расположение</b>: у нас бренд ушёл в подзаголовки (до 26 против донорских 9), а на внутренних страницах в заголовках его не было вовсе, хотя у доноров он там есть у двух третей сайтов.</p>
+
+<h3>Оценочная карта и отзывы</h3>
+<p>Карта по шести критериям и пять отзывов со звёздами добавлены в <code>chas-1</code> — <b>1 комплект из 3</b> против донорских <b>13 из 36</b>. Ставить её во все три значило бы превысить корпусную долю втрое. Балл 8,1 при донорской медиане 8,0; звёзды только 3, 4 и 5, как у образца.</p>
+
+<h2>Осталось</h2>
+<div class="scroll"><table>
+<tr><th>что</th><th class="n">наши</th><th class="n">донор</th><th>почему не тронул</th></tr>
+<tr><td>страдательный залог</td><td class="n bad">1,67 %</td><td class="n">0,63 %</td><td>снять втрое — это переписать объяснительный регистр целиком, ~250 конструкций</td></tr>
+<tr><td>прошедшее время</td><td class="n">1,54 %</td><td class="n">2,63 %</td><td>у донора личная история («я проверил»), у нас справка; та же правка</td></tr>
+<tr><td>абзац, открытый <code>strong</code></td><td class="n">1,2 %</td><td class="n">6,1 %</td><td>у нас выделение ведёт пункт списка, а не абзац</td></tr>
+<tr><td>FAQ: вопросы «как…»</td><td class="n">6 %</td><td class="n">18 %</td><td>переформулировка 60 вопросов, отдельный проход</td></tr>
+<tr><td>FAQ: слов в вопросе</td><td class="n">7</td><td class="n">11</td><td>там же</td></tr>
+<tr><td>ранг «слот» / «лицензия»</td><td class="n">173 / 193</td><td class="n">82 / 154</td><td>подтянуто с 1353 и 1110, дальше — риск переспама</td></tr>
+<tr><td>призывов на сайт</td><td class="n">24,3</td><td class="n">46,4</td><td>упирается в запрет на CTA из профиля</td></tr>
+</table></div>
+
+<h2>Шлюзы</h2>
+<div class="key">
+<p>Все три комплекта проходят одиночную приёмку (параметры 24/24, приёмы 15/15, техника 9/9) и приёмку комплекта. «Догонять» по-прежнему ноль на всех семи типах страниц.</p>
+</div>
+<p>Чтобы это не повторилось, в профиль добавлен раздел <code>разметка</code> с межквартильными коридорами по <code>strong</code>, двоеточию в H3 и эмодзи для каждого типа страницы, а в <code>priyomka-komplekt.php</code> — шлюз «разметка» с порогом 80 % проверок.</p>
+
+<h2>Итог по комплектам</h2>
+<div class="scroll"><table>
+<tr><th>комплект</th><th class="n">слов</th><th class="n">терминов</th><th class="n">ссылок</th><th class="n">бренд лат/кир</th><th class="n">strong</th><th class="n">эмодзи</th></tr>
+<tr><td><code>chas-1</code></td><td class="n">7637</td><td class="n">174</td><td class="n">72</td><td class="n">52 / 5</td><td class="n">118</td><td class="n">25</td></tr>
+<tr><td><code>shlyuz-1</code></td><td class="n">7510</td><td class="n">168</td><td class="n">70</td><td class="n">51 / 5</td><td class="n">107</td><td class="n">30</td></tr>
+<tr><td><code>paseka-1</code></td><td class="n">7300</td><td class="n">174</td><td class="n">74</td><td class="n">46 / 5</td><td class="n">108</td><td class="n">30</td></tr>
+</table></div>
+
+<footer>
+<code>php engine/priyomka-komplekt.php samples/v4-final/&lt;комплект&gt;</code> ·
+<code>php engine/razryv.php reports/v4/razbros-nashi-&lt;стр&gt;.json reports/v4/razbros-proza-&lt;стр&gt;.json</code> ·
+<code>php engine/razbor-zhanra.php samples/v4-final</code> ·
+профиль <code>engine/data-v4/profil-avgust.json</code>, раздел <code>разметка</code>
+</footer>
+</div></body></html>

@@ -235,6 +235,43 @@ if ($norma) {
 $brendOk = count(array_filter($brend, fn($x) => $x[2]));
 if ($brendOk < count($brend)) { $provaly['бренд'] = 1; }
 
+// ── 4г. разметка: выделение, двоеточие в H3, эмодзи ─────────────────
+// Три приёма, которых не было ни в одной нашей версии. Все три лежали в
+// «отпустить»: разброс широкий, поле держит меньше 70 % корпуса. Но нулей у
+// доноров почти нет — приём есть у всех, меняется только доза.
+$razmetka = [];
+$normaR = $profil['разметка']['страницы'] ?? [];
+foreach (PAGES_K as $p) {
+    if (!isset($normaR[$p])) { continue; }
+    $html = $stranicy[$p];
+    $st = substr_count($html, '<strong');
+    preg_match_all('~<h3[^>]*>(.*?)</h3>~is', $html, $hm);
+    $h3n = 0; $h3c = 0;
+    foreach ($hm[1] as $x) {
+        $t = trim(strip_tags($x));
+        if ($t === '') { continue; }
+        $h3n++;
+        if (mb_strpos($t, ':') !== false || mb_strpos($t, '—') !== false) { $h3c++; }
+    }
+    $h3p = $h3n ? round($h3c / $h3n * 100) : 0;
+    $em = preg_match_all('~[\x{1F000}-\x{1FAFF}\x{2600}-\x{27BF}\x{2B00}-\x{2BFF}\x{2300}-\x{23FF}]~u', $html);
+
+    $n = $normaR[$p];
+    // коридор — межквартильный размах донора, расширенный на floor
+    $vil = function (float $v, array $q, float $pol) {
+        return $v >= (float) $q['низ'] - $pol && $v <= (float) $q['верх'] + $pol;
+    };
+    $razmetka["$p · выделений"] = [$st, $n['strong']['низ'] . '–' . $n['strong']['верх'],
+        $vil((float) $st, $n['strong'], 3)];
+    $razmetka["$p · H3 с двоеточием"] = [$h3p . '%', $n['h3_colon_pct']['низ'] . '–' . $n['h3_colon_pct']['верх'] . '%',
+        $vil((float) $h3p, $n['h3_colon_pct'], 15)];
+    $razmetka["$p · эмодзи"] = [$em, $n['emoji']['низ'] . '–' . $n['emoji']['верх'],
+        $vil((float) $em, $n['emoji'], 5)];
+}
+$razmOk = count(array_filter($razmetka, fn($x) => $x[2]));
+// доля, а не «все до одного»: у донора это поле само гуляет
+if ($razmetka && $razmOk / count($razmetka) < 0.8) { $provaly['разметка'] = 1; }
+
 // ── 5. граф перелинковки ────────────────────────────────────────────
 $ishod = [];
 foreach (PAGES_K as $p) {
@@ -327,6 +364,12 @@ foreach ($smeshenie as $n => [$est, $nado, $ok, $pct]) {
 echo "\n── бренд: школа написания ──\n";
 foreach ($brend as $n => [$est, $nado, $ok]) {
     echo '  ' . ($ok ? '·' : '✗') . ' ' . $pad($n, 24, true) . $pad((string) $est, 8)
+        . '   норма ' . $nado . "\n";
+}
+
+echo "\n── разметка: выделение, H3, эмодзи ──\n";
+foreach ($razmetka as $n => [$est, $nado, $ok]) {
+    echo '  ' . ($ok ? '·' : '✗') . ' ' . $pad($n, 26, true) . $pad((string) $est, 7)
         . '   норма ' . $nado . "\n";
 }
 
