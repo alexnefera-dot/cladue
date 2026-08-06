@@ -453,3 +453,12 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .bsum{margin-top:9px;padding-top:8px;border-top:1px solid var(--line);font:11.5px var(--mono);
   display:flex;flex-wrap:wrap;gap:8px;align-items:baseline}
 .bars .dash{color:var(--line2)}
+.moncuts{display:flex;gap:5px;flex-wrap:wrap}
+.moncrumbs{display:flex;align-items:center;gap:6px;font:11px var(--mono);color:var(--muted);margin-bottom:8px}
+.moncrumbs .crumb.btn{cursor:pointer;border-bottom:1px dashed var(--line)}
+.moncrumbs .crumb.btn:hover{color:var(--green);border-bottom-color:var(--green-dim)}
+.moncrumbs .sepc{color:var(--line2)}
+.blab.btn{cursor:pointer}
+.blab.btn:hover{color:var(--green)}
+.tgtdonut .sl.inner{opacity:.55}                  /* внутреннее кольцо — цель, приглушено */
+.tgtdonut .sl.hi{opacity:1;stroke:var(--text);stroke-width:1.5}

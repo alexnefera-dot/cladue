@@ -62,6 +62,8 @@ window.loadFin = async function () {
 // ===== Портфель: строки таблицы =====
 // свёрнутые узлы — переживают перерисовку и перезапуск
 const portFold = new Set(JSON.parse(localStorage.portFold ?? '[]'));
+let monCut = localStorage.monCut ?? 'blocks';   // разрез мониторинга: блоки | типы | регионы
+let monPath = [];                               // провал внутрь по блокам (сбрасывается при смене разреза)
 let catOrder = JSON.parse(localStorage.catOrder ?? '[]');   // ручной порядок строк мониторинга; пусто = по отклонению
 const saveCatOrder = () => localStorage.catOrder = JSON.stringify(catOrder);
 let tgtMove = null;   // {from, to, amount} — раскрытая форма переноса; null = закрыта, нигде не показывается
@@ -392,36 +394,60 @@ function secPortfolio(d, s) {
     tree.forEach(setPlan);
   }
   const planTotal = tgt ? tree.reduce((a, b) => a + (b.planEur || 0), 0) : 0;   // сумма планов верхнего уровня
-  // Мониторинг по категориям: у каждой — сколько есть сейчас и сколько нужно по цели.
-  // Тип живёт на листьях, поэтому и «сейчас», и «цель» собираем по ним же.
-  const catNow = {}, catPlan = {};
-  if (tgt) {
-    let leafPlan = 0;
-    const walkCat = n => {
-      const kids = n.children || [];
-      if (n.kind === 'asset' || !kids.length) {
-        const ty = n.asset_type || 'без типа';
-        catNow[ty] = (catNow[ty] || 0) + (n.eur || 0);
-        if (n.planEur != null) { catPlan[ty] = (catPlan[ty] || 0) + n.planEur; leafPlan += n.planEur; }
-      }
-      kids.forEach(walkCat);
-    };
-    tree.forEach(walkCat);
-    if (planTotal - leafPlan > 1) catPlan['не расписано'] = planTotal - leafPlan;
+  // Мониторинг: один и тот же вопрос «сколько чего» в трёх разрезах.
+  // Блоки — своя схема пользователя (защита/рост/развитие), по ней и проваливаемся вглубь;
+  // типы и регионы — плоские срезы по листьям.
+  const findKid = (ns, id) => (ns || []).find(n => n.id === id);
+  let monLevel = tree, monCrumbs = [];
+  if (tgt && monCut === 'blocks') {
+    for (const id of monPath) {
+      const n = findKid(monLevel, id);
+      if (!n) { monPath = monPath.slice(0, monCrumbs.length); break; }
+      monCrumbs.push({ id: n.id, name: n.name });
+      monLevel = n.children || [];
+    }
+    if (!monLevel.length && monCrumbs.length) {   // провалились в лист — возвращаемся на уровень выше
+      monCrumbs.pop(); monPath = monPath.slice(0, -1);
+      monLevel = monCrumbs.reduce((acc, c) => (findKid(acc, c.id)?.children || []), tree);
+    }
   }
-  // строки мониторинга: сортируем по величине отклонения — сверху то, что дальше от цели
-  const catRows = [...new Set([...Object.keys(catNow), ...Object.keys(catPlan)])]
-    .map(ty => {
-      const now = catNow[ty] || 0, plan = catPlan[ty] || 0;
-      const nowP = rootTotal > 0 ? now / rootTotal * 100 : 0;
-      const planP = rootTotal > 0 ? plan / rootTotal * 100 : 0;
-      return { ty, now, plan, nowP, planP, dev: now - plan, devP: nowP - planP };
-    })
-    .filter(r => r.now > 0 || r.plan > 0)
-    .sort((a, b) => {   // вручную расставленные держат свои места, прочие — по величине отклонения
+  let catRows = [];
+  if (tgt) {
+    if (monCut === 'blocks') {
+      catRows = monLevel.map(n => ({
+        ty: n.name || '—', id: n.id, drill: (n.children || []).length > 0,
+        now: n.eur || 0, plan: n.planEur ?? 0, hasPlan: n.planEur != null,
+      }));
+    } else {
+      const field = monCut === 'types' ? 'asset_type' : 'region';
+      const none = monCut === 'types' ? 'без типа' : 'без региона';
+      const acc = {};
+      const walk = ns => (ns || []).forEach(n => {
+        const kids = n.children || [];
+        if (n.kind === 'asset' || !kids.length) {
+          const k = n[field] || none;
+          (acc[k] ||= { now: 0, plan: 0, hasPlan: false });
+          acc[k].now += n.eur || 0;
+          if (n.planEur != null) { acc[k].plan += n.planEur; acc[k].hasPlan = true; }
+        }
+        walk(kids);
+      });
+      walk(tree);
+      catRows = Object.entries(acc).map(([ty, v]) => ({ ty, id: null, drill: false, ...v }));
+    }
+  }
+  // доли считаем внутри уровня — вопрос «сколько чего ЗДЕСЬ», а не от всего портфеля
+  const monTotal = catRows.reduce((a, r) => a + r.now, 0);
+  const monPlanTotal = catRows.reduce((a, r) => a + (r.hasPlan ? r.plan : 0), 0);
+  catRows = catRows.map(r => {
+    const nowP = monTotal > 0 ? r.now / monTotal * 100 : 0;
+    const planP = monTotal > 0 ? r.plan / monTotal * 100 : 0;
+    return { ...r, nowP, planP, dev: r.hasPlan ? r.now - r.plan : null, devP: r.hasPlan ? nowP - planP : null };
+  }).filter(r => r.now > 0 || r.plan > 0)
+    .sort((a, b) => {
       const ia = catOrder.indexOf(a.ty), ib = catOrder.indexOf(b.ty);
       if (ia !== -1 || ib !== -1) return (ia === -1 ? 1e6 : ia) - (ib === -1 ? 1e6 : ib);
-      return Math.abs(b.devP) - Math.abs(a.devP);
+      return Math.abs(b.devP ?? -1) - Math.abs(a.devP ?? -1) || b.now - a.now;
     });
   const catMaxP = Math.max(1, ...catRows.map(r => Math.max(r.nowP, r.planP)));
   // Капитал, не покрытый ни одной целью: без этой строки деньги молча растворяются
@@ -506,15 +532,23 @@ function secPortfolio(d, s) {
   </div>` : ''}
   ${tgt && catRows.length ? `
   <div class="card">
-    <div class="kv" style="margin-bottom:8px">
-      <span class="meta">МОНИТОРИНГ · СЕЙЧАС ПРОТИВ ЦЕЛИ (⊙ у строки — задать категорию; ⠿ — перетащить)</span>
+    <div class="kv" style="margin-bottom:8px;flex-wrap:wrap;gap:6px">
+      <span class="meta">РАСПРЕДЕЛЕНИЕ · СЕЙЧАС ПРОТИВ ЦЕЛИ</span>
+      <span class="moncuts">
+        ${[['blocks', 'по блокам'], ['types', 'по типам'], ['regions', 'по регионам']].map(([k, t]) =>
+          `<span class="pill btn${monCut === k ? ' ok' : ''}" data-moncut="${k}">${t}</span>`).join('')}
+      </span>
       ${catOrder.length ? '<span class="pill btn" id="catOrderReset" title="вернуть сортировку по величине отклонения">↕ по отклонению</span>' : ''}
     </div>
+    ${monCut === 'blocks' ? `<div class="moncrumbs">
+      <span class="crumb${monCrumbs.length ? ' btn' : ''}" data-moncrumb="-1">Весь портфель</span>
+      ${monCrumbs.map((c, k) => `<span class="sepc">›</span><span class="crumb${k < monCrumbs.length - 1 ? ' btn' : ''}" data-moncrumb="${k}">${fesc(c.name)}</span>`).join('')}
+    </div>` : ''}
     <div class="tgtmon">
-      <div class="tgtdonut">${catDonut(catRows, rootTotal)}</div>
+      <div class="tgtdonut">${catDonut(catRows, monTotal, monPlanTotal, monCrumbs.length ? monCrumbs[monCrumbs.length - 1].name : "весь портфель, €")}</div>
       <div class="barswrap"><div class="bars">
         <div class="bgrp"><span></span><span></span><span></span><i>сейчас</i><i>цель</i><i>отклонение</i></div>
-        <div class="bhead"><span></span><span>категория</span><span>сейчас против цели</span>
+        <div class="bhead"><span></span><span>${monCut === 'blocks' ? 'блок' : monCut === 'types' ? 'тип актива' : 'регион'}</span><span>сейчас против цели</span>
           <span>€</span><span>%</span><span>€</span><span>%</span><span>€</span><span>п.п.</span></div>
         ${catRows.map(r => {
           const f = Math.min(r.nowP, r.planP) / catMaxP * 100;
@@ -525,7 +559,7 @@ function secPortfolio(d, s) {
           const cls = r.dev > 0 ? 'dev-over' : 'dev-under';
           return `<div class="brow" draggable="true" data-cat="${fesc(r.ty)}">
             <span class="bgrip" title="перетащить">⠿</span>
-            <span class="blab">${fesc(r.ty)}</span>
+            <span class="blab${r.drill ? " btn" : ""}"${r.drill ? ` data-mondrill="${r.id}"` : ""} title="${r.drill ? "посмотреть, что внутри" : ""}">${fesc(r.ty)}${r.drill ? " ›" : ""}</span>
             <span class="btrack">${f > 0 ? `<i class="bfill" style="width:${f.toFixed(1)}%"></i>` : ''}${
               over ? `<i class="bover" style="left:${f.toFixed(1)}%;width:${over.toFixed(1)}%"></i>` : ''}${
               under ? `<i class="bunder" style="left:${f.toFixed(1)}%;width:${under.toFixed(1)}%"></i>` : ''}<i class="btick" style="left:${tick.toFixed(1)}%"></i></span>
@@ -540,31 +574,34 @@ function secPortfolio(d, s) {
   </div>` : ''}`;
 }
 
-// Бублик состава «сейчас»: доли подписаны на секторах, в центре — размещённый капитал.
-// Мелкие сектора не подписываем — подписи наезжают, они читаются в строках справа.
-function catDonut(rows, total) {
-  const CX = 84, CY = 84, RO = 72, RI = 46, LR = (RO + RI) / 2;
-  const pt = (r, a) => { const t = a * Math.PI / 180; return `${(CX + r * Math.cos(t)).toFixed(2)} ${(CY + r * Math.sin(t)).toFixed(2)}`; };
-  const vis = rows.filter(r => r.now > 0 && total > 0).sort((a, b) => b.now - a.now);
-  let ang = -90, out = '', labels = '';
-  vis.forEach((r, i) => {
-    const pct = r.now / total * 100, sweep = pct * 3.6, a0 = ang, a1 = ang + sweep;
-    const big = sweep > 180 ? 1 : 0;
-    out += `<path class="sl" data-cat="${fesc(r.ty)}" fill="${PIE_COLORS[i % PIE_COLORS.length]}" `
-      + `d="M ${pt(RO, a0)} A ${RO} ${RO} 0 ${big} 1 ${pt(RO, a1)} L ${pt(RI, a1)} A ${RI} ${RI} 0 ${big} 0 ${pt(RI, a0)} Z">`
-      + `<title>${fesc(r.ty)} — ${fmt(r.now)} € · ${pct.toFixed(1)}%</title></path>`;
-    if (pct >= 5) {
-      const m = (a0 + a1) / 2 * Math.PI / 180;
-      labels += `<text class="pl" x="${(CX + LR * Math.cos(m)).toFixed(1)}" y="${(CY + LR * Math.sin(m)).toFixed(1)}">${pct.toFixed(0)}%</text>`;
-    }
-    ang = a1;
-  });
-  return `<svg viewBox="0 0 168 168" role="img" aria-label="состав портфеля">
-    ${out}${labels}
+// Два вложенных кольца: внешнее — сейчас, внутреннее — цель. Порядок и цвета общие,
+// поэтому разрыв между полосами одного цвета и есть отклонение. Точные числа даёт список рядом.
+function catDonut(rows, total, planTotal, label) {
+  const CX = 84, CY = 84;
+  const ring = (r0, r1, vals, sum, cls) => {
+    if (!(sum > 0)) return '';
+    const pt = (r, a) => { const t = a * Math.PI / 180; return `${(CX + r * Math.cos(t)).toFixed(2)} ${(CY + r * Math.sin(t)).toFixed(2)}`; };
+    let ang = -90, out = '';
+    vals.forEach((v, i) => {
+      if (!(v.val > 0)) return;
+      const sweep = v.val / sum * 360, a0 = ang, a1 = ang + sweep, big = sweep > 180 ? 1 : 0;
+      out += `<path class="sl ${cls}" data-cat="${fesc(v.ty)}" fill="${PIE_COLORS[v.i % PIE_COLORS.length]}" `
+        + `d="M ${pt(r1, a0)} A ${r1} ${r1} 0 ${big} 1 ${pt(r1, a1)} L ${pt(r0, a1)} A ${r0} ${r0} 0 ${big} 0 ${pt(r0, a0)} Z">`
+        + `<title>${fesc(v.ty)} — ${cls === 'outer' ? 'сейчас' : 'цель'} ${fmt(v.val)} € · ${(v.val / sum * 100).toFixed(1)}%</title></path>`;
+      ang = a1;
+    });
+    return out;
+  };
+  const outer = ring(58, 76, rows.map((r, i) => ({ ty: r.ty, val: r.now, i })), total, 'outer');
+  const inner = ring(36, 52, rows.map((r, i) => ({ ty: r.ty, val: r.hasPlan ? r.plan : 0, i })), planTotal, 'inner');
+  return `<svg viewBox="0 0 168 168" role="img" aria-label="состав портфеля: сейчас и цель">
+    ${outer}${inner}
     <text class="ct-v" x="84" y="82">${fmt(total)}</text>
-    <text class="ct-k" x="84" y="97">размещено, €</text>
+    <text class="ct-k" x="84" y="96">${fesc(label)}</text>
+    ${planTotal > 0 ? '' : '<text class="ct-k" x="84" y="108">цели не заданы</text>'}
   </svg>`;
 }
+
 
 
 function secAccounts(d) {
@@ -1218,6 +1255,17 @@ function bindFin() {
       window.loadFin();
     }));
   // «↦ переложить» раскрывает форму строкой под позицией; повторный клик закрывает
+  // Разрезы, провал внутрь и возврат по крошке
+  document.querySelectorAll('[data-moncut]').forEach(el =>
+    el.addEventListener('click', () => {
+      monCut = localStorage.monCut = el.dataset.moncut;
+      monPath = [];   // провал имеет смысл только внутри блоков — при смене разреза сбрасываем
+      renderFin();
+    }));
+  document.querySelectorAll('[data-mondrill]').forEach(el =>
+    el.addEventListener('click', () => { monPath = [...monPath, +el.dataset.mondrill]; renderFin(); }));
+  document.querySelectorAll('[data-moncrumb]').forEach(el =>
+    el.addEventListener('click', () => { monPath = monPath.slice(0, +el.dataset.moncrumb + 1); renderFin(); }));
   // Перетаскивание строк мониторинга: группировка на усмотрение пользователя.
   // Порядок живёт в localStorage — это вид, а не данные, и синхронизировать его между устройствами незачем.
   let catDrag = null;
