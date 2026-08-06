@@ -1,0 +1,143 @@
+<p>%brand_name_ru%.</p>
+
+
+
+
+
+            <h2>Что делать, если не приходит письмо или СМС с подтверждением при регистрации в %brand_name_en%</h2>
+
+<p>Кратко: алгоритм действий должен быть детерминированным, с контролируемыми интервалами повторных попыток и сбором диагностических данных для поддержки. Ниже — пошаговое практическое руководство в стиле банкролл‑менеджмента: минимизируем потери времени и вероятность блокировки учётной записи.</p>
+
+<h3>Быстрая проверка — чек‑лист (что сделать за 2–5 минут)</h3>
+<ul>
+  <li>Проверьте папки <strong>«Спам»/«Promotions»/«Соцсети»</strong> в почтовом ящике.</li>
+  <li>Убедитесь, что номер телефона введён правильно (код страны, цифры без пробелов).</li>
+  <li>Перезагрузите мобильную сеть/Wi‑Fi и попробуйте снова — иногда SMS застревают в операторе.</li>
+  <li>Отключите VPN/Proxy, если используете — некоторые сервисы блокируют подтверждения при косвенном IP.</li>
+  <li>Если есть приложение — попробуйте подтверждение через него: <a href="/app">Скачать приложение</a>.</li>
+</ul>
+
+<h3>Таблица причин и быстрых решений</h3>
+<div class="table-responsive"><table>
+  <tbody><tr>
+    <th>Причина</th>
+    <th>Симптом</th>
+    <th>Действие</th>
+  </tr>
+  <tr>
+    <td>Почта попала в спам</td>
+    <td>Письмо есть, но не видно</td>
+    <td>Проверьте папки, добавьте адрес в «белый список»</td>
+  </tr>
+  <tr>
+    <td>Опечатка в email/телефоне</td>
+    <td>Нет входящих</td>
+    <td>Исправьте данные и запросите повтор</td>
+  </tr>
+  <tr>
+    <td>Задержка у почтового/сотового оператора</td>
+    <td>Нет сообщений в течение &gt;5 мин</td>
+    <td>Подождите, используйте стратегию повторных попыток</td>
+  </tr>
+  <tr>
+    <td>Блокировка/региональные ограничения</td>
+    <td>Сообщения не приходят постоянно</td>
+    <td>Попробуйте <a href="/zerkalo">зеркало</a> или свяжитесь с поддержкой</td>
+  </tr>
+  <tr>
+    <td>Техническая проблема на стороне сайта</td>
+    <td>Нет подтверждений у многих пользователей</td>
+    <td>Отправьте лог в поддержку: timestamp, IP, скриншоты</td>
+  </tr>
+</tbody></table></div>
+
+<h3>Алгоритм действий — детализированная пошаговая инструкция</h3>
+<ol>
+  <li><strong>Фиксируем исходные данные</strong>: email/номер, время попытки, IP, скриншот экрана. Это наша «жизненная единица» при обращении в поддержку.</li>
+  <li><strong>Проверка почты/телефона</strong> — пользуйтесь чек‑листом выше.</li>
+  <li><strong>Повторная отправка с экспоненциальной стратегией</strong> (чтобы не спамить систему и не получить временную блокировку): первый ресенд через 30 с, второй через 2 мин, третий через 10 мин. Остановиться после 3 попыток в течение 15–20 минут, если нет явного результата.</li>
+  <li><strong>Если подтверждение всё ещё не пришло:</strong> переключитесь на альтернативный канал: логин/вход через <a href="/vhod">страницу входа</a> (если доступно), или установка приложения <a href="/app">/app</a>. При невозможности — используйте <a href="/zerkalo">зеркало</a>.</li>
+  <li><strong>Обращение в поддержку</strong>: отправьте заранее подготовленный пакет данных (см. шаблон ниже).</li>
+</ol>
+
+<h3>Стратегия повторных попыток — математическое обоснование</h3>
+<p>Пусть p — вероятность успешной доставки подтверждения при одной попытке (учитывает задержки у оператора/фильтры). Тогда вероятность успеха после n независимых попыток:</p>
+<blockquote><strong>P_success(n) = 1 − (1 − p)^n</strong></blockquote>
+<p>Практически p неизвестно, но маргинальный выигрыш при n→n+1 уменьшается. Если у нас есть риск блокировки после N_max попыток, оптимизируем n так, чтобы получить достаточный P_success при минимальном времени ожидания.</p>
+
+<p>Рекомендация: использовать n≤3 с экспоненциальной паузой (30s → 2min → 10min). Это баланс вероятности и риска rate‑limit. Если обозначить среднее время доставки τ (например, экспоненциальное распределение с параметром λ=1/τ), то вероятность доставки до t: P(T≤t)=1−e^(−λt). Подберите паузы исходя из эмпирического τ вашего региона/оператора.</p>
+
+<h3>Что отправлять в службу поддержки — шаблон и минимальный набор данных</h3>
+<p>Чем точнее данные — тем быстрее решение. Отправьте:</p>
+<ul>
+  <li><strong>Тема:</strong> «Не приходит подтверждение при регистрации»</li>
+  <li>Email/телефон, который использовали при регистрации</li>
+  <li>Время/дата попытки (UTC или локальное)</li>
+  <li>IP-адрес (можно узнать через whatismyip), страна</li>
+  <li>Скриншоты формы регистрации и отсутствия письма/СМС</li>
+  <li>Описание действий: сколько раз нажали «Отправить» и интервалы</li>
+</ul>
+
+<blockquote>Внимание: многократные хаотичные повторные запросы подтверждения могут привести к временной блокировке аккаунта. Следуйте стратегии экспоненциального повторения и фиксируйте время каждой попытки.</blockquote>
+
+<h3>Пример сообщения в поддержку (копировать/вставить)</h3>
+<p><strong>Текст:</strong><br>
+Здравствуйте, при регистрации на сайте не пришло подтверждение. Данные: email/номер — <em>[ваш_email_или_телефон]</em>; время попытки — <em>[дд.мм.гггг чч:мм]</em>; IP — <em>[ваш_IP]</em>; браузер/OS — <em>[Chrome 115 / Android 13]</em>. Делал(а) N попыток с интервалами 30s/2min/10min. Прикрепил(а) скриншоты. Прошу проверить доставку и при необходимости вручную подтвердить аккаунт.</p>
+
+<h3>Если проблема связана с бонусами или верификацией для получения промо</h3>
+<p>Если вы регистрируетесь ради бонуса — проверьте страницу с акциями (<a href="/app">Бонусы и промокоды</a>) и правила верификации. Иногда активация бонуса связана с дополнительным требованием к подтверждению.</p>
+
+<h3>Дополнительные тактические советы (покер/блэкджек стиль мышления)</h3>
+<ul>
+  <li>Относитесь к попыткам подтверждения как к риску в банкролл‑менеджменте: ограничьте «ставку» на попытки времени и не позволяйте проблеме переводить вас в режим tilt.</li>
+  <li>Если планируете играть в short‑session, используйте альтернативный канал (мобильное приложение / <a href="/app">скачать</a>), чтобы сократить задержки.</li>
+  <li>Если хотите минимизировать variance времени подтверждения — используйте e‑mail + телефон одновременно (параллельный подход), но не превышайте лимитов повторных запросов.</li>
+</ul>
+
+<h3>Итог — чек‑лист действий (коротко)</h3>
+<ol>
+  <li>Проверьте спам и правильность данных.</li>
+  <li>Перезагрузите сеть и попробуйте через приложение / зеркало.</li>
+  <li>Примените экспоненциальную стратегию повторных попыток (макс 3 ресенда в 15–20 мин).</li>
+  <li>Соберите лог и отправьте в поддержку (см. шаблон).</li>
+  <li>Не повторяйте запросы чаще, чем рекомендовано — есть риск временной блокировки.</li>
+</ol>
+
+<p>Если после всех шагов подтверждение не пришло — свяжитесь со службой поддержки, приложив все собранные данные. Для доступа к платформе используйте <a href="/vhod">вход</a> или альтернативные пути: <a href="/zerkalo">зеркало</a>, <a href="/app">приложение</a>. После решения проблемы вы сможете приступать к игре и изучать стратегии по управлению банкроллом и EV на странице игровых автоматов: <a href="/slots">Игровые автоматы</a>.</p>
+
+<h2>Ответы на частые вопросы</h2>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question"><div class="c-faq__question"><details class="o-lines__bg is-load lazyloaded" data-bg="css"><summary itemprop="name">Как рассчитывать прогресс по вейджеру при отмене депозита или chargeback в деталях, чтобы корректно оценить оставшийся оборот?</summary><div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer"><div itemprop="text"><p>При chargeback сумма исключается из валидационного баланса и вейджер пересчитывается пропорционально по формуле W_new = max(0, W_old - refunded_amount * multiplier).</p></div></div></details></div></div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question"><div class="c-faq__question"><details class="o-lines__bg is-load lazyloaded" data-bg="css"><summary itemprop="name">Что происходит с вейджером, балансом и историей ставок при обнаружении нескольких аккаунтов одного игрока на одной домашней сети?</summary><div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer"><div itemprop="text"><p>При подтверждённом мультиаккаунтинге платформа блокирует все связанные аккаунты, замораживает балансы и аннулирует бонусы в соответствии с политикой «один пользователь — один аккаунт».</p></div></div></details></div></div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question"><div class="c-faq__question"><details class="o-lines__bg is-load lazyloaded" data-bg="css"><summary itemprop="name">Можно ли частично вывести средства с кошелька при активном бонусе и незавершённом вейджере, и как вычислять заблокированную сумму?</summary><div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer"><div itemprop="text"><p>Частичный вывод возможен, но система блокирует пропорциональную часть по формуле locked = withdrawal_amount * (remaining_wager / total_wager), чтобы сохранить требования по вейджеру.</p></div></div></details></div></div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question"><div class="c-faq__question"><details class="o-lines__bg is-load lazyloaded" data-bg="css"><summary itemprop="name">Какие доказательства и процессы обжалования доступны, если систему пометила игрока как бота при использовании card‑counting или сложной стратегии advantage play?</summary><div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer"><div itemprop="text"><p>Игроку предоставляются логи ставок, таймстемпы и хеши сессий для апелляции; при подтверждении false‑positive все ограничения отменяются и выплаты восстанавливаются.</p></div></div></details></div></div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question"><div class="c-faq__question"><details class="o-lines__bg is-load lazyloaded" data-bg="css"><summary itemprop="name">Что делать и какие данные собирать, если игра вылетела на крупном выигрыше и баланс не обновился, а в журнале сессии нет итоговой записи?</summary><div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer"><div itemprop="text"><p>Подайте тикет с ID сессии, скриншотами и таймстемпами — служба поддержки сверит серверные логи RNG и при подтверждении зачислит выигрыш или восстановит транзакцию.</p></div></div></details></div></div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question"><div class="c-faq__question"><details class="o-lines__bg is-load lazyloaded" data-bg="css"><summary itemprop="name">Какие методы верификации RNG доступны игроку и как проверить честность исхода через открытые хэши или commit‑reveal схемы?</summary><div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer"><div itemprop="text"><p>Платформа предоставляет открытые хэши и схему commit‑reveal для сверки с опубликованными значениями, что позволяет математически подтвердить, что seed не был изменён после публикации.</p></div></div></details></div></div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question"><div class="c-faq__question"><details class="o-lines__bg is-load lazyloaded" data-bg="css"><summary itemprop="name">Как учитывать влияние округления валюты и минимальных шагов ставки на долгосрочный EV при стратегии малой дисперсии и высокой частоте игр?</summary><div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer"><div itemprop="text"><p>Округления вводят дискретный штраф ΔEV ≈ E[round(payoff)] − E[payoff], который следует оценивать симуляцией Монте‑Карло с шагом ставки и учитывать в расчёте банкролла.</p></div></div></details></div></div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question"><div class="c-faq__question"><details class="o-lines__bg is-load lazyloaded" data-bg="css"><summary itemprop="name">Если я делаю коррелированные ставки в нескольких играх одновременно, как система рассчитывает расчёт выигрышей и применяет лимиты при совпадающих временных метках?</summary><div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer"><div itemprop="text"><p>Каждая ставка рассчитывается по своему таймстемпу и правилам приоритета; коррелированные исходы обрабатываются как независимые с применением ограничений по максимальным выплатам и проверкой на синдикации.</p></div></div></details></div></div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question"><div class="c-faq__question"><details class="o-lines__bg is-load lazyloaded" data-bg="css"><summary itemprop="name">Как платформа поступает при несовпадении имени в KYC и данных платёжной системы из‑за транслитерации или ошибки в букве?</summary><div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer"><div itemprop="text"><p>При расхождении допускается предоставление дополнительных подтверждений (счёт, выписка) и ручная проверка AML‑командой с учётом транслитерации как допустимого фактора.</p></div></div></details></div></div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question"><div class="c-faq__question"><details class="o-lines__bg is-load lazyloaded" data-bg="css"><summary itemprop="name">Если игрок активирует самоисключение или self‑ban с активными бонусами и незавершёнными ставками, как обрабатываются бонусы и открытые игры?</summary><div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer"><div itemprop="text"><p>При самоисключении все промоактивности блокируются, незавершённые вейджеры аннулируются без выплаты, а открытые сессии закрываются согласно правилам возврата средств.</p></div></div></details></div></div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question"><div class="c-faq__question"><details class="o-lines__bg is-load lazyloaded" data-bg="css"><summary itemprop="name">Какие расчёты и шаги применяются при переводе части баланса между валютными кошельками, чтобы не потерять EV и соблюсти лимиты ставок?</summary><div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer"><div itemprop="text"><p>Перевод учитывает внутренний курс и округления платформы; при конвертации замораживается эквивалент минимальной ставки и вейджер пересчитывается как converted_wager = original_wager * rate с учётом шага округления.</p></div></div></details></div></div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question"><div class="c-faq__question"><details class="o-lines__bg is-load lazyloaded" data-bg="css"><summary itemprop="name">Как обрабатывается выигрыш, если впоследствии выясняется, что игрок использовал VPN и игра подпадает под юрисдикционные ограничения — аннулируется ли выплата и какие доказательства требуются?</summary><div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer"><div itemprop="text"><p>Если юрисдикция запрещает игру, платформа может аннулировать выплату и запросит логи подключения, IP и KYC‑документы для ручной проверки и принятия окончательного решения.</p></div></div></details></div></div>        
+        
+        <div class="button-container">
+          <button type="button" class="btnplay">%brand_name_ru%</button>
+        </div>
+
+        
+        <p>Последнее обновление %domain_name%: 
+          <time datetime="%date%" itemprop="dateModified">
+            %date%          </time>
+        </p>
+      </div>
+</div>

@@ -11,15 +11,22 @@ declare(strict_types=1);
  * разбирается то, что полями не меряется, — и разбирается ТОЛЬКО на корпусе,
  * потому что на одной странице любая находка неотличима от случайности.
  *
- * Восемь разделов:
+ * Четырнадцать разделов:
  *   1. зачин           — из чего собран первый экран
- *   2. заголовок       — формула «ключ : хвост» и доля голого ключа
- *   3. словарь фактов  — сколько разных чисел фабрика вообще знает
- *   4. частотность     — какое слово в тексте самое частое и где стоит ключ
- *   5. ритм            — распределение длин абзаца и предложения
- *   6. FAQ             — что именно закрывают вопросы
- *   7. оценка          — карта критериев и отзывы со звёздами
- *   8. тон             — чего в тексте больше, обещания или предупреждения
+ *   2. финал           — чем страницу закрывают
+ *   3. заголовок       — формула «ключ : хвост» и доля голого ключа
+ *   4. внутренняя      — каркас страницы второго уровня
+ *   5. словарь фактов  — сколько разных чисел фабрика вообще знает
+ *   6. частотность     — какое слово в тексте самое частое и где стоит ключ
+ *   7. ритм            — распределение длин абзаца и предложения
+ *   8. абзац           — чем открывается и сцеплен ли с соседним
+ *   9. морфология      — какая глагольная форма несёт текст
+ *  10. таблица         — что в колонках и какая ячейка
+ *  11. анкор           — как ссылка встроена во фразу
+ *  12. FAQ             — что именно закрывают вопросы
+ *  13. оценка          — карта критериев и отзывы со звёздами
+ *  14. тон             — чего в тексте больше, обещания или предупреждения
+ *  15. каннибализация  — пересекается ли главная со своими же страницами
  */
 
 const PAGES_Z = ['main', 'app', 'bonus', 'registracia', 'slots', 'vhod', 'zerkalo'];
@@ -107,7 +114,31 @@ $out['зачин'] = [
     'от первого лица' => $zachin['первое лицо'] . "/$N",
 ];
 
-// ── 2. заголовок ────────────────────────────────────────────────────
+// ── 2. финал ────────────────────────────────────────────────────────
+$finalKlass = [
+    'плюсы и минусы' => '~плюс|минус~iu',
+    'итог / вердикт / чек-лист' => '~итог|вердикт|чек[-\s]?лист|заключ|финал|сухой остаток|послесловие|общий балл|рекомендац~iu',
+    'отзывы' => '~отзыв|комментар~iu',
+    'FAQ' => '~вопрос|faq|ответ~iu',
+];
+$posle = []; $fin = array_fill_keys(array_keys($finalKlass), 0); $predfin = $fin;
+foreach ($dirs as $d) {
+    $h = (string) file_get_contents("$d/main.html");
+    preg_match_all('~(?is)<h2[^>]*>(.*?)</h2>~', $h, $m);
+    $hs = array_values(array_filter(array_map(fn($x) => trim(preg_replace('~\s+~u', ' ', chisto($x))), $m[1])));
+    if (!$hs) { continue; }
+    foreach ($finalKlass as $n => $re) {
+        if (preg_match($re, end($hs))) { $fin[$n]++; }
+        if (count($hs) > 1 && preg_match($re, $hs[count($hs) - 2])) { $predfin[$n]++; }
+    }
+    $p = strrpos($h, '<h2');
+    if ($p !== false) { $posle[] = count(slova(chisto(substr($h, $p)))); }
+}
+$out['финал'] = ['слов после последнего H2, медиана' => med($posle)];
+foreach ($fin as $n => $c) { $out['финал']["последний H2 — $n"] = $c . "/$N"; }
+foreach ($predfin as $n => $c) { $out['финал']["предпоследний H2 — $n"] = $c . "/$N"; }
+
+// ── 3. заголовок ────────────────────────────────────────────────────
 $hAll = []; $hRazd = 0; $hGoly = 0; $hLen = []; $levo = [];
 foreach ($dirs as $d) {
     foreach (glob("$d/*.html") ?: [] as $f) {
@@ -140,7 +171,43 @@ $out['заголовок'] = [
     'частые левые части' => array_slice(array_map(fn($x) => count($x), $levoPovtor), 0, 12, true),
 ];
 
-// ── 3. словарь фактов ───────────────────────────────────────────────
+// ── 4. внутренняя страница ──────────────────────────────────────────
+$vn = ['страниц' => 0, 'ровно 2 H2' => 0, 'последний H2 — FAQ' => 0];
+$vnH3 = []; $roli = ['определение' => 0, 'инструкция' => 0, 'таблица' => 0, 'риски' => 0, 'итог' => 0];
+$roliRe = [
+    'определение' => '~^что такое|что это|зачем нужн|коротко о|кратко о~iu',
+    'инструкция' => '~^как |пошагов|инструкц|шаг \d|порядок|алгоритм|чек[-\s]?лист~iu',
+    'таблица' => '~^таблиц|сводн|сравнен~iu',
+    'риски' => '~безопасн|риск|ошибк|проблем|мошен|осторож|внимани~iu',
+    'итог' => '~итог|вывод|финал|совет|напомин|резюме~iu',
+];
+foreach ($dirs as $d) {
+    foreach (PAGES_Z as $p) {
+        if ($p === 'main' || !is_file("$d/$p.html")) { continue; }
+        $h = (string) file_get_contents("$d/$p.html");
+        $vn['страниц']++;
+        preg_match_all('~(?is)<h2[^>]*>(.*?)</h2>~', $h, $m);
+        $hs = array_values(array_filter(array_map(fn($x) => trim(preg_replace('~\s+~u', ' ', strip_tags($x))), $m[1])));
+        if (count($hs) === 2) { $vn['ровно 2 H2']++; }
+        if ($hs && preg_match('~вопрос|faq|ответ~iu', end($hs))) { $vn['последний H2 — FAQ']++; }
+        preg_match_all('~(?is)<h3[^>]*>(.*?)</h3>~', $h, $m3);
+        $h3 = array_values(array_filter(array_map(fn($x) => trim(preg_replace('~\s+~u', ' ', strip_tags($x))), $m3[1])));
+        $vnH3[] = count($h3);
+        foreach ($roliRe as $n => $re) {
+            if (array_filter($h3, fn($x) => preg_match($re, $x))) { $roli[$n]++; }
+        }
+    }
+}
+$vsegoVn = max(1, $vn['страниц']);
+$out['внутренняя'] = [
+    'страниц' => $vn['страниц'],
+    'ровно 2 H2' => round($vn['ровно 2 H2'] / $vsegoVn * 100) . '%',
+    'последний H2 — FAQ' => round($vn['последний H2 — FAQ'] / $vsegoVn * 100) . '%',
+    'H3 медиана' => med($vnH3),
+    'роли H3' => array_map(fn($c) => round($c / $vsegoVn * 100) . '%', $roli),
+];
+
+// ── 5. словарь фактов ───────────────────────────────────────────────
 $rtp = []; $bonus = [];
 foreach ($dirs as $d) {
     foreach (glob("$d/*.html") ?: [] as $f) {
@@ -213,7 +280,119 @@ $out['ритм'] = [
     '15–30 %' => $dolya($sL, 15, 30), '>30 %' => $dolya($sL, 30, null),
 ];
 
-// ── 6. FAQ ──────────────────────────────────────────────────────────
+// ── 8. абзац ────────────────────────────────────────────────────────
+// Связки в начале абзаца — маркер «сочинения»: у доноров их почти нет,
+// абзац стоит сам по себе и открывается субъектом, условием или ответом.
+$pFirst = []; $pStrong = 0; $pAll = 0;
+$svyazkaRe = '~^(но|однако|зато|поэтому|итак|значит|кроме|более|также|далее|затем|потом|впрочем|наконец)$~u';
+$svyazok = 0;
+foreach ($dirs as $d) {
+    foreach (glob("$d/*.html") ?: [] as $f) {
+        if (!preg_match_all('~(?is)<p\b[^>]*>(.*?)</p>~', (string) file_get_contents($f), $m)) { continue; }
+        foreach ($m[1] as $x) {
+            $t = trim(preg_replace('~\s+~u', ' ', chisto($x)));
+            if (mb_strlen($t) < 20) { continue; }
+            $pAll++;
+            if (preg_match('~^\s*<strong~i', trim($x))) { $pStrong++; }
+            if (preg_match('~^[«"\p{Pd}\s]*([\p{L}]+)~u', $t, $w)) {
+                $lw = mb_strtolower($w[1]);
+                $pFirst[$lw] = ($pFirst[$lw] ?? 0) + 1;
+                if (preg_match($svyazkaRe, $lw)) { $svyazok++; }
+            }
+        }
+    }
+}
+arsort($pFirst);
+$out['абзац'] = [
+    'абзацев' => $pAll,
+    'открыт <strong>' => round($pStrong / max(1, $pAll) * 100, 1) . '%',
+    'открыт связкой (но/однако/поэтому…)' => round($svyazok / max(1, $pAll) * 100, 1) . '%',
+    'первое слово' => array_map(fn($c) => round($c / max(1, $pAll) * 100, 1) . '%', array_slice($pFirst, 0, 8, true)),
+];
+
+// ── 9. морфология ───────────────────────────────────────────────────
+$morf = [
+    'инфинитив' => '~(?<![\p{L}])[а-яё]{3,}(?:ть|ти)(?![\p{L}])~u',
+    'прошедшее' => '~(?<![\p{L}])[а-яё]{3,}(?:ал|ил|ел|ыл|ла|ло|ли)(?![\p{L}])~u',
+    'повелительное' => '~(?<![\p{L}])[а-яё]{3,}(?:йте|ите)(?![\p{L}])~u',
+    'страдательное' => '~(?<![\p{L}])[а-яё]{3,}(?:ется|ются)(?![\p{L}])~u',
+    'условие «если»' => '~(?<![\p{L}])если(?![\p{L}])~u',
+    'модальное «можно/нужно»' => '~(?<![\p{L}])(?:можно|нужно|стоит|следует|надо|придётся)(?![\p{L}])~u',
+    'уступка «но/однако»' => '~(?<![\p{L}])(?:но|однако|зато|хотя)(?![\p{L}])~u',
+    'причина «потому что»' => '~потому что|так как|поскольку~u',
+    'вводное «например»' => '~например|к примеру|скажем~u',
+];
+$mres = array_fill_keys(array_keys($morf), 0); $mslov = 0;
+foreach ($dirs as $d) {
+    $t = '';
+    foreach (glob("$d/*.html") ?: [] as $f) { $t .= ' ' . mb_strtolower(chisto((string) file_get_contents($f))); }
+    $mslov += count(slova($t));
+    foreach ($morf as $k => $re) { $mres[$k] += preg_match_all($re, $t); }
+}
+$out['морфология'] = ['слов' => $mslov]
+    + array_map(fn($v) => round($v / max(1, $mslov) * 100, 2), $mres);
+
+// ── 10. таблица ─────────────────────────────────────────────────────
+$kol = []; $yach = []; $yachNum = 0; $yachAll = 0;
+foreach ($dirs as $d) {
+    foreach (glob("$d/*.html") ?: [] as $f) {
+        preg_match_all('~(?is)<table\b.*?</table>~', (string) file_get_contents($f), $tm);
+        foreach ($tm[0] as $tab) {
+            preg_match_all('~(?is)<th\b[^>]*>(.*?)</th>~', $tab, $th);
+            $head = array_map(fn($x) => mb_strtolower(trim(preg_replace('~\s+~u', ' ', strip_tags($x)))), $th[1]);
+            if (!$head && preg_match('~(?is)<tr\b[^>]*>(.*?)</tr>~', $tab, $tr)) {
+                preg_match_all('~(?is)<td\b[^>]*>(.*?)</td>~', $tr[1], $td);
+                $head = array_map(fn($x) => mb_strtolower(trim(preg_replace('~\s+~u', ' ', strip_tags($x)))), $td[1]);
+            }
+            foreach ($head as $i => $hh) { if ($hh !== '') { $kol[$i][$hh] = ($kol[$i][$hh] ?? 0) + 1; } }
+            preg_match_all('~(?is)<td\b[^>]*>(.*?)</td>~', $tab, $tdm);
+            foreach ($tdm[1] as $c) {
+                $c = trim(preg_replace('~\s+~u', ' ', chisto($c)));
+                if ($c === '') { continue; }
+                $yachAll++;
+                $yach[] = count(slova($c));
+                if (preg_match('~\d~u', $c)) { $yachNum++; }
+            }
+        }
+    }
+}
+$out['таблица'] = ['ячеек' => $yachAll, 'слов в ячейке медиана' => med($yach),
+    'ячеек с цифрой' => round($yachNum / max(1, $yachAll) * 100) . '%'];
+foreach ([0, 1, 2] as $i) {
+    if (!isset($kol[$i])) { continue; }
+    arsort($kol[$i]);
+    $out['таблица']['колонка ' . ($i + 1) . ' (разных ' . count($kol[$i]) . ')'] = array_slice($kol[$i], 0, 6, true);
+}
+
+// ── 11. анкор ───────────────────────────────────────────────────────
+$ank = []; $vFraze = 0; $ssylok = 0; $aLen = [];
+foreach ($dirs as $d) {
+    foreach (glob("$d/*.html") ?: [] as $f) {
+        $h = (string) file_get_contents($f);
+        $ssylok += preg_match_all('~(?is)<a\s[^>]*href="/[a-z]*"~', $h);
+        if (!preg_match_all('~(?is)<(p|li)\b[^>]*>(.*?)</\1>~', $h, $bm, PREG_SET_ORDER)) { continue; }
+        foreach ($bm as $b) {
+            if (!preg_match_all('~(?is)<a\s[^>]*href="/[a-z]*"[^>]*>(.*?)</a>~', $b[2], $am)) { continue; }
+            foreach ($am[1] as $x) {
+                $t = trim(preg_replace('~\s+~u', ' ', strip_tags($x)));
+                if ($t === '') { continue; }
+                $vFraze++;
+                $ank[mb_strtolower($t)] = ($ank[mb_strtolower($t)] ?? 0) + 1;
+                $aLen[] = count(slova($t));
+            }
+        }
+    }
+}
+$odin = count(array_filter($ank, fn($x) => $x === 1));
+$out['анкор'] = [
+    'внутренних ссылок' => $ssylok,
+    'внутри <p> и <li>' => round($vFraze / max(1, $ssylok) * 100) . '%',
+    'слов в анкоре медиана' => med($aLen),
+    'разных анкоров' => count($ank),
+    'одиночек' => round($odin / max(1, count($ank)) * 100) . '%',
+];
+
+// ── 12. FAQ ─────────────────────────────────────────────────────────
 $q = [];
 foreach ($dirs as $d) {
     foreach (glob("$d/*.html") ?: [] as $f) {
@@ -290,6 +469,42 @@ $out['тон'] = [
     'обещание выигрыша' => $ton['обещание'], 'предупреждение о риске' => $ton['предупреждение'],
     'предупреждение : обещание' => round($ton['предупреждение'] / max(1, $ton['обещание']), 1) . ' : 1',
     'призывов на сайт' => round(($ton['призыв ты'] + $ton['призыв вы']) / $N, 1),
+];
+
+// ── 15. каннибализация ──────────────────────────────────────────────
+// Все семь страниц пишут об одном казино и покрывают пересекающиеся темы.
+// Если главная переиспользует свои же формулировки — это видно здесь.
+$shing = function (string $t): array {
+    $t = mb_strtolower(preg_replace('~%[a-z_]+%~u', ' бренд ', $t));
+    $w = slova($t);
+    $s = [];
+    for ($i = 0; $i + 6 <= count($w); $i++) { $s[implode(' ', array_slice($w, $i, 6))] = 1; }
+    return $s;
+};
+$mVn = []; $vnVn = [];
+foreach ($dirs as $d) {
+    if (!is_file("$d/main.html")) { continue; }
+    $sets = ['main' => $shing(chisto((string) file_get_contents("$d/main.html")))];
+    foreach (PAGES_Z as $p) {
+        if ($p === 'main' || !is_file("$d/$p.html")) { continue; }
+        $sets[$p] = $shing(chisto((string) file_get_contents("$d/$p.html")));
+    }
+    $names = array_keys($sets);
+    for ($i = 0; $i < count($names); $i++) {
+        for ($j = $i + 1; $j < count($names); $j++) {
+            $a = $sets[$names[$i]]; $b = $sets[$names[$j]];
+            $min = min(count($a), count($b));
+            if (!$min) { continue; }
+            $v = count(array_intersect_key($a, $b)) / $min * 100;
+            if ($names[$i] === 'main') { $mVn[] = $v; } else { $vnVn[] = $v; }
+        }
+    }
+}
+$out['каннибализация'] = [
+    'главная ↔ внутренние, среднее' => $mVn ? round(array_sum($mVn) / count($mVn), 2) . '%' : '—',
+    'главная ↔ внутренние, макс' => $mVn ? round(max($mVn), 2) . '%' : '—',
+    'внутренние между собой, среднее' => $vnVn ? round(array_sum($vnVn) / count($vnVn), 2) . '%' : '—',
+    'внутренние между собой, макс' => $vnVn ? round(max($vnVn), 2) . '%' : '—',
 ];
 
 // ── вывод ───────────────────────────────────────────────────────────

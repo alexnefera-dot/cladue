@@ -1,0 +1,205 @@
+<p>%brand_name_ru%.</p>
+
+
+
+
+
+            <h2>Проблемы при входе в %brand_name_en%: не заходит, код не приходит, неверный пароль — решения и чек‑лист</h2>
+
+<p>Даже при корректной регистрации <strong>вход</strong> в казино %brand_name_en% может “сбоить”. С точки зрения математики/стратегии важно: <strong>не тратить банкролл и попытки</strong> на хаотичные клики, а быстро диагностировать причину. Ниже — практическая схема, как действовать, если вы видите ошибки авторизации, не приходит SMS/email-код или сайт ведёт себя нестабильно.</p>
+
+<h3>Быстрая диагностика: что именно ломается</h3>
+<p>Сначала уточните “какой слой” даёт сбой:</p>
+<ul>
+  <li><strong>Аккаунт</strong>: пароль/логин неверны, доступ ограничен, капча не проходится.</li>
+  <li><strong>Канал подтверждения</strong>: не приходит SMS/письмо, код истёк, “delivery” задерживается.</li>
+  <li><strong>Сеть и клиент</strong>: VPN/прокси, DNS, куки, блокировка скриптов, проблемы браузера.</li>
+  <li><strong>Регион/домен</strong>: попытка входа не через зеркало или не с того домена.</li>
+</ul>
+
+<blockquote>
+  <p><strong>Правило ожидания:</strong> если ошибка повторяется больше 2–3 попыток подряд, переходите к следующему блоку действий. Это снижает риск “банов” по частоте запросов и экономит время (и нервы).</p>
+</blockquote>
+
+<h3>Типовые ошибки и решения (таблица)</h3>
+
+<div class="table-responsive"><table>
+  <thead>
+    <tr>
+      <th>Симптом</th>
+      <th>Вероятная причина</th>
+      <th>Решение (быстро)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>«Неверный логин/пароль»</td>
+      <td>Опечатка, пароль изменён, включён другой аккаунт</td>
+      <td>Проверьте раскладку/язык; используйте восстановление пароля; сравните email/ник</td>
+    </tr>
+    <tr>
+      <td>Код подтверждения не приходит</td>
+      <td>Задержка доставки, неверный номер/email, фильтрация спама</td>
+      <td>Проверьте данные; подождите 5–10 минут; посмотрите спам/“Входящие”; повторите запрос</td>
+    </tr>
+    <tr>
+      <td>Код истёк / «ошибка кода»</td>
+      <td>Задержка на стороне сети или медленный ввод</td>
+      <td>Запросите новый код; вводите сразу; проверьте часовой пояс</td>
+    </tr>
+    <tr>
+      <td>Ошибка капчи / бесконечная загрузка</td>
+      <td>Блокировка скриптов, cookies, расширения</td>
+      <td>Отключите VPN/AdBlock; очистите cookies; попробуйте другой браузер/инкогнито</td>
+    </tr>
+    <tr>
+      <td>Страница входа не открывается</td>
+      <td>Неактуальный домен/помехи DNS</td>
+      <td>Попробуйте вход через зеркало: <a href="/zerkalo">/zerkalo</a></td>
+    </tr>
+    <tr>
+      <td>Аккаунт временно недоступен</td>
+      <td>Лимиты по попыткам, подозрительная активность</td>
+      <td>Сделайте паузу 30–60 минут; затем вход; при необходимости — поддержка</td>
+    </tr>
+  </tbody>
+</table></div>
+
+<h3>Проблемы с паролем: не “угадывайте”, а оптимизируйте</h3>
+<p>Механика “попробую ещё раз” — это по сути поиск параметра в пространстве значений, где вероятность успеха падает при каждом неудачном запросе, а риск лимита растёт. В терминах EV это минус: вы платите временем и увеличиваете вероятность блокировки.</p>
+
+<ul>
+  <li><strong>Используйте восстановление пароля</strong>, а не множественные попытки ввода.</li>
+  <li>Проверьте <strong>раскладку</strong> и регистр: “O” vs “0”, “l” vs “I”.</li>
+  <li>Если у вас несколько аккаунтов/почт — подтвердите, какой именно email привязан.</li>
+</ul>
+
+<ol>
+  <li>Откройте форму восстановления в интерфейсе входа.</li>
+  <li>Подождите код/ссылку восстановления.</li>
+  <li>Смените пароль на новый (лучше — менеджер паролей).</li>
+</ol>
+
+<h3>Код подтверждения (SMS/email): как действовать с учётом задержек</h3>
+<p>Коды подтверждения — это короткоживущие маркеры. При задержках доставки вы фактически получаете смещение во времени: код может стать невалидным ещё до ввода.</p>
+
+<ul>
+  <li>Смотрите в <strong>спам</strong> и “промо/социальные” вкладки.</li>
+  <li>Проверьте корректность <strong>телефона</strong> и <strong>email</strong>.</li>
+  <li>Если сеть нестабильна — лучше повторить запрос после паузы, чем вводить “устаревший” код.</li>
+  <li>Не гоните несколько запросов подряд: некоторые провайдеры доставляют не в порядке запросов.</li>
+</ul>
+
+<blockquote>
+  <p><strong>Мини-стратегия:</strong> дождитесь первого кода, дождитесь 5–10 минут, затем сформируйте новый запрос. Это снижает вероятность “конфликта” нескольких кодов на стороне почтового/телеком каналов.</p>
+</blockquote>
+
+<h3>VPN/прокси/куки: типичная причина “вроде всё правильно, но не пускает”</h3>
+<p>Многие ошибки при входе возникают из-за несовместимости параметров сессии: браузер хранит куки, а ваш IP/регион (например, через VPN) меняется. В результате сервер может потребовать дополнительную проверку или сбросить сессию.</p>
+
+<ul>
+  <li>Отключите <strong>VPN/прокси</strong> и попробуйте вход снова.</li>
+  <li>Очистите <strong>cookies</strong> для домена казино и перезапустите браузер.</li>
+  <li>Отключите расширения, которые блокируют скрипты (часто это AdBlock/anti-tracker).</li>
+  <li>Попробуйте режим <strong>инкогнито</strong> или другой браузер.</li>
+</ul>
+
+<h3>Проблемы со входом из-за домена: используйте зеркало</h3>
+<p>Если страница входа не открывается или редиректы ведут “в никуда”, вероятно вы используете устаревший адрес. Практичное действие — перейти через официальную страницу зеркал.</p>
+
+<p>Зеркало для входа: <a href="/zerkalo">/zerkalo</a></p>
+
+<h3>Если вы ещё не зарегистрированы: не путайте вход и создание аккаунта</h3>
+<p>Иногда игроки заходят “не туда” и ожидают код/вход, хотя аккаунт ещё не создан или данные указаны иначе. Если у вас нет активного профиля — сначала регистрация.</p>
+
+<p>Регистрация: <a href="/registracia">/registracia</a></p>
+
+<h3>Вход через приложение: когда сайт глючит, а клиент стабилен</h3>
+<p>Если браузер постоянно упирается в капчу/скрипты, приложение может обойти часть проблем клиентской среды. Проверьте актуальную версию.</p>
+
+<p>Скачать приложение: <a href="/app">/app</a></p>
+
+<h3>Плашка внимания: “Не отыгрывай технические сбои”</h3>
+<p>Финансовая дисциплина важнее техники. При технических ошибках возникает риск начать “входить чаще” или менять банкролл в панике. Это приводит к перекосу стратегии.</p>
+
+<div class="table-responsive"><table>
+  <thead>
+    <tr>
+      <th>Что делать</th>
+      <th>Зачем</th>
+      <th>Анти-паттерн</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Пауза 30–60 минут при частых ошибках</td>
+      <td>Снижение вероятности лимитов по попыткам</td>
+      <td>20 быстрых входов подряд</td>
+    </tr>
+    <tr>
+      <td>Диагностика причины по списку выше</td>
+      <td>Быстрее вернуть доступ и уменьшить “шум”</td>
+      <td>Слепая смена паролей без восстановления</td>
+    </tr>
+    <tr>
+      <td>Проверка бонусных условий после входа</td>
+      <td>Не терять ценность офферов</td>
+      <td>Открыть предложение до авторизации и “сгореть” по правилам</td>
+    </tr>
+  </tbody>
+</table></div>
+
+<h3>Бонусы и промокоды: где они “теряют” ценность при ошибках входа</h3>
+<p>Если вход не проходит, вы не сможете корректно привязать условия или активировать промо в нужный момент. После успешной авторизации проверьте актуальные офферы.</p>
+
+<p>Бонусы и промокоды: <a href="/app">/bonus</a></p>
+
+<h3>Если всё равно не получается: последний шаг</h3>
+<p>Когда вы прошли базовые проверки (пароль/код/куки/зеркало) и проблема повторяется, действуйте как при сложной вероятностной задаче: фиксируйте данные и обращайтесь в поддержку, а не “обнуляйте” попытки снова и снова.</p>
+
+<ul>
+  <li>Сохраните текст ошибки (скрин).</li>
+  <li>Укажите время попытки и используемый браузер/устройство.</li>
+  <li>Отметьте, был ли VPN/прокси включён.</li>
+</ul>
+
+<p>После восстановления доступа вы сможете перейти к игре и выбору стратегии уже без технического “шума”. Например, к слотам: <a href="/slots">/slots</a>.</p>
+
+<h2>FAQ: Вопросы и ответы по входу на официальный сайт %brand_name_ru% — безопасность, регистрация, вход, верификация и edge‑кейсы</h2>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question"><div class="c-Ответы на вопросы"><details class="o-lines__bg is-load lazyloaded" data-bg="css"><summary itemprop="name">Что делать, если я забыл пароль и доступ к привязанной почте утрачен?</summary><div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer"><div itemprop="text"><p>Используйте привязанный номер телефона для восстановления или обратитесь в поддержку для альтернативной идентификации.</p></div></div></details></div></div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question"><div class="c-Ответы на вопросы"><details class="o-lines__bg is-load lazyloaded" data-bg="css"><summary itemprop="name">Как восстановить доступ, если потерял доступ к номеру телефона, привязанному к аккаунту?</summary><div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer"><div itemprop="text"><p>Подайте запрос на смену привязки через документы и поддержку.</p></div></div></details></div></div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question"><div class="c-Ответы на вопросы"><details class="o-lines__bg is-load lazyloaded" data-bg="css"><summary itemprop="name">Можно ли входить через VPN и что будет за это?</summary><div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer"><div itemprop="text"><p>VPN-использование может привести к блокировке сессии и потребовать повторной авторизации без VPN.</p></div></div></details></div></div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question"><div class="c-Ответы на вопросы"><details class="o-lines__bg is-load lazyloaded" data-bg="css"><summary itemprop="name">Что делать, если IP-адрес меняется между входами и система считает это рискованным?</summary><div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer"><div itemprop="text"><p>Система запросит дополнительную проверку личности или временно ограничит операции до завершения верификации.</p></div></div></details></div></div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question"><div class="c-Ответы на вопросы"><details class="o-lines__bg is-load lazyloaded" data-bg="css"><summary itemprop="name">Как поступить, если 2FA не работает или код устарел?</summary><div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer"><div itemprop="text"><p>Обратитесь в поддержку для временной разблокировки и восстановления доступа без 2FA.</p></div></div></details></div></div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question"><div class="c-Ответы на вопросы"><details class="o-lines__bg is-load lazyloaded" data-bg="css"><summary itemprop="name">Что делать, если вход помечен как подозрительный и доступ ограничен?</summary><div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer"><div itemprop="text"><p>Пройдите идентификацию личности по документам и дождитесь повторной разблокировки.</p></div></div></details></div></div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question"><div class="c-Ответы на вопросы"><details class="o-lines__bg is-load lazyloaded" data-bg="css"><summary itemprop="name">Как действовать при задержке вывода после входа на сайт?</summary><div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer"><div itemprop="text"><p>Проверьте статус KYC, привязанные платежи и сроки обработки банка, и обратитесь в поддержку.</p></div></div></details></div></div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question"><div class="c-Ответы на вопросы"><details class="o-lines__bg is-load lazyloaded" data-bg="css"><summary itemprop="name">Можно ли входить на нескольких устройствах одновременно, и как это влияет на безопасность?</summary><div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer"><div itemprop="text"><p>Можно иметь несколько активных сессий, но при обнаружении аномалий старые сессии могут быть завершены.</p></div></div></details></div></div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question"><div class="c-Ответы на вопросы"><details class="o-lines__bg is-load lazyloaded" data-bg="css"><summary itemprop="name">Что сделать, если вход перестал работать после обновления браузера или приложения?</summary><div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer"><div itemprop="text"><p>Очистите кэш/куки или попробуйте другой браузер, затем повторно авторизуйтесь.</p></div></div></details></div></div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question"><div class="c-Ответы на вопросы"><details class="o-lines__bg is-load lazyloaded" data-bg="css"><summary itemprop="name">Как защититься, если ваш аккаунт пытались получить доступ через чужое устройство?</summary><div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer"><div itemprop="text"><p>Смените пароль, проверьте активные сессии и включите уведомления о входе.</p></div></div></details></div></div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question"><div class="c-Ответы на вопросы"><details class="o-lines__bg is-load lazyloaded" data-bg="css"><summary itemprop="name">Что делать, если не приходит SMS-код входа, но код доступен по почте?</summary><div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer"><div itemprop="text"><p>Используйте код из электронной почты или обратитесь в поддержку для альтернативного входа.</p></div></div></details></div></div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question"><div class="c-Ответы на вопросы"><details class="o-lines__bg is-load lazyloaded" data-bg="css"><summary itemprop="name">Как поступить, если вы сменили регион проживания и вход требует повторной идентификации?</summary><div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer"><div itemprop="text"><p>Сообщите в поддержку для обновления региона и повторной верификации.</p></div></div></details></div></div>
+
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question"><div class="c-Ответы на вопросы"><details class="o-lines__bg is-load lazyloaded" data-bg="css"><summary itemprop="name">Как вернуться к активной игре после самоисключения или временного ограничения?</summary><div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer"><div itemprop="text"><p>После окончания срока самоисключения свяжитесь с поддержкой для повторной активации и проверки личности.</p></div></div></details></div></div>        
+        
+        <div class="button-container">
+          <button type="button" class="btnplay">%brand_name_ru%</button>
+        </div>
+
+        
+        <p>Последнее обновление %domain_name%: 
+          <time datetime="%date%" itemprop="dateModified">
+            %date%          </time>
+        </p>
+      </div>
+</div>
