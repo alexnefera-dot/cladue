@@ -16,7 +16,12 @@ declare(strict_types=1);
  *    порядок финала, формула заголовка «ключ : хвост», уникальные шапки
  *    таблиц, механизм маски, доля вопросов про сбой.
  *
- * 3. Уникальность считается не только по шинглам. Шингл из шести слов не
+ * 3. Отдельный шлюз — техническая мерка (SeoMetrics). PageMetrics не смотрит на
+ *    blockquote, курсив, уровни заголовков, nofollow и внешние ссылки. Двадцать
+ *    восемь проходов разбора их пропустили, а цитата стоит у 36 донорских сайтов
+ *    из 36 — девять штук на главной и ровно одна на каждой внутренней.
+ *
+ * 4. Уникальность считается не только по шинглам. Шингл из шести слов не
  *    проходит через трёхсловный заголовок, и повтор скелета остаётся невидим:
  *    в нашем прежнем корпусе так совпали восемь H2 у десяти версий подряд.
  *    Поэтому заголовки сверяются отдельно и дословно.
@@ -25,6 +30,7 @@ declare(strict_types=1);
  */
 
 require_once __DIR__ . '/src/PageMetrics.php';
+require_once __DIR__ . '/src/SeoMetrics.php';
 
 $dir = $argv[1] ?? '';
 $korpus = 'samples/v4-final';
@@ -173,7 +179,46 @@ $priyomy = [
 $prOk = count(array_filter($priyomy, fn($x) => $x[2]));
 if ($prOk < count($priyomy)) { $provaly[] = 'приёмы'; }
 
-// ── 3. уникальность ─────────────────────────────────────────────────
+// ── 3. техническая мерка ────────────────────────────────────────────
+$dom = (function (string $frag): ?DOMDocument {
+    $d = new DOMDocument();
+    $prev = libxml_use_internal_errors(true);
+    $ok = $d->loadHTML('<?xml encoding="utf-8"?><html><body>' . $frag . '</body></html>',
+        LIBXML_NOWARNING | LIBXML_NOERROR);
+    libxml_clear_errors();
+    libxml_use_internal_errors($prev);
+    return $ok ? $d : null;
+})($html);
+$seo = new SeoMetrics($dom, $html);
+
+$citat = $seo->quoteCount();
+$vnesh = count($seo->links('', '/main')['external']);
+$nofollow = 0;
+foreach (['internal', 'external'] as $vid) {
+    foreach ($seo->links('', '/main')[$vid] as $it) { if ($it['nofollow']) { $nofollow++; } }
+}
+$spamKey = '';
+foreach (['казино', 'бонус', 'зеркало', 'слот', 'регистрация'] as $kk) {
+    if ($seo->strongKeywordSpam($kk)) { $spamKey = $kk; break; }
+}
+
+$tehnika = [
+    'H1 в фрагменте' => [$seo->headingCount(1), '0', $seo->headingCount(1) === 0],
+    'H4 и ниже' => [$seo->headingCount(4), '0', $seo->headingCount(4) === 0],
+    'иерархия заголовков' => [$seo->headingHierarchyOk() ? 'цела' : 'пропуск уровня', 'цела',
+        $seo->headingHierarchyOk()],
+    'цитат blockquote' => [$citat, '7–12', $citat >= 7 && $citat <= 12],
+    'текст/код' => [$seo->textHtmlRatio() . '%', '70–90%',
+        $seo->textHtmlRatio() >= 70 && $seo->textHtmlRatio() <= 90],
+    'nofollow' => [$nofollow, '0', $nofollow === 0],
+    'внешних ссылок' => [$vnesh, '0–1', $vnesh <= 1],
+    'переспам выделением' => [$spamKey === '' ? 'нет' : $spamKey, 'нет', $spamKey === ''],
+    'картинок' => [$seo->imgCount(), '0', $seo->imgCount() === 0],
+];
+$tehOk = count(array_filter($tehnika, fn($x) => $x[2]));
+if ($tehOk < count($tehnika)) { $provaly[] = 'техника'; }
+
+// ── 4. уникальность ─────────────────────────────────────────────────
 $shingle = function (string $t, int $n = 6): array {
     $t = mb_strtolower(preg_replace('~%[a-z_]+%~u', ' бренд ', $t));
     $w = slv($t);
@@ -213,6 +258,11 @@ if ($parBad) { foreach ($parBad as $b) { echo "  ✗ $b\n"; } }
 
 printf("\n── приёмы %d/%d ──\n", $prOk, count($priyomy));
 foreach ($priyomy as $n => [$est, $nado, $ok]) {
+    echo '  ' . ($ok ? '·' : '✗') . ' ' . $pad($n, 30, true) . $pad((string) $est, 12) . '   нужно ' . $nado . "\n";
+}
+
+printf("\n── техника %d/%d ──\n", $tehOk, count($tehnika));
+foreach ($tehnika as $n => [$est, $nado, $ok]) {
     echo '  ' . ($ok ? '·' : '✗') . ' ' . $pad($n, 30, true) . $pad((string) $est, 12) . '   нужно ' . $nado . "\n";
 }
 
