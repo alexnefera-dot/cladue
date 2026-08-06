@@ -2506,7 +2506,6 @@ enum Api {
             "byType": byTypeSorted, "byTypeBlocks": byTypeBlocks, "byRegion": byRegionSorted, "byRegionBlocks": byRegionBlocks, "blockEur": blockEur,
             "tx": tx, "forecasts": fc, "properties": props, "fire": fireV,
             "income": income, "budget": budget, "budgetItems": budgetItems, "targetPortfolio": targetPortfolio, "targetMoves": targetMoves,
-            "legacyPortfolio": (try? portfolioTree(db, "portfolio_items")) ?? [],   // старое дерево — только для сверки после слияния
             "targetByType": tByTypeSorted, "targetByTypeBlocks": tByTypeBlocks, "macro": macro, "rates": rates,
             "summary": summary,
         ]
