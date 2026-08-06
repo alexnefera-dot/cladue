@@ -441,7 +441,41 @@ function secPortfolio(d, s) {
       addNet(a.path, -mv.amount); addNet(b.path, mv.amount);   // mv.amount хранится в €
     });
   }
+  // Сверка со старым деревом. Первая версия слияния создавала позиции, чей путь не совпал,
+  // из-за чего у переименованных появлялись двойники и сумма росла. Карточка показывает, где именно.
+  let mergeDiag = '';
+  const legacy = d.legacyPortfolio || [];
+  if (legacy.length) {
+    const pathsOf = (ns, pre, acc) => (ns || []).forEach(n => {
+      const p = pre + '/' + (n.name || '').trim().toLowerCase();
+      const kids = n.children || [];
+      if (n.kind === 'asset' || !kids.length) acc[p] = (acc[p] || 0) + (n.eur || 0);
+      pathsOf(kids, p, acc);
+    });
+    const oldP = {}, newP = {};
+    pathsOf(legacy, '', oldP); pathsOf(tree, '', newP);
+    const oldTotal = legacy.reduce((a, b) => a + (b.eur || 0), 0);
+    const diff = rootTotal - oldTotal;
+    if (Math.abs(diff) > 1) {
+      // позиции без пары в старом дереве — среди них и переименованные оригиналы, и планируемые
+      const orphans = Object.entries(newP).filter(([p, v]) => oldP[p] == null && v > 0).sort((a, b) => b[1] - a[1]);
+      const added = Object.entries(newP).filter(([p]) => oldP[p] != null);
+      mergeDiag = `<div class="card" style="border-color:var(--amber)">
+        <div class="kv" style="font-weight:700;flex-wrap:wrap;gap:8px">
+          <span>Сверка со старым деревом: было <b class="num">${fmt(oldTotal)} €</b> · стало <b class="num">${fmt(rootTotal)} €</b></span>
+          <span class="pill p1">${diff > 0 ? '+' : '−'}${fmt(Math.abs(diff))} €</span>
+        </div>
+        <div class="meta" style="margin-top:6px">Слияние создавало позиции, чей путь не совпал. Ниже — позиции, которых нет в старом дереве: среди них переименованные оригиналы (их двойник появился заново — лишний надо удалить) и те, что ты планировал сам.</div>
+        ${orphans.length ? `<div style="margin-top:8px">${orphans.slice(0, 20).map(([p, v]) =>
+          `<div class="kv"><span class="mono">${fesc(p)}</span><b class="num">${fmt(v)} €</b></div>`).join('')}
+          ${orphans.length > 20 ? `<div class="meta">…и ещё ${orphans.length - 20}</div>` : ''}</div>`
+          : '<div class="meta" style="margin-top:8px">Позиций без пары нет — расхождение в суммах, а не в структуре.</div>'}
+        <div class="meta" style="margin-top:8px">Совпало со старым деревом: ${added.length} позиц. · карточка исчезнет, когда суммы сойдутся.</div>
+      </div>`;
+    }
+  }
   return `
+${mergeDiag}
   <div class="sec">Портфель · блоки → разделы → активы · всё правится кликом</div>
   <div class="viewtabs">
     <span class="pill btn" id="pfoldAll" style="margin-left:auto">${portFold.size ? '▾ развернуть всё' : '▸ свернуть всё'}</span>

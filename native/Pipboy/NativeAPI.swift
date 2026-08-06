@@ -83,9 +83,9 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         }
         // Одно дерево: целевое становится единственным. Фактическое остаётся в базе нетронутым —
         // если слияние окажется неверным, данные не потеряны и таблицу можно поднять.
-        if ((try? made.rows("SELECT value FROM settings WHERE key = 'merge_trees_v1'"))?.first?["value"]) as? String != "1" {
+        if ((try? made.rows("SELECT value FROM settings WHERE key = 'merge_trees_v2'"))?.first?["value"]) as? String != "1" {
             Api.mergeFactIntoTarget(made)
-            _ = try? Api.setSetting(made, "merge_trees_v1", "1")
+            _ = try? Api.setSetting(made, "merge_trees_v2", "1")
         }
         Api.ensureSpheresSchema(made)   // таблицы сфер (area_milestones/area_questions) — до sync-схемы, чтобы им добавились updated_at/триггеры
         Api.ensureSyncSchema(made)   // updated_at + триггеры + tombstones — отслеживание правок для синхрона
@@ -1856,21 +1856,9 @@ enum Api {
         let (_, factPathById) = paths("portfolio_items")
         var (tgtByPath, _) = paths("target_items")
 
-        // позиции факта, которых нет в целевом — создаём, родителей по пути (сортировка по длине пути даёт родителя раньше ребёнка)
-        let ordered = factRows.sorted { (factPathById[intval($0["id"])] ?? "").count < (factPathById[intval($1["id"])] ?? "").count }
-        for r in ordered {
-            guard let path = factPathById[intval(r["id"])], tgtByPath[path] == nil else { continue }
-            let parentPath = path.lastIndex(of: "/").map { String(path[path.startIndex..<$0]) } ?? ""
-            let parentId = parentPath.isEmpty ? nil : tgtByPath[parentPath]
-            let ord = intval(r["ord"])
-            if let newId = try? db.run("INSERT INTO target_items(parent_id, ord, name, kind, value, buy_value, currency, asset_type, region, note, is_loan, loan_due) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
-                [parentId ?? NSNull(), ord, r["name"] ?? "", r["kind"] ?? "asset",
-                 r["value"] ?? NSNull(), r["buy_value"] ?? NSNull(), r["currency"] ?? "€",
-                 r["asset_type"] ?? NSNull(), r["region"] ?? NSNull(), r["note"] ?? NSNull(),
-                 intval(r["is_loan"]), r["loan_due"] ?? NSNull()]) {
-                tgtByPath[path] = newId
-            }
-        }
+        // ВАЖНО: позиции здесь НЕ создаются. Первая версия миграции их создавала, и у любой
+        // переименованной или переложенной позиции появлялся двойник — сумма портфеля росла.
+        // Совпадения ищем только по точному пути; чего нет — оставляем пользователю.
         // у совпавших — дозаполняем только пустые поля, ничего не перетирая
         for r in factRows {
             guard let path = factPathById[intval(r["id"])], let tid = tgtByPath[path] else { continue }
@@ -2517,7 +2505,9 @@ enum Api {
             "snapshotDelta": snapshotDelta,
             "byType": byTypeSorted, "byTypeBlocks": byTypeBlocks, "byRegion": byRegionSorted, "byRegionBlocks": byRegionBlocks, "blockEur": blockEur,
             "tx": tx, "forecasts": fc, "properties": props, "fire": fireV,
-            "income": income, "budget": budget, "budgetItems": budgetItems, "targetPortfolio": targetPortfolio, "targetMoves": targetMoves, "targetByType": tByTypeSorted, "targetByTypeBlocks": tByTypeBlocks, "macro": macro, "rates": rates,
+            "income": income, "budget": budget, "budgetItems": budgetItems, "targetPortfolio": targetPortfolio, "targetMoves": targetMoves,
+            "legacyPortfolio": (try? portfolioTree(db, "portfolio_items")) ?? [],   // старое дерево — только для сверки после слияния
+            "targetByType": tByTypeSorted, "targetByTypeBlocks": tByTypeBlocks, "macro": macro, "rates": rates,
             "summary": summary,
         ]
         return try json(result)
