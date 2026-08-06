@@ -332,7 +332,30 @@ function secPortfolio(d, s) {
     tree.forEach(setPlan);
   }
   const planTotal = tgt ? tree.reduce((a, b) => a + (b.planEur || 0), 0) : 0;   // сумма планов верхнего уровня
-  const tgtBlockEur = {}; if (tgt) tree.forEach(b => { tgtBlockEur[b.name || ''] = b.eur || 0; });   // сумма блока целевого — для «% от блока» в аллокации
+  // Аллокация целевого по ПЛАНУ: тип живёт на листьях, план берём эффективный (planEur).
+  // Если у раздела свой план больше суммы позиций внутри, разница уходит в «не расписано».
+  const planByType = {}, planByTypeBlocks = {}, planBlock = {};
+  if (tgt) {
+    let leafSum = 0;
+    const walkPlan = (n, root) => {
+      const kids = n.children || [];
+      if (n.kind === 'asset' || !kids.length) {
+        const v = n.planEur || 0;
+        if (v > 0) {
+          const ty = n.asset_type || 'без типа';
+          planByType[ty] = (planByType[ty] || 0) + v;
+          (planByTypeBlocks[ty] ||= {})[root] = ((planByTypeBlocks[ty] || {})[root] || 0) + v;
+          planBlock[root] = (planBlock[root] || 0) + v;
+          leafSum += v;
+        }
+      }
+      kids.forEach(c => walkPlan(c, root));
+    };
+    tree.forEach(b => walkPlan(b, b.name || ''));
+    if (planTotal - leafSum > 1) planByType['не расписано по позициям'] = planTotal - leafSum;
+  }
+  const planTypeRows = Object.entries(planByType).sort((a, b) => b[1] - a[1]);
+  const planPieTotal = planTypeRows.reduce((a, [, v]) => a + v, 0);
   const rctx = { total: rootTotal, planTotal, parentEur: rootTotal, tgt, factByPath, path: '' };
   if (tgt) {   // ручные связки ребаланса (из target_moves): сопоставляем id позиций с путём/именем
     const byId = {};
@@ -364,6 +387,7 @@ function secPortfolio(d, s) {
   </div>
   ${tgt ? `<div class="card"><div class="kv" style="font-weight:700;padding:2px 0;flex-wrap:wrap;gap:8px">
       <span>Капитал: есть <b class="num">${fmt(s.portfolioTotal)} €</b>${planTotal > 0 ? ` · план <b class="num">${fmt(planTotal)} €</b>` : ''} · размещено <b class="num">${fmt(rootTotal)} €</b></span>
+      ${planTotal > 0 ? `<span class="pill ${Math.abs(planTotal - rootTotal) < 1 ? 'ok' : planTotal > rootTotal ? 'p1' : ''}" title="разница между «Сейчас» (размещено) и планом целевого">${Math.abs(planTotal - rootTotal) < 1 ? '✓ сейчас = плану' : planTotal > rootTotal ? `до плана +${fmt(planTotal - rootTotal)} €` : `сверх плана ${fmt(rootTotal - planTotal)} €`}</span>` : ''}
     </div></div>` : ''}
   <div class="card">
     ${finIsMobile()
@@ -402,19 +426,22 @@ function secPortfolio(d, s) {
       </div>
     </div>` : ''}
   </div>` : ''}
-  ${tgt && (d.targetByType || []).length && rootTotal > 0 ? `
+  ${tgt && planTypeRows.length && planPieTotal > 0 ? `
   <div class="card">
-    <div class="meta" style="margin-bottom:6px">АЛЛОКАЦИЯ ПО ТИПАМ АКТИВОВ · ЦЕЛЕВОЙ (по «Сейчас»; ⊙ у строки — задать тип)</div>
+    <div class="meta" style="margin-bottom:6px">АЛЛОКАЦИЯ ПО ТИПАМ АКТИВОВ · ЦЕЛЕВОЙ (по «Плану»; ⊙ у строки — задать тип)</div>
     <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;padding:6px 0">
-      ${allocPie(d.targetByType, rootTotal)}
+      ${allocPie(planTypeRows, planPieTotal)}
       <div style="flex:1;min-width:240px">
-        ${d.targetByType.map(([t, v], i) => `
+        ${planTypeRows.map(([t, v], i) => {
+          const nowV = (d.targetByType || []).find(x => x[0] === t)?.[1] || 0;
+          const nowPct = rootTotal > 0 ? nowV / rootTotal * 100 : null;
+          const blocks = Object.entries(planByTypeBlocks[t] || {}).sort((a, b) => b[1] - a[1])
+            .map(([blk, pv]) => `${planBlock[blk] ? (pv / planBlock[blk] * 100).toFixed(0) : '—'}% от «${fesc(blk)}»`).join(' · ');
+          return `
           <div class="kv"><span><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${PIE_COLORS[i % PIE_COLORS.length]};margin-right:7px"></i>${fesc(t)}</span>
-            <b class="num">${fmtE(v)} · ${(v / rootTotal * 100).toFixed(1)}% целевого</b></div>
-          <div class="meta" style="margin:0 0 5px 17px">${Object.entries(d.targetByTypeBlocks?.[t] ?? {})
-            .sort((a, b) => b[1] - a[1])
-            .map(([blk, eur]) => `${tgtBlockEur[blk] ? (eur / tgtBlockEur[blk] * 100).toFixed(0) : '—'}% от «${fesc(blk)}»`)
-            .join(' · ')}</div>`).join('')}
+            <b class="num">${fmtE(v)} · ${(v / planPieTotal * 100).toFixed(1)}% плана</b></div>
+          <div class="meta" style="margin:0 0 5px 17px">${nowPct != null ? `сейчас ${nowPct.toFixed(1)}% · ` : ''}${blocks}</div>`;
+        }).join('')}
       </div>
     </div>
   </div>` : ''}`;
