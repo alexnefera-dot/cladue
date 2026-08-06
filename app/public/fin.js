@@ -127,7 +127,7 @@ function portRows(it, depth, ctx) {
     ].join('');
     const moveOpen = tgtMove?.from === it.id;
     const moveBtn = editable ? `<span class="rowbtn${moveOpen ? ' on' : ''}" data-tgtmove="${it.id}" title="переложить в другую позицию">↦ переложить</span>` : '';
-    cells = `${buyCell}${gainCell}${nowCell}${becameCell}${planCell}${devCell}
+    cells = `${buyCell}${gainCell}${nowCell}${ctx?.hasMoves ? becameCell : ''}${planCell}${devCell}
       <td class="sep" style="text-align:left">${links}${moveBtn}</td>`;
   }
   return `<tr class="${rowCls}" draggable="true" data-pid="${it.id}">
@@ -151,7 +151,7 @@ function portRows(it, depth, ctx) {
       <span class="rowbtn del" data-findel="${pfx}:${it.id}">✕</span>
     </td>
   </tr>` + (target && tgtMove?.from === it.id ? tgtMoveForm(it, ctx) : '')
-    + (folded ? '' : it.children.map(c => portRows(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, parentEur: it.eur, blockEur: depth === 0 ? it.eur : ctx?.blockEur, blockTarget: depth === 0 ? it.planEur : ctx?.blockTarget, tgt: target, tree: ctx?.tree, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
+    + (folded ? '' : it.children.map(c => portRows(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, hasMoves: ctx?.hasMoves, parentEur: it.eur, blockEur: depth === 0 ? it.eur : ctx?.blockEur, blockTarget: depth === 0 ? it.planEur : ctx?.blockTarget, tgt: target, tree: ctx?.tree, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
 }
 
 const finIsMobile = () => window.matchMedia('(max-width: 768px)').matches;
@@ -285,7 +285,7 @@ function portCard(it, depth, ctx) {
       <span class="pc-val">${val}</span>
     </div>
     <div class="pc-meta">${meta}<span class="pc-actions">${actions}</span></div>
-  </div>` + (folded ? '' : it.children.map(c => portCard(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, parentEur: it.eur, blockEur: depth === 0 ? it.eur : ctx?.blockEur, blockTarget: depth === 0 ? it.planEur : ctx?.blockTarget, tgt: target, tree: ctx?.tree, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
+  </div>` + (folded ? '' : it.children.map(c => portCard(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, hasMoves: ctx?.hasMoves, parentEur: it.eur, blockEur: depth === 0 ? it.eur : ctx?.blockEur, blockTarget: depth === 0 ? it.planEur : ctx?.blockTarget, tgt: target, tree: ctx?.tree, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
 }
 
 // диаграмма аллокации: доли с процентами внутри, каждая своим цветом
@@ -470,7 +470,8 @@ function secPortfolio(d, s) {
     : capGap > 0
       ? `<div class="bsum"><span class="dev-over">не распределено ${fmt(capGap)} €</span> <span class="meta">${(capGap / rootTotal * 100).toFixed(1)}% капитала без цели — эти деньги никуда не отнесены</span></div>`
       : `<div class="bsum"><span class="dev-under">целей на ${fmt(-capGap)} € больше капитала</span> <span class="meta">сумма целей ${fmt(planTotal)} при ${fmt(rootTotal)} размещённых</span></div>`;
-  const rctx = { total: rootTotal, planTotal, parentEur: rootTotal, tgt, tree, path: '' };
+  const rctx = { total: rootTotal, planTotal, parentEur: rootTotal, tgt, tree, path: '',
+    hasMoves: (d.targetMoves || []).length > 0 };   // «Станет» показываем, только пока переносы запланированы
   if (tgt) {   // ручные связки ребаланса (из target_moves): сопоставляем id позиций с путём/именем
     const byId = {};
     const mapIds = (ns, pre) => (ns || []).forEach(n => { const p = pre + '/' + (n.name || '').trim().toLowerCase(); byId[n.id] = { path: p, name: n.name, cur: n.currency ?? '€' }; mapIds(n.children, p); });
@@ -509,7 +510,7 @@ function secPortfolio(d, s) {
         <th class="r" style="width:96px" title="цена покупки в валюте позиции">Покупка</th>
         <th class="r" style="width:66px">Прирост</th>
         <th class="r sep" style="width:116px" title="сколько размещено; под суммой — доля">Сейчас</th>
-        <th class="r" style="width:104px" title="сейчас плюс запланированные переносы">Станет</th>
+        ${rctx.hasMoves ? '<th class="r" style="width:104px" title="сейчас плюс запланированные переносы">Станет</th>' : ''}
         <th class="r sep" style="width:126px" title="доля или сумма — заполненное закреплено, второе выводится">Цель</th>
         <th class="r" style="width:118px" title="станет − цель">Отклонение</th>
         <th class="sep" style="width:180px">Перестановки</th><th style="width:92px"></th></tr>
