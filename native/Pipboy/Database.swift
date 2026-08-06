@@ -165,11 +165,6 @@ final class Database {
           balance_updated_at TEXT NOT NULL DEFAULT (datetime('now')),
           note TEXT NOT NULL DEFAULT ''
         );
-        CREATE TABLE IF NOT EXISTS portfolio_classes(
-          id INTEGER PRIMARY KEY, name TEXT NOT NULL,
-          value REAL NOT NULL DEFAULT 0, target_pct REAL NOT NULL DEFAULT 0,
-          ord INTEGER NOT NULL DEFAULT 0, note TEXT NOT NULL DEFAULT ''
-        );
         CREATE TABLE IF NOT EXISTS steps(
           id INTEGER PRIMARY KEY, kind TEXT NOT NULL DEFAULT 'buy',
           title TEXT NOT NULL, amount REAL, planned_date TEXT,
@@ -220,7 +215,8 @@ final class Database {
           id INTEGER PRIMARY KEY,
           parent_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE,
           ord INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL DEFAULT '',
-          kind TEXT NOT NULL DEFAULT 'asset', value REAL, buy_value REAL, target_value REAL,
+          kind TEXT NOT NULL DEFAULT 'asset', value REAL, buy_value REAL,
+          target_value REAL, target_pct REAL,   -- цель: заполнено одно из двух, оно и закреплено
           currency TEXT NOT NULL DEFAULT '€', asset_type TEXT, qty REAL, rate_symbol TEXT, note TEXT
         );
         CREATE TABLE IF NOT EXISTS target_moves(

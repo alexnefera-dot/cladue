@@ -290,16 +290,6 @@ export function patchAccount(db, id, b) {
 export function delAccount(db, id) { db.prepare('DELETE FROM accounts WHERE id = ?').run(id); }
 
 // ===== Классы портфеля =====
-export function addClass(db, b) {
-  const ord = db.prepare('SELECT COALESCE(MAX(ord),0)+1 AS o FROM portfolio_classes').get().o;
-  db.prepare('INSERT INTO portfolio_classes(name, value, target_pct, ord) VALUES(?,?,?,?)')
-    .run(b.name, b.value ?? 0, b.target_pct ?? 0, ord);
-}
-export function patchClass(db, id, b) {
-  for (const k of ['name', 'value', 'target_pct', 'note'])
-    if (k in b) db.prepare(`UPDATE portfolio_classes SET ${k} = ? WHERE id = ?`).run(b[k], id);
-}
-export function delClass(db, id) { db.prepare('DELETE FROM portfolio_classes WHERE id = ?').run(id); }
 
 // ===== План шагов =====
 export function addStep(db, b) {

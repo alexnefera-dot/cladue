@@ -57,14 +57,6 @@ export function createDb(path = ':memory:') {
       balance_updated_at TEXT NOT NULL DEFAULT (datetime('now')),
       note TEXT NOT NULL DEFAULT ''
     );
-    CREATE TABLE IF NOT EXISTS portfolio_classes(
-      id INTEGER PRIMARY KEY,
-      name TEXT NOT NULL,
-      value REAL NOT NULL DEFAULT 0,           -- текущая стоимость (вручную, v1)
-      target_pct REAL NOT NULL DEFAULT 0,      -- целевая доля %
-      ord INTEGER NOT NULL DEFAULT 0,
-      note TEXT NOT NULL DEFAULT ''
-    );
     CREATE TABLE IF NOT EXISTS steps(           -- план шагов: покупки/продажи/переводы
       id INTEGER PRIMARY KEY,
       kind TEXT NOT NULL DEFAULT 'buy',        -- buy|sell|transfer

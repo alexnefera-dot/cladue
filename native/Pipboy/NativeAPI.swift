@@ -40,6 +40,8 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         _ = try? made.run("ALTER TABLE obligations ADD COLUMN due_time TEXT")  // миграция: время у обязательств (как due_time задач)
         _ = try? made.run("ALTER TABLE portfolio_items ADD COLUMN region TEXT")  // регион инвестиции (SK/UA/AU/EU/WEB)
         _ = try? made.run("ALTER TABLE target_items ADD COLUMN region TEXT")
+        _ = try? made.run("ALTER TABLE target_items ADD COLUMN target_pct REAL")  // цель долей; заполнено одно из target_pct/target_value — оно и закреплено
+        _ = try? made.run("DROP TABLE IF EXISTS portfolio_classes")  // мёртвая с рождения: в интерфейс не выводилась ни разу
         _ = try? made.run("ALTER TABLE routines ADD COLUMN days TEXT NOT NULL DEFAULT ''")  // дни недели рутины (пусто = каждый день)
         _ = try? made.run("ALTER TABLE passive_income ADD COLUMN principal REAL NOT NULL DEFAULT 0")    // тело инвестиции/депозита
         _ = try? made.run("ALTER TABLE passive_income ADD COLUMN rate REAL NOT NULL DEFAULT 0")         // % доходности
@@ -1390,12 +1392,11 @@ enum Api {
     }
 
     // ----- Финансы: запись -----
-    private static let finTable = ["accounts": "accounts", "classes": "portfolio_classes", "steps": "steps",
+    private static let finTable = ["accounts": "accounts", "steps": "steps",
         "obligations": "obligations", "items": "portfolio_items", "tx": "transactions", "debts": "debts", "income": "passive_income",
         "budget": "budget_items", "tgt": "target_items", "move": "target_moves"]
     private static let finCols: [String: [String]] = [
         "accounts": ["name", "type", "currency", "note", "balance"],
-        "classes": ["name", "value", "target_pct", "note"],
         "steps": ["kind", "title", "amount", "planned_date", "condition", "status", "note"],
         "obligations": ["name", "amount", "currency", "period", "next_date", "remind_days", "kind", "note", "due_time"],
         "items": ["name", "buy_value", "value", "target_value", "currency", "is_loan", "loan_due", "asset_type", "qty", "rate_symbol", "note", "region"],
@@ -1403,12 +1404,12 @@ enum Api {
         "debts": ["name", "amount", "currency", "direction", "due_date", "note"],
         "income": ["name", "amount", "currency", "period", "next_date", "note", "principal", "rate", "rate_period", "asset_type"],
         "budget": ["name", "amount", "currency", "direction", "ord", "month"],
-        "tgt": ["name", "value", "buy_value", "target_value", "currency", "asset_type", "qty", "rate_symbol", "note", "kind", "region"],
+        "tgt": ["name", "value", "buy_value", "target_value", "target_pct", "currency", "asset_type", "qty", "rate_symbol", "note", "kind", "region"],
         "move": ["from_id", "to_id", "amount"]]
 
     static func finWrite(method: String, path: String, body: [String: Any], db: Database) throws -> (Data, Int)? {
         if method == "POST", path == "/api/rates/refresh" { return (try ratesRefresh(db), 200) }
-        if let m = match(path, "^/api/fin/(accounts|classes|steps|obligations|items|tx|debts|income|budget|tgt|move)(?:/([0-9]+))?$") {
+        if let m = match(path, "^/api/fin/(accounts|steps|obligations|items|tx|debts|income|budget|tgt|move)(?:/([0-9]+))?$") {
             let entity = m[1], idStr = m[2], table = finTable[entity] ?? entity
             if method == "POST" && idStr.isEmpty { try finAdd(db, entity, body); return (ok(201), 201) }
             if method == "PATCH" && !idStr.isEmpty { try patchCols(db, table, Int(idStr) ?? -1, finCols[entity] ?? [], body); return (ok(), 200) }
@@ -1494,10 +1495,6 @@ enum Api {
         case "accounts":
             try db.run("INSERT INTO accounts(name, type, currency, balance) VALUES(?,?,?,?)",
                 [b["name"] as? String ?? "", b["type"] as? String ?? "bank", b["currency"] as? String ?? "€", num(b["balance"])])
-        case "classes":
-            let ord = nextOrd(db, "SELECT COALESCE(MAX(ord),0)+1 AS o FROM portfolio_classes")
-            try db.run("INSERT INTO portfolio_classes(name, value, target_pct, ord) VALUES(?,?,?,?)",
-                [b["name"] as? String ?? "", num(b["value"]), num(b["target_pct"]), ord])
         case "steps":
             try db.run("INSERT INTO steps(kind, title, amount, planned_date, condition, note) VALUES(?,?,?,?,?,?)",
                 [b["kind"] as? String ?? "buy", b["title"] as? String ?? "", b["amount"] ?? NSNull(), b["planned_date"] ?? NSNull(), b["condition"] as? String ?? "", b["note"] as? String ?? ""])
@@ -3036,7 +3033,7 @@ enum Api {
     // ===== Синхронизация Mac↔iPhone: снимок всей базы и его применение =====
     // Все реальные таблицы данных (FTS-таблицы node_fts/page_fts производные —
     // их не переносим, а перестраиваем из nodes/pages после применения снимка).
-    static let syncTables = ["nodes", "links", "dismissed", "accounts", "portfolio_classes",
+    static let syncTables = ["nodes", "links", "dismissed", "accounts",
         "steps", "obligations", "portfolio_items", "rates", "events", "transactions", "budget_items", "target_items", "target_moves",
         "receivables", "passive_income", "settings", "macro_notes", "debts", "snapshots",
         "routines", "routine_log", "people", "contact_log", "pages", "page_revisions", "attachments",
@@ -3045,7 +3042,7 @@ enum Api {
 
     // Таблицы с одним ключом → двусторонний merge по updated_at (LWW) + tombstones.
     static let syncKeyed: [(String, String)] = [
-        ("nodes", "id"), ("links", "id"), ("accounts", "id"), ("portfolio_classes", "id"),
+        ("nodes", "id"), ("links", "id"), ("accounts", "id"),
         ("steps", "id"), ("obligations", "id"), ("portfolio_items", "id"), ("events", "id"),
         ("transactions", "id"), ("receivables", "id"), ("passive_income", "id"), ("macro_notes", "id"),
         ("budget_items", "id"), ("target_items", "id"), ("target_moves", "id"), ("debts", "id"), ("routines", "id"), ("people", "id"), ("contact_log", "id"),
