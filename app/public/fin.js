@@ -392,6 +392,16 @@ function secPortfolio(d, s) {
       n.planPin = n.target_pct != null ? 'pct' : n.target_value != null ? 'eur' : null;   // что закреплено
     };
     tree.forEach(setPlan);
+    // Цель узла может перекрывать сумму вложенных. Раздаём её вниз пропорционально,
+    // иначе разрезы расходятся: блоки берут цель узла, а типы — сумму по листьям.
+    const spread = (n, eff) => {
+      n.planEff = eff;
+      const kids = n.children || [];
+      if (!kids.length) return;
+      const ks = kids.reduce((a, c) => a + (c.planEur || 0), 0);
+      kids.forEach(c => spread(c, ks > 0 ? (c.planEur || 0) * (eff / ks) : 0));
+    };
+    tree.forEach(b => spread(b, b.planEur ?? 0));
   }
   const planTotal = tgt ? tree.reduce((a, b) => a + (b.planEur || 0), 0) : 0;   // сумма планов верхнего уровня
   // Мониторинг: один и тот же вопрос «сколько чего» в трёх разрезах.
@@ -416,7 +426,7 @@ function secPortfolio(d, s) {
     if (monCut === 'blocks') {
       catRows = monLevel.map(n => ({
         ty: n.name || '—', id: n.id, drill: (n.children || []).length > 0,
-        now: n.eur || 0, plan: n.planEur ?? 0, hasPlan: n.planEur != null,
+        now: n.eur || 0, plan: n.planEff ?? 0, hasPlan: n.planEur != null,
       }));
     } else {
       const field = monCut === 'types' ? 'asset_type' : 'region';
@@ -428,12 +438,15 @@ function secPortfolio(d, s) {
           const k = n[field] || none;
           (acc[k] ||= { now: 0, plan: 0, hasPlan: false });
           acc[k].now += n.eur || 0;
-          if (n.planEur != null) { acc[k].plan += n.planEur; acc[k].hasPlan = true; }
+          if (n.planEur != null) { acc[k].plan += n.planEff ?? 0; acc[k].hasPlan = true; }
         }
         walk(kids);
       });
       walk(tree);
       catRows = Object.entries(acc).map(([ty, v]) => ({ ty, id: null, drill: false, ...v }));
+      // цель, которую не на кого разложить (у узла есть своя, а внутри целей нет)
+      const laid = catRows.reduce((a, r) => a + (r.hasPlan ? r.plan : 0), 0);
+      if (planTotal - laid > 1) catRows.push({ ty: 'не расписано', id: null, drill: false, now: 0, plan: planTotal - laid, hasPlan: true });
     }
   }
   // доли считаем внутри уровня — вопрос «сколько чего ЗДЕСЬ», а не от всего портфеля
