@@ -71,6 +71,8 @@ function kvartil(array $v, float $q)
 // ── отбор сайтов ────────────────────────────────────────────────────
 $dirs = [];
 foreach (glob(rtrim($root, '/') . '/*', GLOB_ONLYDIR) ?: [] as $d) {
+    // Служебные папки корпуса (спецификации вариантов, картинки) сайтами не являются.
+    if (!is_file("$d/main.html")) { continue; }
     $b = [];
     foreach (glob("$d/*.html") ?: [] as $f) {
         preg_match_all('~<(?:section|div|article|aside)\s+class="([a-z][a-z0-9_-]*)((?:\s+[a-z0-9_-]+)*)"~i',
