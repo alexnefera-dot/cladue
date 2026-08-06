@@ -522,7 +522,8 @@ function secPortfolio(d, s) {
           const over = r.nowP > r.planP ? (r.nowP - r.planP) / catMaxP * 100 : 0;
           const under = r.planP > r.nowP ? (r.planP - r.nowP) / catMaxP * 100 : 0;
           const tick = r.planP / catMaxP * 100;
-          const cls = Math.abs(r.devP) < 0.05 ? 'ok-dev' : r.dev > 0 ? 'dev-over' : 'dev-under';
+          const tiny = Math.abs(r.devP) < 0.1;   // мельче десятой пункта — шум, а не отклонение
+          const cls = r.dev > 0 ? 'dev-over' : 'dev-under';
           return `<div class="brow" draggable="true" data-cat="${fesc(r.ty)}">
             <span class="bgrip" title="перетащить">⠿</span>
             <span class="blab">${fesc(r.ty)}</span>
@@ -531,8 +532,8 @@ function secPortfolio(d, s) {
               under ? `<i class="bunder" style="left:${f.toFixed(1)}%;width:${under.toFixed(1)}%"></i>` : ''}<i class="btick" style="left:${tick.toFixed(1)}%"></i></span>
             <span class="v">${fmt(r.now)}</span><span class="v meta">${r.nowP.toFixed(1)}%</span>
             <span class="v">${r.plan ? fmt(r.plan) : '—'}</span><span class="v meta">${r.plan ? r.planP.toFixed(1) + '%' : '—'}</span>
-            <span class="v ${cls}">${r.dev >= 0 ? '+' : '−'}${fmt(Math.abs(r.dev))}</span>
-            <span class="v ${cls}">${r.devP >= 0 ? '+' : '−'}${Math.abs(r.devP).toFixed(1)}</span>
+            <span class="v ${tiny ? 'dash' : cls}">${tiny ? '—' : `${r.dev >= 0 ? '+' : '−'}${fmt(Math.abs(r.dev))}`}</span>
+            <span class="v ${tiny ? 'dash' : cls}">${tiny ? '' : `${r.devP >= 0 ? '+' : '−'}${Math.abs(r.devP).toFixed(1)}`}</span>
           </div>`;
         }).join('')}
       </div>${capNote}</div>

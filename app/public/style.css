@@ -452,3 +452,4 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .porttable tr.psection td,.porttable tr.psection .pname{font-weight:400}
 .bsum{margin-top:9px;padding-top:8px;border-top:1px solid var(--line);font:11.5px var(--mono);
   display:flex;flex-wrap:wrap;gap:8px;align-items:baseline}
+.bars .dash{color:var(--line2)}
