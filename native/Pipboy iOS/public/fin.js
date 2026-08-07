@@ -135,7 +135,7 @@ function portRows(it, depth, ctx) {
       ? '<span class="up">✓ в цели</span>'
       : `<span class="${dev > 0 ? 'dev-over' : 'dev-under'}">${dev > 0 ? '+' : '−'}${fmt(Math.abs(devCur))} ${fesc(editable ? cur : '€')}<span class="meta devpp">${devPP > 0 ? '+' : '−'}${Math.abs(devPP).toFixed(1)} п.п.</span></span>`}</td>`;
     const links = [
-      ...(ctx?.movesBySrc?.[path] || []).map(mv => `<div class="meta"><span class="down">${mv.spend ? '↯ потратить' : '→ отдать'} ${fmt(mv.amount)} ${fesc(mv.cur)}</span> ${mv.spend ? 'на' : 'в'} «${fesc(mv.toName)}» <span class="rowbtn del" data-movedel="${mv.id}" title="убрать">✕</span></div>`),
+      ...(ctx?.movesBySrc?.[path] || []).map(mv => `<div class="meta"><span class="down">${mv.spend ? '↯ потратить' : '→ отдать'} ${fmt(mv.amount)} ${fesc(mv.cur)}</span>${mv.toName ? ` ${mv.spend ? 'на' : 'в'} «${fesc(mv.toName)}»` : ''} <span class="rowbtn del" data-movedel="${mv.id}" title="убрать">✕</span></div>`),
       ...(ctx?.movesByDst?.[path] || []).map(mv => `<div class="meta"><span class="up">← добрать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> из «${fesc(mv.fromName)}»</div>`),
     ].join('');
     const moveOpen = tgtMove?.from === it.id;
@@ -504,14 +504,18 @@ function secPortfolio(d, s) {
     (d.targetMoves || []).forEach(mv => {
       const a = byId[mv.from_id]; if (!a) return;
       const b = byId[mv.to_id];
-      if (!b) {   // получателя нет — это трата: деньги уходят из позиции и из капитала
-        rctx.spends.push({ id: mv.id, note: mv.to_note || 'без подписи', eur: mv.amount,
+      // Получателя нет по замыслу (to_id пуст) — это трата. Если же получатель указан, но не найден,
+      // связка битая: молча списывать по ней деньги нельзя, поэтому пропускаем.
+      if (mv.to_id == null) {
+        const note = (mv.to_note || '').trim();
+        rctx.spends.push({ id: mv.id, note, eur: mv.amount,
           amount: inCur(mv.amount, a.cur), cur: a.cur, fromName: a.name });
         (rctx.movesBySrc[a.path] ||= []).push({ id: mv.id, amount: inCur(mv.amount, a.cur), cur: a.cur,
-          toName: mv.to_note || 'трата', spend: true });
+          toName: note, spend: true });
         addNet(a.path, -mv.amount);
         return;
       }
+      if (!b) return;
       (rctx.movesBySrc[a.path] ||= []).push({ id: mv.id, amount: inCur(mv.amount, a.cur), cur: a.cur, toName: b.name });
       (rctx.movesByDst[b.path] ||= []).push({ id: mv.id, amount: inCur(mv.amount, b.cur), cur: b.cur, fromName: a.name });
       addNet(a.path, -mv.amount); addNet(b.path, mv.amount);   // mv.amount хранится в €
@@ -584,7 +588,8 @@ function secPortfolio(d, s) {
   <div class="card">
     <div class="meta" style="margin-bottom:8px">ПОТРАТИМ · деньги уйдут из портфеля насовсем</div>
     ${rctx.spends.map(x => `<div class="kv spendrow">
-      <span><span class="mono">${fesc(x.note)}</span> <span class="meta">из «${fesc(x.fromName)}»</span></span>
+      <span>${x.note ? `<span class="mono">${fesc(x.note)}</span> <span class="meta">из «${fesc(x.fromName)}»</span>`
+        : `<span class="mono">${fesc(x.fromName)}</span>`}</span>
       <span><b class="num dev-over">${fmt(x.amount)} ${fesc(x.cur)}</b>
         <span class="rowbtn del" data-movedel="${x.id}" title="убрать трату">✕</span></span>
     </div>`).join('')}
