@@ -1,0 +1,110 @@
+<h2>История ставок по одному слоту: как её отфильтровать</h2>
+<p>
+  Общая история ставок в %brand_name_en% за вечер набирает несколько сотен строк, и найти в них один игровой автомат перебором нереально. Фильтр по названию есть, но лежит он не в кассе, а в разделе игровой статистики — там, где считается оборот.
+</p>
+<p>
+  Разница принципиальная. Касса знает про депозит и вывод средств, а про отдельный спин не знает ничего. Игровая статистика, наоборот, видит каждое вращение, но денежных операций не показывает.
+</p>
+<h3>Порядок фильтрации: четыре действия</h3>
+<ol>
+  <li><strong>Открыть игровую статистику.</strong> Раздел лежит рядом с историей операций в <a href="/vhod">кабинете</a></li>
+  <li><strong>Сузить период до одного дня.</strong> Иначе выборка упирается в потолок в 500 строк и обрезается молча</li>
+  <li><strong>Ввести название автомата в поле поиска.</strong> Хватает первых четырёх букв, регистр не важен</li>
+  <li><strong>Выгрузить таблицу.</strong> Файл собирается за 20 — 40 секунд и приходит письмом</li>
+</ol>
+<h3>Что показывает каждая колонка</h3>
+<table>
+  <tbody>
+    <tr><th>Колонка</th><th>Что в ней</th><th>Зачем нужна</th></tr>
+    <tr><td>Время</td><td>Метка с точностью до секунды</td><td>Привязка к сбою или обрыву связи</td></tr>
+    <tr><td>Ставка</td><td>Общая сумма за раунд</td><td>Проверка потолка акции</td></tr>
+    <tr><td>Результат</td><td>Выплата раунда, ноль тоже строка</td><td>Подсчёт фактической отдачи</td></tr>
+    <tr><td>Раунд</td><td>Номер, по нему провайдер поднимает запись</td><td>Спор о зависшем вращении</td></tr>
+  </tbody>
+</table>
+<h3>Что по этой выгрузке считают</h3>
+<p>
+  Фактическая отдача за сессию — это сумма колонки результата, делённая на сумму колонки ставки. Число почти никогда не совпадает с паспортным RTP: на дистанции в 300 вращений отклонение в 30 — 40 пунктов обычное дело, а на автоматах с высокой волатильностью встречается и вдвое больше.
+</p>
+<blockquote>
+  Проба на срезе показывает состояние одной головки, а не всей партии. По ней судят о процессе, но не выносят приговор камере созревания.
+</blockquote>
+<h3>Где выгрузка врёт</h3>
+<ul>
+  <li><strong>Фриспины идут отдельными строками.</strong> Ставка в них нулевая, и деление даёт завышенную отдачу</li>
+  <li><strong>Купленный бонусный раунд.</strong> Цена покупки стоит одной строкой, выплата — другой, рядом они не лежат</li>
+  <li><strong>Обрыв связи.</strong> Незавершённый раунд попадает в выгрузку следующего дня, по дате его не найти</li>
+  <li><strong>Демо-режим.</strong> В игровую статистику не пишется вовсе, искать там пробные вращения бесполезно</li>
+  <li><strong>Риск ошибиться в выводах.</strong> Минус за вечер на короткой дистанции не говорит о настройках автомата ничего</li>
+</ul>
+<h3>Итог: когда выгрузка действительно нужна</h3>
+<ul>
+  <li>Спор о зависшем вращении — без номера раунда обращение не двигается</li>
+  <li>Проверка турнирных очков: они считаются по обороту, а он виден только здесь</li>
+  <li>Разбор собственной дистанции: 2 000 вращений уже дают осмысленную картину по дисперсии</li>
+</ul>
+<p>
+  Считать по выгрузке собственную «удачливость» не стоит: на трёхстах вращениях разброс перекрывает любую разницу между автоматами, и вывод получится случайным. Выгрузка одинаково доступна в браузере, в <a href="/app">программе</a> и с <a href="/zerkalo">запасного адреса</a>. Данные хранятся 24 месяца, глубже фильтр не заглядывает. Названия студий и полный список автоматов лежат в каталоге %brand_name_en%, а лимиты по ставке — в <a href="/registracia">условиях счёта</a>.
+</p>
+
+<h2>Частые вопросы игроков %brand_name_en% об истории ставок и выгрузке</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему в истории нет вчерашних вращений?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Скорее всего период выставлен на сегодня. Фильтр по датам сбрасывается при каждом входе.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли выгрузить историю за год одним файлом?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, выгрузка режется по 500 строк. Год собирается частями по месяцам.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Совпадёт ли моя отдача с заявленным RTP?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>На короткой дистанции почти никогда. Паспортное число набирается на миллионах раундов, а не на сотнях.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Виден ли в истории демо-режим?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. Пробные вращения не пишутся ни в статистику, ни в оборот.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Где взять номер зависшего раунда?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>В последней колонке выгрузки. Без него провайдер запись не поднимет.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему ставка в выгрузке больше, чем на кнопке?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>На кнопке ставка за линию, в выгрузке — общая сумма за раунд.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Считает ли выгрузка турнирные очки?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Очки не показывает, но оборот, из которого они выводятся, виден полностью.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Долго ли собирается файл?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>20 — 40 секунд на день, до трёх минут на месяц.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли фильтровать по студии, а не по автомату?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, поиск работает только по названию игры.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько хранится история?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>24 месяца. Более старые записи из интерфейса недоступны.</p></div>
+  </div>
+</details>
