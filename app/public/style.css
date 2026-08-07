@@ -468,3 +468,4 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
   text-shadow:0 1px 2px rgba(0,0,0,.35)}
 .stack .seg.hi{filter:brightness(1.18)}
 @media (max-width:640px){.stackrow{grid-template-columns:44px 1fr;gap:7px}.stacksum{display:none}}
+.porttable td.became .quiet{color:var(--muted)}   /* без переносов повторяет «Сейчас» — приглушаем, чтобы не спорило с ним */
