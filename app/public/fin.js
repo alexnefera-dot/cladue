@@ -115,7 +115,11 @@ function portRows(it, depth, ctx) {
     const rateRow = ctx?.rate || 1.08;
     const planSumShown = it.planPin === 'eur' ? it.target_value
       : it.planEur != null ? (editable && cur === '$' ? it.planEur * rateRow : it.planEur) : null;
-    const pctCell = `<span class="ed${it.planPin === 'pct' ? ' pinned' : ' derived'}" data-fe="tgt:${it.id}:target_pct:num" title="цель долей (клик закрепит её)">${planPctShown != null ? planPctShown.toFixed(1) + '%' : '—'}</span>`;
+    // доли цели в том же порядке, что у «Сейчас»: от всего портфеля / внутри своего блока.
+    // Кликабельна только первая — именно её мы храним в target_pct.
+    const planCatPct = ctx?.blockTarget > 0 && it.planEur != null ? it.planEur / ctx.blockTarget * 100 : null;
+    const pctCell = `<span class="ed${it.planPin === 'pct' ? ' pinned' : ' derived'}" data-fe="tgt:${it.id}:target_pct:num" title="цель долей от всего портфеля (клик закрепит её)">${planPctShown != null ? planPctShown.toFixed(1) + '%' : '—'}</span>`
+      + (planCatPct != null ? ` <span class="derived" title="доля цели внутри своего блока">/ ${planCatPct.toFixed(1)}%</span>` : '');
     const eurCell = `<span class="ed${it.planPin === 'eur' ? ' pinned' : ' derived'}" data-fe="tgt:${it.id}:target_value:num" title="цель суммой (клик закрепит её)">${planSumShown != null ? fmt(planSumShown) : '—'}</span>`;
     const planDiff = it.planPin && it.planKids && Math.abs((it.planEur || 0) - it.planKids) >= 1
       ? `<div class="meta" title="своя цель расходится с суммой целей внутри">по позициям ${fmtE(it.planKids)}</div>` : '';
