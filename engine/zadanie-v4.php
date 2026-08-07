@@ -59,6 +59,32 @@ if ($IMYA === '') {
     $IMYA = preg_replace('~[^a-z0-9]+~', '-', mb_strtolower(translit($karta['маска']))) . '-1';
 }
 
+/**
+ * Занят ли срез: сверка по составу значимых слов, а не по строке целиком.
+ *
+ * «Покупка бонусной серии: за что берут цену вперёд» и «Покупка бонусной серии
+ * в игровых автоматах: за что берут цену вперёд» — один и тот же срез, но как
+ * строки они разные, и точное сравнение пропускало второй в новый комплект.
+ * Совпадение считается по доле общих слов от меньшего набора: 60 % — это уже
+ * та же тема другими словами.
+ */
+function zanyat(string $srez, array $zanyatye): bool
+{
+    $slova = function (string $s): array {
+        $w = preg_split('~[^\p{L}\p{N}]+~u', mb_strtolower($s), -1, PREG_SPLIT_NO_EMPTY);
+        return array_flip(array_filter($w, fn($x) => mb_strlen($x) >= 4));
+    };
+    $a = $slova($srez);
+    if (!$a) { return in_array(mb_strtolower($srez), $zanyatye, true); }
+    foreach ($zanyatye as $z) {
+        $b = $slova($z);
+        if (!$b) { continue; }
+        $obshih = count(array_intersect_key($a, $b));
+        if ($obshih / min(count($a), count($b)) >= 0.6) { return true; }
+    }
+    return false;
+}
+
 // ── срезы тем: берём свободные, сверяясь с занятыми ─────────────────────────
 //
 // Занятым считается срез, отмеченный в maski.json ИЛИ уже стоящий первым H2 у
@@ -84,7 +110,7 @@ foreach (PAGES_Z as $p) {
         $srezyKorpusa[$p] ?? []
     );
     foreach ($maski['срезы_запас'][$p] ?? [] as $s) {
-        if (!in_array(mb_strtolower($s), $zan, true)) { $srezy[$p] = $s; break; }
+        if (!zanyat($s, $zan)) { $srezy[$p] = $s; break; }
     }
     if (!isset($srezy[$p]) && $IMYA !== '' && is_file("$root/$KORPUS/$IMYA/$p.html")) {
         // сухой прогон по готовому комплекту: срез берём из самой страницы

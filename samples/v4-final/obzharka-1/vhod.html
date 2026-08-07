@@ -1,0 +1,112 @@
+<h2>Одна сессия на счёт: почему новый вход гасит прежний</h2>
+<p>
+  Зашли с телефона — вылетели с компьютера. Это не сбой и не признак взлома: счёт держит одну активную сессию, и каждый новый вход закрывает предыдущий.
+</p>
+<h3>Зачем так сделано</h3>
+<p>
+  Две живые сессии на одном счёте %brand_name_en% позволяют вести ставку с двух устройств одновременно. Для площадки это открытая дыра в расчётах, для игрока — риск двойного списания с одного остатка.
+</p>
+<table>
+  <tbody>
+    <tr><th>Действие</th><th>Что с прежней сессией</th><th>Что со ставкой</th></tr>
+    <tr><td>Вход с другого устройства</td><td>Закрывается сразу</td><td>Раунд досчитается</td></tr>
+    <tr><td>Смена пароля</td><td>Закрываются все</td><td>Раунд досчитается</td></tr>
+    <tr><td>Вторая вкладка того же браузера</td><td>Остаётся живой</td><td>Ставка идёт с одной</td></tr>
+    <tr><td>Простой без действий</td><td>Гаснет через 30 минут</td><td>Раунд досчитается</td></tr>
+  </tbody>
+</table>
+<h3>Что при этом не теряется</h3>
+<ul>
+  <li><strong>Начатый раунд.</strong> Считается на сервере и попадает в журнал</li>
+  <li><strong>Остаток на счёте.</strong> Он не привязан к устройству вовсе</li>
+  <li><strong>Счётчик вейджера.</strong> Отыгрыш продолжается с той же точки</li>
+  <li><strong>Статус верификации.</strong> Проходится один раз и навсегда</li>
+</ul>
+<blockquote>
+  Обжарщик ведёт одну навеску за раз: вторая партия в том же барабане портит обе. Сессия устроена так же — на счёт она одна.
+</blockquote>
+<h3>Порядок разбора, если вылетает само</h3>
+<ol>
+  <li>Открыть перечень активных устройств в <a href="/vhod">кабинете</a></li>
+  <li>Снять все строки, кроме той, с которой сидите сейчас</li>
+  <li>Сменить пароль: это закрывает и то, чего в перечне не видно</li>
+  <li>Подключить второй фактор, если он до сих пор не включён</li>
+</ol>
+<h3>Когда дело не в сессии</h3>
+<ul>
+  <li><strong>Заморозка после крупной выплаты.</strong> Пара принимается, касса заперта</li>
+  <li><strong>Пауза по числу промахов.</strong> Форма не пускает 15 минут</li>
+  <li><strong>Чужая копия домена.</strong> Вход проходит, остаток показан нулём</li>
+</ul>
+<h3>Итог: одна строка в перечне</h3>
+<p>
+  Рабочее состояние в кабинете %brand_name_en% — одна строка активных устройств, ваша, со знакомой сетью. Всё остальное снимается нажатием, и смотреть туда стоит раз в месяц, а не после тревоги.
+</p>
+<p>
+  На <a href="/zerkalo">запасном домене</a> правило то же самое: сессия общая, потому что счёт общий. Открытый в соседней вкладке <a href="/slots">каталог слотов</a> её не удваивает — это одна и та же сессия одного браузера.
+</p>
+
+<h2>Ответы на вопросы о сессиях</h2>
+<p>
+  Десять обращений, которые приходят к оператору после первого вылета.
+</p>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Меня выкинуло — это взлом?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Чаще всего нет: вы вошли с другого устройства. Взлом виден по чужой сети в перечне и по операциям в журнале.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько живёт сессия без действий?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Около 30 минут, на живых столах меньше. Точное время зависит от того, идёт ли раунд.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Две вкладки — это две сессии?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, одна: браузер держит общий вход. Ставка при этом всё равно идёт только с активной вкладки.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что с раундом, который шёл в момент вылета?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Он досчитывается на сервере независимо от вашего экрана. Результат появится в журнале ставок.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли разрешить две сессии сразу?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, это правило расчётов, а не настройка. Оператор его не отключает ни при каких условиях.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Смена пароля закрывает и мою сессию?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Да, все разом, включая ту, с которой пароль меняется. Войти нужно будет заново.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">В перечне устройств чужой город — что делать?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Сменить пароль немедленно и снять строку. Затем просмотреть журнал операций за сутки: депозит и вывод видны построчно.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли смена сети на сессию?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Переход с домашней сети на мобильную иногда требует повторного входа. Это защита, а не сбой.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему на планшете и телефоне не работает одновременно?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Это два разных устройства, а сессия одна. Второй вход гасит первый, даже если оба ваши.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Второй фактор мешает быстрому входу?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Добавляет 10 секунд и закрывает вывод постороннему. Аварийные ключи стоит распечатать заранее и держать отдельно от телефона.</p></div>
+  </div>
+</details>
