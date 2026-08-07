@@ -471,3 +471,4 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .porttable td.became .quiet{color:var(--muted)}   /* без переносов повторяет «Сейчас» — приглушаем, чтобы не спорило с ним */
 .spendrow{padding:3px 0}
 .spendrow:hover .rowbtn{opacity:1}
+.spendnote[data-hint]:empty::before{content:attr(data-hint);color:var(--muted)}

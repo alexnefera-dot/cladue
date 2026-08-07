@@ -588,7 +588,7 @@ function secPortfolio(d, s) {
   <div class="card">
     <div class="meta" style="margin-bottom:8px">ПОТРАТИМ · деньги уйдут из портфеля насовсем</div>
     ${rctx.spends.map(x => `<div class="kv spendrow">
-      <span><span class="ed mono${x.note ? '' : ' muted'}" data-fe="move:${x.id}:to_note:text" title="на что тратим (клик — вписать)">${x.note ? fesc(x.note) : 'вписать, на что'}</span>
+      <span><span class="ed mono spendnote" data-fe="move:${x.id}:to_note:text"${x.note ? '' : ' data-hint="вписать, на что"'} title="на что тратим (клик — вписать)">${x.note ? fesc(x.note) : ''}</span>
         <span class="meta">из «${fesc(x.fromName)}»</span></span>
       <span><b class="num dev-over">${fmt(x.amount)} ${fesc(x.cur)}</b>
         <span class="rowbtn del" data-movedel="${x.id}" title="убрать трату">✕</span></span>
@@ -1130,8 +1130,9 @@ function inlineVal(el, type, onSave) {
   const input = document.createElement('input');
   input.className = 'inlineedit';
   input.style.maxWidth = type === 'text' ? '220px' : (type === 'date' ? '150px' : '120px');
-  input.placeholder = el.textContent.trim();
-  if (type === 'text') input.value = el.textContent.trim().replace(/^(усл: |\+.*)/, '');
+  input.placeholder = el.dataset.hint || el.textContent.trim();
+  // подсказку в пустом поле не подставляем в ввод — иначе её приходится стирать руками
+  if (type === 'text' && !el.dataset.hint) input.value = el.textContent.trim().replace(/^(усл: |\+.*)/, '');
   if (type === 'date') { input.type = 'date'; const c = el.textContent.trim(); if (/^\d{4}-\d{2}-\d{2}$/.test(c)) input.value = c; }
   el.replaceWith(input);
   input.focus(); if (type === 'text') input.select();
@@ -1171,7 +1172,11 @@ function bindFin() {
       // цель хранится в одном из двух полей: заполненное и есть закреплённое, второе гасим
       const twin = ent === 'tgt' && field === 'target_pct' ? 'target_value'
         : ent === 'tgt' && field === 'target_value' ? 'target_pct' : null;
-      inlineVal(el, type, v => finApi.patch(ent, +id, twin ? { [field]: v, [twin]: null } : { [field]: v }));
+      inlineVal(el, type, async v => {
+        const r = await finApi.patch(ent, +id, twin ? { [field]: v, [twin]: null } : { [field]: v });
+        // без этого отказ бэкенда выглядел как «поле само не сохраняется»
+        if (r && !r.ok) alert(`Не сохранилось (${r.status}). Если поле новое — приложение собрано на старой схеме.`);
+      });
     }));
   document.querySelectorAll('[data-rate]').forEach(el =>
     el.addEventListener('click', () => inlineVal(el, 'num', v => finApi.rateSet(el.dataset.rate, v))));
