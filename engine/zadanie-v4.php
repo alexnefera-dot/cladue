@@ -60,10 +60,29 @@ if ($IMYA === '') {
 }
 
 // ── срезы тем: берём свободные, сверяясь с занятыми ─────────────────────────
+//
+// Занятым считается срез, отмеченный в maski.json ИЛИ уже стоящий первым H2 у
+// любого комплекта в корпусе. Реестр пополняется только на живом прогоне, и
+// без сверки с диском пять заданий подряд получали один и тот же срез: приёмка
+// заворачивала бы их все на совпадении темы.
+$srezyKorpusa = [];
+foreach (glob("$root/$KORPUS/*", GLOB_ONLYDIR) ?: [] as $d) {
+    if (basename($d) === $IMYA) { continue; }
+    foreach (PAGES_Z as $p) {
+        $f = "$d/$p.html";
+        if (!is_file($f)) { continue; }
+        if (preg_match('~<h2[^>]*>(.*?)</h2>~is', (string) file_get_contents($f), $m)) {
+            $srezyKorpusa[$p][] = mb_strtolower(trim(preg_replace('~\s+~u', ' ', strip_tags($m[1]))));
+        }
+    }
+}
 $srezy = [];
 foreach (PAGES_Z as $p) {
     if ($p === 'main') { continue; }
-    $zan = array_map('mb_strtolower', $maski['занято']['срезы'][$p] ?? []);
+    $zan = array_merge(
+        array_map('mb_strtolower', $maski['занято']['срезы'][$p] ?? []),
+        $srezyKorpusa[$p] ?? []
+    );
     foreach ($maski['срезы_запас'][$p] ?? [] as $s) {
         if (!in_array(mb_strtolower($s), $zan, true)) { $srezy[$p] = $s; break; }
     }
@@ -74,6 +93,30 @@ foreach (PAGES_Z as $p) {
         }
     }
     if (!isset($srezy[$p])) { fwrite(STDERR, "нет свободного среза для $p — пополни срезы_запас\n"); exit(1); }
+}
+
+// Резерв идёт здесь, а не после приёмки. Реестр пополнялся только по принятому
+// комплекту, поэтому пять заданий, собранных подряд, разбирали один и тот же
+// первый свободный срез. Задание собирают ровно затем, чтобы по нему писали, —
+// значит момент выдачи и есть момент занятия. Сухой прогон по уже написанному
+// комплекту ничего не резервирует: там срез берётся из самой страницы.
+$novyy = !is_file("$root/$KORPUS/$IMYA/main.html");
+if ($novyy) {
+    $izm = false;
+    foreach ($srezy as $p => $s) {
+        if (!in_array($s, $maski['занято']['срезы'][$p] ?? [], true)) {
+            $maski['занято']['срезы'][$p][] = $s;
+            $izm = true;
+        }
+    }
+    if (!in_array($karta['маска'], $maski['занято']['маски'], true)) {
+        $maski['занято']['маски'][] = $karta['маска'];
+        $izm = true;
+    }
+    if ($izm) {
+        file_put_contents(__DIR__ . '/data-v4/maski.json',
+            json_encode($maski, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+    }
 }
 
 // ── занятые маски и срезы соседей: писателю нужно знать, чего не повторять ──
