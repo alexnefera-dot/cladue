@@ -1,0 +1,32 @@
+{
+    "комплект": "syrovarnya-1",
+    "маска": "сыроварня",
+    "ракурс": "сыровар",
+    "рефрен": "проба на срезе",
+    "словарь": [
+        "закваска",
+        "сычуг",
+        "головка",
+        "камера созревания",
+        "корка",
+        "сыворотка",
+        "пресс"
+    ],
+    "срезы": {
+        "app": "Две сборки на одном телефоне: почему вторая ломает первую",
+        "bonus": "Два бонуса подряд: почему второй ждёт своей очереди",
+        "registracia": "Дата рождения: поле, которое проверяют дважды",
+        "slots": "Джекпот в слоте: как он собирается и кому достаётся",
+        "vhod": "Вход после самоисключения: что открывается, а что нет",
+        "zerkalo": "Зеркало открывается, а вход нет: где здесь разница"
+    },
+    "промпты": {
+        "main": "tmp\/gen-syrovarnya-1\/prompt-main.md",
+        "app": "tmp\/gen-syrovarnya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-syrovarnya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-syrovarnya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-syrovarnya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-syrovarnya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-syrovarnya-1\/prompt-zerkalo.md"
+    }
+}
