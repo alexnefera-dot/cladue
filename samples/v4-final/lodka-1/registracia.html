@@ -1,0 +1,125 @@
+<h2>Промокод при заведении счёта: где его поле на самом деле</h2>
+<p>
+  Новичок ищет строку для кода в анкете и не находит. Поле есть, но лежит оно не там: в %brand_name_en% код вводится в кассе, в момент первого депозита, а не при заполнении анкеты.
+</p>
+<h3>Почему поля нет в анкете</h3>
+<p>
+  Код привязан к платежу, а не к счёту. Пока депозита нет, применять его не к чему: акция считается от суммы пополнения, и без неё начисление не рассчитывается.
+</p>
+<p>
+  Отсюда и порядок: сначала анкета, потом касса, и только там код.
+</p>
+<table>
+  <tbody>
+    <tr><th>Шаг</th><th>Поле для кода</th><th>Что будет с кодом</th></tr>
+    <tr><td>Заполнение анкеты</td><td>Нет</td><td>Нигде не сохранится</td></tr>
+    <tr><td>Подтверждение почты</td><td>Нет</td><td>Нигде не сохранится</td></tr>
+    <tr><td>Форма первого депозита</td><td>Есть</td><td>Применяется к платежу</td></tr>
+    <tr><td>После зачисления</td><td>Нет</td><td>Задним числом не идёт</td></tr>
+  </tbody>
+</table>
+<h3>Как выглядит строка в кассе</h3>
+<ul>
+  <li><strong>Свёрнута по умолчанию.</strong> Разворачивается нажатием на подпись</li>
+  <li><strong>Стоит под выбором способа оплаты.</strong> Не над суммой</li>
+  <li><strong>Проверяется до подтверждения.</strong> Ошибка видна сразу</li>
+  <li><strong>Пересчитывает бонус в форме.</strong> Цифра меняется на глазах</li>
+</ul>
+<blockquote>
+  Топливную грушу качают до запуска, а не когда мотор уже тянет. Промокод живёт по тому же правилу: до платежа или никогда.
+</blockquote>
+<h3>Порядок первого депозита с кодом</h3>
+<ol>
+  <li>Закрыть <a href="/registracia">анкету</a> и подтвердить почту по ссылке</li>
+  <li>Открыть кассу и выбрать способ оплаты</li>
+  <li>Развернуть строку кода и вставить его целиком, без пробелов</li>
+  <li>Дождаться пересчёта бонуса и только потом подтверждать сумму</li>
+</ol>
+<h3>Почему код не принимается</h3>
+<p>
+  Причин четыре: истёк срок, не та валюта счёта, сумма ниже порога акции или код уже использован. Все они показываются текстом прямо в форме, и ни одна не лечится обращением к оператору.
+</p>
+<p>
+  Отдельный случай — код под другую страну. Тогда поле принимает его молча, а начисление не приходит, и увидеть это можно только в истории акций из <a href="/vhod">личного кабинета</a>.
+</p>
+<h3>Что код не меняет</h3>
+<p>
+  Он не снимает вейджер, не поднимает лимит ставки и не открывает вывод до верификации. Меняется только размер начисления, а условия остаются те же — их видно в карточке акции и в <a href="/app">мобильном клиенте</a>.
+</p>
+
+<h2>Ответы на вопросы о промокоде</h2>
+<p>
+  Двенадцать обращений, которые приходят после первого депозита.
+</p>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли ввести код после пополнения?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. Поле закрывается вместе с платежом, и задним числом акция не применяется.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Где взять действующий код?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>В письмах на подтверждённую почту и в официальном канале. Коды со сторонних сайтов чаще всего просрочены.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему код принят, а бонус не пришёл?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Начисление идёт после зачисления платежа. Если деньги в пути, карточка акции пуста — это не сбой.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Один код можно применить дважды?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>По умолчанию нет. Многоразовые оговариваются отдельной строкой в условиях.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли код на срок отыгрыша?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, срок задаёт сама акция. Код меняет только размер начисления.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли ввести код на запасном адресе?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Да, касса и акции общие. <a href="/zerkalo">Запасной домен</a> на условия не влияет.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать, если код с пробелом на конце?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Вставить заново без пробелов. Форма их не обрезает и считает частью кода.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Действует ли код на второй депозит?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Только если это оговорено в условиях. Большинство кодов рассчитано на первое пополнение.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему поле кода исчезло из кассы?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Оно свёрнуто, а не убрано. Разворачивается нажатием на подпись под способом оплаты.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли отменить применённый код?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, но можно отказаться от начисления в карточке акции. Депозит при этом остаётся на счёте.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Нужна ли верификация для применения кода?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, она нужна для вывода. Депозит и начисление проходят до неё.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли код на выбор игр?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. Перечень зачётных игр задаёт акция, и <a href="/slots">каталог</a> при этом открыт целиком.</p></div>
+  </div>
+</details>
