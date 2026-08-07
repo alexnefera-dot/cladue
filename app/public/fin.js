@@ -109,22 +109,22 @@ function portRows(it, depth, ctx) {
     const gainCell = `<td class="r num">${g != null ? `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</span>` : ''}</td>`;
     // Цель: одно поле задано, второе выведено. Клик по любому из них закрепляет именно его.
     const capT = ctx?.total || 0;
-    // Эффективная цель — единственный источник правды. Если у раздела своя цель, она сжимает
-    // цели вложенных; мониторинг считал по ней, а таблица по исходной — и они расходились.
-    const planRow = it.planEur != null ? (it.planEff ?? it.planEur) : null;
-    const planSqueezed = planRow != null && Math.abs(planRow - it.planEur) >= 1;
+    const planRow = it.planEur;   // ровно то, что задано здесь либо сложено из вложенных
     const planPctShown = planRow != null && capT > 0 ? planRow / capT * 100 : null;
     // цель хранится в валюте позиции; выведенная из процента приходит в € — возвращаем в валюту строки
     const rateRow = ctx?.rate || 1.08;
-    const planSumShown = planRow != null ? (editable && cur === '$' ? planRow * rateRow : planRow) : null;
+    // заданную суммой показываем как введена — без круга через евро и обратно
+    const planSumShown = it.planPin === 'eur' && !(it.children || []).some(c => c.planEur != null)
+      ? it.target_value
+      : planRow != null ? (editable && cur === '$' ? planRow * rateRow : planRow) : null;
     // доли цели в том же порядке, что у «Сейчас»: от всего портфеля / внутри своего блока.
     // Кликабельна только первая — именно её мы храним в target_pct.
     const planCatPct = ctx?.blockTarget > 0 && planRow != null ? planRow / ctx.blockTarget * 100 : null;
     const pctCell = `<span class="ed${it.planPin === 'pct' ? ' pinned' : ' derived'}" data-fe="tgt:${it.id}:target_pct:num" title="цель долей от всего портфеля (клик закрепит её)">${planPctShown != null ? planPctShown.toFixed(1) + '%' : '—'}</span>`
       + (planCatPct != null ? ` <span class="derived" title="доля цели внутри своего блока">/ ${planCatPct.toFixed(1)}%</span>` : '');
-    const eurCell = `<span class="ed${it.planPin === 'eur' ? ' pinned' : ' derived'}" data-fe="tgt:${it.id}:target_value:num" title="${planSqueezed ? `цель сжата разделом до его собственной: своя ${fmt(it.planEur)} €` : 'цель суммой (клик закрепит её)'}">${planSumShown != null ? fmt(planSumShown) : '—'}</span>`;
-    const planDiff = it.planPin && it.planKids && Math.abs((it.planEur || 0) - it.planKids) >= 1
-      ? `<div class="meta" title="своя цель расходится с суммой целей внутри">по позициям ${fmtE(it.planKids)}</div>` : '';
+    const eurCell = `<span class="ed${it.planPin === 'eur' ? ' pinned' : ' derived'}" data-fe="tgt:${it.id}:target_value:num" title="цель суммой (клик закрепит её)">${planSumShown != null ? fmt(planSumShown) : '—'}</span>`;
+    const planDiff = it.planOwn != null && it.planKids != null && Math.abs(it.planOwn - it.planKids) >= 1
+      ? `<div class="meta" title="внутри заданы свои цели, поэтому здесь показана их сумма">своя ${fmtE(it.planOwn)}</div>` : '';
     const planCell = `<td class="r num goal sep">${eurCell} <span class="meta">${fesc(editable ? cur : '€')}</span><span class="sub">${pctCell}</span>${planDiff}</td>`;
     // Отклонение = «Стало» − «Цель»: положительное — перевес, отрицательное — недобор
     const becameEur = (it.eur || 0) + net;
@@ -266,10 +266,10 @@ function portCard(it, depth, ctx) {
       : `<span class="${net > 0 ? 'up' : 'down'}">стало ${editable ? fmt((it.value || 0) + netCur) + ' ' + fesc(cur) : fmtE((it.eur || 0) + net)}</span>`;
     const gap = planRow != null ? ((it.eur || 0) + net) - planRow : null;   // стало − цель, в €
     const capT = ctx?.total || 0;
-    const planRow = it.planEur != null ? (it.planEff ?? it.planEur) : null;
+    const planRow = it.planEur;
     const pPct = planRow != null && capT > 0 ? planRow / capT * 100 : null;
     const pEur = planRow;
-    const planStr = `<span class="meta">цель: <span class="ed${it.planPin === 'pct' ? ' pinned' : ''}" data-fe="tgt:${it.id}:target_pct:num" title="цель долей (клик закрепит её)">${pPct != null ? pPct.toFixed(1) : '—'}%</span> / <span class="ed${it.planPin === 'eur' ? ' pinned' : ''}" data-fe="tgt:${it.id}:target_value:num" title="${planSqueezed ? `цель сжата разделом до его собственной: своя ${fmt(it.planEur)} €` : 'цель суммой (клик закрепит её)'}">${pEur != null ? fmt(pEur) : '—'}</span> ${fesc(cur)}</span>`;
+    const planStr = `<span class="meta">цель: <span class="ed${it.planPin === 'pct' ? ' pinned' : ''}" data-fe="tgt:${it.id}:target_pct:num" title="цель долей (клик закрепит её)">${pPct != null ? pPct.toFixed(1) : '—'}%</span> / <span class="ed${it.planPin === 'eur' ? ' pinned' : ''}" data-fe="tgt:${it.id}:target_value:num" title="цель суммой (клик закрепит её)">${pEur != null ? fmt(pEur) : '—'}</span> ${fesc(cur)}</span>`;
     const gapStr = gap == null ? '' : Math.abs(gap) < 1 ? '<span class="up">✓ в цели</span>'
       : gap > 0 ? `<span class="dev-over">перевес ${fmtE(gap)}</span>` : `<span class="dev-under">недобор ${fmtE(-gap)}</span>`;
     const links = [
@@ -401,21 +401,15 @@ function secPortfolio(d, s) {
         : n.target_value != null ? ((n.currency ?? '€') === '$' ? n.target_value / rateP : n.target_value)
         : null;
       const kidsSum = kids.reduce((a, c) => a + (c.planEur || 0), 0);
-      n.planKids = kids.length ? kidsSum : null;   // сумма по вложенным — для подсказки о расхождении
-      n.planEur = own != null ? own : (kids.length ? (kidsSum || null) : null);
+      const kidsHave = kids.some(c => c.planEur != null);
+      n.planKids = kids.length ? kidsSum : null;
+      // Цель листа неприкосновенна: родитель на неё не влияет. Если внутри цели заданы —
+      // цель узла это их сумма, своя используется только когда внутри целей нет.
+      n.planEur = kidsHave ? kidsSum : (own != null ? own : null);
+      n.planOwn = own;                                                                   // своя, даже если не в ходу
       n.planPin = n.target_pct != null ? 'pct' : n.target_value != null ? 'eur' : null;   // что закреплено
     };
     tree.forEach(setPlan);
-    // Цель узла может перекрывать сумму вложенных. Раздаём её вниз пропорционально,
-    // иначе разрезы расходятся: блоки берут цель узла, а типы — сумму по листьям.
-    const spread = (n, eff) => {
-      n.planEff = eff;
-      const kids = n.children || [];
-      if (!kids.length) return;
-      const ks = kids.reduce((a, c) => a + (c.planEur || 0), 0);
-      kids.forEach(c => spread(c, ks > 0 ? (c.planEur || 0) * (eff / ks) : 0));
-    };
-    tree.forEach(b => spread(b, b.planEur ?? 0));
   }
   const planTotal = tgt ? tree.reduce((a, b) => a + (b.planEur || 0), 0) : 0;   // сумма планов верхнего уровня
   // Мониторинг: один и тот же вопрос «сколько чего» в трёх разрезах.
@@ -440,7 +434,7 @@ function secPortfolio(d, s) {
     if (monCut === 'blocks') {
       catRows = monLevel.map(n => ({
         ty: n.name || '—', id: n.id, drill: (n.children || []).length > 0,
-        now: n.eur || 0, plan: n.planEff ?? 0, hasPlan: n.planEur != null,
+        now: n.eur || 0, plan: n.planEur ?? 0, hasPlan: n.planEur != null,
       }));
     } else {
       const field = monCut === 'types' ? 'asset_type' : 'region';
@@ -452,7 +446,7 @@ function secPortfolio(d, s) {
           const k = n[field] || none;
           (acc[k] ||= { now: 0, plan: 0, hasPlan: false });
           acc[k].now += n.eur || 0;
-          if (n.planEur != null) { acc[k].plan += n.planEff ?? 0; acc[k].hasPlan = true; }
+          if (n.planEur != null) { acc[k].plan += n.planEur; acc[k].hasPlan = true; }
         }
         walk(kids);
       });
