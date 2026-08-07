@@ -1,0 +1,111 @@
+<h2>Сессия на двух вкладках: какая из них считается рабочей</h2>
+<p>
+  Открыли площадку %brand_name_en% в двух вкладках, сделали ставку в одной, а баланс не совпадает во второй. Ничего не сломалось: сессия одна, а вот показания расходятся, и это нормальная работа браузера.
+</p>
+<h3>Почему цифры расходятся</h3>
+<p>
+  Каждая вкладка %brand_name_en% хранит своё представление о балансе и обновляет его по событию. Ставка в первой меняет остаток на сервере, но вторая узнаёт об этом только при следующем обращении.
+</p>
+<table>
+  <tbody>
+    <tr><th>Где смотреть</th><th>Насколько свежо</th><th>Что делать</th></tr>
+    <tr><td>Активная вкладка</td><td>Верно на сейчас</td><td>Ничего</td></tr>
+    <tr><td>Фоновая вкладка</td><td>Устаревает за минуты</td><td>Обновить страницу</td></tr>
+    <tr><td>Открытый слот</td><td>Верно внутри игры</td><td>Ничего</td></tr>
+    <tr><td>Журнал операций</td><td>Всегда верно</td><td>Смотреть здесь</td></tr>
+  </tbody>
+</table>
+<h3>Что считается настоящим</h3>
+<ul>
+  <li><strong>Журнал операций.</strong> Единственный источник без задержки</li>
+  <li><strong>Баланс на сервере.</strong> Вкладки только его отображают</li>
+  <li><strong>Результат раунда.</strong> Досчитывается независимо от экрана</li>
+</ul>
+<blockquote>
+  На посту два табло, и второе всегда чуть отстаёт. Дежурный сверяется не с ним, а с журналом движения.
+</blockquote>
+<h3>Порядок сверки при расхождении</h3>
+<ol>
+  <li>Обновить страницу в отставшей вкладке — это решает почти всё</li>
+  <li>Открыть журнал операций в <a href="/vhod">кабинете</a> и сверить последние строки</li>
+  <li>Проверить, не идёт ли раунд в другой вкладке</li>
+  <li>Закрыть лишние вкладки: одной достаточно</li>
+</ol>
+<h3>Чем это отличается от второй сессии</h3>
+<ul>
+  <li><strong>Две вкладки — одна сессия.</strong> Браузер держит общий вход</li>
+  <li><strong>Два устройства — две попытки.</strong> Вторая гасит первую</li>
+  <li><strong>Два браузера — тоже две.</strong> Вход в одном закроет другой</li>
+</ul>
+<h3>Ставка из двух вкладок разом</h3>
+<p>
+  Технически возможна, практически бессмысленна: остаток один, и второе списание просто не пройдёт при нехватке. Опасность в другом — при активной акции легко превысить потолок ставки, потому что счётчик %brand_name_en% считает обе вкладки вместе. Одно превышение обнуляет вейджер целиком, а восстановить его нельзя ни через дежурного, ни через надзор.
+</p>
+<p>
+  Проверить лимит ставки и остаток вейджера стоит до открытия второй вкладки: депозит, вывод и отыгрыш считаются на сервере, и вкладки только отображают их. Каталог при этом общий: <a href="/slots">набор автоматов</a> одинаков в обеих вкладках, депозит и вывод идут через <a href="/app">любой клиент</a>, а <a href="/registracia">анкета</a> и статус верификации вообще не зависят от того, сколько окон открыто.
+</p>
+
+<h2>Ответы на вопросы о вкладках и сессии</h2>
+<p>
+  Десять обращений, которые приходят к оператору после расхождения баланса.
+</p>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Баланс во второй вкладке меньше — деньги пропали?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, вкладка просто отстала. Обновите страницу или посмотрите журнал операций.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Считаются ли две вкладки как два устройства?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. Браузер держит одну сессию, и для площадки это один вход.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли играть в двух слотах одновременно?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Технически да, если хватает остатка. При активной акции это опасно: потолок ставки считается общий.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что происходит при закрытии активной вкладки?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Начатый раунд досчитывается на сервере. Результат появится в журнале при следующем заходе.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему во второй вкладке просит войти заново?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Сессия истекла по времени. Достаточно войти один раз — вторая вкладка подхватит вход.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Гасит ли обновление страницы сессию?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. Гасят её смена пароля, вход с другого устройства и простой дольше тридцати минут.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Как понять, где идёт раунд?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>По журналу операций: там видно время и игру. Вкладки этого не показывают.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Опасно ли держать вкладку открытой сутками?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Сессия всё равно истечёт по сроку. Риск только в том, что устройство доступно посторонним.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли число вкладок на скорость?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>На скорость раунда — нет, он считается на сервере. На скорость загрузки лобби — да, при слабой сети.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать, если списалось дважды?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Открыть журнал и сверить операции по времени. Если строка действительно задвоена, писать оператору с её номером — разбор занимает до суток.</p></div>
+  </div>
+</details>
