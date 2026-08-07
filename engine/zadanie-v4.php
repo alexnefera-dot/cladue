@@ -107,21 +107,39 @@ foreach (glob("$root/$KORPUS/*", GLOB_ONLYDIR) ?: [] as $d) {
 // зарезервированы. Без этой ветки перевыпуск считал собственный резерв чужим,
 // уходил за следующим свободным срезом и за пять пересборок съедал запас,
 // после чего падал с «пополни срезы_запас» на нетронутом пуле.
+//
+// Владелец резерва — КОМПЛЕКТ, а не папка с промптами. Первая версия узнавала
+// свои срезы только по karta.json во временной папке: стоило её удалить перед
+// пересборкой, и резерв оставался в реестре навсегда ничьим, а пул уходил в
+// ноль. Поэтому реестр хранит пару «срез — комплект», и комплект забирает своё
+// откуда угодно. Старые записи-строки читаются как ничьи: у них владельца нет.
+$vladelec = [];
+foreach (PAGES_Z as $p) {
+    foreach ($maski['занято']['срезы'][$p] ?? [] as $z) {
+        if (is_array($z)) { $vladelec[$p][$z['срез']] = $z['комплект'] ?? ''; }
+    }
+}
 $svoya = is_file("$OUT/karta.json")
     ? json_decode((string) file_get_contents("$OUT/karta.json"), true)
     : null;
 $svoi = (is_array($svoya) && ($svoya['комплект'] ?? null) === $IMYA)
     ? ($svoya['срезы'] ?? [])
     : [];
+foreach ($vladelec as $p => $pary) {
+    foreach ($pary as $srez => $kto) {
+        if ($kto === $IMYA && !isset($svoi[$p])) { $svoi[$p] = $srez; }
+    }
+}
 
 $srezy = [];
 foreach (PAGES_Z as $p) {
     if ($p === 'main') { continue; }
     if (isset($svoi[$p])) { $srezy[$p] = $svoi[$p]; continue; }
-    $zan = array_merge(
-        array_map('mb_strtolower', $maski['занято']['срезы'][$p] ?? []),
-        $srezyKorpusa[$p] ?? []
-    );
+    $vReestre = [];
+    foreach ($maski['занято']['срезы'][$p] ?? [] as $z) {
+        $vReestre[] = mb_strtolower(is_array($z) ? $z['срез'] : $z);
+    }
+    $zan = array_merge($vReestre, $srezyKorpusa[$p] ?? []);
     foreach ($maski['срезы_запас'][$p] ?? [] as $s) {
         if (!zanyat($s, $zan)) { $srezy[$p] = $s; break; }
     }
@@ -143,8 +161,12 @@ $novyy = !is_file("$root/$KORPUS/$IMYA/main.html");
 if ($novyy) {
     $izm = false;
     foreach ($srezy as $p => $s) {
-        if (!in_array($s, $maski['занято']['срезы'][$p] ?? [], true)) {
-            $maski['занято']['срезы'][$p][] = $s;
+        $uzhe = false;
+        foreach ($maski['занято']['срезы'][$p] ?? [] as $z) {
+            if ((is_array($z) ? $z['срез'] : $z) === $s) { $uzhe = true; break; }
+        }
+        if (!$uzhe) {
+            $maski['занято']['срезы'][$p][] = ['срез' => $s, 'комплект' => $IMYA];
             $izm = true;
         }
     }
@@ -319,24 +341,31 @@ function faktura(string $imya, array &$zanyatye, bool $rezervirovat): string
     // полностью.
     $reestr = &$zanyatye['грани'];
     if (!is_array($reestr)) { $reestr = []; }
+    $shag = (int) ($zanyatye['грани_шаг'] ?? 0) + 1;
+
+    // Ничьи по счёту разводятся ДАВНОСТЬЮ, а не хешем. С хешем steklo-1 взял
+    // шесть граней из десяти вслед за kuznica-1: при трёх вариантах ничья
+    // возникает почти на каждом узле, и хеш выбирал в ней ту же грань, что и
+    // сосед. Давность разводит гарантированно — из двух одинаково занятых
+    // берётся та, которую не брали дольше, а значит не соседний комплект.
     $out = '';
     $vybor = [];
     foreach ($grani as $uzel => $varianty) {
-        $luchshiy = null; $minSchet = PHP_INT_MAX;
+        $luchshiy = null; $minSchet = null;
         foreach ($varianty as $k => $v) {
-            $schet = (int) ($reestr[$uzel][$v] ?? 0);
-            // ничья разводится хешем узла и имени: без этого все комплекты
-            // на пустом реестре взяли бы нулевой вариант каждого узла
-            $schet = $schet * 100 + (($k + crc32($imya . '·' . $uzel)) % count($varianty));
-            if ($schet < $minSchet) { $minSchet = $schet; $luchshiy = $v; }
+            $z = $reestr[$uzel][$v] ?? ['раз' => 0, 'когда' => 0];
+            $schet = [(int) $z['раз'], (int) $z['когда'], $k];
+            if ($minSchet === null || $schet < $minSchet) { $minSchet = $schet; $luchshiy = $v; }
         }
         $vybor[$uzel] = $luchshiy;
         $out .= sprintf("  %-18s %s\n", $uzel, $luchshiy);
     }
     if ($rezervirovat) {
         foreach ($vybor as $uzel => $v) {
-            $reestr[$uzel][$v] = (int) ($reestr[$uzel][$v] ?? 0) + 1;
+            $z = $reestr[$uzel][$v] ?? ['раз' => 0, 'когда' => 0];
+            $reestr[$uzel][$v] = ['раз' => (int) $z['раз'] + 1, 'когда' => $shag];
         }
+        $zanyatye['грани_шаг'] = $shag;
     }
     return $out;
 }
