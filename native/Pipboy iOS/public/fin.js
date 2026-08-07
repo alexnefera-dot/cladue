@@ -109,24 +109,26 @@ function portRows(it, depth, ctx) {
     const gainCell = `<td class="r num">${g != null ? `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</span>` : ''}</td>`;
     // Цель: одно поле задано, второе выведено. Клик по любому из них закрепляет именно его.
     const capT = ctx?.total || 0;
-    const planPctShown = it.planPin === 'pct' ? it.target_pct
-      : (it.planEur != null && capT > 0 ? it.planEur / capT * 100 : null);
+    // Эффективная цель — единственный источник правды. Если у раздела своя цель, она сжимает
+    // цели вложенных; мониторинг считал по ней, а таблица по исходной — и они расходились.
+    const planRow = it.planEur != null ? (it.planEff ?? it.planEur) : null;
+    const planSqueezed = planRow != null && Math.abs(planRow - it.planEur) >= 1;
+    const planPctShown = planRow != null && capT > 0 ? planRow / capT * 100 : null;
     // цель хранится в валюте позиции; выведенная из процента приходит в € — возвращаем в валюту строки
     const rateRow = ctx?.rate || 1.08;
-    const planSumShown = it.planPin === 'eur' ? it.target_value
-      : it.planEur != null ? (editable && cur === '$' ? it.planEur * rateRow : it.planEur) : null;
+    const planSumShown = planRow != null ? (editable && cur === '$' ? planRow * rateRow : planRow) : null;
     // доли цели в том же порядке, что у «Сейчас»: от всего портфеля / внутри своего блока.
     // Кликабельна только первая — именно её мы храним в target_pct.
-    const planCatPct = ctx?.blockTarget > 0 && it.planEur != null ? it.planEur / ctx.blockTarget * 100 : null;
+    const planCatPct = ctx?.blockTarget > 0 && planRow != null ? planRow / ctx.blockTarget * 100 : null;
     const pctCell = `<span class="ed${it.planPin === 'pct' ? ' pinned' : ' derived'}" data-fe="tgt:${it.id}:target_pct:num" title="цель долей от всего портфеля (клик закрепит её)">${planPctShown != null ? planPctShown.toFixed(1) + '%' : '—'}</span>`
       + (planCatPct != null ? ` <span class="derived" title="доля цели внутри своего блока">/ ${planCatPct.toFixed(1)}%</span>` : '');
-    const eurCell = `<span class="ed${it.planPin === 'eur' ? ' pinned' : ' derived'}" data-fe="tgt:${it.id}:target_value:num" title="цель суммой (клик закрепит её)">${planSumShown != null ? fmt(planSumShown) : '—'}</span>`;
+    const eurCell = `<span class="ed${it.planPin === 'eur' ? ' pinned' : ' derived'}" data-fe="tgt:${it.id}:target_value:num" title="${planSqueezed ? `цель сжата разделом до его собственной: своя ${fmt(it.planEur)} €` : 'цель суммой (клик закрепит её)'}">${planSumShown != null ? fmt(planSumShown) : '—'}</span>`;
     const planDiff = it.planPin && it.planKids && Math.abs((it.planEur || 0) - it.planKids) >= 1
       ? `<div class="meta" title="своя цель расходится с суммой целей внутри">по позициям ${fmtE(it.planKids)}</div>` : '';
     const planCell = `<td class="r num goal sep">${eurCell} <span class="meta">${fesc(editable ? cur : '€')}</span><span class="sub">${pctCell}</span>${planDiff}</td>`;
     // Отклонение = «Стало» − «Цель»: положительное — перевес, отрицательное — недобор
     const becameEur = (it.eur || 0) + net;
-    const dev = it.planEur != null ? becameEur - it.planEur : null;   // цель 0 — тоже цель: «здесь не хочу ничего»
+    const dev = planRow != null ? becameEur - planRow : null;   // цель 0 — тоже цель: «здесь не хочу ничего»
     const devPP = dev != null && ctx?.total > 0 ? dev / ctx.total * 100 : null;
     const devCur = editable && cur === '$' ? dev * rateRow : dev;   // dev считается в €
     const devCell = `<td class="r num">${dev == null ? '' : Math.abs(dev) < 1
@@ -262,11 +264,12 @@ function portCard(it, depth, ctx) {
     const netCur = cur === '$' ? net * (ctx?.rate || 1.08) : net;   // в валюте позиции
     const becameStr = net === 0 ? ''
       : `<span class="${net > 0 ? 'up' : 'down'}">стало ${editable ? fmt((it.value || 0) + netCur) + ' ' + fesc(cur) : fmtE((it.eur || 0) + net)}</span>`;
-    const gap = (it.planEur != null && it.planEur > 0) ? ((it.eur || 0) + net) - it.planEur : null;   // стало − цель, в €
+    const gap = planRow != null ? ((it.eur || 0) + net) - planRow : null;   // стало − цель, в €
     const capT = ctx?.total || 0;
-    const pPct = it.planPin === 'pct' ? it.target_pct : (it.planEur != null && capT > 0 ? it.planEur / capT * 100 : null);
-    const pEur = it.planPin === 'eur' ? it.target_value : it.planEur;
-    const planStr = `<span class="meta">цель: <span class="ed${it.planPin === 'pct' ? ' pinned' : ''}" data-fe="tgt:${it.id}:target_pct:num" title="цель долей (клик закрепит её)">${pPct != null ? pPct.toFixed(1) : '—'}%</span> / <span class="ed${it.planPin === 'eur' ? ' pinned' : ''}" data-fe="tgt:${it.id}:target_value:num" title="цель суммой (клик закрепит её)">${pEur != null ? fmt(pEur) : '—'}</span> ${fesc(cur)}</span>`;
+    const planRow = it.planEur != null ? (it.planEff ?? it.planEur) : null;
+    const pPct = planRow != null && capT > 0 ? planRow / capT * 100 : null;
+    const pEur = planRow;
+    const planStr = `<span class="meta">цель: <span class="ed${it.planPin === 'pct' ? ' pinned' : ''}" data-fe="tgt:${it.id}:target_pct:num" title="цель долей (клик закрепит её)">${pPct != null ? pPct.toFixed(1) : '—'}%</span> / <span class="ed${it.planPin === 'eur' ? ' pinned' : ''}" data-fe="tgt:${it.id}:target_value:num" title="${planSqueezed ? `цель сжата разделом до его собственной: своя ${fmt(it.planEur)} €` : 'цель суммой (клик закрепит её)'}">${pEur != null ? fmt(pEur) : '—'}</span> ${fesc(cur)}</span>`;
     const gapStr = gap == null ? '' : Math.abs(gap) < 1 ? '<span class="up">✓ в цели</span>'
       : gap > 0 ? `<span class="dev-over">перевес ${fmtE(gap)}</span>` : `<span class="dev-under">недобор ${fmtE(-gap)}</span>`;
     const links = [
