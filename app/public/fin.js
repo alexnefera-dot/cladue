@@ -111,19 +111,23 @@ function portRows(it, depth, ctx) {
     const capT = ctx?.total || 0;
     const planPctShown = it.planPin === 'pct' ? it.target_pct
       : (it.planEur != null && capT > 0 ? it.planEur / capT * 100 : null);
-    const planEurShown = it.planPin === 'eur' ? it.target_value : (it.planEur != null ? it.planEur : null);
+    // цель хранится в валюте позиции; выведенная из процента приходит в € — возвращаем в валюту строки
+    const rateRow = ctx?.rate || 1.08;
+    const planSumShown = it.planPin === 'eur' ? it.target_value
+      : it.planEur != null ? (editable && cur === '$' ? it.planEur * rateRow : it.planEur) : null;
     const pctCell = `<span class="ed${it.planPin === 'pct' ? ' pinned' : ' derived'}" data-fe="tgt:${it.id}:target_pct:num" title="цель долей (клик закрепит её)">${planPctShown != null ? planPctShown.toFixed(1) + '%' : '—'}</span>`;
-    const eurCell = `<span class="ed${it.planPin === 'eur' ? ' pinned' : ' derived'}" data-fe="tgt:${it.id}:target_value:num" title="цель суммой (клик закрепит её)">${planEurShown != null ? fmt(planEurShown) : '—'}</span>`;
+    const eurCell = `<span class="ed${it.planPin === 'eur' ? ' pinned' : ' derived'}" data-fe="tgt:${it.id}:target_value:num" title="цель суммой (клик закрепит её)">${planSumShown != null ? fmt(planSumShown) : '—'}</span>`;
     const planDiff = it.planPin && it.planKids && Math.abs((it.planEur || 0) - it.planKids) >= 1
       ? `<div class="meta" title="своя цель расходится с суммой целей внутри">по позициям ${fmtE(it.planKids)}</div>` : '';
-    const planCell = `<td class="r num goal sep">${eurCell}<span class="sub">${pctCell}</span>${planDiff}</td>`;
+    const planCell = `<td class="r num goal sep">${eurCell} <span class="meta">${fesc(editable ? cur : '€')}</span><span class="sub">${pctCell}</span>${planDiff}</td>`;
     // Отклонение = «Стало» − «Цель»: положительное — перевес, отрицательное — недобор
     const becameEur = (it.eur || 0) + net;
     const dev = it.planEur != null ? becameEur - it.planEur : null;   // цель 0 — тоже цель: «здесь не хочу ничего»
     const devPP = dev != null && ctx?.total > 0 ? dev / ctx.total * 100 : null;
+    const devCur = editable && cur === '$' ? dev * rateRow : dev;   // dev считается в €
     const devCell = `<td class="r num">${dev == null ? '' : Math.abs(dev) < 1
       ? '<span class="up">✓ в цели</span>'
-      : `<span class="${dev > 0 ? 'dev-over' : 'dev-under'}">${dev > 0 ? '+' : '−'}${fmtE(Math.abs(dev))}<span class="meta devpp">${devPP > 0 ? '+' : '−'}${Math.abs(devPP).toFixed(1)} п.п.</span></span>`}</td>`;
+      : `<span class="${dev > 0 ? 'dev-over' : 'dev-under'}">${dev > 0 ? '+' : '−'}${fmt(Math.abs(devCur))} ${fesc(editable ? cur : '€')}<span class="meta devpp">${devPP > 0 ? '+' : '−'}${Math.abs(devPP).toFixed(1)} п.п.</span></span>`}</td>`;
     const links = [
       ...(ctx?.movesBySrc?.[path] || []).map(mv => `<div class="meta"><span class="down">→ отдать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> в «${fesc(mv.toName)}» <span class="rowbtn del" data-movedel="${mv.id}" title="убрать связку">✕</span></div>`),
       ...(ctx?.movesByDst?.[path] || []).map(mv => `<div class="meta"><span class="up">← добрать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> из «${fesc(mv.fromName)}»</div>`),
