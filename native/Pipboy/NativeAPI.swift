@@ -42,7 +42,8 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         _ = try? made.run("ALTER TABLE target_items ADD COLUMN region TEXT")
         _ = try? made.run("ALTER TABLE target_items ADD COLUMN target_pct REAL")
         _ = try? made.run("ALTER TABLE target_items ADD COLUMN is_loan INTEGER NOT NULL DEFAULT 0")  // займы переехали из факта
-        _ = try? made.run("ALTER TABLE target_items ADD COLUMN loan_due TEXT")  // цель долей; заполнено одно из target_pct/target_value — оно и закреплено
+        _ = try? made.run("ALTER TABLE target_items ADD COLUMN loan_due TEXT")
+        _ = try? made.run("ALTER TABLE target_moves ADD COLUMN to_note TEXT")   // перенос без получателя = трата, подпись куда  // цель долей; заполнено одно из target_pct/target_value — оно и закреплено
         _ = try? made.run("DROP TABLE IF EXISTS portfolio_classes")  // мёртвая с рождения: в интерфейс не выводилась ни разу
         _ = try? made.run("ALTER TABLE routines ADD COLUMN days TEXT NOT NULL DEFAULT ''")  // дни недели рутины (пусто = каждый день)
         _ = try? made.run("ALTER TABLE passive_income ADD COLUMN principal REAL NOT NULL DEFAULT 0")    // тело инвестиции/депозита
@@ -62,7 +63,7 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
             _ = try? made.run("UPDATE settings SET value = '' WHERE key = 'target_seed_v1'")   // сброс → перезаполним копией факта
         }
         _ = try? made.run("CREATE TABLE IF NOT EXISTS target_items(id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, ord INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL DEFAULT 'asset', value REAL, buy_value REAL, target_value REAL, target_pct REAL, currency TEXT NOT NULL DEFAULT '€', asset_type TEXT, qty REAL, rate_symbol TEXT, note TEXT, is_loan INTEGER NOT NULL DEFAULT 0, loan_due TEXT)")
-        _ = try? made.run("CREATE TABLE IF NOT EXISTS target_moves(id INTEGER PRIMARY KEY, from_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, to_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, amount REAL NOT NULL DEFAULT 0)")  // ручные связки ребаланса
+        _ = try? made.run("CREATE TABLE IF NOT EXISTS target_moves(id INTEGER PRIMARY KEY, from_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, to_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, amount REAL NOT NULL DEFAULT 0, to_note TEXT)")  // ручные связки ребаланса
         // Сброс v5 (DELETE FROM target_items) снят: целевое дерево стало единственным,
         // и такая миграция стёрла бы весь портфель. Флаг ставим, чтобы она не всплыла на старых базах.
         _ = try? Api.setSetting(made, "target_reset_v5", "1")
@@ -1406,7 +1407,7 @@ enum Api {
         "income": ["name", "amount", "currency", "period", "next_date", "note", "principal", "rate", "rate_period", "asset_type"],
         "budget": ["name", "amount", "currency", "direction", "ord", "month"],
         "tgt": ["name", "value", "buy_value", "target_value", "target_pct", "currency", "asset_type", "qty", "rate_symbol", "note", "kind", "region"],
-        "move": ["from_id", "to_id", "amount"]]
+        "move": ["from_id", "to_id", "amount", "to_note"]]
 
     static func finWrite(method: String, path: String, body: [String: Any], db: Database) throws -> (Data, Int)? {
         if method == "POST", path == "/api/rates/refresh" { return (try ratesRefresh(db), 200) }
@@ -1535,7 +1536,8 @@ enum Api {
             let mvInput = num(b["amount"])   // сумму вводят в валюте ИСТОЧНИКА (переношу доллары — ввожу доллары)
             let mvAmt = mvFromCur == "$" ? mvInput / mvRate : mvInput   // храним якорь в €
             // перенос — чистое наложение: value не трогаем, «Стало» считается на клиенте как «Сейчас» + переносы
-            try db.run("INSERT INTO target_moves(from_id, to_id, amount) VALUES(?,?,?)", [mvFrom ?? NSNull(), mvTo ?? NSNull(), mvAmt])
+            try db.run("INSERT INTO target_moves(from_id, to_id, amount, to_note) VALUES(?,?,?,?)",
+                [mvFrom ?? NSNull(), mvTo ?? NSNull(), mvAmt, b["to_note"] ?? NSNull()])
         default: break
         }
     }
@@ -3224,7 +3226,7 @@ enum Api {
             _ = try? db.run("DROP TABLE IF EXISTS target_items")   // старая плоская схема → пересоздаём как дерево
         }
         _ = try? db.run("CREATE TABLE IF NOT EXISTS target_items(id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, ord INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL DEFAULT 'asset', value REAL, buy_value REAL, target_value REAL, currency TEXT NOT NULL DEFAULT '€', asset_type TEXT, qty REAL, rate_symbol TEXT, note TEXT)")
-        _ = try? db.run("CREATE TABLE IF NOT EXISTS target_moves(id INTEGER PRIMARY KEY, from_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, to_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, amount REAL NOT NULL DEFAULT 0)")
+        _ = try? db.run("CREATE TABLE IF NOT EXISTS target_moves(id INTEGER PRIMARY KEY, from_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, to_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, amount REAL NOT NULL DEFAULT 0, to_note TEXT)")
         ensureSyncSchema(db)
         backupDB()
         guard let tables = snapshot["tables"] as? [String: Any] else { throw Unsupported(path: "плохой снимок") }

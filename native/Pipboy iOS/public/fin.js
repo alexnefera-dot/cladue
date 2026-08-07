@@ -135,7 +135,7 @@ function portRows(it, depth, ctx) {
       ? '<span class="up">✓ в цели</span>'
       : `<span class="${dev > 0 ? 'dev-over' : 'dev-under'}">${dev > 0 ? '+' : '−'}${fmt(Math.abs(devCur))} ${fesc(editable ? cur : '€')}<span class="meta devpp">${devPP > 0 ? '+' : '−'}${Math.abs(devPP).toFixed(1)} п.п.</span></span>`}</td>`;
     const links = [
-      ...(ctx?.movesBySrc?.[path] || []).map(mv => `<div class="meta"><span class="down">→ отдать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> в «${fesc(mv.toName)}» <span class="rowbtn del" data-movedel="${mv.id}" title="убрать связку">✕</span></div>`),
+      ...(ctx?.movesBySrc?.[path] || []).map(mv => `<div class="meta"><span class="down">${mv.spend ? '↯ потратить' : '→ отдать'} ${fmt(mv.amount)} ${fesc(mv.cur)}</span> ${mv.spend ? 'на' : 'в'} «${fesc(mv.toName)}» <span class="rowbtn del" data-movedel="${mv.id}" title="убрать">✕</span></div>`),
       ...(ctx?.movesByDst?.[path] || []).map(mv => `<div class="meta"><span class="up">← добрать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> из «${fesc(mv.fromName)}»</div>`),
     ].join('');
     const moveOpen = tgtMove?.from === it.id;
@@ -218,10 +218,15 @@ function tgtMoveForm(from, ctx) {
 
   return `<tr class="tgtform-row"><td class="formcell" colspan="8"><div class="tgtform">
     <div class="frow"><span class="flab">Куда</span>
-      <select class="fbox" id="tgtMoveTo">${leaves.map(l =>
-        `<option value="${l.n.id}"${to && l.n.id === to.n.id ? ' selected' : ''}>${fesc(l.label)}${l.need > 0 ? ` — не хватает ${fmt(l.need)}` : ''}</option>`).join('')}</select>
-      <span class="fhint">${need > 0 ? `<span class="dev-under">не хватает ${fmt(need)} €</span>` : '<span class="meta">эта позиция уже в цели</span>'} · список отсортирован по недобору</span>
+      <select class="fbox" id="tgtMoveTo">
+        <option value="spend"${tgtMove.spend ? ' selected' : ''}>↯ потратить (вписать куда)</option>
+        ${leaves.map(l => `<option value="${l.n.id}"${!tgtMove.spend && to && l.n.id === to.n.id ? ' selected' : ''}>${fesc(l.label)}${l.need > 0 ? ` — не хватает ${fmt(l.need)}` : ''}</option>`).join('')}</select>
+      <span class="fhint">${tgtMove.spend ? '<span class="dev-over">деньги уйдут из портфеля насовсем</span>'
+        : need > 0 ? `<span class="dev-under">не хватает ${fmt(need)} €</span>` : '<span class="meta">эта позиция уже в цели</span>'}</span>
     </div>
+    ${tgtMove.spend ? `<div class="frow"><span class="flab">На что</span>
+      <input class="fbox" id="tgtMoveNote" value="${fesc(tgtMove.note ?? '')}" placeholder="куплю айфон, заплачу налог…">
+      <span class="fhint">попадёт в список «Потратим» под портфелем</span></div>` : ''}
     <div class="frow"><span class="flab">Сколько</span>
       <input class="fbox amt" id="tgtMoveAmt" inputmode="decimal" value="${amt ?? ''}" placeholder="0"> 
       <span class="fhint">
@@ -230,14 +235,16 @@ function tgtMoveForm(from, ctx) {
         <span class="meta">${fesc(curF)}</span>
       </span>
     </div>
-    ${amt > 0 && to ? `<div class="mvprev">
-      <span class="pv-h">станет после переноса</span>
+    ${amt > 0 && (tgtMove.spend || to) ? `<div class="mvprev">
+      <span class="pv-h">${tgtMove.spend ? 'станет после траты' : 'станет после переноса'}</span>
       ${prev(from, -(curF === '$' ? amt / rate : amt))}
-      ${prev(to.n, (curF === '$' ? amt / rate : amt))}
+      ${tgtMove.spend ? `<span class="mono">${fesc(tgtMove.note || 'трата')}</span>
+        <span class="num dev-over">− ${fmt(amt)} ${fesc(curF)}</span>
+        <span class="num meta">уходит из капитала</span>` : prev(to.n, (curF === '$' ? amt / rate : amt))}
     </div>` : ''}
     <div class="frow"><span class="flab"></span>
-      <span><span class="pill btn ok" id="tgtMoveGo">переложить</span> <span class="pill btn" id="tgtMoveCancel">отмена</span></span>
-      <span class="fhint">создастся обычная перестановка — её видно в строке и можно удалить</span>
+      <span><span class="pill btn ok" id="tgtMoveGo">${tgtMove.spend ? 'потратить' : 'переложить'}</span> <span class="pill btn" id="tgtMoveCancel">отмена</span></span>
+      <span class="fhint">${tgtMove.spend ? 'трата будет видна в строке и в списке под портфелем' : 'создастся обычная перестановка — её видно в строке и можно удалить'}</span>
     </div>
   </div></td></tr>`;
 }
@@ -493,8 +500,18 @@ function secPortfolio(d, s) {
       let p = '';
       for (const seg of path.split('/').filter(Boolean)) { p += '/' + seg; rctx.netByPath[p] = (rctx.netByPath[p] || 0) + delta; }
     };
+    rctx.spends = [];
     (d.targetMoves || []).forEach(mv => {
-      const a = byId[mv.from_id], b = byId[mv.to_id]; if (!a || !b) return;
+      const a = byId[mv.from_id]; if (!a) return;
+      const b = byId[mv.to_id];
+      if (!b) {   // получателя нет — это трата: деньги уходят из позиции и из капитала
+        rctx.spends.push({ id: mv.id, note: mv.to_note || 'без подписи', eur: mv.amount,
+          amount: inCur(mv.amount, a.cur), cur: a.cur, fromName: a.name });
+        (rctx.movesBySrc[a.path] ||= []).push({ id: mv.id, amount: inCur(mv.amount, a.cur), cur: a.cur,
+          toName: mv.to_note || 'трата', spend: true });
+        addNet(a.path, -mv.amount);
+        return;
+      }
       (rctx.movesBySrc[a.path] ||= []).push({ id: mv.id, amount: inCur(mv.amount, a.cur), cur: a.cur, toName: b.name });
       (rctx.movesByDst[b.path] ||= []).push({ id: mv.id, amount: inCur(mv.amount, b.cur), cur: b.cur, fromName: a.name });
       addNet(a.path, -mv.amount); addNet(b.path, mv.amount);   // mv.amount хранится в €
@@ -509,6 +526,18 @@ function secPortfolio(d, s) {
       <span>Капитал: есть <b class="num">${fmt(s.portfolioTotal)} €</b>${planTotal > 0 ? ` · план <b class="num">${fmt(planTotal)} €</b>` : ''} · размещено <b class="num">${fmt(rootTotal)} €</b></span>
       ${planTotal > 0 ? `<span class="pill ${Math.abs(planTotal - rootTotal) < 1 ? 'ok' : planTotal > rootTotal ? 'p1' : ''}" title="разница между «Сейчас» (размещено) и планом целевого">${Math.abs(planTotal - rootTotal) < 1 ? '✓ сейчас = плану' : planTotal > rootTotal ? `до плана +${fmt(planTotal - rootTotal)} €` : `сверх плана ${fmt(rootTotal - planTotal)} €`}</span>` : ''}
     </div></div>` : ''}
+  ${(() => {
+    const sp = rctx.spends || [];
+    const spendTotal = sp.reduce((a, x) => a + x.eur, 0);
+    return `<div class="card"><div class="kv" style="font-weight:700;flex-wrap:wrap;gap:10px">
+      <span>Текущий <b class="num">${fmt(rootTotal)} €</b></span>
+      <span class="meta">·</span>
+      <span>Целевой <b class="num">${fmt(planTotal)} €</b></span>
+      <span class="meta">·</span>
+      <span>На траты <b class="num ${spendTotal > 0 ? 'dev-over' : 'mut'}">${fmt(spendTotal)} €</b></span>
+      ${spendTotal > 0 ? `<span class="meta">останется ${fmt(rootTotal - spendTotal)} €</span>` : ''}
+    </div></div>`;
+  })()}
   <div class="card">
     ${finIsMobile()
       ? `<div class="pcards">${tree.map(b => portCard(b, 0, rctx)).join('') || '<div class="empty">пусто</div>'}</div>`
@@ -550,6 +579,17 @@ function secPortfolio(d, s) {
         </div>
       </div>
     </div>` : ''}
+  </div>` : ''}
+  ${(rctx.spends || []).length ? `
+  <div class="card">
+    <div class="meta" style="margin-bottom:8px">ПОТРАТИМ · деньги уйдут из портфеля насовсем</div>
+    ${rctx.spends.map(x => `<div class="kv spendrow">
+      <span><span class="mono">${fesc(x.note)}</span> <span class="meta">из «${fesc(x.fromName)}»</span></span>
+      <span><b class="num dev-over">${fmt(x.amount)} ${fesc(x.cur)}</b>
+        <span class="rowbtn del" data-movedel="${x.id}" title="убрать трату">✕</span></span>
+    </div>`).join('')}
+    <div class="kv" style="border-top:1px solid var(--line);margin-top:6px;padding-top:6px">
+      <span class="meta">итого</span><b class="num dev-over">${fmt(rctx.spends.reduce((a, x) => a + x.eur, 0))} €</b></div>
   </div>` : ''}
   ${tgt && catRows.length ? `
   <div class="card">
@@ -1331,14 +1371,26 @@ function bindFin() {
     const a = document.getElementById('tgtMoveAmt');
     if (a) { a.focus(); a.setSelectionRange(a.value.length, a.value.length); }   // перерисовка не должна выбивать курсор
   };
-  document.getElementById('tgtMoveTo')?.addEventListener('change', e => { tgtMove.to = +e.target.value; renderFin(); });
+  document.getElementById('tgtMoveTo')?.addEventListener('change', e => {
+    tgtMove.spend = e.target.value === 'spend';
+    tgtMove.to = tgtMove.spend ? null : +e.target.value;
+    renderFin();
+  });
+  document.getElementById('tgtMoveNote')?.addEventListener('input', e => { tgtMove.note = e.target.value; });
   document.getElementById('tgtMoveAmt')?.addEventListener('input', e => { tgtMove.amount = parseNum(e.target.value); mvRerender(true); });
   document.querySelectorAll('[data-mvq]').forEach(el =>
     el.addEventListener('click', () => { tgtMove.amount = +el.dataset.mvq; mvRerender(true); }));
   document.getElementById('tgtMoveCancel')?.addEventListener('click', () => { tgtMove = null; renderFin(); });
   document.getElementById('tgtMoveGo')?.addEventListener('click', async () => {
+    if (!(tgtMove.amount > 0)) return;
+    if (tgtMove.spend) {
+      const note = (document.getElementById('tgtMoveNote')?.value || '').trim();
+      if (!note) { alert('Впиши, на что тратим — иначе в списке будет непонятная строка'); return; }
+      await finApi.add('move', { from_id: tgtMove.from, to_id: null, amount: tgtMove.amount, to_note: note });
+      tgtMove = null; window.loadFin(); return;
+    }
     const to = tgtMove.to ?? +document.getElementById('tgtMoveTo')?.value;
-    if (!to || !(tgtMove.amount > 0)) return;
+    if (!to) return;
     await finApi.add('move', { from_id: tgtMove.from, to_id: to, amount: tgtMove.amount });
     tgtMove = null;
     window.loadFin();

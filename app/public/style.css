@@ -469,3 +469,5 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .stack .seg.hi{filter:brightness(1.18)}
 @media (max-width:640px){.stackrow{grid-template-columns:44px 1fr;gap:7px}.stacksum{display:none}}
 .porttable td.became .quiet{color:var(--muted)}   /* без переносов повторяет «Сейчас» — приглушаем, чтобы не спорило с ним */
+.spendrow{padding:3px 0}
+.spendrow:hover .rowbtn{opacity:1}

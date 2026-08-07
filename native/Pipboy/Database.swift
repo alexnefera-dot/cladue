@@ -224,7 +224,7 @@ final class Database {
           id INTEGER PRIMARY KEY,
           from_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE,
           to_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE,
-          amount REAL NOT NULL DEFAULT 0
+          amount REAL NOT NULL DEFAULT 0, to_note TEXT   -- пусто у получателя = трата, здесь её подпись
         );
         CREATE TABLE IF NOT EXISTS receivables(
           id INTEGER PRIMARY KEY, name TEXT NOT NULL, amount REAL NOT NULL,
