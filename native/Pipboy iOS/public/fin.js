@@ -135,7 +135,7 @@ function portRows(it, depth, ctx) {
       ? '<span class="up">✓ в цели</span>'
       : `<span class="${dev > 0 ? 'dev-over' : 'dev-under'}">${dev > 0 ? '+' : '−'}${fmt(Math.abs(devCur))} ${fesc(editable ? cur : '€')}<span class="meta devpp">${devPP > 0 ? '+' : '−'}${Math.abs(devPP).toFixed(1)} п.п.</span></span>`}</td>`;
     const links = [
-      ...(ctx?.movesBySrc?.[path] || []).map(mv => `<div class="meta"><span class="down">${mv.spend ? '↯ потратить' : '→ отдать'} ${fmt(mv.amount)} ${fesc(mv.cur)}</span>${mv.toName ? ` ${mv.spend ? 'на' : 'в'} «${fesc(mv.toName)}»` : ''} <span class="rowbtn del" data-movedel="${mv.id}" title="убрать">✕</span></div>`),
+      ...(ctx?.movesBySrc?.[path] || []).map(mv => `<div class="meta"><span class="down">${mv.spend ? '↯ потратить' : '→ отдать'} ${fmt(mv.amount)} ${fesc(mv.cur)}</span>${mv.toName ? ` ${mv.spend ? 'на' : 'в'} «${fesc(mv.toName)}»` : mv.spend ? ' <span class="muted">без подписи</span>' : ''} <span class="rowbtn del" data-movedel="${mv.id}" title="убрать">✕</span></div>`),
       ...(ctx?.movesByDst?.[path] || []).map(mv => `<div class="meta"><span class="up">← добрать ${fmt(mv.amount)} ${fesc(mv.cur)}</span> из «${fesc(mv.fromName)}»</div>`),
     ].join('');
     const moveOpen = tgtMove?.from === it.id;
@@ -588,8 +588,8 @@ function secPortfolio(d, s) {
   <div class="card">
     <div class="meta" style="margin-bottom:8px">ПОТРАТИМ · деньги уйдут из портфеля насовсем</div>
     ${rctx.spends.map(x => `<div class="kv spendrow">
-      <span>${x.note ? `<span class="mono">${fesc(x.note)}</span> <span class="meta">из «${fesc(x.fromName)}»</span>`
-        : `<span class="mono">${fesc(x.fromName)}</span>`}</span>
+      <span><span class="ed mono${x.note ? '' : ' muted'}" data-fe="move:${x.id}:to_note:text" title="на что тратим (клик — вписать)">${x.note ? fesc(x.note) : 'вписать, на что'}</span>
+        <span class="meta">из «${fesc(x.fromName)}»</span></span>
       <span><b class="num dev-over">${fmt(x.amount)} ${fesc(x.cur)}</b>
         <span class="rowbtn del" data-movedel="${x.id}" title="убрать трату">✕</span></span>
     </div>`).join('')}
