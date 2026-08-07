@@ -266,11 +266,19 @@ foreach ($tehnika as $n => [$est, $nado, $ok]) {
     echo '  ' . ($ok ? '·' : '✗') . ' ' . $pad($n, 30, true) . $pad((string) $est, 12) . '   нужно ' . $nado . "\n";
 }
 
+// Формат строк тут тот же, что у параметров и приёмов: «✗ имя  значение  нужно X».
+// Замер генератора вычитывает промахи именно по нему, и пока уникальность
+// печаталась своим видом, провал по ней до брифа писателя не доходил — правка
+// уходила в следующий круг вслепую.
 printf("\n── уникальность ──\n");
-printf("  худшая пара по шинглам   %.2f%%  (%s), порог %.0f%%\n", $hudshaya, $hudshiy, $porog);
-printf("  дословных повторов заголовков  %d%s\n", count($povtorZag),
-    $povtorZag ? '  ✗ ' . implode('; ', array_map(
-        fn($k, $v) => mb_substr($k, 0, 40) . " [$v]", array_keys($povtorZag), $povtorZag)) : '');
+echo '  ' . ($hudshaya < $porog ? '·' : '✗') . ' ' . $pad('худшая пара по шинглам', 30, true)
+    . $pad(sprintf('%.2f%%', $hudshaya), 12) . '   нужно <' . sprintf('%.0f%%', $porog)
+    . '   с ' . $hudshiy . "\n";
+echo '  ' . ($povtorZag ? '✗' : '·') . ' ' . $pad('дословных повторов заголовков', 30, true)
+    . $pad((string) count($povtorZag), 12) . "   нужно 0\n";
+foreach ($povtorZag as $k => $v) {
+    echo '      · ' . mb_substr($k, 0, 60) . "  [$v]\n";
+}
 
 printf("\nИТОГ: %s\n", $provaly ? 'НЕ ПРОЙДЕНО — ' . implode(', ', $provaly) : 'пройдено');
 exit($provaly ? 1 : 0);

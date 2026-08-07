@@ -1,0 +1,111 @@
+<h2>Фоновая работа клиента: почему телефон садится за вечер</h2>
+<p>
+  Мобильная сборка %brand_name_en% расходует заряд заметно быстрее браузера, и виновата в этом одна настройка из четырёх. Отключается она за полминуты, а лобби после этого открывается на пару секунд дольше.
+</p>
+<h3>Что клиент %brand_name_en% делает, пока экран погашен</h3>
+<p>
+  Сборка %brand_name_en% держит фоновый канал: подтягивает лобби заранее, слушает уведомления о статусе выплаты и обновляет остаток по событию. Полезно это ровно в одном случае — когда зачисление ждут и хотят узнать о нём сразу.
+</p>
+<table>
+  <tbody>
+    <tr><th>Фоновая задача</th><th>Что даёт</th><th>Чего стоит</th></tr>
+    <tr><td>Дозагрузка лобби</td><td>Открытие за секунду</td><td>Главный расход заряда</td></tr>
+    <tr><td>Уведомления о выплате</td><td>Статус сразу</td><td>Почти незаметно</td></tr>
+    <tr><td>Обновление остатка</td><td>Цифра свежая</td><td>Умеренно</td></tr>
+    <tr><td>Проверка новой сборки</td><td>Раз в сутки</td><td>Почти незаметно</td></tr>
+    <tr><td>Живая трансляция стола</td><td>Раздача без пауз</td><td>Больше всего трафика</td></tr>
+  </tbody>
+</table>
+<h3>Порядок отключения: четыре шага</h3>
+<ol>
+  <li>Открыть настройки телефона и найти карточку приложения</li>
+  <li>Снять разрешение на работу в фоне, уведомления оставить</li>
+  <li>Проверить, что <a href="/vhod">вход в кабинет</a> проходит прежней парой</li>
+  <li>Открыть лобби и засечь, насколько дольше оно грузится</li>
+</ol>
+<h3>Что перестанет работать</h3>
+<ul>
+  <li><strong>Мгновенное открытие лобби.</strong> Появится пауза в две-три секунды</li>
+  <li><strong>Уведомление о смене статуса.</strong> Придёт при следующем запуске</li>
+  <li><strong>Свежий остаток на экране блокировки.</strong> Виджет замрёт</li>
+  <li><strong>Проверка новой сборки.</strong> Обновляться придётся руками</li>
+</ul>
+<blockquote>
+  Кран не держат под током всю смену ради одного подъёма. Фоновый канал — тот же ток: платите за него зарядом, а пользуетесь пару раз за вечер.
+</blockquote>
+<h3>Когда фон стоит оставить</h3>
+<p>
+  Когда выплата в пути и о зачислении надо знать в ту же минуту. Или за живым столом: там трансляция рвётся при засыпании экрана, и раздача уходит без игрока.
+</p>
+<p>
+  Во всех прочих случаях выигрыш от фона в %brand_name_en% мнимый. Остаток и <a href="/registracia">анкета игрока</a> живут на сервере, и открыть их можно в любой момент — от того, спит клиент или нет, они не меняются.
+</p>
+<h3>Что заряд не экономит</h3>
+<p>
+  Ни отключение звука, ни тёмная тема, ни чистка кеша: кеш растёт до 400 МБ за месяц и занимает место, но не питание. И уж точно не помогает удаление сборки — <a href="/slots">каталог автоматов</a> в браузере расходует столько же, просто расход виден в другой строке.
+</p>
+
+<h2>Ответы на вопросы о работе клиента</h2>
+<p>
+  Десять обращений, которые приходят к оператору после первого долгого вечера.
+</p>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько заряда съедает фоновая дозагрузка?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>На большинстве телефонов это первая строка в списке расхода после экрана. Точную цифру покажет раздел батареи в настройках.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отключение фона разлогинит меня?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, сессия живёт отдельно от разрешений. Пара и второй фактор при этом не сбрасываются.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему уведомления перестали приходить сами собой?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Режим экономии заряда глушит фоновые каналы выборочно и без предупреждения. Клиент при этом выглядит рабочим.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать, если сборка греет телефон?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Закройте живую трансляцию: она держит видеопоток и греет сильнее прочего. Автоматы такого эффекта не дают.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли фон на скорость вращений?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, раунд считается на сервере. Клиент только рисует барабаны, и его настройки на исход не влияют.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сборка перестала открываться после обновления системы</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Скачайте пакет заново поверх старого, без удаления. Настройки и второй фактор сохранятся, разрешения выдаются повторно.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Кеш чистить обязательно?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Только когда на телефоне кончается место. На расход заряда и на работу счёта чистка не влияет.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли держать клиент на двух телефонах?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Держать можно, играть — только на одном. Новый вход гасит прежнюю сессию, а начатое вращение досчитается без вас.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему на iPhone нет установочного пакета?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Такие файлы ставятся не везде. Браузерная версия там полнофункциональна, интерфейс тот же.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Как вернуть фон обратно?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Тем же путём: карточка приложения в настройках телефона, разрешение на работу в фоне. Перезапуск сборки не требуется, а проверить результат можно через <a href="/zerkalo">запасной домен</a> в браузере.</p></div>
+  </div>
+</details>

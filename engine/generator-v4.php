@@ -99,11 +99,20 @@ foreach (PAGES_G as $p) {
         // ── механическая доводка четырёх счётных величин ────────────────────
         exec(sprintf('php %s/engine/dovodchik-v4.php %s %s 2>&1',
             escapeshellarg($root), escapeshellarg($out), escapeshellarg($p)), $dv);
-        foreach (array_slice($dv, -3) as $l) { if (trim($l) !== '') { stroka('доводчик: ' . $l); } }
+        // Строки с пометкой «писателю» — это то, что механикой не берётся:
+        // доля с двоеточием в H3, число списков, выделения. Раньше они только
+        // печатались и до брифа не доходили, так что писатель узнавал о них
+        // ниоткуда и не правил их вовсе.
+        $pisatelyu = [];
+        foreach ($dv as $l) {
+            if (trim($l) === '') { continue; }
+            stroka('доводчик: ' . $l);
+            if (mb_strpos($l, 'писателю') !== false) { $pisatelyu[] = trim($l); }
+        }
         $dv = [];
 
         // ── замер ───────────────────────────────────────────────────────────
-        $promahi = zamer($root, $DIR, $p);
+        $promahi = array_merge(zamer($root, $DIR, $p), $pisatelyu);
         if (!$promahi) { stroka("попытка $n — принято"); $itog[$p] = 'принято'; break; }
 
         stroka("попытка $n — мимо: " . implode(', ', array_slice($promahi, 0, 4))
