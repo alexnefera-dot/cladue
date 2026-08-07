@@ -1,0 +1,112 @@
+<h2>Уведомления клиента: какие приходят, а какие обещаны и не шлются</h2>
+<p>
+  Разрешение на уведомления в %brand_name_en% выдают один раз, а поводов для них четыре. Ещё три вещи, которых от клиента %brand_name_en% ждут чаще всего, он не присылает никогда — и это не сбой настройки.
+</p>
+<h3>Четыре повода, по которым приходит push</h3>
+<p>
+  Смена статуса выплаты, зачисление депозита, начисление по акции %brand_name_en% и техническое сообщение о переезде домена. Всё остальное идёт письмом либо не идёт вовсе.
+</p>
+<table>
+  <tbody>
+    <tr><th>Событие</th><th>Приходит push</th><th>Задержка</th></tr>
+    <tr><td>Выплата отправлена</td><td>Да</td><td>До минуты</td></tr>
+    <tr><td>Депозит зачислен</td><td>Да</td><td>Мгновенно</td></tr>
+    <tr><td>Начислен бонус</td><td>Да</td><td>До минуты</td></tr>
+    <tr><td>Смена домена</td><td>Да</td><td>В день переезда</td></tr>
+  </tbody>
+</table>
+<h3>Чего клиент не пришлёт: три ожидания впустую</h3>
+<ul>
+  <li><strong>Напоминания о лимите сессии.</strong> Счётчик работает молча</li>
+  <li><strong>Предупреждения о превышении ставки.</strong> Вейджер обнуляется без слова</li>
+  <li><strong>Сообщения о конце срока акции.</strong> Дату держите сами</li>
+</ul>
+<blockquote>
+  Переплётчик не окликает заказчика на каждом фальце. Он подаёт голос дважды: когда сшивка готова и когда что-то пошло не так.
+</blockquote>
+<h3>Порядок настройки: четыре шага</h3>
+<ol>
+  <li>Выдать разрешение при первом запуске — позже оно спрятано глубже</li>
+  <li>Открыть карточку приложения и снять экономию заряда</li>
+  <li>Проверить, что push доходит: запросить выписку из <a href="/vhod">кабинета</a></li>
+  <li>Оставить фоновый канал включённым только на время выплаты</li>
+  <li>Сверить домен, который подтянул <a href="/zerkalo">клиент</a>, с адресом из письма</li>
+</ol>
+<h3>Почему push перестал приходить</h3>
+<ul>
+  <li><strong>Режим экономии заряда.</strong> Глушит фоновые каналы выборочно</li>
+  <li><strong>Отключённый фон.</strong> Сообщение придёт при следующем запуске</li>
+  <li><strong>Старая сборка.</strong> Канал уведомлений меняется вместе с доменом</li>
+</ul>
+<h3>Письмо и push: что чем дублируется</h3>
+<p>
+  Письмо приходит всегда, push — только при разрешении. Критичные события идут обоими каналами: смена пароля, вход с нового устройства, отказ по верификации из <a href="/registracia">анкеты</a>. Некритичные — только push.
+</p>
+<p>
+  Отсюда правило: подтверждённая почта важнее уведомлений. Клиент можно снести, а ящик остаётся, и через него открывается и <a href="/zerkalo">запасной адрес</a>, и восстановление пары. Депозит, вывод, статус верификации и счётчик вейджера при этом лежат на сервере и от переустановки не страдают. <a href="/slots">Каталог слотов</a> при этом работает без всяких разрешений.
+</p>
+
+<h2>Ответы на вопросы об уведомлениях</h2>
+<p>
+  Десять обращений, которые приходят к оператору за первую неделю.
+</p>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли включить push после первого запуска?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Да, через настройки системы: карточка приложения, раздел уведомлений. В самом клиенте кнопки нет.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Приходит ли уведомление о крупном выигрыше?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. Выигрыш виден в журнале сразу, а push шлётся только по движению денег вне игры.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему push дублируется дважды?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Так бывает при двух установленных сборках. Уберите старую — канал останется один.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Уведомления расходуют трафик?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Считанные килобайты. Заряд тратит не push, а фоновая дозагрузка лобби.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли оставить только уведомления о выплатах?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>В самом клиенте выбора нет. Разделить каналы получится только средствами системы.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему не пришло сообщение о переезде домена?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Оно ушло письмом. Push по переезду шлют не всегда, потому что старая сборка к тому моменту уже не отвечает.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли отключение push на вход?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. Сессия и второй фактор живут отдельно от разрешений.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Приходят ли уведомления на iOS?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Да, если разрешение выдано при добавлении ярлыка. Отдельного пакета там нет.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать, если push идёт с задержкой в час?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Проверить режим экономии заряда: он копит фоновые сообщения и отдаёт их пачкой.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли получать уведомления письмом вместо push?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Да, письма идут независимо. Настроить это отдельно нельзя, но и отключать не нужно — они приходят всегда на <a href="/">адрес из анкеты</a>.</p></div>
+  </div>
+</details>
