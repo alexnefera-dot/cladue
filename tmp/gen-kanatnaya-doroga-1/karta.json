@@ -1,0 +1,32 @@
+{
+    "комплект": "kanatnaya-doroga-1",
+    "маска": "канатная дорога",
+    "ракурс": "механик подъёмника",
+    "рефрен": "проверка на опоре",
+    "словарь": [
+        "несущий трос",
+        "опора",
+        "кресло",
+        "натяжная станция",
+        "прижимной ролик",
+        "ветровой предел",
+        "эвакуация"
+    ],
+    "срезы": {
+        "app": "Приложение просит обновить систему: обязательно ли это",
+        "bonus": "Акция закончилась в середине отыгрыша: что с обязательством",
+        "registracia": "Счёт для гражданина другой страны: что меняется в анкете",
+        "slots": "Сортировка каталога по популярности: что она считает",
+        "vhod": "Вход в один счёт с двух устройств одновременно",
+        "zerkalo": "Сертификат просрочен на сутки: можно ли работать"
+    },
+    "промпты": {
+        "main": "tmp\/gen-kanatnaya-doroga-1\/prompt-main.md",
+        "app": "tmp\/gen-kanatnaya-doroga-1\/prompt-app.md",
+        "bonus": "tmp\/gen-kanatnaya-doroga-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-kanatnaya-doroga-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-kanatnaya-doroga-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-kanatnaya-doroga-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-kanatnaya-doroga-1\/prompt-zerkalo.md"
+    }
+}

@@ -1,0 +1,32 @@
+{
+    "комплект": "skornyazhnaya-1",
+    "маска": "скорняжная",
+    "ракурс": "скорняк",
+    "рефрен": "проба на мездре",
+    "словарь": [
+        "мездра",
+        "выделка",
+        "ворс",
+        "раскрой",
+        "подпушь",
+        "дубление",
+        "лекало"
+    ],
+    "срезы": {
+        "app": "Программа работает, а касса нет: где искать причину",
+        "bonus": "Турнирный приз и обычное начисление: чем они различаются",
+        "registracia": "Закрытие счёта по собственному желанию: что остаётся",
+        "slots": "Быстрые игры и обычные автоматы: чем различается темп",
+        "vhod": "Вход после смены телефонного оператора",
+        "zerkalo": "Поиск по названию площадки: какая строка настоящая"
+    },
+    "промпты": {
+        "main": "tmp\/gen-skornyazhnaya-1\/prompt-main.md",
+        "app": "tmp\/gen-skornyazhnaya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-skornyazhnaya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-skornyazhnaya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-skornyazhnaya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-skornyazhnaya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-skornyazhnaya-1\/prompt-zerkalo.md"
+    }
+}
