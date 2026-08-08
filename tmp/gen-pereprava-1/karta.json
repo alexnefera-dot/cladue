@@ -21,12 +21,12 @@
         "zerkalo": "Домен в другой зоне с тем же именем: как отличить"
     },
     "промпты": {
-        "main": "tmp\/gen-perepravа-1\/prompt-main.md",
-        "app": "tmp\/gen-perepravа-1\/prompt-app.md",
-        "bonus": "tmp\/gen-perepravа-1\/prompt-bonus.md",
-        "registracia": "tmp\/gen-perepravа-1\/prompt-registracia.md",
-        "slots": "tmp\/gen-perepravа-1\/prompt-slots.md",
-        "vhod": "tmp\/gen-perepravа-1\/prompt-vhod.md",
-        "zerkalo": "tmp\/gen-perepravа-1\/prompt-zerkalo.md"
+        "main": "tmp\/gen-pereprava-1\/prompt-main.md",
+        "app": "tmp\/gen-pereprava-1\/prompt-app.md",
+        "bonus": "tmp\/gen-pereprava-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-pereprava-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-pereprava-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-pereprava-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-pereprava-1\/prompt-zerkalo.md"
     }
 }

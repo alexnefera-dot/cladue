@@ -377,22 +377,57 @@ function faktura(string $imya, array &$zanyatye, bool $rezervirovat): string
     $out = '';
     $vybor = [];
     foreach ($grani as $uzel => $varianty) {
-        $luchshiy = null; $minSchet = null;
-        foreach ($varianty as $k => $v) {
-            $z = $reestr[$uzel][$v] ?? ['раз' => 0, 'когда' => 0];
-            $schet = [(int) $z['раз'], (int) $z['когда'], $k];
-            if ($minSchet === null || $schet < $minSchet) { $minSchet = $schet; $luchshiy = $v; }
+        // Своя же запись прошлого выпуска перебивает всё: перевыпуск задания
+        // не должен менять разворот под уже написанной страницей.
+        $luchshiy = null;
+        foreach ($varianty as $v) {
+            $z = $reestr[$uzel][$v] ?? ['кто' => []];
+            if (in_array($imya, (array) ($z['кто'] ?? []), true)) { $luchshiy = $v; break; }
         }
+
+        if ($luchshiy === null) {
+            // Ярус наименее занятых, а внутри яруса — жребий по имени узла.
+            //
+            // Чистое «наименее занятая, при равенстве самая давняя» давало
+            // одинаковый порядок на ВСЕХ десяти узлах: узлы резервируются
+            // вместе, поэтому счёт и давность у них совпадают до единицы.
+            // В итоге грани вращались целыми наборами — meteostanciya-1
+            // повторила разворот syrovarnya-1 полностью, до последнего узла.
+            // Жребий внутри яруса разводит узлы между собой, не ломая
+            // главного правила: сильно занятую грань ярус просто не содержит.
+            $min = null;
+            foreach ($varianty as $v) {
+                $raz = (int) ($reestr[$uzel][$v]['раз'] ?? 0);
+                if ($min === null || $raz < $min) { $min = $raz; }
+            }
+            $yarus = [];
+            foreach ($varianty as $v) {
+                if ((int) ($reestr[$uzel][$v]['раз'] ?? 0) === $min) { $yarus[] = $v; }
+            }
+            usort($yarus, fn($a, $b) => ((int) ($reestr[$uzel][$a]['когда'] ?? 0))
+                                      <=> ((int) ($reestr[$uzel][$b]['когда'] ?? 0)));
+            $luchshiy = $yarus[crc32($imya . '·' . $uzel) % count($yarus)];
+        }
+
         $vybor[$uzel] = $luchshiy;
         $out .= sprintf("  %-18s %s\n", $uzel, $luchshiy);
     }
-    if ($rezervirovat) {
-        foreach ($vybor as $uzel => $v) {
-            $z = $reestr[$uzel][$v] ?? ['раз' => 0, 'когда' => 0];
-            $reestr[$uzel][$v] = ['раз' => (int) $z['раз'] + 1, 'когда' => $shag];
-        }
-        $zanyatye['грани_шаг'] = $shag;
+    // Резерв грани не завязан на «комплект ещё не написан». У срезов такая
+    // привязка верна: сухой прогон по готовому набору не должен занимать
+    // чужое. С гранями вышло наоборот — задание перевыпускали ПОСЛЕ того, как
+    // главная уже написана, резерв не записывался, и следующий комплект
+    // получал ровно тот же разворот. Так tipografiya-1 повторила все десять
+    // граней observatoriya-1. Поэтому резерв идёт всегда, но помечается
+    // именем комплекта и потому идемпотентен: свою запись комплект узнаёт и
+    // второй раз не считает.
+    foreach ($vybor as $uzel => $v) {
+        $z = $reestr[$uzel][$v] ?? ['раз' => 0, 'когда' => 0, 'кто' => []];
+        $kto = (array) ($z['кто'] ?? []);
+        if (in_array($imya, $kto, true)) { continue; }
+        $kto[] = $imya;
+        $reestr[$uzel][$v] = ['раз' => (int) $z['раз'] + 1, 'когда' => $shag, 'кто' => $kto];
     }
+    $zanyatye['грани_шаг'] = $shag;
     return $out;
 }
 
