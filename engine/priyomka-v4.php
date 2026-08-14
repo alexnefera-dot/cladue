@@ -230,7 +230,7 @@ $nashShingle = $shingle($tekst);
 $nashZag = [];
 foreach ($hs as $x) { $nashZag[mb_strtolower($x['текст'])] = 1; }
 
-$hudshaya = 0.0; $hudshiy = '—'; $povtorZag = []; $sosed = '—';
+$hudshaya = 0.0; $hudshiy = '—'; $povtorZag = []; $sosed = '—'; $hudshieShingle = [];
 $put = is_dir($korpus) ? $korpus : $root . '/' . $korpus;
 foreach (glob(rtrim($put, '/') . '/*', GLOB_ONLYDIR) ?: [] as $other) {
     if (!is_file("$other/main.html")) { continue; }
@@ -240,7 +240,7 @@ foreach (glob(rtrim($put, '/') . '/*', GLOB_ONLYDIR) ?: [] as $other) {
     $min = min(count($nashShingle), count($os));
     if ($min) {
         $v = count(array_intersect_key($nashShingle, $os)) / $min * 100;
-        if ($v > $hudshaya) { $hudshaya = $v; $hudshiy = basename($other); }
+        if ($v > $hudshaya) { $hudshaya = $v; $hudshiy = basename($other); $hudshieShingle = $os; }
     }
     foreach (zagolovki((string) file_get_contents("$other/main.html")) as $z) {
         $k = mb_strtolower($z['текст']);
@@ -278,6 +278,33 @@ echo '  ' . ($povtorZag ? '✗' : '·') . ' ' . $pad('дословных пов�
     . $pad((string) count($povtorZag), 12) . "   нужно 0\n";
 foreach ($povtorZag as $k => $v) {
     echo '      · ' . mb_substr($k, 0, 60) . "  [$v]\n";
+}
+
+// ГДЕ именно совпало, а не только сколько.
+//
+// Процент сам по себе писателю бесполезен: он говорит, что страницу надо
+// переписывать, и молчит о том, какую её часть. На живых прогонах это стоило
+// по два-три круга вслепую — переписывали абзацы, а совпадали таблицы и
+// вопросы FAQ. Здесь печатаются блоки, у которых больше половины шинглов
+// нашлись у соседа: ровно их и надо переписать, остальное трогать незачем.
+if ($hudshaya >= $porog && $hudshieShingle) {
+    $bloki = [];
+    if (preg_match_all('~<(p|li|td|summary|blockquote)\b[^>]*>(.*?)</\1>~is', $html, $bm, PREG_SET_ORDER)) {
+        foreach ($bm as $b) {
+            $t = chist($b[2]);
+            $sh = $shingle($t);
+            if (count($sh) < 3) { continue; }
+            $dolya = count(array_intersect_key($sh, $hudshieShingle)) / count($sh);
+            if ($dolya > 0.5) { $bloki[] = [$dolya, $b[1], $t]; }
+        }
+    }
+    usort($bloki, fn($a, $b) => $b[0] <=> $a[0]);
+    if ($bloki) {
+        echo "      где совпало (доля шинглов блока, найденных у соседа):\n";
+        foreach (array_slice($bloki, 0, 12) as [$d, $tag, $t]) {
+            printf("      · %3d%% <%s> %s\n", (int) round($d * 100), $tag, mb_substr($t, 0, 70));
+        }
+    }
 }
 
 printf("\nИТОГ: %s\n", $provaly ? 'НЕ ПРОЙДЕНО — ' . implode(', ', $provaly) : 'пройдено');
