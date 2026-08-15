@@ -1,0 +1,105 @@
+<h2>Вход при отключённом времени на устройстве</h2>
+<p>
+  Часы на аппарате сбились или переведены вручную, и вход в кабинет %brand_name_en% перестал проходить. Пара верная, код приходит, а форма возвращает отказ без объяснений.
+</p>
+<p>
+  Виноват одноразовый код. Живёт он 30 секунд по единому времени, а устройство со сбитыми часами отсчитывает эти секунды в чужой точке.
+</p>
+<h3>Что ломается при расхождении часов</h3>
+<table>
+  <tbody>
+    <tr><th>Расхождение</th><th>Что перестаёт работать</th><th>Что уцелеет</th></tr>
+    <tr><td>До 30 секунд</td><td>Ничего</td><td>Всё</td></tr>
+    <tr><td>1 — 5 минут</td><td>Генератор кодов</td><td>Код в сообщении</td></tr>
+    <tr><td>Часы и больше</td><td>Расписка входа</td><td>Пароль</td></tr>
+    <tr><td>Дата в прошлом</td><td>Сертификат адреса</td><td>Ничего</td></tr>
+  </tbody>
+</table>
+<h3>Почему код зависит от времени</h3>
+<p>
+  Генератор выводит шестизначное значение из общего ключа и текущей минуты. Сервер повторяет вычисление у себя и сличает итог. При разошедшихся минутах значения окажутся разными, и мгновенный отказ придёт даже с безупречно верным ключом.
+</p>
+<h3>Порядок восстановления доступа</h3>
+<ol>
+  <li>Включить автоматическую установку времени и часового пояса</li>
+  <li>Перезапустить генератор кодов и сверить его показания с сервером</li>
+  <li>Если ключ уже сбился — войти по коду из сообщения на телефон</li>
+  <li>Проверить дату: год в прошлом ломает и проверку сертификата</li>
+  <li>Погасить чужие сессии, если в списке появилась незнакомая строка</li>
+</ol>
+<blockquote>
+  Два манометра на одной линии обязаны показывать одно. Разошлись — сперва сверяют приборы по контрольному, а не крутят задвижку наугад.
+</blockquote>
+<h3>Что при этом не страдает</h3>
+<ul>
+  <li><strong>Баланс и история ставок.</strong> Они считаются серверным временем</li>
+  <li><strong>Срок отыгрыша.</strong> Идёт по календарю сервера, а не аппарата</li>
+  <li><strong>Поданная заявка кассы.</strong> Живёт в очереди и о часах не знает</li>
+  <li><strong>Пароль.</strong> Менять его при таком отказе бессмысленно</li>
+</ul>
+<h3>Итог</h3>
+<p>
+  Отказ на входе при сбитых часах — не блокировка счёта и не след постороннего вторжения: расходятся минуты, и короткий код перестаёт сходиться. Лечится это автоматической установкой времени за минуту, а на крайний случай остаётся текстовый код в сообщении, безразличный к домашним часам устройства. Ни баланс, ни срок отыгрыша, ни очередь кассы при этом не меняются вовсе. Полезно проверить и календарную дату: прошлогоднее число ломает проверку сертификата на любом домене. Отдача и волатильность автоматов лежат в <a href="/slots">каталоге тайтлов</a>, порядок верификации и смены реквизита — в <a href="/registracia">анкете игрока</a>, запасные домены — на <a href="/zerkalo">странице обвода</a>, свежий пакет — на <a href="/app">странице программы %brand_name_en%</a>.
+</p>
+
+<h2>Частые вопросы игроков о входе в кабинет %brand_name_ru% при сбое часов</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Код не работает, хотя генератор его показывает?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Значит, местные минуты разошлись с серверными. Включите автоматическую установку времени и повторите попытку.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли войти без генератора при сбитых часах?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Да, кодом в сообщении: он от времени аппарата не зависит. Резервные коды тоже работают.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Заблокируют ли счёт после нескольких отказов?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Счёт нет, но после пяти неудачных попыток включится короткая пауза. Это заслон от перебора, а не блокировка.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему ломается проверка сертификата?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Сертификат действует между двумя датами, и аппарат сравнивает их со своей. Год в прошлом делает любой адрес подозрительным.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сдвинется ли срок отыгрыша из-за часов?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, он считается по календарю сервера. Аппарат на эту арифметику не влияет никак.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать в поездке со сменой часового пояса?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Ничего: пояс на код не влияет, важны минуты общего времени. Достаточно автоматической установки.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Слетит ли расписка при переводе часов назад?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>При переводе на часы и больше — да, браузер сочтёт её просроченной. Войти заново придётся вручную.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Виден ли вход в списке сессий при таком отказе?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, неудачная попытка сессию не создаёт. В журнале безопасности она отмечается отдельной строкой.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Помогает ли переустановка генератора кодов?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Помогает только вместе с переносом ключа. Без него вы потеряете второй фактор и уйдёте в разбор с документом.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Стоит ли менять пароль после такого отказа?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не стоит: пара исправна, дело в часах. Менять пароль имеет смысл, если в списке сессий чужая строка.</p></div>
+  </div>
+</details>
