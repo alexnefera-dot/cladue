@@ -36,6 +36,9 @@ $OUT     = rtrim($opts['выход'] ?? '', '/');
 $MASKA   = $opts['маска'] ?? '';
 $IMYA    = $opts['комплект'] ?? '';
 $KORPUS  = $opts['корпус'] ?? 'samples/v4-final';
+// Каркас можно закрепить: «дробный» оставляет только схемы на 12 и 14 H2.
+// Нужно для контролируемых партий, где число H2 — фиксируемая переменная.
+$KARKAS  = $opts['каркас'] ?? '';
 if ($OUT === '') { fwrite(STDERR, "usage: php engine/zadanie-v4.php --выход=<папка> [--маска=…] [--комплект=…]\n"); exit(1); }
 
 $root  = dirname(__DIR__);
@@ -241,7 +244,7 @@ function polya(array $prof, string $p): string
  * Поле h2 отпущено (полоса 9–15), sections держится в 42–54, и все три схемы
  * в эти рамки укладываются.
  */
-function karkas(string $imya): string
+function karkas(string $imya, string $rezhim = ''): string
 {
     $shemy = [
         "H2 — 12 штук, по узлам площадки: официальный сайт, регистрация, зеркало, вход,\n"
@@ -260,6 +263,8 @@ function karkas(string $imya): string
         . "H3 — по 2–3 под каждым H2, всего 35: поле h3_per_h2 держится в 2.5–3.3,\n"
         . "а разделов вместе с H2 должно выйти 42–54.",
     ];
+    // «дробный» выбрасывает укрупнённую схему на 10 H2: остаются 12 и 14.
+    if ($rezhim === 'дробный') { unset($shemy[1]); $shemy = array_values($shemy); }
     return $shemy[crc32($imya) % count($shemy)];
 }
 
@@ -699,7 +704,7 @@ foreach (PAGES_Z as $p) {
     $txt = $p === 'main' ? $glavnaya : $stranicy[$p];
     $txt = str_replace(
         ['@@POLYA@@', '@@RAZM@@', '@@BREND@@', '@@SUMMA@@', '@@KARKAS@@', '@@FAKTURA@@'],
-        [polya($prof, $p), razmetka($prof, $p), brend($prof, $p), summa($prof, $p), karkas($IMYA), faktura($IMYA, $maski['занято'], $novyy)],
+        [polya($prof, $p), razmetka($prof, $p), brend($prof, $p), summa($prof, $p), karkas($IMYA, $KARKAS), faktura($IMYA, $maski['занято'], $novyy)],
         $txt
     );
     $f = "$OUT/prompt-$p.md";

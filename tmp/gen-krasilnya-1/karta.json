@@ -1,0 +1,32 @@
+{
+    "комплект": "krasilnya-1",
+    "маска": "красильня",
+    "ракурс": "красильщик",
+    "рефрен": "выкраска на пробу",
+    "словарь": [
+        "чан",
+        "протрава",
+        "оттенок",
+        "закрепитель",
+        "замочка",
+        "полоскание",
+        "партия"
+    ],
+    "срезы": {
+        "app": "Приложение не ставится: не хватает места на устройстве",
+        "bonus": "Срок годности фриспинов: с какого момента он идёт",
+        "registracia": "Ошибка в номере документа при отправке пакета",
+        "slots": "Игра идёт медленнее обычного: где искать причину",
+        "vhod": "Второй фактор просят при каждом входе",
+        "zerkalo": "Адрес работает у одного оператора связи и не работает у другого"
+    },
+    "промпты": {
+        "main": "tmp\/gen-krasilnya-1\/prompt-main.md",
+        "app": "tmp\/gen-krasilnya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-krasilnya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-krasilnya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-krasilnya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-krasilnya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-krasilnya-1\/prompt-zerkalo.md"
+    }
+}

@@ -1,0 +1,32 @@
+{
+    "комплект": "koptilnya-1",
+    "маска": "коптильня",
+    "ракурс": "коптильщик",
+    "рефрен": "замер по тяге",
+    "словарь": [
+        "щепа",
+        "тяга",
+        "подвес",
+        "посол",
+        "короб",
+        "обвязка",
+        "дымоход"
+    ],
+    "срезы": {
+        "app": "Программа на двух телефонах сразу: разрешено ли это",
+        "bonus": "Ставка бонусными деньгами в живой игре: засчитают ли",
+        "registracia": "Электронная подпись вместо скана: принимают ли",
+        "slots": "Сброс настроек звука и скорости в игре",
+        "vhod": "Смена пароля во время активной сессии",
+        "zerkalo": "Адрес открывается только через мобильную сеть"
+    },
+    "промпты": {
+        "main": "tmp\/gen-koptilnya-1\/prompt-main.md",
+        "app": "tmp\/gen-koptilnya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-koptilnya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-koptilnya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-koptilnya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-koptilnya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-koptilnya-1\/prompt-zerkalo.md"
+    }
+}
