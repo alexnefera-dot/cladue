@@ -1174,8 +1174,14 @@ function bindFin() {
         : ent === 'tgt' && field === 'target_value' ? 'target_pct' : null;
       inlineVal(el, type, async v => {
         const r = await finApi.patch(ent, +id, twin ? { [field]: v, [twin]: null } : { [field]: v });
-        // без этого отказ бэкенда выглядел как «поле само не сохраняется»
-        if (r && !r.ok) alert(`Не сохранилось (${r.status}). Если поле новое — приложение собрано на старой схеме.`);
+        if (r && !r.ok) { alert(`Не сохранилось (${r.status}).`); return; }
+        // patchCols на бэкенде перебирает только разрешённые колонки: поле, которого старая сборка
+        // не знает, молча отбрасывается и возвращает 200. Поэтому проверяем, что значение реально легло.
+        if (ent === 'move' && field === 'to_note') {
+          const mv = ((await finApi.list()).targetMoves || []).find(x => x.id === +id);
+          if (mv && (mv.to_note || '') !== v)
+            alert('Подпись не сохранилась: приложение собрано до появления этого поля. Пересобери в Xcode (⌘R) — после этого запишется.');
+        }
       });
     }));
   document.querySelectorAll('[data-rate]').forEach(el =>
