@@ -75,7 +75,7 @@ function renderCal() {
     const items = byDate[date] ?? [];
     cells += `<div class="d ${date === today ? 'today' : ''}" data-date="${date}">
       <div class="n">${day}</div>
-      ${items.slice(0, 4).map(it => {
+      ${items.map(it => {
         // перетаскивается то, у чего есть одна своя дата; повторы/ДР/практики — нет
         const draggable = it.type === 'task' || it.type === 'step'
           || (it.type === 'money') || (it.type === 'event' && it.recur === 'none' && !it.bday);
@@ -85,7 +85,6 @@ function renderCal() {
           title="${cesc(it.title)}${draggable ? ' · тащи на другой день — срок изменится везде' : ''}">
           ${it.time ? it.time + ' ' : ''}${cesc(it.title)}${it.amount ? ' · ' + cfmt(it.amount) : ''}</div>`;
       }).join('')}
-      ${items.length > 4 ? `<div class="ev">+${items.length - 4} ещё…</div>` : ''}
     </div>`;
   }
 

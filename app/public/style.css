@@ -147,7 +147,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .calhead{display:flex;align-items:center;gap:10px;margin-bottom:12px}
 .cal{display:grid;grid-template-columns:repeat(7,1fr);border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel);box-shadow:var(--shadow-sm)}
 .cal .h{background:var(--bg2);padding:6px;font:10px var(--mono);color:var(--muted);text-align:center;letter-spacing:1px;border-bottom:1px solid var(--line)}
-.cal .d{min-height:86px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:5px 6px;font-size:11px;overflow:hidden}
+.cal .d{min-height:86px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:5px 6px;font-size:11px;display:flex;flex-direction:column;gap:2px}
+/* ячейка тянется под содержимое: строка сетки выравнивается по самому длинному дню */
+.cal{grid-auto-rows:minmax(86px,auto)}
 .cal .d:nth-child(7n){border-right:0}
 .cal .d .n{font:11px var(--mono);color:var(--muted);margin-bottom:3px}
 .cal .d.today{background:var(--green-soft)}
@@ -472,3 +474,4 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .spendrow{padding:3px 0}
 .spendrow:hover .rowbtn{opacity:1}
 .spendnote[data-hint]:empty::before{content:attr(data-hint);color:var(--muted)}
+.accsum{border-top:1px solid var(--line);margin-top:4px;padding-top:8px;gap:10px}

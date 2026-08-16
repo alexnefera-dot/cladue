@@ -683,6 +683,20 @@ function secAccounts(d) {
         <span class="ed num" data-fe="accounts:${a.id}:balance:num">${fmt(a.balance)} ${fesc(a.currency)}</span>
         <span class="rowbtn del" data-findel="accounts:${a.id}">✕</span>
       </div>`).join('')}
+    ${(() => {
+      // Счета — ручная разбивка того же капитала: сами по себе они ни с чем не связаны,
+      // поэтому единственное, что от них нужно, — итог, который можно сверить глазами.
+      const rate = d.summary?.rate || 1.08;
+      const byCur = {};
+      d.accounts.forEach(a => { byCur[a.currency] = (byCur[a.currency] || 0) + (a.balance || 0); });
+      const eur = d.accounts.reduce((t, a) => t + (a.currency === '$' ? (a.balance || 0) / rate : (a.balance || 0)), 0);
+      const parts = Object.entries(byCur).map(([c, v]) => `${fmt(v)} ${fesc(c)}`).join(' · ');
+      return d.accounts.length ? `<div class="task accsum">
+        <span class="meta">итого по счетам</span>
+        <span class="num" style="margin-left:auto">${parts}</span>
+        ${Object.keys(byCur).length > 1 ? `<span class="meta">≈ ${fmt(eur)} €</span>` : ''}
+      </div>` : '';
+    })()}
     <div class="task finadd">
       <input id="accName" placeholder="новый счёт: название">
       <select id="accType">${Object.entries(ACCT).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select>
