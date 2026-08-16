@@ -40,6 +40,15 @@ window.loadToday = async function () {
     fetch('/api/psy').then(r => r.json()).catch(() => ({})),
     fetch('/api/fin').then(r => r.json()).catch(() => ({})),
   ]);
+  // План недели берём из той же ленты, что календарь. Неделя может лечь на два месяца —
+  // тогда тянем оба и склеиваем, иначе половина дней окажется пустой.
+  const wkStart = tdWeekStart();
+  const months = [...new Set([0, 6].map(k => {
+    const x = new Date(wkStart); x.setDate(x.getDate() + k); return tdIso(x).slice(0, 7);
+  }))];
+  window.tdWeek = (await Promise.all(months.map(m =>
+    fetch('/api/calendar?month=' + m).then(r => r.json()).then(x => x.items || []).catch(() => []))))
+    .flat();
   window.tdSpheres = sph; window.tdRestList = rest;
   window.tdPracticeList = Array.isArray(psy.practices) ? psy.practices : [];
   window.tdFin = finx || {};
@@ -268,6 +277,54 @@ window.preflightTodayOk = async function (id) {
 
 const tdIsMobile = () => window.matchMedia('(max-width: 768px)').matches;
 
+const tdIso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const tdWeekStart = () => {   // неделя с понедельника
+  const d = new Date(); const sh = (d.getDay() + 6) % 7;
+  d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - sh); return d;
+};
+const TD_WD = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
+const TD_TYPE = { task: 'ev-task', money: 'ev-money', step: 'ev-step', event: 'ev-cal', practice: 'ev-psy' };
+
+// План недели: семь дней, дела можно перетаскивать между ними — дата меняется в первоисточнике.
+function tdWeekPlan() {
+  const items = window.tdWeek || [];
+  const start = tdWeekStart(), today = tdIso(new Date());
+  const byDate = {};
+  items.forEach(it => (byDate[it.date] ||= []).push(it));
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(start); d.setDate(d.getDate() + i); return d;
+  });
+  const load = days.map(d => (byDate[tdIso(d)] || []).length);
+  const busiest = Math.max(1, ...load);
+  return `
+  <div class="sec" style="margin-top:6px">План недели · тащи дело на другой день</div>
+  <div class="tdweek">
+    ${days.map((d, i) => {
+      const date = tdIso(d), list = byDate[date] || [], isToday = date === today;
+      const past = date < today;
+      return `<div class="tdwday${isToday ? ' now' : ''}${past ? ' past' : ''}" data-tdday="${date}">
+        <div class="tdwhead">
+          <span class="tdwd">${TD_WD[i]}</span>
+          <span class="tdwn">${d.getDate()}</span>
+          ${list.length ? `<span class="tdwcount" title="дел в этот день">${list.length}</span>` : ''}
+        </div>
+        <div class="tdwload"><i style="width:${(list.length / busiest * 100).toFixed(0)}%"></i></div>
+        <div class="tdwlist">
+          ${list.map(it => {
+            const drag = it.type === 'task' || it.type === 'step' || it.type === 'money'
+              || (it.type === 'event' && it.recur === 'none' && !it.bday);
+            return `<div class="tdwev ${TD_TYPE[it.type] || ''}${it.done ? ' evdone' : ''}"
+              ${drag ? `draggable="true" data-tdmv="${it.type}:${it.id}"` : ''}
+              ${it.type === 'task' ? `data-nid="${it.id}"` : ''}
+              title="${tesc(it.title)}${drag ? ' · тащи на другой день' : ''}">
+              ${it.time ? `<b>${it.time}</b> ` : ''}${tesc(it.title)}</div>`;
+          }).join('') || '<div class="tdwempty">—</div>'}
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
 function renderToday() {
   if (tdIsMobile()) return renderTodayMobile();
   const d = tdData;
@@ -283,6 +340,7 @@ function renderToday() {
 
   ${tdSphStrip()}
   ${tdRest()}
+  ${tdWeekPlan()}
 
   <div class="addbar" style="margin:0 0 6px">
     <input id="tdQuick" placeholder="＋ Новая задача или мысль — Enter без срока в Инбокс, или укажи дату ниже">
@@ -410,6 +468,7 @@ function renderTodayMobile() {
 
   ${tdSphStrip()}
   ${tdRest()}
+  ${tdWeekPlan()}
 
   <div class="tdchips">
     <div class="tdchip ${d.overdue.length || (d.obOverdue || []).length ? 'red' : ''}"><b>${d.dueToday.length + d.overdue.length + (d.obToday || []).length + (d.obOverdue || []).length}</b><span>дел${d.overdue.length + (d.obOverdue || []).length ? ` · ${d.overdue.length + (d.obOverdue || []).length} просроч.` : ''}</span></div>
@@ -490,7 +549,40 @@ function renderTodayMobile() {
   bindToday();
 }
 
+// Перетаскивание дел между днями недели: дата меняется в первоисточнике —
+// в задаче, шаге, платеже или событии, как и в календаре.
+function bindTdWeek() {
+  let drag = null;
+  const clear = () => document.querySelectorAll('#screen-today .tdwday.dropinto')
+    .forEach(x => x.classList.remove('dropinto'));
+  document.querySelectorAll('#screen-today [data-tdmv]').forEach(el =>
+    el.addEventListener('dragstart', e => { drag = el.dataset.tdmv; e.stopPropagation(); }));
+  document.querySelectorAll('#screen-today .tdwday[data-tdday]').forEach(cell => {
+    cell.addEventListener('dragover', e => { if (drag) { e.preventDefault(); cell.classList.add('dropinto'); } });
+    cell.addEventListener('dragleave', () => cell.classList.remove('dropinto'));
+    cell.addEventListener('drop', async e => {
+      e.preventDefault(); clear();
+      if (!drag) return;
+      const [type, id] = drag.split(':'); drag = null;
+      const date = cell.dataset.tdday;
+      const req = {
+        task: [`/api/nodes/${id}`, { due_date: date }],
+        event: [`/api/events/${id}`, { date }],
+        step: [`/api/fin/steps/${id}`, { planned_date: date }],
+        money: [`/api/fin/obligations/${id}`, { next_date: date }],
+      }[type];
+      if (!req) return;
+      const r = await fetch(req[0], { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req[1]) }).then(x => x.json()).catch(() => ({}));
+      if (r?.error) alert(r.error);
+      window.loadToday();
+    });
+    cell.addEventListener('dragend', clear);
+  });
+}
+
 function bindToday() {
+  bindTdWeek();
   document.querySelectorAll('#screen-today [data-sphopen]').forEach(el =>
     el.addEventListener('click', () => window.openSphere?.(+el.dataset.sphopen)));
   // Фокус дня: drag&drop вех для ручного приоритета (порядок сохраняется в настройке focus_order — синхронится между устройствами)

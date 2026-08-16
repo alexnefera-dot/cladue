@@ -474,3 +474,27 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .spendrow:hover .rowbtn{opacity:1}
 .spendnote[data-hint]:empty::before{content:attr(data-hint);color:var(--muted)}
 .accsum{border-top:1px solid var(--line);margin-top:4px;padding-top:8px;gap:10px}
+
+/* ═══ План недели на главной ═══ */
+.tdweek{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:14px}
+@media (max-width:900px){.tdweek{grid-auto-flow:column;grid-auto-columns:minmax(132px,1fr);
+  grid-template-columns:none;overflow-x:auto;padding-bottom:4px}}
+.tdwday{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:7px 8px;
+  min-height:104px;display:flex;flex-direction:column;gap:5px;min-width:0;transition:border-color .12s,background .12s}
+.tdwday.now{border-color:var(--green-dim);background:var(--green-soft)}
+.tdwday.past{opacity:.62}
+.tdwday.dropinto{border-color:var(--green);background:var(--green-soft)}
+.tdwhead{display:flex;align-items:baseline;gap:5px}
+.tdwd{font:10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.tdwn{font:600 15px var(--mono);font-variant-numeric:tabular-nums}
+.tdwday.now .tdwn{color:var(--green)}
+.tdwcount{margin-left:auto;font:10px var(--mono);color:var(--muted)}
+.tdwload{height:3px;border-radius:2px;background:var(--bg2);overflow:hidden}
+.tdwload i{display:block;height:100%;background:var(--green-dim);border-radius:2px}
+.tdwlist{display:flex;flex-direction:column;gap:3px;min-width:0}
+.tdwev{font-size:10.5px;line-height:1.35;padding:2px 6px;border-radius:5px;background:var(--bg2);
+  cursor:grab;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.tdwev b{font-variant-numeric:tabular-nums;font-weight:600}
+.tdwev:hover{filter:brightness(.97)}
+.tdwev.evdone{opacity:.5;text-decoration:line-through}
+.tdwempty{font:10px var(--mono);color:var(--line2)}
