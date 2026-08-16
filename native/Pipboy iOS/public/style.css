@@ -476,9 +476,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .accsum{border-top:1px solid var(--line);margin-top:4px;padding-top:8px;gap:10px}
 
 /* ═══ План недели на главной ═══ */
-.tdweek{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:14px}
+.tdweek{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:6px}
 @media (max-width:900px){.tdweek{grid-auto-flow:column;grid-auto-columns:minmax(132px,1fr);
-  grid-template-columns:none;overflow-x:auto;padding-bottom:4px}}
+  grid-template-columns:none;overflow-x:auto;padding-bottom:4px;margin-bottom:14px}}
 .tdwday{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:7px 8px;
   min-height:104px;display:flex;flex-direction:column;gap:5px;min-width:0;transition:border-color .12s,background .12s}
 .tdwday.now{border-color:var(--green-dim);background:var(--green-soft)}
@@ -498,3 +498,18 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .tdwev:hover{filter:brightness(.97)}
 .tdwev.evdone{opacity:.5;text-decoration:line-through}
 .tdwempty{font:10px var(--mono);color:var(--line2)}
+
+/* ═══ Единый блок: просрочено · сегодня · остаток недели ═══ */
+.tdboard{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.tdover{background:var(--panel);border:1px solid rgba(204,68,68,.35);border-left:3px solid var(--red);
+  border-radius:10px;padding:8px 12px}
+.tdoverhead{font:10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--red);margin-bottom:2px}
+.tdnow{background:var(--panel);border:1px solid var(--green-dim);border-left:3px solid var(--green);
+  border-radius:10px;padding:10px 12px;transition:background .12s,border-color .12s}
+.tdnow.quiet{border-color:var(--line);border-left-color:var(--line2)}
+.tdnow.dropinto,.tdover.dropinto{background:var(--green-soft);border-color:var(--green)}
+.tdnowhead{display:flex;align-items:baseline;gap:8px;margin-bottom:6px;
+  border-bottom:1px solid var(--line);padding-bottom:6px}
+.tdnowd{font:600 15px var(--mono);color:var(--green)}
+.tdnow .task{padding:4px 0}
+.tdnow .tdwev{font-size:12px;padding:3px 8px;margin-top:3px}

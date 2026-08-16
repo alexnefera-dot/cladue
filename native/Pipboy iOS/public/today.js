@@ -236,14 +236,15 @@ function tdMetricsDue() {
     </div>`).join('')}</div>`;
 }
 
-function taskLine(t) {
+function taskLine(t, hideDate) {
   return `<div class="task">
     <span class="cb ${t.kind === 'decision' ? 'dec' : ''}" data-tdtoggle="${t.id}"></span>
     ${t.priority ? `<span class="pill ${t.priority}">${t.priority}</span>` : ''}
     ${TD_KIND_LABEL[t.kind] ? `<span class="pill ${t.kind === 'decision' ? 'dec' : ''}">${TD_KIND_LABEL[t.kind]}</span>` : ''}
     <span class="t" data-tdopen="${t.id}" style="cursor:pointer">${tesc(t.title)}</span>
     ${t.repeat ? '<span class="meta">🔁</span>' : ''}
-    <span class="meta ed" data-tddate="${t.id}" data-tdtime="${t.due_time ?? ''}" title="изменить срок и время">${t.due_date ? t.due_date + (t.due_time ? ' · ' + t.due_time : '') : '＋ срок'}</span>
+    ${hideDate ? (t.due_time ? `<span class="meta">${tesc(t.due_time)}</span>` : '')
+      : `<span class="meta ed" data-tddate="${t.id}" data-tdtime="${t.due_time ?? ''}" title="изменить срок и время">${t.due_date ? t.due_date + (t.due_time ? ' · ' + t.due_time : '') : '＋ срок'}</span>`}
   </div>`;
 }
 
@@ -285,43 +286,83 @@ const tdWeekStart = () => {   // неделя с понедельника
 const TD_WD = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
 const TD_TYPE = { task: 'ev-task', money: 'ev-money', step: 'ev-step', event: 'ev-cal', practice: 'ev-psy' };
 
-// План недели: семь дней, дела можно перетаскивать между ними — дата меняется в первоисточнике.
-function tdWeekPlan() {
+// Единый блок: просроченное сверху без дат, сегодня — широкой панелью с полными строками,
+// остальные дни недели — компактной полосой. Дела тащатся между днями и в сегодня.
+function tdWeekBoard(compact) {
+  const d = tdData || {};
   const items = window.tdWeek || [];
   const start = tdWeekStart(), today = tdIso(new Date());
   const byDate = {};
   items.forEach(it => (byDate[it.date] ||= []).push(it));
-  const days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(start); d.setDate(d.getDate() + i); return d;
-  });
-  const load = days.map(d => (byDate[tdIso(d)] || []).length);
-  const busiest = Math.max(1, ...load);
-  return `
-  <div class="sec" style="margin-top:6px">План недели · тащи дело на другой день</div>
+  const days = Array.from({ length: 7 }, (_, i) => { const x = new Date(start); x.setDate(x.getDate() + i); return x; });
+  const rest = compact ? days : days.filter(x => tdIso(x) !== today);   // на узком экране сегодня остаётся в полосе
+  const busiest = Math.max(1, ...rest.map(x => (byDate[tdIso(x)] || []).length));
+
+  const over = d.overdue || [], obOver = d.obOverdue || [];
+  // задачи и платежи сегодня берём из своих списков — там полные поля; шаги и события добираем из ленты
+  const extra = (byDate[today] || []).filter(it => it.type !== 'task' && it.type !== 'money');
+  const nToday = (d.dueToday || []).length + (d.obToday || []).length + extra.length;
+  const dt = new Date();
+
+  const chip = it => {
+    const drag = it.type === 'task' || it.type === 'step' || it.type === 'money'
+      || (it.type === 'event' && it.recur === 'none' && !it.bday);
+    return `<div class="tdwev ${TD_TYPE[it.type] || ''}${it.done ? ' evdone' : ''}"
+      ${drag ? `draggable="true" data-tdmv="${it.type}:${it.id}"` : ''}
+      ${it.type === 'task' ? `data-nid="${it.id}"` : ''}
+      title="${tesc(it.title)}${drag ? ' · тащи на другой день' : ''}">
+      ${it.time ? `<b>${it.time}</b> ` : ''}${tesc(it.title)}</div>`;
+  };
+
+  if (compact) return `
+  <div class="sec">План недели · тащи дело на другой день</div>
   <div class="tdweek">
-    ${days.map((d, i) => {
-      const date = tdIso(d), list = byDate[date] || [], isToday = date === today;
-      const past = date < today;
-      return `<div class="tdwday${isToday ? ' now' : ''}${past ? ' past' : ''}" data-tdday="${date}">
-        <div class="tdwhead">
-          <span class="tdwd">${TD_WD[i]}</span>
-          <span class="tdwn">${d.getDate()}</span>
-          ${list.length ? `<span class="tdwcount" title="дел в этот день">${list.length}</span>` : ''}
-        </div>
+    ${rest.map(x => {
+      const date = tdIso(x), list = byDate[date] || [], past = date < today;
+      return `<div class="tdwday${date === today ? ' now' : ''}${past ? ' past' : ''}" data-tdday="${date}">
+        <div class="tdwhead"><span class="tdwd">${TD_WD[(x.getDay() + 6) % 7]}</span>
+          <span class="tdwn">${x.getDate()}</span>
+          ${list.length ? `<span class="tdwcount">${list.length}</span>` : ''}</div>
         <div class="tdwload"><i style="width:${(list.length / busiest * 100).toFixed(0)}%"></i></div>
-        <div class="tdwlist">
-          ${list.map(it => {
-            const drag = it.type === 'task' || it.type === 'step' || it.type === 'money'
-              || (it.type === 'event' && it.recur === 'none' && !it.bday);
-            return `<div class="tdwev ${TD_TYPE[it.type] || ''}${it.done ? ' evdone' : ''}"
-              ${drag ? `draggable="true" data-tdmv="${it.type}:${it.id}"` : ''}
-              ${it.type === 'task' ? `data-nid="${it.id}"` : ''}
-              title="${tesc(it.title)}${drag ? ' · тащи на другой день' : ''}">
-              ${it.time ? `<b>${it.time}</b> ` : ''}${tesc(it.title)}</div>`;
-          }).join('') || '<div class="tdwempty">—</div>'}
-        </div>
+        <div class="tdwlist">${list.map(chip).join('') || '<div class="tdwempty">—</div>'}</div>
       </div>`;
     }).join('')}
+  </div>`;
+
+  return `
+  <div class="sec">План недели · тащи дело на другой день</div>
+  <div class="tdboard">
+    ${over.length || obOver.length ? `<div class="tdover" data-tdday="${today}">
+      <div class="tdoverhead">⚠ Просрочено · ${over.length + obOver.length}</div>
+      ${over.map(t => taskLine(t, true)).join('')}${obOver.map(obLine).join('')}
+    </div>` : ''}
+
+    <div class="tdnow${nToday ? '' : ' quiet'}" data-tdday="${today}">
+      <div class="tdnowhead">
+        <span class="tdnowd">Сегодня</span>
+        <span class="meta">${TD_WD[(dt.getDay() + 6) % 7]}, ${dt.getDate()} ${MON[dt.getMonth()]}</span>
+        <span class="meta" style="margin-left:auto">${nToday ? nToday + ' дел' : 'свободно'}</span>
+      </div>
+      ${(d.dueToday || []).map(t => taskLine(t, true)).join('')}
+      ${(d.obToday || []).map(obLine).join('')}
+      ${extra.map(chip).join('')}
+      ${nToday ? '' : '<div class="empty">сроков на сегодня нет — поставь дедлайны или перетащи дело сюда</div>'}
+    </div>
+
+    <div class="tdweek">
+      ${rest.map(x => {
+        const date = tdIso(x), list = byDate[date] || [], past = date < today;
+        return `<div class="tdwday${past ? ' past' : ''}" data-tdday="${date}">
+          <div class="tdwhead">
+            <span class="tdwd">${TD_WD[(x.getDay() + 6) % 7]}</span>
+            <span class="tdwn">${x.getDate()}</span>
+            ${list.length ? `<span class="tdwcount">${list.length}</span>` : ''}
+          </div>
+          <div class="tdwload"><i style="width:${(list.length / busiest * 100).toFixed(0)}%"></i></div>
+          <div class="tdwlist">${list.map(chip).join('') || '<div class="tdwempty">—</div>'}</div>
+        </div>`;
+      }).join('')}
+    </div>
   </div>`;
 }
 
@@ -340,7 +381,7 @@ function renderToday() {
 
   ${tdSphStrip()}
   ${tdRest()}
-  ${tdWeekPlan()}
+  ${tdWeekBoard()}
 
   <div class="addbar" style="margin:0 0 6px">
     <input id="tdQuick" placeholder="＋ Новая задача или мысль — Enter без срока в Инбокс, или укажи дату ниже">
@@ -381,13 +422,6 @@ function renderToday() {
         </div>`).join('') || '<div class="empty">добавь рутины в разделе ↻</div>'}
       ${rts.length > 5 ? `<div class="meta" style="cursor:pointer" data-tdgoto="routines">все ${rts.length} →</div>` : ''}</div>
   </div>
-
-  ${d.overdue.length || (d.obOverdue || []).length ? `<div class="sec" style="color:var(--red)">⚠ Просрочено</div>
-  <div class="card">${d.overdue.map(taskLine).join('')}${(d.obOverdue || []).map(obLine).join('')}</div>` : ''}
-
-  <div class="sec">Задачи на сегодня</div>
-  <div class="card">${(d.dueToday.map(taskLine).join('') + (d.obToday || []).map(obLine).join('')) ||
-    '<div class="empty">сроков на сегодня нет — поставь дедлайны в Задачах</div>'}</div>
 
   ${tdMetricsDue()}
   ${tdPractices()}
@@ -447,7 +481,8 @@ function renderTodayMobile() {
     ${TD_KIND_LABEL[t.kind] ? `<span class="pill ${t.kind === 'decision' ? 'dec' : ''}">${TD_KIND_LABEL[t.kind]}</span>` : ''}
     <span class="t" data-tdopen="${t.id}">${tesc(t.title)}</span>
     ${t.repeat ? '<span class="meta">🔁</span>' : ''}
-    <span class="meta ed" data-tddate="${t.id}" data-tdtime="${t.due_time ?? ''}" title="изменить срок и время">${t.due_date ? t.due_date + (t.due_time ? ' · ' + t.due_time : '') : '＋ срок'}</span>
+    ${hideDate ? (t.due_time ? `<span class="meta">${tesc(t.due_time)}</span>` : '')
+      : `<span class="meta ed" data-tddate="${t.id}" data-tdtime="${t.due_time ?? ''}" title="изменить срок и время">${t.due_date ? t.due_date + (t.due_time ? ' · ' + t.due_time : '') : '＋ срок'}</span>`}
   </div>`;
 
   const checkin = d.checkin
@@ -468,7 +503,7 @@ function renderTodayMobile() {
 
   ${tdSphStrip()}
   ${tdRest()}
-  ${tdWeekPlan()}
+  ${tdWeekBoard(true)}
 
   <div class="tdchips">
     <div class="tdchip ${d.overdue.length || (d.obOverdue || []).length ? 'red' : ''}"><b>${d.dueToday.length + d.overdue.length + (d.obToday || []).length + (d.obOverdue || []).length}</b><span>дел${d.overdue.length + (d.obOverdue || []).length ? ` · ${d.overdue.length + (d.obOverdue || []).length} просроч.` : ''}</span></div>
