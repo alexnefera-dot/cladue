@@ -1,0 +1,32 @@
+{
+    "комплект": "chaynaya-1",
+    "маска": "чайная развесочная",
+    "ракурс": "титестер",
+    "рефрен": "проба на настое",
+    "словарь": [
+        "купаж",
+        "типс",
+        "настой",
+        "заварной чайник",
+        "фракция",
+        "аромат",
+        "навеска"
+    ],
+    "срезы": {
+        "app": "Клиент открывается белым экраном после запуска",
+        "bonus": "Два начисления пришли в один день: что отыгрывать первым",
+        "registracia": "Аккаунт заведён по приглашению: чем он отличается",
+        "slots": "Ставка не принимается при достаточном балансе",
+        "vhod": "Сессия обрывается через несколько минут",
+        "zerkalo": "Домен открылся с чужим оформлением"
+    },
+    "промпты": {
+        "main": "tmp\/gen-chaynaya-1\/prompt-main.md",
+        "app": "tmp\/gen-chaynaya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-chaynaya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-chaynaya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-chaynaya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-chaynaya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-chaynaya-1\/prompt-zerkalo.md"
+    }
+}
