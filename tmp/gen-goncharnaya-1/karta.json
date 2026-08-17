@@ -1,0 +1,32 @@
+{
+    "комплект": "goncharnaya-1",
+    "маска": "гончарная",
+    "ракурс": "гончар",
+    "рефрен": "проба на обжиг",
+    "словарь": [
+        "круг",
+        "глазурь",
+        "обжиг",
+        "черепок",
+        "шликер",
+        "утиль",
+        "садка в печь"
+    ],
+    "срезы": {
+        "app": "Значок сборки пропал с экрана после перезагрузки",
+        "bonus": "Подарок за пополнение новым способом оплаты",
+        "registracia": "Подтверждение почты не приходит: куда смотреть",
+        "slots": "Одинаковые слоты с разной отдачей у двух площадок",
+        "vhod": "Код подтверждения приходит с опозданием на час",
+        "zerkalo": "Адрес сменился во время игры: что с открытым тайтлом"
+    },
+    "промпты": {
+        "main": "tmp\/gen-goncharnaya-1\/prompt-main.md",
+        "app": "tmp\/gen-goncharnaya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-goncharnaya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-goncharnaya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-goncharnaya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-goncharnaya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-goncharnaya-1\/prompt-zerkalo.md"
+    }
+}

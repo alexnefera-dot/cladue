@@ -1,0 +1,32 @@
+{
+    "комплект": "maslobojnya-1",
+    "маска": "маслобойня",
+    "ракурс": "маслобой",
+    "рефрен": "отжим на пробу",
+    "словарь": [
+        "жмых",
+        "отжим",
+        "пресс",
+        "семя",
+        "отстой",
+        "фильтр",
+        "налив"
+    ],
+    "срезы": {
+        "app": "Сборка не открывается после смены сим-карты",
+        "bonus": "Отыгрыш закрыт, а деньги не переехали в основной баланс",
+        "registracia": "Имя латиницей в документе и кириллицей в анкете",
+        "slots": "Ставка не принимается: нижний номинал и его причины",
+        "vhod": "Выход не срабатывает: кабинет открывается снова",
+        "zerkalo": "Ссылка из переписки с поддержкой: можно ли ей верить"
+    },
+    "промпты": {
+        "main": "tmp\/gen-maslobojnya-1\/prompt-main.md",
+        "app": "tmp\/gen-maslobojnya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-maslobojnya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-maslobojnya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-maslobojnya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-maslobojnya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-maslobojnya-1\/prompt-zerkalo.md"
+    }
+}
