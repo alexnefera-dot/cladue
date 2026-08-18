@@ -7,7 +7,14 @@ declare(strict_types=1);
  * без tool-use — чистый Messages API. Стоимость ≈ вход(промпт) + выход(страница).
  *
  *   php realize.php --prompt=path/to/prompt-main.md --out=path/to/main.html \
- *       [--model=claude-opus-4-8] [--max-tokens=16000] [--effort=medium] [--register=expert]
+ *       [--model=claude-opus-5] [--max-tokens=16000] [--effort=medium] [--register=expert] \
+ *       [--профиль=engine/data-v5/profil-v5.json]
+ *
+ * Инварианты системного промпта раньше были зашиты в код и описывали поколение
+ * v2: финальный JSON-LD и зачин «%brand_name_ru%. …». Корпус v5 не делает ни
+ * того, ни другого — микроданные Question/Answer вместо JSON-LD, opener_name
+ * ноль, кириллица на внутренних ноль. С --профиль= эти строки собираются из
+ * профиля, поэтому смена поколения больше не требует правки кода.
  *
  * Авторизация: ANTHROPIC_API_KEY (x-api-key) или ANTHROPIC_AUTH_TOKEN (Bearer+oauth).
  * Прокси/TLS среды подхватываются автоматически (HTTPS_PROXY, /root/.ccr/ca-bundle.crt).
@@ -20,11 +27,13 @@ foreach (array_slice($argv, 1) as $a) {
 }
 $promptFile = $opts['prompt'] ?? '';
 $outFile    = $opts['out'] ?? '';
-$model      = $opts['model'] ?? 'claude-opus-4-8';
+$model      = $opts['model'] ?? 'claude-opus-5';
 $maxTokens  = (int)($opts['max-tokens'] ?? 16000);
 $effort     = $opts['effort'] ?? 'medium';         // low|medium|high|xhigh|max
 $register   = $opts['register'] ?? '';             // подсказка регистра (опц.)
 $mode       = $opts['mode'] ?? 'realize';          // realize | fix
+$profilFile = $opts['профиль'] ?? '';
+$SUHOJ      = isset($opts['сухой']);      // собрать запрос и показать, не вызывая модель
 
 if ($promptFile === '' || !is_file($promptFile)) { fwrite(STDERR, "нет --prompt файла\n"); exit(1); }
 if ($outFile === '') { fwrite(STDERR, "нет --out файла\n"); exit(1); }
@@ -32,21 +41,45 @@ $prompt = (string) file_get_contents($promptFile);
 
 // ── системный промпт (роль + инварианты) ───────────────────────────────────
 $regLine = $register !== '' ? "\nРегистр этой связки: {$register} — держи его на всей странице." : '';
+
+/**
+ * Инварианты поколения. Без профиля остаются прежние строки: старые прогоны
+ * должны воспроизводиться дословно.
+ */
+$prof = null;
+if ($profilFile !== '') {
+    $prof = json_decode((string) file_get_contents($profilFile), true);
+    if (!$prof) { fwrite(STDERR, "не читается профиль: $profilFile\n"); exit(1); }
+}
+if ($prof) {
+    $zapret = [];
+    foreach ($prof['запреты'] ?? [] as $pole => $txt) { $zapret[] = '  — ' . $txt; }
+    $inv = "- Разметка FAQ: " . ($prof['FAQ']['разметка'] ?? 'микроданные Question/Answer')
+        . ". JSON-LD не ставь.\n"
+        . "- Зачин НЕ начинается с имени площадки: opener_name у доноров ноль.\n"
+        . "- Финал: " . ($prof['структура']['финал']['задание'] ?? 'FAQ последним H2') . "\n"
+        . "- Обращение: " . ($prof['регистр']['адресация'] ?? 'вы') . "\n"
+        . "- Запреты (ноль у доноров):\n" . implode("\n", $zapret);
+} else {
+    $inv = "- Каждая страница начинается с «%brand_name_ru%. …».\n"
+        . "- Финальный <script type=\"application/ld+json\"> обязателен.";
+}
 if ($mode === 'fix') {
     // корректирующий проход verify-loop: правим ТОЛЬКО перечисленное в брифе
     $system =
 "Ты — корректирующий проход авто-реалайзера казино-контента. На входе БРИФ (что вылетело за цель) и ТЕКУЩИЙ HTML. Примени ТОЛЬКО правки из брифа, точечно.
 Правила:
 - Верни ТОЛЬКО исправленный HTML-фрагмент тела (как в оригинале: <p>/<h2>/<h3>/<ul>/<table>/<blockquote> + финальный JSON-LD). Без markdown и пояснений.
-- Сохрани всё, что уже в норме: объём, структуру, таблицы, %brand_%-переменные, JSON-LD, дата-штамп, существующие ссылки без self-link.
+- Сохрани всё, что уже в норме: объём, структуру, таблицы, %brand_%-переменные, разметку FAQ, дата-штамп, существующие ссылки без self-link.
 - «ЦИФРЫ убери N» → перепиши N чисел ИЗ ПРОЗЫ словами; числа в таблицах/фактуре не трогай. «КЛАСТЕР ниже» → добавь абзац/пункты по теме СЛОВАМИ (без новых цифр). «КЛАСТЕР выше» → проредь ключи синонимами. «СУЩНОСТИ убери N» → убери N названий игр/провайдеров из прозы. «ТОШНОТА» → снизь повтор частых слов. H3/ВЫДЕЛЕНИЯ/FAQ/ОБЪЁМ — как сказано.
 - Регистр не меняй.{$regLine}";
 } else {
     $system =
 "Ты — авто-реалайзер SEO-контента для казино под Яндекс. На входе — готовый ПРОМПТ с жёсткими целями; на выходе — ОДНА готовая HTML-страница.
 Правила:
-- Верни ТОЛЬКО HTML-фрагмент тела: <p>,<h2>,<h3>,<ul>/<li>,<table>,<blockquote> и финальный <script type=\"application/ld+json\">. Без <html>/<head>/<body>, без markdown-обёрток, без пояснений до или после.
-- Бренд/домен/дата — строго переменные %brand_name_ru%, %brand_name_en%, %domain_name%, %date%. Не выдумывай имя бренда. Каждая страница начинается с «%brand_name_ru%. …».
+- Верни ТОЛЬКО HTML-фрагмент тела: <p>,<h2>,<h3>,<ul>/<li>,<table>,<blockquote>, блоки FAQ. Без <html>/<head>/<body>, без markdown-обёрток, без пояснений до или после.
+- Бренд/домен/дата — строго переменные %brand_name_ru%, %brand_name_en%, %domain_name%, %date%. Имя площадки не выдумывай.
+{$inv}
 - Соблюдай цели промпта: объём (±10%, НЕ занижай), H2/H3, списки, таблицы, цитаты, <strong>, вставки бренда ру/англ, эмодзи, перелинковку (кол-во и анкоры, без self-ссылок).
 - Цифры бери только из блока ФАКТУРА и таблиц — не выдумывай лишних чисел. Семантические кластеры добивай ТЕМАТИЧЕСКИМИ СЛОВАМИ, не цифрами. Сущности — не больше указанного. FAQ при цели ≤1 не делай.
 - Принцип: воспроизвести корпус, не превзойти.{$regLine}";
@@ -62,6 +95,15 @@ $body = [
     'messages'    => [[ 'role' => 'user', 'content' => $prompt ]],
 ];
 $payload = json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+// Сухой прогон: показать, что именно уйдёт в модель. Нужен, чтобы проверять
+// инварианты системного промпта без расхода токенов и без ключа.
+if ($SUHOJ) {
+    fwrite(STDERR, "── системный промпт ──\n" . $system . "\n\n"
+        . sprintf("── запрос ── модель %s, max_tokens %d, effort %s, промпт %d знаков\n",
+            $model, $maxTokens, $effort, mb_strlen($prompt)));
+    exit(0);
+}
 
 // ── авторизация ────────────────────────────────────────────────────────────
 // Приоритет: env ANTHROPIC_API_KEY → env ANTHROPIC_AUTH_TOKEN → файл-ключ.

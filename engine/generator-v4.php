@@ -5,8 +5,8 @@ declare(strict_types=1);
  * Генератор семистраничного комплекта: задание → написание → замер → правка.
  *
  *   php engine/generator-v4.php --комплект=kran-1 [--маска=портовый кран]
- *        [--выход=samples/v4-final] [--попыток=3] [--модель=claude-opus-4-8]
- *        [--только=main,slots] [--сухой]
+ *        [--выход=samples/v5-final] [--попыток=3] [--модель=claude-opus-5]
+ *        [--только=main,slots] [--сухой] [--профиль=engine/data-v5/profil-v5.json]
  *
  * Один прогон делает то же, что человек делал руками всю эту ветку, но по
  * порядку и с проверкой на каждом шаге:
@@ -42,8 +42,17 @@ $IMYA    = $opts['комплект'] ?? '';
 $MASKA   = $opts['маска'] ?? '';
 $VYHOD   = rtrim($opts['выход'] ?? 'samples/v4-final', '/');
 $POPYTOK = (int) ($opts['попыток'] ?? 3);
-$MODEL   = $opts['модель'] ?? 'claude-opus-4-8';
+$MODEL   = $opts['модель'] ?? 'claude-opus-5';
 $SUHOY   = isset($opts['сухой']);
+// Профиль поколения прокидывается во ВСЕ шаги разом: задание, реалайзер,
+// доводчик и обе приёмки. Разные профили на разных шагах — это комплект,
+// который пишется по одному поколению, а принимается по другому.
+$PROFIL  = $opts['профиль'] ?? '';
+$P       = $PROFIL !== '' ? ' --профиль=' . escapeshellarg($PROFIL) : '';
+// Уникальность сверяется с тем корпусом, в который комплект и пишется. Без
+// этого приёмка внутри генератора брала корпус по умолчанию и ловила повтор
+// заголовка с чужим поколением.
+$K       = ' --korpus=' . escapeshellarg($VYHOD);
 $TOLKO   = isset($opts['только']) ? explode(',', (string) $opts['только']) : PAGES_G;
 if ($IMYA === '' && $MASKA === '') {
     fwrite(STDERR, "usage: php engine/generator-v4.php --комплект=<имя> [--маска=…] [--сухой]\n");
@@ -64,6 +73,7 @@ $cmd = sprintf('php %s/engine/zadanie-v4.php --выход=%s --корпус=%s',
     escapeshellarg($root), escapeshellarg($TMP), escapeshellarg($VYHOD));
 if ($MASKA !== '') { $cmd .= ' --маска=' . escapeshellarg($MASKA); }
 if ($IMYA !== '')  { $cmd .= ' --комплект=' . escapeshellarg($IMYA); }
+$cmd .= $P;
 exec($cmd . ' 2>&1', $vyv, $rc);
 foreach ($vyv as $l) { stroka($l); }
 if ($rc !== 0) { fwrite(STDERR, "задание не собралось\n"); exit(1); }
@@ -87,6 +97,7 @@ foreach (PAGES_G as $p) {
             $rez = "$TMP/$p-попытка-$n.html";
             $c = sprintf('php %s/engine/realize.php --prompt=%s --out=%s --model=%s --max-tokens=32000',
                 escapeshellarg($root), escapeshellarg($prompt), escapeshellarg($rez), escapeshellarg($MODEL));
+            $c .= $P;
             if ($n > 1) { $c .= ' --mode=fix'; }
             exec($c . ' 2>&1', $rv, $rc2);
             if ($rc2 !== 0) { stroka('модель не ответила: ' . implode(' ', array_slice($rv, -2))); break; }
@@ -97,8 +108,8 @@ foreach (PAGES_G as $p) {
         }
 
         // ── механическая доводка четырёх счётных величин ────────────────────
-        exec(sprintf('php %s/engine/dovodchik-v4.php %s %s 2>&1',
-            escapeshellarg($root), escapeshellarg($out), escapeshellarg($p)), $dv);
+        exec(sprintf('php %s/engine/dovodchik-v4.php %s %s%s 2>&1',
+            escapeshellarg($root), escapeshellarg($out), escapeshellarg($p), $P), $dv);
         // Строки с пометкой «писателю» — это то, что механикой не берётся:
         // доля с двоеточием в H3, число списков, выделения. Раньше они только
         // печатались и до брифа не доходили, так что писатель узнавал о них
@@ -112,7 +123,7 @@ foreach (PAGES_G as $p) {
         $dv = [];
 
         // ── замер ───────────────────────────────────────────────────────────
-        $promahi = array_merge(zamer($root, $DIR, $p), $pisatelyu);
+        $promahi = array_merge(zamer($root, $DIR, $p, $P, $K), $pisatelyu);
         if (!$promahi) { stroka("попытка $n — принято"); $itog[$p] = 'принято'; break; }
 
         stroka("попытка $n — мимо: " . implode(', ', array_slice($promahi, 0, 4))
@@ -129,7 +140,8 @@ foreach (PAGES_G as $p) {
 
 // ── 6. приёмка комплекта ────────────────────────────────────────────────────
 shag('приёмка комплекта');
-exec(sprintf('php %s/engine/priyomka-komplekt.php %s 2>&1', escapeshellarg($root), escapeshellarg($DIR)), $kv, $krc);
+exec(sprintf('php %s/engine/priyomka-komplekt.php %s%s%s 2>&1',
+    escapeshellarg($root), escapeshellarg($DIR), $K, $P), $kv, $krc);
 $hvost = [];
 foreach ($kv as $l) { if (preg_match('~✗|ИТОГ~u', $l)) { $hvost[] = trim($l); } }
 foreach ($hvost as $l) { stroka($l); }
@@ -159,12 +171,19 @@ printf("   папка:    %s\n   промпты:  %s\n", $DIR, $TMP);
 exit($krc === 0 ? 0 : 1);
 
 
-/** Замер страницы: список промахов «поле было→нужно». Пусто — принято. */
-function zamer(string $root, string $dir, string $p): array
+/**
+ * Замер страницы: список промахов «поле было→нужно». Пусто — принято.
+ *
+ * Профиль передаётся параметром, а не через глобальную: в функции она не
+ * видна, и обе приёмки молча меряли по августовским полосам, пока комплект
+ * писался по новым.
+ */
+function zamer(string $root, string $dir, string $p, string $prof = '', string $korp = ''): array
 {
     $bad = [];
     if ($p === 'main') {
-        exec(sprintf('php %s/engine/priyomka-v4.php %s 2>&1', escapeshellarg($root), escapeshellarg($dir)), $v);
+        exec(sprintf('php %s/engine/priyomka-v4.php %s%s%s 2>&1',
+            escapeshellarg($root), escapeshellarg($dir), $korp, $prof), $v);
         foreach ($v as $l) {
             if (preg_match('~^\s*✗\s+(.+?)\s{2,}(\S+)\s+нужно\s+(\S+)~u', $l, $m)) {
                 $bad[] = trim($m[1]) . ' ' . $m[2] . '→' . $m[3];
@@ -173,7 +192,7 @@ function zamer(string $root, string $dir, string $p): array
             }
         }
     }
-    return array_merge($bad, razmetkaPromahi($root, $dir, $p));
+    return array_merge($bad, razmetkaPromahi($root, $dir, $p, $prof, $korp));
 }
 
 /** Бриф на правку: что мимо, на сколько и чего трогать нельзя. */
@@ -213,13 +232,13 @@ TXT;
  * писатель ещё держит её в руках, — иначе правка приедет в самом конце, когда
  * возвращаться к тексту дороже.
  */
-function razmetkaPromahi(string $root, string $dir, string $p): array
+function razmetkaPromahi(string $root, string $dir, string $p, string $prof = '', string $korp = ''): array
 {
     static $kesh = [];
-    $klyuch = $dir;
+    $klyuch = $dir . '|' . $prof . '|' . $korp;
     if (!isset($kesh[$klyuch])) {
-        exec(sprintf('php %s/engine/priyomka-komplekt.php %s 2>&1',
-            escapeshellarg($root), escapeshellarg($dir)), $v);
+        exec(sprintf('php %s/engine/priyomka-komplekt.php %s%s%s 2>&1',
+            escapeshellarg($root), escapeshellarg($dir), $korp, $prof), $v);
         $kesh[$klyuch] = $v;
     }
     $bad = [];
