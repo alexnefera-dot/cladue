@@ -7,6 +7,7 @@ declare(strict_types=1);
  *   php engine/generator-v4.php --комплект=kran-1 [--маска=портовый кран]
  *        [--выход=samples/v5-final] [--попыток=3] [--модель=claude-opus-5]
  *        [--только=main,slots] [--сухой] [--профиль=engine/data-v5/profil-v5.json]
+ *        [--сводок=2]
  *
  * Один прогон делает то же, что человек делал руками всю эту ветку, но по
  * порядку и с проверкой на каждом шаге:
@@ -30,6 +31,8 @@ declare(strict_types=1);
  * --сухой: пройти весь цикл без вызовов модели. Промпты собираются, замер идёт
  * по уже лежащим файлам. Нужен, чтобы проверять сам конвейер без расхода токенов.
  */
+
+require_once __DIR__ . '/src/PageMetrics.php';
 
 const PAGES_G = ['main', 'app', 'bonus', 'registracia', 'slots', 'vhod', 'zerkalo'];
 
@@ -123,7 +126,7 @@ foreach (PAGES_G as $p) {
         $dv = [];
 
         // ── замер ───────────────────────────────────────────────────────────
-        $promahi = array_merge(zamer($root, $DIR, $p, $P, $K), $pisatelyu);
+        $promahi = array_merge(zamer($root, $DIR, $p, $P, $K, $PROFIL), $pisatelyu);
         if (!$promahi) { stroka("попытка $n — принято"); $itog[$p] = 'принято'; break; }
 
         stroka("попытка $n — мимо: " . implode(', ', array_slice($promahi, 0, 4))
@@ -145,6 +148,59 @@ exec(sprintf('php %s/engine/priyomka-komplekt.php %s%s%s 2>&1',
 $hvost = [];
 foreach ($kv as $l) { if (preg_match('~✗|ИТОГ~u', $l)) { $hvost[] = trim($l); } }
 foreach ($hvost as $l) { stroka($l); }
+
+/**
+ * Межстраничные промахи по страницам.
+ *
+ * Граф ссылок, сумма бренда и смещение видны только на собранном комплекте:
+ * пока пишется четвёртая страница, про ссылки с седьмой сказать нечего. Раньше
+ * эти строки печатались в самом конце и никому не отдавались — комплект уходил
+ * непринятым, а править было уже некому.
+ */
+function komplektnyePoStranicam(array $vyvod): array
+{
+    $po = [];
+    foreach ($vyvod as $l) {
+        $l = trim($l);
+        if (strpos($l, '✗') === false) { continue; }
+        $t = preg_replace('~^✗\s*~u', '', $l);
+        // «ссылок с /registracia 0 нужно 3–11» → правит сама registracia
+        if (preg_match('~ссылок с /(\w+)~u', $t, $m) && in_array($m[1], PAGES_G, true)) { $po[$m[1]][] = $t; continue; }
+        if (preg_match('~ссылок с главной~u', $t)) { $po['main'][] = $t; continue; }
+        // «main · выделений 7 норма 25–67» и «app 30/32 94% — поле a→b»
+        if (preg_match('~^(\w+)\s*(?:·|\d+/\d+)~u', $t, $m) && in_array($m[1], PAGES_G, true)) { $po[$m[1]][] = $t; continue; }
+        // сумма бренда и смещение — общие: их набирают все страницы, начинаем с главной
+        $po['main'][] = $t;
+    }
+    return $po;
+}
+
+// ── 6а. сводка: межстраничные промахи обратно писателю ──────────────────────
+$SVODOK = (int) ($opts['сводок'] ?? 2);
+for ($krug = 1; $krug <= $SVODOK && $krc !== 0 && !$SUHOY; $krug++) {
+    $po = komplektnyePoStranicam($kv);
+    if (!$po) { break; }
+    shag("сводка $krug: правка по комплекту");
+    foreach ($po as $p => $spisok) {
+        $out = "$DIR/$p.html";
+        if (!is_file($out)) { continue; }
+        stroka("$p: " . implode('; ', array_slice($spisok, 0, 3)));
+        $fix = "$TMP/prompt-$p.md.svodka";
+        file_put_contents($fix, brief("$TMP/prompt-$p.md", $out, $spisok));
+        $c = sprintf('php %s/engine/realize.php --prompt=%s --out=%s --model=%s --max-tokens=32000%s --mode=fix',
+            escapeshellarg($root), escapeshellarg($fix), escapeshellarg($out), escapeshellarg($MODEL), $P);
+        exec($c . ' 2>&1', $rv, $rc2);
+        if ($rc2 !== 0) { stroka('  модель не ответила: ' . implode(' ', array_slice($rv, -1))); }
+        exec(sprintf('php %s/engine/dovodchik-v4.php %s %s%s 2>&1',
+            escapeshellarg($root), escapeshellarg($out), escapeshellarg($p), $P), $dv2);
+    }
+    $kv = [];
+    exec(sprintf('php %s/engine/priyomka-komplekt.php %s%s%s 2>&1',
+        escapeshellarg($root), escapeshellarg($DIR), $K, $P), $kv, $krc);
+    $hvost = [];
+    foreach ($kv as $l) { if (preg_match('~✗|ИТОГ~u', $l)) { $hvost[] = trim($l); } }
+    foreach ($hvost as $l) { stroka($l); }
+}
 
 // ── 7. занять маску и срезы, если комплект принят ───────────────────────────
 if ($krc === 0 && !$SUHOY) {
@@ -178,9 +234,41 @@ exit($krc === 0 ? 0 : 1);
  * видна, и обе приёмки молча меряли по августовским полосам, пока комплект
  * писался по новым.
  */
-function zamer(string $root, string $dir, string $p, string $prof = '', string $korp = ''): array
+/**
+ * Промахи страницы по держимым полям профиля — тот же коридор, что у приёмки.
+ *
+ * Раньше внутренние страницы во время цикла не мерились вовсе: единственным
+ * источником промахов для них была приёмка КОМПЛЕКТА, а она на неполной папке
+ * выходит с «нет страниц: …» и не печатает ни одной строки. Каждая внутренняя
+ * объявлялась принятой с первой попытки, и её промахи всплывали в самом конце,
+ * когда правкой заниматься уже некому.
+ */
+function poleaPromahi(string $file, string $tip, string $profFile): array
 {
+    if ($profFile === '' || !is_file($file)) { return []; }
+    $prof = json_decode((string) file_get_contents($profFile), true);
+    $polya = $prof['страницы'][$tip]['поля'] ?? [];
+    if (!$polya) { return []; }
+    $html = preg_replace('~<(?![a-zA-Z/!?])~', '&lt;', (string) file_get_contents($file));
+    $card = PageMetrics::measure(new Analyzer(), $tip, $html,
+        ['ru' => '%brand_name_ru%', 'en' => '%brand_name_en%']);
     $bad = [];
+    foreach ($polya as $k => $c) {
+        if (empty($c['держат']) || !isset($card[$k])) { continue; }
+        $nashe = (float) $card[$k];
+        $cel = (float) $c['цель'];
+        $pol = !empty($c['дробное']) ? 0.8 : 2.0;
+        if (abs($nashe - $cel) > max(0.25 * abs($cel), $pol)) {
+            $bad[] = sprintf('%s %s→%s', $k, rtrim(rtrim(number_format($nashe, 1, '.', ''), '0'), '.'),
+                rtrim(rtrim(number_format($cel, 1, '.', ''), '0'), '.'));
+        }
+    }
+    return $bad;
+}
+
+function zamer(string $root, string $dir, string $p, string $prof = '', string $korp = '', string $profPath = ''): array
+{
+    $bad = poleaPromahi("$dir/$p.html", $p, $profPath);
     if ($p === 'main') {
         exec(sprintf('php %s/engine/priyomka-v4.php %s%s%s 2>&1',
             escapeshellarg($root), escapeshellarg($dir), $korp, $prof), $v);
@@ -192,7 +280,7 @@ function zamer(string $root, string $dir, string $p, string $prof = '', string $
             }
         }
     }
-    return array_merge($bad, razmetkaPromahi($root, $dir, $p, $prof, $korp));
+    return array_values(array_unique(array_merge($bad, razmetkaPromahi($root, $dir, $p, $prof, $korp))));
 }
 
 /** Бриф на правку: что мимо, на сколько и чего трогать нельзя. */
@@ -235,7 +323,14 @@ TXT;
 function razmetkaPromahi(string $root, string $dir, string $p, string $prof = '', string $korp = ''): array
 {
     static $kesh = [];
-    $klyuch = $dir . '|' . $prof . '|' . $korp;
+    // Отпечаток папки: пока комплект дописывается, состояние меняется после
+    // каждой страницы, и кэш от прошлого шага показывал бы вчерашний день.
+    $otpechatok = '';
+    foreach (PAGES_G as $t) {
+        $f = "$dir/$t.html";
+        $otpechatok .= is_file($f) ? $t . filemtime($f) . filesize($f) : $t . '-';
+    }
+    $klyuch = $dir . '|' . $prof . '|' . $korp . '|' . md5($otpechatok);
     if (!isset($kesh[$klyuch])) {
         exec(sprintf('php %s/engine/priyomka-komplekt.php %s%s%s 2>&1',
             escapeshellarg($root), escapeshellarg($dir), $korp, $prof), $v);
