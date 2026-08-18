@@ -118,6 +118,7 @@ $stranicy = [];
 $polnyj = [];
 $razmetka = [];
 $brendPo = [];
+$zhanrSyr = [];
 $brendSet = [];   // сайт → ['лат' => сумма по семи, 'кир' => …]
 $ssylok = [];     // тип → ряд числа внутренних ссылок
 foreach (TIPY as $tip) {
@@ -128,6 +129,8 @@ foreach (TIPY as $tip) {
         $html = pochinit((string) file_get_contents($f));
         $rows[] = PageMetrics::measure($a, $tip, $html, ['ru' => '%brand_name_ru%', 'en' => '%brand_name_en%']);
         $ssylok[$tip][] = preg_match_all('~<a\s[^>]*href="/[^"]*"~i', $html);
+        $zhanrSyr[$tip]['цитат'][] = preg_match_all('~<blockquote\b~i', $html);
+        $zhanrSyr[$tip]['таблиц'][] = preg_match_all('~<table\b~i', $html);
         $s = end($rows);
         $b = basename($dir);
         $brendSet[$b]['лат'] = ($brendSet[$b]['лат'] ?? 0) + (int) $s['brand_en'];
@@ -174,8 +177,17 @@ foreach (TIPY as $tip) {
     }
     // Сначала то, что фабрика держит: по этому порядку профиль и читают.
     uasort($polya, fn($x, $y) => [$y['держат'], 0] <=> [$x['держат'], 0]);
-    $stranicy[$tip] = ['поля' => $polya, 'держат_полей' => $derzhat,
-        'жанр' => ['ссылок' => (int) round(svodka(array_map('floatval', $ssylok[$tip]))['медиана'])]];
+    // Жанровая карточка типа: то, что попадает в задание писателю.
+    $med = fn(array $v) => svodka($v)['медиана'];
+    $stranicy[$tip] = ['поля' => $polya, 'держат_полей' => $derzhat, 'жанр' => [
+        'слов' => (int) round($med(array_map(fn($r) => (float) $r['words'], $rows))),
+        'цитат' => (int) round($med(array_map('floatval', $zhanrSyr[$tip]['цитат']))),
+        'таблиц' => (int) round($med(array_map('floatval', $zhanrSyr[$tip]['таблиц']))),
+        'пар_faq' => (int) round($med(array_map(fn($r) => (float) $r['faq_pairs'], $rows))),
+        'ссылок' => (int) round($med(array_map('floatval', $ssylok[$tip]))),
+        'списков' => (int) round($med(array_map(fn($r) => (float) $r['lists'], $rows))),
+        'ol_pct' => (int) round($med(array_map(fn($r) => (float) $r['ordered_pct'], $rows))),
+    ]];
 }
 
 $brendSum = [

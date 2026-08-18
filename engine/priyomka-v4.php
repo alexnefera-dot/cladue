@@ -151,20 +151,30 @@ $pasport = 0;
 foreach (['~официальн~u', '~регистрац~u', '~зеркал~u'] as $re) { if (preg_match($re, $leadLow)) { $pasport++; } }
 
 $priyomy = [
-    'зачин: слов' => [count(slv($leadText)), '137–221',
-        count(slv($leadText)) >= 137 && count(slv($leadText)) <= 221],
+    'зачин: слов' => (function (int $n) use ($profil) {
+        $b = $profil['структура']['зачин']['полоса'] ?? [137, 221];
+        return [$n, $b[0] . '–' . $b[1], $n >= $b[0] && $n <= $b[1]];
+    })(count(slv($leadText))),
     'зачин: сайт+регистрация+зеркало' => [$pasport . '/3', '3/3', $pasport === 3],
     'зачин: список-оглавление' => [preg_match('~(?i)<(ul|ol)\b~', $lead) ? 'есть' : 'нет', 'есть',
         (bool) preg_match('~(?i)<(ul|ol)\b~', $lead)],
     'зачин: таблица-паспорт' => [preg_match('~(?i)<table\b~', $lead) ? 'есть' : 'нет', 'есть',
         (bool) preg_match('~(?i)<table\b~', $lead)],
-    'финал: последний H2' => [mb_substr($posledniy, 0, 22), 'итог/плюсы/отзывы',
-        (bool) preg_match($finalKlass, $posledniy)],
-    'финал: предпоследний H2' => [mb_substr($predposledniy, 0, 22), 'FAQ или итог',
-        (bool) preg_match('~вопрос|faq|ответ|итог|вердикт|отзыв~iu', $predposledniy)],
+    // Порядок финала перевернулся между поколениями: в августе последним стоял
+    // блок «плюсы и минусы» (20 главных из 50), в новом корпусе — FAQ (26 из 38).
+    'финал: последний H2' => [mb_substr($posledniy, 0, 22),
+        $profil['структура']['финал']['последний_подпись'] ?? 'итог/плюсы/отзывы',
+        (bool) preg_match($profil['структура']['финал']['последний_регулярка'] ?? $finalKlass, $posledniy)],
+    'финал: предпоследний H2' => [mb_substr($predposledniy, 0, 22),
+        $profil['структура']['финал']['предпоследний_подпись'] ?? 'FAQ или итог',
+        (bool) preg_match($profil['структура']['финал']['предпоследний_регулярка']
+            ?? '~вопрос|faq|ответ|итог|вердикт|отзыв~iu', $predposledniy)],
     'заголовок «ключ : хвост»' => [$h2 ? round($srazd / count($h2) * 100) . '%' : '0%', '≥45%',
         $h2 && $srazd / count($h2) >= 0.45],
-    'таблиц' => [count($tm[0]), '12–20', count($tm[0]) >= 12 && count($tm[0]) <= 20],
+    'таблиц' => (function (int $n) use ($profil) {
+        $b = $profil['жанр_главной']['таблиц'] ?? [12, 20];
+        return [$n, $b[0] . '–' . $b[1], $n >= $b[0] && $n <= $b[1]];
+    })(count($tm[0])),
     'шапки уникальны' => [$shapki ? round(count(array_unique($shapki)) / count($shapki) * 100) . '%' : '—',
         '100%', $shapki && count(array_unique($shapki)) === count($shapki)],
     'колонок в таблице' => [$kolonki ? round(array_sum($kolonki) / count($kolonki), 1) : 0, '≈3',

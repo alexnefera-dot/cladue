@@ -449,6 +449,36 @@ php engine/instrumenty/mer.php <файл> [тип] --профиль=engine/data-
 
 Без флага всё работает по августу, как раньше.
 
+### Рабочий цикл v5
+
+```bash
+# 1. задание (маска берётся из пула, срезы — из запаса)
+php engine/zadanie-v4.php --выход=tmp/gen-<имя> --комплект=<имя> --маска="<маска>" \
+    --корпус=samples/v5-donors --профиль=engine/data-v5/profil-v5.json
+
+# 2. пишем 7 файлов руками в samples/v5-final/<имя>/
+
+# 3–4. приёмка
+php engine/priyomka-v4.php       samples/v5-final/<имя> --korpus=samples/v5-final --профиль=engine/data-v5/profil-v5.json
+php engine/priyomka-komplekt.php samples/v5-final/<имя> --korpus=samples/v5-final --профиль=engine/data-v5/profil-v5.json
+
+# 5. отчёт «текст рядом с текстом» против конкретного донора
+php engine/build-ryadom.php samples/v5-final/<имя> samples/v5-donors/<донор> \
+    reports/v5/ryadom-<имя>-vs-<донор>.html --профиль=engine/data-v5/profil-v5.json
+
+# 6. сдача
+cd samples/v5-final/<имя> && zip -j -q ../../../reports/v5/<имя>.zip *.html
+```
+
+Первый комплект поколения — `vodolaznaya-1` (маска «водолазная станция»,
+ракурс — водолаз). Постранично 25/25 параметров, 15/15 приёмов, 9/9 техники;
+комплектно принят целиком. Против всего донорского корпуса худшая пара по
+шинглам 0,05 % при пороге 3,5 %.
+
+`build-ryadom.php` теперь принимает произвольные папки и профиль: в матрице
+рядом встают значение донора, наше, цель профиля, полоса корпуса и вердикт
+приёмки. Старая форма с номером набора v3 работает по-прежнему.
+
 ### Что поменялось в нормах
 
 | шлюз | август | v5 |

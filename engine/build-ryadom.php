@@ -5,7 +5,13 @@ declare(strict_types=1);
  * плюс матрица 55 полей. Блоки выравниваются по типам через LCS, поэтому
  * пропуск или лишний абзац видно сразу.
  *
- *   php build-ryadom.php <номер набора>
+ *   php build-ryadom.php <номер набора>                      — старые наборы v3
+ *   php build-ryadom.php <наша-папка> <папка-донора> [out.html] [--профиль=<файл>]
+ *
+ * Во второй форме рядом с двумя колонками текста встаёт полная матрица полей:
+ * значение донора, наше, цель профиля и полоса корпуса. Одного сравнения «мы
+ * против одного донора» мало — донор сам гуляет внутри полосы, и без профиля
+ * непонятно, чьё значение странное.
  */
 require_once __DIR__ . '/src/PageMetrics.php';
 
@@ -13,10 +19,33 @@ const PAGES = ['main','zerkalo','vhod','registracia','bonus','slots','app'];
 const TITLES = ['main'=>'Главная','zerkalo'=>'Зеркало','vhod'=>'Вход','registracia'=>'Регистрация',
                 'bonus'=>'Бонусы','slots'=>'Слоты','app'=>'Приложение'];
 
-$SET = $argv[1] ?? '';
-if ($SET === '') { fwrite(STDERR, "usage: build-ryadom.php <номер>\n"); exit(1); }
-$REF = __DIR__ . "/../samples/dorgen-reference/set$SET";
-$OUR = __DIR__ . "/../samples/v3-final/ruchnoy-$SET";
+$PROFIL = '';
+$pos = [];
+foreach (array_slice($argv, 1) as $arg) {
+    if (str_starts_with($arg, '--профиль=')) { $PROFIL = substr($arg, strlen('--профиль=')); continue; }
+    $pos[] = $arg;
+}
+if (!$pos) { fwrite(STDERR, "usage: build-ryadom.php <наша-папка> <папка-донора> [out.html] [--профиль=<файл>]\n"); exit(1); }
+
+if (count($pos) === 1) {
+    // Старая форма: номер набора v3.
+    $SET = $pos[0];
+    $REF = __DIR__ . "/../samples/dorgen-reference/set$SET";
+    $OUR = __DIR__ . "/../samples/v3-final/ruchnoy-$SET";
+    $OUT = __DIR__ . "/../reports/v3/ryadom/nabor-$SET.html";
+    $IMYA = "Набор $SET";
+    $PODPIS = "Образец set$SET";
+} else {
+    $OUR = rtrim($pos[0], '/');
+    $REF = rtrim($pos[1], '/');
+    $OUT = $pos[2] ?? (__DIR__ . '/../reports/ryadom.html');
+    $SET = basename($OUR);
+    $IMYA = basename($OUR) . ' против ' . basename($REF);
+    $PODPIS = 'Донор ' . basename($REF);
+}
+foreach ([$OUR, $REF] as $d) { if (!is_dir($d)) { fwrite(STDERR, "нет папки: $d\n"); exit(1); } }
+$prof = $PROFIL !== '' ? json_decode((string) file_get_contents($PROFIL), true) : null;
+if ($PROFIL !== '' && !$prof) { fwrite(STDERR, "не читается профиль: $PROFIL\n"); exit(1); }
 
 /** Разбор страницы в последовательность блоков. */
 function blocks(string $html): array
@@ -104,16 +133,34 @@ foreach (PAGES as $pg) {
     $R = PageMetrics::measure($a, $pg, $refRaw, ['ru'=>'','en'=>'']);
     $O = PageMetrics::measure($a, $pg, $ourRaw, ['ru'=>'','en'=>'']);
 
-    $hit = 0; $matrix = '';
+    $pp = $prof['страницы'][$pg]['поля'] ?? [];
+    $hit = 0; $matrix = ''; $vProfile = 0; $vsego = 0;
     foreach ($F as $k => [$lab, $rate]) {
         $bad = PageMetrics::off($O[$k], $R[$k], (bool)$rate);
         if (!$bad) { $hit++; }
         $rv = is_float($R[$k]) ? round($R[$k],1) : $R[$k];
         $ov = is_float($O[$k]) ? round($O[$k],1) : $O[$k];
         $cls = $bad ? 'bad' : 'ok';
-        $matrix .= '<tr><td>'.htmlspecialchars($lab).'</td><td class="num">'.$rv.'</td>'
-                 . '<td class="num"><span class="'.$cls.'">'.$ov.'</span></td></tr>';
+        $cel = '—'; $pol = '—'; $verd = ''; $derzh = '';
+        if (isset($pp[$k])) {
+            $c = $pp[$k];
+            $cel = $c['цель'];
+            $pol = $c['полоса'][0] . '–' . $c['полоса'][1];
+            // Тот же коридор, по которому идёт приёмка, а не полоса корпуса.
+            $ok = abs((float) $O[$k] - (float) $c['цель']) <= max(0.25 * abs((float) $c['цель']), $c['дробное'] ? 0.8 : 2.0);
+            if ($c['держат']) {
+                $derzh = ' hold';
+                $vsego++;
+                if ($ok) { $vProfile++; }
+            }
+            $verd = '<span class="'.($ok ? 'ok' : 'bad').'">'.($ok ? 'в коридоре' : 'мимо').'</span>';
+        }
+        $matrix .= '<tr class="'.trim($derzh).'"><td>'.htmlspecialchars($lab).'<code class="fk">'.$k.'</code></td>'
+                 . '<td class="num">'.$rv.'</td>'
+                 . '<td class="num"><span class="'.$cls.'">'.$ov.'</span></td>'
+                 . '<td class="num">'.$cel.'</td><td class="num">'.$pol.'</td><td>'.$verd.'</td></tr>';
     }
+    $poProfilyu = $vsego ? round($vProfile / $vsego * 100) : 0;
     $summary[$pg] = $hit;
 
     $A = blocks($refRaw); $B = blocks($ourRaw);
@@ -129,12 +176,13 @@ foreach (PAGES as $pg) {
                . '<td class="blk">'.show($y).'<span class="w">'.$wy.' сл.</span></td></tr>';
     }
 
-    $body .= '<h2 id="'.$pg.'">'.TITLES[$pg].' <span class="sub2">'.$hit.'/55 полей · '
-          . count($A).' блоков у образца · '.count($B).' у нас</span></h2>'
+    $body .= '<h2 id="'.$pg.'">'.TITLES[$pg].' <span class="sub2">'.$hit.'/55 полей против донора'
+          . ($prof ? ' · '.$vProfile.'/'.$vsego.' держимых в коридоре профиля ('.$poProfilyu.' %)' : '')
+          . ' · '.count($A).' блоков у донора · '.count($B).' у нас</span></h2>'
           . '<h3>Параметры</h3><div class="scroll"><table class="mx">'
-          . '<tr><th>Поле</th><th>Образец</th><th>Наше</th></tr>'.$matrix.'</table></div>'
+          . '<tr><th>Поле</th><th>Донор</th><th>Наше</th><th>Цель</th><th>Полоса корпуса</th><th>Приёмка</th></tr>'.$matrix.'</table></div>'
           . '<h3>Текст блоками</h3><div class="scroll"><table class="bl">'
-          . '<tr><th>№</th><th>Образец set'.$SET.'</th><th>Наша статья</th></tr>'.$rows.'</table></div>';
+          . '<tr><th>№</th><th>'.htmlspecialchars($PODPIS).'</th><th>Наша статья</th></tr>'.$rows.'</table></div>';
 }
 
 $nav = '';
@@ -161,6 +209,9 @@ table.bl td.blk { width:46%; }
 table.bl td.ix { width:56px; color:var(--mut); font-size:12px; text-align:center; }
 td.ix code { font-size:11px; background:var(--note); padding:1px 4px; border-radius:3px; }
 tr.odd td { background:rgba(179,38,30,.07); }
+tr.hold td:first-child { font-weight:600; }
+code.fk { display:block; font-size:10.5px; color:var(--mut); margin-top:2px; }
+table.mx { max-width:900px; }
 .gap { color:var(--bad); font-size:12.5px; }
 .w { display:block; margin-top:5px; color:var(--mut); font-size:11.5px; }
 .q { display:block; margin-bottom:4px; }
@@ -175,14 +226,13 @@ CSS;
 
 $html = "<!doctype html>\n<html lang=\"ru\"><head><meta charset=\"utf-8\">"
       . "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
-      . "<title>Набор $SET: образец и наша статья рядом</title><style>$css</style></head><body><div class=\"wrap\">"
-      . "<h1>Набор $SET: образец и наша статья рядом</h1>"
-      . "<p class=\"sub\">Слева — страница образца, справа — наша. Блоки выровнены по типам: если у одной стороны блока нет, строка подсвечена. Итого $total из 385 полей.</p>"
+      . "<title>$IMYA: текст и параметры рядом</title><style>$css</style></head><body><div class=\"wrap\">"
+      . "<h1>$IMYA</h1>"
+      . "<p class=\"sub\">Слева — страница донора, справа — наша. Блоки выровнены по типам: если у одной стороны блока нет, строка подсвечена. Совпало $total из 385 полей.</p>"
       . "<div class=\"nav\">$nav</div>"
       . "<div class=\"key\">Строка подсвечена красным, когда блок есть только на одной стороне — это расхождение структуры. Совпадение по числу слов в блоке не требуется: коридор приёмки работает на уровне страницы, а не абзаца.</div>"
       . $body . "</div></body></html>\n";
 
-$out = __DIR__ . "/../reports/v3/ryadom/nabor-$SET.html";
-@mkdir(dirname($out), 0777, true);
-file_put_contents($out, $html);
-echo "set$SET: $total/385, ", strlen($html), " bytes -> $out\n";
+@mkdir(dirname($OUT), 0777, true);
+file_put_contents($OUT, $html);
+echo "$SET: $total/385 полей против донора, ", strlen($html), " байт -> $OUT\n";
