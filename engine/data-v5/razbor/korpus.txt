@@ -1,0 +1,67 @@
+══ v5-donors: 38 сайтов, 266 страниц ══
+
+── инвентарь (медианы) ──
+  страница         байт    слов      h2      h3       p      li   table details  strong     img       a  schema  эмодзи   style  script       я
+  main            44909    2487      10      25      60      37       6       9      54       0      33      16      25       0       0      40
+  app             15260     665       2       5      18      10       1      10       7       0       6      20       2       0       0      13
+  bonus            9918     505       2       4      12       8       1       5       7       0       5       8       0       0       0      11
+  registracia     15332     696       2       5      20      10       1      11       6       0       5      20       0       0       0      14
+  slots           14660     700       2       4      18       9       1       9       9       0       5      16       0       0       0      12
+  vhod            14116     600       2       4      19       7       1      11       6       0       5      20       0       0       0      12
+  zerkalo         10194     516       2       5      14       8       1       5       7       0       6       8       0       0       0      11
+
+── школы ──
+  конструктор    0: 
+  проза         38: 888starz, admiralx, arkada, atom, auf, baboss, banda, cactus, clubnika, eva, ezcash, fenix, flagman, fonbet, fresh, gold, hype, laki, leebet, loft, mad, martin, motor, mwinline, new retro, pari, ramenbet, rox, selector, spinto, stake, sweet, sykaaa, turbo, unlim casino, volna, vovan, zooma
+
+── библиотека блоков ──
+  блок                    всего  по страницам
+  formats_block              10  main×10
+  q-question-block            8  main×8
+  faq-section                 1  vhod×1
+  attention-block             1  app×1
+  menu-section                1  main×1
+
+── schema.org ──
+  Question                      1994
+  Answer                        1993
+  ListItem                        16
+  ItemList                         8
+  ItemListOrderAscending           8
+  Comment                          8
+  Person                           8
+
+── сетка ссылок ──
+  внутренних всего 2546, разных адресов 8, разных анкоров 662
+  анкоров-одиночек 504 (76%)
+    /app                   837
+    /vhod                  436
+    /slots                 397
+    /registracia           372
+    /zerkalo               356
+    /                      145
+    /livechat                2
+    /faq                     1
+  топ анкоров:
+      153  вход
+      103  зеркало
+      103  Бонусы и промокоды
+       83  Регистрация
+       81  Вход
+       78  Зеркало
+       74  мобильное приложение
+       73  игровые автоматы
+       70  Игровые автоматы
+       70  бонусы и промокоды
+       68  регистрация
+       56  приложение
+
+── подстановки ──
+  %brand_name_en%       1628
+  %date%                 603
+  %domain_name%          264
+  %brand_name_ru%        120
+
+── эмодзи ──
+  →×248  ✅×71  🎁×42  ⚡×39  🏠×37  💳×33  👥×31  🚀×31  📱×29  🎟×29  🔐×28  💰×26  🎰×24  📊×24  🛡×23  🔗×22  🌐×21  💸×21  🔒×21  🌟×21  
+

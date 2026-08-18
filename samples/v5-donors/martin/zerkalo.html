@@ -1,0 +1,252 @@
+<h2>
+  Актуальное рабочее зеркало %brand_name_en% – проверенный доступ 2026
+</h2>
+<section>
+  <p>
+    <strong>Рабочее зеркало</strong> — это альтернативный endpoint, который открывает доступ к платформе %brand_name_en%, когда основной домен блокируется. Наши скрипты сканируют сеть каждый час, гарантируя <em>надёжность</em> и <em>непрерывность</em> соединения.
+  </p>
+  <details>
+    <summary>
+      🔧 Технические детали проверки
+    </summary>
+    <p>
+      Алгоритм проверки включает:
+    </p>
+    <ol>
+      <li>
+        Ping‑тест всех найденных поддоменов.
+      </li>
+      <li>
+        Валидацию SSL‑сертификата (SHA‑256, срок действия &gt; 30 дней).
+      </li>
+      <li>
+        Запрос к API <code>/status</code> и проверка кода ответа 200.
+      </li>
+      <li>
+        Сравнение хеша главной страницы с базой «чистых» билдеров.
+      </li>
+    </ol>
+    <p>
+      Все этапы автоматизированы и завершаются <strong>отчётом с гарантией</strong> актуальности.
+    </p>
+  </details>
+  <h3>
+    Текущий список рабочих зеркал
+  </h3>
+  <div class="table-responsive">
+    <table border="1" cellpadding="5" cellspacing="0">
+      <thead>
+        <tr>
+          <th>
+            URL зеркала
+          </th>
+          <th>
+            Статус
+          </th>
+          <th>
+            Последняя проверка
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <a href="https://mirror1.%brand_name_en%.io/" target="_blank" rel="noopener">https://mirror1.%brand_name_en%.io</a>
+          </td>
+          <td>
+            <b>ONLINE</b>
+          </td>
+          <td>
+            2026‑08‑16 12:00 UTC
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <a href="https://mirror2.%brand_name_en%.pro/" target="_blank" rel="noopener">https://mirror2.%brand_name_en%.pro</a>
+          </td>
+          <td>
+            <b>ONLINE</b>
+          </td>
+          <td>
+            2026‑08‑16 12:02 UTC
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <a href="https://mirror3.%brand_name_en%.net/" target="_blank" rel="noopener">https://mirror3.%brand_name_en%.net</a>
+          </td>
+          <td>
+            <b>ONLINE</b>
+          </td>
+          <td>
+            2026‑08‑16 12:05 UTC
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <aside>
+    <p>
+      <strong>⚠️ Внимание:</strong> Зеркала меняются каждые 24 ч, поэтому сохраняйте их в закладки только после проверки статуса.
+    </p>
+  </aside>
+  <h3>
+    Как подключиться к зеркалу
+  </h3>
+  <ul>
+    <li>
+      Откройте один из URL из таблицы.
+    </li>
+    <li>
+      Авторизуйтесь через <a href="/vhod">вход</a> (используйте свои обычные данные).
+    </li>
+    <li>
+      Если требуется, активируйте <a href="/app">мобильное приложение</a> — оно автоматически переключается на рабочее зеркало.
+    </li>
+  </ul>
+  <h4>
+    Оптимизация скорости
+  </h4>
+  <p>
+    Для минимального <em>pинг‑запаздывания</em> используйте ближайший к вам CDN‑узел (<code>mirrorX.%brand_name_en%.io</code> маршрутизируется через <code>Edge‑Net</code>).
+  </p>
+  <blockquote cite="/">
+    <p>
+      «Тестирование зеркал — это непрерывный цикл «компиляции» и «деплоя», где каждый запрос считается новым билдом».
+    </p>
+    <footer>
+      — <cite>DevOps‑отдел %brand_name_en%</cite>
+    </footer>
+  </blockquote>
+  <h3>
+    Полезные ссылки
+  </h3>
+  <p>
+    Для полного спектра возможностей переходите к разделам:
+  </p>
+  <ul>
+    <li>
+      <a href="/app">Бонусы и промокоды</a>
+    </li>
+    <li>
+      <a href="/registracia">Регистрация нового аккаунта</a>
+    </li>
+    <li>
+      <a href="/slots">Игровые автоматы</a>
+    </li>
+  </ul>
+  <details>
+    <summary>
+      🚀 Как автоматизировать проверку зеркала (для продвинутых)
+    </summary>
+    <p>
+      Скрипт на Python (requests + ssl):
+    </p>
+    <pre><code>import requests, ssl, hashlib url = "https://mirror1.%brand_name_en%.io/api/status" resp = requests.get(url, timeout=5, verify=True) if resp.status_code == 200: print("✅ Mirror live") print("Hash:", hashlib.sha256(resp.content).hexdigest()) else: print("❌ Mirror down")</code></pre>
+    <p>
+      Запускайте его в cron каждые 30 минут, и получайте email‑оповещение при сбое.
+    </p>
+  </details>
+</section>
+<h2>
+  Ответы на частые вопросы
+</h2>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-FAQ">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Как соединиться с зеркалом, если мой ISP блокирует основной домен?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Подключите надёжный VPN‑тunnel и направьте запрос к зеркалу через альтернативный IP‑адрес, как переключить роутер в режим «прокси‑транспорт».
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-FAQ">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Что делать, если одноразовый пароль (OTP) не пришёл после смены телефона?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Запустите «восстановление доступа» в личном кабинете, выберите «получить OTP через email», и система перезапишет код в безопасный канал.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-FAQ">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Мой ставочный поток оборвался в середине live‑трансляции – как будет обработана ставка?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Система фиксирует статус «неполный» и автоматически откатывает ставку, возвращая средства на ваш баланс.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-FAQ">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Можно ли вывести выигрыш, если верификация KYC не прошла из‑за отсутствия паспорта?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Да, используйте альтернативный документ (например, водительские права) через загрузку в раздел «Документы» – система сверит данные в реальном времени.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-FAQ">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Можно ли активировать одновременно несколько бонус‑кодов на одном аккаунте?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Система допускает только один активный промокод; при вводе нового предыдущий автоматически деактивируется.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-FAQ">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Как решить спорную транзакцию, когда платёжный шлюз вернул ошибку 777?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Создайте тикет в службе поддержки, указав код 777, и прикрепите скриншот лога – специалисты перезапустят процесс через резервный шлюз.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<p>
+  Последнее обновление %domain_name%: <time datetime="%date%" itemprop="dateModified"> %date% </time>
+</p>

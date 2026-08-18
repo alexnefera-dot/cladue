@@ -1,0 +1,41 @@
+══ v5-donors: 38 сайтов, 266 страниц ══
+
+── медианы по типам страниц ──
+  страница       текст/код         H1         H2         H3         H4    списков   strong+b       em+i     таблиц      цитат      видео   картинок  насыщенно     schema  внутренни  внешних с
+  main                82.9          0         10         25          0         11         54          5          6          4          0          0         17          1         32          0
+  app                   71          0          2          5          0          3          8          2          1          1          0          0          4          1          6          0
+  bonus               75.8          0          2          4          0          2          9          2          1          1          0          0          3          1          5          0
+  registracia           71          0          2          5          0          3          8          1          1          1          0          0          4          1          5          0
+  slots               71.5          0          2          4          0          3         11          2          1          1          0          0          4          1          5          0
+  vhod                69.6          0          2          4          0          2          6          1          1          1          0          0          3          1          5          0
+  zerkalo             74.9          0          2          5          0          2          8          2          1          1          0          0          3          1          6          0
+
+── иерархия заголовков ──
+  без пропусков 266/266, с пропуском уровня 0/266
+
+── ссылки ──
+  всего 2609, nofollow 12, внешних хостов 46
+    t.me                               9
+    mirror.%brand_name_en%.com         5
+    www.mga.org.mt                     2
+    www.gamblingcommission.gov.uk      2
+    %brand_name_en%-mirror1.com        2
+    www.curacao-egaming.com            2
+    admiral%20x.com                    1
+    www.gov.uk                         1
+    www.curacao-gaming.com             1
+    support.%brand_name_en%.com        1
+    www.apkmirror.com                  1
+    www.speedtest.net                  1
+
+── картинки ──
+  всего 0, без alt 0
+
+── переспам выделением (>30%% strong с ключом) ──
+  страниц 8/266
+    казино 0
+    бонус   3
+    зеркало 3
+    слот     0
+    регистрация 2
+

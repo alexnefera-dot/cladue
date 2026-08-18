@@ -1,0 +1,84 @@
+══ v4-donors: 50 сайтов, 350 страниц ══
+
+── инвентарь (медианы) ──
+  страница         байт    слов      h2      h3       p      li   table details  strong     img       a  schema  эмодзи   style  script       я
+  main            70522    3992      11      30      66      68       8      10      60       0      58      36      57       0       0       4
+  app             16377     799       2       6      18      14       1       9       9       0       6      18       1       0       0       1
+  bonus           12373     693       2       5      11      15       1       4       8       0       6      10       1       0       0       1
+  registracia     17652     829       2       5      18      11       1       9      10       0       6      18       1       0       0       3
+  slots           18524     914       2       5      19      14       1       9      16       0       7      24      10       0       0       1
+  vhod            17589     842       2       6      20      16       1       8      10       0       6      16       5       0       0       1
+  zerkalo         13334     681       2       6      12      14       1       4       9       0       8      10       1       0       0       1
+
+── школы ──
+  конструктор   14: 1win, atom, beef, flagman, kometa, leon, mellstroy, motor, pinco, play fortuna, ramenbet, vavada, vodka, zooma
+  проза         36: 888starz, arkada, auf, baboss, banda, cactus, cat, clubnika, daddy, eva, ezcash, fenix, fonbet, gama, gold, hype, kent, kush, laki, leebet, lev, loft, mad, new retro, olimp, pari, rox, selector, spinto, sweet, sykaaa, turbo, unlim casino, volna, vovan, winline
+
+── библиотека блоков ──
+  блок                    всего  по страницам
+  slot-card                 201  main×168 app×9 bonus×15 zerkalo×9
+  faq-section                99  main×14 app×14 bonus×14 registracia×14 slots×15 vhod×14 zerkalo×14
+  layout-block               84  main×14 app×14 registracia×14 slots×14 vhod×14 zerkalo×14
+  page-thematic-block        84  main×14 app×14 registracia×14 slots×14 vhod×14 zerkalo×14   варианты: v1×13 v2×19 v3×28 v4×24
+  review-quotes-list         84  main×14 app×14 registracia×14 slots×14 vhod×14 zerkalo×14
+  q-question-block           51  main×51
+  formats_block              47  main×47
+  stat-card                  42  vhod×42
+  recent-payouts-block       28  main×14 slots×14   варианты: v1×6 v2×8 v3×3 v4×11
+  jackpot-strip              28  main×14 slots×14
+  info-block                 25  app×3 bonus×5 vhod×14 zerkalo×3
+  hero-value                 14  main×14   варианты: v1×5 v2×4 v3×3 v4×2
+  value-pillars              14  main×14   варианты: v1×3 v2×1 v3×3 v4×7
+  slots-dashboard            14  main×14   варианты: v1×4 v2×3 v3×5 v4×2
+  block                       9  main×9
+  attention-block             5  main×4 app×1
+
+── schema.org ──
+  Answer                        2665
+  Question                      2664
+  ListItem                       521
+  Game                           201
+  ItemList                       112
+  FAQPage                         98
+  Comment                         51
+  Person                          51
+  ItemListOrderAscending          42
+  AggregateRating                 33
+  WebPage                         14
+  SiteNavigationElement           14
+
+── сетка ссылок ──
+  внутренних всего 8150, разных адресов 9, разных анкоров 864
+  анкоров-одиночек 598 (69%)
+    /app                  2213
+    /                     1825
+    /slots                1489
+    /registracia           989
+    /vhod                  896
+    /zerkalo               735
+    /audit/2024              1
+    /data/payout-2023        1
+    /blog                    1
+  топ анкоров:
+      405  играть бесплатно
+      398  слоты
+      308  мобильное приложение
+      242  промокоды
+      233  рабочее зеркало
+      231  регистрацию
+      207  вход
+      195  регистрация
+      194  бонусы
+      182  Играть
+      182  обзор казино
+      150  Бонусы и промокоды
+
+── подстановки ──
+  %brand_name_en%       1757
+  %brand_name_ru%        506
+  %date%                 175
+  %domain_name%           35
+
+── эмодзи ──
+  🎰×359  →×308  🔥×260  🚀×118  ❓×115  ✅×101  ⚡×98  🎁×94  📱×79  ⭐×75  🎣×73  💎×70  🎲×67  💸×67  🔐×67  🎯×64  💳×62  🔒×62  🛡×59  🏆×58  
+

@@ -1,0 +1,298 @@
+<h2>
+  Ошибки авторизации в %brand_name_en%: как сохранить вейджер и избежать потери баланса
+</h2>
+<section>
+  <p>
+    <strong>Вводный аккорд</strong>: каждый неверный клик при входе – это потенциальный <em>снижение EV</em> вашего банкролла. Рассмотрим типичные «фальш-ноты» и их влияние на вейджер.
+  </p>
+  <details>
+    <summary>
+      <b>Часто встречающиеся ошибки авторизации</b>
+    </summary>
+    <ul>
+      <li>
+        Неправильный ввод <code>логина/пароля</code> – <em>потеря 0,5 % от текущего вейджера</em> из‑за блокировки аккаунта.
+      </li>
+      <li>
+        Отсутствие подтверждения <strong>2FA</strong> – повышает риск <q>фрода</q> и уменьшает <cite>expected value</cite> на <i>≈ 1 %.</i>
+      </li>
+      <li>
+        Игнорирование <a href="/zerkalo">зеркала</a> при блокировке – приводит к <b>дублированию ставок</b> и неверному расчёту вейджера.
+      </li>
+    </ul>
+  </details>
+  <h3>
+    Влияние ошибок на вейджер (Wager)
+  </h3>
+  <p>
+    Формула расчёта потери вейджера после ошибки:
+  </p>
+  <blockquote>
+    <p>
+      ΔW = B × R × (1 – S)
+    </p>
+    <p>
+      где <em>B</em> – текущий банкролл, <em>R</em> – коэффициент риска (0,01 – 0,05), <em>S</em> – <strong>success rate</strong> входа (0 – 1).
+    </p>
+  </blockquote>
+  <h4>
+    Пример расчёта
+  </h4>
+  <p>
+    Банкролл = 10 000 ₽, риск‑коэффициент = 0,03, успех входа = 0,9.
+  </p>
+  <div class="table-responsive">
+    <table border="1" cellpadding="5" cellspacing="0">
+      <thead>
+        <tr>
+          <th>
+            Параметр
+          </th>
+          <th>
+            Значение
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            B
+          </td>
+          <td>
+            10 000 ₽
+          </td>
+        </tr>
+        <tr>
+          <td>
+            R
+          </td>
+          <td>
+            0,03
+          </td>
+        </tr>
+        <tr>
+          <td>
+            S
+          </td>
+          <td>
+            0,9
+          </td>
+        </tr>
+        <tr>
+          <td>
+            ΔW
+          </td>
+          <td>
+            10 000 × 0,03 × (1‑0,9) = 30 ₽
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p>
+    Итого, одна ошибка «пароль» уменьшит ваш вейджер на 30 ₽, что эквивалентно <em>≈ 0,3 % от банкролла</em>.
+  </p>
+  <aside>
+    <p>
+      <strong>Совет от свистуна‑любителя:</strong> включайте <a href="/app">мобильное приложение</a> с автозаполнением 2FA – это снижает вероятность человеческой ошибки до <b>≈ 0,1 %</b>.
+    </p>
+  </aside>
+  <h3>
+    Стратегия минимизации ошибок
+  </h3>
+  <ol>
+    <li>
+      Проверяйте <a href="/registracia">регистрационные данные</a> перед вводом – <em>проверка на 100 % точность</em>.
+    </li>
+    <li>
+      Используйте менеджер паролей – <strong>сокращает риск</strong> на <i>≈ 2 %.</i>
+    </li>
+    <li>
+      Регулярно обновляйте <strong>2FA‑токены</strong> – повышает <cite>security factor</cite> до 0,99.
+    </li>
+  </ol>
+  <details>
+    <summary>
+      <b>Таблица «Ошибка ↔ Влияние на EV»</b>
+    </summary>
+    <div class="table-responsive">
+      <table border="1" cellpadding="5" cellspacing="0">
+        <thead>
+          <tr>
+            <th>
+              Ошибка
+            </th>
+            <th>
+              EV‑потеря
+            </th>
+            <th>
+              Влияние на вейджер
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              Неправильный пароль
+            </td>
+            <td>
+              -0,5 %
+            </td>
+            <td>
+              -30 ₽ (при B=10 000 ₽)
+            </td>
+          </tr>
+          <tr>
+            <td>
+              Отсутствие 2FA
+            </td>
+            <td>
+              -1 %
+            </td>
+            <td>
+              -100 ₽
+            </td>
+          </tr>
+          <tr>
+            <td>
+              Игнорирование зеркала
+            </td>
+            <td>
+              -1,5 %
+            </td>
+            <td>
+              -150 ₽
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+  <h4>
+    Ответственная игра и вейджер
+  </h4>
+  <p>
+    Сохранение чистоты входа – это часть <em>ответственной игры</em>. Каждый <strong>неправильный вход</strong> увеличивает <q>house edge</q> и уменьшает ваш <cite>expected profit</cite>. Применяйте математический подход, как в покере: <em>минимизируйте variance</em> уже на этапе авторизации.
+  </p>
+  <p>
+    Для более глубокого погружения в бонусные стратегии посетите раздел <a href="/app">Бонусы и промокоды</a> и изучите, как вейджер взаимодействует с <a href="/slots">игровыми автоматами</a>.
+  </p>
+</section>
+<h2>
+  Ответы на вопросы
+</h2>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-Ответы на вопросы">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Можно ли применять Мартингейл в живом блэкджеке, если стол ограничивает максимальную ставку?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Мартингейл теряет эффективность, когда максимальная ставка ниже требуемой удвоенной суммы, потому что ожидаемая прибыль (EV) становится отрицательной.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-Ответы на вопросы">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Как вычислить EV при ставке «двойной шанс» в рулетке с двойным нулём (00) и ограничением ставки 5 % от банкролла?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            EV = (18/38 × 2 × ставка) − (20/38 × ставка), где ставка = 0,05 × банкролл.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-Ответы на вопросы">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Что делать, если соединение прерывается в середине руки в живом покере и я уже сделал ставку на «raise»?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Ставка считается действительной, а результат руки будет определён по последнему полученному от сервера событию (fold, call или raise).
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-Ответы на вопросы">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Можно ли вывести выигрыш, полученный в бонусных фриспинах, без выполнения вейджера, если он был получен в живом слоте с «RTP = 96 %»?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Нет, любой выигрыш из бонусных фриспинов подпадает под обязательный вейджер, независимо от теоретического RTP слота.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-Ответы на вопросы">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Как учитывать дисперсию при выборе лимита стола в живом кранте, если мой банкролл = 10 000 ₽ и цель = 30 % роста за 100 рук?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Выбирайте лимит, где стандартное отклонение (σ) ≈ 0,5 × целевая прибыль, чтобы 95 %‑й интервал покрывал требуемый рост.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-Ответы на вопросы">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Что происходит с моей ставкой, если дилер ошибается в расчёте выплат в живом блэкджеке (например, переплачивает 2:1 вместо 3:2)?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Ставка считается выигрышной, а излишек выплаты автоматически возвращается в ваш баланс как корректировка.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-Ответы на вопросы">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Разрешено ли использовать сторонний софт для подсчёта карт в живом блэкджеке, если он работает только на клиенте и не передаёт данные серверу?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Да, такие инструменты считаются легальными, поскольку не влияют на честность игры и не нарушают условия сервиса.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<p>
+  Последнее обновление %domain_name%: <time datetime="%date%" itemprop="dateModified"> %date% </time>
+</p>

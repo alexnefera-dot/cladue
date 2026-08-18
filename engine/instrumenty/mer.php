@@ -1,11 +1,18 @@
 <?php
 require_once __DIR__ . '/../src/PageMetrics.php';
-$f = $argv[1];
-$type = $argv[2] ?? 'main';
+// mer.php <файл> [тип] [--профиль=<файл>]
+$profilFile = __DIR__ . '/../data-v4/profil-avgust.json';
+$pos = [];
+foreach (array_slice($argv, 1) as $a) {
+    if (str_starts_with($a, '--профиль=')) { $profilFile = substr($a, strlen('--профиль=')); continue; }
+    $pos[] = $a;
+}
+$f = $pos[0] ?? '';
+$type = $pos[1] ?? 'main';
 $raw = file_get_contents($f);
-$a = new Analyzer($raw);
-$v = PageMetrics::measure($a, $type, $raw, ['ru'=>'%brand_name_ru%','en'=>'%brand_name_en%']);
-$p = json_decode(file_get_contents(__DIR__ . '/../data-v4/profil-avgust.json'), true)['страницы'][$type]['поля'];
+$an = new Analyzer($raw);
+$v = PageMetrics::measure($an, $type, $raw, ['ru'=>'%brand_name_ru%','en'=>'%brand_name_en%']);
+$p = json_decode((string) file_get_contents($profilFile), true)['страницы'][$type]['поля'];
 foreach ($p as $k => $c) {
     $mine = $v[$k] ?? null;
     $lo = $c['полоса'][0]; $hi = $c['полоса'][1];

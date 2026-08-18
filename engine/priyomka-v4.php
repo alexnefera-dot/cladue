@@ -4,7 +4,7 @@ declare(strict_types=1);
 /**
  * Приёмка страницы по августовскому профилю.
  *
- *   php engine/priyomka-v4.php <папка-версии> [--korpus=samples/v4-final]
+ *   php engine/priyomka-v4.php <папка-версии> [--korpus=samples/v4-final] [--профиль=<файл>]
  *
  * Отличий от priyomka-obzor.php три, и каждое выведено из разбора корпуса.
  *
@@ -34,11 +34,13 @@ require_once __DIR__ . '/src/SeoMetrics.php';
 
 $dir = $argv[1] ?? '';
 $korpus = 'samples/v4-final';
+$profilFile = __DIR__ . '/data-v4/profil-avgust.json';
 foreach (array_slice($argv, 2) as $a) {
     if (str_starts_with($a, '--korpus=')) { $korpus = substr($a, 9); }
+    if (str_starts_with($a, '--профиль=')) { $profilFile = substr($a, strlen('--профиль=')); }
 }
 if ($dir === '') {
-    fwrite(STDERR, "usage: php engine/priyomka-v4.php <папка-версии> [--korpus=<путь>]\n");
+    fwrite(STDERR, "usage: php engine/priyomka-v4.php <папка-версии> [--korpus=<путь>] [--профиль=<файл>]\n");
     exit(1);
 }
 $dir = rtrim($dir, '/');
@@ -46,8 +48,8 @@ $file = $dir . '/main.html';
 if (!is_file($file)) { fwrite(STDERR, "нет файла: $file\n"); exit(1); }
 
 $root = dirname(__DIR__);
-$profil = json_decode((string) file_get_contents(__DIR__ . '/data-v4/profil-avgust.json'), true);
-if (!$profil) { fwrite(STDERR, "нет профиля engine/data-v4/profil-avgust.json\n"); exit(1); }
+$profil = is_file($profilFile) ? json_decode((string) file_get_contents($profilFile), true) : null;
+if (!$profil) { fwrite(STDERR, "нет профиля $profilFile\n"); exit(1); }
 
 $raw = (string) file_get_contents($file);
 /** У доноров попадается голая «<» в тексте; strip_tags глотает от неё до «>». */
@@ -167,11 +169,19 @@ $priyomy = [
         '100%', $shapki && count(array_unique($shapki)) === count($shapki)],
     'колонок в таблице' => [$kolonki ? round(array_sum($kolonki) / count($kolonki), 1) : 0, '≈3',
         $kolonki && abs(array_sum($kolonki) / count($kolonki) - 3) <= 0.8],
-    'пар «вопрос-ответ»' => [count($voprosy), '9–14', count($voprosy) >= 9 && count($voprosy) <= 14],
+    // Полосы жанра берутся из профиля: у августовской прозы пар «вопрос-ответ»
+    // на главной 9–14 и сравнений 11–22, у нового корпуса — 1–11 и 1–10.
+    'пар «вопрос-ответ»' => (function (int $n) use ($profil) {
+        $b = $profil['жанр_главной']['пар_вопрос_ответ'] ?? [9, 14];
+        return [$n, $b[0] . '–' . $b[1], $n >= $b[0] && $n <= $b[1]];
+    })(count($voprosy)),
     // Медиана по корпусу 20%, первый квартиль 13 — берём порог между ними.
     'вопросов про сбой' => [$voprosy ? round($sboy / count($voprosy) * 100) . '%' : '0%', '≥15%',
         $voprosy && $sboy / count($voprosy) >= 0.15],
-    'сравнений «X это как Y»' => [$sravneniy, '≥20', $sravneniy >= 20],
+    'сравнений «X это как Y»' => (function (int $n) use ($profil) {
+        $b = $profil['жанр_главной']['сравнений'] ?? null;
+        return $b ? [$n, $b[0] . '–' . $b[1], $n >= $b[0] && $n <= $b[1]] : [$n, '≥20', $n >= 20];
+    })($sravneniy),
     'внутренних ссылок' => [$ssylokVsego, '≥15', $ssylokVsego >= 15],
     'ссылок внутри прозы' => [$ssylokVsego ? round($ssylkiVProze / $ssylokVsego * 100) . '%' : '0%', '≥85%',
         $ssylokVsego && $ssylkiVProze / $ssylokVsego >= 0.85],
@@ -207,7 +217,11 @@ $tehnika = [
     'H4 и ниже' => [$seo->headingCount(4), '0', $seo->headingCount(4) === 0],
     'иерархия заголовков' => [$seo->headingHierarchyOk() ? 'цела' : 'пропуск уровня', 'цела',
         $seo->headingHierarchyOk()],
-    'цитат blockquote' => [$citat, '7–12', $citat >= 7 && $citat <= 12],
+    'цитат blockquote' => (function (int $n) use ($profil) {
+        // Полоса из профиля: август держал 7–12 цитат на главной, новый корпус — 2–7.
+        $b = $profil['семерка']['цитата_blockquote']['полоса_на_главной'] ?? [7, 12];
+        return [$n, $b[0] . '–' . $b[1], $n >= $b[0] && $n <= $b[1]];
+    })($citat),
     'текст/код' => [$seo->textHtmlRatio() . '%', '70–90%',
         $seo->textHtmlRatio() >= 70 && $seo->textHtmlRatio() <= 90],
     'nofollow' => [$nofollow, '0', $nofollow === 0],
@@ -272,7 +286,7 @@ foreach ($tehnika as $n => [$est, $nado, $ok]) {
 // уходила в следующий круг вслепую.
 printf("\n── уникальность ──\n");
 echo '  ' . ($hudshaya < $porog ? '·' : '✗') . ' ' . $pad('худшая пара по шинглам', 30, true)
-    . $pad(sprintf('%.2f%%', $hudshaya), 12) . '   нужно <' . sprintf('%.0f%%', $porog)
+    . $pad(sprintf('%.2f%%', $hudshaya), 12) . '   нужно <' . rtrim(rtrim(sprintf('%.2f', $porog), '0'), '.') . '%'
     . '   с ' . $hudshiy . "\n";
 echo '  ' . ($povtorZag ? '✗' : '·') . ' ' . $pad('дословных повторов заголовков', 30, true)
     . $pad((string) count($povtorZag), 12) . "   нужно 0\n";

@@ -4,7 +4,7 @@ declare(strict_types=1);
 /**
  * Приёмка семистраничного комплекта.
  *
- *   php engine/priyomka-komplekt.php <папка-комплекта> [--korpus=samples/v4-final]
+ *   php engine/priyomka-komplekt.php <папка-комплекта> [--korpus=samples/v4-final] [--профиль=<файл>]
  *
  * priyomka-v4.php проверяет одну главную. Донорская единица — не страница, а
  * комплект из семи, и половина правил живёт МЕЖДУ страницами, а не внутри:
@@ -44,14 +44,17 @@ const PORog_POLEY = 95.0;
 
 $dir = rtrim($argv[1] ?? '', '/');
 $korpus = 'samples/v4-final';
+$profilFile = __DIR__ . '/data-v4/profil-avgust.json';
 foreach (array_slice($argv, 2) as $a) {
     if (str_starts_with($a, '--korpus=')) { $korpus = substr($a, 9); }
+    if (str_starts_with($a, '--профиль=')) { $profilFile = substr($a, strlen('--профиль=')); }
 }
 if ($dir === '' || !is_dir($dir)) {
-    fwrite(STDERR, "usage: php engine/priyomka-komplekt.php <папка-комплекта> [--korpus=<путь>]\n");
+    fwrite(STDERR, "usage: php engine/priyomka-komplekt.php <папка-комплекта> [--korpus=<путь>] [--профиль=<файл>]\n");
     exit(1);
 }
-$profil = json_decode((string) file_get_contents(__DIR__ . '/data-v4/profil-avgust.json'), true);
+$profil = is_file($profilFile) ? json_decode((string) file_get_contents($profilFile), true) : null;
+if (!$profil) { fwrite(STDERR, "нет профиля $profilFile\n"); exit(1); }
 if (!isset($profil['страницы'])) { fwrite(STDERR, "в профиле нет раздела «страницы»\n"); exit(1); }
 
 function chist(string $h): string
@@ -295,7 +298,13 @@ $smeshenie['внутренних ссылок'] = [$ssylokVsego . ' из ' . $ss
     $ssylokVsego / max(1, $ssylokCel) * 100 >= 85, round($ssylokVsego / max(1, $ssylokCel) * 100)];
 
 $graf = [
-    'ссылок с главной' => [count($ishod['main']), '40–60', count($ishod['main']) >= 40 && count($ishod['main']) <= 60],
+    'ссылок с главной' => (function (int $n) use ($profil) {
+        // Полоса берётся из профиля: в августе доноры ставили с главной 40–60
+        // ссылок, в новом корпусе — 26–42, и зашитая в код вилка забракует всё.
+        $g = $profil['граф']['ссылок_с_главной'] ?? ['низ' => 40, 'верх' => 60];
+        $niz = (int) $g['низ']; $verh = (int) $g['верх'];
+        return [$n, $niz . '–' . $verh, $n >= $niz && $n <= $verh];
+    })(count($ishod['main'])),
     'главная ведёт на типов' => [count($sGlavnoy), '≥4', count($sGlavnoy) >= 4],
     'входящих на /bonus' => [$vhodBonus, '0', $vhodBonus === 0],
     'внутренних, ведущих назад' => [$nazadNaGlavnuyu, '0–2', $nazadNaGlavnuyu <= 2],
@@ -386,7 +395,8 @@ printf("  %sH1 %d · H4 %d · сбоев иерархии %d · картинок
 echo "\n── уникальность ──\n";
 printf("  срезы тем внутри комплекта: %s\n", $dubliVnutri ? "✗ $dubliVnutri повтора" : 'все разные');
 printf("  срезы совпали с корпусом:   %s\n", $sovpavshie ? '✗ ' . implode(', ', $sovpavshie) : 'нет');
-printf("  худшая пара по шинглам:     %.2f%%  (%s), порог %.0f%%\n", $hudshayaPara, $hudshiy, $porog);
+printf("  худшая пара по шинглам:     %.2f%%  (%s), порог %s%%\n", $hudshayaPara, $hudshiy,
+    rtrim(rtrim(sprintf('%.2f', $porog), '0'), '.'));
 printf("  каннибализация внутри:      %.2f%%  (потолок 3%%)\n", $kanMax);
 
 printf("\nИТОГ: %s\n", $provaly ? 'НЕ ПРОЙДЕНО — ' . implode(', ', array_keys($provaly)) : 'комплект принят');

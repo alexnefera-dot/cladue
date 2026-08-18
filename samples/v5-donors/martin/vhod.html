@@ -1,0 +1,262 @@
+<h2>
+  Вход в %brand_name_en% не работает: диагностика и быстрые решения
+</h2>
+<section>
+  <h3>
+    Проверка базовых системных вызовов
+  </h3>
+  <p>
+    <em>Если ваш клиент‑серверный запрос отклоняется, начните с самых простых «ping‑пакетов».</em>
+  </p>
+  <ul>
+    <li>
+      <strong>Стабильность соединения</strong> – проверьте Wi‑Fi или мобильный сигнал.
+    </li>
+    <li>
+      <strong>Браузерный кеш</strong> – очистите <code>localStorage</code> и <code>cookies</code>.
+    </li>
+    <li>
+      <strong>Обновление протокола</strong> – используйте последнюю версию Chrome/Edge/Firefox.
+    </li>
+  </ul>
+</section>
+<section>
+  <h3>
+    Анти‑паттерн: «Игнорировать ошибки в консоли»
+  </h3>
+  <p>
+    <b>Не игнорируйте</b> красные строки в DevTools – они часто подсказывают, что сломано в API %brand_name_en%.
+  </p>
+  <aside>
+    <strong>⚠️ ВНИМАНИЕ:</strong> Ошибки <code>401</code> и <code>403</code> означают блокировку аккаунта, а не сбой сервера.
+  </aside>
+</section>
+<section>
+  <h3>
+    Краткий чек‑лист (складывающийся)
+  </h3>
+  <details>
+    <summary>
+      Развернуть список быстрых шагов
+    </summary>
+    <ol>
+      <li>
+        Перезапустите приложение <a href="/app">%brand_name_en% Mobile</a> или закройте/откройте вкладку браузера.
+      </li>
+      <li>
+        Проверьте статус <a href="/zerkalo">зеркала</a> – иногда основной домен находится в режиме техобслуживания.
+      </li>
+      <li>
+        Отключите VPN/Proxy – система может отфильтровать запросы из подозрительных пулов.
+      </li>
+      <li>
+        Обновите пароль через <a href="/registracia">регистрацию</a>, если система выдает «неверный пароль».
+      </li>
+      <li>
+        Если ошибка <code>502 Bad Gateway</code>, подождите <strong>не более 7 минут</strong> – это ограниченный «окно обслуживания».
+      </li>
+    </ol>
+  </details>
+</section>
+<section>
+  <h3>
+    Таблица типовых кодов ошибок и реакций
+  </h3>
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr>
+          <th>
+            Код
+          </th>
+          <th>
+            Смысл
+          </th>
+          <th>
+            Действие
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>401</code>
+          </td>
+          <td>
+            Неавторизованный запрос
+          </td>
+          <td>
+            <strong>Перелогиниться</strong> через <a href="/registracia">регистрацию</a>.
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>403</code>
+          </td>
+          <td>
+            Доступ запрещён (бан)
+          </td>
+          <td>
+            <strong>Обратиться в поддержку</strong> – они могут снять ограничение.
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>502</code>
+          </td>
+          <td>
+            Пробой шлюза
+          </td>
+          <td>
+            Подождать <em>не более 7 минут</em>, затем повторить.
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>504</code>
+          </td>
+          <td>
+            Таймаут шлюза
+          </td>
+          <td>
+            Проверить <a href="/zerkalo">зеркало</a> и сеть.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+<section>
+  <h3>
+    Работа с кибер‑трубопроводом: альтернативные каналы входа
+  </h3>
+  <p>
+    Если основной <code>API</code> недоступен, используйте один из следующих «мостов»:
+  </p>
+  <ul>
+    <li>
+      Мобильное приложение – <a href="/app">скачать</a> и войти без браузера.
+    </li>
+    <li>
+      Тестовое <a href="/slots">игровое окно</a> в режиме демо – иногда оно использует отдельный эндпоинт.
+    </li>
+    <li>
+      Обновлённый <a href="/app">бонусный код</a> – иногда сервер открывает доступ при вводе актуального промокода.
+    </li>
+  </ul>
+</section>
+<section>
+  <h3>
+    Финальное предупреждение: ограниченный ресурс
+  </h3>
+  <blockquote>
+    <p>
+      «Каждая попытка входа расходует «токен» вашего сеанса. После пяти неудачных запросов система временно блокирует IP‑адрес. Действуйте быстро – иначе придётся ждать до <strong>30 минут</strong> восстановления.»
+    </p>
+  </blockquote>
+  <p>
+    Сохраняйте <strong>анкеры доступа</strong> в безопасных менеджерах и обновляйте их регулярно – так вы избежите «перегрузки» и останетесь в сети.
+  </p>
+</section>
+<h2>
+  Ответы на частые вопросы
+</h2>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-Ответы на частые вопросы">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Как восстановить вход, если утерян физический токен двухфакторной аутентификации?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Свяжитесь с техподдержкой через защищённый чат, пройдите процедуру верификации личности и получите временный код — попробуйте прямо сейчас.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-Ответы на частые вопросы">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Можно ли использовать VPN, если IP‑адрес сменился во время активной сессии?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Да, но необходимо переавторизоваться через SMS‑код, после чего система стабилизирует соединение — попробуйте прямо сейчас.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-Ответы на частые вопросы">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Что делать, если ставку отклонил алгоритм антифрода, хотя баланс был достаточен?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Откройте тикет, приложите скриншот транзакции, и служба проверит логи безопасности — попробуйте прямо сейчас.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-Ответы на частые вопросы">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Можно ли задать индивидуальный лимит ставок для каждого типа игры через API?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Да, в личном кабинете откройте раздел “Параметры API” и задайте правила в JSON‑конфиге — попробуйте прямо сейчас.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-Ответы на частые вопросы">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Как быстро восстановить кеш‑баланс после отката сервера в режиме «maintenance»?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Система автоматически пересчитывает баланс при первой авторизации, но вы можете инициировать ре‑синхронизацию в «Истории транзакций» — попробуйте прямо сейчас.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-Ответы на частые вопросы">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Можно ли привязать несколько криптовалютных кошельков к одной учетной записи и переключать их в реальном времени?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Да, в разделе «Кошельки» добавьте адреса, а переключение происходит мгновенно через селектор — попробуйте прямо сейчас.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<p>
+  Последнее обновление %domain_name%: <time datetime="%date%" itemprop="dateModified"> %date% </time>
+</p>

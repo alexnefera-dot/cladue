@@ -1,0 +1,271 @@
+<h2>
+  Программа лояльности %brand_name_en%: уровни, кэшбэк и EV‑бонусы
+</h2>
+<section>
+  <p>
+    <strong>%brand_name_en%</strong> предлагает системе лояльности, построенной как многопозиционный дилинговый стол: каждый уровень – это новая ставка с лучшими коэффициентами возврата (<em>EV</em>) и более гибкими условиями банкролл‑менеджмента.
+  </p>
+</section>
+<h3>
+  Структура уровней
+</h3>
+<p>
+  Участники перемещаются по лестнице <cite>Bronze → Silver → Gold → Platinum → Diamond</cite>. Каждый уровень генерирует <strong>базовый кэшбэк</strong> и <strong>мультипликатор EV</strong> от всех ставок.
+</p>
+<details>
+  <summary>
+    Таблица уровней и коэффициентов
+  </summary>
+  <div class="table-responsive">
+    <table border="1" cellpadding="5" cellspacing="0">
+      <thead>
+        <tr>
+          <th>
+            Уровень
+          </th>
+          <th>
+            Требуемый оборот (EUR)
+          </th>
+          <th>
+            Кэшбэк %
+          </th>
+          <th>
+            EV‑мультипликатор
+          </th>
+          <th>
+            Бонусные вращения
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            Bronze
+          </td>
+          <td>
+            0 – 1 000
+          </td>
+          <td>
+            2 %
+          </td>
+          <td>
+            1.00
+          </td>
+          <td>
+            5
+          </td>
+        </tr>
+        <tr>
+          <td>
+            Silver
+          </td>
+          <td>
+            1 001 – 5 000
+          </td>
+          <td>
+            4 %
+          </td>
+          <td>
+            1.05
+          </td>
+          <td>
+            15
+          </td>
+        </tr>
+        <tr>
+          <td>
+            Gold
+          </td>
+          <td>
+            5 001 – 20 000
+          </td>
+          <td>
+            6 %
+          </td>
+          <td>
+            1.10
+          </td>
+          <td>
+            30
+          </td>
+        </tr>
+        <tr>
+          <td>
+            Platinum
+          </td>
+          <td>
+            20 001 – 50 000
+          </td>
+          <td>
+            8 %
+          </td>
+          <td>
+            1.15
+          </td>
+          <td>
+            50
+          </td>
+        </tr>
+        <tr>
+          <td>
+            Diamond
+          </td>
+          <td>
+            50 001 +
+          </td>
+          <td>
+            10 %
+          </td>
+          <td>
+            1.20
+          </td>
+          <td>
+            100
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</details>
+<h3>
+  Как вычислить <em>EV</em> от кэшбэка
+</h3>
+<p>
+  Формула базового <em>expected value</em> для уровня <code>L</code>:
+</p>
+<blockquote>
+  <p>
+    EV<sub>L</sub> = (Σ %brand_name_en%<sub>i</sub> · WinRate<sub>i</sub>) · (1 + CB<sub>L</sub> · M<sub>L</sub>)
+  </p>
+</blockquote>
+<ul>
+  <li>
+    <strong>%brand_name_en%<sub>i</sub></strong> – размер отдельной ставки.
+  </li>
+  <li>
+    <strong>WinRate<sub>i</sub></strong> – вероятность выигрыша (из расчётов покера/блэкджека).
+  </li>
+  <li>
+    <strong>CB<sub>L</sub></strong> – кэшбэк‑процент уровня.
+  </li>
+  <li>
+    <strong>M<sub>L</sub></strong> – EV‑мультипликатор из таблицы.
+  </li>
+</ul>
+<p>
+  Пример: игрок на <b>Gold</b> ставит 100 EUR с win‑rate 0,48.
+</p>
+<details>
+  <summary>
+    Расчёт в реальном времени
+  </summary>
+  <p>
+    BaseEV = 100 · 0,48 = 48 EUR
+  </p>
+  <p>
+    Cashback = 48 · 6 % = 2,88 EUR
+  </p>
+  <p>
+    EV<sub>Gold</sub> = (48 + 2,88) · 1,10 ≈ 55,01 EUR
+  </p>
+</details>
+<h3>
+  Банкир‑менеджмент: адаптация ставок
+</h3>
+<p>
+  Оптимальная доля банкролла (<em>F</em>) для ставок в рамках программы лояльности рассчитывается по формуле Келли:
+</p>
+<blockquote>
+  <p>
+    F = (bp – q) / b, где b = (odds – 1), p = WinRate, q = 1 – p.
+  </p>
+</blockquote>
+<p>
+  Учитывайте <strong>мультипликатор EV</strong> уровня: <em>b</em> заменяется на <em>b · M<sub>L</sub></em>, тем самым повышая Kelly‑долю без увеличения риска.
+</p>
+<h4>
+  Практический шаблон ставок
+</h4>
+<ol>
+  <li>
+    Определите свой текущий уровень (<a href="/registracia">регистрация</a>, <a href="/vhod">вход</a>).
+  </li>
+  <li>
+    Считайте win‑rate исходя из выбранной игры (например, 0,525 для базовой стратегии блэкджека).
+  </li>
+  <li>
+    Подставьте коэффициенты в формулу Келли с учётом <em>M<sub>L</sub></em>.
+  </li>
+  <li>
+    Установите ставку = <strong>F · Bankroll</strong>.
+  </li>
+  <li>
+    Контролируйте оборот, чтобы не «перепрыгнуть» уровень без нужды.
+  </li>
+</ol>
+<aside>
+  <p>
+    <em>Важно:</em> кэшбэк начисляется только после завершения <strong>строгих условий вейджера</strong> – 30× бонуса. Не забывайте проверять статус в личном кабинете.
+  </p>
+</aside>
+<h3>
+  FAQ по программе лояльности
+</h3>
+<ul>
+  <li>
+    <strong>Как ускорить переход на следующий уровень?</strong> Увеличьте средний размер ставки (<i>SpinToAvg</i>) при неизменном win‑rate – это экспоненциально ускорит оборот.
+  </li>
+  <li>
+    <strong>Можно ли совмещать бонусы?</strong> Да, кэшбэк <b>накладывается</b> на любые рекламные акции, но только одна акция учитывается в расчёте <em>EV</em> за одну ставку.
+  </li>
+  <li>
+    <strong>Где посмотреть историю кэшбэка?</strong> В разделе <a href="/app">Скачать приложение</a> → <em>История бонусов</em>.
+  </li>
+</ul>
+<h3>
+  Навигация по сайту
+</h3>
+<p>
+  Для более глубокого погружения в <a href="/slots">игровые автоматы</a> и их <em>RTP</em>‑модели, а также практические примеры расчётов – см. раздел «Промоакции».
+</p>
+<blockquote cite="/">
+  <q>Лояльность – это не подарок, а инструмент профессионального игрока, позволяющий превратить каждый евро в потенциальный прирост EV.</q>
+</blockquote>
+<h2>
+  Вопросы и ответы
+</h2>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-FAQ">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Можно ли применить промокод к ставке, уже находящейся в состоянии «в ожидании» (pending) из‑за задержки подтверждения комиссии?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Нет — промокод учитывается только при формировании новой ставки до её отправки в очередь.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-FAQ">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Как рассчитывается EV (expected value) бонуса, если в течение одной недели я совершил 37 микроставок с различными коэффициентами, а partecipo‑бонус выпал только после 20‑й ставки?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            EV бонуса = Σ_{i=20}^{37} (коэффициент_i · ставка_i · бонусный мультипликатор) – сумма ставок до 20‑й не включается.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<p>
+  Последнее обновление %domain_name%: <time datetime="%date%" itemprop="dateModified"> %date% </time>
+</p>
