@@ -1,0 +1,106 @@
+<h2>Программа сбрасывает язык витрины при каждом входе</h2>
+<p>
+  Язык в сборке %brand_name_en% выбран, витрина перерисована, каждый игровой автомат подписан понятно. А после закрытия программы и нового входа он снова возвращается к прежнему.
+</p>
+<p>
+  Настойчивая настройка %brand_name_ru% при этом сохраняется — просто не та, а прежняя, серверная. Язык в программе и язык в профиле живут порознь, и при запуске один перебивает другой.
+</p>
+<h3>Откуда программа берёт язык</h3>
+<table>
+  <tbody>
+    <tr><th>Источник</th><th>Когда срабатывает</th><th>Переживает ли перезапуск</th></tr>
+    <tr><td>Личное поле в профиле</td><td>При каждом новом входе</td><td>Да, это главный источник</td></tr>
+    <tr><td>Язык системы телефона</td><td>Если поле профиля пусто</td><td>Да</td></tr>
+    <tr><td>Переключатель в программе</td><td>До закрытия сборки</td><td>Нет</td></tr>
+    <tr><td>Язык домена</td><td>У части запасных адресов</td><td>Только в браузере</td></tr>
+  </tbody>
+</table>
+<h3>Отчего переключатель не держится</h3>
+<p>
+  <strong>Он меняет отрисовку, а не запись на сервере.</strong> Программа рисует витрину заново при каждом запуске и берёт язык оттуда, где он записан навсегда, — из профиля. Локальный выбор до этой записи не доходит.
+</p>
+<blockquote>
+  Прут можно придержать рукой, и он будет держать форму. Отпустишь — распрямится: держит не рука, а высохшая загибка.
+</blockquote>
+<h3>Порядок закрепления</h3>
+<ol>
+  <li>Открыть профиль внутри программы, а не переключатель в шапке</li>
+  <li>Найти поле языка витрины и выбрать нужный</li>
+  <li>Сохранить и выйти из счёта полностью</li>
+  <li>Войти заново и проверить, что язык остался</li>
+  <li>Повторить проверку в браузере: настройка там общая</li>
+  <li>Открыть <a href="/vhod">сводку кабинета</a> и убедиться, что язык писем тот же</li>
+</ol>
+<h3>На что язык влияет на деле</h3>
+<ul>
+  <li><strong>Текст условий акции.</strong> Перевод бывает короче исходного</li>
+  <li><strong>Названия разделов кассы.</strong> Границы сумм на вывод средств при этом те же</li>
+  <li><strong>Язык писем.</strong> Он берётся из того же поля профиля</li>
+  <li><strong>Ничего больше.</strong> Отдача автомата, вейджер, лимиты и джекпот от языка не зависят</li>
+</ul>
+<h3>Итог</h3>
+<p>
+  Возвращающийся язык означает пустое или чужое поле профиля, а не поломку сборки: программа перерисовывает витрину при каждом запуске и берёт язык из записи на сервере, а не из локального переключателя. Закрепляется он в профиле, и делать это стоит сразу — не ради удобства, а ради условий акции: перевод бывает короче исходного текста, и строка о планке спина в нём теряется. Отдача автоматов, требуемый оборот и границы кассы от языка не меняются вовсе. Можно ли обойтись без правки — да, но условия акции придётся сверять с исходным текстом. Пока настройка не закреплена, всё нужное открыто и так: паспортные величины по каждой машине держит <a href="/slots">опись тайтлов</a>, недобранный вейджер показывает <a href="/vhod">личный кабинет</a>, требования к бумагам собраны в <a href="/registracia">описи документов</a>, а действующие домены раздаёт <a href="/zerkalo">перечень адресов</a>.
+</p>
+
+<h2>Частые вопросы игроков о языке сборки %brand_name_en%</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Переключатель не работает и язык слетает — сборка сломана?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, он меняет только отрисовку до закрытия программы. Закреплять выбор надо в профиле.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отчего программа берёт язык системы телефона?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>При пустом поле профиля другого источника нет. Это молчаливая настройка, и меняется она в профиле.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Общая ли настройка языка для сборки и браузера?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Общая, если задана в профиле. Локальные переключатели у каждого свои и живут до перезапуска.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отличаются ли условия акции на разных языках?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Смысл один, перевод бывает короче. Спорные строки стоит сверять с исходным текстом регламента.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Меняются ли границы кассы вместе с языком?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не меняются: они привязаны к валюте счёта. Меняются только подписи разделов.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">На каком языке придут письма о выплате?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>На том, что стоит в профиле. Локальный переключатель на рассылку не влияет вовсе.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сбрасывается ли язык после обновления пакета?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Локальные настройки иногда стираются, поле профиля — никогда. Это ещё довод закрепить выбор там.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать, если нужного языка нет в списке?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Выбрать тот, которым владеете лучше, и сверять условия акции с исходным текстом регламента.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли язык на очередь в поддержке?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Обращение попадёт к сотруднику, говорящему на нём. Срок ответа при этом не меняется.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Нужно ли настраивать язык на каждом аппарате?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Поле профиля общее для всех. Отдельно настраивают только локальный переключатель, если им пользуются.</p></div>
+  </div>
+</details>
