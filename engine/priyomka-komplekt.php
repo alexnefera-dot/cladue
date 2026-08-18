@@ -278,7 +278,10 @@ if ($razmetka && $razmOk / count($razmetka) < 0.8) { $provaly['разметка'
 // ── 5. граф перелинковки ────────────────────────────────────────────
 $ishod = [];
 foreach (PAGES_K as $p) {
-    preg_match_all('~<a\s[^>]*href="(/[a-z]*)"~i', $stranicy[$p], $m);
+    // Хвост после пути ссылку не отменяет: «/registracia/», «/vhod#kod» и
+    // «/slots?tab=new» — это те же внутренние переходы, а прежняя строгая
+    // форма их не видела и заносила страницу в нулевые.
+    preg_match_all('~<a\s[^>]*href="(/[a-z-]*)/?(?:[#?][^"]*)?"~i', $stranicy[$p], $m);
     $ishod[$p] = $m[1];
 }
 $vhodBonus = 0;

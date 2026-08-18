@@ -41,9 +41,23 @@ foreach (array_slice($argv, 1) as $a) {
     if (preg_match('~^--([^=]+)=(.*)$~su', $a, $m)) { $opts[$m[1]] = $m[2]; }
     elseif (preg_match('~^--(.+)$~su', $a, $m)) { $opts[$m[1]] = true; }
 }
+// Неизвестный ключ — это всегда ошибка, а не пожелание. Прогон с
+// `--korpus=samples/v5-final` (ключ, который генератор передаёт ДАЛЬШЕ, но сам
+// не принимает) молча ушёл писать в августовскую папку: семь страниц нового
+// поколения легли в samples/v4-final и там же мерились на уникальность.
+const KLYUCHI_G = ['комплект', 'маска', 'выход', 'корпус', 'korpus', 'попыток',
+    'модель', 'только', 'сухой', 'профиль', 'сводок'];
+foreach (array_keys($opts) as $k) {
+    if (!in_array($k, KLYUCHI_G, true)) {
+        fwrite(STDERR, "неизвестный ключ --$k; известные: --" . implode(' --', KLYUCHI_G) . "\n");
+        exit(1);
+    }
+}
 $IMYA    = $opts['комплект'] ?? '';
 $MASKA   = $opts['маска'] ?? '';
-$VYHOD   = rtrim($opts['выход'] ?? 'samples/v4-final', '/');
+// Папка комплекта и корпус для сверки на уникальность — одно и то же место,
+// поэтому три написания ключа ведут в одно поле.
+$VYHOD   = rtrim($opts['выход'] ?? $opts['корпус'] ?? $opts['korpus'] ?? 'samples/v4-final', '/');
 $POPYTOK = (int) ($opts['попыток'] ?? 3);
 $MODEL   = $opts['модель'] ?? 'claude-opus-5';
 $SUHOY   = isset($opts['сухой']);
@@ -266,9 +280,37 @@ function poleaPromahi(string $file, string $tip, string $profFile): array
     return $bad;
 }
 
+/**
+ * Промахи по графу ссылок — на самой странице, а не на собранном комплекте.
+ *
+ * Ссылки внутрь комплекта проверялись только межстраничным шлюзом, а он
+ * работает по готовой папке. Пока страница писалась, её приёмка про ссылки не
+ * спрашивала вовсе: app, registracia и slots вышли из цикла «принято» с нулём
+ * ссылок, и это всплыло на последнем шаге, когда каждая правка стоит полного
+ * переписывания страницы и отдельного круга сводки. Полоса та же, что у
+ * шлюза, — 3–11 на внутренней, профильная на главной.
+ */
+function grafPromahi(string $file, string $tip, string $profFile): array
+{
+    if (!is_file($file)) { return []; }
+    preg_match_all('~<a\s[^>]*href="(/[a-z-]*)/?(?:[#?][^"]*)?"~i', (string) file_get_contents($file), $m);
+    $n = count($m[1]);
+    if ($tip !== 'main') {
+        return ($n >= 3 && $n <= 11) ? [] : ["ссылок на другие страницы комплекта $n нужно 3–11"];
+    }
+    $g = ['низ' => 40, 'верх' => 60];
+    if ($profFile !== '' && is_file($profFile)) {
+        $prof = json_decode((string) file_get_contents($profFile), true);
+        $g = $prof['граф']['ссылок_с_главной'] ?? $g;
+    }
+    return ($n >= (int) $g['низ'] && $n <= (int) $g['верх'])
+        ? [] : ["ссылок с главной $n нужно {$g['низ']}–{$g['верх']}"];
+}
+
 function zamer(string $root, string $dir, string $p, string $prof = '', string $korp = '', string $profPath = ''): array
 {
-    $bad = poleaPromahi("$dir/$p.html", $p, $profPath);
+    $bad = array_merge(poleaPromahi("$dir/$p.html", $p, $profPath),
+                       grafPromahi("$dir/$p.html", $p, $profPath));
     if ($p === 'main') {
         exec(sprintf('php %s/engine/priyomka-v4.php %s%s%s 2>&1',
             escapeshellarg($root), escapeshellarg($dir), $korp, $prof), $v);
@@ -283,13 +325,52 @@ function zamer(string $root, string $dir, string $p, string $prof = '', string $
     return array_values(array_unique(array_merge($bad, razmetkaPromahi($root, $dir, $p, $prof, $korp))));
 }
 
+/**
+ * Промах словами, пригодными для правки.
+ *
+ * Бриф печатал строку замера как есть: «anchors 1→5», «adj_pct 9.3→12.5»,
+ * «ссылок с /app 0 нужно 3–11». Это имена полей карточки — писатель не знает
+ * ни что за ними стоит, ни чем их добирают, и три попытки подряд правил всё,
+ * кроме них. Перевод берётся из того же справочника, по которому поля и
+ * меряются, а на непереводимые руками добавлено, что именно дописать.
+ */
+function poyasnit(string $promah): string
+{
+    // /bonus в списке нет намеренно: страница акций в комплекте есть, но
+    // входящих ссылок у неё ноль — так у доноров, и шлюз это проверяет.
+    static $puti = '/, /app, /registracia, /slots, /vhod, /zerkalo';
+    // имя поля → человеческое название из карточки
+    if (preg_match('~^([a-z_0-9]+) (\S+)→(\S+)$~u', $promah, $m)) {
+        $imya = PageMetrics::FIELDS[$m[1]][0] ?? $m[1];
+        $promah = "$imya: сейчас $m[2], нужно около $m[3]";
+    }
+    $hvost = '';
+    if (strpos($promah, 'опорных формул') === 0) {
+        $hvost = 'это словосочетания ниши, они должны стоять внутри фраз и в нужном падеже: '
+            . implode('; ', PageMetrics::ANCHORS_TXT)
+            . '. Не вставляй их списком и не пересказывай синонимами — «слоты» вместо «игровых автоматов» здесь не считаются';
+    } elseif (preg_match('~ссылок (?:на другие страницы комплекта|с /\w+|с главной)~u', $promah)) {
+        $hvost = "ссылки ведут на другие страницы этого же комплекта ($puti), стоят словом внутри "
+            . 'предложения в косвенном падеже, а не отдельной строкой и не кнопкой; на /bonus не ссылается никто';
+    } elseif (strpos($promah, 'внутренних ссылок') !== false) {
+        $hvost = 'считается сумма по всему комплекту — на этой странице ссылок не хватает';
+    } elseif (strpos($promah, 'выделений') !== false) {
+        $hvost = 'это <strong>; образец выделяет им начало пункта («Лимиты депозитов:»), а не кусок посреди фразы';
+    } elseif (strpos($promah, 'последний H2') !== false) {
+        $hvost = 'последний раздел страницы — блок вопросов и ответов, и его H2 назван так, чтобы это было видно';
+    } elseif (strpos($promah, 'H3 с двоеточием') !== false) {
+        $hvost = 'перепиши часть подзаголовков без двоеточия — вопросом или простой фразой';
+    }
+    return $hvost === '' ? $promah : "$promah — $hvost";
+}
+
 /** Бриф на правку: что мимо, на сколько и чего трогать нельзя. */
 function brief(string $ishodnyy, string $htmlFile, array $promahi): string
 {
     $prompt = (string) file_get_contents(preg_replace('~\.fix$~', '', $ishodnyy));
     $html = (string) file_get_contents($htmlFile);
     $spisok = '';
-    foreach ($promahi as $m) { $spisok .= "  — $m\n"; }
+    foreach ($promahi as $m) { $spisok .= '  — ' . poyasnit($m) . "\n"; }
     return <<<TXT
 # Правка страницы
 
