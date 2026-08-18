@@ -165,6 +165,8 @@ foreach (TIPY as $tip) {
         $polya[$k] = [
             'цель' => round($med, 2), 'дробное' => (bool) $isRate, 'держат' => $derzh,
             'полоса' => [round($v[(int) ($n * 0.25)], 2), round($v[(int) ($n * 0.75)], 2)],
+            'край' => [round($v[0], 2), round($v[$n - 1], 2)],
+            'доля_доноров_в_коридоре' => $dolya,
         ];
         if ($tip === 'main') {
             $polnyj[$k] = [
