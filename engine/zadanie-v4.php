@@ -48,6 +48,41 @@ $prof  = json_decode((string) file_get_contents($profFile), true);
 if (!$prof) { fwrite(STDERR, "нет профиля $profFile\n"); exit(1); }
 $maski = json_decode((string) file_get_contents(__DIR__ . '/data-v4/maski.json'), true);
 
+// ── резерв прогона живёт отдельно от поставки ───────────────────────────────
+//
+// Срезы и грани резервируются на КАЖДОМ прогоне, в том числе на упавшем, и
+// писались прямо в maski.json. Этот файл лежит в репозитории и приезжает с
+// обновлениями — значит любой прогон делал рабочую копию грязной, а следующий
+// `git pull` вставал с «local changes would be overwritten by merge». Три
+// обновления подряд не доехали до машины ровно так, и всё это время конвейер
+// чинился здесь, а работал там по старому коду.
+//
+// Теперь резерв пишется в соседний файл, которого нет в репозитории. В
+// maski.json резерв переносит генератор — в тот момент, когда комплект принят,
+// то есть когда правку и правда есть смысл коммитить.
+const MESTNOE = __DIR__ . '/data-v4/zanyato-mestnoe.json';
+
+/** Слияние «занятого»: местное перекрывает поставку по каждому листу. */
+function slitZanyato(array $baza, array $mest): array
+{
+    $out = $baza;
+    $out['маски'] = array_values(array_unique(array_merge($baza['маски'] ?? [], $mest['маски'] ?? [])));
+    foreach (($mest['срезы'] ?? []) as $p => $spisok) {
+        $bylo = [];
+        foreach ($baza['срезы'][$p] ?? [] as $z) { $bylo[json_encode($z, JSON_UNESCAPED_UNICODE)] = $z; }
+        foreach ($spisok as $z) { $bylo[json_encode($z, JSON_UNESCAPED_UNICODE)] = $z; }
+        $out['срезы'][$p] = array_values($bylo);
+    }
+    foreach (($mest['грани'] ?? []) as $uzel => $grani) {
+        foreach ($grani as $gran => $zapis) { $out['грани'][$uzel][$gran] = $zapis; }
+    }
+    $out['грани_шаг'] = max((int) ($baza['грани_шаг'] ?? 0), (int) ($mest['грани_шаг'] ?? 0));
+    return $out;
+}
+
+$mestnoe = is_file(MESTNOE) ? json_decode((string) file_get_contents(MESTNOE), true) : null;
+if (is_array($mestnoe)) { $maski['занято'] = slitZanyato($maski['занято'] ?? [], $mestnoe); }
+
 // ── выбор маски: заданная либо первая свободная ─────────────────────────────
 $zanyato = $maski['занято']['маски'] ?? [];
 $karta = null;
@@ -181,8 +216,7 @@ if ($novyy) {
         $izm = true;
     }
     if ($izm) {
-        file_put_contents(__DIR__ . '/data-v4/maski.json',
-            json_encode($maski, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+        file_put_contents(MESTNOE, json_encode($maski['занято'], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
     }
 }
 
@@ -744,8 +778,7 @@ foreach (PAGES_Z as $p) {
 // maski.json. Пишем повторно — иначе резерв живёт только в памяти процесса и
 // следующий комплект берёт те же грани.
 if ($novyy) {
-    file_put_contents(__DIR__ . '/data-v4/maski.json',
-        json_encode($maski, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+    file_put_contents(MESTNOE, json_encode($maski['занято'], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
 }
 
 // ── карточка комплекта: её читает генератор и приёмка ───────────────────────

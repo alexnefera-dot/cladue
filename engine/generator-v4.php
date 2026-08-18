@@ -34,6 +34,24 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/src/PageMetrics.php';
 
+/** Слияние «занятого»: местный резерв перекрывает поставку по каждому листу. */
+function slitZanyato(array $baza, array $mest): array
+{
+    $out = $baza;
+    $out['маски'] = array_values(array_unique(array_merge($baza['маски'] ?? [], $mest['маски'] ?? [])));
+    foreach (($mest['срезы'] ?? []) as $p => $spisok) {
+        $bylo = [];
+        foreach ($baza['срезы'][$p] ?? [] as $z) { $bylo[json_encode($z, JSON_UNESCAPED_UNICODE)] = $z; }
+        foreach ($spisok as $z) { $bylo[json_encode($z, JSON_UNESCAPED_UNICODE)] = $z; }
+        $out['срезы'][$p] = array_values($bylo);
+    }
+    foreach (($mest['грани'] ?? []) as $uzel => $grani) {
+        foreach ($grani as $gran => $zapis) { $out['грани'][$uzel][$gran] = $zapis; }
+    }
+    $out['грани_шаг'] = max((int) ($baza['грани_шаг'] ?? 0), (int) ($mest['грани_шаг'] ?? 0));
+    return $out;
+}
+
 const PAGES_G = ['main', 'app', 'bonus', 'registracia', 'slots', 'vhod', 'zerkalo'];
 
 $opts = [];
@@ -57,7 +75,14 @@ $IMYA    = $opts['комплект'] ?? '';
 $MASKA   = $opts['маска'] ?? '';
 // Папка комплекта и корпус для сверки на уникальность — одно и то же место,
 // поэтому три написания ключа ведут в одно поле.
-$VYHOD   = rtrim($opts['выход'] ?? $opts['корпус'] ?? $opts['korpus'] ?? 'samples/v4-final', '/');
+// Умолчания у корпуса нет намеренно. Поколений в работе два, папки у них
+// разные, и молчаливая подстановка августовской однажды увела туда весь
+// комплект нового поколения вместе с проверкой на уникальность.
+$VYHOD   = rtrim($opts['выход'] ?? $opts['корпус'] ?? $opts['korpus'] ?? '', '/');
+if ($VYHOD === '') {
+    fwrite(STDERR, "не указан корпус: --korpus=samples/v5-final (или --выход=…)\n");
+    exit(1);
+}
 $POPYTOK = (int) ($opts['попыток'] ?? 3);
 $MODEL   = $opts['модель'] ?? 'claude-opus-5';
 $SUHOY   = isset($opts['сухой']);
@@ -220,6 +245,12 @@ for ($krug = 1; $krug <= $SVODOK && $krc !== 0 && !$SUHOY; $krug++) {
 if ($krc === 0 && !$SUHOY) {
     $mf = __DIR__ . '/data-v4/maski.json';
     $mk = json_decode((string) file_get_contents($mf), true);
+    // Резерв прогона копится в незакоммиченном соседнем файле, чтобы упавший
+    // прогон не делал рабочую копию грязной и не блокировал `git pull`. Сюда,
+    // в поставку, он переезжает один раз — на принятом комплекте.
+    $mest = __DIR__ . '/data-v4/zanyato-mestnoe.json';
+    $mz = is_file($mest) ? json_decode((string) file_get_contents($mest), true) : null;
+    if (is_array($mz)) { $mk['занято'] = slitZanyato($mk['занято'] ?? [], $mz); }
     if (!in_array($karta['маска'], $mk['занято']['маски'], true)) {
         $mk['занято']['маски'][] = $karta['маска'];
     }
@@ -231,6 +262,7 @@ if ($krc === 0 && !$SUHOY) {
             $mk['срезы_запас'][$p2] ?? [], fn($x) => $x !== $srez));
     }
     file_put_contents($mf, json_encode($mk, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+    @unlink($mest);
     stroka('маска и срезы отмечены занятыми');
 }
 
