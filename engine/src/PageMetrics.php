@@ -54,6 +54,14 @@ final class PageMetrics
         // сорок три раза на пять наборов и две колонки.
         'table_cols' => ['колонок в таблице', 1],
         'table_uniq_pct' => ['уникальных шапок %', 1],
+        // Форму таблицы мы воспроизводили — три колонки, разные шапки, — а
+        // наполнение ячейки нет, и мерить его было нечем. У доноров на главной
+        // в ячейке 2,8-4,4 слова и у восьмой части ячеек внутри целое
+        // предложение с точкой; у нас 2,1 слова и ни одной точки. Читателю это
+        // видно сразу: «Официальный сайт | отклик витрины | до 2 секунд» — это
+        // подписи, а не строки таблицы.
+        'table_cell_words' => ['слов в ячейке', 1],
+        'table_cell_sent_pct' => ['ячеек с целой фразой %', 1],
         // Отзыв с именем, датой и оценкой 1–5. Приём распределяет роли: минус
         // называет не автор, а игрок с оценкой «три из пяти», и автору не
         // приходится критиковать площадку самому. У нас вместо этого цитата с
@@ -264,7 +272,7 @@ final class PageMetrics
 
         // Форма таблицы: сколько колонок и повторяется ли шапка. Шапкой считаем
         // строку <th>, а где её нет — первую строку таблицы.
-        $cols = []; $headers = [];
+        $cols = []; $headers = []; $cellW = []; $cellS = 0;
         if (preg_match_all('~<table\b.*?</table>~is', $noScript, $tm2)) {
             foreach ($tm2[0] as $tbl) {
                 preg_match_all('~<th\b[^>]*>(.*?)</th>~is', $tbl, $th);
@@ -275,6 +283,13 @@ final class PageMetrics
                 }
                 if (!$cells) { continue; }
                 $cols[] = count($cells);
+                preg_match_all('~<td\b[^>]*>(.*?)</td>~is', $tbl, $tdAll);
+                foreach ($tdAll[1] as $c) {
+                    $t = trim(preg_replace('~\s+~u', ' ', strip_tags($c)));
+                    if ($t === '') { continue; }
+                    $cellW[] = count(preg_split('~\s+~u', $t, -1, PREG_SPLIT_NO_EMPTY));
+                    if (preg_match('~[.!?]~u', $t)) { $cellS++; }
+                }
                 $headers[] = mb_strtolower(implode('|', array_map(
                     fn($c) => trim(preg_replace('~\s+~u', ' ', strip_tags($c))), $cells)));
             }
@@ -320,6 +335,8 @@ final class PageMetrics
             'opener_key' => preg_match('~официальн~ui', $first50) ? 1 : 0,
             'table_cols' => $cols ? round(array_sum($cols) / count($cols), 1) : 0,
             'table_uniq_pct' => $headers ? round(count(array_unique($headers)) / count($headers) * 100, 1) : 0,
+            'table_cell_words' => $cellW ? round(array_sum($cellW) / count($cellW), 1) : 0,
+            'table_cell_sent_pct' => $cellW ? round($cellS / count($cellW) * 100, 1) : 0,
             // По разметке, а где её нет — по формуле «Имя / дата / оценка»
             'anchor_once_pct' => (function () use ($noScript) {
                 if (!preg_match_all('~<a\b[^>]*>(.*?)</a>~is', $noScript, $am)) { return 0; }
