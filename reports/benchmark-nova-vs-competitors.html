@@ -1,0 +1,124 @@
+<meta charset="utf-8">
+<title>Бенчмарк: Nova против конкурентов</title>
+<style>
+:root{--bg:#f6f8fc;--panel:#fff;--panel2:#eef2f8;--ink:#1a2230;--muted:#5d6b82;--line:#e2e7ef;
+  --nova:#3f7bf0;--betchan:#d98a2a;--bob:#9163e0;--ok:#1f9d6b;--bad:#d23b40;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;}
+@media(prefers-color-scheme:dark){:root{--bg:#0e131c;--panel:#151d29;--panel2:#1b2431;--ink:#e7ecf5;--muted:#8b98b0;--line:#26303f;--nova:#5b95ff;--betchan:#eaa54a;--bob:#a98bf0;--ok:#33c08a;--bad:#e5595c;}}
+:root[data-theme="dark"]{--bg:#0e131c;--panel:#151d29;--panel2:#1b2431;--ink:#e7ecf5;--muted:#8b98b0;--line:#26303f;--nova:#5b95ff;--betchan:#eaa54a;--bob:#a98bf0;--ok:#33c08a;--bad:#e5595c;}
+:root[data-theme="light"]{--bg:#f6f8fc;--panel:#fff;--panel2:#eef2f8;--ink:#1a2230;--muted:#5d6b82;--line:#e2e7ef;--nova:#3f7bf0;--betchan:#d98a2a;--bob:#9163e0;--ok:#1f9d6b;--bad:#d23b40;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--sans)}
+.wrap{max-width:1000px;margin:0 auto;padding:28px 20px 80px}
+.eyebrow{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700}
+h1{font-size:25px;margin:6px 0 8px;letter-spacing:-.02em}
+.lead{color:var(--muted);max-width:74ch}
+.verdict{margin-top:16px;padding:13px 16px;border-radius:11px;background:var(--panel2);border:1px solid var(--line);font-size:14px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:22px 0}
+@media(max-width:720px){.cards{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px;position:relative;overflow:hidden}
+.card .bar{height:4px;border-radius:4px 4px 0 0;margin:-16px -16px 12px}
+.card.nova .bar{background:var(--nova)}.card.betchan .bar{background:var(--betchan)}.card.bob .bar{background:var(--bob)}
+.card h3{margin:0 0 2px;font-size:16px}.card .role{color:var(--muted);font-size:12.5px}
+.card .big{font-family:var(--mono);font-size:28px;font-weight:700;margin-top:10px}
+.card .sub{color:var(--muted);font-size:12.5px}
+.chip{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:700;color:#fff}
+.chip.nova{background:var(--nova)}.chip.betchan{background:var(--betchan)}.chip.bob{background:var(--bob)}
+section{margin-top:28px}h2{font-size:18px;margin:0 0 6px}.hint{color:var(--muted);font-size:12.5px;margin:0 0 10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:720px){.grid2{grid-template-columns:1fr}}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:11px}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:340px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right}
+th{color:var(--muted);font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em}
+td:first-child,th:first-child{text-align:left}
+tbody tr:last-child td{border-bottom:none}
+td.v{font-family:var(--mono)}
+.lead-cell{font-weight:700}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.dot.nova{background:var(--nova)}.dot.betchan{background:var(--betchan)}.dot.bob{background:var(--bob)}
+.bars{display:flex;flex-direction:column;gap:9px;margin-top:4px}
+.brow{display:grid;grid-template-columns:80px 1fr 46px;gap:10px;align-items:center;font-size:13px}
+.track{height:16px;background:var(--panel2);border-radius:5px;overflow:hidden}
+.fill{height:100%;border-radius:5px}
+.take{padding:11px 14px;border-left:3px solid var(--nova);background:var(--panel);border:1px solid var(--line);border-radius:9px;margin-top:9px;font-size:13.6px}
+.take b{color:var(--ink)}
+.foot{color:var(--muted);font-size:12px;margin-top:24px;text-align:center}
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">Бенчмарк · сравнение по типу страницы (7×7)</div>
+  <h1>Наш эталон Nova против двух реальных конкурентов</h1>
+  <p class="lead">Сгенерённый по рецепту набор Nova сопоставлен с двумя реальными связками (betchan, bob) по всем 7 типам страниц. Метрики посчитаны движком v2.</p>
+  <div class="verdict">🏁 <b>Nova лидирует по плотности фактов и FAQ на всех типах.</b> Конкуренты расходятся по стратегиям: <b style="color:var(--betchan)">betchan</b> — плотный, но фрагменты без title/H1; <b style="color:var(--bob)">bob</b> — максимальный объём, но «вода» (плотность цифр 3.3). У Nova — баланс: объём + фактура + живой E-E-A-T.</div>
+
+  <div class="cards" id="cards"></div>
+
+  <section>
+    <h2>Плотность фактов (чисел на 100 слов) — среднее по набору</h2>
+    <p class="hint">Ключевой признак «полезности» текста: сколько конкретики (сумм, %, сроков) на 100 слов.</p>
+    <div class="bars" id="density"></div>
+  </section>
+
+  <section>
+    <h2>Сравнение по типам страниц</h2>
+    <p class="hint">Зелёным — лидер по метрике в строке. Объём нейтрален (больше ≠ лучше), плотность/FAQ/сущности — больше лучше.</p>
+    <div class="grid2" id="metrics"></div>
+  </section>
+
+  <section>
+    <h2>Выводы</h2>
+    <div class="take">✅ <b>Nova — плотность и FAQ:</b> средняя плотность цифр <b>13.3</b> против 7.0 у betchan и 3.3 у bob; реальные FAQ (7–16 вопросов) есть на каждой странице, у конкурентов часто 0.</div>
+    <div class="take" style="border-left-color:var(--betchan)"><b style="color:var(--betchan)">betchan</b> — плотный по цифрам на главной (12.7), но это фрагменты <b>без title/H1</b> и с пустыми FAQ; на сателлитах плотность падает до 2–6.</div>
+    <div class="take" style="border-left-color:var(--bob)"><b style="color:var(--bob)">bob</b> — самый объёмный (8895 слов, главная 5147), но <b>плотность цифр 3.3</b> — много «воды»: текст есть, конкретики мало.</div>
+    <div class="take">🎯 <b>Что улучшить у Nova:</b> объём главной (2237) можно поднять к 3500–4000 за счёт новых тем — не теряя плотности и не повторяясь (тошнота уже 42%).</div>
+  </section>
+
+  <div class="foot">Nova — samples/nova/*; betchan, bob — реальные связки. Проверено движком v2 (Comparator, пары по типу страницы).</div>
+</div>
+
+<script>
+const B = {
+ nova:{total:5933,avgnum:13.3,role:'наш эталон (рецепт)',
+   pages:{main:{words:2237,num:16.8,faq:16,ent:12},zerkalo:{words:562,num:7.8,faq:9,ent:6},vhod:{words:724,num:11.2,faq:10,ent:5},registracia:{words:624,num:10.4,faq:7,ent:5},bonus:{words:540,num:18.5,faq:7,ent:7},slots:{words:641,num:15.6,faq:7,ent:7},app:{words:605,num:12.6,faq:7,ent:4}}},
+ betchan:{total:3494,avgnum:7.0,role:'реальный · плотный, фрагменты',
+   pages:{main:{words:1007,num:12.7,faq:0,ent:11},zerkalo:{words:325,num:5.8,faq:1,ent:3},vhod:{words:458,num:2.4,faq:4,ent:4},registracia:{words:399,num:4.5,faq:6,ent:3},bonus:{words:391,num:6.4,faq:0,ent:6},slots:{words:510,num:12.7,faq:2,ent:8},app:{words:404,num:4.7,faq:0,ent:3}}},
+ bob:{total:8895,avgnum:3.3,role:'реальный · объёмный, «вода»',
+   pages:{main:{words:5147,num:3.0,faq:5,ent:10},zerkalo:{words:521,num:0.2,faq:3,ent:2},vhod:{words:567,num:1.9,faq:0,ent:4},registracia:{words:587,num:2.9,faq:0,ent:6},bonus:{words:909,num:6.2,faq:0,ent:4},slots:{words:499,num:5.8,faq:1,ent:4},app:{words:665,num:3.3,faq:0,ent:3}}},
+};
+const BRANDS=['nova','betchan','bob'];
+const TYPES=['main','zerkalo','vhod','registracia','bonus','slots','app'];
+const COLOR={nova:'var(--nova)',betchan:'var(--betchan)',bob:'var(--bob)'};
+
+// cards
+document.getElementById('cards').innerHTML=BRANDS.map(b=>`
+  <div class="card ${b}"><div class="bar"></div>
+    <h3><span class="dot ${b}"></span>${b}</h3><div class="role">${B[b].role}</div>
+    <div class="big">${B[b].avgnum}</div><div class="sub">чисел на 100 слов (сред.)</div>
+    <div class="sub" style="margin-top:8px">Всего слов: <b>${B[b].total}</b></div>
+  </div>`).join('');
+
+// density bars
+const maxD=Math.max(...BRANDS.map(b=>B[b].avgnum));
+document.getElementById('density').innerHTML=BRANDS.map(b=>`
+  <div class="brow"><span><span class="dot ${b}"></span>${b}</span>
+    <div class="track"><div class="fill" style="width:${Math.round(B[b].avgnum/maxD*100)}%;background:${COLOR[b]}"></div></div>
+    <span class="v" style="text-align:right">${B[b].avgnum}</span></div>`).join('');
+
+// per-metric tables
+const METRICS=[['words','Объём (слов)',false],['num','Плотность цифр /100',true],['faq','FAQ (вопросов)',true],['ent','Сущностей',true]];
+document.getElementById('metrics').innerHTML=METRICS.map(([key,label,higher])=>{
+  const rows=TYPES.map(t=>{
+    const vals=BRANDS.map(b=>B[b].pages[t][key]);
+    const lead=higher?Math.max(...vals):null;
+    return `<tr><td>${t}</td>`+BRANDS.map((b,i)=>{
+      const isLead=higher&&vals[i]===lead;
+      return `<td class="v ${isLead?'lead-cell':''}" style="${isLead?'color:var(--ok)':''}">${vals[i]}</td>`;
+    }).join('')+`</tr>`;
+  }).join('');
+  return `<div><h3 style="font-size:14px;margin:0 0 6px">${label}</h3>
+    <div class="tw"><table><thead><tr><th>Тип</th>
+      ${BRANDS.map(b=>`<th><span class="dot ${b}"></span>${b}</th>`).join('')}
+    </tr></thead><tbody>${rows}</tbody></table></div></div>`;
+}).join('');
+</script>

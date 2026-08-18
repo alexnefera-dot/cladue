@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>set199 по новому порядку: что дало деление карточки</title>
+<style>
+  :root { --bg:#fff; --fg:#1a1a1a; --mut:#666; --line:#e3e3e3; --note:#f4f4f4; --ok:#2f7d32; --bad:#b3261e; --warn:#8a6a00; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#16181c; --fg:#e6e6e6; --mut:#9aa0a6; --line:#2e3238; --note:#1e2126; --ok:#7ec783; --bad:#f2b8b5; --warn:#e0c060; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:28px 20px 60px; background:var(--bg); color:var(--fg);
+         font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; }
+  .wrap { max-width:1040px; margin:0 auto; }
+  h1 { font-size:26px; margin:0 0 6px; letter-spacing:-.01em; }
+  .sub { color:var(--mut); margin:0 0 24px; font-size:14px; }
+  h2 { font-size:19px; margin:38px 0 10px; padding-top:18px; border-top:1px solid var(--line); }
+  h3 { font-size:16px; margin:22px 0 8px; }
+  table { border-collapse:collapse; width:100%; font-size:14px; margin:12px 0 8px; }
+  th,td { border:1px solid var(--line); padding:7px 10px; text-align:left; vertical-align:top; }
+  th { background:var(--note); font-weight:600; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .ok { color:var(--ok); font-weight:600; } .bad { color:var(--bad); font-weight:600; } .warn { color:var(--warn); font-weight:600; }
+  .note { background:var(--note); border-radius:8px; padding:12px 15px; font-size:14.5px; margin:12px 0; }
+  .key { border-left:4px solid var(--warn); background:var(--note); border-radius:8px; padding:14px 16px; margin:16px 0; }
+  code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13.5px; background:var(--note); padding:1px 5px; border-radius:4px; }
+  .bar { display:flex; align-items:center; gap:10px; margin:5px 0; font-size:14px; }
+  .bar .lbl { width:120px; flex:none; }
+  .bar .track { flex:1; height:16px; background:var(--note); border-radius:4px; overflow:hidden; }
+  .bar .fill { height:100%; background:currentColor; opacity:.55; }
+  .bar .val { width:50px; flex:none; text-align:right; font-variant-numeric:tabular-nums; }
+  .scroll { overflow-x:auto; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>set199 по новому порядку</h1>
+<p class="sub">Второй прогон вслепую: карточки → пять решений → писатель → доводчик → приёмка. Образец не читался.</p>
+
+<div class="key">
+<b>Главный результат отрицательный, и он полезнее положительного.</b> Разделённая карточка дала <b>67% против 66%</b> на прошлом наборе — это в пределах шума. Замер показал почему: писатель выдал <b>44% целевого объёма</b>. Никакая перестановка блоков в карточке этого не исправляет.
+</div>
+
+<h2>Объём: 44% от цели</h2>
+<div class="scroll">
+<table>
+<tr><th>Страница</th><th>Написано</th><th>Цель</th><th>Доля</th></tr>
+<tr><td><b>main</b></td><td class="num">2004</td><td class="num">5826</td><td class="num bad">34 %</td></tr>
+<tr><td>registracia</td><td class="num">506</td><td class="num">1029</td><td class="num bad">49 %</td></tr>
+<tr><td>vhod</td><td class="num">397</td><td class="num">724</td><td class="num bad">55 %</td></tr>
+<tr><td>bonus</td><td class="num">502</td><td class="num">894</td><td class="num bad">56 %</td></tr>
+<tr><td>slots</td><td class="num">545</td><td class="num">863</td><td class="num warn">63 %</td></tr>
+<tr><td>app</td><td class="num">336</td><td class="num">549</td><td class="num warn">61 %</td></tr>
+<tr><td>zerkalo</td><td class="num">289</td><td class="num">432</td><td class="num warn">67 %</td></tr>
+<tr><td><b>ВСЕГО</b></td><td class="num">4579</td><td class="num">10 317</td><td class="num bad">44 %</td></tr>
+</table>
+</div>
+<p>Из одного недобора следуют <b>шесть промахов сразу</b>: профильные термины, тошнота, списки, число абзацев, слов в абзаце, разброс длины. Ни один из них доводчик закрыть не может — это не счётная величина, а работа.</p>
+
+<h2>Что из этого следует и что сделано</h2>
+<p>Итог по странице нечем проверить в процессе письма — «~5826 слов» это абстракция, которая замечается только когда текст уже дописан. Решение №2 переписано с итога на бюджет:</p>
+<div class="note" style="font-style:italic">
+<b>Было:</b> Объём: ~5826 слов. Недобор объёма тянет за собой абзацы, списки, термины и тошноту разом. Пиши сразу в размер.<br><br>
+<b>Стало:</b> Объём — ~5826 слов, и это главная переменная. Проверяй не итог, а бюджет: <b>10 разделов H2 по ~583 слова каждый</b>, внутри — абзацы по ~44 слова, всего их ~67. Дописал раздел — посчитай.
+</div>
+<p>Бюджет раздела проверяется на каждом заголовке, а не в конце работы.</p>
+
+<h3>Проверка на том же наборе</h3>
+<p>Дописал <code>main</code> с 2004 до 2948 слов, ничего больше не меняя:</p>
+<div style="margin:12px 0">
+<div class="bar" style="color:var(--bad)"><span class="lbl">main, 2004 сл.</span><span class="track"><span class="fill" style="width:60%"></span></span><span class="val">60 %</span></div>
+<div class="bar" style="color:var(--warn)"><span class="lbl">main, 2948 сл.</span><span class="track"><span class="fill" style="width:65%"></span></span><span class="val">65 %</span></div>
+</div>
+<p>Прибавка идёт линейно с объёмом. Это значит, что остаток разрыва закрывается не приёмом и не параметром, а работой — и знать это полезнее, чем искать ещё один счётчик.</p>
+
+<h2>Карточка нашла свой дефект до того, как я начал писать</h2>
+<p>У <code>set199</code> на главной «я» стоит <b>185 раз</b> — это набор личного опыта, и без первого лица он не воспроизводится вообще. Первая версия блока решений смотрела только на «ты/вы» и написала про эту страницу «безлично».</p>
+<p>Исправлено: решение №1 теперь про два лица сразу — кто говорит и к кому. Как это читается на трёх разных образцах:</p>
+<div class="scroll">
+<table>
+<tr><th>Образец</th><th>Решение №1</th></tr>
+<tr><td><code>set199</code></td><td>Автор говорит <b>ОТ ПЕРВОГО ЛИЦА, и это главное в странице</b>: «я» стоит 185 раз (31.8 на 1000 слов)… Обращение — к читателю на «вы», 4 формы.</td></tr>
+<tr><td><code>set256</code></td><td>Автор <b>не говорит от первого лица</b>: «я» нет ни разу. Обращение — к читателю на «ты», 105 форм против 0.</td></tr>
+<tr><td><code>set242</code></td><td>«я» встречается <b>5 раз</b> — автор изредка выходит из-за текста, но рассказом от первого лица страница не становится.</td></tr>
+</table>
+</div>
+
+<h2>Итог по прогону</h2>
+<table>
+<tr><th>Этап</th><th>Совпадение</th></tr>
+<tr><td>Первый проход по разделённой карточке</td><td class="num warn">67 %</td></tr>
+<tr><td>После доводчика (16 вставок бренда, 1 список, 1 двоеточие)</td><td class="num warn">68 %</td></tr>
+<tr><td>После дописывания main до 2948 слов</td><td class="num warn">69 %</td></tr>
+</table>
+
+<h3>Шлюзы</h3>
+<table>
+<tr><th>Проверка</th><th>Результат</th><th>Порог</th><th>Итог</th></tr>
+<tr><td>Пересечение с образцом set199</td><td class="num ok">0.00 %</td><td class="num">6 %</td><td class="ok">пройдено</td></tr>
+<tr><td>Перекличка внутри набора</td><td class="num bad">12.52 %</td><td class="num">6.5 %</td><td class="bad">провалено</td></tr>
+<tr><td>Против набора <code>ruchnoy-256</code></td><td class="num bad">7.26 %</td><td class="num">6 %</td><td class="bad">провалено</td></tr>
+</table>
+<div class="note">Самоповтор держится, несмотря на усиленную строку в карточке: главная у меня подробно рассказывает и про зеркало, и про отыгрыш, и сателлиты повторяют это второй раз. Правило записано, но выполняется хуже, чем формулируется, — та же болезнь, что с объёмом. <b>Набор приёмку не проходит.</b></div>
+
+<h2>Что я думаю по итогу двух прогонов</h2>
+<p>Карточка как носитель информации исчерпана: ноль умолчаний на всех девяти образцах, все числа на месте, решения выделены. Дальнейшая работа над её формулировками даст единицы процентов.</p>
+<p>Разрыв в тридцать пунктов держится на двух вещах, и обе — про исполнение, а не про инструкцию:</p>
+<ol>
+<li><b>Объём.</b> 44% от цели. Закрывается только объёмом написанного.</li>
+<li><b>Самоповтор между страницами.</b> Пишущий из одной головы неизбежно повторяет свои же объяснения. Реалайзер с разными сидами этой болезнью не страдает по построению.</li>
+</ol>
+<p>Оба ограничения снимаются одним и тем же — прогоном через реалайзер. Он пишет в заданный объём без усталости и не помнит, что написал на соседней странице.</p>
+
+</div>
+</body>
+</html>

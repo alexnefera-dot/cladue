@@ -1,0 +1,108 @@
+<h2>Пароль подошёл, а счёт не открылся: что дальше</h2>
+<p>
+  Пара принята, отказа нет, но вместо кабинета %brand_name_en% крутится пустая страница или выбрасывает обратно на форму. Ошибки при этом не показывают ни одной.
+</p>
+<p>
+  Значит, проверка пары прошла, а споткнулся следующий шаг — выдача расписки. Это две разные операции, и лечатся они по-разному.
+</p>
+<h3>Где именно рвётся цепочка</h3>
+<table>
+  <tbody>
+    <tr><th>Признак</th><th>Что сломалось</th><th>Чем чинится</th></tr>
+    <tr><td>Возврат на форму без текста</td><td>Расписка не сохранилась</td><td>Разрешить хранение данных сайта</td></tr>
+    <tr><td>Пустой белый экран</td><td>Витрина не догрузилась</td><td>Сброс кеша страницы</td></tr>
+    <tr><td>Кабинет открылся, баланс нулевой</td><td>Адрес чужой</td><td>Сверка со списком из программы</td></tr>
+    <tr><td>Крутится больше минуты</td><td>Узел площадки в работе</td><td>Ожидание, других способов нет</td></tr>
+  </tbody>
+</table>
+<p>
+  Первая строка даёт девять случаев из десяти на витрине %brand_name_en%. Расписка — это короткая запись в хранилище браузера, и если хранение выключено целиком или чистится при закрытии вкладки, сервер каждый раз видит гостя, хотя пару принял верно.
+</p>
+<h3>Порядок разбора по шагам</h3>
+<ol>
+  <li>Открыть тот же адрес в приватном окне: если кабинет пустил — дело в настройках основного</li>
+  <li>Разрешить хранение данных для этого адреса и снять автоочистку при закрытии</li>
+  <li>Отключить расширения, режущие сторонние запросы, — они рвут выдачу расписки</li>
+  <li>Сверить домен со списком из <a href="/app">программы</a>, если баланс показался нулевым</li>
+  <li>Сменить сеть с мобильной на домашнюю и повторить попытку</li>
+</ol>
+<blockquote>
+  Ключ от варницы подошёл, а дверь не пустила — значит, дело в петлях, а не в ключе. Солевар в таких случаях смотрит на косяк, а не точит бородку заново.
+</blockquote>
+<h3>Чего делать не стоит</h3>
+<ul>
+  <li><strong>Менять пароль.</strong> Пара исправна, замена ничего не даст</li>
+  <li><strong>Повторять попытку подряд.</strong> После пяти промахов включится пауза</li>
+  <li><strong>Искать другой адрес в поиске.</strong> Верхние строки покупают посредники</li>
+  <li><strong>Ставить пакет из чужого источника.</strong> Расписку он заберёт себе</li>
+</ul>
+<h3>Когда дело всё-таки на стороне счёта</h3>
+<p>
+  Есть один случай, где перечисленное не поможет: счёт ограничен, а форма об этом молчит. Отличить его просто — приватное окно ведёт себя точно так же, и сборка тоже не пускает. Тогда пишут в поддержку и прикладывают время попытки. Разбор идёт по документам, требования к ним лежат в <a href="/registracia">анкете игрока</a>. История ставок при этом сохраняется полностью и видна в <a href="/slots">каталоге игровых автоматов</a> после восстановления доступа.
+</p>
+<h3>Итог</h3>
+<p>
+  Принятая пара без открытого кабинета — это почти всегда несохранённая расписка, а не проблема со счётом. Проверять надо в таком порядке: приватное окно, хранение данных, расширения, домен, сеть. Первые два шага закрывают большинство случаев за минуту, и ни один из них не требует ни смены пароля, ни обращения в поддержку. Деньги на счёте при любом из этих сбоев остаются нетронутыми. Действующие адреса держит <a href="/zerkalo">страница обвода</a>, требования к мобильной сборке — <a href="/app">страница программы</a>.
+</p>
+
+<h2>Частые вопросы о входе в кабинет %brand_name_ru%</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Кабинет не открывается, а пароль принят — счёт цел?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Цел: баланс живёт на сервере и от расписки не зависит. Сломался только шаг выдачи расписки браузеру.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему в приватном окне вход проходит?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Там нет ни старых записей, ни расширений. Это прямо указывает на настройки основного окна.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Помогает ли смена пароля в такой ситуации?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, пара и так принимается. Замена только добавит шаг и ничего не изменит.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что означает нулевой баланс сразу после входа?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Чаще всего вы на чужой копии витрины. Сверьте адрес со списком из программы и сразу смените пароль.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько ждать, если страница просто крутится?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Больше минуты ждать смысла нет — это работы на узле. Повторите через полчаса, состояние счёта не изменится.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Мешают ли расширения браузера?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Те, что режут сторонние запросы, рвут выдачу расписки. Отключите их для этого адреса и повторите.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему после каждого закрытия вкладки вход слетает?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Включена очистка данных при выходе. Внесите адрес в исключения — расписка начнёт переживать перезапуск.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли смена сети на вход?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Иногда: часть операторов режет отдельные узлы площадки. Домашняя сеть в таких случаях проходит.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Как понять, что счёт ограничен?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Приватное окно и сборка ведут себя ровно так же, как основной браузер. Тогда пишут в поддержку со временем попытки.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Пропадёт ли история ставок из-за такого сбоя?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, она пишется на сервере и хранится независимо от расписок. После восстановления доступа видна целиком.</p></div>
+  </div>
+</details>

@@ -1,0 +1,21 @@
+# секреты — ключ Anthropic для realize.php (в репозиторий не попадает)
+engine/.anthropic-key
+.anthropic-key
+.env
+
+# генерируемые артефакты анализатора
+engine/tests/fixtures/
+engine/tests/report.json
+report.json
+*.log
+
+# сгенерированные прогоны (локально, не коммитить)
+runs/
+/tmp-runs/
+
+# черновые замеры реалайзеров: пишутся рядом с движком на время прогона
+engine/tmp-*.php
+engine/dump-v3.php
+
+# журнал выданных картинок (локальный, не коммитить)
+engine/.image-ledger

@@ -1,0 +1,118 @@
+<h2>Слот завис на середине раунда: где искать результат игрового автомата</h2>
+<p>
+  Барабаны остановились, экран замер, кнопки не отвечают. Раунд при этом жив: он считается на сервере %brand_name_en%, и результат уже определён — вопрос только в том, где его увидеть. Ставка списана, вейджер по ней засчитан, а депозит и вывод к этому отношения не имеют.
+</p>
+<h3>Момент зависания: что происходит на сервере</h3>
+<p>
+  Ставка принята и списана, генератор выдал исход, сервер записал его в журнал. Виснет не расчёт, а картинка: клиент потерял связь и не получил ответ, который для него уже готов. Ставка ушла в оборот по акции, RTP отработал, а множитель бонусной серии сохранён — всё это лежит в журнале и от экрана не зависит.
+</p>
+<table>
+  <tbody>
+    <tr><th>Что видит игрок</th><th>Что на сервере</th><th>Где смотреть</th></tr>
+    <tr><td>Барабаны замерли</td><td>Раунд закрыт</td><td>Журнал ставок</td></tr>
+    <tr><td>Экран загрузки</td><td>Раунд закрыт</td><td>Журнал ставок</td></tr>
+    <tr><td>Списание без выплаты</td><td>Выплата начислена</td><td>Остаток после входа</td></tr>
+    <tr><td>Бонусная серия оборвалась</td><td>Серия сохранена</td><td>Повторный запуск игры</td></tr>
+  </tbody>
+</table>
+<h3>Порядок восстановления</h3>
+<ol>
+  <li>Закрыть игру и обновить страницу, не нажимая ставку заново</li>
+  <li>Открыть журнал ставок в <a href="/vhod">кабинете</a> и найти последнюю строку</li>
+  <li>Сверить остаток: выплата уже учтена, если она была</li>
+  <li>Запустить слот снова — незаконченная бонусная серия продолжится сама</li>
+</ol>
+<h3>Три причины: связь, переезд, обновление</h3>
+<ul>
+  <li><strong>Разрыв связи.</strong> Самая частая, лечится обновлением</li>
+  <li><strong>Переезд домена посреди раунда.</strong> Адрес сменился, счёт нет</li>
+  <li><strong>Обновление сборки провайдера.</strong> Игра уходит на минуту</li>
+</ul>
+<blockquote>
+  Капельная линия отработала норму, даже если садовник вышел из теплицы. Вернулся, посмотрел на счётчик — вода ушла ровно та, что задана.
+</blockquote>
+<h3>Чего делать не стоит: три ошибки</h3>
+<ul>
+  <li><strong>Повторять ставку.</strong> Она спишется второй раз, и по делу</li>
+  <li><strong>Писать оператору сразу.</strong> Журнал ответит быстрее чата</li>
+  <li><strong>Менять устройство.</strong> Новый вход погасит сессию, а не поможет</li>
+</ul>
+<h3>Как читать журнал ставок</h3>
+<p>
+  В строке видно время, игру, размер ставки и результат. Если строка есть — раунд закрыт, и спорить не о чем. Если строки нет через пять минут, ставка не была принята вовсе, и деньги вернутся автоматически.
+</p>
+<p>
+  Хранится журнал 12 месяцев и доступен с любого адреса, включая <a href="/zerkalo">запасной домен</a>: он лежит на сервере %brand_name_en%, а не в браузере. Депозит, вывод и остаток вейджера видны там же, одной таблицей. Выгрузить его целиком нельзя, но фильтр по дате и по игре работает, и этого хватает для любого спора с оператором.
+</p>
+<h3>Когда обращаться к оператору</h3>
+<p>
+  Когда списание есть, а строки в журнале нет спустя полчаса. Такое бывает редко и разбирается за сутки. В обращении нужны время с поясом, название игры и сумма ставки — номер операции подставится сам, если писать из <a href="/app">мобильного клиента</a>.
+</p>
+<p>
+  Риск тут только один: повторная ставка «на всякий случай». Она принимается как новая, и вернуть её нельзя — это не сбой, а ваше действие. Проверить лимиты стоит в <a href="/registracia">настройках счёта</a> заранее.
+</p>
+
+<h2>Ответы на частые вопросы игроков о зависании</h2>
+<p>
+  Десять обращений, которые приходят к оператору после обрыва.
+</p>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Спишутся ли деньги дважды при обновлении страницы?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. Обновление не отправляет новую ставку — оно лишь запрашивает состояние раунда.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что будет с недоигранной бонусной серией?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Она сохранится. При следующем запуске игры серия продолжится с того же места.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему остаток изменился, хотя выплаты я не видел?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Выплата начислена на сервере. Экран её просто не показал из-за обрыва.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько ждать появления строки в журнале?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Обычно секунды, максимум пять минут. Дольше — повод написать оператору.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли зависание на отыгрыш?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. Ставка засчитана в оборот, даже если результат вы увидели позже.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Может ли провайдер отменить раунд?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Только при доказанном сбое на своей стороне. Тогда ставка возвращается целиком.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Помогает ли смена браузера?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Помогает открыть игру, но на результат раунда не влияет — он уже посчитан.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать, если игра не открывается совсем?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Проверить, не идёт ли обновление сборки провайдера. Обычно это занимает несколько минут.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Считается ли такой раунд в турнирный зачёт?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Считается наравне с обычным: в зачёт идёт факт ставки, а не то, как она отобразилась.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли увидеть результат в мобильном клиенте?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Да, журнал общий. Открывается он и из браузера, и с <a href="/">официального сайта</a> одинаково.</p></div>
+  </div>
+</details>

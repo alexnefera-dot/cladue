@@ -1,0 +1,307 @@
+<h2>
+  Ошибки авторизации в %brand_name_en%: как избежать «засор» в мобильной сети во время поездки
+</h2>
+<p>
+  Села в поезд, завел Wi‑Fi, открываю <a href="/app">%brand_name_en% app</a>… и тут: «Ошибка соединения». Если ты вроде бы играешь в одних и тех же местах, но иногда браузер не даёт войти, то этот разглядите как набор рекомендуемых «путешествий» проверки и обхода.
+</p>
+<h3>
+  1. Столкновение с посторонним мобильным сигналом
+</h3>
+<p>
+  В вагоне «связь скакала» – местные операторы, краны сигналов, экспресс‑протоколы TCP. Ниже три наиболее частых шаблона ошибок и как их поймать «съёмную» панель:
+</p>
+<div class="table-responsive">
+  <table border="1" cellpadding="6" cellspacing="0">
+    <tbody>
+      <tr>
+        <th>
+          Ошибка
+        </th>
+        <th>
+          Причина
+        </th>
+        <th>
+          Что делать? (на ходу)
+        </th>
+      </tr>
+      <tr>
+        <td>
+          <strong>401 Unauthorized</strong>
+        </td>
+        <td>
+          Неверный логин/пароль или устаревший токен.
+        </td>
+        <td>
+          Скоротал пароль в безопасности, переподключил, попробовал <a href="/registracia">переустановить</a> аккаунт.
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <strong>502 Bad Gateway</strong>
+        </td>
+        <td>
+          Сервер временно не доступен – само «переадресация» в ожидании.
+        </td>
+        <td>
+          Провалился в Х, закрыл приложение, включил <a href="/zerkalo">зеркало</a>, сшёл квердовали.
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <strong>504 Gateway Timeout</strong>
+        </td>
+        <td>
+          Между серверами сигнал разорвался, долгая задержка.
+        </td>
+        <td>
+          Улучшил передачу данных, переключился на 4G, потом <a href="/app">получил промокод</a>, чтобы перебрать лаг.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<p>
+  Проверка целиграфической статьи про тикет <a href="/slots">игровые автоматы</a> – помогла понять, насколько быстро интервал будет растянут.
+</p>
+<h3>
+  2. «Прыжки» в сеансе в течение пересадки
+</h3>
+<p>
+  Пересадка: ждём там, а не играем. Иногда сервис внезапно «отвалився» – как раз в момент, когда меняем станцию. Мой способ – <strong>сохраняет журнал </strong>мобильных запросов до начала перевеса.
+</p>
+<blockquote>
+  «В туннеле между «Электроника» и «Парк», где связных нод мало, мой аккаунт вырвался из бублика, но баланс сохранился. В этот момент мне потребовалось мгновенно зашагать в архив и выйти из гостевого режима.»
+</blockquote>
+<h4>
+  Быстрый чек‑лист (
+  <span>
+    живой город
+  </span>
+  )
+</h4>
+<ol>
+  <li>
+    Проверить разрешение сети: <em>Set up your phone to auto‑switch between 3G/4G.</em>
+  </li>
+  <li>
+    Сверить токен в настройках:<br><strong>App → Settings → Auth Token.</strong>
+  </li>
+  <li>
+    Запустил <a href="/app">%brand_name_en% APK</a> снова, есть ли «login»? – Если нет, сделай «Force‑Refresh» в настройках.
+  </li>
+  <li>
+    Переустановить, если <strong>session id</strong> не обновляется.
+  </li>
+</ol>
+<h3>
+  3. Вызов «руси разных диспетчеров» – роуминг и культура «без‑платежный» сети
+</h3>
+<p>
+  На отпуске я оказался в гостиничном вай‑файе, где Wi‑Fi 2.4 GHz дернулась, но 5 GHz пряталась. Настраив <code>proxy=none</code> и отключив «чаты», плавно справился. Я не вратил всего сервиса – просто воспользовался как ссылкой <a href="/zerkalo">зеркало</a>, а не корсетами браузера.
+</p>
+<div class="table-responsive">
+  <table border="1" cellpadding="6" cellspacing="0">
+    <tbody>
+      <tr>
+        <th>
+          План действий
+        </th>
+        <th>
+          Тип местности
+        </th>
+        <th>
+          Ожидаемый результат
+        </th>
+      </tr>
+      <tr>
+        <td>
+          Включить VPN
+        </td>
+        <td>
+          Гостинный Wi‑Fi
+        </td>
+        <td>
+          Стабильность, без «исключения» со стороны внешнего брандмауэра.
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Связать сотовую сеть
+        </td>
+        <td>
+          Командировка
+        </td>
+        <td>
+          Быстрый вход, но безопасный от перегрузки.
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Проверять <a href="/registracia">новый токен</a>
+        </td>
+        <td>
+          Танец эскалации
+        </td>
+        <td>
+          Урегулировать ракушку аутентификации.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+<h3>
+  4. Секретный ключ: как не подмять баланс во время «тормозного» периода
+</h3>
+<p>
+  Мой аккаунт играл в «сухом»: логин–выход–переход в «прайд» в прямой линии, но баланс оставался на месте. Какое бы место ни было – динамика разворачивается: если покинуть приложение и снова зайти, данные безопасно сохраняются. Ни один «полярдод» не унесёт баланса, пока сервер отвечает 200 OK.
+</p>
+<p>
+  Итак, завязываю в команде: проверяю связь, пересмотриваюсь с токеном, и держу <a href="/app">промокод на автозагрузку</a>. Благодаря этому, даже между жалейвами, довезухой, и «внутри самолёта» я остаюсь битой с состоянием.
+</p>
+<h2>
+  Ответы на частые вопросы: дорожные расклады и реальные кейсы
+</h2>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-FAQ">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Что делать, если в поезде связь пропадает в момент пополнения счёта?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Если баланс не обновился сразу, проверьте историю платежей в личном кабинете — деньги либо дошли, либо вернутся автоматически в течение часа.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-FAQ">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Как играть, если гостиничный вай-фай постоянно рвётся и страницы подвисают?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Лучше переключиться на мобильный интернет или предзагрузить игру в офлайн-режиме, чтобы минимизировать зависания в пути.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-FAQ">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Можно ли продолжить сессию, если роуминг заметно замедляет скорость загрузки?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Да, если сессия оборвалась, сайт обычно сохраняет прогресс — вернитесь, как только связь стабилизируется.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-FAQ">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Что делать, если меня поймала блокировка доступа из-за поездки в другую страну?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Включайте VPN с сервером из родной страны, если правила позволяют, или используйте официальное приложение для обхода блокировок.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-FAQ">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Как быстро проверить остаток баланса между пересадками на вокзале с забитым трафиком?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Лучше использовать мобильное приложение в облегченном режиме или штатный виджет, чтобы не грузить страницы целиком.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-FAQ">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Что делать, если потерял устройство с авторизованным аккаунтом в пути?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Срочно зайдите с другого устройства и смените пароль, а для безопасности отключите все активные сессии в настройках.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-FAQ">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Можно ли попасть на турнир, если сессия обрывается в момент регистрации в аэропорту с неустойчивым интернетом?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Да, попробуйте сразу переподключиться или использовать мобильный интернет — регистрация обычно сохраняется минут несколько.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-FAQ">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Как проверить статус вывода, если связь в гостинице отдыхать не намерена и постоянно скамеечка скачет?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Используйте мобильное приложение или запросите уведомление на почту — так информацию получаете без постоянного обновления страницы.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>
+<div itemprop="hasPart" itemscope="" itemtype="https://schema.org/Question">
+  <div class="c-FAQ">
+    <details class="o-lines__bg is-load lazyloaded" data-bg="css">
+      <summary itemprop="name">
+        Что сделать, если автообновление сайта вылетело в метро с зоной без связи?
+      </summary>
+      <div itemprop="acceptedAnswer" itemscope="" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Подождите, пока появится связь, и обновите страницу вручную — в таком режиме сайт восстанавливает последнее сохранённое состояние.
+          </p>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>

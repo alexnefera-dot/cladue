@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Семь приёмов голоса: замер, коридоры, результат</title>
+<style>
+  :root { --bg:#fff; --fg:#1a1a1a; --mut:#666; --line:#e3e3e3; --note:#f4f4f4; --ok:#2f7d32; --bad:#b3261e; --warn:#8a6a00; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#16181c; --fg:#e6e6e6; --mut:#9aa0a6; --line:#2e3238; --note:#1e2126; --ok:#7ec783; --bad:#f2b8b5; --warn:#e0c060; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:28px 20px 60px; background:var(--bg); color:var(--fg);
+         font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; }
+  .wrap { max-width:1080px; margin:0 auto; }
+  h1 { font-size:26px; margin:0 0 6px; letter-spacing:-.01em; }
+  .sub { color:var(--mut); margin:0 0 26px; font-size:14px; }
+  h2 { font-size:19px; margin:40px 0 12px; padding-top:18px; border-top:1px solid var(--line); }
+  h3 { font-size:16px; margin:24px 0 8px; }
+  table { border-collapse:collapse; width:100%; font-size:14px; margin:12px 0 8px; }
+  th,td { border:1px solid var(--line); padding:7px 10px; text-align:left; vertical-align:top; }
+  th { background:var(--note); font-weight:600; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .ok { color:var(--ok); font-weight:600; }
+  .bad { color:var(--bad); font-weight:600; }
+  .warn { color:var(--warn); font-weight:600; }
+  .note { background:var(--note); border-radius:8px; padding:12px 15px; font-size:14.5px; margin:12px 0; }
+  .fix { border-left:4px solid var(--bad); background:var(--note); border-radius:8px; padding:12px 15px; margin:12px 0; font-size:14.5px; }
+  code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13.5px; background:var(--note); padding:1px 5px; border-radius:4px; }
+  blockquote { margin:10px 0; padding:10px 14px; border-left:3px solid var(--line); color:var(--fg); font-style:italic; }
+  .scroll { overflow-x:auto; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Семь приёмов голоса</h1>
+<p class="sub">Всё, что нашлось при чтении текстов рядом, стало параметром — кроме одного. Замер по девяти образцам, коридоры, результат на наборе.</p>
+
+<div class="fix">
+<b>Сначала две поправки к предыдущему отчёту.</b> Я утверждал их, прочитав по два абзаца со страницы, а не померив по корпусу. Замер показал другое.
+<ol>
+<li><b>«Прямой речи в кавычках у нас нет»</b> — неверно. Есть: 0.46–4.22 на 1000 слов против 0.08–5.09 у образцов. Приём воспроизводится, просто на тех двух страницах, которые я взял для примера, его не оказалось.</li>
+<li><b>«У образца есть голос своего человека в индустрии»</b> — верно только для set242. По корпусу приём даёт <b>3.35 у set242 и ровно 0.00 у остальных восьми</b>. Это не черта жанра, а особенность одного набора.</li>
+</ol>
+Вывод из этого практический: цель по голосу нельзя усреднять по корпусу. Карточка строится под конкретный образец, и приём либо есть в нём, либо его нет.
+</div>
+
+<h2>Что померено по девяти образцам</h2>
+<div class="scroll">
+<table>
+<tr><th>Приём</th><th>Поле</th><th>Разброс у образцов<br><span style="font-weight:400;color:var(--mut)">на 1000 слов</span></th><th>У нас было</th><th>Стало параметром</th></tr>
+<tr><td>Обращение на «ты»</td><td><code>ty</code></td><td class="num">0.28 – 29.37</td><td class="num">0.00 – 8.71</td><td class="ok">да</td></tr>
+<tr><td>Реплика в кавычках</td><td><code>speech</code></td><td class="num">0.08 – 5.09</td><td class="num">0.46 – 4.22</td><td class="ok">да</td></tr>
+<tr><td>Бытовое сравнение</td><td><code>compare</code></td><td class="num">0.00 – 1.80</td><td class="num">0.00 – 0.33</td><td class="ok">да</td></tr>
+<tr><td>Зачин «а на деле»</td><td><code>myth</code></td><td class="num">0.00 – 0.41</td><td class="num">0.00 – 0.11</td><td class="ok">да</td></tr>
+<tr><td>Заявка на закрытое знание</td><td><code>insider</code></td><td class="num">0.00 ×8, 3.35 у set242</td><td class="num">0.00 – 0.68</td><td class="ok">да</td></tr>
+<tr><td>Шаблон обращения с полями</td><td><code>letter</code></td><td class="num">0.00 ×7, 0.13 и 1.12</td><td class="num">0.00</td><td class="ok">да</td></tr>
+<tr><td>Тема страницы против её имени</td><td><code>on_topic_pct</code></td><td class="num">25 – 60 %</td><td class="num">57 – 80 %</td><td class="ok">да</td></tr>
+<tr><td>Грамматические ошибки</td><td>—</td><td class="num">регулярны</td><td class="num">нет</td><td class="bad">нет — по решению</td></tr>
+</table>
+</div>
+
+<div class="note"><b>Почему ошибки не стали параметром.</b> Счётчик рассогласований заставил бы генерацию их производить, чтобы попадать в коридор. «Вы сделал свой логин» и «доступно по клик» — то, что образец делает по небрежности, а не как приём. Воспроизводить стоит решения, а не промахи.</div>
+
+<div class="note"><b><code>on_topic_pct</code> — единственный, где мы выше образца.</b> У образца <code>slots.html</code> рассказывает про краш-игры и психологию темпа, <code>app.html</code> — про лимиты ответственной игры, <code>vhod.html</code> уходит в личный кабинет. Мы держали тему строго по имени файла: 57–80% против 25–40%. Карточка теперь прямо говорит, что соседняя тема здесь норма, а не ошибка.</div>
+
+<h2>Что записано в карточку</h2>
+<p>Каждый приём получил строку двух видов — с числом, если он в образце есть, и с запретом, если его нет. Пример со страницы <code>slots</code>:</p>
+<blockquote>Обращение на «ты» — <b>19</b> форм на странице против <b>0</b> на «вы». Образец обращается на «ты», и это не небрежность, а выбранная дистанция: «пока ты кликаешь ещё один заход». Не переводи в вежливое «вы» — так пропадает сам тон.</blockquote>
+<blockquote>Заголовков по теме страницы — <b>40%</b>. Это ЗНАЧИТ, что страница уходит в сторону от своего имени: у образца <code>slots.html</code> рассказывает про краш-игры. Соседняя тема здесь не ошибка, а норма образца — не выправляй страницу строго под её название.</blockquote>
+<p>Со страницы <code>zerkalo</code>, где приёма нет:</p>
+<blockquote>Зачинов вида «многие думают X, а на деле Y» у образца на этой странице нет.</blockquote>
+
+<h2>Результат на наборе</h2>
+<p>Цели по голосу для каждой страницы <code>set242</code> и то, что вышло после правки:</p>
+<div class="scroll">
+<table>
+<tr><th>Страница</th><th>«ты»</th><th>закрытое знание</th><th>реплик</th><th>сравнений</th><th>зачинов</th><th>шаблон</th><th>тема, %</th></tr>
+<tr><td><b>main</b></td><td class="num ok">12 / 12</td><td class="num ok">19 / 19</td><td class="num ok">5 / 4</td><td class="num ok">2 / 2</td><td class="num ok">0 / 0</td><td class="num ok">0 / 0</td><td class="num ok">0 / 0</td></tr>
+<tr><td><b>zerkalo</b></td><td class="num ok">0 / 0</td><td class="num ok">2 / 2</td><td class="num ok">1 / 1</td><td class="num ok">0 / 0</td><td class="num ok">0 / 0</td><td class="num ok">0 / 0</td><td class="num ok">20 / 33</td></tr>
+<tr><td><b>vhod</b></td><td class="num ok">0 / 0</td><td class="num ok">1 / 1</td><td class="num ok">0 / 0</td><td class="num ok">1 / 1</td><td class="num ok">0 / 0</td><td class="num ok">0 / 0</td><td class="num ok">29 / 25</td></tr>
+<tr><td><b>registracia</b></td><td class="num ok">9 / 10</td><td class="num ok">1 / 1</td><td class="num ok">3 / 3</td><td class="num ok">0 / 0</td><td class="num ok">4 / 4</td><td class="num ok">0 / 0</td><td class="num ok">28 / 25</td></tr>
+<tr><td><b>bonus</b></td><td class="num ok">0 / 0</td><td class="num ok">5 / 5</td><td class="num ok">2 / 2</td><td class="num ok">1 / 1</td><td class="num ok">0 / 0</td><td class="num warn">8 / 11</td><td class="num ok">31 / 30</td></tr>
+<tr><td><b>slots</b></td><td class="num ok">21 / 19</td><td class="num ok">2 / 2</td><td class="num ok">0 / 0</td><td class="num ok">0 / 0</td><td class="num ok">0 / 0</td><td class="num ok">0 / 0</td><td class="num ok">42 / 40</td></tr>
+<tr><td><b>app</b></td><td class="num ok">0 / 0</td><td class="num ok">3 / 3</td><td class="num ok">0 / 0</td><td class="num ok">0 / 0</td><td class="num ok">0 / 0</td><td class="num ok">0 / 0</td><td class="num ok">57 / 60</td></tr>
+</table>
+</div>
+<p style="font-size:14px;color:var(--mut)">Формат «наше / образец». Единственный недобор — шаблон обращения на <code>bonus</code>: 8 против 11.</p>
+
+<h3>Как это звучит в тексте</h3>
+<p>Было:</p>
+<blockquote>Под небольшой запас средств берите низкую волатильность, под расчёт на редкое событие — высокую, и не смешивайте два подхода в одной сессии.</blockquote>
+<p>Стало:</p>
+<blockquote>Под небольшой запас берёшь низкую волатильность, под расчёт на редкое событие — высокую, и не смешиваешь два подхода в одной сессии.<br><br>Не принято писать вслух, но пустая серия на высокой волатильности — это не поломка и не «холодный» автомат. Ты просто видишь ту часть распределения, ради которой в него и заходят.</blockquote>
+
+<h2>Итог по всем клонам</h2>
+<div class="scroll">
+<table>
+<tr><th>Набор</th><th>Совпадение по 55 полям</th><th>Чем сделан</th></tr>
+<tr><td><b>ruchnoy-242</b></td><td class="num ok">83 %</td><td>руками по правленым карточкам</td></tr>
+<tr><td>ref-set242</td><td class="num">78 %</td><td>реалайзер, до правок</td></tr>
+<tr><td>ref-set227</td><td class="num">78 %</td><td>реалайзер, до правок</td></tr>
+<tr><td>ref-set235</td><td class="num">78 %</td><td>реалайзер, до правок</td></tr>
+<tr><td>ref-set229</td><td class="num">76 %</td><td>реалайзер, до правок</td></tr>
+<tr><td>ref-set256</td><td class="num">73 %</td><td>реалайзер, до правок</td></tr>
+</table>
+</div>
+<div class="note">Линейка выросла с 48 полей до 55, и это <b>снизило</b> оценки старых клонов — они не воспроизводили голос, а раньше его никто не мерил. Цифра 83% против прежних 82% при семи новых полях означает, что приёмы легли в коридоры, а не что набор стал хуже.</div>
+
+<h3>Шлюзы уникальности</h3>
+<table>
+<tr><th>Проверка</th><th>Результат</th><th>Порог</th></tr>
+<tr><td>Пересечение с образцом, 6 слов</td><td class="num ok">0.04 %</td><td class="num">6 %</td></tr>
+<tr><td>Худшая страница против образца</td><td class="num ok">0.30 %</td><td class="num">6 %</td></tr>
+<tr><td>Перекличка внутри набора</td><td class="num ok">1.76 %</td><td class="num">6.5 %</td></tr>
+</table>
+<p style="font-size:14px;color:var(--mut)">Приёмы воспроизведены формулировками, а не заимствованием: тексты остались уникальными.</p>
+
+<h2>Что осталось</h2>
+<p>Восемь промахов из 385 проверок, и все прежние — плотности, а не правила: коротких абзацев, прилагательных на двух страницах, водность <code>bonus</code>, тошнота <code>vhod</code>, <code>strong</code> в начале блока на трёх страницах. Карточка называет число, но не даёт способа его достичь. Это следующая задача, и она про формулировку карточки, а не про новые параметры.</p>
+
+</div>
+</body>
+</html>

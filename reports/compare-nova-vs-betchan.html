@@ -1,0 +1,133 @@
+<meta charset="utf-8">
+<title>Сравнение: эталон vs реальный конкурент</title>
+<style>
+:root{--ground:#f5f7fb;--panel:#fff;--panel2:#eef2f8;--ink:#16202e;--muted:#5d6b82;--line:#e2e7ef;
+  --a:#3f7bf0;--b:#e08a2a;--ok:#1f9d6b;--bad:#d23b40;--warn:#c78a1e;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+@media (prefers-color-scheme:dark){:root{--ground:#0d121b;--panel:#151d29;--panel2:#1b2431;--ink:#e7ecf5;--muted:#8b98b0;--line:#26303f;--a:#5b95ff;--b:#f0a23a;--ok:#33c08a;--bad:#e5595c;--warn:#e0aa45;}}
+:root[data-theme="dark"]{--ground:#0d121b;--panel:#151d29;--panel2:#1b2431;--ink:#e7ecf5;--muted:#8b98b0;--line:#26303f;--a:#5b95ff;--b:#f0a23a;--ok:#33c08a;--bad:#e5595c;--warn:#e0aa45;}
+:root[data-theme="light"]{--ground:#f5f7fb;--panel:#fff;--panel2:#eef2f8;--ink:#16202e;--muted:#5d6b82;--line:#e2e7ef;--a:#3f7bf0;--b:#e08a2a;--ok:#1f9d6b;--bad:#d23b40;--warn:#c78a1e;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5}
+.wrap{max-width:960px;margin:0 auto;padding:30px 20px 80px}
+h1,h2{margin:0;font-weight:650;text-wrap:balance}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700}
+header{border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:24px}
+header h1{font-size:27px;letter-spacing:-.02em;margin:6px 0 10px}
+.verdict{padding:13px 16px;border-radius:11px;background:var(--panel2);border:1px solid var(--line);font-size:14px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:22px 0}
+@media(max-width:680px){.cols{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px;position:relative}
+.card .bar{height:3px;border-radius:3px 3px 0 0;margin:-16px -16px 14px}
+.card.A .bar{background:var(--a)} .card.B .bar{background:var(--b)}
+.tag{display:inline-flex;align-items:center;gap:8px;font-weight:700}
+.d{width:11px;height:11px;border-radius:3px}.d.A{background:var(--a)}.d.B{background:var(--b)}
+.sub{color:var(--muted);font-size:12.5px;margin-top:2px}
+.mini{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;font-size:13px}
+.mini b{font-family:var(--mono)}
+.wins{font-family:var(--mono);font-size:32px;font-weight:700;margin-top:8px}
+.wins.A{color:var(--a)}.wins.B{color:var(--b)}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px;margin-top:8px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:560px}
+th,td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:right}
+th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.03em}
+td:first-child,th:first-child{text-align:left}
+tbody tr:last-child td{border-bottom:none}
+td.v{font-family:var(--mono);font-variant-numeric:tabular-nums}
+tr.grp td{background:var(--panel2);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.win-a{color:var(--a);font-weight:700} .win-b{color:var(--b);font-weight:700}
+.arw{text-align:center;font-family:var(--mono)}
+.note{color:var(--muted);font-size:11.5px}
+section{margin-top:26px}.sh{font-size:18px;margin-bottom:12px}
+.take{padding:11px 14px;border-left:3px solid var(--a);background:var(--panel);border:1px solid var(--line);border-radius:9px;margin-top:9px;font-size:13.7px}
+.take.b{border-left-color:var(--b)}
+footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Режим сравнения · пары по типу страницы (main ↔ main)</div>
+  <h1>Сгенерённый эталон против реального конкурента</h1>
+  <div class="verdict">🧭 <b>Оба — шаблонная генерация</b> (дата-стамп, эмодзи, плотная фактура, FAQ-блок). Но наш эталон <b style="color:var(--a)">Nova</b> собран «правильнее по SEO» (title/H1/lang, читаемость, живой E-E-A-T и реальные вопросы FAQ), а реальный <b style="color:var(--b)">betchan</b> — это фрагмент без title/H1, зато с большей плотностью цифр и объёмом.</div>
+</header>
+
+<div class="cols">
+  <div class="card A"><div class="bar"></div>
+    <div class="tag"><span class="d A"></span>A · Nova <span class="muted" style="font-weight:400">(наш эталон по рецепту)</span></div>
+    <div class="sub">main.html · сгенерировано под рецепт</div>
+    <div class="wins A" id="winA">—</div><div class="note">метрик в плюсе</div>
+    <div class="mini"><span>Слов <b>563</b></span><span>Стиль <b>личный опыт</b></span><span>FAQ <b>9 Q</b></span><span>Сущностей <b>13</b></span></div>
+  </div>
+  <div class="card B"><div class="bar"></div>
+    <div class="tag"><span class="d B"></span>B · betchan <span class="muted" style="font-weight:400">(реальный конкурент)</span></div>
+    <div class="sub">main.html · фрагмент из связки</div>
+    <div class="wins B" id="winB">—</div><div class="note">метрик в плюсе</div>
+    <div class="mini"><span>Слов <b>1007</b></span><span>Стиль <b>рекламный</b></span><span>FAQ <b>0 Q</b></span><span>Сущностей <b>11</b></span></div>
+  </div>
+</div>
+
+<section>
+  <h2 class="sh">Метрики рядом</h2>
+  <div class="tw"><table id="cmp"></table></div>
+</section>
+
+<section>
+  <h2 class="sh">Выводы</h2>
+  <div class="take">✅ <b>Эталон сильнее по on-page:</b> есть Title, H1, lang, viewport и <b>реальный FAQ на 9 вопросов</b> — у конкурента этого нет (фрагмент без заголовков, FAQ без вопросительных знаков). Плюс выше читаемость и живой тон от первого лица (E-E-A-T).</div>
+  <div class="take b">📊 <b>Конкурент сильнее по фактуре:</b> вдвое больше объём и <b>плотность цифр 12.7 против 6.2</b> на 100 слов — больше конкретики (лимиты, суммы, сроки). Но предложения длинные (ASL 29.6 против 14.1) — тяжелее читать.</div>
+  <div class="take">🧬 <b>Отпечаток генерации у обоих:</b> дата-стамп, эмодзи, 11–13 распознанных сущностей, FAQ-блок, обращение «вы». Чужих брендов нет ни у одного — генерация чистая.</div>
+</section>
+
+<footer>Сравнение выполнено движком v2 (Comparator, пары по типу страницы). A — <span class="num">samples/reference-main.html</span>, B — реальный main конкурента. «Лучше» учитывает направление нормы (тошнота/вода/ASL — меньше лучше; читаемость/фактура/полнота — больше лучше).</footer>
+</div>
+
+<script>
+const G=[
+ {g:'Структура и SEO',rows:[
+  {m:'Слов',a:'563',b:'1007',w:0,n:'больше ≠ лучше'},
+  {m:'Заголовков H2',a:'7',b:'12',w:0},
+  {m:'Title / H1',a:'да / 1',b:'нет / 0',w:-1},
+  {m:'lang / viewport',a:'да / да',b:'нет / нет',w:-1},
+  {m:'Микроразметка',a:'да',b:'да',w:0},
+ ]},
+ {g:'Текст и качество',rows:[
+  {m:'Академ. тошнота, %',a:'30.2',b:'27.7',w:1},
+  {m:'Водность, %',a:'24.5',b:'20.3',w:1},
+  {m:'Читаемость (Флеш)',a:'49.8',b:'37.4',w:-1},
+  {m:'Ср. длина предложения',a:'14.1',b:'29.6',w:-1,n:'норма 10–20'},
+ ]},
+ {g:'Стилистика и генерация',rows:[
+  {m:'Стиль',a:'личный опыт (E-E-A-T)',b:'рекламно-инструктивный',w:-1},
+  {m:'Обращение',a:'вы',b:'вы',w:0},
+  {m:'Первое лицо / «вы»',a:'8 / 3',b:'1 / 4',w:-1,n:'живой опыт'},
+  {m:'Императивы (CTA)',a:'14',b:'12',w:0},
+  {m:'Числа на 100 слов',a:'6.2',b:'12.7',w:1,n:'конкретика'},
+  {m:'Эмодзи',a:'20',b:'25',w:0},
+  {m:'Дата-стамп',a:'да',b:'да',w:0},
+  {m:'FAQ (вопросов)',a:'да (9)',b:'да (0)',w:-1,n:'реальные Q&A'},
+  {m:'Сущностей / фактов',a:'13',b:'11',w:-1},
+  {m:'Чужие бренды',a:'нет',b:'нет',w:0},
+ ]},
+];
+let wa=0,wb=0;
+const arw=w=>w<0?'<span class="win-a">◀ A</span>':w>0?'<span class="win-b">B ▶</span>':'<span class="muted">=</span>';
+let html='<thead><tr><th>Метрика</th><th>A · Nova</th><th>B · betchan</th><th style="text-align:center">Лучше</th></tr></thead><tbody>';
+G.forEach(sec=>{
+  html+=`<tr class="grp"><td colspan="4">${sec.g}</td></tr>`;
+  sec.rows.forEach(r=>{
+    if(r.w<0)wa++; if(r.w>0)wb++;
+    html+=`<tr><td>${r.m}${r.n?` <span class="note">· ${r.n}</span>`:''}</td>
+      <td class="v ${r.w<0?'win-a':''}">${r.a}</td>
+      <td class="v ${r.w>0?'win-b':''}">${r.b}</td>
+      <td class="arw">${arw(r.w)}</td></tr>`;
+  });
+});
+html+='</tbody>';
+document.getElementById('cmp').innerHTML=html;
+document.getElementById('winA').textContent=wa;
+document.getElementById('winB').textContent=wb;
+
+</script>

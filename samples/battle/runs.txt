@@ -1,0 +1,10 @@
+R01 monro s1
+R02 cosmospin s1
+R03 bitz s1
+R04 almyra s1
+R05 vovan s1
+R06 monro s2
+R07 cosmospin s2
+R08 bitcasino s1
+R09 vegasy s1
+R10 bitz s2

@@ -1,0 +1,109 @@
+<h2>Кнопка «запомнить меня»: что именно она хранит</h2>
+<p>
+  Галочка под формой входа %brand_name_en% не хранит ни логин, ни пароль. Она кладёт в браузер один длинный токен — расписку, по которой сервер узнаёт устройство и не спрашивает пару заново.
+</p>
+<p>
+  Расписка — это как бирка на головке. Сама головка лежит в камере созревания, бирка только говорит, чья она и с какого дня. Потерять бирку неприятно, но содержимое от этого не уходит.
+</p>
+<h3>Что лежит в токене на самом деле</h3>
+<ul>
+  <li><strong>Случайная строка на 64 знака.</strong> Из неё нельзя восстановить ни логин, ни пароль</li>
+  <li><strong>Отпечаток устройства.</strong> Система, браузер, разрешение экрана и часовой пояс</li>
+  <li><strong>Срок жизни.</strong> 30 суток с последнего входа, дальше расписка гаснет сама</li>
+</ul>
+<h3>Когда расписка перестаёт работать</h3>
+<table>
+  <tbody>
+    <tr><th>Событие</th><th>Что с распиской</th><th>Что делать</th></tr>
+    <tr><td>Смена пароля</td><td>Гаснет на всех устройствах</td><td>Войти парой заново</td></tr>
+    <tr><td>Чистка данных браузера</td><td>Гаснет на этом устройстве</td><td>Войти парой заново</td></tr>
+    <tr><td>Обновление системы</td><td>Отпечаток изменился, расписка не подходит</td><td>Войти парой, подтвердить кодом</td></tr>
+    <tr><td>30 суток без входа</td><td>Истекает по сроку</td><td>Войти парой заново</td></tr>
+  </tbody>
+</table>
+<h3>Чем это отличается от сохранённого пароля</h3>
+<p>
+  Менеджер браузера хранит саму пару и подставляет её в форму. Галочка не хранит пару вообще: у неё нет ничего, что можно было бы ввести руками. Отсюда практическое следствие — украденная расписка гаснет при первой же смене пароля, а украденный пароль работает до тех пор, пока его не поменяют.
+</p>
+<blockquote>
+  Корка защищает головку, но сама головкой не является. Срезали корку — потеряли защиту, а не продукт.
+</blockquote>
+<h3>Где галочку ставить не стоит</h3>
+<ul>
+  <li><strong>Общий или рабочий компьютер.</strong> Расписка живёт 30 суток и переживёт вашу смену за столом</li>
+  <li><strong>Режим инкогнито.</strong> Токен всё равно сотрётся при закрытии окна, толку ноль</li>
+  <li><strong>Устройство перед продажей.</strong> Чистки браузера мало: снимите его из реестра в кабинете вручную</li>
+  <li><strong>Чужой телефон «на один вечер».</strong> Второй фактор при живой расписке не спрашивают</li>
+</ul>
+<h3>Реестр устройств: как снять лишнее</h3>
+<ol>
+  <li><strong>Открыть раздел безопасности.</strong> Он лежит рядом с настройками лимита самоограничения</li>
+  <li><strong>Найти строку по системе и дате.</strong> Названия устройств площадка не знает, ориентир — время последнего входа</li>
+  <li><strong>Погасить расписку кнопкой рядом.</strong> Устройство вылетит из сессии в течение минуты</li>
+</ol>
+<h3>Итог</h3>
+<p>
+  Галочка удобна на личном телефоне и опасна на чужом. Она не влияет ни на ставку, ни на отыгрыш, ни на очередь в кассе: <a href="/slots">игровые автоматы</a>, депозит и вывод средств от неё не зависят вовсе. Работает одинаково в браузере, в <a href="/app">программе</a> и на <a href="/zerkalo">запасном адресе</a> — расписки для разных доменов при этом разные. Если расписка гаснет каждый день, проверьте данные <a href="/registracia">анкеты</a>: незавершённая верификация укорачивает срок жизни токена до суток.
+</p>
+
+<h2>Частые вопросы о входе в %brand_name_en%</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Хранит ли галочка мой пароль?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. В браузер кладётся случайный токен, пароль в нём не содержится.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько живёт расписка?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>30 суток с последнего входа. Каждый вход отсчёт обнуляет.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему меня выкинуло после обновления телефона?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Сменился отпечаток устройства, и старая расписка перестала подходить.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Гасит ли смена пароля расписки на других устройствах?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Да, все сразу. Это штатный способ выйти отовсюду.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Работает ли галочка на запасном домене?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Работает, но расписка у каждого домена своя: на новом адресе вход придётся подтвердить.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Спросят ли второй фактор при живой расписке?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. Именно поэтому на чужом устройстве галочку ставить не стоит.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли увидеть, сколько устройств помнят меня?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Да, список лежит в разделе безопасности вместе с датой последнего входа.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли галочка на скорость выплаты?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, очередь в кассе от способа входа не зависит.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что будет, если чистить кеш каждый день?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Расписка будет гаснуть вместе с ним, и пару придётся вводить при каждом заходе.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Опасна ли галочка на домашнем компьютере?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>При закрытом от посторонних доступе — нет. Опасность создаёт не токен, а свободный вход в само устройство.</p></div>
+  </div>
+</details>

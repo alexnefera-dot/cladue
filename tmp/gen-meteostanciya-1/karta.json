@@ -1,0 +1,31 @@
+{
+    "комплект": "meteostanciya-1",
+    "маска": "метеостанция",
+    "ракурс": "наблюдатель",
+    "рефрен": "сводка на срок",
+    "словарь": [
+        "барограф",
+        "срок наблюдения",
+        "осадкомер",
+        "шкала",
+        "поверка",
+        "журнал наблюдений"
+    ],
+    "срезы": {
+        "app": "Приложение открывается на белом экране: что проверить",
+        "bonus": "Фриспины сгорели раньше срока: за что их снимают",
+        "registracia": "Адрес прописки и адрес проживания: какой указывать",
+        "slots": "Один автомат у двух студий: почему цифры разные",
+        "vhod": "Сессия рвётся каждые десять минут: что её обрывает",
+        "zerkalo": "Один домен работает, второй нет: значит ли это подмену"
+    },
+    "промпты": {
+        "main": "tmp\/gen-meteostanciya-1\/prompt-main.md",
+        "app": "tmp\/gen-meteostanciya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-meteostanciya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-meteostanciya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-meteostanciya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-meteostanciya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-meteostanciya-1\/prompt-zerkalo.md"
+    }
+}

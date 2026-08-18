@@ -1,0 +1,111 @@
+<h2>Ставка в валюте счёта и номинал слота: где пересчёт</h2>
+<p>
+  Игровой автомат %brand_name_en% почти никогда не считает во внутренней валюте счёта. Провайдер отдаёт игру в своих единицах, а площадка пересчитывает их на лету — отсюда странные суммы на кнопке и вопросы к кассе. Можно ли выключить пересчёт — нет, он часть протокола.
+</p>
+<p>
+  Пересчёт идёт по курсу, зафиксированному на момент открытия автомата, а не на момент каждого вращения. Это важно: курс внутри сессии не двигается.
+</p>
+<h3>Пересчёт: где именно он происходит</h3>
+<ol>
+  <li><strong>При открытии игры.</strong> Баланс переводится в единицы провайдера и фиксируется курс</li>
+  <li><strong>На кнопке ставки.</strong> Номиналы округляются до ближайшего доступного шага</li>
+  <li><strong>При выплате раунда.</strong> Результат возвращается обратно в валюту счёта</li>
+  <li><strong>При закрытии игры.</strong> Остаток переводится целиком, копейки не теряются</li>
+</ol>
+<h3>Почему ставка не совпадает с задуманной</h3>
+<table>
+  <tbody>
+    <tr><th>Валюта счёта</th><th>Задумано</th><th>Списано по номиналу</th></tr>
+    <tr><td>Рубль</td><td>100</td><td>100</td></tr>
+    <tr><td>Рубль, автомат в евро</td><td>100</td><td>96 или 108</td></tr>
+    <tr><td>Доллар</td><td>1</td><td>1</td></tr>
+    <tr><td>Доллар, автомат в кронах</td><td>1</td><td>0.90 или 1.20</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  Набор стекла берут мерной ложкой, а не на глаз. Изделие всё равно выйдет чуть тяжелее или легче задуманного — шаг ложки не бесконечно мелкий.
+</blockquote>
+<h3>Отдача и дисперсия: что от курса не зависит</h3>
+<ul>
+  <li><strong>Отдача автомата.</strong> Паспортный процент считается в единицах провайдера и от валюты не меняется</li>
+  <li><strong>Волатильность и дисперсия.</strong> Заданы математикой, а не курсом</li>
+  <li><strong>Оборот для отыгрыша.</strong> Пересчитывается обратно и капает в вейджер полностью</li>
+  <li><strong>Турнирные очки.</strong> Считаются по обороту в валюте счёта</li>
+</ul>
+<h3>Где пересчёт стоит денег</h3>
+<p>
+  Сам по себе он бесплатный: площадка не берёт на нём процент. Настоящая утечка возникает раньше — на депозите, когда валюта счёта расходится с валютой карты. Проверить связку удобнее до первого пополнения, через <a href="/registracia">форму счёта</a>. Там теряется от 2 до 4 % на каждой операции, и за год такая мелочь набирается в заметную сумму. Валюту выбирают один раз в <a href="/registracia">анкете</a>, и поменять её потом нельзя.
+</p>
+<h3>Номинал за линию: как читать его правильно</h3>
+<p>
+  На кнопке автомата стоит ставка за линию, а списывается общая сумма за раунд. При 25 линиях выплат и номинале в 4 единицы это 100, а не 4. Ошибка здесь обходится дороже курсовой: игрок, уверенный, что ставит по четыре, за сотню вращений тратит десять тысяч вместо четырёхсот. Проверить фактические списания можно в истории ставок: она лежит в личном кабинете, куда ведёт <a href="/vhod">вход в %brand_name_en%</a>. Вывод средств и депозит показаны там же, отдельным журналом.
+</p>
+<h3>Итог</h3>
+<ul>
+  <li>Курс фиксируется при открытии автомата и внутри сессии не двигается</li>
+  <li>Округление до шага номинала даёт расхождение в несколько процентов</li>
+  <li>Отдача, дисперсия и оборот от валюты не зависят вовсе</li>
+  <li>Официальный сайт, <a href="/app">программа</a> и <a href="/zerkalo">зеркало сайта</a> считают одинаково</li>
+</ul>
+
+<h2>Частые вопросы игроков %brand_name_en% о ставке и номинале</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему списалось больше, чем на кнопке?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>На кнопке ставка за линию, а списывается общая сумма за раунд по всем линиям выплат.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Берёт ли площадка процент за пересчёт?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. Внутренний пересчёт бесплатный, потери возникают на депозите при несовпадении валют.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Меняется ли курс во время сессии?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, он фиксируется при открытии автомата и держится до закрытия.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли валюта счёта на отдачу?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не влияет. Паспортный процент задан математикой автомата.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Теряются ли копейки при закрытии игры?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, остаток переводится обратно целиком.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему нельзя выставить ровно сто?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Шаг номинала задан провайдером. Ближайшее доступное значение округляется вверх или вниз.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Капает ли оборот в отыгрыш при пересчёте?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Капает полностью, в валюте счёта.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли поменять валюту счёта?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, графа закрыта на запись после первой проверки документов.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Где посмотреть фактическое списание?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>В истории ставок: там стоит общая сумма за раунд, а не номинал за линию.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Одинаков ли пересчёт в демо-режиме?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Да, но пробные единицы не связаны с балансом и никуда не пересчитываются.</p></div>
+  </div>
+</details>

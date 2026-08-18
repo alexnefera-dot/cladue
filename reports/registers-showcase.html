@@ -1,0 +1,73 @@
+<meta charset="utf-8">
+<title>Регистры письма — один контент, разные стили</title>
+<style>
+:root{--bg:#f6f8fc;--panel:#fff;--panel2:#eef2f8;--ink:#1a2230;--muted:#5d6b82;--line:#e2e7ef;--accent:#3f7bf0;
+ --delovoy:#3f7bf0;--expert:#1f9d6b;--razgovorny:#d98a2a;--derzkiy:#d23b40;--neutral:#5d6b82;--reklamny:#9163e0;
+ --mono:ui-monospace,Menlo,Consolas,monospace;--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;}
+@media(prefers-color-scheme:dark){:root{--bg:#0e131c;--panel:#151d29;--panel2:#1b2431;--ink:#e7ecf5;--muted:#8b98b0;--line:#26303f;--accent:#5b95ff;--delovoy:#5b95ff;--expert:#33c08a;--razgovorny:#eaa54a;--derzkiy:#e5595c;--neutral:#8b98b0;--reklamny:#a98bf0;}}
+:root[data-theme="dark"]{--bg:#0e131c;--panel:#151d29;--panel2:#1b2431;--ink:#e7ecf5;--muted:#8b98b0;--line:#26303f;--accent:#5b95ff;--delovoy:#5b95ff;--expert:#33c08a;--razgovorny:#eaa54a;--derzkiy:#e5595c;--neutral:#8b98b0;--reklamny:#a98bf0;}
+:root[data-theme="light"]{--bg:#f6f8fc;--panel:#fff;--panel2:#eef2f8;--ink:#1a2230;--muted:#5d6b82;--line:#e2e7ef;--accent:#3f7bf0;--delovoy:#3f7bf0;--expert:#1f9d6b;--razgovorny:#d98a2a;--derzkiy:#d23b40;--neutral:#5d6b82;--reklamny:#9163e0;}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 var(--sans)}
+.wrap{max-width:1080px;margin:0 auto;padding:26px 18px 80px}
+.eyebrow{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700}
+h1{font-size:24px;margin:6px 0 8px}.lead{color:var(--muted);max-width:80ch}
+.facts{margin:16px 0;padding:13px 16px;border-radius:11px;background:var(--panel2);border:1px solid var(--line);font-size:13.5px}
+.facts b{color:var(--ink)}.facts .chip{display:inline-block;font-family:var(--mono);font-size:12px;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:1px 9px;margin:2px 3px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+@media(max-width:780px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:0;overflow:hidden}
+.card .top{padding:11px 15px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:9px}
+.card .top .name{font-weight:700;font-size:14px}
+.card .top .voice{color:var(--muted);font-size:11.5px}
+.bar{width:5px;align-self:stretch;border-radius:3px}
+.card .body{padding:14px 15px;font-size:14px}
+.card .body p{margin:0}
+.d-delovoy{background:var(--delovoy)}.d-expert{background:var(--expert)}.d-razgovorny{background:var(--razgovorny)}
+.d-derzkiy{background:var(--derzkiy)}.d-neutral{background:var(--neutral)}.d-reklamny{background:var(--reklamny)}
+.tag{font-size:10.5px;font-weight:700;color:#fff;padding:1px 8px;border-radius:20px;margin-left:auto}
+.mrow{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:9px;padding-top:8px;border-top:1px dashed var(--line)}
+.foot{color:var(--muted);font-size:12px;margin-top:26px;text-align:center}
+.note{margin-top:22px;padding:12px 15px;border-left:3px solid var(--accent);background:var(--panel);border:1px solid var(--line);border-radius:9px;font-size:13.6px}
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">Регистры письма · стиль как переменная</div>
+  <h1>Один контент — шесть стилей</h1>
+  <p class="lead">Ниже — <b>один и тот же раздел с одними и теми же данными</b>, написанный в шести регистрах. Паттерн стиля берётся от сайта-донора (или задаётся флагом), а база знаний, разделы и цифры — общие. Регистр меняет только манеру, факты остаются точными.</p>
+
+  <div class="facts">
+    📌 <b>Одинаковые факты во всех вариантах:</b>
+    <span class="chip">бонус 100%</span><span class="chip">до 15 000 ₽</span><span class="chip">вейджер x30</span>
+    <span class="chip">срок 7 дней</span><span class="chip">кэшбэк до 15%</span><span class="chip">7 уровней</span>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="note">🎯 <b>Что это даёт:</b> при клонировании донора связка получает <b>его</b> регистр (cosmospin → дерзкий, vovan → деловой, aurora → экспертный). Один генератор выдаёт и сухой справочник, и уличный вайб, и экспертный разбор — на одной базе знаний. Регистр можно и переопределить: <code>--register=derzkiy</code>.</div>
+
+  <div class="foot">Данные — из спек-карты генератора. Регистры — engine/data/pools/pools.json → style_registers. Классификация доноров — extract-donors.php.</div>
+</div>
+
+<script>
+const R=[
+ ['delovoy','Деловой / на «вы»','обращение на «вы», серьёзно','вы · без сленга · восклицаний нет',
+  'Приветственный бонус составляет <b>100%</b> к первому депозиту, до <b>15 000 ₽</b>. Условие отыгрыша — вейджер <b>x30</b> со сроком <b>7 дней</b>. Постоянным игрокам доступен кэшбэк до <b>15%</b> по <b>семи</b> уровням лояльности. Рекомендуем ознакомиться с условиями до активации бонуса.'],
+ ['expert','Экспертный / личный опыт','первое лицо, «я проверял»','я · практика · спокойно',
+  'Я активировал приветственные <b>100%</b> на депозит и получил <b>15 000 ₽</b> бонусом. Вейджер <b>x30</b> отыграл за шесть дней из <b>семи</b> — вполне реально. На моём пятом уровне кэшбэк <b>12%</b> приходит каждый понедельник, а всего уровней <b>семь</b>. Совет из опыта: список игр для отыгрыша смотрите заранее.'],
+ ['razgovorny','Разговорный / на «ты»','дружелюбно, лёгкий сленг','ты · живо · бодро',
+  'Лови приветственный бонус — <b>100%</b> на первый деп, до <b>15 000 ₽</b>. Отыграть надо <b>x30</b> за <b>7 дней</b>, ничего сложного. Плюс кэшбэк до <b>15%</b>: чем выше уровень, тем больше возврат, а всего их <b>семь</b>. Заходи, активируй и играй спокойно.'],
+ ['derzkiy','Дерзкий / уличный вайб','на «ты», напор, сленг','ты · сленг · драйв!',
+  'Yo, тут стартовый бонус — <b>100%</b> на первый деп, до <b>15 000 ₽</b>, бро! Отыгрыш <b>x30</b> за <b>7 дней</b> — раз плюнуть. А кэшбэк валит до <b>15%</b>: качай лояльность по <b>семи</b> уровням и лови профит. Не тупи — врывайся и забирай своё!'],
+ ['neutral','Нейтрально-справочный','безлично, сухо','безличное · сухо',
+  'Приветственный бонус — <b>100%</b> на первый депозит, до <b>15 000 ₽</b>. Условие отыгрыша — вейджер <b>x30</b>, срок <b>7 дней</b>. Программа лояльности включает <b>7</b> уровней с кэшбэком до <b>15%</b>.'],
+ ['reklamny','Восторженно-рекламный','эмоции, восклицания','вы · превосходство!',
+  'Щедрый приветственный бонус — целых <b>100%</b> и до <b>15 000 ₽</b> на старте! Простой отыгрыш <b>x30</b> всего за <b>7 дней</b>! А кэшбэк до <b>15%</b> по <b>семи</b> уровням лояльности сделает каждую игру выгоднее! Успейте активировать!'],
+];
+document.getElementById('grid').innerHTML=R.map(([id,name,voice,knobs,text])=>`
+ <div class="card">
+   <div class="top"><span class="bar d-${id}"></span>
+     <span><span class="name">${name}</span><br><span class="voice">${voice}</span></span>
+     <span class="tag d-${id}">${id}</span></div>
+   <div class="body"><p>${text}</p><div class="mrow">${knobs}</div></div>
+ </div>`).join('');
+</script>

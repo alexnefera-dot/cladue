@@ -1,0 +1,32 @@
+{
+    "комплект": "syrovarnya-1",
+    "маска": "сыроварня",
+    "ракурс": "сыровар",
+    "рефрен": "проба на срезе",
+    "словарь": [
+        "закваска",
+        "сычуг",
+        "головка",
+        "камера созревания",
+        "корка",
+        "сыворотка",
+        "пресс"
+    ],
+    "срезы": {
+        "app": "Клиент на старом Android: с какой версии он не встанет",
+        "bonus": "Бонусный баланс и основной: как они расходуются",
+        "registracia": "Смена фамилии после свадьбы: как обновить документы",
+        "slots": "История ставок по одному слоту: как её отфильтровать",
+        "vhod": "Кнопка «запомнить меня»: что именно она хранит",
+        "zerkalo": "Старый домен снова открылся: значит ли это, что он рабочий"
+    },
+    "промпты": {
+        "main": "tmp\/gen-syrovarnya-1\/prompt-main.md",
+        "app": "tmp\/gen-syrovarnya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-syrovarnya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-syrovarnya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-syrovarnya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-syrovarnya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-syrovarnya-1\/prompt-zerkalo.md"
+    }
+}

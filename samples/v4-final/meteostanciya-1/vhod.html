@@ -1,0 +1,109 @@
+<h2>Сессия рвётся каждые десять минут: что её обрывает</h2>
+<p>
+  Счёт %brand_name_en% открывается, а через несколько минут форма входа появляется снова. Так повторяется весь вечер. Причина почти никогда не в самой площадке: сессию рвёт то, что стоит между устройством и сервером.
+</p>
+<p>
+  Отличить свою сторону от чужой можно за минуту — по тому, рвётся ли сессия одинаково в браузере и в программе %brand_name_en%.
+</p>
+<h3>Шесть причин обрыва</h3>
+<table>
+  <tbody>
+    <tr><th>Причина</th><th>Чья сторона</th><th>Признак</th></tr>
+    <tr><td>Смена адреса в сети</td><td>Провайдер связи</td><td>Рвётся и в браузере, и в сборке</td></tr>
+    <tr><td>Переключение между сетями</td><td>Устройство</td><td>Совпадает с уходом из зоны сети</td></tr>
+    <tr><td>Экономия заряда</td><td>Устройство</td><td>Только при свёрнутом окне</td></tr>
+    <tr><td>Чистка данных браузера</td><td>Устройство</td><td>Только в браузере</td></tr>
+    <tr><td>Вход с другого аппарата</td><td>Счёт</td><td>Строка в реестре устройств</td></tr>
+    <tr><td>Смена пароля</td><td>Счёт</td><td>Рвётся везде разом</td></tr>
+  </tbody>
+</table>
+<h3>Порядок разбора: четыре шага</h3>
+<ol>
+  <li><strong>Открыть тот же счёт в браузере.</strong> Рвётся и там — дело в канале связи</li>
+  <li><strong>Проверить реестр устройств.</strong> Незнакомая строка означает чужой заход</li>
+  <li><strong>Отключить экономию заряда для сборки.</strong> Она снимает фоновую работу молча</li>
+  <li><strong>Зайти с мобильного интернета.</strong> Разница в поведении укажет на фильтр провайдера</li>
+</ol>
+<blockquote>
+  Перо барографа скачет и от смены давления, и от плохо закреплённой ленты. Пока ленту не проверили, о погоде говорить рано.
+</blockquote>
+<h3>Самая частая причина</h3>
+<p>
+  Плавающий адрес в сети провайдера. Сессия привязана к нему, и каждая смена выглядит для сервера как новый заход. Лечится это не настройками площадки, а сменой канала: на мобильном интернете адрес обычно устойчивее. Расписка «запомнить меня» при этом не спасает — она отвечает за узнавание устройства, а не за живучесть сессии.
+</p>
+<h3>Что при обрыве не теряется</h3>
+<ul>
+  <li><strong>Незакрытый раунд.</strong> Провайдер закроет его сам, выплата придёт в течение суток</li>
+  <li><strong>Заявка в кассе.</strong> Она уже в очереди и о сессии не знает</li>
+  <li><strong>Счётчик отыгрыша.</strong> Оборот записан на сервере, а не в окне браузера</li>
+  <li><strong>Настройки лимитов.</strong> Рычаги самоограничения живут отдельно от доступа</li>
+</ul>
+<h3>Когда обрыв — признак чужого входа</h3>
+<p>
+  Один счёт держит несколько сессий одновременно, поэтому чужой заход сам по себе вас не выкинет. Но если незнакомое устройство сменило пароль, сессии гаснут разом и везде. Признак характерный: рвётся не через десять минут, а мгновенно и на всех аппаратах сразу. В этом случае порядок другой — сброс пароля через почту, гашение всех расписок и проверка истории операций.
+</p>
+<p>
+  Реестр устройств показывает систему, время последнего входа и состояние расписки. Названий аппаратов площадка не знает, ориентир только время. Строку, которую вы не узнаёте, гасят немедленно, а следом меняют пару. Данные счёта и реквизиты правятся в <a href="/registracia">анкете</a>, порядок входа собран в <a href="/vhod">разделе безопасности</a>, а <a href="/slots">игровые автоматы</a>, <a href="/app">программа</a> и <a href="/zerkalo">запасной адрес</a> от способа входа не зависят вовсе.
+</p>
+
+<h2>Частые вопросы игроков об устойчивости сессии</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему меня выкидывает каждые десять минут?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Чаще всего из-за плавающего адреса в сети провайдера: каждая его смена выглядит как новый заход.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Как понять, чья это сторона?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Открыть тот же счёт в браузере. Рвётся одинаково — дело в канале связи, а не в оболочке.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Помогает ли галочка «запомнить меня»?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. Она отвечает за узнавание устройства, а не за живучесть текущей сессии.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Пропадёт ли незакрытая ставка?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, раунд закроет провайдер, а выплата придёт на баланс в течение суток.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сбивается ли счётчик отыгрыша при обрыве?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не сбивается: оборот записан на сервере, а не в окне браузера.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Может ли выкидывать из-за чужого входа?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Сам по себе чужой вход не выкидывает. Выкинет смена пароля — и сразу везде.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько сессий держит один счёт?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Несколько одновременно, по одной на устройство. Список виден в разделе безопасности.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли экономия заряда?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Влияет при свёрнутом окне: система снимает фоновую работу, и сессия отваливается.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать, если в реестре чужая строка?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Погасить её кнопкой и сразу сменить пароль. Это отрезает доступ на всех адресах.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Поможет ли смена браузера?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Только если дело в чистке данных. При плавающем адресе провайдера — нет.</p></div>
+  </div>
+</details>

@@ -1,0 +1,104 @@
+<h2>Клиент просит доступ к геолокации: зачем он ему</h2>
+<p>
+  Программа %brand_name_en% при первом запуске просит разрешение на определение места. Просьба выглядит странно: игра идёт на сервере, и где стоит телефон, ей вроде бы безразлично.
+</p>
+<p>
+  Безразлично игре, но не оператору. Место нужно ровно в одном сценарии, и отказ от него почти ничего не ломает.
+</p>
+<h3>Где место действительно требуется</h3>
+<table>
+  <tbody>
+    <tr><th>Случай</th><th>Нужно ли место</th><th>Что будет при отказе</th></tr>
+    <tr><td>Юрисдикция площадки</td><td>Да</td><td>Проверят по адресу подключения</td></tr>
+    <tr><td>Запуск тайтла</td><td>Нет</td><td>Ничего</td></tr>
+    <tr><td>Пополнение и выплата</td><td>Нет</td><td>Ничего</td></tr>
+    <tr><td>Подбор языка витрины</td><td>Нет</td><td>Возьмут из настроек аппарата</td></tr>
+  </tbody>
+</table>
+<h3>Почему проверка идёт двумя способами</h3>
+<p>
+  Лицензия обязывает оператора не пускать игроков из закрытых для него стран. Точное место аппарата даёт быстрый ответ, адрес подключения — медленный и менее надёжный. Отказ в разрешении переводит проверку на второй способ, и на этом последствия заканчиваются.
+</p>
+<h3>Порядок выдачи разрешения по-минимуму</h3>
+<ol>
+  <li>Выбрать вариант «пока пользуюсь программой», а не постоянный</li>
+  <li>Отключить точность до уровня города, если оболочка это умеет</li>
+  <li>Отозвать разрешение после первой проверки — она разовая</li>
+  <li>Не выдавать доступ в фоновом режиме: он здесь не нужен вовсе</li>
+</ol>
+<blockquote>
+  Делянку отмечают колышком один раз, при закладке. Ходить с рулеткой по школке каждый день незачем — ряды от этого ровнее не станут.
+</blockquote>
+<h3>Чего программа получить не может</h3>
+<ul>
+  <li><strong>Историю перемещений.</strong> Она хранится в системе, а не у неё</li>
+  <li><strong>Место при выключенном разрешении.</strong> Останется адрес подключения</li>
+  <li><strong>Доступ в фоне без вашего согласия.</strong> Это отдельный переключатель</li>
+  <li><strong>Данные других программ.</strong> Вход в личный кабинет и ставки к ним не относятся</li>
+</ul>
+<h3>Итог</h3>
+<p>
+  Разрешение на определение места нужно программе %brand_name_en% для проверки юрисдикции — того самого условия лицензии, из-за которого игроки закрытых стран не допускаются. Отказ переводит проверку на адрес подключения и больше ни на что не влияет: запуск игр, пополнение и выплата работают как прежде. Выдавать доступ навсегда и в фоновом режиме здесь незачем, хватает варианта «пока пользуюсь программой». Можно ли играть без этого разрешения — да, и правила по странам опубликованы в открытом регламенте вместе с лимитами на <a href="/vhod">вывод средств через кабинет</a>, характер каждой машины — в <a href="/slots">каталоге автоматов</a>, состояние счёта показывает <a href="/vhod">кабинет игрока</a>, состав бумаг — <a href="/registracia">анкета</a>, рабочие домены — <a href="/zerkalo">страница обвода</a>.
+</p>
+
+<h2>Частые вопросы игроков о разрешениях мобильной программы %brand_name_en%</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Программа не работает без доступа к месту?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Работает полностью. Проверка юрисдикции просто пойдёт по адресу подключения, а это чуть медленнее.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Следит ли программа за перемещениями?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, история перемещений ей недоступна. Она получает ответ на разовый запрос и ничего не накапливает.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Зачем оператору знать страну игрока?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Это условие лицензии: из ряда стран приём игроков запрещён. Нарушение стоит оператору самой лицензии.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли отозвать разрешение после проверки?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Можно, в настройках аппарата. Программа при этом продолжит работать в обычном режиме.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли место на выбор языка витрины?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Язык берётся из настроек аппарата, а не из координат. Сменить его можно в профиле в любой момент.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что происходит при поездке в закрытую страну?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Ставки закрываются до возвращения, счёт при этом остаётся целым. Заявка на выплату идёт своим порядком.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Просит ли доступ браузерная версия?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Обычно нет: там проверка идёт только по адресу подключения. Поэтому в браузере вопрос и не всплывает.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Тратит ли разрешение заряд аппарата?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>При разовых запросах расход незаметен. Заряд тратит фоновый доступ, а он программе не нужен.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать, если запрос повторяется каждый запуск?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Выдать разрешение на время работы программы. При полном отказе оболочка спрашивает снова при каждом старте.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Безопасно ли выдавать такой доступ вообще?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Пакету с официальной страницы — да, он получает только ответ на запрос. Со сторонним складом рисковать не стоит.</p></div>
+  </div>
+</details>

@@ -1,0 +1,115 @@
+<h2>Вход по ссылке из письма: почему он работает один раз</h2>
+<p>
+  Ссылка на вход без пароля в %brand_name_en% приходит по запросу и живёт до первого использования. Открыли — и она мертва, даже если сессия оборвалась через секунду.
+</p>
+<h3>Как устроена одноразовость</h3>
+<p>
+  Ссылка несёт разовый ключ, который сервер %brand_name_en% гасит в момент перехода. Второй переход попадает уже в пустоту: ключа нет, и форма показывает ошибку вместо профиля.
+</p>
+<table>
+  <tbody>
+    <tr><th>Ситуация</th><th>Ссылка работает</th><th>Что делать</th></tr>
+    <tr><td>Первый переход</td><td>Да</td><td>Ничего</td></tr>
+    <tr><td>Повторный переход</td><td>Нет</td><td>Запросить новую</td></tr>
+    <tr><td>Прошло больше часа</td><td>Нет</td><td>Запросить новую</td></tr>
+    <tr><td>Запрошена вторая ссылка</td><td>Первая мертва</td><td>Открыть последнюю</td></tr>
+  </tbody>
+</table>
+<h3>Почему сделано именно так</h3>
+<ul>
+  <li><strong>Письмо может быть прочитано не вами.</strong> Разовый ключ ограничивает ущерб</li>
+  <li><strong>Ссылка попадает в историю браузера.</strong> Многоразовая жила бы там месяцами</li>
+  <li><strong>Пересылка письма — обычное дело.</strong> Второй переход уже не сработает</li>
+</ul>
+<blockquote>
+  Каптал приклеивают один раз: отодрать и переставить — значит испортить корешок. Разовый ключ держится того же правила.
+</blockquote>
+<h3>Порядок входа без пароля</h3>
+<ol>
+  <li>Запросить ссылку с формы <a href="/vhod">входа</a>, указав почту из анкеты</li>
+  <li>Открыть последнее письмо, а не первое: каждый запрос гасит прежнее</li>
+  <li>Перейти по ссылке в том же браузере, где запрашивали</li>
+  <li>Сразу задать постоянный пароль, пока сессия жива</li>
+</ol>
+<h3>Три причины, по которым ссылка не срабатывает</h3>
+<ul>
+  <li><strong>Открыта во втором браузере.</strong> Ключ привязан к запросу</li>
+  <li><strong>Почтовый клиент обрезал адрес.</strong> Копируйте строку целиком</li>
+  <li><strong>Письмо старше часа.</strong> Срок жизни ключа короткий</li>
+</ul>
+<h3>Чем этот вход отличается от обычного</h3>
+<p>
+  Ничем, кроме способа подтверждения. Сессия та же, лимиты те же, второй фактор запрашивается так же. Разница только в том, что пароль при этом не проверяется — и потому вход по ссылке недоступен, когда счёт заморожен.
+</p>
+<p>
+  Работает он и на <a href="/zerkalo">запасном домене</a>: разовый ключ живёт на сервере, а не на адресе, и переезд домена его не гасит. Верификация, лимиты и счётчик отыгрыша от способа входа тоже не зависят. А вот <a href="/app">мобильный клиент</a> такие ссылки открывает через браузер, и сессия остаётся в нём же.
+</p>
+<h3>Когда лучше не пользоваться</h3>
+<p>
+  На чужом устройстве: письмо останется в почте, а сессия — в браузере %brand_name_en%. Оба следа снимаются, но только если о них помнить, а после разового входа об этом забывают чаще всего. И в момент, когда идёт разбор по выплате: контроль смотрит на способ входа, и разовые ключи в такой цепочке выглядят хуже обычной пары с вторым фактором.
+</p>
+
+<h2>Ответы на вопросы о входе по ссылке</h2>
+<p>
+  Десять обращений, которые приходят к оператору за первую неделю.
+</p>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько живёт ссылка?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Как правило час, и гаснет она при первом переходе. Более короткий срок бывает при активном разборе по счёту.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли попросить многоразовую ссылку?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, такой ключ не выдаётся. Это требование безопасности, а не настройка.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать, если ссылка открылась и сразу выкинуло?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Запросить новую. Прежний ключ уже погашен, и вернуть его нельзя.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Работает ли вход по ссылке при включённом втором факторе?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Да, но код всё равно запросят. Ссылка заменяет пароль, а не второй фактор.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему письмо со ссылкой не приходит?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Проверьте спам и вкладку промоакций. Корпоративная почта режет такие письма особенно охотно.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли переслать ссылку на другой телефон?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Технически да, но ключ привязан к браузеру запроса, и на чужом устройстве он не сработает.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Гасит ли ссылка активные сессии?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. Гасит их смена пароля, а вход по ссылке просто добавляет новую.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Приходит ли уведомление о таком входе?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Да, письмом, вместе с сетью и временем. Если вы этого не делали — сразу меняйте пароль.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли отключить вход по ссылке совсем?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>В настройках такого переключателя нет. Защиту даёт второй фактор, который запрашивается в любом случае.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Работает ли ссылка при заморозке счёта?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. При активном разборе вход по разовому ключу закрывают, и остаётся обычная пара из <a href="/registracia">анкеты</a>.</p></div>
+  </div>
+</details>

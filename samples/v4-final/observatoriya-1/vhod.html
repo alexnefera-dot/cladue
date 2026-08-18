@@ -1,0 +1,107 @@
+<h2>Пароль из четырёх символов: почему его не примут</h2>
+<p>
+  Форма %brand_name_en% отклоняет короткий пароль не из вредности. Требование к длине задано условиями лицензии и проверяется на стороне сервера, поэтому обойти его подбором браузера или вставкой из менеджера не выйдет.
+</p>
+<p>
+  Смысл требования арифметический. Четыре символа — это несколько миллионов вариантов, и перебирает их обычный компьютер быстрее, чем вы допишете это предложение.
+</p>
+<h3>Что именно проверяет форма</h3>
+<ul>
+  <li><strong>Длина от восьми символов.</strong> Нижняя отметка, ниже неё поле не примет ничего</li>
+  <li><strong>Буквы разного регистра.</strong> Одни строчные считаются половиной алфавита</li>
+  <li><strong>Хотя бы одна цифра.</strong> Или знак препинания, на выбор</li>
+  <li><strong>Отсутствие логина внутри.</strong> Пароль с именем счёта отклоняется отдельно</li>
+</ul>
+<h3>Сколько стоит перебор</h3>
+<table>
+  <tbody>
+    <tr><th>Длина и состав</th><th>Число вариантов</th><th>Устойчивость</th></tr>
+    <tr><td>4 цифры</td><td>10 тысяч</td><td>Секунды</td></tr>
+    <tr><td>4 буквы и цифры</td><td>1.6 миллиона</td><td>Минуты</td></tr>
+    <tr><td>8 букв и цифр</td><td>2.8 триллиона</td><td>Месяцы</td></tr>
+    <tr><td>12 со знаками</td><td>Практически недостижимо</td><td>Годы</td></tr>
+  </tbody>
+</table>
+<blockquote>
+  Засветка от одного фонаря убивает всю ночь наблюдений. Не потому, что фонарь ярок, а потому, что слабый сигнал против него не выстоит.
+</blockquote>
+<h3>Почему длина важнее сложности</h3>
+<p>
+  Каждый добавленный символ умножает число вариантов, а замена буквы на похожий знак — только сдвигает его. Пароль из четырёх слов подряд надёжнее восьми случайных знаков и запоминается вчетверо легче. Проверять сложность придуманного отдельно не нужно: форма скажет сама.
+</p>
+<h3>Три ошибки, которые сводят длину на нет</h3>
+<ol>
+  <li><strong>Повтор с почтового ящика.</strong> Утечка на стороне почты открывает и счёт разом</li>
+  <li><strong>Дата рождения внутри.</strong> Она есть в анкете и подставляется перебором первой</li>
+  <li><strong>Один пароль на все площадки.</strong> Одна утечка обесценивает длину везде</li>
+</ol>
+<h3>Что происходит после неверных вводов</h3>
+<p>
+  После трёх попыток появляется задержка в полминуты, после пяти — в пять минут, после восьми форма закрывается на час. Счётчик сбрасывается сам через сутки, а смена пароля обнуляет его немедленно. Заодно она гасит все расписки «запомнить меня» на всех устройствах — это штатный способ выйти отовсюду разом.
+</p>
+<h3>Итог</h3>
+<p>
+  Требование к паролю проверяется сервером и не обходится ничем. Восемь символов — это минимум, а не рекомендация, и на практике удобнее взять больше. Состояние устройств видно в разделе безопасности, реквизиты и почта правятся в <a href="/registracia">анкете</a>. На игровую часть это не влияет: <a href="/slots">игровые автоматы</a>, <a href="/app">программа</a> и <a href="/zerkalo">запасной адрес</a> работают одинаково при любом пароле.
+</p>
+
+<h2>Частые вопросы игроков о пароле и входе на счёт</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему форма не принимает короткий пароль?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Минимальная длина задана условиями лицензии и проверяется сервером. Обойти её нельзя.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что надёжнее: длинный или сложный?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Длинный. Каждый символ умножает число вариантов, а замена букв на знаки только сдвигает его.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли использовать пароль от почты?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Технически да, но утечка на стороне почты откроет и счёт. Это худший из вариантов.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Как часто менять пароль?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>По событию, а не по расписанию: после утечки, после чужого захода или потери устройства.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Гасит ли смена пароля активные сессии?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Да, все расписки разом. Это штатный способ выйти со всех устройств.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Форма закрылась на час — что делать?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Дождаться срока или сбросить пароль через почту: сброс обнуляет счётчик сразу.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Принимает ли форма кириллицу в пароле?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Обычно нет, и это к лучшему: на чужой раскладке такой пароль не набрать.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Безопасен ли менеджер паролей?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Безопаснее повторного пароля. Главное — не хранить в нём же второй фактор.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему пароль с моим логином отклоняют?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Такие сочетания подставляются перебором первыми, и форма проверяет их отдельно.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать при подозрении на чужой заход?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Сменить пароль и погасить все расписки в реестре устройств, затем проверить историю операций.</p></div>
+  </div>
+</details>

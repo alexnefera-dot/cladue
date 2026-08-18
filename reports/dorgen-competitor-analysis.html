@@ -1,0 +1,897 @@
+<title>Сравнение наборов конкурента — 9 связок по параметрам</title>
+<style>
+:root{
+  --bg:#eef1f6; --panel:#ffffff; --ink:#161b26; --ink-soft:#5a6478; --line:#dbe1ec;
+  --accent:#2f5fd0; --accent-soft:#e6edfc; --grid:#eef2f8;
+  --h0:#ffffff; --h1:#eaf1ff; --h2:#ffeede; --h3:#ffe0e0;
+  --ok:#137a4b; --ok-bg:#e3f5ea; --mid:#8a6100; --mid-bg:#fdf2d8; --hi:#b3261e; --hi-bg:#fce4e2;
+  --v:#6b3fb0; --v-bg:#efe6fb; --o:#b3541e; --o-bg:#fdecdc; --y:#8a6a00; --y-bg:#fbf1cf; --b:#2f5fd0; --b-bg:#e6edfc; --r:#b3261e; --r-bg:#fce4e2;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0f131b; --panel:#171d28; --ink:#e7ecf5; --ink-soft:#93a0b8; --line:#28313f;
+  --accent:#6f9cff; --accent-soft:#1b2740; --grid:#1c2431;
+  --h0:#171d28; --h1:#1a2740; --h2:#33260f; --h3:#3a1c1c;
+  --ok:#54d38a; --ok-bg:#123324; --mid:#e6bf5a; --mid-bg:#332a10; --hi:#ff8a80; --hi-bg:#3a1c1c;
+  --v-bg:#271a3d; --o-bg:#33220f; --y-bg:#2f2810; --b-bg:#1b2740; --r-bg:#3a1c1c;
+}}
+:root[data-theme="dark"]{
+  --bg:#0f131b; --panel:#171d28; --ink:#e7ecf5; --ink-soft:#93a0b8; --line:#28313f;
+  --accent:#6f9cff; --accent-soft:#1b2740; --grid:#1c2431;
+  --h0:#171d28; --h1:#1a2740; --h2:#33260f; --h3:#3a1c1c;
+  --ok:#54d38a; --ok-bg:#123324; --mid:#e6bf5a; --mid-bg:#332a10; --hi:#ff8a80; --hi-bg:#3a1c1c;
+  --v-bg:#271a3d; --o-bg:#33220f; --y-bg:#2f2810; --b-bg:#1b2740; --r-bg:#3a1c1c;
+}
+:root[data-theme="light"]{
+  --bg:#eef1f6; --panel:#ffffff; --ink:#161b26; --ink-soft:#5a6478; --line:#dbe1ec;
+  --accent:#2f5fd0; --accent-soft:#e6edfc; --grid:#eef2f8;
+  --h0:#ffffff; --h1:#eaf1ff; --h2:#ffeede; --h3:#ffe0e0;
+  --ok:#137a4b; --ok-bg:#e3f5ea; --mid:#8a6100; --mid-bg:#fdf2d8; --hi:#b3261e; --hi-bg:#fce4e2;
+  --v-bg:#efe6fb; --o-bg:#fdecdc; --y-bg:#fbf1cf; --b-bg:#e6edfc; --r-bg:#fce4e2;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding:40px 24px 80px}
+header{margin-bottom:8px}
+.eyebrow{font:600 12px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+h1{font-size:30px;line-height:1.15;margin:0 0 10px;letter-spacing:-.02em;text-wrap:balance;max-width:22ch}
+.lede{color:var(--ink-soft);max-width:66ch;margin:0}
+.meta{display:flex;flex-wrap:wrap;gap:8px 22px;margin:20px 0 4px;font:500 13px/1 var(--mono);color:var(--ink-soft)}
+.meta b{color:var(--ink)}
+section{margin-top:44px}
+h2{font-size:12px;font-family:var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);
+  margin:0 0 16px;padding-bottom:10px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;gap:10px}
+h2 .n{color:var(--accent)}
+h2 .sub{font:400 13px/1 var(--sans);text-transform:none;letter-spacing:0;color:var(--ink-soft);margin-left:auto}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:13px}
+th,td{padding:7px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--grid)}
+thead th{position:sticky;top:0;background:var(--panel);font:600 11px/1.3 var(--mono);letter-spacing:.03em;
+  color:var(--ink-soft);text-transform:uppercase;border-bottom:1px solid var(--line);z-index:1}
+tbody tr:last-child td{border-bottom:none}
+th.l,td.l{text-align:left}
+td.metric{font-weight:600;color:var(--ink)}
+td.set{font:600 13px var(--mono)}
+.num{font-family:var(--mono)}
+.h0{background:var(--h0)}.h1{background:var(--h1)}.h2c{background:var(--h2)}.h3c{background:var(--h3)}
+tbody tr:hover td{filter:brightness(.98)}
+.chip{display:inline-block;padding:2px 9px;border-radius:999px;font:600 11px/1.5 var(--mono);white-space:nowrap}
+.s-ok{background:var(--ok-bg);color:var(--ok)}.s-mid{background:var(--mid-bg);color:var(--mid)}.s-hi{background:var(--hi-bg);color:var(--hi)}
+.rv{background:var(--v-bg);color:var(--v)}.ro{background:var(--o-bg);color:var(--o)}.ry{background:var(--y-bg);color:var(--y)}
+.rb{background:var(--b-bg);color:var(--b)}.rr{background:var(--r-bg);color:var(--hi)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.setcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.setcard .id{font:700 16px var(--mono);letter-spacing:.02em}
+.setcard .dt{font:500 11px var(--mono);color:var(--ink-soft);float:right;margin-top:3px}
+.setcard .reg{margin:8px 0 12px}
+.setcard dl{display:grid;grid-template-columns:1fr auto;gap:3px 8px;margin:0;font-size:12px}
+.setcard dt{color:var(--ink-soft)}
+.setcard dd{margin:0;font-family:var(--mono);font-weight:600;text-align:right}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:14px 2px 0;font-size:12px;color:var(--ink-soft)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:13px;height:13px;border-radius:3px;border:1px solid var(--line);display:inline-block}
+.note{background:var(--accent-soft);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;
+  padding:12px 16px;margin:16px 0 0;font-size:13.5px;color:var(--ink)}
+.note b{color:var(--ink)}
+ul.find{margin:14px 0 0;padding:0;list-style:none;display:grid;gap:10px}
+ul.find li{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 15px 12px 16px;
+  font-size:13.5px;position:relative;padding-left:20px}
+ul.find li::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:4px 0 0 4px;background:var(--accent)}
+ul.find li.warn::before{background:var(--hi)}
+ul.find li b{font-family:var(--mono);font-size:12.5px}
+.foot{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);color:var(--ink-soft);font-size:12px;
+  font-family:var(--mono);display:flex;flex-wrap:wrap;gap:6px 18px}
+.bar{height:5px;border-radius:3px;background:var(--grid);margin-top:6px;overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--accent)}
+table.mx{font-size:12px}
+table.mx td,table.mx th{text-align:center;padding:0;border:1px solid var(--panel)}
+table.mx th{background:var(--panel);font:600 11px var(--mono);color:var(--ink-soft);padding:6px 8px;border:none}
+table.mx td.rh{background:var(--panel);font:600 12px var(--mono);color:var(--ink);padding:6px 10px;text-align:left;border:none}
+table.mx td.cell{color:#fff;font:600 12px/1 var(--mono);height:38px;min-width:44px}
+table.mx td.diag{background:var(--grid);color:var(--ink-soft)}
+table.mx td.avg{background:var(--panel);font:700 12px var(--mono);color:var(--accent);padding:6px 10px;border:none}
+.mxscale{display:flex;align-items:center;gap:0;margin:14px 2px 0;font:500 11px var(--mono);color:var(--ink-soft)}
+.mxscale .g{flex:1;height:10px;border-radius:3px;background:linear-gradient(90deg,#b3261e,#d98324,#e6c34a,#5a9e6a,#137a4b)}
+.mxscale span{padding:0 8px}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Реверс-анализ · параметрическое сравнение</div>
+  <h1>Контент конкурента: 9 связок друг против друга</h1>
+  <p class="lede">Один генератор («dorgen»), 9 экспортов от 14–20.07.2026, каждый — связка из 7 страниц
+  (<span class="num">main · zerkalo · vhod · registracia · bonus · slots · app</span>). Сравнение только
+  между собой, по 21 структурно-стилистическому параметру — без наших референсов. Задача — увидеть,
+  какие параметры генератор держит стабильно, а какие «плавают» от прогона к прогону, и на какие
+  регистры он раскладывается.</p>
+  <div class="meta">
+    <span>Наборов: <b>9</b></span>
+    <span>Страниц: <b>63</b></span>
+    <span>Параметров: <b>21</b></span>
+    <span>Метрики: <b>Analyzer (тот же движок)</b></span>
+  </div>
+</header>
+
+<section>
+  <h2><span class="n">01</span> Что показало сравнение <span class="sub">ключевые наблюдения</span></h2>
+  <ul class="find">
+    <li><b>Каркас держится жёстко.</b> Стабильные параметры (CV&nbsp;≤&nbsp;20%):
+      Ср. длина предлож. <span class='num'>(6%)</span>, Водность % <span class='num'>(10%)</span>, Прилагательные % <span class='num'>(13%)</span>, Уник. слов % <span class='num'>(13%)</span>, Тошнота академ. <span class='num'>(19%)</span>,       — объём, длина предложений, доля прилагательных и водность почти не меняются между прогонами: это фиксированный скелет генератора.</li>
+    <li><b>Голос — плавающий.</b> Максимальный разброс дают именно tell-метрики регистра:
+      «я» (личный опыт) <span class='num'>(CV 155%)</span>, «вы» <span class='num'>(CV 124%)</span>, Бренд RU (вхожд.) <span class='num'>(CV 120%)</span>, FAQ-вопросы <span class='num'>(CV 99%)</span>, Императивы (CTA) <span class='num'>(CV 98%)</span>,       — то есть генератор сэмплирует РАЗНЫЙ стиль на каждую связку, а не пишет одинаково.</li>
+    <li><b>Три-четыре регистровых кластера.</b> #199 и #235 — от первого лица («я», личный опыт, 280–344 вхождения);
+      #242 и #267 — продающие «вы»+агрессивный CTA (императивов 183–214); #229 и #256 — безличные/нейтральные
+      (я/вы/CTA у нуля); #227 и #240 — умеренные.</li>
+    <li class="warn"><b>#232 — аномалия.</b> 0 таблиц, максимум эмодзи (94) и тошноты (41.6), минимум уникальности (36.9%):
+      блок «Additional Text» протёк в подстраницы (bonus/slots раздуты до ~2000 слов с эмодзи). Ломает коридоры —
+      его стоит держать отдельно от остальных восьми.</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="n">02</span> Профиль каждого набора <span class="sub">агрегат по связке · регистр</span></h2>
+  <div class="cards">
+      <div class="setcard">
+      <span class="dt">14.07.2026</span>
+      <span class="id">#199</span>
+      <div class="reg"><span class="chip rv">личный «я»</span></div>
+      <dl>
+        <dt>Слов всего</dt><dd>10 431</dd>
+        <dt>Секций H2+H3</dt><dd>101</dd>
+        <dt>Сущностей</dt><dd>32</dd>
+        <dt>«я» / «вы»</dt><dd>344 / 7</dd>
+        <dt>Императивы</dt><dd>53</dd>
+        <dt>Эмодзи</dt><dd>14</dd>
+        <dt>Цифры/100</dt><dd>2.6</dd>
+        <dt>Тошнота</dt><dd>30.2</dd>
+        <dt>Уник. слов</dt><dd>56.4%</dd>
+      </dl>
+    </div>
+      <div class="setcard">
+      <span class="dt">16.07.2026</span>
+      <span class="id">#227</span>
+      <div class="reg"><span class="chip ry">«вы»/умеренный CTA</span></div>
+      <dl>
+        <dt>Слов всего</dt><dd>5 318</dd>
+        <dt>Секций H2+H3</dt><dd>82</dd>
+        <dt>Сущностей</dt><dd>49</dd>
+        <dt>«я» / «вы»</dt><dd>52 / 38</dd>
+        <dt>Императивы</dt><dd>41</dd>
+        <dt>Эмодзи</dt><dd>21</dd>
+        <dt>Цифры/100</dt><dd>5.8</dd>
+        <dt>Тошнота</dt><dd>32.9</dd>
+        <dt>Уник. слов</dt><dd>55.9%</dd>
+      </dl>
+    </div>
+      <div class="setcard">
+      <span class="dt">16.07.2026</span>
+      <span class="id">#229</span>
+      <div class="reg"><span class="chip rb">безличный/нейтральный</span></div>
+      <dl>
+        <dt>Слов всего</dt><dd>9 758</dd>
+        <dt>Секций H2+H3</dt><dd>114</dd>
+        <dt>Сущностей</dt><dd>31</dd>
+        <dt>«я» / «вы»</dt><dd>7 / 3</dd>
+        <dt>Императивы</dt><dd>10</dd>
+        <dt>Эмодзи</dt><dd>17</dd>
+        <dt>Цифры/100</dt><dd>1.4</dd>
+        <dt>Тошнота</dt><dd>26.6</dd>
+        <dt>Уник. слов</dt><dd>57.3%</dd>
+      </dl>
+    </div>
+      <div class="setcard">
+      <span class="dt">16.07.2026</span>
+      <span class="id">#232</span>
+      <div class="reg"><span class="chip rr">аномальный</span></div>
+      <dl>
+        <dt>Слов всего</dt><dd>13 976</dd>
+        <dt>Секций H2+H3</dt><dd>196</dd>
+        <dt>Сущностей</dt><dd>46</dd>
+        <dt>«я» / «вы»</dt><dd>14 / 3</dd>
+        <dt>Императивы</dt><dd>22</dd>
+        <dt>Эмодзи</dt><dd>94</dd>
+        <dt>Цифры/100</dt><dd>3.5</dd>
+        <dt>Тошнота</dt><dd>41.6</dd>
+        <dt>Уник. слов</dt><dd>36.9%</dd>
+      </dl>
+    </div>
+      <div class="setcard">
+      <span class="dt">16.07.2026</span>
+      <span class="id">#235</span>
+      <div class="reg"><span class="chip rv">личный «я»</span></div>
+      <dl>
+        <dt>Слов всего</dt><dd>10 013</dd>
+        <dt>Секций H2+H3</dt><dd>107</dd>
+        <dt>Сущностей</dt><dd>33</dd>
+        <dt>«я» / «вы»</dt><dd>282 / 17</dd>
+        <dt>Императивы</dt><dd>57</dd>
+        <dt>Эмодзи</dt><dd>13</dd>
+        <dt>Цифры/100</dt><dd>2</dd>
+        <dt>Тошнота</dt><dd>25.6</dd>
+        <dt>Уник. слов</dt><dd>56%</dd>
+      </dl>
+    </div>
+      <div class="setcard">
+      <span class="dt">16.07.2026</span>
+      <span class="id">#240</span>
+      <div class="reg"><span class="chip ry">«вы»/умеренный CTA</span></div>
+      <dl>
+        <dt>Слов всего</dt><dd>8 184</dd>
+        <dt>Секций H2+H3</dt><dd>91</dd>
+        <dt>Сущностей</dt><dd>27</dd>
+        <dt>«я» / «вы»</dt><dd>18 / 14</dd>
+        <dt>Императивы</dt><dd>56</dd>
+        <dt>Эмодзи</dt><dd>44</dd>
+        <dt>Цифры/100</dt><dd>1.1</dd>
+        <dt>Тошнота</dt><dd>24.8</dd>
+        <dt>Уник. слов</dt><dd>59.5%</dd>
+      </dl>
+    </div>
+      <div class="setcard">
+      <span class="dt">17.07.2026</span>
+      <span class="id">#242</span>
+      <div class="reg"><span class="chip ro">продающий «вы»+CTA</span></div>
+      <dl>
+        <dt>Слов всего</dt><dd>9 220</dd>
+        <dt>Секций H2+H3</dt><dd>113</dd>
+        <dt>Сущностей</dt><dd>28</dd>
+        <dt>«я» / «вы»</dt><dd>10 / 79</dd>
+        <dt>Императивы</dt><dd>214</dd>
+        <dt>Эмодзи</dt><dd>23</dd>
+        <dt>Цифры/100</dt><dd>1.3</dd>
+        <dt>Тошнота</dt><dd>25.6</dd>
+        <dt>Уник. слов</dt><dd>61.6%</dd>
+      </dl>
+    </div>
+      <div class="setcard">
+      <span class="dt">20.07.2026</span>
+      <span class="id">#256</span>
+      <div class="reg"><span class="chip rb">безличный/нейтральный</span></div>
+      <dl>
+        <dt>Слов всего</dt><dd>7 881</dd>
+        <dt>Секций H2+H3</dt><dd>81</dd>
+        <dt>Сущностей</dt><dd>27</dd>
+        <dt>«я» / «вы»</dt><dd>2 / 0</dd>
+        <dt>Императивы</dt><dd>11</dd>
+        <dt>Эмодзи</dt><dd>11</dd>
+        <dt>Цифры/100</dt><dd>1.3</dd>
+        <dt>Тошнота</dt><dd>24</dd>
+        <dt>Уник. слов</dt><dd>57.1%</dd>
+      </dl>
+    </div>
+      <div class="setcard">
+      <span class="dt">20.07.2026</span>
+      <span class="id">#267</span>
+      <div class="reg"><span class="chip ro">продающий «вы»+CTA</span></div>
+      <dl>
+        <dt>Слов всего</dt><dd>6 527</dd>
+        <dt>Секций H2+H3</dt><dd>82</dd>
+        <dt>Сущностей</dt><dd>23</dd>
+        <dt>«я» / «вы»</dt><dd>2 / 116</dd>
+        <dt>Императивы</dt><dd>183</dd>
+        <dt>Эмодзи</dt><dd>17</dd>
+        <dt>Цифры/100</dt><dd>0.7</dd>
+        <dt>Тошнота</dt><dd>24.7</dd>
+        <dt>Уник. слов</dt><dd>63.1%</dd>
+      </dl>
+    </div>
+    </div>
+</section>
+
+<section>
+  <h2><span class="n">03</span> Разброс по параметрам <span class="sub">агрегат связки: min · медиана · max · коэф. вариации</span></h2>
+  <div class="card scroll">
+    <table>
+      <thead><tr><th class="l">Параметр</th><th>min</th><th>медиана</th><th>max</th><th>размах</th><th class="l">стабильность (CV)</th></tr></thead>
+      <tbody>
+              <tr>
+          <td class="l metric">Ср. длина предлож.</td>
+          <td class="num">13.9</td>
+          <td class="num"><b>15.3</b></td>
+          <td class="num">17.5</td>
+          <td class="num">3.6</td>
+          <td class="l"><span class="chip s-ok">6% · стабильно</span><div class="bar"><i style="width:6%"></i></div></td>
+        </tr>
+              <tr>
+          <td class="l metric">Водность %</td>
+          <td class="num">25</td>
+          <td class="num"><b>31.3</b></td>
+          <td class="num">35.4</td>
+          <td class="num">10.4</td>
+          <td class="l"><span class="chip s-ok">10% · стабильно</span><div class="bar"><i style="width:10%"></i></div></td>
+        </tr>
+              <tr>
+          <td class="l metric">Прилагательные %</td>
+          <td class="num">9.6</td>
+          <td class="num"><b>11.6</b></td>
+          <td class="num">14</td>
+          <td class="num">4.4</td>
+          <td class="l"><span class="chip s-ok">13% · стабильно</span><div class="bar"><i style="width:13%"></i></div></td>
+        </tr>
+              <tr>
+          <td class="l metric">Уник. слов %</td>
+          <td class="num">36.9</td>
+          <td class="num"><b>57.1</b></td>
+          <td class="num">63.1</td>
+          <td class="num">26.2</td>
+          <td class="l"><span class="chip s-ok">13% · стабильно</span><div class="bar"><i style="width:13%"></i></div></td>
+        </tr>
+              <tr>
+          <td class="l metric">Тошнота академ.</td>
+          <td class="num">24</td>
+          <td class="num"><b>25.6</b></td>
+          <td class="num">41.6</td>
+          <td class="num">17.6</td>
+          <td class="l"><span class="chip s-ok">19% · стабильно</span><div class="bar"><i style="width:19%"></i></div></td>
+        </tr>
+              <tr>
+          <td class="l metric">Сущности (категории)</td>
+          <td class="num">23</td>
+          <td class="num"><b>31</b></td>
+          <td class="num">49</td>
+          <td class="num">26</td>
+          <td class="l"><span class="chip s-mid">25% · варьируется</span><div class="bar"><i style="width:25%"></i></div></td>
+        </tr>
+              <tr>
+          <td class="l metric">Объём слов</td>
+          <td class="num">5318</td>
+          <td class="num"><b>9220</b></td>
+          <td class="num">13976</td>
+          <td class="num">8658</td>
+          <td class="l"><span class="chip s-mid">26% · варьируется</span><div class="bar"><i style="width:26%"></i></div></td>
+        </tr>
+              <tr>
+          <td class="l metric">Списки</td>
+          <td class="num">12</td>
+          <td class="num"><b>45</b></td>
+          <td class="num">54</td>
+          <td class="num">42</td>
+          <td class="l"><span class="chip s-mid">29% · варьируется</span><div class="bar"><i style="width:29%"></i></div></td>
+        </tr>
+              <tr>
+          <td class="l metric">Секции H2+H3</td>
+          <td class="num">81</td>
+          <td class="num"><b>101</b></td>
+          <td class="num">196</td>
+          <td class="num">115</td>
+          <td class="l"><span class="chip s-mid">31% · варьируется</span><div class="bar"><i style="width:31%"></i></div></td>
+        </tr>
+              <tr>
+          <td class="l metric">Таблицы</td>
+          <td class="num">0</td>
+          <td class="num"><b>15</b></td>
+          <td class="num">24</td>
+          <td class="num">24</td>
+          <td class="l"><span class="chip s-mid">41% · варьируется</span><div class="bar"><i style="width:41%"></i></div></td>
+        </tr>
+              <tr>
+          <td class="l metric">Цитаты</td>
+          <td class="num">0</td>
+          <td class="num"><b>15</b></td>
+          <td class="num">31</td>
+          <td class="num">31</td>
+          <td class="l"><span class="chip s-mid">48% · варьируется</span><div class="bar"><i style="width:48%"></i></div></td>
+        </tr>
+              <tr>
+          <td class="l metric">H2</td>
+          <td class="num">20</td>
+          <td class="num"><b>28</b></td>
+          <td class="num">76</td>
+          <td class="num">56</td>
+          <td class="l"><span class="chip s-hi">53% · сильный разброс</span><div class="bar"><i style="width:53%"></i></div></td>
+        </tr>
+              <tr>
+          <td class="l metric">Бренд EN (вхожд.)</td>
+          <td class="num">7</td>
+          <td class="num"><b>54</b></td>
+          <td class="num">124</td>
+          <td class="num">117</td>
+          <td class="l"><span class="chip s-hi">53% · сильный разброс</span><div class="bar"><i style="width:53%"></i></div></td>
+        </tr>
+              <tr>
+          <td class="l metric">&lt;strong&gt;</td>
+          <td class="num">43</td>
+          <td class="num"><b>124</b></td>
+          <td class="num">329</td>
+          <td class="num">286</td>
+          <td class="l"><span class="chip s-hi">60% · сильный разброс</span><div class="bar"><i style="width:60%"></i></div></td>
+        </tr>
+              <tr>
+          <td class="l metric">Цифры/100 слов</td>
+          <td class="num">0.7</td>
+          <td class="num"><b>1.4</b></td>
+          <td class="num">5.8</td>
+          <td class="num">5.1</td>
+          <td class="l"><span class="chip s-hi">69% · сильный разброс</span><div class="bar"><i style="width:69%"></i></div></td>
+        </tr>
+              <tr>
+          <td class="l metric">Эмодзи</td>
+          <td class="num">11</td>
+          <td class="num"><b>17</b></td>
+          <td class="num">94</td>
+          <td class="num">83</td>
+          <td class="l"><span class="chip s-hi">89% · сильный разброс</span><div class="bar"><i style="width:89%"></i></div></td>
+        </tr>
+              <tr>
+          <td class="l metric">Императивы (CTA)</td>
+          <td class="num">10</td>
+          <td class="num"><b>53</b></td>
+          <td class="num">214</td>
+          <td class="num">204</td>
+          <td class="l"><span class="chip s-hi">98% · сильный разброс</span><div class="bar"><i style="width:98%"></i></div></td>
+        </tr>
+              <tr>
+          <td class="l metric">FAQ-вопросы</td>
+          <td class="num">5</td>
+          <td class="num"><b>10</b></td>
+          <td class="num">73</td>
+          <td class="num">68</td>
+          <td class="l"><span class="chip s-hi">99% · сильный разброс</span><div class="bar"><i style="width:99%"></i></div></td>
+        </tr>
+              <tr>
+          <td class="l metric">Бренд RU (вхожд.)</td>
+          <td class="num">7</td>
+          <td class="num"><b>14</b></td>
+          <td class="num">131</td>
+          <td class="num">124</td>
+          <td class="l"><span class="chip s-hi">120% · сильный разброс</span><div class="bar"><i style="width:100%"></i></div></td>
+        </tr>
+              <tr>
+          <td class="l metric">«вы»</td>
+          <td class="num">0</td>
+          <td class="num"><b>14</b></td>
+          <td class="num">116</td>
+          <td class="num">116</td>
+          <td class="l"><span class="chip s-hi">124% · сильный разброс</span><div class="bar"><i style="width:100%"></i></div></td>
+        </tr>
+              <tr>
+          <td class="l metric">«я» (личный опыт)</td>
+          <td class="num">2</td>
+          <td class="num"><b>14</b></td>
+          <td class="num">344</td>
+          <td class="num">342</td>
+          <td class="l"><span class="chip s-hi">155% · сильный разброс</span><div class="bar"><i style="width:100%"></i></div></td>
+        </tr>
+            </tbody>
+    </table>
+  </div>
+  <div class="note"><b>Как читать:</b> CV (коэффициент вариации) = насколько параметр «гуляет» между 9 наборами.
+  Низкий CV — генератор держит параметр в узком коридоре (жёсткая настройка). Высокий — параметр сознательно
+  рандомизируется под стиль связки.</div>
+</section>
+
+<section>
+  <h2><span class="n">04</span> Полная матрица <span class="sub">все 9 наборов × 21 параметр · агрегат по связке</span></h2>
+  <div class="card scroll">
+    <table>
+      <thead><tr><th class="l">Параметр</th>
+        <th>#199</th><th>#227</th><th>#229</th><th>#232</th><th>#235</th><th>#240</th><th>#242</th><th>#256</th><th>#267</th>      </tr></thead>
+      <tbody>
+              <tr>
+          <td class="l metric">Объём слов</td>
+                      <td class="num h1">10431</td>
+                      <td class="num h2c">5318</td>
+                      <td class="num h0">9758</td>
+                      <td class="num h2c">13976</td>
+                      <td class="num h0">10013</td>
+                      <td class="num h0">8184</td>
+                      <td class="num h0">9220</td>
+                      <td class="num h1">7881</td>
+                      <td class="num h2c">6527</td>
+                  </tr>
+              <tr>
+          <td class="l metric">H2</td>
+                      <td class="num h0">22</td>
+                      <td class="num h0">28</td>
+                      <td class="num h0">28</td>
+                      <td class="num h3c">76</td>
+                      <td class="num h1">41</td>
+                      <td class="num h1">21</td>
+                      <td class="num h0">29</td>
+                      <td class="num h1">20</td>
+                      <td class="num h1">21</td>
+                  </tr>
+              <tr>
+          <td class="l metric">Секции H2+H3</td>
+                      <td class="num h0">101</td>
+                      <td class="num h1">82</td>
+                      <td class="num h0">114</td>
+                      <td class="num h3c">196</td>
+                      <td class="num h0">107</td>
+                      <td class="num h0">91</td>
+                      <td class="num h0">113</td>
+                      <td class="num h1">81</td>
+                      <td class="num h1">82</td>
+                  </tr>
+              <tr>
+          <td class="l metric">Списки</td>
+                      <td class="num h0">49</td>
+                      <td class="num h3c">12</td>
+                      <td class="num h1">54</td>
+                      <td class="num h0">45</td>
+                      <td class="num h1">35</td>
+                      <td class="num h0">49</td>
+                      <td class="num h0">45</td>
+                      <td class="num h0">42</td>
+                      <td class="num h1">36</td>
+                  </tr>
+              <tr>
+          <td class="l metric">Таблицы</td>
+                      <td class="num h0">15</td>
+                      <td class="num h0">17</td>
+                      <td class="num h0">17</td>
+                      <td class="num h3c">0</td>
+                      <td class="num h0">15</td>
+                      <td class="num h0">14</td>
+                      <td class="num h2c">24</td>
+                      <td class="num h0">14</td>
+                      <td class="num h0">15</td>
+                  </tr>
+              <tr>
+          <td class="l metric">Цитаты</td>
+                      <td class="num h0">12</td>
+                      <td class="num h2c">31</td>
+                      <td class="num h0">18</td>
+                      <td class="num h2c">0</td>
+                      <td class="num h0">17</td>
+                      <td class="num h0">15</td>
+                      <td class="num h0">18</td>
+                      <td class="num h0">15</td>
+                      <td class="num h0">15</td>
+                  </tr>
+              <tr>
+          <td class="l metric">&lt;strong&gt;</td>
+                      <td class="num h1">44</td>
+                      <td class="num h1">43</td>
+                      <td class="num h1">169</td>
+                      <td class="num h3c">329</td>
+                      <td class="num h0">90</td>
+                      <td class="num h1">171</td>
+                      <td class="num h0">124</td>
+                      <td class="num h0">109</td>
+                      <td class="num h0">136</td>
+                  </tr>
+              <tr>
+          <td class="l metric">FAQ-вопросы</td>
+                      <td class="num h0">7</td>
+                      <td class="num h0">5</td>
+                      <td class="num h2c">42</td>
+                      <td class="num h3c">73</td>
+                      <td class="num h0">10</td>
+                      <td class="num h0">9</td>
+                      <td class="num h0">18</td>
+                      <td class="num h1">25</td>
+                      <td class="num h0">6</td>
+                  </tr>
+              <tr>
+          <td class="l metric">Эмодзи</td>
+                      <td class="num h0">14</td>
+                      <td class="num h0">21</td>
+                      <td class="num h0">17</td>
+                      <td class="num h3c">94</td>
+                      <td class="num h0">13</td>
+                      <td class="num h2c">44</td>
+                      <td class="num h0">23</td>
+                      <td class="num h0">11</td>
+                      <td class="num h0">17</td>
+                  </tr>
+              <tr>
+          <td class="l metric">Сущности (категории)</td>
+                      <td class="num h0">32</td>
+                      <td class="num h3c">49</td>
+                      <td class="num h0">31</td>
+                      <td class="num h3c">46</td>
+                      <td class="num h0">33</td>
+                      <td class="num h1">27</td>
+                      <td class="num h0">28</td>
+                      <td class="num h1">27</td>
+                      <td class="num h2c">23</td>
+                  </tr>
+              <tr>
+          <td class="l metric">«я» (личный опыт)</td>
+                      <td class="num h3c">344</td>
+                      <td class="num h0">52</td>
+                      <td class="num h0">7</td>
+                      <td class="num h0">14</td>
+                      <td class="num h3c">282</td>
+                      <td class="num h0">18</td>
+                      <td class="num h0">10</td>
+                      <td class="num h0">2</td>
+                      <td class="num h0">2</td>
+                  </tr>
+              <tr>
+          <td class="l metric">«вы»</td>
+                      <td class="num h0">7</td>
+                      <td class="num h1">38</td>
+                      <td class="num h0">3</td>
+                      <td class="num h0">3</td>
+                      <td class="num h0">17</td>
+                      <td class="num h0">14</td>
+                      <td class="num h3c">79</td>
+                      <td class="num h1">0</td>
+                      <td class="num h3c">116</td>
+                  </tr>
+              <tr>
+          <td class="l metric">Императивы (CTA)</td>
+                      <td class="num h0">53</td>
+                      <td class="num h0">41</td>
+                      <td class="num h1">10</td>
+                      <td class="num h1">22</td>
+                      <td class="num h0">57</td>
+                      <td class="num h0">56</td>
+                      <td class="num h3c">214</td>
+                      <td class="num h1">11</td>
+                      <td class="num h3c">183</td>
+                  </tr>
+              <tr>
+          <td class="l metric">Цифры/100 слов</td>
+                      <td class="num h1">2.6</td>
+                      <td class="num h3c">5.8</td>
+                      <td class="num h0">1.4</td>
+                      <td class="num h2c">3.5</td>
+                      <td class="num h0">2</td>
+                      <td class="num h0">1.1</td>
+                      <td class="num h0">1.3</td>
+                      <td class="num h0">1.3</td>
+                      <td class="num h1">0.7</td>
+                  </tr>
+              <tr>
+          <td class="l metric">Прилагательные %</td>
+                      <td class="num h1">10.3</td>
+                      <td class="num h2c">13.9</td>
+                      <td class="num h1">10.7</td>
+                      <td class="num h2c">9.6</td>
+                      <td class="num h1">12.2</td>
+                      <td class="num h0">11.6</td>
+                      <td class="num h1">12.3</td>
+                      <td class="num h2c">9.9</td>
+                      <td class="num h2c">14</td>
+                  </tr>
+              <tr>
+          <td class="l metric">Тошнота академ.</td>
+                      <td class="num h1">30.2</td>
+                      <td class="num h2c">32.9</td>
+                      <td class="num h0">26.6</td>
+                      <td class="num h3c">41.6</td>
+                      <td class="num h0">25.6</td>
+                      <td class="num h0">24.8</td>
+                      <td class="num h0">25.6</td>
+                      <td class="num h0">24</td>
+                      <td class="num h0">24.7</td>
+                  </tr>
+              <tr>
+          <td class="l metric">Водность %</td>
+                      <td class="num h1">29.6</td>
+                      <td class="num h3c">25</td>
+                      <td class="num h0">31.3</td>
+                      <td class="num h2c">35.4</td>
+                      <td class="num h1">34</td>
+                      <td class="num h0">31.3</td>
+                      <td class="num h1">29.7</td>
+                      <td class="num h1">33.8</td>
+                      <td class="num h1">28.5</td>
+                  </tr>
+              <tr>
+          <td class="l metric">Уник. слов %</td>
+                      <td class="num h0">56.4</td>
+                      <td class="num h0">55.9</td>
+                      <td class="num h0">57.3</td>
+                      <td class="num h3c">36.9</td>
+                      <td class="num h0">56</td>
+                      <td class="num h0">59.5</td>
+                      <td class="num h1">61.6</td>
+                      <td class="num h0">57.1</td>
+                      <td class="num h1">63.1</td>
+                  </tr>
+              <tr>
+          <td class="l metric">Ср. длина предлож.</td>
+                      <td class="num h0">15.2</td>
+                      <td class="num h1">16.3</td>
+                      <td class="num h1">14.6</td>
+                      <td class="num h0">15</td>
+                      <td class="num h3c">17.5</td>
+                      <td class="num h0">15.3</td>
+                      <td class="num h1">16.2</td>
+                      <td class="num h2c">13.9</td>
+                      <td class="num h1">15.9</td>
+                  </tr>
+              <tr>
+          <td class="l metric">Бренд RU (вхожд.)</td>
+                      <td class="num h0">8</td>
+                      <td class="num h3c">131</td>
+                      <td class="num h0">7</td>
+                      <td class="num h2c">54</td>
+                      <td class="num h0">19</td>
+                      <td class="num h0">8</td>
+                      <td class="num h0">14</td>
+                      <td class="num h0">11</td>
+                      <td class="num h1">32</td>
+                  </tr>
+              <tr>
+          <td class="l metric">Бренд EN (вхожд.)</td>
+                      <td class="num h0">54</td>
+                      <td class="num h3c">124</td>
+                      <td class="num h1">85</td>
+                      <td class="num h2c">7</td>
+                      <td class="num h2c">116</td>
+                      <td class="num h0">54</td>
+                      <td class="num h0">61</td>
+                      <td class="num h0">53</td>
+                      <td class="num h1">39</td>
+                  </tr>
+            </tbody>
+    </table>
+  </div>
+  <div class="legend">
+    <span><i class="sw" style="background:var(--h0)"></i>у медианы</span>
+    <span><i class="sw" style="background:var(--h1)"></i>небольшое отклонение</span>
+    <span><i class="sw" style="background:var(--h2)"></i>заметное</span>
+    <span><i class="sw" style="background:var(--h3)"></i>выброс</span>
+    <span style="margin-left:auto">заливка — отклонение значения от медианы столбца-параметра</span>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">05</span> Регистр по главной <span class="sub">tell-метрики на странице main — где голос виден чётче всего</span></h2>
+  <div class="card scroll">
+    <table>
+      <thead><tr><th class="l">Набор</th><th>слов</th><th>«я»</th><th>«вы»</th><th>императивы</th><th>эмодзи</th><th class="l">регистр связки</th></tr></thead>
+      <tbody>
+              <tr>
+          <td class="l set">#199</td>
+          <td class="num">5888</td>
+          <td class="num">185</td>
+          <td class="num">4</td>
+          <td class="num">28</td>
+          <td class="num">14</td>
+          <td class="l"><span class="chip rv">личный «я»</span></td>
+        </tr>
+              <tr>
+          <td class="l set">#227</td>
+          <td class="num">2130</td>
+          <td class="num">29</td>
+          <td class="num">12</td>
+          <td class="num">7</td>
+          <td class="num">21</td>
+          <td class="l"><span class="chip ry">«вы»/умеренный CTA</span></td>
+        </tr>
+              <tr>
+          <td class="l set">#229</td>
+          <td class="num">5939</td>
+          <td class="num">5</td>
+          <td class="num">2</td>
+          <td class="num">6</td>
+          <td class="num">17</td>
+          <td class="l"><span class="chip rb">безличный/нейтральный</span></td>
+        </tr>
+              <tr>
+          <td class="l set">#232</td>
+          <td class="num">2469</td>
+          <td class="num">2</td>
+          <td class="num">0</td>
+          <td class="num">1</td>
+          <td class="num">42</td>
+          <td class="l"><span class="chip rr">аномальный</span></td>
+        </tr>
+              <tr>
+          <td class="l set">#235</td>
+          <td class="num">6158</td>
+          <td class="num">173</td>
+          <td class="num">11</td>
+          <td class="num">24</td>
+          <td class="num">13</td>
+          <td class="l"><span class="chip rv">личный «я»</span></td>
+        </tr>
+              <tr>
+          <td class="l set">#240</td>
+          <td class="num">3969</td>
+          <td class="num">9</td>
+          <td class="num">4</td>
+          <td class="num">9</td>
+          <td class="num">44</td>
+          <td class="l"><span class="chip ry">«вы»/умеренный CTA</span></td>
+        </tr>
+              <tr>
+          <td class="l set">#242</td>
+          <td class="num">5672</td>
+          <td class="num">5</td>
+          <td class="num">50</td>
+          <td class="num">137</td>
+          <td class="num">23</td>
+          <td class="l"><span class="chip ro">продающий «вы»+CTA</span></td>
+        </tr>
+              <tr>
+          <td class="l set">#256</td>
+          <td class="num">3227</td>
+          <td class="num">0</td>
+          <td class="num">0</td>
+          <td class="num">7</td>
+          <td class="num">10</td>
+          <td class="l"><span class="chip rb">безличный/нейтральный</span></td>
+        </tr>
+              <tr>
+          <td class="l set">#267</td>
+          <td class="num">2933</td>
+          <td class="num">0</td>
+          <td class="num">36</td>
+          <td class="num">60</td>
+          <td class="num">17</td>
+          <td class="l"><span class="chip ro">продающий «вы»+CTA</span></td>
+        </tr>
+            </tbody>
+    </table>
+  </div>
+  <div class="note">Регистровый сигнал сконцентрирован на <b>главной</b>: на подстраницах «я/вы/CTA» почти
+  всегда у нуля (кроме продающих #242/#267, где CTA протекает и на bonus/slots). То есть генератор задаёт стиль
+  на главной, а сателлиты пишет в ровном информационном тоне.</div>
+</section>
+
+<section>
+  <h2><span class="n">06</span> Матрица набор-vs-набор <span class="sub">% совпадения параметров · постранично, симметричный коридор</span></h2>
+  <div class="card scroll" style="padding:14px">
+    <table class="mx">
+      <thead><tr><th></th><th>#229</th><th>#240</th><th>#256</th><th>#199</th><th>#242</th><th>#235</th><th>#267</th><th>#227</th><th>#232</th><th>avg</th></tr></thead>
+      <tbody>
+              <tr>
+          <td class="rh">#229</td>
+          <td class='cell diag'>·</td><td class='cell' style='background:#c0b64a'>59</td>          <td class='cell' style='background:#9aa94a'>68</td>          <td class='cell' style='background:#bcb44a'>60</td>          <td class='cell' style='background:#afb04a'>63</td>          <td class='cell' style='background:#afb04a'>63</td>          <td class='cell' style='background:#e4bd48'>48</td>          <td class='cell' style='background:#e3ba47'>47</td>          <td class='cell' style='background:#cf7b36'>27</td>                    <td class="avg">54</td>
+        </tr>
+              <tr>
+          <td class="rh">#240</td>
+          <td class='cell' style='background:#c0b64a'>59</td>          <td class='cell diag'>·</td><td class='cell' style='background:#b3b14a'>62</td>          <td class='cell' style='background:#c8b94a'>57</td>          <td class='cell' style='background:#bcb44a'>60</td>          <td class='cell' style='background:#e4bd48'>48</td>          <td class='cell' style='background:#cdba4a'>56</td>          <td class='cell' style='background:#e2b646'>46</td>          <td class='cell' style='background:#d28438'>30</td>                    <td class="avg">52</td>
+        </tr>
+              <tr>
+          <td class="rh">#256</td>
+          <td class='cell' style='background:#9aa94a'>68</td>          <td class='cell' style='background:#b3b14a'>62</td>          <td class='cell diag'>·</td><td class='cell' style='background:#c0b64a'>59</td>          <td class='cell' style='background:#d5bd4a'>54</td>          <td class='cell' style='background:#d1bc4a'>55</td>          <td class='cell' style='background:#cdba4a'>56</td>          <td class='cell' style='background:#d7943d'>35</td>          <td class='cell' style='background:#d18138'>29</td>                    <td class="avg">52</td>
+        </tr>
+              <tr>
+          <td class="rh">#199</td>
+          <td class='cell' style='background:#bcb44a'>60</td>          <td class='cell' style='background:#c8b94a'>57</td>          <td class='cell' style='background:#c0b64a'>59</td>          <td class='cell diag'>·</td><td class='cell' style='background:#e6c34a'>50</td>          <td class='cell' style='background:#c0b64a'>59</td>          <td class='cell' style='background:#e3ba47'>47</td>          <td class='cell' style='background:#e1b346'>45</td>          <td class='cell' style='background:#d28438'>30</td>                    <td class="avg">51</td>
+        </tr>
+              <tr>
+          <td class="rh">#242</td>
+          <td class='cell' style='background:#afb04a'>63</td>          <td class='cell' style='background:#bcb44a'>60</td>          <td class='cell' style='background:#d5bd4a'>54</td>          <td class='cell' style='background:#e6c34a'>50</td>          <td class='cell diag'>·</td><td class='cell' style='background:#d9bf4a'>53</td>          <td class='cell' style='background:#e6c34a'>50</td>          <td class='cell' style='background:#e2b646'>46</td>          <td class='cell' style='background:#ca6e32'>23</td>                    <td class="avg">50</td>
+        </tr>
+              <tr>
+          <td class="rh">#235</td>
+          <td class='cell' style='background:#afb04a'>63</td>          <td class='cell' style='background:#e4bd48'>48</td>          <td class='cell' style='background:#d1bc4a'>55</td>          <td class='cell' style='background:#c0b64a'>59</td>          <td class='cell' style='background:#d9bf4a'>53</td>          <td class='cell diag'>·</td><td class='cell' style='background:#e2c24a'>51</td>          <td class='cell' style='background:#deaa43'>42</td>          <td class='cell' style='background:#cb7133'>24</td>                    <td class="avg">49</td>
+        </tr>
+              <tr>
+          <td class="rh">#267</td>
+          <td class='cell' style='background:#e4bd48'>48</td>          <td class='cell' style='background:#cdba4a'>56</td>          <td class='cell' style='background:#cdba4a'>56</td>          <td class='cell' style='background:#e3ba47'>47</td>          <td class='cell' style='background:#e6c34a'>50</td>          <td class='cell' style='background:#e2c24a'>51</td>          <td class='cell diag'>·</td><td class='cell' style='background:#e0b045'>44</td>          <td class='cell' style='background:#ca6e32'>23</td>                    <td class="avg">47</td>
+        </tr>
+              <tr>
+          <td class="rh">#227</td>
+          <td class='cell' style='background:#e3ba47'>47</td>          <td class='cell' style='background:#e2b646'>46</td>          <td class='cell' style='background:#d7943d'>35</td>          <td class='cell' style='background:#e1b346'>45</td>          <td class='cell' style='background:#e2b646'>46</td>          <td class='cell' style='background:#deaa43'>42</td>          <td class='cell' style='background:#e0b045'>44</td>          <td class='cell diag'>·</td><td class='cell' style='background:#cb7133'>24</td>                    <td class="avg">41</td>
+        </tr>
+              <tr>
+          <td class="rh">#232</td>
+          <td class='cell' style='background:#cf7b36'>27</td>          <td class='cell' style='background:#d28438'>30</td>          <td class='cell' style='background:#d18138'>29</td>          <td class='cell' style='background:#d28438'>30</td>          <td class='cell' style='background:#ca6e32'>23</td>          <td class='cell' style='background:#cb7133'>24</td>          <td class='cell' style='background:#ca6e32'>23</td>          <td class='cell' style='background:#cb7133'>24</td>          <td class='cell diag'>·</td>          <td class="avg">26</td>
+        </tr>
+            </tbody>
+    </table>
+    <div class="mxscale"><span>0% — разные</span><div class="g"></div><span>100% — идентичны</span></div>
+  </div>
+  <ul class="find">
+    <li><b>Плотное ядро — безличные наборы.</b> Ближайшие пары:
+      <span class='num'>#229~#256 68%</span>, <span class='num'>#229~#235 63%</span>, <span class='num'>#229~#242 63%</span>, <span class='num'>#240~#256 62%</span>,       — #229/#256/#240 (нейтральный тон) совпадают на 62–68%: это «центр тяжести» генератора, самый типичный выход.</li>
+    <li class="warn"><b>#232 выпадает из всех.</b> Средняя близость к остальным — <span class="num">26%</span>,
+      любая пара с ним — 23–30%. Подтверждает: набор бракованный (протёкший «Additional Text»), в корпусные коридоры его включать нельзя.</li>
+    <li><b>Стилевые крайности сходятся слабее.</b> Продающие «вы»+CTA (#242/#267) и личные «я» (#199/#235)
+      совпадают с ядром на 47–60%, но между собой разные регистры дают меньше: голос — главный разделитель наборов.</li>
+    <li><b>Средняя типичность (столбец avg)</b> — насколько набор похож на «среднего конкурента». Лидеры —
+      <span class='num'>#229 (54%)</span>, <span class='num'>#240 (52%)</span>;
+      аутсайдер — <span class="num">#232 (26%)</span>.</li>
+  </ul>
+</section>
+
+<div class="foot">
+  <span>Источник: dorgen_export_24.07.2026</span>
+  <span>Метод: Analyzer (TextMetrics · SeoMetrics · Stylistics)</span>
+  <span>21 параметр · 9×7 страниц</span>
+  <span>Сравнение set-vs-set, без референсов</span>
+</div>
+</div>

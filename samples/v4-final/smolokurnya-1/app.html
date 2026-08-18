@@ -1,0 +1,104 @@
+<h2>Клиент открывает витрину, но не открывает кассу</h2>
+<p>
+  Сборка %brand_name_en% жива: каталог грузится, слоты открываются, барабаны крутятся. А раздел кассы отдаёт пустой экран или вечное колесо загрузки.
+</p>
+<p>
+  Депозит в %brand_name_en% цел, вейджер считается как обычно, фриспины не сгорают. Касса %brand_name_en% живёт на отдельном узле, и режется он раньше витрины.
+</p>
+<h3>Отчего касса отваливается первой</h3>
+<table>
+  <tbody>
+    <tr><th>Узел</th><th>Чей он</th><th>Как часто недоступен</th></tr>
+    <tr><td>Витрина и каталог</td><td>Оператор площадки</td><td>Редко</td></tr>
+    <tr><td>Узлы студий</td><td>Разработчики слотов</td><td>Часто</td></tr>
+    <tr><td>Платёжный узел</td><td>Отдельный подрядчик</td><td>Чаще витрины</td></tr>
+    <tr><td>Реестр устройств</td><td>Оператор площадки</td><td>Редко</td></tr>
+  </tbody>
+</table>
+<h3>Четыре причины пустой кассы</h3>
+<ul>
+  <li><strong>Подрядчик обновляет узел.</strong> Работы идут ночью, до двух часов</li>
+  <li><strong>Устаревшая сборка.</strong> Адрес платёжного узла в ней прежний</li>
+  <li><strong>Верификация не закончена.</strong> Раздел открыт, но пуст без документов</li>
+  <li><strong>Оператор связи режет узел.</strong> С мобильной сети касса мертва, с проводной жива</li>
+</ul>
+<h3>Как отличить одно от другого</h3>
+<p>
+  Откройте тот же счёт в браузере: живая касса там означает устаревшую сборку. Пустая и там — дело в узле или в сети, и лечится оно сменой канала связи либо ожиданием. Проверка занимает минуту и не требует ни обращения, ни переустановки пакета.
+</p>
+<blockquote>
+  Отдушину в яме затыкают первой, а не разбирают всю кладку. Дым идёт, смолье тлеет, а дёготь в жёлоб не течёт.
+</blockquote>
+<h3>Порядок действий</h3>
+<ol>
+  <li>Открыть кассу в браузере на том же счёте</li>
+  <li>Переключиться с мобильной сети на проводную и обратно</li>
+  <li>Сверить номер версии сборки со страницей загрузки</li>
+  <li>Подождать час: ночные работы у подрядчика идут до двух часов</li>
+</ol>
+<h3>Итог</h3>
+<p>
+  Живая витрина при мёртвой кассе — обычная картина: платёжный узел держит отдельный подрядчик, и падает он чаще самой площадки. Проверяется всё за минуту через браузер: если касса открылась там, дело в устаревшей сборке с прежним адресом узла. Если и там пусто, ждать придётся окончания работ или сменить канал связи — часть операторов режет платёжные узлы жёстче витрин. Депозит, непогашенный вейджер и очередь поданных заявок при этом целы: они лежат на сервере и от доступности кассы не зависят. Можно ли играть в это время — да. Паспортный RTP по каждому слоту разложен в <a href="/slots">каталоге игровых автоматов</a>, перечень бумаг ведут <a href="/registracia">правила анкеты</a>, суммы операций показывает <a href="/vhod">выписка кабинета</a>, а живые домены собраны в <a href="/zerkalo">списке доменов</a>.
+</p>
+
+<h2>Частые вопросы игроков о пустой кассе в сборке %brand_name_en%</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Касса не работает, а слоты идут — счёт заблокирован?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, при блокировке закрывают всё сразу. Пустая касса при живом каталоге означает недоступный платёжный узел.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько длятся работы у подрядчика?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Обычно до двух часов и обычно ночью. Извещение об этом висит в разделе новостей площадки.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Пропадёт ли поданная заявка на выплату?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, она стоит в очереди и идёт своим сроком. Недоступность раздела на её судьбу не влияет.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему в браузере касса открывается?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Значит, в сборке прописан прежний адрес платёжного узла. Обновите её со страницы загрузки.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Может ли оператор связи резать только кассу?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Может: узлы платёжных подрядчиков попадают под блокировку отдельно от витрин. Смена канала связи это проверяет.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли это на непогашенный вейджер?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Никак: окно идёт по календарю, а оборот считается на сервере. Играть можно всё это время.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Стоит ли переустанавливать сборку?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Только если браузер показывает кассу живой. В остальных случаях переустановка ничего не меняет.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Пустая касса без документов — тоже этот случай?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, это другое: раздел открывается, но операции закрыты до конца верификации. Отличается наличием формы.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли пополнить счёт, пока касса недоступна?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Через браузер обычно да. Депозит идёт по тому же узлу, но адрес там свежий.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что приложить к письму, если ничего не помогло?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Номер версии сборки, модель аппарата, оператора связи и время попытки по серверу.</p></div>
+  </div>
+</details>

@@ -1,0 +1,155 @@
+<meta charset="utf-8">
+<title>ТЗ на генерацию контента — 7 страниц</title>
+<style>
+:root{--bg:#f6f8fc;--panel:#fff;--panel2:#eef2f8;--ink:#1a2230;--muted:#5d6b82;--line:#e2e7ef;--acc:#3f7bf0;--ok:#1f9d6b;--bad:#d23b40;--warn:#c78a1e;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;}
+@media(prefers-color-scheme:dark){:root{--bg:#0e131c;--panel:#151d29;--panel2:#1b2431;--ink:#e7ecf5;--muted:#8b98b0;--line:#26303f;--acc:#5b95ff;--ok:#33c08a;--bad:#e5595c;--warn:#e0aa45;}}
+:root[data-theme="dark"]{--bg:#0e131c;--panel:#151d29;--panel2:#1b2431;--ink:#e7ecf5;--muted:#8b98b0;--line:#26303f;--acc:#5b95ff;--ok:#33c08a;--bad:#e5595c;--warn:#e0aa45;}
+:root[data-theme="light"]{--bg:#f6f8fc;--panel:#fff;--panel2:#eef2f8;--ink:#1a2230;--muted:#5d6b82;--line:#e2e7ef;--acc:#3f7bf0;--ok:#1f9d6b;--bad:#d23b40;--warn:#c78a1e;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--sans)}
+.wrap{max-width:900px;margin:0 auto;padding:26px 20px 80px}
+.head{border-bottom:1px solid var(--line);padding-bottom:14px}
+.head h1{font-size:23px;margin:0 0 4px}.head p{margin:0;color:var(--muted);font-size:13.5px}
+.eyebrow{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--acc);font-weight:700;margin-bottom:5px}
+.tabs{position:sticky;top:0;background:var(--bg);display:flex;gap:6px;flex-wrap:wrap;padding:12px 0;z-index:5;border-bottom:1px solid var(--line);margin-bottom:16px}
+.tab{border:1px solid var(--line);background:var(--panel);color:var(--muted);border-radius:20px;padding:7px 13px;font-size:13.5px;cursor:pointer}
+.tab.active{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+.view{display:none}.view.active{display:block}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:18px 20px;margin-bottom:14px}
+h2{font-size:18px;margin:0 0 10px}
+h3{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:16px 0 7px}
+.kpis{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 4px}
+.kpi{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:9px 13px;min-width:120px}
+.kpi .k{font-size:11px;color:var(--muted)}.kpi .v{font-family:var(--mono);font-size:18px;font-weight:650;margin-top:2px}
+ul{margin:.3em 0;padding-left:20px}li{margin:.28em 0}
+.pill{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:3px 10px;font-size:12.5px;margin:3px 4px 0 0}
+.must{color:var(--bad);font-weight:600}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:11px;margin-top:6px}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:560px}
+th,td{padding:8px 11px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.03em}
+td.n{font-family:var(--mono);text-align:right}
+tbody tr:last-child td{border-bottom:none}
+.ok{color:var(--ok)}.note{color:var(--muted);font-size:12.5px}
+.foot{color:var(--muted);font-size:12px;margin-top:20px;text-align:center}
+</style>
+
+<div class="wrap">
+  <div class="head">
+    <div class="eyebrow">Техническое задание · калибровка на 50 сайтах</div>
+    <h1>ТЗ на генерацию 7-страничного контента (казино-связка)</h1>
+    <p>Пошаговое задание генератора: объём, структура, факты, тон и критерии приёмки по каждому типу страницы. Выведено из корпуса 50 брендов × 7 страниц.</p>
+  </div>
+  <div class="tabs" id="tabs"></div>
+  <div id="views"></div>
+  <div class="foot">Источники: docs/generation-recipe.md, docs/page-type-spec.md · критерии проверяются движком v2</div>
+</div>
+
+<script>
+const GENERAL = `
+<div class="card">
+  <h2>🎯 Общие правила (для всех 7 страниц)</h2>
+  <h3>Тип генерации</h3>
+  <p>Шаблон с <b>перефразированием</b>, не копипаст: каркас и рамки фраз одинаковые, текст рерайтится под каждый бренд. Бренд подставляется в 2 формах (латиница + кириллица) и в домен.</p>
+  <h3>Тон и стиль</h3>
+  <ul>
+    <li>Обращение на <b>«вы»</b> + повествование от <b>первого лица / личного опыта</b> (E-E-A-T).</li>
+    <li>Активный залог (пассив &lt; 3%), императивы-CTA («зарегистрируйтесь», «получите»).</li>
+    <li>Плотность цифр <b>≥ 10 на 100 слов</b> (цель как у реальных — 12–13): суммы, %, сроки, лимиты, версии.</li>
+    <li>Прилагательных ~9% — умеренно, без переспама эпитетами.</li>
+    <li>Дозированный «канцелярит» — не злоупотреблять («в целом», «как правило», «обратите внимание»).</li>
+  </ul>
+  <h3>Обязательно на каждой странице</h3>
+  <ul>
+    <li><span class="must">FAQ-блок</span> (H2 «Ответы на частые вопросы»/«Вопросы и ответы»), число вопросов — по типу.</li>
+    <li><span class="must">Стоп-стамп даты</span>: «Последнее обновление {дата} · {домен}».</li>
+    <li>Абзацы от первого лица с конкретикой из «личного опыта».</li>
+    <li>Маркированные списки, эмодзи в навигации, перелинковка на смежные страницы.</li>
+    <li><span class="must">Без чужих брендов</span> — ни одного упоминания других казино (остаток шаблона = провал).</li>
+  </ul>
+  <h3>Отпечаток корпуса (ориентиры)</h3>
+  <div class="kpis">
+    <div class="kpi"><div class="k">FAQ на странице</div><div class="v">100%</div></div>
+    <div class="kpi"><div class="k">Дата-стамп</div><div class="v">100%</div></div>
+    <div class="kpi"><div class="k">Первое лицо</div><div class="v">87%</div></div>
+    <div class="kpi"><div class="k">Обращение «вы»</div><div class="v">67%</div></div>
+    <div class="kpi"><div class="k">Чисел/100 слов</div><div class="v">12–13</div></div>
+  </div>
+  <h3>Критерии приёмки (проверка движком v2)</h3>
+  <ul>
+    <li>Объём в коридоре типа · числа/100 ≥ 10 · стиль = «личный опыт».</li>
+    <li>FAQ ≥ норма типа · сущностей ≥ 5 · чужих брендов = 0.</li>
+    <li>По набору: сироты = 0, тупики = 0, внутренняя уникальность &gt; 85%.</li>
+  </ul>
+</div>
+<div class="card">
+  <h2>📋 Матрица «обязательно на странице»</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Тип</th><th>Слов</th><th>H2</th><th>FAQ</th><th>Ключевые факты</th></tr></thead>
+    <tbody>
+      <tr><td>main</td><td class="n">3000–5000</td><td class="n">10–12</td><td class="n">9</td><td>факт-таблица 7 полей + security-стек</td></tr>
+      <tr><td>zerkalo</td><td class="n">555</td><td class="n">3</td><td class="n">5–6</td><td>домены, HTTPS, VPN, автозеркало</td></tr>
+      <tr><td>vhod</td><td class="n">735</td><td class="n">4</td><td class="n">6–7</td><td>2FA, KYC 15–30 мин, форматы файлов</td></tr>
+      <tr><td>registracia</td><td class="n">690</td><td class="n">4</td><td class="n">6–7</td><td>шаги, валюты, активация бонуса, 18+</td></tr>
+      <tr><td>bonus</td><td class="n">555</td><td class="n">4</td><td class="n">5–6</td><td>вейджер xN, сумма, срок, макс. ставка, кэшбэк%</td></tr>
+      <tr><td>slots</td><td class="n">666</td><td class="n">4</td><td class="n">5–6</td><td>RTP%, провайдеры, волатильность, множители</td></tr>
+      <tr><td>app</td><td class="n">656</td><td class="n">4</td><td class="n">5–6</td><td>APK МБ, ОС версии, Face ID, автозеркало</td></tr>
+    </tbody>
+  </table></div>
+</div>`;
+
+const TYPES = [
+  {id:'main', label:'🏠 Главная', vol:'3000–5000 слов', faq:'9 вопросов', angle:'обзор + доверие + отзывы',
+   h2:['Обзор + факт-таблица 7 полей','Безопасность / инфраструктура','Игры и RTP','Платежи и вывод','Регистрация и вход','Мобильная версия','Бонусы','Турниры / программа лояльности','Лимиты и ответственная игра','Отзывы','FAQ'],
+   facts:['Лицензия (Curaçao, №)','Провайдеры + число игр','Приветственный бонус (сумма, вейджер, срок)','Платежи (карты, крипта, e-wallets)','Вывод (сроки, лимиты)','Верификация KYC','Поддержка 24/7','Security-стек: TLS 1.3, AES-256, CDN, DDoS, 2FA','RTP каталога']},
+
+  {id:'zerkalo', label:'🪞 Зеркало', vol:'≈ 555 слов', faq:'5–6 вопросов', angle:'доступ при блокировке, безопасность ссылки',
+   h2:['Как найти официальное зеркало: шаги','Зеркало vs VPN / как отличить фишинг','FAQ'],
+   facts:['Резервные домены','HTTPS + сертификат','VPN как альтернатива','Автопоиск зеркала в приложении','Частота смены адреса','Тот же аккаунт/баланс']},
+
+  {id:'vhod', label:'🔑 Вход', vol:'≈ 735 слов (макс. из сателлитов)', faq:'6–7 вопросов', angle:'вход + верификация',
+   h2:['Способы входа','Верификация личности: шаг за шагом','Проблемы входа и решения','FAQ'],
+   facts:['2FA (SMS / аутентификатор)','KYC 15–30 минут','Форматы файлов JPG/PDF ≤ 10 МБ','Лимиты после верификации','Сроки восстановления пароля','Доверенные устройства']},
+
+  {id:'registracia', label:'📝 Регистрация', vol:'≈ 690 слов', faq:'6–7 вопросов', angle:'регистрация пошагово, первый день',
+   h2:['Пошаговая регистрация','День первый: верификация и доступ','С телефона и через соцсети','FAQ'],
+   facts:['Шаги регистрации','Валюты RUB/USD/EUR/BTC','Подтверждение email/SMS','Активация бонуса (до депозита)','KYC','Ограничение 18+ и один аккаунт']},
+
+  {id:'bonus', label:'🎁 Бонусы', vol:'≈ 555 слов', faq:'5–6 вопросов', angle:'бонусы + отыгрыш конкретными цифрами',
+   h2:['Приветственный пакет и фриспины','Как отыграть вейджер','Кэшбэк и релоады','FAQ'],
+   facts:['Сумма и % бонуса','Вейджер xN','Срок отыгрыша (дней)','Макс. ставка при отыгрыше','Число фриспинов','Кэшбэк %']},
+
+  {id:'slots', label:'🎰 Слоты', vol:'≈ 666 слов', faq:'5–6 вопросов', angle:'слоты + RTP + провайдеры',
+   h2:['Джекпоты (локальные и прогрессивные)','Механика выплат, RTP и линии','Live-казино и краш-игры','FAQ'],
+   facts:['Число игр / провайдеров','RTP % (94–97)','Волатильность','Множители','Вклад в вейджер','Демо-режим']},
+
+  {id:'app', label:'📱 Приложение', vol:'≈ 656 слов', faq:'5–6 вопросов', angle:'приложение iOS/Android',
+   h2:['Мобильная версия vs приложение','Установка на Android и iOS','Производительность и обновления','FAQ'],
+   facts:['Размер APK (МБ)','Версии ОС (Android 8+/iOS 13+)','Вход по Face ID','Автопоиск зеркала','Расход батареи/трафика','Push-уведомления']},
+];
+
+function typeCard(t){
+  return `<div class="card">
+    <h2>${t.label}</h2>
+    <div class="kpis">
+      <div class="kpi"><div class="k">Объём</div><div class="v">${t.vol}</div></div>
+      <div class="kpi"><div class="k">FAQ</div><div class="v">${t.faq}</div></div>
+    </div>
+    <h3>Угол темы</h3><p>${t.angle}</p>
+    <h3>Обязательные H2 (по порядку)</h3><ul>${t.h2.map(h=>`<li>${h}</li>`).join('')}</ul>
+    <h3>Обязательные факты / сущности</h3><div>${t.facts.map(f=>`<span class="pill">${f}</span>`).join('')}</div>
+    <h3>Тон</h3><p class="note">«вы» + личный опыт, активный залог, императивы-CTA, числа плотно, эмодзи в навигации, дата-стамп, перелинковка на смежные страницы, без чужих брендов.</p>
+  </div>`;
+}
+
+const tabsEl=document.getElementById('tabs'), viewsEl=document.getElementById('views');
+const items=[{id:'general',label:'⚙️ Общее',html:GENERAL}].concat(TYPES.map(t=>({id:t.id,label:t.label,html:typeCard(t)})));
+tabsEl.innerHTML=items.map((it,i)=>`<button class="tab${i?'':' active'}" data-t="${it.id}">${it.label}</button>`).join('');
+viewsEl.innerHTML=items.map((it,i)=>`<div class="view${i?'':' active'}" id="v-${it.id}">${it.html}</div>`).join('');
+tabsEl.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  tabsEl.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  viewsEl.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active'); document.getElementById('v-'+t.dataset.t).classList.add('active'); window.scrollTo(0,0);
+}));
+</script>

@@ -1,0 +1,115 @@
+<h2>Код приходит с задержкой в десять минут: чья это сторона</h2>
+<p>
+  Пара введена, форма %brand_name_en% ждёт код, а сообщение приходит через десять минут — когда окно ввода уже закрылось. Виноватой назначают площадку, хотя код она отправляет за секунды.
+</p>
+<p>
+  Задержка живёт на другом отрезке пути. Отрезков этих три.
+</p>
+<h3>Три отрезка пути кода</h3>
+<table>
+  <tbody>
+    <tr><th>Отрезок</th><th>Кто отвечает</th><th>Обычная задержка</th></tr>
+    <tr><td>Формирование и отправка</td><td>Площадка</td><td>1 — 2 секунды</td></tr>
+    <tr><td>Шлюз рассылки</td><td>Посредник</td><td>До 30 секунд</td></tr>
+    <tr><td>Сеть оператора</td><td>Ваш оператор связи</td><td>От секунд до минут</td></tr>
+  </tbody>
+</table>
+<p>
+  Первые два отрезка укладываются в полминуты почти всегда. Десять минут набегают на третьем, и там же они набегают у всех прочих сообщений — банковских, служебных, любых.
+</p>
+<p>
+  Полезно понимать, что задержка кода не задевает ни счёт, ни игру. Баланс, вейджер и лимиты кассы живут на сервере, незакрытый спин провайдер досчитывает сам, а поданная заявка на вывод средств идёт своим чередом по обычному сроку. Ставка, депозит и отдача автоматов от второго фактора не зависят вовсе — он охраняет вход, а не игровую часть.
+</p>
+<h3>Как проверить, чья сторона</h3>
+<ol>
+  <li>Запросить код повторно и засечь время до прихода</li>
+  <li>Попросить знакомого отправить обычное сообщение на тот же номер</li>
+  <li>Сравнить: если и оно идёт минутами, дело в сети оператора</li>
+  <li>Проверить, не включён ли режим экономии заряда — он глушит доставку</li>
+</ol>
+<blockquote>
+  Обрыв ищут не на всей длине сразу. Канат проходят по участкам, от коуша к коушу, и находят его там, где натяжение падает.
+</blockquote>
+<h3>Что делать, пока это не решено</h3>
+<ul>
+  <li><strong>Перейти на приложение-генератор.</strong> Код считается на устройстве, сеть не нужна</li>
+  <li><strong>Выписать резервные коды.</strong> Работают без связи и без сообщений</li>
+  <li><strong>Не запрашивать код подряд.</strong> Каждый новый гасит предыдущий</li>
+  <li><strong>Не менять адрес.</strong> Домен на доставку сообщений не влияет никак</li>
+</ul>
+<p>
+  Приложение-генератор решает вопрос целиком: код там считается на самом устройстве по текущему времени, и ни оператор связи, ни роуминг, ни режим экономии заряда на него не влияют. Перевод занимает пару минут в разделе безопасности, а вместе с ним выписывают резервные коды — их держат отдельно от телефона.
+</p>
+<h3>Почему повторные запросы вредят</h3>
+<p>
+  Каждый новый код отменяет предыдущий. Когда после пяти запросов приходят все пять сообщений разом, рабочим оказывается только последний — а вводят обычно первый попавшийся и получают отказ.
+</p>
+<p>
+  Отказ этот считается неверным вводом и приближает паузу. Три-четыре таких попытки — и форма перестаёт отвечать на четверть часа.
+</p>
+<h3>Итог</h3>
+<p>
+  Десятиминутная задержка почти всегда лежит в сети оператора связи, а не на стороне площадки: код формируется и уходит за пару секунд. Проверяется это одним обычным сообщением на тот же номер. Надёжное решение — перевести второй фактор на приложение-генератор и выписать резервные коды: оба работают без связи вовсе. Требования к анкете лежат в <a href="/registracia">анкете игрока</a>, история спинов — в <a href="/slots">каталоге автоматов</a>, действующие адреса — на <a href="/zerkalo">странице обвода</a>, требования к сборке — на <a href="/app">странице программы</a>.
+</p>
+
+<h2>Частые вопросы о втором факторе в %brand_name_ru%</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Код не приходит вовсе — это блокировка счёта?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, блокировка выглядит иначе: форма сообщает о ней прямо. Отсутствие кода — почти всегда доставка.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько действует присланный код?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Обычно от 3 до 10 минут. Пришедший позже уже не подойдёт, даже если он верный.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему из пяти пришедших кодов работает один?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Каждый новый запрос гасит предыдущий. Рабочим остаётся последний, а вводят обычно первый.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Генератор кодов надёжнее сообщений?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Да, он считает код на устройстве по времени и от связи не зависит. Требует только верных часов.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли режим экономии заряда на доставку?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Влияет: он глушит фоновые каналы выборочно. Сообщения при этом приходят пачкой при разблокировке.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Поможет ли переход на запасной адрес?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, домен на доставку сообщений не влияет. А расписку входа придётся получать заново.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать, если ждать некогда?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Ввести резервный код из выписанного списка. Он срабатывает один раз и гаснет сразу после ввода.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Идёт ли срок отыгрыша, пока вход не удаётся?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Идёт. Это главная потеря от задержки, и продления по такой причине обычно не дают.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли отключить второй фактор совсем?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Технически да, но тогда счёт держится на одной паре. Разумнее сменить способ, а не снять защиту.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что будет со спином, если сессия оборвётся при вводе?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Начатый спин досчитается на сервере провайдера, выплата ляжет на баланс. Вход к этому отношения не имеет.</p></div>
+  </div>
+</details>
