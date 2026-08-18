@@ -1,0 +1,159 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SeoMetrics: что пропустили двадцать восемь проходов</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1c1a17;--dim:#6b6660;--line:#e0dcd4;--acc:#8a3b1e;--hi:#f3efe6;--ok:#2f6b3d;--bad:#9c2b1c}
+@media (prefers-color-scheme:dark){:root{--bg:#16150f;--fg:#e8e4da;--dim:#948e84;--line:#33302a;--acc:#d9834f;--hi:#211f19;--ok:#77b083;--bad:#e07a63}}
+:root[data-theme=dark]{--bg:#16150f;--fg:#e8e4da;--dim:#948e84;--line:#33302a;--acc:#d9834f;--hi:#211f19;--ok:#77b083;--bad:#e07a63}
+:root[data-theme=light]{--bg:#fbfaf7;--fg:#1c1a17;--dim:#6b6660;--line:#e0dcd4;--acc:#8a3b1e;--hi:#f3efe6;--ok:#2f6b3d;--bad:#9c2b1c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 Georgia,"Times New Roman",serif}
+.wrap{max-width:940px;margin:0 auto;padding:48px 22px 96px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px;font-weight:normal}
+.sub{color:var(--dim);font-size:15px;margin:0 0 36px}
+h2{font-size:22px;font-weight:normal;margin:52px 0 14px;padding-bottom:7px;border-bottom:2px solid var(--acc)}
+h3{font-size:17px;font-weight:bold;margin:30px 0 8px}
+p{margin:0 0 14px}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.86em;background:var(--hi);padding:1px 5px;border-radius:3px}
+pre{background:var(--hi);border-left:3px solid var(--line);padding:12px 14px;overflow-x:auto;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;line-height:1.5;margin:0 0 18px}
+.scroll{overflow-x:auto;margin:0 0 20px}
+table{border-collapse:collapse;font-size:14px;min-width:100%}
+th,td{padding:6px 12px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-weight:bold;color:var(--dim);font-size:12.5px;text-transform:uppercase;letter-spacing:.04em}
+td.n,th.n{text-align:right;font-family:ui-monospace,Menlo,Consolas,monospace}
+.ok{color:var(--ok);font-weight:bold}.bad{color:var(--bad);font-weight:bold}
+.key{background:var(--hi);border-left:3px solid var(--acc);padding:14px 18px;margin:22px 0}
+.key p:last-child{margin:0}
+blockquote{margin:0 0 12px;padding:9px 16px;border-left:3px solid var(--acc);background:var(--hi);font-size:15px}
+ul,ol{margin:0 0 16px;padding-left:22px}li{margin:0 0 6px}
+.lede{font-size:18px;line-height:1.6}
+footer{margin-top:64px;padding-top:18px;border-top:1px solid var(--line);color:var(--dim);font-size:13px}
+</style></head><body><div class="wrap">
+
+<h1>SeoMetrics</h1>
+<p class="sub">Проход 29 · то, чего не видит <code>PageMetrics</code> · 36 сайтов прозы, 252 страницы</p>
+
+<p class="lede">Я списал <code>SeoMetrics</code> со счетов: у донорских фрагментов нет <code>&lt;head&gt;</code>, значит мерить нечего. <strong>Это было неверно.</strong> Без <code>&lt;head&gt;</code> отпадают четыре поля — title, description, lang, viewport. Остальные считаются по разметке и дают то, чего не видел ни один прежний инструмент.</p>
+
+<h2>Главное: цитата</h2>
+<div class="key">
+<p><strong>538 цитат <code>&lt;blockquote&gt;</code> на 36 сайтов. Девять на главной и ровно одна на каждой внутренней. У 36 сайтов из 36.</strong> Двадцать восемь проходов разбора её пропустили — а у нас её не было ни в одной из 28 версий.</p>
+</div>
+<p>Медиана 22 слова (q1 17, q3 28), треть открывается кавычкой. Стоит после абзаца (202 случая) или после H3 (191), но никогда сразу после H2 — это сбило бы <code>h2_opens_para_pct</code>. Пять ролей:</p>
+<blockquote>«Поддержка — как хороший трактор на поле: если заглохнет — вся работа стоит» <span style="color:var(--dim)">— афоризм в маске</span></blockquote>
+<blockquote>«Жду. Тишина. Обновляю страницу.» <span style="color:var(--dim)">— драматическая пауза в нарративе</span></blockquote>
+<blockquote>Важная заметка: Megaways — это развлечение, а не способ гарантированной прибыли <span style="color:var(--dim)">— блок внимания</span></blockquote>
+<blockquote>«Согласно правилу Curacao § 6.2.1.1, любой вывод средств проверяется…» <span style="color:var(--dim)">— цитата регламента с номером пункта</span></blockquote>
+<blockquote>«Я думал, всё, а оказалось — система просто проверяла документы, а не блокировала бонус» <span style="color:var(--dim)">— реплика игрока</span></blockquote>
+
+<h2>Остальные восемь находок</h2>
+<div class="scroll"><table>
+<tr><th>что</th><th class="n">доноры проза</th><th class="n">конструктор</th><th class="n">наши v3</th></tr>
+<tr><td>цитат на главной</td><td class="n ok">9</td><td class="n">0</td><td class="n bad">0</td></tr>
+<tr><td>H1 в фрагменте</td><td class="n ok">0</td><td class="n">0</td><td class="n">0</td></tr>
+<tr><td>H4 и ниже</td><td class="n ok">0</td><td class="n">0</td><td class="n">0</td></tr>
+<tr><td>иерархия без пропусков</td><td class="n ok">252/252</td><td class="n">—</td><td class="n bad">27/28</td></tr>
+<tr><td>курсив <code>em+i</code> на главной</td><td class="n">3</td><td class="n">0</td><td class="n bad">0</td></tr>
+<tr><td>текст/код на главной</td><td class="n">81,7 %</td><td class="n">60,1 %</td><td class="n">92,7 %</td></tr>
+<tr><td>nofollow</td><td class="n">1 на 2899</td><td class="n">0 на 5295</td><td class="n">0</td></tr>
+<tr><td>внешних хостов на корпус</td><td class="n">37</td><td class="n">0</td><td class="n">0</td></tr>
+<tr><td>переспам выделением</td><td class="n">7 из 252</td><td class="n">—</td><td class="n">0</td></tr>
+<tr><td>картинок</td><td class="n">0</td><td class="n">0</td><td class="n bad">48</td></tr>
+</table></div>
+
+<p><strong>Ни одного H1 и ни одного H4</strong> на всех 336 разобранных страницах: фрагмент открывается с H2 и не спускается ниже H3. Иерархия цела 252 раза из 252 — а у нас один файл прыгает <code>H2 → H4</code>, и этого не ловил никто.</p>
+<p><strong>Внешние ссылки — единичная штука:</strong> 37 хостов на весь корпус, по одной-две на каждый. t.me ×7, altstore.io ×2, дальше по одной: curacao.gi, ecogra.org, sslshopper.com, discord.com, линии помощи gambling.kz, gambling-help.by, gamblinghelpline.com.ua.</p>
+<p><strong>nofollow практически не ставят</strong> — одна ссылка на 2899 у прозы, ноль на 5295 у конструктора.</p>
+<p><strong>Переспам выделением держат:</strong> только 7 страниц из 252 имеют ключ более чем в 30 % выделений, и почти всегда это «бонус».</p>
+
+<h2>Четвёртый шлюз приёмки</h2>
+<p>Девять проверок добавлены в <code>priyomka-v4.php</code>, инструмент по корпусу — <code>engine/seo-korpusa.php</code>.</p>
+<pre>chas-1
+
+── параметры 24/24 ──
+
+── приёмы 15/15 ──
+  · зачин: слов                            140   нужно 137–221
+  · зачин: сайт+регистрация+зеркало         3/3   нужно 3/3
+  · зачин: список-оглавление              есть   нужно есть
+  · зачин: таблица-паспорт                есть   нужно есть
+  · финал: последний H2           Плюсы и минусы %brand_   нужно итог/плюсы/отзывы
+  · финал: предпоследний H2       Ответы на частые вопро   нужно FAQ или итог
+  · заголовок «ключ : хвост»               92%   нужно ≥45%
+  · таблиц                                  13   нужно 12–20
+  · шапки уникальны                       100%   нужно 100%
+  · колонок в таблице                        3   нужно ≈3
+  · пар «вопрос-ответ»                      11   нужно 9–14
+  · вопросов про сбой                      27%   нужно ≥15%
+  · сравнений «X это как Y»                 28   нужно ≥20
+  · внутренних ссылок                       20   нужно ≥15
+  · ссылок внутри прозы                    95%   нужно ≥85%
+
+── техника 9/9 ──
+  · H1 в фрагменте                           0   нужно 0
+  · H4 и ниже                                0   нужно 0
+  · иерархия заголовков                   цела   нужно цела
+  · цитат blockquote                         9   нужно 7–12
+  · текст/код                            87.5%   нужно 70–90%
+  · nofollow                                 0   нужно 0
+  · внешних ссылок                           0   нужно 0–1
+  · переспам выделением                    нет   нужно нет
+  · картинок                                 0   нужно 0
+
+── уникальность ──
+  худшая пара по шинглам   0.00%  (—), порог 6%
+  дословных повторов заголовков  0
+
+ИТОГ: пройдено
+</pre>
+
+<h2>Мерка корпуса целиком</h2>
+<pre>══ v4-donors · проза: 36 сайтов, 252 страниц ══
+
+── медианы по типам страниц ──
+  страница       текст/код         H1         H2         H3         H4    списков   strong+b       em+i     таблиц      цитат      видео   картинок  насыщенно     schema  внутренни  внешних с
+  main                81.7          0         12         35          0         23         66          3          9          9          0          0         35          1         50          0
+  app                 70.3          0          2          5          0          3          6          0          1          1          0          0          4          1          5          0
+  bonus                 78          0          2          5          0          3          6          0          1          1          0          0          4          1          5          0
+  registracia         70.1          0          2          4          0          2          8          0          1          1          0          0          3          1          5          0
+  slots               70.9          0          2          5          0          3         13          0          1          1          0          0          4          1          6          0
+  vhod                70.7          0          2          5          0          3          7          0          1          1          0          0          4          1          5          0
+  zerkalo             78.7          0          2          5          0          2          6          0          1          1          0          0          4          1          6          0
+
+── иерархия заголовков ──
+  без пропусков 252/252, с пропуском уровня 0/252
+
+── ссылки ──
+  всего 2899, nofollow 1, внешних хостов 37
+    t.me                               7
+    altstore.io                        2
+    curacao.gi                         1
+    www.ecogra.org                     1
+    www.sslshopper.com                 1
+    discord.com                        1
+    blocklist.info                     1
+    numera.ru                          1
+    gamblinghelpline.com.ua            1
+    gambling-help.by                   1
+    gambling.kz                        1
+    www.wolfgold.com                   1
+
+── картинки ──
+  всего 0, без alt 0
+
+── переспам выделением (&gt;30%% strong с ключом) ──
+  страниц 7/252
+    казино 0
+    бонус   5
+    зеркало 2
+    слот     1
+    регистрация 0
+
+</pre>
+
+<footer>
+<code>php engine/seo-korpusa.php samples/v4-donors --школа=проза</code> ·
+<code>php engine/priyomka-v4.php samples/v4-final/chas-1</code> ·
+выкладки <code>reports/v4/seo-proza.json</code>, <code>seo-konstruktor.json</code>, <code>seo-nashi.json</code> ·
+протокол <code>docs/v4-generator.md</code>
+</footer>
+</div></body></html>

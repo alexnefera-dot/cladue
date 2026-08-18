@@ -1,0 +1,435 @@
+{
+  "versiya": "v4-obzor-1",
+  "opisanie": "Профиль одностраничного обзора, снятый с эталона donor-2 (Феникс/Fenix). Фиксирует то, чем закрывались двадцать две версии: 55 полей коридора, 11 приёмов вёрстки, порядок разделов-воронки и список ловушек движка.",
+  "etalon": {
+    "papka": "samples/v3-reference/2",
+    "kopiya_dlya_zamera": "имя файла несёт комбинирующие диакритики — копировать через os.listdir, не глобом",
+    "brend": {
+      "ru": "Феникс",
+      "en": "Fenix"
+    },
+    "tip_stranicy": "main"
+  },
+  "korridor": {
+    "pravilo": "в норме, если |наше - эталон| <= max(0.25*эталон, порог)",
+    "porog_schetchik": 2,
+    "porog_dolya": 0.8,
+    "istochnik": "engine/src/PageMetrics.php, поле decimals в FIELDS решает, счётчик это или доля"
+  },
+  "celi": {
+    "words": {
+      "znachenie": 3783,
+      "dolya": false,
+      "podpis": "объём слов"
+    },
+    "h2": {
+      "znachenie": 6,
+      "dolya": false,
+      "podpis": "H2"
+    },
+    "sections": {
+      "znachenie": 21,
+      "dolya": false,
+      "podpis": "разделов H2+H3"
+    },
+    "lists": {
+      "znachenie": 0,
+      "dolya": false,
+      "podpis": "списков"
+    },
+    "strong": {
+      "znachenie": 38,
+      "dolya": false,
+      "podpis": "strong"
+    },
+    "faq": {
+      "znachenie": 6,
+      "dolya": false,
+      "podpis": "вопросительных знаков"
+    },
+    "emoji": {
+      "znachenie": 39,
+      "dolya": false,
+      "podpis": "эмодзи"
+    },
+    "first_person": {
+      "znachenie": 2,
+      "dolya": false,
+      "podpis": "«я»"
+    },
+    "vy": {
+      "znachenie": 4,
+      "dolya": false,
+      "podpis": "«вы»"
+    },
+    "ty": {
+      "znachenie": 2,
+      "dolya": false,
+      "podpis": "«ты»"
+    },
+    "on_topic_pct": {
+      "znachenie": 0,
+      "dolya": true,
+      "podpis": "заголовков по теме страницы %"
+    },
+    "speech": {
+      "znachenie": 6,
+      "dolya": false,
+      "podpis": "реплик в кавычках"
+    },
+    "compare": {
+      "znachenie": 1,
+      "dolya": false,
+      "podpis": "бытовых сравнений"
+    },
+    "myth": {
+      "znachenie": 0,
+      "dolya": false,
+      "podpis": "зачинов «а на деле»"
+    },
+    "insider": {
+      "znachenie": 0,
+      "dolya": false,
+      "podpis": "заявок на закрытое знание"
+    },
+    "letter": {
+      "znachenie": 0,
+      "dolya": false,
+      "podpis": "шаблонов обращения"
+    },
+    "imperatives": {
+      "znachenie": 29,
+      "dolya": false,
+      "podpis": "императивов"
+    },
+    "numbers_per100": {
+      "znachenie": 4.2,
+      "dolya": true,
+      "podpis": "цифр на 100 слов"
+    },
+    "adj_pct": {
+      "znachenie": 13.7,
+      "dolya": true,
+      "podpis": "прилагательных %"
+    },
+    "nausea_acad": {
+      "znachenie": 43.6,
+      "dolya": true,
+      "podpis": "тошнота %"
+    },
+    "water": {
+      "znachenie": 23.4,
+      "dolya": true,
+      "podpis": "водность %"
+    },
+    "brand_ru": {
+      "znachenie": 41,
+      "dolya": false,
+      "podpis": "бренд кириллицей"
+    },
+    "brand_en": {
+      "znachenie": 8,
+      "dolya": false,
+      "podpis": "бренд латиницей"
+    },
+    "brand_in_h": {
+      "znachenie": 9,
+      "dolya": false,
+      "podpis": "бренд в заголовках"
+    },
+    "brand_first_third": {
+      "znachenie": 34,
+      "dolya": false,
+      "podpis": "бренд в первой трети"
+    },
+    "faq_pairs": {
+      "znachenie": 0,
+      "dolya": false,
+      "podpis": "пар «вопрос-ответ»"
+    },
+    "questions_total": {
+      "znachenie": 13,
+      "dolya": false,
+      "podpis": "вопросов в тексте"
+    },
+    "anchors": {
+      "znachenie": 29,
+      "dolya": false,
+      "podpis": "опорных формул"
+    },
+    "opener_name": {
+      "znachenie": 0,
+      "dolya": true,
+      "podpis": "зачин: имя с категорией"
+    },
+    "opener_key": {
+      "znachenie": 1,
+      "dolya": true,
+      "podpis": "зачин: ключ в начале"
+    },
+    "table_cols": {
+      "znachenie": 4,
+      "dolya": true,
+      "podpis": "колонок в таблице"
+    },
+    "table_uniq_pct": {
+      "znachenie": 33.3,
+      "dolya": true,
+      "podpis": "уникальных шапок %"
+    },
+    "reviews_rated": {
+      "znachenie": 0,
+      "dolya": false,
+      "podpis": "отзывов с оценкой"
+    },
+    "ordered_pct": {
+      "znachenie": 0,
+      "dolya": true,
+      "podpis": "нумерованных списков %"
+    },
+    "anchor_once_pct": {
+      "znachenie": 92.9,
+      "dolya": true,
+      "podpis": "разовых анкоров %"
+    },
+    "fact_values": {
+      "znachenie": 4,
+      "dolya": false,
+      "podpis": "разных значений с %"
+    },
+    "lead_list": {
+      "znachenie": 0,
+      "dolya": true,
+      "podpis": "список в зачине"
+    },
+    "h2_opens_para_pct": {
+      "znachenie": 100,
+      "dolya": true,
+      "podpis": "раздел открыт абзацем %"
+    },
+    "h3_question_pct": {
+      "znachenie": 0,
+      "dolya": true,
+      "podpis": "H3 с вопросительного слова %"
+    },
+    "h3_colon_pct": {
+      "znachenie": 0,
+      "dolya": true,
+      "podpis": "H3 с двоеточием %"
+    },
+    "strong_lead_pct": {
+      "znachenie": 0,
+      "dolya": true,
+      "podpis": "strong в начале блока %"
+    },
+    "emoji_inline": {
+      "znachenie": 0,
+      "dolya": false,
+      "podpis": "эмодзи внутри фразы"
+    },
+    "para_spread": {
+      "znachenie": 29.3,
+      "dolya": true,
+      "podpis": "разброс длины абзаца"
+    },
+    "para_short": {
+      "znachenie": 4,
+      "dolya": false,
+      "podpis": "коротких абзацев"
+    },
+    "paragraphs": {
+      "znachenie": 61,
+      "dolya": false,
+      "podpis": "абзацев"
+    },
+    "words_per_para": {
+      "znachenie": 52.3,
+      "dolya": true,
+      "podpis": "слов в абзаце"
+    },
+    "games_named": {
+      "znachenie": 0,
+      "dolya": false,
+      "podpis": "названий игр"
+    },
+    "providers_named": {
+      "znachenie": 0,
+      "dolya": false,
+      "podpis": "названий студий"
+    },
+    "names_uniq": {
+      "znachenie": 0,
+      "dolya": false,
+      "podpis": "разных имён игр и студий"
+    },
+    "terms_total": {
+      "znachenie": 165,
+      "dolya": false,
+      "podpis": "профильных терминов"
+    },
+    "h3_per_h2": {
+      "znachenie": 2.5,
+      "dolya": true,
+      "podpis": "H3 на один H2"
+    },
+    "h2_len": {
+      "znachenie": 3.2,
+      "dolya": true,
+      "podpis": "слов в заголовке"
+    },
+    "h2_quest": {
+      "znachenie": 0,
+      "dolya": true,
+      "podpis": "заголовков-вопросов %"
+    },
+    "cta": {
+      "znachenie": 0,
+      "dolya": false,
+      "podpis": "прямых призывов"
+    },
+    "honest": {
+      "znachenie": 17,
+      "dolya": false,
+      "podpis": "мест с минусом или риском"
+    }
+  },
+  "priyomy": {
+    "kartochek_slotov": 12,
+    "otzyvov_s_ocenkoy": 6,
+    "zvyozd": 30,
+    "plashek": 18,
+    "emodzi_vsego": 36,
+    "emodzi_v_zagolovkah": 0,
+    "tablic": 6,
+    "tablic_povtorov_po_valyute": 6,
+    "raznyh_shapok": 2,
+    "zagolovkov_brend_klyuch": 7,
+    "h2_h3": 21,
+    "schetchik": "engine/priyomy-obzor.php"
+  },
+  "struktura": {
+    "poryadok_razdelov": [
+      "официальный сайт",
+      "регистрация",
+      "зеркало",
+      "преимущества и слабые места",
+      "бонусы по валюте счёта",
+      "провайдеры и автоматы",
+      "отзывы игроков",
+      "вопросы и ответы"
+    ],
+    "kommentariy_k_poryadku": "У эталона это воронка, а не случайная перестановка. Planner из v3 порядок перемешивает — для этого жанра он неверен.",
+    "h2": "6-7 включая FAQ",
+    "h3": "14-16",
+    "sekciy": "20-23",
+    "abzacev": 61,
+    "slov_v_abzace": 52.3,
+    "razbros": 29.3,
+    "korotkih": 4,
+    "arifmetika_abzacev": "4 по 12 слов + 22 по 30 + 25 по 55 + 10 по 110 даёт σ 28.9 при среднем 52.2",
+    "tablicy": "две разные шапки, каждая повторена трижды под ₽/$/€ с переключателем",
+    "kartochka_slota": "обложка текстовая (код из 4 букв) либо одна общая картинка на все двенадцать; лежит в <div>, поэтому providers_named остаётся 0 — как у эталона",
+    "otzyv": "<b>Имя, возраст</b> + стаж + строка звёзд ★☆; reviews_rated при этом 0, как у эталона",
+    "stili": "<style> в КОНЦЕ фрагмента; сверху он сдвигает окно зачина и роняет opener_key"
+  },
+  "lovushki_dvizhka": [
+    {
+      "pole": "anchors",
+      "chto": "не теги <a>, а словоформулы из PageMetrics::ANCHORS"
+    },
+    {
+      "pole": "opener_name",
+      "chto": "объявлено с decimals=1, поэтому 1 против 0 — уже провал; зачин не должен начинаться «Бренд — …»"
+    },
+    {
+      "pole": "opener_key",
+      "chto": "ищет «официальн» в первых 50 словах; блок <style> сверху выбивает окно"
+    },
+    {
+      "pole": "faq_pairs",
+      "chto": "заголовок, кончающийся «?», засчитывается парой; вопросы прячут в <details><summary>"
+    },
+    {
+      "pole": "faq",
+      "chto": "«?» в теле; <summary> в него не попадает — Parser::BLOCK_TAGS не знает details"
+    },
+    {
+      "pole": "emoji",
+      "chto": "★ U+2605 входит в диапазон: у эталона 30 из 36 значков — звёзды отзывов"
+    },
+    {
+      "pole": "emoji_inline",
+      "chto": "смотрит только <li|p>; значки в <div>, <td> и заголовках свободны"
+    },
+    {
+      "pole": "imperatives",
+      "chto": "\\b\\w+(йте|ите)\\b — «сайте» считается, «проверьте» нет"
+    },
+    {
+      "pole": "ty",
+      "chto": "матчит \\b\\w+(ешь|ишь)\\b — «лишь» считается"
+    },
+    {
+      "pole": "h3_question_pct",
+      "chto": "заголовок, начатый с что/как/почему, ломает ноль"
+    },
+    {
+      "pole": "h3_colon_pct",
+      "chto": "считает и ':' и '—'"
+    },
+    {
+      "pole": "providers_named",
+      "chto": "NicheLexicon::prose() читает только <p> и <li>; у эталона 17 упоминаний студий движок видит как 0"
+    },
+    {
+      "pole": "reviews_rated",
+      "chto": "ищет schema.org/Comment либо «Имя / дата / оценка»; «Алексей, 34» + звёзды не подходят"
+    },
+    {
+      "pole": "words",
+      "chto": "движок вырезает только <script>; текст <style> попадает в замер"
+    }
+  ],
+  "unikalnost": {
+    "shingl": 6,
+    "porog": 6.0,
+    "instrument": "engine/overlap.php",
+    "glavnaya_lovushka": "Провал случался пять раз подряд на одном и том же: переиспользовании собственных формулировок между версиями. Против эталона было 0.00%, между своими — до 32%. Отдельный источник — общий CSS: одинаковый блок стилей даёт около 14% сам по себе, поэтому у каждой версии свои имена классов и свой порядок свойств.",
+    "razvodyat": [
+      "угол подачи",
+      "числа",
+      "синтаксис фраз",
+      "имена классов",
+      "порядок свойств CSS"
+    ]
+  },
+  "korpus": {
+    "papka": "samples/v3-final/singles",
+    "versiy": 22,
+    "hudshaya_para": 5.97,
+    "spisok": [
+      "donor-2",
+      "donor-2-v1",
+      "donor-2-v2",
+      "donor-2-v3",
+      "donor-2-v4",
+      "donor-2-v5",
+      "donor-2-v6",
+      "donor-2-v7",
+      "donor-2-v8",
+      "donor-2-p1",
+      "donor-2-p2",
+      "donor-2-p3",
+      "donor-2-n1",
+      "donor-2-n2",
+      "donor-2-n3",
+      "donor-2-s1",
+      "donor-2-s2",
+      "donor-2-s3",
+      "donor-2-s4",
+      "donor-2-b1",
+      "donor-2-b2",
+      "donor-2-b3"
+    ]
+  }
+}

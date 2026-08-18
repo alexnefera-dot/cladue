@@ -1,0 +1,179 @@
+{
+  "prefiks": "rg",
+  "kartinka": "",
+  "sloty": {
+    "vkladki": [
+      "Полка недели",
+      "Накопления",
+      "Живые столы"
+    ],
+    "polki": [
+      [
+        {
+          "kod": "BIRK",
+          "imya": "Birch Register",
+          "studiya": "Gamomat",
+          "znachenie": "RTP 95,2%"
+        },
+        {
+          "kod": "SAND",
+          "imya": "Sand Crown",
+          "studiya": "Kalamba",
+          "znachenie": "RTP 96,6%"
+        },
+        {
+          "kod": "WICK",
+          "imya": "Wick Harbour",
+          "studiya": "Fugaso",
+          "znachenie": "RTP 97,4%"
+        },
+        {
+          "kod": "HOLM",
+          "imya": "Holm Order",
+          "studiya": "Tom Horn",
+          "znachenie": "RTP 93,9%"
+        }
+      ],
+      [
+        {
+          "kod": "EMBR",
+          "imya": "Ember Market",
+          "studiya": "GameArt",
+          "znachenie": "Джекпот ×4100"
+        },
+        {
+          "kod": "TALC",
+          "imya": "Talc Anchor",
+          "studiya": "Betsoft",
+          "znachenie": "Джекпот ×6700"
+        },
+        {
+          "kod": "LIME",
+          "imya": "Lime Beacon",
+          "studiya": "Spinomenal",
+          "znachenie": "Джекпот ×2600"
+        },
+        {
+          "kod": "SLAG",
+          "imya": "Slag Court",
+          "studiya": "iSoftBet",
+          "znachenie": "Джекпот ×8900"
+        }
+      ],
+      [
+        {
+          "kod": "WARM",
+          "imya": "Warm Ledger",
+          "studiya": "Mancala",
+          "znachenie": "RTP 95,2%"
+        },
+        {
+          "kod": "IRON",
+          "imya": "Iron Signal",
+          "studiya": "Turbo Games",
+          "znachenie": "RTP 96,6%"
+        },
+        {
+          "kod": "GREY",
+          "imya": "Grey Bell",
+          "studiya": "1spin4win",
+          "znachenie": "RTP 97,4%"
+        },
+        {
+          "kod": "SOFT",
+          "imya": "Soft Order",
+          "studiya": "Swintt",
+          "znachenie": "RTP 93,9%"
+        }
+      ]
+    ]
+  },
+  "otzyvy": [
+    {
+      "bukva": "П",
+      "imya": "Пётр, 41",
+      "stazh": "играет год",
+      "zvyozdy": "★★★★★",
+      "tekst": "…"
+    }
+  ],
+  "plashki": [
+    "🔥 Две ступени набора",
+    "🏆 50 спинов по коду",
+    "💰 Кэшбэк по понедельникам",
+    "⭐ Ступень и потолок",
+    "👑 Личный менеджер",
+    "💎 Накопительная часть"
+  ],
+  "tablicy": [
+    {
+      "shapka": [
+        "Действие",
+        "Порог",
+        "Потолок за сутки",
+        "Потолок за месяц"
+      ],
+      "telo": [
+        [
+          [
+            "Пополнение",
+            "200 ₽",
+            "350 000 ₽",
+            "без потолка"
+          ]
+        ],
+        [
+          [
+            "Пополнение",
+            "3 $",
+            "4 400 $",
+            "без потолка"
+          ]
+        ],
+        [
+          [
+            "Пополнение",
+            "3 €",
+            "4 100 €",
+            "без потолка"
+          ]
+        ]
+      ]
+    },
+    {
+      "shapka": [
+        "Предложение",
+        "Порог",
+        "Верх бонусной части",
+        "Множитель"
+      ],
+      "telo": [
+        [
+          [
+            "Первое пополнение",
+            "от 500 ₽",
+            "+140% до 36 000 ₽",
+            "×26"
+          ]
+        ],
+        [
+          [
+            "Первое пополнение",
+            "от 7 $",
+            "+140% до 570 $",
+            "×26"
+          ]
+        ],
+        [
+          [
+            "Первое пополнение",
+            "от 6 €",
+            "+140% до 530 €",
+            "×26"
+          ]
+        ]
+      ]
+    }
+  ],
+  "stili": "engine/data-v4/primer-stili.css"
+}

@@ -1,0 +1,115 @@
+<h2>Блокировка по числу попыток: сколько ждать и что не делать</h2>
+<p>
+  После пяти неверных паролей вход в %brand_name_en% закрывается на четверть часа. Счёт при этом цел, деньги на месте, а сама пауза снимается сама — торопить её нечем.
+</p>
+<h3>Как устроен счётчик</h3>
+<p>
+  Считаются подряд идущие промахи по одной паре. Успешный вход обнуляет счётчик, неудачный с другого устройства — прибавляет к тому же. Пауза растёт при повторной серии: четверть часа, затем час, затем сутки.
+</p>
+<table>
+  <tbody>
+    <tr><th>Серия промахов</th><th>Пауза</th><th>Что снимает</th></tr>
+    <tr><td>Первая</td><td>15 минут</td><td>Само время</td></tr>
+    <tr><td>Вторая подряд</td><td>1 час</td><td>Само время</td></tr>
+    <tr><td>Третья подряд</td><td>До суток</td><td>Обращение к оператору</td></tr>
+    <tr><td>Смена пароля по почте</td><td>Снимается сразу</td><td>Подтверждённый ящик</td></tr>
+    <tr><td>Вход по второму фактору</td><td>Не блокируется</td><td>Аварийный ключ</td></tr>
+  </tbody>
+</table>
+<h3>Чего не делать в эти пятнадцать минут</h3>
+<ul>
+  <li><strong>Перебирать варианты дальше.</strong> Каждая серия удлиняет паузу</li>
+  <li><strong>Заводить второй счёт.</strong> Дубль закрывает оба вместе с остатком</li>
+  <li><strong>Менять сеть и устройство.</strong> Счётчик привязан к паре, а не к точке входа</li>
+  <li><strong>Писать оператору сразу.</strong> Пауза короче, чем очередь в чате</li>
+</ul>
+<blockquote>
+  Крановщик не дёргает рычаг, когда сработала защита от перегруза: она снимется сама, а лишнее движение добавит ещё одну блокировку.
+</blockquote>
+<h3>Что делать вместо перебора</h3>
+<ol>
+  <li>Запросить смену пароля по почте — это снимает паузу сразу</li>
+  <li>Открыть письмо и задать новую пару, отличную от прежней</li>
+  <li>Войти и сразу проверить журнал операций за сутки</li>
+  <li>Снять чужие строки из перечня устройств, если такие есть</li>
+  <li>Проверить, что <a href="/registracia">анкета игрока</a> не менялась</li>
+</ol>
+<h3>Почему пауза вообще нужна</h3>
+<p>
+  Она стоит не против вас, а против перебора паролей со стороны. Без неё чужой скрипт проверяет тысячи вариантов в минуту, и рано или поздно один подходит.
+</p>
+<p>
+  По той же причине счётчик не сбрасывается сменой браузера: привязка идёт к паре, а не к устройству. Иначе защита снималась бы одним нажатием, и смысла в ней не было бы вовсе.
+</p>
+<h3>Когда дело не в пароле</h3>
+<p>
+  Если пара точно верна, а вход не идёт — смотрите не на счётчик, а на статус счёта. Заморозка после крупной выплаты выглядит похоже: форма принимает пару, но касса закрыта. Разница видна сразу после входа: при блокировке по попыткам <a href="/slots">каталог автоматов</a> открыт, при заморозке заперт платёжный раздел.
+</p>
+<p>
+  Ещё один случай — вы на чужом адресе. Настоящий домен пускает прежней парой с первого раза; копия принимает любую и показывает пустой остаток. Сверить адрес можно за двадцать секунд по подписи, и <a href="/zerkalo">запасной домен</a> проверяется так же.
+</p>
+
+<h2>Ответы на вопросы о блокировке входа</h2>
+<p>
+  Десять обращений, которые приходят к оператору в первые минуты паузы.
+</p>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли снять паузу через оператора?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Первую — нет, она короче ожидания в чате. Суточную снимают, но только после проверки документа.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Деньги на счету в опасности?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. Пауза закрывает только вход, остаток и история ставок не трогаются.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Считаются ли попытки с телефона и компьютера отдельно?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, счётчик один на пару. Смена устройства его не обнуляет.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько промахов до первой паузы?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Обычно пять подряд. Успешный вход между ними обнуляет счётчик.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Смена пароля снимает паузу?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Да, если ящик подтверждён. Это самый быстрый выход из блокировки.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что происходит с открытой сессией во время паузы?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Она живёт до своего срока. Начатое вращение досчитается на сервере независимо от блокировки входа.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Приходит ли уведомление о блокировке?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>На подтверждённую почту — да, вместе с временем и адресом сети, откуда шли попытки.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Блокируется ли счёт, если пароль подбирал посторонний?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Вход закрывается так же, и это защита. Смените пару и проверьте перечень активных устройств.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Второй фактор попадает под счётчик?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, у него своё ограничение. Аварийные ключи из бумажного списка работают и во время паузы.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Как не попадать в блокировку впредь?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Держать пару в менеджере паролей, а не в памяти, и подключить второй фактор. Тогда при сомнении вы идёте по восстановлению, а не перебираете варианты. Проверить, что оба канала на месте, можно из <a href="/app">мобильного клиента</a>.</p></div>
+  </div>
+</details>

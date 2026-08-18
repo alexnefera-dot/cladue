@@ -1,0 +1,107 @@
+<h2>Кнопка выхода не срабатывает: что проверить</h2>
+<p>
+  Нажимаешь «выйти», страница перезагружается — и кабинет %brand_name_en% снова открыт, с балансом и историей ставок. Выглядит как сбой безопасности.
+</p>
+<p>
+  Настоящего сбоя тут обычно нет. Есть три разные вещи, которые постоянно путают между собой, и каждая закрывает своё.
+</p>
+<h3>Три разных выхода и их зона действия</h3>
+<table>
+  <tbody>
+    <tr><th>Что нажали</th><th>Что закрывается</th><th>Что остаётся</th></tr>
+    <tr><td>Выход в кабинете</td><td>Текущая сессия</td><td>Расписка «запомнить меня»</td></tr>
+    <tr><td>Закрытие вкладки</td><td>Ничего</td><td>Сессия и расписка</td></tr>
+    <tr><td>Выход со всех устройств</td><td>Все сессии и расписки</td><td>Ничего</td></tr>
+    <tr><td>Смена пароля</td><td>Всё, на всех аппаратах</td><td>Ничего</td></tr>
+  </tbody>
+</table>
+<h3>Причина: почему кабинет открывается снова</h3>
+<p>
+  Долгосрочная пометка «запомнить меня» живёт отдельно от текущего сеанса. Обычная кнопка гасит второй и не трогает первую, поэтому следующий заход проходит без пароля — со стороны это выглядит как неисправная кнопка.
+</p>
+<h3>Порядок проверки: четыре шага</h3>
+<ol>
+  <li>Открыть журнал сессий и посмотреть, есть ли ещё активные</li>
+  <li>Нажать «выйти со всех устройств» — этот пункт гасит и расписки</li>
+  <li>Проверить менеджер паролей: он подставляет пару автоматически</li>
+  <li>Если ничего не помогло — сменить пароль, это гасит всё разом</li>
+</ol>
+<blockquote>
+  Задвижку закрывают у своего бункера, а зерно в желобе всё равно досыпается. Пока оно не прошло, кажется, что задвижка не работает.
+</blockquote>
+<h3>Редкие случаи: когда это настоящая неисправность</h3>
+<ul>
+  <li><strong>Незнакомое устройство в журнале.</strong> Тогда дело не в кнопке, а в чужом доступе</li>
+  <li><strong>Общий сброс не помогает.</strong> Редкий случай, и он действительно к поддержке</li>
+  <li><strong>Новый пароль не отрезает доступ.</strong> Верный признак подменённой почты в анкете</li>
+</ul>
+<h3>Ставки: что с ними происходит</h3>
+<p>
+  Ровным счётом ничего. Незакрытый спин спокойно досчитывается на сервере провайдера, выплата ложится на баланс, а поданная заявка на вывод средств идёт своим чередом. Счётчик вейджера тоже не сбрасывается: он живёт на сервере, а не в сессии.
+</p>
+<h3>Итог</h3>
+<p>
+  В девяти случаях из десяти кнопка исправна, а личный кабинет открывает долгосрочная пометка или заботливый менеджер паролей. Гасит обе общий сброс, а надёжнее всего — новый пароль. К поддержке идут только тогда, когда и после этого доступ остаётся открытым. Требования к анкете лежат в <a href="/registracia">анкете игрока</a>, история спинов — в <a href="/slots">каталоге автоматов</a>, поведение сессии при смене домена разобрано на <a href="/zerkalo">странице обвода</a>, а список разрешений сборки — на <a href="/app">странице программы</a>.
+</p>
+
+<h2>Частые вопросы о выходе из кабинета %brand_name_ru%</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Выход не работает — счёт взломали?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Почти наверняка нет. Кабинет открывает расписка «запомнить меня», и гасит её пункт «выход со всех устройств».</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Достаточно ли закрыть вкладку браузера?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, сессия при этом живёт до своего срока. На чужом устройстве закрытие вкладки ничего не решает.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько живёт сессия, если из неё не выходить?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Обычно от 7 до 30 суток без захода. Дальше площадка спросит пару заново — это не признак сбоя, а вышедший срок.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что будет со спином, если выйти прямо во время раунда?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Он досчитается на сервере провайдера. Выплата ляжет на баланс, увидите её при следующем входе.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Гасит ли выход счётчик отыгрыша?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, вейджер считается на сервере и от сессии не зависит. А вот срок бонуса идёт независимо от того, зашли вы или нет.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отменит ли выход поданную заявку на выплату?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, заявка живёт в очереди кассы. Отменить её можно только до отправки в платёжную систему.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Где найти пункт «выход со всех устройств»?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>В настройках безопасности кабинета, рядом с журналом сессий. Он гасит и сессии, и расписки разом.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">В журнале чужой город — что делать первым?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Сменить пароль: это гасит все сессии сразу. Потом проверить почту и телефон в анкете — их могли подменить.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Помогает ли режим без сохранения истории?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Да, расписка не переживёт закрытие окна. Для чужого устройства это лучший вариант.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Нужно ли выходить перед сменой домена?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не обязательно: расписка своя у каждого адреса. На новом придётся войти заново с вводом пары.</p></div>
+  </div>
+</details>

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Сборщик: три слоя вариации и что каждый дал</title>
+<style>
+  :root { --bg:#fff; --fg:#1a1a1a; --mut:#666; --line:#e3e3e3; --note:#f4f4f4; --ok:#2f7d32; --bad:#b3261e; --warn:#8a6a00; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#16181c; --fg:#e6e6e6; --mut:#9aa0a6; --line:#2e3238; --note:#1e2126; --ok:#7ec783; --bad:#f2b8b5; --warn:#e0c060; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:28px 20px 60px; background:var(--bg); color:var(--fg);
+         font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; }
+  .wrap { max-width:1060px; margin:0 auto; }
+  h1 { font-size:26px; margin:0 0 6px; letter-spacing:-.01em; }
+  .sub { color:var(--mut); margin:0 0 24px; font-size:14px; }
+  h2 { font-size:19px; margin:38px 0 10px; padding-top:18px; border-top:1px solid var(--line); }
+  h3 { font-size:16px; margin:22px 0 8px; }
+  table { border-collapse:collapse; width:100%; font-size:14px; margin:12px 0 8px; }
+  th,td { border:1px solid var(--line); padding:7px 10px; text-align:left; vertical-align:top; }
+  th { background:var(--note); font-weight:600; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .ok { color:var(--ok); font-weight:600; } .bad { color:var(--bad); font-weight:600; } .warn { color:var(--warn); font-weight:600; }
+  .note { background:var(--note); border-radius:8px; padding:12px 15px; font-size:14.5px; margin:12px 0; }
+  .key { border-left:4px solid var(--warn); background:var(--note); border-radius:8px; padding:14px 16px; margin:16px 0; }
+  code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13.5px; background:var(--note); padding:1px 5px; border-radius:4px; }
+  pre { background:var(--note); border-radius:8px; padding:12px 14px; overflow-x:auto; font-size:13px; line-height:1.5; }
+  .scroll { overflow-x:auto; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Сборщик: три слоя вариации</h1>
+<p class="sub">Все три пункта плана. Мерилось на <code>set199</code> одним и тем же сидом до и после каждой правки.</p>
+
+<h2>Что сделано</h2>
+
+<h3>1. Банк втрое больше и с вариациями внутри рамки</h3>
+<p>448 рамок стало 732. Главное не в числе: рамка перестала быть цельным предложением — внутри неё стоят взаимозаменяемые куски.</p>
+<pre>"((Резервный адрес|Зеркало|Запасной домен)) — ((та же площадка|та же самая площадка))
+ {Б} на другом домене: ((общая база, общий баланс|один баланс и одна история ставок))."</pre>
+<p>Одна такая рамка даёт 12 форм вместо одной. Всего по банку — <b>2438 поверхностных форм</b>, в среднем 3.3 на рамку.</p>
+
+<h3>2. Абзац из нескольких рамок</h3>
+<p>Раньше абзац был одной фразой, и два сида расходились только порядком абзацев. Теперь две-три рамки перемешиваются и склеиваются через связку из короткого списка (или без неё). Шестисловное окно попадает на границу двух разных фраз — и перестаёт совпадать. Заодно длина абзаца выросла до корпусной.</p>
+
+<h3>3. Подстановка синонимов в согласованных формах</h3>
+<p>Пары подобраны по грамматике, а не по смыслу: род, число и падеж должны совпадать, иначе ломается согласование. Движок склонять не умеет, поэтому каждая форма прописана отдельно.</p>
+<pre>['площадка','платформа'] ['площадке','платформе'] ['площадку','платформу']
+['автомат','слот']       ['автомата','слота']     ['автоматов','слотов']
+['проверка документов','верификация']  ['проверку документов','верификацию']</pre>
+
+<h2>Что каждый слой дал</h2>
+<div class="scroll">
+<table>
+<tr><th>Этап</th><th>Рамок</th><th>Совпадение</th><th>Перекличка внутри набора</th><th>Между двумя сидами</th></tr>
+<tr><td>исходная сборка</td><td class="num">448</td><td class="num">63 %</td><td class="num bad">29.5 %</td><td class="num bad">21.4 %</td></tr>
+<tr><td>+ банк и вариации</td><td class="num">732</td><td class="num">65 %</td><td class="num bad">24.5 %</td><td class="num warn">11.8 %</td></tr>
+<tr><td>+ абзац из нескольких рамок</td><td class="num">732</td><td class="num">65 %</td><td class="num bad">24.5 %</td><td class="num warn">11.5 %</td></tr>
+<tr><td>+ синонимы</td><td class="num">732</td><td class="num">67 %</td><td class="num bad">23.3 %</td><td class="num warn">10.6 %</td></tr>
+<tr><td>+ доводчик</td><td class="num">732</td><td class="num ok">68 %</td><td class="num bad">23.3 %</td><td class="num warn">10.6 %</td></tr>
+</table>
+</div>
+<p>Строгий режим — тот, где мешок рамок не пополняется, — теперь держит перекличку <b>1.48%</b> при объёме <b>35%</b> от цели. До доработок было 4.4% и 31%.</p>
+
+<div class="key">
+<b>Что не сработало и почему.</b> Пересечение между сидами остановилось на 10.6% при пороге 6%. Оно <b>равномерно размазано по всем семи страницам</b> — от 5.3% на <code>app</code> до 12.6% на <code>vhod</code>. Значит дело не в каком-то блоке, а в плотности банка: 3.3 формы на рамку при сотнях выборок означают, что два сида регулярно берут одну и ту же. Дальше помогает только рост банка — это счётная зависимость, а не вопрос механизма.
+</div>
+
+<h2>Третий пункт плана оказался невыполним</h2>
+<p>Я собирался подключить <code>src/Morphology.php</code>, чтобы гнёзда вставали в нужном падеже. Открыл — и оказалось, что этот класс <b>стеммер для анализа</b>: он отрезает окончания, чтобы сравнивать слова, но порождать формы не умеет. Склонения в движке нет вообще.</p>
+<p>Обошёл: рамки построены падежно-нейтральными — гнёзда стоят в именительном или сразу после предлога, а синонимические пары прописаны по каждой форме отдельно. Это работает, но означает, что банк придётся вести вручную и дальше.</p>
+
+<h2>Где сборщик сейчас</h2>
+<table>
+<tr><th>Способ</th><th>Совпадение</th><th>Объём</th><th>Перекличка</th></tr>
+<tr><td>Сборщик, обычный режим</td><td class="num warn">68 %</td><td class="num ok">98 % цели</td><td class="num bad">23.3 %</td></tr>
+<tr><td>Сборщик, строгий режим</td><td class="num warn">62 %</td><td class="num bad">35 % цели</td><td class="num ok">1.5 %</td></tr>
+<tr><td>Рукой, два прохода</td><td class="num warn">69 %</td><td class="num bad">44 % цели</td><td class="num bad">12.5 %</td></tr>
+<tr><td>Через API</td><td class="num ok">73–78 %</td><td class="num ok">в норме</td><td class="num ok">0.3–2.7 %</td></tr>
+</table>
+<div class="note">Сборщик догнал ручную работу по совпадению (68 против 69) и обошёл её по объёму вдвое. Остались две вещи, и обе упираются в одно: перекличка внутри набора и пересечение между сидами. И то и другое — про то, что фраз в банке всё ещё мало.</div>
+
+<h2>Что дальше — счётная задача</h2>
+<p>Чтобы обычный режим держал перекличку в норме, банк должен покрывать набор целиком без повторов. Сегодня строгий режим даёт 35% объёма, значит нужен банк примерно втрое больше нынешнего — <b>около 2100 рамок</b> вместо 732.</p>
+<p>Чтобы два сида расходились ниже 6%, нужна вариативность около 8–10 форм на рамку вместо 3.3. Это достигается не новыми механизмами, а плотностью скобок в самих рамках: там, где сейчас одно место с двумя вариантами, нужно три места по три.</p>
+<p>Обе задачи — авторские. Механика для них уже написана и проверена.</p>
+
+</div>
+</body>
+</html>

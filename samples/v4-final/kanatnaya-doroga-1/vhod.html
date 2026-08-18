@@ -1,0 +1,111 @@
+<h2>Вход в один счёт с двух устройств одновременно</h2>
+<p>
+  Телефон в руке, ноутбук открыт, счёт %brand_name_en% один. Вопрос возникает сам собой: получится ли играть с двух экранов разом и что будет со ставкой, если попробовать.
+</p>
+<p>
+  Ответ разный для входа и для игры. Это две разные вещи.
+</p>
+<h3>Что разрешено, а что нет</h3>
+<table>
+  <tbody>
+    <tr><th>Действие</th><th>С двух устройств</th><th>Что происходит</th></tr>
+    <tr><td>Держать сессию открытой</td><td>Да</td><td>Расписки живут независимо</td></tr>
+    <tr><td>Смотреть каталог и историю</td><td>Да</td><td>Никаких ограничений</td></tr>
+    <tr><td>Играть в один тайтл</td><td>Нет</td><td>Второй экран покажет ошибку</td></tr>
+    <tr><td>Играть в разные тайтлы</td><td>Зависит от провайдера</td><td>Чаще запрещено</td></tr>
+  </tbody>
+</table>
+<h3>Почему игровая сессия одна</h3>
+<p>
+  Игровая сессия открывается не площадкой %brand_name_en%, а провайдером тайтла, и держит она один баланс. Два открытых окна на одном балансе означали бы две ставки из одного кошелька в одну секунду.
+</p>
+<p>
+  Поэтому провайдер закрывает вторую сессию сразу. Первое окно при этом чаще всего продолжает работать, а второе показывает отказ.
+</p>
+<h3>Порядок при переходе на другое устройство</h3>
+<ol>
+  <li>Закрыть окно игры на первом устройстве, а не просто свернуть его</li>
+  <li>Дождаться, пока незакрытый спин досчитается — обычно это 5 — 30 секунд</li>
+  <li>Открыть тайтл на втором устройстве и сверить баланс до первого спина</li>
+  <li>Проверить в журнале сессий, что старая расписка погашена</li>
+</ol>
+<blockquote>
+  Одно кресло — один пассажир. Механик не пускает второго не из вредности: подвеска рассчитана на известный вес, и второй сверх него уже не считался.
+</blockquote>
+<h3>Что бывает, если не закрыть первое окно</h3>
+<ul>
+  <li><strong>Отказ при запуске тайтла.</strong> Провайдер видит открытую сессию и не даёт вторую</li>
+  <li><strong>Расхождение баланса на экране.</strong> Одно окно показывает старую цифру</li>
+  <li><strong>Потерянный спин на вид.</strong> Он досчитается, но результат придёт в другое окно</li>
+  <li><strong>Двойное списание на вид.</strong> В истории ставок при этом одна строка</li>
+</ul>
+<h3>Когда два устройства действительно мешают</h3>
+<p>
+  Мешают они в одном случае — при активном подарке. Счётчик вейджера обновляется с задержкой, и, глядя на два экрана с разными цифрами, легко перебрать потолок ставки. Перебор потолка гасит подарок целиком, и восстановлению это не подлежит.
+</p>
+<h3>Итог</h3>
+<p>
+  Держать открытыми две сессии можно, играть — только в одной. Провайдер закрывает вторую сам, счёт и баланс при этом не страдают, а незакрытый спин досчитывается на сервере. Единственный реальный риск — перебор потолка ставки при активном отыгрыше из-за отставшего счётчика. Требования к счёту лежат в <a href="/registracia">анкете игрока</a>, зачётные тайтлы — в <a href="/slots">каталоге автоматов</a>, поведение сессии при смене домена разобрано на <a href="/zerkalo">странице обвода</a>, а расход заряда на втором устройстве — на <a href="/app">странице программы</a>.
+</p>
+
+<h2>Частые вопросы о двух устройствах в %brand_name_ru%</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Заблокируют ли счёт за вход с двух устройств?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, это обычное поведение. Блокировку поднимает не число устройств, а расхождение страны и документа.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Игра не запускается на втором экране — это сбой?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, так и задумано: провайдер держит одну игровую сессию на баланс. Закройте первое окно и повторите запуск.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что будет со спином, если закрыть окно посреди раунда?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Он досчитается на сервере провайдера, выплата ляжет на баланс. Увидите её при следующем открытии тайтла.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Балансы на двух экранах не сходятся — кому верить?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Ни одному из них: верной цифрой считается та, что в истории операций. Экраны догоняют её с задержкой.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли играть на телефоне и смотреть историю на ноутбуке?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Да, ограничение касается только игровых сессий. Кабинет и каталог открываются с любого числа устройств.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Гасит ли новый вход прежнюю расписку?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Обычно нет, расписки живут отдельно на каждом устройстве. Погасить их разом можно одним пунктом в настройках.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Как перебрать потолок ставки по невнимательности?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Легче всего именно с двух экранов: счётчик вейджера отстаёт. Один перебор гасит подарок целиком.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Живые столы ведут себя так же?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Строже: там место за столом занято физически, и второе окно отклоняется сразу. Раздача при этом идёт без вас.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать, если сессия зависла и не отпускает?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Подождать до 2 минут: провайдер закрывает брошенную сессию сам. Досрочно её снимает только поддержка.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько устройств можно отметить как свои?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Обычно до пяти. Отмеченные реже спрашивают второй фактор, но игровую сессию это правило не меняет.</p></div>
+  </div>
+</details>

@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Что фабрика держит через пятьдесят генераций</title>
+<style>
+  :root{--bg:#fbfaf7;--fg:#1c1a17;--dim:#6b6660;--line:#e0dcd4;--acc:#8a3b1e;--hi:#f3efe6;--ok:#2f6b3d;--bad:#9c2b1c}
+  @media (prefers-color-scheme:dark){:root{--bg:#16150f;--fg:#e8e4da;--dim:#948e84;--line:#33302a;--acc:#d9834f;--hi:#211f19;--ok:#77b083;--bad:#e07a63}}
+  :root[data-theme=dark]{--bg:#16150f;--fg:#e8e4da;--dim:#948e84;--line:#33302a;--acc:#d9834f;--hi:#211f19;--ok:#77b083;--bad:#e07a63}
+  :root[data-theme=light]{--bg:#fbfaf7;--fg:#1c1a17;--dim:#6b6660;--line:#e0dcd4;--acc:#8a3b1e;--hi:#f3efe6;--ok:#2f6b3d;--bad:#9c2b1c}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 Georgia,"Times New Roman",serif;-webkit-text-size-adjust:100%}
+  .wrap{max-width:940px;margin:0 auto;padding:48px 22px 96px}
+  h1{font-size:31px;line-height:1.2;margin:0 0 6px;font-weight:normal}
+  .sub{color:var(--dim);font-size:15px;margin:0 0 36px}
+  h2{font-size:22px;font-weight:normal;margin:56px 0 14px;padding-bottom:7px;border-bottom:2px solid var(--acc)}
+  h3{font-size:17px;font-weight:bold;margin:32px 0 8px}
+  p{margin:0 0 14px}
+  code{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.86em;background:var(--hi);padding:1px 5px;border-radius:3px}
+  pre{background:var(--hi);border-left:3px solid var(--line);padding:12px 14px;overflow-x:auto;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;line-height:1.55;margin:0 0 18px}
+  .scroll{overflow-x:auto;margin:0 0 20px;-webkit-overflow-scrolling:touch}
+  table{border-collapse:collapse;font-size:14px;min-width:100%}
+  th,td{padding:6px 12px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+  th{font-weight:bold;color:var(--dim);font-size:12.5px;text-transform:uppercase;letter-spacing:.04em}
+  td.n,th.n{text-align:right;font-family:ui-monospace,Menlo,Consolas,monospace}
+  .ok{color:var(--ok);font-weight:bold} .bad{color:var(--bad);font-weight:bold}
+  .key{background:var(--hi);border-left:3px solid var(--acc);padding:14px 18px;margin:22px 0}
+  .key p:last-child{margin:0}
+  ul,ol{margin:0 0 16px;padding-left:22px} li{margin:0 0 6px}
+  .lede{font-size:18px;line-height:1.6}
+  footer{margin-top:64px;padding-top:18px;border-top:1px solid var(--line);color:var(--dim);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Что фабрика держит через пятьдесят генераций</h1>
+<p class="sub">Корпус <code>new50_3</code> · 50 сайтов × 7 страниц · пятнадцать проходов · <code>razbros-korpusa.php</code> + <code>razbor-zhanra.php</code></p>
+
+<p class="lede">Вопрос один: какой параметр настроен, а какой просто получился. На одном эталоне это неразличимо — любое значение выглядит намеренным. На пятидесяти независимых генерациях намеренное стоит в узкой полосе, а случайное гуляет втрое.</p>
+
+<h2>Оговорка о выборке</h2>
+<p>Из пятидесяти сайтов в выводы идут <strong>тридцать шесть</strong>.</p>
+<p>Четырнадцать «конструкторов» — не четырнадцать генераций, а один шаблон, залитый четырнадцать раз: <code>emoji</code> у всех ровно 41 при σ&nbsp;=&nbsp;0, <code>sections</code> 37&nbsp;±&nbsp;1,6, <code>nausea_acad</code> 42,7 при CV&nbsp;2,8&nbsp;%. Сорок девять полей из пятидесяти пяти «держатся» тривиально, потому что держится сама разметка.</p>
+<p>Тридцать шесть «прозаиков» — настоящие независимые генерации: попарное пересечение по шести словам <span class="ok">0,03&nbsp;% на 630 парах</span>.</p>
+
+<h2>Что держится на всех семи типах страниц</h2>
+<p>Полоса та же, по которой идёт приёмка: <code>|значение − медиана| ≤ max(0,25·медиана; 2)</code>. «Держится» — доля сайтов в полосе. 252 страницы.</p>
+<div class="scroll">
+<table>
+<tr><th>поле</th><th class="n">main</th><th class="n">внутр.</th><th class="n">держится</th><th class="n">CV на main</th></tr>
+<tr><td><code>letter</code> шаблон обращения</td><td class="n">0</td><td class="n">0</td><td class="n ok">100 %</td><td class="n">—</td></tr>
+<tr><td><code>insider</code> закрытое знание</td><td class="n">0</td><td class="n">0</td><td class="n ok">100 %</td><td class="n">—</td></tr>
+<tr><td><code>myth</code> зачин «а на деле»</td><td class="n">0</td><td class="n">0</td><td class="n ok">100 %</td><td class="n">—</td></tr>
+<tr><td><code>table_uniq_pct</code> уникальных шапок</td><td class="n">100</td><td class="n">100</td><td class="n ok">98 %</td><td class="n">0</td></tr>
+<tr><td><code>fact_values</code> разных значений с %</td><td class="n">1</td><td class="n">0</td><td class="n ok">98 %</td><td class="n">—</td></tr>
+<tr><td><code>opener_name</code> «Бренд — это…»</td><td class="n">0</td><td class="n">0</td><td class="n ok">98 %</td><td class="n">—</td></tr>
+<tr><td><code>h2</code></td><td class="n">12</td><td class="n">2</td><td class="n ok">97 %</td><td class="n">24 %</td></tr>
+<tr><td><code>water</code> водность</td><td class="n">29,1</td><td class="n">30–32</td><td class="n ok">96 %</td><td class="n">11,8 %</td></tr>
+<tr><td><code>brand_in_h</code> бренд в заголовках</td><td class="n">9</td><td class="n">1</td><td class="n ok">95 %</td><td class="n">29 %</td></tr>
+<tr><td><code>opener_key</code> ключ в зачине</td><td class="n">1</td><td class="n">0</td><td class="n ok">93 %</td><td class="n">27,6 %</td></tr>
+<tr><td><code>h2_opens_para_pct</code></td><td class="n">90,5</td><td class="n">100</td><td class="n ok">84 %</td><td class="n">10,7 %</td></tr>
+<tr><td><code>anchor_once_pct</code> разовых анкоров</td><td class="n">74,5</td><td class="n">100</td><td class="n ok">83 %</td><td class="n">14,6 %</td></tr>
+<tr><td><code>h3_per_h2</code></td><td class="n">2,9</td><td class="n">2,5</td><td class="n">75 %</td><td class="n">18,6 %</td></tr>
+<tr><td><code>words_per_para</code></td><td class="n">31,8</td><td class="n">20–26</td><td class="n">73 %</td><td class="n">16 %</td></tr>
+<tr><td><code>h2_len</code> слов в заголовке</td><td class="n">8,2</td><td class="n">8–9</td><td class="n">73 %</td><td class="n">12,1 %</td></tr>
+<tr><td><code>adj_pct</code> прилагательных</td><td class="n">11,6</td><td class="n">10,6</td><td class="n">73 %</td><td class="n">18 %</td></tr>
+</table>
+</div>
+<p>Три первых строки — <strong>запреты</strong>. Ни шаблонов обращения, ни заявок на закрытое знание, ни зачинов «а на деле»: ноль на всех 252 страницах. Это приёмы, которые модель порождает сама, если её не остановить.</p>
+<p><code>table_uniq_pct</code> = 100 на всех семи типах: <strong>каждая таблица имеет свою шапку, всегда</strong>. 586 таблиц, 567 разных шапок. Медиана — 3 колонки, 5 строк, 16 таблиц на сайт.</p>
+
+<h3>Держится только на главной — это настройка страницы, не фабрики</h3>
+<div class="scroll">
+<table>
+<tr><th>поле</th><th>main</th><th>внутренние</th></tr>
+<tr><td><code>nausea_acad</code> тошнота</td><td>37,05 · <span class="ok">92 %</span></td><td>19–24 · 42–78 %</td></tr>
+<tr><td><code>table_cols</code></td><td>2,9 · 94 %</td><td>3 · 53–64 %</td></tr>
+<tr><td><code>ordered_pct</code></td><td>25 · 72 %</td><td>33–50 · 31–56 %</td></tr>
+<tr><td><code>para_spread</code></td><td>18,7 · 81 %</td><td>9,5–12,4 · 31–56 %</td></tr>
+</table>
+</div>
+<p>Тошнота держится на главной (CV 13,2 %, 33 сайта из 36 в полосе) и разваливается на внутренних — медиана падает вдвое, разброс шире вдвое. Это свойство длинной страницы, а не сквозная настройка.</p>
+
+<h2>Что НЕ держится — и это важнее</h2>
+<div class="scroll">
+<table>
+<tr><th>поле</th><th class="n">держится</th><th class="n">медиана main</th><th class="n">мин – макс</th></tr>
+<tr><td><code>h3_colon_pct</code></td><td class="n bad">25 %</td><td class="n">40,5</td><td class="n">16,7 – 77,5</td></tr>
+<tr><td><code>h3_question_pct</code></td><td class="n bad">27 %</td><td class="n">21,8</td><td class="n">8,3 – 47,1</td></tr>
+<tr><td><code>imperatives</code></td><td class="n bad">30 %</td><td class="n">29</td><td class="n">1 – 97</td></tr>
+<tr><td><code>terms_total</code> профильные термины</td><td class="n bad">37 %</td><td class="n">98</td><td class="n">39 – 382</td></tr>
+<tr><td><code>strong</code></td><td class="n bad">43 %</td><td class="n">63,5</td><td class="n">18 – 119</td></tr>
+<tr><td><code>words</code> объём</td><td class="n bad">52 %</td><td class="n">4083</td><td class="n">1883 – 9965</td></tr>
+<tr><td><code>emoji</code></td><td class="n">56 %</td><td class="n">30</td><td class="n">8 – 135</td></tr>
+<tr><td><code>brand_ru</code> на main</td><td class="n bad">53 %</td><td class="n">4</td><td class="n">0 – 15</td></tr>
+<tr><td><code>brand_first_third</code> на main</td><td class="n bad">31 %</td><td class="n">13,5</td><td class="n">7 – 35</td></tr>
+</table>
+</div>
+<div class="key">
+<p><strong>Объём — не параметр.</strong> От 1883 до 9965 слов, разброс в пять раз. Подгонять свои страницы под объём одного эталона нечем.</p>
+<p><strong>Профильные термины — не параметр.</strong> Держится хуже всех содержательных полей: 37 %, от 39 до 382.</p>
+<p><strong>Упоминания бренда — не параметр.</strong> На главной <code>brand_first_third</code> держится на 31 %. От 7 до 35 упоминаний в первой трети.</p>
+</div>
+
+<h2>Жанр: три слоя поверх одного каркаса</h2>
+
+<h3>Слой 1 — каркас тем, один и тот же</h3>
+<p>Официальный сайт · зеркало · вход · регистрация · бонус и промокод · кэшбэк и VIP · каталог провайдеров · лицензия и оператор · KYC, 2FA, антифрод · платежи и вывод · поддержка · ответственная игра · турниры · FAQ · плюсы и минусы · итоговая оценка · отзывы.</p>
+<p>Медиана — 7 тем из 9 по классификатору <code>Intent</code>. Набор сэмплируется, а не фиксирован.</p>
+
+<h3>Слой 2 — маска: у каждого сайта своя сквозная метафора</h3>
+<div class="scroll">
+<table>
+<tr><th>сайт</th><th>маска</th><th>как звучит</th></tr>
+<tr><td><code>laki</code></td><td>рыбалка</td><td>«Рыбная артель провайдеров 🐠», «в уловах доверия»</td></tr>
+<tr><td><code>gold</code></td><td>костёр</td><td>«инструкция по‑костёрному раскаливанию»</td></tr>
+<tr><td><code>eva</code></td><td>клубок</td><td>«распутать клубок конфликтов», «мир киберклубков»</td></tr>
+<tr><td><code>cat</code></td><td>красильня</td><td>«EEAT‑красильня 🎨»</td></tr>
+<tr><td><code>banda</code></td><td>аптекарский огород</td><td>«EEAT — по шести грядкам»</td></tr>
+<tr><td><code>volna</code></td><td>облачное хранилище</td><td>«провайдеры‑ноды», «жанры — битовые файлы»</td></tr>
+<tr><td><code>vovan</code></td><td>сталактитовый грот</td><td>«Оценочная карта (Сталактитовый грот)»</td></tr>
+<tr><td><code>fenix</code></td><td>святилище</td><td>«Self‑Exclusion: ваш Firewall в Святилище»</td></tr>
+<tr><td><code>spinto</code></td><td>снеговик</td><td>«как не попасть на криженого снеговика»</td></tr>
+<tr><td><code>clubnika</code></td><td>голубятня</td><td>«инструкция для терпеливых голубятников»</td></tr>
+</table>
+</div>
+<p>Маска не меняет ни одного факта. Она меняет только существительные в хвостах заголовков и метафоры в связках.</p>
+
+<h3>Слой 3 — ракурс: кто и откуда рассказывает</h3>
+<ul>
+<li><strong>я-обозреватель</strong>: cactus, selector, rox, sykaaa, winline, kent</li>
+<li><strong>контекст употребления</strong>: hype, lev, new retro — всё «в дороге», «в поезде», «в аэропорту»</li>
+<li><strong>мы-чат</strong>: mad — «что говорят в нашем чате»</li>
+<li><strong>свидетель</strong>: sweet — «история, которая меня научила», «опыт знакомого»</li>
+<li><strong>роль новичка</strong>: winline — «как я разбирался с нуля»</li>
+<li><strong>сюжет-миграция</strong>: kent — «почему я перебрался сюда»</li>
+</ul>
+<p>Ракурс работает <strong>рефреном</strong>: у winline формула «как я разбирался с нуля» стоит в 8 из 22 H2, у kent «почему я перебрался сюда» — в 5 из 17, у cactus «мой опыт» — в 5 из 10.</p>
+<p>По классификатору движка: <strong>27 сайтов из 36 — «личный опыт (E-E-A-T)»</strong>, адресация у 34 из 36 — <strong>«вы»</strong>. То есть «я делал так, а вам стоит вот так».</p>
+
+<h2>Формула заголовка</h2>
+<p><strong>54 % заголовков построены как «ключ : хвост».</strong> Левая часть — поисковая фраза, правая дописана в маске сайта.</p>
+<pre>Зеркало Б            :  как попасть в красильню без кринжа
+Каталог Б Казино     :  Рыбная артель провайдеров 🐠
+Как забрать бонус    :  инструкция по‑костёрному раскаливанию 🔥
+Оценочная карта      :  аптекарский огород Б (EEAT — по шести грядкам)</pre>
+<p>Левые части повторяются между сайтами — это и есть список ключей: <code>таблица</code> (16 сайтов), <code>ответы на вопросы</code> (15), <code>оценочная карта</code> (12), <code>оператор Б</code> (10), <code>зеркало</code> (9), <code>плюсы и минусы Б</code> (8).</p>
+<p>Иногда хвост не дописан, и остаётся голый ключ — со строчной буквы, в неестественном падеже. Таких 0,6 %, и читаются они как строки из Вордстата:</p>
+<pre>промокод на регистрацию
+привилегии постоянных игроков
+все акции
+действующие на сегодня акции
+регистрация с мобильного телефона бесплатно
+кэшбэк в казино и другие привилегии постоянных игроков</pre>
+<p>Опечатки тиражируются вместе с ключом: <strong>«Летереи»</strong> вместо «Лотереи» — у пяти сайтов, «турнины», «по шестим критериям». Это доказывает, что заголовок берётся из списка, а не сочиняется.</p>
+<p>Медиана длины заголовка — <strong>7 слов</strong>: ключ около трёх плюс хвост около четырёх.</p>
+
+<h2>Словарь фактов: шесть чисел на весь корпус</h2>
+<p>На тридцати шести сайтах по семь страниц — <strong>шесть разных значений RTP</strong>:</p>
+<pre>96.5 ×18    96.21 ×3    96.01 ×2    96.1 ×2    96.51 ×1    96.3 ×1</pre>
+<p>Одно значение, <strong>96.5</strong>, покрывает две трети упоминаний и встречается у 25 сайтов из 36. Процентов бонуса — семь, из них 100 % шестнадцать раз.</p>
+<p>Константа настолько жёсткая, что протекает в чужие места: у volna в оценочной карте стоит «OS iOS: 96.5», у kush — «минимального требования по пополнению (например от 96.5)».</p>
+<p>Вторая константа — <strong>«бонусный раунд ≈ 1 на 70 спинов»</strong>, у 15 сайтов дословно, с одним и тем же числом.</p>
+<p>Для сравнения: у нас в двадцати девяти версиях <span class="bad">36 разных значений RTP</span> и 16 процентов бонуса.</p>
+
+<h2>Ключ не в топе частотности</h2>
+<p>У <strong>34 сайтов из 36</strong> самое частое значимое слово — служебное: «как» (14 сайтов), «для» (6), «что» (5), «это» (5). Предметное слово попало на первое место ровно один раз — «клубок» у eva, и то это маска.</p>
+<div class="scroll">
+<table>
+<tr><th>ключ</th><th class="n">медианный ранг</th><th class="n">плотность</th></tr>
+<tr><td><code>игр*</code></td><td class="n">25</td><td class="n">1,86 %</td></tr>
+<tr><td><code>бонус*</code></td><td class="n">16</td><td class="n">0,95 %</td></tr>
+<tr><td><code>зеркал*</code></td><td class="n">22</td><td class="n">0,59 %</td></tr>
+<tr><td><code>вывод*</code></td><td class="n">67</td><td class="n">0,51 %</td></tr>
+<tr><td><code>регистрац*</code></td><td class="n">33</td><td class="n">0,49 %</td></tr>
+<tr><td><code>слот*</code></td><td class="n">82</td><td class="n">0,46 %</td></tr>
+<tr><td><code>лиценз*</code></td><td class="n">154</td><td class="n">0,33 %</td></tr>
+<tr><td><code>казино</code></td><td class="n">33</td><td class="n">0,28 %</td></tr>
+</table>
+</div>
+<p>Фабрика не гонит плотность ключа. Ключ размазан ниже уровня служебных слов, а частотную верхушку держит «как» — потому что текст отвечает на «как», а не на «что такое».</p>
+
+<h2>Ритм</h2>
+<div class="scroll">
+<table>
+<tr><th></th><th class="n">доноры</th><th class="n">наши 29 версий</th></tr>
+<tr><td>слов в абзаце, медиана</td><td class="n">25</td><td class="n bad">42</td></tr>
+<tr><td>абзацы ≤ 10 слов</td><td class="n">16,5 %</td><td class="n bad">1,8 %</td></tr>
+<tr><td>абзацы 10–30 слов</td><td class="n">43 %</td><td class="n">28,9 %</td></tr>
+<tr><td>абзацы 30–60 слов</td><td class="n">34,2 %</td><td class="n">40,2 %</td></tr>
+<tr><td>абзацы &gt; 60 слов</td><td class="n">6,3 %</td><td class="n bad">29,1 %</td></tr>
+<tr><td>слов в предложении</td><td class="n">13</td><td class="n">15</td></tr>
+<tr><td>предложения ≤ 5 слов</td><td class="n">14,1 %</td><td class="n bad">6,7 %</td></tr>
+</table>
+</div>
+<p>Абзац у доноров вдвое короче нашего, коротких абзацев в девять раз больше, длинных — в пять раз меньше. Распределение почти плоское от нуля до шестидесяти слов, а не колокол вокруг среднего. Пункт списка — 11 слов, нумерованных списков 30 %.</p>
+
+<h2>FAQ закрывает страх, а не незнание</h2>
+<p><strong>2183 вопроса на 36 сайтов — 61 на сайт</strong>, медиана 11 слов.</p>
+<div class="scroll">
+<table>
+<tr><th>что закрывает</th><th class="n">доля</th></tr>
+<tr><td>сбой / отказ</td><td class="n ok">29 %</td></tr>
+<tr><td>инструкция «как»</td><td class="n">18 %</td></tr>
+<tr><td>разрешение «можно ли»</td><td class="n">15 %</td></tr>
+<tr><td>безопасность</td><td class="n">9 %</td></tr>
+<tr><td>объяснение «почему»</td><td class="n">7 %</td></tr>
+</table>
+</div>
+<p>«Что делать, если…» — 19 %. Цифра есть только в 8 % вопросов, время <code>чч:мм</code> — в 1 %. Сценарность не числовая, а <strong>аварийная</strong>:</p>
+<pre>Что делать, если промокод применился, но бонус не начислился
+   из-за статуса ставки «в процессе»?
+Аккаунт заблокировали после крупного выигрыша — что делать?
+Выбросило из live-рума и показало "session expired" —
+   как вернуть сессию и выплаты?
+Как отличить официальный вход от фишингового клона, если домен
+   и интерфейс почти идентичны?</pre>
+
+<h2>Оценка и отзывы</h2>
+<p><strong>Оценочная карта</strong> — жёсткий блок из шести критериев, названия переодеты в маску:</p>
+<pre>Каталог · Бонусы · Касса · Поддержка · Безопасность · Мобайл</pre>
+<p>Баллы от 6,5 до 9,2, медиана 8,0. Итоговый средний балл сайта — от 7,7 до 8,4, медиана <strong>7,9</strong>. Никогда не десять и никогда ниже шести с половиной: достаточно высоко, чтобы рекомендовать, достаточно низко, чтобы выглядеть проверкой.</p>
+<p><strong>Отзывы</strong>: 51 штука с разметкой <code>schema.org/Comment</code> + <code>Person</code> + <code>datePublished</code> (дата — плейсхолдер <code>%date%</code>). Оценки: <strong>3★ ×12, 4★ ×17, 5★ ×22 — ни одной единицы и ни одной двойки.</strong> Четверть отзывов — тройки: минус говорит игрок, а не автор.</p>
+<p><strong>Минусы</strong> берутся из общего пула четырёх претензий: волатильность высокая (11 сайтов), бонусный раунд ≈ 1 на 70 спинов (7), демо-спины ограничены (5), верификация долгая (5).</p>
+
+<h2>Тон: пугает в семь раз больше, чем обещает</h2>
+<div class="scroll">
+<table>
+<tr><th></th><th class="n">всего</th><th class="n">на сайт</th></tr>
+<tr><td>предупреждение о риске</td><td class="n">1539</td><td class="n">42,8</td></tr>
+<tr><td>обещание выигрыша</td><td class="n">206</td><td class="n">5,7</td></tr>
+<tr><td>призывы к действию</td><td class="n">1671</td><td class="n">46,4</td></tr>
+</table>
+</div>
+<p>Соотношение <strong>7,5 : 1</strong>. У нас — 3 : 1. Привязки ко времени почти нет: год назван 1,2 раза на сайт, «сегодня» — 1,3. Контент не устаревает.</p>
+
+<h2>Где мы против них</h2>
+<div class="scroll">
+<table>
+<tr><th></th><th class="n">доноры «проза»</th><th class="n">наши 29 версий</th></tr>
+<tr><td>зачин: офиц. сайт + регистрация + зеркало в одном абзаце</td><td class="n ok">35/36</td><td class="n bad">1/29</td></tr>
+<tr><td>список-оглавление с эмодзи в зачине</td><td class="n ok">34/36</td><td class="n bad">1/29</td></tr>
+<tr><td>таблица-паспорт в зачине</td><td class="n ok">25/36</td><td class="n bad">0/29</td></tr>
+<tr><td>слов до первого H2, медиана</td><td class="n ok">169</td><td class="n bad">0</td></tr>
+<tr><td>заголовок «ключ : хвост»</td><td class="n">54 %</td><td class="n bad">15 %</td></tr>
+<tr><td>слов в заголовке</td><td class="n">7</td><td class="n bad">3</td></tr>
+<tr><td>разных значений RTP на корпус</td><td class="n ok">6</td><td class="n bad">36</td></tr>
+<tr><td>ранг ключа «казино»</td><td class="n">33</td><td class="n bad">477</td></tr>
+<tr><td>ранг «слот»</td><td class="n">82</td><td class="n bad">872</td></tr>
+<tr><td>слов в абзаце</td><td class="n">25</td><td class="n bad">42</td></tr>
+<tr><td>коротких абзацев ≤10 слов</td><td class="n">16,5 %</td><td class="n bad">1,8 %</td></tr>
+<tr><td>FAQ на страницу</td><td class="n ok">61</td><td class="n bad">5,3</td></tr>
+<tr><td>FAQ про сбой / отказ</td><td class="n">29 %</td><td class="n bad">1 %</td></tr>
+<tr><td>schema.org на отзыве</td><td class="n">13/36</td><td class="n bad">0/21</td></tr>
+<tr><td>звёзды ★☆</td><td class="n">15/50</td><td class="n">10/21</td></tr>
+<tr><td>предупреждение : обещание</td><td class="n">7,5 : 1</td><td class="n">3 : 1</td></tr>
+</table>
+</div>
+<p>Двадцать одна наша версия из двадцати девяти <strong>начинается сразу с H2</strong>. У доноров перед первым H2 стоит 169 слов: абзац-паспорт, список-оглавление с эмодзи, таблица «Атрибут | Значение». Это самый крупный структурный разрыв. Второй — FAQ: у них шестьдесят один вопрос на страницу и почти треть про поломку, у нас пять и почти ничего про поломку. Третий — словарь фактов: у них шесть чисел на весь корпус, у нас тридцать шесть.</p>
+
+<h2>Что из этого — принцип</h2>
+<div class="key">
+<ol>
+<li><strong>Уникальность покупается выдумкой, а не синонимизацией.</strong> 0,03 % на 630 парах при полном совпадении фактуры. Маска и ракурс разводят тексты, потому что придуманы, а не перефразированы.</li>
+<li><strong>Плотность ключа не поднимают.</strong> «Казино» на 33-м месте, «слот» на 82-м. Верхушку держит «как».</li>
+<li><strong>Фактура — крошечный жёсткий пул.</strong> Шесть RTP, семь бонусов, четыре минуса, шесть критериев оценки. Повтор числа между страницами намеренный.</li>
+<li><strong>Держат форму, а не объём.</strong> Водность 29–32 % на всех семи типах, уникальная шапка у каждой таблицы, 100 % разовых анкоров на внутренних, 2,9 H3 на H2 — при объёме, гуляющем в пять раз.</li>
+<li><strong>Три приёма под запретом:</strong> шаблон обращения, заявка на закрытое знание, зачин «а на деле». Ноль на 252 страницах.</li>
+<li><strong>Страх дороже обещания.</strong> 7,5 : 1. Треть FAQ — про то, что сломалось.</li>
+</ol>
+</div>
+
+<footer>
+<code>engine/razbros-korpusa.php samples/v4-donors main --школа=проза</code> ·
+<code>engine/razbor-zhanra.php samples/v4-donors --школа=проза</code> ·
+выкладки <code>reports/v4/razbros-proza-*.json</code>, <code>reports/v4/zhanr-proza.json</code> ·
+текст <code>docs/v4-zhanr-new50_3.md</code>
+</footer>
+
+</div>
+</body>
+</html>

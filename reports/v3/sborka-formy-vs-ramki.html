@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Формы против рамок: гипотеза, которая не подтвердилась</title>
+<style>
+  :root { --bg:#fff; --fg:#1a1a1a; --mut:#666; --line:#e3e3e3; --note:#f4f4f4; --ok:#2f7d32; --bad:#b3261e; --warn:#8a6a00; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#16181c; --fg:#e6e6e6; --mut:#9aa0a6; --line:#2e3238; --note:#1e2126; --ok:#7ec783; --bad:#f2b8b5; --warn:#e0c060; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:28px 20px 60px; background:var(--bg); color:var(--fg);
+         font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; }
+  .wrap { max-width:1040px; margin:0 auto; }
+  h1 { font-size:26px; margin:0 0 6px; letter-spacing:-.01em; }
+  .sub { color:var(--mut); margin:0 0 24px; font-size:14px; }
+  h2 { font-size:19px; margin:38px 0 10px; padding-top:18px; border-top:1px solid var(--line); }
+  h3 { font-size:16px; margin:22px 0 8px; }
+  table { border-collapse:collapse; width:100%; font-size:14px; margin:12px 0 8px; }
+  th,td { border:1px solid var(--line); padding:7px 10px; text-align:left; vertical-align:top; }
+  th { background:var(--note); font-weight:600; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .ok { color:var(--ok); font-weight:600; } .bad { color:var(--bad); font-weight:600; } .warn { color:var(--warn); font-weight:600; }
+  .note { background:var(--note); border-radius:8px; padding:12px 15px; font-size:14.5px; margin:12px 0; }
+  .key { border-left:4px solid var(--warn); background:var(--note); border-radius:8px; padding:14px 16px; margin:16px 0; }
+  code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13.5px; background:var(--note); padding:1px 5px; border-radius:4px; }
+  pre { background:var(--note); border-radius:8px; padding:12px 14px; overflow-x:auto; font-size:13px; line-height:1.5; }
+  .scroll { overflow-x:auto; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Формы против рамок</h1>
+<p class="sub">Гипотеза выглядела очевидной, замер её не подтвердил. И это оказалось полезнее, чем если бы подтвердил.</p>
+
+<h2>В чём была идея</h2>
+<p>Мешок расходовал <b>рамки</b>: взяли заготовку — вычеркнули из списка. Но одна рамка с четырьмя вариативными местами даёт десятки разных предложений. Значит мешок занижал ёмкость банка ровно во столько раз, сколько форм несёт рамка, — и достаточно считать израсходованными <b>готовые фразы</b>, а не заготовки. Ёмкость выросла бы втрое без единой новой рамки.</p>
+
+<h2>Замер</h2>
+<p>На <code>set199</code>, один и тот же сид, всё остальное неизменно.</p>
+<div class="scroll">
+<table>
+<tr><th>Расход мешка</th><th>Обычный</th><th>Перекличка</th><th>Строгий</th><th>Перекличка</th><th>Между сидами</th></tr>
+<tr><td><b>по рамкам</b> (как было)</td><td class="num">62 %</td><td class="num">23.5 %</td><td class="num">60 %</td><td class="num ok">0.75 %</td><td class="num warn">11.3 %</td></tr>
+<tr><td>по готовым формам</td><td class="num">63 %</td><td class="num">22.5 %</td><td class="num">62 %</td><td class="num bad">24.0 %</td><td class="num bad">12.8 %</td></tr>
+</table>
+</div>
+<p>Разница в пределах шума везде, кроме строгого режима — там расход по формам ломает всё: мешок пополняется заново в поисках свежей формы, и перекличка подскакивает с 0.75% до 24%.</p>
+
+<div class="key">
+<b>Почему не сработало.</b> Причина в банке, а не в механизме. Варианты внутри рамки различаются одним-двумя словами, а шестисловное окно от этого не меняется:
+<pre>((Резервный адрес|Зеркало)) — ((та же площадка|та же самая площадка)) {Б} на другом домене
+                    ↑ различие в одном слове — шингл «та же площадка Б на другом» совпадает</pre>
+<b>Чтобы вариант ломал шингл, он должен расходиться с соседним минимум на три слова подряд.</b> В банке сегодня синонимы, а не перефразировки.
+</div>
+
+<h2>Что сделано с результатом</h2>
+<p>Флаг <code>--forms</code> оставлен и выключен по умолчанию, с объяснением прямо в коде: он станет выигрышным, когда варианты начнут переписывать фразу, а не подменять в ней слово. Это не мёртвый код, а записанная гипотеза с условием проверки.</p>
+
+<h2>Где сборщик сейчас</h2>
+<table>
+<tr><th>Режим</th><th>Объём</th><th>Совпадение</th><th>Перекличка внутри набора</th></tr>
+<tr><td>обычный + доводчик</td><td class="num ok">101 % цели</td><td class="num warn">63 %</td><td class="num bad">23.5 %</td></tr>
+<tr><td>строгий</td><td class="num bad">35 % цели</td><td class="num warn">60 %</td><td class="num ok">0.75 %</td></tr>
+</table>
+<div class="note">Строгий режим дал <b>лучшую перекличку за всё время работы</b> — 0.75% при пороге 6.5%. Обычный впервые перекрыл цель по объёму: 101%. Между этими двумя строчками и лежит вся оставшаяся работа.</div>
+
+<h2>Что теперь известно точно</h2>
+<ol>
+<li><b>Объём</b> механикой закрывается полностью. Ни одному человеку за два прогона это не удалось.</li>
+<li><b>Перекличка внутри набора</b> закрывается, если банка хватает: строгий режим доказывает это на 0.75%.</li>
+<li><b>Обе задачи упираются в одно</b> — сколько текста банк может выдать, ни разу не повторившись. Сегодня 35% набора.</li>
+<li><b>Наращивать надо не число рамок, а разброс внутри них.</b> Замер показал: удвоение банка синонимами почти ничего не даст, нужны варианты, расходящиеся на три слова подряд.</li>
+</ol>
+<p>То есть следующая работа — переписать существующие 732 рамки так, чтобы каждая имела две-три полноценные перефразировки, а не набор синонимов. Это то же авторское усилие, но направленное точно.</p>
+
+</div>
+</body>
+</html>

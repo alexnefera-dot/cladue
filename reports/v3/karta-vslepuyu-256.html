@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Набор по одной карточке: сколько она несёт сама</title>
+<style>
+  :root { --bg:#fff; --fg:#1a1a1a; --mut:#666; --line:#e3e3e3; --note:#f4f4f4; --ok:#2f7d32; --bad:#b3261e; --warn:#8a6a00; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#16181c; --fg:#e6e6e6; --mut:#9aa0a6; --line:#2e3238; --note:#1e2126; --ok:#7ec783; --bad:#f2b8b5; --warn:#e0c060; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:28px 20px 60px; background:var(--bg); color:var(--fg);
+         font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; }
+  .wrap { max-width:1040px; margin:0 auto; }
+  h1 { font-size:26px; margin:0 0 6px; letter-spacing:-.01em; }
+  .sub { color:var(--mut); margin:0 0 24px; font-size:14px; }
+  h2 { font-size:19px; margin:38px 0 10px; padding-top:18px; border-top:1px solid var(--line); }
+  h3 { font-size:16px; margin:22px 0 8px; }
+  table { border-collapse:collapse; width:100%; font-size:14px; margin:12px 0 8px; }
+  th,td { border:1px solid var(--line); padding:7px 10px; text-align:left; vertical-align:top; }
+  th { background:var(--note); font-weight:600; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .ok { color:var(--ok); font-weight:600; } .bad { color:var(--bad); font-weight:600; } .warn { color:var(--warn); font-weight:600; }
+  .note { background:var(--note); border-radius:8px; padding:12px 15px; font-size:14.5px; margin:12px 0; }
+  .key { border-left:4px solid var(--warn); background:var(--note); border-radius:8px; padding:14px 16px; margin:16px 0; }
+  code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13.5px; background:var(--note); padding:1px 5px; border-radius:4px; }
+  .bars { margin:14px 0; }
+  .bar { display:flex; align-items:center; gap:10px; margin:6px 0; font-size:14px; }
+  .bar .lbl { width:230px; flex:none; }
+  .bar .track { flex:1; height:18px; background:var(--note); border-radius:4px; overflow:hidden; }
+  .bar .fill { height:100%; background:currentColor; opacity:.55; }
+  .bar .val { width:48px; flex:none; text-align:right; font-variant-numeric:tabular-nums; }
+  .scroll { overflow-x:auto; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Набор, написанный по одной карточке</h1>
+<p class="sub">Замер того, что просили проверить: сколько параметров писатель берёт с карточки, не видя ничего кроме неё.</p>
+
+<div class="note"><b>Как поставлен опыт.</b> Взят <code>set256</code> — единственный образец, тексты которого не читались построчно. Карточка собрана автоматически, промпт не использовался, сам образец не открывался. Это те же условия, в которых работает реалайзер. Результат первого прохода зафиксирован <b>до</b> любых правок.</p>
+
+<h2>Результат</h2>
+<div class="bars">
+<div class="bar" style="color:var(--bad)"><span class="lbl">Первый проход, только карточка</span><span class="track"><span class="fill" style="width:66%"></span></span><span class="val">66 %</span></div>
+<div class="bar" style="color:var(--warn)"><span class="lbl">Машинный клон (реалайзер)</span><span class="track"><span class="fill" style="width:73%"></span></span><span class="val">73 %</span></div>
+<div class="bar" style="color:var(--warn)"><span class="lbl">После двух правок</span><span class="track"><span class="fill" style="width:72%"></span></span><span class="val">72 %</span></div>
+<div class="bar" style="color:var(--ok)"><span class="lbl">set242 — образец был прочитан</span><span class="track"><span class="fill" style="width:83%"></span></span><span class="val">83 %</span></div>
+</div>
+<p>Карточка сама по себе даёт две трети. Прочитанный образец добавляет ещё семнадцать пунктов — и это ровно та разница, которую опыт должен был измерить.</p>
+
+<div class="key">
+<b>Главное, и оно не то, чего я ожидал.</b> Расхождение — не в том, о чём карточка молчит. Я проверил каждый промах против текста карточки: <b>все числа там были</b>. Бренд-вставок 30 — написано, сделано 11. Списков 19 — написано, сделано 8. Эмодзи 10 — написано, сделано 16. Императивов 7 — написано, сделано 0. Призывов 11 — написано, сделано 1. Заголовков-вопросов 12.5% — написано, сделано 0.
+<br><br>
+Карточка несёт информацию и теряет внимание. На страницу приходится 55 целевых чисел, а писать надо 7700 слов связного текста. Больше параметров эту проблему усугубят, а не решат.
+</div>
+
+<h2>Что именно промахнулось на первом проходе</h2>
+<div class="scroll">
+<table>
+<tr><th>Параметр</th><th>Карточка</th><th>Вышло</th><th>Была ли строка в карточке</th></tr>
+<tr><td>Бренд латиницей, main</td><td class="num">30</td><td class="num bad">11</td><td class="bad">да</td></tr>
+<tr><td>Списков, main</td><td class="num">19</td><td class="num bad">8</td><td class="bad">да</td></tr>
+<tr><td>Эмодзи, main</td><td class="num">10</td><td class="num bad">16</td><td class="bad">да</td></tr>
+<tr><td>Императивов, main</td><td class="num">7</td><td class="num bad">0</td><td class="bad">да</td></tr>
+<tr><td>Заголовков-вопросов, main</td><td class="num">12.5 %</td><td class="num bad">0 %</td><td class="bad">да</td></tr>
+<tr><td>H3 с двоеточием, slots</td><td class="num">83.3 %</td><td class="num bad">28.6 %</td><td class="bad">да</td></tr>
+<tr><td>Цифр на 100 слов, main</td><td class="num">3.1</td><td class="num bad">0.5</td><td class="bad">да</td></tr>
+<tr><td>Таблица на registracia</td><td class="num">2 колонки</td><td class="num bad">нет таблицы</td><td class="bad">да</td></tr>
+<tr><td>Разовых анкоров</td><td class="num">100 %</td><td class="num bad">ссылок нет</td><td class="warn">делегировано промпту</td></tr>
+</table>
+</div>
+<p style="font-size:14px;color:var(--mut)">Единственная строка, где карточка действительно не могла помочь, — последняя: перелинковка в ней отсылает к промпту, а промпта в опыте не было.</p>
+
+<h2>Что не закрылось и после двух правок</h2>
+<div class="scroll">
+<table>
+<tr><th>Параметр</th><th>Образец</th><th>У нас</th><th>Почему тяжело</th></tr>
+<tr><td>Обращение на «ты», main</td><td class="num">105</td><td class="num bad">48</td><td>тон держится сам собой только первые страницы</td></tr>
+<tr><td>Объём, main</td><td class="num">3167</td><td class="num bad">1957</td><td>писать втрое дольше, чем править</td></tr>
+<tr><td>Прямых призывов, main</td><td class="num">11</td><td class="num bad">1</td><td>идёт вразрез с привычкой «объяснять, а не продавать»</td></tr>
+<tr><td>Мест с минусом, main</td><td class="num">33</td><td class="num bad">14</td><td>то же</td></tr>
+<tr><td>Слов в заголовке</td><td class="num">~10</td><td class="num bad">~7</td><td>короткие заголовки пишутся сами</td></tr>
+<tr><td>Опорных формул, main</td><td class="num">23</td><td class="num bad">4</td><td>анкоры без промпта неоткуда взять</td></tr>
+</table>
+</div>
+
+<h2>Два шлюза уникальности не пройдены — и это тоже результат</h2>
+<table>
+<tr><th>Проверка</th><th>Результат</th><th>Порог</th><th>Итог</th></tr>
+<tr><td>Пересечение с образцом set256</td><td class="num ok">0.01 %</td><td class="num">6 %</td><td class="ok">пройдено</td></tr>
+<tr><td>Перекличка внутри набора</td><td class="num bad">9.48 %</td><td class="num">6.5 %</td><td class="bad">провалено</td></tr>
+<tr><td>Против набора <code>ruchnoy-242</code></td><td class="num bad">12.16 %</td><td class="num">6 %</td><td class="bad">провалено</td></tr>
+</table>
+<div class="note">Причина у обоих провалов одна и та же. Внутри набора: <code>slots</code> и <code>bonus</code> пересказывают объяснение отдачи и отыгрыша, уже данное на главной, — 75 и 62 совпавших шингла. Между наборами: я писал оба набора из одной головы, и одинаковые факты легли одинаковыми фразами — <code>app</code> совпал на 12.16%. Реалайзер с разными сидами так не делает по построению; это ограничение ручного метода, а не карточки. <b>Набор в текущем виде приёмку не проходит.</b></div>
+
+<h2>Вывод</h2>
+<p>Карточка достаточна по содержанию и недостаточна по форме. Она перечисляет 55 равноправных чисел, из которых писатель удерживает две трети — и теряет именно те, что легко посчитать механически: количество вставок бренда, списков, эмодзи, императивов.</p>
+<p>Отсюда следующий шаг, и он не про новые параметры:</p>
+<ol>
+<li><b>Разделить карточку на две части.</b> Наверху — пять-шесть решений, которые определяют текст: тон обращения, объём, кто говорит, продаёт страница или объясняет, о чём она на самом деле. Ниже — счётный список, который проверяется после написания, а не держится в голове во время.</li>
+<li><b>Механический доводчик.</b> Вставки бренда, эмодзи, доля нумерованных списков, доля заголовков с двоеточием, число императивов — всё это правится скриптом после генерации, без участия писателя. Половина промахов закрывается автоматически.</li>
+<li><b>Правило против самоповтора.</b> В карточку сателлита добавить прямой запрет объяснять то, что уже объяснено на главной, — сегодняшний провал шлюза на 9.48% случился именно здесь.</li>
+</ol>
+
+</div>
+</body>
+</html>

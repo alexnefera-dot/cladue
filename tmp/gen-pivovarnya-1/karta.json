@@ -1,0 +1,32 @@
+{
+    "комплект": "pivovarnya-1",
+    "маска": "пивоварня",
+    "ракурс": "пивовар",
+    "рефрен": "замер плотности сусла",
+    "словарь": [
+        "затор",
+        "сусло",
+        "дрожжи",
+        "брожение",
+        "ареометр",
+        "фильтрация",
+        "розлив"
+    ],
+    "срезы": {
+        "app": "Программа поверх сторонней оболочки: почему кнопки смещены",
+        "bonus": "Бонус выходного дня: чем он отличается от буднего",
+        "registracia": "Один номер телефона на двух родственников",
+        "slots": "Пометки волатильности в карточке: кто их ставит",
+        "vhod": "Логин принят, а второй ключ не запрашивают",
+        "zerkalo": "Один домен на несколько площадок сразу"
+    },
+    "промпты": {
+        "main": "tmp\/gen-pivovarnya-1\/prompt-main.md",
+        "app": "tmp\/gen-pivovarnya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-pivovarnya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-pivovarnya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-pivovarnya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-pivovarnya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-pivovarnya-1\/prompt-zerkalo.md"
+    }
+}

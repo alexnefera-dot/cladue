@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Набор 227 руками: второй набор подряд без промахов</title>
+<style>
+  :root { --bg:#fff; --fg:#1a1a1a; --mut:#666; --line:#e3e3e3; --note:#f4f4f4; --ok:#2f7d32; --bad:#b3261e; --warn:#8a6a00; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#16181c; --fg:#e6e6e6; --mut:#9aa0a6; --line:#2e3238; --note:#1e2126; --ok:#7ec783; --bad:#f2b8b5; --warn:#e0c060; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:28px 20px 60px; background:var(--bg); color:var(--fg);
+         font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; }
+  .wrap { max-width:1100px; margin:0 auto; }
+  h1 { font-size:26px; margin:0 0 6px; letter-spacing:-.01em; }
+  .sub { color:var(--mut); margin:0 0 24px; font-size:14px; }
+  h2 { font-size:19px; margin:38px 0 10px; padding-top:18px; border-top:1px solid var(--line); }
+  h3 { font-size:16px; margin:22px 0 8px; }
+  table { border-collapse:collapse; width:100%; font-size:13.5px; margin:12px 0 8px; }
+  th,td { border:1px solid var(--line); padding:6px 8px; text-align:left; vertical-align:top; }
+  th { background:var(--note); font-weight:600; position:sticky; top:0; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .ref { color:var(--mut); font-size:11.5px; margin-left:3px; }
+  .ok { color:var(--ok); } .bad { color:var(--bad); font-weight:700; } .warn { color:var(--warn); font-weight:600; }
+  .big { font-size:15px; }
+  .note { background:var(--note); border-radius:8px; padding:12px 15px; font-size:14.5px; margin:12px 0; }
+  .key { border-left:4px solid var(--warn); background:var(--note); border-radius:8px; padding:14px 16px; margin:16px 0; }
+  code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13px; background:var(--note); padding:1px 5px; border-radius:4px; }
+  .scroll { overflow-x:auto; }
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin:16px 0; }
+  .card { background:var(--note); border-radius:8px; padding:12px 14px; }
+  .card b { display:block; font-size:22px; line-height:1.2; }
+  .card span { color:var(--mut); font-size:12.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Набор 227: 385 из 385, второй подряд</h1>
+<p class="sub">Совсем другой корпус — формальный SEO-тон на «вы», плотный бренд, отзывы в кавычках. Метод сработал без изменений.</p>
+
+<div class="cards">
+  <div class="card"><b class="ok">100%</b><span>совпадение с образцом<br>385/385 полей</span></div>
+  <div class="card"><b class="ok">0.07%</b><span>пересечение с образцом<br>порог 6%</span></div>
+  <div class="card"><b class="ok">2.03%</b><span>перекличка внутри набора<br>порог 6.5%</span></div>
+  <div class="card"><b>7 из 7</b><span>страниц по 55/55</span></div>
+</div>
+
+<h2>Чем 227 отличается от 240</h2>
+<p>Это два разных корпуса, и различия не косметические. Одна и та же карточка требует прямо противоположных решений.</p>
+<div class="scroll">
+<table>
+<tr><th>Признак</th><th>set240</th><th>set227</th></tr>
+<tr><td>Обращение</td><td>«ты» — 96 форм на главной</td><td>«вы» — «ты» почти нет вовсе</td></tr>
+<tr><td>Разделов H2 на главной</td><td class="num">9</td><td class="num">16</td></tr>
+<tr><td>Бренд на главной</td><td class="num">32 упоминания</td><td class="num">108 упоминаний</td></tr>
+<tr><td>Цифр на 100 слов</td><td class="num">3.3</td><td class="num">7.6</td></tr>
+<tr><td>Реплик в кавычках</td><td class="num">4</td><td class="num">29</td></tr>
+<tr><td>Отзывы с подписью</td><td>нет</td><td>есть, с тегом <code>cite</code></td></tr>
+<tr><td>Первое лицо</td><td class="num">9</td><td class="num">29</td></tr>
+<tr><td>Названий студий</td><td class="num">5</td><td class="num">0</td></tr>
+</table>
+</div>
+<div class="key">
+<b>Практический вывод.</b> Названия студий на 240 обязательны, на 227 — <b>запрещены</b>: счётчик там строго ноль. Я вставил три студии по привычке с прошлого набора и получил промах. Карточка это говорила, но взгляд соскальзывает на знакомое.
+</div>
+
+<h2>Сколько итераций ушло</h2>
+<div class="scroll">
+<table>
+<tr><th>Страница</th><th>Первый замер</th><th>Итераций</th><th>Итог</th></tr>
+<tr><td>zerkalo</td><td class="num">84%</td><td class="num">3</td><td class="num ok">100%</td></tr>
+<tr><td>vhod</td><td class="num">85%</td><td class="num">4</td><td class="num ok">100%</td></tr>
+<tr><td>registracia</td><td class="num">85%</td><td class="num">3</td><td class="num ok">100%</td></tr>
+<tr><td>bonus</td><td class="num">85%</td><td class="num">6</td><td class="num ok">100%</td></tr>
+<tr><td>slots</td><td class="num bad">76%</td><td class="num">5</td><td class="num ok">100%</td></tr>
+<tr><td>app</td><td class="num bad">76%</td><td class="num">7</td><td class="num ok">100%</td></tr>
+<tr><td>main</td><td class="num bad">49%</td><td class="num">9</td><td class="num ok">100%</td></tr>
+</table>
+</div>
+<p>Сателлиты стартовали с 76–85% против 82–96% на прошлом наборе: чужой тон даётся хуже знакомого. Главная снова оказалась самой дорогой — девять проходов.</p>
+
+<h2>Что этот набор добавил к пониманию</h2>
+
+<h3>1. Главную выгоднее собирать скриптом-генератором</h3>
+<p>Шестнадцать разделов H2 по 45 слов — это не текст, который держишь в голове целиком. Я написал её как питон-скрипт, где каждый блок — вызов функции, и правил не HTML, а исходник. Восемь итераций из девяти свелись к точечным заменам в одном файле, и ни одна не сломала разметку.</p>
+
+<h3>2. Плотность бренда — это распределение, а не сумма</h3>
+<p>Счётчиков три: общее число, число в заголовках и число в первой трети. Они тянут в разные стороны. Убираешь бренд из заголовков — падает общая сумма; добавляешь во вступление — вылезает первая треть. Сходится только тогда, когда бренд ставится в середину и конец текста, а заголовки остаются чистыми.</p>
+
+<h3>3. «Вода» лечится длиной фразы, а не словами-паразитами</h3>
+<p>На странице кассы водность вышла 20% против 28% у образца. Помогло не добавление вводных оборотов, а переписывание рубленых предложений в длинные с придаточными: «Связано это с процедурами банка, а не с работой площадки, и повлиять на срок касса не может». Счётчик считает служебные слова, а они появляются сами, когда фраза становится сложноподчинённой.</p>
+
+<h3>4. Перекличка внутри набора выросла — и это объяснимо</h3>
+<div class="note">2.03% против 0.17% на прошлом наборе. Причина в самом корпусе: 227 держится на повторяющихся числовых фактах — «100 ₽ для карт и кошельков», «вейджер x30», «15 платёжных систем». Одни и те же цифры на разных страницах дают одинаковые шестисловные окна. Порог 6.5% не превышен, но запас вдвое меньше прежнего.</div>
+
+<h2>Полная таблица: 55 полей × 7 страниц</h2>
+<p class="sub">В каждой ячейке наше значение и через дробь — образец.</p>
+<div class="scroll">
+<table class="big">
+<tr><th>Поле</th><th>main</th><th>zerkalo</th><th>vhod</th><th>registracia</th><th>bonus</th><th>slots</th><th>app</th></tr>
+<tr><td>объём слов</td><td class="num ok">1536<span class="ref">/2032</span></td><td class="num ok">351<span class="ref">/375</span></td><td class="num ok">574<span class="ref">/532</span></td><td class="num ok">415<span class="ref">/493</span></td><td class="num ok">380<span class="ref">/348</span></td><td class="num ok">612<span class="ref">/674</span></td><td class="num ok">515<span class="ref">/573</span></td></tr>
+<tr><td>H2</td><td class="num ok">17<span class="ref">/16</span></td><td class="num ok">2<span class="ref">/2</span></td><td class="num ok">2<span class="ref">/2</span></td><td class="num ok">2<span class="ref">/2</span></td><td class="num ok">2<span class="ref">/2</span></td><td class="num ok">2<span class="ref">/2</span></td><td class="num ok">2<span class="ref">/2</span></td></tr>
+<tr><td>разделов H2+H3</td><td class="num ok">48<span class="ref">/45</span></td><td class="num ok">6<span class="ref">/6</span></td><td class="num ok">7<span class="ref">/7</span></td><td class="num ok">6<span class="ref">/6</span></td><td class="num ok">7<span class="ref">/7</span></td><td class="num ok">7<span class="ref">/7</span></td><td class="num ok">4<span class="ref">/4</span></td></tr>
+<tr><td>списков</td><td class="num ok">7<span class="ref">/6</span></td><td class="num ok">2<span class="ref">/2</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">1<span class="ref">/1</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">1<span class="ref">/1</span></td><td class="num ok">2<span class="ref">/2</span></td></tr>
+<tr><td>strong</td><td class="num ok">15<span class="ref">/15</span></td><td class="num ok">6<span class="ref">/6</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">2<span class="ref">/2</span></td><td class="num ok">7<span class="ref">/9</span></td><td class="num ok">7<span class="ref">/7</span></td><td class="num ok">3<span class="ref">/4</span></td></tr>
+<tr><td>вопросительных знаков</td><td class="num ok">2<span class="ref">/3</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">1<span class="ref">/2</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td></tr>
+<tr><td>эмодзи</td><td class="num ok">19<span class="ref">/21</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td></tr>
+<tr><td>«я»</td><td class="num ok">24<span class="ref">/29</span></td><td class="num ok">4<span class="ref">/6</span></td><td class="num ok">1<span class="ref">/2</span></td><td class="num ok">5<span class="ref">/7</span></td><td class="num ok">0<span class="ref">/1</span></td><td class="num ok">3<span class="ref">/4</span></td><td class="num ok">1<span class="ref">/3</span></td></tr>
+<tr><td>«вы»</td><td class="num ok">10<span class="ref">/12</span></td><td class="num ok">2<span class="ref">/4</span></td><td class="num ok">3<span class="ref">/5</span></td><td class="num ok">1<span class="ref">/3</span></td><td class="num ok">0<span class="ref">/1</span></td><td class="num ok">2<span class="ref">/3</span></td><td class="num ok">8<span class="ref">/10</span></td></tr>
+<tr><td>«ты»</td><td class="num ok">1<span class="ref">/2</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">1<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">1<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/2</span></td><td class="num ok">0<span class="ref">/0</span></td></tr>
+<tr><td>заголовков по теме страницы %</td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">100<span class="ref">/83.3</span></td><td class="num ok">57.1<span class="ref">/57.1</span></td><td class="num ok">50<span class="ref">/50</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">42.9<span class="ref">/57.1</span></td><td class="num ok">75<span class="ref">/75</span></td></tr>
+<tr><td>реплик в кавычках</td><td class="num ok">23<span class="ref">/29</span></td><td class="num ok">1<span class="ref">/2</span></td><td class="num ok">1<span class="ref">/1</span></td><td class="num ok">1<span class="ref">/2</span></td><td class="num ok">1<span class="ref">/1</span></td><td class="num ok">1<span class="ref">/2</span></td><td class="num ok">1<span class="ref">/2</span></td></tr>
+<tr><td>бытовых сравнений</td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td></tr>
+<tr><td>зачинов «а на деле»</td><td class="num ok">0<span class="ref">/1</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td></tr>
+<tr><td>заявок на закрытое знание</td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td></tr>
+<tr><td>шаблонов обращения</td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td></tr>
+<tr><td>императивов</td><td class="num ok">8<span class="ref">/7</span></td><td class="num ok">6<span class="ref">/7</span></td><td class="num ok">9<span class="ref">/11</span></td><td class="num ok">1<span class="ref">/2</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">4<span class="ref">/3</span></td><td class="num ok">9<span class="ref">/11</span></td></tr>
+<tr><td>цифр на 100 слов</td><td class="num ok">8.5<span class="ref">/7.6</span></td><td class="num ok">4<span class="ref">/4.8</span></td><td class="num ok">7.8<span class="ref">/7.5</span></td><td class="num ok">2.4<span class="ref">/3</span></td><td class="num ok">9.2<span class="ref">/7.8</span></td><td class="num ok">9.8<span class="ref">/8.8</span></td><td class="num ok">3.3<span class="ref">/3.5</span></td></tr>
+<tr><td>прилагательных %</td><td class="num ok">13<span class="ref">/15.1</span></td><td class="num ok">11.4<span class="ref">/10.7</span></td><td class="num ok">13.1<span class="ref">/16</span></td><td class="num ok">14.5<span class="ref">/16.4</span></td><td class="num ok">10<span class="ref">/12.9</span></td><td class="num ok">13.9<span class="ref">/14.4</span></td><td class="num ok">14.8<span class="ref">/17.6</span></td></tr>
+<tr><td>тошнота %</td><td class="num ok">38.7<span class="ref">/39.7</span></td><td class="num ok">27.1<span class="ref">/28.3</span></td><td class="num ok">26.1<span class="ref">/33.3</span></td><td class="num ok">26.3<span class="ref">/28.8</span></td><td class="num ok">26.3<span class="ref">/24.4</span></td><td class="num ok">32.2<span class="ref">/31.2</span></td><td class="num ok">32.2<span class="ref">/37.5</span></td></tr>
+<tr><td>водность %</td><td class="num ok">23.6<span class="ref">/24.8</span></td><td class="num ok">26.5<span class="ref">/27.7</span></td><td class="num ok">23.9<span class="ref">/26.7</span></td><td class="num ok">23.4<span class="ref">/29</span></td><td class="num ok">26.6<span class="ref">/28.2</span></td><td class="num ok">25<span class="ref">/25.7</span></td><td class="num ok">24.9<span class="ref">/23.7</span></td></tr>
+<tr><td>бренд кириллицей</td><td class="num ok">35<span class="ref">/37</span></td><td class="num ok">16<span class="ref">/17</span></td><td class="num ok">21<span class="ref">/23</span></td><td class="num ok">16<span class="ref">/15</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">23<span class="ref">/29</span></td><td class="num ok">8<span class="ref">/10</span></td></tr>
+<tr><td>бренд латиницей</td><td class="num ok">55<span class="ref">/71</span></td><td class="num ok">3<span class="ref">/5</span></td><td class="num ok">1<span class="ref">/1</span></td><td class="num ok">7<span class="ref">/9</span></td><td class="num ok">7<span class="ref">/7</span></td><td class="num ok">2<span class="ref">/1</span></td><td class="num ok">27<span class="ref">/30</span></td></tr>
+<tr><td>бренд в заголовках</td><td class="num ok">15<span class="ref">/13</span></td><td class="num ok">2<span class="ref">/4</span></td><td class="num ok">1<span class="ref">/1</span></td><td class="num ok">1<span class="ref">/3</span></td><td class="num ok">1<span class="ref">/1</span></td><td class="num ok">1<span class="ref">/2</span></td><td class="num ok">2<span class="ref">/3</span></td></tr>
+<tr><td>бренд в первой трети</td><td class="num ok">30<span class="ref">/27</span></td><td class="num ok">7<span class="ref">/7</span></td><td class="num ok">7<span class="ref">/6</span></td><td class="num ok">11<span class="ref">/9</span></td><td class="num ok">2<span class="ref">/4</span></td><td class="num ok">5<span class="ref">/4</span></td><td class="num ok">11<span class="ref">/9</span></td></tr>
+<tr><td>пар «вопрос-ответ»</td><td class="num ok">10<span class="ref">/10</span></td><td class="num ok">5<span class="ref">/5</span></td><td class="num ok">14<span class="ref">/14</span></td><td class="num ok">12<span class="ref">/12</span></td><td class="num ok">5<span class="ref">/5</span></td><td class="num ok">14<span class="ref">/14</span></td><td class="num ok">15<span class="ref">/15</span></td></tr>
+<tr><td>вопросов в тексте</td><td class="num ok">12<span class="ref">/16</span></td><td class="num ok">5<span class="ref">/5</span></td><td class="num ok">14<span class="ref">/14</span></td><td class="num ok">13<span class="ref">/14</span></td><td class="num ok">5<span class="ref">/5</span></td><td class="num ok">14<span class="ref">/14</span></td><td class="num ok">15<span class="ref">/15</span></td></tr>
+<tr><td>опорных формул</td><td class="num ok">28<span class="ref">/37</span></td><td class="num ok">10<span class="ref">/11</span></td><td class="num ok">5<span class="ref">/4</span></td><td class="num ok">5<span class="ref">/5</span></td><td class="num ok">3<span class="ref">/5</span></td><td class="num ok">5<span class="ref">/6</span></td><td class="num ok">7<span class="ref">/6</span></td></tr>
+<tr><td>зачин: имя с категорией</td><td class="num ok">1<span class="ref">/1</span></td><td class="num ok">1<span class="ref">/1</span></td><td class="num ok">1<span class="ref">/1</span></td><td class="num ok">1<span class="ref">/1</span></td><td class="num ok">1<span class="ref">/1</span></td><td class="num ok">1<span class="ref">/1</span></td><td class="num ok">1<span class="ref">/1</span></td></tr>
+<tr><td>зачин: ключ в начале</td><td class="num ok">1<span class="ref">/1</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td></tr>
+<tr><td>колонок в таблице</td><td class="num ok">3<span class="ref">/2.9</span></td><td class="num ok">3<span class="ref">/3</span></td><td class="num ok">3<span class="ref">/3</span></td><td class="num ok">3<span class="ref">/3</span></td><td class="num ok">3<span class="ref">/3</span></td><td class="num ok">3<span class="ref">/3</span></td><td class="num ok">3<span class="ref">/3</span></td></tr>
+<tr><td>уникальных шапок %</td><td class="num ok">100<span class="ref">/100</span></td><td class="num ok">100<span class="ref">/100</span></td><td class="num ok">100<span class="ref">/100</span></td><td class="num ok">100<span class="ref">/100</span></td><td class="num ok">100<span class="ref">/100</span></td><td class="num ok">100<span class="ref">/100</span></td><td class="num ok">100<span class="ref">/100</span></td></tr>
+<tr><td>отзывов с оценкой</td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td></tr>
+<tr><td>нумерованных списков %</td><td class="num ok">14.3<span class="ref">/16.7</span></td><td class="num ok">50<span class="ref">/50</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">100<span class="ref">/100</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">100<span class="ref">/100</span></td><td class="num ok">50<span class="ref">/50</span></td></tr>
+<tr><td>разовых анкоров %</td><td class="num ok">91.7<span class="ref">/95.5</span></td><td class="num ok">100<span class="ref">/100</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">100<span class="ref">/100</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">100<span class="ref">/100</span></td><td class="num ok">100<span class="ref">/100</span></td></tr>
+<tr><td>разных значений с %</td><td class="num ok">1<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">1<span class="ref">/0</span></td><td class="num ok">1<span class="ref">/1</span></td><td class="num ok">0<span class="ref">/0</span></td></tr>
+<tr><td>список в зачине</td><td class="num ok">1<span class="ref">/1</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td></tr>
+<tr><td>раздел открыт абзацем %</td><td class="num ok">23.5<span class="ref">/18.8</span></td><td class="num ok">50<span class="ref">/50</span></td><td class="num ok">50<span class="ref">/50</span></td><td class="num ok">50<span class="ref">/50</span></td><td class="num ok">50<span class="ref">/50</span></td><td class="num ok">50<span class="ref">/50</span></td><td class="num ok">50<span class="ref">/50</span></td></tr>
+<tr><td>H3 с вопросительного слова %</td><td class="num ok">6.5<span class="ref">/6.9</span></td><td class="num ok">25<span class="ref">/25</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">50<span class="ref">/50</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">20<span class="ref">/20</span></td><td class="num ok">0<span class="ref">/0</span></td></tr>
+<tr><td>H3 с двоеточием %</td><td class="num ok">12.9<span class="ref">/13.8</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td></tr>
+<tr><td>strong в начале блока %</td><td class="num ok">100<span class="ref">/80</span></td><td class="num ok">66.7<span class="ref">/66.7</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">28.6<span class="ref">/37.5</span></td><td class="num ok">42.9<span class="ref">/42.9</span></td><td class="num ok">0<span class="ref">/0</span></td></tr>
+<tr><td>эмодзи внутри фразы</td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td></tr>
+<tr><td>разброс длины абзаца</td><td class="num ok">13.7<span class="ref">/11.4</span></td><td class="num ok">9.9<span class="ref">/11.5</span></td><td class="num ok">22.5<span class="ref">/19.3</span></td><td class="num ok">11.9<span class="ref">/11.8</span></td><td class="num ok">15.4<span class="ref">/15.1</span></td><td class="num ok">20.1<span class="ref">/17.8</span></td><td class="num ok">8.9<span class="ref">/7.3</span></td></tr>
+<tr><td>коротких абзацев</td><td class="num ok">0<span class="ref">/1</span></td><td class="num ok">4<span class="ref">/4</span></td><td class="num ok">11<span class="ref">/10</span></td><td class="num ok">10<span class="ref">/11</span></td><td class="num ok">5<span class="ref">/3</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">4<span class="ref">/3</span></td></tr>
+<tr><td>абзацев</td><td class="num ok">33<span class="ref">/27</span></td><td class="num ok">9<span class="ref">/9</span></td><td class="num ok">20<span class="ref">/17</span></td><td class="num ok">17<span class="ref">/20</span></td><td class="num ok">12<span class="ref">/10</span></td><td class="num ok">18<span class="ref">/17</span></td><td class="num ok">20<span class="ref">/20</span></td></tr>
+<tr><td>слов в абзаце</td><td class="num ok">32.2<span class="ref">/29.1</span></td><td class="num ok">21.3<span class="ref">/22.1</span></td><td class="num ok">25<span class="ref">/25.4</span></td><td class="num ok">16.4<span class="ref">/19.9</span></td><td class="num ok">26.8<span class="ref">/26.9</span></td><td class="num ok">27.2<span class="ref">/29.5</span></td><td class="num ok">19.4<span class="ref">/22</span></td></tr>
+<tr><td>названий игр</td><td class="num ok">0<span class="ref">/2</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">15<span class="ref">/15</span></td><td class="num ok">0<span class="ref">/0</span></td></tr>
+<tr><td>названий студий</td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td></tr>
+<tr><td>разных имён игр и студий</td><td class="num ok">0<span class="ref">/2</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">8<span class="ref">/8</span></td><td class="num ok">0<span class="ref">/0</span></td></tr>
+<tr><td>профильных терминов</td><td class="num ok">41<span class="ref">/40</span></td><td class="num ok">19<span class="ref">/19</span></td><td class="num ok">9<span class="ref">/11</span></td><td class="num ok">10<span class="ref">/9</span></td><td class="num ok">12<span class="ref">/16</span></td><td class="num ok">41<span class="ref">/35</span></td><td class="num ok">14<span class="ref">/12</span></td></tr>
+<tr><td>H3 на один H2</td><td class="num ok">1.8<span class="ref">/1.8</span></td><td class="num ok">2<span class="ref">/2</span></td><td class="num ok">2.5<span class="ref">/2.5</span></td><td class="num ok">2<span class="ref">/2</span></td><td class="num ok">2.5<span class="ref">/2.5</span></td><td class="num ok">2.5<span class="ref">/2.5</span></td><td class="num ok">1<span class="ref">/1</span></td></tr>
+<tr><td>слов в заголовке</td><td class="num ok">6.2<span class="ref">/7.1</span></td><td class="num ok">6<span class="ref">/5.5</span></td><td class="num ok">3.5<span class="ref">/4</span></td><td class="num ok">6<span class="ref">/6</span></td><td class="num ok">5<span class="ref">/6.5</span></td><td class="num ok">7<span class="ref">/9</span></td><td class="num ok">5<span class="ref">/6.5</span></td></tr>
+<tr><td>заголовков-вопросов %</td><td class="num ok">5.9<span class="ref">/6.3</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">50<span class="ref">/50</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td></tr>
+<tr><td>прямых призывов</td><td class="num ok">4<span class="ref">/3</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/2</span></td><td class="num ok">0<span class="ref">/0</span></td></tr>
+<tr><td>мест с минусом или риском</td><td class="num ok">8<span class="ref">/7</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/0</span></td><td class="num ok">0<span class="ref">/1</span></td><td class="num ok">1<span class="ref">/2</span></td><td class="num ok">0<span class="ref">/0</span></td></tr>
+</table>
+</div>
+
+<h2>Где мы по всем наборам</h2>
+<div class="scroll">
+<table>
+<tr><th>Набор</th><th>Совпадение</th><th>Против образца</th><th>Внутри набора</th></tr>
+<tr><td>руками, set199</td><td class="num warn">69%</td><td class="num">—</td><td class="num warn">12.5%</td></tr>
+<tr><td>руками, set256</td><td class="num warn">74%</td><td class="num">—</td><td class="num">2.1%</td></tr>
+<tr><td>руками, set242</td><td class="num">83%</td><td class="num">—</td><td class="num">1.4%</td></tr>
+<tr><td><b>руками, set240</b></td><td class="num ok"><b>100%</b></td><td class="num ok">0.03%</td><td class="num ok">0.17%</td></tr>
+<tr><td><b>руками, set227</b></td><td class="num ok"><b>100%</b></td><td class="num ok">0.07%</td><td class="num ok">2.03%</td></tr>
+</table>
+</div>
+<p>Осталось четыре образца: <code>set229</code>, <code>set232</code>, <code>set235</code>, <code>set267</code>.</p>
+
+</div>
+</body>
+</html>

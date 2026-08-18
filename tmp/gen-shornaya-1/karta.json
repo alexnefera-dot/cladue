@@ -1,0 +1,32 @@
+{
+    "комплект": "shornaya-1",
+    "маска": "шорная мастерская",
+    "ракурс": "шорник",
+    "рефрен": "проба на разрыв",
+    "словарь": [
+        "гуж",
+        "супонь",
+        "подпруга",
+        "дратва",
+        "шило",
+        "вощение",
+        "шов внахлёст"
+    ],
+    "срезы": {
+        "app": "Сборка занимает место, а каталог в ней пустой",
+        "bonus": "Бонус за приведённого друга: когда он придёт и когда нет",
+        "registracia": "Документ принят, но просят подтвердить адрес",
+        "slots": "Автомат пропал из каталога вместе с историей ставок",
+        "vhod": "Сессия рвётся при переключении между сетями",
+        "zerkalo": "Старый адрес открывается, но каталог не грузится"
+    },
+    "промпты": {
+        "main": "tmp\/gen-shornaya-1\/prompt-main.md",
+        "app": "tmp\/gen-shornaya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-shornaya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-shornaya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-shornaya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-shornaya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-shornaya-1\/prompt-zerkalo.md"
+    }
+}

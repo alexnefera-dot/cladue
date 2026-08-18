@@ -1,0 +1,2002 @@
+<meta charset="utf-8"><title>Наборы против референса</title>
+<style>
+:root{--bg:#fdfdfc;--fg:#1a1c20;--mut:#666c75;--line:#e2e4e8;--ok:#2f6f4f;--bad:#a8323f;--card:#f5f6f8;--accent:#2b5f8f}
+@media (prefers-color-scheme:dark){:root{--bg:#131519;--fg:#e6e8ec;--mut:#949aa4;--line:#282c33;--ok:#6fbf8f;--bad:#e08290;--card:#191c21;--accent:#7fb0dd}}
+:root[data-theme=dark]{--bg:#131519;--fg:#e6e8ec;--mut:#949aa4;--line:#282c33;--ok:#6fbf8f;--bad:#e08290;--card:#191c21;--accent:#7fb0dd}
+:root[data-theme=light]{--bg:#fdfdfc;--fg:#1a1c20;--mut:#666c75;--line:#e2e4e8;--ok:#2f6f4f;--bad:#a8323f;--card:#f5f6f8;--accent:#2b5f8f}
+body{background:var(--bg);color:var(--fg);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;margin:0;padding:32px 20px}
+.wrap{max-width:1180px;margin:0 auto}
+h1{font-size:28px;margin:0 0 6px;text-wrap:balance}
+h2{font-size:21px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--line)}
+h3{font-size:13px;margin:24px 0 6px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em}
+p.lead{color:var(--mut);margin:0 0 16px;max-width:70ch}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px;margin:8px 0;font-variant-numeric:tabular-nums}
+th,td{border-bottom:1px solid var(--line);padding:6px 11px;text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal}
+thead th{color:var(--mut);font-weight:600;font-size:13px}
+thead th.ref{color:var(--fg)}
+thead th.set{color:var(--accent)}
+tbody tr:hover{background:var(--card)}
+tr.page td{background:var(--card);font-weight:600}
+.bad{color:var(--bad);font-weight:700}
+.ok{color:var(--ok)}
+.tot{font-weight:700}
+</style>
+<div class="wrap"><h1>Наборы против референса</h1>
+<p class="lead">Мерка та же, по которой идёт приёмка: 23 параметра на страницу, коридор ±25% (не меньше 2 для счётных и 0.8 для долей). Красным — значения вне коридора относительно референса.</p>
+<h2>set240 версия C — четыре набора</h2>
+<h3>Итог по наборам</h3><div class="scroll"><table><thead><tr><th>набор</th><th>совпало параметров</th><th>пересечение с референсом</th><th>худшая страница</th></tr></thead><tbody>
+<tr><td>набор 7</td><td class="tot">161/161 = 100%</td><td>0.05%</td><td>0.66%</td></tr>
+<tr><td>набор 8</td><td class="tot">161/161 = 100%</td><td>0.1%</td><td>0.52%</td></tr>
+<tr><td>набор 9</td><td class="tot">161/161 = 100%</td><td>0.13%</td><td>0.85%</td></tr>
+<tr><td>набор 10</td><td class="tot">161/161 = 100%</td><td>0.13%</td><td>0.77%</td></tr>
+</tbody></table></div>
+<h3>Параметры постранично</h3><div class="scroll"><table><thead><tr><th>параметр</th><th class="ref">референс 240C</th>
+<th class="set">набор 7</th>
+<th class="set">набор 8</th>
+<th class="set">набор 9</th>
+<th class="set">набор 10</th>
+</tr></thead><tbody>
+<tr class="page"><td colspan="6">app.html</td></tr>
+<tr><td>объём слов</td><td>712</td>
+<td class="ok">695</td>
+<td class="ok">623</td>
+<td class="ok">713</td>
+<td class="ok">678</td>
+</tr>
+<tr><td>H2</td><td>2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>разделов H2+H3</td><td>8</td>
+<td class="ok">8</td>
+<td class="ok">8</td>
+<td class="ok">8</td>
+<td class="ok">8</td>
+</tr>
+<tr><td>списков</td><td>3</td>
+<td class="ok">2</td>
+<td class="ok">4</td>
+<td class="ok">3</td>
+<td class="ok">3</td>
+</tr>
+<tr><td>strong</td><td>14</td>
+<td class="ok">16</td>
+<td class="ok">15</td>
+<td class="ok">15</td>
+<td class="ok">16</td>
+</tr>
+<tr><td>вопросительных знаков</td><td>1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>эмодзи</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>«я»</td><td>0</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">0</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>«вы»</td><td>2</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>императивов</td><td>31</td>
+<td class="ok">26</td>
+<td class="ok">29</td>
+<td class="ok">37</td>
+<td class="ok">31</td>
+</tr>
+<tr><td>цифр на 100 слов</td><td>1.1</td>
+<td class="ok">1.2</td>
+<td class="ok">1</td>
+<td class="ok">1.4</td>
+<td class="ok">1.3</td>
+</tr>
+<tr><td>прилагательных %</td><td>11.1</td>
+<td class="ok">10.9</td>
+<td class="ok">12.7</td>
+<td class="ok">10.5</td>
+<td class="ok">9.3</td>
+</tr>
+<tr><td>тошнота %</td><td>21.2</td>
+<td class="ok">22</td>
+<td class="ok">23.8</td>
+<td class="ok">23.6</td>
+<td class="ok">20.8</td>
+</tr>
+<tr><td>водность %</td><td>29.9</td>
+<td class="ok">28.1</td>
+<td class="ok">23.6</td>
+<td class="ok">30.6</td>
+<td class="ok">29.6</td>
+</tr>
+<tr><td>бренд кириллицей</td><td>1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">2</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>бренд латиницей</td><td>10</td>
+<td class="ok">10</td>
+<td class="ok">10</td>
+<td class="ok">8</td>
+<td class="ok">10</td>
+</tr>
+<tr><td>бренд в заголовках</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>бренд в первой трети</td><td>3</td>
+<td class="ok">4</td>
+<td class="ok">3</td>
+<td class="ok">4</td>
+<td class="ok">3</td>
+</tr>
+<tr><td>абзацев</td><td>12</td>
+<td class="ok">11</td>
+<td class="ok">11</td>
+<td class="ok">14</td>
+<td class="ok">12</td>
+</tr>
+<tr><td>слов в абзаце</td><td>41.8</td>
+<td class="ok">42.8</td>
+<td class="ok">37.2</td>
+<td class="ok">36.3</td>
+<td class="ok">42</td>
+</tr>
+<tr><td>названий игр</td><td>1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>названий студий</td><td>1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>профильных терминов</td><td>7</td>
+<td class="ok">7</td>
+<td class="ok">5</td>
+<td class="ok">8</td>
+<td class="ok">8</td>
+</tr>
+<tr class="page"><td colspan="6">bonus.html</td></tr>
+<tr><td>объём слов</td><td>410</td>
+<td class="ok">496</td>
+<td class="ok">506</td>
+<td class="ok">511</td>
+<td class="ok">480</td>
+</tr>
+<tr><td>H2</td><td>2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>разделов H2+H3</td><td>9</td>
+<td class="ok">9</td>
+<td class="ok">9</td>
+<td class="ok">9</td>
+<td class="ok">9</td>
+</tr>
+<tr><td>списков</td><td>4</td>
+<td class="ok">4</td>
+<td class="ok">4</td>
+<td class="ok">4</td>
+<td class="ok">3</td>
+</tr>
+<tr><td>strong</td><td>2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>вопросительных знаков</td><td>2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">3</td>
+</tr>
+<tr><td>эмодзи</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>«я»</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>«вы»</td><td>1</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>императивов</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>цифр на 100 слов</td><td>1</td>
+<td class="ok">0.6</td>
+<td class="ok">0.8</td>
+<td class="ok">1</td>
+<td class="ok">1.3</td>
+</tr>
+<tr><td>прилагательных %</td><td>9.5</td>
+<td class="ok">10.9</td>
+<td class="ok">11.7</td>
+<td class="ok">10.2</td>
+<td class="ok">8.8</td>
+</tr>
+<tr><td>тошнота %</td><td>18.3</td>
+<td class="ok">20.8</td>
+<td class="ok">20.8</td>
+<td class="ok">20.5</td>
+<td class="ok">19.4</td>
+</tr>
+<tr><td>водность %</td><td>29.8</td>
+<td class="ok">28.4</td>
+<td class="ok">24.5</td>
+<td class="ok">30.9</td>
+<td class="ok">30.2</td>
+</tr>
+<tr><td>бренд кириллицей</td><td>1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">2</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>бренд латиницей</td><td>3</td>
+<td class="ok">1</td>
+<td class="ok">3</td>
+<td class="ok">3</td>
+<td class="ok">3</td>
+</tr>
+<tr><td>бренд в заголовках</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>бренд в первой трети</td><td>1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>абзацев</td><td>7</td>
+<td class="ok">8</td>
+<td class="ok">9</td>
+<td class="ok">9</td>
+<td class="ok">8</td>
+</tr>
+<tr><td>слов в абзаце</td><td>30.1</td>
+<td class="ok">28.5</td>
+<td class="ok">28.1</td>
+<td class="ok">31</td>
+<td class="ok">36.9</td>
+</tr>
+<tr><td>названий игр</td><td>4</td>
+<td class="ok">4</td>
+<td class="ok">4</td>
+<td class="ok">4</td>
+<td class="ok">4</td>
+</tr>
+<tr><td>названий студий</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>профильных терминов</td><td>13</td>
+<td class="ok">15</td>
+<td class="ok">14</td>
+<td class="ok">15</td>
+<td class="ok">15</td>
+</tr>
+<tr class="page"><td colspan="6">main.html</td></tr>
+<tr><td>объём слов</td><td>3754</td>
+<td class="ok">4043</td>
+<td class="ok">3942</td>
+<td class="ok">4065</td>
+<td class="ok">3809</td>
+</tr>
+<tr><td>H2</td><td>9</td>
+<td class="ok">9</td>
+<td class="ok">9</td>
+<td class="ok">9</td>
+<td class="ok">9</td>
+</tr>
+<tr><td>разделов H2+H3</td><td>43</td>
+<td class="ok">44</td>
+<td class="ok">43</td>
+<td class="ok">43</td>
+<td class="ok">43</td>
+</tr>
+<tr><td>списков</td><td>21</td>
+<td class="ok">21</td>
+<td class="ok">21</td>
+<td class="ok">25</td>
+<td class="ok">21</td>
+</tr>
+<tr><td>strong</td><td>81</td>
+<td class="ok">91</td>
+<td class="ok">76</td>
+<td class="ok">84</td>
+<td class="ok">69</td>
+</tr>
+<tr><td>вопросительных знаков</td><td>3</td>
+<td class="ok">3</td>
+<td class="ok">3</td>
+<td class="ok">3</td>
+<td class="ok">4</td>
+</tr>
+<tr><td>эмодзи</td><td>44</td>
+<td class="ok">43</td>
+<td class="ok">44</td>
+<td class="ok">43</td>
+<td class="ok">44</td>
+</tr>
+<tr><td>«я»</td><td>10</td>
+<td class="ok">10</td>
+<td class="ok">10</td>
+<td class="ok">11</td>
+<td class="ok">10</td>
+</tr>
+<tr><td>«вы»</td><td>3</td>
+<td class="ok">1</td>
+<td class="ok">2</td>
+<td class="ok">1</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>императивов</td><td>9</td>
+<td class="ok">8</td>
+<td class="ok">10</td>
+<td class="ok">8</td>
+<td class="ok">9</td>
+</tr>
+<tr><td>цифр на 100 слов</td><td>2.6</td>
+<td class="ok">2.6</td>
+<td class="ok">2.3</td>
+<td class="ok">2</td>
+<td class="ok">2.7</td>
+</tr>
+<tr><td>прилагательных %</td><td>10.5</td>
+<td class="ok">11.9</td>
+<td class="ok">12.4</td>
+<td class="ok">12.8</td>
+<td class="ok">10.7</td>
+</tr>
+<tr><td>тошнота %</td><td>37.9</td>
+<td class="ok">37.9</td>
+<td class="ok">41.7</td>
+<td class="ok">35.7</td>
+<td class="ok">40.8</td>
+</tr>
+<tr><td>водность %</td><td>32.2</td>
+<td class="ok">29.7</td>
+<td class="ok">28.6</td>
+<td class="ok">30.5</td>
+<td class="ok">26.8</td>
+</tr>
+<tr><td>бренд кириллицей</td><td>3</td>
+<td class="ok">2</td>
+<td class="ok">3</td>
+<td class="ok">3</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>бренд латиницей</td><td>30</td>
+<td class="ok">30</td>
+<td class="ok">30</td>
+<td class="ok">28</td>
+<td class="ok">31</td>
+</tr>
+<tr><td>бренд в заголовках</td><td>7</td>
+<td class="ok">7</td>
+<td class="ok">7</td>
+<td class="ok">7</td>
+<td class="ok">7</td>
+</tr>
+<tr><td>бренд в первой трети</td><td>11</td>
+<td class="ok">13</td>
+<td class="ok">12</td>
+<td class="ok">12</td>
+<td class="ok">12</td>
+</tr>
+<tr><td>абзацев</td><td>54</td>
+<td class="ok">63</td>
+<td class="ok">52</td>
+<td class="ok">54</td>
+<td class="ok">58</td>
+</tr>
+<tr><td>слов в абзаце</td><td>43.9</td>
+<td class="ok">43.3</td>
+<td class="ok">44</td>
+<td class="ok">43.4</td>
+<td class="ok">43.5</td>
+</tr>
+<tr><td>названий игр</td><td>13</td>
+<td class="ok">13</td>
+<td class="ok">12</td>
+<td class="ok">11</td>
+<td class="ok">12</td>
+</tr>
+<tr><td>названий студий</td><td>13</td>
+<td class="ok">13</td>
+<td class="ok">12</td>
+<td class="ok">12</td>
+<td class="ok">11</td>
+</tr>
+<tr><td>профильных терминов</td><td>76</td>
+<td class="ok">84</td>
+<td class="ok">81</td>
+<td class="ok">90</td>
+<td class="ok">92</td>
+</tr>
+<tr class="page"><td colspan="6">registracia.html</td></tr>
+<tr><td>объём слов</td><td>508</td>
+<td class="ok">536</td>
+<td class="ok">530</td>
+<td class="ok">534</td>
+<td class="ok">508</td>
+</tr>
+<tr><td>H2</td><td>2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>разделов H2+H3</td><td>6</td>
+<td class="ok">6</td>
+<td class="ok">6</td>
+<td class="ok">6</td>
+<td class="ok">6</td>
+</tr>
+<tr><td>списков</td><td>3</td>
+<td class="ok">2</td>
+<td class="ok">3</td>
+<td class="ok">3</td>
+<td class="ok">3</td>
+</tr>
+<tr><td>strong</td><td>8</td>
+<td class="ok">9</td>
+<td class="ok">8</td>
+<td class="ok">8</td>
+<td class="ok">8</td>
+</tr>
+<tr><td>вопросительных знаков</td><td>2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>эмодзи</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>«я»</td><td>0</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>«вы»</td><td>1</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>императивов</td><td>3</td>
+<td class="ok">2</td>
+<td class="ok">1</td>
+<td class="ok">3</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>цифр на 100 слов</td><td>0.6</td>
+<td class="ok">0.6</td>
+<td class="ok">0.4</td>
+<td class="ok">1.1</td>
+<td class="ok">0.8</td>
+</tr>
+<tr><td>прилагательных %</td><td>12</td>
+<td class="ok">14.2</td>
+<td class="ok">11.9</td>
+<td class="ok">12.9</td>
+<td class="ok">11</td>
+</tr>
+<tr><td>тошнота %</td><td>15.6</td>
+<td class="ok">15.1</td>
+<td class="ok">18.9</td>
+<td class="ok">16.5</td>
+<td class="ok">17.7</td>
+</tr>
+<tr><td>водность %</td><td>34.3</td>
+<td class="ok">29.7</td>
+<td class="ok">28.3</td>
+<td class="ok">32.4</td>
+<td class="ok">28.5</td>
+</tr>
+<tr><td>бренд кириллицей</td><td>1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">2</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>бренд латиницей</td><td>3</td>
+<td class="ok">1</td>
+<td class="ok">3</td>
+<td class="ok">4</td>
+<td class="ok">3</td>
+</tr>
+<tr><td>бренд в заголовках</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>бренд в первой трети</td><td>1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>абзацев</td><td>9</td>
+<td class="ok">9</td>
+<td class="ok">10</td>
+<td class="ok">9</td>
+<td class="ok">9</td>
+</tr>
+<tr><td>слов в абзаце</td><td>36.7</td>
+<td class="ok">34.1</td>
+<td class="ok">36.2</td>
+<td class="ok">37.2</td>
+<td class="ok">40.7</td>
+</tr>
+<tr><td>названий игр</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>названий студий</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>профильных терминов</td><td>8</td>
+<td class="ok">7</td>
+<td class="ok">6</td>
+<td class="ok">9</td>
+<td class="ok">8</td>
+</tr>
+<tr class="page"><td colspan="6">slots.html</td></tr>
+<tr><td>объём слов</td><td>967</td>
+<td class="ok">921</td>
+<td class="ok">1015</td>
+<td class="ok">984</td>
+<td class="ok">829</td>
+</tr>
+<tr><td>H2</td><td>2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>разделов H2+H3</td><td>14</td>
+<td class="ok">14</td>
+<td class="ok">14</td>
+<td class="ok">14</td>
+<td class="ok">13</td>
+</tr>
+<tr><td>списков</td><td>7</td>
+<td class="ok">7</td>
+<td class="ok">6</td>
+<td class="ok">6</td>
+<td class="ok">7</td>
+</tr>
+<tr><td>strong</td><td>43</td>
+<td class="ok">39</td>
+<td class="ok">40</td>
+<td class="ok">45</td>
+<td class="ok">43</td>
+</tr>
+<tr><td>вопросительных знаков</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>эмодзи</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>«я»</td><td>2</td>
+<td class="ok">3</td>
+<td class="ok">0</td>
+<td class="ok">1</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>«вы»</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>императивов</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>цифр на 100 слов</td><td>1.1</td>
+<td class="ok">1.3</td>
+<td class="ok">1.3</td>
+<td class="ok">0.5</td>
+<td class="ok">1.3</td>
+</tr>
+<tr><td>прилагательных %</td><td>12.8</td>
+<td class="ok">12.4</td>
+<td class="ok">14.7</td>
+<td class="ok">12.9</td>
+<td class="ok">14.5</td>
+</tr>
+<tr><td>тошнота %</td><td>20.1</td>
+<td class="ok">20</td>
+<td class="ok">24.9</td>
+<td class="ok">23.9</td>
+<td class="ok">24</td>
+</tr>
+<tr><td>водность %</td><td>31.3</td>
+<td class="ok">29.1</td>
+<td class="ok">27.8</td>
+<td class="ok">31.6</td>
+<td class="ok">27.1</td>
+</tr>
+<tr><td>бренд кириллицей</td><td>1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">2</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>бренд латиницей</td><td>4</td>
+<td class="ok">4</td>
+<td class="ok">4</td>
+<td class="ok">4</td>
+<td class="ok">3</td>
+</tr>
+<tr><td>бренд в заголовках</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>бренд в первой трети</td><td>1</td>
+<td class="ok">3</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>абзацев</td><td>14</td>
+<td class="ok">15</td>
+<td class="ok">14</td>
+<td class="ok">17</td>
+<td class="ok">13</td>
+</tr>
+<tr><td>слов в абзаце</td><td>43.5</td>
+<td class="ok">40.6</td>
+<td class="ok">47.1</td>
+<td class="ok">39.3</td>
+<td class="ok">40.3</td>
+</tr>
+<tr><td>названий игр</td><td>1</td>
+<td class="ok">1</td>
+<td class="ok">0</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>названий студий</td><td>1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>профильных терминов</td><td>22</td>
+<td class="ok">27</td>
+<td class="ok">25</td>
+<td class="ok">24</td>
+<td class="ok">24</td>
+</tr>
+<tr class="page"><td colspan="6">vhod.html</td></tr>
+<tr><td>объём слов</td><td>1014</td>
+<td class="ok">999</td>
+<td class="ok">967</td>
+<td class="ok">924</td>
+<td class="ok">964</td>
+</tr>
+<tr><td>H2</td><td>2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>разделов H2+H3</td><td>10</td>
+<td class="ok">10</td>
+<td class="ok">10</td>
+<td class="ok">9</td>
+<td class="ok">9</td>
+</tr>
+<tr><td>списков</td><td>4</td>
+<td class="ok">2</td>
+<td class="ok">4</td>
+<td class="ok">3</td>
+<td class="ok">4</td>
+</tr>
+<tr><td>strong</td><td>17</td>
+<td class="ok">19</td>
+<td class="ok">20</td>
+<td class="ok">19</td>
+<td class="ok">19</td>
+</tr>
+<tr><td>вопросительных знаков</td><td>1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>эмодзи</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>«я»</td><td>3</td>
+<td class="ok">5</td>
+<td class="ok">2</td>
+<td class="ok">1</td>
+<td class="ok">3</td>
+</tr>
+<tr><td>«вы»</td><td>2</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>императивов</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">1</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>цифр на 100 слов</td><td>1.1</td>
+<td class="ok">0.8</td>
+<td class="ok">1</td>
+<td class="ok">0.6</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>прилагательных %</td><td>11.9</td>
+<td class="ok">14.3</td>
+<td class="ok">14.2</td>
+<td class="ok">13.7</td>
+<td class="ok">13.1</td>
+</tr>
+<tr><td>тошнота %</td><td>20.6</td>
+<td class="ok">21.7</td>
+<td class="ok">24.7</td>
+<td class="ok">18.4</td>
+<td class="ok">23.3</td>
+</tr>
+<tr><td>водность %</td><td>34.8</td>
+<td class="ok">33.7</td>
+<td class="ok">27.8</td>
+<td class="ok">34</td>
+<td class="ok">31.8</td>
+</tr>
+<tr><td>бренд кириллицей</td><td>1</td>
+<td class="ok">2</td>
+<td class="ok">1</td>
+<td class="ok">2</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>бренд латиницей</td><td>3</td>
+<td class="ok">1</td>
+<td class="ok">3</td>
+<td class="ok">3</td>
+<td class="ok">3</td>
+</tr>
+<tr><td>бренд в заголовках</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>бренд в первой трети</td><td>1</td>
+<td class="ok">2</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>абзацев</td><td>15</td>
+<td class="ok">16</td>
+<td class="ok">16</td>
+<td class="ok">17</td>
+<td class="ok">17</td>
+</tr>
+<tr><td>слов в абзаце</td><td>47.7</td>
+<td class="ok">46.6</td>
+<td class="ok">43.6</td>
+<td class="ok">41.7</td>
+<td class="ok">44.8</td>
+</tr>
+<tr><td>названий игр</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>названий студий</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>профильных терминов</td><td>8</td>
+<td class="ok">7</td>
+<td class="ok">10</td>
+<td class="ok">9</td>
+<td class="ok">9</td>
+</tr>
+<tr class="page"><td colspan="6">zerkalo.html</td></tr>
+<tr><td>объём слов</td><td>536</td>
+<td class="ok">505</td>
+<td class="ok">525</td>
+<td class="ok">592</td>
+<td class="ok">596</td>
+</tr>
+<tr><td>H2</td><td>2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>разделов H2+H3</td><td>8</td>
+<td class="ok">8</td>
+<td class="ok">8</td>
+<td class="ok">8</td>
+<td class="ok">7</td>
+</tr>
+<tr><td>списков</td><td>4</td>
+<td class="ok">4</td>
+<td class="ok">3</td>
+<td class="ok">4</td>
+<td class="ok">4</td>
+</tr>
+<tr><td>strong</td><td>6</td>
+<td class="ok">5</td>
+<td class="ok">6</td>
+<td class="ok">4</td>
+<td class="ok">6</td>
+</tr>
+<tr><td>вопросительных знаков</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>эмодзи</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>«я»</td><td>1</td>
+<td class="ok">1</td>
+<td class="ok">0</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>«вы»</td><td>2</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">3</td>
+</tr>
+<tr><td>императивов</td><td>16</td>
+<td class="ok">18</td>
+<td class="ok">17</td>
+<td class="ok">12</td>
+<td class="ok">18</td>
+</tr>
+<tr><td>цифр на 100 слов</td><td>0.9</td>
+<td class="ok">1.2</td>
+<td class="ok">0.8</td>
+<td class="ok">1</td>
+<td class="ok">0.8</td>
+</tr>
+<tr><td>прилагательных %</td><td>12.7</td>
+<td class="ok">10.5</td>
+<td class="ok">12.8</td>
+<td class="ok">12.5</td>
+<td class="ok">12.4</td>
+</tr>
+<tr><td>тошнота %</td><td>17.9</td>
+<td class="ok">17.4</td>
+<td class="ok">18.5</td>
+<td class="ok">14.5</td>
+<td class="ok">19.6</td>
+</tr>
+<tr><td>водность %</td><td>30.4</td>
+<td class="ok">32.7</td>
+<td class="ok">28.2</td>
+<td class="ok">31.6</td>
+<td class="ok">28.7</td>
+</tr>
+<tr><td>бренд кириллицей</td><td>2</td>
+<td class="ok">1</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>бренд латиницей</td><td>2</td>
+<td class="ok">2</td>
+<td class="ok">1</td>
+<td class="ok">3</td>
+<td class="ok">3</td>
+</tr>
+<tr><td>бренд в заголовках</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>бренд в первой трети</td><td>1</td>
+<td class="ok">2</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>абзацев</td><td>9</td>
+<td class="ok">9</td>
+<td class="ok">9</td>
+<td class="ok">11</td>
+<td class="ok">10</td>
+</tr>
+<tr><td>слов в абзаце</td><td>32.3</td>
+<td class="ok">30.6</td>
+<td class="ok">34</td>
+<td class="ok">32.9</td>
+<td class="ok">38.9</td>
+</tr>
+<tr><td>названий игр</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>названий студий</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>профильных терминов</td><td>15</td>
+<td class="ok">17</td>
+<td class="ok">18</td>
+<td class="ok">16</td>
+<td class="ok">16</td>
+</tr>
+</tbody></table></div>
+<h2>set199 версия B — четыре набора</h2>
+<h3>Итог по наборам</h3><div class="scroll"><table><thead><tr><th>набор</th><th>совпало параметров</th><th>пересечение с референсом</th><th>худшая страница</th></tr></thead><tbody>
+<tr><td>набор 7</td><td class="tot">161/161 = 100%</td><td>0.06%</td><td>0.85%</td></tr>
+<tr><td>набор 8</td><td class="tot">161/161 = 100%</td><td>0.23%</td><td>1.06%</td></tr>
+<tr><td>набор 9</td><td class="tot">161/161 = 100%</td><td>0.19%</td><td>1.22%</td></tr>
+<tr><td>набор 10</td><td class="tot">161/161 = 100%</td><td>0.18%</td><td>0.81%</td></tr>
+</tbody></table></div>
+<h3>Параметры постранично</h3><div class="scroll"><table><thead><tr><th>параметр</th><th class="ref">референс 199B</th>
+<th class="set">набор 7</th>
+<th class="set">набор 8</th>
+<th class="set">набор 9</th>
+<th class="set">набор 10</th>
+</tr></thead><tbody>
+<tr class="page"><td colspan="6">app.html</td></tr>
+<tr><td>объём слов</td><td>546</td>
+<td class="ok">499</td>
+<td class="ok">525</td>
+<td class="ok">552</td>
+<td class="ok">548</td>
+</tr>
+<tr><td>H2</td><td>2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>разделов H2+H3</td><td>9</td>
+<td class="ok">9</td>
+<td class="ok">10</td>
+<td class="ok">9</td>
+<td class="ok">9</td>
+</tr>
+<tr><td>списков</td><td>2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>strong</td><td>7</td>
+<td class="ok">6</td>
+<td class="ok">7</td>
+<td class="ok">6</td>
+<td class="ok">6</td>
+</tr>
+<tr><td>вопросительных знаков</td><td>1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>эмодзи</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>«я»</td><td>14</td>
+<td class="ok">12</td>
+<td class="ok">14</td>
+<td class="ok">15</td>
+<td class="ok">16</td>
+</tr>
+<tr><td>«вы»</td><td>3</td>
+<td class="ok">4</td>
+<td class="ok">3</td>
+<td class="ok">2</td>
+<td class="ok">3</td>
+</tr>
+<tr><td>императивов</td><td>8</td>
+<td class="ok">8</td>
+<td class="ok">9</td>
+<td class="ok">10</td>
+<td class="ok">8</td>
+</tr>
+<tr><td>цифр на 100 слов</td><td>4</td>
+<td class="ok">4</td>
+<td class="ok">3.4</td>
+<td class="ok">3.1</td>
+<td class="ok">3.3</td>
+</tr>
+<tr><td>прилагательных %</td><td>10.3</td>
+<td class="ok">10.8</td>
+<td class="ok">11</td>
+<td class="ok">9.2</td>
+<td class="ok">11.1</td>
+</tr>
+<tr><td>тошнота %</td><td>17.4</td>
+<td class="ok">14.8</td>
+<td class="ok">17.3</td>
+<td class="ok">19.7</td>
+<td class="ok">15.5</td>
+</tr>
+<tr><td>водность %</td><td>28.2</td>
+<td class="ok">30.1</td>
+<td class="ok">29.9</td>
+<td class="ok">31.7</td>
+<td class="ok">30.1</td>
+</tr>
+<tr><td>бренд кириллицей</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>бренд латиницей</td><td>5</td>
+<td class="ok">6</td>
+<td class="ok">4</td>
+<td class="ok">5</td>
+<td class="ok">4</td>
+</tr>
+<tr><td>бренд в заголовках</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">2</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>бренд в первой трети</td><td>1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>абзацев</td><td>12</td>
+<td class="ok">11</td>
+<td class="ok">14</td>
+<td class="ok">12</td>
+<td class="ok">13</td>
+</tr>
+<tr><td>слов в абзаце</td><td>32.8</td>
+<td class="ok">29.7</td>
+<td class="ok">26.9</td>
+<td class="ok">33.6</td>
+<td class="ok">31.3</td>
+</tr>
+<tr><td>названий игр</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>названий студий</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>профильных терминов</td><td>5</td>
+<td class="ok">6</td>
+<td class="ok">4</td>
+<td class="ok">5</td>
+<td class="ok">6</td>
+</tr>
+<tr class="page"><td colspan="6">bonus.html</td></tr>
+<tr><td>объём слов</td><td>955</td>
+<td class="ok">961</td>
+<td class="ok">863</td>
+<td class="ok">1062</td>
+<td class="ok">873</td>
+</tr>
+<tr><td>H2</td><td>2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>разделов H2+H3</td><td>12</td>
+<td class="ok">12</td>
+<td class="ok">12</td>
+<td class="ok">12</td>
+<td class="ok">11</td>
+</tr>
+<tr><td>списков</td><td>7</td>
+<td class="ok">7</td>
+<td class="ok">7</td>
+<td class="ok">7</td>
+<td class="ok">5</td>
+</tr>
+<tr><td>strong</td><td>4</td>
+<td class="ok">5</td>
+<td class="ok">4</td>
+<td class="ok">4</td>
+<td class="ok">4</td>
+</tr>
+<tr><td>вопросительных знаков</td><td>1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>эмодзи</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>«я»</td><td>25</td>
+<td class="ok">28</td>
+<td class="ok">24</td>
+<td class="ok">31</td>
+<td class="ok">28</td>
+</tr>
+<tr><td>«вы»</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>императивов</td><td>4</td>
+<td class="ok">3</td>
+<td class="ok">5</td>
+<td class="ok">5</td>
+<td class="ok">5</td>
+</tr>
+<tr><td>цифр на 100 слов</td><td>2.8</td>
+<td class="ok">2.8</td>
+<td class="ok">2.8</td>
+<td class="ok">3</td>
+<td class="ok">3.2</td>
+</tr>
+<tr><td>прилагательных %</td><td>12.9</td>
+<td class="ok">12.3</td>
+<td class="ok">11.9</td>
+<td class="ok">11.1</td>
+<td class="ok">11.6</td>
+</tr>
+<tr><td>тошнота %</td><td>26</td>
+<td class="ok">21.9</td>
+<td class="ok">24.9</td>
+<td class="ok">27.8</td>
+<td class="ok">25.7</td>
+</tr>
+<tr><td>водность %</td><td>29.1</td>
+<td class="ok">30.9</td>
+<td class="ok">28.5</td>
+<td class="ok">30.6</td>
+<td class="ok">30.1</td>
+</tr>
+<tr><td>бренд кириллицей</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>бренд латиницей</td><td>6</td>
+<td class="ok">7</td>
+<td class="ok">5</td>
+<td class="ok">6</td>
+<td class="ok">6</td>
+</tr>
+<tr><td>бренд в заголовках</td><td>1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">2</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>бренд в первой трети</td><td>3</td>
+<td class="ok">3</td>
+<td class="ok">3</td>
+<td class="ok">3</td>
+<td class="ok">3</td>
+</tr>
+<tr><td>абзацев</td><td>15</td>
+<td class="ok">17</td>
+<td class="ok">16</td>
+<td class="ok">17</td>
+<td class="ok">17</td>
+</tr>
+<tr><td>слов в абзаце</td><td>40.5</td>
+<td class="ok">37.4</td>
+<td class="ok">35.5</td>
+<td class="ok">40.4</td>
+<td class="ok">37.1</td>
+</tr>
+<tr><td>названий игр</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>названий студий</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>профильных терминов</td><td>37</td>
+<td class="ok">39</td>
+<td class="ok">38</td>
+<td class="ok">34</td>
+<td class="ok">43</td>
+</tr>
+<tr class="page"><td colspan="6">main.html</td></tr>
+<tr><td>объём слов</td><td>5596</td>
+<td class="ok">5414</td>
+<td class="ok">5193</td>
+<td class="ok">5761</td>
+<td class="ok">6377</td>
+</tr>
+<tr><td>H2</td><td>9</td>
+<td class="ok">9</td>
+<td class="ok">9</td>
+<td class="ok">9</td>
+<td class="ok">9</td>
+</tr>
+<tr><td>разделов H2+H3</td><td>47</td>
+<td class="ok">50</td>
+<td class="ok">57</td>
+<td class="ok">53</td>
+<td class="ok">49</td>
+</tr>
+<tr><td>списков</td><td>26</td>
+<td class="ok">26</td>
+<td class="ok">26</td>
+<td class="ok">26</td>
+<td class="ok">22</td>
+</tr>
+<tr><td>strong</td><td>15</td>
+<td class="ok">15</td>
+<td class="ok">15</td>
+<td class="ok">15</td>
+<td class="ok">15</td>
+</tr>
+<tr><td>вопросительных знаков</td><td>4</td>
+<td class="ok">4</td>
+<td class="ok">4</td>
+<td class="ok">5</td>
+<td class="ok">4</td>
+</tr>
+<tr><td>эмодзи</td><td>12</td>
+<td class="ok">13</td>
+<td class="ok">12</td>
+<td class="ok">13</td>
+<td class="ok">12</td>
+</tr>
+<tr><td>«я»</td><td>188</td>
+<td class="ok">204</td>
+<td class="ok">197</td>
+<td class="ok">217</td>
+<td class="ok">217</td>
+</tr>
+<tr><td>«вы»</td><td>2</td>
+<td class="ok">3</td>
+<td class="ok">0</td>
+<td class="ok">1</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>императивов</td><td>27</td>
+<td class="ok">27</td>
+<td class="ok">27</td>
+<td class="ok">31</td>
+<td class="ok">30</td>
+</tr>
+<tr><td>цифр на 100 слов</td><td>1.2</td>
+<td class="ok">1.7</td>
+<td class="ok">1.3</td>
+<td class="ok">1.4</td>
+<td class="ok">1.3</td>
+</tr>
+<tr><td>прилагательных %</td><td>12.1</td>
+<td class="ok">11.6</td>
+<td class="ok">12.3</td>
+<td class="ok">12.5</td>
+<td class="ok">12.1</td>
+</tr>
+<tr><td>тошнота %</td><td>43.9</td>
+<td class="ok">44.6</td>
+<td class="ok">43.1</td>
+<td class="ok">45.5</td>
+<td class="ok">42.9</td>
+</tr>
+<tr><td>водность %</td><td>30.8</td>
+<td class="ok">31.6</td>
+<td class="ok">30.8</td>
+<td class="ok">32.1</td>
+<td class="ok">33.2</td>
+</tr>
+<tr><td>бренд кириллицей</td><td>1</td>
+<td class="ok">3</td>
+<td class="ok">2</td>
+<td class="ok">1</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>бренд латиницей</td><td>33</td>
+<td class="ok">33</td>
+<td class="ok">35</td>
+<td class="ok">33</td>
+<td class="ok">34</td>
+</tr>
+<tr><td>бренд в заголовках</td><td>3</td>
+<td class="ok">4</td>
+<td class="ok">4</td>
+<td class="ok">3</td>
+<td class="ok">4</td>
+</tr>
+<tr><td>бренд в первой трети</td><td>10</td>
+<td class="ok">11</td>
+<td class="ok">12</td>
+<td class="ok">10</td>
+<td class="ok">11</td>
+</tr>
+<tr><td>абзацев</td><td>58</td>
+<td class="ok">68</td>
+<td class="ok">60</td>
+<td class="ok">66</td>
+<td class="ok">68</td>
+</tr>
+<tr><td>слов в абзаце</td><td>68.9</td>
+<td class="ok">62.7</td>
+<td class="ok">64.7</td>
+<td class="ok">65</td>
+<td class="ok">72.8</td>
+</tr>
+<tr><td>названий игр</td><td>23</td>
+<td class="ok">23</td>
+<td class="ok">24</td>
+<td class="ok">26</td>
+<td class="ok">23</td>
+</tr>
+<tr><td>названий студий</td><td>13</td>
+<td class="ok">13</td>
+<td class="ok">14</td>
+<td class="ok">14</td>
+<td class="ok">13</td>
+</tr>
+<tr><td>профильных терминов</td><td>131</td>
+<td class="ok">128</td>
+<td class="ok">153</td>
+<td class="ok">137</td>
+<td class="ok">120</td>
+</tr>
+<tr class="page"><td colspan="6">registracia.html</td></tr>
+<tr><td>объём слов</td><td>1061</td>
+<td class="ok">981</td>
+<td class="ok">1008</td>
+<td class="ok">1103</td>
+<td class="ok">894</td>
+</tr>
+<tr><td>H2</td><td>2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>разделов H2+H3</td><td>8</td>
+<td class="ok">8</td>
+<td class="ok">9</td>
+<td class="ok">8</td>
+<td class="ok">8</td>
+</tr>
+<tr><td>списков</td><td>4</td>
+<td class="ok">4</td>
+<td class="ok">4</td>
+<td class="ok">4</td>
+<td class="ok">3</td>
+</tr>
+<tr><td>strong</td><td>2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>вопросительных знаков</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>эмодзи</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>«я»</td><td>32</td>
+<td class="ok">30</td>
+<td class="ok">34</td>
+<td class="ok">38</td>
+<td class="ok">26</td>
+</tr>
+<tr><td>«вы»</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>императивов</td><td>0</td>
+<td class="ok">1</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>цифр на 100 слов</td><td>2.3</td>
+<td class="ok">2.2</td>
+<td class="ok">2.3</td>
+<td class="ok">2</td>
+<td class="ok">1.9</td>
+</tr>
+<tr><td>прилагательных %</td><td>12.8</td>
+<td class="ok">12.9</td>
+<td class="ok">11</td>
+<td class="ok">11.2</td>
+<td class="ok">13.1</td>
+</tr>
+<tr><td>тошнота %</td><td>24.1</td>
+<td class="ok">21.6</td>
+<td class="ok">25.6</td>
+<td class="ok">28.6</td>
+<td class="ok">22.5</td>
+</tr>
+<tr><td>водность %</td><td>31.5</td>
+<td class="ok">32.9</td>
+<td class="ok">30.9</td>
+<td class="ok">33.9</td>
+<td class="ok">30.3</td>
+</tr>
+<tr><td>бренд кириллицей</td><td>1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>бренд латиницей</td><td>3</td>
+<td class="ok">3</td>
+<td class="ok">2</td>
+<td class="ok">3</td>
+<td class="ok">3</td>
+</tr>
+<tr><td>бренд в заголовках</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>бренд в первой трети</td><td>1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>абзацев</td><td>12</td>
+<td class="ok">14</td>
+<td class="ok">11</td>
+<td class="ok">12</td>
+<td class="ok">11</td>
+</tr>
+<tr><td>слов в абзаце</td><td>65.7</td>
+<td class="ok">54.9</td>
+<td class="ok">69.5</td>
+<td class="ok">62.8</td>
+<td class="ok">62.2</td>
+</tr>
+<tr><td>названий игр</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>названий студий</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>профильных терминов</td><td>15</td>
+<td class="ok">15</td>
+<td class="ok">16</td>
+<td class="ok">17</td>
+<td class="ok">17</td>
+</tr>
+<tr class="page"><td colspan="6">slots.html</td></tr>
+<tr><td>объём слов</td><td>927</td>
+<td class="ok">977</td>
+<td class="ok">874</td>
+<td class="ok">1022</td>
+<td class="ok">847</td>
+</tr>
+<tr><td>H2</td><td>2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>разделов H2+H3</td><td>9</td>
+<td class="ok">9</td>
+<td class="ok">9</td>
+<td class="ok">8</td>
+<td class="ok">9</td>
+</tr>
+<tr><td>списков</td><td>5</td>
+<td class="ok">3</td>
+<td class="ok">5</td>
+<td class="ok">4</td>
+<td class="ok">4</td>
+</tr>
+<tr><td>strong</td><td>3</td>
+<td class="ok">3</td>
+<td class="ok">3</td>
+<td class="ok">3</td>
+<td class="ok">3</td>
+</tr>
+<tr><td>вопросительных знаков</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>эмодзи</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>«я»</td><td>29</td>
+<td class="ok">35</td>
+<td class="ok">28</td>
+<td class="ok">27</td>
+<td class="ok">28</td>
+</tr>
+<tr><td>«вы»</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>императивов</td><td>6</td>
+<td class="ok">7</td>
+<td class="ok">6</td>
+<td class="ok">5</td>
+<td class="ok">6</td>
+</tr>
+<tr><td>цифр на 100 слов</td><td>6.7</td>
+<td class="ok">7.6</td>
+<td class="ok">8.2</td>
+<td class="ok">6.2</td>
+<td class="ok">7.2</td>
+</tr>
+<tr><td>прилагательных %</td><td>8.7</td>
+<td class="ok">10.5</td>
+<td class="ok">10.6</td>
+<td class="ok">8.7</td>
+<td class="ok">9.9</td>
+</tr>
+<tr><td>тошнота %</td><td>27</td>
+<td class="ok">21.7</td>
+<td class="ok">24</td>
+<td class="ok">28.5</td>
+<td class="ok">26.7</td>
+</tr>
+<tr><td>водность %</td><td>27.9</td>
+<td class="ok">29.4</td>
+<td class="ok">29.9</td>
+<td class="ok">28.8</td>
+<td class="ok">26.7</td>
+</tr>
+<tr><td>бренд кириллицей</td><td>3</td>
+<td class="ok">5</td>
+<td class="ok">3</td>
+<td class="ok">3</td>
+<td class="ok">3</td>
+</tr>
+<tr><td>бренд латиницей</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>бренд в заголовках</td><td>1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>бренд в первой трети</td><td>1</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>абзацев</td><td>12</td>
+<td class="ok">15</td>
+<td class="ok">11</td>
+<td class="ok">12</td>
+<td class="ok">12</td>
+</tr>
+<tr><td>слов в абзаце</td><td>46.8</td>
+<td class="ok">47.9</td>
+<td class="ok">49.4</td>
+<td class="ok">45.7</td>
+<td class="ok">42.8</td>
+</tr>
+<tr><td>названий игр</td><td>7</td>
+<td class="ok">7</td>
+<td class="ok">7</td>
+<td class="ok">7</td>
+<td class="ok">7</td>
+</tr>
+<tr><td>названий студий</td><td>5</td>
+<td class="ok">5</td>
+<td class="ok">5</td>
+<td class="ok">6</td>
+<td class="ok">5</td>
+</tr>
+<tr><td>профильных терминов</td><td>44</td>
+<td class="ok">39</td>
+<td class="ok">48</td>
+<td class="ok">45</td>
+<td class="ok">39</td>
+</tr>
+<tr class="page"><td colspan="6">vhod.html</td></tr>
+<tr><td>объём слов</td><td>783</td>
+<td class="ok">847</td>
+<td class="ok">787</td>
+<td class="ok">887</td>
+<td class="ok">814</td>
+</tr>
+<tr><td>H2</td><td>2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>разделов H2+H3</td><td>5</td>
+<td class="ok">5</td>
+<td class="ok">5</td>
+<td class="ok">6</td>
+<td class="ok">5</td>
+</tr>
+<tr><td>списков</td><td>3</td>
+<td class="ok">3</td>
+<td class="ok">3</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>strong</td><td>4</td>
+<td class="ok">3</td>
+<td class="ok">4</td>
+<td class="ok">4</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>вопросительных знаков</td><td>1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>эмодзи</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>«я»</td><td>28</td>
+<td class="ok">32</td>
+<td class="ok">29</td>
+<td class="ok">32</td>
+<td class="ok">24</td>
+</tr>
+<tr><td>«вы»</td><td>0</td>
+<td class="ok">1</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>императивов</td><td>6</td>
+<td class="ok">7</td>
+<td class="ok">5</td>
+<td class="ok">7</td>
+<td class="ok">7</td>
+</tr>
+<tr><td>цифр на 100 слов</td><td>0.8</td>
+<td class="ok">0.7</td>
+<td class="ok">0.6</td>
+<td class="ok">1</td>
+<td class="ok">0.7</td>
+</tr>
+<tr><td>прилагательных %</td><td>12.4</td>
+<td class="ok">11.2</td>
+<td class="ok">11.8</td>
+<td class="ok">10.9</td>
+<td class="ok">13.5</td>
+</tr>
+<tr><td>тошнота %</td><td>22.6</td>
+<td class="ok">20.2</td>
+<td class="ok">21.3</td>
+<td class="ok">20.5</td>
+<td class="ok">23.5</td>
+</tr>
+<tr><td>водность %</td><td>34</td>
+<td class="ok">32.9</td>
+<td class="ok">33.9</td>
+<td class="ok">33.6</td>
+<td class="ok">32.8</td>
+</tr>
+<tr><td>бренд кириллицей</td><td>2</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>бренд латиницей</td><td>4</td>
+<td class="ok">4</td>
+<td class="ok">3</td>
+<td class="ok">4</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>бренд в заголовках</td><td>1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+</tr>
+<tr><td>бренд в первой трети</td><td>2</td>
+<td class="ok">2</td>
+<td class="ok">1</td>
+<td class="ok">4</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>абзацев</td><td>12</td>
+<td class="ok">12</td>
+<td class="ok">12</td>
+<td class="ok">11</td>
+<td class="ok">11</td>
+</tr>
+<tr><td>слов в абзаце</td><td>55.2</td>
+<td class="ok">59.1</td>
+<td class="ok">52.1</td>
+<td class="ok">59</td>
+<td class="ok">60.4</td>
+</tr>
+<tr><td>названий игр</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>названий студий</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>профильных терминов</td><td>12</td>
+<td class="ok">13</td>
+<td class="ok">11</td>
+<td class="ok">11</td>
+<td class="ok">11</td>
+</tr>
+<tr class="page"><td colspan="6">zerkalo.html</td></tr>
+<tr><td>объём слов</td><td>446</td>
+<td class="ok">461</td>
+<td class="ok">446</td>
+<td class="ok">442</td>
+<td class="ok">444</td>
+</tr>
+<tr><td>H2</td><td>2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>разделов H2+H3</td><td>7</td>
+<td class="ok">7</td>
+<td class="ok">7</td>
+<td class="ok">7</td>
+<td class="ok">7</td>
+</tr>
+<tr><td>списков</td><td>2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>strong</td><td>6</td>
+<td class="ok">5</td>
+<td class="ok">6</td>
+<td class="ok">5</td>
+<td class="ok">6</td>
+</tr>
+<tr><td>вопросительных знаков</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>эмодзи</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>«я»</td><td>17</td>
+<td class="ok">18</td>
+<td class="ok">14</td>
+<td class="ok">18</td>
+<td class="ok">16</td>
+</tr>
+<tr><td>«вы»</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>императивов</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>цифр на 100 слов</td><td>3.8</td>
+<td class="ok">4.1</td>
+<td class="ok">4</td>
+<td class="ok">3.2</td>
+<td class="ok">3.8</td>
+</tr>
+<tr><td>прилагательных %</td><td>11.2</td>
+<td class="ok">11.9</td>
+<td class="ok">12.3</td>
+<td class="ok">13.3</td>
+<td class="ok">12.4</td>
+</tr>
+<tr><td>тошнота %</td><td>18.6</td>
+<td class="ok">20.2</td>
+<td class="ok">19.5</td>
+<td class="ok">19.7</td>
+<td class="ok">19.8</td>
+</tr>
+<tr><td>водность %</td><td>30.7</td>
+<td class="ok">31.9</td>
+<td class="ok">26.9</td>
+<td class="ok">31.9</td>
+<td class="ok">29.1</td>
+</tr>
+<tr><td>бренд кириллицей</td><td>2</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">1</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>бренд латиницей</td><td>5</td>
+<td class="ok">4</td>
+<td class="ok">5</td>
+<td class="ok">4</td>
+<td class="ok">5</td>
+</tr>
+<tr><td>бренд в заголовках</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>бренд в первой трети</td><td>2</td>
+<td class="ok">1</td>
+<td class="ok">3</td>
+<td class="ok">2</td>
+<td class="ok">2</td>
+</tr>
+<tr><td>абзацев</td><td>9</td>
+<td class="ok">9</td>
+<td class="ok">10</td>
+<td class="ok">8</td>
+<td class="ok">10</td>
+</tr>
+<tr><td>слов в абзаце</td><td>34</td>
+<td class="ok">34.6</td>
+<td class="ok">29.2</td>
+<td class="ok">36.3</td>
+<td class="ok">31.8</td>
+</tr>
+<tr><td>названий игр</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>названий студий</td><td>0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+<td class="ok">0</td>
+</tr>
+<tr><td>профильных терминов</td><td>15</td>
+<td class="ok">17</td>
+<td class="ok">18</td>
+<td class="ok">14</td>
+<td class="ok">15</td>
+</tr>
+</tbody></table></div>
+</div>

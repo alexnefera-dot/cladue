@@ -1,0 +1,104 @@
+<h2>Программа работает, а касса нет: где искать причину</h2>
+<p>
+  Каталог открывается, спины идут, баланс на месте — а раздел пополнения в сборке %brand_name_en% показывает пустой список способов оплаты или крутит загрузку без конца.
+</p>
+<p>
+  Причина почти всегда одна: платёжный узел %brand_name_en% живёт по своим правилам и стареет быстрее прочих частей.
+</p>
+<h3>Почему касса отваливается первой</h3>
+<p>
+  Протокол платежей обновляется чаще, чем интерфейс каталога: к нему подключены банки, кошельки и переводы, и каждый меняет требования по своему графику. Оболочка, собранная полгода назад, каталог тянет, а к платёжному узлу уже не подходит. Свежий пакет берут только на действующем адресе из <a href="/zerkalo">списка обвода</a>.
+</p>
+<h3>Четыре причины по частоте</h3>
+<table>
+  <tbody>
+    <tr><th>Причина</th><th>Признак</th><th>Что делать</th></tr>
+    <tr><td>Устаревшая сборка</td><td>Список способов пустой</td><td>Поставить свежий пакет</td></tr>
+    <tr><td>Незакрытая верификация</td><td>Есть надпись о проверке</td><td>Дождаться разбора</td></tr>
+    <tr><td>Незакрытый вейджер</td><td>Заявка отбивается сразу</td><td>Догнать или отказаться</td></tr>
+    <tr><td>Ограничение по стране</td><td>Список короче обычного</td><td>Сверить страну в анкете</td></tr>
+  </tbody>
+</table>
+<h3>Порядок разбора</h3>
+<ol>
+  <li>Открыть кассу в браузере: если список полный, дело в сборке</li>
+  <li>Поставить свежий пакет поверх старого, не удаляя его</li>
+  <li>Проверить статус верификации — без неё выход закрыт</li>
+  <li>Посмотреть остаток вейджера: он отбивает заявку чаще всего</li>
+</ol>
+<blockquote>
+  Нож для мездры точат отдельно от скорняжного. Тупой раскройный ещё режет по лекалу, а тупой мездровый рвёт шкуру на первом же движении.
+</blockquote>
+<h3>Что при этом продолжает работать</h3>
+<ul>
+  <li><strong>Ставка и спин.</strong> Считаются на сервере провайдера</li>
+  <li><strong>Счётчик отыгрыша.</strong> Вейджер набирается как обычно</li>
+  <li><strong>История операций.</strong> Открывается в браузере целиком</li>
+  <li><strong>Поданная заявка.</strong> Идёт в очереди кассы своим чередом</li>
+</ul>
+<h3>Итог</h3>
+<p>
+  Работающий каталог при мёртвой кассе — почти всегда признак устаревшего пакета, а не сбоя площадки. Проверяется это одним заходом в браузер: там тот же счёт и полный список способов оплаты. Если и в браузере пусто, смотреть надо верификацию, вейджер и страну в анкете. Состояние счёта видно после <a href="/vhod">входа в кабинет</a>, паспортные числа тайтлов — в <a href="/slots">каталоге автоматов</a>, требования к документам — в <a href="/registracia">анкете игрока</a>, действующие адреса — на <a href="/zerkalo">странице обвода</a>.
+</p>
+
+<h2>Частые вопросы о кассе в сборке %brand_name_ru%</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Касса не работает только в приложении — это сбой площадки?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Скорее устаревший пакет: платёжный узел перестаёт подходить раньше остального. В браузере список открывается полностью.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему список способов оплаты короче обычного?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Набор зависит от страны в анкете. После её смены часть карт и кошельков пропадает насовсем.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли пополнить счёт, пока идёт верификация?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Да, депозит работает. Закрыт только вывод средств, и открывается он сразу после разбора.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Заявка отбивается сразу после подачи — почему?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Чаще всего незакрытый вейджер. Причина написана в строке заявки в журнале операций.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Нужно ли удалять сборку перед обновлением?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, пакет ставят поверх. При полном удалении пропадут расписка входа и локальные настройки.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли версия сборки на отдачу автоматов?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. RTP и волатильность задаёт провайдер, и считаются они на его сервере, а не в оболочке.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько живёт сборка до устаревания?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Обычно от месяца до полутора. Автообновления у неё нет, пакет скачивают вручную.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать, если пропали и живые столы?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Тот же признак устаревания: им нужен свежий видеодекодер. Барабаны при этом работают дольше всех.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Идёт ли срок отыгрыша, пока касса закрыта?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Идёт своим ходом. Оборот при этом набирается ставками, и счётчик вейджера не останавливается.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Где взять свежий пакет, если адрес не открывается?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Из письма площадки или у оператора в чате. Сторонние подборки для этого не годятся.</p></div>
+  </div>
+</details>

@@ -1,0 +1,32 @@
+{
+    "комплект": "oranzhereya-1",
+    "маска": "оранжерея",
+    "ракурс": "садовник",
+    "рефрен": "полив по расписанию",
+    "словарь": [
+        "теплица",
+        "подвой",
+        "черенок",
+        "грунт",
+        "полив",
+        "досветка",
+        "пересадка"
+    ],
+    "срезы": {
+        "app": "Вход по отпечатку: что он заменяет, а что нет",
+        "bonus": "Сгоревший бонус: почему счётчик обнулился ночью",
+        "registracia": "Регистрация с одной сети на двоих: чем это кончается",
+        "slots": "Слот завис на середине раунда: где искать результат",
+        "vhod": "Выход из профиля на чужом компьютере: чего для этого мало",
+        "zerkalo": "Домен сменился во время выплаты: что стало с платежом"
+    },
+    "промпты": {
+        "main": "tmp\/gen-oranzhereya-1\/prompt-main.md",
+        "app": "tmp\/gen-oranzhereya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-oranzhereya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-oranzhereya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-oranzhereya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-oranzhereya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-oranzhereya-1\/prompt-zerkalo.md"
+    }
+}

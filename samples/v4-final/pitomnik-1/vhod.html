@@ -1,0 +1,104 @@
+<h2>Вход по отпечатку перестал работать после обновления</h2>
+<p>
+  Программа %brand_name_en% обновилась ночью, а наутро палец перестал открывать кабинет: форма требует пару целиком. Сам отпечаток при этом разблокирует аппарат как обычно.
+</p>
+<p>
+  Разблокирует, поскольку механизмы тут разные. Приложение отпечатка не видит вовсе: система сообщает ему лишь итог опознания.
+</p>
+<h3>Что рвётся при обновлении</h3>
+<table>
+  <tbody>
+    <tr><th>Что рвётся</th><th>Почему</th><th>Как чинится</th></tr>
+    <tr><td>Привязка к хранилищу ключей</td><td>Сменилась подпись пакета</td><td>Включить заново в профиле</td></tr>
+    <tr><td>Расписка входа</td><td>Обновилась вместе с данными</td><td>Авторизоваться парой</td></tr>
+    <tr><td>Список своих устройств</td><td>Не рвётся</td><td>—</td></tr>
+    <tr><td>Сам отпечаток в системе</td><td>Не рвётся</td><td>—</td></tr>
+  </tbody>
+</table>
+<h3>Почему программа не хранит отпечаток</h3>
+<p>
+  Слепок пальца хранится в защищённой области устройства, недоступной никакому приложению. Программа обращается к системе, та отвечает согласием либо отказом и выдаёт ключ из собственного сейфа. Обновление подписи дистрибутива аннулирует это разрешение, и пару логин-пароль приходится набрать ещё раз.
+</p>
+<h3>Порядок восстановления</h3>
+<ol>
+  <li>Авторизоваться парой логин-пароль и подтвердить вторым ключом</li>
+  <li>Открыть профиль и включить вход по отпечатку заново</li>
+  <li>Приложить палец для проверки и заглянуть в <a href="/vhod">список своих устройств</a></li>
+  <li>Закрыть программу полностью и убедиться, что вход держится</li>
+</ol>
+<blockquote>
+  Привой после перепрививки принимается не сразу. Дерево то же, срез свежий, и первую неделю его подвязывают заново.
+</blockquote>
+<h3>Когда дело всё-таки не в обновлении</h3>
+<ul>
+  <li><strong>Добавлен новый палец в систему.</strong> Хранилище ключей сбрасывается</li>
+  <li><strong>Сменён код разблокировки аппарата.</strong> Тот же эффект</li>
+  <li><strong>Программа поставлена заново.</strong> Расписка потеряна вместе с данными</li>
+  <li><strong>Сменён пароль на площадке.</strong> Гасятся все расписки разом</li>
+</ul>
+<h3>Итог</h3>
+<p>
+  Палец перестаёт открывать кабинет после установки новой версии по единственной причине: сменилась подпись дистрибутива, и разрешение на системный ключ аннулировалось. Исправляется за минуту: единственная авторизация парой и повторное включение опции в профиле. Баланс, летопись спинов и очередь кассы при этом остаются нетронутыми, реестр аппаратов — тоже. Такой же итог даёт добавление свежего отпечатка либо замена кода разблокировки: причина лежит в устройстве, а не у оператора. Характер игр смотрят в <a href="/slots">каталоге автоматов</a>, состав бумаг — в <a href="/registracia">анкете игрока</a>, рабочие домены — на <a href="/zerkalo">странице обвода</a>, свежий пакет — на <a href="/app">странице программы %brand_name_en%</a>.
+</p>
+
+<h2>Частые вопросы игроков о входе по отпечатку в %brand_name_ru%</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отпечаток не работает только в этой программе — почему?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Разрешение на ключ аннулировалось при смене подписи дистрибутива. Авторизуйтесь парой и включите опцию заново.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Видит ли площадка сам отпечаток?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, образец лежит в защищённой части аппарата. Программа получает только ответ системы и ключ из её хранилища.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Заменяет ли отпечаток второй ключ?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Он избавляет от набора пары, но второй фактор на новом аппарате не отменяет. Код запросят в любом случае.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему вход слетел после добавления пальца?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Система сбрасывает хранилище ключей при изменении набора отпечатков. Это защита, а не поломка.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Безопаснее ли вход по пальцу, чем связкой?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>На своём аппарате — да: пароль нигде не набирается и не подсматривается. На чужом включать его не стоит вовсе.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать, если палец не читается сканером?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Авторизоваться парой: она действует всегда. Пересохранять слепок надо в настройках устройства, а не в приложении.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Гасит ли смена пароля вход по отпечатку?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Гасит вместе со всеми расписками. Единственная авторизация новой парой возвращает всё на место.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Работает ли отпечаток в браузере?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>У части площадок да, через встроенный механизм браузера. Чаще это возможность именно мобильной программы.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Пропадёт ли доступ, если сканер сломается?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, пара и второй ключ остаются рабочими. Палец — удобство, а не единственная дверь.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Нужно ли включать его заново после каждого обновления?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, только когда меняется подпись пакета — обычно при крупных версиях. Мелкие обновления привязку не рвут.</p></div>
+  </div>
+</details>

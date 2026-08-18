@@ -1,0 +1,143 @@
+<meta charset="utf-8">
+<title>Широкое сравнение: наш набор против конкурентов и корпуса</title>
+<style>
+:root{--bg:#f6f8fc;--panel:#fff;--panel2:#eef2f8;--ink:#1a2230;--muted:#5d6b82;--line:#e2e7ef;
+ --ours:#1f9d6b;--betchan:#d98a2a;--bob:#9163e0;--corpus:#3f7bf0;--bad:#d23b40;--warn:#d98a2a;
+ --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;}
+@media(prefers-color-scheme:dark){:root{--bg:#0e131c;--panel:#151d29;--panel2:#1b2431;--ink:#e7ecf5;--muted:#8b98b0;--line:#26303f;--ours:#33c08a;--betchan:#eaa54a;--bob:#a98bf0;--corpus:#5b95ff;--bad:#e5595c;--warn:#eaa54a;}}
+:root[data-theme="dark"]{--bg:#0e131c;--panel:#151d29;--panel2:#1b2431;--ink:#e7ecf5;--muted:#8b98b0;--line:#26303f;--ours:#33c08a;--betchan:#eaa54a;--bob:#a98bf0;--corpus:#5b95ff;--bad:#e5595c;--warn:#eaa54a;}
+:root[data-theme="light"]{--bg:#f6f8fc;--panel:#fff;--panel2:#eef2f8;--ink:#1a2230;--muted:#5d6b82;--line:#e2e7ef;--ours:#1f9d6b;--betchan:#d98a2a;--bob:#9163e0;--corpus:#3f7bf0;--bad:#d23b40;--warn:#d98a2a;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--sans)}
+.wrap{max-width:1000px;margin:0 auto;padding:26px 18px 80px}
+.eyebrow{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700}
+h1{font-size:24px;margin:6px 0 8px;letter-spacing:-.02em}
+.lead{color:var(--muted);max-width:78ch}
+.verdict{margin-top:15px;padding:13px 16px;border-radius:11px;background:var(--panel2);border:1px solid var(--line);font-size:14px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:20px 0}
+@media(max-width:640px){.cards{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:15px;position:relative;overflow:hidden}
+.card .bar{height:4px;border-radius:4px 4px 0 0;margin:-15px -15px 11px}
+.card.ours .bar{background:var(--ours)}.card.betchan .bar{background:var(--betchan)}.card.bob .bar{background:var(--bob)}
+.card h3{margin:0 0 1px;font-size:15px}.card .role{color:var(--muted);font-size:12px;min-height:32px}
+.card .big{font-family:var(--mono);font-size:30px;font-weight:700;margin-top:6px}
+.card .sub{color:var(--muted);font-size:12px}
+.rank{position:absolute;top:12px;right:13px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--panel2);border:1px solid var(--line)}
+section{margin-top:30px}h2{font-size:18px;margin:0 0 4px}.hint{color:var(--muted);font-size:12.5px;margin:0 0 12px;max-width:80ch}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:11px}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:640px}
+th,td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:center}
+th{color:var(--muted);font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;position:sticky;top:0;background:var(--panel)}
+td:first-child,th:first-child{text-align:left;font-weight:600}
+td.metric{white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+.val{font-family:var(--mono);font-size:13px}
+.band{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.cell{display:inline-flex;align-items:center;gap:6px;justify-content:center}
+.dots{font-family:var(--mono);font-size:11px;letter-spacing:1px}
+.b7{color:var(--ours);font-weight:700}.b56{color:var(--ours)}.b34{color:var(--warn)}.b02{color:var(--bad);font-weight:700}
+.colhead .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.d-ours{background:var(--ours)}.d-betchan{background:var(--betchan)}.d-bob{background:var(--bob)}.d-corpus{background:var(--corpus)}
+.take{padding:11px 14px;border-left:3px solid var(--ours);background:var(--panel);border:1px solid var(--line);border-radius:9px;margin-top:9px;font-size:13.6px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin:8px 0 2px;font-size:12px;color:var(--muted)}
+.legend b{color:var(--ink)}
+.foot{color:var(--muted);font-size:12px;margin-top:26px;text-align:center}
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">Широкое сравнение · 17 параметров × 7 страниц · движок v2</div>
+  <h1>Наш набор против конкурентов — по всем параметрам</h1>
+  <p class="lead">Три связки прогнаны движком по 17 метрикам на каждой из 7 страниц. Вопрос не «у кого больше», а <b>кто воспроизводит генератор корпуса</b> — попадает в коридоры [p10..p90] 50 реальных сайтов. Именно поэтому наш набор «отличается» от betchan и bob: они сами — выбросы относительно корпуса, каждый по-своему.</p>
+  <div class="verdict">🎯 <b>Наш набор ближе всего к профилю генератора: 94% метрик в коридорах</b> против 84% у bob и 79% у betchan. По структурной подписи (FAQ на каждой странице, тошнота, водность) разрыв особенно велик — конкуренты её не держат.</div>
+
+  <div class="cards" id="cards"></div>
+
+  <section>
+    <h2>Карта по каждому параметру</h2>
+    <p class="hint">Для каждой метрики: среднее значение набора и <b>сколько из 7 страниц попали в коридор корпуса</b> (кружки ●). Столбец «корпус» — ориентир (среднее медиан по типам). Зелёные кружки = совпал с генератором, красные = мимо.</p>
+    <div class="legend">
+      <span><span class="colhead"><i class="dot d-corpus"></i></span> корпус — цель</span>
+      <span><span class="colhead"><i class="dot d-ours"></i></span> Казиновия (наш)</span>
+      <span><span class="colhead"><i class="dot d-betchan"></i></span> betchan</span>
+      <span><span class="colhead"><i class="dot d-bob"></i></span> bob</span>
+      <span>●●●●●●● = 7/7 в коридоре</span>
+    </div>
+    <div class="tw"><table id="matrix"></table></div>
+  </section>
+
+  <section>
+    <h2>Структурная подпись генератора</h2>
+    <p class="hint">Отпечаток, который держат все 50 сайтов корпуса — и держит наш набор, а конкуренты нет.</p>
+    <div class="tw"><table id="sig"></table></div>
+  </section>
+
+  <section>
+    <h2>Почему наш результат выглядит иначе, чем у betchan/bob</h2>
+    <div class="take">✅ <b>Мы целились в корпус (50 сайтов генератора), а не в этих двух конкурентов.</b> betchan и bob — два частных реальных сайта, и оба отклоняются от медианного профиля. Наш набор садится в центр распределения, поэтому и выглядит «не как они».</div>
+    <div class="take" style="border-left-color:var(--betchan)"><b style="color:var(--betchan)">betchan</b> расходится с генератором сильнее всего: <b>FAQ почти нет</b> (2 вопроса против ~13), <b>водность 20.8%</b> — ниже корпуса на всех 7 страницах (сухой конспект), а плотность цифр <b>6.3/100</b> — переоптимизация. 79% в коридорах.</div>
+    <div class="take" style="border-left-color:var(--bob)"><b style="color:var(--bob)">bob</b> — тоже <b>без FAQ</b> и с <b>тяжёлым первым лицом</b> (в среднем 58 «я»-форм на страницу против единиц у корпуса): это блогер-стиль, а не профиль генератора. 84% в коридорах.</div>
+    <div class="take">🧭 <b>Итог:</b> «сильно отличается» — это и есть правильно. Совпадать нужно с генератором (медианой 50 сайтов), а не с отдельным конкурентом. По этому критерию наш набор — лучший из трёх.</div>
+  </section>
+
+  <div class="foot">Казиновия — samples/generated/demo1. betchan, bob — реальные связки. Корпус — profile.json (медианы 50×7). Коридоры [p10..p90], движок v2.</div>
+</div>
+
+<script>
+const L={words:'Слов',uniq_pct:'Уник. слов %',sent_len:'Длина предложения',h2:'H2 заголовков',lists:'Списков',strong:'Выделений strong',nausea_acad:'Тошнота академ. %',water:'Водность %',flesch:'Читабельность (Флеш)',numbers_per100:'Цифр на 100 слов',adj_pct:'Прилагательных %',passive_pct:'Пассив %',first_person:'Первое лицо (шт.)',vy:'Обращение «вы»',imperatives:'Императивы',entities:'Сущностей',faq:'FAQ вопросов'};
+const ORDER=['words','uniq_pct','sent_len','h2','lists','strong','nausea_acad','water','flesch','numbers_per100','adj_pct','passive_pct','first_person','vy','imperatives','entities','faq'];
+// avg values
+const AVG={
+ ours:{words:921,uniq_pct:59.4,sent_len:13.3,h2:3.6,lists:3.6,strong:13.7,nausea_acad:30.3,water:28.5,flesch:41.2,numbers_per100:1.5,adj_pct:13,passive_pct:2.5,first_person:2.4,vy:5.1,imperatives:8.6,entities:6.1,faq:12.9},
+ betchan:{words:525,uniq_pct:66.1,sent_len:16.7,h2:3.4,lists:3.4,strong:9.4,nausea_acad:24.2,water:20.8,flesch:41.9,numbers_per100:6.3,adj_pct:11.7,passive_pct:1.7,first_person:0.7,vy:3,imperatives:12.1,entities:5.4,faq:1.9},
+ bob:{words:1271,uniq_pct:59.8,sent_len:15.8,h2:3.4,lists:6.1,strong:13.4,nausea_acad:24.2,water:31.7,flesch:47.3,numbers_per100:3.3,adj_pct:11.1,passive_pct:1.3,first_person:58.3,vy:2.7,imperatives:4,entities:4.7,faq:1.3},
+ corpus:{words:1040,uniq_pct:61,sent_len:14.8,h2:3.3,lists:5.6,strong:14.6,nausea_acad:26.5,water:29.1,flesch:41.9,numbers_per100:2,adj_pct:11.9,passive_pct:1.6,first_person:8,vy:2.6,imperatives:10,entities:3.9,faq:9.7}
+};
+// in-band /7
+const INB={
+ ours:{words:6,uniq_pct:6,sent_len:6,h2:7,lists:7,strong:7,nausea_acad:7,water:7,flesch:7,numbers_per100:7,adj_pct:7,passive_pct:6,first_person:7,vy:7,imperatives:7,entities:4,faq:7},
+ betchan:{words:6,uniq_pct:5,sent_len:4,h2:7,lists:6,strong:6,nausea_acad:6,water:0,flesch:7,numbers_per100:4,adj_pct:6,passive_pct:7,first_person:7,vy:7,imperatives:7,entities:5,faq:1},
+ bob:{words:7,uniq_pct:6,sent_len:5,h2:7,lists:7,strong:7,nausea_acad:6,water:5,flesch:6,numbers_per100:7,adj_pct:6,passive_pct:5,first_person:4,vy:7,imperatives:7,entities:6,faq:1}
+};
+const SETS=['ours','betchan','bob'];
+const NAME={ours:'Казиновия',betchan:'betchan',bob:'bob'};
+const sum=o=>ORDER.reduce((s,k)=>s+o[k],0);
+const totals={ours:131,betchan:110,bob:118}; // из verify (20 метрик × 7)
+
+// cards
+const ranked=[['ours','воспроизведение генератора'],['bob','реальный · объёмный, 1-е лицо'],['betchan','реальный · сухой, плотный']];
+document.getElementById('cards').innerHTML=ranked.map(([c,r],i)=>`
+ <div class="card ${c}"><div class="bar"></div><span class="rank">#${i+1}</span>
+   <h3><span class="colhead"><i class="dot d-${c}"></i></span>${NAME[c]}</h3><div class="role">${r}</div>
+   <div class="big">${Math.round(totals[c]/140*100)}%</div><div class="sub">метрик в коридорах корпуса (${totals[c]}/140)</div>
+ </div>`).join('');
+
+function dots(n){let s='';for(let i=0;i<7;i++)s+=i<n?'●':'○';const cls=n>=7?'b7':n>=5?'b56':n>=3?'b34':'b02';return `<span class="dots ${cls}">${s}</span>`;}
+function cell(set,k){return `<div class="cell"><span class="val">${AVG[set][k]}</span> ${dots(INB[set][k])}</div>`;}
+
+document.getElementById('matrix').innerHTML=
+ `<thead><tr><th>Параметр</th><th class="colhead"><i class="dot d-corpus"></i>Корпус</th>
+   <th class="colhead"><i class="dot d-ours"></i>Казиновия</th>
+   <th class="colhead"><i class="dot d-betchan"></i>betchan</th>
+   <th class="colhead"><i class="dot d-bob"></i>bob</th></tr></thead>
+  <tbody>${ORDER.map(k=>`<tr>
+    <td class="metric">${L[k]}</td>
+    <td class="val" style="color:var(--corpus)">${AVG.corpus[k]}</td>
+    <td>${cell('ours',k)}</td>
+    <td>${cell('betchan',k)}</td>
+    <td>${cell('bob',k)}</td></tr>`).join('')}
+    <tr style="border-top:2px solid var(--line)"><td class="metric"><b>Σ в коридоре (из 119)</b></td>
+      <td class="band">—</td>
+      <td><b class="b7">${sum(INB.ours)}</b></td>
+      <td><b>${sum(INB.betchan)}</b></td>
+      <td><b>${sum(INB.bob)}</b></td></tr></tbody>`;
+
+document.getElementById('sig').innerHTML=
+ `<thead><tr><th>Признак генератора (доля 7 страниц)</th><th>Казиновия</th><th>betchan</th><th>bob</th></tr></thead>
+  <tbody>
+   <tr><td class="metric">FAQ-блок (≥3 вопросов)</td><td class="b7">7/7</td><td class="b02">1/7</td><td class="b02">1/7</td></tr>
+   <tr><td class="metric">Schema (JSON-LD)</td><td class="b7">7/7</td><td class="b7">7/7</td><td class="b7">7/7</td></tr>
+   <tr><td class="metric">Дата-стамп «обновлено»</td><td class="b7">7/7</td><td class="b7">7/7</td><td class="b7">7/7</td></tr>
+   <tr><td class="metric">Тошнота в коридоре</td><td class="b7">7/7</td><td class="b56">6/7</td><td class="b56">6/7</td></tr>
+   <tr><td class="metric">Водность в коридоре</td><td class="b7">7/7</td><td class="b02">0/7</td><td class="b56">5/7</td></tr>
+  </tbody>`;
+</script>
