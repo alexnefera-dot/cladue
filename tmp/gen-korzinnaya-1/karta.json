@@ -1,0 +1,32 @@
+{
+    "комплект": "korzinnaya-1",
+    "маска": "корзинная мастерская",
+    "ракурс": "корзинщик",
+    "рефрен": "проба на излом",
+    "словарь": [
+        "прут",
+        "окорка",
+        "стояк",
+        "оплётка",
+        "обод",
+        "загибка",
+        "черенок"
+    ],
+    "срезы": {
+        "app": "Программа сбрасывает язык витрины при каждом входе",
+        "bonus": "Бонус за уровень не пришёл при достигнутом обороте",
+        "registracia": "Согласие на обработку данных отозвано по ошибке",
+        "slots": "История раундов обрывается на середине вечера",
+        "vhod": "Реестр устройств показывает больше записей, чем было",
+        "zerkalo": "Запасной адрес открывает витрину без раздела акций"
+    },
+    "промпты": {
+        "main": "tmp\/gen-korzinnaya-1\/prompt-main.md",
+        "app": "tmp\/gen-korzinnaya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-korzinnaya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-korzinnaya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-korzinnaya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-korzinnaya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-korzinnaya-1\/prompt-zerkalo.md"
+    }
+}

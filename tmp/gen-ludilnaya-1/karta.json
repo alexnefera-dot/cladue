@@ -1,0 +1,32 @@
+{
+    "комплект": "ludilnaya-1",
+    "маска": "лудильная мастерская",
+    "ракурс": "лудильщик",
+    "рефрен": "проба на полуду",
+    "словарь": [
+        "полуда",
+        "олово",
+        "протрава",
+        "лужение",
+        "паяльник",
+        "окалина",
+        "притир"
+    ],
+    "срезы": {
+        "app": "Сборка требует разрешений, которых раньше не просила",
+        "bonus": "Фриспины начислены на автомат, которого нет в каталоге",
+        "registracia": "Регистрация закрыта для вашего региона: что дальше",
+        "slots": "Избранное сбросилось вместе со сменой адреса",
+        "vhod": "Кабинет просит код при каждом входе с домашней сети",
+        "zerkalo": "Домен из письма отличается одной буквой от прежнего"
+    },
+    "промпты": {
+        "main": "tmp\/gen-ludilnaya-1\/prompt-main.md",
+        "app": "tmp\/gen-ludilnaya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-ludilnaya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-ludilnaya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-ludilnaya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-ludilnaya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-ludilnaya-1\/prompt-zerkalo.md"
+    }
+}
