@@ -8,7 +8,7 @@ declare(strict_types=1);
  *
  *   php realize.php --prompt=path/to/prompt-main.md --out=path/to/main.html \
  *       [--model=claude-opus-5] [--max-tokens=16000] [--effort=medium] [--register=expert] \
- *       [--профиль=engine/data-v5/profil-v5.json]
+ *       [--профиль=engine/data-v5/profil-v5.json] [--без-потока]
  *
  * Инварианты системного промпта раньше были зашиты в код и описывали поколение
  * v2: финальный JSON-LD и зачин «%brand_name_ru%. …». Корпус v5 не делает ни
@@ -34,6 +34,10 @@ $register   = $opts['register'] ?? '';             // подсказка рег�
 $mode       = $opts['mode'] ?? 'realize';          // realize | fix
 $profilFile = $opts['профиль'] ?? '';
 $SUHOJ      = isset($opts['сухой']);      // собрать запрос и показать, не вызывая модель
+// Ответ читается потоком. На длинной генерации без потока по соединению
+// минутами не идёт ни байта, и TLS рвётся: «SSL routines::unexpected eof while
+// reading». Поток гонит события всё время работы модели и держит канал живым.
+$STREAM     = !isset($opts['без-потока']);
 
 if ($promptFile === '' || !is_file($promptFile)) { fwrite(STDERR, "нет --prompt файла\n"); exit(1); }
 if ($outFile === '') { fwrite(STDERR, "нет --out файла\n"); exit(1); }
@@ -94,14 +98,15 @@ $body = [
     'output_config' => ['effort' => $effort],
     'messages'    => [[ 'role' => 'user', 'content' => $prompt ]],
 ];
+if ($STREAM) { $body['stream'] = true; }
 $payload = json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
 // Сухой прогон: показать, что именно уйдёт в модель. Нужен, чтобы проверять
 // инварианты системного промпта без расхода токенов и без ключа.
 if ($SUHOJ) {
     fwrite(STDERR, "── системный промпт ──\n" . $system . "\n\n"
-        . sprintf("── запрос ── модель %s, max_tokens %d, effort %s, промпт %d знаков\n",
-            $model, $maxTokens, $effort, mb_strlen($prompt)));
+        . sprintf("── запрос ── модель %s, max_tokens %d, effort %s, поток %s, промпт %d знаков\n",
+            $model, $maxTokens, $effort, $STREAM ? 'да' : 'нет', mb_strlen($prompt)));
     exit(0);
 }
 
@@ -127,49 +132,122 @@ if ($apiKey !== '') { $headers[] = 'x-api-key: ' . $apiKey; }
 elseif ($authTok !== '') { $headers[] = 'authorization: Bearer ' . $authTok; $headers[] = 'anthropic-beta: oauth-2025-04-20'; }
 else { fwrite(STDERR, "нет ключа: задай ANTHROPIC_API_KEY/ANTHROPIC_AUTH_TOKEN в окружении\nлибо положи ключ в файл engine/.anthropic-key (одной строкой; он в .gitignore)\n"); exit(2); }
 
+/**
+ * Разбор потока событий (SSE). Текст приходит кусками в content_block_delta,
+ * причина остановки и расход — в message_delta.
+ *
+ * Состояние держим снаружи: curl отдаёт данные произвольными порциями, и
+ * строка события запросто рвётся посередине между двумя вызовами.
+ */
+function sobratSSE(string $chunk, array &$st): void
+{
+    $st['хвост'] .= $chunk;
+    while (($n = strpos($st['хвост'], "\n")) !== false) {
+        $line = rtrim(substr($st['хвост'], 0, $n), "\r");
+        $st['хвост'] = substr($st['хвост'], $n + 1);
+        if (strncmp($line, 'data:', 5) !== 0) { continue; }
+        $j = json_decode(trim(substr($line, 5)), true);
+        if (!is_array($j)) { continue; }
+        switch ($j['type'] ?? '') {
+            case 'content_block_delta':
+                // Текст берём только из text_delta: thinking_delta — это
+                // рассуждение, в страницу оно попадать не должно.
+                if (($j['delta']['type'] ?? '') === 'text_delta') { $st['текст'] .= $j['delta']['text'] ?? ''; }
+                break;
+            case 'message_start':
+                $st['вход'] = (int) ($j['message']['usage']['input_tokens'] ?? 0);
+                break;
+            case 'message_delta':
+                $st['стоп'] = $j['delta']['stop_reason'] ?? $st['стоп'];
+                $st['выход'] = (int) ($j['usage']['output_tokens'] ?? $st['выход']);
+                break;
+            case 'error':
+                $st['ошибка'] = ($j['error']['type'] ?? '?') . ': ' . ($j['error']['message'] ?? '');
+                break;
+        }
+    }
+}
+
 // ── HTTP (raw curl; прокси и CA среды) с ретраями ──────────────────────────
 // Транзиентные сбои (таймаут/обрыв curl, 429/500/502/503/504/529 перегруз)
 // повторяем с экспоненциальным backoff — иначе один сбой убивает страницу.
 $maxAttempts = (int)($opts['retries'] ?? 4);
-$resp = false; $code = 0; $err = '';
+$resp = false; $code = 0; $err = ''; $st = [];
 for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+    $st = ['хвост' => '', 'текст' => '', 'стоп' => '', 'вход' => 0, 'выход' => 0, 'ошибка' => ''];
+    $syroj = '';
     $ch = curl_init('https://api.anthropic.com/v1/messages');
     curl_setopt_array($ch, [
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => $payload,
         CURLOPT_HTTPHEADER => $headers,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 900,
+        CURLOPT_TIMEOUT => 1800,
         CURLOPT_CONNECTTIMEOUT => 30,
+        // HTTP/2 поверх некоторых сборок curl на macOS роняет длинные ответы
+        // тем же «unexpected eof». На 1.1 длинная генерация доходит целиком.
+        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
     ]);
+    if ($STREAM) {
+        curl_setopt($ch, CURLOPT_WRITEFUNCTION, function ($ch, $chunk) use (&$st, &$syroj) {
+            $syroj .= $chunk;                 // на случай, если это не поток, а JSON-ошибка
+            sobratSSE($chunk, $st);
+            return strlen($chunk);
+        });
+    } else {
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    }
     if ($proxy = (getenv('HTTPS_PROXY') ?: getenv('https_proxy'))) { curl_setopt($ch, CURLOPT_PROXY, $proxy); }
     if (is_file('/root/.ccr/ca-bundle.crt')) { curl_setopt($ch, CURLOPT_CAINFO, '/root/.ccr/ca-bundle.crt'); }
-    $resp = curl_exec($ch);
+    $vyzov = curl_exec($ch);
     $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $err  = $resp === false ? curl_error($ch) : '';
-    curl_close($ch);
-    $retryable = ($resp === false) || in_array($code, [429, 500, 502, 503, 504, 529], true);
-    if (!$retryable) break;
+    $err  = curl_error($ch);
+    // curl_close() с PHP 8.5 объявлен устаревшим и ничего не делает: дескриптор
+    // освобождается сам, когда переменная выходит из области видимости.
+    unset($ch);
+
+    if ($STREAM) {
+        $resp = $syroj;
+        // Успех — когда текст дошёл и поток закрылся штатно.
+        $ok = $err === '' && $code === 200 && $st['текст'] !== '' && $st['ошибка'] === '';
+    } else {
+        $resp = $vyzov;
+        $ok = $vyzov !== false && $code === 200;
+    }
+    if ($ok) { break; }
+
+    $retryable = ($err !== '') || in_array($code, [429, 500, 502, 503, 504, 529], true);
+    if (!$retryable) { break; }
     if ($attempt < $maxAttempts) {
         $wait = (int) pow(2, $attempt); // 2,4,8,16с
-        fwrite(STDERR, "  попытка $attempt: " . ($resp===false ? "curl $err" : "HTTP $code") . " — повтор через {$wait}с\n");
+        $chto = $err !== '' ? "curl $err" : "HTTP $code";
+        fwrite(STDERR, "  попытка $attempt: $chto — повтор через {$wait}с\n");
         sleep($wait);
     }
 }
-if ($resp === false) { fwrite(STDERR, "curl не удался после $maxAttempts попыток: $err\n"); exit(3); }
 
-$data = json_decode((string)$resp, true);
-if ($code !== 200 || !is_array($data)) {
-    fwrite(STDERR, "HTTP $code (после ретраев): " . substr((string)$resp, 0, 500) . "\n"); exit(4);
+if ($STREAM) {
+    if ($st['ошибка'] !== '') { fwrite(STDERR, "ошибка API: {$st['ошибка']}\n"); exit(4); }
+    if ($st['текст'] === '') {
+        $chto = $err !== '' ? "curl $err" : "HTTP $code";
+        fwrite(STDERR, "поток пуст после $maxAttempts попыток ($chto): " . substr((string) $resp, 0, 400) . "\n");
+        exit(3);
+    }
+    if ($st['стоп'] === 'refusal') { fwrite(STDERR, "отказ модели (refusal)\n"); exit(5); }
+    $html = trim($st['текст']);
+    $data = ['stop_reason' => $st['стоп'], 'usage' => ['input_tokens' => $st['вход'], 'output_tokens' => $st['выход']]];
+} else {
+    if ($resp === false) { fwrite(STDERR, "curl не удался после $maxAttempts попыток: $err\n"); exit(3); }
+    $data = json_decode((string) $resp, true);
+    if ($code !== 200 || !is_array($data)) {
+        fwrite(STDERR, "HTTP $code (после ретраев): " . substr((string) $resp, 0, 500) . "\n"); exit(4);
+    }
+    if (($data['stop_reason'] ?? '') === 'refusal') { fwrite(STDERR, "отказ модели (refusal)\n"); exit(5); }
+    $html = '';
+    foreach (($data['content'] ?? []) as $block) {
+        if (($block['type'] ?? '') === 'text') { $html .= $block['text']; }
+    }
+    $html = trim($html);
 }
-if (($data['stop_reason'] ?? '') === 'refusal') { fwrite(STDERR, "отказ модели (refusal)\n"); exit(5); }
-
-// ── собираем текст (thinking-блоки пустые/пропускаем) ──────────────────────
-$html = '';
-foreach (($data['content'] ?? []) as $block) {
-    if (($block['type'] ?? '') === 'text') { $html .= $block['text']; }
-}
-$html = trim($html);
 if ($html === '') { fwrite(STDERR, "пустой ответ (stop_reason=" . ($data['stop_reason'] ?? '?') . ")\n"); exit(6); }
 
 file_put_contents($outFile, $html . "\n");
