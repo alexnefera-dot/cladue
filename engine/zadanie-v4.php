@@ -250,6 +250,24 @@ sort($chuzhieZagolovki);
 @mkdir($OUT, 0777, true);
 
 /** Держимые поля типа страницы: «имя — цель ± допуск». */
+/**
+ * Опорные формулы ниши — в задание, а не только в правку.
+ *
+ * Поле anchors держат четыре типа страниц из семи, а в промпте про него не
+ * было ни слова: писатель узнавал о нём из брифа на правку, то есть после
+ * провала. В первом машинном комплекте на нём споткнулись bonus, slots, vhod и
+ * zerkalo — четыре страницы из семи, каждая ценой лишней полной перезаписи.
+ */
+function opory(array $prof, string $p): string
+{
+    $cel = (int) ($prof['страницы'][$p]['поля']['anchors']['цель'] ?? 0);
+    if ($cel <= 0) { return ''; }
+    return "Опорных формул ниши — около $cel на страницу. Это устойчивые "
+        . 'словосочетания, общие для всего жанра: ' . implode(', ', PageMetrics::ANCHORS_TXT) . ". "
+        . "Они стоят внутри фраз и в нужном падеже, не списком и не в заголовке подряд. "
+        . 'Синоним не считается: «слоты» вместо «игровых автоматов» приёмка не увидит.';
+}
+
 function polya(array $prof, string $p): string
 {
     // Кириллица: printf считает байты, поэтому выравниваем сами.
@@ -680,6 +698,9 @@ $glavnaya = $obshee . <<<TXT
 Финал: {$finalStr} После последнего H2 — около
 {$st['финал']['слов_после_последнего_H2']} слов.
 
+## Опорные формулы
+@@OPORY@@
+
 ## Числа, которые проверит приёмка
 @@POLYA@@
 
@@ -740,6 +761,9 @@ H3 — {$vn['H3']} штук, роли: {$roliStr}.
   пар «вопрос-ответ» {$zh['пар_faq']}
   внутренних ссылок {$zh['ссылок']} — на другие страницы комплекта, кроме /bonus
 
+## Опорные формулы
+@@OPORY@@
+
 ## Числа, которые проверит приёмка
 @@POLYA@@
 
@@ -764,8 +788,8 @@ $gotovo = [];
 foreach (PAGES_Z as $p) {
     $txt = $p === 'main' ? $glavnaya : $stranicy[$p];
     $txt = str_replace(
-        ['@@POLYA@@', '@@RAZM@@', '@@BREND@@', '@@SUMMA@@', '@@KARKAS@@', '@@FAKTURA@@'],
-        [polya($prof, $p), razmetka($prof, $p), brend($prof, $p), summa($prof, $p), karkas($IMYA, $KARKAS, $prof), faktura($IMYA, $maski['занято'], $novyy)],
+        ['@@POLYA@@', '@@RAZM@@', '@@BREND@@', '@@SUMMA@@', '@@KARKAS@@', '@@FAKTURA@@', '@@OPORY@@'],
+        [polya($prof, $p), razmetka($prof, $p), brend($prof, $p), summa($prof, $p), karkas($IMYA, $KARKAS, $prof), faktura($IMYA, $maski['занято'], $novyy), opory($prof, $p)],
         $txt
     );
     $f = "$OUT/prompt-$p.md";
