@@ -1,0 +1,2114 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>vodolaznaya-1 против mad: текст и параметры рядом</title><style>:root { --bg:#fff; --fg:#1a1a1a; --mut:#666; --line:#e3e3e3; --note:#f4f4f4; --ok:#2f7d32; --bad:#b3261e; --warn:#8a6a00; }
+@media (prefers-color-scheme: dark) { :root { --bg:#16181c; --fg:#e6e6e6; --mut:#9aa0a6; --line:#2e3238; --note:#1e2126; --ok:#7ec783; --bad:#f2b8b5; --warn:#e0c060; } }
+* { box-sizing:border-box; }
+body { margin:0; padding:24px 16px 60px; background:var(--bg); color:var(--fg); font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; }
+.wrap { max-width:1500px; margin:0 auto; }
+h1 { font-size:24px; margin:0 0 6px; }
+.sub { color:var(--mut); margin:0 0 18px; font-size:14px; }
+.sub2 { color:var(--mut); font-weight:400; font-size:13px; }
+h2 { font-size:20px; margin:38px 0 10px; padding-top:16px; border-top:2px solid var(--line); }
+h3 { font-size:15px; margin:20px 0 6px; color:var(--mut); text-transform:uppercase; letter-spacing:.04em; }
+table { border-collapse:collapse; width:100%; font-size:13.5px; margin:8px 0 4px; }
+th,td { border:1px solid var(--line); padding:6px 9px; text-align:left; vertical-align:top; }
+th { background:var(--note); font-weight:600; }
+td.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+table.mx { max-width:640px; }
+table.bl td.blk { width:46%; }
+table.bl td.ix { width:56px; color:var(--mut); font-size:12px; text-align:center; }
+td.ix code { font-size:11px; background:var(--note); padding:1px 4px; border-radius:3px; }
+tr.odd td { background:rgba(179,38,30,.07); }
+tr.hold td:first-child { font-weight:600; }
+code.fk { display:block; font-size:10.5px; color:var(--mut); margin-top:2px; }
+table.mx { max-width:900px; }
+.gap { color:var(--bad); font-size:12.5px; }
+.w { display:block; margin-top:5px; color:var(--mut); font-size:11.5px; }
+.q { display:block; margin-bottom:4px; }
+.ok { color:var(--ok); } .bad { color:var(--bad); font-weight:700; }
+.scroll { overflow-x:auto; }
+.nav { margin:14px 0 24px; font-size:13.5px; }
+.nav a { display:inline-block; margin:0 10px 8px 0; padding:5px 10px; border:1px solid var(--line); border-radius:6px; color:inherit; text-decoration:none; }
+.key { border-left:4px solid var(--warn); background:var(--note); border-radius:8px; padding:12px 15px; margin:16px 0; font-size:14px; }
+code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+u { text-decoration:underline dotted; }
+.two { display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start; }
+@media (max-width:900px) { .two { grid-template-columns:1fr; } }
+.col { min-width:0; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+.colhead { position:sticky; top:0; z-index:2; background:var(--note); border-bottom:1px solid var(--line); padding:8px 14px; font-size:13px; font-weight:600; }
+.page { padding:6px 16px 18px; font-size:14.5px; max-height:78vh; overflow-y:auto; overscroll-behavior:contain; }
+.page table { display:block; overflow-x:auto; max-width:100%; }
+.page figure { margin:0; }
+.page h2 { font-size:17px; margin:22px 0 8px; padding:0; border:0; }
+.page h3 { font-size:14.5px; margin:16px 0 6px; color:var(--fg); text-transform:none; letter-spacing:0; font-weight:700; }
+.page p { margin:9px 0; }
+.page table { font-size:13px; }
+.page blockquote { margin:12px 0; padding:8px 14px; border-left:3px solid var(--warn); background:var(--note); border-radius:0 6px 6px 0; }
+.page .faq { border:1px solid var(--line); border-radius:6px; padding:8px 12px; margin:8px 0; }
+.page .faq .q { font-weight:700; margin-bottom:4px; }
+.page .faq p { margin:4px 0; }
+.page sup.href { color:var(--mut); font-size:10px; margin-left:2px; }
+.page u.lnk { text-decoration:underline; text-underline-offset:2px; }
+.warn { color:var(--warn); }
+tr.hold td { background:rgba(138,106,0,.06); }
+ul.rash { margin:6px 0 0; padding-left:20px; font-size:14px; }
+ul.rash li { margin:3px 0; }
+p.none { color:var(--mut); font-size:14px; margin:6px 0 0; }</style></head><body><div class="wrap"><h1>vodolaznaya-1 против mad</h1><p class="sub">Слева — страница донора, справа — наша. Блоки выровнены по типам: если у одной стороны блока нет, строка подсвечена. Совпало 30 из 385 полей.</p><div class="nav"><a href="#main">Главная <b>30/55</b></a> </div><div class="key">Строка подсвечена красным, когда блок есть только на одной стороне — это расхождение структуры. Совпадение по числу слов в блоке не требуется: коридор приёмки работает на уровне страницы, а не абзаца.</div><h2 id="main">Главная <span class="sub2">25/25 держимых полей в коридоре (100 %) · вне корпуса 0 из 55 · 30/55 совпало с донором · 3528 слов у донора · 2289 у нас</span></h2><h3>Расхождения</h3><p class="none">Все 55 полей либо в коридоре приёмки, либо внутри разброса корпуса.</p><h3>Параметры</h3><div class="scroll"><table class="mx"><tr><th>Поле</th><th>Донор</th><th>Наше</th><th>Цель</th><th>Полоса q1–q3</th><th>Край мин–макс</th><th>Вердикт</th></tr><tr class=""><td>объём слов<code class="fk">words</code></td><td class="num">3298</td><td class="num"><b class="ok">2137</b></td><td class="num">2199</td><td class="num">1763–3670</td><td class="num">632–5685</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>H2<code class="fk">h2</code></td><td class="num">12</td><td class="num"><b class="warn">13</b></td><td class="num">10</td><td class="num">7–12</td><td class="num">2–20</td><td><span class="warn">в разбросе корпуса</span></td></tr><tr class=""><td>разделов H2+H3<code class="fk">sections</code></td><td class="num">47</td><td class="num"><b class="ok">44</b></td><td class="num">36</td><td class="num">21–50</td><td class="num">10–61</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>списков<code class="fk">lists</code></td><td class="num">23</td><td class="num"><b class="ok">9</b></td><td class="num">11</td><td class="num">6–23</td><td class="num">3–33</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>strong<code class="fk">strong</code></td><td class="num">67</td><td class="num"><b class="ok">31</b></td><td class="num">54</td><td class="num">25–67</td><td class="num">7–113</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>вопросительных знаков<code class="fk">faq</code></td><td class="num">10</td><td class="num"><b class="warn">7</b></td><td class="num">2</td><td class="num">0–6</td><td class="num">0–26</td><td><span class="warn">в разбросе корпуса</span></td></tr><tr class=""><td>эмодзи<code class="fk">emoji</code></td><td class="num">35</td><td class="num"><b class="ok">22</b></td><td class="num">20</td><td class="num">14–25</td><td class="num">5–53</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>«я»<code class="fk">first_person</code></td><td class="num">0</td><td class="num"><b class="ok">18</b></td><td class="num">37</td><td class="num">1–57</td><td class="num">0–247</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>«вы»<code class="fk">vy</code></td><td class="num">36</td><td class="num"><b class="ok">2</b></td><td class="num">7</td><td class="num">2–12</td><td class="num">0–36</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>«ты»<code class="fk">ty</code></td><td class="num">1</td><td class="num"><b class="ok">0</b></td><td class="num">4</td><td class="num">0–15</td><td class="num">0–110</td><td><span class="ok">в полосе</span></td></tr><tr class="hold"><td>заголовков по теме страницы %<code class="fk">on_topic_pct</code></td><td class="num">0</td><td class="num"><b class="ok">0</b></td><td class="num">0</td><td class="num">0–0</td><td class="num">0–0</td><td><span class="ok">в коридоре</span></td></tr><tr class=""><td>реплик в кавычках<code class="fk">speech</code></td><td class="num">2</td><td class="num"><b class="ok">1</b></td><td class="num">3</td><td class="num">1–9</td><td class="num">0–16</td><td><span class="ok">в полосе</span></td></tr><tr class="hold"><td>бытовых сравнений<code class="fk">compare</code></td><td class="num">0</td><td class="num"><b class="ok">1</b></td><td class="num">0</td><td class="num">0–2</td><td class="num">0–5</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>зачинов «а на деле»<code class="fk">myth</code></td><td class="num">0</td><td class="num"><b class="ok">0</b></td><td class="num">0</td><td class="num">0–0</td><td class="num">0–1</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>заявок на закрытое знание<code class="fk">insider</code></td><td class="num">0</td><td class="num"><b class="ok">0</b></td><td class="num">0</td><td class="num">0–0</td><td class="num">0–1</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>шаблонов обращения<code class="fk">letter</code></td><td class="num">0</td><td class="num"><b class="ok">0</b></td><td class="num">0</td><td class="num">0–0</td><td class="num">0–0</td><td><span class="ok">в коридоре</span></td></tr><tr class=""><td>императивов<code class="fk">imperatives</code></td><td class="num">52</td><td class="num"><b class="ok">20</b></td><td class="num">20</td><td class="num">11–37</td><td class="num">2–85</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>цифр на 100 слов<code class="fk">numbers_per100</code></td><td class="num">3.4</td><td class="num"><b class="warn">2</b></td><td class="num">7</td><td class="num">2.2–9</td><td class="num">0.8–12.6</td><td><span class="warn">в разбросе корпуса</span></td></tr><tr class="hold"><td>прилагательных %<code class="fk">adj_pct</code></td><td class="num">16.9</td><td class="num"><b class="ok">10.6</b></td><td class="num">12.2</td><td class="num">10.1–13.8</td><td class="num">9.2–16.9</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>тошнота %<code class="fk">nausea_acad</code></td><td class="num">40.2</td><td class="num"><b class="ok">42.7</b></td><td class="num">37.9</td><td class="num">33.4–40.5</td><td class="num">19.1–45.8</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>водность %<code class="fk">water</code></td><td class="num">25</td><td class="num"><b class="ok">27</b></td><td class="num">24.8</td><td class="num">22.3–27.3</td><td class="num">15.3–35.1</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>бренд кириллицей<code class="fk">brand_ru</code></td><td class="num">10</td><td class="num"><b class="ok">1</b></td><td class="num">1</td><td class="num">0–2</td><td class="num">0–10</td><td><span class="ok">в коридоре</span></td></tr><tr class=""><td>бренд латиницей<code class="fk">brand_en</code></td><td class="num">44</td><td class="num"><b class="ok">18</b></td><td class="num">22</td><td class="num">16–26</td><td class="num">7–44</td><td><span class="ok">в полосе</span></td></tr><tr class="hold"><td>бренд в заголовках<code class="fk">brand_in_h</code></td><td class="num">13</td><td class="num"><b class="ok">4</b></td><td class="num">5</td><td class="num">3–7</td><td class="num">1–13</td><td><span class="ok">в коридоре</span></td></tr><tr class=""><td>бренд в первой трети<code class="fk">brand_first_third</code></td><td class="num">20</td><td class="num"><b class="ok">8</b></td><td class="num">10</td><td class="num">7–14</td><td class="num">3–20</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>пар «вопрос-ответ»<code class="fk">faq_pairs</code></td><td class="num">11</td><td class="num"><b class="ok">7</b></td><td class="num">7</td><td class="num">1–11</td><td class="num">0–15</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>вопросов в тексте<code class="fk">questions_total</code></td><td class="num">20</td><td class="num"><b class="ok">14</b></td><td class="num">12</td><td class="num">4–16</td><td class="num">0–37</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>опорных формул<code class="fk">anchors</code></td><td class="num">37</td><td class="num"><b class="warn">8</b></td><td class="num">17</td><td class="num">14–20</td><td class="num">5–37</td><td><span class="warn">в разбросе корпуса</span></td></tr><tr class="hold"><td>зачин: имя с категорией<code class="fk">opener_name</code></td><td class="num">1</td><td class="num"><b class="ok">0</b></td><td class="num">0</td><td class="num">0–0</td><td class="num">0–1</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>зачин: ключ в начале<code class="fk">opener_key</code></td><td class="num">1</td><td class="num"><b class="ok">1</b></td><td class="num">1</td><td class="num">1–1</td><td class="num">0–1</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>колонок в таблице<code class="fk">table_cols</code></td><td class="num">3</td><td class="num"><b class="ok">3</b></td><td class="num">3</td><td class="num">2.8–3.3</td><td class="num">2.3–4.5</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>уникальных шапок %<code class="fk">table_uniq_pct</code></td><td class="num">100</td><td class="num"><b class="ok">100</b></td><td class="num">100</td><td class="num">100–100</td><td class="num">75–100</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>отзывов с оценкой<code class="fk">reviews_rated</code></td><td class="num">0</td><td class="num"><b class="ok">0</b></td><td class="num">0</td><td class="num">0–0</td><td class="num">0–5</td><td><span class="ok">в коридоре</span></td></tr><tr class=""><td>нумерованных списков %<code class="fk">ordered_pct</code></td><td class="num">26.1</td><td class="num"><b class="warn">33.3</b></td><td class="num">25</td><td class="num">20–30</td><td class="num">0–54.5</td><td><span class="warn">в разбросе корпуса</span></td></tr><tr class="hold"><td>разовых анкоров %<code class="fk">anchor_once_pct</code></td><td class="num">81.3</td><td class="num"><b class="ok">79.2</b></td><td class="num">81.3</td><td class="num">72–86.2</td><td class="num">54.2–100</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>разных значений с %<code class="fk">fact_values</code></td><td class="num">3</td><td class="num"><b class="ok">0</b></td><td class="num">1</td><td class="num">0–3</td><td class="num">0–8</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>список в зачине<code class="fk">lead_list</code></td><td class="num">1</td><td class="num"><b class="ok">1</b></td><td class="num">1</td><td class="num">1–1</td><td class="num">0–1</td><td><span class="ok">в коридоре</span></td></tr><tr class=""><td>раздел открыт абзацем %<code class="fk">h2_opens_para_pct</code></td><td class="num">91.7</td><td class="num"><b class="ok">69.2</b></td><td class="num">72.7</td><td class="num">60–83.3</td><td class="num">0–100</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>H3 с вопросительного слова %<code class="fk">h3_question_pct</code></td><td class="num">28.6</td><td class="num"><b class="warn">25.8</b></td><td class="num">20</td><td class="num">10–25</td><td class="num">0–42.9</td><td><span class="warn">в разбросе корпуса</span></td></tr><tr class=""><td>H3 с двоеточием %<code class="fk">h3_colon_pct</code></td><td class="num">5.7</td><td class="num"><b class="ok">48.4</b></td><td class="num">37.5</td><td class="num">23.3–50</td><td class="num">0–70</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>strong в начале блока %<code class="fk">strong_lead_pct</code></td><td class="num">62.7</td><td class="num"><b class="warn">9.7</b></td><td class="num">43.8</td><td class="num">17.6–73.8</td><td class="num">0–87</td><td><span class="warn">в разбросе корпуса</span></td></tr><tr class="hold"><td>эмодзи внутри фразы<code class="fk">emoji_inline</code></td><td class="num">1</td><td class="num"><b class="ok">0</b></td><td class="num">0</td><td class="num">0–2</td><td class="num">0–25</td><td><span class="ok">в коридоре</span></td></tr><tr class=""><td>разброс длины абзаца<code class="fk">para_spread</code></td><td class="num">19</td><td class="num"><b class="ok">15.2</b></td><td class="num">18.1</td><td class="num">15.1–23.1</td><td class="num">5.8–40.6</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>коротких абзацев<code class="fk">para_short</code></td><td class="num">20</td><td class="num"><b class="ok">10</b></td><td class="num">10</td><td class="num">5–15</td><td class="num">1–29</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>абзацев<code class="fk">paragraphs</code></td><td class="num">62</td><td class="num"><b class="ok">52</b></td><td class="num">52</td><td class="num">26–61</td><td class="num">13–87</td><td><span class="ok">в полосе</span></td></tr><tr class="hold"><td>слов в абзаце<code class="fk">words_per_para</code></td><td class="num">25.6</td><td class="num"><b class="ok">29.4</b></td><td class="num">27.3</td><td class="num">24.7–31.2</td><td class="num">16–44.4</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>названий игр<code class="fk">games_named</code></td><td class="num">0</td><td class="num"><b class="ok">0</b></td><td class="num">0</td><td class="num">0–1</td><td class="num">0–6</td><td><span class="ok">в коридоре</span></td></tr><tr class=""><td>названий студий<code class="fk">providers_named</code></td><td class="num">0</td><td class="num"><b class="ok">0</b></td><td class="num">0</td><td class="num">0–3</td><td class="num">0–10</td><td><span class="ok">в полосе</span></td></tr><tr class="hold"><td>разных имён игр и студий<code class="fk">names_uniq</code></td><td class="num">0</td><td class="num"><b class="ok">0</b></td><td class="num">1</td><td class="num">0–4</td><td class="num">0–11</td><td><span class="ok">в коридоре</span></td></tr><tr class=""><td>профильных терминов<code class="fk">terms_total</code></td><td class="num">87</td><td class="num"><b class="ok">64</b></td><td class="num">67</td><td class="num">46–95</td><td class="num">11–181</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>H3 на один H2<code class="fk">h3_per_h2</code></td><td class="num">2.9</td><td class="num"><b class="ok">2.4</b></td><td class="num">3</td><td class="num">2–3.5</td><td class="num">0.6–5</td><td><span class="ok">в полосе</span></td></tr><tr class="hold"><td>слов в заголовке<code class="fk">h2_len</code></td><td class="num">7</td><td class="num"><b class="ok">7.2</b></td><td class="num">7.4</td><td class="num">6.6–8.1</td><td class="num">5.3–10.6</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>заголовков-вопросов %<code class="fk">h2_quest</code></td><td class="num">0</td><td class="num"><b class="ok">0</b></td><td class="num">0</td><td class="num">0–0</td><td class="num">0–20</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>прямых призывов<code class="fk">cta</code></td><td class="num">0</td><td class="num"><b class="ok">0</b></td><td class="num">0</td><td class="num">0–2</td><td class="num">0–14</td><td><span class="ok">в коридоре</span></td></tr><tr class=""><td>мест с минусом или риском<code class="fk">honest</code></td><td class="num">18</td><td class="num"><b class="ok">6</b></td><td class="num">8</td><td class="num">4–17</td><td class="num">0–61</td><td><span class="ok">в полосе</span></td></tr></table></div><h3>Текст целиком</h3><div class="two"><div class="col"><div class="colhead">Донор mad · 3528 слов</div><div class="page"><p>
+  %brand_name_en% — это не просто онлайн‑казино, а полноценный крипто‑игровой центр, который уже более 10 лет радует игроков по всему миру. Официальный сайт %brand_name_en% поддерживает более 30 валют, включая BTC, ETH, BNB и USDT, а система регистрации занимает всего 45 секунд: достаточно ввести email, придумать пароль, пройти верификацию через Telegram‑бот и вы уже готовы к игре. Для пользователей, которым требуется доступ из стран с ограничениями, компания предоставляет 15 зеркал, которые автоматически перенаправляют в наиболее быстрый сервер, а также поддержку через WebRTC‑чат в режиме 24/7. На сайте вы можете проверить актуальный коэффициент на живые соревнования по покеру, слоты с RTP до 98 % и ставки на виртуальный футбол со ставкой «все‑или‑ничего» до 200 x. Всё это делает %brand_name_en% настоящим лидером в индустрии, где прозрачность и скорость важнее, чем просто громкая реклама.
+</p>
+
+  
+    <ul>
+      <li>
+        🏠 <u class="lnk">Официальный сайт %brand_name_en%: регистрация и первый депозит</u><sup class="href">/</sup>
+      </li>
+      <li>
+        👥 <u class="lnk">Где найти надёжные зеркала и VPN‑подключение</u><sup class="href">/zerkalo</sup>
+      </li>
+      <li>
+        🎟 <u class="lnk">Как войти в систему и настроить 2FA для безопасности</u><sup class="href">/vhod</sup>
+      </li>
+      <li>
+        🎁 <u class="lnk">Система бонусов и промо‑акций: от Welcome до Loyalty</u><sup class="href">/</sup>
+      </li>
+    </ul>
+  
+
+<h2>
+  Важные предупреждения и анти‑паттерны
+</h2>
+<ul>
+  <li>
+    <strong>🛑 Не игнорируйте лимиты депозитов и снятия.</strong> %brand_name_en% устанавливает максимальный депозит в 500 $ на день и лимит снятия 200 $ в сутки; нарушение правил приводит к задержке выплат.
+  </li>
+  <li>
+    <strong>⚠️ Избегайте «фальшивых» бонусов.</strong> Убедитесь, что промокод действительно принадлежит официальному сайту, иначе вы рискуете потерять средства на фишинговых страницах.
+  </li>
+  <li>
+    <strong>🚫 Не ставьте ставки с неактивных зеркал.</strong> Зеркала без официальной подписи могут вести к потере аккаунта и средств.
+  </li>
+  <li>
+    <strong>🕵️‍♂️ Не делитесь паролями и ключами доступа.</strong> %brand_name_en% использует только двухфакторную аутентификацию; любой доступ третьим лицам может вести к краже средств.
+  </li>
+</ul>
+<h3>
+  Обзорная таблица ключевой информации о %brand_name_en%
+</h3>
+
+  <table>
+    <tbody>
+      <tr>
+        <th>
+          📊 Основные данные %brand_name_en%
+        </th>
+      </tr>
+      <tr>
+        <td>
+          🏷️ <strong>Лицензия</strong>
+        </td>
+        <td>
+          Malta Gaming Authority (MGA) № MGA-001234, 2023
+        </td>
+      </tr>
+      <tr>
+        <td>
+          💳 <strong>Криптовалюты</strong>
+        </td>
+        <td>
+          BTC, ETH, BNB, USDT, ADA
+        </td>
+      </tr>
+      <tr>
+        <td>
+          💰 <strong>Мин. депозит</strong>
+        </td>
+        <td>
+          0.01 BTC / 10 $
+        </td>
+      </tr>
+      <tr>
+        <td>
+          💸 <strong>Макс. снятие</strong>
+        </td>
+        <td>
+          200 $/сутки
+        </td>
+      </tr>
+      <tr>
+        <td>
+          🎰 <strong>RTP слотов</strong>
+        </td>
+        <td>
+          94 %‑98 %
+        </td>
+      </tr>
+      <tr>
+        <td>
+          📅 <strong>Дата основания</strong>
+        </td>
+        <td>
+          2013
+        </td>
+      </tr>
+      <tr>
+        <td>
+          🌍 <strong>География</strong>
+        </td>
+        <td>
+          Покрытие 120+ стран, исключая РФ, КНДР, Сирия
+        </td>
+      </tr>
+      <tr>
+        <td>
+          🕒 <strong>Служба поддержки</strong>
+        </td>
+        <td>
+          24/7 по чату, e‑mail, Telegram
+        </td>
+      </tr>
+      <tr>
+        <td>
+          🤝 <strong>Партнёрские бонусы</strong>
+        </td>
+        <td>
+          Ко‑операция с 50+ букмекерами
+        </td>
+      </tr>
+      <tr>
+        <td>
+          📈 <strong>Лояльность</strong>
+        </td>
+        <td>
+          Программа VIP с уровнем до 7: ставки до 500 $/день
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <blockquote>
+            ⚠️ <strong>Важно:</strong> Все финансовые операции проходят через защищённые протоколы HTTPS, а личные данные шифруются по стандарту AES‑256. Никогда не вводите данные на сторонних сайтах.
+          </blockquote>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+<h2>
+  Акции и промокоды для выгодного старта
+</h2>
+<p>
+  <strong>Промокод при регистрации на сегодня</strong> — это одна из самых привлекательных возможностей для тех, кто только знакомится с %brand_name_en%. Такой бонус позволяет получить стартовый бездепозитный бонус, не рискуя собственными средствами. Если у вас до сих пор нет аккаунта, этот момент серьезно стоит использовать: меньшее, что вы упустите — бесплатно трату времени.
+</p>
+<h3>
+  Что такое промокод бездепозитный бонус?
+</h3>
+<p>
+  Промокод — это специальная комбинация символов, которую игрок вводит при регистрации или в личном кабинете для получения бонуса. В случае с <u class="lnk">промокодом при регистрации</u><sup class="href">/registracia</sup> вы получаете стартовый капитал для игры, не вкладывая личных средств — шанс сделать первые ставки или изучить <u class="lnk">игровые автоматы</u><sup class="href">/slots</sup> без риска.
+</p>
+<blockquote>
+  <p>
+    Не дать себе шанс воспользоваться бонусом — как оставить на столе деньги, которые вполне реально взять.
+  </p>
+</blockquote>
+<h3>
+  Как получить и активировать промокод?
+</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>
+          🎯 Действие
+        </th>
+        <th>
+          🚀 Быстрый результат
+        </th>
+        <th>
+          💡 Советы
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          1. Перейдите на <u class="lnk">страницу регистрации</u><sup class="href">/registracia</sup>
+        </td>
+        <td>
+          Открывается регистрационная форма
+        </td>
+        <td>
+          Укажите правдивую информацию — технические проверки обязательны
+        </td>
+      </tr>
+      <tr>
+        <td>
+          2. Введите текущий промокод в специальное поле
+        </td>
+        <td>
+          Активируется бонус
+        </td>
+        <td>
+          Промокоды действуют ограниченное время — проверяйте актуальность на <u class="lnk">странице бонусов</u><sup class="href">/app</sup>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          3. Подтвердите регистрацию и войдите в аккаунт
+        </td>
+        <td>
+          Доступ к бонусным средствам и акциям
+        </td>
+        <td>
+          Не забывайте, что некоторые бонусы имеют требования по отыгрышу
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+<h3>
+  Что важно знать о бездепозитных бонусах и промокодах
+</h3>
+<ul>
+  <li>
+    ✅ <strong>Срок действия:</strong> большинство промокодов имеют ограниченный срок — не откладывайте использование;
+  </li>
+  <li>
+    ✅ <strong>Требования по отыгрышу:</strong> бонусные средства могут требовать выполнения условий в виде определённого оборота ставок;
+  </li>
+  <li>
+    ✅ <strong>Ограничения по играм:</strong> некоторые бонусы работают только на конкретных <u class="lnk">игровых автоматах</u><sup class="href">/slots</sup> или разделах;
+  </li>
+  <li>
+    ✅ <strong>Один аккаунт — один бонус:</strong> попытки получить бонусы повторно считаются нарушением правил.
+  </li>
+</ul>
+<h3>
+  Упущенная выгода — она реальна
+</h3>
+<p>
+  Если вы не используете промокоды, вы буквально оставляете деньги и возможности на столе. Не позволяйте себе упустить легкий старт — активируйте <u class="lnk">актуальный промокод</u><sup class="href">/app</sup>, который поможет начать игру с преимущественными условиями прямо сегодня.
+</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>
+          🎁 Что получить?
+        </th>
+        <th>
+          ⚡ Как использовать?
+        </th>
+        <th>
+          📅 Важные нюансы
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          Бездепозитный бонус на счет
+        </td>
+        <td>
+          Ввод промокода при регистрации
+        </td>
+        <td>
+          Проверяйте сроки действия — каждый день могут меняться
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Доступ к эксклюзивным акциям
+        </td>
+        <td>
+          Подтверждение электронной почты и телефона
+        </td>
+        <td>
+          Используйте зеркала для стабильного входа: <u class="lnk">зеркало</u><sup class="href">/zerkalo</sup>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Мобильный бонус через приложение
+        </td>
+        <td>
+          Скачайте и авторизуйтесь в <u class="lnk">приложении %brand_name_en%</u><sup class="href">/app</sup>
+        </td>
+        <td>
+          Уведомления о новых акциях прямо на смартфоне
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+<h2>
+  Оператор %brand_name_ru%: Путь к Вашему Игровому Успеху
+</h2>
+<p>
+  Оператор %brand_name_ru% представляет собой надежную платформу для гемблеров, стремящихся к финансовой независимости и свободе в выборе азартных игр. Он известен своим широким ассортиментом предложений, включая лайв-казино и игровые автоматы, а также конкурентными ставками и бонусами. В данной главе мы подробно рассмотрим основные аспекты, связанные с оператором %brand_name_ru%, включая ключевой элемент ставок — <strong>max bet</strong>.
+</p>
+<h3>
+  Что такое max bet?
+</h3>
+<p>
+  <strong>Max bet</strong> — это максимальная сумма, которую игрок может поставить на одну игру или раунд. Важно понимать, что лимиты ставок могут варьироваться в зависимости от типа игры и казино. В %brand_name_ru% вы можете найти следующие диапазоны max bet для различных игр:
+</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>
+          Тип игры
+        </th>
+        <th>
+          Минимальная ставка
+        </th>
+        <th>
+          Максимальная ставка
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          Игровые автоматы
+        </td>
+        <td>
+          0.10 ₽
+        </td>
+        <td>
+          30,000 ₽
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Настольные игры
+        </td>
+        <td>
+          1 ₽
+        </td>
+        <td>
+          100,000 ₽
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Лайв-казино
+        </td>
+        <td>
+          10 ₽
+        </td>
+        <td>
+          50,000 ₽
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+<h3>
+  Преимущества работы с оператором %brand_name_ru%
+</h3>
+<ul>
+  <li>
+    <strong>Легальность и лицензирование:</strong> Оператор имеет необходимые лицензии, что обеспечивает безопасность и честность игр.
+  </li>
+  <li>
+    <strong>Широкий выбор игр:</strong> На платформе представлены как классические игры, так и новые уникальные предложения.
+  </li>
+  <li>
+    <strong>Отличная поддержка:</strong> Круглосуточная служба поддержки поможет вам в любых вопросах, связанных с игрой.
+  </li>
+  <li>
+    <strong>Бонусы и промокоды:</strong> Регулярные акции делают игру еще более увлекательной. Подробности можно найти на странице <u class="lnk">Бонусы и промокоды</u><sup class="href">/app</sup>.
+  </li>
+</ul>
+<h3>
+  Как выбрать максимальную ставку?
+</h3>
+<p>
+  Выбор max bet зависит от вашего игрового бюджета и стратегии. Рекомендуется следовать некоторым простым правилам:
+</p>
+<ol>
+  <li>
+    Начните с минимальных ставок, чтобы ознакомиться с игрой.
+  </li>
+  <li>
+    Определите свой бюджет и следуйте ему, чтобы избежать больших потерь.
+  </li>
+  <li>
+    Увеличивайте max bet только в том случае, если чувствуете уверенность в своих силах и استراتيجية.
+  </li>
+</ol>
+<p>
+  Ставьте на максимум разумно — ваш успех в азартных играх зависит не только от удачи, но и от обоснованных решений. Оператор %brand_name_ru% предоставляет все ресурсы для того, чтобы сделать этот путь к свободе максимально комфортным и безопасным.
+</p>
+<p>
+  Если вы готовы начать свой азартный путь, вы можете зарегистрироваться на сайте, перейдя по ссылке <u class="lnk">Регистрация</u><sup class="href">/registracia</sup>. Узнайте больше о платформе и играх, посетив раздел <u class="lnk">Игровые автоматы</u><sup class="href">/slots</sup>.
+</p>
+<h2>
+  Прозрачность оператора: как %brand_name_en% гарантирует справедливые выплаты и честные бонусы
+</h2>
+<p>
+  Понимание того, как работают выплаты и бонусные правила, ― ключ к уверенности игрока в каждой ставке. Ниже мы подробно разберём, какие шаги предпринимает %brand_name_en%, чтобы гарантировать честность и прозрачность.
+</p>
+<h3>
+  1. Лицензия и регулирование
+</h3>
+<p>
+  %brand_name_en% официально лицензирован <strong>Мальтийским управлением iGaming (MGA),</strong> что подтверждает наличие строгих требований к:
+</p>
+<ul>
+  <li>
+    Финансовой надёжности и резервированию средств.
+  </li>
+  <li>
+    Независимому аудиту гемблерских коэффициентов.
+  </li>
+  <li>
+    Защите персональных данных (GDPR‑совместимость).
+  </li>
+</ul>
+<p>
+  <strong>Проверка лицензии</strong> доступна в разделе <u class="lnk">Бонусы и промокоды</u><sup class="href">/app</sup> и в открыто опубликованной документации на сайте.
+</p>
+<h3>
+  2. Платёжная система и сроки выплат
+</h3>
+
+  <table>
+    <tbody>
+      <tr>
+        <th>
+          Метод
+        </th>
+        <th>
+          Минимум/Максимум
+        </th>
+        <th>
+          Комиссия
+        </th>
+        <th>
+          Срок обработки
+        </th>
+      </tr>
+      <tr>
+        <td>
+          Карта VISA/MASTER
+        </td>
+        <td>
+          10 ₽ – 10 000 ₽
+        </td>
+        <td>
+          1,5 %
+        </td>
+        <td>
+          24–48 ч (CET)
+        </td>
+      </tr>
+      <tr>
+        <td>
+          QIwi / Yandex.Money
+        </td>
+        <td>
+          5 ₽ – 5 000 ₽
+        </td>
+        <td>
+          0 %
+        </td>
+        <td>
+          10–15 мин.
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Криптовалюты (BTC, ETH)
+        </td>
+        <td>
+          0,0005 BTC – 0,1 BTC
+        </td>
+        <td>
+          0,2 %
+        </td>
+        <td>
+          30–45 мин.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+<p>
+  Каждая транзакция проверяется <strong>двухуровневой системой KYC/AML,</strong> а выплаты сопровождаются визуализацией статуса в личном кабинете.
+</p>
+<h3>
+  3. Регламентация бонусов и их правила
+</h3>
+<p>
+  Бонусы %brand_name_en% (как приветствие, как промокод) строго регламентированы:
+</p>
+<ol>
+  <li>
+    <strong>Выплаты:</strong> 1–5 раз ставка &gt; 10 % от первоначального бонуса.
+  </li>
+  <li>
+    <strong>Максимальный размер ставки:</strong> 0,5 % от бонусного баланса, без смещения в сторону высоких ставок.
+  </li>
+  <li>
+    <strong>Срок действия:</strong> 30 дней после активации; не может быть продлен.
+  </li>
+  <li>
+    <strong>Общие ограничения:</strong> Нельзя комбинировать с другими акциями, если это явно указано в TOU.
+  </li>
+</ol>
+<p>
+  Для быстрого доступа к полному списку – <u class="lnk">Здесь</u><sup class="href">/app</sup> (включая таблицу условий).
+</p>
+<h3>
+  4. Локализация сервиса и поддержка
+</h3>
+<p>
+  Ключевой фактор доверия ― глобальная локализация. В %brand_name_en%:
+</p>
+<ul>
+  <li>
+    Русский, украинский, английский, китайский, корейский языки.
+  </li>
+  <li>
+    Поддержка 24/7 через чат на платформах (LiveChat, Telegram, VK), а также по телефону.
+  </li>
+  <li>
+    Платёжка <strong>Qiwi/Ю'Money</strong> интегрирована только для стран СНГ, с мгновенной ликвидностью.
+  </li>
+</ul>
+<p>
+  Если нужна локальная информация о выводе в Китае, посмотрите <u class="lnk">Зарегистрироваться в приложении</u><sup class="href">/app</sup> – там доступны инструкции по региональной системе.
+</p>
+<h3>
+  5. Как проверить честность оператором?
+</h3>
+<blockquote>
+  «Чтобы убедиться в честности %brand_name_en%, всегда проверяйте раздел «Лицензии» и часть «Достоверные счета». --&gt;
+</blockquote>
+<ul>
+  <li>
+    В личном кабинете выберите <strong>«История вывода»</strong> – там всегда отслеживается дата и реальный дедлайн.
+  </li>
+  <li>
+    Скачайте <u class="lnk">зеркало</u><sup class="href">/zerkalo</sup> --- вывод будет доставлен независимо от гео‑блокировки.
+  </li>
+  <li>
+    Сравните выплаченный остаток с тем, что показывает <u class="lnk">игровой автомат</u><sup class="href">/slots</sup> — если они совпадают, значит информация корректна.
+  </li>
+</ul>
+<p>
+  И помните: <strong>при правильной проверке риска и соблюдении правил</strong> каждый пользователь достигает максимальной прозрачности, а не просто ощущает доверие.
+</p>
+<h2>
+  Поддержка клиентов: как связаться с сервисом %brand_name_en%
+</h2>
+<p>
+  Если возникли вопросы по работе платформы %brand_name_en% или нужна помощь в регистрации, входе или использовании <u class="lnk">мобильного приложения</u><sup class="href">/app</sup>, служба поддержки всегда готова помочь. В этом разделе — четкий план, как быстро и удобно связаться с техподдержкой, чтобы вернуться к любимому развлечению без лишней суеты.
+</p>
+<h3>
+  Основные способы связи с поддержкой %brand_name_en%
+</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>
+          Канал связи
+        </th>
+        <th>
+          Время работы
+        </th>
+        <th>
+          Что можно решить
+        </th>
+        <th>
+          Комментарий
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          Онлайн-чат на сайте
+        </td>
+        <td>
+          Круглосуточно
+        </td>
+        <td>
+          Технические вопросы, проблемы с входом, ответы по <u class="lnk">бонусам</u><sup class="href">/app</sup> и акциям
+        </td>
+        <td>
+          Самый быстрый способ связи, рекомендован для срочных вопросов
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Электронная почта support@%brand_name_en%.com
+        </td>
+        <td>
+          Время ответа – до 24 часов
+        </td>
+        <td>
+          Запросы по верификации, сложные технические случаи
+        </td>
+        <td>
+          Подходит для детального описания ситуации с вложениями
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Телефон горячей линии
+        </td>
+        <td>
+          9:00 – 23:00 (МСК)
+        </td>
+        <td>
+          Регистрация, кассовые операции, консультации по <u class="lnk">игровым автоматам</u><sup class="href">/slots</sup>
+        </td>
+        <td>
+          Лучше для разговоров, когда нужна помощь на слух
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+<h3>
+  Советы по общению с поддержкой
+</h3>
+<ul>
+  <li>
+    <strong>Подготовьте данные аккаунта</strong> — логин, email, последние транзакции. Это ускорит процесс идентификации.
+  </li>
+  <li>
+    <strong>Опишите проблему максимально четко</strong>, избегайте общих фраз, чем конкретнее — тем лучше.
+  </li>
+  <li>
+    <strong>Оставайтесь вежливы</strong>. Даже у мастеров своего дела бывают дни, когда нужно помочь с улыбкой.
+  </li>
+</ul>
+<blockquote>
+  <p>
+    Помните: связавшись с поддержкой, вы не теряете время — вы его экономите, чтобы как можно быстрее вернуться к расслаблению и азарту.
+  </p>
+</blockquote>
+<p>
+  Для быстрого доступа к другим важным разделам, не забывайте о навигации:<br> - <u class="lnk">Зеркало</u><sup class="href">/zerkalo</sup><br> - <u class="lnk">Регистрация</u><sup class="href">/registracia</sup><br> - <u class="lnk">Вход</u><sup class="href">/vhod</sup>
+</p>
+<h2>
+  Преимущества мобильной версии
+</h2>
+<p>
+  Современные игроки ценят свободу выбора, особенно когда дело касается азартных игр. Мобильная версия %brand_name_ru% предоставляет множество преимуществ по сравнению с десктопной версией, позволяя наслаждаться игровым процессом где угодно и когда угодно. Давайте взглянем на основные достоинства мобильного приложения.
+</p>
+<h3>
+  Ключевые преимущества мобильной версии %brand_name_ru%
+</h3>
+<ul>
+  <li>
+    <strong>Доступность:</strong> С мобильным приложением вы можете играть в любимые игры в любое время, без привязки к компьютеру.
+  </li>
+  <li>
+    <strong>Удобный интерфейс:</strong> Мобильная версия оптимизирована для экранов смартфонов, что делает навигацию более интуитивной.
+  </li>
+  <li>
+    <strong>Быстрая загрузка:</strong> Мобильные приложения загружаются значительно быстрее, чем браузерные версии.
+  </li>
+  <li>
+    <strong>Эксклюзивные акции:</strong> Часто в мобильном приложении предлагаются специальные бонусы и промокоды, доступные только для мобильных игроков. <u class="lnk">Узнайте больше о бонусах</u><sup class="href">/app</sup>.
+  </li>
+  <li>
+    <strong>Безопасность:</strong> Мобильные платформы обеспечивают высокий уровень шифрования данных, так что ваши личные сведения под надежной защитой.
+  </li>
+</ul>
+<h3>
+  Desktop версия: когда она предпочтительна?
+</h3>
+<p>
+  Несмотря на все преимущества мобильной версии, десктопный вариант тоже имеет свои плюсы. Например, для тех, кто предпочитает играть в более сложные и требовательные игры с высокой графикой, десктоп может предложить лучшее качество изображения и производительность. А еще, для многих пользователей удобнее играть на большом экране с полноценной клавиатурой и мышью.
+</p>
+<h3>
+  Как скачать мобильное приложение %brand_name_ru%
+</h3>
+<p>
+  Скачать приложение %brand_name_ru% на Android или iOS достаточно просто. Перейдите по <u class="lnk">ссылке для скачивания</u><sup class="href">/app</sup> и следуйте инструкциям. Не забудьте проверить совместимость вашего устройства перед установкой.
+</p>
+<blockquote>
+  В мире iGaming не существует единственного правильного выбора. Главное — это ваше удовольствие от игры и комфорт!
+</blockquote>
+<h2>
+  О %brand_name_en%: Взростание бренда в мире гемблинга
+</h2>
+<p>
+  %brand_name_en% — это не просто онлайн-казино, а динамично развивающийся бренд, который с каждым годом привлекает всё больше игроков. Мы стремимся предлагать инновационный подход к гемблингу, который формирует уникальный опыт для каждого пользователя.
+</p>
+<h3>
+  Концепция %brand_name_en%
+</h3>
+<p>
+  Наша концепция заключается в создании безопасного, удобного и разнообразного игрового пространства. Мы понимаем, что каждая ставка — это не только риск, но и возможность изменить свою судьбу. Вот несколько причин, по которым игроки выбирают именно нас:
+</p>
+<ul>
+  <li>
+    <strong>Лицензирование и безопасность:</strong> %brand_name_en% имеет лицензию, гарантированную надзорными органами, что обеспечивает честность и прозрачность игр.
+  </li>
+  <li>
+    <strong>Разнообразие игр:</strong> Мы предлагаем широкий выбор игровых автоматов, настольных игр и живых казино, что позволяет каждому игроку найти что-то по душе.
+  </li>
+  <li>
+    <strong>Удобство:</strong> Мы создали интуитивно понятный интерфейс, который облегчает навигацию по платформе, а также приложении — для игры в любое время.
+  </li>
+</ul>
+<h3>
+  Взраст бренда
+</h3>
+<p>
+  С момента своего основания мы работаем над тем, чтобы %brand_name_en% стал надежным помощником в мире гемблинга. В этом нам помогают:
+</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>
+          Год
+        </th>
+        <th>
+          Основные достижения
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          2018
+        </td>
+        <td>
+          Запуск платформы %brand_name_en% с современным дизайном и интуитивной навигацией.
+        </td>
+      </tr>
+      <tr>
+        <td>
+          2020
+        </td>
+        <td>
+          Расширение ассортимента игр до более 500 наименований.
+        </td>
+      </tr>
+      <tr>
+        <td>
+          2022
+        </td>
+        <td>
+          Внедрение мобильного приложения для Android и iOS, чтобы игроки могли наслаждаться игрой в любое время.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+<p>
+  Мы внимательно следим за изменениями на рынке и стремимся к постоянному улучшению. От ваших отзывов до новых тенденций — всё это помогает нам адаптироваться и развиваться. Мы гордимся нашей репутацией, основанной на доверии и честной игре.
+</p>
+<p>
+  Чтобы ознакомиться с нашими последними <u class="lnk">бонусами и промокодами</u><sup class="href">/app</sup> или пройти <u class="lnk">регистрацию</u><sup class="href">/registracia</sup>, переходите на соответствующие страницы, где всегда можно найти актуальную информацию для новых игроков.
+</p>
+<p>
+  Присоединяйтесь к команде %brand_name_en% и откройте для себя мир захватывающих игр и шансов на удачу!
+</p>
+<h2>
+  Вейджер Cashback: Ваш Путь к Привилегиям в %brand_name_en%
+</h2>
+<p>
+  Обеспечение комфортной игры и выгодных условий – важная часть покерной площадки %brand_name_en%. Одним из ключевых аспектов являются VIP-уровни, которые позволяют игрокам получать уникальные преимущества, включая вейджер cashback. Рассмотрим подробнее, что это означает и какие выгоды вы можете получить.
+</p>
+<h3>
+  Что такое вейджер cashback?
+</h3>
+<p>
+  Вейджер cashback — это условия, при которых вы получаете часть своих проигрышей обратно. Это своего рода «страховка» и стимул продолжать игру. В рамках VIP-программы игроки могут рассчитывать на более щедрые условия вейджера, что делает игру более выгодной.
+</p>
+<h3>
+  Преимущества VIP-уровней
+</h3>
+<ul>
+  <li>
+    <strong>Эксклюзивные бонусы:</strong> Возможность получать больше cashback в зависимости от вашего статуса.
+  </li>
+  <li>
+    <strong>Персональные менеджеры:</strong> Вам будет назначен куратор, который поможет оптимизировать вашу игру.
+  </li>
+  <li>
+    <strong>Гибкие условия:</strong> Более низкие вейджеры и уникальные предложения для лояльных игроков.
+  </li>
+  <li>
+    <strong>Приоритетный доступ:</strong> Ранний доступ к новым играм и турнирам.
+  </li>
+</ul>
+<h3>
+  Как стать VIP-игроком?
+</h3>
+<p>
+  Чтобы принять участие в VIP-программе, вам необходимо:
+</p>
+<ol>
+  <li>
+    <u class="lnk">Зарегистрироваться</u><sup class="href">/registracia</sup> на платформе %brand_name_en%.
+  </li>
+  <li>
+    Играть на реальные деньги, чтобы накапливать очки.
+  </li>
+  <li>
+    Поддерживать активную игру и достигать определенных результатов в турнирах.
+  </li>
+</ol>
+<blockquote>
+  «Стремитесь к высоким достижениям – и мир покера откроется для вас с новой стороны!»
+</blockquote>
+<p>
+  Для получения более подробной информации о бонусах и промокодах, ознакомьтесь с разделом <u class="lnk">Бонусы и промокоды</u><sup class="href">/app</sup>. Начните свой путь к VIP-статусу уже сегодня!
+</p>
+<h2>
+  ПОДБОР ИГРЫ ПО СТИЛЮ: АНОНИМНОСТЬ И УДОБСТВО В %brand_name_en%
+</h2>
+<p>
+  Каждый игрок уникален, и выбор игорной стратегии зависит от вашего стиля игры и предпочтений. Виртуальный игровой зал %brand_name_en% предлагает идеальные условия для анонимных игроков, обеспечивая минимальный уровень проверки (KYC), возможность входа через криптовалюту и систему "no-account casino". В этом разделе мы рассмотрим, как адаптировать игру под ваши специфические потребности.
+</p>
+<h3>
+  Анонимность и безопасность
+</h3>
+<p>
+  Для многих игроков важным аспектом является анонимность. %brand_name_en% предлагает:
+</p>
+<ul>
+  <li>
+    <strong>Минимальный KYC:</strong> Регистрация и подтверждение минимального количества данных для комфортной игры.
+  </li>
+  <li>
+    <strong>Крипто-вход:</strong> Легкий вход в систему с использованием криптовалют, что обеспечивает дополнительную безопасность и конфиденциальность.
+  </li>
+  <li>
+    <strong>No-account casino:</strong> Игра без создания аккаунта, что позволяет мгновенно начать сессию.
+  </li>
+</ul>
+<h3>
+  Криптовалюты и онлайн-казино
+</h3>
+<p>
+  Виртуальные деньги становятся все более популярными в мире азартных игр и обеспечивают множество преимуществ:
+</p>
+<ol>
+  <li>
+    <strong>Приватность:</strong> Транзакции с использованием криптовалют обеспечивают высокий уровень анонимности.
+  </li>
+  <li>
+    <strong>Быстрые переводы:</strong> Крипто-транзакции обрабатываются намного быстрее, чем традиционные банковские операции.
+  </li>
+  <li>
+    <strong>Отсутствие комиссий:</strong> Многие криптовалюты предлагают низкие или нулевые комиссии на переводы, что позволяет игрокам сохранять больше средств для игры.
+  </li>
+</ol>
+<h3>
+  Индивидуальный подход к игре
+</h3>
+<p>
+  Выбор игры зависит от ваших предпочтений: слоты, настольные игры или live-казино. В %brand_name_en% вы можете легко найти то, что соответствует вашему стилю:
+</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>
+          Тип игры
+        </th>
+        <th>
+          Особенности
+        </th>
+        <th>
+          Идеально для
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          Слоты
+        </td>
+        <td>
+          Автоматизированные игры с различными темами и бонусами
+        </td>
+        <td>
+          Любителей удачи и быстрой игры
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Настольные игры
+        </td>
+        <td>
+          Классические и современные варианты
+        </td>
+        <td>
+          Стратегов и тех, кто любит подумать
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Live-казино
+        </td>
+        <td>
+          Игры с живым дилером в реальном времени
+        </td>
+        <td>
+          Ностальгирующих по реальному казино
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+<h3>
+  Заключение
+</h3>
+<p>
+  Выбор игрового стиля в %brand_name_en% позволяет вам наслаждаться азартом даже в условиях высокой анонимности и безопасности. Использование современных технологий здесь становится лишь одним из способов создать уникальный игровой опыт. Не забывайте также ознакомиться с актуальными <u class="lnk">бонусами и промокодами</u><sup class="href">/app</sup> для максимизации ваших выигрышей и активной игрой на платформе, а также воспользоваться возможностью <u class="lnk">входа</u><sup class="href">/vhod</sup> с помощью криптовалют.
+</p>
+<h2>
+  Отказ от игры: самоисключение, лимиты и проактивный мониторинг рискованного поведения беттеров
+</h2>
+<p>
+  В %brand_name_en% мы относимся к ответственной игре как к стратегическому элементу платформы. Ни один инструмент не заменит ваш собственный контроль, но правильно настроенные ограничения и система <strong>проактивного мониторинга рискованного поведения</strong> позволяют снизить вероятность финансовых потерь и развития игровой зависимости.
+</p>
+<h3>
+  Что включается в программу отказа от игры
+</h3>
+<ul>
+  <li>
+    Самоисключение (самоблокировка) – 30 дней, 6 мес или 1 год.
+  </li>
+  <li>
+    Дневные, недельные и месячные лимиты ставок и потерь.
+  </li>
+  <li>
+    Оповещения о превышении <em>threshold</em> (пороговых значений) в реальном времени.
+  </li>
+  <li>
+    Доступ к <u class="lnk">зеркалу</u><sup class="href">/zerkalo</sup> для конфиденциального просмотра истории активности.
+  </li>
+  <li>
+    Контактные каналы поддержки 24/7 – чат, телефон, e‑mail.
+  </li>
+</ul>
+<h3>
+  Проактивный мониторинг рискованного поведения
+</h3>
+<p>
+  Алгоритмы машинного обучения анализируют более 200 показателей в режиме реального времени, включая:
+</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>
+          Показатель
+        </th>
+        <th>
+          Критерий риска
+        </th>
+        <th>
+          Действие системы
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          Частота ставок &gt; 30 в час
+        </td>
+        <td>
+          Высокая
+        </td>
+        <td>
+          Отправка push‑уведомления + предложение установить лимит
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Сумма проигрыша &gt; 20 % от баланса за 24 ч
+        </td>
+        <td>
+          Средняя
+        </td>
+        <td>
+          Временная блокировка аккаунта (30 мин)
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Общее время игры &gt; 6 ч подряд
+        </td>
+        <td>
+          Высокая
+        </td>
+        <td>
+          Авто‑выход из игры и рекомендация перерыва
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+<p>
+  Система не только фиксирует тревожные сигналы, но и предлагает персональные рекомендации: уменьшить ставку, включить <u class="lnk">бонусы и промокоды</u><sup class="href">/app</sup> с условием лимита ставок, или полностью активировать режим <strong>самоисключения</strong>.
+</p>
+<h3>
+  Пошаговая инструкция по активации самоисключения
+</h3>
+<ol>
+  <li>
+    Войдите в личный кабинет <u class="lnk">вход</u><sup class="href">/vhod</sup> (если ещё не авторизованы).
+  </li>
+  <li>
+    Перейдите в раздел «Ответственная игра» → <strong>Самоисключение</strong>.
+  </li>
+  <li>
+    Выберите период блокировки: 30 дней, 6 мес, 1 год.
+  </li>
+  <li>
+    Подтвердите действие одноразовым СМС‑кодом.
+  </li>
+  <li>
+    Получите подтверждение на e‑mail и в личном кабинете.
+  </li>
+</ol>
+<p>
+  После активации ваш аккаунт будет полностью закрыт для ставок, однако доступ к просмотру исторических данных и выгрузке финансовой отчётности сохраняется.
+</p>
+<h3>
+  Установка лимитов и временных ограничений
+</h3>
+<p>
+  Для игроков, желающих сохранить гибкость, рекомендуется использовать комбинированный подход:
+</p>
+<ul>
+  <li>
+    <strong>Дневной лимит</strong> – не более 5 % от ежемесячного бюджета.
+  </li>
+  <li>
+    <strong>Ставка‑по‑ставке</strong> – максимум 0,5 % от текущего баланса.
+  </li>
+  <li>
+    <strong>Сеансовый таймер</strong> – автоматический выход после 90 мин игры.
+  </li>
+</ul>
+<p>
+  Все лимиты настраиваются в <u class="lnk">личном кабинете</u><sup class="href">/registracia</sup> → «Настройки → Финансы».
+</p>
+<h3>
+  Поддержка и консультирование
+</h3>
+<p>
+  Если вы чувствуете, что игра выходит из-под контроля, обратитесь в нашу <strong>службу поддержки</strong>:
+</p>
+<ul>
+  <li>
+    Чат‑бот с AI‑ассистентом (работает 24 ч).
+  </li>
+  <li>
+    Телефон горячей линии: <code>+7 (495) 123‑45‑67</code>.
+  </li>
+  <li>
+    Электронная почта: <u class="lnk">support@%brand_name_en%.com</u><sup class="href">mailto:support@%brand_name_en%.com</sup>.
+  </li>
+</ul>
+<blockquote>
+  <p>
+    «Самоисключение – это не наказание, а инструмент самоконтроля. Мы помогаем каждому игроку найти собственный баланс между развлечением и финансовой безопасностью.» – Руководитель службы ответственной игры %brand_name_en%.
+  </p>
+</blockquote>
+<h3>
+  Полезные ссылки
+</h3>
+<ul>
+  <li>
+    <u class="lnk">Игровые автоматы</u><sup class="href">/slots</sup> – адекватные лимиты и таймеры в настройках.
+  </li>
+  <li>
+    <u class="lnk">Скачать приложение</u><sup class="href">/app</sup> – мобильный контроль лимитов в реальном времени.
+  </li>
+  <li>
+    <u class="lnk">Бонусы и промокоды</u><sup class="href">/app</sup> – предложения с обязательным соблюдением лимитов.
+  </li>
+</ul>
+<h2>
+  Официальный Сетевой ресурс: Надёжный портал для ставок и игр
+</h2>
+<p>
+  Официальный сетевой ресурс %brand_name_en% — это не просто сайт казино, а полноценная платформа, обеспечивающая быстрый, стабильный и безопасный доступ к игровому процессу с любого устройства. Адаптивность под мобильные устройства здесь реализована на высшем уровне: дизайн и функционал интуитивно подстраиваются под размеры экрана смартфона или планшета, что исключает затруднения с навигацией и ускоряет время реакции.
+</p>
+<h3>
+  Почему важна адаптивность для игроков
+</h3>
+<ul>
+  <li>
+    <strong>Скорость загрузки.</strong> Оптимизированный код минимизирует время ожидания, даже при нестабильном интернет-соединении.
+  </li>
+  <li>
+    <strong>Интуитивный интерфейс.</strong> Все главные разделы — регистрация (/registracia), вход (/vhod), бонусы (/bonus) — доступны в пару касаний.
+  </li>
+  <li>
+    <strong>Безопасность.</strong> Надёжное шифрование и быстрая авторизация исключают риски сессий с утечками данных.
+  </li>
+</ul>
+<h3>
+  Технические аспекты официального портала %brand_name_en%
+</h3>
+<ol>
+  <li>
+    Веб-приложение построено на современных технологиях HTML5 и CSS3, что обеспечивает кроссплатформенность.
+  </li>
+  <li>
+    Используются протоколы HTTPS и TLS-1.3 для защиты финансовых операций и личной информации.
+  </li>
+  <li>
+    Система распределения нагрузки гарантирует мгновенный отклик и бесперебойную работу в пиковые часы.
+  </li>
+  <li>
+    Регулярные обновления сессий повышают безопасность, минимизируя уязвимости.
+  </li>
+</ol>
+<p>
+  Чтобы упростить игровой опыт, рекомендуем ознакомиться с&nbsp;<u class="lnk">официальным приложением</u><sup class="href">/app</sup> %brand_name_en% — оно значительно ускоряет доступ к играм и позволяет обходить региональные блокировки. За дополнительной информацией по зеркалам обратитесь к разделу <u class="lnk">Зеркало</u><sup class="href">/zerkalo</sup>.
+</p>
+
+  <table>
+    <caption>
+      Обзор возможностей слот-площадки %brand_name_en% 🎰
+    </caption>
+    <thead>
+      <tr>
+        <th>
+          Параметр
+        </th>
+        <th>
+          Описание
+        </th>
+        <th>
+          Преимущества
+        </th>
+        <th>
+          Особенности
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          Доступ 🚀
+        </td>
+        <td>
+          Мгновенный запуск с браузера и приложения
+        </td>
+        <td>
+          Нет задержек, быстрая загрузка любых игр
+        </td>
+        <td>
+          Поддержка всех популярных ОС и браузеров
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Ассортимент 🎲
+        </td>
+        <td>
+          Сотни слотов от топовых провайдеров
+        </td>
+        <td>
+          Разнообразие тем, технических решений и RTP
+        </td>
+        <td>
+          Постоянное обновление коллекции игровых автоматов
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Функционал ⚙️
+        </td>
+        <td>
+          Автоматическое сохранение прогресса
+        </td>
+        <td>
+          Возможность игры без прерываний
+        </td>
+        <td>
+          Интеллектуальная система ставок и подсказок
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Безопасность 🔒
+        </td>
+        <td>
+          Шифрование транзакций и данных
+        </td>
+        <td>
+          Защита от мошенничества и фрода
+        </td>
+        <td>
+          Верификация личности по международным стандартам
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+<p>
+  Последнее обновление %domain_name%: <time> %date% </time>
+</p>
+<h2>
+  Ответы на вопросы
+</h2>
+
+  
+  
+    <figure class="faq">
+      <b class="q">
+        Почему моя заявка на вывод средств находится в статусе «Ожидание проверки», хотя я уже загрузил все документы?
+      </b>
+      
+        
+          <p>
+            Система может потребовать дополнительное подтверждение идентичности, даже если документы уже загружены, чтобы соответствовать требованиям AML.
+          </p>
+        
+      
+    </figure>
+  
+
+  
+    <figure class="faq">
+      <b class="q">
+        Мой аккаунт был временно заблокирован после попытки входа с нового устройства – что делать?
+      </b>
+      
+        
+          <p>
+            Свяжитесь со службой поддержки, предоставьте скриншот сообщения и подтверждение личности, чтобы снять ограничение.
+          </p>
+        
+      
+    </figure>
+  
+
+  
+    <figure class="faq">
+      <b class="q">
+        Можно ли вывести выигрыш, если баланс после бонуса оказался меньше минимального лимита вывода?
+      </b>
+      
+        
+          <p>
+            Да, но сначала необходимо выполнить условия по отыгрышу бонуса, чтобы превратить бонусные средства в реальные.
+          </p>
+        
+      
+    </figure>
+  
+
+  
+    <figure class="faq">
+      <b class="q">
+        Почему при попытке пополнить счёт через электронный кошелёк появляется сообщение «Сервис недоступен»?
+      </b>
+      
+        
+          <p>
+            Сервис может быть временно отключён из‑за технических работ провайдера, проверьте статус в личном кабинете.
+          </p>
+        
+      
+    </figure>
+  
+
+  
+    <figure class="faq">
+      <b class="q">
+        Как быстро получить доступ к аккаунту, если я забыл пароль и прежний e‑mail более недоступен?
+      </b>
+      
+        
+          <p>
+            Отправьте запрос в поддержку с указанием пользовательского ID и копией паспорта – они помогут сменить e‑mail и восстановить пароль.
+          </p>
+        
+      
+    </figure>
+  
+
+  
+    <figure class="faq">
+      <b class="q">
+        Можно ли играть в живое казино, если мой IP‑адрес находится в стране, где онлайн‑игры запрещены?
+      </b>
+      
+        
+          <p>
+            Нет, система автоматически блокирует аккаунты, обнаружившие IP из запрещённых юрисдикций.
+          </p>
+        
+      
+    </figure>
+  
+
+  
+    <figure class="faq">
+      <b class="q">
+        Как получить кэшбэк, если я использовал бонусный код, а транзакция была отклонена банком?
+      </b>
+      
+        
+          <p>
+            Кэшбэк будет начислен после повторного успешного пополнения и выполнения условий отыгрыша.
+          </p>
+        
+      
+    </figure>
+  
+
+  
+    <figure class="faq">
+      <b class="q">
+        Comment avoir un code promo si je suis déjà inscrit et que j'ai déjà utilisé un premier code?
+      </b>
+      
+        
+          <p>
+            Обратитесь в чат поддержки с просьбой о дополнительном промокоде – в редких случаях они могут предоставить новый.
+          </p>
+        
+      
+    </figure>
+  
+
+  
+    <figure class="faq">
+      <b class="q">
+        Мой выигрыш не отображается в истории ставок после того, как я отключил VPN.
+      </b>
+      
+        
+          <p>
+            Система пересчитывает транзакции после изменения IP, и выигрыши появятся в течение 30 минут.
+          </p>
+        
+      
+    </figure>
+  
+
+  
+    <figure class="faq">
+      <b class="q">
+        Можно ли пользоваться двойным бонусом, если я в первый раз играю на мобильном приложении?
+      </b>
+      
+        
+          <p>
+            Да, но только один из бонусов будет активен в зависимости от выбранного канала пополнения.
+          </p>
+        
+      
+    </figure>
+  
+
+  
+    <figure class="faq">
+      <b class="q">
+        Что делать, если я выиграл крупную сумму, но банк отклонил перевод из‑за превышения лимита?
+      </b>
+      
+        
+          <p>
+            Свяжитесь с банком для увеличения лимита или выберите альтернативный метод вывода, поддерживаемый %brand_name_en%.
+          </p>
+        
+      
+    </figure></div></div><div class="col"><div class="colhead">Наша статья · 2289 слов</div><div class="page"><p>
+  Официальный сайт %brand_name_en% я открыл в конце смены, без всякого плана, и
+  сразу прошёл регистрацию: короткая анкета из <strong>пяти полей</strong> заняла полторы минуты.
+  Рабочее зеркало подключилось на первой же проверке домена, и это оказался
+  единственный узел, который отработал без единой оговорки. Дальше я разбирал
+  площадку узел за узлом, как разбирают снаряжение перед спуском, — каждый на
+  своей отдельной пробе, с секундомером и записью.
+</p>
+<p>
+  За полный месяц я сделал <strong>три вывода</strong>, получил
+  <strong>один отказ</strong> по документам и потерял два щедрых бонуса на сроке
+  отыгрыша. Общий счёт по времени вышел такой: 19 часов на верификацию, 3 часа
+  на первую выплату, 41 час на худшую. Ниже — четыре точки, с которых я начинал
+  сам и с которых советую начинать вам.
+</p>
+<ul>
+  <li>🔧 витрина и разделы, открытые до анкеты — <u class="lnk">каталог автоматов</u><sup class="href">/slots</sup></li>
+  <li>🧭 анкета и документы, без которых касса заперта — <u class="lnk">регистрацию</u><sup class="href">/registracia</sup></li>
+  <li>🪟 запасной адрес и перенос сессии — <u class="lnk">рабочее зеркало</u><sup class="href">/zerkalo</sup></li>
+  <li>🛠 повторный заход и хранение расписки — <u class="lnk">вход в кабинет</u><sup class="href">/vhod</sup></li>
+</ul>
+<table>
+  <tr>
+    <th>
+      Узел
+    </th>
+    <th>
+      Что смотрим
+    </th>
+    <th>
+      Норма
+    </th>
+  </tr>
+  <tr>
+    <td>
+      Витрина
+    </td>
+    <td>
+      Разделов до анкеты
+    </td>
+    <td>
+      4 из 6
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Анкета
+    </td>
+    <td>
+      Обязательных полей
+    </td>
+    <td>
+      5
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Документы
+    </td>
+    <td>
+      Срок проверки
+    </td>
+    <td>
+      24 часа
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Касса
+    </td>
+    <td>
+      Первая выплата
+    </td>
+    <td>
+      3 часа
+    </td>
+  </tr>
+</table>
+
+<h2>Официальный сайт %brand_name_en% : состав витрины до анкеты</h2>
+<p>
+  Палуба %brand_name_en% устроена так: часть оборудования лежит открыто, часть заперта в
+  рундуке до допуска. До анкеты мне отдали <strong>четыре раздела из шести</strong>
+  — каталог, страницу лицензии, справку по кассе и демо-режим.
+</p>
+<h3>Открыто сразу : четыре раздела</h3>
+<p>
+  Каталог %brand_name_en% и <u class="lnk">список провайдеров</u><sup class="href">/slots</sup> отдаются целиком, с подробными фильтрами по студии и по отдаче.
+  Демо-режим запускается без депозита: я прогнал четыре автомата, прежде чем
+  завёл счёт, и вышел на <u class="lnk">фильтр по отдаче</u><sup class="href">/slots</sup> раньше, чем на
+  кассу. Справка по кассе показывает лимиты, но <strong>не показывает
+  комиссию</strong> — она подставляется после верификации, и это неприятная
+  мелочь для новичка.
+</p>
+<h3>Заперто до допуска : история и лимиты</h3>
+<p>Отказ приходит текстом, а не пустым серым экраном.</p>
+<p>
+  История операций, суточные лимиты и переписка с поддержкой закрыты наглухо.
+  Кнопка при этом не спрятана: она отвечает вежливым отказом и называет причину
+  обычным текстом. Молчаливая заглушка была бы хуже — по ней не понять, чего
+  именно не хватает. Здесь же видно, что закрывает <u class="lnk">анкета
+  игрока</u><sup class="href">/registracia</sup>, а что откроется только после проверки документов.
+</p>
+<h3>Первый заход : четыре шага перед депозитом</h3>
+<ol>
+  <li>Открыл подвал и списал номер лицензии.</li>
+  <li>Сверил домен с адресом из письма площадки.</li>
+  <li>Запустил два автомата в демо и замерил темп.</li>
+</ol>
+
+<h2>Регистрация в %brand_name_en% : документы и причины отказа</h2>
+<p>
+  <u class="lnk">Анкета игрока</u><sup class="href">/registracia</sup> в %brand_name_en% короткая. Работа начинается на документах: площадка просит паспорт и
+  подтверждение адреса, и на втором отказывает чаще. Мой первый заход
+  <strong>отклонили за <strong>девять минут</strong></strong>.
+</p>
+<h3>Документы : что уходит без вопросов</h3>
+<ul>
+  <li>📄 разворот паспорта целиком, без обрезанных углов</li>
+  <li>📄 счёт за коммунальные услуги давностью до трёх месяцев</li>
+  <li>📄 выписка банка с видимым адресом и датой</li>
+  <li>📄 селфи с документом при выплате выше 30 000</li>
+</ul>
+<h3>Почему отказывают : четыре причины</h3>
+<p>Причина всегда одна из четырёх, других я не встречал.</p>
+<p>
+  Три отказа из четырёх — яркий блик вспышки на ламинате и срезанный край
+  документа. Четвёртый — расхождение адреса в анкете и в банковском счёте.
+  Проверьте оба поля до загрузки: <strong>пересъёмка дешевле переписки</strong>.
+  Полный список требований лежит на странице
+  <u class="lnk">проверки документов</u><sup class="href">/registracia</sup>, и он короче, чем кажется.
+</p>
+<h3>Сколько ждать зачёта документов?</h3>
+<p>
+  <strong>Девятнадцать часов</strong> между отказом и зачётом. Заявленные сутки площадка
+  выдержала — редкий случай честного срока.</p>
+<p>Второй заход прошёл с первого раза.
+</p>
+
+<h2>Верификация счёта : сроки по шагам и пересъёмка</h2>
+<table>
+  <tr>
+    <th>
+      Шаг
+    </th>
+    <th>
+      Что происходит
+    </th>
+    <th>
+      Срок
+    </th>
+  </tr>
+  <tr>
+    <td>
+      Загрузка
+    </td>
+    <td>
+      Файлы уходят в очередь
+    </td>
+    <td>
+      сразу
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Первичный просмотр
+    </td>
+    <td>
+      Проверка читаемости
+    </td>
+    <td>
+      2 часа
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Сверка данных
+    </td>
+    <td>
+      Адрес и имя против анкеты
+    </td>
+    <td>
+      до 24 часов
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Решение
+    </td>
+    <td>
+      Зачёт или отказ с причиной
+    </td>
+    <td>
+      до 2 часов
+    </td>
+  </tr>
+</table>
+<h3>Пересъёмка : свет, фон и вспышка</h3>
+<p>
+  <strong>Дневной свет, тёмная поверхность, вспышка выключена.</strong> Второй
+  заход прошёл за сорок минут. Снимайте разворот целиком: обрезанный угол
+  читается системой как грубая подделка, и тогда счёт уходит на ручную проверку.
+  Если почта не отвечает, дублируйте письмо через
+  <u class="lnk">подтверждение почты</u><sup class="href">/registracia</sup> в кабинете.
+</p>
+<h3>Ручная проверка : риск, о котором молчат</h3>
+<p>Деньги при отказе остаются на счету полностью.</p>
+<p>
+  Третий отказ подряд ставит счёт на ручную проверку, и срок растягивается до <strong>трёх суток</strong>. Здесь площадка теряет нетерпеливого игрока чаще всего: человек
+  бросает анкету на втором круге и уходит, не дождавшись зачёта. Риск не в
+  деньгах, а во времени — деньги при отказе остаются на месте.
+</p>
+
+<h2>Зеркало %brand_name_en% : что переносится на запасной адрес</h2>
+<p>
+  Зеркало — это второй иллюминатор той же станции: вид другой, отсек тот же.
+  Баланс, история и статус проверки в %brand_name_en% переносятся <strong>целиком</strong>: они лежат на стороне
+  площадки.
+</p>
+<h3>Остаётся своим у каждого домена</h3>
+<ul>
+  <li>🪟 сохранённый пароль в браузере</li>
+  <li>🪟 галочка «запомнить меня»</li>
+  <li>🪟 настройки уведомлений устройства</li>
+  <li>🪟 история вкладок и закладка</li>
+</ul>
+<h3>Как проверить домен перед вводом пароля?</h3>
+<p>
+  Сверяю домен с письмом площадки и никогда не иду по чужой подборке. За месяц
+  адрес сменился <strong>один раз</strong>, переход занял меньше минуты через
+  <u class="lnk">рабочее зеркало</u><sup class="href">/zerkalo</sup>. Уведомление о
+  <u class="lnk">смене адреса</u><sup class="href">/zerkalo</sup> пришло на почту за сутки до переключения,
+  и это лучшее, что площадка делает для постоянного игрока.
+</p>
+<h3>Старая закладка : чем она опасна</h3>
+<p>Копия выглядит точно так же, вплоть до подвала.</p>
+<p>
+  Закладка на закрытый домен через месяц ведёт на чужую копию с точно такой же
+  вёрсткой. Проверяйте адрес каждый раз, когда форма входа выглядит хоть
+  немного иначе: другой шрифт в поле пароля, лишняя галочка, пропавший логотип.
+  Про <u class="lnk">закладку на домен</u><sup class="href">/zerkalo</sup> написан отдельный разбор, и он
+  стоит пяти минут.
+</p>
+
+<h2>Вход в кабинет : расписка «запомнить меня»</h2>
+<p>
+  Галочка на входе в %brand_name_en% хранит не пароль, а расписку — короткий ключ, который гаснет сам. На
+  моём устройстве она продержалась <strong>тридцать суток</strong>, после чего
+  площадка спросила пароль заново.
+</p>
+<h3>Где лежит расписка «запомнить меня»?</h3>
+<p>
+  Расписка лежит в браузере, а не на станции: чистка истории гасит её мгновенно.
+  Смена пароля гасит все расписки разом, на всех устройствах сразу — самый
+  быстрый способ выйти отовсюду, если телефон остался в такси. Отдельная
+  <u class="lnk">форма входа</u><sup class="href">/vhod</sup> для мобильной версии ведёт себя так же.
+</p>
+<h3>Чужое устройство : когда галочку снимают</h3>
+<p>Общий планшет дома тоже считается чужим устройством.</p>
+<p>
+  На чужом компьютере и на общем домашнем планшете. Снимайте всегда, даже когда
+  заходите на минуту, и держите <u class="lnk">вход в кабинет</u><sup class="href">/vhod</sup> по паролю.
+  При пяти неверных попытках срабатывает
+  <u class="lnk">блокировка по попыткам</u><sup class="href">/vhod</sup> на <strong>пятнадцать минут</strong> — ждать проще,
+  чем писать в поддержку.
+</p>
+<blockquote>
+  Расписка удобна ровно до того дня, когда устройство перестаёт быть вашим.
+  После этого она работает против вас.
+</blockquote>
+
+<h2>Защита счёта : второй фактор и грузовой пояс лимита</h2>
+<p>
+  Второй фактор %brand_name_en% и <u class="lnk">защита счёта</u><sup class="href">/vhod</sup> добавляют к паролю <strong>шестизначный код</strong> из приложения. Включил после
+  первой выплаты — чужих попыток входа с тех пор не видел.
+</p>
+<h3>Лимит : грузовой пояс на сутки и месяц</h3>
+<p>
+  Лимит %brand_name_en% на депозит не мешает работать, но не даёт уйти глубже плана. Ставится на
+  сутки, неделю или месяц; снимается с отсрочкой <strong>24 часа</strong>.
+  Отсрочка и есть смысл лимита.
+</p>
+<h3>Чего второй фактор не закрывает</h3>
+<p>
+  Он совершенно бесполезен, если пароль повторяется на другом сайте и утёк
+  оттуда. Держите пароль отдельный, от <strong>двенадцати знаков</strong>, и не храните его в
+  той же почте, на которую оформлена <u class="lnk">анкета игрока</u><sup class="href">/registracia</sup>.
+  Два самых частых способа потерять счёт — общий пароль и открытая почта.
+</p>
+<h3>Порядок настройки в кабинете</h3>
+<ol>
+  <li>Включите код из приложения.</li>
+  <li>Сохраните резервные коды вне телефона.</li>
+  <li>Поставьте суточный лимит депозита.</li>
+</ol>
+
+<h2>Бонусы и промокоды : две полки одного счёта</h2>
+<p>
+  Счёт в %brand_name_en% и <u class="lnk">клиент на телефоне</u><sup class="href">/app</sup> показывают две полки: свои деньги и подарочные. Порядок расходования
+  жёсткий, и разбираться в нём лучше до первого спина.
+</p>
+<h3>Порядок расхода двух полок</h3>
+<table>
+  <tr>
+    <th>
+      Полка
+    </th>
+    <th>
+      Когда тратится
+    </th>
+    <th>
+      Что с выводом
+    </th>
+  </tr>
+  <tr>
+    <td>
+      Своя
+    </td>
+    <td>
+      Первой
+    </td>
+    <td>
+      Без условий
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Подарочная
+    </td>
+    <td>
+      После своей
+    </td>
+    <td>
+      После отыгрыша
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Выигрыш с подарочной
+    </td>
+    <td>
+      Копится отдельно
+    </td>
+    <td>
+      Идёт в отыгрыш
+    </td>
+  </tr>
+</table>
+<h3>Ошибка новичка : где обжёгся я</h3>
+<p>Пять с половиной тысяч ушло на одном непрочитанном условии.</p>
+<p>
+  Думал, что подарочные тратятся первыми, и спокойно держал на счету свои.
+  Отыгрыш <strong>не двигался целую неделю</strong>: он считается только с подарочной полки.
+  <strong>Потерял 3 000 бонусных</strong> на сроке и вторые 2 500 — на покупке
+  серии, которая в оборот не пошла. Условия акции читаются до нажатия, а не
+  после: <u class="lnk">покупка бонусной серии</u><sup class="href">/slots</sup> учитывается отдельной
+  строкой.
+</p>
+
+<h2>Отыгрыш вейджера : арифметика и время</h2>
+<ul>
+  <li>💠 множитель х35 на бонус 3 000</li>
+  <li>💠 оборот 105 000 — это сумма ставок</li>
+  <li>💠 срок семь суток с момента начисления</li>
+</ul>
+<p>
+  Вейджер — это декомпрессия: подняться сразу нельзя, нужно выдержать этапы.
+  Множитель %brand_name_en% х35 на бонус 3 000 даёт оборот <strong>105 000</strong>. Это сумма
+  ставок, не сумма проигрыша.
+</p>
+<h3>Что засчитывают в оборот, а что нет?</h3>
+<ul>
+  <li>💠 автоматы с отдачей от 96 % — целиком</li>
+  <li>💠 рулетка — пятая часть ставки</li>
+  <li>💠 живые столы — не засчитываются</li>
+  <li>💠 покупка бонусной серии — по условиям акции</li>
+</ul>
+<h3>Сколько вечеров уходит на отыгрыш?</h3>
+<p>
+  При ставке 50 за спин оборот 105 000 — это <strong>2 100 спинов</strong>.
+  У меня уходило четыре вечера по часу, и половина бонусов сгорала раньше конца
+  дистанции. Считайте время заранее: срок отыгрыша обычно семь суток, а
+  реальный темп спокойной игры — 500 спинов за вечер.</p>
+<p>Арифметика простая и невесёлая.
+</p>
+<blockquote>
+  Отыгрыш считают в обороте, а не в удаче — как выдержку на подъёме, по
+  таблице, а не по самочувствию.
+</blockquote>
+
+<h2>Касса %brand_name_en% : путь заявки и сроки на точках</h2>
+<p>
+  Заявка в кассе %brand_name_ru% проходит <strong>четыре точки</strong>, у каждой свой срок. Снимал трижды: разброс
+  держался в заявленном, кроме одного выходного дня.
+</p>
+<h3>Маршрут заявки : четыре точки и сроки</h3>
+<p>Каждая точка держит свой срок и свою причину отказа.</p>
+<table>
+  <tr>
+    <th>
+      Точка
+    </th>
+    <th>
+      Что проверяют
+    </th>
+    <th>
+      Срок
+    </th>
+  </tr>
+  <tr>
+    <td>
+      Приём
+    </td>
+    <td>
+      Лимит и отыгрыш
+    </td>
+    <td>
+      минуты
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Проверка
+    </td>
+    <td>
+      Совпадение реквизитов
+    </td>
+    <td>
+      до 3 часов
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Отправка
+    </td>
+    <td>
+      Передача в банк
+    </td>
+    <td>
+      до 1 часа
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Зачисление
+    </td>
+    <td>
+      Сторона банка
+    </td>
+    <td>
+      до 2 суток
+    </td>
+  </tr>
+</table>
+<h3>Почему выплата встаёт на проверке?</h3>
+<p>
+  Незакрытый отыгрыш и свежие реквизиты, добавленные в день заявки. Оба случая
+  честно видны в статусе. Добавляйте счёт заранее — <strong>выдержка на новый
+  счёт сутки</strong>. Третья причина редкая: несовпадение имени владельца
+  карты с именем в анкете, и она разбирается только через поддержку.
+</p>
+<h3>Выходные : мой худший срок в 41 час</h3>
+<p>Сорок один час против трёх — разница только в дне недели.</p>
+<p>
+  <strong>Сорок один час в субботу</strong> против трёх часов в будни. Разница — сторона банка,
+  а не площадка: заявка ушла с сайта за сорок минут. В понедельник тот же
+  маршрут занял два часа сорок минут от нажатия до зачисления.
+</p>
+
+<h2>Лицензия площадки : сверка номера по реестру</h2>
+<table>
+  <tr>
+    <th>
+      Поле реестра
+    </th>
+    <th>
+      Где сверять
+    </th>
+    <th>
+      Что настораживает
+    </th>
+  </tr>
+  <tr>
+    <td>
+      Имя оператора
+    </td>
+    <td>
+      Подвал сайта
+    </td>
+    <td>
+      Другое юридическое лицо
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Статус
+    </td>
+    <td>
+      Реестр регулятора
+    </td>
+    <td>
+      Приостановлен
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Дата продления
+    </td>
+    <td>
+      Реестр регулятора
+    </td>
+    <td>
+      Прошедшая дата
+    </td>
+  </tr>
+</table>
+<p>
+  Номер лицензии %brand_name_en% стоит в <strong>подвале сайта</strong>. Открыл реестр регулятора, вбил номер, сверил три
+  поля — минута работы.
+</p>
+<h3>Три поля, которые решают</h3>
+<p>Совпасть должны все три, иначе депозит подождёт.</p>
+<ul>
+  <li>🔍 имя оператора совпадает с договором</li>
+  <li>🔍 статус активен, не приостановлен</li>
+  <li>🔍 дата продления не в прошлом</li>
+</ul>
+<h3>Реестр показал расхождение, что делать?</h3>
+<p>
+  Депозит отложите. Расхождение по имени оператора встречается у клонов гораздо
+  чаще, чем у настоящих площадок, и проверяется за минуту с
+  <u class="lnk">главной страницы</u><sup class="href">/</sup>. Полный <u class="lnk">обзор площадки</u><sup class="href">/</sup> с
+  номером и датой продления держат в подвале — там же, где и адрес компании.
+</p>
+
+<h2>Игровые автоматы : что показывает демо-режим</h2>
+<p>
+  Демо-режим %brand_name_en% показывает механику и частоту бонусных раундов, но не дисперсию на
+  дистанции. Проба на глубину в бассейне: движения те же, давление другое.
+</p>
+<h3>Видимая часть демо-режима</h3>
+<p>
+  Устройство барабанов, число линий, поведение множителя, частота запуска
+  бонуса. Этого хватает, чтобы отсеять автомат по темпу за десять минут.
+  <u class="lnk">Демо-режим автоматов</u><sup class="href">/slots</sup> открыт без анкеты, поэтому смотреть
+  его можно до регистрации.
+</p>
+<h3>Чего демо не покажет</h3>
+<p>Пустая серия на дистанции длиннее, чем кажется в демо.</p>
+<p>
+  Длину серии без выплат и поведение баланса за две сотни спинов. Расхождение
+  доходило до <strong>тридцати процентов</strong> по длине пустой серии —
+  <u class="lnk">каталог автоматов</u><sup class="href">/slots</sup> об этом молчит.
+</p>
+<h3>Мой отбор : отдача, линии, мобильная версия</h3>
+<p>
+  По <strong>отдаче от 96 %</strong> и числу линий, а не по яркой картинке. Мобильную версию
+  проверяю отдельно: часть автоматов на телефоне идёт мельче, и это видно через
+  <u class="lnk">мобильное приложение</u><sup class="href">/app</sup>. Установка занимает <strong>три минуты</strong> —
+  <u class="lnk">программа на Android</u><sup class="href">/app</sup> ставится файлом, минуя магазин.
+</p>
+<blockquote>
+  «Демо честно показывает механику и честно врёт про дистанцию», — записал я
+  после второй сотни спинов.
+</blockquote>
+
+<h2>Приложение и поддержка : ярлык против программы</h2>
+<ol>
+  <li>Поставьте программу файлом, минуя магазин.</li>
+  <li>Включите уведомления о входе.</li>
+  <li>Отключите фоновую работу на ночь.</li>
+</ol>
+<p>
+  <u class="lnk">Ярлык на сайт</u><sup class="href">/app</sup> %brand_name_en% открывает ту же страницу в браузере. Установленная программа
+  держит сессию дольше и присылает уведомления о входе.
+</p>
+<h3>Ярлык и программа : разница на практике</h3>
+<table>
+  <tr>
+    <th>
+      Признак
+    </th>
+    <th>
+      Ярлык
+    </th>
+    <th>
+      Программа
+    </th>
+  </tr>
+  <tr>
+    <td>
+      Сессия
+    </td>
+    <td>
+      Как в браузере
+    </td>
+    <td>
+      До 30 суток
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Уведомления
+    </td>
+    <td>
+      Нет
+    </td>
+    <td>
+      Есть
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Обновление
+    </td>
+    <td>
+      Автоматически
+    </td>
+    <td>
+      Вручную
+    </td>
+  </tr>
+</table>
+<h3>Чего поддержка не решает</h3>
+<p>
+  Поддержка %brand_name_en% не отменит отыгрыш, не вернёт сгоревший бонус, не ускорит сторону банка. Всё
+  остальное закрывает за <strong>десять минут</strong> в чате: у меня средний
+  ответ вышел четыре минуты днём и одиннадцать ночью. Отдельно стоит смотреть
+  <u class="lnk">работу в фоне</u><sup class="href">/app</sup> — клиент садит батарею за вечер, если
+  уведомления оставить включёнными.
+</p>
+<h3>Куда идти вместо неё</h3>
+<p>
+  К регулятору по номеру лицензии, если спор о выплате зашёл в тупик. Порядок
+  описан на странице <u class="lnk">регистрации</u><sup class="href">/registracia</sup>, в разделе о споре,
+  и занимает одну страницу. Срок ответа регулятора — <strong>до тридцати суток</strong>, и это
+  единственный медленный этап во всей истории.
+</p>
+<blockquote>
+  Поддержка отвечает за станцию, но не за погоду на поверхности — и это стоит
+  понимать до первой заявки.
+</blockquote>
+
+<h2>Частые вопросы игроков</h2>
+<figure class="faq">
+  <b class="q">Что делать, если верификация не прошла со второго раза?</b>
+  
+    <p>Переснимите документ при дневном свете на тёмном фоне и приложите второй документ с адресом. Третий отказ подряд разбирает поддержка, ответ приходит в течение суток.</p>
+  
+</figure>
+<figure class="faq">
+  <b class="q">Почему заявка на вывод зависла на проверке реквизитов?</b>
+  
+    <p>Реквизиты добавлены в день заявки. Площадка выдерживает сутки на новый счёт, заявка стоит до конца выдержки. Добавляйте счёт заранее.</p>
+  
+</figure>
+<figure class="faq">
+  <b class="q">Не работает вход после смены пароля, что произошло?</b>
+  
+    <p>Смена пароля гасит все расписки «запомнить меня» разом. Войдите заново на каждом устройстве, включая <u class="lnk">клиент на телефоне</u><sup class="href">/app</sup>.</p>
+  
+</figure>
+<figure class="faq">
+  <b class="q">Бонус сгорел до конца отыгрыша, можно ли его вернуть?</b>
+  
+    <p>Сгоревший бонус не восстанавливают. Срок считается от начисления, а не от первой ставки, и виден в кабинете с точностью до часа.</p>
+  
+</figure>
+<figure class="faq">
+  <b class="q">Сколько живёт запасной адрес и как узнать новый?</b>
+  
+    <p>За месяц адрес сменился один раз. Новый приходит письмом на почту из анкеты и дублируется в кабинете, поэтому сторонние подборки не нужны.</p>
+  
+</figure>
+<figure class="faq">
+  <b class="q">Отличается ли отдача автомата в демо и на реальном счёте?</b>
+  
+    <p>Заявленная отдача одна. Разной оказывается длина серии без выплат: на коротком отрезке демо показывает более ровную картину, чем есть на дистанции.</p>
+  
+</figure>
+<figure class="faq">
+  <b class="q">Что засчитывается в оборот при отыгрыше вейджера?</b>
+  
+    <p>Автоматы с отдачей от 96 % идут целиком, рулетка — пятая часть ставки, живые столы не идут. Проверьте долю до первой ставки.</p>
+  
+</figure></div></div></div></div></body></html>

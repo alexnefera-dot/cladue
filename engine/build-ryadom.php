@@ -21,10 +21,12 @@ const TITLES = ['main'=>'Главная','zerkalo'=>'Зеркало','vhod'=>'В
 
 $PROFIL = '';
 $VID = '';
+$TOLKO = [];
 $pos = [];
 foreach (array_slice($argv, 1) as $arg) {
     if (str_starts_with($arg, '--профиль=')) { $PROFIL = substr($arg, strlen('--профиль=')); continue; }
     if (str_starts_with($arg, '--вид=')) { $VID = substr($arg, strlen('--вид=')); continue; }
+    if (str_starts_with($arg, '--страницы=')) { $TOLKO = array_filter(explode(',', substr($arg, strlen('--страницы=')))); continue; }
     $pos[] = $arg;
 }
 if (!$pos) { fwrite(STDERR, "usage: build-ryadom.php <наша-папка> <папка-донора> [out.html] [--профиль=<файл>]\n"); exit(1); }
@@ -132,19 +134,23 @@ function show(?array $b): string
  */
 function celikom(string $html): string
 {
-    $h = preg_replace('~<(script|style|noscript)\b.*?</\1>~is', ' ', $html);
+    $h = (string) preg_replace('~<(script|style|noscript)\b.*?</\1>~is', ' ', $html);
     // Ссылка остаётся видимой вместе с адресом: перелинковка — часть жанра.
-    $h = preg_replace_callback('~<a\b[^>]*href="([^"]*)"[^>]*>(.*?)</a>~is',
-        fn($m) => '<u class="lnk">' . $m[2] . '</u><sup class="href">' . htmlspecialchars($m[1]) . '</sup>', (string) $h);
-    // FAQ разворачивается: вопрос жирным, ответ следом.
-    $h = preg_replace('~<summary\b[^>]*>(.*?)</summary>~is', '<div class="q">$1</div>', (string) $h);
-    $h = preg_replace('~<details\b[^>]*>~i', '<div class="faq">', (string) $h);
-    $h = str_ireplace('</details>', '</div>', (string) $h);
-    // Служебные обёртки убираем, атрибуты снимаем со всего.
-    $h = preg_replace('~</?(section|article|aside|div(?![^>]*class="(faq|q)"))\b[^>]*>~i', '', (string) $h);
-    $h = preg_replace('~<(?!/)(?!u |sup |div class="faq"|div class="q")([a-z0-9]+)\b[^>]*>~i', '<$1>', (string) $h);
-    $h = preg_replace('~<(img|iframe|input|form|button)\b[^>]*>~i', '', (string) $h);
-    return trim(preg_replace('~\n{3,}~', "\n\n", (string) $h));
+    $h = (string) preg_replace_callback('~<a\b[^>]*href="([^"]*)"[^>]*>(.*?)</a>~is',
+        fn($m) => '<u class="lnk">' . $m[2] . '</u><sup class="href">' . htmlspecialchars($m[1]) . '</sup>', $h);
+    // FAQ раскрывается ПЕРВЫМ и переезжает на теги, которых нет в списке на
+    // снос. Иначе следующий шаг уносит закрывающий </div> вместе с обёртками
+    // разметки, блок остаётся открытым, и браузер вкладывает в него всё
+    // дальнейшее — колонка схлопывается в одну таблицу.
+    $h = (string) preg_replace('~<summary\b[^>]*>(.*?)</summary>~is', '<b class="q">$1</b>', $h);
+    $h = (string) preg_replace('~<details\b[^>]*>~i', '<figure class="faq">', $h);
+    $h = str_ireplace('</details>', '</figure>', $h);
+    // Обёртки макета сносим парами: и открывающий тег, и закрывающий.
+    $h = (string) preg_replace('~</?(div|section|article|aside|nav|header|footer|main|span|font|center)\b[^>]*>~i', '', $h);
+    // Атрибуты со всего остального, кроме собственных меток.
+    $h = (string) preg_replace('~<(?!/)(?!b class="q")(?!figure class="faq")(?!u class="lnk")(?!sup class="href")([a-z0-9]+)\b[^>]*>~i', '<$1>', $h);
+    $h = (string) preg_replace('~<(img|iframe|input|form|button|source|video|picture)\b[^>]*>~i', '', $h);
+    return trim((string) preg_replace('~\n{3,}~', "\n\n", $h));
 }
 
 function words(string $raw): int
@@ -159,6 +165,7 @@ $body = '';
 $summary = [];
 
 foreach (PAGES as $pg) {
+    if ($TOLKO && !in_array($pg, $TOLKO, true)) { continue; }
     $refRaw = (string)file_get_contents("$REF/$pg.html");
     $ourRaw = (string)file_get_contents("$OUR/$pg.html");
     $R = PageMetrics::measure($a, $pg, $refRaw, ['ru'=>'','en'=>'']);
@@ -250,7 +257,10 @@ foreach (PAGES as $pg) {
 }
 
 $nav = '';
-foreach (PAGES as $pg) { $nav .= '<a href="#'.$pg.'">'.TITLES[$pg].' <b>'.$summary[$pg].'/55</b></a> '; }
+foreach (PAGES as $pg) {
+    if (!isset($summary[$pg])) { continue; }
+    $nav .= '<a href="#'.$pg.'">'.TITLES[$pg].' <b>'.$summary[$pg].'/55</b></a> ';
+}
 $total = array_sum($summary);
 
 $css = <<<CSS
@@ -290,7 +300,9 @@ u { text-decoration:underline dotted; }
 @media (max-width:900px) { .two { grid-template-columns:1fr; } }
 .col { min-width:0; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
 .colhead { position:sticky; top:0; z-index:2; background:var(--note); border-bottom:1px solid var(--line); padding:8px 14px; font-size:13px; font-weight:600; }
-.page { padding:6px 16px 18px; font-size:14.5px; }
+.page { padding:6px 16px 18px; font-size:14.5px; max-height:78vh; overflow-y:auto; overscroll-behavior:contain; }
+.page table { display:block; overflow-x:auto; max-width:100%; }
+.page figure { margin:0; }
 .page h2 { font-size:17px; margin:22px 0 8px; padding:0; border:0; }
 .page h3 { font-size:14.5px; margin:16px 0 6px; color:var(--fg); text-transform:none; letter-spacing:0; font-weight:700; }
 .page p { margin:9px 0; }

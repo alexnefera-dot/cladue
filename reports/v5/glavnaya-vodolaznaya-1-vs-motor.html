@@ -1,0 +1,1390 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>vodolaznaya-1 против motor: текст и параметры рядом</title><style>:root { --bg:#fff; --fg:#1a1a1a; --mut:#666; --line:#e3e3e3; --note:#f4f4f4; --ok:#2f7d32; --bad:#b3261e; --warn:#8a6a00; }
+@media (prefers-color-scheme: dark) { :root { --bg:#16181c; --fg:#e6e6e6; --mut:#9aa0a6; --line:#2e3238; --note:#1e2126; --ok:#7ec783; --bad:#f2b8b5; --warn:#e0c060; } }
+* { box-sizing:border-box; }
+body { margin:0; padding:24px 16px 60px; background:var(--bg); color:var(--fg); font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; }
+.wrap { max-width:1500px; margin:0 auto; }
+h1 { font-size:24px; margin:0 0 6px; }
+.sub { color:var(--mut); margin:0 0 18px; font-size:14px; }
+.sub2 { color:var(--mut); font-weight:400; font-size:13px; }
+h2 { font-size:20px; margin:38px 0 10px; padding-top:16px; border-top:2px solid var(--line); }
+h3 { font-size:15px; margin:20px 0 6px; color:var(--mut); text-transform:uppercase; letter-spacing:.04em; }
+table { border-collapse:collapse; width:100%; font-size:13.5px; margin:8px 0 4px; }
+th,td { border:1px solid var(--line); padding:6px 9px; text-align:left; vertical-align:top; }
+th { background:var(--note); font-weight:600; }
+td.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+table.mx { max-width:640px; }
+table.bl td.blk { width:46%; }
+table.bl td.ix { width:56px; color:var(--mut); font-size:12px; text-align:center; }
+td.ix code { font-size:11px; background:var(--note); padding:1px 4px; border-radius:3px; }
+tr.odd td { background:rgba(179,38,30,.07); }
+tr.hold td:first-child { font-weight:600; }
+code.fk { display:block; font-size:10.5px; color:var(--mut); margin-top:2px; }
+table.mx { max-width:900px; }
+.gap { color:var(--bad); font-size:12.5px; }
+.w { display:block; margin-top:5px; color:var(--mut); font-size:11.5px; }
+.q { display:block; margin-bottom:4px; }
+.ok { color:var(--ok); } .bad { color:var(--bad); font-weight:700; }
+.scroll { overflow-x:auto; }
+.nav { margin:14px 0 24px; font-size:13.5px; }
+.nav a { display:inline-block; margin:0 10px 8px 0; padding:5px 10px; border:1px solid var(--line); border-radius:6px; color:inherit; text-decoration:none; }
+.key { border-left:4px solid var(--warn); background:var(--note); border-radius:8px; padding:12px 15px; margin:16px 0; font-size:14px; }
+code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+u { text-decoration:underline dotted; }
+.two { display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start; }
+@media (max-width:900px) { .two { grid-template-columns:1fr; } }
+.col { min-width:0; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+.colhead { position:sticky; top:0; z-index:2; background:var(--note); border-bottom:1px solid var(--line); padding:8px 14px; font-size:13px; font-weight:600; }
+.page { padding:6px 16px 18px; font-size:14.5px; max-height:78vh; overflow-y:auto; overscroll-behavior:contain; }
+.page table { display:block; overflow-x:auto; max-width:100%; }
+.page figure { margin:0; }
+.page h2 { font-size:17px; margin:22px 0 8px; padding:0; border:0; }
+.page h3 { font-size:14.5px; margin:16px 0 6px; color:var(--fg); text-transform:none; letter-spacing:0; font-weight:700; }
+.page p { margin:9px 0; }
+.page table { font-size:13px; }
+.page blockquote { margin:12px 0; padding:8px 14px; border-left:3px solid var(--warn); background:var(--note); border-radius:0 6px 6px 0; }
+.page .faq { border:1px solid var(--line); border-radius:6px; padding:8px 12px; margin:8px 0; }
+.page .faq .q { font-weight:700; margin-bottom:4px; }
+.page .faq p { margin:4px 0; }
+.page sup.href { color:var(--mut); font-size:10px; margin-left:2px; }
+.page u.lnk { text-decoration:underline; text-underline-offset:2px; }
+.warn { color:var(--warn); }
+tr.hold td { background:rgba(138,106,0,.06); }
+ul.rash { margin:6px 0 0; padding-left:20px; font-size:14px; }
+ul.rash li { margin:3px 0; }
+p.none { color:var(--mut); font-size:14px; margin:6px 0 0; }</style></head><body><div class="wrap"><h1>vodolaznaya-1 против motor</h1><p class="sub">Слева — страница донора, справа — наша. Блоки выровнены по типам: если у одной стороны блока нет, строка подсвечена. Совпало 33 из 385 полей.</p><div class="nav"><a href="#main">Главная <b>33/55</b></a> </div><div class="key">Строка подсвечена красным, когда блок есть только на одной стороне — это расхождение структуры. Совпадение по числу слов в блоке не требуется: коридор приёмки работает на уровне страницы, а не абзаца.</div><h2 id="main">Главная <span class="sub2">25/25 держимых полей в коридоре (100 %) · вне корпуса 0 из 55 · 33/55 совпало с донором · 2524 слов у донора · 2289 у нас</span></h2><h3>Расхождения</h3><p class="none">Все 55 полей либо в коридоре приёмки, либо внутри разброса корпуса.</p><h3>Параметры</h3><div class="scroll"><table class="mx"><tr><th>Поле</th><th>Донор</th><th>Наше</th><th>Цель</th><th>Полоса q1–q3</th><th>Край мин–макс</th><th>Вердикт</th></tr><tr class=""><td>объём слов<code class="fk">words</code></td><td class="num">2031</td><td class="num"><b class="ok">2137</b></td><td class="num">2199</td><td class="num">1763–3670</td><td class="num">632–5685</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>H2<code class="fk">h2</code></td><td class="num">7</td><td class="num"><b class="warn">13</b></td><td class="num">10</td><td class="num">7–12</td><td class="num">2–20</td><td><span class="warn">в разбросе корпуса</span></td></tr><tr class=""><td>разделов H2+H3<code class="fk">sections</code></td><td class="num">18</td><td class="num"><b class="ok">44</b></td><td class="num">36</td><td class="num">21–50</td><td class="num">10–61</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>списков<code class="fk">lists</code></td><td class="num">7</td><td class="num"><b class="ok">9</b></td><td class="num">11</td><td class="num">6–23</td><td class="num">3–33</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>strong<code class="fk">strong</code></td><td class="num">24</td><td class="num"><b class="ok">31</b></td><td class="num">54</td><td class="num">25–67</td><td class="num">7–113</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>вопросительных знаков<code class="fk">faq</code></td><td class="num">2</td><td class="num"><b class="warn">7</b></td><td class="num">2</td><td class="num">0–6</td><td class="num">0–26</td><td><span class="warn">в разбросе корпуса</span></td></tr><tr class=""><td>эмодзи<code class="fk">emoji</code></td><td class="num">20</td><td class="num"><b class="ok">22</b></td><td class="num">20</td><td class="num">14–25</td><td class="num">5–53</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>«я»<code class="fk">first_person</code></td><td class="num">37</td><td class="num"><b class="ok">18</b></td><td class="num">37</td><td class="num">1–57</td><td class="num">0–247</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>«вы»<code class="fk">vy</code></td><td class="num">1</td><td class="num"><b class="ok">2</b></td><td class="num">7</td><td class="num">2–12</td><td class="num">0–36</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>«ты»<code class="fk">ty</code></td><td class="num">4</td><td class="num"><b class="ok">0</b></td><td class="num">4</td><td class="num">0–15</td><td class="num">0–110</td><td><span class="ok">в полосе</span></td></tr><tr class="hold"><td>заголовков по теме страницы %<code class="fk">on_topic_pct</code></td><td class="num">0</td><td class="num"><b class="ok">0</b></td><td class="num">0</td><td class="num">0–0</td><td class="num">0–0</td><td><span class="ok">в коридоре</span></td></tr><tr class=""><td>реплик в кавычках<code class="fk">speech</code></td><td class="num">4</td><td class="num"><b class="ok">1</b></td><td class="num">3</td><td class="num">1–9</td><td class="num">0–16</td><td><span class="ok">в полосе</span></td></tr><tr class="hold"><td>бытовых сравнений<code class="fk">compare</code></td><td class="num">3</td><td class="num"><b class="ok">1</b></td><td class="num">0</td><td class="num">0–2</td><td class="num">0–5</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>зачинов «а на деле»<code class="fk">myth</code></td><td class="num">1</td><td class="num"><b class="ok">0</b></td><td class="num">0</td><td class="num">0–0</td><td class="num">0–1</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>заявок на закрытое знание<code class="fk">insider</code></td><td class="num">0</td><td class="num"><b class="ok">0</b></td><td class="num">0</td><td class="num">0–0</td><td class="num">0–1</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>шаблонов обращения<code class="fk">letter</code></td><td class="num">0</td><td class="num"><b class="ok">0</b></td><td class="num">0</td><td class="num">0–0</td><td class="num">0–0</td><td><span class="ok">в коридоре</span></td></tr><tr class=""><td>императивов<code class="fk">imperatives</code></td><td class="num">18</td><td class="num"><b class="ok">20</b></td><td class="num">20</td><td class="num">11–37</td><td class="num">2–85</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>цифр на 100 слов<code class="fk">numbers_per100</code></td><td class="num">4.8</td><td class="num"><b class="warn">2</b></td><td class="num">7</td><td class="num">2.2–9</td><td class="num">0.8–12.6</td><td><span class="warn">в разбросе корпуса</span></td></tr><tr class="hold"><td>прилагательных %<code class="fk">adj_pct</code></td><td class="num">12</td><td class="num"><b class="ok">10.6</b></td><td class="num">12.2</td><td class="num">10.1–13.8</td><td class="num">9.2–16.9</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>тошнота %<code class="fk">nausea_acad</code></td><td class="num">33.2</td><td class="num"><b class="ok">42.7</b></td><td class="num">37.9</td><td class="num">33.4–40.5</td><td class="num">19.1–45.8</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>водность %<code class="fk">water</code></td><td class="num">24.8</td><td class="num"><b class="ok">27</b></td><td class="num">24.8</td><td class="num">22.3–27.3</td><td class="num">15.3–35.1</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>бренд кириллицей<code class="fk">brand_ru</code></td><td class="num">2</td><td class="num"><b class="ok">1</b></td><td class="num">1</td><td class="num">0–2</td><td class="num">0–10</td><td><span class="ok">в коридоре</span></td></tr><tr class=""><td>бренд латиницей<code class="fk">brand_en</code></td><td class="num">8</td><td class="num"><b class="ok">18</b></td><td class="num">22</td><td class="num">16–26</td><td class="num">7–44</td><td><span class="ok">в полосе</span></td></tr><tr class="hold"><td>бренд в заголовках<code class="fk">brand_in_h</code></td><td class="num">2</td><td class="num"><b class="ok">4</b></td><td class="num">5</td><td class="num">3–7</td><td class="num">1–13</td><td><span class="ok">в коридоре</span></td></tr><tr class=""><td>бренд в первой трети<code class="fk">brand_first_third</code></td><td class="num">5</td><td class="num"><b class="ok">8</b></td><td class="num">10</td><td class="num">7–14</td><td class="num">3–20</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>пар «вопрос-ответ»<code class="fk">faq_pairs</code></td><td class="num">7</td><td class="num"><b class="ok">7</b></td><td class="num">7</td><td class="num">1–11</td><td class="num">0–15</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>вопросов в тексте<code class="fk">questions_total</code></td><td class="num">13</td><td class="num"><b class="ok">14</b></td><td class="num">12</td><td class="num">4–16</td><td class="num">0–37</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>опорных формул<code class="fk">anchors</code></td><td class="num">10</td><td class="num"><b class="warn">8</b></td><td class="num">17</td><td class="num">14–20</td><td class="num">5–37</td><td><span class="warn">в разбросе корпуса</span></td></tr><tr class="hold"><td>зачин: имя с категорией<code class="fk">opener_name</code></td><td class="num">0</td><td class="num"><b class="ok">0</b></td><td class="num">0</td><td class="num">0–0</td><td class="num">0–1</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>зачин: ключ в начале<code class="fk">opener_key</code></td><td class="num">0</td><td class="num"><b class="ok">1</b></td><td class="num">1</td><td class="num">1–1</td><td class="num">0–1</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>колонок в таблице<code class="fk">table_cols</code></td><td class="num">3</td><td class="num"><b class="ok">3</b></td><td class="num">3</td><td class="num">2.8–3.3</td><td class="num">2.3–4.5</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>уникальных шапок %<code class="fk">table_uniq_pct</code></td><td class="num">100</td><td class="num"><b class="ok">100</b></td><td class="num">100</td><td class="num">100–100</td><td class="num">75–100</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>отзывов с оценкой<code class="fk">reviews_rated</code></td><td class="num">0</td><td class="num"><b class="ok">0</b></td><td class="num">0</td><td class="num">0–0</td><td class="num">0–5</td><td><span class="ok">в коридоре</span></td></tr><tr class=""><td>нумерованных списков %<code class="fk">ordered_pct</code></td><td class="num">28.6</td><td class="num"><b class="warn">33.3</b></td><td class="num">25</td><td class="num">20–30</td><td class="num">0–54.5</td><td><span class="warn">в разбросе корпуса</span></td></tr><tr class="hold"><td>разовых анкоров %<code class="fk">anchor_once_pct</code></td><td class="num">100</td><td class="num"><b class="ok">79.2</b></td><td class="num">81.3</td><td class="num">72–86.2</td><td class="num">54.2–100</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>разных значений с %<code class="fk">fact_values</code></td><td class="num">0</td><td class="num"><b class="ok">0</b></td><td class="num">1</td><td class="num">0–3</td><td class="num">0–8</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>список в зачине<code class="fk">lead_list</code></td><td class="num">1</td><td class="num"><b class="ok">1</b></td><td class="num">1</td><td class="num">1–1</td><td class="num">0–1</td><td><span class="ok">в коридоре</span></td></tr><tr class=""><td>раздел открыт абзацем %<code class="fk">h2_opens_para_pct</code></td><td class="num">71.4</td><td class="num"><b class="ok">69.2</b></td><td class="num">72.7</td><td class="num">60–83.3</td><td class="num">0–100</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>H3 с вопросительного слова %<code class="fk">h3_question_pct</code></td><td class="num">27.3</td><td class="num"><b class="warn">25.8</b></td><td class="num">20</td><td class="num">10–25</td><td class="num">0–42.9</td><td><span class="warn">в разбросе корпуса</span></td></tr><tr class=""><td>H3 с двоеточием %<code class="fk">h3_colon_pct</code></td><td class="num">63.6</td><td class="num"><b class="ok">48.4</b></td><td class="num">37.5</td><td class="num">23.3–50</td><td class="num">0–70</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>strong в начале блока %<code class="fk">strong_lead_pct</code></td><td class="num">70.8</td><td class="num"><b class="warn">9.7</b></td><td class="num">43.8</td><td class="num">17.6–73.8</td><td class="num">0–87</td><td><span class="warn">в разбросе корпуса</span></td></tr><tr class="hold"><td>эмодзи внутри фразы<code class="fk">emoji_inline</code></td><td class="num">0</td><td class="num"><b class="ok">0</b></td><td class="num">0</td><td class="num">0–2</td><td class="num">0–25</td><td><span class="ok">в коридоре</span></td></tr><tr class=""><td>разброс длины абзаца<code class="fk">para_spread</code></td><td class="num">39</td><td class="num"><b class="ok">15.2</b></td><td class="num">18.1</td><td class="num">15.1–23.1</td><td class="num">5.8–40.6</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>коротких абзацев<code class="fk">para_short</code></td><td class="num">1</td><td class="num"><b class="ok">10</b></td><td class="num">10</td><td class="num">5–15</td><td class="num">1–29</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>абзацев<code class="fk">paragraphs</code></td><td class="num">26</td><td class="num"><b class="ok">52</b></td><td class="num">52</td><td class="num">26–61</td><td class="num">13–87</td><td><span class="ok">в полосе</span></td></tr><tr class="hold"><td>слов в абзаце<code class="fk">words_per_para</code></td><td class="num">44.4</td><td class="num"><b class="ok">29.4</b></td><td class="num">27.3</td><td class="num">24.7–31.2</td><td class="num">16–44.4</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>названий игр<code class="fk">games_named</code></td><td class="num">4</td><td class="num"><b class="ok">0</b></td><td class="num">0</td><td class="num">0–1</td><td class="num">0–6</td><td><span class="ok">в коридоре</span></td></tr><tr class=""><td>названий студий<code class="fk">providers_named</code></td><td class="num">5</td><td class="num"><b class="ok">0</b></td><td class="num">0</td><td class="num">0–3</td><td class="num">0–10</td><td><span class="ok">в полосе</span></td></tr><tr class="hold"><td>разных имён игр и студий<code class="fk">names_uniq</code></td><td class="num">8</td><td class="num"><b class="ok">0</b></td><td class="num">1</td><td class="num">0–4</td><td class="num">0–11</td><td><span class="ok">в коридоре</span></td></tr><tr class=""><td>профильных терминов<code class="fk">terms_total</code></td><td class="num">49</td><td class="num"><b class="ok">64</b></td><td class="num">67</td><td class="num">46–95</td><td class="num">11–181</td><td><span class="ok">в полосе</span></td></tr><tr class=""><td>H3 на один H2<code class="fk">h3_per_h2</code></td><td class="num">1.6</td><td class="num"><b class="ok">2.4</b></td><td class="num">3</td><td class="num">2–3.5</td><td class="num">0.6–5</td><td><span class="ok">в полосе</span></td></tr><tr class="hold"><td>слов в заголовке<code class="fk">h2_len</code></td><td class="num">8.3</td><td class="num"><b class="ok">7.2</b></td><td class="num">7.4</td><td class="num">6.6–8.1</td><td class="num">5.3–10.6</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>заголовков-вопросов %<code class="fk">h2_quest</code></td><td class="num">0</td><td class="num"><b class="ok">0</b></td><td class="num">0</td><td class="num">0–0</td><td class="num">0–20</td><td><span class="ok">в коридоре</span></td></tr><tr class="hold"><td>прямых призывов<code class="fk">cta</code></td><td class="num">0</td><td class="num"><b class="ok">0</b></td><td class="num">0</td><td class="num">0–2</td><td class="num">0–14</td><td><span class="ok">в коридоре</span></td></tr><tr class=""><td>мест с минусом или риском<code class="fk">honest</code></td><td class="num">9</td><td class="num"><b class="ok">6</b></td><td class="num">8</td><td class="num">4–17</td><td class="num">0–61</td><td><span class="ok">в полосе</span></td></tr></table></div><h3>Текст целиком</h3><div class="two"><div class="col"><div class="colhead">Донор motor · 2524 слов</div><div class="page"><p>
+  Экран в тёмной комнате: логотип %brand_name_en% медленно выныривает из затемнения, в углу — замочек HTTPS и пометка TLS 1.3. Я коснулся экрана, форма регистрации всплыла ровно в три поля — e‑mail, пароль, подтверждение пароля — и кнопка «Зарегистрироваться». Нажал: письмо с кодом пришло через 18 секунд, в строке входящих мигнуло подтверждение, баланс показал «0.00» и рядом подсказка о способах пополнения — карты, банковские переводы и криптовалюта (BTC, ETH, LTC). На странице «Платежи» цифры и сроки живут своим ритмом: депозиты учитываются мгновенно при платёжках картой, по Bitcoin — после 3–6 подтверждений (обычно 10–60 минут), выводы идут в очередь, статус «в обработке» держится от 1 до 48 часов, верификация профиля — до 72 часов при загрузке паспорта и селфи. Внизу — перечень провайдеров: Pragmatic Play, NetEnt, Quickspin, Play’n GO и другие, счётчик игр показывает порядка 2–3 тысяч слотов и live‑столов. Зеркала и альтернативные домены указаны в футере, обновляются автоматически — уведомление «новое зеркало доступно» появляется, когда основная зона блокируется. Я поставил таймер: полторы минуты — на случай, если понадобится решить с поддержкой; чат отвечает в среднем 1–5 минут, и в нём часто сыплются сухие технические строки про лимиты, минимальный депозит и комиссии. Пальцы скользят по экрану, я читаю мелкий шрифт про бонусы и условия отыгрыша, отмечаю для себя: KYC, ограничения выплат, и возможность принимать платежи в BTC с минимальной суммой, эквивалентной примерно 10 USD.
+</p>
+
+  
+    <ul>
+      <li>
+        🏠 <u class="lnk">Официальный сайт casino %brand_name_en%</u><sup class="href">/</sup>
+      </li>
+      <li>
+        👥 <u class="lnk">где найти официальное зеркало рабочее</u><sup class="href">/</sup>
+      </li>
+      <li>
+        🎟 <u class="lnk">доступ к аккаунту на %brand_name_en% гемблинг-сайт крипто-казино</u><sup class="href">/app</sup>
+      </li>
+      <li>
+        🎁 <u class="lnk">Бонусная система</u><sup class="href">/</sup>
+      </li>
+    </ul>
+  
+
+<h2>
+  Кадр — карточка со сводкой
+</h2>
+
+  <table>
+    <tbody>
+      <tr>
+        <th>
+          🧾 Параметр
+        </th>
+        <th>
+          🔍 Значение
+        </th>
+      </tr>
+      <tr>
+        <td>
+          🎰 Название
+        </td>
+        <td>
+          <strong>%brand_name_en% (официальный сайт)</strong>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          🔐 Безопасность
+        </td>
+        <td>
+          TLS 1.2/1.3, HTTPS, шифрование данных (SHA‑256)
+        </td>
+      </tr>
+      <tr>
+        <td>
+          ⏱ Регистрация
+        </td>
+        <td>
+          Э‑mail + пароль, подтверждение по почте — ~30–90 секунд
+        </td>
+      </tr>
+      <tr>
+        <td>
+          🧾 Верификация (KYC)
+        </td>
+        <td>
+          Загрузка паспорта/ID и селфи — обработка до 72 часов
+        </td>
+      </tr>
+      <tr>
+        <td>
+          💳 Пополнение
+        </td>
+        <td>
+          Банковские карты, e‑wallets, криптовалюты (BTC/ETH/LTC)
+        </td>
+      </tr>
+      <tr>
+        <td>
+          ⛓ Крипто
+        </td>
+        <td>
+          BTC: зачисление после ~3–6 подтверждений; выводы — по сети (время зависит от нагрузки)
+        </td>
+      </tr>
+      <tr>
+        <td>
+          💸 Минимум / комиссии
+        </td>
+        <td>
+          Минимум пополнения — от эквивалента ~10 USD; комиссии зависят от метода
+        </td>
+      </tr>
+      <tr>
+        <td>
+          ⏳ Выводы
+        </td>
+        <td>
+          Обработка 1–48 часов, выплаты по крипто — быстрее при 1–6 подтверждениях
+        </td>
+      </tr>
+      <tr>
+        <td>
+          🧩 Софт
+        </td>
+        <td>
+          Pragmatic Play, NetEnt, Play’n GO, Quickspin и др. — порядка 2–3k игр
+        </td>
+      </tr>
+      <tr>
+        <td>
+          📞 Поддержка
+        </td>
+        <td>
+          Чат 24/7, ответ в среднем 1–5 минут; E‑mail, FAQ
+        </td>
+      </tr>
+      <tr>
+        <td>
+          🔁 Зеркала
+        </td>
+        <td>
+          Альтернативные домены в футере и рассылке, автоматическое обновление ссылок
+        </td>
+      </tr>
+      <tr>
+        <td>
+          📱 Мобильность
+        </td>
+        <td>
+          Адаптивный сайт, отдельные APK/мобильные ссылки для iOS/Android
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+<blockquote>
+  «Готово, — написал бот поддержки через 2 минуты. — Пополнение зачислено после 4 подтверждений BTC».
+</blockquote>
+<h2>
+  Быстрая регистрация и вход на платформу: шаг за шагом
+</h2>
+Когда я впервые держу в руке телефон и захожу на %brand_name_en%, первое, что бросается в глаза — это прямо на стартовой странице яркая кнопка «Регистрация». Не тороплюсь, делаю глубокий вдох, по привычке проверяю соединение: стабильный 4G, экран гаснет на пару секунд, затем — снова яркий интерфейс. **Мгновенный старт.** Пальцем я легко нажимаю на «Регистрация». Открывается окно с простенькой формой, которую я заполняю. Впервые, конечно, чуть задумываюсь: а вдруг неправильно введу? Но на помощь приходит *быстрая регистрация*. Всё, что нужно – минимальный набор данных: - никнейм, - пароль, - телефон или почта. Иногда можно воспользоваться одним из соцаккаунтов — быстрый способ не отвлекаться, когда за окном светит солнце, а в голове — только желание попробовать.
+<figure class="faq">
+  <b class="q">
+    Почему важно быстро зарегистрироваться?
+  </b>
+  <p>
+    Это как открыть дверь в игровой мир — без долгих формальностей. Максимум — минуту, и ты уже в игре, готов к приключениям или изучению правил.
+  </p>
+</figure>
+**Вход в аккаунт — на ладони.** Когда после первой регистрации я его запомнил — этап легче. На стартовой странице есть кнопка «Войти», я нежно касаюсь её, и передо мной всплывает окно с полями: email или ник — и пароль. Если я уже регистрировался — по сути, всё, что мне нужно — ввести логин и пароль. Но я знаю, что на мобильном устройстве часто сохраняется эта информация — и в следующий раз вход происходит буквально за пару кликов, микро-кадр: экран мигнул, вводится логин, и клавиши «войти» плывут вверх, словно бы под водой. Я отпускаю палец, подтверждаю — и вот, я внутри, в личном кабинете. Время: ровно шесть секунд. ---
+
+  <h3>
+    Что нужно помнить при входе?
+  </h3>
+  <ul>
+    <li>
+      <strong>Защищайте свои данные</strong>: никому не говорите пароль, используйте сложные комбинации.
+    </li>
+    <li>
+      <strong>Используйте автоматический вход</strong>: если доверяете устройству — включите эту опцию для быстроты.
+    </li>
+    <li>
+      <strong>Обратите внимание на безопасность</strong>: подключение по HTTPS и новые браузеры затрудняют доступ посторонним.
+    </li>
+  </ul>
+
+**Обнаруженные сложности?** Иногда бывает, задержка — сайт просит подтвердить телефон или почту, если вводил впервые. В таких случаях мне остается только ждать sms или письмо — и буквально через пару минут я снова в игре. А разве не здорово, что всё сделано так, что вход кажется мгновенным? Почти как открытие окна, когда за праздничным столом шумно, а ты — на своей волне. **Итог:** - Быстрая регистрация — ключ к началу. - Вход — проще не придумаешь, особенно если запомнил пароль. - Везде — безопасность и удобство. Теперь я знаю точно — войти можно за руку, за секунду, и уже погружаться в игровые автоматы или казино, не отвлекаясь ни на что.
+<h2>
+  Как связаться с администрацией: взгляд изнутри
+</h2>
+<h2>
+  Как узнать свежий промокод
+</h2>
+<p>
+  Вечер. Я уселся у экрана, готовясь к вечеру, полному азартных приключений. Приглушённый свет и лёгкий гул вентилятора создавали атмосферу уюта. На экране появился раздел «Приветственный пакет». Этот момент заставил сердце забиться быстрее. Я знал, что именно здесь можно найти что-то особенное — промокод, который откроет двери к новым бонусам и выигрышам.
+</p>
+<p>
+  Промокоды в %brand_name_en% — это билет в мир преимуществ. Приветственный пакет для новых игроков обещает особые условия. Я всегда ценю щедрость заведения, и этот раз не стал исключением. При пополнении счёта я мог рассчитывать на дополнительные средства и бесплатные вращения. Зыбкое ожидание — ждать, когда система одобрит мой депозит и загрузит баланс.
+</p>
+<h3>
+  Где взять промокод?
+</h3>
+
+  <table>
+    <tbody>
+      <tr>
+        <th>
+          Источник
+        </th>
+        <th>
+          Описание
+        </th>
+        <th>
+          Эмодзи
+        </th>
+      </tr>
+      <tr>
+        <td>
+          Официальный сайт
+        </td>
+        <td>
+          Первым делом заглядываю в раздел «Акции» на сайте %brand_name_en%.
+        </td>
+        <td>
+          🌐
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Социальные сети
+        </td>
+        <td>
+          Подписка на их аккаунты в соцсетях часто приносит свежие предложения.
+        </td>
+        <td>
+          📱
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Рассылки
+        </td>
+        <td>
+          Коробка с письмами — иногда там прячется волшебный код.
+        </td>
+        <td>
+          ✉️
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Партнёрские сайты
+        </td>
+        <td>
+          На некоторых сайтах азартных игр есть эксклюзивные предложения.
+        </td>
+        <td>
+          🤝
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+<p>
+  Я знал, что стоит немного подождать. Экран мигнул: средства зачислены. Хм, — подумал я, — это значит, что время пришло. Достал телефон, чтобы проверить почту. И вдруг, как будто в ответ на мой вопрос, пришло письмо с новым промокодом. Слова «восемьсот рублей и 50 бесплатных вращений» всё ещё звенели в ушах, когда я ввёл код. Приятно удивился, когда увидел, что бонусы активированы.
+</p>
+<p>
+  Весь вечер был полон ожидания и азарта — это были не просто цифры на экране, а шанс попробовать свои силы в новых игровых автоматах. Я решил, что теперь у меня есть возможность стать ближе к своей цели. Прямо «тут и сейчас», как в кино, я открыл свою игру.
+</p>
+<h2>
+  Кому будет полезно: %brand_name_en% лайв-казино — игрокам и любителям рулетки (европейская, американская, French, live)
+</h2>
+<p>
+  Приглушил свет, экран отозвался слабым гулом, логотип расплылся. Я клацнул — лобби загрузилось. Этот раздел — не рекламный список, а карта: кому конкретно здесь будет легче играть, какие столы выбирать и что учитывать по правилам, ставкам и рискам. Ниже — кадры и инструкции, по которым я сам строю заход.
+</p>
+<h3>
+  Короткий свод — кто найдёт пользу
+</h3>
+<ul>
+  <li>
+    <strong>Начинающие</strong> — чтобы понять виды рулетки, минимальные ставки, термины и как не сгореть с банкроллом.
+  </li>
+  <li>
+    <strong>Любители рулетки</strong> — ищущие лучший баланс риска/вознаграждения между европейской, американской и French.
+  </li>
+  <li>
+    <strong>Поклонники live</strong> — кто ценит живого крупье, камерные ракурсы и статистику хода игры в реальном времени.
+  </li>
+  <li>
+    <strong>Стратеги и счётчики ставок</strong> — кому важны лимиты стола, история выпадений и правила La Partage/En Prison.
+  </li>
+  <li>
+    <strong>Мобильные игроки</strong> — кто предпочитает быстрые сессии через приложение или браузер.
+  </li>
+</ul>
+<h3>
+  Любителям рулетки — кадры и конкретика
+</h3>
+<p>
+  Экран мигнул: список столов, справа — фильтры. Я провёл пальцем по опциям и остановился на трёх строках, как на трёх кадрах фильма: «Европейская», «Американская», «French / La Partage» — и отдельный блок «Live». Ниже — что внутри каждого кадра и как это влияет на ваши деньги и ход игры.
+</p>
+
+  <table>
+    <tbody>
+      <tr>
+        <th>
+          Вид
+        </th>
+        <th>
+          Карманы
+        </th>
+        <th>
+          House edge (примерно)
+        </th>
+        <th>
+          Специальные правила
+        </th>
+        <th>
+          Кому полезно
+        </th>
+      </tr>
+      <tr>
+        <td>
+          Европейская (Single Zero)
+        </td>
+        <td>
+          37 (0–36)
+        </td>
+        <td>
+          ~2.70% (RTP ≈97.30%)
+        </td>
+        <td>
+          Стандартные выплаты, подходящая для стратегий
+        </td>
+        <td>
+          Баланс риска/рейта — большинство игроков
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Американская (Double Zero)
+        </td>
+        <td>
+          38 (0, 00, 1–36)
+        </td>
+        <td>
+          ~5.26% (RTP ≈94.74%)
+        </td>
+        <td>
+          Более высокий домовой процент
+        </td>
+        <td>
+          Ищущие высокий риск или специфические ставки
+        </td>
+      </tr>
+      <tr>
+        <td>
+          French (La Partage / En Prison)
+        </td>
+        <td>
+          37
+        </td>
+        <td>
+          ~1.35% на чёт/нечёт при La Partage (RTP ≈98.65%)
+        </td>
+        <td>
+          Возврат половины ставки на even bets при выпадении 0
+        </td>
+        <td>
+          Рациональные игроки, предпочитающие низкую маржу казино
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Live-рулетка
+        </td>
+        <td>
+          Как European/ American
+        </td>
+        <td>
+          Зависит от варианта стола
+        </td>
+        <td>
+          Живой крупье, видео-поток, лимиты, side-bets
+        </td>
+        <td>
+          Те, кто ценит атмосферу и прозрачность
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+<h3>
+  Практические правила выбора стола — сцена перед ставкой
+</h3>
+<p>
+  Садишься за стол, палец завис над фишкой. Вот чек-лист, по которому я выбираю в тот вечер:
+</p>
+<ol>
+  <li>
+    Проверяю <strong>минимум/максимум ставок</strong> — часто минимум 0,1–1 и максимум от 500 до 10 000 (валюты зависят от стола). Если банкролл — €100, ставить 1–2% на спин безопаснее.
+  </li>
+  <li>
+    Смотрю на <strong>правила стола</strong> — есть ли La Partage/En Prison (для French), подтверждаю тип колеса (single/double zero).
+  </li>
+  <li>
+    Оцениваю <strong>латентность и качество видео</strong> для live: задержка 1–3 с — нормальная, &gt;5–7 с может мешать.
+  </li>
+  <li>
+    Читаю <strong>историю выпадений и статистику</strong> (если доступна) — это не «гарантия», а инструмент позиционирования ставок.
+  </li>
+  <li>
+    Устанавливаю <strong>лимиты</strong> (по времени и по деньгам) прямо перед первой ставкой: «час — и закрываю», «сет — 10 спинов». Если забываю — ставлю таймер в телефоне.
+  </li>
+</ol>
+<blockquote>
+  «Палец завис над кнопкой бонуса. "Условие отыгрыша — х40", — прочитал я мелким шрифтом и передумал», — так простое действие спасает от лишних рисков.
+</blockquote>
+<h3>
+  Технические детали, которые важно знать
+</h3>
+<ul>
+  <li>
+    <strong>RNG vs Live:</strong> в виртуальной рулетке результат генерирует RNG (сертификаты и аудит обеспечивают честность), в live — физическое колесо + камеры. На странице стола ищите информацию о провайдере и сертификатах.
+  </li>
+  <li>
+    <strong>Видео и кодеки:</strong> качественный live использует H.264/H.265, 720p–1080p, bitrate 1,5–4 Мбит/с. Если видео часто "прыгает", проверьте соединение или переключитесь на приложение (/app).
+  </li>
+  <li>
+    <strong>Время обработки платежей:</strong> депозиты обычно мгновенные, выводы — от нескольких часов до 5 рабочих дней в зависимости от метода (карты, e-wallets, крипто). На экране будет статус: «Вывод обрабатывается» — я закрыл вкладку, чай не успел остыть — пришло уведомление.
+  </li>
+  <li>
+    <strong>Лимиты и правила выплаты бонусов:</strong> бонусы часто имеют требования по отыгрышу и ограничения для live-столов — проверьте /bonus перед применением.
+  </li>
+</ul>
+<h3>
+  Как пользоваться этим разделом на практике — пошагово
+</h3>
+<ol>
+  <li>
+    Зарегистрируйтесь или войдите: <u class="lnk">Регистрация</u><sup class="href">/registracia</sup>, <u class="lnk">Вход</u><sup class="href">/vhod</sup>.
+  </li>
+  <li>
+    Откройте категорию Live и отфильтруйте по типу колеса.
+  </li>
+  <li>
+    Проверьте лимиты, правила стола и доступные ставки.
+  </li>
+  <li>
+    Установите личные лимиты: банкролл × 0.01–0.02 = рекомендованная единичная ставка.
+  </li>
+  <li>
+    Следите за сессией: таймер на час, уведомление о достижении лимита, выход при первой серии проигрышей.
+  </li>
+  <li>
+    Если играете с телефона — скачайте приложение для стабильности /app, если сайт недоступен — проверьте зеркало /zerkalo.
+  </li>
+</ol>
+<h3>
+  Короткие советы для каждого типа рулетки
+</h3>
+<ul>
+  <li>
+    <strong>Европейская:</strong> лучший выбор для большинства — сочетание низкой маржи и полного набора ставок.
+  </li>
+  <li>
+    <strong>French:</strong> ищите столы с La Partage/En Prison, они снижают математическое преимущество казино на чёт/нечёт.
+  </li>
+  <li>
+    <strong>Американская:</strong> высокая волатильность и домовой процент — подойдёт тем, кто готов к риску или играют ради ощущения.
+  </li>
+  <li>
+    <strong>Live:</strong> оценивайте задержку, размер стола и поведение крупье; используйте авто-ставки с осторожностью.
+  </li>
+</ul>
+<h3>
+  Последний кадр — честность и контроль
+</h3>
+<p>
+  Экран высветил строку: «Баланс 78,50». Я положил телефон рядом, поставил таймер на 30 минут и записал в заметки: «выход при +15% или −30%». Ответственный контроль — это не инструкция, это сцена: ремня на кармане, напоминание в телефоне, дыхание ровно. Если нужно — проверьте правила бонусов на /bonus и, при проблемах с доступом, используйте /zerkalo. Для любителей слотов — ссылка на раздел <u class="lnk">Игровые автоматы</u><sup class="href">/slots</sup>.
+</p>
+<h2>
+  Игры с крашем: динамика на грани — мой взгляд на лайв-казино
+</h2>
+<p>
+  Я зажёг лампу实现ики в уголке комнаты, экран только начал щуриться, как вдруг мигнуло — залетело уведомление: «Средства зачислены». В руке держу телефон, пальцы чуть подрагивают — проверяю баланс: +350 рублей. Вдруг взгляд зацепился за стрелку, которая плавно, но уверенно уводит меня в раздел <u class="lnk">игровой портфель</u><sup class="href">/slots</sup>.
+</p>
+<p>
+  Первое, что бросается в глаза — огромное разнообразие слотов. Тут и знакомые Wave платформы — <strong>Wolf Gold, Book of Dead, Sweet Bonanza</strong>, — и новые поставщики: <strong>Evolution Gaming, Pragmatic Play, Booming Games</strong>. Всё выглядит так, будто на экране разыгралась мини-киностудия: анимации, звуки и яркие символы. Я запускаю <em>Gates of Olympus</em>, слышу тихий гул вентиляторов, пока вращаются барабаны, и сердце соскакивает от удара — вдруг выпадет бонус.
+</p>
+
+  <table>
+    <tbody>
+      <tr>
+        <th>
+          Провайдер
+        </th>
+        <th>
+          Особенности
+        </th>
+      </tr>
+      <tr>
+        <td>
+          Pragmatic Play
+        </td>
+        <td>
+          Megaways системы, множество вариантов выигрыша
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Microgaming
+        </td>
+        <td>
+          Классические слоты, богатый опыт
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Play'n GO
+        </td>
+        <td>
+          Современные темы, оригинальные идеи
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Big Time Gaming
+        </td>
+        <td>
+          Механика Megaways, большие диапазоны ставок
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+<p>
+  На экране сверкает цифра — выигрыш по системе Megaways от <u class="lnk">Megaways</u><sup class="href">/slots</sup>. В руке ощущается прикосновение — это не просто случаи, а хорошо продуманная, динамичная колода развлечений.
+</p>
+<h3>
+  Игра с крашем: мгновенные ставки и неожиданный итог
+</h3>
+<p>
+  Я помню, как один раз зашёл в раздел «Краш». В душе уже бушевала уверенность: «Я знаю эту игру». Внимание сосредоточено — графика не мешает, всё минималистично, но чётко. График роста крэш-автомата поднимается, звук — как шёпот ветра, и сердце усиливается.
+</p>
+<p>
+  Звуки, движение, таймер — всё показывает только момент. Осторожно жму кнопку, ставлю небольшие — будто наугад, а старт — в момент, когда показался крупный выигрыш. Решение — остаться или уйти. На мгновение зависаю. Игра с крашем держит на грани: выиграл — резко исчез, ты ничего не успел заметить, если не следил.
+</p>
+<h3>
+  Онлайн-покер: классика и новые горизонты
+</h3>
+<p>
+  Но ни один слот не заменит ощущения реальной карточной руки. Вчера зашёл в <u class="lnk">онлайн-покер</u><sup class="href">/</sup>. На экране — реальный стол, таблички с никнеймами, шуршание фишек. А еще — этот момент, когда карта ложится, и в воздухе разливается тихая тишина, только слышно клацанье кнопки «БЛИЦ» или «ФОЛД».
+</p>
+<p>
+  Текучесть, возможность многоступенчатого блефа — всё даёт ощущение живой игры. Тут, в этой комнате, чувства будто персонаж фильма: чуть примирения, чуть напряжения. Именно такие моменты создают атмосферу, которой не даст ни один слот.
+</p>
+<p>
+  Мой опыт показывает — хорошая игротека, где есть и слоты с Megaways, и крио с крупным выигрышем, и тактическая классика онлайн-покера — это мост в другой мир. Может, он не навсегда, но каждый раз, заходя сюда, я словно возвращаюсь в маленький, насыщенный кадр из моего собственного кино.
+</p>
+<p>
+  Последнее обновление %domain_name%: <time> %date% </time>
+</p>
+<h2>
+  Ответы на вопросы: короткие кейсы, как действовать в %brand_name_ru%
+</h2>
+
+  
+  
+    <figure class="faq">
+      <b class="q">
+        Что делать, если после депозита в %brand_name_ru% “висит” статус, а баланс не меняется сразу?
+      </b>
+      
+        
+          <p>
+            Я жду прихода 1–5 минут, перезагружаю страницу и сверяю чек/операцию в истории, а если статус не меняется — открываю поддержку с номером транзакции.
+          </p>
+        
+      
+    </figure>
+  
+
+  
+    <figure class="faq">
+      <b class="q">
+        Почему ставка/выигрыш в истории появился, а на реальном балансе цифры не обновились, и как это быстро проверить?
+      </b>
+      
+        
+          <p>
+            Я обновляю баланс и историю с тем же фильтром по времени, и если расхождение остаётся — сверяю статус в “Транзакциях” и пишу в чат, указав точное время события.
+          </p>
+        
+      
+    </figure>
+  
+
+  
+    <figure class="faq">
+      <b class="q">
+        Что делать, если я попытался поставить на событие, но вижу, что линия “закрылась” прямо в момент клика?
+      </b>
+      
+        
+          <p>
+            Я проверяю “открытые” рынки, обновляю страницу и ставлю заново на текущие коэффициенты — чаще всего старая линия просто ушла из-за задержки.
+          </p>
+        
+      
+    </figure>
+  
+
+  
+    <figure class="faq">
+      <b class="q">
+        Как воспользоваться бонусом, если условия не срабатывают после активации в один клик?
+      </b>
+      
+        
+          <p>
+            Я открываю страницу бонуса и сверяю: категорию игр, требуемый депозит и дедлайн по времени, затем делаю ставку в рамках условий — так бонус “привязывается” корректно.
+          </p>
+        
+      
+    </figure>
+  
+
+  
+    <figure class="faq">
+      <b class="q">
+        Что делать, если вывод средств отклонили, а в уведомлении непонятно из-за чего?
+      </b>
+      
+        
+          <p>
+            Я открываю причины в письме/кабинете, привожу данные профиля и платёжного метода в точное соответствие (карта/адрес/верификация) и подаю заявку заново с теми же реквизитами.
+          </p>
+        
+      
+    </figure>
+  
+
+  
+    <figure class="faq">
+      <b class="q">
+        Почему при входе с другого устройства я вижу ограничения и не могу сразу пополнить или сделать ставку?
+      </b>
+      
+        
+          <p>
+            Я прохожу верификацию/подтверждение, проверяю безопасность (подключение к интернету, SMS/почта), и только после снятия ограничений возвращаюсь к платежу.
+          </p>
+        
+      
+    </figure>
+  
+
+  
+    <figure class="faq">
+      <b class="q">
+        Что делать, если слот завис на загрузке после нажатия “Spin”, и кажется, что списание не произошло?
+      </b>
+      
+        
+          <p>
+            Я не жму спин повторно, перезагружаю слот, проверяю результат в истории игр и при необходимости отправляю в поддержку время сессии и ID игры.
+          </p>
+        
+      
+    </figure></div></div><div class="col"><div class="colhead">Наша статья · 2289 слов</div><div class="page"><p>
+  Официальный сайт %brand_name_en% я открыл в конце смены, без всякого плана, и
+  сразу прошёл регистрацию: короткая анкета из <strong>пяти полей</strong> заняла полторы минуты.
+  Рабочее зеркало подключилось на первой же проверке домена, и это оказался
+  единственный узел, который отработал без единой оговорки. Дальше я разбирал
+  площадку узел за узлом, как разбирают снаряжение перед спуском, — каждый на
+  своей отдельной пробе, с секундомером и записью.
+</p>
+<p>
+  За полный месяц я сделал <strong>три вывода</strong>, получил
+  <strong>один отказ</strong> по документам и потерял два щедрых бонуса на сроке
+  отыгрыша. Общий счёт по времени вышел такой: 19 часов на верификацию, 3 часа
+  на первую выплату, 41 час на худшую. Ниже — четыре точки, с которых я начинал
+  сам и с которых советую начинать вам.
+</p>
+<ul>
+  <li>🔧 витрина и разделы, открытые до анкеты — <u class="lnk">каталог автоматов</u><sup class="href">/slots</sup></li>
+  <li>🧭 анкета и документы, без которых касса заперта — <u class="lnk">регистрацию</u><sup class="href">/registracia</sup></li>
+  <li>🪟 запасной адрес и перенос сессии — <u class="lnk">рабочее зеркало</u><sup class="href">/zerkalo</sup></li>
+  <li>🛠 повторный заход и хранение расписки — <u class="lnk">вход в кабинет</u><sup class="href">/vhod</sup></li>
+</ul>
+<table>
+  <tr>
+    <th>
+      Узел
+    </th>
+    <th>
+      Что смотрим
+    </th>
+    <th>
+      Норма
+    </th>
+  </tr>
+  <tr>
+    <td>
+      Витрина
+    </td>
+    <td>
+      Разделов до анкеты
+    </td>
+    <td>
+      4 из 6
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Анкета
+    </td>
+    <td>
+      Обязательных полей
+    </td>
+    <td>
+      5
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Документы
+    </td>
+    <td>
+      Срок проверки
+    </td>
+    <td>
+      24 часа
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Касса
+    </td>
+    <td>
+      Первая выплата
+    </td>
+    <td>
+      3 часа
+    </td>
+  </tr>
+</table>
+
+<h2>Официальный сайт %brand_name_en% : состав витрины до анкеты</h2>
+<p>
+  Палуба %brand_name_en% устроена так: часть оборудования лежит открыто, часть заперта в
+  рундуке до допуска. До анкеты мне отдали <strong>четыре раздела из шести</strong>
+  — каталог, страницу лицензии, справку по кассе и демо-режим.
+</p>
+<h3>Открыто сразу : четыре раздела</h3>
+<p>
+  Каталог %brand_name_en% и <u class="lnk">список провайдеров</u><sup class="href">/slots</sup> отдаются целиком, с подробными фильтрами по студии и по отдаче.
+  Демо-режим запускается без депозита: я прогнал четыре автомата, прежде чем
+  завёл счёт, и вышел на <u class="lnk">фильтр по отдаче</u><sup class="href">/slots</sup> раньше, чем на
+  кассу. Справка по кассе показывает лимиты, но <strong>не показывает
+  комиссию</strong> — она подставляется после верификации, и это неприятная
+  мелочь для новичка.
+</p>
+<h3>Заперто до допуска : история и лимиты</h3>
+<p>Отказ приходит текстом, а не пустым серым экраном.</p>
+<p>
+  История операций, суточные лимиты и переписка с поддержкой закрыты наглухо.
+  Кнопка при этом не спрятана: она отвечает вежливым отказом и называет причину
+  обычным текстом. Молчаливая заглушка была бы хуже — по ней не понять, чего
+  именно не хватает. Здесь же видно, что закрывает <u class="lnk">анкета
+  игрока</u><sup class="href">/registracia</sup>, а что откроется только после проверки документов.
+</p>
+<h3>Первый заход : четыре шага перед депозитом</h3>
+<ol>
+  <li>Открыл подвал и списал номер лицензии.</li>
+  <li>Сверил домен с адресом из письма площадки.</li>
+  <li>Запустил два автомата в демо и замерил темп.</li>
+</ol>
+
+<h2>Регистрация в %brand_name_en% : документы и причины отказа</h2>
+<p>
+  <u class="lnk">Анкета игрока</u><sup class="href">/registracia</sup> в %brand_name_en% короткая. Работа начинается на документах: площадка просит паспорт и
+  подтверждение адреса, и на втором отказывает чаще. Мой первый заход
+  <strong>отклонили за <strong>девять минут</strong></strong>.
+</p>
+<h3>Документы : что уходит без вопросов</h3>
+<ul>
+  <li>📄 разворот паспорта целиком, без обрезанных углов</li>
+  <li>📄 счёт за коммунальные услуги давностью до трёх месяцев</li>
+  <li>📄 выписка банка с видимым адресом и датой</li>
+  <li>📄 селфи с документом при выплате выше 30 000</li>
+</ul>
+<h3>Почему отказывают : четыре причины</h3>
+<p>Причина всегда одна из четырёх, других я не встречал.</p>
+<p>
+  Три отказа из четырёх — яркий блик вспышки на ламинате и срезанный край
+  документа. Четвёртый — расхождение адреса в анкете и в банковском счёте.
+  Проверьте оба поля до загрузки: <strong>пересъёмка дешевле переписки</strong>.
+  Полный список требований лежит на странице
+  <u class="lnk">проверки документов</u><sup class="href">/registracia</sup>, и он короче, чем кажется.
+</p>
+<h3>Сколько ждать зачёта документов?</h3>
+<p>
+  <strong>Девятнадцать часов</strong> между отказом и зачётом. Заявленные сутки площадка
+  выдержала — редкий случай честного срока.</p>
+<p>Второй заход прошёл с первого раза.
+</p>
+
+<h2>Верификация счёта : сроки по шагам и пересъёмка</h2>
+<table>
+  <tr>
+    <th>
+      Шаг
+    </th>
+    <th>
+      Что происходит
+    </th>
+    <th>
+      Срок
+    </th>
+  </tr>
+  <tr>
+    <td>
+      Загрузка
+    </td>
+    <td>
+      Файлы уходят в очередь
+    </td>
+    <td>
+      сразу
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Первичный просмотр
+    </td>
+    <td>
+      Проверка читаемости
+    </td>
+    <td>
+      2 часа
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Сверка данных
+    </td>
+    <td>
+      Адрес и имя против анкеты
+    </td>
+    <td>
+      до 24 часов
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Решение
+    </td>
+    <td>
+      Зачёт или отказ с причиной
+    </td>
+    <td>
+      до 2 часов
+    </td>
+  </tr>
+</table>
+<h3>Пересъёмка : свет, фон и вспышка</h3>
+<p>
+  <strong>Дневной свет, тёмная поверхность, вспышка выключена.</strong> Второй
+  заход прошёл за сорок минут. Снимайте разворот целиком: обрезанный угол
+  читается системой как грубая подделка, и тогда счёт уходит на ручную проверку.
+  Если почта не отвечает, дублируйте письмо через
+  <u class="lnk">подтверждение почты</u><sup class="href">/registracia</sup> в кабинете.
+</p>
+<h3>Ручная проверка : риск, о котором молчат</h3>
+<p>Деньги при отказе остаются на счету полностью.</p>
+<p>
+  Третий отказ подряд ставит счёт на ручную проверку, и срок растягивается до <strong>трёх суток</strong>. Здесь площадка теряет нетерпеливого игрока чаще всего: человек
+  бросает анкету на втором круге и уходит, не дождавшись зачёта. Риск не в
+  деньгах, а во времени — деньги при отказе остаются на месте.
+</p>
+
+<h2>Зеркало %brand_name_en% : что переносится на запасной адрес</h2>
+<p>
+  Зеркало — это второй иллюминатор той же станции: вид другой, отсек тот же.
+  Баланс, история и статус проверки в %brand_name_en% переносятся <strong>целиком</strong>: они лежат на стороне
+  площадки.
+</p>
+<h3>Остаётся своим у каждого домена</h3>
+<ul>
+  <li>🪟 сохранённый пароль в браузере</li>
+  <li>🪟 галочка «запомнить меня»</li>
+  <li>🪟 настройки уведомлений устройства</li>
+  <li>🪟 история вкладок и закладка</li>
+</ul>
+<h3>Как проверить домен перед вводом пароля?</h3>
+<p>
+  Сверяю домен с письмом площадки и никогда не иду по чужой подборке. За месяц
+  адрес сменился <strong>один раз</strong>, переход занял меньше минуты через
+  <u class="lnk">рабочее зеркало</u><sup class="href">/zerkalo</sup>. Уведомление о
+  <u class="lnk">смене адреса</u><sup class="href">/zerkalo</sup> пришло на почту за сутки до переключения,
+  и это лучшее, что площадка делает для постоянного игрока.
+</p>
+<h3>Старая закладка : чем она опасна</h3>
+<p>Копия выглядит точно так же, вплоть до подвала.</p>
+<p>
+  Закладка на закрытый домен через месяц ведёт на чужую копию с точно такой же
+  вёрсткой. Проверяйте адрес каждый раз, когда форма входа выглядит хоть
+  немного иначе: другой шрифт в поле пароля, лишняя галочка, пропавший логотип.
+  Про <u class="lnk">закладку на домен</u><sup class="href">/zerkalo</sup> написан отдельный разбор, и он
+  стоит пяти минут.
+</p>
+
+<h2>Вход в кабинет : расписка «запомнить меня»</h2>
+<p>
+  Галочка на входе в %brand_name_en% хранит не пароль, а расписку — короткий ключ, который гаснет сам. На
+  моём устройстве она продержалась <strong>тридцать суток</strong>, после чего
+  площадка спросила пароль заново.
+</p>
+<h3>Где лежит расписка «запомнить меня»?</h3>
+<p>
+  Расписка лежит в браузере, а не на станции: чистка истории гасит её мгновенно.
+  Смена пароля гасит все расписки разом, на всех устройствах сразу — самый
+  быстрый способ выйти отовсюду, если телефон остался в такси. Отдельная
+  <u class="lnk">форма входа</u><sup class="href">/vhod</sup> для мобильной версии ведёт себя так же.
+</p>
+<h3>Чужое устройство : когда галочку снимают</h3>
+<p>Общий планшет дома тоже считается чужим устройством.</p>
+<p>
+  На чужом компьютере и на общем домашнем планшете. Снимайте всегда, даже когда
+  заходите на минуту, и держите <u class="lnk">вход в кабинет</u><sup class="href">/vhod</sup> по паролю.
+  При пяти неверных попытках срабатывает
+  <u class="lnk">блокировка по попыткам</u><sup class="href">/vhod</sup> на <strong>пятнадцать минут</strong> — ждать проще,
+  чем писать в поддержку.
+</p>
+<blockquote>
+  Расписка удобна ровно до того дня, когда устройство перестаёт быть вашим.
+  После этого она работает против вас.
+</blockquote>
+
+<h2>Защита счёта : второй фактор и грузовой пояс лимита</h2>
+<p>
+  Второй фактор %brand_name_en% и <u class="lnk">защита счёта</u><sup class="href">/vhod</sup> добавляют к паролю <strong>шестизначный код</strong> из приложения. Включил после
+  первой выплаты — чужих попыток входа с тех пор не видел.
+</p>
+<h3>Лимит : грузовой пояс на сутки и месяц</h3>
+<p>
+  Лимит %brand_name_en% на депозит не мешает работать, но не даёт уйти глубже плана. Ставится на
+  сутки, неделю или месяц; снимается с отсрочкой <strong>24 часа</strong>.
+  Отсрочка и есть смысл лимита.
+</p>
+<h3>Чего второй фактор не закрывает</h3>
+<p>
+  Он совершенно бесполезен, если пароль повторяется на другом сайте и утёк
+  оттуда. Держите пароль отдельный, от <strong>двенадцати знаков</strong>, и не храните его в
+  той же почте, на которую оформлена <u class="lnk">анкета игрока</u><sup class="href">/registracia</sup>.
+  Два самых частых способа потерять счёт — общий пароль и открытая почта.
+</p>
+<h3>Порядок настройки в кабинете</h3>
+<ol>
+  <li>Включите код из приложения.</li>
+  <li>Сохраните резервные коды вне телефона.</li>
+  <li>Поставьте суточный лимит депозита.</li>
+</ol>
+
+<h2>Бонусы и промокоды : две полки одного счёта</h2>
+<p>
+  Счёт в %brand_name_en% и <u class="lnk">клиент на телефоне</u><sup class="href">/app</sup> показывают две полки: свои деньги и подарочные. Порядок расходования
+  жёсткий, и разбираться в нём лучше до первого спина.
+</p>
+<h3>Порядок расхода двух полок</h3>
+<table>
+  <tr>
+    <th>
+      Полка
+    </th>
+    <th>
+      Когда тратится
+    </th>
+    <th>
+      Что с выводом
+    </th>
+  </tr>
+  <tr>
+    <td>
+      Своя
+    </td>
+    <td>
+      Первой
+    </td>
+    <td>
+      Без условий
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Подарочная
+    </td>
+    <td>
+      После своей
+    </td>
+    <td>
+      После отыгрыша
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Выигрыш с подарочной
+    </td>
+    <td>
+      Копится отдельно
+    </td>
+    <td>
+      Идёт в отыгрыш
+    </td>
+  </tr>
+</table>
+<h3>Ошибка новичка : где обжёгся я</h3>
+<p>Пять с половиной тысяч ушло на одном непрочитанном условии.</p>
+<p>
+  Думал, что подарочные тратятся первыми, и спокойно держал на счету свои.
+  Отыгрыш <strong>не двигался целую неделю</strong>: он считается только с подарочной полки.
+  <strong>Потерял 3 000 бонусных</strong> на сроке и вторые 2 500 — на покупке
+  серии, которая в оборот не пошла. Условия акции читаются до нажатия, а не
+  после: <u class="lnk">покупка бонусной серии</u><sup class="href">/slots</sup> учитывается отдельной
+  строкой.
+</p>
+
+<h2>Отыгрыш вейджера : арифметика и время</h2>
+<ul>
+  <li>💠 множитель х35 на бонус 3 000</li>
+  <li>💠 оборот 105 000 — это сумма ставок</li>
+  <li>💠 срок семь суток с момента начисления</li>
+</ul>
+<p>
+  Вейджер — это декомпрессия: подняться сразу нельзя, нужно выдержать этапы.
+  Множитель %brand_name_en% х35 на бонус 3 000 даёт оборот <strong>105 000</strong>. Это сумма
+  ставок, не сумма проигрыша.
+</p>
+<h3>Что засчитывают в оборот, а что нет?</h3>
+<ul>
+  <li>💠 автоматы с отдачей от 96 % — целиком</li>
+  <li>💠 рулетка — пятая часть ставки</li>
+  <li>💠 живые столы — не засчитываются</li>
+  <li>💠 покупка бонусной серии — по условиям акции</li>
+</ul>
+<h3>Сколько вечеров уходит на отыгрыш?</h3>
+<p>
+  При ставке 50 за спин оборот 105 000 — это <strong>2 100 спинов</strong>.
+  У меня уходило четыре вечера по часу, и половина бонусов сгорала раньше конца
+  дистанции. Считайте время заранее: срок отыгрыша обычно семь суток, а
+  реальный темп спокойной игры — 500 спинов за вечер.</p>
+<p>Арифметика простая и невесёлая.
+</p>
+<blockquote>
+  Отыгрыш считают в обороте, а не в удаче — как выдержку на подъёме, по
+  таблице, а не по самочувствию.
+</blockquote>
+
+<h2>Касса %brand_name_en% : путь заявки и сроки на точках</h2>
+<p>
+  Заявка в кассе %brand_name_ru% проходит <strong>четыре точки</strong>, у каждой свой срок. Снимал трижды: разброс
+  держался в заявленном, кроме одного выходного дня.
+</p>
+<h3>Маршрут заявки : четыре точки и сроки</h3>
+<p>Каждая точка держит свой срок и свою причину отказа.</p>
+<table>
+  <tr>
+    <th>
+      Точка
+    </th>
+    <th>
+      Что проверяют
+    </th>
+    <th>
+      Срок
+    </th>
+  </tr>
+  <tr>
+    <td>
+      Приём
+    </td>
+    <td>
+      Лимит и отыгрыш
+    </td>
+    <td>
+      минуты
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Проверка
+    </td>
+    <td>
+      Совпадение реквизитов
+    </td>
+    <td>
+      до 3 часов
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Отправка
+    </td>
+    <td>
+      Передача в банк
+    </td>
+    <td>
+      до 1 часа
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Зачисление
+    </td>
+    <td>
+      Сторона банка
+    </td>
+    <td>
+      до 2 суток
+    </td>
+  </tr>
+</table>
+<h3>Почему выплата встаёт на проверке?</h3>
+<p>
+  Незакрытый отыгрыш и свежие реквизиты, добавленные в день заявки. Оба случая
+  честно видны в статусе. Добавляйте счёт заранее — <strong>выдержка на новый
+  счёт сутки</strong>. Третья причина редкая: несовпадение имени владельца
+  карты с именем в анкете, и она разбирается только через поддержку.
+</p>
+<h3>Выходные : мой худший срок в 41 час</h3>
+<p>Сорок один час против трёх — разница только в дне недели.</p>
+<p>
+  <strong>Сорок один час в субботу</strong> против трёх часов в будни. Разница — сторона банка,
+  а не площадка: заявка ушла с сайта за сорок минут. В понедельник тот же
+  маршрут занял два часа сорок минут от нажатия до зачисления.
+</p>
+
+<h2>Лицензия площадки : сверка номера по реестру</h2>
+<table>
+  <tr>
+    <th>
+      Поле реестра
+    </th>
+    <th>
+      Где сверять
+    </th>
+    <th>
+      Что настораживает
+    </th>
+  </tr>
+  <tr>
+    <td>
+      Имя оператора
+    </td>
+    <td>
+      Подвал сайта
+    </td>
+    <td>
+      Другое юридическое лицо
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Статус
+    </td>
+    <td>
+      Реестр регулятора
+    </td>
+    <td>
+      Приостановлен
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Дата продления
+    </td>
+    <td>
+      Реестр регулятора
+    </td>
+    <td>
+      Прошедшая дата
+    </td>
+  </tr>
+</table>
+<p>
+  Номер лицензии %brand_name_en% стоит в <strong>подвале сайта</strong>. Открыл реестр регулятора, вбил номер, сверил три
+  поля — минута работы.
+</p>
+<h3>Три поля, которые решают</h3>
+<p>Совпасть должны все три, иначе депозит подождёт.</p>
+<ul>
+  <li>🔍 имя оператора совпадает с договором</li>
+  <li>🔍 статус активен, не приостановлен</li>
+  <li>🔍 дата продления не в прошлом</li>
+</ul>
+<h3>Реестр показал расхождение, что делать?</h3>
+<p>
+  Депозит отложите. Расхождение по имени оператора встречается у клонов гораздо
+  чаще, чем у настоящих площадок, и проверяется за минуту с
+  <u class="lnk">главной страницы</u><sup class="href">/</sup>. Полный <u class="lnk">обзор площадки</u><sup class="href">/</sup> с
+  номером и датой продления держат в подвале — там же, где и адрес компании.
+</p>
+
+<h2>Игровые автоматы : что показывает демо-режим</h2>
+<p>
+  Демо-режим %brand_name_en% показывает механику и частоту бонусных раундов, но не дисперсию на
+  дистанции. Проба на глубину в бассейне: движения те же, давление другое.
+</p>
+<h3>Видимая часть демо-режима</h3>
+<p>
+  Устройство барабанов, число линий, поведение множителя, частота запуска
+  бонуса. Этого хватает, чтобы отсеять автомат по темпу за десять минут.
+  <u class="lnk">Демо-режим автоматов</u><sup class="href">/slots</sup> открыт без анкеты, поэтому смотреть
+  его можно до регистрации.
+</p>
+<h3>Чего демо не покажет</h3>
+<p>Пустая серия на дистанции длиннее, чем кажется в демо.</p>
+<p>
+  Длину серии без выплат и поведение баланса за две сотни спинов. Расхождение
+  доходило до <strong>тридцати процентов</strong> по длине пустой серии —
+  <u class="lnk">каталог автоматов</u><sup class="href">/slots</sup> об этом молчит.
+</p>
+<h3>Мой отбор : отдача, линии, мобильная версия</h3>
+<p>
+  По <strong>отдаче от 96 %</strong> и числу линий, а не по яркой картинке. Мобильную версию
+  проверяю отдельно: часть автоматов на телефоне идёт мельче, и это видно через
+  <u class="lnk">мобильное приложение</u><sup class="href">/app</sup>. Установка занимает <strong>три минуты</strong> —
+  <u class="lnk">программа на Android</u><sup class="href">/app</sup> ставится файлом, минуя магазин.
+</p>
+<blockquote>
+  «Демо честно показывает механику и честно врёт про дистанцию», — записал я
+  после второй сотни спинов.
+</blockquote>
+
+<h2>Приложение и поддержка : ярлык против программы</h2>
+<ol>
+  <li>Поставьте программу файлом, минуя магазин.</li>
+  <li>Включите уведомления о входе.</li>
+  <li>Отключите фоновую работу на ночь.</li>
+</ol>
+<p>
+  <u class="lnk">Ярлык на сайт</u><sup class="href">/app</sup> %brand_name_en% открывает ту же страницу в браузере. Установленная программа
+  держит сессию дольше и присылает уведомления о входе.
+</p>
+<h3>Ярлык и программа : разница на практике</h3>
+<table>
+  <tr>
+    <th>
+      Признак
+    </th>
+    <th>
+      Ярлык
+    </th>
+    <th>
+      Программа
+    </th>
+  </tr>
+  <tr>
+    <td>
+      Сессия
+    </td>
+    <td>
+      Как в браузере
+    </td>
+    <td>
+      До 30 суток
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Уведомления
+    </td>
+    <td>
+      Нет
+    </td>
+    <td>
+      Есть
+    </td>
+  </tr>
+  <tr>
+    <td>
+      Обновление
+    </td>
+    <td>
+      Автоматически
+    </td>
+    <td>
+      Вручную
+    </td>
+  </tr>
+</table>
+<h3>Чего поддержка не решает</h3>
+<p>
+  Поддержка %brand_name_en% не отменит отыгрыш, не вернёт сгоревший бонус, не ускорит сторону банка. Всё
+  остальное закрывает за <strong>десять минут</strong> в чате: у меня средний
+  ответ вышел четыре минуты днём и одиннадцать ночью. Отдельно стоит смотреть
+  <u class="lnk">работу в фоне</u><sup class="href">/app</sup> — клиент садит батарею за вечер, если
+  уведомления оставить включёнными.
+</p>
+<h3>Куда идти вместо неё</h3>
+<p>
+  К регулятору по номеру лицензии, если спор о выплате зашёл в тупик. Порядок
+  описан на странице <u class="lnk">регистрации</u><sup class="href">/registracia</sup>, в разделе о споре,
+  и занимает одну страницу. Срок ответа регулятора — <strong>до тридцати суток</strong>, и это
+  единственный медленный этап во всей истории.
+</p>
+<blockquote>
+  Поддержка отвечает за станцию, но не за погоду на поверхности — и это стоит
+  понимать до первой заявки.
+</blockquote>
+
+<h2>Частые вопросы игроков</h2>
+<figure class="faq">
+  <b class="q">Что делать, если верификация не прошла со второго раза?</b>
+  
+    <p>Переснимите документ при дневном свете на тёмном фоне и приложите второй документ с адресом. Третий отказ подряд разбирает поддержка, ответ приходит в течение суток.</p>
+  
+</figure>
+<figure class="faq">
+  <b class="q">Почему заявка на вывод зависла на проверке реквизитов?</b>
+  
+    <p>Реквизиты добавлены в день заявки. Площадка выдерживает сутки на новый счёт, заявка стоит до конца выдержки. Добавляйте счёт заранее.</p>
+  
+</figure>
+<figure class="faq">
+  <b class="q">Не работает вход после смены пароля, что произошло?</b>
+  
+    <p>Смена пароля гасит все расписки «запомнить меня» разом. Войдите заново на каждом устройстве, включая <u class="lnk">клиент на телефоне</u><sup class="href">/app</sup>.</p>
+  
+</figure>
+<figure class="faq">
+  <b class="q">Бонус сгорел до конца отыгрыша, можно ли его вернуть?</b>
+  
+    <p>Сгоревший бонус не восстанавливают. Срок считается от начисления, а не от первой ставки, и виден в кабинете с точностью до часа.</p>
+  
+</figure>
+<figure class="faq">
+  <b class="q">Сколько живёт запасной адрес и как узнать новый?</b>
+  
+    <p>За месяц адрес сменился один раз. Новый приходит письмом на почту из анкеты и дублируется в кабинете, поэтому сторонние подборки не нужны.</p>
+  
+</figure>
+<figure class="faq">
+  <b class="q">Отличается ли отдача автомата в демо и на реальном счёте?</b>
+  
+    <p>Заявленная отдача одна. Разной оказывается длина серии без выплат: на коротком отрезке демо показывает более ровную картину, чем есть на дистанции.</p>
+  
+</figure>
+<figure class="faq">
+  <b class="q">Что засчитывается в оборот при отыгрыше вейджера?</b>
+  
+    <p>Автоматы с отдачей от 96 % идут целиком, рулетка — пятая часть ставки, живые столы не идут. Проверьте долю до первой ставки.</p>
+  
+</figure></div></div></div></div></body></html>
