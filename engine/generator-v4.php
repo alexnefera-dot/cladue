@@ -141,6 +141,11 @@ foreach (PAGES_G as $p) {
                 escapeshellarg($root), escapeshellarg($prompt), escapeshellarg($rez), escapeshellarg($MODEL));
             $c .= $P;
             if ($n > 1) { $c .= ' --mode=fix'; }
+            // exec ДОПИСЫВАЕТ в переданный массив, а не заменяет его. Без сброса
+            // сообщение об ошибке склеивалось с отчётами прошлых попыток: строка
+            // «модель не ответила» приходила вместе с «→ …-попытка-2.html | 437
+            // слов | stop=end_turn», и по ней нельзя было понять, что произошло.
+            $rv = [];
             exec($c . ' 2>&1', $rv, $rc2);
             if ($rc2 !== 0) { stroka('модель не ответила: ' . implode(' ', array_slice($rv, -2))); break; }
             copy($rez, $out);
@@ -228,6 +233,7 @@ for ($krug = 1; $krug <= $SVODOK && $krc !== 0 && !$SUHOY; $krug++) {
         file_put_contents($fix, brief("$TMP/prompt-$p.md", $out, $spisok));
         $c = sprintf('php %s/engine/realize.php --prompt=%s --out=%s --model=%s --max-tokens=32000%s --mode=fix',
             escapeshellarg($root), escapeshellarg($fix), escapeshellarg($out), escapeshellarg($MODEL), $P);
+        $rv = [];
         exec($c . ' 2>&1', $rv, $rc2);
         if ($rc2 !== 0) { stroka('  модель не ответила: ' . implode(' ', array_slice($rv, -1))); }
         exec(sprintf('php %s/engine/dovodchik-v4.php %s %s%s 2>&1',
