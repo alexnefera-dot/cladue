@@ -145,10 +145,20 @@ foreach ($sites as $s) {
         }
 
         // ── пары FAQ и раскрывашки тематических блоков
-        if (preg_match_all('~itemprop="name">\s*(.*?)\s*</h3>.*?itemprop="text">\s*(.*?)\s*</div>~s', $html, $m, PREG_SET_ORDER)) {
+        // Регулярка привязана к самому блоку faq-item, а не к первому попавшемуся
+        // `itemprop="name"`: у карточки слота имя тоже лежит в <h3 itemprop="name">,
+        // и без привязки в пул пар затягивало обрывки витрины вместо вопросов.
+        if (preg_match_all('~<h3 class="faq-question" itemprop="name">\s*(.*?)\s*</h3>\s*'
+            . '<div class="faq-answer"[^>]*>\s*<div itemprop="text">\s*(.*?)\s*</div>~s',
+            $html, $m, PREG_SET_ORDER)) {
             foreach ($m as $x) {
                 $в = v5Trafaret(trim(preg_replace('~\s+~u', ' ', $x[1])), $банки);
-                $о = v5Trafaret(trim(preg_replace('~\s*\n\s*~u', ' ', $x[2])), $банки);
+                // Половина доноров заворачивает ответ в <p>, половина пишет голым
+                // текстом. В пуле хранится голый: обёртку ставит тот виджет, в
+                // который пара встанет, иначе в одном блоке будет два стиля.
+                $о = trim(preg_replace('~\s*\n\s*~u', ' ', $x[2]));
+                $о = preg_replace('~^<p>\s*(.*?)\s*</p>$~s', '$1', $о);
+                $о = v5Trafaret($о, $банки);
                 $хвосты[$t]['faq'][md5($в . $о)] = ['в' => $в, 'о' => $о, 'д' => $s];
             }
         }

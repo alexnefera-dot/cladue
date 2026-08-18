@@ -183,7 +183,15 @@ $перебратьВиджет = function (string $html, string $тип) use (&
             $html);
         $i = 0;
         return preg_replace_callback($reОтвет,
-            function ($m) use (&$i, $пары) { $p = $пары[$i++] ?? null; return $p ? $m[1] . $p['о'] . $m[3] : $m[0]; },
+            function ($m) use (&$i, $пары) {
+                $p = $пары[$i++] ?? null;
+                if (!$p) { return $m[0]; }
+                // Обёртка берётся у виджета: был <p> — ставим <p>, не было — нет.
+                $о = str_starts_with(ltrim($m[2]), '<p>')
+                    ? '<p>' . "\n            " . $p['о'] . "\n          " . '</p>'
+                    : $p['о'];
+                return $m[1] . $о . $m[3];
+            },
             $html);
     };
     $faq = $пулы['хвосты'][$тип]['faq'] ?? [];
