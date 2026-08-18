@@ -65,6 +65,11 @@ if ($mode === 'fix-v5') {
 }
 
 // ── тело запроса ───────────────────────────────────────────────────────────
+// Стриминг включён по умолчанию. Без него запрос молчит всё время обдумывания,
+// и промежуточный узел рвёт TLS-соединение: на боевом прогоне четыре раздела
+// из шести упали с «SSL_read: unexpected eof while reading», а короткий
+// прошёл. При стриминге байты идут непрерывно, рвать нечего.
+$stream = ($opts['stream'] ?? '1') !== '0';
 $body = [
     'model'       => $model,
     'max_tokens'  => $maxTokens,
@@ -73,6 +78,7 @@ $body = [
     'output_config' => ['effort' => $effort],
     'messages'    => [[ 'role' => 'user', 'content' => $prompt ]],
 ];
+if ($stream) { $body['stream'] = true; }
 $payload = json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
 // ── авторизация ────────────────────────────────────────────────────────────
@@ -102,48 +108,104 @@ else { fwrite(STDERR, "нет ключа: задай ANTHROPIC_API_KEY/ANTHROPIC
 // повторяем с экспоненциальным backoff — иначе один сбой убивает страницу.
 $maxAttempts = (int)($opts['retries'] ?? 4);
 $resp = false; $code = 0; $err = '';
+$html = ''; $usage = []; $stopReason = '';
 for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
-    $ch = curl_init('https://api.anthropic.com/v1/messages');
+    // Накопители обнуляются на каждой попытке: оборванный поток не должен
+    // склеиться с новым.
+    $текст = ''; $usage = []; $stopReason = ''; $готово = false; $хвост = ''; $сырое = '';
+    // База берётся из ANTHROPIC_BASE_URL, если задана: так работают прокси и
+    // так же гоняется локальная проверка разбора потока.
+    $база = rtrim(getenv('ANTHROPIC_BASE_URL') ?: 'https://api.anthropic.com', '/');
+    $ch = curl_init($база . '/v1/messages');
     curl_setopt_array($ch, [
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => $payload,
         CURLOPT_HTTPHEADER => $headers,
-        CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT => 900,
         CURLOPT_CONNECTTIMEOUT => 30,
+        // Держим соединение живым: паузы между событиями бывают долгими.
+        CURLOPT_TCP_KEEPALIVE => 1,
+        CURLOPT_TCP_KEEPIDLE => 30,
+        CURLOPT_TCP_KEEPINTVL => 15,
     ]);
+    if ($stream) {
+        curl_setopt($ch, CURLOPT_WRITEFUNCTION,
+            function ($_, string $кусок) use (&$текст, &$usage, &$stopReason, &$готово, &$хвост, &$сырое) {
+                if (strlen($сырое) < 4096) { $сырое .= $кусок; }   // на случай ошибки вместо потока
+                $хвост .= $кусок;
+                while (($n = strpos($хвост, "\n")) !== false) {
+                    $строка = rtrim(substr($хвост, 0, $n), "\r");
+                    $хвост = substr($хвост, $n + 1);
+                    if (strncmp($строка, 'data: ', 6) !== 0) { continue; }
+                    $j = json_decode(substr($строка, 6), true);
+                    if (!is_array($j)) { continue; }
+                    switch ($j['type'] ?? '') {
+                        case 'content_block_delta':
+                            if (($j['delta']['type'] ?? '') === 'text_delta') { $текст .= $j['delta']['text']; }
+                            break;
+                        case 'message_start':
+                            $usage = $j['message']['usage'] ?? $usage;
+                            break;
+                        case 'message_delta':
+                            $stopReason = $j['delta']['stop_reason'] ?? $stopReason;
+                            $usage['output_tokens'] = $j['usage']['output_tokens'] ?? ($usage['output_tokens'] ?? 0);
+                            break;
+                        case 'message_stop':
+                            $готово = true;
+                            break;
+                    }
+                }
+                return strlen($кусок);
+            });
+    } else {
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    }
     if ($proxy = (getenv('HTTPS_PROXY') ?: getenv('https_proxy'))) { curl_setopt($ch, CURLOPT_PROXY, $proxy); }
     if (is_file('/root/.ccr/ca-bundle.crt')) { curl_setopt($ch, CURLOPT_CAINFO, '/root/.ccr/ca-bundle.crt'); }
     $resp = curl_exec($ch);
     $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $err  = $resp === false ? curl_error($ch) : '';
     curl_close($ch);
-    $retryable = ($resp === false) || in_array($code, [429, 500, 502, 503, 504, 529], true);
-    if (!$retryable) break;
+
+    if ($stream) {
+        // Оборванный на середине поток — это неудача, а не короткий ответ:
+        // писать обрезанный HTML нельзя.
+        $ok = ($code === 200 && $готово && $текст !== '');
+        if ($ok) { $html = $текст; break; }
+        $resp = $сырое;
+        if ($code === 200 && !$готово) { $err = 'поток оборван до message_stop'; }
+    } elseif ($resp !== false && $code === 200) {
+        $data = json_decode((string) $resp, true);
+        if (is_array($data)) {
+            foreach (($data['content'] ?? []) as $block) {
+                if (($block['type'] ?? '') === 'text') { $html .= $block['text']; }
+            }
+            $usage = $data['usage'] ?? [];
+            $stopReason = $data['stop_reason'] ?? '';
+            break;
+        }
+    }
+    $retryable = ($resp === false) || $code === 200 || in_array($code, [429, 500, 502, 503, 504, 529], true);
+    if (!$retryable) { break; }
     if ($attempt < $maxAttempts) {
         $wait = (int) pow(2, $attempt); // 2,4,8,16с
-        fwrite(STDERR, "  попытка $attempt: " . ($resp===false ? "curl $err" : "HTTP $code") . " — повтор через {$wait}с\n");
+        fwrite(STDERR, "  попытка $attempt: " . ($err !== '' ? $err : "HTTP $code") . " — повтор через {$wait}с\n");
         sleep($wait);
     }
 }
-if ($resp === false) { fwrite(STDERR, "curl не удался после $maxAttempts попыток: $err\n"); exit(3); }
-
-$data = json_decode((string)$resp, true);
-if ($code !== 200 || !is_array($data)) {
-    fwrite(STDERR, "HTTP $code (после ретраев): " . substr((string)$resp, 0, 500) . "\n"); exit(4);
+if ($code !== 0 && $code !== 200) {
+    fwrite(STDERR, "HTTP $code (после ретраев): " . substr((string) $resp, 0, 500) . "\n"); exit(4);
 }
-if (($data['stop_reason'] ?? '') === 'refusal') { fwrite(STDERR, "отказ модели (refusal)\n"); exit(5); }
-
-// ── собираем текст (thinking-блоки пустые/пропускаем) ──────────────────────
-$html = '';
-foreach (($data['content'] ?? []) as $block) {
-    if (($block['type'] ?? '') === 'text') { $html .= $block['text']; }
+if ($html === '') {
+    fwrite(STDERR, "ответ не получен после $maxAttempts попыток: " . ($err !== '' ? $err : 'пусто') . "\n"); exit(3);
 }
+if ($stopReason === 'refusal') { fwrite(STDERR, "отказ модели (refusal)\n"); exit(5); }
+
 $html = trim($html);
-if ($html === '') { fwrite(STDERR, "пустой ответ (stop_reason=" . ($data['stop_reason'] ?? '?') . ")\n"); exit(6); }
+if ($html === '') { fwrite(STDERR, "пустой ответ (stop_reason={$stopReason})\n"); exit(6); }
 
 file_put_contents($outFile, $html . "\n");
-$u = $data['usage'] ?? [];
+$u = $usage;
 $words = count(preg_split('~\s+~u', trim(strip_tags(preg_replace('~<script.*?</script>~su',' ',$html))), -1, PREG_SPLIT_NO_EMPTY));
 fwrite(STDERR, sprintf("→ %s | ~%d слов | in %d / out %d ток. | stop=%s\n",
-    $outFile, $words, (int)($u['input_tokens'] ?? 0), (int)($u['output_tokens'] ?? 0), $data['stop_reason'] ?? '?'));
+    $outFile, $words, (int)($u['input_tokens'] ?? 0), (int)($u['output_tokens'] ?? 0), $stopReason !== '' ? $stopReason : '?'));
