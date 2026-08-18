@@ -81,6 +81,12 @@ $asJson = in_array('--json', $argv, true);
 $тихо   = in_array('--тихо', $argv, true);
 $позиц  = array_values(array_filter(array_slice($argv, 1), fn($a) => $a[0] !== '-'));
 $root   = rtrim($позиц[0] ?? 'samples/v5-donors', '/');
+// Папку выкладок можно увести в сторону: так рядом живут профили разных
+// корпусов, как data-v3-bundle рядом с data-v3-single у прошлого поколения.
+$данные = __DIR__ . '/data-v5';
+foreach (array_slice($argv, 1) as $a) {
+    if (str_starts_with($a, '--данные=')) { $данные = rtrim(substr($a, strlen('--данные=')), '/'); }
+}
 if (!is_dir($root)) { fwrite(STDERR, "нет папки $root\n"); exit(1); }
 
 $sites = [];
@@ -205,8 +211,8 @@ $профиль = [
     ],
 ];
 
-if (!is_dir(__DIR__ . '/data-v5')) { mkdir(__DIR__ . '/data-v5', 0777, true); }
-file_put_contents(__DIR__ . '/data-v5/profil-v5.json',
+if (!is_dir($данные)) { mkdir($данные, 0777, true); }
+file_put_contents("$данные/profil-v5.json",
     json_encode($профиль, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
 
 if ($asJson) { echo json_encode($профиль, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), "\n"; exit(0); }
@@ -232,4 +238,4 @@ foreach ($уник as $t => $u) {
 }
 echo "\nадреса корпуса: ";
 foreach ($адреса as $u => $n) { echo "{$u}×{$n}  "; }
-echo "\n\nзаписано: engine/data-v5/profil-v5.json\n";
+printf("\n\nзаписано: %s/profil-v5.json\n", $данные);

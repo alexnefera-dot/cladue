@@ -52,6 +52,10 @@ function v5AbzacVPul(array &$раздел, string $вид, string $шаблон,
 $отчёт = in_array('--отчёт', $argv, true);
 $позиц = array_values(array_filter(array_slice($argv, 1), fn($a) => $a[0] !== '-'));
 $root  = rtrim($позиц[0] ?? 'samples/v5-donors', '/');
+$данные = __DIR__ . '/data-v5';
+foreach (array_slice($argv, 1) as $a) {
+    if (str_starts_with($a, '--данные=')) { $данные = rtrim(substr($a, strlen('--данные=')), '/'); }
+}
 if (!is_dir($root)) { fwrite(STDERR, "нет папки $root\n"); exit(1); }
 
 $sites = [];
@@ -59,7 +63,7 @@ foreach (glob("$root/*", GLOB_ONLYDIR) ?: [] as $d) { $sites[] = basename($d); }
 sort($sites);
 // Близнец из профиля выкидывается и здесь: его текст совпадает с исходником
 // дословно, и в пуле он удваивает вес пары — генератор потом сползает на неё.
-$профильФайл = __DIR__ . '/data-v5/profil-v5.json';
+$профильФайл = "$данные/profil-v5.json";
 if (is_file($профильФайл)) {
     $п = json_decode((string) file_get_contents($профильФайл), true);
     $исключены = $п['источник']['исключены'] ?? [];
@@ -226,15 +230,15 @@ foreach ($блоки as $t => $ks) {
     foreach ($ks as $k => $vs) { foreach ($vs as $v => $h) { $выкладкаБлоков[$t][$k][$v] = array_values($h); } }
 }
 
-if (!is_dir(__DIR__ . '/data-v5')) { mkdir(__DIR__ . '/data-v5', 0777, true); }
+if (!is_dir($данные)) { mkdir($данные, 0777, true); }
 $опции = JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES;
-file_put_contents(__DIR__ . '/data-v5/bloki.json', json_encode([
+file_put_contents("$данные/bloki.json", json_encode([
     'источник' => ['корпус' => $root, 'наборов' => count($sites)],
     'скелеты'  => $скелет,
     'блоки'    => $выкладкаБлоков,
     'тексты'   => $текстыВыкладка,
 ], $опции) . "\n");
-file_put_contents(__DIR__ . '/data-v5/pools.json', json_encode([
+file_put_contents("$данные/pools.json", json_encode([
     'источник' => ['корпус' => $root, 'наборов' => count($sites)],
     'прорези'  => ['ИМЯ' => 'герой истории', 'СУММА' => 'выигрыш', 'RTP' => 'отдача слота',
                    'ПРОЦ' => 'размер бонуса', 'МИН' => 'срок вывода', 'РУБЛИ' => 'ставка героя в рублях',
@@ -245,8 +249,8 @@ file_put_contents(__DIR__ . '/data-v5/pools.json', json_encode([
     'общие'    => ['банки' => $банки, 'анкоры' => $анкоры, 'слоты' => $слоты, 'эмодзи' => $эмодзи],
 ], $опции) . "\n");
 
-printf("блоки:  engine/data-v5/bloki.json  (%.1f МБ)\n", filesize(__DIR__ . '/data-v5/bloki.json') / 1048576);
-printf("пулы:   engine/data-v5/pools.json  (%.1f МБ)\n", filesize(__DIR__ . '/data-v5/pools.json') / 1048576);
+printf("блоки:  %s/bloki.json  (%.1f МБ)\n", $данные, filesize("$данные/bloki.json") / 1048576);
+printf("пулы:   %s/pools.json  (%.1f МБ)\n", $данные, filesize("$данные/pools.json") / 1048576);
 if (!$отчёт) { exit(0); }
 
 echo "\n══ скелеты ══\n";
