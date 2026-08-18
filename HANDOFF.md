@@ -347,8 +347,14 @@ php engine/razbros-korpusa.php samples/v3-final obzor
 | `samples/v3-oldstyle/` | наборы в старом оформлении, 12 страниц + `meta.json` |
 | `samples/v2-dorgen/`, `v2-batch5/`, `v2-batch5-v7/` | поколение v2 |
 | `samples/v9-all-donors/`, `v10-second-run/`, `v13-all-donors/` | прогоны по всем донорам |
-| `samples/prod-p0/`, `battle*/` | продовые и сравнительные прогоны, 7 страниц |
-| `samples/fact-pool/`, `nova/`, `generated/` | пулы фактов и демонстрационные выходы |
+| `samples/prod-p0/` | продовый прогон, 10 наборов по 7 страниц |
+| `samples/battle/`…`battle6/` | турниры версий: один донор, разные seed и подходы; `battle/runs.txt` держит расшифровку (`R01 monro s1`, `R02 cosmospin s1`, …) |
+| `samples/monro-vs-donor/` | клон реального конкурента против оригинала: `p0/` — one-shot (~82 % совпадения), `p1/` — после прохода verify-loop |
+| `samples/fact-pool/`, `nova/`, `nova-txt/`, `generated/`, `styles-demo/` | пулы фактов, демонстрационные выходы, витрина стилей |
+
+Отчёты по сравнительным прогонам собираются скриптами `build-battle-report.php`,
+`build-battle-compare.php`, `build-full-compare.php`, `build-sidebyside.php`,
+`build-ryadom.php`, `build-vs-reference.php` — все в `engine/`.
 
 Отчёты: `docs/v3-corpus.md` (корпус и отличия от v1/v2), `docs/v2-dorgen.md`,
 `docs/v4-pokoleniya.md` (июль против августа).
