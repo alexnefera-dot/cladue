@@ -4,7 +4,7 @@ declare(strict_types=1);
 /**
  * Доводчик: правит счётные величины, которые нельзя испортить.
  *
- *   php engine/dovodchik-v4.php <файл.html> <тип-страницы> [--сухой]
+ *   php engine/dovodchik-v4.php <файл.html> <тип-страницы> [--сухой] [--профиль=<файл>]
  *
  * Граница проведена по одному признаку: **трогает ли правка форму слова**.
  *
@@ -35,12 +35,17 @@ $args = array_values(array_filter(array_slice($argv, 1), fn($a) => $a[0] !== '-'
 $FILE = $args[0] ?? '';
 $TIP  = $args[1] ?? 'main';
 $DRY  = in_array('--сухой', $argv, true);
+$PROFIL = __DIR__ . '/data-v4/profil-avgust.json';
+foreach (array_slice($argv, 1) as $a) {
+    if (str_starts_with($a, '--профиль=')) { $PROFIL = substr($a, strlen('--профиль=')); }
+}
 if ($FILE === '' || !is_file($FILE)) {
-    fwrite(STDERR, "usage: php engine/dovodchik-v4.php <файл.html> <тип> [--сухой]\n");
+    fwrite(STDERR, "usage: php engine/dovodchik-v4.php <файл.html> <тип> [--сухой] [--профиль=<файл>]\n");
     exit(1);
 }
 
-$prof = json_decode((string) file_get_contents(__DIR__ . '/data-v4/profil-avgust.json'), true);
+$prof = is_file($PROFIL) ? json_decode((string) file_get_contents($PROFIL), true) : null;
+if (!$prof) { fwrite(STDERR, "нет профиля $PROFIL\n"); exit(1); }
 $norma = $prof['разметка']['страницы'][$TIP] ?? null;
 $html = (string) file_get_contents($FILE);
 $bylo = $html;

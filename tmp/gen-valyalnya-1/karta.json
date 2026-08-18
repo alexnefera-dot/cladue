@@ -1,0 +1,32 @@
+{
+    "комплект": "valyalnya-1",
+    "маска": "валяльня",
+    "ракурс": "валяльщик",
+    "рефрен": "проба на войлок",
+    "словарь": [
+        "шерсть",
+        "кипяток",
+        "каток",
+        "кошма",
+        "мыльный раствор",
+        "колотушка",
+        "сушильня"
+    ],
+    "срезы": {
+        "app": "Оповещения приходят на аппарат, которым не пользуетесь",
+        "bonus": "Вейджер пересчитали после смены условий акции",
+        "registracia": "Поле адреса не принимает написание из паспорта",
+        "slots": "Таблица выплат в игре расходится с карточкой",
+        "vhod": "Пароль принят, а кабинет открывается пустым",
+        "zerkalo": "Перечень в программе отстаёт от письма поддержки"
+    },
+    "промпты": {
+        "main": "tmp\/gen-valyalnya-1\/prompt-main.md",
+        "app": "tmp\/gen-valyalnya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-valyalnya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-valyalnya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-valyalnya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-valyalnya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-valyalnya-1\/prompt-zerkalo.md"
+    }
+}
