@@ -5,6 +5,36 @@
 
 ---
 
+## 0. Карта пакета
+
+```
+├── HANDOFF.md          этот документ
+├── CLAUDE.md           правила репозитория
+├── README.md
+├── docs/               24 отчёта по разбору корпусов — самое ценное
+├── engine/
+│   ├── src/            измерительное ядро: PageMetrics (55 полей), Analyzer,
+│   │                   TextMetrics, SeoMetrics, Stylistics, NicheLexicon, Generator/
+│   ├── data-v4/        профиль profil-avgust.json + maski.json
+│   ├── data-v3/        профили v3: donors + profile-single + profile-bundle
+│   ├── data/, data-dorgen/, data-v3-bundle/, data-v3-single/   выкладки прошлых поколений
+│   ├── instrumenty/    9 скриптов диагностики и правки (см. раздел 8)
+│   ├── priyomka-v4.php, priyomka-komplekt.php    приёмки v4
+│   ├── zadanie-v4.php, generator-v4.php, dovodchik-v4.php    производство v4
+│   ├── razbor-*.php, razbros-korpusa.php, seo-korpusa.php    разбор доноров (раздел 10)
+│   ├── extract-donors*.php, build-*profile*.php    построение профилей
+│   └── build-*.php, report-*.php    сборщики HTML-отчётов
+├── samples/            все корпуса: доноры, наши комплекты, прогоны (разделы 10–11)
+├── reports/            готовые HTML-отчёты + сданные zip-архивы комплектов
+├── template/           шаблон оформления
+└── tmp/                задания генератора по комплектам (gen-<имя>/)
+```
+
+Точка входа для продолжения работы — раздел 3. Точка входа для понимания,
+откуда взялись числа, — раздел 10.
+
+---
+
 ## 1. Что это за работа
 
 Реверс-инжиниринг корпуса конкурентских казино-дорвеев и воспроизведение вручную.
