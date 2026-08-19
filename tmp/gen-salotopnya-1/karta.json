@@ -1,0 +1,32 @@
+{
+    "комплект": "salotopnya-1",
+    "маска": "салотопня",
+    "ракурс": "салотоп",
+    "рефрен": "проба на застыв",
+    "словарь": [
+        "котёл",
+        "шкварки",
+        "съём",
+        "отстойник",
+        "противень",
+        "навар",
+        "корка"
+    ],
+    "срезы": {
+        "app": "Установка прошла, а значок открывает браузер вместо программы",
+        "bonus": "Срок акции истёк на сутки раньше, чем в письме",
+        "registracia": "Форма требует отчество, которого нет в документе",
+        "slots": "Бонусная серия оборвалась на середине без выплаты",
+        "vhod": "Кабинет открывается, а раздел кассы требует входа заново",
+        "zerkalo": "Перечень доменов в программе и в письме не совпадает"
+    },
+    "промпты": {
+        "main": "tmp\/gen-salotopnya-1\/prompt-main.md",
+        "app": "tmp\/gen-salotopnya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-salotopnya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-salotopnya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-salotopnya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-salotopnya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-salotopnya-1\/prompt-zerkalo.md"
+    }
+}
