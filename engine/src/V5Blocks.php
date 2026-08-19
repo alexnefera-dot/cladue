@@ -75,6 +75,13 @@ function v5Variant(array $u): string
  */
 function v5Trafaret(string $t, array &$банки = []): string
 {
+    // Чужие прорези доноров приводятся к нашим сразу: иначе «{ИМЯ} проверил» и
+    // «{NAME} проверил» остаются разными ключами пула, а после подстановки дают
+    // один и тот же заголовок. На десятом наборе это выдало два одинаковых H2
+    // подряд, причём второй без тела.
+    foreach (V5_CHUZHIE_PROREZI as $чужой => $наш) {
+        $t = str_replace('{' . $чужой . '}', '{' . $наш . '}', $t);
+    }
     static $имена = null, $ном = null;
     if ($имена === null) {
         $r = new ReflectionClass('PersonNames');
