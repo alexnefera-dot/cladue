@@ -1,0 +1,32 @@
+{
+    "комплект": "plotina-1",
+    "маска": "мельничная плотина",
+    "ракурс": "плотинщик",
+    "рефрен": "проба на напор",
+    "словарь": [
+        "вешняк",
+        "лоток",
+        "затвор",
+        "паз",
+        "подпор",
+        "сброс",
+        "ряж"
+    ],
+    "срезы": {
+        "app": "Сборка просит войти после каждого сворачивания",
+        "bonus": "Условия акции в письме и в кабинете разошлись",
+        "registracia": "Анкета сохранила старый номер после смены",
+        "slots": "Автоигра останавливается на каждом выигрыше",
+        "vhod": "Кабинет требует подтверждения при каждой ставке",
+        "zerkalo": "Запасной домен закрылся через два часа"
+    },
+    "промпты": {
+        "main": "tmp\/gen-plotina-1\/prompt-main.md",
+        "app": "tmp\/gen-plotina-1\/prompt-app.md",
+        "bonus": "tmp\/gen-plotina-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-plotina-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-plotina-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-plotina-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-plotina-1\/prompt-zerkalo.md"
+    }
+}
