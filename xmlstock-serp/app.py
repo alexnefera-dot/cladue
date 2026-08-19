@@ -2571,11 +2571,18 @@ def _launch_keywords(la):
     return out
 
 
-def launch_report_rows(la):
+def launch_report_rows(la, global_keywords=None):
+    """Строки отчёта. Ключи = текущие общие (в их порядке) + любые исторические из
+    съёмов, которых уже нет в общем списке. Так свежедобавленные ключи видны сразу
+    (с прочерками, пока не пересняли), а удалённые из общих — не теряют историю."""
     snaps = la.get("snapshots", [])
+    kws = list(global_keywords or [])
+    for kw in _launch_keywords(la):
+        if kw not in kws:
+            kws.append(kw)
     rows = []
     for dom in la["domains"]:
-        for kw in _launch_keywords(la):
+        for kw in kws:
             seq = [s.get("positions", {}).get(kw, {}).get(dom) for s in snaps]
             found = [p for p in seq if p is not None]
             rows.append({
@@ -2756,7 +2763,7 @@ def api_launch_detail(lid):
         la = LAUNCHES["launches"].get(lid)
         if not la:
             return jsonify({"error": "Запуск не найден"}), 404
-        rows = launch_report_rows(la)
+        rows = launch_report_rows(la, LAUNCHES["keywords"])
         snaps = [{"at": s["at"], "engine": s.get("engine"), "depth": s.get("depth")}
                  for s in la["snapshots"]]
         return jsonify({"id": lid, "name": la["name"], "domains": la["domains"],
@@ -2772,14 +2779,15 @@ def api_launches_export():
     with LAUNCH_LOCK:
         launches = sorted([json.loads(json.dumps(la)) for la in LAUNCHES["launches"].values()],
                           key=lambda x: x["created_at"])
+        gkw = list(LAUNCHES["keywords"])
     wb = Workbook()
     wb.remove(wb.active)
     ws = wb.create_sheet("Сводка")
     ws.append(["Запуск", "Доменов", "Ключей", "Съёмов", "Создан", "Последний съём"])
     for la in launches:
         snaps = la["snapshots"]
-        ws.append([la["name"], len(la["domains"]), len(_launch_keywords(la)), len(snaps),
-                   _fmt_ts(la["created_at"]), _fmt_ts(snaps[-1]["at"]) if snaps else "—"])
+        ws.append([la["name"], len(la["domains"]), len(set(gkw) | set(_launch_keywords(la))),
+                   len(snaps), _fmt_ts(la["created_at"]), _fmt_ts(snaps[-1]["at"]) if snaps else "—"])
     used = set()
     for la in launches:
         wsl = wb.create_sheet(_sheet_name(la["name"], used))
@@ -2788,7 +2796,7 @@ def api_launches_export():
                 + [f"{_fmt_ts(s['at'])} {s.get('engine') or ''}".strip() for s in snaps]
                 + ["Средняя", "Лучшая", "Худшая", "Нашли"])
         wsl.append(head)
-        for r in launch_report_rows(la):
+        for r in launch_report_rows(la, gkw):
             wsl.append([r["domain"], r["keyword"]]
                        + [p if p is not None else "" for p in r["positions"]]
                        + [r["avg"], r["best"], r["worst"], f"{r['found']}/{r['checks']}"])
