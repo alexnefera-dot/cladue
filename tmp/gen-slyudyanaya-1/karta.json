@@ -1,0 +1,32 @@
+{
+    "комплект": "slyudyanaya-1",
+    "маска": "слюдяная мастерская",
+    "ракурс": "слюдяник",
+    "рефрен": "проба на расщеп",
+    "словарь": [
+        "пласт",
+        "щипка",
+        "лист",
+        "оправа",
+        "свинец",
+        "переплёт",
+        "набор"
+    ],
+    "срезы": {
+        "app": "Программа открывает витрину, но не грузит обложки",
+        "bonus": "Условие отыгрыша изменилось на середине срока",
+        "registracia": "Повторное открытие счёта после самоисключения",
+        "slots": "Механика игры отличается от описания в карточке",
+        "vhod": "Вход открывается только с отключённым определением места",
+        "zerkalo": "Домен работает, но касса на нём не открывается"
+    },
+    "промпты": {
+        "main": "tmp\/gen-slyudyanaya-1\/prompt-main.md",
+        "app": "tmp\/gen-slyudyanaya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-slyudyanaya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-slyudyanaya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-slyudyanaya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-slyudyanaya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-slyudyanaya-1\/prompt-zerkalo.md"
+    }
+}

@@ -1,0 +1,117 @@
+<h2>Программа открывает витрину, но не грузит обложки игровых автоматов</h2>
+<p>
+  Клиент %brand_name_en% запустился, разделы на месте, названия читаются — а вместо картинок серые плитки. Нажимаются они при этом как обычно, и игра открывается.
+</p>
+<p>
+  Сбоем это выглядит только внешне. Список игр и картинки к ним %brand_name_ru% раздаёт с разных узлов, и подводит всегда второй.
+</p>
+<h3>Два потока: что откуда приходит</h3>
+<table>
+  <tbody>
+    <tr><th>Что грузится</th><th>С какого узла</th><th>Что при обрыве</th></tr>
+    <tr><td>Перечень игр и разделов</td><td>С основного адреса площадки</td><td>Пустая витрина</td></tr>
+    <tr><td>Обложки и значки студий</td><td>С узла раздачи картинок</td><td>Серые плитки, названия целы</td></tr>
+    <tr><td>Сам игровой автомат</td><td>С узла провайдера игры</td><td>Барабаны не запускаются</td></tr>
+    <tr><td>Баланс и счётчик отыгрыша</td><td>С основного адреса</td><td>Прочерки вместо чисел</td></tr>
+  </tbody>
+</table>
+<h3>Отчего режется именно узел с картинками</h3>
+<p>
+  <strong>Адрес узла раздачи не совпадает с доменом площадки, и в перечни на закрытие он попадает отдельно от неё.</strong> Оттого и выходит вид, сбивающий с толку: касса открыта, раздел счёта работает, а картинки не идут. Вторая причина мирнее — режим экономии трафика в самом аппарате: он придерживает всё тяжёлое, а обложки тяжелее прочего в каталоге.
+</p>
+<blockquote>
+  Раму привезли, а стекло везли другим обозом. Переплёт на месте и держит, только смотреть пока не на что.
+</blockquote>
+<h3>Порядок проверки: пять шагов</h3>
+<ol>
+  <li>Переключиться с домашней сети на мобильную — картинки пошли, значит, режет провайдер</li>
+  <li>Отключить в аппарате режим экономии трафика</li>
+  <li>Сбросить накопленное клиентом и открыть витрину заново</li>
+  <li>Перезапустить программу: при старте она берёт свежий адрес узла</li>
+  <li>Проверить, не стоит ли в аппарате блокировщик рекламы — он режет и такие узлы</li>
+</ol>
+<p>
+  Играть в %brand_name_en% с серыми плитками не мешает ничто, и на исход это не влияет никак: обложка лежит отдельно от самой игры. Риск тут другой и не про картинки: если рядом отказала касса, дело уже не в узле раздачи, а в домене. Что делать в этом случае, разобрано в <a href="/zerkalo">сводке адресов</a>, а сроки по заявкам называет <a href="/vhod">журнал операций</a>.
+</p>
+<h3>Когда дело точно в узле раздачи</h3>
+<ul>
+  <li>🪟 <strong>Названия и разделы читаются.</strong> Перечень пришёл, значит, площадка отвечает</li>
+  <li>💎 <strong>Баланс и вейджер показаны числами.</strong> Основной адрес цел</li>
+  <li>🔪 <strong>Игра открывается по нажатию.</strong> Узел провайдера тоже работает</li>
+  <li><strong>В браузере та же картина.</strong> Значит, это не пакет программы</li>
+</ul>
+<p>
+  А вот что работает и без единой картинки:
+</p>
+<ul>
+  <li>🪟 <strong>Поиск по названию.</strong> Он идёт по перечню, а не по обложкам</li>
+  <li>💎 <strong>Депозит и вывод средств.</strong> Касса лежит на основном адресе</li>
+  <li>🔪 <strong>Демо-режим.</strong> Открывается тем же нажатием</li>
+  <li>🕯️ <strong>Отыгрыш вейджера.</strong> Спины считаются независимо от показа</li>
+</ul>
+<h3>Итог</h3>
+<p>
+  Серые плитки при живой витрине %brand_name_en% означают одно: перечень пришёл с основного адреса, а обложки не пришли с узла раздачи. Узел этот закрывают отдельно от домена, и потому касса с личным кабинетом остаются на месте. Чинится это сменой сети, отключением экономии трафика и перезапуском программы, который подтягивает свежий адрес узла. Играть можно и так — на исход спина показ не влияет вовсе. Соседние узлы: живые домены ведёт <a href="/zerkalo">памятка по адресам</a>, лимиты и удержания собраны в <a href="/vhod">разборе кассы</a>, состав бумаг — в <a href="/registracia">описи анкеты</a>, а паспорта машин — в <a href="/slots">росписи автоматов</a>.
+</p>
+
+<h2>Ответы на частые вопросы об обложках в клиенте %brand_name_en%</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Вместо картинок серые плитки — программа сломалась?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. Перечень игр пришёл с основного адреса, а обложки идут с отдельного узла раздачи, и не дошли именно они.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отчего касса при этом открыта?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Она лежит на основном адресе, а он цел. Узел с картинками закрывают отдельно от домена площадки.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что проверить первым делом?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Переключиться на мобильную сеть. Если картинки пошли, режет домашний провайдер, и дело не в клиенте.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Помогает ли перезапуск программы?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Часто помогает: при старте клиент берёт свежий адрес узла раздачи вместе с перечнем доменов.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Виноват ли режим экономии трафика?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Бывает и такое: он придерживает всё тяжёлое, а обложки в каталоге тяжелее прочего. Отключается в настройках аппарата.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли играть, пока картинок нет?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Можно. Обложка лежит отдельно от самой игры, и на исход спина её отсутствие не влияет.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отчего поиск находит игру без картинки?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Поиск идёт по перечню названий, а он пришёл целиком. Обложка для него ничего не значит.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Мешает ли блокировщик рекламы?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Мешает: узлы раздачи картинок он режет заодно с рекламными. Проверяется отключением на один заход.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что означает пустая витрина без названий?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Это уже другое: не отвечает основной адрес. Тогда берут свежий домен из перечня, а не чинят картинки.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Появится ли обложка сама со временем?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Появится, когда площадка сменит адрес узла раздачи. Обычно это занимает от нескольких часов до пары суток.</p></div>
+  </div>
+</details>
