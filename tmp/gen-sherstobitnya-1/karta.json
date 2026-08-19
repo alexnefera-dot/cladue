@@ -1,0 +1,32 @@
+{
+    "комплект": "sherstobitnya-1",
+    "маска": "шерстобитня",
+    "ракурс": "шерстобит",
+    "рефрен": "проба на прочёс",
+    "словарь": [
+        "руно",
+        "струна",
+        "лучок",
+        "очёс",
+        "прядь",
+        "набивка",
+        "подбой"
+    ],
+    "срезы": {
+        "app": "Программа не открывает ссылку из письма",
+        "bonus": "Подарок сгорел при живом счётчике оборота",
+        "registracia": "Верификация просит документ второй раз подряд",
+        "slots": "Демо-режим считает баланс в другой валюте",
+        "vhod": "Профиль открылся с настройками другого игрока",
+        "zerkalo": "Новый домен не сохраняет вход между сеансами"
+    },
+    "промпты": {
+        "main": "tmp\/gen-sherstobitnya-1\/prompt-main.md",
+        "app": "tmp\/gen-sherstobitnya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-sherstobitnya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-sherstobitnya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-sherstobitnya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-sherstobitnya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-sherstobitnya-1\/prompt-zerkalo.md"
+    }
+}
