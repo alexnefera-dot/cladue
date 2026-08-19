@@ -159,6 +159,7 @@ function portRows(it, depth, ctx) {
       ${it.kind === 'section' ? `<span class="rowbtn" data-${target ? 'tgtadd' : 'fadd'}="asset:${it.id}" title="добавить актив">＋</span>` : ''}
       ${editable && !it.asset_type ? `<span class="rowbtn" data-ftype="${it.id}" title="задать тип актива">⊙</span>` : ''}
       ${editable && !it.region ? `<span class="rowbtn" data-fregion="${it.id}" title="задать регион (SK/UA/AU/EU/WEB)">🌍</span>` : ''}
+      ${editable ? `<span class="rowbtn${it.liquid ? ' on' : ''}" data-fliq="${it.id}:${it.liquid ? 1 : 0}" title="${it.liquid ? 'убрать из ликвидного капитала' : 'считать ликвидным — тем, чем можно распоряжаться'}">💧</span>` : ''}
       ${editable ? `<span class="rowbtn" data-frate="${it.id}" title="${it.rate_symbol ? 'автоцена: сменить/убрать тикер' : 'автоцена по курсу (BTC, золото, SCHD/IVV/VHT)'}">⚡</span>` : ''}
       ${!target && editable ? `<span class="rowbtn" data-loanflag="${it.id}:${it.is_loan ? 1 : 0}" title="${it.is_loan ? 'убрать значок займа' : 'пометить как займ'}">🤝</span>` : ''}
       <span class="rowbtn del" data-findel="${pfx}:${it.id}">✕</span>
@@ -419,6 +420,17 @@ function secPortfolio(d, s) {
     tree.forEach(setPlan);
   }
   const planTotal = tgt ? tree.reduce((a, b) => a + (b.planEur || 0), 0) : 0;   // сумма планов верхнего уровня
+  // Ликвидный капитал — то, чем можно распоряжаться. Отмечается вручную на позициях: автоматически
+  // это не вывести, «ликвидность» у недвижимости и займов зависит от обстоятельств, а не от типа.
+  let liquidTotal = 0, liquidCount = 0;
+  if (tgt) {
+    const wl = ns => (ns || []).forEach(n => {
+      const kids = n.children || [];
+      if ((n.kind === 'asset' || !kids.length) && n.liquid) { liquidTotal += n.eur || 0; liquidCount++; }
+      wl(kids);
+    });
+    wl(tree);
+  }
   // Мониторинг: один и тот же вопрос «сколько чего» в трёх разрезах.
   // Блоки — своя схема пользователя (защита/рост/развитие), по ней и проваливаемся вглубь;
   // типы и регионы — плоские срезы по листьям.
@@ -539,6 +551,11 @@ function secPortfolio(d, s) {
       <span>Целевой <b class="num">${fmt(planTotal)} €</b></span>
       <span class="meta">·</span>
       <span>На траты <b class="num ${spendTotal > 0 ? 'dev-over' : 'mut'}">${fmt(spendTotal)} €</b></span>
+      <span class="meta">·</span>
+      <span title="сумма позиций, помеченных 💧 — то, чем можно распоряжаться">Ликвидно
+        <b class="num ${liquidCount ? 'ok-dev' : 'mut'}">${fmt(liquidTotal)} €</b>
+        ${liquidCount ? `<span class="meta">${(rootTotal > 0 ? liquidTotal / rootTotal * 100 : 0).toFixed(0)}% · ${liquidCount} позиц.</span>`
+          : '<span class="meta">отметь 💧 в строках</span>'}</span>
       ${spendTotal > 0 ? `<span class="meta">останется ${fmt(rootTotal - spendTotal)} €</span>` : ''}
     </div></div>`;
   })()}
@@ -1389,6 +1406,12 @@ function bindFin() {
     el.addEventListener('mouseenter', () => mark(true));
     el.addEventListener('mouseleave', () => mark(false));
   });
+  document.querySelectorAll('[data-fliq]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const [id, on] = el.dataset.fliq.split(':');
+      await finApi.patch('tgt', +id, { liquid: on === '1' ? 0 : 1 });
+      window.loadFin();
+    }));
   document.querySelectorAll('[data-tgtmove]').forEach(el =>
     el.addEventListener('click', () => {
       const id = +el.dataset.tgtmove;

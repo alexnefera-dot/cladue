@@ -43,7 +43,8 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         _ = try? made.run("ALTER TABLE target_items ADD COLUMN target_pct REAL")
         _ = try? made.run("ALTER TABLE target_items ADD COLUMN is_loan INTEGER NOT NULL DEFAULT 0")  // займы переехали из факта
         _ = try? made.run("ALTER TABLE target_items ADD COLUMN loan_due TEXT")
-        _ = try? made.run("ALTER TABLE target_moves ADD COLUMN to_note TEXT")   // перенос без получателя = трата, подпись куда  // цель долей; заполнено одно из target_pct/target_value — оно и закреплено
+        _ = try? made.run("ALTER TABLE target_moves ADD COLUMN to_note TEXT")   // перенос без получателя = трата, подпись куда
+        _ = try? made.run("ALTER TABLE target_items ADD COLUMN liquid INTEGER NOT NULL DEFAULT 0")   // чем можно распоряжаться  // цель долей; заполнено одно из target_pct/target_value — оно и закреплено
         _ = try? made.run("DROP TABLE IF EXISTS portfolio_classes")  // мёртвая с рождения: в интерфейс не выводилась ни разу
         _ = try? made.run("ALTER TABLE routines ADD COLUMN days TEXT NOT NULL DEFAULT ''")  // дни недели рутины (пусто = каждый день)
         _ = try? made.run("ALTER TABLE passive_income ADD COLUMN principal REAL NOT NULL DEFAULT 0")    // тело инвестиции/депозита
@@ -62,7 +63,7 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
             _ = try? made.run("DROP TABLE IF EXISTS target_items")
             _ = try? made.run("UPDATE settings SET value = '' WHERE key = 'target_seed_v1'")   // сброс → перезаполним копией факта
         }
-        _ = try? made.run("CREATE TABLE IF NOT EXISTS target_items(id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, ord INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL DEFAULT 'asset', value REAL, buy_value REAL, target_value REAL, target_pct REAL, currency TEXT NOT NULL DEFAULT '€', asset_type TEXT, qty REAL, rate_symbol TEXT, note TEXT, is_loan INTEGER NOT NULL DEFAULT 0, loan_due TEXT)")
+        _ = try? made.run("CREATE TABLE IF NOT EXISTS target_items(id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, ord INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL DEFAULT 'asset', value REAL, buy_value REAL, target_value REAL, target_pct REAL, currency TEXT NOT NULL DEFAULT '€', asset_type TEXT, qty REAL, rate_symbol TEXT, note TEXT, is_loan INTEGER NOT NULL DEFAULT 0, loan_due TEXT, liquid INTEGER NOT NULL DEFAULT 0)")
         _ = try? made.run("CREATE TABLE IF NOT EXISTS target_moves(id INTEGER PRIMARY KEY, from_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, to_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, amount REAL NOT NULL DEFAULT 0, to_note TEXT)")  // ручные связки ребаланса
         // Сброс v5 (DELETE FROM target_items) снят: целевое дерево стало единственным,
         // и такая миграция стёрла бы весь портфель. Флаг ставим, чтобы она не всплыла на старых базах.
@@ -1401,12 +1402,12 @@ enum Api {
         "accounts": ["name", "type", "currency", "note", "balance"],
         "steps": ["kind", "title", "amount", "planned_date", "condition", "status", "note"],
         "obligations": ["name", "amount", "currency", "period", "next_date", "remind_days", "kind", "note", "due_time"],
-        "items": ["name", "buy_value", "value", "target_value", "currency", "is_loan", "loan_due", "asset_type", "qty", "rate_symbol", "note", "region"],
+        "items": ["name", "buy_value", "value", "target_value", "currency", "is_loan", "loan_due", "asset_type", "qty", "rate_symbol", "note", "region", "liquid"],
         "tx": ["date", "amount", "currency", "direction", "category", "note"],
         "debts": ["name", "amount", "currency", "direction", "due_date", "note"],
         "income": ["name", "amount", "currency", "period", "next_date", "note", "principal", "rate", "rate_period", "asset_type"],
         "budget": ["name", "amount", "currency", "direction", "ord", "month"],
-        "tgt": ["name", "value", "buy_value", "target_value", "target_pct", "currency", "asset_type", "qty", "rate_symbol", "note", "kind", "region"],
+        "tgt": ["name", "value", "buy_value", "target_value", "target_pct", "currency", "asset_type", "qty", "rate_symbol", "note", "kind", "region", "liquid"],
         "move": ["from_id", "to_id", "amount", "to_note"]]
 
     static func finWrite(method: String, path: String, body: [String: Any], db: Database) throws -> (Data, Int)? {
@@ -2516,12 +2517,19 @@ enum Api {
 
     static func txMonth(_ db: Database, _ ym: String) throws -> [String: Any] {
         let rows = try db.rows("SELECT * FROM transactions WHERE date LIKE ? ORDER BY date DESC, id DESC", [ym + "%"])
+        // Итоги подписаны евро, поэтому долларовые операции приводим к евро: раньше
+        // суммировались сырые amount, и $-трата попадала в € как есть.
+        let rate = (try? eurUsdRate(db)) ?? 1.08
+        func toEur(_ r: [String: Any]) -> Double {
+            let v = num(r["amount"])
+            return (r["currency"] as? String) == "$" ? v / rate : v
+        }
         func sumDir(_ dir: String) -> Double {
-            rows.filter { ($0["direction"] as? String) == dir }.reduce(0.0) { $0 + num($1["amount"]) }
+            rows.filter { ($0["direction"] as? String) == dir }.reduce(0.0) { $0 + toEur($1) }
         }
         var byCat: [String: Double] = [:]
         for tx in rows where (tx["direction"] as? String) == "expense" {
-            byCat[tx["category"] as? String ?? "", default: 0] += num(tx["amount"])
+            byCat[tx["category"] as? String ?? "", default: 0] += toEur(tx)
         }
         return ["month": ym, "rows": rows, "expense": sumDir("expense"), "income": sumDir("income"),
                 "categories": byCat.sorted { $0.value > $1.value }.map { [$0.key, $0.value] as [Any] }]

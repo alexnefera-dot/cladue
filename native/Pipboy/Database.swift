@@ -218,7 +218,8 @@ final class Database {
           kind TEXT NOT NULL DEFAULT 'asset', value REAL, buy_value REAL,
           target_value REAL, target_pct REAL,   -- цель: заполнено одно из двух, оно и закреплено
           currency TEXT NOT NULL DEFAULT '€', asset_type TEXT, qty REAL, rate_symbol TEXT, note TEXT,
-          is_loan INTEGER NOT NULL DEFAULT 0, loan_due TEXT
+          is_loan INTEGER NOT NULL DEFAULT 0, loan_due TEXT,
+          liquid INTEGER NOT NULL DEFAULT 0   -- можно распоряжаться: считается в ликвидный капитал
         );
         CREATE TABLE IF NOT EXISTS target_moves(
           id INTEGER PRIMARY KEY,

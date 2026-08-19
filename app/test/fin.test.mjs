@@ -170,8 +170,10 @@ test('Monefy CSV: точка-с-запятой, даты DD/MM/YYYY, минус 
   ].join('\n');
   const n = fin.importMonefy(db, csv);
   assert.equal(n, 3);
+  db.prepare(`UPDATE rates SET price = 2 WHERE symbol = 'EURUSD'`).run();
   const t = fin.txMonth(db, '2026-06');
-  assert.equal(t.expense, 12.5 + 45);
+  // раньше здесь ожидалось 12.5 + 45: доллары складывались с евро как одно число
+  assert.equal(t.expense, 12.5 + 45 / 2, '45 $ при курсе 2 — это 22,5 €');
   assert.equal(t.income, 2000);
   const gas = t.rows.find(r => r.note === 'бензин');
   assert.equal(gas.currency, '$');
@@ -360,4 +362,19 @@ test('пассивный доход: CRUD, месячный итог с годо
   assert.equal(fin.listIncome(db).find(i => i.id === dep.id).next_date, '2026-07-01');
   fin.delIncome(db, dep.id);
   assert.equal(fin.listIncome(db).length, 3);
+});
+
+test('расходы за месяц: доллары приводятся к евро', () => {
+  const db = freshDb();
+  db.prepare(`INSERT INTO rates(symbol, price) VALUES('EURUSD', 2) ON CONFLICT(symbol) DO UPDATE SET price = 2`).run();
+  const add = (amount, currency, direction, category) =>
+    db.prepare(`INSERT INTO transactions(date, amount, currency, direction, category) VALUES('2026-06-10',?,?,?,?)`)
+      .run(amount, currency, direction, category);
+  add(100, '€', 'expense', 'еда');
+  add(200, '$', 'expense', 'еда');      // при курсе 2 это 100 €
+  add(50, '$', 'income', 'прочее');     // 25 €
+  const t = fin.txMonth(db, '2026-06');
+  assert.equal(Math.round(t.expense), 200, '100 € + 200 $ = 200 €, а не 300');
+  assert.equal(Math.round(t.income), 25, '50 $ = 25 €');
+  assert.equal(Math.round(t.categories.find(([c]) => c === 'еда')[1]), 200, 'категория тоже в евро');
 });

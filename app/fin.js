@@ -377,10 +377,14 @@ export function delTx(db, id) { db.prepare('DELETE FROM transactions WHERE id = 
 
 export function txMonth(db, ym) {
   const rows = db.prepare(`SELECT * FROM transactions WHERE date LIKE ? ORDER BY date DESC, id DESC`).all(ym + '%');
-  const sum = dir => rows.filter(t => t.direction === dir).reduce((s, t) => s + t.amount, 0);
+  // Итоги подписаны евро, поэтому долларовые операции надо привести к евро:
+  // раньше суммировались сырые amount, и $-трата попадала в € как есть.
+  const rate = eurUsdRate(db);
+  const eur = t => (t.currency === '$' ? (+t.amount || 0) / rate : (+t.amount || 0));
+  const sum = dir => rows.filter(t => t.direction === dir).reduce((s, t) => s + eur(t), 0);
   const byCat = {};
   for (const t of rows.filter(t => t.direction === 'expense'))
-    byCat[t.category] = (byCat[t.category] ?? 0) + t.amount;
+    byCat[t.category] = (byCat[t.category] ?? 0) + eur(t);
   return {
     month: ym, rows,
     expense: sum('expense'), income: sum('income'),
