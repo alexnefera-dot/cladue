@@ -1,0 +1,32 @@
+{
+    "комплект": "krovelnya-1",
+    "маска": "жестяная кровельня",
+    "ракурс": "кровельщик",
+    "рефрен": "проба на фальц",
+    "словарь": [
+        "фальц",
+        "лист",
+        "киянка",
+        "загиб",
+        "желоб",
+        "пайка",
+        "свес"
+    ],
+    "срезы": {
+        "app": "Сборка не видит новый платёжный канал",
+        "bonus": "Начисление ушло на вторую полку вместо первой",
+        "registracia": "Анкета зависла на шаге выбора валюты",
+        "slots": "Ставка на линию сбилась после смены устройства",
+        "vhod": "Кабинет закрывается при открытии второй вкладки",
+        "zerkalo": "Запасной адрес показывает другую валюту счёта"
+    },
+    "промпты": {
+        "main": "tmp\/gen-krovelnya-1\/prompt-main.md",
+        "app": "tmp\/gen-krovelnya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-krovelnya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-krovelnya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-krovelnya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-krovelnya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-krovelnya-1\/prompt-zerkalo.md"
+    }
+}

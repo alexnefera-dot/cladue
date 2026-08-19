@@ -1,0 +1,120 @@
+<h2>Форма встала на шаге выбора валюты</h2>
+<p>
+  Анкета %brand_name_en% заполнена до половины, страна выбрана, валюта отмечена — а кнопка «дальше» серая и не нажимается. Никаких подсказок об ошибке форма не даёт.
+</p>
+<p>
+  Поле не сломано. Списки страны и валюты у %brand_name_en% связаны, и второй перерисовывается всякий раз, когда трогают первый.
+</p>
+<h3>Как связаны две графы</h3>
+<table>
+  <tbody>
+    <tr><th>Действие</th><th>Что происходит со списком валют</th><th>Что видит игрок</th></tr>
+    <tr><td>Выбрали страну</td><td>Список собирается заново</td><td>Валюты доступны</td></tr>
+    <tr><td>Отметили валюту</td><td>Ничего</td><td>Кнопка становится синей</td></tr>
+    <tr><td>Вернулись к стране</td><td>Список пересобирается, выбор гаснет</td><td>Кнопка снова серая</td></tr>
+  </tbody>
+</table>
+<h3>Отчего форма не говорит об этом вслух</h3>
+<p>
+  <strong>С точки зрения формы ошибки нет: графа просто не заполнена.</strong> Подсказки показывают на неверный ввод, а тут ввода нет вовсе — он сброшен пересборкой списка. Внешне поле выглядит заполненным, потому что название валюты остаётся написанным в графе, а выбор за ним уже погас.
+</p>
+<blockquote>
+  Разметку на листе стёрли и провели заново, а мел на пальцах остался. Кажется, что линия есть, — а резать по ней нельзя.
+</blockquote>
+<h3>Порядок, при котором форма не встаёт</h3>
+<ol>
+  <li>Выбрать страну первой и больше к ней не возвращаться</li>
+  <li>Открыть список валют: он уже собран под эту страну</li>
+  <li>Отметить валюту той карты, с которой пойдут вводы</li>
+  <li>Убедиться, что кнопка стала активной</li>
+  <li>Нажать «дальше» сразу, не поправляя ничего выше</li>
+  <li>Если кнопка серая — переоткрыть список валют и отметить заново</li>
+</ol>
+<p>
+  Валюта счёта после сохранения не меняется ни при каких условиях, поэтому пятиминутная задержка здесь дешевле любой спешки. Депозит, фриспины, промокод, кэшбэк и турниры при этом доступны с первой минуты, а вклад слотов в вейджер выписан в <a href="/slots">карточке автомата</a>. Страна правится через поддержку по документу, за срок до пяти суток.
+</p>
+<h3>Что тянет за собой выбор валюты</h3>
+<ul>
+  <li>🔩 <strong>Нижний порог вывода и потолки.</strong> Все они считаются в ней</li>
+  <li>🏠 <strong>Шаг ставки на слотах.</strong> Наименьший спин привязан к валюте жёстко</li>
+  <li>⚒️ <strong>Курс при каждом вводе.</strong> Расхождение с банковским около 1,4%</li>
+  <li>📐 <strong>Доступные платёжные каналы.</strong> Часть работает не со всякой валютой</li>
+</ul>
+<h3>Итог</h3>
+<p>
+  Замершая форма — не поломка, а сброшенный выбор: список валют пересобирается при каждом касании страны, и отметка гаснет, оставляя название написанным. Отсюда и ощущение заполненного поля при серой кнопке. Лечится это порядком заполнения — сперва страна, затем валюта, и никаких возвратов наверх. Спешить тут незачем: валюта счёта не меняется после сохранения вовсе, а от неё зависят пороги кассы, шаг ставки, курс при вводе и набор платёжных каналов. Смежное: комиссии, потолки и очередь заявок разобраны в <a href="/vhod">сводке кабинета</a>, паспорта слотов — в <a href="/slots">описи автоматов</a>, действующие адреса ведёт <a href="/zerkalo">сводка доменов</a>, а требования к телефону названы на <a href="/app">странице сборки</a>.
+</p>
+
+<h2>Частые вопросы о шаге выбора валюты в %brand_name_en%</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Кнопка серая, а поля заполнены — форма сломана?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, выбор валюты сброшен пересборкой списка. Название осталось написанным, отметка погасла.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отчего нет подсказки об ошибке?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Подсказки показывают на неверный ввод. Здесь ввода нет вовсе, и форме указывать не на что.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">В каком порядке заполнять эти две графы?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Сперва страна, потом валюта — и не возвращаться наверх. Возврат к стране гасит выбор валюты.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли поменять валюту после сохранения?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нельзя ни при каких условиях. Это единственная графа анкеты, которую не правит даже оператор.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">А страну поменять получится?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Через поддержку по документу, за срок до пяти суток. Сам игрок эту графу после сохранения не трогает.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что зависит от выбранной валюты?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Пороги вывода, потолки, шаг ставки, курс при вводе и набор доступных платёжных каналов.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Какую валюту выбирать?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Ту, в которой ведётся карта или кошелёк для вводов. Иначе пересчёт будет идти при каждой операции.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Велик ли расход на пересчёте?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Около 1,4% с каждого ввода. На депозите в 20 000 это 280 единиц, за десяток вводов — под три тысячи.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Поможет ли перезагрузка страницы?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Поможет, но проще переоткрыть список валют и отметить заново. Заполненное выше при этом сохранится.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Бывает ли такое в мобильной сборке?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Бывает: списки там связаны так же. Порядок заполнения тот же — страна, затем валюта.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать, если валюта нужна, а её нет в списке?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Проверить страну: список собирается под неё. Под другой страной набор валют будет другим.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Когда лучше перечитать анкету целиком?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Сразу после сохранения, до первого депозита. Тогда правка не упирается ни в какие сроки.</p></div>
+  </div>
+</details>
