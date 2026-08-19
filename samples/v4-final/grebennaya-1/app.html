@@ -1,0 +1,108 @@
+<h2>Программа держит на экране вчерашний остаток</h2>
+<p>
+  Сборка %brand_name_en% открыта утром, а на главной висит сумма вчерашнего вечера. Ставки за ночь были, ввод был, число не сдвинулось.
+</p>
+<p>
+  Счёт цел, и деньги на месте. Программа %brand_name_ru% рисует остаток из своей памяти, а спрашивает его у площадки не в каждую минуту.
+</p>
+<h3>Когда сборка спрашивает остаток заново</h3>
+<table>
+  <tbody>
+    <tr><th>Событие</th><th>Обновляет остаток</th><th>Замечание</th></tr>
+    <tr><td>Запуск программы</td><td>Да</td><td>Полный запуск, не разворачивание</td></tr>
+    <tr><td>Вход в кассу</td><td>Да</td><td>Там число всегда верное</td></tr>
+    <tr><td>Открытие слота</td><td>Да</td><td>Ставка идёт от свежего значения</td></tr>
+    <tr><td>Разворачивание из фона</td><td>Нет</td><td>Показывает сохранённое</td></tr>
+  </tbody>
+</table>
+<h3>Отчего запрос не идёт постоянно</h3>
+<p>
+  <strong>Каждое обращение к площадке стоит связи и заряда, а остаток меняется только от ваших действий.</strong> Сборка исходит из простого правила: пока не было ни ставок, ни ввода, число прежнее. Правило ломается там, где деньги двигаются сами по себе — при зачислении выплаты, начислении кэшбэка или возврате отменённой ставки.
+</p>
+<blockquote>
+  Гребенщик держит счёт готовых оправ в голове, а в книгу заглядывает раз в день. Пока сам не работал, число сходится.
+</blockquote>
+<h3>Как получить верное число</h3>
+<ol>
+  <li>Закрыть программу полностью и запустить заново</li>
+  <li>Либо открыть кассу — там остаток всегда свежий</li>
+  <li>Либо открыть любой слот: ставка пойдёт от верного значения</li>
+  <li>Сверить с журналом, если разница не объясняется ставками и вводами</li>
+  <li>Написать в поддержку с номером записи, если и журнал расходится</li>
+</ol>
+<p>
+  Можно ли обойтись без перезапуска — да, достаточно зайти в личный кабинет. Разворачивание из фона полным запуском не считается: программа продолжает прежний сеанс и берёт число из памяти. Ответы на смежные вопросы о выводе средств собраны в <a href="/vhod">разделе операций</a>. На настольном браузере такого нет — там страница собирается заново при каждом открытии.
+</p>
+<h3>Когда отставшее число опасно</h3>
+<ul>
+  <li>🪮 <strong>При отыгрыше начисления.</strong> Остаток вейджера показан тоже старый</li>
+  <li>🦴 <strong>Перед крупной ставкой.</strong> Можно уйти в отказ по нехватке средств</li>
+  <li>🔪 <strong>При проверке зачисления выплаты.</strong> Она приходит без вашего участия</li>
+  <li>💫 <strong>При сверке кэшбэка.</strong> Начисление идёт по расписанию площадки</li>
+</ul>
+<h3>Итог</h3>
+<p>
+  Вчерашняя сумма на главной — не потеря и не сбой, а сохранённое значение: сборка обновляет его при полном запуске, входе в кассу и открытии слота, а из фона разворачивается с прежним. Правило это экономит связь и заряд и ломается лишь там, где средства двигаются сами — при зачислении выплаты, кэшбэке или возврате отменённой ставки. Верное число получают тремя способами, и самый быстрый — открыть кассу. Расхождение, которое не объясняется ни ставками, ни вводами, разбирают по журналу: у каждой записи есть номер и час по поясу площадки. Смежные разборы: комиссии, потолки и сроки выплат собраны в <a href="/vhod">разделе операций</a>, порядок заполнения анкеты — в <a href="/registracia">разборе анкеты</a>, паспорта слотов — в <a href="/slots">карточке слота</a>, а живые адреса перечисляет <a href="/zerkalo">памятка по доменам</a>.
+</p>
+
+<h2>Частые вопросы об остатке в программе %brand_name_en%</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Остаток вчерашний — деньги пропали?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, показано сохранённое значение. Личный кабинет и касса берут число с площадки при каждом входе.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отчего программа не спрашивает остаток постоянно?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Каждый запрос стоит связи и заряда, а меняется остаток обычно только от ставок и вводов.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Считается ли разворачивание из фона запуском?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не считается: сеанс продолжается прежний, и число берётся из памяти. Нужен полный перезапуск.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Где число всегда верное?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>В кассе и на экране слота: оба запрашивают остаток у площадки при открытии.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Может ли из-за этого не пройти ставка?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Может выйти отказ по нехватке средств: слот берёт свежее значение, а на главной висело старое.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Бывает ли так в браузере?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Реже: там страница собирается заново при каждом открытии и тянет остаток с площадки.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать, если и журнал расходится?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Писать в поддержку с номером записи и часом по поясу площадки. Разбор занимает до суток.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Показывает ли программа устаревшим и остаток вейджера?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Показывает по тому же правилу. При отыгрыше начисления сверяться надёжнее в кассе.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Помогает ли обновление сборки?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Само правило остаётся тем же: оно не ошибка, а способ беречь связь. Свежий выпуск тут ни при чём.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Когда стоит перепроверять число обязательно?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>После зачисления выплаты, начисления кэшбэка и возврата отменённой ставки: эти движения идут без вас.</p></div>
+  </div>
+</details>

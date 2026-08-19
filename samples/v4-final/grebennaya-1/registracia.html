@@ -1,0 +1,120 @@
+<h2>Форма не принимает пароль и не говорит почему</h2>
+<p>
+  Пароль в анкете %brand_name_en% набран длинный, с цифрами и знаками, а поле подсвечивается красным. Подсказки при этом никакой: просто «недопустимый».
+</p>
+<p>
+  Требования у %brand_name_en% есть, только показывают их не всегда. Ограничений четыре, и три из них про то, чего в пароле быть не должно.
+</p>
+<h3>Четыре требования к паролю</h3>
+<table>
+  <tbody>
+    <tr><th>Требование</th><th>Что означает</th><th>Частая осечка</th></tr>
+    <tr><td>От 8 до 32 знаков</td><td>Верхняя граница тоже есть</td><td>Длинная фраза не влезла</td></tr>
+    <tr><td>Только латиница, цифры и знаки</td><td>Кириллица не принимается</td><td>Раскладка не переключена</td></tr>
+    <tr><td>Без пробелов</td><td>Ни в середине, ни по краям</td><td>Пробел в конце при вставке</td></tr>
+    <tr><td>Не совпадает с почтой</td><td>И с частью адреса до собачки</td><td>Пароль собран из имени ящика</td></tr>
+  </tbody>
+</table>
+<h3>Отчего пробел в конце виден хуже всего</h3>
+<p>
+  <strong>Он попадает в поле при вставке из хранилища паролей или заметок и на экране никак не отображается.</strong> Длина при этом становится на знак больше объявленной, а поле молчит. Проверяется это просто: набрать пароль руками, не пользуясь буфером обмена. Три случая из четырёх решаются именно этим.
+</p>
+<blockquote>
+  Зуб гребня меряют не глазом, а щупом. Лишний волосок ширины на глаз не увидишь, а гребень уже цепляет.
+</blockquote>
+<h3>Порядок, когда поле краснеет</h3>
+<ol>
+  <li>Набрать пароль руками, а не вставлять из буфера</li>
+  <li>Проверить раскладку: кириллица в поле не проходит</li>
+  <li>Посчитать длину — верхняя граница 32 знака</li>
+  <li>Убедиться, что пароль не повторяет имя почтового ящика</li>
+  <li>Сменить пару знаков, если ничего не помогло</li>
+</ol>
+<p>
+  Подсказку не показывают нарочно: подробное описание требований подсказывает и тому, кто пароли подбирает. Взамен ограничения написаны в правилах, в разделе о защите счёта, — там перечислены все четыре. Депозит, фриспины, промокод, кэшбэк и турниры доступны сразу после заведения счёта, а вклад слотов в вейджер выписан в <a href="/slots">карточке слота</a>.
+</p>
+<h3>Каким пароль быть должен</h3>
+<ul>
+  <li>🪮 <strong>Не таким, как на почте.</strong> Одна утечка иначе открывает оба входа</li>
+  <li>🦴 <strong>Из трёх несвязанных слов.</strong> Помнится легче длинной мешанины</li>
+  <li>🔪 <strong>Без имени и года рождения.</strong> Они лежат в открытом доступе</li>
+  <li>💫 <strong>Записанным на бумагу, а не в телефон.</strong> Телефон теряется вместе с доступом</li>
+</ul>
+<h3>Итог</h3>
+<p>
+  Молчаливый отказ формы почти всегда упирается в невидимое: пробел, попавший в конец при вставке, непереключённую раскладку или превышенную верхнюю границу в 32 знака. Набор руками снимает три случая из четырёх. Четвёртый — совпадение пароля с именем почтового ящика: такую пару не принимают вовсе, и правильно делают. Подсказку не выводят нарочно, чтобы не облегчать работу подбирающим, но все требования выписаны в правилах, в разделе о защите счёта. Смежное: комиссии, потолки и очередь заявок разобраны в <a href="/vhod">разделе операций</a>, паспорта слотов — в <a href="/slots">карточке слота</a>, живые адреса ведёт <a href="/zerkalo">памятка по доменам</a>, а требования к телефону названы на <a href="/app">странице пакета</a>.
+</p>
+
+<h2>Частые вопросы о пароле при регистрации в %brand_name_en%</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Поле краснеет без объяснения — форма сломана?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, нарушено одно из четырёх требований. Подсказку не выводят нарочно, чтобы не помогать подбору.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Какая осечка встречается чаще всего?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Пробел в конце, попавший при вставке из буфера. На экране он не виден, а длину увеличивает.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Есть ли верхняя граница длины?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Есть, 32 знака. Длинная фраза-пароль в это ограничение часто не помещается.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Принимается ли кириллица?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не принимается. Часто раскладка просто не переключена, и на экране это выглядит как обычные точки.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отчего нельзя взять пароль от почты?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Одна утечка открывает и ящик, и счёт. А ящик — ещё и дорога к восстановлению доступа.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Где перечислены все требования?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>В правилах, в разделе о защите счёта. Там они выписаны все четыре, без сокращений.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Каким пароль лучше делать?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Из трёх несвязанных слов латиницей. Помнится он легче мешанины знаков, а подбирается труднее.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли поменять пароль позже?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Можно в любой момент из профиля. Смена сбрасывает отметки всех устройств и все открытые сессии.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Помнит ли площадка прежние пароли?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Обычно несколько последних, и повторить их не даст. Это защита от возврата к утёкшей паре.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Стоит ли хранить пароль в браузере?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>На своём аппарате — можно, на общем нельзя. И именно из хранилища чаще всего прилетает лишний пробел.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Заменяет ли второй ключ надёжный пароль?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не заменяет, но сильно выручает: даже угаданная пара не пустит дальше экрана с кодом.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Когда пароль стоит менять обязательно?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>После входа с чужого аппарата и при незнакомой строке в списке входов. В остальном — раз в год.</p></div>
+  </div>
+</details>

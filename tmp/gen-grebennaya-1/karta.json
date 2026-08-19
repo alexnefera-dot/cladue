@@ -1,0 +1,32 @@
+{
+    "комплект": "grebennaya-1",
+    "маска": "гребённая мастерская",
+    "ракурс": "гребенщик",
+    "рефрен": "проба на зуб",
+    "словарь": [
+        "рог",
+        "распарка",
+        "нарезка",
+        "зуб",
+        "шлифовка",
+        "оправа",
+        "гребень"
+    ],
+    "срезы": {
+        "app": "Программа показывает вчерашний остаток счёта",
+        "bonus": "Множитель в карточке вырос после первого спина",
+        "registracia": "Форма отклоняет пароль без объяснения причины",
+        "slots": "Автомат отдаёт серию каждые пять спинов подряд",
+        "vhod": "Вход принимает пароль, но не открывает разделы",
+        "zerkalo": "Свежий домен открывает витрину без поиска"
+    },
+    "промпты": {
+        "main": "tmp\/gen-grebennaya-1\/prompt-main.md",
+        "app": "tmp\/gen-grebennaya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-grebennaya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-grebennaya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-grebennaya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-grebennaya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-grebennaya-1\/prompt-zerkalo.md"
+    }
+}
