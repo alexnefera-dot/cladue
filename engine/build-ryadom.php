@@ -262,6 +262,11 @@ foreach (PAGES as $pg) {
     $nav .= '<a href="#'.$pg.'">'.TITLES[$pg].' <b>'.$summary[$pg].'/55</b></a> ';
 }
 $total = array_sum($summary);
+// Знаменатель считается по РАЗОБРАННЫМ страницам, а не по всем семи. С
+// «--страницы=main» отчёт писал «совпало 35 из 385»: 385 — это семь типов на
+// 55 полей, и по одной странице такая доля выглядит провалом там, где на
+// самом деле сошлось всё.
+$vsegoPolej = count($summary) * 55;
 
 $css = <<<CSS
 :root { --bg:#fff; --fg:#1a1a1a; --mut:#666; --line:#e3e3e3; --note:#f4f4f4; --ok:#2f7d32; --bad:#b3261e; --warn:#8a6a00; }
@@ -324,11 +329,11 @@ $html = "<!doctype html>\n<html lang=\"ru\"><head><meta charset=\"utf-8\">"
       . "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
       . "<title>$IMYA: текст и параметры рядом</title><style>$css</style></head><body><div class=\"wrap\">"
       . "<h1>$IMYA</h1>"
-      . "<p class=\"sub\">Слева — страница донора, справа — наша. Блоки выровнены по типам: если у одной стороны блока нет, строка подсвечена. Совпало $total из 385 полей.</p>"
+      . "<p class=\"sub\">Слева — страница донора, справа — наша. Блоки выровнены по типам: если у одной стороны блока нет, строка подсвечена. Совпало $total из $vsegoPolej полей.</p>"
       . "<div class=\"nav\">$nav</div>"
       . "<div class=\"key\">Строка подсвечена красным, когда блок есть только на одной стороне — это расхождение структуры. Совпадение по числу слов в блоке не требуется: коридор приёмки работает на уровне страницы, а не абзаца.</div>"
       . $body . "</div></body></html>\n";
 
 @mkdir(dirname($OUT), 0777, true);
 file_put_contents($OUT, $html);
-echo "$SET: $total/385 полей против донора, ", strlen($html), " байт -> $OUT\n";
+echo "$SET: $total/$vsegoPolej полей против донора, ", strlen($html), " байт -> $OUT\n";
