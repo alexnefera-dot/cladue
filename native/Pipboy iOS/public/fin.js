@@ -744,20 +744,22 @@ function renderBudget(items, rates) {
 
   // ДОХОД — сгруппирован по месяцам (видно итог месяца + источники), сводка по кварталам
   const inc = items.filter(i => i.direction === 'income');
+  const noMonth = inc.filter(i => !i.month);                        // без месяца — в год попадают, в помесячный расчёт нет
   const byMonth = {};
-  inc.forEach(i => { (byMonth[i.month || '—'] ??= []).push(i); });
+  inc.filter(i => i.month).forEach(i => { (byMonth[i.month] ??= []).push(i); });
   const monthKeys = Object.keys(byMonth).sort().reverse();
   const monthSum = mo => byMonth[mo].reduce((s, i) => s + eur(i), 0);
   const qOf = mo => { const p = String(mo).split('-'); return p[1] ? `${p[0]}·Q${Math.ceil(+p[1] / 3)}` : '—'; };
-  const byQ = {};
-  monthKeys.forEach(mo => { const q = qOf(mo); byQ[q] = (byQ[q] || 0) + monthSum(mo); });
+  const byQ = {}, qMonths = {};
+  monthKeys.forEach(mo => { const q = qOf(mo); byQ[q] = (byQ[q] || 0) + monthSum(mo); (qMonths[q] ??= new Set()).add(mo); });
   const qKeys = Object.keys(byQ).sort();
-  const nQ = qKeys.length || 1;
-  const incYear = inc.reduce((s, i) => s + eur(i), 0);              // годовой = сумма всех введённых
-  const incQAvg = incYear / nQ;                                     // средний доход за квартал
+  const incYear = inc.reduce((s, i) => s + eur(i), 0);              // всё введённое, включая строки без месяца
   const lastQ = qKeys[qKeys.length - 1];                            // самый свежий квартал (qKeys по возрастанию)
-  const incMonth = (lastQ ? byQ[lastQ] : incQAvg) / 3;              // средний доход в месяц — по последнему кварталу
-  const incForecast = lastQ ? byQ[lastQ] * 4 : incYear;            // прогноз года: ПОСЛЕДНИЙ квартал × 4 (не среднее — доход падает)
+  // Делим на число месяцев, по которым РЕАЛЬНО есть данные: неполный квартал делился на 3
+  // и занижал доход втрое. Строки без месяца сюда не попадают — раньше «—» сортировался
+  // последним, подменял собой последний квартал и ломал весь расчёт.
+  const incMonth = lastQ ? byQ[lastQ] / qMonths[lastQ].size : 0;
+  const incForecast = incMonth * 12;                                // прогноз года — от месячного, а не от квартала ×4
   const bal = incMonth - expMonth;
 
   return `
@@ -781,7 +783,8 @@ function renderBudget(items, rates) {
       <span class="pill btn ok" data-budadd="expense">＋</span>
     </div>
 
-    <div class="meta" style="margin:12px 0 2px">ДОХОД · факт ${m(incYear)} · прогноз года ${m(incForecast)} (посл. кв.${lastQ ? ' ' + m(byQ[lastQ]) : ''} ×4) · ${m(incMonth)}/мес</div>
+    <div class="meta" style="margin:12px 0 2px">ДОХОД · факт ${m(incYear)} · ${m(incMonth)}/мес${lastQ ? ` (${lastQ}: ${m(byQ[lastQ])} за ${qMonths[lastQ].size} мес.)` : ''} · прогноз года ${m(incForecast)}
+      ${noMonth.length ? `<span class="down">· ${m(noMonth.reduce((s, i) => s + eur(i), 0))} без месяца — в помесячный расчёт не идут</span>` : ''}</div>
     ${qKeys.length ? `<div class="btnrow" style="margin:2px 0 6px">${qKeys.slice().reverse().map(q => `<span class="pill ok">${q}: ${m(byQ[q])}</span>`).join('')}</div>` : ''}
     ${monthKeys.length ? monthKeys.map(mo => `
       <div class="kv" style="margin-top:6px;font-weight:700"><span>${fesc(mo)} <span class="meta" style="font-weight:400">${qOf(mo)}</span></span><span class="num up">${m(monthSum(mo))}</span></div>
