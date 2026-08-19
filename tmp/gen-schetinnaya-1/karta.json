@@ -1,0 +1,32 @@
+{
+    "комплект": "schetinnaya-1",
+    "маска": "щетинная мастерская",
+    "ракурс": "щетинщик",
+    "рефрен": "проба на упругость",
+    "словарь": [
+        "щетина",
+        "чесало",
+        "вязка",
+        "обжим",
+        "торцовка",
+        "ость",
+        "пучок"
+    ],
+    "срезы": {
+        "app": "Программа работает, пока телефон подключён к зарядке",
+        "bonus": "Начисление ушло на счёт, закрытый год назад",
+        "registracia": "Регистрация прошла, а письмо с подтверждением не пришло",
+        "slots": "Каталог показывает автомат новинкой третий месяц подряд",
+        "vhod": "Второй ключ приходит на старый номер после его смены",
+        "zerkalo": "Домены из письма и из чата не совпадают"
+    },
+    "промпты": {
+        "main": "tmp\/gen-schetinnaya-1\/prompt-main.md",
+        "app": "tmp\/gen-schetinnaya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-schetinnaya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-schetinnaya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-schetinnaya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-schetinnaya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-schetinnaya-1\/prompt-zerkalo.md"
+    }
+}
