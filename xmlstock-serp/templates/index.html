@@ -1206,7 +1206,7 @@ function plRender(){
       let lastDom=null;
       const body=(d.rows||[]).map(r=>{
         const sep=r.domain!==lastDom?' class="kwsep"':''; lastDom=r.domain;
-        return `<tr${sep}><td>${esc(r.domain)}</td><td>${esc(r.keyword)}</td>`+r.positions.map(plPosCell).join("")+
+        return `<tr${sep}><td>${esc(r.domain)}</td><td>${esc(r.keyword)}</td>`+r.positions.map(p=>`<td>${plPosCell(p)}</td>`).join("")+
           `<td>${r.avg==null?'<span class="p-no">—</span>':'<b>'+r.avg+'</b>'}</td><td>${r.best??"—"}</td><td>${r.worst??"—"}</td></tr>`;
       }).join("");
       detail=`<div class="tbl-wrap" style="margin-top:10px"><table class="pos"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
