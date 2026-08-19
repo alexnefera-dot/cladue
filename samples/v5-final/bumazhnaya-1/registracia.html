@@ -1,0 +1,134 @@
+<p>Партию черпальщик подписывает датой съёма, и дата эта одна на всю стопу. Час, в который она поставлена, потом уже не переспоришь.</p>
+
+<h2>Часовой пояс профиля: на что он влияет в отчётах</h2>
+
+<p>Поле стоит в анкете четвёртым и заполняется само — из настроек браузера. Игрок его пролистывает, а месяцем позже не может свести выгрузку из журнала с собственной памятью о вечере. Разница в три часа переносит половину операций на соседние сутки.</p>
+
+<h3>Где пояс проступает в отчётах</h3>
+
+<table>
+<tr><th>Отчёт</th><th>Что сдвигается</th><th>Насколько заметно</th></tr>
+<tr><td>Журнал операций</td><td>поле «дата», 6 колонок</td><td>операции после 21:00 уходят назавтра</td></tr>
+<tr><td>Выгрузка CSV</td><td>поле «время», UTC не указан</td><td>Тот же сдвиг на 3 часа, молча.</td></tr>
+<tr><td>Лимит суток</td><td>граница обнуления, 00:00</td><td>лимит открывается в 21:00</td></tr>
+<tr><td>История ставок</td><td>группировка по дням</td><td>вечер режется надвое: 22:10 и 23:40</td></tr>
+<tr><td>Календарь акций</td><td>дата начала и конца</td><td>акция гаснет раньше ожидаемого</td></tr>
+</table>
+
+<p>Заметнее всего это на границе суток в %brand_name_en%.</p>
+
+<h3>Живой пример: вечер, сдвинутый на сутки</h3>
+
+<p>Проверял на собственном счёте в %brand_name_en% два месяца подряд.</p>
+
+<p>Пояс у меня встал на три часа восточнее реального. Вечерняя серия ставок с 22:10 до 23:40 легла в журнале на следующее число, а недельная выгрузка для сверки с кассой разошлась на две строки. Личный кабинет при этом показывал всё правильно — расхождение сидело только в отчётах.</p>
+
+<p>Обнаружил на второй месяц, при сверке с банком.</p>
+
+<p>До этого списывал расхождение на собственную невнимательность.</p>
+
+<p>Четыре величины поясом не трогаются вовсе.</p>
+
+<h3>Что от пояса не зависит</h3>
+
+<ul>
+<li><strong>Сумма операции</strong> — она приходит из кассы и не пересчитывается.</li>
+<li><strong>Идентификатор заявки</strong> — присваивается сервером, к поясу не привязан.</li>
+<li><strong>Порядок строк</strong> — хронология сохраняется, сдвигается только подпись.</li>
+<li><strong>Срок отыгрыша</strong> — считается в часах от начисления, а не по календарю.</li>
+</ul>
+
+<p>Правка идёт только через обращение, и порядок такой.</p>
+
+<h3>Смена пояса: порядок обращения</h3>
+
+<ol>
+<li><strong>Через поддержку</strong> — в анкете поле после сохранения только для чтения.</li>
+<li><strong>С указанием текущего и нужного</strong> — иначе первый ответ уйдёт на уточнение.</li>
+<li><strong>Ответ за сутки</strong> — по моему обращению пришёл за 19 часов.</li>
+<li><strong>Задним числом не пересчитывают</strong> — старые строки остаются в прежнем поясе.</li>
+</ol>
+
+<p>Смена пояса не переписывает историю счёта в %brand_name_en%.</p>
+
+<blockquote>«Часовой пояс профиля задаётся при регистрации и изменяется только по обращению в поддержку», — ответ службы на мой запрос.</blockquote>
+
+<p>Помечаю дату правки в своей таблице отдельной строкой.</p>
+
+<h3>Старая выгрузка: с чем её сводить</h3>
+
+<p>Строки, снятые до правки, так и останутся в прежнем поясе, и сводить их с новыми напрямую нельзя. Я держу две выгрузки раздельно и в сводной таблице ставлю пометку о дате смены. Вход в кабинет и вывод средств от этого не меняются: пояс — подпись, а не деньги.</p>
+
+<p>Ставка остаётся расходом при любой настройке профиля. Депозит, вейджер и кэшбэк считаются по суммам, а не по часам; <a href="/slots">игровые автоматы</a>, <a href="/app">сборка</a> и <a href="/zerkalo">запасной адрес</a> берут пояс из одного и того же поля.</p>
+
+<h2>Ответы на вопросы о часовом поясе</h2>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Откуда берётся пояс, если его не выбирать?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Из настроек браузера в момент заполнения анкеты. При включённом VPN он приезжает чужой, и это самая частая причина ошибки.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли поменять пояс самому в профиле?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нельзя, поле после сохранения доступно только для чтения. Меняют через поддержку, ответ приходит примерно за сутки.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Пересчитают ли старые строки журнала после смены?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не пересчитывают. Записи остаются в том поясе, в котором были сделаны, и старую выгрузку с новой лучше не смешивать.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли пояс на срок отыгрыша подарка?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не влияет: срок считается в часах от момента начисления. А вот день акции в календаре пояс сдвигает.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему выгрузка не сходится с банковской?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Банк ставит время своего процессинга, площадка — время профиля. При разнице в три часа вечерние операции расходятся на сутки.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">В каком поясе приходят письма о заявках?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>В том же, что стоит в профиле. Заголовок письма при этом несёт серверное время, и две даты в одном письме сбивают с толку.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Когда обнуляется суточный лимит депозита?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>В полночь по поясу профиля. При чужом поясе лимит открывается в неожиданный час — например, в девять вечера.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Виден ли пояс в самой выгрузке?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Отдельной колонки нет, время стоит без указания смещения. Поэтому смену пояса стоит записывать себе отдельно.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Меняется ли пояс при поездке в другую страну?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не меняется, он привязан к счёту, а не к устройству. Отчёты продолжают считаться по домашнему времени.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Спрашивают ли пояс при проверке документов?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не спрашивают. Проверка смотрит имя, дату рождения и адрес, а время профиля к ней отношения не имеет.</p></div>
+  </div>
+</details>

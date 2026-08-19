@@ -1,0 +1,124 @@
+<p>Черпальщик знает: одна и та же масса на сите и под прессом ведёт себя по-разному. Каталог в программе %brand_name_en% и каталог в браузере — тот же случай.</p>
+
+<h2>Поиск по каталогу внутри программы работает иначе, чем на сайте</h2>
+
+<p>Разница обнаруживается на первом же запросе. В браузере строка ходит на сервер за каждой буквой, в сборке половина работы сделана заранее: список названий лежит в локальной базе SQLite и обновляется раз в сутки. Отсюда и мгновенная выдача, и её главная слабость.</p>
+
+<h3>Локальная база: что лежит на аппарате</h3>
+
+<table>
+<tr><th>Данные</th><th>Где хранятся</th><th>Как часто обновляются</th></tr>
+<tr><td>Названия и студии</td><td>локальная база, 4,2 МБ</td><td>раз в сутки, ночью</td></tr>
+<tr><td>Обложки тайтлов</td><td>кэш, до 180 МБ</td><td>по мере открытия</td></tr>
+<tr><td>Отдача и число линий</td><td>только сервер</td><td>при открытии карточки</td></tr>
+<tr><td>Статус «в работе»</td><td>только сервер</td><td>Каждые 30 секунд.</td></tr>
+<tr><td>История запросов</td><td>локально, 50 строк</td><td>при вводе</td></tr>
+</table>
+
+<blockquote>«Каталог в приложении синхронизируется раз в сутки, принудительное обновление доступно в настройках», — ответ службы поддержки на мой запрос.</blockquote>
+
+<p>Свежая игра появляется в сборке с задержкой.</p>
+
+<p>Ночное обновление проходит около трёх часов по серверному времени.</p>
+
+<h3>Следствия из локального хранения</h3>
+
+<ol>
+<li><strong>Выдача за 0,05 с</strong> — против 0,4 с в браузере, разница видна глазом.</li>
+<li><strong>Тайтл вчерашнего релиза не находится</strong> — до ночного обновления его в базе нет.</li>
+<li><strong>Поиск работает без сети</strong> — найдёт карточку, но открыть её не даст.</li>
+</ol>
+
+<h3>Ручное обновление: где спрятана кнопка</h3>
+
+<p>Кнопка есть, но лежит не там, где её ищут: не в поиске, а в настройках, строка «Обновить каталог». Занимает 6–8 секунд на Wi-Fi и около минуты на слабой мобильной связи. После неё вчерашние релизы находятся.</p>
+
+<p>Делаю это раз в неделю, не чаще.</p>
+
+<p>Чаще смысла нет: каталог пополняется двумя-тремя тайтлами в неделю.</p>
+
+<h3>Чем фильтры в сборке отличаются от сайта</h3>
+
+<table>
+<tr><th>Фильтр</th><th>Браузер</th><th>Сборка</th></tr>
+<tr><td>Волатильность</td><td>панель сбоку</td><td>вкладка снизу</td></tr>
+<tr><td>Покупка бонуса</td><td>есть</td><td>есть</td></tr>
+<tr><td>Число линий</td><td>ползунок 1–243</td><td>Список готовых диапазонов.</td></tr>
+<tr><td>Только новые</td><td>за 30 дней</td><td>за 7 дней</td></tr>
+</table>
+
+<p>Набор фильтров совпадает, различается управление.</p>
+
+<p>Ползунок линий в программе заменён списком из шести диапазонов.</p>
+
+
+<h3>Мой порядок, когда игра не находится</h3>
+
+<p>Сначала проверяю раскладку и пробую два-три первых символа вместо полного названия — локальная база не прощает опечаток совсем. Если не помогло, открываю <a href="/slots">каталог автоматов</a> в браузере: там строка ходит на сервер и находит то, чего в сборке ещё нет. Такое случалось четыре раза за месяц, и все четыре — с релизами свежее суток.</p>
+
+<p>Ставка остаётся расходом независимо от того, где открыт <a href="/">каталог</a>. Отдача, вейджер и лимиты у сборки %brand_name_en% и <a href="/zerkalo">запасного адреса</a> общие: меняется оболочка, а не арифметика.</p>
+
+<h2>Ответы про поиск в сборке</h2>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему сборка находит игру быстрее браузера?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Список названий уже лежит на аппарате, запрос не уходит в сеть. Отсюда 0,05 секунды против 0,4 в браузере.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему вчерашний релиз не находится в программе?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Локальная база обновляется ночью. До обновления новой карточки в ней просто нет, а поиск смотрит только в неё.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли обновить каталог вручную?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Можно, строка «Обновить каталог» в настройках. Занимает 6–8 секунд на Wi-Fi и до минуты на мобильной связи.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Работает ли поиск без интернета?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Находит карточку, но открыть игру без сети не даст. Отдача и число линий тоже подтягиваются с сервера.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько места занимает база каталога?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Сама база 4,2 МБ, но кэш обложек разрастается до 180 МБ. Он чистится в настройках отдельной кнопкой.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Одинаковые ли фильтры в сборке и на сайте?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Набор тот же, управление разное: в браузере панель сбоку, в программе вкладка снизу, а линии выбирают из готовых диапазонов.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему поиск не прощает опечаток?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Локальная база сверяет строку посимвольно и подсказок не строит. Проще ввести два-три первых символа названия.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Хранится ли история запросов на аппарате?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Хранится, последние 50 строк, и наружу не уходит. Чистится вместе с кэшем программы.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отличается ли отдача игры в программе?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не отличается. Отдача задаётся студией и одинакова в сборке, в браузере и на запасном адресе.</p></div>
+  </div>
+</details>

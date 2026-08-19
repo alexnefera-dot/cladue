@@ -1,0 +1,120 @@
+<p>Черпальщик метит каждую форму своим клеймом: по клейму потом видно, чья рука сняла лист. Перечень устройств устроен так же — только клейма ставит браузер.</p>
+
+<h2>Перечень активных устройств в профиле: как им пользоваться</h2>
+
+<p>Открывается он в разделе безопасности и выглядит скучным списком строк. Пользы от него ровно столько, сколько игрок вложил в чтение: список показывает не «кто зашёл», а «где живёт незакрытая расписка». Разница существенная, и с неё начинают.</p>
+
+<h3>Что стоит в строке</h3>
+
+<table>
+<tr><th>Поле</th><th>Что показывает</th><th>Насколько точно</th></tr>
+<tr><td>Тип аппарата</td><td>телефон, планшет, настольный</td><td>по строке User-Agent</td></tr>
+<tr><td>Браузер и версия</td><td>Chrome 131, Safari 18</td><td>Меняется после обновления.</td></tr>
+<tr><td>Город</td><td>по адресу IP-подключения</td><td>ошибается на 40–90 км</td></tr>
+<tr><td>Последняя активность</td><td>дата и время, формат ISO</td><td>точно, до минуты</td></tr>
+<tr><td>Текущий сеанс</td><td>помечен зелёной точкой</td><td>точно, 1 строка</td></tr>
+</table>
+
+<p>Город врёт чаще прочих полей %brand_name_en%, и это нормально.</p>
+
+<h3>Чтение перечня: четыре правила</h3>
+
+<ol>
+<li><strong>Считать строки, а не аппараты</strong> — один компьютер даёт две строки при двух браузерах.</li>
+<li><strong>Смотреть на дату</strong> — строка старше месяца почти всегда своя, забытая.</li>
+<li><strong>Сверять город с поездками</strong> — чужая область при своих датах ничего не значит.</li>
+<li><strong>Тревожиться от совпадения</strong> — чужой город плюс свежая активность разом.</li>
+</ol>
+
+<h3>Откуда берутся лишние строки</h3>
+
+<p>Инкогнито заводит новую расписку на каждое окно, смена телефона оставляет прежнюю висеть до срока, а чистка кэша обнуляет метку. За месяц у меня набежало девять строк на четыре аппарата.</p>
+
+<p>Половину скучного списка составили мои же окна инкогнито.</p>
+
+<blockquote>«Запись в перечне создаётся на каждую сессию, а не на устройство», — ответ службы поддержки на мой запрос.</blockquote>
+
+<h3>Кнопка «завершить»: что она гасит</h3>
+
+<table>
+<tr><th>Действие</th><th>Что происходит</th><th>Через сколько</th></tr>
+<tr><td>Завершить одну строку</td><td>расписка гаснет</td><td>сразу, 0 секунд</td></tr>
+<tr><td>Завершить все</td><td>гаснут 8 из 9, кроме текущей</td><td>сразу, 0 секунд</td></tr>
+<tr><td>Смена пароля</td><td>Гасит расписки везде.</td><td>до 60 секунд</td></tr>
+<tr><td>Выход кнопкой</td><td>гасит 1 окно из списка</td><td>сразу</td></tr>
+</table>
+
+<p>Завершение сеанса в %brand_name_en% не трогает ни счёт, ни заявки.</p>
+
+<p>Вывод средств продолжается своим чередом, без остановки.</p>
+
+<h3>Ежемесячная уборка перечня</h3>
+
+<p>Открываю подробный список, гашу всё кроме текущей строки, потом захожу с телефона заново — остаётся две записи вместо девяти. Смена пароля нужна лишь при чужой свежей активности: тогда порядок обратный — сначала пароль, потом второй ключ.</p>
+
+<p>Ставка остаётся расходом при любой чистоте перечня. Официальный сайт %brand_name_en% и запасной домен ведут общий счёт строк, а депозит, вейджер и суточные лимиты от числа аппаратов не зависят; <a href="/app">сборка</a>, <a href="/slots">игровые автоматы</a> и <a href="/zerkalo">запасной адрес</a> пишут строки в один и тот же перечень.</p>
+
+<h2>Ответы на вопросы о перечне устройств</h2>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему устройств в списке больше, чем у меня есть?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Строка заводится на каждую расписку, а не на аппарат. Два браузера, инкогнито и чистка кэша дают по отдельной записи.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Насколько точен город в строке?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Определяется по адресу подключения и промахивается на 40–90 километров. У мобильного оператора промах бывает и больше.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли доверять городу в чужой строке?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Сам по себе — почти ничего. Тревожен он только вместе со свежей датой активности, которой вы не помните.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Гасит ли завершение сеансов открытые заявки?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не гасит. Заявка на выплату продолжает обработку, а незакрытый оборот подарка считается дальше.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Через сколько гаснет расписка после смены пароля?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>До минуты на всех устройствах разом. Кнопка «завершить» действует быстрее — сразу.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Остаётся ли строка после продажи телефона?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Остаётся до истечения срока расписки. Перед продажей аппарата строку лучше завершить вручную.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Виден ли в списке точный адрес подключения?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не виден, показывают только город. Полный адрес хранится на стороне площадки и выдаётся по запросу в поддержку.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Пишет ли сборка свою строку отдельно от браузера?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Пишет, как отдельное приложение. Поэтому телефон обычно даёт две записи: одну от программы, одну от браузера.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Приходит ли письмо о новой строке в перечне?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Приходит при входе с незнакомого аппарата. Письмо содержит город и время, и по нему удобно сверять список.</p></div>
+  </div>
+</details>
