@@ -41,6 +41,9 @@ from flask import (
 )
 
 app = Flask(__name__)
+# Перечитывать шаблон при изменении на диске и не давать браузеру кешировать
+# страницу — чтобы после замены index.html хватило обновить вкладку (без рестарта).
+app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -1479,7 +1482,9 @@ def run_watch(job_id, cfg, queries):
 # --------------------------------------------------------------------------- #
 @app.route("/")
 def index():
-    return render_template("index.html")
+    resp = Response(render_template("index.html"), mimetype="text/html")
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
 
 
 @app.route("/api/run", methods=["POST"])
