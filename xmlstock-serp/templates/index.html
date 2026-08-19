@@ -1202,8 +1202,8 @@ function plRender(){
     let detail="";
     if(plExpanded[la.id] && plDetails[la.id]){
       const d=plDetails[la.id], snaps=d.snapshots||[], doms=d.domains||[];
-      const kws=[], look={};
-      (d.rows||[]).forEach(r=>{ if(!(r.keyword in look)){ look[r.keyword]={}; kws.push(r.keyword); } look[r.keyword][r.domain]=r; });
+      const kws=[], look=new Map();
+      (d.rows||[]).forEach(r=>{ if(!look.has(r.keyword)){ look.set(r.keyword,{}); kws.push(r.keyword); } look.get(r.keyword)[r.domain]=r; });
       let sel=plSnapSel[la.id];
       if(sel===undefined || (sel!=="avg" && sel>snaps.length-1)) sel=snaps.length-1;
       const opts=snaps.map((s,i)=>`<option value="${i}" ${i===sel?"selected":""}>${esc(plTs(s.at))} ${esc(s.engine||"")}</option>`).join("")
@@ -1216,7 +1216,7 @@ function plRender(){
         return `<td><span class="${c}">${sel==="avg"?r.avg:p}</span></td>`;
       };
       const head=`<tr><th>Ключ \\ Домен</th>`+doms.map(dm=>`<th>${esc(dm)}</th>`).join("")+`</tr>`;
-      const body=kws.map(kw=>`<tr><td>${esc(kw)}</td>`+doms.map(dm=>cell(look[kw][dm])).join("")+`</tr>`).join("");
+      const body=kws.map(kw=>`<tr><td>${esc(kw)}</td>`+doms.map(dm=>cell((look.get(kw)||{})[dm])).join("")+`</tr>`).join("");
       detail=`<div class="row" style="gap:8px;margin-top:10px"><label style="margin:0">Снимок:</label>
         <select class="pl-snap" data-id="${la.id}" style="width:auto">${opts}</select>
         <span class="pill">строки — ключи, столбцы — домены, в ячейке — позиция</span></div>

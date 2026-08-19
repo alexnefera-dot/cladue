@@ -2683,7 +2683,7 @@ def api_launches():
 @app.route("/api/launches/keywords", methods=["POST"])
 def api_launches_keywords():
     data = request.get_json(force=True, silent=True) or {}
-    kws = _split_unique(data.get("keywords"), 200)
+    kws = _split_unique(data.get("keywords"), 1000)
     with LAUNCH_LOCK:
         LAUNCHES["keywords"] = kws
         _save_launches()
@@ -2706,7 +2706,7 @@ def api_launches_create():
         return jsonify({"error": "Добавьте домены запуска (по одному в строке)."}), 400
     with LAUNCH_LOCK:
         if data.get("keywords") is not None:
-            LAUNCHES["keywords"] = _split_unique(data.get("keywords"), 200)
+            LAUNCHES["keywords"] = _split_unique(data.get("keywords"), 1000)
             _save_launches()
         keywords = list(LAUNCHES["keywords"])
         n = len(LAUNCHES["launches"]) + 1
@@ -2735,7 +2735,7 @@ def api_launches_snapshot(lid):
         if not la:
             return jsonify({"error": "Запуск не найден"}), 404
         if data.get("keywords") is not None:
-            LAUNCHES["keywords"] = _split_unique(data.get("keywords"), 200)
+            LAUNCHES["keywords"] = _split_unique(data.get("keywords"), 1000)
             _save_launches()
         domains = list(la["domains"])
         keywords = list(LAUNCHES["keywords"])
