@@ -1,0 +1,109 @@
+<h2>В программе каналов кассы меньше, чем в браузере</h2>
+<p>
+  Касса %brand_name_en% на телефоне показывает четыре способа ввода, а та же касса в браузере — восемь. Счёт один, вход один, а список разный, и привычного канала в сборке попросту нет.
+</p>
+<p>
+  Ошибки в %brand_name_ru% тут нет. Перечень каналов приходит из пакета программы, а не с площадки, и потому отстаёт ровно на возраст сборки.
+</p>
+<h3>Что откуда берётся в кассе</h3>
+<table>
+  <tbody>
+    <tr><th>Часть кассы</th><th>Источник</th><th>Когда меняется</th></tr>
+    <tr><td>Перечень каналов</td><td>Зашит в пакет при выпуске</td><td>С новой сборкой</td></tr>
+    <tr><td>Границы сумм</td><td>Приходит с площадки при открытии</td><td>Сразу</td></tr>
+    <tr><td>Очередь заявок</td><td>Приходит с площадки</td><td>Сразу</td></tr>
+    <tr><td>Курс пересчёта</td><td>Приходит с площадки</td><td>Сразу</td></tr>
+  </tbody>
+</table>
+<h3>Отчего каналы вшивают, а суммы нет</h3>
+<p>
+  <strong>Каждый способ оплаты тянет за собой свой кусок кода.</strong> Банковская карта требует одного, кошелёк другого, платёж по номеру телефона третьего — и всё это укладывают в пакет заранее. Суммы же просто цифры: их площадка присылает при открытии раздела. Отсюда и расхождение: числа свежие, а список старый.
+</p>
+<blockquote>
+  Ящик с наборами собирают на месяц вперёд. Новый фасон в него уже не положишь — придётся ждать, пока за ящиком приедут снова.
+</blockquote>
+<h3>Как понять, в сборке ли дело</h3>
+<ol>
+  <li>Открыть кассу в браузере на том же счёте</li>
+  <li>Сверить число способов там и в программе</li>
+  <li>Посмотреть номер версии в разделе о программе</li>
+  <li>Сравнить его с номером на странице загрузки</li>
+  <li>Поставить свежий пакет, если номера разошлись</li>
+  <li>Открыть кассу заново и пересчитать способы</li>
+</ol>
+<p>
+  Пакет обновляют четыре раза в год и внепланово — когда меняется набор платёжных партнёров. Между выпусками разрыв доходит до трёх месяцев, и в этот срок сборка отстаёт законно. Свежий перечень доменов при этом подтягивается сам при запуске, и сверять его с <a href="/zerkalo">сводкой адресов</a> отдельно не требуется.
+</p>
+<h3>Чем пользоваться, пока пакет старый</h3>
+<ul>
+  <li>🔘 <strong>Браузером с того же телефона.</strong> Счёт и остаток общие</li>
+  <li>✨ <strong>Каналом, который есть в обоих.</strong> Разницы в сроках нет</li>
+  <li>🧵 <strong>Выводом через браузер.</strong> Заявка видна и в программе</li>
+  <li>🪡 <strong>Не заводить второй счёт.</strong> Это не решает ничего</li>
+</ul>
+<h3>Итог</h3>
+<p>
+  Короткий список каналов в программе — признак отставшей сборки, а не сбоя счёта. Перечень способов зашит в пакет, границы и очередь приходят с площадки, оттого числа свежие, а выбор куцый. Лечится это заменой пакета со страницы загрузки: ставится поверх старого, ничего не стирая. Пока пакет не обновлён, тот же ввод спокойно делается через браузер на этом же телефоне — счёт, остаток и очередь у них общие. Что смотреть рядом: сроки выплат и потолки собраны в <a href="/vhod">сводке кабинета</a>, состав анкеты — в <a href="/registracia">бланке счёта</a>, повадка машин — в <a href="/slots">описи автоматов</a>, живые адреса — в <a href="/zerkalo">перечне доменов</a>.
+</p>
+
+<h2>Частые вопросы о кассе в программе %brand_name_en%</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Способа нет в программе — счёт урезали?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, урезан пакет. Перечень каналов вшит в сборку и обновляется вместе с ней.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отчего суммы свежие, а список старый?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Суммы приходят с площадки при открытии кассы, а каналы лежат внутри пакета.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Как проверить номер версии?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>В разделе о программе, внизу настроек. Сверяют его со страницей загрузки на рабочем домене.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сотрётся ли что-нибудь при замене пакета?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Ничего: оборот, начисления, заявки и одобренные бумаги живут на площадке, а не в телефоне.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли вводить через браузер, если счёт открыт в программе?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Можно, это один и тот же счёт. Пополнение отобразится в программе без задержки.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отличаются ли сроки выплат по каналу в сборке?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не отличаются. Заявку обрабатывает площадка, и путь у неё один независимо от того, откуда её подали.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Часто ли выходит новый пакет?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Четыре раза в год планово, плюс внеплановые выпуски при смене доменов или партнёров.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отчего программа не обновляется сама?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Магазины приложений такие пакеты не держат, и ставить их приходится вручную с сайта.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать, если способ пропал и в браузере?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Тогда партнёр отключён совсем. Выбирают соседний канал: остаток и очередь от этого не меняются.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли старая сборка на вывод средств?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Только выбором канала. Сроки, потолки и очередь заявок считаются на площадке одинаково.</p></div>
+  </div>
+</details>

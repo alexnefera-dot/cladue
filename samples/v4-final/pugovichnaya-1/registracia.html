@@ -1,0 +1,114 @@
+<h2>Графа фамилии обрезает длинную запись на середине</h2>
+<p>
+  Анкета %brand_name_en% приняла фамилию, а в профиле она стоит укороченной: хвост из четырёх букв пропал. В документе фамилия полная, и при сверке это разойдётся.
+</p>
+<p>
+  Дело в длине графы. Поля анкеты %brand_name_en% размечены по числу знаков, и всё сверх этого числа отбрасывается молча, без предупреждения.
+</p>
+<h3>Пределы полей анкеты</h3>
+<table>
+  <tbody>
+    <tr><th>Графа</th><th>Предел</th><th>Что при переполнении</th></tr>
+    <tr><td>Имя</td><td>32 знака</td><td>Хвост отбрасывается</td></tr>
+    <tr><td>Фамилия</td><td>32 знака</td><td>Хвост отбрасывается</td></tr>
+    <tr><td>Отчество</td><td>32 знака</td><td>Хвост отбрасывается</td></tr>
+    <tr><td>Адрес проживания</td><td>128 знаков</td><td>Форма ругается вслух</td></tr>
+  </tbody>
+</table>
+<h3>Отчего форма молчит вместо ошибки</h3>
+<p>
+  <strong>Ограничение стоит на самом поле, а не на проверке.</strong> Лишние знаки не доходят до формы вовсе: их отсекает разметка ввода, и проверять оказывается нечего. Отсюда и тишина — с точки зрения анкеты записано ровно то, что в неё попало.
+</p>
+<blockquote>
+  Бирку режут по длине дощечки. Слово длиннее — конец уходит за край, и на складе связку ищут по началу.
+</blockquote>
+<h3>Как исправить запись</h3>
+<ol>
+  <li>Открыть профиль и сверить фамилию с документом знак в знак</li>
+  <li>Посчитать длину записи, если хвост пропал</li>
+  <li>Написать в поддержку с приложенным разворотом документа</li>
+  <li>Дождаться правки: такие графы меняет оператор</li>
+  <li>Проверить, что после правки открылась заявка на вывод средств</li>
+</ol>
+<p>
+  Двойные фамилии через дефис и длинные составные имена упираются в тесный предел чаще прочих. Правку делают до первой заявки, а не после: малейшее несовпадение с основным документом останавливает крупную выплату целиком, и разбор уходит в отдельный контрольный отдел.
+</p>
+<h3>Чем грозит незамеченная обрезка</h3>
+<ul>
+  <li>🔘 <strong>Отказ на сверке.</strong> Запись и документ не совпадут</li>
+  <li>✨ <strong>Возврат платежа.</strong> Банк сверяет получателя по фамилии</li>
+  <li>🧵 <strong>Задержка заявки.</strong> Разбор уходит в отдел контроля</li>
+  <li>🪡 <strong>Потеря вечера.</strong> Правка идёт до трёх суток</li>
+</ul>
+<h3>Итог</h3>
+<p>
+  Пропавший хвост фамилии — не сбой, а предел графы в тридцать два знака: лишнее отсекается разметкой поля и до проверки не доходит. Заметить это можно только глазами, сверив профиль с разворотом документа, — и делать это стоит сразу после заполнения, пока не подана первая заявка. Правят такие графы через поддержку, по приложенному документу, за срок до трёх суток. Играть и вносить деньги всё это время можно: закрыт только вывод средств. Смежное: потолки и очередь заявок разобраны в <a href="/vhod">сводке счёта</a>, повадка машин — в <a href="/slots">описи автоматов</a>, живые адреса — в <a href="/zerkalo">перечне доменов</a>, а требования к пакету названы на <a href="/app">странице загрузки</a>.
+</p>
+
+<h2>Частые вопросы о графах анкеты %brand_name_en%</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Фамилия обрезана — счёт заблокируют?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не заблокируют. Остановят первую заявку на вывод средств, а игра и депозит идут как обычно.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отчего форма не показала ошибку?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Предел стоит на поле ввода: лишние знаки не попадают внутрь, и проверять становится нечего.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько знаков помещается в графу?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Тридцать два в имени, фамилии и отчестве. В адресе — сто двадцать восемь, там форма ругается вслух.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли поправить фамилию самому?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нельзя: после сохранения такие графы закрыты. Правит оператор по приложенному документу.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько ждать правки?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>До трёх суток. Быстрее выходит, если сразу приложить разворот документа и номер счёта.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать с двойной фамилией через дефис?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Вписывать целиком и проверять длину. Именно такие записи упираются в предел чаще остальных.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отклонят ли выплату из-за одной буквы?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Могут: банк сверяет получателя по фамилии, и платёж вернётся отправителю без объяснений.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сгорят ли начисления, пока идёт правка?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Срок начислений считается по календарю и правку не ждёт. Успевать с оборотом придётся самому.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Поможет ли завести второй счёт?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Наоборот, повредит: счета сведут при первой выплате и снимут начисления с обоих сразу.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Обрезается ли так же адрес проживания?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, там предел вчетверо больше и форма сообщает о переполнении прямо на экране.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Когда лучше всего проверять профиль?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Сразу после заполнения анкеты, до первого депозита. Тогда правка не упирается ни в какие сроки.</p></div>
+  </div>
+</details>

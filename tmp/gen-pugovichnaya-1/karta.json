@@ -1,0 +1,32 @@
+{
+    "комплект": "pugovichnaya-1",
+    "маска": "пуговичная мастерская",
+    "ракурс": "пуговичник",
+    "рефрен": "проба на ушко",
+    "словарь": [
+        "заготовка",
+        "штамп",
+        "ушко",
+        "полировка",
+        "лак",
+        "обрезь",
+        "набор"
+    ],
+    "срезы": {
+        "app": "Раздел кассы в сборке короче, чем в браузере",
+        "bonus": "Условия акции разные в браузере и в программе",
+        "registracia": "Поле имени обрезает длинную фамилию на середине",
+        "slots": "Ставка на линию сбрасывается к минимальной сама",
+        "vhod": "Вход занимает минуту вместо секунды каждый раз",
+        "zerkalo": "Свежий адрес требует подтверждения телефона заново"
+    },
+    "промпты": {
+        "main": "tmp\/gen-pugovichnaya-1\/prompt-main.md",
+        "app": "tmp\/gen-pugovichnaya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-pugovichnaya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-pugovichnaya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-pugovichnaya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-pugovichnaya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-pugovichnaya-1\/prompt-zerkalo.md"
+    }
+}
