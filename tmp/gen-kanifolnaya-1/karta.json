@@ -1,0 +1,32 @@
+{
+    "комплект": "kanifolnaya-1",
+    "маска": "канифольная варня",
+    "ракурс": "канифольщик",
+    "рефрен": "проба на липкость",
+    "словарь": [
+        "живица",
+        "отстой",
+        "вытопка",
+        "канифоль",
+        "скипидар",
+        "сито",
+        "слиток"
+    ],
+    "срезы": {
+        "app": "Сборка требует обновиться, а свежей версии на странице нет",
+        "bonus": "Кэшбэк посчитан за неделю, в которой были только выигрыши",
+        "registracia": "Второй документ просят через год после проверки",
+        "slots": "Провайдер убрал автомат из выдачи посреди сессии",
+        "vhod": "Вход по ссылке из письма открывает чужую страницу",
+        "zerkalo": "Оба адреса живые, но заявки видны только на одном"
+    },
+    "промпты": {
+        "main": "tmp\/gen-kanifolnaya-1\/prompt-main.md",
+        "app": "tmp\/gen-kanifolnaya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-kanifolnaya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-kanifolnaya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-kanifolnaya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-kanifolnaya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-kanifolnaya-1\/prompt-zerkalo.md"
+    }
+}
