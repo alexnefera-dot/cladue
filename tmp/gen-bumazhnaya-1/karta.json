@@ -1,0 +1,32 @@
+{
+    "комплект": "bumazhnaya-1",
+    "маска": "бумажная мельница",
+    "ракурс": "черпальщик",
+    "рефрен": "проба на лист",
+    "словарь": [
+        "черпальная форма",
+        "сетка",
+        "чан",
+        "пресс",
+        "войлок",
+        "сушильный шест",
+        "водяной знак"
+    ],
+    "срезы": {
+        "app": "Поиск по каталогу внутри программы работает иначе, чем на сайте",
+        "bonus": "Правила акции на двух языках расходятся: какая версия главная",
+        "registracia": "Часовой пояс профиля: на что он влияет в отчётах",
+        "slots": "Символы замены и рассеивания: чем они различаются",
+        "vhod": "Перечень активных устройств в профиле: как им пользоваться",
+        "zerkalo": "Браузер держит прежний адрес в памяти: как его сбросить"
+    },
+    "промпты": {
+        "main": "tmp\/gen-bumazhnaya-1\/prompt-main.md",
+        "app": "tmp\/gen-bumazhnaya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-bumazhnaya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-bumazhnaya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-bumazhnaya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-bumazhnaya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-bumazhnaya-1\/prompt-zerkalo.md"
+    }
+}

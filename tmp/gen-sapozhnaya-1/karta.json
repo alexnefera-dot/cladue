@@ -1,0 +1,32 @@
+{
+    "комплект": "sapozhnaya-1",
+    "маска": "сапожная мастерская",
+    "ракурс": "сапожник",
+    "рефрен": "проба на колодку",
+    "словарь": [
+        "колодка",
+        "дратва",
+        "шило",
+        "рант",
+        "вар",
+        "стелька",
+        "набойка"
+    ],
+    "срезы": {
+        "app": "Удаление программы: какие следы остаются в системе",
+        "bonus": "Календарь акций на месяц: почему день нельзя пропустить",
+        "registracia": "Псевдоним в профиле: где он виден и можно ли его сменить",
+        "slots": "Расширяющиеся барабаны: откуда берутся тысячи способов",
+        "vhod": "Запасные коды восстановления: где их берут и как хранят",
+        "zerkalo": "Подпись в письме поддержки как источник адреса"
+    },
+    "промпты": {
+        "main": "tmp\/gen-sapozhnaya-1\/prompt-main.md",
+        "app": "tmp\/gen-sapozhnaya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-sapozhnaya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-sapozhnaya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-sapozhnaya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-sapozhnaya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-sapozhnaya-1\/prompt-zerkalo.md"
+    }
+}

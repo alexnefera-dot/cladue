@@ -1,0 +1,32 @@
+{
+    "комплект": "pryanichnaya-1",
+    "маска": "пряничная",
+    "ракурс": "пряничник",
+    "рефрен": "проба на форму",
+    "словарь": [
+        "пряничная доска",
+        "тесто",
+        "патока",
+        "глазурь",
+        "скалка",
+        "противень",
+        "штамп"
+    ],
+    "срезы": {
+        "app": "Системная экономия трафика режет фоновые запросы клиента",
+        "bonus": "Ступень статуса упала после перерыва: за какой срок",
+        "registracia": "Подтверждение источника средств: когда его просят",
+        "slots": "Повтор раунда в истории игры: где он открывается",
+        "vhod": "Доверенное устройство: что оно избавляет спрашивать",
+        "zerkalo": "Срок регистрации домена истёк: что увидит посетитель"
+    },
+    "промпты": {
+        "main": "tmp\/gen-pryanichnaya-1\/prompt-main.md",
+        "app": "tmp\/gen-pryanichnaya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-pryanichnaya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-pryanichnaya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-pryanichnaya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-pryanichnaya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-pryanichnaya-1\/prompt-zerkalo.md"
+    }
+}
