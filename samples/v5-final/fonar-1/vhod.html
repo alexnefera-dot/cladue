@@ -1,0 +1,126 @@
+<p>Ключ, оставленный в кармане, выглядит безобидно ровно до того вечера, когда им откроют ваш двор. С паролем на площадке то же самое.</p>
+
+<h2>Пароль сменён, а старый продолжает работать</h2>
+
+<p>Я сменил пару на новую, вышел, а через полчаса вошёл со старым паролем с планшета. Первая мысль была про сбой: смена не сохранилась. Верной оказалась другая.</p>
+
+<h3>Определение: пароль и живой сеанс</h3>
+
+<p>Это две разные вещи, и путают их постоянно. <strong>Пароль</strong> открывает новый вход. <strong>Живой сеанс</strong> уже открыт, и пароль ему больше не нужен — он держится на своей метке до срока.</p>
+
+<p>Старый пароль у меня и не работал вовсе ни разу.</p>
+
+<p>Работала расписка, поставленная на планшете раньше.</p>
+
+<p>Действий четыре, и закрывают они разное.</p>
+
+<h3>Что закрывает каждое действие</h3>
+
+<table>
+<tr><th>Действие</th><th>Что закрывает</th><th>Что остаётся открытым</th></tr>
+<tr><td>Смена пароля</td><td>новый вход по старой паре</td><td>живые сеансы, до 5</td></tr>
+<tr><td>Завершение всех сеансов</td><td>чужие сеансы, до 4</td><td>Текущий сеанс остаётся.</td></tr>
+<tr><td>Включение 2FA</td><td>вход без TOTP на 30 секунд</td><td>открытые 5 сеансов</td></tr>
+<tr><td>Смена почты</td><td>возврат по прежней почте</td><td>пароль и все 5 сеансов</td></tr>
+<tr><td>Пауза на счёте</td><td>ставку, депозит от 300 ₽</td><td>вход, журнал 90 дней</td></tr>
+</table>
+
+<p>Первая строка объясняет ситуацию целиком.</p>
+
+<blockquote>«Смена пароля не завершает открытые сеансы, для этого есть отдельная кнопка», — ответ поддержки %brand_name_en% на моё обращение.</blockquote>
+
+<p>Порядок здесь важнее самой новой пары.</p>
+
+<h3>Порядок правильной смены пары</h3>
+
+<ol>
+<li><strong>Смените пароль</strong> в разделе безопасности личного кабинета.</li>
+<li><strong>Завершите все сеансы</strong> отдельной кнопкой — она рядом, но нажимают её редко.</li>
+<li><strong>Проверьте перечень устройств</strong>: должна остаться одна строка, текущая.</li>
+<li><strong>Включите 2FA</strong>, если её не было: код TOTP живёт 30 секунд.</li>
+</ol>
+
+<p>Открытых дверей после смены остаётся три.</p>
+
+<h3>Риски: где остаётся открытая дверь</h3>
+
+<ul>
+<li><strong>Планшет с распиской</strong> — метка живёт 30 суток и переживает смену пароля.</li>
+<li><strong>Браузер на работе</strong> — сеанс держится, пока его не завершат вручную.</li>
+<li><strong>Второй домен</strong> — заход через него даёт отдельную строку в перечне.</li>
+</ul>
+
+<p>Итог вышел спокойным и довольно быстрым.</p>
+
+<h3>Итог: чем закончилась проба на фитиль</h3>
+
+<p>После завершения сеансов в перечне осталась одна строка вместо четырёх. Старый пароль перестал открывать что-либо в ту же минуту. Официальный сайт %brand_name_en% и мобильная сборка показали одно и то же. Ставка и отыгрыш при этом не пострадали, а <a href="/registracia">подтверждение анкеты</a> и подавно осталось прежним.</p>
+
+<p>Проверять перечень в личном кабинете стоит раз в месяц, как и <a href="/slots">историю раундов</a>.</p>
+
+<p>Заходы через <a href="/zerkalo">запасной адрес</a> и через <a href="/app">мобильное приложение</a> дают свои строки учёта.</p>
+
+<h2>Ответы о смене пароля и живых сеансах</h2>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему после смены пароля вход со старого устройства работает?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Работает не пароль, а открытый сеанс с сохранённой распиской. Он живёт по своему сроку и завершается отдельной кнопкой.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько живёт расписка «запомнить меня» на аппарате?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Тридцать суток или до ручного выхода. Очистка данных браузера гасит её раньше срока.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Завершает ли включение 2FA уже открытые сеансы?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. Второй ключ спрашивают при новом входе, а живые сеансы продолжают работать до срока или до завершения вручную.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать при незнакомом городе в перечне устройств?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Завершить все сеансы, сменить пароль, включить 2FA и написать в поддержку с датой и временем чужой строки.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько сеансов допускается держать одновременно?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>До пяти. Шестой вход гасит самый старый сеанс автоматически, и в перечне остаётся ровно пять строк.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли завершение сеансов на отыгрыш и заявку?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. Счётчик оборота и поданная заявка живут на сервере и от состояния сеансов не зависят.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему заход с запасного домена даёт отдельную строку?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Метка сеанса привязана к домену, а не к аппарату. Один телефон на двух адресах даёт две записи в перечне.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли завершить один сеанс, не трогая остальные?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Да, у каждой строки своя кнопка. Общая гасит всё, кроме текущего сеанса.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что произойдёт с сеансами при смене номера телефона?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Ничего: сеансы держатся на метках. Меняется канал для кода, и подтверждать смену придётся со старого номера.</p></div>
+  </div>
+</details>

@@ -1,0 +1,130 @@
+<p>Фонарщик знает: если фитиль каждый вечер приходится подкручивать заново, дело не в ветре, а в держателе. Со сборкой то же самое — язык слетает не сам по себе.</p>
+
+<h2>Программа сбрасывает язык витрины при каждом входе</h2>
+
+<p>После обновления до версии 4.8 моя сборка %brand_name_en% стала открываться на английском, хотя в профиле стоит русский. Я собрал три вечера наблюдений и нашёл ненадёжный держатель, который не держит стекло.</p>
+
+<h3>Определение: где лежит языковая настройка</h3>
+
+<p>Языковых уровней в сборке два, и они независимые. <strong>Язык витрины</strong> хранится в профиле на сервере и переезжает вместе со счётом. <strong>Язык оболочки</strong> — кнопки, меню, системные сообщения — берётся у самого аппарата и в серверный профиль не пишется.</p>
+
+<p>Сбрасывается всегда второй, системный уровень настройки. Проверить это можно и через <a href="/zerkalo">запасной адрес</a>: там поведение то же.</p>
+
+<p>Держатель здесь ненадёжный, а сам фитиль вполне исправный.</p>
+
+<p>Порядок проверки здесь важнее скорости исполнения.</p>
+
+<h3>Порядок проверки: пять движений</h3>
+
+<ol>
+<li><strong>Профиль</strong> — откройте <a href="/vhod">личный кабинет</a> и сверьте язык в настройках счёта.</li>
+<li><strong>Система</strong> — проверьте язык аппарата: Android 8+ и iOS 13+ отдают его сборке напрямую.</li>
+<li><strong>Кеш</strong> — очистите данные программы, 40–60 МБ, и войдите заново.</li>
+<li><strong>Версия</strong> — сверьте номер сборки с тем, что на странице загрузки.</li>
+<li><strong>Переустановка</strong> — только после первых четырёх, иначе теряется список доменов.</li>
+</ol>
+
+<p>Хранилищ здесь пять, и путать их дорого.</p>
+
+<h3>Что где хранится</h3>
+
+<table>
+<tr><th>Настройка</th><th>Где записана</th><th>Переживает ли вход</th></tr>
+<tr><td>Язык витрины</td><td>профиль на сервере</td><td>да, привязан к счёту</td></tr>
+<tr><td>Язык оболочки</td><td>локаль аппарата, Android/iOS</td><td>нет, читается заново</td></tr>
+<tr><td>Список доменов</td><td>внутри сборки, 6 адресов</td><td>да, до переустановки</td></tr>
+<tr><td>Ключ 2FA</td><td>в приложении-аутентификаторе</td><td>да</td></tr>
+<tr><td>Отмеченные карточки</td><td>localStorage, срок 30 дней</td><td>нет, чистится вместе с кешем</td></tr>
+</table>
+
+<blockquote>«Язык оболочки берётся у системы и в профиле не сохраняется», — ответ поддержки %brand_name_en% на моё второе обращение.</blockquote>
+
+<p>Три поспешные ошибки стоят целого вечера разбирательств.</p>
+
+<h3>Риски: чего делать не стоит</h3>
+
+<ul>
+<li><strong>Переустановка первой</strong> — вместе со сборкой уходят 6 доменов и ключ 2FA.</li>
+<li><strong>Сброс данных приложения</strong> — гасит расписку входа, пароль спросят заново.</li>
+<li><strong>Установка из стороннего источника</strong> — подпись пакета не совпадёт с той, что на странице загрузки.</li>
+</ul>
+
+<h3>Итог: чем закончилась вечерняя проба на фитиль</h3>
+
+<p>Язык оболочки я выставил в системе аппарата, язык витрины %brand_name_en% — в профиле. С двенадцатого вечера сброс не повторялся ни разу. Ни <a href="/registracia">анкета игрока</a>, ни <a href="/slots">каталог автоматов</a> при этом не пострадали, а <a href="/zerkalo">запасной адрес</a> остался в списке.</p>
+
+<p>Настройка мелкая, а испорченный вечер выходит крупным.</p>
+
+<p>Ставка остаётся расходом при любой сборке — мобильной, настольной, какой угодно.</p>
+
+<h2>Ответы о сборке и её настройках</h2>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему язык слетает только в программе, а на сайте нет?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Витрина в браузере берёт язык из профиля, сборка — из локали аппарата. Настройки разные, поэтому и поведение разное.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько места занимает сборка после месяца работы?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>У меня 118 МБ вместе с кешем, из них 40–60 МБ чистятся без потерь. Список доменов и ключ 2FA при очистке кеша остаются.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Обновление откатилось само: это сбой или так задумано?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Это обычный откат по ошибке установки. Проверьте свободное место: ниже 300 МБ пакет распаковывается наполовину и система возвращает прежнюю версию.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Нужен ли доступ к камере, если документы уже приняты?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. После зачёта документов доступ можно снять — на счёт, лимиты и заявки это не влияет.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отличается ли отдача автоматов в сборке и в браузере?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. RTP задаёт студия, а не оболочка: те же 94,2–97,1 % в обоих случаях.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что произойдёт со сборкой при смене домена площадки?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Программа переключится на следующий адрес из внутреннего списка сама. Переустановка не нужна, счёт и отыгрыш не затрагиваются.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Приходят ли оповещения при выключенной фоновой работе?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Приходят с задержкой до часа. Push доставляется системой, но сборка читает его только при открытии.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли держать сборку на двух аппаратах сразу?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Да, счёт один и сеансов допускается до пяти. Каждый аппарат даёт свою строку в перечне устройств.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сохранится ли отыгрыш, если удалить программу?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Да. Счётчик оборота ведётся на сервере, срок 14 суток идёт независимо от того, стоит ли сборка на аппарате.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Куда писать, если версия в программе старше, чем на сайте?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>В поддержку с номером версии, моделью аппарата и датой установки. Ответ письмом приходит до 72 часов.</p></div>
+  </div>
+</details>
