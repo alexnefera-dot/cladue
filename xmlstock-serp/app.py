@@ -2792,14 +2792,33 @@ def api_launches_export():
     for la in launches:
         wsl = wb.create_sheet(_sheet_name(la["name"], used))
         snaps = la["snapshots"]
-        head = (["Домен", "Ключ"]
-                + [f"{_fmt_ts(s['at'])} {s.get('engine') or ''}".strip() for s in snaps]
-                + ["Средняя", "Лучшая", "Худшая", "Нашли"])
-        wsl.append(head)
-        for r in launch_report_rows(la, gkw):
-            wsl.append([r["domain"], r["keyword"]]
-                       + [p if p is not None else "" for p in r["positions"]]
-                       + [r["avg"], r["best"], r["worst"], f"{r['found']}/{r['checks']}"])
+        doms = la["domains"]
+        rows = launch_report_rows(la, gkw)
+        kw_order, look = [], {}
+        for r in rows:
+            if r["keyword"] not in kw_order:
+                kw_order.append(r["keyword"])
+            look[(r["keyword"], r["domain"])] = r
+
+        def matrix_block(title, getter):
+            wsl.append([title])
+            wsl.append(["Ключ \\ Домен"] + list(doms))
+            for kw in kw_order:
+                line = [kw]
+                for dm in doms:
+                    r = look.get((kw, dm))
+                    v = getter(r) if r else None
+                    line.append(v if v is not None else "")
+                wsl.append(line)
+            wsl.append([])
+
+        if snaps:
+            for si, s in enumerate(snaps):
+                matrix_block(f"Снимок {_fmt_ts(s['at'])} {s.get('engine') or ''}".strip(),
+                             lambda r, si=si: r["positions"][si])
+            matrix_block("Среднее по съёмам", lambda r: r["avg"])
+        else:
+            wsl.append(["Съёмов нет"])
     if not launches:
         wb.create_sheet("Пусто").append(["Пока нет запусков"])
     buf = io.BytesIO()
