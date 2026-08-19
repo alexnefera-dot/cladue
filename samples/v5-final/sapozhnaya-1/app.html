@@ -1,0 +1,127 @@
+<p>Снятая набойка оставляет след на подошве, даже когда её уже нет. Удалённая программа ведёт себя так же — часть следов остаётся в системе.</p>
+
+<h2>Удаление программы: какие следы остаются в системе</h2>
+
+<p>Ни <a href="/registracia">анкета игрока</a>, ни <a href="/zerkalo">запасной домен</a> при этом не менялись. Снёс сборку %brand_name_en% ради места, поставил заново через неделю и обнаружил, что часть настроек вернулась сама. Разобрался, что именно система хранит помимо самой программы.</p>
+
+<h3>Что уходит вместе с программой</h3>
+
+<p>Исчезает всё, что лежало внутри пакета: перечень доменов, секрет второго ключа, кеш витрины %brand_name_en% и локальные метки тайтлов. Восстановлению они не подлежат.</p>
+
+<p>Секрет TOTP теряется первым и болезненнее прочего.</p>
+
+<p>Пять следов система придерживает у себя.</p>
+
+<h3>Что система придерживает у себя</h3>
+
+<table>
+<tr><th>След</th><th>Где остаётся</th><th>Сколько живёт</th></tr>
+<tr><td>Учётная запись сборки</td><td>резервная копия системы</td><td>до сброса аппарата</td></tr>
+<tr><td>Разрешения приложения</td><td>системный перечень</td><td>Возвращаются при установке.</td></tr>
+<tr><td>Push-токен</td><td>сервер оповещений</td><td>до 90 дней</td></tr>
+<tr><td>Записи журнала установок</td><td>магазин приложений</td><td>бессрочно</td></tr>
+<tr><td>Файлы в общей папке</td><td>хранилище аппарата</td><td>до ручной чистки</td></tr>
+</table>
+
+<blockquote>«Удаление программы не затрагивает счёт, отыгрыш и заявки: они хранятся на стороне площадки», — ответ поддержки %brand_name_en%.</blockquote>
+
+<p>Перед удалением стоит потратить пару минут.</p>
+
+<h3>Порядок перед удалением: четыре шага</h3>
+
+<ol>
+<li><strong>Выпишите секрет TOTP</strong> — строку, а не снимок экрана.</li>
+<li><strong>Сохраните перечень доменов</strong> — шесть адресов на бумагу.</li>
+<li><strong>Выгрузите журнал</strong> за нужный период, если он понадобится.</li>
+<li><strong>Завершите сеанс</strong>, чтобы метка не висела в перечне устройств.</li>
+</ol>
+
+<p>Поспешность обходится в три неприятности.</p>
+
+<h3>Риски поспешного удаления</h3>
+
+<ul>
+<li><strong>Потерянный второй ключ</strong> — вход только по запасным кодам.</li>
+<li><strong>Незакрытый сеанс</strong> — строка в перечне остаётся до срока.</li>
+<li><strong>Свежая заявка</strong> — статус придётся смотреть в браузере.</li>
+</ul>
+
+<p>Неделя в браузере прошла вполне спокойно.</p>
+
+<h3>Итог недели без сборки</h3>
+
+<p>Счёт, отыгрыш и <a href="/vhod">перечень устройств</a> остались нетронутыми. Вернулись сами разрешения и учётная запись; секрет ключа пришлось выпускать заново, потому что выписать я его забыл. <a href="/slots">Каталог автоматов</a> в браузере работал всё это время.</p>
+
+<p>Ставка остаётся расходом и без программы. Депозит, вейджер, кэшбэк, промокод и фриспины считаются на сервере %brand_name_en%. Проверить их можно через <a href="/vhod">личный кабинет</a>, а условия — рядом с <a href="/registracia">анкетой</a>, а спин и джекпот — на стороне студии.</p>
+
+<h2>Ответы про удаление и его следы</h2>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Пропадёт ли счёт при удалении программы?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. Счёт, остаток, отыгрыш и заявки лежат на сервере площадки и от наличия сборки не зависят.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему разрешения вернулись после переустановки?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Их хранит система, а не программа. При повторной установке того же пакета прежний набор подставляется автоматически.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать, если секрет второго ключа не выписан?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Войти по запасному коду и выпустить ключ заново в разделе безопасности. Старый секрет при этом перестаёт работать.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Приходят ли оповещения после удаления сборки?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Перестают сразу, но токен на сервере живёт до 90 дней. При установке в этот срок оповещения включаются без настройки.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько места освобождает удаление?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>У меня вышло 128 МБ вместе с кешем. Файлы в общей папке аппарата при этом остались и чистятся вручную.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Останется ли строка в перечне устройств?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Останется до истечения срока метки, если сеанс не завершить заранее. Снять её можно из браузера в любой момент.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Видно ли в магазине, что программа стояла раньше?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Видно в журнале установок учётной записи. Запись эта бессрочная и на работу счёта никак не влияет.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сохранится ли перечень доменов после переустановки?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Свежая сборка приносит актуальный перечень с собой. Прежний, вместе со всеми правками, теряется безвозвратно.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Стоит ли чистить файлы в общей папке?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Стоит, если там лежат выгрузки журнала %brand_name_en% со снимками документов. Программа их не удаляет, и остаются они открытыми для любого приложения.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Куда писать, если после переустановки вход не проходит?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>В поддержку с почтой из анкеты и датой установки. Ответ письмом приходит до 30 часов, чат отвечает быстрее.</p></div>
+  </div>
+</details>
