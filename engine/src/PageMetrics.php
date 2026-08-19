@@ -62,6 +62,15 @@ final class PageMetrics
         // подписи, а не строки таблицы.
         'table_cell_words' => ['слов в ячейке', 1],
         'table_cell_sent_pct' => ['ячеек с целой фразой %', 1],
+        // «У них в таблицах реальные данные, у нас просто слова». Так и есть:
+        // у доноров почти половина ячеек несёт факт — номер лицензии, год,
+        // ставку RTP, названный платёжный сервис, — и пятая часть ячеек написана
+        // латиницей: Visa, MasterCard, Skrill, Curacao eGaming, eCOGRA,
+        // USDT-TRC20, HTTPS. У нас латиницы ноль на три набора подряд, а фактом
+        // считается только число. Таблица из одних русских слов читается как
+        // подпись к разделу, а не как справка.
+        'table_cell_fact_pct' => ['ячеек с фактом %', 1],
+        'table_cell_latin_pct' => ['ячеек с латиницей %', 1],
         // Отзыв с именем, датой и оценкой 1–5. Приём распределяет роли: минус
         // называет не автор, а игрок с оценкой «три из пяти», и автору не
         // приходится критиковать площадку самому. У нас вместо этого цитата с
@@ -272,7 +281,7 @@ final class PageMetrics
 
         // Форма таблицы: сколько колонок и повторяется ли шапка. Шапкой считаем
         // строку <th>, а где её нет — первую строку таблицы.
-        $cols = []; $headers = []; $cellW = []; $cellS = 0;
+        $cols = []; $headers = []; $cellW = []; $cellS = 0; $cellF = 0; $cellL = 0;
         if (preg_match_all('~<table\b.*?</table>~is', $noScript, $tm2)) {
             foreach ($tm2[0] as $tbl) {
                 preg_match_all('~<th\b[^>]*>(.*?)</th>~is', $tbl, $th);
@@ -289,6 +298,9 @@ final class PageMetrics
                     if ($t === '') { continue; }
                     $cellW[] = count(preg_split('~\s+~u', $t, -1, PREG_SPLIT_NO_EMPTY));
                     if (preg_match('~[.!?]~u', $t)) { $cellS++; }
+                    $lat = (bool) preg_match('~[A-Za-z]{2,}~u', $t);
+                    if ($lat) { $cellL++; }
+                    if ($lat || preg_match('~\d|[₽€$%№]~u', $t)) { $cellF++; }
                 }
                 $headers[] = mb_strtolower(implode('|', array_map(
                     fn($c) => trim(preg_replace('~\s+~u', ' ', strip_tags($c))), $cells)));
@@ -337,6 +349,8 @@ final class PageMetrics
             'table_uniq_pct' => $headers ? round(count(array_unique($headers)) / count($headers) * 100, 1) : 0,
             'table_cell_words' => $cellW ? round(array_sum($cellW) / count($cellW), 1) : 0,
             'table_cell_sent_pct' => $cellW ? round($cellS / count($cellW) * 100, 1) : 0,
+            'table_cell_fact_pct' => $cellW ? round($cellF / count($cellW) * 100, 1) : 0,
+            'table_cell_latin_pct' => $cellW ? round($cellL / count($cellW) * 100, 1) : 0,
             // По разметке, а где её нет — по формуле «Имя / дата / оценка»
             'anchor_once_pct' => (function () use ($noScript) {
                 if (!preg_match_all('~<a\b[^>]*>(.*?)</a>~is', $noScript, $am)) { return 0; }
