@@ -1,0 +1,32 @@
+{
+    "комплект": "surguchnaya-1",
+    "маска": "сургучная мастерская",
+    "ракурс": "сургучник",
+    "рефрен": "проба на оттиск",
+    "словарь": [
+        "шеллак",
+        "замес",
+        "брусок",
+        "печать",
+        "оттиск",
+        "глянец",
+        "крошка"
+    ],
+    "срезы": {
+        "app": "Обновление стёрло настройки лобби",
+        "bonus": "Акция закрылась раньше объявленного срока",
+        "registracia": "Поле города не содержит нужного населённого пункта",
+        "slots": "Автомат показывает выигрыш выше, чем начислил",
+        "vhod": "Профиль показывает чужое имя после входа",
+        "zerkalo": "Домен работает только через один браузер"
+    },
+    "промпты": {
+        "main": "tmp\/gen-surguchnaya-1\/prompt-main.md",
+        "app": "tmp\/gen-surguchnaya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-surguchnaya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-surguchnaya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-surguchnaya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-surguchnaya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-surguchnaya-1\/prompt-zerkalo.md"
+    }
+}
