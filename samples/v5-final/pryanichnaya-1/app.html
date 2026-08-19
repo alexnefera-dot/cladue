@@ -1,0 +1,114 @@
+<p>Пряничник знает: печь на малом жару даёт тот же рисунок, только медленнее и суше. Экономия трафика в телефоне работает ровно так же.</p>
+
+<h2>Системная экономия трафика режет фоновые запросы клиента</h2>
+
+<p>Режим этот включают ради счёта за связь, а замечают по странным сбоям в программе %brand_name_en%: то перечень доменов не обновился, то оповещение пришло с опозданием на час. Виновата не сборка — виновата настройка операционной системы, о которой обычно забывают.</p>
+
+<h3>Фоновые задачи: какие глохнут первыми</h3>
+
+<table>
+<tr><th>Задача</th><th>Обычно</th><th>При экономии</th></tr>
+<tr><td>Перечень доменов</td><td>раз в сутки, 6 адресов</td><td>только при открытии</td></tr>
+<tr><td>Оповещения Push</td><td>приходят за 2–5 секунд</td><td>Задержка до часа.</td></tr>
+<tr><td>Подкачка обложек</td><td>заранее, по 20 штук</td><td>по одной, при прокрутке</td></tr>
+<tr><td>Проверка версии</td><td>раз в 12 часов</td><td>при запуске</td></tr>
+<tr><td>Досылка журнала ставок</td><td>сразу, 0 секунд</td><td>при следующем входе</td></tr>
+</table>
+
+<p>Сама игра при этом идёт как обычно.</p>
+
+<p>Открытое окно %brand_name_en% система считает активным соединением.</p>
+
+<h3>Где эта настройка лежит</h3>
+
+<ol>
+<li><strong>В Android</strong> — «Сеть и интернет», строка «Экономия трафика», список исключений.</li>
+<li><strong>В iOS</strong> — «Сотовая связь», ниже «Режим экономии данных» для сети Wi-Fi отдельно.</li>
+<li><strong>В самой сборке</strong> — «Фоновая работа», галочка на своё усмотрение.</li>
+<li><strong>В настройках батареи</strong> — отдельное ограничение фона, чаще всего и виновато.</li>
+</ol>
+
+<p>Четвёртый пункт находят последним, а мешает он больше прочих.</p>
+
+<p>В некоторых прошивках настройку для %brand_name_en% прячут ещё глубже.</p>
+
+<h3>Судьба оповещений при урезанном фоне</h3>
+
+<p>Сообщение о входе с нового аппарата, о смене ступени и о состоянии заявки идут по одному каналу. При урезанном фоне они копятся на сервере и приходят пачкой, когда программу откроют вручную. Заявку это не задерживает, но узнаёшь о ней позже, чем следовало бы.</p>
+
+<blockquote>«Push-уведомления доставляются при активном фоновом соединении; при ограничении фона сообщения приходят при следующем запуске приложения», — ответ службы поддержки на мой запрос.</blockquote>
+
+<p>Проверял %brand_name_en% на двух телефонах, разница в час.</p>
+
+<p>На старом Android задержка оказалась заметно длиннее.</p>
+
+<h3>Мой порядок настройки</h3>
+
+<p>Экономию оставляю включённой для всего, а сборку вношу в исключения — так счёт за связь не растёт, а оповещения приходят вовремя. Ограничение батареи снимаю тоже: без этого исключение по трафику работает наполовину. Проверить просто — выйти на час и посмотреть, придёт ли сообщение о входе.</p>
+
+<p>Ставка остаётся расходом при любых настройках сети. Экономия трафика не трогает ни отдачу, ни отыгрыш, ни лимиты; <a href="/">витрина</a>, <a href="/slots">каталог автоматов</a> и <a href="/zerkalo">запасной адрес</a> считают их одинаково.</p>
+
+<h2>Ответы про фоновую работу сборки</h2>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему оповещения приходят с опозданием?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Фоновое соединение урезано экономией трафика или ограничением батареи. Сообщения копятся и приходят при следующем запуске.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли экономия на саму игру?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не влияет: пока окно открыто, соединение считается активным. Урезается только фон — то, что происходит при свёрнутой программе.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему перечень запасных доменов устарел?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Он обновляется ночным фоновым запросом. При урезанном фоне список берётся только в момент открытия программы.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Где вносят программу в исключения?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>В Android — «Сеть и интернет», список исключений экономии. В iOS режим включается отдельно для сотовой сети и для Wi-Fi.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Хватает ли одного исключения по трафику?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не хватает, если включено ограничение фоновой работы батареи. Снимать нужно оба, иначе фон остаётся урезанным.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Задерживает ли это обработку заявки на вывод?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не задерживает. Заявка обрабатывается на стороне площадки, а фон отвечает только за скорость сообщения о её состоянии.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько трафика экономит режим за месяц?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>По моему замеру — около 300 МБ, почти всё на подкачке обложек. При обычной игре это меньше десятой части расхода.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Как проверить, что фон работает?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Свернуть программу на час и зайти с другого аппарата. Сообщение о входе должно прийти сразу, а не при открытии.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Меняется ли расход заряда при экономии?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Меняется незначительно, около процента за сутки. Основной расход даёт экран, а не фоновые запросы.</p></div>
+  </div>
+</details>
