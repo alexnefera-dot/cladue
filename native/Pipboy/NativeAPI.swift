@@ -89,6 +89,13 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
             Api.mergeFactIntoTarget(made)
             _ = try? Api.setSetting(made, "merge_trees_v2", "1")
         }
+        // Привязки к курсу (⚡ тикер и количество) вычистила прежняя миграция, гонявшаяся при
+        // каждом запуске, а первое слияние их не переносило. В старом дереве они уцелели —
+        // восстанавливаем разово там, где своей привязки нет.
+        if ((try? made.rows("SELECT value FROM settings WHERE key = 'restore_auto_rates_v1'"))?.first?["value"]) as? String != "1" {
+            Api.restoreAutoRates(made)
+            _ = try? Api.setSetting(made, "restore_auto_rates_v1", "1")
+        }
         Api.ensureSpheresSchema(made)   // таблицы сфер (area_milestones/area_questions) — до sync-схемы, чтобы им добавились updated_at/триггеры
         Api.ensureSyncSchema(made)   // updated_at + триггеры + tombstones — отслеживание правок для синхрона
         Api.ensureThoughtTesting(made)   // техника «Тестирование мыслей» (КПТ) — один раз
@@ -1832,6 +1839,36 @@ enum Api {
         _ = try? setSetting(db, "budget_seed_v2", "1")
     }
 
+    // Возвращает ⚡-привязку из старого дерева в целевое по совпадающему пути.
+    // Трогаем только позиции без своей привязки, чтобы не затереть выставленное вручную.
+    static func restoreAutoRates(_ db: Database) {
+        guard let fact = try? db.rows("SELECT id, rate_symbol, qty FROM portfolio_items WHERE rate_symbol IS NOT NULL"),
+              !fact.isEmpty else { return }
+        let key = { (n: [String: Any]) in ((n["name"] as? String) ?? "").trimmingCharacters(in: .whitespaces).lowercased() }
+        func paths(_ table: String) -> ([String: Int], [Int: String]) {
+            guard let rows = try? db.rows("SELECT id, parent_id, name FROM \(table)") else { return ([:], [:]) }
+            var kids: [Int: [[String: Any]]] = [:], roots: [[String: Any]] = []
+            for r in rows {
+                if let p = numOpt(r["parent_id"]).map({ Int($0) }) { kids[p, default: []].append(r) } else { roots.append(r) }
+            }
+            var byPath: [String: Int] = [:], byId: [Int: String] = [:]
+            func walk(_ n: [String: Any], _ pre: String) {
+                let id = intval(n["id"]), path = pre + "/" + key(n)
+                byPath[path] = id; byId[id] = path
+                for c in kids[id] ?? [] { walk(c, path) }
+            }
+            for r in roots { walk(r, "") }
+            return (byPath, byId)
+        }
+        let (_, factPath) = paths("portfolio_items")
+        let (tgtByPath, _) = paths("target_items")
+        for r in fact {
+            guard let path = factPath[intval(r["id"])], let tid = tgtByPath[path] else { continue }
+            _ = try? db.run("UPDATE target_items SET rate_symbol = ?, qty = ? WHERE id = ? AND rate_symbol IS NULL",
+                            [r["rate_symbol"] ?? NSNull(), r["qty"] ?? NSNull(), tid])
+        }
+    }
+
     // Слияние деревьев: целевое становится единственным, фактическое остаётся нетронутым как страховка.
     // Факт ТОЛЬКО заполняет пробелы: позиции, которых в целевом нет, и пустые поля у совпавших.
     // Значения целевого приоритетны — их пользователь правил руками.
@@ -1865,7 +1902,7 @@ enum Api {
         // у совпавших — дозаполняем только пустые поля, ничего не перетирая
         for r in factRows {
             guard let path = factPathById[intval(r["id"])], let tid = tgtByPath[path] else { continue }
-            for col in ["buy_value", "asset_type", "region", "note", "loan_due"] where r[col] != nil {
+            for col in ["buy_value", "asset_type", "region", "note", "loan_due", "rate_symbol", "qty"] where r[col] != nil {
                 _ = try? db.run("UPDATE target_items SET \(col) = ? WHERE id = ? AND \(col) IS NULL", [r[col]!, tid])
             }
             if intval(r["is_loan"]) == 1 {
