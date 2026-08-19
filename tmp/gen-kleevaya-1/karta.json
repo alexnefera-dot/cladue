@@ -1,0 +1,32 @@
+{
+    "комплект": "kleevaya-1",
+    "маска": "клеевая варня",
+    "ракурс": "клеевар",
+    "рефрен": "проба на схват",
+    "словарь": [
+        "обрезь",
+        "студень",
+        "плитка",
+        "сушило",
+        "крепость",
+        "навар",
+        "пена"
+    ],
+    "срезы": {
+        "app": "Программа держит две учётные записи и путает их",
+        "bonus": "Подарок за друга не пришёл при выполненных условиях",
+        "registracia": "Регистрация прошла без письма подтверждения",
+        "slots": "Выигрыш показан в игре, а на счёте другая сумма",
+        "vhod": "Вход по ссылке из письма ведёт на форму заново",
+        "zerkalo": "Адрес открылся, но история ставок пуста"
+    },
+    "промпты": {
+        "main": "tmp\/gen-kleevaya-1\/prompt-main.md",
+        "app": "tmp\/gen-kleevaya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-kleevaya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-kleevaya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-kleevaya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-kleevaya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-kleevaya-1\/prompt-zerkalo.md"
+    }
+}
