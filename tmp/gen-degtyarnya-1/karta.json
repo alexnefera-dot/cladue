@@ -1,0 +1,32 @@
+{
+    "комплект": "degtyarnya-1",
+    "маска": "дегтярня",
+    "ракурс": "дегтярь",
+    "рефрен": "проба на текучесть",
+    "словарь": [
+        "береста",
+        "корчага",
+        "гон",
+        "сток",
+        "отстой",
+        "гуща",
+        "бочонок"
+    ],
+    "срезы": {
+        "app": "Клиент не отдаёт файл выгрузки в общую папку телефона",
+        "bonus": "Турнирные очки не совпали с числом ставок",
+        "registracia": "Форма принимает дату, но профиль показывает другую",
+        "slots": "Автомат теряет ставку при повороте экрана",
+        "vhod": "Кабинет помнит устройство, которого не было",
+        "zerkalo": "Запасной домен показывает акции, которых нет на основном"
+    },
+    "промпты": {
+        "main": "tmp\/gen-degtyarnya-1\/prompt-main.md",
+        "app": "tmp\/gen-degtyarnya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-degtyarnya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-degtyarnya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-degtyarnya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-degtyarnya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-degtyarnya-1\/prompt-zerkalo.md"
+    }
+}
