@@ -1,0 +1,108 @@
+<h2>Логин работает в браузере и не работает в программе</h2>
+<p>
+  Пара от %brand_name_ru% принята в браузере с первого раза: кабинет открылся, остаток на месте. А в установленной сборке та же пара выдаёт отказ, будто пароль неверен.
+</p>
+<p>
+  Пароль от %brand_name_en% при этом верный. Расходятся не данные, а то, куда именно программа их отправляет.
+</p>
+<h3>Четыре причины отказа в сборке</h3>
+<table>
+  <tbody>
+    <tr><th>Причина</th><th>Признак</th><th>Что делать</th></tr>
+    <tr><td>Пакет обращается к закрытому домену</td><td>Витрина тоже не грузится</td><td>Обновить программу</td></tr>
+    <tr><td>Сохранён старый пароль</td><td>Поле подставлено автоматически</td><td>Очистить и ввести руками</td></tr>
+    <tr><td>Программа держит вторую учётную запись</td><td>Имя в профиле чужое</td><td>Выйти и войти заново</td></tr>
+    <tr><td>Кеш авторизации повреждён</td><td>Отказ и после смены пароля</td><td>Очистить кеш программы</td></tr>
+  </tbody>
+</table>
+<h3>Отчего закрытый домен даёт именно отказ входа</h3>
+<p>
+  <strong>Программа стучится по адресу из своего перечня, а не по тому, что открыт в браузере.</strong> Если этот адрес закрыт, ответ не приходит вовсе, и сборка показывает привычный отказ вместо сообщения о недоступности. Отсюда и обманчивость: пароль ни при чём.
+</p>
+<blockquote>
+  Челнок ходит по своей дорожке между нитями. Сдвинулась тетива — и он бьёт мимо, хотя нить в руках та же самая.
+</blockquote>
+<h3>Порядок проверки за минуту</h3>
+<ol>
+  <li>Проверить, грузится ли витрина в самой программе</li>
+  <li>Очистить поле пароля и ввести его руками</li>
+  <li>Посмотреть имя в профиле: оно может быть чужим</li>
+  <li>Сверить номер версии со страницей загрузки</li>
+  <li>Поставить свежий пакет поверх старого</li>
+</ol>
+<p>
+  Проверить перечень внутри пакета можно прямо в программе: он лежит в разделе о приложении, рядом с номером версии. Если адреса там старше недели, обновление снимет и вход, и пустые разделы разом — оба случая упираются в одно и то же.
+</p>
+<h3>Чего отказ в программе не означает</h3>
+<ul>
+  <li><strong>Не блокировки счёта.</strong> Браузер открывает его без вопросов</li>
+  <li><strong>Не смены пароля кем-то.</strong> Тогда бы отказал и браузер</li>
+  <li><strong>Не потери начислений.</strong> Они лежат у оператора</li>
+  <li><strong>Не сбоя верификации.</strong> Документы к входу отношения не имеют</li>
+</ul>
+<h3>Итог</h3>
+<p>
+  Отказ в сборке при рабочем браузере почти всегда означает закрытый домен в перечне пакета: программа стучится по своему адресу, ответа нет, и она показывает привычный отказ входа. Обновление снимает случай целиком, потому что вместе с пакетом приходит и свежий перечень. Вторая по частоте причина — подставленный автоматически старый пароль: поле стоит очистить и набрать руками. Счёт при этом в порядке, начисления целы, а верификация к входу отношения не имеет вовсе. За остальным — по своим разборам. Как часто машина отдаёт и насколько крупно, разложено в <a href="/slots">своде игр</a>. Чем закрывают сверку личности с первого захода, объясняет <a href="/registracia">разбор анкеты</a>. Сколько идёт выплата и где её искать — во <a href="/vhod">входе на счёт</a>. Самый мелкий спин выписан в <a href="/slots">описании тайтла</a>, а перечень живых адресов носит с собой <a href="/app">клиент для телефона</a>.
+</p>
+
+<h2>Частые вопросы игроков о входе через сборку %brand_name_en%</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Вход не работает в программе — счёт заблокирован?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет: браузер открывает тот же счёт. Дело в закрытом домене внутри пакета — обновите программу.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отчего сборка показывает отказ вместо ошибки сети?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Ответ от закрытого адреса не приходит вовсе, и программа выводит привычное сообщение о неверной паре.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Поможет ли смена пароля?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не поможет, если дело в домене. Сперва обновите пакет и проверьте, грузится ли витрина в самой сборке.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отчего в профиле сборки чужое имя?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Программа держит вторую учётную запись с прошлого входа. Выйдите из неё и войдите своей парой.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Безопасно ли чистить кеш программы?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Полностью: стираются картинки и разметка. Деньги, ставки и заявки лежат на сервере оператора.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сбрасывается ли вход по отпечатку при обновлении?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>При установке поверх — нет. При удалении программы настройка стирается вместе с ней.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли играть только из браузера?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Можно: состав витрины тот же. Сборка выигрывает перечнем доменов и входом по отпечатку.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отчего программа не спрашивает код, а браузер спрашивает?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Метка устройства в сборке жива, а в браузере слетела при чистке данных. Это разные привязки.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько устройств можно держать одновременно?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Обычно до пяти отмеченных. Играть при этом можно с одного: вход с шестого закрывает самую старую сессию.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что приложить к письму, если ничего не помогло?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Номер версии, модель аппарата и снимок экрана отказа. Разбор занимает около суток.</p></div>
+  </div>
+</details>

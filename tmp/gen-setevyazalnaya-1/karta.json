@@ -1,0 +1,32 @@
+{
+    "комплект": "setevyazalnaya-1",
+    "маска": "сетевязальная",
+    "ракурс": "сетевяз",
+    "рефрен": "проба на ячею",
+    "словарь": [
+        "челнок",
+        "ячея",
+        "посадка",
+        "тетива",
+        "груз",
+        "поплавок",
+        "узел"
+    ],
+    "срезы": {
+        "app": "Программа открывает каталог, но не показывает историю ставок",
+        "bonus": "Подарок за депозит пришёл дважды, а списали один",
+        "registracia": "Анкета не принимает номер телефона другой страны",
+        "slots": "Автомат считает выигрыш по старой ставке после её смены",
+        "vhod": "Логин работает в браузере и не работает в программе",
+        "zerkalo": "Адрес перестал открываться через час после письма"
+    },
+    "промпты": {
+        "main": "tmp\/gen-setevyazalnaya-1\/prompt-main.md",
+        "app": "tmp\/gen-setevyazalnaya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-setevyazalnaya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-setevyazalnaya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-setevyazalnaya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-setevyazalnaya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-setevyazalnaya-1\/prompt-zerkalo.md"
+    }
+}
