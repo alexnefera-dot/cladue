@@ -1149,7 +1149,7 @@ $("w_zipXlsx").onclick=()=> wJob && (location.href="/api/watch/download_zip/"+wJ
 $("w_zipCsv").onclick =()=> wJob && (location.href="/api/watch/download_zip/"+wJob+"?fmt=csv");
 
 // ===================== ВКЛАДКА 7: ОТЧЁТЫ ПО ЗАПУСКАМ =====================
-let plData={keywords:[],launches:[]}, plDetails={}, plExpanded={}, plSnapSel={}, plKwTimer=null;
+let plData={keywords:[],launches:[]}, plDetails={}, plExpanded={}, plSnapSel={}, plKwTimer=null, plSig=null;
 function plLines(id){ return $(id).value.split("\n").map(s=>s.trim()).filter(Boolean); }
 // сохранение настроек съёма локально
 ["pl_engine","pl_depth","pl_device","pl_workers"].forEach(f=>{ const el=$(f); if(el){
@@ -1190,7 +1190,7 @@ async function plDelete(id){
   try{ await fetch("/api/launches/"+id+"/delete",{method:"POST"}); delete plExpanded[id]; delete plDetails[id]; plRefresh(); }catch(e){}
 }
 async function plToggle(id){ plExpanded[id]=!plExpanded[id]; if(plExpanded[id]) await plLoadDetail(id); else plRender(); }
-async function plLoadDetail(id){ try{ plDetails[id]=await (await fetch("/api/launches/"+id)).json(); plRender(); }catch(e){} }
+async function plLoadDetail(id){ try{ const det=await (await fetch("/api/launches/"+id)).json(); const la=(plData.launches||[]).find(x=>x.id===id); det._snaps=la?la.snapshots_count:(det.snapshots||[]).length; plDetails[id]=det; plRender(); }catch(e){} }
 function plPosCell(p){ if(p==null) return '<span class="miss">·</span>'; const c=p<=3?"p-top":(p<=10?"p-mid":"p-low"); return `<span class="${c}">${p}</span>`; }
 
 function plRender(){
@@ -1240,15 +1240,26 @@ function plRender(){
   $("pl_list").querySelectorAll(".pl-snap").forEach(s=>{ s.onchange=()=>{
     const v=s.value; plSnapSel[s.dataset.id]=(v==="avg"?"avg":parseInt(v,10)); plRender();
   };});
+  plSig=plRenderSig();
+}
+function plRenderSig(){
+  return JSON.stringify((plData.launches||[]).map(l=>[l.id,l.snapshots_count,l.snapping,l.snap_done,l.snap_total,l.last_at,l.name,l.domains_count]))
+    +"|"+JSON.stringify(plExpanded)+"|"+JSON.stringify(plSnapSel);
 }
 async function plRefresh(){
-  try{ const d=await (await fetch("/api/launches")).json(); plData=d;
-    if(document.activeElement!==$("pl_keywords") && !$("pl_keywords").value.trim() && (d.keywords||[]).length){
-      $("pl_keywords").value=d.keywords.join("\n"); $("pl_kwcount").textContent=d.keywords.length+" стр.";
+  let d; try{ d=await (await fetch("/api/launches")).json(); }catch(e){ return; }
+  plData=d;
+  if(document.activeElement!==$("pl_keywords") && !$("pl_keywords").value.trim() && (d.keywords||[]).length){
+    $("pl_keywords").value=d.keywords.join("\n"); $("pl_kwcount").textContent=d.keywords.length+" стр.";
+  }
+  // тяжёлую деталь перезагружаем только при НОВОМ съёме (а не каждый опрос) — важно на 2000 ключей
+  for(const id in plExpanded){ if(plExpanded[id]){
+    const la=(d.launches||[]).find(x=>x.id===id);
+    if(la && (!plDetails[id] || plDetails[id]._snaps!==la.snapshots_count)){
+      try{ const det=await (await fetch("/api/launches/"+id)).json(); det._snaps=la.snapshots_count; plDetails[id]=det; }catch(e){}
     }
-    for(const id in plExpanded){ if(plExpanded[id]) await plLoadDetail(id); }
-    plRender();
-  }catch(e){}
+  }}
+  if(plRenderSig()!==plSig) plRender();   // перерисовываем только при реальных изменениях
 }
 $("pl_export").onclick=()=> location.href="/api/launches/export";
 setInterval(plRefresh, 3000); plRefresh();
