@@ -1,0 +1,117 @@
+<h2>Код приходит с задержкой, когда срок уже истёк</h2>
+<p>
+  Запросили код для входа в %brand_name_en%, подождали, не дождались, запросили ещё раз. Оба сообщения падают разом минуты через три — и оба форма уже не принимает.
+</p>
+<p>
+  Виноват тут не столько оператор связи, сколько порядок запросов. Каждое повторное нажатие гасит прежний код, и при задержке связи это работает против игрока.
+</p>
+<h3>Срок жизни кода: три величины</h3>
+<table>
+  <tbody>
+    <tr><th>Величина</th><th>Сколько</th><th>Что происходит по исходу</th></tr>
+    <tr><td>Годность кода</td><td>130 секунд</td><td>Форма отвечает отказом</td></tr>
+    <tr><td>Пауза между запросами</td><td>60 секунд</td><td>Кнопка снова становится нажимаемой</td></tr>
+    <tr><td>Число попыток за час</td><td>3</td><td>Дальше вход закрывают до конца часа</td></tr>
+  </tbody>
+</table>
+<h3>Отчего повтор делает хуже</h3>
+<p>
+  <strong>Годным остаётся только последний выписанный код, а его отсчёт начинается заново с часа отправки.</strong> Пока первое сообщение идёт очередью оператора, второй запрос уже отменил его — и первое приходит мёртвым. Когда следом падает второе, от его ста тридцати секунд остаётся половина, и на ввод шести цифр времени почти нет. Выходит так: чем чаще нажимаешь, тем короче окно.
+</p>
+<blockquote>
+  Творило залили, а через минуту велели слить и залить заново. Известь не гасится быстрее оттого, что воду меняют, — она просто не успевает взяться.
+</blockquote>
+<h3>Порядок при тугой связи</h3>
+<ol>
+  <li>Нажать запрос один раз и держать окно открытым</li>
+  <li>Отсчитать полные две минуты, не трогая кнопку</li>
+  <li>Пришло сообщение — вводить последние присланные цифры, а не первые</li>
+  <li>Не пришло — запросить второй раз и снова выждать две минуты</li>
+  <li>После третьей неудачи переключиться на почту: у неё срока годности нет вовсе</li>
+</ol>
+<p>
+  Заказанный вывод средств при этом никуда не денется: заявка живёт своей очередью и входа не требует. Остаток, вейджер и открытые начисления тоже стоят на месте — их состояние показывает раздел операций %brand_name_en%, а состав бумаг и доли автоматов разобраны в <a href="/registracia">бланке счёта</a> и в <a href="/slots">росписи машин</a>.
+</p>
+<p>
+  Ниже — о причинах самой задержки и о заменах для сообщения.
+</p>
+<h3>Отчего сообщение идёт долго</h3>
+<ul>
+  <li>🪨 <strong>Очередь у оператора связи.</strong> В вечерние часы она длиннее всего</li>
+  <li>🧱 <strong>Слабый приём в помещении.</strong> Сообщение ждёт, пока аппарат поймает сеть</li>
+  <li>💨 <strong>Переполненная память сообщений.</strong> Новые не ложатся, пока не удалить старые</li>
+  <li>⚗️ <strong>Роуминг.</strong> Служебные сообщения за границей идут дольше обычных</li>
+</ul>
+<h3>Чем заменить код из сообщения</h3>
+<ul>
+  <li>🪨 <strong>Почта.</strong> Срока годности у письма нет, приходит без очереди</li>
+  <li>🧱 <strong>Отметка устройства доверенным.</strong> Код спросят раз, дальше — нет</li>
+  <li>💨 <strong>Программа-генератор кодов.</strong> Считает их у вас на аппарате, связь не нужна</li>
+  <li>⚗️ <strong>Вход из клиента.</strong> Сеанс там держится дольше, чем в браузере</li>
+</ul>
+<h3>Итог</h3>
+<p>
+  Мёртвый код %brand_name_en% — почти всегда след повторного нажатия: годным остаётся последний выписанный, и каждый новый запрос гасит прежний, пока тот ещё идёт очередью оператора. Лечится это терпением — одно нажатие и полные две минуты ожидания, — а надёжнее всего переходом на почту, где срока годности нет вовсе. Помнить стоит и про предел: три попытки за час, после чего вход закрывают до конца часа. Заказанная выплата от этого не страдает, заявка идёт своей очередью. Дальше по узлам: состав бумаг разобран в <a href="/registracia">описи анкеты</a>, паспорта автоматов — в <a href="/slots">витрине провайдеров</a>, рабочие домены ведёт <a href="/zerkalo">сводка адресов</a>, а генератор кодов удобнее держать рядом с <a href="/app">клиентом для телефона</a>.
+</p>
+
+<h2>Частые вопросы о коде подтверждения %brand_name_en%</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Код пришёл, но форма его не берёт — почему?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Его погасил повторный запрос. Годным остаётся только последний выписанный код, прежние отменяются сразу.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько живёт код?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Сто тридцать секунд от часа отправки. Отсчёт идёт с площадки, а не с момента, когда сообщение дошло.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько раз можно запрашивать подряд?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Три раза за час, с паузой в минуту. После третьей неудачи вход закрывают до конца часа.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Какие цифры вводить, если сообщений два?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Из последнего пришедшего. Первое к этому времени уже отменено вторым запросом.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отчего сообщение идёт три минуты?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Очередь у оператора связи, слабый приём или переполненная память сообщений на аппарате.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли получать код на почту?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Можно, и при тугой связи это лучший выход: у письма срока годности нет и очереди оператора тоже.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать, если вход заблокирован на час?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Дождаться конца часа. Обращение в поддержку срок не сокращает, счёт при этом не тронут.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Пропадёт ли заказанный вывод средств?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не пропадёт: заявка идёт своей очередью и вашего присутствия не требует.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Помогает ли отметка устройства доверенным?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Помогает надолго: код спросят один раз при отметке, дальше вход идёт без него.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Годится ли программа-генератор кодов?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Годится и работает без связи: коды считаются прямо на аппарате, ждать нечего.</p></div>
+  </div>
+</details>

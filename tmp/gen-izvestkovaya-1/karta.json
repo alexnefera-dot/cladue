@@ -1,0 +1,32 @@
+{
+    "комплект": "izvestkovaya-1",
+    "маска": "известковая печь",
+    "ракурс": "известник",
+    "рефрен": "проба на гашение",
+    "словарь": [
+        "камень",
+        "обжиг",
+        "садка",
+        "тяга",
+        "творило",
+        "пушонка",
+        "короб"
+    ],
+    "срезы": {
+        "app": "Извещения приходят с задержкой в несколько часов",
+        "bonus": "Промокод сработал дважды и списал вдвое",
+        "registracia": "Профиль показывает страну, отличную от выбранной",
+        "slots": "Барабаны крутятся дольше обычного и сбивают темп",
+        "vhod": "Код приходит с задержкой, когда срок уже истёк",
+        "zerkalo": "Перечень адресов в кабинете короче, чем в письме"
+    },
+    "промпты": {
+        "main": "tmp\/gen-izvestkovaya-1\/prompt-main.md",
+        "app": "tmp\/gen-izvestkovaya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-izvestkovaya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-izvestkovaya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-izvestkovaya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-izvestkovaya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-izvestkovaya-1\/prompt-zerkalo.md"
+    }
+}
