@@ -1,0 +1,112 @@
+<h2>Выгрузка журнала из программы приходит не за тот период</h2>
+<p>
+  В сборке %brand_name_en% выбрали неделю, нажали выгрузку — а в таблице записи за десять дней, причём последние два вечера отсутствуют. В браузере тот же запрос отдаёт ровно выбранное.
+</p>
+<p>
+  Записи не потерялись и не подменились. Программа %brand_name_ru% режет период по своему поясу, а границы дня считает от полуночи площадки, а не от вашей.
+</p>
+<h3>Отчего границы периода расходятся</h3>
+<table>
+  <tbody>
+    <tr><th>Что задаёт границу</th><th>В браузере</th><th>В программе</th></tr>
+    <tr><td>Начало дня</td><td>Полночь по поясу площадки</td><td>Полночь по поясу телефона</td></tr>
+    <tr><td>Конец периода</td><td>Момент запроса</td><td>Последняя закрытая смена</td></tr>
+    <tr><td>Часовой сдвиг</td><td>Показан в шапке таблицы</td><td>Не показан вовсе</td></tr>
+  </tbody>
+</table>
+<h3>Отчего пропадают последние два вечера</h3>
+<p>
+  <strong>Программа берёт записи до конца последней закрытой смены, а не до текущей минуты.</strong> Смены закрываются раз в сутки, и всё, что попало в открытую, в выгрузку не идёт. В браузере такого нет: там запрос уходит на площадку и отдаёт всё до момента нажатия. Отсюда и разница в два вечера при одинаково выбранной неделе.
+</p>
+<blockquote>
+  Приёмщик записывает кипы до вечернего замка. Что привезли после — ляжет в завтрашнюю книгу, хотя привезли это сегодня.
+</blockquote>
+<h3>Порядок правильной выгрузки</h3>
+<ol>
+  <li>Задать период с запасом в сутки с обоих концов</li>
+  <li>Посмотреть пояс в шапке готовой таблицы</li>
+  <li>Отбросить лишние дни уже в таблице, а не в запросе</li>
+  <li>Для спора по конкретной операции брать её номер, а не период</li>
+  <li>Свежую выгрузку за сегодня делать из браузера</li>
+</ol>
+<p>
+  Журнал хранится три года и выгружается таблицей с номером у каждой записи, временем, типом операции и остатком после неё.
+</p>
+<p>
+  Можно ли обойтись без выгрузки — да, если операция одна: её достаточно найти по номеру прямо в личном кабинете. Этого набора хватает и для сверки кэшбэка, и для разбора спорной ставки, и для проверки очереди на вывод средств.
+</p>
+<h3>Когда выгрузка из программы удобнее</h3>
+<ul>
+  <li>🪢 <strong>За прошлый месяц целиком.</strong> Закрытые смены отдаются полностью</li>
+  <li>🌾 <strong>Без сети под рукой.</strong> Последняя выгрузка хранится в пакете</li>
+  <li>🧺 <strong>При медленном канале.</strong> Таблица легче витрины во много раз</li>
+  <li>🪵 <strong>Для длинных периодов.</strong> Браузер такие запросы обрывает чаще</li>
+</ul>
+<h3>Итог</h3>
+<p>
+  Расхождение периода — не потеря записей, а разные правила отсечки: программа считает сутки по поясу телефона и отдаёт данные до конца закрытой смены, браузер берёт пояс площадки и отдаёт всё до текущей минуты. Обе выгрузки верны, просто отвечают на слегка разные вопросы. Для спора надёжнее номер записи: он находит операцию мгновенно и от периодов не зависит вовсе. Свежие сутки берут из браузера, длинные отрезки — из сборки. </p>
+<p>
+  Ответы на смежные вопросы собраны по разделам. Потолки, очередь заявок и сроки выплат разобраны в <a href="/vhod">сводке кабинета</a>, состав анкеты и закрытые графы — в <a href="/registracia">описи полей</a>, повадка машин и заявленный возврат — в <a href="/slots">росписи автоматов</a>, а живые адреса ведёт <a href="/zerkalo">список доменов</a>.
+</p>
+
+<h2>Частые вопросы о выгрузке журнала в %brand_name_en%</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Записи за последние дни пропали — их стёрли?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, они в открытой смене. Программа отдаёт данные до конца последней закрытой, браузер — до текущей минуты.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отчего дней в таблице больше, чем выбрано?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Сборка считает начало суток по поясу телефона, а площадка по своему. Сдвиг захватывает соседние дни.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Какая выгрузка считается верной при споре?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Обе, но спор разбирают по номеру записи. Он однозначен и от выбранного периода не зависит.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Где посмотреть пояс, по которому построена таблица?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>В шапке готовой выгрузки. В программе он не выводится, потому и путает при сверке.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько лет хранится журнал?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Три года. Выгружается любой отрезок внутри этого срока, включая закрытые давно периоды.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Уберёт ли расхождение свежая сборка?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Отчасти: пояс в шапке появился в поздних выпусках. Отсечка по закрытой смене остаётся в любом случае.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли выгрузить журнал за три года разом?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Можно, и в программе это выходит надёжнее: браузер длинные запросы чаще обрывает на середине.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отражаются ли в журнале отменённые раунды?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Отражаются двумя строками: сама ставка и её возврат. При сверке кэшбэка обе идут в зачёт.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Видит ли поддержка ту же таблицу?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Видит те же записи, но по поясу площадки. Поэтому в письме удобнее называть номер, а не время.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Пропадёт ли выгрузка при замене пакета?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Сохранённый файл останется в телефоне, а сам журнал лежит на площадке и замене не подвержен.</p></div>
+  </div>
+</details>

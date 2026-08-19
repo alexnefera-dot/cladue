@@ -1,0 +1,114 @@
+<h2>Форма отвергает фамилию из двух частей</h2>
+<p>
+  В документе фамилия записана через дефис, а анкета %brand_name_en% подчёркивает графу красным и требует «убрать недопустимый знак». Без этого форма дальше не пускает.
+</p>
+<p>
+  Знак допустимый, а вот проверка настроена узко. Графа %brand_name_en% принимает буквы, дефис и пробел, но только по определённому правилу — и лишний пробел рядом с дефисом ломает всю запись.
+</p>
+<h3>Что графа принимает и что отвергает</h3>
+<table>
+  <tbody>
+    <tr><th>Запись</th><th>Проходит</th><th>Отчего</th></tr>
+    <tr><td>Иванов-Петров</td><td>Да</td><td>Дефис без пробелов</td></tr>
+    <tr><td>Иванов - Петров</td><td>Нет</td><td>Пробелы рядом с дефисом</td></tr>
+    <tr><td>Иванов Петров</td><td>Да</td><td>Одиночный пробел между частями</td></tr>
+    <tr><td>Иванов–Петров</td><td>Нет</td><td>Длинное тире вместо дефиса</td></tr>
+  </tbody>
+</table>
+<h3>Отчего длинное тире не проходит</h3>
+<p>
+  <strong>Проверка знает один знак переноса — обычный дефис с клавиатуры.</strong> Длинное тире выглядит почти так же, а внутри это другой символ, и форма его не узнаёт. Подставляется он сам, если фамилию набирали в текстовом редакторе с автозаменой, а потом перенесли в анкету через буфер.
+</p>
+<blockquote>
+  Две бирки на связке пишут одной рукой и одним резцом. Взял чужой резец — насечка легла шире, и приёмщик бирку не признал.
+</blockquote>
+<h3>Порядок, если графа не принимает запись</h3>
+<ol>
+  <li>Набрать фамилию в самой графе, а не вставлять из буфера</li>
+  <li>Поставить дефис с клавиатуры, без пробелов по краям</li>
+  <li>Проверить, что нет лишнего пробела в конце строки</li>
+  <li>Если части разделены пробелом в документе — оставить один пробел</li>
+  <li>Написать в поддержку, если после этого запись всё равно отвергнута</li>
+</ol>
+<p>
+  Записывать фамилию надо ровно так, как она стоит в основном документе: любое расхождение всплывёт при сверке перед первой выплатой. Апострофы и точки внутри фамилии в анкету не проходят вовсе — их вносит оператор по приложенному развороту. До подачи первой заявки на вывод средств это ничему не мешает: депозит, промокод, фриспины и кэшбэк работают сразу, а вклад разделов в вейджер выписан в <a href="/slots">карточке автомата</a>.
+</p>
+<h3>Чем грозит запись «как получилось»</h3>
+<ul>
+  <li>🪢 <strong>Остановка первой заявки.</strong> Сверка не сойдётся с документом</li>
+  <li>🌾 <strong>Возврат платежа банком.</strong> Получателя сверяют по фамилии</li>
+  <li>🧺 <strong>Разбор через отдел контроля.</strong> Срок до четырёх суток</li>
+  <li>🪵 <strong>Закрытая правка.</strong> Сама графа после сохранения уже не редактируется</li>
+</ul>
+<h3>Итог</h3>
+<p>
+  Отказ формы почти всегда упирается не в дефис, а в то, что стоит рядом с ним: пробелы по краям знака или подставленное автозаменой длинное тире. Лечится это набором прямо в графе, без буфера обмена, — на это уходит десяток секунд. Апострофы и точки анкета не берёт вовсе, и такие фамилии вносит оператор по документу, ещё до первого депозита. Проверять запись стоит сразу: после сохранения графа закрывается, а расхождение с документом останавливает выплату целиком. Рядом по теме: сроки разбора бумаг и очередь заявок разобраны в <a href="/vhod">сводке кабинета</a>, повадка машин и заявленный возврат — в <a href="/slots">росписи автоматов</a>, действующие адреса ведёт <a href="/zerkalo">список доменов</a>, а выгрузка журнала за длинный период удобнее из <a href="/app">мобильной сборки</a>.
+</p>
+
+<h2>Частые вопросы о графе фамилии в анкете %brand_name_en%</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Форма не принимает дефис — счёт не откроют?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Откроют. Дефис допустим, отвергаются пробелы рядом с ним и длинное тире вместо обычного знака.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отчего вставка из буфера не проходит?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Текстовые редакторы подменяют дефис длинным тире автозаменой. Внутри это другой символ.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли записать фамилию одним словом без дефиса?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нельзя: запись обязана совпадать с документом знак в знак, иначе сверка перед выплатой не сойдётся.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать с апострофом в фамилии?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Такие записи анкета не берёт. Их вносит оператор по приложенному развороту документа.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Правится ли графа после сохранения?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Самостоятельно нет. Фамилия относится к закрытым графам и меняется только оператором по документу.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько занимает правка через поддержку?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>До четырёх суток. Быстрее выходит, если сразу приложить разворот документа и номер счёта.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли играть, пока запись неверна?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Можно: депозит, спины, промокод и начисления доступны. Закрыт только вывод средств.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отклонит ли банк выплату из-за половины фамилии?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Отклонит и вернёт платёж отправителю: получателя сверяют по фамилии знак в знак.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Помогает ли завести второй счёт?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Только вредит: счета сведут при первой выплате и снимут начисления с обоих сразу.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Есть ли предел длины у графы?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Есть, но составные фамилии в него укладываются. Чаще мешают знаки, а не число букв.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Когда лучше проверять запись?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Сразу после заполнения, до первого депозита. Тогда правка не упирается ни в какие сроки и очереди.</p></div>
+  </div>
+</details>

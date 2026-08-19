@@ -1,0 +1,32 @@
+{
+    "комплект": "rogozhnaya-1",
+    "маска": "рогожная мастерская",
+    "ракурс": "рогожник",
+    "рефрен": "проба на растяг",
+    "словарь": [
+        "мочало",
+        "луб",
+        "стан",
+        "пропарка",
+        "кипа",
+        "прокладка",
+        "стёжка"
+    ],
+    "срезы": {
+        "app": "Сборка выгружает журнал не за тот период",
+        "bonus": "Кэшбэк посчитан без учёта отменённых раундов",
+        "registracia": "Форма не принимает фамилию с двумя частями",
+        "slots": "Два автомата одной серии дают разную частоту серий",
+        "vhod": "Кабинет открывается только со второго раза",
+        "zerkalo": "Запасной домен теряет часть платёжных каналов"
+    },
+    "промпты": {
+        "main": "tmp\/gen-rogozhnaya-1\/prompt-main.md",
+        "app": "tmp\/gen-rogozhnaya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-rogozhnaya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-rogozhnaya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-rogozhnaya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-rogozhnaya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-rogozhnaya-1\/prompt-zerkalo.md"
+    }
+}
