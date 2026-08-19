@@ -2499,6 +2499,304 @@ def api_watch_download_zip(job_id):
                      mimetype="application/zip")
 
 
+# --------------------------------------------------------------------------- #
+#  Журнал запусков: пул доменов + ручные съёмы позиций + отчёт по листам       #
+# --------------------------------------------------------------------------- #
+# Персистентный «журнал»: несколько запусков (пулов доменов) живут параллельно,
+# каждый снимается вручную сколько нужно, всё копится и сохраняется на диск.
+# Ключи общие (фиксированные) на все запуски. Съём — Live или XML (переключатель).
+LAUNCHES_FILE = os.path.join(OUTPUT_DIR, "launches.json")
+LAUNCH_LOCK = Lock()
+LAUNCHES = {"keywords": [], "launches": {}}   # загружается при старте
+SNAP_PROGRESS = {}                            # launch_id -> прогресс текущего съёма
+_SHEET_BAD = re.compile(r"[\[\]:*?/\\]")
+
+
+def _load_launches():
+    global LAUNCHES
+    try:
+        with open(LAUNCHES_FILE, encoding="utf-8") as f:
+            data = json.load(f)
+        if isinstance(data, dict) and isinstance(data.get("launches"), dict):
+            data.setdefault("keywords", [])
+            LAUNCHES = data
+    except Exception:
+        pass
+
+
+def _save_launches():
+    try:
+        tmp = LAUNCHES_FILE + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(LAUNCHES, f, ensure_ascii=False)
+        os.replace(tmp, LAUNCHES_FILE)
+    except Exception:
+        pass
+
+
+_load_launches()
+
+
+def _fmt_ts(ts):
+    try:
+        return datetime.fromtimestamp(ts).strftime("%d.%m %H:%M")
+    except Exception:
+        return ""
+
+
+def _sheet_name(name, used):
+    t = _SHEET_BAD.sub(" ", (name or "").strip()) or "Запуск"
+    t = t[:31]
+    base, i = t, 2
+    while t.lower() in used:
+        suf = f" ({i})"
+        t = base[: 31 - len(suf)] + suf
+        i += 1
+    used.add(t.lower())
+    return t
+
+
+def _launch_keywords(la):
+    """Порядок ключей запуска: объединение по всем съёмам (ключи могли меняться)."""
+    out = []
+    for s in la.get("snapshots", []):
+        for kw in (s.get("keywords") or list(s.get("positions", {}).keys())):
+            if kw not in out:
+                out.append(kw)
+    return out
+
+
+def launch_report_rows(la):
+    snaps = la.get("snapshots", [])
+    rows = []
+    for dom in la["domains"]:
+        for kw in _launch_keywords(la):
+            seq = [s.get("positions", {}).get(kw, {}).get(dom) for s in snaps]
+            found = [p for p in seq if p is not None]
+            rows.append({
+                "domain": dom, "keyword": kw, "positions": seq,
+                "avg": round(sum(found) / len(found), 1) if found else None,
+                "best": min(found) if found else None,
+                "worst": max(found) if found else None,
+                "found": len(found), "checks": len(snaps),
+            })
+    return rows
+
+
+def _launch_snapshot(launch_id, cfg, keywords, domains):
+    prog = SNAP_PROGRESS[launch_id]
+    positions = {}
+    try:
+        with ThreadPoolExecutor(max_workers=cfg["workers"]) as ex:
+            futs = {ex.submit(fetch_one, cfg, kw, prog["cancel"]): kw for kw in keywords}
+            for fut in as_completed(futs):
+                kw = futs[fut]
+                try:
+                    results, _ = fut.result()
+                except Exception:  # noqa: BLE001
+                    results = []
+                positions[kw] = {dom: find_position(results, dom) for dom in domains}
+                with LAUNCH_LOCK:
+                    prog["done"] += 1
+    except Exception:  # noqa: BLE001
+        pass
+    snap = {"at": time.time(), "engine": cfg.get("engine_label"),
+            "depth": cfg["top_n"], "keywords": list(keywords), "positions": positions}
+    with LAUNCH_LOCK:
+        la = LAUNCHES["launches"].get(launch_id)
+        if la is not None:
+            la["snapshots"].append(snap)
+            _save_launches()
+        prog["active"] = False
+
+
+def _start_snapshot(launch_id, cfg, keywords, domains):
+    with LAUNCH_LOCK:
+        SNAP_PROGRESS[launch_id] = {"active": True, "done": 0,
+                                    "total": len(keywords), "cancel": Event(),
+                                    "started": time.time()}
+    Thread(target=_launch_snapshot, args=(launch_id, cfg, keywords, domains),
+           daemon=True).start()
+
+
+def _snap_cfg(data):
+    """cfg для съёма позиций из тела запроса (переключатель Live/XML + глубина)."""
+    user = (data.get("user") or "").strip()
+    key = (data.get("key") or "").strip()
+    if not user or not key:
+        return None, "Укажите User ID и API key из кабинета xmlstock."
+    engine = data.get("engine") or "yandex"
+    family = "google" if str(engine).startswith("google") else "yandex"
+    xml = data.get("snap_engine") == "xml"
+    endpoint = ENDPOINTS[family if xml else family + "_live"]
+
+    def clamp(v, lo, hi, d):
+        try:
+            return max(lo, min(hi, int(v)))
+        except (TypeError, ValueError):
+            return d
+
+    cfg = {
+        "user": user, "key": key, "endpoint": endpoint, "live": not xml,
+        "lr": (data.get("lr") or "").strip(),
+        "domain": (data.get("domain") or "").strip(),
+        "device": (data.get("device") or "").strip(),
+        "top_n": clamp(data.get("depth"), 10, 100, 50),
+        "workers": clamp(data.get("workers"), 1, 10, 5),
+        "delay": 0.0, "timeout": 30, "retries": 2,
+        "engine_label": "XML" if xml else "Live",
+    }
+    return cfg, None
+
+
+@app.route("/api/launches")
+def api_launches():
+    with LAUNCH_LOCK:
+        kws = list(LAUNCHES["keywords"])
+        out = []
+        for lid, la in LAUNCHES["launches"].items():
+            prog = SNAP_PROGRESS.get(lid, {})
+            snaps = la.get("snapshots", [])
+            out.append({
+                "id": lid, "name": la["name"], "domains_count": len(la["domains"]),
+                "snapshots_count": len(snaps), "created_at": la["created_at"],
+                "last_at": snaps[-1]["at"] if snaps else None,
+                "snapping": bool(prog.get("active")),
+                "snap_done": prog.get("done", 0), "snap_total": prog.get("total", 0),
+            })
+        out.sort(key=lambda x: x["created_at"])
+    return jsonify({"keywords": kws, "launches": out})
+
+
+@app.route("/api/launches/keywords", methods=["POST"])
+def api_launches_keywords():
+    data = request.get_json(force=True, silent=True) or {}
+    kws = _split_unique(data.get("keywords"), 200)
+    with LAUNCH_LOCK:
+        LAUNCHES["keywords"] = kws
+        _save_launches()
+    return jsonify({"keywords": kws})
+
+
+@app.route("/api/launches/create", methods=["POST"])
+def api_launches_create():
+    data = request.get_json(force=True, silent=True) or {}
+    cfg, err = _snap_cfg(data)
+    if err:
+        return jsonify({"error": err}), 400
+    domains, dseen = [], set()
+    for line in (data.get("domains") or "").replace("\r", "\n").split("\n"):
+        nd = normalize_domain(line)
+        if nd and nd not in dseen:
+            dseen.add(nd)
+            domains.append(nd)
+    if not domains:
+        return jsonify({"error": "Добавьте домены запуска (по одному в строке)."}), 400
+    with LAUNCH_LOCK:
+        if data.get("keywords") is not None:
+            LAUNCHES["keywords"] = _split_unique(data.get("keywords"), 200)
+            _save_launches()
+        keywords = list(LAUNCHES["keywords"])
+        n = len(LAUNCHES["launches"]) + 1
+    if not keywords:
+        return jsonify({"error": "Сначала задайте общие ключи вверху вкладки."}), 400
+    name = (data.get("name") or "").strip() or f"Запуск {n}"
+    lid = uuid.uuid4().hex
+    with LAUNCH_LOCK:
+        LAUNCHES["launches"][lid] = {"id": lid, "name": name,
+                                     "created_at": time.time(),
+                                     "domains": domains, "snapshots": []}
+        _save_launches()
+    _start_snapshot(lid, cfg, keywords, domains)
+    return jsonify({"id": lid, "name": name, "domains": len(domains),
+                    "keywords": len(keywords)})
+
+
+@app.route("/api/launches/<lid>/snapshot", methods=["POST"])
+def api_launches_snapshot(lid):
+    data = request.get_json(force=True, silent=True) or {}
+    cfg, err = _snap_cfg(data)
+    if err:
+        return jsonify({"error": err}), 400
+    with LAUNCH_LOCK:
+        la = LAUNCHES["launches"].get(lid)
+        if not la:
+            return jsonify({"error": "Запуск не найден"}), 404
+        if data.get("keywords") is not None:
+            LAUNCHES["keywords"] = _split_unique(data.get("keywords"), 200)
+            _save_launches()
+        domains = list(la["domains"])
+        keywords = list(LAUNCHES["keywords"])
+        busy = bool(SNAP_PROGRESS.get(lid, {}).get("active"))
+    if busy:
+        return jsonify({"error": "Съём по этому запуску уже идёт"}), 409
+    if not keywords:
+        return jsonify({"error": "Сначала задайте общие ключи."}), 400
+    _start_snapshot(lid, cfg, keywords, domains)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/launches/<lid>/delete", methods=["POST"])
+def api_launches_delete(lid):
+    with LAUNCH_LOCK:
+        LAUNCHES["launches"].pop(lid, None)
+        SNAP_PROGRESS.pop(lid, None)
+        _save_launches()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/launches/<lid>")
+def api_launch_detail(lid):
+    with LAUNCH_LOCK:
+        la = LAUNCHES["launches"].get(lid)
+        if not la:
+            return jsonify({"error": "Запуск не найден"}), 404
+        rows = launch_report_rows(la)
+        snaps = [{"at": s["at"], "engine": s.get("engine"), "depth": s.get("depth")}
+                 for s in la["snapshots"]]
+        return jsonify({"id": lid, "name": la["name"], "domains": la["domains"],
+                        "snapshots": snaps, "rows": rows})
+
+
+@app.route("/api/launches/export")
+def api_launches_export():
+    try:
+        from openpyxl import Workbook
+    except Exception:
+        return jsonify({"error": "openpyxl не установлен"}), 400
+    with LAUNCH_LOCK:
+        launches = sorted([json.loads(json.dumps(la)) for la in LAUNCHES["launches"].values()],
+                          key=lambda x: x["created_at"])
+    wb = Workbook()
+    wb.remove(wb.active)
+    ws = wb.create_sheet("Сводка")
+    ws.append(["Запуск", "Доменов", "Ключей", "Съёмов", "Создан", "Последний съём"])
+    for la in launches:
+        snaps = la["snapshots"]
+        ws.append([la["name"], len(la["domains"]), len(_launch_keywords(la)), len(snaps),
+                   _fmt_ts(la["created_at"]), _fmt_ts(snaps[-1]["at"]) if snaps else "—"])
+    used = set()
+    for la in launches:
+        wsl = wb.create_sheet(_sheet_name(la["name"], used))
+        snaps = la["snapshots"]
+        head = (["Домен", "Ключ"]
+                + [f"{_fmt_ts(s['at'])} {s.get('engine') or ''}".strip() for s in snaps]
+                + ["Средняя", "Лучшая", "Худшая", "Нашли"])
+        wsl.append(head)
+        for r in launch_report_rows(la):
+            wsl.append([r["domain"], r["keyword"]]
+                       + [p if p is not None else "" for p in r["positions"]]
+                       + [r["avg"], r["best"], r["worst"], f"{r['found']}/{r['checks']}"])
+    if not launches:
+        wb.create_sheet("Пусто").append(["Пока нет запусков"])
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    return send_file(buf, as_attachment=True, download_name=f"launches_{stamp}.xlsx",
+                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+
 def _open_browser(url):
     try:
         webbrowser.open(url)

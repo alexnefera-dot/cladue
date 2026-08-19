@@ -51,7 +51,7 @@
   fieldset { border:1px solid var(--line); border-radius:8px; padding:12px; margin:0; }
   legend { color:var(--muted); font-size:12px; padding:0 6px; }
   /* tabs */
-  .tabs { display:flex; gap:6px; margin-bottom:16px; }
+  .tabs { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px; }
   .tab { background:transparent; color:var(--muted); border:1px solid var(--line);
          border-radius:9px; padding:9px 16px; }
   .tab.active { background:var(--card); color:var(--txt); border-color:var(--acc2); }
@@ -136,6 +136,7 @@
     <button class="tab" data-tab="redir">🔀 Редиректы</button>
     <button class="tab" data-tab="live">✅ Живость</button>
     <button class="tab" data-tab="watch">🚀 Мониторинг 48ч</button>
+    <button class="tab" data-tab="launch">📊 Отчёты по запускам</button>
   </div>
 
   <!-- ================= ВКЛАДКА 1: СБОР ТОП ================= -->
@@ -574,6 +575,63 @@
     </div>
   </div>
 
+  <!-- ================= ВКЛАДКА 7: ОТЧЁТЫ ПО ЗАПУСКАМ ================= -->
+  <div id="panel-launch" class="hidden">
+    <div class="card">
+      <label>Ключи — общие для всех запусков, по одному в строке <span class="count" id="pl_kwcount">0</span></label>
+      <textarea id="pl_keywords" placeholder="1win&#10;кэт казино&#10;мотор казино&#10;..."></textarea>
+      <div class="hint">Эти ключи снимаются по каждому запуску. Меняешь редко — сохраняются на сервере автоматически.</div>
+      <div class="grid g4" style="margin-top:12px">
+        <div>
+          <label>Движок съёма</label>
+          <select id="pl_engine">
+            <option value="live" selected>Live (живая выдача)</option>
+            <option value="xml">XML (дешевле)</option>
+          </select>
+        </div>
+        <div>
+          <label>Глубина</label>
+          <select id="pl_depth">
+            <option value="30">Топ-30</option>
+            <option value="50" selected>Топ-50</option>
+            <option value="100">Топ-100</option>
+          </select>
+        </div>
+        <div>
+          <label>Устройство</label>
+          <select id="pl_device">
+            <option value="">Десктоп (по умолч.)</option>
+            <option value="desktop">Десктоп</option>
+            <option value="mobile">Мобайл</option>
+            <option value="tablet">Планшет</option>
+          </select>
+        </div>
+        <div><label>Параллельно</label><input id="pl_workers" type="number" value="5" min="1" max="10"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <label style="margin-bottom:8px">Новый запуск</label>
+      <div class="grid g2">
+        <div><label>Название</label><input id="pl_name" placeholder="Например: 1win пул #1"></div>
+        <div style="display:flex;align-items:flex-end">
+          <button class="btn-go" id="pl_create" style="width:100%">▶ Создать запуск и снять позиции</button>
+        </div>
+      </div>
+      <label style="margin-top:10px">Домены запуска — по одному в строке <span class="count" id="pl_domcount">0</span></label>
+      <textarea id="pl_domains" placeholder="onlybets.dj85i.team&#10;spacewin.k4r.team&#10;..."></textarea>
+      <div class="hint">Домены пула (5–10 шт). При создании сразу снимется 1-й съём позиций по общим ключам.</div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px">
+        <label style="margin:0">Запуски — журнал</label>
+        <button class="btn-dl" id="pl_export">⬇ Скачать Excel (все запуски)</button>
+      </div>
+      <div id="pl_list"></div>
+    </div>
+  </div>
+
   <p class="sub" style="text-align:center; margin-top:24px">
     Запущено локально на вашем компьютере · данные никуда не уходят, кроме API xmlstock
     (мониторинг ещё дёргает RDAP/WHOIS для даты регистрации).
@@ -612,6 +670,7 @@ document.querySelectorAll(".tab").forEach(t=> t.onclick = ()=>{
   $("panel-redir").classList.toggle("hidden", t.dataset.tab!=="redir");
   $("panel-live").classList.toggle("hidden", t.dataset.tab!=="live");
   $("panel-watch").classList.toggle("hidden", t.dataset.tab!=="watch");
+  $("panel-launch").classList.toggle("hidden", t.dataset.tab!=="launch");
 });
 
 // ---- движок / свой URL ----
@@ -1088,6 +1147,97 @@ async function wRefresh(){
 $("w_stop").onclick=async ()=>{ if(wJob){ await fetch("/api/watch/cancel/"+wJob,{method:"POST"}); $("w_statusw").textContent="останавливаю…"; } };
 $("w_zipXlsx").onclick=()=> wJob && (location.href="/api/watch/download_zip/"+wJob+"?fmt=xlsx");
 $("w_zipCsv").onclick =()=> wJob && (location.href="/api/watch/download_zip/"+wJob+"?fmt=csv");
+
+// ===================== ВКЛАДКА 7: ОТЧЁТЫ ПО ЗАПУСКАМ =====================
+let plData={keywords:[],launches:[]}, plDetails={}, plExpanded={}, plKwTimer=null;
+function plLines(id){ return $(id).value.split("\n").map(s=>s.trim()).filter(Boolean); }
+// сохранение настроек съёма локально
+["pl_engine","pl_depth","pl_device","pl_workers"].forEach(f=>{ const el=$(f); if(el){
+  const v=localStorage.getItem("xmlstock_"+f); if(v!==null) el.value=v;
+  el.addEventListener("change",()=>localStorage.setItem("xmlstock_"+f,el.value)); }});
+// ключи: счётчик + автосохранение на сервер
+$("pl_keywords").addEventListener("input", ()=>{ $("pl_kwcount").textContent=plLines("pl_keywords").length+" стр.";
+  clearTimeout(plKwTimer); plKwTimer=setTimeout(async ()=>{
+    try{ await fetch("/api/launches/keywords",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({keywords:$("pl_keywords").value})}); }catch(e){} }, 700); });
+$("pl_domains").addEventListener("input", ()=> $("pl_domcount").textContent=plLines("pl_domains").length+" стр.");
+
+function plSnapPayload(){ return {...shared(), keywords:$("pl_keywords").value, snap_engine:$("pl_engine").value, depth:$("pl_depth").value, device:$("pl_device").value, workers:$("pl_workers").value}; }
+function plTs(t){ return t? new Date(t*1000).toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "—"; }
+
+$("pl_create").onclick = async ()=>{
+  hideErr();
+  if(!$("user").value.trim()||!$("key").value.trim()){ showErr("Заполните User ID и API key."); return; }
+  if(!plLines("pl_domains").length){ showErr("Добавьте домены запуска."); return; }
+  if(!plLines("pl_keywords").length){ showErr("Сначала задайте общие ключи вверху вкладки."); return; }
+  const payload={...plSnapPayload(), name:$("pl_name").value, domains:$("pl_domains").value};
+  $("pl_create").disabled=true;
+  try{
+    const r=await fetch("/api/launches/create",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    const d=await r.json();
+    if(!r.ok){ showErr(d.error||"Ошибка"); $("pl_create").disabled=false; return; }
+    $("pl_name").value=""; $("pl_domains").value=""; $("pl_domcount").textContent="0 стр.";
+    $("pl_create").disabled=false; plRefresh();
+  }catch(e){ showErr("Нет связи с сервером: "+e); $("pl_create").disabled=false; }
+};
+async function plSnapshot(id){
+  try{ const r=await fetch("/api/launches/"+id+"/snapshot",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(plSnapPayload())});
+    const d=await r.json(); if(!r.ok){ showErr(d.error||"Ошибка съёма"); } else { hideErr(); plRefresh(); }
+  }catch(e){ showErr("Нет связи: "+e); }
+}
+async function plDelete(id){
+  const la=(plData.launches||[]).find(x=>x.id===id); const name=la?la.name:"";
+  if(!confirm("Удалить запуск «"+name+"» со всеми съёмами? Это необратимо.")) return;
+  try{ await fetch("/api/launches/"+id+"/delete",{method:"POST"}); delete plExpanded[id]; delete plDetails[id]; plRefresh(); }catch(e){}
+}
+async function plToggle(id){ plExpanded[id]=!plExpanded[id]; if(plExpanded[id]) await plLoadDetail(id); else plRender(); }
+async function plLoadDetail(id){ try{ plDetails[id]=await (await fetch("/api/launches/"+id)).json(); plRender(); }catch(e){} }
+function plPosCell(p){ if(p==null) return '<span class="miss">·</span>'; const c=p<=3?"p-top":(p<=10?"p-mid":"p-low"); return `<span class="${c}">${p}</span>`; }
+
+function plRender(){
+  const L=plData.launches||[];
+  if(!L.length){ $("pl_list").innerHTML='<div class="hint" style="margin-top:8px">Пока нет запусков. Создай первый выше — введи название и домены.</div>'; return; }
+  $("pl_list").innerHTML=L.map(la=>{
+    const busy=la.snapping;
+    const prog=busy?` <span class="pill" style="color:var(--acc2)">снимаю ${la.snap_done}/${la.snap_total}…</span>`:"";
+    let detail="";
+    if(plExpanded[la.id] && plDetails[la.id]){
+      const d=plDetails[la.id], snaps=d.snapshots||[];
+      const head=`<tr><th>Домен</th><th>Ключ</th>`+snaps.map(s=>`<th>${esc(plTs(s.at))}<br><span class="pill">${esc(s.engine||"")}</span></th>`).join("")+`<th>Ср.</th><th>Луч.</th><th>Худ.</th></tr>`;
+      let lastDom=null;
+      const body=(d.rows||[]).map(r=>{
+        const sep=r.domain!==lastDom?' class="kwsep"':''; lastDom=r.domain;
+        return `<tr${sep}><td>${esc(r.domain)}</td><td>${esc(r.keyword)}</td>`+r.positions.map(plPosCell).join("")+
+          `<td>${r.avg==null?'<span class="p-no">—</span>':'<b>'+r.avg+'</b>'}</td><td>${r.best??"—"}</td><td>${r.worst??"—"}</td></tr>`;
+      }).join("");
+      detail=`<div class="tbl-wrap" style="margin-top:10px"><table class="pos"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+    }
+    return `<div class="mgroup">
+      <div class="row" style="justify-content:space-between;align-items:center;gap:8px">
+        <div style="min-width:0"><b>${esc(la.name)}</b>
+          <span class="pill">${la.domains_count} доменов · ${la.snapshots_count} съёмов · послед. ${plTs(la.last_at)}</span>${prog}</div>
+        <div class="row" style="gap:6px;flex-wrap:nowrap">
+          <button class="btn-go" style="padding:7px 12px" data-act="snap" data-id="${la.id}" ${busy?"disabled":""}>🔄 Переснять</button>
+          <button class="btn-ghost" style="padding:7px 12px" data-act="toggle" data-id="${la.id}">${plExpanded[la.id]?"Свернуть":"Показать"}</button>
+          <button class="btn-ghost" style="padding:7px 10px;color:var(--err)" data-act="del" data-id="${la.id}" title="Удалить">🗑</button>
+        </div>
+      </div>${detail}</div>`;
+  }).join("");
+  $("pl_list").querySelectorAll("[data-act]").forEach(b=>{ b.onclick=()=>{
+    const id=b.dataset.id, a=b.dataset.act;
+    if(a==="snap") plSnapshot(id); else if(a==="toggle") plToggle(id); else if(a==="del") plDelete(id);
+  };});
+}
+async function plRefresh(){
+  try{ const d=await (await fetch("/api/launches")).json(); plData=d;
+    if(document.activeElement!==$("pl_keywords") && !$("pl_keywords").value.trim() && (d.keywords||[]).length){
+      $("pl_keywords").value=d.keywords.join("\n"); $("pl_kwcount").textContent=d.keywords.length+" стр.";
+    }
+    for(const id in plExpanded){ if(plExpanded[id]) await plLoadDetail(id); }
+    plRender();
+  }catch(e){}
+}
+$("pl_export").onclick=()=> location.href="/api/launches/export";
+setInterval(plRefresh, 3000); plRefresh();
 
 // ---- переподключение к уже идущим задачам (если перезагрузили страницу) ----
 (async ()=>{
