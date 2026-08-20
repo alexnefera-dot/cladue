@@ -1,0 +1,125 @@
+<p>Ключ от мастерской висит на гвозде у двери, а на ночь его уносят домой. Разовый код вместо постоянной пары — та же мысль: ключа нет вовсе, он приходит на время.</p>
+
+<h2>Разовый код вместо постоянной пары: где это включают</h2>
+
+<p>Способ существует, работает и почти никем не используется — потому что кнопка спрятана не в разделе входа, а в настройках безопасности, среди прочих переключателей.</p>
+
+<h3>Чем этот вход отличается от обычного</h3>
+
+<table>
+<tr><th>Свойство</th><th>Пара логина и пароля</th><th>Разовый код</th></tr>
+<tr><td>Что вводят</td><td>два поля</td><td>одно, шесть цифр</td></tr>
+<tr><td>Откуда берётся</td><td>из памяти или менеджера</td><td>Приходит письмом за 20 секунд.</td></tr>
+<tr><td>Срок жизни</td><td>180 суток</td><td>10 минут</td></tr>
+<tr><td>Что при утечке</td><td>чужой заходит когда хочет</td><td>код мёртв через 10 минут</td></tr>
+<tr><td>Нужен доступ к почте</td><td>нет</td><td>да, обязательно</td></tr>
+</table>
+
+<p>Пароль при этом никуда не девается: он остаётся запасным.</p>
+
+<p>Забыть его можно смело — восстановление по ящику всё равно доступно.</p>
+
+<h3>Где переключатель</h3>
+
+<p>Профиль, раздел безопасности, строка «вход по разовому коду». Ставится мгновенно и так же мгновенно снимается — задержки в сутки тут нет, это не рычаг самоограничения.</p>
+
+<p>Искать его в разделе входа бесполезно, там его нет.</p>
+
+<p>Поиск по настройкам быстрее пролистывания: наберите слово «разовый».</p>
+
+<blockquote>«Вход по одноразовому коду включается в настройках безопасности; пароль при этом сохраняется как альтернативный способ», — из переписки с поддержкой %brand_name_en%.</blockquote>
+
+<h3>Кому это подходит</h3>
+
+<ol>
+<li><strong>Тем, кто заходит редко</strong> — пароль всё равно забудется к следующему разу.</li>
+<li><strong>Тем, кто ходит с чужих аппаратов</strong> — вводить нечего, красть нечего.</li>
+<li><strong>Тем, у кого почта под вторым ключом</strong> — защита переносится на неё.</li>
+<li><strong>Не подходит при слабой почте</strong> — она становится единственной дверью.</li>
+</ol>
+
+<p>Четвёртый пункт перевешивает первые три.</p>
+
+<p>Оцените стойкость ящика прежде, чем щёлкать переключателем.</p>
+
+<h3>Что происходит при этом со вторым ключом</h3>
+
+<table>
+<tr><th>Настройка</th><th>Спрашивают ли код TOTP</th><th>Итого шагов</th></tr>
+<tr><td>Пара плюс второй ключ</td><td>да, всегда</td><td>3 действия</td></tr>
+<tr><td>Разовый код плюс второй ключ</td><td>Да, спрашивают оба.</td><td>3 действия</td></tr>
+<tr><td>Только разовый код</td><td>нет</td><td>2 действия</td></tr>
+</table>
+
+<p>Совмещать разовый код со вторым ключом можно, но смысла немного.</p>
+
+<h3>Чего этот способ не решает</h3>
+
+<p>Потерю доступа к почте: без неё не войти вовсе, и восстановление пойдёт через поддержку %brand_name_en% с подтверждением личности. Пароль в такой ситуации был бы полезнее — его хотя бы можно помнить наизусть.</p>
+
+<p>Ставка уменьшает счёт %brand_name_en% при любом способе входа. Отдача, оборот подарка и суточные пределы от этого не зависят; <a href="/app">сборка</a>, <a href="/slots">игровые автоматы</a> и <a href="/zerkalo">запасной адрес</a> принимают оба способа одинаково.</p>
+
+<h2>Ответы на частые вопросы о разовом коде</h2>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Где включается вход по разовому коду?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>В профиле, раздел безопасности, отдельной строкой. В разделе входа этого переключателя нет, и его там ищут напрасно.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Пропадает ли пароль после включения?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не пропадает: он остаётся запасным способом. Войти можно любым из двух, и переключаться разрешено в любой момент.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько живёт разовый код?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Десять минут, потом он мёртв. Новый запрашивают той же кнопкой, а предыдущий при этом гаснет досрочно.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Безопаснее ли это пароля?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Безопаснее ровно настолько, насколько защищена почта. Она становится единственной дверью, и слабый ящик всё портит.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Спрашивают ли при этом второй ключ?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Если он включён — спрашивают оба, и шагов выходит столько же, сколько с паролем. Совмещать их особого смысла нет.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать, если письмо с кодом не пришло?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Проверить спам и подождать минуту, потом запросить новый. Прежний при этом перестаёт работать, годится только последний.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли вернуться к паролю?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Можно в любой момент, тем же переключателем. Задержки в сутки здесь нет — это не рычаг самоограничения.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Кому такой вход удобнее прочих?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Тем, кто заходит редко и всё равно забывает пароль, и тем, кто ходит с чужих аппаратов: вводить там нечего, красть тоже.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что будет при потере доступа к почте?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Войти не выйдет вовсе: восстановление пойдёт через поддержку с подтверждением личности документом. Это главный минус способа.</p></div>
+  </div>
+</details>

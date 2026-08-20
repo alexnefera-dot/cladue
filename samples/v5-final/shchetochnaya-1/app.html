@@ -1,0 +1,128 @@
+<p>Готовую щётку в мастерской показывают заказчику в руках, а не через стекло витрины %brand_name_en%: через стекло не видно, как сидит пучок. Трансляция экрана упирается в похожее ограничение.</p>
+
+<h2>Трансляция экрана телефона: почему картинка гаснет</h2>
+
+<p>Телефон подключён к телевизору, витрина показывается, каталог листается — а стоит открыть кассу %brand_name_en%, и на большом экране остаётся чёрный прямоугольник. Звук идёт, картинки нет.</p>
+
+<h3>Где картинка гаснет, а где нет</h3>
+
+<table>
+<tr><th>Раздел</th><th>Транслируется</th><th>Что видно на телевизоре</th></tr>
+<tr><td>Каталог и витрина</td><td>да, все 3 600 позиций</td><td>обычная картинка</td></tr>
+<tr><td>Игровое окно</td><td>да, 60 кадров</td><td>Барабаны и счётчик.</td></tr>
+<tr><td>Касса с реквизитами</td><td>нет, 0 кадров</td><td>чёрный прямоугольник</td></tr>
+<tr><td>Форма кода TOTP</td><td>нет, 0 кадров</td><td>чёрный прямоугольник</td></tr>
+<tr><td>Журнал операций</td><td>да, 6 колонок</td><td>таблица целиком</td></tr>
+</table>
+
+<p><strong>Гаснут ровно два экрана из пяти.</strong></p>
+
+<p>Оба показывают то, что стоит настоящих денег.</p>
+
+<p>Остальные три транслируются без всяких помех.</p>
+
+<h3>Почему именно эти два</h3>
+
+<p>На них видны полный номер карты и одноразовый код — то, что стоит денег в чужих руках. Программа выставляет <strong>системный флаг запрета захвата</strong>, а операционная система распространяет его и на трансляцию: для неё показ на внешний экран ничем не отличается от снимка.</p>
+
+<p>Для системы %brand_name_en% трансляция и снимок равны.</p>
+
+<p>Разделять эти два случая она не умеет.</p>
+
+<blockquote>«Экраны с платёжными реквизитами защищены от захвата средствами операционной системы; ограничение распространяется на запись и трансляцию», — из переписки с поддержкой.</blockquote>
+
+<h3>Обход: захват вкладки вместо всего экрана</h3>
+
+<ol>
+<li><strong>Отключить трансляцию на время платежа</strong> — вернуть после, две секунды.</li>
+<li><strong>Открыть кассу в браузере телефона</strong> — там флага нет.</li>
+<li><strong>Не искать обходов</strong> — сторонние программы дают тот же чёрный кадр.</li>
+<li><strong>Не пугаться</strong> — сама операция при этом проходит нормально.</li>
+</ol>
+
+<p>Платёж в %brand_name_en% идёт своим ходом, гаснет картинка.</p>
+
+<p>Форма на самом телефоне видна целиком.</p>
+
+<h3>Ещё три вещи, которые трансляция режет молча</h3>
+
+<table>
+<tr><th>Свойство</th><th>На телефоне</th><th>На внешнем экране</th></tr>
+<tr><td>Задержка картинки</td><td>нет, 0 мс</td><td>200–800 мс</td></tr>
+<tr><td>Частота кадров</td><td>60 в секунду</td><td>Обычно 30, реже 24.</td></tr>
+<tr><td>Разрешение</td><td>родное, до 2 400 px</td><td>ограничено 1 080 px</td></tr>
+<tr><td>Расход заряда</td><td>12 % в час</td><td>около 20 % в час</td></tr>
+</table>
+
+<p><strong>Заряд при трансляции тратится почти вдвое быстрее.</strong></p>
+
+<h3>Мой порядок</h3>
+
+<p>Трансляцию включаю только под каталог и игру, а кассу открываю с телефона, отключив показ. Задержка в полсекунды на автоматах не мешает, а вот на живых столах с таймером ставки она уже заметна.</p>
+
+<p>Ставка уменьшает счёт независимо от того, куда выведена картинка. Отдача, оборот подарка и пределы живут на сервере; <a href="/">витрина</a>, <a href="/slots">игровые автоматы</a> и <a href="/zerkalo">запасной адрес</a> ведут одни и те же записи.</p>
+
+<h2>Ответы про трансляцию экрана</h2>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему касса не транслируется на телевизор?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Программа ставит системный флаг запрета захвата, а для системы трансляция равна снимку. Экран с реквизитами она чернит.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Проходит ли платёж, если картинка чёрная?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Проходит как обычно: гаснет только вывод на внешний экран. На самом телефоне форма видна и работает.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Помогают ли сторонние программы трансляции?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не помогают: флаг обрабатывает система, а не программа. Любой способ вывода даст тот же чёрный прямоугольник.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Транслируется ли само игровое окно?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Транслируется целиком, вместе со счётчиком остатка. Запрет касается только кассы и формы второго ключа.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Насколько велика задержка картинки?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>От двух до восьми десятых секунды. На автоматах это незаметно, а на живых столах с таймером ставки уже мешает.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сильнее ли садится заряд при трансляции?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Почти вдвое: около двадцати процентов в час против двенадцати. Виноват не показ, а постоянно активный экран и радиомодуль.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Режется ли разрешение при выводе?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Обычно до тысячи восьмидесяти точек, а частота падает до тридцати кадров. Для каталога это незаметно.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Есть ли такой запрет у веб-версии?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет: обозреватель такого флага не поддерживает, и касса транслируется целиком. Это простейший обход.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли отключить защиту в настройках?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Переключателя нет ни в программе, ни в системе. Флаг задан жёстко для двух экранов и не настраивается.</p></div>
+  </div>
+</details>
