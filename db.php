@@ -865,6 +865,33 @@ function sources_grouped_by_campaign($slug, $from, $to = null) {
  * Разбивка ботов по типам для кампании за период (переклассификация UA на лету).
  * Возвращает [ ['name'=>'google','count'=>N], ... ] по убыванию.
  */
+/**
+ * Боты за период: Яндекс отдельно, все остальные вместе.
+ *
+ * Яндекс вынесен отдельно потому, что он ходит по дорам постоянно и его объём
+ * говорит об индексации, а не о качестве трафика — мешать его с прочими ботами
+ * в одной цифре бессмысленно.
+ *
+ * Считается одним проходом (SUM/CASE), без вытаскивания UA в PHP: на боевой
+ * базе строк много, а GROUP BY ua по TEXT-полю дорогой.
+ *
+ * Возвращает ['yandex'=>N, 'other'=>N, 'total'=>N].
+ */
+function bots_split($from, $to = null) {
+    $sql = "SELECT
+              SUM(CASE WHEN LOWER(ua) LIKE '%yandex%' THEN 1 ELSE 0 END)     AS yandex,
+              SUM(CASE WHEN LOWER(ua) NOT LIKE '%yandex%' THEN 1 ELSE 0 END) AS other
+            FROM clicks WHERE is_bot = 1 AND ts >= ?";
+    $args = [$from];
+    if ($to !== null) { $sql .= ' AND ts < ?'; $args[] = $to; }
+    $st = db()->prepare($sql);
+    $st->execute($args);
+    $r = $st->fetch(PDO::FETCH_ASSOC) ?: [];
+    $y = (int)($r['yandex'] ?? 0);
+    $o = (int)($r['other'] ?? 0);
+    return ['yandex' => $y, 'other' => $o, 'total' => $y + $o];
+}
+
 function bot_breakdown($slug, $from, $to = null) {
     $sql = 'SELECT ua, COUNT(*) c FROM clicks WHERE slug = ? AND is_bot = 1 AND ts >= ?';
     $args = [$slug, $from];
@@ -1134,6 +1161,7 @@ function panel_cache_warm($budgetSec = 30) {
     $jobs[] = ['summary_today', $summary($f, $t)];
     $jobs[] = ['geo_today',     fn() => geo_stats($f, $t)];
     $jobs[] = ['geocamp_today', fn() => geo_by_campaign($f, null, $t)];
+    $jobs[] = ['bots_today',    fn() => bots_split($f, $t)];
     $jobs[] = ['daily30',       fn() => daily_stats(30)];
     $jobs[] = ['health',        fn() => service_health()];
     $jobs[] = ['lastbycamp',    fn() => $pdo->query(
@@ -1145,6 +1173,7 @@ function panel_cache_warm($budgetSec = 30) {
         $jobs[] = ["summary_$key", $summary($pf, $pt)];
         $jobs[] = ["geo_$key",     fn() => geo_stats($pf, $pt)];
         $jobs[] = ["geocamp_$key", fn() => geo_by_campaign($pf, null, $pt)];
+        $jobs[] = ["bots_$key",    fn() => bots_split($pf, $pt)];
     }
 
     $done = $skipped = 0;

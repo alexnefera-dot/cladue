@@ -183,6 +183,7 @@ heartbeat($cfg['downtime_gap'] ?? 300);
 $detailSlug = ($tab === 'stats') ? trim((string)($_GET['slug'] ?? '')) : '';
 
 $today = []; $sumHumans = 0; $sumUniq = 0; $sumUniqRu = 0; $sumBots = 0; $sumReg = 0; $sumRegRu = 0; $sumDep = 0; $sumDepRu = 0; $sumRegUnlinked = 0; $sumDepUnlinked = 0;
+$botsPeriod = ['yandex' => 0, 'other' => 0, 'total' => 0];
 $detailName = null; $detailDay = ['humans'=>0,'uniques'=>0,'bots'=>0]; $detailRows = [];
 $detailConv = ['reg'=>0,'dep'=>0,'other'=>0]; $detailConvRows = [];
 $detailPage = 1; $detailPages = 1; $detailTotal = 0;
@@ -292,6 +293,7 @@ if ($tab === 'stats' && $detailSlug !== '') {
     $recentConv = recent_conversions(50);
     $geo        = panel_cache("geo_$periodKey",     fn() => geo_stats($from, $to));
     $geoCamp    = panel_cache("geocamp_$periodKey", fn() => geo_by_campaign($from, null, $to));
+    $botsPeriod = panel_cache("bots_$periodKey",    fn() => bots_split($from, $to));
 
 } else {
     // --- вкладка «Кампании»: только справочник кампаний (без счётчиков кликов) ---
@@ -590,6 +592,7 @@ $msg = $_GET['msg'] ?? '';
     <span class="chip" style="background:#fff7ed;border-color:#fed7aa;color:#9a3412" title="Первые депозиты (FTD) за период — отдельное событие, не вместо реги. В скобках — не привязанные к кампании.">Депы: <b style="color:#ea580c"><?= (int)$sumDep ?></b><?php if ($sumDepUnlinked > 0): ?> <span style="color:var(--muted)">(не привязано: <?= (int)$sumDepUnlinked ?>)</span><?php endif; ?></span>
     <span class="chip" style="background:#f6f7f9;border-color:#e2e4ea;color:#666">Клики (всего): <b><?= (int)$sumHumans ?></b></span>
     <span class="chip" style="background:#fff4f4;border-color:#f3cccc;color:#92400e" title="Ботов отбито (в базу не пишутся). Сегодня / всего с момента установки.">Отбито ботов: <b style="color:var(--bot)"><?= (int)$botsCnt['today'] ?></b> <span style="color:var(--muted)">· всего <?= (int)$botsCnt['total'] ?></span></span>
+    <span class="chip" style="background:#fffbeb;border-color:#fde68a;color:#92400e" title="Боты за выбранный период, попавшие в базу. Яндекс вынесен отдельно: он постоянно обходит доры, и его объём говорит об индексации, а не о качестве трафика.">Боты за период: 🇾 Яндекс <b style="color:#b45309"><?= (int)$botsPeriod['yandex'] ?></b> · прочие <b style="color:#a16207"><?= (int)$botsPeriod['other'] ?></b></span>
   </div>
   <div class="bots-box" style="margin-top:-8px">
     <?php
