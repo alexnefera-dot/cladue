@@ -143,6 +143,160 @@ function tabCats(){
   в объёме, а не в том, какие запросы им поддаются.</p></div>`;
 }
 
+function tabEv(){
+  const E=D.ev, T=(x)=>x.endsWith(".team");
+  const sub=(sn,p)=>{const g=E.groups[sn].doms.filter(x=>p?p(x.d):true),n=g.length;
+    const S=(k)=>g.reduce((a,x)=>a+x[k],0);
+    const v=g.map(x=>x.t10).sort((a,b)=>b-a);
+    return {n,t10:S('t10')/n,t30:S('t30')/n,t100:S('t100')/n,vch:S('vch'),sch:S('sch'),
+      t3:S('t3'),med:n?v[Math.floor(n/2)]:0,
+      wo:n>1?v.slice(1).reduce((a,b)=>a+b,0)/(n-1):0,
+      z100:g.filter(x=>x.t100===0).length};};
+  let rows='';
+  E.order.forEach(sn=>{const g=E.groups[sn],s=sub(sn),st=sub(sn,T);
+    rows+=`<tr class="clk" data-e="${sn}"><td class="l id">${esc(g.name)}</td>
+      <td class="l">${esc(g.cfg)}</td><td>${s.n}</td>
+      <td><b>${f1(st.t10)}</b></td><td>${st.med}</td><td>${f1(st.wo)}</td>
+      <td>${f1(s.t30)}</td><td class="${s.vch?'good':'mut'}">${s.vch}</td>
+      <td class="${s.sch?'good':'mut'}">${s.sch}</td><td>${s.t3}</td>
+      <td class="${s.z100===s.n?'bad':s.z100?'warn':'mut'}">${s.z100}/${s.n}</td></tr>
+      <tr class="det" hidden><td colspan="11"><div class="inner"></div></td></tr>`;});
+  return `<div class="blk"><h2>Вечерний замер · 20.08 в 17:34–17:35</h2>
+  <p class="note">Шесть групп, запущенных днём. Первый съём по каждой. Т10, медиана и «без лидера»
+  считаны по .team-подмножеству, остальное — по всем доменам. «Нет в Т100» — доменов,
+  у которых ни одного ключа из 1570 нигде в ТОП-100.</p>
+  <div class="tw"><table><thead><tr><th class="l">Группа</th><th class="l">Конфигурация</th>
+  <th>Дом</th><th>Т10/дом</th><th>Медиана</th><th>Без лидера</th><th>Т30/дом</th>
+  <th>ВЧ</th><th>СЧ</th><th>ТОП-3</th><th>Нет в Т100</th></tr></thead><tbody>${rows}</tbody></table></div>
+  <p class="note" style="margin-top:10px">Клик по строке — домены, бренды и ключи.</p></div>
+
+  <div class="blk"><h2>Формат 12 страниц с датами воспроизвёлся</h2>
+  <p class="note">Сравнение с первым замером вчерашних групп: там Т10 на домен был
+  0,4–1,4. Здесь у трёх 12-страничных групп 3,6–8,3 при сопоставимом возрасте
+  (контенты созданы в 11:30–11:31, съём в 17:34 — около шести часов).</p>
+  <div class="cards">
+    <div class="card ok"><h3>1908.team — чемпион</h3>
+      <p><span class="big">37</span> ключей в ТОП-10, 63 в ТОП-30, 7 в ТОП-3, 15 брендов.</p>
+      <p>Взял дорогие: <b>mellstroy</b> 6,6M на 7-й позиции, <b>gold</b> 1,2M на 10-й,
+      <b>laki</b> 1,2M на 6-й, <b>loft</b> 0,8M на 5-й. За шесть часов.</p></div>
+    <div class="card"><h3>Остальные держатся ровно</h3>
+      <p>Медианы по .team: Theme1 — 5, Theme2 — 4, без дат — 2.
+      Пустых доменов по ТОП-30 нет ни в одной из трёх групп.</p></div>
+    <div class="card acc"><h3>Профиль другой, чем вчера</h3>
+      <p>Вчерашние группы на первом замере держали много позиций в 11–30 и почти ничего
+      в ТОП-10. Эти сразу заходят в ТОП-10.</p></div>
+  </div></div>
+
+  <div class="blk"><h2>Шаблон: разницы не видно</h2>
+  <p class="note">Это ровно тот риск, о котором говорилось при регистрации групп:
+  семь доменов на сторону, и один чемпион перекрывает эффект.</p>
+  <div class="tw"><table><thead><tr><th class="l">Сторона</th><th>n</th>
+  <th class="l">Значения по доменам</th><th>Среднее</th><th>Медиана</th><th>Без лидера</th>
+  </tr></thead><tbody>
+    <tr><td class="l id">Theme1</td><td>7</td><td class="l num">37, 8, 5, 5, 2, 1, 0</td>
+      <td><b>8,3</b></td><td>5</td><td>3,5</td></tr>
+    <tr><td class="l id">Theme2</td><td>7</td><td class="l num">9, 6, 5, 4, 4, 2, 1</td>
+      <td><b>4,4</b></td><td>4</td><td class="good">3,7</td></tr>
+  </tbody></table></div>
+  <p class="note" style="margin-top:10px">Среднее Theme1 вдвое выше, но весь отрыв даёт
+  один домен <span class="num">1908.team</span> с 37 ключами. Уберите его — и Theme1
+  даёт 3,5 против 3,7 у Theme2, то есть <b>Theme2 даже чуть впереди</b>.
+  Медианы 5 и 4 практически совпадают. <b>Вывод: шаблон не разделился.</b></p></div>
+
+  <div class="blk"><h2>Даты: слабый намёк в их пользу</h2>
+  <div class="tw"><table><thead><tr><th class="l">Сторона</th><th>n</th>
+  <th class="l">Значения по доменам</th><th>Среднее</th><th>Медиана</th><th>Без лидера</th>
+  </tr></thead><tbody>
+    <tr><td class="l id">12 стр с датами · Theme1</td><td>7</td><td class="l num">37, 8, 5, 5, 2, 1, 0</td>
+      <td>8,3</td><td class="good"><b>5</b></td><td>3,5</td></tr>
+    <tr><td class="l id">12 стр без дат · Theme1</td><td>5</td><td class="l num">9, 4, 2, 2, 1</td>
+      <td>3,6</td><td><b>2</b></td><td>2,3</td></tr>
+  </tbody></table></div>
+  <p class="note" style="margin-top:10px">Медиана 5 против 2 и «без лидера» 3,5 против 2,3 —
+  направление в пользу дат по обеим устойчивым мерам. Но 5 и 7 доменов на сторону,
+  один замер, и дорогие бренды взяла только группа с датами (5 ВЧ и 3 СЧ против нуля).
+  <b>Это направление, а не результат.</b> Нужен второй замер.</p></div>
+
+  <div class="blk"><h2>Имена и наборы: сайтов ещё нет в индексе</h2>
+  <p class="note">Судить об этих группах сейчас нельзя, и вот почему.</p>
+  <div class="tw"><table><thead><tr><th class="l">Группа</th><th>Дом</th>
+  <th class="l">Ключей в ТОП-100 по доменам</th><th>Доменов с нулём</th></tr></thead><tbody>
+    <tr><td class="l id">nabor28gotovyi · набор</td><td>5</td>
+      <td class="l num">0, 0, 0, 0, 0</td><td class="bad"><b>5/5</b></td></tr>
+    <tr><td class="l id">kostoreznaya1 · имена</td><td>5</td>
+      <td class="l num">4, 1, 0, 0, 0</td><td class="bad"><b>3/5</b></td></tr>
+    <tr><td class="l mut">12pages_nodate — для сравнения</td><td>5</td>
+      <td class="l num">72, 69, 64, 62, 52</td><td class="good">0/5</td></tr>
+    <tr><td class="l mut">12pages_withdate · Theme1</td><td>8</td>
+      <td class="l num">192, 63, 62, 51, 38, 37, 10, 2</td><td class="good">0/5</td></tr>
+  </tbody></table></div>
+  <p class="note" style="margin-top:10px">Ноль ключей в ТОП-<b>100</b> из 1570 — это подпись
+  сайта, которого ещё нет в индексе, а не плохого контента. У всех 12-страничных групп
+  таких доменов нет вообще: минимум 2 ключа, обычно 30–90.</p>
+  <div class="cards" style="margin-top:14px">
+    <div class="card err"><h3>Что нельзя сделать сейчас</h3>
+      <p>Записать наборы в нерабочие. Пять нулей подряд по всему ядру — это отсутствие
+      индексации, и никакой контент такого не даёт при живом сайте.</p></div>
+    <div class="card"><h3>Почему они моложе</h3>
+      <p>Контенты 12-страничных групп созданы в 11:30–11:31, то есть за шесть часов
+      до съёма. Времени создания контентов для имён и наборов в присланном не было —
+      судя по нулям, они появились только что.</p></div>
+    <div class="card ok"><h3>Что делать</h3>
+      <p>Снять эти две группы повторно через несколько часов. Если ТОП-100 останется
+      пустым и на втором замере — тогда это уже вопрос к сайтам, а не к возрасту.</p></div>
+  </div></div>
+
+  <div class="blk"><h2>Экзотические зоны</h2>
+  <p class="note">Домены вне .team в трёх 12-страничных группах.</p>
+  <div class="tw"><table><thead><tr><th class="l">Домен</th><th class="l">Зона</th>
+  <th class="l">Группа</th><th>Т10</th><th>Т30</th><th>Т100</th></tr></thead><tbody>
+    <tr><td class="l num">9536.lol</td><td class="l">.lol</td><td class="l mut">withdate Theme2</td>
+      <td>3</td><td>6</td><td>29</td></tr>
+    <tr><td class="l num">knvr7.sbs</td><td class="l">.sbs</td><td class="l mut">withdate Theme2</td>
+      <td>1</td><td>3</td><td>35</td></tr>
+    <tr><td class="l num">2008jd.buzz</td><td class="l">.buzz</td><td class="l mut">withdate Theme2</td>
+      <td>0</td><td>1</td><td>6</td></tr>
+    <tr><td class="l num">2008vu.buzz</td><td class="l">.buzz</td><td class="l mut">withdate Theme1</td>
+      <td>0</td><td>0</td><td>2</td></tr>
+  </tbody></table></div>
+  <p class="note" style="margin-top:10px">Медиана .team в этих же группах — 4–5 ключей в ТОП-10.
+  Экзотика держит 0–3. Направление то же, что в архиве, но по одному домену на зону
+  это по-прежнему сигнал, а не вывод. Оба .buzz — на нуле в ТОП-10.</p></div>`;
+}
+function fillEv(){
+  document.querySelectorAll('tr.clk[data-e]').forEach(tr=>{
+    tr.onclick=()=>{
+      const det=tr.nextElementSibling; det.hidden=!det.hidden;
+      const slot=det.querySelector('.inner');
+      if(det.hidden||slot.dataset.done) return;
+      slot.dataset.done=1;
+      const g=D.ev.groups[tr.dataset.e];
+      let h=`<div><h4>Домены</h4><div class="tw"><table><thead><tr><th class="l">Домен</th>
+        <th>ТОП-10</th><th>ТОП-30</th><th>ТОП-100</th><th>ТОП-3</th><th>ВЧ</th><th>СЧ</th>
+        <th>НЧ</th><th>Брендов</th></tr></thead><tbody>`+
+        g.doms.map(x=>`<tr><td class="l ${x.d.endsWith('.team')?'id':'mut'}">${esc(x.d)}</td>
+          <td><b>${x.t10}</b></td><td>${x.t30}</td>
+          <td class="${x.t100===0?'bad':''}">${x.t100}</td>
+          <td class="${x.t3?'good':'mut'}">${x.t3}</td>
+          <td class="${x.vch?'good':'mut'}">${x.vch}</td>
+          <td class="${x.sch?'good':'mut'}">${x.sch}</td>
+          <td class="mut">${x.nch}</td><td>${x.brands.length}</td></tr>`).join('')+
+        `</tbody></table></div></div>`;
+      const keys=g.doms.flatMap(x=>x.keys.map(k=>({...k,d:x.d}))).sort((a,b)=>a.p-b.p);
+      if(keys.length){
+        h+=`<div><h4>Ключи в ТОП-10 — ${keys.length}</h4><div class="tw"><table><thead><tr>
+          <th class="l">Ключ</th><th class="l">Бренд</th><th class="l">Тип</th><th>Тир</th>
+          <th>Объём</th><th>Поз.</th><th class="l">Домен</th></tr></thead><tbody>`+
+          keys.map(k=>`<tr><td class="l">${esc(k.q)}</td><td class="l mut">${esc(k.b)}</td>
+            <td class="l mut">${esc(k.c)}</td><td>${tg(k.t)}</td><td>${kf(k.v)}</td>
+            <td>${pos(k.p)}</td><td class="l num">${esc(k.d)}</td></tr>`).join('')+
+          `</tbody></table></div></div>`;
+      } else h+='<div><h4>Ни одного ключа в ТОП-10</h4></div>';
+      slot.innerHTML=h;
+    };
+  });
+}
+
 /* ---------- группа ---------- */
 function tabG(sn){
   const g=D.groups[sn],m=g.meta,s=agg(g),st=agg(g,T);
@@ -273,7 +427,7 @@ function fill(){
   });
 }
 
-const TABS=[["Обзор",tabAll],["Бренды и ключи",tabBrands],["Типы запросов",tabCats]]
+const TABS=[["Обзор",tabAll],["Вечерний замер",tabEv,fillEv],["Бренды и ключи",tabBrands],["Типы запросов",tabCats]]
   .concat(ORD.map(sn=>[D.groups[sn].meta[0],()=>tabG(sn)]));
 const nav=document.getElementById('nav'), main=document.getElementById('main');
 TABS.forEach(([name],i)=>{
@@ -286,12 +440,12 @@ function show(i){
   [...nav.children].forEach((b,j)=>b.setAttribute('aria-selected',i===j));
   [...main.children].forEach((s,j)=>{
     s.hidden=i!==j;
-    if(i===j&&!s.dataset.done){s.dataset.done=1;s.innerHTML=TABS[j][1]();fill();}
+    if(i===j&&!s.dataset.done){s.dataset.done=1;s.innerHTML=TABS[j][1]();fill();if(TABS[j][2])TABS[j][2]();}
   });
   window.scrollTo({top:0,behavior:'instant'});
 }
-main.insertAdjacentHTML('beforeend','<div class="foot">Запуск 20.08.2026 · '+
-  'замер 1 в 01:29–01:41, замер 2 в 10:08–10:09 · 40 доменов, 6 групп · '+
+main.insertAdjacentHTML('beforeend','<div class="foot">20.08.2026 · '+
+  'ночной запуск: замеры 01:29–01:41 и 10:08–10:09 · дневной: 17:34–17:35 · 77 доменов, 12 групп · '+
   'всё считано по ТОП-10 · ядро 1570 ключей, ВЧ ≥ 1 млн, СЧ 700k–1 млн, '+
   'бренды vovan и pari исключены</div>');
 show(0);
