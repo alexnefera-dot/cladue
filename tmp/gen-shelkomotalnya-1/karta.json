@@ -1,0 +1,32 @@
+{
+    "комплект": "shelkomotalnya-1",
+    "маска": "шелкомотальня",
+    "ракурс": "мотальщик",
+    "рефрен": "проба на размотку",
+    "словарь": [
+        "кокон",
+        "запарка",
+        "мотовило",
+        "пасма",
+        "кипяток",
+        "тазик",
+        "обрыв"
+    ],
+    "срезы": {
+        "app": "Клиент показывает раздел, которого нет в браузере",
+        "bonus": "Часть слотов перестала засчитываться в оборот на середине",
+        "registracia": "Профиль требует адрес, которого нет в справочнике улиц",
+        "slots": "Кнопка автозапуска исчезла после обновления витрины",
+        "vhod": "Кабинет открывается, но выходит из него сам",
+        "zerkalo": "Домен в поисковой выдаче старше того, что в кабинете"
+    },
+    "промпты": {
+        "main": "tmp\/gen-shelkomotalnya-1\/prompt-main.md",
+        "app": "tmp\/gen-shelkomotalnya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-shelkomotalnya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-shelkomotalnya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-shelkomotalnya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-shelkomotalnya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-shelkomotalnya-1\/prompt-zerkalo.md"
+    }
+}
