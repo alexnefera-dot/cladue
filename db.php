@@ -321,11 +321,30 @@ function offers_cache_rebuild() {
 }
 
 function valid_slug($s) { return (bool)preg_match('/^[A-Za-z0-9_-]+$/', (string)$s); }
+
+/**
+ * Привести слаг к чистому виду.
+ *
+ * В панель его почти всегда вставляют готовой ссылкой, скопированной из списка
+ * кампаний или из дора: https://sitegrator.com/go/banda_engine — и валидация
+ * ругалась «только латиница, цифры, _ и -». Вырезаем сам слаг, чтобы не
+ * заставлять руками стирать домен.
+ *
+ * Понимает: полную ссылку с /go/, ссылку с параметрами и хвостовым слэшем,
+ * а также просто слаг (тогда возвращает его как есть).
+ */
+function normalize_slug($s) {
+    $s = trim((string)$s);
+    if ($s === '') return $s;
+    if (preg_match('~/go/([A-Za-z0-9_-]+)~', $s, $m)) return $m[1];   // .../go/СЛАГ
+    $s = preg_replace('~[?#].*$~', '', $s);                           // хвост с параметрами
+    return trim($s, "/ \t");
+}
 function valid_url($u)  { return (bool)preg_match('~^https?://~i', (string)$u); }
 
 /** Добавить кампанию. Возвращает null при успехе или текст ошибки. */
 function add_campaign($slug, $name, $url) {
-    $slug = trim((string)$slug);
+    $slug = normalize_slug($slug);   // принимаем и готовую ссылку .../go/СЛАГ
     $name = trim((string)$name);
     $url  = trim((string)$url);
     if (!valid_slug($slug)) return 'Слаг "' . $slug . '": только латиница, цифры, _ и -';
