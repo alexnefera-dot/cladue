@@ -1,0 +1,116 @@
+<p>Фетр под паром садится не разом, а слоями: нажал — осел, отпустил — снова поднялся, и так до нужной глубины. Каскадные выигрыши идут тем же чередом.</p>
+
+<h2>Каскадные выигрыши: почему один спин длится минуту</h2>
+
+<p>Рядовой круг занимает пятнадцать секунд, а этот тянется вшестеро дольше, и кнопка всё время серая. Похоже на зависание, а на деле идёт цепочка расчётов, и каждое звено в ней полноценное.</p>
+
+<h3>Пять шагов внутри одного круга</h3>
+
+<table>
+<tr><th>Шаг</th><th>Что происходит</th><th>Сколько занимает</th></tr>
+<tr><td>Первый расклад</td><td>знаки падают, поиск по 25 линиям</td><td>3 секунды</td></tr>
+<tr><td>Обвал, cascade</td><td>выигравшие знаки исчезают</td><td>1,5 секунды</td></tr>
+<tr><td>Досыпка, tumble</td><td>верхние сдвигаются вниз</td><td>Ещё 1,5 секунды.</td></tr>
+<tr><td>Повторный расчёт</td><td>линии ищутся заново, 25 штук</td><td>3 секунды</td></tr>
+<tr><td>Множитель серии</td><td>растёт с каждым обвалом</td><td>до x5 на пятом шаге</td></tr>
+</table>
+
+<p>Звеньев бывает до восьми, и все считаются подряд.</p>
+
+<p>Длина цепочки заранее неизвестна.</p>
+
+<h3>Серая кнопка: причина недоступности</h3>
+
+<p>Сервер отдаёт результат целиком, одним пакетом: все обвалы, все множители и итоговая сумма. Картинка на экране их только проигрывает. Нажать «ещё» посреди последовательности нельзя не из вредности — итог уже посчитан, и прерывать нечего.</p>
+
+<p>Итог известен серверу до первого обвала.</p>
+
+<p>Картинка лишь пересказывает готовое решение.</p>
+
+<blockquote>«Результат раунда с каскадными выплатами рассчитывается однократно; последовательность обвалов является отображением рассчитанного результата», — из переписки с поддержкой %brand_name_en%.</blockquote>
+
+<h3>Темп трёх каскадных тайтлов</h3>
+
+<table>
+<tr><th>Тайтл и студия</th><th>Обвалов за круг</th><th>Длительность</th></tr>
+<tr><td>Sweet Bonanza, Pragmatic Play</td><td>до 6 обвалов, RTP 96,5 %</td><td>от 15 до 45 секунд</td></tr>
+<tr><td>Deadwood, Nolimit City</td><td>до 8 обвалов, RTP 96,03 %</td><td>До 60 секунд на длинной серии.</td></tr>
+<tr><td>Big Bamboo, Push Gaming</td><td>до 5 обвалов, RTP 96,1 %</td><td>от 15 до 35 секунд</td></tr>
+</table>
+
+<p>Deadwood тянется дольше двух прочих.</p>
+
+<h3>Четыре способа ускорить круг</h3>
+
+<ol>
+<li><strong>Быстрый режим</strong> — есть почти везде, <strong>режет паузы вдвое</strong>.</li>
+<li><strong>Отключить анимацию</strong> — <strong>настройка внутри игры</strong>, есть не всюду.</li>
+<li><strong>Автоигра</strong> — круг не ускоряет, но <strong>убирает ожидание нажатия</strong>.</li>
+<li><strong>Не трогать пробел</strong> — <strong>прерывание показа</strong> расчёт не ускоряет.</li>
+</ol>
+
+<p>Ускоренный показ — единственное, что реально помогает.</p>
+
+<h3>Последствия для банка</h3>
+
+<p>Каскадный тайтл даёт меньше кругов в час: сто пятьдесят против двухсот сорока у обычного. При равной ставке банк расходуется медленнее, но и бонусная серия выпадает реже по времени. В пересчёте на круг разницы нет — она есть в пересчёте на вечер.</p>
+
+<p>Ставка остаётся расходом при любом темпе. Возврат задан студией и одинаков в <a href="/app">сборке</a>, на сайте %brand_name_en% и в <a href="/zerkalo">зеркале сайта</a>; вход в кабинет и <a href="/registracia">анкета</a> на него не влияют.</p>
+
+<h2>Ответы на вопросы о каскадных выигрышах</h2>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему круг длится целую минуту?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Внутри него до восьми обвалов, и каждый занимает около трёх секунд с досыпкой. На длинной серии это складывается в минуту.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли прервать последовательность обвалов?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нельзя, и смысла в этом нет: итог посчитан сервером до первого обвала. Показ его не меняет.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Растёт ли множитель с каждым обвалом?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Растёт в большинстве каскадных тайтлов, обычно до пятикратного на пятом шаге. Точные значения указаны в описании игры.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать, если круг завис насовсем?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Обновить страницу: результат уже на сервере и подтянется. Если сумма не изменилась, открыть повтор раунда и взять его номер.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Помогает ли быстрый режим?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Помогает: он режет паузы между обвалами примерно вдвое. Это единственная настройка с заметным действием.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько кругов выходит за час на каскадах?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Около полутора сотен против двухсот сорока у обычного тайтла. Банк расходуется медленнее, но и серии выпадают реже по времени.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли длительность на возврат?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не влияет: возврат считается на круг, а не на минуту. Разница видна только в пересчёте на вечер.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Ускоряет ли автоигра сам круг?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Сам круг не ускоряет, только убирает паузу на нажатие. Обвалы проигрываются с прежней скоростью.</p></div>
+  </div>
+</details>
