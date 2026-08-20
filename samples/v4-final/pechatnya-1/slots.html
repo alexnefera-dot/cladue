@@ -1,0 +1,120 @@
+<h2>Барабаны крутятся, а результат приходит с задержкой</h2>
+<p>
+  Катушки игрового автомата %brand_name_en% останавливаются как обычно, картинка складывается — и повисает. Баланс меняется через три-четыре секунды, будто игра думает уже после остановки.
+</p>
+<p>
+  Думать ей нечего: исход посчитан до первого оборота. Ждёт экран не решения, а подтверждения от кассы.
+</p>
+<h3>Что происходит за один спин</h3>
+<table>
+  <tbody>
+    <tr><th>Шаг</th><th>Кто делает</th><th>Сколько занимает</th></tr>
+    <tr><td>Списание ставки</td><td>Касса площадки</td><td>Доли секунды</td></tr>
+    <tr><td>Розыгрыш исхода</td><td>Узел студии</td><td>Доли секунды</td></tr>
+    <tr><td>Показ катушек и линий выплат</td><td>Аппарат игрока</td><td>1–3 секунды</td></tr>
+    <tr><td>Запись в журнал и правка баланса</td><td>Касса площадки</td><td>От долей секунды до нескольких</td></tr>
+  </tbody>
+</table>
+<p>
+  Задержка живёт в последнем шаге, а не в первых двух. Игровой автомат тут ни при чём, и вывод средств она не задевает.
+</p>
+<h3>Отчего подтверждение приходит позже картинки</h3>
+<p>
+  <strong>Показ катушек рисуется на самом аппарате сразу по полученному ответу, а запись в журнал и правка остатка идут отдельным обменом с кассой.</strong> При тугой связи второй обмен отстаёт, и выходит разрыв: картинка есть, денег ещё нет. Ставка при этом уже списана и исход зафиксирован: выигрыш дойдёт до счёта, даже если закрыть игру.
+</p>
+<blockquote>
+  Пряник вынули из печи, а в книгу его запишут к вечеру. Считать выпечку по книге верно, но пряник от этого не перестал быть готовым.
+</blockquote>
+<h3>Порядок проверки: пять шагов</h3>
+<ol>
+  <li>Дождаться правки баланса, не нажимая спин повторно</li>
+  <li>Открыть журнал операций и найти строку по номеру</li>
+  <li>Сверить остаток до и после — он должен сойтись до единицы</li>
+  <li>Строки нет через минуту — обновить страницу и посмотреть снова</li>
+  <li>Не появилась и там — отправить номер спина и час в обращение</li>
+</ol>
+<p>
+  Опаснее самой задержки повторное нажатие: второй спин уходит отдельной ставкой и списывается честно. Можно ли вернуть такую ставку — нет, она законна. Что засчитывается при отыгрыше, разобрано в <a href="/vhod">разборе кассы</a>, а страна в анкете сверяется по <a href="/registracia">памятке по полям</a>.
+</p>
+<h3>Что растягивает подтверждение</h3>
+<ul>
+  <li>🍯 <strong>Мобильная сеть в дороге.</strong> Обмен идёт через лишние узлы</li>
+  <li>🪵 <strong>Час пиковой нагрузки.</strong> Вечер выходного заметно медленнее</li>
+  <li>🥮 <strong>Живой стол в соседней вкладке.</strong> Он тянет канал как видео</li>
+  <li>🔥 <strong>Слабый аппарат.</strong> Показ и обмен спорят за одни и те же силы</li>
+</ul>
+<p>
+  А это на исход спина не влияет никогда:
+</p>
+<ul>
+  <li>🍯 <strong>Скорость показа катушек.</strong> Исход посчитан до их запуска</li>
+  <li>🪵 <strong>Закрытая на середине вкладка.</strong> Выигрыш дойдёт до счёта сам</li>
+  <li>🥮 <strong>Домен, с которого зашли.</strong> Касса у площадки одна</li>
+  <li>🔥 <strong>Размер остатка.</strong> Отдача от него не меняется</li>
+</ul>
+<h3>Итог</h3>
+<p>
+  Разрыв между картинкой и деньгами объясняется просто: катушки рисует ваш аппарат по уже полученному ответу, а запись в журнал идёт отдельным обменом с кассой и на тугой связи отстаёт. Исход при этом зафиксирован до первого оборота катушек и дойдёт до счёта даже при закрытой игре. Хуже всего то, что заминка подталкивает нажать спин ещё раз, а второй спин уходит отдельной ставкой. Проверять надо не глазами, а журналом операций: остаток до и после обязан сойтись до единицы. Соседние узлы: пределы и сроки выплат собраны в <a href="/vhod">своде порогов</a>, состав анкеты — в <a href="/registracia">описи граф</a>, живые адреса ведёт <a href="/zerkalo">сводка адресов</a>, а тяжёлые сборки ровнее открывает <a href="/app">карточка сборки</a>.
+</p>
+
+<h2>Ответы на частые вопросы о задержке спина в %brand_name_en%</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Баланс меняется через несколько секунд — игра зависла?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. Катушки рисует ваш аппарат, а запись в журнал идёт отдельным обменом с кассой и отстаёт на тугой связи.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли потерять выигрыш из-за такой заминки?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нельзя: исход зафиксирован до первого оборота катушек и дойдёт до счёта, даже если закрыть игру.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Стоит ли нажимать спин повторно?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не стоит: второй спин уйдёт отдельной ставкой и спишется честно. Именно так и теряются деньги.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Где проверить, прошла ли ставка?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>В журнале операций по номеру спина. Остаток до и после записи обязан сойтись до единицы.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отчего вечером медленнее, чем утром?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нагрузка на кассу выше, и второй обмен ждёт очереди. К ночи задержка обычно сходит на нет.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли задержка на отдачу?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не влияет. RTP выставлен студией в паспорте игры, а скорость обмена к розыгрышу отношения не имеет.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать, если строки в журнале нет вовсе?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Обновить страницу и посмотреть заново. Если не появилась через минуту, отправить номер спина и час в обращение.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Мешает ли живой стол в соседней вкладке?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Мешает заметно: он тянет канал как видео, и обмен по автомату встаёт в очередь за ним.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Помогает ли смена домена?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Почти нет: касса у площадки одна на все адреса. Помогает смена сети или переход в клиент.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Идёт ли такой спин в зачёт отыгрыша?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Идёт наравне с прочими: счётчик вейджера двигает запись в журнале, а не скорость её появления.</p></div>
+  </div>
+</details>

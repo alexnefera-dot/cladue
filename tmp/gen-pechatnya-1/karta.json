@@ -1,0 +1,32 @@
+{
+    "комплект": "pechatnya-1",
+    "маска": "пряничная печатня",
+    "ракурс": "пряничник",
+    "рефрен": "проба на оттиск",
+    "словарь": [
+        "доска",
+        "тесто",
+        "оттиск",
+        "глазурь",
+        "посадка",
+        "под",
+        "выпечка"
+    ],
+    "срезы": {
+        "app": "Перечень доменов в сборке короче, чем в кабинете",
+        "bonus": "Подарок к дню рождения пришёл на месяц позже",
+        "registracia": "Ссылка подтверждения открывается, но ничего не меняет",
+        "slots": "Барабаны крутятся, а результат приходит с задержкой",
+        "vhod": "Второй ключ требует канал, к которому нет доступа",
+        "zerkalo": "Запасной адрес показывает турнир с другим призовым фондом"
+    },
+    "промпты": {
+        "main": "tmp\/gen-pechatnya-1\/prompt-main.md",
+        "app": "tmp\/gen-pechatnya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-pechatnya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-pechatnya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-pechatnya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-pechatnya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-pechatnya-1\/prompt-zerkalo.md"
+    }
+}
