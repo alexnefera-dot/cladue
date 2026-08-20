@@ -1,0 +1,32 @@
+{
+    "комплект": "kostoreznaya-1",
+    "маска": "косторезная",
+    "ракурс": "косторез",
+    "рефрен": "проба на грань",
+    "словарь": [
+        "кость",
+        "цевка",
+        "резец",
+        "грань",
+        "полировка",
+        "вставка",
+        "штихель"
+    ],
+    "срезы": {
+        "app": "Сборка ставится, но иконка не появляется на экране",
+        "bonus": "Фриспины пришли на слот, снятый с витрины",
+        "registracia": "Анкета требует телефон страны, которой нет в списке",
+        "slots": "Демо-режим закрыт на части машин каталога",
+        "vhod": "Вход проходит с телефона и не проходит с настольного",
+        "zerkalo": "Сертификат страницы выписан на срок в неделю"
+    },
+    "промпты": {
+        "main": "tmp\/gen-kostoreznaya-1\/prompt-main.md",
+        "app": "tmp\/gen-kostoreznaya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-kostoreznaya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-kostoreznaya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-kostoreznaya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-kostoreznaya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-kostoreznaya-1\/prompt-zerkalo.md"
+    }
+}

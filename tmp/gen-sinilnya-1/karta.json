@@ -1,0 +1,32 @@
+{
+    "комплект": "sinilnya-1",
+    "маска": "синильня",
+    "ракурс": "синильщик",
+    "рефрен": "проба на куб",
+    "словарь": [
+        "куб",
+        "вайда",
+        "индиго",
+        "восстановка",
+        "отжим",
+        "окисление",
+        "оттенок"
+    ],
+    "срезы": {
+        "app": "Часы в клиенте отстают от часов площадки",
+        "bonus": "Промокод принят, а начисление ушло на другой пакет",
+        "registracia": "Форма приняла анкету, но счёт открылся без валюты",
+        "slots": "Автомат открывается в демо, хотя счёт пополнен",
+        "vhod": "Счёт пускает после пароля, но сразу просит сменить его",
+        "zerkalo": "Старое имя вернулось в строй через месяц"
+    },
+    "промпты": {
+        "main": "tmp\/gen-sinilnya-1\/prompt-main.md",
+        "app": "tmp\/gen-sinilnya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-sinilnya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-sinilnya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-sinilnya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-sinilnya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-sinilnya-1\/prompt-zerkalo.md"
+    }
+}

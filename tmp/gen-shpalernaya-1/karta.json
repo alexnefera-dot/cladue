@@ -1,0 +1,32 @@
+{
+    "комплект": "shpalernaya-1",
+    "маска": "шпалерная мастерская",
+    "ракурс": "шпалерник",
+    "рефрен": "проба на изнанку",
+    "словарь": [
+        "основа",
+        "уток",
+        "картон",
+        "зев",
+        "гребёнка",
+        "репс",
+        "кайма"
+    ],
+    "срезы": {
+        "app": "Вход в клиенте идёт, а в браузере отказывает",
+        "bonus": "Начисление разделили на две части без предупреждения",
+        "registracia": "Форма не принимает загранпаспорт вместо внутреннего",
+        "slots": "Множитель в раунде выше объявленного потолка",
+        "vhod": "Вход просит ответ на вопрос, которого не задавали",
+        "zerkalo": "Свежий адрес не держит сеанс дольше минуты"
+    },
+    "промпты": {
+        "main": "tmp\/gen-shpalernaya-1\/prompt-main.md",
+        "app": "tmp\/gen-shpalernaya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-shpalernaya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-shpalernaya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-shpalernaya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-shpalernaya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-shpalernaya-1\/prompt-zerkalo.md"
+    }
+}

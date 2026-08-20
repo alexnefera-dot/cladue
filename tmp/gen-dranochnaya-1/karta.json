@@ -1,0 +1,32 @@
+{
+    "комплект": "dranochnaya-1",
+    "маска": "драночная",
+    "ракурс": "дранщик",
+    "рефрен": "проба на скол",
+    "словарь": [
+        "чурак",
+        "колун",
+        "дранка",
+        "слой",
+        "скол",
+        "сушняк",
+        "стопка"
+    ],
+    "срезы": {
+        "app": "Клиент считает трафик иначе, чем сам аппарат",
+        "bonus": "Фриспины начислены, но ставка в них чужая",
+        "registracia": "Форма не принимает адрес почты с длинным именем",
+        "slots": "Игра засчитывает ставку, но не показывает её в истории",
+        "vhod": "Вход проходит только после очистки браузера",
+        "zerkalo": "Адрес открывается, но витрина показывает чужой язык"
+    },
+    "промпты": {
+        "main": "tmp\/gen-dranochnaya-1\/prompt-main.md",
+        "app": "tmp\/gen-dranochnaya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-dranochnaya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-dranochnaya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-dranochnaya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-dranochnaya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-dranochnaya-1\/prompt-zerkalo.md"
+    }
+}

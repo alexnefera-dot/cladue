@@ -1,0 +1,32 @@
+{
+    "комплект": "machtovaya-1",
+    "маска": "мачтовая мастерская",
+    "ракурс": "мачтовик",
+    "рефрен": "проба на прогиб",
+    "словарь": [
+        "кряж",
+        "стеньга",
+        "обтёска",
+        "слой",
+        "ванта",
+        "юферс",
+        "олифа"
+    ],
+    "срезы": {
+        "app": "Список игр в программе короче, чем на сайте",
+        "bonus": "Пакет закрылся раньше срока при верном отыгрыше",
+        "registracia": "Страну в анкете подставили по сети, а не по документу",
+        "slots": "Автомат открывается только с одной сборки клиента",
+        "vhod": "Кабинет пускает, но кнопки кассы серые",
+        "zerkalo": "Домен работает, а извещения приходят со старого"
+    },
+    "промпты": {
+        "main": "tmp\/gen-machtovaya-1\/prompt-main.md",
+        "app": "tmp\/gen-machtovaya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-machtovaya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-machtovaya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-machtovaya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-machtovaya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-machtovaya-1\/prompt-zerkalo.md"
+    }
+}

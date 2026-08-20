@@ -1,0 +1,32 @@
+{
+    "комплект": "levkasnaya-1",
+    "маска": "левкасная",
+    "ракурс": "левкасчик",
+    "рефрен": "проба на трещину",
+    "словарь": [
+        "щит",
+        "паволока",
+        "левкас",
+        "шпон",
+        "полимент",
+        "сусаль",
+        "лощение"
+    ],
+    "срезы": {
+        "app": "Программа просит обновление, которого нет в магазине",
+        "bonus": "Кэшбэк посчитан по обороту, а не по проигрышу",
+        "registracia": "Согласия сняты сами после обновления правил",
+        "slots": "Барабаны останавливаются на комбинации, которой нет в таблице",
+        "vhod": "Список устройств не убирает удалённую строку",
+        "zerkalo": "Перечень доменов в кабинете обновился без письма"
+    },
+    "промпты": {
+        "main": "tmp\/gen-levkasnaya-1\/prompt-main.md",
+        "app": "tmp\/gen-levkasnaya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-levkasnaya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-levkasnaya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-levkasnaya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-levkasnaya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-levkasnaya-1\/prompt-zerkalo.md"
+    }
+}

@@ -1,0 +1,32 @@
+{
+    "комплект": "krahmalnya-1",
+    "маска": "крахмальня",
+    "ракурс": "крахмальщик",
+    "рефрен": "проба на клейстер",
+    "словарь": [
+        "клубень",
+        "тёрка",
+        "отстой",
+        "крахмал",
+        "промывка",
+        "сушило",
+        "сито"
+    ],
+    "срезы": {
+        "app": "Программа открывается серым экраном после обновления",
+        "bonus": "Возврат части проигрыша посчитан за чужую неделю",
+        "registracia": "Профиль показывает чужой уровень лояльности",
+        "slots": "Слот показывает чужую историю раундов при запуске",
+        "vhod": "Пароль сброшен, а письмо со ссылкой приходит просроченным",
+        "zerkalo": "Свежее имя не открывается на рабочем компьютере"
+    },
+    "промпты": {
+        "main": "tmp\/gen-krahmalnya-1\/prompt-main.md",
+        "app": "tmp\/gen-krahmalnya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-krahmalnya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-krahmalnya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-krahmalnya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-krahmalnya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-krahmalnya-1\/prompt-zerkalo.md"
+    }
+}

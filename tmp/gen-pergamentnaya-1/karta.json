@@ -1,0 +1,32 @@
+{
+    "комплект": "pergamentnaya-1",
+    "маска": "пергаментная",
+    "ракурс": "пергаментщик",
+    "рефрен": "проба на растяжку",
+    "словарь": [
+        "шкура",
+        "зола",
+        "рама",
+        "скобель",
+        "мездра",
+        "пемза",
+        "лощение"
+    ],
+    "срезы": {
+        "app": "Клиент не показывает начисленный кэшбэк",
+        "bonus": "Два кода за один депозит: сработал только первый",
+        "registracia": "Дата рождения сдвинулась на сутки после сохранения",
+        "slots": "Игра просит подтверждения при каждом запуске",
+        "vhod": "Счёт открывается, но раздел кассы просит войти повторно",
+        "zerkalo": "На новом имени сбились настройки звука и языка"
+    },
+    "промпты": {
+        "main": "tmp\/gen-pergamentnaya-1\/prompt-main.md",
+        "app": "tmp\/gen-pergamentnaya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-pergamentnaya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-pergamentnaya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-pergamentnaya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-pergamentnaya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-pergamentnaya-1\/prompt-zerkalo.md"
+    }
+}
