@@ -1,0 +1,125 @@
+<p>Спицу в бегунок вставляют до щелчка: не дошла на волос — купол не раскроется, а на глаз разницы нет. Лишний пробел в пароле работает ровно так же.</p>
+
+<h2>Лишний пробел в конце скопированной пары</h2>
+
+<p>Пароль верный, скопирован из менеджера, вставлен без опечаток — и не подходит. Форма про пробел не скажет: она сообщит то же самое, что и при полностью неверном вводе.</p>
+
+<h3>Четыре источника невидимого знака</h3>
+
+<table>
+<tr><th>Источник</th><th>Что прилипает</th><th>Насколько часто</th></tr>
+<tr><td>Двойное касание, iOS и Android</td><td>пробел после слова, 1 знак</td><td>чаще всего, 3 из 5</td></tr>
+<tr><td>Копирование из таблицы</td><td>табуляция или перевод строки</td><td>Реже, 1 из 5, заметить труднее.</td></tr>
+<tr><td>Копирование из письма</td><td>неразрывный пробел, U+00A0</td><td>редко, при переносе строки</td></tr>
+<tr><td>Автозамена в заметках</td><td>кавычки другого начертания</td><td>редко, но ломает пароль целиком</td></tr>
+</table>
+
+<p>Первый источник даёт три случая из пяти.</p>
+
+<p>Знак этот в поле пароля разглядеть невозможно.</p>
+
+<h3>Молчание формы как защита</h3>
+
+<p>Ответ «неверная пара» намеренно одинаков для всех случаев: подсказка вроде «пароль почти верен» рассказала бы постороннему, что логин угадан. Защита разумная, а игроку от неё неудобно — приходится гадать самому.</p>
+
+<p>Одинаковый ответ — это защита, а не небрежность.</p>
+
+<p>Догадываться о настоящей причине приходится самому.</p>
+
+<blockquote>«Сообщение о неуспешной попытке не раскрывает, какая часть пары указана неверно», — из переписки с поддержкой %brand_name_en%.</blockquote>
+
+<h3>Четыре приёма поимки</h3>
+
+<ol>
+<li><strong>Вставить в строку поиска</strong> — там курсор встанет после пробела, и это видно.</li>
+<li><strong>Нажать «конец строки»</strong> — курсор отскочит от последнего знака.</li>
+<li><strong>Вставлять без формата</strong> — сочетание клавиш срезает разделители.</li>
+<li><strong>Набрать вручную</strong> — надёжнее всего, если пароль короткий.</li>
+</ol>
+
+<p>Второй приём занимает секунду и работает везде.</p>
+
+<h3>Четыре помехи сверх пробела</h3>
+
+<table>
+<tr><th>Помеха</th><th>Как проявляется</th><th>Проверка</th></tr>
+<tr><td>Раскладка RU против EN</td><td>латиница вместо кириллицы</td><td>индикатор в углу экрана</td></tr>
+<tr><td>Caps Lock</td><td>Все буквы заглавные, 100 %.</td><td>тот же индикатор</td></tr>
+<tr><td>Старая запись в менеджере</td><td>подставляет пароль полугодовой давности</td><td>сверить дату в карточке</td></tr>
+<tr><td>Автоподстановка логина</td><td>подставлен чужой e-mail</td><td>прочитать поле логина целиком</td></tr>
+</table>
+
+<p>Менеджер %brand_name_en% хранит старую запись годами.</p>
+
+<p>Сама по себе она не удалится и не обновится.</p>
+
+<h3>Порядок автора при третьей неудаче</h3>
+
+<p>После третьей попытки набираю пару руками, глядя на индикатор раскладки. Не помогло — смотрю дату в менеджере: в двух случаях из трёх там пароль полугодовой давности.</p>
+
+<p>Ставка остаётся расходом при любом способе входа. Возврат, оборот подарка и пределы лежат на сервере; <a href="/app">сборка</a>, <a href="/slots">игровые автоматы</a> и <a href="/zerkalo">запасной адрес</a> проверяют пару одинаково, и вывод средств от неё не зависит.</p>
+
+<h2>Ответы на частые вопросы о неверной паре</h2>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему верный пароль не подходит?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Чаще всего к нему прилип пробел при копировании: двойное касание на телефоне захватывает знак после слова. Форма про это не сообщает.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Как увидеть лишний пробел?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Вставить пароль в строку поиска и нажать «конец строки»: курсор отскочит от последнего знака, если пробел есть.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему форма не говорит, что пароль почти верен?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Такая подсказка сообщила бы постороннему, что логин угадан. Ответ одинаков для всех неудачных попыток намеренно.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что срезает разделители при вставке?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Вставка без форматирования: сочетание с добавленной клавишей Shift. Она убирает табуляцию, переводы строк и неразрывные пробелы.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Может ли менеджер паролей подставлять старое?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Может, и делает это годами: старая запись не удаляется сама. Дату последней правки видно в карточке записи.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Ломают ли пароль кавычки из заметок?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Ломают целиком: автозамена подменяет прямые кавычки типографскими, а это уже другие знаки. Пароли лучше хранить не в заметках.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Считается ли такая попытка неудачной?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Считается наравне с прочими: счётчик растёт, и на пятой попытке вход закроется на четверть часа.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Обрезает ли форма пробелы сама?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Поле логина обрезает, поле пароля нет: пробел может быть частью пароля, и срезать его площадка не вправе.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Помогает ли показать пароль глазом?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Помогает частично: раскладку и заглавные буквы видно, а концевой пробел — нет. Для него нужен приём с курсором.</p></div>
+  </div>
+</details>

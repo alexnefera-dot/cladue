@@ -1,0 +1,133 @@
+<p>Стержень зонта режут по стандарту, а чехол шьют по стране: где-то шесть цифр, где-то пять с буквой. Почтовый индекс в форме упирается ровно в это.</p>
+
+<h2>Почтовый индекс не принимается формой: где сверить</h2>
+
+<p>Поле красное, подсказка скупая — «неверный формат», а индекс верный, переписан с конверта. Причин у отказа три, и все три касаются формата, а не самого числа.</p>
+
+<h3>Три причины красного поля</h3>
+
+<table>
+<tr><th>Причина</th><th>Как выглядит</th><th>Что делать</th></tr>
+<tr><td>Лишний пробел или дефис</td><td>«101 000» вместо «101000»</td><td>убрать всё, кроме цифр</td></tr>
+<tr><td>Формат другой страны</td><td>5 цифр там, где ждут 6</td><td>Сверить со страной в анкете.</td></tr>
+<tr><td>Индекс не существует</td><td>опечатка в одной цифре</td><td>проверить по справочнику почты</td></tr>
+</table>
+
+<p>Пробел из буфера — самая частая из трёх.</p>
+
+<p>Он невидим и потому обиднее прочих.</p>
+
+<h3>Формат берётся из графы страны</h3>
+
+<p>Проверка смотрит не на то, где вы находитесь, а на графу страны, заполненную при заведении счёта %brand_name_en%. Если там подставилась соседняя страна, форма ждёт её формат и отвергает ваш. Диагноз простой: индекс верный, а поле упрямится — смотрите страну.</p>
+
+<p>Форма %brand_name_en% проверяет длину и состав, не адрес.</p>
+
+<p>Существование улицы её не занимает вовсе.</p>
+
+<blockquote>«Формат почтового индекса определяется страной, указанной в профиле; соответствие индекса фактическому адресу на этом этапе не проверяется», — из переписки с поддержкой %brand_name_en%.</blockquote>
+
+<h3>Четыре источника, из которых верен один</h3>
+
+<ol>
+<li><strong>Справочник почтовой службы</strong> — единственный источник без ошибок.</li>
+<li><strong>Не по карте</strong> — картографические сервисы округляют до района.</li>
+<li><strong>Не по старому конверту</strong> — индексы иногда меняют при переделе участков.</li>
+<li><strong>Не по памяти</strong> — одна цифра ошибки даёт тот же красный ответ.</li>
+</ol>
+
+<p>Справочник почты выдаёт индекс по улице и дому.</p>
+
+<p>Это единственный источник без устаревших данных.</p>
+
+<h3>Форматы, которые встречаются чаще</h3>
+
+<table>
+<tr><th>Вид формата</th><th>Пример записи</th><th>Что отвергает форма</th></tr>
+<tr><td>Шесть цифр подряд</td><td>101000</td><td>пробелы и дефисы</td></tr>
+<tr><td>Пять цифр</td><td>75001</td><td>Шестую цифру, если она есть.</td></tr>
+<tr><td>Буква с цифрами</td><td>SW1A 1AA</td><td>нижний регистр букв</td></tr>
+<tr><td>Четыре цифры</td><td>1010</td><td>ведущий ноль, если его убрали</td></tr>
+</table>
+
+<p>Ведущий ноль теряется при вставке из таблицы.</p>
+
+<p>Табличный редактор считает его незначащим.</p>
+
+<h3>Назначение самого поля</h3>
+
+<p>Он не участвует в выплате и на способы оплаты не влияет. Спрашивают его для отчётности перед надзором вместе с адресом, и проверяется он только на формат. Совпадения с реальным адресом на этом шаге не сличают — это делают потом, по документу.</p>
+
+<p>Ставка остаётся расходом при любом индексе. Возврат, оборот подарка и суточные пределы от него не зависят; <a href="/slots">игровые автоматы</a>, <a href="/app">сборка</a> и <a href="/zerkalo">запасной адрес</a> его вовсе не спрашивают.</p>
+
+<h2>Ответы на вопросы о почтовом индексе</h2>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему форма не принимает верный индекс?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Чаще всего из-за пробела или дефиса, попавших из буфера обмена. Форма ждёт только цифры, без разделителей.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Как формат связан со страной в анкете?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Проверка берёт формат из графы страны, а она заполняется при заведении счёта. Чужая страна означает чужой формат.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Где узнать точный индекс?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>В справочнике почтовой службы, по улице и номеру дома. Карты округляют до района, а старые конверты бывают устаревшими.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли индекс на выплату?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не влияет ни на выплату, ни на способы оплаты. Он собирается для отчётности перед надзором вместе с адресом.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сверяют ли индекс с настоящим адресом?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>На этом шаге нет, проверяется только формат. Соответствие адресу выясняется позже, при проверке документа.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать, если ведущий ноль пропадает?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Набрать индекс руками, а не вставлять из таблицы: табличные редакторы срезают ведущий ноль как незначащий.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Принимает ли форма буквы в индексе?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Принимает, если формат страны их предполагает, но только в верхнем регистре. Строчные буквы форма отвергает.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли исправить индекс потом?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Можно, он правится в профиле самостоятельно, в отличие от страны и валюты. Ограничений на число правок нет.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Обязателен ли индекс при заведении счёта?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>При заведении счёта его не спрашивают вовсе: поле появляется на шаге проверки документов, вместе с адресом.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что если индекс сменился после переезда?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Поправить его в профиле, а при следующей проверке приложить документ с новым адресом. Расхождение задержит разбор.</p></div>
+  </div>
+</details>
