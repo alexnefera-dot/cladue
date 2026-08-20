@@ -1,0 +1,123 @@
+<h2>Смена пароля не даётся: старый не подходит к форме</h2>
+
+<p>Ножовщик правит кромку на бруске, а не на обухе: не та сторона — и движение впустую. Форма смены пароля в %brand_name_en% отказывает по той же причине.</p>
+
+<h3>Четыре причины, по которым старый пароль не принимается</h3>
+
+<table>
+<tr><th>Причина</th><th>Как выглядит</th><th>Что делать</th></tr>
+<tr><td>Раскладка или регистр</td><td>«неверный текущий пароль»</td><td>показать 8 символов глазом</td></tr>
+<tr><td>Вход был по разовому коду</td><td>та же надпись</td><td>идти в восстановление, 1 шаг</td></tr>
+<tr><td>Пароль уже сменён с другого устройства</td><td>та же надпись</td><td>вспомнить последний из 5</td></tr>
+<tr><td>Менеджер подставил старую запись</td><td>поле заполнено само</td><td>очистить поле, ввести руками</td></tr>
+</table>
+
+<p>Надпись во всех четырёх случаях одна и та же.</p>
+
+<h3>Почему сообщение не уточняется</h3>
+
+<p>Форма намеренно молчит о причине. Разделённые сообщения подсказали бы чужому, существует ли такой счёт %brand_name_en% и есть ли у него пароль вообще. Площадка предпочитает одну обтекаемую строку, а разбираться приходится перебором.</p>
+
+<p>Экономия на подсказке оборачивается лишними минутами.</p>
+
+<h3>Случай без пароля: когда его никогда не задавали</h3>
+
+<p>Счёт, заведённый через вход по разовому коду или через связанную учётную запись, пароля не имеет. Форма смены такому счёту не подходит вовсе: менять нечего. Нужен раздел восстановления — он не спрашивает старый пароль, а высылает ссылку на почту.</p>
+
+<p>Это самая частая причина из четырёх.</p>
+
+<blockquote>«Если аккаунт создан через вход по одноразовому коду, пароль не задан; для его установки используется форма восстановления доступа, а не форма смены», — из переписки с поддержкой %brand_name_en%.</blockquote>
+
+<h3>Что делает восстановление вместо смены</h3>
+
+<table>
+<tr><th>Свойство</th><th>Смена пароля</th><th>Восстановление</th></tr>
+<tr><td>Спрашивает старый</td><td>да, до 5 попыток</td><td>нет, ни одной</td></tr>
+<tr><td>Нужен доступ к почте</td><td>нет, 0 писем</td><td>да, ссылка живёт 30 минут</td></tr>
+<tr><td>Гасит чужие сеансы</td><td>да, все 100 %</td><td>да, все сразу</td></tr>
+<tr><td>Требует второй ключ</td><td>да, код TOTP</td><td>да, код TOTP</td></tr>
+</table>
+
+<p>Оба пути заканчиваются одинаково, различается только вход в них.</p>
+
+<h3>Порядок ножовщика: четыре шага</h3>
+
+<ol>
+<li><strong>Очистить поле от подстановки</strong> — менеджер чаще всего и подсовывает старое.</li>
+<li><strong>Показать введённое глазом</strong> — раскладка и регистр видны сразу.</li>
+<li><strong>Проверить, был ли пароль вообще</strong> — если входили кодом, его нет.</li>
+<li><strong>Идти в восстановление</strong> — оно короче любого разбирательства с формой.</li>
+</ol>
+
+<p>Третий шаг закрывает половину случаев без единого обращения.</p>
+
+<h3>Чего смена пароля не делает</h3>
+
+<p>Она не снимает второй ключ и не отвязывает устройства из реестра. Не отменяет поданную заявку на вывод и не трогает счётчик отыгрыша. И не освобождает адрес почты: он остаётся именем для входа.</p>
+
+<p>Ставка уменьшает счёт независимо от того, каким способом сделан заход. Отдача, пределы и сроки живут на сервере; <a href="/slots">игровые автоматы</a>, <a href="/app">сборка для телефона</a> и <a href="/zerkalo">зеркало сайта</a> ведут одну запись. Проба на кромку: правят по бруску, а не по обуху.</p>
+
+<h2>Ответы про смену пароля</h2>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Форма пишет «неверный текущий пароль», хотя он точно верный</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Сначала очистить поле: менеджер часто подставляет прежнюю запись поверх набранного. Затем проверить раскладку, включив показ символов.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Я всегда захожу по коду из письма — какой у меня пароль?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Его нет. Задать пароль можно через восстановление доступа: оно не спрашивает старый и присылает ссылку на почту.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Ссылка из письма не открывается — что делать?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Она живёт тридцать минут и открывается один раз. Запросить письмо заново и перейти сразу, не пересылая себе.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Смена пароля выкинет меня со всех устройств?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Да, все сеансы гаснут разом. Зайти заново придётся везде, включая сборку на телефоне.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Второй ключ придётся настраивать заново?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, он живёт отдельно от пароля. Смена пароля его не сбрасывает и не отключает.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли поставить прежний пароль обратно?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, последние пять паролей форма отклоняет. Придётся придумать новый.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Заявка на вывод переживёт смену пароля?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Да, поданная заявка идёт своим ходом. Пароль на её обработку не влияет.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему нельзя сменить адрес почты вместо пароля?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Адрес служит именем для входа и меняется отдельной заявкой с подтверждением личности.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько попыток даётся на ввод старого пароля?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Пять подряд, потом форма закрывается на пятнадцать минут. Счётчик обнуляется сам, обращаться в поддержку не нужно.</p></div>
+  </div>
+</details>
