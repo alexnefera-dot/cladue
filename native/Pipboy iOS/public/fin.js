@@ -92,7 +92,7 @@ function portRows(it, depth, ctx) {
     const shareSub = shareTot == null ? '' :
       `<span class="sub" title="доля от всего портфеля / внутри своего блока">${shareTot.toFixed(1)}%${shareCat != null ? ` / ${shareCat.toFixed(1)}%` : ''}</span>`;
     const nowCell = it.auto
-      ? `<td class="r num now sep" title="авто: ${it.qty} × курс ${fesc(it.rate_symbol)}">⚡ ${fmt(it.value)} $${shareSub}</td>`
+      ? `<td class="r num now sep">⚡ <span class="ed" data-fe="tgt:${it.id}:value:num" title="авто: ${it.qty} × курс ${fesc(it.rate_symbol)} · клик — вписать сумму вручную, количество пересчитается под неё">${fmt(it.value)}</span> $${shareSub}</td>`
       : editable
         ? `<td class="r num now sep"><span class="pill btn" data-fcur="${it.id}:${cur}" title="сменить валюту">${cur}</span> <span class="ed" data-fe="tgt:${it.id}:value:num" title="сколько размещено сейчас (клик)">${it.value != null ? fmt(it.value) : '—'}</span>${shareSub}</td>`
         : `<td class="r num now sep">${fmtE(it.eur)}${shareSub}</td>`;

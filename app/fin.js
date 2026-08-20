@@ -129,6 +129,18 @@ export function addItem(db, b) {
 export function patchItem(db, id, b) {
   for (const k of ['name', 'buy_value', 'value', 'target_value', 'currency', 'is_loan', 'loan_due', 'asset_type', 'qty', 'rate_symbol', 'note'])
     if (k in b) db.prepare(`UPDATE portfolio_items SET ${k} = ? WHERE id = ?`).run(b[k], id);
+  if ('value' in b && !('qty' in b) && !('rate_symbol' in b)) syncQtyFromValue(db, 'portfolio_items', id);
+}
+
+// У позиции с ⚡-привязкой сумма считается как qty × курс, поэтому вписанная руками
+// сумма пропадала при следующем чтении. Ввод суммы считаем главным: пересчитываем
+// под неё количество — привязка остаётся живой и цифра не «скидывается».
+export function syncQtyFromValue(db, table, id) {
+  const r = db.prepare(`SELECT value, qty, rate_symbol FROM ${table} WHERE id = ?`).get(id);
+  if (!r || !r.rate_symbol || r.qty == null || r.value == null) return;
+  const price = db.prepare('SELECT price FROM rates WHERE symbol = ?').get(r.rate_symbol)?.price;
+  if (!price) return;
+  db.prepare(`UPDATE ${table} SET qty = ? WHERE id = ?`).run(Math.round(r.value / price * 1e6) / 1e6, id);
 }
 
 // ===== Пассивный доход: аренда, депозиты, дивиденды =====

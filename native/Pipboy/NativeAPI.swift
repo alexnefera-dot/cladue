@@ -75,7 +75,12 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
             Api.dedupeTargetExact(made)
             _ = try? Api.setSetting(made, "target_exact_dedup_v1", "1")
         }
-        _ = try? made.run("UPDATE target_items SET target_value = value WHERE target_value IS NULL AND target_pct IS NULL AND value IS NOT NULL")   // цель по умолчанию = текущая сумма; закреплённую долю не трогаем
+        // Цель по умолчанию = текущая сумма — РОВНО один раз. Раньше эта строка шла при каждом запуске
+        // и возвращала цель тем позициям, у которых её сознательно стёрли: на перезаходе цифра «скидывалась».
+        if ((try? made.rows("SELECT value FROM settings WHERE key = 'target_default_v1'"))?.first?["value"]) as? String != "1" {
+            _ = try? made.run("UPDATE target_items SET target_value = value WHERE target_value IS NULL AND target_pct IS NULL AND value IS NOT NULL")
+            _ = try? Api.setSetting(made, "target_default_v1", "1")
+        }
         // разово применить связки ребаланса к суммам «Сейчас»: после синхрона связки приехали, а перелив — нет
         // Переносы больше не меняют value: «Сейчас» хранится как есть, «Стало» = «Сейчас» + переносы.
         // Ранее применённые переносы один раз возвращаем обратно, иначе суммы остались бы смещёнными.
@@ -1417,12 +1422,29 @@ enum Api {
         "tgt": ["name", "value", "buy_value", "target_value", "target_pct", "currency", "asset_type", "qty", "rate_symbol", "note", "kind", "region", "liquid"],
         "move": ["from_id", "to_id", "amount", "to_note"]]
 
+    // У позиции с ⚡-привязкой сумма считается как qty × курс, поэтому вписанная руками
+    // сумма пропадала при следующем чтении (на перезаходе цифра «скидывалась»). Ввод суммы
+    // считаем главным: пересчитываем под неё количество — привязка остаётся живой.
+    static func syncQtyFromValue(_ db: Database, _ table: String, _ id: Int) throws {
+        guard ["target_items", "portfolio_items"].contains(table),
+              let r = try db.rows("SELECT value, qty, rate_symbol FROM \(table) WHERE id = ?", [id]).first,
+              let sym = r["rate_symbol"] as? String, numOpt(r["qty"]) != nil, let value = numOpt(r["value"]) else { return }
+        let priceRow = try db.rows("SELECT price FROM rates WHERE symbol = ?", [sym]).first
+        guard let price = numOpt(priceRow?["price"] ?? nil), price > 0 else { return }
+        try db.run("UPDATE \(table) SET qty = ? WHERE id = ?", [(value / price * 1e6).rounded() / 1e6, id])
+    }
+
     static func finWrite(method: String, path: String, body: [String: Any], db: Database) throws -> (Data, Int)? {
         if method == "POST", path == "/api/rates/refresh" { return (try ratesRefresh(db), 200) }
         if let m = match(path, "^/api/fin/(accounts|steps|obligations|items|tx|debts|income|budget|tgt|move)(?:/([0-9]+))?$") {
             let entity = m[1], idStr = m[2], table = finTable[entity] ?? entity
             if method == "POST" && idStr.isEmpty { try finAdd(db, entity, body); return (ok(201), 201) }
-            if method == "PATCH" && !idStr.isEmpty { try patchCols(db, table, Int(idStr) ?? -1, finCols[entity] ?? [], body); return (ok(), 200) }
+            if method == "PATCH" && !idStr.isEmpty {
+                let id = Int(idStr) ?? -1
+                try patchCols(db, table, id, finCols[entity] ?? [], body)
+                if body["value"] != nil, body["qty"] == nil, body["rate_symbol"] == nil { try syncQtyFromValue(db, table, id) }
+                return (ok(), 200)
+            }
             if method == "DELETE" && !idStr.isEmpty { try db.run("DELETE FROM \(table) WHERE id = ?", [Int(idStr) ?? -1]); return (ok(), 200) }
         }
         if let m = match(path, "^/api/fin/items/([0-9]+)/move$"), method == "POST" {

@@ -273,6 +273,24 @@ test('автоцена: qty × курс тикера, валюта $ и пере
   assert.ok(Math.abs(after - 35000 / 1.2) < 0.01, 'курс вырос — стоимость пересчиталась сама');
 });
 
+test('автоцена: сумма, вписанная руками, не скидывается — под неё пересчитывается количество', () => {
+  const db = freshDb();
+  fin.rateSet(db, 'BTCUSD', 60000);
+  const growth = db.prepare(`SELECT id FROM portfolio_items WHERE name = 'Блок роста'`).get();
+  fin.addItem(db, { parent_id: growth.id, name: 'BTC', kind: 'asset' });
+  const btc = db.prepare(`SELECT id FROM portfolio_items WHERE name = 'BTC'`).get();
+  fin.patchItem(db, btc.id, { qty: 0.5, rate_symbol: 'BTCUSD' });
+  fin.patchItem(db, btc.id, { value: 45000 });   // вписал сумму руками поверх ⚡
+  const row = db.prepare('SELECT qty, rate_symbol FROM portfolio_items WHERE id = ?').get(btc.id);
+  assert.equal(row.qty, 0.75, 'количество подтянулось под сумму');
+  assert.equal(row.rate_symbol, 'BTCUSD', 'привязка к курсу осталась');
+  const shown = fin.portfolioTree(db).find(b => b.id === growth.id).children.find(c => c.id === btc.id);
+  assert.equal(shown.value, 45000, 'при чтении сумма та же, а не старая 30000');
+  fin.rateSet(db, 'BTCUSD', 80000);
+  assert.equal(fin.portfolioTree(db).find(b => b.id === growth.id).children.find(c => c.id === btc.id).value, 60000,
+    'курс вырос — 0.75 × 80000, автоцена продолжает работать');
+});
+
 test('снапшоты: один в день, дельта считается', () => {
   const db = freshDb();
   fin.recordSnapshot(db);
