@@ -1,0 +1,120 @@
+<h2>Клиент не запускается при включённой экономии заряда</h2>
+<p>
+  Значок программы %brand_name_en% нажимается, экран мигает — и всё возвращается на рабочий стол. Стоит поставить аппарат на зарядку, и тот же клиент открывается без единой заминки.
+</p>
+<p>
+  Дело не в сборке %brand_name_ru% и не в счёте. Крайний режим экономии закрывает программам сеть, а без сети клиенту нечего показать на первом же экране.
+</p>
+<h3>Что происходит при запуске</h3>
+<table>
+  <tbody>
+    <tr><th>Шаг запуска</th><th>Что требуется</th><th>Что при закрытой сети</th></tr>
+    <tr><td>Первый экран</td><td>Свежий перечень адресов</td><td>Экран не собирается, окно закрывается</td></tr>
+    <tr><td>Проверка сеанса</td><td>Ответ основного узла</td><td>Просит пароль заново</td></tr>
+    <tr><td>Витрина</td><td>Список игр и обложки</td><td>Пустые разделы</td></tr>
+    <tr><td>Касса и баланс</td><td>Ответ платёжного узла</td><td>Прочерки вместо чисел</td></tr>
+  </tbody>
+</table>
+<p>
+  Разница между обычной и крайней экономией тут решающая.
+</p>
+<h3>Отчего крайний режим жёстче обычного</h3>
+<p>
+  <strong>Обычная экономия придерживает фоновую работу, а крайняя отбирает сеть у всего, что не выбрано вручную как разрешённое.</strong> Клиент при этом даже не сообщает об отказе: окно закрывается прежде, чем успевает нарисоваться первый экран. Игрок видит вылет и грешит на сборку, хотя пакет цел, а счёт открыт и доступен из браузера тем же паролем.
+</p>
+<blockquote>
+  Стан со снятой натяжкой держать ряд не станет. Бусины на месте, нить цела, а низка ложится грудой, потому что тянуть её нечем.
+</blockquote>
+<h3>Порядок настройки: пять шагов</h3>
+<ol>
+  <li>Открыть в аппарате раздел заряда и посмотреть, включена ли крайняя экономия</li>
+  <li>Добавить клиент в список разрешённых программ</li>
+  <li>Снять для него ограничение фоновых данных отдельным переключателем</li>
+  <li>Проверить порог: часть аппаратов включает режим сама ниже 15 процентов</li>
+  <li>Запустить программу заново, не выходя из настроек</li>
+</ol>
+<p>
+  Пока идёт настройка, вход в личный кабинет никто не отнимал: браузер под режим экономии не попадает и открывает витрину обычным порядком. Заявка на вывод средств, поданная раньше, тоже стоит в общей очереди и присутствия не требует. Что удерживают каналы, разложено в <a href="/vhod">кассовом разборе</a>, а страна в анкете сверяется по <a href="/registracia">перечню граф</a>.
+</p>
+<h3>Когда виновата именно экономия</h3>
+<ul>
+  <li>📿 <strong>На зарядке клиент открывается.</strong> Самая быстрая проверка из всех</li>
+  <li>🧵 <strong>Вылет идёт ровно на первом экране.</strong> Дальше окно не доходит</li>
+  <li>🪡 <strong>В браузере всё работает.</strong> Значит, счёт и домен целы</li>
+  <li>🔹 <strong>Заряд ниже пятнадцати процентов.</strong> Режим включился сам</li>
+</ul>
+<p>
+  А это уже другие причины, и лечатся они иначе:
+</p>
+<ul>
+  <li>📿 <strong>Клиент падает и на зарядке.</strong> Ставьте пакет поверх старого</li>
+  <li>🧵 <strong>Просит пароль по кругу.</strong> Сеанс истёк, нужен код подтверждения</li>
+  <li>🪡 <strong>Открывается, но витрина пуста.</strong> Не отвечает основной адрес</li>
+  <li>🔹 <strong>Не ставится вовсе.</strong> Не хватает места в аппарате</li>
+</ul>
+<h3>Итог</h3>
+<p>
+  Вылет на старте при живом счёте %brand_name_en% почти всегда упирается в крайний режим экономии: он отбирает у программы сеть, а клиенту без неё нечего нарисовать на первом экране. Проверяется это зарядкой за полминуты, лечится добавлением программы в разрешённые и снятием ограничения фоновых данных. Минус режима тут в его молчаливости — отказа он не показывает, и вина ложится на сборку. Пока настраиваете, играть можно из браузера: под экономию он не попадает. Соседние узлы: пределы и удержания собраны в <a href="/vhod">своде лимитов</a>, состав бумаг — в <a href="/registracia">описи документов</a>, паспорта машин — в <a href="/slots">росписи провайдеров</a>, а открытые адреса перечисляет <a href="/zerkalo">сводка адресов</a>.
+</p>
+
+<h2>Ответы на частые вопросы о запуске клиента %brand_name_en%</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Программа вылетает сразу — сборка испорчена?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Скорее включён крайний режим экономии: он закрывает клиенту сеть, и первый экран просто не собирается.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отчего на зарядке всё работает?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Аппарат снимает режим экономии, как только пошёл ток. Сеть возвращается программам, и запуск проходит обычным порядком.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Чем крайняя экономия отличается от обычной?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Обычная придерживает фоновую работу, крайняя отбирает сеть у всего, что не отмечено разрешённым вручную.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Где добавить клиент в разрешённые?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>В разделе заряда, в списке программ без ограничений. Там же снимается запрет на фоновые данные.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отчего режим включился сам?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Многие аппараты переходят в него ниже пятнадцати процентов заряда. Порог этот меняется в тех же настройках.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли играть, пока клиент не чинится?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Можно из браузера: под режим экономии он не попадает, и витрина с кассой открываются тем же паролем.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Пропадёт ли поданная заявка на выплату?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не пропадёт: она стоит в общей очереди и вашего присутствия в программе не требует.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что если клиент падает и на зарядке?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Тогда дело в самом пакете: ставьте свежий выпуск поверх старого, ничего не удаляя.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отчего программа молчит вместо сообщения об ошибке?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Окно закрывается раньше, чем успевает нарисоваться первый экран. Показать отказ ей попросту негде.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сильно ли клиент расходует заряд на деле?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>В покое почти нет: расход даёт сама игра, а не программа. Живые столы тратят как видео, автоматы вчетверо меньше.</p></div>
+  </div>
+</details>

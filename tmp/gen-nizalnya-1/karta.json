@@ -1,0 +1,32 @@
+{
+    "комплект": "nizalnya-1",
+    "маска": "бисерная низальня",
+    "ракурс": "низальщик",
+    "рефрен": "проба на низку",
+    "словарь": [
+        "низка",
+        "стеклярус",
+        "рубка",
+        "стан",
+        "узелок",
+        "подбор",
+        "ярус"
+    ],
+    "срезы": {
+        "app": "Клиент не запускается при включённой экономии заряда",
+        "bonus": "Начисление пришло меньше объявленного в письме",
+        "registracia": "Анкета не даёт выбрать пол, оставленный пустым",
+        "slots": "Слот открывается только в пробном режиме",
+        "vhod": "Список устройств показывает вход, которого не было",
+        "zerkalo": "Смена адреса сбросила настройки пределов игрока"
+    },
+    "промпты": {
+        "main": "tmp\/gen-nizalnya-1\/prompt-main.md",
+        "app": "tmp\/gen-nizalnya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-nizalnya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-nizalnya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-nizalnya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-nizalnya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-nizalnya-1\/prompt-zerkalo.md"
+    }
+}
