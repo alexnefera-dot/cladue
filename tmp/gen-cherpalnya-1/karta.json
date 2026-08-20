@@ -1,0 +1,32 @@
+{
+    "комплект": "cherpalnya-1",
+    "маска": "бумажная черпальня",
+    "ракурс": "черпальщик",
+    "рефрен": "проба на просвет",
+    "словарь": [
+        "тряпьё",
+        "ролл",
+        "черпак",
+        "сетка",
+        "пресс",
+        "сушило",
+        "стопа"
+    ],
+    "срезы": {
+        "app": "Приложение весит втрое больше объявленного",
+        "bonus": "Отказ от начисления не освободил полку сразу",
+        "registracia": "Форма считает почту занятой, хотя счёта нет",
+        "slots": "Игра вылетает при покупке бонусной серии",
+        "vhod": "Вход с рабочей сети закрывается через минуту",
+        "zerkalo": "На новом домене пропала часть журнала операций"
+    },
+    "промпты": {
+        "main": "tmp\/gen-cherpalnya-1\/prompt-main.md",
+        "app": "tmp\/gen-cherpalnya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-cherpalnya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-cherpalnya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-cherpalnya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-cherpalnya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-cherpalnya-1\/prompt-zerkalo.md"
+    }
+}
