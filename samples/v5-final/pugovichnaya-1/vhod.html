@@ -1,0 +1,125 @@
+<h2>Заход из корпоративной сети: что режет фильтр компании</h2>
+
+<p>Пуговичник знает: нитка рвётся не на ушке, а там, где её протянули сквозь тесное отверстие. Служебная сеть — как раз такое отверстие, и <a href="/vhod">вход в личный кабинет</a> %brand_name_en% упирается в него по-разному.</p>
+
+<h3>Три уровня отсечения и как они выглядят</h3>
+
+<table>
+<tr><th>Уровень</th><th>Как выглядит отказ</th><th>Что подсказывает</th></tr>
+<tr><td>Список имён на шлюзе</td><td>страница компании, код 403</td><td>прямая надпись, 2 строки</td></tr>
+<tr><td>Разбор трафика по признакам</td><td>загрузка 30 секунд, затем обрыв</td><td>ничего, тишина</td></tr>
+<tr><td>Управление устройством</td><td>значок исчезает за 1 сверку</td><td>уведомление от службы IT</td></tr>
+</table>
+
+<p><strong>Первый уровень честнее двух остальных</strong>.</p>
+
+<p>Второй уровень стоит на шлюзе, третий — внутри самого телефона.</p>
+
+<h3>Почему второй уровень молчит</h3>
+
+<p>Разбор по признакам не выдаёт страницу с объяснением: он просто отбрасывает пакеты. Браузер ждёт ответа до конца отсчёта, а потом сообщает о недоступности узла — та же надпись, что при поломке провайдера. Отличить одно от другого можно повторной попыткой с мобильной сети.</p>
+
+<p><strong>Совпадение надписей и путает больше всего</strong>.</p>
+
+<blockquote>«Ограничения корпоративной сети находятся вне зоны нашего контроля; при недоступности сайта из офисной сети рекомендуем использовать мобильное соединение», — из переписки с поддержкой %brand_name_en%.</blockquote>
+
+<p>Мобильная сеть даёт ответ за десять секунд.</p>
+
+<h3>Что видит служба безопасности компании</h3>
+
+<table>
+<tr><th>Что фиксируется</th><th>При обычном заходе</th><th>При защищённом соединении</th></tr>
+<tr><td>Имя сайта</td><td>видно целиком</td><td>видно имя, не путь URL</td></tr>
+<tr><td>Содержимое страниц</td><td>видно без TLS</td><td>не видно</td></tr>
+<tr><td>Объём переданного</td><td>виден, до 1 КБ точности</td><td>виден</td></tr>
+<tr><td>Время и длительность</td><td>записываются, 90 суток</td><td>записываются, 90 суток</td></tr>
+</table>
+
+<p><strong>Имя сайта в журнале остаётся при любом соединении</strong>.</p>
+
+<h3>Три вещи, которые не помогают</h3>
+
+<ol>
+<li><strong>Режим без истории</strong> — он прячет следы в браузере, а не в сети.</li>
+<li><strong>Смена браузера</strong> — фильтр стоит на шлюзе, а не в программе.</li>
+<li><strong>Запасное имя площадки</strong> — списки обновляются автоматически, часто за сутки.</li>
+</ol>
+
+<p>Ни один из трёх приёмов не убирает запись из журнала.</p>
+
+<h3>Что действительно работает</h3>
+
+<p>Мобильная сеть телефона проходит мимо служебного шлюза целиком. Раздача на рабочий ноутбук даёт тот же результат, но при управляемом устройстве остаётся третий уровень.</p>
+
+<p>Личный телефон на своём тарифе — самый простой путь.</p>
+
+<p>Третий уровень снимается только службой, выдавшей устройство.</p>
+
+<h3>Чего отсечение не трогает</h3>
+
+<p>Оно не влияет на счёт %brand_name_en%, отыгрыш и поданные заявки: всё это живёт на сервере и идёт своим ходом, пока вы не видите витрину. <a href="/slots">Игровые автоматы</a>, <a href="/app">сборка для телефона</a> и <a href="/zerkalo">зеркало сайта</a> ведут одну запись. Проба на ушко: рвётся нитка, а не пуговица.</p>
+
+<h2>Ответы на вопросы про офисный фильтр и журнал шлюза</h2>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сайт не грузится только на работе — это блокировка страны?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Проверьте с мобильной сети телефона. Если там открывается, дело в служебном шлюзе, а не в списках надзора.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Страница висит и обрывается без объяснения</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Похоже на разбор трафика по признакам: пакеты отбрасываются молча. Такой отказ неотличим от поломки провайдера, кроме как повторной попыткой с другой сети.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Поможет ли режим без истории?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. Он очищает следы в браузере, а журнал ведётся на шлюзе компании, и туда режим не дотягивается.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Видит ли работодатель, что именно я делал на сайте?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>При защищённом соединении — только имя сайта, время и объём. Адреса страниц и содержимое остаются закрытыми.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сборка на служебном телефоне удалилась сама</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Сработала политика управления устройством. Ставить программу нужно в личный профиль телефона, а не в служебный.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Запасное имя обходит офисный фильтр?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Ненадолго: списки на шлюзе обновляются автоматически, обычно за сутки.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Заявка на вывод пострадает, если сеть оборвалась?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. Поданная заявка обрабатывается на сервере и не зависит от того, видите ли вы витрину.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Раздача с телефона на ноутбук решает вопрос?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Для сетевого фильтра — да, трафик идёт мимо шлюза. Для управляемого ноутбука остаётся политика самого устройства.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Круг в игре не досчитался при обрыве сети</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Досчитался на сервере. Откройте игру заново — итог будет в журнале раундов, а выплата уже на счёте.</p></div>
+  </div>
+</details>
