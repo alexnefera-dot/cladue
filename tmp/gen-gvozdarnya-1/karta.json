@@ -1,0 +1,32 @@
+{
+    "комплект": "gvozdarnya-1",
+    "маска": "гвоздарня",
+    "ракурс": "гвоздарь",
+    "рефрен": "проба на загиб",
+    "словарь": [
+        "прут",
+        "шляпка",
+        "наковаленка",
+        "горн",
+        "окалина",
+        "связка",
+        "жало"
+    ],
+    "срезы": {
+        "app": "Быстрый вход по лицу перестал срабатывать",
+        "bonus": "Промокод сработал, но множитель оказался выше",
+        "registracia": "Регистрация через сторонний сервис не даёт задать пароль",
+        "slots": "Слот не сохраняет незавершённую бонусную серию",
+        "vhod": "Резервные коды закончились и не выдаются заново",
+        "zerkalo": "Свежий домен не принимает пароль от прежнего"
+    },
+    "промпты": {
+        "main": "tmp\/gen-gvozdarnya-1\/prompt-main.md",
+        "app": "tmp\/gen-gvozdarnya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-gvozdarnya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-gvozdarnya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-gvozdarnya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-gvozdarnya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-gvozdarnya-1\/prompt-zerkalo.md"
+    }
+}
