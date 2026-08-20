@@ -1,0 +1,32 @@
+{
+    "комплект": "izrazcovaya-1",
+    "маска": "изразцовая мастерская",
+    "ракурс": "изразечник",
+    "рефрен": "проба на звон",
+    "словарь": [
+        "глина",
+        "ангоб",
+        "полива",
+        "румпа",
+        "лощило",
+        "рельеф",
+        "обвязка"
+    ],
+    "срезы": {
+        "app": "Сборка не открывает вложения из переписки с поддержкой",
+        "bonus": "Начисление сгорело в день, когда оборот был закрыт",
+        "registracia": "Анкета сбрасывает заполненное при возврате назад",
+        "slots": "Паспорт машины показывает возврат без указания сборки",
+        "vhod": "Подтверждение приходит на почту вместо телефона",
+        "zerkalo": "Переадресация уводит на страницу партнёрской сети"
+    },
+    "промпты": {
+        "main": "tmp\/gen-izrazcovaya-1\/prompt-main.md",
+        "app": "tmp\/gen-izrazcovaya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-izrazcovaya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-izrazcovaya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-izrazcovaya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-izrazcovaya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-izrazcovaya-1\/prompt-zerkalo.md"
+    }
+}
