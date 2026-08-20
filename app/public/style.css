@@ -132,6 +132,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .footer-hint{margin-top:14px;color:var(--muted);font-size:11px;border-top:1px solid var(--line);padding-top:8px}
 .ratesbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:9px 15px;margin-bottom:12px;font-size:12.5px;box-shadow:var(--shadow-sm);font-variant-numeric:tabular-nums}
 .ratepill{display:flex;align-items:center;gap:6px}
+/* сборка приложения старее правок бэкенда — пока не пересобрать, правки молча не применяются */
+.staleapp{background:color-mix(in srgb, var(--amber) 12%, var(--panel));border:1px solid var(--amber);color:var(--amber);
+  border-radius:12px;padding:9px 15px;margin-bottom:10px;font-size:12.5px;line-height:1.45}
 .ratepill b{font-weight:600}
 .up{color:var(--green);font:11px var(--mono)}
 .down{color:var(--red);font:11px var(--mono)}

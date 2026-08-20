@@ -88,6 +88,33 @@ test('форма переноса появляется только по кли�
   assert.equal((open.match(/class="tgtform-row"/g) || []).length, 1, 'форма должна быть ровно одна');
 });
 
+// Правки Swift доезжают только пересборкой в Xcode, фронт обновляется сам — предупреждение
+// в шапке единственный способ увидеть, что бэкенд ещё старый (иначе правки молча не работают).
+function renderHead(ctx, version) {
+  const node = { addEventListener() {}, appendChild() {}, replaceWith() {}, focus() {},
+    classList: { add() {}, remove() {} }, dataset: {}, style: {}, innerHTML: '', value: '' };
+  ctx.document.getElementById = () => node;
+  // finData/finBuild объявлены через let — в песочнице это не свойства глобала, только присваиванием
+  ctx.__data = { ...DATA, accounts: [], budgetItems: [],
+    summary: { ...DATA.summary, accountsByCurrency: { '€': 100 } } };
+  ctx.__build = version;
+  vm.runInContext('finSection = "__none__"; finData = __data; finBuild = __build', ctx);   // разделы не рисуем — нужна только шапка
+  ctx.renderFin();
+  return node.innerHTML;
+}
+
+test('старая сборка приложения: в шапке предупреждение о пересборке', () => {
+  const ctx = loadFin();
+  const html = renderHead(ctx, { platform: 'Mac', buildDate: '2026-07-01 10:00' });
+  assert.ok(html.includes('staleapp'), 'нет предупреждения про старую сборку');
+  assert.ok(html.includes('2026-07-01'), 'не видно, какая сборка стоит');
+});
+
+test('свежая сборка и node-прототип: предупреждения нет', () => {
+  assert.ok(!renderHead(loadFin(), { platform: 'Mac', buildDate: '2999-01-01 10:00' }).includes('staleapp'));
+  assert.ok(!renderHead(loadFin(), null).includes('staleapp'), 'без /api/version предупреждения быть не должно');
+});
+
 test('цель: закреплено то поле, что заполнено', () => {
   const html = loadFin().secPortfolio(DATA, DATA.summary);
   assert.ok(html.includes('target_pct'), 'нет поля доли');

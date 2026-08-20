@@ -8,8 +8,16 @@ let showMonefy = false;
 let finHide = true;        // каждый заход начинается со скрытых значений — открываются только глазками
 let finShown = new Set();  // точечно раскрытые разделы (до общего скрытия/перезагрузки)
 
+// Фронт на Маке обновляется сам (git pull при запуске), а Swift — только пересборкой в Xcode.
+// Из-за этого правки бэкенда молча не применялись, и цифры «слетали» на перезаходе.
+// NEED_BUILD — дата последней правки native/Pipboy/*.swift: старее → показываем предупреждение.
+// ПРАВИШЬ SWIFT — ОБНОВИ ЭТУ ДАТУ.
+const NEED_BUILD = '2026-08-20';
+let finBuild = null;   // { platform, buildDate, … } из /api/version
+
 const finApi = {
   list: () => fetch('/api/fin').then(r => r.json()),
+  version: () => fetch('/api/version').then(r => r.ok ? r.json() : null).catch(() => null),
   add: (ent, b) => fetch(`/api/fin/${ent}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }),
   patch: (ent, id, b) => fetch(`/api/fin/${ent}/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }),
   del: (ent, id) => fetch(`/api/fin/${ent}/${id}`, { method: 'DELETE' }),
@@ -47,7 +55,7 @@ const RATE_FMT = { 'XAUUSD': v => '$' + fmt(v), 'EURUSD': v => v?.toFixed(4), 'B
 window.loadFin = async function () {
   const el = document.getElementById('screen-fin');
   try {
-    finData = await finApi.list();
+    [finData, finBuild] = await Promise.all([finApi.list(), finApi.version()]);
     if (!finData || finData.error || !Array.isArray(finData.portfolio)) {   // бэкенд отдал ошибку — показываем причину, не белый экран
       if (el) el.innerHTML = `<h2>Финансы</h2><div class="card" style="color:var(--red);margin-top:12px">Не удалось загрузить финансы: <span class="meta">${fesc(String((finData && finData.error) || 'нет данных'))}</span></div>`;
       return;
@@ -1105,7 +1113,12 @@ function renderFin() {
   const hidden = key => hide && !finShown.has(key);
   const accStr = hidden('acc') ? '—'
     : Object.entries(s.accountsByCurrency).map(([c, v]) => `${fmt(v)} ${c}`).join(' · ') || '—';
+  // сборка старее последней правки Swift: бэкенд ещё со старым поведением — правки будут слетать
+  const stale = finBuild && String(finBuild.buildDate || '').slice(0, 10) < NEED_BUILD;
   const head = `
+  ${stale ? `<div class="staleapp">⚠ ${fesc(finBuild.platform || 'приложение')} собран ${fesc(String(finBuild.buildDate).slice(0, 10))},
+    а правки бэкенда от ${NEED_BUILD} ещё не применены — они приезжают только пересборкой в Xcode (⌘R).
+    До неё ⚡-привязки, суммы и цели будут слетать при перезаходе.</div>` : ''}
   <div class="ratesbar">
     ${d.rates.map(r => `<span class="ratepill">
       <b>${fesc(r.label)}</b>
