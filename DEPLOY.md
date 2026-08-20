@@ -95,6 +95,17 @@ chown www-data:www-data /var/www/sitegrator/clicks.log
 
 ## 5. config.php
 
+В архиве лежит `config.php.example` — скопировать его и заполнить:
+
+```bash
+cd /var/www/sitegrator
+cp config.php.example config.php
+nano config.php
+```
+
+(в архиве нет готового `config.php` намеренно: иначе локальная версия
+подхватила бы боевые настройки вместо своих, см. `LOCAL.md`)
+
 Заполнить только эти поля (остальное уже настроено):
 
 ```php
