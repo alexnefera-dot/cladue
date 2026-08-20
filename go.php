@@ -28,6 +28,23 @@ if (is_file($offersFile)) {
     if (is_array($offers) && isset($offers[$slug])) $offer = $offers[$slug];
 }
 
+// РОТАЦИЯ: если у слага несколько офферов, значение — массив [[url, вес], ...].
+// Выбираем случайно с учётом весов. Состояние нигде не храним: при потоке
+// кликов случайный выбор даёт нужные пропорции, а go.php остаётся без БД,
+// без файлов-счётчиков и без блокировок.
+if (is_array($offer)) {
+    $total = 0;
+    foreach ($offer as $o) $total += (int)$o[1];
+    if ($total > 0) {
+        $r = random_int(1, $total);
+        foreach ($offer as $o) {
+            $r -= (int)$o[1];
+            if ($r <= 0) { $offer = (string)$o[0]; break; }
+        }
+    }
+    if (is_array($offer)) $offer = (string)($offer[0][0] ?? '');   // подстраховка
+}
+
 // АВАРИЙНЫЙ fallback: если кэша нет/слаг не найден, но задан общий fallback_offer.
 if ($offer === null && !empty($cfg['fallback_offer'])) {
     $offer = $cfg['fallback_offer'];

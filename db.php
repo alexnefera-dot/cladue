@@ -308,9 +308,20 @@ function offers_cache_rebuild() {
         if ($curN > 0) return -1;   // -1 = не обновляли, файл оставлен как был
     }
 
+    // Разворачиваем поле оффера в формат для go.php:
+    //   одна ссылка          -> строка (как было раньше, совместимо со старым offers.php)
+    //   несколько (ротация)  -> [[url, вес], ...]
+    $map = [];
+    foreach ($rows as $slug => $urlText) {
+        $list = parse_offer_urls($urlText);
+        if (!$list) continue;
+        $map[$slug] = (count($list) === 1 && $list[0][1] === 1) ? $list[0][0] : $list;
+    }
+
     $php = "<?php\n// АВТОГЕНЕРАЦИЯ. Не редактировать вручную — перезапишется.\n"
          . "// Обновлено: " . date('Y-m-d H:i:s') . "\n"
-         . "return " . var_export($rows, true) . ";\n";
+         . "// Значение: строка = один оффер; массив [[url,вес],...] = ротация.\n"
+         . "return " . var_export($map, true) . ";\n";
     $tmp  = $file . '.tmp';
     // пишем во временный и атомарно переименовываем — go.php никогда не увидит полу-записанный файл
     if (@file_put_contents($tmp, $php, LOCK_EX) !== false) {
@@ -342,13 +353,47 @@ function normalize_slug($s) {
 }
 function valid_url($u)  { return (bool)preg_match('~^https?://~i', (string)$u); }
 
+/**
+ * Разобрать поле оффера в список ссылок для ротации.
+ *
+ * В поле можно указать несколько ссылок — по одной на строку. Тогда go.php
+ * будет распределять между ними трафик. Необязательный вес после «|»:
+ *
+ *   https://a.com/abc          — вес 1
+ *   https://b.com/xyz|3        — вес 3 (получит втрое больше трафика)
+ *
+ * Возвращает [[url, weight], ...]. Для одной ссылки — список из одного элемента.
+ */
+function parse_offer_urls($text) {
+    $out = [];
+    foreach (preg_split('~[\r\n]+~', (string)$text) as $line) {
+        $line = trim($line);
+        if ($line === '' || $line[0] === '#') continue;
+        $w = 1;
+        if (preg_match('~^(.*?)\s*\|\s*(\d+)\s*$~', $line, $m)) {
+            $line = trim($m[1]);
+            $w    = max(1, (int)$m[2]);
+        }
+        if ($line !== '') $out[] = [$line, $w];
+    }
+    return $out;
+}
+
+/** Проверка поля оффера: непустое и каждая ссылка начинается с http. */
+function valid_offer_urls($text) {
+    $list = parse_offer_urls($text);
+    if (!$list) return false;
+    foreach ($list as $o) if (!valid_url($o[0])) return false;
+    return true;
+}
+
 /** Добавить кампанию. Возвращает null при успехе или текст ошибки. */
 function add_campaign($slug, $name, $url) {
     $slug = normalize_slug($slug);   // принимаем и готовую ссылку .../go/СЛАГ
     $name = trim((string)$name);
     $url  = trim((string)$url);
     if (!valid_slug($slug)) return 'Слаг "' . $slug . '": только латиница, цифры, _ и -';
-    if (!valid_url($url))   return 'Кампания "' . $slug . '": URL офера должен начинаться с http';
+    if (!valid_offer_urls($url)) return 'Кампания "' . $slug . '": каждая ссылка должна начинаться с http';
     $now = time();
     try {
         db()->prepare('INSERT INTO campaigns (slug,name,offer_url,created_at,updated_at)
@@ -364,7 +409,7 @@ function add_campaign($slug, $name, $url) {
 /** Сменить офер у кампании (по id). Пишет историю. */
 function update_offer($id, $url) {
     $url = trim((string)$url);
-    if (!valid_url($url)) return 'URL офера должен начинаться с http';
+    if (!valid_offer_urls($url)) return 'URL офера: каждая ссылка должна начинаться с http';
     $pdo = db();
     $st = $pdo->prepare('SELECT slug, offer_url FROM campaigns WHERE id = ?');
     $st->execute([(int)$id]);
@@ -485,9 +530,10 @@ function check_campaign_links() {
                 ->fetchAll(PDO::FETCH_ASSOC);
     if (!$rows) return [];
 
-    // уникальные URL
+    // уникальные URL (у кампании в ротации их несколько — проверяем каждую)
     $urls = [];
-    foreach ($rows as $r) $urls[$r['offer_url']] = true;
+    foreach ($rows as $r)
+        foreach (parse_offer_urls($r['offer_url']) as $o) $urls[$o[0]] = true;
     $urls = array_keys($urls);
 
     $UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
@@ -546,10 +592,24 @@ function check_campaign_links() {
         }
     }
 
+    // Итог по кампании. Если офферов несколько (ротация) — показываем первую
+    // проблемную ссылку: одна битая в ротации льёт часть трафика в никуда.
     foreach ($rows as &$r) {
-        $res = $results[$r['offer_url']] ?? ['code'=>0,'err'=>'нет curl'];
-        $r['code'] = $res['code'];
-        $r['err']  = $res['err'];
+        $list = parse_offer_urls($r['offer_url']);
+        $bad  = null;
+        foreach ($list as $o) {
+            $res = $results[$o[0]] ?? ['code'=>0,'err'=>'нет curl'];
+            $ok  = ($res['err'] === '' && $res['code'] >= 200 && $res['code'] < 400);
+            if (!$ok) { $bad = [$o[0], $res]; break; }
+        }
+        if ($bad === null) {
+            $res = $results[$list[0][0] ?? ''] ?? ['code'=>0,'err'=>'нет curl'];
+            $r['code'] = $res['code'];
+            $r['err']  = $res['err'];
+        } else {
+            $r['code'] = $bad[1]['code'];
+            $r['err']  = (count($list) > 1 ? 'ссылка ' . $bad[0] . ': ' : '') . $bad[1]['err'];
+        }
     }
     return $rows;
 }

@@ -1010,7 +1010,10 @@ $msg = $_GET['msg'] ?? '';
             <input type="hidden" name="key" value="<?= h($key) ?>">
             <input type="hidden" name="action" value="update_offer">
             <input type="hidden" name="id" value="<?= (int)$c['id'] ?>">
-            <input type="url" name="offer_url" value="<?= h($c['offer_url']) ?>" required>
+            <?php $offerLines = max(1, min(6, substr_count(trim($c['offer_url']), "\n") + 1)); ?>
+            <textarea name="offer_url" rows="<?= $offerLines ?>" required
+                      style="width:100%;min-width:280px;font:12px ui-monospace,monospace;resize:vertical"
+                      title="Одна ссылка — обычный оффер. Несколько строк — ротация трафика между ними. Вес: URL|3"><?= h($c['offer_url']) ?></textarea>
             <button type="submit">Сохранить</button>
           </form>
         </td>
@@ -1031,13 +1034,21 @@ $msg = $_GET['msg'] ?? '';
 
   <div class="card">
     <h2>Добавить кампанию</h2>
+    <div class="muted" style="margin-bottom:8px">
+      Слаг можно вставить готовой ссылкой — домен отрежется сам.
+      В поле оффера можно указать <b>несколько ссылок, по одной на строку</b> — тогда трафик
+      распределится между ними. Вес задаётся через <code>|</code>:
+      <code>https://offer-b.com/xyz|3</code> получит втрое больше, чем ссылка без веса.
+    </div>
     <form method="post">
       <input type="hidden" name="key" value="<?= h($key) ?>">
       <input type="hidden" name="action" value="add">
       <div class="grid3">
         <div><label class="f">Название</label><input type="text" name="name" placeholder="Fenix RU"></div>
         <div><label class="f">Слаг (рефка)</label><input type="text" name="slug" placeholder="fenix_ru" required></div>
-        <div><label class="f">URL офера</label><input type="url" name="offer_url" placeholder="https://..." required></div>
+        <div><label class="f">URL офера <span class="muted" style="font-weight:normal">(несколько строк = ротация)</span></label>
+          <textarea name="offer_url" rows="2" required placeholder="https://offer-a.com/abc&#10;https://offer-b.com/xyz|3"
+                    style="width:100%;font:12px ui-monospace,monospace;resize:vertical"></textarea></div>
         <div><button type="submit">Добавить</button></div>
       </div>
     </form>
