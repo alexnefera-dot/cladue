@@ -1,0 +1,32 @@
+{
+    "комплект": "solodovnya-1",
+    "маска": "солодовня",
+    "ракурс": "солодовник",
+    "рефрен": "проба на росток",
+    "словарь": [
+        "замочка",
+        "ток",
+        "ворошение",
+        "росток",
+        "подвяливание",
+        "зерно",
+        "лопата"
+    ],
+    "срезы": {
+        "app": "Программа теряет введённую сумму при повороте экрана",
+        "bonus": "Турнирный приз пришёл с требованием отыгрыша",
+        "registracia": "Счёт открыт, но раздел профиля пуст",
+        "slots": "Ставка выше потолка проходит, но в оборот не идёт",
+        "vhod": "Кабинет требует код при каждом переходе между разделами",
+        "zerkalo": "Запасной вход требует подтверждения через письмо"
+    },
+    "промпты": {
+        "main": "tmp\/gen-solodovnya-1\/prompt-main.md",
+        "app": "tmp\/gen-solodovnya-1\/prompt-app.md",
+        "bonus": "tmp\/gen-solodovnya-1\/prompt-bonus.md",
+        "registracia": "tmp\/gen-solodovnya-1\/prompt-registracia.md",
+        "slots": "tmp\/gen-solodovnya-1\/prompt-slots.md",
+        "vhod": "tmp\/gen-solodovnya-1\/prompt-vhod.md",
+        "zerkalo": "tmp\/gen-solodovnya-1\/prompt-zerkalo.md"
+    }
+}

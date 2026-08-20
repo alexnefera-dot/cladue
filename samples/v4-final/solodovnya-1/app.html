@@ -1,0 +1,120 @@
+<h2>Программа теряет введённую сумму при повороте экрана</h2>
+<p>
+  Набрали в клиенте %brand_name_en% сумму депозита, повернули телефон боком — и поле опустело. То же при заявке на вывод средств: цифры исчезают, форма начинается заново.
+</p>
+<p>
+  Сбоя у %brand_name_ru% тут нет. Поворот экрана пересобирает окно целиком, и незавершённая форма при этом обнуляется.
+</p>
+<h3>Что теряется при повороте, а что нет</h3>
+<table>
+  <tbody>
+    <tr><th>Что</th><th>Переживает поворот</th><th>Почему</th></tr>
+    <tr><td>Сумма в поле ввода</td><td>Нет</td><td>Форма собирается заново</td></tr>
+    <tr><td>Выбранный канал оплаты</td><td>Обычно да</td><td>Хранится в настройках счёта</td></tr>
+    <tr><td>Открытый раунд в игре</td><td>Да</td><td>Лежит на узле студии</td></tr>
+    <tr><td>Отметка сеанса</td><td>Да</td><td>Ключ не зависит от окна</td></tr>
+  </tbody>
+</table>
+<p>
+  Теряется только то, что не успело уйти на площадку.
+</p>
+<h3>Отчего окно пересобирается целиком</h3>
+<p>
+  <strong>При повороте меняется вся разметка экрана, и программа строит её заново — вместе с полями, которые в этот момент никуда ещё не отправлены.</strong> Хранить набранное между двумя видами разметки клиент не обязан, и большинство сборок этого не делают. Обойти это проще всего запретом поворота на время ввода: переключатель стоит в самом аппарате, рядом с яркостью.
+</p>
+<blockquote>
+  Засыпь на току перекидывают лопатой с места на место. Что было в лопате на середине взмаха, до нового места не долетит.
+</blockquote>
+<h3>Порядок ввода: пять шагов</h3>
+<ol>
+  <li>Закрепить поворот экрана до того, как открывать кассу</li>
+  <li>Ввести сумму и нажать подтверждение, не поворачивая аппарат</li>
+  <li>Дождаться, пока форма покажет номер операции</li>
+  <li>Номер появился — сумма ушла на площадку, поворот уже безопасен</li>
+  <li>Пропало на середине — начать заново, повторной оплаты не будет</li>
+</ol>
+<p>
+  Списаться дважды тут нечему: без выданного номера операции касса запроса не видела. Остаток, счётчик отыгрыша и вращения от поворотов экрана не меняются ни на единицу. Пределы по каналам разложены в <a href="/vhod">своде удержаний</a>, а обязательные графы собраны в <a href="/registracia">перечне бумаг</a>.
+</p>
+<h3>Что ещё сбрасывает незаконченную форму</h3>
+<ul>
+  <li>🌾 <strong>Звонок посреди ввода.</strong> Программа уходит в фон и возвращается заново</li>
+  <li>💧 <strong>Переключение на другую программу.</strong> При нехватке памяти то же самое</li>
+  <li>🧺 <strong>Смена сети с мобильной на домашнюю.</strong> Форма перезапрашивает пределы</li>
+  <li>🕰️ <strong>Долгая пауза на экране.</strong> Через несколько минут форма истекает</li>
+</ul>
+<p>
+  А это форму не трогает:
+</p>
+<ul>
+  <li>🌾 <strong>Приход извещения.</strong> Оно рисуется поверх, не мешая</li>
+  <li>💧 <strong>Смена яркости или громкости.</strong> Разметка не пересобирается</li>
+  <li>🧺 <strong>Блокировка экрана на минуту.</strong> Форма обычно доживает</li>
+  <li>🕰️ <strong>Обновление перечня адресов.</strong> Идёт в фоне и не мешает</li>
+</ul>
+<h3>Итог</h3>
+<p>
+  Пропавшая при повороте сумма в %brand_name_en% — не потеря денег, а пересборка окна: разметка меняется целиком, и незавершённая форма строится заново. Пока номер операции не выдан, до кассы ничего не дошло, и двойного списания не бывает. Самый простой обход — закрепить поворот экрана перед открытием кассы; тем же способом лечатся сбросы при звонке и переключении программ. Ни счёт, ни отыгрыш при этом не задеты. Соседние узлы: пределы и сроки выплат собраны в <a href="/vhod">описи порогов</a>, требования к бумагам — в <a href="/registracia">памятке по графам</a>, паспорта машин — в <a href="/slots">перечне машин</a>, а открытые адреса ведёт <a href="/zerkalo">сводка имён</a>.
+</p>
+
+<h2>Ответы на частые вопросы о вводе сумм в клиенте %brand_name_en%</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сумма пропала при повороте — деньги списались?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. Пока форма не выдала номер операции, до кассы ничего не дошло. Списания при этом не происходит.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отчего программа не хранит набранное?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Поворот меняет разметку целиком, и окно строится заново. Хранить незавершённые поля клиент не обязан.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Как этого избежать?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Закрепить поворот экрана в настройках аппарата до открытия кассы. Переключатель обычно стоит рядом с яркостью.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что ещё сбрасывает форму?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Звонок, переключение на другую программу при нехватке памяти и долгая пауза: через несколько минут форма истекает сама.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Теряется ли открытый раунд в игре?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не теряется: он лежит на узле студии и подхватывается при возврате в ту же машину.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Может ли сумма уйти дважды?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. Второй платёж возможен только при повторном подтверждении, а сброшенная форма подтверждения не отправляла.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Помогает ли ввод через браузер?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Отчасти: браузер чаще сохраняет набранное при повороте. Но пределы и удержания там ровно те же.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сбрасывается ли выбранный канал оплаты?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Обычно нет: он хранится в настройках счёта, а не в форме, и переживает пересборку окна.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отчего форма истекает при паузе?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Пределы кассы перезапрашиваются перед подтверждением, и старая форма считается устаревшей. Это защита, а не сбой.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Пропадёт ли так же заявка на вывод?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>До подтверждения — да, точно так же. После выдачи номера заявка стоит в очереди и от аппарата не зависит.</p></div>
+  </div>
+</details>
