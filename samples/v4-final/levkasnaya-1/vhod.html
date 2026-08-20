@@ -1,0 +1,120 @@
+<h2>Список устройств не убирает удалённую строку</h2>
+<p>
+  В разделе защиты %brand_name_en% старый телефон отвязан, кнопка нажата, сообщение об успехе показано. Через день строка снова на месте, будто ничего и не было.
+</p>
+<p>
+  Мистики у %brand_name_ru% тут нет. Отвязка гасит доверие, но саму запись оставляет, а живой сеанс на том аппарате возвращает её в список при первом же обращении к площадке.
+</p>
+<h3>Что делает отвязка и чего она не делает</h3>
+<table>
+  <tbody>
+    <tr><th>Действие</th><th>Что происходит</th><th>Что остаётся</th></tr>
+    <tr><td>Снять доверие с устройства</td><td>Код спросят при следующем входе</td><td>Сеанс живёт дальше</td></tr>
+    <tr><td>Оборвать сеанс</td><td>Аппарат выбрасывает из счёта</td><td>Запись в журнале</td></tr>
+    <tr><td>Выйти на всех устройствах</td><td>Рвутся все сеансы разом</td><td>Список чистится сам</td></tr>
+    <tr><td>Сменить пароль</td><td>Гаснут все доверия</td><td>Придётся входить заново везде</td></tr>
+  </tbody>
+</table>
+<p>
+  Первая и вторая строки — разные кнопки, и путают их постоянно.
+</p>
+<h3>Отчего снятие доверия не рвёт сеанс</h3>
+<p>
+  <strong>Доверие и сеанс — две разные записи: первая избавляет от кода при входе, вторая держит вас внутри счёта, и гашение одной другую не трогает.</strong> Задумано это ради удобства: сняв доверие с чужого аппарата, вы не выбиваете себя из собственного окна. Изнанка у удобства неприятная: пока чужой сеанс жив, аппарат ходит на площадку и всякий раз объявляется в списке заново. Правильный порядок обратный — сперва оборвать сеанс, и только потом снимать доверие.
+</p>
+<blockquote>
+  Пыль с щита смахнуть мало, коли рядом открыто окно. Мастер сперва затворяет окно, а после берётся за лощило.
+</blockquote>
+<h3>Порядок очистки: пять шагов</h3>
+<ol>
+  <li>Нажать «выйти на всех устройствах» — это рвёт все сеансы разом</li>
+  <li>Войти заново со своего аппарата и отметить его доверенным</li>
+  <li>Открыть список и убедиться, что чужих строк не осталось</li>
+  <li>Проверить канал выплаты: при угоне его меняют первым делом</li>
+  <li>Заглянуть в журнал за сутки — там видны все правки настроек</li>
+</ol>
+<p>
+  Строка, вернувшаяся после полного выхода, — это уже не отголосок, а признак живого доступа: пароль стоит сменить немедленно. Какие документы примут при верификации, называет <a href="/registracia">свод бумаг</a>. RTP, волатильность и потолок множителя по каждому автомату выписаны в <a href="/slots">своде отдач</a>.
+</p>
+<h3>Что стоит проверить сразу после чистки</h3>
+<ul>
+  <li>🪵 <strong>Канал выплаты.</strong> Первое, что меняют при угоне</li>
+  <li>🖌️ <strong>Адрес почты в анкете.</strong> Его подменяют вторым</li>
+  <li>✨ <strong>Открытые заявки на вывод.</strong> Чужие отменяют сразу</li>
+  <li>📐 <strong>Второй ключ.</strong> Он должен быть включён</li>
+</ul>
+<p>
+  А это к возвращению строки отношения не имеет:
+</p>
+<ul>
+  <li>🪵 <strong>Обновление сборки клиента.</strong> Список оно не трогает</li>
+  <li>🖌️ <strong>Смена домена.</strong> Записи живут при счёте</li>
+  <li>✨ <strong>Чистка браузера.</strong> Гасит отметку, но не сеанс на телефоне</li>
+  <li>📐 <strong>Пределы игрока.</strong> Они о деньгах, а не о доступе</li>
+</ul>
+<h3>Итог</h3>
+<p>
+  Возвращающаяся строка объясняется просто: снятие доверия и обрыв сеанса — две разные кнопки, и первая вторую не заменяет. Порядок должен быть таким: выйти на всех устройствах, войти со своего аппарата, отметить его доверенным и только потом смотреть список. Если после полного выхода чужая строка появилась снова, речь уже о живом доступе — меняйте пароль и проверяйте канал выплаты, адрес почты и открытые заявки. Рядом стоят ещё четыре узла: обязательные графы анкеты — <a href="/registracia">опись граф</a>, провайдеры и их автоматы — <a href="/slots">каталог провайдеров</a>, рабочие домены — <a href="/zerkalo">перечень адресов</a>, а собственный ключ входа держит <a href="/app">разбор клиента</a>.
+</p>
+
+<h2>Ответы на частые вопросы о списке устройств %brand_name_en%</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Строка вернулась — счёт угнали?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не обязательно. Чаще это ваш же старый аппарат с живым сеансом. Проверяется полным выходом на всех устройствах.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Чем отвязка отличается от обрыва сеанса?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Отвязка снимает доверие и возвращает код при входе. Обрыв сеанса выбрасывает аппарат из счёта прямо сейчас.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать, если строка вернулась после полного выхода?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Менять пароль немедленно и проверять канал выплаты. Это уже признак живого чужого доступа, а не остаточной записи.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Смена пароля чистит список?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Гасит все доверия разом, и входить заново придётся везде. Живые сеансы при этом рвутся не на всех площадках.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отчего в списке аппарат, которого у меня нет?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Имя устройства площадка узнаёт от браузера, и оно бывает обобщённым. Смотрите на город и час, а не на название.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько живёт сеанс без действий?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>В браузере обычно часы, в клиенте — недели. Оттого старый телефон и объявляется в списке спустя долгое время.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Мешает ли чистка списка игре?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не мешает. Остаток, полоса вейджера и открытые заявки живут при счёте и от списка устройств не зависят.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Надо ли чистить список регулярно?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Раз в полгода довольно, а после продажи телефона — сразу же. Заодно стоит смотреть журнал за сутки.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отчего свой аппарат просит код после чистки?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Доверие с него снялось вместе с прочими. Отметьте его заново при первом входе, и код перестанет приходить.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Виден ли в списке вход через клиент?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Виден отдельной строкой, с пометкой о программе. Сеанс там длиннее браузерного, и живёт он неделями.</p></div>
+  </div>
+</details>
