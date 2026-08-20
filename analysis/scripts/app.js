@@ -344,59 +344,78 @@ function fillChamp(){
 
 /* ---------- tab: новые группы ---------- */
 function tabNew(){
-  return `<div class="blk"><h2>12pages_withdate — пара шаблонов</h2>
-  <p class="note">Формат — 12 страниц с датами, тот же, что у <b>D273</b>, рекордсмена архива
-  (8,17 ВЧ+СЧ на домен, 83 % зашедших). Все 18 контентов созданы одним прогоном
-  20.08 в 11:31 и разбиты на две половины с разными шаблонами. Привязка домен↔контент 1:1.</p>
-  <div class="tw"><table><thead><tr><th class="l">Половина</th><th class="l">Контенты</th>
-  <th class="l">Шаблон</th><th>Дом</th><th>.team</th><th class="l">Прочие зоны</th>
-  </tr></thead><tbody>
-    <tr><td class="l id">12pages_withdate · Theme2</td><td class="l">_1…10 · id 748-757</td>
-      <td class="l"><b>Theme2</b></td><td>10</td><td><b>7</b></td>
-      <td class="l mut">.buzz .sbs .lol</td></tr>
-    <tr><td class="l id">12pages_withdate · Theme1</td><td class="l">_11…18 · id 758-765</td>
-      <td class="l"><b>Theme1</b></td><td>8</td><td><b>7</b></td>
-      <td class="l mut">.buzz</td></tr>
+  return `<div class="blk"><h2>Формат 12 страниц: три группы на подходе</h2>
+  <p class="note">Все контенты созданы 20.08 в 11:30–11:31, фактически одним прогоном,
+  и разведены по группам. Формат тот же, что у <b>D273</b>, рекордсмена архива
+  (8,17 ВЧ+СЧ на домен, 83 % зашедших). Привязка домен↔контент везде 1:1.</p>
+  <div class="tw"><table><thead><tr><th class="l">Группа</th><th class="l">Даты</th>
+  <th class="l">Шаблон</th><th class="l">Контенты</th><th>Дом</th><th>.team</th>
+  <th class="l">Прочие зоны</th></tr></thead><tbody>
+    <tr><td class="l id">12pages_withdate · Theme2</td><td class="l">есть</td>
+      <td class="l"><b>Theme2</b></td><td class="l mut">_1…10 · 748-757</td>
+      <td>10</td><td><b>7</b></td><td class="l mut">.buzz .sbs .lol</td></tr>
+    <tr><td class="l id">12pages_withdate · Theme1</td><td class="l">есть</td>
+      <td class="l"><b>Theme1</b></td><td class="l mut">_11…18 · 758-765</td>
+      <td>8</td><td><b>7</b></td><td class="l mut">.buzz</td></tr>
+    <tr><td class="l id">12pages_nodate</td><td class="l warn">нет</td>
+      <td class="l"><b>Theme1</b></td><td class="l mut">_1…5 · 743-747</td>
+      <td>5</td><td><b>5</b></td><td class="l mut">—</td></tr>
   </tbody></table></div>
-  <p class="note" style="margin-top:10px"><b>Theme2:</b>
-  <span class="num">9536.lol, knvr7.sbs, 2008jd.buzz, v5d.team, 4671.team, 3726.team,
-  1467.team, hpvn.team, fgqw.team, dhkt.team</span><br>
-  <b>Theme1:</b> <span class="num">2008vu.buzz, p3zv.team, f6bz.team, 1908.team,
-  1236.team, jmbt.team, fhmv.team, cgvz.team</span></p></div>
+  <p class="note" style="margin-top:10px"><b>nodate:</b>
+  <span class="num">5390.team, 4085.team, klvr.team, cfpm.team, bcqr.team</span><br>
+  <b>withdate Theme1:</b> <span class="num">2008vu.buzz, p3zv.team, f6bz.team, 1908.team,
+  1236.team, jmbt.team, fhmv.team, cgvz.team</span><br>
+  <b>withdate Theme2:</b> <span class="num">9536.lol, knvr7.sbs, 2008jd.buzz, v5d.team,
+  4671.team, 3726.team, 1467.team, hpvn.team, fgqw.team, dhkt.team</span><br>
+  Пересечений между группами нет.</p></div>
 
-  <div class="blk"><h2>Лучший дизайн за весь тест</h2>
+  <div class="blk"><h2>Даты — самая ценная из трёх проверок</h2>
+  <p class="note">Главный вывод архива держится на датах: D273 с датами дал 8,17.
+  Но арма «12 страниц без дат и без заточки под бренд» в архиве <b>никогда не было</b> —
+  сравнивали только с «12page под бренд» (0,61), где менялась ещё и заточка.
+  12pages_nodate закрывает эту дыру: против withdate·Theme1 меняются только даты.</p>
   <div class="cards">
-    <div class="card ok"><h3>.team совпадает точно</h3>
-      <p><span class="big">7 : 7</span></p>
-      <p>Считать по .team-подмножествам — состав идентичен, поправок не нужно.
-      Пересечений между половинами нет.</p></div>
-    <div class="card ok"><h3>Один прогон генерации</h3>
-      <p>Все 18 контентов созданы в 11:31 и только потом разбиты. Это снимает ровно ту
-      проблему, которая убила сравнение объёма страниц: Generator_11page
-      и Generator_11page_2 были разными прогонами и разошлись <b>в 6 раз</b>.</p></div>
-    <div class="card acc"><h3>И повтор рекорда</h3>
-      <p>18 доменов на формате 12page+даты против 12 у самого D273.
-      Считать половины и по отдельности — на шаблон, и вместе — на повтор формата.</p></div>
+    <div class="card ok"><h3>Даты · чисто</h3>
+      <p>nodate против withdate·Theme1: один шаблон, один объём страниц,
+      контенты созданы с разницей в минуту.</p>
+      <p class="mut">5 против 7 доменов .team.</p></div>
+    <div class="card ok"><h3>Шаблон · чисто</h3>
+      <p>withdate·Theme1 против withdate·Theme2: <span class="big">7 : 7</span> по .team,
+      одна партия контентов, разбитая после генерации.</p></div>
+    <div class="card err"><h3>Взаимодействие · не проверить</h3>
+      <p>Ячейка «без дат + Theme2» пуста. Даты меряются только внутри Theme1,
+      шаблон — только внутри «с датами».</p></div>
   </div></div>
+
+  <div class="blk"><h2>Матрица 12 страниц · домены .team</h2>
+  <div class="tw"><table><thead><tr><th class="l"></th><th>Theme1</th><th>Theme2</th>
+  </tr></thead><tbody>
+    <tr><td class="l">С датами</td><td class="good"><b>7</b></td><td class="good"><b>7</b></td></tr>
+    <tr><td class="l">Без дат</td><td class="good"><b>5</b></td><td class="bad"><b>0</b></td></tr>
+  </tbody></table></div>
+  <p class="note" style="margin-top:10px">Не хватает одной ячейки. <b>Пять доменов
+  на «12 страниц без дат + Theme2»</b> достроят матрицу до полной: тогда оба фактора
+  считаются независимо друг от друга, и видно, не зависит ли эффект дат от шаблона.
+  Это самое дешёвое улучшение теста из возможных — пять доменов за целый фактор.</p></div>
 
   <div class="blk"><h2>Чего ждать не стоит</h2>
   <ul class="cl">
-    <li><b>Точной величины эффекта шаблона.</b> 7 доменов на сторону. Чемпион в архиве
-      попадается раз на 15–30 доменов — если такой окажется в одной половине, он один
-      сдвинет её среднее на +5–7 и перекроет любую разницу тем.
+    <li><b>Точной величины любого из эффектов.</b> 5–7 доменов на сторону. Чемпион
+      в архиве попадается раз на 15–30 доменов — один такой сдвинет среднюю своей
+      стороны на +5–7 и перекроет и даты, и шаблон.
       Результат читать как «лучше / хуже / не видно».</li>
-    <li><b>Симметрии по неядровым зонам.</b> У Theme2 на два домена больше:
-      .sbs и .lol. Обе зоны в архиве не встречаются <b>ни разу</b>, как и .cyou.
-      По одному домену — сигнал, не вывод.</li>
+    <li><b>Работы зон .sbs и .lol.</b> По одному домену, и в архиве обе не встречаются
+      ни разу — как и .cyou.</li>
     <li><b>Ничего раньше третьего замера.</b> D273 на замере 2 стоял на 0,20 —
       предпоследним в архиве. Через замер стал первым с 8,17.</li>
   </ul></div>
 
   <div class="blk"><h2>Как считать, когда придут позиции</h2>
   <ul class="cl">
-    <li><b>Theme1 против Theme2</b> — по .team, 7 против 7, на одинаковом номере замера.</li>
-    <li><b>Обе половины вместе против D273</b> — повтор формата. Только на одинаковом
-      номере замера: у D273 их было три.</li>
+    <li><b>Даты:</b> 12pages_nodate против 12pages_withdate·Theme1, по .team, 5 против 7.</li>
+    <li><b>Шаблон:</b> withdate·Theme1 против withdate·Theme2, по .team, 7 против 7.</li>
+    <li><b>Повтор рекорда:</b> все три группы вместе против D273 — 19 доменов .team
+      на формате 12 страниц против 12 у самого D273. Только на одинаковом номере замера.</li>
     <li><b>На замере 2 смотреть Т30 на домен.</b> По архиву успешные запуски имели
       12,8–28,6 уже на первом замере, провальные 3,0–8,4.</li>
   </ul></div>
