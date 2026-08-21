@@ -696,6 +696,38 @@ function вшить(string $файл, string $страница, string $alt): in
     return 1;
 }
 
+/** Раскладка списка слотов плиткой. Классы не трогаем — вёрстка может
+ *  их использовать; оформление добавляем инлайном, оно перебивает таблицу стилей.
+ */
+function вёрсткаСлотов(string $файл): int {
+    $ПРАВИЛА = [
+        'slots-grid'           => 'display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;margin:16px 0',
+        'slot-card'            => 'background:#161a2b;border:1px solid rgba(255,255,255,.09);border-radius:12px;overflow:hidden',
+        'slot-card-inner'      => 'display:flex;flex-direction:column;height:100%',
+        'slot-poster'          => 'position:relative;line-height:0',
+        'slot-poster-fallback' => 'display:none',
+        'slot-badge'           => 'position:absolute;top:8px;right:8px;padding:3px 9px;border-radius:999px;background:rgba(10,12,20,.72);color:#fff;font-size:11px;line-height:1.4',
+        'slot-info'            => 'padding:9px 11px 3px',
+        'slot-name'            => 'margin:0;font-size:14px;line-height:1.3',
+        'slot-provider'        => 'font-size:11px;opacity:.65;margin-top:3px',
+        'slot-footer'          => 'display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 11px 11px;margin-top:auto',
+        'slot-rtp'             => 'font-size:11px;opacity:.8',
+        'slot-play-btn'        => 'font-size:12px;padding:5px 11px;border-radius:8px;background:#f5b52a;color:#15161c;text-decoration:none;white-space:nowrap',
+    ];
+    $строки = explode("\n", file_get_contents($файл));
+    $n = 0;
+    foreach ($строки as $i => $л) {
+        if (!preg_match('~class="([^"]+)"~', $л, $m)) continue;
+        if (strpos($л, ' style="') !== false) continue;
+        $первый = strtok($m[1], ' ');
+        if (!isset($ПРАВИЛА[$первый])) continue;
+        $строки[$i] = str_replace($m[0], $m[0] . ' style="' . $ПРАВИЛА[$первый] . '"', $л);
+        $n++;
+    }
+    if ($n) file_put_contents($файл, implode("\n", $строки));
+    return $n;
+}
+
 /** Обложка игры в каждую карточку списка слотов. */
 function вшитьОбложку(string $файл, string $страница, string $имяФайла, string $жанр): int {
     $строки = explode("\n", file_get_contents($файл));
@@ -707,7 +739,7 @@ function вшитьОбложку(string $файл, string $страница, st
             $alt = htmlspecialchars('обложка игрового автомата — ' . $жанр, ENT_QUOTES, 'UTF-8');
             $итог[] = $отступ . '<img src="' . $имяФайла . '" alt="' . $alt
                     . '" width="640" height="480" loading="lazy"'
-                    . ' style="display:block;width:100%;height:auto;border-radius:10px">';
+                    . ' style="display:block;width:100%;height:auto">';
             $n++;
         }
     }
@@ -739,5 +771,7 @@ foreach (array_keys($ТЕМЫ) as $страница) {
     $жанр = обложка($папка . '/images/' . $имяФайла, $сид, $сид);
     $всего++;
     $карточек += вшитьОбложку($html, $страница, $имяФайла, $жанр);
+    $правил = вёрсткаСлотов($html);
+    echo "раскладка списка слотов: правил $правил\n";
 }
 echo "картинок: $всего, ведущих в статьях: $вшито, карточек игр: $карточек\n";
