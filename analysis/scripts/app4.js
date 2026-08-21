@@ -184,7 +184,7 @@ function tabZones(){
   const ntn=nt.reduce((a,z)=>a+z.n,0), ntk=nt.reduce((a,z)=>a+z.t10,0);
   const t=Z.find(z=>z.z==='.team');
   return `<div class="blk"><h2>Доменные зоны</h2>
-  <p class="note">Все ${D.tot.doms} доменов на последнем замере своей группы.</p>
+  <p class="note">Все ${D.tot.doms} доменов на последнем замере своей группы. Ниже — контролируемый тест зон и общая картина.</p>
   <div class="tw"><table><thead><tr><th class="l">Зона</th><th>Доменов</th>
   <th>Т10/дом</th><th>Ключей Т10</th><th>ВЧ+СЧ</th><th>ТОП-3</th><th>Есть Т10</th>
   </tr></thead><tbody>${rows}
@@ -195,30 +195,58 @@ function tabZones(){
     <td>${pc(nt.reduce((a,z)=>a+z.ent,0)/ntn)}</td></tr>
   </tbody></table></div></div>
 
-  <div class="blk"><h2>Что видно</h2>
-  ${(()=>{const lol=DM.find(x=>x.zone==='.lol'), bz=Z.find(z=>z.z==='.buzz');
-    const dead=Z.filter(z=>z.z!=='.team'&&z.z!=='.buzz'&&z.z!=='.lol');
+  <div class="blk"><h2>Контролируемый тест: .team против .lol на одном контенте</h2>
+  <p class="note">Группа nabor-53: десять контентов, пять на .team и пять на .lol,
+  привязка 1:1, запуск в одну минуту. Единственное отличие между половинами — зона.
+  Это первый и пока единственный чистый зоновый тест за всё наблюдение.</p>
+  <div class="tw"><table><thead><tr><th class="l">Половина</th>
+  <th class="l">Значения по доменам</th><th>Среднее</th><th>Медиана</th><th>Без лидера</th>
+  <th>ВЧ</th><th>СЧ</th><th>ТОП-3</th><th>ТОП-30</th><th>ТОП-100</th></tr></thead><tbody>
+    <tr><td class="l id">.team</td><td class="l num">43, 20, 5, 2, 0</td>
+      <td><b>14,0</b></td><td>5</td><td><b>6,8</b></td>
+      <td class="good"><b>10</b></td><td class="good">1</td><td>24</td><td>111</td><td>470</td></tr>
+    <tr><td class="l id">.lol</td><td class="l num">6, 6, 3, 1, 0</td>
+      <td>3,2</td><td>3</td><td>2,5</td>
+      <td class="bad"><b>0</b></td><td class="bad">0</td><td>8</td><td>36</td><td>319</td></tr>
+  </tbody></table></div>
+  <div class="cards" style="margin-top:14px">
+    <div class="card ok"><h3>.team выигрывает по дорогим ключам всухую</h3>
+      <p><span class="big">11 : 0</span> по ВЧ+СЧ. Все дорогие ключи группы — на .team,
+      у .lol ни одного.</p></div>
+    <div class="card"><h3>По охвату разрыв меньше, чем кажется</h3>
+      <p>Среднее 14,0 против 3,2 — но у .team есть чемпион на 43 ключа.
+      Медианы <b>5 против 3</b>, «без лидера» 6,8 против 2,5, ТОП-100 470 против 319.</p>
+      <p class="mut">На типичном домене .team примерно вдвое сильнее, а не вчетверо.</p></div>
+    <div class="card err"><h3>Оговорка</h3>
+      <p>Пять доменов на сторону и один замер. Направление читается уверенно,
+      величина — нет.</p></div>
+  </div></div>
+
+  <div class="blk"><h2>Что видно по всем зонам</h2>
+  ${(()=>{const bz=Z.find(z=>z.z==='.buzz'), lo=Z.find(z=>z.z==='.lol'), ca=Z.find(z=>z.z==='.casino');
+    const dead=Z.filter(z=>z.n===1&&z.t10===0);
     return `<div class="cards">
-    <div class="card ok"><h3>.team — всё остальное почти не работает</h3>
-      <p><span class="big">${f1(t.t10/t.n)}</span> ключей на домен против ${f1(ntk/ntn)}
-      у всех прочих зон вместе.</p>
-      <p>${t.hs} дорогих ключей у .team против ${nt.reduce((a,z)=>a+z.hs,0)} у остальных
-      на ${ntn} доменов.</p></div>
-    <div class="card"><h3>Единственное исключение — ${esc(lol.d)}</h3>
-      <p><span class="big">${lol.t10}</span> ключей в ТОП-10, ${lol.t3} в ТОП-3,
-      ${lol.nb} брендов, ${lol.vch} ВЧ и ${lol.sch} СЧ.</p>
-      <p>Больше, чем у любого другого домена вне .team, и выше медианы по .team.
-      Группа ${esc(lol.gname)}. <span class="mut">Один домен — это сигнал, не вывод.</span></p></div>
-    <div class="card err"><h3>.buzz провалился</h3>
-      <p>${bz.n} доменов, <span class="big">${bz.t10}</span> ключей в ТОП-10 на всех,
-      ${bz.hs} дорогих, ${bz.t3} в ТОП-3.</p>
-      <p>В архиве .buzz давал 0,83 ВЧ на домен — здесь ${f1(bz.t10/bz.n)} ключа
-      на домен всего.</p></div>
-  </div>
-  <p class="note" style="margin-top:14px">Зоны ${dead.map(z=>'<span class="num">'+esc(z.z)+'</span>').join(' ')}
-  — по одному домену, у всех <b>ноль</b> ключей в ТОП-10. ${dead.length} зон подряд
-  без единого попадания при базовой доле «есть Т10» ${pc(t.ent/t.n)} у .team —
-  это уже не случайность.</p>`;})()}</div>`;
+    <div class="card ok"><h3>.lol впятеро лучше .buzz</h3>
+      <p><span class="big">${f1(lo.t10/lo.n)}</span> ключей на домен против
+      ${f1(bz.t10/bz.n)} у .buzz, на выборках ${lo.n} и ${bz.n} доменов.</p>
+      <p>Есть хоть один ключ в ТОП-10: ${lo.ent} из ${lo.n} у .lol против
+      ${bz.ent} из ${bz.n} у .buzz. ТОП-3: ${lo.t3} против ${bz.t3}.</p>
+      <p class="mut">Обе зоны наконец набрали выборку. .buzz можно закрывать,
+      .lol — рабочая альтернатива, но слабее .team.</p></div>
+    <div class="card"><h3>.casino неожиданно ожил</h3>
+      <p><span class="big">${f1(ca.t10/ca.n)}</span> ключей на домен на ${ca.n} доменах,
+      ${ca.t3} в ТОП-3, у всех трёх что-то есть.</p>
+      <p>В архиве D231-D274 зона давала 0,43 ВЧ+СЧ на домен и проигрывала .team
+      в 5 запусках из 7. <span class="mut">Три домена — это сигнал, не вывод.</span></p></div>
+    <div class="card err"><h3>Экзотика по одному домену — всё по нулям</h3>
+      <p><b>${dead.length}</b> зон с одним доменом и нулём ключей в ТОП-10:
+      ${dead.map(z=>esc(z.z)).join(', ')}.</p>
+      <p>Единственное исключение среди одиночек — <span class="num">.online</span>
+      с 5 ключами и 4 в ТОП-3.</p></div>
+  </div>`;})()}
+  <p class="note" style="margin-top:14px">Порядок зон по силе на сегодня:
+  <b>.team → .lol → .buzz</b>, с .casino и .online как неподтверждёнными кандидатами
+  на трёх и одном домене. Всё остальное — ноль.</p></div>`;
 }
 
 function tabBrands(){

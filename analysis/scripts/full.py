@@ -50,12 +50,18 @@ NAME={"группа 3":["Generator_11page","11 стр · генератор","н
       "7pages_nodate":["7pages_nodate","7 стр · без дат · Theme2","день"],
       "doregn.net 7 page":["kostoreznaya1 · имена","7 стр · именованные","день"],
       "dorgen.net 12 page":["nabor28gotovyi · наборы","12 стр · наборы","день"],
-      "Generation 50":["Generation 50","50 доменов · .team","вечер"]}
+      "Generation 50":["Generation 50","50 доменов · .team","вечер"],
+      "Generator_11page_21.08 + Genera":["Generator_11page_21.08 (обе партии)","11 стр · генератор","22.08"],
+      "Generator 11page 21.08":["nabor-53 · наборы","12 стр · наборы","22.08"],
+      "NEW50_5_12pages_withdate_21.08":["NEW50_5_12pages_withdate","12 стр · даты","22.08"],
+      "NEW50_5_7pages_withdate_21.08":["NEW50_5_7pages_withdate","7 стр · даты","22.08"]}
 ORD=["группа 3","группа 1","группа 4","группа 5","группа 6","группа 2",
      "12pages_withdate · Theme1","12pages_withdate · Theme2","12pages_nodate",
-     "7pages_nodate","doregn.net 7 page","dorgen.net 12 page","Generation 50"]
+     "7pages_nodate","doregn.net 7 page","dorgen.net 12 page","Generation 50",
+     "Generator_11page_21.08 + Genera","Generator 11page 21.08",
+     "NEW50_5_12pages_withdate_21.08","NEW50_5_7pages_withdate_21.08"]
 
-wb=openpyxl.load_workbook(io.BytesIO(open("launches6.xlsx",'rb').read()), data_only=True)
+wb=openpyxl.load_workbook(io.BytesIO(open("launches7.xlsx",'rb').read()), data_only=True)
 G={}
 for sn in ORD:
     bs=blocks(wb[sn])

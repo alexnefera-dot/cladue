@@ -5,7 +5,9 @@ def tier(v): return "ВЧ" if v>=1_000_000 else ("СЧ" if v>=700_000 else "НЧ
 G=pickle.load(open("full.pkl","rb"))
 ORD=["группа 3","группа 1","группа 4","группа 5","группа 6","группа 2",
      "12pages_withdate · Theme1","12pages_withdate · Theme2","12pages_nodate",
-     "7pages_nodate","doregn.net 7 page","dorgen.net 12 page","Generation 50"]
+     "7pages_nodate","doregn.net 7 page","dorgen.net 12 page","Generation 50",
+     "Generator_11page_21.08 + Genera","Generator 11page 21.08",
+     "NEW50_5_12pages_withdate_21.08","NEW50_5_7pages_withdate_21.08"]
 # конфигурация групп
 CFG={
  "группа 3":{"fmt":"11 страниц, генератор","pages":"11","src":"генератор","ver":"?","theme":"?","cont":"Generator_11page_19.08_1…5 (id 695-699)","map":None},
@@ -25,6 +27,17 @@ CFG={
    "map":{"1596.team":"nabor28gotovyi","f7n.team":"nabor29gotovyi","g2k.team":"nabor30gotovyi",
           "h5r.team":"nabor31gotovyi","1739.team":"nabor32gotovyi"}},
  "Generation 50":{"fmt":"конфигурация не присылалась","pages":"?","src":"?","ver":"?","theme":"?","cont":"не присланы","map":None},
+ "Generator_11page_21.08 + Genera":{"fmt":"11 страниц, генератор — две партии","pages":"11","src":"генератор","ver":"?","theme":"?",
+   "cont":"Generator_11page_21.08_1…10 (841-850) + Generator_11page_2_21.08_1…5 (851-855)","map":None},
+ "Generator 11page 21.08":{"fmt":"12 страниц, наборы","pages":"12","src":"наборы","ver":"—","theme":"—",
+   "cont":"nabor-53…nabor-62",
+   "map":{"qwnb.team":"nabor-53","fkrt.team":"nabor-54","8452.team":"nabor-55","3067.team":"nabor-56",
+          "m6dv.team":"nabor-57","hzvq.lol":"nabor-58","ctpm.lol":"nabor-59","5934.lol":"nabor-60",
+          "1670.lol":"nabor-61","r4kn.lol":"nabor-62"}},
+ "NEW50_5_12pages_withdate_21.08":{"fmt":"12 страниц с датами","pages":"12 + даты","src":"генератор","ver":"—","theme":"?",
+   "cont":"NEW50_5_12pages_withdate_21.08_1…7 (834-840)","map":None},
+ "NEW50_5_7pages_withdate_21.08":{"fmt":"7 страниц с датами","pages":"7 + даты","src":"генератор","ver":"—","theme":"?",
+   "cont":"NEW50_5_7pages_withdate_21.08_1…12 (815-826)","map":None},
 }
 PAT=[("зеркало",r"зеркал|mirror"),("вход",r"\bвход\b|войти|log ?in"),
      ("регистрация",r"регистрац|\bреги\b|sign ?up|создать аккаунт"),
