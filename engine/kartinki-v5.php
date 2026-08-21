@@ -682,39 +682,18 @@ function нарисовать(string $файл, string $вид, float $тон, a
 
 /* ───────────────────────── вставка в разметку ───────────────────────── */
 
-/** Иллюстрация после первого абзаца выбранных H2. */
-function вшить(string $файл, string $страница, array $альты): int {
-    $строки = explode("\n", file_get_contents($файл));
-    $h2 = [];
-    foreach ($строки as $i => $л) if (preg_match('~<h2[\s>]~', $л)) $h2[] = $i;
-    if (!$h2) return 0;
-
-    $цели = count($h2) >= 3 ? [$h2[0], $h2[2]] : [$h2[0], $h2[count($h2) - 1]];
-    $цели = array_values(array_unique($цели));
-
-    $вставки = [];
-    foreach ($цели as $к => $iH2) {
-        for ($j = $iH2 + 1; $j < min($iH2 + 60, count($строки)); $j++) {
-            if (trim($строки[$j]) === '</p>') { $вставки[$j] = $к; break; }
-        }
-    }
-    if (!$вставки) return 0;
-
-    $итог = []; $n = 0;
-    foreach ($строки as $i => $л) {
-        $итог[] = $л;
-        if (isset($вставки[$i])) {
-            $к = $вставки[$i];
-            $имя = $страница . '_img_' . ($к + 1) . '.webp';
-            $alt = htmlspecialchars($альты[$к], ENT_QUOTES, 'UTF-8');
-            $итог[] = '<figure class="content-visual">';
-            $итог[] = '  <img src="' . $имя . '" alt="' . $alt . '" width="1200" height="630" loading="lazy" style="max-width:100%;height:auto">';
-            $итог[] = '</figure>';
-            $n++;
-        }
-    }
-    file_put_contents($файл, implode("\n", $итог));
-    return $n;
+/** Одна ведущая иллюстрация в начало страницы. Классов не добавляем —
+ *  вёрстка комплекта их не знает, оформление задаётся инлайном.
+ */
+function вшить(string $файл, string $страница, string $alt): int {
+    $html = file_get_contents($файл);
+    $имя = $страница . '_img_1.webp';
+    if (strpos($html, $имя) !== false) return 0;
+    $тег = '<img src="' . $имя . '" alt="' . htmlspecialchars($alt, ENT_QUOTES, 'UTF-8')
+         . '" width="1200" height="630" loading="lazy"'
+         . ' style="display:block;width:100%;height:auto;margin:0 0 20px;border-radius:14px">';
+    file_put_contents($файл, $тег . "\n" . $html);
+    return 1;
 }
 
 /** Обложка игры в каждую карточку списка слотов. */
@@ -726,8 +705,9 @@ function вшитьОбложку(string $файл, string $страница, st
         if (strpos($л, 'class="slot-poster"') !== false) {
             $отступ = str_repeat(' ', strlen($л) - strlen(ltrim($л)) + 2);
             $alt = htmlspecialchars('обложка игрового автомата — ' . $жанр, ENT_QUOTES, 'UTF-8');
-            $итог[] = $отступ . '<img class="slot-poster-img" src="' . $имяФайла . '" alt="' . $alt
-                    . '" width="640" height="480" loading="lazy" style="max-width:100%;height:auto;display:block">';
+            $итог[] = $отступ . '<img src="' . $имяФайла . '" alt="' . $alt
+                    . '" width="640" height="480" loading="lazy"'
+                    . ' style="display:block;width:100%;height:auto;border-radius:10px">';
             $n++;
         }
     }
@@ -743,24 +723,21 @@ $в = $сид % 3;
 foreach ($ТЕМЫ as $страница => [$тон, $мотивы, $подписи, $альты]) {
     $html = $папка . '/' . $страница . '.html';
     if (!is_file($html)) continue;
-    for ($k = 1; $k <= 2; $k++) {
-        $вар = ($сид + $k * 7 + strlen($страница)) % 5;
-        $смещение = ($сид % 5) * 4 - 8 + ($k - 1) * 10;
-        нарисовать($папка . '/images/' . $страница . '_img_' . $k . '.webp',
-                   $мотивы[$k - 1], $тон + $смещение, $подписи[$в], $вар);
-        $всего++;
-    }
-    $вшито += вшить($html, $страница, $альты[$в]);
+    $вар = ($сид + strlen($страница)) % 5;
+    нарисовать($папка . '/images/' . $страница . '_img_1.webp',
+               $мотивы[0], $тон + ($сид % 5) * 4 - 8, $подписи[$в], $вар);
+    $всего++;
+    $вшито += вшить($html, $страница, $альты[$в][0]);
 }
 
-// обложка игры — по одной на комплект, дублируется во все карточки
+// обложка игры — одна на комплект, повторяется во всех карточках списка слотов
 $карточек = 0;
 foreach (array_keys($ТЕМЫ) as $страница) {
     $html = $папка . '/' . $страница . '.html';
     if (!is_file($html) || strpos(file_get_contents($html), 'class="slot-poster"') === false) continue;
-    $имяФайла = $страница . '_img_3.webp';
+    $имяФайла = $страница . '_img_2.webp';
     $жанр = обложка($папка . '/images/' . $имяФайла, $сид, $сид);
     $всего++;
     $карточек += вшитьОбложку($html, $страница, $имяФайла, $жанр);
 }
-echo "картинок: $всего, вставок в текст: $вшито, карточек игр: $карточек\n";
+echo "картинок: $всего, ведущих в статьях: $вшито, карточек игр: $карточек\n";
