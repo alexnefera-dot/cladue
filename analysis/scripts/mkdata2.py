@@ -34,6 +34,7 @@ for sn in ORD:
       "wo":(sum(v[1:])/(len(v)-1)) if len(v)>1 else 0,
       "vals":v,
       "ser":series("t10",tm),"ser30":series("t30",tm),
+      "serhs":[sum(sp["per"][x]["vch"]+sp["per"][x]["sch"] for x in g["doms"]) for sp in g["snaps"]],
       "vch":sum(last[d]["vch"] for d in g["doms"]),"sch":sum(last[d]["sch"] for d in g["doms"]),
       "t3":sum(last[d]["t3"] for d in g["doms"]),
       "z100":sum(1 for d in g["doms"] if last[d]["t100"]==0),

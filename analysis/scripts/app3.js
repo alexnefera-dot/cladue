@@ -12,10 +12,11 @@ function spark(s){const mx=Math.max(...s,0.01);
 function overview(){
   const row=(sn)=>{const g=GR[sn];
     return `<tr><td class="l id">${esc(g.name)}</td><td class="l">${esc(g.cfg)}</td>
-      <td class="mut">${g.wave}</td><td>${g.n}</td><td>${spark(g.ser)}</td>
+      <td class="l mut">${g.labels[g.labels.length-1]}</td><td>${g.n}</td><td>${spark(g.ser)}</td>
       <td><b>${f1(g.t10)}</b></td><td>${g.med}</td><td>${f1(g.wo)}</td>
       <td class="${g.leadshare>=.6?'warn':''}">${pc(g.leadshare)}</td>
-      <td class="${g.vch?'good':'mut'}">${g.vch}</td><td class="${g.sch?'good':'mut'}">${g.sch}</td>
+      <td class="l mut num">${g.serhs.join(' → ')}</td>
+      <td class="${g.vch+g.sch?'good':'mut'}"><b>${g.vch+g.sch}</b></td>
       <td>${g.t3}</td><td>${g.brands}</td>
       <td class="${g.z100?'bad':'mut'}">${g.z100}</td></tr>`;};
   return `<div class="blk"><h2>Все 13 групп на последнем замере</h2>
@@ -23,23 +24,45 @@ function overview(){
   какую часть всех ключей группы держит её лучший домен: выше 60 % означает, что результат
   группы это результат одного сайта. Столбик — траектория по замерам.</p>
   <div class="tw"><table><thead><tr><th class="l">Группа</th><th class="l">Конфигурация</th>
-  <th class="l">Волна</th><th>Дом</th><th>Динамика</th><th>Т10/дом</th><th>Медиана</th>
-  <th>Без лидера</th><th>Доля лидера</th><th>ВЧ</th><th>СЧ</th><th>ТОП-3</th><th>Брендов</th>
-  <th>Нет в Т100</th></tr></thead><tbody>${O.map(row).join('')}</tbody></table></div></div>
+  <th class="l">Последний замер</th><th>Дом</th><th>Т10 динамика</th><th>Т10/дом</th>
+  <th>Медиана</th><th>Без лидера</th><th>Доля лидера</th><th>ВЧ+СЧ динамика</th><th>ВЧ+СЧ</th>
+  <th>ТОП-3</th><th>Брендов</th><th>Нет в Т100</th></tr></thead><tbody>${O.map(row).join('')}</tbody></table></div></div>
 
-  <div class="blk"><h2>Что изменилось к ночи</h2>
+  <div class="blk"><h2>Пришла вторая волна: дорогие бренды</h2>
+  <p class="note">На замере 12:06 у трёх групп сразу общий охват в ТОП-10 <b>упал</b>,
+  а число ВЧ и СЧ ключей <b>выросло</b>. Это ровно тот архивный паттерн — дорогие бренды
+  приходят второй волной, вытесняя НЧ.</p>
+  <div class="tw"><table><thead><tr><th class="l">Группа</th><th class="l">Т10/дом</th>
+  <th class="l">ВЧ+СЧ в ТОП-10</th></tr></thead><tbody>
+    <tr><td class="l id">nabor28gotovyi · наборы</td>
+      <td class="l num">13,4 → <b class="bad">9,4</b></td>
+      <td class="l num">2 → <b class="good">12</b></td></tr>
+    <tr><td class="l id">12pages_withdate · Theme2</td>
+      <td class="l num">11,7 → <b class="bad">8,6</b></td>
+      <td class="l num">13 → <b class="good">14</b></td></tr>
+    <tr><td class="l id">Generation 50</td>
+      <td class="l num">0,7 → <b class="good">1,3</b></td>
+      <td class="l num">2 → <b class="good">11</b></td></tr>
+  </tbody></table></div>
+  <p class="note" style="margin-top:10px"><b>Практический вывод: на этой стадии общий счёт
+  ТОП-10 — плохая метрика.</b> Падение охвата при росте дорогих ключей означает,
+  что группа не слабеет, а переходит на более ценные запросы. Смотреть ВЧ+СЧ.</p></div>
+
+  <div class="blk"><h2>Остальное за сутки</h2>
   <div class="cards">
-    <div class="card ok"><h3>Наборы вышли из нуля на второе место</h3>
-      <p>0 → 1,2 → <span class="big">13,4</span> ключа в ТОП-10 на домен.
-      Работают все пять: 21, 18, 11, 9, 8. Доля лидера 31 %, 20 ключей в ТОП-3.</p>
-      <p>Пять часов назад у всех пяти доменов был ноль по всему ТОП-100.
-      Архивный прецедент — «наборы слабые, 0,8 на домен» — <b>не подтвердился</b>.</p></div>
     <div class="card ok"><h3>Generator_11page держит первое место</h3>
-      <p>32 → 29 → <span class="big">60</span>. 25 ВЧ, 19 СЧ, 56 в ТОП-3,
-      все пять доменов работают (102, 85, 61, 28, 24), доля лидера 34 %.</p></div>
-    <div class="card err"><h3>generator v4 мертва</h3>
-      <p>0,7 → 0 → <span class="big">0</span>. Ни одного ключа в ТОП-10 на десяти доменах,
-      два домена выпали даже из ТОП-100.</p></div>
+      <p>60 ключей на домен, 44 ВЧ+СЧ, 56 в ТОП-3. Работают все пять доменов,
+      доля лидера 34 %.</p>
+      <p class="mut">Последний съём 20.08 22:29 — новее по этой группе нет.</p></div>
+    <div class="card ok"><h3>Наборы: из полного нуля в рабочую группу</h3>
+      <p>0 → 1,2 → 13,4 → 9,4 по охвату и 0 → 0 → 2 → <span class="big">12</span>
+      по дорогим ключам.</p>
+      <p>Вечером 20-го у всех пяти доменов был ноль по ТОП-100. Архивный прецедент
+      «наборы слабые» не подтвердился.</p></div>
+    <div class="card err"><h3>Данные неполные по Theme1</h3>
+      <p>У 12pages_withdate · Theme1 замера 12:06 <b>нет</b> — последний 02:00.
+      Сравнивать его с Theme2 напрямую сейчас нельзя, только на одинаковом
+      номере замера.</p></div>
   </div></div>
 
   <div class="blk"><h2>Главное предупреждение: смотрите «без лидера», а не среднее</h2>
@@ -104,91 +127,98 @@ function wave(w,title,note,extra){
 }
 
 const DAY_EXTRA=`
-  <div class="blk"><h2>Даты: эффекта по-прежнему не видно</h2>
-  <p class="note">Три замера. Порядок менялся дважды, устойчивой разницы нет.</p>
-  <div class="tw"><table><thead><tr><th class="l">Сторона</th><th>n</th>
-  <th class="l">Значения по доменам</th><th class="l">Траектория</th><th>Среднее</th>
-  <th>Медиана</th><th>Без лидера</th><th>ВЧ</th></tr></thead><tbody>
-    <tr><td class="l id">12 стр с датами · Theme1</td><td>7</td>
-      <td class="l num">130, 13, 10, 9, 3, 1, 1</td>
-      <td class="l mut num">8,3 → 21,0 → 23,9</td>
-      <td>23,9</td><td>9</td><td>6,2</td><td class="good">27</td></tr>
-    <tr><td class="l id">12 стр с датами · Theme2</td><td>7</td>
-      <td class="l num">32, 23, 9, 8, 7, 2, 1</td>
-      <td class="l mut num">4,4 → 8,1 → 11,7</td>
-      <td>11,7</td><td>8</td><td class="good"><b>8,3</b></td><td>3</td></tr>
-    <tr><td class="l id">12 стр без дат · Theme1</td><td>5</td>
-      <td class="l num">27, 9, 6, 5, 3</td>
-      <td class="l mut num">3,6 → 12,6 → 10,0</td>
-      <td>10,0</td><td>6</td><td>5,8</td><td>3</td></tr>
-  </tbody></table></div>
-  <p class="note" style="margin-top:10px">«Без лидера»: с датами — 6,2 и 8,3, без дат — 5,8.
-  Разброс <b>между двумя половинами одной и той же партии с датами</b> (6,2 и 8,3)
-  больше, чем разница между «с датами» и «без дат». Значит меряется не формат,
-  а разброс между доменами. <b>Эффекта дат нет.</b></p></div>
+  <div class="blk"><h2>Рассинхрон замеров</h2>
+  <p class="note">У 12pages_withdate · Theme1 нет съёма 12:06 — последний 02:00.
+  У остальных дневных групп по четыре замера. Поэтому все сравнения ниже сделаны
+  <b>на одинаковом номере замера</b> (третьем), а не на последнем.</p></div>
 
-  <div class="blk"><h2>Шаблон: Theme2 впереди по устойчивой мере</h2>
+  <div class="blk"><h2>Даты: эффекта нет</h2>
   <div class="tw"><table><thead><tr><th class="l">Сторона</th><th>n</th>
-  <th class="l">Значения</th><th>Среднее</th><th>Медиана</th><th>Без лидера</th>
-  <th>Доля лидера</th><th>ВЧ</th><th>СЧ</th></tr></thead><tbody>
+  <th class="l">Т10/дом по замерам</th><th class="l">ВЧ+СЧ по замерам</th>
+  <th>Медиана з3</th><th>Без лидера з3</th></tr></thead><tbody>
+    <tr><td class="l id">12 стр с датами · Theme1</td><td>7</td>
+      <td class="l num">8,3 → 21,0 → 23,9</td><td class="l num">8 → 23 → 34</td>
+      <td>9</td><td>6,2</td></tr>
+    <tr><td class="l id">12 стр с датами · Theme2</td><td>7</td>
+      <td class="l num">4,4 → 8,1 → 11,7 → 8,6</td><td class="l num">6 → 3 → 13 → 14</td>
+      <td>8</td><td class="good"><b>8,3</b></td></tr>
+    <tr><td class="l id">12 стр без дат · Theme1</td><td>5</td>
+      <td class="l num">3,6 → 12,6 → 10,0 → 15,0</td><td class="l num">0 → 1 → 3 → 4</td>
+      <td>6</td><td>5,8</td></tr>
+  </tbody></table></div>
+  <p class="note" style="margin-top:10px">На третьем замере «без лидера»: с датами 6,2 и 8,3,
+  без дат 5,8. Разброс <b>между двумя половинами одной партии с датами</b> больше,
+  чем разница между «с датами» и «без дат». По дорогим ключам с датами впереди
+  (34 и 14 против 4), но у Theme1 все они в одном домене. <b>Эффекта дат нет</b>,
+  разница между доменами перекрывает разницу между форматами.</p></div>
+
+  <div class="blk"><h2>Шаблон: на третьем замере Theme2 ровнее</h2>
+  <div class="tw"><table><thead><tr><th class="l">Сторона</th><th>n</th>
+  <th class="l">Значения по доменам (замер 3)</th><th>Среднее</th><th>Медиана</th>
+  <th>Без лидера</th><th>Доля лидера</th><th>ВЧ+СЧ</th></tr></thead><tbody>
     <tr><td class="l id">Theme1</td><td>7</td><td class="l num">130, 13, 10, 9, 3, 1, 1</td>
       <td>23,9</td><td class="good">9</td><td>6,2</td><td class="bad">78 %</td>
-      <td class="good">27</td><td>7</td></tr>
+      <td class="good">34</td></tr>
     <tr><td class="l id">Theme2</td><td>7</td><td class="l num">32, 23, 9, 8, 7, 2, 1</td>
       <td>11,7</td><td>8</td><td class="good"><b>8,3</b></td><td class="good">39 %</td>
-      <td>3</td><td class="good">10</td></tr>
+      <td>13</td></tr>
   </tbody></table></div>
-  <p class="note" style="margin-top:10px">Среднее у Theme1 вдвое выше, но это один домен:
-  <span class="num">1908.team</span> держит 78 % ключей группы и <b>все 27 ВЧ</b>.
-  На типичный домен Theme2 даёт больше (8,3 против 6,2), распределён ровнее
-  и берёт больше СЧ (10 против 7). <b>Уверенно сказать, какой шаблон лучше,
-  на семи доменах по-прежнему нельзя</b> — но перевес Theme1 держится на одном сайте.</p></div>
+  <p class="note" style="margin-top:10px">Среднее у Theme1 вдвое выше, но
+  <span class="num">1908.team</span> держит 130 из 167 ключей группы и все её ВЧ.
+  На типичный домен Theme2 даёт больше и распределён вдвое ровнее.
+  <b>На семи доменах на сторону шаблон не измеряется</b> — но перевес Theme1
+  целиком на одном сайте.</p></div>
 
-  <div class="blk"><h2>Наборы: прецедент из архива не подтвердился</h2>
+  <div class="blk"><h2>Наборы: вторая волна в чистом виде</h2>
   <div class="tw"><table><thead><tr><th class="l">Домен</th><th class="l">Т10 по замерам</th>
-  <th>Т30</th><th>Т100</th><th>ТОП-3</th><th>Брендов</th></tr></thead><tbody>
-    <tr><td class="l id">f7n.team</td><td class="l num">0 → 2 → 21</td><td>26</td><td>112</td><td class="good">4</td><td>11</td></tr>
-    <tr><td class="l id">g2k.team</td><td class="l num">0 → 1 → 18</td><td>40</td><td>181</td><td class="good">8</td><td>7</td></tr>
-    <tr><td class="l id">1739.team</td><td class="l num">0 → 0 → 11</td><td>19</td><td>171</td><td class="good">3</td><td>6</td></tr>
-    <tr><td class="l id">1596.team</td><td class="l num">0 → 2 → 9</td><td>15</td><td>146</td><td class="good">2</td><td>7</td></tr>
-    <tr><td class="l id">h5r.team</td><td class="l num">0 → 1 → 8</td><td>14</td><td>141</td><td class="good">3</td><td>7</td></tr>
+  <th>ВЧ</th><th>СЧ</th><th>ТОП-3</th><th>Т30</th><th>Брендов</th></tr></thead><tbody>
+    <tr><td class="l id">g2k.team</td><td class="l num">0 → 1 → 18 → 16</td>
+      <td class="good">2</td><td>0</td><td class="good">5</td><td>37</td><td>9</td></tr>
+    <tr><td class="l id">1596.team</td><td class="l num">0 → 2 → 9 → 10</td>
+      <td class="good">2</td><td class="good">1</td><td class="good">3</td><td>29</td><td>5</td></tr>
+    <tr><td class="l id">h5r.team</td><td class="l num">0 → 1 → 8 → 9</td>
+      <td class="good">3</td><td class="good">1</td><td>0</td><td>18</td><td>7</td></tr>
+    <tr><td class="l id">1739.team</td><td class="l num">0 → 0 → 11 → 7</td>
+      <td class="good">1</td><td class="good">2</td><td>1</td><td>15</td><td>6</td></tr>
+    <tr><td class="l id">f7n.team</td><td class="l num">0 → 2 → 21 → 5</td>
+      <td>0</td><td>0</td><td>1</td><td>8</td><td>5</td></tr>
   </tbody></table></div>
-  <p class="note" style="margin-top:10px">В архиве формат «картинка в наборе» дал 0,8 ключа
-  на домен, зашли 2 домена из 5. Здесь <b>работают все пять</b>, «без лидера» 11,5 —
-  выше, чем у любой другой дневной группы, включая обе половины 12pages_withdate.
-  Дорогих брендов пока нет (2 СЧ), но 20 ключей в ТОП-3.</p></div>
+  <p class="note" style="margin-top:10px">Общий охват просел с 13,4 до 9,4, но дорогих ключей
+  стало <b>вдвое-вшестеро больше</b>: с 2 до 12. Четыре домена из пяти взяли ВЧ или СЧ.
+  Это не ослабление группы, а переход на более ценные запросы.</p></div>
 
   <div class="blk"><h2>Индексация: как это выглядело</h2>
-  <div class="tw"><table><thead><tr><th class="l">Группа</th><th class="l">Ключей в ТОП-100</th>
-  <th class="l">Т10 по замерам</th></tr></thead><tbody>
-    <tr><td class="l id">nabor28gotovyi</td>
-      <td class="l num">0,0,0,0,0 → 85,73,56,46,39 → 181,171,146,141,112</td>
-      <td class="l num">0 → 1,2 → <b class="good">13,4</b></td></tr>
-    <tr><td class="l id">kostoreznaya1</td>
-      <td class="l num">4,1,0,0,0 → 45,18,12,9,3 → …</td>
-      <td class="l num">0,2 → 1,4 → 2,8</td></tr>
+  <div class="tw"><table><thead><tr><th class="l">Группа</th><th class="l">Т10 по замерам</th>
+  <th class="l">ВЧ+СЧ по замерам</th></tr></thead><tbody>
+    <tr><td class="l id">nabor28gotovyi</td><td class="l num">0 → 1,2 → 13,4 → 9,4</td>
+      <td class="l num">0 → 0 → 2 → <b class="good">12</b></td></tr>
+    <tr><td class="l id">kostoreznaya1</td><td class="l num">0,2 → 1,4 → 2,8 → 1,2</td>
+      <td class="l num">0 → 0 → 1 → 1</td></tr>
   </tbody></table></div>
-  <p class="note" style="margin-top:10px">В 17:34 обе группы выглядели полностью мёртвыми,
-  и по обычному правилу отсева их следовало бы списать. Через девять часов наборы —
-  вторая группа дня. <b>Правило «ноль в ТОП-100 по всему ядру» надо читать
-  как «сайт не в индексе», а не как «контент не работает».</b></p></div>`;
+  <p class="note" style="margin-top:10px">В 17:34 у наборов было пять доменов из пяти
+  с нулём по всему ТОП-100, и обычное правило отсева велело бы их списать. Сутки спустя
+  это рабочая группа с 12 дорогими ключами. <b>Ноль в ТОП-100 по всему ядру означает,
+  что сайт не в индексе, а не что контент не работает.</b> Имена так и не поднялись —
+  им стоит дать ещё сутки.</p></div>`;
 
 const GEN_EXTRA=`
-  <div class="blk"><h2>Индексация почти завершена, результат ещё впереди</h2>
+  <div class="blk"><h2>Пошла: дорогие ключи появились</h2>
   <div class="cards">
-    <div class="card ok"><h3>Сайты вошли в индекс</h3>
-      <p>Доменов без единого ключа в ТОП-100: было <b>20 из 50</b> в 22:29,
-      стало <span class="big">2</span> к 02:00.</p></div>
-    <div class="card"><h3>Но в ТОП-10 пока пусто</h3>
-      <p>23 домена из 50 имеют хоть один ключ, максимум 4. Среднее 0,7,
-      медиана 0. Первые 8 ключей в ТОП-3 и 2 СЧ появились.</p>
-      <p class="mut">Для сравнения, наборы прошли путь 0 → 1,2 → 13,4 за девять часов.</p></div>
-    <div class="card acc"><h3>Чем всё равно ценна</h3>
-      <p>50 доменов в одной зоне — самая большая партия наблюдений.
-      Чемпион (раз на 15–30 доменов) должен попасться 2–3 раза, и среднее
-      наконец перестанет зависеть от одного сайта.</p>
-      <p><b>Контенты и привязку к доменам всё ещё не присылали</b> — без них группа
-      покажет только общий уровень партии, но не скажет, какой формат сработал.</p></div>
+    <div class="card ok"><h3>ВЧ+СЧ выросли в пять раз</h3>
+      <p>0 → 2 → <span class="big">11</span> за три замера. Плюс 18 ключей в ТОП-3.</p>
+      <p>Индексация практически завершена: доменов без ключей в ТОП-100
+      было 20 из 50, стало 3.</p></div>
+    <div class="card"><h3>Но охват пока низкий</h3>
+      <p>21 домен из 50 имеет хоть один ключ в ТОП-10, среднее 1,3, медиана 0.
+      Лидеры: 3961.team — 13 ключей и 7 в ТОП-3, xdkr.team — 11, 6158.team — 9 и 4 ВЧ.</p>
+      <p class="mut">Наборы прошли путь 0 → 1,2 → 13,4 за девять часов, так что
+      следующие замеры решающие.</p></div>
+    <div class="card acc"><h3>Чем ценна</h3>
+      <p>50 доменов в одной зоне — самая большая партия наблюдений. Доля лидера 11 %,
+      то есть результат уже сейчас не зависит от одного сайта, в отличие от всех
+      остальных групп.</p>
+      <p><b>Контенты и привязку по-прежнему не присылали</b> — без них группа покажет
+      уровень партии, но не скажет, какой формат сработал.</p></div>
   </div></div>`;
 
 function tabBrands(){
@@ -281,10 +311,10 @@ const TABS=[
   ["Обзор",overview],
   ["Ночные · 3 замера",()=>wave("ночь","Ночной запуск · 01:21–01:31",
      "Три замера: 01:29–01:41, 10:08–10:09 и 22:29–22:30. Клик по домену — бренды и ключи.")],
-  ["Дневные · 3 замера",()=>wave("день","Дневной запуск · 17:21–17:22",
-     "Три замера: 17:34–17:35, 22:29 и 21.08 02:00. Клик по домену — бренды и ключи.",DAY_EXTRA)],
+  ["Дневные · 4 замера",()=>wave("день","Дневной запуск · 17:21–17:22",
+     "До четырёх замеров: 17:34–17:35, 22:29, 21.08 02:00 и 21.08 12:06. У Theme1 последнего съёма нет. Клик по домену — бренды и ключи.",DAY_EXTRA)],
   ["Generation 50",()=>wave("вечер","Generation 50 · запуск 22:06",
-     "Два замера: 22:29 и 21.08 02:00.",GEN_EXTRA)],
+     "Три замера: 22:29, 21.08 02:00 и 21.08 12:06.",GEN_EXTRA)],
   ["Бренды и ключи",tabBrands],
   ["Типы запросов",tabCats]];
 const nav=document.getElementById('nav'), main=document.getElementById('main');
