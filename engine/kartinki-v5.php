@@ -928,7 +928,9 @@ function вшитьОбложку(string $файл, string $страница, st
         $итог[] = $л;
         if (strpos($л, 'class="slot-poster"') !== false) {
             $отступ = str_repeat(' ', strlen($л) - strlen(ltrim($л)) + 2);
-            $alt = htmlspecialchars('обложка игрового автомата — ' . $жанр, ENT_QUOTES, 'UTF-8');
+            // короткий alt: он повторяется в каждой карточке и попадает в текст,
+            // длинная фраза дала бы общие шинглы между наборами
+            $alt = htmlspecialchars($жанр, ENT_QUOTES, 'UTF-8');
             $итог[] = $отступ . '<img src="' . $имяФайла . '" alt="' . $alt
                     . '" width="640" height="480" loading="lazy"'
                     . ' style="display:block;width:100%;height:auto">';
