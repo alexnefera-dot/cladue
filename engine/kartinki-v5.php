@@ -237,6 +237,28 @@ function самоцвет($im, int $cx, int $cy, int $r, array $осн, array $�
                              $cx - (int) ($r * 0.62), $cy + $r], 3, цв($im, смесь($осн, $бел, 0.18)));
 }
 
+/** Расходящиеся лучи — так подают обложки настоящих автоматов. */
+function лучи($im, int $cx, int $cy, int $r, array $rgb, int $n = 16, int $alpha = 112): void {
+    for ($i = 0; $i < $n; $i++) {
+        $a1 = $i * 2 * M_PI / $n;
+        $a2 = $a1 + M_PI / $n * 0.62;
+        imagefilledpolygon($im, [$cx, $cy,
+            $cx + (int) (cos($a1) * $r), $cy + (int) (sin($a1) * $r),
+            $cx + (int) (cos($a2) * $r), $cy + (int) (sin($a2) * $r)], 3, цв($im, $rgb, $alpha));
+    }
+}
+
+/** Рассыпанные по низу символы — монеты и камни. */
+function россыпь($im, int $W, int $H, array $золото, array $камень, int $сид): void {
+    mt_srand($сид * 31 + 7);
+    for ($i = 0; $i < 9; $i++) {
+        $x = (int) ($W * (0.06 + 0.11 * $i)) + mt_rand(-14, 14) * S;
+        $y = $H - mt_rand(30, 96) * S;
+        if ($i % 2) монета($im, $x, $y, mt_rand(20, 30) * S, $золото, [255, 255, 255]);
+        else        самоцвет($im, $x, $y, mt_rand(18, 28) * S, $камень, [255, 255, 255]);
+    }
+}
+
 /** Искры и блики для глубины. */
 function искры($im, int $w, int $h, int $n, array $rgb, int $сид): void {
     mt_srand($сид);
@@ -449,8 +471,9 @@ function обложка(string $файл, int $индекс, int $сид): strin
     $бел = [255, 255, 255];
     $золото = [255, 199, 88];
 
-    фон($im, $W, $H, hsl($т1, 0.62, 0.16), hsl($т2, 0.58, 0.34));
-    свечение($im, (int) ($W * 0.5), (int) ($H * 0.44), (int) ($W * 0.52), hsl($т2, 0.72, 0.60), 56, 120);
+    фон($im, $W, $H, hsl($т1, 0.66, 0.13), hsl($т2, 0.60, 0.30));
+    лучи($im, (int) ($W * 0.5), (int) ($H * 0.46), (int) ($W * 0.86), hsl($т2, 0.78, 0.62), 18, 116);
+    свечение($im, (int) ($W * 0.5), (int) ($H * 0.44), (int) ($W * 0.46), hsl($т2, 0.74, 0.60), 52, 119);
 
     $cx = (int) ($W / 2); $cy = (int) ($H / 2);
     mt_srand($сид * 17 + $индекс);
@@ -607,7 +630,14 @@ function обложка(string $файл, int $индекс, int $сид): strin
             break;
     }
 
+    россыпь($im, $W, $H, $золото, hsl($т2 + 40, 0.70, 0.58), $сид + $индекс);
     искры($im, $W, $H, 26, $бел, $сид + $индекс);
+    // тёмный подвал: на нём читается любая подпись, которую подставит вёрстка
+    for ($y = 0; $y < (int) ($H * 0.22); $y++) {
+        $a = 127 - (int) (78 * pow($y / ($H * 0.22), 1.8));
+        if ($a >= 127) continue;
+        imageline($im, 0, $H - 1 - $y, $W, $H - 1 - $y, imagecolorallocatealpha($im, 8, 8, 16, $a));
+    }
     виньетка($im, $W, $H);
     // кант и уголки, чтобы плитка читалась как обложка игры
     imagesetthickness($im, 7 * S);
@@ -657,7 +687,12 @@ function нарисовать(string $файл, string $вид, float $тон, a
     искры($im, $W, $H, 22, $бел, $вар * 97 + (int) $тон);
     виньетка($im, $W, $H);
 
-    // подпись
+    // подпись: под ней тёмная подложка, иначе текст теряется на свечении
+    for ($x = 0; $x < (int) ($W * 0.62); $x++) {
+        $a = 127 - (int) (74 * pow(1 - $x / ($W * 0.62), 1.6));
+        if ($a >= 127) continue;
+        imageline($im, $x, (int) ($H * 0.22), $x, (int) ($H * 0.70), imagecolorallocatealpha($im, 6, 8, 18, $a));
+    }
     $чёрн = imagecolorallocatealpha($im, 0, 0, 0, 72);
     imagefilledrectangle($im, 78 * S, 208 * S, 166 * S, 216 * S, цв($im, $золото));
     $кегль = 46;
@@ -668,7 +703,8 @@ function нарисовать(string $файл, string $вид, float $тон, a
     }
     imagettftext($im, $кегль * S, 0, 78 * S + 3 * S, 306 * S + 3 * S, $чёрн, $шрифт, $строки[0]);
     imagettftext($im, $кегль * S, 0, 76 * S, 304 * S, imagecolorallocate($im, 248, 250, 255), $шрифт, $строки[0]);
-    imagettftext($im, 23 * S, 0, 78 * S, 360 * S, imagecolorallocatealpha($im, 226, 232, 246, 30), $шрифтТонкий, $строки[1]);
+    imagettftext($im, 23 * S, 0, 79 * S, 361 * S, imagecolorallocatealpha($im, 0, 0, 0, 90), $шрифтТонкий, $строки[1]);
+    imagettftext($im, 23 * S, 0, 78 * S, 360 * S, imagecolorallocate($im, 232, 238, 250), $шрифтТонкий, $строки[1]);
 
     imagesetthickness($im, 3 * S);
     imagerectangle($im, 20 * S, 20 * S, $W - 21 * S, $H - 21 * S, imagecolorallocatealpha($im, 255, 255, 255, 108));
@@ -728,6 +764,62 @@ function вёрсткаСлотов(string $файл): int {
     return $n;
 }
 
+/** Оставляет в списке слотов не больше $предел карточек: лишние вкладки
+ *  выбрасываются целиком вместе со своими кнопками-переключателями.
+ */
+function урезатьСлоты(string $файл, int $предел): int {
+    $строки = explode("\n", file_get_contents($файл));
+    $всего = 0;
+    foreach ($строки as $л) if (strpos($л, 'class="slot-card') !== false) $всего++;
+    if ($всего <= $предел) return $всего;
+
+    // блоки вкладок: начало → конец по одинаковому отступу
+    $блоки = [];
+    foreach ($строки as $i => $л) {
+        if (strpos($л, 'class="slots-tab-content') === false) continue;
+        $отступ = strlen($л) - strlen(ltrim($л));
+        for ($j = $i + 1; $j < count($строки); $j++) {
+            $т = $строки[$j];
+            if (trim($т) === '</div>' && (strlen($т) - strlen(ltrim($т))) === $отступ) {
+                $карточек = 0;
+                for ($k = $i; $k <= $j; $k++) if (strpos($строки[$k], 'class="slot-card') !== false) $карточек++;
+                $блоки[] = ['от' => $i, 'до' => $j, 'карт' => $карточек];
+                break;
+            }
+        }
+    }
+    if (!$блоки) return $всего;
+
+    $убрать = [];                                    // вкладки с конца, пока не уложимся
+    $осталось = $всего;
+    for ($b = count($блоки) - 1; $b >= 1 && $осталось > $предел; $b--) {
+        if ($осталось - $блоки[$b]['карт'] < $предел) continue;
+        $убрать[] = $b; $осталось -= $блоки[$b]['карт'];
+    }
+    if (!$убрать) return $всего;
+
+    $кнопки = [];
+    foreach ($строки as $i => $л) if (strpos($л, 'class="slots-tab') !== false
+                                      && strpos($л, 'slots-tab-content') === false) $кнопки[] = $i;
+
+    $снять = [];
+    foreach ($убрать as $b) {
+        for ($k = $блоки[$b]['от']; $k <= $блоки[$b]['до']; $k++) $снять[$k] = true;
+        if (isset($кнопки[$b])) {                    // кнопка и её содержимое до </button>
+            $и = $кнопки[$b];
+            for ($k = $и; $k < count($строки); $k++) {
+                $снять[$k] = true;
+                if (strpos($строки[$k], '</button>') !== false) break;
+            }
+        }
+    }
+
+    $итог = [];
+    foreach ($строки as $i => $л) if (!isset($снять[$i])) $итог[] = $л;
+    file_put_contents($файл, implode("\n", $итог));
+    return $осталось;
+}
+
 /** Обложка игры в каждую карточку списка слотов. */
 function вшитьОбложку(string $файл, string $страница, string $имяФайла, string $жанр): int {
     $строки = explode("\n", file_get_contents($файл));
@@ -767,6 +859,8 @@ $карточек = 0;
 foreach (array_keys($ТЕМЫ) as $страница) {
     $html = $папка . '/' . $страница . '.html';
     if (!is_file($html) || strpos(file_get_contents($html), 'class="slot-poster"') === false) continue;
+    $карт = урезатьСлоты($html, 8);
+    echo "карточек в списке слотов: $карт\n";
     $имяФайла = $страница . '_img_2.webp';
     $жанр = обложка($папка . '/images/' . $имяФайла, $сид, $сид);
     $всего++;

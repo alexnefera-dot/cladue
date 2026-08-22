@@ -28,7 +28,7 @@ $ПРАВИЛА = [
     'hero-value-grid'   => 'display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;align-items:start',
     'hero-badge'        => 'display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;background:' . ПОДЛОЖКА2 . ';font-size:12px;font-weight:600;letter-spacing:.02em',
     'hero-headline'     => 'margin:12px 0 6px;font-size:26px;line-height:1.25',
-    'hero-tagline'      => 'margin:0 0 14px;opacity:.75;font-size:15px;line-height:1.5',
+    'hero-tagline'      => 'margin:0 0 14px;opacity:.88;font-size:15px;line-height:1.5',
     'hero-features'     => 'display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px;padding:0;list-style:none',
     'feature-icon'      => 'margin-right:6px',
     'hero-actions'      => 'display:flex;flex-wrap:wrap;gap:10px',
@@ -42,7 +42,7 @@ $ПРАВИЛА = [
     'quicklink-item'    => 'display:grid;grid-template-columns:26px 1fr;column-gap:10px;align-items:center;padding:12px 14px;border:' . КАНТ . ';border-radius:12px;background:' . ПОДЛОЖКА . ';text-decoration:none;color:inherit',
     'ql-icon'           => 'grid-column:1;grid-row:1/span 2;font-size:20px;line-height:1',
     'ql-text'           => 'grid-column:2;font-weight:600;line-height:1.3',
-    'ql-meta'           => 'grid-column:2;font-size:12px;opacity:.65;margin-top:2px',
+    'ql-meta'           => 'grid-column:2;font-size:12px;opacity:.84;margin-top:2px',
 
     // ── последние выплаты: вид таблицы без тега table
     'recent-payouts-block' => 'display:block;border:' . КАНТ . ';border-radius:14px;overflow:hidden;margin:0 0 22px',
@@ -57,8 +57,8 @@ $ПРАВИЛА = [
     'payout-row-name'   => 'font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis',
     'payout-row-sep'    => 'display:none',
     'payout-row-amount' => 'font-weight:700;color:' . ЗОЛОТО . ';white-space:nowrap',
-    'payout-row-slot'   => 'font-size:13px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis',
-    'payout-row-time'   => 'font-size:12px;opacity:.55;text-align:right;white-space:nowrap',
+    'payout-row-slot'   => 'font-size:13px;opacity:.88;white-space:nowrap;overflow:hidden;text-overflow:ellipsis',
+    'payout-row-time'   => 'font-size:12px;opacity:.9;text-align:right;white-space:nowrap',
     'payout-cta'        => 'padding:14px;background:' . ПОДЛОЖКА . ';text-align:center',
     'payout-btn'        => 'display:inline-block;padding:10px 20px;border-radius:10px;background:' . ЗОЛОТО . ';color:#15161c;font-weight:700;text-decoration:none',
 
@@ -69,14 +69,14 @@ $ПРАВИЛА = [
     'jackpot-strip-grid' => 'display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px',
     'jackpot-cell'       => 'display:block;padding:12px;border:' . КАНТ . ';border-radius:12px;background:' . ПОДЛОЖКА2 . ';text-align:center',
     'jackpot-cell-icon'  => 'display:block;font-size:22px;line-height:1;margin-bottom:6px',
-    'jackpot-cell-name'  => 'display:block;font-size:12px;opacity:.7',
+    'jackpot-cell-name'  => 'display:block;font-size:12px;opacity:.86',
     'jackpot-cell-amount' => 'display:block;font-size:18px;font-weight:800;color:' . ЗОЛОТО . ';margin:4px 0 2px',
-    'jackpot-cell-info'  => 'display:block;font-size:11px;opacity:.55',
+    'jackpot-cell-info'  => 'display:block;font-size:11px;opacity:.9',
     'stats-grid'         => 'display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0',
     'stat-card'          => 'display:block;padding:14px;border:' . КАНТ . ';border-radius:12px;background:' . ПОДЛОЖКА . ';text-align:center',
     'stat-icon'          => 'display:block;font-size:22px;line-height:1;margin-bottom:6px',
     'stat-value'         => 'display:block;font-size:19px;font-weight:800;color:' . ЗОЛОТО,
-    'stat-label'         => 'display:block;font-size:12px;opacity:.65;margin-top:2px',
+    'stat-label'         => 'display:block;font-size:12px;opacity:.84;margin-top:2px',
 
     // ── преимущества
     'value-pillars'      => 'display:block;margin:0 0 22px',
@@ -86,22 +86,22 @@ $ПРАВИЛА = [
     'value-pillar-icon'  => 'display:block;font-size:24px;line-height:1;margin-bottom:8px',
     'value-pillar-title' => 'margin:0 0 6px;font-size:15px;font-weight:700',
     'value-pillar-body'  => 'display:block',
-    'value-pillar-desc'  => 'margin:0;font-size:13px;line-height:1.5;opacity:.75',
+    'value-pillar-desc'  => 'margin:0;font-size:13px;line-height:1.5;opacity:.88',
 
     // ── отзывы
     'review-quotes-block' => 'display:block;margin:0 0 22px',
     'review-quotes-heading' => 'margin:0 0 6px;font-size:19px',
-    'review-quotes-desc' => 'margin:0 0 12px;font-size:14px;opacity:.7',
+    'review-quotes-desc' => 'margin:0 0 12px;font-size:14px;opacity:.86',
     'review-quotes-list' => 'display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:0;padding:0;list-style:none',
     'review-quote-text'  => 'display:block;padding:14px 14px 12px;border:' . КАНТ . ';border-left:3px solid ' . ЗОЛОТО . ';border-radius:0 12px 12px 0;background:' . ПОДЛОЖКА . ';font-style:italic;line-height:1.55',
-    'review-quote-summary' => 'display:block;margin-top:8px;font-size:12px;font-style:normal;opacity:.6',
+    'review-quote-summary' => 'display:block;margin-top:8px;font-size:12px;font-style:normal;opacity:.84',
 
     // ── вопросы и ответы
     'faq-section'   => 'display:block;border:' . КАНТ . ';border-radius:14px;background:' . ПОДЛОЖКА . ';padding:18px;margin:22px 0',
     'faq-list'      => 'display:grid;gap:10px;margin:12px 0 0;padding:0;list-style:none',
     'faq-item'      => 'display:block;padding:12px 14px;border:' . КАНТ . ';border-radius:12px;background:' . ПОДЛОЖКА2 . '',
     'faq-question'  => 'display:block;width:100%;text-align:left;background:none;border:0;border-left:3px solid ' . ЗОЛОТО . ';color:inherit;font-family:inherit;font-size:15px;font-weight:700;line-height:1.35;margin:0 0 6px;padding:0 0 0 12px;cursor:pointer',
-    'faq-answer'    => 'display:block;font-size:14px;line-height:1.6;opacity:.82',
+    'faq-answer'    => 'display:block;font-size:14px;line-height:1.6;opacity:.9',
 
     // ── тематические блоки и заголовки
     'layout-block'        => 'display:block;margin:0 0 22px',
@@ -117,7 +117,7 @@ $ПРАВИЛА = [
     'slots-dashboard-icon'      => 'font-size:22px;line-height:1',
     'slots-dashboard-title-wrap' => 'display:block',
     'slots-dashboard-title'     => 'margin:0;font-size:19px',
-    'slots-dashboard-subtitle'  => 'margin:2px 0 0;font-size:13px;opacity:.7',
+    'slots-dashboard-subtitle'  => 'margin:2px 0 0;font-size:13px;opacity:.86',
     'slots-dashboard-tabs'      => 'display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px',
     'slots-tab'                 => 'display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border:' . КАНТ . ';border-radius:999px;background:' . ПОДЛОЖКА2 . ';font-size:13px;font-weight:600',
     'slots-tab-content'         => 'display:block',
@@ -129,10 +129,10 @@ $ПРАВИЛА = [
     'slot-badge'    => 'position:absolute;top:8px;right:8px;padding:3px 9px;border-radius:999px;background:rgba(10,12,20,.72);color:#fff;font-size:11px;line-height:1.4',
     'slot-info'     => 'padding:9px 11px 3px',
     'slot-name'     => 'margin:0;font-size:14px;line-height:1.3',
-    'slot-provider' => 'font-size:11px;opacity:.65;margin-top:3px',
+    'slot-provider' => 'font-size:11px;opacity:.84;margin-top:3px',
     'slot-footer'   => 'display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 11px 11px;margin-top:auto',
-    'slot-rtp'      => 'font-size:11px;opacity:.8',
-    'slot-rtp-label' => 'display:block;opacity:.7',
+    'slot-rtp'      => 'font-size:11px;opacity:.9',
+    'slot-rtp-label' => 'display:block;opacity:.86',
     'slot-rtp-value' => 'display:block;font-weight:700',
     'slot-play-btn' => 'display:inline-block;font-size:12px;padding:5px 11px;border-radius:8px;background:' . ЗОЛОТО . ';color:#15161c;text-decoration:none;white-space:nowrap',
 ];
@@ -152,7 +152,7 @@ $всего = 0; $тревог = 0; $шапок = 0;
 // строка заголовков для ленты выплат — вид таблицы без тега table
 $КОЛОНКИ = 'display:grid;grid-template-columns:34px minmax(90px,1fr) minmax(96px,auto)'
          . ' minmax(130px,1.3fr) minmax(88px,auto);gap:10px;padding:9px 14px;font-size:11px'
-         . ';letter-spacing:.04em;text-transform:uppercase;opacity:.55;font-weight:600';
+         . ';letter-spacing:.04em;text-transform:uppercase;opacity:.9;font-weight:600';
 
 foreach ($файлы as $файл) {
     $строки = explode("\n", file_get_contents($файл));
