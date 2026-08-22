@@ -691,7 +691,7 @@ function вшить(string $файл, string $страница, string $alt): in
     if (strpos($html, $имя) !== false) return 0;
     $тег = '<img src="' . $имя . '" alt="' . htmlspecialchars($alt, ENT_QUOTES, 'UTF-8')
          . '" width="1200" height="630" loading="lazy"'
-         . ' style="display:block;width:100%;height:auto;margin:0 0 20px;border-radius:14px">';
+         . ' style="display:block;width:100%;max-height:320px;object-fit:cover;margin:0 0 20px;border-radius:14px">';
     file_put_contents($файл, $тег . "\n" . $html);
     return 1;
 }
@@ -771,7 +771,5 @@ foreach (array_keys($ТЕМЫ) as $страница) {
     $жанр = обложка($папка . '/images/' . $имяФайла, $сид, $сид);
     $всего++;
     $карточек += вшитьОбложку($html, $страница, $имяФайла, $жанр);
-    $правил = вёрсткаСлотов($html);
-    echo "раскладка списка слотов: правил $правил\n";
 }
 echo "картинок: $всего, ведущих в статьях: $вшито, карточек игр: $карточек\n";
