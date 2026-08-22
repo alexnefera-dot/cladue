@@ -850,6 +850,20 @@ function обложка(string $файл, int $индекс, int $сид): strin
 
 /* ───────────────────────── вставка в разметку ───────────────────────── */
 
+/** Одна ведущая иллюстрация в начало страницы. Классов не добавляем —
+ *  вёрстка комплекта их не знает, оформление задаётся инлайном.
+ */
+function вшить(string $файл, string $страница, string $alt): int {
+    $html = file_get_contents($файл);
+    $имя = $страница . '_img_1.webp';
+    if (strpos($html, $имя) !== false) return 0;
+    $тег = '<img src="' . $имя . '" alt="' . htmlspecialchars($alt, ENT_QUOTES, 'UTF-8')
+         . '" width="1200" height="630" loading="lazy"'
+         . ' style="display:block;width:100%;max-height:320px;object-fit:cover;margin:0 0 20px;border-radius:14px">';
+    file_put_contents($файл, $тег . "\n" . $html);
+    return 1;
+}
+
 /** Оставляет в списке слотов не больше $предел карточек: лишние вкладки
  *  выбрасываются целиком вместе со своими кнопками-переключателями.
  */
