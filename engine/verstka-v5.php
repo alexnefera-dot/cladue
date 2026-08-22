@@ -119,7 +119,7 @@ $ПРАВИЛА = [
     'slots-dashboard-title'     => 'margin:0;font-size:19px',
     'slots-dashboard-subtitle'  => 'margin:2px 0 0;font-size:13px;opacity:.86',
     'slots-dashboard-tabs'      => 'display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px',
-    'slots-tab'                 => 'display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border:' . КАНТ . ';border-radius:999px;background:' . ПОДЛОЖКА2 . ';font-size:13px;font-weight:600',
+    'slots-tab'                 => 'display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border:' . КАНТ . ';border-radius:999px;background:' . ПОДЛОЖКА2 . ';color:inherit;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer',
     'slots-tab-content'         => 'display:block',
     'slots-grid'    => 'display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;margin:14px 0 0',
     'slot-card'     => 'display:block;border:' . КАНТ . ';border-radius:12px;background:' . ПОДЛОЖКА2 . ';overflow:hidden',
@@ -176,6 +176,16 @@ foreach ($файлы as $файл) {
                     continue;
                 }
             }
+        }
+
+        // ── любой <button> наследует цвет темы: иначе браузер красит текст в чёрный
+        if (preg_match('~^\\s*<button~', $л) === 1 && strpos($л, 'color:inherit') === false) {
+            if (strpos($л, ' style="') !== false) {
+                $л = preg_replace('~ style="~', ' style="color:inherit;font-family:inherit;', $л, 1);
+            } else {
+                $л = preg_replace('~^(\\s*<button)~', '$1 style="color:inherit;font-family:inherit"', $л, 1);
+            }
+            $правил++;
         }
 
         // ── содержательные списки: воздух и цветные маркеры
