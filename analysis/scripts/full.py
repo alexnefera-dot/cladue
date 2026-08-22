@@ -61,7 +61,7 @@ ORD=["группа 3","группа 1","группа 4","группа 5","гру
      "Generator_11page_21.08 + Genera","Generator 11page 21.08",
      "NEW50_5_12pages_withdate_21.08","NEW50_5_7pages_withdate_21.08"]
 
-wb=openpyxl.load_workbook(io.BytesIO(open("launches7.xlsx",'rb').read()), data_only=True)
+wb=openpyxl.load_workbook(io.BytesIO(open("launches8.xlsx",'rb').read()), data_only=True)
 G={}
 for sn in ORD:
     bs=blocks(wb[sn])

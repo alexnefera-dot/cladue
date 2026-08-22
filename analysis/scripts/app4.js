@@ -198,55 +198,91 @@ function tabZones(){
   <div class="blk"><h2>Контролируемый тест: .team против .lol на одном контенте</h2>
   <p class="note">Группа nabor-53: десять контентов, пять на .team и пять на .lol,
   привязка 1:1, запуск в одну минуту. Единственное отличие между половинами — зона.
-  Это первый и пока единственный чистый зоновый тест за всё наблюдение.</p>
-  <div class="tw"><table><thead><tr><th class="l">Половина</th>
+  Первый и пока единственный чистый зоновый тест за всё наблюдение. Два замера.</p>
+  <div class="tw"><table><thead><tr><th class="l">Половина</th><th class="l">Замер</th>
   <th class="l">Значения по доменам</th><th>Среднее</th><th>Медиана</th><th>Без лидера</th>
-  <th>ВЧ</th><th>СЧ</th><th>ТОП-3</th><th>ТОП-30</th><th>ТОП-100</th></tr></thead><tbody>
-    <tr><td class="l id">.team</td><td class="l num">43, 20, 5, 2, 0</td>
-      <td><b>14,0</b></td><td>5</td><td><b>6,8</b></td>
-      <td class="good"><b>10</b></td><td class="good">1</td><td>24</td><td>111</td><td>470</td></tr>
-    <tr><td class="l id">.lol</td><td class="l num">6, 6, 3, 1, 0</td>
-      <td>3,2</td><td>3</td><td>2,5</td>
-      <td class="bad"><b>0</b></td><td class="bad">0</td><td>8</td><td>36</td><td>319</td></tr>
+  <th>ВЧ</th><th>СЧ</th><th>ТОП-3</th></tr></thead><tbody>
+    <tr><td class="l id" rowspan="2">.team</td><td class="l mut">22.08 01:24</td>
+      <td class="l num mut">43, 20, 5, 2, 0</td><td class="mut">14,0</td><td class="mut">5</td>
+      <td class="mut">6,8</td><td class="mut">10</td><td class="mut">1</td><td class="mut">24</td></tr>
+    <tr><td class="l">22.08 11:19</td><td class="l num">39, 37, 7, 3, 1</td>
+      <td><b>17,4</b></td><td>7</td><td><b>12,0</b></td>
+      <td class="good"><b>11</b></td><td class="good">6</td><td>18</td></tr>
+    <tr><td class="l id" rowspan="2">.lol</td><td class="l mut">22.08 01:24</td>
+      <td class="l num mut">6, 6, 3, 1, 0</td><td class="mut">3,2</td><td class="mut">3</td>
+      <td class="mut">2,5</td><td class="mut">0</td><td class="mut">0</td><td class="mut">8</td></tr>
+    <tr><td class="l">22.08 11:19</td><td class="l num">14, 8, 6, 3, 0</td>
+      <td>6,2</td><td>6</td><td>4,3</td>
+      <td class="good">2</td><td class="good">2</td><td>9</td></tr>
   </tbody></table></div>
   <div class="cards" style="margin-top:14px">
-    <div class="card ok"><h3>.team выигрывает по дорогим ключам всухую</h3>
-      <p><span class="big">11 : 0</span> по ВЧ+СЧ. Все дорогие ключи группы — на .team,
-      у .lol ни одного.</p></div>
-    <div class="card"><h3>По охвату разрыв меньше, чем кажется</h3>
-      <p>Среднее 14,0 против 3,2 — но у .team есть чемпион на 43 ключа.
-      Медианы <b>5 против 3</b>, «без лидера» 6,8 против 2,5, ТОП-100 470 против 319.</p>
-      <p class="mut">На типичном домене .team примерно вдвое сильнее, а не вчетверо.</p></div>
-    <div class="card err"><h3>Оговорка</h3>
-      <p>Пять доменов на сторону и один замер. Направление читается уверенно,
-      величина — нет.</p></div>
+    <div class="card ok"><h3>.team сильнее, но .lol ожил</h3>
+      <p>«Без лидера» <span class="big">12,0</span> против 4,3 — .team почти втрое выше
+      на типичном домене.</p>
+      <p>Но медианы <b>7 против 6</b> практически сравнялись, и .lol впервые взял
+      дорогие ключи: 2 ВЧ и 2 СЧ там, где на первом замере был ноль.</p></div>
+    <div class="card"><h3>Дорогие ключи: 17 против 4</h3>
+      <p>Разрыв сократился с 11:0 до 17:4. .lol отстаёт, но уже не пустой.</p></div>
+    <div class="card err"><h3>Оговорка та же</h3>
+      <p>Пять доменов на сторону. У .team два чемпиона (39 и 37), у .lol один (14) —
+      средние держатся на них.</p></div>
+  </div></div>
+
+  <div class="blk"><h2>Generation 50 выпадает из индекса</h2>
+  <p class="note">Единственная группа с отрицательной динамикой по всем уровням сразу.</p>
+  <div class="tw"><table><thead><tr><th class="l">Замер</th><th>Т10/дом</th><th>Т30/дом</th>
+  <th>Т100/дом</th><th>Нет в Т100</th><th>ВЧ+СЧ</th></tr></thead><tbody>
+    <tr><td class="l mut">20.08 22:29</td><td>0,0</td><td>0,4</td><td>3,1</td>
+      <td class="mut">20/50</td><td class="mut">0</td></tr>
+    <tr><td class="l mut">21.08 02:00</td><td>0,7</td><td>2,1</td><td><b>17,7</b></td>
+      <td class="good">2/50</td><td>2</td></tr>
+    <tr><td class="l mut">21.08 12:06</td><td><b>1,3</b></td><td><b>2,5</b></td><td>12,9</td>
+      <td class="good">3/50</td><td class="good"><b>11</b></td></tr>
+    <tr><td class="l">22.08 11:19</td><td class="bad">0,9</td><td class="bad">1,7</td>
+      <td class="bad">4,1</td><td class="bad"><b>17/50</b></td><td>10</td></tr>
+  </tbody></table></div>
+  <div class="cards" style="margin-top:14px">
+    <div class="card err"><h3>14 доменов выпали из ТОП-100 целиком</h3>
+      <p>Между 12:06 и 11:19 доменов без единого ключа в сотне стало
+      <span class="big">17</span> вместо 3.</p>
+      <p>Это не «просел после пика» — при обычном проседании домен теряет верхние
+      позиции, но остаётся в сотне. Здесь он исчезает из выдачи.</p></div>
+    <div class="card"><h3>Спад начался раньше</h3>
+      <p>Т100 на домен: 3,1 → 17,7 → 12,9 → 4,1. Пик пройден ещё на замере 02:00,
+      к 12:06 охват уже падал, а к утру обвалился.</p></div>
+    <div class="card"><h3>Что это может быть</h3>
+      <p>Массовое одновременное выпадение всей партии — это поведение фильтра
+      на партию, а не сумма отдельных неудач. 50 доменов одной зоны, поднятые
+      в один момент.</p>
+      <p class="mut">Проверяемо следующим замером: если вернутся — был сбой съёма,
+      если нет — партия под санкцией.</p></div>
   </div></div>
 
   <div class="blk"><h2>Что видно по всем зонам</h2>
   ${(()=>{const bz=Z.find(z=>z.z==='.buzz'), lo=Z.find(z=>z.z==='.lol'), ca=Z.find(z=>z.z==='.casino');
     const dead=Z.filter(z=>z.n===1&&z.t10===0);
+    const ones=Z.filter(z=>z.n===1&&z.t10>0);
     return `<div class="cards">
-    <div class="card ok"><h3>.lol впятеро лучше .buzz</h3>
+    <div class="card ok"><h3>.lol вчетверо лучше .buzz</h3>
       <p><span class="big">${f1(lo.t10/lo.n)}</span> ключей на домен против
       ${f1(bz.t10/bz.n)} у .buzz, на выборках ${lo.n} и ${bz.n} доменов.</p>
-      <p>Есть хоть один ключ в ТОП-10: ${lo.ent} из ${lo.n} у .lol против
-      ${bz.ent} из ${bz.n} у .buzz. ТОП-3: ${lo.t3} против ${bz.t3}.</p>
-      <p class="mut">Обе зоны наконец набрали выборку. .buzz можно закрывать,
-      .lol — рабочая альтернатива, но слабее .team.</p></div>
-    <div class="card"><h3>.casino неожиданно ожил</h3>
+      <p>Есть хоть один ключ в ТОП-10: ${lo.ent} из ${lo.n} против ${bz.ent} из ${bz.n}.
+      ТОП-3: ${lo.t3} против ${bz.t3}. Дорогих: ${lo.hs} против ${bz.hs}.</p>
+      <p class="mut">.buzz можно закрывать. .lol — рабочая альтернатива, слабее .team.</p></div>
+    <div class="card"><h3>.casino держится третий замер</h3>
       <p><span class="big">${f1(ca.t10/ca.n)}</span> ключей на домен на ${ca.n} доменах,
-      ${ca.t3} в ТОП-3, у всех трёх что-то есть.</p>
-      <p>В архиве D231-D274 зона давала 0,43 ВЧ+СЧ на домен и проигрывала .team
-      в 5 запусках из 7. <span class="mut">Три домена — это сигнал, не вывод.</span></p></div>
-    <div class="card err"><h3>Экзотика по одному домену — всё по нулям</h3>
-      <p><b>${dead.length}</b> зон с одним доменом и нулём ключей в ТОП-10:
-      ${dead.map(z=>esc(z.z)).join(', ')}.</p>
-      <p>Единственное исключение среди одиночек — <span class="num">.online</span>
-      с 5 ключами и 4 в ТОП-3.</p></div>
+      ${ca.hs} дорогих, у всех трёх есть результат.</p>
+      <p>В архиве зона давала 0,43 ВЧ+СЧ на домен и проигрывала .team в 5 запусках из 7.
+      <span class="mut">Три домена — по-прежнему сигнал, но устойчивый.</span></p></div>
+    <div class="card"><h3>Одиночки: три из шестнадцати ожили</h3>
+      <p>${ones.map(z=>`<span class="num">${esc(z.z)}</span> ${z.t10}`).join(', ')} —
+      ключей в ТОП-10 на одном домене.</p>
+      <p>Остальные ${dead.length} зон по одному домену дали ноль:
+      ${dead.map(z=>esc(z.z)).join(', ')}.</p></div>
   </div>`;})()}
-  <p class="note" style="margin-top:14px">Порядок зон по силе на сегодня:
-  <b>.team → .lol → .buzz</b>, с .casino и .online как неподтверждёнными кандидатами
-  на трёх и одном домене. Всё остальное — ноль.</p></div>`;
+  <p class="note" style="margin-top:14px">Порядок зон по силе:
+  <b>.team → .lol → .buzz</b>. Кандидаты на проверку — .casino (3 домена, держится),
+  .online и .shop (по одному домену, но с результатом). Остальное — ноль.</p></div>`;
 }
 
 function tabBrands(){
