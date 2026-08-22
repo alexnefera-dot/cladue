@@ -23,7 +23,7 @@ function tabOverview(){
       <td class="${g.vch+g.sch?'good':'mut'}"><b>${g.vch+g.sch}</b></td>
       <td>${g.t3}</td><td>${g.brands}</td>
       <td class="${g.z100?'bad':'mut'}">${g.z100}</td></tr>`;};
-  return `<div class="blk"><h2>13 групп · сводка</h2>
+  return `<div class="blk"><h2>${D.tot.groups} групп · сводка</h2>
   <p class="note">Т10/дом, медиана и «без лидера» — по .team-подмножеству. «Доля лидера» —
   какую часть ключей группы держит её лучший домен. Столбик — динамика Т10 по замерам.</p>
   <div class="tw"><table><thead><tr><th class="l">Группа</th><th class="l">Страниц</th>
@@ -47,6 +47,65 @@ function tabOverview(){
   <p class="note" style="margin-top:10px"><b>На этой стадии общий счёт ТОП-10 — плохая метрика.</b>
   Падение охвата при росте дорогих ключей означает переход на более ценные запросы,
   а не ослабление группы.</p></div>
+
+  <div class="blk"><h2>Серия NEW50_5: матрица объём × даты</h2>
+  <p class="note">Четыре ветки из одного прогона генерации 21.08 в 13:29–13:30.
+  Запускались парами: датированные 22.08 в 01:18, недатированные 22.08 в 23:04–23:05,
+  поэтому у пар разное число замеров и разный возраст на первом съёме.</p>
+  <div class="tw"><table><thead><tr><th class="l">Ветка</th><th>.team</th>
+  <th class="l">Т10/дом по замерам</th><th class="l">Значения (посл. замер)</th>
+  <th>Медиана</th><th>Без лидера</th><th>ВЧ+СЧ</th></tr></thead><tbody>
+    <tr><td class="l id">12 стр + даты</td><td>5</td><td class="l num">10,0 › 26,4</td>
+      <td class="l num">64, 53, 11, 4, 0</td><td>11</td><td class="good"><b>17,0</b></td><td>13</td></tr>
+    <tr><td class="l id">12 стр без дат</td><td>4</td><td class="l num">16,3</td>
+      <td class="l num">48, 16, 1, 0</td><td>8,5</td><td>5,7</td><td>9</td></tr>
+    <tr><td class="l id">7 стр + даты</td><td>4</td><td class="l num">8,8 › 28,0</td>
+      <td class="l num">77, 35, 0, 0</td><td>17,5</td><td>11,7</td><td>18</td></tr>
+    <tr><td class="l id">7 стр без дат</td><td class="bad">0</td><td class="l num">0,5</td>
+      <td class="l mut">все домены в экзотических зонах</td><td class="mut">—</td>
+      <td class="mut">—</td><td class="mut">0</td></tr>
+  </tbody></table></div>
+  <div class="cards" style="margin-top:14px">
+    <div class="card"><h3>Даты при 12 страницах: зависит от способа сравнения</h3>
+      <p>На одинаковом <b>номере</b> замера впереди «без дат»: 16,3 против 10,0.
+      Но по <b>возрасту сайта</b> впереди «с датами» — 26,4 в 22 часа против 16,3 в 35 часов.</p>
+      <p>Устойчивые меры за «с датами»: «без лидера» 17,0 против 5,7, медиана 11 против 8,5.
+      <span class="mut">Четвёртый заход, и снова без однозначного ответа.</span></p></div>
+    <div class="card err"><h3>Взаимодействие не посчитается</h3>
+      <p>У ветки «7 страниц без дат» <b>ноль доменов .team</b> — все шесть в зонах
+      .work, .live, .click, .fun, .space и .lol.</p>
+      <p>Матрица собрана, но из четырёх сравнений считаются два.</p></div>
+    <div class="card"><h3>Что дала экзотическая ветка</h3>
+      <p>0,5 ключа на домен. Единственный домен с результатом —
+      <span class="num">ldtq.click</span>: 3 ключа в ТОП-10, 8 в ТОП-30, 71 в ТОП-100.</p>
+      <p>Остальные: .work 4 ключа в сотне, .fun 10, .live 3, .space 0, .lol 7.</p></div>
+  </div></div>
+
+  <div class="blk"><h2>Картинки: результат внутри разброса базового формата</h2>
+  <p class="note">Это ровно то, о чём предупреждалось при регистрации группы.</p>
+  <div class="tw"><table><thead><tr><th class="l">Партия 11 страниц</th><th>.team</th>
+  <th>Первый замер</th><th>Последний замер</th><th class="l">Значения</th>
+  <th>Без лидера</th><th>ВЧ+СЧ</th></tr></thead><tbody>
+    <tr><td class="l mut">Generator_11page (20.08)</td><td>5</td><td class="mut">32,0</td>
+      <td class="mut">60,0</td><td class="l num mut">102, 85, 61, 28, 24</td>
+      <td class="mut">49,5</td><td class="mut">44</td></tr>
+    <tr><td class="l mut">Generator_11page_2 (20.08)</td><td>4</td><td class="mut">3,0</td>
+      <td class="mut">9,8</td><td class="l num mut">—</td><td class="mut">8,0</td><td class="mut">1</td></tr>
+    <tr><td class="l mut">Generator_11page_21.08</td><td>8</td><td class="mut">5,5</td>
+      <td class="mut">4,5</td><td class="l num mut">—</td><td class="mut">3,1</td><td class="mut">9</td></tr>
+    <tr><td class="l id">Generator_11page_img (22.08)</td><td>5</td><td><b>4,8</b></td>
+      <td class="mut">—</td><td class="l num">10, 10, 2, 2, 0</td><td>3,5</td>
+      <td class="good"><b>6</b></td></tr>
+  </tbody></table></div>
+  <p class="note" style="margin-top:10px">Первые замеры базового формата без картинок:
+  <b>3,0 · 5,5 · 32,0</b>. Группа с картинками дала <b>4,8</b> — внутри этого разброса,
+  и отличить вклад картинок от разницы между партиями нельзя.
+  Единственное, что выделяется: <b>6 ВЧ-ключей на пяти доменах</b> на первом замере,
+  тогда как у трёх партий без картинок на первых замерах было 4, 0 и 3 дорогих ключа.
+  Слабый плюс, но на пяти доменах это не результат.</p>
+  <p class="note"><b>Чтобы измерить картинки, нужна пара img против no-img из одного
+  прогона генерации</b> — схема, которая сработала с шаблонами и сейчас работает
+  с объёмом страниц.</p></div>
 
   <div class="blk"><h2>Смотрите «без лидера», а не среднее</h2>
   <p class="note">Порядок групп по среднему и по устойчивой мере расходится.</p>

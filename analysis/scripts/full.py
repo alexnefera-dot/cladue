@@ -54,14 +54,18 @@ NAME={"группа 3":["Generator_11page","11 стр · генератор","н
       "Generator_11page_21.08 + Genera":["Generator_11page_21.08 (обе партии)","11 стр · генератор","22.08"],
       "Generator 11page 21.08":["nabor-53 · наборы","12 стр · наборы","22.08"],
       "NEW50_5_12pages_withdate_21.08":["NEW50_5_12pages_withdate","12 стр · даты","22.08"],
-      "NEW50_5_7pages_withdate_21.08":["NEW50_5_7pages_withdate","7 стр · даты","22.08"]}
+      "NEW50_5_7pages_withdate_21.08":["NEW50_5_7pages_withdate","7 стр · даты","22.08"],
+      "Generator_11page_img_22.08_5":["Generator_11page_img","11 стр · картинки","23.08"],
+      "NEW50_5_12pages_nodate_21.08":["NEW50_5_12pages_nodate","12 стр · без дат","23.08"],
+      "NEW50_5_7pages_nodate_21.08":["NEW50_5_7pages_nodate","7 стр · без дат","23.08"]}
 ORD=["группа 3","группа 1","группа 4","группа 5","группа 6","группа 2",
      "12pages_withdate · Theme1","12pages_withdate · Theme2","12pages_nodate",
      "7pages_nodate","doregn.net 7 page","dorgen.net 12 page","Generation 50",
      "Generator_11page_21.08 + Genera","Generator 11page 21.08",
-     "NEW50_5_12pages_withdate_21.08","NEW50_5_7pages_withdate_21.08"]
+     "NEW50_5_12pages_withdate_21.08","NEW50_5_7pages_withdate_21.08",
+     "Generator_11page_img_22.08_5","NEW50_5_12pages_nodate_21.08","NEW50_5_7pages_nodate_21.08"]
 
-wb=openpyxl.load_workbook(io.BytesIO(open("launches8.xlsx",'rb').read()), data_only=True)
+wb=openpyxl.load_workbook(io.BytesIO(open("launches9.xlsx",'rb').read()), data_only=True)
 G={}
 for sn in ORD:
     bs=blocks(wb[sn])

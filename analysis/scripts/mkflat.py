@@ -7,7 +7,8 @@ ORD=["группа 3","группа 1","группа 4","группа 5","гру
      "12pages_withdate · Theme1","12pages_withdate · Theme2","12pages_nodate",
      "7pages_nodate","doregn.net 7 page","dorgen.net 12 page","Generation 50",
      "Generator_11page_21.08 + Genera","Generator 11page 21.08",
-     "NEW50_5_12pages_withdate_21.08","NEW50_5_7pages_withdate_21.08"]
+     "NEW50_5_12pages_withdate_21.08","NEW50_5_7pages_withdate_21.08",
+     "Generator_11page_img_22.08_5","NEW50_5_12pages_nodate_21.08","NEW50_5_7pages_nodate_21.08"]
 # конфигурация групп
 CFG={
  "группа 3":{"fmt":"11 страниц, генератор","pages":"11","src":"генератор","ver":"?","theme":"?","cont":"Generator_11page_19.08_1…5 (id 695-699)","map":None},
@@ -38,6 +39,12 @@ CFG={
    "cont":"NEW50_5_12pages_withdate_21.08_1…7 (834-840)","map":None},
  "NEW50_5_7pages_withdate_21.08":{"fmt":"7 страниц с датами","pages":"7 + даты","src":"генератор","ver":"—","theme":"?",
    "cont":"NEW50_5_7pages_withdate_21.08_1…12 (815-826)","map":None},
+ "Generator_11page_img_22.08_5":{"fmt":"11 страниц с картинками","pages":"11 + img","src":"генератор","ver":"—","theme":"?",
+   "cont":"Generator_11page_img_22.08_5_1…5 (863-867)","map":None},
+ "NEW50_5_12pages_nodate_21.08":{"fmt":"12 страниц без дат","pages":"12 без дат","src":"генератор","ver":"—","theme":"?",
+   "cont":"NEW50_5_12pages_nodate_21.08_1…7 (827-833)","map":None},
+ "NEW50_5_7pages_nodate_21.08":{"fmt":"7 страниц без дат","pages":"7 без дат","src":"генератор","ver":"—","theme":"?",
+   "cont":"NEW50_5_7pages_nodate_21.08_1…6 (791-796)","map":None},
 }
 PAT=[("зеркало",r"зеркал|mirror"),("вход",r"\bвход\b|войти|log ?in"),
      ("регистрация",r"регистрац|\bреги\b|sign ?up|создать аккаунт"),
