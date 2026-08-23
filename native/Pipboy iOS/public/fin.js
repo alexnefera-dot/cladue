@@ -589,18 +589,25 @@ function secPortfolio(d, s) {
     const sp = rctx.spends || [];
     const spendTotal = sp.reduce((a, x) => a + x.eur, 0);
     const gap = planTotal - rootTotal;
-    return `<div class="card capsum">
-      <div class="captop">
+    // Две шапки в ряд: слева капитал против плана, справа — что из него уйдёт
+    return `<div class="fingrid caps">
+      <div class="card capsum">
         <span class="caplab">ОБЩИЙ КАПИТАЛ</span>
         <b class="capnum">${fmt(rootTotal)} €</b>
-        ${planTotal > 0 ? `<span class="meta">план ${fmt(planTotal)} €</span>
-          <span class="pill ${Math.abs(gap) < 1 ? 'ok' : gap > 0 ? 'p1' : ''}" title="разница между размещённым и суммой целей">${
-            Math.abs(gap) < 1 ? '✓ сейчас = плану' : gap > 0 ? `до плана +${fmt(gap)} €` : `сверх плана ${fmt(-gap)} €`}</span>` : ''}
+        <div class="caprow">${planTotal > 0
+          ? `<span class="meta">план ${fmt(planTotal)} €</span>
+             <span class="pill ${Math.abs(gap) < 1 ? 'ok' : gap > 0 ? 'p1' : ''}" title="разница между размещённым и суммой целей">${
+               Math.abs(gap) < 1 ? '✓ сейчас = плану' : gap > 0 ? `до плана +${fmt(gap)} €` : `сверх плана ${fmt(-gap)} €`}</span>`
+          : '<span class="meta">цели не заданы — задай их в колонке «Цель»</span>'}</div>
       </div>
-      ${spendTotal > 0 ? `<div class="caprow">
-        <span>На траты <b class="num dev-over">${fmt(spendTotal)} €</b></span>
-        <span class="meta">· останется ${fmt(rootTotal - spendTotal)} €</span>
-      </div>` : ''}
+      <div class="card capsum">
+        <span class="caplab">НА ТРАТЫ</span>
+        <b class="capnum ${spendTotal > 0 ? 'dev-over' : 'mut'}">${fmt(spendTotal)} €</b>
+        <div class="caprow">${spendTotal > 0
+          ? `<span class="meta">${sp.length} ${sp.length === 1 ? 'трата' : sp.length < 5 ? 'траты' : 'трат'} · останется</span>
+             <b class="num">${fmt(rootTotal - spendTotal)} €</b>`
+          : '<span class="meta">ничего не запланировано — «↦ переложить» в строке, потом «потратить»</span>'}</div>
+      </div>
     </div>`;
   })()}
   <div class="card">

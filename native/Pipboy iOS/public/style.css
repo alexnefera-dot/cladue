@@ -458,17 +458,13 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .spark polyline{fill:none;vector-effect:non-scaling-stroke}
 .spark .sp-val{stroke:var(--green);stroke-width:2}
 .spark .sp-inv{stroke:var(--line2);stroke-width:1.5;stroke-dasharray:3 3}
-/* Итог сверху: общий капитал, под ним части и служебные суммы */
-.capsum{display:flex;flex-direction:column;gap:8px}
-.captop{display:flex;align-items:baseline;flex-wrap:wrap;gap:10px}
+/* Итог сверху: две шапки в ряд — капитал против плана и что из него уйдёт */
+.fingrid.caps{grid-template-columns:1fr 1fr}
+.capsum{display:flex;flex-direction:column;gap:2px;justify-content:center}
 .caplab{font:600 10.5px var(--mono);letter-spacing:1.6px;color:var(--muted)}
-.capnum{font-size:22px;font-variant-numeric:tabular-nums}
-.capsplit{display:flex;flex-wrap:wrap;gap:8px}
-.cappart{display:flex;align-items:baseline;gap:6px;padding:5px 11px;border:1px solid var(--line);border-radius:10px;font-size:12.5px}
-.cappart i{width:8px;height:8px;border-radius:2px;flex:0 0 auto;align-self:center}
-.cappart.act i{background:var(--green)}
-.cappart.pas i{background:var(--amber)}
-.caprow{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px;font-weight:600}
+.capnum{font-size:24px;font-variant-numeric:tabular-nums;line-height:1.25}
+.capnum.mut{color:var(--line2)}
+.caprow{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px;min-height:22px}
 /* Иерархия — фоном и отступом, а не жирностью: иначе каждый новый раздел лезет в глаза */
 .porttable tr.pblock td{background:var(--bg2)}
 .porttable tr.pblock .pname{font-weight:600}

@@ -138,6 +138,15 @@ test('две части: шапки «АКТИВЫ»/«ПАССИВЫ» и об�
     assert.equal((r.match(/<td/g) || []).length, cols, 'шапка части не совпала с сеткой колонок');
 });
 
+test('шапка: капитал и траты — две карточки в ряд, обе видны и без трат', () => {
+  const html = loadFin().secPortfolio(SPLIT, SPLIT.summary);
+  const caps = html.match(/<div class="fingrid caps">[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/);
+  assert.ok(caps, 'ряда из двух шапок нет');
+  assert.equal((caps[0].match(/class="card capsum"/g) || []).length, 2, 'шапок должно быть ровно две');
+  assert.ok(caps[0].includes('ОБЩИЙ КАПИТАЛ') && caps[0].includes('НА ТРАТЫ'), 'подписи шапок потерялись');
+  assert.ok(caps[0].includes('ничего не запланировано'), 'без трат вторая шапка должна оставаться на месте');
+});
+
 test('две части: доли и цели считаются внутри своей части', () => {
   const html = loadFin().secPortfolio(SPLIT, SPLIT.summary);
   const car = rowOf(html, 'Машина');
