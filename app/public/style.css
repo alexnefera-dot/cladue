@@ -458,13 +458,12 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .spark polyline{fill:none;vector-effect:non-scaling-stroke}
 .spark .sp-val{stroke:var(--green);stroke-width:2}
 .spark .sp-inv{stroke:var(--line2);stroke-width:1.5;stroke-dasharray:3 3}
-/* Итог сверху: две шапки в ряд — капитал против плана и что из него уйдёт */
-.fingrid.caps{grid-template-columns:1fr 1fr}
-.capsum{display:flex;flex-direction:column;gap:2px;justify-content:center}
-.caplab{font:600 10.5px var(--mono);letter-spacing:1.6px;color:var(--muted)}
-.capnum{font-size:24px;font-variant-numeric:tabular-nums;line-height:1.25}
-.capnum.mut{color:var(--line2)}
-.caprow{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px;min-height:22px}
+/* Строка над таблицей: только расхождение с целевым и траты. Общая сумма стоит в шапке
+   Финансов — плашка её дублировала. */
+.capline{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 16px;
+  font:11.5px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums;padding:0 2px 7px}
+.capline b{color:var(--text);font-weight:600}
+.capline .capsp{margin-left:auto}
 /* Иерархия — фоном и отступом, а не жирностью: иначе каждый новый раздел лезет в глаза */
 .porttable tr.pblock td{background:var(--bg2)}
 .porttable tr.pblock .pname{font-weight:600}

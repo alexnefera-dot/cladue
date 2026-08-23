@@ -60,6 +60,9 @@ const SPLIT = {
       children: [leaf(21, 'Машина', { value: 100, eur: 100, target_value: 100 })] },
   ],
 };
+// текст строки над таблицей без тегов: числа разбиты <b>, а разряды — неразрывным пробелом
+const capLine = html => ((html.match(/<div class="capline">[\s\S]*?<\/div>/) || [''])[0])
+  .replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').replace(/ /g, ' ').trim();
 const rowOf = (html, name) => (html.match(new RegExp(`<tr class="[^"]*" draggable[\\s\\S]*?${name}[\\s\\S]*?</tr>`)) || [''])[0];
 
 test('портфель отрисовывается без ошибок', () => {
@@ -127,24 +130,30 @@ test('свежая сборка и node-прототип: предупрежде
   assert.ok(!renderHead(loadFin(), null).includes('staleapp'), 'без /api/version предупреждения быть не должно');
 });
 
-test('две части: шапки «АКТИВЫ»/«ПАССИВЫ» и общий капитал сверху', () => {
+test('две части: шапки «АКТИВЫ»/«ПАССИВЫ» со своими итогами', () => {
   const html = loadFin().secPortfolio(SPLIT, SPLIT.summary);
   assert.ok(html.includes('parthead'), 'шапок частей нет');
   assert.ok(/>АКТИВЫ\s/.test(html) && /ПАССИВЫ/.test(html), 'части не подписаны');
-  assert.ok(html.includes('ОБЩИЙ КАПИТАЛ') && html.includes('400 €'), 'общий капитал 300 + 100 не выведен');
   const head = html.match(/<tr><th>Название<\/th>[\s\S]*?<\/tr>/)[0];
   const cols = (head.match(/<th/g) || []).length;
   for (const [r] of html.matchAll(/<tr class="parthead">[\s\S]*?<\/tr>/g))
     assert.equal((r.match(/<td/g) || []).length, cols, 'шапка части не совпала с сеткой колонок');
 });
 
-test('шапка: капитал и траты — две карточки в ряд, обе видны и без трат', () => {
+test('над таблицей — тонкая строка: расхождение с целевым, без дубля общей суммы', () => {
   const html = loadFin().secPortfolio(SPLIT, SPLIT.summary);
-  const caps = html.match(/<div class="fingrid caps">[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/);
-  assert.ok(caps, 'ряда из двух шапок нет');
-  assert.equal((caps[0].match(/class="card capsum"/g) || []).length, 2, 'шапок должно быть ровно две');
-  assert.ok(caps[0].includes('ОБЩИЙ КАПИТАЛ') && caps[0].includes('НА ТРАТЫ'), 'подписи шапок потерялись');
-  assert.ok(caps[0].includes('ничего не запланировано'), 'без трат вторая шапка должна оставаться на месте');
+  const line = capLine(html);
+  assert.ok(line, 'строки над таблицей нет');
+  assert.ok(!html.includes('ОБЩИЙ КАПИТАЛ') && !html.includes('capsum'), 'плашка капитала осталась');
+  assert.ok(line.includes('цель 400 €') && line.includes('✓ сейчас = плану'), 'цель и расхождение не выведены');
+});
+
+test('трата вычитается из активов, а не из всего капитала', () => {
+  const spend = { ...SPLIT, targetMoves: [{ id: 1, from_id: 12, to_id: null, amount: 50, to_note: 'айфон' }] };
+  const line = capLine(loadFin().secPortfolio(spend, spend.summary));
+  assert.ok(line.includes('на траты') && line.includes('50 €'), 'трата не показана');
+  assert.ok(line.includes('от активов останется') && line.includes('250 €'),
+    'остаток должен быть 300 − 50 по активам, а не 400 − 50 по всему капиталу');
 });
 
 test('две части: доли и цели считаются внутри своей части', () => {

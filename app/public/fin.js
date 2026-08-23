@@ -516,8 +516,8 @@ function secPortfolio(d, s) {
   const rctx = { total: rootTotal, planTotal, parentEur: rootTotal, tgt, tree, path: '' };
   if (tgt) {   // ручные связки ребаланса (из target_moves): сопоставляем id позиций с путём/именем
     const byId = {};
-    const mapIds = (ns, pre) => (ns || []).forEach(n => { const p = pre + '/' + (n.name || '').trim().toLowerCase(); byId[n.id] = { path: p, name: n.name, cur: n.currency ?? '€' }; mapIds(n.children, p); });
-    mapIds(tree, '');
+    const mapIds = (ns, pre, side) => (ns || []).forEach(n => { const p = pre + '/' + (n.name || '').trim().toLowerCase(); byId[n.id] = { path: p, name: n.name, cur: n.currency ?? '€', side }; mapIds(n.children, p, side); });
+    mapIds(acts, '', 'act'); mapIds(pass, '', 'pas');
     const rate = s.rate || d.rate || 1.08;   // курс лежит в summary (s.rate), не в d
     rctx.rate = rate;                        // нужен строкам: суммы показываем в валюте позиции
     // содержание вещи (обязательства с item_id) — €/мес рядом с позицией; сами суммы правятся в Расходах
@@ -544,7 +544,7 @@ function secPortfolio(d, s) {
       // связка битая: молча списывать по ней деньги нельзя, поэтому пропускаем.
       if (mv.to_id == null) {
         const note = (mv.to_note || '').trim();
-        rctx.spends.push({ id: mv.id, note, eur: mv.amount,
+        rctx.spends.push({ id: mv.id, note, eur: mv.amount, side: a.side,
           amount: inCur(mv.amount, a.cur), cur: a.cur, fromName: a.name });
         (rctx.movesBySrc[a.path] ||= []).push({ id: mv.id, amount: inCur(mv.amount, a.cur), cur: a.cur,
           toName: note, spend: true });
@@ -586,28 +586,20 @@ function secPortfolio(d, s) {
     <span class="pill btn" id="pfoldAll" style="margin-left:auto">${portFold.size ? '▾ развернуть всё' : '▸ свернуть всё'}</span>
   </div>
   ${(() => {
+    // Тонкая строка вместо плашек: общая сумма и так стоит в шапке Финансов, здесь нужно
+    // только расхождение с целевым. Остаток после трат считаем от активов — машину не потратишь.
     const sp = rctx.spends || [];
     const spendTotal = sp.reduce((a, x) => a + x.eur, 0);
+    const spendAct = sp.filter(x => x.side !== 'pas').reduce((a, x) => a + x.eur, 0);
     const gap = planTotal - rootTotal;
-    // Две шапки в ряд: слева капитал против плана, справа — что из него уйдёт
-    return `<div class="fingrid caps">
-      <div class="card capsum">
-        <span class="caplab">ОБЩИЙ КАПИТАЛ</span>
-        <b class="capnum">${fmt(rootTotal)} €</b>
-        <div class="caprow">${planTotal > 0
-          ? `<span class="meta">план ${fmt(planTotal)} €</span>
-             <span class="pill ${Math.abs(gap) < 1 ? 'ok' : gap > 0 ? 'p1' : ''}" title="разница между размещённым и суммой целей">${
-               Math.abs(gap) < 1 ? '✓ сейчас = плану' : gap > 0 ? `до плана +${fmt(gap)} €` : `сверх плана ${fmt(-gap)} €`}</span>`
-          : '<span class="meta">цели не заданы — задай их в колонке «Цель»</span>'}</div>
-      </div>
-      <div class="card capsum">
-        <span class="caplab">НА ТРАТЫ</span>
-        <b class="capnum ${spendTotal > 0 ? 'dev-over' : 'mut'}">${fmt(spendTotal)} €</b>
-        <div class="caprow">${spendTotal > 0
-          ? `<span class="meta">${sp.length} ${sp.length === 1 ? 'трата' : sp.length < 5 ? 'траты' : 'трат'} · останется</span>
-             <b class="num">${fmt(rootTotal - spendTotal)} €</b>`
-          : '<span class="meta">ничего не запланировано — «↦ переложить» в строке, потом «потратить»</span>'}</div>
-      </div>
+    return `<div class="capline">
+      ${planTotal > 0
+        ? `<span>цель <b>${fmt(planTotal)} €</b></span>
+           <span class="${Math.abs(gap) < 1 ? 'ok-dev' : gap > 0 ? 'dev-under' : 'dev-over'}" title="разница между размещённым и суммой целей">${
+             Math.abs(gap) < 1 ? '✓ сейчас = плану' : gap > 0 ? `до плана +${fmt(gap)} €` : `сверх плана ${fmt(-gap)} €`}</span>`
+        : '<span>цели не заданы</span>'}
+      ${spendTotal > 0 ? `<span class="capsp">на траты <b class="dev-over">${fmt(spendTotal)} €</b></span>
+        <span>от активов останется <b>${fmt(actTotal - spendAct)} €</b></span>` : ''}
     </div>`;
   })()}
   <div class="card">
