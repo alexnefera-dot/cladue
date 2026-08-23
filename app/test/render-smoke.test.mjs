@@ -161,6 +161,29 @@ test('ничего не помечено — экран прежний, без �
   assert.ok(!html.includes('capsplit'), 'разбивка капитала показана без пассивов');
 });
 
+// вещь живёт позицией в пассивах, её содержание — в Расходах; связывает их метка в строке
+const UPKEEP = {
+  ...SPLIT, rates: [{ symbol: 'EURUSD', price: 1.08 }], accounts: [], budgetItems: [],
+  obligations: [
+    { id: 1, item_id: 21, name: 'Машина: страховка', amount: 1200, currency: '€', period: 'yearly', next_date: null, remind_days: 7, kind: 'liability' },
+    { id: 2, item_id: 21, name: 'Машина: ТО', amount: 60, currency: '€', period: 'monthly', next_date: null, remind_days: 7, kind: 'liability' },
+    { id: 3, item_id: null, name: 'Netflix', amount: 15, currency: '€', period: 'monthly', next_date: null, remind_days: 5, kind: 'subscription' },
+  ],
+};
+
+test('содержание имущества: сгруппировано по вещи и посчитано в месяц', () => {
+  const html = loadFin().secSpending(UPKEEP).replace(/ /g, ' ');   // fmt разделяет разряды неразрывным пробелом
+  assert.ok(html.includes('СОДЕРЖАНИЕ ИМУЩЕСТВА'), 'группы содержания нет');
+  assert.ok(html.includes('160 / мес') && html.includes('1 920 / год'), '1200/год + 60/мес = 160 €/мес не посчитались');
+  assert.ok(html.includes('data-ruleadd="21"'), 'регламент нельзя добавить к позиции');
+  assert.ok(html.includes('ОСТАЛЬНОЕ') && html.includes('Netflix'), 'обязательства без вещи потерялись');
+});
+
+test('содержание видно в строке позиции портфеля', () => {
+  const html = loadFin().secPortfolio(UPKEEP, UPKEEP.summary);
+  assert.match(html, /🔧 160 €\/мес/, 'в строке вещи нет метки содержания');
+});
+
 test('цель: закреплено то поле, что заполнено', () => {
   const html = loadFin().secPortfolio(DATA, DATA.summary);
   assert.ok(html.includes('target_pct'), 'нет поля доли');

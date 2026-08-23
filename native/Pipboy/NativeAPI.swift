@@ -46,6 +46,7 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         _ = try? made.run("ALTER TABLE target_moves ADD COLUMN to_note TEXT")   // перенос без получателя = трата, подпись куда
         _ = try? made.run("ALTER TABLE target_items ADD COLUMN liquid INTEGER NOT NULL DEFAULT 0")   // чем можно распоряжаться  // цель долей; заполнено одно из target_pct/target_value — оно и закреплено
         _ = try? made.run("ALTER TABLE target_items ADD COLUMN passive INTEGER NOT NULL DEFAULT 0")   // блок верхнего уровня: 1 = пассивы (вещи, которые не зарабатывают)
+        _ = try? made.run("ALTER TABLE obligations ADD COLUMN item_id INTEGER")   // регламент содержания висит на позиции портфеля (было: на объекте имущества)
         _ = try? made.run("DROP TABLE IF EXISTS portfolio_classes")  // мёртвая с рождения: в интерфейс не выводилась ни разу
         _ = try? made.run("ALTER TABLE routines ADD COLUMN days TEXT NOT NULL DEFAULT ''")  // дни недели рутины (пусто = каждый день)
         _ = try? made.run("ALTER TABLE passive_income ADD COLUMN principal REAL NOT NULL DEFAULT 0")    // тело инвестиции/депозита
@@ -101,6 +102,13 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         if ((try? made.rows("SELECT value FROM settings WHERE key = 'restore_auto_rates_v1'"))?.first?["value"]) as? String != "1" {
             Api.restoreAutoRates(made)
             _ = try? Api.setSetting(made, "restore_auto_rates_v1", "1")
+        }
+        // Имущество и пассивы — одно и то же: вещь с объёмом. Раздел «Имущество» убран,
+        // объекты переезжают позициями в пассивный блок, регламенты цепляются к ним.
+        // Таблица properties остаётся нетронутой — как страховка, если перенос окажется неверным.
+        if ((try? made.rows("SELECT value FROM settings WHERE key = 'props_to_passive_v1'"))?.first?["value"]) as? String != "1" {
+            Api.propsToPassive(made)
+            _ = try? Api.setSetting(made, "props_to_passive_v1", "1")
         }
         Api.ensureSpheresSchema(made)   // таблицы сфер (area_milestones/area_questions) — до sync-схемы, чтобы им добавились updated_at/триггеры
         Api.ensureSyncSchema(made)   // updated_at + триггеры + tombstones — отслеживание правок для синхрона
@@ -1485,28 +1493,18 @@ enum Api {
         if let m = match(path, "^/api/fin/forecasts/([0-9]+)$"), method == "DELETE" {
             try db.run("DELETE FROM forecasts WHERE id = ?", [Int(m[1]) ?? -1]); return (ok(), 200)
         }
-        if method == "POST", path == "/api/fin/properties" {
-            guard let nm = name(body) else { return (nameErr(), 400) }
-            try db.run("INSERT INTO properties(name, category, note) VALUES(?,?,?)", [nm, body["category"] as? String ?? "прочее", body["note"] as? String ?? ""])
-            return (ok(201), 201)
-        }
-        if let m = match(path, "^/api/fin/properties/([0-9]+)/rules$"), method == "POST" {
-            let pid = Int(m[1]) ?? -1
+        if let m = match(path, "^/api/fin/items/([0-9]+)/rules$"), method == "POST" {
+            let itemId = Int(m[1]) ?? -1
             guard let rn = name(body) else { return (nameErr(), 400) }
-            guard let pname = (try db.rows("SELECT name FROM properties WHERE id = ?", [pid]).first?["name"]) as? String else {
-                return (try json(["error": "объект не найден"]), 400)
+            guard let iname = (try db.rows("SELECT name FROM target_items WHERE id = ?", [itemId]).first?["name"]) as? String else {
+                return (try json(["error": "позиция не найдена"]), 400)
             }
-            // регламент имущества = обязательство, привязанное к объекту (порт fin.addRule)
-            try db.run("INSERT INTO obligations(name, amount, currency, period, next_date, remind_days, kind, property_id) VALUES(?,?,?,?,?,?,'liability',?)",
-                ["\(pname): \(rn)", num(body["amount"]), body["currency"] as? String ?? "€",
+            // содержание имущества = обязательство, привязанное к позиции портфеля
+            try db.run("INSERT INTO obligations(name, amount, currency, period, next_date, remind_days, kind, item_id) VALUES(?,?,?,?,?,?,'liability',?)",
+                ["\(iname): \(rn)", num(body["amount"]), body["currency"] as? String ?? "€",
                  body["period"] as? String ?? "yearly", body["next_date"] ?? NSNull(),
-                 intval(body["remind_days"] ?? 7), pid])
+                 intval(body["remind_days"] ?? 7), itemId])
             return (ok(201), 201)
-        }
-        if let m = match(path, "^/api/fin/properties/([0-9]+)$") {
-            let id = Int(m[1]) ?? -1
-            if method == "PATCH" { try patchCols(db, "properties", id, ["name", "category", "note"], body); return (ok(), 200) }
-            if method == "DELETE" { try db.run("DELETE FROM properties WHERE id = ?", [id]); return (ok(), 200) }
         }
         if method == "POST", path == "/api/fin/macro" {
             try db.run("INSERT INTO macro_notes(phase, thesis) VALUES(?,?)", [body["phase"] as? String ?? "", body["thesis"] as? String ?? ""])
@@ -1994,6 +1992,34 @@ enum Api {
         }
     }
 
+    // Имущество → пассивы: каждый объект становится позицией в блоке «Имущество» (passive = 1),
+    // а его регламенты (obligations с property_id) переезжают на эту позицию. Повторный запуск
+    // безопасен: объект с таким именем в блоке уже есть — берём его, а не плодим второй.
+    static func propsToPassive(_ db: Database) {
+        guard let props = try? db.rows("SELECT * FROM properties ORDER BY category, name"), !props.isEmpty else { return }
+        var blockId = intval((try? db.rows("SELECT id FROM target_items WHERE parent_id IS NULL AND LOWER(TRIM(name)) = 'имущество'"))?.first?["id"] ?? nil)
+        if blockId == 0 {
+            let ord = Int(num((try? db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM target_items WHERE parent_id IS NULL"))?.first?["o"] ?? nil))
+            blockId = (try? db.run("INSERT INTO target_items(parent_id, ord, name, kind, currency, passive) VALUES(NULL,?,?,?,?,1)",
+                [ord, "Имущество", "block", "€"])) ?? 0
+        } else {
+            _ = try? db.run("UPDATE target_items SET passive = 1 WHERE id = ?", [blockId])
+        }
+        guard blockId > 0 else { return }
+        for p in props {
+            let nm = p["name"] as? String ?? ""
+            if nm.isEmpty { continue }
+            var itemId = intval((try? db.rows("SELECT id FROM target_items WHERE parent_id = ? AND LOWER(TRIM(name)) = LOWER(TRIM(?))",
+                [blockId, nm]))?.first?["id"] ?? nil)
+            if itemId == 0 {
+                let ord = Int(num((try? db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM target_items WHERE parent_id = ?", [blockId]))?.first?["o"] ?? nil))
+                itemId = (try? db.run("INSERT INTO target_items(parent_id, ord, name, kind, currency, asset_type, note, passive) VALUES(?,?,?,?,?,?,?,0)",
+                    [blockId, ord, nm, "asset", "€", p["category"] ?? NSNull(), p["note"] ?? ""])) ?? 0
+            }
+            if itemId > 0 { _ = try? db.run("UPDATE obligations SET item_id = ? WHERE property_id = ?", [itemId, intval(p["id"])]) }
+        }
+    }
+
     // Применить связки ребаланса к суммам целевого: перелив (source −amount, receiver +amount) в валюте каждой
     // позиции. Нужно после синхрона/сброса, когда связки (target_moves) приехали, а суммы остались как факт —
     // перелив в модели применяется лишь при СОЗДАНИИ связки, синхрон его не переносит. Вызывать РОВНО один раз.
@@ -2439,6 +2465,10 @@ enum Api {
         }
         let portfolio = try portfolioTree(db, "target_items")   // одно дерево на обе вкладки: факт и цель — разные колонки над ним
         let portfolioTotal = portfolio.reduce(0.0) { $0 + ($1["eur"] as? Double ?? 0) }
+        // Активы — то, что работает. Пассивы (машина, техника) в капитал входят, но не растут
+        // под доходность, поэтому FIRE считается только от активов.
+        let activeTotal = portfolio.filter { intval($0["passive"]) == 0 }
+            .reduce(0.0) { $0 + ($1["eur"] as? Double ?? 0) }
         _ = try? db.run("INSERT OR IGNORE INTO snapshots(date, portfolio_eur) VALUES(?,?)", [localToday(), portfolioTotal])  // снимок раз в день
         let portfolioTotalUsd = portfolioTotal * rate
         let invested = portfolio.reduce(0.0) { $0 + ($1["invested"] as? Double ?? 0) }
@@ -2535,13 +2565,13 @@ enum Api {
         let summary: [String: Any] = [
             "accountsByCurrency": byCur,
             "portfolioTotal": portfolioTotal, "portfolioTotalUsd": portfolioTotalUsd, "rate": rate,
+            "activeTotal": activeTotal, "passiveTotal": portfolioTotal - activeTotal,
             "growth": growth, "monthlyObligations": monthlyObligations,
             "monthlyIncome": monthlyIncome, "upcoming": upcoming,
         ]
         let tx = try txMonth(db, String(t.prefix(7)))
         let fc = try forecasts(db)
-        let props = try properties(db)
-        let fireV = try fireCalc(db, capital: portfolioTotal)
+        let fireV = try fireCalc(db, capital: activeTotal)
         let macro = try db.rows("SELECT * FROM macro_notes ORDER BY date DESC, id DESC")
         let budgetItems = try db.rows("SELECT * FROM budget_items ORDER BY direction DESC, ord, id")   // дефолтные расходы/доходы (списком)
         let targetPortfolio = portfolio   // то же дерево: «Целевой» — это набор колонок, а не отдельные данные
@@ -2567,7 +2597,7 @@ enum Api {
             "obligations": obligations, "loans": loans, "debts": debts,
             "snapshotDelta": snapshotDelta,
             "byType": byTypeSorted, "byTypeBlocks": byTypeBlocks, "byRegion": byRegionSorted, "byRegionBlocks": byRegionBlocks, "blockEur": blockEur,
-            "tx": tx, "forecasts": fc, "properties": props, "fire": fireV,
+            "tx": tx, "forecasts": fc, "fire": fireV,
             "income": income, "budget": budget, "budgetItems": budgetItems, "targetPortfolio": targetPortfolio, "targetMoves": targetMoves,
             "targetByType": tByTypeSorted, "targetByTypeBlocks": tByTypeBlocks, "macro": macro, "rates": rates,
             "summary": summary,
@@ -2625,22 +2655,6 @@ enum Api {
         let calibration: Any = resolved.isEmpty ? NSNull()
             : 100 - resolved.reduce(0.0) { $0 + abs(num($1["confidence"]) - num($1["outcome"]) * 100) } / Double(resolved.count)
         return ["rows": rows, "calibration": calibration, "resolvedCount": resolved.count]
-    }
-
-    static func properties(_ db: Database) throws -> [[String: Any]] {
-        let t = localToday()
-        var props = try db.rows("SELECT * FROM properties ORDER BY category, name")
-        for i in props.indices {
-            var rules = try db.rows(
-                "SELECT * FROM obligations WHERE property_id = ? ORDER BY next_date IS NULL, next_date",
-                [intval(props[i]["id"])])
-            for j in rules.indices {
-                rules[j]["days_left"] = (rules[j]["next_date"] as? String)
-                    .flatMap { dayDiff(t, $0) }.map { Int(ceil($0)) } ?? NSNull()
-            }
-            props[i]["rules"] = rules
-        }
-        return props
     }
 
     // ===== Календарь (порт cal.calendar + occurrences/birthdays) =====

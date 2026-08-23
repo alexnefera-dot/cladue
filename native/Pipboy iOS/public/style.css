@@ -450,6 +450,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .porttable tr.parthead .pname .meta{font-weight:400;letter-spacing:0;text-transform:none;margin-left:8px}
 .porttable tr:first-child+tr.parthead td{border-top:0}
 .partsec{margin-top:14px}
+/* Содержание имущества в Расходах: объект и его регламент одной группой */
+.upkeep{border:1px solid var(--line);border-radius:10px;padding:6px 10px;margin:6px 0}
+.upkhead{padding:2px 0 4px;border-bottom:1px solid var(--bg2);margin-bottom:2px}
 /* Итог сверху: общий капитал, под ним части и служебные суммы */
 .capsum{display:flex;flex-direction:column;gap:8px}
 .captop{display:flex;align-items:baseline;flex-wrap:wrap;gap:10px}

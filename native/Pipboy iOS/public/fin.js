@@ -159,7 +159,7 @@ function portRows(it, depth, ctx) {
       ${editable && it.region ? `<span class="pill p2" data-fregion="${it.id}" title="регион инвестиции — клик">${fesc(it.region)}</span>` : ''}
       ${it.rate_symbol ? `<span class="pill btn" data-fqty="${it.id}" title="количество — клик">${it.qty ?? '?'} × ${fesc(it.rate_symbol)}</span>` : ''}
       ${it.no_rate ? '<span class="pill p1" title="курс тикера ещё не загружен — обнови курсы (⟳ вверху)">нет курса</span>' : ''}
-      ${!target && it.is_loan ? '<span class="pill p2">🤝 займ</span>' : ''}
+      ${ctx?.upkeep?.[it.id] ? `<span class="pill p2" title="содержание вещи — правится в разделе «Расходы»">🔧 ${fmt(ctx.upkeep[it.id])} €/мес</span>` : ''}
     </td>
     ${cells}
     <td class="r" style="width:96px;white-space:nowrap">
@@ -167,14 +167,12 @@ function portRows(it, depth, ctx) {
       ${it.kind === 'section' ? `<span class="rowbtn" data-${target ? 'tgtadd' : 'fadd'}="asset:${it.id}" title="добавить актив">＋</span>` : ''}
       ${editable && !it.asset_type ? `<span class="rowbtn" data-ftype="${it.id}" title="задать тип актива">⊙</span>` : ''}
       ${editable && !it.region ? `<span class="rowbtn" data-fregion="${it.id}" title="задать регион (SK/UA/AU/EU/WEB)">🌍</span>` : ''}
-      ${editable ? `<span class="rowbtn${it.liquid ? ' on' : ''}" data-fliq="${it.id}:${it.liquid ? 1 : 0}" title="${it.liquid ? 'убрать из ликвидного капитала' : 'считать ликвидным — тем, чем можно распоряжаться'}">💧</span>` : ''}
       ${editable ? `<span class="rowbtn" data-frate="${it.id}" title="${it.rate_symbol ? 'автоцена: сменить/убрать тикер' : 'автоцена по курсу (BTC, золото, SCHD/IVV/VHT)'}">⚡</span>` : ''}
       ${depth === 0 ? `<span class="rowbtn${it.passive ? ' on' : ''}" data-fside="${it.id}:${it.passive ? 1 : 0}" title="${it.passive ? 'вернуть блок в активы' : 'перенести блок в пассивы — вещи, которые не зарабатывают'}">⇄</span>` : ''}
-      ${!target && editable ? `<span class="rowbtn" data-loanflag="${it.id}:${it.is_loan ? 1 : 0}" title="${it.is_loan ? 'убрать значок займа' : 'пометить как займ'}">🤝</span>` : ''}
       <span class="rowbtn del" data-findel="${pfx}:${it.id}">✕</span>
     </td>
   </tr>` + (target && tgtMove?.from === it.id ? tgtMoveForm(it, ctx) : '')
-    + (folded ? '' : it.children.map(c => portRows(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, parentEur: it.eur, blockEur: depth === 0 ? it.eur : ctx?.blockEur, blockTarget: depth === 0 ? it.planEur : ctx?.blockTarget, tgt: target, tree: ctx?.tree, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
+    + (folded ? '' : it.children.map(c => portRows(c, depth + 1, { total: ctx?.total, planTotal: ctx?.planTotal, parentEur: it.eur, blockEur: depth === 0 ? it.eur : ctx?.blockEur, blockTarget: depth === 0 ? it.planEur : ctx?.blockTarget, tgt: target, tree: ctx?.tree, movesBySrc: ctx?.movesBySrc, movesByDst: ctx?.movesByDst, netByPath: ctx?.netByPath, rate: ctx?.rate, upkeep: ctx?.upkeep, path: (ctx?.path || '') + '/' + (it.name || '').trim().toLowerCase() })).join(''));
 }
 
 const finIsMobile = () => window.matchMedia('(max-width: 768px)').matches;
@@ -299,7 +297,6 @@ function portCard(it, depth, ctx) {
     meta = `${g != null ? `<span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</span>` : ''}
        ${pCat != null ? `<span class="meta" title="доля внутри своего блока"><b>${pCat.toFixed(1)}% кат.</b></span>` : ''}
        ${pTot != null ? `<span class="meta" title="доля от всего портфеля">${pTot.toFixed(1)}%${pCat != null ? ' общ.' : ' портфеля'}</span>` : ''}
-       ${it.is_loan ? '<span class="pill p2">🤝</span>' : ''}
        ${it.rate_symbol ? `<span class="pill btn" data-fqty="${it.id}">${it.qty ?? '?'}×${fesc(it.rate_symbol)}</span>` : ''}`;
   }
   const addPfx = target ? 'tgtadd' : 'fadd';
@@ -441,17 +438,6 @@ function secPortfolio(d, s) {
   const sumPlan = ns => ns.reduce((a, b) => a + (b.planEur || 0), 0);
   const actPlan = tgt ? sumPlan(acts) : 0, pasPlan = tgt ? sumPlan(pass) : 0;
   const planTotal = actPlan + pasPlan;   // сумма планов верхнего уровня, обе части вместе
-  // Ликвидный капитал — то, чем можно распоряжаться. Отмечается вручную на позициях: автоматически
-  // это не вывести, «ликвидность» у недвижимости и займов зависит от обстоятельств, а не от типа.
-  let liquidTotal = 0, liquidCount = 0;
-  if (tgt) {
-    const wl = ns => (ns || []).forEach(n => {
-      const kids = n.children || [];
-      if ((n.kind === 'asset' || !kids.length) && n.liquid) { liquidTotal += n.eur || 0; liquidCount++; }
-      wl(kids);
-    });
-    wl(tree);
-  }
   // Мониторинг: один и тот же вопрос «сколько чего» в трёх разрезах.
   // Блоки — своя схема пользователя (защита/рост/развитие), по ней и проваливаемся вглубь;
   // типы и регионы — плоские срезы по листьям.
@@ -533,6 +519,14 @@ function secPortfolio(d, s) {
     mapIds(tree, '');
     const rate = s.rate || d.rate || 1.08;   // курс лежит в summary (s.rate), не в d
     rctx.rate = rate;                        // нужен строкам: суммы показываем в валюте позиции
+    // содержание вещи (обязательства с item_id) — €/мес рядом с позицией; сами суммы правятся в Расходах
+    rctx.upkeep = {};
+    (d.obligations || []).forEach(o => {
+      if (o.item_id == null) return;
+      const e = o.currency === '$' ? (o.amount || 0) / rate : (o.amount || 0);
+      const mo = o.period === 'monthly' ? e : o.period === 'yearly' ? e / 12 : 0;
+      if (mo > 0) rctx.upkeep[o.item_id] = (rctx.upkeep[o.item_id] || 0) + mo;
+    });
     const inCur = (eur, cur) => cur === '$' ? eur * rate : eur;   // amount хранится в €, показываем в валюте стороны
     rctx.movesBySrc = {}; rctx.movesByDst = {}; rctx.netByPath = {};
     // чистая дельта транзакций в € — узлу и всем его предкам (пути = префиксы), чтобы «Сейчас»
@@ -602,20 +596,10 @@ function secPortfolio(d, s) {
           <span class="pill ${Math.abs(gap) < 1 ? 'ok' : gap > 0 ? 'p1' : ''}" title="разница между размещённым и суммой целей">${
             Math.abs(gap) < 1 ? '✓ сейчас = плану' : gap > 0 ? `до плана +${fmt(gap)} €` : `сверх плана ${fmt(-gap)} €`}</span>` : ''}
       </div>
-      ${split ? `<div class="capsplit">${parts.map(p => `
-        <span class="cappart ${p.key}"><i></i>${fesc(p.title.toLowerCase())}
-          <b class="num">${fmt(p.now)} €</b>
-          <span class="meta">${(rootTotal > 0 ? p.now / rootTotal * 100 : 0).toFixed(0)}%${p.plan > 0 ? ` · цель ${fmt(p.plan)} €` : ''}</span></span>`).join('')}
+      ${spendTotal > 0 ? `<div class="caprow">
+        <span>На траты <b class="num dev-over">${fmt(spendTotal)} €</b></span>
+        <span class="meta">· останется ${fmt(rootTotal - spendTotal)} €</span>
       </div>` : ''}
-      <div class="caprow">
-        <span>На траты <b class="num ${spendTotal > 0 ? 'dev-over' : 'mut'}">${fmt(spendTotal)} €</b></span>
-        <span class="meta">·</span>
-        <span title="сумма позиций, помеченных 💧 — то, чем можно распоряжаться">Ликвидно
-          <b class="num ${liquidCount ? 'ok-dev' : 'mut'}">${fmt(liquidTotal)} €</b>
-          ${liquidCount ? `<span class="meta">${(rootTotal > 0 ? liquidTotal / rootTotal * 100 : 0).toFixed(0)}% · ${liquidCount} позиц.</span>`
-            : '<span class="meta">отметь 💧 в строках</span>'}</span>
-        ${spendTotal > 0 ? `<span class="meta">· останется ${fmt(rootTotal - spendTotal)} €</span>` : ''}
-      </div>
     </div>`;
   })()}
   <div class="card">
@@ -1020,42 +1004,76 @@ function secPlans(d) {
     </div>
   </div>
 
-  <div class="sec">Обязательства, подписки и плановые траты · «✓» = оплачено</div>
+`;
+}
+
+// Расходы на содержание: обязательства и подписки. Регламенты имущества (у них есть item_id)
+// идут первой группой по объектам — сама вещь живёт позицией в пассивах, а её объёмы здесь.
+function secSpending(d) {
+  const names = {};
+  const mapNames = ns => (ns || []).forEach(n => { names[n.id] = n.name; mapNames(n.children); });
+  mapNames(d.targetPortfolio || []);
+  const all = d.obligations || [];
+  const upkeep = all.filter(o => o.item_id != null && names[o.item_id]);
+  const rest = all.filter(o => !upkeep.includes(o));
+  const rate = (d.rates.find(r => r.symbol === 'EURUSD')?.price) || 1.08;
+  const toEur = o => (o.currency === '$' ? (o.amount || 0) / rate : (o.amount || 0));
+  const perMonth = o => o.period === 'monthly' ? toEur(o) : o.period === 'yearly' ? toEur(o) / 12 : 0;
+  const oblRow = o => finIsMobile() ? fRow({
+      lead: `<span class="pill ${o.kind === 'subscription' ? 'p2' : 'p1'}">${o.kind === 'subscription' ? 'подписка' : o.period === 'once' ? 'трата' : 'пассив'}</span>`,
+      name: `<span class="ed" data-fe="obligations:${o.id}:name:text">${fesc(o.name)}</span>`,
+      amount: `<span class="ed" data-fe="obligations:${o.id}:amount:num">${fmt(o.amount)} ${fesc(o.currency)}</span>`,
+      meta: `<span class="meta">/ ${PERIOD[o.period]}</span>`
+        + (o.next_date
+          ? `<span class="ed meta ${o.days_left <= o.remind_days ? 'amber' : ''}" data-obldt="${o.id}" data-obltime="${o.due_time ?? ''}">${o.next_date}${o.due_time ? ' · ' + o.due_time : ''} (${o.days_left} дн.)</span>`
+          : `<span class="ed meta" data-obldt="${o.id}" data-obltime="">+дата</span>`),
+      actions: (o.next_date ? `<span class="pill btn ok" data-oblpay="${o.id}">✓</span>` : '')
+        + `<span class="rowbtn del" data-findel="obligations:${o.id}">✕</span>`,
+    }) : `
+    <div class="task">
+      <span class="pill ${o.kind === 'subscription' ? 'p2' : 'p1'}">${o.kind === 'subscription' ? 'подписка' : o.period === 'once' ? 'трата' : 'пассив'}</span>
+      <span class="t ed" data-fe="obligations:${o.id}:name:text">${fesc(o.name)}</span>
+      <span class="ed meta num" data-fe="obligations:${o.id}:amount:num">${fmt(o.amount)} ${fesc(o.currency)} / ${PERIOD[o.period]}</span>
+      ${o.next_date
+        ? `<span class="ed meta ${o.days_left <= o.remind_days ? 'amber' : ''}" data-obldt="${o.id}" data-obltime="${o.due_time ?? ''}" title="дата и время — клик">${o.next_date}${o.due_time ? ' · ' + o.due_time : ''} (${o.days_left} дн.)</span>
+           <span class="pill btn ok" data-oblpay="${o.id}">✓</span>`
+        : `<span class="ed meta" data-obldt="${o.id}" data-obltime="" title="дата и время — клик">+дата</span>`}
+      <span class="rowbtn del" data-findel="obligations:${o.id}">✕</span>
+    </div>`;
+  const byItem = {};
+  upkeep.forEach(o => (byItem[o.item_id] ??= []).push(o));
+  const upMonth = upkeep.reduce((a, o) => a + perMonth(o), 0);
+  const bp = { monthly: 0, yearly: 0, once: 0 };
+  all.forEach(o => { if (bp[o.period] != null) bp[o.period] += toEur(o); });
+  const yr = bp.monthly * 12 + bp.yearly + bp.once;
+  return `
+  <div class="sec">Обязательства, подписки и содержание имущества · «✓» = оплачено</div>
   <div class="card">
-    ${(() => {
-      const rate = (d.rates.find(r => r.symbol === 'EURUSD')?.price) || 1.08;
-      const toEur = o => (o.currency === '$' ? (o.amount || 0) / rate : (o.amount || 0));   // суммы в €
-      const bp = { monthly: 0, yearly: 0, once: 0 };
-      (d.obligations || []).forEach(o => { if (bp[o.period] != null) bp[o.period] += toEur(o); });
-      const yr = bp.monthly * 12 + bp.yearly + bp.once;   // всего затрат за год
-      return `<div class="task" style="flex-wrap:wrap;gap:14px;border-bottom:1px solid var(--line);padding-bottom:9px;margin-bottom:7px">
-        <span class="meta">в мес: <b class="num">${finHide ? '—' : fmt(bp.monthly) + ' €'}</b></span>
-        <span class="meta">в год: <b class="num">${finHide ? '—' : fmt(bp.yearly) + ' €'}</b></span>
-        <span class="meta">разовые: <b class="num">${finHide ? '—' : fmt(bp.once) + ' €'}</b></span>
-        <span class="meta" style="margin-left:auto">всего затрат за год: <b class="num">${finHide ? '—' : fmt(yr) + ' €'}</b></span>
+    <div class="task" style="flex-wrap:wrap;gap:14px;border-bottom:1px solid var(--line);padding-bottom:9px;margin-bottom:7px">
+      <span class="meta">в мес: <b class="num">${finHide ? '—' : fmt(bp.monthly) + ' €'}</b></span>
+      <span class="meta">в год: <b class="num">${finHide ? '—' : fmt(bp.yearly) + ' €'}</b></span>
+      <span class="meta">разовые: <b class="num">${finHide ? '—' : fmt(bp.once) + ' €'}</b></span>
+      <span class="meta" style="margin-left:auto">всего затрат за год: <b class="num">${finHide ? '—' : fmt(yr) + ' €'}</b></span>
+    </div>
+    ${Object.keys(byItem).length ? `<div class="meta" style="margin:6px 0 2px">🔧 СОДЕРЖАНИЕ ИМУЩЕСТВА · ${fmt(upMonth)} / мес · ${fmt(upMonth * 12)} / год
+      <span class="meta">· сами вещи — позициями в пассивах портфеля</span></div>
+    ${Object.entries(byItem).map(([itemId, rules]) => {
+      const mo = rules.reduce((a, o) => a + perMonth(o), 0);
+      return `<div class="upkeep">
+        <div class="kv upkhead"><span><b>${fesc(names[itemId])}</b></span>
+          <span class="meta">${fmt(mo)} €/мес · ${fmt(mo * 12)} €/год</span></div>
+        ${rules.map(oblRow).join('')}
+        <div class="task finadd">
+          <input data-rulename="${itemId}" placeholder="ТО, страховка, счётчики…">
+          <input data-ruleamount="${itemId}" placeholder="€" style="width:60px">
+          <select data-ruleperiod="${itemId}"><option value="yearly">год</option><option value="monthly">мес</option><option value="once">разово</option></select>
+          <input data-ruledate="${itemId}" type="date" title="дата" style="width:150px">
+          <span class="pill btn ok" data-ruleadd="${itemId}">＋</span>
+        </div>
       </div>`;
-    })()}
-    ${d.obligations.map(o => finIsMobile() ? fRow({
-        lead: `<span class="pill ${o.kind === 'subscription' ? 'p2' : 'p1'}">${o.kind === 'subscription' ? 'подписка' : o.period === 'once' ? 'трата' : 'пассив'}</span>`,
-        name: `<span class="ed" data-fe="obligations:${o.id}:name:text">${fesc(o.name)}</span>`,
-        amount: `<span class="ed" data-fe="obligations:${o.id}:amount:num">${fmt(o.amount)} ${fesc(o.currency)}</span>`,
-        meta: `<span class="meta">/ ${PERIOD[o.period]}</span>`
-          + (o.next_date
-            ? `<span class="ed meta ${o.days_left <= o.remind_days ? 'amber' : ''}" data-obldt="${o.id}" data-obltime="${o.due_time ?? ''}">${o.next_date}${o.due_time ? ' · ' + o.due_time : ''} (${o.days_left} дн.)</span>`
-            : `<span class="ed meta" data-obldt="${o.id}" data-obltime="">+дата</span>`),
-        actions: (o.next_date ? `<span class="pill btn ok" data-oblpay="${o.id}">✓</span>` : '')
-          + `<span class="rowbtn del" data-findel="obligations:${o.id}">✕</span>`,
-      }) : `
-      <div class="task">
-        <span class="pill ${o.kind === 'subscription' ? 'p2' : 'p1'}">${o.kind === 'subscription' ? 'подписка' : o.period === 'once' ? 'трата' : 'пассив'}</span>
-        <span class="t ed" data-fe="obligations:${o.id}:name:text">${fesc(o.name)}</span>
-        <span class="ed meta num" data-fe="obligations:${o.id}:amount:num">${fmt(o.amount)} ${fesc(o.currency)} / ${PERIOD[o.period]}</span>
-        ${o.next_date
-          ? `<span class="ed meta ${o.days_left <= o.remind_days ? 'amber' : ''}" data-obldt="${o.id}" data-obltime="${o.due_time ?? ''}" title="дата и время — клик">${o.next_date}${o.due_time ? ' · ' + o.due_time : ''} (${o.days_left} дн.)</span>
-             <span class="pill btn ok" data-oblpay="${o.id}">✓</span>`
-          : `<span class="ed meta" data-obldt="${o.id}" data-obltime="" title="дата и время — клик">+дата</span>`}
-        <span class="rowbtn del" data-findel="obligations:${o.id}">✕</span>
-      </div>`).join('')}
+    }).join('')}` : ''}
+    ${rest.length ? `<div class="meta" style="margin:10px 0 2px">ОСТАЛЬНОЕ</div>` : ''}
+    ${rest.map(oblRow).join('')}
     <div class="task finadd">
       <select id="obKind"><option value="liability">пассив</option><option value="subscription">подписка</option></select>
       <input id="obName" placeholder="название (кредит, аренда, разовая крупная трата…)">
@@ -1064,51 +1082,8 @@ function secPlans(d) {
       <input id="obDate" type="date" title="след. дата" style="width:150px">
       <span class="pill btn ok" id="obAdd">＋</span>
     </div>
-    <div class="empty">Крупная плановая трата = «разово» с датой: попадёт в календарь и в радар задач.</div>
+    <div class="empty">Регламент вещи заводится в её группе выше. Крупная плановая трата = «разово» с датой: попадёт в календарь и в радар задач.</div>
   </div>`;
-}
-
-// Имущество: карточки по категориям, внутри — регламент (правила = обязательства)
-function secProps(d) {
-  const cats = {};
-  for (const p of d.properties) (cats[p.category] ??= []).push(p);
-  const CAT_ICO = { 'авто': '🚗', 'недвижимость': '🏠', 'техника': '💻', 'прочее': '📦' };
-  return `
-  <div class="sec">Имущество · регламенты по категориям · «✓» = сделано, дата сдвинется</div>
-  ${Object.entries(cats).map(([cat, props]) => `
-    <div class="meta" style="margin:8px 0 4px">${CAT_ICO[cat] ?? '📦'} ${fesc(cat).toUpperCase()}</div>
-    <div class="fingrid" style="grid-template-columns:1fr 1fr">
-      ${props.map(p => `
-      <div class="card">
-        <div class="task" style="border-bottom:1px solid var(--line)">
-          <span class="t ed" data-fe="properties:${p.id}:name:text" style="font-weight:600">${fesc(p.name)}</span>
-          <span class="rowbtn del" data-propdel="${p.id}">✕</span>
-        </div>
-        ${p.rules.map(r => `
-          <div class="task">
-            <span class="t">${fesc(r.name.replace(p.name + ': ', ''))}</span>
-            <span class="meta num">${fmt(r.amount)} ${fesc(r.currency)} / ${PERIOD[r.period]}</span>
-            ${r.next_date
-              ? `<span class="meta ${r.days_left <= r.remind_days ? 'amber' : ''}">${r.next_date} (${r.days_left} дн)</span>
-                 <span class="pill btn ok" data-oblpay="${r.id}">✓</span>`
-              : '<span class="meta">—</span>'}
-            <span class="rowbtn del" data-findel="obligations:${r.id}">✕</span>
-          </div>`).join('') || '<div class="empty">регламента нет</div>'}
-        <div class="task finadd">
-          <input data-rulename="${p.id}" placeholder="ТО, страховка, счётчики…">
-          <input data-ruleamount="${p.id}" placeholder="€" style="width:60px">
-          <select data-ruleperiod="${p.id}"><option value="yearly">год</option><option value="monthly">мес</option><option value="once">разово</option></select>
-          <input data-ruledate="${p.id}" type="date" title="дата" style="width:150px">
-          <span class="pill btn ok" data-ruleadd="${p.id}">＋</span>
-        </div>
-      </div>`).join('')}
-    </div>`).join('') || '<div class="card"><div class="empty">объектов нет</div></div>'}
-  <div class="card"><div class="task finadd">
-    <input id="prName" placeholder="новый объект: X5, квартира №2, MacBook…">
-    <select id="prCat"><option>авто</option><option>недвижимость</option><option>техника</option><option>прочее</option></select>
-    <span class="pill btn ok" id="prAdd">＋</span>
-  </div>
-  <div class="empty">Регламентные даты попадают в календарь и радар задач как платежи.</div></div>`;
 }
 
 function secFire(d, s) {
@@ -1116,7 +1091,7 @@ function secFire(d, s) {
   <div class="sec">FIRE · Макро</div>
   <div class="fingrid" style="grid-template-columns:1fr 1fr">
     <div class="card">
-      <div class="meta">FIRE · ЦЕЛЕВОЙ КАПИТАЛ</div>
+      <div class="meta">FIRE · ЦЕЛЕВОЙ КАПИТАЛ <span title="пассивы под доходность не растут, поэтому в счёт идут только активы">· от активов${s.activeTotal != null ? ` (${fmt(s.activeTotal)} €)` : ''}</span></div>
       ${d.fire.target ? `
         <div class="bignum">${d.fire.progressPct.toFixed(1)}%</div>
         <div class="bar"><i style="width:${d.fire.progressPct}%"></i></div>
@@ -1126,7 +1101,7 @@ function secFire(d, s) {
         <div class="meta" style="margin-top:6px">${d.fire.months != null
           ? (d.fire.months === 0 ? '🎉 цель достигнута' : `прогноз: ~${d.fire.reachedYear} год (через ${Math.round(d.fire.months / 12 * 10) / 10} лет)`)
           : 'при таких параметрах цель не достигается'}</div>`
-      : `<div class="muted" style="margin:8px 0">Задай цель — посчитаю прогресс от портфеля (${fmt(s.portfolioTotal)} €) и год достижения.</div>
+      : `<div class="muted" style="margin:8px 0">Задай цель — посчитаю прогресс от активов (${fmt(s.activeTotal ?? s.portfolioTotal)} €) и год достижения.</div>
         <div class="btnrow"><span class="pill btn ok ed" data-fireset="fire_target">задать цель, €</span></div>`}
     </div>
     <div class="card">
@@ -1207,7 +1182,7 @@ function renderFin() {
     })()}
   </div>
   <div class="viewtabs">
-    ${[['all', 'Всё'], ['port', 'Портфель'], ['acc', 'Счета'], ['flow', 'Расходы'], ['debts', 'Долги'], ['plans', 'Планы'], ['prop', 'Имущество'], ['fire', 'FIRE·Макро']]
+    ${[['all', 'Всё'], ['port', 'Портфель'], ['acc', 'Счета'], ['flow', 'Расходы'], ['debts', 'Долги'], ['plans', 'Планы'], ['fire', 'FIRE·Макро']]
       .map(([k, l]) => `<span class="pill btn ${finSection === k ? 'ok' : ''}" data-fsec="${k}">${l}</span>`).join(' ')}
   </div>`;
 
@@ -1224,10 +1199,9 @@ function renderFin() {
     + (show('port') ? (hidden('port') ? veiled('Портфель', 'port') : secPortfolio(d, s)) : '')
     + (show('port') ? secIncome(d, s) : '')
     + (show('acc') ? (hidden('acc') ? veiled('Счета', 'acc') : secAccounts(d)) : '')
-    + (show('flow') ? renderBudget(d.budgetItems, d.rates) : '')
+    + (show('flow') ? renderBudget(d.budgetItems, d.rates) + secSpending(d) : '')
     + (show('debts') ? secDebts(d) : '')
     + (show('plans') ? secPlans(d) : '')
-    + (show('prop') ? secProps(d) : '')
     + (show('fire') ? (hidden('fire') ? veiled('FIRE · Макро', 'fire') : secFire(d, s)) : '')
     + `<div class="footer-hint">Бивалютно: € и $ по курсу EURUSD. ⚡ — автоцена «количество × курс» (BTC, золото, SCHD/IVV/VHT). Ввод понимает «100k», «1.2m», даты — и 01.07.2026. Платежи и траты видны в календаре и радаре задач.</div>`;
   bindFin();
@@ -1497,12 +1471,6 @@ function bindFin() {
     el.addEventListener('mouseenter', () => mark(true));
     el.addEventListener('mouseleave', () => mark(false));
   });
-  document.querySelectorAll('[data-fliq]').forEach(el =>
-    el.addEventListener('click', async () => {
-      const [id, on] = el.dataset.fliq.split(':');
-      await finApi.patch('tgt', +id, { liquid: on === '1' ? 0 : 1 });
-      window.loadFin();
-    }));
   document.querySelectorAll('[data-tgtmove]').forEach(el =>
     el.addEventListener('click', () => {
       const id = +el.dataset.tgtmove;
@@ -1706,28 +1674,14 @@ function bindFin() {
         due_date: /^\d{4}-\d{2}-\d{2}$/.test($('fcDue').value) ? $('fcDue').value : null }) });
     window.loadFin();
   });
-  // имущество
-  $('prAdd')?.addEventListener('click', async () => {
-    const name = $('prName').value.trim();
-    if (!name) return;
-    await fetch('/api/fin/properties', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, category: $('prCat').value }) });
-    window.loadFin();
-  });
-  document.querySelectorAll('[data-propdel]').forEach(el =>
-    el.addEventListener('click', async () => {
-      if (confirm('Удалить объект со всем регламентом?')) {
-        await fetch('/api/fin/properties/' + el.dataset.propdel, { method: 'DELETE' });
-        window.loadFin();
-      }
-    }));
+  // содержание имущества: регламент вешается на позицию портфеля
   document.querySelectorAll('[data-ruleadd]').forEach(el =>
     el.addEventListener('click', async () => {
-      const pid = el.dataset.ruleadd;
-      const q = sel => document.querySelector(`[data-rule${sel}="${pid}"]`).value.trim();
+      const id = el.dataset.ruleadd;
+      const q = sel => document.querySelector(`[data-rule${sel}="${id}"]`).value.trim();
       const name = q('name');
       if (!name) return;
-      await fetch(`/api/fin/properties/${pid}/rules`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      await fetch(`/api/fin/items/${id}/rules`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, amount: parseNum(q('amount')) ?? 0, period: q('period'),
           next_date: /^\d{4}-\d{2}-\d{2}$/.test(q('date')) ? q('date') : null }) });
       window.loadFin();
