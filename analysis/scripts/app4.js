@@ -32,6 +32,62 @@ function tabOverview(){
   <th class="l">ВЧ+СЧ дин.</th><th>ВЧ+СЧ</th><th>ТОП-3</th><th>Брендов</th><th>Нет Т100</th>
   </tr></thead><tbody>${O.map(row).join('')}</tbody></table></div></div>
 
+  <div class="blk"><h2>Выгрузка 23.08 23:30 — съём не закончился</h2>
+  <p class="note">Файл выгружен в 23:30:16, снимок помечен 23:28–23:29. Проверка
+  1571 ключа не успела пройти: данные есть только по первым строкам ядра,
+  дальше пусто. В основной отчёт эта выгрузка <b>не включена</b> —
+  все цифры выше по-прежнему на полном замере 23.08 10:55–10:56.</p>
+  <div class="tw"><table><thead><tr><th class="l">Лист</th><th>Ядро</th>
+  <th>Последняя строка с данными</th><th>Покрытие</th>
+  <th>Ключей с позицией</th></tr></thead><tbody>
+    <tr><td class="l id">NEW50_5_12pages_nodate</td><td>1571</td><td>530</td>
+      <td class="bad">34%</td><td>131</td></tr>
+    <tr><td class="l id">Generator_11page_img</td><td>1571</td><td>526</td>
+      <td class="bad">33%</td><td>45</td></tr>
+    <tr><td class="l id">NEW50_5_7pages_nodate</td><td>1571</td><td>523</td>
+      <td class="bad">33%</td><td>14</td></tr>
+    <tr><td class="l id">NEW50_5_12pages_withdate</td><td>1571</td><td>447</td>
+      <td class="bad">28%</td><td>76</td></tr>
+    <tr><td class="l id">NEW50_5_7pages_withdate</td><td>1571</td><td>389</td>
+      <td class="bad">25%</td><td>78</td></tr>
+  </tbody></table></div>
+  <p class="note" style="margin-top:10px">Проверка: у <span class="num">3096.team</span>
+  из 311 ключей осталось 95, но <b>48 из них на прежних позициях</b>
+  (медианный сдвиг −1, то есть чуть выше), а 263 просто без данных.
+  Провалившийся сайт тянет ключи вниз — здесь они не опустились, а не проверены.</p>
+
+  <h3 style="margin-top:20px;font-family:var(--cond);font-size:17px">Срез по общей части ядра: провала нет</h3>
+  <p class="note">Если сравнивать оба замера только по тем ключам, что успели
+  провериться, картина обратная — все группы держатся или растут.</p>
+  <div class="tw"><table><thead><tr><th class="l">Ветка</th><th>Срез ядра</th>
+  <th class="l">Т10/дом .team 10:55 › 23:29</th><th class="l">Значения</th>
+  <th class="l">ВЧ+СЧ</th><th class="l">ТОП-3</th></tr></thead><tbody>
+    <tr><td class="l id">12 стр без дат</td><td>530</td>
+      <td class="l num">9,5 › <b class="good">12,5</b></td>
+      <td class="l num">25, 12, 1, 0 › 35, 13, 2, 0</td>
+      <td class="l num">15 › <b class="good">28</b></td><td class="l num">16 › 18</td></tr>
+    <tr><td class="l id">12 стр + даты</td><td>447</td>
+      <td class="l num">4,6 › <b class="good">5,4</b></td>
+      <td class="l num">15, 7, 1, 0, 0 › 20, 7, 0, 0, 0</td>
+      <td class="l num">3 › 4</td><td class="l num">6 › <b class="good">11</b></td></tr>
+    <tr><td class="l id">7 стр + даты</td><td>389</td>
+      <td class="l num">3,0 › <b class="good">3,5</b></td>
+      <td class="l num">9, 3, 0, 0 › 13, 1, 0, 0</td>
+      <td class="l num">8 › 8</td><td class="l num">1 › 0</td></tr>
+    <tr><td class="l id">11 стр + картинки</td><td>526</td>
+      <td class="l num">2,6 › <b>2,6</b></td>
+      <td class="l num">4, 3, 3, 3, 0 › 5, 3, 3, 2, 0</td>
+      <td class="l num">5 › 4</td><td class="l num">6 › 7</td></tr>
+    <tr><td class="l id">7 стр без дат</td><td>523</td>
+      <td class="l num">0 › 0</td>
+      <td class="l mut">нет доменов .team; ldtq.click 6 › 4 ключа</td>
+      <td class="l num">0 › 0</td><td class="l num">4 › 0</td></tr>
+  </tbody></table></div>
+  <p class="note" style="margin-top:10px">На общей части ядра <b>12 стр без дат</b>
+  за 12 часов удвоили дорогие ключи (15 › 28) и остаются впереди датированной
+  ветки вчетверо по ВЧ+СЧ. Вывод утреннего замера держится.
+  <b>Нужна повторная выгрузка после того, как съём закончится.</b></p></div>
+
   <div class="blk"><h2>Пришла вторая волна: дорогие бренды</h2>
   <p class="note">На замере 12:06 у трёх групп охват в ТОП-10 упал, а число ВЧ и СЧ выросло.
   Архивный паттерн «дорогие бренды приходят второй волной» в чистом виде.</p>
