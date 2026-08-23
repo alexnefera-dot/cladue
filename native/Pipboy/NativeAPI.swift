@@ -47,6 +47,17 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         _ = try? made.run("ALTER TABLE target_items ADD COLUMN liquid INTEGER NOT NULL DEFAULT 0")   // чем можно распоряжаться  // цель долей; заполнено одно из target_pct/target_value — оно и закреплено
         _ = try? made.run("ALTER TABLE target_items ADD COLUMN passive INTEGER NOT NULL DEFAULT 0")   // блок верхнего уровня: 1 = пассивы (вещи, которые не зарабатывают)
         _ = try? made.run("ALTER TABLE obligations ADD COLUMN item_id INTEGER")   // регламент содержания висит на позиции портфеля (было: на объекте имущества)
+        // История капитала по частям. invested — сумма покупок: без неё «капитал вырос на 10k»
+        // не отличить от «я довнёс 10k», а это разные новости.
+        _ = try? made.run("ALTER TABLE snapshots ADD COLUMN active_eur REAL")
+        _ = try? made.run("ALTER TABLE snapshots ADD COLUMN passive_eur REAL")
+        _ = try? made.run("ALTER TABLE snapshots ADD COLUMN invested_eur REAL")
+        // Журнал отмены на Финансах: последние шаги с данными «как было». Не история правок —
+        // страховка от «удалил не то»: хранится 20 записей, отменяется последняя.
+        _ = try? made.run("""
+            CREATE TABLE IF NOT EXISTS fin_undo(id INTEGER PRIMARY KEY, at TEXT NOT NULL,
+              label TEXT NOT NULL, kind TEXT NOT NULL, tbl TEXT NOT NULL, payload TEXT NOT NULL)
+            """)
         _ = try? made.run("DROP TABLE IF EXISTS portfolio_classes")  // мёртвая с рождения: в интерфейс не выводилась ни разу
         _ = try? made.run("ALTER TABLE routines ADD COLUMN days TEXT NOT NULL DEFAULT ''")  // дни недели рутины (пусто = каждый день)
         _ = try? made.run("ALTER TABLE passive_income ADD COLUMN principal REAL NOT NULL DEFAULT 0")    // тело инвестиции/депозита
@@ -103,12 +114,12 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
             Api.restoreAutoRates(made)
             _ = try? Api.setSetting(made, "restore_auto_rates_v1", "1")
         }
-        // Имущество и пассивы — одно и то же: вещь с объёмом. Раздел «Имущество» убран,
-        // объекты переезжают позициями в пассивный блок, регламенты цепляются к ним.
-        // Таблица properties остаётся нетронутой — как страховка, если перенос окажется неверным.
-        if ((try? made.rows("SELECT value FROM settings WHERE key = 'props_to_passive_v1'"))?.first?["value"]) as? String != "1" {
-            Api.propsToPassive(made)
-            _ = try? Api.setSetting(made, "props_to_passive_v1", "1")
+        // Раздел «Имущество» убран: вещь живёт позицией в портфеле, её содержание — в расходах.
+        // Регламенты разово перецепляем с объектов имущества на одноимённые позиции; сами объекты
+        // (таблица properties) остаются нетронутыми — как страховка.
+        if ((try? made.rows("SELECT value FROM settings WHERE key = 'props_rules_link_v1'"))?.first?["value"]) as? String != "1" {
+            Api.linkPropertyRules(made)
+            _ = try? Api.setSetting(made, "props_rules_link_v1", "1")
         }
         Api.ensureSpheresSchema(made)   // таблицы сфер (area_milestones/area_questions) — до sync-схемы, чтобы им добавились updated_at/триггеры
         Api.ensureSyncSchema(made)   // updated_at + триггеры + tombstones — отслеживание правок для синхрона
@@ -1430,6 +1441,112 @@ enum Api {
         "budget": ["name", "amount", "currency", "direction", "ord", "month"],
         "tgt": ["name", "value", "buy_value", "target_value", "target_pct", "currency", "asset_type", "qty", "rate_symbol", "note", "kind", "region", "liquid", "passive"],
         "move": ["from_id", "to_id", "amount", "to_note"]]
+    // как называть сущность в подписи «отменить: удаление счёта «Revolut»»
+    private static let finWhat = ["accounts": "счёта", "steps": "шага", "obligations": "обязательства",
+        "items": "позиции", "tgt": "позиции", "tx": "операции", "debts": "долга", "income": "дохода",
+        "budget": "статьи", "move": "перестановки"]
+
+    // ===== Отмена последнего шага на Финансах =====
+    // Пишем «как было» перед каждой правкой: удаление — строку целиком (для дерева — с ветвью
+    // и связками ребаланса), правку — прежние значения тех колонок, что меняем, добавление — id.
+    // Отменяется последняя запись; журнал подрезаем до 20, чтобы не рос.
+    static func undoPush(_ db: Database, kind: String, table: String, label: String, payload: Any) {
+        guard let data = try? JSONSerialization.data(withJSONObject: payload),
+              let text = String(data: data, encoding: .utf8) else { return }
+        _ = try? db.run("INSERT INTO fin_undo(at, label, kind, tbl, payload) VALUES(datetime('now','localtime'),?,?,?,?)",
+            [label, kind, table, text])
+        _ = try? db.run("DELETE FROM fin_undo WHERE id NOT IN (SELECT id FROM fin_undo ORDER BY id DESC LIMIT 20)")
+    }
+    private static func rowLabel(_ db: Database, _ table: String, _ id: Int) -> String {
+        let nameCol = ["transactions": "note", "steps": "title", "target_moves": "to_note"][table] ?? "name"
+        let v = (try? db.rows("SELECT \(nameCol) AS n FROM \(table) WHERE id = ?", [id]))?.first?["n"] as? String
+        return (v?.isEmpty == false) ? "«\(v!)»" : "запись"
+    }
+    // ветвь дерева + связки, которые уедут вместе с ней по CASCADE
+    private static func subtreeRows(_ db: Database, _ table: String, _ id: Int) -> [[String: Any]] {
+        var out = (try? db.rows("SELECT * FROM \(table) WHERE id = ?", [id])) ?? []
+        for kid in (try? db.rows("SELECT id FROM \(table) WHERE parent_id = ?", [id])) ?? [] {
+            out += subtreeRows(db, table, intval(kid["id"]))
+        }
+        return out
+    }
+    static func undoRecordDelete(_ db: Database, _ table: String, _ id: Int, _ what: String) {
+        var rows: [[String: Any]] = []
+        var moves: [[String: Any]] = []
+        if table == "target_items" || table == "portfolio_items" {
+            rows = subtreeRows(db, table, id)
+            if table == "target_items" {
+                let ids = rows.map { String(intval($0["id"])) }.joined(separator: ",")
+                moves = (try? db.rows("SELECT * FROM target_moves WHERE from_id IN (\(ids)) OR to_id IN (\(ids))")) ?? []
+            }
+        } else {
+            rows = (try? db.rows("SELECT * FROM \(table) WHERE id = ?", [id])) ?? []
+        }
+        guard !rows.isEmpty else { return }
+        undoPush(db, kind: "delete", table: table, label: "удаление: \(what) \(rowLabel(db, table, id))",
+                 payload: ["rows": rows, "moves": moves])
+    }
+    static func undoRecordPatch(_ db: Database, _ table: String, _ id: Int, _ cols: [String], _ body: [String: Any], _ what: String) {
+        let touched = cols.filter { body[$0] != nil }
+        guard !touched.isEmpty, let row = (try? db.rows("SELECT * FROM \(table) WHERE id = ?", [id]))?.first else { return }
+        var before: [String: Any] = [:]
+        for c in touched { before[c] = row[c] ?? NSNull() }
+        undoPush(db, kind: "patch", table: table, label: "правка: \(what) \(rowLabel(db, table, id))",
+                 payload: ["id": id, "before": before])
+    }
+    static func undoApplyLast(_ db: Database) throws -> [String: Any] {
+        guard let rec = try db.rows("SELECT * FROM fin_undo ORDER BY id DESC LIMIT 1").first else {
+            return ["error": "отменять нечего"]
+        }
+        let table = rec["tbl"] as? String ?? ""
+        let payload = (rec["payload"] as? String)
+            .flatMap { $0.data(using: .utf8) }
+            .flatMap { try? JSONSerialization.jsonObject(with: $0) } as? [String: Any] ?? [:]
+        switch rec["kind"] as? String {
+        case "delete":
+            func restore(_ into: String, _ rows: [[String: Any]]) {
+                for r in rows {
+                    let cols = r.keys.sorted()
+                    let ph = cols.map { _ in "?" }.joined(separator: ",")
+                    let vals: [Any?] = cols.map { r[$0] is NSNull ? nil : r[$0] }
+                    _ = try? db.run("INSERT OR REPLACE INTO \(into)(\(cols.joined(separator: ","))) VALUES(\(ph))", vals)
+                }
+            }
+            restore(table, payload["rows"] as? [[String: Any]] ?? [])
+            restore("target_moves", payload["moves"] as? [[String: Any]] ?? [])
+        case "patch":
+            let id = intval(payload["id"])
+            for (c, v) in payload["before"] as? [String: Any] ?? [:] {
+                _ = try? db.run("UPDATE \(table) SET \(c) = ? WHERE id = ?", [v is NSNull ? nil : v, id])
+            }
+        case "insert":
+            _ = try? db.run("DELETE FROM \(table) WHERE id = ?", [intval(payload["id"])])
+        default: break
+        }
+        _ = try? db.run("DELETE FROM fin_undo WHERE id = ?", [intval(rec["id"])])
+        return ["ok": true, "label": rec["label"] as? String ?? ""]
+    }
+
+    // Цель, заданная долей, считается от тотала СВОЕЙ части: 50% пассивов и 50% активов — разные
+    // суммы. Поэтому перед переездом блока между частями закрепляем цели суммой по текущему
+    // раскладу: на экране цифры остаются теми же, какими их задавали, и не «едут» молча.
+    static func pinPlansAsMoney(_ db: Database, blockId: Int) throws {
+        let tree = try portfolioTree(db)
+        guard let block = tree.first(where: { intval($0["id"]) == blockId }) else { return }   // не корневой блок — частей не касается
+        let side = intval(block["passive"])
+        let base = tree.filter { intval($0["passive"]) == side }.reduce(0.0) { $0 + ($1["eur"] as? Double ?? 0) }
+        guard base > 0 else { return }
+        let rate = try eurUsdRate(db)
+        func walk(_ n: [String: Any]) throws {
+            if let pct = numOpt(n["target_pct"]) {
+                let eur = pct / 100 * base
+                let own = (n["currency"] as? String) == "$" ? eur * rate : eur
+                try db.run("UPDATE target_items SET target_value = ?, target_pct = NULL WHERE id = ?", [own, intval(n["id"])])
+            }
+            for c in n["children"] as? [[String: Any]] ?? [] { try walk(c) }
+        }
+        try walk(block)
+    }
 
     // У позиции с ⚡-привязкой сумма считается как qty × курс, поэтому вписанная руками
     // сумма пропадала при следующем чтении (на перезаходе цифра «скидывалась»). Ввод суммы
@@ -1445,16 +1562,25 @@ enum Api {
 
     static func finWrite(method: String, path: String, body: [String: Any], db: Database) throws -> (Data, Int)? {
         if method == "POST", path == "/api/rates/refresh" { return (try ratesRefresh(db), 200) }
+        if method == "POST", path == "/api/fin/undo" { return (try json(try undoApplyLast(db)), 200) }
         if let m = match(path, "^/api/fin/(accounts|steps|obligations|items|tx|debts|income|budget|tgt|move)(?:/([0-9]+))?$") {
             let entity = m[1], idStr = m[2], table = finTable[entity] ?? entity
             if method == "POST" && idStr.isEmpty { try finAdd(db, entity, body); return (ok(201), 201) }
             if method == "PATCH" && !idStr.isEmpty {
                 let id = Int(idStr) ?? -1
+                undoRecordPatch(db, table, id, finCols[entity] ?? [], body, finWhat[entity] ?? "")
+                // до смены части: доли целей закрепляем суммой по текущему тоталу своей части
+                if table == "target_items", body["passive"] != nil { try? pinPlansAsMoney(db, blockId: id) }
                 try patchCols(db, table, id, finCols[entity] ?? [], body)
                 if body["value"] != nil, body["qty"] == nil, body["rate_symbol"] == nil { try syncQtyFromValue(db, table, id) }
                 return (ok(), 200)
             }
-            if method == "DELETE" && !idStr.isEmpty { try db.run("DELETE FROM \(table) WHERE id = ?", [Int(idStr) ?? -1]); return (ok(), 200) }
+            if method == "DELETE" && !idStr.isEmpty {
+                let id = Int(idStr) ?? -1
+                undoRecordDelete(db, table, id, finWhat[entity] ?? "")
+                try db.run("DELETE FROM \(table) WHERE id = ?", [id])
+                return (ok(), 200)
+            }
         }
         if let m = match(path, "^/api/fin/items/([0-9]+)/move$"), method == "POST" {
             do { try finMoveItem(db, id: Int(m[1]) ?? -1, parent: numOpt(body["parent_id"]).map { Int($0) }); return (ok(), 200) } catch { return (errJson(error), 400) }
@@ -1992,31 +2118,18 @@ enum Api {
         }
     }
 
-    // Имущество → пассивы: каждый объект становится позицией в блоке «Имущество» (passive = 1),
-    // а его регламенты (obligations с property_id) переезжают на эту позицию. Повторный запуск
-    // безопасен: объект с таким именем в блоке уже есть — берём его, а не плодим второй.
-    static func propsToPassive(_ db: Database) {
-        guard let props = try? db.rows("SELECT * FROM properties ORDER BY category, name"), !props.isEmpty else { return }
-        var blockId = intval((try? db.rows("SELECT id FROM target_items WHERE parent_id IS NULL AND LOWER(TRIM(name)) = 'имущество'"))?.first?["id"] ?? nil)
-        if blockId == 0 {
-            let ord = Int(num((try? db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM target_items WHERE parent_id IS NULL"))?.first?["o"] ?? nil))
-            blockId = (try? db.run("INSERT INTO target_items(parent_id, ord, name, kind, currency, passive) VALUES(NULL,?,?,?,?,1)",
-                [ord, "Имущество", "block", "€"])) ?? 0
-        } else {
-            _ = try? db.run("UPDATE target_items SET passive = 1 WHERE id = ?", [blockId])
-        }
-        guard blockId > 0 else { return }
+    // Имущество и пассивы — одно и то же, но НОВЫХ позиций не заводим: вещь уже стоит в портфеле
+    // там, где её завели руками. Миграция только перецепляет регламенты (obligations) с объекта
+    // имущества на позицию с тем же именем. Не нашли позицию — регламент остаётся в общем списке
+    // расходов, ничего не теряется.
+    static func linkPropertyRules(_ db: Database) {
+        guard let props = try? db.rows("SELECT id, name FROM properties"), !props.isEmpty else { return }
         for p in props {
-            let nm = p["name"] as? String ?? ""
+            let nm = (p["name"] as? String ?? "").trimmingCharacters(in: .whitespaces)
             if nm.isEmpty { continue }
-            var itemId = intval((try? db.rows("SELECT id FROM target_items WHERE parent_id = ? AND LOWER(TRIM(name)) = LOWER(TRIM(?))",
-                [blockId, nm]))?.first?["id"] ?? nil)
-            if itemId == 0 {
-                let ord = Int(num((try? db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM target_items WHERE parent_id = ?", [blockId]))?.first?["o"] ?? nil))
-                itemId = (try? db.run("INSERT INTO target_items(parent_id, ord, name, kind, currency, asset_type, note, passive) VALUES(?,?,?,?,?,?,?,0)",
-                    [blockId, ord, nm, "asset", "€", p["category"] ?? NSNull(), p["note"] ?? ""])) ?? 0
-            }
-            if itemId > 0 { _ = try? db.run("UPDATE obligations SET item_id = ? WHERE property_id = ?", [itemId, intval(p["id"])]) }
+            let hit = (try? db.rows("SELECT id FROM target_items WHERE LOWER(TRIM(name)) = LOWER(?) ORDER BY id LIMIT 1", [nm]))?.first
+            guard let itemId = numOpt(hit?["id"] ?? nil).map({ Int($0) }) else { continue }
+            _ = try? db.run("UPDATE obligations SET item_id = ? WHERE property_id = ?", [itemId, intval(p["id"])])
         }
     }
 
@@ -2469,10 +2582,20 @@ enum Api {
         // под доходность, поэтому FIRE считается только от активов.
         let activeTotal = portfolio.filter { intval($0["passive"]) == 0 }
             .reduce(0.0) { $0 + ($1["eur"] as? Double ?? 0) }
-        _ = try? db.run("INSERT OR IGNORE INTO snapshots(date, portfolio_eur) VALUES(?,?)", [localToday(), portfolioTotal])  // снимок раз в день
         let portfolioTotalUsd = portfolioTotal * rate
         let invested = portfolio.reduce(0.0) { $0 + ($1["invested"] as? Double ?? 0) }
+        // «внесено» пишем по активам: вопрос «сколько заработано, а сколько донёс» — про них,
+        // у вещей цены покупки обычно нет и переоценки тоже
+        let investedActive = portfolio.filter { intval($0["passive"]) == 0 }
+            .reduce(0.0) { $0 + ($1["invested"] as? Double ?? 0) }
         let investedCur = portfolio.reduce(0.0) { $0 + ($1["investedCur"] as? Double ?? 0) }
+        // снимок за день: последняя запись дня побеждает — иначе позиция, заведённая после
+        // первого открытия, попадала бы в историю только назавтра
+        _ = try? db.run("""
+            INSERT INTO snapshots(date, portfolio_eur, active_eur, passive_eur, invested_eur) VALUES(?,?,?,?,?)
+            ON CONFLICT(date) DO UPDATE SET portfolio_eur = excluded.portfolio_eur, active_eur = excluded.active_eur,
+                passive_eur = excluded.passive_eur, invested_eur = excluded.invested_eur
+            """, [localToday(), portfolioTotal, activeTotal, portfolioTotal - activeTotal, investedActive])
         let steps = try db.rows("SELECT * FROM steps ORDER BY status = 'done', planned_date IS NULL, planned_date, id")
         var obligations = try db.rows("SELECT * FROM obligations ORDER BY next_date IS NULL, next_date")
         for i in obligations.indices {
@@ -2571,6 +2694,13 @@ enum Api {
         ]
         let tx = try txMonth(db, String(t.prefix(7)))
         let fc = try forecasts(db)
+        // История: по одному снимку на месяц (последний в месяце) за 13 месяцев — на график
+        let history = (try? db.rows("""
+            SELECT s.date, s.portfolio_eur, s.active_eur, s.passive_eur, s.invested_eur FROM snapshots s
+            JOIN (SELECT substr(date,1,7) AS ym, MAX(date) AS d FROM snapshots
+                  WHERE date >= date('now','localtime','-13 months') GROUP BY ym) m ON s.date = m.d
+            ORDER BY s.date
+            """)) ?? []
         let fireV = try fireCalc(db, capital: activeTotal)
         let macro = try db.rows("SELECT * FROM macro_notes ORDER BY date DESC, id DESC")
         let budgetItems = try db.rows("SELECT * FROM budget_items ORDER BY direction DESC, ord, id")   // дефолтные расходы/доходы (списком)
@@ -2595,7 +2725,9 @@ enum Api {
         let result: [String: Any] = [
             "accounts": accounts, "portfolio": portfolio, "steps": steps,
             "obligations": obligations, "loans": loans, "debts": debts,
-            "snapshotDelta": snapshotDelta,
+            "snapshotDelta": snapshotDelta, "history": history,
+            "propNames": try db.rows("SELECT id, name FROM properties"),
+            "undo": (try? db.rows("SELECT id, at, label FROM fin_undo ORDER BY id DESC LIMIT 1"))?.first ?? NSNull(),
             "byType": byTypeSorted, "byTypeBlocks": byTypeBlocks, "byRegion": byRegionSorted, "byRegionBlocks": byRegionBlocks, "blockEur": blockEur,
             "tx": tx, "forecasts": fc, "fire": fireV,
             "income": income, "budget": budget, "budgetItems": budgetItems, "targetPortfolio": targetPortfolio, "targetMoves": targetMoves,

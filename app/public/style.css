@@ -453,6 +453,11 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 /* Содержание имущества в Расходах: объект и его регламент одной группой */
 .upkeep{border:1px solid var(--line);border-radius:10px;padding:6px 10px;margin:6px 0}
 .upkhead{padding:2px 0 4px;border-bottom:1px solid var(--bg2);margin-bottom:2px}
+/* История капитала: капитал сплошной линией, внесённое — пунктиром под ним */
+.spark{width:100%;height:52px;display:block}
+.spark polyline{fill:none;vector-effect:non-scaling-stroke}
+.spark .sp-val{stroke:var(--green);stroke-width:2}
+.spark .sp-inv{stroke:var(--line2);stroke-width:1.5;stroke-dasharray:3 3}
 /* Итог сверху: общий капитал, под ним части и служебные суммы */
 .capsum{display:flex;flex-direction:column;gap:8px}
 .captop{display:flex;align-items:baseline;flex-wrap:wrap;gap:10px}

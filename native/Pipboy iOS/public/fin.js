@@ -29,6 +29,7 @@ const finApi = {
   macroAdd: b => fetch('/api/fin/macro', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }),
   macroDel: id => fetch('/api/fin/macro/' + id, { method: 'DELETE' }),
   ratesRefresh: () => fetch('/api/rates/refresh', { method: 'POST' }).then(r => r.json()),
+  undo: () => fetch('/api/fin/undo', { method: 'POST' }).then(r => r.json()),
   rateSet: (sym, price) => fetch('/api/rates/' + encodeURIComponent(sym), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ price }) }),
 };
 
@@ -649,6 +650,7 @@ function secPortfolio(d, s) {
       </div>
     </div>` : ''}
   </div>` : ''}
+  ${tgt ? capHistory(d.history, monSide) : ''}
   ${(rctx.spends || []).length ? `
   <div class="card">
     <div class="meta" style="margin-bottom:8px">ПОТРАТИМ · деньги уйдут из портфеля насовсем</div>
@@ -707,6 +709,42 @@ function secPortfolio(d, s) {
       </div>${capNote}</div>
     </div>
   </div>` : ''}`;
+}
+
+// История капитала: одно число в снимке не отличало «портфель вырос» от «я довнёс».
+// Отсюда две линии — капитал и внесённое, а разница между ними и есть заработанное.
+function capHistory(rows, side) {
+  const pts = (rows || []).map(r => ({
+    date: String(r.date || '').slice(0, 7),
+    val: side === 'act' ? (r.active_eur ?? r.portfolio_eur) : side === 'pas' ? (r.passive_eur ?? 0) : r.portfolio_eur,
+    inv: side === 'pas' ? null : r.invested_eur,
+  })).filter(p => p.val != null);
+  if (pts.length < 2) return `<div class="card"><div class="meta">ИСТОРИЯ КАПИТАЛА</div>
+    <div class="empty">снимок пишется раз в день при открытии — история появится через пару дней</div></div>`;
+  const vals = pts.flatMap(p => [p.val, p.inv]).filter(v => v != null);
+  const lo = Math.min(...vals), hi = Math.max(...vals), span = hi - lo || 1;
+  const W = 100, H = 30;
+  const line = key => pts.map((p, i) => p[key] == null ? null
+      : `${(i / (pts.length - 1) * W).toFixed(2)},${(H - (p[key] - lo) / span * H).toFixed(2)}`)
+    .filter(Boolean).join(' ');
+  const last = pts[pts.length - 1], first = pts[0];
+  const gain = last.inv != null ? last.val - last.inv : null;
+  const gainPct = gain != null && last.inv > 0 ? gain / last.inv * 100 : null;
+  const what = side === 'act' ? 'активы' : side === 'pas' ? 'пассивы' : 'капитал';
+  return `<div class="card">
+    <div class="kv" style="margin-bottom:4px"><span class="meta">ИСТОРИЯ · ${fesc(what.toUpperCase())} · ${fesc(first.date)} → ${fesc(last.date)}</span>
+      <span class="meta">${pts.length} мес.</span></div>
+    <svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+      ${last.inv != null ? `<polyline class="sp-inv" points="${line('inv')}"/>` : ''}
+      <polyline class="sp-val" points="${line('val')}"/>
+    </svg>
+    <div class="kv caprow" style="margin-top:6px">
+      <span>${fesc(what)} <b class="num">${fmt(last.val)} €</b>
+        <span class="meta">${last.val - first.val >= 0 ? '+' : '−'}${fmt(Math.abs(last.val - first.val))} € за период</span></span>
+      ${gain != null ? `<span class="meta">внесено <b class="num">${fmt(last.inv)} €</b> · заработано
+        <b class="num ${gain >= 0 ? 'ok-dev' : 'dev-under'}">${gain >= 0 ? '+' : '−'}${fmt(Math.abs(gain))} €${gainPct != null ? ` (${gainPct >= 0 ? '+' : '−'}${Math.abs(gainPct).toFixed(1)}%)` : ''}</b></span>` : ''}
+    </div>
+  </div>`;
 }
 
 // Две полосы на 100%: «сейчас» и «цель» от одного левого края. Сравнивать длины
@@ -1010,12 +1048,19 @@ function secPlans(d) {
 // Расходы на содержание: обязательства и подписки. Регламенты имущества (у них есть item_id)
 // идут первой группой по объектам — сама вещь живёт позицией в пассивах, а её объёмы здесь.
 function secSpending(d) {
+  // Имя вещи: позиция портфеля, если регламент к ней привязан, иначе объект имущества.
+  // Группа не должна пропадать оттого, что позицию удалили — расходы-то остались.
   const names = {};
   const mapNames = ns => (ns || []).forEach(n => { names[n.id] = n.name; mapNames(n.children); });
   mapNames(d.targetPortfolio || []);
+  const propNames = {};
+  (d.propNames || []).forEach(p => propNames[p.id] = p.name);
+  const groupOf = o => o.item_id != null && names[o.item_id] ? `i${o.item_id}`
+    : o.property_id != null && propNames[o.property_id] ? `p${o.property_id}` : null;
+  const groupName = k => k[0] === 'i' ? names[+k.slice(1)] : propNames[+k.slice(1)];
   const all = d.obligations || [];
-  const upkeep = all.filter(o => o.item_id != null && names[o.item_id]);
-  const rest = all.filter(o => !upkeep.includes(o));
+  const upkeep = all.filter(o => groupOf(o));
+  const rest = all.filter(o => !groupOf(o));
   const rate = (d.rates.find(r => r.symbol === 'EURUSD')?.price) || 1.08;
   const toEur = o => (o.currency === '$' ? (o.amount || 0) / rate : (o.amount || 0));
   const perMonth = o => o.period === 'monthly' ? toEur(o) : o.period === 'yearly' ? toEur(o) / 12 : 0;
@@ -1041,7 +1086,7 @@ function secSpending(d) {
       <span class="rowbtn del" data-findel="obligations:${o.id}">✕</span>
     </div>`;
   const byItem = {};
-  upkeep.forEach(o => (byItem[o.item_id] ??= []).push(o));
+  upkeep.forEach(o => (byItem[groupOf(o)] ??= []).push(o));
   const upMonth = upkeep.reduce((a, o) => a + perMonth(o), 0);
   const bp = { monthly: 0, yearly: 0, once: 0 };
   all.forEach(o => { if (bp[o.period] != null) bp[o.period] += toEur(o); });
@@ -1057,19 +1102,20 @@ function secSpending(d) {
     </div>
     ${Object.keys(byItem).length ? `<div class="meta" style="margin:6px 0 2px">🔧 СОДЕРЖАНИЕ ИМУЩЕСТВА · ${fmt(upMonth)} / мес · ${fmt(upMonth * 12)} / год
       <span class="meta">· сами вещи — позициями в пассивах портфеля</span></div>
-    ${Object.entries(byItem).map(([itemId, rules]) => {
+    ${Object.entries(byItem).map(([key, rules]) => {
       const mo = rules.reduce((a, o) => a + perMonth(o), 0);
+      const itemId = key[0] === 'i' ? key.slice(1) : '';   // добавить регламент можно только к позиции портфеля
       return `<div class="upkeep">
-        <div class="kv upkhead"><span><b>${fesc(names[itemId])}</b></span>
+        <div class="kv upkhead"><span><b>${fesc(groupName(key))}</b>${itemId ? '' : '<span class="meta"> · вещи нет в портфеле</span>'}</span>
           <span class="meta">${fmt(mo)} €/мес · ${fmt(mo * 12)} €/год</span></div>
         ${rules.map(oblRow).join('')}
-        <div class="task finadd">
+        ${itemId ? `<div class="task finadd">
           <input data-rulename="${itemId}" placeholder="ТО, страховка, счётчики…">
           <input data-ruleamount="${itemId}" placeholder="€" style="width:60px">
           <select data-ruleperiod="${itemId}"><option value="yearly">год</option><option value="monthly">мес</option><option value="once">разово</option></select>
           <input data-ruledate="${itemId}" type="date" title="дата" style="width:150px">
           <span class="pill btn ok" data-ruleadd="${itemId}">＋</span>
-        </div>
+        </div>` : ''}
       </div>`;
     }).join('')}` : ''}
     ${rest.length ? `<div class="meta" style="margin:10px 0 2px">ОСТАЛЬНОЕ</div>` : ''}
@@ -1161,6 +1207,7 @@ function renderFin() {
       ${r.change_pct != null ? `<span class="${r.change_pct >= 0 ? 'up' : 'down'}">${r.change_pct >= 0 ? '▲' : '▼'}${Math.abs(r.change_pct).toFixed(2)}%</span>` : ''}
     </span>`).join('')}
     <span class="pill btn" id="ratesRefresh">↻ обновить</span>
+    ${d.undo ? `<span class="pill btn" id="finUndo" title="вернуть как было: ${fesc(d.undo.label)} · ${fesc(String(d.undo.at || '').slice(5, 16))}">↶ отменить ${fesc(d.undo.label)}</span>` : ''}
     <span class="pill btn" id="finEye" style="margin-left:auto" title="${hide ? 'показать значения' : 'скрыть значения'}">${hide ? '<s>👁</s> показать' : '👁 скрыть'}</span>
     <span class="meta">${d.rates[0]?.updated_at ? 'обн. ' + d.rates[0].updated_at.slice(0, 16).replace('T', ' ') : 'курсы не загружались'}</span>
   </div>
@@ -1699,6 +1746,11 @@ function bindFin() {
       if (confirm('Удалить запись из истории тезисов?')) { await finApi.macroDel(+el.dataset.mcdel); window.loadFin(); }
     }));
   // прочее
+  $('finUndo')?.addEventListener('click', async () => {
+    const r = await finApi.undo();
+    if (r.error) alert(r.error);
+    window.loadFin();
+  });
   $('ratesRefresh')?.addEventListener('click', async () => {
     $('ratesRefresh').textContent = '…';
     const r = await finApi.ratesRefresh();

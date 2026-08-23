@@ -184,6 +184,31 @@ test('содержание видно в строке позиции портф�
   assert.match(html, /🔧 160 €\/мес/, 'в строке вещи нет метки содержания');
 });
 
+test('содержание не пропадает, когда позицию из портфеля удалили', () => {
+  const orphan = { ...UPKEEP, propNames: [{ id: 7, name: 'BMW X5' }],
+    obligations: [{ id: 9, item_id: 999, property_id: 7, name: 'BMW X5: ТО', amount: 50, currency: '€', period: 'monthly', next_date: null, remind_days: 7, kind: 'liability' }] };
+  const html = loadFin().secSpending(orphan);
+  assert.ok(html.includes('СОДЕРЖАНИЕ ИМУЩЕСТВА'), 'группа исчезла вместе с позицией');
+  assert.ok(html.includes('BMW X5') && html.includes('вещи нет в портфеле'), 'вещь не подписана');
+});
+
+test('история капитала: две линии и «заработано»', () => {
+  const rows = [
+    { date: '2026-01-31', portfolio_eur: 300, active_eur: 250, passive_eur: 50, invested_eur: 240 },
+    { date: '2026-02-28', portfolio_eur: 340, active_eur: 290, passive_eur: 50, invested_eur: 250 },
+  ];
+  const html = loadFin().capHistory(rows, 'act').replace(/ /g, ' ');
+  assert.ok(html.includes('sp-val') && html.includes('sp-inv'), 'нарисована не та пара линий');
+  assert.ok(html.includes('внесено') && html.includes('250 €'), 'внесённое не выведено');
+  assert.ok(html.includes('+40 €'), 'заработанное 290 − 250 не посчиталось');
+});
+
+test('история: одного снимка мало — говорим об этом, а не рисуем пустой график', () => {
+  const html = loadFin().capHistory([{ date: '2026-02-28', portfolio_eur: 340 }], 'all');
+  assert.ok(!html.includes('<svg'), 'график нарисован по одной точке');
+  assert.ok(html.includes('снимок пишется раз в день'), 'нет объяснения, почему пусто');
+});
+
 test('цель: закреплено то поле, что заполнено', () => {
   const html = loadFin().secPortfolio(DATA, DATA.summary);
   assert.ok(html.includes('target_pct'), 'нет поля доли');
