@@ -50,6 +50,18 @@ const DATA = {
   rates: [{ symbol: 'IVV', price: 500 }],
 };
 
+// две части: активы 300 € и пассивы 100 € — доли внутри части должны считаться от неё,
+// а не от общего капитала (иначе машина показала бы 25%, а не 100%)
+const SPLIT = {
+  ...DATA, targetMoves: [],
+  targetPortfolio: [
+    { id: 10, name: 'Работает', kind: 'block', eur: 300, children: [leaf(12, 'SCHD', { value: 300, eur: 300, target_value: 300 })] },
+    { id: 20, name: 'Имущество', kind: 'block', passive: 1, eur: 100,
+      children: [leaf(21, 'Машина', { value: 100, eur: 100, target_value: 100 })] },
+  ],
+};
+const rowOf = (html, name) => (html.match(new RegExp(`<tr class="[^"]*" draggable[\\s\\S]*?${name}[\\s\\S]*?</tr>`)) || [''])[0];
+
 test('портфель отрисовывается без ошибок', () => {
   const html = loadFin().secPortfolio(DATA, DATA.summary);
   assert.equal(typeof html, 'string');
@@ -113,6 +125,40 @@ test('старая сборка приложения: в шапке предуп
 test('свежая сборка и node-прототип: предупреждения нет', () => {
   assert.ok(!renderHead(loadFin(), { platform: 'Mac', buildDate: '2999-01-01 10:00' }).includes('staleapp'));
   assert.ok(!renderHead(loadFin(), null).includes('staleapp'), 'без /api/version предупреждения быть не должно');
+});
+
+test('две части: шапки «АКТИВЫ»/«ПАССИВЫ» и общий капитал сверху', () => {
+  const html = loadFin().secPortfolio(SPLIT, SPLIT.summary);
+  assert.ok(html.includes('parthead'), 'шапок частей нет');
+  assert.ok(/>АКТИВЫ\s/.test(html) && /ПАССИВЫ/.test(html), 'части не подписаны');
+  assert.ok(html.includes('ОБЩИЙ КАПИТАЛ') && html.includes('400 €'), 'общий капитал 300 + 100 не выведен');
+  const head = html.match(/<tr><th>Название<\/th>[\s\S]*?<\/tr>/)[0];
+  const cols = (head.match(/<th/g) || []).length;
+  for (const [r] of html.matchAll(/<tr class="parthead">[\s\S]*?<\/tr>/g))
+    assert.equal((r.match(/<td/g) || []).length, cols, 'шапка части не совпала с сеткой колонок');
+});
+
+test('две части: доли и цели считаются внутри своей части', () => {
+  const html = loadFin().secPortfolio(SPLIT, SPLIT.summary);
+  const car = rowOf(html, 'Машина');
+  assert.ok(car, 'строки пассива нет');
+  assert.ok(car.includes('100.0%'), 'доля пассива должна считаться от пассивов');
+  assert.ok(!car.includes('25.0%'), 'доля посчиталась от общего капитала, а не от своей части');
+  assert.ok(car.includes('✓ в цели'), 'цель пассива 100 при 100 € — отклонения быть не должно');
+});
+
+test('две части: цель долей берётся от своей части, а не от общего капитала', () => {
+  const pct = { ...SPLIT, targetPortfolio: [SPLIT.targetPortfolio[0],
+    { ...SPLIT.targetPortfolio[1], children: [leaf(21, 'Машина', { value: 100, eur: 100, target_value: null, target_pct: 50 })] }] };
+  const car = rowOf(loadFin().secPortfolio(pct, pct.summary), 'Машина');
+  assert.ok(car.includes('>50<'), 'цель 50% от пассивов (100 €) должна дать 50 €, а не 200 от общих 400');
+  assert.ok(/dev-over[^>]*>\+50/.test(car), 'отклонение +50 € (100 при цели 50) не посчиталось');
+});
+
+test('ничего не помечено — экран прежний, без шапок частей', () => {
+  const html = loadFin().secPortfolio(DATA, DATA.summary);
+  assert.ok(!html.includes('parthead'), 'части появились там, где их не просили');
+  assert.ok(!html.includes('capsplit'), 'разбивка капитала показана без пассивов');
 });
 
 test('цель: закреплено то поле, что заполнено', () => {

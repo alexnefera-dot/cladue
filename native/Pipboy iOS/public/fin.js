@@ -169,6 +169,7 @@ function portRows(it, depth, ctx) {
       ${editable && !it.region ? `<span class="rowbtn" data-fregion="${it.id}" title="задать регион (SK/UA/AU/EU/WEB)">🌍</span>` : ''}
       ${editable ? `<span class="rowbtn${it.liquid ? ' on' : ''}" data-fliq="${it.id}:${it.liquid ? 1 : 0}" title="${it.liquid ? 'убрать из ликвидного капитала' : 'считать ликвидным — тем, чем можно распоряжаться'}">💧</span>` : ''}
       ${editable ? `<span class="rowbtn" data-frate="${it.id}" title="${it.rate_symbol ? 'автоцена: сменить/убрать тикер' : 'автоцена по курсу (BTC, золото, SCHD/IVV/VHT)'}">⚡</span>` : ''}
+      ${depth === 0 ? `<span class="rowbtn${it.passive ? ' on' : ''}" data-fside="${it.id}:${it.passive ? 1 : 0}" title="${it.passive ? 'вернуть блок в активы' : 'перенести блок в пассивы — вещи, которые не зарабатывают'}">⇄</span>` : ''}
       ${!target && editable ? `<span class="rowbtn" data-loanflag="${it.id}:${it.is_loan ? 1 : 0}" title="${it.is_loan ? 'убрать значок займа' : 'пометить как займ'}">🤝</span>` : ''}
       <span class="rowbtn del" data-findel="${pfx}:${it.id}">✕</span>
     </td>
@@ -307,6 +308,7 @@ function portCard(it, depth, ctx) {
     ${it.kind === 'section' ? `<span class="rowbtn" data-${addPfx}="asset:${it.id}">＋ актив</span>` : ''}
     ${editable ? `<span class="rowbtn" data-frate="${it.id}" title="автоцена">⚡</span>` : ''}
     ${editable ? `<span class="rowbtn" data-fregion="${it.id}" title="регион инвестиции (SK/UA/AU/EU/WEB)">🌍${it.region ? ' ' + fesc(it.region) : ''}</span>` : ''}
+    ${depth === 0 ? `<span class="rowbtn${it.passive ? ' on' : ''}" data-fside="${it.id}:${it.passive ? 1 : 0}" title="${it.passive ? 'вернуть в активы' : 'в пассивы'}">⇄</span>` : ''}
     <span class="rowbtn del" data-findel="${pfx}:${it.id}">✕</span>`;
   return `<div class="pcard ${it.kind}" style="--d:${depth}" data-pid="${it.id}">
     <div class="pc-top">
@@ -403,17 +405,25 @@ function secIncome(d, s) {
 function secPortfolio(d, s) {
   const tgt = true;   // единый экран портфеля: и стоимость, и цели в одной таблице
   const tree = tgt ? (d.targetPortfolio || []) : (d.portfolio || []);
-  const rootTotal = tgt ? tree.reduce((a, b) => a + (b.eur || 0), 0) : s.portfolioTotal;   // сейчас размещено в целевом
+  // Две части портфеля: активы (работают) и пассивы (вещи, которые не зарабатывают).
+  // Метка живёт на блоке верхнего уровня, поэтому части — это просто два набора блоков,
+  // и математика каждой считается от её собственного тотала. Общая — сверху.
+  const acts = tree.filter(n => !n.passive);
+  const pass = tree.filter(n => n.passive);
+  const split = pass.length > 0;   // ничего не помечено — экран ровно такой, каким был
+  const sumEur = ns => ns.reduce((a, b) => a + (b.eur || 0), 0);
+  const actTotal = sumEur(acts), pasTotal = sumEur(pass);
+  const rootTotal = tgt ? actTotal + pasTotal : s.portfolioTotal;   // сейчас размещено в целевом
   // Цель узла задаётся долей ИЛИ суммой: закреплено то поле, что заполнено, второе выводится.
   // Если своей цели нет — берём сумму вложенных. Бэкенд (calcNode) для узлов с детьми всегда
   // отдаёт сумму и собственное target_value игнорирует, поэтому считаем здесь.
   if (tgt) {
     const rateP = s.rate || d.rate || 1.08;
-    const setPlan = n => {
+    const setPlan = (n, base) => {
       const kids = n.children || [];
-      kids.forEach(setPlan);
-      // доля считается от всего размещённого в целевом — от того же тотала, что и «Сейчас %»
-      const own = n.target_pct != null ? n.target_pct / 100 * rootTotal
+      kids.forEach(c => setPlan(c, base));
+      // доля считается от своей части портфеля — от того же тотала, что и «Сейчас %»
+      const own = n.target_pct != null ? n.target_pct / 100 * base
         : n.target_value != null ? ((n.currency ?? '€') === '$' ? n.target_value / rateP : n.target_value)
         : null;
       const kidsSum = kids.reduce((a, c) => a + (c.planEur || 0), 0);
@@ -425,9 +435,12 @@ function secPortfolio(d, s) {
       n.planOwn = own;                                                                   // своя, даже если не в ходу
       n.planPin = n.target_pct != null ? 'pct' : n.target_value != null ? 'eur' : null;   // что закреплено
     };
-    tree.forEach(setPlan);
+    acts.forEach(n => setPlan(n, actTotal));
+    pass.forEach(n => setPlan(n, pasTotal));
   }
-  const planTotal = tgt ? tree.reduce((a, b) => a + (b.planEur || 0), 0) : 0;   // сумма планов верхнего уровня
+  const sumPlan = ns => ns.reduce((a, b) => a + (b.planEur || 0), 0);
+  const actPlan = tgt ? sumPlan(acts) : 0, pasPlan = tgt ? sumPlan(pass) : 0;
+  const planTotal = actPlan + pasPlan;   // сумма планов верхнего уровня, обе части вместе
   // Ликвидный капитал — то, чем можно распоряжаться. Отмечается вручную на позициях: автоматически
   // это не вывести, «ликвидность» у недвижимости и займов зависит от обстоятельств, а не от типа.
   let liquidTotal = 0, liquidCount = 0;
@@ -442,8 +455,14 @@ function secPortfolio(d, s) {
   // Мониторинг: один и тот же вопрос «сколько чего» в трёх разрезах.
   // Блоки — своя схема пользователя (защита/рост/развитие), по ней и проваливаемся вглубь;
   // типы и регионы — плоские срезы по листьям.
+  // Разбор идёт по одной части за раз: у активов и пассивов свои цели, смешивать их в одной
+  // диаграмме нечестно — доли получились бы от чужого тотала.
+  const monSide = split ? (localStorage.monSide ?? 'act') : 'all';
+  const monTree = monSide === 'act' ? acts : monSide === 'pas' ? pass : tree;
+  const monRoot = monSide === 'act' ? actTotal : monSide === 'pas' ? pasTotal : rootTotal;
+  const monRootPlan = monSide === 'act' ? actPlan : monSide === 'pas' ? pasPlan : planTotal;
   const findKid = (ns, id) => (ns || []).find(n => n.id === id);
-  let monLevel = tree, monCrumbs = [];
+  let monLevel = monTree, monCrumbs = [];
   if (tgt && monCut === 'blocks') {
     for (const id of monPath) {
       const n = findKid(monLevel, id);
@@ -453,7 +472,7 @@ function secPortfolio(d, s) {
     }
     if (!monLevel.length && monCrumbs.length) {   // провалились в лист — возвращаемся на уровень выше
       monCrumbs.pop(); monPath = monPath.slice(0, -1);
-      monLevel = monCrumbs.reduce((acc, c) => (findKid(acc, c.id)?.children || []), tree);
+      monLevel = monCrumbs.reduce((acc, c) => (findKid(acc, c.id)?.children || []), monTree);
     }
   }
   let catRows = [];
@@ -477,11 +496,11 @@ function secPortfolio(d, s) {
         }
         walk(kids);
       });
-      walk(tree);
+      walk(monTree);
       catRows = Object.entries(acc).map(([ty, v]) => ({ ty, id: null, drill: false, ...v }));
       // цель, которую не на кого разложить (у узла есть своя, а внутри целей нет)
       const laid = catRows.reduce((a, r) => a + (r.hasPlan ? r.plan : 0), 0);
-      if (planTotal - laid > 1) catRows.push({ ty: 'не расписано', id: null, drill: false, now: 0, plan: planTotal - laid, hasPlan: true });
+      if (monRootPlan - laid > 1) catRows.push({ ty: 'не расписано', id: null, drill: false, now: 0, plan: monRootPlan - laid, hasPlan: true });
     }
   }
   // доли считаем внутри уровня — вопрос «сколько чего ЗДЕСЬ», а не от всего портфеля
@@ -498,13 +517,15 @@ function secPortfolio(d, s) {
       return Math.abs(b.devP ?? -1) - Math.abs(a.devP ?? -1) || b.now - a.now;
     });
   const catMaxP = Math.max(1, ...catRows.map(r => Math.max(r.nowP, r.planP)));
-  // Капитал, не покрытый ни одной целью: без этой строки деньги молча растворяются
-  const capGap = rootTotal - planTotal;
-  const capNote = !tgt || rootTotal <= 0 ? '' : Math.abs(capGap) < 1
-    ? '<div class="bsum"><span class="ok-dev">✓ цели покрывают весь капитал</span></div>'
+  // Капитал, не покрытый ни одной целью: без этой строки деньги молча растворяются.
+  // Считаем внутри разбираемой части — у активов и пассивов свои цели и свой капитал.
+  const capWhat = monSide === 'pas' ? 'пассивов' : monSide === 'act' ? 'активов' : 'капитала';
+  const capGap = monRoot - monRootPlan;
+  const capNote = !tgt || monRoot <= 0 ? '' : Math.abs(capGap) < 1
+    ? `<div class="bsum"><span class="ok-dev">✓ цели покрывают ${monSide === 'all' ? 'весь капитал' : 'всю часть'}</span></div>`
     : capGap > 0
-      ? `<div class="bsum"><span class="dev-over">не распределено ${fmt(capGap)} €</span> <span class="meta">${(capGap / rootTotal * 100).toFixed(1)}% капитала без цели — эти деньги никуда не отнесены</span></div>`
-      : `<div class="bsum"><span class="dev-under">целей на ${fmt(-capGap)} € больше капитала</span> <span class="meta">сумма целей ${fmt(planTotal)} при ${fmt(rootTotal)} размещённых</span></div>`;
+      ? `<div class="bsum"><span class="dev-over">не распределено ${fmt(capGap)} €</span> <span class="meta">${(capGap / monRoot * 100).toFixed(1)}% ${capWhat} без цели — эти деньги никуда не отнесены</span></div>`
+      : `<div class="bsum"><span class="dev-under">целей на ${fmt(-capGap)} € больше</span> <span class="meta">сумма целей ${fmt(monRootPlan)} при ${fmt(monRoot)} размещённых</span></div>`;
   const rctx = { total: rootTotal, planTotal, parentEur: rootTotal, tgt, tree, path: '' };
   if (tgt) {   // ручные связки ребаланса (из target_moves): сопоставляем id позиций с путём/именем
     const byId = {};
@@ -541,35 +562,66 @@ function secPortfolio(d, s) {
       addNet(a.path, -mv.amount); addNet(b.path, mv.amount);   // mv.amount хранится в €
     });
   }
+  // Часть портфеля: свой тотал, свой план, своё отклонение. Контекст строк тоже свой —
+  // доли внутри части считаются от неё, а не от общего капитала.
+  const parts = split
+    ? [{ key: 'act', title: 'АКТИВЫ', hint: 'работают на капитал', nodes: acts, now: actTotal, plan: actPlan },
+       { key: 'pas', title: 'ПАССИВЫ', hint: 'твои, но капитал не растят', nodes: pass, now: pasTotal, plan: pasPlan }]
+    : [{ key: 'act', title: '', hint: '', nodes: acts, now: actTotal, plan: actPlan }];
+  const partNet = ns => ns.reduce((a, n) => a + (rctx.netByPath?.['/' + (n.name || '').trim().toLowerCase()] || 0), 0);
+  const partCtx = p => ({ ...rctx, total: p.now, planTotal: p.plan, parentEur: p.now });
+  // Шапка части — та же сетка колонок, что у строк: суммы стоят под своими заголовками
+  const partHead = p => {
+    const net = partNet(p.nodes);
+    const dev = p.plan > 0 ? p.now + net - p.plan : null;
+    const share = rootTotal > 0 ? p.now / rootTotal * 100 : 0;
+    return `<tr class="parthead"><td class="pname">${fesc(p.title)}
+        <span class="meta">${fesc(p.hint)} · ${share.toFixed(0)}% капитала</span></td>
+      <td></td><td></td>
+      <td class="r num now sep">${fmt(p.now)} €</td>
+      <td class="r num became">${net === 0 ? `<span class="quiet">${fmt(p.now)}</span>` : `<span class="${net > 0 ? 'up' : 'down'}">→ ${fmt(p.now + net)}</span>`}</td>
+      <td class="r num goal sep">${p.plan > 0 ? fmt(p.plan) + ' €' : '<span class="meta">цели нет</span>'}</td>
+      <td class="r num">${dev == null ? '' : Math.abs(dev) < 1 ? '<span class="up">✓ в цели</span>'
+        : `<span class="${dev > 0 ? 'dev-over' : 'dev-under'}">${dev > 0 ? '+' : '−'}${fmt(Math.abs(dev))} €</span>`}</td>
+      <td class="sep"></td><td></td></tr>`;
+  };
   return `
   <div class="sec">Портфель · блоки → разделы → активы · всё правится кликом</div>
   <div class="viewtabs">
     <span class="pill btn" id="pfoldAll" style="margin-left:auto">${portFold.size ? '▾ развернуть всё' : '▸ свернуть всё'}</span>
   </div>
-  ${tgt ? `<div class="card"><div class="kv" style="font-weight:700;padding:2px 0;flex-wrap:wrap;gap:8px">
-      <span>Капитал: есть <b class="num">${fmt(s.portfolioTotal)} €</b>${planTotal > 0 ? ` · план <b class="num">${fmt(planTotal)} €</b>` : ''} · размещено <b class="num">${fmt(rootTotal)} €</b></span>
-      ${planTotal > 0 ? `<span class="pill ${Math.abs(planTotal - rootTotal) < 1 ? 'ok' : planTotal > rootTotal ? 'p1' : ''}" title="разница между «Сейчас» (размещено) и планом целевого">${Math.abs(planTotal - rootTotal) < 1 ? '✓ сейчас = плану' : planTotal > rootTotal ? `до плана +${fmt(planTotal - rootTotal)} €` : `сверх плана ${fmt(rootTotal - planTotal)} €`}</span>` : ''}
-    </div></div>` : ''}
   ${(() => {
     const sp = rctx.spends || [];
     const spendTotal = sp.reduce((a, x) => a + x.eur, 0);
-    return `<div class="card"><div class="kv" style="font-weight:700;flex-wrap:wrap;gap:10px">
-      <span>Текущий <b class="num">${fmt(rootTotal)} €</b></span>
-      <span class="meta">·</span>
-      <span>Целевой <b class="num">${fmt(planTotal)} €</b></span>
-      <span class="meta">·</span>
-      <span>На траты <b class="num ${spendTotal > 0 ? 'dev-over' : 'mut'}">${fmt(spendTotal)} €</b></span>
-      <span class="meta">·</span>
-      <span title="сумма позиций, помеченных 💧 — то, чем можно распоряжаться">Ликвидно
-        <b class="num ${liquidCount ? 'ok-dev' : 'mut'}">${fmt(liquidTotal)} €</b>
-        ${liquidCount ? `<span class="meta">${(rootTotal > 0 ? liquidTotal / rootTotal * 100 : 0).toFixed(0)}% · ${liquidCount} позиц.</span>`
-          : '<span class="meta">отметь 💧 в строках</span>'}</span>
-      ${spendTotal > 0 ? `<span class="meta">останется ${fmt(rootTotal - spendTotal)} €</span>` : ''}
-    </div></div>`;
+    const gap = planTotal - rootTotal;
+    return `<div class="card capsum">
+      <div class="captop">
+        <span class="caplab">ОБЩИЙ КАПИТАЛ</span>
+        <b class="capnum">${fmt(rootTotal)} €</b>
+        ${planTotal > 0 ? `<span class="meta">план ${fmt(planTotal)} €</span>
+          <span class="pill ${Math.abs(gap) < 1 ? 'ok' : gap > 0 ? 'p1' : ''}" title="разница между размещённым и суммой целей">${
+            Math.abs(gap) < 1 ? '✓ сейчас = плану' : gap > 0 ? `до плана +${fmt(gap)} €` : `сверх плана ${fmt(-gap)} €`}</span>` : ''}
+      </div>
+      ${split ? `<div class="capsplit">${parts.map(p => `
+        <span class="cappart ${p.key}"><i></i>${fesc(p.title.toLowerCase())}
+          <b class="num">${fmt(p.now)} €</b>
+          <span class="meta">${(rootTotal > 0 ? p.now / rootTotal * 100 : 0).toFixed(0)}%${p.plan > 0 ? ` · цель ${fmt(p.plan)} €` : ''}</span></span>`).join('')}
+      </div>` : ''}
+      <div class="caprow">
+        <span>На траты <b class="num ${spendTotal > 0 ? 'dev-over' : 'mut'}">${fmt(spendTotal)} €</b></span>
+        <span class="meta">·</span>
+        <span title="сумма позиций, помеченных 💧 — то, чем можно распоряжаться">Ликвидно
+          <b class="num ${liquidCount ? 'ok-dev' : 'mut'}">${fmt(liquidTotal)} €</b>
+          ${liquidCount ? `<span class="meta">${(rootTotal > 0 ? liquidTotal / rootTotal * 100 : 0).toFixed(0)}% · ${liquidCount} позиц.</span>`
+            : '<span class="meta">отметь 💧 в строках</span>'}</span>
+        ${spendTotal > 0 ? `<span class="meta">· останется ${fmt(rootTotal - spendTotal)} €</span>` : ''}
+      </div>
+    </div>`;
   })()}
   <div class="card">
     ${finIsMobile()
-      ? `<div class="pcards">${tree.map(b => portCard(b, 0, rctx)).join('') || '<div class="empty">пусто</div>'}</div>`
+      ? parts.map(p => `${split ? `<div class="sec partsec">${fesc(p.title)} · ${fmt(p.now)} €${p.plan > 0 ? ` · цель ${fmt(p.plan)} €` : ''}</div>` : ''}
+          <div class="pcards">${p.nodes.map(b => portCard(b, 0, partCtx(p))).join('') || '<div class="empty">пусто</div>'}</div>`).join('')
       : `<table class="fintable porttable">
       <tr><th>Название</th>
         <th class="r" style="width:96px" title="цена покупки в валюте позиции">Покупка</th>
@@ -579,9 +631,13 @@ function secPortfolio(d, s) {
         <th class="r sep" style="width:126px" title="доля или сумма — заполненное закреплено, второе выводится">Цель</th>
         <th class="r" style="width:118px" title="станет − цель">Отклонение</th>
         <th class="sep" style="width:180px">Перестановки</th><th style="width:92px"></th></tr>
-      ${tree.map(b => portRows(b, 0, rctx)).join('') || '<tr><td colspan="8"><div class="empty">пусто</div></td></tr>'}
+      ${parts.map(p => (split ? partHead(p) : '')
+        + p.nodes.map(b => portRows(b, 0, partCtx(p))).join('')).join('')
+        || '<tr><td colspan="9"><div class="empty">пусто</div></td></tr>'}
     </table>`}
-    ${tgt ? `<div class="task finadd" style="margin-top:6px"><input id="tgt_block" placeholder="новый блок целевого" style="flex:1"><span class="pill btn ok" data-tgtadd="block:">＋ блок</span></div>`
+    ${tgt ? `<div class="task finadd" style="margin-top:6px"><input id="tgt_block" placeholder="новый блок целевого" style="flex:1">
+        <span class="pill btn ok" data-tgtadd="block:">＋ блок</span>
+        <span class="pill btn" data-tgtadd="blockp:" title="блок вещей, которые не зарабатывают">＋ в пассивы</span></div>`
       : `<div class="task finadd" style="margin-top:6px"><input id="fact_block" placeholder="новый блок портфеля (Крипта, Бизнес…)" style="flex:1"><span class="pill btn ok" data-fadd="block:">＋ блок</span></div>`}
   </div>
   ${!tgt && (d.byType.length || (d.byRegion || []).length) ? `
@@ -625,6 +681,10 @@ function secPortfolio(d, s) {
   <div class="card">
     <div class="kv" style="margin-bottom:8px;flex-wrap:wrap;gap:6px">
       <span class="meta">РАСПРЕДЕЛЕНИЕ · СЕЙЧАС ПРОТИВ ЦЕЛИ</span>
+      ${split ? `<span class="moncuts">
+        ${[['act', 'активы'], ['pas', 'пассивы'], ['all', 'всё вместе']].map(([k, t]) =>
+          `<span class="pill btn${monSide === k ? ' ok' : ''}" data-monside="${k}">${t}</span>`).join('')}
+      </span>` : ''}
       <span class="moncuts">
         ${[['blocks', 'по блокам'], ['types', 'по типам'], ['regions', 'по регионам']].map(([k, t]) =>
           `<span class="pill btn${monCut === k ? ' ok' : ''}" data-moncut="${k}">${t}</span>`).join('')}
@@ -632,7 +692,7 @@ function secPortfolio(d, s) {
       ${catOrder.length ? '<span class="pill btn" id="catOrderReset" title="вернуть сортировку по величине отклонения">↕ по отклонению</span>' : ''}
     </div>
     ${monCut === 'blocks' ? `<div class="moncrumbs">
-      <span class="crumb${monCrumbs.length ? ' btn' : ''}" data-moncrumb="-1">Весь портфель</span>
+      <span class="crumb${monCrumbs.length ? ' btn' : ''}" data-moncrumb="-1">${monSide === 'pas' ? 'Все пассивы' : monSide === 'act' ? 'Все активы' : 'Весь портфель'}</span>
       ${monCrumbs.map((c, k) => `<span class="sepc">›</span><span class="crumb${k < monCrumbs.length - 1 ? ' btn' : ''}" data-moncrumb="${k}">${fesc(c.name)}</span>`).join('')}
     </div>` : ''}
     <div class="tgtmon">
@@ -1364,12 +1424,27 @@ function bindFin() {
     }));
   document.querySelectorAll('[data-tgtadd]').forEach(el =>
     el.addEventListener('click', async () => {
-      const [kind, pid] = el.dataset.tgtadd.split(':');
+      const [kindRaw, pid] = el.dataset.tgtadd.split(':');
+      const passive = kindRaw === 'blockp';   // блок сразу в пассивы
+      const kind = passive ? 'block' : kindRaw;
       const name = kind === 'block' ? document.getElementById('tgt_block')?.value.trim()
         : prompt(kind === 'section' ? 'Название раздела:' : 'Название актива:');
       if (!name || !name.trim()) return;
-      await finApi.add('tgt', { kind, parent_id: pid ? +pid : null, name: name.trim() });
+      await finApi.add('tgt', { kind, parent_id: pid ? +pid : null, name: name.trim(), passive: passive ? 1 : 0 });
       window.loadFin();
+    }));
+  // блок верхнего уровня переезжает между частями: активы ⇄ пассивы
+  document.querySelectorAll('[data-fside]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const [id, cur] = el.dataset.fside.split(':');
+      await finApi.patch('tgt', +id, { passive: cur === '1' ? 0 : 1 });
+      window.loadFin();
+    }));
+  document.querySelectorAll('[data-monside]').forEach(el =>
+    el.addEventListener('click', () => {
+      localStorage.monSide = el.dataset.monside;
+      monPath = [];   // части разные — путь провала из прошлой к новой не относится
+      renderFin();
     }));
   // «↦ переложить» раскрывает форму строкой под позицией; повторный клик закрывает
   // Разрезы, провал внутрь и возврат по крошке

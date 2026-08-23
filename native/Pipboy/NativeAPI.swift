@@ -45,6 +45,7 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         _ = try? made.run("ALTER TABLE target_items ADD COLUMN loan_due TEXT")
         _ = try? made.run("ALTER TABLE target_moves ADD COLUMN to_note TEXT")   // перенос без получателя = трата, подпись куда
         _ = try? made.run("ALTER TABLE target_items ADD COLUMN liquid INTEGER NOT NULL DEFAULT 0")   // чем можно распоряжаться  // цель долей; заполнено одно из target_pct/target_value — оно и закреплено
+        _ = try? made.run("ALTER TABLE target_items ADD COLUMN passive INTEGER NOT NULL DEFAULT 0")   // блок верхнего уровня: 1 = пассивы (вещи, которые не зарабатывают)
         _ = try? made.run("DROP TABLE IF EXISTS portfolio_classes")  // мёртвая с рождения: в интерфейс не выводилась ни разу
         _ = try? made.run("ALTER TABLE routines ADD COLUMN days TEXT NOT NULL DEFAULT ''")  // дни недели рутины (пусто = каждый день)
         _ = try? made.run("ALTER TABLE passive_income ADD COLUMN principal REAL NOT NULL DEFAULT 0")    // тело инвестиции/депозита
@@ -63,7 +64,7 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
             _ = try? made.run("DROP TABLE IF EXISTS target_items")
             _ = try? made.run("UPDATE settings SET value = '' WHERE key = 'target_seed_v1'")   // сброс → перезаполним копией факта
         }
-        _ = try? made.run("CREATE TABLE IF NOT EXISTS target_items(id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, ord INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL DEFAULT 'asset', value REAL, buy_value REAL, target_value REAL, target_pct REAL, currency TEXT NOT NULL DEFAULT '€', asset_type TEXT, qty REAL, rate_symbol TEXT, note TEXT, is_loan INTEGER NOT NULL DEFAULT 0, loan_due TEXT, liquid INTEGER NOT NULL DEFAULT 0)")
+        _ = try? made.run("CREATE TABLE IF NOT EXISTS target_items(id INTEGER PRIMARY KEY, parent_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, ord INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL DEFAULT 'asset', value REAL, buy_value REAL, target_value REAL, target_pct REAL, currency TEXT NOT NULL DEFAULT '€', asset_type TEXT, qty REAL, rate_symbol TEXT, note TEXT, is_loan INTEGER NOT NULL DEFAULT 0, loan_due TEXT, liquid INTEGER NOT NULL DEFAULT 0, passive INTEGER NOT NULL DEFAULT 0)")
         _ = try? made.run("CREATE TABLE IF NOT EXISTS target_moves(id INTEGER PRIMARY KEY, from_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, to_id INTEGER REFERENCES target_items(id) ON DELETE CASCADE, amount REAL NOT NULL DEFAULT 0, to_note TEXT)")  // ручные связки ребаланса
         // Сброс v5 (DELETE FROM target_items) снят: целевое дерево стало единственным,
         // и такая миграция стёрла бы весь портфель. Флаг ставим, чтобы она не всплыла на старых базах.
@@ -1414,12 +1415,12 @@ enum Api {
         "accounts": ["name", "type", "currency", "note", "balance"],
         "steps": ["kind", "title", "amount", "planned_date", "condition", "status", "note"],
         "obligations": ["name", "amount", "currency", "period", "next_date", "remind_days", "kind", "note", "due_time"],
-        "items": ["name", "buy_value", "value", "target_value", "currency", "is_loan", "loan_due", "asset_type", "qty", "rate_symbol", "note", "region", "liquid"],
+        "items": ["name", "buy_value", "value", "target_value", "currency", "is_loan", "loan_due", "asset_type", "qty", "rate_symbol", "note", "region", "liquid", "passive"],
         "tx": ["date", "amount", "currency", "direction", "category", "note"],
         "debts": ["name", "amount", "currency", "direction", "due_date", "note"],
         "income": ["name", "amount", "currency", "period", "next_date", "note", "principal", "rate", "rate_period", "asset_type"],
         "budget": ["name", "amount", "currency", "direction", "ord", "month"],
-        "tgt": ["name", "value", "buy_value", "target_value", "target_pct", "currency", "asset_type", "qty", "rate_symbol", "note", "kind", "region", "liquid"],
+        "tgt": ["name", "value", "buy_value", "target_value", "target_pct", "currency", "asset_type", "qty", "rate_symbol", "note", "kind", "region", "liquid", "passive"],
         "move": ["from_id", "to_id", "amount", "to_note"]]
 
     // У позиции с ⚡-привязкой сумма считается как qty × курс, поэтому вписанная руками
@@ -1557,8 +1558,8 @@ enum Api {
         case "tgt":
             let parent = numOpt(b["parent_id"]).map { Int($0) }
             let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM target_items WHERE parent_id IS ?", [parent]).first?["o"]))
-            try db.run("INSERT INTO target_items(parent_id, ord, name, kind, value, currency, asset_type) VALUES(?,?,?,?,?,?,?)",
-                [parent, ord, b["name"] as? String ?? "", b["kind"] as? String ?? "asset", b["value"] ?? NSNull(), b["currency"] as? String ?? "€", b["asset_type"] ?? NSNull()])
+            try db.run("INSERT INTO target_items(parent_id, ord, name, kind, value, currency, asset_type, passive) VALUES(?,?,?,?,?,?,?,?)",
+                [parent, ord, b["name"] as? String ?? "", b["kind"] as? String ?? "asset", b["value"] ?? NSNull(), b["currency"] as? String ?? "€", b["asset_type"] ?? NSNull(), intval(b["passive"] ?? 0)])
         case "move":
             let mvFrom = numOpt(b["from_id"]).map { Int($0) }, mvTo = numOpt(b["to_id"]).map { Int($0) }
             let mvRate = (try? eurUsdRate(db)) ?? 1.08
