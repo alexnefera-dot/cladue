@@ -151,8 +151,9 @@ if ($безКартинок) {
     $ПРАВИЛА['slot-poster-fallback'] = 'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;'
         . 'aspect-ratio:4/3;padding:10px;text-align:center;line-height:1.3;'
         . 'background:linear-gradient(160deg,rgba(127,133,160,.26),rgba(127,133,160,.10))';
-    $ПРАВИЛА['slot-fallback-icon'] = 'font-size:34px;line-height:1';
-    $ПРАВИЛА['slot-fallback-name'] = 'font-size:12px;font-weight:600;opacity:.9';
+    $ПРАВИЛА['slot-fallback-icon'] = 'font-size:52px;line-height:1';
+    // название игры и так стоит под плиткой в slot-name — второй раз не повторяем
+    $ПРАВИЛА['slot-fallback-name'] = 'display:none';
 }
 
 /** Абзацы-предупреждения превращаем в блок внимания (тег остаётся <p>). */
