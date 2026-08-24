@@ -69,6 +69,13 @@ return [
         'hype-combo.com',
         'fnx-abs.org',
         'fnx-abs.net',
+        // добавлены позже — проверить, что клик засчитывается и clickid
+        // возвращается в постбеке (см. случай megaslotsmatch в комментарии выше)
+        '28ap3x-9rounded-simple.com',
+        'string-26eva.com',
+        'play-leebet-4th.com',
+        'joyous-bahd4-6.com',
+        'neo7-cr9t-ksh.com',
     ],
 
     // ============================================================

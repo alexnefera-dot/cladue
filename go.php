@@ -120,8 +120,18 @@ if (($cfg['db_write'] ?? true) !== false) {
 $dest = $offer;
 $host = parse_url($dest, PHP_URL_HOST);
 $whitelist = $cfg['postback_domains'] ?? [];
-$allow = empty($whitelist)
-    || ($host && in_array(strtolower($host), array_map('strtolower', $whitelist), true));
+// Домен из whitelist покрывает и свои поддомены (www.partner.com, go.partner.com),
+// иначе ссылка с www молча осталась бы без clickid и конверсия не привязалась бы.
+// Сравнение только по границе точки: partner.com НЕ совпадёт с evilpartner.com.
+$allow = empty($whitelist);
+if (!$allow && $host) {
+    $h = strtolower($host);
+    foreach ($whitelist as $d) {
+        $d = strtolower(trim($d));
+        if ($d === '') continue;
+        if ($h === $d || substr($h, -strlen($d) - 1) === '.' . $d) { $allow = true; break; }
+    }
+}
 if ($host && $allow) {
     $param = $cfg['clickid_param'] ?? 'clickid';
     if (stripos($dest, $param . '=') === false) {
