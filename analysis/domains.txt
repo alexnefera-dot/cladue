@@ -1,0 +1,371 @@
+ДОМЕНЫ — ВСЯ ИСТОРИЯ ВЕТКИ
+Реестр запусков: 189 доменов в 20 группах (замеры позиций)
+Плюс 70 доменов прошлых запусков, известных только по конверсиям
+Всего уникальных: 259
+
+==============================================================
+ЧАСТЬ 1. ГРУППЫ ИЗ РЕЕСТРА
+==============================================================
+
+--- NEW50_5_12pages_nodate ---
+12 страниц без дат | 7 доменов | контент: NEW50_5_12pages_nodate_21.08_1…7 (827-833)
+
+3096.team
+fmwc.team
+4173.lol
+3506.lol
+f5nv.team
+tfpc.lol
+xhpt.team
+
+
+--- NEW50_5_12pages_withdate ---
+12 страниц с датами | 7 доменов | контент: NEW50_5_12pages_withdate_21.08_1…7 (834-840)
+
+1947.team
+blsr.team
+vfkd.team
+k8n.lol
+2214.team
+d2wq.team
+v2ld.lol
+
+
+--- 12pages_withdate · Theme1 ---
+12 страниц с датами | 8 доменов | контент: 12pages_withdate_20.08_11…18 (id 758-765)
+
+1908.team
+fhmv.team
+cgvz.team
+1236.team
+jmbt.team
+f6bz.team
+p3zv.team
+2008vu.buzz
+
+
+--- Generator_11page_img ---
+11 страниц с картинками | 5 доменов | контент: Generator_11page_img_22.08_5_1…5 (863-867)
+
+3719.team
+3457.team
+jqtz.team
+g8pz.team
+2831.team
+
+
+--- Generator_11page ---
+11 страниц, генератор | 5 доменов | контент: Generator_11page_19.08_1…5 (id 695-699)
+
+1085.team
+bdwn.team
+4392.team
+gkrd.team
+mpdg.team
+
+
+--- Generator_11page_21.08 (обе партии) ---
+11 страниц, генератор — две партии | 15 доменов | контент: Generator_11page_21.08_1…10 (841-850) + Generator_11page_2_21.08_1…5 (851-855)
+
+bnwk.casino
+gnxb.team
+hprl.team
+k9ml.team
+h3rb.team
+smzk.lol
+1305.team
+5297-4.casino
+m5tv.store
+n5wk.team
+j6td.team
+m2vc.team
+qbnv.lol
+rdwt.lol
+wrfn.cloud
+
+
+--- 12pages_nodate ---
+12 страниц без дат | 5 доменов | контент: 12pages_nodate_20.08_1…5 (id 743-747)
+
+5390.team
+cfpm.team
+bcqr.team
+klvr.team
+4085.team
+
+
+--- NEW50_5_7pages_withdate ---
+7 страниц с датами | 12 доменов | контент: NEW50_5_7pages_withdate_21.08_1…12 (815-826)
+
+2568.team
+3982.team
+h2x.online
+2108io.buzz
+bnkd.shop
+trqm.casino
+2108ee.buzz
+2108jd.buzz
+6829.lol
+b4kr.team
+c7mt.team
+x284.site
+
+
+--- nabor-53 · наборы ---
+12 страниц, наборы | 10 доменов | контент: nabor-53…nabor-62
+
+fkrt.team
+qwnb.team
+hzvq.lol
+5934.lol
+3067.team
+1670.lol
+ctpm.lol
+m6dv.team
+8452.team
+r4kn.lol
+
+
+--- NEW50_5_7pages_nodate ---
+7 страниц без дат | 6 доменов | контент: NEW50_5_7pages_nodate_21.08_1…6 (791-796)
+
+ldtq.click
+5847.live
+c6p.fun
+w5mq.lol
+9316.space
+zmbv.work
+
+
+--- nabor28gotovyi · наборы ---
+12 страниц, наборы | 5 доменов | контент: nabor28gotovyi…nabor32gotovyi
+
+g2k.team
+1596.team
+h5r.team
+1739.team
+f7n.team
+
+
+--- 12pages_withdate · Theme2 ---
+12 страниц с датами | 10 доменов | контент: 12pages_withdate_20.08_1…10 (id 748-757)
+
+1467.team
+3726.team
+9536.lol
+v5d.team
+2008jd.buzz
+dhkt.team
+4671.team
+hpvn.team
+fgqw.team
+knvr7.sbs
+
+
+--- Generator_v5 ---
+7 страниц, генератор v5 | 5 доменов | контент: Generator_v5_19.08_1…5 (id 700-704)
+
+g7ld.team
+5148.team
+c5tw.team
+h3ns.team
+k5cr.team
+
+
+--- Generation 50 ---
+конфигурация не присылалась | 50 доменов | контент: не присланы
+
+xdkr.team
+3961.team
+6158.team
+2328.team
+b6t.team
+swdp.team
+c6vr.team
+jmrc.team
+lptf.team
+mqvb.team
+qtbm.team
+vbgq.team
+2650.team
+2872.team
+3164.team
+3405.team
+3728.team
+4213.team
+4586.team
+4839.team
+5027.team
+5364.team
+5719.team
+5942.team
+6473.team
+6820.team
+b3nq.team
+c9m.team
+d4v.team
+d9tk.team
+f2mw.team
+fjnv.team
+g5pb.team
+gkpw.team
+h8cz.team
+hlqz.team
+j4rd.team
+k7ln.team
+knsd.team
+m3wv.team
+n6qf.team
+nrwg.team
+p9td.team
+pszk.team
+r2km.team
+rvcn.team
+s5bg.team
+tzfl.team
+w4rz.team
+wcht.team
+
+
+--- 7page_yandex ---
+7 страниц, контент из выдачи | 10 доменов | контент: 7page_yandex_1/3/6/8 + 7page (888starz, baboss, banda, clubnika, ezcash, fenix)
+
+2691.team
+2153.team
+k2n.team
+hlwm.team
+1908po.buzz
+l9tb.team
+1908by.buzz
+gjpz.team
+h7zb.quest
+tvmk7.bond
+
+
+--- Generator_11page_2 ---
+11 страниц, генератор (партия 2) | 5 доменов | контент: Generator_11page_2_19.08_1…5 (id 706-710)
+
+3019.team
+jkzq.team
+2470.team
+j8vp.team
+ip4nd.cyou
+
+
+--- Generator_v4_2 ---
+7 страниц, генератор v4_2 | 5 доменов | контент: Generator_v4_2_19.08_1…5 (id 711-715)
+
+dlnb.team
+5867.team
+2008qw.buzz
+3584.team
+d9mq.team
+
+
+--- generator v4 ---
+7 страниц, генератор v4 | 10 доменов | контент: один контент на всех
+
+1908jd.buzz
+1908xc.buzz
+6204.team
+b2kn.team
+b8t.team
+dwb7.top
+im8tq.icu
+m2wf.team
+n4kd.team
+r7mc.team
+
+
+--- 7pages_nodate ---
+7 страниц без дат | 4 доменов | контент: 7pages_nodate_20.08_1-2 (716-717) + MultiContentTest_1/3 (653, 655)
+
+lnwc.team
+5273r.cfd
+cqrw.rest
+i182.xyz
+
+
+--- kostoreznaya1 · имена ---
+7 страниц, именованные контенты | 5 доменов | контент: kostoreznaya1, krahmalnya1, machtovaya1, pergamentnaya1, sinilnya1
+
+cglr.team
+bfkq.team
+1073.team
+1284.team
+dhmt.team
+
+==============================================================
+ЧАСТЬ 2. ДОМЕНЫ ПРОШЛЫХ ЗАПУСКОВ (только конверсии, контент неизвестен)
+==============================================================
+
+fnpk.team
+5109.team
+rtnm.team
+tlrk.team
+2417.team
+3592.team
+9364.team
+dwev.team
+2607.team
+4863.team
+5936.team
+b7mk.team
+gwrn.team
+vwkp.team
+z5mt.team
+z8kr.team
+2385.team
+5283.team
+5726.team
+5731.team
+6928.team
+8261.team
+cdrw.team
+cfwz.team
+cokd4.team
+fkmz.team
+h4p.team
+l1t.team
+lmpt.team
+lmsd.team
+p5cx.team
+rszk.team
+1349.team
+1682.team
+1794.team
+1975.team
+2164.team
+2938-5.casino
+3748.team
+4260.team
+4573.team
+4617-9.casino
+6417.team
+8172.team
+8271.team
+8437.team
+9lm.team
+9yp.team
+c7v.team
+cvnp.team
+d4z.team
+gltb.team
+h5nd.team
+hjtb.team
+hsvk.team
+k9wb.team
+kdnb.team
+klvn.team
+l3gv.team
+mtbf.team
+nsbf.team
+qvwf.team
+qwdt.team
+snfx.team
+t3mb.team
+vqrk.team
+wgmr.team
+wnkr.casino
+xzdg.team
+zbrn.team

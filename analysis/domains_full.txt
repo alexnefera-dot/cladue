@@ -1,0 +1,260 @@
+домен	зона	группа	формат	Т10	Т30	Т100	ТОП-3	ВЧ	СЧ	рег	деп
+5390.team	.team	12pages_nodate	12 страниц без дат	39	55	90	10	0	4	0	0
+cfpm.team	.team	12pages_nodate	12 страниц без дат	22	31	68	3	0	0	3	0
+bcqr.team	.team	12pages_nodate	12 страниц без дат	8	15	76	1	0	0	0	0
+klvr.team	.team	12pages_nodate	12 страниц без дат	5	11	59	0	0	0	0	0
+4085.team	.team	12pages_nodate	12 страниц без дат	1	4	31	1	0	0	1	0
+1908.team	.team	12pages_withdate · Theme1	12 страниц с датами	130	201	368	19	27	7	5	0
+fhmv.team	.team	12pages_withdate · Theme1	12 страниц с датами	13	16	105	4	0	0	1	0
+cgvz.team	.team	12pages_withdate · Theme1	12 страниц с датами	10	15	82	2	0	0	0	0
+1236.team	.team	12pages_withdate · Theme1	12 страниц с датами	9	13	61	3	0	0	1	0
+jmbt.team	.team	12pages_withdate · Theme1	12 страниц с датами	3	11	70	0	0	0	1	0
+p3zv.team	.team	12pages_withdate · Theme1	12 страниц с датами	1	5	47	0	0	0	0	0
+f6bz.team	.team	12pages_withdate · Theme1	12 страниц с датами	1	2	18	0	0	0	0	0
+2008vu.buzz	.buzz	12pages_withdate · Theme1	12 страниц с датами	0	1	24	0	0	0	0	0
+1467.team	.team	12pages_withdate · Theme2	12 страниц с датами	26	47	106	9	1	4	0	0
+3726.team	.team	12pages_withdate · Theme2	12 страниц с датами	22	37	90	10	2	0	0	0
+9536.lol	.lol	12pages_withdate · Theme2	12 страниц с датами	20	35	77	10	4	0	0	0
+v5d.team	.team	12pages_withdate · Theme2	12 страниц с датами	6	16	54	1	0	1	1	0
+2008jd.buzz	.buzz	12pages_withdate · Theme2	12 страниц с датами	4	6	17	0	1	0	0	0
+dhkt.team	.team	12pages_withdate · Theme2	12 страниц с датами	4	11	25	0	1	0	1	0
+4671.team	.team	12pages_withdate · Theme2	12 страниц с датами	1	4	24	0	0	0	0	0
+hpvn.team	.team	12pages_withdate · Theme2	12 страниц с датами	1	5	22	0	0	0	0	0
+knvr7.sbs	.sbs	12pages_withdate · Theme2	12 страниц с датами	0	1	16	0	0	0	0	0
+fgqw.team	.team	12pages_withdate · Theme2	12 страниц с датами	0	1	5	0	0	0	0	0
+2691.team	.team	7page_yandex	7 страниц, контент из выдачи	64	108	152	13	9	0	0	0
+2153.team	.team	7page_yandex	7 страниц, контент из выдачи	36	56	102	11	1	2	0	0
+k2n.team	.team	7page_yandex	7 страниц, контент из выдачи	8	22	52	2	0	1	1	0
+hlwm.team	.team	7page_yandex	7 страниц, контент из выдачи	4	8	24	0	0	0	0	0
+1908po.buzz	.buzz	7page_yandex	7 страниц, контент из выдачи	3	5	10	0	0	0	0	0
+l9tb.team	.team	7page_yandex	7 страниц, контент из выдачи	1	5	11	0	0	0	0	0
+h7zb.quest	.quest	7page_yandex	7 страниц, контент из выдачи	0	0	1	0	0	0	0	0
+tvmk7.bond	.bond	7page_yandex	7 страниц, контент из выдачи	0	1	2	0	0	0	0	0
+1908by.buzz	.buzz	7page_yandex	7 страниц, контент из выдачи	0	1	7	0	0	0	0	0
+gjpz.team	.team	7page_yandex	7 страниц, контент из выдачи	0	3	13	0	0	0	0	0
+lnwc.team	.team	7pages_nodate	7 страниц без дат	2	9	12	0	1	0	0	0
+cqrw.rest	.rest	7pages_nodate	7 страниц без дат	0	1	3	0	0	0	0	0
+i182.xyz	.xyz	7pages_nodate	7 страниц без дат	0	0	0	0	0	0	0	0
+5273r.cfd	.cfd	7pages_nodate	7 страниц без дат	0	0	1	0	0	0	0	0
+xdkr.team	.team	Generation 50	конфигурация не присылалась	16	23	43	6	5	0	2	0
+3961.team	.team	Generation 50	конфигурация не присылалась	11	18	31	2	1	0	0	0
+6158.team	.team	Generation 50	конфигурация не присылалась	4	7	12	0	1	0	0	0
+swdp.team	.team	Generation 50	конфигурация не присылалась	2	3	9	0	0	0	0	0
+2328.team	.team	Generation 50	конфигурация не присылалась	2	3	6	0	0	0	0	0
+b6t.team	.team	Generation 50	конфигурация не присылалась	2	5	11	0	0	0	0	0
+jmrc.team	.team	Generation 50	конфигурация не присылалась	1	2	3	0	1	0	0	0
+lptf.team	.team	Generation 50	конфигурация не присылалась	1	1	4	1	1	0	0	0
+c6vr.team	.team	Generation 50	конфигурация не присылалась	1	1	1	0	0	1	0	0
+mqvb.team	.team	Generation 50	конфигурация не присылалась	1	1	3	0	0	0	0	0
+qtbm.team	.team	Generation 50	конфигурация не присылалась	1	4	4	0	0	0	0	0
+vbgq.team	.team	Generation 50	конфигурация не присылалась	1	1	3	1	0	0	0	0
+fjnv.team	.team	Generation 50	конфигурация не присылалась	0	0	0	0	0	0	0	0
+gkpw.team	.team	Generation 50	конфигурация не присылалась	0	0	6	0	0	0	0	0
+hlqz.team	.team	Generation 50	конфигурация не присылалась	0	0	1	0	0	0	0	0
+knsd.team	.team	Generation 50	конфигурация не присылалась	0	0	1	0	0	0	0	0
+nrwg.team	.team	Generation 50	конфигурация не присылалась	0	0	2	0	0	0	0	0
+pszk.team	.team	Generation 50	конфигурация не присылалась	0	0	2	0	0	0	0	0
+rvcn.team	.team	Generation 50	конфигурация не присылалась	0	1	6	0	0	0	0	0
+tzfl.team	.team	Generation 50	конфигурация не присылалась	0	2	6	0	0	0	1	0
+wcht.team	.team	Generation 50	конфигурация не присылалась	0	0	3	0	0	0	0	0
+2650.team	.team	Generation 50	конфигурация не присылалась	0	0	0	0	0	0	2	0
+2872.team	.team	Generation 50	конфигурация не присылалась	0	1	5	0	0	0	0	0
+3164.team	.team	Generation 50	конфигурация не присылалась	0	0	0	0	0	0	0	0
+3405.team	.team	Generation 50	конфигурация не присылалась	0	2	3	0	0	0	0	0
+3728.team	.team	Generation 50	конфигурация не присылалась	0	0	0	0	0	0	0	0
+4213.team	.team	Generation 50	конфигурация не присылалась	0	0	4	0	0	0	0	0
+4586.team	.team	Generation 50	конфигурация не присылалась	0	0	3	0	0	0	0	0
+4839.team	.team	Generation 50	конфигурация не присылалась	0	0	1	0	0	0	0	0
+5027.team	.team	Generation 50	конфигурация не присылалась	0	2	4	0	0	0	0	0
+5364.team	.team	Generation 50	конфигурация не присылалась	0	2	7	0	0	0	0	0
+5719.team	.team	Generation 50	конфигурация не присылалась	0	0	0	0	0	0	0	0
+5942.team	.team	Generation 50	конфигурация не присылалась	0	0	6	0	0	0	0	0
+6473.team	.team	Generation 50	конфигурация не присылалась	0	0	0	0	0	0	0	0
+6820.team	.team	Generation 50	конфигурация не присылалась	0	0	0	0	0	0	0	0
+b3nq.team	.team	Generation 50	конфигурация не присылалась	0	0	0	0	0	0	0	0
+d9tk.team	.team	Generation 50	конфигурация не присылалась	0	0	0	0	0	0	0	0
+f2mw.team	.team	Generation 50	конфигурация не присылалась	0	0	0	0	0	0	1	0
+g5pb.team	.team	Generation 50	конфигурация не присылалась	0	0	0	0	0	0	0	0
+h8cz.team	.team	Generation 50	конфигурация не присылалась	0	2	3	0	0	0	0	0
+j4rd.team	.team	Generation 50	конфигурация не присылалась	0	0	0	0	0	0	0	0
+k7ln.team	.team	Generation 50	конфигурация не присылалась	0	0	0	0	0	0	0	0
+m3wv.team	.team	Generation 50	конфигурация не присылалась	0	0	2	0	0	0	0	0
+n6qf.team	.team	Generation 50	конфигурация не присылалась	0	0	0	0	0	0	0	0
+p9td.team	.team	Generation 50	конфигурация не присылалась	0	0	1	0	0	0	0	0
+r2km.team	.team	Generation 50	конфигурация не присылалась	0	0	0	0	0	0	0	0
+s5bg.team	.team	Generation 50	конфигурация не присылалась	0	0	0	0	0	0	0	0
+w4rz.team	.team	Generation 50	конфигурация не присылалась	0	2	6	0	0	0	0	0
+c9m.team	.team	Generation 50	конфигурация не присылалась	0	0	0	0	0	0	0	0
+d4v.team	.team	Generation 50	конфигурация не присылалась	0	0	1	0	0	0	0	0
+1085.team	.team	Generator_11page	11 страниц, генератор	102	130	185	18	13	10	0	0
+bdwn.team	.team	Generator_11page	11 страниц, генератор	85	127	197	22	6	3	2	0
+4392.team	.team	Generator_11page	11 страниц, генератор	61	90	154	8	5	3	1	0
+gkrd.team	.team	Generator_11page	11 страниц, генератор	28	45	106	2	1	2	1	0
+mpdg.team	.team	Generator_11page	11 страниц, генератор	24	30	74	6	0	1	1	0
+3019.team	.team	Generator_11page_2	11 страниц, генератор (партия 2)	15	23	81	0	0	0	0	0
+jkzq.team	.team	Generator_11page_2	11 страниц, генератор (партия 2)	13	25	59	4	0	0	0	0
+2470.team	.team	Generator_11page_2	11 страниц, генератор (партия 2)	10	12	39	0	0	1	0	0
+j8vp.team	.team	Generator_11page_2	11 страниц, генератор (партия 2)	1	1	26	0	0	0	0	0
+ip4nd.cyou	.cyou	Generator_11page_2	11 страниц, генератор (партия 2)	0	0	1	0	0	0	0	0
+bnwk.casino	.casino	Generator_11page_21.08 (обе партии)	11 страниц, генератор — две партии	28	42	88	6	5	0	1	0
+gnxb.team	.team	Generator_11page_21.08 (обе партии)	11 страниц, генератор — две партии	14	18	52	3	0	0	2	0
+hprl.team	.team	Generator_11page_21.08 (обе партии)	11 страниц, генератор — две партии	6	9	37	1	3	0	0	0
+k9ml.team	.team	Generator_11page_21.08 (обе партии)	11 страниц, генератор — две партии	6	15	29	0	0	0	0	0
+h3rb.team	.team	Generator_11page_21.08 (обе партии)	11 страниц, генератор — две партии	4	5	21	0	0	0	0	0
+smzk.lol	.lol	Generator_11page_21.08 (обе партии)	11 страниц, генератор — две партии	3	8	45	0	0	0	1	0
+m5tv.store	.store	Generator_11page_21.08 (обе партии)	11 страниц, генератор — две партии	2	3	10	0	0	1	1	0
+5297-4.casino	.casino	Generator_11page_21.08 (обе партии)	11 страниц, генератор — две партии	2	4	25	0	0	0	1	0
+n5wk.team	.team	Generator_11page_21.08 (обе партии)	11 страниц, генератор — две партии	2	2	13	1	0	0	0	0
+1305.team	.team	Generator_11page_21.08 (обе партии)	11 страниц, генератор — две партии	2	3	19	1	0	0	1	0
+rdwt.lol	.lol	Generator_11page_21.08 (обе партии)	11 страниц, генератор — две партии	1	2	19	1	0	0	0	0
+qbnv.lol	.lol	Generator_11page_21.08 (обе партии)	11 страниц, генератор — две партии	1	1	19	0	0	0	0	0
+m2vc.team	.team	Generator_11page_21.08 (обе партии)	11 страниц, генератор — две партии	1	2	9	0	0	0	1	0
+j6td.team	.team	Generator_11page_21.08 (обе партии)	11 страниц, генератор — две партии	1	1	2	0	0	0	0	0
+wrfn.cloud	.cloud	Generator_11page_21.08 (обе партии)	11 страниц, генератор — две партии	0	2	10	0	0	0	0	0
+3719.team	.team	Generator_11page_img	11 страниц с картинками	39	51	166	12	2	0	0	0
+3457.team	.team	Generator_11page_img	11 страниц с картинками	14	28	138	1	3	0	0	0
+jqtz.team	.team	Generator_11page_img	11 страниц с картинками	9	17	80	5	0	0	1	0
+g8pz.team	.team	Generator_11page_img	11 страниц с картинками	4	5	51	3	0	0	0	0
+2831.team	.team	Generator_11page_img	11 страниц с картинками	2	5	47	0	0	0	1	0
+dlnb.team	.team	Generator_v4_2	7 страниц, генератор v4_2	5	9	25	0	0	0	0	0
+5867.team	.team	Generator_v4_2	7 страниц, генератор v4_2	3	6	16	2	0	0	0	0
+2008qw.buzz	.buzz	Generator_v4_2	7 страниц, генератор v4_2	1	1	7	0	0	0	0	0
+d9mq.team	.team	Generator_v4_2	7 страниц, генератор v4_2	0	0	1	0	0	0	0	0
+3584.team	.team	Generator_v4_2	7 страниц, генератор v4_2	0	0	3	0	0	0	0	0
+g7ld.team	.team	Generator_v5	7 страниц, генератор v5	4	7	11	3	0	0	0	0
+5148.team	.team	Generator_v5	7 страниц, генератор v5	3	5	14	0	0	0	0	0
+h3ns.team	.team	Generator_v5	7 страниц, генератор v5	2	3	6	1	2	0	0	0
+c5tw.team	.team	Generator_v5	7 страниц, генератор v5	2	6	9	0	0	0	1	0
+k5cr.team	.team	Generator_v5	7 страниц, генератор v5	1	3	11	0	0	0	0	0
+3096.team	.team	NEW50_5_12pages_nodate	12 страниц без дат	100	144	308	25	11	11	4	1
+fmwc.team	.team	NEW50_5_12pages_nodate	12 страниц без дат	35	57	219	12	2	0	1	0
+4173.lol	.lol	NEW50_5_12pages_nodate	12 страниц без дат	27	37	148	14	1	0	1	0
+3506.lol	.lol	NEW50_5_12pages_nodate	12 страниц без дат	7	13	61	3	0	0	0	0
+f5nv.team	.team	NEW50_5_12pages_nodate	12 страниц без дат	4	8	111	0	0	0	0	0
+tfpc.lol	.lol	NEW50_5_12pages_nodate	12 страниц без дат	2	4	19	0	0	0	0	0
+xhpt.team	.team	NEW50_5_12pages_nodate	12 страниц без дат	1	1	55	0	0	0	0	0
+1947.team	.team	NEW50_5_12pages_withdate	12 страниц с датами	71	111	213	12	1	13	5	0
+blsr.team	.team	NEW50_5_12pages_withdate	12 страниц с датами	54	78	118	15	3	2	1	0
+vfkd.team	.team	NEW50_5_12pages_withdate	12 страниц с датами	4	17	44	1	0	0	0	0
+k8n.lol	.lol	NEW50_5_12pages_withdate	12 страниц с датами	2	4	28	0	0	0	0	0
+v2ld.lol	.lol	NEW50_5_12pages_withdate	12 страниц с датами	0	2	5	0	0	0	0	0
+d2wq.team	.team	NEW50_5_12pages_withdate	12 страниц с датами	0	0	3	0	0	0	0	0
+2214.team	.team	NEW50_5_12pages_withdate	12 страниц с датами	0	15	55	0	0	0	1	0
+ldtq.click	.click	NEW50_5_7pages_nodate	7 страниц без дат	27	44	107	10	0	0	1	0
+5847.live	.live	NEW50_5_7pages_nodate	7 страниц без дат	3	3	7	1	0	0	0	0
+c6p.fun	.fun	NEW50_5_7pages_nodate	7 страниц без дат	1	1	27	0	0	0	0	0
+w5mq.lol	.lol	NEW50_5_7pages_nodate	7 страниц без дат	1	2	9	0	0	0	0	0
+zmbv.work	.work	NEW50_5_7pages_nodate	7 страниц без дат	0	2	34	0	0	0	0	0
+9316.space	.space	NEW50_5_7pages_nodate	7 страниц без дат	0	0	0	0	0	0	0	0
+2568.team	.team	NEW50_5_7pages_withdate	7 страниц с датами	80	131	181	19	4	11	2	0
+3982.team	.team	NEW50_5_7pages_withdate	7 страниц с датами	31	48	87	7	3	6	1	0
+h2x.online	.online	NEW50_5_7pages_withdate	7 страниц с датами	9	16	35	3	1	1	0	0
+2108io.buzz	.buzz	NEW50_5_7pages_withdate	7 страниц с датами	2	5	8	0	1	0	0	0
+bnkd.shop	.shop	NEW50_5_7pages_withdate	7 страниц с датами	1	1	3	0	1	0	1	0
+trqm.casino	.casino	NEW50_5_7pages_withdate	7 страниц с датами	1	3	11	0	0	1	0	0
+x284.site	.site	NEW50_5_7pages_withdate	7 страниц с датами	0	0	0	0	0	0	0	0
+6829.lol	.lol	NEW50_5_7pages_withdate	7 страниц с датами	0	5	21	0	0	0	0	0
+c7mt.team	.team	NEW50_5_7pages_withdate	7 страниц с датами	0	0	1	0	0	0	0	0
+b4kr.team	.team	NEW50_5_7pages_withdate	7 страниц с датами	0	0	11	0	0	0	0	0
+2108jd.buzz	.buzz	NEW50_5_7pages_withdate	7 страниц с датами	0	0	1	0	0	0	0	0
+2108ee.buzz	.buzz	NEW50_5_7pages_withdate	7 страниц с датами	0	0	0	0	0	0	0	0
+1908jd.buzz	.buzz	generator v4	7 страниц, генератор v4	1	1	3	0	0	0	0	0
+6204.team	.team	generator v4	7 страниц, генератор v4	0	0	1	0	0	0	0	0
+b2kn.team	.team	generator v4	7 страниц, генератор v4	0	1	2	0	0	0	0	0
+m2wf.team	.team	generator v4	7 страниц, генератор v4	0	0	0	0	0	0	0	0
+n4kd.team	.team	generator v4	7 страниц, генератор v4	0	0	1	0	0	0	0	0
+r7mc.team	.team	generator v4	7 страниц, генератор v4	0	0	6	0	0	0	0	0
+b8t.team	.team	generator v4	7 страниц, генератор v4	0	0	3	0	0	0	0	0
+1908xc.buzz	.buzz	generator v4	7 страниц, генератор v4	0	1	5	0	0	0	0	0
+im8tq.icu	.icu	generator v4	7 страниц, генератор v4	0	0	0	0	0	0	0	0
+dwb7.top	.top	generator v4	7 страниц, генератор v4	0	0	1	0	0	0	0	0
+cglr.team	.team	kostoreznaya1 · имена	7 страниц, именованные контенты	5	8	25	0	1	0	0	0
+bfkq.team	.team	kostoreznaya1 · имена	7 страниц, именованные контенты	1	3	4	0	0	0	0	0
+dhmt.team	.team	kostoreznaya1 · имена	7 страниц, именованные контенты	0	0	5	0	0	0	0	0
+1073.team	.team	kostoreznaya1 · имена	7 страниц, именованные контенты	0	0	2	0	0	0	0	0
+1284.team	.team	kostoreznaya1 · имена	7 страниц, именованные контенты	0	0	2	0	0	0	0	0
+fkrt.team	.team	nabor-53 · наборы	12 страниц, наборы	39	70	114	6	6	2	1	0
+qwnb.team	.team	nabor-53 · наборы	12 страниц, наборы	37	56	101	7	1	4	0	0
+hzvq.lol	.lol	nabor-53 · наборы	12 страниц, наборы	14	24	69	1	1	2	2	1
+5934.lol	.lol	nabor-53 · наборы	12 страниц, наборы	8	13	49	6	0	0	0	0
+3067.team	.team	nabor-53 · наборы	12 страниц, наборы	7	10	44	3	4	0	0	0
+1670.lol	.lol	nabor-53 · наборы	12 страниц, наборы	6	9	48	2	0	0	0	0
+ctpm.lol	.lol	nabor-53 · наборы	12 страниц, наборы	3	6	20	0	1	0	0	0
+m6dv.team	.team	nabor-53 · наборы	12 страниц, наборы	3	3	23	2	0	0	0	0
+8452.team	.team	nabor-53 · наборы	12 страниц, наборы	1	3	23	0	0	0	0	0
+r4kn.lol	.lol	nabor-53 · наборы	12 страниц, наборы	0	2	17	0	0	0	0	0
+g2k.team	.team	nabor28gotovyi · наборы	12 страниц, наборы	16	37	110	5	2	0	0	0
+1596.team	.team	nabor28gotovyi · наборы	12 страниц, наборы	10	29	91	3	2	1	1	0
+h5r.team	.team	nabor28gotovyi · наборы	12 страниц, наборы	9	18	65	0	3	1	0	0
+1739.team	.team	nabor28gotovyi · наборы	12 страниц, наборы	7	15	76	1	1	2	0	0
+f7n.team	.team	nabor28gotovyi · наборы	12 страниц, наборы	5	8	54	1	0	0	1	0
+1349.team	.team	прошлые запуски	неизвестен							1	0
+1682.team	.team	прошлые запуски	неизвестен							1	0
+1794.team	.team	прошлые запуски	неизвестен							1	0
+1975.team	.team	прошлые запуски	неизвестен							1	0
+2164.team	.team	прошлые запуски	неизвестен							1	0
+2385.team	.team	прошлые запуски	неизвестен							2	0
+2417.team	.team	прошлые запуски	неизвестен							3	1
+2607.team	.team	прошлые запуски	неизвестен							2	1
+2938-5.casino	.casino	прошлые запуски	неизвестен							1	0
+3592.team	.team	прошлые запуски	неизвестен							3	1
+3748.team	.team	прошлые запуски	неизвестен							1	0
+4260.team	.team	прошлые запуски	неизвестен							1	0
+4573.team	.team	прошлые запуски	неизвестен							1	0
+4617-9.casino	.casino	прошлые запуски	неизвестен							1	0
+4863.team	.team	прошлые запуски	неизвестен							3	0
+5109.team	.team	прошлые запуски	неизвестен							3	2
+5283.team	.team	прошлые запуски	неизвестен							2	0
+5726.team	.team	прошлые запуски	неизвестен							1	1
+5731.team	.team	прошлые запуски	неизвестен							1	1
+5936.team	.team	прошлые запуски	неизвестен							2	1
+6417.team	.team	прошлые запуски	неизвестен							1	0
+6928.team	.team	прошлые запуски	неизвестен							1	1
+8172.team	.team	прошлые запуски	неизвестен							1	0
+8261.team	.team	прошлые запуски	неизвестен							2	0
+8271.team	.team	прошлые запуски	неизвестен							1	0
+8437.team	.team	прошлые запуски	неизвестен							1	0
+9364.team	.team	прошлые запуски	неизвестен							3	1
+9lm.team	.team	прошлые запуски	неизвестен							1	0
+9yp.team	.team	прошлые запуски	неизвестен							1	0
+b7mk.team	.team	прошлые запуски	неизвестен							2	1
+c7v.team	.team	прошлые запуски	неизвестен							1	0
+cdrw.team	.team	прошлые запуски	неизвестен							1	1
+cfwz.team	.team	прошлые запуски	неизвестен							1	1
+cokd4.team	.team	прошлые запуски	неизвестен							1	1
+cvnp.team	.team	прошлые запуски	неизвестен							1	0
+d4z.team	.team	прошлые запуски	неизвестен							1	0
+dwev.team	.team	прошлые запуски	неизвестен							4	0
+fkmz.team	.team	прошлые запуски	неизвестен							1	1
+fnpk.team	.team	прошлые запуски	неизвестен							5	2
+gltb.team	.team	прошлые запуски	неизвестен							1	0
+gwrn.team	.team	прошлые запуски	неизвестен							3	0
+h4p.team	.team	прошлые запуски	неизвестен							2	0
+h5nd.team	.team	прошлые запуски	неизвестен							0	1
+hjtb.team	.team	прошлые запуски	неизвестен							1	0
+hsvk.team	.team	прошлые запуски	неизвестен							1	0
+k9wb.team	.team	прошлые запуски	неизвестен							1	0
+kdnb.team	.team	прошлые запуски	неизвестен							1	0
+klvn.team	.team	прошлые запуски	неизвестен							1	0
+l1t.team	.team	прошлые запуски	неизвестен							2	0
+l3gv.team	.team	прошлые запуски	неизвестен							1	0
+lmpt.team	.team	прошлые запуски	неизвестен							2	0
+lmsd.team	.team	прошлые запуски	неизвестен							2	0
+mtbf.team	.team	прошлые запуски	неизвестен							1	0
+nsbf.team	.team	прошлые запуски	неизвестен							1	0
+p5cx.team	.team	прошлые запуски	неизвестен							1	1
+qvwf.team	.team	прошлые запуски	неизвестен							1	0
+qwdt.team	.team	прошлые запуски	неизвестен							1	0
+rszk.team	.team	прошлые запуски	неизвестен							2	0
+rtnm.team	.team	прошлые запуски	неизвестен							4	1
+snfx.team	.team	прошлые запуски	неизвестен							1	0
+t3mb.team	.team	прошлые запуски	неизвестен							1	0
+tlrk.team	.team	прошлые запуски	неизвестен							4	1
+vqrk.team	.team	прошлые запуски	неизвестен							0	1
+vwkp.team	.team	прошлые запуски	неизвестен							3	0
+wgmr.team	.team	прошлые запуски	неизвестен							1	0
+wnkr.casino	.casino	прошлые запуски	неизвестен							1	0
+xzdg.team	.team	прошлые запуски	неизвестен							1	0
+z5mt.team	.team	прошлые запуски	неизвестен							2	1
+z8kr.team	.team	прошлые запуски	неизвестен							3	0
+zbrn.team	.team	прошлые запуски	неизвестен							1	0
