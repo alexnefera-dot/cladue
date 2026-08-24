@@ -9,6 +9,7 @@
 1670.lol
 1682.team
 1739.team
+1750.team
 1794.team
 1908.team
 1908by.buzz
@@ -34,6 +35,7 @@
 2607.team
 2650.team
 2691.team
+2824.team
 2831.team
 2872.team
 2938-5.casino
@@ -41,11 +43,13 @@
 3067.team
 3096.team
 3164.team
+3286.team
 3405.team
 3457.team
 3506.lol
 3584.team
 3592.team
+3677.lol
 3719.team
 3726.team
 3728.team
@@ -53,6 +57,7 @@
 3961.team
 3982.team
 4085.team
+4150.team
 4173.lol
 4213.team
 4260.team
@@ -61,6 +66,8 @@
 4586.team
 4617-9.casino
 4671.team
+4733.team
+4814.team
 4839.team
 4863.team
 5027.team
@@ -74,6 +81,7 @@
 5719.team
 5726.team
 5731.team
+5803.team
 5847.live
 5867.team
 5934.lol
@@ -83,17 +91,21 @@
 6204.team
 6417.team
 6473.team
+6574.team
 6820.team
 6829.lol
 6928.team
+7216.lol
 8172.team
 8261.team
 8271.team
 8437.team
 8452.team
+8573.lol
 9316.space
 9364.team
 9536.lol
+9928.team
 9lm.team
 9yp.team
 b2kn.team
@@ -108,6 +120,7 @@ bfkq.team
 blsr.team
 bnkd.shop
 bnwk.casino
+c3c.lol
 c5tw.team
 c6p.fun
 c6vr.team
@@ -136,6 +149,7 @@ dwev.team
 f2mw.team
 f5nv.team
 f6bz.team
+f6zn.team
 f7n.team
 fgqw.team
 fhmv.team
@@ -170,6 +184,7 @@ hpvn.team
 hsvk.team
 hzvq.lol
 i182.xyz
+i5x.team
 im8tq.icu
 ip4nd.cyou
 j4rd.team
@@ -203,6 +218,7 @@ m2wf.team
 m3wv.team
 m5tv.store
 m6dv.team
+mkuk.team
 mpdg.team
 mqvb.team
 mtbf.team
@@ -216,6 +232,7 @@ p5cx.team
 p9td.team
 pszk.team
 qbnv.lol
+qluj.team
 qtbm.team
 qvwf.team
 qwdt.team
@@ -228,6 +245,7 @@ rszk.team
 rtnm.team
 rvcn.team
 s5bg.team
+sblv.team
 smzk.lol
 snfx.team
 swdp.team
@@ -243,6 +261,9 @@ vbgq.team
 vfkd.team
 vqrk.team
 vwkp.team
+w2yn.team
+w4g.team
+w4lv.team
 w4rz.team
 w5mq.lol
 wcht.team
@@ -250,6 +271,7 @@ wgmr.team
 wnkr.casino
 wrfn.cloud
 x284.site
+xabd.team
 xdkr.team
 xhpt.team
 xzdg.team
