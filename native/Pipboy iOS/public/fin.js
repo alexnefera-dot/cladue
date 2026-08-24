@@ -727,15 +727,13 @@ function secDigest(tree) {
   if (!picked.length) return '';
   // Правка суммы живёт только в своде и действует, пока «Сейчас» не изменилось: сравниваем
   // с базой, записанной в момент правки. Изменил сумму в главной — свод снова берёт её.
-  const shownOf = n => (n.digest_value != null && n.digest_base != null
-    && Math.abs((n.value ?? 0) - n.digest_base) < 0.005) ? n.digest_value : (n.eur || 0);
-  const edited = n => shownOf(n) !== (n.eur || 0) || (n.digest_value != null && n.digest_base != null
-    && Math.abs((n.value ?? 0) - n.digest_base) < 0.005);
-  // Цена входа имеет смысл там, где есть рост: у позиций с ⚡-привязкой. У остальных
-  // (недвижимость, кэш, вещи) вторая цифра ничего не добавляет — оставляем одну сумму.
+  // У позиций с ⚡ считаем по цене входа: их «сейчас» скачет с курсом, а в своде нужны
+  // вложенные деньги. У остальных (недвижимость, кэш, вещи) — текущая сумма.
   const isGrow = n => !!n.rate_symbol;
-  const hasIn = picked.some(isGrow);
-  const invOf = n => isGrow(n) ? (n.invested ?? 0) : 0;
+  const baseOf = n => isGrow(n) ? (n.invested ?? 0) : (n.eur || 0);
+  const edited = n => n.digest_value != null && n.digest_base != null
+    && Math.abs((n.value ?? 0) - n.digest_base) < 0.005;
+  const shownOf = n => edited(n) ? n.digest_value : baseOf(n);
   const total = picked.reduce((a, n) => a + shownOf(n), 0);
   const byGeo = {};
   picked.forEach(n => (byGeo[n.region || '—'] ??= []).push(n));
@@ -749,23 +747,19 @@ function secDigest(tree) {
   <div class="card">
     <table class="fintable digtable">
       <tr><th>Позиция</th>
-        ${hasIn ? '<th class="r" style="width:112px" title="цена входа — только у позиций с ⚡: там, где есть рост">Вход</th>' : ''}
-        <th class="r" style="width:130px">Сумма</th>
+        <th class="r" style="width:130px" title="у ⚡-позиций — цена входа, у остальных — текущая сумма">Сумма</th>
         <th class="r" style="width:78px" title="доля внутри своей географии">в гео</th>
         <th class="r" style="width:78px" title="доля от всего сведения">от свода</th></tr>
       ${order.map(geo => {
         const rows = byGeo[geo].slice().sort((a, b) => shownOf(b) - shownOf(a));
         const sum = rows.reduce((a, n) => a + shownOf(n), 0);
-        const inSum = rows.reduce((a, n) => a + invOf(n), 0);
         return `<tr class="digeo"><td>${geo === '—' ? 'Без региона' : fesc(geo)}
             ${geo === '—' ? '<span class="meta">задай 🌍 в основной таблице</span>' : ''}</td>
-          ${hasIn ? `<td class="r num muted">${inSum > 0 ? fmt(inSum) + ' €' : ''}</td>` : ''}
           <td class="r num">${fmt(sum)} €</td><td class="r meta">100%</td>
           <td class="r meta">${total > 0 ? (sum / total * 100).toFixed(1) : '0.0'}%</td></tr>`
           + rows.map(n => { const v = shownOf(n), own = edited(n); return `<tr><td class="dgname">${fesc(n.name)}
-              ${n.asset_type ? `<span class="meta">${fesc(n.asset_type)}</span>` : ''}</td>
-            ${hasIn ? `<td class="r num muted" title="${!isGrow(n) ? '' : n.buy_value != null ? 'цена входа' : 'цена входа не задана — считаем по текущей'}">${
-              isGrow(n) ? `${n.buy_value != null ? '' : '≈ '}${fmt(n.invested ?? 0)} €` : ''}</td>` : ''}
+              ${n.asset_type ? `<span class="meta">${fesc(n.asset_type)}</span>` : ''}
+              ${isGrow(n) ? `<span class="meta" title="⚡ ${fesc(n.rate_symbol)} · в своде идёт цена входа${n.buy_value == null ? ' (не задана — взята текущая)' : ''}; сейчас ${fmt(n.eur || 0)} €">вход</span>` : ''}</td>
             <td class="r num">
               <span class="ed${own ? ' dgown' : ''}" data-dgval="${n.id}:${n.value ?? ''}"
                 title="${own ? `правка свода · в главной ${fmt(n.eur || 0)} €` : 'клик — своя сумма для свода; в главной таблице не изменится'}">${fmt(v)}</span> €
@@ -773,15 +767,8 @@ function secDigest(tree) {
             <td class="r meta">${sum > 0 ? (v / sum * 100).toFixed(1) : '0.0'}%</td>
             <td class="r meta">${total > 0 ? (v / total * 100).toFixed(1) : '0.0'}%</td></tr>`; }).join('');
       }).join('')}
-      ${(() => {
-        const inv = picked.reduce((a, n) => a + invOf(n), 0);
-        const growNow = picked.filter(isGrow).reduce((a, n) => a + shownOf(n), 0);   // прирост считаем по тем же позициям
-        const g = inv > 0 ? (growNow - inv) / inv * 100 : null;
-        return `<tr class="digtot"><td>Всего сведено <span class="meta">${picked.length} позиц.</span>
-            ${g != null ? `<span class="meta" title="по позициям с ⚡: ${fmt(growNow)} € против входа ${fmt(inv)} €">· ⚡ от входа <span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</span></span>` : ''}</td>
-          ${hasIn ? `<td class="r num muted">${fmt(inv)} €</td>` : ''}
-          <td class="r num">${fmt(total)} €</td><td></td><td></td></tr>`;
-      })()}
+      <tr class="digtot"><td>Всего сведено <span class="meta">${picked.length} позиц.</span></td>
+        <td class="r num">${fmt(total)} €</td><td></td><td></td></tr>
     </table>
   </div>`;
 }

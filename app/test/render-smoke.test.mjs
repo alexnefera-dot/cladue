@@ -247,13 +247,22 @@ test('сведение капитала: только отмеченные 🎓,
     'без отметок блока быть не должно');
 });
 
-test('свод: своя сумма живёт до правки главной, вход показывается рядом', () => {
+test('свод: у ⚡ идёт цена входа, своя сумма живёт до правки главной', () => {
   const ctx = loadFin();
   const mk = extra => [{ id: 10, name: 'Рост', kind: 'block', eur: 0, children: [
     leaf(12, 'IVV', { value: 20000, eur: 20000, invested: 18000, buy_value: 18000, rate_symbol: 'IVV', qty: 4, digest: 1, region: 'EU', ...extra }) ] }];
   const plain = ctx.secDigest(mk({})).replace(/\u00a0/g, ' ');
-  assert.ok(plain.includes('18 000 €'), 'цена входа не выведена');
-  assert.ok(plain.includes('20 000'), 'текущая сумма не выведена');
+  assert.ok(plain.includes('>вход<'), 'не помечено, что это вход');
+  const seen = plain.replace(/<[^>]+>/g, ' ');   // текущая сумма остаётся в подсказке, но не на экране
+  assert.ok(seen.includes('18 000'), 'у ⚡-позиции должна стоять цена входа');
+  assert.ok(!seen.includes('20 000'), 'текущая сумма у ⚡-позиции в своде не нужна');
+
+  // без ⚡ берётся текущая сумма
+  const plainNoRate = ctx.secDigest([{ id: 10, name: 'Рост', kind: 'block', eur: 0, children: [
+    leaf(12, 'Квартира', { value: 80000, eur: 80000, invested: 60000, buy_value: 60000, digest: 1, region: 'UA' }) ] }])
+    .replace(/\u00a0/g, ' ');
+  assert.ok(plainNoRate.replace(/<[^>]+>/g, ' ').includes('80 000') && !plainNoRate.includes('60 000'),
+    'у позиции без ⚡ в своде должна стоять текущая сумма');
 
   // правка действует: база совпала с «Сейчас»
   const own = ctx.secDigest(mk({ digest_value: 25000, digest_base: 20000 })).replace(/\u00a0/g, ' ');
@@ -261,8 +270,10 @@ test('свод: своя сумма живёт до правки главной,
   assert.ok(own.includes('data-dgclr'), 'нет способа вернуть сумму из главной');
 
   // «Сейчас» изменилось — правка больше не действует
-  const stale = ctx.secDigest(mk({ value: 21000, eur: 21000, digest_value: 25000, digest_base: 20000 })).replace(/\u00a0/g, ' ');
-  assert.ok(stale.includes('21 000') && !stale.includes('25 000'), 'после правки главной свод должен взять её сумму');
+  const stale = ctx.secDigest(mk({ value: 21000, eur: 21000, invested: 19000, buy_value: 19000,
+    digest_value: 25000, digest_base: 20000 })).replace(/\u00a0/g, ' ');
+  assert.ok(stale.replace(/<[^>]+>/g, ' ').includes('19 000') && !stale.includes('25 000'),
+    'после правки главной свод должен вернуться к своей цифре');
 });
 
 test('цель: закреплено то поле, что заполнено', () => {
