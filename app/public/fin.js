@@ -832,6 +832,16 @@ function catStack(rows, total, planTotal) {
 
 
 
+// Итог по счетам: суммы по валютам и общий пересчёт в €. Одна функция на карточку сверху
+// и на строку под списком — чтобы они не могли показать разное.
+function accountsSum(accounts, rate) {
+  const r = rate || 1.08;
+  const byCur = {};
+  (accounts || []).forEach(a => { byCur[a.currency] = (byCur[a.currency] || 0) + (a.balance || 0); });
+  const eur = (accounts || []).reduce((t, a) => t + (a.currency === '$' ? (a.balance || 0) / r : (a.balance || 0)), 0);
+  return { byCur, eur, parts: Object.entries(byCur).map(([c, v]) => `${fmt(v)} ${fesc(c)}`).join(' · ') };
+}
+
 function secAccounts(d) {
   return `
   <div class="sec">Счета · название и баланс правятся кликом</div>
@@ -841,29 +851,27 @@ function secAccounts(d) {
         name: `<span class="ed" data-fe="accounts:${a.id}:name:text">${fesc(a.name)}</span>`,
         amount: `<span class="ed" data-fe="accounts:${a.id}:balance:num">${fmt(a.balance)} ${fesc(a.currency)}</span>`,
         meta: `<span class="ed meta" data-fe="accounts:${a.id}:note:text" title="пометка">${a.note ? '💬 ' + fesc(a.note) : '＋ пометка'}</span>`
-          + (a.stale_days > 21 ? `<span class="meta amber">⚠ ${a.stale_days} дн.</span>` : `<span class="meta">обн. ${a.balance_updated_at.slice(0, 10)}</span>`),
+          + (a.stale_days > 21 ? `<span class="meta amber">⚠ ${a.stale_days} дн.</span>`
+            : `<span class="meta">обн. ${(a.balance_updated_at || '—').slice(0, 10)}</span>`),
         actions: `<span class="rowbtn del" data-findel="accounts:${a.id}">✕</span>`,
       }) : `
       <div class="task">
         <span class="pill">${ACCT[a.type] ?? a.type}</span>
         <span class="t ed" data-fe="accounts:${a.id}:name:text">${fesc(a.name)}</span>
         <span class="ed meta" data-fe="accounts:${a.id}:note:text" style="flex:1" title="пометка: сохраняем, тратим, подушка…">${a.note ? '💬 ' + fesc(a.note) : '＋ пометка'}</span>
-        ${a.stale_days > 21 ? `<span class="meta amber">⚠ ${a.stale_days} дн.</span>` : `<span class="meta">обн. ${a.balance_updated_at.slice(0, 10)}</span>`}
+        ${a.stale_days > 21 ? `<span class="meta amber">⚠ ${a.stale_days} дн.</span>`
+          : `<span class="meta">обн. ${(a.balance_updated_at || '—').slice(0, 10)}</span>`}
         <span class="ed num" data-fe="accounts:${a.id}:balance:num">${fmt(a.balance)} ${fesc(a.currency)}</span>
         <span class="rowbtn del" data-findel="accounts:${a.id}">✕</span>
       </div>`).join('')}
     ${(() => {
       // Счета — ручная разбивка того же капитала: сами по себе они ни с чем не связаны,
       // поэтому единственное, что от них нужно, — итог, который можно сверить глазами.
-      const rate = d.summary?.rate || 1.08;
-      const byCur = {};
-      d.accounts.forEach(a => { byCur[a.currency] = (byCur[a.currency] || 0) + (a.balance || 0); });
-      const eur = d.accounts.reduce((t, a) => t + (a.currency === '$' ? (a.balance || 0) / rate : (a.balance || 0)), 0);
-      const parts = Object.entries(byCur).map(([c, v]) => `${fmt(v)} ${fesc(c)}`).join(' · ');
+      const t = accountsSum(d.accounts, d.summary?.rate);
       return d.accounts.length ? `<div class="task accsum">
         <span class="meta">итого по счетам</span>
-        <span class="num" style="margin-left:auto">${parts}</span>
-        ${Object.keys(byCur).length > 1 ? `<span class="meta">≈ ${fmt(eur)} €</span>` : ''}
+        <span class="num" style="margin-left:auto">${t.parts}</span>
+        ${Object.keys(t.byCur).length > 1 ? `<span class="meta">≈ ${fmt(t.eur)} €</span>` : ''}
       </div>` : '';
     })()}
     <div class="task finadd">
@@ -1254,8 +1262,10 @@ function renderFin() {
   const hide = finHide;
   // точечное раскрытие: кнопка в свёрнутой карточке открывает только её раздел
   const hidden = key => hide && !finShown.has(key);
-  const accStr = hidden('acc') ? '—'
-    : Object.entries(s.accountsByCurrency).map(([c, v]) => `${fmt(v)} ${c}`).join(' · ') || '—';
+  // Итог по счетам считаем из того же массива, что рисует строки: сводка с бэкенда была
+  // вторым источником правды и могла разойтись со списком после правки баланса.
+  const accSum = accountsSum(d.accounts, s.rate);
+  const accStr = hidden('acc') ? '—' : (accSum.parts || '—');
   // сборка старее последней правки Swift: бэкенд ещё со старым поведением — правки будут слетать
   const stale = finBuild && String(finBuild.buildDate || '').slice(0, 10) < NEED_BUILD;
   const head = `

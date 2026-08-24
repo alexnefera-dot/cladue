@@ -276,6 +276,26 @@ test('свод: у ⚡ идёт цена входа, своя сумма жив�
     'после правки главной свод должен вернуться к своей цифре');
 });
 
+test('счета: карточка сверху и итог в разделе считают одно и то же', () => {
+  const ctx = loadFin();
+  const accounts = [
+    { id: 1, name: 'Брокер', type: 'broker', currency: '€', balance: 50300, balance_updated_at: '2026-08-01', stale_days: 2 },
+    { id: 2, name: 'Кэш', type: 'cash', currency: '$', balance: 1080, balance_updated_at: null, stale_days: 0 },
+  ];
+  const d = { ...DATA, accounts, budgetItems: [], obligations: [],
+    summary: { ...DATA.summary, rate: 1.08, accountsByCurrency: { '€': 999999 } } };   // сводка с бэкенда намеренно врёт
+  const node = { addEventListener() {}, appendChild() {}, replaceWith() {}, focus() {},
+    classList: { add() {}, remove() {} }, dataset: {}, style: {}, innerHTML: '', value: '' };
+  ctx.document.getElementById = () => node;
+  ctx.__d = d;
+  vm.runInContext('finSection = "acc"; finHide = false; finData = __d; finBuild = null', ctx);
+  ctx.renderFin();
+  const html = node.innerHTML.replace(/\u00a0/g, ' ');
+  assert.ok(!html.includes('999 999'), 'карточка сверху всё ещё берёт сводку с бэкенда');
+  assert.equal((html.match(/50 300 € · 1 080 \$/g) || []).length, 2, 'карточка и итог раздела должны показывать одно');
+  assert.ok(html.includes('обн. —'), 'счёт без даты обновления не должен ронять раздел');
+});
+
 test('цель: закреплено то поле, что заполнено', () => {
   const html = loadFin().secPortfolio(DATA, DATA.summary);
   assert.ok(html.includes('target_pct'), 'нет поля доли');
