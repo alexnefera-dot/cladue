@@ -1,0 +1,131 @@
+<title>Глубина по брендам</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+:root{
+  --bg:#edf0f3; --surf:#ffffff; --sunk:#e3e8ed;
+  --ink:#14202a; --mut:#5c6b78; --dim:#8c9aa6;
+  --line:#d4dce3; --line2:#bec9d3;
+  --accent:#0b6e7a; --hot:#bf4e20; --warn:#a06a12; --dead:#94a2ae;
+  --track:#dbe2e8;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,monospace;
+  --disp:"Bricolage Grotesque","Public Sans",system-ui,sans-serif;
+  --body:"Public Sans",system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0d1418; --surf:#151e24; --sunk:#101820;
+  --ink:#e2e9ee; --mut:#8797a3; --dim:#66757f;
+  --line:#222e36; --line2:#31404a;
+  --accent:#52c6d2; --hot:#e8834a; --warn:#d3a54a; --dead:#5c6b78;
+  --track:#1d2830;
+}}
+:root[data-theme="dark"]{
+  --bg:#0d1418; --surf:#151e24; --sunk:#101820;
+  --ink:#e2e9ee; --mut:#8797a3; --dim:#66757f;
+  --line:#222e36; --line2:#31404a;
+  --accent:#52c6d2; --hot:#e8834a; --warn:#d3a54a; --dead:#5c6b78;
+  --track:#1d2830;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);
+  font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding:0 26px}
+header{padding:44px 0 30px;border-bottom:2px solid var(--ink)}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--accent);font-weight:500;margin-bottom:14px}
+h1{font-family:var(--disp);font-weight:800;font-size:clamp(30px,5.2vw,46px);line-height:1.02;
+  margin:0 0 16px;letter-spacing:-.02em;text-wrap:balance}
+.lede{max-width:62ch;color:var(--mut);font-size:16px;margin:0}
+.lede b{color:var(--ink);font-weight:600}
+.facts{display:flex;flex-wrap:wrap;gap:0;margin-top:26px;border-top:1px solid var(--line)}
+.fact{flex:1 1 130px;padding:14px 18px 12px 0;border-right:1px solid var(--line)}
+.fact:last-child{border-right:0}
+.fact .v{font-family:var(--mono);font-weight:700;font-size:25px;line-height:1;
+  font-variant-numeric:tabular-nums;color:var(--ink)}
+.fact .v.q{color:var(--dead)}
+.fact .l{font-size:12px;color:var(--mut);margin-top:6px;line-height:1.3}
+main{padding:34px 0 70px}
+h2{font-family:var(--disp);font-weight:600;font-size:21px;margin:0 0 4px;letter-spacing:-.01em}
+.sub{color:var(--mut);font-size:13.5px;margin:0 0 16px;max-width:62ch}
+section{margin-bottom:44px}
+.tw{overflow-x:auto;border:1px solid var(--line);background:var(--surf);border-radius:3px}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--mut);font-weight:500;text-align:right;padding:11px 13px;
+  border-bottom:1px solid var(--line2);background:var(--sunk);white-space:nowrap}
+th.l,td.l{text-align:left}
+td{padding:10px 13px;border-bottom:1px solid var(--line);text-align:right;
+  font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:0}
+.num{font-family:var(--mono)}
+.dom{font-family:var(--mono);font-weight:500;color:var(--ink)}
+.brand{font-family:var(--disp);font-weight:600;font-size:15px}
+.mut{color:var(--mut)}.dim{color:var(--dim)}
+.zero{color:var(--dead);font-style:italic}
+.tag{font-family:var(--mono);font-size:10.5px;padding:2px 6px;border-radius:2px;
+  border:1px solid var(--line2);color:var(--mut);white-space:nowrap;display:inline-block}
+.tag.img{border-color:var(--accent);color:var(--accent)}
+/* карточка бренда */
+.bcard{background:var(--surf);border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.bcard.empty{background:transparent;border-style:dashed}
+.bhead{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 16px;
+  padding:15px 18px;border-bottom:1px solid var(--line);background:var(--sunk)}
+.bcard.empty .bhead{background:transparent;border-bottom-style:dashed}
+.bname{font-family:var(--disp);font-weight:800;font-size:22px;letter-spacing:-.01em}
+.bvol{font-family:var(--mono);font-size:12.5px;color:var(--mut);font-variant-numeric:tabular-nums}
+.bwin{margin-left:auto;font-size:13px;color:var(--mut);text-align:right}
+.bwin b{font-family:var(--mono);color:var(--ink);font-weight:600}
+.bbody{padding:6px 18px 16px}
+.dgroup{padding:12px 0;border-bottom:1px solid var(--line)}
+.dgroup:last-child{border-bottom:0}
+.dtitle{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-bottom:9px}
+.dtitle .rank{font-family:var(--mono);font-size:11px;color:var(--dim);width:22px}
+.krow{display:grid;grid-template-columns:minmax(150px,1.15fr) 46px minmax(140px,2fr);
+  gap:12px;align-items:center;padding:3px 0 3px 22px}
+.kq{font-size:13px;color:var(--ink);overflow-wrap:anywhere}
+.kp{font-family:var(--mono);font-weight:700;font-size:14px;text-align:right;
+  font-variant-numeric:tabular-nums}
+.p-hot{color:var(--hot)}.p-warn{color:var(--warn)}.p-deep{color:var(--mut)}
+/* шкала глубины */
+.gauge{position:relative;height:16px;background:var(--track);border-radius:2px;overflow:hidden}
+.gauge .z10,.gauge .z30{position:absolute;top:0;bottom:0;width:1px;background:var(--line2)}
+.gauge .z10{left:10%}.gauge .z30{left:30%}
+.gauge .pip{position:absolute;top:2px;bottom:2px;width:3px;border-radius:1px;background:var(--hot)}
+.gauge .pip.warn{background:var(--warn)}
+.gauge .pip.deep{background:var(--dim)}
+.scale{display:grid;grid-template-columns:minmax(150px,1.15fr) 46px minmax(140px,2fr);
+  gap:12px;padding:0 0 6px 22px}
+.scale .marks{position:relative;height:13px;font-family:var(--mono);font-size:9.5px;color:var(--dim)}
+.scale .marks span{position:absolute;top:0;transform:translateX(-50%)}
+.deadkeys{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line2)}
+.deadkeys .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--dead);margin-bottom:7px}
+.deadkeys .list{font-size:12.5px;color:var(--dim);line-height:1.75}
+.note{background:var(--sunk);border-left:3px solid var(--accent);padding:14px 17px;
+  border-radius:0 3px 3px 0;font-size:13.5px;color:var(--mut);max-width:70ch}
+.note b{color:var(--ink);font-weight:600}
+.note+.note{margin-top:11px}
+footer{border-top:1px solid var(--line);padding:20px 0 40px;font-size:12px;color:var(--dim);
+  font-family:var(--mono)}
+@media (max-width:660px){
+  .krow,.scale{grid-template-columns:1fr 42px;padding-left:0}
+  .krow .gauge,.scale .marks{grid-column:1/-1}
+  .fact{border-right:0}
+}
+</style>
+<div class="wrap">
+<header>
+  <div class="eyebrow">Book1 · срез 24.08 · 42 домена · 70 ключей</div>
+  <h1>Глубина по брендам</h1>
+  <p class="lede">Узкое ядро на семь брендов, проверенное по всем сорока двум доменам запуска
+  24 августа. <b>Из 2940 проверок позицию вернули 19.</b> Все они глубокие: лучшая —
+  двадцать третья, в ТОП-10 не попал никто.</p>
+  <div class="facts" id="facts"></div>
+</header>
+<main id="main"></main>
+<footer>Позиция берётся из последнего среза. «Лучший сайт» — домен с наименьшей позицией по бренду;
+при равенстве выше тот, у кого больше ключей. Объёмы кликов в месяц — из brands_master.</footer>
+</div>
+<script>const D = __DATA__;</script>
+<script>
+__APP__
+</script>
