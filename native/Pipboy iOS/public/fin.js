@@ -652,6 +652,7 @@ function secPortfolio(d, s) {
     </div>` : ''}
   </div>` : ''}
   ${tgt ? secDigest(tree) : ''}
+  ${tgt ? secHistory(d.historyRows, s.rate || d.rate) : ''}
   ${tgt ? capHistory(d.history, monSide) : ''}
   ${(rctx.spends || []).length ? `
   <div class="card">
@@ -769,6 +770,54 @@ function secDigest(tree) {
       }).join('')}
       <tr class="digtot"><td>Всего сведено <span class="meta">${picked.length} позиц.</span></td>
         <td class="r num">${fmt(total)} €</td><td></td><td></td></tr>
+    </table>
+  </div>`;
+}
+
+// «История» — свободный блок теми же глазами, что и свод: группы и пункты под ними.
+// Здесь ничего не берётся из портфеля, всё заводится руками.
+function secHistory(rows, rate) {
+  const all = rows || [];
+  const groups = all.filter(r => r.parent_id == null);
+  const kids = {};
+  all.filter(r => r.parent_id != null).forEach(r => (kids[r.parent_id] ??= []).push(r));
+  const eurOf = r => (r.currency === '$' ? (r.amount || 0) / (rate || 1.08) : (r.amount || 0));
+  const total = groups.reduce((a, g) => a + (kids[g.id] || []).reduce((x, r) => x + eurOf(r), 0), 0);
+  const addRow = (pid, ph) => `<tr class="histadd"><td colspan="4">
+    <span class="task finadd" style="border:0;padding:0">
+      <input data-hname="${pid}" placeholder="${ph}" style="flex:1">
+      <input data-hamt="${pid}" placeholder="сумма" style="width:100px">
+      <select data-hcur="${pid}"><option>€</option><option>$</option></select>
+      <span class="pill btn ok" data-hadd="${pid}">＋</span>
+    </span></td></tr>`;
+  return `
+  <div class="sec">История · свои группы и пункты, руками</div>
+  <div class="card">
+    <table class="fintable digtable">
+      <tr><th>Пункт</th><th class="r" style="width:130px">Сумма</th>
+        <th class="r" style="width:78px" title="доля внутри группы">в группе</th>
+        <th class="r" style="width:78px" title="доля от всей истории">от всего</th></tr>
+      ${groups.map(g => {
+        const rs = kids[g.id] || [];
+        const sum = rs.reduce((a, r) => a + eurOf(r), 0);
+        return `<tr class="digeo"><td>
+            <span class="ed" data-fe="hist:${g.id}:name:text" title="клик — переименовать">${fesc(g.name) || 'группа'}</span>
+            <span class="rowbtn del" data-hdel="${g.id}" title="удалить группу со всеми пунктами">✕</span></td>
+          <td class="r num">${fmt(sum)} €</td><td class="r meta">${rs.length ? '100%' : ''}</td>
+          <td class="r meta">${total > 0 ? (sum / total * 100).toFixed(1) : '0.0'}%</td></tr>`
+          + rs.map(r => `<tr><td class="dgname">
+              <span class="ed" data-fe="hist:${r.id}:name:text">${fesc(r.name) || '—'}</span>
+              <span class="ed meta" data-fe="hist:${r.id}:note:text" title="пометка">${r.note ? '💬 ' + fesc(r.note) : '＋'}</span>
+              <span class="rowbtn del" data-hdel="${r.id}">✕</span></td>
+            <td class="r num"><span class="pill btn" data-hcurtog="${r.id}:${fesc(r.currency || '€')}" title="сменить валюту">${fesc(r.currency || '€')}</span>
+              <span class="ed" data-fe="hist:${r.id}:amount:num">${fmt(r.amount)}</span></td>
+            <td class="r meta">${sum > 0 ? (eurOf(r) / sum * 100).toFixed(1) : '0.0'}%</td>
+            <td class="r meta">${total > 0 ? (eurOf(r) / total * 100).toFixed(1) : '0.0'}%</td></tr>`).join('')
+          + addRow(g.id, 'новый пункт');
+      }).join('') || '<tr><td colspan="4"><div class="empty">групп пока нет — заведи первую ниже</div></td></tr>'}
+      ${groups.length ? `<tr class="digtot"><td>Всего <span class="meta">${groups.length} групп.</span></td>
+        <td class="r num">${fmt(total)} €</td><td></td><td></td></tr>` : ''}
+      ${addRow('', 'новая группа')}
     </table>
   </div>`;
 }
@@ -1542,6 +1591,27 @@ function bindFin() {
         : prompt(kind === 'section' ? 'Название раздела:' : 'Название актива:');
       if (!name || !name.trim()) return;
       await finApi.add('tgt', { kind, parent_id: pid ? +pid : null, name: name.trim(), passive: passive ? 1 : 0 });
+      window.loadFin();
+    }));
+  document.querySelectorAll('[data-hadd]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const pid = el.dataset.hadd;
+      const q = k => document.querySelector(`[data-h${k}="${pid}"]`);
+      const name = q('name').value.trim();
+      if (!name) return;
+      await finApi.add('hist', { parent_id: pid === '' ? null : +pid, name,
+        amount: parseNum(q('amt').value) ?? null, currency: q('cur').value });
+      window.loadFin();
+    }));
+  document.querySelectorAll('[data-hdel]').forEach(el =>
+    el.addEventListener('click', async () => {
+      await finApi.del('hist', +el.dataset.hdel);
+      window.loadFin();
+    }));
+  document.querySelectorAll('[data-hcurtog]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const [id, cur] = el.dataset.hcurtog.split(':');
+      await finApi.patch('hist', +id, { currency: cur === '€' ? '$' : '€' });
       window.loadFin();
     }));
   document.querySelectorAll('[data-dgval]').forEach(el =>

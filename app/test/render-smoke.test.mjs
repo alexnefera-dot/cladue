@@ -297,6 +297,24 @@ test('счета: карточка сверху и итог в разделе с
   assert.ok(html.includes('бэкенд считает иначе'), 'расхождение со сводкой должно быть названо числом');
 });
 
+test('история: свои группы и пункты, доли и валюта', () => {
+  const ctx = loadFin();
+  const rows = [
+    { id: 1, parent_id: null, name: '2024 · продажи', ord: 1 },
+    { id: 2, parent_id: 1, name: 'Авто', amount: 12000, currency: '€' },
+    { id: 3, parent_id: 1, name: 'Бонус', amount: 5400, currency: '$' },
+    { id: 4, parent_id: null, name: '2025', ord: 2 },
+    { id: 5, parent_id: 4, name: 'Квартира', amount: 60000, currency: '€' },
+  ];
+  const html = ctx.secHistory(rows, 1.08).replace(/\u00a0/g, ' ');
+  assert.ok(html.includes('17 000 €'), 'группа не сложила 12 000 € и 5 400 $ по курсу');
+  assert.ok(html.includes('77 000 €'), 'общий итог не сошёлся');
+  assert.ok(html.includes('29.4%'), 'доля в группе считается не в евро');
+  assert.ok(html.includes('data-hadd="1"') && html.includes('data-hadd=""'),
+    'должны быть и добавление пункта в группу, и добавление группы');
+  assert.ok(ctx.secHistory([], 1.08).includes('групп пока нет'), 'пустой блок ничего не объясняет');
+});
+
 test('цель: закреплено то поле, что заполнено', () => {
   const html = loadFin().secPortfolio(DATA, DATA.summary);
   assert.ok(html.includes('target_pct'), 'нет поля доли');

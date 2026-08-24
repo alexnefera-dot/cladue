@@ -475,6 +475,11 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .digtable tr.digtot td{border-top:1px solid var(--line);border-bottom:0;font-weight:600}
 .digtable .dgown{color:var(--blue);border-bottom-color:var(--blue)}   /* сумма правлена в своде */
 .digtable td.muted{color:var(--muted)}
+/* «История»: строка добавления живёт внутри той же таблицы */
+.digtable tr.histadd td{border-bottom:0;padding:4px 8px 8px}
+.digtable tr.histadd .finadd{display:flex;gap:6px;align-items:center}
+.digtable tr.histadd input,.digtable tr.histadd select{border:1px solid var(--line);border-radius:7px;
+  padding:5px 8px;font:12px var(--sans);background:var(--panel)}
 /* Иерархия — фоном и отступом, а не жирностью: иначе каждый новый раздел лезет в глаза */
 .porttable tr.pblock td{background:var(--bg2)}
 .porttable tr.pblock .pname{font-weight:600}

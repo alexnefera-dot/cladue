@@ -57,6 +57,14 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         _ = try? made.run("ALTER TABLE snapshots ADD COLUMN active_eur REAL")
         _ = try? made.run("ALTER TABLE snapshots ADD COLUMN passive_eur REAL")
         _ = try? made.run("ALTER TABLE snapshots ADD COLUMN invested_eur REAL")
+        // Свободный блок «История»: группы и пункты под ними — заполняется руками,
+        // из портфеля ничего не берётся. Два уровня: parent_id NULL = группа.
+        _ = try? made.run("""
+            CREATE TABLE IF NOT EXISTS history_rows(id INTEGER PRIMARY KEY,
+              parent_id INTEGER REFERENCES history_rows(id) ON DELETE CASCADE,
+              ord INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL DEFAULT '',
+              amount REAL, currency TEXT NOT NULL DEFAULT '€', note TEXT)
+            """)
         // Журнал отмены на Финансах: последние шаги с данными «как было». Не история правок —
         // страховка от «удалил не то»: хранится 20 записей, отменяется последняя.
         _ = try? made.run("""
@@ -1434,7 +1442,7 @@ enum Api {
     // ----- Финансы: запись -----
     private static let finTable = ["accounts": "accounts", "steps": "steps",
         "obligations": "obligations", "items": "target_items", "tx": "transactions", "debts": "debts", "income": "passive_income",
-        "budget": "budget_items", "tgt": "target_items", "move": "target_moves"]
+        "budget": "budget_items", "tgt": "target_items", "move": "target_moves", "hist": "history_rows"]
     private static let finCols: [String: [String]] = [
         "accounts": ["name", "type", "currency", "note", "balance"],
         "steps": ["kind", "title", "amount", "planned_date", "condition", "status", "note"],
@@ -1445,11 +1453,12 @@ enum Api {
         "income": ["name", "amount", "currency", "period", "next_date", "note", "principal", "rate", "rate_period", "asset_type"],
         "budget": ["name", "amount", "currency", "direction", "ord", "month"],
         "tgt": ["name", "value", "buy_value", "target_value", "target_pct", "currency", "asset_type", "qty", "rate_symbol", "note", "kind", "region", "liquid", "passive", "digest", "digest_value", "digest_base"],
-        "move": ["from_id", "to_id", "amount", "to_note"]]
+        "move": ["from_id", "to_id", "amount", "to_note"],
+        "hist": ["name", "amount", "currency", "note"]]
     // как называть сущность в подписи «отменить: удаление счёта «Revolut»»
     private static let finWhat = ["accounts": "счёта", "steps": "шага", "obligations": "обязательства",
         "items": "позиции", "tgt": "позиции", "tx": "операции", "debts": "долга", "income": "дохода",
-        "budget": "статьи", "move": "перестановки"]
+        "budget": "статьи", "move": "перестановки", "hist": "строки истории"]
 
     // ===== Отмена последнего шага на Финансах =====
     // Пишем «как было» перед каждой правкой: удаление — строку целиком (для дерева — с ветвью
@@ -1568,7 +1577,7 @@ enum Api {
     static func finWrite(method: String, path: String, body: [String: Any], db: Database) throws -> (Data, Int)? {
         if method == "POST", path == "/api/rates/refresh" { return (try ratesRefresh(db), 200) }
         if method == "POST", path == "/api/fin/undo" { return (try json(try undoApplyLast(db)), 200) }
-        if let m = match(path, "^/api/fin/(accounts|steps|obligations|items|tx|debts|income|budget|tgt|move)(?:/([0-9]+))?$") {
+        if let m = match(path, "^/api/fin/(accounts|steps|obligations|items|tx|debts|income|budget|tgt|move|hist)(?:/([0-9]+))?$") {
             let entity = m[1], idStr = m[2], table = finTable[entity] ?? entity
             if method == "POST" && idStr.isEmpty { try finAdd(db, entity, body); return (ok(201), 201) }
             if method == "PATCH" && !idStr.isEmpty {
@@ -1693,6 +1702,11 @@ enum Api {
             let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM target_items WHERE parent_id IS ?", [parent]).first?["o"]))
             try db.run("INSERT INTO target_items(parent_id, ord, name, kind, value, currency, asset_type, passive) VALUES(?,?,?,?,?,?,?,?)",
                 [parent, ord, b["name"] as? String ?? "", b["kind"] as? String ?? "asset", b["value"] ?? NSNull(), b["currency"] as? String ?? "€", b["asset_type"] ?? NSNull(), intval(b["passive"] ?? 0)])
+        case "hist":
+            let parent = numOpt(b["parent_id"]).map { Int($0) }
+            let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM history_rows WHERE parent_id IS ?", [parent]).first?["o"]))
+            try db.run("INSERT INTO history_rows(parent_id, ord, name, amount, currency) VALUES(?,?,?,?,?)",
+                [parent ?? NSNull(), ord, b["name"] as? String ?? "", b["amount"] ?? NSNull(), b["currency"] as? String ?? "€"])
         case "move":
             let mvFrom = numOpt(b["from_id"]).map { Int($0) }, mvTo = numOpt(b["to_id"]).map { Int($0) }
             let mvRate = (try? eurUsdRate(db)) ?? 1.08
@@ -2736,6 +2750,7 @@ enum Api {
             "obligations": obligations, "loans": loans, "debts": debts,
             "snapshotDelta": snapshotDelta, "history": history,
             "propNames": try db.rows("SELECT id, name FROM properties"),
+            "historyRows": (try? db.rows("SELECT * FROM history_rows ORDER BY parent_id IS NOT NULL, ord, id")) ?? [],
             "undo": (try? db.rows("SELECT id, at, label FROM fin_undo ORDER BY id DESC LIMIT 1"))?.first ?? NSNull(),
             "byType": byTypeSorted, "byTypeBlocks": byTypeBlocks, "byRegion": byRegionSorted, "byRegionBlocks": byRegionBlocks, "blockEur": blockEur,
             "tx": tx, "forecasts": fc, "fire": fireV,
@@ -3278,7 +3293,7 @@ enum Api {
         "receivables", "passive_income", "settings", "macro_notes", "debts", "snapshots",
         "routines", "routine_log", "people", "contact_log", "pages", "page_revisions", "attachments",
         "practices", "practice_log", "wheel_areas", "wheel_scores", "area_milestones", "area_questions", "work_log", "forecasts",
-        "properties", "checkins", "metrics", "metric_log", "node_log", "trash", "event_done"]
+        "properties", "checkins", "metrics", "metric_log", "node_log", "trash", "event_done", "history_rows"]
 
     // Таблицы с одним ключом → двусторонний merge по updated_at (LWW) + tombstones.
     static let syncKeyed: [(String, String)] = [
@@ -3288,7 +3303,7 @@ enum Api {
         ("budget_items", "id"), ("target_items", "id"), ("target_moves", "id"), ("debts", "id"), ("routines", "id"), ("people", "id"), ("contact_log", "id"),
         ("pages", "id"), ("page_revisions", "id"), ("attachments", "id"), ("practices", "id"), ("practice_log", "id"),
         ("wheel_areas", "id"), ("wheel_scores", "id"), ("area_milestones", "id"), ("area_questions", "id"), ("work_log", "id"), ("forecasts", "id"),
-        ("properties", "id"), ("metrics", "id"), ("node_log", "id"), ("trash", "id"),
+        ("properties", "id"), ("metrics", "id"), ("node_log", "id"), ("trash", "id"), ("history_rows", "id"),
         ("settings", "key"), ("rates", "symbol"), ("snapshots", "date"), ("checkins", "date")]
     // Таблицы с составным ключом (логи/отметки) → простое объединение, без tombstones.
     static let syncUnion = ["dismissed", "routine_log", "metric_log", "event_done"]
