@@ -62,7 +62,7 @@ const SPLIT = {
 };
 // текст строки над таблицей без тегов: числа разбиты <b>, а разряды — неразрывным пробелом
 const capLine = html => ((html.match(/<div class="capline">[\s\S]*?<\/div>/) || [''])[0])
-  .replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').replace(/ /g, ' ').trim();
+  .replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').replace(/\u00a0/g, ' ').trim();
 const rowOf = (html, name) => (html.match(new RegExp(`<tr class="[^"]*" draggable[\\s\\S]*?${name}[\\s\\S]*?</tr>`)) || [''])[0];
 
 test('портфель отрисовывается без ошибок', () => {
@@ -215,7 +215,7 @@ test('история капитала: две линии и «заработан
     { date: '2026-01-31', portfolio_eur: 300, active_eur: 250, passive_eur: 50, invested_eur: 240 },
     { date: '2026-02-28', portfolio_eur: 340, active_eur: 290, passive_eur: 50, invested_eur: 250 },
   ];
-  const html = loadFin().capHistory(rows, 'act').replace(/ /g, ' ');
+  const html = loadFin().capHistory(rows, 'act').replace(/\u00a0/g, ' ');
   assert.ok(html.includes('sp-val') && html.includes('sp-inv'), 'нарисована не та пара линий');
   assert.ok(html.includes('внесено') && html.includes('250 €'), 'внесённое не выведено');
   assert.ok(html.includes('+40 €'), 'заработанное 290 − 250 не посчиталось');
@@ -225,6 +225,25 @@ test('история: одного снимка мало — говорим об
   const html = loadFin().capHistory([{ date: '2026-02-28', portfolio_eur: 340 }], 'all');
   assert.ok(!html.includes('<svg'), 'график нарисован по одной точке');
   assert.ok(html.includes('снимок пишется раз в день'), 'нет объяснения, почему пусто');
+});
+
+test('сведение капитала: только отмеченные 🎓, гео берётся из общей таблицы', () => {
+  const ctx = loadFin();
+  const tree = [{ id: 10, name: 'Рост', kind: 'block', eur: 229000, children: [
+    leaf(12, 'SCHD', { eur: 120000, digest: 1, region: 'EU' }),
+    leaf(13, 'Квартира', { eur: 80000, digest: 1, region: 'UA' }),
+    leaf(14, 'Депозит', { eur: 20000, digest: 1, region: 'EU' }),
+    leaf(15, 'BTC', { eur: 9000, digest: 1 }),
+    leaf(16, 'Мимо', { eur: 500000 }),
+  ] }];
+  const html = ctx.secDigest(tree).replace(/\u00a0/g, ' ');
+  assert.ok(!html.includes('Мимо'), 'в свод попала неотмеченная позиция');
+  assert.ok(html.includes('140 000 €') && html.includes('80 000 €'), 'EU 120+20 и UA 80 не сложились');
+  assert.ok(html.includes('85.7%'), 'доля внутри своей географии не посчиталась');
+  assert.ok(html.includes('52.4%'), 'доля от всего свода не посчиталась');
+  assert.ok(html.includes('Без региона') && html.includes('задай 🌍'), 'позиция без гео потерялась');
+  assert.equal(ctx.secDigest([{ id: 1, name: 'Блок', kind: 'block', eur: 0, children: [leaf(2, 'X')] }]), '',
+    'без отметок блока быть не должно');
 });
 
 test('цель: закреплено то поле, что заполнено', () => {

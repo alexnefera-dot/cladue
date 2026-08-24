@@ -464,6 +464,15 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
   font:11.5px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums;padding:0 2px 7px}
 .capline b{color:var(--text);font-weight:600}
 .capline .capsp{margin-left:auto}
+/* Сведение капитала: мини-таблица, география — как части в основной */
+.digtable{font-variant-numeric:tabular-nums}
+.digtable td,.digtable th{padding:5px 8px;border-bottom:1px solid var(--bg2)}
+.digtable tr.digeo td{background:var(--bg2);font-weight:600;border-top:1px solid var(--line)}
+.digtable tr.digeo .meta{font-weight:400;margin-left:8px}
+.digtable tr:first-child+tr.digeo td{border-top:0}
+.digtable .dgname{padding-left:22px}
+.digtable .dgname .meta{margin-left:8px}
+.digtable tr.digtot td{border-top:1px solid var(--line);border-bottom:0;font-weight:600}
 /* Иерархия — фоном и отступом, а не жирностью: иначе каждый новый раздел лезет в глаза */
 .porttable tr.pblock td{background:var(--bg2)}
 .porttable tr.pblock .pname{font-weight:600}

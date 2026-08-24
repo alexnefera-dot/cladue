@@ -169,6 +169,7 @@ function portRows(it, depth, ctx) {
       ${editable && !it.asset_type ? `<span class="rowbtn" data-ftype="${it.id}" title="задать тип актива">⊙</span>` : ''}
       ${editable && !it.region ? `<span class="rowbtn" data-fregion="${it.id}" title="задать регион (SK/UA/AU/EU/WEB)">🌍</span>` : ''}
       ${editable ? `<span class="rowbtn" data-frate="${it.id}" title="${it.rate_symbol ? 'автоцена: сменить/убрать тикер' : 'автоцена по курсу (BTC, золото, SCHD/IVV/VHT)'}">⚡</span>` : ''}
+      ${editable ? `<span class="rowbtn${it.digest ? ' on' : ''}" data-fdig="${it.id}:${it.digest ? 1 : 0}" title="${it.digest ? 'убрать из сведения капитала' : 'взять в сведение капитала — свод по географии'}">🎓</span>` : ''}
       ${depth === 0 ? `<span class="rowbtn${it.passive ? ' on' : ''}" data-fside="${it.id}:${it.passive ? 1 : 0}" title="${it.passive ? 'вернуть блок в активы' : 'перенести блок в пассивы — вещи, которые не зарабатывают'}">⇄</span>` : ''}
       <span class="rowbtn del" data-findel="${pfx}:${it.id}">✕</span>
     </td>
@@ -306,6 +307,7 @@ function portCard(it, depth, ctx) {
     ${it.kind === 'section' ? `<span class="rowbtn" data-${addPfx}="asset:${it.id}">＋ актив</span>` : ''}
     ${editable ? `<span class="rowbtn" data-frate="${it.id}" title="автоцена">⚡</span>` : ''}
     ${editable ? `<span class="rowbtn" data-fregion="${it.id}" title="регион инвестиции (SK/UA/AU/EU/WEB)">🌍${it.region ? ' ' + fesc(it.region) : ''}</span>` : ''}
+    ${editable ? `<span class="rowbtn${it.digest ? ' on' : ''}" data-fdig="${it.id}:${it.digest ? 1 : 0}" title="${it.digest ? 'убрать из сведения' : 'в сведение капитала'}">🎓</span>` : ''}
     ${depth === 0 ? `<span class="rowbtn${it.passive ? ' on' : ''}" data-fside="${it.id}:${it.passive ? 1 : 0}" title="${it.passive ? 'вернуть в активы' : 'в пассивы'}">⇄</span>` : ''}
     <span class="rowbtn del" data-findel="${pfx}:${it.id}">✕</span>`;
   return `<div class="pcard ${it.kind}" style="--d:${depth}" data-pid="${it.id}">
@@ -649,6 +651,7 @@ function secPortfolio(d, s) {
       </div>
     </div>` : ''}
   </div>` : ''}
+  ${tgt ? secDigest(tree) : ''}
   ${tgt ? capHistory(d.history, monSide) : ''}
   ${(rctx.spends || []).length ? `
   <div class="card">
@@ -708,6 +711,52 @@ function secPortfolio(d, s) {
       </div>${capNote}</div>
     </div>
   </div>` : ''}`;
+}
+
+// Сведение капитала: свод отмеченных 🎓 позиций по географии. Регион берётся из общей
+// таблицы (🌍 в строке) — второй раз его никто не проставляет; без региона позиция видна
+// отдельной группой, чтобы её не потерять.
+function secDigest(tree) {
+  const picked = [];
+  const walk = ns => (ns || []).forEach(n => {
+    const kids = n.children || [];
+    if ((n.kind === 'asset' || !kids.length) && n.digest) picked.push(n);
+    walk(kids);
+  });
+  walk(tree || []);
+  if (!picked.length) return '';
+  const total = picked.reduce((a, n) => a + (n.eur || 0), 0);
+  const byGeo = {};
+  picked.forEach(n => (byGeo[n.region || '—'] ??= []).push(n));
+  // EU и UA первыми, остальные по величине, «без региона» последним
+  const order = Object.keys(byGeo).sort((a, b) => {
+    const w = k => k === 'EU' ? 0 : k === 'UA' ? 1 : k === '—' ? 3 : 2;
+    return w(a) - w(b) || byGeo[b].reduce((s, n) => s + (n.eur || 0), 0) - byGeo[a].reduce((s, n) => s + (n.eur || 0), 0);
+  });
+  return `
+  <div class="sec">Сведение капитала · 🎓 в строке добавляет позицию сюда</div>
+  <div class="card">
+    <table class="fintable digtable">
+      <tr><th>Позиция</th><th class="r" style="width:120px">Сумма</th>
+        <th class="r" style="width:78px" title="доля внутри своей географии">в гео</th>
+        <th class="r" style="width:78px" title="доля от всего сведения">от свода</th></tr>
+      ${order.map(geo => {
+        const rows = byGeo[geo].slice().sort((a, b) => (b.eur || 0) - (a.eur || 0));
+        const sum = rows.reduce((a, n) => a + (n.eur || 0), 0);
+        return `<tr class="digeo"><td>${geo === '—' ? 'Без региона' : fesc(geo)}
+            ${geo === '—' ? '<span class="meta">задай 🌍 в основной таблице</span>' : ''}</td>
+          <td class="r num">${fmt(sum)} €</td><td class="r meta">100%</td>
+          <td class="r meta">${total > 0 ? (sum / total * 100).toFixed(1) : '0.0'}%</td></tr>`
+          + rows.map(n => `<tr><td class="dgname">${fesc(n.name)}
+              ${n.asset_type ? `<span class="meta">${fesc(n.asset_type)}</span>` : ''}</td>
+            <td class="r num">${fmt(n.eur || 0)} €</td>
+            <td class="r meta">${sum > 0 ? ((n.eur || 0) / sum * 100).toFixed(1) : '0.0'}%</td>
+            <td class="r meta">${total > 0 ? ((n.eur || 0) / total * 100).toFixed(1) : '0.0'}%</td></tr>`).join('');
+      }).join('')}
+      <tr class="digtot"><td>Всего сведено <span class="meta">${picked.length} позиц.</span></td>
+        <td class="r num">${fmt(total)} €</td><td></td><td></td></tr>
+    </table>
+  </div>`;
 }
 
 // История капитала: одно число в снимке не отличало «портфель вырос» от «я довнёс».
@@ -1451,6 +1500,12 @@ function bindFin() {
         : prompt(kind === 'section' ? 'Название раздела:' : 'Название актива:');
       if (!name || !name.trim()) return;
       await finApi.add('tgt', { kind, parent_id: pid ? +pid : null, name: name.trim(), passive: passive ? 1 : 0 });
+      window.loadFin();
+    }));
+  document.querySelectorAll('[data-fdig]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const [id, on] = el.dataset.fdig.split(':');
+      await finApi.patch('tgt', +id, { digest: on === '1' ? 0 : 1 });
       window.loadFin();
     }));
   // блок верхнего уровня переезжает между частями: активы ⇄ пассивы
