@@ -308,8 +308,10 @@ test('история: свои группы и пункты, исключённ�
   ];
   const html = ctx.secHistory(rows, 1.08).replace(/\u00a0/g, ' ');
   assert.ok(html.includes('17 000 €'), 'группа не сложила 12 000 € и 5 400 $ по курсу');
-  assert.ok(html.includes('не в итоге') && html.includes('мимо итога 60 000 €'), 'исключённая группа не помечена');
+  assert.ok(!html.includes('не в итоге') && !html.includes('мимо итога'), 'подписей у исключённой группы быть не должно');
   assert.ok(!html.includes('77 000'), 'исключённая группа всё ещё попадает в итог');
+  assert.ok(html.indexOf('Идеи') < html.indexOf('2024 · продажи'), 'исключённая группа должна стоять наверху');
+  assert.ok(html.includes('hcut'), 'нет черты между исключёнными и считаемыми');
   assert.ok(!/\d%/.test(html), 'процентов в этом блоке быть не должно');
   assert.ok(html.includes('data-hadd="1"') && html.includes('data-hadd=""'),
     'должны быть и добавление пункта в группу, и добавление группы');

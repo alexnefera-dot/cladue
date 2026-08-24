@@ -783,9 +783,11 @@ function secHistory(rows, rate) {
   all.filter(r => r.parent_id != null).forEach(r => (kids[r.parent_id] ??= []).push(r));
   const eurOf = r => (r.currency === '$' ? (r.amount || 0) / (rate || 1.08) : (r.amount || 0));
   const sumOf = g => (kids[g.id] || []).reduce((x, r) => x + eurOf(r), 0);
-  // группу можно исключить из итога: она остаётся на месте и принимает пункты, но не считается
+  // Исключённые группы поднимаются наверх и отчёркиваются — этого достаточно, чтобы
+  // не подписывать каждую строку словами «не в итоге».
   const total = groups.filter(g => !g.excluded).reduce((a, g) => a + sumOf(g), 0);
-  const offSum = groups.filter(g => g.excluded).reduce((a, g) => a + sumOf(g), 0);
+  const off = groups.filter(g => g.excluded);
+  const ordered = [...off, ...groups.filter(g => !g.excluded)];
   const addRow = (pid, ph) => `<tr class="histadd"><td colspan="2">
     <span class="task finadd" style="border:0;padding:0">
       <input data-hname="${pid}" placeholder="${ph}" style="flex:1">
@@ -800,15 +802,16 @@ function secHistory(rows, rate) {
   <div class="card">
     <table class="fintable digtable histtable">
       <tr><th>Пункт</th><th class="r" style="width:150px">Сумма</th></tr>
-      ${groups.map(g => {
+      ${ordered.map((g, i) => {
         const rs = kids[g.id] || [];
         const sum = sumOf(g);
-        return `<tr class="digeo${g.excluded ? ' hoff' : ''}" ${dnd(g)}><td>
+        const firstCounted = off.length && i === off.length;   // черта между исключёнными и остальными
+        return `<tr class="digeo${g.excluded ? ' hoff' : ''}${firstCounted ? ' hcut' : ''}" ${dnd(g)}><td>
             <span class="ed" data-fe="hist:${g.id}:name:text" title="клик — переименовать">${fesc(g.name) || 'группа'}</span>
             <span class="rowbtn${g.excluded ? ' on' : ''}" data-hoff="${g.id}:${g.excluded ? 1 : 0}"
               title="${g.excluded ? 'вернуть группу в итог' : 'не считать эту группу в итоге'}">⊘</span>
             <span class="rowbtn del" data-hdel="${g.id}" title="удалить группу со всеми пунктами">✕</span></td>
-          <td class="r num">${fmt(sum)} €${g.excluded ? ' <span class="meta">не в итоге</span>' : ''}</td></tr>`
+          <td class="r num">${fmt(sum)} €</td></tr>`
           + rs.map(r => `<tr ${dnd(r)}><td class="dgname">
               <span class="ed" data-fe="hist:${r.id}:name:text">${fesc(r.name) || '—'}</span>
               <span class="rowbtn del" data-hdel="${r.id}">✕</span></td>
@@ -816,8 +819,7 @@ function secHistory(rows, rate) {
               <span class="ed" data-fe="hist:${r.id}:amount:num">${fmt(r.amount)}</span></td></tr>`).join('')
           + addRow(g.id, 'новый пункт');
       }).join('') || '<tr><td colspan="2"><div class="empty">групп пока нет — заведи первую ниже</div></td></tr>'}
-      ${groups.length ? `<tr class="digtot"><td>Всего <span class="meta">${groups.length} групп.</span>
-        ${offSum > 0 ? `<span class="meta">· мимо итога ${fmt(offSum)} €</span>` : ''}</td>
+      ${groups.length ? `<tr class="digtot"><td>Всего <span class="meta">${groups.length - off.length} групп.</span></td>
         <td class="r num">${fmt(total)} €</td></tr>` : ''}
       ${addRow('', 'новая группа')}
     </table>

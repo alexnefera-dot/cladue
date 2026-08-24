@@ -482,7 +482,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .digtable tr:hover .rowbtn{opacity:1}
 .histtable tr.digeo .rowbtn:not(.del){opacity:.5}
 .histtable tr.digeo:hover .rowbtn:not(.del){opacity:1}
-.histtable tr.digeo.hoff td{opacity:.6}   /* группа мимо итога — на месте, но приглушена */
+/* Группа мимо итога стоит наверху и отчёркнута от считаемых — словами не подписываем */
+.histtable tr.digeo.hoff td{background:var(--bg)}
+.histtable tr.digeo.hcut td{border-top:2px solid var(--line2)}
 .histtable tr.dropinto td{background:var(--green-soft)}
 .histtable tr.dropbefore td{box-shadow:inset 0 2px 0 var(--green)}
 .histtable tr.dropafter td{box-shadow:inset 0 -2px 0 var(--green)}
