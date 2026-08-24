@@ -23,7 +23,7 @@ for r in rows:
     h=str(r[5]).strip().lower()
     if h in SE: continue
     p=h.split('.')
-    ev.append({'t':r[0],'k':r[1],'dom':'.'.join(p[-2:]),'br':'.'.join(p[:-2]),'c':str(r[4])})
+    ev.append({'t':r[0],'k':r[1],'dom':'.'.join(p[-2:]),'br':'.'.join(p[:-2]),'c':str(r[4]),'cid':r[3]})
 LAUNCH={'Generator_11page':'20.08 01:25','7page_yandex':'20.08 01:25','Generator_11page_2':'20.08 01:25',
  'Generator_v5':'20.08 01:25','Generator_v4_2':'20.08 01:25','generator v4':'20.08 01:25',
  '12pages_withdate · Theme1':'20.08 17:00','12pages_withdate · Theme2':'20.08 17:00',
@@ -51,6 +51,34 @@ for g,L in LAUNCH.items():
       'nd':len(gd[g]),'rpd':c['reg']/n/days,'t10':t10,'t100':t100,
       'r100':100*c['reg']/t10 if t10 else None})
 groups.sort(key=lambda x:-x['rpd'])
+# --- детализация: по каждой группе все её домены и все события ---
+inkw={v[0] for v in KW.values()}
+DEV=collections.defaultdict(list)
+for e in sorted(ev,key=lambda x:x['t']):
+    DEV[e['dom']].append(e)
+BR={d['d']:{b['b']:b for b in d['brands']} for d in D['doms']}
+def evlist(dom):
+    out=[]
+    for e in DEV.get(dom,[]):
+        bp=best[(dom,e['br'])]
+        out.append({'t':e['t'].strftime('%d.%m %H:%M'),'k':e['k'],'br':e['br'],'c':e['c'],
+          'p':None if bp>100 else bp,'incore':e['br'] in inkw,
+          'n10':BR.get(dom,{}).get(e['br'],{}).get('n',0)})
+    return out
+for g in groups:
+    ds=[]
+    for d in D['doms']:
+        if d['gname']!=g['g']: continue
+        c=dr.get(d['d'],collections.Counter())
+        ds.append({'d':d['d'],'zone':d['zone'],'cont':d.get('cont'),'t10':d['t10'],'t30':d['t30'],
+          't100':d['t100'],'t3':d['t3'],'vch':d['vch'],'sch':d['sch'],'nb':d['nb'],
+          'reg':c['reg'],'dep':c['dep'],'ev':evlist(d['d'])})
+    ds.sort(key=lambda x:(-(x['reg']+x['dep']),-x['t10']))
+    g['ds']=ds
+    bb=collections.Counter()
+    for x in ds:
+        for e in x['ev']: bb[e['br']]+=1
+    g['brands']=bb.most_common()
 # домены
 dl=[]
 for d,c in dr.items():
@@ -60,6 +88,7 @@ for d,c in dr.items():
       't3':next((x['t3'] for x in D['doms'] if x['d']==d),None),
       'brands':dbr[d].most_common(6),'known':known})
 dl.sort(key=lambda x:(-(x['reg']+x['dep']),x['d']))
+for d in dl: d['ev']=evlist(d['d'])
 # атрибуция по позиции бренда
 buck=collections.Counter()
 inkw={v[0] for v in KW.values()}

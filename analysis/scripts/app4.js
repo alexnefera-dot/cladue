@@ -467,6 +467,7 @@ function tabCats(){
 
 /* ---------------- раскрытия ---------------- */
 function fill(){
+  const f1x=1;
   document.querySelectorAll('tr.clk[data-i]').forEach(tr=>{tr.onclick=()=>{
     const det=tr.nextElementSibling; det.hidden=!det.hidden;
     const slot=det.querySelector('.inner'); if(det.hidden||slot.dataset.done) return;
@@ -508,31 +509,98 @@ function fill(){
       <th class="l">Ключ</th><th class="l">Бренд</th><th>Позиция</th></tr></thead><tbody>`+
       c.ex.map(e=>`<tr><td class="l">${esc(e.q)}</td><td class="l mut">${esc(e.b)}</td>
         <td>${pos(e.p)}</td></tr>`).join('')+`</tbody></table></div></div>`;};});
+
+  const cevRows=(ev,measured)=>ev.map(e=>`<tr><td class="l mut num">${esc(e.t)}</td>
+    <td>${e.k==='dep'?'<b class="good">деп</b>':'<span class="mut">рег</span>'}</td>
+    <td class="l id">${esc(e.br||'—')}</td><td class="l mut">${esc(e.c)}</td>
+    <td>${measured===false?'<span class="dim">домен не замеряется</span>'
+      :(e.p==null?'<span class="bad">нет в сотне</span>':pos(e.p))}</td>
+    <td class="mut">${measured===false?'<span class="dim">—</span>':(e.n10||'<span class="dim">0</span>')}</td>
+    <td class="l mut">${e.incore?'<span class="dim">есть в ядре</span>':'<span class="bad">нет в ядре</span>'}</td></tr>`).join('');
+  const cevHead=`<thead><tr><th class="l">Когда</th><th>Тип</th><th class="l">Бренд</th>
+    <th class="l">Гео</th><th>Лучш. позиция бренда</th><th>Ключей в Т10</th>
+    <th class="l">Бренд в ядре</th></tr></thead>`;
+  document.querySelectorAll('tr.clk[data-cg]').forEach(tr=>{tr.onclick=()=>{
+    const det=tr.nextElementSibling; det.hidden=!det.hidden;
+    const slot=det.querySelector('.inner'); if(det.hidden||slot.dataset.done) return;
+    slot.dataset.done=1; const g=D.conv.groups[+tr.dataset.cg];
+    const withc=g.ds.filter(x=>x.reg+x.dep>0), zero=g.ds.filter(x=>x.reg+x.dep===0);
+    let h=`<div><h4>${esc(g.g)} · ${esc(g.pages)} · ${g.n} доменов · ${f1(g.days)} суток жизни
+      · ${g.reg} рег, ${g.dep} деп</h4></div>`;
+    const dtab=(list,ttl)=>list.length?`<div><h4>${ttl} — ${list.length}</h4><div class="tw"><table>
+      <thead><tr><th class="l">Домен</th><th>Зона</th><th>Рег</th><th>Деп</th><th>Т10</th>
+      <th>Т30</th><th>Т100</th><th>ТОП-3</th><th>ВЧ</th><th>СЧ</th><th>Брендов</th>
+      <th class="l">Бренды конверсий</th></tr></thead><tbody>`+
+      list.map(x=>`<tr><td class="l id">${esc(x.d)}</td><td>${zn(x.zone)}</td>
+        <td class="${x.reg?'good':'mut'}"><b>${x.reg}</b></td>
+        <td class="${x.dep?'good':'mut'}">${x.dep}</td>
+        <td><b>${x.t10}</b></td><td class="mut">${x.t30}</td>
+        <td class="${x.t100===0?'bad':'mut'}">${x.t100}</td>
+        <td class="${x.t3?'good':'mut'}">${x.t3}</td>
+        <td class="${x.vch?'good':'mut'}">${x.vch}</td>
+        <td class="${x.sch?'good':'mut'}">${x.sch}</td><td class="mut">${x.nb}</td>
+        <td class="l mut">${x.ev.length?[...new Set(x.ev.map(e=>e.br))].map(esc).join(', '):'—'}</td>
+        </tr>`).join('')+`</tbody></table></div></div>`:'';
+    h+=dtab(withc,'Домены с конверсиями');
+    h+=dtab(zero,'Домены без конверсий');
+    const all=[]; g.ds.forEach(x=>x.ev.forEach(e=>all.push(Object.assign({d:x.d},e))));
+    if(all.length){
+      all.sort((a,b)=>a.t<b.t?-1:1);
+      h+=`<div><h4>Все конверсии группы — ${all.length}</h4><div class="tw"><table>
+        <thead><tr><th class="l">Когда</th><th>Тип</th><th class="l">Домен</th><th class="l">Бренд</th>
+        <th class="l">Гео</th><th>Лучш. позиция бренда</th><th>Ключей в Т10</th>
+        <th class="l">Бренд в ядре</th></tr></thead><tbody>`+
+        all.map(e=>`<tr><td class="l mut num">${esc(e.t)}</td>
+          <td>${e.k==='dep'?'<b class="good">деп</b>':'<span class="mut">рег</span>'}</td>
+          <td class="l id">${esc(e.d)}</td><td class="l">${esc(e.br||'—')}</td>
+          <td class="l mut">${esc(e.c)}</td>
+          <td>${e.p==null?'<span class="bad">нет в сотне</span>':pos(e.p)}</td>
+          <td class="mut">${e.n10||'<span class="dim">0</span>'}</td>
+          <td class="l mut">${e.incore?'<span class="dim">есть</span>':'<span class="bad">нет</span>'}</td>
+          </tr>`).join('')+`</tbody></table></div></div>`;
+    } else h+='<div><h4>Ни одной конверсии</h4></div>';
+    slot.innerHTML=h;};});
+  const domDet=(sel,src,measured)=>document.querySelectorAll(sel).forEach(tr=>{tr.onclick=()=>{
+    const det=tr.nextElementSibling; det.hidden=!det.hidden;
+    const slot=det.querySelector('.inner'); if(det.hidden||slot.dataset.done) return;
+    slot.dataset.done=1;
+    const d=src(tr);
+    slot.innerHTML=`<div><h4>${esc(d.d)}${d.g?' · '+esc(d.g):' · запуск вне реестра'}
+      — ${d.reg} рег, ${d.dep} деп</h4><div class="tw"><table>${cevHead}
+      <tbody>${cevRows(d.ev||[],measured)}</tbody></table></div></div>`;};});
+  domDet('tr.clk[data-cd]',tr=>D.conv.doms.filter(x=>x.known)[+tr.dataset.cd],true);
+  domDet('tr.clk[data-cu]',tr=>D.conv.doms.filter(x=>!x.known)[+tr.dataset.cu],false);
   wireFilters(); wireLead();
 }
 
 /* ---------------- конверсии ---------------- */
 function tabConv(){
   const C=D.conv, f2=(x)=>x.toFixed(2).replace('.',',');
-  const gr=C.groups.map(g=>`<tr><td class="l id">${esc(g.g)}</td><td class="l mut">${esc(g.pages)}</td>
+  const gr=C.groups.map((g,i)=>`<tr class="clk" data-cg="${i}"><td class="l id">${esc(g.g)}</td>
+    <td class="l mut">${esc(g.pages)}</td>
     <td>${g.n}</td><td class="mut">${f1(g.days)}</td><td>${g.nd}</td>
     <td class="${g.reg?'good':'mut'}"><b>${g.reg}</b></td>
     <td class="${g.dep?'good':'mut'}">${g.dep}</td>
     <td class="num"><b>${f2(g.rpd)}</b></td><td class="mut">${g.t10}</td>
-    <td class="num mut">${g.r100==null?'—':f1(g.r100)}</td></tr>`).join('');
+    <td class="num mut">${g.r100==null?'—':f1(g.r100)}</td></tr>
+    <tr class="det" hidden><td colspan="10"><div class="inner"></div></td></tr>`).join('');
   const fm=C.fmt.map(x=>`<tr><td class="l id">${esc(x.b)}</td><td>${x.n}</td>
     <td class="mut">${f1(x.dd)}</td><td><b>${x.reg}</b></td><td class="mut">${x.dep}</td>
     <td class="num"><b>${f2(x.rpd)}</b></td><td class="mut">${x.t10}</td>
     <td class="num">${f1(x.r100)}</td></tr>`).join('');
-  const kn=C.doms.filter(d=>d.known).slice(0,26).map(d=>`<tr><td class="l id">${esc(d.d)}</td>
+  const KD=C.doms.filter(d=>d.known);
+  const kn=KD.map((d,i)=>`<tr class="clk" data-cd="${i}"><td class="l id">${esc(d.d)}</td>
     <td>${zn(d.zone)}</td><td class="l mut">${esc(d.g||'—')}</td>
     <td><b>${d.reg}</b></td><td class="${d.dep?'good':'mut'}">${d.dep}</td>
     <td class="mut">${d.t10==null?'—':d.t10}</td><td class="mut">${d.t3==null?'—':d.t3}</td>
-    <td class="l mut">${d.brands.map(b=>esc(b[0])+(b[1]>1?'×'+b[1]:'')).join(', ')}</td></tr>`).join('');
-  const un=C.doms.filter(d=>!d.known).slice(0,24).map(d=>`<tr><td class="l id">${esc(d.d)}</td>
+    <td class="l mut">${d.brands.map(b=>esc(b[0])+(b[1]>1?'×'+b[1]:'')).join(', ')}</td></tr>
+    <tr class="det" hidden><td colspan="8"><div class="inner"></div></td></tr>`).join('');
+  const UD=C.doms.filter(d=>!d.known);
+  const un=UD.map((d,i)=>`<tr class="clk" data-cu="${i}"><td class="l id">${esc(d.d)}</td>
     <td>${zn(d.zone)}</td><td><b>${d.reg}</b></td>
     <td class="${d.dep?'good':'mut'}">${d.dep}</td>
-    <td class="l mut">${d.brands.map(b=>esc(b[0])+(b[1]>1?'×'+b[1]:'')).join(', ')}</td></tr>`).join('');
+    <td class="l mut">${d.brands.map(b=>esc(b[0])+(b[1]>1?'×'+b[1]:'')).join(', ')}</td></tr>
+    <tr class="det" hidden><td colspan="5"><div class="inner"></div></td></tr>`).join('');
   const bl=C.brands.map(b=>`<tr><td class="l id">${esc(b.b||'—')}</td><td>${b.reg}</td>
     <td class="${b.dep?'good':'mut'}">${b.dep}</td></tr>`).join('');
   const zl=C.zones.map(z=>`<tr><td class="l">${zn(z.z)}</td><td>${z.reg}</td>
@@ -579,7 +647,8 @@ function tabConv(){
   <div class="blk"><h2>Группы по конверсии</h2>
   <p class="note">Отсортировано по регистрациям на домен в сутки. Столбец «дней» —
   сколько прожила группа к 24.08 12:15. На группу приходится от 0 до 8 регистраций,
-  поэтому порядок внутри верхней половины — шум.</p>
+  поэтому порядок внутри верхней половины — шум.
+  <b>Строка раскрывается</b>: все домены группы и все её конверсии по одной.</p>
   <div class="tw"><table><thead><tr><th class="l">Группа</th><th class="l">Страниц</th>
   <th>Дом</th><th>Дней</th><th>С конв.</th><th>Рег</th><th>Деп</th>
   <th>Рег/дом/день</th><th>Т10</th><th>Рег/100 Т10</th></tr></thead><tbody>${gr}</tbody></table></div></div>
@@ -604,14 +673,15 @@ function tabConv(){
   почти ноль по нашим меркам, и при этом 6 регистраций — 14 на 100 ключей,
   худшая видимость и лучшая отдача с неё во всём наборе.</p></div>
 
-  <div class="blk"><h2>Домены из реестра с конверсиями</h2>
+  <div class="blk"><h2>Домены из реестра с конверсиями — ${KD.length}</h2>
+  <p class="note">Строка раскрывается — все события домена с датой, гео и позицией бренда.</p>
   <div class="tw"><table><thead><tr><th class="l">Домен</th><th>Зона</th><th class="l">Группа</th>
   <th>Рег</th><th>Деп</th><th>Т10</th><th>ТОП-3</th><th class="l">Бренды</th>
   </tr></thead><tbody>${kn}</tbody></table></div></div>
 
   <div class="blk"><h2>Домены прошлых запусков</h2>
   <p class="note">Контент этих доменов в реестре не заведён — сопоставить с конфигурацией нельзя.
-  Здесь они как ориентир по отдаче.</p>
+  Здесь они как ориентир по отдаче. Всего ${UD.length}, строка раскрывается.</p>
   <div class="tw"><table><thead><tr><th class="l">Домен</th><th>Зона</th><th>Рег</th><th>Деп</th>
   <th class="l">Бренды</th></tr></thead><tbody>${un}</tbody></table></div></div>
 
