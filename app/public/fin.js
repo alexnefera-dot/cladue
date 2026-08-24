@@ -725,36 +725,57 @@ function secDigest(tree) {
   });
   walk(tree || []);
   if (!picked.length) return '';
-  const total = picked.reduce((a, n) => a + (n.eur || 0), 0);
+  // Правка суммы живёт только в своде и действует, пока «Сейчас» не изменилось: сравниваем
+  // с базой, записанной в момент правки. Изменил сумму в главной — свод снова берёт её.
+  const shownOf = n => (n.digest_value != null && n.digest_base != null
+    && Math.abs((n.value ?? 0) - n.digest_base) < 0.005) ? n.digest_value : (n.eur || 0);
+  const edited = n => shownOf(n) !== (n.eur || 0) || (n.digest_value != null && n.digest_base != null
+    && Math.abs((n.value ?? 0) - n.digest_base) < 0.005);
+  const total = picked.reduce((a, n) => a + shownOf(n), 0);
   const byGeo = {};
   picked.forEach(n => (byGeo[n.region || '—'] ??= []).push(n));
   // EU и UA первыми, остальные по величине, «без региона» последним
   const order = Object.keys(byGeo).sort((a, b) => {
     const w = k => k === 'EU' ? 0 : k === 'UA' ? 1 : k === '—' ? 3 : 2;
-    return w(a) - w(b) || byGeo[b].reduce((s, n) => s + (n.eur || 0), 0) - byGeo[a].reduce((s, n) => s + (n.eur || 0), 0);
+    return w(a) - w(b) || byGeo[b].reduce((s, n) => s + shownOf(n), 0) - byGeo[a].reduce((s, n) => s + shownOf(n), 0);
   });
   return `
   <div class="sec">Сведение капитала · 🎓 в строке добавляет позицию сюда</div>
   <div class="card">
     <table class="fintable digtable">
-      <tr><th>Позиция</th><th class="r" style="width:120px">Сумма</th>
+      <tr><th>Позиция</th>
+        <th class="r" style="width:112px" title="цена входа: цена покупки в €; не задана — равна текущей">Вход</th>
+        <th class="r" style="width:130px">Сумма</th>
         <th class="r" style="width:78px" title="доля внутри своей географии">в гео</th>
         <th class="r" style="width:78px" title="доля от всего сведения">от свода</th></tr>
       ${order.map(geo => {
-        const rows = byGeo[geo].slice().sort((a, b) => (b.eur || 0) - (a.eur || 0));
-        const sum = rows.reduce((a, n) => a + (n.eur || 0), 0);
+        const rows = byGeo[geo].slice().sort((a, b) => shownOf(b) - shownOf(a));
+        const sum = rows.reduce((a, n) => a + shownOf(n), 0);
+        const inSum = rows.reduce((a, n) => a + (n.invested ?? 0), 0);
         return `<tr class="digeo"><td>${geo === '—' ? 'Без региона' : fesc(geo)}
             ${geo === '—' ? '<span class="meta">задай 🌍 в основной таблице</span>' : ''}</td>
+          <td class="r num muted">${fmt(inSum)} €</td>
           <td class="r num">${fmt(sum)} €</td><td class="r meta">100%</td>
           <td class="r meta">${total > 0 ? (sum / total * 100).toFixed(1) : '0.0'}%</td></tr>`
-          + rows.map(n => `<tr><td class="dgname">${fesc(n.name)}
+          + rows.map(n => { const v = shownOf(n), own = edited(n); return `<tr><td class="dgname">${fesc(n.name)}
               ${n.asset_type ? `<span class="meta">${fesc(n.asset_type)}</span>` : ''}</td>
-            <td class="r num">${fmt(n.eur || 0)} €</td>
-            <td class="r meta">${sum > 0 ? ((n.eur || 0) / sum * 100).toFixed(1) : '0.0'}%</td>
-            <td class="r meta">${total > 0 ? ((n.eur || 0) / total * 100).toFixed(1) : '0.0'}%</td></tr>`).join('');
+            <td class="r num muted" title="${n.buy_value != null ? 'цена входа' : 'цена входа не задана — считаем по текущей'}">${
+              n.buy_value != null ? '' : '≈ '}${fmt(n.invested ?? 0)} €</td>
+            <td class="r num">
+              <span class="ed${own ? ' dgown' : ''}" data-dgval="${n.id}:${n.value ?? ''}"
+                title="${own ? `правка свода · в главной ${fmt(n.eur || 0)} €` : 'клик — своя сумма для свода; в главной таблице не изменится'}">${fmt(v)}</span> €
+              ${own ? `<span class="rowbtn del" data-dgclr="${n.id}" title="вернуть сумму из главной">✕</span>` : ''}</td>
+            <td class="r meta">${sum > 0 ? (v / sum * 100).toFixed(1) : '0.0'}%</td>
+            <td class="r meta">${total > 0 ? (v / total * 100).toFixed(1) : '0.0'}%</td></tr>`; }).join('');
       }).join('')}
-      <tr class="digtot"><td>Всего сведено <span class="meta">${picked.length} позиц.</span></td>
-        <td class="r num">${fmt(total)} €</td><td></td><td></td></tr>
+      ${(() => {
+        const inv = picked.reduce((a, n) => a + (n.invested ?? 0), 0);
+        const g = inv > 0 ? (total - inv) / inv * 100 : null;
+        return `<tr class="digtot"><td>Всего сведено <span class="meta">${picked.length} позиц.</span>
+            ${g != null ? `<span class="meta">· от входа <span class="${g >= 0 ? 'up' : 'down'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</span></span>` : ''}</td>
+          <td class="r num muted">${fmt(inv)} €</td>
+          <td class="r num">${fmt(total)} €</td><td></td><td></td></tr>`;
+      })()}
     </table>
   </div>`;
 }
@@ -1500,6 +1521,17 @@ function bindFin() {
         : prompt(kind === 'section' ? 'Название раздела:' : 'Название актива:');
       if (!name || !name.trim()) return;
       await finApi.add('tgt', { kind, parent_id: pid ? +pid : null, name: name.trim(), passive: passive ? 1 : 0 });
+      window.loadFin();
+    }));
+  document.querySelectorAll('[data-dgval]').forEach(el =>
+    el.addEventListener('click', () => {
+      const [id, base] = el.dataset.dgval.split(':');
+      // база — «Сейчас» на момент правки: по ней потом видно, что главная сумма поменялась
+      inlineVal(el, 'num', v => finApi.patch('tgt', +id, { digest_value: v, digest_base: base === '' ? 0 : +base }));
+    }));
+  document.querySelectorAll('[data-dgclr]').forEach(el =>
+    el.addEventListener('click', async () => {
+      await finApi.patch('tgt', +el.dataset.dgclr, { digest_value: null, digest_base: null });
       window.loadFin();
     }));
   document.querySelectorAll('[data-fdig]').forEach(el =>

@@ -473,6 +473,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .digtable .dgname{padding-left:22px}
 .digtable .dgname .meta{margin-left:8px}
 .digtable tr.digtot td{border-top:1px solid var(--line);border-bottom:0;font-weight:600}
+.digtable .dgown{color:var(--blue);border-bottom-color:var(--blue)}   /* сумма правлена в своде */
+.digtable td.muted{color:var(--muted)}
 /* Иерархия — фоном и отступом, а не жирностью: иначе каждый новый раздел лезет в глаза */
 .porttable tr.pblock td{background:var(--bg2)}
 .porttable tr.pblock .pname{font-weight:600}

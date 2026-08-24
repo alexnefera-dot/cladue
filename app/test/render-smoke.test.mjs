@@ -246,6 +246,24 @@ test('сведение капитала: только отмеченные 🎓,
     'без отметок блока быть не должно');
 });
 
+test('свод: своя сумма живёт до правки главной, вход показывается рядом', () => {
+  const ctx = loadFin();
+  const mk = extra => [{ id: 10, name: 'Рост', kind: 'block', eur: 0, children: [
+    leaf(12, 'Депозит', { value: 20000, eur: 20000, invested: 18000, buy_value: 18000, digest: 1, region: 'EU', ...extra }) ] }];
+  const plain = ctx.secDigest(mk({})).replace(/\u00a0/g, ' ');
+  assert.ok(plain.includes('18 000 €'), 'цена входа не выведена');
+  assert.ok(plain.includes('20 000'), 'текущая сумма не выведена');
+
+  // правка действует: база совпала с «Сейчас»
+  const own = ctx.secDigest(mk({ digest_value: 25000, digest_base: 20000 })).replace(/\u00a0/g, ' ');
+  assert.ok(own.includes('25 000') && own.includes('dgown'), 'своя сумма не подхватилась');
+  assert.ok(own.includes('data-dgclr'), 'нет способа вернуть сумму из главной');
+
+  // «Сейчас» изменилось — правка больше не действует
+  const stale = ctx.secDigest(mk({ value: 21000, eur: 21000, digest_value: 25000, digest_base: 20000 })).replace(/\u00a0/g, ' ');
+  assert.ok(stale.includes('21 000') && !stale.includes('25 000'), 'после правки главной свод должен взять её сумму');
+});
+
 test('цель: закреплено то поле, что заполнено', () => {
   const html = loadFin().secPortfolio(DATA, DATA.summary);
   assert.ok(html.includes('target_pct'), 'нет поля доли');
