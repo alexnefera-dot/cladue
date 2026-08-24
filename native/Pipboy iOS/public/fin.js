@@ -868,11 +868,21 @@ function secAccounts(d) {
       // Счета — ручная разбивка того же капитала: сами по себе они ни с чем не связаны,
       // поэтому единственное, что от них нужно, — итог, который можно сверить глазами.
       const t = accountsSum(d.accounts, d.summary?.rate);
-      return d.accounts.length ? `<div class="task accsum">
-        <span class="meta">итого по счетам</span>
+      // Сверка со сводкой бэкенда: если строки и бэкенд считают разное, это надо назвать
+      // числом, а не оставлять «карточка не сходится».
+      const back = d.summary?.accountsByCurrency || {};
+      const off = [...new Set([...Object.keys(t.byCur), ...Object.keys(back)])]
+        .map(c => ({ c, d: (t.byCur[c] || 0) - (back[c] || 0) }))
+        .filter(x => Math.abs(x.d) > 0.5);
+      const lines = d.accounts.map(a => `${a.name}: ${fmt(a.balance)} ${a.currency}`).join('\n');
+      return d.accounts.length ? `<div class="task accsum" title="${fesc(lines)}">
+        <span class="meta">итого по счетам · ${d.accounts.length}</span>
         <span class="num" style="margin-left:auto">${t.parts}</span>
         ${Object.keys(t.byCur).length > 1 ? `<span class="meta">≈ ${fmt(t.eur)} €</span>` : ''}
-      </div>` : '';
+      </div>
+      ${off.length ? `<div class="task"><span class="meta amber">⚠ бэкенд считает иначе:
+        ${off.map(x => `${fesc(x.c)} ${x.d > 0 ? '+' : '−'}${fmt(Math.abs(x.d))}`).join(' · ')}
+        <span class="meta">— строки говорят одно, сводка другое; скажи мне это число</span></span></div>` : ''}` : '';
     })()}
     <div class="task finadd">
       <input id="accName" placeholder="новый счёт: название">
