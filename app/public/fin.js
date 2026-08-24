@@ -782,41 +782,44 @@ function secHistory(rows, rate) {
   const kids = {};
   all.filter(r => r.parent_id != null).forEach(r => (kids[r.parent_id] ??= []).push(r));
   const eurOf = r => (r.currency === '$' ? (r.amount || 0) / (rate || 1.08) : (r.amount || 0));
-  const total = groups.reduce((a, g) => a + (kids[g.id] || []).reduce((x, r) => x + eurOf(r), 0), 0);
-  const addRow = (pid, ph) => `<tr class="histadd"><td colspan="4">
+  const sumOf = g => (kids[g.id] || []).reduce((x, r) => x + eurOf(r), 0);
+  // группу можно исключить из итога: она остаётся на месте и принимает пункты, но не считается
+  const total = groups.filter(g => !g.excluded).reduce((a, g) => a + sumOf(g), 0);
+  const offSum = groups.filter(g => g.excluded).reduce((a, g) => a + sumOf(g), 0);
+  const addRow = (pid, ph) => `<tr class="histadd"><td colspan="2">
     <span class="task finadd" style="border:0;padding:0">
       <input data-hname="${pid}" placeholder="${ph}" style="flex:1">
       <input data-hamt="${pid}" placeholder="сумма" style="width:100px">
       <select data-hcur="${pid}"><option>€</option><option>$</option></select>
       <span class="pill btn ok" data-hadd="${pid}">＋</span>
     </span></td></tr>`;
+  const dnd = r => `data-hrow="${r.id}" data-hgroup="${r.parent_id == null ? 1 : 0}" `
+    + `data-hparent="${r.parent_id ?? ''}" data-hord="${r.ord ?? 0}" draggable="true"`;
   return `
-  <div class="sec">История · свои группы и пункты, руками</div>
+  <div class="sec">История · свои группы и пункты · строки перетаскиваются</div>
   <div class="card">
-    <table class="fintable digtable">
-      <tr><th>Пункт</th><th class="r" style="width:130px">Сумма</th>
-        <th class="r" style="width:78px" title="доля внутри группы">в группе</th>
-        <th class="r" style="width:78px" title="доля от всей истории">от всего</th></tr>
+    <table class="fintable digtable histtable">
+      <tr><th>Пункт</th><th class="r" style="width:150px">Сумма</th></tr>
       ${groups.map(g => {
         const rs = kids[g.id] || [];
-        const sum = rs.reduce((a, r) => a + eurOf(r), 0);
-        return `<tr class="digeo"><td>
+        const sum = sumOf(g);
+        return `<tr class="digeo${g.excluded ? ' hoff' : ''}" ${dnd(g)}><td>
             <span class="ed" data-fe="hist:${g.id}:name:text" title="клик — переименовать">${fesc(g.name) || 'группа'}</span>
+            <span class="rowbtn${g.excluded ? ' on' : ''}" data-hoff="${g.id}:${g.excluded ? 1 : 0}"
+              title="${g.excluded ? 'вернуть группу в итог' : 'не считать эту группу в итоге'}">⊘</span>
             <span class="rowbtn del" data-hdel="${g.id}" title="удалить группу со всеми пунктами">✕</span></td>
-          <td class="r num">${fmt(sum)} €</td><td class="r meta">${rs.length ? '100%' : ''}</td>
-          <td class="r meta">${total > 0 ? (sum / total * 100).toFixed(1) : '0.0'}%</td></tr>`
-          + rs.map(r => `<tr><td class="dgname">
+          <td class="r num">${fmt(sum)} €${g.excluded ? ' <span class="meta">не в итоге</span>' : ''}</td></tr>`
+          + rs.map(r => `<tr ${dnd(r)}><td class="dgname">
               <span class="ed" data-fe="hist:${r.id}:name:text">${fesc(r.name) || '—'}</span>
               <span class="ed meta" data-fe="hist:${r.id}:note:text" title="пометка">${r.note ? '💬 ' + fesc(r.note) : '＋'}</span>
               <span class="rowbtn del" data-hdel="${r.id}">✕</span></td>
             <td class="r num"><span class="pill btn" data-hcurtog="${r.id}:${fesc(r.currency || '€')}" title="сменить валюту">${fesc(r.currency || '€')}</span>
-              <span class="ed" data-fe="hist:${r.id}:amount:num">${fmt(r.amount)}</span></td>
-            <td class="r meta">${sum > 0 ? (eurOf(r) / sum * 100).toFixed(1) : '0.0'}%</td>
-            <td class="r meta">${total > 0 ? (eurOf(r) / total * 100).toFixed(1) : '0.0'}%</td></tr>`).join('')
+              <span class="ed" data-fe="hist:${r.id}:amount:num">${fmt(r.amount)}</span></td></tr>`).join('')
           + addRow(g.id, 'новый пункт');
-      }).join('') || '<tr><td colspan="4"><div class="empty">групп пока нет — заведи первую ниже</div></td></tr>'}
-      ${groups.length ? `<tr class="digtot"><td>Всего <span class="meta">${groups.length} групп.</span></td>
-        <td class="r num">${fmt(total)} €</td><td></td><td></td></tr>` : ''}
+      }).join('') || '<tr><td colspan="2"><div class="empty">групп пока нет — заведи первую ниже</div></td></tr>'}
+      ${groups.length ? `<tr class="digtot"><td>Всего <span class="meta">${groups.length} групп.</span>
+        ${offSum > 0 ? `<span class="meta">· мимо итога ${fmt(offSum)} €</span>` : ''}</td>
+        <td class="r num">${fmt(total)} €</td></tr>` : ''}
       ${addRow('', 'новая группа')}
     </table>
   </div>`;
@@ -1608,6 +1611,54 @@ function bindFin() {
       await finApi.del('hist', +el.dataset.hdel);
       window.loadFin();
     }));
+  document.querySelectorAll('[data-hoff]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const [id, on] = el.dataset.hoff.split(':');
+      await finApi.patch('hist', +id, { excluded: on === '1' ? 0 : 1 });
+      window.loadFin();
+    }));
+  // Перетаскивание в «Истории»: середина группы — вложить пункт, края — поставить рядом.
+  // Исключённая группа принимает пункты так же, как любая другая.
+  let hDrag = null;
+  const hClear = () => document.querySelectorAll('.histtable tr.dropinto,.histtable tr.dropbefore,.histtable tr.dropafter')
+    .forEach(x => x.classList.remove('dropinto', 'dropbefore', 'dropafter'));
+  document.querySelectorAll('.histtable tr[data-hrow]').forEach(tr => {
+    const isGroup = tr.dataset.hgroup === '1';
+    tr.addEventListener('dragstart', e => {
+      hDrag = { id: +tr.dataset.hrow, group: isGroup };
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    tr.addEventListener('dragover', e => {
+      if (!hDrag || hDrag.id === +tr.dataset.hrow) return;
+      if (hDrag.group && !isGroup) return;   // группу внутрь пункта не кладём
+      e.preventDefault();
+      const r = tr.getBoundingClientRect();
+      const y = (e.clientY - r.top) / r.height;
+      tr.classList.remove('dropinto', 'dropbefore', 'dropafter');
+      const into = isGroup && !hDrag.group && y >= 0.3 && y <= 0.7;
+      tr.classList.add(into ? 'dropinto' : y < 0.5 ? 'dropbefore' : 'dropafter');
+    });
+    tr.addEventListener('dragleave', () => tr.classList.remove('dropinto', 'dropbefore', 'dropafter'));
+    tr.addEventListener('drop', async e => {
+      e.preventDefault();
+      const zone = tr.classList.contains('dropinto') ? 'into'
+        : tr.classList.contains('dropbefore') ? 'before' : 'after';
+      hClear();
+      if (!hDrag || hDrag.id === +tr.dataset.hrow) return;
+      const dstOrd = +tr.dataset.hord || 0;
+      // дробный ord: соседей не перенумеровываем, порядок всё равно верный
+      const near = zone === 'before' ? dstOrd - 0.5 : dstOrd + 0.5;
+      const body = hDrag.group
+        ? { ord: near }                                   // группа переезжает только между группами
+        : isGroup
+          ? { parent_id: +tr.dataset.hrow, ord: zone === 'before' ? -1 : 9999 }   // пункт брошен на группу — внутрь неё
+          : { parent_id: tr.dataset.hparent === '' ? null : +tr.dataset.hparent, ord: near };
+      await finApi.patch('hist', hDrag.id, body);
+      hDrag = null;
+      window.loadFin();
+    });
+    tr.addEventListener('dragend', hClear);
+  });
   document.querySelectorAll('[data-hcurtog]').forEach(el =>
     el.addEventListener('click', async () => {
       const [id, cur] = el.dataset.hcurtog.split(':');

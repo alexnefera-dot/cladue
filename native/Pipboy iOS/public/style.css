@@ -477,6 +477,11 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .digtable td.muted{color:var(--muted)}
 /* «История»: строка добавления живёт внутри той же таблицы */
 .digtable tr.histadd td{border-bottom:0;padding:4px 8px 8px}
+.histtable tr[data-hrow]{cursor:grab}
+.histtable tr.digeo.hoff td{opacity:.6}   /* группа мимо итога — на месте, но приглушена */
+.histtable tr.dropinto td{background:var(--green-soft)}
+.histtable tr.dropbefore td{box-shadow:inset 0 2px 0 var(--green)}
+.histtable tr.dropafter td{box-shadow:inset 0 -2px 0 var(--green)}
 .digtable tr.histadd .finadd{display:flex;gap:6px;align-items:center}
 .digtable tr.histadd input,.digtable tr.histadd select{border:1px solid var(--line);border-radius:7px;
   padding:5px 8px;font:12px var(--sans);background:var(--panel)}

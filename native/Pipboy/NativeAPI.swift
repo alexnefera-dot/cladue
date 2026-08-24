@@ -65,6 +65,7 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
               ord INTEGER NOT NULL DEFAULT 0, name TEXT NOT NULL DEFAULT '',
               amount REAL, currency TEXT NOT NULL DEFAULT '€', note TEXT)
             """)
+        _ = try? made.run("ALTER TABLE history_rows ADD COLUMN excluded INTEGER NOT NULL DEFAULT 0")   // группа не идёт в итог блока
         // Журнал отмены на Финансах: последние шаги с данными «как было». Не история правок —
         // страховка от «удалил не то»: хранится 20 записей, отменяется последняя.
         _ = try? made.run("""
@@ -1454,7 +1455,7 @@ enum Api {
         "budget": ["name", "amount", "currency", "direction", "ord", "month"],
         "tgt": ["name", "value", "buy_value", "target_value", "target_pct", "currency", "asset_type", "qty", "rate_symbol", "note", "kind", "region", "liquid", "passive", "digest", "digest_value", "digest_base"],
         "move": ["from_id", "to_id", "amount", "to_note"],
-        "hist": ["name", "amount", "currency", "note"]]
+        "hist": ["name", "amount", "currency", "note", "excluded", "parent_id", "ord"]]
     // как называть сущность в подписи «отменить: удаление счёта «Revolut»»
     private static let finWhat = ["accounts": "счёта", "steps": "шага", "obligations": "обязательства",
         "items": "позиции", "tgt": "позиции", "tx": "операции", "debts": "долга", "income": "дохода",
