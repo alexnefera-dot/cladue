@@ -108,6 +108,10 @@ foreach ($sites as $s) {
         foreach (array_merge($голова, $хвост) as $u) {
             if ($проза($u)) { continue; }
             $k = v5Klass($u);
+            // Пустая оболочка вида «<div class="info-block"></div>» встречается
+            // у доноров и уносится в библиотеку наравне с наполненными: при
+            // выборе она даёт на странице пустую дырку.
+            if (mb_strlen(trim(strip_tags($u['html']))) < 5) { continue; }
             $блоки[$t][$k][v5Variant($u)][md5($u['html'])] = $u['html'];
             // Текст виджета уходит в пул по ролям — разметка общая, слова свои.
             $строки = explode("\n", $u['html']);
