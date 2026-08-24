@@ -242,6 +242,7 @@ test('сведение капитала: только отмеченные 🎓,
   assert.ok(html.includes('85.7%'), 'доля внутри своей географии не посчиталась');
   assert.ok(html.includes('52.4%'), 'доля от всего свода не посчиталась');
   assert.ok(html.includes('Без региона') && html.includes('задай 🌍'), 'позиция без гео потерялась');
+  assert.ok(!html.includes('Вход'), 'колонка входа не нужна там, где нет ⚡-позиций');
   assert.equal(ctx.secDigest([{ id: 1, name: 'Блок', kind: 'block', eur: 0, children: [leaf(2, 'X')] }]), '',
     'без отметок блока быть не должно');
 });
@@ -249,7 +250,7 @@ test('сведение капитала: только отмеченные 🎓,
 test('свод: своя сумма живёт до правки главной, вход показывается рядом', () => {
   const ctx = loadFin();
   const mk = extra => [{ id: 10, name: 'Рост', kind: 'block', eur: 0, children: [
-    leaf(12, 'Депозит', { value: 20000, eur: 20000, invested: 18000, buy_value: 18000, digest: 1, region: 'EU', ...extra }) ] }];
+    leaf(12, 'IVV', { value: 20000, eur: 20000, invested: 18000, buy_value: 18000, rate_symbol: 'IVV', qty: 4, digest: 1, region: 'EU', ...extra }) ] }];
   const plain = ctx.secDigest(mk({})).replace(/\u00a0/g, ' ');
   assert.ok(plain.includes('18 000 €'), 'цена входа не выведена');
   assert.ok(plain.includes('20 000'), 'текущая сумма не выведена');
