@@ -5,12 +5,19 @@
  * <table> и новых <ul> не добавляем, потому что профиль держит
  * table_cols = 0 и полосу по спискам.
  *
- * php engine/verstka-v5.php <папка>
+ * php engine/verstka-v5.php <папка> [--без-картинок]
+ *
+ * --без-картинок: обложек в карточках слотов нет, поэтому заглушку с эмодзи
+ * не прячем, а оформляем как плитку — иначе у карточки остаётся пустой верх.
  */
 
-$папка = rtrim($argv[1] ?? '', '/');
-if ($папка === '' || !is_dir($папка)) {
-    fwrite(STDERR, "usage: php engine/verstka-v5.php <папка>\n"); exit(1);
+$папка = null; $безКартинок = false;
+foreach (array_slice($argv, 1) as $а) {
+    if ($а === '--без-картинок') { $безКартинок = true; continue; }
+    if ($а[0] !== '-') { $папка = rtrim($а, '/'); }
+}
+if ($папка === null || !is_dir($папка)) {
+    fwrite(STDERR, "usage: php engine/verstka-v5.php <папка> [--без-картинок]\n"); exit(1);
 }
 
 // Палитра полупрозрачная: блоки одинаково ложатся на светлую и тёмную тему.
@@ -125,7 +132,7 @@ $ПРАВИЛА = [
     'slot-card'     => 'display:block;border:' . КАНТ . ';border-radius:12px;background:' . ПОДЛОЖКА2 . ';overflow:hidden',
     'slot-card-inner' => 'display:flex;flex-direction:column;height:100%',
     'slot-poster'   => 'position:relative;line-height:0',
-    'slot-poster-fallback' => 'display:none',
+    'slot-poster-fallback' => 'display:none',   // при --без-картинок заменяется ниже
     'slot-badge'    => 'position:absolute;top:8px;right:8px;padding:3px 9px;border-radius:999px;background:rgba(10,12,20,.72);color:#fff;font-size:11px;line-height:1.4',
     'slot-info'     => 'padding:9px 11px 3px',
     'slot-name'     => 'margin:0;font-size:14px;line-height:1.3',
@@ -136,6 +143,17 @@ $ПРАВИЛА = [
     'slot-rtp-value' => 'display:block;font-weight:700',
     'slot-play-btn' => 'display:inline-block;font-size:12px;padding:5px 11px;border-radius:8px;background:' . ЗОЛОТО . ';color:#15161c;text-decoration:none;white-space:nowrap',
 ];
+
+// Без обложек заглушка становится единственным «постером» карточки: плитка
+// с эмодзи и названием игры на градиенте, ростом под ту же высоту, что
+// занимала бы картинка 640×480.
+if ($безКартинок) {
+    $ПРАВИЛА['slot-poster-fallback'] = 'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;'
+        . 'aspect-ratio:4/3;padding:10px;text-align:center;line-height:1.3;'
+        . 'background:linear-gradient(160deg,rgba(127,133,160,.26),rgba(127,133,160,.10))';
+    $ПРАВИЛА['slot-fallback-icon'] = 'font-size:34px;line-height:1';
+    $ПРАВИЛА['slot-fallback-name'] = 'font-size:12px;font-weight:600;opacity:.9';
+}
 
 /** Абзацы-предупреждения превращаем в блок внимания (тег остаётся <p>). */
 const ТРЕВОЖНЫЕ = [
