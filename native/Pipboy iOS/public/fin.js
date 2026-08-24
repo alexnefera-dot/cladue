@@ -811,7 +811,6 @@ function secHistory(rows, rate) {
           <td class="r num">${fmt(sum)} €${g.excluded ? ' <span class="meta">не в итоге</span>' : ''}</td></tr>`
           + rs.map(r => `<tr ${dnd(r)}><td class="dgname">
               <span class="ed" data-fe="hist:${r.id}:name:text">${fesc(r.name) || '—'}</span>
-              <span class="ed meta" data-fe="hist:${r.id}:note:text" title="пометка">${r.note ? '💬 ' + fesc(r.note) : '＋'}</span>
               <span class="rowbtn del" data-hdel="${r.id}">✕</span></td>
             <td class="r num"><span class="pill btn" data-hcurtog="${r.id}:${fesc(r.currency || '€')}" title="сменить валюту">${fesc(r.currency || '€')}</span>
               <span class="ed" data-fe="hist:${r.id}:amount:num">${fmt(r.amount)}</span></td></tr>`).join('')

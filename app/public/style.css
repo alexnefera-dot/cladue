@@ -478,6 +478,10 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 /* «История»: строка добавления живёт внутри той же таблицы */
 .digtable tr.histadd td{border-bottom:0;padding:4px 8px 8px}
 .histtable tr[data-hrow]{cursor:grab}
+/* Кнопки строки в мини-таблицах: по наведению, а переключатель «мимо итога» — всегда виден */
+.digtable tr:hover .rowbtn{opacity:1}
+.histtable tr.digeo .rowbtn:not(.del){opacity:.5}
+.histtable tr.digeo:hover .rowbtn:not(.del){opacity:1}
 .histtable tr.digeo.hoff td{opacity:.6}   /* группа мимо итога — на месте, но приглушена */
 .histtable tr.dropinto td{background:var(--green-soft)}
 .histtable tr.dropbefore td{box-shadow:inset 0 2px 0 var(--green)}
