@@ -511,8 +511,123 @@ function fill(){
   wireFilters(); wireLead();
 }
 
+/* ---------------- конверсии ---------------- */
+function tabConv(){
+  const C=D.conv, f2=(x)=>x.toFixed(2).replace('.',',');
+  const gr=C.groups.map(g=>`<tr><td class="l id">${esc(g.g)}</td><td class="l mut">${esc(g.pages)}</td>
+    <td>${g.n}</td><td class="mut">${f1(g.days)}</td><td>${g.nd}</td>
+    <td class="${g.reg?'good':'mut'}"><b>${g.reg}</b></td>
+    <td class="${g.dep?'good':'mut'}">${g.dep}</td>
+    <td class="num"><b>${f2(g.rpd)}</b></td><td class="mut">${g.t10}</td>
+    <td class="num mut">${g.r100==null?'—':f1(g.r100)}</td></tr>`).join('');
+  const fm=C.fmt.map(x=>`<tr><td class="l id">${esc(x.b)}</td><td>${x.n}</td>
+    <td class="mut">${f1(x.dd)}</td><td><b>${x.reg}</b></td><td class="mut">${x.dep}</td>
+    <td class="num"><b>${f2(x.rpd)}</b></td><td class="mut">${x.t10}</td>
+    <td class="num">${f1(x.r100)}</td></tr>`).join('');
+  const kn=C.doms.filter(d=>d.known).slice(0,26).map(d=>`<tr><td class="l id">${esc(d.d)}</td>
+    <td>${zn(d.zone)}</td><td class="l mut">${esc(d.g||'—')}</td>
+    <td><b>${d.reg}</b></td><td class="${d.dep?'good':'mut'}">${d.dep}</td>
+    <td class="mut">${d.t10==null?'—':d.t10}</td><td class="mut">${d.t3==null?'—':d.t3}</td>
+    <td class="l mut">${d.brands.map(b=>esc(b[0])+(b[1]>1?'×'+b[1]:'')).join(', ')}</td></tr>`).join('');
+  const un=C.doms.filter(d=>!d.known).slice(0,24).map(d=>`<tr><td class="l id">${esc(d.d)}</td>
+    <td>${zn(d.zone)}</td><td><b>${d.reg}</b></td>
+    <td class="${d.dep?'good':'mut'}">${d.dep}</td>
+    <td class="l mut">${d.brands.map(b=>esc(b[0])+(b[1]>1?'×'+b[1]:'')).join(', ')}</td></tr>`).join('');
+  const bl=C.brands.map(b=>`<tr><td class="l id">${esc(b.b||'—')}</td><td>${b.reg}</td>
+    <td class="${b.dep?'good':'mut'}">${b.dep}</td></tr>`).join('');
+  const zl=C.zones.map(z=>`<tr><td class="l">${zn(z.z)}</td><td>${z.reg}</td>
+    <td class="${z.dep?'good':'mut'}">${z.dep}</td></tr>`).join('');
+  const B=C.buck, bsum=Object.values(B).reduce((a,b)=>a+b,0);
+  const bk=['ТОП-3','ТОП-10','ТОП-30','ТОП-100','не ранжировался','бренда нет в ядре']
+    .filter(k=>B[k]).map(k=>`<tr><td class="l ${k.indexOf('ТОП')===0?'':'bad'}">${k}</td>
+      <td><b>${B[k]}</b></td><td class="mut">${Math.round(100*B[k]/bsum)}%</td></tr>`).join('');
+  return `<div class="blk"><h2>Конверсии: ${C.tot.reg} рег и ${C.tot.dep} деп, ${C.period}</h2>
+  <p class="note">${C.tot.ev} событий с привязкой к домену на ${C.tot.doms} доменах
+  (${C.skipped} записи без домена — хост в отчёте равен поисковику — отброшены).
+  Из них <b>${C.new.ev}</b> событий на ${C.new.doms} доменах из реестра групп и
+  <b>${C.old.ev}</b> на ${C.old.doms} доменах прошлых запусков.
+  Депозит приходит в тот же час, что и регистрация (медианный лаг 1 минута),
+  так что доля депозитов не занижена возрастом запуска.</p>
+  <div class="cards">
+    <div class="card ok"><h3>Новые запуски: ${C.new.reg} рег, ${C.new.dep} деп</h3>
+      <p>Доля депозитов <span class="big">${f1(100*C.new.dep/C.new.reg)}%</span></p></div>
+    <div class="card"><h3>Прошлые запуски: ${C.old.reg} рег, ${C.old.dep} деп</h3>
+      <p>Доля депозитов <span class="big">${f1(100*C.old.dep/C.old.reg)}%</span>
+      <span class="mut">— в шесть раз выше при сопоставимом числе регистраций</span></p></div>
+  </div></div>
+
+  <div class="blk"><h2>Формат страниц: 12 против 7</h2>
+  <p class="note">Нормировка на домен·день — сколько регистраций даёт один домен за сутки жизни.
+  Правая пара колонок нормирует уже на видимость: регистраций на 100 ключей в ТОП-10.</p>
+  <div class="tw"><table><thead><tr><th class="l">Формат</th><th>Дом</th><th>Дом·дней</th>
+  <th>Рег</th><th>Деп</th><th>Рег/дом/день</th><th>Т10</th><th>Рег/100 Т10</th>
+  </tr></thead><tbody>${fm}</tbody></table></div>
+  <div class="cards" style="margin-top:14px">
+    <div class="card ok"><h3>На домен 12 страниц бьют 7 в шесть раз</h3>
+      <p>0,20 против 0,03 регистрации на домен в сутки. Если бы ставка была общей,
+      на семистраничных ожидалось бы 22 регистрации — наблюдалось 7.
+      <b>P(X≤7) = 0,0002.</b> На одних .team то же самое: 0,24 против 0,04, P = 0,0006.</p>
+      <p class="mut">По позициям объём страниц не разделялся ни разу. По конверсиям — разделился.</p></div>
+    <div class="card err"><h3>Но это в основном видимость, а не конверсия</h3>
+      <p>На 100 ключей в ТОП-10: 12 страниц — 4,0 регистрации, 11 страниц — 3,1,
+      7 страниц — 2,3. Разрыв падает с 6× до 1,7×, и на 32 против 7 регистраций
+      такая разница уже не значима.</p>
+      <p><b>Двенадцать страниц выигрывают тем, что лучше стоят, а не тем,
+      что лучше конвертят.</b></p></div>
+  </div></div>
+
+  <div class="blk"><h2>Группы по конверсии</h2>
+  <p class="note">Отсортировано по регистрациям на домен в сутки. Столбец «дней» —
+  сколько прожила группа к 24.08 12:15. На группу приходится от 0 до 8 регистраций,
+  поэтому порядок внутри верхней половины — шум.</p>
+  <div class="tw"><table><thead><tr><th class="l">Группа</th><th class="l">Страниц</th>
+  <th>Дом</th><th>Дней</th><th>С конв.</th><th>Рег</th><th>Деп</th>
+  <th>Рег/дом/день</th><th>Т10</th><th>Рег/100 Т10</th></tr></thead><tbody>${gr}</tbody></table></div></div>
+
+  <div class="blk"><h2>Конверсии приходят не с тех ключей, которые мы меряем</h2>
+  <p class="note">Для каждой конверсии на домене из реестра взята лучшая позиция
+  <b>этого бренда на этом домене</b> за всё наблюдение, по всем замерам, во всём
+  диапазоне ТОП-1…100.</p>
+  <div class="tw" style="max-width:520px"><table><thead><tr>
+  <th class="l">Где стоял бренд</th><th>Конверсий</th><th>Доля</th></tr></thead>
+  <tbody>${bk}</tbody></table></div>
+  <p class="note" style="margin-top:10px">Две трети конверсий приходят с брендов,
+  по которым домен <b>ни разу не попадал даже в сотню</b>. Из них
+  <b>${B['бренда нет в ядре']}</b> — по брендам, которых вообще нет в ядре
+  из 1571 ключа: <span class="num">${C.nob.map(x=>esc(x[0])+(x[1]>1?'×'+x[1]:'')).join(', ')}</span>.
+  Ещё <b>${B['не ранжировался']}</b> — по брендам, которые в ядре есть, но
+  домен по ним не ранжировался: <span class="num">${C.nor.slice(0,12).map(x=>esc(x[0])+(x[1]>1?'×'+x[1]:'')).join(', ')}</span>.
+  И то и другое означает одно: трафик пришёл с запросов, которых ядро не покрывает.</p>
+  <p class="note"><b>Что это значит для отчёта.</b> Всё, что меряется по ядру —
+  Т10/дом, ВЧ+СЧ, ТОП-3 — описывает витрину, а не поток. Показательна
+  <span class="num">Generation 50</span>: 43 ключа в ТОП-10 на 50 доменов,
+  почти ноль по нашим меркам, и при этом 6 регистраций — 14 на 100 ключей,
+  худшая видимость и лучшая отдача с неё во всём наборе.</p></div>
+
+  <div class="blk"><h2>Домены из реестра с конверсиями</h2>
+  <div class="tw"><table><thead><tr><th class="l">Домен</th><th>Зона</th><th class="l">Группа</th>
+  <th>Рег</th><th>Деп</th><th>Т10</th><th>ТОП-3</th><th class="l">Бренды</th>
+  </tr></thead><tbody>${kn}</tbody></table></div></div>
+
+  <div class="blk"><h2>Домены прошлых запусков</h2>
+  <p class="note">Контент этих доменов в реестре не заведён — сопоставить с конфигурацией нельзя.
+  Здесь они как ориентир по отдаче.</p>
+  <div class="tw"><table><thead><tr><th class="l">Домен</th><th>Зона</th><th>Рег</th><th>Деп</th>
+  <th class="l">Бренды</th></tr></thead><tbody>${un}</tbody></table></div></div>
+
+  <div class="blk"><h2>Бренды и зоны</h2>
+  <div class="cards2">
+    <div><h3 style="font-family:var(--cond);font-size:16px;margin-bottom:8px">Бренды</h3>
+    <div class="tw"><table><thead><tr><th class="l">Бренд</th><th>Рег</th><th>Деп</th>
+    </tr></thead><tbody>${bl}</tbody></table></div></div>
+    <div><h3 style="font-family:var(--cond);font-size:16px;margin-bottom:8px">Зоны</h3>
+    <div class="tw"><table><thead><tr><th class="l">Зона</th><th>Рег</th><th>Деп</th>
+    </tr></thead><tbody>${zl}</tbody></table></div></div>
+  </div></div>`;
+}
+
 const TABS=[["Обзор",tabOverview],["Все домены",tabAll],["Лидеры",tabLead],
-  ["Зоны",tabZones],["Бренды и ключи",tabBrands],["Типы запросов",tabCats]];
+  ["Зоны",tabZones],["Бренды и ключи",tabBrands],["Типы запросов",tabCats],["Конверсии",tabConv]];
 const nav=document.getElementById('nav'), main=document.getElementById('main');
 TABS.forEach(([name],i)=>{const b=document.createElement('button');
   b.textContent=name; b.setAttribute('role','tab'); b.setAttribute('aria-selected',i===0);
