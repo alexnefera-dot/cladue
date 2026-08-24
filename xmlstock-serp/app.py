@@ -2673,6 +2673,7 @@ def api_launches():
                 "id": lid, "name": la["name"], "domains_count": len(la["domains"]),
                 "snapshots_count": len(snaps), "created_at": la["created_at"],
                 "last_at": snaps[-1]["at"] if snaps else None,
+                "own_kw": len(la.get("keywords") or []),
                 "snapping": bool(prog.get("active")),
                 "snap_done": prog.get("done", 0), "snap_total": prog.get("total", 0),
             })
@@ -2704,24 +2705,25 @@ def api_launches_create():
             domains.append(nd)
     if not domains:
         return jsonify({"error": "Добавьте домены запуска (по одному в строке)."}), 400
+    own_kw = _split_unique(data.get("launch_keywords"), 5000)   # свои ключи запуска (опц.)
     with LAUNCH_LOCK:
         if data.get("keywords") is not None:
             LAUNCHES["keywords"] = _split_unique(data.get("keywords"), 5000)
             _save_launches()
-        keywords = list(LAUNCHES["keywords"])
+        keywords = own_kw or list(LAUNCHES["keywords"])
         n = len(LAUNCHES["launches"]) + 1
     if not keywords:
-        return jsonify({"error": "Сначала задайте общие ключи вверху вкладки."}), 400
+        return jsonify({"error": "Задайте ключи — общие вверху вкладки или свои для запуска."}), 400
     name = (data.get("name") or "").strip() or f"Запуск {n}"
     lid = uuid.uuid4().hex
     with LAUNCH_LOCK:
         LAUNCHES["launches"][lid] = {"id": lid, "name": name,
                                      "created_at": time.time(),
-                                     "domains": domains, "snapshots": []}
+                                     "domains": domains, "keywords": own_kw, "snapshots": []}
         _save_launches()
     _start_snapshot(lid, cfg, keywords, domains)
     return jsonify({"id": lid, "name": name, "domains": len(domains),
-                    "keywords": len(keywords)})
+                    "keywords": len(keywords), "own_kw": len(own_kw)})
 
 
 @app.route("/api/launches/<lid>/snapshot", methods=["POST"])
@@ -2738,12 +2740,12 @@ def api_launches_snapshot(lid):
             LAUNCHES["keywords"] = _split_unique(data.get("keywords"), 5000)
             _save_launches()
         domains = list(la["domains"])
-        keywords = list(LAUNCHES["keywords"])
+        keywords = la.get("keywords") or list(LAUNCHES["keywords"])
         busy = bool(SNAP_PROGRESS.get(lid, {}).get("active"))
     if busy:
         return jsonify({"error": "Съём по этому запуску уже идёт"}), 409
     if not keywords:
-        return jsonify({"error": "Сначала задайте общие ключи."}), 400
+        return jsonify({"error": "Сначала задайте ключи."}), 400
     _start_snapshot(lid, cfg, keywords, domains)
     return jsonify({"ok": True})
 
@@ -2763,7 +2765,7 @@ def api_launch_detail(lid):
         la = LAUNCHES["launches"].get(lid)
         if not la:
             return jsonify({"error": "Запуск не найден"}), 404
-        rows = launch_report_rows(la, LAUNCHES["keywords"])
+        rows = launch_report_rows(la, la.get("keywords") or LAUNCHES["keywords"])
         snaps = [{"at": s["at"], "engine": s.get("engine"), "depth": s.get("depth")}
                  for s in la["snapshots"]]
         return jsonify({"id": lid, "name": la["name"], "domains": la["domains"],
@@ -2786,14 +2788,37 @@ def api_launches_export():
     ws.append(["Запуск", "Доменов", "Ключей", "Съёмов", "Создан", "Последний съём"])
     for la in launches:
         snaps = la["snapshots"]
-        ws.append([la["name"], len(la["domains"]), len(set(gkw) | set(_launch_keywords(la))),
+        ekw = la.get("keywords") or gkw
+        ws.append([la["name"], len(la["domains"]), len(set(ekw) | set(_launch_keywords(la))),
                    len(snaps), _fmt_ts(la["created_at"]), _fmt_ts(snaps[-1]["at"]) if snaps else "—"])
+
+    # Лидерборд: домены по всем запускам (по последнему снимку каждого)
+    board = {}
+    for la in launches:
+        snaps = la["snapshots"]
+        if not snaps:
+            continue
+        for kw, dommap in (snaps[-1].get("positions") or {}).items():
+            for dom, p in (dommap or {}).items():
+                if not isinstance(p, int):
+                    continue
+                b = board.setdefault(dom, {"hits": 0, "t3": 0, "t10": 0, "best": None, "la": set()})
+                b["hits"] += 1
+                b["t3"] += 1 if p <= 3 else 0
+                b["t10"] += 1 if p <= 10 else 0
+                b["best"] = p if b["best"] is None else min(b["best"], p)
+                b["la"].add(la["name"])
+    wsb = wb.create_sheet("Лидерборд")
+    wsb.append(["Домен", "Запуск(и)", "Ключей в топе", "Топ-3", "Топ-10", "Лучшая позиция"])
+    for dom, b in sorted(board.items(), key=lambda kv: (-kv[1]["hits"], kv[1]["best"] or 9999)):
+        wsb.append([dom, ", ".join(sorted(b["la"])), b["hits"], b["t3"], b["t10"], b["best"]])
+
     used = set()
     for la in launches:
         wsl = wb.create_sheet(_sheet_name(la["name"], used))
         snaps = la["snapshots"]
         doms = la["domains"]
-        rows = launch_report_rows(la, gkw)
+        rows = launch_report_rows(la, la.get("keywords") or gkw)
         kw_order, look = [], {}
         for r in rows:
             if r["keyword"] not in kw_order:

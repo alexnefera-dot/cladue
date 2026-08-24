@@ -620,7 +620,12 @@
       </div>
       <label style="margin-top:10px">Домены запуска — по одному в строке <span class="count" id="pl_domcount">0</span></label>
       <textarea id="pl_domains" placeholder="onlybets.dj85i.team&#10;spacewin.k4r.team&#10;..."></textarea>
-      <div class="hint">Домены пула (5–10 шт). При создании сразу снимется 1-й съём позиций по общим ключам.</div>
+      <div class="hint">Домены пула (5–10 шт). При создании сразу снимется 1-й съём позиций.</div>
+      <details style="margin-top:8px">
+        <summary style="cursor:pointer;color:var(--muted);font-size:13px">⚙ Свои ключи для этого запуска (иначе — общие)</summary>
+        <textarea id="pl_custkw" style="margin-top:6px" placeholder="если заполнить — этот запуск снимется по ЭТИМ ключам, а не по общим сверху"></textarea>
+        <div class="hint">Пусто = берутся общие ключи вкладки. Заполни, когда именно этот пул нужно проверить по другому набору ключей.</div>
+      </details>
     </div>
 
     <div class="card">
@@ -1169,13 +1174,13 @@ $("pl_create").onclick = async ()=>{
   if(!$("user").value.trim()||!$("key").value.trim()){ showErr("Заполните User ID и API key."); return; }
   if(!plLines("pl_domains").length){ showErr("Добавьте домены запуска."); return; }
   if(!plLines("pl_keywords").length){ showErr("Сначала задайте общие ключи вверху вкладки."); return; }
-  const payload={...plSnapPayload(), name:$("pl_name").value, domains:$("pl_domains").value};
+  const payload={...plSnapPayload(), name:$("pl_name").value, domains:$("pl_domains").value, launch_keywords:$("pl_custkw").value};
   $("pl_create").disabled=true;
   try{
     const r=await fetch("/api/launches/create",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
     const d=await r.json();
     if(!r.ok){ showErr(d.error||"Ошибка"); $("pl_create").disabled=false; return; }
-    $("pl_name").value=""; $("pl_domains").value=""; $("pl_domcount").textContent="0 стр.";
+    $("pl_name").value=""; $("pl_domains").value=""; $("pl_custkw").value=""; $("pl_domcount").textContent="0 стр.";
     $("pl_create").disabled=false; plRefresh();
   }catch(e){ showErr("Нет связи с сервером: "+e); $("pl_create").disabled=false; }
 };
@@ -1225,7 +1230,7 @@ function plRender(){
     return `<div class="mgroup">
       <div class="row" style="justify-content:space-between;align-items:center;gap:8px">
         <div style="min-width:0"><b>${esc(la.name)}</b>
-          <span class="pill">${la.domains_count} доменов · ${la.snapshots_count} съёмов · послед. ${plTs(la.last_at)}</span>${prog}</div>
+          <span class="pill">${la.domains_count} доменов · ${la.snapshots_count} съёмов · послед. ${plTs(la.last_at)}</span>${la.own_kw?` <span class="pill" style="color:var(--acc)">свои ключи: ${la.own_kw}</span>`:""}${prog}</div>
         <div class="row" style="gap:6px;flex-wrap:nowrap">
           <button class="btn-go" style="padding:7px 12px" data-act="snap" data-id="${la.id}" ${busy?"disabled":""}>🔄 Переснять</button>
           <button class="btn-ghost" style="padding:7px 12px" data-act="toggle" data-id="${la.id}">${plExpanded[la.id]?"Свернуть":"Показать"}</button>
