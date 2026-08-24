@@ -471,6 +471,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .digtable tr.digeo .meta{font-weight:400;margin-left:8px}
 .digtable tr:first-child+tr.digeo td{border-top:0}
 .digtable .dgname{padding-left:22px}
+.digtable .dgsub{padding-left:44px}                    /* подпункт — третий уровень */
+.histtable .sub-out{color:var(--muted)}                /* вычитается из пункта, поэтому приглушён */
 .digtable .dgname .meta{margin-left:8px}
 .digtable tr.digtot td{border-top:1px solid var(--line);border-bottom:0;font-weight:600}
 .digtable .dgown{color:var(--blue);border-bottom-color:var(--blue)}   /* сумма правлена в своде */

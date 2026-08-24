@@ -778,11 +778,15 @@ function secDigest(tree) {
 // Здесь ничего не берётся из портфеля, всё заводится руками.
 function secHistory(rows, rate) {
   const all = rows || [];
-  const groups = all.filter(r => r.parent_id == null);
-  const kids = {};
-  all.filter(r => r.parent_id != null).forEach(r => (kids[r.parent_id] ??= []).push(r));
+  const byParent = {};
+  all.forEach(r => (byParent[r.parent_id ?? 'root'] ??= []).push(r));
+  const groups = byParent.root || [];
+  const kidsOf = id => byParent[id] || [];
   const eurOf = r => (r.currency === '$' ? (r.amount || 0) / (rate || 1.08) : (r.amount || 0));
-  const sumOf = g => (kids[g.id] || []).reduce((x, r) => x + eurOf(r), 0);
+  // Подпункт — часть пункта, которая уже занята: он вычитается из пункта, а значит и из группы.
+  const subSum = it => kidsOf(it.id).reduce((a, r) => a + eurOf(r), 0);
+  const itemEff = it => eurOf(it) - subSum(it);
+  const sumOf = g => kidsOf(g.id).reduce((a, it) => a + itemEff(it), 0);
   // Исключённые группы поднимаются наверх и отчёркиваются — этого достаточно, чтобы
   // не подписывать каждую строку словами «не в итоге».
   const total = groups.filter(g => !g.excluded).reduce((a, g) => a + sumOf(g), 0);
@@ -795,28 +799,39 @@ function secHistory(rows, rate) {
       <select data-hcur="${pid}"><option>€</option><option>$</option></select>
       <span class="pill btn ok" data-hadd="${pid}">＋</span>
     </span></td></tr>`;
-  const dnd = r => `data-hrow="${r.id}" data-hgroup="${r.parent_id == null ? 1 : 0}" `
+  const dnd = (r, lvl) => `data-hrow="${r.id}" data-hlvl="${lvl}" `
     + `data-hparent="${r.parent_id ?? ''}" data-hord="${r.ord ?? 0}" draggable="true"`;
+  const amountCell = r => `<td class="r num">
+    <span class="pill btn" data-hcurtog="${r.id}:${fesc(r.currency || '€')}" title="сменить валюту">${fesc(r.currency || '€')}</span>
+    <span class="ed" data-fe="hist:${r.id}:amount:num">${fmt(r.amount)}</span></td>`;
   return `
-  <div class="sec">История · свои группы и пункты · строки перетаскиваются</div>
+  <div class="sec">История · свои группы, пункты и подпункты · строки перетаскиваются</div>
   <div class="card">
     <table class="fintable digtable histtable">
-      <tr><th>Пункт</th><th class="r" style="width:150px">Сумма</th></tr>
+      <tr><th>Пункт</th><th class="r" style="width:170px">Сумма</th></tr>
       ${ordered.map((g, i) => {
-        const rs = kids[g.id] || [];
-        const sum = sumOf(g);
+        const its = kidsOf(g.id);
         const firstCounted = off.length && i === off.length;   // черта между исключёнными и остальными
-        return `<tr class="digeo${g.excluded ? ' hoff' : ''}${firstCounted ? ' hcut' : ''}" ${dnd(g)}><td>
+        return `<tr class="digeo${g.excluded ? ' hoff' : ''}${firstCounted ? ' hcut' : ''}" ${dnd(g, 0)}><td>
             <span class="ed" data-fe="hist:${g.id}:name:text" title="клик — переименовать">${fesc(g.name) || 'группа'}</span>
             <span class="rowbtn${g.excluded ? ' on' : ''}" data-hoff="${g.id}:${g.excluded ? 1 : 0}"
               title="${g.excluded ? 'вернуть группу в итог' : 'не считать эту группу в итоге'}">⊘</span>
             <span class="rowbtn del" data-hdel="${g.id}" title="удалить группу со всеми пунктами">✕</span></td>
-          <td class="r num">${fmt(sum)} €</td></tr>`
-          + rs.map(r => `<tr ${dnd(r)}><td class="dgname">
-              <span class="ed" data-fe="hist:${r.id}:name:text">${fesc(r.name) || '—'}</span>
-              <span class="rowbtn del" data-hdel="${r.id}">✕</span></td>
-            <td class="r num"><span class="pill btn" data-hcurtog="${r.id}:${fesc(r.currency || '€')}" title="сменить валюту">${fesc(r.currency || '€')}</span>
-              <span class="ed" data-fe="hist:${r.id}:amount:num">${fmt(r.amount)}</span></td></tr>`).join('')
+          <td class="r num">${fmt(sumOf(g))} €</td></tr>`
+          + its.map(it => {
+            const subs = kidsOf(it.id);
+            const taken = subSum(it);
+            return `<tr ${dnd(it, 1)}><td class="dgname">
+              <span class="ed" data-fe="hist:${it.id}:name:text">${fesc(it.name) || '—'}</span>
+              <span class="rowbtn" data-hsub="${it.id}" title="добавить подпункт — его сумма вычтется отсюда">＋</span>
+              <span class="rowbtn del" data-hdel="${it.id}">✕</span>
+              ${taken ? `<span class="meta" title="занято подпунктами ${fmt(taken)} €">осталось ${fmt(itemEff(it))} €</span>` : ''}</td>
+              ${amountCell(it)}</tr>`
+              + subs.map(sb => `<tr ${dnd(sb, 2)}><td class="dgsub">
+                  <span class="ed" data-fe="hist:${sb.id}:name:text">${fesc(sb.name) || '—'}</span>
+                  <span class="rowbtn del" data-hdel="${sb.id}">✕</span></td>
+                <td class="r num sub-out">− ${fmt(sb.amount)} ${fesc(sb.currency || '€')}</td></tr>`).join('');
+          }).join('')
           + addRow(g.id, 'новый пункт');
       }).join('') || '<tr><td colspan="2"><div class="empty">групп пока нет — заведи первую ниже</div></td></tr>'}
       ${groups.length ? `<tr class="digtot"><td>Всего <span class="meta">${groups.length - off.length} групп.</span></td>
@@ -1607,6 +1622,14 @@ function bindFin() {
         amount: parseNum(q('amt').value) ?? null, currency: q('cur').value });
       window.loadFin();
     }));
+  document.querySelectorAll('[data-hsub]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const name = prompt('Подпункт (его сумма вычтется из пункта):');
+      if (!name || !name.trim()) return;
+      const amt = parseNum(prompt('Сумма подпункта:') ?? '');
+      await finApi.add('hist', { parent_id: +el.dataset.hsub, name: name.trim(), amount: amt });
+      window.loadFin();
+    }));
   document.querySelectorAll('[data-hdel]').forEach(el =>
     el.addEventListener('click', async () => {
       await finApi.del('hist', +el.dataset.hdel);
@@ -1624,19 +1647,21 @@ function bindFin() {
   const hClear = () => document.querySelectorAll('.histtable tr.dropinto,.histtable tr.dropbefore,.histtable tr.dropafter')
     .forEach(x => x.classList.remove('dropinto', 'dropbefore', 'dropafter'));
   document.querySelectorAll('.histtable tr[data-hrow]').forEach(tr => {
-    const isGroup = tr.dataset.hgroup === '1';
+    const lvl = +tr.dataset.hlvl;   // 0 группа · 1 пункт · 2 подпункт
     tr.addEventListener('dragstart', e => {
-      hDrag = { id: +tr.dataset.hrow, group: isGroup };
+      hDrag = { id: +tr.dataset.hrow, lvl: +tr.dataset.hlvl };
       e.dataTransfer.effectAllowed = 'move';
     });
     tr.addEventListener('dragover', e => {
       if (!hDrag || hDrag.id === +tr.dataset.hrow) return;
-      if (hDrag.group && !isGroup) return;   // группу внутрь пункта не кладём
+      if (hDrag.lvl === 0 && lvl !== 0) return;      // группу внутрь строки не кладём
+      if (hDrag.lvl > 0 && lvl === 2) { /* к подпункту — только рядом */ }
       e.preventDefault();
       const r = tr.getBoundingClientRect();
       const y = (e.clientY - r.top) / r.height;
       tr.classList.remove('dropinto', 'dropbefore', 'dropafter');
-      const into = isGroup && !hDrag.group && y >= 0.3 && y <= 0.7;
+      // середина группы или пункта — вложить внутрь; у подпункта вложения нет
+      const into = hDrag.lvl > 0 && lvl < 2 && y >= 0.3 && y <= 0.7;
       tr.classList.add(into ? 'dropinto' : y < 0.5 ? 'dropbefore' : 'dropafter');
     });
     tr.addEventListener('dragleave', () => tr.classList.remove('dropinto', 'dropbefore', 'dropafter'));
@@ -1649,10 +1674,10 @@ function bindFin() {
       const dstOrd = +tr.dataset.hord || 0;
       // дробный ord: соседей не перенумеровываем, порядок всё равно верный
       const near = zone === 'before' ? dstOrd - 0.5 : dstOrd + 0.5;
-      const body = hDrag.group
+      const body = hDrag.lvl === 0
         ? { ord: near }                                   // группа переезжает только между группами
-        : isGroup
-          ? { parent_id: +tr.dataset.hrow, ord: zone === 'before' ? -1 : 9999 }   // пункт брошен на группу — внутрь неё
+        : zone === 'into'
+          ? { parent_id: +tr.dataset.hrow, ord: 9999 }    // внутрь группы (пунктом) или пункта (подпунктом)
           : { parent_id: tr.dataset.hparent === '' ? null : +tr.dataset.hparent, ord: near };
       await finApi.patch('hist', hDrag.id, body);
       hDrag = null;

@@ -319,6 +319,23 @@ test('история: свои группы и пункты, исключённ�
   assert.ok(ctx.secHistory([], 1.08).includes('групп пока нет'), 'пустой блок ничего не объясняет');
 });
 
+test('история: подпункт вычитается из пункта и из группы', () => {
+  const ctx = loadFin();
+  const html = ctx.secHistory([
+    { id: 1, parent_id: null, name: 'Бюджет', ord: 1 },
+    { id: 2, parent_id: 1, name: 'Ремонт', amount: 12000, currency: '€' },
+    { id: 3, parent_id: 2, name: 'Окна', amount: 3000, currency: '€' },
+    { id: 4, parent_id: 2, name: 'Двери', amount: 1000, currency: '€' },
+    { id: 5, parent_id: 1, name: 'Мебель', amount: 5000, currency: '€' },
+  ], 1.08).replace(/\u00a0/g, ' ');
+  assert.ok(html.includes('осталось 8 000 €'), '12 000 − 3 000 − 1 000 не посчиталось');
+  assert.ok(html.includes('− 3 000 €') && html.includes('dgsub'), 'подпункт не показан вычитанием');
+  const totals = [...html.matchAll(/13 000 €/g)];
+  assert.equal(totals.length, 2, 'группа и общий итог должны быть 8 000 + 5 000');
+  assert.ok(html.includes('data-hsub="2"'), 'у пункта нет кнопки добавить подпункт');
+  assert.ok(html.includes('data-hlvl="2"'), 'подпункт не помечен уровнем для перетаскивания');
+});
+
 test('цель: закреплено то поле, что заполнено', () => {
   const html = loadFin().secPortfolio(DATA, DATA.summary);
   assert.ok(html.includes('target_pct'), 'нет поля доли');
