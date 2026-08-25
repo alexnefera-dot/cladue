@@ -438,6 +438,7 @@ foreach (V5_TYPES as $тип) {
     if ($брендRu !== '%brand_name_ru%') { $страница = str_replace('%brand_name_ru%', $брендRu, $страница); }
     if ($брендEn !== '%brand_name_en%') { $страница = str_replace('%brand_name_en%', $брендEn, $страница); }
     $страница = v5PochinitDengi($страница, $банки['РУБЛИ'] ?? []);
+    $страница = v5PochinitChislo($страница);
     file_put_contents("$выход/$тип.html", $страница);
     $сводка[$тип] = [
         'скелет' => $лучший['скелет'], 'разделов' => $лучший['разделов'],
