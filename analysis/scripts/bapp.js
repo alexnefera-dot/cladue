@@ -6,12 +6,12 @@ const B=D.brands;
 const hit=B.filter(b=>b.hits>0), empty=B.filter(b=>b.hits===0);
 
 document.getElementById('facts').innerHTML=[
-  ['2 940','проверок: 70 ключей × 42 домена',''],
-  [String(D.hits),'позиций найдено',''],
-  ['0','ключей в ТОП-10','q'],
-  ['23','лучшая позиция во всём срезе',''],
-  [String(D.withpos)+' / 42','доменов хоть с одной позицией',''],
-  [String(empty.length)+' / 7','брендов без единой позиции','q'],
+  [D.series.join(' › '),'позиций по трём съёмам',''],
+  [String(D.t10),'ключей в ТОП-10',''],
+  [String(D.t3),'в ТОП-3',''],
+  [String(D.best),'лучшая позиция',''],
+  [String(D.withpos)+' / '+D.ndoms,'доменов хоть с одной позицией',''],
+  [String(empty.length)+' / '+B.length,'брендов без единой позиции','q'],
 ].map(([v,l,q])=>`<div class="fact"><div class="v ${q}">${v}</div><div class="l">${l}</div></div>`).join('');
 
 const gauge=(p)=>`<div class="gauge"><div class="z10"></div><div class="z30"></div>
@@ -29,7 +29,8 @@ const domBlock=(d,i)=>`<div class="dgroup">
     <span class="tag ${d.arm==='с картинками'?'img':''}">${esc(d.arm)}</span>
     <span class="mut" style="font-size:12.5px">лучшая <b class="num">${d.best}</b> · ключей ${d.n}</span>
   </div>
-  ${d.keys.map(k=>`<div class="krow"><div class="kq">${esc(k.q)}</div>
+  ${d.keys.map(k=>`<div class="krow"><div class="kq">${esc(k.q)}
+      <span class="hist">${(k.h||[]).map(x=>x==null?'<i class="n">—</i>':`<i>${x}</i>`).join('<b>›</b>')}</span></div>
     <div class="kp ${pcls(k.p)}">${k.p}</div>${gauge(k.p)}</div>`).join('')}
 </div>`;
 
@@ -55,13 +56,16 @@ document.getElementById('main').innerHTML=`
       <td class="num ${w?pcls(w.best):'zero'}"><b>${w?w.best:'—'}</b></td>
     </tr>`;}).join('')}
   </tbody></table></div>
-  <div class="note" style="margin-top:16px"><b>Два самых дорогих бренда пустые.</b>
-  По pinco (12,5 млн кликов/мес) и banda (2,8 млн) ни один из 42 доменов
-  не попал даже в сотню. Позиции есть только у брендов помельче — и это ожидаемо:
-  на дистанции в несколько часов дорогие запросы приходят последними.</div>
-  <div class="note"><b>Ни одного ключа в ТОП-10.</b> Весь срез лежит в диапазоне 23–100,
-  медиана 84. Шкала на карточках ниже показывает глубину: засечки стоят на 10 и 30,
-  и почти все отметки — правее второй.</div>
+  <div class="note" style="margin-top:16px"><b>Весь результат — один бренд.</b>
+  Из 33 позиций 30 приходятся на trix, и его взяли два домена:
+  <span class="dom">i5x.team</span> держит все десять ключей с первой позиции,
+  <span class="dom">nchg.team</span> — восемь из десяти. Оба <b>без картинок</b>.</div>
+  <div class="note"><b>Три самых дорогих бренда пустые.</b> По pinco (12,5 млн кликов/мес),
+  leon (9,5 млн) и banda (2,8 млн) ни один из 42 доменов не попал даже в сотню.
+  По leon позиции были на прошлом съёме — 23 и 26 у nchg.team — и пропали.</div>
+  <div class="note"><b>Шкала показывает глубину.</b> Засечки на 10 и 30; медиана среза — 20,
+  но она обманчива: половина отметок — это trix у двух доменов, остальные бренды
+  лежат в хвосте за семидесятой.</div>
 </section>
 
 ${hit.map(b=>`<section>

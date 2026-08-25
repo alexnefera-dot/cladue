@@ -106,6 +106,11 @@ tr:last-child td{border-bottom:0}
 .note+.note{margin-top:11px}
 footer{border-top:1px solid var(--line);padding:20px 0 40px;font-size:12px;color:var(--dim);
   font-family:var(--mono)}
+.hist{display:block;font-family:var(--mono);font-size:10.5px;color:var(--dim);margin-top:2px;
+  font-variant-numeric:tabular-nums}
+.hist i{font-style:normal}
+.hist i.n{color:var(--line2)}
+.hist b{color:var(--line2);font-weight:400;margin:0 3px}
 @media (max-width:660px){
   .krow,.scale{grid-template-columns:1fr 42px;padding-left:0}
   .krow .gauge,.scale .marks{grid-column:1/-1}
@@ -114,15 +119,15 @@ footer{border-top:1px solid var(--line);padding:20px 0 40px;font-size:12px;color
 </style>
 <div class="wrap">
 <header>
-  <div class="eyebrow">Book1 · срез 24.08 · 42 домена · 70 ключей</div>
+  <div class="eyebrow">Узкое ядро · три съёма · 42 домена · 70 ключей</div>
   <h1>Глубина по брендам</h1>
   <p class="lede">Узкое ядро на семь брендов, проверенное по всем сорока двум доменам запуска
-  24 августа. <b>Из 2940 проверок позицию вернули 19.</b> Все они глубокие: лучшая —
-  двадцать третья, в ТОП-10 не попал никто.</p>
+  24 августа. За три съёма — 24.08 22:25, 25.08 00:28 и 25.08 11:02 — число позиций
+  выросло с 15 до 33. <b>Почти весь прирост дал один бренд на двух доменах.</b></p>
   <div class="facts" id="facts"></div>
 </header>
 <main id="main"></main>
-<footer>Позиция берётся из последнего среза. «Лучший сайт» — домен с наименьшей позицией по бренду;
+<footer>Позиция берётся из последнего съёма, под ключом — история по трём съёмам. «Лучший сайт» — домен с наименьшей позицией по бренду;
 при равенстве выше тот, у кого больше ключей. Объёмы кликов в месяц — из brands_master.</footer>
 </div>
 <script>const D = __DATA__;</script>
