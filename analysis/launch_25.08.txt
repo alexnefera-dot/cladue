@@ -95,3 +95,17 @@ wknc.team
 8359.team
 3803.lol
 fkjj.lol
+
+=== ТЕСТ D · наборы, СТАРЫЕ аккаунты (5) ===
+rr07.team
+3839.team
+fcfo.team
+7082.team
+ll54.team
+
+=== ТЕСТ D · наборы, НОВЫЕ аккаунты (5) ===
+2354.team
+spvu.team
+9671.team
+evdj.team
+8825.team
