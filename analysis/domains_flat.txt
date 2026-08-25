@@ -40,6 +40,7 @@
 2568.team
 2607.team
 2650.team
+2674.team
 2691.team
 2764.team
 2824.team
@@ -76,6 +77,7 @@
 4671.team
 4733.team
 4757.team
+4811.team
 4814.team
 4839.team
 4863.team
@@ -108,9 +110,11 @@
 6829.lol
 6881.team
 6928.team
+6977.team
 7039.team
 7216.lol
 7672.team
+7912.team
 8172.team
 8261.team
 8271.team
@@ -122,6 +126,7 @@
 9316.space
 9364.team
 9536.lol
+9785.team
 9928.team
 9lm.team
 9yp.team
