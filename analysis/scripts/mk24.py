@@ -16,8 +16,8 @@ def cls(q):
 wb=openpyxl.load_workbook(io.BytesIO(open('launches13.xlsx','rb').read()),data_only=True)
 SH=[('ТЕСТ B · Generator_11page_img_2','Тест B · с картинками','B','с картинками'),
     ('ТЕСТ B · Generator_11page_NOimg','Тест B · без картинок','B','без картинок'),
-    ('ТЕСТ C · вебмастера, блок 1 (10','Тест C · блок 1','C1','смешанная'),
-    ('ТЕСТ C · вебмастера, блок 2 (10','Тест C · блок 2','C2','смешанная')]
+    ('ТЕСТ C · вебмастера, блок 1 (10','Тест C · старые аккаунты','C1','смешанная'),
+    ('ТЕСТ C · вебмастера, блок 2 (10','Тест C · новые аккаунты','C2','смешанная')]
 C_img=set('2428.team 7672.team y8db.team 5367.team khbr.team 4757.team 8304.team 8300.team 7039.team nwcs.team'.split())
 DOMS=[]; LABS=[]
 for sn,gname,tag,arm in SH:
@@ -80,10 +80,10 @@ def grp(ds,name,cfg):
 G=[]
 for _,gname,tag,_a in SH:
     ds=[x for x in DOMS if x['g']==gname]
-    G.append(grp(ds,gname,{'B':'11 стр, наш генератор','C1':'вебмастера, блок 1','C2':'вебмастера, блок 2'}[tag]
+    G.append(grp(ds,gname,{'B':'11 стр, наш генератор','C1':'вебмастера: старые аккаунты','C2':'вебмастера: новые аккаунты'}[tag]
                  + (' · '+ds[0]['arm'] if tag=='B' else '')))
 ARM=[grp([x for x in DOMS if x['arm']==a],'Все '+a,'B + C, 19 доменов .team') for a in ('с картинками','без картинок')]
-BLK=[grp([x for x in DOMS if x['test']==t],'Тест C · '+n,'10 доменов') for t,n in (('C1','блок 1'),('C2','блок 2'))]
+BLK=[grp([x for x in DOMS if x['test']==t],'Тест C · '+n,'10 доменов, зона .team, картинки 5+5') for t,n in (('C1','старые аккаунты'),('C2','новые аккаунты'))]
 BR={}
 for x in DOMS:
     for b in x['brands']:
