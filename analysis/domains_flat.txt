@@ -1,5 +1,6 @@
 1073.team
 1085.team
+1106.team
 1236.team
 1284.team
 1305.team
@@ -31,9 +32,11 @@
 2164.team
 2169.lol
 2214.team
+2291.team
 2328.team
 2385.team
 2417.team
+2424.team
 2428.team
 2470.team
 2535.team
@@ -63,6 +66,7 @@
 3726.team
 3728.team
 3748.team
+3803.lol
 3961.team
 3982.team
 4085.team
@@ -89,6 +93,7 @@
 5297-4.casino
 5364.team
 5367.team
+5374.team
 5385.team
 5390.team
 5719.team
@@ -112,6 +117,7 @@
 6928.team
 6977.team
 7039.team
+7201.team
 7216.lol
 7672.team
 7912.team
@@ -120,9 +126,11 @@
 8271.team
 8300.team
 8304.team
+8359.team
 8437.team
 8452.team
 8573.lol
+9279.team
 9316.space
 9364.team
 9536.lol
@@ -179,6 +187,7 @@ f7n.team
 fgqw.team
 fhmv.team
 fjnv.team
+fkjj.lol
 fkmz.team
 fkrt.team
 fmwc.team
@@ -300,6 +309,8 @@ w4rz.team
 w5mq.lol
 wcht.team
 wgmr.team
+wgxx.team
+wknc.team
 wnkr.casino
 wrfn.cloud
 x284.site
