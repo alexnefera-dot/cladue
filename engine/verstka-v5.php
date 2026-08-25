@@ -43,7 +43,10 @@ $ПРАВИЛА = [
     'btn-apple'         => 'display:inline-block;padding:10px 18px;border-radius:10px;border:' . КАНТ . ';text-decoration:none;font-weight:600;color:inherit',
 
     // ── куда перейти
-    'hero-quicklinks'   => 'display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:14px 0 0;padding:0;list-style:none',
+    // Внутри лежат заголовок и своя сетка ссылок. Когда контейнер сам был
+    // сеткой, заголовок вставал отдельной колонкой рядом с ссылками, и в шапке
+    // висело «Куда перейти» с пустотой под ним.
+    'hero-quicklinks'   => 'display:block;margin:14px 0 0;padding:0;list-style:none',
     'quicklinks-title'  => 'margin:22px 0 12px;font-size:18px',
     'quicklinks-grid'   => 'display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:0 0 22px;padding:0;list-style:none',
     'quicklink-item'    => 'display:grid;grid-template-columns:26px 1fr;column-gap:10px;align-items:center;padding:12px 14px;border:' . КАНТ . ';border-radius:12px;background:' . ПОДЛОЖКА . ';text-decoration:none;color:inherit',
@@ -165,6 +168,20 @@ const СПОКОЙНЫЕ = [
     'ответственная игра', 'играй с лимитом', 'без развода', 'по-честному',
 ];
 
+/**
+ * Любой <button> наследует цвет темы: иначе браузер красит текст в чёрный, а
+ * фон — в белый. Дописывается последним, поверх правила по классу, и только
+ * если цвет ещё не задан.
+ */
+function vsКнопка(string $л, int &$правил): string
+{
+    if (preg_match('~<button~', $л) !== 1 || strpos($л, 'color:inherit') !== false) { return $л; }
+    $правил++;
+    return strpos($л, ' style="') !== false
+        ? preg_replace('~ style="~', ' style="color:inherit;font-family:inherit;', $л, 1)
+        : preg_replace('~(<button)~', '$1 style="color:inherit;font-family:inherit"', $л, 1);
+}
+
 $файлы = glob($папка . '/*.html');
 $всего = 0; $тревог = 0; $шапок = 0;
 
@@ -195,16 +212,6 @@ foreach ($файлы as $файл) {
                     continue;
                 }
             }
-        }
-
-        // ── любой <button> наследует цвет темы: иначе браузер красит текст в чёрный
-        if (preg_match('~^\\s*<button~', $л) === 1 && strpos($л, 'color:inherit') === false) {
-            if (strpos($л, ' style="') !== false) {
-                $л = preg_replace('~ style="~', ' style="color:inherit;font-family:inherit;', $л, 1);
-            } else {
-                $л = preg_replace('~^(\\s*<button)~', '$1 style="color:inherit;font-family:inherit"', $л, 1);
-            }
-            $правил++;
         }
 
         // ── содержательные списки: воздух и цветные маркеры
@@ -239,6 +246,12 @@ foreach ($файлы as $файл) {
         }
 
         // ── общий разбор: на строке может быть несколько элементов с классами
+        //
+        // Раньше цвет кнопки подставлялся до этого разбора, прямо в $л. Строка
+        // получала style=, и защита «уже оформлено — не трогаем» ниже отбрасывала
+        // разобранный вариант: вкладки каталога оставались белыми кнопками
+        // браузера, хотя правило для slots-tab в таблице есть. Теперь цвет
+        // добавляется последним, к уже готовой строке.
         if (strpos($л, 'class="') !== false) {
             $ряд_ссылка = &$ряд;
             $новая = preg_replace_callback('~class="([^"]+)"~', function ($m) use (&$правил, &$ряд_ссылка, $ПРАВИЛА) {
@@ -250,6 +263,7 @@ foreach ($файлы as $файл) {
                 return $m[0] . ' style="' . $стиль . '"';
             }, $л);
             if (strpos($л, ' style="') !== false) $новая = $л;   // уже оформлено — не трогаем
+            $новая = vsКнопка($новая, $правил);
             $итог[] = $новая;
 
             // шапка колонок сразу после открытия дорожки выплат
@@ -262,7 +276,7 @@ foreach ($файлы as $файл) {
             continue;
         }
 
-        $итог[] = $л;
+        $итог[] = vsКнопка($л, $правил);
     }
 
     file_put_contents($файл, implode("\n", $итог));
