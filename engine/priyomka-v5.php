@@ -32,10 +32,12 @@ require_once __DIR__ . '/src/PageMetrics.php';
 require_once __DIR__ . '/instrumenty/shingle.php';
 
 $папка = ''; $корпус = 'samples/v5-donors'; $наши = 'samples/v5-final';
+$чужие_наборы = 'samples/v5-vhod33';
 $asJson = in_array('--json', $argv, true);
 foreach (array_slice($argv, 1) as $a) {
     if (str_starts_with($a, '--корпус=')) { $корпус = rtrim(substr($a, strlen('--корпус=')), '/'); }
     elseif (str_starts_with($a, '--наши=')) { $наши = rtrim(substr($a, strlen('--наши=')), '/'); }
+    elseif (str_starts_with($a, '--чужие=')) { $чужие_наборы = rtrim(substr($a, strlen('--чужие=')), '/'); }
     elseif ($a[0] !== '-') { $папка = rtrim($a, '/'); }
 }
 if ($папка === '' || !is_dir($папка)) {
@@ -119,11 +121,19 @@ $итог['комплект'] = [
 ];
 
 // ── 3. уникальность ─────────────────────────────────────────────────
+// Чужой корпус тоже сосед: с тех пор как его проза попала в пулы
+// (`sbor-new33.php`), набор может совпасть не только с донором и нашим
+// прошлым комплектом, но и с той страницей, откуда фраза пришла.
 $соседи = [];
-foreach ([$корпус, $наши] as $где) {
+foreach ([$корпус, $наши, $чужие_наборы] as $где) {
+    if ($где === '' || !is_dir($где)) { continue; }
     foreach (glob("$где/*", GLOB_ONLYDIR) ?: [] as $d) {
-        if (realpath($d) === realpath($папка)) { continue; }
-        $соседи[basename($где) . '/' . basename($d)] = $d;
+        // Корпус бывает двухуровневым: samples/v5-vhod33/nodate/arkada.
+        $вложенные = is_file("$d/main.html") ? [$d] : (glob("$d/*", GLOB_ONLYDIR) ?: []);
+        foreach ($вложенные as $к) {
+            if (realpath($к) === realpath($папка)) { continue; }
+            $соседи[basename($где) . '/' . basename(dirname($к)) . '/' . basename($к)] = $к;
+        }
     }
 }
 foreach ($всеHtml as $тип => $html) {
@@ -136,6 +146,12 @@ foreach ($всеHtml as $тип => $html) {
         if (!is_file($f)) { continue; }
         $их = shingles(chist((string) file_get_contents($f)));
         if (!$их || !$наш) { continue; }
+        // Доля считается от меньшей страницы, и на обрубке она врёт: у чужого
+        // корпуса есть страницы по сотне слов, и любая наша даёт против них
+        // 25–30 % на пустом месте. У доноров и у нас страница ниже 1200
+        // шинглов не опускается ни разу, так что порог в 600 отсекает только
+        // заведомые огрызки.
+        if (count($их) < 600) { continue; }
         $p = count(array_intersect_key($наш, $их)) / min(count($наш), count($их)) * 100;
         if ($p > $худший[1]) { $худший = [$имя, round($p, 1)]; }
     }
