@@ -5,6 +5,7 @@
 1284.team
 1305.team
 1349.team
+1409.team
 1434.team
 1467.team
 1596.team
@@ -40,10 +41,13 @@
 2424.team
 2428.team
 2470.team
+2489.team
+2519.team
 2535.team
 2568.team
 2607.team
 2650.team
+2654.team
 2674.team
 2691.team
 2764.team
@@ -126,7 +130,9 @@
 7039.team
 7201.team
 7216.lol
+7227.team
 7672.team
+7873.team
 7912.team
 8172.team
 8261.team
@@ -178,6 +184,7 @@ cvnp.team
 d2wq.team
 d4v.team
 d4z.team
+d9d.team
 d9mq.team
 d9tk.team
 dhkt.team
@@ -274,6 +281,7 @@ nsbf.team
 nwcs.team
 p3zv.team
 p5cx.team
+p8rs.team
 p9td.team
 pszk.team
 qbnv.lol
