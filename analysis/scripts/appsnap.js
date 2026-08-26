@@ -6,10 +6,74 @@ const tg=(t)=>`<span class="tag t-${t}">${t}</span>`;
 const zn=(z)=>`<span class="zone ${z==='.team'?'zt':''}">${esc(z)}</span>`;
 const dl=(a,b)=>{const d=b-a; return d>0?`<span class="good">+${f1(d)}</span>`:(d<0?`<span class="bad">${f1(d)}</span>`:'<span class="mut">0</span>');};
 
+
+const ratio=(x,y)=>y>0?(x/y>=1?f1(x/y)+'×':'0,'+Math.round(100*x/y)+'×'):'—';
+function cmpRow(nm,A,B,an,bn,int){
+  const w = A>B?'a':(B>A?'b':'');
+  const fm=(x)=>int?String(Math.round(x)):f2(x);
+  let note;
+  if(A===B) note='<span class="mut">поровну</span>';
+  else if(Math.min(A,B)===0) note=`<span class="mut">только у</span> «${esc(A>B?an:bn)}»`;
+  else note=`${A>B?ratio(A,B):ratio(B,A)} <span class="mut">за</span> «${esc(A>B?an:bn)}»`;
+  return `<tr><td class="l mut">${nm}</td>
+    <td class="num ${w==='a'?'good':''}"><b>${fm(A)}</b></td>
+    <td class="num ${w==='b'?'good':''}"><b>${fm(B)}</b></td>
+    <td class="num">${note}</td></tr>`;
+}
+function pairBlock(p){
+  const an=p.a.split('· ')[1], bn=p.b.split('· ')[1];
+  const s1=p.s1, sl=p.sl;
+  const w1m=s1.a.mean>s1.b.mean?an:bn, w1w=s1.a.wo>s1.b.wo?an:bn;
+  const w2m=sl.a2.mean>sl.b2.mean?an:bn, w2w=sl.a2.wo>sl.b2.wo?an:bn;
+  const agree1=w1m===w1w, agree2=w2m===w2w, same=w1m===w2m&&w1w===w2w&&agree1&&agree2;
+  return `<div class="verd">
+    <h3>${esc(p.title)}</h3>
+    <p class="note">${esc(p.note)}</p>
+    <div class="two2">
+      <div class="vcol">
+        <div class="vh">Съём 1 — <b>${esc(p.s1.a.n?'':'')}${esc(D.g.find(g=>g.name===p.a).labs[0])}</b>
+          <span class="ok2">полное ядро</span></div>
+        <div class="tw"><table><thead><tr><th class="l">Метрика</th>
+          <th>${esc(an)}</th><th>${esc(bn)}</th><th class="l">Перевес</th></tr></thead><tbody>
+          ${cmpRow('Т10/дом с лидером',s1.a.mean,s1.b.mean,an,bn)}
+          ${cmpRow('Т10/дом без лидера',s1.a.wo,s1.b.wo,an,bn)}
+          ${cmpRow('Медиана',s1.a.med,s1.b.med,an,bn)}
+          ${cmpRow('ТОП-3',s1.a.t3,s1.b.t3,an,bn,1)}
+          ${cmpRow('ВЧ + СЧ',s1.a.vch+s1.a.sch,s1.b.vch+s1.b.sch,an,bn,1)}
+        </tbody></table></div>
+        <p class="vsum ${agree1?'ok':'warnv'}">${agree1
+          ? `Обе меры за <b>«${esc(w1m)}»</b>.`
+          : `Меры расходятся: среднее за <b>«${esc(w1m)}»</b>, без лидера за <b>«${esc(w1w)}»</b>.`}</p>
+      </div>
+      <div class="vcol">
+        <div class="vh">Съём 2 — <b>${esc(D.g.find(g=>g.name===p.a).labs[1])}</b>
+          <span class="warn2">срез ${p.cov} ключей</span></div>
+        <div class="tw"><table><thead><tr><th class="l">Метрика</th>
+          <th>${esc(an)}</th><th>${esc(bn)}</th><th class="l">Перевес</th></tr></thead><tbody>
+          ${cmpRow('Т10/дом с лидером',sl.a2.mean,sl.b2.mean,an,bn)}
+          ${cmpRow('Т10/дом без лидера',sl.a2.wo,sl.b2.wo,an,bn)}
+          ${cmpRow('Медиана',sl.a2.med,sl.b2.med,an,bn)}
+          ${cmpRow('ТОП-3',sl.a2.t3,sl.b2.t3,an,bn,1)}
+          ${cmpRow('ВЧ + СЧ',sl.a2.vch+sl.a2.sch,sl.b2.vch+sl.b2.sch,an,bn,1)}
+        </tbody></table></div>
+        <p class="vsum ${agree2?'ok':'warnv'}">${agree2
+          ? `Обе меры за <b>«${esc(w2m)}»</b>.`
+          : `Меры расходятся: среднее за <b>«${esc(w2m)}»</b>, без лидера за <b>«${esc(w2w)}»</b>.`}</p>
+      </div>
+    </div>
+    <p class="vfin ${same?'ok':'bad2'}">${same
+      ? `<b>Оба съёма согласны:</b> «${esc(w2m)}» впереди и по среднему, и без лидера.`
+      : `<b>Съёмы не согласны.</b> На первом впереди «${esc(w1m)}», на втором «${esc(w2m)}». Вывода нет.`}
+      <span class="mut"> Динамика на срезе: «${esc(an)}» ${f2(sl.a1.mean)} → ${f2(sl.a2.mean)}
+      (без лидера ${f2(sl.a1.wo)} → ${f2(sl.a2.wo)}), «${esc(bn)}» ${f2(sl.b1.mean)} → ${f2(sl.b2.mean)}
+      (без лидера ${f2(sl.b1.wo)} → ${f2(sl.b2.wo)}).</span></p>
+  </div>`;
+}
+
 const metrics=(a)=>`<div class="tw"><table class="mt"><tbody>
-  <tr><td class="l">Т10 на домен</td><td class="num big">${f2(a.mean)}</td></tr>
+  <tr><td class="l">Т10/дом <b>с лидером</b></td><td class="num big">${f2(a.mean)}</td></tr>
+  <tr><td class="l">Т10/дом <b>без лидера</b></td><td class="num big">${f2(a.wo)}</td></tr>
   <tr><td class="l">Медиана</td><td class="num">${f1(a.med)}</td></tr>
-  <tr><td class="l">Без лидера</td><td class="num">${f2(a.wo)}</td></tr>
   <tr><td class="l">Значения по доменам</td><td class="num l">${a.vals.join(', ')}</td></tr>
   <tr><td class="l">ТОП-3</td><td class="num">${a.t3}</td></tr>
   <tr><td class="l">Т30 / Т100</td><td class="num">${a.t30} / ${a.t100}</td></tr>
@@ -62,7 +126,8 @@ function groupBlock(g,gi){
   const [a,b]=g.slice;
   return `<section class="blk" id="g${gi}">
     <h2>${esc(g.name)}</h2>
-    <p class="note">${esc(g.cfg)} · ${g.ndom} доменов${g.nexcl?` (${g.nexcl} исключён)`:''} ·
+    <p class="note"><span class="sheetname">${esc(g.sheet)}</span> · ${esc(g.cfg)} ·
+    ${g.ndom} доменов${g.nexcl?` (${g.nexcl} исключён)`:''} ·
     снимки <b>${g.labs.map(esc).join('</b> и <b>')}</b></p>
     ${g.snaps.map((s,i)=>snapBlock(g,s,i)).join('')}
     <div class="cmp">
@@ -99,6 +164,7 @@ function groupBlock(g,gi){
     </div>
   </section>`;
 }
+const C=D.ctrl;
 const main=document.getElementById('main');
 main.innerHTML=`<div class="blk"><h2>Как читать</h2>
   <p class="note">Каждый лист показан двумя снимками подряд, как в выгрузке.
@@ -108,6 +174,31 @@ main.innerHTML=`<div class="blk"><h2>Как читать</h2>
   «сравнение на общем срезе», где оба снимка пересчитаны на одинаковом наборе ключей.
   Все метрики — по .team. Домены ${D.excl.map(x=>`<span class="num">${esc(x)}</span>`).join(' и ')}
   исключены из расчётов.</p></div>`
+  + `<div class="blk"><h2>Выводы по обоим съёмам</h2>
+      <p class="note">Каждый тест — двумя мерами. <b>С лидером</b> — обычное среднее,
+      его тянет вверх один сильный домен. <b>Без лидера</b> — среднее по остальным,
+      показывает типичный домен ветки. Вывод считается устойчивым, только если
+      обе меры и оба съёма указывают в одну сторону.</p>
+      ${D.pairs.map(pairBlock).join('')}
+      <div class="verd">
+        <h3>Контроль — просела ли выдача</h3>
+        <p class="note">Контенты 21.08 на новых доменах: прогон генерации тот же, что
+        у ветки, запущенной 22.08, двигается только дата запуска.</p>
+        <div class="tw" style="max-width:640px"><table><thead><tr><th class="l">Метрика</th>
+          <th>Съём 1 (полный)</th><th>Съём 2 (срез)</th></tr></thead><tbody>
+          <tr><td class="l mut">Т10/дом с лидером</td><td class="num"><b>${f2(C.s1.mean)}</b></td>
+            <td class="num"><b>${f2(C.sl2.mean)}</b></td></tr>
+          <tr><td class="l mut">Т10/дом без лидера</td><td class="num"><b>${f2(C.s1.wo)}</b></td>
+            <td class="num"><b>${f2(C.sl2.wo)}</b></td></tr>
+          <tr><td class="l mut">ТОП-3</td><td class="num">${C.s1.t3}</td><td class="num">${C.sl2.t3}</td></tr>
+          <tr><td class="l mut">ВЧ + СЧ</td><td class="num">${C.s1.vch+C.s1.sch}</td>
+            <td class="num">${C.sl2.vch+C.sl2.sch}</td></tr>
+        </tbody></table></div>
+        <p class="vfin ok"><b>Выдача в порядке.</b> ${f2(C.s1.mean)} ключа на домен на шести часах
+        при исторической вилке формата «12 стр + даты» <b>11,7…26,4</b> на девяти-десяти часах.
+        Партии 24.08 на том же возрасте давали 0,0-1,3. На срезе группа ещё и растёт:
+        ${f2(C.sl1.mean)} → ${f2(C.sl2.mean)} с лидером, ${f2(C.sl1.wo)} → ${f2(C.sl2.wo)} без лидера.</p>
+      </div></div>`
   + D.g.map(groupBlock).join('');
 document.getElementById('nav').innerHTML=D.g.map((g,i)=>
   `<a href="#g${i}">${esc(g.name)}</a>`).join('');

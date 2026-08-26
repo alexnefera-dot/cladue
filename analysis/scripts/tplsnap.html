@@ -1,4 +1,4 @@
-<title>Съёмы 25–26 августа</title>
+<title>Тесты 25–26 августа</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
 :root{
@@ -148,13 +148,30 @@ nav#nav{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
 nav#nav a{font-family:var(--mono);font-size:11.5px;padding:5px 10px;border-radius:2px;
   border:1px solid var(--line2);color:var(--mut);text-decoration:none}
 nav#nav a:hover{color:var(--gold);border-color:var(--gold)}
+
+.verd{border:1px solid var(--line);border-radius:3px;padding:16px 18px;margin:16px 0;background:var(--surf)}
+.verd h3{font-family:var(--cond);font-size:19px;margin:0 0 4px;letter-spacing:-.01em}
+.two2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:12px}
+@media (max-width:900px){.two2{grid-template-columns:1fr}}
+.vcol{min-width:0}
+.vh{font-family:var(--cond);font-size:14px;margin-bottom:8px;display:flex;gap:8px;
+  align-items:baseline;flex-wrap:wrap}
+.vsum{font-size:13.5px;margin:9px 0 0;padding:8px 11px;border-radius:2px;border-left:2px solid var(--line2)}
+.vsum.ok{border-left-color:var(--good);background:#0f1a14;color:var(--tx)}
+.vsum.warnv{border-left-color:var(--warn);background:#1d1409;color:var(--tx)}
+.vfin{font-size:14px;margin:14px 0 0;padding:11px 13px;border-radius:2px}
+.vfin.ok{border-left:3px solid var(--good);background:#0f1a14}
+.vfin.bad2{border-left:3px solid var(--bad);background:#1c1012}
+.sheetname{font-family:var(--mono);font-size:11.5px;padding:1px 6px;border-radius:2px;
+  background:var(--raise);border:1px solid var(--line);color:var(--mut)}
 </style>
 <header><div class="wrap">
-  <div class="eyebrow">7 листов · 2 снимка на каждом · 25–26 августа</div>
-  <h1>Съёмы 25–26 августа</h1>
-  <p class="sub">Полный разбор каждого листа выгрузки по обоим снимкам: метрики, бренды,
-  дорогие ключи, домены и верхние запросы. Внизу каждой группы — сравнение снимков
-  на общем срезе ядра. Всё по <b style="color:var(--tx)">ТОП-10</b> и только по .team.
+  <div class="eyebrow">Тесты A · B · D · контроль — два съёма</div>
+  <h1>Тесты 25–26 августа</h1>
+  <p class="sub">Сначала выводы по каждому тесту — отдельно по первому и второму съёму,
+  <b style="color:var(--tx)">с лидером и без лидера</b>. Дальше разбор каждой ветки:
+  метрики, бренды, дорогие ключи, домены и верхние запросы по обоим снимкам.
+  Всё по <b style="color:var(--tx)">ТОП-10</b> и только по .team.
   Тиры: ВЧ ≥ 1 млн, СЧ 700k–1 млн. Бренды vovan и pari исключены.</p>
   <nav id="nav"></nav>
 </div></header>

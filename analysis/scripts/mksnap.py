@@ -2,16 +2,16 @@ import openpyxl,io,collections,statistics as st,core,json,re
 KW=core.KW; EXCL=core.EXCL_BRAND; EXCL_DOM={'5374.team','2535.team'}
 def tier(v): return "ВЧ" if v>=1_000_000 else ("СЧ" if v>=700_000 else "НЧ")
 wb=openpyxl.load_workbook(io.BytesIO(open('launches17.xlsx','rb').read()),data_only=True)
-SH=[('NEW33_12pages_nodate_25.08 (8)','NEW33_12pages_nodate','тест A · 12 стр без дат · чужой контент'),
-    ('NEW33_12pages_withdate_25.08 (8','NEW33_12pages_withdate','тест A · 12 стр с датами · чужой контент'),
-    ('Generator_11page_NOimg_25.08 (1','Generator_11page_NOimg','тест B · 11 стр без картинок · наш генератор'),
-    ('Generator_11page_img_25.08 (5)','Generator_11page_img','тест B · 11 стр с картинками · наш генератор'),
-    ('NEW50_5_7pages_nodate_21.08 (11','NEW50_5_7pages_nodate','контроль · 7 стр без дат · контент 21.08'),
-    ('Старые аккаунты (nabor-149…153)','Старые аккаунты','тест D · наборы · старые вебмастер-аккаунты'),
-    ('Новые аккаунты (nabor-144…148)','Новые аккаунты','тест D · наборы · новые вебмастер-аккаунты')]
+SH=[('NEW33_12pages_nodate_25.08 (8)','ТЕСТ A · без дат','NEW33_12pages_nodate','A','без дат','12 стр · чужой контент'),
+    ('NEW33_12pages_withdate_25.08 (8','ТЕСТ A · с датами','NEW33_12pages_withdate','A','с датами','12 стр · чужой контент'),
+    ('Generator_11page_NOimg_25.08 (1','ТЕСТ B · без картинок','Generator_11page_NOimg','B','без картинок','11 стр · наш генератор'),
+    ('Generator_11page_img_25.08 (5)','ТЕСТ B · с картинками','Generator_11page_img','B','с картинками','11 стр · наш генератор'),
+    ('NEW50_5_7pages_nodate_21.08 (11','КОНТРОЛЬ','NEW50_5_7pages_nodate','CTRL','контроль','7 стр · контент 21.08 на новых доменах'),
+    ('Старые аккаунты (nabor-149…153)','ТЕСТ D · старые аккаунты','Старые аккаунты','D','старые','наборы · старые вебмастер-аккаунты'),
+    ('Новые аккаунты (nabor-144…148)','ТЕСТ D · новые аккаунты','Новые аккаунты','D','новые','наборы · новые вебмастер-аккаунты')]
 def m(k,t): return sum(1 for x in k if x[0]<=t)
 G=[]
-for sn,name,cfg in SH:
+for sn,name,sheet,test,arm,cfg in SH:
     ws=wb[sn]; rows=list(ws.iter_rows(values_only=True))
     allh=[i for i,r in enumerate(rows) if r[0] and isinstance(r[0],str) and r[0].strip().startswith('Ключ \\')]
     snaps=[h for h in allh if 'Снимок' in str(rows[h-1][0])]
@@ -82,7 +82,7 @@ for sn,name,cfg in SH:
           'a':[sum(1 for x in SLICE[j][d] if x['p']<=10) for j in range(len(labs))],
           'b':[sum(1 for x in SLICE[j][d] if x['p']<=30) for j in range(len(labs))]})
     sldoms.sort(key=lambda x:-x['a'][-1])
-    G.append({'name':name,'cfg':cfg,'sheet':sn,'labs':labs,'cov':cov,'core':core_n,
+    G.append({'name':name,'cfg':cfg,'sheet':sheet,'test':test,'arm':arm,'labs':labs,'cov':cov,'core':core_n,
               'ndom':len(hdr),'nexcl':sum(1 for d in hdr if d in EXCL_DOM),
               'snaps':snapdata,'slice':sl,'sldoms':sldoms})
 json.dump({'g':G,'excl':sorted(EXCL_DOM)},open('snap.json','w',encoding='utf-8'),ensure_ascii=False)
@@ -90,3 +90,26 @@ for x in G:
     print('%-24s дом %2d | покрытие с2 %4d/%d (%.0f%%) | с1 %5.2f → с2 %5.2f (полн.) | срез %5.2f → %5.2f'%(
       x['name'],x['ndom'],x['cov'],x['core'],100*x['cov']/x['core'],
       x['snaps'][0]['agg']['mean'],x['snaps'][1]['agg']['mean'],x['slice'][0]['mean'],x['slice'][1]['mean']))
+
+# ---- сводка по тестам: пары веток, обе меры, оба съёма ----
+GB={x['name']:x for x in G}
+def pair(a,b,test,title,note):
+    A,B=GB[a],GB[b]
+    return {'test':test,'title':title,'note':note,'a':a,'b':b,
+      'cov':min(A['cov'],B['cov']),'core':A['core'],
+      's1':{'a':A['snaps'][0]['agg'],'b':B['snaps'][0]['agg']},
+      'sl':{'a1':A['slice'][0],'a2':A['slice'][1],'b1':B['slice'][0],'b2':B['slice'][1]}}
+PAIRS=[
+ pair('ТЕСТ A · без дат','ТЕСТ A · с датами','A','Тест A — даты',
+      'Пара из одного прогона генерации, id 938-953 сплошным блоком, создание в 16:04 и 16:05, по 8 доменов .team. Двигается только наличие дат.'),
+ pair('ТЕСТ B · без картинок','ТЕСТ B · с картинками','B','Тест B — картинки',
+      'Ветки вышли из разных прогонов с разрывом 27 минут, размеры 7 против 5 доменов .team после исключения 2535.team. Пара собрана менее чисто, чем 24.08.'),
+ pair('ТЕСТ D · старые аккаунты','ТЕСТ D · новые аккаунты','D','Тест D — возраст аккаунта',
+      'Наборы, по 5 доменов .team. Запущены вместе, зона одна, картинки внутри блоков зеркальны.'),
+]
+CTRL=GB['КОНТРОЛЬ']
+json.dump({'g':G,'excl':sorted(EXCL_DOM),'pairs':PAIRS,
+  'ctrl':{'s1':CTRL['snaps'][0]['agg'],'sl1':CTRL['slice'][0],'sl2':CTRL['slice'][1],
+          'cov':CTRL['cov'],'core':CTRL['core']}},
+  open('snap.json','w',encoding='utf-8'),ensure_ascii=False)
+print('пар:',len(PAIRS))
