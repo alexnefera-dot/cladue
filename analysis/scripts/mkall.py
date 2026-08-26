@@ -27,6 +27,7 @@ SRC=[('launches13.xlsx',[
  ('launches15.xlsx',[
   ('Старые аккаунты (nabor-149…153)','26.08 · наборы, старые акк.','D_old','наборы','наборы','12 стр'),
   ('Новые аккаунты (nabor-144…148)','26.08 · наборы, новые акк.','D_new','наборы','наборы','12 стр')])]
+EXCL_DOM={'5374.team','2535.team'}   # исключены по просьбе
 C_img=set('2428.team 7672.team y8db.team 5367.team khbr.team 4757.team 8304.team 8300.team 7039.team nwcs.team'.split())
 DOMS=[]
 for fn,sheets in SRC:
@@ -52,6 +53,7 @@ for fn,sheets in SRC:
                     except: continue
                     if 1<=p<=100: per[d][j][q]=(p,br,vol,tier(vol))
         for d in hdr:
+            if d in EXCL_DOM: continue
             a = arm if arm!='смешанная' else ('с картинками' if d in C_img else 'без картинок')
             S=per[d]; L=S[-1]; cnt=lambda s,t:sum(1 for p,*_ in s.values() if p<=t)
             keys=[]
