@@ -1,7 +1,7 @@
 import openpyxl,io,collections,statistics as st,core,json,re
 KW=core.KW; EXCL=core.EXCL_BRAND; EXCL_DOM={'5374.team','2535.team'}
 def tier(v): return "ВЧ" if v>=1_000_000 else ("СЧ" if v>=700_000 else "НЧ")
-wb=openpyxl.load_workbook(io.BytesIO(open('launches17.xlsx','rb').read()),data_only=True)
+wb=openpyxl.load_workbook(io.BytesIO(open('launches18.xlsx','rb').read()),data_only=True)
 SH=[('NEW33_12pages_nodate_25.08 (8)','ТЕСТ A · без дат','NEW33_12pages_nodate','A','без дат','12 стр · чужой контент'),
     ('NEW33_12pages_withdate_25.08 (8','ТЕСТ A · с датами','NEW33_12pages_withdate','A','с датами','12 стр · чужой контент'),
     ('Generator_11page_NOimg_25.08 (1','ТЕСТ B · без картинок','Generator_11page_NOimg','B','без картинок','11 стр · наш генератор'),
@@ -14,14 +14,19 @@ G=[]
 for sn,name,sheet,test,arm,cfg in SH:
     ws=wb[sn]; rows=list(ws.iter_rows(values_only=True))
     allh=[i for i,r in enumerate(rows) if r[0] and isinstance(r[0],str) and r[0].strip().startswith('Ключ \\')]
-    snaps=[h for h in allh if 'Снимок' in str(rows[h-1][0])]
-    labs=[str(rows[h-1][0]).replace('Снимок ','').replace(' XML','') for h in snaps]
-    hdr=[str(c).strip().lower() for c in rows[snaps[0]][1:] if c not in (None,'')]
+    allsn=[h for h in allh if 'Снимок' in str(rows[h-1][0])]
+    hdr=[str(c).strip().lower() for c in rows[allsn[0]][1:] if c not in (None,'')]
     def body(h):
         nxt=[i for i in allh if i>h]; end=(nxt[0]-1) if nxt else len(rows)
         return [r for r in rows[h+1:end] if isinstance(r[0],str) and r[0].strip().lower()!='ключ']
-    b2=body(snaps[1]); cov=max(i for i,r in enumerate(b2) if any(v is not None for v in r[1:1+len(hdr)]))+1
-    core_n=len(b2)
+    def coverage(h):
+        b=body(h); return max((i for i,r in enumerate(b) if any(v is not None for v in r[1:1+len(hdr)])),default=-1)+1,len(b)
+    # берём только ПОЛНЫЕ снимки (покрытие >=95% ядра), обрезанные пропускаем
+    full=[h for h in allsn if coverage(h)[0]>=0.95*coverage(h)[1]]
+    skipped=[str(rows[h-1][0]).replace('Снимок ','').replace(' XML','') for h in allsn if h not in full]
+    snaps=[full[0],full[-1]]
+    labs=[str(rows[h-1][0]).replace('Снимок ','').replace(' XML','') for h in snaps]
+    cov,core_n=coverage(snaps[1])
     def read(h,limit=None):
         per={d:[] for d in hdr}
         for r in (body(h)[:limit] if limit else body(h)):
@@ -82,7 +87,7 @@ for sn,name,sheet,test,arm,cfg in SH:
           'a':[sum(1 for x in SLICE[j][d] if x['p']<=10) for j in range(len(labs))],
           'b':[sum(1 for x in SLICE[j][d] if x['p']<=30) for j in range(len(labs))]})
     sldoms.sort(key=lambda x:-x['a'][-1])
-    G.append({'name':name,'cfg':cfg,'sheet':sheet,'test':test,'arm':arm,'labs':labs,'cov':cov,'core':core_n,
+    G.append({'name':name,'cfg':cfg,'sheet':sheet,'test':test,'arm':arm,'skipped':skipped,'labs':labs,'cov':cov,'core':core_n,
               'ndom':len(hdr),'nexcl':sum(1 for d in hdr if d in EXCL_DOM),
               'snaps':snapdata,'slice':sl,'sldoms':sldoms})
 json.dump({'g':G,'excl':sorted(EXCL_DOM)},open('snap.json','w',encoding='utf-8'),ensure_ascii=False)

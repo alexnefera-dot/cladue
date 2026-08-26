@@ -47,7 +47,7 @@ function pairBlock(p){
       </div>
       <div class="vcol">
         <div class="vh">Съём 2 — <b>${esc(D.g.find(g=>g.name===p.a).labs[1])}</b>
-          <span class="warn2">срез ${p.cov} ключей</span></div>
+          <span class="ok2">полное ядро</span></div>
         <div class="tw"><table><thead><tr><th class="l">Метрика</th>
           <th>${esc(an)}</th><th>${esc(bn)}</th><th class="l">Перевес</th></tr></thead><tbody>
           ${cmpRow('Т10/дом с лидером',sl.a2.mean,sl.b2.mean,an,bn)}
@@ -81,7 +81,7 @@ const metrics=(a)=>`<div class="tw"><table class="mt"><tbody>
 </tbody></table></div>`;
 
 function snapBlock(g,s,i){
-  const trunc = i>0 && g.cov<g.core;
+  const trunc = false;
   return `<div class="snap${trunc?' tr':''}">
     <div class="sh"><span class="lab">Снимок ${esc(s.lab)}</span>
       ${trunc?`<span class="warn2">обрезан — ${Math.round(100*g.cov/g.core)}% ядра (${g.cov} из ${g.core})</span>`
@@ -131,9 +131,9 @@ function groupBlock(g,gi){
     снимки <b>${g.labs.map(esc).join('</b> и <b>')}</b></p>
     ${g.snaps.map((s,i)=>snapBlock(g,s,i)).join('')}
     <div class="cmp">
-      <h3>Сравнение на общем срезе — первые ${g.cov} ключей</h3>
-      <p class="note">Второй снимок покрывает ${Math.round(100*g.cov/g.core)}% ядра, поэтому
-      оба снимка пересчитаны на одном наборе ключей. Только .team.</p>
+      <h3>Динамика между снимками</h3>
+      <p class="note">Оба снимка полные, ядро одинаковое. Только .team.
+      ${g.skipped.length?`Обрезанный снимок ${g.skipped.map(esc).join(', ')} пропущен.`:''}</p>
       <div class="tw"><table><thead><tr><th class="l">Метрика</th>
         <th>${esc(g.labs[0])}</th><th>${esc(g.labs[1])}</th><th>Δ</th></tr></thead><tbody>
         <tr><td class="l">Т10 на домен</td><td class="num"><b>${f2(a.mean)}</b></td>
@@ -153,7 +153,7 @@ function groupBlock(g,gi){
         <tr><td class="l">Значения</td><td class="num l">${a.vals.join(', ')}</td>
           <td class="num l">${b.vals.join(', ')}</td><td class="mut">—</td></tr>
       </tbody></table></div>
-      <h4>По доменам на срезе</h4>
+      <h4>По доменам</h4>
       <div class="tw"><table><thead><tr><th class="l">Домен</th><th>Зона</th>
         <th>Т10 ${esc(g.labs[0])}</th><th>Т10 ${esc(g.labs[1])}</th><th>Δ</th>
         <th>Т30</th><th>Т30</th></tr></thead><tbody>
@@ -167,18 +167,17 @@ function groupBlock(g,gi){
 const C=D.ctrl;
 const main=document.getElementById('main');
 main.innerHTML=`<div class="blk"><h2>Как читать</h2>
-  <p class="note">Каждый лист показан двумя снимками подряд, как в выгрузке.
-  <b>Второй снимок обрезан</b> — проверка не успела пройти до конца, данные покрывают
-  60–70% ядра, четвёртая четверть пуста на всех листах. Поэтому полные цифры второго
-  снимка сравнивать с первым нельзя: внизу каждой группы есть блок
-  «сравнение на общем срезе», где оба снимка пересчитаны на одинаковом наборе ключей.
-  Все метрики — по .team. Домены ${D.excl.map(x=>`<span class="num">${esc(x)}</span>`).join(' и ')}
-  исключены из расчётов.</p></div>`
+  <p class="note">В выгрузке по три снимка на лист. Средний, от 26.08 11:14–11:15,
+  <b>обрезан</b> — проверка не успела пройти, данные покрывали 60–70% ядра.
+  Он пропущен. Показаны два <b>полных</b> снимка: 25.08 около 23:20 (возраст ~6 часов)
+  и 26.08 около 12:30 (возраст ~19 часов).</p>
+  <p class="note">Каждый тест показан двумя мерами. <b>С лидером</b> — обычное среднее,
+  его тянет вверх один сильный домен. <b>Без лидера</b> — среднее по остальным,
+  показывает типичный домен ветки. Все метрики по .team. Домены
+  ${D.excl.map(x=>`<span class="num">${esc(x)}</span>`).join(' и ')} исключены.</p></div>`
   + `<div class="blk"><h2>Выводы по обоим съёмам</h2>
-      <p class="note">Каждый тест — двумя мерами. <b>С лидером</b> — обычное среднее,
-      его тянет вверх один сильный домен. <b>Без лидера</b> — среднее по остальным,
-      показывает типичный домен ветки. Вывод считается устойчивым, только если
-      обе меры и оба съёма указывают в одну сторону.</p>
+      <p class="note">Вывод считается устойчивым, только если обе меры и оба съёма
+      указывают в одну сторону. Оба снимка полные, сравнение прямое.</p>
       ${D.pairs.map(pairBlock).join('')}
       <div class="verd">
         <h3>Контроль — просела ли выдача</h3>
