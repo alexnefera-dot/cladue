@@ -76,6 +76,7 @@ return [
         'play-leebet-4th.com',
         'joyous-bahd4-6.com',
         'neo7-cr9t-ksh.com',
+        'combohub.live',
     ],
 
     // ============================================================
