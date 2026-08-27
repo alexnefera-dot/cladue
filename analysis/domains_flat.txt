@@ -1,4 +1,5 @@
 0058.team
+0302.team
 1073.team
 1085.team
 1106.team
@@ -32,15 +33,18 @@
 2008qw.buzz
 2008vu.buzz
 2058.team
+2084.team
 2095.team
 2108ee.buzz
 2108io.buzz
 2108jd.buzz
+2139.team
 2153.team
 2164.team
 2169.lol
 2214.team
 2291.team
+2304.team
 2307.team
 2328.team
 2354.team
@@ -50,6 +54,7 @@
 2428.team
 2461.team
 2470.team
+2483.team
 2489.team
 2519.team
 2535.team
@@ -82,6 +87,7 @@
 3547.team
 3584.team
 3592.team
+3596.team
 3615.team
 3635.team
 3664.team
@@ -96,6 +102,7 @@
 3961.team
 3982.team
 4085.team
+4087.team
 4150.team
 4173.lol
 4184.team
@@ -166,10 +173,12 @@
 7039.team
 7065.team
 7082.team
+7186.team
 7201.team
 7216.lol
 7224.team
 7227.team
+7440.team
 7672.team
 7873.team
 7912.team
@@ -208,6 +217,7 @@ b4kr.team
 b6nt.team
 b6t.team
 b7mk.team
+b8rn.team
 b8t.team
 bcqr.team
 bdwn.team
@@ -218,9 +228,11 @@ blsr.team
 bnkd.shop
 bnwk.casino
 bsfg.team
+byai.team
 c3c.lol
 c4wr.team
 c5tw.team
+c5vt.team
 c6p.fun
 c6vr.team
 c7mt.team
@@ -238,6 +250,7 @@ cqrw.rest
 ctpm.lol
 cvnp.team
 d2wq.team
+d3mw.team
 d4v.team
 d4z.team
 d9d.team
@@ -258,6 +271,8 @@ f5nv.team
 f6bz.team
 f6zn.team
 f7n.team
+f9kq.team
+f9pb.team
 fcfo.team
 fgqw.team
 fhmv.team
@@ -290,6 +305,7 @@ h4p.team
 h5nd.team
 h5r.team
 h5rz.team
+h7nd.team
 h7zb.quest
 h8cz.team
 hjtb.team
@@ -305,6 +321,7 @@ i5x.team
 im8tq.icu
 ip4nd.cyou
 j2mm.team
+j2t.team
 j3mc.team
 j4rd.team
 j6qz.team
@@ -318,6 +335,7 @@ jmrc.team
 jqtz.team
 k2n.team
 k5cr.team
+k6m.team
 k6p.team
 k7ln.team
 k8n.lol
@@ -360,6 +378,7 @@ ndvk.team
 nrwg.team
 nsbf.team
 nwcs.team
+ogax.team
 oiiu.team
 p3zv.team
 p5cx.team
@@ -379,6 +398,7 @@ r4kn.lol
 r7mc.team
 r7p0.team
 r8ud.team
+r9v.team
 rdwt.lol
 reyn.team
 rjff.team
