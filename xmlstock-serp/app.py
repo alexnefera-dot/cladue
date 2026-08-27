@@ -47,7 +47,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "url-рядом"
+APP_BUILD = "url-история"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -2883,6 +2883,20 @@ def api_launches_export():
             wsl.append([])
 
         if snaps:
+            # Смена URL по съёмам — видно, меняется ли ранжирующаяся страница
+            if len(snaps) >= 2:
+                wsl.append(["Смена URL по съёмам (какой страницей домен ранжируется)"])
+                wsl.append(["Ключ", "Домен"]
+                           + [f"URL · {_fmt_ts(s['at'])}" for s in snaps] + ["менялся?"])
+                for r in rows:
+                    useq = r.get("urls") or []
+                    present = [u for u in useq if u]
+                    if not present:
+                        continue
+                    changed = "да" if len(set(present)) > 1 else "нет"
+                    wsl.append([r["keyword"], r["domain"]]
+                               + [u or "" for u in useq] + [changed])
+                wsl.append([])
             for si, s in enumerate(snaps):
                 tag = f"{_fmt_ts(s['at'])} {s.get('engine') or ''}".strip()
                 snapshot_block(f"Снимок {tag} (позиция + URL страницы рядом)", si)
