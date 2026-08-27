@@ -639,12 +639,17 @@
 
   <p class="sub" style="text-align:center; margin-top:24px">
     Запущено локально на вашем компьютере · данные никуда не уходят, кроме API xmlstock
-    (мониторинг ещё дёргает RDAP/WHOIS для даты регистрации).
+    (мониторинг ещё дёргает RDAP/WHOIS для даты регистрации).<span id="buildmark"></span>
   </p>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
+// маркер сборки backend (видно, свежий ли сервер запущен)
+fetch("/api/version").then(r=>r.ok?r.json():null).then(d=>{
+  if(d&&d.build) $("buildmark").textContent=" · сборка: "+d.build;
+  else $("buildmark").textContent=" · ⚠ старый сервер (перезапусти)";
+}).catch(()=>{ $("buildmark").textContent=" · ⚠ старый сервер (перезапусти)"; });
 const SHARED  = ["user","key","engine","lr","domain","device","endpoint"];
 const COLLECT = ["top_n","workers","delay","retries","queries"];
 const TRACK   = ["m_depth","m_rounds","m_interval","m_interval_unit","m_workers","m_both"];

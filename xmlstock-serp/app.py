@@ -45,6 +45,10 @@ app = Flask(__name__)
 # страницу — чтобы после замены index.html хватило обновить вкладку (без рестарта).
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 
+# Маркер сборки backend — показывается в футере. Если после обновления в футере
+# старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
+APP_BUILD = "url-в-отчёте"
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -1494,6 +1498,11 @@ def index():
     resp = Response(render_template("index.html"), mimetype="text/html")
     resp.headers["Cache-Control"] = "no-store"
     return resp
+
+
+@app.route("/api/version")
+def api_version():
+    return jsonify({"build": APP_BUILD})
 
 
 @app.route("/api/run", methods=["POST"])
