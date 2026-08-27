@@ -1215,10 +1215,13 @@ function plRender(){
         +`<option value="avg" ${sel==="avg"?"selected":""}>Среднее по съёмам</option>`;
       const cell=(r)=>{
         if(!r) return '<td><span class="miss">·</span></td>';
-        const p = sel==="avg" ? (r.avg==null?null:Math.round(r.avg)) : r.positions[sel];
+        if(sel==="avg"){ const a=r.avg; return a==null?'<td><span class="miss">—</span></td>':`<td><span class="${a<=3?'p-top':a<=10?'p-mid':'p-low'}">${a}</span></td>`; }
+        const p=r.positions[sel], u=(r.urls||[])[sel];
         if(p==null) return '<td><span class="miss">—</span></td>';
         const c=p<=3?"p-top":(p<=10?"p-mid":"p-low");
-        return `<td><span class="${c}">${sel==="avg"?r.avg:p}</span></td>`;
+        if(u && /^https?:\/\//i.test(u)){ const eu=esc(u).replace(/"/g,"&quot;");
+          return `<td><a href="${eu}" target="_blank" rel="noopener" title="${eu}" class="${c}" style="text-decoration:underline">${p}</a></td>`; }
+        return `<td><span class="${c}">${p}</span></td>`;
       };
       const head=`<tr><th>Ключ \\ Домен</th>`+doms.map(dm=>`<th>${esc(dm)}</th>`).join("")+`</tr>`;
       const body=kws.map(kw=>`<tr><td>${esc(kw)}</td>`+doms.map(dm=>cell((look.get(kw)||{})[dm])).join("")+`</tr>`).join("");

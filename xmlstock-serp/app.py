@@ -201,6 +201,15 @@ def find_position(results, target):
     return None
 
 
+def find_position_url(results, target):
+    """Позиция И полный URL ранжирующейся страницы домена. (None, None) если нет."""
+    for i, r in enumerate(results, 1):
+        dom = r.get("domain") or domain_from_url(r.get("url", ""))
+        if _domain_matches(dom, target):
+            return i, (r.get("url") or "")
+    return None, None
+
+
 def _is_retryable(error_text):
     """Временные ошибки, которые имеет смысл повторить."""
     if not error_text:
@@ -2584,9 +2593,10 @@ def launch_report_rows(la, global_keywords=None):
     for dom in la["domains"]:
         for kw in kws:
             seq = [s.get("positions", {}).get(kw, {}).get(dom) for s in snaps]
+            useq = [s.get("urls", {}).get(kw, {}).get(dom) for s in snaps]
             found = [p for p in seq if p is not None]
             rows.append({
-                "domain": dom, "keyword": kw, "positions": seq,
+                "domain": dom, "keyword": kw, "positions": seq, "urls": useq,
                 "avg": round(sum(found) / len(found), 1) if found else None,
                 "best": min(found) if found else None,
                 "worst": max(found) if found else None,
@@ -2597,7 +2607,7 @@ def launch_report_rows(la, global_keywords=None):
 
 def _launch_snapshot(launch_id, cfg, keywords, domains):
     prog = SNAP_PROGRESS[launch_id]
-    positions = {}
+    positions, urls = {}, {}
     try:
         with ThreadPoolExecutor(max_workers=cfg["workers"]) as ex:
             futs = {ex.submit(fetch_one, cfg, kw, prog["cancel"]): kw for kw in keywords}
@@ -2607,13 +2617,21 @@ def _launch_snapshot(launch_id, cfg, keywords, domains):
                     results, _ = fut.result()
                 except Exception:  # noqa: BLE001
                     results = []
-                positions[kw] = {dom: find_position(results, dom) for dom in domains}
+                pmap, umap = {}, {}
+                for dom in domains:
+                    pos, url = find_position_url(results, dom)
+                    pmap[dom] = pos
+                    if url:
+                        umap[dom] = url          # URL храним только у найденных
+                positions[kw] = pmap
+                urls[kw] = umap
                 with LAUNCH_LOCK:
                     prog["done"] += 1
     except Exception:  # noqa: BLE001
         pass
     snap = {"at": time.time(), "engine": cfg.get("engine_label"),
-            "depth": cfg["top_n"], "keywords": list(keywords), "positions": positions}
+            "depth": cfg["top_n"], "keywords": list(keywords),
+            "positions": positions, "urls": urls}
     with LAUNCH_LOCK:
         la = LAUNCHES["launches"].get(launch_id)
         if la is not None:
@@ -2839,9 +2857,12 @@ def api_launches_export():
 
         if snaps:
             for si, s in enumerate(snaps):
-                matrix_block(f"Снимок {_fmt_ts(s['at'])} {s.get('engine') or ''}".strip(),
+                tag = f"{_fmt_ts(s['at'])} {s.get('engine') or ''}".strip()
+                matrix_block(f"Снимок {tag} — позиции",
                              lambda r, si=si: r["positions"][si])
-            matrix_block("Среднее по съёмам", lambda r: r["avg"])
+                matrix_block(f"Снимок {tag} — страницы (URL)",
+                             lambda r, si=si: (r.get("urls") or [None] * len(snaps))[si])
+            matrix_block("Среднее по съёмам — позиции", lambda r: r["avg"])
         else:
             wsl.append(["Съёмов нет"])
     if not launches:
