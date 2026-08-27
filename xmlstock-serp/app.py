@@ -47,7 +47,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "url-в-отчёте"
+APP_BUILD = "url-в-excel"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -2852,23 +2852,35 @@ def api_launches_export():
                 kw_order.append(r["keyword"])
             look[(r["keyword"], r["domain"])] = r
 
-        def matrix_block(title, getter):
+        from openpyxl.styles import Font
+        link_font = Font(color="0563C1", underline="single")
+
+        def matrix_block(title, getter, url_getter=None):
             wsl.append([title])
             wsl.append(["Ключ \\ Домен"] + list(doms))
             for kw in kw_order:
-                line = [kw]
+                line, cur_urls = [kw], []
                 for dm in doms:
                     r = look.get((kw, dm))
                     v = getter(r) if r else None
                     line.append(v if v is not None else "")
+                    cur_urls.append(url_getter(r) if (r and url_getter) else None)
                 wsl.append(line)
+                if url_getter:                       # позицию делаем ссылкой на страницу
+                    ri = wsl.max_row
+                    for ci, u in enumerate(cur_urls, start=2):
+                        if isinstance(u, str) and u.startswith("http"):
+                            cc = wsl.cell(row=ri, column=ci)
+                            cc.hyperlink = u
+                            cc.font = link_font
             wsl.append([])
 
         if snaps:
             for si, s in enumerate(snaps):
                 tag = f"{_fmt_ts(s['at'])} {s.get('engine') or ''}".strip()
-                matrix_block(f"Снимок {tag} — позиции",
-                             lambda r, si=si: r["positions"][si])
+                matrix_block(f"Снимок {tag} — позиции (клик по числу = страница)",
+                             lambda r, si=si: r["positions"][si],
+                             url_getter=lambda r, si=si: (r.get("urls") or [None] * len(snaps))[si])
                 matrix_block(f"Снимок {tag} — страницы (URL)",
                              lambda r, si=si: (r.get("urls") or [None] * len(snaps))[si])
             matrix_block("Среднее по съёмам — позиции", lambda r: r["avg"])
