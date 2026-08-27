@@ -47,7 +47,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "url-в-excel"
+APP_BUILD = "url-рядом"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -2852,37 +2852,40 @@ def api_launches_export():
                 kw_order.append(r["keyword"])
             look[(r["keyword"], r["domain"])] = r
 
-        from openpyxl.styles import Font
-        link_font = Font(color="0563C1", underline="single")
-
-        def matrix_block(title, getter, url_getter=None):
+        def matrix_block(title, getter):
             wsl.append([title])
             wsl.append(["Ключ \\ Домен"] + list(doms))
             for kw in kw_order:
-                line, cur_urls = [kw], []
+                line = [kw]
                 for dm in doms:
                     r = look.get((kw, dm))
                     v = getter(r) if r else None
                     line.append(v if v is not None else "")
-                    cur_urls.append(url_getter(r) if (r and url_getter) else None)
                 wsl.append(line)
-                if url_getter:                       # позицию делаем ссылкой на страницу
-                    ri = wsl.max_row
-                    for ci, u in enumerate(cur_urls, start=2):
-                        if isinstance(u, str) and u.startswith("http"):
-                            cc = wsl.cell(row=ri, column=ci)
-                            cc.hyperlink = u
-                            cc.font = link_font
+            wsl.append([])
+
+        def snapshot_block(title, si):
+            # по каждому домену две колонки рядом: позиция и URL страницы (текстом)
+            wsl.append([title])
+            hdr = ["Ключ"]
+            for dm in doms:
+                hdr += [f"{dm} — поз", f"{dm} — URL"]
+            wsl.append(hdr)
+            for kw in kw_order:
+                line = [kw]
+                for dm in doms:
+                    r = look.get((kw, dm))
+                    pos = r["positions"][si] if r else None
+                    url = (r.get("urls") or [None] * len(snaps))[si] if r else None
+                    line.append(pos if pos is not None else "")
+                    line.append(url or "")
+                wsl.append(line)
             wsl.append([])
 
         if snaps:
             for si, s in enumerate(snaps):
                 tag = f"{_fmt_ts(s['at'])} {s.get('engine') or ''}".strip()
-                matrix_block(f"Снимок {tag} — позиции (клик по числу = страница)",
-                             lambda r, si=si: r["positions"][si],
-                             url_getter=lambda r, si=si: (r.get("urls") or [None] * len(snaps))[si])
-                matrix_block(f"Снимок {tag} — страницы (URL)",
-                             lambda r, si=si: (r.get("urls") or [None] * len(snaps))[si])
+                snapshot_block(f"Снимок {tag} (позиция + URL страницы рядом)", si)
             matrix_block("Среднее по съёмам — позиции", lambda r: r["avg"])
         else:
             wsl.append(["Съёмов нет"])
