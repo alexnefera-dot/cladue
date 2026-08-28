@@ -55,6 +55,32 @@ for d in W['dm']:
     if d['group']=='вне наблюдения':
         d['group']='наши запуски до 19.08'; d['src']='контент не заведён в реестр'
     d['era']=ERA(d['d'])
+# --- доля доменов, вообще давших регистрацию
+def GRP(d):
+    if d in db: return db[d]['group']
+    if d in set(P1): return '7page_27.08 · партия 1'
+    if d in set(P2): return '7page_27.08 · партия 2'
+    return 'Generator_11page_old_27.08'
+HIT=[]
+for k in ['21–27.08','19–20.08','до 19.08']:
+    ds=[d for d in TR if ERA(d)==k]; w=[d for d in ds if rd.get(d,0)]
+    HIT.append(dict(k=k,n=len(ds),w=len(w),z=len(ds)-len(w),sh=round(100*len(w)/len(ds),1),
+        reg=sum(rd[d] for d in w),dist=sorted(collections.Counter(rd[d] for d in w).items())))
+NEWD=[d for d in TR if d in L and L[d] not in ('19.08','20.08')]
+GG=collections.defaultdict(lambda:dict(n=0,w=0,reg=0,dep=0,ld=None))
+for d in NEWD:
+    g=GG[GRP(d)]; g['n']+=1; g['reg']+=rd.get(d,0); g['dep']+=dp.get(d,0); g['ld']=L[d]
+    if rd.get(d,0): g['w']+=1
+GH=[dict(g=g,ld=v['ld'],n=v['n'],w=v['w'],z=v['n']-v['w'],sh=round(100*v['w']/v['n']),reg=v['reg'],dep=v['dep'])
+    for g,v in sorted(GG.items(),key=lambda x:(-x[1]['w']/x[1]['n'],-x[1]['reg']))]
+DMI={d['d']:d for d in W['dm']}
+POS=[]
+for lo,hi,lab in [(0,0,'ни одного'),(1,4,'1–4'),(5,14,'5–14'),(15,49,'15–49'),(50,9999,'50 и больше')]:
+    ds=[d for d in NEWD if d in DMI and lo<=DMI[d]['t10']<=hi]
+    if not ds: continue
+    w=[d for d in ds if rd.get(d,0)]
+    POS.append(dict(lab=lab,n=len(ds),w=len(w),sh=round(100*len(w)/len(ds)),reg=sum(rd[d] for d in w)))
+W.update(hit=HIT,grouphit=GH,poshit=POS)
 json.dump(W,open('wk.json','w'),ensure_ascii=False)
 print('эпохи',[(e['k'],e['n'],e['reg']) for e in ERAS])
 print('возраст',[(a['a'],a['reg'],a['rate']) for a in AGE])
