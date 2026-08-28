@@ -967,7 +967,8 @@ function урезатьСлоты(string $файл, int $предел): int {
 }
 
 /** Обложка игры в каждую карточку списка слотов. */
-function вшитьОбложку(string $файл, string $страница, string $имяФайла, string $жанр): int {
+function вшитьОбложку(string $файл, string $страница, string $имяФайла, string $жанр,
+                      bool $безСтилей = false): int {
     $строки = explode("\n", file_get_contents($файл));
     $итог = []; $n = 0;
     foreach ($строки as $л) {
@@ -978,8 +979,9 @@ function вшитьОбложку(string $файл, string $страница, st
             // длинная фраза дала бы общие шинглы между наборами
             $alt = htmlspecialchars($жанр, ENT_QUOTES, 'UTF-8');
             $итог[] = $отступ . '<img src="' . $имяФайла . '" alt="' . $alt
-                    . '" width="640" height="480" loading="lazy"'
-                    . ' style="display:block;width:100%;height:auto">';
+                    . '" width="640" height="480" loading="lazy" style="'
+                    . ($безСтилей ? 'max-width:100%;height:auto' : 'display:block;width:100%;height:auto')
+                    . '">';
             $n++;
         }
     }
@@ -1022,6 +1024,6 @@ foreach (array_keys($ТЕМЫ) as $страница) {
     $имяФайла = $страница . '_img_2.webp';
     $жанр = обложка($папка . '/images/' . $имяФайла, $сид, $сид);
     $всего++;
-    $карточек += вшитьОбложку($html, $страница, $имяФайла, $жанр);
+    $карточек += вшитьОбложку($html, $страница, $имяФайла, $жанр, $безСтилей);
 }
 echo "картинок: $всего, ведущих в статьях: $вшито, карточек игр: $карточек\n";
