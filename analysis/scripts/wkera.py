@@ -81,6 +81,30 @@ for lo,hi,lab in [(0,0,'ни одного'),(1,4,'1–4'),(5,14,'5–14'),(15,49
     w=[d for d in ds if rd.get(d,0)]
     POS.append(dict(lab=lab,n=len(ds),w=len(w),sh=round(100*len(w)/len(ds)),reg=sum(rd[d] for d in w)))
 W.update(hit=HIT,grouphit=GH,poshit=POS)
+# --- пулы: итог по регистрациям на домен, без деления на сутки
+cum={}; c=0
+for x in range(0,8):
+    c+=ages[x]; cum[x]=c/sum(ages.values())
+GP=collections.defaultdict(lambda:dict(n=0,reg=0,dep=0,uniq=0,ld=None))
+for d in TR:
+    if d not in L: continue
+    g=GP[GRP(d)]; g['n']+=1; g['reg']+=rd.get(d,0); g['dep']+=dp.get(d,0)
+    g['uniq']+=TR[d]['uniq']; g['ld']=L[d]
+CFG={}
+for d,v in db.items():
+    if d=='базовый домен': continue
+    CFG.setdefault(v['group'],' · '.join(x for x in [v['src'],(v['pages']+' стр' if v['pages'] not in ('?','—') else ''),v['dates'],v['img']] if x and x!='—'))
+CFG.update({'7page_27.08 · партия 1':'7 страниц · id 1004-1013 · создан 27.08 17:33-17:40',
+            '7page_27.08 · партия 2':'7 страниц · id и время не присланы',
+            'Generator_11page_old_27.08':'наш генератор · 11 стр · «old» · id 1014-1023'})
+P2N=[]
+for g,v in GP.items():
+    age=(today-dd(v['ld'])).days; sh=cum[min(age,7)]
+    P2N.append(dict(g=g,cfg=CFG.get(g,'—'),ld=v['ld'],age=age,n=v['n'],reg=v['reg'],dep=v['dep'],
+        uniq=v['uniq'],rpd=round(v['reg']/v['n'],2),share=round(100*sh),
+        proj=(round(v['reg']/v['n']/sh,2) if sh and age<5 else None),done=age>=5))
+P2N.sort(key=lambda x:(-x['rpd'],-x['reg']))
+W['pools2']=P2N; W['cum']=[dict(a=x,sh=round(100*cum[x])) for x in range(0,6)]
 json.dump(W,open('wk.json','w'),ensure_ascii=False)
 print('эпохи',[(e['k'],e['n'],e['reg']) for e in ERAS])
 print('возраст',[(a['a'],a['reg'],a['rate']) for a in AGE])
