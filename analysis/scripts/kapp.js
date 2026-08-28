@@ -99,7 +99,107 @@ const secB=`<div class="blk">
  </tbody></table></div>
 </div>`;
 
-const SEC={c:secC,b:secB};
+/* ---------- партии ---------- */
+const A=D.arms, A1=A[0], A2=A[1], A3=A[2];
+const allb=[...new Set(A.flatMap(a=>Object.keys(a.brands)))]
+  .sort((x,y)=>Math.min(...A.map(a=>a.brands[x]?a.brands[x][0]:999))-Math.min(...A.map(a=>a.brands[y]?a.brands[y][0]:999)));
+const secA=`<div class="blk">
+ <h2>Две партии 7page: один формат, один вечер, разный результат</h2>
+ <p class="note">Обе выложены 27 августа, обе — семистраничный контент. Разного в них два:
+ набор текстов и потолок вложенности. У <b>партии 1</b> адреса обрезаны на 20 повторах
+ <code>/ru</code>, у <b>партии 2</b> потолка нет. Третьей строкой — <b>Generator_11page_old</b>
+ того же вечера, тоже с потолком 20: он нужен, чтобы отличить влияние потолка от влияния текстов.</p>
+ <div class="tiles">
+  ${A.map(a=>`<div class="tile ${a.nm.includes('партия 2')?'g':'b'}">
+    <div class="k">${E(a.nm)}</div>
+    <div class="v">${a.snaps[3].t10}</div>
+    <div class="c">запросов в десятке · ${a.n} доменов · ${a.cap?'потолок 20':'без потолка'}</div></div>`).join('')}
+  <div class="tile a"><div class="k">Разрыв партия 2 / партия 1</div>
+    <div class="v">20×</div><div class="c">без домена-лидера всё равно 17×</div></div>
+ </div>
+ <h3 class="vt">Как расходились по съёмам</h3>
+ <p class="note">Первые три съёма партии шли вровень. Разрыв открылся на четвёртом —
+ между полуночью и обедом 28 августа.</p>
+ <div class="tw"><table><thead><tr><th class="l">Группа</th><th class="l">Что это</th><th>Потолок</th><th>Дом.</th>
+  ${D.labs.map(l=>`<th>${E(l)}</th>`).join('')}
+  <th>Т3</th><th>Т30</th><th>Т100</th><th>Т10 на домен</th><th>Без лидера</th><th>Брендов в Т10</th>
+  <th>/ru макс</th><th>/ru медиана</th></tr></thead><tbody>
+  ${A.map(a=>`<tr><td class="l"><b>${E(a.nm)}</b></td><td class="l sm" style="min-width:190px">${E(a.cfg)}</td>
+   <td class="sm ${a.cap?'':'warn'}">${a.cap?'≤20':'нет'}</td><td>${a.n}</td>
+   ${a.snaps.map((s,i)=>`<td class="${i===3?(s.t10>=100?'good':'mut'):''}"><b>${s?s.t10:'—'}</b></td>`).join('')}
+   <td>${a.snaps[3].t3}</td><td>${a.snaps[3].t30}</td><td>${a.snaps[3].t100}</td>
+   <td class="${a.snaps[3].per_dom>=5?'good':''}"><b>${a.snaps[3].per_dom}</b></td>
+   <td class="${a.snaps[3].nolead>=5?'good':''}"><b>${a.snaps[3].nolead}</b></td>
+   <td>${a.snaps[3].brands}</td><td class="mut">${a.snaps[3].dmax}</td><td class="mut">${a.snaps[3].dmed}</td>
+  </tr>`).join('')}
+ </tbody></table></div>
+ <p class="note" style="margin-top:8px">Колонки со временем — запросов в первой десятке на каждом съёме.</p>
+ <div class="grid2" style="margin-top:18px">
+  <div class="card acc"><h3>Разница не в одном удачном домене</h3>
+  <p>У партии 2 <code>1893.team</code> собрал 87 запросов из 143 — но и без него остаётся
+  <b>56 запросов на 10 доменах</b>. Партия 1 на десяти доменах собрала <b>7</b>.</p>
+  <p>Доменов с пятью и более запросами в десятке: у партии 2 — <b>пять</b>
+  (<code>1893.team</code> 87, <code>fkxb.team</code> 25, <code>cnwv.team</code> 9,
+  <code>dprz.team</code> 9, <code>hjsf.team</code> 6). У партии 1 — <b>ни одного</b>,
+  максимум 4 у <code>2084.team</code>.</p>
+  <p class="verd">Это не разброс одного домена. Вся партия 2 работает,
+  вся партия 1 стоит.</p></div>
+  <div class="card warn-c"><h3>Потолок под подозрением, но не доказан</h3>
+  <p>Обе группы с потолком 20 к обеду просели или встали: партия 1 — 11 → 7,
+  Generator_11page_old — 17 → 14. Единственная группа без потолка выросла 16 → 143.</p>
+  <p>Разделить «дело в потолке» и «дело в текстах» на этих данных нельзя: у нас две
+  ограниченные группы против одной свободной, и тексты у всех разные.</p>
+  <p class="verd">Механизм при этом сходится: по ключам видно, что вверх идут те,
+  у кого Яндекс сменил ранжирующий адрес. На ограниченных пулах адрес сменился
+  у 21 % ключей, на свободном — у 55 %. Меньше вариантов адреса — меньше переключений
+  — меньше рывков вверх.</p></div>
+ </div>
+ <h3 class="vt" style="margin-top:20px">Трафик и деньги</h3>
+ <div class="tw"><table><thead><tr><th class="l">Группа</th><th>Доменов</th>
+  <th>Страниц-поддоменов</th><th>На домен</th><th>Заходов</th><th>Посетителей</th>
+  <th>Регистраций</th><th>Депозитов</th></tr></thead><tbody>
+  ${A.map(a=>`<tr><td class="l"><b>${E(a.nm)}</b></td><td>${a.n}</td>
+   <td class="${a.sub>1000?'good':'mut'}"><b>${N(a.sub)}</b></td><td>${Math.round(a.sub/a.n)}</td>
+   <td class="mono">${N(a.hits)}</td><td class="mono">${N(a.uniq)}</td>
+   <td class="${a.reg?'good':'mut'}"><b>${a.reg||'—'}</b></td>
+   <td class="${a.dep?'good':'mut'}">${a.dep||'—'}</td></tr>`).join('')}
+ </tbody></table></div>
+ <div class="card warn-c" style="margin-top:14px"><h3>Что стоит проверить на своей стороне</h3>
+ <p>У всех одиннадцати доменов партии 2 живёт <b>123–141 страница-поддомен</b>.
+ У всех десяти доменов партии 1 — <b>15–36</b>. Диапазоны не пересекаются ни в одной точке,
+ при том что группы выложены в один вечер одним форматом.</p>
+ <p>Полностью объяснить это трафиком нельзя, но и опровергнуть тоже: заходов на поддомен
+ у обеих групп одинаково (4,8 против 4,7), так что часть разрыва — просто меньше визитов.</p>
+ <p class="verd">Проверьте, сколько брендовых поддоменов вообще развернулось на партии 1.
+ Если там физически меньше страниц, то дело не в потолке и не в текстах, а в сборке —
+ и это объясняет всё остальное разом.</p></div>
+ <h3 class="vt" style="margin-top:20px">Бренды в первой десятке: кто у кого</h3>
+ <p class="note">Лучшая позиция бренда в каждой группе на съёме ${E(D.last)}.
+ Партия 1 держит в десятке <b>5 брендов</b>, партия 2 — <b>52</b>. Общих всего три.</p>
+ <div class="tw"><table><thead><tr><th class="l">Бренд</th>
+  ${A.map(a=>`<th class="l">${E(a.nm)}</th>`).join('')}</tr></thead><tbody>
+  ${allb.map(b=>`<tr><td class="l"><b class="dm">${E(b)}</b></td>
+   ${A.map(a=>{const v=a.brands[b];
+     return `<td class="l">${v?`<span class="${v[0]<=3?'good':''}"><b>${v[0]}</b></span> <span class="mut sm mono">${E(v[1])}</span>`:'<span class="mut">—</span>'}</td>`;}).join('')}
+  </tr>`).join('')}
+ </tbody></table></div>
+ <h3 class="vt" style="margin-top:20px">По доменам на ${E(D.last)}</h3>
+ ${A.map(a=>`<h4 class="sm" style="margin:14px 0 6px;font-family:var(--cond);font-size:14px">${E(a.nm)} ${a.cap?'· потолок 20':'· без потолка'}</h4>
+ <div class="tw"><table><thead><tr><th class="l">Домен</th><th>Т3</th><th>Т10</th><th>Т30</th><th>Т100</th>
+  <th>Брендов в Т10</th><th>Лучшая</th><th>Поддоменов</th><th>Посетителей</th><th>Рег.</th><th>Деп.</th>
+  </tr></thead><tbody>
+  ${a.dom.map(d=>`<tr><td class="l mono">${E(d.d)}</td>
+   <td class="${d.t3?'good':'mut'}">${d.t3||'—'}</td>
+   <td class="${d.t10>=5?'good':(d.t10?'':'mut')}"><b>${d.t10||'—'}</b></td>
+   <td>${d.t30||'—'}</td><td>${d.t100||'—'}</td><td>${d.nb||'—'}</td>
+   <td class="${d.best&&d.best<=3?'good':''}">${d.best??'—'}</td>
+   <td class="mono">${d.sub||'—'}</td><td class="mono">${N(d.uniq)}</td>
+   <td class="${d.reg?'good':'mut'}">${d.reg||'—'}</td>
+   <td class="${d.dep?'good':'mut'}">${d.dep||'—'}</td></tr>`).join('')}
+ </tbody></table></div>`).join('')}
+</div>`;
+
+const SEC={a:secA,c:secC,b:secB};
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('nav button').forEach(x=>x.setAttribute('aria-selected',x===b));
   document.querySelectorAll('main section').forEach(s=>s.hidden=s.id!==b.dataset.s);

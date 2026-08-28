@@ -11,12 +11,14 @@ body=f'''
   Отдельно — проверка ограничения вложенности <code>/ru</code> до 20: меняет ли потолок
   то, как ведут себя ключи, у которых Яндекс сменил ранжирующий адрес.</p>
   <nav>
-    <button data-s="c" aria-selected="true">Ограничение /ru</button>
+    <button data-s="a" aria-selected="true">Партии 7page</button>
+    <button data-s="c">Ограничение /ru</button>
     <button data-s="b">Бренды и ключи</button>
   </nav>
 </div></header>
 <main class="wrap">
-  <section id="c"></section>
+  <section id="a"></section>
+  <section id="c" hidden></section>
   <section id="b" hidden></section>
 </main>
 <footer><div class="wrap">Данные: launches_20260828_004911.xlsx и launches_20260828_124455.xlsx,
