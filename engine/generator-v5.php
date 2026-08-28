@@ -477,7 +477,7 @@ foreach (V5_TYPES as $тип) {
     $страница = v5PochinitDengi($страница, $банки['РУБЛИ'] ?? []);
     $страница = v5PochinitChislo($страница);
     $страница = v5PochinitKavychki($страница);
-    $страница = v5PeresobratToc(v5UbratDubliVidzhetov($страница));
+    $страница = v5PeresobratToc(v5UbratDubliVidzhetov(v5UkrotitShtampy(v5PochinitPadezhi($страница))));
     file_put_contents("$выход/$тип.html", $страница);
     $сводка[$тип] = [
         'скелет' => $лучший['скелет'], 'разделов' => $лучший['разделов'],
