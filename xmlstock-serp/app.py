@@ -47,7 +47,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "url-история"
+APP_BUILD = "поз-и-url"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -2883,7 +2883,12 @@ def api_launches_export():
             wsl.append([])
 
         if snaps:
-            # Смена URL по съёмам — видно, меняется ли ранжирующаяся страница
+            # Сначала — позиции (и URL рядом) по каждому снимку
+            for si, s in enumerate(snaps):
+                tag = f"{_fmt_ts(s['at'])} {s.get('engine') or ''}".strip()
+                snapshot_block(f"Снимок {tag} (позиция + URL страницы рядом)", si)
+            matrix_block("Среднее по съёмам — позиции", lambda r: r["avg"])
+            # В конце — смена URL по съёмам (только URL, чтобы отследить ротацию)
             if len(snaps) >= 2:
                 wsl.append(["Смена URL по съёмам (какой страницей домен ранжируется)"])
                 wsl.append(["Ключ", "Домен"]
@@ -2897,10 +2902,6 @@ def api_launches_export():
                     wsl.append([r["keyword"], r["domain"]]
                                + [u or "" for u in useq] + [changed])
                 wsl.append([])
-            for si, s in enumerate(snaps):
-                tag = f"{_fmt_ts(s['at'])} {s.get('engine') or ''}".strip()
-                snapshot_block(f"Снимок {tag} (позиция + URL страницы рядом)", si)
-            matrix_block("Среднее по съёмам — позиции", lambda r: r["avg"])
         else:
             wsl.append(["Съёмов нет"])
     if not launches:
