@@ -1,0 +1,687 @@
+<style>
+.v5s-1{display:block;width:100%;max-height:320px;object-fit:cover;margin:0 0 20px;border-radius:14px}
+.v5s-2{display:block;border:1px solid rgba(127,133,160,.30);border-radius:14px;overflow:hidden;margin:0 0 22px}
+.v5s-3{display:block;border:1px solid rgba(127,133,160,.30);border-radius:14px;background:rgba(127,133,160,.10);padding:16px;margin:0 0 22px}
+.v5s-4{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:15px;font-weight:700}
+.v5s-5{font-size:18px;line-height:1}
+.v5s-6{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.v5s-7{display:block;padding:12px;border:1px solid rgba(127,133,160,.30);border-radius:12px;background:rgba(127,133,160,.16);text-align:center}
+.v5s-8{display:block;font-size:22px;line-height:1;margin-bottom:6px}
+.v5s-9{display:block;font-size:11px;opacity:.9}
+.v5s-10{display:block;font-size:12px;opacity:.86}
+.v5s-11{display:block;font-size:18px;font-weight:800;color:#f5b52a;margin:4px 0 2px}
+.v5s-12{display:block}
+.v5s-13{display:flex;align-items:center;gap:8px;padding:12px 14px;background:rgba(127,133,160,.16);font-weight:700;font-size:14px}
+.v5s-14{width:9px;height:9px;border-radius:50%;background:#3ddc84;display:inline-block;flex:0 0 auto}
+.v5s-15{margin:0;font-size:14px;font-weight:700}
+.v5s-16{display:block;min-width:520px}
+.v5s-17{display:grid;grid-template-columns:34px minmax(90px,1fr) minmax(96px,auto) minmax(130px,1.3fr) minmax(88px,auto);gap:10px;padding:9px 14px;font-size:11px;letter-spacing:.04em;text-transform:uppercase;opacity:.9;font-weight:600}
+.v5s-18{text-align:right}
+.v5s-19{display:block;overflow-x:auto}
+.v5s-20{display:grid;grid-template-columns:34px minmax(90px,1fr) minmax(96px,auto) minmax(130px,1.3fr) minmax(88px,auto);align-items:center;gap:10px;padding:10px 14px;border-top:1px solid rgba(127,133,160,.20)}
+.v5s-21{font-size:16px;line-height:1}
+.v5s-22{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.v5s-23{display:none}
+.v5s-24{font-weight:700;color:#f5b52a;white-space:nowrap}
+.v5s-25{font-size:13px;opacity:.88;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.v5s-26{font-size:12px;opacity:.9;text-align:right;white-space:nowrap}
+.v5s-27{display:grid;grid-template-columns:34px minmax(90px,1fr) minmax(96px,auto) minmax(130px,1.3fr) minmax(88px,auto);align-items:center;gap:10px;padding:10px 14px;border-top:1px solid rgba(127,133,160,.20);background:rgba(127,133,160,.10)}
+.v5s-28{padding:14px;background:rgba(127,133,160,.10);text-align:center}
+.v5s-29{display:inline-block;padding:10px 20px;border-radius:10px;background:#f5b52a;color:#15161c;font-weight:700;text-decoration:none}
+.v5s-30{margin:14px 0;padding-left:22px;line-height:1.65}
+.v5s-31{margin:0 0 8px}
+.v5s-32{color:#f0685a}
+.v5s-33{margin:16px 0;padding:12px 16px;border-left:4px solid #f0685a;border-radius:0 10px 10px 0;background:rgba(240,90,90,.12);line-height:1.6}
+.v5s-34{color:#4fbe86}
+.v5s-35{display:block;border:1px solid rgba(127,133,160,.30);border-radius:14px;background:rgba(127,133,160,.10);padding:18px;margin:22px 0}
+.v5s-36{display:block;margin:0 0 10px;font-size:20px}
+.v5s-37{display:grid;gap:10px;margin:12px 0 0;padding:0;list-style:none}
+.v5s-38{display:block;padding:12px 14px;border:1px solid rgba(127,133,160,.30);border-radius:12px;background:rgba(127,133,160,.16)}
+.v5s-39{display:block;width:100%;text-align:left;background:none;border:0;border-left:3px solid #f5b52a;color:inherit;font-family:inherit;font-size:15px;font-weight:700;line-height:1.35;margin:0 0 6px;padding:0 0 0 12px;cursor:pointer}
+.v5s-40{display:block;font-size:14px;line-height:1.6;opacity:.9}
+.v5s-41{display:block;margin:0 0 22px}
+.v5s-42{display:block;border:1px solid rgba(127,133,160,.30);border-radius:14px;background:rgba(127,133,160,.10);padding:18px}
+.v5s-43{margin:0 0 6px;font-size:19px}
+.v5s-44{margin:0 0 12px;font-size:14px;opacity:.86}
+.v5s-45{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:0;padding:0;list-style:none}
+.v5s-46{display:block;padding:14px 14px 12px;border:1px solid rgba(127,133,160,.30);border-left:3px solid #f5b52a;border-radius:0 12px 12px 0;background:rgba(127,133,160,.10);font-style:italic;line-height:1.55}
+</style>
+<img class="v5s-1" src="promo_img_1.webp" alt="купоны и бонусные предложения" width="1200" height="630" loading="lazy">
+<section class="recent-payouts-block variant-v3 v5s-2" itemscope="" itemtype="https://schema.org/ItemList">
+  <meta itemprop="name" content="Выигрыши игроков"><meta itemprop="numberOfItems" content="6">
+  <div class="jackpot-strip v5s-3">
+    <div class="jackpot-strip-title v5s-4">
+      <span class="jackpot-strip-icon v5s-5">
+        ◆
+      </span>
+      <span>
+        Прогрессивные джекпоты
+      </span>
+    </div>
+    <div class="jackpot-strip-grid v5s-6">
+      <div class="jackpot-cell jackpot-cell-pulse v5s-7">
+        <span class="jackpot-cell-icon v5s-8">
+          🏆
+        </span>
+        <div class="jackpot-cell-info v5s-9">
+          <span class="jackpot-cell-name v5s-10">
+            МЕГА
+          </span>
+          <span class="jackpot-cell-amount v5s-11">
+            30 504 ₽
+          </span>
+        </div>
+      </div>
+      <div class="jackpot-cell jackpot-cell-pulse v5s-7">
+        <span class="jackpot-cell-icon v5s-8">
+          💎
+        </span>
+        <div class="jackpot-cell-info v5s-9">
+          <span class="jackpot-cell-name v5s-10">
+            СУПЕР
+          </span>
+          <span class="jackpot-cell-amount v5s-11">
+            21 341 ₽
+          </span>
+        </div>
+      </div>
+      <div class="jackpot-cell  v5s-7">
+        <span class="jackpot-cell-icon v5s-8">
+          ⭐
+        </span>
+        <div class="jackpot-cell-info v5s-9">
+          <span class="jackpot-cell-name v5s-10">
+            МИНИ
+          </span>
+          <span class="jackpot-cell-amount v5s-11">
+            920 000 ₽
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="payout-feed v5s-12">
+    <div class="payout-feed-header v5s-13">
+      <span class="payout-feed-dot v5s-14">
+      </span>
+      <span class="payout-feed-title v5s-15">
+        Последние выплаты
+      </span>
+    </div>
+    <div class="payout-track v5s-16">
+      <div class="v5s-17"><span></span><span>Игрок</span><span>Выигрыш</span><span>Игра</span><span class="v5s-18">Когда</span></div>
+      <div class="payout-scroll v5s-19">
+        <div class="payout-row payout-row-normal v5s-20" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+          <meta itemprop="position" content="1">
+          <span class="payout-row-icon v5s-21">
+            🎰
+          </span>
+          <span class="payout-row-name v5s-22" itemprop="name">
+            Екатерина
+          </span>
+          <span class="payout-row-sep v5s-23">
+            —
+          </span>
+          <span class="payout-row-amount v5s-24">
+            920 000 ₽
+          </span>
+          <span class="payout-row-slot v5s-25">
+            🎣 Big Bass Bonanza
+          </span>
+          <span class="payout-row-time v5s-26">
+            4 мин назад
+          </span>
+        </div>
+        <div class="payout-row payout-row-big v5s-27" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+          <meta itemprop="position" content="2">
+          <span class="payout-row-icon v5s-21">
+            🔥
+          </span>
+          <span class="payout-row-name v5s-22" itemprop="name">
+            Екатерина
+          </span>
+          <span class="payout-row-sep v5s-23">
+            —
+          </span>
+          <span class="payout-row-amount v5s-24">
+            21 551 ₽
+          </span>
+          <span class="payout-row-slot v5s-25">
+            🔮 Madame Destiny
+          </span>
+          <span class="payout-row-time v5s-26">
+            18 минут назад
+          </span>
+        </div>
+        <div class="payout-row payout-row-big v5s-20" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+          <meta itemprop="position" content="3">
+          <span class="payout-row-icon v5s-21">
+            🔥
+          </span>
+          <span class="payout-row-name v5s-22" itemprop="name">
+            Игорь
+          </span>
+          <span class="payout-row-sep v5s-23">
+            —
+          </span>
+          <span class="payout-row-amount v5s-24">
+            4 550 984 ₽
+          </span>
+          <span class="payout-row-slot v5s-25">
+            🃏 Fire Joker
+          </span>
+          <span class="payout-row-time v5s-26">
+            21 минута назад
+          </span>
+        </div>
+        <div class="payout-row payout-row-normal v5s-27" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+          <meta itemprop="position" content="4">
+          <span class="payout-row-icon v5s-21">
+            🎰
+          </span>
+          <span class="payout-row-name v5s-22" itemprop="name">
+            Екатерина
+          </span>
+          <span class="payout-row-sep v5s-23">
+            —
+          </span>
+          <span class="payout-row-amount v5s-24">
+            0₽
+          </span>
+          <span class="payout-row-slot v5s-25">
+            🐺 Wolf Gold
+          </span>
+          <span class="payout-row-time v5s-26">
+            31 минута назад
+          </span>
+        </div>
+        <div class="payout-row payout-row-normal v5s-20" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+          <meta itemprop="position" content="5">
+          <span class="payout-row-icon v5s-21">
+            🎰
+          </span>
+          <span class="payout-row-name v5s-22" itemprop="name">
+            Игорь
+          </span>
+          <span class="payout-row-sep v5s-23">
+            —
+          </span>
+          <span class="payout-row-amount v5s-24">
+            250 000 ₽
+          </span>
+          <span class="payout-row-slot v5s-25">
+            🤠 Wanted Dead or Wild
+          </span>
+          <span class="payout-row-time v5s-26">
+            39 минут назад
+          </span>
+        </div>
+        <div class="payout-row payout-row-normal v5s-27" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+          <meta itemprop="position" content="6">
+          <span class="payout-row-icon v5s-21">
+            🎰
+          </span>
+          <span class="payout-row-name v5s-22" itemprop="name">
+            Игорь
+          </span>
+          <span class="payout-row-sep v5s-23">
+            —
+          </span>
+          <span class="payout-row-amount v5s-24">
+            520 000 рублей
+          </span>
+          <span class="payout-row-slot v5s-25">
+            🍬 Sweet Bonanza
+          </span>
+          <span class="payout-row-time v5s-26">
+            20 минут назад
+          </span>
+        </div>
+        <div class="payout-row payout-row-normal v5s-20" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+          <meta itemprop="position" content="1">
+          <span class="payout-row-icon v5s-21">
+            🎰
+          </span>
+          <span class="payout-row-name v5s-22" itemprop="name">
+            Екатерина
+          </span>
+          <span class="payout-row-sep v5s-23">
+            —
+          </span>
+          <span class="payout-row-amount v5s-24">
+            7 819 ₽
+          </span>
+          <span class="payout-row-slot v5s-25">
+            🎣 Big Bass Bonanza
+          </span>
+          <span class="payout-row-time v5s-26">
+            4 мин назад
+          </span>
+        </div>
+        <div class="payout-row payout-row-big v5s-27" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+          <meta itemprop="position" content="2">
+          <span class="payout-row-icon v5s-21">
+            🔥
+          </span>
+          <span class="payout-row-name v5s-22" itemprop="name">
+            Екатерина
+          </span>
+          <span class="payout-row-sep v5s-23">
+            —
+          </span>
+          <span class="payout-row-amount v5s-24">
+            0₽
+          </span>
+          <span class="payout-row-slot v5s-25">
+            🔮 Madame Destiny
+          </span>
+          <span class="payout-row-time v5s-26">
+            18 минут назад
+          </span>
+        </div>
+        <div class="payout-row payout-row-big v5s-20" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+          <meta itemprop="position" content="3">
+          <span class="payout-row-icon v5s-21">
+            🔥
+          </span>
+          <span class="payout-row-name v5s-22" itemprop="name">
+            Игорь
+          </span>
+          <span class="payout-row-sep v5s-23">
+            —
+          </span>
+          <span class="payout-row-amount v5s-24">
+            410 000 ₽
+          </span>
+          <span class="payout-row-slot v5s-25">
+            🃏 Fire Joker
+          </span>
+          <span class="payout-row-time v5s-26">
+            21 минута назад
+          </span>
+        </div>
+        <div class="payout-row payout-row-normal v5s-27" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+          <meta itemprop="position" content="4">
+          <span class="payout-row-icon v5s-21">
+            🎰
+          </span>
+          <span class="payout-row-name v5s-22" itemprop="name">
+            Екатерина
+          </span>
+          <span class="payout-row-sep v5s-23">
+            —
+          </span>
+          <span class="payout-row-amount v5s-24">
+            50₽
+          </span>
+          <span class="payout-row-slot v5s-25">
+            🐺 Wolf Gold
+          </span>
+          <span class="payout-row-time v5s-26">
+            31 минута назад
+          </span>
+        </div>
+        <div class="payout-row payout-row-normal v5s-20" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+          <meta itemprop="position" content="5">
+          <span class="payout-row-icon v5s-21">
+            🎰
+          </span>
+          <span class="payout-row-name v5s-22" itemprop="name">
+            Игорь
+          </span>
+          <span class="payout-row-sep v5s-23">
+            —
+          </span>
+          <span class="payout-row-amount v5s-24">
+            801 148 ₽
+          </span>
+          <span class="payout-row-slot v5s-25">
+            🤠 Wanted Dead or Wild
+          </span>
+          <span class="payout-row-time v5s-26">
+            39 минут назад
+          </span>
+        </div>
+        <div class="payout-row payout-row-normal v5s-27" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+          <meta itemprop="position" content="6">
+          <span class="payout-row-icon v5s-21">
+            🎰
+          </span>
+          <span class="payout-row-name v5s-22" itemprop="name">
+            Игорь
+          </span>
+          <span class="payout-row-sep v5s-23">
+            —
+          </span>
+          <span class="payout-row-amount v5s-24">
+            131 559 ₽
+          </span>
+          <span class="payout-row-slot v5s-25">
+            🍬 Sweet Bonanza
+          </span>
+          <span class="payout-row-time v5s-26">
+            20 минут назад
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="payout-cta v5s-28">
+    <a href="/registracia" class="payout-btn v5s-29">Играть на реальные деньги</a>
+  </div>
+</section>
+<h2>
+  Актуальные промокоды — Используй сейчас
+</h2>
+<p>
+  Тут всё по-честному: <strong>RTP 95.9%</strong> говорит о нормальной отдаче игр, но не делает тебя непобедимым. Фёдор на прошлой неделе ввёл свежий код при пополнении, получил пакет фриспинов и <strong>25% к депозиту</strong> — за вечер поднял 2,0 млн. Красивая история? Да. Хочешь узнать полную <a href="/">информацию о промокодах</a> — она открыта, без мелкого шрифта и подвохов.
+</p>
+<p>
+  Честно? Фёдор зашёл в пятницу вечером — без особых планов, просто проверить новый промокод на фриспины. <strong>Промокод может добавить подарок к депозиту, но не превращает игру в гарантированный доход.</strong> Все просто: это легальный способ выжать из системы максимум, используя <strong>бонусную программу</strong> на полную катушку. Если нужны гарантии — это не сюда; сначала изучи <a href="/">информацию о промокодах</a> и условия <a href="/app">бонусную программу</a>.
+</p>
+<p>
+  Где искать рабочие коды? Фёдор зашёл вечером, ввёл промокод, получил фриспины и поиграл. Если нужен просто тест без риска, можно <a href="/slots">играть бесплатно</a> в слоты или заглянуть в <a href="/">live казино</a>, чтобы почувствовать темп. У нас тут постоянно кипит <strong>движ для смелых</strong>, и актуальные промокоды – это лишь верхушка айсберга.
+</p>
+<h3>
+  Фриспины и эксклюзивные акции: бери выгоду, помни о риске
+</h3>
+<ul class="v5s-30">
+  <li class="v5s-31">
+    <strong class="v5s-32">Минус:</strong> можно словить минус так же легко, как и сумму; чудес тут не обещают.
+  </li>
+  <li class="v5s-31">
+    <strong>60% к первому депозиту</strong> — вносишь 670к, играешь на 1,5 тыс (если активируешь код при пополнении).
+  </li>
+  <li class="v5s-31">
+    Можно проиграть. Это честно, это казино. Играй с головой и только на то, что не жалко потерять.
+  </li>
+  <li class="v5s-31">
+    Часть акций доступна только авторизованным пользователям — без <a href="/registracia">регистрации</a> промокод просто не активируется.
+  </li>
+  <li class="v5s-31">
+    Вейджер x90 — отыграть надо, иначе вывод заблокируют. Это честное правило, не развод.
+  </li>
+  <li class="v5s-31">
+    <strong class="v5s-32">Минус:</strong> если нужны гарантии — это не сюда, здесь никто не обещает лёгкий куш.
+  </li>
+  <li class="v5s-31">
+    <strong class="v5s-32">Минус:</strong> не каждая акция доступна всем — часть предложений реально эксклюзивные.
+  </li>
+  <li class="v5s-31">
+    <strong>Промокод даёт стартовый буст</strong>: фриспины, бонусные деньги или эксклюзивный пакет.
+  </li>
+  <li class="v5s-31">
+    Если хочется понять механику без риска, сначала можно <a href="/slots">играть бесплатно</a> и не лезть сразу на деньги.
+  </li>
+</ul>
+<p>
+  Хочешь проверить, как это работает прямо сейчас? А если хочешь взять промокод без развода и посмотреть, что даст система прямо сейчас, открывай раздел и проверяй, пока акция не сгорела.
+</p>
+<h2>
+  Промокоды — Используй и выигрывай
+</h2>
+<p class="v5s-33">
+  <strong>По-честному</strong>: RTP тут держится на уровне 96%, но никакая статистика не защитит от риска. Тут всё по-честному, <strong>гарантий нет</strong>. В промо-программе встречаются эксклюзивные акции, фриспины и возможный джекпот до 10к, однако условия отыгрыша, лимиты и сроки нужно читать заранее. Пройди <a href="/registracia">регистрацию</a>, введи код — и получишь стартовый пакет, который просто так не раздают.
+</p>
+<p>
+  Сергей зашёл в пятницу вечером — без особых планов, просто проверить новый промокод из рассылки. Вбил код при пополнении — и подарок уже на балансе. RTP игровых автоматов держится на уровне <strong>97,2%</strong>, а самый жирный джекпот доходит до 8.5 млн.
+</p>
+<p>
+  Сергей ввёл промокод перед депозитом — получил <strong>10% бонуса</strong> и 100 фриспинов на <a href="/slots">слоты</a>. Но промокод дал старт — а дальше уже игровые автоматы и удача решали сами.
+</p>
+<h3>
+  Плюсы, но и честные “но”
+</h3>
+<ul class="v5s-30">
+  <li class="v5s-31">
+    <strong class="v5s-32">Минус:</strong> если нужен обход ограничений, ищи <a href="/zerkalo">рабочее зеркало</a>, но лучше не тянуть до последней минуты.
+  </li>
+  <li class="v5s-31">
+    <strong class="v5s-34">Плюс:</strong> промокод может дать фриспины, кешбэк или вход в закрытую акцию.
+  </li>
+  <li class="v5s-31">
+    <strong class="v5s-32">Минус:</strong> у бонусов есть правила отыгрыша — это надо читать, а не надеяться на удачу.
+  </li>
+  <li class="v5s-31">
+    <strong class="v5s-32">Минус:</strong> промокоды часто живут недолго, и хороший пакет можно проспать.
+  </li>
+  <li class="v5s-31">
+    <strong class="v5s-32">Минус:</strong> если промокод активен только через <a href="/vhod">войти и активировать</a>, без доступа ты просто смотришь на экран.
+  </li>
+  <li class="v5s-31">
+    Можно выиграть миллион, а можно всё слить — по честному.
+  </li>
+  <li class="v5s-31">
+    Нереальные фриспины за <a href="/registracia">регистрацию</a> и в приложении — выбирай сам.
+  </li>
+  <li class="v5s-31">
+    <a href="/slots">Слоты с высоким RTP</a> (98%), а джекпот — 74к.
+  </li>
+  <li class="v5s-31">
+    Свежее инфо по акциям — всегда в <a href="/">новости о промо акциях</a>.
+  </li>
+</ul>
+<p>
+  Хочешь проверить, что реально дают коды? Заходи, если готов к настоящему движу и своей истории про 1,5к.
+</p>
+<h2>
+  Фёдор использовал промокод — Выиграл 5,7 млн
+</h2>
+<p>
+  Фёдор не стал полагаться на случай, он использовал бонусную программу с фриспинами, которые дали ему шанс испытать удачу в популярных <a href="/slots">слотах</a>. Если нужны гарантии — это не сюда. Фёдор вывел 3к за 18 часов, потому что <a href="/vhod">вошёл и активировал</a> промо сразу после регистрации, не откладывая на потом. Повезло? Да. Казино — движ для смелых, а не для тех, кто ищет стабильность.
+</p>
+<p>
+  Промокоды здесь работают иначе, чем везде. Здесь можно выиграть, можно проиграть, гарантий нет. Если боишься проиграть — лучше вообще не заходи, тут нужны стальные нервы и холодная голова. Но по-честному, проиграть можно так же легко, как и нажать кнопку. Не кино, не гарантия — но факт: без риска здесь делать нечего.
+</p>
+<p>
+  Фёдор зашёл в среду вечером — без особых ожиданий, просто хотел разогнать скуку. Промокод даёт фору, фриспины дают попытки, но рулит всё равно дисперсия. <strong>RTP игровых автоматов — 97.0%</strong>, и математика работает на дистанции, а не на одной сессии.
+</p>
+<h3>
+  Фриспины дают движение, но правила акции важнее эмоций
+</h3>
+<ul class="v5s-30">
+  <li class="v5s-31">
+    Промокод может открыть подарок, фриспины или повышенный стартовый пакет.
+  </li>
+  <li class="v5s-31">
+    Для любителей эфиров есть <a href="/">live казино</a>, однако риск проигрыша там такой же реальный.
+  </li>
+  <li class="v5s-31">
+    Актуальные предложения удобно проверять через <a href="/">новости о промо акциях</a>.
+  </li>
+  <li class="v5s-31">
+    Куш в 520 тыс реален как частный результат Фёдора, но не как шаблон для каждого игрока.
+  </li>
+  <li class="v5s-31">
+    Если нужны гарантии, это не сюда. Не заходи, если боишься проиграть.
+  </li>
+  <li class="v5s-31">
+    Найди актуальный код в разделе <a href="/">новости о промо акциях</a> или получи эксклюзивный через рассылку.
+  </li>
+  <li class="v5s-31">
+    Ставь адекватно — не спускай весь банк за три спина, растягивай игру и контролируй азарт.
+  </li>
+  <li class="v5s-31">
+    Активируй промокод в личном кабинете — фриспины или бонус зачисляются мгновенно, проверяй баланс.
+  </li>
+  <li class="v5s-31">
+    <strong class="v5s-32">Минус:</strong> бонусные деньги часто идут с вейджером х30–х40, отыгрывать придётся долго.
+  </li>
+</ul>
+<p>
+  <strong>Войти и активировать</strong> промокод можно без лишнего шума: проверь условия, забери фриспины и играй только на сумму, которую не жалко потерять. Обычный парень, который изучил <a href="/">обзор промо программы</a>, выбрал момент и рискнул.
+</p>
+<h2>
+  Как использовать промокод — Пошаговая инструкция
+</h2>
+<p>
+  Сумма бонуса обычно 15% от депозита плюс пакет фриспинов на выбранные <a href="/slots">слоты</a>. За вечер в слотах намотал 1.5к, вывел за 30 минут. Но <strong>промокод работает только при грамотной активации</strong>, иначе бонус просто сгорит или зависнет в личном кабинете. Кот, поймавший мышь с первого броска — вот как это выглядело. RTP остаётся 98,4%, джекпот висит на отметке 50к, но шансы растут за счёт дополнительных спинов и денег. Это инструмент для усиления стартовой позиции. Вывел деньги за 29 минут на карту Сбера.
+</p>
+<p>
+  Сколько тут реальной выгоды, а не красивой мишуры? Степан однажды зашёл по промокоду, активировал пакет и без лишней драмы получил фриспины на любимые <a href="/slots">слоты</a>. Джекпот достигает 780к, выплата средств — 3 минуты после запроса. Если хочешь понять, как устроена вся механика подарков и условий, читай <a href="/">информацию о промокодах</a> — там без воды, по делу. Актуальную <a href="/">информацию о промокодах</a> удобнее смотреть в разделе <a href="/">новости о промо акциях</a> — туда всё выкладывают быстро, без задержек. Крутанул, поймал серию — вышло 670к.
+</p>
+<p>
+  Не хочешь лезть вслепую? Факт простой: промокод часто работает только один раз и только по правилам акции. Дальше всё просто: активировал акцию, открыл <a href="/slots">слоты</a> и проверил удачу на практике. В другой день мог бы и просесть — так устроена игра. Завтра может слить всё обратно, это казино, а не банк. За час поднял 120к рублей, вывел за 13 минут без заморочек.
+</p>
+<h3>
+  Что реально получаешь с промокодом — и о чём молчат
+</h3>
+<ul class="v5s-30">
+  <li class="v5s-31">
+    Изучите подробную <a href="/">информацию о промокодах</a>, чтобы понимать условия вейджера — халявы без условий не существует.
+  </li>
+  <li class="v5s-31">
+    Если сайт недоступен — используй <a href="/zerkalo">рабочее зеркало</a>, промокод и бонусы сохраняются полностью.
+  </li>
+  <li class="v5s-31">
+    Можно <a href="/slots">играть бесплатно</a> до активации промокода — чтобы понять механику слота, прежде чем ставить реальное.
+  </li>
+  <li class="v5s-31">
+    <strong>Открой <a href="/registracia">регистрацию</a></strong> — заполни форму: email, телефон, пароль. Никаких паспортов на старте не требуем.
+  </li>
+  <li class="v5s-31">
+    Скачайте наше <a href="/app">мобильное приложение</a>, там часто выпадают секретные фриспины, недоступные в десктопной версии.
+  </li>
+  <li class="v5s-31">
+    Минус: вейджер есть всегда. Бонусные деньги нужно отыграть — читай условия до, а не после.
+  </li>
+  <li class="v5s-31">
+    Выигрыш выводится за 11 минут — без задержек и выдуманных «проверок».
+  </li>
+  <li class="v5s-31">
+    <strong>Выводи деньги</strong> — после отыгрыша баланс становится реальным. Заявка обрабатывается за 20 минут, если профиль верифицирован (загрузи скан паспорта заранее).
+  </li>
+  <li class="v5s-31">
+    <strong>Найди поле «Промокод»</strong> — оно под кнопкой «Создать аккount». Вбей код из рассылки или с главной страницы (проверяй срок действия — просроченные не работают).
+  </li>
+</ul>
+<p>
+  Степан отыграл условия за 8 часов игры, но другой игрок мог слить бонус за час. Хочешь активировать бонус на ходу? Качай <a href="/app">мобильное приложение</a>, там всё то же самое, только быстрее.
+</p>
+<div class="faq-section glass-card v5s-35" itemscope="" itemtype="https://schema.org/FAQPage">
+  <h2 class="gradient-text v5s-36" id="toc-6">
+    ❓ Честные ответы на вопросы
+  </h2>
+  <div class="faq-list v5s-37">
+    <div class="faq-item open v5s-38" itemscope="" itemprop="mainEntity" itemtype="https://schema.org/Question">
+      <h3 class="faq-question v5s-39" itemprop="name">
+        Как участвовать в турнире?
+      </h3>
+      <div class="faq-answer v5s-40" itemscope="" itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Достаточно сделать ставку в засчитываемой игре — участие включается автоматически. Позиция в таблице обновляется с задержкой в несколько минут, это не сбой. Сроки и список игр смотри в <a href="/app">промо акциях</a> до старта.
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="faq-item v5s-38" itemscope="" itemprop="mainEntity" itemtype="https://schema.org/Question">
+      <h3 class="faq-question v5s-39" itemprop="name">
+        С чего начать, если акций много?
+      </h3>
+      <div class="faq-answer v5s-40" itemscope="" itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            С той, где условия понятны с первого прочтения. Открывай <a href="/">обзор промо программы</a>, смотри вейджер и срок, и бери одно предложение вместо трёх. Хочешь попробовать — начни с бонуса.
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="faq-item v5s-38" itemscope="" itemprop="mainEntity" itemtype="https://schema.org/Question">
+      <h3 class="faq-question v5s-39" itemprop="name">
+        Можно ли использовать код дважды?
+      </h3>
+      <div class="faq-answer v5s-40" itemscope="" itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Нет: одна активация на один аккаунт, повторный ввод отклоняется автоматически. Второй профиль ради второго кода закрывается при проверке, а начисления отменяются. Проще дождаться следующего предложения — они выходят регулярно. Условия пакетов — в <a href="/app">бонусах</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="faq-item v5s-38" itemscope="" itemprop="mainEntity" itemtype="https://schema.org/Question">
+      <h3 class="faq-question v5s-39" itemprop="name">
+        Что делать, если начисление не пришло?
+      </h3>
+      <div class="faq-answer v5s-40" itemscope="" itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            Проверить, выполнено ли условие по сумме депозита и активен ли код — статус виден в истории бонусов. Если условия закрыты, а начисления нет, стоит написать в поддержку с датой операции. Обычно это решается в пределах одного обращения. Условия пакетов — в <a href="/app">бонусах</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="faq-item v5s-38" itemscope="" itemprop="mainEntity" itemtype="https://schema.org/Question">
+      <h3 class="faq-question v5s-39" itemprop="name">
+        Как часто обновляются предложения?
+      </h3>
+      <div class="faq-answer v5s-40" itemscope="" itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          <p>
+            По событиям: старт турнира, выход игры, праздничная неделя. Расписания нет, поэтому подписка работает лучше, чем ежедневная проверка страницы. Уведомления настраиваются в профиле. Аккаунт заводится на шаге <a href="/registracia">регистрация</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="layout-block layout-block-thematic layout-block-pos-2 v5s-41">
+  <section class="page-thematic-block promo-thematic glass-card variant-v1 v5s-42" aria-label="Типы акций и промо">
+    <h2 class="review-quotes-heading v5s-43">
+      Типы акций и промо
+    </h2>
+    <p class="review-quotes-desc v5s-44">
+      Какие бывают акции и где их активировать.
+    </p>
+    <div class="review-quotes-list v5s-45">
+      <article class="faq-item v5s-38">
+        <button class="faq-question v5s-39" type="button" aria-expanded="false" aria-controls="promo-theme-1" id="btn-promo-theme-1">
+          <span>
+            Турниры и лотереи
+          </span>
+        </button>
+        <div class="faq-answer v5s-40" id="promo-theme-1" role="region" aria-labelledby="btn-promo-theme-1">
+          <p class="review-quote-text v5s-46">
+            Турниры по слотам с призовыми фондами. Регистрация бесплатная или с минимальным взносом. Лотереи и розыгрыши — условия участия в анонсах.
+          </p>
+        </div>
+      </article>
+      <article class="faq-item v5s-38">
+        <button class="faq-question v5s-39" type="button" aria-expanded="false" aria-controls="promo-theme-2" id="btn-promo-theme-2">
+          <span>
+            Приветственный пакет
+          </span>
+        </button>
+        <div class="faq-answer v5s-40" id="promo-theme-2" role="region" aria-labelledby="btn-promo-theme-2">
+          <p class="review-quote-text v5s-46">
+            Бонус на первый депозит: процент от суммы, фриспины. Активируется при <a href="/registracia">регистрации</a> или в кассе при первом пополнении. Условия и вейджер — в разделе «Бонусы».
+          </p>
+        </div>
+      </article>
+      <article class="faq-item v5s-38">
+        <button class="faq-question v5s-39" type="button" aria-expanded="false" aria-controls="promo-theme-3" id="btn-promo-theme-3">
+          <span>
+            Промокоды
+          </span>
+        </button>
+        <div class="faq-answer v5s-40" id="promo-theme-3" role="region" aria-labelledby="btn-promo-theme-3">
+          <p class="review-quote-text v5s-46">
+            Промокод вводится при <a href="/registracia">регистрации</a>, в кассе при пополнении или в разделе «Бонусы». Один промокод — одна активация. Список актуальных кодов в разделе «Промо».
+          </p>
+        </div>
+      </article>
+      <article class="faq-item v5s-38">
+        <button class="faq-question v5s-39" type="button" aria-expanded="false" aria-controls="promo-theme-4" id="btn-promo-theme-4">
+          <span>
+            Релоад и кэшбэк
+          </span>
+        </button>
+        <div class="faq-answer v5s-40" id="promo-theme-4" role="region" aria-labelledby="btn-promo-theme-4">
+          <p class="review-quote-text v5s-46">
+            Релоад — бонус на повторные депозиты (по дням или еженедельно). Кэшбэк — возврат процента от проигрыша без отыгрыша или с мягким вейджером. Детали в разделе «Бонусы».
+          </p>
+        </div>
+      </article>
+    </div>
+  </section>
+</div>

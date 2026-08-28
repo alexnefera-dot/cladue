@@ -1,0 +1,1314 @@
+<style>
+.v5s-1{display:block;width:100%;max-height:320px;object-fit:cover;margin:0 0 20px;border-radius:14px}
+.v5s-2{display:block;border:1px solid rgba(127,133,160,.30);border-radius:16px;background:rgba(127,133,160,.10);padding:20px;margin:0 0 22px}
+.v5s-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;align-items:start}
+.v5s-4{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;background:rgba(127,133,160,.16);font-size:12px;font-weight:600;letter-spacing:.02em}
+.v5s-5{margin:12px 0 6px;font-size:26px;line-height:1.25}
+.v5s-6{margin:0 0 14px;opacity:.88;font-size:15px;line-height:1.5}
+.v5s-7{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px;padding:0;list-style:none}
+.v5s-8{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border:1px solid rgba(127,133,160,.30);border-radius:999px;background:rgba(127,133,160,.10);font-size:13px}
+.v5s-9{margin-right:6px}
+.v5s-10{display:flex;flex-wrap:wrap;gap:10px}
+.v5s-11{display:inline-block;padding:10px 18px;border-radius:10px;border:1px solid rgba(127,133,160,.30);text-decoration:none;font-weight:600;color:inherit}
+.v5s-12{display:block;margin:14px 0 0;padding:0;list-style:none}
+.v5s-13{margin:22px 0 12px;font-size:18px}
+.v5s-14{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:0 0 22px;padding:0;list-style:none}
+.v5s-15{display:grid;grid-template-columns:26px 1fr;column-gap:10px;align-items:center;padding:12px 14px;border:1px solid rgba(127,133,160,.30);border-radius:12px;background:rgba(127,133,160,.10);text-decoration:none;color:inherit}
+.v5s-16{grid-column:1;grid-row:1/span 2;font-size:20px;line-height:1}
+.v5s-17{grid-column:2;font-weight:600;line-height:1.3}
+.v5s-18{grid-column:2;font-size:12px;opacity:.84;margin-top:2px}
+.v5s-19{display:block;margin:0 0 22px}
+.v5s-20{margin:0 0 12px;font-size:19px}
+.v5s-21{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.v5s-22{display:block;padding:14px;border:1px solid rgba(127,133,160,.30);border-radius:12px;background:rgba(127,133,160,.10)}
+.v5s-23{display:block;font-size:24px;line-height:1;margin-bottom:8px}
+.v5s-24{display:block}
+.v5s-25{margin:0 0 6px;font-size:15px;font-weight:700}
+.v5s-26{margin:0;font-size:13px;line-height:1.5;opacity:.88}
+.v5s-27{display:block;border:1px solid rgba(127,133,160,.30);border-radius:16px;background:rgba(127,133,160,.10);padding:18px;margin:0 0 22px}
+.v5s-28{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 6px}
+.v5s-29{font-size:22px;line-height:1}
+.v5s-30{margin:0;font-size:19px}
+.v5s-31{margin:2px 0 0;font-size:13px;opacity:.86}
+.v5s-32{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}
+.v5s-33{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border:1px solid rgba(127,133,160,.30);border-radius:999px;background:rgba(127,133,160,.16);color:inherit;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.v5s-34{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;margin:14px 0 0}
+.v5s-35{display:block;border:1px solid rgba(127,133,160,.30);border-radius:12px;background:rgba(127,133,160,.16);overflow:hidden}
+.v5s-36{display:flex;flex-direction:column;height:100%}
+.v5s-37{position:relative;line-height:0}
+.v5s-38{display:block;width:100%;height:auto}
+.v5s-39{display:none}
+.v5s-40{position:absolute;top:8px;right:8px;padding:3px 9px;border-radius:999px;background:rgba(10,12,20,.72);color:#fff;font-size:11px;line-height:1.4}
+.v5s-41{padding:9px 11px 3px}
+.v5s-42{margin:0;font-size:14px;line-height:1.3}
+.v5s-43{font-size:11px;opacity:.84;margin-top:3px}
+.v5s-44{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 11px 11px;margin-top:auto}
+.v5s-45{font-size:11px;opacity:.9}
+.v5s-46{display:block;opacity:.86}
+.v5s-47{display:block;font-weight:700}
+.v5s-48{display:inline-block;font-size:12px;padding:5px 11px;border-radius:8px;background:#f5b52a;color:#15161c;text-decoration:none;white-space:nowrap}
+.v5s-49{display:block;border:1px solid rgba(127,133,160,.30);border-radius:14px;overflow:hidden;margin:0 0 22px}
+.v5s-50{display:block;border:1px solid rgba(127,133,160,.30);border-radius:14px;background:rgba(127,133,160,.10);padding:16px;margin:0 0 22px}
+.v5s-51{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:15px;font-weight:700}
+.v5s-52{font-size:18px;line-height:1}
+.v5s-53{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.v5s-54{display:block;padding:12px;border:1px solid rgba(127,133,160,.30);border-radius:12px;background:rgba(127,133,160,.16);text-align:center}
+.v5s-55{display:block;font-size:22px;line-height:1;margin-bottom:6px}
+.v5s-56{display:block;font-size:11px;opacity:.9}
+.v5s-57{display:block;font-size:12px;opacity:.86}
+.v5s-58{display:block;font-size:18px;font-weight:800;color:#f5b52a;margin:4px 0 2px}
+.v5s-59{display:flex;align-items:center;gap:8px;padding:12px 14px;background:rgba(127,133,160,.16);font-weight:700;font-size:14px}
+.v5s-60{width:9px;height:9px;border-radius:50%;background:#3ddc84;display:inline-block;flex:0 0 auto}
+.v5s-61{margin:0;font-size:14px;font-weight:700}
+.v5s-62{display:block;min-width:520px}
+.v5s-63{display:grid;grid-template-columns:34px minmax(90px,1fr) minmax(96px,auto) minmax(130px,1.3fr) minmax(88px,auto);gap:10px;padding:9px 14px;font-size:11px;letter-spacing:.04em;text-transform:uppercase;opacity:.9;font-weight:600}
+.v5s-64{text-align:right}
+.v5s-65{display:block;overflow-x:auto}
+.v5s-66{display:grid;grid-template-columns:34px minmax(90px,1fr) minmax(96px,auto) minmax(130px,1.3fr) minmax(88px,auto);align-items:center;gap:10px;padding:10px 14px;border-top:1px solid rgba(127,133,160,.20)}
+.v5s-67{font-size:16px;line-height:1}
+.v5s-68{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.v5s-69{font-weight:700;color:#f5b52a;white-space:nowrap}
+.v5s-70{font-size:13px;opacity:.88;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.v5s-71{font-size:12px;opacity:.9;text-align:right;white-space:nowrap}
+.v5s-72{display:grid;grid-template-columns:34px minmax(90px,1fr) minmax(96px,auto) minmax(130px,1.3fr) minmax(88px,auto);align-items:center;gap:10px;padding:10px 14px;border-top:1px solid rgba(127,133,160,.20);background:rgba(127,133,160,.10)}
+.v5s-73{padding:14px;background:rgba(127,133,160,.10);text-align:center}
+.v5s-74{display:inline-block;padding:10px 20px;border-radius:10px;background:#f5b52a;color:#15161c;font-weight:700;text-decoration:none}
+.v5s-75{margin:14px 0;padding-left:22px;line-height:1.65}
+.v5s-76{margin:0 0 8px}
+.v5s-77{color:#f0685a}
+.v5s-78{color:#4fbe86}
+.v5s-79{margin:16px 0;padding:12px 16px;border-left:4px solid #f0685a;border-radius:0 10px 10px 0;background:rgba(240,90,90,.12);line-height:1.6}
+.v5s-80{display:block;border:1px solid rgba(127,133,160,.30);border-radius:14px;background:rgba(127,133,160,.10);padding:18px;margin:22px 0}
+.v5s-81{display:block;margin:0 0 10px;font-size:20px}
+.v5s-82{display:grid;gap:10px;margin:12px 0 0;padding:0;list-style:none}
+.v5s-83{display:block;padding:12px 14px;border:1px solid rgba(127,133,160,.30);border-radius:12px;background:rgba(127,133,160,.16)}
+.v5s-84{display:block;width:100%;text-align:left;background:none;border:0;border-left:3px solid #f5b52a;color:inherit;font-family:inherit;font-size:15px;font-weight:700;line-height:1.35;margin:0 0 6px;padding:0 0 0 12px;cursor:pointer}
+.v5s-85{display:block;font-size:14px;line-height:1.6;opacity:.9}
+.v5s-86{display:block;border:1px solid rgba(127,133,160,.30);border-radius:14px;background:rgba(127,133,160,.10);padding:18px}
+.v5s-87{margin:0 0 6px;font-size:19px}
+.v5s-88{margin:0 0 12px;font-size:14px;opacity:.86}
+.v5s-89{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:0;padding:0;list-style:none}
+.v5s-90{display:block;padding:14px 14px 12px;border:1px solid rgba(127,133,160,.30);border-left:3px solid #f5b52a;border-radius:0 12px 12px 0;background:rgba(127,133,160,.10);font-style:italic;line-height:1.55}
+</style>
+<img class="v5s-1" src="main_img_1.webp" alt="навигация по разделам площадки" width="1200" height="630" loading="lazy">
+<section class="hero-value variant-v2 v5s-2" itemscope="" itemtype="https://schema.org/WebPage" aria-label="Главная информация">
+  <div class="hero-value-grid v5s-3">
+    <div class="hero-info">
+      <div class="hero-badge v5s-4">
+        <span class="badge-icon">
+          2026
+        </span>
+        <span class="badge-text">
+          Выбор игроков
+        </span>
+      </div>
+      <h2 class="hero-headline v5s-5" itemprop="name">
+        %brand_name_ru%
+      </h2>
+      <p class="hero-tagline v5s-6" itemprop="description">
+        Лицензированные <a href="/slots">слоты</a>, быстрый вывод и честный геймплей — без лишних обещаний
+      </p>
+      <ul class="hero-features v5s-7" itemscope="" itemtype="https://schema.org/ItemList">
+        <li class="v5s-8" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+          <meta itemprop="position" content="1">
+          <span class="feature-icon v5s-9">
+            🎲
+          </span>
+          <span itemprop="name">
+            2000+ слотов
+          </span>
+        </li>
+        <li class="v5s-8" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+          <meta itemprop="position" content="2">
+          <span class="feature-icon v5s-9">
+            🎁
+          </span>
+          <span itemprop="name">
+            Бонус до 231%
+          </span>
+        </li>
+        <li class="v5s-8" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+          <meta itemprop="position" content="3">
+          <span class="feature-icon v5s-9">
+            ⏱
+          </span>
+          <span itemprop="name">
+            Вывод от 13 мин
+          </span>
+        </li>
+        <li class="v5s-8" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+          <meta itemprop="position" content="4">
+          <span class="feature-icon v5s-9">
+            🛡
+          </span>
+          <span itemprop="name">
+            32+ провайдеров
+          </span>
+        </li>
+      </ul>
+      <div class="hero-actions v5s-10">
+        <a href="/registracia" class="btn-apple btn-apple-primary v5s-11">Играть</a><a href="/app" class="btn-apple btn-apple-secondary v5s-11">Акции</a>
+      </div>
+    </div>
+    <div class="hero-quicklinks v5s-12" itemscope="" itemtype="https://schema.org/SiteNavigationElement">
+      <h3 class="quicklinks-title v5s-13">
+        Куда перейти
+      </h3>
+      <nav class="quicklinks-grid v5s-14" aria-label="Быстрые ссылки">
+        <a href="/slots" class="quicklink-item v5s-15" itemprop="url">
+        <span class="ql-icon v5s-16">
+          🎰
+        </span>
+        <span class="ql-text v5s-17" itemprop="name">
+          Каталог слотов
+        </span>
+        <span class="ql-meta v5s-18">
+          Демо и на деньги
+        </span>
+        </a><a href="/app" class="quicklink-item v5s-15" itemprop="url">
+        <span class="ql-icon v5s-16">
+          🎁
+        </span>
+        <span class="ql-text v5s-17" itemprop="name">
+          Акции
+        </span>
+        <span class="ql-meta v5s-18">
+          Приветственный пакет
+        </span>
+        </a><a href="/registracia" class="quicklink-item v5s-15" itemprop="url">
+        <span class="ql-icon v5s-16">
+          ✏️
+        </span>
+        <span class="ql-text v5s-17" itemprop="name">
+          Создать аккаунт
+        </span>
+        <span class="ql-meta v5s-18">
+          Без комиссий
+        </span>
+        </a><a href="/app" class="quicklink-item v5s-15" itemprop="url">
+        <span class="ql-icon v5s-16">
+          📱
+        </span>
+        <span class="ql-text v5s-17" itemprop="name">
+          Приложение
+        </span>
+        <span class="ql-meta v5s-18">
+          Установить
+        </span>
+        </a><a href="/vhod" class="quicklink-item v5s-15" itemprop="url">
+        <span class="ql-icon v5s-16">
+          🔑
+        </span>
+        <span class="ql-text v5s-17" itemprop="name">
+          Войти
+        </span>
+        <span class="ql-meta v5s-18">
+          Личный кабинет
+        </span>
+        </a><a href="/zerkalo" class="quicklink-item v5s-15" itemprop="url">
+        <span class="ql-icon v5s-16">
+          🔗
+        </span>
+        <span class="ql-text v5s-17" itemprop="name">
+          Актуальная ссылка
+        </span>
+        <span class="ql-meta v5s-18">
+          зеркало сайта
+        </span>
+        </a>
+      </nav>
+    </div>
+  </div>
+</section>
+<section class="value-pillars variant-v4 v5s-19" id="value-pillars" itemscope="" itemtype="https://schema.org/ItemList" aria-label="Преимущества портала">
+  <h2 class="value-pillars-heading v5s-20">
+    Что даёт %brand_name_ru%
+  </h2>
+  <div class="value-pillars-grid v5s-21">
+    <div class="value-pillar v5s-22" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+      <meta itemprop="position" content="1">
+      <span class="value-pillar-icon v5s-23">
+        📜
+      </span>
+      <div class="value-pillar-body v5s-24">
+        <h3 class="value-pillar-title v5s-25" itemprop="name">
+          Регуляция
+        </h3>
+        <p class="value-pillar-desc v5s-26">
+          Международная лицензия
+        </p>
+      </div>
+    </div>
+    <div class="value-pillar v5s-22" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+      <meta itemprop="position" content="2">
+      <span class="value-pillar-icon v5s-23">
+        ⏱
+      </span>
+      <div class="value-pillar-body v5s-24">
+        <h3 class="value-pillar-title v5s-25" itemprop="name">
+          Вывод средств
+        </h3>
+        <p class="value-pillar-desc v5s-26">
+          От 15 минут до суток
+        </p>
+      </div>
+    </div>
+    <div class="value-pillar v5s-22" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+      <meta itemprop="position" content="3">
+      <span class="value-pillar-icon v5s-23">
+        🔐
+      </span>
+      <div class="value-pillar-body v5s-24">
+        <h3 class="value-pillar-title v5s-25" itemprop="name">
+          Шифрование
+        </h3>
+        <p class="value-pillar-desc v5s-26">
+          Защита данных по современным стандартам
+        </p>
+      </div>
+    </div>
+    <div class="value-pillar v5s-22" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+      <meta itemprop="position" content="4">
+      <span class="value-pillar-icon v5s-23">
+        💳
+      </span>
+      <div class="value-pillar-body v5s-24">
+        <h3 class="value-pillar-title v5s-25" itemprop="name">
+          Платежи
+        </h3>
+        <p class="value-pillar-desc v5s-26">
+          Карты, кошельки, крипто
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="slots-dashboard variant-v4 v5s-27" itemscope="" itemtype="https://schema.org/ItemList">
+  <div class="slots-dashboard-container v5s-24">
+    <div class="slots-dashboard-header v5s-28">
+      <div class="slots-dashboard-title-wrap v5s-24">
+        <span class="slots-dashboard-icon v5s-29">
+          🎲
+        </span>
+        <div>
+          <h2 class="slots-dashboard-title v5s-30" itemprop="name">
+            Игровой каталог <a href="/">%brand_name_ru%</a>
+          </h2>
+          <p class="slots-dashboard-subtitle v5s-31">
+            Рекомендованные, новые и самые отыгрышные <a href="/slots">слоты</a>
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="slots-dashboard-tabs v5s-32">
+      <button class="slots-tab active v5s-33" data-tab="top">
+        <span>
+          ★
+        </span>
+        Рекомендованные
+      </button>
+      <button class="slots-tab v5s-33" data-tab="new">
+        <span>
+          ◆
+        </span>
+        Новые релизы
+      </button>
+    </div>
+    <div class="slots-tab-content active v5s-24" data-content="top">
+      <div class="slots-grid v5s-34">
+        <article class="slot-card animate-in v5s-35" itemprop="item" itemscope="" itemtype="https://schema.org/Game">
+          <div class="slot-card-inner v5s-36">
+            <div class="slot-poster v5s-37">
+              <img class="v5s-38" src="main_img_2.webp" alt="Золотой тигр" width="640" height="480" loading="lazy">
+              <div class="slot-poster-fallback v5s-39">
+                <span class="slot-fallback-icon">
+                  🍬
+                </span>
+                <span class="slot-fallback-name">
+                  Sweet Bonanza
+                </span>
+              </div>
+              <div class="slot-badge slot-badge-high v5s-40">
+                High
+              </div>
+            </div>
+            <div class="slot-info v5s-41">
+              <h3 class="slot-name v5s-42" itemprop="name">
+                Sweet Bonanza
+              </h3>
+              <div class="slot-provider v5s-43" itemprop="gameProvider">
+                Pragmatic Play
+              </div>
+            </div>
+            <div class="slot-footer v5s-44">
+              <div class="slot-rtp v5s-45">
+                <span class="slot-rtp-label v5s-46">
+                  RTP
+                </span>
+                <span class="slot-rtp-value v5s-47" itemprop="gameFeature">
+                  96.51%
+                </span>
+              </div>
+              <a href="/slots" class="slot-play-btn v5s-48" itemprop="url">Играть</a>
+            </div>
+          </div>
+        </article>
+        <article class="slot-card animate-in v5s-35" itemprop="item" itemscope="" itemtype="https://schema.org/Game">
+          <div class="slot-card-inner v5s-36">
+            <div class="slot-poster v5s-37">
+              <img class="v5s-38" src="main_img_2.webp" alt="Золотой тигр" width="640" height="480" loading="lazy">
+              <div class="slot-poster-fallback v5s-39">
+                <span class="slot-fallback-icon">
+                  ⚡
+                </span>
+                <span class="slot-fallback-name">
+                  Gates of Olympus
+                </span>
+              </div>
+              <div class="slot-badge slot-badge-high v5s-40">
+                High
+              </div>
+            </div>
+            <div class="slot-info v5s-41">
+              <h3 class="slot-name v5s-42" itemprop="name">
+                Gates of Olympus
+              </h3>
+              <div class="slot-provider v5s-43" itemprop="gameProvider">
+                Pragmatic Play
+              </div>
+            </div>
+            <div class="slot-footer v5s-44">
+              <div class="slot-rtp v5s-45">
+                <span class="slot-rtp-label v5s-46">
+                  RTP
+                </span>
+                <span class="slot-rtp-value v5s-47" itemprop="gameFeature">
+                  96.50%
+                </span>
+              </div>
+              <a href="/slots" class="slot-play-btn v5s-48" itemprop="url">Играть</a>
+            </div>
+          </div>
+        </article>
+        <article class="slot-card animate-in v5s-35" itemprop="item" itemscope="" itemtype="https://schema.org/Game">
+          <div class="slot-card-inner v5s-36">
+            <div class="slot-poster v5s-37">
+              <img class="v5s-38" src="main_img_2.webp" alt="Золотой тигр" width="640" height="480" loading="lazy">
+              <div class="slot-poster-fallback v5s-39">
+                <span class="slot-fallback-icon">
+                  📖
+                </span>
+                <span class="slot-fallback-name">
+                  Book of Dead
+                </span>
+              </div>
+              <div class="slot-badge slot-badge-medium v5s-40">
+                Medium
+              </div>
+            </div>
+            <div class="slot-info v5s-41">
+              <h3 class="slot-name v5s-42" itemprop="name">
+                Book of Dead
+              </h3>
+              <div class="slot-provider v5s-43" itemprop="gameProvider">
+                Play'n GO
+              </div>
+            </div>
+            <div class="slot-footer v5s-44">
+              <div class="slot-rtp v5s-45">
+                <span class="slot-rtp-label v5s-46">
+                  RTP
+                </span>
+                <span class="slot-rtp-value v5s-47" itemprop="gameFeature">
+                  96.21%
+                </span>
+              </div>
+              <a href="/slots" class="slot-play-btn v5s-48" itemprop="url">Играть</a>
+            </div>
+          </div>
+        </article>
+        <article class="slot-card animate-in v5s-35" itemprop="item" itemscope="" itemtype="https://schema.org/Game">
+          <div class="slot-card-inner v5s-36">
+            <div class="slot-poster v5s-37">
+              <img class="v5s-38" src="main_img_2.webp" alt="Золотой тигр" width="640" height="480" loading="lazy">
+              <div class="slot-poster-fallback v5s-39">
+                <span class="slot-fallback-icon">
+                  🎣
+                </span>
+                <span class="slot-fallback-name">
+                  Big Bass Bonanza
+                </span>
+              </div>
+              <div class="slot-badge slot-badge-medium v5s-40">
+                Medium
+              </div>
+            </div>
+            <div class="slot-info v5s-41">
+              <h3 class="slot-name v5s-42" itemprop="name">
+                Big Bass Bonanza
+              </h3>
+              <div class="slot-provider v5s-43" itemprop="gameProvider">
+                Pragmatic Play
+              </div>
+            </div>
+            <div class="slot-footer v5s-44">
+              <div class="slot-rtp v5s-45">
+                <span class="slot-rtp-label v5s-46">
+                  RTP
+                </span>
+                <span class="slot-rtp-value v5s-47" itemprop="gameFeature">
+                  96.71%
+                </span>
+              </div>
+              <a href="/slots" class="slot-play-btn v5s-48" itemprop="url">Играть</a>
+            </div>
+          </div>
+        </article>
+      </div>
+    </div>
+    <div class="slots-tab-content v5s-24" data-content="new">
+      <div class="slots-grid v5s-34">
+        <article class="slot-card v5s-35" itemprop="item" itemscope="" itemtype="https://schema.org/Game">
+          <div class="slot-card-inner v5s-36">
+            <div class="slot-poster v5s-37">
+              <img class="v5s-38" src="main_img_2.webp" alt="Золотой тигр" width="640" height="480" loading="lazy">
+              <div class="slot-poster-fallback v5s-39">
+                <span class="slot-fallback-icon">
+                  ⭐
+                </span>
+                <span class="slot-fallback-name">
+                  Starburst
+                </span>
+              </div>
+              <div class="slot-badge slot-badge-low v5s-40">
+                Low
+              </div>
+            </div>
+            <div class="slot-info v5s-41">
+              <h3 class="slot-name v5s-42" itemprop="name">
+                Starburst
+              </h3>
+              <div class="slot-provider v5s-43" itemprop="gameProvider">
+                NetEnt
+              </div>
+            </div>
+            <div class="slot-footer v5s-44">
+              <div class="slot-rtp v5s-45">
+                <span class="slot-rtp-label v5s-46">
+                  RTP
+                </span>
+                <span class="slot-rtp-value v5s-47" itemprop="gameFeature">
+                  96.09%
+                </span>
+              </div>
+              <a href="/slots" class="slot-play-btn v5s-48" itemprop="url">Играть</a>
+            </div>
+          </div>
+        </article>
+        <article class="slot-card v5s-35" itemprop="item" itemscope="" itemtype="https://schema.org/Game">
+          <div class="slot-card-inner v5s-36">
+            <div class="slot-poster v5s-37">
+              <img class="v5s-38" src="main_img_2.webp" alt="Золотой тигр" width="640" height="480" loading="lazy">
+              <div class="slot-poster-fallback v5s-39">
+                <span class="slot-fallback-icon">
+                  🍭
+                </span>
+                <span class="slot-fallback-name">
+                  Sugar Rush
+                </span>
+              </div>
+              <div class="slot-badge slot-badge-high v5s-40">
+                High
+              </div>
+            </div>
+            <div class="slot-info v5s-41">
+              <h3 class="slot-name v5s-42" itemprop="name">
+                Sugar Rush
+              </h3>
+              <div class="slot-provider v5s-43" itemprop="gameProvider">
+                Pragmatic Play
+              </div>
+            </div>
+            <div class="slot-footer v5s-44">
+              <div class="slot-rtp v5s-45">
+                <span class="slot-rtp-label v5s-46">
+                  RTP
+                </span>
+                <span class="slot-rtp-value v5s-47" itemprop="gameFeature">
+                  96.48%
+                </span>
+              </div>
+              <a href="/slots" class="slot-play-btn v5s-48" itemprop="url">Играть</a>
+            </div>
+          </div>
+        </article>
+        <article class="slot-card v5s-35" itemprop="item" itemscope="" itemtype="https://schema.org/Game">
+          <div class="slot-card-inner v5s-36">
+            <div class="slot-poster v5s-37">
+              <img class="v5s-38" src="main_img_2.webp" alt="Золотой тигр" width="640" height="480" loading="lazy">
+              <div class="slot-poster-fallback v5s-39">
+                <span class="slot-fallback-icon">
+                  🚂
+                </span>
+                <span class="slot-fallback-name">
+                  Money Train 3
+                </span>
+              </div>
+              <div class="slot-badge slot-badge-high v5s-40">
+                High
+              </div>
+            </div>
+            <div class="slot-info v5s-41">
+              <h3 class="slot-name v5s-42" itemprop="name">
+                Money Train 3
+              </h3>
+              <div class="slot-provider v5s-43" itemprop="gameProvider">
+                Relax Gaming
+              </div>
+            </div>
+            <div class="slot-footer v5s-44">
+              <div class="slot-rtp v5s-45">
+                <span class="slot-rtp-label v5s-46">
+                  RTP
+                </span>
+                <span class="slot-rtp-value v5s-47" itemprop="gameFeature">
+                  96.10%
+                </span>
+              </div>
+              <a href="/slots" class="slot-play-btn v5s-48" itemprop="url">Играть</a>
+            </div>
+          </div>
+        </article>
+        <article class="slot-card v5s-35" itemprop="item" itemscope="" itemtype="https://schema.org/Game">
+          <div class="slot-card-inner v5s-36">
+            <div class="slot-poster v5s-37">
+              <img class="v5s-38" src="main_img_2.webp" alt="Золотой тигр" width="640" height="480" loading="lazy">
+              <div class="slot-poster-fallback v5s-39">
+                <span class="slot-fallback-icon">
+                  🐕
+                </span>
+                <span class="slot-fallback-name">
+                  The Dog House
+                </span>
+              </div>
+              <div class="slot-badge slot-badge-high v5s-40">
+                High
+              </div>
+            </div>
+            <div class="slot-info v5s-41">
+              <h3 class="slot-name v5s-42" itemprop="name">
+                The Dog House
+              </h3>
+              <div class="slot-provider v5s-43" itemprop="gameProvider">
+                Pragmatic Play
+              </div>
+            </div>
+            <div class="slot-footer v5s-44">
+              <div class="slot-rtp v5s-45">
+                <span class="slot-rtp-label v5s-46">
+                  RTP
+                </span>
+                <span class="slot-rtp-value v5s-47" itemprop="gameFeature">
+                  96.51%
+                </span>
+              </div>
+              <a href="/slots" class="slot-play-btn v5s-48" itemprop="url">Играть</a>
+            </div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="recent-payouts-block variant-v1 v5s-49" itemscope="" itemtype="https://schema.org/ItemList">
+  <meta itemprop="name" content="Выигрыши игроков"><meta itemprop="numberOfItems" content="6">
+  <div class="jackpot-strip v5s-50">
+    <div class="jackpot-strip-title v5s-51">
+      <span class="jackpot-strip-icon v5s-52">
+        ◆
+      </span>
+      <span>
+        Прогрессивные джекпоты
+      </span>
+    </div>
+    <div class="jackpot-strip-grid v5s-53">
+      <div class="jackpot-cell jackpot-cell-pulse v5s-54">
+        <span class="jackpot-cell-icon v5s-55">
+          🏆
+        </span>
+        <div class="jackpot-cell-info v5s-56">
+          <span class="jackpot-cell-name v5s-57">
+            МЕГА
+          </span>
+          <span class="jackpot-cell-amount v5s-58">
+            83 000 ₽
+          </span>
+        </div>
+      </div>
+      <div class="jackpot-cell jackpot-cell-pulse v5s-54">
+        <span class="jackpot-cell-icon v5s-55">
+          💎
+        </span>
+        <div class="jackpot-cell-info v5s-56">
+          <span class="jackpot-cell-name v5s-57">
+            СУПЕР
+          </span>
+          <span class="jackpot-cell-amount v5s-58">
+            801 148 ₽
+          </span>
+        </div>
+      </div>
+      <div class="jackpot-cell  v5s-54">
+        <span class="jackpot-cell-icon v5s-55">
+          ⭐
+        </span>
+        <div class="jackpot-cell-info v5s-56">
+          <span class="jackpot-cell-name v5s-57">
+            МИНИ
+          </span>
+          <span class="jackpot-cell-amount v5s-58">
+            850 000 рублей
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="payout-feed v5s-24">
+    <div class="payout-feed-header v5s-59">
+      <span class="payout-feed-dot v5s-60">
+      </span>
+      <span class="payout-feed-title v5s-61">
+        Последние выплаты
+      </span>
+    </div>
+    <div class="payout-track v5s-62">
+      <div class="v5s-63"><span></span><span>Игрок</span><span>Выигрыш</span><span>Игра</span><span class="v5s-64">Когда</span></div>
+      <div class="payout-scroll v5s-65">
+        <div class="payout-row payout-row-normal v5s-66" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+          <meta itemprop="position" content="1">
+          <span class="payout-row-icon v5s-67">
+            🎰
+          </span>
+          <span class="payout-row-name v5s-68" itemprop="name">
+            Станислав
+          </span>
+          <span class="payout-row-sep v5s-39">
+            —
+          </span>
+          <span class="payout-row-amount v5s-69">
+            41 804 ₽
+          </span>
+          <span class="payout-row-slot v5s-70">
+            ⚡ Gates of Olympus
+          </span>
+          <span class="payout-row-time v5s-71">
+            43 минуты назад
+          </span>
+        </div>
+        <div class="payout-row payout-row-big v5s-72" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+          <meta itemprop="position" content="2">
+          <span class="payout-row-icon v5s-67">
+            🔥
+          </span>
+          <span class="payout-row-name v5s-68" itemprop="name">
+            Екатерина
+          </span>
+          <span class="payout-row-sep v5s-39">
+            —
+          </span>
+          <span class="payout-row-amount v5s-69">
+            21 896 ₽
+          </span>
+          <span class="payout-row-slot v5s-70">
+            🦈 Razor Shark
+          </span>
+          <span class="payout-row-time v5s-71">
+            только что
+          </span>
+        </div>
+        <div class="payout-row payout-row-big v5s-66" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+          <meta itemprop="position" content="3">
+          <span class="payout-row-icon v5s-67">
+            🔥
+          </span>
+          <span class="payout-row-name v5s-68" itemprop="name">
+            Станислав
+          </span>
+          <span class="payout-row-sep v5s-39">
+            —
+          </span>
+          <span class="payout-row-amount v5s-69">
+            290 000 рублей
+          </span>
+          <span class="payout-row-slot v5s-70">
+            🐺 Wolf Gold
+          </span>
+          <span class="payout-row-time v5s-71">
+            2 мин назад
+          </span>
+        </div>
+        <div class="payout-row payout-row-normal v5s-72" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+          <meta itemprop="position" content="4">
+          <span class="payout-row-icon v5s-67">
+            🎰
+          </span>
+          <span class="payout-row-name v5s-68" itemprop="name">
+            Екатерина
+          </span>
+          <span class="payout-row-sep v5s-39">
+            —
+          </span>
+          <span class="payout-row-amount v5s-69">
+            31 863 ₽
+          </span>
+          <span class="payout-row-slot v5s-70">
+            🗿 Gonzo's Quest
+          </span>
+          <span class="payout-row-time v5s-71">
+            40 минут назад
+          </span>
+        </div>
+        <div class="payout-row payout-row-normal v5s-66" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+          <meta itemprop="position" content="5">
+          <span class="payout-row-icon v5s-67">
+            🎰
+          </span>
+          <span class="payout-row-name v5s-68" itemprop="name">
+            Станислав
+          </span>
+          <span class="payout-row-sep v5s-39">
+            —
+          </span>
+          <span class="payout-row-amount v5s-69">
+            21 703 ₽
+          </span>
+          <span class="payout-row-slot v5s-70">
+            ☥ Legacy of Dead
+          </span>
+          <span class="payout-row-time v5s-71">
+            6 минут назад
+          </span>
+        </div>
+        <div class="payout-row payout-row-big v5s-72" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+          <meta itemprop="position" content="6">
+          <span class="payout-row-icon v5s-67">
+            🔥
+          </span>
+          <span class="payout-row-name v5s-68" itemprop="name">
+            Станислав
+          </span>
+          <span class="payout-row-sep v5s-39">
+            —
+          </span>
+          <span class="payout-row-amount v5s-69">
+            4 296 924 ₽
+          </span>
+          <span class="payout-row-slot v5s-70">
+            ☥ Legacy of Dead
+          </span>
+          <span class="payout-row-time v5s-71">
+            5 минут назад
+          </span>
+        </div>
+        <div class="payout-row payout-row-normal v5s-66" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+          <meta itemprop="position" content="1">
+          <span class="payout-row-icon v5s-67">
+            🎰
+          </span>
+          <span class="payout-row-name v5s-68" itemprop="name">
+            Станислав
+          </span>
+          <span class="payout-row-sep v5s-39">
+            —
+          </span>
+          <span class="payout-row-amount v5s-69">
+            250₽
+          </span>
+          <span class="payout-row-slot v5s-70">
+            ⚡ Gates of Olympus
+          </span>
+          <span class="payout-row-time v5s-71">
+            43 минуты назад
+          </span>
+        </div>
+        <div class="payout-row payout-row-big v5s-72" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+          <meta itemprop="position" content="2">
+          <span class="payout-row-icon v5s-67">
+            🔥
+          </span>
+          <span class="payout-row-name v5s-68" itemprop="name">
+            Екатерина
+          </span>
+          <span class="payout-row-sep v5s-39">
+            —
+          </span>
+          <span class="payout-row-amount v5s-69">
+            7 рубля
+          </span>
+          <span class="payout-row-slot v5s-70">
+            🦈 Razor Shark
+          </span>
+          <span class="payout-row-time v5s-71">
+            только что
+          </span>
+        </div>
+        <div class="payout-row payout-row-big v5s-66" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+          <meta itemprop="position" content="3">
+          <span class="payout-row-icon v5s-67">
+            🔥
+          </span>
+          <span class="payout-row-name v5s-68" itemprop="name">
+            Станислав
+          </span>
+          <span class="payout-row-sep v5s-39">
+            —
+          </span>
+          <span class="payout-row-amount v5s-69">
+            810 044 ₽
+          </span>
+          <span class="payout-row-slot v5s-70">
+            🐺 Wolf Gold
+          </span>
+          <span class="payout-row-time v5s-71">
+            2 мин назад
+          </span>
+        </div>
+        <div class="payout-row payout-row-normal v5s-72" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+          <meta itemprop="position" content="4">
+          <span class="payout-row-icon v5s-67">
+            🎰
+          </span>
+          <span class="payout-row-name v5s-68" itemprop="name">
+            Екатерина
+          </span>
+          <span class="payout-row-sep v5s-39">
+            —
+          </span>
+          <span class="payout-row-amount v5s-69">
+            520 000 ₽
+          </span>
+          <span class="payout-row-slot v5s-70">
+            🗿 Gonzo's Quest
+          </span>
+          <span class="payout-row-time v5s-71">
+            40 минут назад
+          </span>
+        </div>
+        <div class="payout-row payout-row-normal v5s-66" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+          <meta itemprop="position" content="5">
+          <span class="payout-row-icon v5s-67">
+            🎰
+          </span>
+          <span class="payout-row-name v5s-68" itemprop="name">
+            Станислав
+          </span>
+          <span class="payout-row-sep v5s-39">
+            —
+          </span>
+          <span class="payout-row-amount v5s-69">
+            580 000 рублей
+          </span>
+          <span class="payout-row-slot v5s-70">
+            ☥ Legacy of Dead
+          </span>
+          <span class="payout-row-time v5s-71">
+            6 минут назад
+          </span>
+        </div>
+        <div class="payout-row payout-row-big v5s-72" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">
+          <meta itemprop="position" content="6">
+          <span class="payout-row-icon v5s-67">
+            🔥
+          </span>
+          <span class="payout-row-name v5s-68" itemprop="name">
+            Станислав
+          </span>
+          <span class="payout-row-sep v5s-39">
+            —
+          </span>
+          <span class="payout-row-amount v5s-69">
+            35 200 ₽
+          </span>
+          <span class="payout-row-slot v5s-70">
+            ☥ Legacy of Dead
+          </span>
+          <span class="payout-row-time v5s-71">
+            5 минут назад
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="payout-cta v5s-73">
+    <a href="/registracia" class="payout-btn v5s-74">Играть на реальные деньги</a>
+  </div>
+</section>
+<h2>
+  Лицензия и безопасность — Честная игра гарантирована
+</h2>
+<p>
+  Думаешь, здесь кто-то обещает лёгкие деньги? Он сам первый скажет: <strong>бывает и наоборот</strong>, деньги уходят так же быстро, как приходят. Если нужны гарантии — это не сюда. Без сказок: он рисковал, повезло, забрал куш.
+</p>
+<p>
+  Факт: средний RTP автоматов — 98.4%, а возможный джекпот достигает 230к. Если нужны обещания «всегда в плюс» — это не сюда. Джекпот здесь достигает <strong>210 тыс рублей</strong>, бонусный пакет стартует от 600%, а выплата средств проходит за 26 минут — это факты, которые легко проверить в <a href="/">информации о казино</a>. Не заходи, если ждёшь волшебную кнопку «выиграть всегда» — её не существует.
+</p>
+<p>
+  Здесь нет сказок о бесконечных кушах, есть правила дворца. Такой подход скучный только на словах — на деле он экономит нервы. Игорь потом вернулся уже осознанно: сначала открыл <a href="/">обзор казино</a>, потом заглянул в <a href="/">новости казино</a>, чтобы не играть вслепую. Но честно: он также проигрывал раньше.
+</p>
+<h3>
+  Что реально получаешь, кроме красивых обещаний
+</h3>
+<ul class="v5s-75">
+  <li class="v5s-76">
+    Можно <a href="/slots">играть бесплатно</a> — почувствовать механику автомата без риска для кошелька.
+  </li>
+  <li class="v5s-76">
+    Честный минус: вейджер на <a href="/app">бонусы</a> есть, и он не x1 — читайте условия до активации
+  </li>
+  <li class="v5s-76">
+    Джекпот 15,6 млн реален как призовой потенциал, но шанс на него невысок.
+  </li>
+  <li class="v5s-76">
+    <strong class="v5s-77">Минус:</strong> даже с RTP 97.0% серия может уйти не в твою сторону.
+  </li>
+  <li class="v5s-76">
+    Заявленный вывод за 48 минут зависит от проверки аккаунта, метода оплаты и банковских процедур.
+  </li>
+  <li class="v5s-76">
+    <strong>Мобилка под рукой</strong>: <a href="/app">мобильное приложение</a> удобно, если хочется крутить слоты на ходу.
+  </li>
+  <li class="v5s-76">
+    <strong class="v5s-78">Плюс:</strong> свежие <a href="/">новости казино</a> и <a href="/">обзор казино</a> помогают не лететь вслепую.
+  </li>
+  <li class="v5s-76">
+    RTP 98.4% описывает теоретическую отдачу на длинной дистанции, но не обещает выигрыш в одной сессии.
+  </li>
+  <li class="v5s-76">
+    SSL-шифрование и двухфакторная авторизация при <a href="/vhod">входе в личный кабинет</a>
+  </li>
+</ul>
+<p>
+  <strong>Проверяй правила, ставь лимит и решай сам.</strong> Готов к игре без сказок — открой <a href="/">%brand_name_ru%</a>; не готов к риску, лучше выбери <a href="/slots">играть бесплатно</a>. Зарегистрируйся через <a href="/registracia">регистрацию</a>, получи стартовый пакет и попробуй <a href="/slots">играть бесплатно</a> в демо-режиме — почувствуй механику без риска.
+</p>
+<h2>
+  Бонусы без развода — До 80% на первый депозит
+</h2>
+<p>
+  Честно говоря: <strong>RTP здесь 98.4%</strong> — это математика, не маркетинг. Здесь движ для смелых, а <a href="/app">бонусы</a> стандартно дают до <strong>250%</strong> на старте, без лишней мишуры. Константин, кстати, потом ещё чекнул <a href="/">новости казино</a> и понял, что промо и реальные условия — это разные вещи.
+</p>
+<p>
+  Константин, кстати, не стал геройствовать: зашёл на пару кругов, словил удачную серию, а потом спокойно вывел часть суммы. Но вот что Константин не расскажет в баре: за месяц до этого он слил три депозита подряд. Для тех, кто любит честные цифры: RTP 99.0% и шанс сорвать <strong>джекпот в 230к</strong>, что не шутка! Условия подарков, лимиты и отыгрыш лучше проверить заранее в разделе <a href="/app">бонусы</a>, а новые <a href="/app">промо акции</a> помогут выбрать подходящий момент для игры.
+</p>
+<p>
+  Здесь <strong>RTP 97.5%</strong> — математика на твоей стороне, но только в долгосрочной перспективе. Но тут же — два проигрыша подряд. Без волшебства, просто в этот раз удача повернулась лицом. Если хочется движухи — <a href="/app">бонусы</a> ждут. Здесь движ для смелых, кто готов рискнуть и не ныть при проигрыше.
+</p>
+<h3>
+  Что получаешь реально — и о чём стоит знать заранее
+</h3>
+<ul class="v5s-75">
+  <li class="v5s-76">
+    Возможен <strong>джекпот 8.5 млн</strong>, но шанс на него не продаётся вместе с бонусом.
+  </li>
+  <li class="v5s-76">
+    <strong>До 13% на первый депозит</strong> — звучит жирно, но читай условия, там всегда есть нюансы.
+  </li>
+  <li class="v5s-76">
+    Можно зайти через <a href="/vhod">вход в личный кабинет</a> и продолжить без лишней суеты.
+  </li>
+  <li class="v5s-76">
+    Минус простой: сегодня куш твой, завтра — уже нет. Казино любит тех, кто считает ходы.
+  </li>
+  <li class="v5s-76">
+    <strong>История:</strong> Вывод заявки у Константина занял те самые 5 минут — проверил лично через <a href="/vhod">личный кабинет</a>.
+  </li>
+  <li class="v5s-76">
+    <strong>Выгода:</strong> Бонусный пакет до 20% — это тронный зал для новичка, реальный стартовый капитал.
+  </li>
+  <li class="v5s-76">
+    <strong>Цифра:</strong> Средний RTP 97% значит, что с каждой сотни теоретически возвращается 97 — остальное дворец забирает.
+  </li>
+  <li class="v5s-76">
+    <strong>Честно:</strong> Вейджер (оборот для отыгрыша) будет высоким — это правило для всех <a href="/app">промо акций</a>.
+  </li>
+  <li class="v5s-76">
+    <strong class="v5s-78">Плюс:</strong> до 1000% на первый депозит выглядит жирно, но читать правила всё равно надо.
+  </li>
+</ul>
+<p>
+  Если тебе нужны гарантии и стопроцентный результат — закрой эту вкладку и открой депозит в банке под 8% годовых. Не заходи, если боишься увидеть честные правила игры. Начни с <a href="/app">мобильное приложение</a> или открой <a href="/vhod">вход в личный кабинет</a> через <a href="/zerkalo">рабочее зеркало</a> и смотри, что дают без развода.
+</p>
+<h2>
+  Мгновенная регистрация — Заходи за 10 секунд
+</h2>
+<p>
+  Хочешь быстро понять, что тут к чему? Заходи через <a href="/vhod">вход в личный кабинет</a> или стартуй с нуля — один клик, почта или телефон, готово. Гарантий никто не даёт — только RTP 98.1% и шанс сорвать джекпот до 25,8 млн.
+</p>
+<p>
+  Игорь после той сессии без пафоса сказал: «Зашёл, покрутил, забрал своё и вышел». Бонус 13% на первый депозит — это не сказка, это реальный пакет для старта. Зашёл в <a href="/">%brand_name_ru%</a>, выбрал игру, начал движ. Никакой магии — просто повезло на автомате с RTP 98.7%.
+</p>
+<p>
+  Здесь всё строится быстро: <a href="/registracia">регистрацию</a> реально пройти за секунды, а потом уже решать, хочешь ли ты рискнуть или просто <a href="/slots">играть бесплатно</a> и потрогать механику без давления. Но честно говоря: <strong>можно выиграть, можно проиграть — гарантий нет</strong>. Это не обещание куша, а статистика и шанс на длинной дистанции.
+</p>
+<h3>
+  Что получаешь с первого захода — без прикрас
+</h3>
+<ul class="v5s-75">
+  <li class="v5s-76">
+    <strong>Бонус 60%</strong> на депозит — удвоение стартовой суммы, но с вейджером x90 (это честное условие, без подвохов).
+  </li>
+  <li class="v5s-76">
+    <strong>Доступ 24/7:</strong> если основной сайт не грузится — используй <a href="/zerkalo">рабочее зеркало</a>, оно обновляется каждый день.
+  </li>
+  <li class="v5s-76">
+    <strong>Крупный потенциал</strong> — джекпот до 56к есть, но он не падает с неба по команде.
+  </li>
+  <li class="v5s-76">
+    <strong>Полезно перед стартом</strong> — глянь <a href="/">%brand_name_ru%</a> и решай сам, без эмоций и самообмана.
+  </li>
+  <li class="v5s-76">
+    <strong>RTP 97,2%</strong> — математика на стороне казино, но шанс сорвать куш реален (джекпот 180к ждёт своего героя).
+  </li>
+  <li class="v5s-76">
+    <strong>Честные шансы</strong> — RTP 92% не обещает чудес, а только показывает механику игры.
+  </li>
+  <li class="v5s-76">
+    <strong>Подарки для новых</strong> — <a href="/app">промо акции</a> могут подогреть старт, но бонус — не печатный станок.
+  </li>
+  <li class="v5s-76">
+    <strong>Честные шансы</strong>: выиграть можно, проиграть тоже можно — без сказок.
+  </li>
+  <li class="v5s-76">
+    Если сайт не открывается, выручит <a href="/zerkalo">рабочее зеркало</a> — это просто запасной вход, не чит-код.
+  </li>
+</ul>
+<p>
+  Не заходи, если боишься потерять контроль. Можешь изучить <a href="/">обзор казино</a> подробнее, скачать <a href="/app">мобильное приложение</a> или сразу зайти и попробовать. Если нужны гарантии — иди в банк, здесь их нет.
+</p>
+<h2>
+  Мобильное приложение — Играй везде, выигрывай здесь
+</h2>
+<p>
+  Станислав скачал <a href="/app">мобильное приложение</a> в метро — просто так, от скуки. Вот Станислав, обычный парень, зашел в наше <strong>мобильное приложение</strong> перед сном. Это не сказка, это реальность, которая может случиться с каждым. Скорость выплат – это наша отдельная гордость.
+</p>
+<p>
+  Приложение — это не волшебная кнопка «разбогатей». Джекпот до 470к висит реально, но <a href="/">%brand_name_ru%</a> не раздаёт деньги просто так. Мог бы и слить — RTP 95% не обещает сказок, но даёт шанс поймать куш даже в автобусе.
+</p>
+<p>
+  Станислав скачал <a href="/app">мобильное приложение</a> в метро — просто так, от скуки. А если готов на движ для смелых — включай реальные ставки и лови <a href="/app">бонусы</a> до 500% на депозит. <strong>Реально выиграть, реально проиграть, гарантий нет</strong> — именно поэтому здесь всё работает на самом деле, а не на обещаниях. Приложение работает без тормозов, <strong>вывод занимает 5 минут</strong>, а <a href="/registracia">регистрацию</a> проходишь один раз и заходишь по отпечатку пальца.
+</p>
+<h3>
+  Не качай, если боишься остаться без денег
+</h3>
+<ul class="v5s-75">
+  <li class="v5s-76">
+    Регулярные <a href="/app">промо акции</a> и турниры прямо в приложении — бонусы появляются, пока ты в игре.
+  </li>
+  <li class="v5s-76">
+    Доступ к тем же <a href="/slots">слотам</a>, что и в полной версии — более 2000автоматов
+  </li>
+  <li class="v5s-76">
+    Push-уведомления о новых <a href="/app">бонусах</a> и турнирах — не пропустишь ничего
+  </li>
+  <li class="v5s-76">
+    Если сайт временно недоступен — есть <a href="/zerkalo">рабочее зеркало</a>, доступ не пропадёт.
+  </li>
+  <li class="v5s-76">
+    Стабильная работа даже на слабом 4G — протестировано в электричках Подмосковья
+  </li>
+  <li class="v5s-76">
+    Выплата выигрыша <strong>до 24 часа</strong> — быстро, но лимиты на вывод зависят от твоего уровня верификации.
+  </li>
+  <li class="v5s-76">
+    <strong class="v5s-77">Минус:</strong> экран маленький — на ноутбуке атмосфера всё-таки другая
+  </li>
+  <li class="v5s-76">
+    Можно проиграть. Это честно, это часть игры — контролируй бюджет, не гонись за отыгрышем.
+  </li>
+  <li class="v5s-76">
+    RTP 98.4% — это средняя отдача по дистанции, а не обещание выигрыша в каждой сессии.
+  </li>
+</ul>
+<p>
+  Загружай приложение и смотри сам: либо поймаешь свой момент, либо честно признаешь, что сегодня не твой день. Приложение — это не волшебная палочка, а инструмент. Проиграешь — значит не повезло.
+</p>
+<h2>
+  Поддержка 24/7 — Реальные люди, реальная помощь
+</h2>
+<p>
+  98,1% RTP — <strong>математика всегда против казино</strong>. Станислав потом признался просто: “Норм, но не верь в магию”.
+</p>
+<p>
+  Саппорт работает круглосуточно — не боты, а живые люди, которые реально помогут с выводом, техническими глюками или вопросами по <a href="/app">промо акциям</a>. Не с проблемой, а с благодарностью. Но джекпот в 3,2&nbsp;миллиона рублей живой, и кто-то его всё равно срывает.
+</p>
+<p>
+  Думаешь, в поддержку пишут, только когда игра зависла? Не с проблемой, а с благодарностью.
+</p>
+<h3>
+  Почему наша поддержка работает иначе
+</h3>
+<ul class="v5s-75">
+  <li class="v5s-76">
+    <strong class="v5s-78">Плюс:</strong> если ловить игру на телефоне, пригодится <a href="/app">мобильное приложение</a> или <a href="/zerkalo">рабочее зеркало</a> на случай сбоя доступа.
+  </li>
+  <li class="v5s-76">
+    <strong class="v5s-78">Плюс:</strong> можно быстро проверить площадку через <a href="/slots">играть бесплатно</a> без риска для кошелька.
+  </li>
+  <li class="v5s-76">
+    <strong class="v5s-78">Плюс:</strong><a href="/vhod">вход в личный кабинет</a> обычно занимает пару минут, если данные уже готовы.
+  </li>
+  <li class="v5s-76">
+    <strong class="v5s-78">Плюс:</strong> поддержка отвечает 24/7 — не бот-отписка, а реальные люди.
+  </li>
+  <li class="v5s-76">
+    <strong class="v5s-77">Минус:</strong> бонус 60% выглядит жирно, но у него есть условия, и их лучше читать заранее.
+  </li>
+  <li class="v5s-76">
+    <strong>Поможет быстро сориентироваться</strong> в регистрации, входе, бонусах и статусе выплаты.
+  </li>
+  <li class="v5s-76">
+    Заявленный вывод — от 48 минут, но фактический срок может зависеть от проверки и выбранного платёжного метода.
+  </li>
+  <li class="v5s-76">
+    Джекпот 5.0 млн и бонус до 200% звучат ярко, однако действуют ограничения и условия — читайте их до ставки.
+  </li>
+  <li class="v5s-76">
+    <strong>Не обещает выигрыш</strong>: если нужны гарантии, это не сюда.
+  </li>
+</ul>
+<p>
+  Не заходи сюда, если тебе нужны гарантии и сказки про "175% выигрыш". Или останься в стороне, если страшно: <strong>это честная игра, а не обещание лёгких денег</strong>.
+</p>
+<h2>
+  Реальные истории побед — Почему игроки выбирают нас
+</h2>
+<p>
+  Факт, который редко говорят вслух: <strong>гарантий нет ни у кого</strong>. Вывод забрал за 40 минут, без нервотрёпки и лишних вопросов. А стартовый пакет до 175% лежит в разделе <a href="/app">бонусы</a> — забирай, если готов к серьёзной игре. Наши <a href="/slots">слоты</a> работают на честном RTP 95.2%, а джекпот доходит до 520к, но выпадет он тому, кому повезёт, а не тому, кто громче кричит. Но давай <strong>по-честному</strong>: так бывает не всегда.
+</p>
+<p class="v5s-79">
+  <strong>RTP 96.8%</strong> — это математика, не обещание. И вот, спустя несколько ставок, его выигрыш составил приличную сумму — 1,5 тыс! Так и случилось с Маратом. <strong>Если нужны гарантии</strong> — это не сюда. Он решил испытать удачу однажды вечером.
+</p>
+<p>
+  Почему одни проходят мимо, а другие ловят свой шанс? Если ждёшь волшебной кнопки «выиграть всегда» — это не сюда. Вывел деньги за 3 минуты на карту — без проверок паспорта и звонков службы безопасности. Нет, это не сказка — бывает и так.
+</p>
+<h3>
+  Что ты получаешь — и о чём стоит знать заранее
+</h3>
+<ul class="v5s-75">
+  <li class="v5s-76">
+    <strong class="v5s-78">Плюс:</strong> можно играть и с телефона через <a href="/app">мобильное приложение</a>, когда нет времени сидеть за компом.
+  </li>
+  <li class="v5s-76">
+    <strong class="v5s-77">Минус:</strong> выигрыш не гарантирован, и иногда автомат может просто съесть банк без возврата.
+  </li>
+  <li class="v5s-76">
+    <strong class="v5s-77">Минус:</strong> новости и обновления лучше проверять через <a href="/">новости казино</a>, чтобы не пропустить изменения по выплатам и правилам.
+  </li>
+  <li class="v5s-76">
+    Доступ через <a href="/app">мобильное приложение</a> и <a href="/zerkalo">рабочее зеркало</a> — без перебоев, в любое время.
+  </li>
+  <li class="v5s-76">
+    Проигрыш — часть игры. Ставь только то, что готов потерять. Серьёзно.
+  </li>
+  <li class="v5s-76">
+    <strong class="v5s-77">Минус:</strong> даже при хорошем RTP 96,8% длинная серия без куша — обычная история, а не сбой.
+  </li>
+  <li class="v5s-76">
+    Полная <a href="/">информация о казино</a> открыта: лицензия, правила, лимиты — всё на виду.
+  </li>
+  <li class="v5s-76">
+    <strong class="v5s-78">Плюс:</strong> если сайт временно капризничает, выручает <a href="/zerkalo">рабочее зеркало</a>.
+  </li>
+  <li class="v5s-76">
+    RTP 96.1% — это открытые данные, не маркетинговая уловка. Проверяй в описании каждого автомата.
+  </li>
+</ul>
+<p class="v5s-79">
+  <strong>Не заходи, если боишься проиграть.</strong> А если готов играть с холодной головой — выбирай игру, ставь лимит и проверяй удачу по-честному. <strong>По-честному: здесь нет волшебных кнопок «выиграть гарантированно»</strong>. Марат, кстати, тоже начинал с демо — две недели крутил бесплатно, потом рискнул.
+</p>
+<div class="faq-section glass-card v5s-80" itemscope="" itemtype="https://schema.org/FAQPage">
+  <h2 class="gradient-text v5s-81">
+    ❓ Честные ответы на вопросы
+  </h2>
+  <div class="faq-list v5s-82">
+    <div class="faq-item open animate-in v5s-83" itemscope="" itemprop="mainEntity" itemtype="https://schema.org/Question">
+      <h3 class="faq-question v5s-84" itemprop="name">
+        Как понять, что пора остановиться?
+      </h3>
+      <div class="faq-answer v5s-85" itemscope="" itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          Верный признак — когда ставка растёт не по плану, а из желания вернуть своё. Для этого в профиле есть лимиты по депозиту, ставке и времени, и выставить их лучше на трезвую голову. Не заходи, если боишься проиграть: азарт плохо уживается с попыткой всё контролировать. Свежие изменения выходят в <a href="/">новостях казино</a>.
+        </div>
+      </div>
+    </div>
+    <div class="faq-item v5s-83" itemscope="" itemprop="mainEntity" itemtype="https://schema.org/Question">
+      <h3 class="faq-question v5s-84" itemprop="name">
+        Правда ли, что кто-то выигрывает крупно?
+      </h3>
+      <div class="faq-answer v5s-85" itemscope="" itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+        <div itemprop="text">
+          Правда, и Марат — один из таких случаев: 150к за вечер, деньги на карте после верификации. Только это история, а не инструкция: у того же захода был шанс закончиться нулём. Здесь всё по-честному — можно выиграть, можно проиграть, гарантий нет. Зайти в кабинет можно через <a href="/vhod">вход в казино</a>.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="layout-block layout-block-thematic layout-block-pos-2 v5s-19">
+  <section class="page-thematic-block site-thematic glass-card variant-v1 v5s-86" aria-label="О портале %brand_name_ru%">
+    <h2 class="review-quotes-heading v5s-87">
+      О портале %brand_name_ru%
+    </h2>
+    <p class="review-quotes-desc v5s-88">
+      Кратко: что есть на сайте и с чего начать.
+    </p>
+    <div class="review-quotes-list v5s-89">
+      <article class="faq-item v5s-83">
+        <button class="faq-question v5s-84" type="button" aria-expanded="false" aria-controls="site-theme-1" id="btn-site-theme-1">
+          <span>
+            Слоты и игры
+          </span>
+        </button>
+        <div class="faq-answer v5s-85" id="site-theme-1" role="region" aria-labelledby="btn-site-theme-1">
+          <p class="review-quote-text v5s-90">
+            Каталог слотов от лицензионных провайдеров: демо и игра на деньги. Популярные, новые и с высоким RTP — в одном разделе.
+          </p>
+        </div>
+      </article>
+      <article class="faq-item v5s-83">
+        <button class="faq-question v5s-84" type="button" aria-expanded="false" aria-controls="site-theme-2" id="btn-site-theme-2">
+          <span>
+            Бонусы и акции
+          </span>
+        </button>
+        <div class="faq-answer v5s-85" id="site-theme-2" role="region" aria-labelledby="btn-site-theme-2">
+          <p class="review-quote-text v5s-90">
+            Приветственный пакет, релоад, кэшбэк и промокоды. Условия отыгрыша и сроки — в разделе «Бонусы» и «Промо».
+          </p>
+        </div>
+      </article>
+      <article class="faq-item v5s-83">
+        <button class="faq-question v5s-84" type="button" aria-expanded="false" aria-controls="site-theme-3" id="btn-site-theme-3">
+          <span>
+            Поддержка и безопасность
+          </span>
+        </button>
+        <div class="faq-answer v5s-85" id="site-theme-3" role="region" aria-labelledby="btn-site-theme-3">
+          <p class="review-quote-text v5s-90">
+            Поддержка 24/7 в чате и по email. Лицензия, шифрование и ответственная игра — в разделе «Информация».
+          </p>
+        </div>
+      </article>
+      <article class="faq-item v5s-83">
+        <button class="faq-question v5s-84" type="button" aria-expanded="false" aria-controls="site-theme-4" id="btn-site-theme-4">
+          <span>
+            Регистрация и вход
+          </span>
+        </button>
+        <div class="faq-answer v5s-85" id="site-theme-4" role="region" aria-labelledby="btn-site-theme-4">
+          <p class="review-quote-text v5s-90">
+            Регистрация за минуту: email или телефон, пароль. Вход с того же устройства сохраняется. Зеркало — если основной домен недоступен.
+          </p>
+        </div>
+      </article>
+    </div>
+  </section>
+</div>

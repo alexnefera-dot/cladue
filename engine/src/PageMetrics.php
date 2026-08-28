@@ -160,6 +160,10 @@ final class PageMetrics
 
     public static function measure(Analyzer $a, string $type, string $raw, array $brand = ['ru' => '', 'en' => '']): array
     {
+        // Блок <style> — оформление, а не текст. Если вёрстка вынесена в тег,
+        // а не в атрибуты, то без этой строки CSS уедет в слова, числа и
+        // абзацы: «margin:0 0 20px» дал бы три числа на пустом месте.
+        $raw = preg_replace('~<style\b[^>]*>.*?</style>~is', '', $raw);
         $norm = NicheLexicon::unplaceholder($raw);
         $r = $a->run([['name' => $type, 'url' => "/$type", 'html' => $norm, 'keyword' => '', 'lsi' => []]]);
         $m = $r['pages'][0]['metrics']; $s = $r['pages'][0]['stylistics'];

@@ -48,6 +48,7 @@ $добавить = function (string $вид, string $тип, string $что, st
  */
 function v5ТекстБлоками(string $html): string
 {
+    $html = preg_replace('~<style\b[^>]*>.*?</style>~is', ' ', $html);
     $h = preg_replace('~</(p|li|h[1-6]|div|td|th|section|article|button|span)>~i', ' ¶ ', $html);
     return trim(preg_replace('~\s+~u', ' ',
         html_entity_decode(preg_replace('~<[^>]*>~', ' ', $h), ENT_QUOTES, 'UTF-8')));
