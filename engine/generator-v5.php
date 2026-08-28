@@ -69,6 +69,20 @@ foreach (['bloki.json', 'pools.json', 'profil-v5.json'] as $f) {
 }
 $блоки   = json_decode((string) file_get_contents("$данные/bloki.json"), true);
 $пулы    = json_decode((string) file_get_contents("$данные/pools.json"), true);
+// Чужую метафорическую шкуру отсеиваем на входе: в файле записи остаются,
+// в набор не попадают. Идём по спискам, элементы которых — записи с «т».
+$просеять = function (array &$узел) use (&$просеять): void {
+    foreach ($узел as &$значение) {
+        if (!is_array($значение)) { continue; }
+        if (isset($значение[0]) && is_array($значение[0]) && isset($значение[0]['т'])) {
+            $значение = array_values(array_filter($значение,
+                static fn($з) => !isset($з['т']) || !v5ChuzhayaShkura((string) $з['т'])));
+            continue;
+        }
+        $просеять($значение);
+    }
+};
+$просеять($пулы);
 $профиль = json_decode((string) file_get_contents("$данные/profil-v5.json"), true);
 $журналФайл = "$данные/vydano.json";
 $журнал = is_file($журналФайл) ? json_decode((string) file_get_contents($журналФайл), true) : [];
