@@ -73,6 +73,25 @@ test('кайф: отметить и удалить можно любую иде�
   assert.ok(pool.includes('✓ сегодня'), 'сделанное сегодня не отмечено в списке');
 });
 
+test('кайф: тройка случайная, но держится весь день и меняется кубиком', () => {
+  const many = { today: iso(new Date()), log: [],
+    ideas: Array.from({ length: 8 }, (_, i) => ({ id: i + 1, text: 'идея ' + (i + 1),
+      scope: scopeToday, kind: 'restore', mins: 20, last_at: ago(5), done_today: 0 })) };
+  const tripleOf = ctx => (ctx.tdRest().match(/data-restdone="(\d+)"/g) || []).slice(0, 3).join();
+
+  // один и тот же экран: тройка не прыгает при перерисовке — иначе она менялась бы после каждой отметки
+  const ctx = loadToday();
+  ctx.window.tdRestData = many;
+  const first = tripleOf(ctx);
+  assert.equal(tripleOf(ctx), first, 'тройка не должна меняться сама по себе');
+  assert.ok(ctx.tdRest().includes('tdRestDice'), 'нет кубика, хотя идей больше трёх');
+
+  // разные заходы (кубик стирает сохранённое) дают разные тройки
+  const seen = new Set();
+  for (let i = 0; i < 40; i++) { const c = loadToday(); c.window.tdRestData = many; seen.add(tripleOf(c)); }
+  assert.ok(seen.size > 1, 'выбор оказался не случайным: 40 бросков дали одну и ту же тройку');
+});
+
 test('кайф: без идей блок не падает и зовёт добавить', () => {
   const ctx = loadToday();
   ctx.window.tdRestData = { today: iso(new Date()), ideas: [], log: [] };

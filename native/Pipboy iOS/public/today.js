@@ -93,15 +93,39 @@ function tdRest() {
     .map(([k, ico, name]) => ({ k, ico, name, since: byKind[k].last ? days(byKind[k].last, today) : 99 }))
     .sort((a, b) => b.since - a.since)[0];
 
-  // подбор на сегодня: сначала то, чего давно не было; в будни — что покороче
+  // Подбор на сегодня — случайный, но не равномерный: чем дольше не делал, тем выше шанс,
+  // а длинное в будни почти не выпадает. Один слот отдаём молчащему виду, иначе «играть»
+  // никогда не выиграет у пяти вариантов «восстановиться».
   const pool = all.filter(r => r.scope === ctx || r.scope === 'global');
-  const score = r => (r.last_at ? days(r.last_at, today) : 60)
-    - (ctx === 'weekday' && (r.mins || 0) > 60 ? 20 : 0);   // длинное в будни отодвигаем
-  const sorted = pool.slice().sort((a, b) => score(b) - score(a));
-  const pick = [];
-  const fromSilent = sorted.find(r => r.kind === silent.k && silent.since > 3);
-  if (fromSilent) pick.push(fromSilent);
-  sorted.forEach(r => { if (pick.length < 3 && !pick.includes(r)) pick.push(r); });
+  const weight = r => Math.max(1, r.last_at ? days(r.last_at, today) : 30)
+    * (ctx === 'weekday' && (r.mins || 0) > 60 ? 0.15 : 1);
+  const takeOne = arr => {
+    const tot = arr.reduce((a, r) => a + weight(r), 0);
+    let x = Math.random() * tot;
+    for (const r of arr) { x -= weight(r); if (x <= 0) return r; }
+    return arr[arr.length - 1];
+  };
+  const roll = () => {
+    const out = [];
+    const silentPool = pool.filter(r => r.kind === silent.k);
+    if (silent.since > 3 && silentPool.length) out.push(takeOne(silentPool));
+    while (out.length < 3) {
+      const left = pool.filter(r => !out.includes(r));
+      if (!left.length) break;
+      // второй и третий — из ещё не выпавших видов, чтобы карточки не были однотипными
+      const fresh = left.filter(r => !out.some(o => o.kind === r.kind));
+      out.push(takeOne(fresh.length ? fresh : left));
+    }
+    return out;
+  };
+  // выпавшее держим до конца дня: иначе тройка прыгала бы после каждой отметки
+  let saved = null;
+  try { saved = JSON.parse(localStorage.restPick || 'null'); } catch (e) { saved = null; }
+  let pick = (saved && saved.date === today ? saved.ids : []).map(id => pool.find(r => r.id === id)).filter(Boolean);
+  if (pick.length < Math.min(3, pool.length)) {
+    pick = roll();
+    try { localStorage.restPick = JSON.stringify({ date: today, ids: pick.map(r => r.id) }); } catch (e) { /* приватный режим */ }
+  }
 
   // неделя: точки по дням, цель мягкая — просто видно, сколько было
   const wk = tdWeekStart(), dots = [];
@@ -138,6 +162,8 @@ function tdRest() {
       ${quiet ? `<div class="restquiet">${quiet} дн. без отдыха — возьми самое короткое</div>` : ''}
       <div class="restcards">${pick.length ? pick.map(card).join('')
         : `<div class="empty">добавь, чем восстановишься в ${ctxLabel} ↓</div>`}</div>
+      ${pool.length > 3 ? `<div style="margin:2px 0 8px"><span class="pill btn" id="tdRestDice"
+        title="перебросить: выпадет другая тройка из ${pool.length} идей на ${ctxLabel}">🎲 другие варианты</span></div>` : ''}
       <div class="restbal">
         ${REST_KINDS.map(([k, ico, name]) => {
           const b = byKind[k], since = b.last ? days(b.last, today) : null;
@@ -759,6 +785,10 @@ function bindToday() {
       const next = { weekday: 'weekend', weekend: 'global', global: 'weekday' }[scope] || 'weekday';
       restPatch(id, { scope: next });
     }));
+  document.getElementById('tdRestDice')?.addEventListener('click', () => {
+    try { delete localStorage.restPick; } catch (e) { /* приватный режим */ }
+    window.loadToday();
+  });
   document.getElementById('tdRestSeed')?.addEventListener('click', async () => {
     const r = await fetch('/api/rest/seed', { method: 'POST' }).then(x => x.json()).catch(() => null);
     if (r && r.added === 0) alert('Все идеи из набора уже заведены.');
