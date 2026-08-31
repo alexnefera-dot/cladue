@@ -1,8 +1,22 @@
 import json,collections,statistics as st
 C=json.load(open('conv2.json')); db=json.load(open('db.json')); full=json.load(open('full.json'))
-EV=C['ev']; TR=C['tr']; regs=[e for e in EV if e['type']=='reg']; deps=[e for e in EV if e['type']=='dep']
+import os
+EXTRA=json.load(open('conv3.json')) if os.path.exists('conv3.json') else []  # плоская выгрузка 29-31.08
+EV=C['ev']+EXTRA; TR=C['tr']; regs=[e for e in EV if e['type']=='reg']; deps=[e for e in EV if e['type']=='dep']
 gt={x['geo']:x['uniq'] for x in C['geo']}; TOTU=sum(gt.values())
 rd=collections.Counter(e['dom'] for e in regs); dd=collections.Counter(e['dom'] for e in deps)
+# имена брендов в событиях пишутся слитно (spincity), в ядре — с пробелом (spin city).
+# Приводим к именам ядра, иначе конверсии не сходятся с позициями.
+import csv as _csv
+_CORE=set()
+with open('/home/user/cladue/analysis/keys/keys_stats.csv',encoding='utf-8-sig') as _fh:
+    for _row in _csv.DictReader(_fh,delimiter=';'):
+        if _row.get('бренд'): _CORE.add(_row['бренд'])
+_nrm=lambda b: b.replace(' ','').replace('-','').lower()
+_CN={_nrm(c):c for c in _CORE}
+BR_OF=lambda e: _CN.get(_nrm(e['brand']),e['brand']) if e.get('brand') else None
+for e in EV:
+    if e.get('brand'): e['brand']=BR_OF(e)
 rb=collections.Counter(e['brand'] for e in regs if e['brand'])
 # захват по брендам
 cap=collections.defaultdict(lambda:{'d10':0,'d30':0,'d100':0,'k10':0,'k3':0,'best':999,'tier':None,'vol':0})

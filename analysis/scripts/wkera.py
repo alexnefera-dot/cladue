@@ -2,6 +2,8 @@
 # Запускается после wk.py, в одной папке с conv2.json / db.json / wk.json / pools.json
 import json,collections,datetime as dt
 db=json.load(open('db.json')); C=json.load(open('conv2.json')); W=json.load(open('wk.json'))
+import os
+EXTRA=json.load(open('conv3.json')) if os.path.exists('conv3.json') else []   # плоская выгрузка 29-31.08
 POOLS=json.load(open('pools.json'))
 # дата ВЫКЛАДКИ группы. По умолчанию = дата создания контента, кроме двух групп,
 # где неиспользованный контент 21.08 выложили позже (см. launches.md).
@@ -18,7 +20,14 @@ for d in P1+P2+G27: L[d]='27.08'
 def dd(s): return dt.date(2026,int(s[3:5]),int(s[:2]))
 ERA=lambda d: ('19–20.08' if L[d] in ('19.08','20.08') else '21–27.08') if d in L else 'до 19.08'
 TR={d:v for d,v in C['tr'].items() if v['is_dom']}
-regs=[e for e in C['ev'] if e['type']=='reg']; deps=[e for e in C['ev'] if e['type']=='dep']
+def GRP(d):
+    if d in db and d!='базовый домен': return db[d]['group']
+    if d in set(P1): return '7page_27.08 · партия 1'
+    if d in set(P2): return '7page_27.08 · партия 2'
+    if d in set(G27): return 'Generator_11page_old_27.08'
+    return 'наши запуски до 19.08'
+ALLEV=C['ev']+EXTRA
+regs=[e for e in ALLEV if e['type']=='reg']; deps=[e for e in ALLEV if e['type']=='dep']
 rd=collections.Counter(e['dom'] for e in regs); dp=collections.Counter(e['dom'] for e in deps)
 B=collections.defaultdict(lambda:dict(n=0,reg=0,dep=0,uniq=0,hits=0,sub=0))
 for d,v in TR.items():
@@ -31,19 +40,41 @@ ERAS=[]
 for k in ['21–27.08','19–20.08','до 19.08']:
     b=B[k]; ERAS.append(dict(k=k,n=b['n'],reg=b['reg'],dep=b['dep'],uniq=b['uniq'],sub=b['sub'],
         rpd=round(b['reg']/b['n'],3),days=[byday[k][d] for d in DAYS],
-        l2=byday[k]['27.08']+byday[k]['28.08']))
+        l2=sum(byday[k][d] for d in DAYS[-2:])))
 # возраст домена на момент регистрации + экспозиция дом*суток
-today=dt.date(2026,8,28)
+today=dt.date(2026,8,31)
 ages=collections.Counter(); expo=collections.Counter()
 for e in regs:
     if e['dom'] in L: ages[(dd(e['d'])-dd(L[e['dom']])).days]+=1
 for d,l in L.items():
     for a in range(0,(today-dd(l)).days+1): expo[a]+=1
-AGE=[dict(a=a,reg=ages[a],expo=expo[a],rate=round(100*ages[a]/expo[a],2)) for a in sorted(expo) if a<=9]
+AGE=[dict(a=a,reg=ages[a],expo=expo[a],rate=round(100*ages[a]/expo[a],2)) for a in sorted(expo) if a<=11]
 ob=B['до 19.08']; obdd=ob['n']*len(DAYS)
 OB=dict(n=ob['n'],reg=ob['reg'],dep=ob['dep'],uniq=ob['uniq'],sub=ob['sub'],
         domdays=obdd,rate=round(100*ob['reg']/obdd,2))
-fresh_r=sum(ages[a] for a in (1,2,3,4)); fresh_e=sum(expo[a] for a in (1,2,3,4))
+fresh_r=sum(ages[a] for a in (1,2,3,4,5,6)); fresh_e=sum(expo[a] for a in (1,2,3,4,5,6))
+# --- бренды вне списка отслеживания и «мёртвые» в ядре, но с деньгами
+import csv as _csv
+CORE=set()
+with open('/home/user/cladue/analysis/keys/keys_stats.csv',encoding='utf-8-sig') as fh:
+    for row in _csv.DictReader(fh,delimiter=';'):
+        if row.get('бренд'): CORE.add(row['бренд'])
+nrm=lambda b: b.replace(' ','').replace('-','').lower()
+CN={nrm(c):c for c in CORE}
+rbz=collections.Counter(e['brand'] for e in regs if e.get('brand'))
+MISS=sorted([dict(b=b,reg=c) for b,c in rbz.items() if nrm(b) not in CN],key=lambda x:-x['reg'])
+K10={x['b']:x['k10'] for x in W['br']}
+DEAD=sorted([dict(b=CN[nrm(b)],reg=c) for b,c in rbz.items() if nrm(b) in CN and K10.get(CN[nrm(b)],0)==0],
+            key=lambda x:-x['reg'])
+ZERO=[x['b'] for x in W['br'] if x['reg']==0 and x['k10']>=20]
+W['miss']=MISS; W['deadconv']=DEAD; W['zero']=ZERO
+L2D=DAYS[-2:]
+_l2=collections.Counter()
+for e in regs:
+    if e['d'] in L2D:
+        d=e['dom']
+        _l2[GRP(d)]+=1
+W['l2']=dict(days=L2D,tot=sum(_l2.values()),rows=[dict(g=g,c=c) for g,c in _l2.most_common()])
 W.update(era=ERAS,eradays=DAYS,age=AGE,oldbase=OB,
          fresh=dict(reg=fresh_r,expo=fresh_e,rate=round(100*fresh_r/fresh_e,2)))
 for p in POOLS:
@@ -56,11 +87,6 @@ for d in W['dm']:
         d['group']='наши запуски до 19.08'; d['src']='контент не заведён в реестр'
     d['era']=ERA(d['d'])
 # --- доля доменов, вообще давших регистрацию
-def GRP(d):
-    if d in db: return db[d]['group']
-    if d in set(P1): return '7page_27.08 · партия 1'
-    if d in set(P2): return '7page_27.08 · партия 2'
-    return 'Generator_11page_old_27.08'
 HIT=[]
 for k in ['21–27.08','19–20.08','до 19.08']:
     ds=[d for d in TR if ERA(d)==k]; w=[d for d in ds if rd.get(d,0)]
@@ -83,7 +109,7 @@ for lo,hi,lab in [(0,0,'ни одного'),(1,4,'1–4'),(5,14,'5–14'),(15,49
 W.update(hit=HIT,grouphit=GH,poshit=POS)
 # --- пулы: итог по регистрациям на домен, без деления на сутки
 cum={}; c=0
-for x in range(0,8):
+for x in range(0,9):
     c+=ages[x]; cum[x]=c/sum(ages.values())
 GP=collections.defaultdict(lambda:dict(n=0,reg=0,dep=0,uniq=0,ld=None))
 for d in TR:
@@ -99,12 +125,12 @@ CFG.update({'7page_27.08 · партия 1':'7 страниц · id 1004-1013 ·
             'Generator_11page_old_27.08':'наш генератор · 11 стр · «old» · id 1014-1023'})
 P2N=[]
 for g,v in GP.items():
-    age=(today-dd(v['ld'])).days; sh=cum[min(age,7)]
+    age=(today-dd(v['ld'])).days; sh=cum[min(age,8)]
     P2N.append(dict(g=g,cfg=CFG.get(g,'—'),ld=v['ld'],age=age,n=v['n'],reg=v['reg'],dep=v['dep'],
         uniq=v['uniq'],rpd=round(v['reg']/v['n'],2),share=round(100*sh),
-        proj=(round(v['reg']/v['n']/sh,2) if sh and age<5 else None),done=age>=5))
+        proj=(round(v['reg']/v['n']/sh,2) if sh and age<6 else None),done=age>=6))
 P2N.sort(key=lambda x:(-x['rpd'],-x['reg']))
-W['pools2']=P2N; W['cum']=[dict(a=x,sh=round(100*cum[x])) for x in range(0,6)]
+W['pools2']=P2N; W['cum']=[dict(a=x,sh=round(100*cum[x])) for x in range(0,7)]
 json.dump(W,open('wk.json','w'),ensure_ascii=False)
 print('эпохи',[(e['k'],e['n'],e['reg']) for e in ERAS])
 print('возраст',[(a['a'],a['reg'],a['rate']) for a in AGE])
