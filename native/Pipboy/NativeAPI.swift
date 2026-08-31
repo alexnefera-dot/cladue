@@ -273,7 +273,20 @@ enum Api {
     }
 
     static func get(path: String, query: String?, db: Database) throws -> (Data, Int) {
-        if path == "/api/rest" { return (try json(try db.rows("SELECT id, text, scope FROM rest_ideas ORDER BY ord, id")), 200) }
+        if path == "/api/rest" {
+            // Идеи + когда делал в последний раз + отметка за сегодня; журнал за 14 дней — на полоску баланса
+            let ideas = try db.rows("""
+                SELECT r.id, r.text, r.scope, r.kind, r.mins,
+                  (SELECT MAX(date) FROM rest_log WHERE idea_id = r.id) AS last_at,
+                  EXISTS(SELECT 1 FROM rest_log WHERE idea_id = r.id AND date = date('now','localtime')) AS done_today
+                FROM rest_ideas r ORDER BY r.ord, r.id
+                """)
+            let log = try db.rows("""
+                SELECT l.date, r.kind FROM rest_log l JOIN rest_ideas r ON r.id = l.idea_id
+                WHERE l.date >= date('now','localtime','-13 days') ORDER BY l.date
+                """)
+            return (try json(["ideas": ideas, "log": log, "today": localToday()]), 200)
+        }
         // ----- Сферы -----
         if path == "/api/spheres" { return (try json(try buildSpheres(db)), 200) }
         if path == "/api/spheres/pool" { return (try json(try spherePool(db)), 200) }
@@ -502,8 +515,22 @@ enum Api {
             let text = (body["text"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             guard !text.isEmpty else { return (try json(["error": "text required"]), 400) }
             let scope = ["weekday", "weekend", "global"].contains(body["scope"] as? String ?? "") ? (body["scope"] as! String) : "weekday"
-            try db.run("INSERT INTO rest_ideas(text, scope, ord) VALUES(?,?, (SELECT COALESCE(MAX(ord),0)+1 FROM rest_ideas))", [text, scope])
+            let kinds = ["play", "restore", "people", "create", "trip"]
+            let kind = kinds.contains(body["kind"] as? String ?? "") ? (body["kind"] as! String) : "restore"
+            try db.run("INSERT INTO rest_ideas(text, scope, kind, mins, ord) VALUES(?,?,?,?, (SELECT COALESCE(MAX(ord),0)+1 FROM rest_ideas))",
+                [text, scope, kind, numOpt(body["mins"]) ?? NSNull()])
             return (ok(201), 201)
+        }
+        // «✓ сделал» за сегодня — повторный клик снимает отметку
+        if let m = match(path, "^/api/rest/([0-9]+)/done$"), method == "POST" {
+            let id = Int(m[1]) ?? -1, t = localToday()
+            let has = !(try db.rows("SELECT 1 AS x FROM rest_log WHERE idea_id = ? AND date = ?", [id, t]).isEmpty)
+            if has { try db.run("DELETE FROM rest_log WHERE idea_id = ? AND date = ?", [id, t]) }
+            else { try db.run("INSERT OR IGNORE INTO rest_log(idea_id, date) VALUES(?,?)", [id, t]) }
+            return (try json(["done": !has]), 200)
+        }
+        if let m = match(path, "^/api/rest/([0-9]+)$"), method == "PATCH" {
+            try patchCols(db, "rest_ideas", Int(m[1]) ?? -1, ["text", "scope", "kind", "mins"], body); return (ok(), 200)
         }
         if let m = match(path, "^/api/rest/([0-9]+)$"), method == "DELETE" {
             try db.run("DELETE FROM rest_ideas WHERE id = ?", [Int(m[1]) ?? -1]); return (ok(), 200)
@@ -3294,7 +3321,7 @@ enum Api {
         "receivables", "passive_income", "settings", "macro_notes", "debts", "snapshots",
         "routines", "routine_log", "people", "contact_log", "pages", "page_revisions", "attachments",
         "practices", "practice_log", "wheel_areas", "wheel_scores", "area_milestones", "area_questions", "work_log", "forecasts",
-        "properties", "checkins", "metrics", "metric_log", "node_log", "trash", "event_done", "history_rows"]
+        "properties", "checkins", "metrics", "metric_log", "node_log", "trash", "event_done", "history_rows", "rest_ideas", "rest_log"]
 
     // Таблицы с одним ключом → двусторонний merge по updated_at (LWW) + tombstones.
     static let syncKeyed: [(String, String)] = [

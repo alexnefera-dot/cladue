@@ -17,6 +17,15 @@ extension Api {
         _ = try? db.run("ALTER TABLE practices ADD COLUMN continuous INTEGER NOT NULL DEFAULT 0")  // «дневник»: продолжаем последнюю запись (1); обычная практика (0) — всегда чистая
         // отдых/восстановление: способы кайфануть по контексту (будни/выходные/глобально)
         _ = try? db.run("CREATE TABLE IF NOT EXISTS rest_ideas(id INTEGER PRIMARY KEY, text TEXT NOT NULL DEFAULT '', scope TEXT NOT NULL DEFAULT 'weekday', ord INTEGER NOT NULL DEFAULT 0)")
+        // Вид отдыха — то, по чему считается баланс: полежать в тишине и подурачиться это разное.
+        _ = try? db.run("ALTER TABLE rest_ideas ADD COLUMN kind TEXT NOT NULL DEFAULT 'restore'")
+        _ = try? db.run("ALTER TABLE rest_ideas ADD COLUMN mins INTEGER")   // сколько занимает: в будни предлагаем короткое
+        // Журнал отдыха: без отметок нет ни ротации, ни обратной связи — список просто висел бы
+        _ = try? db.run("""
+            CREATE TABLE IF NOT EXISTS rest_log(id INTEGER PRIMARY KEY,
+              idea_id INTEGER REFERENCES rest_ideas(id) ON DELETE CASCADE,
+              date TEXT NOT NULL, UNIQUE(idea_id, date))
+            """)
         // вехи «пути к 10» — создаём на каждом старте (ensureSchema идёт только при сиде)
         _ = try? db.run("""
             CREATE TABLE IF NOT EXISTS area_milestones(

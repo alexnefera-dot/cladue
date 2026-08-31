@@ -36,7 +36,7 @@ window.loadToday = async function () {
   [d, sph, rest, psy, finx] = await Promise.all([
     tdApi.get().catch(e => ({ error: String(e) })),
     fetch('/api/spheres').then(r => r.json()).then(x => Array.isArray(x) ? x : []).catch(() => []),
-    fetch('/api/rest').then(r => r.json()).then(x => Array.isArray(x) ? x : []).catch(() => []),
+    fetch('/api/rest').then(r => r.json()).then(x => (x && x.ideas) ? x : { ideas: Array.isArray(x) ? x : [], log: [] }).catch(() => ({ ideas: [], log: [] })),
     fetch('/api/psy').then(r => r.json()).catch(() => ({})),
     fetch('/api/fin').then(r => r.json()).catch(() => ({})),
   ]);
@@ -49,7 +49,7 @@ window.loadToday = async function () {
   window.tdWeek = (await Promise.all(months.map(m =>
     fetch('/api/calendar?month=' + m).then(r => r.json()).then(x => x.items || []).catch(() => []))))
     .flat();
-  window.tdSpheres = sph; window.tdRestList = rest;
+  window.tdSpheres = sph; window.tdRestData = rest; window.tdRestList = rest.ideas;
   window.tdPracticeList = Array.isArray(psy.practices) ? psy.practices : [];
   window.tdFin = finx || {};
   const el = document.getElementById('screen-today');
@@ -67,25 +67,98 @@ window.loadToday = async function () {
       <div class="card" style="color:var(--red)">Ошибка отрисовки: <span class="meta">${tesc(String(e && e.message || e))}</span></div>`;
   }
 };
-// блок «Кайф и восстановление»: способы отдохнуть по контексту дня + глобальные
+// Блок «Кайф»: не список, а три вещи — что сделать сегодня, чем давно не занимался
+// и сколько раз отдыхал на неделе. Виды нужны, чтобы видеть перекос: «восстановиться»
+// набирается само, а «играть» без напоминания не случается никогда.
+const REST_KINDS = [
+  ['play', '🧒', 'играть'], ['restore', '😴', 'восстановиться'], ['people', '👥', 'люди'],
+  ['create', '🎨', 'творить'], ['trip', '🌍', 'вылазка'],
+];
+const REST_GOAL = { weekday: 3, weekend: 2 };   // мягкая цель на неделю: не сгорает, не штрафует
+const restKind = k => REST_KINDS.find(x => x[0] === k) || REST_KINDS[1];
+
 function tdRest() {
-  const all = Array.isArray(window.tdRestList) ? window.tdRestList : [];
+  const data = window.tdRestData || { ideas: [], log: [] };
+  const all = data.ideas || [], log = data.log || [];
+  const today = data.today || tdIso(new Date());
   const wkEnd = [0, 6].includes(new Date().getDay());
   const ctx = wkEnd ? 'weekend' : 'weekday', ctxLabel = wkEnd ? 'выходные' : 'будни';
-  const todayList = all.filter(r => r.scope === ctx), globalList = all.filter(r => r.scope === 'global');
-  const row = r => `<div class="task"><span class="t">${tesc(r.text)}</span><span class="rowbtn del" data-restdel="${r.id}">✕</span></div>`;
-  return `<div class="sec">🌿 Кайф и восстановление · ${ctxLabel} <span class="muted" style="font-weight:400">· не пропускай отдых</span></div>
+  const days = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 864e5);
+
+  // сколько дней молчит каждый вид: пустой сегмент и есть сигнал про перекос
+  const byKind = {};
+  REST_KINDS.forEach(([k]) => byKind[k] = { n: 0, last: null });
+  log.forEach(l => { const b = byKind[l.kind]; if (!b) return; b.n++; if (!b.last || l.date > b.last) b.last = l.date; });
+  const silent = REST_KINDS
+    .map(([k, ico, name]) => ({ k, ico, name, since: byKind[k].last ? days(byKind[k].last, today) : 99 }))
+    .sort((a, b) => b.since - a.since)[0];
+
+  // подбор на сегодня: сначала то, чего давно не было; в будни — что покороче
+  const pool = all.filter(r => r.scope === ctx || r.scope === 'global');
+  const score = r => (r.last_at ? days(r.last_at, today) : 60)
+    - (ctx === 'weekday' && (r.mins || 0) > 60 ? 20 : 0);   // длинное в будни отодвигаем
+  const sorted = pool.slice().sort((a, b) => score(b) - score(a));
+  const pick = [];
+  const fromSilent = sorted.find(r => r.kind === silent.k && silent.since > 3);
+  if (fromSilent) pick.push(fromSilent);
+  sorted.forEach(r => { if (pick.length < 3 && !pick.includes(r)) pick.push(r); });
+
+  // неделя: точки по дням, цель мягкая — просто видно, сколько было
+  const wk = tdWeekStart(), dots = [];
+  let doneWeek = 0;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(wk); d.setDate(wk.getDate() + i);
+    const iso = tdIso(d), was = log.some(l => l.date === iso);
+    if (was) doneWeek++;
+    dots.push(`<i class="restdot${was ? ' on' : ''}${iso === today ? ' now' : ''}" title="${iso}"></i>`);
+  }
+  const goal = REST_GOAL.weekday + REST_GOAL.weekend;
+  const quiet = log.length && days(log[log.length - 1].date, today) >= 3 ? days(log[log.length - 1].date, today) : 0;
+
+  const card = r => {
+    const [, ico, name] = restKind(r.kind);
+    const ago = r.last_at ? (r.last_at === today ? 'сегодня' : `${days(r.last_at, today)} дн. назад`) : 'ни разу';
+    return `<div class="restcard${r.done_today ? ' done' : ''}">
+      <div class="restt">${ico} ${tesc(r.text)}</div>
+      <div class="meta">${name}${r.mins ? ` · ${r.mins} мин` : ''} · ${ago}</div>
+      <span class="pill btn ${r.done_today ? 'ok' : ''}" data-restdone="${r.id}">${r.done_today ? '✓ отдохнул' : '✓ сделал'}</span>
+    </div>`;
+  };
+  const row = r => `<div class="task">
+    <span class="pill btn" data-restkind="${r.id}:${r.kind || 'restore'}" title="вид отдыха — клик">${restKind(r.kind)[1]} ${restKind(r.kind)[2]}</span>
+    <span class="t">${tesc(r.text)}</span>
+    <span class="pill btn" data-restscope="${r.id}:${r.scope}" title="когда — клик">${r.scope === 'global' ? 'глобально' : r.scope === 'weekend' ? 'выходные' : 'будни'}</span>
+    <span class="rowbtn del" data-restdel="${r.id}">✕</span></div>`;
+
+  return `<div class="sec">🌿 Кайф · ${ctxLabel} <span class="muted" style="font-weight:400">· отдых не догоняют, его планируют</span></div>
     <div class="card">
-      ${todayList.length ? todayList.map(row).join('') : `<div class="empty">добавь, чем восстановишься в ${ctxLabel} ↓</div>`}
-      ${globalList.length ? `<div class="meta" style="margin-top:8px">🌍 Глобально · отпуск/поездки</div>${globalList.map(row).join('')}` : ''}
-      <div class="task finadd" style="margin-top:6px">
-        <input id="tdRestInput" placeholder="＋ способ отдохнуть / кайфануть">
-        <select id="tdRestScope"><option value="weekday"${ctx === 'weekday' ? ' selected' : ''}>будни</option><option value="weekend"${ctx === 'weekend' ? ' selected' : ''}>выходные</option><option value="global">глобально</option></select>
-        <span class="pill btn ok" id="tdRestAdd">＋</span>
+      ${quiet ? `<div class="restquiet">${quiet} дн. без отдыха — возьми самое короткое</div>` : ''}
+      <div class="restcards">${pick.length ? pick.map(card).join('')
+        : `<div class="empty">добавь, чем восстановишься в ${ctxLabel} ↓</div>`}</div>
+      <div class="restbal">
+        ${REST_KINDS.map(([k, ico, name]) => {
+          const b = byKind[k], since = b.last ? days(b.last, today) : null;
+          return `<span class="restseg${b.n ? '' : ' zero'}" title="${name}: ${b.n} раз за 14 дней${since != null ? `, последний ${since} дн. назад` : ', ни разу'}">
+            ${ico} <b>${b.n}</b></span>`;
+        }).join('')}
+        <span class="meta" style="margin-left:auto">${silent.since > 3 ? `${silent.ico} ${silent.name} — ${silent.since > 90 ? 'ни разу' : silent.since + ' дн. молчит'}` : 'виды в балансе'}</span>
       </div>
-      ${todayList.length ? `<div style="margin-top:6px"><span class="pill btn" id="tdRestRoll">🎲 выбери и отдохни сейчас</span></div>` : ''}
+      <div class="restweek"><span class="meta">неделя</span>${dots.join('')}
+        <span class="meta">${doneWeek} из ${goal}${doneWeek >= goal ? ' · норма' : ''}</span></div>
+      <details class="restpool">
+        <summary class="meta">все идеи · ${all.length}</summary>
+        ${all.map(row).join('') || '<div class="empty">пусто</div>'}
+        <div class="task finadd" style="margin-top:6px">
+          <input id="tdRestInput" placeholder="＋ способ отдохнуть / кайфануть">
+          <select id="tdRestKind">${REST_KINDS.map(([k, ico, name]) => `<option value="${k}">${ico} ${name}</option>`).join('')}</select>
+          <input id="tdRestMins" placeholder="мин" style="width:60px">
+          <select id="tdRestScope"><option value="weekday"${ctx === 'weekday' ? ' selected' : ''}>будни</option><option value="weekend"${ctx === 'weekend' ? ' selected' : ''}>выходные</option><option value="global">глобально</option></select>
+          <span class="pill btn ok" id="tdRestAdd">＋</span>
+        </div>
+      </details>
     </div>`;
 }
+
 // эмодзи-иконка сферы по названию (автоподбор по ключевым словам)
 function sphEmoji(name) {
   const n = (name || '').toLowerCase();
@@ -647,18 +720,38 @@ function bindToday() {
   // отдых/восстановление
   const restAdd = async () => {
     const inp = document.getElementById('tdRestInput'); const text = inp?.value.trim(); if (!text) return;
-    await fetch('/api/rest', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, scope: document.getElementById('tdRestScope').value }) });
+    const mins = parseInt(document.getElementById('tdRestMins')?.value, 10);
+    await fetch('/api/rest', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, scope: document.getElementById('tdRestScope').value,
+        kind: document.getElementById('tdRestKind')?.value || 'restore',
+        mins: Number.isFinite(mins) ? mins : null }) });
     window.loadToday();
   };
   document.getElementById('tdRestAdd')?.addEventListener('click', restAdd);
   document.getElementById('tdRestInput')?.addEventListener('keydown', e => { if (e.key === 'Enter') restAdd(); });
   document.querySelectorAll('#screen-today [data-restdel]').forEach(el =>
     el.addEventListener('click', async () => { await fetch('/api/rest/' + el.dataset.restdel, { method: 'DELETE' }); window.loadToday(); }));
-  document.getElementById('tdRestRoll')?.addEventListener('click', () => {
-    const wkEnd = [0, 6].includes(new Date().getDay());
-    const list = (Array.isArray(window.tdRestList) ? window.tdRestList : []).filter(r => r.scope === (wkEnd ? 'weekend' : 'weekday'));
-    if (list.length) alert('🌿 Сегодня восстановись так:\n\n' + list[Math.floor(Math.random() * list.length)].text);
-  });
+  const restPatch = async (id, body) => {
+    await fetch('/api/rest/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    window.loadToday();
+  };
+  document.querySelectorAll('#screen-today [data-restkind]').forEach(el =>
+    el.addEventListener('click', () => {
+      const [id, kind] = el.dataset.restkind.split(':');
+      const i = REST_KINDS.findIndex(k => k[0] === kind);
+      restPatch(id, { kind: REST_KINDS[(i + 1) % REST_KINDS.length][0] });
+    }));
+  document.querySelectorAll('#screen-today [data-restscope]').forEach(el =>
+    el.addEventListener('click', () => {
+      const [id, scope] = el.dataset.restscope.split(':');
+      const next = { weekday: 'weekend', weekend: 'global', global: 'weekday' }[scope] || 'weekday';
+      restPatch(id, { scope: next });
+    }));
+  document.querySelectorAll('#screen-today [data-restdone]').forEach(el =>
+    el.addEventListener('click', async () => {
+      await fetch('/api/rest/' + el.dataset.restdone + '/done', { method: 'POST' });
+      window.loadToday();
+    }));
   document.querySelectorAll('#screen-today [data-tdtoggle]').forEach(el =>
     el.addEventListener('click', async e => {
       e.stopPropagation();
