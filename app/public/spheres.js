@@ -47,6 +47,7 @@ const sphApi = {
   // метрики: ввод значения (без date → сервер сам берёт ключ периода) и создание (вернёт {id})
   mVal: (id, value, date) => fetch('/api/track/metrics/' + id + '/value', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(date ? { value, date } : { value }) }),
   mAdd: b => fetch('/api/track/metrics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(r => r.json()),
+  mDel: id => fetch('/api/track/metrics/' + id, { method: 'DELETE' }),
   // FAQ сферы: вопрос→ответ
   qAdd: (areaId, question, answer) => fetch('/api/spheres/question', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ areaId, question, answer }) }).then(r => r.json()),
   qPatch: (id, b) => fetch('/api/spheres/question/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }),
@@ -271,6 +272,7 @@ function sphTrackPool(m) {
     <span class="sphpool-n">${sesc(m.name)} <span class="sphpool-st">${cad}</span>${computed ? ' <span class="sphpool-st">счётчик</span>' : ''}${neg ? ' <span class="sphpool-neg">негатив</span>' : ''}</span>
     ${bar}
     ${ctl}
+    <span class="rowbtn del" data-sphmdel="${m.id}:${sesc(m.name)}" title="удалить метрику со всеми записями">✕</span>
   </div>`;
 }
 // универсальная KPI-плитка: иконка+имя, крупное значение, опц. полоса %, подпись
@@ -541,6 +543,12 @@ function bindDetail(s) {
     if (r && r.id) await sphApi.assign('metric', r.id, +el.dataset.sphmadd);
     window.loadSpheres();
   }));
+  document.querySelectorAll('#screen-spheres [data-sphmdel]').forEach(el => el.addEventListener('click', async () => {
+    const [id, name] = el.dataset.sphmdel.split(':');
+    if (!confirm(`Удалить метрику «${name}» вместе со всеми записями? Она исчезнет и из Трекера.`)) return;
+    await sphApi.mDel(+id);
+    window.loadSpheres();
+  }));
   // ===== FAQ сферы: CRUD + «→ задача» / «→ метрика» =====
   document.querySelectorAll('#screen-spheres [data-qadd]').forEach(el => el.addEventListener('keydown', async e => {
     if (e.key !== 'Enter' || !el.value.trim()) return;
@@ -675,6 +683,7 @@ function ensureSphStyle() {
     .pbar2{flex:1;max-width:160px;height:7px;border-radius:99px;background:var(--bg2);overflow:hidden;margin:0 6px}.pbar2 i{display:block;height:100%;background:var(--green-dim)}
     .sphwk{display:flex;gap:3px;margin-top:4px}.sphwk i{width:11px;height:11px;border-radius:3px;background:var(--bg2)}.sphwk i.on{background:var(--green-dim)}.sphwk i.miss{background:rgba(196,63,63,.18)}
     .sphpool{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--bg2)}.sphpool:first-child{border-top:0}
+    .sphpool .rowbtn{opacity:0}.sphpool:hover .rowbtn{opacity:1}
     .sphpool-n{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .sphpool-today{font:600 10px var(--mono);color:var(--green)}
     .sphpool-st{font:600 10px var(--mono);color:var(--amber)}
