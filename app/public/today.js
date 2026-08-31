@@ -156,7 +156,7 @@ function tdRest() {
           <span class="pill btn ok" id="tdRestAdd">＋</span>
         </div>
         <div style="margin-top:4px"><span class="pill btn" id="tdRestSeed"
-          title="добавит 32 идеи по всем видам; уже заведённые не продублируются">＋ набор идей</span></div>
+          title="добавит 53 идеи по всем видам; уже заведённые не продублируются">＋ набор идей</span></div>
       </details>
     </div>`;
 }
