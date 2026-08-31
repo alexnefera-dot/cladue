@@ -62,6 +62,17 @@ test('кайф: отметка за сегодня видна, полоска с
   assert.ok(html.includes('restseg zero'), 'пустой вид не выделен');
 });
 
+test('кайф: отметить и удалить можно любую идею из списка, не только предложенную', () => {
+  const ctx = loadToday();
+  ctx.window.tdRestData = DATA;
+  const pool = (ctx.tdRest().match(/<details class="restpool">[\s\S]*<\/details>/) || [''])[0];
+  for (const r of DATA.ideas) {
+    assert.ok(pool.includes(`data-restdone="${r.id}"`), `в списке нет отметки для «${r.text}»`);
+    assert.ok(pool.includes(`data-restdel="${r.id}"`), `в списке нет удаления для «${r.text}»`);
+  }
+  assert.ok(pool.includes('✓ сегодня'), 'сделанное сегодня не отмечено в списке');
+});
+
 test('кайф: без идей блок не падает и зовёт добавить', () => {
   const ctx = loadToday();
   ctx.window.tdRestData = { today: iso(new Date()), ideas: [], log: [] };

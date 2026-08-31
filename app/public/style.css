@@ -245,6 +245,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .restdot.now{box-shadow:0 0 0 2px var(--green-soft)}
 .restquiet{font:11.5px var(--mono);color:var(--amber);padding-bottom:6px}
 .restpool summary{cursor:pointer;padding:6px 0;border-top:1px solid var(--bg2)}
+.restpool .task.restdone .t{color:var(--green)}          /* отмеченное сегодня видно и в списке */
+.restcard .restt .rowbtn{opacity:0;float:right}
+.restcard:hover .restt .rowbtn{opacity:1}
 .mrow-h .rowbtn{opacity:.45}
 .mrow:hover .rowbtn{opacity:1}
 .diary tr.todayrow td{background:rgba(30,158,87,.05)}

@@ -119,16 +119,19 @@ function tdRest() {
     const [, ico, name] = restKind(r.kind);
     const ago = r.last_at ? (r.last_at === today ? 'сегодня' : `${days(r.last_at, today)} дн. назад`) : 'ни разу';
     return `<div class="restcard${r.done_today ? ' done' : ''}">
-      <div class="restt">${ico} ${tesc(r.text)}</div>
+      <div class="restt">${ico} ${tesc(r.text)}
+        <span class="rowbtn del" data-restdel="${r.id}" title="убрать идею из списка">✕</span></div>
       <div class="meta">${name}${r.mins ? ` · ${r.mins} мин` : ''} · ${ago}</div>
       <span class="pill btn ${r.done_today ? 'ok' : ''}" data-restdone="${r.id}">${r.done_today ? '✓ отдохнул' : '✓ сделал'}</span>
     </div>`;
   };
-  const row = r => `<div class="task">
+  const row = r => `<div class="task${r.done_today ? ' restdone' : ''}">
     <span class="pill btn" data-restkind="${r.id}:${r.kind || 'restore'}" title="вид отдыха — клик">${restKind(r.kind)[1]} ${restKind(r.kind)[2]}</span>
     <span class="t">${tesc(r.text)}</span>
+    <span class="meta">${r.mins ? r.mins + ' мин' : ''}</span>
     <span class="pill btn" data-restscope="${r.id}:${r.scope}" title="когда — клик">${r.scope === 'global' ? 'глобально' : r.scope === 'weekend' ? 'выходные' : 'будни'}</span>
-    <span class="rowbtn del" data-restdel="${r.id}">✕</span></div>`;
+    <span class="pill btn ${r.done_today ? 'ok' : ''}" data-restdone="${r.id}" title="${r.done_today ? 'снять отметку за сегодня' : 'отметить: отдохнул этим сегодня'}">${r.done_today ? '✓ сегодня' : '✓'}</span>
+    <span class="rowbtn del" data-restdel="${r.id}" title="удалить идею">✕</span></div>`;
 
   return `<div class="sec">🌿 Кайф · ${ctxLabel} <span class="muted" style="font-weight:400">· отдых не догоняют, его планируют</span></div>
     <div class="card">
@@ -732,7 +735,14 @@ function bindToday() {
   document.getElementById('tdRestAdd')?.addEventListener('click', restAdd);
   document.getElementById('tdRestInput')?.addEventListener('keydown', e => { if (e.key === 'Enter') restAdd(); });
   document.querySelectorAll('#screen-today [data-restdel]').forEach(el =>
-    el.addEventListener('click', async () => { await fetch('/api/rest/' + el.dataset.restdel, { method: 'DELETE' }); window.loadToday(); }));
+    el.addEventListener('click', async e => {
+      e.stopPropagation();
+      const list = (window.tdRestData && window.tdRestData.ideas) || [];
+      const it = list.find(x => x.id === +el.dataset.restdel);
+      if (!confirm(`Удалить идею${it ? ` «${it.text}»` : ''}? Отметки об отдыхе по ней тоже уйдут.`)) return;
+      await fetch('/api/rest/' + el.dataset.restdel, { method: 'DELETE' });
+      window.loadToday();
+    }));
   const restPatch = async (id, body) => {
     await fetch('/api/rest/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     window.loadToday();
