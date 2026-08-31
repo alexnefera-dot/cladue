@@ -227,10 +227,14 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .diary td.cell{cursor:pointer;min-width:36px}
 .diary td.cell:hover{background:var(--panel2)}
 .diary td.on{color:var(--green);font-weight:700;background:var(--green-soft)}
+/* Трекер: кнопки метрики (цель, полярность, удалить) — на десктопе правила не было,
+   и ✕ был невидим всегда, а не только до наведения */
+.mrow-h .rowbtn{opacity:.45}
+.mrow:hover .rowbtn{opacity:1}
 .diary tr.todayrow td{background:rgba(30,158,87,.05)}
 .diary tr.todayrow td.on{background:var(--green-soft)}
-.diary th .rowbtn{visibility:hidden}
-.diary th:hover .rowbtn{visibility:visible}
+.diary th .rowbtn{visibility:visible;opacity:.4}
+.diary th:hover .rowbtn{opacity:1}
 
 /* Карточка записи: кнопка закрытия видна только на телефоне */
 .insp-close{display:none;float:right;width:30px;height:30px;align-items:center;justify-content:center;
@@ -302,8 +306,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .diary td.bad{color:var(--red);font-weight:700;background:rgba(204,68,68,.07)}
 .diary tr.todayrow td.bad{background:rgba(204,68,68,.10)}
 .diary .badname,.diary th.badname{color:var(--red)}
-.diary th .rowbtn{opacity:1;visibility:hidden}
-.diary th:hover .rowbtn{visibility:visible}
+.diary th .rowbtn{visibility:visible;opacity:.4}
+.diary th:hover .rowbtn{opacity:1}
 
 /* Журнал техники таблицей: строка — случай, колонки — шаги (CBT thought record) */
 .jrnl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;-webkit-overflow-scrolling:touch}

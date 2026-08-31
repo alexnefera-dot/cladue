@@ -683,7 +683,7 @@ function ensureSphStyle() {
     .pbar2{flex:1;max-width:160px;height:7px;border-radius:99px;background:var(--bg2);overflow:hidden;margin:0 6px}.pbar2 i{display:block;height:100%;background:var(--green-dim)}
     .sphwk{display:flex;gap:3px;margin-top:4px}.sphwk i{width:11px;height:11px;border-radius:3px;background:var(--bg2)}.sphwk i.on{background:var(--green-dim)}.sphwk i.miss{background:rgba(196,63,63,.18)}
     .sphpool{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--bg2)}.sphpool:first-child{border-top:0}
-    .sphpool .rowbtn{opacity:0}.sphpool:hover .rowbtn{opacity:1}
+    .sphpool .rowbtn{opacity:.45}.sphpool:hover .rowbtn{opacity:1}
     .sphpool-n{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .sphpool-today{font:600 10px var(--mono);color:var(--green)}
     .sphpool-st{font:600 10px var(--mono);color:var(--amber)}
