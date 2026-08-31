@@ -135,3 +135,27 @@ json.dump(W,open('wk.json','w'),ensure_ascii=False)
 print('эпохи',[(e['k'],e['n'],e['reg']) for e in ERAS])
 print('возраст',[(a['a'],a['reg'],a['rate']) for a in AGE])
 print('старая база',OB,'свежие 1-4 сут',W['fresh'])
+
+# --- эффективность захвата по частотности бренда
+import csv as _c2
+TIER={}
+with open('/home/user/cladue/analysis/keys/keys_stats.csv',encoding='utf-8-sig') as _f2:
+    for _r in _c2.DictReader(_f2,delimiter=';'):
+        if _r.get('бренд'): TIER.setdefault(_r['бренд'],_r['тир'])
+_CN2={nrm(c):c for c in TIER}
+_rt=collections.Counter(); _kt=collections.Counter(); _dt=collections.Counter()
+for e in regs:
+    b=_CN2.get(nrm(e['brand'] or '')) if e.get('brand') else None
+    _rt[TIER.get(b,'вне списка') if b else 'вне списка']+=1
+for x in W['br']:
+    if x['k10']: _kt[x['tier'] or '—']+=x['k10']; _dt[x['tier'] or '—']+=x['d10']
+_tk=sum(_kt.values()); _tr=sum(_rt.values())
+W['tier']=[dict(t=t,k10=_kt[t],ksh=round(100*_kt[t]/_tk),reg=_rt[t],rsh=round(100*_rt[t]/_tr),
+               eff=round(100*_rt[t]/_kt[t],1) if _kt[t] else None) for t in ['ВЧ','СЧ','НЧ']]
+W['tier'].append(dict(t='вне списка',k10=0,ksh=0,reg=_rt['вне списка'],
+                      rsh=round(100*_rt['вне списка']/_tr),eff=None))
+_vch=[b for b,t in TIER.items() if t=='ВЧ']
+_BR={x['b']:x for x in W['br']}
+W['vch']=dict(total=len(_vch),held=len([b for b in _vch if _BR.get(b,{}).get('k10',0)>0]))
+json.dump(W,open('wk.json','w'),ensure_ascii=False)
+print('тир:',W['tier'],'ВЧ:',W['vch'])
