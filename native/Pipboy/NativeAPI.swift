@@ -521,6 +521,54 @@ enum Api {
                 [text, scope, kind, numOpt(body["mins"]) ?? NSNull()])
             return (ok(201), 201)
         }
+        // Стартовый набор идей: заполнить блок за один клик, дальше правится руками.
+        // Повторный вызов ничего не дублирует — идея с таким текстом просто пропускается.
+        if method == "POST", path == "/api/rest/seed" {
+            // текст · вид · когда · минуты
+            let pack: [(String, String, String, Int)] = [
+                ("Собрать что-то руками: лего, модель, конструктор", "play", "weekday", 30),
+                ("Полчаса в игру без чувства вины", "play", "weekday", 30),
+                ("Дурацкое видео или комикс — просто поржать", "play", "weekday", 15),
+                ("Настолка с кем-нибудь", "play", "weekend", 60),
+                ("Картинг, батуты, верёвочный парк", "play", "weekend", 180),
+                ("Порисовать каракули, ничего не планируя", "play", "weekday", 15),
+                ("20 минут тишины без телефона", "restore", "weekday", 20),
+                ("Дневной сон 20 минут", "restore", "weekday", 20),
+                ("Горячий душ или ванна не спеша", "restore", "weekday", 25),
+                ("Растяжка или йога", "restore", "weekday", 15),
+                ("Прогулка без цели и без наушников", "restore", "weekday", 30),
+                ("Лечь спать на час раньше", "restore", "weekday", 60),
+                ("Баня или сауна", "restore", "weekend", 150),
+                ("Выспаться без будильника", "restore", "weekend", 0),
+                ("Позвонить другу просто так", "people", "weekday", 20),
+                ("Ужин без телефонов", "people", "weekday", 60),
+                ("Кофе с кем-то и ни слова про работу", "people", "weekday", 45),
+                ("Позвать гостей или пойти в гости", "people", "weekend", 180),
+                ("Час с близкими без дел и планов", "people", "weekend", 60),
+                ("20 минут музыки: слушать или играть", "create", "weekday", 20),
+                ("Писать без цели — что в голове, то на бумагу", "create", "weekday", 15),
+                ("Приготовить блюдо, которого не готовил", "create", "weekend", 60),
+                ("Починить или доделать что-то руками", "create", "weekend", 120),
+                ("Пофотографировать на прогулке", "create", "weekend", 60),
+                ("Пройти пешком район, где не был", "trip", "weekday", 40),
+                ("Зайти в кафе, где ещё не был", "trip", "weekday", 40),
+                ("Успеть на закат в хорошее место", "trip", "weekday", 45),
+                ("Горы или лес на весь день", "trip", "weekend", 300),
+                ("Поездка в соседний город без плана", "trip", "weekend", 300),
+                ("Покататься по серпантину ради самой дороги", "trip", "weekend", 180),
+                ("Вода: озеро, река, море", "trip", "weekend", 240),
+                ("Отпуск: выбрать даты и забронировать", "trip", "global", 0),
+            ]
+            var added = 0
+            for (text, kind, scope, mins) in pack {
+                let dup = try db.rows("SELECT 1 AS x FROM rest_ideas WHERE LOWER(TRIM(text)) = LOWER(?)", [text])
+                if !dup.isEmpty { continue }
+                try db.run("INSERT INTO rest_ideas(text, scope, kind, mins, ord) VALUES(?,?,?,?, (SELECT COALESCE(MAX(ord),0)+1 FROM rest_ideas))",
+                    [text, scope, kind, mins > 0 ? mins : NSNull()])
+                added += 1
+            }
+            return (try json(["added": added]), 200)
+        }
         // «✓ сделал» за сегодня — повторный клик снимает отметку
         if let m = match(path, "^/api/rest/([0-9]+)/done$"), method == "POST" {
             let id = Int(m[1]) ?? -1, t = localToday()

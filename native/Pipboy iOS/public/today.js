@@ -155,6 +155,8 @@ function tdRest() {
           <select id="tdRestScope"><option value="weekday"${ctx === 'weekday' ? ' selected' : ''}>будни</option><option value="weekend"${ctx === 'weekend' ? ' selected' : ''}>выходные</option><option value="global">глобально</option></select>
           <span class="pill btn ok" id="tdRestAdd">＋</span>
         </div>
+        <div style="margin-top:4px"><span class="pill btn" id="tdRestSeed"
+          title="добавит 32 идеи по всем видам; уже заведённые не продублируются">＋ набор идей</span></div>
       </details>
     </div>`;
 }
@@ -747,6 +749,11 @@ function bindToday() {
       const next = { weekday: 'weekend', weekend: 'global', global: 'weekday' }[scope] || 'weekday';
       restPatch(id, { scope: next });
     }));
+  document.getElementById('tdRestSeed')?.addEventListener('click', async () => {
+    const r = await fetch('/api/rest/seed', { method: 'POST' }).then(x => x.json()).catch(() => null);
+    if (r && r.added === 0) alert('Все идеи из набора уже заведены.');
+    window.loadToday();
+  });
   document.querySelectorAll('#screen-today [data-restdone]').forEach(el =>
     el.addEventListener('click', async () => {
       await fetch('/api/rest/' + el.dataset.restdone + '/done', { method: 'POST' });
