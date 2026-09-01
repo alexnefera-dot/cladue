@@ -1,40 +1,49 @@
-import pickle, collections, statistics
-traj=pickle.load(open("traj.pkl","rb"))
-FMT={"D273":"12page+даты","D274":"7page+даты","D265":"12page бренд","D266":"12page бренд",
-     "D267":"12page бренд","D262":"7page бренд","D268":"7page бренд","D248":"nu 6page",
-     "D249":"nu 6page","D252":"nu 6page","D253":"nu 6page","D255":"переисп.",
-     "D258":"именованные","D269":"предметные","D261":"ген .casino"}
-print("=== ПРОГНОЗ ЗАПУСКА ПО Т30 НА ЗАМЕРЕ 2 ===")
-print(f"{'Запуск':7s} {'формат':16s} {'n':>3s} {'Т30/дом@2':>9s} {'ВЧ+СЧ/дом@2':>11s} {'финал':>7s}")
-rows=[]
-for k,sns in sorted(traj.items()):
-    if len(sns)<3: continue
-    m2,fin=sns[1],sns[-1]
-    if len(m2)<7: continue
-    t30=sum(s['t30'] for s in m2.values())/len(m2)
-    h2=sum(s['hs'] for s in m2.values())/len(m2)
-    hf=sum(s['hs'] for s in fin.values())/len(fin)
-    rows.append((k,t30,h2,hf))
-rows.sort(key=lambda r:-r[3])
-for k,t30,h2,hf in rows:
-    print(f"{k:7s} {FMT.get(k,''):16s} {len(traj[k][-1]):3d} {t30:9.1f} {h2:11.2f} {hf:7.2f}")
-def corr(xs,ys):
-    mx,my=statistics.mean(xs),statistics.mean(ys)
-    n=sum((a-mx)*(b-my) for a,b in zip(xs,ys))
-    d=(sum((a-mx)**2 for a in xs)*sum((b-my)**2 for b in ys))**.5
-    return n/d if d else 0
-print(f"\nкорреляция Т30/дом@2 -> финал:      {corr([r[1] for r in rows],[r[3] for r in rows]):.3f}")
-print(f"корреляция ВЧ+СЧ/дом@2 -> финал:   {corr([r[2] for r in rows],[r[3] for r in rows]):.3f}")
-
-print("\n=== ЗОНЫ (все домены, последний замер каждого запуска) ===")
-z=collections.defaultdict(lambda:[0,0,0,0])
-for k,sns in traj.items():
-    if not sns: continue
-    for dom,s in sns[-1].items():
-        zone="."+dom.rsplit(".",1)[-1]
-        a=z[zone]; a[0]+=1; a[1]+=s['hs']; a[2]+= (1 if s['hs']>0 else 0); a[3]+=s['t30']
-print(f"{'зона':10s} {'дом':>4s} {'ВЧ+СЧ':>6s} {'/дом':>6s} {'зашло':>6s} {'Т30/дом':>8s}")
-for zn,(n,h,e,t) in sorted(z.items(), key=lambda x:-x[1][0]):
-    if n<3: continue
-    print(f"{zn:10s} {n:4d} {h:6d} {h/n:6.2f} {e/n*100:5.0f}% {t/n:8.1f}")
-print("\nредкие зоны (<3 доменов):", {k:v[0] for k,v in z.items() if v[0]<3})
+# Живучесть и результативность по зонам. Главное — парное сравнение внутри групп:
+# в одной группе один контент и один день, поэтому зона там единственное отличие.
+import json,collections
+db=json.load(open('db.json')); C=json.load(open('conv2.json'))
+import os
+E3=json.load(open('conv3.json')) if os.path.exists('conv3.json') else []
+rd=collections.Counter(e['dom'] for e in C['ev']+E3 if e['type']=='reg')
+dp=collections.Counter(e['dom'] for e in C['ev']+E3 if e['type']=='dep')
+TR={d:v for d,v in C['tr'].items() if v['is_dom']}
+def zone(d): return '.'+d.split('.')[-1]
+Z=collections.defaultdict(lambda:dict(n=0,pos=0,t10=0,t10sum=0,w=0,reg=0,dep=0,sub=0,doms=[]))
+for d,v in db.items():
+    if d=='базовый домен': continue
+    bs=v['b'].values(); t10=sum(x['t10'] for x in bs); t100=sum(x['t100'] for x in bs)
+    x=Z[zone(d)]; x['n']+=1; x['t10sum']+=t10; x['doms'].append(d)
+    if t10: x['t10']+=1
+    if t100: x['pos']+=1
+    if rd.get(d,0): x['w']+=1
+    x['reg']+=rd.get(d,0); x['dep']+=dp.get(d,0); x['sub']+=TR.get(d,{}).get('sub',0)
+# парное сравнение внутри групп
+G=collections.defaultdict(lambda:collections.defaultdict(list))
+for d,v in db.items():
+    if d=='базовый домен': continue
+    G[v['group']][zone(d)].append((d,sum(x['t10'] for x in v['b'].values()),
+        sum(x['t100'] for x in v['b'].values()),rd.get(d,0)))
+def roll(sel):
+    n=t10=pos=reg=0
+    for g,zs in G.items():
+        if '.team' not in zs or len(zs)<2: continue
+        for z,v in zs.items():
+            if not sel(z): continue
+            n+=len(v); t10+=sum(x[1] for x in v); pos+=sum(1 for x in v if x[2]); reg+=sum(x[3] for x in v)
+    return dict(n=n,t10=round(t10/n,1) if n else None,pos=round(100*pos/n) if n else None,
+                reg=round(reg/n,2) if n else None)
+PAIR=dict(team=roll(lambda z:z=='.team'),other=roll(lambda z:z!='.team'),
+          lol=roll(lambda z:z=='.lol'))
+teamlol=[0,0,0,0]
+for g,zs in G.items():
+    if '.team' in zs and '.lol' in zs:
+        for i,z in ((0,'.team'),(2,'.lol')):
+            teamlol[i]+=len(zs[z]); teamlol[i+1]+=sum(x[1] for x in zs[z])
+json.dump(dict(zones={z:{k:v for k,v in x.items() if k!='doms'} for z,x in Z.items()},
+               zonedoms={z:x['doms'] for z,x in Z.items()},pair=PAIR),
+          open('zones.json','w'),ensure_ascii=False)
+print(f"{'зона':<9}{'дом':>5}{'с позиц':>8}{'%':>5}{'с Т10':>7}{'%':>5}{'Т10/дом':>9}{'рег':>5}{'рег/дом':>9}")
+for z,x in sorted(Z.items(),key=lambda k:-k[1]['n']):
+    print(f"{z:<9}{x['n']:>5}{x['pos']:>8}{100*x['pos']/x['n']:>4.0f}%{x['t10']:>7}{100*x['t10']/x['n']:>4.0f}%"
+          f"{x['t10sum']/x['n']:>9.1f}{x['reg']:>5}{x['reg']/x['n']:>9.2f}")
+print('\nпарное сравнение внутри смешанных групп:',PAIR)
