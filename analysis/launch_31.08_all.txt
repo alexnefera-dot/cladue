@@ -1,0 +1,28 @@
+# Все три запуска 31.08.2026
+
+## Generator_11page_test_1…_9 (dorgen com, потолок /ru = 20, 11 страниц, id 1055-1063, создан 31.08 16:39)
+gmhb.team
+1749.team
+2386.team
+2951.team
+3628.team
+b3nk.team
+c7vd.team
+f5wq.team
+h9mt.team
+
+## nabor-244…253 (dorgen.net, без потолка вложенности)
+bztk.team
+cwnr.team
+1263.team
+1795.team
+2418.team
+b6mp.team
+d9qv.team
+f3kt.team
+j7n.team
+r4v.team
+
+## 12page (кастомный контент, 12 страниц)
+p8v.team
+l5v.team

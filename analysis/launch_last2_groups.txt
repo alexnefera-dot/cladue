@@ -1,0 +1,17 @@
+# Два последних запуска, 31.08.2026
+
+## 12page (кастомный контент, 12 страниц, id и время не присланы)
+12page_1	p8v.team
+12page_2	l5v.team
+
+## nabor-244…253 (dorgen.net, без потолка вложенности)
+nabor-244	bztk.team
+nabor-245	cwnr.team
+nabor-246	1263.team
+nabor-247	1795.team
+nabor-248	2418.team
+nabor-249	b6mp.team
+nabor-250	d9qv.team
+nabor-251	f3kt.team
+nabor-252	j7n.team
+nabor-253	r4v.team
