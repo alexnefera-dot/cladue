@@ -1,6 +1,15 @@
-# Запуск 01.09.2026, зона .casino, 12 страниц
+# День 01.09.2026 — три запуска, 19 доменов
 
-## NEW50_12pages_nodate_01.09 (id 1110-1117, создан 17:07 МСК)
+## NEW50_12pages_withdate_01.09_11…_17 (id 1103-1109, создан 17:06 МСК, .casino, 12 стр, С ДАТАМИ)
+rodl.casino
+j1j.casino
+x9d7.casino
+w0w3.casino
+unxn.casino
+llvm.casino
+gwrl.casino
+
+## NEW50_12pages_nodate_01.09_1…_8 (id 1110-1117, создан 17:07 МСК, .casino, 12 стр, БЕЗ ДАТ)
 tghc.casino
 lrwo.casino
 u9y.casino
@@ -10,16 +19,7 @@ tfys.casino
 stma.casino
 baiu.casino
 
-## NEW50_12pages_withdate_01.09_11…_17 (id 1103-1109, создан 17:06 МСК)
-rodl.casino
-j1j.casino
-x9d7.casino
-w0w3.casino
-unxn.casino
-llvm.casino
-gwrl.casino
-
-## nabory264268_01.09_2…_5 (id 1144-1147, создан 17:33 МСК, .team)
+## nabory264268_01.09_2…_5 (id 1144-1147, создан 17:33 МСК, .team, наборы)
 32gf.team
 k3u.team
 m8t.team
