@@ -57,7 +57,7 @@ if (!$профиль) { fwrite(STDERR, "нет data-v5/profil-v5.json\n"); exit(
 // набору, и перекрут не должен решать заново. Без паспорта считаем от сида.
 $паспорт = is_file("$папка/nabor.json")
     ? json_decode((string) file_get_contents("$папка/nabor.json"), true) : [];
-$обращение = $паспорт['обращение'] ?? v5ObrashchenieNabora($сид);
+$обращение = $паспорт['обращение'] ?? v5ObrashchenieNabora($сид, basename($папка));
 /** Цель, замороженная генератором в паспорте: она главнее любого пересчёта. */
 $заморожено = function (string $тип, string $ключ) use ($паспорт): ?float {
     return isset($паспорт['цели'][$тип][$ключ])
