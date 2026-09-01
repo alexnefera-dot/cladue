@@ -159,7 +159,7 @@ const secPg=`<div class="blk">
 /* ---------- бренды ---------- */
 const bmap={};
 for(const p of P){for(const [b,c] of p.brands){bmap[b]=bmap[b]||{}; bmap[b][p.name]=c;}}
-const brRows=R.filter(r=>r.p<=10&&r.b);
+const brRows=R.filter(r=>r.p<=15&&r.b);
 const byBrand={};
 for(const r of brRows){const k=r.b; byBrand[k]=byBrand[k]||{b:k,t:r.t,vol:r.vol,pools:{},best:999,doms:new Set(),keys:new Set()};
  const x=byBrand[k]; x.pools[r.cap]=(x.pools[r.cap]||0)+1; x.best=Math.min(x.best,r.p);
@@ -167,14 +167,28 @@ for(const r of brRows){const k=r.b; byBrand[k]=byBrand[k]||{b:k,t:r.t,vol:r.vol,
 const BR=Object.values(byBrand).map(x=>({...x,nd:x.doms.size,nk:x.keys.size}))
   .sort((a,b)=>b.nk-a.nk);
 const secB=`<div class="blk">
- <h2>Бренды в первой десятке</h2>
- <p class="note">${BR.length} брендов держатся в десятке на съёме
+ <h2>Бренды в ТОП-15</h2>
+ <p class="note">${BR.length} брендов держатся в первой пятнадцатке на съёме
  ${E(A.labs[A.labs.length-1])}. Колонки «с потолком» и «без потолка» — сколько запросов
- по бренду занято каждым пулом.</p>
+ по бренду занято каждым пулом. Сначала — высоко- и среднечастотные,
+ они приносят в девять раз больше регистраций на ключ.</p>
+ <h3 class="vt">Высоко- и среднечастотные</h3>
  <div class="tw"><table><thead><tr><th class="l">Бренд</th><th>Частотность</th>
-  <th>Запросов в десятке</th><th>Доменов</th><th>Лучшая</th>
+  <th>Запросов в ТОП-15</th><th>Доменов</th><th>Лучшая</th>
   <th>С потолком</th><th>Без потолка</th></tr></thead><tbody>
-  ${BR.map(x=>`<tr><td class="l"><b class="dm">${E(x.b)}</b> ${tg(x.t)}</td>
+  ${BR.filter(x=>x.t==='ВЧ'||x.t==='СЧ').map(x=>`<tr>
+   <td class="l"><b class="dm">${E(x.b)}</b> ${tg(x.t)}</td>
+   <td class="mono sm">${x.vol?N(x.vol):'—'}</td>
+   <td class="${x.nk>=4?'good':''}"><b>${x.nk}</b></td><td>${x.nd}</td>
+   <td class="${x.best<=3?'good':''}">${x.best}</td>
+   <td class="${x.pools['потолок 20']?'good':'mut'}">${x.pools['потолок 20']||'—'}</td>
+   <td class="${x.pools['без потолка']?'good':'mut'}">${x.pools['без потолка']||'—'}</td></tr>`).join('')}
+ </tbody></table></div>
+ <h3 class="vt" style="margin-top:18px">Низкочастотные</h3>
+ <div class="tw"><table><thead><tr><th class="l">Бренд</th><th>Частотность</th>
+  <th>Запросов в ТОП-15</th><th>Доменов</th><th>Лучшая</th>
+  <th>С потолком</th><th>Без потолка</th></tr></thead><tbody>
+  ${BR.filter(x=>x.t!=='ВЧ'&&x.t!=='СЧ').map(x=>`<tr><td class="l"><b class="dm">${E(x.b)}</b> ${tg(x.t)}</td>
    <td class="mono sm">${x.vol?N(x.vol):'—'}</td>
    <td class="${x.nk>=6?'good':''}"><b>${x.nk}</b></td><td>${x.nd}</td>
    <td class="${x.best<=3?'good':''}">${x.best}</td>
@@ -198,15 +212,19 @@ const secB=`<div class="blk">
 const secK=`<div class="blk">
  <h2>Все ключи с позициями</h2>
  <p class="note">${N(R.length)} строк «ключ × домен» на последнем съёме каждого пула.
- Поиск идёт по ключу, бренду, домену, поддомену и странице.</p>
+ По умолчанию показаны только <b>ТОП-15</b> и только <b>высоко- и среднечастотные</b>
+ ключи — то, что имеет смысл разбирать. Фильтры снимаются селектами.
+ Поиск идёт по ключу, бренду, домену, поддомену и странице, сортировка — по клику на заголовок.</p>
  <div class="ctl">
   <input id="q" type="search" placeholder="ключ, бренд, домен, /app…" autocomplete="off">
   <select id="pool"><option value="">все пулы</option>
    ${P.map(p=>`<option>${E(p.name)}</option>`).join('')}</select>
-  <select id="tier"><option value="">любая частотность</option>
+  <select id="tier"><option value="ВС" selected>только ВЧ и СЧ</option>
+   <option value="">любая частотность</option>
    <option>ВЧ</option><option>СЧ</option><option>НЧ</option></select>
-  <select id="top"><option value="">любая позиция</option><option value="3">только Т3</option>
-   <option value="10">только Т10</option><option value="30">только Т30</option></select>
+  <select id="top"><option value="15" selected>только ТОП-15</option>
+   <option value="3">только ТОП-3</option><option value="10">только ТОП-10</option>
+   <option value="30">только ТОП-30</option><option value="">любая позиция</option></select>
   <span id="cnt" class="mut sm"></span>
  </div>
  <div class="tw"><table id="kt" class="big"><thead><tr>
@@ -216,7 +234,108 @@ const secK=`<div class="blk">
   <th data-s="d">/ru</th><th class="l">Пул</th></tr></thead><tbody></tbody></table></div>
 </div>`;
 
-const SEC={p:secP,d:secD,pg:secPg,b:secB,k:secK};
+/* ---------- заход ---------- */
+const EN=D.entry, H=D.hist, HT=D.htot;
+const secE=`<div class="blk">
+ <h2>Процент захода на позиции</h2>
+ <p class="note">Две разные вещи, и их важно не путать. <b>Заход по доменам</b> —
+ какая доля доменов пула вообще попала в выдачу. <b>Захват ядра</b> — какую долю
+ из ${N(EN[0].core)} отслеживаемых ключей пул занял хотя бы одним доменом.
+ Первая цифра быстро упирается в сто процентов и почти ничего не различает,
+ вторая различает всё.</p>
+ <div class="tw"><table><thead><tr><th class="l">Пул</th><th class="l">Вложенность</th>
+  <th>Доменов</th><th>Ядро</th>
+  ${['Т3','Т10','Т30','сотня'].map(l=>`<th>${l}<div class="mut sm">доменов зашли</div></th>`).join('')}
+  ${['Т3','Т10','Т30','сотня'].map(l=>`<th>${l}<div class="mut sm">ядра занято</div></th>`).join('')}
+  </tr></thead><tbody>
+  ${EN.map(e=>`<tr><td class="l"><b>${E(e.pool)}</b></td>
+   <td class="l sm ${e.cap==='без потолка'?'warn':'mut'}">${E(e.cap)}</td>
+   <td>${e.n}</td><td class="mono sm">${N(e.core)}</td>
+   ${e.bands.map(b=>`<td class="${b.dsh>=90?'good':(b.dsh<50?'bad':'')}">
+     <b>${b.dsh}%</b><div class="mut sm">${b.dm}/${e.n}</div></td>`).join('')}
+   ${e.bands.map(b=>`<td class="${b.ksh>=18?'good':(b.ksh<3?'mut':'')}">
+     <b>${f(b.ksh,1)}%</b><div class="mut sm">${b.keys}</div></td>`).join('')}
+  </tr>`).join('')}
+ </tbody></table></div>
+ <div class="grid2" style="margin-top:16px">
+  <div class="card acc"><h3>По доменам разницы почти нет</h3>
+  <p>В сотню зашли <b>все</b> домены обоих пулов. В десятку — 8 из 9 у пула
+  с потолком и 10 из 10 без потолка.</p>
+  <p class="cl">Метрика «сколько доменов вообще ранжируется» на живых пулах
+  бесполезна: она почти всегда близка к ста процентам. Сравнивать пулы по ней нельзя.</p></div>
+  <div class="card acc"><h3>По ядру разница двукратная</h3>
+  <p>Пул без потолка занял <b>41,4 %</b> ядра против <b>23,2 %</b> у ограниченного.
+  В первой десятке — <b>18,0 %</b> против <b>10,7 %</b>, в тройке
+  <b>6,3 %</b> против <b>2,7 %</b>.</p>
+  <p class="cl">Это тот же двукратный разрыв, что и по абсолютным числам,
+  но выраженный в доле ядра — сравнимо между пулами любого размера.</p></div>
+ </div>
+ <h3 class="sh">Полоса позиций × частотность — где на самом деле разница</h3>
+ <p class="note">Сколько ключей ядра пул занял в каждой полосе, с разбивкой по частотности.
+ В ядре ${D.tiersz['ВЧ']} высокочастотных ключей, ${D.tiersz['СЧ']} среднечастотных
+ и ${D.tiersz['НЧ']} низкочастотных.</p>
+ <div class="tw"><table><thead><tr><th class="l">Полоса</th><th class="l">Частотность</th>
+  ${D.mat.map(m=>`<th>${E(m.pool.split(' · ')[1]||m.pool)}<div class="mut sm">${E(m.cap)}</div></th>`).join('')}
+  <th class="l">Разница</th></tr></thead><tbody>
+  ${D.bands.flatMap(bn=>[['vch','ВЧ',D.tiersz['ВЧ']],['sch','СЧ',D.tiersz['СЧ']],['nch','НЧ',D.tiersz['НЧ']]]
+    .map(([k,lab,tot],i)=>{const vals=D.mat.map(m=>m.cells[bn][k]);
+     const dif=vals[1]-vals[0];
+     return `<tr${i===0?' class="p2"':''}>
+      <td class="l ${i===0?'':'mut sm'}">${i===0?'<b>ТОП-'+bn+'</b>':''}</td>
+      <td class="l">${tg(lab)} <span class="mut sm">из ${tot}</span></td>
+      ${vals.map(v=>`<td class="${v>0?'':'mut'}"><b>${v}</b></td>`).join('')}
+      <td class="l"><span class="${dif>5?'good':(dif<-2?'bad':'mut')}">${sg(dif)}</span></td></tr>`}))
+    .join('')}
+ </tbody></table></div>
+ <p class="verd">В верхних полосах по <b>ВЧ и СЧ</b> пулы равны, а в тройке ограниченный
+ даже впереди: <b>6 ВЧ и 2 СЧ против нуля</b>. На ТОП-15 — ровно поровну,
+ <b>25 ВЧ и 11 СЧ у обоих</b>. Весь двукратный отрыв свободного пула
+ создаётся <b>низкочастоткой</b>: 189 против 103 в ТОП-15 и 333 против 185 в сотне.</p>
+ <p class="note">Это меняет смысл вывода про потолок. Свободная вложенность даёт
+ больше <i>объёма</i>, но объём этот низкочастотный — а по недельным данным
+ сто ключей в десятке по низкочастотному бренду приносят 2,3 регистрации против
+ 20,4 у высокочастотного. Если считать по деньгам, а не по числу позиций,
+ преимущество свободного пула пока не подтверждается.</p>
+ <h3 class="sh">Сколько ядра берёт отдельный домен</h3>
+ <p class="note">Доля из ${N(EN[0].core)} ключей, которую домен держит сам по себе.</p>
+ <div class="tw"><table><thead><tr><th class="l">Домен</th><th class="l">Пул</th>
+  <th>В сотне</th><th>Доля ядра</th><th class="l"></th>
+  <th>В десятке</th><th>Доля ядра</th></tr></thead><tbody>
+  ${EN.filter(e=>!e.pool.includes('apex')).flatMap(e=>e.doms.map(d=>`<tr>
+   <td class="l mono">${E(d.d)}</td>
+   <td class="l sm ${e.cap==='без потолка'?'warn':'mut'}">${E(e.cap)}</td>
+   <td>${d.t100}</td><td class="${d.sh100>=10?'good':''}"><b>${f(d.sh100,1)}%</b></td>
+   <td class="l">${bar(d.sh100,22,e.cap==='без потолка'?'g':'b')}</td>
+   <td>${d.t10}</td><td class="${d.sh10>=3?'good':'mut'}">${f(d.sh10,1)}%</td></tr>`)).join('')}
+ </tbody></table></div>
+ <h3 class="sh">Для фона: заход на позиции по всему архиву</h3>
+ <p class="note">Доля доменов группы, у которых есть хотя бы один ключ в десятке
+ и хотя бы одна позиция вообще, на последнем съёме каждой группы.
+ Всего ${HT.n} доменов в ${H.length} группах.</p>
+ <div class="tiles">
+  <div class="tile g"><div class="k">Доменов с любой позицией</div><div class="v">${HT.sh100}%</div>
+   <div class="c">${HT.t100} из ${HT.n}</div></div>
+  <div class="tile g"><div class="k">Доменов с ключом в десятке</div><div class="v">${HT.sh10}%</div>
+   <div class="c">${HT.t10} из ${HT.n}</div></div>
+  <div class="tile b"><div class="k">Доменов с регистрацией</div><div class="v">27%</div>
+   <div class="c">51 из 188 с закрытым окном</div></div>
+ </div>
+ <p class="verd">Вот главное, что даёт этот разрез: <b>позиции получают почти все,
+ деньги — четверть</b>. 93 % доменов имеют позиции, 67 % стоят в первой десятке,
+ но регистрацию приносят только 27 %. Узкое место не в том, чтобы попасть в выдачу,
+ а в том, чтобы попасть туда по запросам, на которые кликают и по которым регистрируются.</p>
+ <div class="tw"><table><thead><tr><th class="l">Группа</th><th>Доменов</th>
+  <th>С ключом в Т10</th><th>Доля</th><th>С любой позицией</th><th>Доля</th>
+  </tr></thead><tbody>
+  ${H.map(x=>`<tr><td class="l">${E(x.g)}</td><td>${x.n}</td>
+   <td class="good"><b>${x.t10}</b></td>
+   <td class="${x.sh10>=80?'good':(x.sh10<40?'bad':'')}"><b>${x.sh10}%</b></td>
+   <td>${x.t100}</td>
+   <td class="${x.sh100>=95?'good':(x.sh100<80?'bad':'mut')}">${x.sh100}%</td></tr>`).join('')}
+ </tbody></table></div>
+</div>`;
+
+const SEC={p:secP,e:secE,d:secD,pg:secPg,b:secB,k:secK};
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('nav button').forEach(x=>x.setAttribute('aria-selected',x===b));
   document.querySelectorAll('main section').forEach(s=>s.hidden=s.id!==b.dataset.s);
@@ -232,7 +351,8 @@ function draw(){
   const q=(document.getElementById('q').value||'').toLowerCase().trim();
   const pool=document.getElementById('pool').value, tier=document.getElementById('tier').value;
   const top=document.getElementById('top').value;
-  let rows=R.filter(r=>(!pool||r.pool===pool)&&(!tier||r.t===tier)&&(!top||r.p<=+top)&&
+  const tok=tier==='ВС'?(t=>t==='ВЧ'||t==='СЧ'):(t=>!tier||t===tier);
+  let rows=R.filter(r=>(!pool||r.pool===pool)&&tok(r.t)&&(!top||r.p<=+top)&&
     (!q||[r.q,r.b,r.dom,r.sub,r.page].some(v=>String(v||'').toLowerCase().includes(q))));
   rows.sort((a,b)=>{const x=a[sortKey],y=b[sortKey];
     if(x==null)return 1; if(y==null)return -1;

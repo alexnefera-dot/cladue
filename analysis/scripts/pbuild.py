@@ -26,6 +26,7 @@ body=f'''
   по каким ключам, какими страницами и с какой вложенностью.</p>
   <nav>
     <button data-s="p" aria-selected="true">Пулы и домены</button>
+    <button data-s="e">Заход</button>
     <button data-s="d">Вложенность</button>
     <button data-s="pg">Страницы</button>
     <button data-s="b">Бренды</button>
@@ -34,6 +35,7 @@ body=f'''
 </div></header>
 <main class="wrap">
   <section id="p"></section>
+  <section id="e" hidden></section>
   <section id="d" hidden></section>
   <section id="pg" hidden></section>
   <section id="b" hidden></section>
