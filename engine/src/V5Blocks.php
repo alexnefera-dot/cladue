@@ -559,7 +559,10 @@ function v5UkrotitShtampy(string $html, int $предел = 2): string
 {
     foreach (V5_SHTAMPY as $штамп => $замены) {
         $счёт = 0; $круг = 0;
-        $html = preg_replace_callback('~' . preg_quote($штамп, '~') . '~ui',
+        // «Гарантий нет ни у кого» → «никто ничего не обещает ни у кого»:
+        // замена внутри оборота ломает фразу, штамп с продолжением «ни …»
+        // остаётся как есть.
+        $html = preg_replace_callback('~' . preg_quote($штамп, '~') . '(?!\s+ни\b)~ui',
             function ($m) use (&$счёт, &$круг, $замены, $предел) {
                 if (++$счёт <= $предел) { return $m[0]; }
                 $новое = $замены[$круг++ % count($замены)];
