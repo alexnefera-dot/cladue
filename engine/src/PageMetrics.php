@@ -126,6 +126,16 @@ final class PageMetrics
         'para_short' => ['коротких абзацев', 0],
         'para_one_sent_pct' => ['абзацев в одно предложение %', 1],
         'paragraphs' => ['абзацев', 0], 'words_per_para' => ['слов в абзаце', 1],
+        // Доля абзацев в одно предложение, посчитанная отдельно по телу и по
+        // ответам FAQ. Общая доля этого не видит и обманывается: у нас она
+        // держалась в норме при вывернутом наизнанку распределении — тело
+        // порублено на обрывки по фразе (74 % однофразовых), ответы FAQ по два
+        // предложения (0 %). У 50 доноров ровно наоборот: в теле течёт (25 %),
+        // а коротко отвечает FAQ (100 % на всех семи типах, без исключений).
+        // Именно из этой вывернутости росло всё остальное: и заикание, когда
+        // выжимка стоит рядом с полным ответом, и пересказ тела в ответах.
+        'para_one_sent_body_pct' => ['абзацев тела в одну фразу %', 1],
+        'para_one_sent_faq_pct' => ['ответов FAQ в одну фразу %', 1],
         'games_named' => ['названий игр', 0], 'providers_named' => ['названий студий', 0],
         'names_uniq' => ['разных имён игр и студий', 0],
         'terms_total' => ['профильных терминов', 0],
@@ -501,6 +511,12 @@ final class PageMetrics
             // ощущение сплошной стены при формально короткой фразе.
             'para_one_sent_pct' => $ps ? round(count(array_filter($ps,
                 static fn($x) => preg_match_all('~[.!?…](?:\s|$)~u', $x) === 1)) / count($ps) * 100, 1) : 0,
+            'para_one_sent_body_pct' => self::odnofrazovye(
+                (string) preg_replace('~(?is)<details.*?</details>~', '', $raw)
+            ),
+            'para_one_sent_faq_pct' => self::odnofrazovye(
+                preg_match_all('~(?is)<details.*?</details>~', $raw, $dm) ? implode(' ', $dm[0]) : ''
+            ),
             'words_per_para' => $ps ? round($wp / count($ps), 1) : 0,
             'games_named' => NicheLexicon::countGames($prose),
             'providers_named' => NicheLexicon::countProviders($prose),
@@ -508,5 +524,26 @@ final class PageMetrics
             'terms_total' => NicheLexicon::termsTotal($prose),
             'terms' => NicheLexicon::termCounts($prose),
         ];
+    }
+    /**
+     * Доля абзацев в одно предложение внутри куска разметки.
+     *
+     * Отсечка в 40 знаков и счёт предложений те же, что у общей доли: поля
+     * должны мериться одинаково, иначе их не сравнить между собой.
+     */
+    private static function odnofrazovye(string $html): float
+    {
+        if (!preg_match_all('~<p\b[^>]*>(.*?)</p>~is', $html, $m)) { return 0.0; }
+        $ps = [];
+        foreach ($m[1] as $x) {
+            $t = trim((string) preg_replace('~\s+~u', ' ', strip_tags($x)));
+            if (mb_strlen($t) > 40) { $ps[] = $t; }
+        }
+        if (!$ps) { return 0.0; }
+        $odna = 0;
+        foreach ($ps as $t) {
+            if (preg_match_all('~[.!?…](?:\s|$)~u', $t) === 1) { $odna++; }
+        }
+        return round($odna / count($ps) * 100, 1);
     }
 }
