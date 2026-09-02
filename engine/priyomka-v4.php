@@ -34,6 +34,7 @@ require_once __DIR__ . '/src/PageMetrics.php';
 require_once __DIR__ . '/src/SeoMetrics.php';
 require_once __DIR__ . '/src/Soglasovanie.php';
 require_once __DIR__ . '/src/Ekho.php';
+require_once __DIR__ . '/src/Rossyp.php';
 
 $dir = $argv[1] ?? '';
 $korpus = 'samples/v5-final';
@@ -364,6 +365,17 @@ foreach (array_slice($ekho, 0, 5) as $e) {
     printf("        тело  «%s…»\n", mb_substr($e['тело'], 0, 64));
 }
 if ($ekho) { $provaly[] = 'эхо тела'; }
+
+// Россыпь коротких абзацев — см. src/Rossyp.php: единственная проверка,
+// которая смотрит на абзацы короче сорока знаков.
+$rossyp = Rossyp::proverit($html);
+printf("\n── россыпь коротких абзацев ──\n");
+echo '  ' . ($rossyp ? '✗' : '·') . ' ' . $pad('серий длиннее ' . Rossyp::POTOLOK, 30, true)
+    . $pad((string) count($rossyp), 12) . "   нужно 0 (у доноров максимум 3)\n";
+foreach ($rossyp as $r) {
+    printf("      · %d подряд, с «%s…»\n", $r['длина'], mb_substr($r['первая'], 0, 48));
+}
+if ($rossyp) { $provaly[] = 'россыпь'; }
 
 printf("\nИТОГ: %s\n", $provaly ? 'НЕ ПРОЙДЕНО — ' . implode(', ', $provaly) : 'пройдено');
 exit($provaly ? 1 : 0);

@@ -40,6 +40,7 @@ require_once __DIR__ . '/src/PageMetrics.php';
 require_once __DIR__ . '/src/SeoMetrics.php';
 require_once __DIR__ . '/src/Soglasovanie.php';
 require_once __DIR__ . '/src/Ekho.php';
+require_once __DIR__ . '/src/Rossyp.php';
 
 const PAGES_K = ['main', 'app', 'bonus', 'registracia', 'slots', 'vhod', 'zerkalo'];
 /** Доля удержанных полей, ниже которой страница не принимается. */
@@ -582,6 +583,23 @@ foreach (PAGES_K as $p) {
 }
 if ($ekhoVsego === 0) { echo "  · ответов-пересказов нет (у доноров 0 из 1992)\n"; }
 else { $provaly['эхо тела'] = 1; }
+
+// Россыпь: единственная проверка, которая НЕ отбрасывает короткие абзацы.
+// Все абзацные поля профиля считают только абзацы длиннее сорока знаков, а
+// вставки под полы выходили короче — и лежали под измерительным порогом.
+echo "\n── россыпь коротких абзацев ──\n";
+$rossypVsego = 0;
+foreach (PAGES_K as $p) {
+    $rs = Rossyp::proverit($stranicy[$p]);
+    $rossypVsego += count($rs);
+    foreach ($rs as $r) {
+        printf("  ✗ %s — %d однофразовых подряд, с «%s…»\n",
+            $p, $r['длина'], mb_substr($r['первая'], 0, 48));
+    }
+}
+if ($rossypVsego === 0) {
+    printf("  · серий длиннее %d нет (у доноров максимум 3 на 266 страницах)\n", Rossyp::POTOLOK);
+} else { $provaly['россыпь'] = 1; }
 
 printf("\nИТОГ: %s\n", $provaly ? 'НЕ ПРОЙДЕНО — ' . implode(', ', array_keys($provaly)) : 'комплект принят');
 exit($provaly ? 1 : 0);
