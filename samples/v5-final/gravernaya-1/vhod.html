@@ -1,0 +1,117 @@
+<h2>Пароль от старого счёта подходит к новому</h2>
+
+<p>Гравёр держит старые доски в шкафу. Одинаковый рисунок на двух — не совпадение, а лень резчика. Пароль, подошедший к новому счёту %brand_name_en%, устроен так же.</p>
+
+<h3>Совпадение отпечатка: как оно вышло</h3>
+
+<p>Проверка в %brand_name_en% сравнивает не пароли, а отпечатки.</p>
+
+<p>Отпечаток считается от строки. Одинаковая строка даёт одинаковый отпечаток. Старый пароль подходит к новому счёту ровно тогда, когда вы сами его повторили.</p>
+
+<p><strong>Переноса между счетами нет</strong>. Ни баланс, ни суточный лимит, ни отыгрыш с вейджером к паролю не привязаны.</p>
+
+<table>
+<tr><th>Что думают</th><th>Что на деле</th><th>Как проверить</th></tr>
+<tr><td>Пароль перенесли со старого счёта</td><td>вы ввели ту же строку</td><td>сменить на 1 счёте из 2</td></tr>
+<tr><td>Счета связаны и видят друг друга</td><td>связаны по 4 признакам</td><td>служба AML сверяет карту и KYC</td></tr>
+<tr><td>Это дыра в защите</td><td>повтор строки, 1 источник</td><td>менеджер покажет дубль за 5 секунд</td></tr>
+</table>
+
+<h3>Чем это опасно на самом деле</h3>
+
+<p><strong>Опасность не в совпадении, а в его последствии</strong>. Утечка одной пары открывает оба счёта разом: депозит, вейджер, историю ставок. Так же работает вход на посторонних площадках. Там повтор строки стоит дороже всего: вывод средств оттуда идёт без верификации.</p>
+
+<p>Привязку видно в профиле. Туда ведёт <a href="/registracia">анкета игрока</a>. <strong>Второй ключ %brand_name_en% разводит счета обратно</strong>. Даже при одном пароле код у каждого свой.</p>
+
+<blockquote>«Пароли учётных записей хранятся в виде необратимых отпечатков и между аккаунтами не переносятся; совпадение означает повторный ввод той же комбинации», — из переписки с поддержкой %brand_name_en%.</blockquote>
+
+<h3>Порядок гравёра: развести пары</h3>
+
+<ol>
+<li><strong>Сменить пароль на младшем счёте</strong> — форма отклонит пять последних, придётся придумать новый.</li>
+<li><strong>Включить второй ключ на обоих</strong> — привязка отдельная, генератор один.</li>
+<li><strong>Проверить дубли в менеджере</strong> — он подсвечивает повторы отдельным значком.</li>
+</ol>
+
+<p>Свои пары я развёл сразу. Менеджер подсветил мне одинаковый отпечаток на двух записях. У меня ушло три минуты, и второй ключ я включил тогда же.</p>
+
+<h3>Что смена пароля не трогает</h3>
+
+<table>
+<tr><th>Что именно</th><th>Меняется ли</th></tr>
+<tr><td>Второй ключ</td><td>нет, секрет TOTP свой</td></tr>
+<tr><td>Поданная заявка на вывод средств</td><td>нет, идёт своим ходом</td></tr>
+<tr><td>Счётчик вейджера</td><td>нет, ×35 считает сервер</td></tr>
+<tr><td>Сеансы на других устройствах</td><td>да, все 4 разом</td></tr>
+</table>
+
+<p>Проба на штрих оставляет за краем многое.</p>
+
+<p>Здесь не разобрано, что делать без пароля вовсе: про заход по разовому коду написано отдельно. Не тронут и реестр устройств.</p>
+
+<p>Не сказано, как выглядит вход через <a href="/app">мобильную сборку</a> и с <a href="/zerkalo">запасного адреса</a>. Тут только совпадение пары и три способа его развести. <a href="/slots">Игровые автоматы</a> к нему отношения не имеют.</p>
+
+<h2>Ответы на вопросы про совпадение пароля на двух счетах</h2>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Пароль подошёл к новому счёту — счета связаны?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Связаны, но не паролем. Совпала строка, которую вы ввели сами. Связь ищут по карте, устройству и документу.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Переносится ли пароль между аккаунтами?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. Хранится не пароль, а его необратимый отпечаток, и он считается от строки. Одинаковая строка даёт одинаковый отпечаток.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Это дыра в защите площадки?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, это повтор строки владельцем. Дыра появляется при утечке: одна пара откроет оба счёта разом.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли поставить прежний пароль обратно?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, форма отклоняет пять последних. Придётся придумать новую строку, и это как раз к лучшему.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Второй ключ тоже совпадёт?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, привязка у каждого счёта своя, секрет разный. Генератор может быть один, коды будут разные.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Смена пароля выкинет меня со всех устройств?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Да, сеансы гаснут разом. Заявка на вывод, лимиты и счётчик вейджера при этом не трогаются.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Как быстро увидеть дубль?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Менеджер паролей подсвечивает повторы отдельным значком. <a href="/slots">Игровые автоматы</a> при смене пары не прерываются. Проверка занимает секунды и находит все совпадения сразу.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Надо ли менять пароль на обоих счетах?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Достаточно на одном: совпадения не станет. Но лучше на обоих, если строка использовалась ещё где-то.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Заметит ли площадка повтор сама?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Сравнить отпечатки между счетами технически можно, но такой проверки нет: это не нарушение правил, а выбор владельца.</p></div>
+  </div>
+</details>
