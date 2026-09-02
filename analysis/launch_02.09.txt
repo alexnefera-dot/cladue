@@ -68,3 +68,26 @@ f4w.lol
 7590.lol
 0040.lol
 8730.lol
+
+# NEW50_12pages_withdate_01.09_7…_10 (id 1099-1102) — 12 страниц, с датами, .team, семейство NEW50
+kzgq.team
+tgmb.team
+t8n2.team
+8193.team
+
+# NEW50_7pages_withdate_01.09_7…_11 (id 1124-1128) — 7 страниц, с датами, .team, семейство NEW50
+qmpl.team
+7326.team
+0040.team
+2465.team
+4967.team
+
+# NEW50_7pages_nodate_01.09_7…_14 (id 1135-1142) — 7 страниц, БЕЗ дат, .team
+syoo.team
+ikmd.team
+xfdr.team
+3654.team
+2369.team
+8640.team
+1185.team
+7570.team

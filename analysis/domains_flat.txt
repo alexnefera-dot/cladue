@@ -1,4 +1,5 @@
 0040.lol
+0040.team
 0058.team
 0302.team
 0348.team
@@ -13,6 +14,7 @@
 1085.team
 1106.team
 1185.lol
+1185.team
 1236.team
 1263.team
 1284.team
@@ -64,6 +66,7 @@
 2328.team
 2354.team
 2367.team
+2369.team
 2385.team
 2386.team
 2417.team
@@ -72,6 +75,7 @@
 2424.team
 2428.team
 2461.team
+2465.team
 2470.team
 2483.team
 2489.team
@@ -118,6 +122,7 @@
 3615.team
 3628.team
 3635.team
+3654.team
 3664.team
 3677.lol
 3719.team
@@ -161,6 +166,7 @@
 4814.team
 4839.team
 4863.team
+4967.team
 5010.lol
 5012.team
 5027.team
@@ -219,9 +225,11 @@
 7216.lol
 7224.team
 7227.team
+7326.team
 7395.lol
 7395.team
 7440.team
+7570.team
 7590.lol
 7590.team
 7612.team
@@ -231,6 +239,7 @@
 7924.team
 7925.team
 8172.team
+8193.team
 8261.team
 8271.team
 8300.team
@@ -242,6 +251,7 @@
 8527.team
 8573.lol
 8616.team
+8640.team
 8730.lol
 8730.team
 8825.team
@@ -395,6 +405,7 @@ hsvk.team
 hzvq.lol
 i182.xyz
 i5x.team
+ikmd.team
 im8tq.icu
 ip4nd.cyou
 izlx.team
@@ -431,6 +442,7 @@ kmpf.team
 knkk.team
 knsd.team
 knvr7.sbs
+kzgq.team
 l1t.team
 l3gv.team
 l5n.team
@@ -483,6 +495,7 @@ q7a.team
 q7k.team
 qbnv.lol
 qluj.team
+qmpl.team
 qtbm.team
 quu.casino
 qvwf.team
@@ -516,13 +529,16 @@ snfx.team
 spvu.team
 stma.casino
 swdp.team
+syoo.team
 t3mb.team
 t7g.team
+t8n2.team
 t8nv.team
 tfpc.lol
 tfys.casino
 tghc.casino
 tgmb.lol
+tgmb.team
 tlrk.team
 trqm.casino
 tvmk7.bond
@@ -560,6 +576,7 @@ x284.site
 x9d7.casino
 xabd.team
 xdkr.team
+xfdr.team
 xhpt.team
 xzdg.team
 y8db.team
