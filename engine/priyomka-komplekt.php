@@ -39,6 +39,7 @@ require_once __DIR__ . '/src/Flagi.php';
 require_once __DIR__ . '/src/PageMetrics.php';
 require_once __DIR__ . '/src/SeoMetrics.php';
 require_once __DIR__ . '/src/Soglasovanie.php';
+require_once __DIR__ . '/src/Ekho.php';
 
 const PAGES_K = ['main', 'app', 'bonus', 'registracia', 'slots', 'vhod', 'zerkalo'];
 /** Доля удержанных полей, ниже которой страница не принимается. */
@@ -560,6 +561,27 @@ foreach (PAGES_K as $p) {
 }
 if ($sryvyVsego === 0) { echo "  · срывов нет ни на одной из семи\n"; }
 else { $provaly['согласование'] = 1; }
+
+// Эхо тела в ответах FAQ. Порог взят из рынка и он жёсткий: у 50 доноров ноль
+// таких ответов на 1992. Ноль на двух тысячах — правило жанра, а не везение:
+// чужой FAQ отвечает на то, чего в теле нет вовсе, и потому не повторяется.
+// У нас же короткие абзацы-фразы, поставленные ради пола «абзац-фраза»,
+// собирались из готовых ответов той же страницы — числа при этом росли,
+// заикание видел только человек.
+echo "\n── эхо тела в ответах ──\n";
+$ekhoVsego = 0;
+foreach (PAGES_K as $p) {
+    $ek = Ekho::proverit($stranicy[$p]);
+    $ekhoVsego += count($ek);
+    if (!$ek) { continue; }
+    printf("  ✗ %s — %d\n", $p, count($ek));
+    foreach (array_slice($ek, 0, 3) as $e) {
+        printf("      · ответ «%s…»\n", mb_substr($e['ответ'], 0, 60));
+        printf("        тело  «%s…»\n", mb_substr($e['тело'], 0, 60));
+    }
+}
+if ($ekhoVsego === 0) { echo "  · ответов-пересказов нет (у доноров 0 из 1992)\n"; }
+else { $provaly['эхо тела'] = 1; }
 
 printf("\nИТОГ: %s\n", $provaly ? 'НЕ ПРОЙДЕНО — ' . implode(', ', array_keys($provaly)) : 'комплект принят');
 exit($provaly ? 1 : 0);
