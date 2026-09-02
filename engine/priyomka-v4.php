@@ -29,18 +29,18 @@ declare(strict_types=1);
  * Код возврата 0 — пройдены все три шлюза.
  */
 
+require_once __DIR__ . '/src/Flagi.php';
 require_once __DIR__ . '/src/PageMetrics.php';
 require_once __DIR__ . '/src/SeoMetrics.php';
 
 $dir = $argv[1] ?? '';
 $korpus = 'samples/v4-final';
 $profilFile = __DIR__ . '/data-v4/profil-avgust.json';
-foreach (array_slice($argv, 2) as $a) {
-    if (str_starts_with($a, '--korpus=')) { $korpus = substr($a, 9); }
-    if (str_starts_with($a, '--профиль=')) { $profilFile = substr($a, strlen('--профиль=')); }
-}
+[$opts] = Flagi::razobrat($argv, 2, ['корпус', 'профиль']);
+$korpus = $opts['корпус'] ?? $korpus;
+$profilFile = $opts['профиль'] ?? $profilFile;
 if ($dir === '') {
-    fwrite(STDERR, "usage: php engine/priyomka-v4.php <папка-версии> [--korpus=<путь>] [--профиль=<файл>]\n");
+    fwrite(STDERR, "usage: php engine/priyomka-v4.php <папка-версии> [--корпус=<путь>] [--профиль=<файл>]\n");
     exit(1);
 }
 $dir = rtrim($dir, '/');

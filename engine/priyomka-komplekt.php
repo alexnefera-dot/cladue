@@ -35,6 +35,7 @@ declare(strict_types=1);
  * Код возврата 0 — комплект принят целиком.
  */
 
+require_once __DIR__ . '/src/Flagi.php';
 require_once __DIR__ . '/src/PageMetrics.php';
 require_once __DIR__ . '/src/SeoMetrics.php';
 
@@ -45,12 +46,11 @@ const PORog_POLEY = 95.0;
 $dir = rtrim($argv[1] ?? '', '/');
 $korpus = 'samples/v4-final';
 $profilFile = __DIR__ . '/data-v4/profil-avgust.json';
-foreach (array_slice($argv, 2) as $a) {
-    if (str_starts_with($a, '--korpus=')) { $korpus = substr($a, 9); }
-    if (str_starts_with($a, '--профиль=')) { $profilFile = substr($a, strlen('--профиль=')); }
-}
+[$opts] = Flagi::razobrat($argv, 2, ['корпус', 'профиль']);
+$korpus = $opts['корпус'] ?? $korpus;
+$profilFile = $opts['профиль'] ?? $profilFile;
 if ($dir === '' || !is_dir($dir)) {
-    fwrite(STDERR, "usage: php engine/priyomka-komplekt.php <папка-комплекта> [--korpus=<путь>] [--профиль=<файл>]\n");
+    fwrite(STDERR, "usage: php engine/priyomka-komplekt.php <папка-комплекта> [--корпус=<путь>] [--профиль=<файл>]\n");
     exit(1);
 }
 $profil = is_file($profilFile) ? json_decode((string) file_get_contents($profilFile), true) : null;

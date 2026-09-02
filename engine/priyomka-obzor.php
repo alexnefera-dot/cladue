@@ -17,13 +17,14 @@ declare(strict_types=1);
  * Код возврата 0 — все три пройдены, 1 — хоть один нет.
  */
 
+require_once __DIR__ . '/src/Flagi.php';
+
 $dir = $argv[1] ?? '';
 $korpus = 'samples/v3-final/singles';
-foreach (array_slice($argv, 2) as $arg) {
-    if (str_starts_with($arg, '--korpus=')) { $korpus = substr($arg, 9); }
-}
+[$optsO] = Flagi::razobrat($argv, 2, ['корпус']);
+$korpus = $optsO['корпус'] ?? $korpus;
 if ($dir === '') {
-    fwrite(STDERR, "usage: php engine/priyomka-obzor.php <папка-версии> [--korpus=<путь>]\n");
+    fwrite(STDERR, "usage: php engine/priyomka-obzor.php <папка-версии> [--корпус=<путь>]\n");
     exit(1);
 }
 $dir = rtrim($dir, '/');
