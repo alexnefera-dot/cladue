@@ -32,6 +32,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/src/Flagi.php';
 require_once __DIR__ . '/src/PageMetrics.php';
 require_once __DIR__ . '/src/SeoMetrics.php';
+require_once __DIR__ . '/src/Soglasovanie.php';
 
 $dir = $argv[1] ?? '';
 $korpus = 'samples/v5-final';
@@ -330,6 +331,19 @@ if ($hudshaya >= $porog && $hudshieShingle) {
         }
     }
 }
+
+// Согласование: единственная проверка, которая смотрит не на числа, а на
+// связность речи. Появилась после того, как страница с фразами «самоходный
+// манера» и «заказанная бонусный этап» прошла обе приёмки: тошнота и шинглы
+// у неё как раз упали, потому что синонимы разводили слепой заменой.
+$sryvy = Soglasovanie::proverit($html);
+printf("\n── согласование ──\n");
+echo '  ' . ($sryvy ? '✗' : '·') . ' ' . $pad('срывов согласования', 30, true)
+    . $pad((string) count($sryvy), 12) . "   нужно 0\n";
+foreach (array_slice($sryvy, 0, 10) as $s) {
+    printf("      · %-9s «%s»  в <%s>\n", $s['вид'], $s['текст'], $s['где']);
+}
+if ($sryvy) { $provaly[] = 'согласование'; }
 
 printf("\nИТОГ: %s\n", $provaly ? 'НЕ ПРОЙДЕНО — ' . implode(', ', $provaly) : 'пройдено');
 exit($provaly ? 1 : 0);

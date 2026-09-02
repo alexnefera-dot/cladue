@@ -38,6 +38,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/src/Flagi.php';
 require_once __DIR__ . '/src/PageMetrics.php';
 require_once __DIR__ . '/src/SeoMetrics.php';
+require_once __DIR__ . '/src/Soglasovanie.php';
 
 const PAGES_K = ['main', 'app', 'bonus', 'registracia', 'slots', 'vhod', 'zerkalo'];
 /** Доля удержанных полей, ниже которой страница не принимается. */
@@ -109,8 +110,16 @@ if ($net) { fwrite(STDERR, 'нет страниц: ' . implode(', ', $net) . "\n
 $provaly = [];
 $a = new Analyzer();
 $otchet = [];
-$terminy = [];
-$lico = [];
+// Поля с односторонним полом: ключ метрики → как назвать провал в итоге.
+const POLY = [
+    'terms_total'  => 'термины',
+    'first_person' => 'лицо',
+    'imperatives'  => 'повелительное',
+    'vy'           => '«вы»',
+    'honest'       => 'риск',
+    'para_one_sent_pct' => 'абзац-фраза',
+];
+$poly = [];
 
 // ── 1. каждая страница по своей мерке ───────────────────────────────
 foreach (PAGES_K as $p) {
@@ -124,23 +133,28 @@ foreach (PAGES_K as $p) {
         if (abs((float) $card[$k] - (float) $pp['цель']) <= max(0.25 * abs((float) $pp['цель']), $pol)) { $ok++; }
         else { $bad[] = $k . ' ' . $card[$k] . '→' . $pp['цель']; }
     }
-    // Пол по терминам — односторонняя проверка, и она нужна отдельно от
-    // коридора. Собственный разброс рынка по этому полю широкий (держится
-    // 21–58 %), поэтому симметричный коридор был бы враньём; но промах у нас
-    // всегда в одну сторону — вниз, втрое ниже рынка. Пол взят по нижнему
-    // квартилю рынка: под ним сидит четверть чужих страниц.
-    $polTerm = (float) ($profil['страницы'][$p]['поля']['terms_total']['пол_рынка'] ?? 0);
-    $nashTerm = (float) ($card['terms_total'] ?? 0);
-    $terminy[$p] = [$nashTerm, $polTerm, $polTerm === 0.0 || $nashTerm >= $polTerm];
-    if (!$terminy[$p][2]) { $provaly['термины'] = 1; }
-
-    // Первое лицо — тоже пол, и тоже односторонний. У рынка «я»-группа 16–22
-    // на 1000 слов, у нас была 0,85: страницы читались инструкцией, а не
-    // наблюдением. Пол — половина рыночной медианы.
-    $polLico = (float) ($profil['страницы'][$p]['поля']['first_person']['пол_рынка'] ?? 0);
-    $nashLico = (float) ($card['first_person'] ?? 0);
-    $lico[$p] = [$nashLico, $polLico, $polLico === 0.0 || $nashLico >= $polLico];
-    if (!$lico[$p][2]) { $provaly['лицо'] = 1; }
+    // Полы по рынку — односторонние проверки, и они нужны отдельно от
+    // коридора. Разброс рынка по этим полям широкий, симметричный коридор
+    // был бы враньём; но промах у нас всегда в одну сторону — вниз.
+    //
+    // Термины: у рынка медиана 55 на главной, у нас была 19.
+    // Первое лицо: «я»-группа у рынка 16–22 на 1000 слов, у нас была 0,85.
+    // Повелительное и «вы»: 0 против 13–19 и 0 против 6. Общий запрет на
+    //   «прямой призыв» был написан против «ты»-форм (зарегистрируйся, жми),
+    //   а вычистил заодно и вежливое «проверьте, откройте, сверьте», которым
+    //   рынок пользуется свободно.
+    // Места с риском: 0 против 6–12 у рынка на главной. Страница, которая не
+    //   называет ни одного минуса, читается рекламой, а не разбором.
+    // Абзац в одно предложение: у рынка это 38 % абзацев главной и 50–69 %
+    //   внутренней, у нас 24–32 % везде. Рынок ставит каждую мысль отдельным
+    //   абзацем, мы пакуем три-четыре коротких предложения в один блок.
+    foreach (POLY as $klyuch => $imya) {
+        $pol = (float) ($profil['страницы'][$p]['поля'][$klyuch]['пол_рынка'] ?? 0);
+        $nash = (float) ($card[$klyuch] ?? 0);
+        $ok = $pol === 0.0 || $nash >= $pol;
+        $poly[$imya][$p] = [$nash, $pol, $ok];
+        if (!$ok) { $provaly[$imya] = 1; }
+    }
 
     $dolya = $vsego ? $ok / $vsego * 100 : 100.0;
     $otchet[$p] = ['поля' => [$ok, $vsego], 'доля' => $dolya, 'промахи' => $bad];
@@ -470,16 +484,20 @@ foreach ($vnutr as $p => $v) {
 
 foreach ($smeshenie as $x) { if (!$x[2]) { $provaly['смещение'] = 1; } }
 
-echo "\n── профильные термины: пол по рынку ──\n";
-foreach ($terminy as $p => [$nash, $pol, $ok]) {
-    echo '  ' . ($ok ? '·' : '✗') . ' ' . $pad($p, 16, true)
-        . $pad((string) (int) $nash, 6) . '   пол ' . (int) $pol . "\n";
-}
-
-echo "\n── первое лицо: пол по рынку ──\n";
-foreach ($lico as $p => [$nash, $pol, $ok]) {
-    echo '  ' . ($ok ? '·' : '✗') . ' ' . $pad($p, 16, true)
-        . $pad((string) (int) $nash, 6) . '   пол ' . (int) $pol . "\n";
+echo "\n── полы по рынку ──\n";
+echo '  ' . $pad('', 14, true);
+foreach (POLY as $imya) { echo $pad($imya, 15, true); }
+echo "\n";
+foreach (PAGES_K as $p) {
+    echo '  ' . $pad($p, 14, true);
+    foreach (POLY as $imya) {
+        [$nash, $pol, $ok] = $poly[$imya][$p];
+        $vid = $pol == (int) $pol && $nash == (int) $nash
+            ? sprintf('%s %d/%d', $ok ? '·' : '✗', (int) $nash, (int) $pol)
+            : sprintf('%s %.0f/%.0f', $ok ? '·' : '✗', $nash, $pol);
+        echo $pad($vid, 15, true);
+    }
+    echo "\n";
 }
 
 echo "\n── смещение по отпущенным полям ──\n";
@@ -523,6 +541,23 @@ printf("  %s пересечение хвостов:       %.1f%%  (%s), пото
     $hvostMax > POTOLOK_HVOSTOV ? '✗' : ' ', $hvostMax, $hvostPara,
     rtrim(rtrim(sprintf('%.1f', POTOLOK_HVOSTOV), '0'), '.'));
 printf("  повтор роли в H3:           %.1f%%  (потолок 60%%, у доноров 25-52%%)\n", $shablon);
+
+// Согласование по всем семи. Числовые меры на разъехавшемся тексте не
+// портятся, а часто улучшаются: слепая замена синонимов сбивает и тошноту, и
+// шинглы. Единственная проверка комплекта, которая смотрит на связность речи.
+echo "\n── согласование ──\n";
+$sryvyVsego = 0;
+foreach (PAGES_K as $p) {
+    $sr = Soglasovanie::proverit($stranicy[$p]);
+    $sryvyVsego += count($sr);
+    if (!$sr) { continue; }
+    printf("  ✗ %s — %d\n", $p, count($sr));
+    foreach (array_slice($sr, 0, 6) as $s) {
+        printf("      · %-9s «%s»  в <%s>\n", $s['вид'], $s['текст'], $s['где']);
+    }
+}
+if ($sryvyVsego === 0) { echo "  · срывов нет ни на одной из семи\n"; }
+else { $provaly['согласование'] = 1; }
 
 printf("\nИТОГ: %s\n", $provaly ? 'НЕ ПРОЙДЕНО — ' . implode(', ', array_keys($provaly)) : 'комплект принят');
 exit($provaly ? 1 : 0);

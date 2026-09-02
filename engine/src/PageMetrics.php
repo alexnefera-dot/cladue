@@ -116,6 +116,7 @@ final class PageMetrics
         'emoji_inline' => ['эмодзи внутри фразы', 0],
         'para_spread' => ['разброс длины абзаца', 1],
         'para_short' => ['коротких абзацев', 0],
+        'para_one_sent_pct' => ['абзацев в одно предложение %', 1],
         'paragraphs' => ['абзацев', 0], 'words_per_para' => ['слов в абзаце', 1],
         'games_named' => ['названий игр', 0], 'providers_named' => ['названий студий', 0],
         'names_uniq' => ['разных имён игр и студий', 0],
@@ -479,6 +480,14 @@ final class PageMetrics
             })(),
             'para_short' => count(array_filter($ps,
                 fn($x) => count(preg_split('~\s+~u', $x, -1, PREG_SPLIT_NO_EMPTY)) < 15)),
+            // Абзац в одно предложение. Самый заметный на глаз признак, по
+            // которому наш текст отличается от рыночного, и до сверки с 50
+            // конкурентами он не мерился вовсе: у рынка таких абзацев 59–61 %,
+            // у нас 19–33 %. Рынок ставит каждую мысль отдельным абзацем, мы
+            // пакуем три-четыре коротких предложения в один блок — отсюда
+            // ощущение сплошной стены при формально короткой фразе.
+            'para_one_sent_pct' => $ps ? round(count(array_filter($ps,
+                static fn($x) => preg_match_all('~[.!?…](?:\s|$)~u', $x) === 1)) / count($ps) * 100, 1) : 0,
             'words_per_para' => $ps ? round($wp / count($ps), 1) : 0,
             'games_named' => NicheLexicon::countGames($prose),
             'providers_named' => NicheLexicon::countProviders($prose),
