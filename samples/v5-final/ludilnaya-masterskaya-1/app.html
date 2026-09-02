@@ -1,0 +1,120 @@
+<h2>Экономия заряда гасит звук выигрыша в программе %brand_name_en%</h2>
+
+<p>Полуда ложится ровно только на прогретую вещь. Остынет притир на полградуса — олово ляжет пятнами, и глазом этого не видно, пока не возьмёшь в руки.</p>
+
+<p>Со звуком в сборке та же история. <strong>Экономия заряда гасит его не целиком, а выборочно</strong>, и первым уходит как раз звук выигрыша.</p>
+
+<h3>Кто именно глушит дорожку</h3>
+
+<p>Глушит система телефона, а не сборка %brand_name_en%. Режим экономии режет фоновые звуковые потоки, и <a href="/app">программа для телефона</a> теряет право на короткие дорожки длиной меньше 2 секунд.</p>
+
+<p>Длинные при этом играют: серия фриспинов слышна, а одиночная выплата — нет. Я ловил это 6 раз за месяц на аппарате с Android 13, и всякий раз в <a href="/slots">зале с барабанами</a>.</p>
+
+<h3>Почему пропажа заметна именно на выигрыше</h3>
+
+<p>Звук раунда сидит в одном потоке с системными сигналами, а звук выплаты — в отдельном, коротком. <strong>Экономия заряда закрывает второй поток первым</strong>, потому что он реже используется.</p>
+
+<p>На витрине %brand_name_en% такого разделения нет: браузер держит оба потока вместе.</p>
+
+<h3>Три режима и что каждый отключает</h3>
+
+<table>
+<tr><th>Режим</th><th>Что гасит</th><th>Когда включается</th></tr>
+<tr><td>Экономия заряда, Android</td><td>короткие дорожки до 2 с</td><td>ниже 20 % заряда</td></tr>
+<tr><td>Ограничение фона</td><td>звук вне активного экрана</td><td>вручную, 1 раз</td></tr>
+<tr><td>Тихие часы</td><td>все дорожки сборки</td><td>по расписанию, 23:00</td></tr>
+</table>
+
+<p><strong>Виновата чаще всего первая строка</strong>: из 6 моих случаев 5 пришлись на заряд ниже 20 %. Вторая и третья заметны сразу, потому что гасят звук целиком.</p>
+
+<h3>Порядок настройки: батарея, звук, фон</h3>
+
+<ol>
+<li><strong>Внесите сборку в исключения экономии заряда</strong> — это снимает 5 случаев из 6.</li>
+<li>Проверьте громкость мультимедиа отдельно от громкости звонка: <strong>ползунки у них разные</strong>, и первый на 0 не мешает второму работать.</li>
+<li>Снимите ограничение фона, если <a href="/slots">зал игровых автоматов</a> молчит и при полном заряде.</li>
+</ol>
+
+<h3>Чего экономия заряда не трогает</h3>
+
+<ul>
+<li><strong>Результат раунда и сумму выплаты</strong>: их считает сервер, и звук на арифметику не влияет.</li>
+<li>Оповещение о зачислении выплаты: оно идёт системным каналом и приходит даже при выключенном звуке.</li>
+<li>Счётчик отыгрыша, ставка и лимит на <strong>вывод средств</strong>: они живут на сервере, а <a href="/vhod">личный кабинет</a> покажет их тем же числом.</li>
+</ul>
+
+<blockquote>«В режиме энергосбережения система может ограничивать фоновое воспроизведение коротких звуковых потоков приложений», — из описания режима.</blockquote>
+
+<p>Проба на полуду коротка: прежде чем считать звук сломанным, пройдите 4 пункта.</p>
+
+<ol>
+<li>Заряд выше 20 %, иначе режим экономии включён и без вашего участия.</li>
+<li>Громкость мультимедиа не на нуле: <strong>ползунок звонка её не поднимает</strong>.</li>
+<li>Сборка %brand_name_en% обновлена до последней версии, а зеркало сайта взято из <a href="/zerkalo">перечня доменов</a>, а не из закладки.</li>
+<li>Тот же автомат открыт на витрине после <a href="/registracia">входа в кабинет</a> — если там звук есть, дело в телефоне, а не в площадке.</li>
+</ol>
+
+<h2>Ответы на вопросы про пропавший звук выигрыша</h2>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Пропадает ли вместе со звуком вибрация выигрыша?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Вибрация идёт отдельным каналом и в экономии заряда обычно доживает до самого выключения.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли беспроводная гарнитура на пропажу дорожки?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>При переходе на Bluetooth короткие дорожки теряются чаще, потому что канал засыпает между звуками.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Слышно ли выигрыш, если свернуть сборку во время серии?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Свёрнутое окно теряет право на звук первым, и серия дальше идёт молча даже при полном заряде.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Возвращается ли звук сам после зарядки телефона?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Возвращается на 21 % заряда, но окно сборки при этом надо открыть заново.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Есть ли в сборке своя настройка громкости?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Внутренний ползунок управляет только фоновой музыкой витрины, а дорожки автоматов идут мимо него.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отличается ли поведение на планшете от телефона?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>У планшета батарея больше, режим экономии включается реже, и пропажа там встречается заметно меньше.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Молчит ли так же живой стол с дилером?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>У живого стола поток длинный и непрерывный, поэтому экономия заряда его не режет вовсе.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Может ли пропажа звука означать сбой самой сборки?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Сбой выдаёт себя иначе: молчат все дорожки разом, включая музыку витрины и щелчки кнопок.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Стоит ли переустанавливать программу ради звука?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Переустановка сбрасывает исключения батареи, и после неё режим экономии глушит дорожку с первого дня.</p></div>
+  </div>
+</details>
