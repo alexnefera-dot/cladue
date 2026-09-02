@@ -1,0 +1,120 @@
+<h2>Отпечаток пальца вместо пароля: что он на самом деле открывает</h2>
+
+<p>Палец прикладывают к весам, а не к сейфу. Отпечаток в сборке %brand_name_en% открывает местный <em>ключ</em>, лежащий на самом устройстве, — и только его.</p>
+
+<p>Я включал вход по пальцу на двух аппаратах и смотрел, что при этом меняется на сервере. Не менялось <strong>ничего</strong>: пара «почта — пароль» осталась прежней.</p>
+
+<h3>Что происходит при первом включении</h3>
+
+<p>Порядок короткий, обязательный и одинаковый на любом аппарате.</p>
+
+<ol>
+<li><strong>Сборка просит пару целиком — один раз, вручную.</strong></li>
+<li>Сервер выдаёт долгий токен, он ложится в хранилище устройства.</li>
+<li><strong>Отпечаток становится замком к хранилищу, не к счёту.</strong></li>
+</ol>
+
+<h3>Отпечаток и пароль: где они расходятся</h3>
+
+<table>
+<tr><th>Что сравниваю</th><th>Пароль</th><th>Отпечаток</th></tr>
+<tr><td>Где проверяется</td><td>на сервере</td><td>на устройстве, в Keystore</td></tr>
+<tr><td>Что открывает</td><td>счёт с любого места</td><td>местный токен, один аппарат</td></tr>
+<tr><td>Срок жизни</td><td>до смены владельцем</td><td>30 суток без захода</td></tr>
+<tr><td>Что делает сброс</td><td>гасит все активные сеансы</td><td>гасит только местный</td></tr>
+</table>
+
+<blockquote>«Биометрия используется для разблокировки локально сохранённой сессии и не заменяет учётные данные», — из описания сборки.</blockquote>
+
+<h3>Четыре двери, которые палец не открывает</h3>
+
+<p>За паролем остаются четыре важных действия.</p>
+
+<ul>
+<li><strong>Смена пароля</strong> — просят прежний, руками.</li>
+<li><strong>Крупная заявка на вывод средств</strong> свыше лимита — просят разовый код.</li>
+<li><strong>Верификация и загрузка нового документа</strong> — только через кабинет.</li>
+<li><strong>Заход с чужого аппарата</strong> — там своё хранилище и свой токен.</li>
+</ul>
+
+<h3>Если палец не читается: три шага</h3>
+
+<p>Первый шаг в сборке %brand_name_en% — кнопка «войти паролем»: она стоит под формой и никуда не девается. Второй — сверка в системных настройках: сборка берёт готовый системный набор, а не собственный. Третий, крайний, — переустановка <a href="/app">мобильной сборки</a>: она стирает долгий токен, и <a href="/vhod">вход в кабинет</a> идёт заново.</p>
+
+<h3>Что остаётся после удаления сборки</h3>
+
+<p><strong>Долгий токен стирается вместе с пакетом</strong>, а сам слепок сборке и не принадлежал. На сервере %brand_name_en% остаётся отдельная строка в реестре устройств, и снять её можно из <a href="/vhod">личного кабинета</a>. Замер от %date%: строка висела там ещё сутки.</p>
+
+<p>Проба на гирю: я держу оба ключа — палец для быстрого захода, пару для всего остального. <strong>За полгода палец не пустил меня дважды</strong>, оба раза после обновления системы, и оба раза выручил пароль. Отдельная <a href="/registracia">анкета игрока</a> при этом не трогается, <a href="/slots">каталог автоматов</a> открывается тем же списком, а <a href="/zerkalo">запасной адрес</a> просит пару заново — там хранилища нет.</p>
+
+<h2>Ответы на вопросы про биометрию в сборке %brand_name_en%</h2>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отпечаток заменяет пароль полностью?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет. Он открывает сохранённый токен на устройстве, а пара остаётся прежней и нужна при смене пароля и на новом аппарате.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Площадка получает мой отпечаток?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, слепок не покидает систему устройства. Сборка получает от неё только ответ «да» или «нет».</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему после обновления системы палец перестал работать?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Обновление иногда сбрасывает привязку хранилища. Заходят паролем и включают биометрию заново, это занимает минуту.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько живёт токен без захода?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Тридцать суток. После этого сборка просит пару целиком, даже если палец читается.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Второй палец в системе тоже откроет сборку?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Да, любой отпечаток из системного набора. Если аппаратом пользуется кто-то ещё, лучше держать вход по паролю.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отпечаток работает на запасном адресе в браузере?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, там нет хранилища сборки. Браузер предложит свой менеджер паролей, но это другой механизм.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Вывод средств подтверждается пальцем?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>До лимита — да, выше него приходит разовый код. Порог виден в кассе рядом с полем суммы депозита.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Телефон украли: что делать в первую очередь?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Сменить пароль с любого другого устройства. Это гасит все сеансы разом, включая сохранённый токен на пропавшем аппарате.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Распознавание лица считается тем же способом?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Да, механизм общий: система проверяет владельца, сборка получает разрешение открыть хранилище.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отпечаток ускоряет проверку документов?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, верификация идёт отдельно и по документу. Биометрия к ней отношения не имеет.</p></div>
+  </div>
+</details>
