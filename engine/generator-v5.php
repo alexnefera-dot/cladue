@@ -778,6 +778,12 @@ $собрать = function (string $тип) use (&$блоки, &$пулы, &$rng
         $html = v5Zapolnit(v5Trafaret($html),
             $контекст(['ИМЯ' => $rng->pick($герои), 'ИМЯЖ' => $rng->pick($героини)]));
         $html = v5VidzhetVyplat($html, $rng, $герои, $героини);
+        // Донорский вариант блока целиком в <strong>: жирный заголовок, жирная
+        // подводка и жирные карточки. Это разметка одного донора, а не приём —
+        // снимаем <strong>, обёрнутый вокруг блочных элементов.
+        $html = preg_replace('~<strong>\s*(?=<(?:h[1-6]|p|div|button|article|ul|ol|li)\b)~u', '', $html);
+        $html = preg_replace('~(</(?:h[1-6]|p|div|button|article|ul|ol|li)>)\s*</strong>~u', '$1', $html);
+        $html = preg_replace('~(<(?:h2|p) class="review-quotes-(?:heading|desc)">\s*)<strong>(.*?)</strong>(\s*</(?:h2|p)>)~su', '$1$2$3', $html);
         // Отдача слота — не прорезь: у всех двенадцати доноров Sweet Bonanza
         // идёт с 96.51 %, и катать это число значит расходиться с корпусом на
         // ровном месте. После заполнения ростер возвращается на место.
