@@ -148,12 +148,14 @@ foreach (PAGES_K as $p) {
     // Абзац в одно предложение: у рынка это 38 % абзацев главной и 50–69 %
     //   внутренней, у нас 24–32 % везде. Рынок ставит каждую мысль отдельным
     //   абзацем, мы пакуем три-четыре коротких предложения в один блок.
+    // Свои имена переменных: $ok и $pol заняты счётчиком коридора выше, и
+    // общий цикл по полам их затирал — доля по полям падала до 1 из 25.
     foreach (POLY as $klyuch => $imya) {
-        $pol = (float) ($profil['страницы'][$p]['поля'][$klyuch]['пол_рынка'] ?? 0);
-        $nash = (float) ($card[$klyuch] ?? 0);
-        $ok = $pol === 0.0 || $nash >= $pol;
-        $poly[$imya][$p] = [$nash, $pol, $ok];
-        if (!$ok) { $provaly[$imya] = 1; }
+        $polRynka = (float) ($profil['страницы'][$p]['поля'][$klyuch]['пол_рынка'] ?? 0);
+        $nashe = (float) ($card[$klyuch] ?? 0);
+        $polOk = $polRynka === 0.0 || $nashe >= $polRynka;
+        $poly[$imya][$p] = [$nashe, $polRynka, $polOk];
+        if (!$polOk) { $provaly[$imya] = 1; }
     }
 
     $dolya = $vsego ? $ok / $vsego * 100 : 100.0;
