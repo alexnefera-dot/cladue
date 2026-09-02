@@ -1,0 +1,113 @@
+<h2>Программа выгружается из памяти и теряет открытый обзор %brand_name_en%</h2>
+
+<p>Бунт снимают со станка целиком, а не по витку: положишь его на бок — намотка распустится, и собрать прежний порядок уже нельзя.</p>
+
+<p>Со сборкой в памяти телефона то же самое. Я ловил выгрузку 4 раза за месяц на аппарате с 3 ГБ памяти, всякий раз на середине серии из 50 спинов.</p>
+
+<h3>Кто именно выгружает программу</h3>
+
+<p>Выгружает система телефона: ей нужна память под то, что на экране, а <a href="/app">программа для телефона</a> в этот момент в фоне и держит 180–260 МБ. <strong>Фоновая программа — первый кандидат</strong>, и чем меньше свободной памяти, тем быстрее дойдёт очередь.</p>
+
+<h3>Три настройки, из-за которых это ускоряется</h3>
+
+<table>
+<tr><th>Настройка</th><th>Что делает</th><th>Насколько ускоряет</th></tr>
+<tr><td>Экономия заряда, Android 12 и выше</td><td>гасит фоновые задачи</td><td>выгрузка за 2–3 минуты</td></tr>
+<tr><td>Ограничение фона для сборки</td><td>запрещает работу вне экрана</td><td>выгрузка за 40–60 секунд</td></tr>
+<tr><td>Автоочистка памяти</td><td>чистит по расписанию</td><td>раз в час, порог 300 МБ</td></tr>
+</table>
+
+<p>Первые две лежат в разделе батареи, третья — в настройках системы, и <strong>виновата чаще всего она</strong>: из 4 моих выгрузок 3 пришлись на дни, когда автоочистка отработала в течение часа до захода.</p>
+
+<h3>Потери и уцелевшее: обзор против вейджера</h3>
+
+<ul>
+<li>Обзор автомата закрывается, но <strong>начатый спин досчитывает сервер провайдера</strong>, и отдача от этого не меняется.</li>
+<li><strong>Расписка входа цела</strong>: возврат идёт на витрину, а не к паре логина.</li>
+<li>Вейджер, лимит и депозит не задеты: они лежат на сервере, как и весь <a href="/slots">каталог автоматов</a>.</li>
+</ul>
+
+<p>Минус только в неудобстве: <strong>деньги целы, место в каталоге искать заново</strong>.</p>
+
+<blockquote>«Приложение может быть выгружено операционной системой при нехватке ресурсов; несохранённое состояние экрана при этом не восстанавливается», — из описания сборки.</blockquote>
+
+<h3>Починка в три шага: батарея, автоочистка, память</h3>
+
+<ol>
+<li>Снимите ограничение фона в разделе батареи — 3 случая из 4.</li>
+<li>Выключите автоочистку памяти либо внесите сборку в исключения.</li>
+<li>Проверьте память: <strong>ниже 500 МБ выгружается всё подряд</strong>, настройки не спасут.</li>
+</ol>
+
+<h3>Чем это отличается от обрыва сеанса</h3>
+
+<p><strong>Выгрузка гасит окно, но не расписку</strong>: вернётесь на витрину %brand_name_en% уже вошедшим. Обрыв гасит расписку: просят пару и код заново, а <a href="/vhod">журнал заходов</a> пишет отдельную строку.</p>
+
+<p>Проба на волочение: чаще всего спрашивают, не теряется ли при выгрузке ставка.</p>
+
+<p>Короткий ответ — нет, и проверить это можно самому: откройте <a href="/slots">зал игровых автоматов</a>, посмотрите последний раунд в истории, а остаток сверьте с кассой в <a href="/vhod">кабинете игрока</a> — <strong>оба числа совпадут с тем, что было до выгрузки</strong>.</p>
+
+<h2>Ответы на вопросы про выгрузку сборки из памяти</h2>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему на телефоне это бывает чаще, чем на планшете?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>У планшета обычно вдвое больше памяти — 6–8 ГБ против 3–4, — и очередь на выгрузку до фоновой сборки просто не доходит.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Помогает ли закрепление сборки в списке недавних программ?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>На части оболочек помогает, на чистой системе замок в списке недавних на решение о выгрузке не влияет вовсе.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Придёт ли оповещение о выплате, пока сборка выгружена?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Придёт: оповещения доставляет система, а не сама программа, и для этого ей быть в памяти не нужно.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Стоит ли переустанавливать сборку, если выгрузка стала частой?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Переустановка тут ни при чём, а вот чистка кеша обложек освобождает до 150 МБ и заметно отодвигает очередь.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что будет с автоигрой, если программу выгрузят на середине?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Серия останавливается на текущем раунде из заказанных 25, потому что автоигру считает не сервер, а само окно на устройстве.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сохранится ли открытый фильтр каталога после возврата?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, набор фильтров живёт в памяти окна и после выгрузки собирается заново с настроек по умолчанию.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли выгрузка на срок действия расписки входа?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Срок в 30 суток отсчитывается от последнего обращения к серверу, поэтому частые выгрузки его скорее продлевают, чем сокращают.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли запретить системе выгружать программу совсем?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Полного запрета нет ни в одной системе: при нехватке памяти выгружают любую программу, включая ту, что помечена как важная.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отличается ли поведение сборки от вкладки браузера?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Вкладку выгружают ещё охотнее, и браузер вдобавок перезагружает страницу целиком, теряя не только обзор, но и позицию в списке.</p></div>
+  </div>
+</details>
