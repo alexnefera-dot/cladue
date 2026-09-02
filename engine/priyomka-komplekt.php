@@ -44,8 +44,8 @@ const PAGES_K = ['main', 'app', 'bonus', 'registracia', 'slots', 'vhod', 'zerkal
 const PORog_POLEY = 95.0;
 
 $dir = rtrim($argv[1] ?? '', '/');
-$korpus = 'samples/v4-final';
-$profilFile = __DIR__ . '/data-v4/profil-avgust.json';
+$korpus = 'samples/v5-final';
+$profilFile = __DIR__ . '/data-v5/profil-v5.json';
 [$opts] = Flagi::razobrat($argv, 2, ['корпус', 'профиль']);
 $korpus = $opts['корпус'] ?? $korpus;
 $profilFile = $opts['профиль'] ?? $profilFile;
@@ -146,6 +146,26 @@ foreach (PAGES_K as $p) {
     if (count(array_filter($prov)) < count($prov)) { $provaly["каркас:$p"] = 1; }
 }
 
+// ── 3б. скелет главной: левые части H2 против корпуса ────────────────
+//
+// У пятидесяти конкурентских комплектов средний коэффициент Жаккара по левым
+// частям H2 главной — 0,7–2,2 %, максимум по паре 40 %. У наших пяти он был
+// 36,8 % в среднем и 81,8 % на худшей паре: восемь заголовков стояли у трёх
+// комплектов и более. Потолок 25 % на пару оставляет место случайному
+// совпадению одного-двух узлов и заворачивает общий скелет.
+const POTOLOK_SKELETA = 25.0;
+$levye = static function (string $html): array {
+    $out = [];
+    foreach (zag($html, 'h2') as $t) {
+        $t = preg_replace('~%[a-z_]+%~u', ' ', $t);
+        $l = preg_split('~\s*[:—–|]\s*~u', $t)[0] ?? $t;
+        $l = trim(preg_replace('~\s+~u', ' ', mb_strtolower(preg_replace('~[^\p{L}\s]~u', ' ', $l))));
+        if ($l !== '') { $out[$l] = 1; }
+    }
+    return $out;
+};
+$nashSkelet = $levye($stranicy['main']);
+
 // ── 3а. хвосты внутренних: шесть закрытий обязаны быть разными ───────
 //
 // Разбор пятидесяти конкурентских комплектов дал ноль процентов пересечения
@@ -183,6 +203,7 @@ $root = dirname(__DIR__);
 $put = is_dir($korpus) ? $korpus : $root . '/' . $korpus;
 $sovpavshie = [];
 $hudshayaPara = 0.0; $hudshiy = '—';
+$skeletMax = 0.0; $skeletKto = '—';
 $nashSh = [];
 foreach (PAGES_K as $p) { $nashSh[$p] = shingle(chist($stranicy[$p])); }
 
@@ -194,6 +215,13 @@ foreach (glob(rtrim($put, '/') . '/*', GLOB_ONLYDIR) ?: [] as $other) {
         $oh = preg_replace('~<(?![a-zA-Z/!?])~', '&lt;', (string) file_get_contents($f));
         $v = peresech($nashSh[$p], shingle(chist($oh)));
         if ($v > $hudshayaPara) { $hudshayaPara = $v; $hudshiy = basename($other) . "/$p"; }
+        if ($p === 'main' && $nashSkelet) {
+            $chuzhSkelet = $levye($oh);
+            $obshih = count(array_intersect_key($nashSkelet, $chuzhSkelet));
+            $vsego = count($nashSkelet + $chuzhSkelet);
+            $j = $vsego ? $obshih / $vsego * 100 : 0.0;
+            if ($j > $skeletMax) { $skeletMax = $j; $skeletKto = basename($other); }
+        }
         if ($p !== 'main') {
             $ih = zag($oh, 'h2');
             if ($ih && isset($srezy[$p]) && mb_strtolower($ih[0]) === $srezy[$p]) {
@@ -204,6 +232,7 @@ foreach (glob(rtrim($put, '/') . '/*', GLOB_ONLYDIR) ?: [] as $other) {
 }
 $porog = (float) ($profil['уникальность']['шинглы']['порог_pct'] ?? 6.0);
 if ($dubliVnutri || $sovpavshie || $hudshayaPara >= $porog) { $provaly['уникальность'] = 1; }
+if ($skeletMax > POTOLOK_SKELETA) { $provaly['скелет'] = 1; }
 
 // ── 4. каннибализация внутри комплекта ──────────────────────────────
 $mVn = []; $vnVn = [];
@@ -455,6 +484,9 @@ printf("  срезы совпали с корпусом:   %s\n", $sovpavshie ? 
 printf("  худшая пара по шинглам:     %.2f%%  (%s), порог %s%%\n", $hudshayaPara, $hudshiy,
     rtrim(rtrim(sprintf('%.2f', $porog), '0'), '.'));
 printf("  каннибализация внутри:      %.2f%%  (потолок 3%%)\n", $kanMax);
+printf("  %s скелет H2 главной:         %.1f%%  (%s), потолок %s%%\n",
+    $skeletMax > POTOLOK_SKELETA ? '✗' : ' ', $skeletMax, $skeletKto,
+    rtrim(rtrim(sprintf('%.1f', POTOLOK_SKELETA), '0'), '.'));
 printf("  %s пересечение хвостов:       %.1f%%  (%s), потолок %s%%\n",
     $hvostMax > POTOLOK_HVOSTOV ? '✗' : ' ', $hvostMax, $hvostPara,
     rtrim(rtrim(sprintf('%.1f', POTOLOK_HVOSTOV), '0'), '.'));

@@ -34,8 +34,8 @@ require_once __DIR__ . '/src/PageMetrics.php';
 require_once __DIR__ . '/src/SeoMetrics.php';
 
 $dir = $argv[1] ?? '';
-$korpus = 'samples/v4-final';
-$profilFile = __DIR__ . '/data-v4/profil-avgust.json';
+$korpus = 'samples/v5-final';
+$profilFile = __DIR__ . '/data-v5/profil-v5.json';
 [$opts] = Flagi::razobrat($argv, 2, ['корпус', 'профиль']);
 $korpus = $opts['корпус'] ?? $korpus;
 $profilFile = $opts['профиль'] ?? $profilFile;
