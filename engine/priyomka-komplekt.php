@@ -109,6 +109,7 @@ if ($net) { fwrite(STDERR, 'нет страниц: ' . implode(', ', $net) . "\n
 $provaly = [];
 $a = new Analyzer();
 $otchet = [];
+$terminy = [];
 
 // ── 1. каждая страница по своей мерке ───────────────────────────────
 foreach (PAGES_K as $p) {
@@ -122,6 +123,16 @@ foreach (PAGES_K as $p) {
         if (abs((float) $card[$k] - (float) $pp['цель']) <= max(0.25 * abs((float) $pp['цель']), $pol)) { $ok++; }
         else { $bad[] = $k . ' ' . $card[$k] . '→' . $pp['цель']; }
     }
+    // Пол по терминам — односторонняя проверка, и она нужна отдельно от
+    // коридора. Собственный разброс рынка по этому полю широкий (держится
+    // 21–58 %), поэтому симметричный коридор был бы враньём; но промах у нас
+    // всегда в одну сторону — вниз, втрое ниже рынка. Пол взят по нижнему
+    // квартилю рынка: под ним сидит четверть чужих страниц.
+    $polTerm = (float) ($profil['страницы'][$p]['поля']['terms_total']['пол_рынка'] ?? 0);
+    $nashTerm = (float) ($card['terms_total'] ?? 0);
+    $terminy[$p] = [$nashTerm, $polTerm, $polTerm === 0.0 || $nashTerm >= $polTerm];
+    if (!$terminy[$p][2]) { $provaly['термины'] = 1; }
+
     $dolya = $vsego ? $ok / $vsego * 100 : 100.0;
     $otchet[$p] = ['поля' => [$ok, $vsego], 'доля' => $dolya, 'промахи' => $bad];
     if ($dolya < PORog_POLEY) { $provaly["параметры:$p"] = 1; }
@@ -449,6 +460,12 @@ foreach ($vnutr as $p => $v) {
 }
 
 foreach ($smeshenie as $x) { if (!$x[2]) { $provaly['смещение'] = 1; } }
+
+echo "\n── профильные термины: пол по рынку ──\n";
+foreach ($terminy as $p => [$nash, $pol, $ok]) {
+    echo '  ' . ($ok ? '·' : '✗') . ' ' . $pad($p, 16, true)
+        . $pad((string) (int) $nash, 6) . '   пол ' . (int) $pol . "\n";
+}
 
 echo "\n── смещение по отпущенным полям ──\n";
 foreach ($smeshenie as $n => [$est, $nado, $ok, $pct]) {
