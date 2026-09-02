@@ -141,6 +141,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check
         $msg = isset($res['err'])
             ? ('Ошибка: ' . $res['err'])
             : ('Оффер сменён у ' . $res['changed'] . ' из ' . $res['matched'] . ' кампаний по префиксу');
+    } elseif ($action === 'postback_domains') {
+        $res = postback_domains_save($_POST['domains'] ?? '');
+        $msg = 'Доменов сохранено: ' . $res['saved'];
+        if ($res['skipped']) $msg .= '. Не распознаны и пропущены: ' . implode(', ', array_slice($res['skipped'], 0, 5));
+        if ($res['saved'] === 0) $msg .= '. ВНИМАНИЕ: список пуст — clickid будет дописываться КО ВСЕМ офферам.';
+        $loc = 'stats.php?tab=settings&msg=' . rawurlencode($msg);
+        header('Location: ' . $loc, true, 303);
+        exit;
     } elseif ($action === 'clear_history') {
         $res = clear_history();
         $msg = 'История очищена: удалено кликов ' . $res['clicks'] . ', конверсий ' . $res['conversions'] . '. Кампании сохранены.';
@@ -920,6 +928,32 @@ $msg = $_GET['msg'] ?? '';
         <?php if (!$lastByCamp): ?><tr><td colspan="3">Кликов ещё не было.</td></tr><?php endif; ?>
       </tbody>
     </table>
+  </div>
+
+  <div class="card">
+    <h2>Домены партнёрок для clickid</h2>
+    <div class="muted">
+      К ссылкам этих доменов <code>go.php</code> дописывает <code>?<?= h($cfg['clickid_param'] ?? 'clickid') ?>=</code> —
+      партнёрка возвращает его в постбеке, и конверсия привязывается к кампании и источнику.
+      <b>Если домена оффера здесь нет — постбек придёт с пустым clickid и не привяжется.</b>
+      Поддомены покрываются автоматически: <code>partner.com</code> подходит и для <code>www.partner.com</code>.
+      Можно вставлять целые ссылки — домен вырежется сам. По одному на строку.
+      <br><br>
+      Не добавляй сюда «капризные» партнёрки, у которых лишний GET-параметр ломает засчёт клика
+      (так было с megaslotsmatch): для них редирект должен оставаться чистым.
+    </div>
+    <?php $wlNow = postback_domains_get(); ?>
+    <form method="post">
+      <input type="hidden" name="key" value="<?= h($key) ?>">
+      <input type="hidden" name="action" value="postback_domains">
+      <textarea name="domains" rows="<?= max(6, min(20, count($wlNow) + 2)) ?>"
+                style="width:100%;font:13px ui-monospace,monospace;resize:vertical"
+                placeholder="partner-one.com&#10;https://partner-two.top/abc  (домен вырежется)"><?= h(implode("\n", $wlNow)) ?></textarea>
+      <div style="margin-top:8px">
+        <button type="submit">Сохранить домены</button>
+        <span class="muted" style="margin-left:10px">сейчас в списке: <b><?= count($wlNow) ?></b></span>
+      </div>
+    </form>
   </div>
 
   <div class="card">

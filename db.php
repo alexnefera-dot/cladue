@@ -354,6 +354,71 @@ function normalize_slug($s) {
 function valid_url($u)  { return (bool)preg_match('~^https?://~i', (string)$u); }
 
 /**
+ * Привести домен к чистому виду: из ссылки вырезать хост.
+ *   https://combohub.live/aeiyvj8egg?x=1  ->  combohub.live
+ *   www.partner.com/                      ->  partner.com
+ *   partner.com                           ->  partner.com
+ * Возвращает '' если это не похоже на домен.
+ */
+function normalize_domain($s) {
+    $s = strtolower(trim((string)$s));
+    if ($s === '') return '';
+    $s = preg_replace('~^[a-z]+://~', '', $s);   // протокол
+    $s = preg_replace('~[/?#].*$~', '', $s);     // путь и параметры
+    $s = preg_replace('~^www\.~', '', $s);       // www — домен покрывает поддомены
+    $s = trim($s, '. ');
+    return preg_match('~^[a-z0-9]([a-z0-9\-.]*[a-z0-9])?\.[a-z]{2,}$~', $s) ? $s : '';
+}
+
+/**
+ * Whitelist доменов, к ссылкам которых go.php дописывает clickid.
+ *
+ * Хранится в файле postback_domains.php, а не в базе: go.php читает его на
+ * каждом клике и не имеет права трогать MySQL. Файл генерируется панелью,
+ * как offers.php. Пока файла нет — работает список из config.php, поэтому
+ * старая настройка продолжает действовать без миграции.
+ */
+function postback_domains_get() {
+    $file = __DIR__ . '/postback_domains.json';
+    if (is_file($file)) {
+        $list = json_decode((string)@file_get_contents($file), true);
+        if (is_array($list)) return array_values($list);
+    }
+    $cfg = require __DIR__ . '/config.php';
+    return array_values($cfg['postback_domains'] ?? []);
+}
+
+/**
+ * Сохранить whitelist. На вход — текст (по домену на строку, можно ссылками).
+ * Возвращает ['saved'=>N, 'skipped'=>[строки, которые не разобрались]].
+ */
+function postback_domains_save($text) {
+    $out = $skipped = [];
+    foreach (preg_split('~[\r\n,]+~', (string)$text) as $line) {
+        $line = trim($line);
+        if ($line === '' || $line[0] === '#') continue;
+        $d = normalize_domain($line);
+        if ($d === '') { $skipped[] = $line; continue; }
+        if (!in_array($d, $out, true)) $out[] = $d;
+    }
+    sort($out);
+
+    // JSON, а не PHP-файл: go.php читает его напрямую через file_get_contents,
+    // без include. Иначе opcache отдавал бы старую копию списка до истечения
+    // revalidate_freq, а при validate_timestamps=0 — вообще никогда, и правка
+    // из панели молча не применялась бы.
+    $file = __DIR__ . '/postback_domains.json';
+    $tmp  = $file . '.tmp';
+    // как offers.php: пишем во временный и переименовываем, чтобы go.php
+    // никогда не прочитал полу-записанный файл
+    if (@file_put_contents($tmp, json_encode($out, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT), LOCK_EX) !== false) {
+        @rename($tmp, $file);
+        if (function_exists('cache_fix_owner')) cache_fix_owner($file, 0664);
+    }
+    return ['saved' => count($out), 'skipped' => $skipped];
+}
+
+/**
  * Разобрать поле оффера в список ссылок для ротации.
  *
  * В поле можно указать несколько ссылок — по одной на строку. Тогда go.php

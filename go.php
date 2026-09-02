@@ -119,7 +119,16 @@ if (($cfg['db_write'] ?? true) !== false) {
 // ---------- 4. Формируем целевой URL и редиректим ----------
 $dest = $offer;
 $host = parse_url($dest, PHP_URL_HOST);
+// Whitelist берём из файла, который пишет панель (Настройки -> домены для clickid).
+// Читаем JSON напрямую, без include: opcache иначе отдавал бы старую копию и
+// правка из панели применялась бы с задержкой (а при validate_timestamps=0 —
+// никогда). Файла нет — работает список из config.php, старая настройка цела.
 $whitelist = $cfg['postback_domains'] ?? [];
+$wlFile = __DIR__ . '/postback_domains.json';
+if (is_file($wlFile)) {
+    $wl = json_decode((string)@file_get_contents($wlFile), true);
+    if (is_array($wl)) $whitelist = $wl;
+}
 // Домен из whitelist покрывает и свои поддомены (www.partner.com, go.partner.com),
 // иначе ссылка с www молча осталась бы без clickid и конверсия не привязалась бы.
 // Сравнение только по границе точки: partner.com НЕ совпадёт с evilpartner.com.

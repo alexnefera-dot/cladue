@@ -1,5 +1,6 @@
 # Рантайм-данные редиректора — НЕ версионируем (генерируются на сервере)
 offers.php               # автогенерируемый кэш офферов (db.php/import.php)
+postback_domains.json    # whitelist доменов для clickid (пишется из панели)
 clicks.log               # накопитель кликов (go.php пишет, import.php читает)
 clicks.log.processing    # промежуточный файл импорта
 cache/                   # кэш агрегатов панели (panel_cache)
