@@ -1,6 +1,9 @@
 0058.team
 0302.team
+0348.team
 0403.lol
+0413.team
+0540.team
 0864.team
 1073.team
 1083.lol
@@ -96,6 +99,7 @@
 3112.team
 3164.team
 3186.team
+3242.team
 3286.team
 32gf.team
 3349.team
@@ -127,12 +131,14 @@
 4184.team
 4202.team
 4213.team
+4235.team
 4257.team
 4260.team
 4328.team
 4392.team
 4432.team
 4464.team
+4502.team
 4527.team
 4573.team
 4582.team
@@ -168,6 +174,7 @@
 5552.team
 5554.team
 5557.team
+5580.team
 5671.team
 5719.team
 5726.team
@@ -225,8 +232,10 @@
 8527.team
 8573.lol
 8616.team
+8730.team
 8825.team
 8829.lol
+9012.team
 9279.team
 9316.space
 9364.team
@@ -284,6 +293,7 @@ cfwz.team
 cglr.team
 cgvz.team
 chrv.team
+ciye.team
 cnwv.team
 cokd4.team
 cqrw.rest
@@ -372,6 +382,7 @@ i182.xyz
 i5x.team
 im8tq.icu
 ip4nd.cyou
+j0s0.team
 j1j.casino
 j2mm.team
 j2t.team
@@ -440,6 +451,7 @@ nrwg.team
 nsbf.team
 nwcs.team
 o5h7.team
+oasc.team
 ogax.team
 oiiu.team
 p2v.team
