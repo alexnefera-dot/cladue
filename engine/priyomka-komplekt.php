@@ -110,6 +110,7 @@ $provaly = [];
 $a = new Analyzer();
 $otchet = [];
 $terminy = [];
+$lico = [];
 
 // ── 1. каждая страница по своей мерке ───────────────────────────────
 foreach (PAGES_K as $p) {
@@ -132,6 +133,14 @@ foreach (PAGES_K as $p) {
     $nashTerm = (float) ($card['terms_total'] ?? 0);
     $terminy[$p] = [$nashTerm, $polTerm, $polTerm === 0.0 || $nashTerm >= $polTerm];
     if (!$terminy[$p][2]) { $provaly['термины'] = 1; }
+
+    // Первое лицо — тоже пол, и тоже односторонний. У рынка «я»-группа 16–22
+    // на 1000 слов, у нас была 0,85: страницы читались инструкцией, а не
+    // наблюдением. Пол — половина рыночной медианы.
+    $polLico = (float) ($profil['страницы'][$p]['поля']['first_person']['пол_рынка'] ?? 0);
+    $nashLico = (float) ($card['first_person'] ?? 0);
+    $lico[$p] = [$nashLico, $polLico, $polLico === 0.0 || $nashLico >= $polLico];
+    if (!$lico[$p][2]) { $provaly['лицо'] = 1; }
 
     $dolya = $vsego ? $ok / $vsego * 100 : 100.0;
     $otchet[$p] = ['поля' => [$ok, $vsego], 'доля' => $dolya, 'промахи' => $bad];
@@ -463,6 +472,12 @@ foreach ($smeshenie as $x) { if (!$x[2]) { $provaly['смещение'] = 1; } }
 
 echo "\n── профильные термины: пол по рынку ──\n";
 foreach ($terminy as $p => [$nash, $pol, $ok]) {
+    echo '  ' . ($ok ? '·' : '✗') . ' ' . $pad($p, 16, true)
+        . $pad((string) (int) $nash, 6) . '   пол ' . (int) $pol . "\n";
+}
+
+echo "\n── первое лицо: пол по рынку ──\n";
+foreach ($lico as $p => [$nash, $pol, $ok]) {
     echo '  ' . ($ok ? '·' : '✗') . ' ' . $pad($p, 16, true)
         . $pad((string) (int) $nash, 6) . '   пол ' . (int) $pol . "\n";
 }
