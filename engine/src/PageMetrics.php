@@ -52,6 +52,14 @@ final class PageMetrics
         // у образцов шестнадцать таблиц — шестнадцать разных шапок и три
         // колонки, третья под оценку или сравнение; у нас «Параметр | Значение»
         // сорок три раза на пять наборов и две колонки.
+        // Число таблиц и строк в них мы считали воспроизведённым, но никогда не
+        // мерили — в профиле стояли только колонки и содержимое ячейки. Сплошное
+        // чтение партии показало, зачем мерить: у нас на главной девять таблиц и
+        // сорок три строки, у 50 конкурентов — пять и двадцать пять. Страница
+        // выходит вдвое более табличной, и это видно глазом сразу, а ни одно из
+        // шестидесяти полей профиля такого не показывало.
+        'tables' => ['таблиц на странице', 0],
+        'table_rows' => ['строк во всех таблицах', 0],
         'table_cols' => ['колонок в таблице', 1],
         'table_uniq_pct' => ['уникальных шапок %', 1],
         // Форму таблицы мы воспроизводили — три колонки, разные шапки, — а
@@ -289,6 +297,7 @@ final class PageMetrics
         // Форма таблицы: сколько колонок и повторяется ли шапка. Шапкой считаем
         // строку <th>, а где её нет — первую строку таблицы.
         $cols = []; $headers = []; $cellW = []; $cellS = 0; $cellF = 0; $cellL = 0;
+        $tableRows = 0;
         if (preg_match_all('~<table\b.*?</table>~is', $noScript, $tm2)) {
             foreach ($tm2[0] as $tbl) {
                 preg_match_all('~<th\b[^>]*>(.*?)</th>~is', $tbl, $th);
@@ -299,6 +308,8 @@ final class PageMetrics
                 }
                 if (!$cells) { continue; }
                 $cols[] = count($cells);
+                // Строки без шапки: сама шапка строкой данных не считается.
+                $tableRows += max(0, preg_match_all('~<tr\b~i', $tbl) - 1);
                 preg_match_all('~<td\b[^>]*>(.*?)</td>~is', $tbl, $tdAll);
                 foreach ($tdAll[1] as $c) {
                     $t = trim(preg_replace('~\s+~u', ' ', strip_tags($c)));
@@ -352,6 +363,8 @@ final class PageMetrics
                 . '|текст обращения|прошу проверить и дать|ticket id)~ui', $fullText),
             'opener_name' => preg_match($nameRe, $fullText) ? 1 : 0,
             'opener_key' => preg_match('~официальн~ui', $first50) ? 1 : 0,
+            'tables' => count($cols),
+            'table_rows' => $tableRows,
             'table_cols' => $cols ? round(array_sum($cols) / count($cols), 1) : 0,
             'table_uniq_pct' => $headers ? round(count(array_unique($headers)) / count($headers) * 100, 1) : 0,
             'table_cell_words' => $cellW ? round(array_sum($cellW) / count($cellW), 1) : 0,
