@@ -801,6 +801,8 @@ $собрать = function (string $тип) use (&$блоки, &$пулы, &$rng
         $html = preg_replace('~<strong>\s*(?=<(?:h[1-6]|p|div|button|article|ul|ol|li)\b)~u', '', $html);
         $html = preg_replace('~(</(?:h[1-6]|p|div|button|article|ul|ol|li)>)\s*</strong>~u', '$1', $html);
         $html = preg_replace('~(<(?:h2|p) class="review-quotes-(?:heading|desc)">\s*)<strong>(.*?)</strong>(\s*</(?:h2|p)>)~su', '$1$2$3', $html);
+        // И заголовок виджета целиком в <strong> («<h2><strong>❓ Честные ответы</strong></h2>»).
+        $html = preg_replace('~(<h[23]\b[^>]*>\s*)<strong>(.*?)</strong>(\s*</h[23]>)~su', '$1$2$3', $html);
         // Отдача слота — не прорезь: у всех двенадцати доноров Sweet Bonanza
         // идёт с 96.51 %, и катать это число значит расходиться с корпусом на
         // ровном месте. После заполнения ростер возвращается на место.
