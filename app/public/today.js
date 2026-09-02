@@ -498,6 +498,11 @@ function renderToday() {
   ${tdRest()}
   ${tdWeekBoard()}
 
+  ${d.overdue.length || (d.obOverdue || []).length ? `
+  <div class="sec" style="color:var(--red)">⚠ Просрочено · ${d.overdue.length + (d.obOverdue || []).length}
+    <span class="muted" style="font-weight:400">· ⏳ выносит наверх, в «Ожидает решения»</span></div>
+  <div class="card">${d.overdue.map(t => taskLine(t, false, 'in')).join('')}${(d.obOverdue || []).map(o => obLine(o, 'in')).join('')}</div>` : ''}
+
   <div class="addbar" style="margin:0 0 6px">
     <input id="tdQuick" placeholder="＋ Новая задача или мысль — Enter без срока в Инбокс, или укажи дату ниже">
     <span class="pill btn" id="tdRoll" title="рулетка спонтанности: случайная идея из твоих же списков">🎲</span>

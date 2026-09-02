@@ -56,6 +56,25 @@ test('строка просроченного получает кнопку пе
     'без явного режима кнопки переноса быть не должно');
 });
 
+test('на десктопе просроченное осталось на экране — из него и переносят', () => {
+  const ctx = loadToday({ ...DATA,
+    obOverdue: [{ id: 9, name: 'Налог', amount: 100, currency: '€', next_date: '2026-08-10', overdue_days: 20 }],
+    routines: [], progress: { total: 1, typed: 1 }, movement: { total: 0, top: [] },
+    weekGoals: { done: 0, total: 0 }, inbox: 0, activityMonth: null, checkin: null, events: [], week: [],
+    zones: { paymentsWeek: 0, debtsOverdue: 0, practicesToday: 0 },
+    people: { birthdays: [], overdueContacts: [] } });
+  const node = { addEventListener() {}, appendChild() {}, classList: { add() {}, remove() {} },
+    dataset: {}, style: {}, innerHTML: '', value: '', focus() {}, replaceWith() {} };
+  ctx.document.getElementById = () => node;
+  vm.runInContext('window.tdRestData = { today: tdData.date, ideas: [], log: [] }; window.tdSpheres = [];', ctx);
+  ctx.renderToday();
+  const html = node.innerHTML;
+  assert.ok(html.includes('Просрочено'), 'на десктопе просроченное пропало с экрана');
+  assert.ok(html.includes('data-tdwait="task:5:1"') && html.includes('data-tdwait="ob:9:1"'),
+    'из просроченного нечем перенести в ожидание');
+  assert.ok(html.includes('data-tdwait="task:7:0"'), 'из ожидания нечем вернуть обратно');
+});
+
 test('пустое ожидание — полки нет вовсе', () => {
   const html = loadToday({ ...DATA, waiting: [], obWaiting: [] }).tdWeekBoard(false);
   assert.ok(!html.includes('tdover'), 'пустая полка занимает место зря');
