@@ -146,6 +146,34 @@ foreach (PAGES_K as $p) {
     if (count(array_filter($prov)) < count($prov)) { $provaly["каркас:$p"] = 1; }
 }
 
+// ── 3а. хвосты внутренних: шесть закрытий обязаны быть разными ───────
+//
+// Разбор пятидесяти конкурентских комплектов дал ноль процентов пересечения
+// между хвостами шести внутренних страниц одного сайта — у всех двадцати пяти
+// сайтов выборки. У нас один и тот же абзац-концовка стоял в тридцати
+// страницах из тридцати и давал основную долю пересечения между комплектами:
+// до 4,35 % при пороге 3,5 %. Потолок в 12 % отделяет общий оборот жанра
+// («ставка уменьшает счёт») от переписанного под копирку абзаца.
+const POTOLOK_HVOSTOV = 12.0;
+$hvosty = [];
+foreach (PAGES_K as $hp) {
+    if ($hp === 'main') { continue; }
+    $hdo = explode('<details', $stranicy[$hp])[0];
+    preg_match_all('~(?is)<p[^>]*>(.*?)</p>~', $hdo, $mh);
+    $hvosty[$hp] = $mh[1] ? shingle(chist((string) end($mh[1])), 5) : [];
+}
+$hvostMax = 0.0; $hvostPara = '—';
+$hk = array_keys($hvosty);
+for ($hi = 0; $hi < count($hk); $hi++) {
+    for ($hj = $hi + 1; $hj < count($hk); $hj++) {
+        $ha = $hvosty[$hk[$hi]]; $hb = $hvosty[$hk[$hj]];
+        if (min(count($ha), count($hb)) < 3) { continue; }
+        $hv = peresech($ha, $hb);
+        if ($hv > $hvostMax) { $hvostMax = $hv; $hvostPara = $hk[$hi] . '↔' . $hk[$hj]; }
+    }
+}
+if ($hvostMax > POTOLOK_HVOSTOV) { $provaly['хвосты'] = 1; }
+
 // ── 3. срезы тем: внутри комплекта и против корпуса ──────────────────
 $srezy = [];
 foreach ($vnutr as $p => $v) { $srezy[$p] = mb_strtolower($v['первый H2']); }
@@ -427,6 +455,9 @@ printf("  срезы совпали с корпусом:   %s\n", $sovpavshie ? 
 printf("  худшая пара по шинглам:     %.2f%%  (%s), порог %s%%\n", $hudshayaPara, $hudshiy,
     rtrim(rtrim(sprintf('%.2f', $porog), '0'), '.'));
 printf("  каннибализация внутри:      %.2f%%  (потолок 3%%)\n", $kanMax);
+printf("  %s пересечение хвостов:       %.1f%%  (%s), потолок %s%%\n",
+    $hvostMax > POTOLOK_HVOSTOV ? '✗' : ' ', $hvostMax, $hvostPara,
+    rtrim(rtrim(sprintf('%.1f', POTOLOK_HVOSTOV), '0'), '.'));
 printf("  повтор роли в H3:           %.1f%%  (потолок 60%%, у доноров 25-52%%)\n", $shablon);
 
 printf("\nИТОГ: %s\n", $provaly ? 'НЕ ПРОЙДЕНО — ' . implode(', ', array_keys($provaly)) : 'комплект принят');
