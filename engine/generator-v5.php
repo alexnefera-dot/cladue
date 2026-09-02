@@ -924,8 +924,13 @@ $собрать = function (string $тип) use (&$блоки, &$пулы, &$rng
         foreach (preg_split('~[^а-яёa-z]+~ui', mb_strtolower(strip_tags($h2))) as $w) {
             if (mb_strlen($w) >= 5 && !in_array($w, ['честн', 'честно', 'реальн', 'реальные', 'почему', 'который', 'только', 'сегодня', 'проверенн'], true)) { $словаТемы[] = mb_substr($w, 0, 5); }
         }
+        // Фраза с числовым фактом — по теме всегда: на promo слова темы
+        // («фриспин», «турнир», «промокод») отсеивали фразы про отдачу, и
+        // дробных процентов на странице стало 1.2 при донорских 5–6, а
+        // fact_values валился (promo 5.4 → 2.8, partnery 3.8 → 1.2).
         $поТемеФразы = $словаТемы
             ? function (string $т) use ($словаТемы): bool {
+                if (preg_match('~\{RTP2?\}|\{ПРОЦ\}|\{ДОЛЯ\w*\}|\d[.,]\d\s*%~u', $т)) { return true; }
                 $н = mb_strtolower(strip_tags($т));
                 foreach ($словаТемы as $w) { if (mb_strpos($н, $w) !== false) { return true; } }
                 return false;
