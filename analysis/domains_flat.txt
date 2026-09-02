@@ -1,9 +1,11 @@
+0040.lol
 0058.team
 0302.team
 0348.team
 0403.lol
 0413.team
 0540.team
+0728.lol
 0864.team
 1073.team
 1083.lol
@@ -94,6 +96,7 @@
 2951.team
 3019.team
 3045.team
+3064.lol
 3067.team
 3096.team
 3112.team
@@ -205,6 +208,8 @@
 7039.team
 7065.team
 7082.team
+7119.lol
+7180.lol
 7186.team
 7201.team
 7216.lol
@@ -213,6 +218,7 @@
 7395.lol
 7395.team
 7440.team
+7590.lol
 7590.team
 7612.team
 7672.team
@@ -232,10 +238,12 @@
 8527.team
 8573.lol
 8616.team
+8730.lol
 8730.team
 8825.team
 8829.lol
 9012.team
+9061.lol
 9279.team
 9316.space
 9364.team
@@ -320,6 +328,7 @@ evdj.team
 f2mw.team
 f2vb.team
 f3kt.team
+f4w.lol
 f4zh.team
 f5nv.team
 f5wq.team

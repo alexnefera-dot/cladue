@@ -42,3 +42,18 @@ c4x3.team
 h6k8.team
 7027.team
 5671.team
+
+# nabory294303_4…_6 (id 1206-1208) — наборы, .lol
+3064.lol
+7180.lol
+f4w.lol
+
+# nabory284293_1…_3 (id 1213-1215) — наборы, .lol
+9061.lol
+0728.lol
+7119.lol
+
+# nabory274283_5…_7 (id 1227-1229) — наборы, .lol
+7590.lol
+0040.lol
+8730.lol
