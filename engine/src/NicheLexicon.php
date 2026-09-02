@@ -167,6 +167,20 @@ final class NicheLexicon
         return '~(?<![\w-])(' . implode('|', $parts) . ')(?![\w-])~ui';
     }
 
+    /** @return array{games: string[], providers: string[]} разные названия в нижнем регистре */
+    public static function names(string $text, ?string $dataDir = null): array
+    {
+        [$p, $g] = self::patterns($dataDir);
+        $out = ['games' => [], 'providers' => []];
+        foreach (['providers' => $p, 'games' => $g] as $k => $re) {
+            if (!preg_match_all($re, $text, $m)) { continue; }
+            $seen = [];
+            foreach ($m[1] as $x) { $seen[mb_strtolower(preg_replace('~\s+~u', ' ', $x))] = 1; }
+            $out[$k] = array_keys($seen);
+        }
+        return $out;
+    }
+
     public static function countProviders(string $text, ?string $dataDir = null): int
     {
         [$p] = self::patterns($dataDir);
