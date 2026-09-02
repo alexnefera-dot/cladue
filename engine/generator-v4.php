@@ -257,6 +257,15 @@ if ($krc === 0 && !$SUHOY) {
     $mest = __DIR__ . '/data-v4/zanyato-mestnoe.json';
     $mz = is_file($mest) ? json_decode((string) file_get_contents($mest), true) : null;
     if (is_array($mz)) { $mk['занято'] = slitZanyato($mk['занято'] ?? [], $mz); }
+    // Закрытия и скелет `slitZanyato` не переносит: их лист появился позже.
+    // Без этого переноса резерв уходил в @unlink вместе с местным файлом,
+    // и следующая машина раздавала форму хвоста и порядок H2 заново — по
+    // пустому реестру, то есть всем комплектам подряд одну и ту же.
+    foreach (is_array($mz) ? ['закрытия', 'скелет'] : [] as $list) {
+        foreach (($mz[$list] ?? []) as $klyuch => $zapis) { $mk['занято'][$list][$klyuch] = $zapis; }
+        $shagKey = $list . '_шаг';
+        $mk['занято'][$shagKey] = max((int) ($mk['занято'][$shagKey] ?? 0), (int) ($mz[$shagKey] ?? 0));
+    }
     if (!in_array($karta['маска'], $mk['занято']['маски'], true)) {
         $mk['занято']['маски'][] = $karta['маска'];
     }
