@@ -119,7 +119,9 @@ for cfg in POOLS:
                     tic[m['t']][1]+=1
                     if k['p']<=10: tic[m['t']][0]+=1
             f=lambda n: sum(1 for k in ks if k['p']<=n)
+            bk=min(ks,key=lambda k:k['p']) if ks else None
             dd[d]=dict(t3=f(3),t10=f(10),t30=f(30),t100=len(ks),
+                       bu=(bk['u'] if bk else None),
                        best=min([k['p'] for k in ks],default=None),
                        dmin=min(deps) if deps else None,
                        dmed=round(st.median(deps)) if deps else None,
