@@ -23,6 +23,7 @@ select,input#kq{font-family:var(--body);font-size:13px;background:var(--raise);c
   border:1px solid var(--line2);border-radius:2px;padding:5px 9px}
 input#kq{min-width:240px;font-family:var(--mono)}
 .brow select,.brow input{margin-right:8px}
+.bch.warnc{color:var(--mut);border-color:#5c4a24;background:#241d0f;font-family:var(--body);font-size:12px}
 
 .gsec{margin-bottom:34px}
 .ghead{border-left:2px solid var(--gold);padding:2px 0 2px 13px;margin-bottom:14px}

@@ -78,7 +78,7 @@ def parts(u):
     pg=[s for s in segs if s!='ru']
     return host,('/'+'/'.join(pg) if pg else '/'),len([s for s in segs if s=='ru'])
 
-QD={}; PD={}
+QD={}; PD={}; SD={}
 def qi(q):
     if q not in QD:
         b,t=TIER.get(q,(None,None))
@@ -88,6 +88,10 @@ def pgi(p):
     p=p or '/'
     if p not in PD: PD[p]=len(PD)
     return PD[p]
+def sdi(h,d):
+    s=(h or '').rsplit(d,1)[0].rstrip('.') if h and h.endswith(d) else ''
+    if s not in SD: SD[s]=len(SD)
+    return SD[s]
 
 OUT=[]
 for cfg in POOLS:
@@ -109,7 +113,7 @@ for cfg in POOLS:
                 if pg: pgs.add(pg)
                 if ho: subs.add(ho.split('.')[0])
                 j=qi(k['q']); m=QD[k['q']]
-                rows.append([j,doms.index(d),k['p'],(dp if dp is not None else -1),pgi(pg)])
+                rows.append([j,doms.index(d),k['p'],(dp if dp is not None else -1),pgi(pg),sdi(ho,d)])
                 if m['b']:
                     e=brc[m['b']]
                     if k['p']<=10: e[0]+=1
@@ -146,6 +150,7 @@ for cfg in POOLS:
 DATA=dict(pools=OUT,
           qd=[[QD[q]['q'],QD[q]['b'],QD[q]['t'],QD[q]['v']] for q in sorted(QD,key=lambda x:QD[x]['i'])],
           pd=[p for p,_ in sorted(PD.items(),key=lambda x:x[1])],
+          sd=[x for x,_ in sorted(SD.items(),key=lambda y:y[1])],
           built=dt.datetime.now().strftime('%d.%m %H:%M'),
           nsnap=max(len(p['snaps']) for p in OUT))
 json.dump(DATA,open(SP+'snapr.json','w'),ensure_ascii=False,separators=(',',':'))

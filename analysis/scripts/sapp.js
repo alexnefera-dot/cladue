@@ -1,4 +1,6 @@
 const D=window.DATA, QD=D.qd, PD=D.pd;
+const mkUrl=r=>'https://'+(r.sub?r.sub+'.':'')+r.dom+(r.pg==='/'?'':r.pg)+'/ru'.repeat(r.d||0);
+const med=a=>{const x=[...a].sort((p,q)=>p-q);return x.length?x[Math.floor(x.length/2)]:null;};
 const ACT=D.pools.filter(p=>!p.excl);
 const nf=(x,d=0)=>x==null?'—':Number(x).toFixed(d).replace('.',',');
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -44,45 +46,68 @@ function gDesc(p){
 function rowsOf(p){
   const {s}=snapOf(p);
   return s.rows.map(r=>({q:QD[r[0]][0],b:QD[r[0]][1],t:QD[r[0]][2],v:QD[r[0]][3],
-    dom:p.doms[r[1]],pool:p,p:r[2],d:r[3]<0?null:r[3],pg:PD[r[4]]}));
+    dom:p.doms[r[1]],pool:p,p:r[2],d:r[3]<0?null:r[3],pg:PD[r[4]],sub:D.sd[r[5]]||''}));
 }
 function allRows(){return D.pools.flatMap(p=>p.excl?[]:rowsOf(p));}
 
 /* ── 1. ДОМЕНЫ ───────────────────────────────────────────── */
-let open1=new Set(), dFilter='all';
+let open1=new Set(), dFilter='all', dTier='all';
 function tDoms(){
+  const TF={all:null,vs:['ВЧ','СЧ'],v:['ВЧ']}[dTier];
+  const tname={all:'',vs:' — считаются только ВЧ и СЧ ключи',v:' — считаются только ВЧ ключи'}[dTier];
   let h=`<div class="blk"><h2>Каждый домен по отдельности</h2>
   <p class="note">Домены сгруппированы по тому, каким запуском они ушли. Внутри карточки — что домен реально даёт:
   по каким брендам стоит в десятке, какими страницами и на какой глубине адреса.
   Числа — на том замере, который выбран сверху.</p>
-  <div class="brow"><span class="mk">показать</span>
+  <div class="brow"><span class="mk">какие ключи считать</span>
+    <select id="dt">
+      <option value="all"${dTier==='all'?' selected':''}>все ключи</option>
+      <option value="vs"${dTier==='vs'?' selected':''}>только ВЧ и СЧ — жирный спрос</option>
+      <option value="v"${dTier==='v'?' selected':''}>только ВЧ</option>
+    </select>
+    <span class="mk">показать</span>
     <select id="df">
       <option value="all"${dFilter==='all'?' selected':''}>все домены</option>
       <option value="hit"${dFilter==='hit'?' selected':''}>только те, что есть в десятке</option>
       <option value="miss"${dFilter==='miss'?' selected':''}>только пустые</option>
-    </select></div>`;
+    </select>
+    ${TF?`<span class="bch warnc">ВЧ — спрос больше миллиона в месяц, СЧ — от семисот тысяч. Это ключи, которые приносят деньги.</span>`:''}
+  </div>`;
 
   for(const p of D.pools){
-    const {s,cl}=snapOf(p), pr=prevOf(p), n=p.doms.length;
-    let ds=[...p.doms].sort((a,b)=>s.dom[b].t10-s.dom[a].t10||s.dom[b].t100-s.dom[a].t100);
-    if(dFilter==='hit') ds=ds.filter(d=>s.dom[d].t10>0);
-    if(dFilter==='miss') ds=ds.filter(d=>s.dom[d].t10===0);
-    const R=rowsOf(p);
+    const {s:snap,cl}=snapOf(p), pr=prevOf(p), n=p.doms.length;
+    let R=rowsOf(p); if(TF) R=R.filter(r=>TF.includes(r.t));
+    let PR=null;
+    if(pr){PR=pr.rows.map(r=>({t:QD[r[0]][2],dom:p.doms[r[1]],p:r[2]}));
+           if(TF) PR=PR.filter(r=>TF.includes(r.t));}
+    const st={};
+    for(const d of p.doms){
+      const mine=R.filter(r=>r.dom===d), deps=mine.map(r=>r.d).filter(x=>x!=null);
+      const bk=mine.length?mine.reduce((a,b)=>b.p<a.p?b:a):null;
+      st[d]={t10:mine.filter(r=>r.p<=10).length,t30:mine.filter(r=>r.p<=30).length,
+             t100:mine.length,best:bk?bk.p:null,bu:bk?mkUrl(bk):null,
+             dmin:deps.length?Math.min(...deps):null,dmax:deps.length?Math.max(...deps):null,
+             dmed:med(deps),mine};
+    }
+    const hit=p.doms.filter(d=>st[d].t10>0).length;
+    let ds=[...p.doms].sort((a,b)=>st[b].t10-st[a].t10||st[b].t100-st[a].t100);
+    if(dFilter==='hit') ds=ds.filter(d=>st[d].t10>0);
+    if(dFilter==='miss') ds=ds.filter(d=>st[d].t10===0);
     h+=`<div class="gsec"><div class="ghead">
       <h3>${esc(p.name.split(' · ')[0])}${p.excl?' <span class="tag ex">не отдельный запуск</span>':''}</h3>
       <p class="gd">${esc(gDesc(p))}</p>
       <p class="gd2">Запущен ${esc(p.ltx)}. ${pl(n,'домен','домена','доменов')}, на этом замере им
-        ${nf(s.age,0)} ${pl(Math.round(s.age),'час','часа','часов').split(' ')[1]}.
-        Замер ${esc(s.lab)}${cl?' — у этой группы замеров меньше, показан самый свежий':''}.
-        В десятку попал${s.tot.hit===1?'':'и'} ${pl(s.tot.hit,'домен','домена','доменов')} из ${n}.</p>
+        ${pl(Math.round(snap.age),'час','часа','часов')}.
+        Замер ${esc(snap.lab)}${cl?' — у этой группы замеров меньше, показан самый свежий':''}.
+        В десятку попал${hit===1?'':'и'} ${pl(hit,'домен','домена','доменов')} из ${n}${esc(tname)}.</p>
       </div><div class="cards">`;
     if(!ds.length) h+='<p class="note">Под этот фильтр здесь ничего не попало.</p>';
     for(const d of ds){
-      const x=s.dom[d], mine=R.filter(r=>r.dom===d);
+      const x=st[d], mine=x.mine;
       const top=mine.filter(r=>r.p<=10).sort((a,b)=>a.p-b.p);
       const brs=new Map(); for(const r of top) if(r.b) brs.set(r.b,(brs.get(r.b)||0)+1);
-      const pgs=new Map(); for(const r of mine){const k=r.pg;let e=pgs.get(k)||[0,0];e[0]++;if(r.p<=10)e[1]++;pgs.set(k,e);}
-      const dlt=pr?x.t10-pr.dom[d].t10:null;
+      const pgs=new Map(); for(const r of mine){let e=pgs.get(r.pg)||[0,0];e[0]++;if(r.p<=10)e[1]++;pgs.set(r.pg,e);}
+      const dlt=PR?x.t10-PR.filter(r=>r.dom===d&&r.p<=10).length:null;
       const oid=p.id+'|'+d, isOpen=open1.has(oid), show=isOpen?top:top.slice(0,6);
       h+=`<div class="dcard${x.t10?'':' empty'}">
         <div class="dh"><span class="dn">${esc(d)}</span>
@@ -95,7 +120,7 @@ function tDoms(){
           <div><span class="sv">${x.t100}</span><span class="sl">всего найдено</span></div>
           <div><span class="sv ${x.best?cls(x.best):'mut'}">${x.best??'—'}</span><span class="sl">лучшая позиция</span></div>
         </div>`;
-      if(x.t100===0){h+='<p class="dnote">Домен не нашёлся ни по одному ключу.</p></div>';continue;}
+      if(!mine.length){h+=`<p class="dnote">${TF?'По ключам этого спроса домен не нашёлся вообще.':'Домен не нашёлся ни по одному ключу.'}</p></div>`;continue;}
       h+=`<div class="drow"><span class="mk">бренды в десятке</span>
         <span class="dv">${brs.size?(()=>{const bs=[...brs.entries()].sort((a,b)=>b[1]-a[1]);
           return bs.slice(0,12).map(([b,c])=>`<span class="bch">${esc(b)} <b>${c}</b></span>`).join('')
@@ -253,6 +278,7 @@ function renderAll(){
   document.getElementById('main').innerHTML=TABS.find(t=>t[0]===TAB)[2]();
   const bind=(id,fn)=>{const e=document.getElementById(id);if(e)e.onchange=fn;};
   bind('df',e=>{dFilter=e.target.value;renderAll();});
+  bind('dt',e=>{dTier=e.target.value;renderAll();});
   bind('bt',e=>{bTier=e.target.value;renderAll();});
   bind('kp',e=>{kPool=e.target.value;renderAll();});
   bind('kt',e=>{kTier=e.target.value;renderAll();});
