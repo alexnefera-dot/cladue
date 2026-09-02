@@ -51,6 +51,9 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         // Как только «Сейчас» меняется, правка перестаёт действовать — свод берёт главную сумму.
         _ = try? made.run("ALTER TABLE target_items ADD COLUMN digest_value REAL")
         _ = try? made.run("ALTER TABLE target_items ADD COLUMN digest_base REAL")
+        // «Ожидает решения»: то, что руками вынесено из просроченного как актуальное сейчас
+        _ = try? made.run("ALTER TABLE nodes ADD COLUMN waiting INTEGER NOT NULL DEFAULT 0")
+        _ = try? made.run("ALTER TABLE obligations ADD COLUMN waiting INTEGER NOT NULL DEFAULT 0")
         _ = try? made.run("ALTER TABLE obligations ADD COLUMN item_id INTEGER")   // регламент содержания висит на позиции портфеля (было: на объекте имущества)
         // История капитала по частям. invested — сумма покупок: без неё «капитал вырос на 10k»
         // не отличить от «я довнёс 10k», а это разные новости.
@@ -1543,7 +1546,7 @@ enum Api {
     private static let finCols: [String: [String]] = [
         "accounts": ["name", "type", "currency", "note", "balance"],
         "steps": ["kind", "title", "amount", "planned_date", "condition", "status", "note"],
-        "obligations": ["name", "amount", "currency", "period", "next_date", "remind_days", "kind", "note", "due_time"],
+        "obligations": ["name", "amount", "currency", "period", "next_date", "remind_days", "kind", "note", "due_time", "waiting"],
         "items": ["name", "buy_value", "value", "target_value", "currency", "is_loan", "loan_due", "asset_type", "qty", "rate_symbol", "note", "region", "liquid", "passive", "digest", "digest_value", "digest_base"],
         "tx": ["date", "amount", "currency", "direction", "category", "note"],
         "debts": ["name", "amount", "currency", "direction", "due_date", "note"],
@@ -1965,7 +1968,7 @@ enum Api {
     private static let HOMO: [Character: Character] = ["а": "a", "е": "e", "о": "o", "с": "c", "р": "p",
         "х": "x", "у": "y", "к": "k", "в": "b", "м": "m", "т": "t"]
     static func norm(_ s: String) -> String { String(s.lowercased().map { HOMO[$0] ?? $0 }) }
-    private static let PATCHABLE = ["title", "note", "kind", "status", "priority", "due_date", "due_time", "answer", "repeat"]
+    private static let PATCHABLE = ["title", "note", "kind", "status", "priority", "due_date", "due_time", "answer", "repeat", "waiting"]
 
     static func getNode(_ db: Database, _ id: Int) throws -> [String: Any]? {
         try db.rows("SELECT * FROM nodes WHERE id = ?", [id]).first
@@ -3037,16 +3040,20 @@ enum Api {
         let weekEnd = localDateFormatter().string(from: cal.date(byAdding: .day, value: 7, to: Date())!)
         func taskRows(_ cond: String) throws -> [[String: Any]] {
             try db.rows("""
-                SELECT id, title, kind, priority, due_date, due_time, repeat FROM nodes
+                SELECT id, title, kind, priority, due_date, due_time, repeat, waiting FROM nodes
                 WHERE is_category = 0 AND (status IS NULL OR status NOT IN ('done','accepted')) AND \(cond)
                 ORDER BY priority IS NULL, priority, due_date
                 """, [t])
         }
-        let overdue = try taskRows("due_date < ?")
+        // «Ожидает решения» — ручной список: сюда переносят из просроченного то, что актуально
+        // сейчас. Из просроченного эти строки уходят, чтобы не двоиться.
+        let waiting = try taskRows("COALESCE(waiting,0) = 1")
+        let overdue = try taskRows("due_date < ? AND COALESCE(waiting,0) = 0")
         let dueToday = try taskRows("due_date = ?")
         // обязательства с подошедшей/просроченной датой — наравне с задачами (пока не оплачены — оплата двигает next_date вперёд)
-        let obToday = try db.rows("SELECT id, name, amount, currency, next_date, due_time, period, kind FROM obligations WHERE next_date = ? ORDER BY due_time IS NULL, due_time", [t])
-        var obOverdue = try db.rows("SELECT id, name, amount, currency, next_date, due_time, period, kind FROM obligations WHERE next_date < ? ORDER BY next_date", [t])
+        let obToday = try db.rows("SELECT id, name, amount, currency, next_date, due_time, period, kind, waiting FROM obligations WHERE next_date = ? AND COALESCE(waiting,0) = 0 ORDER BY due_time IS NULL, due_time", [t])
+        let obWaiting = try db.rows("SELECT id, name, amount, currency, next_date, due_time, period, kind, waiting FROM obligations WHERE COALESCE(waiting,0) = 1 ORDER BY next_date")
+        var obOverdue = try db.rows("SELECT id, name, amount, currency, next_date, due_time, period, kind, waiting FROM obligations WHERE next_date < ? AND COALESCE(waiting,0) = 0 ORDER BY next_date", [t])
         for i in obOverdue.indices {
             obOverdue[i]["overdue_days"] = (obOverdue[i]["next_date"] as? String).flatMap { dayDiff($0, t) }.map { Int(floor($0)) } ?? NSNull()
         }
@@ -3104,6 +3111,7 @@ enum Api {
             "focusOrder": (try db.rows("SELECT value FROM settings WHERE key = 'focus_order'").first?["value"]) ?? NSNull(),
             "routines": sortRoutines(routinesArr),
             "overdue": overdue, "dueToday": dueToday, "obToday": obToday, "obOverdue": obOverdue, "week": week, "events": events,
+            "waiting": waiting, "obWaiting": obWaiting,
             "zones": ["paymentsWeek": payments7.count, "debtsOverdue": debtsOverdue.count, "practicesToday": practicesToday],
             "people": ["birthdays": Array(bdays), "overdueContacts": Array(overdueContacts)],
             "movement": try movement(db),

@@ -340,7 +340,8 @@ function tdMetricsDue() {
     </div>`).join('')}</div>`;
 }
 
-function taskLine(t, hideDate) {
+// wait: 'in' — кнопка «вынести в ожидание», 'out' — «вернуть в просроченное»
+function taskLine(t, hideDate, wait) {
   return `<div class="task">
     <span class="cb ${t.kind === 'decision' ? 'dec' : ''}" data-tdtoggle="${t.id}"></span>
     ${t.priority ? `<span class="pill ${t.priority}">${t.priority}</span>` : ''}
@@ -349,11 +350,19 @@ function taskLine(t, hideDate) {
     ${t.repeat ? '<span class="meta">🔁</span>' : ''}
     ${hideDate ? (t.due_time ? `<span class="meta">${tesc(t.due_time)}</span>` : '')
       : `<span class="meta ed" data-tddate="${t.id}" data-tdtime="${t.due_time ?? ''}" title="изменить срок и время">${t.due_date ? t.due_date + (t.due_time ? ' · ' + t.due_time : '') : '＋ срок'}</span>`}
+    ${waitBtn('task', t.id, wait)}
   </div>`;
 }
 
+// Перенос между «Просрочено» и «Ожидает решения» — одной кнопкой в строке
+function waitBtn(type, id, wait) {
+  if (wait === 'in') return `<span class="rowbtn" data-tdwait="${type}:${id}:1" title="вынести в «Ожидает решения»">⏳</span>`;
+  if (wait === 'out') return `<span class="rowbtn" data-tdwait="${type}:${id}:0" title="убрать из ожидания">↩</span>`;
+  return '';
+}
+
 // обязательство (платёж) — наравне с задачей: «оплатить» двигает дату на следующий период
-function obLine(o) {
+function obLine(o, wait) {
   const amt = Math.round(Number(o.amount) || 0).toLocaleString('ru-RU');
   return `<div class="task">
     <span class="pill p2" title="финансовое обязательство">◈ платёж</span>
@@ -362,6 +371,7 @@ function obLine(o) {
     ${o.overdue_days ? `<span class="meta" style="color:var(--red)">просрочено ${o.overdue_days}д</span>` : ''}
     <span class="meta ed" data-obdate="${o.id}" data-obtime="${o.due_time ?? ''}" title="изменить дату и время">${o.next_date || '＋ дата'}${o.due_time ? ' · ' + o.due_time : ''}</span>
     <span class="pill btn ok" data-obpay="${o.id}" title="оплачено — сдвинуть на следующий период">оплатить ✓</span>
+    ${waitBtn('ob', o.id, wait)}
   </div>`;
 }
 
@@ -402,6 +412,7 @@ function tdWeekBoard(compact) {
   const rest = compact ? days : days.filter(x => tdIso(x) !== today);   // на узком экране сегодня остаётся в полосе
   const busiest = Math.max(1, ...rest.map(x => (byDate[tdIso(x)] || []).length));
 
+  const wait = d.waiting || [], obWait = d.obWaiting || [];
   const over = d.overdue || [], obOver = d.obOverdue || [];
   // задачи и платежи сегодня берём из своих списков — там полные поля; шаги и события добираем из ленты
   const extra = (byDate[today] || []).filter(it => it.type !== 'task' && it.type !== 'money');
@@ -436,9 +447,9 @@ function tdWeekBoard(compact) {
   return `
   <div class="sec">План недели · тащи дело на другой день</div>
   <div class="tdboard">
-    ${over.length || obOver.length ? `<div class="tdover" data-tdday="${today}">
-      <div class="tdoverhead">⚠ Просрочено · ${over.length + obOver.length}</div>
-      ${over.map(t => taskLine(t, true)).join('')}${obOver.map(obLine).join('')}
+    ${wait.length || obWait.length ? `<div class="tdover" data-tdday="${today}">
+      <div class="tdoverhead">⏳ Ожидает решения · ${wait.length + obWait.length}</div>
+      ${wait.map(t => taskLine(t, true, 'out')).join('')}${obWait.map(o => obLine(o, 'out')).join('')}
     </div>` : ''}
 
     <div class="tdnow${nToday ? '' : ' quiet'}" data-tdday="${today}">
@@ -628,8 +639,10 @@ function renderTodayMobile() {
   </div>
   <div id="tdRollBox" style="margin:0 0 8px"></div>
 
-  ${d.overdue.length || (d.obOverdue || []).length ? `<div class="sec" style="color:var(--red)">⚠ Просрочено</div>
-  <div class="card">${d.overdue.map(mTask).join('')}${(d.obOverdue || []).map(obLine).join('')}</div>` : ''}
+  ${(d.waiting || []).length || (d.obWaiting || []).length ? `<div class="sec">⏳ Ожидает решения</div>
+  <div class="card">${(d.waiting || []).map(t => taskLine(t, true, 'out')).join('')}${(d.obWaiting || []).map(o => obLine(o, 'out')).join('')}</div>` : ''}
+  ${d.overdue.length || (d.obOverdue || []).length ? `<div class="sec" style="color:var(--red)">⚠ Просрочено <span class="muted" style="font-weight:400">· ⏳ переносит в «Ожидает решения»</span></div>
+  <div class="card">${d.overdue.map(t => taskLine(t, false, 'in')).join('')}${(d.obOverdue || []).map(o => obLine(o, 'in')).join('')}</div>` : ''}
 
   <div class="sec">Задачи на сегодня</div>
   <div class="card">${(d.dueToday.map(mTask).join('') + (d.obToday || []).map(obLine).join('')) ||
@@ -794,6 +807,15 @@ function bindToday() {
     if (r && r.added === 0) alert('Все идеи из набора уже заведены.');
     window.loadToday();
   });
+  document.querySelectorAll('#screen-today [data-tdwait]').forEach(el =>
+    el.addEventListener('click', async e => {
+      e.stopPropagation();
+      const [type, id, on] = el.dataset.tdwait.split(':');
+      const url = type === 'task' ? `/api/nodes/${id}` : `/api/fin/obligations/${id}`;
+      await fetch(url, { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ waiting: +on }) });
+      window.loadToday();
+    }));
   document.querySelectorAll('#screen-today [data-restdone]').forEach(el =>
     el.addEventListener('click', async () => {
       await fetch('/api/rest/' + el.dataset.restdone + '/done', { method: 'POST' });
