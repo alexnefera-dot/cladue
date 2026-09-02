@@ -22,3 +22,6 @@ engine/.image-ledger
 
 # резерв срезов и граней на время прогона (в поставку переносит генератор)
 engine/data-v4/zanyato-mestnoe.json
+
+# задания, собранные zadanie-v4.php: пересобираются из профиля и реестра
+zadaniya/
