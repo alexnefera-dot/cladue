@@ -3,6 +3,14 @@ const nf=(x,d=0)=>x==null?'—':Number(x).toFixed(d).replace('.',',');
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const pl=(n,a,b,c)=>{const x=Math.abs(n)%100,y=x%10;return n+' '+(x>10&&x<20?c:y===1?a:y>1&&y<5?b:c);};
 const QN={'ok':'полное','усечено':'обрезано слева','окно открыто':'ещё копится'};
+const SN={'готовый пак':'пак','генератор':'генератор','наборы':'наборы',
+          'сайты из выдачи':'выдача','не указано':'не указано'};
+const chips=(arr,map,lim=4)=>{
+  const top=arr.slice(0,lim), rest=arr.slice(lim);
+  return top.map(x=>`<span class="bch sm">${esc(map?map[x.k]||x.k:x.k)} <b>${x.n}</b>${
+    x.r?` <span class="good">рег ${x.r}</span>`:''}</span>`).join('')
+    +(rest.length?`<span class="bch sm mut" title="${esc(rest.map(x=>x.k+' '+x.n).join(', '))}">и ещё ${
+      rest.length} по ${rest.reduce((a,b)=>a+b.n,0)===rest.length?'одному':'мелочи'}</span>`:'');};
 
 /* меры окна: значение всегда подписано числом, цвет — не единственный носитель */
 const meter=(pct,cl)=>`<div class="meter" role="img" aria-label="${pct}% окна">
@@ -27,7 +35,7 @@ function tDays(){
     </select></div>
   <div class="tw"><table class="big"><thead><tr>
     <th class="l">День запуска</th><th>Доменов</th><th>Групп</th>
-    <th class="l">Окно</th><th class="l">Данные</th>
+    <th class="l">Окно</th><th class="l">Данные</th><th class="l">Контент</th><th class="l">Зоны</th>
     <th>С деньгами</th><th>Доля</th><th>Отклонение</th>
     <th>Регистраций</th><th>Депозитов</th><th>Рег/дом</th><th>Прогноз</th><th>Т10/дом</th>
   </tr></thead><tbody>`;
@@ -41,6 +49,8 @@ function tDays(){
         :d.q==='усечено'?`<span class="tag bad2">нет первых ${pl(d.lost,'суток','суток','суток')}</span>
            <div class="mut">это ~${d.lostpct}% заработка</div>`
         :'<span class="tag warn2">ещё копится</span>'}</td>
+      <td class="l sm">${chips(d.src,SN)}</td>
+      <td class="l sm">${chips(d.zone)}</td>
       <td>${d.w}</td>
       <td class="${d.q==='ok'?'now':'mut'}"><b>${nf(d.share,1)}%</b></td>
       <td class="sm ${d.q!=='ok'?'mut':Math.abs(d.z)>=2?'warn':''}">${d.q==='ok'?(d.z>0?'+':'')+nf(d.z,1)+' σ':'—'}</td>
@@ -54,6 +64,27 @@ function tDays(){
   Грубая оценка того, куда день придёт к закрытию, и только для дней с открытым окном.
   На возрасте одних суток она умножает на пять с половиной, поэтому у 2 сентября ей верить нельзя.</p>`;
 
+  const sumtab=(key,title,note,map)=>{
+    let t=`<div class="blk"><h3 class="vt">${title}</h3><p class="note">${note}</p>
+    <div class="tw"><table><thead><tr><th class="l">${key==='src'?'Источник контента':'Зона'}</th>
+      <th>Доменов всего</th><th>С деньгами</th><th>Регистраций</th><th>Депозитов</th>
+      <th>Доменов с закрытым окном</th><th>Из них с деньгами</th><th>Доля</th>
+      </tr></thead><tbody>`;
+    for(const x of D.sum[key]){
+      if(x.n<5&&!x.r) continue;
+      t+=`<tr${x.cn?'':' class="tr-bad"'}><td class="l"><b>${esc(map?map[x.k]||x.k:x.k)}</b></td>
+        <td>${x.n}</td><td>${x.w}</td><td class="${x.r?'good':'mut'}"><b>${x.r}</b></td>
+        <td class="${x.dep?'good':'mut'}">${x.dep||'·'}</td>
+        <td>${x.cn||'<span class="mut">—</span>'}</td><td>${x.cn?x.cw:''}</td>
+        <td class="${x.cn>=20?'now':'mut'}">${x.cn?nf(100*x.cw/x.cn,0)+'%':'нет закрытых'}</td></tr>`;}
+    const tail=D.sum[key].filter(x=>x.n<5&&!x.r);
+    if(tail.length) t+=`<tr><td class="l mut" colspan="8">плюс ${tail.length} по одному-двум доменам без денег: ${
+      tail.map(x=>esc(x.k)).join(', ')}</td></tr>`;
+    return t+'</tbody></table></div></div>';};
+  h+=sumtab('src','Чего запускали больше — генератора или готовых паков',
+    'Сложено по всем дням. Колонка «доля» считается только по доменам, у которых окно уже закрылось, иначе свежие партии тянут её вниз.',SN);
+  h+=sumtab('zone','Какие доменные зоны шли в запуск',
+    'Тот же принцип: доля — только по закрытым окнам.');
   if(D.gap.length) h+=`<div class="blk"><h3 class="vt">Дни без запусков</h3>
     <p class="note">В эти дни ничего не запускали, поэтому в таблице их нет.
     Конверсии в них приходили — но с доменов, запущенных раньше.</p>
