@@ -13,14 +13,18 @@ for d,v in db.items():
 for p in SN['pools']:
     if p.get('excl'): continue
     for x in p['doms']: DAY[x]=p['ltx'][:5]
-MAN={'1893.team':'27.08','4328.team':'27.08','dprz.team':'27.08','glhd.team':'27.08',
-     'hjsf.team':'27.08','ogax.team':'27.08','c5vt.team':'27.08','k6m.team':'27.08'}
-DAY.update(MAN)
+# полный список запуска 27.08 из реестра (31 домен, три группы) — раньше в карте
+# было только 8 доменов, и попали они туда по факту наличия конверсии
+D2708=('bmtq cnwv dprz fkxb glhd hjsf 1524 1893 2367 2745 4328 '            # 7page_1…_11
+       '2139 2483 ogax byai 7186 4087 2084 2304 7440 0302 '                 # 7page_1_1…_10_1
+       '3596 b8rn c5vt d3mw f9kq f9pb h7nd j2t k6m r9v').split()            # Generator_11page_old
+for x in D2708: DAY[x+'.team']='27.08'
 TODAY=dt.date(2026,9,3)
 def dat(s):
     m=re.match(r'(\d\d)\.(\d\d)',s)
     return dt.date(2026,int(m.group(2)),int(m.group(1))) if m else None
 CL=[d for d in DAY if dat(DAY[d]) and (TODAY-dat(DAY[d])).days>=6]
+OPEN=[d for d in DAY if dat(DAY[d]) and (TODAY-dat(DAY[d])).days<6]
 print(f"доменов с известным днём запуска: {len(DAY)}; с закрытым окном: {len(CL)}")
 base=sum(1 for d in CL if reg[d])/len(CL)
 print(f"базовая доля доменов с регистрацией: {100*base:.1f}%\n")
@@ -37,6 +41,16 @@ print(f"{'день запуска':<14}{'доменов':>8}{'с рег.':>7}{'�
 for k,n,w,p,se,r,rp,z in rows:
     mark=' ←' if abs(z)>=2 else ''
     print(f"{k:<14}{n:>8}{w:>7}{p:>7.1f}%{se:>7.1f}{z:>+7.1f}σ{r:>6}{rp:>9.2f}{mark}")
+
+GO=collections.defaultdict(list)
+for d in OPEN: GO[DAY[d]].append(d)
+print(f"\n--- дни, у которых окно ЕЩЁ НЕ ЗАКРЫЛОСЬ (доля будет расти) ---")
+for k in sorted(GO,key=lambda x:dat(x)):
+    ds=GO[k]; n=len(ds); w=sum(1 for d in ds if reg[d]); r=sum(reg[d] for d in ds)
+    age=(TODAY-dat(k)).days
+    print(f"{k:<14}{n:>8}{w:>7}{100*w/n:>7.1f}%   прошло {age} сут. из 6 "
+          f"(~{[0,18,49,75,90,95,99][min(age,6)]}% окна){r:>6}{r/n:>9.2f}")
+print("\n--- 28, 29 и 30 августа: запусков не было вообще (реестр: 27.08 → 31.08) ---")
 
 # симуляция: насколько велик разброс, если дни ни при чём
 obs=max(p for _,_,_,p,_,_,_,_ in rows)-min(p for _,_,_,p,_,_,_,_ in rows)
@@ -78,11 +92,13 @@ for k in ['19.08','20.08','21.08']:
     print(f"   запуск {k}: не покрыто первых {miss} сут. жизни — а это ~"
           f"{[0,18,49,75,90,95][min(miss,5)]}% всего заработка домена")
 
-print("\n2) Домены 27.08 я добавил вручную ИМЕННО ПОТОМУ, что они были в списке")
-print("   с конверсиями. Отсюда 8 из 8 = 100%: это отбор по результату, а не результат.")
+print("\n2) 27.08 в прошлой версии стоял 8 из 8 = 100% — потому что в карту попали")
+print("   только те домены, которые я нашёл В СПИСКЕ С КОНВЕРСИЯМИ. Достав из реестра")
+print("   все 31 домен трёх групп того дня, получаем 8 из 31 = 25.8%, то есть ровно")
+print("   базовую долю. Отбор по результату убран.")
 
-OK=[d for d in CL if dat(DAY[d])>=dt.date(2026,8,22) and DAY[d]!='27.08']
-print(f"\n3) Чистая выборка: запуск с 22.08, окно закрыто, без ручного 27.08 — {len(OK)} доменов")
+OK=[d for d in CL if dat(DAY[d])>=dt.date(2026,8,22)]
+print(f"\n3) Чистая выборка: запуск с 22.08, окно закрыто — {len(OK)} доменов")
 b2=sum(1 for d in OK if reg[d])/len(OK)
 G2=collections.defaultdict(list)
 for d in OK: G2[DAY[d]].append(d)
