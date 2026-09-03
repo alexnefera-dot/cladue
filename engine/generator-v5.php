@@ -718,7 +718,8 @@ $контекст = function (array $локальные) use ($паспорт, $
             return $память['СУММА'];
         }
         if ($ключ === 'СУММА_СТАВКА') {
-            $потолок = isset($память['СУММА']) ? v5Summa((string) $память['СУММА']) : 200_000;
+            // И не выше 200к: с памятью в 3.2 млн ставка героя FAQ выходила 4 382 751 ₽.
+            $потолок = min(200_000, isset($память['СУММА']) ? v5Summa((string) $память['СУММА']) : 200_000);
             $мелкие = array_values(array_filter(array_keys($банки['СУММАМАЛ'] ?? []),
                 fn($x) => v5Summa((string) $x) < $потолок && v5Summa((string) $x) >= 1_000));
             return $мелкие ? (string) $rng->pick($мелкие) : '';
@@ -1212,7 +1213,7 @@ $собрать = function (string $тип) use (&$блоки, &$пулы, &$rng
                     return $v;
                 }
                 if ($ключ === 'СУММА_СТАВКА') {
-                    $потолок = $суммаРаздела !== null ? v5Summa((string) $суммаРаздела) : 200_000;
+                    $потолок = min(200_000, $суммаРаздела !== null ? v5Summa((string) $суммаРаздела) : 200_000);
                     $мелкие = array_values(array_filter(array_keys($банки['СУММАМАЛ'] ?? []),
                         fn($x) => v5Summa((string) $x) < $потолок && v5Summa((string) $x) >= 1_000));
                     if (!$мелкие) { $мелкие = array_values(array_filter(array_keys($банки['СУММАМАЛ'] ?? []), fn($x) => v5Summa((string) $x) >= 1_000)); }
