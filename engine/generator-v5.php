@@ -626,9 +626,14 @@ $перебратьВиджет = function (string $html, string $тип) use (&
                 // До двух предложений, чтобы дотянуть до донорских 56–59 слов;
                 // одно давало 47.
                 $предл = preg_split('~(?<=[.!?])\s+~u', trim($чист), 3);
+                // И не то предложение, что в ответе уже есть: «В профиле: каждое
+                // вращение записано…» шло дважды в одном ответе — пары с общим
+                // предметом делят и формулировки.
+                $ужеЕсть = mb_strtolower(preg_replace('~\s+~u', ' ', strip_tags((string) $p['о'])));
                 $предл = array_values(array_filter($предл, fn($x) =>
                     !preg_match('~^\s*(?:<strong>)?(?:он|она|оно|они|это|там|тут|здесь|внутри|потом|затем|также|ещё|а|но|и|с|из|у)\b~ui', strip_tags($x))
-                    && count(preg_split('~\s+~u', trim(strip_tags($x)), -1, PREG_SPLIT_NO_EMPTY)) >= 6));
+                    && count(preg_split('~\s+~u', trim(strip_tags($x)), -1, PREG_SPLIT_NO_EMPTY)) >= 6
+                    && !str_contains($ужеЕсть, mb_strtolower(trim(preg_replace('~\s+~u', ' ', strip_tags($x)), " .!?—")))));
                 $хвост = trim(implode(' ', array_slice($предл, 0, $слов < 30 ? 2 : 1)));
                 if ($хвост !== '' && !str_contains($хвост, '?')) { $пары[$i]['о'] = rtrim((string) $p['о']) . ' ' . $хвост; }
             }
