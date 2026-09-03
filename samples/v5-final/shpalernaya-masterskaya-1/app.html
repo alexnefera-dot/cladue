@@ -1,0 +1,115 @@
+<h2>Менеджер паролей не подставляет данные в форму клиента</h2>
+
+<p>Шпалерщик знает: цветной картон лежит под натянутой основой, а не поверх неё — рисунок виден мастеру, но нитью его не подцепишь. Форма входа в сборке %brand_name_en% устроена так же: <strong>поле есть, а системному хранилищу паролей оно не отдаётся</strong>.</p>
+
+<p>В обычном браузере всё подставляется само, в мобильной сборке — нет. <strong>Причина техническая и одна:</strong> поля нарисованы средствами приложения, а не веб-формой, и менеджер их попросту не видит.</p>
+
+<h3>Что при этом всё-таки работает</h3>
+
+<p>Копирование в буфер и вставка долгим нажатием проходят без помех, и <a href="/zerkalo">запасной домен</a> ведёт себя так же. <strong>Биометрия внутри сборки %brand_name_en% тоже работает</strong> и после первого ручного ввода заменяет пароль совсем.</p>
+
+<table>
+<tr><th>Способ входа</th><th>Работает в сборке</th><th>Сколько занимает</th></tr>
+<tr><td>Автоподстановка менеджера</td><td>нет, ни на Android, ни на iOS</td><td>—</td></tr>
+<tr><td>Копирование и вставка</td><td>да, буфер живёт 30–60 с</td><td>около 12 секунд</td></tr>
+<tr><td>Биометрия после первого входа</td><td>да, ключ хранит телефон</td><td>около 0,3 секунды</td></tr>
+</table>
+
+<h3>Порядок, который избавляет от ручного ввода</h3>
+
+<ol>
+<li>Войдите один раз вручную: скопируйте длинный пароль из менеджера и вставьте.</li>
+<li>Подтвердите вход разовым кодом — он придёт на телефон из <a href="/registracia">анкеты игрока</a>.</li>
+<li>Включите биометрию в том же разделе защиты, сразу после первого входа.</li>
+<li>Проверьте <a href="/vhod">реестр устройств</a>: там прибавится строка — всего их восемь.</li>
+</ol>
+
+<p><strong>Дальше пароль не понадобится до самой чистки кэша.</strong> Расписка живёт 21 сутки, а биометрия переживает и её — до переустановки или крупного обновления сборки.</p>
+
+<h3>Когда пароль спросят снова</h3>
+
+<p>Три случая, и все предсказуемы: полная чистка хранилища, обновление поверх старой сборки и вход в кассу %brand_name_en% перед первым выводом средств от 400 ₽.</p>
+
+<p>Первые два стирают расписку. Третий её не трогает: <strong>денежный раздел требует свежего подтверждения по правилам лицензии</strong>, и биометрия там засчитывается наравне с паролем.</p>
+
+<blockquote>Картон не ткут — по нему сверяются. Менеджер паролей рядом со сборкой работает так же: он рядом, но нить ведёт рука.</blockquote>
+
+<h3>Чего делать не стоит</h3>
+
+<p>Не записывайте пароль в заметки телефона ради удобства: это ровно тот риск, от которого менеджер и защищает. <strong>Не отключайте и разовый код</strong> — при утечке пароля он остаётся единственной преградой, Перечень адресов на <a href="/zerkalo">запасном домене</a> тут ни при чём.</p>
+
+<h3>Итог в одном числе</h3>
+
+<p>Ручной вход отнимает 12 секунд и случается примерно раз в три недели: за полгода вышло семь раз. Дальше всё делает отпечаток, и <a href="/slots">каталог автоматов</a> с демо-режимом открывается тем же движением, что и в браузере %brand_name_en%.</p>
+
+<h2>Десять вопросов о входе в приложение</h2>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Появится ли автоподстановка в следующих версиях сборки?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Это зависит от способа отрисовки полей, и в примечаниях к свежей версии 3.21 такой правки нет.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли вставить пароль из менеджера в поле кода?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Поле разового кода принимает вставку из буфера, и код в него подставится целиком.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Почему буфер обмена очищается до того, как я вставил?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Менеджеры паролей чистят буфер через 30–60 секунд, и этот срок настраивается в них самих.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Заблокируют ли счёт, если пароль вставлять каждый раз?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, способ ввода площадку не интересует: значение имеет только число неверных попыток подряд.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Работает ли биометрия, если телефон разблокирован лицом?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Да, сборка берёт тот же способ, что задан в системе, и отдельной настройки не требует.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать, если отпечаток перестал приниматься совсем?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Выключите биометрию в разделе защиты и включите заново — это пересоздаёт ключ на стороне телефона.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько строк реестра занимает один телефон с двумя входами?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Одну: реестр считает устройство и оболочку, а не число отдельных заходов за день.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Переносится ли биометрия при смене телефона на новый?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет, ключ остаётся на старом устройстве, и на новом всё начинается с ручного входа.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Видит ли площадка, каким способом я вошёл в счёт?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>В реестре отмечается устройство и время, а способ подтверждения там не хранится.</p></div>
+  </div>
+</details>
+
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Спросит ли сборка пароль после перезагрузки телефона?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Обычная перезагрузка расписку не трогает, и вход пройдёт по отпечатку как всегда.</p></div>
+  </div>
+</details>
