@@ -1,15 +1,40 @@
-# Запуск 02.09.2026 — 30 доменов, шесть веток, все одного возраста
-# Даты в именах контентов к дню запуска отношения не имеют.
+# День 02.09.2026 — 67 доменов, девять веток, создание 16:19–16:21 (один батч).
+# Даты в именах контентов к дню запуска отношения не имеют: id это очередь создания.
 
-# NEW50_7pages_nodate_01.09_1…_6 (id 1129-1134) — 7 страниц, БЕЗ дат, .team
+## NEW50_12pages_withdate_01.09_7…_10 — id 1099-1102, 4 дом., .team 4
+## 12 стр, С ДАТАМИ, семейство NEW50
+kzgq.team
+tgmb.team
+t8n2.team
+8193.team
+
+## NEW50_7pages_withdate_01.09_7…_11 — id 1124-1128, 5 дом., .team 5
+## 7 стр, С ДАТАМИ, семейство NEW50
+qmpl.team
+7326.team
+0040.team
+2465.team
+4967.team
+
+## NEW50_7pages_nodate_01.09_1…_14 — id 1129-1142, 14 дом., .team 14
+## 7 стр, БЕЗ ДАТ, семейство NEW50
 j0s0.team
 0348.team
 4502.team
 ciye.team
 9012.team
 5580.team
+syoo.team
+ikmd.team
+xfdr.team
+3654.team
+2369.team
+8640.team
+1185.team
+7570.team
 
-# NEW50_2_7pages_withdate_1…_6 (id 1172-1177) — 7 страниц, с датами, .team
+## NEW50_2_7pages_withdate_1…_6 — id 1172-1177, 6 дом., .team 6
+## 7 стр, С ДАТАМИ, семейство NEW50_2
 4235.team
 0413.team
 3242.team
@@ -17,7 +42,8 @@ ciye.team
 0540.team
 oasc.team
 
-# NEW50_2_12pages_nodate_02.09_3…_8 (id 1180-1185) — 12 страниц, БЕЗ дат, .lol/.team
+## NEW50_2_12pages_nodate_02.09_3…_8 — id 1180-1185, 6 дом., .lol 4, .team 2
+## 12 стр, БЕЗ ДАТ, семейство NEW50_2
 8829.lol
 tvuy.team
 7395.lol
@@ -25,7 +51,8 @@ tvuy.team
 2418.lol
 7590.team
 
-# NEW50_2_12pages_withdate_02.09_1…_17 (id 1186-1202) — 12 страниц, с датами, .team 14 + .lol 3
+## NEW50_2_12pages_withdate_02.09_1…_17 — id 1186-1202, 17 дом., .team 14, .lol 3
+## 12 стр, С ДАТАМИ, семейство NEW50_2
 q7a.team
 c2u3.team
 9158.lol
@@ -44,50 +71,26 @@ o5h7.team
 2801.team
 5230.team
 
-# nabory294303_1…_3 (id 1203-1205) — наборы, .team, конфигурация неизвестна
+## nabory294303_1…_6 — id 1203-1208, 6 дом., .team 3, .lol 3
+## наборы, конфигурация неизвестна
 u0s.team
 4202.team
 c4x3.team
-
-# nabory274283_8…_10 (id 1230-1232) — наборы, .team, конфигурация неизвестна
-h6k8.team
-7027.team
-5671.team
-
-# nabory294303_4…_6 (id 1206-1208) — наборы, .lol
 3064.lol
 7180.lol
 f4w.lol
 
-# nabory284293_1…_3 (id 1213-1215) — наборы, .lol
+## nabory284293_1…_3 — id 1213-1215, 3 дом., .lol 3
+## наборы, конфигурация неизвестна
 9061.lol
 0728.lol
 7119.lol
 
-# nabory274283_5…_7 (id 1227-1229) — наборы, .lol
+## nabory274283_5…_10 — id 1227-1232, 6 дом., .lol 3, .team 3
+## наборы, конфигурация неизвестна
 7590.lol
 0040.lol
 8730.lol
-
-# NEW50_12pages_withdate_01.09_7…_10 (id 1099-1102) — 12 страниц, с датами, .team, семейство NEW50
-kzgq.team
-tgmb.team
-t8n2.team
-8193.team
-
-# NEW50_7pages_withdate_01.09_7…_11 (id 1124-1128) — 7 страниц, с датами, .team, семейство NEW50
-qmpl.team
-7326.team
-0040.team
-2465.team
-4967.team
-
-# NEW50_7pages_nodate_01.09_7…_14 (id 1135-1142) — 7 страниц, БЕЗ дат, .team
-syoo.team
-ikmd.team
-xfdr.team
-3654.team
-2369.team
-8640.team
-1185.team
-7570.team
+h6k8.team
+7027.team
+5671.team
