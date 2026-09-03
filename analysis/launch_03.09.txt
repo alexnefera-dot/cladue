@@ -1,0 +1,60 @@
+# Запуск 03.09.2026 17:28–17:41 — 50 доменов, семейство NEW50_3, все контенты styled
+# Полный факторный набор 2x2: 7/12 страниц x с датами/без дат
+
+## NEW50_3_7pages_nodate_styled — id 1258-1270, 13 дом.
+0403.team
+7874.team
+4502.lol
+o5h7.lol
+8474.team
+2853.team
+5580.lol
+8663.lol
+v9g.lol
+6860.team
+6420.team
+2760.team
+7119.team
+
+## NEW50_3_7pages_withdate_styled — id 1271-1282, 12 дом.
+9158.team
+3064.team
+2801.lol
+3191.lol
+3349.lol
+3675.lol
+6420.lol
+9485.lol
+oasc.lol
+z2u7.lol
+4330.lol
+0190.team
+
+## NEW50_3_12pages_nodate_styled — id 1283-1293, 11 дом.
+z2u7.team
+n0b5.team
+5335.team
+2097.lol
+4151.lol
+5335.lol
+6012.lol
+6348.lol
+7612.lol
+7925.lol
+9957.lol
+
+## NEW50_3_12pages_withdate_styled — id 1294-1307, 14 дом.
+a1j.lol
+h6k8.lol
+2097.team
+ypur.team
+2018.team
+5025.team
+mkmt.team
+4330.team
+2369.lol
+3242.lol
+3375.lol
+4854.lol
+7662.team
+7079.team
