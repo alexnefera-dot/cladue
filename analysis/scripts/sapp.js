@@ -113,6 +113,7 @@ function tDoms(){
         <div class="dh"><span class="dn">${esc(d)}</span>
           ${x.t10?`<span class="pill p-t">в десятке ${x.t10}</span>`:'<span class="pill p-no">в десятке пусто</span>'}
           ${dlt!=null&&dlt!==0?`<span class="pill ${dlt>0?'p-up':'p-dn'}">${dlt>0?'+':''}${dlt} к прошлому замеру</span>`:''}
+          ${snap.dom[d].reg?`<span class="pill p-money">${pl(snap.dom[d].reg,'регистрация','регистрации','регистраций')}${snap.dom[d].dep?', депозит':''}</span>`:''}
         </div>
         <div class="dstats">
           <div><span class="sv ${x.t10?'now':'mut'}">${x.t10}</span><span class="sl">ключей в десятке</span></div>
@@ -154,7 +155,8 @@ function tPools(){
   <div class="tw"><table><thead><tr>
     <th class="l">Группа</th><th class="l">Чем отличается</th><th>Доменов</th>
     <th>Из них попали в десятку</th><th>Ключей в десятке</th><th>На один домен</th>
-    <th>Без самого сильного домена</th><th>Всего найдено ключей</th></tr></thead><tbody>`;
+    <th>Без самого сильного домена</th><th>Всего найдено ключей</th>
+    <th>Регистраций</th><th>Доменов с деньгами</th></tr></thead><tbody>`;
   for(const p of D.pools){
     const {s}=snapOf(p), n=p.doms.length;
     h+=`<tr${p.excl?' class="tr-bad"':''}>
@@ -166,7 +168,9 @@ function tPools(){
       <td class="${s.tot.t10?'now':'mut'}"><b>${s.tot.t10}</b></td>
       <td><b>${nf(s.tot.t10/n,1)}</b></td>
       <td class="${s.tot.nolead!=null&&s.tot.nolead<s.tot.t10/n*0.6?'bad':''}">${nf(s.tot.nolead,1)}</td>
-      <td>${s.tot.t100}</td></tr>`;
+      <td>${s.tot.t100}</td>
+      <td class="${s.tot.reg?'good':'mut'}"><b>${s.tot.reg||0}</b>${s.tot.dep?`<div class="sm good">депозитов ${s.tot.dep}</div>`:''}</td>
+      <td class="${s.tot.whit?'good':'mut'}">${s.tot.whit||0} <span class="sm mut">из ${n}</span></td></tr>`;
   }
   h+='</tbody></table></div></div>';
 
@@ -270,10 +274,108 @@ function tKeys(){
   return h+'</tbody></table></div></div>';
 }
 
+
+/* ── 5. СРАВНЕНИЯ ────────────────────────────────────────── */
+const lastOf=id=>{const p=D.pools.find(x=>x.id===id);return p?{p,s:p.snaps[p.snaps.length-1]}:null;};
+function armStat(sel,tf){
+  let n=0,t10=[],t100=0,reg=0;
+  for(const [id,zone] of sel){
+    const o=lastOf(id); if(!o) continue;
+    const doms=o.p.doms.filter(d=>!zone||d.endsWith(zone));
+    const idx=new Map(o.p.doms.map((d,i)=>[d,i]));
+    for(const d of doms){
+      const rows=o.s.rows.filter(r=>r[1]===idx.get(d)&&(!tf||tf.includes(QD[r[0]][2])));
+      n++; t10.push(rows.filter(r=>r[2]<=10).length); t100+=rows.length;
+      reg+=o.s.dom[d].reg||0;
+    }
+  }
+  const sum=t10.reduce((a,b)=>a+b,0);
+  return {n,t10:sum,per:n?sum/n:0,hit:t10.filter(x=>x>0).length,t100,reg,
+          med:n?[...t10].sort((a,b)=>a-b)[Math.floor(n/2)]:0};
+}
+const CUTS=[
+ {g:'Даты в тексте',
+  note:'Все четыре среза на возрасте около двадцати часов. Первый и второй чистые полностью: совпадают семейство контента, зона, число страниц и час запуска — различаются только даты.',
+  rows:[
+   ['7 страниц · NEW50 · .team', 'чисто', [['n1_7nd',null]], [['n1_7wd',null]]],
+   ['12 страниц · NEW50_2 · .lol', 'чисто', [['n2_12nd','.lol']], [['n2_12wd','.lol']]],
+   ['12 страниц · NEW50_2 · .team', 'перекос по размеру', [['n2_12nd','.team']], [['n2_12wd','.team']]],
+   ['7 страниц · .team · семейства разные', 'разное семейство', [['n1_7nd',null]], [['n2_7wd',null]]],
+  ], a:'Без дат', b:'С датами'},
+ {g:'Число страниц',
+  note:'Оба среза чистые: совпадает семейство, зона, даты и час — различается только число страниц.',
+  rows:[
+   ['NEW50_2 · с датами · .team','чисто',[['n2_12wd','.team']],[['n2_7wd',null]]],
+   ['NEW50 · с датами · .team','чисто',[['n1_12wd',null]],[['n1_7wd',null]]],
+  ], a:'12 страниц', b:'7 страниц'},
+ {g:'Зона домена',
+  note:'Наборы разложены три на три внутри одной группы — это чистая пара. Двенадцатистраничная ветка даёт обратный результат, и это главное наблюдение дня по зонам.',
+  rows:[
+   ['Наборы 294303 (3 на 3)','чисто',[['nb294303','.team']],[['nb294303','.lol']]],
+   ['Наборы 274283 (3 на 3)','чисто',[['nb274283','.team']],[['nb274283','.lol']]],
+   ['Наборы вместе (6 на 6)','чисто',[['nb294303','.team'],['nb274283','.team']],[['nb294303','.lol'],['nb274283','.lol']]],
+   ['12 страниц с датами NEW50_2','перекос 14 против 3',[['n2_12wd','.team']],[['n2_12wd','.lol']]],
+  ], a:'.team', b:'.lol'},
+ {g:'День запуска',
+  note:'Один и тот же контент, запущенный с разницей в сутки. Обе половинки сравниваются на возрасте около двадцати часов, только домены .team, чтобы зона не мешала.',
+  rows:[
+   ['12 страниц с датами NEW50','чисто',[['p12wt','.team']],[['n1_12wd',null]]],
+   ['7 страниц с датами NEW50','чисто',[['p7wt','.team']],[['n1_7wd',null]]],
+  ], a:'Запуск 01.09', b:'Запуск 02.09'},
+];
+function tCuts(){
+  let h=`<div class="blk"><h2>Что с чем сравнивали</h2>
+  <p class="note">Здесь всегда берётся самый свежий замер каждой группы, независимо от переключателя сверху:
+  так все группы оказываются примерно в одном возрасте — около двадцати часов, — и их можно ставить рядом.
+  Метка «чисто» означает, что у двух сторон совпадает всё, кроме проверяемого признака.
+  «Перекос» — что сторон сильно разного размера и величине разницы верить нельзя, только знаку.</p>`;
+  for(const c of CUTS){
+    h+=`<h3 class="vt">${esc(c.g)}</h3><p class="note">${esc(c.note)}</p>
+    <div class="tw"><table><thead><tr><th class="l">Срез</th><th class="l">Качество</th>
+      <th colspan="3">${esc(c.a)}</th><th colspan="3">${esc(c.b)}</th><th class="l">Кто впереди</th></tr>
+      <tr><th></th><th></th><th>дом.</th><th>в десятке на домен</th><th>зашло</th>
+      <th>дом.</th><th>в десятке на домен</th><th>зашло</th><th></th></tr></thead><tbody>`;
+    for(const [nm,q,sa,sb] of c.rows){
+      const A=armStat(sa,null),B=armStat(sb,null);
+      const w=A.per>B.per?c.a:B.per>A.per?c.b:'ничья';
+      const k=A.per&&B.per?(Math.max(A.per,B.per)/Math.min(A.per,B.per)):null;
+      h+=`<tr><td class="l">${esc(nm)}</td>
+        <td class="l"><span class="tag${q==='чисто'?' ok':''}">${esc(q)}</span></td>
+        <td>${A.n}</td><td class="${A.per>B.per?'now':''}"><b>${nf(A.per,2)}</b></td><td class="sm">${A.hit}/${A.n}</td>
+        <td>${B.n}</td><td class="${B.per>A.per?'now':''}"><b>${nf(B.per,2)}</b></td><td class="sm">${B.hit}/${B.n}</td>
+        <td class="l"><b>${esc(w)}</b>${k&&k>1.15?` <span class="mut sm">в ${nf(k,1)} раза</span>`:''}</td></tr>`;
+    }
+    h+='</tbody></table></div>';
+    // тот же срез по ВЧ/СЧ
+    h+=`<div class="tw" style="margin-top:8px"><table><thead><tr><th class="l">Тот же срез, только ВЧ и СЧ ключи</th>
+      <th>${esc(c.a)}</th><th>зашло</th><th>${esc(c.b)}</th><th>зашло</th><th class="l">Кто впереди</th></tr></thead><tbody>`;
+    for(const [nm,q,sa,sb] of c.rows){
+      const A=armStat(sa,['ВЧ','СЧ']),B=armStat(sb,['ВЧ','СЧ']);
+      const w=A.per>B.per?c.a:B.per>A.per?c.b:'ничья';
+      h+=`<tr><td class="l sm">${esc(nm)}</td>
+        <td class="${A.per>B.per?'now':''}">${nf(A.per,2)}</td><td class="sm">${A.hit}/${A.n}</td>
+        <td class="${B.per>A.per?'now':''}">${nf(B.per,2)}</td><td class="sm">${B.hit}/${B.n}</td>
+        <td class="l sm">${esc(w)}</td></tr>`;
+    }
+    h+='</tbody></table></div>';
+  }
+  h+=`<div class="blk" style="margin-top:26px"><h2>Деньги пока ничего не говорят</h2>
+  <p class="note">Домен зарабатывает примерно шесть суток, и по трём четвертям регистрации приходят
+  в первые двое. Сегодняшним доменам двадцать часов — это около восемнадцати процентов окна.</p>
+  <div class="tw"><table><thead><tr><th class="l">Группа</th><th>Доменов</th>
+    <th>Регистраций</th><th>Доменов с деньгами</th><th>На домен</th><th class="l">Запущена</th></tr></thead><tbody>`;
+  for(const p of ACT){const s=p.snaps[p.snaps.length-1],n=p.doms.length;
+    h+=`<tr${s.tot.reg?'':' class="tr-bad"'}><td class="l">${esc(p.name)}</td><td>${n}</td>
+      <td class="${s.tot.reg?'good':'mut'}"><b>${s.tot.reg||0}</b></td>
+      <td>${s.tot.whit||0}</td><td>${nf((s.tot.reg||0)/n,2)}</td>
+      <td class="l sm">${esc(p.ltx)}</td></tr>`;}
+  return h+'</tbody></table></div></div></div>';
+}
+
 /* ── рендер ──────────────────────────────────────────────── */
-const TABS=[['doms','Домены',tDoms],['pools','Группы запуска',tPools],
+const TABS=[['cuts','Сравнения',tCuts],['doms','Домены',tDoms],['pools','Группы запуска',tPools],
             ['brands','Бренды',tBrands],['keys','Все ключи',tKeys]];
-let TAB='doms';
+let TAB='cuts';
 function renderAll(){
   document.getElementById('main').innerHTML=TABS.find(t=>t[0]===TAB)[2]();
   const bind=(id,fn)=>{const e=document.getElementById(id);if(e)e.onchange=fn;};

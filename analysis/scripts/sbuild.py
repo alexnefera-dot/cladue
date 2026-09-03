@@ -23,6 +23,9 @@ select,input#kq{font-family:var(--body);font-size:13px;background:var(--raise);c
   border:1px solid var(--line2);border-radius:2px;padding:5px 9px}
 input#kq{min-width:240px;font-family:var(--mono)}
 .brow select,.brow input{margin-right:8px}
+.pill.p-money{background:#12241a;color:var(--good);border:1px solid #24492f}
+.tag.ok{color:var(--good);border-color:#24492f;background:#12241a}
+h3.vt{margin-top:26px}
 .bch.warnc{color:var(--mut);border-color:#5c4a24;background:#241d0f;font-family:var(--body);font-size:12px}
 
 .gsec{margin-bottom:34px}
@@ -68,12 +71,13 @@ input#kq{min-width:240px;font-family:var(--mono)}
 body=f'''
 <header>
  <div class="wrap">
-  <div class="eyebrow">Дорвеи · запуски 31 августа и 1 сентября</div>
+  <div class="eyebrow">Дорвеи · замер 3 сентября, 12:03</div>
   <h1>Домены последних запусков</h1>
-  <p class="sub">{ND} доменов из семи групп. Для каждого видно, по каким брендам он стоит,
-  какими страницами и на какой глубине адреса. Переключатель сверху меняет замер позиций:
-  первый замер показывает, кто быстрее проиндексировался, а не кто лучше — сравнивать группы
-  между собой можно только по третьему.</p>
+  <p class="sub">{ND} доменов из шестнадцати групп, запущенных 31 августа, 1 и 2 сентября.
+  Вкладка «Сравнения» показывает, что с чем поставлено рядом и что из этого вышло;
+  остальные — сами домены, бренды и ключи. Переключатель сверху меняет замер позиций:
+  первый замер показывает, кто быстрее проиндексировался, а не кто лучше, поэтому сравнивать
+  группы можно только на возрасте около двадцати часов.</p>
   <nav id="nav"></nav>
  </div>
 </header>

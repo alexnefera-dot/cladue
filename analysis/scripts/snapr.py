@@ -5,7 +5,7 @@ sys.path.insert(0,os.path.dirname(os.path.abspath(__file__)))
 import p01
 
 SP='/tmp/claude-0/-home-user-cladue/7a7c5bac-d634-59c6-bc3f-c4e28ea7944c/scratchpad/'
-FILES=['L31.xlsx','L01.xlsx','L02.xlsx','L03.xlsx','L04.xlsx']
+FILES=['L31.xlsx','L01.xlsx','L02.xlsx','L03.xlsx','L04.xlsx','L05.xlsx']
 AN='/home/user/cladue/analysis/'
 
 # ---- ключи: бренд, тир, частотность
@@ -15,6 +15,15 @@ with open(AN+'keys/keys_stats.csv',encoding='utf-8-sig') as f:
         TIER[r['ключ'].strip()]=(r['бренд'],r['тир'])
         try: VOL[r['бренд']]=int(r['частотность'])
         except: pass
+
+# ---- конверсии
+import collections as _c
+_EV=json.load(open(SP+'conv4.json')) if os.path.exists(SP+'conv4.json') else []
+REG=_c.Counter(e['dom'] for e in _EV if e['type']=='reg')
+DEP=_c.Counter(e['dom'] for e in _EV if e['type']=='dep')
+SUBS=_c.defaultdict(_c.Counter)
+for e in _EV:
+    if e['type']=='reg': SUBS[e['dom']][e['sub']]+=1
 
 # ---- сбор всех съёмов по листам (поздний файл перекрывает ранний)
 SH=collections.OrderedDict()
@@ -64,6 +73,55 @@ POOLS=[
       lt=L('01.09 17:07'), ltx='01.09 17:07 (создан)', zone='.team/.lol',
       doms=['0864.team','pbfj.team','rvue.team','mmbr.team','q7a.lol','rvue.lol'],
       note='Та же зона и даты, что у ветки выше, но 7 страниц вместо 12 — парный тест числа страниц.'),
+ # --- запуск 02.09 16:19-16:21, замер 03.09 12:03 (лист «02.09») ---
+ dict(id='n2_12nd', sheet='02.09', name='NEW50_2 · 12 страниц без дат · 02.09',
+      plat='dorgen com', ids='1180-1185', pages='12', dates='без дат', cap='потолок 20',
+      lt=L('02.09 16:20'), ltx='02.09 16:20', zone='.lol/.team',
+      doms=['8829.lol','tvuy.team','7395.lol','1083.lol','2418.lol','7590.team'],
+      note='Лучшая ветка дня: 11,83 ключа в десятке на домен, зашли все шесть.'),
+ dict(id='n2_12wd', sheet='02.09', name='NEW50_2 · 12 страниц с датами · 02.09',
+      plat='dorgen com', ids='1186-1202', pages='12', dates='с датами', cap='потолок 20',
+      lt=L('02.09 16:20'), ltx='02.09 16:20', zone='.team/.lol',
+      doms=['q7a.team','c2u3.team','9158.lol','rza.lol','0665.team','4229.team','4729.team',
+            'tgmb.lol','2955.team','izlx.team','vzto.team','7395.team','3349.team','o5h7.team',
+            '9957.team','2801.team','5230.team'],
+      note='Самая большая ветка дня, 17 доменов, и единственная со стопроцентным заходом при таком размере.'),
+ dict(id='n1_7nd', sheet='02.09', name='NEW50 · 7 страниц без дат · 02.09',
+      plat='dorgen com', ids='1129-1142', pages='7', dates='без дат', cap='потолок 20',
+      lt=L('02.09 16:20'), ltx='02.09 16:20', zone='.team',
+      doms=['j0s0.team','0348.team','4502.team','ciye.team','9012.team','5580.team','syoo.team',
+            'ikmd.team','xfdr.team','3654.team','2369.team','8640.team','1185.team','7570.team'],
+      note='Главный тест дат: та же зона, то же семейство и то же число страниц, что у ветки с датами ниже.'),
+ dict(id='n1_7wd', sheet='02.09', name='NEW50 · 7 страниц с датами · 02.09',
+      plat='dorgen com', ids='1124-1128', pages='7', dates='с датами', cap='потолок 20',
+      lt=L('02.09 16:20'), ltx='02.09 16:20', zone='.team',
+      doms=['qmpl.team','7326.team','0040.team','2465.team','4967.team'],
+      note='Пара к ветке без дат выше. Совпадает всё, кроме дат в тексте — и результат в 4,3 раза хуже.'),
+ dict(id='n2_7wd', sheet='02.09', name='NEW50_2 · 7 страниц с датами · 02.09',
+      plat='dorgen com', ids='1172-1177', pages='7', dates='с датами', cap='потолок 20',
+      lt=L('02.09 16:20'), ltx='02.09 16:20', zone='.team',
+      doms=['4235.team','0413.team','3242.team','8730.team','0540.team','oasc.team'],
+      note='Вторая пара к семистраничной ветке без дат, но на другом семействе контента.'),
+ dict(id='n1_12wd', sheet='02.09', name='NEW50 · 12 страниц с датами · 02.09',
+      plat='dorgen com', ids='1099-1102', pages='12', dates='с датами', cap='потолок 20',
+      lt=L('02.09 16:20'), ltx='02.09 16:20', zone='.team',
+      doms=['kzgq.team','tgmb.team','t8n2.team','8193.team'],
+      note='Вторая половина группы, чья первая половина запущена 1 сентября. Тест дня запуска.'),
+ dict(id='nb294303', sheet='02.09', name='Наборы 294303 · 02.09',
+      plat='dorgen com', ids='1203-1208', pages='не прислано', dates='?', cap='потолок 20',
+      lt=L('02.09 16:21'), ltx='02.09 16:21', zone='.team/.lol',
+      doms=['u0s.team','4202.team','c4x3.team','3064.lol','7180.lol','f4w.lol'],
+      note='Три .team против трёх .lol при одном контенте — чистая пара по зоне.'),
+ dict(id='nb284293', sheet='02.09', name='Наборы 284293 · 02.09',
+      plat='dorgen com', ids='1213-1215', pages='не прислано', dates='?', cap='потолок 20',
+      lt=L('02.09 16:21'), ltx='02.09 16:21', zone='.lol',
+      doms=['9061.lol','0728.lol','7119.lol'],
+      note='Конфигурация не прислана: число страниц и наличие дат неизвестны.'),
+ dict(id='nb274283', sheet='02.09', name='Наборы 274283 · 02.09',
+      plat='dorgen com', ids='1227-1232', pages='не прислано', dates='?', cap='потолок 20',
+      lt=L('02.09 16:21'), ltx='02.09 16:21', zone='.lol/.team',
+      doms=['7590.lol','0040.lol','8730.lol','h6k8.team','7027.team','5671.team'],
+      note='Вторая чистая пара по зоне: три .lol против трёх .team при одном контенте.'),
  dict(id='apex', sheet='apex, banda', name='apex/banda · узкое ядро 70 ключей',
       plat='dorgen com', ids='1055-1063', pages='11', dates='?', cap='потолок 20',
       lt=L('31.08 16:39'), ltx='31.08 16:39 (запуск)', zone='.team', excl=True,
@@ -129,6 +187,8 @@ for cfg in POOLS:
                        best=min([k['p'] for k in ks],default=None),
                        dmin=min(deps) if deps else None,
                        dmed=round(st.median(deps)) if deps else None,
+                       reg=REG.get(d,0),dep=DEP.get(d,0),
+                       brreg=SUBS.get(d,{}) and list(SUBS[d].most_common(4)),
                        dmax=max(deps) if deps else None,
                        npg=len(pgs),nsub=len(subs))
         t10s=[dd[d]['t10'] for d in doms]
@@ -139,6 +199,8 @@ for cfg in POOLS:
                  nolead=(round((sum(t10s)-max(t10s))/(len(t10s)-1),2) if len(t10s)>1 else None))
         alld=[k['d'] for d in doms for k in s['per'].get(d,[]) if k['d'] is not None]
         tot['dmed']=round(st.median(alld)) if alld else None
+        tot['reg']=sum(REG.get(d,0) for d in doms); tot['dep']=sum(DEP.get(d,0) for d in doms)
+        tot['whit']=sum(1 for d in doms if REG.get(d,0))
         tot['dmax']=max(alld) if alld else None
         br=sorted(([b,v[0],v[1],v[2],len(v[3])] for b,v in brc.items()),key=lambda r:(-r[1],-r[2],-r[3]))
         snaps.append(dict(lab=lab,age=age,tot=tot,dom=dd,br=br,
