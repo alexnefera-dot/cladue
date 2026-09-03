@@ -1,0 +1,86 @@
+<h2>Бонусная серия оборвалась на середине из-за связи</h2>
+<p>В субботу, в 23:05, у меня в холодной мастерской моргнул роутер. На экране шёл девятый бесплатный спин из двадцати, и Sweet Bonanza замерла на середине оборота: «Соединение потеряно».</p>
+<p>Белая вкладка, тихий гул вентилятора — а спин уже был засчитан.</p>
+<h3>Первый кадр: девятый спин из двадцати</h3>
+<p>Первая мысль была про деньги, и оказалась она пустой: «Баланс не изменился».</p>
+<p>Я перезапустил Chrome через минуту, вошёл заново и увидел ту же раздачу: <strong>счётчик стоял на одиннадцатом вращении</strong>, а не на девятом. Два лишних раунда докрутились без меня, прямо на сервере %brand_name_en%.</p>
+<p>Так устроена любая бонусная серия: короткий сетевой обрыв её не отменяет и не откатывает назад. «Серия продолжена», — сказал экран.</p>
+<h3>Спин считает сервер, а не вкладка</h3>
+<table>
+<tr><th>Момент обрыва</th><th>Что было на экране</th><th>Где дописан спин</th><th>Сколько я ждал</th></tr>
+<tr><td>Спин 9 из 20</td><td>белая вкладка Chrome</td><td>сервер %brand_name_en%</td><td>60 секунд</td></tr>
+<tr><td>Спин 12 из 20</td><td>строка Connection lost</td><td>тот же сервер</td><td>25 секунд</td></tr>
+<tr><td>Спин 20 из 20</td><td>итог 760 ₽ на полке</td><td>журнал раундов, ID 8841</td><td>0 секунд</td></tr>
+</table>
+<p>Полный итог я нашёл в истории раундов через две минуты: <strong>760 ₽</strong> на подарочную полку, все двадцать бесплатных вращений на месте, заявленная отдача прежняя.</p>
+<h3>Связь ломает показ, а не деньги</h3>
+<p>Ломает она не денежный итог, а живую картинку на тёплом экране.</p>
+<p><strong>Анимация оборота живёт в обозревателе</strong>, и при обрыве уходит картинка, а не выигрыш. Хуже приходится автоигре: в Book of Dead она встаёт на первом же разрыве и сама не возобновляется.</p>
+<p>Вторая утрата тише: сбитая раздача не показывает промежуточные множители, и разобрать потом, откуда набежала итоговая сумма, уже нельзя.</p>
+<blockquote>Спин считает сервер, а показывает обозреватель: рвётся связь — рвётся показ, и деньги к этому отношения не имеют.</blockquote>
+<h3>Проверка после обрыва</h3>
+<p><strong>Я проверяю три места подряд</strong>, и занимает это меньше минуты.</p>
+<ol>
+<li><strong>История раундов</strong>: порядковый номер и сумма по каждому</li>
+<li><strong>Касса</strong>: остаток обязан сойтись с суммой из истории</li>
+<li><strong>Подарочная полка</strong>: выигрыш серии падает туда, а не на денежный остаток</li>
+</ol>
+<p>В Wolf Gold я однажды нашёл странное расхождение на 40 ₽ и написал в чат с номером раунда. Ответ пришёл за 6 минут: «Раунд дописан, разница начислена». Вывод средств после этого открылся обычным порядком.</p>
+<h3>Чек-лист на вечер с плохой связью</h3>
+<ul>
+<li><strong>начинайте на проводной сети</strong>, а не на мобильной</li>
+<li><strong>автоигру не включайте</strong>: она гаснет на первом разрыве</li>
+<li><strong>сверяйте историю раундов</strong>, а не остаток на глаз</li>
+<li><strong>порядковый номер держите под рукой</strong>: без него чат разбирает дольше</li>
+<li><strong>не трогайте номинал ставки</strong> сразу после возврата связи</li>
+</ul>
+<p>Пятый пункт я добавил последним и по своей вине: после возврата связи ставка держится прежней, и лишнее нажатие уводит её выше предела в 80 ₽. Счётчик отыгрыша на 100 000 ₽ такого не прощает, и <a href="/vhod">личный кабинет</a> об этом не предупреждает. Свой <a href="/slots">паспорт автомата</a> я открываю до серии, а не после неё.</p>
+<h2>Вопросы об обрыве связи посреди серии %brand_name_en%</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что будет, если связь пропала прямо на выборе множителя?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>У меня сервер выбрал средний вариант сам, и в истории раундов он записан как выбранный игроком.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько живёт незаконченная серия, если не возвращаться до утра?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Свою я бросил на ночь: сервер дописал остаток за 40 минут и закрыл серию без меня.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли обрыв на зачётный оборот по условиям акции?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Мой счётчик прибавил ровно столько, сколько стоили все двадцать спинов, — обрыв на нём не отразился.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли досмотреть анимацию пропущенных спинов позже?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Я искал такую кнопку дважды и не нашёл: в истории остаются только номер, ставка и сумма.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отличается ли поведение серии в мобильной сборке от обозревателя?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>В <a href="/app">мобильной сборке</a> у меня всплывало окно с итогом сразу после возврата связи, а в Chrome его не было.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать, если после обрыва остаток не сходится с историей?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Я писал в чат с номером спина и снимком истории, и разницу мне начислили в тот же вечер.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Срывается ли серия при переходе на запасной адрес площадки?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Переход на <a href="/zerkalo">запасной адрес</a> у меня прервал показ, но серия дописалась на сервере тем же порядком.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Считается ли прерванный спин, если он был последним в серии?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Последний у меня дописался вместе с итогом серии, и на подарочную полку сумма пришла целиком, без правок в <a href="/registracia">анкете игрока</a>.</p></div>
+  </div>
+</details>
