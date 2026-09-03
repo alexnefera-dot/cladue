@@ -1278,15 +1278,18 @@ foreach (glob("$папка/*.html") as $файл) {
     if ($обращение !== 'вы') {
         $выМест = '~(?<![а-яё])(?:вы|вас|вам|вами|ваш\w*)(?![а-яё])~ui';
         $выИмп = '~[а-яё]{3,}(?:йте|йтесь|ьте|ьтесь|итесь)(?![а-яё])~ui';
+        $выЗачин = '~(?<![а-яё])(?:' . implode('|', array_map(fn($x) => mb_strtoupper(mb_substr($x, 0, 1)) . mb_substr($x, 1),
+            array_keys(array_filter(V5_TY_ЗАЧИНЫ)))) . ')(?![а-яё])~u';
         $тыФормы = '~(?<![а-яё])(?:ты|тебя|тебе|тобой|тво[яеёий]\w*)(?![а-яё])|[а-яё]{3,}(?:ешь|ёшь|ишь|ешься|ишься)(?![а-яё])'
                  . '|(?<![а-яё])(?:' . implode('|', array_map(fn($x) => '[а-яё]*' . $x, V5_VY_ИМПЕРАТИВ)) . ')(?![а-яё])~ui';
         foreach ($строки as $н => $строка) {
             $t = ltrim($строка);
             if ($t === '' || ($t[0] === '<' && !preg_match('~^<(?:p|li|h[23]|strong|em|blockquote|td|dd)\b~i', $t))) { continue; }
-            if (!preg_match($выМест, strip_tags($t)) && !preg_match($выИмп, strip_tags($t))) { continue; }
-            $новая = preg_replace_callback('~[^.!?]*[.!?]+(?:\s+|$)|[^.!?]+$~u', function ($m) use ($выМест, $выИмп, $тыФормы) {
+            if (!preg_match($выМест, strip_tags($t)) && !preg_match($выИмп, strip_tags($t)) && !preg_match($выЗачин, strip_tags($t))) { continue; }
+            $новая = preg_replace_callback('~[^.!?]*[.!?]+(?:\s+|$)|[^.!?]+$~u', function ($m) use ($выМест, $выИмп, $выЗачин, $тыФормы) {
                 $чист = strip_tags($m[0]);
                 if (preg_match($выМест, $чист)) { return v5NaTy($m[0], true); }
+                if (preg_match($выЗачин, $чист)) { return v5NaTy($m[0], false); }
                 if (preg_match($выИмп, $чист) && preg_match($тыФормы, $чист)) { return v5NaTy($m[0], true); }
                 return $m[0];
             }, $строка);
