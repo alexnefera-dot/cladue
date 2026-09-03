@@ -26,14 +26,16 @@ const POROG_DERZHAT = 70;
 $args = array_slice($argv, 1);
 $shkola = '';
 $tekstFile = '';
+$semya = '';
 $pos = [];
 foreach ($args as $a) {
     if (str_starts_with($a, '--школа=')) { $shkola = substr($a, strlen('--школа=')); continue; }
     if (str_starts_with($a, '--текст=')) { $tekstFile = substr($a, strlen('--текст=')); continue; }
+    if (str_starts_with($a, '--семья=')) { $semya = substr($a, strlen('--семья=')); continue; }
     $pos[] = $a;
 }
 if (count($pos) < 2) {
-    fwrite(STDERR, "usage: php engine/build-profil-v5.php <корпус> <выход.json> [--школа=…] [--текст=…]\n");
+    fwrite(STDERR, "usage: php engine/build-profil-v5.php <корпус> <выход.json> [--школа=…] [--семья=A|B] [--текст=…]\n");
     exit(1);
 }
 [$root, $out] = $pos;
@@ -108,8 +110,58 @@ function slit(array $baza, array $sverhu): array
     return $baza;
 }
 
+/**
+ * Семья донора. Корпус распадается не по градиенту, а на два несмешивающихся
+ * лагеря, и медиана между ними не описывает никого: у семьи A автора в тексте
+ * нет вовсе (я/1000 = 1), у семьи B он герой рассказа (я/1000 = 26). Профиль,
+ * собранный по всем сразу, требует одновременно быть спецификацией и
+ * рассказчиком — его проходит один донор из тридцати восьми.
+ *
+ * Порог 8 на тысячу лежит в пустоте между лагерями: ближайшие значения — 4 и 18.
+ */
+const SEMYA_POROG = 8;
+function semyaSajta(string $dir): string
+{
+    $f = "$dir/main.html";
+    if (!is_file($f)) { return 'A'; }
+    $t = preg_replace('~\s+~u', ' ', strip_tags(pochinit((string) file_get_contents($f))));
+    $n = max(1, preg_match_all('~[А-Яа-яЁёA-Za-z0-9]+~u', (string) $t));
+    $ya = preg_match_all('~\b(?:я|меня|мне|мной|мой|моя|мои|моих|моей|моего)\b~ui', (string) $t);
+    return 1000 * $ya / $n > SEMYA_POROG ? 'B' : 'A';
+}
+
+/**
+ * Стилевые меры, которых нет в PageMetrics и которые именно поэтому выпали из
+ * работы: приёмка их не считает, писатель их не видит. В профиль они идут
+ * справочным блоком — не порогом, а описанием того, чем семья держится.
+ */
+const STIL_SENSOR = '~свет|тускл|мигн|гул|шип|звук|звон|шёпот|шепч|холод|тепл|туман|запах|дрож|палец|пальц|ладон|чашк|кофе|лампа|вентилятор|тишин|сумерк|кухн|полноч|темнот~iu';
+const STIL_ARKA   = '~завязк|кульминац|конфликт|развязк|первый кадр|последний кадр|сцена|финал|начало:|итог:~iu';
+const STIL_TEH    = '~\b(?:SSL|TLS|HTTPS?|KYC|AML|SHA-?256|PCI-?DSS|API|SIEM|OTP|SMS|BTC|ETH|USDT|LTC|XRP|QIWI|PaySafe|Visa|Mir|TRC-?20|ERC-?20|RTP|ADR|APK|Android|iOS|Chrome|Safari|Firefox|Curacao|Antillephone|MGA|Telegram)\b~u';
+function stilStranicy(string $html): array
+{
+    $t = (string) preg_replace('~\s+~u', ' ', strip_tags($html));
+    $n = max(1, preg_match_all('~[А-Яа-яЁёA-Za-z0-9]+~u', $t));
+    $slova = [];
+    preg_match_all('~[А-Яа-яЁё]{5,}~u', mb_strtolower($t), $m);
+    foreach ($m[0] as $w) { $slova[$w] = ($slova[$w] ?? 0) + 1; }
+    arsort($slova);
+    $motiv = $slova ? reset($slova) : 0;
+    return [
+        'я_на_1000'      => round(1000 * preg_match_all('~\b(?:я|меня|мне|мной|мой|моя|мои|моих|моей|моего)\b~ui', $t) / $n, 1),
+        'сенсорных'      => preg_match_all(STIL_SENSOR, $t),
+        'реплик_от_12'   => preg_match_all('~[«"][^«»"]{12,}[»"]~u', $t),
+        'слов_арки'      => preg_match_all(STIL_ARKA, $t),
+        'тех_на_1000'    => round(1000 * preg_match_all(STIL_TEH, $t) / $n, 1),
+        'мотив_на_1000'  => round(1000 * $motiv / $n, 1),
+        'прошедших'      => preg_match_all('~\b[а-яё]{3,}(?:л|ла|ли|лся|лась)\b~ui', $t),
+        'настоящих'      => preg_match_all('~\b[а-яё]{3,}(?:ю|ешь|ет|ем|ете|ут|ют|ит|ат|ят)\b~ui', $t),
+    ];
+}
+
 $dirs = glob(rtrim($root, '/') . '/*', GLOB_ONLYDIR) ?: [];
 if ($shkola !== '') { $dirs = array_values(array_filter($dirs, fn($d) => shkolaSajta($d) === $shkola)); }
+if ($semya !== '') { $dirs = array_values(array_filter($dirs, fn($d) => semyaSajta($d) === $semya)); }
 $dirs = otseyatDubli($dirs);
 if (!$dirs) { fwrite(STDERR, "нечего мерить\n"); exit(1); }
 
@@ -119,6 +171,7 @@ $polnyj = [];
 $razmetka = [];
 $brendPo = [];
 $zhanrSyr = [];
+$stilSyr = [];
 $brendSet = [];   // сайт → ['лат' => сумма по семи, 'кир' => …]
 $ssylok = [];     // тип → ряд числа внутренних ссылок
 foreach (TIPY as $tip) {
@@ -131,6 +184,7 @@ foreach (TIPY as $tip) {
         $ssylok[$tip][] = preg_match_all('~<a\s[^>]*href="/[^"]*"~i', $html);
         $zhanrSyr[$tip]['цитат'][] = preg_match_all('~<blockquote\b~i', $html);
         $zhanrSyr[$tip]['таблиц'][] = preg_match_all('~<table\b~i', $html);
+        foreach (stilStranicy($html) as $k => $v) { $stilSyr[$tip][$k][] = (float) $v; }
         $s = end($rows);
         $b = basename($dir);
         $brendSet[$b]['лат'] = ($brendSet[$b]['лат'] ?? 0) + (int) $s['brand_en'];
@@ -218,6 +272,16 @@ $profil['страницы'] = $stranicy;
 $profil['разметка'] = ['страницы' => $razmetka];
 $profil['бренд'] = ['латиничная' => ['страницы' => $brendPo, 'сумма' => $brendSum]];
 $profil['граф'] = ['ссылок_с_главной' => $sGlavnoy];
+
+$stil = [];
+foreach ($stilSyr as $tip => $polya) {
+    foreach ($polya as $k => $ryad) { $stil[$tip][$k] = svodka($ryad)['медиана']; }
+}
+$profil['семья'] = $semya ?: 'все';
+$profil['стиль'] = [
+    'правило' => 'справочные меры: приёмка их не считает, но семья держится именно на них',
+    'страницы' => $stil,
+];
 
 if ($tekstFile !== '') {
     if (!is_file($tekstFile)) { fwrite(STDERR, "нет файла текста: $tekstFile\n"); exit(1); }
