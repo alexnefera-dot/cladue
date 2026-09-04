@@ -280,6 +280,7 @@ function zipContent(string $runDir, string $zipPath): bool
 if ($path === '/' || $path === '/index.html') {
     $html = @file_get_contents(dirname(__DIR__) . '/public/panel.html');
     header('Content-Type: text/html; charset=utf-8');
+    header('Cache-Control: no-store, must-revalidate'); // всегда свежий интерфейс после обновления
     echo $html !== false ? $html : '<h1>Не найден public/panel.html</h1>';
     exit;
 }

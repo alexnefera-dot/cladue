@@ -62,8 +62,9 @@
   .thumb-empty{width:64px;height:64px;border-radius:6px;border:1px dashed #ddd;background:#fafafa;display:flex;align-items:center;justify-content:center;font-size:10px;color:#aaa;text-align:center}
   .xBtn{border:none;background:transparent;color:#c0392b;cursor:pointer;font-size:17px;line-height:1;padding:2px 6px;border-radius:6px}
   .xBtn:hover{background:#fdecea}
-  #lightbox{position:fixed;inset:0;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;z-index:1000;cursor:zoom-out;padding:20px}
-  #lightbox[hidden]{display:none}
+  [hidden]{display:none!important}
+  #lightbox{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;z-index:1000;cursor:zoom-out;padding:20px}
+  #lightbox.show{display:flex}
   #lightbox img{max-width:94vw;max-height:94vh;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
   #lightbox .lbcap{position:fixed;top:14px;left:0;right:0;text-align:center;color:#fff;font-size:14px}
   .tag.diff{background:#fef3c7;color:var(--warn)}
@@ -235,7 +236,7 @@
   </div>
 </div>
 
-<div id="lightbox" hidden><div class="lbcap" id="lbcap"></div><img id="lbimg" src="" alt=""></div>
+<div id="lightbox"><div class="lbcap" id="lbcap"></div><img id="lbimg" src="" alt=""></div>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -442,9 +443,10 @@ $('resTable').addEventListener('click', e=>{
   const x=e.target.closest('.xBtn'); if(x){ removedHosts.add(x.dataset.remove); saveRemoved(); renderResults(lastSites); return; }
 });
 $('removedNote').addEventListener('click', e=>{ if(e.target && e.target.id==='restoreRemoved'){ e.preventDefault(); removedHosts.clear(); saveRemoved(); renderResults(lastSites); } });
-function openLightbox(src,cap){ $('lbimg').src=src; $('lbcap').textContent=cap||''; $('lightbox').hidden=false; }
-$('lightbox').addEventListener('click', ()=>{ $('lightbox').hidden=true; $('lbimg').src=''; });
-document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !$('lightbox').hidden){ $('lightbox').hidden=true; $('lbimg').src=''; } });
+function openLightbox(src,cap){ $('lbimg').src=src; $('lbcap').textContent=cap||''; $('lightbox').classList.add('show'); }
+function closeLightbox(){ $('lightbox').classList.remove('show'); $('lbimg').src=''; }
+$('lightbox').addEventListener('click', closeLightbox);
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeLightbox(); });
 $('cleanAllBtn').addEventListener('click', async ()=>{
   const btn=$('cleanAllBtn'); const old=btn.textContent; btn.disabled=true; btn.textContent='Готовлю всё…';
   try{
