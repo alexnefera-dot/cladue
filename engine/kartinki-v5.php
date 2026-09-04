@@ -21,11 +21,14 @@
  */
 
 $папка = null; $сид = 1; $толькоУрезать = false; $неРезать = false; $безСтилей = false;
+$обложкиДир = is_dir(__DIR__ . '/data-v5/oblozhki') ? __DIR__ . '/data-v5/oblozhki' : null;
 foreach (array_slice($argv, 1) as $а) {
     if (preg_match('~^--сид=(\d+)$~u', $а, $m)) { $сид = (int) $m[1]; continue; }
     if ($а === '--только-урезать') { $толькоУрезать = true; continue; }
     if ($а === '--не-резать') { $неРезать = true; continue; }
     if ($а === '--без-стилей') { $безСтилей = true; continue; }
+    if (preg_match('~^--обложки=(.+)$~u', $а, $m)) { $обложкиДир = $m[1] === '' ? null : $m[1]; continue; }
+    if ($а === '--без-фото') { $обложкиДир = null; continue; }
     if ($а[0] !== '-') { $папка = rtrim($а, '/'); }
 }
 if ($папка === null || !is_dir($папка)) {
@@ -792,7 +795,89 @@ const ПУЛ_СЮЖЕТОВ = [
 ];
 
 /** Иллюстрация страницы: сюжет справа, подпись слева на затемнении. */
-function нарисовать(string $файл, string $вид, float $тон, array $строки, int $вар, int $комп = 0): void {
+
+/* ───────────── фото-фон из настоящей обложки ─────────────
+ * Одни и те же шесть сюжетов и двенадцать обложек во всех наборах читались
+ * как «картинки одинаковые». Теперь заставка страницы через раз строится на
+ * кадре из настоящей обложки (кадр, зум и затемнение — по сиду), а обложка
+ * игры в каждом наборе получает свой кадр, тон и рамку.
+ */
+const ОБЛОЖКИ_ИГР = [
+    'Sweet Bonanza' => 'sweet-bonanza', 'Gates of Olympus' => 'gates-of-olympus', 'Book of Dead' => 'book-of-dead',
+    'Big Bass Bonanza' => 'big-bass-bonanza', 'Starburst' => 'starburst', 'Sugar Rush' => 'sugar-rush',
+    'Money Train 3' => 'money-train-3', 'The Dog House' => 'the-dog-house', 'Wanted Dead or Wild' => 'wanted-dead-or-wild',
+    'Wanted Dead or a Wild' => 'wanted-dead-or-wild', 'Starlight Princess' => 'starlight-princess',
+    'Razor Shark' => 'razor-shark', 'Fruit Party' => 'fruit-party',
+];
+function загрузитьФото(string $файл) {
+    $ext = strtolower(pathinfo($файл, PATHINFO_EXTENSION));
+    $src = $ext === 'webp' ? @imagecreatefromwebp($файл) : ($ext === 'png' ? @imagecreatefrompng($файл) : @imagecreatefromjpeg($файл));
+    return $src ?: null;
+}
+/** Кадр из фото: зум 1.0–1.3 и сдвиг по $комп, вписан в $W×$H. */
+function кадр($src, int $W, int $H, int $комп) {
+    $sw = imagesx($src); $sh = imagesy($src);
+    $зум = 1.0 + (($комп * 7) % 4) * 0.1;
+    $cw = (int) ($sw / $зум); $ch = (int) ($cw * $H / $W);
+    if ($ch > $sh) { $ch = $sh; $cw = (int) ($ch * $W / $H); }
+    $cx = (int) (($sw - $cw) * ((($комп * 3) % 5) / 4)); $cy = (int) (($sh - $ch) * ((($комп * 5) % 3) / 2));
+    $im = imagecreatetruecolor($W, $H);
+    imagecopyresampled($im, $src, 0, 0, $cx, $cy, $W, $H, $cw, $ch);
+    return $im;
+}
+function фонФото(int $W, int $H, string $файл, int $комп) {
+    $src = загрузитьФото($файл);
+    if (!$src) return null;
+    // Размытие на четверти размера — дешевле, а результат всё равно мягкий.
+    // Сильно: на восьмушке размера и в четыре прохода, чтобы надписи с обложки
+    // ушли в текстуру, а не читались поверх заголовка страницы.
+    $малый = кадр($src, (int) ($W / 8), (int) ($H / 8), $комп);
+    imagedestroy($src);
+    for ($i = 0; $i < 4 + ($комп % 2); $i++) imagefilter($малый, IMG_FILTER_GAUSSIAN_BLUR);
+    imagefilter($малый, IMG_FILTER_BRIGHTNESS, -46 - ($комп % 3) * 8);
+    imagefilter($малый, IMG_FILTER_CONTRAST, 8);
+    $im = imagecreatetruecolor($W, $H);
+    imagecopyresampled($im, $малый, 0, 0, 0, 0, $W, $H, imagesx($малый), imagesy($малый));
+    imagedestroy($малый);
+    return $im;
+}
+/** Обложка игры из настоящей картинки: свой кадр, тон и рамка на каждый набор. */
+function обложкаФото(string $файл, string $фото, int $индекс, int $сид): bool {
+    $src = загрузитьФото($фото);
+    if (!$src) return false;
+    $W = 640; $H = 480; $комп = $сид * 11 + $индекс * 7;
+    // Кадр помягче, чем у заставки: зум до 1.15, иначе с обложки уйдёт название.
+    $sw = imagesx($src); $sh = imagesy($src);
+    $зум = 1.0 + (($комп * 5) % 4) * 0.05;
+    $cw = (int) ($sw / $зум); $ch = (int) ($cw * $H / $W); if ($ch > $sh) { $ch = $sh; $cw = (int) ($ch * $W / $H); }
+    $cx = (int) (($sw - $cw) * ((($комп * 3) % 3) / 2)); $cy = (int) (($sh - $ch) * ((($комп * 7) % 3) / 2));
+    $im = imagecreatetruecolor($W, $H);
+    imagecopyresampled($im, $src, 0, 0, $cx, $cy, $W, $H, $cw, $ch);
+    imagedestroy($src);
+    // Тон: лёгкая подкраска по сиду, яркость и контраст чуть гуляют.
+    $тон = [(($комп * 13) % 37) - 18, (($комп * 17) % 37) - 18, (($комп * 19) % 37) - 18];
+    imagefilter($im, IMG_FILTER_COLORIZE, $тон[0], $тон[1], $тон[2], 0);
+    imagefilter($im, IMG_FILTER_BRIGHTNESS, (($комп * 3) % 17) - 8);
+    imagefilter($im, IMG_FILTER_CONTRAST, (($комп * 5) % 11) - 5);
+    // Низ — затемняющий градиент, чтобы карточка читалась с подписью.
+    imagealphablending($im, true);
+    $h0 = (int) ($H * 0.70);
+    for ($y = $h0; $y < $H; $y++) {
+        $a = 127 - (int) (80 * (($y - $h0) / ($H - $h0)));
+        imageline($im, 0, $y, $W, $y, imagecolorallocatealpha($im, 4, 6, 14, max(0, $a)));
+    }
+    // Рамка в цвете набора.
+    $рамка = hsl(($сид * 47 + $индекс * 29) % 360, 0.75, 0.55);
+    imagesetthickness($im, 6);
+    imagerectangle($im, 3, 3, $W - 4, $H - 4, imagecolorallocatealpha($im, $рамка[0], $рамка[1], $рамка[2], 40));
+    imagesetthickness($im, 1);
+    if ($комп % 3 === 0) { звезда($im, (int) ($W * 0.90), (int) ($H * 0.12), 14, [255, 240, 180]); }
+    imagewebp($im, $файл, 82);
+    imagedestroy($im);
+    return true;
+}
+
+function нарисовать(string $файл, string $вид, float $тон, array $строки, int $вар, int $комп = 0, ?string $фото = null): void {
     global $шрифт, $шрифтТонкий;
     $W = ШИР * S; $H = ВЫС * S;
     $im = imagecreatetruecolor($W, $H);
@@ -808,6 +893,16 @@ function нарисовать(string $файл, string $вид, float $тон, a
     $золото = hsl(44 + ($комп % 3) * 4, 0.88, 0.60);
     $осн    = hsl($тон + 26, 0.70, 0.54);
 
+    $фотоФон = $фото !== null ? фонФото($W, $H, $фото, $комп) : null;
+    if ($фотоФон !== null) {
+        imagedestroy($im); $im = $фотоФон; imagealphablending($im, true);
+        // Поверх фото — цветное свечение в тоне страницы и звёзды, без сюжета и сетки.
+        свечение($im, (int) ($W * $sx), (int) ($H * 0.5), (int) ($W * 0.45), hsl($тон + 14, 0.76, 0.50), 30, 122);
+        звезда($im, (int) ($W * ($слева ? 0.40 : 0.60)), (int) ($H * 0.26), (28 + ($комп % 3) * 6) * S, светлее($золото, 0.4));
+        звезда($im, (int) ($W * ($слева ? 0.14 : 0.86)), (int) ($H * 0.66), 24 * S, светлее($золото, 0.5));
+        искры($im, $W, $H, $искр, $вар * 97 + (int) $тон + $комп);
+        виньетка($im, $W, $H);
+    } else {
     фон($im, $W, $H, hsl($тон - 6, 0.70, 0.08), hsl($тон - 26 + ($комп % 2) * 30, 0.60, 0.22));
     лучи($im, (int) ($W * $sx), (int) ($H * 0.5), (int) ($W * 0.62), hsl($тон + 14, 0.76, 0.56), $лучей, 119);
     свечение($im, (int) ($W * $sx), (int) ($H * 0.86), (int) ($W * 0.40), hsl($тон + 20, 0.70, 0.44), 34, 121);
@@ -831,6 +926,7 @@ function нарисовать(string $файл, string $вид, float $тон, a
     if ($комп % 4 === 3) звезда($im, (int) ($W * ($слева ? 0.48 : 0.52)), (int) ($H * 0.80), 16 * S, [255, 255, 255]);
     искры($im, $W, $H, $искр, $вар * 97 + (int) $тон + $комп);
     виньетка($im, $W, $H);
+    }
 
     // подложка под подпись — с той стороны, где текст
     $x0 = $слева ? (int) ($W * 0.44) : 0;
@@ -1067,8 +1163,14 @@ foreach ($ТЕМЫ as $страница => [$тон, $мотивы, $подпи�
     $занятые[$вид] = 1;
     $комп = ($сид * 5 + $номер * 3 + strlen($страница)) % 12;
     $номер++;
+    // Через раз — фото-фон из настоящей обложки: своя обложка на каждую страницу набора.
+    $фото = null;
+    if ($обложкиДир !== null && (($сид + $номер) % 2 === 0)) {
+        $всеФото = glob($обложкиДир . '/*.{webp,jpg,png}', GLOB_BRACE) ?: [];
+        if ($всеФото !== []) { $фото = $всеФото[($сид * 3 + $номер * 5) % count($всеФото)]; }
+    }
     нарисовать($папка . '/images/' . $страница . '_img_1.webp',
-               $вид, $тон + ($сид % 7) * 6 - 18, $подписи[($в + $номер) % 3], $вар, $комп);
+               $вид, $тон + ($сид % 7) * 6 - 18, $подписи[($в + $номер) % 3], $вар, $комп, $фото);
     $всего++;
     $вшито += вшить($html, $страница, $альты[($в + $номер) % 3][0], $безСтилей);
 }
@@ -1084,10 +1186,20 @@ foreach (array_keys($ТЕМЫ) as $страница) {
     echo "карточек в списке слотов: $карт\n";
     $файлы = []; $жанры = [];
     $сколько = min(12, max(1, $карт));
+    // Имена карточек: если у игры есть настоящая обложка — она, со своим кадром и тоном.
+    preg_match_all('~<h3 class="slot-name"[^>]*>\s*(.*?)\s*</h3>~su', (string) file_get_contents($html), $mn);
+    $имена = array_map('strip_tags', $mn[1] ?? []);
     for ($i = 0; $i < $сколько; $i++) {
         $имяФайла = $страница . '_img_' . ($i + 2) . '.webp';
         $файлы[] = $имяФайла;
-        $жанры[] = обложка($папка . '/images/' . $имяФайла, $сид + $i + strlen($страница), $сид);
+        $имя = trim($имена[$i] ?? '');
+        $слаг = ОБЛОЖКИ_ИГР[$имя] ?? null;
+        if ($обложкиДир !== null && $слаг !== null && is_file("$обложкиДир/$слаг.webp")
+            && обложкаФото($папка . '/images/' . $имяФайла, "$обложкиДир/$слаг.webp", $i, $сид)) {
+            $жанры[] = $имя;
+        } else {
+            $жанры[] = обложка($папка . '/images/' . $имяФайла, $сид + $i + strlen($страница), $сид);
+        }
         $всего++;
     }
     $карточек += вшитьОбложку($html, $страница, $файлы, $жанры, $безСтилей);
