@@ -21,7 +21,7 @@ final class PanelTest
                 'source' => 'xmlstock',
                 'xmlstock' => ['endpoint' => "http://127.0.0.1:$port/yandex/xml/", 'user' => 'u', 'key' => 'k'],
                 'api' => ['delay_ms' => 0, 'retries' => 0],
-                'search' => ['groups_on_page' => 10],
+                'search' => ['groups_on_page' => 15],
                 'filters' => ['allowed_tlds' => []],
             ], true) . ';');
         }
@@ -60,6 +60,7 @@ final class PanelTest
             'queries' => ['пластиковые окна', 'остекление балконов'],
             'source' => 'xmlstock',
             'dedupe_domain' => true,
+            'allowed_tlds' => [],
             'visit' => false,
             'repeat_hours' => 0,
         ]));
@@ -77,6 +78,7 @@ final class PanelTest
         $sites = json_decode((string) file_get_contents($runDir . '/sites.json'), true);
         $hosts = array_map(static fn ($s) => $s['host'], $sites['sites']);
         Assert::inArray('okna-moskva.ru', $hosts);
+        Assert::inArray('okna-company.com', $hosts, 'пустой список зон = любые зоны (.com проходит)');
         Assert::notInArray('www.avito.ru', $hosts, 'агрегаторы отсеиваются');
         // dedupe_domain => один сайт на домен: shop.okna-moskva.ru и okna-moskva.ru не дублируются
         $domains = array_map(static fn ($s) => $s['domain'], $sites['sites']);
@@ -111,7 +113,7 @@ final class PanelTest
             'source' => 'xmlstock',
             'xmlstock' => ['endpoint' => "http://127.0.0.1:$port/yandex/xml/", 'user' => 'u', 'key' => 'k'],
             'api' => ['delay_ms' => 0, 'retries' => 0],
-            'search' => ['groups_on_page' => 10],
+            'search' => ['groups_on_page' => 15],
             'filters' => ['allowed_tlds' => []],
         ], true) . ';');
     }

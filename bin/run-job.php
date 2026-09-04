@@ -105,8 +105,10 @@ function buildOverrides(array $s, string $runDir): array
     if (isset($s['min_queries'])) {
         $overrides['filters.min_queries'] = max(1, (int) $s['min_queries']);
     }
-    if (isset($s['allowed_tlds']) && is_array($s['allowed_tlds']) && $s['allowed_tlds'] !== []) {
-        $overrides['filters.allowed_tlds'] = array_values(array_map('strval', $s['allowed_tlds']));
+    // Панель — источник истины по зонам: если ключ передан (даже пустой список) — применяем как есть.
+    // Пустой список = любые зоны. Ручной запуск run-job без ключа оставляет значение из config.php.
+    if (array_key_exists('allowed_tlds', $s)) {
+        $overrides['filters.allowed_tlds'] = is_array($s['allowed_tlds']) ? array_values(array_map('strval', $s['allowed_tlds'])) : [];
     }
     $exclude = DefaultExclusions::LIST;
     if (isset($s['exclude_extra']) && is_array($s['exclude_extra'])) {

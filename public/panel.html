@@ -166,6 +166,7 @@
     <h2>Прогресс <span id="phaseText" class="muted"></span></h2>
     <div class="bar"><span id="barFill"></span></div>
     <div id="stats"></div>
+    <div id="reject" class="muted" style="margin-top:6px"></div>
     <div id="progMsg"></div>
     <div id="proxies" class="muted" style="margin-top:8px"></div>
   </div>
@@ -294,8 +295,16 @@ function renderStatus(st, running){
   if(v && v.total) push((v.done||0)+' / '+v.total,'страниц открыто');
   $('stats').innerHTML=cells.join('');
 
+  const REASONS={tld:'зона домена не разрешена',exclude_domains:'в списке исключений',include_domains:'нет в списке нужных',domain_scope:'не тот тип домена',position:'позиция ниже лимита',title_any:'нет слов в заголовке',title_all:'нет всех слов',title_none:'стоп‑слово в заголовке',snippet_any:'нет слов в описании',snippet_none:'стоп‑слово в описании',url_must_match:'URL не подходит',url_must_not_match:'URL исключён',no_host:'без адреса',min_queries:'мало запросов',min_hits:'мало попаданий'};
+  const rej = (st.stats && st.stats.rejected) || st.rejected || {};
+  const rkeys = Object.keys(rej).sort((a,b)=>rej[b]-rej[a]);
+  if(rkeys.length){
+    $('reject').innerHTML = 'Отсеяно: ' + rkeys.map(k=>`${REASONS[k]||k} — <b>${rej[k]}</b>`).join(' · ');
+  } else $('reject').innerHTML='';
+
   let msg='';
   if(st.state==='error') msg=`<div class="msg err">${st.message||'Ошибка, см. журнал'}</div>`;
+  else if((st.sites_selected===0||((st.stats||{}).sites_selected===0)) && (st.phase==='done') && rkeys.length) msg=`<div class="msg err">Ничего не отобрано — все результаты отсеяны фильтрами (см. «Отсеяно» выше). Проверьте «Зоны доменов» (пусто = любые) и исключения.</div>`;
   else if(st.errors && st.errors.length) msg=`<div class="msg err">Предупреждений: ${st.errors.length} — ${(st.errors[0]||'').slice(0,200)}</div>`;
   $('progMsg').innerHTML=msg;
 
