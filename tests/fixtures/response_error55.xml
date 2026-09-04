@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<yandexsearch version="1.0">
+<request>
+<query>окна</query>
+<page>0</page>
+</request>
+<response date="20260904T120000">
+<error code="55">Превышена частота запросов</error>
+</response>
+</yandexsearch>

@@ -1,0 +1,37 @@
+{
+    "name": "alexnefera/yandex-sites",
+    "description": "Прогоняет список запросов через Yandex Search API и отбирает сайты из выдачи по заданным правилам",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.1",
+        "ext-curl": "*",
+        "ext-dom": "*",
+        "ext-json": "*",
+        "ext-libxml": "*",
+        "ext-mbstring": "*"
+    },
+    "suggest": {
+        "ext-intl": "Для корректной работы с кириллическими доменами (сайт.рф) в фильтрах"
+    },
+    "autoload": {
+        "psr-4": {
+            "YandexSites\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "bin": [
+        "bin/yandex-sites.php"
+    ],
+    "scripts": {
+        "test": "php tests/run.php",
+        "lint": "php tests/lint.php"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

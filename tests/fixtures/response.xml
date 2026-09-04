@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<yandexsearch version="1.0">
+<request>
+<query>пластиковые окна купить москва</query>
+<page>0</page>
+<sortby order="descending" priority="no">rlv</sortby>
+<maxpassages>2</maxpassages>
+<groupings>
+<groupby attr="d" mode="deep" groups-on-page="10" docs-in-group="1" curcateg="-1"/>
+</groupings>
+</request>
+<response date="20260904T120000">
+<reqid>1757000000000000-123456789-balancer</reqid>
+<found priority="phrase">1234567</found>
+<found priority="strict">1234567</found>
+<found priority="all">1234567</found>
+<found-human>Нашлось 1 млн ответов</found-human>
+<results>
+<grouping attr="d" mode="deep" groups-on-page="10" docs-in-group="1" curcateg="-1">
+<found priority="phrase">1234567</found>
+<found priority="strict">1234567</found>
+<found priority="all">1234567</found>
+<found-docs priority="phrase">1234567</found-docs>
+<found-docs priority="strict">1234567</found-docs>
+<found-docs priority="all">1234567</found-docs>
+<found-docs-human>нашлось 1 млн ответов</found-docs-human>
+<page first="1" last="3">0</page>
+<group>
+<categ attr="d" name="okna-moskva.ru"/>
+<doccount>1</doccount>
+<relevance/>
+<doc id="Z1234567890ABCDEF">
+<relevance/>
+<url>https://okna-moskva.ru/plastikovye-okna/</url>
+<domain>okna-moskva.ru</domain>
+<title><hlword>Пластиковые</hlword> <hlword>окна</hlword> в Москве — купить недорого</title>
+<headline>Производство и установка окон ПВХ</headline>
+<modtime>20250815T101500</modtime>
+<size>45231</size>
+<charset>utf-8</charset>
+<passages>
+<passage>Купить <hlword>пластиковые</hlword> <hlword>окна</hlword> от производителя. Телефон +7 (495) 123-45-67.</passage>
+<passage>Замер бесплатно,
+    монтаж за 1 день.</passage>
+</passages>
+<mime-type>text/html</mime-type>
+<saved-copy-url>https://yandexwebcache.net/yandbtm?text=example</saved-copy-url>
+</doc>
+</group>
+<group>
+<categ attr="d" name="www.avito.ru"/>
+<doccount>2</doccount>
+<relevance/>
+<doc id="Z2">
+<relevance/>
+<url>https://www.avito.ru/moskva/okna</url>
+<domain>www.avito.ru</domain>
+<title>Окна — купить в Москве на Avito</title>
+<headline>Объявления</headline>
+<modtime>20260101T000000</modtime>
+<passages><passage>Объявления о продаже <hlword>окон</hlword></passage></passages>
+</doc>
+<doc id="Z3">
+<relevance/>
+<url>https://www.avito.ru/moskva/balkony</url>
+<domain>www.avito.ru</domain>
+<title>Балконы на Avito</title>
+</doc>
+</group>
+<group>
+<categ attr="d" name="xn--80aswg.xn--p1ai"/>
+<doccount>1</doccount>
+<relevance/>
+<doc id="Z4">
+<relevance/>
+<url>https://xn--80aswg.xn--p1ai/</url>
+<title>Сайт.рф — окна</title>
+<passages><passage>Кириллический домен</passage></passages>
+</doc>
+</group>
+</grouping>
+</results>
+</response>
+</yandexsearch>

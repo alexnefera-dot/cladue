@@ -1,0 +1,10 @@
+/vendor/
+/config.php
+/.env
+/cache/
+/out/
+/queries.txt
+*.log
+.idea/
+.vscode/
+.DS_Store
