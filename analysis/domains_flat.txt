@@ -17,6 +17,7 @@
 0413.team
 0540.team
 0665.team
+0722.team
 0728.lol
 0778.team
 0864.team
@@ -82,6 +83,7 @@
 2304.team
 2307.team
 2328.team
+2352.team
 2354.team
 2367.team
 2369.lol
@@ -179,6 +181,7 @@
 4330.lol
 4330.team
 4355.team
+4358.team
 4392.team
 4432.team
 4464.team
@@ -293,6 +296,7 @@
 7960.team
 8172.team
 8193.team
+81casino.team
 8261.team
 8271.team
 8300.team
@@ -322,12 +326,15 @@
 9274.team
 9279.team
 9316.space
+9344casino.team
 9364.team
 9365.team
 9485.lol
 9536.lol
 9671.team
+9699.team
 9712.team
+9722.team
 9751.lol
 9779.team
 9785.team
@@ -386,6 +393,7 @@ casino0509g.casino
 casino0962.lol
 casino1430.lol
 casino1430.team
+casino4623.team
 casino4934.lol
 casino79.team
 casino814.team
@@ -394,11 +402,13 @@ casino876.team
 casino922.lol
 casinogh.lol
 casinoj1.lol
+casinojr.team
 casinonck.lol
 casinoopk.lol
 casinoprb.lol
 casinoprb.team
 casinozfa.lol
+casinozyb.team
 cdrw.team
 cflw.team
 cfpm.team
@@ -434,6 +444,7 @@ dwb7.top
 dwev.team
 emnc.lol
 emnc.team
+epfy.team
 evdj.team
 f2mw.team
 f2vb.team
@@ -680,6 +691,7 @@ v9g.lol
 vbgq.team
 vfkd.team
 vgti.casino
+vilx.team
 vqrk.team
 vwkp.team
 vzto.team
@@ -696,6 +708,7 @@ wknc.team
 wlxr.team
 wnkr.casino
 wrfn.cloud
+wzna.team
 x0wz.team
 x284.site
 x9d7.casino
