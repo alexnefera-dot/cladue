@@ -1,0 +1,76 @@
+<h2>Спутниковая связь и обрыв на середине проверки</h2>
+<p>В феврале я неделю жил у брата за городом, где интернет идёт через спутник, и вход в кабинет там превратился в лотерею. Задержка канала под семьсот миллисекунд, ветер за стеной, тарелка на крыше поскрипывает — и код из письма протухает раньше, чем доходит.</p>
+<p>«Сессия прервана», — эта строка встретила меня четыре раза за один вечер.</p>
+<h3>Ступень входа: разрыв между паролем и кодом</h3>
+<p><strong>Проверка второго ключа не переживает разрыва канала: она начинается заново, а не продолжается.</strong> Пароль при этом уже принят, и счётчик промахов его не считает — запирает форму на 20 минут только неверная пара, а не оборванная связь.</p>
+<table>
+<tr><th>Где рвалось</th><th>Что показывал экран</th><th>Чем это кончалось</th></tr>
+<tr><td>До ввода пароля</td><td>белая страница входа</td><td>заход с начала</td></tr>
+<tr><td>Между паролем и кодом</td><td>«Сессия прервана»</td><td>новый код, новые 5 минут</td></tr>
+<tr><td>После ввода кода</td><td>кабинет открылся</td><td>расписка на 30 суток</td></tr>
+</table>
+<h3>Двенадцать попыток: девять удачных</h3>
+<p><strong>Двенадцать попыток за вечер, девять удачных.</strong> Три обрыва пришлись ровно на середину проверки, и каждый стоил нового письма с ключом.</p>
+<p>Веду по слою: тонкая связь — как мутный слой в камне, работать через неё можно, но всё видно хуже и дольше.</p>
+<h3>Приёмы, которые помогли на спутнике</h3>
+<ol>
+<li><strong>держал почту открытой в соседней вкладке</strong>: код живёт пять минут, и терять их нельзя</li>
+<li>заходил через <a href="/app">мобильную сборку</a> — она переспрашивает код, а не роняет весь заход</li>
+<li>отключил обновление фотографий каталога: витрина у %brand_name_en% грузит их дольше всего</li>
+<li><strong>чистил реестр устройств заранее</strong>: шесть строк, и седьмая вытесняет старую молча</li>
+</ol>
+<h3>Обрыв: что рвётся вместе с сеансом</h3>
+<p>Обрыв в момент ставки страшнее обрыва на входе. Раунд при этом досчитывается на стороне площадки: <strong>ставка списана, результат приходит после восстановления связи</strong>, и на моём счёте так дважды находились деньги, которых я не ждал.</p>
+<p><strong>Заявка на вывод средств обрыва не боится вовсе:</strong> она уходит в очередь и обратно не отыгрывается.</p>
+<blockquote>Полировальный круг не останавливают на середине грани: снятый наполовину слой всё равно придётся проходить заново, целиком.</blockquote>
+<h3>Встречный вопрос</h3>
+<p>Спрашивают меня чаще всего об одном: считает ли площадка такие обрывы подозрительными. Короткий ответ — нет: моя <a href="/registracia">верификация KYC</a> после той недели не переоткрывалась, лимит на вывод остался прежним, а <a href="/slots">каталог автоматов</a> и <a href="/zerkalo">запасной адрес</a> вели себя ровно так же, как из города.</p>
+<h2>Вопросы о входе в %brand_name_en% на слабом канале</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Продлевается ли срок жизни кода на медленной связи?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Мои пять минут не сдвинулись ни разу, сколько бы канал ни тормозил.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Считается ли обрыв неудачной попыткой входа?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>После трёх обрывов подряд форма меня не заперла, значит, счётчик их не берёт.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Занимает ли каждый заход новую строку реестра?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Все двенадцать попыток легли в одну строку: реестр смотрит на устройство, а не на заход.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Гаснет ли расписка при смене сети?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Моя расписка пережила переезд из города за город и обратно без единой пересдачи.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что происходит со ставкой при обрыве?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Мой раунд досчитался без меня, и выигрыш 320 ₽ ждал на счёте до следующего захода.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Помогает ли смена браузера при частых обрывах?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Chrome и запасной обозреватель у меня рвались одинаково: дело было в канале, не в них.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Приходит ли код повторно без запроса?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Второе письмо мне ни разу не приходило само: каждый новый ключ я запрашивал руками.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Замедляется ли поддержка при слабом канале?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Чат отвечал мне те же 9 минут, только сами сообщения доходили с задержкой.</p></div>
+  </div>
+</details>
