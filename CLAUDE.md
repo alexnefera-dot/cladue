@@ -265,7 +265,9 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   (`.xml`, `.pdf`, images…; `SiteLinks::isJunkPage()`). Language-switch loops with a real page behind
   them (`/RU-ru/RU-ru/…/app`) are **collapsed** to one occurrence (`SiteLinks::collapseRepeats`) so the
   real page is fetched once, not skipped; `SiteLinks::canonical()` also strips a leading locale segment
-  (`/RU-ru/promo` ≡ `/promo`) so a language prefix does not yield a `promo-2`. `PageVisitor` `visit.crawl`
+  (`/RU-ru/promo` ≡ `/promo`) so a language prefix does not yield a `promo-2`, and folds a path that is
+  *only* a locale (`/ru`, `/ru-ru`, `/en` — `xx-xx` always, bare `xx` from a known-locale list) to the
+  root so a localized home is not saved as a duplicate `main`. `PageVisitor` `visit.crawl`
   mode opens the home page, then a
   single probe link, then the rest, and drops pages whose final URL redirects to another host
   (`SiteLinks::sameHost`, www-insensitive). The visited-URL set is seeded with both the entry URL and
@@ -283,8 +285,10 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   Barrier stubs (age-gate 18+, cookie wall, "enable JavaScript") look identical on every URL but hide
   different content, so `PageVisitor::looksLikeStub()` excludes them from dedup (never a duplicate/one-pager,
   never a similarity reference; visit flagged `stub`). The Playwright renderer best-effort dismisses such
-  gates before capture (`passGate()` in `tools/render-page.js`, guarded by an age/cookie context check so
-  it never misfires on normal pages).
+  gates before capture (`passGate()` in `tools/render-page.js`): it finds the barrier by role/position
+  (`[role=dialog]`, `[aria-modal=true]`, `<dialog open>`, or a large fixed overlay — obfuscated per-site
+  class names are ignored), confirms it is an age/cookie barrier via the *overlay's own* text (footer «18+»
+  no longer misfires or blocks it), and clicks the consent button (e.g. «Мне есть 18») strictly inside it.
 - `Support\DomainLedger` (runs/domains-base.txt) is a cross-run base of collected registrable
   domains; `Runner` takes an optional ledger + skipKnown to drop already-seen domains (reason
   `seen_before`) and record new ones. The panel job has two stages (`settings.stage`): `collect`

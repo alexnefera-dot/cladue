@@ -134,12 +134,18 @@ final class SiteLinksTest
 
     public function testCanonicalStripsLocalePrefix(): void
     {
+        $home = SiteLinks::canonical('https://a.ru/');
         // /promo и /RU-ru/promo (языковой префикс) — одна и та же страница (без promo-2).
         Assert::same(SiteLinks::canonical('https://a.ru/promo'), SiteLinks::canonical('https://a.ru/RU-ru/promo'));
         Assert::same(SiteLinks::canonical('https://a.ru/bonus'), SiteLinks::canonical('https://a.ru/ru/bonus'));
         Assert::same(SiteLinks::canonical('https://a.ru/app'), SiteLinks::canonical('https://a.ru/en-us/app'));
-        // одиночный короткий сегмент (без продолжения) не считаем языком — это отдельная страница
-        Assert::true(SiteLinks::canonical('https://a.ru/it') !== SiteLinks::canonical('https://a.ru/ru'));
+        // Путь целиком из языкового кода — та же главная (без дубля main): /ru, /ru-ru, /RU-ru, /en → корень.
+        Assert::same($home, SiteLinks::canonical('https://a.ru/ru'));
+        Assert::same($home, SiteLinks::canonical('https://a.ru/ru-ru'));
+        Assert::same($home, SiteLinks::canonical('https://a.ru/RU-ru'));
+        Assert::same($home, SiteLinks::canonical('https://a.ru/en'));
+        // Двухбуквенный сегмент не из списка языков — обычная страница, не сворачиваем.
+        Assert::true(SiteLinks::canonical('https://a.ru/vk') !== $home);
     }
 
     public function testCollectsFooterMenuLinks(): void

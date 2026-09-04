@@ -106,28 +106,46 @@ async function passGate(page, timeout) {
             const confirmRe = new RegExp(patterns.confirm, 'i');
             const declineRe = new RegExp(patterns.decline, 'i');
             const contextRe = new RegExp(patterns.context, 'i');
-            const bodyText = ((document.body && document.body.innerText) || '').slice(0, 5000);
-            const overlay = Array.from(document.querySelectorAll('body *')).find((el) => {
+            const isVisible = (el) => {
                 const s = getComputedStyle(el);
-                if ((s.position !== 'fixed' && s.position !== 'absolute') || s.visibility === 'hidden' || s.display === 'none') {
+                if (s.visibility === 'hidden' || s.display === 'none' || parseFloat(s.opacity || '1') < 0.1) {
                     return false;
                 }
                 const r = el.getBoundingClientRect();
-                return r.width >= window.innerWidth * 0.6 && r.height >= window.innerHeight * 0.6 && (parseInt(s.zIndex, 10) || 0) >= 100;
+                return r.width > 0 && r.height > 0;
+            };
+            // Кандидаты в барьер: явные модалки (role=dialog / aria-modal / <dialog open>) и крупные
+            // фиксированные оверлеи поверх страницы. Классы у таких заглушек обфусцированы и меняются
+            // от сайта к сайту, поэтому опираемся на роль/позицию, а не на имена классов.
+            const candidates = [];
+            document.querySelectorAll('[role="dialog"],[aria-modal="true"],dialog[open]').forEach((el) => {
+                if (isVisible(el)) {
+                    candidates.push(el);
+                }
             });
-            if (!contextRe.test(bodyText) && !overlay) {
+            Array.from(document.querySelectorAll('body *')).forEach((el) => {
+                const s = getComputedStyle(el);
+                if ((s.position === 'fixed' || s.position === 'absolute') && isVisible(el)) {
+                    const r = el.getBoundingClientRect();
+                    if (r.width >= window.innerWidth * 0.6 && r.height >= window.innerHeight * 0.5 && (parseInt(s.zIndex, 10) || 0) >= 30) {
+                        candidates.push(el);
+                    }
+                }
+            });
+            // Это возрастной/cookie-барьер, только если признаки есть в тексте самого оверлея
+            // (а не где-то в футере страницы — там «18+» бывает и без заглушки).
+            const barrier = candidates.find((el) => contextRe.test((el.innerText || '').slice(0, 3000)));
+            if (!barrier) {
                 return null;
             }
-            const scope = overlay || document.body;
-            const controls = Array.from(scope.querySelectorAll('button, a, input[type=button], input[type=submit], [role=button], [onclick]'));
+            // Жмём кнопку согласия строго внутри барьера, не трогая кнопки на остальной странице.
+            const controls = Array.from(barrier.querySelectorAll('button, a, input[type=button], input[type=submit], [role=button], [onclick]'));
             for (const el of controls) {
                 const text = ((el.innerText || el.value || el.getAttribute('aria-label') || '')).trim();
                 if (!text || text.length > 40 || declineRe.test(text) || !confirmRe.test(text)) {
                     continue;
                 }
-                const r = el.getBoundingClientRect();
-                const s = getComputedStyle(el);
-                if (r.width <= 0 || r.height <= 0 || s.visibility === 'hidden' || s.display === 'none') {
+                if (!isVisible(el)) {
                     continue;
                 }
                 el.click();
