@@ -1,0 +1,87 @@
+<h2>Остаток обновляется с задержкой после пополнения</h2>
+<p>Внёс я 2 000 ₽ картой Visa, дождался «Платёж принят» и вернулся к барабанам — а в шапке клиента висела прежняя сумма. Пахло смолой, руки в мху, и первая мысль была про потерянные деньги.</p>
+<p>Пришли они через четыре минуты, сами.</p>
+<p>Депозит у %brand_name_en% зачисляется мгновенно, а показать его клиент не торопится: касса и картинка живут порознь. Лимит на вывод средств, отдача автоматов и сроки выплаты от этой задержки не меняются вовсе.</p>
+<h3>Отчего клиент отстаёт</h3>
+<p><strong>Шапка сборки берёт остаток из памяти и обновляет его при действии, а не по событию.</strong> Сайт спрашивает счёт при каждой перерисовке, клиент — раз в несколько минут, и в эти минуты числа расходятся.</p>
+<p>Сайт в обозревателе показал верные 8 000 ₽ через три секунды, клиент 8.2.0 держал прежние 6 000 ₽ четыре минуты, а письмо о зачислении пришло за сорок секунд — раньше обоих.</p>
+<h3>Как ускорить</h3>
+<ol>
+<li>откройте любой раздел клиента и вернитесь — перерисовка тянет свежий остаток</li>
+<li>сделайте один спин: ставка обновляет шапку немедленно</li>
+<li>дождитесь письма о зачислении, оно приходит за сорок секунд</li>
+<li>не пополняйте второй раз, пока первый платёж не отразился</li>
+</ol>
+<p>Четвёртый пункт важнее прочих: <strong>двойное пополнение из-за задержки</strong> случается чаще всего, и вернуть лишний платёж выходит только заявкой на вывод.</p>
+<h3>Где ещё вылезает задержка</h3>
+<p>Счётчик вейджера отстаёт так же. На отыгрыше это дорого: недосчитанные 3 000 ₽ легко принять за остаток обязательства и накрутить лишний вечер. Сверяйте оборот на сайте, а не в клиенте.</p>
+<blockquote>Венец кладут по уровню, а не на глаз: клиент показывает картинку, а уровень тут — сайт, и спорить с ним бесполезно.</blockquote>
+<h3>Стоит ли пополнять из клиента</h3>
+<table>
+<tr><th>Случай</th><th>Пополнять стоит</th><th>Пополнять не стоит</th></tr>
+<tr><td>Обычный вечер</td><td>да, 4 минуты терпимо</td><td>нет причин спешить</td></tr>
+<tr><td>Осталось 20 минут срока</td><td>сайт, 3 секунды</td><td>нет, платёж уйдёт дважды</td></tr>
+<tr><td>Сумма от 10 000 ₽</td><td>сайт, видно сразу</td><td>нет, ожидание изматывает</td></tr>
+</table>
+<p>Сажаю в чашу: спешка и отложенная картинка — плохая пара. С сайта я теперь пополняю всегда, а <a href="/app">клиент</a> держу ради уведомлений и <a href="/slots">каталога</a>; <a href="/vhod">вход в кабинет</a> у них общий, и остаток в конце концов сходится везде.</p>
+<h2>Вопросы о задержке остатка в %brand_name_en%</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Теряются ли деньги при задержке?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Мои 2 000 ₽ пришли целиком через четыре минуты, ни рубля не потерялось.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Помогает ли перезапуск клиента?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>У меня он сработал быстрее всего: остаток встал верный сразу после запуска.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отстаёт ли счётчик отыгрыша так же?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Он отставал у меня на 3 000 ₽ оборота, и это было опаснее задержки остатка.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Приходит ли письмо о каждом платеже?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>За двадцать суток я получил семь писем на семь пополнений, без пропусков.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать при двойном пополнении?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Лишний платёж возвращают обычной заявкой на вывод, за те же сутки.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Есть ли задержка при выводе?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Списание у меня отражалось мгновенно, а вот зачисление ждало банковского рейса.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Зависит ли задержка от способа оплаты?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Карта и кошелёк вели себя одинаково: четыре минуты в клиенте, три секунды на сайте.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Обновляется ли шапка при обрыве связи?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>После обрыва клиент показал мне устаревшее число до первого нажатия.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Стоит ли писать в поддержку сразу?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Мне посоветовали подождать пять минут, и совет оказался верным.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Одинакова ли задержка на планшете?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>На планшете артели стояла та же сборка, и остаток отставал ровно так же.</p></div>
+  </div>
+</details>
