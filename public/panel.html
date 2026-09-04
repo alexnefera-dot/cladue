@@ -63,6 +63,7 @@
   .xBtn{border:none;background:transparent;color:#c0392b;cursor:pointer;font-size:17px;line-height:1;padding:2px 6px;border-radius:6px}
   .xBtn:hover{background:#fdecea}
   #lightbox{position:fixed;inset:0;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;z-index:1000;cursor:zoom-out;padding:20px}
+  #lightbox[hidden]{display:none}
   #lightbox img{max-width:94vw;max-height:94vh;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
   #lightbox .lbcap{position:fixed;top:14px;left:0;right:0;text-align:center;color:#fff;font-size:14px}
   .tag.diff{background:#fef3c7;color:var(--warn)}
@@ -319,9 +320,13 @@ function fmtCountdown(sec){ if(sec==null) return ''; sec=Math.max(0,sec|0); cons
 
 function renderStatus(st, running){
   const badge=$('stateBadge');
-  const state = running ? (st?.state==='waiting'?'waiting':'running') : (st?.state||'idle');
-  badge.textContent = running && st?.state!=='waiting' ? (STATE_LABEL[st?.state]||'идёт сбор') : (STATE_LABEL[st?.state]||'не запущено');
-  badge.className='state '+(STATE_CLS[st?.state]|| 's-idle');
+  let key = st?.state || 'idle';
+  // Прошлый сбор мог остаться в статусе running/starting, но процесс уже не жив → это «прервано», а не «идёт».
+  if(!running && (key==='running' || key==='starting')) key='interrupted';
+  const LABEL=Object.assign({interrupted:'прошлый сбор прерван', idle:'не запущено'}, STATE_LABEL);
+  const CLS=Object.assign({interrupted:'s-err', idle:'s-idle'}, STATE_CLS);
+  badge.textContent = key==='interrupted' ? 'прошлый сбор прерван' : (running && key!=='waiting' ? (STATE_LABEL[key]||'идёт сбор') : (LABEL[key]||'не запущено'));
+  badge.className='state '+(key==='interrupted'?'s-err':(CLS[key]||'s-idle'));
   $('startBtn').disabled = running;
   $('stopBtn').disabled = !running;
 
@@ -362,7 +367,8 @@ function renderStatus(st, running){
   } else $('reject').innerHTML='';
 
   let msg='';
-  if(st.state==='error') msg=`<div class="msg err">${st.message||'Ошибка, см. журнал'}</div>`;
+  if(!running && (st.state==='running'||st.state==='starting')) msg=`<div class="msg err">Прошлый сбор был прерван (панель перезапускалась). Ниже — данные с того сбора. Нажмите «Запустить», чтобы начать заново.</div>`;
+  else if(st.state==='error') msg=`<div class="msg err">${st.message||'Ошибка, см. журнал'}</div>`;
   else if((st.sites_selected===0||((st.stats||{}).sites_selected===0)) && (st.phase==='done') && rkeys.length) msg=`<div class="msg err">Ничего не отобрано — все результаты отсеяны фильтрами (см. «Отсеяно» выше). Проверьте «Зоны доменов» (пусто = любые) и исключения.</div>`;
   else if(st.errors && st.errors.length) msg=`<div class="msg err">Предупреждений: ${st.errors.length} — ${(st.errors[0]||'').slice(0,200)}</div>`;
   $('progMsg').innerHTML=msg;
