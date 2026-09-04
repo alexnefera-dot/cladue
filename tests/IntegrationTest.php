@@ -13,6 +13,7 @@ use YandexSites\Search\RestApiFetcher;
 use YandexSites\Live\HtmlResponseParser;
 use YandexSites\Live\LiveFetcher;
 use YandexSites\Live\ProxyPool;
+use YandexSites\Live\UserAgents;
 use YandexSites\Search\XmlApiFetcher;
 use YandexSites\Search\XmlResponseParser;
 use YandexSites\Search\XmlStockFetcher;
@@ -225,9 +226,9 @@ final class IntegrationTest
         $resolve = array_map(static fn (string $host): string => "$host:$sitePort:127.0.0.1", $hosts);
         file_put_contents($dir . '/config-live.php', '<?php return ' . var_export([
             'source' => 'live',
+            'proxies' => ["http://127.0.0.1:$captchaPort:login:secret"],
             'live' => [
                 'domain' => 'http://yandex.test',
-                'proxies' => ["http://127.0.0.1:$captchaPort", "http://127.0.0.1:$sitePort"],
                 'delay_ms' => 0, 'jitter_ms' => 0, 'min_gap_ms' => 0, 'attempts' => 3,
                 'captcha_cooldown' => 600, 'error_cooldown' => 60, 'cookies' => false, 'max_wait' => 0,
             ],
@@ -238,7 +239,7 @@ final class IntegrationTest
             'output' => ['dir' => $dir . '/out-live'],
         ], true) . ';');
 
-        $run = $this->cli(['--config=' . $dir . '/config-live.php', '--query=пластиковые окна', '--query=остекление балконов', '--visit']);
+        $run = $this->cli(['--config=' . $dir . '/config-live.php', '--query=пластиковые окна', '--query=остекление балконов', '--visit', "--proxy=http://127.0.0.1:$sitePort:login:secret"]);
         Assert::same(0, $run['code'], $run['err']);
         Assert::contains('Запросов обработано: 2 из 2', $run['out']);
         Assert::contains('Прокси:', $run['out']);
@@ -262,8 +263,15 @@ final class IntegrationTest
         Assert::same(2, count($okna['visits']));
         Assert::true($okna['visits'][0]['ok'], $okna['visits'][0]['error']);
         Assert::true(is_file($okna['visits'][0]['html_file']));
-        Assert::same(1, $okna['variants']);
-        Assert::contains('Вы пришли из поиска Яндекса', (string) file_get_contents($okna['visits'][0]['html_file']));
+        Assert::same(UserAgents::YANDEX_BOT, $okna['visits'][0]['user_agent'], 'первый визит — как робот Яндекса');
+        Assert::true(UserAgents::isBot($okna['visits'][0]['user_agent']));
+        Assert::false(UserAgents::isBot($okna['visits'][1]['user_agent']), 'второй визит — как браузер');
+        Assert::contains('Версия для поискового робота Яндекса', (string) file_get_contents($okna['visits'][0]['html_file']));
+        Assert::contains('Вы пришли из поиска Яндекса', (string) file_get_contents($okna['visits'][1]['html_file']));
+        Assert::same(2, $okna['variants'], 'сайт показал роботу и посетителю разные версии');
+        Assert::contains('сайтов с разными вариантами страницы: 7', $run['out'], 'страницы 404, «домен продаётся», телефона и cp1251 одинаковы для робота и посетителя');
+        $proxies = array_unique(array_map(static fn (array $v): string => $v['proxy'], $okna['visits']));
+        Assert::same(2, count($proxies), 'визиты чередуют оба прокси из общего списка');
         $redirected = array_values(array_filter($json['sites'], static fn (array $site): bool => $site['host'] === 'redirect-site.ru'))[0];
         Assert::contains('other-domain.ru', $redirected['visits'][0]['final_url']);
         Assert::contains(';page_file;page_final_url;page_title;page_variants', (string) file_get_contents($dir . '/out-live/sites.csv'));

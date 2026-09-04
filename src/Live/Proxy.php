@@ -71,8 +71,9 @@ final class Proxy
             $hostPort = $rest;
         } else {
             $parts = explode(':', $rest);
-            if (count($parts) === 4) {
-                [$host, $port, $user, $pass] = $parts;
+            if (count($parts) >= 4) {
+                [$host, $port, $user] = $parts;
+                $pass = implode(':', array_slice($parts, 3));
                 $hostPort = $host . ':' . $port;
             } elseif (count($parts) === 2) {
                 $hostPort = $rest;

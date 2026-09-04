@@ -38,6 +38,10 @@ final class Config
         return [
             // Источник выдачи: api — Yandex Search API, xmlstock — сервис XMLStock, live — живая выдача yandex.ru
             'source' => 'api',
+            // Общий список прокси (строки вида http://host:port:user:pass) и файл с ними:
+            // используются по кругу для живой выдачи и визитов на сайты
+            'proxies' => [],
+            'proxy_file' => null,
             'api' => [
                 'version' => 'rest',
                 'folder_id' => (string) (getenv('YANDEX_FOLDER_ID') ?: ''),
@@ -92,7 +96,7 @@ final class Config
                 'verify_ssl' => true,
                 'cookies' => true,
                 'cookie_dir' => dirname(__DIR__) . '/cache/cookies',
-                'user_agents' => UserAgents::DEFAULT,
+                'user_agents' => UserAgents::BROWSERS,
             ],
             'visit' => [
                 'enabled' => false,
@@ -102,8 +106,8 @@ final class Config
                 'target' => 'found',
                 'referer' => 'serp',
                 'variants' => 1,
-                'proxy' => null,
-                'user_agents' => [],
+                'proxy' => 'list',
+                'user_agents' => UserAgents::VISITORS,
                 'dir' => 'out/pages',
                 'screenshot' => true,
                 'full_page' => false,
@@ -145,7 +149,7 @@ final class Config
                 'timeout' => 15,
                 'verify_ssl' => true,
                 'max_bytes' => 512 * 1024,
-                'user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+                'user_agent' => UserAgents::YANDEX_BOT,
                 'require_status' => [200],
                 'reject_offsite_redirect' => false,
                 'page_must_match' => [],
@@ -300,12 +304,16 @@ final class Config
         if ((string) $g('live.domain') === '') {
             $errors[] = 'live.domain: не задан домен поиска (например, yandex.ru)';
         }
-        if (!is_array($g('live.proxies'))) {
-            $errors[] = 'live.proxies: ожидается массив строк';
+        foreach (['proxies', 'live.proxies'] as $path) {
+            if (!is_array($g($path))) {
+                $errors[] = "$path: ожидается массив строк";
+            }
         }
-        $proxyFile = $g('live.proxy_file');
-        if ($proxyFile !== null && $proxyFile !== '' && (!is_string($proxyFile) || !is_file($proxyFile))) {
-            $errors[] = 'live.proxy_file: файл не найден: ' . var_export($proxyFile, true);
+        foreach (['proxy_file', 'live.proxy_file'] as $path) {
+            $proxyFile = $g($path);
+            if ($proxyFile !== null && $proxyFile !== '' && (!is_string($proxyFile) || !is_file($proxyFile))) {
+                $errors[] = "$path: файл не найден: " . var_export($proxyFile, true);
+            }
         }
         if (!is_array($g('live.user_agents')) || $g('live.user_agents') === []) {
             $errors[] = 'live.user_agents: ожидается непустой список строк';

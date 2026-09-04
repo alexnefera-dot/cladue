@@ -36,13 +36,15 @@ final class Application
     public const VERSION = '1.1.0';
 
     /** Опции, принимающие значение (остальные — флаги). */
-    private const VALUE_OPTIONS = ['queries', 'query', 'config', 'out', 'pages', 'region', 'groups', 'limit', 'delay', 'source', 'proxies', 'parse-html', 'visit-driver', 'variants'];
+    private const VALUE_OPTIONS = ['queries', 'query', 'config', 'out', 'pages', 'region', 'groups', 'limit', 'delay', 'source', 'proxies', 'proxy', 'parse-html', 'visit-driver', 'variants', 'user-agent'];
     private const FLAG_OPTIONS = ['live', 'visit', 'no-cache', 'offline', 'check-sites', 'raw', 'dry-run', 'verbose', 'quiet', 'help', 'version'];
     private const SHORT_OPTIONS = ['q' => 'query', 'c' => 'config', 'o' => 'out', 'v' => 'verbose', 'h' => 'help'];
 
     private ?Logger $log = null;
     private ?ProxyPool $proxies = null;
     private ?PageVisitor $visitor = null;
+    /** @var list<string> прокси из опций --proxy */
+    private array $cliProxies = [];
 
     /**
      * @param list<string> $argv
@@ -96,6 +98,7 @@ final class Application
 
         $configPath = $this->resolveConfigPath($opts['config'] ?? null, $root);
         $config = Config::fromFile($configPath)->withOverrides($this->overrides($opts));
+        $this->cliProxies = array_values(array_map('strval', (array) ($opts['proxy'] ?? [])));
 
         $dryRun = isset($opts['dry-run']);
         $errors = $config->validate(!$dryRun);
@@ -211,7 +214,7 @@ final class Application
             $overrides['source'] = 'live';
         }
         if (isset($opts['proxies'])) {
-            $overrides['live.proxy_file'] = (string) $opts['proxies'];
+            $overrides['proxy_file'] = (string) $opts['proxies'];
         }
         if (isset($opts['visit'])) {
             $overrides['visit.enabled'] = true;
@@ -221,6 +224,10 @@ final class Application
         }
         if (isset($opts['variants'])) {
             $overrides['visit.variants'] = (int) $opts['variants'];
+        }
+        if (isset($opts['user-agent'])) {
+            $overrides['visit.user_agents'] = [(string) $opts['user-agent']];
+            $overrides['site_check.user_agent'] = (string) $opts['user-agent'];
         }
         if (isset($opts['no-cache'])) {
             $overrides['cache.enabled'] = false;
@@ -345,15 +352,24 @@ final class Application
         return $parts;
     }
 
+    /**
+     * Общий список прокси: config `proxies` + `proxy_file`, опции --proxy, а также
+     * `live.proxies` / `live.proxy_file` (прежнее место в конфигурации).
+     */
     private function buildProxyPool(Config $config): ProxyPool
     {
-        $lines = array_values((array) $config->get('live.proxies', []));
-        $file = $config->get('live.proxy_file');
-        if (is_string($file) && $file !== '') {
-            if (!is_file($file)) {
-                throw new UsageException("файл со списком прокси не найден: $file");
+        $lines = array_merge(
+            array_values((array) $config->get('proxies', [])),
+            $this->cliProxies,
+            array_values((array) $config->get('live.proxies', [])),
+        );
+        foreach ([$config->get('proxy_file'), $config->get('live.proxy_file')] as $file) {
+            if (is_string($file) && $file !== '') {
+                if (!is_file($file)) {
+                    throw new UsageException("файл со списком прокси не найден: $file");
+                }
+                $lines = array_merge($lines, file($file, FILE_IGNORE_NEW_LINES) ?: []);
             }
-            $lines = array_merge($lines, file($file, FILE_IGNORE_NEW_LINES) ?: []);
         }
         $requestsPerProxy = (int) $config->get('live.requests_per_proxy');
         $maxFailures = (int) $config->get('live.max_proxy_failures');
@@ -376,7 +392,7 @@ final class Application
         $driver = $this->buildVisitDriver($cfg, $log);
 
         $proxies = null;
-        if (($cfg['proxy'] ?? null) === 'list') {
+        if ((array_key_exists('proxy', $cfg) ? $cfg['proxy'] : 'list') === 'list') {
             $this->proxies ??= $this->buildProxyPool($config);
             $proxies = $this->proxies;
         }
@@ -613,7 +629,7 @@ final class Application
                 }
                 $value = $args[++$i];
             }
-            if (in_array($name, ['query', 'queries'], true)) {
+            if (in_array($name, ['query', 'queries', 'proxy'], true)) {
                 $opts[$name][] = $value;
             } else {
                 $opts[$name] = $value;
@@ -641,7 +657,10 @@ final class Application
                                 api — Yandex Search API (по умолчанию), xmlstock — сервис XMLStock,
                                 live — живая выдача yandex.ru как у обычного пользователя (через прокси)
           --live                то же, что --source=live
-          --proxies=FILE        файл со списком прокси для живой выдачи (см. proxies.example.txt)
+
+        Прокси (общий список для живой выдачи и визитов, используются по кругу):
+          --proxies=FILE        файл со списком прокси, по одному в строке (см. proxies.example.txt)
+          --proxy=АДРЕС         добавить прокси, например http://host:port:user:pass; можно указывать несколько раз
 
         Настройки:
           -c, --config=FILE     файл конфигурации (по умолчанию ./config.php, если есть; см. config.example.php)
@@ -657,7 +676,9 @@ final class Application
           --visit               зайти на каждый сайт, сохранить HTML и скриншот в out/pages/<сайт>/
           --visit-driver=X      playwright — headless Chromium с выполнением JS (нужны Node.js и npm i playwright),
                                 curl — без JS, auto — Playwright, если доступен (по умолчанию)
-          --variants=N          зайти на каждый сайт N раз с разными прокси и User-Agent, чтобы увидеть разные версии страницы
+          --variants=N          зайти на каждый сайт N раз с разными прокси и User-Agent, чтобы увидеть разные версии страницы:
+                                первый визит — как робот Яндекса (YandexBot), следующие — как браузеры
+          --user-agent="…"      свой User-Agent для визитов и проверки сайтов вместо YandexBot
 
         Кэш ответов:
           --no-cache            не использовать кэш

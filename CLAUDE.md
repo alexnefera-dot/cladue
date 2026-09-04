@@ -190,6 +190,12 @@ Run `php tests/lint.php && php tests/run.php` before committing.
 - Keep the tool free of third-party PHP packages; Node.js/Playwright is optional and only for visits.
 - Never add captcha solving or other measures that defeat Yandex's protections; the live source
   must keep pausing proxies on captcha and stopping when proxies run out.
+- Proxies live in the top-level `proxies` list / `proxy_file` (format `scheme://host:port:user:pass`
+  and others parsed by `Live\Proxy::parse()`); `live.proxies`/`live.proxy_file` are legacy aliases merged
+  in `Application::buildProxyPool()`. The live source rotates them per request, visits per job.
+- Default User-Agent for visits and site checks is `UserAgents::YANDEX_BOT` (the first visit variant
+  shows the page as served to Yandex's crawler); additional variants use `UserAgents::BROWSERS`.
+  The live SERP fetch always uses browser agents. `--user-agent` overrides visits/checks only.
 - New search sources implement `Search\RawFetcherInterface` (+ `ResponseParserInterface` if the
   format is not Yandex.XML); new visit drivers implement `Visit\DriverInterface`.
 - Every new filter rule needs a reason code in `ResultFilter::reject()`, a config default in

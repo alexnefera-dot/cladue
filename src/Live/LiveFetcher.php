@@ -31,7 +31,7 @@ final class LiveFetcher implements RawFetcherInterface
         private Logger $log,
     ) {
         $agents = array_values(array_filter((array) $config->get('live.user_agents', []), 'is_string'));
-        $this->userAgents = $agents !== [] ? $agents : UserAgents::DEFAULT;
+        $this->userAgents = $agents !== [] ? $agents : UserAgents::BROWSERS;
     }
 
     public function fetch(string $query, int $page): string

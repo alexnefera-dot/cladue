@@ -73,7 +73,8 @@ final class LiveFetcherTest
         Assert::same('http://b.ru:2', $http->calls[1]['options']['proxy']);
         Assert::same(true, $http->calls[0]['options']['follow']);
         Assert::null($http->calls[0]['options']['cookie_jar'], 'cookies отключены');
-        Assert::inArray($http->calls[0]['headers']['User-Agent'], UserAgents::DEFAULT);
+        Assert::inArray($http->calls[0]['headers']['User-Agent'], UserAgents::BROWSERS);
+        Assert::false(UserAgents::isBot($http->calls[0]['headers']['User-Agent']), 'к выдаче ходим как браузер, не как робот');
         Assert::same('https://yandex.ru/', $http->calls[0]['headers']['Referer']);
 
         [$a, $b] = $pool->all();

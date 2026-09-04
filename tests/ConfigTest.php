@@ -6,6 +6,7 @@ namespace Tests;
 
 use YandexSites\Config;
 use YandexSites\Filter\DefaultExclusions;
+use YandexSites\Live\UserAgents;
 
 final class ConfigTest
 {
@@ -20,6 +21,14 @@ final class ConfigTest
         Assert::same('x', $config->get('nope.nope', 'x'));
         Assert::true(count(DefaultExclusions::LIST) > 50);
         Assert::same(DefaultExclusions::LIST, (new Config())->get('filters.exclude_domains'));
+
+        $defaults = new Config();
+        Assert::same(UserAgents::YANDEX_BOT, $defaults->get('site_check.user_agent'), 'проверка сайтов — как робот Яндекса');
+        Assert::same(UserAgents::YANDEX_BOT, $defaults->get('visit.user_agents')[0], 'первый визит — как робот Яндекса');
+        Assert::same(UserAgents::BROWSERS[0], $defaults->get('visit.user_agents')[1]);
+        Assert::same(UserAgents::BROWSERS, $defaults->get('live.user_agents'), 'к выдаче — как браузер');
+        Assert::true(UserAgents::isBot(UserAgents::YANDEX_BOT));
+        Assert::false(UserAgents::isBot(UserAgents::BROWSERS[0]));
     }
 
     public function testOverrides(): void

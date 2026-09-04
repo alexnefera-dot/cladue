@@ -32,7 +32,7 @@ final class PageVisitor
         private string $region = '',
     ) {
         $agents = array_values(array_filter((array) ($cfg['user_agents'] ?? []), 'is_string'));
-        $this->userAgents = $agents !== [] ? $agents : UserAgents::DEFAULT;
+        $this->userAgents = $agents !== [] ? $agents : UserAgents::VISITORS;
     }
 
     public function driver(): DriverInterface
@@ -57,6 +57,7 @@ final class PageVisitor
         $dir = rtrim((string) ($this->cfg['dir'] ?? 'out/pages'), '/\\');
         $screenshot = (bool) ($this->cfg['screenshot'] ?? true) && $this->driver->name() === 'playwright';
         $proxies = $this->proxyList();
+        $proxyIndex = 0;
 
         $jobs = [];
         foreach ($sites as $key => $site) {
@@ -65,7 +66,7 @@ final class PageVisitor
                 : $site->bestUrl;
             $siteDir = $dir . '/' . self::safeName($site->host);
             for ($variant = 1; $variant <= $variants; $variant++) {
-                $proxy = $proxies !== [] ? $proxies[($variant - 1) % count($proxies)] : null;
+                $proxy = $proxies !== [] ? $proxies[$proxyIndex++ % count($proxies)] : null;
                 $jobs[] = new VisitJob(
                     id: $key . "\t" . $variant,
                     siteKey: (string) $key,
@@ -138,16 +139,19 @@ final class PageVisitor
     }
 
     /**
+     * Прокси для визитов: 'list' — общий список по кругу (без прокси — напрямую),
+     * null — напрямую, строка — один конкретный прокси.
+     *
      * @return list<Proxy>
      */
     private function proxyList(): array
     {
-        $setting = $this->cfg['proxy'] ?? null;
+        $setting = array_key_exists('proxy', $this->cfg) ? $this->cfg['proxy'] : 'list';
         if ($setting === null || $setting === '' || $setting === false) {
             return [];
         }
         if ($setting === 'list') {
-            return $this->proxies?->all() ?? [];
+            return array_values(array_filter($this->proxies?->all() ?? [], static fn (Proxy $p): bool => !$p->disabled));
         }
 
         return [Proxy::parse((string) $setting)];

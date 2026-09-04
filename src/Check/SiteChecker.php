@@ -6,6 +6,7 @@ namespace YandexSites\Check;
 
 use YandexSites\Filter\Domains;
 use YandexSites\Filter\TextMatcher;
+use YandexSites\Live\UserAgents;
 use YandexSites\Model\Site;
 use YandexSites\Support\Logger;
 
@@ -36,7 +37,7 @@ class SiteChecker
         $this->timeout = max(1, (int) ($cfg['timeout'] ?? 15));
         $this->verifySsl = (bool) ($cfg['verify_ssl'] ?? true);
         $this->maxBytes = max(1024, (int) ($cfg['max_bytes'] ?? 512 * 1024));
-        $this->userAgent = (string) ($cfg['user_agent'] ?? 'Mozilla/5.0');
+        $this->userAgent = (string) (($cfg['user_agent'] ?? '') !== '' ? $cfg['user_agent'] : UserAgents::YANDEX_BOT);
         $this->target = (string) ($cfg['target'] ?? 'root');
         $this->rejectOffsiteRedirect = (bool) ($cfg['reject_offsite_redirect'] ?? false);
         $this->requireStatus = array_values(array_map('intval', (array) ($cfg['require_status'] ?? [200])));

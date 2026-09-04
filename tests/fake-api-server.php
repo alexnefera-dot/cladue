@@ -322,6 +322,9 @@ $port = (string) ($_SERVER['SERVER_PORT'] ?? '80');
 $referer = (string) ($_SERVER['HTTP_REFERER'] ?? '');
 $userAgent = (string) ($_SERVER['HTTP_USER_AGENT'] ?? '');
 $visitor = str_contains($referer, 'yandex') ? 'Вы пришли из поиска Яндекса — специальное предложение' : 'Прямой заход';
+if (stripos($userAgent, 'yandexbot') !== false) {
+    $visitor = 'Версия для поискового робота Яндекса';
+}
 header('Content-Type: text/html; charset=utf-8');
 switch ($host) {
     case 'dead-site.ru':
@@ -345,6 +348,10 @@ switch ($host) {
         return;
     case 'parked-site.ru':
         echo '<html><head><title>Домен продаётся</title></head><body><h1>Домен продаётся</h1></body></html>';
+
+        return;
+    case 'honest-site.ru':
+        echo '<html><head><title>Честный сайт</title></head><body><p>Одна и та же страница для всех посетителей</p></body></html>';
 
         return;
     case 'variant-site.ru':

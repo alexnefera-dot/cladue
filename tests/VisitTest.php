@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests;
 
+use YandexSites\Live\ProxyPool;
+use YandexSites\Live\UserAgents;
 use YandexSites\Model\SearchResult;
 use YandexSites\Model\Site;
 use YandexSites\Support\Logger;
@@ -18,7 +20,7 @@ use YandexSites\Visit\VisitJob;
  */
 final class VisitTest
 {
-    private const HOSTS = ['okna-moskva.ru', 'variant-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru'];
+    private const HOSTS = ['okna-moskva.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru'];
 
     private ?string $dir = null;
 
@@ -157,7 +159,7 @@ final class VisitTest
             $site->add(new SearchResult('окна', 0, 1, "http://$host:$port/", $host, 'T'));
             $fresh[$host] = $site;
         }
-        $limited = new PageVisitor(['variants' => 1, 'dir' => $dir . '/limited', 'screenshot' => false, 'timeout' => 5, 'delay_ms' => 0, 'resolve' => $this->resolve($port), 'max_sites' => 1, 'referer' => 'none'], new CurlDriver(), $this->logger());
+        $limited = new PageVisitor(['variants' => 1, 'dir' => $dir . '/limited', 'screenshot' => false, 'timeout' => 5, 'delay_ms' => 0, 'resolve' => $this->resolve($port), 'max_sites' => 1, 'referer' => 'none', 'user_agents' => [UserAgents::BROWSERS[0]]], new CurlDriver(), $this->logger());
         $limited->visit($fresh);
         Assert::same(1, count($fresh['okna-moskva.ru']->visits), 'max_sites ограничивает число сайтов');
         Assert::same([], $fresh['variant-site.ru']->visits);
@@ -165,6 +167,69 @@ final class VisitTest
 
         Assert::same('shop.okna-moskva.ru', PageVisitor::safeName('shop.Okna-Moskva.ru'));
         Assert::same('site', PageVisitor::safeName('***'));
+    }
+
+    public function testVisitsRotateThroughProxyList(): void
+    {
+        $port = FakeServer::port();
+        $dir = $this->dir() . '/proxied';
+        $sites = [];
+        foreach (['okna-moskva.ru', 'honest-site.ru'] as $host) {
+            $site = new Site($host, $host, $host);
+            $site->add(new SearchResult('окна', 0, 1, "http://$host:$port/", $host, 'T'));
+            $sites[$host] = $site;
+        }
+        // Фейковый сервер отвечает и как прокси: запросы через него попадают на те же «сайты».
+        $pool = ProxyPool::fromLines(["http://127.0.0.1:$port:login:secret", 'direct']);
+        $visitor = new PageVisitor(['variants' => 2, 'dir' => $dir, 'screenshot' => false, 'timeout' => 5, 'delay_ms' => 0, 'resolve' => $this->resolve($port)], new CurlDriver(), $this->logger(), $pool);
+        $visitor->visit($sites);
+
+        $labels = [];
+        foreach ($sites as $site) {
+            foreach ($site->visits as $visit) {
+                Assert::true($visit['ok'], $visit['error']);
+                $labels[] = $visit['proxy'];
+            }
+        }
+        Assert::same(["http://127.0.0.1:$port", 'direct', "http://127.0.0.1:$port", 'direct'], $labels, 'прокси чередуются по кругу от визита к визиту');
+
+        $direct = new PageVisitor(['variants' => 1, 'dir' => $dir . '/direct', 'screenshot' => false, 'timeout' => 5, 'delay_ms' => 0, 'resolve' => $this->resolve($port), 'proxy' => null], new CurlDriver(), $this->logger(), $pool);
+        $one = ['honest-site.ru' => $sites['honest-site.ru']];
+        $sites['honest-site.ru']->visits = [];
+        $direct->visit($one);
+        Assert::same('direct', $sites['honest-site.ru']->visits[0]['proxy'], "proxy => null — без прокси даже при заданном списке");
+    }
+
+    public function testDefaultVisitorIsYandexBotThenBrowser(): void
+    {
+        $port = FakeServer::port();
+        $dir = $this->dir() . '/bot';
+        $sites = [];
+        foreach (['okna-moskva.ru', 'honest-site.ru'] as $host) {
+            $site = new Site($host, $host, $host);
+            $site->add(new SearchResult('окна', 0, 1, "http://$host:$port/", $host, 'T'));
+            $sites[$host] = $site;
+        }
+        $visitor = new PageVisitor(['variants' => 2, 'dir' => $dir, 'screenshot' => false, 'timeout' => 5, 'delay_ms' => 0, 'resolve' => $this->resolve($port)], new CurlDriver(), $this->logger());
+        $visitor->visit($sites);
+
+        $okna = $sites['okna-moskva.ru'];
+        Assert::same(UserAgents::YANDEX_BOT, $okna->visits[0]['user_agent'], 'по умолчанию первый визит — как робот Яндекса');
+        Assert::same(UserAgents::BROWSERS[0], $okna->visits[1]['user_agent'], 'второй — как браузер');
+        Assert::contains('Версия для поискового робота Яндекса', (string) file_get_contents($okna->visits[0]['html_file']));
+        Assert::notContains('робота', (string) file_get_contents($okna->visits[1]['html_file']));
+        Assert::same(2, $okna->variantCount(), 'клоакинг: роботу и посетителю показаны разные версии');
+        Assert::same(1, $sites['honest-site.ru']->variantCount(), 'честный сайт показывает всем одно и то же');
+
+        $single = new PageVisitor(['variants' => 1, 'dir' => $dir . '/single', 'screenshot' => false, 'timeout' => 5, 'delay_ms' => 0, 'resolve' => $this->resolve($port)], new CurlDriver(), $this->logger());
+        $one = ['okna-moskva.ru' => (static function () use ($port): Site {
+            $site = new Site('okna-moskva.ru', 'okna-moskva.ru', 'okna-moskva.ru');
+            $site->add(new SearchResult('окна', 0, 1, "http://okna-moskva.ru:$port/", 'okna-moskva.ru', 'T'));
+
+            return $site;
+        })()];
+        $single->visit($one);
+        Assert::same(UserAgents::YANDEX_BOT, $one['okna-moskva.ru']->visits[0]['user_agent'], 'один визит — робот');
     }
 
     public function testPlaywrightDriverRendersJavascript(): void
