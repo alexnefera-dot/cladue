@@ -77,7 +77,6 @@ final class CurlDriver implements DriverInterface
                 $httpStatus = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
                 $finalUrl = (string) curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
                 $contentType = (string) curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
-                curl_close($ch);
                 @unlink($entry['cookie']);
 
                 if ($errno !== CURLE_OK && !$buf->truncated) {
@@ -103,8 +102,6 @@ final class CurlDriver implements DriverInterface
                 }
             }
         }
-
-        curl_multi_close($multi);
 
         return $results;
     }
@@ -148,6 +145,7 @@ final class CurlDriver implements DriverInterface
         ];
         if ($job->proxyUrl !== null) {
             $options[CURLOPT_PROXY] = $job->proxyUrl;
+            $options[CURLOPT_PROXYAUTH] = CURLAUTH_BASIC | CURLAUTH_DIGEST;
         }
         if ($resolve !== []) {
             $options[CURLOPT_RESOLVE] = $resolve;

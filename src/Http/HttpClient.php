@@ -66,6 +66,7 @@ class HttpClient
         }
         if (!empty($options['proxy'])) {
             curl_setopt($ch, CURLOPT_PROXY, (string) $options['proxy']);
+            curl_setopt($ch, CURLOPT_PROXYAUTH, CURLAUTH_BASIC | CURLAUTH_DIGEST);
         }
         if (!empty($options['cookie_jar'])) {
             curl_setopt($ch, CURLOPT_COOKIEFILE, (string) $options['cookie_jar']);
@@ -80,15 +81,31 @@ class HttpClient
         if ($response === false) {
             $errno = curl_errno($ch);
             $error = curl_error($ch);
-            curl_close($ch);
-            throw new HttpException(sprintf('Сетевая ошибка (curl %d): %s', $errno, $error), $errno);
+            throw new HttpException(sprintf('Сетевая ошибка (curl %d): %s%s', $errno, $error, self::proxyHint($error)), $errno);
         }
 
         $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
         $contentType = (string) curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
         $finalUrl = (string) curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
-        curl_close($ch);
 
         return new HttpResponse($status, (string) $response, $contentType, $finalUrl);
+    }
+
+    /**
+     * Подсказка по типичным ошибкам прокси.
+     */
+    public static function proxyHint(string $error): string
+    {
+        if (str_contains($error, 'response 407')) {
+            return ' — прокси не принял логин или пароль (HTTP 407): проверьте строку в proxies.txt';
+        }
+        if (str_contains($error, 'response 403')) {
+            return ' — прокси запретил доступ (HTTP 403): возможно, ваш IP не в белом списке у провайдера прокси';
+        }
+        if (preg_match('/response (5\d\d)/', $error, $m) === 1) {
+            return sprintf(' — прокси-сервер отвечает ошибкой (HTTP %s), вероятно не работает', $m[1]);
+        }
+
+        return '';
     }
 }

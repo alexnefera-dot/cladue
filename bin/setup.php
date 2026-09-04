@@ -14,6 +14,8 @@ declare(strict_types=1);
  * команды для проверки прокси и пробного запуска.
  */
 
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
+
 $root = dirname(__DIR__);
 $target = $root;
 $proxies = [];

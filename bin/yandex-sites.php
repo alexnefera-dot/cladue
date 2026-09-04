@@ -8,6 +8,8 @@ declare(strict_types=1);
  * подключается простой PSR-4 автозагрузчик для каталога src/.
  */
 
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
+
 $root = dirname(__DIR__);
 
 if (is_file($root . '/vendor/autoload.php')) {

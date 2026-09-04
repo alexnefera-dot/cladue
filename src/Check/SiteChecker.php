@@ -94,7 +94,6 @@ class SiteChecker
                 $httpStatus = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
                 $finalUrl = (string) curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
                 $contentType = (string) curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
-                curl_close($ch);
 
                 if ($errno !== CURLE_OK && !$buf->truncated) {
                     if (!$job['httpTried'] && str_starts_with((string) $job['url'], 'https://')) {
@@ -123,8 +122,6 @@ class SiteChecker
                 ));
             }
         }
-
-        curl_multi_close($multi);
 
         return $results;
     }
