@@ -295,6 +295,8 @@
 8829.lol
 9012.team
 9061.lol
+9090.lol
+9124.lol
 9158.lol
 9158.team
 9279.team
@@ -351,9 +353,15 @@ c7mt.team
 c7v.team
 c7vd.team
 c9m.team
+casino01.lol
+casino0962.lol
+casino1430.lol
 casino922.lol
+casinogh.lol
+casinoj1.lol
 casinonck.lol
 casinoopk.lol
+casinoprb.lol
 casinozfa.lol
 cdrw.team
 cflw.team
@@ -549,6 +557,7 @@ q7a.lol
 q7a.team
 q7k.team
 qbnv.lol
+qlcasino.lol
 qluj.team
 qmpl.team
 qtbm.team
@@ -638,6 +647,7 @@ xdkr.team
 xfdr.team
 xhpt.team
 xoacasino.lol
+xycasino.lol
 xzdg.team
 y8db.team
 ypur.team
