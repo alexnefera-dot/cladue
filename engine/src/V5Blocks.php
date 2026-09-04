@@ -674,14 +674,14 @@ function v5VpisatTemu(string $html, array $тема, int $предел = 4): str
             // «бонус до 300 %» → «пакет «Имя» до 300 %»: слово меняется на «пакет» с тем же окончанием.
             if (mb_stripos($слово, 'бонус') === 0) { $слово = 'пакет' . (mb_substr($слово, -1) === 'ы' ? '' : ''); }
             $первая = mb_substr($m[0], 0, 1);
-            if ($первая === mb_strtoupper($первая)) { $слово = mb_strtoupper(mb_substr($слово, 0, 1)) . mb_substr($слово, 1); }
+            if ($первая === mb_strtoupper($первая) && preg_match('~^[А-ЯЁ]~u', $первая)) { $слово = mb_strtoupper(mb_substr($слово, 0, 1)) . mb_substr($слово, 1); }
             return $слово . ' «' . $п . '»';
         }, $html);
-    $html = (string) preg_replace_callback('~(?<![а-яё])(программ\w+)\s+лояльности(?![а-яё])|(?<![а-яё])VIP[- ]?(программ\w+|статус\w*|уровн\w*|клуб\w*)(?![а-яё])~ui',
+    $html = (string) preg_replace_callback('~(?<![а-яё])(программ\w+)\s+лояльности(?![а-яё])(?!\s*(?:</strong>)?\s*«)|(?<![а-яё])VIP[- ]?(программ\w+|статус\w*|уровн\w*|клуб\w*)(?![а-яё])(?!\s*(?:</strong>)?\s*«)~ui',
         function ($m) use (&$н2, $пр, $предел) {
             if (++$н2 > $предел) { return $m[0]; }
             $слово = $m[1] !== '' ? $m[1] : ($m[2] ?? 'программа'); $первая = mb_substr($m[0], 0, 1);
-            if ($первая === mb_strtoupper($первая)) { $слово = mb_strtoupper(mb_substr($слово, 0, 1)) . mb_substr($слово, 1); }
+            if ($первая === mb_strtoupper($первая) && preg_match('~^[А-ЯЁ]~u', $первая)) { $слово = mb_strtoupper(mb_substr($слово, 0, 1)) . mb_substr($слово, 1); }
             return $слово . ' «' . $пр . '»';
         }, $html);
     return $html;
