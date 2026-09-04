@@ -58,6 +58,13 @@
   .ctBtn{font-size:12px;padding:4px 10px;border-radius:7px;border:1px solid var(--accent);background:#fff;color:var(--accent);cursor:pointer;white-space:nowrap}
   .ctBtn:hover{background:var(--accent);color:#fff}
   .ctBtn:disabled{opacity:.6;cursor:default}
+  .thumb{width:64px;height:64px;object-fit:cover;object-position:top;border-radius:6px;border:1px solid #ddd;background:#f4f4f4;cursor:zoom-in;display:block}
+  .thumb-empty{width:64px;height:64px;border-radius:6px;border:1px dashed #ddd;background:#fafafa;display:flex;align-items:center;justify-content:center;font-size:10px;color:#aaa;text-align:center}
+  .xBtn{border:none;background:transparent;color:#c0392b;cursor:pointer;font-size:17px;line-height:1;padding:2px 6px;border-radius:6px}
+  .xBtn:hover{background:#fdecea}
+  #lightbox{position:fixed;inset:0;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;z-index:1000;cursor:zoom-out;padding:20px}
+  #lightbox img{max-width:94vw;max-height:94vh;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+  #lightbox .lbcap{position:fixed;top:14px;left:0;right:0;text-align:center;color:#fff;font-size:14px}
   .tag.diff{background:#fef3c7;color:var(--warn)}
   .muted{color:var(--muted)}
   .msg{padding:8px 12px;border-radius:8px;margin-top:8px;font-size:13px}
@@ -210,21 +217,24 @@
 
   <div class="card" id="resultsCard" hidden>
     <h2>Результаты <span id="resCount" class="muted"></span></h2>
-    <div class="hint" style="margin-bottom:8px">Файлы страниц на диске: <b>runs/current/pages/&lt;сайт&gt;/</b>. Кнопки — скачать таблицы.</div>
+    <div class="hint" style="margin-bottom:8px">Клик по превью — увеличить; крестик ✕ — убрать неподходящий сайт; «Забрать весь контент» — по оставшимся. Файлы: <b>runs/current/pages/&lt;сайт&gt;/</b>.</div>
     <div class="btns" style="margin-bottom:10px;align-items:center">
       <a class="tag" id="dlCsv" href="/download?file=csv">CSV</a>
       <a class="tag" id="dlJson" href="/download?file=json">JSON</a>
       <a class="tag" id="dlDomains" href="/download?file=domains">domains.txt</a>
-      <button class="ctBtn" id="cleanAllBtn" style="margin-left:8px" title="Подготовить шаблоны статей по всем скачанным сайтам (наши уже исключены)">Забрать весь контент</button>
+      <button class="ctBtn" id="cleanAllBtn" style="margin-left:8px" title="Подготовить шаблоны статей по оставшимся сайтам (наши и убранные крестиком исключены)">Забрать весь контент</button>
     </div>
+    <div class="hint" id="removedNote" hidden style="margin-bottom:8px"></div>
     <div style="overflow:auto">
       <table id="resTable">
-        <thead><tr><th>#</th><th>Домен</th><th>Запросов</th><th>Позиция</th><th>Версии</th><th>Скачано</th><th>Файлы</th><th>Контент</th></tr></thead>
+        <thead><tr><th>#</th><th>Превью</th><th>Домен</th><th>Запр.</th><th>Поз.</th><th>Версии</th><th>Скачано</th><th>Файлы</th><th>Контент</th><th></th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
   </div>
 </div>
+
+<div id="lightbox" hidden><div class="lbcap" id="lbcap"></div><img id="lbimg" src="" alt=""></div>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -284,7 +294,8 @@ $('resetBase').addEventListener('click', async (e)=>{ e.preventDefault(); if(con
 
 async function start(){
   const st=collectSettings();
-  if(st.stage!=='download' && st.queries.length===0){ showStart('Добавьте хотя бы один запрос','err'); return; }
+  if(!['download','clean'].includes(st.stage) && st.queries.length===0){ showStart('Добавьте хотя бы один запрос','err'); return; }
+  if(st.stage!=='clean'){ removedHosts.clear(); saveRemoved(); }
   $('startBtn').disabled=true;
   const r=await fetch('/api/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(st)});
   const j=await r.json();
@@ -361,11 +372,20 @@ function renderStatus(st, running){
   } else $('proxies').textContent='';
 }
 
+let lastSites=[];
+let removedHosts=new Set(JSON.parse(localStorage.getItem('ys-removed')||'[]'));
+function saveRemoved(){ try{ localStorage.setItem('ys-removed', JSON.stringify([...removedHosts])); }catch(e){} }
+
 function renderResults(sites){
+  lastSites = sites || [];
   const card=$('resultsCard');
+  const visible=(sites||[]).filter(s=>!removedHosts.has(s.host));
   if(!sites || !sites.length){ card.hidden=true; return; }
   card.hidden=false;
-  $('resCount').textContent='· '+sites.length;
+  $('resCount').textContent='· '+visible.length+(removedHosts.size?` (убрано ${removedHosts.size})`:'');
+  const note=$('removedNote');
+  if(removedHosts.size){ note.hidden=false; note.innerHTML=`Убрано сайтов: <b>${removedHosts.size}</b> · <a href="#" id="restoreRemoved">вернуть все</a>`; }
+  else note.hidden=true;
   const esc=t=>String(t||'').replace(/"/g,'&quot;').replace(/</g,'&lt;');
   // Человеческая расшифровка типовых ошибок загрузки
   const humanErr=e=>{ e=String(e||'');
@@ -378,7 +398,7 @@ function renderResults(sites){
     return e; };
   const errCell=e=>{ const h=esc(humanErr(e)); return `<span class="tag diff" title="${esc(e)}">${h.length>70?h.slice(0,70)+'…':h}</span>`; };
   const tb=$('resTable').querySelector('tbody');
-  tb.innerHTML=sites.map((s,i)=>{
+  tb.innerHTML=visible.map((s,i)=>{
     let dl='—';
     if(s.own){ dl=`<span class="tag" title="наш шаблон — исключён из выгрузки">исключён как наш</span>`; }
     else if(s.pages_total>0){ dl=`${s.pages_ok||0}/${s.pages_total}`; if((s.pages_ok||0)<s.pages_total && s.page_error) dl+=' '+errCell(s.page_error); }
@@ -391,7 +411,10 @@ function renderResults(sites){
     const ct = (!s.own && (s.pages_ok||0)>0)
       ? `<button class="ctBtn" data-host="${esc(s.host)}" title="Подготовить шаблон статьи из страниц этого сайта">Забрать контент</button>`
       : '—';
-    return `<tr><td>${i+1}</td><td class="host">${link}</td><td>${s.queries_count||0}</td><td>${s.best_position??'—'}</td><td>${variants}</td><td>${dl}</td><td>${files.join(' · ')||'—'}</td><td>${ct}</td></tr>`;
+    const thumb = s.screenshot
+      ? `<img class="thumb" src="/file?path=${encodeURIComponent(s.screenshot)}" data-full="/file?path=${encodeURIComponent(s.screenshot)}" data-cap="${esc(s.host)}" loading="lazy" alt="">`
+      : `<span class="thumb-empty">${s.own?'наш':'нет'}</span>`;
+    return `<tr data-host="${esc(s.host)}"><td>${i+1}</td><td>${thumb}</td><td class="host">${link}</td><td>${s.queries_count||0}</td><td>${s.best_position??'—'}</td><td>${variants}</td><td>${dl}</td><td>${files.join(' · ')||'—'}</td><td>${ct}</td><td><button class="xBtn" data-remove="${esc(s.host)}" title="Убрать сайт из списка">✕</button></td></tr>`;
   }).join('');
 }
 
@@ -407,11 +430,19 @@ async function cleanSite(host, btn){
     btn.disabled=false;
   }catch(e){ btn.textContent='Ошибка'; btn.disabled=false; setTimeout(()=>{btn.textContent=old;},2500); }
 }
-$('resTable').addEventListener('click', e=>{ const b=e.target.closest('.ctBtn'); if(b) cleanSite(b.dataset.host, b); });
+$('resTable').addEventListener('click', e=>{
+  const ct=e.target.closest('.ctBtn'); if(ct){ cleanSite(ct.dataset.host, ct); return; }
+  const th=e.target.closest('.thumb'); if(th && th.dataset.full){ openLightbox(th.dataset.full, th.dataset.cap); return; }
+  const x=e.target.closest('.xBtn'); if(x){ removedHosts.add(x.dataset.remove); saveRemoved(); renderResults(lastSites); return; }
+});
+$('removedNote').addEventListener('click', e=>{ if(e.target && e.target.id==='restoreRemoved'){ e.preventDefault(); removedHosts.clear(); saveRemoved(); renderResults(lastSites); } });
+function openLightbox(src,cap){ $('lbimg').src=src; $('lbcap').textContent=cap||''; $('lightbox').hidden=false; }
+$('lightbox').addEventListener('click', ()=>{ $('lightbox').hidden=true; $('lbimg').src=''; });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape' && !$('lightbox').hidden){ $('lightbox').hidden=true; $('lbimg').src=''; } });
 $('cleanAllBtn').addEventListener('click', async ()=>{
   const btn=$('cleanAllBtn'); const old=btn.textContent; btn.disabled=true; btn.textContent='Готовлю всё…';
   try{
-    const r=await fetch('/api/clean-all',{method:'POST'}); const j=await r.json();
+    const r=await fetch('/api/clean-all',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({exclude:[...removedHosts]})}); const j=await r.json();
     if(!j.ok){ alert(j.error||'Ошибка'); btn.textContent=old; btn.disabled=false; return; }
     if(!j.written){ alert('Ни на одной странице не найдено тело статьи (нет <h1> или блока «Популярные запросы»).'); btn.textContent=old; btn.disabled=false; return; }
     if(j.zip){ window.location='/file?path='+encodeURIComponent(j.zip); }

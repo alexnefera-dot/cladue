@@ -384,6 +384,8 @@ if ($path === '/api/clean-site' && $method === 'POST') {
 
 if ($path === '/api/clean-all' && $method === 'POST') {
     // Кнопка «Забрать весь контент»: готовит все скачанные сайты (наши уже исключены на выгрузке) в один архив.
+    // Можно передать exclude — список сайтов, которые пользователь убрал крестиком в таблице.
+    $exclude = array_flip(array_map('strval', (array) (body()['exclude'] ?? [])));
     $byHost = pagesByHost($runDir . '/pages');
     if ($byHost === []) {
         jsonOut(['ok' => false, 'error' => 'нет скачанных страниц — сначала «Выгрузка страниц»'], 404);
@@ -392,6 +394,9 @@ if ($path === '/api/clean-all' && $method === 'POST') {
     $skipped = 0;
     $sites = 0;
     foreach ($byHost as $host => $files) {
+        if (isset($exclude[$host])) {
+            continue;
+        }
         $r = cleanHostPages($runDir, (string) $host, $files);
         $written += $r['written'];
         $skipped += $r['skipped'];
