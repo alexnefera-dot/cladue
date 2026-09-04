@@ -20,7 +20,7 @@ use YandexSites\Visit\VisitJob;
  */
 final class VisitTest
 {
-    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru'];
+    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'agegate.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru'];
 
     private ?string $dir = null;
 
@@ -320,6 +320,50 @@ final class VisitTest
         // остальные страницы меню не скачаны
         Assert::false(is_file("$dir/1-стр/onepager.ru/contacts.html"));
         Assert::same(0, count(glob("$dir/1-стр/onepager.ru/*.html") ?: []) - 1, 'кроме index других html нет');
+    }
+
+    public function testCrawlDoesNotCollapseAgeGateStub(): void
+    {
+        // Сайт отдаёт одинаковую заглушку «Вам есть 18 лет?» на всех страницах (реальный контент за ней).
+        // Одинаковый HTML заглушки не должен схлопнуть сайт в одностраничник/дубликаты — страницы разные.
+        $port = FakeServer::port();
+        $dir = $this->dir() . '/agegate';
+        $site = new Site('agegate.ru', 'agegate.ru', 'agegate.ru');
+        $site->add(new SearchResult('казино', 0, 1, "http://agegate.ru:$port/", 'agegate.ru', 'Казино'));
+        $sites = ['agegate.ru' => $site];
+
+        $visitor = new PageVisitor([
+            'crawl' => true,
+            'max_pages' => 10,
+            'target' => 'found',
+            'dir' => $dir,
+            'screenshot' => false,
+            'similarity' => 0.9,
+            'timeout' => 5,
+            'delay_ms' => 0,
+            'concurrency' => 3,
+            'resolve' => $this->resolve($port),
+            'user_agents' => [UserAgents::YANDEX_BOT],
+        ], new CurlDriver(), $this->logger());
+        $visitor->visit($sites);
+
+        $byUrl = [];
+        foreach ($site->visits as $v) {
+            $byUrl[$v['url']] = $v;
+        }
+        // Сайт НЕ схлопнут: собраны главная и страницы из меню, редирект-ссылка отброшена как редирект.
+        Assert::same(4, count($site->visits), 'обойдены главная и страницы меню, а не одна');
+        $errors = implode(' ', array_map(static fn (array $v): string => (string) ($v['error'] ?? ''), $site->visits));
+        Assert::false(str_contains($errors, 'одностраничник'), 'заглушка возраста — не одностраничник');
+        Assert::false(str_contains($errors, 'дубликат'), 'заглушка возраста — не дубликат');
+        Assert::true($byUrl["http://agegate.ru:$port/"]['stub'] ?? false, 'главная помечена как заглушка');
+        Assert::true($byUrl["http://agegate.ru:$port/about"]['stub'] ?? false, 'внутренняя помечена как заглушка');
+
+        $summary = $site->visitSummary();
+        Assert::same(3, $summary['ok'], 'сохранены главная и две страницы меню');
+        Assert::true(is_file("$dir/3-стр/agegate.ru/index.html"), 'страницы сохранены, а не удалены как дубли');
+        Assert::true(is_file("$dir/3-стр/agegate.ru/about.html"));
+        Assert::true(is_file("$dir/3-стр/agegate.ru/contacts.html"));
     }
 
     public function testPlaywrightDriverRendersJavascript(): void

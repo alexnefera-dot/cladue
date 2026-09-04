@@ -374,6 +374,16 @@ switch ($host) {
         echo '<html><head><title>Вариант ' . $variant . '</title></head><body><h1>Страница варианта ' . $variant . '</h1><p>' . htmlspecialchars($visitor) . '</p></body></html>';
 
         return;
+    case 'agegate.ru':
+        // Заглушка проверки возраста 18+ — одинаковая на всех путях (реальный контент за ней).
+        // Шапка с меню присутствует, поэтому ссылки на внутренние страницы всё равно собираются.
+        echo '<html><head><title>Подтвердите возраст</title></head><body>'
+            . $navHtml
+            . '<div class="age-gate"><h1>Вам есть 18 лет?</h1>'
+            . '<button type="button">Да, мне есть 18</button> <a href="/no">Нет</a></div>'
+            . '</body></html>';
+
+        return;
     default:
         // Тело страницы зависит от пути (у одностраничника onepager.ru — одинаковое для всех путей),
         // чтобы можно было отличать одинаковые страницы от разных.

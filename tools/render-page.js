@@ -91,6 +91,61 @@ async function check() {
     }
 }
 
+// Тексты кнопок подтверждения возраста / согласия с cookie и признаки такого барьера.
+const GATE_CONFIRM = '^(да\\b|да,|мне уже|мне есть|мне исполнилось|подтвержда|подтверди|я совершеннолет|соглас|принима|принять|продолжить|войти на сайт|вход на сайт|enter\\b|yes\\b|i am|18\\+?|21\\+?|accept|agree|continue)';
+const GATE_DECLINE = '(мне нет|мне ещё нет|мне еще нет|нет,|younger|no,|exit|leave site|decline|reject|выход|назад)';
+const GATE_CONTEXT = '(вам\\s*(уже|есть)|подтвердите\\s*возраст|проверка\\s*возраст|совершеннолет|18\\s*лет|21\\s*(год|года|лет)|age.?verif|adult\\s*content|достигли\\s*ли|cookie|куки|обработку\\s*файлов)';
+
+// Заглушки-барьеры (проверка возраста 18+, cookie-стена) показывают один и тот же экран на всех
+// страницах. Чтобы дальше сравнивать реальный контент, а не заглушку, лучшими усилиями нажимаем
+// кнопку подтверждения. Срабатывает только при явных признаках барьера — на обычных страницах нет.
+async function passGate(page, timeout) {
+    let clicked = null;
+    try {
+        clicked = await page.evaluate((patterns) => {
+            const confirmRe = new RegExp(patterns.confirm, 'i');
+            const declineRe = new RegExp(patterns.decline, 'i');
+            const contextRe = new RegExp(patterns.context, 'i');
+            const bodyText = ((document.body && document.body.innerText) || '').slice(0, 5000);
+            const overlay = Array.from(document.querySelectorAll('body *')).find((el) => {
+                const s = getComputedStyle(el);
+                if ((s.position !== 'fixed' && s.position !== 'absolute') || s.visibility === 'hidden' || s.display === 'none') {
+                    return false;
+                }
+                const r = el.getBoundingClientRect();
+                return r.width >= window.innerWidth * 0.6 && r.height >= window.innerHeight * 0.6 && (parseInt(s.zIndex, 10) || 0) >= 100;
+            });
+            if (!contextRe.test(bodyText) && !overlay) {
+                return null;
+            }
+            const scope = overlay || document.body;
+            const controls = Array.from(scope.querySelectorAll('button, a, input[type=button], input[type=submit], [role=button], [onclick]'));
+            for (const el of controls) {
+                const text = ((el.innerText || el.value || el.getAttribute('aria-label') || '')).trim();
+                if (!text || text.length > 40 || declineRe.test(text) || !confirmRe.test(text)) {
+                    continue;
+                }
+                const r = el.getBoundingClientRect();
+                const s = getComputedStyle(el);
+                if (r.width <= 0 || r.height <= 0 || s.visibility === 'hidden' || s.display === 'none') {
+                    continue;
+                }
+                el.click();
+                return text;
+            }
+            return null;
+        }, { confirm: GATE_CONFIRM, decline: GATE_DECLINE, context: GATE_CONTEXT });
+    } catch (e) {
+        return null;
+    }
+    if (clicked) {
+        await page.waitForLoadState('load', { timeout: Math.min(timeout, 8000) }).catch(() => {});
+        await page.waitForLoadState('networkidle', { timeout: Math.min(timeout, 6000) }).catch(() => {});
+        await page.waitForTimeout(600);
+    }
+    return clicked;
+}
+
 async function visitJob(browser, job, options) {
     const context = await browser.newContext({
         userAgent: job.userAgent || undefined,
@@ -111,6 +166,9 @@ async function visitJob(browser, job, options) {
         await page.waitForLoadState('networkidle', { timeout: Math.min(timeout, 10000) }).catch(() => {});
         if (options.wait_ms > 0) {
             await page.waitForTimeout(options.wait_ms);
+        }
+        if (options.pass_gate !== false) {
+            await passGate(page, timeout);
         }
         const html = await page.content();
         fs.mkdirSync(path.dirname(job.htmlFile), { recursive: true });

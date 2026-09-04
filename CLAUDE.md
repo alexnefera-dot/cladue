@@ -223,6 +223,11 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   page matches home ≥ `visit.similarity` (default 0.9) the site is a one-pager and the rest are
   skipped, and matching inner pages are dropped (`PageVisitor::dedupVisit()`). Finished sites are
   bucketed into `pages/<N>-стр/<host>/` by successful-page count (`PageVisitor::bucketByPageCount()`).
+  Barrier stubs (age-gate 18+, cookie wall, "enable JavaScript") look identical on every URL but hide
+  different content, so `PageVisitor::looksLikeStub()` excludes them from dedup (never a duplicate/one-pager,
+  never a similarity reference; visit flagged `stub`). The Playwright renderer best-effort dismisses such
+  gates before capture (`passGate()` in `tools/render-page.js`, guarded by an age/cookie context check so
+  it never misfires on normal pages).
 - `Support\DomainLedger` (runs/domains-base.txt) is a cross-run base of collected registrable
   domains; `Runner` takes an optional ledger + skipKnown to drop already-seen domains (reason
   `seen_before`) and record new ones. The panel job has two stages (`settings.stage`): `collect`

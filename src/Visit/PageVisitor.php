@@ -252,16 +252,23 @@ final class PageVisitor
         foreach ($sites as $key => $site) {
             $job = $homeJobs[$key];
             $visit = $this->assembleVisit($job, $homeResults[$job->id] ?? $this->missingResult(), $site->domain);
-            $site->visits[] = $visit;
             if (($visit['ok'] ?? false) && is_file($job->htmlFile)) {
                 $html = (string) file_get_contents($job->htmlFile);
-                $state[$key]['texts'][] = Fingerprint::text($html);
+                $homeText = Fingerprint::text($html);
+                // Заглушку (проверка возраста, cookie-стена, «включите JS») не берём эталоном для
+                // сравнения: за ней у страниц разный контент, иначе одинаковые заглушки схлопнут сайт.
+                if (self::looksLikeStub($homeText)) {
+                    $visit['stub'] = true;
+                } else {
+                    $state[$key]['texts'][] = $homeText;
+                }
                 $links = SiteLinks::fromHeader($html, $job->url, $site->domain, $maxPages - 1);
                 if ($links !== []) {
                     $probeJobs[$key] = $makeJob((string) $key, $site, $links[0], $job->url);
                     $state[$key]['links'] = array_slice($links, 1);
                 }
             }
+            $site->visits[] = $visit;
         }
 
         // Этап 2 — пробная страница: сравниваем с главной, отсекаем одностраничники
@@ -354,6 +361,11 @@ final class PageVisitor
             return $visit;
         }
         $text = Fingerprint::text((string) file_get_contents($job->htmlFile));
+        if (self::looksLikeStub($text)) {
+            // Заглушка (проверка возраста, cookie-стена, «включите JavaScript») — это не контент
+            // сайта, а барьер перед ним. Не считаем дубликатом и не берём эталоном: страница остаётся.
+            return array_merge($visit, ['stub' => true]);
+        }
         $best = 0.0;
         foreach ($texts as $previous) {
             $best = max($best, Fingerprint::similarity($previous, $text));
@@ -372,6 +384,35 @@ final class PageVisitor
         $texts[] = $text;
 
         return $visit;
+    }
+
+    /**
+     * Страница-заглушка перед контентом: проверка возраста 18+, cookie-стена, «включите JavaScript».
+     * У таких страниц мало текста, но одинаковый вид на всех URL — их нельзя путать с дубликатами.
+     */
+    private static function looksLikeStub(string $text): bool
+    {
+        $length = mb_strlen($text);
+        if ($length < 16) {
+            return true; // почти пустая страница
+        }
+        if ($length > 900) {
+            return false; // достаточно контента — это не заглушка
+        }
+        $lower = mb_strtolower($text);
+        $markers = [
+            'возраст', 'совершеннолет', '18 лет', '18+', '21 год', '21 года', '21+', 'adult', 'age verif',
+            'вам есть', 'вам уже', 'подтвердите', 'мне есть 18', 'мне уже', 'достигли', 'исполнилось',
+            'включите javascript', 'enable javascript', 'requires javascript',
+            'обработку cookie', 'использование cookie', 'файлы cookie', 'файлов cookie',
+        ];
+        foreach ($markers as $marker) {
+            if (mb_strpos($lower, $marker) !== false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -415,13 +456,24 @@ final class PageVisitor
     {
         foreach ($sites as $site) {
             $s = $site->visitSummary();
+            $stubs = 0;
+            foreach ($site->visits as $visit) {
+                if ($visit['stub'] ?? false) {
+                    $stubs++;
+                }
+            }
+            $note = $s['error'] !== '' ? ' (' . mb_substr($s['error'], 0, 80) . ')' : '';
+            if ($stubs > 0 && $stubs >= $s['ok']) {
+                // Все собранные страницы — заглушка перед контентом (проверка возраста/куки).
+                $note = ' ⚠ заглушка (проверка возраста/куки — контент за барьером)';
+            }
             $this->log->info(sprintf(
                 '  %-38s страниц: %d из %d → папка %d-стр%s',
                 mb_substr($site->host, 0, 38),
                 $s['ok'],
                 $s['total'],
                 $s['ok'],
-                $s['error'] !== '' ? ' (' . mb_substr($s['error'], 0, 80) . ')' : '',
+                $note,
             ));
         }
     }
