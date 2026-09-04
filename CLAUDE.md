@@ -18,7 +18,8 @@ different visitors.
 
 Three result sources: the official Yandex Search API (Yandex Cloud), the XMLStock service
 (Yandex.XML-compatible), and the live yandex.ru results page fetched through user-supplied proxies.
-Output: `sites.csv`, `sites.json`, `domains.txt`, `out/pages/<host>/variant-N.html|png`.
+Output: `sites.csv`, `sites.json`, `domains.txt`, `out/pages/<host>/variant-N.html|png`
+(crawl mode: `out/pages/<N>-стр/<host>/<url-path>.html|png`).
 Responses are cached on disk per source.
 
 User-facing documentation (README, CLI help, config comments) is in Russian; identifiers are English.
@@ -214,8 +215,14 @@ Run `php tests/lint.php && php tests/run.php` before committing.
 - `domain_scope` (all/root/subdomain) and `unique_by=domain` implement the "one site per domain,
   skip other subdomains" rule; covered by `tests/ResultFilterTest.php` and `tests/PanelTest.php`.
 - `Visit\SiteLinks::fromHeader()` extracts same-registrable-domain links from a page's header/nav
-  (home page as base); `PageVisitor` `visit.crawl` mode opens the home page, then those links,
-  and drops pages whose final URL redirects off-site (`SiteLinks::sameSite`). Files: pages/<host>/page-N.html.
+  (home page as base); `PageVisitor` `visit.crawl` mode opens the home page, then a single probe
+  link, then the rest, and drops pages whose final URL redirects off-site (`SiteLinks::sameSite`).
+  Page files are named from the URL path (`/about` → `about.html`, `/catalog/plastikovye/` →
+  `catalog_plastikovye.html`, home → `index.html`; `PageVisitor::uniqueName()`). Duplicate/one-pager
+  detection: `Fingerprint::text()` + `Fingerprint::similarity()` (Jaccard word-set); if the probe
+  page matches home ≥ `visit.similarity` (default 0.9) the site is a one-pager and the rest are
+  skipped, and matching inner pages are dropped (`PageVisitor::dedupVisit()`). Finished sites are
+  bucketed into `pages/<N>-стр/<host>/` by successful-page count (`PageVisitor::bucketByPageCount()`).
 - `Support\DomainLedger` (runs/domains-base.txt) is a cross-run base of collected registrable
   domains; `Runner` takes an optional ledger + skipKnown to drop already-seen domains (reason
   `seen_before`) and record new ones. The panel job has two stages (`settings.stage`): `collect`

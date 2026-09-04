@@ -192,6 +192,7 @@ final class PageVisitor
         $maxPages = max(1, (int) ($this->cfg['max_pages'] ?? 20));
         $dir = rtrim((string) ($this->cfg['dir'] ?? 'out/pages'), '/\\');
         $screenshot = (bool) ($this->cfg['screenshot'] ?? true) && $this->driver->name() === 'playwright';
+        $threshold = (float) ($this->cfg['similarity'] ?? 0.9);
         $proxies = $this->proxyList();
         $proxyIndex = 0;
         $ua = $this->userAgents[0];
@@ -200,86 +201,209 @@ final class PageVisitor
         $nextProxy = function () use ($proxies, &$proxyIndex): ?Proxy {
             return $proxies !== [] ? $proxies[$proxyIndex++ % count($proxies)] : null;
         };
-        $siteDir = static fn (Site $site): string => $dir . '/' . self::safeName($site->host);
-        $pageFile = static fn (Site $s, int $i, string $ext): string => $siteDir($s) . '/page-' . $i . '.' . $ext;
 
-        // Этап 1 — главные страницы
-        $homeJobs = [];
-        foreach ($sites as $key => $site) {
-            $url = ($this->cfg['target'] ?? 'found') === 'found' && $site->bestUrl !== '' ? $site->bestUrl : 'https://' . $site->host . '/';
+        // Состояние по сайтам: тексты сохранённых страниц, занятые имена файлов, оставшиеся ссылки.
+        $state = [];
+        $makeJob = function (string $key, Site $site, string $url, string $referer) use ($dir, $screenshot, $nextProxy, $ua, &$state): VisitJob {
+            $name = $this->uniqueName($state[$key]['names'], $url);
+            $base = $dir . '/' . self::safeName($site->host) . '/' . $name;
             $proxy = $nextProxy();
-            $homeJobs[$key] = new VisitJob(
-                id: $key . "\thome",
-                siteKey: (string) $key,
-                variant: 1,
+
+            return new VisitJob(
+                id: $key . "\t" . $name,
+                siteKey: $key,
+                variant: count($state[$key]['names']),
                 url: $url,
-                referer: $this->referer($site),
+                referer: $referer,
                 userAgent: $ua,
                 proxyUrl: $proxy?->url,
                 proxyLabel: $proxy?->label ?? 'direct',
-                htmlFile: $pageFile($site, 1, 'html'),
-                screenshotFile: $screenshot ? $pageFile($site, 1, 'png') : null,
+                htmlFile: $base . '.html',
+                screenshotFile: $screenshot ? $base . '.png' : null,
             );
-        }
+        };
 
         $done = 0;
         $ok = 0;
-        $total = count($homeJobs);
+        $total = 0;
         $onResult = function (VisitJob $job, array $result) use (&$done, &$ok, &$total): void {
             $done++;
             if ($result['ok'] ?? false) {
                 $ok++;
             }
             if ($this->onProgress !== null) {
-                ($this->onProgress)(['total' => $total, 'done' => $done, 'ok' => $ok, 'current' => $job->url]);
+                ($this->onProgress)(['total' => max($total, $done), 'done' => $done, 'ok' => $ok, 'current' => $job->url]);
             }
-            $this->log->debug(sprintf('  [%d/%d] %s — %s', $done, $total, $job->url, $result['ok'] ? 'HTTP ' . ($result['status'] ?? '?') : 'ошибка: ' . $result['error']));
+            $this->log->debug(sprintf('  [%d] %s — %s', $done, $job->url, $result['ok'] ? 'HTTP ' . ($result['status'] ?? '?') : 'ошибка: ' . $result['error']));
         };
 
+        // Этап 1 — главные страницы
+        $homeJobs = [];
+        foreach ($sites as $key => $site) {
+            $state[$key] = ['names' => [], 'texts' => [], 'links' => []];
+            $url = ($this->cfg['target'] ?? 'found') === 'found' && $site->bestUrl !== '' ? $site->bestUrl : 'https://' . $site->host . '/';
+            $homeJobs[$key] = $makeJob((string) $key, $site, $url, $this->referer($site));
+        }
+        $total = count($homeJobs);
         $this->log->info(sprintf('Обход сайтов (%s): главные страницы %d…', $this->driver->name(), count($homeJobs)));
         $homeResults = $this->driver->visit(array_values($homeJobs), $options, $onResult);
 
-        // Собираем ссылки из шапки каждой главной и готовим задания на внутренние страницы
-        $pageJobs = [];
+        $probeJobs = [];
         foreach ($sites as $key => $site) {
             $job = $homeJobs[$key];
-            $result = $homeResults[$job->id] ?? ['ok' => false, 'error' => 'нет результата', 'status' => null, 'final_url' => '', 'title' => ''];
-            $site->visits[] = $this->assembleVisit($job, $result, $site->domain);
-
-            if (($site->visits[count($site->visits) - 1]['ok'] ?? false) && is_file($job->htmlFile)) {
-                $links = SiteLinks::fromHeader((string) file_get_contents($job->htmlFile), $job->url, $site->domain, $maxPages - 1);
-                $index = 2;
-                foreach ($links as $link) {
-                    $proxy = $nextProxy();
-                    $pageJobs[] = new VisitJob(
-                        id: $key . "\t" . $index,
-                        siteKey: (string) $key,
-                        variant: $index,
-                        url: $link,
-                        referer: $job->url,
-                        userAgent: $ua,
-                        proxyUrl: $proxy?->url,
-                        proxyLabel: $proxy?->label ?? 'direct',
-                        htmlFile: $pageFile($site, $index, 'html'),
-                        screenshotFile: $screenshot ? $pageFile($site, $index, 'png') : null,
-                    );
-                    $index++;
+            $visit = $this->assembleVisit($job, $homeResults[$job->id] ?? $this->missingResult(), $site->domain);
+            $site->visits[] = $visit;
+            if (($visit['ok'] ?? false) && is_file($job->htmlFile)) {
+                $html = (string) file_get_contents($job->htmlFile);
+                $state[$key]['texts'][] = Fingerprint::text($html);
+                $links = SiteLinks::fromHeader($html, $job->url, $site->domain, $maxPages - 1);
+                if ($links !== []) {
+                    $probeJobs[$key] = $makeJob((string) $key, $site, $links[0], $job->url);
+                    $state[$key]['links'] = array_slice($links, 1);
                 }
             }
         }
 
-        // Этап 2 — внутренние страницы из меню
-        if ($pageJobs !== []) {
-            $total += count($pageJobs);
-            $this->log->info(sprintf('Обход сайтов: внутренних страниц из меню %d…', count($pageJobs)));
-            $pageResults = $this->driver->visit($pageJobs, $options, $onResult);
-            foreach ($pageJobs as $job) {
-                $result = $pageResults[$job->id] ?? ['ok' => false, 'error' => 'нет результата', 'status' => null, 'final_url' => '', 'title' => ''];
-                $sites[$job->siteKey]->visits[] = $this->assembleVisit($job, $result, $sites[$job->siteKey]->domain);
+        // Этап 2 — пробная страница: сравниваем с главной, отсекаем одностраничники
+        if ($probeJobs !== []) {
+            $total += count($probeJobs);
+            $this->log->info(sprintf('Обход сайтов: пробные страницы %d…', count($probeJobs)));
+            $probeResults = $this->driver->visit(array_values($probeJobs), $options, $onResult);
+            foreach ($probeJobs as $key => $job) {
+                $site = $sites[$key];
+                $visit = $this->assembleVisit($job, $probeResults[$job->id] ?? $this->missingResult(), $site->domain);
+                $visit = $this->dedupVisit($visit, $job, $state[$key]['texts'], $threshold, true);
+                if ($visit['duplicate'] ?? false) {
+                    $state[$key]['links'] = []; // одностраничник — дальше не качаем
+                }
+                $site->visits[] = $visit;
             }
         }
 
+        // Этап 3 — остальные страницы меню (сайты, где страницы различаются)
+        $pageJobs = [];
+        foreach ($sites as $key => $site) {
+            foreach ($state[$key]['links'] as $link) {
+                $pageJobs[] = $makeJob((string) $key, $site, $link, $homeJobs[$key]->url);
+            }
+        }
+        if ($pageJobs !== []) {
+            $total += count($pageJobs);
+            $this->log->info(sprintf('Обход сайтов: внутренних страниц %d…', count($pageJobs)));
+            $pageResults = $this->driver->visit($pageJobs, $options, $onResult);
+            foreach ($pageJobs as $job) {
+                $site = $sites[$job->siteKey];
+                $visit = $this->assembleVisit($job, $pageResults[$job->id] ?? $this->missingResult(), $site->domain);
+                $site->visits[] = $this->dedupVisit($visit, $job, $state[$job->siteKey]['texts'], $threshold, false);
+            }
+        }
+
+        $this->bucketByPageCount($sites, $dir);
         $this->logSiteSummary($sites);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function missingResult(): array
+    {
+        return ['ok' => false, 'error' => 'нет результата', 'status' => null, 'final_url' => '', 'title' => ''];
+    }
+
+    /**
+     * Имя файла из URL (часть после домена): /about → about, /catalog/plastikovye/ → catalog_plastikovye,
+     * главная → index. Уникально в пределах сайта.
+     *
+     * @param array<string, true> $used
+     */
+    private function uniqueName(array &$used, string $url): string
+    {
+        $path = (string) parse_url($url, PHP_URL_PATH);
+        $query = (string) parse_url($url, PHP_URL_QUERY);
+        $name = trim($path, '/');
+        if ($query !== '') {
+            $name .= ($name === '' ? '' : '_') . $query;
+        }
+        $name = preg_replace('~[^\p{L}\p{N}._-]+~u', '_', $name) ?? $name;
+        $name = trim($name, '._-');
+        $name = mb_substr($name, 0, 120);
+        if ($name === '') {
+            $name = 'index';
+        }
+        $candidate = $name;
+        $i = 2;
+        while (isset($used[$candidate])) {
+            $candidate = $name . '-' . $i;
+            $i++;
+        }
+        $used[$candidate] = true;
+
+        return $candidate;
+    }
+
+    /**
+     * Если страница сильно совпадает с уже сохранёнными — считаем дубликатом: удаляем файлы и помечаем.
+     *
+     * @param array<string, mixed> $visit
+     * @param list<string> $texts
+     * @return array<string, mixed>
+     */
+    private function dedupVisit(array $visit, VisitJob $job, array &$texts, float $threshold, bool $isProbe): array
+    {
+        if (!($visit['ok'] ?? false) || !is_file($job->htmlFile)) {
+            return $visit;
+        }
+        $text = Fingerprint::text((string) file_get_contents($job->htmlFile));
+        $best = 0.0;
+        foreach ($texts as $previous) {
+            $best = max($best, Fingerprint::similarity($previous, $text));
+        }
+        if ($best >= $threshold) {
+            @unlink($job->htmlFile);
+            if ($job->screenshotFile !== null) {
+                @unlink($job->screenshotFile);
+            }
+            $reason = $isProbe
+                ? sprintf('одностраничник: совпадает с главной на %d%%', (int) round($best * 100))
+                : sprintf('дубликат: совпадает с уже скачанной на %d%%', (int) round($best * 100));
+
+            return array_merge($visit, ['ok' => false, 'error' => $reason, 'html_file' => '', 'screenshot_file' => '', 'duplicate' => true]);
+        }
+        $texts[] = $text;
+
+        return $visit;
+    }
+
+    /**
+     * Раскладывает папки сайтов по числу собранных страниц: pages/<N>-стр/<host>/.
+     *
+     * @param array<string, Site> $sites
+     */
+    private function bucketByPageCount(array $sites, string $dir): void
+    {
+        foreach ($sites as $site) {
+            $count = $site->visitSummary()['ok'];
+            $from = $dir . '/' . self::safeName($site->host);
+            if (!is_dir($from)) {
+                continue;
+            }
+            $bucket = $dir . '/' . $count . '-стр';
+            if (!is_dir($bucket)) {
+                @mkdir($bucket, 0777, true);
+            }
+            $to = $bucket . '/' . self::safeName($site->host);
+            if ($to === $from || !@rename($from, $to)) {
+                continue;
+            }
+            foreach ($site->visits as &$visit) {
+                foreach (['html_file', 'screenshot_file'] as $field) {
+                    if (($visit[$field] ?? '') !== '' && str_starts_with((string) $visit[$field], $from . '/')) {
+                        $visit[$field] = $to . '/' . substr((string) $visit[$field], strlen($from) + 1);
+                    }
+                }
+            }
+            unset($visit);
+        }
     }
 
     /**
@@ -292,11 +416,12 @@ final class PageVisitor
         foreach ($sites as $site) {
             $s = $site->visitSummary();
             $this->log->info(sprintf(
-                '  %-40s страниц: %d из %d%s',
-                mb_substr($site->host, 0, 40),
+                '  %-38s страниц: %d из %d → папка %d-стр%s',
+                mb_substr($site->host, 0, 38),
                 $s['ok'],
                 $s['total'],
-                $s['error'] !== '' ? ' — ошибка: ' . mb_substr($s['error'], 0, 100) : '',
+                $s['ok'],
+                $s['error'] !== '' ? ' (' . mb_substr($s['error'], 0, 80) . ')' : '',
             ));
         }
     }

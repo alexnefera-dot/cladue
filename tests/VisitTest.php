@@ -20,7 +20,7 @@ use YandexSites\Visit\VisitJob;
  */
 final class VisitTest
 {
-    private const HOSTS = ['okna-moskva.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru'];
+    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru'];
 
     private ?string $dir = null;
 
@@ -71,6 +71,16 @@ final class VisitTest
         Assert::same('T', $a['title']);
         Assert::true($a['length'] > 0);
         Assert::true($a['hash'] !== Fingerprint::of('<p>Другой текст</p>')['hash']);
+    }
+
+    public function testFingerprintSimilarity(): void
+    {
+        Assert::same(1.0, \YandexSites\Visit\Fingerprint::similarity('окна двери', 'окна двери'), 'идентичные — 1.0');
+        Assert::same(0.0, \YandexSites\Visit\Fingerprint::similarity('окна двери', 'балкон лоджия'), 'нет общих слов — 0');
+        $partial = \YandexSites\Visit\Fingerprint::similarity('окна двери цены москва', 'окна двери цены питер');
+        Assert::true($partial > 0.5 && $partial < 1.0, 'частичное совпадение между 0 и 1');
+        $near = \YandexSites\Visit\Fingerprint::similarity('главная меню контакты каталог цены доставка', 'главная меню контакты каталог цены доставка активна');
+        Assert::true($near >= 0.85, 'почти идентичные страницы — высокая похожесть');
     }
 
     public function testCurlDriverSavesPagesWithReferer(): void
@@ -267,12 +277,49 @@ final class VisitTest
         Assert::contains('редирект на другой сайт', $byUrl["http://okna-moskva.ru:$port/leave"]['error']);
         Assert::false(str_contains(implode(' ', array_keys($byUrl)), 'vk.com'), 'внешняя ссылка не обходится');
 
-        Assert::true(is_file("$dir/okna-moskva.ru/page-1.html"), 'главная сохранена');
-        Assert::false(is_file("$dir/okna-moskva.ru/page-4.html"), 'страница офсайт-редиректа удалена');
+        // файлы названы по URL и разложены в папку по числу страниц (3 собранных → 3-стр)
+        Assert::true(is_file("$dir/3-стр/okna-moskva.ru/index.html"), 'главная сохранена как index.html в папке 3-стр');
+        Assert::true(is_file("$dir/3-стр/okna-moskva.ru/about.html"));
+        Assert::true(is_file("$dir/3-стр/okna-moskva.ru/contacts.html"));
+        Assert::false(is_file("$dir/3-стр/okna-moskva.ru/leave.html"), 'страница офсайт-редиректа удалена');
 
         $summary = $site->visitSummary();
-        Assert::same(3, $summary['ok'], 'успешно открыто 3 страницы');
+        Assert::same(3, $summary['ok'], 'успешно собрано 3 страницы');
         Assert::same(4, $summary['total']);
+    }
+
+    public function testCrawlStopsOnOnePager(): void
+    {
+        $port = FakeServer::port();
+        $dir = $this->dir() . '/onepager';
+        $site = new Site('onepager.ru', 'onepager.ru', 'onepager.ru');
+        $site->add(new SearchResult('лендинг', 0, 1, "http://onepager.ru:$port/", 'onepager.ru', 'Лендинг'));
+        $sites = ['onepager.ru' => $site];
+
+        $visitor = new PageVisitor([
+            'crawl' => true,
+            'max_pages' => 10,
+            'target' => 'found',
+            'dir' => $dir,
+            'screenshot' => false,
+            'similarity' => 0.9,
+            'timeout' => 5,
+            'delay_ms' => 0,
+            'concurrency' => 3,
+            'resolve' => $this->resolve($port),
+            'user_agents' => [UserAgents::YANDEX_BOT],
+        ], new CurlDriver(), $this->logger());
+        $visitor->visit($sites);
+
+        // главная + одна пробная (совпала с главной) — дальше не качаем
+        Assert::same(2, count($site->visits), 'скачали главную и одну пробную, остальные не качали');
+        $summary = $site->visitSummary();
+        Assert::same(1, $summary['ok'], 'у одностраничника одна страница');
+        Assert::contains('одностраничник', $summary['error']);
+        Assert::true(is_file("$dir/1-стр/onepager.ru/index.html"), 'папка 1-стр');
+        // остальные страницы меню не скачаны
+        Assert::false(is_file("$dir/1-стр/onepager.ru/contacts.html"));
+        Assert::same(0, count(glob("$dir/1-стр/onepager.ru/*.html") ?: []) - 1, 'кроме index других html нет');
     }
 
     public function testPlaywrightDriverRendersJavascript(): void

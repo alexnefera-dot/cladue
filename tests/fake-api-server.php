@@ -375,10 +375,18 @@ switch ($host) {
 
         return;
     default:
+        // Тело страницы зависит от пути (у одностраничника onepager.ru — одинаковое для всех путей),
+        // чтобы можно было отличать одинаковые страницы от разных.
+        $key = $host === 'onepager.ru' ? 'one' : $uri;
+        $words = [];
+        for ($i = 0; $i < 40; $i++) {
+            $words[] = 'kw' . substr(md5($key), 0, 8) . $i;
+        }
         echo '<html><head><title>' . htmlspecialchars($host) . '</title></head><body>'
             . $navHtml
             . '<h1>Добро пожаловать на ' . htmlspecialchars($host) . '</h1>'
             . '<p class="visitor">' . htmlspecialchars($visitor) . '</p>'
+            . '<p class="content">' . implode(' ', $words) . '</p>'
             . '<div id="js-rendered"></div>'
             . '<script>document.getElementById("js-rendered").textContent = "rendered by browser";</script>'
             . '</body></html>';
