@@ -22,7 +22,7 @@ error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 
 const UPDATE_BRANCH = 'claude/php-yandex-site-filter-v2q2lx';
 const UPDATE_URL = 'https://github.com/alexnefera-dot/cladue/archive/refs/heads/' . UPDATE_BRANCH . '.zip';
-const PROTECTED = ['config.php', '.env', 'proxies.txt', 'queries.txt', 'cache', 'out', 'debug', 'node_modules', 'vendor', '.git'];
+const KEEP_FILES = ['config.php', '.env', 'proxies.txt', 'queries.txt', 'cache', 'out', 'debug', 'node_modules', 'vendor', '.git'];
 
 $root = dirname(__DIR__);
 $target = $root;
@@ -133,7 +133,7 @@ function updateProject(string $target, string $source): int
     foreach ($iterator as $item) {
         $relative = substr($item->getPathname(), strlen($sourceRoot) + 1);
         $top = explode('/', str_replace('\\', '/', $relative))[0];
-        if (in_array($top, PROTECTED, true)) {
+        if (in_array($top, KEEP_FILES, true)) {
             continue;
         }
         $dest = $target . '/' . $relative;
