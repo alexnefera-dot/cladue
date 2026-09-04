@@ -142,6 +142,7 @@ $паспорт = [
     // перекрут и приёмка смотрели на одни и те же цели.
     'обращение' => $обращениеОверрайд ?? v5ObrashchenieNabora($сид, $имяНабора),
     'тема'    => v5Tema($сид),
+    'игры'    => v5Igry($сид),
     'способ'  => 'сборка',
 ];
 
@@ -1730,6 +1731,17 @@ foreach (V5_TYPES as $тип) {
     $страница = v5PochinitChislo($страница);
     $страница = v5PochinitKavychki($страница);
     $страница = v5VpisatTemu($страница, $паспорт['тема'] ?? []);
+    if ($тип === 'slots') {
+        // Имена игр и студий — до цели набора плюс допуск приёмки: цель разыграна
+        // от сида в корпусной полосе (игр 0–3, студий 0–5, разных 0–7 на slots).
+        $проза = NicheLexicon::prose(NicheLexicon::unplaceholder($страница));
+        $запас = [];
+        foreach (['games_named' => 'countGames', 'providers_named' => 'countProviders', 'names_uniq' => 'uniqNames'] as $k => $счёт) {
+            $п = $профиль['страницы'][$тип]['поля'][$k] ?? null;
+            $запас[$k] = $п ? (int) floor(v5CelNabora($п, $сид, $k) + 2 - NicheLexicon::$счёт($проза)) : 0;
+        }
+        $страница = v5VpisatIgry($страница, $паспорт['игры'] ?? [], $запас['games_named'], $запас['providers_named'], $запас['names_uniq']);
+    }
     $страница = v5PeresobratToc(v5UbratDubliVidzhetov(
         v5UbratSosedniiPovtor(v5UkrotitShtampy(v5PochinitPadezhi($страница)))));
     // После сборки ToC: перенумерация списка тегом <ol> оглавления не касается,
