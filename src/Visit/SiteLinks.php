@@ -13,8 +13,8 @@ use YandexSites\Filter\Domains;
  */
 final class SiteLinks
 {
-    /** Контейнеры, которые считаем «шапкой»/навигацией. */
-    private const NAV = 'header|nav|navbar|topbar|top-bar|mainmenu|main-menu|menu|topmenu|top-menu|navigation|headermenu';
+    /** Контейнеры, которые считаем «шапкой»/навигацией/подвалом с меню. */
+    private const NAV = 'header|nav|navbar|topbar|top-bar|mainmenu|main-menu|menu|topmenu|top-menu|navigation|headermenu|footer|footmenu';
 
     /**
      * @param string $html     HTML главной страницы
@@ -49,9 +49,6 @@ final class SiteLinks
             $host = Domains::hostFromUrl($url);
             if ($host === '' || self::hostKey($host) !== $baseHost) {
                 continue; // внешняя ссылка / другой поддомен (другой бренд) — не обходим
-            }
-            if (self::hasRepeatedSegments($url)) {
-                continue; // цикл переключателя языка /zerkalo/ru/ru/ru/… — мусорные страницы (ru, ru-2…)
             }
             if (self::isJunkPage($url)) {
                 continue; // карта сайта (htmlmap/sitemap) и нестраничные файлы (.xml, .pdf, картинки…)
@@ -106,9 +103,10 @@ final class SiteLinks
 
     private static function navQuery(): string
     {
-        $inNav = 'ancestor-or-self::header or ancestor-or-self::nav'
+        // Меню бывает и в подвале — учитываем header, nav, footer и контейнеры с «меню»-классами.
+        $inNav = 'ancestor-or-self::header or ancestor-or-self::nav or ancestor-or-self::footer'
             . ' or ancestor::*[' . self::classContains(self::NAV) . ']'
-            . ' or ancestor::*[@role="navigation" or @role="banner"]';
+            . ' or ancestor::*[@role="navigation" or @role="banner" or @role="contentinfo"]';
 
         return '//a[@href][' . $inNav . ']';
     }
@@ -141,7 +139,7 @@ final class SiteLinks
             $href = $scheme . ':' . $href;
         }
         if (preg_match('~^[a-z][a-z0-9+.\-]*://~i', $href) === 1) {
-            return self::stripFragment($href);
+            return self::collapseRepeats(self::stripFragment($href));
         }
 
         $parts = parse_url($base);
@@ -151,13 +149,48 @@ final class SiteLinks
         $scheme = $parts['scheme'] ?? 'https';
         $authority = $scheme . '://' . $parts['host'] . (isset($parts['port']) ? ':' . $parts['port'] : '');
         if (str_starts_with($href, '/')) {
-            return self::stripFragment($authority . self::normalizePath($href));
+            return self::collapseRepeats(self::stripFragment($authority . self::normalizePath($href)));
         }
         // относительно каталога текущей страницы
         $basePath = $parts['path'] ?? '/';
         $dir = str_contains($basePath, '/') ? substr($basePath, 0, strrpos($basePath, '/') + 1) : '/';
 
-        return self::stripFragment($authority . self::normalizePath($dir . $href));
+        return self::collapseRepeats(self::stripFragment($authority . self::normalizePath($dir . $href)));
+    }
+
+    /**
+     * Схлопывает подряд идущие одинаковые сегменты пути: /RU-ru/RU-ru/RU-ru/app → /RU-ru/app,
+     * /zerkalo/ru/ru/ru/ → /zerkalo/ru. Так реальные страницы за «циклом» переключателя языка
+     * скачиваются (по последнему сегменту), а варианты цикла разной длины сводятся к одному адресу.
+     */
+    private static function collapseRepeats(string $url): string
+    {
+        $parts = parse_url($url);
+        if ($parts === false || ($parts['path'] ?? '') === '') {
+            return $url;
+        }
+        $path = $parts['path'];
+        $trailingSlash = $path !== '/' && str_ends_with($path, '/');
+        $segments = [];
+        $previous = null;
+        foreach (explode('/', $path) as $segment) {
+            if ($segment === '') {
+                continue;
+            }
+            $low = mb_strtolower($segment);
+            if ($low === $previous) {
+                continue; // подряд идущий повтор — пропускаем
+            }
+            $segments[] = $segment;
+            $previous = $low;
+        }
+        $newPath = '/' . implode('/', $segments);
+        if ($trailingSlash && $newPath !== '/') {
+            $newPath .= '/';
+        }
+        $authority = ($parts['scheme'] ?? 'https') . '://' . ($parts['host'] ?? '') . (isset($parts['port']) ? ':' . $parts['port'] : '');
+
+        return $authority . $newPath . (isset($parts['query']) ? '?' . $parts['query'] : '');
     }
 
     private static function stripFragment(string $url): string
@@ -203,7 +236,7 @@ final class SiteLinks
      */
     public static function canonical(string $url): string
     {
-        $parts = parse_url(self::stripFragment($url));
+        $parts = parse_url(self::stripFragment(self::collapseRepeats($url)));
         if ($parts === false) {
             return mb_strtolower($url);
         }
@@ -216,28 +249,6 @@ final class SiteLinks
         $query = isset($parts['query']) ? '?' . $parts['query'] : '';
 
         return $host . $path . $query;
-    }
-
-    /**
-     * Признак «цикла» переключателя языка/зеркала: один и тот же сегмент пути повторяется подряд
-     * (…/ru/ru/ru/…). Такие ссылки плодят мусорные страницы (ru, ru-2 …) — их не обходим.
-     */
-    private static function hasRepeatedSegments(string $url): bool
-    {
-        $path = (string) parse_url($url, PHP_URL_PATH);
-        $previous = null;
-        foreach (explode('/', $path) as $segment) {
-            if ($segment === '') {
-                continue;
-            }
-            $segment = mb_strtolower($segment);
-            if ($segment === $previous) {
-                return true; // два одинаковых сегмента подряд
-            }
-            $previous = $segment;
-        }
-
-        return false;
     }
 
     /**

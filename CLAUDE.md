@@ -224,13 +224,15 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   spawns the job and serves `public/panel.html`. Keep CLI and panel behaviour in sync through `Runtime`.
 - `domain_scope` (all/root/subdomain) and `unique_by=domain` implement the "one site per domain,
   skip other subdomains" rule; covered by `tests/ResultFilterTest.php` and `tests/PanelTest.php`.
-- `Visit\SiteLinks::fromHeader()` extracts **same-host** links from a page's header/nav (home page
-  as base; `www` folded, but sibling subdomains like `hype.`/`max.` of the same domain are treated
-  as other brands and skipped), dropping language-switch loops (`/ru/ru/ru…`, repeated consecutive
-  path segments), sitemap/htmlmap pages and non-page file resources (`.xml`, `.pdf`, images…;
-  `SiteLinks::isJunkPage()`). `PageVisitor` `visit.crawl` mode opens the home page, then a single probe
-  link, then the rest, and drops pages whose final URL redirects to another host (`SiteLinks::sameHost`,
-  www-insensitive). Timed-out/network-failed loads are retried through a different proxy with a longer
+- `Visit\SiteLinks::fromHeader()` extracts **same-host** links from a page's header/nav **and footer**
+  (home page as base; `www` folded, but sibling subdomains like `hype.`/`max.` of the same domain are
+  treated as other brands and skipped), dropping sitemap/htmlmap pages and non-page file resources
+  (`.xml`, `.pdf`, images…; `SiteLinks::isJunkPage()`). Language-switch loops with a real page behind
+  them (`/RU-ru/RU-ru/…/app`) are **collapsed** to one occurrence (`SiteLinks::collapseRepeats`) so the
+  real page is fetched once, not skipped. `PageVisitor` `visit.crawl` mode opens the home page, then a
+  single probe link, then the rest, and drops pages whose final URL redirects to another host
+  (`SiteLinks::sameHost`, www-insensitive). The visited-URL set is seeded with both the entry URL and
+  the site root so a menu link back to `/` never yields a second `main-2`. Timed-out/network-failed loads are retried through a different proxy with a longer
   timeout (`visit.retries`, default 2; `PageVisitor::runWithRetry()`).
   Page files are named short from the URL's last path segment (`/registracia` → `registracia.html`,
   `/catalog/plastikovye/` → `plastikovye.html`, home → `main.html`; `PageVisitor::fileNameFromUrl()` +

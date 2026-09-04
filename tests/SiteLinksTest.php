@@ -123,6 +123,27 @@ final class SiteLinksTest
         Assert::null(SiteLinks::resolve('https://a.ru/', ''));
     }
 
+    public function testResolveCollapsesLangLoop(): void
+    {
+        // Подряд идущие одинаковые сегменты схлопываются: реальная страница за циклом сохраняется.
+        Assert::same('https://a.ru/RU-ru/app', SiteLinks::resolve('https://a.ru/', '/RU-ru/RU-ru/RU-ru/app'));
+        Assert::same('https://a.ru/zerkalo/ru/', SiteLinks::resolve('https://a.ru/', '/zerkalo/ru/ru/ru/ru/'));
+        // варианты цикла разной длины сводятся к одному ключу
+        Assert::same(SiteLinks::canonical('https://a.ru/x/x/x/app'), SiteLinks::canonical('https://a.ru/x/x/app'));
+    }
+
+    public function testCollectsFooterMenuLinks(): void
+    {
+        // Меню в подвале тоже собирается.
+        $html = '<body><h1>Главная</h1><footer><div class="footer-menu"><nav>'
+            . '<a href="/app">Приложение</a><a href="/bonus">Бонус</a>'
+            . '<a href="https://vk.com/x">VK</a></nav></div></footer></body>';
+        $links = SiteLinks::fromHeader($html, 'https://site.ru/', 'site.ru');
+        Assert::inArray('https://site.ru/app', $links, 'ссылка из подвала собрана');
+        Assert::inArray('https://site.ru/bonus', $links);
+        Assert::notInArray('https://vk.com/x', $links, 'внешняя из подвала — нет');
+    }
+
     public function testSameHostForRedirects(): void
     {
         // Проверка редиректов строгая по поддомену: соседний поддомен — уже другой сайт.

@@ -375,7 +375,8 @@ switch ($host) {
 
         return;
     case 'brand-a.tpl.ru':
-        // Меню ведёт на свой поддомен (/bonus), на СОСЕДНИЙ поддомен (другой бренд) и в цикл /ru/ru.
+        // Меню ведёт на свой поддомен (/bonus), на СОСЕДНИЙ поддомен (другой бренд) и реальную
+        // страницу за «циклом» переключателя языка (/ru/ru/ru/promo → схлопнётся в /ru/promo).
         $words = [];
         for ($i = 0; $i < 30; $i++) {
             $words[] = 'w' . substr(md5($uri), 0, 8) . $i;
@@ -384,8 +385,23 @@ switch ($host) {
             . '<a href="/">Главная</a>'
             . '<a href="/bonus">Бонус</a>'
             . '<a href="https://brand-b.tpl.ru/page">Другой бренд</a>'
-            . '<a href="/zerkalo/ru/ru/ru/ru">RU-цикл</a>'
+            . '<a href="/ru/ru/ru/ru/promo">Промо за циклом</a>'
             . '</nav></header><h1>Бренд A</h1><p class="c">' . implode(' ', $words) . '</p></body></html>';
+
+        return;
+    case 'footeronly.ru':
+        // Меню ТОЛЬКО в подвале; ссылки за «циклом» /RU-ru/…; есть ссылка на «/» (не должна дать main-2).
+        $words = [];
+        for ($i = 0; $i < 30; $i++) {
+            $words[] = 'w' . substr(md5($uri), 0, 8) . $i;
+        }
+        echo '<html><head><title>Подвальное меню</title></head><body>'
+            . '<h1>Главная</h1><p class="c">' . implode(' ', $words) . '</p>'
+            . '<footer><div class="footer-menu"><nav class="footer-nav-links">'
+            . '<a href="/">Главная</a>'
+            . '<a href="/RU-ru/RU-ru/RU-ru/app">Приложение</a>'
+            . '<a href="/RU-ru/RU-ru/RU-ru/bonus">Бонус</a>'
+            . '</nav></div></footer></body></html>';
 
         return;
     case 'ourtpl.ru':

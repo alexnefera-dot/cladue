@@ -264,7 +264,11 @@ final class PageVisitor
         foreach ($sites as $key => $site) {
             $url = ($this->cfg['target'] ?? 'found') === 'found' && $site->bestUrl !== '' ? $site->bestUrl : 'https://' . $site->host . '/';
             // urls — уже открытые адреса (в каноничном виде), чтобы не качать одну страницу дважды.
-            $state[$key] = ['names' => [], 'texts' => [], 'links' => [], 'urls' => [SiteLinks::canonical($url) => true]];
+            // Кроме входного адреса помечаем и корень «/»: ссылка меню на главную не должна дать second main-2.
+            $state[$key] = ['names' => [], 'texts' => [], 'links' => [], 'urls' => [
+                SiteLinks::canonical($url) => true,
+                SiteLinks::canonical($this->rootUrl($url)) => true,
+            ]];
             $homeJobs[$key] = $makeJob((string) $key, $site, $url, $this->referer($site), true);
         }
         $total = count($homeJobs);
@@ -354,6 +358,19 @@ final class PageVisitor
     private function missingResult(): array
     {
         return ['ok' => false, 'error' => 'нет результата', 'status' => null, 'final_url' => '', 'title' => ''];
+    }
+
+    /**
+     * Корень сайта (scheme://host/) для адреса — чтобы пометить главную как уже открытую.
+     */
+    private function rootUrl(string $url): string
+    {
+        $parts = parse_url($url);
+        $scheme = $parts['scheme'] ?? 'https';
+        $host = $parts['host'] ?? '';
+        $port = isset($parts['port']) ? ':' . $parts['port'] : '';
+
+        return $scheme . '://' . $host . $port . '/';
     }
 
     /**

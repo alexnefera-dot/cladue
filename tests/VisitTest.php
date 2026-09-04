@@ -20,7 +20,7 @@ use YandexSites\Visit\VisitJob;
  */
 final class VisitTest
 {
-    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'agegate.ru', 'ourtpl.ru', 'brand-a.tpl.ru', 'brand-b.tpl.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru'];
+    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'agegate.ru', 'ourtpl.ru', 'brand-a.tpl.ru', 'brand-b.tpl.ru', 'footeronly.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru'];
 
     private ?string $dir = null;
 
@@ -371,9 +371,10 @@ final class VisitTest
         Assert::same(0, count(glob("$dir/1-стр/onepager.ru/*.html") ?: []) - 1, 'кроме main других html нет');
     }
 
-    public function testCrawlStaysOnSubdomainAndSkipsLangLoop(): void
+    public function testCrawlStaysOnSubdomainAndCollapsesLangLoop(): void
     {
-        // Обходим только текущий поддомен: соседний бренд (brand-b) и цикл /ru/ru не трогаем.
+        // Обходим только текущий поддомен (brand-b не трогаем); «цикл» /ru/ru/ru/promo схлопывается
+        // в /ru/promo — реальная страница за циклом всё же скачивается (как promo.html).
         $port = FakeServer::port();
         $dir = $this->dir() . '/subs';
         $site = new Site('brand-a.tpl.ru', 'brand-a.tpl.ru', 'tpl.ru');
@@ -394,14 +395,46 @@ final class VisitTest
         ], new CurlDriver(), $this->logger());
         $visitor->visit($sites);
 
-        $urls = array_map(static fn (array $v): string => (string) $v['url'], $site->visits);
-        $joined = implode(' ', $urls);
+        $joined = implode(' ', array_map(static fn (array $v): string => (string) $v['url'], $site->visits));
         Assert::false(str_contains($joined, 'brand-b.tpl.ru'), 'на соседний поддомен не переходим');
-        Assert::false(str_contains($joined, '/ru/ru'), 'цикл переключателя языка не обходим');
-        // открыты только главная и /bonus того же поддомена
-        Assert::same(2, count($site->visits), 'только главная и одна страница своего поддомена');
-        Assert::true(is_file("$dir/2-стр/brand-a.tpl.ru/main.html"));
-        Assert::true(is_file("$dir/2-стр/brand-a.tpl.ru/bonus.html"));
+        Assert::false(str_contains($joined, '/ru/ru'), 'цикл схлопнут — повторов /ru/ru нет');
+        // главная + /bonus + промо-страница за схлопнутым циклом
+        Assert::same(3, count($site->visits), 'главная и две страницы своего поддомена');
+        Assert::true(is_file("$dir/3-стр/brand-a.tpl.ru/main.html"));
+        Assert::true(is_file("$dir/3-стр/brand-a.tpl.ru/bonus.html"));
+        Assert::true(is_file("$dir/3-стр/brand-a.tpl.ru/promo.html"), 'реальная страница за циклом скачана');
+    }
+
+    public function testCrawlReadsFooterMenuWithoutSecondMain(): void
+    {
+        // Меню в подвале (не в шапке); входим по «глубокому» адресу с циклом. Ссылки за циклом
+        // скачиваются (app, bonus), а ссылка на «/» не создаёт вторую главную (main-2).
+        $port = FakeServer::port();
+        $dir = $this->dir() . '/footer';
+        $site = new Site('footeronly.ru', 'footeronly.ru', 'footeronly.ru');
+        $site->add(new SearchResult('казино', 0, 1, "http://footeronly.ru:$port/RU-ru/RU-ru/RU-ru/zerkalo", 'footeronly.ru', 'Гл'));
+        $sites = ['footeronly.ru' => $site];
+
+        $visitor = new PageVisitor([
+            'crawl' => true,
+            'max_pages' => 10,
+            'target' => 'found',
+            'dir' => $dir,
+            'screenshot' => false,
+            'timeout' => 5,
+            'delay_ms' => 0,
+            'concurrency' => 3,
+            'resolve' => $this->resolve($port),
+            'user_agents' => [UserAgents::YANDEX_BOT],
+        ], new CurlDriver(), $this->logger());
+        $visitor->visit($sites);
+
+        $summary = $site->visitSummary();
+        Assert::same(3, $summary['ok'], 'главная и две страницы из подвального меню');
+        Assert::true(is_file("$dir/3-стр/footeronly.ru/main.html"), 'входная главная');
+        Assert::true(is_file("$dir/3-стр/footeronly.ru/app.html"), 'страница из подвала');
+        Assert::true(is_file("$dir/3-стр/footeronly.ru/bonus.html"), 'страница из подвала');
+        Assert::false(is_file("$dir/3-стр/footeronly.ru/main-2.html"), 'второй главной не бывает');
     }
 
     public function testCrawlExcludesOwnTemplate(): void
