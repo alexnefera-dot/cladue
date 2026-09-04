@@ -374,6 +374,20 @@ switch ($host) {
         echo '<html><head><title>Вариант ' . $variant . '</title></head><body><h1>Страница варианта ' . $variant . '</h1><p>' . htmlspecialchars($visitor) . '</p></body></html>';
 
         return;
+    case 'brand-a.tpl.ru':
+        // Меню ведёт на свой поддомен (/bonus), на СОСЕДНИЙ поддомен (другой бренд) и в цикл /ru/ru.
+        $words = [];
+        for ($i = 0; $i < 30; $i++) {
+            $words[] = 'w' . substr(md5($uri), 0, 8) . $i;
+        }
+        echo '<html><head><title>Бренд A</title></head><body><header><nav>'
+            . '<a href="/">Главная</a>'
+            . '<a href="/bonus">Бонус</a>'
+            . '<a href="https://brand-b.tpl.ru/page">Другой бренд</a>'
+            . '<a href="/zerkalo/ru/ru/ru/ru">RU-цикл</a>'
+            . '</nav></header><h1>Бренд A</h1><p class="c">' . implode(' ', $words) . '</p></body></html>';
+
+        return;
     case 'ourtpl.ru':
         // Наш шаблон: устойчивая метка в <head> (токен верификации) при меняющемся теле (QR).
         echo '<html><head><title>Промо-шаблон</title>'

@@ -164,7 +164,7 @@ final class PageVisitor
             'text_length' => 0,
         ];
 
-        if ($visit['ok'] && $siteDomain !== '' && $visit['final_url'] !== '' && !SiteLinks::sameSite($siteDomain, $visit['final_url'])) {
+        if ($visit['ok'] && $siteDomain !== '' && $visit['final_url'] !== '' && !SiteLinks::sameHost($job->url, $visit['final_url'])) {
             @unlink($job->htmlFile);
             if ($job->screenshotFile !== null) {
                 @unlink($job->screenshotFile);

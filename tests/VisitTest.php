@@ -20,7 +20,7 @@ use YandexSites\Visit\VisitJob;
  */
 final class VisitTest
 {
-    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'agegate.ru', 'ourtpl.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru'];
+    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'agegate.ru', 'ourtpl.ru', 'brand-a.tpl.ru', 'brand-b.tpl.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru'];
 
     private ?string $dir = null;
 
@@ -320,6 +320,39 @@ final class VisitTest
         // остальные страницы меню не скачаны
         Assert::false(is_file("$dir/1-стр/onepager.ru/contacts.html"));
         Assert::same(0, count(glob("$dir/1-стр/onepager.ru/*.html") ?: []) - 1, 'кроме main других html нет');
+    }
+
+    public function testCrawlStaysOnSubdomainAndSkipsLangLoop(): void
+    {
+        // Обходим только текущий поддомен: соседний бренд (brand-b) и цикл /ru/ru не трогаем.
+        $port = FakeServer::port();
+        $dir = $this->dir() . '/subs';
+        $site = new Site('brand-a.tpl.ru', 'brand-a.tpl.ru', 'tpl.ru');
+        $site->add(new SearchResult('бренд', 0, 1, "http://brand-a.tpl.ru:$port/", 'brand-a.tpl.ru', 'Бренд A'));
+        $sites = ['brand-a.tpl.ru' => $site];
+
+        $visitor = new PageVisitor([
+            'crawl' => true,
+            'max_pages' => 10,
+            'target' => 'found',
+            'dir' => $dir,
+            'screenshot' => false,
+            'timeout' => 5,
+            'delay_ms' => 0,
+            'concurrency' => 3,
+            'resolve' => $this->resolve($port),
+            'user_agents' => [UserAgents::YANDEX_BOT],
+        ], new CurlDriver(), $this->logger());
+        $visitor->visit($sites);
+
+        $urls = array_map(static fn (array $v): string => (string) $v['url'], $site->visits);
+        $joined = implode(' ', $urls);
+        Assert::false(str_contains($joined, 'brand-b.tpl.ru'), 'на соседний поддомен не переходим');
+        Assert::false(str_contains($joined, '/ru/ru'), 'цикл переключателя языка не обходим');
+        // открыты только главная и /bonus того же поддомена
+        Assert::same(2, count($site->visits), 'только главная и одна страница своего поддомена');
+        Assert::true(is_file("$dir/2-стр/brand-a.tpl.ru/main.html"));
+        Assert::true(is_file("$dir/2-стр/brand-a.tpl.ru/bonus.html"));
     }
 
     public function testCrawlExcludesOwnTemplate(): void

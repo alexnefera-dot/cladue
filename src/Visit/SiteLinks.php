@@ -25,7 +25,9 @@ final class SiteLinks
     public static function fromHeader(string $html, string $baseUrl, string $siteDomain, int $limit = 30): array
     {
         $xpath = self::load($html);
-        $siteDomain = Domains::registrable(Domains::normalize($siteDomain));
+        // Обходим только текущий поддомен: у сетки шаблонов другие бренды живут на соседних
+        // поддоменах (hype.dom, max.dom …) — на них не переходим. www — тот же хост.
+        $baseHost = self::hostKey(Domains::hostFromUrl($baseUrl));
         $home = self::canonical($baseUrl);
 
         $anchors = $xpath->query(self::navQuery());
@@ -45,8 +47,11 @@ final class SiteLinks
                 continue;
             }
             $host = Domains::hostFromUrl($url);
-            if ($host === '' || Domains::registrable($host) !== $siteDomain) {
-                continue; // внешняя ссылка / другой сайт
+            if ($host === '' || self::hostKey($host) !== $baseHost) {
+                continue; // внешняя ссылка / другой поддомен (другой бренд) — не обходим
+            }
+            if (self::hasRepeatedSegments($url)) {
+                continue; // цикл переключателя языка /zerkalo/ru/ru/ru/… — мусорные страницы (ru, ru-2…)
             }
             $canon = self::canonical($url);
             if ($canon === $home || isset($seen[$canon])) {
@@ -63,13 +68,37 @@ final class SiteLinks
     }
 
     /**
-     * Тот же ли это сайт (для проверки редиректов): один регистрируемый домен.
+     * Тот же ли это хост (для проверки редиректов): один и тот же поддомен, с точностью до www.
+     * Редирект/переход на другой поддомен (соседний бренд) считается уходом с сайта.
      */
-    public static function sameSite(string $siteDomain, string $url): bool
+    public static function sameHost(string $reference, string $url): bool
     {
-        $host = Domains::hostFromUrl($url);
+        $a = self::hostKey(self::hostOf($reference));
+        $b = self::hostKey(self::hostOf($url));
 
-        return $host !== '' && Domains::registrable($host) === Domains::registrable(Domains::normalize($siteDomain));
+        return $a !== '' && $a === $b;
+    }
+
+    /**
+     * Хост из URL или из строки, которая уже является хостом (host или host/path).
+     */
+    private static function hostOf(string $urlOrHost): string
+    {
+        if (preg_match('~^[a-z][a-z0-9+.\-]*://~i', $urlOrHost) === 1) {
+            return Domains::hostFromUrl($urlOrHost);
+        }
+
+        return Domains::hostFromUrl('http://' . ltrim($urlOrHost, '/'));
+    }
+
+    /**
+     * Ключ хоста для сравнения: нормализованный хост без ведущего www / www2.
+     */
+    private static function hostKey(string $host): string
+    {
+        $host = Domains::normalize($host);
+
+        return preg_replace('~^www\d*\.~', '', $host) ?? $host;
     }
 
     private static function navQuery(): string
@@ -184,6 +213,28 @@ final class SiteLinks
         $query = isset($parts['query']) ? '?' . $parts['query'] : '';
 
         return $host . $path . $query;
+    }
+
+    /**
+     * Признак «цикла» переключателя языка/зеркала: один и тот же сегмент пути повторяется подряд
+     * (…/ru/ru/ru/…). Такие ссылки плодят мусорные страницы (ru, ru-2 …) — их не обходим.
+     */
+    private static function hasRepeatedSegments(string $url): bool
+    {
+        $path = (string) parse_url($url, PHP_URL_PATH);
+        $previous = null;
+        foreach (explode('/', $path) as $segment) {
+            if ($segment === '') {
+                continue;
+            }
+            $segment = mb_strtolower($segment);
+            if ($segment === $previous) {
+                return true; // два одинаковых сегмента подряд
+            }
+            $previous = $segment;
+        }
+
+        return false;
     }
 
     private static function load(string $html): \DOMXPath

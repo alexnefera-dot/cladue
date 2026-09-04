@@ -46,10 +46,10 @@ final class SiteLinksTest
         Assert::inArray('https://okna-moskva.ru/about/', $links);
         Assert::inArray('https://okna-moskva.ru/contacts', $links);
         Assert::inArray('https://okna-moskva.ru/catalog/plastikovye/', $links, 'относительная ссылка стала абсолютной');
-        Assert::inArray('https://www.okna-moskva.ru/prices', $links, 'www — тот же сайт');
-        Assert::inArray('https://shop.okna-moskva.ru/', $links, 'поддомен — тот же регистрируемый домен');
+        Assert::inArray('https://www.okna-moskva.ru/prices', $links, 'www — тот же хост');
 
         // внешние и нестраничные — не берём
+        Assert::notInArray('https://shop.okna-moskva.ru/', $links, 'другой поддомен (другой бренд) не обходим');
         Assert::notInArray('https://vk.com/oknamoskva', $links);
         foreach ($links as $url) {
             Assert::false(str_contains($url, 'vk.com'), 'внешний домен исключён');
@@ -103,13 +103,15 @@ final class SiteLinksTest
         Assert::null(SiteLinks::resolve('https://a.ru/', ''));
     }
 
-    public function testSameSiteCheckForRedirects(): void
+    public function testSameHostForRedirects(): void
     {
-        Assert::true(SiteLinks::sameSite('okna-moskva.ru', 'https://okna-moskva.ru/page'));
-        Assert::true(SiteLinks::sameSite('okna-moskva.ru', 'https://www.okna-moskva.ru/page'));
-        Assert::true(SiteLinks::sameSite('okna-moskva.ru', 'https://shop.okna-moskva.ru/'));
-        Assert::false(SiteLinks::sameSite('okna-moskva.ru', 'https://other-site.ru/'), 'редирект на другой сайт');
-        Assert::false(SiteLinks::sameSite('okna-moskva.ru', 'not a url'));
+        // Проверка редиректов строгая по поддомену: соседний поддомен — уже другой сайт.
+        Assert::true(SiteLinks::sameHost('https://hype.o5h7.lol/', 'https://hype.o5h7.lol/bonus'));
+        Assert::true(SiteLinks::sameHost('https://okna-moskva.ru/', 'https://www.okna-moskva.ru/page'), 'www — тот же хост');
+        Assert::false(SiteLinks::sameHost('https://hype.o5h7.lol/', 'https://max.o5h7.lol/'), 'другой поддомен — другой бренд');
+        Assert::false(SiteLinks::sameHost('https://hype.o5h7.lol/', 'https://o5h7.lol/'), 'апекс — другой хост');
+        Assert::false(SiteLinks::sameHost('https://okna-moskva.ru/', 'https://other-site.ru/'), 'другой домен');
+        Assert::false(SiteLinks::sameHost('https://okna-moskva.ru/', 'not a url'));
     }
 
     public function testLimitAndNoHeaderFallback(): void

@@ -212,8 +212,9 @@ Run `php tests/lint.php && php tests/run.php` before committing.
 - `Filter\OwnSites` marks our own templates so they are neither collected nor downloaded: markers
   (`filters.own_markers` list + gitignored `filters.own_markers_file`, default `own-markers.txt`)
   are stable substrings of the page/URL (hosting domain, `<head>` verification token, asset path) —
-  never the changing codes/styles (QR, CSS). `ResultFilter` rejects domain markers at collection
-  (`own_site`); `PageVisitor::assembleVisit()` matches HTML/host at visit time, deletes files, sets
+  never the changing codes/styles (QR, CSS). The default marker `/uploads/brands/` (asset path shared
+  by all their brand templates) is in `Config::defaults()`; `ResultFilter` rejects domain markers at
+  collection (`own_site`); `PageVisitor::assembleVisit()` matches HTML/host at visit time, deletes files, sets
   `Site::$own`, and reports «исключён как наш» (skips crawl + N-стр bucketing). Real markers stay in
   the untracked `own-markers.txt`, not committed. Screenshots are captured for the home page only in
   crawl mode; `SiteLinks::canonical()` folds `/index.*` and trailing-slash aliases so a page is not
@@ -223,9 +224,12 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   spawns the job and serves `public/panel.html`. Keep CLI and panel behaviour in sync through `Runtime`.
 - `domain_scope` (all/root/subdomain) and `unique_by=domain` implement the "one site per domain,
   skip other subdomains" rule; covered by `tests/ResultFilterTest.php` and `tests/PanelTest.php`.
-- `Visit\SiteLinks::fromHeader()` extracts same-registrable-domain links from a page's header/nav
-  (home page as base); `PageVisitor` `visit.crawl` mode opens the home page, then a single probe
-  link, then the rest, and drops pages whose final URL redirects off-site (`SiteLinks::sameSite`).
+- `Visit\SiteLinks::fromHeader()` extracts **same-host** links from a page's header/nav (home page
+  as base; `www` folded, but sibling subdomains like `hype.`/`max.` of the same domain are treated
+  as other brands and skipped), dropping language-switch loops (`/ru/ru/ru…`, repeated consecutive
+  path segments). `PageVisitor` `visit.crawl` mode opens the home page, then a single probe link,
+  then the rest, and drops pages whose final URL redirects to another host (`SiteLinks::sameHost`,
+  www-insensitive).
   Page files are named short from the URL's last path segment (`/registracia` → `registracia.html`,
   `/catalog/plastikovye/` → `plastikovye.html`, home → `main.html`; `PageVisitor::fileNameFromUrl()` +
   `uniqueName()`). Duplicate/one-pager
