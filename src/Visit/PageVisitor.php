@@ -196,6 +196,18 @@ final class PageVisitor
 
                 return array_merge($visit, ['ok' => false, 'error' => 'заблокировано (антибот/Cloudflare' . ($status > 0 ? ", HTTP $status" : '') . ')', 'blocked' => true]);
             }
+            // HTTP 404/410 — такой страницы на сайте нет (ссылка меню ведёт в никуда, либо это
+            // динамический вход/редирект). Это не контент и НЕ дубликат: часто сервер отдаёт для
+            // ненайденного пути шаблон, похожий на главную, и раньше он ошибочно попадал в «дубликаты».
+            $notFound = (int) ($visit['status'] ?? 0);
+            if (in_array($notFound, [404, 410], true)) {
+                @unlink($job->htmlFile);
+                if ($job->screenshotFile !== null) {
+                    @unlink($job->screenshotFile);
+                }
+
+                return array_merge($visit, ['ok' => false, 'error' => "страница не найдена (HTTP $notFound)"]);
+            }
             $fingerprint = Fingerprint::of($html);
             $visit['html_file'] = $job->htmlFile;
             $visit['fingerprint'] = $fingerprint['hash'];

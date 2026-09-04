@@ -25,10 +25,53 @@ final class BrandDetector
      */
     public function detect(string $html, string $host): array
     {
-        $en = $this->brandFromHost($host);
-        $ru = $en !== '' ? $this->detectRu($this->visibleText($html), $en) : '';
+        $text = $this->visibleText($html);
+        // Кандидаты в английский бренд: сперва метка поддомена из canonical/og:url
+        // (kush.casinozsd.buzz → kush), затем метка самого домена. У сеток бренд часто сидит в
+        // поддомене, а регистрируемый домен общий/мусорный (casinozsd), поэтому по домену бренд
+        // не находится и в тексте ничего не заменяется.
+        $candidates = [];
+        $canon = $this->canonicalHost($html);
+        if ($canon !== '') {
+            $candidates[] = $this->brandFromHost($canon);
+        }
+        $candidates[] = $this->brandFromHost($host);
+        $candidates = array_values(array_unique(array_filter(
+            $candidates,
+            static fn (string $c): bool => mb_strlen($c) >= 3,
+        )));
 
-        return ['en' => $en, 'ru' => $ru];
+        // Берём первого кандидата, для которого в тексте находится русский бренд — значит, это
+        // реальное имя сайта, а не случайная метка домена.
+        foreach ($candidates as $en) {
+            $ru = $this->detectRu($text, $en);
+            if ($ru !== '') {
+                return ['en' => $en, 'ru' => $ru];
+            }
+        }
+
+        return ['en' => $candidates[0] ?? $this->brandFromHost($host), 'ru' => ''];
+    }
+
+    /**
+     * Хост из canonical/og:url страницы — часто именно там «бренд.домен», а не общий регистрируемый домен.
+     */
+    private function canonicalHost(string $html): string
+    {
+        $url = '';
+        if (preg_match('~<link\b[^>]*\brel=["\']canonical["\'][^>]*>~i', $html, $tag)
+            && preg_match('~\bhref=["\']([^"\']+)~i', $tag[0], $h)) {
+            $url = $h[1];
+        } elseif (preg_match('~<meta\b[^>]*\bproperty=["\']og:url["\'][^>]*>~i', $html, $tag)
+            && preg_match('~\bcontent=["\']([^"\']+)~i', $tag[0], $c)) {
+            $url = $c[1];
+        }
+        if ($url === '') {
+            return '';
+        }
+        $host = parse_url(trim($url), PHP_URL_HOST);
+
+        return is_string($host) ? mb_strtolower($host) : '';
     }
 
     /**

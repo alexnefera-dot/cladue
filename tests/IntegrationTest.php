@@ -246,7 +246,9 @@ final class IntegrationTest
         Assert::contains("http://127.0.0.1:$captchaPort", $run['out']);
         Assert::contains('капч: 1', $run['out'], 'первый прокси получил капчу один раз и ушёл на паузу');
         Assert::contains('капчу', $run['err']);
-        Assert::contains('Визиты (curl): сайтов 11, страниц сохранено 22', $run['out'], '15 хостов минус 3 исключённых и 1 в зоне com');
+        // 11 сайтов × 2 варианта = 22, минус 2 страницы dead-site.ru: его главная отдаёт HTTP 404 и
+        // теперь помечается «не найдена», а не сохраняется как контент.
+        Assert::contains('Визиты (curl): сайтов 11, страниц сохранено 20', $run['out'], '15 хостов минус 3 исключённых и 1 в зоне com; dead-site.ru (404) страниц не даёт');
 
         $domains = explode("
 ", trim((string) file_get_contents($dir . '/out-live/domains.txt')));

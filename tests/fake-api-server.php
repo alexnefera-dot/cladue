@@ -374,6 +374,21 @@ switch ($host) {
         echo '<html><head><title>Честный сайт</title></head><body><p>Одна и та же страница для всех посетителей</p></body></html>';
 
         return;
+    case 'softsite.ru':
+        // Мягкий 404: несуществующий путь отдаётся с кодом 404, но телом-копией главной (шаблон
+        // сайта). Раньше такой ответ ошибочно считался «дубликатом», а не «страница не найдена».
+        if ($uri === '/' || $uri === '' || $uri === '/about') {
+            $h1 = $uri === '/about' ? 'О нас' : 'Главная softsite';
+            $body = $uri === '/about' ? 'текст про компанию ' : 'домашний текст ';
+            echo '<html><head><title>' . $h1 . '</title></head><body>' . $navHtml
+                . '<h1>' . $h1 . '</h1><p class="content">' . str_repeat($body, 30) . '</p></body></html>';
+        } else {
+            http_response_code(404);
+            echo '<html><head><title>Главная softsite</title></head><body>' . $navHtml
+                . '<h1>Главная softsite</h1><p class="content">' . str_repeat('домашний текст ', 30) . '</p></body></html>';
+        }
+
+        return;
     case 'variant-site.ru':
         $variant = crc32($userAgent) % 2 === 0 ? 'A' : 'B';
         echo '<html><head><title>Вариант ' . $variant . '</title></head><body><h1>Страница варианта ' . $variant . '</h1><p>' . htmlspecialchars($visitor) . '</p></body></html>';

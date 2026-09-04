@@ -34,4 +34,20 @@ final class BrandDetectorTest
         Assert::same('unknownbrand777', $r['en']);
         Assert::same('', $r['ru'], 'если русского бренда нет — не выдумываем');
     }
+
+    public function testBrandFromCanonicalSubdomain(): void
+    {
+        // Регистрируемый домен общий (casinozsd), бренд — в поддомене canonical/og:url (kush) и в тексте.
+        $d = new BrandDetector();
+        $html = '<head><link rel="canonical" href="https://kush.casinozsd.buzz/"></head>'
+            . '<body><h1>Куш Казино</h1><p>Официальный сайт Куш Казино (Kush Casino), Куш топ</p></body>';
+        $r = $d->detect($html, 'casinozsd.buzz');
+        Assert::same('kush', $r['en'], 'бренд берётся из поддомена canonical, а не из домена casinozsd');
+        Assert::same('куш', $r['ru']);
+
+        // og:url тоже подходит как источник хоста бренда.
+        $og = '<head><meta property="og:url" content="https://eva.casinopyb.buzz/ru/"></head>'
+            . '<body><p>Ева Казино — заходите, Ева дарит бонусы</p></body>';
+        Assert::same('eva', $d->detect($og, 'casinopyb.buzz')['en']);
+    }
 }

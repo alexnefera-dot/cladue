@@ -238,8 +238,10 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `<a href>` to one of six relative paths (`ALLOWED_LINKS`, mapped by keyword), and templates the domain
   → `%domain_name%`, `dd.mm.yyyy` → `%date%`, brand → `%brand_name_ru%`/`%brand_name_en%`. Brand matching
   is case-insensitive and homoglyph-tolerant (Latin↔Cyrillic look-alikes, so `STAKE`≡`STAKЕ`).
-  `Content\BrandDetector` auto-detects the brand (EN from the domain label, RU by finding the text token
-  whose transliteration matches), so no manual input is needed; `Content\KnownBrands` adds a built-in list
+  `Content\BrandDetector` auto-detects the brand: EN is the label of the canonical/og:url host (so a network
+  where the brand sits in the subdomain — `kush.casinozsd.buzz` → `kush`, not the shared registrable domain
+  `casinozsd`), falling back to the domain label; RU is the text token whose transliteration matches. It picks
+  the first EN candidate that has a RU match in the text, so no manual input is needed; `Content\KnownBrands` adds a built-in list
   of casino brands (+ gitignored `brands.txt`) so foreign brands in the text are templated too (word-boundary,
   homoglyph-tolerant match). `ContentCleaner::autoOptions()` wires detection + known brands and lets non-empty
   overrides win (extra_brands merge). Panel has no stage dropdown: «Собрать сайты» (next to the queries)
@@ -278,7 +280,9 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   the site root so a menu link back to `/` never yields a second `main-2`. Any failed load — timeout/network,
   a block status (403/429/5xx) or an anti-bot/Cloudflare page (`PageVisitor::looksLikeBlock()`) — is retried
   through a different proxy (`visit.retries`, default 2; `PageVisitor::runWithRetry()`/`isRetryable()`); block
-  pages are deleted and reported as «заблокировано», never saved as content.
+  pages are deleted and reported as «заблокировано», never saved as content. HTTP 404/410 responses are
+  reported as «страница не найдена (HTTP 404)» and deleted, never saved — a network's soft-404 often returns
+  a home-like template for missing paths, which must not be mislabeled a «дубликат» of the home page.
   Page files are named short from the URL's last path segment (`/registracia` → `registracia.html`,
   `/catalog/plastikovye/` → `plastikovye.html`, home → `main.html`; `PageVisitor::fileNameFromUrl()` +
   `uniqueName()`). Duplicate/one-pager

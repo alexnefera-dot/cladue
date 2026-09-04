@@ -20,7 +20,7 @@ use YandexSites\Visit\VisitJob;
  */
 final class VisitTest
 {
-    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'agegate.ru', 'ourtpl.ru', 'brand-a.tpl.ru', 'brand-b.tpl.ru', 'footeronly.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru'];
+    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'agegate.ru', 'ourtpl.ru', 'brand-a.tpl.ru', 'brand-b.tpl.ru', 'footeronly.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru', 'softsite.ru'];
 
     private ?string $dir = null;
 
@@ -662,6 +662,44 @@ final class VisitTest
         Assert::true(is_file("$dir/3-стр/agegate.ru/main.html"), 'страницы сохранены, а не удалены как дубли');
         Assert::true(is_file("$dir/3-стр/agegate.ru/about.html"));
         Assert::true(is_file("$dir/3-стр/agegate.ru/contacts.html"));
+    }
+
+    public function testCrawl404IsNotFoundNotDuplicate(): void
+    {
+        // Сайт отдаёт для несуществующих путей код 404, но телом-копией главной. Такой ответ —
+        // «страница не найдена», а не «дубликат»: раньше похожесть на главную помечала его дублем.
+        $port = FakeServer::port();
+        $dir = $this->dir() . '/soft';
+        $site = new Site('softsite.ru', 'softsite.ru', 'softsite.ru');
+        $site->add(new SearchResult('казино', 0, 1, "http://softsite.ru:$port/", 'softsite.ru', 'Soft'));
+        $sites = ['softsite.ru' => $site];
+
+        $visitor = new PageVisitor([
+            'crawl' => true,
+            'max_pages' => 10,
+            'target' => 'found',
+            'dir' => $dir,
+            'screenshot' => false,
+            'similarity' => 0.9,
+            'timeout' => 5,
+            'delay_ms' => 0,
+            'concurrency' => 3,
+            'resolve' => $this->resolve($port),
+            'user_agents' => [UserAgents::YANDEX_BOT],
+        ], new CurlDriver(), $this->logger());
+        $visitor->visit($sites);
+
+        $byUrl = [];
+        foreach ($site->visits as $v) {
+            $byUrl[$v['url']] = $v;
+        }
+        $contacts = $byUrl["http://softsite.ru:$port/contacts"] ?? null;
+        Assert::true($contacts !== null, 'путь /contacts посещён');
+        Assert::false($contacts['ok'] ?? true, '/contacts — не ок (404)');
+        Assert::contains('не найдена', (string) ($contacts['error'] ?? ''));
+        Assert::false(str_contains((string) ($contacts['error'] ?? ''), 'дубликат'), '404 не помечается дубликатом');
+        Assert::same('', (string) ($contacts['html_file'] ?? ''), 'страница 404 не сохранена как контент');
+        Assert::false(is_file("$dir/softsite.ru/contacts.html"), 'файл 404 не сохранён');
     }
 
     public function testPlaywrightDriverRendersJavascript(): void
