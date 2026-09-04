@@ -33,7 +33,7 @@ use YandexSites\Visit\PlaywrightDriver;
  */
 final class Application
 {
-    public const VERSION = '1.1.0';
+    public const VERSION = '1.1.1';
 
     /** Опции, принимающие значение (остальные — флаги). */
     private const VALUE_OPTIONS = ['queries', 'query', 'config', 'out', 'pages', 'region', 'groups', 'limit', 'delay', 'source', 'proxies', 'proxy', 'parse-html', 'visit-driver', 'variants', 'user-agent', 'save-html'];

@@ -28,6 +28,47 @@ final class SetupTest
         return ['code' => proc_close($process), 'out' => $out];
     }
 
+    public function testUpdateFromLocalZip(): void
+    {
+        if (!class_exists(\ZipArchive::class)) {
+            Assert::skip('нет расширения zip');
+        }
+        $dir = sys_get_temp_dir() . '/yandex-sites-update-target-' . uniqid();
+        mkdir($dir);
+        mkdir($dir . '/src/Cli', 0777, true);
+        file_put_contents($dir . '/config.php', '<?php return ["search" => ["region" => 2]];');
+        file_put_contents($dir . '/proxies.txt', "http://203.0.113.10:59100:login:password\n");
+        file_put_contents($dir . '/src/Cli/Application.php', "<?php // старая версия VERSION = '0.0.1';");
+
+        $zipPath = sys_get_temp_dir() . '/yandex-sites-update-' . uniqid() . '.zip';
+        $zip = new \ZipArchive();
+        $zip->open($zipPath, \ZipArchive::CREATE);
+        $zip->addFromString('cladue-branch/bin/yandex-sites.php', (string) file_get_contents(PROJECT_ROOT . '/bin/yandex-sites.php'));
+        $zip->addFromString('cladue-branch/src/Cli/Application.php', "<?php // VERSION = '9.9.9';");
+        $zip->addFromString('cladue-branch/config.php', '<?php return ["must" => "not overwrite"];');
+        $zip->addFromString('cladue-branch/proxies.txt', 'must-not-overwrite');
+        $zip->addFromString('cladue-branch/tools/render-page.js', '// renderer');
+        $zip->close();
+
+        $run = $this->run(['--dir=' . $dir, '--update=' . $zipPath]);
+        Assert::same(0, $run['code'], $run['out']);
+        Assert::contains('Обновлено файлов: 3, версия yandex-sites 9.9.9', $run['out']);
+        Assert::same("<?php // VERSION = '9.9.9';", (string) file_get_contents($dir . '/src/Cli/Application.php'));
+        Assert::true(is_file($dir . '/tools/render-page.js'));
+        Assert::same(2, (require $dir . '/config.php')['search']['region'], 'config.php не перезаписывается');
+        Assert::contains('203.0.113.10', (string) file_get_contents($dir . '/proxies.txt'), 'proxies.txt не перезаписывается');
+
+        $bad = $this->run(['--dir=' . $dir, '--update=' . $dir . '/config.php']);
+        Assert::same(1, $bad['code']);
+
+        unlink($zipPath);
+        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($iterator as $item) {
+            $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname());
+        }
+        rmdir($dir);
+    }
+
     public function testCreatesFilesAndFolders(): void
     {
         $dir = sys_get_temp_dir() . '/yandex-sites-setup-' . uniqid();

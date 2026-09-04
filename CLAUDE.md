@@ -95,6 +95,7 @@ cp .env.example .env      # fill in credentials for the chosen source
 | Task | Command |
 |------|---------|
 | First-time setup | `php bin/setup.php --proxy=http://host:port:user:pass` (creates config.php, .env, proxies.txt, folders; checks PHP/Playwright) |
+| Update code from GitHub | `php bin/setup.php --update` (downloads the branch archive, overwrites code, keeps config/proxies/cache/out) |
 | Run the tool | `php bin/yandex-sites.php queries.txt` |
 | Live SERP through proxies | `php bin/yandex-sites.php --live --proxies=proxies.txt queries.txt` |
 | Visits with screenshots | `php bin/yandex-sites.php queries.txt --visit --variants=2` |

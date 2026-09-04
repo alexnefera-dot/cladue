@@ -27,7 +27,7 @@ final class HtmlResponseParser implements ResponseParserInterface
     public const KIND_UNKNOWN = 'unknown';
 
     private const AD_HOSTS = '~(^|\.)(yabs\.yandex\.|an\.yandex\.|ads\.adfox\.)~i';
-    private const CAPTCHA_MARKERS = '~showcaptcha|checkcaptcha|SmartCaptcha|CheckboxCaptcha|AdvancedCaptcha|captcha-wrapper|id="captcha"|<title>\s*Ой!\s*</title>|похожи на автоматические|Подтвердите, что запросы отправляли вы|Are you not a robot~iu';
+    private const CAPTCHA_MARKERS = '~class="[^"]*\b(CheckboxCaptcha|AdvancedCaptcha|captcha-wrapper)|id="captcha"|action="[^"]*checkcaptcha|<title>\s*Ой!\s*</title>|похожи на автоматические|Подтвердите, что запросы отправляли вы|Are you not a robot~iu';
     private const EMPTY_MARKERS = '~ничего не (нашлось|найдено)|не нашлось ни одного|Nothing found for|no results found~iu';
 
     /**

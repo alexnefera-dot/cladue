@@ -12,14 +12,23 @@ declare(strict_types=1);
  * если не указан --force), добавляет прокси из --proxy в proxies.txt, создаёт папки
  * cache/, out/, debug/, проверяет PHP-расширения и Node.js/Playwright и печатает
  * команды для проверки прокси и пробного запуска.
+ *
+ * Обновление кода проекта до свежей версии с GitHub (настройки, прокси, кэш и результаты не трогаются):
+ *
+ *   php bin/setup.php --update            (или --update=ПУТЬ_К_ZIP / --update=URL)
  */
 
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
+
+const UPDATE_BRANCH = 'claude/php-yandex-site-filter-v2q2lx';
+const UPDATE_URL = 'https://github.com/alexnefera-dot/cladue/archive/refs/heads/' . UPDATE_BRANCH . '.zip';
+const PROTECTED = ['config.php', '.env', 'proxies.txt', 'queries.txt', 'cache', 'out', 'debug', 'node_modules', 'vendor', '.git'];
 
 $root = dirname(__DIR__);
 $target = $root;
 $proxies = [];
 $force = false;
+$update = null;
 
 foreach (array_slice($argv, 1) as $arg) {
     if (str_starts_with($arg, '--proxy=')) {
@@ -28,13 +37,134 @@ foreach (array_slice($argv, 1) as $arg) {
         $target = rtrim(substr($arg, 6), '/\\');
     } elseif ($arg === '--force') {
         $force = true;
+    } elseif ($arg === '--update') {
+        $update = UPDATE_URL;
+    } elseif (str_starts_with($arg, '--update=')) {
+        $update = trim(substr($arg, 9));
     } elseif ($arg === '--help' || $arg === '-h') {
-        fwrite(STDOUT, "Использование: php bin/setup.php [--proxy=http://host:port:user:pass ...] [--force] [--dir=ПАПКА]\n");
+        fwrite(STDOUT, "Использование: php bin/setup.php [--proxy=http://host:port:user:pass ...] [--force] [--dir=ПАПКА] | --update[=ZIP или URL]\n");
         exit(0);
     } else {
         fwrite(STDERR, "Неизвестный аргумент: $arg\n");
         exit(2);
     }
+}
+
+if ($update !== null) {
+    exit(updateProject($target, $update));
+}
+
+/**
+ * Скачивает архив ветки (или берёт локальный zip), распаковывает и копирует файлы проекта
+ * поверх текущих, не трогая настройки, прокси, кэш и результаты.
+ */
+function updateProject(string $target, string $source): int
+{
+    $tmp = sys_get_temp_dir() . '/yandex-sites-update-' . uniqid();
+    if (!@mkdir($tmp, 0777, true)) {
+        fwrite(STDERR, "Не удалось создать временную папку $tmp\n");
+
+        return 1;
+    }
+    $zip = $tmp . '/update.zip';
+
+    if (is_file($source)) {
+        echo "Архив: $source" . PHP_EOL;
+        copy($source, $zip);
+    } else {
+        echo "Загрузка $source" . PHP_EOL;
+        $ch = curl_init($source);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS => 5,
+            CURLOPT_TIMEOUT => 180,
+            CURLOPT_USERAGENT => 'yandex-sites-setup',
+        ]);
+        $data = curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        if (!is_string($data) || $code !== 200 || $data === '') {
+            fwrite(STDERR, sprintf("Не удалось скачать архив (HTTP %d): %s\n", $code, curl_error($ch) ?: 'пустой ответ'));
+
+            return 1;
+        }
+        file_put_contents($zip, $data);
+        echo sprintf('Получено %d КБ', (int) (strlen($data) / 1024)) . PHP_EOL;
+    }
+
+    $extracted = $tmp . '/x';
+    mkdir($extracted);
+    if (class_exists('ZipArchive')) {
+        $archive = new ZipArchive();
+        if ($archive->open($zip) !== true || !$archive->extractTo($extracted)) {
+            fwrite(STDERR, "Не удалось распаковать архив (ZipArchive)\n");
+
+            return 1;
+        }
+        $archive->close();
+    } else {
+        $process = @proc_open(['tar', '-xf', $zip, '-C', $extracted], [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+        if (!is_resource($process)) {
+            fwrite(STDERR, "Нет ни расширения zip, ни программы tar — распаковать архив нечем\n");
+
+            return 1;
+        }
+        fclose($pipes[0]);
+        $err = (string) stream_get_contents($pipes[2]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        if (proc_close($process) !== 0) {
+            fwrite(STDERR, "Не удалось распаковать архив: " . trim($err) . "\n");
+
+            return 1;
+        }
+    }
+
+    $dirs = glob($extracted . '/*', GLOB_ONLYDIR) ?: [];
+    $sourceRoot = count($dirs) === 1 ? $dirs[0] : $extracted;
+    if (!is_file($sourceRoot . '/bin/yandex-sites.php')) {
+        fwrite(STDERR, "В архиве нет проекта yandex-sites (нет bin/yandex-sites.php)\n");
+
+        return 1;
+    }
+
+    $copied = 0;
+    $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($sourceRoot, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::SELF_FIRST);
+    foreach ($iterator as $item) {
+        $relative = substr($item->getPathname(), strlen($sourceRoot) + 1);
+        $top = explode('/', str_replace('\\', '/', $relative))[0];
+        if (in_array($top, PROTECTED, true)) {
+            continue;
+        }
+        $dest = $target . '/' . $relative;
+        if ($item->isDir()) {
+            if (!is_dir($dest)) {
+                mkdir($dest, 0777, true);
+            }
+            continue;
+        }
+        if (!is_dir(dirname($dest))) {
+            mkdir(dirname($dest), 0777, true);
+        }
+        if (copy($item->getPathname(), $dest)) {
+            $copied++;
+        }
+    }
+
+    $version = '?';
+    $app = @file_get_contents($target . '/src/Cli/Application.php');
+    if (is_string($app) && preg_match("/VERSION = '([^']+)'/", $app, $m) === 1) {
+        $version = $m[1];
+    }
+    echo sprintf('Обновлено файлов: %d, версия yandex-sites %s. Настройки (config.php, .env, proxies.txt), кэш и результаты не тронуты.', $copied, $version) . PHP_EOL;
+
+    $cleanup = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($tmp, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
+    foreach ($cleanup as $item) {
+        $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+    }
+    @rmdir($tmp);
+
+    return 0;
 }
 
 $ok = static fn (string $text): string => '  [OK] ' . $text . PHP_EOL;

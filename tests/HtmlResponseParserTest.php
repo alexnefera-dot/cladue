@@ -67,6 +67,8 @@ final class HtmlResponseParserTest
         Assert::same(HtmlResponseParser::KIND_BLOCKED, $parser->classify('<html><body>denied</body></html>', '', 403));
         Assert::same(HtmlResponseParser::KIND_BLOCKED, $parser->classify(''));
         Assert::same(HtmlResponseParser::KIND_SERP, $parser->classify($this->fixture('serp.html') . '<!-- SmartCaptcha script mention -->'), 'упоминание капчи в коде выдачи не считается капчей');
+        Assert::same(HtmlResponseParser::KIND_UNKNOWN, $parser->classify('<html><head><script>var cfg = {captcha: "showcaptcha", w: "SmartCaptcha"};</script></head><body><p>hello</p></body></html>'), 'слова из скриптов без разметки капчи — неизвестная страница, а не капча');
+        Assert::same(HtmlResponseParser::KIND_CAPTCHA, $parser->classify('<html><head><title>Ой!</title></head><body>Подтвердите, что запросы отправляли вы, а не робот</body></html>'));
 
         $empty = $parser->parse($this->fixture('serp_empty.html'), 'q', 0);
         Assert::same([], $empty->results);
