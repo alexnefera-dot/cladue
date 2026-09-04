@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace YandexSites\Content;
 
+use YandexSites\Filter\Domains;
+
 /**
  * Подготовка контента для шаблона: из скачанной HTML-страницы оставляет только тело статьи
  * (после </h1> и до блока «Популярные запросы»), удаляет блок слотов, приводит ссылки к
@@ -37,6 +39,33 @@ final class ContentCleaner
         'a' => 'aа', 'e' => 'eе', 'o' => 'oо', 'c' => 'cс', 'p' => 'pр', 'x' => 'xх',
         'y' => 'yу', 'k' => 'kк', 'm' => 'mм', 't' => 'tт', 'h' => 'hн', 'b' => 'bв',
     ];
+
+    /**
+     * Собирает опции для clean() с автоопределением бренда по странице и домену — чтобы можно было
+     * просто нажать «Забрать контент» без ручного ввода. Непустые $override перекрывают автозначения.
+     *
+     * @param array<string, mixed> $override
+     * @return array<string, mixed>
+     */
+    public static function autoOptions(string $html, string $host, array $override = []): array
+    {
+        $brand = (new BrandDetector())->detect($html, $host);
+        $hosts = $host !== '' ? array_values(array_unique([$host, Domains::registrable(Domains::normalize($host))])) : [];
+        $opts = [
+            'domain' => $host,
+            'hosts' => $hosts,
+            'brand_en' => $brand['en'],
+            'brand_ru' => $brand['ru'],
+            'extra_brands' => [],
+        ];
+        foreach ($override as $key => $value) {
+            if ($value !== '' && $value !== null && $value !== []) {
+                $opts[$key] = $value;
+            }
+        }
+
+        return $opts;
+    }
 
     /**
      * Полная очистка страницы. Возвращает тело статьи или '' — если статья не найдена (нет <h1>).

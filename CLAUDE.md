@@ -226,14 +226,17 @@ Run `php tests/lint.php && php tests/run.php` before committing.
 - `Runner` and `PageVisitor` accept an optional `$onProgress` callback; `bin/run-job.php` wires it
   to `Support\Progress`, and `bin/panel.php` (dual launcher/router via `PHP_SAPI==='cli-server'`)
   spawns the job and serves `public/panel.html`. Keep CLI and panel behaviour in sync through `Runtime`.
-- `Content\ContentCleaner` is the third stage (`settings.stage=clean`, `bin/clean-content.php`): from a
-  downloaded page it keeps only the article body (after `</h1>`, before «Популярные запросы»; drops the
-  slots section, header/footer/scripts), rewrites every `<a href>` to one of six relative paths
-  (`ALLOWED_LINKS`, mapped by keyword), and templates the domain → `%domain_name%`, `dd.mm.yyyy` →
-  `%date%`, brand → `%brand_name_ru%`/`%brand_name_en%`. Brand matching is case-insensitive and
-  homoglyph-tolerant (Latin↔Cyrillic look-alikes, so `STAKE`≡`STAKЕ`). The clean stage reads
-  `runs/current/pages`, writes `runs/current/content` and a `content.zip`; domain comes from the site
-  folder name, brand from panel fields (`brand_ru`/`brand_en`/`brands`). Covered by `tests/ContentCleanerTest.php`.
+- `Content\ContentCleaner` is the third stage (`settings.stage=clean`, `bin/clean-content.php`, and the
+  per-site `/api/clean-site` button): from a downloaded page it keeps only the article body (after
+  `</h1>`, before «Популярные запросы»; drops the slots section, header/footer/scripts), rewrites every
+  `<a href>` to one of six relative paths (`ALLOWED_LINKS`, mapped by keyword), and templates the domain
+  → `%domain_name%`, `dd.mm.yyyy` → `%date%`, brand → `%brand_name_ru%`/`%brand_name_en%`. Brand matching
+  is case-insensitive and homoglyph-tolerant (Latin↔Cyrillic look-alikes, so `STAKE`≡`STAKЕ`).
+  `Content\BrandDetector` auto-detects the brand (EN from the domain label, RU by finding the text token
+  whose transliteration matches), so no manual input is needed; `ContentCleaner::autoOptions()` wires it
+  and lets non-empty overrides win. Panel: the results table has a per-site «Забрать контент» button
+  (`/api/clean-site` → `content-<host>.zip`); the bulk stage reads `runs/current/pages` → `content` +
+  `content.zip`. Covered by `tests/ContentCleanerTest.php` and `tests/BrandDetectorTest.php`.
 - `domain_scope` (all/root/subdomain) and `unique_by=domain` implement the "one site per domain,
   skip other subdomains" rule; covered by `tests/ResultFilterTest.php` and `tests/PanelTest.php`.
 - `Visit\SiteLinks::fromHeader()` extracts **same-host** links from a page's header/nav **and footer**

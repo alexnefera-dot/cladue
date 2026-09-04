@@ -33,7 +33,6 @@ if (is_file($root . '/vendor/autoload.php')) {
 use YandexSites\Config;
 use YandexSites\Content\ContentCleaner;
 use YandexSites\Filter\DefaultExclusions;
-use YandexSites\Filter\Domains;
 use YandexSites\Output\ReportWriter;
 use YandexSites\Runner;
 use YandexSites\Model\SearchResult;
@@ -290,15 +289,13 @@ while (true) {
                 if (!str_contains($host, '.')) {
                     $host = '';
                 }
-                $brandEn = $brandEnOpt !== '' ? $brandEnOpt : ($host !== '' ? explode('.', $host)[0] : '');
-                $hosts = $host !== '' ? array_values(array_unique([$host, Domains::registrable(Domains::normalize($host))])) : [];
-                $body = $cleaner->clean((string) file_get_contents($file), [
-                    'domain' => $host,
-                    'hosts' => $hosts,
+                $pageHtml = (string) file_get_contents($file);
+                // Бренд определяется автоматически по странице и домену; поля панели (если заданы) перекрывают.
+                $body = $cleaner->clean($pageHtml, ContentCleaner::autoOptions($pageHtml, $host, [
                     'brand_ru' => $brandRu,
-                    'brand_en' => $brandEn,
+                    'brand_en' => $brandEnOpt,
                     'extra_brands' => $brands,
-                ]);
+                ]));
                 $rel = ltrim(str_replace($pagesDir, '', $file), '/\\');
                 if (trim($body) === '') {
                     $skipped++;

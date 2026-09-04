@@ -63,6 +63,19 @@ if (PHP_SAPI !== 'cli-server') {
 
 // --- Обработчик запросов встроенного сервера ---
 
+if (is_file($root . '/vendor/autoload.php')) {
+    require $root . '/vendor/autoload.php';
+} else {
+    spl_autoload_register(static function (string $class) use ($root): void {
+        if (str_starts_with($class, 'YandexSites\\')) {
+            $file = $root . '/src/' . str_replace('\\', '/', substr($class, strlen('YandexSites\\'))) . '.php';
+            if (is_file($file)) {
+                require $file;
+            }
+        }
+    });
+}
+
 $projectDir = getenv('YS_PROJECT_DIR') ?: getcwd();
 $runDir = $projectDir . '/runs/current';
 @mkdir($runDir, 0777, true);
@@ -253,6 +266,76 @@ if ($path === '/api/results') {
     jsonOut($data);
 }
 
+if ($path === '/api/clean-site' && $method === 'POST') {
+    // Подготовка контента для ОДНОГО сайта (кнопка «Забрать контент»): бренд определяется сам.
+    $b = body();
+    $host = trim((string) ($b['host'] ?? ''));
+    if ($host === '' || preg_match('~^[a-z0-9.\-]+$~i', $host) !== 1) {
+        jsonOut(['ok' => false, 'error' => 'некорректный сайт'], 400);
+    }
+    $pagesDir = $runDir . '/pages';
+    $files = [];
+    if (is_dir($pagesDir)) {
+        $iter = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($pagesDir, FilesystemIterator::SKIP_DOTS));
+        foreach ($iter as $f) {
+            if ($f instanceof SplFileInfo && $f->isFile() && strtolower($f->getExtension()) === 'html' && basename(dirname($f->getPathname())) === $host) {
+                $files[] = $f->getPathname();
+            }
+        }
+    }
+    sort($files);
+    if ($files === []) {
+        jsonOut(['ok' => false, 'error' => 'нет скачанных страниц для этого сайта — сначала «Выгрузка страниц»'], 404);
+    }
+    $home = $files[0];
+    foreach ($files as $f) {
+        if (basename($f) === 'main.html') {
+            $home = $f;
+            break;
+        }
+    }
+    // Бренд определяем один раз по главной и применяем ко всем страницам сайта.
+    $opts = \YandexSites\Content\ContentCleaner::autoOptions((string) file_get_contents($home), $host);
+    $cleaner = new \YandexSites\Content\ContentCleaner();
+    $outDir = $runDir . '/content/' . $host;
+    foreach (glob($outDir . '/*.html') ?: [] as $old) {
+        @unlink($old);
+    }
+    $written = 0;
+    $skipped = 0;
+    foreach ($files as $file) {
+        $body = $cleaner->clean((string) file_get_contents($file), $opts);
+        if (trim($body) === '') {
+            $skipped++;
+            continue;
+        }
+        @mkdir($outDir, 0777, true);
+        file_put_contents($outDir . '/' . basename($file), $body);
+        $written++;
+    }
+    $zipRel = '';
+    if ($written > 0 && class_exists('ZipArchive')) {
+        $zipRel = 'content-' . (preg_replace('~[^a-z0-9.\-]~i', '_', $host) ?? 'site') . '.zip';
+        $zip = new ZipArchive();
+        if ($zip->open($runDir . '/' . $zipRel, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
+            foreach (glob($outDir . '/*.html') ?: [] as $f) {
+                $zip->addFile($f, $host . '/' . basename($f));
+            }
+            $zip->close();
+        } else {
+            $zipRel = '';
+        }
+    }
+    jsonOut([
+        'ok' => true,
+        'written' => $written,
+        'skipped' => $skipped,
+        'zip' => $zipRel,
+        'brand_ru' => (string) ($opts['brand_ru'] ?? ''),
+        'brand_en' => (string) ($opts['brand_en'] ?? ''),
+    ]);
+}
+
 if ($path === '/api/log') {
     header('Content-Type: text/plain; charset=utf-8');
     if (!is_file($logFile)) {
@@ -274,8 +357,11 @@ if ($path === '/file') {
         exit;
     }
     $ext = strtolower(pathinfo($full, PATHINFO_EXTENSION));
-    $types = ['html' => 'text/html; charset=utf-8', 'png' => 'image/png', 'jpg' => 'image/jpeg', 'txt' => 'text/plain; charset=utf-8', 'json' => 'application/json; charset=utf-8', 'csv' => 'text/csv; charset=utf-8'];
+    $types = ['html' => 'text/html; charset=utf-8', 'png' => 'image/png', 'jpg' => 'image/jpeg', 'txt' => 'text/plain; charset=utf-8', 'json' => 'application/json; charset=utf-8', 'csv' => 'text/csv; charset=utf-8', 'zip' => 'application/zip'];
     header('Content-Type: ' . ($types[$ext] ?? 'application/octet-stream'));
+    if ($ext === 'zip') {
+        header('Content-Disposition: attachment; filename="' . basename($full) . '"');
+    }
     readfile($full);
     exit;
 }
