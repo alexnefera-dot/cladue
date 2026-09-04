@@ -120,14 +120,20 @@
 
         <div class="row">
           <div>
-            <label>Мин. число запросов <span class="hint">сайт встретился в N запросах</span></label>
+            <label>Брать из выдачи топ <span class="hint">0 — все</span></label>
+            <input type="number" id="top" value="10" min="0" max="100">
+          </div>
+          <div>
+            <label>Мин. число запросов <span class="hint">в N запросах</span></label>
             <input type="number" id="minq" value="1" min="1">
           </div>
           <div>
-            <label>Зоны доменов <span class="hint">через запятую, пусто — любые</span></label>
+            <label>Зоны доменов <span class="hint">пусто — любые</span></label>
             <input type="text" id="tlds" placeholder="ru, рф, su">
           </div>
         </div>
+        <div class="check"><input type="checkbox" id="skipknown" checked><label style="margin:0">Пропускать домены, которые уже собраны раньше (база пересечений)</label></div>
+        <div class="hint" style="margin-bottom:4px">В базе доменов: <b id="baseCount">0</b> · <a href="#" id="resetBase">очистить базу</a></div>
         <label>Исключить домены дополнительно <span class="hint">через запятую</span></label>
         <input type="text" id="exclude" placeholder="competitor.ru, spam.ru">
       </div>
@@ -154,8 +160,14 @@
   </div>
 
   <div class="card">
-    <div class="btns">
-      <button class="btn-primary" id="startBtn">Запустить сбор</button>
+    <label>Этап</label>
+    <select id="stage" style="max-width:420px">
+      <option value="collect">1 · Сборка доменов (без открытия сайтов)</option>
+      <option value="download">2 · Выгрузка страниц собранных сайтов</option>
+      <option value="both">Сборка и сразу выгрузка</option>
+    </select>
+    <div class="btns" style="margin-top:12px">
+      <button class="btn-primary" id="startBtn">Запустить</button>
       <button class="btn-danger" id="stopBtn" disabled>Остановить</button>
       <span id="stateBadge" class="state s-idle">не запущено</span>
     </div>
@@ -194,7 +206,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const FIELDS = ['queries','source','region','pages','dedupe','scope','minq','tlds','exclude','visit','variants','driver','useproxies','repeat'];
+const FIELDS = ['queries','source','region','pages','dedupe','scope','top','minq','tlds','exclude','skipknown','visit','variants','driver','useproxies','repeat','stage'];
 
 function loadLocal(){
   try{ const s = JSON.parse(localStorage.getItem('ys-panel')||'{}');
@@ -215,7 +227,10 @@ function collectSettings(){
     pages: parseInt($('pages').value)||1,
     dedupe_domain: $('dedupe').checked,
     domain_scope: $('scope').value,
+    top: parseInt($('top').value)||0,
     min_queries: parseInt($('minq').value)||1,
+    skip_known: $('skipknown').checked,
+    stage: $('stage').value,
     allowed_tlds: $('tlds').value.split(',').map(s=>s.trim()).filter(Boolean),
     exclude_extra: $('exclude').value.split(',').map(s=>s.trim()).filter(Boolean),
     visit: $('visit').checked,
@@ -234,10 +249,11 @@ async function saveKeys(){
   refresh();
 }
 $('saveKeys').addEventListener('click', saveKeys);
+$('resetBase').addEventListener('click', async (e)=>{ e.preventDefault(); if(confirm('Очистить базу собранных доменов? Следующий сбор возьмёт все домены заново.')){ await fetch('/api/reset-base',{method:'POST'}); refresh(); } });
 
 async function start(){
   const st=collectSettings();
-  if(st.queries.length===0){ showStart('Добавьте хотя бы один запрос','err'); return; }
+  if(st.stage!=='download' && st.queries.length===0){ showStart('Добавьте хотя бы один запрос','err'); return; }
   $('startBtn').disabled=true;
   const r=await fetch('/api/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(st)});
   const j=await r.json();
@@ -291,11 +307,12 @@ function renderStatus(st, running){
   push((st.queries_done||0)+' / '+(st.queries_total||stats.queries||'?'),'запросов');
   push(st.results ?? stats.results ?? 0,'результатов в выдаче');
   push(st.sites_total ?? stats.sites_total ?? 0,'сайтов найдено');
-  push(st.sites_selected ?? stats.sites_selected ?? 0,'отобрано');
+  push(st.sites_selected ?? stats.sites_selected ?? 0,'новых отобрано');
+  const nd = st.new_domains ?? stats.new_domains; if(nd!=null) push(nd,'новых доменов в базу');
   if(v && v.total) push((v.done||0)+' / '+v.total,'страниц открыто');
   $('stats').innerHTML=cells.join('');
 
-  const REASONS={tld:'зона домена не разрешена',exclude_domains:'в списке исключений',include_domains:'нет в списке нужных',domain_scope:'не тот тип домена',position:'позиция ниже лимита',title_any:'нет слов в заголовке',title_all:'нет всех слов',title_none:'стоп‑слово в заголовке',snippet_any:'нет слов в описании',snippet_none:'стоп‑слово в описании',url_must_match:'URL не подходит',url_must_not_match:'URL исключён',no_host:'без адреса',min_queries:'мало запросов',min_hits:'мало попаданий'};
+  const REASONS={seen_before:'уже в базе доменов',tld:'зона домена не разрешена',exclude_domains:'в списке исключений',include_domains:'нет в списке нужных',domain_scope:'не тот тип домена',position:'позиция ниже лимита',title_any:'нет слов в заголовке',title_all:'нет всех слов',title_none:'стоп‑слово в заголовке',snippet_any:'нет слов в описании',snippet_none:'стоп‑слово в описании',url_must_match:'URL не подходит',url_must_not_match:'URL исключён',no_host:'без адреса',min_queries:'мало запросов',min_hits:'мало попаданий'};
   const rej = (st.stats && st.stats.rejected) || st.rejected || {};
   const rkeys = Object.keys(rej).sort((a,b)=>rej[b]-rej[a]);
   if(rkeys.length){
@@ -335,6 +352,7 @@ function prefill(state){
   if(state.keys){ if(state.keys.xmlstock_user) $('k_user').value=state.keys.xmlstock_user;
     $('xmkey').textContent = state.keys.xmlstock_key_set ? '· ключ сохранён' : '· не задан'; }
   $('proxHint').textContent = state.has_proxies ? '· файл найден' : '· proxies.txt не найден';
+  if(typeof state.base_domains==='number') $('baseCount').textContent = state.base_domains;
   const saved = JSON.parse(localStorage.getItem('ys-panel')||'null');
   if(!saved && state.settings){
     const s=state.settings;
@@ -347,6 +365,7 @@ function prefill(state){
     $('visit').checked=!!s.visit; if(s.variants)$('variants').value=s.variants;
     if(s.visit_driver)$('driver').value=s.visit_driver; $('useproxies').checked=!!s.proxies_file;
     if(s.repeat_hours!=null)$('repeat').value=s.repeat_hours;
+    if(s.top!=null)$('top').value=s.top; if(s.skip_known!=null)$('skipknown').checked=s.skip_known; if(s.stage)$('stage').value=s.stage;
   }
 }
 

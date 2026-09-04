@@ -56,9 +56,11 @@ final class PanelTest
         $dir = $this->projectDir($port);
         $runDir = $dir . '/runs/job1';
         mkdir($runDir, 0777, true);
+        @unlink($dir . '/runs/domains-base.txt');
         file_put_contents($runDir . '/settings.json', json_encode([
             'queries' => ['пластиковые окна', 'остекление балконов'],
             'source' => 'xmlstock',
+            'top' => 0,
             'dedupe_domain' => true,
             'allowed_tlds' => [],
             'visit' => false,
@@ -83,6 +85,86 @@ final class PanelTest
         // dedupe_domain => один сайт на домен: shop.okna-moskva.ru и okna-moskva.ru не дублируются
         $domains = array_map(static fn ($s) => $s['domain'], $sites['sites']);
         Assert::same(count($domains), count(array_unique($domains)), 'по одному сайту на домен');
+    }
+
+    public function testLedgerSkipsAlreadyCollectedDomains(): void
+    {
+        $port = FakeServer::port();
+        $dir = $this->projectDir($port);
+        $this->projectDirReset($port);
+        $runDir = $dir . '/runs/ledger';
+        mkdir($runDir, 0777, true);
+        @unlink($dir . '/runs/domains-base.txt');
+        $settings = json_encode([
+            'queries' => ['пластиковые окна', 'остекление балконов'],
+            'source' => 'xmlstock',
+            'top' => 0,
+            'dedupe_domain' => true,
+            'allowed_tlds' => [],
+            'skip_known' => true,
+            'visit' => false,
+        ]);
+        file_put_contents($runDir . '/settings.json', $settings);
+
+        $first = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $first['code'], $first['out']);
+        $s1 = json_decode((string) file_get_contents($runDir . '/status.json'), true);
+        Assert::same('done', $s1['state']);
+        $selected = $s1['stats']['sites_selected'];
+        Assert::true($selected > 0, 'первый сбор отобрал сайты');
+        Assert::same($selected, $s1['stats']['new_domains'], 'все домены новые в первый раз');
+        Assert::true(is_file($dir . '/runs/domains-base.txt'), 'база доменов создана');
+
+        // Повторный сбор с теми же запросами: все домены уже в базе — новых нет
+        file_put_contents($runDir . '/settings.json', $settings);
+        $second = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $second['code'], $second['out']);
+        $s2 = json_decode((string) file_get_contents($runDir . '/status.json'), true);
+        Assert::same('done', $s2['state']);
+        Assert::same(0, $s2['stats']['sites_selected'], 'повторный сбор ничего нового не отобрал');
+        Assert::true(($s2['stats']['rejected']['seen_before'] ?? 0) > 0, 'домены отклонены как уже собранные');
+    }
+
+    public function testDownloadStageOpensCollectedSites(): void
+    {
+        $port = FakeServer::port('local');
+        $dir = sys_get_temp_dir() . '/yandex-sites-download-' . uniqid();
+        $runDir = $dir . '/runs/dl';
+        mkdir($runDir, 0777, true);
+        file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
+        file_put_contents($runDir . '/sites.json', json_encode(['sites' => [[
+            'host' => 'okna-moskva.ru', 'domain' => 'okna-moskva.ru',
+            'url' => "http://okna-moskva.ru:$port/page-1/", 'title' => 'T',
+            'best_query' => 'окна', 'best_position' => 1, 'queries_count' => 1,
+        ]]]));
+
+        // нет собранных сайтов → ошибка
+        $empty = $dir . '/runs/empty';
+        mkdir($empty, 0777, true);
+        file_put_contents($empty . '/settings.json', json_encode(['stage' => 'download', 'visit_driver' => 'curl']));
+        $r0 = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $empty . '/settings.json'], $dir);
+        Assert::same('error', (json_decode((string) file_get_contents($empty . '/status.json'), true))['state']);
+
+        file_put_contents($runDir . '/settings.json', json_encode([
+            'stage' => 'download',
+            'visit_driver' => 'curl',
+            'visit_resolve' => ["okna-moskva.ru:$port:127.0.0.1"],
+        ]));
+        $run = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $run['code'], $run['out']);
+        $st = json_decode((string) file_get_contents($runDir . '/status.json'), true);
+        Assert::same('done', $st['state'], $run['out']);
+        Assert::contains('Выгружено страниц: 1', $st['message']);
+
+        $sites = json_decode((string) file_get_contents($runDir . '/sites.json'), true);
+        Assert::true(($sites['sites'][0]['visits'][0]['ok'] ?? false), 'страница сайта открыта и сохранена');
+        Assert::true(is_file($runDir . '/pages/okna-moskva.ru/variant-1.html'));
+
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($it as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+        @rmdir($dir);
     }
 
     public function testRunJobReportsErrorOnBadKey(): void
@@ -157,9 +239,13 @@ final class PanelTest
             Assert::contains('XMLSTOCK_USER=12478', (string) file_get_contents($dir . '/.env'));
             Assert::contains('XMLSTOCK_KEY=secretkey123', (string) file_get_contents($dir . '/.env'));
 
+            $this->http('POST', $base . '/api/reset-base');
+            Assert::same(0, (json_decode((string) $this->http('GET', $base . '/api/state'), true))['base_domains'], 'база доменов очищена');
+
             $start = json_decode((string) $this->http('POST', $base . '/api/start', [
                 'queries' => ['пластиковые окна', 'остекление балконов'],
                 'source' => 'xmlstock',
+                'top' => 0,
                 'dedupe_domain' => true,
                 'visit' => false,
                 'repeat_hours' => 0,

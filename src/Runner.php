@@ -10,6 +10,7 @@ use YandexSites\Model\Site;
 use YandexSites\Search\ApiException;
 use YandexSites\Search\RawFetcherInterface;
 use YandexSites\Search\ResponseParserInterface;
+use YandexSites\Support\DomainLedger;
 use YandexSites\Support\Logger;
 use YandexSites\Visit\PageVisitor;
 
@@ -26,6 +27,8 @@ final class Runner
         private ?SiteChecker $checker = null,
         private ?PageVisitor $visitor = null,
         private mixed $onProgress = null,
+        private ?DomainLedger $ledger = null,
+        private bool $skipKnownDomains = false,
     ) {
     }
 
@@ -152,6 +155,21 @@ final class Runner
                 $result->reject('min_hits');
                 unset($sites[$key]);
             }
+        }
+
+        if ($this->ledger !== null) {
+            if ($this->skipKnownDomains) {
+                foreach ($sites as $key => $site) {
+                    if ($this->ledger->has($site->domain)) {
+                        $result->reject('seen_before');
+                        unset($sites[$key]);
+                    }
+                }
+            }
+            $added = $this->ledger->add(array_map(static fn (Site $s): string => $s->domain, $sites));
+            $result->stats['new_domains'] = $added;
+            $result->stats['base_domains'] = $this->ledger->count();
+            $this->progress(['phase' => 'filter', 'sites_total' => count($sites), 'new_domains' => $added, 'base_domains' => $this->ledger->count()]);
         }
 
         if ($this->checker !== null && $sites !== []) {

@@ -72,6 +72,7 @@ $stopFile = $runDir . '/stop';
 $pidFile = $runDir . '/pid';
 $logFile = $runDir . '/run.log';
 $envFile = $projectDir . '/.env';
+$baseFile = $projectDir . '/runs/domains-base.txt';
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $path = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
@@ -172,6 +173,7 @@ if ($path === '/api/state') {
         'running' => $running,
         'has_config' => is_file($projectDir . '/config.php'),
         'has_proxies' => is_file($projectDir . '/proxies.txt'),
+        'base_domains' => is_file($baseFile) ? count(array_filter(array_map('trim', file($baseFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: []), static fn ($l) => $l !== '' && $l[0] !== '#')) : 0,
     ]);
 }
 
@@ -202,8 +204,9 @@ if ($path === '/api/start' && $method === 'POST') {
         jsonOut(['ok' => false, 'error' => 'Сбор уже запущен'], 409);
     }
     $settings = body();
+    $stage = (string) ($settings['stage'] ?? 'collect');
     $queries = array_values(array_filter(array_map('trim', (array) ($settings['queries'] ?? [])), static fn (string $q): bool => $q !== ''));
-    if ($queries === []) {
+    if ($stage !== 'download' && $queries === []) {
         jsonOut(['ok' => false, 'error' => 'Добавьте хотя бы один запрос'], 400);
     }
     @unlink($stopFile);
@@ -237,6 +240,11 @@ if ($path === '/api/stop' && $method === 'POST') {
             @exec(sprintf('kill %d 2>/dev/null', $pid));
         }
     }
+    jsonOut(['ok' => true]);
+}
+
+if ($path === '/api/reset-base' && $method === 'POST') {
+    @file_put_contents($baseFile, '');
     jsonOut(['ok' => true]);
 }
 

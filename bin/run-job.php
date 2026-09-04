@@ -34,7 +34,10 @@ use YandexSites\Config;
 use YandexSites\Filter\DefaultExclusions;
 use YandexSites\Output\ReportWriter;
 use YandexSites\Runner;
+use YandexSites\Model\SearchResult;
+use YandexSites\Model\Site;
 use YandexSites\Runtime;
+use YandexSites\Support\DomainLedger;
 use YandexSites\Support\Logger;
 use YandexSites\Support\Progress;
 
@@ -98,6 +101,13 @@ function buildOverrides(array $s, string $runDir): array
     if (isset($s['groups_on_page'])) {
         $overrides['search.groups_on_page'] = max(1, min(100, (int) $s['groups_on_page']));
     }
+    // «Топ N выдачи»: берём только первые N результатов каждого запроса (одна страница по N).
+    $top = (int) ($s['top'] ?? 10);
+    if ($top > 0) {
+        $overrides['search.groups_on_page'] = min(100, $top);
+        $overrides['search.pages'] = 1;
+        $overrides['filters.max_position'] = $top;
+    }
     $overrides['filters.unique_by'] = ($s['dedupe_domain'] ?? true) ? 'domain' : 'host';
     if (isset($s['domain_scope'])) {
         $overrides['filters.domain_scope'] = (string) $s['domain_scope'];
@@ -121,7 +131,9 @@ function buildOverrides(array $s, string $runDir): array
     }
     $overrides['filters.exclude_domains'] = $exclude;
 
-    $overrides['visit.enabled'] = (bool) ($s['visit'] ?? false);
+    // Визиты включаются только на этапе «сборка + выгрузка»; на этапе «сборка» — нет.
+    $stage = (string) ($s['stage'] ?? 'collect');
+    $overrides['visit.enabled'] = $stage === 'both' && (bool) ($s['visit'] ?? true);
     if (isset($s['variants'])) {
         $overrides['visit.variants'] = max(1, (int) $s['variants']);
     }
@@ -135,6 +147,10 @@ function buildOverrides(array $s, string $runDir): array
     }
     if (isset($s['proxies_file']) && (string) $s['proxies_file'] !== '') {
         $overrides['proxy_file'] = (string) $s['proxies_file'];
+    }
+    // Продвинутое/для тестов: сопоставление host:port:ip для визитов (CURLOPT_RESOLVE / Chromium).
+    if (isset($s['visit_resolve']) && is_array($s['visit_resolve'])) {
+        $overrides['visit.resolve'] = array_values(array_map('strval', $s['visit_resolve']));
     }
 
     return $overrides;
@@ -171,6 +187,31 @@ function stopped(string $stopFile): bool
     return is_file($stopFile);
 }
 
+/**
+ * Восстанавливает объекты Site из ранее сохранённого sites.json (для этапа выгрузки).
+ *
+ * @return array<string, Site>
+ */
+function loadSites(string $file): array
+{
+    $data = is_file($file) ? json_decode((string) file_get_contents($file), true) : null;
+    $sites = [];
+    foreach (is_array($data) && isset($data['sites']) ? $data['sites'] : [] as $row) {
+        $host = (string) ($row['host'] ?? '');
+        if ($host === '') {
+            continue;
+        }
+        $site = new Site($host, $host, (string) ($row['domain'] ?? $host));
+        $url = (string) ($row['url'] ?? '');
+        $query = (string) ($row['best_query'] ?? '');
+        $position = isset($row['best_position']) ? (int) $row['best_position'] : 1;
+        $site->add(new SearchResult($query, 0, max(1, $position), $url !== '' ? $url : 'https://' . $host . '/', $host, (string) ($row['title'] ?? '')));
+        $sites[$host] = $site;
+    }
+
+    return $sites;
+}
+
 $run = 0;
 $configPath = is_file(getcwd() . '/config.php') ? getcwd() . '/config.php' : (is_file($root . '/config.php') ? $root . '/config.php' : null);
 
@@ -193,57 +234,110 @@ while (true) {
     ], true);
 
     try {
-        $config = Config::fromFile($configPath)->withOverrides(buildOverrides($settings, $runDir));
-        $errors = $config->validate(true);
-        if ($errors !== []) {
-            throw new RuntimeException('Проверьте настройки: ' . implode('; ', $errors));
+        $stage = (string) ($settings['stage'] ?? 'collect');
+        $baseFile = dirname($runDir) . '/domains-base.txt';
+
+        if ($stage === 'download') {
+            // --- Этап 2: выгрузка страниц ранее собранных сайтов (без обращения к источнику) ---
+            $config = Config::fromFile($configPath)->withOverrides(array_merge(buildOverrides($settings, $runDir), [
+                'visit.enabled' => true,
+                'visit.dir' => $runDir . '/pages',
+            ]));
+            $writer = new ReportWriter((string) $config->get('output.csv_delimiter', ';'), (bool) $config->get('output.csv_bom', true));
+            $sites = loadSites($runDir . '/sites.json');
+            if ($sites === []) {
+                throw new RuntimeException('Нет собранных сайтов для выгрузки — сначала выполните этап «Сборка»');
+            }
+            $runtime = new Runtime($config, $logger);
+            $onVisit = static function (array $event) use ($progress): void {
+                $progress->update(['phase' => 'visit', 'visit' => $event]);
+            };
+            $visitor = $runtime->visitor($onVisit);
+            if ($visitor === null) {
+                throw new RuntimeException('Визиты отключены в настройках');
+            }
+            $progress->update(['phase' => 'visit', 'sites_selected' => count($sites)], true);
+            $logger->info(sprintf('Выгрузка страниц: сайтов %d через %s', count($sites), $visitor->driver()->name()));
+            $visitor->visit($sites);
+
+            $siteList = array_values($sites);
+            $writer->writeCsv($siteList, $runDir . '/sites.csv');
+            $writer->writeJson($siteList, $runDir . '/sites.json', ['source' => 'download', 'settings' => $settings]);
+            $writer->writeDomains($siteList, $runDir . '/domains.txt');
+            $opened = 0;
+            foreach ($siteList as $site) {
+                foreach ($site->visits as $v) {
+                    if ($v['ok'] ?? false) {
+                        $opened++;
+                    }
+                }
+            }
+            $progress->update([
+                'state' => 'done',
+                'phase' => 'done',
+                'stats' => ['sites_selected' => count($siteList)],
+                'sites' => previewSites($siteList),
+                'run_finished_at' => date(DATE_ATOM),
+                'files' => ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt'],
+                'message' => sprintf('Выгружено страниц: %d', $opened),
+            ], true);
+            $logger->info(sprintf('Выгрузка завершена: страниц открыто %d', $opened));
+        } else {
+            // --- Этап 1: сборка доменов (collect) или сборка + выгрузка (both) ---
+            $config = Config::fromFile($configPath)->withOverrides(buildOverrides($settings, $runDir));
+            $errors = $config->validate(true);
+            if ($errors !== []) {
+                throw new RuntimeException('Проверьте настройки: ' . implode('; ', $errors));
+            }
+            $queries = array_values(array_filter(array_map('trim', (array) ($settings['queries'] ?? [])), static fn (string $q): bool => $q !== '' && !str_starts_with($q, '#')));
+            if ($queries === []) {
+                throw new RuntimeException('Не задано ни одного запроса');
+            }
+
+            $ledger = new DomainLedger($baseFile);
+            $skipKnown = (bool) ($settings['skip_known'] ?? true);
+            $runtime = new Runtime($config, $logger);
+            $onSearch = static function (array $event) use ($progress): void {
+                $progress->update($event);
+            };
+            $onVisit = static function (array $event) use ($progress): void {
+                $progress->update(['phase' => 'visit', 'visit' => $event]);
+            };
+            $fetcher = $runtime->fetcher();
+            $checker = $runtime->checker();
+            $visitor = $runtime->visitor($onVisit);
+            $runner = new Runner($config, $fetcher, $runtime->parser(), $logger, $checker, $visitor, $onSearch, $ledger, $skipKnown);
+
+            $logger->info(sprintf('Прогон %d (%s): запросов %d, источник %s', $run, $stage, count($queries), $config->get('source')));
+            $result = $runner->run($queries);
+
+            $writer = new ReportWriter((string) $config->get('output.csv_delimiter', ';'), (bool) $config->get('output.csv_bom', true));
+            $writer->writeCsv($result->sites, $runDir . '/sites.csv');
+            $writer->writeJson($result->sites, $runDir . '/sites.json', [
+                'stats' => $result->stats,
+                'errors' => $result->errors,
+                'source' => $config->get('source'),
+                'settings' => $settings,
+                'proxies' => $runtime->proxies?->stats() ?? [],
+            ]);
+            $writer->writeDomains($result->sites, $runDir . '/domains.txt');
+            $writer->writeRawCsv($result->raw, $runDir . '/results.csv');
+
+            $progress->update([
+                'state' => $result->aborted ? 'error' : 'done',
+                'phase' => 'done',
+                'stats' => $result->stats,
+                'errors' => $result->errors,
+                'aborted' => $result->aborted,
+                'proxies' => $runtime->proxies?->stats() ?? [],
+                'sites' => previewSites($result->sites),
+                'base_domains' => $ledger->count(),
+                'run_finished_at' => date(DATE_ATOM),
+                'files' => ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt', 'results' => 'results.csv'],
+                'message' => $result->aborted ? 'Прогон остановлен из-за ошибки источника, см. лог' : '',
+            ], true);
+            $logger->info(sprintf('Прогон %d завершён: новых сайтов %d, всего в базе %d', $run, $result->stats['sites_selected'], $ledger->count()));
         }
-        $queries = array_values(array_filter(array_map('trim', (array) ($settings['queries'] ?? [])), static fn (string $q): bool => $q !== '' && !str_starts_with($q, '#')));
-        if ($queries === []) {
-            throw new RuntimeException('Не задано ни одного запроса');
-        }
-
-        $runtime = new Runtime($config, $logger);
-        $onSearch = static function (array $event) use ($progress): void {
-            $progress->update($event);
-        };
-        $onVisit = static function (array $event) use ($progress): void {
-            $progress->update(['phase' => 'visit', 'visit' => $event]);
-        };
-
-        $fetcher = $runtime->fetcher();
-        $checker = $runtime->checker();
-        $visitor = $runtime->visitor($onVisit);
-        $runner = new Runner($config, $fetcher, $runtime->parser(), $logger, $checker, $visitor, $onSearch);
-
-        $logger->info(sprintf('Прогон %d: запросов %d, источник %s', $run, count($queries), $config->get('source')));
-        $result = $runner->run($queries);
-
-        $writer = new ReportWriter((string) $config->get('output.csv_delimiter', ';'), (bool) $config->get('output.csv_bom', true));
-        $writer->writeCsv($result->sites, $runDir . '/sites.csv');
-        $writer->writeJson($result->sites, $runDir . '/sites.json', [
-            'stats' => $result->stats,
-            'errors' => $result->errors,
-            'source' => $config->get('source'),
-            'settings' => $settings,
-            'proxies' => $runtime->proxies?->stats() ?? [],
-        ]);
-        $writer->writeDomains($result->sites, $runDir . '/domains.txt');
-        $writer->writeRawCsv($result->raw, $runDir . '/results.csv');
-
-        $progress->update([
-            'state' => $result->aborted ? 'error' : 'done',
-            'phase' => 'done',
-            'stats' => $result->stats,
-            'errors' => $result->errors,
-            'aborted' => $result->aborted,
-            'proxies' => $runtime->proxies?->stats() ?? [],
-            'sites' => previewSites($result->sites),
-            'run_finished_at' => date(DATE_ATOM),
-            'files' => ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt', 'results' => 'results.csv'],
-            'message' => $result->aborted ? 'Прогон остановлен из-за ошибки источника, см. лог' : '',
-        ], true);
-        $logger->info(sprintf('Прогон %d завершён: отобрано сайтов %d', $run, $result->stats['sites_selected']));
     } catch (Throwable $e) {
         $progress->update([
             'state' => 'error',

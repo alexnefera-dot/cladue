@@ -213,6 +213,11 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   spawns the job and serves `public/panel.html`. Keep CLI and panel behaviour in sync through `Runtime`.
 - `domain_scope` (all/root/subdomain) and `unique_by=domain` implement the "one site per domain,
   skip other subdomains" rule; covered by `tests/ResultFilterTest.php` and `tests/PanelTest.php`.
+- `Support\DomainLedger` (runs/domains-base.txt) is a cross-run base of collected registrable
+  domains; `Runner` takes an optional ledger + skipKnown to drop already-seen domains (reason
+  `seen_before`) and record new ones. The panel job has two stages (`settings.stage`): `collect`
+  (grow the base, no visits), `download` (open the previously collected sites.json), `both`.
+  `settings.top` limits the SERP to the first N results (max_position + one page).
 - When Yandex changes its SERP markup, update `Live\HtmlResponseParser` and `tests/fixtures/serp.html`
   together; `--parse-html` helps to check a saved page.
 - Run `php tests/lint.php && php tests/run.php` after changes.
