@@ -40,6 +40,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/src/V5Blocks.php';
 require_once __DIR__ . '/src/V5Roli.php';
 require_once __DIR__ . '/src/V5Mir.php';
+require_once __DIR__ . '/src/V5Ritm.php';
 require_once __DIR__ . '/src/Generator/Rng.php';
 require_once __DIR__ . '/instrumenty/shingle.php';
 require_once __DIR__ . '/src/PageMetrics.php';
@@ -1762,6 +1763,9 @@ foreach (V5_TYPES as $тип) {
     }
     $страница = v5PeresobratToc(v5UbratDubliVidzhetov(
         v5UbratSosedniiPovtor(v5UkrotitShtampy(v5PochinitPadezhi($страница)))));
+    // Ритм фраз: доля предложений в три слова и короче — цель от сида в полосе A (6–10 %).
+    $цельРитма = 6.0 + (crc32('ритм|' . $сид . '|' . $тип) % 5);
+    $страница = v5RitmFraz($страница, $сид, $тип, $паспорт['герои'], $цельРитма);
     // После сборки ToC: перенумерация списка тегом <ol> оглавления не касается,
     // но считать списки надо по готовой странице — виджеты приносят свои.
     $страница = v5PoryadokSpiska($страница, $тип, $имяНабора);
