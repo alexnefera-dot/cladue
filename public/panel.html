@@ -16,7 +16,7 @@
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
-  .wrap{max-width:1100px;margin:0 auto;padding:20px 16px 60px}
+  .wrap{max-width:1400px;margin:0 auto;padding:20px 20px 60px}
   h1{font-size:20px;margin:0 0 4px}
   .sub{color:var(--muted);margin:0 0 18px}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
@@ -54,6 +54,7 @@
   th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
   th{color:var(--muted);font-size:11px;text-transform:uppercase}
   td.host{white-space:normal;word-break:break-all}
+  td.dl{white-space:normal;min-width:96px;max-width:260px}
   .tag{font-size:11px;padding:1px 7px;border-radius:99px;background:var(--chip);color:var(--accent)}
   .ctBtn{font-size:12px;padding:4px 10px;border-radius:7px;border:1px solid var(--accent);background:#fff;color:var(--accent);cursor:pointer;white-space:nowrap}
   .ctBtn:hover{background:var(--accent);color:#fff}
@@ -201,7 +202,6 @@
     <select id="stage" style="max-width:420px">
       <option value="collect">1 · Сборка доменов (без открытия сайтов)</option>
       <option value="download">2 · Выгрузка страниц собранных сайтов</option>
-      <option value="both">Сборка и сразу выгрузка</option>
     </select>
     <div class="hint" style="margin-top:6px">Очистка контента — кнопками в таблице результатов: «Забрать контент» у сайта или «Забрать весь контент» по всем оставшимся.</div>
     <div class="btns" style="margin-top:12px">
@@ -448,7 +448,7 @@ function renderResults(sites){
     const thumb = s.screenshot
       ? `<img class="thumb" src="/file?path=${encodeURIComponent(s.screenshot)}" data-full="/file?path=${encodeURIComponent(s.screenshot)}" data-cap="${esc(s.host)}" loading="lazy" alt="">`
       : `<span class="thumb-empty">${s.own?'наш':'нет'}</span>`;
-    return `<tr data-host="${esc(s.host)}"><td><button class="xBtn" data-remove="${esc(s.host)}" title="Убрать сайт из списка">✕</button></td><td>${i+1}</td><td>${thumb}</td><td class="host">${link}</td><td>${s.queries_count||0}</td><td>${s.best_position??'—'}</td><td>${variants}</td><td>${dl}</td><td>${files.join(' · ')||'—'}</td><td>${ct}</td></tr>`;
+    return `<tr data-host="${esc(s.host)}"><td><button class="xBtn" data-remove="${esc(s.host)}" title="Убрать сайт из списка">✕</button></td><td>${i+1}</td><td>${thumb}</td><td class="host">${link}</td><td>${s.queries_count||0}</td><td>${s.best_position??'—'}</td><td>${variants}</td><td class="dl">${dl}</td><td>${files.join(' · ')||'—'}</td><td>${ct}</td></tr>`;
   }).join('');
 }
 
@@ -523,6 +523,9 @@ async function refresh(){
 }
 
 loadLocal();
+// Раньше существовавший вариант «Сборка + выгрузка» (both) мог остаться сохранённым — тогда
+// в списке нет такого пункта и он показывается пустым; возвращаем к «Сборке».
+if(!$('stage').value){ $('stage').value='collect'; saveLocal(); }
 toggleXmlstock();
 refresh();
 setInterval(refresh, 1500);

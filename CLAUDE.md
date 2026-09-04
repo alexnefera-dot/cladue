@@ -242,7 +242,9 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   whose transliteration matches), so no manual input is needed; `Content\KnownBrands` adds a built-in list
   of casino brands (+ gitignored `brands.txt`) so foreign brands in the text are templated too (word-boundary,
   homoglyph-tolerant match). `ContentCleaner::autoOptions()` wires detection + known brands and lets non-empty
-  overrides win (extra_brands merge). Panel: the stage dropdown offers only collect/download/both — content
+  overrides win (extra_brands merge). Panel: the stage dropdown offers only collect and download (two
+  explicit steps so the user can prune sites with ✕ between them; the `both` branch stays in
+  `buildOverrides()`/run-job for CLI use, just not surfaced in the panel) — content
   cleaning is table-only, via a per-site «Забрать контент» button (`/api/clean-site` → `content-<host>.zip`)
   and a bulk «Забрать весь контент» button (`/api/clean-all`, accepts an `exclude` host list → `content.zip`);
   shared helpers `pagesByHost()`/`cleanHostPages()`/`zipContent()` in `bin/panel.php`. The `stage=clean`
