@@ -108,7 +108,7 @@ final class PageVisitor
         if ($this->onProgress !== null) {
             ($this->onProgress)(['total' => $total, 'done' => 0, 'ok' => 0, 'current' => '']);
         }
-        $results = $this->driver->visit($jobs, $this->driverOptions(), function (VisitJob $job, array $result) use (&$done, &$ok, $total): void {
+        $results = $this->runWithRetry($jobs, $this->driverOptions(), function (VisitJob $job, array $result) use (&$done, &$ok, $total): void {
             $done++;
             if ($result['ok'] ?? false) {
                 $ok++;
@@ -269,7 +269,7 @@ final class PageVisitor
         }
         $total = count($homeJobs);
         $this->log->info(sprintf('Обход сайтов (%s): главные страницы %d…', $this->driver->name(), count($homeJobs)));
-        $homeResults = $this->driver->visit(array_values($homeJobs), $options, $onResult);
+        $homeResults = $this->runWithRetry(array_values($homeJobs), $options, $onResult);
 
         $probeJobs = [];
         foreach ($sites as $key => $site) {
@@ -314,7 +314,7 @@ final class PageVisitor
         if ($probeJobs !== []) {
             $total += count($probeJobs);
             $this->log->info(sprintf('Обход сайтов: пробные страницы %d…', count($probeJobs)));
-            $probeResults = $this->driver->visit(array_values($probeJobs), $options, $onResult);
+            $probeResults = $this->runWithRetry(array_values($probeJobs), $options, $onResult);
             foreach ($probeJobs as $key => $job) {
                 $site = $sites[$key];
                 $visit = $this->assembleVisit($job, $probeResults[$job->id] ?? $this->missingResult(), $site->domain);
@@ -336,7 +336,7 @@ final class PageVisitor
         if ($pageJobs !== []) {
             $total += count($pageJobs);
             $this->log->info(sprintf('Обход сайтов: внутренних страниц %d…', count($pageJobs)));
-            $pageResults = $this->driver->visit($pageJobs, $options, $onResult);
+            $pageResults = $this->runWithRetry($pageJobs, $options, $onResult);
             foreach ($pageJobs as $job) {
                 $site = $sites[$job->siteKey];
                 $visit = $this->assembleVisit($job, $pageResults[$job->id] ?? $this->missingResult(), $site->domain);
@@ -540,6 +540,100 @@ final class PageVisitor
      *
      * @return list<Proxy>
      */
+    /**
+     * Запускает задания через драйвер и повторяет неудачные из-за таймаута/сети — через ДРУГОЙ
+     * прокси и с увеличенным таймаутом. Число доп. попыток — visit.retries (по умолчанию 2, 0 — без).
+     *
+     * @param list<VisitJob> $jobs
+     * @param array<string, mixed> $options
+     * @return array<string, array<string, mixed>>
+     */
+    private function runWithRetry(array $jobs, array $options, callable $onResult): array
+    {
+        $results = $this->driver->visit($jobs, $options, $onResult);
+        $retries = max(0, (int) ($this->cfg['retries'] ?? 2));
+        if ($retries === 0 || $jobs === []) {
+            return $results;
+        }
+        $proxies = $this->proxyList();
+        $proxyIndex = 0;
+        $silent = function (VisitJob $job, array $result): void {
+            $this->log->debug(sprintf('  повтор %s — %s', $job->url, ($result['ok'] ?? false) ? 'ок' : 'снова ошибка'));
+        };
+        for ($attempt = 1; $attempt <= $retries; $attempt++) {
+            $retry = [];
+            foreach ($jobs as $job) {
+                if (self::isRetryable($results[$job->id] ?? [])) {
+                    $retry[] = $this->withProxy($job, $this->pickRetryProxy($proxies, $job->proxyLabel, $proxyIndex));
+                }
+            }
+            if ($retry === []) {
+                break;
+            }
+            $opts = $options;
+            $opts['timeout'] = (int) ($options['timeout'] ?? (int) ($this->cfg['timeout'] ?? 30)) + 20 * $attempt;
+            $this->log->info(sprintf(
+                'Повтор загрузки (попытка %d из %d): %d стр. через другой прокси, таймаут %d с…',
+                $attempt,
+                $retries,
+                count($retry),
+                $opts['timeout'],
+            ));
+            foreach ($this->driver->visit($retry, $opts, $silent) as $id => $result) {
+                $results[$id] = $result;
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * Повторяем только сетевые сбои/таймауты (сервер не ответил). HTTP-код (404 и т.п.) — не повтор.
+     *
+     * @param array<string, mixed> $result
+     */
+    private static function isRetryable(array $result): bool
+    {
+        return !($result['ok'] ?? false) && (int) ($result['status'] ?? 0) < 100;
+    }
+
+    /**
+     * Следующий прокси для повтора — по возможности отличный от текущего.
+     *
+     * @param list<Proxy> $proxies
+     */
+    private function pickRetryProxy(array $proxies, string $currentLabel, int &$index): ?Proxy
+    {
+        if ($proxies === []) {
+            return null;
+        }
+        $count = count($proxies);
+        for ($i = 0; $i < $count; $i++) {
+            $proxy = $proxies[$index++ % $count];
+            if ($proxy->label !== $currentLabel) {
+                return $proxy;
+            }
+        }
+
+        return $proxies[$index++ % $count]; // другого прокси нет — пробуем тем же, но с большим таймаутом
+    }
+
+    private function withProxy(VisitJob $job, ?Proxy $proxy): VisitJob
+    {
+        return new VisitJob(
+            id: $job->id,
+            siteKey: $job->siteKey,
+            variant: $job->variant,
+            url: $job->url,
+            referer: $job->referer,
+            userAgent: $job->userAgent,
+            proxyUrl: $proxy?->url,
+            proxyLabel: $proxy?->label ?? 'direct',
+            htmlFile: $job->htmlFile,
+            screenshotFile: $job->screenshotFile,
+        );
+    }
+
     private function proxyList(): array
     {
         $setting = array_key_exists('proxy', $this->cfg) ? $this->cfg['proxy'] : 'list';

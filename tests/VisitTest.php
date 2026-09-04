@@ -210,6 +210,55 @@ final class VisitTest
         Assert::same('direct', $sites['honest-site.ru']->visits[0]['proxy'], "proxy => null — без прокси даже при заданном списке");
     }
 
+    public function testRetriesTimeoutThroughDifferentProxy(): void
+    {
+        // Таймаут первой попытки → повтор через другой прокси, страница всё же скачивается.
+        $dir = $this->dir() . '/retry';
+        $site = new Site('slow.ru', 'slow.ru', 'slow.ru');
+        $site->add(new SearchResult('казино', 0, 1, 'http://slow.ru/', 'slow.ru', 'Slow'));
+        $sites = ['slow.ru' => $site];
+
+        $driver = new class implements \YandexSites\Visit\DriverInterface {
+            /** @var list<string> */
+            public array $proxiesSeen = [];
+            public int $calls = 0;
+
+            public function name(): string
+            {
+                return 'flaky';
+            }
+
+            public function visit(array $jobs, array $options, ?callable $onResult = null): array
+            {
+                $this->calls++;
+                $out = [];
+                foreach ($jobs as $job) {
+                    $this->proxiesSeen[] = $job->proxyLabel;
+                    if ($this->calls === 1) {
+                        $out[$job->id] = ['ok' => false, 'error' => 'page.goto: Timeout 30000ms exceeded.', 'status' => null, 'final_url' => '', 'title' => ''];
+                    } else {
+                        @mkdir(dirname($job->htmlFile), 0777, true);
+                        file_put_contents($job->htmlFile, '<html><body>OK ' . $job->url . '</body></html>');
+                        $out[$job->id] = ['ok' => true, 'error' => '', 'status' => 200, 'final_url' => $job->url, 'title' => 'OK'];
+                    }
+                    if ($onResult !== null) {
+                        $onResult($job, $out[$job->id]);
+                    }
+                }
+
+                return $out;
+            }
+        };
+
+        $pool = ProxyPool::fromLines(['http://10.0.0.1:1:u:p', 'http://10.0.0.2:2:u:p']);
+        $visitor = new PageVisitor(['dir' => $dir, 'screenshot' => false, 'retries' => 2, 'timeout' => 5], $driver, $this->logger(), $pool);
+        $visitor->visit($sites);
+
+        Assert::true($driver->calls >= 2, 'была повторная попытка после таймаута');
+        Assert::same(1, $site->visitSummary()['ok'], 'после повтора страница скачалась');
+        Assert::true(count(array_unique($driver->proxiesSeen)) >= 2, 'повтор шёл через другой прокси');
+    }
+
     public function testDefaultVisitorIsYandexBotThenBrowser(): void
     {
         $port = FakeServer::port();

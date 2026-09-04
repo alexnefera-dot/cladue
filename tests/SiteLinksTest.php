@@ -91,6 +91,26 @@ final class SiteLinksTest
         Assert::same(1, count($links), 'осталась только реальная внутренняя страница');
     }
 
+    public function testSkipsSitemapAndFileResources(): void
+    {
+        // Карту сайта (htmlmap/sitemap) и файлы-ресурсы не обходим.
+        $html = '<header><nav>'
+            . '<a href="/htmlmap">HTML-карта</a>'
+            . '<a href="/sitemap-all.xml">Sitemap</a>'
+            . '<a href="/karta-sajta">Карта сайта</a>'
+            . '<a href="/price.pdf">Прайс</a>'
+            . '<a href="/catalog">Каталог</a>'
+            . '</nav></header>';
+        $links = SiteLinks::fromHeader($html, 'https://site.ru/', 'site.ru');
+        Assert::inArray('https://site.ru/catalog', $links, 'обычная страница берётся');
+        Assert::notInArray('https://site.ru/htmlmap', $links, 'htmlmap не качаем');
+        $joined = implode(' ', $links);
+        Assert::false(str_contains($joined, 'sitemap'), 'sitemap не качаем');
+        Assert::false(str_contains($joined, 'karta-sajta'), 'карта сайта не качаем');
+        Assert::false(str_contains($joined, '.pdf'), 'файлы не качаем');
+        Assert::same(1, count($links), 'осталась только реальная страница');
+    }
+
     public function testResolveRelativeAndBadSchemes(): void
     {
         Assert::same('https://a.ru/x/y', SiteLinks::resolve('https://a.ru/x/', 'y'));

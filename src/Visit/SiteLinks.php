@@ -53,6 +53,9 @@ final class SiteLinks
             if (self::hasRepeatedSegments($url)) {
                 continue; // цикл переключателя языка /zerkalo/ru/ru/ru/… — мусорные страницы (ru, ru-2…)
             }
+            if (self::isJunkPage($url)) {
+                continue; // карта сайта (htmlmap/sitemap) и нестраничные файлы (.xml, .pdf, картинки…)
+            }
             $canon = self::canonical($url);
             if ($canon === $home || isset($seen[$canon])) {
                 continue; // главная или дубль
@@ -232,6 +235,25 @@ final class SiteLinks
                 return true; // два одинаковых сегмента подряд
             }
             $previous = $segment;
+        }
+
+        return false;
+    }
+
+    /**
+     * Служебная/нестраничная ссылка, которую не качаем: карта сайта (htmlmap, sitemap, «карта сайта»)
+     * и файлы-ресурсы (.xml, .pdf, документы, картинки, архивы, .css/.js).
+     */
+    private static function isJunkPage(string $url): bool
+    {
+        $path = mb_strtolower((string) parse_url($url, PHP_URL_PATH));
+        if (preg_match('~\.(xml|rss|atom|json|pdf|docx?|xlsx?|pptx?|zip|rar|gz|tar|7z|csv|txt|jpe?g|png|gif|svg|webp|ico|bmp|mp[34]|avi|mov|webm|css|js)$~', $path) === 1) {
+            return true;
+        }
+        foreach (explode('/', $path) as $segment) {
+            if ($segment !== '' && preg_match('~^(html-?map|html-?sitemap|site-?map|sitemap|карта-?сайта|karta-?sajta)~u', $segment) === 1) {
+                return true;
+            }
         }
 
         return false;

@@ -227,9 +227,11 @@ Run `php tests/lint.php && php tests/run.php` before committing.
 - `Visit\SiteLinks::fromHeader()` extracts **same-host** links from a page's header/nav (home page
   as base; `www` folded, but sibling subdomains like `hype.`/`max.` of the same domain are treated
   as other brands and skipped), dropping language-switch loops (`/ru/ru/ru…`, repeated consecutive
-  path segments). `PageVisitor` `visit.crawl` mode opens the home page, then a single probe link,
-  then the rest, and drops pages whose final URL redirects to another host (`SiteLinks::sameHost`,
-  www-insensitive).
+  path segments), sitemap/htmlmap pages and non-page file resources (`.xml`, `.pdf`, images…;
+  `SiteLinks::isJunkPage()`). `PageVisitor` `visit.crawl` mode opens the home page, then a single probe
+  link, then the rest, and drops pages whose final URL redirects to another host (`SiteLinks::sameHost`,
+  www-insensitive). Timed-out/network-failed loads are retried through a different proxy with a longer
+  timeout (`visit.retries`, default 2; `PageVisitor::runWithRetry()`).
   Page files are named short from the URL's last path segment (`/registracia` → `registracia.html`,
   `/catalog/plastikovye/` → `plastikovye.html`, home → `main.html`; `PageVisitor::fileNameFromUrl()` +
   `uniqueName()`). Duplicate/one-pager
