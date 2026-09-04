@@ -277,8 +277,8 @@ final class VisitTest
         Assert::contains('редирект на другой сайт', $byUrl["http://okna-moskva.ru:$port/leave"]['error']);
         Assert::false(str_contains(implode(' ', array_keys($byUrl)), 'vk.com'), 'внешняя ссылка не обходится');
 
-        // файлы названы по URL и разложены в папку по числу страниц (3 собранных → 3-стр)
-        Assert::true(is_file("$dir/3-стр/okna-moskva.ru/index.html"), 'главная сохранена как index.html в папке 3-стр');
+        // файлы названы коротко по URL и разложены в папку по числу страниц (3 собранных → 3-стр)
+        Assert::true(is_file("$dir/3-стр/okna-moskva.ru/main.html"), 'главная сохранена как main.html в папке 3-стр');
         Assert::true(is_file("$dir/3-стр/okna-moskva.ru/about.html"));
         Assert::true(is_file("$dir/3-стр/okna-moskva.ru/contacts.html"));
         Assert::false(is_file("$dir/3-стр/okna-moskva.ru/leave.html"), 'страница офсайт-редиректа удалена');
@@ -316,10 +316,24 @@ final class VisitTest
         $summary = $site->visitSummary();
         Assert::same(1, $summary['ok'], 'у одностраничника одна страница');
         Assert::contains('одностраничник', $summary['error']);
-        Assert::true(is_file("$dir/1-стр/onepager.ru/index.html"), 'папка 1-стр');
+        Assert::true(is_file("$dir/1-стр/onepager.ru/main.html"), 'папка 1-стр, главная — main.html');
         // остальные страницы меню не скачаны
         Assert::false(is_file("$dir/1-стр/onepager.ru/contacts.html"));
-        Assert::same(0, count(glob("$dir/1-стр/onepager.ru/*.html") ?: []) - 1, 'кроме index других html нет');
+        Assert::same(0, count(glob("$dir/1-стр/onepager.ru/*.html") ?: []) - 1, 'кроме main других html нет');
+    }
+
+    public function testShortPageNamesFromUrl(): void
+    {
+        $method = new \ReflectionMethod(PageVisitor::class, 'fileNameFromUrl');
+        $method->setAccessible(true);
+        $name = static fn (string $url): string => (string) $method->invoke(null, $url);
+
+        Assert::same('main', $name('http://site.ru/'), 'главная → main');
+        Assert::same('registracia', $name('http://site.ru/registracia'), 'короткое имя по последнему сегменту');
+        Assert::same('plastikovye', $name('http://site.ru/catalog/plastikovye/'), 'вложенный путь → последний сегмент');
+        Assert::same('montazh', $name('http://site.ru/uslugi/montazh.php'), 'расширение .php отбрасывается');
+        Assert::same('main', $name('http://site.ru/index.php'), 'index → main');
+        Assert::same('contacts', $name('http://site.ru/contacts/#map'), 'якорь не влияет');
     }
 
     public function testCrawlDoesNotCollapseAgeGateStub(): void
@@ -361,7 +375,7 @@ final class VisitTest
 
         $summary = $site->visitSummary();
         Assert::same(3, $summary['ok'], 'сохранены главная и две страницы меню');
-        Assert::true(is_file("$dir/3-стр/agegate.ru/index.html"), 'страницы сохранены, а не удалены как дубли');
+        Assert::true(is_file("$dir/3-стр/agegate.ru/main.html"), 'страницы сохранены, а не удалены как дубли');
         Assert::true(is_file("$dir/3-стр/agegate.ru/about.html"));
         Assert::true(is_file("$dir/3-стр/agegate.ru/contacts.html"));
     }

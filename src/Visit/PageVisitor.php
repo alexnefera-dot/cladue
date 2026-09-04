@@ -204,9 +204,9 @@ final class PageVisitor
 
         // Состояние по сайтам: тексты сохранённых страниц, занятые имена файлов, оставшиеся ссылки.
         $state = [];
-        $makeJob = function (string $key, Site $site, string $url, string $referer) use ($dir, $screenshot, $nextProxy, $ua, &$state): VisitJob {
-            $name = $this->uniqueName($state[$key]['names'], $url);
-            $base = $dir . '/' . self::safeName($site->host) . '/' . $name;
+        $makeJob = function (string $key, Site $site, string $url, string $referer, bool $isHome = false) use ($dir, $screenshot, $nextProxy, $ua, &$state): VisitJob {
+            $name = $this->uniqueName($state[$key]['names'], $isHome ? 'main' : self::fileNameFromUrl($url));
+            $prefix = $dir . '/' . self::safeName($site->host) . '/' . $name;
             $proxy = $nextProxy();
 
             return new VisitJob(
@@ -218,8 +218,8 @@ final class PageVisitor
                 userAgent: $ua,
                 proxyUrl: $proxy?->url,
                 proxyLabel: $proxy?->label ?? 'direct',
-                htmlFile: $base . '.html',
-                screenshotFile: $screenshot ? $base . '.png' : null,
+                htmlFile: $prefix . '.html',
+                screenshotFile: $screenshot ? $prefix . '.png' : null,
             );
         };
 
@@ -242,7 +242,7 @@ final class PageVisitor
         foreach ($sites as $key => $site) {
             $state[$key] = ['names' => [], 'texts' => [], 'links' => []];
             $url = ($this->cfg['target'] ?? 'found') === 'found' && $site->bestUrl !== '' ? $site->bestUrl : 'https://' . $site->host . '/';
-            $homeJobs[$key] = $makeJob((string) $key, $site, $url, $this->referer($site));
+            $homeJobs[$key] = $makeJob((string) $key, $site, $url, $this->referer($site), true);
         }
         $total = count($homeJobs);
         $this->log->info(sprintf('Обход сайтов (%s): главные страницы %d…', $this->driver->name(), count($homeJobs)));
@@ -318,29 +318,39 @@ final class PageVisitor
     }
 
     /**
-     * Имя файла из URL (часть после домена): /about → about, /catalog/plastikovye/ → catalog_plastikovye,
-     * главная → index. Уникально в пределах сайта.
-     *
-     * @param array<string, true> $used
+     * Короткое имя файла из URL — по последнему сегменту пути: /registracia → registracia,
+     * /catalog/plastikovye/ → plastikovye. Расширение (.php/.html/…) отбрасывается; типовые
+     * index/default/home и пустой путь → main.
      */
-    private function uniqueName(array &$used, string $url): string
+    private static function fileNameFromUrl(string $url): string
     {
         $path = (string) parse_url($url, PHP_URL_PATH);
-        $query = (string) parse_url($url, PHP_URL_QUERY);
-        $name = trim($path, '/');
-        if ($query !== '') {
-            $name .= ($name === '' ? '' : '_') . $query;
+        $segments = array_values(array_filter(explode('/', $path), static fn (string $s): bool => $s !== ''));
+        $name = $segments === [] ? '' : (string) end($segments);
+        $name = preg_replace('~\.(php|html?|aspx?|jsp|cgi|phtml)$~iu', '', $name) ?? $name;
+        if ($name === '' || in_array(mb_strtolower($name), ['index', 'default', 'home'], true)) {
+            $query = (string) parse_url($url, PHP_URL_QUERY);
+            $name = $query !== '' ? $query : 'main';
         }
         $name = preg_replace('~[^\p{L}\p{N}._-]+~u', '_', $name) ?? $name;
         $name = trim($name, '._-');
-        $name = mb_substr($name, 0, 120);
-        if ($name === '') {
-            $name = 'index';
-        }
-        $candidate = $name;
+        $name = mb_substr($name, 0, 80);
+
+        return $name === '' ? 'main' : $name;
+    }
+
+    /**
+     * Делает имя файла уникальным в пределах сайта: main, main-2, main-3 …
+     *
+     * @param array<string, true> $used
+     */
+    private function uniqueName(array &$used, string $base): string
+    {
+        $base = $base === '' ? 'main' : $base;
+        $candidate = $base;
         $i = 2;
         while (isset($used[$candidate])) {
-            $candidate = $name . '-' . $i;
+            $candidate = $base . '-' . $i;
             $i++;
         }
         $used[$candidate] = true;

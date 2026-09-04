@@ -19,7 +19,7 @@ different visitors.
 Three result sources: the official Yandex Search API (Yandex Cloud), the XMLStock service
 (Yandex.XML-compatible), and the live yandex.ru results page fetched through user-supplied proxies.
 Output: `sites.csv`, `sites.json`, `domains.txt`, `out/pages/<host>/variant-N.html|png`
-(crawl mode: `out/pages/<N>-стр/<host>/<url-path>.html|png`).
+(crawl mode: `out/pages/<N>-стр/<host>/<last-url-segment>.html|png`, home → `main`).
 Responses are cached on disk per source.
 
 User-facing documentation (README, CLI help, config comments) is in Russian; identifiers are English.
@@ -217,8 +217,9 @@ Run `php tests/lint.php && php tests/run.php` before committing.
 - `Visit\SiteLinks::fromHeader()` extracts same-registrable-domain links from a page's header/nav
   (home page as base); `PageVisitor` `visit.crawl` mode opens the home page, then a single probe
   link, then the rest, and drops pages whose final URL redirects off-site (`SiteLinks::sameSite`).
-  Page files are named from the URL path (`/about` → `about.html`, `/catalog/plastikovye/` →
-  `catalog_plastikovye.html`, home → `index.html`; `PageVisitor::uniqueName()`). Duplicate/one-pager
+  Page files are named short from the URL's last path segment (`/registracia` → `registracia.html`,
+  `/catalog/plastikovye/` → `plastikovye.html`, home → `main.html`; `PageVisitor::fileNameFromUrl()` +
+  `uniqueName()`). Duplicate/one-pager
   detection: `Fingerprint::text()` + `Fingerprint::similarity()` (Jaccard word-set); if the probe
   page matches home ≥ `visit.similarity` (default 0.9) the site is a one-pager and the rest are
   skipped, and matching inner pages are dropped (`PageVisitor::dedupVisit()`). Finished sites are
