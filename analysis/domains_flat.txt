@@ -24,6 +24,7 @@
 1284.team
 1305.team
 1349.team
+1368.team
 1409.team
 1434.team
 1462.team
@@ -207,6 +208,7 @@
 5364.team
 5367.team
 5374.team
+537casino.team
 5385.team
 5390.team
 5506.team
@@ -296,6 +298,7 @@
 8730.team
 8825.team
 8829.lol
+8927casino.team
 9012.team
 9061.lol
 9090.lol
@@ -305,6 +308,7 @@
 9279.team
 9316.space
 9364.team
+9365.team
 9485.lol
 9536.lol
 9671.team
@@ -554,6 +558,7 @@ ndvk.team
 nrwg.team
 nsbf.team
 nwcs.team
+nyfj.team
 o5h7.lol
 o5h7.team
 oasc.lol
@@ -632,6 +637,7 @@ tvuy.team
 tzfl.team
 u0s.team
 u4f5.lol
+u9i.team
 u9y.casino
 ubgh.lol
 ubgh.team
