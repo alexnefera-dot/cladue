@@ -259,6 +259,91 @@ final class VisitTest
         Assert::true(count(array_unique($driver->proxiesSeen)) >= 2, 'повтор шёл через другой прокси');
     }
 
+    public function testRetriesCloudflareBlockThroughProxy(): void
+    {
+        // Первый прокси упирается в Cloudflare, повтор через другой прокси даёт контент.
+        $dir = $this->dir() . '/block';
+        $site = new Site('cf.ru', 'cf.ru', 'cf.ru');
+        $site->add(new SearchResult('q', 0, 1, 'http://cf.ru/', 'cf.ru', 'CF'));
+        $sites = ['cf.ru' => $site];
+
+        $driver = new class implements \YandexSites\Visit\DriverInterface {
+            public int $calls = 0;
+
+            public function name(): string
+            {
+                return 'stub';
+            }
+
+            public function visit(array $jobs, array $options, ?callable $onResult = null): array
+            {
+                $this->calls++;
+                $out = [];
+                foreach ($jobs as $job) {
+                    @mkdir(dirname($job->htmlFile), 0777, true);
+                    if ($this->calls === 1) {
+                        file_put_contents($job->htmlFile, '<html><head><title>Just a moment...</title></head><body>Checking your browser before accessing. Ray ID: 8a</body></html>');
+                        $out[$job->id] = ['ok' => true, 'error' => '', 'status' => 403, 'final_url' => $job->url, 'title' => 'Just a moment...'];
+                    } else {
+                        file_put_contents($job->htmlFile, '<html><body><h1>Заголовок</h1><p>реальный контент страницы тут много слов</p></body></html>');
+                        $out[$job->id] = ['ok' => true, 'error' => '', 'status' => 200, 'final_url' => $job->url, 'title' => 'Контент'];
+                    }
+                    if ($onResult !== null) {
+                        $onResult($job, $out[$job->id]);
+                    }
+                }
+
+                return $out;
+            }
+        };
+
+        $pool = ProxyPool::fromLines(['http://10.0.0.1:1:u:p', 'http://10.0.0.2:2:u:p']);
+        $visitor = new PageVisitor(['dir' => $dir, 'screenshot' => false, 'retries' => 2, 'timeout' => 5], $driver, $this->logger(), $pool);
+        $visitor->visit($sites);
+
+        Assert::true($driver->calls >= 2, 'блокировка повторяется');
+        Assert::same(1, $site->visitSummary()['ok'], 'после повтора получен контент');
+        Assert::contains('реальный контент', (string) file_get_contents("$dir/cf.ru/variant-1.html"));
+    }
+
+    public function testBlockPageNotSavedAsContent(): void
+    {
+        // Если всё время Cloudflare — это ошибка «заблокировано», а не сохранённая страница.
+        $dir = $this->dir() . '/block2';
+        $site = new Site('cf2.ru', 'cf2.ru', 'cf2.ru');
+        $site->add(new SearchResult('q', 0, 1, 'http://cf2.ru/', 'cf2.ru', 'CF'));
+        $sites = ['cf2.ru' => $site];
+
+        $driver = new class implements \YandexSites\Visit\DriverInterface {
+            public function name(): string
+            {
+                return 'stub';
+            }
+
+            public function visit(array $jobs, array $options, ?callable $onResult = null): array
+            {
+                $out = [];
+                foreach ($jobs as $job) {
+                    @mkdir(dirname($job->htmlFile), 0777, true);
+                    file_put_contents($job->htmlFile, '<html><head><title>Attention Required! | Cloudflare</title></head><body>Sorry, you have been blocked</body></html>');
+                    $out[$job->id] = ['ok' => true, 'error' => '', 'status' => 403, 'final_url' => $job->url, 'title' => 'Attention Required! | Cloudflare'];
+                    if ($onResult !== null) {
+                        $onResult($job, $out[$job->id]);
+                    }
+                }
+
+                return $out;
+            }
+        };
+
+        $visitor = new PageVisitor(['dir' => $dir, 'screenshot' => false, 'retries' => 1, 'timeout' => 5], $driver, $this->logger());
+        $visitor->visit($sites);
+
+        Assert::same(0, $site->visitSummary()['ok'], 'блокировка не считается страницей');
+        Assert::contains('заблокировано', $site->visits[0]['error']);
+        Assert::false(is_file("$dir/cf2.ru/variant-1.html"), 'страница-блокировка не сохранена');
+    }
+
     public function testDefaultVisitorIsYandexBotThenBrowser(): void
     {
         $port = FakeServer::port();

@@ -185,6 +185,17 @@ final class PageVisitor
                     return array_merge($visit, ['ok' => false, 'error' => 'исключён как наш', 'own' => true, 'screenshot_file' => $shot]);
                 }
             }
+            // Страница-блокировка (Cloudflare/антибот/403/429/5xx) — это не контент. Удаляем и помечаем
+            // ошибкой (её потом повторяем через другой прокси), а не сохраняем как страницу сайта.
+            if (self::looksLikeBlock($html, (string) $visit['title'], (int) ($visit['status'] ?? 0))) {
+                @unlink($job->htmlFile);
+                if ($job->screenshotFile !== null) {
+                    @unlink($job->screenshotFile);
+                }
+                $status = (int) ($visit['status'] ?? 0);
+
+                return array_merge($visit, ['ok' => false, 'error' => 'заблокировано (антибот/Cloudflare' . ($status > 0 ? ", HTTP $status" : '') . ')', 'blocked' => true]);
+            }
             $fingerprint = Fingerprint::of($html);
             $visit['html_file'] = $job->htmlFile;
             $visit['fingerprint'] = $fingerprint['hash'];
@@ -579,7 +590,7 @@ final class PageVisitor
         for ($attempt = 1; $attempt <= $retries; $attempt++) {
             $retry = [];
             foreach ($jobs as $job) {
-                if (self::isRetryable($results[$job->id] ?? [])) {
+                if ($this->isRetryable($results[$job->id] ?? [], $job)) {
                     $retry[] = $this->withProxy($job, $this->pickRetryProxy($proxies, $job->proxyLabel, $proxyIndex));
                 }
             }
@@ -604,13 +615,55 @@ final class PageVisitor
     }
 
     /**
-     * Повторяем только сетевые сбои/таймауты (сервер не ответил). HTTP-код (404 и т.п.) — не повтор.
+     * Повторяем через другой прокси при любой ошибке: сетевой сбой/таймаут (сервер не ответил),
+     * код блокировки (403/429/5xx) и страницу-блокировку (Cloudflare/антибот). 404 и обычный ответ — нет.
      *
      * @param array<string, mixed> $result
      */
-    private static function isRetryable(array $result): bool
+    private function isRetryable(array $result, VisitJob $job): bool
     {
-        return !($result['ok'] ?? false) && (int) ($result['status'] ?? 0) < 100;
+        $status = (int) ($result['status'] ?? 0);
+        if (!($result['ok'] ?? false)) {
+            return $status < 100 || self::isBlockStatus($status);
+        }
+        if (self::isBlockStatus($status)) {
+            return true;
+        }
+
+        return is_file($job->htmlFile)
+            && self::looksLikeBlock((string) file_get_contents($job->htmlFile), (string) ($result['title'] ?? ''), $status);
+    }
+
+    /**
+     * HTTP-коды, при которых помогает другой прокси/IP (блокировка, лимит, временная недоступность).
+     */
+    private static function isBlockStatus(int $status): bool
+    {
+        return in_array($status, [403, 409, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524, 525, 526], true);
+    }
+
+    /**
+     * Похоже ли на страницу-блокировку (Cloudflare, DDoS-Guard, Incapsula, «доступ запрещён», капча).
+     */
+    private static function looksLikeBlock(string $html, string $title, int $status): bool
+    {
+        $probe = mb_strtolower(mb_substr($title . ' ' . $html, 0, 20000));
+        $markers = [
+            'attention required! | cloudflare', 'checking your browser before accessing', 'cf-browser-verification',
+            'cf_chl_', '__cf_chl', 'challenge-platform', '/cdn-cgi/challenge', 'just a moment...', 'ray id:',
+            'ddos protection by cloudflare', 'ddos-guard', 'checking if the site connection is secure',
+            'enable javascript and cookies to continue', 'incapsula incident', '_incapsula_', 'imperva',
+            'access to this page has been denied', 'проверка браузера', 'подождите, идёт проверка',
+            'доступ ограничен', 'доступ запрещён', 'error 1020', 'error 1015', 'error 1012', 'error 1006',
+            'attention required', '请稍候', 'sorry, you have been blocked',
+        ];
+        foreach ($markers as $marker) {
+            if (mb_strpos($probe, $marker) !== false) {
+                return true;
+            }
+        }
+        // Очень короткая страница + код блокировки — тоже похоже на заглушку антибота.
+        return self::isBlockStatus($status) && mb_strlen(trim(strip_tags($html))) < 200;
     }
 
     /**

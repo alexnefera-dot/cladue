@@ -211,10 +211,11 @@
   <div class="card" id="resultsCard" hidden>
     <h2>Результаты <span id="resCount" class="muted"></span></h2>
     <div class="hint" style="margin-bottom:8px">Файлы страниц на диске: <b>runs/current/pages/&lt;сайт&gt;/</b>. Кнопки — скачать таблицы.</div>
-    <div class="btns" style="margin-bottom:10px">
+    <div class="btns" style="margin-bottom:10px;align-items:center">
       <a class="tag" id="dlCsv" href="/download?file=csv">CSV</a>
       <a class="tag" id="dlJson" href="/download?file=json">JSON</a>
       <a class="tag" id="dlDomains" href="/download?file=domains">domains.txt</a>
+      <button class="ctBtn" id="cleanAllBtn" style="margin-left:8px" title="Подготовить шаблоны статей по всем скачанным сайтам (наши уже исключены)">Забрать весь контент</button>
     </div>
     <div style="overflow:auto">
       <table id="resTable">
@@ -407,6 +408,16 @@ async function cleanSite(host, btn){
   }catch(e){ btn.textContent='Ошибка'; btn.disabled=false; setTimeout(()=>{btn.textContent=old;},2500); }
 }
 $('resTable').addEventListener('click', e=>{ const b=e.target.closest('.ctBtn'); if(b) cleanSite(b.dataset.host, b); });
+$('cleanAllBtn').addEventListener('click', async ()=>{
+  const btn=$('cleanAllBtn'); const old=btn.textContent; btn.disabled=true; btn.textContent='Готовлю всё…';
+  try{
+    const r=await fetch('/api/clean-all',{method:'POST'}); const j=await r.json();
+    if(!j.ok){ alert(j.error||'Ошибка'); btn.textContent=old; btn.disabled=false; return; }
+    if(!j.written){ alert('Ни на одной странице не найдено тело статьи (нет <h1> или блока «Популярные запросы»).'); btn.textContent=old; btn.disabled=false; return; }
+    if(j.zip){ window.location='/file?path='+encodeURIComponent(j.zip); }
+    btn.textContent='Готово: '+(j.sites||0)+' сайтов, '+j.written+' стр.'; btn.disabled=false;
+  }catch(e){ btn.textContent=old; btn.disabled=false; alert('Ошибка'); }
+});
 
 let prefilled=false;
 function prefill(state){

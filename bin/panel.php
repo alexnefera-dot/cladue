@@ -160,6 +160,95 @@ function processAlive(int $pid): bool
     return $code === 0;
 }
 
+/**
+ * Скачанные .html-страницы, сгруппированные по сайту (имя папки-сайта).
+ *
+ * @return array<string, list<string>>
+ */
+function pagesByHost(string $pagesDir): array
+{
+    $byHost = [];
+    if (is_dir($pagesDir)) {
+        $iter = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($pagesDir, FilesystemIterator::SKIP_DOTS));
+        foreach ($iter as $f) {
+            if ($f instanceof SplFileInfo && $f->isFile() && strtolower($f->getExtension()) === 'html') {
+                $host = basename(dirname($f->getPathname()));
+                if (str_contains($host, '.')) {
+                    $byHost[$host][] = $f->getPathname();
+                }
+            }
+        }
+    }
+    ksort($byHost);
+
+    return $byHost;
+}
+
+/**
+ * Готовит контент одного сайта (бренд определяется по главной) в runs/current/content/<host>.
+ *
+ * @param list<string> $files
+ * @return array{written:int, skipped:int, brand_ru:string, brand_en:string}
+ */
+function cleanHostPages(string $runDir, string $host, array $files): array
+{
+    sort($files);
+    $home = $files[0] ?? '';
+    foreach ($files as $f) {
+        if (basename($f) === 'main.html') {
+            $home = $f;
+            break;
+        }
+    }
+    $opts = \YandexSites\Content\ContentCleaner::autoOptions($home !== '' ? (string) file_get_contents($home) : '', $host);
+    $cleaner = new \YandexSites\Content\ContentCleaner();
+    $outDir = $runDir . '/content/' . $host;
+    foreach (glob($outDir . '/*.html') ?: [] as $old) {
+        @unlink($old);
+    }
+    $written = 0;
+    $skipped = 0;
+    foreach ($files as $file) {
+        $body = $cleaner->clean((string) file_get_contents($file), $opts);
+        if (trim($body) === '') {
+            $skipped++;
+            continue;
+        }
+        @mkdir($outDir, 0777, true);
+        file_put_contents($outDir . '/' . basename($file), $body);
+        $written++;
+    }
+
+    return ['written' => $written, 'skipped' => $skipped, 'brand_ru' => (string) ($opts['brand_ru'] ?? ''), 'brand_en' => (string) ($opts['brand_en'] ?? '')];
+}
+
+/**
+ * Складывает готовые статьи из runs/current/content/** в один архив.
+ */
+function zipContent(string $runDir, string $zipPath): bool
+{
+    if (!class_exists('ZipArchive')) {
+        return false;
+    }
+    $contentDir = $runDir . '/content';
+    if (!is_dir($contentDir)) {
+        return false;
+    }
+    $zip = new ZipArchive();
+    if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+        return false;
+    }
+    $iter = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($contentDir, FilesystemIterator::SKIP_DOTS));
+    foreach ($iter as $f) {
+        if ($f instanceof SplFileInfo && $f->isFile() && strtolower($f->getExtension()) === 'html') {
+            $zip->addFile($f->getPathname(), ltrim(str_replace($contentDir, '', $f->getPathname()), '/\\'));
+        }
+    }
+    $zip->close();
+
+    return true;
+}
+
 // --- Роутинг ---
 
 if ($path === '/' || $path === '/index.html') {
@@ -273,67 +362,45 @@ if ($path === '/api/clean-site' && $method === 'POST') {
     if ($host === '' || preg_match('~^[a-z0-9.\-]+$~i', $host) !== 1) {
         jsonOut(['ok' => false, 'error' => 'некорректный сайт'], 400);
     }
-    $pagesDir = $runDir . '/pages';
-    $files = [];
-    if (is_dir($pagesDir)) {
-        $iter = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($pagesDir, FilesystemIterator::SKIP_DOTS));
-        foreach ($iter as $f) {
-            if ($f instanceof SplFileInfo && $f->isFile() && strtolower($f->getExtension()) === 'html' && basename(dirname($f->getPathname())) === $host) {
-                $files[] = $f->getPathname();
-            }
-        }
-    }
-    sort($files);
+    $files = pagesByHost($runDir . '/pages')[$host] ?? [];
     if ($files === []) {
         jsonOut(['ok' => false, 'error' => 'нет скачанных страниц для этого сайта — сначала «Выгрузка страниц»'], 404);
     }
-    $home = $files[0];
-    foreach ($files as $f) {
-        if (basename($f) === 'main.html') {
-            $home = $f;
-            break;
-        }
-    }
-    // Бренд определяем один раз по главной и применяем ко всем страницам сайта.
-    $opts = \YandexSites\Content\ContentCleaner::autoOptions((string) file_get_contents($home), $host);
-    $cleaner = new \YandexSites\Content\ContentCleaner();
-    $outDir = $runDir . '/content/' . $host;
-    foreach (glob($outDir . '/*.html') ?: [] as $old) {
-        @unlink($old);
-    }
-    $written = 0;
-    $skipped = 0;
-    foreach ($files as $file) {
-        $body = $cleaner->clean((string) file_get_contents($file), $opts);
-        if (trim($body) === '') {
-            $skipped++;
-            continue;
-        }
-        @mkdir($outDir, 0777, true);
-        file_put_contents($outDir . '/' . basename($file), $body);
-        $written++;
-    }
+    $r = cleanHostPages($runDir, $host, $files);
     $zipRel = '';
-    if ($written > 0 && class_exists('ZipArchive')) {
-        $zipRel = 'content-' . (preg_replace('~[^a-z0-9.\-]~i', '_', $host) ?? 'site') . '.zip';
+    if ($r['written'] > 0 && class_exists('ZipArchive')) {
+        $zipName = 'content-' . (preg_replace('~[^a-z0-9.\-]~i', '_', $host) ?? 'site') . '.zip';
         $zip = new ZipArchive();
-        if ($zip->open($runDir . '/' . $zipRel, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
-            foreach (glob($outDir . '/*.html') ?: [] as $f) {
+        if ($zip->open($runDir . '/' . $zipName, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
+            foreach (glob($runDir . '/content/' . $host . '/*.html') ?: [] as $f) {
                 $zip->addFile($f, $host . '/' . basename($f));
             }
             $zip->close();
-        } else {
-            $zipRel = '';
+            $zipRel = $zipName;
         }
     }
-    jsonOut([
-        'ok' => true,
-        'written' => $written,
-        'skipped' => $skipped,
-        'zip' => $zipRel,
-        'brand_ru' => (string) ($opts['brand_ru'] ?? ''),
-        'brand_en' => (string) ($opts['brand_en'] ?? ''),
-    ]);
+    jsonOut(['ok' => true, 'written' => $r['written'], 'skipped' => $r['skipped'], 'zip' => $zipRel, 'brand_ru' => $r['brand_ru'], 'brand_en' => $r['brand_en']]);
+}
+
+if ($path === '/api/clean-all' && $method === 'POST') {
+    // Кнопка «Забрать весь контент»: готовит все скачанные сайты (наши уже исключены на выгрузке) в один архив.
+    $byHost = pagesByHost($runDir . '/pages');
+    if ($byHost === []) {
+        jsonOut(['ok' => false, 'error' => 'нет скачанных страниц — сначала «Выгрузка страниц»'], 404);
+    }
+    $written = 0;
+    $skipped = 0;
+    $sites = 0;
+    foreach ($byHost as $host => $files) {
+        $r = cleanHostPages($runDir, (string) $host, $files);
+        $written += $r['written'];
+        $skipped += $r['skipped'];
+        if ($r['written'] > 0) {
+            $sites++;
+        }
+    }
+    $zipRel = ($written > 0 && zipContent($runDir, $runDir . '/content.zip')) ? 'content.zip' : '';
+    jsonOut(['ok' => true, 'written' => $written, 'skipped' => $skipped, 'sites' => $sites, 'zip' => $zipRel]);
 }
 
 if ($path === '/api/log') {

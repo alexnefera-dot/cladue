@@ -236,9 +236,11 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   whose transliteration matches), so no manual input is needed; `Content\KnownBrands` adds a built-in list
   of casino brands (+ gitignored `brands.txt`) so foreign brands in the text are templated too (word-boundary,
   homoglyph-tolerant match). `ContentCleaner::autoOptions()` wires detection + known brands and lets non-empty
-  overrides win (extra_brands merge). Panel: the results table has a per-site «Забрать контент» button
-  (`/api/clean-site` → `content-<host>.zip`); the bulk stage reads `runs/current/pages` → `content` +
-  `content.zip`. Covered by `tests/ContentCleanerTest.php` and `tests/BrandDetectorTest.php`.
+  overrides win (extra_brands merge). Panel: a per-site «Забрать контент» button (`/api/clean-site` →
+  `content-<host>.zip`) and a bulk «Забрать весь контент» button (`/api/clean-all` → `content.zip`);
+  shared helpers `pagesByHost()`/`cleanHostPages()`/`zipContent()` in `bin/panel.php`. The bulk stage
+  (`stage=clean`) reads `runs/current/pages` → `content` + `content.zip`. Covered by
+  `tests/ContentCleanerTest.php` and `tests/BrandDetectorTest.php`.
 - Collect stage (`stage=collect`) dedups to unique registrable domains (`unique_by=domain`) and, when
   `preview_shots` is on (panel default), runs a lightweight home-only screenshot visit into
   `runs/current/preview` (no crawl) so the results table previews volume + own sites before the full
@@ -255,8 +257,10 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   mode opens the home page, then a
   single probe link, then the rest, and drops pages whose final URL redirects to another host
   (`SiteLinks::sameHost`, www-insensitive). The visited-URL set is seeded with both the entry URL and
-  the site root so a menu link back to `/` never yields a second `main-2`. Timed-out/network-failed loads are retried through a different proxy with a longer
-  timeout (`visit.retries`, default 2; `PageVisitor::runWithRetry()`).
+  the site root so a menu link back to `/` never yields a second `main-2`. Any failed load — timeout/network,
+  a block status (403/429/5xx) or an anti-bot/Cloudflare page (`PageVisitor::looksLikeBlock()`) — is retried
+  through a different proxy (`visit.retries`, default 2; `PageVisitor::runWithRetry()`/`isRetryable()`); block
+  pages are deleted and reported as «заблокировано», never saved as content.
   Page files are named short from the URL's last path segment (`/registracia` → `registracia.html`,
   `/catalog/plastikovye/` → `plastikovye.html`, home → `main.html`; `PageVisitor::fileNameFromUrl()` +
   `uniqueName()`). Duplicate/one-pager
