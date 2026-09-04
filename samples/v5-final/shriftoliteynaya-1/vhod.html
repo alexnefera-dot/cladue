@@ -1,0 +1,82 @@
+<h2>Часы сервера и часы устройства разошлись на минуту</h2>
+<p>Вход в личный кабинет перестал пускать меня тихим средним вечером, без объяснений: пароль верный, реестр на месте, а упрямая форма возвращала «Сессия недействительна». Гудела вытяжка, остывал тигель, и третий раз я набирал одно и то же.</p>
+<p>Виноватыми оказались часы старого телефона: против сервера %brand_name_en% они отстали на минуту двадцать.</p>
+<h3>Отчего расходятся часы</h3>
+<p><strong>Расписку сеанса подписывают временем, и расхождение свыше минуты площадка считает подделкой.</strong> Аппарат мой синхронизацию отключил сам, экономя батарею; сервер %brand_name_en% при этом шёл ровно.</p>
+<table>
+<tr><th>Расхождение</th><th>Что делает форма</th><th>Как это выглядит</th></tr>
+<tr><td>До 60 секунд</td><td>пускает молча</td><td>обычный заход</td></tr>
+<tr><td>60–180 секунд</td><td>рвёт расписку</td><td>«Сессия недействительна»</td></tr>
+<tr><td>Больше 5 минут</td><td>не принимает код</td><td>заход с начала</td></tr>
+</table>
+<h3>Замер: минута двадцать против шестидесяти секунд</h3>
+<p>Расхождение померил по точному сигналу: аппарат показывал 21:43, сервер письмом поставил 21:44:20. Восемьдесят секунд — и этого хватило, чтобы три подряд попытки ушли впустую.</p>
+<p>Отливаю в кегль: юстировка на волос — уже другой шрифт, и печатная строка это покажет.</p>
+<p>Обошлось это дёшево, но искал я причину долго и не там: сначала грешил на провайдера связи, потом на свежую версию обозревателя, потом на блокировку домена надзором. Настоящая беда сидела в настройках батареи, которые я сам когда-то и подкрутил.</p>
+<h3>Что чинит расхождение</h3>
+<ol>
+<li>включите синхронизацию времени в настройках телефона — у меня она была отключена</li>
+<li>сверьте показания с точным сигналом: свыше минуты уже мешает заходу</li>
+<li>зайдите снова: прежняя расписка на 45 суток при этом гаснет</li>
+<li>если не помогло, откройте <a href="/zerkalo">запасной адрес</a> — там расписка своя</li>
+</ol>
+<h3>Чего расхождение не трогает</h3>
+<p>Ставки, оборот отыгрыша и заявка на вывод средств от этого независимы вовсе: срок считает сервер %brand_name_en%. Пострадал единственный вход, да и то на одном устройстве из трёх — можно ли считать это бедой, вопрос спорный.</p>
+<blockquote>Старый мастер держал в цеху одни часы на всех и сверял их по радио: «Разнобой во времени — разнобой в тираже». Про расписку сеанса это оказалось буквально верно.</blockquote>
+<h3>Что проверить, если вход не пускает</h3>
+<ul>
+<li><strong>часы устройства</strong> — первая причина из моих трёх неудачных заходов</li>
+<li><strong>пароль и раскладку</strong> — три промаха запирают вход в кабинет на 15 минут</li>
+<li><strong>реестр устройств</strong>: пять строк, шестая вытесняет самую старую</li>
+<li><strong>зеркало сайта</strong> — основной домен мог смениться прошедшей ночью</li>
+</ul>
+<p>Первый пункт стоил мне целого вечера, а починился минутой. Про <a href="/registracia">анкету игрока</a> и её двенадцать граф написано отдельно, <a href="/slots">каталог автоматов</a> и <a href="/app">клиент</a> к часам равнодушны совершенно.</p>
+<h2>Вопросы о расписке сеанса в %brand_name_en%</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Гаснет ли расписка при переводе часов вперёд?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Я перевёл часы на десять минут вперёд, и расписка слетела в ту же секунду.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли часовой пояс на вход?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Смена пояса на поездке не помешала мне ни разу: сервер считает по общему времени.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Показывает ли форма причину отказа?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Мне досталась одна строка «Сессия недействительна», и про часы там не было ни слова.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Помогает ли поддержка с такой бедой?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Чат подсказал мне проверить время за пятнадцать минут, и это оказался верный совет.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Рвётся ли сеанс прямо во время игры?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Раунд досчитался нормально, деньги легли на счёт прежде, чем меня выбросило.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Считается ли такой отказ неудачной попыткой?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>После трёх подряд форма меня не заперла, значит, счётчик промахов их не берёт.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Занимает ли перезаход новую строку реестра?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Все попытки легли одной строкой: реестр смотрит на аппарат, а не на сеанс.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Есть ли эта беда в клиенте?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Сборка на том же аппарате пустила меня без единого вопроса, минуты её не смутили.</p></div>
+  </div>
+</details>
