@@ -79,6 +79,19 @@ final class XmlStockFetcherTest
         Assert::true($e->isFatal());
     }
 
+    public function testAuthErrorCodeIsFatal(): void
+    {
+        $xml = '<?xml version="1.0"?><yandexsearch version="1.0"><response><error code="-34">Не корректный ID пользователя или ключ</error></response></yandexsearch>';
+        $http = new StubHttpClient([new HttpResponse(200, $xml)]);
+        $fetcher = new XmlStockFetcher($this->config(), $http, new XmlResponseParser(), $this->logger());
+        /** @var ApiException $e */
+        $e = Assert::throws(ApiException::class, static fn () => $fetcher->fetch('q', 0), 'user и key');
+        Assert::true($e->isFatal());
+        Assert::false($e->isRetryable());
+        Assert::same(-34, $e->getYandexCode());
+        Assert::same(1, count($http->calls), 'ошибка доступа не повторяется');
+    }
+
     public function testConfigRequiresCredentials(): void
     {
         $errors = (new Config(['source' => 'xmlstock']))->validate();

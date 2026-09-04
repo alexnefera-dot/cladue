@@ -39,8 +39,20 @@ final class ApiException extends \RuntimeException
 
     public static function fromYandexCode(int $code, string $text): self
     {
+        if (self::looksLikeAuthError($code, $text)) {
+            return new self(
+                sprintf(
+                    'Ошибка доступа к источнику (код %d): %s. Проверьте user и key (для XMLStock — переменные XMLSTOCK_USER и XMLSTOCK_KEY) и баланс в личном кабинете',
+                    $code,
+                    $text !== '' ? $text : 'неверный логин или ключ',
+                ),
+                fatal: true,
+                yandexCode: $code,
+            );
+        }
+
         $description = self::CODES[$code] ?? 'неизвестная ошибка';
-        $message = sprintf('Яндекс вернул ошибку %d (%s)%s', $code, $description, $text !== '' ? ': ' . $text : '');
+        $message = sprintf('Источник вернул ошибку %d (%s)%s', $code, $description, $text !== '' ? ': ' . $text : '');
 
         return new self(
             $message,
@@ -48,6 +60,14 @@ final class ApiException extends \RuntimeException
             fatal: in_array($code, [32, 33, 42, 43, 44, 48], true),
             yandexCode: $code,
         );
+    }
+
+    /**
+     * Отрицательные коды XMLStock и сообщения про логин/ключ — ошибка доступа (не имеет смысла повторять).
+     */
+    private static function looksLikeAuthError(int $code, string $text): bool
+    {
+        return $code < 0 && preg_match('~ключ|key|пользовател|user|логин|login|auth~iu', $text) === 1;
     }
 
     public function isRetryable(): bool
