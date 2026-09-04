@@ -88,6 +88,39 @@ final class PanelTest
         Assert::same(count($domains), count(array_unique($domains)), 'по одному сайту на домен');
     }
 
+    public function testXmlstockParamsReachRequest(): void
+    {
+        $port = FakeServer::port();
+        $dir = $this->projectDir($port);
+        $this->projectDirReset($port);
+        $capture = sys_get_temp_dir() . '/yandex-sites-fake-capture.json';
+        @unlink($capture);
+        $runDir = $dir . '/runs/xmparams';
+        mkdir($runDir, 0777, true);
+        // Панель шлёт xmlstock_device/xmlstock_domain/xmlstock_extra; buildOverrides должен превратить их
+        // в xmlstock.device/domain/extra_params, а XmlStockFetcher — подставить в GET-запрос.
+        file_put_contents($runDir . '/settings.json', json_encode([
+            'queries' => ['окна __capture__'],
+            'source' => 'xmlstock',
+            'top' => 0,
+            'visit' => false,
+            'preview_shots' => false,
+            'xmlstock_device' => 'mobile',
+            'xmlstock_domain' => 'yandex.by',
+            'xmlstock_extra' => ['within' => '77', 'sortby' => 'tm'],
+        ]));
+
+        $run = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $run['code'], $run['out']);
+        Assert::true(is_file($capture), 'фейковый XMLStock получил запрос');
+        $got = json_decode((string) file_get_contents($capture), true);
+        Assert::same('mobile', $got['device'] ?? null, 'device дошёл до запроса XMLStock');
+        Assert::same('yandex.by', $got['domain'] ?? null, 'domain дошёл до запроса XMLStock');
+        Assert::same('77', $got['within'] ?? null, 'доп. параметр within дошёл до запроса');
+        Assert::same('tm', $got['sortby'] ?? null, 'доп. параметр перекрыл значение по умолчанию');
+        @unlink($capture);
+    }
+
     public function testLedgerSkipsAlreadyCollectedDomains(): void
     {
         $port = FakeServer::port();

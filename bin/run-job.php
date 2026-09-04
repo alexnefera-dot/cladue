@@ -96,6 +96,23 @@ function buildOverrides(array $s, string $runDir): array
     if (isset($s['source'])) {
         $overrides['source'] = (string) $s['source'];
     }
+    // Параметры XMLStock: устройство (mobile/desktop/tablet), домен Яндекса, произвольные доп. параметры.
+    if (isset($s['xmlstock_device']) && (string) $s['xmlstock_device'] !== '') {
+        $overrides['xmlstock.device'] = (string) $s['xmlstock_device'];
+    }
+    if (isset($s['xmlstock_domain']) && (string) $s['xmlstock_domain'] !== '') {
+        $overrides['xmlstock.domain'] = (string) $s['xmlstock_domain'];
+    }
+    if (isset($s['xmlstock_extra']) && is_array($s['xmlstock_extra'])) {
+        $extra = [];
+        foreach ($s['xmlstock_extra'] as $key => $value) {
+            $key = trim((string) $key);
+            if ($key !== '' && is_scalar($value)) {
+                $extra[$key] = (string) $value;
+            }
+        }
+        $overrides['xmlstock.extra_params'] = $extra;
+    }
     if (isset($s['region']) && $s['region'] !== '') {
         $overrides['search.region'] = (string) $s['region'];
     }

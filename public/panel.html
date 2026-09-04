@@ -74,6 +74,9 @@
   .msg.ok{background:#dcfce7;color:var(--ok)}
   .saved{color:var(--ok);font-size:12px;margin-left:8px}
   a{color:var(--accent)}
+  .tabs{display:flex;gap:4px;margin:12px 0 18px;border-bottom:1px solid var(--line)}
+  .tab{border:none;background:none;padding:10px 18px;font-size:15px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
 </style>
 </head>
 <body>
@@ -81,9 +84,12 @@
   <h1>yandex-sites</h1>
   <p class="sub">Сбор сайтов из выдачи и открытие их в браузере. Интерфейс работает локально на этом компьютере.</p>
 
-  <div class="grid">
-    <div>
-      <div class="card">
+  <div class="tabs">
+    <button class="tab active" data-tab="main">Главная</button>
+    <button class="tab" data-tab="config">Настройки</button>
+  </div>
+
+  <div class="card tabsec" data-tab="config">
         <h2>Ключи доступа</h2>
         <label>XMLStock — ID пользователя <span id="xmuser" class="hint"></span></label>
         <input type="text" id="k_user" placeholder="например 12478">
@@ -92,15 +98,13 @@
         <div class="btns"><button class="btn-ghost" id="saveKeys">Сохранить ключи</button><span id="keysSaved" class="saved" hidden>сохранено</span></div>
       </div>
 
-      <div class="card">
+  <div class="card tabsec" data-tab="main">
         <h2>Запросы</h2>
         <textarea id="queries" placeholder="по одному запросу в строке&#10;пластиковые окна купить москва&#10;остекление балконов цена"></textarea>
         <div class="hint">По одному запросу в строке. Пустые строки и строки с # пропускаются.</div>
       </div>
-    </div>
 
-    <div>
-      <div class="card">
+  <div class="card tabsec" data-tab="config">
         <h2>Условия отбора</h2>
         <div class="row">
           <div>
@@ -119,6 +123,23 @@
             <label>Страниц на запрос</label>
             <input type="number" id="pages" value="1" min="1" max="100">
           </div>
+        </div>
+
+        <div id="xmlstockBox" hidden style="margin:2px 0 12px;padding:10px;border:1px solid #e2e2e2;border-radius:8px;background:#fafafa">
+          <div style="font-size:13px;color:#555;margin-bottom:6px">Параметры XMLStock: устройство (мобайл/десктоп), домен Яндекса и др.</div>
+          <div class="row">
+            <div>
+              <label>Устройство</label>
+              <select id="xmdevice"><option value="">по умолчанию</option><option value="desktop">Компьютер</option><option value="mobile">Мобайл</option><option value="tablet">Планшет</option></select>
+            </div>
+            <div>
+              <label>Домен Яндекса</label>
+              <select id="xmdomain"><option value="">по умолчанию</option><option value="yandex.ru">yandex.ru</option><option value="yandex.by">yandex.by</option><option value="yandex.kz">yandex.kz</option><option value="yandex.uz">yandex.uz</option><option value="yandex.com.tr">yandex.com.tr</option><option value="yandex.com">yandex.com</option></select>
+            </div>
+            <div></div>
+          </div>
+          <label>Доп. параметры <span class="hint">key=value через &amp;, напр. within=77&amp;sortby=tm</span></label>
+          <input type="text" id="xmextra" placeholder="напр. within=77">
         </div>
 
         <div class="check"><input type="checkbox" id="dedupe" checked><label style="margin:0">Один сайт на домен (поддомены одного домена второй раз не берём)</label></div>
@@ -151,7 +172,7 @@
         <input type="text" id="exclude" placeholder="competitor.ru, spam.ru">
       </div>
 
-      <div class="card">
+  <div class="card tabsec" data-tab="config">
         <h2>Открытие сайтов и повтор</h2>
         <div class="check"><input type="checkbox" id="visit" checked><label style="margin:0">Открывать найденные сайты в браузере (Chromium), сохранять HTML и скриншот</label></div>
         <div class="row">
@@ -174,27 +195,15 @@
         <label>Повторять сбор каждые, часов <span class="hint">0 — один раз</span></label>
         <input type="number" id="repeat" value="0" min="0" step="1">
       </div>
-    </div>
-  </div>
 
-  <div class="card">
+  <div class="card tabsec" data-tab="main">
     <label>Этап</label>
     <select id="stage" style="max-width:420px">
       <option value="collect">1 · Сборка доменов (без открытия сайтов)</option>
       <option value="download">2 · Выгрузка страниц собранных сайтов</option>
       <option value="both">Сборка и сразу выгрузка</option>
-      <option value="clean">3 · Очистка контента (шаблоны статей)</option>
     </select>
-    <div id="cleanBox" hidden style="margin-top:10px;padding:10px;border:1px solid #e2e2e2;border-radius:8px;background:#fafafa">
-      <div style="font-size:13px;color:#555;margin-bottom:6px">Массовая подготовка контента из всех скачанных страниц. <b>Бренд и домен определяются автоматически.</b> Проще: после выгрузки нажмите «Забрать контент» у нужного сайта в таблице ниже (смотрите скрин — и жмёте). Поля ниже — необязательные, только если авто-определение бренда ошиблось.</div>
-      <label>Бренд (русский) — необязательно</label>
-      <input id="brandru" placeholder="определяется сам">
-      <label>Бренд (английский) — необязательно</label>
-      <input id="branden" placeholder="определяется из домена">
-      <label>Ещё бренды / опечатки (через запятую) — необязательно</label>
-      <input id="brands" placeholder="например, STAKE">
-      <a class="tag" id="dlContent" href="/download?file=content" style="display:none;margin-top:8px">Скачать content.zip</a>
-    </div>
+    <div class="hint" style="margin-top:6px">Очистка контента — кнопками в таблице результатов: «Забрать контент» у сайта или «Забрать весь контент» по всем оставшимся.</div>
     <div class="btns" style="margin-top:12px">
       <button class="btn-primary" id="startBtn">Запустить</button>
       <button class="btn-danger" id="stopBtn" disabled>Остановить</button>
@@ -203,7 +212,7 @@
     <div id="startMsg"></div>
   </div>
 
-  <div class="card" id="progressCard" hidden>
+  <div class="card tabsec" data-tab="main" id="progressCard" hidden>
     <h2>Прогресс <span id="phaseText" class="muted"></span></h2>
     <div class="bar"><span id="barFill"></span></div>
     <div id="stats"></div>
@@ -212,12 +221,12 @@
     <div id="proxies" class="muted" style="margin-top:8px"></div>
   </div>
 
-  <div class="card">
+  <div class="card tabsec" data-tab="main">
     <h2>Журнал</h2>
     <pre class="log" id="log">—</pre>
   </div>
 
-  <div class="card" id="resultsCard" hidden>
+  <div class="card tabsec" data-tab="main" id="resultsCard" hidden>
     <h2>Результаты <span id="resCount" class="muted"></span></h2>
     <div class="hint" style="margin-bottom:8px">Клик по превью — увеличить; крестик ✕ — убрать неподходящий сайт; «Забрать весь контент» — по оставшимся. Файлы: <b>runs/current/pages/&lt;сайт&gt;/</b>.</div>
     <div class="btns" style="margin-bottom:10px;align-items:center">
@@ -229,7 +238,7 @@
     <div class="hint" id="removedNote" hidden style="margin-bottom:8px"></div>
     <div style="overflow:auto">
       <table id="resTable">
-        <thead><tr><th>#</th><th>Превью</th><th>Домен</th><th>Запр.</th><th>Поз.</th><th>Версии</th><th>Скачано</th><th>Файлы</th><th>Контент</th><th></th></tr></thead>
+        <thead><tr><th>Убрать</th><th>#</th><th>Превью</th><th>Домен</th><th>Запр.</th><th>Поз.</th><th>Версии</th><th>Скачано</th><th>Файлы</th><th>Контент</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -240,7 +249,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const FIELDS = ['queries','source','region','pages','dedupe','scope','top','minq','tlds','exclude','skipknown','previewshots','visit','variants','driver','crawl','maxpages','useproxies','repeat','stage','brandru','branden','brands'];
+const FIELDS = ['queries','source','region','pages','dedupe','scope','top','minq','tlds','exclude','skipknown','previewshots','visit','variants','driver','crawl','maxpages','useproxies','repeat','stage','xmdevice','xmdomain','xmextra'];
 
 function loadLocal(){
   try{ const s = JSON.parse(localStorage.getItem('ys-panel')||'{}');
@@ -253,13 +262,34 @@ function saveLocal(){
 }
 FIELDS.forEach(k=>$(k).addEventListener('input', saveLocal));
 
-function toggleClean(){ $('cleanBox').hidden = $('stage').value !== 'clean'; }
-$('stage').addEventListener('change', toggleClean); toggleClean();
+// Вкладки: «Главная» (запросы, запуск, прогресс, лог, результаты) и «Настройки» (ключи, условия, открытие).
+function showTab(name){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  document.querySelectorAll('.tabsec').forEach(el=>{ el.style.display = (el.dataset.tab===name) ? '' : 'none'; });
+  try{ localStorage.setItem('ys-tab', name); }catch(e){}
+}
+document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click', ()=>showTab(b.dataset.tab)));
+let startTab='main'; try{ startTab=localStorage.getItem('ys-tab')||'main'; }catch(e){}
+showTab(startTab);
+
+// Параметры XMLStock показываем только когда выбран этот источник.
+function toggleXmlstock(){ $('xmlstockBox').hidden = $('source').value !== 'xmlstock'; }
+$('source').addEventListener('change', toggleXmlstock); toggleXmlstock();
+
+// «within=77&sortby=tm» → {within:'77', sortby:'tm'}
+function parseExtra(str){
+  const o={};
+  String(str||'').split('&').forEach(p=>{ p=p.trim(); if(!p) return; const i=p.indexOf('='); if(i<0){ o[p]=''; } else { o[p.slice(0,i).trim()]=p.slice(i+1).trim(); } });
+  return o;
+}
 
 function collectSettings(){
   return {
     queries: $('queries').value.split('\n').map(s=>s.trim()).filter(s=>s && !s.startsWith('#')),
     source: $('source').value,
+    xmlstock_device: $('xmdevice').value,
+    xmlstock_domain: $('xmdomain').value,
+    xmlstock_extra: parseExtra($('xmextra').value),
     region: $('region').value,
     pages: parseInt($('pages').value)||1,
     dedupe_domain: $('dedupe').checked,
@@ -277,10 +307,7 @@ function collectSettings(){
     crawl: $('crawl').checked,
     max_pages: parseInt($('maxpages').value)||20,
     proxies_file: $('useproxies').checked ? 'proxies.txt' : '',
-    repeat_hours: parseFloat($('repeat').value)||0,
-    brand_ru: $('brandru').value.trim(),
-    brand_en: $('branden').value.trim(),
-    brands: $('brands').value.split(',').map(s=>s.trim()).filter(Boolean)
+    repeat_hours: parseFloat($('repeat').value)||0
   };
 }
 
@@ -296,8 +323,8 @@ $('resetBase').addEventListener('click', async (e)=>{ e.preventDefault(); if(con
 
 async function start(){
   const st=collectSettings();
-  if(!['download','clean'].includes(st.stage) && st.queries.length===0){ showStart('Добавьте хотя бы один запрос','err'); return; }
-  if(st.stage!=='clean'){ removedHosts.clear(); saveRemoved(); }
+  if(st.stage!=='download' && st.queries.length===0){ showStart('Добавьте хотя бы один запрос','err'); return; }
+  removedHosts.clear(); saveRemoved();
   $('startBtn').disabled=true;
   const r=await fetch('/api/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(st)});
   const j=await r.json();
@@ -421,7 +448,7 @@ function renderResults(sites){
     const thumb = s.screenshot
       ? `<img class="thumb" src="/file?path=${encodeURIComponent(s.screenshot)}" data-full="/file?path=${encodeURIComponent(s.screenshot)}" data-cap="${esc(s.host)}" loading="lazy" alt="">`
       : `<span class="thumb-empty">${s.own?'наш':'нет'}</span>`;
-    return `<tr data-host="${esc(s.host)}"><td>${i+1}</td><td>${thumb}</td><td class="host">${link}</td><td>${s.queries_count||0}</td><td>${s.best_position??'—'}</td><td>${variants}</td><td>${dl}</td><td>${files.join(' · ')||'—'}</td><td>${ct}</td><td><button class="xBtn" data-remove="${esc(s.host)}" title="Убрать сайт из списка">✕</button></td></tr>`;
+    return `<tr data-host="${esc(s.host)}"><td><button class="xBtn" data-remove="${esc(s.host)}" title="Убрать сайт из списка">✕</button></td><td>${i+1}</td><td>${thumb}</td><td class="host">${link}</td><td>${s.queries_count||0}</td><td>${s.best_position??'—'}</td><td>${variants}</td><td>${dl}</td><td>${files.join(' · ')||'—'}</td><td>${ct}</td></tr>`;
   }).join('');
 }
 
@@ -470,6 +497,9 @@ function prefill(state){
     const s=state.settings;
     if(s.queries) $('queries').value=s.queries.join('\n');
     if(s.source)$('source').value=s.source; if(s.region!=null)$('region').value=s.region;
+    if(s.xmlstock_device)$('xmdevice').value=s.xmlstock_device;
+    if(s.xmlstock_domain)$('xmdomain').value=s.xmlstock_domain;
+    if(s.xmlstock_extra && typeof s.xmlstock_extra==='object'){ $('xmextra').value=Object.entries(s.xmlstock_extra).map(([k,v])=>v===''?k:k+'='+v).join('&'); }
     if(s.pages)$('pages').value=s.pages; $('dedupe').checked=s.dedupe_domain!==false;
     if(s.domain_scope)$('scope').value=s.domain_scope; if(s.min_queries)$('minq').value=s.min_queries;
     if(s.allowed_tlds)$('tlds').value=(s.allowed_tlds||[]).join(', ');
@@ -488,13 +518,12 @@ async function refresh(){
     prefill(st);
     renderStatus(st.status, st.running);
     renderResults(st.status && st.status.sites ? st.status.sites : []);
-    const hasContent = st.status && st.status.files && st.status.files.content;
-    $('dlContent').style.display = hasContent ? 'inline-block' : 'none';
   }catch(e){}
   try{ const l=await fetch('/api/log'); const t=await l.text(); if(t.trim()){ const el=$('log'); const atEnd=el.scrollTop+el.clientHeight>=el.scrollHeight-20; el.textContent=t; if(atEnd) el.scrollTop=el.scrollHeight; } }catch(e){}
 }
 
 loadLocal();
+toggleXmlstock();
 refresh();
 setInterval(refresh, 1500);
 </script>

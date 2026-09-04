@@ -270,6 +270,11 @@ if ($uri === '/search/xml') {
 if ($uri === '/yandex/xml/' || $uri === '/yandex/xml') {
     header('Content-Type: text/xml; charset=utf-8');
     $key = (string) ($_GET['key'] ?? '');
+    // Тестовый крючок: по запросу с маркером __capture__ записываем принятые GET-параметры в файл,
+    // чтобы тест мог проверить, что device/domain/доп. параметры XMLStock дошли до запроса.
+    if (str_contains((string) ($_GET['query'] ?? ''), '__capture__')) {
+        @file_put_contents(sys_get_temp_dir() . '/yandex-sites-fake-capture.json', json_encode($_GET));
+    }
     if (($_GET['user'] ?? '') === '' || $key === '' || str_contains($key, 'bad-key')) {
         echo '<?xml version="1.0" encoding="utf-8"?><yandexsearch version="1.0"><response date="20260904T120000"><error code="42">Invalid user or key</error></response></yandexsearch>';
 

@@ -226,6 +226,12 @@ Run `php tests/lint.php && php tests/run.php` before committing.
 - `Runner` and `PageVisitor` accept an optional `$onProgress` callback; `bin/run-job.php` wires it
   to `Support\Progress`, and `bin/panel.php` (dual launcher/router via `PHP_SAPI==='cli-server'`)
   spawns the job and serves `public/panel.html`. Keep CLI and panel behaviour in sync through `Runtime`.
+  `public/panel.html` has two tabs (`.tabsec[data-tab=main|config]`, remembered in `localStorage['ys-tab']`):
+  «Главная» (queries, run/stage, progress, log, results table) and «Настройки» (keys + all filter/visit
+  conditions). XMLStock params are panel fields `xmlstock_device`/`xmlstock_domain`/`xmlstock_extra`
+  (the `#xmlstockBox`, shown only when `source=xmlstock`), mapped in `buildOverrides()` to
+  `xmlstock.device`/`xmlstock.domain`/`xmlstock.extra_params` (`extra_params` parsed from a
+  `key=value&…` string) and covered by `PanelTest::testXmlstockParamsReachRequest`.
 - `Content\ContentCleaner` is the third stage (`settings.stage=clean`, `bin/clean-content.php`, and the
   per-site `/api/clean-site` button): from a downloaded page it keeps only the article body (after
   `</h1>`, before «Популярные запросы»; drops the slots section, header/footer/scripts), rewrites every
@@ -236,11 +242,12 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   whose transliteration matches), so no manual input is needed; `Content\KnownBrands` adds a built-in list
   of casino brands (+ gitignored `brands.txt`) so foreign brands in the text are templated too (word-boundary,
   homoglyph-tolerant match). `ContentCleaner::autoOptions()` wires detection + known brands and lets non-empty
-  overrides win (extra_brands merge). Panel: a per-site «Забрать контент» button (`/api/clean-site` →
-  `content-<host>.zip`) and a bulk «Забрать весь контент» button (`/api/clean-all` → `content.zip`);
-  shared helpers `pagesByHost()`/`cleanHostPages()`/`zipContent()` in `bin/panel.php`. The bulk stage
-  (`stage=clean`) reads `runs/current/pages` → `content` + `content.zip`. Covered by
-  `tests/ContentCleanerTest.php` and `tests/BrandDetectorTest.php`.
+  overrides win (extra_brands merge). Panel: the stage dropdown offers only collect/download/both — content
+  cleaning is table-only, via a per-site «Забрать контент» button (`/api/clean-site` → `content-<host>.zip`)
+  and a bulk «Забрать весь контент» button (`/api/clean-all`, accepts an `exclude` host list → `content.zip`);
+  shared helpers `pagesByHost()`/`cleanHostPages()`/`zipContent()` in `bin/panel.php`. The `stage=clean`
+  job branch (reads `runs/current/pages` → `content` + `content.zip`) stays for `bin/clean-content.php`/CLI,
+  no longer surfaced in the panel UI. Covered by `tests/ContentCleanerTest.php` and `tests/BrandDetectorTest.php`.
 - Collect stage (`stage=collect`) dedups to unique registrable domains (`unique_by=domain`) and, when
   `preview_shots` is on (panel default), runs a lightweight home-only screenshot visit into
   `runs/current/preview` (no crawl) so the results table previews volume + own sites before the full
