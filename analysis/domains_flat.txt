@@ -313,6 +313,7 @@
 9061.lol
 9090.lol
 9124.lol
+9124.team
 9158.lol
 9158.team
 9279.team
@@ -380,6 +381,7 @@ casino0409s.casino
 casino0509g.casino
 casino0962.lol
 casino1430.lol
+casino1430.team
 casino4934.lol
 casino79.team
 casino876.lol
