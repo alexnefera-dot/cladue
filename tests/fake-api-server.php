@@ -325,6 +325,21 @@ $visitor = str_contains($referer, 'yandex') ? 'Вы пришли из поиск
 if (stripos($userAgent, 'yandexbot') !== false) {
     $visitor = 'Версия для поискового робота Яндекса';
 }
+// Ссылка из шапки, уводящая на другой сайт (для проверки пропуска редиректов при обходе).
+if ($uri === '/leave') {
+    http_response_code(302);
+    header('Location: http://other-domain.ru:' . $port . '/');
+
+    return;
+}
+// Шапка сайта с внутренними ссылками, внешней и уводящей на другой сайт.
+$navHtml = '<header class="site-header"><nav class="main-menu">'
+    . '<a href="/">Главная</a>'
+    . '<a href="/about">О компании</a>'
+    . '<a href="/contacts">Контакты</a>'
+    . '<a href="/leave">Партнёр</a>'
+    . '<a href="https://vk.com/' . htmlspecialchars($host) . '">ВКонтакте</a>'
+    . '</nav></header>';
 header('Content-Type: text/html; charset=utf-8');
 switch ($host) {
     case 'dead-site.ru':
@@ -361,6 +376,7 @@ switch ($host) {
         return;
     default:
         echo '<html><head><title>' . htmlspecialchars($host) . '</title></head><body>'
+            . $navHtml
             . '<h1>Добро пожаловать на ' . htmlspecialchars($host) . '</h1>'
             . '<p class="visitor">' . htmlspecialchars($visitor) . '</p>'
             . '<div id="js-rendered"></div>'

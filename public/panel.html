@@ -152,6 +152,11 @@
             <select id="driver"><option value="auto">Авто</option><option value="playwright">Chromium (JS)</option><option value="curl">curl (без JS)</option></select>
           </div>
         </div>
+        <div class="check"><input type="checkbox" id="crawl"><label style="margin:0">Скачивать все страницы из шапки сайта (обход меню, начиная с главной; чужие домены и редиректы на другой сайт пропускаются)</label></div>
+        <div class="row">
+          <div><label>Макс. страниц на сайт</label><input type="number" id="maxpages" value="20" min="1" max="200"></div>
+          <div></div>
+        </div>
         <div class="check"><input type="checkbox" id="useproxies"><label style="margin:0">Ходить через прокси из proxies.txt <span id="proxHint" class="hint"></span></label></div>
         <label>Повторять сбор каждые, часов <span class="hint">0 — один раз</span></label>
         <input type="number" id="repeat" value="0" min="0" step="1">
@@ -207,7 +212,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const FIELDS = ['queries','source','region','pages','dedupe','scope','top','minq','tlds','exclude','skipknown','visit','variants','driver','useproxies','repeat','stage'];
+const FIELDS = ['queries','source','region','pages','dedupe','scope','top','minq','tlds','exclude','skipknown','visit','variants','driver','crawl','maxpages','useproxies','repeat','stage'];
 
 function loadLocal(){
   try{ const s = JSON.parse(localStorage.getItem('ys-panel')||'{}');
@@ -237,6 +242,8 @@ function collectSettings(){
     visit: $('visit').checked,
     variants: parseInt($('variants').value)||1,
     visit_driver: $('driver').value,
+    crawl: $('crawl').checked,
+    max_pages: parseInt($('maxpages').value)||20,
     proxies_file: $('useproxies').checked ? 'proxies.txt' : '',
     repeat_hours: parseFloat($('repeat').value)||0
   };
@@ -371,6 +378,7 @@ function prefill(state){
     if(s.visit_driver)$('driver').value=s.visit_driver; $('useproxies').checked=!!s.proxies_file;
     if(s.repeat_hours!=null)$('repeat').value=s.repeat_hours;
     if(s.top!=null)$('top').value=s.top; if(s.skip_known!=null)$('skipknown').checked=s.skip_known; if(s.stage)$('stage').value=s.stage;
+    $('crawl').checked=!!s.crawl; if(s.max_pages)$('maxpages').value=s.max_pages;
   }
 }
 

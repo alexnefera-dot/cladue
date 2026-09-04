@@ -148,6 +148,11 @@ function buildOverrides(array $s, string $runDir): array
     if (isset($s['proxies_file']) && (string) $s['proxies_file'] !== '') {
         $overrides['proxy_file'] = (string) $s['proxies_file'];
     }
+    // Обход всех страниц из шапки сайта.
+    $overrides['visit.crawl'] = (bool) ($s['crawl'] ?? false);
+    if (isset($s['max_pages'])) {
+        $overrides['visit.max_pages'] = max(1, (int) $s['max_pages']);
+    }
     // Продвинутое/для тестов: сопоставление host:port:ip для визитов (CURLOPT_RESOLVE / Chromium).
     if (isset($s['visit_resolve']) && is_array($s['visit_resolve'])) {
         $overrides['visit.resolve'] = array_values(array_map('strval', $s['visit_resolve']));

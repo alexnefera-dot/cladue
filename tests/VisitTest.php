@@ -232,6 +232,49 @@ final class VisitTest
         Assert::same(UserAgents::YANDEX_BOT, $one['okna-moskva.ru']->visits[0]['user_agent'], 'один визит — робот');
     }
 
+    public function testCrawlOpensHeaderPagesAndSkipsOffsiteRedirects(): void
+    {
+        $port = FakeServer::port();
+        $dir = $this->dir() . '/crawl';
+        $site = new Site('okna-moskva.ru', 'okna-moskva.ru', 'okna-moskva.ru');
+        $site->add(new SearchResult('окна', 0, 1, "http://okna-moskva.ru:$port/", 'okna-moskva.ru', 'Главная'));
+        $sites = ['okna-moskva.ru' => $site];
+
+        $visitor = new PageVisitor([
+            'crawl' => true,
+            'max_pages' => 10,
+            'target' => 'found',
+            'dir' => $dir,
+            'screenshot' => false,
+            'timeout' => 5,
+            'delay_ms' => 0,
+            'concurrency' => 3,
+            'resolve' => $this->resolve($port),
+            'user_agents' => [UserAgents::YANDEX_BOT],
+        ], new CurlDriver(), $this->logger());
+        $visitor->visit($sites);
+
+        $byUrl = [];
+        foreach ($site->visits as $v) {
+            $byUrl[$v['url']] = $v;
+        }
+        // главная + /about + /contacts + /leave (из шапки; vk.com и «/» пропущены)
+        Assert::same(4, count($site->visits), 'открыты главная и три страницы из меню');
+        Assert::true($byUrl["http://okna-moskva.ru:$port/"]['ok'] ?? false, 'главная открыта');
+        Assert::true($byUrl["http://okna-moskva.ru:$port/about"]['ok'] ?? false, '/about открыт');
+        Assert::true($byUrl["http://okna-moskva.ru:$port/contacts"]['ok'] ?? false, '/contacts открыт');
+        Assert::false($byUrl["http://okna-moskva.ru:$port/leave"]['ok'] ?? true, 'редирект на другой сайт не сохраняется');
+        Assert::contains('редирект на другой сайт', $byUrl["http://okna-moskva.ru:$port/leave"]['error']);
+        Assert::false(str_contains(implode(' ', array_keys($byUrl)), 'vk.com'), 'внешняя ссылка не обходится');
+
+        Assert::true(is_file("$dir/okna-moskva.ru/page-1.html"), 'главная сохранена');
+        Assert::false(is_file("$dir/okna-moskva.ru/page-4.html"), 'страница офсайт-редиректа удалена');
+
+        $summary = $site->visitSummary();
+        Assert::same(3, $summary['ok'], 'успешно открыто 3 страницы');
+        Assert::same(4, $summary['total']);
+    }
+
     public function testPlaywrightDriverRendersJavascript(): void
     {
         $driver = new PlaywrightDriver();

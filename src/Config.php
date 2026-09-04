@@ -113,6 +113,8 @@ final class Config
                 'dir' => 'out/pages',
                 'screenshot' => true,
                 'full_page' => false,
+                'crawl' => false,
+                'max_pages' => 20,
                 'wait_ms' => 2500,
                 'timeout' => 30,
                 'concurrency' => 2,

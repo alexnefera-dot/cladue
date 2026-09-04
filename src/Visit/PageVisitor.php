@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace YandexSites\Visit;
 
+use YandexSites\Filter\Domains;
 use YandexSites\Live\Proxy;
 use YandexSites\Live\ProxyPool;
 use YandexSites\Live\UserAgents;
@@ -51,6 +52,12 @@ final class PageVisitor
             $sites = array_slice($sites, 0, $maxSites, true);
         }
         if ($sites === []) {
+            return;
+        }
+
+        if (!empty($this->cfg['crawl'])) {
+            $this->crawl($sites);
+
             return;
         }
 
@@ -118,34 +125,156 @@ final class PageVisitor
 
         foreach ($jobs as $job) {
             $result = $results[$job->id] ?? ['ok' => false, 'error' => 'нет результата', 'status' => null, 'final_url' => '', 'title' => ''];
-            $visit = [
-                'variant' => $job->variant,
-                'url' => $job->url,
-                'proxy' => $job->proxyLabel,
-                'user_agent' => $job->userAgent,
-                'ok' => (bool) $result['ok'],
-                'error' => (string) ($result['error'] ?? ''),
-                'status' => $result['status'] ?? null,
-                'final_url' => (string) ($result['final_url'] ?? ''),
-                'title' => (string) ($result['title'] ?? ''),
-                'html_file' => '',
-                'screenshot_file' => '',
-                'fingerprint' => '',
-                'text_length' => 0,
-            ];
-            if ($visit['ok'] && is_file($job->htmlFile)) {
-                $fingerprint = Fingerprint::of((string) file_get_contents($job->htmlFile));
-                $visit['html_file'] = $job->htmlFile;
-                $visit['fingerprint'] = $fingerprint['hash'];
-                $visit['text_length'] = $fingerprint['length'];
-                if ($visit['title'] === '') {
-                    $visit['title'] = $fingerprint['title'];
-                }
-                if ($job->screenshotFile !== null && is_file($job->screenshotFile)) {
-                    $visit['screenshot_file'] = $job->screenshotFile;
+            $sites[$job->siteKey]->visits[] = $this->assembleVisit($job, $result);
+        }
+    }
+
+    /**
+     * Собирает запись о визите из результата драйвера. Если задан $siteDomain и страница
+     * после редиректов увела на другой сайт — визит помечается ошибкой, а файлы удаляются.
+     *
+     * @param array<string, mixed> $result
+     * @return array<string, mixed>
+     */
+    private function assembleVisit(VisitJob $job, array $result, string $siteDomain = ''): array
+    {
+        $visit = [
+            'variant' => $job->variant,
+            'url' => $job->url,
+            'proxy' => $job->proxyLabel,
+            'user_agent' => $job->userAgent,
+            'ok' => (bool) $result['ok'],
+            'error' => (string) ($result['error'] ?? ''),
+            'status' => $result['status'] ?? null,
+            'final_url' => (string) ($result['final_url'] ?? ''),
+            'title' => (string) ($result['title'] ?? ''),
+            'html_file' => '',
+            'screenshot_file' => '',
+            'fingerprint' => '',
+            'text_length' => 0,
+        ];
+
+        if ($visit['ok'] && $siteDomain !== '' && $visit['final_url'] !== '' && !SiteLinks::sameSite($siteDomain, $visit['final_url'])) {
+            @unlink($job->htmlFile);
+            if ($job->screenshotFile !== null) {
+                @unlink($job->screenshotFile);
+            }
+
+            return array_merge($visit, ['ok' => false, 'error' => 'редирект на другой сайт: ' . $visit['final_url']]);
+        }
+
+        if ($visit['ok'] && is_file($job->htmlFile)) {
+            $fingerprint = Fingerprint::of((string) file_get_contents($job->htmlFile));
+            $visit['html_file'] = $job->htmlFile;
+            $visit['fingerprint'] = $fingerprint['hash'];
+            $visit['text_length'] = $fingerprint['length'];
+            if ($visit['title'] === '') {
+                $visit['title'] = $fingerprint['title'];
+            }
+            if ($job->screenshotFile !== null && is_file($job->screenshotFile)) {
+                $visit['screenshot_file'] = $job->screenshotFile;
+            }
+        }
+
+        return $visit;
+    }
+
+    /**
+     * Обход всех страниц из шапки сайта: открывает главную, собирает ссылки меню того же
+     * сайта и открывает их. Страницы с редиректом на другой сайт не сохраняются.
+     *
+     * @param array<string, Site> $sites
+     */
+    private function crawl(array $sites): void
+    {
+        $maxPages = max(1, (int) ($this->cfg['max_pages'] ?? 20));
+        $dir = rtrim((string) ($this->cfg['dir'] ?? 'out/pages'), '/\\');
+        $screenshot = (bool) ($this->cfg['screenshot'] ?? true) && $this->driver->name() === 'playwright';
+        $proxies = $this->proxyList();
+        $proxyIndex = 0;
+        $ua = $this->userAgents[0];
+        $options = $this->driverOptions();
+
+        $nextProxy = function () use ($proxies, &$proxyIndex): ?Proxy {
+            return $proxies !== [] ? $proxies[$proxyIndex++ % count($proxies)] : null;
+        };
+        $siteDir = static fn (Site $site): string => $dir . '/' . self::safeName($site->host);
+        $pageFile = static fn (Site $s, int $i, string $ext): string => $siteDir($s) . '/page-' . $i . '.' . $ext;
+
+        // Этап 1 — главные страницы
+        $homeJobs = [];
+        foreach ($sites as $key => $site) {
+            $url = ($this->cfg['target'] ?? 'found') === 'found' && $site->bestUrl !== '' ? $site->bestUrl : 'https://' . $site->host . '/';
+            $proxy = $nextProxy();
+            $homeJobs[$key] = new VisitJob(
+                id: $key . "\thome",
+                siteKey: (string) $key,
+                variant: 1,
+                url: $url,
+                referer: $this->referer($site),
+                userAgent: $ua,
+                proxyUrl: $proxy?->url,
+                proxyLabel: $proxy?->label ?? 'direct',
+                htmlFile: $pageFile($site, 1, 'html'),
+                screenshotFile: $screenshot ? $pageFile($site, 1, 'png') : null,
+            );
+        }
+
+        $done = 0;
+        $ok = 0;
+        $total = count($homeJobs);
+        $onResult = function (VisitJob $job, array $result) use (&$done, &$ok, &$total): void {
+            $done++;
+            if ($result['ok'] ?? false) {
+                $ok++;
+            }
+            if ($this->onProgress !== null) {
+                ($this->onProgress)(['total' => $total, 'done' => $done, 'ok' => $ok, 'current' => $job->url]);
+            }
+            $this->log->debug(sprintf('  [%d/%d] %s — %s', $done, $total, $job->url, $result['ok'] ? 'HTTP ' . ($result['status'] ?? '?') : 'ошибка: ' . $result['error']));
+        };
+
+        $this->log->info(sprintf('Обход сайтов (%s): главные страницы %d…', $this->driver->name(), count($homeJobs)));
+        $homeResults = $this->driver->visit(array_values($homeJobs), $options, $onResult);
+
+        // Собираем ссылки из шапки каждой главной и готовим задания на внутренние страницы
+        $pageJobs = [];
+        foreach ($sites as $key => $site) {
+            $job = $homeJobs[$key];
+            $result = $homeResults[$job->id] ?? ['ok' => false, 'error' => 'нет результата', 'status' => null, 'final_url' => '', 'title' => ''];
+            $site->visits[] = $this->assembleVisit($job, $result, $site->domain);
+
+            if (($site->visits[count($site->visits) - 1]['ok'] ?? false) && is_file($job->htmlFile)) {
+                $links = SiteLinks::fromHeader((string) file_get_contents($job->htmlFile), $job->url, $site->domain, $maxPages - 1);
+                $index = 2;
+                foreach ($links as $link) {
+                    $proxy = $nextProxy();
+                    $pageJobs[] = new VisitJob(
+                        id: $key . "\t" . $index,
+                        siteKey: (string) $key,
+                        variant: $index,
+                        url: $link,
+                        referer: $job->url,
+                        userAgent: $ua,
+                        proxyUrl: $proxy?->url,
+                        proxyLabel: $proxy?->label ?? 'direct',
+                        htmlFile: $pageFile($site, $index, 'html'),
+                        screenshotFile: $screenshot ? $pageFile($site, $index, 'png') : null,
+                    );
+                    $index++;
                 }
             }
-            $sites[$job->siteKey]->visits[] = $visit;
+        }
+
+        // Этап 2 — внутренние страницы из меню
+        if ($pageJobs !== []) {
+            $total += count($pageJobs);
+            $this->log->info(sprintf('Обход сайтов: внутренних страниц из меню %d…', count($pageJobs)));
+            $pageResults = $this->driver->visit($pageJobs, $options, $onResult);
+            foreach ($pageJobs as $job) {
+                $result = $pageResults[$job->id] ?? ['ok' => false, 'error' => 'нет результата', 'status' => null, 'final_url' => '', 'title' => ''];
+                $sites[$job->siteKey]->visits[] = $this->assembleVisit($job, $result, $sites[$job->siteKey]->domain);
+            }
         }
     }
 
