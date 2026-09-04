@@ -31,6 +31,9 @@ User-facing documentation (README, CLI help, config comments) is in Russian; ide
 cladue/
 ├── bin/yandex-sites.php        # CLI entry point (works with or without composer autoload)
 ├── bin/setup.php               # first-time setup: config/.env/proxies from examples, folders, environment checks
+├── bin/panel.php               # local web UI: launcher + php -S router (keys, run, progress, schedule)
+├── bin/run-job.php             # background collect job: writes runs/current/status.json + results, optional repeat
+├── public/panel.html           # single-file web UI (inline CSS/JS, polls the panel API)
 ├── tools/render-page.js        # Node.js + Playwright renderer used by Visit\PlaywrightDriver (stdin JSON → stdout JSON lines)
 ├── src/
 │   ├── Cli/Application.php     # argument parsing, dependency wiring (sources, cache, checker, visitor), summary output
@@ -49,7 +52,8 @@ cladue/
 │   ├── Output/ReportWriter.php # CSV / JSON / domains.txt writers
 │   ├── Model/                  # SearchResult, SearchPage (hasMore), Site (check + visits)
 │   ├── Http/                   # HttpClient (curl wrapper with proxy/cookie/follow options), HttpResponse, HttpException
-│   └── Support/                # Logger (STDERR), QueryList (query file reader)
+│   ├── Runtime.php             # shared pipeline factory (fetcher/cache/proxies/checker/visitor) used by CLI and job
+│   └── Support/                # Logger (STDERR), QueryList (query file reader), Progress (status JSON writer)
 ├── tests/                      # custom runner (run.php), Assert, fixtures/ (XML + SERP HTML), fake-api-server.php
 ├── config.example.php          # documented example configuration (copy to config.php)
 ├── proxies.example.txt         # proxy list formats
@@ -59,7 +63,7 @@ cladue/
 └── CLAUDE.md
 ```
 
-Ignored by git: `config.php`, `.env`, `proxies.txt`, `cache/`, `out/`, `queries.txt`, `vendor/`, `node_modules/`.
+Ignored by git: `config.php`, `.env`, `proxies.txt`, `cache/`, `out/`, `runs/`, `queries.txt`, `vendor/`, `node_modules/`.
 
 ---
 
@@ -96,6 +100,7 @@ cp .env.example .env      # fill in credentials for the chosen source
 |------|---------|
 | First-time setup | `php bin/setup.php --proxy=http://host:port:user:pass` (creates config.php, .env, proxies.txt, folders; checks PHP/Playwright) |
 | Update code from GitHub | `php bin/setup.php --update` (downloads the branch archive, overwrites code, keeps config/proxies/cache/out) |
+| Web interface | `php bin/panel.php` (opens http://127.0.0.1:8777; keys, run, progress, schedule) |
 | Run the tool | `php bin/yandex-sites.php queries.txt` |
 | Live SERP through proxies | `php bin/yandex-sites.php --live --proxies=proxies.txt queries.txt` |
 | Visits with screenshots | `php bin/yandex-sites.php queries.txt --visit --variants=2` |
@@ -203,6 +208,11 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   format is not Yandex.XML); new visit drivers implement `Visit\DriverInterface`.
 - Every new filter rule needs a reason code in `ResultFilter::reject()`, a config default in
   `Config::defaults()`, an example in `config.example.php` and a test in `tests/ResultFilterTest.php`.
+- `Runner` and `PageVisitor` accept an optional `$onProgress` callback; `bin/run-job.php` wires it
+  to `Support\Progress`, and `bin/panel.php` (dual launcher/router via `PHP_SAPI==='cli-server'`)
+  spawns the job and serves `public/panel.html`. Keep CLI and panel behaviour in sync through `Runtime`.
+- `domain_scope` (all/root/subdomain) and `unique_by=domain` implement the "one site per domain,
+  skip other subdomains" rule; covered by `tests/ResultFilterTest.php` and `tests/PanelTest.php`.
 - When Yandex changes its SERP markup, update `Live\HtmlResponseParser` and `tests/fixtures/serp.html`
   together; `--parse-html` helps to check a saved page.
 - Run `php tests/lint.php && php tests/run.php` after changes.

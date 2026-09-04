@@ -62,6 +62,10 @@ final class ConfigTest
         Assert::contains('filters.unique_by', $errors);
         Assert::contains('filters.exclude_domains', $errors);
 
+        $badScope = new Config(['api' => ['folder_id' => 'f', 'api_key' => 'k'], 'filters' => ['domain_scope' => 'weird']]);
+        Assert::contains('filters.domain_scope', implode("\n", $badScope->validate()));
+        Assert::same('all', (new Config())->get('filters.domain_scope'));
+
         $ok = new Config(['api' => ['folder_id' => 'f', 'iam_token' => 't']]);
         Assert::same([], $ok->validate());
     }

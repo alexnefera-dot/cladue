@@ -25,7 +25,18 @@ final class Runner
         private Logger $log,
         private ?SiteChecker $checker = null,
         private ?PageVisitor $visitor = null,
+        private mixed $onProgress = null,
     ) {
+    }
+
+    /**
+     * @param array<string, mixed> $event
+     */
+    private function progress(array $event): void
+    {
+        if ($this->onProgress !== null) {
+            ($this->onProgress)($event);
+        }
     }
 
     /**
@@ -45,6 +56,7 @@ final class Runner
         $groupsOnPage = max(1, (int) $this->config->get('search.groups_on_page', 10));
         $maxErrors = max(0, (int) $this->config->get('search.max_consecutive_errors', 0));
         $consecutiveErrors = 0;
+        $this->progress(['phase' => 'search', 'queries_total' => count($queries), 'queries_done' => 0]);
 
         foreach ($queries as $index => $query) {
             $this->log->info(sprintf('[%d/%d] %s', $index + 1, count($queries), $query));
@@ -114,10 +126,21 @@ final class Runner
             }
             $consecutiveErrors = 0;
             $result->stats['queries_done']++;
+            $this->progress([
+                'phase' => 'search',
+                'queries_total' => count($queries),
+                'queries_done' => $index + 1,
+                'current_query' => $query,
+                'results' => $result->stats['results'],
+                'sites_total' => count($aggregator->sites()),
+                'rejected' => $result->stats['rejected'],
+                'error_count' => count($result->errors),
+            ]);
         }
 
         $sites = $aggregator->sites();
         $result->stats['sites_total'] = count($sites);
+        $this->progress(['phase' => 'filter', 'sites_total' => count($sites)]);
 
         $minQueries = max(1, (int) $this->config->get('filters.min_queries', 1));
         $minHits = max(1, (int) $this->config->get('filters.min_hits', 1));
@@ -148,6 +171,7 @@ final class Runner
         }
 
         if ($this->visitor !== null && $sites !== []) {
+            $this->progress(['phase' => 'visit', 'sites_selected' => count($sites)]);
             $this->visitor->visit($sites);
         }
 
@@ -159,6 +183,7 @@ final class Runner
 
         $result->sites = $sites;
         $result->stats['sites_selected'] = count($sites);
+        $this->progress(['phase' => 'done', 'sites_selected' => count($sites), 'sites_total' => $result->stats['sites_total']]);
 
         return $result;
     }

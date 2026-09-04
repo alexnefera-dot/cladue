@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>yandex-sites — панель</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --card:#fff; --ink:#1c2330; --muted:#6b7280; --line:#e5e7eb;
+    --accent:#2b6cff; --accent-ink:#fff; --ok:#137a3f; --warn:#b45309; --err:#b91c1c;
+    --chip:#eef2ff;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#11151c; --card:#1a2029; --ink:#e6e9ef; --muted:#9aa4b2; --line:#2a323d;
+      --accent:#4f86ff; --chip:#22304d; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:1100px;margin:0 auto;padding:20px 16px 60px}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{color:var(--muted);margin:0 0 18px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media (max-width:820px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+  .card h2{font-size:14px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:0 0 12px}
+  label{display:block;font-weight:600;margin:10px 0 4px}
+  .hint{font-weight:400;color:var(--muted);font-size:12px}
+  input[type=text],input[type=password],input[type=number],select,textarea{
+    width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+  textarea{min-height:120px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  .row>div{flex:1;min-width:130px}
+  .check{display:flex;align-items:center;gap:8px;font-weight:600;margin:10px 0 4px}
+  .check input{width:auto}
+  button{font:inherit;font-weight:600;border:0;border-radius:9px;padding:10px 16px;cursor:pointer}
+  .btn-primary{background:var(--accent);color:var(--accent-ink)}
+  .btn-ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  .btn-danger{background:var(--err);color:#fff}
+  button:disabled{opacity:.5;cursor:default}
+  .btns{display:flex;gap:10px;align-items:center;margin-top:8px}
+  .bar{height:12px;background:var(--line);border-radius:99px;overflow:hidden;margin:8px 0}
+  .bar>span{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+  .stat{display:inline-flex;flex-direction:column;background:var(--chip);border-radius:8px;padding:6px 12px;margin:4px 8px 4px 0}
+  .stat b{font-size:18px}
+  .stat span{font-size:11px;color:var(--muted)}
+  .state{display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:700}
+  .s-idle{background:var(--line);color:var(--muted)}
+  .s-run{background:var(--chip);color:var(--accent)}
+  .s-done{background:#dcfce7;color:var(--ok)}
+  .s-wait{background:#fef3c7;color:var(--warn)}
+  .s-err{background:#fee2e2;color:var(--err)}
+  pre.log{background:#0d1117;color:#c9d1d9;border-radius:8px;padding:12px;max-height:220px;overflow:auto;font-size:12px;margin:0}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{color:var(--muted);font-size:11px;text-transform:uppercase}
+  td.host{white-space:normal;word-break:break-all}
+  .tag{font-size:11px;padding:1px 7px;border-radius:99px;background:var(--chip);color:var(--accent)}
+  .tag.diff{background:#fef3c7;color:var(--warn)}
+  .muted{color:var(--muted)}
+  .msg{padding:8px 12px;border-radius:8px;margin-top:8px;font-size:13px}
+  .msg.err{background:#fee2e2;color:var(--err)}
+  .msg.ok{background:#dcfce7;color:var(--ok)}
+  .saved{color:var(--ok);font-size:12px;margin-left:8px}
+  a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>yandex-sites</h1>
+  <p class="sub">Сбор сайтов из выдачи и открытие их в браузере. Интерфейс работает локально на этом компьютере.</p>
+
+  <div class="grid">
+    <div>
+      <div class="card">
+        <h2>Ключи доступа</h2>
+        <label>XMLStock — ID пользователя <span id="xmuser" class="hint"></span></label>
+        <input type="text" id="k_user" placeholder="например 12478">
+        <label>XMLStock — ключ <span id="xmkey" class="hint"></span></label>
+        <input type="password" id="k_key" placeholder="оставьте пустым, чтобы не менять">
+        <div class="btns"><button class="btn-ghost" id="saveKeys">Сохранить ключи</button><span id="keysSaved" class="saved" hidden>сохранено</span></div>
+      </div>
+
+      <div class="card">
+        <h2>Запросы</h2>
+        <textarea id="queries" placeholder="по одному запросу в строке&#10;пластиковые окна купить москва&#10;остекление балконов цена"></textarea>
+        <div class="hint">По одному запросу в строке. Пустые строки и строки с # пропускаются.</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2>Условия отбора</h2>
+        <div class="row">
+          <div>
+            <label>Источник</label>
+            <select id="source">
+              <option value="xmlstock">XMLStock</option>
+              <option value="api">Yandex Search API</option>
+              <option value="live">Живая выдача (прокси)</option>
+            </select>
+          </div>
+          <div>
+            <label>Регион (lr)</label>
+            <input type="number" id="region" value="213">
+          </div>
+          <div>
+            <label>Страниц на запрос</label>
+            <input type="number" id="pages" value="1" min="1" max="100">
+          </div>
+        </div>
+
+        <div class="check"><input type="checkbox" id="dedupe" checked><label style="margin:0">Один сайт на домен (поддомены одного домена второй раз не берём)</label></div>
+
+        <label>Тип домена</label>
+        <select id="scope">
+          <option value="all">Любые домены</option>
+          <option value="root">Только корневые (example.ru)</option>
+          <option value="subdomain">Только поддомены (shop.example.ru)</option>
+        </select>
+
+        <div class="row">
+          <div>
+            <label>Мин. число запросов <span class="hint">сайт встретился в N запросах</span></label>
+            <input type="number" id="minq" value="1" min="1">
+          </div>
+          <div>
+            <label>Зоны доменов <span class="hint">через запятую, пусто — любые</span></label>
+            <input type="text" id="tlds" placeholder="ru, рф, su">
+          </div>
+        </div>
+        <label>Исключить домены дополнительно <span class="hint">через запятую</span></label>
+        <input type="text" id="exclude" placeholder="competitor.ru, spam.ru">
+      </div>
+
+      <div class="card">
+        <h2>Открытие сайтов и повтор</h2>
+        <div class="check"><input type="checkbox" id="visit" checked><label style="margin:0">Открывать найденные сайты в браузере (Chromium), сохранять HTML и скриншот</label></div>
+        <div class="row">
+          <div>
+            <label>Заходов на сайт</label>
+            <input type="number" id="variants" value="2" min="1" max="10">
+            <div class="hint">1‑й — как робот Яндекса, далее — как браузер</div>
+          </div>
+          <div>
+            <label>Движок</label>
+            <select id="driver"><option value="auto">Авто</option><option value="playwright">Chromium (JS)</option><option value="curl">curl (без JS)</option></select>
+          </div>
+        </div>
+        <div class="check"><input type="checkbox" id="useproxies"><label style="margin:0">Ходить через прокси из proxies.txt <span id="proxHint" class="hint"></span></label></div>
+        <label>Повторять сбор каждые, часов <span class="hint">0 — один раз</span></label>
+        <input type="number" id="repeat" value="0" min="0" step="1">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="btns">
+      <button class="btn-primary" id="startBtn">Запустить сбор</button>
+      <button class="btn-danger" id="stopBtn" disabled>Остановить</button>
+      <span id="stateBadge" class="state s-idle">не запущено</span>
+    </div>
+    <div id="startMsg"></div>
+  </div>
+
+  <div class="card" id="progressCard" hidden>
+    <h2>Прогресс <span id="phaseText" class="muted"></span></h2>
+    <div class="bar"><span id="barFill"></span></div>
+    <div id="stats"></div>
+    <div id="progMsg"></div>
+    <div id="proxies" class="muted" style="margin-top:8px"></div>
+  </div>
+
+  <div class="card">
+    <h2>Журнал</h2>
+    <pre class="log" id="log">—</pre>
+  </div>
+
+  <div class="card" id="resultsCard" hidden>
+    <h2>Результаты <span id="resCount" class="muted"></span></h2>
+    <div class="btns" style="margin-bottom:10px">
+      <a class="tag" id="dlCsv" href="/download?file=csv">CSV</a>
+      <a class="tag" id="dlJson" href="/download?file=json">JSON</a>
+      <a class="tag" id="dlDomains" href="/download?file=domains">domains.txt</a>
+    </div>
+    <div style="overflow:auto">
+      <table id="resTable">
+        <thead><tr><th>#</th><th>Домен</th><th>Запросов</th><th>Позиция</th><th>Версии</th><th>Визит</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const FIELDS = ['queries','source','region','pages','dedupe','scope','minq','tlds','exclude','visit','variants','driver','useproxies','repeat'];
+
+function loadLocal(){
+  try{ const s = JSON.parse(localStorage.getItem('ys-panel')||'{}');
+    for(const k of FIELDS){ if(k in s){ const el=$(k); if(el.type==='checkbox') el.checked=!!s[k]; else el.value=s[k]; } }
+  }catch(e){}
+}
+function saveLocal(){
+  const s={}; for(const k of FIELDS){ const el=$(k); s[k]=el.type==='checkbox'?el.checked:el.value; }
+  try{ localStorage.setItem('ys-panel', JSON.stringify(s)); }catch(e){}
+}
+FIELDS.forEach(k=>$(k).addEventListener('input', saveLocal));
+
+function collectSettings(){
+  return {
+    queries: $('queries').value.split('\n').map(s=>s.trim()).filter(s=>s && !s.startsWith('#')),
+    source: $('source').value,
+    region: $('region').value,
+    pages: parseInt($('pages').value)||1,
+    dedupe_domain: $('dedupe').checked,
+    domain_scope: $('scope').value,
+    min_queries: parseInt($('minq').value)||1,
+    allowed_tlds: $('tlds').value.split(',').map(s=>s.trim()).filter(Boolean),
+    exclude_extra: $('exclude').value.split(',').map(s=>s.trim()).filter(Boolean),
+    visit: $('visit').checked,
+    variants: parseInt($('variants').value)||1,
+    visit_driver: $('driver').value,
+    proxies_file: $('useproxies').checked ? 'proxies.txt' : '',
+    repeat_hours: parseFloat($('repeat').value)||0
+  };
+}
+
+async function saveKeys(){
+  const body={ xmlstock_user:$('k_user').value.trim(), xmlstock_key:$('k_key').value.trim() };
+  await fetch('/api/keys',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  $('k_key').value='';
+  const s=$('keysSaved'); s.hidden=false; setTimeout(()=>s.hidden=true,2500);
+  refresh();
+}
+$('saveKeys').addEventListener('click', saveKeys);
+
+async function start(){
+  const st=collectSettings();
+  if(st.queries.length===0){ showStart('Добавьте хотя бы один запрос','err'); return; }
+  $('startBtn').disabled=true;
+  const r=await fetch('/api/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(st)});
+  const j=await r.json();
+  if(!j.ok){ showStart(j.error||'Не удалось запустить','err'); $('startBtn').disabled=false; }
+  else showStart('Сбор запущен','ok');
+  refresh();
+}
+async function stop(){
+  $('stopBtn').disabled=true;
+  await fetch('/api/stop',{method:'POST'});
+  refresh();
+}
+$('startBtn').addEventListener('click', start);
+$('stopBtn').addEventListener('click', stop);
+function showStart(t,cls){ $('startMsg').innerHTML = t?`<div class="msg ${cls}">${t}</div>`:''; }
+
+const STATE_LABEL={running:'идёт сбор',waiting:'ожидание повтора',done:'готово',error:'ошибка',stopped:'остановлено',starting:'запуск…'};
+const STATE_CLS={running:'s-run',starting:'s-run',waiting:'s-wait',done:'s-done',error:'s-err',stopped:'s-idle'};
+
+function fmtCountdown(sec){ if(sec==null) return ''; sec=Math.max(0,sec|0); const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=sec%60; return (h?h+'ч ':'')+(m?m+'м ':'')+s+'с'; }
+
+function renderStatus(st, running){
+  const badge=$('stateBadge');
+  const state = running ? (st?.state==='waiting'?'waiting':'running') : (st?.state||'idle');
+  badge.textContent = running && st?.state!=='waiting' ? (STATE_LABEL[st?.state]||'идёт сбор') : (STATE_LABEL[st?.state]||'не запущено');
+  badge.className='state '+(STATE_CLS[st?.state]|| 's-idle');
+  $('startBtn').disabled = running;
+  $('stopBtn').disabled = !running;
+
+  if(!st){ $('progressCard').hidden=true; return; }
+  $('progressCard').hidden=false;
+  const stats=st.stats||{};
+  let phase=st.phase, pText='';
+  if(st.state==='waiting'){ pText='следующий сбор через '+fmtCountdown(st.countdown_seconds); }
+  else if(phase==='search'){ pText='сбор выдачи'; }
+  else if(phase==='filter'){ pText='фильтрация'; }
+  else if(phase==='visit'){ pText='открываю сайты в браузере'; }
+  else if(phase==='done'){ pText='завершено'; }
+  else if(phase==='error'){ pText='ошибка'; }
+  $('phaseText').textContent = pText?('· '+pText):'';
+
+  let pct=0;
+  const v=st.visit;
+  if(phase==='visit' && v && v.total){ pct=Math.round(100*v.done/v.total); }
+  else if(st.queries_total){ pct=Math.round(100*(st.queries_done||0)/st.queries_total); }
+  else if(st.state==='done'){ pct=100; }
+  $('barFill').style.width=pct+'%';
+
+  const cells=[];
+  const push=(b,s)=>cells.push(`<div class="stat"><b>${b}</b><span>${s}</span></div>`);
+  push((st.queries_done||0)+' / '+(st.queries_total||stats.queries||'?'),'запросов');
+  push(st.results ?? stats.results ?? 0,'результатов в выдаче');
+  push(st.sites_total ?? stats.sites_total ?? 0,'сайтов найдено');
+  push(st.sites_selected ?? stats.sites_selected ?? 0,'отобрано');
+  if(v && v.total) push((v.done||0)+' / '+v.total,'страниц открыто');
+  $('stats').innerHTML=cells.join('');
+
+  let msg='';
+  if(st.state==='error') msg=`<div class="msg err">${st.message||'Ошибка, см. журнал'}</div>`;
+  else if(st.errors && st.errors.length) msg=`<div class="msg err">Предупреждений: ${st.errors.length} — ${(st.errors[0]||'').slice(0,200)}</div>`;
+  $('progMsg').innerHTML=msg;
+
+  if(st.proxies && st.proxies.length){
+    $('proxies').textContent='Прокси: '+st.proxies.map(p=>`${p.proxy} (запросов ${p.requests}, капч ${p.captchas})`).join(' · ');
+  } else $('proxies').textContent='';
+}
+
+function renderResults(sites){
+  const card=$('resultsCard');
+  if(!sites || !sites.length){ card.hidden=true; return; }
+  card.hidden=false;
+  $('resCount').textContent='· '+sites.length;
+  const tb=$('resTable').querySelector('tbody');
+  tb.innerHTML=sites.map((s,i)=>{
+    let visit='—';
+    if(s.visit_ok===true) visit=`<span class="tag">HTTP ${s.visit_status||'?'}</span>`;
+    else if(s.visit_ok===false) visit=`<span class="tag diff">ошибка</span>`;
+    const variants = s.variants>1 ? `<span class="tag diff">${s.variants} версии</span>` : (s.variants===1?'1':'—');
+    const link = s.url?`<a href="${s.url}" target="_blank" rel="noopener">${s.host}</a>`:s.host;
+    return `<tr><td>${i+1}</td><td class="host">${link}</td><td>${s.queries_count||0}</td><td>${s.best_position??'—'}</td><td>${variants}</td><td>${visit}</td></tr>`;
+  }).join('');
+}
+
+let prefilled=false;
+function prefill(state){
+  if(prefilled) return; prefilled=true;
+  if(state.keys){ if(state.keys.xmlstock_user) $('k_user').value=state.keys.xmlstock_user;
+    $('xmkey').textContent = state.keys.xmlstock_key_set ? '· ключ сохранён' : '· не задан'; }
+  $('proxHint').textContent = state.has_proxies ? '· файл найден' : '· proxies.txt не найден';
+  const saved = JSON.parse(localStorage.getItem('ys-panel')||'null');
+  if(!saved && state.settings){
+    const s=state.settings;
+    if(s.queries) $('queries').value=s.queries.join('\n');
+    if(s.source)$('source').value=s.source; if(s.region!=null)$('region').value=s.region;
+    if(s.pages)$('pages').value=s.pages; $('dedupe').checked=s.dedupe_domain!==false;
+    if(s.domain_scope)$('scope').value=s.domain_scope; if(s.min_queries)$('minq').value=s.min_queries;
+    if(s.allowed_tlds)$('tlds').value=(s.allowed_tlds||[]).join(', ');
+    if(s.exclude_extra)$('exclude').value=(s.exclude_extra||[]).join(', ');
+    $('visit').checked=!!s.visit; if(s.variants)$('variants').value=s.variants;
+    if(s.visit_driver)$('driver').value=s.visit_driver; $('useproxies').checked=!!s.proxies_file;
+    if(s.repeat_hours!=null)$('repeat').value=s.repeat_hours;
+  }
+}
+
+async function refresh(){
+  try{
+    const r=await fetch('/api/state'); const st=await r.json();
+    prefill(st);
+    renderStatus(st.status, st.running);
+    if(st.status && (st.status.state==='done'||st.status.state==='waiting'||st.status.state==='error')){
+      const rr=await fetch('/api/results'); const j=await rr.json();
+      renderResults((j.sites||[]).map(s=>({host:s.host,url:s.url,queries_count:s.queries_count,best_position:s.best_position,variants:s.variants,visit_ok:(s.visits&&s.visits[0])?s.visits[0].ok:null,visit_status:(s.visits&&s.visits[0])?s.visits[0].status:null})));
+    } else if(st.status && st.status.sites && st.status.sites.length){
+      renderResults(st.status.sites);
+    }
+  }catch(e){}
+  try{ const l=await fetch('/api/log'); const t=await l.text(); if(t.trim()){ const el=$('log'); const atEnd=el.scrollTop+el.clientHeight>=el.scrollHeight-20; el.textContent=t; if(atEnd) el.scrollTop=el.scrollHeight; } }catch(e){}
+}
+
+loadLocal();
+refresh();
+setInterval(refresh, 1500);
+</script>
+</body>
+</html>

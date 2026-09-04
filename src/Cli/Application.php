@@ -14,6 +14,7 @@ use YandexSites\Live\ProxyPool;
 use YandexSites\Output\ReportWriter;
 use YandexSites\Runner;
 use YandexSites\RunResult;
+use YandexSites\Runtime;
 use YandexSites\Search\CachingFetcher;
 use YandexSites\Search\RawFetcherInterface;
 use YandexSites\Search\ResponseParserInterface;
@@ -33,7 +34,7 @@ use YandexSites\Visit\PlaywrightDriver;
  */
 final class Application
 {
-    public const VERSION = '1.1.1';
+    public const VERSION = '1.2.0';
 
     /** Опции, принимающие значение (остальные — флаги). */
     private const VALUE_OPTIONS = ['queries', 'query', 'config', 'out', 'pages', 'region', 'groups', 'limit', 'delay', 'source', 'proxies', 'proxy', 'parse-html', 'visit-driver', 'variants', 'user-agent', 'save-html'];
@@ -129,7 +130,9 @@ final class Application
             $source === 'live' ? ' (около 10 результатов на странице)' : sprintf(', результатов на странице: %d', (int) $config->get('search.groups_on_page')),
         ));
 
-        $fetcher = $this->buildFetcher($config, $log, isset($opts['offline']));
+        $runtime = new Runtime($config, $log, $this->cliProxies);
+        $fetcher = $runtime->fetcher(isset($opts['offline']));
+        $this->proxies = $runtime->proxies;
         $cache = $fetcher instanceof CachingFetcher ? $fetcher : null;
 
         $cached = 0;
@@ -168,9 +171,10 @@ final class Application
             return 0;
         }
 
-        $checker = $config->get('site_check.enabled') ? new SiteChecker((array) $config->get('site_check'), $log) : null;
-        $this->visitor = $config->get('visit.enabled') ? $this->buildVisitor($config, $log) : null;
-        $runner = new Runner($config, $fetcher, $this->buildParser($config), $log, $checker, $this->visitor);
+        $checker = $runtime->checker();
+        $this->visitor = $runtime->visitor();
+        $this->proxies = $runtime->proxies;
+        $runner = new Runner($config, $fetcher, $runtime->parser(), $log, $checker, $this->visitor);
         $result = $runner->run($queries);
 
         $files = $this->writeReports($config, $result);
@@ -297,96 +301,8 @@ final class Application
         return $valid;
     }
 
-    private function buildFetcher(Config $config, Logger $log, bool $offline): RawFetcherInterface
-    {
-        $source = (string) $config->get('source');
-        $extension = 'xml';
 
-        if ($source === 'live') {
-            $this->proxies = $this->buildProxyPool($config);
-            $fetcher = new LiveFetcher($config, new HttpClient((int) $config->get('live.timeout')), new HtmlResponseParser(), $this->proxies, $log);
-            $extension = 'html';
-        } else {
-            $http = new HttpClient((int) $config->get('api.timeout'), (string) $config->get('api.user_agent'));
-            $parser = new XmlResponseParser();
-            if ($source === 'xmlstock') {
-                $fetcher = new XmlStockFetcher($config, $http, $parser, $log);
-            } elseif ($config->get('api.version') === 'xml') {
-                $fetcher = new XmlApiFetcher($config, $http, $parser, $log);
-            } else {
-                $fetcher = new RestApiFetcher($config, $http, $parser, $log);
-            }
-        }
 
-        if (!$config->get('cache.enabled') && !$offline) {
-            return $fetcher;
-        }
-
-        return new CachingFetcher(
-            $fetcher,
-            rtrim((string) $config->get('cache.dir'), '/\\') . '/' . $source,
-            (int) $config->get('cache.ttl'),
-            $this->cacheKeyParts($config),
-            $offline,
-            $extension,
-        );
-    }
-
-    /**
-     * Параметры, от которых зависит содержимое ответа: входят в ключ кэша.
-     *
-     * @return array<string, mixed>
-     */
-    private function cacheKeyParts(Config $config): array
-    {
-        $source = (string) $config->get('source');
-        $parts = ['source' => $source, 'region' => $config->get('search.region')];
-        if ($source === 'live') {
-            $parts['domain'] = $config->get('live.domain');
-
-            return $parts;
-        }
-        foreach (['search_type', 'l10n', 'groups_on_page', 'docs_in_group', 'group_mode', 'max_passages', 'family_mode', 'fix_typo', 'sort', 'period'] as $key) {
-            $parts[$key] = $config->get('search.' . $key);
-        }
-        if ($source === 'xmlstock') {
-            $parts['domain'] = $config->get('xmlstock.domain');
-            $parts['device'] = $config->get('xmlstock.device');
-        } else {
-            $parts['api_version'] = $config->get('api.version');
-        }
-
-        return $parts;
-    }
-
-    /**
-     * Общий список прокси: config `proxies` + `proxy_file`, опции --proxy, а также
-     * `live.proxies` / `live.proxy_file` (прежнее место в конфигурации).
-     */
-    private function buildProxyPool(Config $config): ProxyPool
-    {
-        $lines = array_merge(
-            array_values((array) $config->get('proxies', [])),
-            $this->cliProxies,
-            array_values((array) $config->get('live.proxies', [])),
-        );
-        foreach ([$config->get('proxy_file'), $config->get('live.proxy_file')] as $file) {
-            if (is_string($file) && $file !== '') {
-                if (!is_file($file)) {
-                    throw new UsageException("файл со списком прокси не найден: $file");
-                }
-                $lines = array_merge($lines, file($file, FILE_IGNORE_NEW_LINES) ?: []);
-            }
-        }
-        $requestsPerProxy = (int) $config->get('live.requests_per_proxy');
-        $maxFailures = (int) $config->get('live.max_proxy_failures');
-        $pool = ProxyPool::fromLines($lines, $requestsPerProxy, $maxFailures);
-        if ($pool->isEmpty()) {
-            $pool = ProxyPool::fromLines(['direct'], $requestsPerProxy, $maxFailures);
-        }
-
-        return $pool;
-    }
 
     /**
      * Проверка каждого прокси на живой выдаче: одна страница результатов через каждый.
@@ -395,7 +311,7 @@ final class Application
      */
     private function checkProxies(Config $config, Logger $log, array $queries): int
     {
-        $pool = $this->buildProxyPool($config);
+        $pool = (new Runtime($config, $log, $this->cliProxies))->proxyPool();
         $fetcher = new LiveFetcher($config, new HttpClient((int) $config->get('live.timeout')), new HtmlResponseParser(), $pool, $log);
         $query = $queries !== [] ? (string) $queries[0] : 'пластиковые окна';
         $domain = preg_replace('~^https?://~', '', (string) $config->get('live.domain')) ?? '';
@@ -422,54 +338,8 @@ final class Application
         return $okCount > 0 ? 0 : 1;
     }
 
-    private function buildParser(Config $config): ResponseParserInterface
-    {
-        return $config->get('source') === 'live' ? new HtmlResponseParser() : new XmlResponseParser();
-    }
 
-    private function buildVisitor(Config $config, Logger $log): PageVisitor
-    {
-        $cfg = (array) $config->get('visit');
-        $driver = $this->buildVisitDriver($cfg, $log);
 
-        $proxies = null;
-        if ((array_key_exists('proxy', $cfg) ? $cfg['proxy'] : 'list') === 'list') {
-            $this->proxies ??= $this->buildProxyPool($config);
-            $proxies = $this->proxies;
-        }
-
-        $base = 'https://yandex.ru';
-        if ($config->get('source') === 'live') {
-            $domain = trim((string) $config->get('live.domain', 'yandex.ru'));
-            $base = rtrim(preg_match('~^https?://~i', $domain) === 1 ? $domain : 'https://' . $domain, '/');
-        }
-
-        return new PageVisitor($cfg, $driver, $log, $proxies, $base, (string) $config->get('search.region', ''));
-    }
-
-    /**
-     * @param array<string, mixed> $cfg
-     */
-    private function buildVisitDriver(array $cfg, Logger $log): DriverInterface
-    {
-        $mode = (string) ($cfg['driver'] ?? 'auto');
-        if ($mode === 'curl') {
-            return new CurlDriver();
-        }
-        $playwright = new PlaywrightDriver((string) ($cfg['node'] ?? 'node'));
-        $probe = $playwright->probe(isset($cfg['browser_path']) && $cfg['browser_path'] !== '' ? (string) $cfg['browser_path'] : null);
-        if ($probe['ok']) {
-            $log->info('Браузер для визитов: ' . $probe['message']);
-
-            return $playwright;
-        }
-        if ($mode === 'playwright') {
-            throw new UsageException('Playwright недоступен: ' . $probe['message']);
-        }
-        $log->warn('Playwright недоступен (' . $probe['message'] . '), визиты выполняются через curl без выполнения JavaScript');
-
-        return new CurlDriver();
-    }
 
     /**
      * Отладка разбора живой выдачи: разобрать сохранённую HTML-страницу и показать результаты.

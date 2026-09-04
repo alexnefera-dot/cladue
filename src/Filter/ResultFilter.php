@@ -13,6 +13,7 @@ use YandexSites\Model\SearchResult;
 final class ResultFilter
 {
     private ?int $maxPosition;
+    private string $domainScope;
     private DomainMatcher $include;
     private DomainMatcher $exclude;
     /** @var list<string> */
@@ -32,6 +33,9 @@ final class ResultFilter
     {
         $max = (int) ($cfg['max_position'] ?? 0);
         $this->maxPosition = $max > 0 ? $max : null;
+
+        $scope = (string) ($cfg['domain_scope'] ?? 'all');
+        $this->domainScope = in_array($scope, ['all', 'root', 'subdomain'], true) ? $scope : 'all';
 
         $this->include = new DomainMatcher($cfg['include_domains'] ?? []);
         $this->exclude = new DomainMatcher($cfg['exclude_domains'] ?? []);
@@ -74,6 +78,12 @@ final class ResultFilter
         }
         if ($this->tlds !== [] && !in_array(Domains::tld($host), $this->tlds, true)) {
             return 'tld';
+        }
+        if ($this->domainScope !== 'all') {
+            $isRoot = Domains::registrable($host) === $host;
+            if (($this->domainScope === 'root' && !$isRoot) || ($this->domainScope === 'subdomain' && $isRoot)) {
+                return 'domain_scope';
+            }
         }
         if (!$this->urlMust->isEmpty() && !$this->urlMust->matchesAll($result->url)) {
             return 'url_must_match';

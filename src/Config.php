@@ -131,6 +131,8 @@ final class Config
                 'max_position' => null,
                 'unique_by' => 'host',
                 'strip_www' => true,
+                // Какие домены брать: all — любые, root — только корневые (example.ru), subdomain — только поддомены (shop.example.ru)
+                'domain_scope' => 'all',
                 'allowed_tlds' => [],
                 'include_domains' => [],
                 'exclude_domains' => DefaultExclusions::LIST,
@@ -362,6 +364,7 @@ final class Config
             'search.sort' => ['relevance', 'time'],
             'search.group_mode' => ['deep', 'flat'],
             'filters.unique_by' => ['host', 'domain'],
+            'filters.domain_scope' => ['all', 'root', 'subdomain'],
             'site_check.target' => ['root', 'found'],
             'visit.driver' => ['auto', 'playwright', 'curl'],
             'visit.target' => ['found', 'root'],

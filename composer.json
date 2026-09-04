@@ -26,7 +26,9 @@
     },
     "bin": [
         "bin/yandex-sites.php",
-        "bin/setup.php"
+        "bin/setup.php",
+        "bin/panel.php",
+        "bin/run-job.php"
     ],
     "scripts": {
         "test": "php tests/run.php",

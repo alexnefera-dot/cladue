@@ -74,6 +74,23 @@ final class ResultFilterTest
         Assert::same('snippet_none', $filter->reject($this->result('a.ru', 'Окна', 1, '', '+7 495 111 22 33, продаём оптом')));
     }
 
+    public function testDomainScope(): void
+    {
+        $all = new ResultFilter([]);
+        Assert::null($all->reject($this->result('example.ru')));
+        Assert::null($all->reject($this->result('shop.example.ru')));
+
+        $root = new ResultFilter(['domain_scope' => 'root']);
+        Assert::null($root->reject($this->result('example.ru')));
+        Assert::null($root->reject($this->result('www.example.ru')), 'www отбрасывается — считается корневым');
+        Assert::null($root->reject($this->result('okna.msk.ru')), 'домен во второй зоне — корневой');
+        Assert::same('domain_scope', $root->reject($this->result('shop.example.ru')));
+
+        $sub = new ResultFilter(['domain_scope' => 'subdomain']);
+        Assert::same('domain_scope', $sub->reject($this->result('example.ru')));
+        Assert::null($sub->reject($this->result('shop.example.ru')));
+    }
+
     public function testInvalidRegexIsReported(): void
     {
         Assert::throws(\InvalidArgumentException::class, static fn () => new ResultFilter(['url_must_match' => ['~(~']]), 'url_must_match');

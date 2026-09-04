@@ -30,6 +30,7 @@ final class PageVisitor
         private ?ProxyPool $proxies = null,
         private string $searchBaseUrl = 'https://yandex.ru',
         private string $region = '',
+        private mixed $onProgress = null,
     ) {
         $agents = array_values(array_filter((array) ($cfg['user_agents'] ?? []), 'is_string'));
         $this->userAgents = $agents !== [] ? $agents : UserAgents::VISITORS;
@@ -91,9 +92,19 @@ final class PageVisitor
         ));
 
         $done = 0;
+        $ok = 0;
         $total = count($jobs);
-        $results = $this->driver->visit($jobs, $this->driverOptions(), function (VisitJob $job, array $result) use (&$done, $total): void {
+        if ($this->onProgress !== null) {
+            ($this->onProgress)(['total' => $total, 'done' => 0, 'ok' => 0, 'current' => '']);
+        }
+        $results = $this->driver->visit($jobs, $this->driverOptions(), function (VisitJob $job, array $result) use (&$done, &$ok, $total): void {
             $done++;
+            if ($result['ok'] ?? false) {
+                $ok++;
+            }
+            if ($this->onProgress !== null) {
+                ($this->onProgress)(['total' => $total, 'done' => $done, 'ok' => $ok, 'current' => $job->url]);
+            }
             $this->log->debug(sprintf(
                 '  [%d/%d] %s (вариант %d, %s) — %s',
                 $done,
