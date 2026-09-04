@@ -37,9 +37,18 @@
 ```bash
 git clone https://github.com/alexnefera-dot/cladue.git
 cd cladue
+php bin/setup.php --proxy=http://host:port:user:pass
+```
+
+`bin/setup.php` создаёт `config.php`, `.env` и `proxies.txt` из примеров
+(существующие файлы не трогает), добавляет переданные прокси, создаёт папки
+`cache/`, `out/`, `debug/`, проверяет PHP-расширения и Playwright и печатает
+команды для проверки прокси и пробного запуска. Всё то же можно сделать руками:
+
+```bash
 cp config.example.php config.php   # источник, правила отбора, визиты
 cp .env.example .env               # данные доступа к API / XMLStock
-cp proxies.example.txt proxies.txt # прокси для живой выдачи (если нужна)
+cp proxies.example.txt proxies.txt # прокси для живой выдачи и визитов
 ```
 
 ## Источники выдачи
