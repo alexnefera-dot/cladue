@@ -220,10 +220,10 @@
 
   <div class="card tabsec" data-tab="main" id="resultsCard" hidden>
     <h2>Результаты <span id="resCount" class="muted"></span></h2>
-    <div class="hint" style="margin-bottom:8px">Клик по превью — увеличить; крестик ✕ — убрать неподходящий сайт. Шаг 2 — «Выгрузить страницы оставшихся»; потом «Забрать контент» у сайта или «Забрать весь контент» по всем. Файлы: <b>runs/current/pages/&lt;сайт&gt;/</b>.</div>
+    <div class="hint" style="margin-bottom:8px">Клик по превью — увеличить; крестик ✕ — убрать неподходящий сайт. Шаг 2 — «Выгрузить страницы оставшихся»; потом «Очистить» у сайта или «Очистить всё» по всем — очищенные статьи лягут в <b>runs/current/content/&lt;N&gt;-стр/&lt;сайт&gt;/</b>. Скачанные страницы: <b>runs/current/pages/</b>.</div>
     <div class="btns" style="margin-bottom:10px;align-items:center">
       <button class="btn-primary" id="downloadBtn" disabled title="Открыть в браузере и сохранить страницы оставшихся сайтов (убранные крестиком не выгружаются)">Выгрузить страницы оставшихся</button>
-      <button class="ctBtn" id="cleanAllBtn" title="Подготовить шаблоны статей по оставшимся сайтам (наши и убранные крестиком исключены)">Забрать весь контент</button>
+      <button class="ctBtn" id="cleanAllBtn" title="Очистить страницы всех оставшихся сайтов по инструкции (наши и убранные крестиком исключены), разложить по content/N-стр/сайт">Очистить всё</button>
     </div>
     <div class="btns" style="margin-bottom:10px;align-items:center">
       <span class="hint">Скачать списки:</span>
@@ -461,7 +461,7 @@ function renderResults(sites){
     const variants = s.variants>1 ? `<span class="tag diff">${s.variants} версии</span>` : (s.variants===1?'1':'—');
     const link = s.url?`<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.host)}</a>`:esc(s.host);
     const ct = (!s.own && (s.pages_ok||0)>0)
-      ? `<button class="ctBtn" data-host="${esc(s.host)}" title="Подготовить шаблон статьи из страниц этого сайта">Забрать контент</button>`
+      ? `<button class="ctBtn" data-host="${esc(s.host)}" title="Очистить страницы сайта по инструкции и разложить в content/N-стр/сайт">Очистить</button>`
       : '—';
     const thumb = s.screenshot
       ? `<img class="thumb" src="/file?path=${encodeURIComponent(s.screenshot)}" data-full="/file?path=${encodeURIComponent(s.screenshot)}" data-cap="${esc(s.host)}" loading="lazy" alt="">`
@@ -471,14 +471,14 @@ function renderResults(sites){
 }
 
 async function cleanSite(host, btn){
-  const old=btn.textContent; btn.disabled=true; btn.textContent='Готовлю…';
+  const old=btn.textContent; btn.disabled=true; btn.textContent='Чищу…';
   try{
     const r=await fetch('/api/clean-site',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({host})});
     const j=await r.json();
     if(!j.ok){ btn.textContent='Ошибка'; alert(j.error||'Ошибка'); btn.disabled=false; setTimeout(()=>{btn.textContent=old;},2500); return; }
     if(!j.written){ btn.textContent='Нет статьи'; alert('На страницах этого сайта не найдено тело статьи (нет <h1> или блока «Популярные запросы»).'); btn.disabled=false; setTimeout(()=>{btn.textContent=old;},2500); return; }
-    if(j.zip){ window.location='/file?path='+encodeURIComponent(j.zip); }
-    btn.textContent='Готово: '+j.written+(j.brand_ru?' · '+j.brand_ru:'');
+    btn.textContent='Очищено: '+j.written+' стр.'+(j.brand_ru?' · '+j.brand_ru:'');
+    btn.title='Готово в '+(j.dir||'content')+' · нажмите ещё раз, чтобы перечистить';
     btn.disabled=false;
   }catch(e){ btn.textContent='Ошибка'; btn.disabled=false; setTimeout(()=>{btn.textContent=old;},2500); }
 }
@@ -493,13 +493,12 @@ function closeLightbox(){ $('lightbox').classList.remove('show'); $('lbimg').src
 $('lightbox').addEventListener('click', closeLightbox);
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeLightbox(); });
 $('cleanAllBtn').addEventListener('click', async ()=>{
-  const btn=$('cleanAllBtn'); const old=btn.textContent; btn.disabled=true; btn.textContent='Готовлю всё…';
+  const btn=$('cleanAllBtn'); const old=btn.textContent; btn.disabled=true; btn.textContent='Чищу всё…';
   try{
     const r=await fetch('/api/clean-all',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({exclude:[...removedHosts]})}); const j=await r.json();
     if(!j.ok){ alert(j.error||'Ошибка'); btn.textContent=old; btn.disabled=false; return; }
     if(!j.written){ alert('Ни на одной странице не найдено тело статьи (нет <h1> или блока «Популярные запросы»).'); btn.textContent=old; btn.disabled=false; return; }
-    if(j.zip){ window.location='/file?path='+encodeURIComponent(j.zip); }
-    btn.textContent='Готово: '+(j.sites||0)+' сайтов, '+j.written+' стр.'; btn.disabled=false;
+    btn.textContent='Очищено: '+(j.sites||0)+' сайтов, '+j.written+' стр.'; btn.title='Готово в runs/current/content/N-стр/сайт'; btn.disabled=false;
   }catch(e){ btn.textContent=old; btn.disabled=false; alert('Ошибка'); }
 });
 

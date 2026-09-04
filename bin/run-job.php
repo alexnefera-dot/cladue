@@ -241,6 +241,24 @@ function stopped(string $stopFile): bool
 }
 
 /**
+ * Рекурсивно удаляет каталог со всем содержимым (пропускает, если каталога нет).
+ */
+function rrmdir(string $dir): void
+{
+    if (!is_dir($dir)) {
+        return;
+    }
+    $it = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::CHILD_FIRST,
+    );
+    foreach ($it as $item) {
+        $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+    }
+    @rmdir($dir);
+}
+
+/**
  * Восстанавливает объекты Site из ранее сохранённого sites.json (для этапа выгрузки).
  *
  * @return array<string, Site>
@@ -388,6 +406,10 @@ while (true) {
             if ($visitor === null) {
                 throw new RuntimeException('Визиты отключены в настройках');
             }
+            // Повторная выгрузка — чистим прошлый результат (папки страниц и очищённый контент),
+            // чтобы не осталось старых сайтов и версий: выгружаем заново только оставшиеся.
+            rrmdir($runDir . '/pages');
+            rrmdir($runDir . '/content');
             $progress->update(['phase' => 'visit', 'sites_selected' => count($sites)], true);
             $logger->info(sprintf('Выгрузка страниц: сайтов %d через %s', count($sites), $visitor->driver()->name()));
             $visitor->visit($sites);

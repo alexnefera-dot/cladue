@@ -238,6 +238,44 @@ final class PanelTest
         @rmdir($dir);
     }
 
+    public function testRedownloadClearsPreviousPages(): void
+    {
+        $port = FakeServer::port('local');
+        $dir = sys_get_temp_dir() . '/yandex-sites-redl-' . uniqid();
+        $runDir = $dir . '/runs/redl';
+        mkdir($runDir, 0777, true);
+        file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
+        file_put_contents($runDir . '/sites.json', json_encode(['sites' => [
+            ['host' => 'okna-moskva.ru', 'domain' => 'okna-moskva.ru', 'url' => "http://okna-moskva.ru:$port/page-1/", 'title' => 'T', 'best_query' => 'окна', 'best_position' => 1, 'queries_count' => 1],
+            ['host' => 'okna-company.com', 'domain' => 'okna-company.com', 'url' => "http://okna-company.com:$port/page-2/", 'title' => 'T2', 'best_query' => 'окна', 'best_position' => 2, 'queries_count' => 1],
+        ]]));
+        $settings = static fn (array $extra): string => (string) json_encode(array_merge([
+            'stage' => 'download',
+            'visit_driver' => 'curl',
+            'visit_resolve' => ["okna-moskva.ru:$port:127.0.0.1", "okna-company.com:$port:127.0.0.1"],
+        ], $extra));
+
+        // Первая выгрузка — обе страницы скачаны.
+        file_put_contents($runDir . '/settings.json', $settings([]));
+        $r1 = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $r1['code'], $r1['out']);
+        Assert::true(is_dir($runDir . '/pages/okna-moskva.ru'));
+        Assert::true(is_dir($runDir . '/pages/okna-company.com'));
+
+        // Повторная выгрузка с исключением одного сайта — папка исключённого исчезает (чистый пере-сбор).
+        file_put_contents($runDir . '/settings.json', $settings(['exclude_hosts' => ['okna-company.com']]));
+        $r2 = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $r2['code'], $r2['out']);
+        Assert::true(is_dir($runDir . '/pages/okna-moskva.ru'), 'оставшийся сайт заново выгружен');
+        Assert::false(is_dir($runDir . '/pages/okna-company.com'), 'старая папка исключённого сайта удалена при повторной выгрузке');
+
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($it as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+        @rmdir($dir);
+    }
+
     public function testRunJobReportsErrorOnBadKey(): void
     {
         $port = FakeServer::port();

@@ -246,13 +246,17 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   runs `stage=collect`; «Выгрузить страницы оставшихся» (above the results table) runs `stage=download`
   with `exclude_hosts` = the ✕-removed hosts, so only the sites the user kept are opened (run-job filters
   `loadSites()` by that list and rewrites `sites.json` to the kept set). `runCollect()` clears the removed
-  set (fresh list); `runDownload()` keeps it. The `both` branch stays in `buildOverrides()`/run-job for CLI,
-  just not surfaced. Content cleaning is table-only, via a per-site «Забрать контент» button
-  (`/api/clean-site` → `content-<host>.zip`) and a bulk «Забрать весь контент» button
-  (`/api/clean-all`, accepts an `exclude` host list → `content.zip`);
-  shared helpers `pagesByHost()`/`cleanHostPages()`/`zipContent()` in `bin/panel.php`. The `stage=clean`
-  job branch (reads `runs/current/pages` → `content` + `content.zip`) stays for `bin/clean-content.php`/CLI,
-  no longer surfaced in the panel UI. Covered by `tests/ContentCleanerTest.php` and `tests/BrandDetectorTest.php`.
+  set (fresh list); `runDownload()` keeps it. A re-run of download wipes the previous result first
+  (`rrmdir()` on `runs/current/pages` and `content`) so it is a clean redo, not an append. The `both`
+  branch stays in `buildOverrides()`/run-job for CLI, just not surfaced. Content cleaning is table-only and
+  writes to disk (no download): a per-site «Очистить» button (`/api/clean-site`) and a bulk «Очистить всё»
+  button (`/api/clean-all`, accepts an `exclude` host list) run `cleanHostPages()`, which cleans a site's
+  pages and lays the cleaned articles into a bucket by count — `runs/current/content/<N>-стр/<host>/` —
+  `removeHostContent()` clearing that host from any old bucket first so re-cleaning never leaves duplicates.
+  Shared helpers `pagesByHost()`/`cleanHostPages()`/`removeHostContent()` in `bin/panel.php`. The
+  `stage=clean` job branch (reads `runs/current/pages` → `content` + `content.zip`) stays for
+  `bin/clean-content.php`/CLI, no longer surfaced in the panel UI. Covered by `tests/ContentCleanerTest.php`
+  and `tests/BrandDetectorTest.php`.
 - Collect stage (`stage=collect`) dedups to unique registrable domains (`unique_by=domain`) and, when
   `preview_shots` is on (panel default), runs a lightweight home-only screenshot visit into
   `runs/current/preview` (no crawl) so the results table previews volume + own sites before the full

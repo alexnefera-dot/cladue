@@ -211,10 +211,11 @@ function pagesByHost(string $pagesDir): array
 }
 
 /**
- * Готовит контент одного сайта (бренд определяется по главной) в runs/current/content/<host>.
+ * Чистит страницы одного сайта (бренд определяется по главной) и раскладывает очищенные статьи
+ * в бакет по числу страниц: runs/current/content/<N>-стр/<host>/. Ничего не скачивает.
  *
  * @param list<string> $files
- * @return array{written:int, skipped:int, brand_ru:string, brand_en:string}
+ * @return array{written:int, skipped:int, dir:string, brand_ru:string, brand_en:string}
  */
 function cleanHostPages(string $runDir, string $host, array $files): array
 {
@@ -228,11 +229,8 @@ function cleanHostPages(string $runDir, string $host, array $files): array
     }
     $opts = \YandexSites\Content\ContentCleaner::autoOptions($home !== '' ? (string) file_get_contents($home) : '', $host);
     $cleaner = new \YandexSites\Content\ContentCleaner();
-    $outDir = $runDir . '/content/' . $host;
-    foreach (glob($outDir . '/*.html') ?: [] as $old) {
-        @unlink($old);
-    }
-    $written = 0;
+    // Чистим в память, чтобы узнать итоговое число страниц и назвать по нему папку-бакет.
+    $cleaned = [];
     $skipped = 0;
     foreach ($files as $file) {
         $body = $cleaner->clean((string) file_get_contents($file), $opts);
@@ -240,39 +238,40 @@ function cleanHostPages(string $runDir, string $host, array $files): array
             $skipped++;
             continue;
         }
+        $cleaned[basename($file)] = $body;
+    }
+    $written = count($cleaned);
+    // Прежние очищенные версии этого сайта убираем из любого бакета, чтобы не осталось дублей.
+    removeHostContent($runDir, $host);
+    $rel = 'content/' . $written . '-стр/' . $host;
+    if ($written > 0) {
+        $outDir = $runDir . '/' . $rel;
         @mkdir($outDir, 0777, true);
-        file_put_contents($outDir . '/' . basename($file), $body);
-        $written++;
+        foreach ($cleaned as $name => $body) {
+            file_put_contents($outDir . '/' . $name, $body);
+        }
     }
 
-    return ['written' => $written, 'skipped' => $skipped, 'brand_ru' => (string) ($opts['brand_ru'] ?? ''), 'brand_en' => (string) ($opts['brand_en'] ?? '')];
+    return ['written' => $written, 'skipped' => $skipped, 'dir' => $rel, 'brand_ru' => (string) ($opts['brand_ru'] ?? ''), 'brand_en' => (string) ($opts['brand_en'] ?? '')];
 }
 
 /**
- * Складывает готовые статьи из runs/current/content/** в один архив.
+ * Удаляет прежние очищенные страницы сайта из всех бакетов content/<N>-стр/<host>
+ * (и старой плоской папки content/<host>), чтобы повторная очистка не плодила дубли.
  */
-function zipContent(string $runDir, string $zipPath): bool
+function removeHostContent(string $runDir, string $host): void
 {
-    if (!class_exists('ZipArchive')) {
-        return false;
-    }
-    $contentDir = $runDir . '/content';
-    if (!is_dir($contentDir)) {
-        return false;
-    }
-    $zip = new ZipArchive();
-    if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
-        return false;
-    }
-    $iter = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($contentDir, FilesystemIterator::SKIP_DOTS));
-    foreach ($iter as $f) {
-        if ($f instanceof SplFileInfo && $f->isFile() && strtolower($f->getExtension()) === 'html') {
-            $zip->addFile($f->getPathname(), ltrim(str_replace($contentDir, '', $f->getPathname()), '/\\'));
+    $dirs = array_merge(
+        glob($runDir . '/content/*/' . $host, GLOB_ONLYDIR) ?: [],
+        glob($runDir . '/content/' . $host, GLOB_ONLYDIR) ?: [],
+    );
+    foreach ($dirs as $dir) {
+        foreach (glob($dir . '/*') ?: [] as $f) {
+            @unlink($f);
         }
+        @rmdir($dir);
+        @rmdir(dirname($dir)); // пустой бакет убираем тоже
     }
-    $zip->close();
-
-    return true;
 }
 
 // --- Роутинг ---
@@ -383,7 +382,8 @@ if ($path === '/api/results') {
 }
 
 if ($path === '/api/clean-site' && $method === 'POST') {
-    // Подготовка контента для ОДНОГО сайта (кнопка «Забрать контент»): бренд определяется сам.
+    // Кнопка «Очистить» у сайта: чистит его страницы по инструкции и кладёт в content/<N>-стр/<host>/.
+    // Ничего не скачивает; бренд определяется сам.
     $b = body();
     $host = trim((string) ($b['host'] ?? ''));
     if ($host === '' || preg_match('~^[a-z0-9.\-]+$~i', $host) !== 1) {
@@ -394,24 +394,12 @@ if ($path === '/api/clean-site' && $method === 'POST') {
         jsonOut(['ok' => false, 'error' => 'нет скачанных страниц для этого сайта — сначала «Выгрузка страниц»'], 404);
     }
     $r = cleanHostPages($runDir, $host, $files);
-    $zipRel = '';
-    if ($r['written'] > 0 && class_exists('ZipArchive')) {
-        $zipName = 'content-' . (preg_replace('~[^a-z0-9.\-]~i', '_', $host) ?? 'site') . '.zip';
-        $zip = new ZipArchive();
-        if ($zip->open($runDir . '/' . $zipName, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
-            foreach (glob($runDir . '/content/' . $host . '/*.html') ?: [] as $f) {
-                $zip->addFile($f, $host . '/' . basename($f));
-            }
-            $zip->close();
-            $zipRel = $zipName;
-        }
-    }
-    jsonOut(['ok' => true, 'written' => $r['written'], 'skipped' => $r['skipped'], 'zip' => $zipRel, 'brand_ru' => $r['brand_ru'], 'brand_en' => $r['brand_en']]);
+    jsonOut(['ok' => true, 'written' => $r['written'], 'skipped' => $r['skipped'], 'dir' => $r['dir'], 'brand_ru' => $r['brand_ru'], 'brand_en' => $r['brand_en']]);
 }
 
 if ($path === '/api/clean-all' && $method === 'POST') {
-    // Кнопка «Забрать весь контент»: готовит все скачанные сайты (наши уже исключены на выгрузке) в один архив.
-    // Можно передать exclude — список сайтов, которые пользователь убрал крестиком в таблице.
+    // Кнопка «Очистить всё»: чистит все скачанные сайты (наши уже исключены на выгрузке) и раскладывает
+    // по content/<N>-стр/<host>/. Ничего не скачивает. exclude — сайты, убранные крестиком в таблице.
     $exclude = array_flip(array_map('strval', (array) (body()['exclude'] ?? [])));
     $byHost = pagesByHost($runDir . '/pages');
     if ($byHost === []) {
@@ -431,8 +419,7 @@ if ($path === '/api/clean-all' && $method === 'POST') {
             $sites++;
         }
     }
-    $zipRel = ($written > 0 && zipContent($runDir, $runDir . '/content.zip')) ? 'content.zip' : '';
-    jsonOut(['ok' => true, 'written' => $written, 'skipped' => $skipped, 'sites' => $sites, 'zip' => $zipRel]);
+    jsonOut(['ok' => true, 'written' => $written, 'skipped' => $skipped, 'sites' => $sites]);
 }
 
 if ($path === '/api/log') {
