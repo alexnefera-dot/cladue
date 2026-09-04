@@ -56,10 +56,13 @@ final class ContentCleaner
             'hosts' => $hosts,
             'brand_en' => $brand['en'],
             'brand_ru' => $brand['ru'],
-            'extra_brands' => [],
+            // Посторонние бренды ловятся автоматически по списку известных (+ файл brands.txt).
+            'extra_brands' => KnownBrands::all(),
         ];
         foreach ($override as $key => $value) {
-            if ($value !== '' && $value !== null && $value !== []) {
+            if ($key === 'extra_brands') {
+                $opts['extra_brands'] = array_values(array_unique(array_merge($opts['extra_brands'], (array) $value)));
+            } elseif ($value !== '' && $value !== null && $value !== []) {
                 $opts[$key] = $value;
             }
         }
@@ -214,17 +217,25 @@ final class ContentCleaner
             return $html;
         }
 
-        return preg_replace('~' . $pattern . '~iu', $variable, $html) ?? $html;
+        // Границы слова, чтобы не задевать бренд внутри других слов (stake ≠ mistaken).
+        return preg_replace('~(?<![\p{L}\p{N}])(?:' . $pattern . ')(?![\p{L}\p{N}])~iu', $variable, $html) ?? $html;
     }
 
     /**
-     * Регэксп по названию бренда: каждая похожая буква — класс из латиницы и кириллицы (STAKE ≡ STAKЕ).
+     * Регэксп по названию бренда: каждая похожая буква — класс из латиницы и кириллицы (STAKE ≡ STAKЕ),
+     * пробел — любой пробельный промежуток (play fortuna ≡ play&nbsp;fortuna).
      */
     private function homoglyphPattern(string $brand): string
     {
         $out = '';
-        foreach (preg_split('~~u', mb_strtolower($brand), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $ch) {
-            $out .= isset(self::HOMOGLYPHS[$ch]) ? '[' . self::HOMOGLYPHS[$ch] . ']' : preg_quote($ch, '~');
+        foreach (preg_split('~~u', mb_strtolower(trim($brand)), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $ch) {
+            if (trim($ch) === '') {
+                $out .= '\s+';
+            } elseif (isset(self::HOMOGLYPHS[$ch])) {
+                $out .= '[' . self::HOMOGLYPHS[$ch] . ']';
+            } else {
+                $out .= preg_quote($ch, '~');
+            }
         }
 
         return $out;

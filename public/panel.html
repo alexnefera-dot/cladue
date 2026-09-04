@@ -136,6 +136,7 @@
           </div>
         </div>
         <div class="check"><input type="checkbox" id="skipknown" checked><label style="margin:0">Пропускать домены, которые уже собраны раньше (база пересечений)</label></div>
+        <div class="check"><input type="checkbox" id="previewshots" checked><label style="margin:0">На этапе «Сборка» делать скриншот главной каждого сайта (предпросмотр: объём выгрузки, где наши) — нужен Chromium</label></div>
         <div class="hint" style="margin-bottom:4px">В базе доменов: <b id="baseCount">0</b> · <a href="#" id="resetBase">очистить базу</a></div>
         <label>Исключить домены дополнительно <span class="hint">через запятую</span></label>
         <input type="text" id="exclude" placeholder="competitor.ru, spam.ru">
@@ -226,7 +227,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const FIELDS = ['queries','source','region','pages','dedupe','scope','top','minq','tlds','exclude','skipknown','visit','variants','driver','crawl','maxpages','useproxies','repeat','stage','brandru','branden','brands'];
+const FIELDS = ['queries','source','region','pages','dedupe','scope','top','minq','tlds','exclude','skipknown','previewshots','visit','variants','driver','crawl','maxpages','useproxies','repeat','stage','brandru','branden','brands'];
 
 function loadLocal(){
   try{ const s = JSON.parse(localStorage.getItem('ys-panel')||'{}');
@@ -253,6 +254,7 @@ function collectSettings(){
     top: parseInt($('top').value)||0,
     min_queries: parseInt($('minq').value)||1,
     skip_known: $('skipknown').checked,
+    preview_shots: $('previewshots').checked,
     stage: $('stage').value,
     allowed_tlds: $('tlds').value.split(',').map(s=>s.trim()).filter(Boolean),
     exclude_extra: $('exclude').value.split(',').map(s=>s.trim()).filter(Boolean),

@@ -135,9 +135,7 @@ function buildOverrides(array $s, string $runDir): array
     }
     $overrides['filters.exclude_domains'] = $exclude;
 
-    // Визиты включаются только на этапе «сборка + выгрузка»; на этапе «сборка» — нет.
     $stage = (string) ($s['stage'] ?? 'collect');
-    $overrides['visit.enabled'] = $stage === 'both' && (bool) ($s['visit'] ?? true);
     if (isset($s['variants'])) {
         $overrides['visit.variants'] = max(1, (int) $s['variants']);
     }
@@ -160,6 +158,23 @@ function buildOverrides(array $s, string $runDir): array
     // Продвинутое/для тестов: сопоставление host:port:ip для визитов (CURLOPT_RESOLVE / Chromium).
     if (isset($s['visit_resolve']) && is_array($s['visit_resolve'])) {
         $overrides['visit.resolve'] = array_values(array_map('strval', $s['visit_resolve']));
+    }
+
+    // Когда открываем сайты:
+    //  - «Сборка + выгрузка» (both) — полная выгрузка страниц;
+    //  - «Сборка» (collect) с включённым предпросмотром — только скриншот главной каждого уникального
+    //    домена (без обхода), чтобы оценить объём и сразу увидеть наши сайты. Складываем в runs/current/preview.
+    if ($stage === 'both') {
+        $overrides['visit.enabled'] = (bool) ($s['visit'] ?? true);
+    } elseif ($stage === 'collect' && (bool) ($s['preview_shots'] ?? true)) {
+        $overrides['visit.enabled'] = true;
+        $overrides['visit.crawl'] = false;
+        $overrides['visit.variants'] = 1;
+        $overrides['visit.screenshot'] = true;
+        $overrides['visit.max_pages'] = 0;
+        $overrides['visit.dir'] = $runDir . '/preview';
+    } else {
+        $overrides['visit.enabled'] = false;
     }
 
     return $overrides;

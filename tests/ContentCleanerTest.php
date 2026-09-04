@@ -87,6 +87,20 @@ final class ContentCleanerTest
         Assert::true(str_contains($out, 'Итог'), 'полезный текст остался');
     }
 
+    public function testAutoCatchesForeignBrands(): void
+    {
+        // autoOptions добавляет список известных брендов → чужие бренды тоже уходят в переменные.
+        $html = '<h1>Криптобосс</h1><p>Криптобосс против Вавада и Mostbet, ещё STAKЕ и play fortuna. В мире стейка вкусно.</p><h3>Популярные запросы</h3>';
+        $out = (new ContentCleaner())->clean($html, ContentCleaner::autoOptions($html, 'cryptoboss.com'));
+
+        Assert::false(stripos($out, 'вавада') !== false, 'чужой бренд (Вавада) заменён');
+        Assert::false(stripos($out, 'mostbet') !== false, 'чужой бренд (Mostbet) заменён');
+        Assert::false(stripos($out, 'stak') !== false, 'опечатка STAKЕ заменена');
+        Assert::false(stripos($out, 'fortuna') !== false, 'многословный бренд заменён');
+        Assert::true(str_contains($out, 'стейка'), 'слово «стейка» (не бренд) сохранено — границы слова');
+        Assert::true(str_contains($out, '%brand_name_ru%') && str_contains($out, '%brand_name_en%'));
+    }
+
     public function testNoArticleReturnsEmpty(): void
     {
         Assert::same('', (new ContentCleaner())->clean('<html><body><p>нет заголовка</p></body></html>'));

@@ -64,6 +64,7 @@ final class PanelTest
             'dedupe_domain' => true,
             'allowed_tlds' => [],
             'visit' => false,
+            'preview_shots' => false,
             'repeat_hours' => 0,
         ]));
 
@@ -103,6 +104,7 @@ final class PanelTest
             'allowed_tlds' => [],
             'skip_known' => true,
             'visit' => false,
+            'preview_shots' => false,
         ]);
         file_put_contents($runDir . '/settings.json', $settings);
 
@@ -248,6 +250,7 @@ final class PanelTest
                 'top' => 0,
                 'dedupe_domain' => true,
                 'visit' => false,
+                'preview_shots' => false,
                 'repeat_hours' => 0,
             ]), true);
             Assert::true($start['ok'], json_encode($start));
