@@ -372,6 +372,14 @@ while (true) {
             if ($sites === []) {
                 throw new RuntimeException('Нет собранных сайтов для выгрузки — сначала выполните этап «Сборка»');
             }
+            // Выгружаем только оставшиеся сайты: убранные в панели крестиком приходят в exclude_hosts.
+            $excludeHosts = array_flip(array_map('strval', (array) ($settings['exclude_hosts'] ?? [])));
+            if ($excludeHosts !== []) {
+                $sites = array_filter($sites, static fn (string $host): bool => !isset($excludeHosts[$host]), ARRAY_FILTER_USE_KEY);
+                if ($sites === []) {
+                    throw new RuntimeException('Все собранные сайты убраны из списка — нечего выгружать');
+                }
+            }
             $runtime = new Runtime($config, $logger);
             $onVisit = static function (array $event) use ($progress): void {
                 $progress->update(['phase' => 'visit', 'visit' => $event]);

@@ -100,9 +100,16 @@
       </div>
 
   <div class="card tabsec" data-tab="main">
-        <h2>Запросы</h2>
+        <h2>Запросы и сбор</h2>
         <textarea id="queries" placeholder="по одному запросу в строке&#10;пластиковые окна купить москва&#10;остекление балконов цена"></textarea>
         <div class="hint">По одному запросу в строке. Пустые строки и строки с # пропускаются.</div>
+        <div class="btns" style="margin-top:12px">
+          <button class="btn-primary" id="startBtn">Собрать сайты</button>
+          <button class="btn-danger" id="stopBtn" disabled>Остановить</button>
+          <span id="stateBadge" class="state s-idle">не запущено</span>
+        </div>
+        <div class="hint" style="margin-top:8px">Шаг 1 — собрать домены из выдачи (со скриншотами главной). Потом в таблице результатов уберите лишние сайты крестиком и нажмите «Выгрузить страницы оставшихся».</div>
+        <div id="startMsg"></div>
       </div>
 
   <div class="card tabsec" data-tab="config">
@@ -197,21 +204,6 @@
         <input type="number" id="repeat" value="0" min="0" step="1">
       </div>
 
-  <div class="card tabsec" data-tab="main">
-    <label>Этап</label>
-    <select id="stage" style="max-width:420px">
-      <option value="collect">1 · Сборка доменов (без открытия сайтов)</option>
-      <option value="download">2 · Выгрузка страниц собранных сайтов</option>
-    </select>
-    <div class="hint" style="margin-top:6px">Очистка контента — кнопками в таблице результатов: «Забрать контент» у сайта или «Забрать весь контент» по всем оставшимся.</div>
-    <div class="btns" style="margin-top:12px">
-      <button class="btn-primary" id="startBtn">Запустить</button>
-      <button class="btn-danger" id="stopBtn" disabled>Остановить</button>
-      <span id="stateBadge" class="state s-idle">не запущено</span>
-    </div>
-    <div id="startMsg"></div>
-  </div>
-
   <div class="card tabsec" data-tab="main" id="progressCard" hidden>
     <h2>Прогресс <span id="phaseText" class="muted"></span></h2>
     <div class="bar"><span id="barFill"></span></div>
@@ -228,12 +220,16 @@
 
   <div class="card tabsec" data-tab="main" id="resultsCard" hidden>
     <h2>Результаты <span id="resCount" class="muted"></span></h2>
-    <div class="hint" style="margin-bottom:8px">Клик по превью — увеличить; крестик ✕ — убрать неподходящий сайт; «Забрать весь контент» — по оставшимся. Файлы: <b>runs/current/pages/&lt;сайт&gt;/</b>.</div>
+    <div class="hint" style="margin-bottom:8px">Клик по превью — увеличить; крестик ✕ — убрать неподходящий сайт. Шаг 2 — «Выгрузить страницы оставшихся»; потом «Забрать контент» у сайта или «Забрать весь контент» по всем. Файлы: <b>runs/current/pages/&lt;сайт&gt;/</b>.</div>
     <div class="btns" style="margin-bottom:10px;align-items:center">
+      <button class="btn-primary" id="downloadBtn" disabled title="Открыть в браузере и сохранить страницы оставшихся сайтов (убранные крестиком не выгружаются)">Выгрузить страницы оставшихся</button>
+      <button class="ctBtn" id="cleanAllBtn" title="Подготовить шаблоны статей по оставшимся сайтам (наши и убранные крестиком исключены)">Забрать весь контент</button>
+    </div>
+    <div class="btns" style="margin-bottom:10px;align-items:center">
+      <span class="hint">Скачать списки:</span>
       <a class="tag" id="dlCsv" href="/download?file=csv">CSV</a>
       <a class="tag" id="dlJson" href="/download?file=json">JSON</a>
       <a class="tag" id="dlDomains" href="/download?file=domains">domains.txt</a>
-      <button class="ctBtn" id="cleanAllBtn" style="margin-left:8px" title="Подготовить шаблоны статей по оставшимся сайтам (наши и убранные крестиком исключены)">Забрать весь контент</button>
     </div>
     <div class="hint" id="removedNote" hidden style="margin-bottom:8px"></div>
     <div style="overflow:auto">
@@ -249,7 +245,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const FIELDS = ['queries','source','region','pages','dedupe','scope','top','minq','tlds','exclude','skipknown','previewshots','visit','variants','driver','crawl','maxpages','useproxies','repeat','stage','xmdevice','xmdomain','xmextra'];
+const FIELDS = ['queries','source','region','pages','dedupe','scope','top','minq','tlds','exclude','skipknown','previewshots','visit','variants','driver','crawl','maxpages','useproxies','repeat','xmdevice','xmdomain','xmextra'];
 
 function loadLocal(){
   try{ const s = JSON.parse(localStorage.getItem('ys-panel')||'{}');
@@ -298,7 +294,6 @@ function collectSettings(){
     min_queries: parseInt($('minq').value)||1,
     skip_known: $('skipknown').checked,
     preview_shots: $('previewshots').checked,
-    stage: $('stage').value,
     allowed_tlds: $('tlds').value.split(',').map(s=>s.trim()).filter(Boolean),
     exclude_extra: $('exclude').value.split(',').map(s=>s.trim()).filter(Boolean),
     visit: $('visit').checked,
@@ -321,23 +316,31 @@ async function saveKeys(){
 $('saveKeys').addEventListener('click', saveKeys);
 $('resetBase').addEventListener('click', async (e)=>{ e.preventDefault(); if(confirm('Очистить базу собранных доменов? Следующий сбор возьмёт все домены заново.')){ await fetch('/api/reset-base',{method:'POST'}); refresh(); } });
 
-async function start(){
-  const st=collectSettings();
+async function startJob(extra){
+  const st=Object.assign(collectSettings(), extra||{});
   if(st.stage!=='download' && st.queries.length===0){ showStart('Добавьте хотя бы один запрос','err'); return; }
-  removedHosts.clear(); saveRemoved();
-  $('startBtn').disabled=true;
+  $('startBtn').disabled=true; $('downloadBtn').disabled=true;
   const r=await fetch('/api/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(st)});
   const j=await r.json();
-  if(!j.ok){ showStart(j.error||'Не удалось запустить','err'); $('startBtn').disabled=false; }
-  else showStart('Сбор запущен','ok');
+  if(!j.ok){ showStart(j.error||'Не удалось запустить','err'); }
+  else showStart(st.stage==='download'?'Выгрузка страниц запущена':'Сбор запущен','ok');
   refresh();
+}
+// Шаг 1: сбор доменов (новый список — старые пометки удалённых сбрасываем).
+function runCollect(){ removedHosts.clear(); saveRemoved(); startJob({stage:'collect'}); }
+// Шаг 2: выгрузка страниц только оставшихся сайтов (убранные крестиком не качаем).
+function runDownload(){
+  const kept=lastSites.filter(s=>!removedHosts.has(s.host));
+  if(!kept.length){ showStart('Нет сайтов для выгрузки — все убраны из списка','err'); return; }
+  startJob({stage:'download', exclude_hosts:[...removedHosts]});
 }
 async function stop(){
   $('stopBtn').disabled=true;
   await fetch('/api/stop',{method:'POST'});
   refresh();
 }
-$('startBtn').addEventListener('click', start);
+$('startBtn').addEventListener('click', runCollect);
+$('downloadBtn').addEventListener('click', runDownload);
 $('stopBtn').addEventListener('click', stop);
 function showStart(t,cls){ $('startMsg').innerHTML = t?`<div class="msg ${cls}">${t}</div>`:''; }
 
@@ -355,8 +358,10 @@ function renderStatus(st, running){
   const CLS=Object.assign({interrupted:'s-err', idle:'s-idle'}, STATE_CLS);
   badge.textContent = key==='interrupted' ? 'прошлый сбор прерван' : (running && key!=='waiting' ? (STATE_LABEL[key]||'идёт сбор') : (LABEL[key]||'не запущено'));
   badge.className='state '+(key==='interrupted'?'s-err':(CLS[key]||'s-idle'));
+  jobRunning = running;
   $('startBtn').disabled = running;
   $('stopBtn').disabled = !running;
+  updateDownloadBtn();
 
   if(!st){ $('progressCard').hidden=true; return; }
   $('progressCard').hidden=false;
@@ -407,14 +412,27 @@ function renderStatus(st, running){
 }
 
 let lastSites=[];
+let jobRunning=false;
 let removedHosts=new Set(JSON.parse(localStorage.getItem('ys-removed')||'[]'));
 function saveRemoved(){ try{ localStorage.setItem('ys-removed', JSON.stringify([...removedHosts])); }catch(e){} }
+// Кнопка «Выгрузить страницы оставшихся» доступна, когда есть что качать и ничего не запущено.
+function updateDownloadBtn(){
+  const btn=$('downloadBtn'); if(!btn) return;
+  const visible=lastSites.filter(s=>!removedHosts.has(s.host));
+  btn.disabled = jobRunning || visible.length===0;
+}
 
 function renderResults(sites){
   lastSites = sites || [];
   const card=$('resultsCard');
-  const visible=(sites||[]).filter(s=>!removedHosts.has(s.host));
-  if(!sites || !sites.length){ card.hidden=true; return; }
+  if(!sites || !sites.length){ updateDownloadBtn(); card.hidden=true; return; }
+  // После выгрузки убранные сайты исчезают из данных — вычищаем их из списка «убранных», чтобы счётчик не врал.
+  const present=new Set(sites.map(s=>s.host));
+  let changed=false;
+  [...removedHosts].forEach(h=>{ if(!present.has(h)){ removedHosts.delete(h); changed=true; } });
+  if(changed) saveRemoved();
+  const visible=sites.filter(s=>!removedHosts.has(s.host));
+  updateDownloadBtn();
   card.hidden=false;
   $('resCount').textContent='· '+visible.length+(removedHosts.size?` (убрано ${removedHosts.size})`:'');
   const note=$('removedNote');
@@ -507,7 +525,7 @@ function prefill(state){
     $('visit').checked=!!s.visit; if(s.variants)$('variants').value=s.variants;
     if(s.visit_driver)$('driver').value=s.visit_driver; $('useproxies').checked=!!s.proxies_file;
     if(s.repeat_hours!=null)$('repeat').value=s.repeat_hours;
-    if(s.top!=null)$('top').value=s.top; if(s.skip_known!=null)$('skipknown').checked=s.skip_known; if(s.stage)$('stage').value=s.stage;
+    if(s.top!=null)$('top').value=s.top; if(s.skip_known!=null)$('skipknown').checked=s.skip_known;
     $('crawl').checked=!!s.crawl; if(s.max_pages)$('maxpages').value=s.max_pages;
   }
 }
@@ -523,9 +541,6 @@ async function refresh(){
 }
 
 loadLocal();
-// Раньше существовавший вариант «Сборка + выгрузка» (both) мог остаться сохранённым — тогда
-// в списке нет такого пункта и он показывается пустым; возвращаем к «Сборке».
-if(!$('stage').value){ $('stage').value='collect'; saveLocal(); }
 toggleXmlstock();
 refresh();
 setInterval(refresh, 1500);

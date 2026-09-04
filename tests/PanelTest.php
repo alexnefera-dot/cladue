@@ -202,6 +202,42 @@ final class PanelTest
         @rmdir($dir);
     }
 
+    public function testDownloadStageExcludesRemovedHosts(): void
+    {
+        $port = FakeServer::port('local');
+        $dir = sys_get_temp_dir() . '/yandex-sites-dlx-' . uniqid();
+        $runDir = $dir . '/runs/dlx';
+        mkdir($runDir, 0777, true);
+        file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
+        // Два собранных сайта; один убран крестиком (приходит в exclude_hosts) и качаться не должен.
+        file_put_contents($runDir . '/sites.json', json_encode(['sites' => [
+            ['host' => 'okna-moskva.ru', 'domain' => 'okna-moskva.ru', 'url' => "http://okna-moskva.ru:$port/page-1/", 'title' => 'T', 'best_query' => 'окна', 'best_position' => 1, 'queries_count' => 1],
+            ['host' => 'skip-me.ru', 'domain' => 'skip-me.ru', 'url' => "http://skip-me.ru:$port/page-1/", 'title' => 'T2', 'best_query' => 'окна', 'best_position' => 2, 'queries_count' => 1],
+        ]]));
+        file_put_contents($runDir . '/settings.json', json_encode([
+            'stage' => 'download',
+            'visit_driver' => 'curl',
+            'exclude_hosts' => ['skip-me.ru'],
+            'visit_resolve' => ["okna-moskva.ru:$port:127.0.0.1"],
+        ]));
+        $run = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $run['code'], $run['out']);
+        $st = json_decode((string) file_get_contents($runDir . '/status.json'), true);
+        Assert::same('done', $st['state'], $run['out']);
+        Assert::contains('Выгружено страниц: 1', $st['message']);
+        Assert::true(is_file($runDir . '/pages/okna-moskva.ru/variant-1.html'), 'оставшийся сайт выгружен');
+        Assert::false(is_dir($runDir . '/pages/skip-me.ru'), 'убранный сайт не выгружался');
+        $sites = json_decode((string) file_get_contents($runDir . '/sites.json'), true);
+        $hosts = array_map(static fn ($s) => $s['host'], $sites['sites']);
+        Assert::same(['okna-moskva.ru'], $hosts, 'в sites.json остались только оставшиеся сайты');
+
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($it as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+        @rmdir($dir);
+    }
+
     public function testRunJobReportsErrorOnBadKey(): void
     {
         $port = FakeServer::port();

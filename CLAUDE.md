@@ -242,11 +242,14 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   whose transliteration matches), so no manual input is needed; `Content\KnownBrands` adds a built-in list
   of casino brands (+ gitignored `brands.txt`) so foreign brands in the text are templated too (word-boundary,
   homoglyph-tolerant match). `ContentCleaner::autoOptions()` wires detection + known brands and lets non-empty
-  overrides win (extra_brands merge). Panel: the stage dropdown offers only collect and download (two
-  explicit steps so the user can prune sites with ✕ between them; the `both` branch stays in
-  `buildOverrides()`/run-job for CLI use, just not surfaced in the panel) — content
-  cleaning is table-only, via a per-site «Забрать контент» button (`/api/clean-site` → `content-<host>.zip`)
-  and a bulk «Забрать весь контент» button (`/api/clean-all`, accepts an `exclude` host list → `content.zip`);
+  overrides win (extra_brands merge). Panel has no stage dropdown: «Собрать сайты» (next to the queries)
+  runs `stage=collect`; «Выгрузить страницы оставшихся» (above the results table) runs `stage=download`
+  with `exclude_hosts` = the ✕-removed hosts, so only the sites the user kept are opened (run-job filters
+  `loadSites()` by that list and rewrites `sites.json` to the kept set). `runCollect()` clears the removed
+  set (fresh list); `runDownload()` keeps it. The `both` branch stays in `buildOverrides()`/run-job for CLI,
+  just not surfaced. Content cleaning is table-only, via a per-site «Забрать контент» button
+  (`/api/clean-site` → `content-<host>.zip`) and a bulk «Забрать весь контент» button
+  (`/api/clean-all`, accepts an `exclude` host list → `content.zip`);
   shared helpers `pagesByHost()`/`cleanHostPages()`/`zipContent()` in `bin/panel.php`. The `stage=clean`
   job branch (reads `runs/current/pages` → `content` + `content.zip`) stays for `bin/clean-content.php`/CLI,
   no longer surfaced in the panel UI. Covered by `tests/ContentCleanerTest.php` and `tests/BrandDetectorTest.php`.
@@ -285,7 +288,8 @@ Run `php tests/lint.php && php tests/run.php` before committing.
 - `Support\DomainLedger` (runs/domains-base.txt) is a cross-run base of collected registrable
   domains; `Runner` takes an optional ledger + skipKnown to drop already-seen domains (reason
   `seen_before`) and record new ones. The panel job has two stages (`settings.stage`): `collect`
-  (grow the base, no visits), `download` (open the previously collected sites.json), `both`.
+  (grow the base, no visits), `download` (open the previously collected sites.json, minus
+  `settings.exclude_hosts` — the sites removed with ✕), `both`.
   `settings.top` limits the SERP to the first N results (max_position + one page).
 - When Yandex changes its SERP markup, update `Live\HtmlResponseParser` and `tests/fixtures/serp.html`
   together; `--parse-html` helps to check a saved page.
