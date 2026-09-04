@@ -39,7 +39,33 @@ if (PHP_SAPI !== 'cli-server') {
     @mkdir($projectDir . '/runs/current', 0777, true);
     putenv('YS_PROJECT_DIR=' . $projectDir);
 
-    $url = sprintf('http://%s:%d/', $host === '0.0.0.0' ? '127.0.0.1' : $host, $port);
+    // Порт может быть занят уже запущенной (возможно, старой) панелью — не падаем, берём свободный.
+    $bindHost = $host === '0.0.0.0' ? '127.0.0.1' : $host;
+    $requestedPort = $port;
+    $freePort = null;
+    for ($p = $port; $p <= $port + 20; $p++) {
+        $probe = @stream_socket_server("tcp://$bindHost:$p", $errno, $errstr);
+        if ($probe !== false) {
+            fclose($probe);
+            $freePort = $p;
+            break;
+        }
+    }
+    if ($freePort === null) {
+        fwrite(STDERR, "Порт $requestedPort и соседние заняты. Освободите порт и запустите снова:" . PHP_EOL);
+        fwrite(STDERR, PHP_OS_FAMILY === 'Windows'
+            ? "  netstat -ano | findstr :$requestedPort   (затем taskkill /PID <PID> /F)" . PHP_EOL
+            : "  lsof -ti tcp:$requestedPort | xargs kill" . PHP_EOL);
+        fwrite(STDERR, "…или укажите другой порт: php bin/panel.php --port=8788" . PHP_EOL);
+        exit(1);
+    }
+    if ($freePort !== $requestedPort) {
+        fwrite(STDOUT, "Порт $requestedPort занят — вероятно, панель уже запущена в другом окне (возможно, СТАРАЯ версия)." . PHP_EOL);
+        fwrite(STDOUT, "Остановите её там (Ctrl+C) и пользуйтесь этим окном. Запускаю на свободном порту $freePort." . PHP_EOL . PHP_EOL);
+        $port = $freePort;
+    }
+
+    $url = sprintf('http://%s:%d/', $bindHost, $port);
     fwrite(STDOUT, "yandex-sites — веб-интерфейс запущен." . PHP_EOL);
     fwrite(STDOUT, "Откройте в браузере: $url" . PHP_EOL);
     fwrite(STDOUT, "Остановить: Ctrl+C" . PHP_EOL . PHP_EOL);
