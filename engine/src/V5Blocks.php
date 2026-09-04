@@ -684,6 +684,9 @@ function v5VpisatTemu(string $html, array $тема, int $предел = 4): str
             if ($первая === mb_strtoupper($первая) && preg_match('~^[А-ЯЁ]~u', $первая)) { $слово = mb_strtoupper(mb_substr($слово, 0, 1)) . mb_substr($слово, 1); }
             return $слово . ' «' . $пр . '»';
         }, $html);
+    // Слово с именем в начале предложения — с заглавной: «VIP статус растёт» → «Статус «Гвардия» растёт».
+    $html = (string) preg_replace_callback('~(^|[.!?…]\s+|>\s*)([а-яё])(?=[а-яё]*\s+«)~u',
+        fn($m) => $m[1] . mb_strtoupper($m[2]), $html);
     return $html;
 }
 
