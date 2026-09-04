@@ -264,6 +264,22 @@ if ($path === '/api/log') {
     exit;
 }
 
+if ($path === '/file') {
+    $rel = ltrim(str_replace('\\', '/', (string) ($_GET['path'] ?? '')), '/');
+    $base = realpath($runDir);
+    $full = $base !== false ? realpath($runDir . '/' . $rel) : false;
+    if ($rel === '' || str_contains($rel, '..') || $full === false || $base === false || !str_starts_with($full, $base . DIRECTORY_SEPARATOR) || !is_file($full)) {
+        http_response_code(404);
+        echo 'not found';
+        exit;
+    }
+    $ext = strtolower(pathinfo($full, PATHINFO_EXTENSION));
+    $types = ['html' => 'text/html; charset=utf-8', 'png' => 'image/png', 'jpg' => 'image/jpeg', 'txt' => 'text/plain; charset=utf-8', 'json' => 'application/json; charset=utf-8', 'csv' => 'text/csv; charset=utf-8'];
+    header('Content-Type: ' . ($types[$ext] ?? 'application/octet-stream'));
+    readfile($full);
+    exit;
+}
+
 if ($path === '/download') {
     $map = ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt', 'results' => 'results.csv'];
     $key = (string) ($_GET['file'] ?? '');

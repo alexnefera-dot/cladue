@@ -160,12 +160,17 @@ function buildOverrides(array $s, string $runDir): array
  * @param list<\YandexSites\Model\Site> $sites
  * @return list<array<string, mixed>>
  */
-function previewSites(array $sites, int $limit = 200): array
+function previewSites(array $sites, string $runDir = '', int $limit = 300): array
 {
+    $rel = static function (string $abs) use ($runDir): string {
+        $prefix = rtrim($runDir, '/\\') . '/';
+        return $runDir !== '' && str_starts_with($abs, $prefix) ? substr($abs, strlen($prefix)) : $abs;
+    };
     $rows = [];
     foreach (array_slice($sites, 0, $limit) as $site) {
         $data = $site->toArray();
         $visit = $site->firstVisit();
+        $summary = $site->visitSummary();
         $rows[] = [
             'host' => $data['host'],
             'domain' => $data['domain'],
@@ -174,8 +179,11 @@ function previewSites(array $sites, int $limit = 200): array
             'queries_count' => $data['queries_count'],
             'best_position' => $data['best_position'],
             'variants' => $data['variants'],
-            'visit_ok' => $visit !== null ? (bool) $visit['ok'] : null,
-            'visit_status' => $visit['status'] ?? null,
+            'pages_ok' => $summary['total'] > 0 ? $summary['ok'] : null,
+            'pages_total' => $summary['total'] > 0 ? $summary['total'] : null,
+            'page_error' => $summary['error'],
+            'html' => $visit !== null && ($visit['html_file'] ?? '') !== '' ? $rel((string) $visit['html_file']) : '',
+            'screenshot' => $visit !== null && ($visit['screenshot_file'] ?? '') !== '' ? $rel((string) $visit['screenshot_file']) : '',
         ];
     }
 
@@ -276,7 +284,7 @@ while (true) {
                 'state' => 'done',
                 'phase' => 'done',
                 'stats' => ['sites_selected' => count($siteList)],
-                'sites' => previewSites($siteList),
+                'sites' => previewSites($siteList, $runDir),
                 'run_finished_at' => date(DATE_ATOM),
                 'files' => ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt'],
                 'message' => sprintf('Выгружено страниц: %d', $opened),
@@ -330,7 +338,7 @@ while (true) {
                 'errors' => $result->errors,
                 'aborted' => $result->aborted,
                 'proxies' => $runtime->proxies?->stats() ?? [],
-                'sites' => previewSites($result->sites),
+                'sites' => previewSites($result->sites, $runDir),
                 'base_domains' => $ledger->count(),
                 'run_finished_at' => date(DATE_ATOM),
                 'files' => ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt', 'results' => 'results.csv'],

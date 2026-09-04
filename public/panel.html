@@ -190,6 +190,7 @@
 
   <div class="card" id="resultsCard" hidden>
     <h2>Результаты <span id="resCount" class="muted"></span></h2>
+    <div class="hint" style="margin-bottom:8px">Файлы страниц на диске: <b>runs/current/pages/&lt;сайт&gt;/</b>. Кнопки — скачать таблицы.</div>
     <div class="btns" style="margin-bottom:10px">
       <a class="tag" id="dlCsv" href="/download?file=csv">CSV</a>
       <a class="tag" id="dlJson" href="/download?file=json">JSON</a>
@@ -197,7 +198,7 @@
     </div>
     <div style="overflow:auto">
       <table id="resTable">
-        <thead><tr><th>#</th><th>Домен</th><th>Запросов</th><th>Позиция</th><th>Версии</th><th>Визит</th></tr></thead>
+        <thead><tr><th>#</th><th>Домен</th><th>Запросов</th><th>Позиция</th><th>Версии</th><th>Скачано</th><th>Файлы</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -335,14 +336,18 @@ function renderResults(sites){
   if(!sites || !sites.length){ card.hidden=true; return; }
   card.hidden=false;
   $('resCount').textContent='· '+sites.length;
+  const esc=t=>String(t||'').replace(/"/g,'&quot;').replace(/</g,'&lt;');
   const tb=$('resTable').querySelector('tbody');
   tb.innerHTML=sites.map((s,i)=>{
-    let visit='—';
-    if(s.visit_ok===true) visit=`<span class="tag">HTTP ${s.visit_status||'?'}</span>`;
-    else if(s.visit_ok===false) visit=`<span class="tag diff">ошибка</span>`;
+    let dl='—';
+    if(s.pages_total>0){ dl=`${s.pages_ok||0}/${s.pages_total}`; if((s.pages_ok||0)===0 && s.page_error) dl+=` <span class="tag diff" title="${esc(s.page_error)}">ошибка</span>`; }
+    else if(s.page_error) dl=`<span class="tag diff" title="${esc(s.page_error)}">${esc(s.page_error).slice(0,40)}</span>`;
+    let files=[];
+    if(s.html) files.push(`<a href="/file?path=${encodeURIComponent(s.html)}" target="_blank" rel="noopener">HTML</a>`);
+    if(s.screenshot) files.push(`<a href="/file?path=${encodeURIComponent(s.screenshot)}" target="_blank" rel="noopener">фото</a>`);
     const variants = s.variants>1 ? `<span class="tag diff">${s.variants} версии</span>` : (s.variants===1?'1':'—');
-    const link = s.url?`<a href="${s.url}" target="_blank" rel="noopener">${s.host}</a>`:s.host;
-    return `<tr><td>${i+1}</td><td class="host">${link}</td><td>${s.queries_count||0}</td><td>${s.best_position??'—'}</td><td>${variants}</td><td>${visit}</td></tr>`;
+    const link = s.url?`<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.host)}</a>`:esc(s.host);
+    return `<tr><td>${i+1}</td><td class="host">${link}</td><td>${s.queries_count||0}</td><td>${s.best_position??'—'}</td><td>${variants}</td><td>${dl}</td><td>${files.join(' · ')||'—'}</td></tr>`;
   }).join('');
 }
 
@@ -374,12 +379,7 @@ async function refresh(){
     const r=await fetch('/api/state'); const st=await r.json();
     prefill(st);
     renderStatus(st.status, st.running);
-    if(st.status && (st.status.state==='done'||st.status.state==='waiting'||st.status.state==='error')){
-      const rr=await fetch('/api/results'); const j=await rr.json();
-      renderResults((j.sites||[]).map(s=>({host:s.host,url:s.url,queries_count:s.queries_count,best_position:s.best_position,variants:s.variants,visit_ok:(s.visits&&s.visits[0])?s.visits[0].ok:null,visit_status:(s.visits&&s.visits[0])?s.visits[0].status:null})));
-    } else if(st.status && st.status.sites && st.status.sites.length){
-      renderResults(st.status.sites);
-    }
+    renderResults(st.status && st.status.sites ? st.status.sites : []);
   }catch(e){}
   try{ const l=await fetch('/api/log'); const t=await l.text(); if(t.trim()){ const el=$('log'); const atEnd=el.scrollTop+el.clientHeight>=el.scrollHeight-20; el.textContent=t; if(atEnd) el.scrollTop=el.scrollHeight; } }catch(e){}
 }

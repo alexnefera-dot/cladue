@@ -74,6 +74,26 @@ final class Site
     }
 
     /**
+     * Сводка по визитам: сколько страниц открыто успешно, всего, и первая ошибка.
+     *
+     * @return array{ok: int, total: int, error: string}
+     */
+    public function visitSummary(): array
+    {
+        $ok = 0;
+        $error = '';
+        foreach ($this->visits as $visit) {
+            if ($visit['ok'] ?? false) {
+                $ok++;
+            } elseif ($error === '') {
+                $error = (string) ($visit['error'] !== '' ? $visit['error'] : 'HTTP ' . ($visit['status'] ?? '?'));
+            }
+        }
+
+        return ['ok' => $ok, 'total' => count($this->visits), 'error' => $error];
+    }
+
+    /**
      * @return array<string, mixed>|null первый успешный визит
      */
     public function firstVisit(): ?array

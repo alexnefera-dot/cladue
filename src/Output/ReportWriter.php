@@ -27,7 +27,7 @@ final class ReportWriter
         $this->row($fh, [
             'host', 'host_unicode', 'domain', 'url', 'title', 'best_position', 'best_query',
             'queries_count', 'hits', 'queries', 'check_status', 'check_final_url', 'check_title', 'check_result',
-            'page_file', 'page_final_url', 'page_title', 'page_variants',
+            'page_file', 'page_final_url', 'page_title', 'page_variants', 'pages_ok', 'pages_total', 'page_error',
         ]);
         foreach ($sites as $site) {
             $data = $site->toArray();
@@ -56,6 +56,9 @@ final class ReportWriter
                 $visit['final_url'] ?? '',
                 $visit['title'] ?? '',
                 $site->visits === [] ? '' : sprintf('%d/%d', $site->variantCount(), count($site->visits)),
+                $site->visits === [] ? '' : $site->visitSummary()['ok'],
+                $site->visits === [] ? '' : $site->visitSummary()['total'],
+                $site->visits === [] ? '' : $site->visitSummary()['error'],
             ]);
         }
         fclose($fh);
