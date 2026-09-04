@@ -50,7 +50,9 @@ final class Runner
         $result = new RunResult();
         $result->stats['queries'] = count($queries);
 
-        $filter = new ResultFilter((array) $this->config->get('filters'));
+        $filtersCfg = (array) $this->config->get('filters');
+        $filtersCfg['own_markers'] = \YandexSites\Filter\OwnSites::fromConfig($this->config)->markers();
+        $filter = new ResultFilter($filtersCfg);
         $aggregator = new Aggregator(
             (string) $this->config->get('filters.unique_by', 'host'),
             (bool) $this->config->get('filters.strip_www', true),

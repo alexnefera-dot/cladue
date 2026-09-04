@@ -69,6 +69,28 @@ final class SiteLinksTest
         Assert::notInArray('https://okna-moskva.ru/blog/post-1', $links);
     }
 
+    public function testCanonicalFoldsAliases(): void
+    {
+        // / , /index.php , /index.html , www — одна и та же главная (не качаем дважды)
+        $home = SiteLinks::canonical('https://a.ru/');
+        Assert::same($home, SiteLinks::canonical('https://a.ru/index.php'));
+        Assert::same($home, SiteLinks::canonical('http://www.a.ru/index.html'));
+        Assert::same($home, SiteLinks::canonical('https://a.ru/#top'));
+        // /about и /about/ — одно; запрос различает страницы
+        Assert::same(SiteLinks::canonical('https://a.ru/about'), SiteLinks::canonical('https://a.ru/about/'));
+        Assert::true(SiteLinks::canonical('https://a.ru/catalog') !== SiteLinks::canonical('https://a.ru/catalog?p=2'));
+    }
+
+    public function testExcludesHomeAliasFromMenu(): void
+    {
+        // Ссылка на /index.php в меню — это тоже главная, её не берём как отдельную страницу
+        $html = '<header><nav><a href="/">Главная</a><a href="/index.php">Главная (алиас)</a><a href="/about">О нас</a></nav></header>';
+        $links = SiteLinks::fromHeader($html, 'https://site.ru/', 'site.ru');
+        Assert::inArray('https://site.ru/about', $links);
+        Assert::notInArray('https://site.ru/index.php', $links, 'алиас главной исключён');
+        Assert::same(1, count($links), 'осталась только реальная внутренняя страница');
+    }
+
     public function testResolveRelativeAndBadSchemes(): void
     {
         Assert::same('https://a.ru/x/y', SiteLinks::resolve('https://a.ru/x/', 'y'));

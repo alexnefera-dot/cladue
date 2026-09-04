@@ -16,6 +16,7 @@ final class ResultFilter
     private string $domainScope;
     private DomainMatcher $include;
     private DomainMatcher $exclude;
+    private OwnSites $own;
     /** @var list<string> */
     private array $tlds;
     private TextMatcher $urlMust;
@@ -39,6 +40,7 @@ final class ResultFilter
 
         $this->include = new DomainMatcher($cfg['include_domains'] ?? []);
         $this->exclude = new DomainMatcher($cfg['exclude_domains'] ?? []);
+        $this->own = new OwnSites(array_values(array_filter((array) ($cfg['own_markers'] ?? []), 'is_string')));
 
         $this->tlds = [];
         foreach ((array) ($cfg['allowed_tlds'] ?? []) as $tld) {
@@ -75,6 +77,9 @@ final class ResultFilter
         }
         if ($this->exclude->matches($host)) {
             return 'exclude_domains';
+        }
+        if (!$this->own->isEmpty() && $this->own->matchesHost($host)) {
+            return 'own_site'; // наш шаблон на этом домене
         }
         if ($this->tlds !== [] && !in_array(Domains::tld($host), $this->tlds, true)) {
             return 'tld';

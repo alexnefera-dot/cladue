@@ -150,6 +150,11 @@ final class Config
                 'snippet_none' => [],
                 'min_queries' => 1,
                 'min_hits' => 1,
+                // «Свои» шаблоны, которые не собираем и не скачиваем (в отчёте — «исключён как наш»).
+                // Метки — устойчивые подстроки страницы/адреса (домен размещения, токен верификации,
+                // путь к ассетам), не зависящие от меняющихся кодов и стилей. Список ниже + файл own_markers_file.
+                'own_markers' => [],
+                'own_markers_file' => 'own-markers.txt',
             ],
             'site_check' => [
                 'enabled' => false,
@@ -385,7 +390,7 @@ final class Config
                 $errors[] = "$path: ожидается неотрицательное число";
             }
         }
-        foreach (['filters.allowed_tlds', 'filters.include_domains', 'filters.exclude_domains', 'filters.url_must_match', 'filters.url_must_not_match', 'filters.title_any', 'filters.title_all', 'filters.title_none', 'filters.snippet_any', 'filters.snippet_none', 'site_check.require_status', 'site_check.page_must_match', 'site_check.page_must_not_match'] as $path) {
+        foreach (['filters.allowed_tlds', 'filters.include_domains', 'filters.exclude_domains', 'filters.own_markers', 'filters.url_must_match', 'filters.url_must_not_match', 'filters.title_any', 'filters.title_all', 'filters.title_none', 'filters.snippet_any', 'filters.snippet_none', 'site_check.require_status', 'site_check.page_must_match', 'site_check.page_must_not_match'] as $path) {
             if (!is_array($g($path))) {
                 $errors[] = "$path: ожидается массив";
             }

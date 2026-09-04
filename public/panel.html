@@ -320,7 +320,7 @@ function renderStatus(st, running){
   if(v && v.total) push((v.done||0)+' / '+v.total,'страниц открыто');
   $('stats').innerHTML=cells.join('');
 
-  const REASONS={seen_before:'уже в базе доменов',tld:'зона домена не разрешена',exclude_domains:'в списке исключений',include_domains:'нет в списке нужных',domain_scope:'не тот тип домена',position:'позиция ниже лимита',title_any:'нет слов в заголовке',title_all:'нет всех слов',title_none:'стоп‑слово в заголовке',snippet_any:'нет слов в описании',snippet_none:'стоп‑слово в описании',url_must_match:'URL не подходит',url_must_not_match:'URL исключён',no_host:'без адреса',min_queries:'мало запросов',min_hits:'мало попаданий'};
+  const REASONS={seen_before:'уже в базе доменов',tld:'зона домена не разрешена',exclude_domains:'в списке исключений',include_domains:'нет в списке нужных',domain_scope:'не тот тип домена',position:'позиция ниже лимита',title_any:'нет слов в заголовке',title_all:'нет всех слов',title_none:'стоп‑слово в заголовке',snippet_any:'нет слов в описании',snippet_none:'стоп‑слово в описании',url_must_match:'URL не подходит',url_must_not_match:'URL исключён',no_host:'без адреса',min_queries:'мало запросов',min_hits:'мало попаданий',own_site:'наш шаблон (исключён)'};
   const rej = (st.stats && st.stats.rejected) || st.rejected || {};
   const rkeys = Object.keys(rej).sort((a,b)=>rej[b]-rej[a]);
   if(rkeys.length){
@@ -347,7 +347,8 @@ function renderResults(sites){
   const tb=$('resTable').querySelector('tbody');
   tb.innerHTML=sites.map((s,i)=>{
     let dl='—';
-    if(s.pages_total>0){ dl=`${s.pages_ok||0}/${s.pages_total}`; if((s.pages_ok||0)===0 && s.page_error) dl+=` <span class="tag diff" title="${esc(s.page_error)}">ошибка</span>`; }
+    if(s.own){ dl=`<span class="tag" title="наш шаблон — исключён из выгрузки">исключён как наш</span>`; }
+    else if(s.pages_total>0){ dl=`${s.pages_ok||0}/${s.pages_total}`; if((s.pages_ok||0)===0 && s.page_error) dl+=` <span class="tag diff" title="${esc(s.page_error)}">ошибка</span>`; }
     else if(s.page_error) dl=`<span class="tag diff" title="${esc(s.page_error)}">${esc(s.page_error).slice(0,40)}</span>`;
     let files=[];
     if(s.html) files.push(`<a href="/file?path=${encodeURIComponent(s.html)}" target="_blank" rel="noopener">HTML</a>`);

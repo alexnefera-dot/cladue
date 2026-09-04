@@ -374,6 +374,14 @@ switch ($host) {
         echo '<html><head><title>Вариант ' . $variant . '</title></head><body><h1>Страница варианта ' . $variant . '</h1><p>' . htmlspecialchars($visitor) . '</p></body></html>';
 
         return;
+    case 'ourtpl.ru':
+        // Наш шаблон: устойчивая метка в <head> (токен верификации) при меняющемся теле (QR).
+        echo '<html><head><title>Промо-шаблон</title>'
+            . '<meta name="yandex-verification" content="OWNMARK123">'
+            . '</head><body>' . $navHtml
+            . '<h1>Бонусы</h1><p class="qr">' . md5((string) mt_rand()) . '</p></body></html>';
+
+        return;
     case 'agegate.ru':
         // Заглушка проверки возраста 18+ — одинаковая на всех путях (реальный контент за ней).
         // Шапка с меню присутствует, поэтому ссылки на внутренние страницы всё равно собираются.

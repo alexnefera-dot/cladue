@@ -176,6 +176,7 @@ function previewSites(array $sites, string $runDir = '', int $limit = 300): arra
         $data = $site->toArray();
         $visit = $site->firstVisit();
         $summary = $site->visitSummary();
+        $own = (bool) ($data['own'] ?? false);
         $rows[] = [
             'host' => $data['host'],
             'domain' => $data['domain'],
@@ -184,9 +185,10 @@ function previewSites(array $sites, string $runDir = '', int $limit = 300): arra
             'queries_count' => $data['queries_count'],
             'best_position' => $data['best_position'],
             'variants' => $data['variants'],
-            'pages_ok' => $summary['total'] > 0 ? $summary['ok'] : null,
-            'pages_total' => $summary['total'] > 0 ? $summary['total'] : null,
-            'page_error' => $summary['error'],
+            'own' => $own,
+            'pages_ok' => $own ? null : ($summary['total'] > 0 ? $summary['ok'] : null),
+            'pages_total' => $own ? null : ($summary['total'] > 0 ? $summary['total'] : null),
+            'page_error' => $own ? 'исключён как наш' : $summary['error'],
             'html' => $visit !== null && ($visit['html_file'] ?? '') !== '' ? $rel((string) $visit['html_file']) : '',
             'screenshot' => $visit !== null && ($visit['screenshot_file'] ?? '') !== '' ? $rel((string) $visit['screenshot_file']) : '',
         ];

@@ -20,7 +20,7 @@ use YandexSites\Visit\VisitJob;
  */
 final class VisitTest
 {
-    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'agegate.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru'];
+    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'agegate.ru', 'ourtpl.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru'];
 
     private ?string $dir = null;
 
@@ -320,6 +320,39 @@ final class VisitTest
         // остальные страницы меню не скачаны
         Assert::false(is_file("$dir/1-стр/onepager.ru/contacts.html"));
         Assert::same(0, count(glob("$dir/1-стр/onepager.ru/*.html") ?: []) - 1, 'кроме main других html нет');
+    }
+
+    public function testCrawlExcludesOwnTemplate(): void
+    {
+        // Наш шаблон опознаётся по метке в HTML — сайт исключается целиком, страницы не сохраняются.
+        $port = FakeServer::port();
+        $dir = $this->dir() . '/own';
+        $site = new Site('ourtpl.ru', 'ourtpl.ru', 'ourtpl.ru');
+        $site->add(new SearchResult('бонус', 0, 1, "http://ourtpl.ru:$port/", 'ourtpl.ru', 'Промо'));
+        $sites = ['ourtpl.ru' => $site];
+
+        $visitor = new PageVisitor([
+            'crawl' => true,
+            'max_pages' => 10,
+            'target' => 'found',
+            'dir' => $dir,
+            'screenshot' => false,
+            'own_markers' => ['OWNMARK123'],
+            'timeout' => 5,
+            'delay_ms' => 0,
+            'concurrency' => 3,
+            'resolve' => $this->resolve($port),
+            'user_agents' => [UserAgents::YANDEX_BOT],
+        ], new CurlDriver(), $this->logger());
+        $visitor->visit($sites);
+
+        Assert::true($site->own, 'сайт помечен как наш');
+        Assert::same(1, count($site->visits), 'только главная — дальше не обходим');
+        Assert::true($site->visits[0]['own'] ?? false, 'визит помечен own');
+        Assert::contains('исключён как наш', $site->visits[0]['error']);
+        Assert::same(0, $site->visitSummary()['ok'], 'ни одной сохранённой страницы');
+        Assert::false(is_dir("$dir/ourtpl.ru"), 'папка сайта не создана');
+        Assert::same(0, count(glob("$dir/*-стр/ourtpl.ru") ?: []), 'в папки по числу страниц не попал');
     }
 
     public function testShortPageNamesFromUrl(): void

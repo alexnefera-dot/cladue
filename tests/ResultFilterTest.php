@@ -32,6 +32,16 @@ final class ResultFilterTest
         Assert::same('include_domains', $filter->reject($this->result('other.ru')));
     }
 
+    public function testOwnSiteByDomainMarker(): void
+    {
+        // Метка-домен из filters.own_markers отсеивает наш шаблон и его поддомены ещё на сборе.
+        $filter = new ResultFilter(['own_markers' => ['oasc.team', '/uploads/brands/']]);
+        Assert::same('own_site', $filter->reject($this->result('oasc.team')));
+        Assert::same('own_site', $filter->reject($this->result('kush.oasc.team')));
+        Assert::null($filter->reject($this->result('okna-moskva.ru')), 'чужой сайт проходит');
+        Assert::null($filter->reject($this->result('oasc.team.ru')), 'похожий, но другой домен — проходит');
+    }
+
     public function testTld(): void
     {
         $filter = new ResultFilter(['allowed_tlds' => ['ru', 'рф', '.su']]);

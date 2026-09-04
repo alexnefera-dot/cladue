@@ -209,6 +209,15 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   format is not Yandex.XML); new visit drivers implement `Visit\DriverInterface`.
 - Every new filter rule needs a reason code in `ResultFilter::reject()`, a config default in
   `Config::defaults()`, an example in `config.example.php` and a test in `tests/ResultFilterTest.php`.
+- `Filter\OwnSites` marks our own templates so they are neither collected nor downloaded: markers
+  (`filters.own_markers` list + gitignored `filters.own_markers_file`, default `own-markers.txt`)
+  are stable substrings of the page/URL (hosting domain, `<head>` verification token, asset path) —
+  never the changing codes/styles (QR, CSS). `ResultFilter` rejects domain markers at collection
+  (`own_site`); `PageVisitor::assembleVisit()` matches HTML/host at visit time, deletes files, sets
+  `Site::$own`, and reports «исключён как наш» (skips crawl + N-стр bucketing). Real markers stay in
+  the untracked `own-markers.txt`, not committed. Screenshots are captured for the home page only in
+  crawl mode; `SiteLinks::canonical()` folds `/index.*` and trailing-slash aliases so a page is not
+  fetched twice.
 - `Runner` and `PageVisitor` accept an optional `$onProgress` callback; `bin/run-job.php` wires it
   to `Support\Progress`, and `bin/panel.php` (dual launcher/router via `PHP_SAPI==='cli-server'`)
   spawns the job and serves `public/panel.html`. Keep CLI and panel behaviour in sync through `Runtime`.

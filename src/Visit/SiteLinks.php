@@ -165,17 +165,19 @@ final class SiteLinks
     }
 
     /**
-     * Каноничная форма для сравнения и удаления дублей: схема+хост (без www) + путь без завершающего «/» + запрос.
+     * Каноничная форма для сравнения и удаления дублей: хост (без www) + путь без завершающего «/»,
+     * без index/default/home-файла (алиасы главной) + запрос. Одна и та же страница под разными
+     * адресами (/, /index.php, /about/, /about) сводится к одному ключу, чтобы не качать её дважды.
      */
-    private static function canonical(string $url): string
+    public static function canonical(string $url): string
     {
         $parts = parse_url(self::stripFragment($url));
         if ($parts === false) {
             return mb_strtolower($url);
         }
         $host = Domains::normalize($parts['host'] ?? '', true);
-        $path = $parts['path'] ?? '/';
-        $path = $path === '' ? '/' : rtrim($path, '/');
+        $path = rtrim($parts['path'] ?? '/', '/');
+        $path = preg_replace('~/(?:index|default|home)\.(?:html?|php|phtml|aspx?|jsp|cgi)$~i', '', $path) ?? $path;
         if ($path === '') {
             $path = '/';
         }

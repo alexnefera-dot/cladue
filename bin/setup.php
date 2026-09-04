@@ -22,7 +22,7 @@ error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 
 const UPDATE_BRANCH = 'claude/php-yandex-site-filter-v2q2lx';
 const UPDATE_URL = 'https://github.com/alexnefera-dot/cladue/archive/refs/heads/' . UPDATE_BRANCH . '.zip';
-const KEEP_FILES = ['config.php', '.env', 'proxies.txt', 'queries.txt', 'cache', 'out', 'debug', 'node_modules', 'vendor', '.git'];
+const KEEP_FILES = ['config.php', '.env', 'proxies.txt', 'own-markers.txt', 'queries.txt', 'cache', 'out', 'debug', 'node_modules', 'vendor', '.git'];
 
 $root = dirname(__DIR__);
 $target = $root;
@@ -204,6 +204,7 @@ $copies = [
     'config.example.php' => 'config.php',
     '.env.example' => '.env',
     'proxies.example.txt' => 'proxies.txt',
+    'own-markers.example.txt' => 'own-markers.txt',
 ];
 foreach ($copies as $example => $file) {
     $from = $root . '/' . $example;

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace YandexSites\Visit;
 
 use YandexSites\Filter\Domains;
+use YandexSites\Filter\OwnSites;
 use YandexSites\Live\Proxy;
 use YandexSites\Live\ProxyPool;
 use YandexSites\Live\UserAgents;
@@ -21,6 +22,8 @@ final class PageVisitor
     /** @var list<string> */
     private array $userAgents;
 
+    private OwnSites $ownSites;
+
     /**
      * @param array<string, mixed> $cfg раздел `visit` конфигурации
      */
@@ -35,6 +38,7 @@ final class PageVisitor
     ) {
         $agents = array_values(array_filter((array) ($cfg['user_agents'] ?? []), 'is_string'));
         $this->userAgents = $agents !== [] ? $agents : UserAgents::VISITORS;
+        $this->ownSites = new OwnSites(array_values(array_filter((array) ($cfg['own_markers'] ?? []), 'is_string')));
     }
 
     public function driver(): DriverInterface
@@ -125,7 +129,11 @@ final class PageVisitor
 
         foreach ($jobs as $job) {
             $result = $results[$job->id] ?? ['ok' => false, 'error' => 'нет результата', 'status' => null, 'final_url' => '', 'title' => ''];
-            $sites[$job->siteKey]->visits[] = $this->assembleVisit($job, $result);
+            $visit = $this->assembleVisit($job, $result);
+            if ($visit['own'] ?? false) {
+                $sites[$job->siteKey]->own = true;
+            }
+            $sites[$job->siteKey]->visits[] = $visit;
         }
 
         $this->logSiteSummary($sites);
@@ -166,7 +174,20 @@ final class PageVisitor
         }
 
         if ($visit['ok'] && is_file($job->htmlFile)) {
-            $fingerprint = Fingerprint::of((string) file_get_contents($job->htmlFile));
+            $html = (string) file_get_contents($job->htmlFile);
+            if (!$this->ownSites->isEmpty()) {
+                $host = Domains::hostFromUrl($visit['final_url'] !== '' ? $visit['final_url'] : $job->url);
+                if ($this->ownSites->matchesHtml($html) || $this->ownSites->matchesHost($host)) {
+                    // Наш шаблон — не сохраняем и не обходим дальше.
+                    @unlink($job->htmlFile);
+                    if ($job->screenshotFile !== null) {
+                        @unlink($job->screenshotFile);
+                    }
+
+                    return array_merge($visit, ['ok' => false, 'error' => 'исключён как наш', 'own' => true]);
+                }
+            }
+            $fingerprint = Fingerprint::of($html);
             $visit['html_file'] = $job->htmlFile;
             $visit['fingerprint'] = $fingerprint['hash'];
             $visit['text_length'] = $fingerprint['length'];
@@ -219,7 +240,8 @@ final class PageVisitor
                 proxyUrl: $proxy?->url,
                 proxyLabel: $proxy?->label ?? 'direct',
                 htmlFile: $prefix . '.html',
-                screenshotFile: $screenshot ? $prefix . '.png' : null,
+                // Скриншот делаем только для главной — по ней и смотрят сайт.
+                screenshotFile: ($screenshot && $isHome) ? $prefix . '.png' : null,
             );
         };
 
@@ -240,8 +262,9 @@ final class PageVisitor
         // Этап 1 — главные страницы
         $homeJobs = [];
         foreach ($sites as $key => $site) {
-            $state[$key] = ['names' => [], 'texts' => [], 'links' => []];
             $url = ($this->cfg['target'] ?? 'found') === 'found' && $site->bestUrl !== '' ? $site->bestUrl : 'https://' . $site->host . '/';
+            // urls — уже открытые адреса (в каноничном виде), чтобы не качать одну страницу дважды.
+            $state[$key] = ['names' => [], 'texts' => [], 'links' => [], 'urls' => [SiteLinks::canonical($url) => true]];
             $homeJobs[$key] = $makeJob((string) $key, $site, $url, $this->referer($site), true);
         }
         $total = count($homeJobs);
@@ -252,6 +275,13 @@ final class PageVisitor
         foreach ($sites as $key => $site) {
             $job = $homeJobs[$key];
             $visit = $this->assembleVisit($job, $homeResults[$job->id] ?? $this->missingResult(), $site->domain);
+            if ($visit['own'] ?? false) {
+                // Наш шаблон — исключаем сайт целиком, страницы не обходим.
+                $site->own = true;
+                @rmdir($dir . '/' . self::safeName($site->host));
+                $site->visits[] = $visit;
+                continue;
+            }
             if (($visit['ok'] ?? false) && is_file($job->htmlFile)) {
                 $html = (string) file_get_contents($job->htmlFile);
                 $homeText = Fingerprint::text($html);
@@ -262,10 +292,19 @@ final class PageVisitor
                 } else {
                     $state[$key]['texts'][] = $homeText;
                 }
-                $links = SiteLinks::fromHeader($html, $job->url, $site->domain, $maxPages - 1);
-                if ($links !== []) {
-                    $probeJobs[$key] = $makeJob((string) $key, $site, $links[0], $job->url);
-                    $state[$key]['links'] = array_slice($links, 1);
+                // Ссылки меню без уже открытых адресов (главная и её алиасы не качаются повторно).
+                $fresh = [];
+                foreach (SiteLinks::fromHeader($html, $job->url, $site->domain, $maxPages - 1) as $link) {
+                    $canon = SiteLinks::canonical($link);
+                    if (isset($state[$key]['urls'][$canon])) {
+                        continue;
+                    }
+                    $state[$key]['urls'][$canon] = true;
+                    $fresh[] = $link;
+                }
+                if ($fresh !== []) {
+                    $probeJobs[$key] = $makeJob((string) $key, $site, $fresh[0], $job->url);
+                    $state[$key]['links'] = array_slice($fresh, 1);
                 }
             }
             $site->visits[] = $visit;
@@ -433,6 +472,9 @@ final class PageVisitor
     private function bucketByPageCount(array $sites, string $dir): void
     {
         foreach ($sites as $site) {
+            if ($site->own) {
+                continue; // наш шаблон — папку не создаём
+            }
             $count = $site->visitSummary()['ok'];
             $from = $dir . '/' . self::safeName($site->host);
             if (!is_dir($from)) {
@@ -465,6 +507,10 @@ final class PageVisitor
     private function logSiteSummary(array $sites): void
     {
         foreach ($sites as $site) {
+            if ($site->own) {
+                $this->log->info(sprintf('  %-38s исключён как наш', mb_substr($site->host, 0, 38)));
+                continue;
+            }
             $s = $site->visitSummary();
             $stubs = 0;
             foreach ($site->visits as $visit) {

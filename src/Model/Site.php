@@ -29,6 +29,9 @@ final class Site
     /** @var list<array<string, mixed>> визиты на сайт (если включены) */
     public array $visits = [];
 
+    /** Наш собственный шаблон — исключён из выгрузки (см. filters.own_markers). */
+    public bool $own = false;
+
     public function __construct(
         public readonly string $key,
         public readonly string $host,
@@ -127,6 +130,7 @@ final class Site
             'check' => $this->check,
             'visits' => $this->visits,
             'variants' => $this->variantCount(),
+            'own' => $this->own,
         ];
     }
 }
