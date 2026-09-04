@@ -178,13 +178,11 @@ final class PageVisitor
             if (!$this->ownSites->isEmpty()) {
                 $host = Domains::hostFromUrl($visit['final_url'] !== '' ? $visit['final_url'] : $job->url);
                 if ($this->ownSites->matchesHtml($html) || $this->ownSites->matchesHost($host)) {
-                    // Наш шаблон — не сохраняем и не обходим дальше.
+                    // Наш шаблон — HTML не храним, но скриншот оставляем, чтобы можно было проверить глазами.
                     @unlink($job->htmlFile);
-                    if ($job->screenshotFile !== null) {
-                        @unlink($job->screenshotFile);
-                    }
+                    $shot = ($job->screenshotFile !== null && is_file($job->screenshotFile)) ? $job->screenshotFile : '';
 
-                    return array_merge($visit, ['ok' => false, 'error' => 'исключён как наш', 'own' => true]);
+                    return array_merge($visit, ['ok' => false, 'error' => 'исключён как наш', 'own' => true, 'screenshot_file' => $shot]);
                 }
             }
             $fingerprint = Fingerprint::of($html);
@@ -280,9 +278,12 @@ final class PageVisitor
             $job = $homeJobs[$key];
             $visit = $this->assembleVisit($job, $homeResults[$job->id] ?? $this->missingResult(), $site->domain);
             if ($visit['own'] ?? false) {
-                // Наш шаблон — исключаем сайт целиком, страницы не обходим.
+                // Наш шаблон — исключаем сайт целиком, страницы не обходим; скриншот главной оставляем
+                // (папка сайта уедет в «наши» при раскладке), а пустую папку без скриншота убираем.
                 $site->own = true;
-                @rmdir($dir . '/' . self::safeName($site->host));
+                if (($visit['screenshot_file'] ?? '') === '') {
+                    @rmdir($dir . '/' . self::safeName($site->host));
+                }
                 $site->visits[] = $visit;
                 continue;
             }
@@ -489,15 +490,12 @@ final class PageVisitor
     private function bucketByPageCount(array $sites, string $dir): void
     {
         foreach ($sites as $site) {
-            if ($site->own) {
-                continue; // наш шаблон — папку не создаём
-            }
-            $count = $site->visitSummary()['ok'];
             $from = $dir . '/' . self::safeName($site->host);
             if (!is_dir($from)) {
                 continue;
             }
-            $bucket = $dir . '/' . $count . '-стр';
+            // Наши шаблоны — в отдельную папку «наши» (только скриншот для проверки), остальные — по числу страниц.
+            $bucket = $site->own ? $dir . '/наши' : $dir . '/' . $site->visitSummary()['ok'] . '-стр';
             if (!is_dir($bucket)) {
                 @mkdir($bucket, 0777, true);
             }
@@ -525,7 +523,8 @@ final class PageVisitor
     {
         foreach ($sites as $site) {
             if ($site->own) {
-                $this->log->info(sprintf('  %-38s исключён как наш', mb_substr($site->host, 0, 38)));
+                $shot = ($site->visits[0]['screenshot_file'] ?? '') !== '' ? ' (скриншот в папке наши)' : '';
+                $this->log->info(sprintf('  %-38s исключён как наш%s', mb_substr($site->host, 0, 38), $shot));
                 continue;
             }
             $s = $site->visitSummary();

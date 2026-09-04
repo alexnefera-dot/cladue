@@ -214,8 +214,9 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   are stable substrings of the page/URL (hosting domain, `<head>` verification token, asset path) —
   never the changing codes/styles (QR, CSS). The default marker `/uploads/brands/` (asset path shared
   by all their brand templates) is in `Config::defaults()`; `ResultFilter` rejects domain markers at
-  collection (`own_site`); `PageVisitor::assembleVisit()` matches HTML/host at visit time, deletes files, sets
-  `Site::$own`, and reports «исключён как наш» (skips crawl + N-стр bucketing). Real markers stay in
+  collection (`own_site`); `PageVisitor::assembleVisit()` matches HTML/host at visit time, deletes the
+  HTML but keeps the home screenshot, sets `Site::$own`, reports «исключён как наш», and buckets the site
+  into `pages/наши/<host>/` (screenshot only, for eyeballing) instead of `N-стр`. Real markers stay in
   the untracked `own-markers.txt`, not committed. Screenshots are captured for the home page only in
   crawl mode; `SiteLinks::canonical()` folds `/index.*` and trailing-slash aliases so a page is not
   fetched twice.
@@ -229,7 +230,9 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   treated as other brands and skipped), dropping sitemap/htmlmap pages and non-page file resources
   (`.xml`, `.pdf`, images…; `SiteLinks::isJunkPage()`). Language-switch loops with a real page behind
   them (`/RU-ru/RU-ru/…/app`) are **collapsed** to one occurrence (`SiteLinks::collapseRepeats`) so the
-  real page is fetched once, not skipped. `PageVisitor` `visit.crawl` mode opens the home page, then a
+  real page is fetched once, not skipped; `SiteLinks::canonical()` also strips a leading locale segment
+  (`/RU-ru/promo` ≡ `/promo`) so a language prefix does not yield a `promo-2`. `PageVisitor` `visit.crawl`
+  mode opens the home page, then a
   single probe link, then the rest, and drops pages whose final URL redirects to another host
   (`SiteLinks::sameHost`, www-insensitive). The visited-URL set is seeded with both the entry URL and
   the site root so a menu link back to `/` never yields a second `main-2`. Timed-out/network-failed loads are retried through a different proxy with a longer

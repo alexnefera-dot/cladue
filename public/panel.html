@@ -344,12 +344,22 @@ function renderResults(sites){
   card.hidden=false;
   $('resCount').textContent='· '+sites.length;
   const esc=t=>String(t||'').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  // Человеческая расшифровка типовых ошибок загрузки
+  const humanErr=e=>{ e=String(e||'');
+    if(/timeout/i.test(e)){ const m=e.match(/(\d+)\s*ms/); return 'таймаут'+(m?' '+Math.round(m[1]/1000)+'с':'')+' — сайт не открылся'; }
+    if(/ERR_NAME|resolve host|not known/i.test(e)) return 'хост не найден (домен не резолвится)';
+    if(/ERR_CONNECTION|connection|reset|refused|ECONN/i.test(e)) return 'нет соединения с сайтом';
+    if(/redirect|редирект/i.test(e)) return e;
+    if(/certificate|SSL|ERR_CERT/i.test(e)) return 'ошибка сертификата (SSL)';
+    if(/HTTP\s*\d/i.test(e)) return e;
+    return e; };
+  const errCell=e=>{ const h=esc(humanErr(e)); return `<span class="tag diff" title="${esc(e)}">${h.length>70?h.slice(0,70)+'…':h}</span>`; };
   const tb=$('resTable').querySelector('tbody');
   tb.innerHTML=sites.map((s,i)=>{
     let dl='—';
     if(s.own){ dl=`<span class="tag" title="наш шаблон — исключён из выгрузки">исключён как наш</span>`; }
-    else if(s.pages_total>0){ dl=`${s.pages_ok||0}/${s.pages_total}`; if((s.pages_ok||0)===0 && s.page_error) dl+=` <span class="tag diff" title="${esc(s.page_error)}">ошибка</span>`; }
-    else if(s.page_error) dl=`<span class="tag diff" title="${esc(s.page_error)}">${esc(s.page_error).slice(0,40)}</span>`;
+    else if(s.pages_total>0){ dl=`${s.pages_ok||0}/${s.pages_total}`; if((s.pages_ok||0)<s.pages_total && s.page_error) dl+=' '+errCell(s.page_error); }
+    else if(s.page_error) dl=errCell(s.page_error);
     let files=[];
     if(s.html) files.push(`<a href="/file?path=${encodeURIComponent(s.html)}" target="_blank" rel="noopener">HTML</a>`);
     if(s.screenshot) files.push(`<a href="/file?path=${encodeURIComponent(s.screenshot)}" target="_blank" rel="noopener">фото</a>`);

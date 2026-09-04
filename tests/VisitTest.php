@@ -429,12 +429,63 @@ final class VisitTest
         ], new CurlDriver(), $this->logger());
         $visitor->visit($sites);
 
+        // главная + app + bonus + promo (/promo и /RU-ru/promo — одна и та же страница)
         $summary = $site->visitSummary();
-        Assert::same(3, $summary['ok'], 'главная и две страницы из подвального меню');
-        Assert::true(is_file("$dir/3-стр/footeronly.ru/main.html"), 'входная главная');
-        Assert::true(is_file("$dir/3-стр/footeronly.ru/app.html"), 'страница из подвала');
-        Assert::true(is_file("$dir/3-стр/footeronly.ru/bonus.html"), 'страница из подвала');
-        Assert::false(is_file("$dir/3-стр/footeronly.ru/main-2.html"), 'второй главной не бывает');
+        Assert::same(4, $summary['ok'], 'главная и три страницы из меню');
+        Assert::true(is_file("$dir/4-стр/footeronly.ru/main.html"), 'входная главная');
+        Assert::true(is_file("$dir/4-стр/footeronly.ru/app.html"), 'страница из подвала');
+        Assert::true(is_file("$dir/4-стр/footeronly.ru/bonus.html"), 'страница из подвала');
+        Assert::true(is_file("$dir/4-стр/footeronly.ru/promo.html"), 'промо');
+        Assert::false(is_file("$dir/4-стр/footeronly.ru/promo-2.html"), 'promo и /RU-ru/promo — одна страница, без promo-2');
+        Assert::false(is_file("$dir/4-стр/footeronly.ru/main-2.html"), 'второй главной не бывает');
+    }
+
+    public function testOwnTemplateKeepsScreenshot(): void
+    {
+        // Наш шаблон исключаем, но скриншот главной оставляем (в папке «наши») — чтобы проверить глазами.
+        $dir = $this->dir() . '/ownshot';
+        $site = new Site('ourhost.ru', 'ourhost.ru', 'ourhost.ru');
+        $site->add(new SearchResult('казино', 0, 1, 'http://ourhost.ru/', 'ourhost.ru', 'Наш'));
+        $sites = ['ourhost.ru' => $site];
+
+        $driver = new class implements \YandexSites\Visit\DriverInterface {
+            public function name(): string
+            {
+                return 'playwright';
+            }
+
+            public function visit(array $jobs, array $options, ?callable $onResult = null): array
+            {
+                $out = [];
+                foreach ($jobs as $job) {
+                    @mkdir(dirname($job->htmlFile), 0777, true);
+                    file_put_contents($job->htmlFile, '<html><head><meta name="yandex-verification" content="OWNMARK123"></head><body>наш</body></html>');
+                    if ($job->screenshotFile !== null) {
+                        file_put_contents($job->screenshotFile, 'PNG');
+                    }
+                    $out[$job->id] = ['ok' => true, 'error' => '', 'status' => 200, 'final_url' => $job->url, 'title' => 'Наш'];
+                    if ($onResult !== null) {
+                        $onResult($job, $out[$job->id]);
+                    }
+                }
+
+                return $out;
+            }
+        };
+
+        $visitor = new PageVisitor([
+            'crawl' => true,
+            'target' => 'found',
+            'dir' => $dir,
+            'screenshot' => true,
+            'own_markers' => ['OWNMARK123'],
+        ], $driver, $this->logger());
+        $visitor->visit($sites);
+
+        Assert::true($site->own, 'помечен как наш');
+        Assert::true(is_file("$dir/наши/ourhost.ru/main.png"), 'скриншот главной сохранён в папке наши');
+        Assert::false(is_file("$dir/наши/ourhost.ru/main.html"), 'HTML нашего шаблона не храним');
+        Assert::true(str_ends_with((string) ($site->visits[0]['screenshot_file'] ?? ''), 'наши/ourhost.ru/main.png'), 'путь к скриншоту обновлён после раскладки');
     }
 
     public function testCrawlExcludesOwnTemplate(): void

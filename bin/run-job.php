@@ -174,9 +174,11 @@ function previewSites(array $sites, string $runDir = '', int $limit = 300): arra
     $rows = [];
     foreach (array_slice($sites, 0, $limit) as $site) {
         $data = $site->toArray();
-        $visit = $site->firstVisit();
         $summary = $site->visitSummary();
         $own = (bool) ($data['own'] ?? false);
+        // Для показа берём первый успешный визит, а если такого нет (ошибка/наш) — самый первый визит:
+        // так остаётся ссылка на скриншот (у «наших» он сохранён) и видна причина ошибки.
+        $visit = $site->firstVisit() ?? ($site->visits[0] ?? null);
         $rows[] = [
             'host' => $data['host'],
             'domain' => $data['domain'],
@@ -189,7 +191,7 @@ function previewSites(array $sites, string $runDir = '', int $limit = 300): arra
             'pages_ok' => $own ? null : ($summary['total'] > 0 ? $summary['ok'] : null),
             'pages_total' => $own ? null : ($summary['total'] > 0 ? $summary['total'] : null),
             'page_error' => $own ? 'исключён как наш' : $summary['error'],
-            'html' => $visit !== null && ($visit['html_file'] ?? '') !== '' ? $rel((string) $visit['html_file']) : '',
+            'html' => !$own && $visit !== null && ($visit['html_file'] ?? '') !== '' ? $rel((string) $visit['html_file']) : '',
             'screenshot' => $visit !== null && ($visit['screenshot_file'] ?? '') !== '' ? $rel((string) $visit['screenshot_file']) : '',
         ];
     }

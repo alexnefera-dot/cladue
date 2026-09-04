@@ -243,6 +243,9 @@ final class SiteLinks
         $host = Domains::normalize($parts['host'] ?? '', true);
         $path = rtrim($parts['path'] ?? '/', '/');
         $path = preg_replace('~/(?:index|default|home)\.(?:html?|php|phtml|aspx?|jsp|cgi)$~i', '', $path) ?? $path;
+        // Убираем ведущий языковой сегмент (/RU-ru/promo, /ru/promo → /promo), чтобы одна и та же
+        // страница под разными языковыми префиксами не давала копий (promo, promo-2 …).
+        $path = preg_replace('~^/[a-z]{2}(?:-[a-z]{2})?(?=/)~i', '', $path) ?? $path;
         if ($path === '') {
             $path = '/';
         }

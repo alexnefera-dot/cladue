@@ -132,6 +132,16 @@ final class SiteLinksTest
         Assert::same(SiteLinks::canonical('https://a.ru/x/x/x/app'), SiteLinks::canonical('https://a.ru/x/x/app'));
     }
 
+    public function testCanonicalStripsLocalePrefix(): void
+    {
+        // /promo и /RU-ru/promo (языковой префикс) — одна и та же страница (без promo-2).
+        Assert::same(SiteLinks::canonical('https://a.ru/promo'), SiteLinks::canonical('https://a.ru/RU-ru/promo'));
+        Assert::same(SiteLinks::canonical('https://a.ru/bonus'), SiteLinks::canonical('https://a.ru/ru/bonus'));
+        Assert::same(SiteLinks::canonical('https://a.ru/app'), SiteLinks::canonical('https://a.ru/en-us/app'));
+        // одиночный короткий сегмент (без продолжения) не считаем языком — это отдельная страница
+        Assert::true(SiteLinks::canonical('https://a.ru/it') !== SiteLinks::canonical('https://a.ru/ru'));
+    }
+
     public function testCollectsFooterMenuLinks(): void
     {
         // Меню в подвале тоже собирается.

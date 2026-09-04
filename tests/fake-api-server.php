@@ -396,11 +396,13 @@ switch ($host) {
             $words[] = 'w' . substr(md5($uri), 0, 8) . $i;
         }
         echo '<html><head><title>Подвальное меню</title></head><body>'
+            . '<header><nav><a href="/promo">Промо</a></nav></header>'
             . '<h1>Главная</h1><p class="c">' . implode(' ', $words) . '</p>'
             . '<footer><div class="footer-menu"><nav class="footer-nav-links">'
             . '<a href="/">Главная</a>'
             . '<a href="/RU-ru/RU-ru/RU-ru/app">Приложение</a>'
             . '<a href="/RU-ru/RU-ru/RU-ru/bonus">Бонус</a>'
+            . '<a href="/RU-ru/RU-ru/RU-ru/promo">Промо (тот же, с языком)</a>'
             . '</nav></div></footer></body></html>';
 
         return;
