@@ -260,7 +260,7 @@ if ($path === '/api/log') {
         exit;
     }
     $lines = file($logFile, FILE_IGNORE_NEW_LINES) ?: [];
-    echo implode(PHP_EOL, array_slice($lines, -200));
+    echo implode(PHP_EOL, array_slice($lines, -400));
     exit;
 }
 

@@ -235,7 +235,7 @@ while (true) {
     }
     $run++;
     $logHandle = fopen($logFile, 'a');
-    $logger = new Logger(Logger::NORMAL, $logHandle ?: STDERR);
+    $logger = new Logger(Logger::VERBOSE, $logHandle ?: STDERR);
     $progress->update([
         'state' => 'running',
         'run' => $run,

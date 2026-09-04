@@ -127,6 +127,8 @@ final class PageVisitor
             $result = $results[$job->id] ?? ['ok' => false, 'error' => 'нет результата', 'status' => null, 'final_url' => '', 'title' => ''];
             $sites[$job->siteKey]->visits[] = $this->assembleVisit($job, $result);
         }
+
+        $this->logSiteSummary($sites);
     }
 
     /**
@@ -275,6 +277,27 @@ final class PageVisitor
                 $result = $pageResults[$job->id] ?? ['ok' => false, 'error' => 'нет результата', 'status' => null, 'final_url' => '', 'title' => ''];
                 $sites[$job->siteKey]->visits[] = $this->assembleVisit($job, $result, $sites[$job->siteKey]->domain);
             }
+        }
+
+        $this->logSiteSummary($sites);
+    }
+
+    /**
+     * Пишет в лог строку-итог по каждому сайту: сколько страниц открыто и первая ошибка.
+     *
+     * @param array<string, Site> $sites
+     */
+    private function logSiteSummary(array $sites): void
+    {
+        foreach ($sites as $site) {
+            $s = $site->visitSummary();
+            $this->log->info(sprintf(
+                '  %-40s страниц: %d из %d%s',
+                mb_substr($site->host, 0, 40),
+                $s['ok'],
+                $s['total'],
+                $s['error'] !== '' ? ' — ошибка: ' . mb_substr($s['error'], 0, 100) : '',
+            ));
         }
     }
 
