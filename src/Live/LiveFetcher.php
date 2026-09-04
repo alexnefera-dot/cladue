@@ -22,6 +22,7 @@ final class LiveFetcher implements RawFetcherInterface
     private float $lastRequestAt = 0.0;
     /** @var list<string> */
     private array $userAgents;
+    private ?string $saveDir;
 
     public function __construct(
         private Config $config,
@@ -32,6 +33,45 @@ final class LiveFetcher implements RawFetcherInterface
     ) {
         $agents = array_values(array_filter((array) $config->get('live.user_agents', []), 'is_string'));
         $this->userAgents = $agents !== [] ? $agents : UserAgents::BROWSERS;
+        $saveDir = $config->get('live.save_dir');
+        $this->saveDir = is_string($saveDir) && $saveDir !== '' ? rtrim($saveDir, '/\\') : null;
+    }
+
+    /**
+     * Одна проверка прокси: запрос страницы выдачи без учёта пауз и ротации.
+     *
+     * @return array{ok: bool, kind: string, status: int|null, results: int, error: string, seconds: float}
+     */
+    public function probe(Proxy $proxy, string $query = 'проверка'): array
+    {
+        $started = microtime(true);
+        $proxy->requests++;
+        try {
+            $response = $this->http->request('GET', $this->buildUrl($query, 0), $this->headers($proxy, $query, 0), null, [
+                'proxy' => $proxy->url,
+                'cookie_jar' => $this->cookieJar($proxy),
+                'follow' => true,
+                'timeout' => (int) $this->config->get('live.timeout', 25),
+                'verify_ssl' => (bool) $this->config->get('live.verify_ssl', true),
+            ]);
+        } catch (HttpException $e) {
+            return ['ok' => false, 'kind' => 'error', 'status' => null, 'results' => 0, 'error' => $e->getMessage(), 'seconds' => microtime(true) - $started];
+        }
+        $kind = $this->parser->classify($response->body, $response->finalUrl, $response->status);
+        $this->save($query, 0, $proxy, $response->status, $response->finalUrl, $kind, $response->body);
+        $results = 0;
+        if ($kind === HtmlResponseParser::KIND_SERP) {
+            $results = count($this->parser->parse($response->body, $query, 0)->results);
+        }
+
+        return [
+            'ok' => $kind === HtmlResponseParser::KIND_SERP || $kind === HtmlResponseParser::KIND_EMPTY,
+            'kind' => $kind,
+            'status' => $response->status,
+            'results' => $results,
+            'error' => '',
+            'seconds' => microtime(true) - $started,
+        ];
     }
 
     public function fetch(string $query, int $page): string
@@ -80,6 +120,7 @@ final class LiveFetcher implements RawFetcherInterface
             }
 
             $kind = $this->parser->classify($response->body, $response->finalUrl, $response->status);
+            $this->save($query, $page, $proxy, $response->status, $response->finalUrl, $kind, $response->body);
             if ($kind === HtmlResponseParser::KIND_SERP || $kind === HtmlResponseParser::KIND_EMPTY) {
                 $this->pool->success($proxy);
 
@@ -137,6 +178,39 @@ final class LiveFetcher implements RawFetcherInterface
             'Accept-Language' => 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
             'Referer' => $page > 0 ? $this->buildUrl($query, $page - 1) : $this->baseUrl() . '/',
         ];
+    }
+
+    /**
+     * Сохраняет полученную страницу и метаданные (live.save_dir) для отладки разбора.
+     */
+    private function save(string $query, int $page, Proxy $proxy, int $status, string $finalUrl, string $kind, string $body): void
+    {
+        if ($this->saveDir === null) {
+            return;
+        }
+        if (!is_dir($this->saveDir) && !@mkdir($this->saveDir, 0777, true) && !is_dir($this->saveDir)) {
+            $this->log->warn('Не удалось создать каталог ' . $this->saveDir);
+
+            return;
+        }
+        $slug = trim((string) preg_replace('~[^\p{L}\p{N}]+~u', '_', mb_substr($query, 0, 40)), '_');
+        $base = sprintf('%s/%s-p%d-%s-%s', $this->saveDir, $slug !== '' ? $slug : 'query', $page + 1, date('Ymd-His'), $kind);
+        if (is_file($base . '.html')) {
+            $base .= '-' . substr(uniqid(), -4);
+        }
+        @file_put_contents($base . '.html', $body);
+        @file_put_contents($base . '.json', json_encode([
+            'query' => $query,
+            'page' => $page + 1,
+            'proxy' => $proxy->label,
+            'user_agent' => $proxy->userAgent,
+            'status' => $status,
+            'final_url' => $finalUrl,
+            'kind' => $kind,
+            'bytes' => strlen($body),
+            'time' => date(DATE_ATOM),
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        $this->log->debug('  страница сохранена: ' . $base . '.html');
     }
 
     private function cookieJar(Proxy $proxy): ?string

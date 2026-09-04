@@ -97,6 +97,8 @@ final class Config
                 'cookies' => true,
                 'cookie_dir' => dirname(__DIR__) . '/cache/cookies',
                 'user_agents' => UserAgents::BROWSERS,
+                // Каталог для сохранения всех полученных страниц выдачи (включая капчу) — для отладки; null — не сохранять
+                'save_dir' => null,
             ],
             'visit' => [
                 'enabled' => false,

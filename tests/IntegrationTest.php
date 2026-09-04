@@ -276,6 +276,15 @@ final class IntegrationTest
         Assert::contains('other-domain.ru', $redirected['visits'][0]['final_url']);
         Assert::contains(';page_file;page_final_url;page_title;page_variants', (string) file_get_contents($dir . '/out-live/sites.csv'));
 
+        $check = $this->cli(['--config=' . $dir . '/config-live.php', '--check-proxies', "--proxy=http://127.0.0.1:$sitePort:login:secret", '--save-html=' . $dir . '/saved']);
+        Assert::same(0, $check['code'], $check['err']);
+        Assert::contains('Проверка 2 прокси', $check['out']);
+        Assert::contains("http://127.0.0.1:$captchaPort", $check['out']);
+        Assert::contains('КАПЧА', $check['out']);
+        Assert::contains('OK — выдача получена, результатов: 11', $check['out']);
+        Assert::contains('Рабочих прокси: 1 из 2', $check['out']);
+        Assert::same(2, count(glob($dir . '/saved/*.html') ?: []), '--save-html сохраняет и капчу, и выдачу');
+
         $parse = $this->cli(['--parse-html=' . TESTS_ROOT . '/fixtures/serp.html']);
         Assert::same(0, $parse['code'], $parse['err']);
         Assert::contains('Тип страницы: serp', $parse['out']);

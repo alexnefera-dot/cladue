@@ -36,8 +36,8 @@ final class Application
     public const VERSION = '1.1.0';
 
     /** Опции, принимающие значение (остальные — флаги). */
-    private const VALUE_OPTIONS = ['queries', 'query', 'config', 'out', 'pages', 'region', 'groups', 'limit', 'delay', 'source', 'proxies', 'proxy', 'parse-html', 'visit-driver', 'variants', 'user-agent'];
-    private const FLAG_OPTIONS = ['live', 'visit', 'no-cache', 'offline', 'check-sites', 'raw', 'dry-run', 'verbose', 'quiet', 'help', 'version'];
+    private const VALUE_OPTIONS = ['queries', 'query', 'config', 'out', 'pages', 'region', 'groups', 'limit', 'delay', 'source', 'proxies', 'proxy', 'parse-html', 'visit-driver', 'variants', 'user-agent', 'save-html'];
+    private const FLAG_OPTIONS = ['live', 'visit', 'no-cache', 'offline', 'check-sites', 'check-proxies', 'raw', 'dry-run', 'verbose', 'quiet', 'help', 'version'];
     private const SHORT_OPTIONS = ['q' => 'query', 'c' => 'config', 'o' => 'out', 'v' => 'verbose', 'h' => 'help'];
 
     private ?Logger $log = null;
@@ -101,9 +101,13 @@ final class Application
         $this->cliProxies = array_values(array_map('strval', (array) ($opts['proxy'] ?? [])));
 
         $dryRun = isset($opts['dry-run']);
-        $errors = $config->validate(!$dryRun);
+        $checkProxies = isset($opts['check-proxies']);
+        $errors = $config->validate(!$dryRun && !$checkProxies);
         if ($errors !== []) {
             throw new UsageException("некорректная конфигурация:\n  - " . implode("\n  - ", $errors));
+        }
+        if ($checkProxies) {
+            return $this->checkProxies($config, $log, (array) ($opts['query'] ?? []));
         }
 
         $queries = $this->loadQueries($opts, $log);
@@ -228,6 +232,9 @@ final class Application
         if (isset($opts['user-agent'])) {
             $overrides['visit.user_agents'] = [(string) $opts['user-agent']];
             $overrides['site_check.user_agent'] = (string) $opts['user-agent'];
+        }
+        if (isset($opts['save-html'])) {
+            $overrides['live.save_dir'] = (string) $opts['save-html'];
         }
         if (isset($opts['no-cache'])) {
             $overrides['cache.enabled'] = false;
@@ -379,6 +386,40 @@ final class Application
         }
 
         return $pool;
+    }
+
+    /**
+     * Проверка каждого прокси на живой выдаче: одна страница результатов через каждый.
+     *
+     * @param list<string> $queries
+     */
+    private function checkProxies(Config $config, Logger $log, array $queries): int
+    {
+        $pool = $this->buildProxyPool($config);
+        $fetcher = new LiveFetcher($config, new HttpClient((int) $config->get('live.timeout')), new HtmlResponseParser(), $pool, $log);
+        $query = $queries !== [] ? (string) $queries[0] : 'пластиковые окна';
+        $domain = preg_replace('~^https?://~', '', (string) $config->get('live.domain')) ?? '';
+        fwrite(STDOUT, sprintf('Проверка %d прокси на живой выдаче %s (запрос «%s»):%s', $pool->count(), $domain, $query, PHP_EOL));
+
+        $okCount = 0;
+        foreach ($pool->all() as $proxy) {
+            $result = $fetcher->probe($proxy, $query);
+            $verdict = match ($result['kind']) {
+                HtmlResponseParser::KIND_SERP => sprintf('OK — выдача получена, результатов: %d', $result['results']),
+                HtmlResponseParser::KIND_EMPTY => 'OK — выдача получена, но пустая',
+                HtmlResponseParser::KIND_CAPTCHA => 'КАПЧА — Яндекс требует подтверждение, прокси нужен отдых',
+                HtmlResponseParser::KIND_BLOCKED => sprintf('ЗАБЛОКИРОВАН — HTTP %s', $result['status'] ?? '?'),
+                'error' => 'ОШИБКА — ' . $result['error'],
+                default => sprintf('НЕ РАСПОЗНАНО — HTTP %s, страница не похожа на выдачу (сохраните её через --save-html и проверьте --parse-html)', $result['status'] ?? '?'),
+            };
+            if ($result['ok']) {
+                $okCount++;
+            }
+            fwrite(STDOUT, sprintf('  %-36s %5.1f с  %s%s', $proxy->label, $result['seconds'], $verdict, PHP_EOL));
+        }
+        fwrite(STDOUT, sprintf('Рабочих прокси: %d из %d%s', $okCount, $pool->count(), PHP_EOL));
+
+        return $okCount > 0 ? 0 : 1;
     }
 
     private function buildParser(Config $config): ResponseParserInterface
@@ -661,6 +702,8 @@ final class Application
         Прокси (общий список для живой выдачи и визитов, используются по кругу):
           --proxies=FILE        файл со списком прокси, по одному в строке (см. proxies.example.txt)
           --proxy=АДРЕС         добавить прокси, например http://host:port:user:pass; можно указывать несколько раз
+          --check-proxies       проверить каждый прокси одним запросом к живой выдаче и выйти
+          --save-html=DIR       сохранять все полученные страницы живой выдачи (и капчу) с метаданными — для отладки
 
         Настройки:
           -c, --config=FILE     файл конфигурации (по умолчанию ./config.php, если есть; см. config.example.php)

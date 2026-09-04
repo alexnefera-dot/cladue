@@ -136,6 +136,48 @@ final class LiveFetcherTest
         Assert::true($e->isFatal(), 'ждать дольше max_wait нельзя — остановка');
     }
 
+    public function testSavesPagesAndProbesProxies(): void
+    {
+        $dir = sys_get_temp_dir() . '/yandex-sites-save-' . uniqid();
+        $pool = ProxyPool::fromLines(['a.ru:1', 'b.ru:2']);
+        $http = new StubHttpClient([
+            new HttpResponse(200, $this->captcha, 'text/html', 'https://yandex.ru/showcaptcha?retpath=x'),
+            new HttpResponse(200, $this->serp, 'text/html', 'https://yandex.ru/search/?text=x'),
+            new HttpException('refused'),
+            new HttpResponse(200, $this->serp, 'text/html', 'https://yandex.ru/search/?text=x'),
+        ]);
+        $fetcher = $this->fetcher($this->config(['live' => ['save_dir' => $dir]]), $http, $pool);
+        $fetcher->fetch('окна пвх', 0);
+
+        $files = glob($dir . '/*.html') ?: [];
+        Assert::same(2, count($files), 'сохраняются и капча, и выдача');
+        sort($files);
+        $kinds = array_map(static fn (string $f): string => (string) json_decode((string) file_get_contents(substr($f, 0, -5) . '.json'), true)['kind'], $files);
+        sort($kinds);
+        Assert::same(['captcha', 'serp'], $kinds);
+        $meta = json_decode((string) file_get_contents(substr($files[0], 0, -5) . '.json'), true);
+        Assert::same('окна пвх', $meta['query']);
+        Assert::same(1, $meta['page']);
+        Assert::contains('окна_пвх-p1-', basename($files[0]));
+
+        [$a, $b] = $pool->all();
+        $failed = $fetcher->probe($a, 'тест');
+        Assert::false($failed['ok']);
+        Assert::same('error', $failed['kind']);
+        Assert::contains('refused', $failed['error']);
+        $good = $fetcher->probe($b, 'тест');
+        Assert::true($good['ok']);
+        Assert::same('serp', $good['kind']);
+        Assert::same(4, $good['results']);
+        Assert::same(200, $good['status']);
+        Assert::same('http://b.ru:2', $http->calls[3]['options']['proxy']);
+
+        foreach (glob($dir . '/*') ?: [] as $f) {
+            unlink($f);
+        }
+        rmdir($dir);
+    }
+
     public function testBaseUrlAndCustomDomain(): void
     {
         $fetcher = $this->fetcher($this->config(['live' => ['domain' => 'http://127.0.0.1:8089'], 'search' => ['region' => '']]), new StubHttpClient([]), ProxyPool::fromLines(['direct']));
