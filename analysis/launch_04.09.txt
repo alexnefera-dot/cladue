@@ -1,4 +1,4 @@
-# День 04.09.2026 — 36 доменов, восемь групп
+# День 04.09.2026 — 39 доменов, девять групп
 
 ## Generator_346353_styled_img_1…_8 — id 1317-1324, создан 14:51
 decasino.team
@@ -51,3 +51,8 @@ casino4934.lol
 ## Generator_368369_styled_img_1…_2 — id 1352-1353, создан 20:44
 9124.team
 casino1430.team
+
+## trikomplekta_1…_3 — id 1354-1356, создан 21:09
+h5g5.team
+9274.team
+pqow.team

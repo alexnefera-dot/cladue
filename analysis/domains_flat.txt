@@ -316,6 +316,7 @@
 9124.team
 9158.lol
 9158.team
+9274.team
 9279.team
 9316.space
 9364.team
@@ -475,6 +476,7 @@ h2x.online
 h3ns.team
 h3rb.team
 h4p.team
+h5g5.team
 h5nd.team
 h5r.team
 h5rz.team
@@ -596,6 +598,7 @@ pbfj.team
 pddw.team
 pjxu.lol
 pjxu.team
+pqow.team
 pszk.team
 q7a.lol
 q7a.team
