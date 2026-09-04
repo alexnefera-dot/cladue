@@ -37,13 +37,16 @@ class HttpClient
 
     /**
      * @param array<string, string> $headers
+     * @param array<string, mixed> $options proxy (URL вида scheme://user:pass@host:port), cookie_jar (файл),
+     *                                      follow (следовать редиректам), timeout, verify_ssl
      */
-    public function request(string $method, string $url, array $headers = [], ?string $body = null): HttpResponse
+    public function request(string $method, string $url, array $headers = [], ?string $body = null, array $options = []): HttpResponse
     {
         $headerLines = [];
         foreach ($headers as $name => $value) {
             $headerLines[] = $name . ': ' . $value;
         }
+        $timeout = max(1, (int) ($options['timeout'] ?? $this->timeout));
 
         $ch = curl_init();
         curl_setopt_array($ch, [
@@ -51,14 +54,26 @@ class HttpClient
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_CUSTOMREQUEST => $method,
             CURLOPT_HTTPHEADER => $headerLines,
-            CURLOPT_TIMEOUT => $this->timeout,
-            CURLOPT_CONNECTTIMEOUT => min(10, $this->timeout),
+            CURLOPT_TIMEOUT => $timeout,
+            CURLOPT_CONNECTTIMEOUT => min(10, $timeout),
             CURLOPT_USERAGENT => $this->userAgent,
             CURLOPT_ENCODING => '',
-            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_FOLLOWLOCATION => (bool) ($options['follow'] ?? false),
+            CURLOPT_MAXREDIRS => 5,
         ]);
         if ($body !== null) {
             curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+        }
+        if (!empty($options['proxy'])) {
+            curl_setopt($ch, CURLOPT_PROXY, (string) $options['proxy']);
+        }
+        if (!empty($options['cookie_jar'])) {
+            curl_setopt($ch, CURLOPT_COOKIEFILE, (string) $options['cookie_jar']);
+            curl_setopt($ch, CURLOPT_COOKIEJAR, (string) $options['cookie_jar']);
+        }
+        if (array_key_exists('verify_ssl', $options) && !$options['verify_ssl']) {
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
         }
 
         $response = curl_exec($ch);
@@ -71,8 +86,9 @@ class HttpClient
 
         $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
         $contentType = (string) curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+        $finalUrl = (string) curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
         curl_close($ch);
 
-        return new HttpResponse($status, (string) $response, $contentType);
+        return new HttpResponse($status, (string) $response, $contentType, $finalUrl);
     }
 }

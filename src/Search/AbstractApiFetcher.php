@@ -14,7 +14,7 @@ use YandexSites\Support\Logger;
  * Общая логика клиентов API: пауза между запросами, повторы с нарастающей задержкой,
  * разбор HTTP-ошибок и ошибок в теле XML.
  */
-abstract class AbstractApiFetcher implements XmlFetcherInterface
+abstract class AbstractApiFetcher implements RawFetcherInterface
 {
     private float $lastRequestAt = 0.0;
 
@@ -83,7 +83,28 @@ abstract class AbstractApiFetcher implements XmlFetcherInterface
         return [];
     }
 
-    protected function httpError(HttpResponse $response): ApiException
+    /**
+     * Параметр groupby в формате Яндекс.XML (используется API v1 и XMLStock).
+     */
+    protected function groupBy(): string
+    {
+        $mode = $this->config->get('search.group_mode') === 'flat' ? 'flat' : 'deep';
+
+        return sprintf(
+            'attr=%s.mode=%s.groups-on-page=%d.docs-in-group=%d',
+            $mode === 'deep' ? 'd' : '""',
+            $mode,
+            (int) $this->config->get('search.groups_on_page'),
+            (int) $this->config->get('search.docs_in_group'),
+        );
+    }
+
+    protected function sortBy(): string
+    {
+        return $this->config->get('search.sort') === 'time' ? 'tm.order=descending' : 'rlv';
+    }
+
+    protected function httpError(HttpResponse $response, string $authHint = 'Проверьте API-ключ, folder_id и роль search-api.webSearch.user у сервисного аккаунта'): ApiException
     {
         $status = $response->status;
         $message = mb_substr(trim($response->body), 0, 300);
@@ -94,7 +115,7 @@ abstract class AbstractApiFetcher implements XmlFetcherInterface
 
         return match (true) {
             $status === 401 || $status === 403 => new ApiException(
-                sprintf('Ошибка авторизации (HTTP %d): %s. Проверьте API-ключ, folder_id и роль search-api.webSearch.user у сервисного аккаунта', $status, $message),
+                sprintf('Ошибка авторизации (HTTP %d): %s. %s', $status, $message, $authHint),
                 fatal: true,
             ),
             $status === 429 => new ApiException(sprintf('Превышена частота запросов (HTTP 429): %s', $message), retryable: true),

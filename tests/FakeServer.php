@@ -6,18 +6,18 @@ namespace Tests;
 
 /**
  * Запускает tests/fake-api-server.php через встроенный сервер PHP на свободном порту.
+ * Для каждого режима (FAKE_MODE: ok, captcha, error, local) поднимается отдельный экземпляр.
  */
 final class FakeServer
 {
-    /** @var resource|null */
-    private static $process = null;
-    private static ?int $port = null;
+    /** @var array<string, array{process: resource, port: int}> */
+    private static array $servers = [];
     private static ?string $failure = null;
 
-    public static function port(): int
+    public static function port(string $mode = 'ok'): int
     {
-        if (self::$port !== null) {
-            return self::$port;
+        if (isset(self::$servers[$mode])) {
+            return self::$servers[$mode]['port'];
         }
         if (self::$failure !== null) {
             Assert::skip(self::$failure);
@@ -32,11 +32,14 @@ final class FakeServer
         fclose($socket);
         $port = (int) substr($name, (int) strrpos($name, ':') + 1);
 
-        $log = sys_get_temp_dir() . '/yandex-sites-fake-server.log';
+        $log = sys_get_temp_dir() . '/yandex-sites-fake-server-' . $mode . '.log';
+        $env = array_merge(getenv(), ['FAKE_MODE' => $mode]);
         $process = @proc_open(
             [PHP_BINARY, '-S', '127.0.0.1:' . $port, TESTS_ROOT . '/fake-api-server.php'],
             [0 => ['pipe', 'r'], 1 => ['file', $log, 'a'], 2 => ['file', $log, 'a']],
             $pipes,
+            null,
+            $env,
         );
         if (!is_resource($process)) {
             self::$failure = 'не удалось запустить php -S';
@@ -48,9 +51,10 @@ final class FakeServer
             $conn = @fsockopen('127.0.0.1', $port, $e, $s, 0.2);
             if ($conn !== false) {
                 fclose($conn);
-                self::$process = $process;
-                self::$port = $port;
-                register_shutdown_function([self::class, 'stop']);
+                if (self::$servers === []) {
+                    register_shutdown_function([self::class, 'stop']);
+                }
+                self::$servers[$mode] = ['process' => $process, 'port' => $port];
 
                 return $port;
             }
@@ -65,11 +69,10 @@ final class FakeServer
 
     public static function stop(): void
     {
-        if (self::$process !== null) {
-            proc_terminate(self::$process);
-            proc_close(self::$process);
-            self::$process = null;
-            self::$port = null;
+        foreach (self::$servers as $server) {
+            proc_terminate($server['process']);
+            proc_close($server['process']);
         }
+        self::$servers = [];
     }
 }

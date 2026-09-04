@@ -7,30 +7,42 @@ namespace YandexSites\Cli;
 use YandexSites\Check\SiteChecker;
 use YandexSites\Config;
 use YandexSites\Http\HttpClient;
+use YandexSites\Live\HtmlResponseParser;
+use YandexSites\Live\LiveFetcher;
+use YandexSites\Live\Proxy;
+use YandexSites\Live\ProxyPool;
 use YandexSites\Output\ReportWriter;
 use YandexSites\Runner;
 use YandexSites\RunResult;
 use YandexSites\Search\CachingFetcher;
+use YandexSites\Search\RawFetcherInterface;
+use YandexSites\Search\ResponseParserInterface;
 use YandexSites\Search\RestApiFetcher;
 use YandexSites\Search\XmlApiFetcher;
-use YandexSites\Search\XmlFetcherInterface;
 use YandexSites\Search\XmlResponseParser;
+use YandexSites\Search\XmlStockFetcher;
 use YandexSites\Support\Logger;
 use YandexSites\Support\QueryList;
+use YandexSites\Visit\CurlDriver;
+use YandexSites\Visit\DriverInterface;
+use YandexSites\Visit\PageVisitor;
+use YandexSites\Visit\PlaywrightDriver;
 
 /**
  * Консольное приложение: разбор аргументов, сборка зависимостей, вывод итогов.
  */
 final class Application
 {
-    public const VERSION = '1.0.0';
+    public const VERSION = '1.1.0';
 
     /** Опции, принимающие значение (остальные — флаги). */
-    private const VALUE_OPTIONS = ['queries', 'query', 'config', 'out', 'pages', 'region', 'groups', 'limit', 'delay'];
-    private const FLAG_OPTIONS = ['no-cache', 'offline', 'check-sites', 'raw', 'dry-run', 'verbose', 'quiet', 'help', 'version'];
+    private const VALUE_OPTIONS = ['queries', 'query', 'config', 'out', 'pages', 'region', 'groups', 'limit', 'delay', 'source', 'proxies', 'parse-html', 'visit-driver', 'variants'];
+    private const FLAG_OPTIONS = ['live', 'visit', 'no-cache', 'offline', 'check-sites', 'raw', 'dry-run', 'verbose', 'quiet', 'help', 'version'];
     private const SHORT_OPTIONS = ['q' => 'query', 'c' => 'config', 'o' => 'out', 'v' => 'verbose', 'h' => 'help'];
 
     private ?Logger $log = null;
+    private ?ProxyPool $proxies = null;
+    private ?PageVisitor $visitor = null;
 
     /**
      * @param list<string> $argv
@@ -71,6 +83,9 @@ final class Application
 
             return 0;
         }
+        if (isset($opts['parse-html'])) {
+            return $this->parseHtmlFile((string) $opts['parse-html']);
+        }
 
         $level = isset($opts['quiet']) ? Logger::QUIET : (isset($opts['verbose']) ? Logger::VERBOSE : Logger::NORMAL);
         $this->log = $log = new Logger($level);
@@ -96,14 +111,15 @@ final class Application
             throw new UsageException('не задано ни одного запроса: укажите файл (--queries=queries.txt) или --query="текст"');
         }
 
+        $source = (string) $config->get('source');
         $pages = (int) $config->get('search.pages');
         $log->info(sprintf(
-            'Конфигурация: %s; API %s; регион %s; страниц на запрос: %d, результатов на странице: %d',
+            'Конфигурация: %s; источник: %s; регион %s; страниц на запрос: %d%s',
             $configPath ?? 'по умолчанию',
-            $config->get('api.version') === 'xml' ? 'v1 (XML)' : 'v2 (REST)',
+            $this->describeSource($config),
             $config->get('search.region'),
             $pages,
-            (int) $config->get('search.groups_on_page'),
+            $source === 'live' ? ' (около 10 результатов на странице)' : sprintf(', результатов на странице: %d', (int) $config->get('search.groups_on_page')),
         ));
 
         $fetcher = $this->buildFetcher($config, $log, isset($opts['offline']));
@@ -120,14 +136,23 @@ final class Application
             }
         }
         $log->info(sprintf(
-            'Запросов: %d, будет выполнено до %d обращений к API%s',
+            'Запросов: %d, будет выполнено до %d обращений к источнику%s',
             count($queries),
             count($queries) * $pages - $cached,
             $cache !== null ? sprintf(' (в кэше уже %d из %d)', $cached, count($queries) * $pages) : ' (кэш отключён)',
         ));
+        if ($this->proxies !== null) {
+            $labels = array_map(static fn (Proxy $p): string => $p->label, array_slice($this->proxies->all(), 0, 5));
+            $log->info(sprintf(
+                'Прокси: %d (%s%s)',
+                $this->proxies->count(),
+                implode(', ', $labels),
+                $this->proxies->count() > 5 ? ', …' : '',
+            ));
+        }
 
         if ($dryRun) {
-            fwrite(STDOUT, 'Пробный запуск, обращений к API не будет. Запросы:' . PHP_EOL);
+            fwrite(STDOUT, 'Пробный запуск, обращений к источнику не будет. Запросы:' . PHP_EOL);
             foreach ($queries as $i => $query) {
                 fwrite(STDOUT, sprintf('  %3d. %s%s', $i + 1, $query, PHP_EOL));
             }
@@ -137,7 +162,8 @@ final class Application
         }
 
         $checker = $config->get('site_check.enabled') ? new SiteChecker((array) $config->get('site_check'), $log) : null;
-        $runner = new Runner($config, $fetcher, new XmlResponseParser(), $log, $checker);
+        $this->visitor = $config->get('visit.enabled') ? $this->buildVisitor($config, $log) : null;
+        $runner = new Runner($config, $fetcher, $this->buildParser($config), $log, $checker, $this->visitor);
         $result = $runner->run($queries);
 
         $files = $this->writeReports($config, $result);
@@ -146,8 +172,18 @@ final class Application
         return $result->aborted ? 1 : 0;
     }
 
+    private function describeSource(Config $config): string
+    {
+        return match ((string) $config->get('source')) {
+            'live' => 'живая выдача ' . (preg_replace('~^https?://~', '', (string) $config->get('live.domain')) ?? ''),
+            'xmlstock' => 'XMLStock',
+            default => $config->get('api.version') === 'xml' ? 'Yandex Search API v1 (XML)' : 'Yandex Search API v2 (REST)',
+        };
+    }
+
     /**
      * @param array<string, mixed> $opts
+     * @return array<string, mixed>
      */
     private function overrides(array $opts): array
     {
@@ -166,6 +202,25 @@ final class Application
         }
         if (isset($opts['delay'])) {
             $overrides['api.delay_ms'] = (int) $opts['delay'];
+            $overrides['live.delay_ms'] = (int) $opts['delay'];
+        }
+        if (isset($opts['source'])) {
+            $overrides['source'] = (string) $opts['source'];
+        }
+        if (isset($opts['live'])) {
+            $overrides['source'] = 'live';
+        }
+        if (isset($opts['proxies'])) {
+            $overrides['live.proxy_file'] = (string) $opts['proxies'];
+        }
+        if (isset($opts['visit'])) {
+            $overrides['visit.enabled'] = true;
+        }
+        if (isset($opts['visit-driver'])) {
+            $overrides['visit.driver'] = (string) $opts['visit-driver'];
+        }
+        if (isset($opts['variants'])) {
+            $overrides['visit.variants'] = (int) $opts['variants'];
         }
         if (isset($opts['no-cache'])) {
             $overrides['cache.enabled'] = false;
@@ -228,28 +283,166 @@ final class Application
         return $valid;
     }
 
-    private function buildFetcher(Config $config, Logger $log, bool $offline): XmlFetcherInterface
+    private function buildFetcher(Config $config, Logger $log, bool $offline): RawFetcherInterface
     {
-        $http = new HttpClient((int) $config->get('api.timeout'), (string) $config->get('api.user_agent'));
-        $parser = new XmlResponseParser();
-        $fetcher = $config->get('api.version') === 'xml'
-            ? new XmlApiFetcher($config, $http, $parser, $log)
-            : new RestApiFetcher($config, $http, $parser, $log);
+        $source = (string) $config->get('source');
+        $extension = 'xml';
+
+        if ($source === 'live') {
+            $this->proxies = $this->buildProxyPool($config);
+            $fetcher = new LiveFetcher($config, new HttpClient((int) $config->get('live.timeout')), new HtmlResponseParser(), $this->proxies, $log);
+            $extension = 'html';
+        } else {
+            $http = new HttpClient((int) $config->get('api.timeout'), (string) $config->get('api.user_agent'));
+            $parser = new XmlResponseParser();
+            if ($source === 'xmlstock') {
+                $fetcher = new XmlStockFetcher($config, $http, $parser, $log);
+            } elseif ($config->get('api.version') === 'xml') {
+                $fetcher = new XmlApiFetcher($config, $http, $parser, $log);
+            } else {
+                $fetcher = new RestApiFetcher($config, $http, $parser, $log);
+            }
+        }
 
         if (!$config->get('cache.enabled') && !$offline) {
             return $fetcher;
         }
 
-        $keyParts = (array) $config->get('search');
-        $keyParts['api_version'] = $config->get('api.version');
-
         return new CachingFetcher(
             $fetcher,
-            rtrim((string) $config->get('cache.dir'), '/\\'),
+            rtrim((string) $config->get('cache.dir'), '/\\') . '/' . $source,
             (int) $config->get('cache.ttl'),
-            $keyParts,
+            $this->cacheKeyParts($config),
             $offline,
+            $extension,
         );
+    }
+
+    /**
+     * Параметры, от которых зависит содержимое ответа: входят в ключ кэша.
+     *
+     * @return array<string, mixed>
+     */
+    private function cacheKeyParts(Config $config): array
+    {
+        $source = (string) $config->get('source');
+        $parts = ['source' => $source, 'region' => $config->get('search.region')];
+        if ($source === 'live') {
+            $parts['domain'] = $config->get('live.domain');
+
+            return $parts;
+        }
+        foreach (['search_type', 'l10n', 'groups_on_page', 'docs_in_group', 'group_mode', 'max_passages', 'family_mode', 'fix_typo', 'sort', 'period'] as $key) {
+            $parts[$key] = $config->get('search.' . $key);
+        }
+        if ($source === 'xmlstock') {
+            $parts['domain'] = $config->get('xmlstock.domain');
+            $parts['device'] = $config->get('xmlstock.device');
+        } else {
+            $parts['api_version'] = $config->get('api.version');
+        }
+
+        return $parts;
+    }
+
+    private function buildProxyPool(Config $config): ProxyPool
+    {
+        $lines = array_values((array) $config->get('live.proxies', []));
+        $file = $config->get('live.proxy_file');
+        if (is_string($file) && $file !== '') {
+            if (!is_file($file)) {
+                throw new UsageException("файл со списком прокси не найден: $file");
+            }
+            $lines = array_merge($lines, file($file, FILE_IGNORE_NEW_LINES) ?: []);
+        }
+        $requestsPerProxy = (int) $config->get('live.requests_per_proxy');
+        $maxFailures = (int) $config->get('live.max_proxy_failures');
+        $pool = ProxyPool::fromLines($lines, $requestsPerProxy, $maxFailures);
+        if ($pool->isEmpty()) {
+            $pool = ProxyPool::fromLines(['direct'], $requestsPerProxy, $maxFailures);
+        }
+
+        return $pool;
+    }
+
+    private function buildParser(Config $config): ResponseParserInterface
+    {
+        return $config->get('source') === 'live' ? new HtmlResponseParser() : new XmlResponseParser();
+    }
+
+    private function buildVisitor(Config $config, Logger $log): PageVisitor
+    {
+        $cfg = (array) $config->get('visit');
+        $driver = $this->buildVisitDriver($cfg, $log);
+
+        $proxies = null;
+        if (($cfg['proxy'] ?? null) === 'list') {
+            $this->proxies ??= $this->buildProxyPool($config);
+            $proxies = $this->proxies;
+        }
+
+        $base = 'https://yandex.ru';
+        if ($config->get('source') === 'live') {
+            $domain = trim((string) $config->get('live.domain', 'yandex.ru'));
+            $base = rtrim(preg_match('~^https?://~i', $domain) === 1 ? $domain : 'https://' . $domain, '/');
+        }
+
+        return new PageVisitor($cfg, $driver, $log, $proxies, $base, (string) $config->get('search.region', ''));
+    }
+
+    /**
+     * @param array<string, mixed> $cfg
+     */
+    private function buildVisitDriver(array $cfg, Logger $log): DriverInterface
+    {
+        $mode = (string) ($cfg['driver'] ?? 'auto');
+        if ($mode === 'curl') {
+            return new CurlDriver();
+        }
+        $playwright = new PlaywrightDriver((string) ($cfg['node'] ?? 'node'));
+        $probe = $playwright->probe(isset($cfg['browser_path']) && $cfg['browser_path'] !== '' ? (string) $cfg['browser_path'] : null);
+        if ($probe['ok']) {
+            $log->info('Браузер для визитов: ' . $probe['message']);
+
+            return $playwright;
+        }
+        if ($mode === 'playwright') {
+            throw new UsageException('Playwright недоступен: ' . $probe['message']);
+        }
+        $log->warn('Playwright недоступен (' . $probe['message'] . '), визиты выполняются через curl без выполнения JavaScript');
+
+        return new CurlDriver();
+    }
+
+    /**
+     * Отладка разбора живой выдачи: разобрать сохранённую HTML-страницу и показать результаты.
+     */
+    private function parseHtmlFile(string $path): int
+    {
+        if (!is_file($path)) {
+            throw new UsageException("файл не найден: $path");
+        }
+        $html = (string) file_get_contents($path);
+        $parser = new HtmlResponseParser();
+        $kind = $parser->classify($html, '', 200);
+        fwrite(STDOUT, 'Тип страницы: ' . $kind . PHP_EOL);
+        if ($kind !== HtmlResponseParser::KIND_SERP && $kind !== HtmlResponseParser::KIND_EMPTY) {
+            return 1;
+        }
+        $page = $parser->parse($html, basename($path), 0);
+        fwrite(STDOUT, sprintf(
+            'Результатов: %d%s, пропущено (реклама, блоки без ссылок): %d, есть следующая страница: %s%s',
+            count($page->results),
+            $page->found !== null ? ', всего найдено около ' . $page->found : '',
+            $page->groups - count($page->results),
+            $page->hasMore === null ? 'неизвестно' : ($page->hasMore ? 'да' : 'нет'),
+            PHP_EOL,
+        ));
+        foreach ($page->results as $r) {
+            fwrite(STDOUT, sprintf('%3d. %s%s     %s%s     %s%s', $r->position, $r->url, PHP_EOL, $r->title, PHP_EOL, mb_substr($r->snippet, 0, 160), PHP_EOL));
+        }
+
+        return 0;
     }
 
     /**
@@ -270,8 +463,10 @@ final class Application
             'stats' => $result->stats,
             'errors' => $result->errors,
             'aborted' => $result->aborted,
+            'source' => $config->get('source'),
             'search' => $config->get('search'),
             'filters' => $config->get('filters'),
+            'proxies' => $this->proxies?->stats() ?? [],
         ]);
         $files[] = $json;
 
@@ -297,7 +492,7 @@ final class Application
         $out = [];
         $out[] = '';
         $out[] = sprintf(
-            'Запросов обработано: %d из %d, обращений к API: %d%s, результатов в выдаче: %d',
+            'Запросов обработано: %d из %d, обращений к источнику: %d%s, результатов в выдаче: %d',
             $stats['queries_done'],
             $stats['queries'],
             $cache !== null ? $cache->misses : $stats['requests'],
@@ -324,6 +519,40 @@ final class Application
                     $site->queryCount(),
                     $site->bestPosition ?? '-',
                 );
+            }
+        }
+        if ($this->visitor !== null) {
+            $visited = 0;
+            $pages = 0;
+            $differ = 0;
+            foreach ($result->sites as $site) {
+                if ($site->visits === []) {
+                    continue;
+                }
+                $visited++;
+                foreach ($site->visits as $visit) {
+                    if ($visit['ok'] ?? false) {
+                        $pages++;
+                    }
+                }
+                if ($site->variantCount() > 1) {
+                    $differ++;
+                }
+            }
+            $out[] = sprintf(
+                'Визиты (%s): сайтов %d, страниц сохранено %d в %s%s',
+                $this->visitor->driver()->name(),
+                $visited,
+                $pages,
+                $config->get('visit.dir'),
+                (int) $config->get('visit.variants') > 1 ? sprintf(', сайтов с разными вариантами страницы: %d', $differ) : '',
+            );
+        }
+        if ($this->proxies !== null) {
+            $out[] = 'Прокси:';
+            foreach ($this->proxies->stats() as $s) {
+                $state = $s['disabled'] ? ', отключён' : ($s['cooldown'] > 0 ? sprintf(', отдыхает ещё %d с', $s['cooldown']) : '');
+                $out[] = sprintf('  %-34s запросов: %d, капч: %d, ошибок: %d%s', $s['proxy'], $s['requests'], $s['captchas'], $s['failures'], $state);
             }
         }
         if ($result->errors !== []) {
@@ -397,7 +626,7 @@ final class Application
     public function usage(): string
     {
         return <<<TXT
-        yandex-sites — прогоняет список запросов через Yandex Search API и отбирает сайты из выдачи.
+        yandex-sites — прогоняет список запросов через выдачу Яндекса и отбирает сайты.
 
         Использование:
           php bin/yandex-sites.php [опции] [queries.txt ...]
@@ -407,27 +636,43 @@ final class Application
           -q, --query="ТЕКСТ"   один запрос из командной строки; можно указывать несколько раз
           --limit=N             обработать только первые N запросов (для пробы)
 
+        Источник выдачи:
+          --source=api|xmlstock|live
+                                api — Yandex Search API (по умолчанию), xmlstock — сервис XMLStock,
+                                live — живая выдача yandex.ru как у обычного пользователя (через прокси)
+          --live                то же, что --source=live
+          --proxies=FILE        файл со списком прокси для живой выдачи (см. proxies.example.txt)
+
         Настройки:
           -c, --config=FILE     файл конфигурации (по умолчанию ./config.php, если есть; см. config.example.php)
           -o, --out=DIR         каталог для результатов (по умолчанию out/)
-          --pages=N             страниц выдачи на запрос (по умолчанию 1)
-          --groups=N            результатов (сайтов) на странице, 1–100 (по умолчанию 50)
+          --pages=N             страниц выдачи на запрос (по умолчанию 1; в живой выдаче страница — 10 результатов)
+          --groups=N            результатов (сайтов) на странице для API/XMLStock, 1–100 (по умолчанию 50)
           --region=ID           регион поиска: 213 — Москва, 2 — Санкт-Петербург, 225 — Россия
-          --delay=MS            пауза между обращениями к API в миллисекундах (по умолчанию 250)
+          --delay=MS            пауза между обращениями к источнику в миллисекундах
           --check-sites         проверить отобранные сайты по HTTP (раздел site_check в конфигурации)
           --raw                 дополнительно записать все результаты выдачи с причинами отклонения (results.csv)
 
-        Кэш ответов API:
+        Визиты на отобранные сайты (как посетитель из поиска; раздел visit в конфигурации):
+          --visit               зайти на каждый сайт, сохранить HTML и скриншот в out/pages/<сайт>/
+          --visit-driver=X      playwright — headless Chromium с выполнением JS (нужны Node.js и npm i playwright),
+                                curl — без JS, auto — Playwright, если доступен (по умолчанию)
+          --variants=N          зайти на каждый сайт N раз с разными прокси и User-Agent, чтобы увидеть разные версии страницы
+
+        Кэш ответов:
           --no-cache            не использовать кэш
-          --offline             работать только по кэшу, без обращений к API
+          --offline             работать только по кэшу, без обращений к источнику
 
         Прочее:
+          --parse-html=FILE     разобрать сохранённую HTML-страницу выдачи и показать результаты (отладка)
           --dry-run             показать запросы и настройки, ничего не запрашивать
-          -v, --verbose         подробный вывод        --quiet   только ошибки
+          -v, --verbose         подробный вывод (все результаты по мере получения)
+          --quiet               только ошибки
           -h, --help            эта справка            --version версия
 
-        Доступ к API задаётся переменными окружения YANDEX_FOLDER_ID и YANDEX_API_KEY
-        (или файлом .env, или в config.php). Результаты: sites.csv, sites.json, domains.txt.
+        Доступ к источникам задаётся переменными окружения (или файлом .env, или в config.php):
+          Yandex Search API — YANDEX_FOLDER_ID и YANDEX_API_KEY; XMLStock — XMLSTOCK_USER и XMLSTOCK_KEY.
+        Результаты: sites.csv, sites.json, domains.txt.
 
         TXT;
     }

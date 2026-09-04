@@ -11,7 +11,7 @@ use YandexSites\Model\SearchResult;
 /**
  * Разбор XML-ответа Yandex Search API (формат Яндекс.XML).
  */
-final class XmlResponseParser
+final class XmlResponseParser implements ResponseParserInterface
 {
     public const NO_RESULTS_CODE = 15;
 
@@ -37,8 +37,9 @@ final class XmlResponseParser
     /**
      * @throws ApiException если в ответе ошибка (кроме кода 15 — тогда вернётся пустая страница)
      */
-    public function parse(string $xml, string $query, int $page): SearchPage
+    public function parse(string $raw, string $query, int $page, int $positionOffset = 0): SearchPage
     {
+        $xml = $raw;
         $xpath = new \DOMXPath($this->load($xml));
 
         $error = $xpath->query('/yandexsearch/response/error')->item(0);
@@ -59,7 +60,7 @@ final class XmlResponseParser
         }
 
         $results = [];
-        $position = 0;
+        $position = $positionOffset;
         $groups = 0;
         foreach ($xpath->query('/yandexsearch/response/results/grouping/group') as $group) {
             $groups++;

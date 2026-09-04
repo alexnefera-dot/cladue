@@ -10,8 +10,12 @@ use YandexSites\Model\Site;
 use YandexSites\Runner;
 use YandexSites\Search\CachingFetcher;
 use YandexSites\Search\RestApiFetcher;
+use YandexSites\Live\HtmlResponseParser;
+use YandexSites\Live\LiveFetcher;
+use YandexSites\Live\ProxyPool;
 use YandexSites\Search\XmlApiFetcher;
 use YandexSites\Search\XmlResponseParser;
+use YandexSites\Search\XmlStockFetcher;
 use YandexSites\Support\Logger;
 
 /**
@@ -76,7 +80,7 @@ final class IntegrationTest
         $run = $this->cli(['--config=' . $dir . '/config.php', '--queries=' . $dir . '/queries.txt', '--raw']);
         Assert::same(0, $run['code'], $run['err']);
         Assert::contains('Запросов обработано: 3 из 3', $run['out']);
-        Assert::contains('обращений к API: 5 (из кэша: 0)', $run['out'], 'две страницы по 10 для двух запросов и одна для пустого');
+        Assert::contains('обращений к источнику: 5 (из кэша: 0)', $run['out'], 'две страницы по 10 для двух запросов и одна для пустого');
 
         $domains = explode("\n", trim((string) file_get_contents($dir . '/out/domains.txt')));
         Assert::inArray('okna-moskva.ru', $domains);
@@ -100,7 +104,7 @@ final class IntegrationTest
 
         $offline = $this->cli(['--config=' . $dir . '/config.php', '--queries=' . $dir . '/queries.txt', '--offline', '--quiet']);
         Assert::same(0, $offline['code'], $offline['err']);
-        Assert::contains('обращений к API: 0 (из кэша: 5)', $offline['out']);
+        Assert::contains('обращений к источнику: 0 (из кэша: 5)', $offline['out']);
 
         $missing = $this->cli(['--config=' . $dir . '/config.php', '--query=новый запрос', '--offline']);
         Assert::same(0, $missing['code']);
@@ -164,6 +168,111 @@ final class IntegrationTest
         $result = (new Runner($bad, new XmlApiFetcher($bad, new HttpClient(5), new XmlResponseParser(), $this->logger()), new XmlResponseParser(), $this->logger()))->run(['окна']);
         Assert::true($result->aborted);
         Assert::contains('43', $result->errors[0]);
+    }
+
+    public function testXmlStockSource(): void
+    {
+        $port = FakeServer::port();
+        $config = new Config([
+            'source' => 'xmlstock',
+            'xmlstock' => ['endpoint' => "http://127.0.0.1:$port/yandex/xml/", 'user' => 'u', 'key' => 'k'],
+            'api' => ['delay_ms' => 0, 'retries' => 0],
+            'search' => ['groups_on_page' => 5],
+            'filters' => ['exclude_domains' => []],
+        ]);
+        $runner = new Runner($config, new XmlStockFetcher($config, new HttpClient(5), new XmlResponseParser(), $this->logger()), new XmlResponseParser(), $this->logger());
+        $result = $runner->run(['окна']);
+        Assert::same(5, $result->stats['results']);
+        Assert::same(5, $result->stats['sites_selected']);
+
+        $bad = new Config(['source' => 'xmlstock', 'xmlstock' => ['endpoint' => "http://127.0.0.1:$port/yandex/xml/", 'user' => 'u', 'key' => 'bad-key'], 'api' => ['delay_ms' => 0, 'retries' => 0]]);
+        $result = (new Runner($bad, new XmlStockFetcher($bad, new HttpClient(5), new XmlResponseParser(), $this->logger()), new XmlResponseParser(), $this->logger()))->run(['окна']);
+        Assert::true($result->aborted);
+        Assert::contains('42', $result->errors[0]);
+    }
+
+    public function testLiveSearchDirect(): void
+    {
+        $port = FakeServer::port();
+        $config = new Config([
+            'source' => 'live',
+            'live' => ['domain' => "http://127.0.0.1:$port", 'delay_ms' => 0, 'jitter_ms' => 0, 'min_gap_ms' => 0, 'cookies' => false, 'attempts' => 2, 'max_wait' => 0],
+            'search' => ['pages' => 3],
+            'filters' => ['allowed_tlds' => []],
+        ]);
+        $fetcher = new LiveFetcher($config, new HttpClient(5), new HtmlResponseParser(), ProxyPool::fromLines(['direct']), $this->logger());
+        $result = (new Runner($config, $fetcher, new HtmlResponseParser(), $this->logger()))->run(['пластиковые окна', 'nothing here']);
+
+        Assert::same([], $result->errors);
+        Assert::same(3, $result->stats['requests'], 'две страницы выдачи и один пустой запрос; третья страница не запрашивается');
+        Assert::same(16, $result->stats['results'], '10 результатов и колдунщик на первой странице, 5 на второй');
+        Assert::same(4, $result->stats['rejected']['exclude_domains'], 'avito, market.yandex, vk и колдунщик yandex.ru');
+        Assert::same(12, $result->stats['sites_selected']);
+        Assert::same(range(1, 16), array_map(static fn ($row) => $row['result']->position, $result->raw), 'сквозная нумерация позиций');
+
+        $captcha = new LiveFetcher($config, new HttpClient(5), new HtmlResponseParser(), ProxyPool::fromLines(['direct']), $this->logger());
+        $result = (new Runner($config, $captcha, new HtmlResponseParser(), $this->logger()))->run(['captcha test']);
+        Assert::true($result->aborted, 'единственный канал на паузе после капчи — остановка');
+        Assert::contains('на паузе', $result->errors[0]);
+    }
+
+    public function testLiveSearchWithProxiesAndVisitsCli(): void
+    {
+        $captchaPort = FakeServer::port('captcha');
+        $sitePort = FakeServer::port('local');
+        $dir = $this->dir();
+        $hosts = ['okna-moskva.ru', 'shop.okna-moskva.ru', 'xn--80aswg.xn--p1ai', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru', 'phone-site.ru', 'cp1251-site.ru', 'forum.okna-talk.ru', 'okna-piter.spb.ru', 'balkon-master.ru', 'parked-site.ru', 'okna-company.com'];
+        $resolve = array_map(static fn (string $host): string => "$host:$sitePort:127.0.0.1", $hosts);
+        file_put_contents($dir . '/config-live.php', '<?php return ' . var_export([
+            'source' => 'live',
+            'live' => [
+                'domain' => 'http://yandex.test',
+                'proxies' => ["http://127.0.0.1:$captchaPort", "http://127.0.0.1:$sitePort"],
+                'delay_ms' => 0, 'jitter_ms' => 0, 'min_gap_ms' => 0, 'attempts' => 3,
+                'captcha_cooldown' => 600, 'error_cooldown' => 60, 'cookies' => false, 'max_wait' => 0,
+            ],
+            'search' => ['pages' => 2],
+            'cache' => ['dir' => $dir . '/cache-live'],
+            'filters' => ['allowed_tlds' => ['ru', 'рф']],
+            'visit' => ['driver' => 'curl', 'variants' => 2, 'dir' => $dir . '/pages', 'resolve' => $resolve, 'delay_ms' => 0, 'timeout' => 5, 'concurrency' => 4, 'screenshot' => false],
+            'output' => ['dir' => $dir . '/out-live'],
+        ], true) . ';');
+
+        $run = $this->cli(['--config=' . $dir . '/config-live.php', '--query=пластиковые окна', '--query=остекление балконов', '--visit']);
+        Assert::same(0, $run['code'], $run['err']);
+        Assert::contains('Запросов обработано: 2 из 2', $run['out']);
+        Assert::contains('Прокси:', $run['out']);
+        Assert::contains("http://127.0.0.1:$captchaPort", $run['out']);
+        Assert::contains('капч: 1', $run['out'], 'первый прокси получил капчу один раз и ушёл на паузу');
+        Assert::contains('капчу', $run['err']);
+        Assert::contains('Визиты (curl): сайтов 11, страниц сохранено 22', $run['out'], '15 хостов минус 3 исключённых и 1 в зоне com');
+
+        $domains = explode("
+", trim((string) file_get_contents($dir . '/out-live/domains.txt')));
+        Assert::inArray('okna-moskva.ru', $domains);
+        Assert::notInArray('www.avito.ru', $domains);
+        Assert::notInArray('okna-company.com', $domains);
+
+        $json = json_decode((string) file_get_contents($dir . '/out-live/sites.json'), true);
+        Assert::same('live', $json['meta']['source']);
+        Assert::same(2, count($json['meta']['proxies']));
+        $visited = array_values(array_filter($json['sites'], static fn (array $site): bool => $site['visits'] !== []));
+        Assert::same(11, count($visited));
+        $okna = array_values(array_filter($json['sites'], static fn (array $site): bool => $site['host'] === 'okna-moskva.ru'))[0];
+        Assert::same(2, count($okna['visits']));
+        Assert::true($okna['visits'][0]['ok'], $okna['visits'][0]['error']);
+        Assert::true(is_file($okna['visits'][0]['html_file']));
+        Assert::same(1, $okna['variants']);
+        Assert::contains('Вы пришли из поиска Яндекса', (string) file_get_contents($okna['visits'][0]['html_file']));
+        $redirected = array_values(array_filter($json['sites'], static fn (array $site): bool => $site['host'] === 'redirect-site.ru'))[0];
+        Assert::contains('other-domain.ru', $redirected['visits'][0]['final_url']);
+        Assert::contains(';page_file;page_final_url;page_title;page_variants', (string) file_get_contents($dir . '/out-live/sites.csv'));
+
+        $parse = $this->cli(['--parse-html=' . TESTS_ROOT . '/fixtures/serp.html']);
+        Assert::same(0, $parse['code'], $parse['err']);
+        Assert::contains('Тип страницы: serp', $parse['out']);
+        Assert::contains('Результатов: 4', $parse['out']);
+        Assert::contains('https://okna-moskva.ru/plastikovye-okna/', $parse['out']);
     }
 
     public function testSiteChecker(): void

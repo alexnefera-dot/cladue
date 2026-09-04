@@ -13,7 +13,7 @@ use YandexSites\Http\HttpResponse;
  */
 final class StubHttpClient extends HttpClient
 {
-    /** @var list<array{method: string, url: string, headers: array<string, string>, body: string|null}> */
+    /** @var list<array{method: string, url: string, headers: array<string, string>, body: string|null, options: array<string, mixed>}> */
     public array $calls = [];
 
     /**
@@ -24,9 +24,9 @@ final class StubHttpClient extends HttpClient
         parent::__construct(1, 'stub');
     }
 
-    public function request(string $method, string $url, array $headers = [], ?string $body = null): HttpResponse
+    public function request(string $method, string $url, array $headers = [], ?string $body = null, array $options = []): HttpResponse
     {
-        $this->calls[] = ['method' => $method, 'url' => $url, 'headers' => $headers, 'body' => $body];
+        $this->calls[] = ['method' => $method, 'url' => $url, 'headers' => $headers, 'body' => $body, 'options' => $options];
         if ($this->responses === []) {
             throw new \LogicException('Нет заготовленных ответов');
         }

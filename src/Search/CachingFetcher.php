@@ -8,7 +8,7 @@ namespace YandexSites\Search;
  * Кэширует XML-ответы на диске, чтобы повторные запуски (например, с другими
  * фильтрами) не тратили лимит API.
  */
-final class CachingFetcher implements XmlFetcherInterface
+final class CachingFetcher implements RawFetcherInterface
 {
     public int $hits = 0;
     public int $misses = 0;
@@ -17,11 +17,12 @@ final class CachingFetcher implements XmlFetcherInterface
      * @param array<string, mixed> $keyParts параметры поиска, влияющие на ответ (регион, группировка и т. п.)
      */
     public function __construct(
-        private XmlFetcherInterface $inner,
+        private RawFetcherInterface $inner,
         private string $dir,
         private int $ttl,
         private array $keyParts = [],
         private bool $offline = false,
+        private string $extension = 'xml',
     ) {
     }
 
@@ -75,6 +76,6 @@ final class CachingFetcher implements XmlFetcherInterface
     {
         $key = sha1(json_encode([$this->keyParts, mb_strtolower(trim($query)), $page], JSON_UNESCAPED_UNICODE) ?: '');
 
-        return $this->dir . '/' . substr($key, 0, 2) . '/' . $key . '.xml';
+        return $this->dir . '/' . substr($key, 0, 2) . '/' . $key . '.' . $this->extension;
     }
 }

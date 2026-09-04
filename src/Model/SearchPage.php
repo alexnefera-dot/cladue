@@ -11,6 +11,7 @@ final class SearchPage
 {
     /**
      * @param list<SearchResult> $results
+     * @param bool|null $hasMore есть ли следующая страница (null — неизвестно, решает вызывающий код)
      */
     public function __construct(
         public readonly string $query,
@@ -18,6 +19,7 @@ final class SearchPage
         public readonly ?int $found,
         public readonly int $groups,
         public readonly array $results,
+        public readonly ?bool $hasMore = null,
     ) {
     }
 }

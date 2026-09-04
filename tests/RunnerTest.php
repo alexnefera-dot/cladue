@@ -7,7 +7,7 @@ namespace Tests;
 use YandexSites\Config;
 use YandexSites\Runner;
 use YandexSites\Search\ApiException;
-use YandexSites\Search\XmlFetcherInterface;
+use YandexSites\Search\RawFetcherInterface;
 use YandexSites\Search\XmlResponseParser;
 use YandexSites\Support\Logger;
 
@@ -24,11 +24,11 @@ final class RunnerTest
         ];
     }
 
-    private function fetcher(array &$log): XmlFetcherInterface
+    private function fetcher(array &$log): RawFetcherInterface
     {
         $fixtures = $this->fixtures;
 
-        return new class($fixtures, $log) implements XmlFetcherInterface {
+        return new class($fixtures, $log) implements RawFetcherInterface {
             /** @param array<string, string> $fixtures */
             public function __construct(private array $fixtures, private array &$log)
             {
@@ -114,7 +114,7 @@ final class RunnerTest
         Assert::same(2, count($result->errors));
         Assert::contains('временная ошибка', $result->errors[0]);
         Assert::contains('32', $result->errors[1]);
-        Assert::same(2, $result->stats['queries_done']);
+        Assert::same(1, $result->stats['queries_done'], 'запрос с ошибкой не считается обработанным');
         Assert::same(2, $result->stats['sites_total']);
         Assert::same(0, $result->stats['sites_selected'], 'каждый сайт встретился только в одном запросе');
         Assert::same(2, $result->stats['rejected']['min_queries']);

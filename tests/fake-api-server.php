@@ -3,18 +3,22 @@
 declare(strict_types=1);
 
 /*
- * Фейковый Yandex Search API для тестов и пробного запуска без ключа:
+ * Фейковые сервисы для тестов и пробного запуска без ключей:
  *
  *   php -S 127.0.0.1:8089 tests/fake-api-server.php
  *
- * Эмулирует:
- *   POST /v2/web/search  — API v2 (JSON с rawData в base64)
- *   GET  /search/xml     — API v1 (XML напрямую)
- *   любой другой путь    — «сайт» по заголовку Host (для проверки SiteChecker)
+ * Маршруты:
+ *   POST /v2/web/search    — Yandex Search API v2 (JSON с rawData в base64)
+ *   GET  /search/xml       — Yandex Search API v1 (XML напрямую)
+ *   GET  /yandex/xml/      — XMLStock (XML в формате Яндекс.XML)
+ *   GET  /search/?text=…   — страница выдачи в вёрстке yandex.ru (для source = live)
+ *   GET  /showcaptcha      — страница капчи
+ *   любой другой путь      — «сайт», выбирается по заголовку Host; страница зависит от Referer,
+ *                            хост variant-site.ru показывает разные версии разным User-Agent
  *
- * Специальные слова в запросе: nothing — ошибка 15 (ничего не найдено),
- * quota — ошибка 32 (лимит исчерпан), ratelimit — первый раз ошибка 55, затем результаты.
- * Ключ, содержащий bad-key, считается недействительным.
+ * Переменная окружения FAKE_MODE: ok (по умолчанию), captcha (выдача всегда отдаёт капчу), error (HTTP 503).
+ * Специальные слова в запросе: nothing — ничего не найдено, quota — ошибка 32,
+ * ratelimit — первый раз ошибка 55, captcha — капча в живой выдаче. Ключ с bad-key — недействительный.
  */
 
 const POOL = [
@@ -34,6 +38,29 @@ const POOL = [
     ['balkon-master.ru', 'Остекление балконов — цена', 'Остекление и отделка балконов'],
     ['parked-site.ru', 'Домен продаётся', 'Этот домен продаётся'],
 ];
+
+/**
+ * Адрес страницы сайта: в режиме local — на этот же сервер по http (для тестов визитов).
+ */
+function siteUrl(string $host, int $position): string
+{
+    if ((getenv('FAKE_MODE') ?: 'ok') === 'local') {
+        return 'http://' . $host . ':' . ($_SERVER['SERVER_PORT'] ?? '80') . '/page-' . $position . '/';
+    }
+
+    return 'https://' . $host . '/page-' . $position . '/';
+}
+
+/**
+ * @return list<array{0: string, 1: string, 2: string}>
+ */
+function rotatedPool(string $query): array
+{
+    $pool = POOL;
+    $shift = crc32(mb_strtolower($query)) % count($pool);
+
+    return array_merge(array_slice($pool, $shift), array_slice($pool, 0, $shift));
+}
 
 function fakeXml(string $query, int $page, int $groupsOnPage): string
 {
@@ -62,15 +89,11 @@ function fakeXml(string $query, int $page, int $groupsOnPage): string
         unlink($marker);
     }
 
-    $pool = POOL;
-    $shift = crc32($q) % count($pool);
-    $pool = array_merge(array_slice($pool, $shift), array_slice($pool, 0, $shift));
-    $slice = array_slice($pool, $page * $groupsOnPage, $groupsOnPage);
-
+    $slice = array_slice(rotatedPool($query), $page * $groupsOnPage, $groupsOnPage);
     $groups = '';
     foreach ($slice as $i => [$host, $title, $passage]) {
         $position = $page * $groupsOnPage + $i + 1;
-        $url = 'https://' . $host . '/page-' . $position . '/';
+        $url = siteUrl($host, $position);
         $groups .= sprintf(
             '<group><categ attr="d" name="%1$s"/><doccount>1</doccount><relevance/>'
             . '<doc id="doc%2$d"><relevance/><url>%3$s</url><domain>%1$s</domain><title>%4$s</title>'
@@ -91,9 +114,120 @@ function fakeXml(string $query, int $page, int $groupsOnPage): string
         . '</grouping></results></response></yandexsearch>';
 }
 
+/**
+ * Страница выдачи в вёрстке, близкой к yandex.ru: 10 результатов на странице,
+ * рекламный блок и колдунщик карт на первой странице, пагинация.
+ */
+function fakeSerpHtml(string $query, int $page, string $lr): string
+{
+    $perPage = 10;
+    $pool = rotatedPool($query);
+    $slice = array_slice($pool, $page * $perPage, $perPage);
+    $hasMore = count($pool) > ($page + 1) * $perPage;
+    $q = htmlspecialchars($query);
+    $items = '';
+
+    if ($page === 0) {
+        $items .= <<<HTML
+        <li class="serp-item serp-item_card serp-adv-item desktop-card" data-cid="0">
+          <div class="Organic organic Organic_type_ad">
+            <div class="Organic-Header">
+              <a class="Link Link_theme_normal OrganicTitle-Link organic__url link" href="https://yabs.yandex.ru/count/WZ0ejI_zO3m0000?ad=1" target="_blank"><h2 class="OrganicTitle-LinkText"><span>Окна ПВХ со скидкой 40% — от производителя</span></h2></a>
+              <div class="Organic-Subtitle"><span class="Organic-SubtitleLabel label">Реклама</span></div>
+            </div>
+          </div>
+        </li>
+
+        HTML;
+    }
+
+    foreach ($slice as $i => [$host, $title, $passage]) {
+        $position = $page * $perPage + $i + 1;
+        $url = siteUrl($host, $position);
+        $titleHtml = str_replace('окна', '<b>окна</b>', htmlspecialchars($title));
+        $passageHtml = htmlspecialchars($passage);
+        $items .= <<<HTML
+        <li class="serp-item serp-item_card desktop-card" data-cid="{$position}">
+          <div class="Organic organic Typo Typo_text_m Typo_line_m">
+            <div class="Organic-Header organic__header">
+              <a class="Link Link_theme_normal OrganicTitle-Link organic__url link" href="{$url}" target="_blank" rel="noopener">
+                <h2 class="OrganicTitle-LinkText organic__title"><span>{$titleHtml}</span></h2>
+              </a>
+              <div class="Path Organic-Path path organic__path">
+                <a class="Link Link_theme_outer Path-Item path__item" href="{$url}" target="_blank"><b>{$host}</b>›page-{$position}</a>
+              </div>
+            </div>
+            <div class="Organic-ContentWrapper organic__content-wrapper">
+              <div class="TextContainer OrganicText organic__text text-container Typo Typo_text_m Typo_line_m">
+                <span class="OrganicTextContentSpan">{$passageHtml}</span>
+              </div>
+            </div>
+          </div>
+        </li>
+
+        HTML;
+        if ($page === 0 && $i === 1) {
+            $items .= <<<HTML
+        <li class="serp-item serp-item_card desktop-card" data-cid="wizard">
+          <div class="Organic organic Organic_type_maps">
+            <div class="Organic-Header">
+              <a class="Link OrganicTitle-Link" href="https://yandex.ru/maps/213/moscow/search/{$q}/"><h2 class="OrganicTitle-LinkText"><span>{$q} — на карте Москвы</span></h2></a>
+            </div>
+          </div>
+        </li>
+
+        HTML;
+        }
+    }
+
+    $pager = '<div class="Pager pager">';
+    if ($page > 0) {
+        $pager .= sprintf('<a class="Link Pager-Item Pager-Item_type_prev" href="/search/?text=%s&amp;p=%d">назад</a>', rawurlencode($query), $page - 1);
+    }
+    if ($hasMore) {
+        $pager .= sprintf('<a class="Link Pager-Item Pager-Item_type_next" href="/search/?text=%s&amp;p=%d">дальше</a>', rawurlencode($query), $page + 1);
+    }
+    $pager .= '</div>';
+
+    return <<<HTML
+    <!DOCTYPE html>
+    <html lang="ru">
+    <head><meta charset="utf-8"><title>{$q} — Яндекс: нашлось 15 результатов</title></head>
+    <body class="b-page">
+    <div class="main__content">
+    <form class="search3" action="/search/"><input name="text" value="{$q}"><input type="hidden" name="lr" value="{$lr}"></form>
+    <div class="serp-adv__found">Нашлось 15 результатов</div>
+    <ul class="serp-list serp-list_left_yes">
+    {$items}</ul>
+    {$pager}
+    </div>
+    </body>
+    </html>
+    HTML;
+}
+
+function captchaHtml(): string
+{
+    return <<<'HTML'
+    <!DOCTYPE html>
+    <html lang="ru">
+    <head><meta charset="utf-8"><title>Ой!</title></head>
+    <body>
+    <div class="CheckboxCaptcha" data-testid="checkbox-captcha">
+      <form method="POST" action="/checkcaptcha?key=fake">
+        <div class="CheckboxCaptcha-Anchor">Подтвердите, что запросы отправляли вы, а не робот</div>
+        <input type="submit" value="Я не робот">
+      </form>
+    </div>
+    </body>
+    </html>
+    HTML;
+}
+
 $uri = (string) (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/');
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $auth = (string) ($_SERVER['HTTP_AUTHORIZATION'] ?? '');
+$mode = (string) (getenv('FAKE_MODE') ?: 'ok');
 
 if ($uri === '/v2/web/search' && $method === 'POST') {
     header('Content-Type: application/json');
@@ -133,9 +267,61 @@ if ($uri === '/search/xml') {
     return;
 }
 
-// «Сайты» для проверки SiteChecker: выбираются по заголовку Host.
+if ($uri === '/yandex/xml/' || $uri === '/yandex/xml') {
+    header('Content-Type: text/xml; charset=utf-8');
+    $key = (string) ($_GET['key'] ?? '');
+    if (($_GET['user'] ?? '') === '' || $key === '' || str_contains($key, 'bad-key')) {
+        echo '<?xml version="1.0" encoding="utf-8"?><yandexsearch version="1.0"><response date="20260904T120000"><error code="42">Invalid user or key</error></response></yandexsearch>';
+
+        return;
+    }
+    $groupsOnPage = 10;
+    if (preg_match('/groups-on-page=(\d+)/', (string) ($_GET['groupby'] ?? ''), $m) === 1) {
+        $groupsOnPage = (int) $m[1];
+    }
+    echo fakeXml((string) ($_GET['query'] ?? ''), (int) ($_GET['page'] ?? 0), $groupsOnPage);
+
+    return;
+}
+
+if ($uri === '/showcaptcha') {
+    header('Content-Type: text/html; charset=utf-8');
+    echo captchaHtml();
+
+    return;
+}
+
+if ($uri === '/search/' || $uri === '/search') {
+    $query = (string) ($_GET['text'] ?? '');
+    if ($mode === 'error') {
+        http_response_code(503);
+        header('Content-Type: text/html; charset=utf-8');
+        echo '<html><head><title>503</title></head><body>Service unavailable</body></html>';
+
+        return;
+    }
+    if ($mode === 'captcha' || str_contains(mb_strtolower($query), 'captcha')) {
+        header('Location: /showcaptcha?retpath=' . rawurlencode((string) ($_SERVER['REQUEST_URI'] ?? '/search/')), true, 302);
+
+        return;
+    }
+    header('Content-Type: text/html; charset=utf-8');
+    if (str_contains(mb_strtolower($query), 'nothing')) {
+        echo '<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><title>' . htmlspecialchars($query) . ' — Яндекс</title></head><body><div class="misspell"><div class="misspell__message">По вашему запросу ничего не нашлось.</div></div><ul class="serp-list"></ul></body></html>';
+
+        return;
+    }
+    echo fakeSerpHtml($query, (int) ($_GET['p'] ?? 0), (string) ($_GET['lr'] ?? ''));
+
+    return;
+}
+
+// «Сайты» для проверки SiteChecker и визитов: выбираются по заголовку Host.
 $host = strtolower((string) explode(':', (string) ($_SERVER['HTTP_HOST'] ?? ''), 2)[0]);
 $port = (string) ($_SERVER['SERVER_PORT'] ?? '80');
+$referer = (string) ($_SERVER['HTTP_REFERER'] ?? '');
+$userAgent = (string) ($_SERVER['HTTP_USER_AGENT'] ?? '');
+$visitor = str_contains($referer, 'yandex') ? 'Вы пришли из поиска Яндекса — специальное предложение' : 'Прямой заход';
 header('Content-Type: text/html; charset=utf-8');
 switch ($host) {
     case 'dead-site.ru':
@@ -161,6 +347,16 @@ switch ($host) {
         echo '<html><head><title>Домен продаётся</title></head><body><h1>Домен продаётся</h1></body></html>';
 
         return;
+    case 'variant-site.ru':
+        $variant = crc32($userAgent) % 2 === 0 ? 'A' : 'B';
+        echo '<html><head><title>Вариант ' . $variant . '</title></head><body><h1>Страница варианта ' . $variant . '</h1><p>' . htmlspecialchars($visitor) . '</p></body></html>';
+
+        return;
     default:
-        echo '<html><head><title>' . htmlspecialchars($host) . '</title></head><body><h1>Добро пожаловать на ' . htmlspecialchars($host) . '</h1></body></html>';
+        echo '<html><head><title>' . htmlspecialchars($host) . '</title></head><body>'
+            . '<h1>Добро пожаловать на ' . htmlspecialchars($host) . '</h1>'
+            . '<p class="visitor">' . htmlspecialchars($visitor) . '</p>'
+            . '<div id="js-rendered"></div>'
+            . '<script>document.getElementById("js-rendered").textContent = "rendered by browser";</script>'
+            . '</body></html>';
 }

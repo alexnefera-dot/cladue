@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace YandexSites;
 
 use YandexSites\Filter\DefaultExclusions;
+use YandexSites\Live\UserAgents;
 
 /**
  * Конфигурация: значения по умолчанию, файл config.php, переменные окружения
@@ -16,6 +17,7 @@ final class Config
     public const LOCALIZATIONS = ['ru', 'uk', 'be', 'kk', 'tr', 'en'];
     public const FAMILY_MODES = ['none', 'moderate', 'strict'];
     public const PERIODS = ['all', 'day', '2weeks', 'month'];
+    public const SOURCES = ['api', 'xmlstock', 'live'];
 
     /** @var array<string, mixed> */
     private array $data;
@@ -34,6 +36,8 @@ final class Config
     public static function defaults(): array
     {
         return [
+            // Источник выдачи: api — Yandex Search API, xmlstock — сервис XMLStock, live — живая выдача yandex.ru
+            'source' => 'api',
             'api' => [
                 'version' => 'rest',
                 'folder_id' => (string) (getenv('YANDEX_FOLDER_ID') ?: ''),
@@ -60,6 +64,57 @@ final class Config
                 'fix_typo' => true,
                 'sort' => 'relevance',
                 'period' => 'all',
+                // Столько запросов подряд с ошибкой — остановка (0 — не останавливаться)
+                'max_consecutive_errors' => 5,
+            ],
+            'xmlstock' => [
+                'endpoint' => (string) (getenv('XMLSTOCK_ENDPOINT') ?: 'https://xmlstock.com/yandex/xml/'),
+                'user' => (string) (getenv('XMLSTOCK_USER') ?: ''),
+                'key' => (string) (getenv('XMLSTOCK_KEY') ?: ''),
+                'domain' => '',
+                'device' => '',
+                'extra_params' => [],
+            ],
+            'live' => [
+                'domain' => (string) (getenv('YANDEX_LIVE_DOMAIN') ?: 'yandex.ru'),
+                'proxies' => [],
+                'proxy_file' => null,
+                'requests_per_proxy' => 1,
+                'delay_ms' => 4000,
+                'jitter_ms' => 2000,
+                'min_gap_ms' => 700,
+                'attempts' => 4,
+                'captcha_cooldown' => 1800,
+                'error_cooldown' => 180,
+                'max_proxy_failures' => 5,
+                'max_wait' => 300,
+                'timeout' => 25,
+                'verify_ssl' => true,
+                'cookies' => true,
+                'cookie_dir' => dirname(__DIR__) . '/cache/cookies',
+                'user_agents' => UserAgents::DEFAULT,
+            ],
+            'visit' => [
+                'enabled' => false,
+                'driver' => 'auto',
+                'node' => 'node',
+                'browser_path' => null,
+                'target' => 'found',
+                'referer' => 'serp',
+                'variants' => 1,
+                'proxy' => null,
+                'user_agents' => [],
+                'dir' => 'out/pages',
+                'screenshot' => true,
+                'full_page' => false,
+                'wait_ms' => 2500,
+                'timeout' => 30,
+                'concurrency' => 2,
+                'delay_ms' => 1500,
+                'max_bytes' => 2 * 1024 * 1024,
+                'verify_ssl' => true,
+                'max_sites' => 0,
+                'resolve' => [],
             ],
             'cache' => [
                 'enabled' => true,
@@ -216,15 +271,55 @@ final class Config
         $errors = [];
         $g = fn (string $path) => $this->get($path);
 
+        $source = $g('source');
+        if (!in_array($source, self::SOURCES, true)) {
+            $errors[] = 'source: допустимые значения: ' . implode(', ', self::SOURCES) . ', получено: ' . var_export($source, true);
+        }
         if (!in_array($g('api.version'), ['rest', 'xml'], true)) {
             $errors[] = "api.version: допустимы 'rest' (API v2) или 'xml' (API v1), получено: " . var_export($g('api.version'), true);
         }
-        if ($requireCredentials) {
+        if ($requireCredentials && $source === 'api') {
             if ((string) $g('api.folder_id') === '') {
                 $errors[] = 'api.folder_id: не задан идентификатор каталога Yandex Cloud (переменная YANDEX_FOLDER_ID)';
             }
             if ((string) $g('api.api_key') === '' && (string) $g('api.iam_token') === '') {
                 $errors[] = 'api.api_key: не задан API-ключ (переменная YANDEX_API_KEY) или IAM-токен (YANDEX_IAM_TOKEN)';
+            }
+        }
+        if ($requireCredentials && $source === 'xmlstock') {
+            if ((string) $g('xmlstock.user') === '' || (string) $g('xmlstock.key') === '') {
+                $errors[] = 'xmlstock.user / xmlstock.key: не заданы данные доступа XMLStock (переменные XMLSTOCK_USER и XMLSTOCK_KEY)';
+            }
+        }
+        if ((string) $g('xmlstock.endpoint') === '') {
+            $errors[] = 'xmlstock.endpoint: не задан адрес API XMLStock';
+        }
+        if (!is_array($g('xmlstock.extra_params'))) {
+            $errors[] = 'xmlstock.extra_params: ожидается массив';
+        }
+        if ((string) $g('live.domain') === '') {
+            $errors[] = 'live.domain: не задан домен поиска (например, yandex.ru)';
+        }
+        if (!is_array($g('live.proxies'))) {
+            $errors[] = 'live.proxies: ожидается массив строк';
+        }
+        $proxyFile = $g('live.proxy_file');
+        if ($proxyFile !== null && $proxyFile !== '' && (!is_string($proxyFile) || !is_file($proxyFile))) {
+            $errors[] = 'live.proxy_file: файл не найден: ' . var_export($proxyFile, true);
+        }
+        if (!is_array($g('live.user_agents')) || $g('live.user_agents') === []) {
+            $errors[] = 'live.user_agents: ожидается непустой список строк';
+        }
+        foreach (['live.requests_per_proxy' => [1, 1000], 'live.attempts' => [1, 100], 'live.timeout' => [1, 600]] as $path => [$min, $max]) {
+            $v = $g($path);
+            if (!is_numeric($v) || $v < $min || $v > $max) {
+                $errors[] = "$path: ожидается число от $min до $max";
+            }
+        }
+        foreach (['live.delay_ms', 'live.jitter_ms', 'live.min_gap_ms', 'live.captcha_cooldown', 'live.error_cooldown', 'live.max_proxy_failures', 'live.max_wait', 'search.max_consecutive_errors'] as $path) {
+            $v = $g($path);
+            if (!is_numeric($v) || $v < 0) {
+                $errors[] = "$path: ожидается неотрицательное число";
             }
         }
         foreach (['api.timeout' => [1, 600], 'api.retries' => [0, 20], 'api.delay_ms' => [0, 600000], 'api.retry_delay_ms' => [0, 600000]] as $path => [$min, $max]) {
@@ -258,13 +353,15 @@ final class Config
             'search.group_mode' => ['deep', 'flat'],
             'filters.unique_by' => ['host', 'domain'],
             'site_check.target' => ['root', 'found'],
+            'visit.driver' => ['auto', 'playwright', 'curl'],
+            'visit.target' => ['found', 'root'],
         ];
         foreach ($enums as $path => $allowed) {
             if (!in_array($g($path), $allowed, true)) {
                 $errors[] = "$path: допустимые значения: " . implode(', ', $allowed) . ', получено: ' . var_export($g($path), true);
             }
         }
-        foreach (['filters.min_queries', 'filters.min_hits', 'site_check.concurrency', 'site_check.timeout', 'site_check.max_bytes', 'cache.ttl'] as $path) {
+        foreach (['filters.min_queries', 'filters.min_hits', 'site_check.concurrency', 'site_check.timeout', 'site_check.max_bytes', 'cache.ttl', 'visit.wait_ms', 'visit.delay_ms', 'visit.max_sites'] as $path) {
             $v = $g($path);
             if (!is_numeric($v) || $v < 0) {
                 $errors[] = "$path: ожидается неотрицательное число";
@@ -274,6 +371,22 @@ final class Config
             if (!is_array($g($path))) {
                 $errors[] = "$path: ожидается массив";
             }
+        }
+        foreach (['visit.variants' => [1, 50], 'visit.concurrency' => [1, 50], 'visit.timeout' => [1, 600]] as $path => [$min, $max]) {
+            $v = $g($path);
+            if (!is_numeric($v) || $v < $min || $v > $max) {
+                $errors[] = "$path: ожидается число от $min до $max";
+            }
+        }
+        if ((string) $g('visit.dir') === '') {
+            $errors[] = 'visit.dir: не задан каталог для сохранённых страниц';
+        }
+        $visitProxy = $g('visit.proxy');
+        if ($visitProxy !== null && $visitProxy !== '' && !is_string($visitProxy)) {
+            $errors[] = "visit.proxy: ожидается null, 'list' или строка с прокси";
+        }
+        if (!is_array($g('visit.resolve')) || !is_array($g('visit.user_agents'))) {
+            $errors[] = 'visit.resolve и visit.user_agents: ожидаются массивы';
         }
         if ((string) $g('output.dir') === '') {
             $errors[] = 'output.dir: не задан каталог для результатов';

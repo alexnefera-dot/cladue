@@ -26,6 +26,9 @@ final class Site
     /** @var array<string, mixed> результат проверки сайта (если включена) */
     public array $check = [];
 
+    /** @var list<array<string, mixed>> визиты на сайт (если включены) */
+    public array $visits = [];
+
     public function __construct(
         public readonly string $key,
         public readonly string $host,
@@ -56,6 +59,35 @@ final class Site
     }
 
     /**
+     * Сколько разных версий страницы увидели посетители (по отпечатку текста).
+     */
+    public function variantCount(): int
+    {
+        $hashes = [];
+        foreach ($this->visits as $visit) {
+            if (($visit['ok'] ?? false) && ($visit['fingerprint'] ?? '') !== '') {
+                $hashes[$visit['fingerprint']] = true;
+            }
+        }
+
+        return count($hashes);
+    }
+
+    /**
+     * @return array<string, mixed>|null первый успешный визит
+     */
+    public function firstVisit(): ?array
+    {
+        foreach ($this->visits as $visit) {
+            if ($visit['ok'] ?? false) {
+                return $visit;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function toArray(): array
@@ -73,6 +105,8 @@ final class Site
             'queries' => $this->queries,
             'urls' => array_keys($this->urls),
             'check' => $this->check,
+            'visits' => $this->visits,
+            'variants' => $this->variantCount(),
         ];
     }
 }

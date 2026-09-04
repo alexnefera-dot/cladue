@@ -8,9 +8,10 @@ use YandexSites\Check\SiteChecker;
 use YandexSites\Filter\ResultFilter;
 use YandexSites\Model\Site;
 use YandexSites\Search\ApiException;
-use YandexSites\Search\XmlFetcherInterface;
-use YandexSites\Search\XmlResponseParser;
+use YandexSites\Search\RawFetcherInterface;
+use YandexSites\Search\ResponseParserInterface;
 use YandexSites\Support\Logger;
+use YandexSites\Visit\PageVisitor;
 
 /**
  * Основной конвейер: запросы → выдача → фильтры → сайты → проверка → результат.
@@ -19,10 +20,11 @@ final class Runner
 {
     public function __construct(
         private Config $config,
-        private XmlFetcherInterface $fetcher,
-        private XmlResponseParser $parser,
+        private RawFetcherInterface $fetcher,
+        private ResponseParserInterface $parser,
         private Logger $log,
         private ?SiteChecker $checker = null,
+        private ?PageVisitor $visitor = null,
     ) {
     }
 
@@ -41,17 +43,22 @@ final class Runner
         );
         $pages = max(1, (int) $this->config->get('search.pages', 1));
         $groupsOnPage = max(1, (int) $this->config->get('search.groups_on_page', 10));
+        $maxErrors = max(0, (int) $this->config->get('search.max_consecutive_errors', 0));
+        $consecutiveErrors = 0;
 
         foreach ($queries as $index => $query) {
             $this->log->info(sprintf('[%d/%d] %s', $index + 1, count($queries), $query));
+            $offset = 0;
+            $failed = false;
 
             for ($page = 0; $page < $pages; $page++) {
                 try {
-                    $xml = $this->fetcher->fetch($query, $page);
+                    $raw = $this->fetcher->fetch($query, $page);
                     $result->stats['requests']++;
-                    $searchPage = $this->parser->parse($xml, $query, $page);
+                    $searchPage = $this->parser->parse($raw, $query, $page, $offset);
                 } catch (ApiException $e) {
                     $result->errors[] = sprintf('«%s» (стр. %d): %s', $query, $page + 1, $e->getMessage());
+                    $failed = true;
                     if ($e->isFatal()) {
                         $this->log->error($e->getMessage());
                         $this->log->error('Работа остановлена; результаты по уже обработанным запросам будут сохранены.');
@@ -63,6 +70,7 @@ final class Runner
                 }
 
                 $count = count($searchPage->results);
+                $offset += $count;
                 $result->stats['results'] += $count;
                 $this->log->debug(sprintf(
                     '  стр. %d: %d результатов%s',
@@ -74,6 +82,13 @@ final class Runner
                 foreach ($searchPage->results as $item) {
                     $reason = $filter->reject($item);
                     $result->raw[] = ['result' => $item, 'reason' => $reason];
+                    $this->log->debug(sprintf(
+                        '  %4d. %-32s %s%s',
+                        $item->position,
+                        mb_substr($item->host, 0, 32),
+                        mb_substr($item->title, 0, 70),
+                        $reason !== null ? '  [' . $reason . ']' : '',
+                    ));
                     if ($reason !== null) {
                         $result->reject($reason);
                         continue;
@@ -81,11 +96,23 @@ final class Runner
                     $aggregator->add($item);
                 }
 
-                if ($count === 0 || $searchPage->groups < $groupsOnPage) {
+                $lastPage = $searchPage->hasMore === false
+                    || ($searchPage->hasMore === null && $searchPage->groups < $groupsOnPage);
+                if ($count === 0 || $lastPage) {
                     break;
                 }
             }
 
+            if ($failed) {
+                $consecutiveErrors++;
+                if ($maxErrors > 0 && $consecutiveErrors >= $maxErrors && !$result->aborted) {
+                    $this->log->error(sprintf('%d запросов подряд завершились ошибкой — работа остановлена.', $consecutiveErrors));
+                    $result->aborted = true;
+                    break;
+                }
+                continue;
+            }
+            $consecutiveErrors = 0;
             $result->stats['queries_done']++;
         }
 
@@ -118,6 +145,10 @@ final class Runner
                     unset($sites[$key]);
                 }
             }
+        }
+
+        if ($this->visitor !== null && $sites !== []) {
+            $this->visitor->visit($sites);
         }
 
         $sites = array_values($sites);

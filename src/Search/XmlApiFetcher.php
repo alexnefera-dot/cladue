@@ -34,23 +34,14 @@ final class XmlApiFetcher extends AbstractApiFetcher
     {
         $s = fn (string $key): mixed => $this->config->get('search.' . $key);
 
-        $mode = $s('group_mode') === 'flat' ? 'flat' : 'deep';
-        $groupby = sprintf(
-            'attr=%s.mode=%s.groups-on-page=%d.docs-in-group=%d',
-            $mode === 'deep' ? 'd' : '""',
-            $mode,
-            (int) $s('groups_on_page'),
-            (int) $s('docs_in_group'),
-        );
-
         $params = [
             'folderid' => (string) $this->config->get('api.folder_id'),
             'query' => $query,
             'lr' => (string) $s('region'),
             'l10n' => (string) $s('l10n'),
-            'sortby' => $s('sort') === 'time' ? 'tm.order=descending' : 'rlv',
+            'sortby' => $this->sortBy(),
             'filter' => (string) $s('family_mode'),
-            'groupby' => $groupby,
+            'groupby' => $this->groupBy(),
             'maxpassages' => (string) (int) $s('max_passages'),
             'page' => (string) $page,
         ];

@@ -10,6 +10,7 @@ final class HttpResponse
         public readonly int $status,
         public readonly string $body,
         public readonly string $contentType = '',
+        public readonly string $finalUrl = '',
     ) {
     }
 }

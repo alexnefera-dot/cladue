@@ -1,0 +1,14 @@
+# Список прокси, по одному в строке. Используется для живой выдачи (source = live)
+# и для визитов на сайты (visit.proxy = 'list').
+# Форматы:
+#   host:port                     — HTTP-прокси без авторизации
+#   host:port:user:pass           — HTTP-прокси с логином и паролем
+#   user:pass@host:port           — то же
+#   http://user:pass@host:port    — явно указанный тип: http, https, socks4, socks4a, socks5, socks5h
+#   direct                        — прямое подключение без прокси (можно сочетать с прокси)
+#
+# Примеры (замените на свои):
+# 203.0.113.10:8080
+# 203.0.113.11:8080:login:password
+# socks5://login:password@203.0.113.12:1080
+# direct

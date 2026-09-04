@@ -6,13 +6,13 @@ namespace Tests;
 
 use YandexSites\Search\ApiException;
 use YandexSites\Search\CachingFetcher;
-use YandexSites\Search\XmlFetcherInterface;
+use YandexSites\Search\RawFetcherInterface;
 
 final class CachingFetcherTest
 {
-    private function inner(int &$calls): XmlFetcherInterface
+    private function inner(int &$calls): RawFetcherInterface
     {
-        return new class($calls) implements XmlFetcherInterface {
+        return new class($calls) implements RawFetcherInterface {
             public function __construct(private int &$calls)
             {
             }
