@@ -1,0 +1,101 @@
+<h2>Распознавание лица вместо отпечатка: где оно включается</h2>
+<p>Оба способа входа живут в одном разделе профиля — «Безопасность», третьим пунктом сверху. Включаются они по отдельности, работают одинаково и заменяют только ввод пароля, но не саму проверку.</p>
+<h3>Порядок включения</h3>
+<ol>
+<li>войдите в счёт обычным способом, паролем и кодом из письма</li>
+<li>откройте профиль, раздел «Безопасность», пункт «Быстрый вход»</li>
+<li>выберите лицо или отпечаток — оба рычажка независимы</li>
+<li>подтвердите согласие: оно спрашивается ровно один раз</li>
+</ol>
+<p><strong>Согласие даётся с того устройства, где будет работать быстрый вход.</strong> С чужого телефона включить его нельзя даже при известном пароле.</p>
+<h3>Что хранится на устройстве</h3>
+<table>
+<tr><th>Что хранится</th><th>Где лежит</th><th>Сколько живёт</th></tr>
+<tr><td>Ключ устройства</td><td>аппаратное хранилище</td><td>до переустановки</td></tr>
+<tr><td>Расписка сеанса</td><td>сборка 5.4.0</td><td>до смены пароля</td></tr>
+<tr><td>Строка реестра</td><td>профиль игрока</td><td>до ручной чистки</td></tr>
+</table>
+<p>Изображение лица площадке не передаётся: система хранит производный ключ, а сравнение выполняет само устройство.</p>
+<h3>Где способ не работает</h3>
+<ul>
+<li>🪟 на запасном домене доступен только пароль с кодом</li>
+<li>🖥 в обозревателе на компьютере быстрый вход не предлагается</li>
+<li>📵 в эмуляторе телефона аппаратного хранилища нет вовсе</li>
+</ul>
+<p>Смена пароля гасит все расписки разом, включая текущую, а вот ключ устройства уцелевает: после смены достаточно одного касания.</p>
+<blockquote>Быстрый вход — как готовая комбинация регистров: тембр выбран заранее, но воздух всё равно подаёт мех, и без него клавиша молчит.</blockquote>
+<h3>Итог одним числом</h3>
+<p>Быстрый вход сокращает заход с 54 секунд до 4 — выигрыш больше чем в десять раз, около полутора минут за неделю при ежедневном заходе. Ради этих полутора минут стоит включить его на своём телефоне и не включать нигде больше; <a href="/zerkalo">запасное зеркало</a> и <a href="/registracia">анкета игрока</a> открываются паролем в любом случае.</p>
+<h2>Вопросы о быстром входе в %brand_name_en%</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли включить оба способа сразу?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Рычажки независимы, и система предлагает тот способ, который устройство считает доступным в текущий момент.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что происходит при смене пароля?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Расписки сеансов гаснут все до одной, а ключ устройства сохраняется и работает сразу после нового входа.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Спрашивают ли лицо при выводе средств?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Заявки до суточного предела подтверждаются быстрым входом, крупные суммы требуют дополнительно кода из письма.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Переносится ли ключ на новый телефон?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Восстановление из резервной копии ключ не поднимает, и согласие приходится давать заново.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Открывает ли счёт второе лицо, добавленное в телефоне?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Открывает наравне с первым, потому что решение принимает устройство, а не площадка.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Видно ли способ входа в истории?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>История показывает пометку «быстрый вход» рядом с датой и адресом подключения.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отключается ли быстрый вход без удаления сборки?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Рычажок в профиле гасит его за пару секунд, программа при этом остаётся установленной.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Работает ли способ при выключенном интернете?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Сравнение идёт на устройстве, но подтверждение сеанса требует связи с сервером, поэтому без сети вход не завершается.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Считается ли быстрый вход отдельной строкой реестра?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Строка занимается при первом согласии, а дальнейшие заходы с того же устройства новых строк не добавляют.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Требуется ли пароль после долгого перерыва?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>После двух недель молчания система просит пароль однократно и дальше снова принимает быстрый вход.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли способ входа на скорость выплаты?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Сроки задаются регламентом и банком, способ входа на них не влияет ни на одной из четырёх точек пути.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать, если датчик перестал узнавать?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Отключите быстрый вход и включите заново: перезапись ключа занимает меньше минуты и решает большинство случаев.</p></div>
+  </div>
+</details>

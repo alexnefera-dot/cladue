@@ -1,0 +1,82 @@
+<h2>Масштаб системного шрифта ломает вёрстку таблиц</h2>
+<p>Крупный шрифт я поставил в системе прошлой осенью — глаза после верстака устают, и мелкое читать тяжело. С мобильной сборкой площадки это вышло боком: паспорт автомата открылся с обрезанной таблицей выплат.</p>
+<p>«Множитель ×…», — и дальше край экрана.</p>
+<h3>Что именно ломается</h3>
+<p><strong>Ширину таблиц сборка считает в точках, а не в буквах.</strong> При системном масштабе выше обычного текст растёт, а колонка остаётся прежней, и правый столбец уезжает за границу без всякой прокрутки.</p>
+<table>
+<tr><th>Экран</th><th>При обычном шрифте</th><th>При крупном</th></tr>
+<tr><td>Паспорт автомата</td><td>три колонки видны</td><td>третья за краем</td></tr>
+<tr><td>Касса</td><td>кнопки в ряд</td><td>кнопка «Вывести» под краем</td></tr>
+<tr><td>Реестр устройств</td><td>двенадцать строк</td><td>строки наезжают друг на друга</td></tr>
+</table>
+<h3>Что помогает</h3>
+<ol>
+<li>верните системный масштаб к обычному на время сеанса</li>
+<li>откройте тот же экран в Chrome: там таблица прокручивается вбок</li>
+<li>поверните телефон боком — в ландшафте колонки помещаются целиком</li>
+</ol>
+<p>Третий способ у меня сработал везде, кроме кассы: <strong>форма вывода в ландшафте не перестраивается вовсе</strong>.</p>
+<blockquote>Шаблон не тянется под руку мастера: увеличишь ячейку на глаз — и рамка перестаёт совпадать с соседней по всему потолку.</blockquote>
+<h3>Встречный вопрос</h3>
+<p>Спрашивают меня об одном: это сбой площадки или моего телефона? Короткий ответ: ни то ни другое, это несогласованность двух настроек. Веду по шаблону и здесь — проверяю масштаб перед тем, как открыть кассу, а <a href="/vhod">вход в личный кабинет</a> и <a href="/slots">каталог автоматов</a> при крупном шрифте работают без единой поправки.</p>
+<h2>Вопросы о вёрстке сборки %brand_name_en% при крупном шрифте</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Есть ли в сборке собственная настройка размера текста?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Своей настройки я не нашёл: сборка берёт масштаб из системы и отдельного рычажка не даёт.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Ломается ли вёрстка в обозревателе так же?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>В Chrome таблицы прокручиваются вбок, и ни одна колонка у меня за край не ушла.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли масштаб на кнопку подтверждения ставки?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Кнопка ставки осталась на месте при любом масштабе, страдают только таблицы и касса.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Помогает ли переустановка сборки?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Я переустанавливал: версия 7.0.1 встала заново, а обрезанная таблица осталась ровно такой же.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Видно ли обрезанные данные в истории раундов?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>История у меня читалась целиком: в ней две колонки, и они помещаются при любом шрифте.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сообщала ли поддержка о планах это починить?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>В чате мне ответили за 9 минут, что передали замечание разработчикам, срока при этом не назвали.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Мешает ли крупный шрифт подаче заявки на вывод?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Мешает прямо: кнопка «Вывести» уходит под край, и заявку я подавал из Chrome.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отличается ли поведение на планшете?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>На планшете места хватает даже при крупном шрифте, там все три колонки помещаются.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сбрасывается ли масштаб после обновления сборки?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Масштаб системный и обновления его не трогают: после 7.0.1 он остался таким, каким я его ставил.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Работает ли ландшафтный режим в кассе?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Касса у меня в ландшафт не перестраивалась ни разу, оставаясь в вертикальной раскладке.</p></div>
+  </div>
+</details>

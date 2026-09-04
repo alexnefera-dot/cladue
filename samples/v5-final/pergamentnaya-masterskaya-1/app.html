@@ -1,0 +1,82 @@
+<h2>Складной аппарат: разметка лобби на развороте</h2>
+<p>На складных телефонах мобильная сборка перестраивает лобби при раскрытии экрана. Раскладка меняется без перезапуска, счёт и открытый автомат при этом сохраняются.</p>
+<h3>Что меняется на развороте</h3>
+<table>
+<tr><th>Элемент</th><th>Сложенный экран</th><th>Развёрнутый экран</th></tr>
+<tr><td>Каталог</td><td>одна колонка</td><td>две колонки</td></tr>
+<tr><td>Карточка автомата</td><td>во весь экран</td><td>правая половина</td></tr>
+<tr><td>Меню</td><td>нижняя панель</td><td>боковая колонка</td></tr>
+</table>
+<p><strong>Открытый раунд разворот не прерывает.</strong> Сервер держит сессию, а перерисовка идёт на стороне устройства и занимает около половины секунды.</p>
+<h3>Где раскладка ломается</h3>
+<ul>
+<li>📐 таблица выплат в паспорте автомата уходит за край</li>
+<li>🔤 крупный системный шрифт наезжает на кнопки кассы</li>
+<li>🔄 поворот сразу после разворота иногда сбрасывает фильтр</li>
+</ul>
+<p>Первое лечится горизонтальной прокруткой внутри таблицы, второе — уменьшением масштаба шрифта в системе до обычного.</p>
+<h3>Требования к системе</h3>
+<p>Сборка версии <strong>1.6.2 весит 42 МБ</strong> и требует Android 11. Складные аппараты младше этой версии встречаются редко, поэтому на практике ограничение почти не мешает.</p>
+<blockquote>Разворот листа меняет поле письма, а не само письмо: строки те же, но ложатся иначе, и разметку приходится держать в голове заранее.</blockquote>
+<h3>Что проверить после первого разворота</h3>
+<ol>
+<li>откройте кассу и убедитесь, что кнопки не перекрыты шрифтом</li>
+<li>сверьте число позиций в каталоге с обозревателем</li>
+<li>проверьте <a href="/vhod">вход в личный кабинет</a> после складывания</li>
+<li>откройте <a href="/slots">паспорт автомата</a> и прокрутите таблицу выплат</li>
+</ol>
+<h2>Вопросы о мобильной сборке %brand_name_en% на складных аппаратах</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сбрасывается ли ставка при развороте экрана?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Ставка держится на сервере, поэтому раунд досчитывается независимо от перерисовки лобби.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отличается ли число позиций каталога на развороте?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Каталог приходит одним запросом, и все 860 позиций видны в обеих раскладках.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Работает ли вход по отпечатку в развёрнутом виде?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Датчик у складных аппаратов чаще всего на боковой кнопке и доступен в любом положении корпуса.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Занимает ли складной телефон две строки реестра?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Одна строка на устройство: раскладка на отпечаток устройства не влияет.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Расходуется ли больше трафика на развороте?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Картинки каталога грузятся в большем размере, и расход вырастает примерно на четверть за сеанс.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Поддерживается ли режим двух окон рядом?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Сборка запускается в режиме двух окон, но карточка автомата в узком окне обрезает таблицу выплат.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать, если раскладка застряла в телефонной?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Сложите и разложите аппарат ещё раз либо перезапустите сборку: настройки при этом сохраняются.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Меняется ли скорость витрины на развороте?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Первый экран открывается за те же 1,2 секунды, разница появляется только при слабой сети.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Есть ли отдельная сборка для складных аппаратов?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Пакет один на все устройства, а раскладка выбирается по ширине экрана в момент запуска.</p></div>
+  </div>
+</details>

@@ -1,0 +1,99 @@
+<h2>Ответ «слишком много запросов»: чем он вызван</h2>
+<p>Форма входа отвечает отказом не только на неверный пароль. Отдельная защита считает частоту обращений с одного адреса и закрывает форму на десять минут при превышении.</p>
+<h3>Два разных ограничения</h3>
+<table>
+<tr><th>Что сработало</th><th>Что считает</th><th>Срок</th></tr>
+<tr><td>Пауза по паролю</td><td>пять неверных вводов</td><td>10 минут</td></tr>
+<tr><td>Лимит запросов</td><td>30 обращений в минуту</td><td>10 минут</td></tr>
+<tr><td>Блокировка счёта</td><td>решение службы</td><td>до разбора</td></tr>
+</table>
+<p><strong>Второе срабатывает чаще первого и почти никогда не связано с подбором.</strong> Обычная причина — несколько открытых вкладок площадки, каждая из которых опрашивает сервер самостоятельно.</p>
+<h3>Что вызывает превышение</h3>
+<ul>
+<li>🗂 пять и более вкладок с открытым лобби</li>
+<li>🔄 быстрое обновление страницы клавишей несколько раз подряд</li>
+<li>📶 общий адрес подключения в сети общежития или офиса</li>
+</ul>
+<h3>Как снять за минуту</h3>
+<ol>
+<li>закройте лишние вкладки, оставив одну</li>
+<li>подождите десять минут, не обновляя страницу</li>
+<li>войдите заново и проверьте реестр из трёх строк</li>
+</ol>
+<p>Обновление страницы во время паузы продлевает её: счётчик отсчитывает от последнего обращения, а не от первого.</p>
+<blockquote>Слишком частый нажим портит лист: перо идёт по одному месту дважды, и просвет там рвётся раньше, чем закончена строка.</blockquote>
+<h3>Встречный вопрос</h3>
+<p>Спрашивают чаще всего одно: как отличить лимит запросов от блокировки счёта? Короткий ответ: по мобильной сборке. Лимит привязан к адресу подключения, и с мобильной сети вход откроется сразу; блокировка привязана к счёту и не пустит нигде, включая <a href="/zerkalo">запасное зеркало</a> и <a href="/slots">каталог автоматов</a> из-под того же имени.</p>
+<h2>Вопросы об отказах формы входа %brand_name_en%</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Приходит ли письмо при срабатывании лимита?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Письма нет: лимит запросов считается технической защитой, а не событием безопасности счёта.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли лимит на уже открытый сеанс?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Открытая сессия продолжает работать, ограничение касается только новых попыток входа.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Считается ли такой отказ неверным вводом пароля?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Счётчики независимы, и лимит запросов не приближает паузу по пяти промахам.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Помогает ли смена браузера?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не помогает: ограничение привязано к адресу подключения, а не к обозревателю.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Срабатывает ли лимит в мобильной сборке?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Срабатывает, но реже: сборка держит одно соединение и не опрашивает сервер параллельно.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли попросить снять ограничение досрочно?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Поддержка отвечает за две минуты, но досрочного снятия регламент не предусматривает.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать в общей сети с одним адресом?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Проще зайти с мобильной сети: в общей сети лимит расходуется соседями, а не игроком.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Виден ли отказ в истории входов?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>История показывает только успешные заходы, технические отказы туда не попадают.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Продлевается ли пауза при обновлении страницы?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Продлевается: счётчик отсчитывает десять минут от последнего обращения к серверу.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Мешает ли лимит подаче заявки на вывод?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Заявка подаётся из открытого сеанса и ограничением входа не затрагивается.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Есть ли ограничение на число заходов в сутки?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Суточного предела нет, считается только частота обращений в пределах минуты.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли ограничение на реестр устройств?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Реестр из трёх строк остаётся нетронутым: несостоявшийся вход строки не занимает.</p></div>
+  </div>
+</details>
