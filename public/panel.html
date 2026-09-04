@@ -170,7 +170,18 @@
       <option value="collect">1 · Сборка доменов (без открытия сайтов)</option>
       <option value="download">2 · Выгрузка страниц собранных сайтов</option>
       <option value="both">Сборка и сразу выгрузка</option>
+      <option value="clean">3 · Очистка контента (шаблоны статей)</option>
     </select>
+    <div id="cleanBox" hidden style="margin-top:10px;padding:10px;border:1px solid #e2e2e2;border-radius:8px;background:#fafafa">
+      <div style="font-size:13px;color:#555;margin-bottom:6px">Подготовка контента из уже скачанных страниц: тело статьи, замены на переменные, ссылки к 6 путям. Домен берётся из имени папки сайта.</div>
+      <label>Бренд (русский)</label>
+      <input id="brandru" placeholder="например, криптобосс">
+      <label>Бренд (английский) — если пусто, возьмём из домена</label>
+      <input id="branden" placeholder="например, cryptoboss">
+      <label>Ещё бренды / опечатки (через запятую) — уйдут в ту же переменную</label>
+      <input id="brands" placeholder="например, STAKE, cryptobos">
+      <a class="tag" id="dlContent" href="/download?file=content" style="display:none;margin-top:8px">Скачать content.zip</a>
+    </div>
     <div class="btns" style="margin-top:12px">
       <button class="btn-primary" id="startBtn">Запустить</button>
       <button class="btn-danger" id="stopBtn" disabled>Остановить</button>
@@ -212,7 +223,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const FIELDS = ['queries','source','region','pages','dedupe','scope','top','minq','tlds','exclude','skipknown','visit','variants','driver','crawl','maxpages','useproxies','repeat','stage'];
+const FIELDS = ['queries','source','region','pages','dedupe','scope','top','minq','tlds','exclude','skipknown','visit','variants','driver','crawl','maxpages','useproxies','repeat','stage','brandru','branden','brands'];
 
 function loadLocal(){
   try{ const s = JSON.parse(localStorage.getItem('ys-panel')||'{}');
@@ -224,6 +235,9 @@ function saveLocal(){
   try{ localStorage.setItem('ys-panel', JSON.stringify(s)); }catch(e){}
 }
 FIELDS.forEach(k=>$(k).addEventListener('input', saveLocal));
+
+function toggleClean(){ $('cleanBox').hidden = $('stage').value !== 'clean'; }
+$('stage').addEventListener('change', toggleClean); toggleClean();
 
 function collectSettings(){
   return {
@@ -245,7 +259,10 @@ function collectSettings(){
     crawl: $('crawl').checked,
     max_pages: parseInt($('maxpages').value)||20,
     proxies_file: $('useproxies').checked ? 'proxies.txt' : '',
-    repeat_hours: parseFloat($('repeat').value)||0
+    repeat_hours: parseFloat($('repeat').value)||0,
+    brand_ru: $('brandru').value.trim(),
+    brand_en: $('branden').value.trim(),
+    brands: $('brands').value.split(',').map(s=>s.trim()).filter(Boolean)
   };
 }
 
@@ -399,6 +416,8 @@ async function refresh(){
     prefill(st);
     renderStatus(st.status, st.running);
     renderResults(st.status && st.status.sites ? st.status.sites : []);
+    const hasContent = st.status && st.status.files && st.status.files.content;
+    $('dlContent').style.display = hasContent ? 'inline-block' : 'none';
   }catch(e){}
   try{ const l=await fetch('/api/log'); const t=await l.text(); if(t.trim()){ const el=$('log'); const atEnd=el.scrollTop+el.clientHeight>=el.scrollHeight-20; el.textContent=t; if(atEnd) el.scrollTop=el.scrollHeight; } }catch(e){}
 }

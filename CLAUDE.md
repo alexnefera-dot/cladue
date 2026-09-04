@@ -33,7 +33,8 @@ cladue/
 ├── bin/yandex-sites.php        # CLI entry point (works with or without composer autoload)
 ├── bin/setup.php               # first-time setup: config/.env/proxies from examples, folders, environment checks
 ├── bin/panel.php               # local web UI: launcher + php -S router (keys, run, progress, schedule)
-├── bin/run-job.php             # background collect job: writes runs/current/status.json + results, optional repeat
+├── bin/run-job.php             # background job: collect / download / clean stages, writes runs/current/status.json
+├── bin/clean-content.php       # content prep: article-body templates from downloaded pages (%domain%/%date%/%brand%)
 ├── public/panel.html           # single-file web UI (inline CSS/JS, polls the panel API)
 ├── tools/render-page.js        # Node.js + Playwright renderer used by Visit\PlaywrightDriver (stdin JSON → stdout JSON lines)
 ├── src/
@@ -54,6 +55,7 @@ cladue/
 │   ├── Model/                  # SearchResult, SearchPage (hasMore), Site (check + visits)
 │   ├── Http/                   # HttpClient (curl wrapper with proxy/cookie/follow options), HttpResponse, HttpException
 │   ├── Runtime.php             # shared pipeline factory (fetcher/cache/proxies/checker/visitor) used by CLI and job
+│   ├── Content/                # ContentCleaner (article-body extraction, link normalization, %var% templating)
 │   └── Support/                # Logger (STDERR), QueryList (query file reader), Progress (status JSON writer)
 ├── tests/                      # custom runner (run.php), Assert, fixtures/ (XML + SERP HTML), fake-api-server.php
 ├── config.example.php          # documented example configuration (copy to config.php)
@@ -105,6 +107,7 @@ cp .env.example .env      # fill in credentials for the chosen source
 | Run the tool | `php bin/yandex-sites.php queries.txt` |
 | Live SERP through proxies | `php bin/yandex-sites.php --live --proxies=proxies.txt queries.txt` |
 | Visits with screenshots | `php bin/yandex-sites.php queries.txt --visit --variants=2` |
+| Prepare content templates | `php bin/clean-content.php --brand-ru=… --brand-en=… --zip=out/content.zip` |
 | Debug SERP parsing | `php bin/yandex-sites.php --parse-html=cache/live/xx/…html` |
 | Show CLI help | `php bin/yandex-sites.php --help` |
 | Run all tests | `php tests/run.php` |
@@ -223,6 +226,14 @@ Run `php tests/lint.php && php tests/run.php` before committing.
 - `Runner` and `PageVisitor` accept an optional `$onProgress` callback; `bin/run-job.php` wires it
   to `Support\Progress`, and `bin/panel.php` (dual launcher/router via `PHP_SAPI==='cli-server'`)
   spawns the job and serves `public/panel.html`. Keep CLI and panel behaviour in sync through `Runtime`.
+- `Content\ContentCleaner` is the third stage (`settings.stage=clean`, `bin/clean-content.php`): from a
+  downloaded page it keeps only the article body (after `</h1>`, before «Популярные запросы»; drops the
+  slots section, header/footer/scripts), rewrites every `<a href>` to one of six relative paths
+  (`ALLOWED_LINKS`, mapped by keyword), and templates the domain → `%domain_name%`, `dd.mm.yyyy` →
+  `%date%`, brand → `%brand_name_ru%`/`%brand_name_en%`. Brand matching is case-insensitive and
+  homoglyph-tolerant (Latin↔Cyrillic look-alikes, so `STAKE`≡`STAKЕ`). The clean stage reads
+  `runs/current/pages`, writes `runs/current/content` and a `content.zip`; domain comes from the site
+  folder name, brand from panel fields (`brand_ru`/`brand_en`/`brands`). Covered by `tests/ContentCleanerTest.php`.
 - `domain_scope` (all/root/subdomain) and `unique_by=domain` implement the "one site per domain,
   skip other subdomains" rule; covered by `tests/ResultFilterTest.php` and `tests/PanelTest.php`.
 - `Visit\SiteLinks::fromHeader()` extracts **same-host** links from a page's header/nav **and footer**

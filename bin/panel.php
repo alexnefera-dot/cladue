@@ -206,7 +206,7 @@ if ($path === '/api/start' && $method === 'POST') {
     $settings = body();
     $stage = (string) ($settings['stage'] ?? 'collect');
     $queries = array_values(array_filter(array_map('trim', (array) ($settings['queries'] ?? [])), static fn (string $q): bool => $q !== ''));
-    if ($stage !== 'download' && $queries === []) {
+    if (!in_array($stage, ['download', 'clean'], true) && $queries === []) {
         jsonOut(['ok' => false, 'error' => 'Добавьте хотя бы один запрос'], 400);
     }
     @unlink($stopFile);
@@ -281,7 +281,7 @@ if ($path === '/file') {
 }
 
 if ($path === '/download') {
-    $map = ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt', 'results' => 'results.csv'];
+    $map = ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt', 'results' => 'results.csv', 'content' => 'content.zip'];
     $key = (string) ($_GET['file'] ?? '');
     $file = $runDir . '/' . ($map[$key] ?? '');
     if (!isset($map[$key]) || !is_file($file)) {

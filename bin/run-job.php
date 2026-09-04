@@ -31,7 +31,9 @@ if (is_file($root . '/vendor/autoload.php')) {
 }
 
 use YandexSites\Config;
+use YandexSites\Content\ContentCleaner;
 use YandexSites\Filter\DefaultExclusions;
+use YandexSites\Filter\Domains;
 use YandexSites\Output\ReportWriter;
 use YandexSites\Runner;
 use YandexSites\Model\SearchResult;
@@ -67,7 +69,10 @@ if (!is_array($settings)) {
 Config::loadDotEnv(getcwd() . '/.env');
 Config::loadDotEnv($root . '/.env');
 
-$repeatHours = (float) ($settings['repeat_hours'] ?? 0);
+// Повтор по таймеру имеет смысл только для сбора; выгрузка и очистка контента — одноразовые.
+$repeatHours = in_array((string) ($settings['stage'] ?? 'collect'), ['download', 'clean'], true)
+    ? 0.0
+    : (float) ($settings['repeat_hours'] ?? 0);
 $logFile = $runDir . '/run.log';
 
 $progress = new Progress($statusFile, [
@@ -254,7 +259,80 @@ while (true) {
         $stage = (string) ($settings['stage'] ?? 'collect');
         $baseFile = dirname($runDir) . '/domains-base.txt';
 
-        if ($stage === 'download') {
+        if ($stage === 'clean') {
+            // --- Этап 3: подготовка контента (шаблоны статей) из ранее скачанных страниц ---
+            $pagesDir = $runDir . '/pages';
+            $outContent = $runDir . '/content';
+            $files = [];
+            if (is_dir($pagesDir)) {
+                $iter = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($pagesDir, FilesystemIterator::SKIP_DOTS));
+                foreach ($iter as $f) {
+                    if ($f instanceof SplFileInfo && $f->isFile() && strtolower($f->getExtension()) === 'html') {
+                        $files[] = $f->getPathname();
+                    }
+                }
+            }
+            if ($files === []) {
+                throw new RuntimeException('Нет скачанных страниц — сначала выполните «Выгрузку страниц»');
+            }
+            sort($files);
+            $cleaner = new ContentCleaner();
+            $brandRu = trim((string) ($settings['brand_ru'] ?? ''));
+            $brandEnOpt = trim((string) ($settings['brand_en'] ?? ''));
+            $brands = is_array($settings['brands'] ?? null)
+                ? $settings['brands']
+                : (array) (preg_split('~[,\n]+~', (string) ($settings['brands'] ?? '')) ?: []);
+            $brands = array_values(array_filter(array_map('trim', $brands), static fn (string $b): bool => $b !== ''));
+            $written = 0;
+            $skipped = 0;
+            foreach ($files as $file) {
+                $host = basename(dirname($file));
+                if (!str_contains($host, '.')) {
+                    $host = '';
+                }
+                $brandEn = $brandEnOpt !== '' ? $brandEnOpt : ($host !== '' ? explode('.', $host)[0] : '');
+                $hosts = $host !== '' ? array_values(array_unique([$host, Domains::registrable(Domains::normalize($host))])) : [];
+                $body = $cleaner->clean((string) file_get_contents($file), [
+                    'domain' => $host,
+                    'hosts' => $hosts,
+                    'brand_ru' => $brandRu,
+                    'brand_en' => $brandEn,
+                    'extra_brands' => $brands,
+                ]);
+                $rel = ltrim(str_replace($pagesDir, '', $file), '/\\');
+                if (trim($body) === '') {
+                    $skipped++;
+                    continue;
+                }
+                $dest = $outContent . '/' . $rel;
+                @mkdir(dirname($dest), 0777, true);
+                file_put_contents($dest, $body);
+                $written++;
+                $progress->update(['phase' => 'clean', 'message' => sprintf('Подготовлено %d…', $written)]);
+            }
+            $zipRel = '';
+            if ($written > 0 && class_exists('ZipArchive')) {
+                $zip = new ZipArchive();
+                if ($zip->open($runDir . '/content.zip', ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
+                    $iter = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($outContent, FilesystemIterator::SKIP_DOTS));
+                    foreach ($iter as $f) {
+                        if ($f instanceof SplFileInfo && $f->isFile()) {
+                            $zip->addFile($f->getPathname(), ltrim(str_replace($outContent, '', $f->getPathname()), '/\\'));
+                        }
+                    }
+                    $zip->close();
+                    $zipRel = 'content.zip';
+                }
+            }
+            $progress->update([
+                'state' => 'done',
+                'phase' => 'done',
+                'run_finished_at' => date(DATE_ATOM),
+                'files' => $zipRel !== '' ? ['content' => $zipRel] : [],
+                'message' => sprintf('Контент подготовлен: %d файлов%s, пропущено (без статьи) %d', $written, $zipRel !== '' ? ' + архив content.zip' : '', $skipped),
+            ], true);
+            $logger->info(sprintf('Очистка контента: подготовлено %d, пропущено %d', $written, $skipped));
+        } elseif ($stage === 'download') {
             // --- Этап 2: выгрузка страниц ранее собранных сайтов (без обращения к источнику) ---
             $config = Config::fromFile($configPath)->withOverrides(array_merge(buildOverrides($settings, $runDir), [
                 'visit.enabled' => true,
