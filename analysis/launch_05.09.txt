@@ -1,4 +1,4 @@
-# День 05.09.2026 — 31 домен, семь групп
+# День 05.09.2026 — 34 домена, десять групп
 
 ## degtyarnya_1 — id 1374, создан 00:34
 u4f5.team
@@ -44,3 +44,12 @@ casino0509m.casino
 0509gg.casino
 casino0509h.casino
 0509casino.casino
+
+## nabor391_1 — id 1405, создан 22:43
+4693.team
+
+## tesemochnaya1_1 — id 1406, создан 22:43
+1818.team
+
+## shponnayarezka1_1 — id 1407, создан 22:44
+9866.team
