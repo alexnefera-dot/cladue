@@ -136,6 +136,7 @@
 3191.lol
 3242.lol
 3242.team
+3284.lol
 3286.team
 32gf.team
 3349.lol
@@ -216,6 +217,7 @@
 5273r.cfd
 5283.team
 5297-4.casino
+5298.team
 5333.team
 5335.lol
 5335.team
@@ -272,6 +274,7 @@
 7119.team
 7180.lol
 7186.team
+7190.team
 7201.team
 7216.lol
 7224.team
@@ -317,6 +320,7 @@
 8829.lol
 8927casino.team
 9012.team
+9055.team
 9061.lol
 9090.lol
 9124.lol
@@ -369,6 +373,7 @@ bnkd.shop
 bnwk.casino
 bsfg.team
 bvve.lol
+bvve.team
 byai.team
 bztk.team
 c2u3.lol
@@ -402,12 +407,15 @@ casino876.team
 casino922.lol
 casinogh.lol
 casinoj1.lol
+casinoj1.team
 casinojr.team
 casinonck.lol
 casinoopk.lol
+casinoopk.team
 casinoprb.lol
 casinoprb.team
 casinozfa.lol
+casinozfa.team
 casinozyb.team
 cdrw.team
 cflw.team
@@ -504,6 +512,7 @@ h9mt.team
 hjsf.team
 hjtb.team
 hkbc.team
+hkcasino.lol
 hlqz.team
 hlwm.team
 hprl.team
@@ -675,6 +684,7 @@ tvuy.team
 tzfl.team
 u0s.team
 u4f5.lol
+u4f5.team
 u9i.team
 u9y.casino
 ubgh.lol
