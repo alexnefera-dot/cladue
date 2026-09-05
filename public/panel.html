@@ -55,6 +55,14 @@
   th{color:var(--muted);font-size:11px;text-transform:uppercase}
   td.host{white-space:normal;word-break:break-all}
   td.dl{white-space:normal;min-width:96px;max-width:260px}
+  td.dl.expandable{cursor:pointer}
+  .caret{display:inline-block;width:12px;color:var(--muted);font-size:10px}
+  tr.detailrow>td{background:var(--bg);padding:8px 10px}
+  table.subtable{width:100%;border-collapse:collapse;font-size:12px}
+  table.subtable td{white-space:normal;word-break:break-all;border-bottom:1px solid var(--line);padding:4px 6px;vertical-align:top}
+  table.subtable td.st{white-space:nowrap;width:1%}
+  .pg-ok{color:var(--ok);font-weight:700}
+  .pg-err{color:var(--err);font-weight:700}
   .tag{font-size:11px;padding:1px 7px;border-radius:99px;background:var(--chip);color:var(--accent)}
   .ctBtn{font-size:12px;padding:4px 10px;border-radius:7px;border:1px solid var(--accent);background:#fff;color:var(--accent);cursor:pointer;white-space:nowrap}
   .ctBtn:hover{background:var(--accent);color:#fff}
@@ -341,6 +349,11 @@ function runRetry(){
   if(!hosts.length){ showStart('Нет сайтов с ошибками для докачки','err'); return; }
   startJob({stage:'download', retry_hosts:hosts, exclude_hosts:[...removedHosts]});
 }
+// Докачка одного сайта (кнопка в раскрытой строке) — перекачиваем только его.
+function runRetryOne(host){
+  if(jobRunning){ showStart('Дождитесь окончания текущего задания','err'); return; }
+  startJob({stage:'download', retry_hosts:[host], exclude_hosts:[...removedHosts]});
+}
 async function stop(){
   $('stopBtn').disabled=true;
   await fetch('/api/stop',{method:'POST'});
@@ -366,6 +379,8 @@ function renderStatus(st, running){
   const CLS=Object.assign({interrupted:'s-err', idle:'s-idle'}, STATE_CLS);
   badge.textContent = key==='interrupted' ? 'прошлый сбор прерван' : (running && key!=='waiting' ? (STATE_LABEL[key]||'идёт сбор') : (LABEL[key]||'не запущено'));
   badge.className='state '+(key==='interrupted'?'s-err':(CLS[key]||'s-idle'));
+  if(wasRunning && !running){ pagesCache={}; } // задание завершилось — детали страниц устарели, перечитаем
+  wasRunning = running;
   jobRunning = running;
   $('startBtn').disabled = running;
   $('stopBtn').disabled = !running;
@@ -421,8 +436,41 @@ function renderStatus(st, running){
 
 let lastSites=[];
 let jobRunning=false;
+let wasRunning=false;
 let removedHosts=new Set(JSON.parse(localStorage.getItem('ys-removed')||'[]'));
 function saveRemoved(){ try{ localStorage.setItem('ys-removed', JSON.stringify([...removedHosts])); }catch(e){} }
+// Раскрытые строки (список страниц сайта) и кэш их страниц.
+let expandedHosts=new Set();
+let pagesCache={};
+let pagesLoading=new Set();
+async function loadSitePages(host){
+  try{ const r=await fetch('/api/site-pages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({host})}); const j=await r.json(); pagesCache[host]=j.ok?(j.pages||[]):[]; }
+  catch(e){ pagesCache[host]=[]; }
+  finally{ pagesLoading.delete(host); }
+  renderResults(lastSites);
+}
+// Строка-раскрытие: список страниц сайта с их результатом + кнопка докачки только этого сайта.
+function detailRowHtml(s){
+  const esc=t=>String(t||'').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  const pages=pagesCache[s.host];
+  let inner;
+  if(pages===undefined){ inner='<span class="muted">Загрузка…</span>'; }
+  else if(!pages.length){ inner='<span class="muted">Нет данных о страницах (сайт ещё не выгружался).</span>'; }
+  else {
+    const rows=pages.map(p=>{
+      const st=p.ok?'<span class="pg-ok">OK</span>':'<span class="pg-err">ошибка</span>';
+      const err=p.ok?'':`<div class="muted">${esc(p.error||'')}</div>`;
+      const f=[];
+      if(p.html) f.push(`<a href="/file?path=${encodeURIComponent(p.html)}" target="_blank" rel="noopener">HTML</a>`);
+      if(p.screenshot) f.push(`<a href="/file?path=${encodeURIComponent(p.screenshot)}" target="_blank" rel="noopener">фото</a>`);
+      const u=esc(p.url||'');
+      return `<tr><td class="st">${st}</td><td><a href="${u}" target="_blank" rel="noopener">${u}</a>${err}</td><td class="st">${f.join(' · ')}</td></tr>`;
+    }).join('');
+    inner=`<table class="subtable"><tbody>${rows}</tbody></table>`;
+  }
+  const retry=`<button class="ctBtn" data-retry-one="${esc(s.host)}" title="Заново выкачать только этот сайт" style="margin-bottom:8px">Докачать этот сайт</button>`;
+  return `<tr class="detailrow" data-detail="${esc(s.host)}"><td></td><td colspan="9">${retry}${inner}</td></tr>`;
+}
 // Сайт стоит перекачать, если у него ошибка, которую может починить повтор через другой прокси
 // (таймаут, нет соединения, блок/Cloudflare, SSL, DNS). 404/дубликат/наш — повтор не поможет.
 function siteNeedsRetry(s){
@@ -457,6 +505,9 @@ function renderResults(sites){
   let changed=false;
   [...removedHosts].forEach(h=>{ if(!present.has(h)){ removedHosts.delete(h); changed=true; } });
   if(changed) saveRemoved();
+  // Раскрытые строки: убираем исчезнувшие хосты и подгружаем страницы для тех, у кого их ещё нет.
+  [...expandedHosts].forEach(h=>{ if(!present.has(h)) expandedHosts.delete(h); });
+  [...expandedHosts].forEach(h=>{ if(!(h in pagesCache) && !pagesLoading.has(h)){ pagesLoading.add(h); loadSitePages(h); } });
   const visible=sites.filter(s=>!removedHosts.has(s.host));
   updateDownloadBtn();
   card.hidden=false;
@@ -492,7 +543,15 @@ function renderResults(sites){
     const thumb = s.screenshot
       ? `<img class="thumb" src="/file?path=${encodeURIComponent(s.screenshot)}" data-full="/file?path=${encodeURIComponent(s.screenshot)}" data-cap="${esc(s.host)}" loading="lazy" alt="">`
       : `<span class="thumb-empty">${s.own?'наш':'нет'}</span>`;
-    return `<tr data-host="${esc(s.host)}"><td><button class="xBtn" data-remove="${esc(s.host)}" title="Убрать сайт из списка">✕</button></td><td>${i+1}</td><td>${thumb}</td><td class="host">${link}</td><td>${s.queries_count||0}</td><td>${s.best_position??'—'}</td><td>${variants}</td><td class="dl">${dl}</td><td>${files.join(' · ')||'—'}</td><td>${ct}</td></tr>`;
+    // Раскрытие списка страниц доступно, если сайт выгружался (есть визиты) и он не «наш».
+    const hasDetails = !s.own && ((s.pages_total||0)>0 || (s.page_error||'')!=='');
+    const exp = expandedHosts.has(s.host);
+    const dlCell = hasDetails
+      ? `<td class="dl expandable" data-expand="${esc(s.host)}" title="Показать список страниц и их ошибки"><span class="caret">${exp?'▾':'▸'}</span> ${dl}</td>`
+      : `<td class="dl">${dl}</td>`;
+    let row = `<tr data-host="${esc(s.host)}"><td><button class="xBtn" data-remove="${esc(s.host)}" title="Убрать сайт из списка">✕</button></td><td>${i+1}</td><td>${thumb}</td><td class="host">${link}</td><td>${s.queries_count||0}</td><td>${s.best_position??'—'}</td><td>${variants}</td>${dlCell}<td>${files.join(' · ')||'—'}</td><td>${ct}</td></tr>`;
+    if(exp) row += detailRowHtml(s);
+    return row;
   }).join('');
 }
 
@@ -509,7 +568,9 @@ async function cleanSite(host, btn){
   }catch(e){ btn.textContent='Ошибка'; btn.disabled=false; setTimeout(()=>{btn.textContent=old;},2500); }
 }
 $('resTable').addEventListener('click', e=>{
+  const ro=e.target.closest('[data-retry-one]'); if(ro){ runRetryOne(ro.dataset.retryOne); return; }
   const ct=e.target.closest('.ctBtn'); if(ct){ cleanSite(ct.dataset.host, ct); return; }
+  const ex=e.target.closest('.dl.expandable'); if(ex){ const h=ex.dataset.expand; if(expandedHosts.has(h)) expandedHosts.delete(h); else expandedHosts.add(h); renderResults(lastSites); return; }
   const th=e.target.closest('.thumb'); if(th && th.dataset.full){ openLightbox(th.dataset.full, th.dataset.cap); return; }
   const x=e.target.closest('.xBtn'); if(x){ removedHosts.add(x.dataset.remove); saveRemoved(); renderResults(lastSites); return; }
 });

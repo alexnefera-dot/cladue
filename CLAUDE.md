@@ -254,7 +254,10 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   by another proxy (timeout/connection/block/SSL/DNS — not 404/duplicate/own, `siteNeedsRetry()`): the
   download branch re-fetches just those (clears only their page folders via `clearHostPages()`, resets their
   visits) while the rest keep their pages and visits (`loadSites()` restores `visits`/`own` from `sites.json`
-  so the merged output is not lost). The `both`
+  so the merged output is not lost). A results row expands (caret on the «Скачано» cell) into a per-page
+  list of that site's visits — URL + OK/ошибка + reason + file links — lazy-loaded from `/api/site-pages`
+  (reads `sites.json`, `pagesCache` cleared when a job finishes) and carrying a per-site «Докачать этот
+  сайт» button (`runRetryOne()` → `retry_hosts:[host]`). The `both`
   branch stays in `buildOverrides()`/run-job for CLI, just not surfaced. Content cleaning is table-only and
   writes to disk (no download): a per-site «Очистить» button (`/api/clean-site`) and a bulk «Очистить всё»
   button (`/api/clean-all`, accepts an `exclude` host list) run `cleanHostPages()`, which cleans a site's

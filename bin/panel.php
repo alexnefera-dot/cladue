@@ -381,6 +381,38 @@ if ($path === '/api/results') {
     jsonOut($data);
 }
 
+if ($path === '/api/site-pages' && $method === 'POST') {
+    // Детали одного сайта: список открытых страниц с результатом (для раскрытия строки в таблице,
+    // чтобы посмотреть, какие именно страницы упали с ошибкой). Данные берём из sites.json.
+    $host = trim((string) (body()['host'] ?? ''));
+    if ($host === '' || preg_match('~^[a-z0-9.\-]+$~i', $host) !== 1) {
+        jsonOut(['ok' => false, 'error' => 'некорректный сайт'], 400);
+    }
+    $data = readJsonFile($runDir . '/sites.json') ?? ['sites' => []];
+    $prefix = rtrim($runDir, '/\\') . '/';
+    $rel = static fn (string $p): string => $p !== '' && str_starts_with($p, $prefix) ? substr($p, strlen($prefix)) : $p;
+    $pages = [];
+    foreach ((array) ($data['sites'] ?? []) as $s) {
+        if ((string) ($s['host'] ?? '') !== $host) {
+            continue;
+        }
+        foreach ((array) ($s['visits'] ?? []) as $v) {
+            $pages[] = [
+                'url' => (string) ($v['url'] ?? ''),
+                'final_url' => (string) ($v['final_url'] ?? ''),
+                'ok' => (bool) ($v['ok'] ?? false),
+                'error' => (string) ($v['error'] ?? ''),
+                'status' => $v['status'] ?? null,
+                'variant' => $v['variant'] ?? null,
+                'html' => $rel((string) ($v['html_file'] ?? '')),
+                'screenshot' => $rel((string) ($v['screenshot_file'] ?? '')),
+            ];
+        }
+        break;
+    }
+    jsonOut(['ok' => true, 'host' => $host, 'pages' => $pages]);
+}
+
 if ($path === '/api/clean-site' && $method === 'POST') {
     // Кнопка «Очистить» у сайта: чистит его страницы по инструкции и кладёт в content/<N>-стр/<host>/.
     // Ничего не скачивает; бренд определяется сам.

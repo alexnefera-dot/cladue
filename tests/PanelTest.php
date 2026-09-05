@@ -429,6 +429,20 @@ final class PanelTest
             Assert::same(200, $code);
             Assert::contains('host;host_unicode;domain', $csv);
 
+            // /api/site-pages — детали страниц сайта (раскрытие строки: какие страницы упали).
+            file_put_contents($dir . '/runs/current/sites.json', json_encode(['sites' => [[
+                'host' => 'kush.demo.buzz', 'domain' => 'demo.buzz', 'url' => 'http://kush.demo.buzz/',
+                'visits' => [
+                    ['url' => 'http://kush.demo.buzz/', 'ok' => true, 'error' => '', 'status' => 200, 'variant' => 1],
+                    ['url' => 'http://kush.demo.buzz/vhod', 'ok' => false, 'error' => 'страница не найдена (HTTP 404)', 'status' => 404, 'variant' => 1],
+                ],
+            ]]]));
+            $sp = json_decode((string) $this->http('POST', $base . '/api/site-pages', ['host' => 'kush.demo.buzz']), true);
+            Assert::true($sp['ok'] ?? false, 'site-pages вернул ok');
+            Assert::same(2, count($sp['pages']), 'вернулись обе страницы сайта');
+            Assert::false($sp['pages'][1]['ok'], 'вторая страница — с ошибкой');
+            Assert::contains('не найдена', (string) $sp['pages'][1]['error']);
+
             $this->http('POST', $base . '/api/stop');
         } finally {
             proc_terminate($server);
