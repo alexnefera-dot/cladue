@@ -72,6 +72,7 @@
 1908jd.buzz
 1908po.buzz
 1908xc.buzz
+1936.team
 1947.team
 1975.team
 2008jd.buzz
@@ -270,6 +271,7 @@
 6473.team
 6514.team
 6574.team
+65casino.lol
 6635.team
 6725.team
 6820.team
