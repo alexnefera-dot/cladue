@@ -1,0 +1,92 @@
+<h2>Экономия заряда %brand_name_en%: чем она гасит фоновую догрузку</h2>
+<p>Свежая сборка %brand_name_en% 4.1.0 висела на белом экране долгих восемь минут, а витрина в обозревателе открывалась за полторы секунды с того же самого телефона. <strong>Виновата оказалась система, а не площадка.</strong></p>
+<p><strong>Разбираю по шагам, что именно она глушит</strong> и как выключить это точечно, не трогая общую настройку.</p>
+<h3>Состояния сборки: замер входа</h3>
+<table>
+<tr><th>Состояние сборки</th><th>Догрузка</th><th>Мой замер входа</th></tr>
+<tr><td>Открытая на экране</td><td>идёт полная</td><td>4 секунды</td></tr>
+<tr><td>Свёрнутая на 30 секунд</td><td>глушится системная</td><td>8 минут</td></tr>
+<tr><td>Экономия выключена</td><td>идёт постоянная</td><td>4 секунды</td></tr>
+</table>
+<h3>Отчего кабинет страдает, а каталог нет</h3>
+<p>Тяжёлый каталог приходит одним куском и успевает лечь до самого засыпания. <strong>Кабинету нужны три запроса подряд</strong>, и система гасит догрузку на втором — форма показывает колесо и молчит до самого обрыва.</p>
+<blockquote>Тёрка на половинных оборотах даёт не половину крупки, а мутную воду. Фоновая догрузка устроена так же: она или идёт, или нет.</blockquote>
+<h3>Как выключить это для одной сборки</h3>
+<ol>
+<li>откройте список приложений в настройках системы и найдите сборку;</li>
+<li>в разделе про заряд поставьте «без ограничений» вместо привычного «оптимизировано»;</li>
+<li>перезапустите сборку целиком, холодным стартом, а не простым сворачиванием;</li>
+<li>проверьте вход с холодного старта: у меня стало четыре секунды.</li>
+</ol>
+<h3>Что уходит вместе с догрузкой</h3>
+<p>Пока сборка спит, до сервера не доходят три вещи: обновление остатка, свежий статус верификации и уведомление о сроке акции. <strong>Ставка и спин при этом уходят одним запросом и не страдают никогда</strong> — потому барабан и работает ровно.</p>
+<p>Проверьте это на <a href="/slots">каталоге автоматов</a>: он придёт мгновенно даже при включённой экономии. Кабинету же нужны три обращения подряд, и второе система гасит.</p>
+<h3>Чего это не чинит</h3>
+<ul>
+<li>медленный канал: на слабой сети <a href="/zerkalo">запасной домен</a> тоже не спасёт</li>
+<li><strong>устаревшую сборку</strong>: под Android 11 нужна версия не ниже 4.1.0 из <a href="/slots">магазина</a></li>
+<li>заблокированный счёт: <a href="/registracia">верификация</a> тут ни при чём, приходит короткий отказ</li>
+</ul>
+<h3>Чек-лист перед письмом в поддержку</h3>
+<p>Сначала проверьте эти три вещи, а уже потом пишите: <strong>у меня все восемь минут ушли на то, чего площадка не делала</strong>. Отклик сервера, текущая версия сборки, настройка заряда — по три секунды на каждую. Считайте эти восемь минут платой за невнимательность к своему телефону. Два браузера на одной машине разобраны там, где идёт речь про <a href="/vhod">вход в личный кабинет</a>.</p>
+<h2>Ответы на частые вопросы о фоновой догрузке</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сборка висит на белом экране, а сайт открывается — где смотреть?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>В настройках заряда: поставьте сборке «без ограничений», и вход займёт 4 секунды.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Съест ли выключенная экономия заряд телефона заметно?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>За вечер спинов ушло 9 % против семи — разница в пределах обычного разброса.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Оборвётся ли круг, если система усыпит сборку посреди спина?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Спин досчитает генератор студии: полная выплата легла на остаток через 6 секунд.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Пропадут ли уведомления о сроке акции при экономии заряда?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Придут с большим опозданием: одно у меня запоздало на шесть часов из двадцати четырёх.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Влияет ли эта настройка на счётчик отыгрыша?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не влияет ни на рубль: счётчик отыгрыша живёт на сервере и растёт от каждой ставки.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Считается ли перезапуск сборки новым заходом в реестре?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не считается: бумага выдана обозревателю и живёт 30 суток, из 12 мест уйдёт одно.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Помогает ли переустановка сборки вместо правки настроек?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не помогает: система вернёт прежнее ограничение и на новую установку, тем же порядком.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Заметно ли растёт трафик после снятия ограничения?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Почти нет: те же 18 МБ за вечер, догрузка просто перестаёт обрываться на полпути.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Можно ли подать заявку на вывод при включённой экономии?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Можно, но рискованно: форма ждёт ответа 30 секунд, а сонная сборка отвечает позже.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Есть ли такая же беда у настольного обозревателя?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Нет вовсе: настольную вкладку никто не усыпляет, и кабинет открылся за 2 секунды.</p></div>
+  </div>
+</details>
