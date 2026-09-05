@@ -254,10 +254,15 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   by another proxy (timeout/connection/block/SSL/DNS — not 404/duplicate/own, `siteNeedsRetry()`): the
   download branch re-fetches just those (clears only their page folders via `clearHostPages()`, resets their
   visits) while the rest keep their pages and visits (`loadSites()` restores `visits`/`own` from `sites.json`
-  so the merged output is not lost). A results row expands (caret on the «Скачано» cell) into a per-page
-  list of that site's visits — URL + OK/ошибка + reason + file links — lazy-loaded from `/api/site-pages`
-  (reads `sites.json`, `pagesCache` cleared when a job finishes) and carrying a per-site «Докачать этот
-  сайт» button (`runRetryOne()` → `retry_hosts:[host]`). The `both`
+  so the merged output is not lost). A results row expands (caret on the «Скачано» cell) into that site's
+  visits **grouped by cause** (`pageCategory()`: скачано / не достучались / дубликаты / 404 / прочее — so
+  duplicates and unreachable pages are separated) — URL + reason + file links — lazy-loaded from
+  `/api/site-pages` (reads `sites.json`, `pagesCache` cleared when a job finishes) and carrying a per-site
+  «Докачать этот сайт» button. Docкачки run as a **background queue**: `runRetryOne()`/`runRetry()` add hosts
+  to `retryQueue`, `pumpRetry()` starts one download batch at a time (`retry_hosts`) when idle and auto-starts
+  the next batch on completion, so the user can queue several and keep working; the results table is not
+  reset while a job runs (`renderResults` keeps `lastSites` when the status is momentarily empty during a
+  run), and queued/active hosts show «в очереди»/«докачивается…» chips. The `both`
   branch stays in `buildOverrides()`/run-job for CLI, just not surfaced. Content cleaning is table-only and
   writes to disk (no download): a per-site «Очистить» button (`/api/clean-site`) and a bulk «Очистить всё»
   button (`/api/clean-all`, accepts an `exclude` host list) run `cleanHostPages()`, which cleans a site's

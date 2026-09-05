@@ -63,6 +63,9 @@
   table.subtable td.st{white-space:nowrap;width:1%}
   .pg-ok{color:var(--ok);font-weight:700}
   .pg-err{color:var(--err);font-weight:700}
+  .pg-warn{color:var(--warn);font-weight:700}
+  .pg-sec{margin-bottom:8px}
+  .pg-h{font-weight:700;font-size:12px;margin:6px 0 3px}
   .tag{font-size:11px;padding:1px 7px;border-radius:99px;background:var(--chip);color:var(--accent)}
   .ctBtn{font-size:12px;padding:4px 10px;border-radius:7px;border:1px solid var(--accent);background:#fff;color:var(--accent);cursor:pointer;white-space:nowrap}
   .ctBtn:hover{background:var(--accent);color:#fff}
@@ -326,14 +329,19 @@ $('saveKeys').addEventListener('click', saveKeys);
 $('resetBase').addEventListener('click', async (e)=>{ e.preventDefault(); if(confirm('Очистить базу собранных доменов? Следующий сбор возьмёт все домены заново.')){ await fetch('/api/reset-base',{method:'POST'}); refresh(); } });
 
 async function startJob(extra){
+  if(jobStarting) return false;
   const st=Object.assign(collectSettings(), extra||{});
-  if(st.stage!=='download' && st.queries.length===0){ showStart('Добавьте хотя бы один запрос','err'); return; }
-  $('startBtn').disabled=true; $('downloadBtn').disabled=true; $('retryBtn').disabled=true;
-  const r=await fetch('/api/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(st)});
-  const j=await r.json();
-  if(!j.ok){ showStart(j.error||'Не удалось запустить','err'); }
-  else showStart(st.stage==='download'?'Выгрузка страниц запущена':'Сбор запущен','ok');
-  refresh();
+  if(st.stage!=='download' && st.queries.length===0){ showStart('Добавьте хотя бы один запрос','err'); return false; }
+  jobStarting=true; updateDownloadBtn();
+  try{
+    const r=await fetch('/api/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(st)});
+    const j=await r.json();
+    if(!j.ok){ showStart(j.error||'Не удалось запустить','err'); return false; }
+    jobRunning=true; // оптимистично: задание запущено, блокируем повторный старт до следующего опроса
+    showStart(st.stage==='download'?(extra&&extra.retry_hosts?'Докачка запущена':'Выгрузка страниц запущена'):'Сбор запущен','ok');
+    return true;
+  }catch(e){ showStart('Не удалось запустить','err'); return false; }
+  finally{ jobStarting=false; refresh(); }
 }
 // Шаг 1: сбор доменов (новый список — старые пометки удалённых сбрасываем).
 function runCollect(){ removedHosts.clear(); saveRemoved(); startJob({stage:'collect'}); }
@@ -343,16 +351,33 @@ function runDownload(){
   if(!kept.length){ showStart('Нет сайтов для выгрузки — все убраны из списка','err'); return; }
   startJob({stage:'download', exclude_hosts:[...removedHosts]});
 }
-// Докачка: заново выкачиваем только сайты с чинибельными ошибками, успешные не трогаем.
+// Докачки идут в фоне очередью: можно поставить несколько сайтов, они выкачиваются партиями по очереди,
+// а таблица отчёта не сбивается — параллельно изучаем и добавляем ещё.
+function pumpRetry(){
+  if(jobRunning || jobStarting) return;
+  retryActive.clear(); // мы свободны — прошлая партия докачки (если была) завершена
+  if(retryQueue.size===0) return;
+  retryActive = new Set(retryQueue);
+  retryQueue.clear();
+  startJob({stage:'download', retry_hosts:[...retryActive], exclude_hosts:[...removedHosts]}).then(ok=>{
+    if(!ok){ retryActive.forEach(h=>retryQueue.add(h)); retryActive.clear(); renderResults(lastSites); }
+  });
+}
+function queueRetry(hosts){
+  hosts.forEach(h=>{ if(!retryActive.has(h)) retryQueue.add(h); });
+  renderResults(lastSites); // сразу показать «в очереди»
+  pumpRetry();
+}
+// Докачка всех сайтов с чинибельными ошибками (ставит их в очередь).
 function runRetry(){
   const hosts=retryHostsList();
   if(!hosts.length){ showStart('Нет сайтов с ошибками для докачки','err'); return; }
-  startJob({stage:'download', retry_hosts:hosts, exclude_hosts:[...removedHosts]});
+  queueRetry(hosts);
 }
-// Докачка одного сайта (кнопка в раскрытой строке) — перекачиваем только его.
+// Докачка одного сайта (кнопка в раскрытой строке): в очереди — отменяем, иначе — ставим.
 function runRetryOne(host){
-  if(jobRunning){ showStart('Дождитесь окончания текущего задания','err'); return; }
-  startJob({stage:'download', retry_hosts:[host], exclude_hosts:[...removedHosts]});
+  if(retryQueue.has(host)){ retryQueue.delete(host); renderResults(lastSites); return; }
+  queueRetry([host]);
 }
 async function stop(){
   $('stopBtn').disabled=true;
@@ -379,7 +404,7 @@ function renderStatus(st, running){
   const CLS=Object.assign({interrupted:'s-err', idle:'s-idle'}, STATE_CLS);
   badge.textContent = key==='interrupted' ? 'прошлый сбор прерван' : (running && key!=='waiting' ? (STATE_LABEL[key]||'идёт сбор') : (LABEL[key]||'не запущено'));
   badge.className='state '+(key==='interrupted'?'s-err':(CLS[key]||'s-idle'));
-  if(wasRunning && !running){ pagesCache={}; } // задание завершилось — детали страниц устарели, перечитаем
+  if(wasRunning && !running){ pagesCache={}; retryActive.clear(); } // задание завершилось — детали устарели, докачанные сайты больше не «в работе»
   wasRunning = running;
   jobRunning = running;
   $('startBtn').disabled = running;
@@ -437,6 +462,9 @@ function renderStatus(st, running){
 let lastSites=[];
 let jobRunning=false;
 let wasRunning=false;
+let jobStarting=false;          // между кликом «запустить» и подтверждением (защита от двойного старта)
+let retryQueue=new Set();       // хосты, ожидающие докачки (в очереди)
+let retryActive=new Set();      // хосты в текущей запущенной докачке
 let removedHosts=new Set(JSON.parse(localStorage.getItem('ys-removed')||'[]'));
 function saveRemoved(){ try{ localStorage.setItem('ys-removed', JSON.stringify([...removedHosts])); }catch(e){} }
 // Раскрытые строки (список страниц сайта) и кэш их страниц.
@@ -449,26 +477,46 @@ async function loadSitePages(host){
   finally{ pagesLoading.delete(host); }
   renderResults(lastSites);
 }
-// Строка-раскрытие: список страниц сайта с их результатом + кнопка докачки только этого сайта.
+// Категория страницы по её ошибке: скачано / не достучались / дубликат / не найдено / прочее.
+function pageCategory(p){
+  if(p.ok) return 'ok';
+  const e=String(p.error||'');
+  if(/дубликат|одностраничник/i.test(e)) return 'dup';
+  if(/не найдена|HTTP 40|HTTP 41/i.test(e)) return 'notfound';
+  if(/таймаут|timeout|соединени|connection|reset|refused|ECONN|заблокир|blocked|cloudflare|антибот|сертификат|SSL|ERR_CERT|хост не найден|resolve|ERR_NAME/i.test(e)) return 'unreach';
+  return 'other';
+}
+// Строка-раскрытие: страницы сайта, СГРУППИРОВАННЫЕ по причине (дубли и «не достучались» — отдельно),
+// плюс кнопка докачки только этого сайта (с учётом очереди).
 function detailRowHtml(s){
   const esc=t=>String(t||'').replace(/"/g,'&quot;').replace(/</g,'&lt;');
   const pages=pagesCache[s.host];
+  let retryLabel='Докачать этот сайт', retryDis='';
+  if(retryActive.has(s.host)){ retryLabel='Докачивается…'; retryDis=' disabled'; }
+  else if(retryQueue.has(s.host)){ retryLabel='В очереди — отменить'; }
+  const retry=`<button class="ctBtn" data-retry-one="${esc(s.host)}"${retryDis} title="Заново выкачать только этот сайт" style="margin-bottom:8px">${retryLabel}</button>`;
   let inner;
   if(pages===undefined){ inner='<span class="muted">Загрузка…</span>'; }
   else if(!pages.length){ inner='<span class="muted">Нет данных о страницах (сайт ещё не выгружался).</span>'; }
   else {
-    const rows=pages.map(p=>{
-      const st=p.ok?'<span class="pg-ok">OK</span>':'<span class="pg-err">ошибка</span>';
-      const err=p.ok?'':`<div class="muted">${esc(p.error||'')}</div>`;
+    const groups={ok:[],unreach:[],dup:[],notfound:[],other:[]};
+    pages.forEach(p=>{ (groups[pageCategory(p)]||groups.other).push(p); });
+    const rowHtml=p=>{
       const f=[];
       if(p.html) f.push(`<a href="/file?path=${encodeURIComponent(p.html)}" target="_blank" rel="noopener">HTML</a>`);
       if(p.screenshot) f.push(`<a href="/file?path=${encodeURIComponent(p.screenshot)}" target="_blank" rel="noopener">фото</a>`);
       const u=esc(p.url||'');
-      return `<tr><td class="st">${st}</td><td><a href="${u}" target="_blank" rel="noopener">${u}</a>${err}</td><td class="st">${f.join(' · ')}</td></tr>`;
-    }).join('');
-    inner=`<table class="subtable"><tbody>${rows}</tbody></table>`;
+      const err=p.ok?'':`<div class="muted">${esc(p.error||'')}</div>`;
+      return `<tr><td><a href="${u}" target="_blank" rel="noopener">${u}</a>${err}</td><td class="st">${f.join(' · ')}</td></tr>`;
+    };
+    const section=(title,cls,list)=> list.length?`<div class="pg-sec"><div class="pg-h ${cls}">${title} · ${list.length}</div><table class="subtable"><tbody>${list.map(rowHtml).join('')}</tbody></table></div>`:'';
+    inner = section('Скачано','pg-ok',groups.ok)
+          + section('Не достучались (таймаут / блок / нет соединения — можно докачать)','pg-err',groups.unreach)
+          + section('Дубликаты','pg-warn',groups.dup)
+          + section('Не найдено (404)','pg-warn',groups.notfound)
+          + section('Прочие ошибки','pg-err',groups.other);
+    if(!inner) inner='<span class="muted">Нет страниц.</span>';
   }
-  const retry=`<button class="ctBtn" data-retry-one="${esc(s.host)}" title="Заново выкачать только этот сайт" style="margin-bottom:8px">Докачать этот сайт</button>`;
   return `<tr class="detailrow" data-detail="${esc(s.host)}"><td></td><td colspan="9">${retry}${inner}</td></tr>`;
 }
 // Сайт стоит перекачать, если у него ошибка, которую может починить повтор через другой прокси
@@ -486,20 +534,28 @@ function retryHostsList(){ return lastSites.filter(s=>!removedHosts.has(s.host) 
 // сайты с чинибельными ошибками. Обе блокируются на время запущенного задания.
 function updateDownloadBtn(){
   const visible=lastSites.filter(s=>!removedHosts.has(s.host));
-  const db=$('downloadBtn'); if(db) db.disabled = jobRunning || visible.length===0;
+  const busy = jobRunning || jobStarting;
+  const db=$('downloadBtn'); if(db) db.disabled = busy || visible.length===0;
+  const sb=$('startBtn'); if(sb) sb.disabled = busy;
+  // Докачку можно ставить в очередь даже во время работы — кнопку не блокируем.
   const rb=$('retryBtn');
   if(rb){
     const n=retryHostsList().length;
-    rb.hidden = n===0;
-    rb.disabled = jobRunning || n===0;
-    rb.textContent = 'Докачать с ошибками ('+n+')';
+    const q=retryQueue.size+retryActive.size;
+    rb.hidden = n===0 && q===0;
+    rb.disabled = n===0;
+    rb.textContent = q>0 ? ('Докачать с ошибками ('+n+') · в работе '+q) : ('Докачать с ошибками ('+n+')');
   }
 }
 
 function renderResults(sites){
-  lastSites = sites || [];
+  sites = sites || [];
+  // Во время запущенного задания статус временно пуст (status.json пере-создаётся). Не сбрасываем
+  // таблицу отчёта: держим прошлый список, чтобы можно было дальше изучать сайты и ставить их в докачку.
+  if(!sites.length && (jobRunning || jobStarting) && lastSites.length){ sites = lastSites; }
+  lastSites = sites;
   const card=$('resultsCard');
-  if(!sites || !sites.length){ updateDownloadBtn(); card.hidden=true; return; }
+  if(!sites.length){ updateDownloadBtn(); card.hidden=true; return; }
   // После выгрузки убранные сайты исчезают из данных — вычищаем их из списка «убранных», чтобы счётчик не врал.
   const present=new Set(sites.map(s=>s.host));
   let changed=false;
@@ -532,6 +588,8 @@ function renderResults(sites){
     if(s.own){ dl=`<span class="tag" title="наш шаблон — исключён из выгрузки">исключён как наш</span>`; }
     else if(s.pages_total>0){ dl=`${s.pages_ok||0}/${s.pages_total}`; if((s.pages_ok||0)<s.pages_total && s.page_error) dl+=' '+errCell(s.page_error); }
     else if(s.page_error) dl=errCell(s.page_error);
+    if(retryActive.has(s.host)) dl+=' <span class="tag" title="докачивается">докачивается…</span>';
+    else if(retryQueue.has(s.host)) dl+=' <span class="tag" title="в очереди на докачку">в очереди</span>';
     let files=[];
     if(s.html) files.push(`<a href="/file?path=${encodeURIComponent(s.html)}" target="_blank" rel="noopener">HTML</a>`);
     if(s.screenshot) files.push(`<a href="/file?path=${encodeURIComponent(s.screenshot)}" target="_blank" rel="noopener">фото</a>`);
@@ -622,6 +680,7 @@ async function refresh(){
     prefill(st);
     renderStatus(st.status, st.running);
     renderResults(st.status && st.status.sites ? st.status.sites : []);
+    pumpRetry(); // если освободились и в очереди есть докачки — запускаем следующую партию
   }catch(e){}
   try{ const l=await fetch('/api/log'); const t=await l.text(); if(t.trim()){ const el=$('log'); const atEnd=el.scrollTop+el.clientHeight>=el.scrollHeight-20; el.textContent=t; if(atEnd) el.scrollTop=el.scrollHeight; } }catch(e){}
 }
