@@ -92,6 +92,7 @@
 2164.team
 2169.lol
 2214.team
+2225.team
 2291.team
 2304.team
 2307.team
@@ -332,6 +333,7 @@
 8730.team
 8825.team
 8829.lol
+8864casino.team
 8927casino.team
 9012.team
 9055.team
@@ -350,6 +352,7 @@
 9365.team
 9485.lol
 9536.lol
+9574.team
 9671.team
 9699.team
 9712.team
@@ -561,6 +564,7 @@ jlnd.team
 jmbt.team
 jmrc.team
 jqtz.team
+jrcg.team
 k2n.team
 k3u.team
 k5cr.team
@@ -680,6 +684,7 @@ rtnm.team
 rvcn.team
 rvue.lol
 rvue.team
+rwjd.team
 rza.lol
 s5bg.team
 s6wb.team
