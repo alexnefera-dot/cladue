@@ -1,0 +1,94 @@
+<h2>Часы устройства ушли вперёд %brand_name_en%: что ломается в сборке</h2>
+<p>Разовый шифр из письма сборка %brand_name_en% отбивала четыре захода подряд со словом «просрочен». <strong>Свежее письмо при этом лежало в почте ровно минуту от роду.</strong></p>
+<p>Виноваты оказались домашние часы телефона: месяцем раньше я выставил их ручным способом и промахнулся на четыре долгие минуты вперёд.</p>
+<p><strong>Ни депозит, ни ставка от этого не пострадали</strong> — касса %brand_name_en% метку времени не читает вовсе, и вывод средств шёл обычным порядком.</p>
+<h3>Часы аппарата против часов сервера</h3>
+<table>
+<tr><th>Где смотрю</th><th>Показывает</th><th>Итог проверки</th></tr>
+<tr><td>Часы телефона</td><td>21:44</td><td>подпись собрана на 21:44</td></tr>
+<tr><td>Часы сервера</td><td>21:40</td><td>окно ±3 минуты</td></tr>
+<tr><td>Шифр в письме</td><td>годен 10 минут</td><td>до сервера не дошёл</td></tr>
+<tr><td>Настольная витрина</td><td>время берёт сетевое</td><td>пустила с первого раза</td></tr>
+</table>
+<h3>Отчего сборка смотрит на часы аппарата</h3>
+<p>Подпись сеанса собирается прямо на самом аппарате, и точная метка времени входит в неё наравне с почтовым логином. <strong>Сервер отбрасывает всё, что старше или новее его окна в три минуты</strong> — иначе старую чужую подпись можно было бы переиграть через час. Настольный обозреватель тянет сетевое время сам и потому мелкого промаха не заметил.</p>
+<blockquote>Спицы берут по номеру, а не на глаз: полномера разницы — и полотно уходит на размер. Три минуты окна тут ровно та же мерка.</blockquote>
+<h3>Четыре шага до починки</h3>
+<ol>
+<li>откройте настройки аппарата и включите сетевое время;</li>
+<li>сверьте показания с любыми точными часами в сети — суточное расхождение видно сразу;</li>
+<li>перезапустите мобильную сборку целиком, а не простым возвратом из фона;</li>
+<li>запросите новый шифр: старый гаснет вместе с первым запросом.</li>
+</ol>
+<h3>Что от этого страдало, а что нет</h3>
+<ul>
+<li>живой депозит и ставка шли обычным порядком: касса метку времени не проверяет</li>
+<li>счётчик отыгрыша стоял на прежнем числе: вейджер считает сервер, а не сборка</li>
+<li>новая расписка устройства не выписалась ни разу — короткий реестр остался на пяти строках</li>
+</ul>
+<h3>Встречный вопрос</h3>
+<p>Зачем сборке часы, если время всё равно считает сервер?</p>
+<p>Затем, что готовая подпись собирается до отправки, а не после. <strong>Сервер может её только принять или отбить</strong>, и никакой обратной поправки он не делает: иначе трёхминутное окно перестало бы работать вовсе.</p>
+<p>Заодно я проверил, что промахи ничего не сдвинули: <a href="/registracia">зелёная отметка</a> стояла на месте, отдача машин осталась прежней, а лимит на снятие держался на тех же двух тысячах. Выбор номинала перед серией лежит в <a href="/slots">каталоге автоматов</a>. Предупреждение обозревателя о несовпадении имени я вынес в <a href="/zerkalo">запасное имя</a>, а исчезающие места списка устройств — на страницу про <a href="/vhod">форму входа</a>.</p>
+<p><strong>Спрашивайте часы аппарата первыми, когда сборка отбивает верный шифр.</strong> Полминуты на сверку против пропавшего вечера — размен очевидный.</p>
+<h2>Ответы на частые вопросы о сборке и часах</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Шифр отбивается как просроченный, хотя письмо только пришло — почему?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Часы аппарата разошлись с сетевыми: у меня было четыре минуты вперёд при окне в три.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Помогает ли переустановка пакета в 47 МБ?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не помогает ничем: часы живут в системе аппарата, а не внутри пакета.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Отчего в обозревателе всё работало сразу?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Обозреватель берёт время из сети, а не из настроек аппарата, и промах туда не попадает.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Насколько велико окно, в которое сервер верит подписи?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Три минуты в обе стороны, и оно одинаково на телефоне и на настольной витрине.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Считаются ли такие заходы промахами, за которые запирают форму?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Считаются наравне с неверным паролем: у меня из пяти попыток осталась одна.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Пострадал ли счётчик оборота от четырёх отказов?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Ни на рубль: оборот считает сервер, и с формой входа он не связан вовсе.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Годится ли старый шифр, если запросить новый и передумать?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не годится: второй запрос гасит первый, и вернуться к прежнему письму нельзя.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Занимает ли сборка отдельную строку реестра от обозревателя?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Занимает свою: на одном аппарате у меня заняты две позиции из шести.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать в дороге, где сетевого времени нет вовсе?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Выставьте часы вручную по любому сетевому источнику: промах до минуты сервер прощает.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Ломается ли так же вход по отпечатку пальца?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Ломается точно так же: отпечаток отпирает сохранённую подпись, а метку времени она несёт свою.</p></div>
+  </div>
+</details>
