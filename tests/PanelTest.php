@@ -276,6 +276,54 @@ final class PanelTest
         @rmdir($dir);
     }
 
+    public function testRetryReDownloadsOnlyFailedKeepsRest(): void
+    {
+        $port = FakeServer::port('local');
+        $dir = sys_get_temp_dir() . '/yandex-sites-retry-' . uniqid();
+        $runDir = $dir . '/runs/retry';
+        mkdir($runDir, 0777, true);
+        file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
+        file_put_contents($runDir . '/sites.json', json_encode(['sites' => [
+            ['host' => 'okna-moskva.ru', 'domain' => 'okna-moskva.ru', 'url' => "http://okna-moskva.ru:$port/page-1/", 'title' => 'T', 'best_query' => 'окна', 'best_position' => 1, 'queries_count' => 1],
+            ['host' => 'okna-company.com', 'domain' => 'okna-company.com', 'url' => "http://okna-company.com:$port/page-2/", 'title' => 'T2', 'best_query' => 'окна', 'best_position' => 2, 'queries_count' => 1],
+        ]]));
+        $settings = static fn (array $extra): string => (string) json_encode(array_merge(['stage' => 'download', 'visit_driver' => 'curl'], $extra));
+
+        // Первая выгрузка — оба сайта доступны, оба ок.
+        file_put_contents($runDir . '/settings.json', $settings(['visit_resolve' => ["okna-moskva.ru:$port:127.0.0.1", "okna-company.com:$port:127.0.0.1"]]));
+        $r1 = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $r1['code'], $r1['out']);
+        $by1 = [];
+        foreach ((json_decode((string) file_get_contents($runDir . '/sites.json'), true))['sites'] as $x) {
+            $by1[$x['host']] = $x;
+        }
+        Assert::true($by1['okna-moskva.ru']['visits'][0]['ok'] ?? false);
+        Assert::true($by1['okna-company.com']['visits'][0]['ok'] ?? false);
+
+        // Докачиваем только okna-moskva.ru. okna-company.com в этот раз НЕ резолвится: если бы докачка
+        // его тронула — он бы упал. Значит, если он остался «ок» — его результат сохранён, а не перекачан.
+        file_put_contents($runDir . '/settings.json', $settings(['retry_hosts' => ['okna-moskva.ru'], 'visit_resolve' => ["okna-moskva.ru:$port:127.0.0.1"]]));
+        $r2 = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $r2['code'], $r2['out']);
+        $st = json_decode((string) file_get_contents($runDir . '/status.json'), true);
+        Assert::same('done', $st['state'], $r2['out']);
+        Assert::contains('Докачано', $st['message']);
+        $by2 = [];
+        foreach ((json_decode((string) file_get_contents($runDir . '/sites.json'), true))['sites'] as $x) {
+            $by2[$x['host']] = $x;
+        }
+        Assert::true($by2['okna-moskva.ru']['visits'][0]['ok'] ?? false, 'докачанный сайт снова ок');
+        Assert::true($by2['okna-company.com']['visits'][0]['ok'] ?? false, 'нетронутый сайт сохранил свой результат');
+        Assert::true(is_dir($runDir . '/pages/okna-moskva.ru'), 'страницы докачанного на месте');
+        Assert::true(is_dir($runDir . '/pages/okna-company.com'), 'страницы нетронутого сохранены');
+
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($it as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+        @rmdir($dir);
+    }
+
     public function testRunJobReportsErrorOnBadKey(): void
     {
         $port = FakeServer::port();

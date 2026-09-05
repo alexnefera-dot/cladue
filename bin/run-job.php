@@ -259,6 +259,21 @@ function rrmdir(string $dir): void
 }
 
 /**
+ * Удаляет папки страниц одного сайта из любого бакета (pages/<N>-стр/<host>, pages/наши/<host>,
+ * pages/<host>) — для точечной докачки этого сайта заново.
+ */
+function clearHostPages(string $pagesDir, string $host): void
+{
+    $dirs = array_merge(
+        glob($pagesDir . '/*/' . $host, GLOB_ONLYDIR) ?: [],
+        glob($pagesDir . '/' . $host, GLOB_ONLYDIR) ?: [],
+    );
+    foreach ($dirs as $dir) {
+        rrmdir($dir);
+    }
+}
+
+/**
  * Восстанавливает объекты Site из ранее сохранённого sites.json (для этапа выгрузки).
  *
  * @return array<string, Site>
@@ -277,6 +292,12 @@ function loadSites(string $file): array
         $query = (string) ($row['best_query'] ?? '');
         $position = isset($row['best_position']) ? (int) $row['best_position'] : 1;
         $site->add(new SearchResult($query, 0, max(1, $position), $url !== '' ? $url : 'https://' . $host . '/', $host, (string) ($row['title'] ?? '')));
+        // Восстанавливаем прошлые визиты и признак «наш» — при докачке только части сайтов остальные
+        // сохраняют свои результаты, и итоговый sites.json не теряет уже выгруженные страницы.
+        if (isset($row['visits']) && is_array($row['visits'])) {
+            $site->visits = array_values($row['visits']);
+        }
+        $site->own = (bool) ($row['own'] ?? false);
         $sites[$host] = $site;
     }
 
@@ -406,14 +427,33 @@ while (true) {
             if ($visitor === null) {
                 throw new RuntimeException('Визиты отключены в настройках');
             }
-            // Повторная выгрузка — чистим прошлый результат (папки страниц и очищённый контент),
-            // чтобы не осталось старых сайтов и версий: выгружаем заново только оставшиеся.
-            rrmdir($runDir . '/pages');
-            rrmdir($runDir . '/content');
-            $progress->update(['phase' => 'visit', 'sites_selected' => count($sites)], true);
-            $logger->info(sprintf('Выгрузка страниц: сайтов %d через %s', count($sites), $visitor->driver()->name()));
-            $visitor->visit($sites);
+            // Докачка (retry_hosts) — выгружаем заново только выбранные сайты (где были ошибки),
+            // остальные сохраняют свои уже скачанные страницы. Иначе — полная (пере)выгрузка: чистим
+            // весь прошлый результат и качаем все сайты заново.
+            $retryHosts = array_flip(array_map('strval', (array) ($settings['retry_hosts'] ?? [])));
+            $isRetry = $retryHosts !== [];
+            if ($isRetry) {
+                $visitList = array_filter($sites, static fn (string $host): bool => isset($retryHosts[$host]), ARRAY_FILTER_USE_KEY);
+                if ($visitList === []) {
+                    throw new RuntimeException('Нет сайтов для докачки (все успешны или убраны)');
+                }
+                foreach ($visitList as $host => $site) {
+                    $site->visits = [];
+                    clearHostPages($runDir . '/pages', (string) $host);
+                }
+            } else {
+                rrmdir($runDir . '/pages');
+                rrmdir($runDir . '/content');
+                foreach ($sites as $site) {
+                    $site->visits = [];
+                }
+                $visitList = $sites;
+            }
+            $progress->update(['phase' => 'visit', 'sites_selected' => count($visitList)], true);
+            $logger->info(sprintf('%s: сайтов %d через %s', $isRetry ? 'Докачка страниц' : 'Выгрузка страниц', count($visitList), $visitor->driver()->name()));
+            $visitor->visit($visitList);
 
+            // Пишем ВСЕ сайты: при докачке обновлённые + сохранённые, при полной выгрузке — все заново.
             $siteList = array_values($sites);
             $writer->writeCsv($siteList, $runDir . '/sites.csv');
             $writer->writeJson($siteList, $runDir . '/sites.json', ['source' => 'download', 'settings' => $settings]);
@@ -433,9 +473,9 @@ while (true) {
                 'sites' => previewSites($siteList, $runDir),
                 'run_finished_at' => date(DATE_ATOM),
                 'files' => ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt'],
-                'message' => sprintf('Выгружено страниц: %d', $opened),
+                'message' => sprintf('%s: %d', $isRetry ? 'Докачано, всего страниц' : 'Выгружено страниц', $opened),
             ], true);
-            $logger->info(sprintf('Выгрузка завершена: страниц открыто %d', $opened));
+            $logger->info(sprintf('%s завершена: страниц открыто %d', $isRetry ? 'Докачка' : 'Выгрузка', $opened));
         } else {
             // --- Этап 1: сборка доменов (collect) или сборка + выгрузка (both) ---
             $config = Config::fromFile($configPath)->withOverrides(buildOverrides($settings, $runDir));

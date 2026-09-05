@@ -249,7 +249,12 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   with `exclude_hosts` = the ✕-removed hosts, so only the sites the user kept are opened (run-job filters
   `loadSites()` by that list and rewrites `sites.json` to the kept set). `runCollect()` clears the removed
   set (fresh list); `runDownload()` keeps it. A re-run of download wipes the previous result first
-  (`rrmdir()` on `runs/current/pages` and `content`) so it is a clean redo, not an append. The `both`
+  (`rrmdir()` on `runs/current/pages` and `content`) so it is a clean redo, not an append. «Докачать с
+  ошибками» (`runRetry()`) sends `stage=download` with `retry_hosts` = only the sites whose error is fixable
+  by another proxy (timeout/connection/block/SSL/DNS — not 404/duplicate/own, `siteNeedsRetry()`): the
+  download branch re-fetches just those (clears only their page folders via `clearHostPages()`, resets their
+  visits) while the rest keep their pages and visits (`loadSites()` restores `visits`/`own` from `sites.json`
+  so the merged output is not lost). The `both`
   branch stays in `buildOverrides()`/run-job for CLI, just not surfaced. Content cleaning is table-only and
   writes to disk (no download): a per-site «Очистить» button (`/api/clean-site`) and a bulk «Очистить всё»
   button (`/api/clean-all`, accepts an `exclude` host list) run `cleanHostPages()`, which cleans a site's
@@ -301,7 +306,8 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   domains; `Runner` takes an optional ledger + skipKnown to drop already-seen domains (reason
   `seen_before`) and record new ones. The panel job has two stages (`settings.stage`): `collect`
   (grow the base, no visits), `download` (open the previously collected sites.json, minus
-  `settings.exclude_hosts` — the sites removed with ✕), `both`.
+  `settings.exclude_hosts` — the sites removed with ✕; with `settings.retry_hosts` it re-fetches only
+  those hosts and keeps the rest), `both`.
   `settings.top` limits the SERP to the first N results (max_position + one page).
 - When Yandex changes its SERP markup, update `Live\HtmlResponseParser` and `tests/fixtures/serp.html`
   together; `--parse-html` helps to check a saved page.

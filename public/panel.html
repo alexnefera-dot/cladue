@@ -222,7 +222,8 @@
     <h2>Результаты <span id="resCount" class="muted"></span></h2>
     <div class="hint" style="margin-bottom:8px">Клик по превью — увеличить; крестик ✕ — убрать неподходящий сайт. Шаг 2 — «Выгрузить страницы оставшихся»; потом «Очистить» у сайта или «Очистить всё» по всем — очищенные статьи лягут в <b>runs/current/content/&lt;N&gt;-стр/&lt;сайт&gt;/</b>. Скачанные страницы: <b>runs/current/pages/</b>.</div>
     <div class="btns" style="margin-bottom:10px;align-items:center">
-      <button class="btn-primary" id="downloadBtn" disabled title="Открыть в браузере и сохранить страницы оставшихся сайтов (убранные крестиком не выгружаются)">Выгрузить страницы оставшихся</button>
+      <button class="btn-primary" id="downloadBtn" disabled title="Открыть в браузере и сохранить страницы оставшихся сайтов (убранные крестиком не выгружаются). Повторный клик — чистая перевыгрузка всех заново">Выгрузить страницы оставшихся</button>
+      <button class="btn-ghost" id="retryBtn" hidden title="Заново выкачать только сайты с ошибками (таймаут, блок, нет соединения); уже успешные не трогаем">Докачать с ошибками</button>
       <button class="ctBtn" id="cleanAllBtn" title="Очистить страницы всех оставшихся сайтов по инструкции (наши и убранные крестиком исключены), разложить по content/N-стр/сайт">Очистить всё</button>
     </div>
     <div class="btns" style="margin-bottom:10px;align-items:center">
@@ -319,7 +320,7 @@ $('resetBase').addEventListener('click', async (e)=>{ e.preventDefault(); if(con
 async function startJob(extra){
   const st=Object.assign(collectSettings(), extra||{});
   if(st.stage!=='download' && st.queries.length===0){ showStart('Добавьте хотя бы один запрос','err'); return; }
-  $('startBtn').disabled=true; $('downloadBtn').disabled=true;
+  $('startBtn').disabled=true; $('downloadBtn').disabled=true; $('retryBtn').disabled=true;
   const r=await fetch('/api/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(st)});
   const j=await r.json();
   if(!j.ok){ showStart(j.error||'Не удалось запустить','err'); }
@@ -334,6 +335,12 @@ function runDownload(){
   if(!kept.length){ showStart('Нет сайтов для выгрузки — все убраны из списка','err'); return; }
   startJob({stage:'download', exclude_hosts:[...removedHosts]});
 }
+// Докачка: заново выкачиваем только сайты с чинибельными ошибками, успешные не трогаем.
+function runRetry(){
+  const hosts=retryHostsList();
+  if(!hosts.length){ showStart('Нет сайтов с ошибками для докачки','err'); return; }
+  startJob({stage:'download', retry_hosts:hosts, exclude_hosts:[...removedHosts]});
+}
 async function stop(){
   $('stopBtn').disabled=true;
   await fetch('/api/stop',{method:'POST'});
@@ -341,6 +348,7 @@ async function stop(){
 }
 $('startBtn').addEventListener('click', runCollect);
 $('downloadBtn').addEventListener('click', runDownload);
+$('retryBtn').addEventListener('click', runRetry);
 $('stopBtn').addEventListener('click', stop);
 function showStart(t,cls){ $('startMsg').innerHTML = t?`<div class="msg ${cls}">${t}</div>`:''; }
 
@@ -415,11 +423,29 @@ let lastSites=[];
 let jobRunning=false;
 let removedHosts=new Set(JSON.parse(localStorage.getItem('ys-removed')||'[]'));
 function saveRemoved(){ try{ localStorage.setItem('ys-removed', JSON.stringify([...removedHosts])); }catch(e){} }
-// Кнопка «Выгрузить страницы оставшихся» доступна, когда есть что качать и ничего не запущено.
+// Сайт стоит перекачать, если у него ошибка, которую может починить повтор через другой прокси
+// (таймаут, нет соединения, блок/Cloudflare, SSL, DNS). 404/дубликат/наш — повтор не поможет.
+function siteNeedsRetry(s){
+  if(!s || s.own) return false;
+  const e = String(s.page_error||'');
+  if(!e) return false;
+  if(/не найдена|HTTP 40|HTTP 41|дубликат|исключ/i.test(e)) return false;
+  return true;
+}
+function retryHostsList(){ return lastSites.filter(s=>!removedHosts.has(s.host) && siteNeedsRetry(s)).map(s=>s.host); }
+
+// Кнопки под таблицей: «Выгрузить…» — когда есть что качать; «Докачать с ошибками» — когда есть
+// сайты с чинибельными ошибками. Обе блокируются на время запущенного задания.
 function updateDownloadBtn(){
-  const btn=$('downloadBtn'); if(!btn) return;
   const visible=lastSites.filter(s=>!removedHosts.has(s.host));
-  btn.disabled = jobRunning || visible.length===0;
+  const db=$('downloadBtn'); if(db) db.disabled = jobRunning || visible.length===0;
+  const rb=$('retryBtn');
+  if(rb){
+    const n=retryHostsList().length;
+    rb.hidden = n===0;
+    rb.disabled = jobRunning || n===0;
+    rb.textContent = 'Докачать с ошибками ('+n+')';
+  }
 }
 
 function renderResults(sites){
