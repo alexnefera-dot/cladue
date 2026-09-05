@@ -32,6 +32,32 @@ final class ContentCleanerTest
         Assert::true(str_contains($body, 'Обзор Cryptoboss'), 'тело статьи осталось');
     }
 
+    public function testStripsMediaUiModalsContactsAndTags(): void
+    {
+        $html = '<h1>Обзор</h1>'
+            . '<p>Текст статьи про бренд.</p>'
+            . '<img src="/logo.png" alt="лого">'
+            . '<p>Ещё абзац <button>Играть</button> и форма <form><input></form>.</p>'
+            . '<table><tr><td>Лицензия</td><td>Curacao</td></tr></table>'
+            . '<blockquote>Мнение<footer>— автор, 2024</footer></blockquote>'
+            . '<div class="tag-cloud"><a href="/t">слоты</a><a href="/t2">бонусы</a></div>'
+            . '<div class="footer-contacts">Телефон: +7-900-000</div>'
+            . '<div class="promo" role="dialog"><button>×</button>Бонус 250%</div>'
+            . '<footer>Подвал сайта © 2024</footer>';
+        $body = (new ContentCleaner())->extractArticle($html);
+        Assert::false(str_contains($body, '<img'), 'изображения удалены');
+        Assert::false(str_contains($body, '<button'), 'кнопки удалены');
+        Assert::false(str_contains($body, '<form'), 'формы удалены');
+        Assert::false(str_contains($body, 'role="dialog"'), 'модалки удалены');
+        Assert::false(str_contains($body, 'Бонус 250%'), 'содержимое модалки удалено');
+        Assert::false(str_contains($body, 'слоты') && str_contains($body, 'бонусы'), 'облако тегов удалено');
+        Assert::false(str_contains($body, '+7-900-000'), 'блок контактов удалён');
+        Assert::false(str_contains($body, 'Подвал сайта'), 'подвал сайта удалён');
+        Assert::true(str_contains($body, 'Текст статьи'), 'тело статьи осталось');
+        Assert::true(str_contains($body, '<table'), 'таблица статьи осталась');
+        Assert::true(str_contains($body, '— автор, 2024'), 'подпись в цитате (footer в blockquote) осталась');
+    }
+
     public function testRemoveSlots(): void
     {
         $cleaner = new ContentCleaner();

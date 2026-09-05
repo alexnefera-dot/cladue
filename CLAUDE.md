@@ -234,7 +234,12 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `key=value&…` string) and covered by `PanelTest::testXmlstockParamsReachRequest`.
 - `Content\ContentCleaner` is the third stage (`settings.stage=clean`, `bin/clean-content.php`, and the
   per-site `/api/clean-site` button): from a downloaded page it keeps only the article body (after
-  `</h1>`, before «Популярные запросы»; drops the slots section, header/footer/scripts), rewrites every
+  `</h1>`, before «Популярные запросы»; drops the slots section). `stripNonArticle()` then removes, via DOM
+  (regex can't handle nested modals), everything that is not article text — images/media (`img`, `picture`,
+  `figure`, `svg`, `video`, …), interactive (`button`, `form`, `input`, …), popovers (`role=dialog`/
+  `aria-modal`/`dialog`), the site `footer` (but a `<footer>` inside a `<blockquote>` citation is kept),
+  and blocks whose class/id token is junk (`JUNK_TOKENS`: contacts, tag-cloud, social/share, popup/modal,
+  cookie, breadcrumbs, banner/ads …); HTML comments (Метрика/Analytics) are stripped too. It rewrites every
   `<a href>` to one of six relative paths (`ALLOWED_LINKS`, mapped by keyword), and templates the domain
   → `%domain_name%`, `dd.mm.yyyy` → `%date%`, brand → `%brand_name_ru%`/`%brand_name_en%`. Brand matching
   is case-insensitive and homoglyph-tolerant (Latin↔Cyrillic look-alikes, so `STAKE`≡`STAKЕ`).

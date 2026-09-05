@@ -110,11 +110,75 @@ final class ContentCleaner
             }
         }
 
-        // Убираем служебные блоки и обвязку.
-        $body = preg_replace('~<(script|style|noscript|template|svg|header|footer|form)\b[^>]*>.*?</\1>~isu', '', $body) ?? $body;
-        $body = preg_replace('~</?(?:body|html|main|article|section)\b[^>]*>~i', '', $body) ?? $body;
+        // Комментарии (Яндекс.Метрика, Google Analytics и т.п.).
+        $body = preg_replace('~<!--.*?-->~s', '', $body) ?? $body;
+        // Через DOM убираем всё, что не относится к статье: изображения и медиа, интерактив (кнопки,
+        // формы), модалки/поповеры, подвал сайта, контакты, облако тегов, «поделиться», куки-плашки.
+        $body = $this->stripNonArticle($body);
 
         return trim($body);
+    }
+
+    /** Классы/id (по токенам), которые выкидываем как не-статью: контакты, облако тегов, соцсети и т.п. */
+    private const JUNK_TOKENS = [
+        'tag', 'tags', 'tagcloud', 'tags-list', 'taglist', 'contact', 'contacts', 'contatti',
+        'social', 'socials', 'share', 'sharing', 'popup', 'modal', 'overlay', 'backdrop',
+        'cookie', 'cookies', 'subscribe', 'newsletter', 'breadcrumb', 'breadcrumbs', 'sidebar',
+        'banner', 'advert', 'ads', 'promo-modal', 'age', 'agegate',
+    ];
+
+    /**
+     * Убирает из фрагмента статьи не-контент: медиа, интерактив, модалки, подвал, контакты, теги.
+     * DOM (а не регэкспы) — потому что модалки/блоки бывают с вложенными div, которые регэксп не осилит.
+     */
+    private function stripNonArticle(string $fragment): string
+    {
+        $fragment = trim($fragment);
+        if ($fragment === '') {
+            return '';
+        }
+        $doc = new \DOMDocument();
+        $prev = libxml_use_internal_errors(true);
+        $loaded = $doc->loadHTML('<?xml encoding="UTF-8"?><div id="ys-root">' . $fragment . '</div>', LIBXML_NOWARNING | LIBXML_NOERROR);
+        libxml_clear_errors();
+        libxml_use_internal_errors($prev);
+        $root = $doc->getElementById('ys-root');
+        if (!$loaded || $root === null) {
+            return $fragment;
+        }
+        $xp = new \DOMXPath($doc);
+        $remove = [];
+        // Медиа, интерактив, служебные и медиа-теги.
+        foreach ($xp->query('//script|//style|//noscript|//template|//svg|//header|//form|//button|//input|//select|//textarea|//label|//iframe|//img|//picture|//figure|//video|//audio|//canvas|//object|//embed|//map|//source|//address|//dialog') as $n) {
+            $remove[] = $n;
+        }
+        // Подвал сайта — но подпись внутри цитаты (<blockquote><footer>) оставляем.
+        foreach ($xp->query('//footer[not(ancestor::blockquote)]') as $n) {
+            $remove[] = $n;
+        }
+        // Модалки/поповеры.
+        foreach ($xp->query('//*[@role="dialog" or @aria-modal="true"]') as $n) {
+            $remove[] = $n;
+        }
+        // Контакты, облако тегов, соцсети и пр. — по токенам класса/id.
+        foreach ($xp->query('//*[@class or @id]') as $n) {
+            if (!$n instanceof \DOMElement) {
+                continue;
+            }
+            $tokens = preg_split('~[\s_\-]+~u', mb_strtolower($n->getAttribute('class') . ' ' . $n->getAttribute('id'))) ?: [];
+            if (array_intersect($tokens, self::JUNK_TOKENS) !== []) {
+                $remove[] = $n;
+            }
+        }
+        foreach ($remove as $n) {
+            $n->parentNode?->removeChild($n);
+        }
+        $out = '';
+        foreach (iterator_to_array($root->childNodes) as $child) {
+            $out .= $doc->saveHTML($child);
+        }
+
+        return $out;
     }
 
     /**
