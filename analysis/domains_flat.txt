@@ -15,6 +15,18 @@
 0409hh.casino
 0409ss.casino
 0413.team
+0509casino.casino
+0509d.casino
+0509dd.casino
+0509g.casino
+0509gg.casino
+0509h.casino
+0509kk.casino
+0509mg.casino
+0509mm.casino
+0509rr.casino
+0509s.casino
+0509t.casino
 0540.team
 0665.team
 0722.team
@@ -323,6 +335,7 @@
 9055.team
 9061.lol
 9090.lol
+9090.team
 9124.lol
 9124.team
 9158.lol
@@ -395,6 +408,9 @@ casino0409d.casino
 casino0409m.casino
 casino0409s.casino
 casino0509g.casino
+casino0509h.casino
+casino0509m.casino
+casino0509s.casino
 casino0962.lol
 casino1430.lol
 casino1430.team
@@ -410,6 +426,7 @@ casinoj1.lol
 casinoj1.team
 casinojr.team
 casinonck.lol
+casinonck.team
 casinoopk.lol
 casinoopk.team
 casinoprb.lol
@@ -565,6 +582,7 @@ l5n.team
 l5v.team
 l9tb.team
 lcdj.lol
+lcdj.team
 ldtq.click
 ll54.team
 llvm.casino
@@ -575,6 +593,7 @@ lokd.lol
 lptf.team
 lrwo.casino
 lvqv.lol
+lvqv.team
 lwcasino.lol
 m2vc.team
 m2wf.team
@@ -628,8 +647,10 @@ q7a.lol
 q7a.team
 q7k.team
 qbnv.lol
+qdcasino.lol
 qdcasino.team
 qlcasino.lol
+qlcasino.team
 qluj.team
 qmpl.team
 qneh.team
