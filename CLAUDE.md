@@ -245,11 +245,18 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   is case-insensitive and homoglyph-tolerant (Latin↔Cyrillic look-alikes, so `STAKE`≡`STAKЕ`).
   `Content\BrandDetector` auto-detects the brand: EN is the label of the canonical/og:url host (so a network
   where the brand sits in the subdomain — `kush.casinozsd.buzz` → `kush`, not the shared registrable domain
-  `casinozsd`), falling back to the domain label; RU is the text token whose transliteration matches. It picks
-  the first EN candidate that has a RU match in the text, so no manual input is needed; `Content\KnownBrands` adds a built-in list
-  of casino brands (+ gitignored `brands.txt`) so foreign brands in the text are templated too (word-boundary,
-  homoglyph-tolerant match). `ContentCleaner::autoOptions()` wires detection + known brands and lets non-empty
-  overrides win (extra_brands merge). Panel has no stage dropdown: «Собрать сайты» (next to the queries)
+  `casinozsd`), falling back to the domain label; RU is the text token — or an adjacent pair of tokens
+  («Вулкан Вегас», «Мани Икс» — a brand is often two words) — whose transliteration matches. Detection pools
+  ALL of a site's pages, not just the home (`detect($html, $host, $moreHtml)`), so the brand is still found
+  when the home is an age-gate/redirect stub and the brand + canonical live on inner pages; generic theme
+  words (`казино`/`онлайн`/`бонус`…, `RU_STOP`; `casino`/`bet`/`win`… as a domain label, `EN_GENERIC`) are
+  never returned as a brand. It picks the first EN candidate that has a RU match in the text, so no manual
+  input is needed; `Content\KnownBrands` adds a built-in list of casino brands — single- and multi-word,
+  incl. the Vulkan family (+ gitignored `brands.txt`) — so foreign brands in the text are templated too
+  (word-boundary, homoglyph-tolerant; `applyReplacements()` applies longer names first so «Вулкан Вегас» is
+  not left as «%brand% Вегас»). `ContentCleaner::autoOptions()` wires detection + known brands and lets
+  non-empty overrides win (extra_brands merge); `bin/panel.php` `cleanHostPages()` passes the site's other
+  pages as `$moreHtml`. Panel has no stage dropdown: «Собрать сайты» (next to the queries)
   runs `stage=collect`; «Выгрузить страницы оставшихся» (above the results table) runs `stage=download`
   with `exclude_hosts` = the ✕-removed hosts, so only the sites the user kept are opened (run-job filters
   `loadSites()` by that list and rewrites `sites.json` to the kept set). `runCollect()` clears the removed
@@ -257,9 +264,14 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   (`rrmdir()` on `runs/current/pages` and `content`) so it is a clean redo, not an append. «Докачать с
   ошибками» (`runRetry()`) sends `stage=download` with `retry_hosts` = only the sites whose error is fixable
   by another proxy (timeout/connection/block/SSL/DNS — not 404/duplicate/own, `siteNeedsRetry()`): the
-  download branch re-fetches just those (clears only their page folders via `clearHostPages()`, resets their
-  visits) while the rest keep their pages and visits (`loadSites()` restores `visits`/`own` from `sites.json`
-  so the merged output is not lost). A results row expands (caret on the «Скачано» cell) into that site's
+  download branch calls `PageVisitor::retryFailed()`, which re-fetches ONLY the failed pages of those sites
+  (already-downloaded pages are kept, not re-fetched) over several iterations through DIFFERENT proxies with a
+  growing timeout; one candidate per page is the URL without a leading language prefix (`/ru/app → /app` —
+  the prefixed form sometimes 404s while the bare one opens, `retryUrlCandidates()`/`stripLocaleFromUrl()`),
+  and `isRetryableVisit()` treats such a locale-404 as retryable. `unbucketSite()` pulls the site's folder out
+  of its `N-стр` bucket for the re-fetch and `bucketByPageCount()` re-buckets it after; the other sites keep
+  their pages and visits (`loadSites()` restores `visits`/`own` from `sites.json` so the merged output is not
+  lost). A results row expands (caret on the «Скачано» cell) into that site's
   visits **grouped by cause** (`pageCategory()`: скачано / не достучались / дубликаты / 404 / прочее — so
   duplicates and unreachable pages are separated) — URL + reason + file links — lazy-loaded from
   `/api/site-pages` (reads `sites.json`, `pagesCache` cleared when a job finishes) and carrying a per-site
@@ -293,8 +305,13 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   *only* a locale (`/ru`, `/ru-ru`, `/en` — `xx-xx` always, bare `xx` from a known-locale list) to the
   root so a localized home is not saved as a duplicate `main`. `PageVisitor` `visit.crawl`
   mode opens the home page, then a
-  single probe link, then the rest, and drops pages whose final URL redirects to another host
-  (`SiteLinks::sameHost`, www-insensitive). The visited-URL set is seeded with both the entry URL and
+  single probe link, then the rest, and drops only pages whose final URL redirects to a DIFFERENT SITE
+  (`SiteLinks::sameSite`, registrable-domain compare). A redirect that stays within the same registrable
+  domain is followed and kept: a site collected by its apex (`casinozsd.buzz`) whose home redirects to the
+  brand subdomain (`kush.casinozsd.buzz`) is not thrown away as «редирект на другой сайт» — the home is saved,
+  and the menu is parsed relative to the redirected URL (`final_url`) so the brand subdomain's links count as
+  same-host (`SiteLinks::sameHost` still gates menu-link extraction to one subdomain, so sibling brands
+  `hype.`/`max.` are not crawled). The visited-URL set is seeded with the entry URL, the redirected home and
   the site root so a menu link back to `/` never yields a second `main-2`. Any failed load — timeout/network,
   a block status (403/429/5xx) or an anti-bot/Cloudflare page (`PageVisitor::looksLikeBlock()`) — is retried
   through a different proxy (`visit.retries`, default 2; `PageVisitor::runWithRetry()`/`isRetryable()`); block

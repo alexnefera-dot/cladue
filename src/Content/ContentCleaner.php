@@ -42,14 +42,17 @@ final class ContentCleaner
 
     /**
      * Собирает опции для clean() с автоопределением бренда по странице и домену — чтобы можно было
-     * просто нажать «Забрать контент» без ручного ввода. Непустые $override перекрывают автозначения.
+     * просто нажать «Очистить» без ручного ввода. Непустые $override перекрывают автозначения.
+     * $moreHtml — остальные страницы сайта: бренд ищется по ним тоже, если главная оказалась
+     * заглушкой/редиректом.
      *
      * @param array<string, mixed> $override
+     * @param list<string> $moreHtml
      * @return array<string, mixed>
      */
-    public static function autoOptions(string $html, string $host, array $override = []): array
+    public static function autoOptions(string $html, string $host, array $override = [], array $moreHtml = []): array
     {
-        $brand = (new BrandDetector())->detect($html, $host);
+        $brand = (new BrandDetector())->detect($html, $host, $moreHtml);
         $hosts = $host !== '' ? array_values(array_unique([$host, Domains::registrable(Domains::normalize($host))])) : [];
         $opts = [
             'domain' => $host,
@@ -264,11 +267,12 @@ final class ContentCleaner
         if (($opt['brand_en'] ?? '') !== '') {
             $html = $this->replaceBrand($html, (string) $opt['brand_en'], '%brand_name_en%');
         }
-        foreach ($opt['extra_brands'] ?? [] as $brand) {
-            $brand = trim((string) $brand);
-            if ($brand !== '') {
-                $html = $this->replaceBrand($html, $brand, $this->hasCyrillic($brand) ? '%brand_name_ru%' : '%brand_name_en%');
-            }
+        // Сначала длинные названия, потом короткие: иначе «вулкан» съест первое слово «вулкан вегас»
+        // и оставит «вегас» (составной бренд должен подставиться раньше своего однословного префикса).
+        $extra = array_values(array_filter(array_map('trim', array_map('strval', $opt['extra_brands'] ?? [])), static fn (string $b): bool => $b !== ''));
+        usort($extra, static fn (string $a, string $b): int => mb_strlen($b) <=> mb_strlen($a));
+        foreach ($extra as $brand) {
+            $html = $this->replaceBrand($html, $brand, $this->hasCyrillic($brand) ? '%brand_name_ru%' : '%brand_name_en%');
         }
 
         return $html;

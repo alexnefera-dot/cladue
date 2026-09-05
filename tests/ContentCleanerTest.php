@@ -127,6 +127,17 @@ final class ContentCleanerTest
         Assert::true(str_contains($out, '%brand_name_ru%') && str_contains($out, '%brand_name_en%'));
     }
 
+    public function testMultiWordBrandReplacedWholeNotJustFirstWord(): void
+    {
+        // Составной бренд «Вулкан Вегас» должен уйти в переменную целиком, а не «%brand% Вегас»
+        // (короткий префикс «Вулкан» не должен срабатывать раньше длинного «Вулкан Вегас»).
+        $html = '<h1>Обзор</h1><p>Играть в Вулкан Вегас и в Мани Икс каждый день.</p><h3>Популярные запросы</h3>';
+        $out = (new ContentCleaner())->clean($html, ContentCleaner::autoOptions($html, 'cryptoboss.com'));
+        Assert::false(stripos($out, 'вегас') !== false, 'после замены «Вегас» не остаётся хвостом');
+        Assert::false(stripos($out, 'вулкан') !== false, '«Вулкан» заменён');
+        Assert::false(stripos($out, 'икс') !== false, '«Мани Икс» заменён целиком');
+    }
+
     public function testNoArticleReturnsEmpty(): void
     {
         Assert::same('', (new ContentCleaner())->clean('<html><body><p>нет заголовка</p></body></html>'));

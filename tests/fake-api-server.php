@@ -357,6 +357,25 @@ switch ($host) {
         header('Location: http://other-domain.ru:' . $port . '/');
 
         return;
+    case 'brandnet.ru':
+        // apex редиректит на бренд-поддомен ТОГО ЖЕ сайта (kush.brandnet.ru) — это не уход
+        // на чужой сайт: страницу надо сохранить, а меню разобрать относительно поддомена.
+        http_response_code(302);
+        header('Location: http://kush.brandnet.ru:' . $port . '/');
+
+        return;
+    case 'kush.brandnet.ru':
+        // Реальный сайт бренда: главная + уникальные /about и /promo (для дедупа тексты разные).
+        $bnWords = [];
+        for ($bn = 0; $bn < 40; $bn++) {
+            $bnWords[] = 'bn' . substr(md5($uri), 0, 8) . $bn;
+        }
+        $bnH1 = $uri === '/promo' ? 'Промо' : ($uri === '/about' ? 'О нас' : 'Куш Казино');
+        echo '<html><head><title>' . $bnH1 . '</title></head><body>'
+            . '<header><nav class="main-menu"><a href="/">Главная</a><a href="/about">О нас</a><a href="/promo">Промо</a></nav></header>'
+            . '<h1>' . $bnH1 . '</h1><p class="content">' . implode(' ', $bnWords) . '</p></body></html>';
+
+        return;
     case 'phone-site.ru':
         echo '<html><head><title>Сайт с телефоном</title></head><body><p>Звоните: +7 (495) 123-45-67</p><a href="mailto:info@phone-site.ru">Почта</a></body></html>';
 
@@ -372,6 +391,25 @@ switch ($host) {
         return;
     case 'honest-site.ru':
         echo '<html><head><title>Честный сайт</title></head><body><p>Одна и та же страница для всех посетителей</p></body></html>';
+
+        return;
+    case 'localeretry.ru':
+        // /ru/app отдаёт 404 (адрес с языковым префиксом), а /app — 200. Докачка должна попробовать
+        // адрес без /ru и добрать страницу. Остальные страницы уникальны (для дедупа).
+        if ($uri === '/ru/app') {
+            http_response_code(404);
+            echo '<html><head><title>404</title></head><body>Not found</body></html>';
+
+            return;
+        }
+        $lrWords = [];
+        for ($lr = 0; $lr < 40; $lr++) {
+            $lrWords[] = 'lr' . substr(md5($uri), 0, 8) . $lr;
+        }
+        $lrH1 = $uri === '/app' ? 'Приложение' : ($uri === '/about' ? 'О нас' : 'Главная');
+        echo '<html><head><title>' . $lrH1 . '</title></head><body>'
+            . '<header><nav class="main-menu"><a href="/">Главная</a><a href="/about">О нас</a><a href="/ru/app">Приложение</a></nav></header>'
+            . '<h1>' . $lrH1 . '</h1><p class="content">' . implode(' ', $lrWords) . '</p></body></html>';
 
         return;
     case 'duptest.ru':

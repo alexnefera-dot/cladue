@@ -20,7 +20,7 @@ use YandexSites\Visit\VisitJob;
  */
 final class VisitTest
 {
-    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'agegate.ru', 'ourtpl.ru', 'brand-a.tpl.ru', 'brand-b.tpl.ru', 'footeronly.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru', 'softsite.ru', 'duptest.ru'];
+    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'agegate.ru', 'ourtpl.ru', 'brand-a.tpl.ru', 'brand-b.tpl.ru', 'footeronly.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru', 'softsite.ru', 'duptest.ru', 'localeretry.ru', 'brandnet.ru', 'kush.brandnet.ru'];
 
     private ?string $dir = null;
 
@@ -490,6 +490,48 @@ final class VisitTest
         Assert::true(is_file("$dir/3-стр/brand-a.tpl.ru/promo.html"), 'реальная страница за циклом скачана');
     }
 
+    public function testCrawlFollowsRedirectToOwnBrandSubdomain(): void
+    {
+        // Сайт собран по регистрируемому домену (brandnet.ru), а его главная редиректит на
+        // бренд-поддомен (kush.brandnet.ru). Это НЕ уход на чужой сайт: главную сохраняем и
+        // обходим меню уже на поддомене (/about, /promo), а не выкидываем как «редирект на другой сайт».
+        $port = FakeServer::port();
+        $dir = $this->dir() . '/brandsub';
+        $site = new Site('brandnet.ru', 'brandnet.ru', 'brandnet.ru');
+        $site->add(new SearchResult('куш', 0, 1, "http://brandnet.ru:$port/", 'brandnet.ru', 'Куш'));
+        $sites = ['brandnet.ru' => $site];
+
+        $visitor = new PageVisitor([
+            'crawl' => true,
+            'max_pages' => 10,
+            'target' => 'found',
+            'dir' => $dir,
+            'screenshot' => false,
+            'timeout' => 5,
+            'delay_ms' => 0,
+            'concurrency' => 3,
+            'resolve' => $this->resolve($port),
+            'user_agents' => [UserAgents::YANDEX_BOT],
+        ], new CurlDriver(), $this->logger());
+        $visitor->visit($sites);
+
+        $byUrl = [];
+        foreach ($site->visits as $v) {
+            $byUrl[$v['url']] = $v;
+        }
+        // Главная (по адресу apex) открыта и НЕ помечена уходом на другой сайт.
+        $home = $byUrl["http://brandnet.ru:$port/"] ?? [];
+        Assert::true($home['ok'] ?? false, 'главная сохранена, а не выброшена как офсайт-редирект');
+        Assert::contains('kush.brandnet.ru', (string) ($home['final_url'] ?? ''), 'редирект на свой поддомен прослежен');
+        // Меню разобрано на поддомене: /about и /promo с kush.brandnet.ru скачаны.
+        Assert::true(($byUrl["http://kush.brandnet.ru:$port/about"]['ok'] ?? false), '/about на бренд-поддомене скачан');
+        Assert::true(($byUrl["http://kush.brandnet.ru:$port/promo"]['ok'] ?? false), '/promo на бренд-поддомене скачан');
+        Assert::same(3, $site->visitSummary()['ok'], 'собраны 3 страницы (главная + 2 из меню поддомена)');
+        Assert::true(is_file("$dir/3-стр/brandnet.ru/main.html"), 'папка сайта — по собранному хосту brandnet.ru');
+        Assert::true(is_file("$dir/3-стр/brandnet.ru/about.html"));
+        Assert::true(is_file("$dir/3-стр/brandnet.ru/promo.html"));
+    }
+
     public function testCrawlReadsFooterMenuWithoutSecondMain(): void
     {
         // Меню в подвале (не в шапке); входим по «глубокому» адресу с циклом. Ссылки за циклом
@@ -736,6 +778,48 @@ final class VisitTest
         Assert::false(str_contains((string) ($contacts['error'] ?? ''), 'дубликат'), '404 не помечается дубликатом');
         Assert::same('', (string) ($contacts['html_file'] ?? ''), 'страница 404 не сохранена как контент');
         Assert::false(is_file("$dir/softsite.ru/contacts.html"), 'файл 404 не сохранён');
+    }
+
+    public function testRetryFailedRecoversLocalePageKeepsRest(): void
+    {
+        // /ru/app даёт 404, а /app — 200. Докачка перекачивает ТОЛЬКО неудачную страницу и одной из
+        // попыток пробует адрес без /ru, добирая её; уже успешные страницы остаются нетронутыми.
+        $port = FakeServer::port();
+        $dir = $this->dir() . '/localeretry';
+        $site = new Site('localeretry.ru', 'localeretry.ru', 'localeretry.ru');
+        $site->add(new SearchResult('казино', 0, 1, "http://localeretry.ru:$port/", 'localeretry.ru', 'LR'));
+        $sites = ['localeretry.ru' => $site];
+
+        $cfg = [
+            'crawl' => true, 'max_pages' => 10, 'target' => 'found', 'dir' => $dir,
+            'screenshot' => false, 'similarity' => 0.9, 'timeout' => 5, 'delay_ms' => 0,
+            'concurrency' => 3, 'retries' => 0, 'resolve' => $this->resolve($port),
+            'user_agents' => [UserAgents::YANDEX_BOT],
+        ];
+        $visitor = new PageVisitor($cfg, new CurlDriver(), $this->logger());
+        $visitor->visit($sites);
+
+        $byUrl = [];
+        foreach ($site->visits as $v) {
+            $byUrl[$v['url']] = $v;
+        }
+        Assert::true(isset($byUrl["http://localeretry.ru:$port/ru/app"]), '/ru/app посещён при обходе');
+        Assert::false($byUrl["http://localeretry.ru:$port/ru/app"]['ok'] ?? true, '/ru/app — 404');
+        Assert::same(2, $site->visitSummary()['ok'], 'до докачки — 2 страницы (главная и about)');
+
+        // Докачка: /ru/app добирается через /app.
+        $visitor->retryFailed($sites);
+        Assert::same(3, $site->visitSummary()['ok'], 'после докачки — 3 страницы (добрали /app)');
+        $urls = array_map(static fn (array $v): string => (string) $v['url'], $site->visits);
+        Assert::inArray("http://localeretry.ru:$port/app", $urls, 'страница добрана по адресу без /ru');
+        Assert::true(is_file("$dir/3-стр/localeretry.ru/app.html"), 'файл добранной страницы сохранён');
+        Assert::true(is_file("$dir/3-стр/localeretry.ru/main.html"), 'главная не перекачивалась, осталась');
+
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($it as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+        @rmdir($dir);
     }
 
     public function testPlaywrightDriverRendersJavascript(): void

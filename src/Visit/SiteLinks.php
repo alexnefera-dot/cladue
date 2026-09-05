@@ -80,6 +80,20 @@ final class SiteLinks
     }
 
     /**
+     * Тот же ли это САЙТ (один регистрируемый домен) — для редиректов. Сайт часто собран по
+     * регистрируемому домену (casinozsd.buzz), а его бренд-версия живёт на поддомене
+     * (kush.casinozsd.buzz), и главная редиректит туда: это НЕ уход на чужой сайт, страницу
+     * нужно сохранить. Уходом считаем только редирект за пределы регистрируемого домена.
+     */
+    public static function sameSite(string $reference, string $url): bool
+    {
+        $a = self::hostOf($reference);
+        $b = self::hostOf($url);
+
+        return $a !== '' && $b !== '' && Domains::sameSite($a, $b);
+    }
+
+    /**
      * Хост из URL или из строки, которая уже является хостом (host или host/path).
      */
     private static function hostOf(string $urlOrHost): string

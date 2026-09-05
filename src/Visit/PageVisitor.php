@@ -141,7 +141,9 @@ final class PageVisitor
 
     /**
      * Собирает запись о визите из результата драйвера. Если задан $siteDomain и страница
-     * после редиректов увела на другой сайт — визит помечается ошибкой, а файлы удаляются.
+     * после редиректов увела на ДРУГОЙ сайт (другой регистрируемый домен) — визит помечается
+     * ошибкой, а файлы удаляются. Редирект в пределах того же сайта (apex → бренд-поддомен,
+     * casinozsd.buzz → kush.casinozsd.buzz) считается нормальным и страница сохраняется.
      *
      * @param array<string, mixed> $result
      * @return array<string, mixed>
@@ -164,7 +166,7 @@ final class PageVisitor
             'text_length' => 0,
         ];
 
-        if ($visit['ok'] && $siteDomain !== '' && $visit['final_url'] !== '' && !SiteLinks::sameHost($job->url, $visit['final_url'])) {
+        if ($visit['ok'] && $siteDomain !== '' && $visit['final_url'] !== '' && !SiteLinks::sameSite($job->url, $visit['final_url'])) {
             @unlink($job->htmlFile);
             if ($job->screenshotFile !== null) {
                 @unlink($job->screenshotFile);
@@ -312,17 +314,23 @@ final class PageVisitor
             }
             if (($visit['ok'] ?? false) && is_file($job->htmlFile)) {
                 $html = (string) file_get_contents($job->htmlFile);
+                // Адрес главной ПОСЛЕ редиректов: если apex увёл на бренд-поддомен
+                // (casinozsd.buzz → kush.casinozsd.buzz), меню и его ссылки живут уже на нём —
+                // относительно него и разбираем ссылки, иначе они кажутся «другим поддоменом».
+                $homeUrl = ((string) ($visit['final_url'] ?? '')) !== '' ? (string) $visit['final_url'] : $job->url;
+                $state[$key]['urls'][SiteLinks::canonical($homeUrl)] = true;
+                $state[$key]['urls'][SiteLinks::canonical($this->rootUrl($homeUrl))] = true;
                 $homeText = Fingerprint::text($html);
                 // Заглушку (проверка возраста, cookie-стена, «включите JS») не берём эталоном для
                 // сравнения: за ней у страниц разный контент, иначе одинаковые заглушки схлопнут сайт.
                 if (self::looksLikeStub($homeText)) {
                     $visit['stub'] = true;
                 } else {
-                    $state[$key]['texts'][] = ['text' => $homeText, 'label' => self::fileNameFromUrl($job->url), 'url' => $job->url];
+                    $state[$key]['texts'][] = ['text' => $homeText, 'label' => self::fileNameFromUrl($homeUrl), 'url' => $homeUrl];
                 }
                 // Ссылки меню без уже открытых адресов (главная и её алиасы не качаются повторно).
                 $fresh = [];
-                foreach (SiteLinks::fromHeader($html, $job->url, $site->domain, $maxPages - 1) as $link) {
+                foreach (SiteLinks::fromHeader($html, $homeUrl, $site->domain, $maxPages - 1) as $link) {
                     $canon = SiteLinks::canonical($link);
                     if (isset($state[$key]['urls'][$canon])) {
                         continue;
@@ -331,7 +339,7 @@ final class PageVisitor
                     $fresh[] = $link;
                 }
                 if ($fresh !== []) {
-                    $probeJobs[$key] = $makeJob((string) $key, $site, $fresh[0], $job->url);
+                    $probeJobs[$key] = $makeJob((string) $key, $site, $fresh[0], $homeUrl);
                     $state[$key]['links'] = array_slice($fresh, 1);
                 }
             }
@@ -374,6 +382,190 @@ final class PageVisitor
 
         $this->bucketByPageCount($sites, $dir);
         $this->logSiteSummary($sites);
+    }
+
+    /**
+     * Докачка: перезагружает ТОЛЬКО неудачные страницы сайтов (уже скачанные не трогаем), несколько
+     * итераций через РАЗНЫЕ прокси; одной из попыток пробует адрес без языкового префикса
+     * (/ru/app → /app — иногда с ним 404, а без него открывается). Обновляет визиты и раскладку.
+     *
+     * @param array<string, Site> $sites
+     */
+    public function retryFailed(array $sites): void
+    {
+        $dir = rtrim((string) ($this->cfg['dir'] ?? 'out/pages'), '/\\');
+        $threshold = (float) ($this->cfg['similarity'] ?? 0.9);
+        $options = $this->driverOptions();
+        $ua = $this->userAgents[0];
+        $proxies = $this->proxyList();
+        $proxyIndex = 0;
+        $iterations = max(3, (int) ($this->cfg['retries'] ?? 2) + 2);
+        $baseTimeout = (int) ($options['timeout'] ?? (int) ($this->cfg['timeout'] ?? 30));
+        $silent = static function (): void {};
+
+        foreach ($sites as $key => $site) {
+            if ($site->own) {
+                continue;
+            }
+            $this->unbucketSite($site, $dir);
+            $siteDir = $dir . '/' . self::safeName($site->host);
+
+            // Занятые имена и эталонные тексты — от уже успешных страниц (их не перекачиваем).
+            $usedNames = [];
+            $texts = [];
+            $failed = [];
+            foreach ($site->visits as $i => $v) {
+                if ($v['ok'] ?? false) {
+                    $base = pathinfo((string) ($v['html_file'] ?? ''), PATHINFO_FILENAME);
+                    if ($base !== '') {
+                        $usedNames[$base] = true;
+                    }
+                    $file = (string) ($v['html_file'] ?? '');
+                    if ($file !== '' && is_file($file)) {
+                        $texts[] = ['text' => Fingerprint::text((string) file_get_contents($file)), 'label' => $base, 'url' => (string) ($v['url'] ?? '')];
+                    }
+                } elseif ($this->isRetryableVisit($v)) {
+                    $failed[$i] = (string) ($v['url'] ?? '');
+                }
+            }
+            $failed = array_filter($failed, static fn (string $u): bool => $u !== '');
+            if ($failed === []) {
+                if (!empty($this->cfg['crawl'])) {
+                    $this->bucketByPageCount([$key => $site], $dir);
+                }
+                continue;
+            }
+
+            // По одному «слоту» на неудачную страницу: имя файла и кандидаты адреса (обычный + без locale).
+            $slots = [];
+            foreach ($failed as $i => $url) {
+                $name = $this->uniqueName($usedNames, self::fileNameFromUrl($url));
+                $slots[$i] = ['name' => $name, 'prefix' => $siteDir . '/' . $name, 'candidates' => $this->retryUrlCandidates($url), 'result' => null];
+            }
+
+            $pending = array_keys($slots);
+            for ($it = 0; $it < $iterations && $pending !== []; $it++) {
+                $jobs = [];
+                $jobToIdx = [];
+                foreach ($pending as $i) {
+                    $cands = $slots[$i]['candidates'];
+                    $url = $cands[$it % count($cands)];
+                    $proxy = $proxies !== [] ? $proxies[$proxyIndex++ % count($proxies)] : null;
+                    $job = new VisitJob(
+                        id: $key . "\t" . $slots[$i]['name'] . "\t" . $it,
+                        siteKey: (string) $key,
+                        variant: (int) $i,
+                        url: $url,
+                        referer: $this->referer($site),
+                        userAgent: $ua,
+                        proxyUrl: $proxy?->url,
+                        proxyLabel: $proxy?->label ?? 'direct',
+                        htmlFile: $slots[$i]['prefix'] . '.html',
+                        screenshotFile: null,
+                    );
+                    $jobs[] = $job;
+                    $jobToIdx[$job->id] = $i;
+                }
+                $opts = $options;
+                $opts['timeout'] = $baseTimeout + 15 * $it;
+                $this->log->info(sprintf('Докачка %s (итерация %d из %d): %d стр. через другой прокси…', $site->host, $it + 1, $iterations, count($jobs)));
+                $results = $this->driver->visit($jobs, $opts, $silent);
+                $stillPending = [];
+                foreach ($jobs as $job) {
+                    $i = $jobToIdx[$job->id];
+                    $visit = $this->assembleVisit($job, $results[$job->id] ?? $this->missingResult(), $site->domain);
+                    $slots[$i]['result'] = $visit;
+                    if ($visit['ok'] ?? false) {
+                        $site->visits[(int) $i] = $this->dedupVisit($visit, $job, $texts, $threshold, false);
+                    } else {
+                        $stillPending[] = $i;
+                    }
+                }
+                $pending = $stillPending;
+            }
+            foreach ($pending as $i) {
+                if ($slots[$i]['result'] !== null) {
+                    $site->visits[(int) $i] = $slots[$i]['result'];
+                }
+            }
+            if (!empty($this->cfg['crawl'])) {
+                $this->bucketByPageCount([$key => $site], $dir);
+            }
+        }
+        $this->logSiteSummary($sites);
+    }
+
+    /** Визит стоит перекачать: неуспех, но не наш/заглушка/дубликат; 404 — только если есть языковой префикс. */
+    private function isRetryableVisit(array $visit): bool
+    {
+        if (($visit['ok'] ?? false) || ($visit['own'] ?? false) || ($visit['stub'] ?? false) || ($visit['duplicate'] ?? false)) {
+            return false;
+        }
+        $e = mb_strtolower((string) ($visit['error'] ?? ''));
+        if (str_contains($e, 'не найдена') || str_contains($e, 'http 404') || str_contains($e, 'http 410')) {
+            return $this->stripLocaleFromUrl((string) ($visit['url'] ?? '')) !== '';
+        }
+
+        return true;
+    }
+
+    /** Кандидаты адреса для докачки: сам адрес и он же без ведущего языкового префикса. */
+    private function retryUrlCandidates(string $url): array
+    {
+        $candidates = [$url];
+        $stripped = $this->stripLocaleFromUrl($url);
+        if ($stripped !== '' && $stripped !== $url) {
+            $candidates[] = $stripped;
+        }
+
+        return $candidates;
+    }
+
+    /** Убирает ведущие языковые сегменты из адреса (/ru/ru/app → /app); '' если убирать нечего. */
+    private function stripLocaleFromUrl(string $url): string
+    {
+        $p = parse_url($url);
+        if ($p === false || !isset($p['host'])) {
+            return '';
+        }
+        $path = $p['path'] ?? '/';
+        $new = preg_replace('~^(?:/[a-z]{2}(?:-[a-z]{2})?(?=/))+~i', '', $path) ?? $path;
+        if ($new === $path) {
+            return '';
+        }
+        $new = $new === '' ? '/' : $new;
+        $auth = ($p['scheme'] ?? 'https') . '://' . $p['host'] . (isset($p['port']) ? ':' . $p['port'] : '');
+
+        return $auth . $new . (isset($p['query']) ? '?' . $p['query'] : '');
+    }
+
+    /** Возвращает папку сайта из бакета (pages/<N>-стр/<host>) обратно в pages/<host> для дозаписи. */
+    private function unbucketSite(Site $site, string $dir): void
+    {
+        $target = $dir . '/' . self::safeName($site->host);
+        $current = is_dir($target) ? $target : null;
+        if ($current === null) {
+            foreach (glob($dir . '/*/' . self::safeName($site->host), GLOB_ONLYDIR) ?: [] as $d) {
+                $current = $d;
+                break;
+            }
+        }
+        if ($current === null || $current === $target) {
+            return;
+        }
+        @mkdir($dir, 0777, true);
+        if (!@rename($current, $target)) {
+            return;
+        }
+        foreach ($site->visits as &$v) {
+            foreach (['html_file', 'screenshot_file'] as $f) {
+                $val = (string) ($v[$f] ?? '');
+                if ($val !== '' && str_starts_with($val, $current . '/')) {
+                    $v[$f] = $target . '/' . substr($val, strlen($current) + 1);
+                }
+            }
+        }
+        unset($v);
     }
 
     /**

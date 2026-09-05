@@ -220,6 +220,10 @@ function pagesByHost(string $pagesDir): array
 function cleanHostPages(string $runDir, string $host, array $files): array
 {
     sort($files);
+    $html = [];
+    foreach ($files as $f) {
+        $html[$f] = (string) file_get_contents($f);
+    }
     $home = $files[0] ?? '';
     foreach ($files as $f) {
         if (basename($f) === 'main.html') {
@@ -227,13 +231,21 @@ function cleanHostPages(string $runDir, string $host, array $files): array
             break;
         }
     }
-    $opts = \YandexSites\Content\ContentCleaner::autoOptions($home !== '' ? (string) file_get_contents($home) : '', $host);
+    // Бренд ищем по ВСЕМ страницам сайта, а не только по главной: если главная оказалась заглушкой
+    // или редиректом, бренд и canonical есть на внутренних страницах.
+    $moreHtml = [];
+    foreach ($files as $f) {
+        if ($f !== $home) {
+            $moreHtml[] = $html[$f];
+        }
+    }
+    $opts = \YandexSites\Content\ContentCleaner::autoOptions($home !== '' ? ($html[$home] ?? '') : '', $host, [], $moreHtml);
     $cleaner = new \YandexSites\Content\ContentCleaner();
     // Чистим в память, чтобы узнать итоговое число страниц и назвать по нему папку-бакет.
     $cleaned = [];
     $skipped = 0;
     foreach ($files as $file) {
-        $body = $cleaner->clean((string) file_get_contents($file), $opts);
+        $body = $cleaner->clean($html[$file], $opts);
         if (trim($body) === '') {
             $skipped++;
             continue;

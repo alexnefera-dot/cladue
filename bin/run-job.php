@@ -259,21 +259,6 @@ function rrmdir(string $dir): void
 }
 
 /**
- * Удаляет папки страниц одного сайта из любого бакета (pages/<N>-стр/<host>, pages/наши/<host>,
- * pages/<host>) — для точечной докачки этого сайта заново.
- */
-function clearHostPages(string $pagesDir, string $host): void
-{
-    $dirs = array_merge(
-        glob($pagesDir . '/*/' . $host, GLOB_ONLYDIR) ?: [],
-        glob($pagesDir . '/' . $host, GLOB_ONLYDIR) ?: [],
-    );
-    foreach ($dirs as $dir) {
-        rrmdir($dir);
-    }
-}
-
-/**
  * Восстанавливает объекты Site из ранее сохранённого sites.json (для этапа выгрузки).
  *
  * @return array<string, Site>
@@ -433,25 +418,27 @@ while (true) {
             $retryHosts = array_flip(array_map('strval', (array) ($settings['retry_hosts'] ?? [])));
             $isRetry = $retryHosts !== [];
             if ($isRetry) {
+                // Докачка: успешные страницы сохраняем, перекачиваем ТОЛЬКО неудачные (несколько попыток
+                // через разные прокси, одной попыткой — без языкового префикса).
                 $visitList = array_filter($sites, static fn (string $host): bool => isset($retryHosts[$host]), ARRAY_FILTER_USE_KEY);
                 if ($visitList === []) {
                     throw new RuntimeException('Нет сайтов для докачки (все успешны или убраны)');
                 }
-                foreach ($visitList as $host => $site) {
-                    $site->visits = [];
-                    clearHostPages($runDir . '/pages', (string) $host);
-                }
+                $progress->update(['phase' => 'visit', 'sites_selected' => count($visitList)], true);
+                $logger->info(sprintf('Докачка неудачных страниц: сайтов %d через %s', count($visitList), $visitor->driver()->name()));
+                $visitor->retryFailed($visitList);
             } else {
+                // Полная (пере)выгрузка: чистим весь прошлый результат и качаем все сайты заново.
                 rrmdir($runDir . '/pages');
                 rrmdir($runDir . '/content');
                 foreach ($sites as $site) {
                     $site->visits = [];
                 }
                 $visitList = $sites;
+                $progress->update(['phase' => 'visit', 'sites_selected' => count($visitList)], true);
+                $logger->info(sprintf('Выгрузка страниц: сайтов %d через %s', count($visitList), $visitor->driver()->name()));
+                $visitor->visit($visitList);
             }
-            $progress->update(['phase' => 'visit', 'sites_selected' => count($visitList)], true);
-            $logger->info(sprintf('%s: сайтов %d через %s', $isRetry ? 'Докачка страниц' : 'Выгрузка страниц', count($visitList), $visitor->driver()->name()));
-            $visitor->visit($visitList);
 
             // Пишем ВСЕ сайты: при докачке обновлённые + сохранённые, при полной выгрузке — все заново.
             $siteList = array_values($sites);

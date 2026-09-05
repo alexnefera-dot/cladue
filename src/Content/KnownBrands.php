@@ -50,6 +50,22 @@ final class KnownBrands
         'volna', 'волна казино',
         'lex casino', 'лекс казино',
         'sol casino', 'сол казино',
+        // Популярные бренды рынка (в т.ч. из двух слов — совпадение с учётом пробела).
+        'vulkan', 'вулкан',
+        'vulkan vegas', 'вулкан вегас',
+        'vulkan 24', 'вулкан 24',
+        'club vulkan', 'клуб вулкан',
+        'money x', 'мани икс',
+        'honey money', 'хани мани',
+        'goodwin', 'гудвин',
+        'fonbet', 'фонбет',
+        'fontan', 'фонтан',
+        'goldfishka', 'голдфишка',
+        'bollywood', 'болливуд',
+        'grizzly', 'гризли',
+        'betera', 'бетера',
+        'twin', 'твин',
+        'win777',
     ];
 
     /**

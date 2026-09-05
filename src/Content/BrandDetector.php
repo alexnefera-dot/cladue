@@ -20,25 +20,55 @@ final class BrandDetector
     ];
 
     /**
+     * Служебные слова тематики (казино), которые НЕ бывают брендом сайта — чтобы по общему домену
+     * (casino…, …bet) или тексту не выдать за бренд «казино»/«онлайн»/«бонус».
+     *
+     * @var list<string>
+     */
+    private const RU_STOP = [
+        'казино', 'онлайн', 'бонус', 'бонусы', 'слот', 'слоты', 'игра', 'игры', 'играть', 'игровые',
+        'зеркало', 'официальный', 'официальное', 'сайт', 'вход', 'войти', 'регистрация', 'ставки',
+        'ставка', 'спорт', 'деньги', 'автоматы', 'промокод', 'лицензия', 'депозит', 'выигрыш',
+        'фриспины', 'кэшбэк', 'приложение', 'скачать',
+    ];
+
+    /** Родовые английские метки домена, которые не считаем брендом. */
+    private const EN_GENERIC = [
+        'casino', 'kazino', 'bet', 'bets', 'win', 'wins', 'game', 'games', 'gaming', 'online',
+        'slot', 'slots', 'play', 'club', 'official', 'bonus', 'mirror', 'site', 'the', 'www',
+    ];
+
+    /**
+     * @param string $html HTML главной страницы (или любой страницы сайта)
      * @param string $host домен сайта (например, cryptoboss.ccy.casino)
+     * @param list<string> $moreHtml HTML остальных страниц сайта — чтобы бренд нашёлся, даже если
+     *        главная оказалась заглушкой/редиректом (бренд и canonical есть на внутренних страницах)
      * @return array{en: string, ru: string} английский и русский бренд ('' если не найден)
      */
-    public function detect(string $html, string $host): array
+    public function detect(string $html, string $host, array $moreHtml = []): array
     {
-        $text = $this->visibleText($html);
-        // Кандидаты в английский бренд: сперва метка поддомена из canonical/og:url
+        $docs = array_merge([$html], array_values(array_filter($moreHtml, 'is_string')));
+        $text = '';
+        foreach ($docs as $doc) {
+            $text .= ' ' . $this->visibleText($doc);
+        }
+        $text = mb_substr($text, 0, 2_000_000);
+
+        // Кандидаты в английский бренд: сперва метки поддоменов из canonical/og:url ВСЕХ страниц
         // (kush.casinozsd.buzz → kush), затем метка самого домена. У сеток бренд часто сидит в
         // поддомене, а регистрируемый домен общий/мусорный (casinozsd), поэтому по домену бренд
-        // не находится и в тексте ничего не заменяется.
+        // не находится и в тексте ничего не заменяется. Родовые метки (casino, bet…) отбрасываем.
         $candidates = [];
-        $canon = $this->canonicalHost($html);
-        if ($canon !== '') {
-            $candidates[] = $this->brandFromHost($canon);
+        foreach ($docs as $doc) {
+            $canon = $this->canonicalHost($doc);
+            if ($canon !== '') {
+                $candidates[] = $this->brandFromHost($canon);
+            }
         }
         $candidates[] = $this->brandFromHost($host);
         $candidates = array_values(array_unique(array_filter(
             $candidates,
-            static fn (string $c): bool => mb_strlen($c) >= 3,
+            fn (string $c): bool => mb_strlen($c) >= 3 && !$this->isGenericEn($c),
         )));
 
         // Берём первого кандидата, для которого в тексте находится русский бренд — значит, это
@@ -51,6 +81,14 @@ final class BrandDetector
         }
 
         return ['en' => $candidates[0] ?? $this->brandFromHost($host), 'ru' => ''];
+    }
+
+    /** Родовая ли это английская метка (casino, bet, win…) — такие не бренд (цифры отбрасываем). */
+    private function isGenericEn(string $label): bool
+    {
+        $label = preg_replace('~[0-9]+~', '', mb_strtolower($label)) ?? $label;
+
+        return in_array($label, self::EN_GENERIC, true);
     }
 
     /**
@@ -87,39 +125,64 @@ final class BrandDetector
     }
 
     /**
-     * Русский бренд — кириллическое слово из текста, чья транслитерация ближе всего к английскому бренду.
+     * Русский бренд — кириллическое слово (или пара соседних слов: «вулкан вегас», «мани икс»),
+     * чья транслитерация ближе всего к английскому бренду. Служебные слова тематики (казино,
+     * бонус…) в бренд не берём.
      */
     private function detectRu(string $text, string $en): string
     {
         $target = $this->phonetic($en);
-        if ($target === '') {
+        if (mb_strlen($target) < 3) {
             return '';
         }
         $threshold = max(1, (int) floor(mb_strlen($target) / 4));
 
         preg_match_all('~[А-Яа-яЁё]{3,}~u', $text, $m);
-        $freq = [];
-        foreach ($m[0] as $token) {
-            $low = mb_strtolower($token);
-            $freq[$low] = ($freq[$low] ?? 0) + 1;
+        $tokens = array_map('mb_strtolower', $m[0]);
+        if ($tokens === []) {
+            return '';
+        }
+        $freq = array_count_values($tokens);
+
+        // Кандидаты-фразы: отдельные слова и соседние пары (бренд бывает из двух слов).
+        $phrases = [];
+        $count = count($tokens);
+        for ($i = 0; $i < $count; $i++) {
+            $phrases[$tokens[$i]] = [$tokens[$i]];
+            if ($i + 1 < $count) {
+                $phrases[$tokens[$i] . ' ' . $tokens[$i + 1]] = [$tokens[$i], $tokens[$i + 1]];
+            }
         }
 
         $best = '';
         $bestDistance = PHP_INT_MAX;
         $bestFreq = 0;
-        foreach ($freq as $token => $count) {
-            $distance = levenshtein($this->phonetic($this->translit($token)), $target);
+        foreach ($phrases as $phrase => $words) {
+            // Фразу целиком из служебных слов (казино, бонус, онлайн…) за бренд не считаем.
+            if (array_filter($words, fn (string $w): bool => !$this->isStopword($w)) === []) {
+                continue;
+            }
+            $distance = levenshtein($this->phonetic($this->translit(str_replace(' ', '', $phrase))), $target);
             if ($distance > $threshold) {
                 continue;
             }
-            if ($distance < $bestDistance || ($distance === $bestDistance && $count > $bestFreq)) {
-                $best = $token;
+            $f = 0;
+            foreach ($words as $w) {
+                $f += $freq[$w] ?? 0;
+            }
+            if ($distance < $bestDistance || ($distance === $bestDistance && $f > $bestFreq)) {
+                $best = $phrase;
                 $bestDistance = $distance;
-                $bestFreq = $count;
+                $bestFreq = $f;
             }
         }
 
         return $best;
+    }
+
+    private function isStopword(string $token): bool
+    {
+        return in_array(mb_strtolower($token), self::RU_STOP, true);
     }
 
     private function translit(string $cyr): string

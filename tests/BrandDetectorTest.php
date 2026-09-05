@@ -35,6 +35,36 @@ final class BrandDetectorTest
         Assert::same('', $r['ru'], 'если русского бренда нет — не выдумываем');
     }
 
+    public function testMultiWordRussianBrand(): void
+    {
+        // Бренд из двух слов: одиночного токена «вулкан»/«вегас» мало — нужна пара «вулкан вегас».
+        $d = new BrandDetector();
+        $r = $d->detect('<h1>Обзор</h1><p>Вулкан Вегас — казино. Играть в Вулкан Вегас, Вулкан Вегас бонусы.</p>', 'vulkanvegas.com');
+        Assert::same('vulkanvegas', $r['en']);
+        Assert::same('вулкан вегас', $r['ru'], 'русский бренд из двух слов найден');
+    }
+
+    public function testBrandFoundOnInnerPageWhenHomeIsStub(): void
+    {
+        // Главная — заглушка проверки возраста (бренда нет), но бренд и canonical есть на внутренней
+        // странице. По ней и определяем — иначе после очистки ничего не подставится.
+        $d = new BrandDetector();
+        $gate = '<html><head><title>18+</title></head><body><div>Подтвердите возраст. Вам есть 18 лет?</div></body></html>';
+        $inner = '<head><link rel="canonical" href="https://twin.brandzz.buzz/promo"></head>'
+            . '<body><h1>Твин</h1><p>Официальный сайт Твин казино, Твин дарит бонусы, играть в Твин.</p></body>';
+        $r = $d->detect($gate, 'brandzz.buzz', [$inner]);
+        Assert::same('twin', $r['en'], 'бренд взят с внутренней страницы (canonical поддомена)');
+        Assert::same('твин', $r['ru']);
+    }
+
+    public function testGenericDomainDoesNotYieldCasinoAsBrand(): void
+    {
+        // Домен родовой (casino777), русского бренда в тексте нет — «казино» не должно стать брендом.
+        $d = new BrandDetector();
+        $r = $d->detect('<p>Лучшее казино онлайн, бонусы и слоты каждый день</p>', 'casino777.com');
+        Assert::same('', $r['ru'], 'служебное слово «казино» не выдаём за бренд');
+    }
+
     public function testBrandFromCanonicalSubdomain(): void
     {
         // Регистрируемый домен общий (casinozsd), бренд — в поддомене canonical/og:url (kush) и в тексте.
