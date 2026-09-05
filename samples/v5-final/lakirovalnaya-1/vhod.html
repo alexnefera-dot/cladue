@@ -1,0 +1,96 @@
+<h2>Расширение браузера %brand_name_en%: отчего форма не принимает секрет</h2>
+<p>Пароль верный, форма %brand_name_en% его отбивает. <strong>Четыре отказа подряд, а на пятый — вход без единого возражения.</strong> Разница была в том, насколько быстро я успевал нажать кнопку.</p>
+<p>Виноват оказался менеджер паролей, поставленный месяцем раньше и забытый в тот же день. Вход в кабинет от этого превратился в лотерею, а официальный сайт тут был совершенно ни при чём.</p>
+<h3>Что он делал с полем</h3>
+<table>
+<tr><th>Что происходит</th><th>Когда</th><th>Что видит сервер</th></tr>
+<tr><td>Расширение вписывает секрет</td><td>сразу после открытия</td><td>ничего</td></tr>
+<tr><td>Оно же чистит поле</td><td>через 2 секунды</td><td>ничего</td></tr>
+<tr><td>Я жму кнопку до чистки</td><td>на 1-й секунде</td><td>верный секрет</td></tr>
+</table>
+<h3>Отчего оно так себя ведёт</h3>
+<p>Менеджер боится, что страница подсмотрит значение, и стирает его после подстановки. <strong>Форма к этому моменту получает пустую строку и честно отвечает отказом</strong> — площадка тут ни при чём совершенно.</p>
+<p>Ни депозит, ни ставка от этой возни не пострадали: <strong>отыгрыш считает сервер, а не форма входа</strong>, и лимит на снятие остался прежним. Зеркало сайта тоже ни при чём — на запасном домене расширение вело себя точно так же.</p>
+<blockquote>Свежий слой трогают через сутки, а не через час: иначе тампон снимет то, что сам же и положил. Расширение спешило ровно так же.</blockquote>
+<h3>Как я это вычислил</h3>
+<ol>
+<li>открыл ту же форму в приватном режиме — пустило с первого раза;</li>
+<li>выключал расширения по одному и повторял заход после каждого;</li>
+<li>нашёл виновника четвёртым и внёс площадку в его исключения;</li>
+<li>проверил трижды в разное время: отказов больше не было ни одного.</li>
+</ol>
+<h3>Чего это не касалось</h3>
+<ul>
+<li>остатка и счётчика отыгрыша: они живут на сервере <a href="/zerkalo">площадки</a> и не двигались</li>
+<li>зелёной отметки проверки — она держится за учётной записью</li>
+<li>реестра устройств: место было занято, и новое не бралось</li>
+</ul>
+<h3>Итог с числом</h3>
+<p><strong>Пять неверных вводов запирают форму на двадцать минут</strong>, и до этой черты мне оставался один промах. Шесть минут перебора расширений сэкономили бы весь вечер. Можно ли было заподозрить площадку — нет: зеркало сайта и сервер работали ровно, а помеха стояла на моей стороне провода. Промахи эти ни на отдачу машин, ни на фриспины не влияют вовсе. Про раскладку под пульт написано в <a href="/app">клиенте на телефоне</a>, водяной знак на копии — в <a href="/registracia">анкете игрока</a>, а отбор по механике держит <a href="/slots">каталог автоматов</a>.</p>
+<h2>Ответы на частые вопросы о помехах при входе</h2>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Форма отбивает верный секрет — куда смотреть первым делом?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>В приватный режим: если там пускает, виновато одно из расширений браузера.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько попыток остаётся до запирания формы?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Пять: шестой промах запирает её на двадцать минут, отсчёт идёт от последнего.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Помогает ли смена пароля, если дело в расширении?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Не помогает ничем: новый секрет расширение сотрёт тем же порядком через 2 секунды.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Как быстро проверить, какое именно расширение мешает?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Выключайте по одному и заходите после каждого: у меня виновник нашёлся четвёртым.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Пострадал ли счётчик отыгрыша от четырёх отказов?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Ни на рубль: мои 132 000 ₽ оборота живут на сервере и с формой входа не связаны.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Заняло ли приватное окно отдельное место в реестре?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Заняло одно из пяти и погасло вместе с окном — там расписка не сохраняется вовсе.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Что делать, если форма уже заперта на двадцать минут?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Ждать: досрочно её не снимают, а новая попытка внутри паузы обнуляет отсчёт.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Спасает ли сборка на телефоне от такой помехи?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Спасает: расширений там нет вовсе, и вход занимает у меня четыре секунды.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Придётся ли подтверждать документы после такой возни?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Зелёная отметка держится за учётной записью: 21 час разбора повторять не нужно.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Разберёт ли поддержка такой случай, если написать ей?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Разберёт, но дольше: у оператора нет доступа к вашему браузеру, и совет будет тем же.</p></div>
+  </div>
+</details>
+<details itemscope itemtype="https://schema.org/Question">
+  <summary itemprop="name">Сколько живёт расписка, если войти всё-таки удалось?</summary>
+  <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+    <div itemprop="text"><p>Десять суток от последнего действия, и кнопка у строки гасит её за одну секунду.</p></div>
+  </div>
+</details>
