@@ -20,7 +20,7 @@ use YandexSites\Visit\VisitJob;
  */
 final class VisitTest
 {
-    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'agegate.ru', 'ourtpl.ru', 'brand-a.tpl.ru', 'brand-b.tpl.ru', 'footeronly.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru', 'softsite.ru'];
+    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'agegate.ru', 'ourtpl.ru', 'brand-a.tpl.ru', 'brand-b.tpl.ru', 'footeronly.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru', 'softsite.ru', 'duptest.ru'];
 
     private ?string $dir = null;
 
@@ -662,6 +662,42 @@ final class VisitTest
         Assert::true(is_file("$dir/3-стр/agegate.ru/main.html"), 'страницы сохранены, а не удалены как дубли');
         Assert::true(is_file("$dir/3-стр/agegate.ru/about.html"));
         Assert::true(is_file("$dir/3-стр/agegate.ru/contacts.html"));
+    }
+
+    public function testCrawlDuplicateNamesReferencePage(): void
+    {
+        // Дубликат должен называть, С КАКОЙ страницей совпал: /contacts = копия /about.
+        $port = FakeServer::port();
+        $dir = $this->dir() . '/dup';
+        $site = new Site('duptest.ru', 'duptest.ru', 'duptest.ru');
+        $site->add(new SearchResult('казино', 0, 1, "http://duptest.ru:$port/", 'duptest.ru', 'Dup'));
+        $sites = ['duptest.ru' => $site];
+
+        $visitor = new PageVisitor([
+            'crawl' => true,
+            'max_pages' => 10,
+            'target' => 'found',
+            'dir' => $dir,
+            'screenshot' => false,
+            'similarity' => 0.9,
+            'timeout' => 5,
+            'delay_ms' => 0,
+            'concurrency' => 3,
+            'resolve' => $this->resolve($port),
+            'user_agents' => [UserAgents::YANDEX_BOT],
+        ], new CurlDriver(), $this->logger());
+        $visitor->visit($sites);
+
+        $byUrl = [];
+        foreach ($site->visits as $v) {
+            $byUrl[$v['url']] = $v;
+        }
+        $c = $byUrl["http://duptest.ru:$port/contacts"] ?? null;
+        Assert::true($c !== null, 'страница /contacts посещена');
+        Assert::true($c['duplicate'] ?? false, '/contacts — дубликат');
+        Assert::contains('дубликат', (string) ($c['error'] ?? ''));
+        Assert::contains('about', (string) ($c['error'] ?? ''), 'в ошибке указано, с какой страницей совпало');
+        Assert::same("http://duptest.ru:$port/about", (string) ($c['duplicate_of'] ?? ''), 'duplicate_of = адрес страницы-эталона');
     }
 
     public function testCrawl404IsNotFoundNotDuplicate(): void

@@ -374,6 +374,19 @@ switch ($host) {
         echo '<html><head><title>Честный сайт</title></head><body><p>Одна и та же страница для всех посетителей</p></body></html>';
 
         return;
+    case 'duptest.ru':
+        // /contacts отдаёт (200) то же тело, что и /about — это дубликат именно страницы about,
+        // остальные страницы уникальны. Проверяем, что в ошибке указано, с какой страницей совпало.
+        $bodyKey = $uri === '/contacts' ? '/about' : $uri;
+        $words = [];
+        for ($i = 0; $i < 40; $i++) {
+            $words[] = 'w' . substr(md5($bodyKey), 0, 8) . $i;
+        }
+        $h1 = $bodyKey === '/about' ? 'О нас' : (($bodyKey === '/' || $bodyKey === '') ? 'Главная' : 'Страница ' . $bodyKey);
+        echo '<html><head><title>' . htmlspecialchars($h1) . '</title></head><body>' . $navHtml
+            . '<h1>' . htmlspecialchars($h1) . '</h1><p class="content">' . implode(' ', $words) . '</p></body></html>';
+
+        return;
     case 'softsite.ru':
         // Мягкий 404: несуществующий путь отдаётся с кодом 404, но телом-копией главной (шаблон
         // сайта). Раньше такой ответ ошибочно считался «дубликатом», а не «страница не найдена».

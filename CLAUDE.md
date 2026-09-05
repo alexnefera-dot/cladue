@@ -296,7 +296,9 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `uniqueName()`). Duplicate/one-pager
   detection: `Fingerprint::text()` + `Fingerprint::similarity()` (Jaccard word-set); if the probe
   page matches home ≥ `visit.similarity` (default 0.9) the site is a one-pager and the rest are
-  skipped, and matching inner pages are dropped (`PageVisitor::dedupVisit()`). Finished sites are
+  skipped, and matching inner pages are dropped (`PageVisitor::dedupVisit()`). The comparison texts are
+  tracked with their page label/url, so a duplicate names its reference — «дубликат: совпадает с главной
+  / с «registracia» на N%» — and carries `duplicate_of` (the reference URL) in the visit. Finished sites are
   bucketed into `pages/<N>-стр/<host>/` by successful-page count (`PageVisitor::bucketByPageCount()`).
   Barrier stubs (age-gate 18+, cookie wall, "enable JavaScript") look identical on every URL but hide
   different content, so `PageVisitor::looksLikeStub()` excludes them from dedup (never a duplicate/one-pager,

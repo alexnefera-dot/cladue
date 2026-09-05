@@ -318,7 +318,7 @@ final class PageVisitor
                 if (self::looksLikeStub($homeText)) {
                     $visit['stub'] = true;
                 } else {
-                    $state[$key]['texts'][] = $homeText;
+                    $state[$key]['texts'][] = ['text' => $homeText, 'label' => self::fileNameFromUrl($job->url), 'url' => $job->url];
                 }
                 // Ссылки меню без уже открытых адресов (главная и её алиасы не качаются повторно).
                 $fresh = [];
@@ -439,10 +439,11 @@ final class PageVisitor
     }
 
     /**
-     * Если страница сильно совпадает с уже сохранёнными — считаем дубликатом: удаляем файлы и помечаем.
+     * Если страница сильно совпадает с уже сохранёнными — считаем дубликатом: удаляем файлы и помечаем,
+     * указывая, С КАКОЙ страницей совпало.
      *
      * @param array<string, mixed> $visit
-     * @param list<string> $texts
+     * @param list<array{text: string, label: string, url: string}> $texts
      * @return array<string, mixed>
      */
     private function dedupVisit(array $visit, VisitJob $job, array &$texts, float $threshold, bool $isProbe): array
@@ -457,21 +458,36 @@ final class PageVisitor
             return array_merge($visit, ['stub' => true]);
         }
         $best = 0.0;
-        foreach ($texts as $previous) {
-            $best = max($best, Fingerprint::similarity($previous, $text));
+        $bestRef = null;
+        foreach ($texts as $entry) {
+            $sim = Fingerprint::similarity($entry['text'], $text);
+            if ($sim > $best) {
+                $best = $sim;
+                $bestRef = $entry;
+            }
         }
         if ($best >= $threshold) {
             @unlink($job->htmlFile);
             if ($job->screenshotFile !== null) {
                 @unlink($job->screenshotFile);
             }
+            // Первый эталон в списке — это главная сайта.
+            $isHomeRef = $bestRef !== null && isset($texts[0]) && ($texts[0]['url'] ?? '') === ($bestRef['url'] ?? '');
+            $refName = $isHomeRef ? 'главной' : '«' . ($bestRef['label'] ?? '') . '»';
             $reason = $isProbe
                 ? sprintf('одностраничник: совпадает с главной на %d%%', (int) round($best * 100))
-                : sprintf('дубликат: совпадает с уже скачанной на %d%%', (int) round($best * 100));
+                : sprintf('дубликат: совпадает с %s на %d%%', $refName, (int) round($best * 100));
 
-            return array_merge($visit, ['ok' => false, 'error' => $reason, 'html_file' => '', 'screenshot_file' => '', 'duplicate' => true]);
+            return array_merge($visit, [
+                'ok' => false,
+                'error' => $reason,
+                'html_file' => '',
+                'screenshot_file' => '',
+                'duplicate' => true,
+                'duplicate_of' => $bestRef['url'] ?? '',
+            ]);
         }
-        $texts[] = $text;
+        $texts[] = ['text' => $text, 'label' => self::fileNameFromUrl($job->url), 'url' => $job->url];
 
         return $visit;
     }

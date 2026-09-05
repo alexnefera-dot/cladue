@@ -404,6 +404,7 @@ if ($path === '/api/site-pages' && $method === 'POST') {
                 'error' => (string) ($v['error'] ?? ''),
                 'status' => $v['status'] ?? null,
                 'variant' => $v['variant'] ?? null,
+                'duplicate_of' => (string) ($v['duplicate_of'] ?? ''),
                 'html' => $rel((string) ($v['html_file'] ?? '')),
                 'screenshot' => $rel((string) ($v['screenshot_file'] ?? '')),
             ];
