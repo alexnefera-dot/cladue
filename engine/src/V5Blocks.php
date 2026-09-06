@@ -1799,6 +1799,51 @@ function v5PohozhieVoprosy(string $a, string $b): bool
     return $общ >= 2 && $общ >= 0.6 * min(count($A), count($B));
 }
 
+/** Основы слов от пяти букв (первые пять букв), без тегов и прорезей. */
+function v5Osnovy(string $т): array
+{
+    $т = preg_replace('~\{[^}]*\}~u', ' ', strip_tags($т));
+    $о = [];
+    foreach (preg_split('~[^\p{L}]+~u', mb_strtolower((string) $т), -1, PREG_SPLIT_NO_EMPTY) as $w) {
+        if (mb_strlen($w) >= 5) { $о[mb_substr($w, 0, 5)] = true; }
+    }
+    return $о;
+}
+
+/** Есть ли у двух текстов общая основа (слово от пяти букв). */
+function v5ObshchayaOsnova(string $a, string $b): bool
+{
+    $A = v5Osnovy($a);
+    if (!$A) { return true; }
+    foreach (v5Osnovy($b) as $к => $_) { if (isset($A[$к])) { return true; } }
+    return false;
+}
+
+/**
+ * Одна шаблонная концовка на блок FAQ: «Если готов(а) — заходи и проверяй сам(а).»,
+ * «Решать всё равно тебе.», «Хочешь попробовать — начни с бонуса.» шли в трёх ответах подряд.
+ * Повторная последняя фраза снимается, если в ответе остаётся хотя бы два предложения.
+ */
+function v5OdnaKontsovka(array $пары): array
+{
+    $были = [];
+    foreach ($пары as $i => $p) {
+        $о = (string) ($p['о'] ?? '');
+        $предл = preg_split('~(?<=[.!?])\s+~u', trim($о), -1, PREG_SPLIT_NO_EMPTY);
+        if (count($предл) < 2) { continue; }
+        $посл = end($предл);
+        $ключ = trim((string) preg_replace('~[^\p{L}]+~u', ' ', mb_strtolower(str_replace('(а)', '', strip_tags($посл)))));
+        if ($ключ === '' || mb_strlen($ключ) > 60) { continue; }
+        if (isset($были[$ключ])) {
+            array_pop($предл);
+            $пары[$i]['о'] = implode(' ', $предл);
+        } else {
+            $были[$ключ] = true;
+        }
+    }
+    return $пары;
+}
+
 function v5PochinitMelochi(string $html): string
 {
     $html = (string) preg_replace_callback('~(\p{Lu}[а-яё]+)\s+(выиграл|отыграл|снял|поднял|забрал|вывел|сорвал)\(а\)~u',
