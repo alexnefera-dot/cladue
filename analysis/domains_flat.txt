@@ -18,16 +18,20 @@
 0509casino.casino
 0509d.casino
 0509dd.casino
+0509ds.casino
 0509g.casino
 0509gg.casino
 0509h.casino
+0509k.casino
 0509kk.casino
 0509mg.casino
 0509mm.casino
 0509rr.casino
 0509s.casino
+0509ss.casino
 0509t.casino
 0540.team
+055.lol
 0665.team
 0722.team
 0728.lol
@@ -199,6 +203,7 @@
 4355.team
 4358.team
 4392.team
+441casino.lol
 4432.team
 4464.team
 4502.lol
@@ -218,6 +223,7 @@
 4757.team
 4811.team
 4814.team
+4832.lol
 4839.team
 4854.lol
 4863.team
@@ -415,13 +421,16 @@ casino01.team
 casino0409d.casino
 casino0409m.casino
 casino0409s.casino
+casino0509d.casino
 casino0509g.casino
 casino0509h.casino
 casino0509m.casino
 casino0509s.casino
 casino0962.lol
+casino0962.team
 casino1430.lol
 casino1430.team
+casino3704.lol
 casino4623.team
 casino4934.lol
 casino79.team
@@ -429,7 +438,9 @@ casino814.team
 casino876.lol
 casino876.team
 casino922.lol
+casinoduw.lol
 casinogh.lol
+casinogh.team
 casinoj1.lol
 casinoj1.team
 casinojr.team
@@ -502,6 +513,7 @@ fkrt.team
 fkxb.team
 fmwc.team
 fnpk.team
+fpq.lol
 g2k.team
 g5pb.team
 g7ld.team
@@ -604,6 +616,7 @@ lrwo.casino
 lvqv.lol
 lvqv.team
 lwcasino.lol
+lwcasino.team
 m2vc.team
 m2wf.team
 m3wv.team
@@ -760,6 +773,7 @@ xhpt.team
 xoacasino.lol
 xoacasino.team
 xycasino.lol
+xycasino.team
 xzdg.team
 y8db.team
 ypur.team

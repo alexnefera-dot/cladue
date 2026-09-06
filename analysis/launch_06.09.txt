@@ -1,7 +1,27 @@
-# День 06.09.2026 — 2 домена, две группы (обе — посторонние доноры, по одному домену)
+# День 06.09.2026 — 16 доменов, пять групп
 
 ## drobilnyydvor1_1 — id 1413, создан 02:01
 65casino.lol
 
 ## bortnichiydvor1_1 — id 1414, создан 02:47
 1936.team
+
+## NEW20_3_7pages_withdate_styled_img_1…_4 — id 1434-1437, создан 14:29
+casino0962.team
+lwcasino.team
+xycasino.team
+casinogh.team
+
+## NEW20_3_12pages_nodate_styled_img_1…_5 — id 1438-1442, создан 14:30
+0509ss.casino
+casino0509d.casino
+0509k.casino
+0509ds.casino
+055.lol
+
+## NEW20_3_12pages_withdate_styled_img_1…_5 — id 1443-1447, создан 14:30
+4832.lol
+441casino.lol
+fpq.lol
+casinoduw.lol
+casino3704.lol
