@@ -494,6 +494,7 @@ function detailRowHtml(s){
   let retryLabel='Докачать этот сайт', retryDis='';
   if(retryActive.has(s.host)){ retryLabel='Докачивается…'; retryDis=' disabled'; }
   else if(retryQueue.has(s.host)){ retryLabel='В очереди — отменить'; }
+  else if(s.retryable===false){ retryLabel='Нечего докачивать (ошибки повтором не чинятся)'; retryDis=' disabled'; }
   const retry=`<button class="ctBtn" data-retry-one="${esc(s.host)}"${retryDis} title="Заново выкачать только этот сайт" style="margin-bottom:8px">${retryLabel}</button>`;
   let inner;
   if(pages===undefined){ inner='<span class="muted">Загрузка…</span>'; }
@@ -523,6 +524,9 @@ function detailRowHtml(s){
 // (таймаут, нет соединения, блок/Cloudflare, SSL, DNS). 404/дубликат/наш — повтор не поможет.
 function siteNeedsRetry(s){
   if(!s || s.own) return false;
+  // Сервер знает по каждой странице, чинится ли ошибка повтором (таймаут/блок/404 с языковым префиксом) —
+  // берём его флаг, чтобы кнопка совпадала с тем, что докачка реально доберёт.
+  if(typeof s.retryable==='boolean') return s.retryable;
   const e = String(s.page_error||'');
   if(!e) return false;
   if(/не найдена|HTTP 40|HTTP 41|дубликат|исключ/i.test(e)) return false;

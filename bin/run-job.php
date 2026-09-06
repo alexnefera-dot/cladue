@@ -215,7 +215,19 @@ function previewSites(array $sites, string $runDir = '', int $limit = 300): arra
         // Для показа берём первый успешный визит, а если такого нет (ошибка/наш) — самый первый визит:
         // так остаётся ссылка на скриншот (у «наших» он сохранён) и видна причина ошибки.
         $visit = $site->firstVisit() ?? ($site->visits[0] ?? null);
+        // Есть ли у сайта страницы, которые докачка реально может добрать (таймаут/блок/404 с языковым
+        // префиксом) — по этому флагу панель считает кнопку «Докачать с ошибками» и не предлагает докачку впустую.
+        $retryable = false;
+        if (!$own) {
+            foreach ($site->visits as $v) {
+                if (\YandexSites\Visit\PageVisitor::isRetryableVisit((array) $v)) {
+                    $retryable = true;
+                    break;
+                }
+            }
+        }
         $rows[] = [
+            'retryable' => $retryable,
             'host' => $data['host'],
             'domain' => $data['domain'],
             'url' => $data['url'],
@@ -417,6 +429,7 @@ while (true) {
             // весь прошлый результат и качаем все сайты заново.
             $retryHosts = array_flip(array_map('strval', (array) ($settings['retry_hosts'] ?? [])));
             $isRetry = $retryHosts !== [];
+            $retryStat = ['attempted' => 0, 'recovered' => 0];
             if ($isRetry) {
                 // Докачка: успешные страницы сохраняем, перекачиваем ТОЛЬКО неудачные (несколько попыток
                 // через разные прокси, одной попыткой — без языкового префикса).
@@ -426,7 +439,7 @@ while (true) {
                 }
                 $progress->update(['phase' => 'visit', 'sites_selected' => count($visitList)], true);
                 $logger->info(sprintf('Докачка неудачных страниц: сайтов %d через %s', count($visitList), $visitor->driver()->name()));
-                $visitor->retryFailed($visitList);
+                $retryStat = $visitor->retryFailed($visitList);
             } else {
                 // Полная (пере)выгрузка: чистим весь прошлый результат и качаем все сайты заново.
                 rrmdir($runDir . '/pages');
@@ -460,7 +473,13 @@ while (true) {
                 'sites' => previewSites($siteList, $runDir),
                 'run_finished_at' => date(DATE_ATOM),
                 'files' => ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt'],
-                'message' => sprintf('%s: %d', $isRetry ? 'Докачано, всего страниц' : 'Выгружено страниц', $opened),
+                // Докачка: говорим честно, что добрано, а если добирать было нечего — почему (иначе
+                // пользователь видит «ничего не изменилось» и думает, что докачка не запустилась).
+                'message' => !$isRetry
+                    ? sprintf('Выгружено страниц: %d', $opened)
+                    : ($retryStat['attempted'] === 0
+                        ? 'Докачка: нечего добирать — оставшиеся ошибки повтором не чинятся (404 без языкового префикса, дубликаты)'
+                        : sprintf('Докачано: добрано %d из %d стр., всего открыто %d', $retryStat['recovered'], $retryStat['attempted'], $opened)),
             ], true);
             $logger->info(sprintf('%s завершена: страниц открыто %d', $isRetry ? 'Докачка' : 'Выгрузка', $opened));
         } else {

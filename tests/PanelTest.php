@@ -307,7 +307,8 @@ final class PanelTest
         Assert::same(0, $r2['code'], $r2['out']);
         $st = json_decode((string) file_get_contents($runDir . '/status.json'), true);
         Assert::same('done', $st['state'], $r2['out']);
-        Assert::contains('Докачано', $st['message']);
+        // У okna-moskva.ru все страницы уже ок — добирать нечего, и сообщение честно об этом говорит.
+        Assert::contains('нечего добирать', $st['message']);
         $by2 = [];
         foreach ((json_decode((string) file_get_contents($runDir . '/sites.json'), true))['sites'] as $x) {
             $by2[$x['host']] = $x;
@@ -316,6 +317,50 @@ final class PanelTest
         Assert::true($by2['okna-company.com']['visits'][0]['ok'] ?? false, 'нетронутый сайт сохранил свой результат');
         Assert::true(is_dir($runDir . '/pages/okna-moskva.ru'), 'страницы докачанного на месте');
         Assert::true(is_dir($runDir . '/pages/okna-company.com'), 'страницы нетронутого сохранены');
+
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($it as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+        @rmdir($dir);
+    }
+
+    public function testRetryStageRecoversFailedCrawlPage(): void
+    {
+        // Обход (crawl) localeretry.ru: главная и /about открываются, а /ru/app отдаёт 404 (упал).
+        // Докачка должна добрать эту страницу без языкового префикса (/app) и обновить sites.json.
+        $port = FakeServer::port('local');
+        $dir = sys_get_temp_dir() . '/yandex-sites-retryc-' . uniqid();
+        $runDir = $dir . '/runs/retryc';
+        mkdir($runDir, 0777, true);
+        file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
+        file_put_contents($runDir . '/sites.json', json_encode(['sites' => [
+            ['host' => 'localeretry.ru', 'domain' => 'localeretry.ru', 'url' => "http://localeretry.ru:$port/", 'title' => 'T', 'best_query' => 'к', 'best_position' => 1, 'queries_count' => 1],
+        ]]));
+        $settings = static fn (array $extra): string => (string) json_encode(array_merge([
+            'stage' => 'download', 'visit_driver' => 'curl', 'crawl' => true, 'max_pages' => 10,
+            'visit_resolve' => ["localeretry.ru:$port:127.0.0.1"],
+        ], $extra));
+
+        // Первый обход: /ru/app падает (404).
+        file_put_contents($runDir . '/settings.json', $settings([]));
+        $r1 = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $r1['code'], $r1['out']);
+        $visits1 = (json_decode((string) file_get_contents($runDir . '/sites.json'), true))['sites'][0]['visits'];
+        $failed = array_values(array_filter($visits1, static fn (array $v): bool => !($v['ok'] ?? false) && str_contains((string) ($v['url'] ?? ''), '/ru/app')));
+        Assert::same(1, count($failed), 'после обхода /ru/app помечен как упавший: ' . $r1['out']);
+
+        // Докачка этого сайта: страница добирается без /ru → /app.
+        file_put_contents($runDir . '/settings.json', $settings(['retry_hosts' => ['localeretry.ru']]));
+        $r2 = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $r2['code'], $r2['out']);
+        $st = json_decode((string) file_get_contents($runDir . '/status.json'), true);
+        Assert::same('done', $st['state'], $r2['out']);
+        Assert::contains('Докачано', $st['message'], $r2['out']);
+        $visits2 = (json_decode((string) file_get_contents($runDir . '/sites.json'), true))['sites'][0]['visits'];
+        $okCount = count(array_filter($visits2, static fn (array $v): bool => $v['ok'] ?? false));
+        Assert::same(3, $okCount, 'после докачки открыты все 3 страницы (главная, about, app): ' . $r2['out']);
+        Assert::true(is_file($runDir . '/pages/3-стр/localeretry.ru/app.html'), 'добранная страница /app лежит в бакете 3-стр');
 
         $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
         foreach ($it as $item) {

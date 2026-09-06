@@ -187,6 +187,41 @@ final class ContentCleanerTest
         Assert::true(str_contains($out, '%brand_name_en%'), 'слитный «Goodwin» заменён');
     }
 
+    public function testRemovesInlineStylesEmptyWrappersAndBreakRuns(): void
+    {
+        // После удаления картинок/виджетов остаются пустые обёртки и инлайновые стили — они дают большие
+        // промежутки в статье. В эталонных шаблонах ни того, ни другого нет.
+        $html = '<h1>Обзор</h1>'
+            . '<div class="row" style="margin-top:80px"><div class="col"><img src="/x.png"></div></div>'
+            . '<p style="padding:40px 0">Первый абзац.</p>'
+            . '<p>&nbsp;</p><div><span></span></div>'
+            . '<p>Второй<br><br><br>абзац.<br></p>'
+            . '<table><tr><td></td><td>ячейка</td></tr></table>'
+            . '<h3>Популярные запросы</h3>';
+        $out = (new ContentCleaner())->clean($html);
+        Assert::false(str_contains($out, 'style='), 'инлайновые стили удалены');
+        Assert::false(str_contains($out, 'class="row"'), 'пустая обёртка (после удаления картинки) удалена');
+        Assert::false(preg_match('~<p>\s*(?:&nbsp;)?\s*</p>~u', $out) === 1, 'пустой абзац удалён');
+        Assert::false(str_contains($out, '<span></span>'), 'пустой span удалён');
+        Assert::same(1, preg_match_all('~<br\s*/?>~', $out), 'серия <br> схлопнута в один, концевой <br> убран');
+        Assert::true(str_contains($out, 'Первый абзац') && str_contains($out, 'Второй'), 'текст на месте');
+        Assert::true(str_contains($out, '<td></td>'), 'пустая ячейка таблицы сохранена (структура таблицы не трогается)');
+    }
+
+    public function testOwnRussianBrandMatchesDeclinedForms(): void
+    {
+        // Свой бренд в падежах («Криптобосса», «Криптобоссе», «Криптобоссом») тоже уходит в переменную;
+        // у чужих (известных) брендов склонение не включаем, чтобы «куш» не съел «кушать».
+        $html = '<h1>Обзор</h1><p>Играть в Криптобосс. Бонусы Криптобосса, зеркало Криптобоссе, вход в Криптобоссом. Я хочу кушать.</p><h3>Популярные запросы</h3>';
+        $out = (new ContentCleaner())->clean($html, ['brand_ru' => 'криптобосс', 'extra_brands' => ['куш']]);
+        Assert::false(stripos($out, 'криптобосс') !== false, 'все падежные формы своего бренда заменены');
+        Assert::true(str_contains($out, 'кушать'), 'слово «кушать» не тронуто (чужой бренд «куш» без склонения)');
+
+        // Составной бренд склоняется по обоим словам: «в Вулкане Вегасе».
+        $two = (new ContentCleaner())->clean('<h1>x</h1><p>В Вулкане Вегасе весело.</p><h3>Популярные запросы</h3>', ['brand_ru' => 'вулкан вегас']);
+        Assert::false(stripos($two, 'вулкан') !== false || stripos($two, 'вегас') !== false, 'склонённый двусловный бренд заменён целиком');
+    }
+
     public function testNoArticleReturnsEmpty(): void
     {
         Assert::same('', (new ContentCleaner())->clean('<html><body><p>нет заголовка</p></body></html>'));

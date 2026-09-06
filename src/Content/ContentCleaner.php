@@ -179,12 +179,80 @@ final class ContentCleaner
         foreach ($remove as $n) {
             $n->parentNode?->removeChild($n);
         }
+        // Инлайновые стили (margin/height/padding) и пустые обёртки, оставшиеся после удаления картинок
+        // и виджетов, дают большие пустые промежутки в статье — убираем (в эталонных шаблонах их нет).
+        foreach ($xp->query('//*[@style]') as $n) {
+            if ($n instanceof \DOMElement) {
+                $n->removeAttribute('style');
+            }
+        }
+        $this->pruneEmpty($xp, $root);
+        $this->collapseBreaks($xp);
         $out = '';
         foreach (iterator_to_array($root->childNodes) as $child) {
             $out .= $doc->saveHTML($child);
         }
 
         return $out;
+    }
+
+    /** Теги-контейнеры, которые убираем, если они остались пустыми (структуру таблиц не трогаем). */
+    private const PRUNE_TAGS = [
+        'div', 'p', 'span', 'section', 'article', 'aside', 'main', 'nav', 'ul', 'ol', 'li', 'dl', 'dt', 'dd',
+        'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'strong', 'em', 'b', 'i', 'u', 'small', 'a', 'sup', 'sub',
+    ];
+
+    /**
+     * Удаляет пустые элементы (без текста и без потомков) снизу вверх, пока что-то удаляется:
+     * <div><div></div></div> → ничего. &nbsp; считается пустотой.
+     */
+    private function pruneEmpty(\DOMXPath $xp, \DOMElement $root): void
+    {
+        $tags = implode('|', array_map(static fn (string $t): string => 'self::' . $t, self::PRUNE_TAGS));
+        do {
+            $removed = 0;
+            $nodes = iterator_to_array($xp->query('.//*[' . $tags . ']', $root) ?: []);
+            foreach (array_reverse($nodes) as $n) {
+                if (!$n instanceof \DOMElement || $n->parentNode === null) {
+                    continue;
+                }
+                $hasElementChild = false;
+                foreach ($n->childNodes as $c) {
+                    if ($c instanceof \DOMElement) {
+                        $hasElementChild = true;
+                        break;
+                    }
+                }
+                $text = str_replace("\u{00A0}", ' ', $n->textContent);
+                if (!$hasElementChild && trim($text) === '') {
+                    $n->parentNode->removeChild($n);
+                    $removed++;
+                }
+            }
+        } while ($removed > 0);
+    }
+
+    /** Схлопывает подряд идущие <br> в один и убирает <br> в самом начале/конце блока. */
+    private function collapseBreaks(\DOMXPath $xp): void
+    {
+        foreach (iterator_to_array($xp->query('//br') ?: []) as $br) {
+            if (!$br instanceof \DOMElement || $br->parentNode === null) {
+                continue;
+            }
+            // Сосед слева/справа без учёта пустых текстовых узлов.
+            $prev = $br->previousSibling;
+            while ($prev instanceof \DOMText && trim($prev->textContent) === '') {
+                $prev = $prev->previousSibling;
+            }
+            $next = $br->nextSibling;
+            while ($next instanceof \DOMText && trim($next->textContent) === '') {
+                $next = $next->nextSibling;
+            }
+            $prevIsBr = $prev instanceof \DOMElement && strtolower($prev->tagName) === 'br';
+            if ($prevIsBr || $prev === null || $next === null) {
+                $br->parentNode->removeChild($br);
+            }
+        }
     }
 
     /**
@@ -269,7 +337,10 @@ final class ContentCleaner
         // («cryptoboss» → «Crypto Boss», «vulkanvegas» → «Vulkan Vegas», «moneyx» → «Money X»).
         $spaced = [];
         if (($opt['brand_ru'] ?? '') !== '') {
-            $html = $this->replaceBrand($html, (string) $opt['brand_ru'], '%brand_name_ru%');
+            // Свой русский бренд — с учётом падежей («Криптобосса», «Криптобоссе»), иначе часть упоминаний
+            // оставалась незаменённой. Для чужих (известных) брендов склонение не включаем: у коротких
+            // слов это даёт ложные совпадения (стейк → «стейка» — еда, а не бренд).
+            $html = $this->replaceBrand($html, (string) $opt['brand_ru'], '%brand_name_ru%', true);
         }
         if (($opt['brand_en'] ?? '') !== '') {
             $b = (string) $opt['brand_en'];
@@ -292,9 +363,16 @@ final class ContentCleaner
         return $html;
     }
 
-    private function replaceBrand(string $html, string $brand, string $variable): string
+    /**
+     * Падежные окончания русского бренда («Криптобосса», «Криптобоссе», «в Вулкане Вегасе»): без них
+     * склонённые формы оставались в тексте. Только явный список окончаний, а не «любые 3 буквы» —
+     * иначе «куш» + «ать» съело бы «кушать».
+     */
+    private const RU_ENDINGS = '(?:ами|ями|ом|ем|ём|ой|ей|ою|ею|ов|ев|ёв|ам|ям|ах|ях|а|я|у|ю|е|ё|ы|и|о)?';
+
+    private function replaceBrand(string $html, string $brand, string $variable, bool $declension = false): string
     {
-        $pattern = $this->homoglyphPattern($brand);
+        $pattern = $this->homoglyphPattern($brand, $declension);
         if ($pattern === '') {
             return $html;
         }
@@ -358,12 +436,13 @@ final class ContentCleaner
      * Регэксп по названию бренда: каждая похожая буква — класс из латиницы и кириллицы (STAKE ≡ STAKЕ),
      * пробел — любой пробельный промежуток (play fortuna ≡ play&nbsp;fortuna).
      */
-    private function homoglyphPattern(string $brand): string
+    private function homoglyphPattern(string $brand, bool $declension = false): string
     {
         $out = '';
         foreach (preg_split('~~u', mb_strtolower(trim($brand)), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $ch) {
             if (trim($ch) === '') {
-                $out .= '\s+';
+                // Окончание — у каждого слова составного бренда («в Вулкане Вегасе»), перед пробелом.
+                $out .= ($declension ? self::RU_ENDINGS : '') . '\s+';
             } elseif (isset(self::HOMOGLYPHS[$ch])) {
                 $out .= '[' . self::HOMOGLYPHS[$ch] . ']';
             } else {
@@ -371,7 +450,7 @@ final class ContentCleaner
             }
         }
 
-        return $out;
+        return $out === '' ? '' : $out . ($declension ? self::RU_ENDINGS : '');
     }
 
     private function hasCyrillic(string $text): bool

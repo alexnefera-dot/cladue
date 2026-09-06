@@ -390,9 +390,12 @@ final class PageVisitor
      * (/ru/app → /app — иногда с ним 404, а без него открывается). Обновляет визиты и раскладку.
      *
      * @param array<string, Site> $sites
+     * @return array{attempted: int, recovered: int} сколько страниц пробовали добрать и сколько добрали
      */
-    public function retryFailed(array $sites): void
+    public function retryFailed(array $sites): array
     {
+        $attempted = 0;
+        $recovered = 0;
         $dir = rtrim((string) ($this->cfg['dir'] ?? 'out/pages'), '/\\');
         $threshold = (float) ($this->cfg['similarity'] ?? 0.9);
         $options = $this->driverOptions();
@@ -424,7 +427,7 @@ final class PageVisitor
                     if ($file !== '' && is_file($file)) {
                         $texts[] = ['text' => Fingerprint::text((string) file_get_contents($file)), 'label' => $base, 'url' => (string) ($v['url'] ?? '')];
                     }
-                } elseif ($this->isRetryableVisit($v)) {
+                } elseif (self::isRetryableVisit($v)) {
                     $failed[$i] = (string) ($v['url'] ?? '');
                 }
             }
@@ -440,8 +443,9 @@ final class PageVisitor
             $slots = [];
             foreach ($failed as $i => $url) {
                 $name = $this->uniqueName($usedNames, self::fileNameFromUrl($url));
-                $slots[$i] = ['name' => $name, 'prefix' => $siteDir . '/' . $name, 'candidates' => $this->retryUrlCandidates($url), 'result' => null];
+                $slots[$i] = ['name' => $name, 'prefix' => $siteDir . '/' . $name, 'candidates' => self::retryUrlCandidates($url), 'result' => null];
             }
+            $attempted += count($slots);
 
             $pending = array_keys($slots);
             for ($it = 0; $it < $iterations && $pending !== []; $it++) {
@@ -477,6 +481,7 @@ final class PageVisitor
                     $slots[$i]['result'] = $visit;
                     if ($visit['ok'] ?? false) {
                         $site->visits[(int) $i] = $this->dedupVisit($visit, $job, $texts, $threshold, false);
+                        $recovered++;
                     } else {
                         $stillPending[] = $i;
                     }
@@ -493,27 +498,35 @@ final class PageVisitor
             }
         }
         $this->logSiteSummary($sites);
+
+        return ['attempted' => $attempted, 'recovered' => $recovered];
     }
 
-    /** Визит стоит перекачать: неуспех, но не наш/заглушка/дубликат; 404 — только если есть языковой префикс. */
-    private function isRetryableVisit(array $visit): bool
+    /**
+     * Визит стоит перекачать: неуспех, но не наш/заглушка/дубликат; 404 — только если есть языковой
+     * префикс (его можно убрать). Публичный и статический — по нему панель считает, у каких сайтов
+     * есть что докачивать, чтобы кнопка «Докачать с ошибками» совпадала с тем, что реально чинится.
+     *
+     * @param array<string, mixed> $visit
+     */
+    public static function isRetryableVisit(array $visit): bool
     {
         if (($visit['ok'] ?? false) || ($visit['own'] ?? false) || ($visit['stub'] ?? false) || ($visit['duplicate'] ?? false)) {
             return false;
         }
         $e = mb_strtolower((string) ($visit['error'] ?? ''));
         if (str_contains($e, 'не найдена') || str_contains($e, 'http 404') || str_contains($e, 'http 410')) {
-            return $this->stripLocaleFromUrl((string) ($visit['url'] ?? '')) !== '';
+            return self::stripLocaleFromUrl((string) ($visit['url'] ?? '')) !== '';
         }
 
         return true;
     }
 
     /** Кандидаты адреса для докачки: сам адрес и он же без ведущего языкового префикса. */
-    private function retryUrlCandidates(string $url): array
+    private static function retryUrlCandidates(string $url): array
     {
         $candidates = [$url];
-        $stripped = $this->stripLocaleFromUrl($url);
+        $stripped = self::stripLocaleFromUrl($url);
         if ($stripped !== '' && $stripped !== $url) {
             $candidates[] = $stripped;
         }
@@ -522,7 +535,7 @@ final class PageVisitor
     }
 
     /** Убирает ведущие языковые сегменты из адреса (/ru/ru/app → /app); '' если убирать нечего. */
-    private function stripLocaleFromUrl(string $url): string
+    private static function stripLocaleFromUrl(string $url): string
     {
         $p = parse_url($url);
         if ($p === false || !isset($p['host'])) {

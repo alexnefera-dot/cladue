@@ -240,12 +240,19 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `aria-modal`/`dialog`), the site `footer` (but a `<footer>` inside a `<blockquote>` citation is kept),
   and blocks whose class/id token is junk (`JUNK_TOKENS`: contacts, tag-cloud, social/share, popup/modal,
   cookie, breadcrumbs, banner/ads, and CTA/urgency widgets `cta`/`countdown`/`timer`/`ticker` — the latter
-  left artefacts like «spot-cta-number 12345»); HTML comments (Метрика/Analytics) are stripped too. It
+  left artefacts like «spot-cta-number 12345»); HTML comments (Метрика/Analytics) are stripped too. Then, to
+  avoid the big blank gaps the user saw, it drops every inline `style` attribute, prunes empty wrappers
+  bottom-up until stable (`pruneEmpty()`: `<div><div></div></div>` after an image was removed, `<p>&nbsp;</p>`;
+  table cells are left alone) and collapses `<br>` runs / edge `<br>`s (`collapseBreaks()`) — the reference
+  templates have neither styles nor empty tags. It
   rewrites every `<a href>` to one of six relative paths (`ALLOWED_LINKS`, mapped by keyword), and templates
   the domain → `%domain_name%` (the regex eats an optional subdomain prefix too, so `kush.casinozsd.buzz`
   → `%domain_name%`, not «kush.%domain_name%»), `dd.mm.yyyy` → `%date%`, brand →
   `%brand_name_ru%`/`%brand_name_en%`. Brand matching is case-insensitive and homoglyph-tolerant
-  (Latin↔Cyrillic look-alikes, so `STAKE`≡`STAKЕ`); a concatenated latin brand label also matches its SPACED
+  (Latin↔Cyrillic look-alikes, so `STAKE`≡`STAKЕ`), and the site's OWN Russian brand also matches its declined
+  forms («Криптобосса», «в Вулкане Вегасе» — `RU_ENDINGS`, an explicit case-ending list rather than «any 3
+  letters», applied per word; deliberately NOT applied to the known/foreign brand list, where short words would
+  false-match — «куш» must not eat «кушать»); a concatenated latin brand label also matches its SPACED
   spelling in the text (`cryptoboss` → «Crypto Boss», `vulkanvegas` → «Vulkan Vegas», `moneyx` → «Money X»)
   via `replaceSpacedBrands()`, which folds Title-Case multi-word runs and only replaces those whose glued
   form equals a brand — so «Good Win» maps to a brand but the phrase «a good win» is left alone.
@@ -268,9 +275,14 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `loadSites()` by that list and rewrites `sites.json` to the kept set). `runCollect()` clears the removed
   set (fresh list); `runDownload()` keeps it. A re-run of download wipes the previous result first
   (`rrmdir()` on `runs/current/pages` and `content`) so it is a clean redo, not an append. «Докачать с
-  ошибками» (`runRetry()`) sends `stage=download` with `retry_hosts` = only the sites whose error is fixable
-  by another proxy (timeout/connection/block/SSL/DNS — not 404/duplicate/own, `siteNeedsRetry()`): the
-  download branch calls `PageVisitor::retryFailed()`, which re-fetches ONLY the failed pages of those sites
+  ошибками» (`runRetry()`) sends `stage=download` with `retry_hosts` = only the sites that have something
+  a retry can actually recover: `previewSites()` emits a per-site `retryable` flag computed with
+  `PageVisitor::isRetryableVisit()` (timeout/connection/block/SSL/DNS, or a 404 whose URL carries a language
+  prefix; never own/duplicate/plain 404), and `siteNeedsRetry()` uses that flag — so the button count matches
+  what `retryFailed()` will do, and the per-site «Докачать этот сайт» button is disabled with a hint when
+  `retryable === false`. The job message is honest about the outcome: «Докачано: добрано X из Y стр.» or
+  «нечего добирать» (`retryFailed()` returns `{attempted, recovered}`), so a no-op retry no longer looks like
+  it never started. The download branch calls `PageVisitor::retryFailed()`, which re-fetches ONLY the failed pages of those sites
   (already-downloaded pages are kept, not re-fetched) over several iterations through DIFFERENT proxies with a
   growing timeout; one candidate per page is the URL without a leading language prefix (`/ru/app → /app` —
   the prefixed form sometimes 404s while the bare one opens, `retryUrlCandidates()`/`stripLocaleFromUrl()`),
