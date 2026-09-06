@@ -41,6 +41,7 @@ require_once __DIR__ . '/src/SeoMetrics.php';
 require_once __DIR__ . '/src/Soglasovanie.php';
 require_once __DIR__ . '/src/Ekho.php';
 require_once __DIR__ . '/src/Rossyp.php';
+require_once __DIR__ . '/src/Skvoznye.php';
 
 const PAGES_K = ['main', 'app', 'bonus', 'registracia', 'slots', 'vhod', 'zerkalo'];
 /** Доля удержанных полей, ниже которой страница не принимается. */
@@ -600,6 +601,40 @@ foreach (PAGES_K as $p) {
 if ($rossypVsego === 0) {
     printf("  · серий длиннее %d нет (у доноров максимум 3 на 266 страницах)\n", Rossyp::POTOLOK);
 } else { $provaly['россыпь'] = 1; }
+
+// Сквозная сверка фактов. Постраничные меры и согласование смотрят внутрь
+// одной страницы; расхождение между страницами не видит ни одна из них. У
+// rogozhnaya-masterskaya-1 таких оказалось шесть, и все нашлись только чтением
+// семи страниц подряд — «настольные игры гостю открыты» на главной при нуле в
+// таблице /slots, счёт, заведённый и за девяносто секунд руками, и за восемь
+// через внешний профиль, почта, которую правит то оператор за четверо суток,
+// то вы сами за полминуты. Свод комплекта закрепляет величину один раз, и
+// дальше её держат все семь страниц.
+echo "\n── сквозная сверка фактов ──\n";
+$svodFile = $dir . '/svod.json';
+$svod = is_file($svodFile) ? json_decode((string) file_get_contents($svodFile), true) : null;
+$rashozhdeniya = Skvoznye::schyotPerechnya($stranicy);
+if (is_array($svod)) {
+    $rashozhdeniya = array_merge(Skvoznye::poSvodu($stranicy, $svod), $rashozhdeniya);
+    printf("  · свод: %d величин\n", count($svod));
+} else {
+    echo "  · свода нет — сверены только счёт против перечня\n";
+}
+foreach ($rashozhdeniya as $r) {
+    if ($r['вид'] === 'запрет') {
+        printf("  ✗ %-11s %s — сказано «%s»\n", $r['где'], $r['ярлык'], $r['запрет']);
+    } elseif ($r['вид'] === 'свод') {
+        printf("  ✗ %-11s %s — по своду %s, в тексте %s\n", $r['где'], $r['ярлык'],
+            rtrim(rtrim(sprintf('%.2f', $r['ждали']), '0'), '.'),
+            rtrim(rtrim(sprintf('%.2f', $r['нашли']), '0'), '.'));
+    } else {
+        printf("  ✗ %-11s перечень: объявлено %d, пунктов %d\n",
+            $r['где'], $r['объявлено'], $r['в перечне']);
+    }
+    printf("      «%s»\n", mb_substr($r['фраза'], 0, 96));
+}
+if (!$rashozhdeniya) { echo "  · расхождений между страницами нет\n"; }
+else { $provaly['сквозные факты'] = 1; }
 
 printf("\nИТОГ: %s\n", $provaly ? 'НЕ ПРОЙДЕНО — ' . implode(', ', array_keys($provaly)) : 'комплект принят');
 exit($provaly ? 1 : 0);
