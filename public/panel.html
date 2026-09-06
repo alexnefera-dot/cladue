@@ -243,6 +243,15 @@
       <a class="tag" id="dlJson" href="/download?file=json">JSON</a>
       <a class="tag" id="dlDomains" href="/download?file=domains">domains.txt</a>
     </div>
+    <div class="btns" id="statsRow" style="margin-bottom:8px;align-items:center;flex-wrap:wrap;gap:8px">
+      <span class="hint" id="statsText"></span>
+      <button class="btn-ghost" id="removeOwnBtn" hidden title="Убрать из списка все сайты, помеченные как наши (крестиком — можно вернуть). Работает сразу после сбора, по превью">Убрать наши</button>
+      <span id="r404wrap" hidden style="display:inline-flex;align-items:center;gap:6px">
+        <span class="hint">порог</span>
+        <input type="number" id="max404" value="4" min="0" style="width:3.5em" title="Сайт убирается, если страниц с ошибкой 404 больше этого числа">
+        <button class="btn-ghost" id="remove404Btn" title="Убрать из списка сайты, у которых страниц с ошибкой 404 больше порога (крестиком — можно вернуть)">Убрать с 404 &gt; 4</button>
+      </span>
+    </div>
     <div class="hint" id="removedNote" hidden style="margin-bottom:8px"></div>
     <div style="overflow:auto">
       <table id="resTable">
@@ -552,6 +561,53 @@ function updateDownloadBtn(){
   }
 }
 
+// Тип сайта для статистики: наш / проблемный (есть упавшие страницы или не открылся вовсе) /
+// 100% (все страницы открыты) / не проверено (ещё не открывали).
+function siteKind(s){
+  if(!s) return 'unchecked';
+  if(s.own) return 'own';
+  const total=s.pages_total|0, ok=s.pages_ok|0;
+  if(total>0 && ok===total) return 'full';
+  if(total>0 && ok<total) return 'problem';
+  if(!total && s.page_error) return 'problem';
+  return 'unchecked';
+}
+// Строка статистики над таблицей и кнопки массовой чистки: «Убрать наши» (работает сразу после сбора —
+// признак «наш» появляется уже на превью-скриншотах) и «Убрать с 404 > N» (по числу страниц с 404 после
+// выгрузки). Убирают через тот же механизм, что и крестик: обратимо, «вернуть все» возвращает.
+function updateStats(visible){
+  const c={own:0,problem:0,full:0,unchecked:0};
+  visible.forEach(s=>{ c[siteKind(s)]++; });
+  const st=$('statsText');
+  if(st){
+    if(!visible.length){ st.textContent=''; }
+    else {
+      let t=`Из ${visible.length}: наших ${c.own} · проблемных ${c.problem} · без ошибок (100%) ${c.full}`;
+      if(c.unchecked) t+=` · не проверено ${c.unchecked}`;
+      st.textContent=t;
+    }
+  }
+  const ro=$('removeOwnBtn');
+  if(ro){ ro.hidden = c.own===0; ro.textContent='Убрать наши ('+c.own+')'; }
+  const wrap=$('r404wrap'), rb=$('remove404Btn'), inp=$('max404');
+  if(wrap && rb && inp){
+    const N=Math.max(0, parseInt(inp.value,10)||0);
+    const has404=visible.some(s=>(s.pages_404|0)>0);
+    const cnt=visible.filter(s=>!s.own && (s.pages_404|0)>N).length;
+    wrap.hidden = !has404;
+    rb.disabled = cnt===0;
+    rb.textContent='Убрать с 404 > '+N+' ('+cnt+')';
+  }
+}
+function removeWhere(pred){
+  const hosts=lastSites.filter(s=>!removedHosts.has(s.host) && pred(s)).map(s=>s.host);
+  if(!hosts.length) return;
+  hosts.forEach(h=>removedHosts.add(h)); saveRemoved(); renderResults(lastSites);
+}
+$('removeOwnBtn').addEventListener('click', ()=>removeWhere(s=>!!s.own));
+$('remove404Btn').addEventListener('click', ()=>{ const N=Math.max(0, parseInt($('max404').value,10)||0); removeWhere(s=>!s.own && (s.pages_404|0)>N); });
+$('max404').addEventListener('input', ()=>updateStats(lastSites.filter(s=>!removedHosts.has(s.host))));
+
 function renderResults(sites){
   sites = sites || [];
   // Во время запущенного задания статус временно пуст (status.json пере-создаётся). Не сбрасываем
@@ -572,6 +628,7 @@ function renderResults(sites){
   updateDownloadBtn();
   card.hidden=false;
   $('resCount').textContent='· '+visible.length+(removedHosts.size?` (убрано ${removedHosts.size})`:'');
+  updateStats(visible);
   const note=$('removedNote');
   if(removedHosts.size){ note.hidden=false; note.innerHTML=`Убрано сайтов: <b>${removedHosts.size}</b> · <a href="#" id="restoreRemoved">вернуть все</a>`; }
   else note.hidden=true;

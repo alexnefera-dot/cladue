@@ -218,16 +218,22 @@ function previewSites(array $sites, string $runDir = '', int $limit = 300): arra
         // Есть ли у сайта страницы, которые докачка реально может добрать (таймаут/блок/404 с языковым
         // префиксом) — по этому флагу панель считает кнопку «Докачать с ошибками» и не предлагает докачку впустую.
         $retryable = false;
+        $notFound = 0; // страниц с 404/410 — для кнопки «Убрать с 404 > N» в панели
         if (!$own) {
             foreach ($site->visits as $v) {
-                if (\YandexSites\Visit\PageVisitor::isRetryableVisit((array) $v)) {
+                $v = (array) $v;
+                if (!$retryable && \YandexSites\Visit\PageVisitor::isRetryableVisit($v)) {
                     $retryable = true;
-                    break;
+                }
+                $e = mb_strtolower((string) ($v['error'] ?? ''));
+                if (!($v['ok'] ?? false) && (str_contains($e, 'не найдена') || str_contains($e, 'http 404') || str_contains($e, 'http 410'))) {
+                    $notFound++;
                 }
             }
         }
         $rows[] = [
             'retryable' => $retryable,
+            'pages_404' => $notFound,
             'host' => $data['host'],
             'domain' => $data['domain'],
             'url' => $data['url'],

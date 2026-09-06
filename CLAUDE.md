@@ -313,7 +313,12 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   to `retryQueue`, `pumpRetry()` starts one download batch at a time (`retry_hosts`) when idle and auto-starts
   the next batch on completion, so the user can queue several and keep working; the results table is not
   reset while a job runs (`renderResults` keeps `lastSites` when the status is momentarily empty during a
-  run), and queued/active hosts show «в очереди»/«докачивается…» chips. The `both`
+  run), and queued/active hosts show «в очереди»/«докачивается…» chips. Above the table a stats line
+  (`siteKind()`: own / problem = a failed page or no page at all / full = every page OK / unchecked)
+  summarises the kept sites right after collect, and two bulk-remove buttons add hosts to `removedHosts`
+  (client-side, reversible via «вернуть все»): «Убрать наши» (`s.own`; works right after collect, since the
+  preview screenshots already mark own templates, so they are never even downloaded) and «Убрать с 404 > N»
+  (`s.pages_404` from `previewSites()`, N from the `#max404` input, default 4; shown once download data exists). The `both`
   branch stays in `buildOverrides()`/run-job for CLI, just not surfaced. Content cleaning is table-only and
   writes to disk (no download): a per-site «Очистить» button (`/api/clean-site`) and a bulk «Очистить всё»
   button (`/api/clean-all`) run `cleanHostPages()`, which cleans a site's

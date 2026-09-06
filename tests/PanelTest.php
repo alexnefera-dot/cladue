@@ -349,6 +349,9 @@ final class PanelTest
         $visits1 = (json_decode((string) file_get_contents($runDir . '/sites.json'), true))['sites'][0]['visits'];
         $failed = array_values(array_filter($visits1, static fn (array $v): bool => !($v['ok'] ?? false) && str_contains((string) ($v['url'] ?? ''), '/ru/app')));
         Assert::same(1, count($failed), 'после обхода /ru/app помечен как упавший: ' . $r1['out']);
+        $st1 = json_decode((string) file_get_contents($runDir . '/status.json'), true);
+        Assert::same(1, (int) ($st1['sites'][0]['pages_404'] ?? -1), 'в строке сайта — число страниц с 404 (для кнопки «Убрать с 404 > N»)');
+        Assert::same(2, (int) ($st1['sites'][0]['pages_ok'] ?? -1));
 
         // Докачка этого сайта: страница добирается без /ru → /app.
         file_put_contents($runDir . '/settings.json', $settings(['retry_hosts' => ['localeretry.ru']]));
