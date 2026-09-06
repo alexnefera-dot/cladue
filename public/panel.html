@@ -640,7 +640,9 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeLightbox(); 
 $('cleanAllBtn').addEventListener('click', async ()=>{
   const btn=$('cleanAllBtn'); const old=btn.textContent; btn.disabled=true; btn.textContent='Чищу всё…';
   try{
-    const r=await fetch('/api/clean-all',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({exclude:[...removedHosts]})}); const j=await r.json();
+    // only — оставленные сайты (что видно в таблице): чистим только их, убранные крестиком не трогаем.
+    const only=(lastSites||[]).filter(s=>!removedHosts.has(s.host)).map(s=>s.host);
+    const r=await fetch('/api/clean-all',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({only, exclude:[...removedHosts]})}); const j=await r.json();
     if(!j.ok){ alert(j.error||'Ошибка'); btn.textContent=old; btn.disabled=false; return; }
     if(!j.written){ alert('Ни на одной странице не найдено тело статьи (нет <h1> или блока «Популярные запросы»).'); btn.textContent=old; btn.disabled=false; return; }
     btn.textContent='Очищено: '+(j.sites||0)+' сайтов, '+j.written+' стр.'; btn.title='Готово в runs/current/content/N-стр/сайт'; btn.disabled=false;

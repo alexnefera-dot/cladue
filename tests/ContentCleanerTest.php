@@ -138,6 +138,55 @@ final class ContentCleanerTest
         Assert::false(stripos($out, 'икс') !== false, '«Мани Икс» заменён целиком');
     }
 
+    public function testDomainReplacementEatsSubdomain(): void
+    {
+        // Сайт собран по регистрируемому домену, но в тексте бренд-поддомен: заменяем ВЕСЬ хост,
+        // а не только «casinozsd.buzz», иначе остаётся «kush.%domain_name%».
+        $html = '<h1>Обзор</h1><p>Играйте на kush.casinozsd.buzz и на casinozsd.buzz, зеркало www.casinozsd.buzz.</p><h3>Популярные запросы</h3>';
+        $out = (new ContentCleaner())->clean($html, ['domain' => 'casinozsd.buzz', 'hosts' => ['casinozsd.buzz']]);
+        Assert::false(str_contains($out, 'kush.'), 'поддомен не остаётся хвостом перед %domain_name%');
+        Assert::false(stripos($out, 'casinozsd') !== false, 'домен и его поддомены заменены');
+    }
+
+    public function testStripsCtaAndUrgencyWidgets(): void
+    {
+        // Кнопки-призывы и «счётчики срочности» (фейковый джекпот/таймер) — не тело статьи;
+        // из-за них оставался артефакт вроде «spot-cta-number 12345».
+        $html = '<h1>Обзор</h1><p>Тело статьи.</p>'
+            . '<div class="spot-cta-number">12345</div>'
+            . '<div class="cta-block"><span class="cta-title">Играть</span></div>'
+            . '<div class="countdown">00:59</div><h3>Популярные запросы</h3>';
+        $out = (new ContentCleaner())->clean($html);
+        Assert::false(str_contains($out, '12345'), 'число из cta-блока удалено');
+        Assert::false(str_contains($out, 'cta-block'), 'cta-блок удалён');
+        Assert::false(str_contains($out, '00:59'), 'таймер удалён');
+        Assert::true(str_contains($out, 'Тело статьи'), 'текст статьи остался');
+    }
+
+    public function testSpacedEnglishBrandReplaced(): void
+    {
+        // Слитная метка бренда «cryptoboss» должна ловить и раздельное написание в тексте
+        // («Crypto Boss», «Crypto-Boss»), а не только слитное.
+        $html = '<h1>Обзор</h1><p>Официальный сайт Crypto Boss, вход cryptoboss, зеркало Crypto-Boss.</p><h3>Популярные запросы</h3>';
+        $out = (new ContentCleaner())->clean($html, ['brand_en' => 'cryptoboss']);
+        Assert::false(stripos($out, 'crypto') !== false, 'все написания бренда (слитно, с пробелом, с дефисом) заменены');
+        Assert::true(str_contains($out, '%brand_name_en%'), 'английский бренд подставлен');
+
+        // «Money X» (второе слово — одна заглавная буква) тоже ловится.
+        $mx = (new ContentCleaner())->clean('<h1>Обзор</h1><p>Играть в Money X сегодня.</p><h3>Популярные запросы</h3>', ['brand_en' => 'moneyx']);
+        Assert::true(str_contains($mx, '%brand_name_en%') && stripos($mx, 'money') === false, '«Money X» заменён');
+    }
+
+    public function testSpacedBrandDoesNotTouchLowercasePhrase(): void
+    {
+        // Бренд goodwin НЕ должен превратить обычную фразу «a good win» в переменную — раздельное
+        // написание ловится только когда каждое слово с заглавной (имя собственное).
+        $html = '<h1>Обзор</h1><p>Это был a good win для игрока. Сайт Goodwin топ.</p><h3>Популярные запросы</h3>';
+        $out = (new ContentCleaner())->clean($html, ['brand_en' => 'goodwin']);
+        Assert::true(str_contains($out, 'good win'), 'обычная фраза «good win» не тронута');
+        Assert::true(str_contains($out, '%brand_name_en%'), 'слитный «Goodwin» заменён');
+    }
+
     public function testNoArticleReturnsEmpty(): void
     {
         Assert::same('', (new ContentCleaner())->clean('<html><body><p>нет заголовка</p></body></html>'));

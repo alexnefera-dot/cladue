@@ -57,6 +57,16 @@ final class BrandDetectorTest
         Assert::same('твин', $r['ru']);
     }
 
+    public function testBrandInHeadingAdjacentToTextIsFound(): void
+    {
+        // Бренд в <h1> вплотную к тексту: <h1>Обзор</h1><p>Криптобосс…</p> — теги при извлечении
+        // текста заменяются пробелом, иначе слова склеивались («ОбзорКриптобосс») и бренд терялся.
+        $d = new BrandDetector();
+        $r = $d->detect('<h1>Обзор</h1><p>Криптобосс — обзор, играть в криптобосс</p>', 'cryptoboss.com');
+        Assert::same('cryptoboss', $r['en']);
+        Assert::same('криптобосс', $r['ru'], 'бренд из заголовка найден, не склеен с соседним словом');
+    }
+
     public function testGenericDomainDoesNotYieldCasinoAsBrand(): void
     {
         // Домен родовой (casino777), русского бренда в тексте нет — «казино» не должно стать брендом.

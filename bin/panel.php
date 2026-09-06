@@ -286,6 +286,26 @@ function removeHostContent(string $runDir, string $host): void
     }
 }
 
+/**
+ * Рекурсивно удаляет папку со всем содержимым (для чистого пере-сбора «Очистить всё»).
+ */
+function rmTree(string $dir): void
+{
+    if (!is_dir($dir)) {
+        return;
+    }
+    $it = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::CHILD_FIRST,
+    );
+    foreach ($it as $f) {
+        if ($f instanceof SplFileInfo) {
+            $f->isDir() ? @rmdir($f->getPathname()) : @unlink($f->getPathname());
+        }
+    }
+    @rmdir($dir);
+}
+
 // --- Роутинг ---
 
 if ($path === '/' || $path === '/index.html') {
@@ -443,19 +463,27 @@ if ($path === '/api/clean-site' && $method === 'POST') {
 }
 
 if ($path === '/api/clean-all' && $method === 'POST') {
-    // Кнопка «Очистить всё»: чистит все скачанные сайты (наши уже исключены на выгрузке) и раскладывает
-    // по content/<N>-стр/<host>/. Ничего не скачивает. exclude — сайты, убранные крестиком в таблице.
-    $exclude = array_flip(array_map('strval', (array) (body()['exclude'] ?? [])));
+    // Кнопка «Очистить всё»: чистит оставленные сайты и раскладывает по content/<N>-стр/<host>/.
+    // Ничего не скачивает. `only` — список оставленных сайтов (что видно в таблице), `exclude` — убранные
+    // крестиком. Это чистый пере-сбор: прежний content целиком удаляем, чтобы убранные сайты, очищенные
+    // в прошлый раз, не остались в результате.
+    $b = body();
+    $only = array_flip(array_values(array_filter(array_map('strval', (array) ($b['only'] ?? [])), static fn (string $h): bool => $h !== '')));
+    $exclude = array_flip(array_map('strval', (array) ($b['exclude'] ?? [])));
     $byHost = pagesByHost($runDir . '/pages');
     if ($byHost === []) {
         jsonOut(['ok' => false, 'error' => 'нет скачанных страниц — сначала «Выгрузка страниц»'], 404);
     }
+    rmTree($runDir . '/content');
     $written = 0;
     $skipped = 0;
     $sites = 0;
     foreach ($byHost as $host => $files) {
         if (isset($exclude[$host])) {
-            continue;
+            continue; // убран крестиком
+        }
+        if ($only !== [] && !isset($only[$host])) {
+            continue; // не входит в список оставленных — не чистим
         }
         $r = cleanHostPages($runDir, (string) $host, $files);
         $written += $r['written'];

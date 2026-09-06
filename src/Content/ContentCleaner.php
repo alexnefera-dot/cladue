@@ -128,6 +128,9 @@ final class ContentCleaner
         'social', 'socials', 'share', 'sharing', 'popup', 'modal', 'overlay', 'backdrop',
         'cookie', 'cookies', 'subscribe', 'newsletter', 'breadcrumb', 'breadcrumbs', 'sidebar',
         'banner', 'advert', 'ads', 'promo-modal', 'age', 'agegate',
+        // Кнопки-призывы и «счётчики срочности» (фейковый джекпот/таймер) — не тело статьи;
+        // из-за них после очистки оставались артефакты вроде «spot-cta-number 12345».
+        'cta', 'countdown', 'timer', 'ticker',
     ];
 
     /**
@@ -252,27 +255,38 @@ final class ContentCleaner
         // Дата дд.мм.гггг → %date%
         $html = preg_replace('~\b\d{1,2}\.\d{1,2}\.\d{4}\b~u', '%date%', $html) ?? $html;
 
-        // Домены (сначала — иначе бренд «съест» часть домена) → %domain_name%
+        // Домены (сначала — иначе бренд «съест» часть домена) → %domain_name%.
+        // Съедаем и поддомен целиком: kush.casinozsd.buzz → %domain_name%, а не «kush.%domain_name%».
         $domains = array_merge([(string) ($opt['domain'] ?? '')], (array) ($opt['hosts'] ?? []));
         $domains = array_values(array_unique(array_filter(array_map('trim', $domains), static fn (string $d): bool => $d !== '')));
         usort($domains, static fn (string $a, string $b): int => mb_strlen($b) <=> mb_strlen($a));
         foreach ($domains as $domain) {
-            $html = preg_replace('~(?:www\.)?' . preg_quote($domain, '~') . '~iu', '%domain_name%', $html) ?? $html;
+            $html = preg_replace('~(?<![a-z0-9.\-])(?:[a-z0-9\-]+\.)*' . preg_quote($domain, '~') . '~iu', '%domain_name%', $html) ?? $html;
         }
 
-        // Бренд: русский, английский и дополнительные (опечатки/сторонние) — устойчиво к регистру и гомоглифам
+        // Бренд: русский, английский и дополнительные (опечатки/сторонние) — устойчиво к регистру и гомоглифам.
+        // Параллельно копим латинские слитные бренды, чтобы одним проходом поймать и раздельное написание
+        // («cryptoboss» → «Crypto Boss», «vulkanvegas» → «Vulkan Vegas», «moneyx» → «Money X»).
+        $spaced = [];
         if (($opt['brand_ru'] ?? '') !== '') {
             $html = $this->replaceBrand($html, (string) $opt['brand_ru'], '%brand_name_ru%');
         }
         if (($opt['brand_en'] ?? '') !== '') {
-            $html = $this->replaceBrand($html, (string) $opt['brand_en'], '%brand_name_en%');
+            $b = (string) $opt['brand_en'];
+            $html = $this->replaceBrand($html, $b, '%brand_name_en%');
+            $this->addSpacedTarget($spaced, $b, '%brand_name_en%');
         }
         // Сначала длинные названия, потом короткие: иначе «вулкан» съест первое слово «вулкан вегас»
         // и оставит «вегас» (составной бренд должен подставиться раньше своего однословного префикса).
         $extra = array_values(array_filter(array_map('trim', array_map('strval', $opt['extra_brands'] ?? [])), static fn (string $b): bool => $b !== ''));
         usort($extra, static fn (string $a, string $b): int => mb_strlen($b) <=> mb_strlen($a));
         foreach ($extra as $brand) {
-            $html = $this->replaceBrand($html, $brand, $this->hasCyrillic($brand) ? '%brand_name_ru%' : '%brand_name_en%');
+            $var = $this->hasCyrillic($brand) ? '%brand_name_ru%' : '%brand_name_en%';
+            $html = $this->replaceBrand($html, $brand, $var);
+            $this->addSpacedTarget($spaced, $brand, $var);
+        }
+        if ($spaced !== []) {
+            $html = $this->replaceSpacedBrands($html, $spaced);
         }
 
         return $html;
@@ -287,6 +301,57 @@ final class ContentCleaner
 
         // Границы слова, чтобы не задевать бренд внутри других слов (stake ≠ mistaken).
         return preg_replace('~(?<![\p{L}\p{N}])(?:' . $pattern . ')(?![\p{L}\p{N}])~iu', $variable, $html) ?? $html;
+    }
+
+    /**
+     * Добавляет слитный латинский бренд (≥6 букв) в набор для поиска раздельного написания:
+     * склейка(fold) → переменная. Короткие и кириллические не берём (риск ложных совпадений / fold лоссовый).
+     *
+     * @param array<string, string> $targets
+     */
+    private function addSpacedTarget(array &$targets, string $brand, string $variable): void
+    {
+        if (str_contains($brand, ' ') || $this->hasCyrillic($brand)) {
+            return;
+        }
+        $fold = $this->foldBrand($brand);
+        if (mb_strlen($fold) >= 6) {
+            $targets[$fold] = $variable;
+        }
+    }
+
+    /**
+     * Ловит РАЗДЕЛЬНОЕ написание слитных брендов: метка домена «cryptoboss» → «Crypto Boss»,
+     * «vulkanvegas» → «Vulkan Vegas», «moneyx» → «Money X». Чтобы не задеть обычные словосочетания
+     * («good win» для бренда goodwin), требуем, чтобы КАЖДОЕ слово начиналось с ЗАГЛАВНОЙ (бренд —
+     * имя собственное), а склейка слов (гомоглиф-нормализованная) в точности совпадала с брендом.
+     * Один проход по тексту на все бренды сразу.
+     *
+     * @param array<string, string> $targets склейка(fold) → переменная
+     */
+    private function replaceSpacedBrands(string $html, array $targets): string
+    {
+        return preg_replace_callback(
+            '~(?<![\p{L}\p{N}])(\p{Lu}[\p{L}\p{N}]*(?:[ \x{00A0}\-]\p{Lu}[\p{L}\p{N}]*){1,2})(?![\p{L}\p{N}])~u',
+            fn (array $m): string => $targets[$this->foldBrand($m[1])] ?? $m[1],
+            $html,
+        ) ?? $html;
+    }
+
+    /** Нормализует бренд для сравнения: нижний регистр, кириллические двойники → латиница, без не-букв. */
+    private function foldBrand(string $text): string
+    {
+        $text = mb_strtolower($text);
+        $map = [];
+        foreach (self::HOMOGLYPHS as $latin => $set) {
+            foreach (preg_split('~~u', $set, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $ch) {
+                if ($ch !== $latin) {
+                    $map[$ch] = $latin;
+                }
+            }
+        }
+
+        return (string) preg_replace('~[^a-z0-9]~u', '', strtr($text, $map));
     }
 
     /**

@@ -239,10 +239,16 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `figure`, `svg`, `video`, …), interactive (`button`, `form`, `input`, …), popovers (`role=dialog`/
   `aria-modal`/`dialog`), the site `footer` (but a `<footer>` inside a `<blockquote>` citation is kept),
   and blocks whose class/id token is junk (`JUNK_TOKENS`: contacts, tag-cloud, social/share, popup/modal,
-  cookie, breadcrumbs, banner/ads …); HTML comments (Метрика/Analytics) are stripped too. It rewrites every
-  `<a href>` to one of six relative paths (`ALLOWED_LINKS`, mapped by keyword), and templates the domain
-  → `%domain_name%`, `dd.mm.yyyy` → `%date%`, brand → `%brand_name_ru%`/`%brand_name_en%`. Brand matching
-  is case-insensitive and homoglyph-tolerant (Latin↔Cyrillic look-alikes, so `STAKE`≡`STAKЕ`).
+  cookie, breadcrumbs, banner/ads, and CTA/urgency widgets `cta`/`countdown`/`timer`/`ticker` — the latter
+  left artefacts like «spot-cta-number 12345»); HTML comments (Метрика/Analytics) are stripped too. It
+  rewrites every `<a href>` to one of six relative paths (`ALLOWED_LINKS`, mapped by keyword), and templates
+  the domain → `%domain_name%` (the regex eats an optional subdomain prefix too, so `kush.casinozsd.buzz`
+  → `%domain_name%`, not «kush.%domain_name%»), `dd.mm.yyyy` → `%date%`, brand →
+  `%brand_name_ru%`/`%brand_name_en%`. Brand matching is case-insensitive and homoglyph-tolerant
+  (Latin↔Cyrillic look-alikes, so `STAKE`≡`STAKЕ`); a concatenated latin brand label also matches its SPACED
+  spelling in the text (`cryptoboss` → «Crypto Boss», `vulkanvegas` → «Vulkan Vegas», `moneyx` → «Money X»)
+  via `replaceSpacedBrands()`, which folds Title-Case multi-word runs and only replaces those whose glued
+  form equals a brand — so «Good Win» maps to a brand but the phrase «a good win» is left alone.
   `Content\BrandDetector` auto-detects the brand: EN is the label of the canonical/og:url host (so a network
   where the brand sits in the subdomain — `kush.casinozsd.buzz` → `kush`, not the shared registrable domain
   `casinozsd`), falling back to the domain label; RU is the text token — or an adjacent pair of tokens
@@ -282,10 +288,13 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   run), and queued/active hosts show «в очереди»/«докачивается…» chips. The `both`
   branch stays in `buildOverrides()`/run-job for CLI, just not surfaced. Content cleaning is table-only and
   writes to disk (no download): a per-site «Очистить» button (`/api/clean-site`) and a bulk «Очистить всё»
-  button (`/api/clean-all`, accepts an `exclude` host list) run `cleanHostPages()`, which cleans a site's
+  button (`/api/clean-all`) run `cleanHostPages()`, which cleans a site's
   pages and lays the cleaned articles into a bucket by count — `runs/current/content/<N>-стр/<host>/` —
   `removeHostContent()` clearing that host from any old bucket first so re-cleaning never leaves duplicates.
-  Shared helpers `pagesByHost()`/`cleanHostPages()`/`removeHostContent()` in `bin/panel.php`. The
+  «Очистить всё» takes an `only` list (the sites still in the table) plus `exclude` (the ✕-removed) and
+  first `rmTree()`s the whole `content/` dir: it is a clean re-build, so a site removed after a previous
+  «Очистить всё» does not linger in the result. Shared helpers `pagesByHost()`/`cleanHostPages()`/
+  `removeHostContent()` in `bin/panel.php`. The
   `stage=clean` job branch (reads `runs/current/pages` → `content` + `content.zip`) stays for
   `bin/clean-content.php`/CLI, no longer surfaced in the panel UI. Covered by `tests/ContentCleanerTest.php`
   and `tests/BrandDetectorTest.php`.

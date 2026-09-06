@@ -211,7 +211,9 @@ final class BrandDetector
     private function visibleText(string $html): string
     {
         $text = preg_replace('~<(script|style|noscript|svg|template)\b[^>]*>.*?</\1>~isu', ' ', $html) ?? $html;
-        $text = strip_tags($text);
+        // Теги заменяем ПРОБЕЛОМ, а не просто удаляем: иначе соседние блоки склеиваются
+        // (<h1>Обзор</h1><p>Криптобосс…</p> → «ОбзорКриптобосс») и бренд в заголовке не находится.
+        $text = preg_replace('~<[^>]+>~', ' ', $text) ?? $text;
 
         return html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
     }
