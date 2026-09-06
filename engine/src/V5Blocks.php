@@ -1251,7 +1251,7 @@ function v5Zapolnit(string $t, callable $значение): string
     // {РУБЛИ}») ищутся от места прошлой, иначе обе находят первую и вторая
     // тоже читает контекст ставки.
     $от = 0;
-    return preg_replace_callback('~\{([А-ЯA-Z][А-ЯA-Z0-9]*)(?::([а-я]{1,2}))?\}~u', function ($m) use ($значение, $t, &$от) {
+    return preg_replace_callback('~\{([А-ЯA-Z][А-ЯA-Z0-9_]*)(?::([а-я]{1,2}))?\}~u', function ($m) use ($значение, $t, &$от) {
         $ключ = V5_CHUZHIE_PROREZI[$m[1]] ?? $m[1];
         $поз = mb_strpos($t, $m[0], $от);
         if ($поз !== false) { $от = $поз + 1; }
