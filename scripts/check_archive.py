@@ -42,7 +42,9 @@ TEMPLATES = {
 # страницы ловит C1.
 СЛУЖЕБНЫЕ = ["privacy", "contacts", "about"]
 CONVERT = {9: (7, СЛУЖЕБНЫЕ), 10: (7, СЛУЖЕБНЫЕ)}
-# Типы, где неполный сайт (нет страниц) не дорабатывается, а убирается.
+# Сайт убирается из выдачи (а не отправляется на доработку), если в нём
+# есть заглушки или дубли файлов, а для типов из DISCARD_INCOMPLETE — ещё
+# и если не хватает страниц. Причина пишется в отчёт и сводку.
 DISCARD_INCOMPLETE = {7}
 
 ALLOWED_PLACEHOLDERS = {"%brand_name_ru%", "%brand_name_en%",
@@ -419,14 +421,26 @@ REASON = {  # короткая причина брака для сводки, п
 }
 
 
+def discard_reason(F, s):
+    """Почему сайт убран из выдачи; None — не убран."""
+    items = F.items[s["key"]]
+    why = []
+    if any(lvl == "ERROR" and code == "B1" and "заглушка" in msg for lvl, code, msg in items):
+        why.append("контент из заглушек")
+    if any(lvl == "ERROR" and code == "D1" for lvl, code, _ in items):
+        why.append("контент дублированный")
+    if s["n"] in DISCARD_INCOMPLETE and any(lvl == "ERROR" and code in ("A3", "A4") for lvl, code, _ in items):
+        why.append("неполный набор")
+    return " и ".join(why) if why else None
+
+
 def discarded(F, s):
-    return s["n"] in DISCARD_INCOMPLETE and any(
-        lvl == "ERROR" and code in ("A3", "A4") for lvl, code, _ in F.items[s["key"]])
+    return discard_reason(F, s) is not None
 
 
 def verdict(F, s):
     if discarded(F, s):
-        return "🗑 убран (неполный)"
+        return "🗑 убран: " + discard_reason(F, s)
     e, w = F.count(s["key"], "ERROR"), F.count(s["key"], "WARN")
     return "❌ брак" if e else ("⚠️ проверить" if w else "✅ годен")
 
@@ -493,7 +507,7 @@ def sort_output(F, sites, out_dir, archive_name):
         for s in b:
             lines.append("- ❌ %s%s — %s" % (s["site"], s["note"], reasons(F, s["key"])))
         for s in x:
-            lines.append("- 🗑 %s%s — убран как неполный: %s" % (s["site"], s["note"], reasons(F, s["key"])))
+            lines.append("- 🗑 %s%s — убран: %s (%s)" % (s["site"], s["note"], discard_reason(F, s), reasons(F, s["key"])))
         lines.append("")
     open(os.path.join(out_dir, "сводка.md"), "w", encoding="utf-8").write("\n".join(lines))
 
