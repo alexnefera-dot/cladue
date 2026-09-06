@@ -8,14 +8,19 @@
  *
  * Идемпотентно: элемент со style= не трогается. Структура не меняется.
  */
-$папка = null;
-foreach (array_slice($argv, 1) as $а) { if ($а !== '' && $а[0] !== '-') { $папка = rtrim($а, '/'); } }
+$папка = null; $тема = 0;
+foreach (array_slice($argv, 1) as $а) {
+    if (preg_match('~^--тема=(\d+)$~u', $а, $m)) { $тема = (int) $m[1]; continue; }
+    if ($а !== '' && $а[0] !== '-') { $папка = rtrim($а, '/'); }
+}
 if ($папка === null || !is_dir($папка)) { fwrite(STDERR, "usage: php engine/verstka-tablichnaya-v5.php <папка>\n"); exit(1); }
 
-const ПОДЛОЖКА  = 'rgba(127,133,160,.10)';
-const ПОДЛОЖКА2 = 'rgba(127,133,160,.16)';
-const КАНТ      = '1px solid rgba(127,133,160,.30)';
-const ЗОЛОТО    = '#f5b52a';
+require_once __DIR__ . '/temy-v5.php';
+$Т = v5Tema($тема);
+define('ПОДЛОЖКА', $Т['подложка']);
+define('ПОДЛОЖКА2', $Т['подложка2']);
+define('КАНТ', $Т['кантCSS']);
+define('ЗОЛОТО', $Т['акцент']);
 
 $ТЕГИ = [
     'table'      => 'width:100%;border-collapse:separate;border-spacing:0;border:' . КАНТ . ';border-radius:12px;overflow:hidden;margin:0 0 20px;font-size:15px',
@@ -34,18 +39,29 @@ $ТЕГИ = [
     'figure'     => 'margin:0 0 20px',
     'figcaption' => 'font-size:13px;opacity:.8;margin-top:6px',
 ];
+if ($тема > 0) {
+    foreach ($ТЕГИ as $к => $v) { $ТЕГИ[$к] = v5TemaRadius($v, $Т); }
+    $ТЕГИ['h2'] = v5TemaZagolovok($Т, 'h2');
+    $ТЕГИ['h3'] = v5TemaZagolovok($Т, 'h3');
+    $ТЕГИ['ul'] = 'margin:14px 0;padding-left:22px;line-height:' . $Т['строка'] . ';list-style-type:' . $Т['маркер'];
+    $ТЕГИ['ol'] = 'margin:14px 0;padding-left:24px;line-height:' . $Т['строка'];
+    $ТЕГИ['p']  = 'line-height:' . $Т['строка'] . ';margin:0 0 14px';
+    if ($Т['тень'] !== '') { foreach (['table', 'aside', 'blockquote', 'details', 'nav'] as $к) { $ТЕГИ[$к] .= ';' . $Т['тень']; } }
+    if ($Т['кант'] === 'none') { foreach ($ТЕГИ as $к => $v) { $ТЕГИ[$к] = str_replace('border:1px solid transparent', 'border:0', $v); } }
+    if ($Т['заголовок'] === 'капс') { $ТЕГИ['th'] .= ';text-transform:uppercase;font-size:12px;letter-spacing:.06em'; }
+}
 $ДАТА = 'display:inline-block;padding:2px 10px;border-radius:999px;background:' . ПОДЛОЖКА2 . ';font-size:13px;font-style:normal;margin-right:6px';
 $КЛАССЫ = [
     'table-responsive' => 'display:block;width:100%;overflow-x:auto;margin:0 0 20px',
     'menu'             => 'display:block',
 ];
-$СТРОНГ = ['Плюс' => '#4fbe86', 'Минус' => '#f0685a', 'Совет' => ЗОЛОТО, 'Факт' => ЗОЛОТО,
+$СТРОНГ = ['Плюс' => $Т['плюс'], 'Минус' => $Т['минус'], 'Совет' => ЗОЛОТО, 'Факт' => ЗОЛОТО,
            'Итог' => ЗОЛОТО, 'Важно' => '#f0685a', 'Кстати' => ЗОЛОТО, 'Ключевой вывод' => ЗОЛОТО];
 
 $всего = 0; $файлы = glob($папка . '/*.html');
 foreach ($файлы as $файл) {
     $html = file_get_contents($файл); $правил = 0; $ряд = 0;
-    $html = preg_replace_callback('~<([a-zA-Z][a-zA-Z0-9]*)((?:[^<>"]|"[^"]*")*)>~', function ($m) use ($ТЕГИ, $КЛАССЫ, $ДАТА, &$правил, &$ряд) {
+    $html = preg_replace_callback('~<([a-zA-Z][a-zA-Z0-9]*)((?:[^<>"]|"[^"]*")*)>~', function ($m) use ($ТЕГИ, $КЛАССЫ, $ДАТА, $Т, &$правил, &$ряд) {
         $тег = strtolower($m[1]); $атр = $m[2];
         if (stripos($атр, 'style=') !== false) return $m[0];
         $стиль = null;
@@ -69,10 +85,10 @@ foreach ($файлы as $файл) {
     $html = preg_replace_callback('~<(strong|b)>(' . implode('|', array_map('preg_quote', array_keys($СТРОНГ))) . ')(?=[:\s])~u',
         function ($m) use ($СТРОНГ, &$правил) { $правил++; return '<' . $m[1] . ' style="color:' . $СТРОНГ[$m[2]] . '">' . $m[2]; }, $html);
     // ссылки меню — как чипы
-    $html = preg_replace_callback('~(<nav[^>]*>.*?</nav>)~su', function ($m) use (&$правил) {
-        return preg_replace_callback('~<li(?![^>]*style=)([^>]*)>~', function ($x) use (&$правил) {
+    $html = preg_replace_callback('~(<nav[^>]*>.*?</nav>)~su', function ($m) use (&$правил, $Т) {
+        return preg_replace_callback('~<li(?![^>]*style=)([^>]*)>~', function ($x) use (&$правил, $Т) {
             $правил++;
-            return '<li' . $x[1] . ' style="display:inline-block;margin:4px 8px 4px 0;padding:5px 12px;border:' . КАНТ . ';border-radius:999px;background:' . ПОДЛОЖКА2 . ';font-size:14px;list-style:none">';
+            return '<li' . $x[1] . ' style="display:inline-block;margin:4px 8px 4px 0;padding:5px 12px;border:' . КАНТ . ';border-radius:' . ($Т['пилюля'] ? '999px' : v5TemaRadius('8px', $Т)) . ';background:' . ПОДЛОЖКА2 . ';font-size:14px;list-style:none">';
         }, $m[1]);
     }, $html);
     file_put_contents($файл, $html); $всего += $правил;

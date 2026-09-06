@@ -20,13 +20,14 @@
  * снимок 1200 px вылезет за колонку в любом шаблоне.
  */
 
-$папка = null; $сид = 1; $толькоУрезать = false; $неРезать = false; $безСтилей = false;
+$папка = null; $сид = 1; $толькоУрезать = false; $неРезать = false; $безСтилей = false; $тема = 0;
 $обложкиДир = is_dir(__DIR__ . '/data-v5/oblozhki') ? __DIR__ . '/data-v5/oblozhki' : null;
 foreach (array_slice($argv, 1) as $а) {
     if (preg_match('~^--сид=(\d+)$~u', $а, $m)) { $сид = (int) $m[1]; continue; }
     if ($а === '--только-урезать') { $толькоУрезать = true; continue; }
     if ($а === '--не-резать') { $неРезать = true; continue; }
     if ($а === '--без-стилей') { $безСтилей = true; continue; }
+    if (preg_match('~^--тема=(\d+)$~u', $а, $m)) { $тема = (int) $m[1]; continue; }
     if (preg_match('~^--обложки=(.+)$~u', $а, $m)) { $обложкиДир = $m[1] === '' ? null : $m[1]; continue; }
     if ($а === '--без-фото') { $обложкиДир = null; continue; }
     if ($а[0] !== '-') { $папка = rtrim($а, '/'); }
@@ -34,6 +35,9 @@ foreach (array_slice($argv, 1) as $а) {
 if ($папка === null || !is_dir($папка)) {
     fwrite(STDERR, "usage: php engine/kartinki-v5.php <папка> [--сид=N] [--только-урезать]\n"); exit(1);
 }
+
+require_once __DIR__ . '/temy-v5.php';
+$Т = v5Tema($тема);
 
 const ШИР = 1200, ВЫС = 630;
 const S = 2;                              // рисуем вдвое крупнее и ужимаем
@@ -1059,6 +1063,88 @@ function вшить(string $файл, string $страница, string $alt, boo
     return 1;
 }
 
+/**
+ * Ведущая иллюстрация по теме набора: полосой сверху, обтеканием, в шапке,
+ * под первым заголовком, разворотом рядом с первым абзацем, с подписью,
+ * в карточке. Способ задаёт тема (`картинка`), радиус и тень — тоже.
+ */
+function вшитьПоТеме(string $файл, string $страница, string $alt, array $Т): int {
+    $html = file_get_contents($файл);
+    $имя = $страница . '_img_1.webp';
+    if (strpos($html, $имя) !== false) return 0;
+    $р = (int) round(14 * $Т['радиус']);
+    $тень = $Т['тень'] !== '' ? ';' . $Т['тень'] : '';
+    $altH = htmlspecialchars($alt, ENT_QUOTES, 'UTF-8');
+    $img = function (string $стиль) use ($имя, $altH): string {
+        return '<img src="' . $имя . '" alt="' . $altH . '" width="1200" height="630" loading="lazy" style="' . $стиль . '">';
+    };
+    $строки = explode("\n", $html);
+    $способ = $Т['картинка'];
+    $естьШапка = strpos($html, 'class="hero-value-grid"') !== false;
+    if ($способ === 'шапка' && !$естьШапка) { $способ = 'фигура'; }
+    $первая = function (string $re) use ($строки): ?int {
+        foreach ($строки as $i => $л) { if (preg_match($re, $л)) return $i; }
+        return null;
+    };
+    $вставить = function (int $i, array $новые) use (&$строки): void { array_splice($строки, $i, 0, $новые); };
+    switch ($способ) {
+        case 'обтекание':
+        case 'слева':
+            $i = $первая('~^<(?:p|h2)>\s*$~') ?? 0;
+            $ф = $способ === 'слева' ? 'float:left;margin:4px 22px 12px 0' : 'float:right;margin:4px 0 12px 22px';
+            $вставить($i, [$img($ф . ';width:42%;max-width:440px;height:auto;border-radius:' . $р . 'px' . $тень)]);
+            $строки[] = '<div style="clear:both"></div>';
+            break;
+        case 'подзаголовком':
+            $i = $первая('~^<h2>\s*$~');
+            if ($i === null) { $вставить(0, [$img('display:block;width:100%;max-height:' . $Т['высота'] . 'px;object-fit:cover;margin:0 0 20px;border-radius:' . $р . 'px' . $тень)]); break; }
+            $j = $i; while ($j < count($строки) && strpos($строки[$j], '</h2>') === false) { $j++; }
+            $вставить($j + 1, [$img('display:block;width:100%;max-height:' . $Т['высота'] . 'px;object-fit:cover;margin:6px 0 18px;border-radius:' . $р . 'px' . $тень)]);
+            break;
+        case 'сплит':
+            $i = $первая('~^<p>\s*$~');
+            if ($i === null || !isset($строки[$i + 2]) || trim($строки[$i + 2]) !== '</p>') {
+                $вставить(0, [$img('display:block;width:100%;max-height:' . $Т['высота'] . 'px;object-fit:cover;margin:0 0 20px;border-radius:' . $р . 'px' . $тень)]); break;
+            }
+            $абзац = $строки[$i + 1];
+            array_splice($строки, $i, 3, [
+                '<div style="display:flex;flex-wrap:wrap;gap:22px;align-items:center;margin:0 0 22px">',
+                '  ' . $img('flex:1 1 320px;min-width:0;width:100%;max-width:560px;height:auto;border-radius:' . $р . 'px' . $тень),
+                '  <p style="flex:1 1 280px;margin:0;line-height:' . $Т['строка'] . '">',
+                '  ' . trim($абзац),
+                '  </p>',
+                '</div>']);
+            break;
+        case 'фигура':
+            $вставить(0, ['<figure style="margin:0 0 22px">',
+                '  ' . $img('display:block;width:100%;max-height:' . $Т['высота'] . 'px;object-fit:cover;border-radius:' . $р . 'px;border:' . $Т['кантCSS'] . $тень),
+                '  <figcaption style="font-size:13px;opacity:.78;margin-top:8px;text-align:center">' . $altH . '</figcaption>',
+                '</figure>']);
+            break;
+        case 'карточка':
+            $вставить(0, ['<div style="padding:8px;border:' . $Т['кантCSS'] . ';border-radius:' . ($р + 4) . 'px;background:' . $Т['подложка'] . ';margin:0 0 22px' . $тень . '">',
+                '  ' . $img('display:block;width:100%;max-height:' . $Т['высота'] . 'px;object-fit:cover;border-radius:' . $р . 'px'),
+                '</div>']);
+            break;
+        case 'постер':
+            $вставить(0, [$img('display:block;width:100%;height:' . $Т['высота'] . 'px;object-fit:cover;margin:0 0 22px;border-radius:' . $р . 'px;border:' . $Т['кантCSS'] . ';filter:saturate(1.15) contrast(1.05)' . $тень)]);
+            break;
+        case 'широкая':
+            $вставить(0, [$img('display:block;width:100%;max-height:' . $Т['высота'] . 'px;object-fit:cover;margin:0 0 26px;border-radius:' . ($р + 6) . 'px' . $тень)]);
+            break;
+        case 'шапка':
+            $i = $первая('~class="hero-value-grid"~');
+            $отступ = str_repeat(' ', strlen($строки[$i]) - strlen(ltrim($строки[$i])) + 2);
+            // Картинка целиком, по ширине колонки: с object-fit:cover в узкой колонке шапки срезалась подпись на иллюстрации.
+            $вставить($i + 1, [$отступ . $img('display:block;width:100%;height:auto;border-radius:' . $р . 'px;align-self:center' . $тень)]);
+            break;
+        default: // полоса
+            $вставить(0, [$img('display:block;width:100%;max-height:' . $Т['высота'] . 'px;object-fit:cover;margin:0 0 20px;border-radius:' . $р . 'px' . $тень)]);
+    }
+    file_put_contents($файл, implode("\n", $строки));
+    return 1;
+}
+
 /** Оставляет в списке слотов не больше $предел карточек: лишние вкладки
  *  выбрасываются целиком вместе со своими кнопками-переключателями.
  */
@@ -1175,9 +1261,11 @@ foreach ($ТЕМЫ as $страница => [$тон, $мотивы, $подпи�
         if ($всеФото !== []) { $фото = $всеФото[($сид * 3 + $номер * 5) % count($всеФото)]; }
     }
     нарисовать($папка . '/images/' . $страница . '_img_1.webp',
-               $вид, $тон + ($сид % 7) * 6 - 18, $подписи[($в + $номер) % 3], $вар, $комп, $фото, $сид);
+               $вид, $тон + ($сид % 7) * 6 - 18 + $Т['сдвигТона'], $подписи[($в + $номер) % 3], $вар, $комп, $фото, $сид);
     $всего++;
-    $вшито += вшить($html, $страница, $альты[($в + $номер) % 3][0], $безСтилей);
+    $вшито += $тема > 0 && !$безСтилей
+        ? вшитьПоТеме($html, $страница, $альты[($в + $номер) % 3][0], $Т)
+        : вшить($html, $страница, $альты[($в + $номер) % 3][0], $безСтилей);
 }
 
 // обложки игр — своя на каждую карточку списка слотов (до двенадцати на страницу)

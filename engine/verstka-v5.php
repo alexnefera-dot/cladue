@@ -11,9 +11,10 @@
  * не прячем, а оформляем как плитку — иначе у карточки остаётся пустой верх.
  */
 
-$папка = null; $безКартинок = false;
+$папка = null; $безКартинок = false; $тема = 0;
 foreach (array_slice($argv, 1) as $а) {
     if ($а === '--без-картинок') { $безКартинок = true; continue; }
+    if (preg_match('~^--тема=(\d+)$~u', $а, $m)) { $тема = (int) $m[1]; continue; }
     if ($а[0] !== '-') { $папка = rtrim($а, '/'); }
 }
 if ($папка === null || !is_dir($папка)) {
@@ -21,12 +22,16 @@ if ($папка === null || !is_dir($папка)) {
 }
 
 // Палитра полупрозрачная: блоки одинаково ложатся на светлую и тёмную тему.
-const ПОДЛОЖКА  = 'rgba(127,133,160,.10)';
-const ПОДЛОЖКА2 = 'rgba(127,133,160,.16)';
-const КАНТ      = '1px solid rgba(127,133,160,.30)';
-const ЗОЛОТО    = '#f5b52a';
-const ТРЕВОГА   = 'rgba(240,90,90,.12)';
-const УСПЕХ     = 'rgba(80,190,130,.12)';
+// Тема набора (`--тема=N`, см. temy-v5.php): палитра, радиусы, кнопки, заголовки.
+// Без темы — прежние значения.
+require_once __DIR__ . '/temy-v5.php';
+$Т = v5Tema($тема);
+define('ПОДЛОЖКА', $Т['подложка']);
+define('ПОДЛОЖКА2', $Т['подложка2']);
+define('КАНТ', $Т['кантCSS']);
+define('ЗОЛОТО', $Т['акцент']);
+define('ТРЕВОГА', $Т['тревога']);
+define('УСПЕХ', $Т['успех']);
 
 /** class → инлайновый стиль. Ключ — первый класс элемента. */
 $ПРАВИЛА = [
@@ -147,6 +152,23 @@ $ПРАВИЛА = [
     'slot-play-btn' => 'display:inline-block;font-size:12px;padding:5px 11px;border-radius:8px;background:' . ЗОЛОТО . ';color:#15161c;text-decoration:none;white-space:nowrap',
 ];
 
+// Тема: радиусы по множителю, тени на карточках, кнопки по форме темы, кант.
+if ($тема > 0) {
+    foreach ($ПРАВИЛА as $к => $v) { $ПРАВИЛА[$к] = v5TemaRadius($v, $Т); }
+    if ($Т['тень'] !== '') {
+        foreach (['hero-value', 'quicklink-item', 'jackpot-cell', 'stat-card', 'value-pillar', 'faq-item', 'slot-card',
+                  'info-block', 'page-thematic-block', 'review-quote-text', 'jackpot-strip', 'slots-dashboard', 'recent-payouts-block'] as $к) {
+            $ПРАВИЛА[$к] .= ';' . $Т['тень'];
+        }
+    }
+    foreach (['btn', 'payout-btn', 'slot-play-btn'] as $к) {
+        $ПРАВИЛА[$к] = v5TemaKnopka($Т, (string) preg_replace('~;?(?:background|color):[^;]+~', '', $ПРАВИЛА[$к]));
+    }
+    if ($Т['заголовок'] === 'капс') { $ПРАВИЛА['hero-headline'] .= ';letter-spacing:.04em;text-transform:uppercase;font-size:22px'; }
+    if ($Т['заголовок'] === 'тонкий') { $ПРАВИЛА['hero-headline'] .= ';font-weight:500;font-size:30px'; }
+    if ($Т['кант'] === 'none') { foreach ($ПРАВИЛА as $к => $v) { $ПРАВИЛА[$к] = str_replace('border:1px solid transparent', 'border:0', $v); } }
+}
+
 // Без обложек заглушка становится единственным «постером» карточки: плитка
 // с эмодзи и названием игры на градиенте, ростом под ту же высоту, что
 // занимала бы картинка 640×480.
@@ -214,9 +236,20 @@ foreach ($файлы as $файл) {
             }
         }
 
+        // ── тема: обычные заголовки и абзацы без класса
+        if ($тема > 0 && preg_match('~^\s*<(h2|h3)>\s*$~', $л, $mz) === 1) {
+            $итог[] = preg_replace('~<' . $mz[1] . '>~', '<' . $mz[1] . ' style="' . v5TemaZagolovok($Т, $mz[1]) . '">', $л, 1);
+            $правил++;
+            continue;
+        }
+        if ($тема > 0 && preg_match('~^\s*<p>\s*$~', $л) === 1) {
+            $итог[] = preg_replace('~<p>~', '<p style="line-height:' . $Т['строка'] . ';margin:0 0 14px">', $л, 1);
+            $правил++;
+            continue;
+        }
         // ── содержательные списки: воздух и цветные маркеры
         if (preg_match('~^\\s*<ul>\\s*$~', $л) === 1) {
-            $итог[] = preg_replace('~<ul>~', '<ul style="margin:14px 0;padding-left:22px;line-height:1.65">', $л, 1);
+            $итог[] = preg_replace('~<ul>~', '<ul style="margin:14px 0;padding-left:22px;line-height:' . ($тема > 0 ? $Т['строка'] : '1.65') . ($тема > 0 ? ';list-style-type:' . $Т['маркер'] : '') . '">', $л, 1);
             $правил++;
             continue;
         }
@@ -226,7 +259,7 @@ foreach ($файлы as $файл) {
             continue;
         }
         if (preg_match('~^\\s*<strong>(Плюс|Минус|Совет|Факт|Итог|Важно|Кстати)~u', $л) === 1 && strpos($л, 'style=') === false) {
-            $карта = ['Плюс' => '#4fbe86', 'Минус' => '#f0685a', 'Совет' => ЗОЛОТО,
+            $карта = ['Плюс' => $Т['плюс'], 'Минус' => $Т['минус'], 'Совет' => ЗОЛОТО,
                       'Факт' => ЗОЛОТО, 'Итог' => ЗОЛОТО, 'Важно' => '#f0685a', 'Кстати' => ЗОЛОТО];
             $итог[] = preg_replace_callback('~<strong>(Плюс|Минус|Совет|Факт|Итог|Важно|Кстати)~u',
                 function ($m) use ($карта) { return '<strong style="color:' . $карта[$m[1]] . '">' . $m[1]; }, $л, 1);
