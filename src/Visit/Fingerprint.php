@@ -13,6 +13,12 @@ use YandexSites\Check\Html;
 final class Fingerprint
 {
     /**
+     * Больше этого объёма для отпечатка не читаем: текста и так хватает с запасом, а regex по
+     * десяткам мегабайт (страница с гигантским DOM) валит PHP по памяти — и вместе с ним всё задание.
+     */
+    public const MAX_BYTES = 3 * 1024 * 1024;
+
+    /**
      * @return array{hash: string, length: int, title: string}
      */
     public static function of(string $html): array
@@ -31,6 +37,9 @@ final class Fingerprint
      */
     public static function text(string $html): string
     {
+        if (strlen($html) > self::MAX_BYTES) {
+            $html = substr($html, 0, self::MAX_BYTES);
+        }
         $text = preg_replace('~<(script|style|noscript|template|svg)\b[^>]*>.*?</\1>~isu', ' ', $html) ?? $html;
         $text = preg_replace('~<!--.*?-->~su', ' ', $text) ?? $text;
         $text = strip_tags($text);

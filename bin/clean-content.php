@@ -16,6 +16,8 @@ declare(strict_types=1);
  */
 
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
+// Страницы и их разбор бывают тяжёлыми: лимит по умолчанию (128M) ронял всё задание из-за одного сайта.
+@ini_set('memory_limit', '1024M');
 
 $root = dirname(__DIR__);
 if (is_file($root . '/vendor/autoload.php')) {

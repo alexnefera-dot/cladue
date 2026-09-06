@@ -188,7 +188,13 @@ async function visitJob(browser, job, options) {
         if (options.pass_gate !== false) {
             await passGate(page, timeout);
         }
-        const html = await page.content();
+        let html = await page.content();
+        // Ограничение размера, как у curl-драйвера (max_bytes): страница с гигантским DOM (бесконечная
+        // подгрузка, base64-картинки) иначе даёт файл на десятки МБ и валит PHP по памяти на отпечатке.
+        const maxBytes = Math.max(65536, Number(options.max_bytes) || 2 * 1024 * 1024);
+        if (Buffer.byteLength(html, 'utf8') > maxBytes) {
+            html = Buffer.from(html, 'utf8').subarray(0, maxBytes).toString('utf8');
+        }
         fs.mkdirSync(path.dirname(job.htmlFile), { recursive: true });
         fs.writeFileSync(job.htmlFile, html, 'utf8');
         if (job.screenshotFile) {

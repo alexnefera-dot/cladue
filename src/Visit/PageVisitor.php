@@ -176,7 +176,7 @@ final class PageVisitor
         }
 
         if ($visit['ok'] && is_file($job->htmlFile)) {
-            $html = (string) file_get_contents($job->htmlFile);
+            $html = $this->readHtml($job->htmlFile);
             if (!$this->ownSites->isEmpty()) {
                 $host = Domains::hostFromUrl($visit['final_url'] !== '' ? $visit['final_url'] : $job->url);
                 if ($this->ownSites->matchesHtml($html) || $this->ownSites->matchesHost($host)) {
@@ -313,7 +313,7 @@ final class PageVisitor
                 continue;
             }
             if (($visit['ok'] ?? false) && is_file($job->htmlFile)) {
-                $html = (string) file_get_contents($job->htmlFile);
+                $html = $this->readHtml($job->htmlFile);
                 // Адрес главной ПОСЛЕ редиректов: если apex увёл на бренд-поддомен
                 // (casinozsd.buzz → kush.casinozsd.buzz), меню и его ссылки живут уже на нём —
                 // относительно него и разбираем ссылки, иначе они кажутся «другим поддоменом».
@@ -437,7 +437,7 @@ final class PageVisitor
                     }
                     $file = (string) ($v['html_file'] ?? '');
                     if ($file !== '' && is_file($file)) {
-                        $texts[] = ['text' => Fingerprint::text((string) file_get_contents($file)), 'label' => $base, 'url' => (string) ($v['url'] ?? '')];
+                        $texts[] = ['text' => Fingerprint::text($this->readHtml($file)), 'label' => $base, 'url' => (string) ($v['url'] ?? '')];
                     }
                 } elseif (self::isRetryableVisit($v)) {
                     $failed[$i] = (string) ($v['url'] ?? '');
@@ -685,7 +685,7 @@ final class PageVisitor
         if (!($visit['ok'] ?? false) || !is_file($job->htmlFile)) {
             return $visit;
         }
-        $text = Fingerprint::text((string) file_get_contents($job->htmlFile));
+        $text = Fingerprint::text($this->readHtml($job->htmlFile));
         if (self::looksLikeStub($text)) {
             // Заглушка (проверка возраста, cookie-стена, «включите JavaScript») — это не контент
             // сайта, а барьер перед ним. Не считаем дубликатом и не берём эталоном: страница остаётся.
@@ -893,7 +893,7 @@ final class PageVisitor
         }
 
         return is_file($job->htmlFile)
-            && self::looksLikeBlock((string) file_get_contents($job->htmlFile), (string) ($result['title'] ?? ''), $status);
+            && self::looksLikeBlock($this->readHtml($job->htmlFile), (string) ($result['title'] ?? ''), $status);
     }
 
     /**
@@ -1010,6 +1010,18 @@ final class PageVisitor
             'resolve' => array_values((array) ($this->cfg['resolve'] ?? [])),
             'browser_path' => $this->cfg['browser_path'] ?? null,
         ];
+    }
+
+    /**
+     * Читает HTML страницы с ограничением по объёму (visit.max_bytes, но не меньше 1 МБ): отпечатку,
+     * проверке блокировки и разбору меню больше не нужно, а гигантский файл валит PHP по памяти.
+     */
+    private function readHtml(string $file): string
+    {
+        $limit = max(1024 * 1024, (int) ($this->cfg['max_bytes'] ?? 2 * 1024 * 1024));
+        $html = @file_get_contents($file, false, null, 0, $limit);
+
+        return $html === false ? '' : $html;
     }
 
     public static function safeName(string $host): string

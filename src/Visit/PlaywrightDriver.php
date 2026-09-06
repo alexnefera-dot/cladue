@@ -80,6 +80,7 @@ final class PlaywrightDriver implements DriverInterface
                 'delay_ms' => (int) ($options['delay_ms'] ?? 0),
                 'verify_ssl' => (bool) ($options['verify_ssl'] ?? true),
                 'full_page' => (bool) ($options['full_page'] ?? false),
+                'max_bytes' => max(65536, (int) ($options['max_bytes'] ?? 2 * 1024 * 1024)),
                 'resolve' => array_values((array) ($options['resolve'] ?? [])),
                 'browser_path' => $options['browser_path'] ?? null,
             ],

@@ -20,7 +20,7 @@ use YandexSites\Visit\VisitJob;
  */
 final class VisitTest
 {
-    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'agegate.ru', 'ourtpl.ru', 'brand-a.tpl.ru', 'brand-b.tpl.ru', 'footeronly.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru', 'softsite.ru', 'duptest.ru', 'localeretry.ru', 'brandnet.ru', 'kush.brandnet.ru', 'namedup.ru'];
+    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'agegate.ru', 'ourtpl.ru', 'brand-a.tpl.ru', 'brand-b.tpl.ru', 'footeronly.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru', 'softsite.ru', 'duptest.ru', 'localeretry.ru', 'brandnet.ru', 'kush.brandnet.ru', 'namedup.ru', 'bigpage.ru'];
 
     private ?string $dir = null;
 
@@ -874,6 +874,40 @@ final class VisitTest
             $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
         }
         @rmdir($dir);
+    }
+
+    public function testFingerprintCapsHugeInput(): void
+    {
+        // 4 МБ страницы с незакрытым <script>: отпечаток не должен уходить в память/бэктрекинг — вход режется по MAX_BYTES.
+        $huge = '<html><body><script>var a=1;' . str_repeat('<p>слово текст</p>', 200000) . '</body></html>';
+        Assert::true(strlen($huge) > \YandexSites\Visit\Fingerprint::MAX_BYTES, 'вход больше потолка');
+        $text = \YandexSites\Visit\Fingerprint::text($huge);
+        Assert::true(is_string($text), 'отпечаток посчитан без фатала');
+        Assert::true(mb_strlen($text) <= \YandexSites\Visit\Fingerprint::MAX_BYTES, 'текст ограничен потолком');
+        $fp = \YandexSites\Visit\Fingerprint::of($huge);
+        Assert::same(32, strlen($fp['hash']));
+    }
+    public function testPlaywrightDriverCapsHugePage(): void
+    {
+        $driver = new PlaywrightDriver();
+        $probe = $driver->probe();
+        if (!$probe['ok']) {
+            Assert::skip('Playwright недоступен: ' . $probe['message']);
+        }
+        $port = FakeServer::port();
+        $dir = $this->dir() . '/browser';
+        $jobs = [
+            new VisitJob('a', 'okna-moskva.ru', 1, "http://okna-moskva.ru:$port/", 'http://yandex.test/search/?text=x', 'Mozilla/5.0 (test)', null, 'direct', "$dir/okna/variant-1.html", "$dir/okna/variant-1.png"),
+            new VisitJob('d', 'unresolvable.invalid', 1, 'http://unresolvable.invalid/', '', 'Mozilla/5.0 (test)', null, 'direct', "$dir/bad/variant-1.html", null),
+        ];
+        // Большая страница: браузерный драйвер должен резать сохранённый HTML по max_bytes, как curl —
+        // иначе гигантский DOM даёт файл на десятки МБ и валит PHP по памяти (fatal в Fingerprint).
+        $bigPort = FakeServer::port();
+        $bigDir = $this->dir() . '/bigpage';
+        $bigJob = new VisitJob('big', 'bigpage.ru', 1, "http://bigpage.ru:$bigPort/", '', 'UA', null, 'direct', "$bigDir/bigpage.ru/variant-1.html", null);
+        $bigRes = $driver->visit([$bigJob], ['timeout' => 20, 'resolve' => $this->resolve($bigPort), 'max_bytes' => 200000]);
+        Assert::true($bigRes['big']['ok'] ?? false, (string) ($bigRes['big']['error'] ?? ''));
+        Assert::true(filesize("$bigDir/bigpage.ru/variant-1.html") <= 200000 + 64, 'HTML обрезан по max_bytes');
     }
 
     public function testPlaywrightDriverRendersJavascript(): void

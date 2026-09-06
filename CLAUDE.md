@@ -205,6 +205,13 @@ Run `php tests/lint.php && php tests/run.php` before committing.
 - Proxies live in the top-level `proxies` list / `proxy_file` (format `scheme://host:port:user:pass`
   and others parsed by `Live\Proxy::parse()`); `live.proxies`/`live.proxy_file` are legacy aliases merged
   in `Application::buildProxyPool()`. The live source rotates them per request, visits per job.
+- Page size is capped at `visit.max_bytes` (default 2 MB) in BOTH drivers: `CurlDriver` stops reading, and
+  `tools/render-page.js` truncates `page.content()` before writing (the option is passed through
+  `PlaywrightDriver`). `PageVisitor::readHtml()` reads saved pages with the same cap, and
+  `Fingerprint::text()` cuts its input at `Fingerprint::MAX_BYTES` (3 MB) — a site with a giant DOM once
+  made `preg_replace` allocate ~100 MB and the PHP fatal killed the whole collect job. The entry points
+  (`bin/run-job.php`, `bin/yandex-sites.php`, `bin/panel.php`, `bin/clean-content.php`) raise
+  `memory_limit` to 1 GB as a safety margin on top of the caps.
 - Default User-Agent for visits and site checks is `UserAgents::YANDEX_BOT` (the first visit variant
   shows the page as served to Yandex's crawler); additional variants use `UserAgents::BROWSERS`.
   The live SERP fetch always uses browser agents. `--user-agent` overrides visits/checks only.

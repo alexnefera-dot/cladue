@@ -412,6 +412,11 @@ switch ($host) {
             . '<h1>' . $lrH1 . '</h1><p class="content">' . implode(' ', $lrWords) . '</p></body></html>';
 
         return;
+    case 'bigpage.ru':
+        // Гигантская страница (~1,7 МБ): драйверы должны резать сохранённый HTML по max_bytes.
+        echo '<html><head><title>big</title></head><body><h1>Большая</h1>' . str_repeat('<p>слово текст абзаца</p>', 60000) . '</body></html>';
+
+        return;
     case 'namedup.ru':
         // Одна страница под несколькими адресами (/vhod, /vhod.html, /vhod?ref=menu; /registracia, /ru/registracia,
         // /Registracia). Тексты для каждого адреса РАЗНЫЕ — проверяем дедуп именно по имени файла, а не по тексту.
