@@ -1129,6 +1129,19 @@ function вшитьПоТеме(string $файл, string $страница, stri
         case 'постер':
             $вставить(0, [$img('display:block;width:100%;height:' . $Т['высота'] . 'px;object-fit:cover;margin:0 0 22px;border-radius:' . $р . 'px;border:' . $Т['кантCSS'] . ';filter:saturate(1.15) contrast(1.05)' . $тень)]);
             break;
+        case 'рамка':
+            // двойная рамка: тонкий кант снаружи, картинка внутри с отступом, акцентный уголок
+            $вставить(0, ['<div style="padding:10px;border:2px solid ' . $Т['акцент'] . ';outline:' . $Т['кантCSS'] . ';outline-offset:5px;border-radius:' . $р . 'px;margin:6px 6px 26px' . $тень . '">',
+                '  ' . $img('display:block;width:100%;max-height:' . $Т['высота'] . 'px;object-fit:cover;border-radius:' . max(0, $р - 4) . 'px'),
+                '</div>']);
+            break;
+        case 'лента':
+            // подпись лентой поверх нижнего края картинки
+            $вставить(0, ['<div style="position:relative;overflow:hidden;border-radius:' . $р . 'px;margin:0 0 22px' . $тень . '">',
+                '  ' . $img('display:block;width:100%;max-height:' . $Т['высота'] . 'px;object-fit:cover'),
+                '  <div style="position:absolute;left:0;right:0;bottom:0;padding:10px 16px;background:linear-gradient(transparent,rgba(0,0,0,.72));color:#fff;font-size:14px;line-height:1.3"><span style="display:inline-block;padding:2px 10px;background:' . $Т['акцент'] . ';color:' . $Т['акцентТекст'] . ';border-radius:' . ($Т['пилюля'] ? '999px' : '4px') . ';font-weight:600;margin-right:8px">' . htmlspecialchars($страница === 'main' ? 'Обзор' : ucfirst($страница), ENT_QUOTES, 'UTF-8') . '</span>' . $altH . '</div>',
+                '</div>']);
+            break;
         case 'широкая':
             $вставить(0, [$img('display:block;width:100%;max-height:' . $Т['высота'] . 'px;object-fit:cover;margin:0 0 26px;border-radius:' . ($р + 6) . 'px' . $тень)]);
             break;

@@ -167,6 +167,9 @@ if ($тема > 0) {
     if ($Т['заголовок'] === 'капс') { $ПРАВИЛА['hero-headline'] .= ';letter-spacing:.04em;text-transform:uppercase;font-size:22px'; }
     if ($Т['заголовок'] === 'тонкий') { $ПРАВИЛА['hero-headline'] .= ';font-weight:500;font-size:30px'; }
     if ($Т['кант'] === 'none') { foreach ($ПРАВИЛА as $к => $v) { $ПРАВИЛА[$к] = str_replace('border:1px solid transparent', 'border:0', $v); } }
+    // Кнопки шапки «Играть/Акции» (btn-apple) в базе держатся на канте; в теме без канта они
+    // превращались в голый текст. В темах кант кнопки — акцентный, при любом фоне видна.
+    $ПРАВИЛА['btn-apple'] = preg_replace('~border:[^;]+~', 'border:2px solid ' . $Т['акцент'], $ПРАВИЛА['btn-apple']);
 }
 
 // Без обложек заглушка становится единственным «постером» карточки: плитка
