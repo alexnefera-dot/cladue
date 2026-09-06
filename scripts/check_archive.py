@@ -40,6 +40,8 @@ TEMPLATES = {
 # Группа -> (тип, страницы, которые выбрасываются). Сайты 9-стр собираются
 # в шаблон 7-стр без служебных страниц.
 CONVERT = {9: (7, ["privacy", "contacts", "about"])}
+# Типы, где неполный сайт (нет страниц) не дорабатывается, а убирается.
+DISCARD_INCOMPLETE = {7}
 
 ALLOWED_PLACEHOLDERS = {"%brand_name_ru%", "%brand_name_en%",
                         "%domain_name%", "%date%"}
@@ -415,8 +417,15 @@ REASON = {  # короткая причина брака для сводки, п
 }
 
 
-def verdict(F, key):
-    e, w = F.count(key, "ERROR"), F.count(key, "WARN")
+def discarded(F, s):
+    return s["n"] in DISCARD_INCOMPLETE and any(
+        lvl == "ERROR" and code in ("A3", "A4") for lvl, code, _ in F.items[s["key"]])
+
+
+def verdict(F, s):
+    if discarded(F, s):
+        return "🗑 убран (неполный)"
+    e, w = F.count(s["key"], "ERROR"), F.count(s["key"], "WARN")
     return "❌ брак" if e else ("⚠️ проверить" if w else "✅ годен")
 
 
@@ -432,8 +441,9 @@ def render(F, sites, archive_name, junk, unknown_groups):
         for lvl in ("ERROR", "WARN"):
             tot[lvl] += F.count(s["key"], lvl)
     good = sum(1 for s in sites if not F.count(s["key"], "ERROR"))
-    out += ["**Сайтов:** %d, годных %d. **Ошибок:** %d. **Предупреждений:** %d." % (
-        len(sites), good, tot["ERROR"], tot["WARN"]), ""]
+    gone = sum(1 for s in sites if discarded(F, s))
+    out += ["**Сайтов:** %d, годных %d, убрано %d. **Ошибок:** %d. **Предупреждений:** %d." % (
+        len(sites), good, gone, tot["ERROR"], tot["WARN"]), ""]
     if junk:
         out += ["- A1 WARN: мусорные файлы в архиве — %s" % ", ".join(
             "%s (%d)" % kv for kv in junk.items())]
@@ -444,7 +454,7 @@ def render(F, sites, archive_name, junk, unknown_groups):
     for s in sites:
         k = s["key"]
         out.append("| %s | %s | %d | %d | %d | %s |" % (
-            s["type"], s["site"] + s["note"], s["npages"], F.count(k, "ERROR"), F.count(k, "WARN"), verdict(F, k)))
+            s["type"], s["site"] + s["note"], s["npages"], F.count(k, "ERROR"), F.count(k, "WARN"), verdict(F, s)))
     out += ["", "## Подробно", ""]
     for s in sites:
         k = s["key"]
@@ -460,9 +470,12 @@ def render(F, sites, archive_name, junk, unknown_groups):
 
 def sort_output(F, sites, out_dir, archive_name):
     """Разложить сайты: годные/<тип>/<домен>, на-доработку/<тип>/<домен>, сводка.md."""
-    by_type = defaultdict(lambda: {"good": [], "bad": []})
+    by_type = defaultdict(lambda: {"good": [], "bad": [], "gone": []})
     for s in sites:
         k = s["key"]
+        if discarded(F, s):
+            by_type[s["type"]]["gone"].append(s)
+            continue
         bucket = "на-доработку" if F.count(k, "ERROR") else "годные"
         dst = os.path.join(out_dir, bucket, s["type"], s["site"])
         os.makedirs(dst, exist_ok=True)
@@ -471,12 +484,14 @@ def sort_output(F, sites, out_dir, archive_name):
         by_type[s["type"]]["good" if bucket == "годные" else "bad"].append(s)
     lines = ["# Сводка по типам: %s" % archive_name, ""]
     for t in sorted(by_type, key=lambda x: int(x.split("-")[0])):
-        g, b = by_type[t]["good"], by_type[t]["bad"]
-        lines += ["## %s — годных %d, на доработку %d" % (t, len(g), len(b)), ""]
+        g, b, x = by_type[t]["good"], by_type[t]["bad"], by_type[t]["gone"]
+        lines += ["## %s — годных %d, на доработку %d, убрано %d" % (t, len(g), len(b), len(x)), ""]
         for s in g:
             lines.append("- ✅ %s%s" % (s["site"], s["note"]))
         for s in b:
             lines.append("- ❌ %s%s — %s" % (s["site"], s["note"], reasons(F, s["key"])))
+        for s in x:
+            lines.append("- 🗑 %s%s — убран как неполный: %s" % (s["site"], s["note"], reasons(F, s["key"])))
         lines.append("")
     open(os.path.join(out_dir, "сводка.md"), "w", encoding="utf-8").write("\n".join(lines))
 
@@ -528,7 +543,7 @@ def main():
                 note = " (из %s)" % gname
                 F.add(key, "INFO", "A2", "собрано из %s: убраны %s" % (
                     gname, ", ".join(dropped) if dropped else "ничего"))
-            sites.append({"key": key, "type": tname, "site": site, "note": note,
+            sites.append({"key": key, "type": tname, "site": site, "note": note, "n": target,
                           "pages": pages, "npages": len(pages)})
             check_site(target, tpl, key, pages, F)
             for p, d in pages.items():

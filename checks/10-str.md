@@ -20,4 +20,4 @@
 
 ## Пример из первого архива
 
-`10-стр/9t3.casino` — набор полный, но бренд «Motor» зашит на всех 10 страницах, есть `support@Motor.com`, `Motor.com`, `Motormirror.com`; `about` — 103 слова. На доработку.
+`10-стр/9t3.casino` — набор полный, но бренд «Motor» зашит на всех 10 страницах, есть `support@Motor.com`, `Motor.com`, `Motormirror.com`; `about` — 103 слова. После `fix_archive.py --brand Motor` — годен.
