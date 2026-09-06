@@ -412,6 +412,20 @@ switch ($host) {
             . '<h1>' . $lrH1 . '</h1><p class="content">' . implode(' ', $lrWords) . '</p></body></html>';
 
         return;
+    case 'namedup.ru':
+        // Одна страница под несколькими адресами (/vhod, /vhod.html, /vhod?ref=menu; /registracia, /ru/registracia,
+        // /Registracia). Тексты для каждого адреса РАЗНЫЕ — проверяем дедуп именно по имени файла, а не по тексту.
+        $ndWords = [];
+        for ($nd = 0; $nd < 40; $nd++) {
+            $ndWords[] = 'nd' . substr(md5((string) ($_SERVER['REQUEST_URI'] ?? $uri)), 0, 8) . $nd;
+        }
+        echo '<html><head><title>namedup</title></head><body>'
+            . '<header><nav class="main-menu"><a href="/">Главная</a><a href="/vhod">Вход</a><a href="/vhod.html">Вход html</a>'
+            . '<a href="/vhod?ref=menu">Вход ref</a><a href="/registracia">Регистрация</a><a href="/ru/registracia">Регистрация ru</a>'
+            . '<a href="/Registracia">Регистрация caps</a><a href="/about">О нас</a></nav></header>'
+            . '<h1>' . htmlspecialchars($uri) . '</h1><p class="content">' . implode(' ', $ndWords) . '</p></body></html>';
+
+        return;
     case 'duptest.ru':
         // /contacts отдаёт (200) то же тело, что и /about — это дубликат именно страницы about,
         // остальные страницы уникальны. Проверяем, что в ошибке указано, с какой страницей совпало.

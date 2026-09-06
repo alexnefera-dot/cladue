@@ -329,13 +329,25 @@ final class PageVisitor
                     $state[$key]['texts'][] = ['text' => $homeText, 'label' => self::fileNameFromUrl($homeUrl), 'url' => $homeUrl];
                 }
                 // Ссылки меню без уже открытых адресов (главная и её алиасы не качаются повторно).
+                // И ОДИН ФАЙЛ НА ИМЯ страницы: /vhod, /vhod.html, /vhod?ref=menu и /Vhod — это одна страница
+                // «vhod», второй вариант не качаем вовсе (иначе появлялись vhod-2, registracia-2: канонические
+                // ключи у них разные, а дедуп по тексту страницы-формы не ловит).
                 $fresh = [];
+                $takenNames = [];
+                foreach (array_keys($state[$key]['names']) as $n) {
+                    $takenNames[mb_strtolower((string) $n)] = true; // «main» уже занят главной
+                }
                 foreach (SiteLinks::fromHeader($html, $homeUrl, $site->domain, $maxPages - 1) as $link) {
                     $canon = SiteLinks::canonical($link);
                     if (isset($state[$key]['urls'][$canon])) {
                         continue;
                     }
                     $state[$key]['urls'][$canon] = true;
+                    $name = mb_strtolower(self::fileNameFromUrl($link));
+                    if (isset($takenNames[$name])) {
+                        continue; // тот же файл под другим адресом — уже есть
+                    }
+                    $takenNames[$name] = true;
                     $fresh[] = $link;
                 }
                 if ($fresh !== []) {
@@ -440,9 +452,26 @@ final class PageVisitor
             }
 
             // По одному «слоту» на неудачную страницу: имя файла и кандидаты адреса (обычный + без locale).
+            // Один файл на имя: если упавший адрес — вариант уже скачанной страницы (/vhod?ref=… рядом с vhod.html),
+            // его не добираем, а помечаем дубликатом — иначе получался vhod-2.
             $slots = [];
+            $takenNames = [];
+            foreach (array_keys($usedNames) as $n) {
+                $takenNames[mb_strtolower((string) $n)] = true;
+            }
             foreach ($failed as $i => $url) {
-                $name = $this->uniqueName($usedNames, self::fileNameFromUrl($url));
+                $base = self::fileNameFromUrl($url);
+                $lower = mb_strtolower($base);
+                if (isset($takenNames[$lower])) {
+                    $site->visits[(int) $i] = array_merge((array) $site->visits[(int) $i], [
+                        'ok' => false,
+                        'duplicate' => true,
+                        'error' => sprintf('дубликат: та же страница, что «%s» (другой вариант адреса)', $base),
+                    ]);
+                    continue;
+                }
+                $takenNames[$lower] = true;
+                $name = $this->uniqueName($usedNames, $base);
                 $slots[$i] = ['name' => $name, 'prefix' => $siteDir . '/' . $name, 'candidates' => self::retryUrlCandidates($url), 'result' => null];
             }
             $attempted += count($slots);

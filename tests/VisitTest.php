@@ -20,7 +20,7 @@ use YandexSites\Visit\VisitJob;
  */
 final class VisitTest
 {
-    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'agegate.ru', 'ourtpl.ru', 'brand-a.tpl.ru', 'brand-b.tpl.ru', 'footeronly.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru', 'softsite.ru', 'duptest.ru', 'localeretry.ru', 'brandnet.ru', 'kush.brandnet.ru'];
+    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'agegate.ru', 'ourtpl.ru', 'brand-a.tpl.ru', 'brand-b.tpl.ru', 'footeronly.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru', 'softsite.ru', 'duptest.ru', 'localeretry.ru', 'brandnet.ru', 'kush.brandnet.ru', 'namedup.ru'];
 
     private ?string $dir = null;
 
@@ -530,6 +530,60 @@ final class VisitTest
         Assert::true(is_file("$dir/3-стр/brandnet.ru/main.html"), 'папка сайта — по собранному хосту brandnet.ru');
         Assert::true(is_file("$dir/3-стр/brandnet.ru/about.html"));
         Assert::true(is_file("$dir/3-стр/brandnet.ru/promo.html"));
+    }
+
+    public function testCrawlSavesOneFilePerPageName(): void
+    {
+        // /vhod, /vhod.html, /vhod?ref=menu — одна страница «vhod»; /registracia, /ru/registracia, /Registracia —
+        // одна «registracia». Тексты у сервера для каждого адреса разные, так что срабатывает именно правило
+        // «один файл на имя», а не дедуп по содержимому: раньше появлялись vhod-2 и registracia-2.
+        $port = FakeServer::port();
+        $dir = $this->dir() . '/namedup';
+        $site = new Site('namedup.ru', 'namedup.ru', 'namedup.ru');
+        $site->add(new SearchResult('вход', 0, 1, "http://namedup.ru:$port/", 'namedup.ru', 'Гл'));
+        $sites = ['namedup.ru' => $site];
+
+        $visitor = new PageVisitor([
+            'crawl' => true,
+            'max_pages' => 20,
+            'target' => 'found',
+            'dir' => $dir,
+            'screenshot' => false,
+            'timeout' => 5,
+            'delay_ms' => 0,
+            'concurrency' => 3,
+            'resolve' => $this->resolve($port),
+            'user_agents' => [UserAgents::YANDEX_BOT],
+        ], new CurlDriver(), $this->logger());
+        $visitor->visit($sites);
+
+        $files = array_map('basename', glob("$dir/*/namedup.ru/*.html") ?: []);
+        sort($files);
+        Assert::same(['about.html', 'main.html', 'registracia.html', 'vhod.html'], $files, 'по одному файлу на имя, без -2');
+        Assert::same(4, count($site->visits), 'варианты того же имени не качались вовсе');
+        Assert::same(4, $site->visitSummary()['ok']);
+    }
+
+    public function testRetryFailedDoesNotCreateSecondFileForSameName(): void
+    {
+        // Упавший /vhod?ref=menu рядом с уже скачанным vhod.html — при докачке не добираем, помечаем дубликатом.
+        $dir = $this->dir() . '/retryname';
+        mkdir("$dir/dupname.ru", 0777, true);
+        file_put_contents("$dir/dupname.ru/vhod.html", '<html><body><p>' . str_repeat('вход текст ', 30) . '</p></body></html>');
+        $site = new Site('dupname.ru', 'dupname.ru', 'dupname.ru');
+        $site->add(new SearchResult('x', 0, 1, 'http://dupname.ru/', 'dupname.ru', 'T'));
+        $site->visits = [
+            ['variant' => 0, 'url' => 'http://dupname.ru/vhod', 'ok' => true, 'error' => '', 'status' => 200, 'html_file' => "$dir/dupname.ru/vhod.html"],
+            ['variant' => 1, 'url' => 'http://dupname.ru/vhod?ref=menu', 'ok' => false, 'error' => 'curl 28: Timeout', 'status' => null, 'html_file' => ''],
+        ];
+        $visitor = new PageVisitor(['crawl' => true, 'dir' => $dir, 'screenshot' => false, 'timeout' => 5, 'retries' => 0], new CurlDriver(), $this->logger());
+        $r = $visitor->retryFailed(['dupname.ru' => $site]);
+
+        Assert::same(0, $r['attempted'], 'вариант уже скачанной страницы не добираем');
+        Assert::true($site->visits[1]['duplicate'] ?? false, 'помечен дубликатом');
+        Assert::contains('дубликат', (string) $site->visits[1]['error']);
+        Assert::same(0, count(glob("$dir/*/dupname.ru/vhod-2.html") ?: []) + (int) is_file("$dir/dupname.ru/vhod-2.html"), 'vhod-2 не создан');
+        Assert::true(is_file("$dir/1-стр/dupname.ru/vhod.html"), 'скачанная страница на месте');
     }
 
     public function testCrawlReadsFooterMenuWithoutSecondMain(): void

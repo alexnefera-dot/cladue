@@ -357,7 +357,10 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   a home-like template for missing paths, which must not be mislabeled a «дубликат» of the home page.
   Page files are named short from the URL's last path segment (`/registracia` → `registracia.html`,
   `/catalog/plastikovye/` → `plastikovye.html`, home → `main.html`; `PageVisitor::fileNameFromUrl()` +
-  `uniqueName()`). Duplicate/one-pager
+  `uniqueName()`). One file per page NAME: a menu link whose last segment yields a name already taken for that
+  site (`/vhod.html`, `/vhod?ref=menu`, `/Vhod` next to `/vhod`) is not crawled at all, and `retryFailed()` marks
+  such a failed variant «дубликат» instead of re-fetching it — so `vhod-2`/`registracia-2` never appear
+  (`uniqueName()` stays only as a last-resort guard). Duplicate/one-pager
   detection: `Fingerprint::text()` + `Fingerprint::similarity()` (Jaccard word-set); if the probe
   page matches home ≥ `visit.similarity` (default 0.9) the site is a one-pager and the rest are
   skipped, and matching inner pages are dropped (`PageVisitor::dedupVisit()`). The comparison texts are
