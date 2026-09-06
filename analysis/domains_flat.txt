@@ -33,11 +33,13 @@
 0540.team
 055.lol
 0665.team
+0697.team
 0722.team
 0728.lol
 0778.lol
 0778.team
 0864.team
+0934.lol
 1073.team
 1083.lol
 1085.team
@@ -68,6 +70,8 @@
 1750.team
 1794.team
 1795.team
+1812.lol
+1812.team
 1818.team
 1837.team
 1857.team
@@ -134,6 +138,7 @@
 2698.team
 2745.team
 2748.team
+274casino.team
 2760.team
 2764.team
 2801.lol
@@ -155,6 +160,7 @@
 3164.team
 3186.team
 3191.lol
+3211.team
 3242.lol
 3242.team
 3284.lol
@@ -232,6 +238,7 @@
 4863.team
 4893.lol
 4967.team
+4994.team
 5010.lol
 5012.team
 5025.team
@@ -240,6 +247,7 @@
 5113.team
 5148.team
 5230.team
+5256.lol
 5273r.cfd
 5283.team
 5297-4.casino
@@ -285,6 +293,7 @@
 65casino.lol
 6635.team
 6725.team
+6808.team
 6820.team
 6829.lol
 6860.team
@@ -327,6 +336,7 @@
 7925.team
 7960.lol
 7960.team
+7978.team
 8172.team
 8193.team
 81casino.team
@@ -362,6 +372,7 @@
 9274.team
 9279.team
 9316.space
+934.team
 9344casino.team
 9364.team
 9365.team
@@ -451,6 +462,7 @@ casinoduw.lol
 casinodxp.team
 casinogh.lol
 casinogh.team
+casinoh2.team
 casinoj1.lol
 casinoj1.team
 casinojr.team
@@ -641,6 +653,7 @@ mpdg.team
 mqvb.team
 mtbf.team
 muacasino.team
+mwrp.team
 n0b5.team
 n4kd.team
 n5wk.team
@@ -739,6 +752,7 @@ tvmk7.bond
 tvuy.team
 tzfl.team
 u0s.team
+u3i.team
 u4f5.lol
 u4f5.team
 u9i.team
@@ -748,6 +762,7 @@ ubgh.team
 ukfw.lol
 ukfw.team
 unxn.casino
+uphv.team
 v1i.team
 v2ld.lol
 v3zm.team
@@ -778,6 +793,7 @@ wrfn.cloud
 wzna.team
 x0wz.team
 x284.site
+x5i.team
 x9d7.casino
 xabd.team
 xdkr.team
