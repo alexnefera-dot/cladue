@@ -1,4 +1,4 @@
-# День 06.09.2026 — 55 доменов, десять групп
+# День 06.09.2026 — 60 доменов, одиннадцать групп
 
 ## drobilnyydvor1_1 — id 1413, создан 02:01
 65casino.lol
@@ -76,3 +76,10 @@ casinoli.team
 7827.team
 7827.lol
 274casino.lol
+
+## nabory421425_styled_img_1…_5 — id 1469-1473, создан 18:26 (наборы 421-425)
+fks.lol
+5153.team
+939casino.lol
+casinoodm.team
+casinofsd.lol

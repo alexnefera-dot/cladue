@@ -249,6 +249,7 @@
 5109.team
 5113.team
 5148.team
+5153.team
 5230.team
 5256.lol
 5273r.cfd
@@ -383,6 +384,7 @@
 9344casino.team
 9364.team
 9365.team
+939casino.lol
 9413.team
 9485.lol
 9536.lol
@@ -469,6 +471,7 @@ casino876.team
 casino922.lol
 casinoduw.lol
 casinodxp.team
+casinofsd.lol
 casinogh.lol
 casinogh.team
 casinoh2.team
@@ -478,6 +481,7 @@ casinojr.team
 casinoli.team
 casinonck.lol
 casinonck.team
+casinoodm.team
 casinoopk.lol
 casinoopk.team
 casinoprb.lol
@@ -542,6 +546,7 @@ fjnv.team
 fkjj.lol
 fkmz.team
 fkrt.team
+fks.lol
 fkxb.team
 fmwc.team
 fnpk.team
