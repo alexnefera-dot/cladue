@@ -2,10 +2,12 @@
 """Проверка архива с HTML-фрагментами сайтов по планам из checks/.
 
 Использование:
-    python3 scripts/check_archive.py <архив.zip | папка> [-o отчёт.md]
+    python3 scripts/check_archive.py <архив.zip | папка> [-o отчёт.md] [--sort ПАПКА]
 
 Архив должен иметь структуру  <N>-стр/<домен>/<страница>.html .
 Коды проверок (A*, B*, C*, D*) соответствуют checks/00-common.md.
+--sort ПАПКА  раскладывает сайты по типам: ПАПКА/годные/<тип>/<домен>/ и
+              ПАПКА/на-доработку/<тип>/<домен>/, плюс ПАПКА/сводка.md.
 Код возврата: 1, если найдена хотя бы одна ошибка (ERROR), иначе 0.
 """
 import argparse
@@ -14,6 +16,7 @@ import html
 import itertools
 import os
 import re
+import shutil
 import sys
 import tempfile
 import zipfile
@@ -21,21 +24,22 @@ from collections import Counter, defaultdict
 from html.parser import HTMLParser
 
 # ---------------------------------------------------------------- шаблоны ---
-SET_10 = ["about", "app", "bonus", "contacts", "main", "privacy",
-          "registracia", "slots", "vhod", "zerkalo"]
-SET_12 = ["app", "bonus", "info", "main", "news", "obzor", "partnery",
-          "promo", "registracia", "slots", "vhod", "zerkalo"]
+SET_7 = ["app", "bonus", "main", "registracia", "slots", "vhod", "zerkalo"]
+SET_12 = SET_7 + ["info", "news", "obzor", "partnery", "promo"]
 
-# pages: эталонный набор; subset_of: допускается любое подмножество нужного
-# размера; min_words: минимум слов на странице; min_h2: минимум <h2>.
+# pages: эталонный набор; min_words: минимум слов; min_h2: минимум <h2>.
 TEMPLATES = {
     1:  {"pages": ["main"], "min_words": 300, "min_h2": 3},
-    9:  {"pages": None, "subset_of": SET_10, "min_words": 150, "min_h2": 1},
-    10: {"pages": SET_10, "min_words": 150, "min_h2": 1},
+    7:  {"pages": SET_7, "min_words": 150, "min_h2": 1},
+    9:  {"pages": SET_7 + ["contacts", "privacy"], "min_words": 150, "min_h2": 1},
+    10: {"pages": SET_7 + ["about", "contacts", "privacy"], "min_words": 150, "min_h2": 1},
     12: {"pages": SET_12, "min_words": 400, "min_h2": 2},
-    # 13-я страница пока не определена (см. checks/13-str.md)
-    13: {"pages": SET_12 + ["?"], "min_words": 400, "min_h2": 2},
+    # 13-я страница при выкачке отсутствует — шаблон без неё, те же 12 страниц.
+    13: {"pages": SET_12, "min_words": 400, "min_h2": 2},
 }
+# Группа -> (тип, страницы, которые выбрасываются). Сайты 9-стр собираются
+# в шаблон 7-стр без служебных страниц.
+CONVERT = {9: (7, ["privacy", "contacts", "about"])}
 
 ALLOWED_PLACEHOLDERS = {"%brand_name_ru%", "%brand_name_en%",
                         "%domain_name%", "%date%"}
@@ -63,7 +67,7 @@ TOPIC = {
     "contacts": r"контакт|поддержк|email|телефон|чат|связ",
     "privacy": r"конфиденциальн|персональн|cookie|политик",
 }
-# Слово в тексте ссылки -> страница, на которую она должна вести.
+# Слово в тексте ссылки -> страница, на которую она могла бы вести (C2, справочно).
 ANCHOR_TARGET = [
     (r"промокод|промо|акци", "promo"), (r"обзор", "obzor"),
     (r"новост", "news"), (r"информац|справ|правил", "info"),
@@ -147,7 +151,7 @@ def shingles(words, n=6):
 
 class Findings:
     def __init__(self):
-        self.items = defaultdict(list)   # site key -> [(level, code, msg)]
+        self.items = defaultdict(list)   # ключ сайта -> [(уровень, код, текст)]
 
     def add(self, key, level, code, msg):
         self.items[key].append((level, code, msg))
@@ -159,7 +163,7 @@ class Findings:
 # ---------------------------------------------------------------- разбор ---
 def unpack(path):
     if os.path.isdir(path):
-        return path, None
+        return path
     tmp = tempfile.mkdtemp(prefix="check_archive_")
     with zipfile.ZipFile(path) as z:
         for info in z.infolist():
@@ -170,7 +174,7 @@ def unpack(path):
                 except (UnicodeEncodeError, UnicodeDecodeError):
                     pass
             z.extract(info, tmp)
-    return tmp, tmp
+    return tmp
 
 
 def find_groups(root):
@@ -194,7 +198,7 @@ def analyze_page(path):
     h2 = [re.sub(r"<[^>]+>", "", h).strip()
           for h in re.findall(r"<h2[^>]*>(.*?)</h2>", raw, re.S)]
     return {
-        "raw": raw, "text": text, "words": words, "nwords": len(words),
+        "path": path, "raw": raw, "text": text, "words": words, "nwords": len(words),
         "tag_errors": tc.finish(), "tags": tc.tags,
         "anchors": anchors, "h2": h2,
         "placeholders": Counter(re.findall(r"%[A-Za-z_]+%", raw)),
@@ -233,27 +237,18 @@ def brand_leaks(text):
 
 
 # ------------------------------------------------------------- проверки ---
-def check_site(n, tpl, site, pages, F):
-    key = site
+def check_site(n, tpl, key, pages, F):
     names = sorted(pages)
+    exp = tpl["pages"]
     # A3 / A4: количество и набор страниц
-    if len(names) != n:
-        F.add(key, "ERROR", "A3", "страниц %d, по шаблону %d" % (len(names), n))
-    exp = tpl.get("pages")
-    if exp is None:
-        base = set(tpl["subset_of"])
-        extra = sorted(set(names) - base)
-        if extra:
-            F.add(key, "ERROR", "A4", "страницы вне набора шаблона: " + ", ".join(extra))
-    else:
-        missing = sorted(set(exp) - set(names) - {"?"})
-        extra = sorted(set(names) - set(exp))
-        if missing:
-            F.add(key, "ERROR", "A4", "нет страниц: " + ", ".join(missing))
-        if extra:
-            F.add(key, "ERROR", "A4", "лишние страницы: " + ", ".join(extra))
-        if "?" in exp and len(names) == n - 1:
-            F.add(key, "WARN", "A4", "13-я страница шаблона не определена, проверить нечем")
+    if len(names) != len(exp):
+        F.add(key, "ERROR", "A3", "страниц %d, по шаблону %d-стр ожидается %d" % (len(names), n, len(exp)))
+    missing = sorted(set(exp) - set(names))
+    extra = sorted(set(names) - set(exp))
+    if missing:
+        F.add(key, "ERROR", "A4", "нет страниц: " + ", ".join(missing))
+    if extra:
+        F.add(key, "ERROR", "A4", "лишние страницы: " + ", ".join(extra))
     for p in names:
         if not re.fullmatch(r"[a-z0-9-]+", p):
             F.add(key, "WARN", "A5", "имя файла не в нижнем регистре латиницей: %s.html" % p)
@@ -355,13 +350,13 @@ def check_site(n, tpl, site, pages, F):
             misrouted_all.update(misrouted)
         if external:
             F.add(key, "WARN", "C3", "%s: внешних ссылок — %d" % (loc, external))
-        if not d["anchors"] and n > 1:
+        if not d["anchors"] and len(exp) > 1:
             F.add(key, "INFO", "C4", "%s: нет внутренних ссылок" % loc)
     if no_brand:
-        F.add(key, "WARN", "B5", "нет плейсхолдера бренда на страницах: " + ", ".join(no_brand))
+        F.add(key, "INFO", "B5", "нет плейсхолдера бренда на страницах: " + ", ".join(no_brand))
     if misrouted_all:
         ex = "; ".join("«%s» → %s (%d)" % (t, h, c) for (t, h), c in misrouted_all.most_common(4))
-        F.add(key, "WARN", "C2", "ссылок не на свой раздел — %d на %d страницах, чаще всего: %s" % (
+        F.add(key, "INFO", "C2", "ссылок не на свой раздел — %d на %d страницах, чаще всего: %s" % (
             sum(misrouted_all.values()), misrouted_pages, ex))
     # D3 дубли внутри сайта
     sh = {p: shingles(pages[p]["words"]) for p in names}
@@ -369,8 +364,7 @@ def check_site(n, tpl, site, pages, F):
         A, B = sh[a], sh[b]
         if len(A) < 30 or len(B) < 30:
             continue
-        inter = len(A & B)
-        cont = inter / min(len(A), len(B))
+        cont = len(A & B) / min(len(A), len(B))
         if cont >= 0.5:
             F.add(key, "WARN", "D3", "%s.html и %s.html: общий текст %d%% меньшей страницы" % (a, b, round(cont * 100)))
     # B11 разброс бонусных процентов
@@ -381,9 +375,6 @@ def check_site(n, tpl, site, pages, F):
     if len(pct) > 5:
         F.add(key, "INFO", "B11", "разных процентов бонуса по сайту — %d: %s" % (
             len(pct), ", ".join("%d%%" % v for v in sorted(pct))))
-    # F1 маркировка 18+
-    with18 = sum(1 for p in names if "18+" in pages[p]["text"])
-    F.add(key, "INFO", "F1", "маркировка 18+ есть на %d из %d страниц" % (with18, len(names)))
 
 
 def check_cross(all_pages, F):
@@ -415,31 +406,50 @@ def check_cross(all_pages, F):
 
 
 # ---------------------------------------------------------------- отчёт ---
-def render(F, sites_order, archive_name, junk, unknown_groups):
+LEVEL_ORDER = {"ERROR": 0, "WARN": 1, "INFO": 2}
+REASON = {  # короткая причина брака для сводки, по коду ошибки
+    "A3": "не то количество страниц", "A4": "не тот набор страниц",
+    "A6": "кодировка", "B1": "заглушки", "B4": "чужой бренд или контакты",
+    "B5": "незаполненные переменные", "B6": "разметка",
+    "C1": "ссылки в никуда", "D1": "дубль файла",
+}
+
+
+def verdict(F, key):
+    e, w = F.count(key, "ERROR"), F.count(key, "WARN")
+    return "❌ брак" if e else ("⚠️ проверить" if w else "✅ годен")
+
+
+def reasons(F, key):
+    codes = Counter(code for lvl, code, _ in F.items[key] if lvl == "ERROR")
+    return "; ".join("%s (%d)" % (REASON.get(c, c), n) for c, n in sorted(codes.items()))
+
+
+def render(F, sites, archive_name, junk, unknown_groups):
     out = ["# Отчёт проверки: %s" % archive_name, ""]
     tot = Counter()
-    for s in sites_order:
-        for lvl in ("ERROR", "WARN", "INFO"):
-            tot[lvl] += F.count(s, lvl)
-    out += ["**Сайтов:** %d. **Ошибок:** %d. **Предупреждений:** %d." % (
-        len(sites_order), tot["ERROR"], tot["WARN"]), ""]
+    for s in sites:
+        for lvl in ("ERROR", "WARN"):
+            tot[lvl] += F.count(s["key"], lvl)
+    good = sum(1 for s in sites if not F.count(s["key"], "ERROR"))
+    out += ["**Сайтов:** %d, годных %d. **Ошибок:** %d. **Предупреждений:** %d." % (
+        len(sites), good, tot["ERROR"], tot["WARN"]), ""]
     if junk:
         out += ["- A1 WARN: мусорные файлы в архиве — %s" % ", ".join(
             "%s (%d)" % kv for kv in junk.items())]
     if unknown_groups:
         out += ["- A2 WARN: папки групп без шаблона: %s" % ", ".join(unknown_groups)]
-    out += ["", "## Сводка", "", "| Группа | Сайт | Страниц | Ошибок | Предупр. | Итог |",
+    out += ["", "## Сводка", "", "| Тип | Сайт | Страниц | Ошибок | Предупр. | Итог |",
             "|---|---|---:|---:|---:|---|"]
-    for s in sites_order:
-        g, name, npages = s.split("/")[0], s.split("/")[1], SITE_PAGES[s]
-        e, w = F.count(s, "ERROR"), F.count(s, "WARN")
-        verdict = "❌ ошибки" if e else ("⚠️ проверить" if w else "✅ ок")
-        out.append("| %s | %s | %d | %d | %d | %s |" % (g, name, npages, e, w, verdict))
+    for s in sites:
+        k = s["key"]
+        out.append("| %s | %s | %d | %d | %d | %s |" % (
+            s["type"], s["site"] + s["note"], s["npages"], F.count(k, "ERROR"), F.count(k, "WARN"), verdict(F, k)))
     out += ["", "## Подробно", ""]
-    order = {"ERROR": 0, "WARN": 1, "INFO": 2}
-    for s in sites_order:
-        out.append("### %s" % s)
-        items = sorted(F.items[s], key=lambda x: (order[x[0]], x[1]))
+    for s in sites:
+        k = s["key"]
+        out.append("### %s" % k)
+        items = sorted(F.items[k], key=lambda x: (LEVEL_ORDER[x[0]], x[1]))
         if not items:
             out.append("- замечаний нет")
         for lvl, code, msg in items:
@@ -448,15 +458,36 @@ def render(F, sites_order, archive_name, junk, unknown_groups):
     return "\n".join(out)
 
 
-SITE_PAGES = {}
+def sort_output(F, sites, out_dir, archive_name):
+    """Разложить сайты: годные/<тип>/<домен>, на-доработку/<тип>/<домен>, сводка.md."""
+    by_type = defaultdict(lambda: {"good": [], "bad": []})
+    for s in sites:
+        k = s["key"]
+        bucket = "на-доработку" if F.count(k, "ERROR") else "годные"
+        dst = os.path.join(out_dir, bucket, s["type"], s["site"])
+        os.makedirs(dst, exist_ok=True)
+        for p, d in s["pages"].items():
+            shutil.copyfile(d["path"], os.path.join(dst, p + ".html"))
+        by_type[s["type"]]["good" if bucket == "годные" else "bad"].append(s)
+    lines = ["# Сводка по типам: %s" % archive_name, ""]
+    for t in sorted(by_type, key=lambda x: int(x.split("-")[0])):
+        g, b = by_type[t]["good"], by_type[t]["bad"]
+        lines += ["## %s — годных %d, на доработку %d" % (t, len(g), len(b)), ""]
+        for s in g:
+            lines.append("- ✅ %s%s" % (s["site"], s["note"]))
+        for s in b:
+            lines.append("- ❌ %s%s — %s" % (s["site"], s["note"], reasons(F, s["key"])))
+        lines.append("")
+    open(os.path.join(out_dir, "сводка.md"), "w", encoding="utf-8").write("\n".join(lines))
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("path")
-    ap.add_argument("-o", "--output")
+    ap.add_argument("-o", "--output", help="файл отчёта (Markdown)")
+    ap.add_argument("--sort", metavar="ПАПКА", help="разложить сайты по типам в эту папку")
     args = ap.parse_args()
-    root, _ = unpack(args.path)
+    root = unpack(args.path)
     F = Findings()
     junk = Counter()
     for dirpath, dirnames, filenames in os.walk(root):
@@ -466,40 +497,54 @@ def main():
         for fn in filenames:
             if fn in JUNK_NAMES or fn.startswith("._"):
                 junk[fn] += 1
-    all_pages, sites_order, unknown = {}, [], []
+    all_pages, sites, unknown = {}, [], []
     for n, gdir in find_groups(root):
-        tpl = TEMPLATES.get(n)
         gname = os.path.basename(gdir)
-        if tpl is None:
+        if n not in TEMPLATES:
             unknown.append(gname)
             continue
+        target, drop = CONVERT.get(n, (n, []))
+        tpl = TEMPLATES[target]
         for site in sorted(os.listdir(gdir)):
             sdir = os.path.join(gdir, site)
             if not os.path.isdir(sdir):
                 continue
-            key = "%s/%s" % (gname, site)
-            pages = {}
+            tname = "%d-стр" % target
+            key = "%s/%s" % (tname, site)
+            pages, dropped = {}, []
             for fn in sorted(os.listdir(sdir)):
                 fp = os.path.join(sdir, fn)
                 if fn.endswith(".html"):
-                    pages[fn[:-5]] = analyze_page(fp)
+                    if fn[:-5] in drop:
+                        dropped.append(fn[:-5])
+                    else:
+                        pages[fn[:-5]] = analyze_page(fp)
                 elif os.path.isfile(fp) and fn not in JUNK_NAMES and not fn.startswith("._"):
                     F.add(key, "WARN", "A5", "посторонний файл: %s" % fn)
                 elif os.path.isdir(fp):
                     F.add(key, "WARN", "A5", "вложенная папка: %s" % fn)
-            SITE_PAGES[key] = len(pages)
-            sites_order.append(key)
-            check_site(n, tpl, key, pages, F)
+            note = ""
+            if target != n:
+                note = " (из %s)" % gname
+                F.add(key, "INFO", "A2", "собрано из %s: убраны %s" % (
+                    gname, ", ".join(dropped) if dropped else "ничего"))
+            sites.append({"key": key, "type": tname, "site": site, "note": note,
+                          "pages": pages, "npages": len(pages)})
+            check_site(target, tpl, key, pages, F)
             for p, d in pages.items():
                 all_pages["%s/%s.html" % (key, p)] = d
     check_cross(all_pages, F)
-    report = render(F, sites_order, os.path.basename(args.path), junk, unknown)
+    name = os.path.basename(args.path.rstrip("/"))
+    report = render(F, sites, name, junk, unknown)
     if args.output:
         open(args.output, "w", encoding="utf-8").write(report + "\n")
         print("отчёт записан: %s" % args.output)
     else:
         print(report)
-    errors = sum(F.count(s, "ERROR") for s in sites_order)
+    if args.sort:
+        sort_output(F, sites, args.sort, name)
+        print("сайты разложены в: %s" % args.sort)
+    errors = sum(F.count(s["key"], "ERROR") for s in sites)
     sys.exit(1 if errors else 0)
 
 
