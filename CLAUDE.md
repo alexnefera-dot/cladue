@@ -233,22 +233,38 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `xmlstock.device`/`xmlstock.domain`/`xmlstock.extra_params` (`extra_params` parsed from a
   `key=value&…` string) and covered by `PanelTest::testXmlstockParamsReachRequest`.
 - `Content\ContentCleaner` is the third stage (`settings.stage=clean`, `bin/clean-content.php`, and the
-  per-site `/api/clean-site` button): from a downloaded page it keeps only the article body (after
-  `</h1>`, before «Популярные запросы»; drops the slots section). `stripNonArticle()` then removes, via DOM
-  (regex can't handle nested modals), everything that is not article text — images/media (`img`, `picture`,
-  `figure`, `svg`, `video`, …), interactive (`button`, `form`, `input`, …), popovers (`role=dialog`/
-  `aria-modal`/`dialog`), the site `footer` (but a `<footer>` inside a `<blockquote>` citation is kept),
-  and blocks whose class/id token is junk (`JUNK_TOKENS`: contacts, tag-cloud, social/share, popup/modal,
-  cookie, breadcrumbs, banner/ads, and CTA/urgency widgets `cta`/`countdown`/`timer`/`ticker` — the latter
-  left artefacts like «spot-cta-number 12345»); HTML comments (Метрика/Analytics) are stripped too. Then, to
-  avoid the big blank gaps the user saw, it drops every inline `style` attribute, prunes empty wrappers
-  bottom-up until stable (`pruneEmpty()`: `<div><div></div></div>` after an image was removed, `<p>&nbsp;</p>`;
-  table cells are left alone) and collapses `<br>` runs / edge `<br>`s (`collapseBreaks()`) — the reference
-  templates have neither styles nor empty tags. It
-  rewrites every `<a href>` to one of six relative paths (`ALLOWED_LINKS`, mapped by keyword), and templates
-  the domain → `%domain_name%` (the regex eats an optional subdomain prefix too, so `kush.casinozsd.buzz`
-  → `%domain_name%`, not «kush.%domain_name%»), `dd.mm.yyyy` → `%date%`, brand →
-  `%brand_name_ru%`/`%brand_name_en%`. Brand matching is case-insensitive and homoglyph-tolerant
+  per-site `/api/clean-site` button). It follows the user's manual STRICTLY IN ORDER (half the bugs came
+  from reordering steps): **1** article body = after the first `</h1>`, before «Популярные запросы»
+  (`extractArticle()`), plus the FAQ as a SECOND STREAM — if the Q&A block (`<details>`, a `faq` class/id,
+  `itemtype=FAQPage`) is not inside that cut, `extractFaq()` pulls it from elsewhere on the page, else renders
+  it from JSON-LD `FAQPage` (`faqFromJsonLd()`: `<h2>Вопросы и ответы</h2>` + `<h3>`/`<p>`), so brand
+  substitution covers it too (previously brand names inside FAQ survived); then `stripNonArticle()` removes,
+  via DOM, what is not article text — media (`img`, `svg`, `video`…), interactive (`form`, `input`; `button`
+  unless it sits inside FAQ, where it is unwrapped to keep the question), popovers (`role=dialog`), the site
+  `footer` (a `<footer>` inside a `<blockquote>` citation is kept), `nav`, `address`, HTML comments, and blocks
+  whose class/id token is junk (`JUNK_TOKENS`: contacts, tag-cloud, social/share, popup/modal, cookie,
+  breadcrumbs, banner/ads, CTA/urgency widgets `cta`/`countdown`/`timer`/`ticker`); `removeSlots()` drops
+  the slots section. **2** `applyReplacements()` over body + FAQ together: domain → `%domain_name%` (the regex
+  eats an optional subdomain prefix, so `kush.casinozsd.buzz` → `%domain_name%`, not «kush.%domain_name%»),
+  `dd.mm.yyyy` → `%date%`, brand → `%brand_name_ru%`/`%brand_name_en%`. This runs BEFORE unwrapping and
+  attribute stripping on purpose: the own domain inside `href` becomes `%domain_name%`, which is how step 8
+  tells an internal link from an external one. **3–8** `normalizeMarkup()` (DOM; every XPath is RELATIVE to
+  the `ys-root` wrapper — an absolute `//div` unwrapped the wrapper itself and yielded an empty result):
+  **3** remove `script`, `style`, `meta`, `link`, `noscript`, `img`, `hr`, `br`, `caption` (+ `figcaption`;
+  `br`/`hr` become a newline so «Второй<br>абзац» does not fuse); **4** unwrap containers — block ones (`div`,
+  `section`, `article`, `aside`, `footer`, `header`, `main`, `thead`, `tbody`, `tfoot`, `figure`) with a newline
+  on each side so neighbouring text does not fuse, inline ones (`span`, `small`, `q`, `abbr`, `time`, `cite`,
+  `code`, `kbd`, `samp`, `var`, `sup`, `sub`, `u`, `s`, `mark`, `ins`, `del`, `dfn`) tightly so a word split
+  as `Крип<span>то</span>босс` re-joins; **5** `em`/`i` → plain text, `b` → `strong`; **6** `h1` → `h2`, then
+  `h4`/`h5`/`h6` → `h3`; **7** strip every attribute except `href` on `<a>`; **8** links — external (another
+  host; `#`, `mailto:`, `tel:`, `javascript:`) are unwrapped to text, internal ones go through `mapLink()` to
+  one of `ALLOWED_LINKS` (`/vhod`, `/registracia`, `/`, `/app`, `/slots`, `/zerkalo`; the home is `/`, never
+  `/main`); finally `pruneEmpty()` drops empty wrappers (`<p>&nbsp;</p>`, an `<a>` around a removed image;
+  table cells are left alone). A second `applyReplacements()` pass then catches a brand that step 4 glued back
+  together from `<span>` pieces (idempotent: the variables contain no brand). The output is bare semantic
+  HTML — `p`, `h2`/`h3`, `ul`/`ol`/`li`, `table`/`tr`/`td`/`th`, `strong`, `a[href]`, `blockquote`,
+  `details`/`summary` — with no classes or styles (the user's templates wrap it in their own markup).
+  Brand matching is case-insensitive and homoglyph-tolerant
   (Latin↔Cyrillic look-alikes, so `STAKE`≡`STAKЕ`), and the site's OWN Russian brand also matches its declined
   forms («Криптобосса», «в Вулкане Вегасе» — `RU_ENDINGS`, an explicit case-ending list rather than «any 3
   letters», applied per word; deliberately NOT applied to the known/foreign brand list, where short words would

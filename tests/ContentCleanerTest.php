@@ -78,10 +78,10 @@ final class ContentCleanerTest
         Assert::same('/slots', $c->mapLink('//somedomain.com/games'));
         Assert::same('/slots', $c->mapLink('/igrat'));
         Assert::same('/zerkalo', $c->mapLink('/mirror'));
-        Assert::same('/main', $c->mapLink('https://%domain_name%/home'));
-        Assert::same('/main', $c->mapLink('/'));
+        Assert::same('/', $c->mapLink('https://%domain_name%/home'));
+        Assert::same('/', $c->mapLink('/'));
         Assert::same('/vhod', $c->mapLink('https://%domain_name%/vhod'));
-        Assert::same('/main', $c->mapLink('/nechto-neponyatnoe'), 'неизвестное → /main');
+        Assert::same('/', $c->mapLink('/nechto-neponyatnoe'), 'неизвестное → /');
     }
 
     public function testFullCleanTemplatesEverything(): void
@@ -203,7 +203,8 @@ final class ContentCleanerTest
         Assert::false(str_contains($out, 'class="row"'), 'пустая обёртка (после удаления картинки) удалена');
         Assert::false(preg_match('~<p>\s*(?:&nbsp;)?\s*</p>~u', $out) === 1, 'пустой абзац удалён');
         Assert::false(str_contains($out, '<span></span>'), 'пустой span удалён');
-        Assert::same(1, preg_match_all('~<br\s*/?>~', $out), 'серия <br> схлопнута в один, концевой <br> убран');
+        Assert::same(0, preg_match_all('~<br\s*/?>~', $out), '<br> сняты совсем (шаг 3), слова не слиплись');
+        Assert::true(str_contains($out, 'Второй') && str_contains($out, 'абзац.') && !str_contains($out, 'Второйабзац'), 'на месте <br> остался разделитель');
         Assert::true(str_contains($out, 'Первый абзац') && str_contains($out, 'Второй'), 'текст на месте');
         Assert::true(str_contains($out, '<td></td>'), 'пустая ячейка таблицы сохранена (структура таблицы не трогается)');
     }
@@ -220,6 +221,73 @@ final class ContentCleanerTest
         // Составной бренд склоняется по обоим словам: «в Вулкане Вегасе».
         $two = (new ContentCleaner())->clean('<h1>x</h1><p>В Вулкане Вегасе весело.</p><h3>Популярные запросы</h3>', ['brand_ru' => 'вулкан вегас']);
         Assert::false(stripos($two, 'вулкан') !== false || stripos($two, 'вегас') !== false, 'склонённый двусловный бренд заменён целиком');
+    }
+
+    public function testOrderedPipelineRules3To8(): void
+    {
+        // Правила 3–8 в порядке мануала: служебные теги снесены, контейнеры развёрнуты, em/i → текст,
+        // b → strong, h1 → h2, h4–h6 → h3, атрибуты сняты (кроме href), /main → /, внешние ссылки → текст.
+        $html = '<h1>Заголовок</h1>'
+            . '<meta name="x" content="y"><link rel="canonical" href="https://%domain_name%/">'
+            . '<section class="c" id="s"><div data-x="1"><p style="color:red" class="p">Абзац <span class="s">со <i>курсивом</i> и <b>жирным</b></span>.<br>Дальше</p></div></section><hr>'
+            . '<h1>Второй h1</h1><h4>Мелкий</h4><h6>Совсем мелкий</h6>'
+            . '<table><caption>Подпись</caption><thead><tr><th>А</th></tr></thead><tbody><tr><td>Б</td></tr></tbody></table>'
+            . '<p><a href="/main" title="t">Главная</a> <a href="https://vk.com/x" target="_blank">ВК</a> <a href="#top">Наверх</a> <a href="mailto:a@b.c">Почта</a> <a href="/bonus">Бонус</a></p>'
+            . '<h3>Популярные запросы</h3>';
+        $out = (new ContentCleaner())->clean($html);
+        // 3. служебное
+        foreach (['<meta', '<link', '<br', '<hr', '<caption', 'Подпись'] as $bad) {
+            Assert::false(str_contains($out, $bad), "служебное снесено: $bad");
+        }
+        // 4. контейнеры развёрнуты, содержимое на месте
+        foreach (['<section', '<div', '<span', '<thead', '<tbody'] as $bad) {
+            Assert::false(str_contains($out, $bad), "контейнер развёрнут: $bad");
+        }
+        Assert::true(str_contains($out, 'со курсивом и'), 'содержимое контейнеров осталось');
+        // 5. оформление
+        Assert::false(str_contains($out, '<i>') || str_contains($out, '<em>') || str_contains($out, '<b>'), 'i/em сняты, b → strong');
+        Assert::true(str_contains($out, '<strong>жирным</strong>'));
+        // 6. заголовки
+        Assert::false(str_contains($out, '<h1') || str_contains($out, '<h4') || str_contains($out, '<h6'));
+        Assert::true(str_contains($out, '<h2>Второй h1</h2>') && str_contains($out, '<h3>Мелкий</h3>') && str_contains($out, '<h3>Совсем мелкий</h3>'));
+        // 7. атрибуты
+        Assert::false(preg_match('~<(?!a\b)[a-z0-9]+\s+[a-z-]+=~i', $out) === 1, 'атрибуты сняты со всех тегов, кроме <a>');
+        Assert::false(str_contains($out, 'title=') || str_contains($out, 'target='), 'у <a> остался только href');
+        // 8. ссылки
+        Assert::true(str_contains($out, '<a href="/">Главная</a>'), '/main → /');
+        Assert::true(str_contains($out, '<a href="/app">Бонус</a>'), 'внутренняя ссылка приведена к пути');
+        Assert::true(str_contains($out, 'ВК') && !str_contains($out, 'vk.com'), 'внешняя ссылка развёрнута в текст');
+        Assert::true(str_contains($out, 'Наверх') && str_contains($out, 'Почта') && !str_contains($out, 'mailto') && !str_contains($out, '#top'), 'якорь и mailto развёрнуты в текст');
+        // таблица без thead/tbody/caption, но с ячейками
+        Assert::true(str_contains($out, '<table>') && str_contains($out, '<th>А</th>') && str_contains($out, '<td>Б</td>'), 'таблица цела');
+    }
+
+    public function testFaqIsSecondStreamAndBrandSubstitutedInIt(): void
+    {
+        // FAQ лежит ПОСЛЕ «Популярных запросов» (вне среза тела) — его надо вынуть вторым потоком и прогнать
+        // подстановку и по нему: иначе имена бренда в FAQ уцелевают.
+        $html = '<h1>Обзор</h1><p>Криптобосс — казино.</p><h3>Популярные запросы</h3><ul><li>x</li></ul>'
+            . '<section class="faq"><h2>Вопросы</h2><details><summary>Как войти в Криптобосс?</summary><p>Через сайт Криптобосса.</p></details></section>';
+        $out = (new ContentCleaner())->clean($html, ['brand_ru' => 'криптобосс']);
+        Assert::true(str_contains($out, '<details>') && str_contains($out, '<summary>'), 'FAQ вынут и приклеен к телу');
+        Assert::false(stripos($out, 'криптобосс') !== false, 'бренд заменён и внутри FAQ (оба потока)');
+        Assert::same(3, substr_count($out, '%brand_name_ru%'), 'все три упоминания (тело + вопрос + ответ) заменены');
+        Assert::false(str_contains($out, 'Популярные'), 'блок «Популярные запросы» по-прежнему отрезан');
+
+        // FAQ только в JSON-LD (HTML-блока нет) — рендерится из разметки и тоже проходит подстановку.
+        $ld = '<h1>Обзор</h1><p>Текст.</p><script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Есть ли бонус в Криптобосс?","acceptedAnswer":{"@type":"Answer","text":"Да, Криптобосс даёт бонус."}}]}</script>';
+        $o2 = (new ContentCleaner())->clean($ld, ['brand_ru' => 'криптобосс']);
+        Assert::true(str_contains($o2, '<h2>Вопросы и ответы</h2>') && str_contains($o2, '<h3>'), 'FAQ из JSON-LD добавлен');
+        Assert::false(stripos($o2, 'криптобосс') !== false, 'бренд заменён и в FAQ из JSON-LD');
+        Assert::false(str_contains($o2, '<script'), 'сам JSON-LD в статью не попал');
+    }
+
+    public function testBrandSplitAcrossSpansIsCaughtAfterUnwrap(): void
+    {
+        // Бренд, разбитый на <span>ы, склеивается после развёртки — повторный проход подстановки его ловит.
+        $html = '<h1>x</h1><p>Играть в <span>Крипто</span><span>босс</span> выгодно.</p><h3>Популярные запросы</h3>';
+        $out = (new ContentCleaner())->clean($html, ['brand_ru' => 'криптобосс']);
+        Assert::true(str_contains($out, '%brand_name_ru%') && stripos($out, 'криптобосс') === false, 'разбитый бренд заменён');
     }
 
     public function testNoArticleReturnsEmpty(): void

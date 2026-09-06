@@ -7,17 +7,31 @@ namespace YandexSites\Content;
 use YandexSites\Filter\Domains;
 
 /**
- * Подготовка контента для шаблона: из скачанной HTML-страницы оставляет только тело статьи
- * (после </h1> и до блока «Популярные запросы»), удаляет блок слотов, приводит ссылки к
- * шести относительным путям и подставляет переменные вместо домена, даты и названий бренда.
+ * Подготовка контента для шаблона — по ручному мануалу и СТРОГО в его порядке (половина ошибок
+ * берётся из перестановки шагов):
  *
- * Всё по ручному мануалу подготовки контента; замены бренда устойчивы к регистру и к смешению
- * латиницы/кириллицы в похожих буквах (STAKE / STAKЕ).
+ *  1. Тело статьи: после первого </h1> и до «Популярные запросы»; FAQ — вторым потоком (если блок
+ *     вопросов-ответов не попал в срез или есть только в JSON-LD, он вынимается и приклеивается);
+ *     без мусора (картинки/медиа, интерактив, модалки, подвал сайта, меню, контакты, облако тегов,
+ *     CTA-виджеты) и без секции слотов.
+ *  2. Подстановка бренда/домена/даты — по ВСЕМУ: и по телу, и по FAQ.
+ *  3. Снести служебное: script, style, meta, link, noscript, img, hr, br, caption.
+ *  4. Развернуть контейнеры (снять тег, оставить содержимое): div, section, article, aside, footer,
+ *     header, span, thead, tbody, tfoot, figure, small, q, abbr, time, cite, code, kbd, samp, var,
+ *     sup, sub, u, s, mark, ins, del, dfn.
+ *  5. Оформление: em/i → обычный текст, b → strong.
+ *  6. Заголовки: h1 → h2, затем h4/h5/h6 → h3.
+ *  7. Снять атрибуты со всех тегов, кроме href у <a>.
+ *  8. Ссылки: внутренние → один из путей (/vhod, /registracia, /, /app, /slots, /zerkalo), «/main» → «/»;
+ *     внешние — развернуть в текст.
+ *
+ * Замены бренда устойчивы к регистру, к смешению латиницы/кириллицы в похожих буквах (STAKE / STAKЕ),
+ * к падежам своего русского бренда и к раздельному написанию слитной метки (cryptoboss → Crypto Boss).
  */
 final class ContentCleaner
 {
-    /** Единственно допустимые относительные ссылки в готовой статье. */
-    public const ALLOWED_LINKS = ['/vhod', '/registracia', '/main', '/app', '/slots', '/zerkalo'];
+    /** Единственно допустимые относительные ссылки в готовой статье (главная — «/», а не «/main»). */
+    public const ALLOWED_LINKS = ['/vhod', '/registracia', '/', '/app', '/slots', '/zerkalo'];
 
     /**
      * Ключевые слова путь → варианты (в нормализованном виде, без разделителей и регистра).
@@ -31,13 +45,43 @@ final class ContentCleaner
         '/zerkalo' => ['zerkalo', 'mirror', 'зеркало'],
         '/app' => ['app', 'application', 'download', 'bonus', 'apk', 'prilozhenie', 'приложение', 'скачать'],
         '/slots' => ['slots', 'slot', 'games', 'game', 'igry', 'igrat', 'play', 'играть', 'игры', 'игровые', 'автоматы'],
-        '/main' => ['main', 'home', 'index', 'glavnaya', 'главная'],
+        '/' => ['main', 'home', 'index', 'glavnaya', 'главная'],
     ];
 
     /** Похожие буквы латиница↔кириллица (в нижнем регистре) — для устойчивого поиска бренда. */
     private const HOMOGLYPHS = [
         'a' => 'aа', 'e' => 'eе', 'o' => 'oо', 'c' => 'cс', 'p' => 'pр', 'x' => 'xх',
         'y' => 'yу', 'k' => 'kк', 'm' => 'mм', 't' => 'tт', 'h' => 'hн', 'b' => 'bв',
+    ];
+
+    /** Классы/id (по токенам), которые выкидываем как не-статью: контакты, облако тегов, соцсети и т.п. */
+    private const JUNK_TOKENS = [
+        'tag', 'tags', 'tagcloud', 'tags-list', 'taglist', 'contact', 'contacts', 'contatti',
+        'social', 'socials', 'share', 'sharing', 'popup', 'modal', 'overlay', 'backdrop',
+        'cookie', 'cookies', 'subscribe', 'newsletter', 'breadcrumb', 'breadcrumbs', 'sidebar',
+        'banner', 'advert', 'ads', 'promo-modal', 'age', 'agegate',
+        // Кнопки-призывы и «счётчики срочности» (фейковый джекпот/таймер) — не тело статьи;
+        // из-за них после очистки оставались артефакты вроде «spot-cta-number 12345».
+        'cta', 'countdown', 'timer', 'ticker',
+    ];
+
+    /** Шаг 3: служебные теги — удалить вместе с содержимым (figcaption — подпись к уже удалённой картинке). */
+    private const SERVICE_TAGS = ['script', 'style', 'meta', 'link', 'noscript', 'img', 'hr', 'br', 'caption', 'figcaption'];
+
+    /**
+     * Шаг 4: блочные контейнеры — развернуть. На их границах ставим перевод строки, иначе текст соседних
+     * блоков склеивается в одно слово («Криптобосс» + «лучшее» → «Криптобосслучшее»).
+     */
+    private const BLOCK_UNWRAP = ['div', 'section', 'article', 'aside', 'footer', 'header', 'main', 'thead', 'tbody', 'tfoot', 'figure'];
+
+    /** Шаг 4: строчные контейнеры — развернуть без разделителей (иначе разорвём слово: Крип<span>то</span>босс). */
+    private const INLINE_UNWRAP = ['span', 'small', 'q', 'abbr', 'time', 'cite', 'code', 'kbd', 'samp', 'var', 'sup', 'sub', 'u', 's', 'mark', 'ins', 'del', 'dfn'];
+
+    /** Теги, которые убираем, если они остались пустыми (структуру таблиц не трогаем). */
+    private const PRUNE_TAGS = [
+        'div', 'p', 'span', 'section', 'article', 'aside', 'main', 'nav', 'ul', 'ol', 'li', 'dl', 'dt', 'dd',
+        'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'strong', 'em', 'b', 'i', 'u', 'small', 'a', 'sup', 'sub',
+        'details', 'summary', 'pre', 'footer', 'header', 'figure',
     ];
 
     /**
@@ -74,12 +118,14 @@ final class ContentCleaner
     }
 
     /**
-     * Полная очистка страницы. Возвращает тело статьи или '' — если статья не найдена (нет <h1>).
+     * Полная очистка страницы — шаги 1…8 в порядке мануала. Возвращает тело статьи или '' — если статья
+     * не найдена (нет <h1>).
      *
      * @param array{domain?: string, hosts?: list<string>, brand_ru?: string, brand_en?: string, extra_brands?: list<string>, remove_slots?: bool} $opt
      */
     public function clean(string $html, array $opt = []): string
     {
+        // 1. Тело + FAQ, без мусора и без слотов.
         $body = $this->extractArticle($html);
         if ($body === '') {
             return '';
@@ -87,14 +133,21 @@ final class ContentCleaner
         if ($opt['remove_slots'] ?? true) {
             $body = $this->removeSlots($body);
         }
-        $body = $this->normalizeLinks($body);
+        // 2. Подстановка — по всему (тело и FAQ вместе), ДО развёртки и снятия атрибутов: домен в href
+        //    становится %domain_name%, и шаг 8 по нему отличает свою ссылку от внешней.
+        $body = $this->applyReplacements($body, $opt);
+        // 3–8. Служебные теги, развёртка контейнеров, оформление, заголовки, атрибуты, ссылки.
+        $body = $this->normalizeMarkup($body);
+        // Страховка: после развёртки <span>ов бренд, разбитый на куски, склеивается — ловим и его.
+        // Повторный проход идемпотентен (переменные бренд не содержат).
         $body = $this->applyReplacements($body, $opt);
 
         return trim($body);
     }
 
     /**
-     * Тело статьи: всё после первого </h1> и до заголовка «Популярные запросы»; без служебных тегов.
+     * Шаг 1. Тело статьи: всё после первого </h1> и до заголовка «Популярные запросы» + FAQ вторым
+     * потоком; без служебных тегов и мусорных блоков.
      */
     public function extractArticle(string $html): string
     {
@@ -113,61 +166,141 @@ final class ContentCleaner
             }
         }
 
+        // FAQ — второй поток: если блок вопросов-ответов не попал в срез (лежит после «Популярных запросов»
+        // или есть только в JSON-LD), вынимаем его отдельно и приклеиваем — подстановка пройдёт и по нему.
+        $body .= $this->extractFaq($html, $body);
+
         // Комментарии (Яндекс.Метрика, Google Analytics и т.п.).
         $body = preg_replace('~<!--.*?-->~s', '', $body) ?? $body;
-        // Через DOM убираем всё, что не относится к статье: изображения и медиа, интерактив (кнопки,
-        // формы), модалки/поповеры, подвал сайта, контакты, облако тегов, «поделиться», куки-плашки.
+        // Через DOM убираем всё, что не относится к статье: медиа, интерактив, модалки, подвал сайта,
+        // меню, контакты, облако тегов, «поделиться», куки-плашки, CTA-виджеты.
         $body = $this->stripNonArticle($body);
 
         return trim($body);
     }
 
-    /** Классы/id (по токенам), которые выкидываем как не-статью: контакты, облако тегов, соцсети и т.п. */
-    private const JUNK_TOKENS = [
-        'tag', 'tags', 'tagcloud', 'tags-list', 'taglist', 'contact', 'contacts', 'contatti',
-        'social', 'socials', 'share', 'sharing', 'popup', 'modal', 'overlay', 'backdrop',
-        'cookie', 'cookies', 'subscribe', 'newsletter', 'breadcrumb', 'breadcrumbs', 'sidebar',
-        'banner', 'advert', 'ads', 'promo-modal', 'age', 'agegate',
-        // Кнопки-призывы и «счётчики срочности» (фейковый джекпот/таймер) — не тело статьи;
-        // из-за них после очистки оставались артефакты вроде «spot-cta-number 12345».
-        'cta', 'countdown', 'timer', 'ticker',
-    ];
+    /**
+     * FAQ, не попавший в срез тела: HTML-блок (itemtype FAQPage, class/id с «faq», <details>) где-то ещё
+     * на странице, а если его нет — из JSON-LD FAQPage. '' — если FAQ уже в теле или его нет вовсе.
+     */
+    private function extractFaq(string $html, string $body): string
+    {
+        $marker = '~<details\b|<summary\b|(?:class|id)=["\'][^"\']*faq[^"\']*["\']|schema\.org/FAQPage~iu';
+        if (preg_match($marker, $body) === 1) {
+            return ''; // FAQ уже внутри тела — второй раз не нужен
+        }
+        if (preg_match($marker, $html) === 1) {
+            $doc = $this->loadDocument($html);
+            if ($doc !== null) {
+                $xp = new \DOMXPath($doc);
+                $lc = static fn (string $attr): string => "translate(@$attr,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz')";
+                $found = $xp->query("//*[contains(@itemtype,'FAQPage') or contains({$lc('class')},'faq') or contains({$lc('id')},'faq')] | //details");
+                $parts = [];
+                foreach ($found ?: [] as $n) {
+                    if (!$n instanceof \DOMElement) {
+                        continue;
+                    }
+                    // Берём только верхние совпадения: вложенные (faq-item внутри faq) входят в родителя.
+                    $inside = false;
+                    for ($p = $n->parentNode; $p instanceof \DOMElement; $p = $p->parentNode) {
+                        foreach ($found as $other) {
+                            if ($other->isSameNode($p)) {
+                                $inside = true;
+                                break 2;
+                            }
+                        }
+                    }
+                    if (!$inside) {
+                        $parts[] = $doc->saveHTML($n);
+                    }
+                }
+                if ($parts !== []) {
+                    return "\n" . implode("\n", $parts);
+                }
+            }
+        }
+
+        return $this->faqFromJsonLd($html);
+    }
+
+    /** FAQ из JSON-LD (schema.org/FAQPage → mainEntity[Question/acceptedAnswer]) в виде h2 + h3/p. */
+    private function faqFromJsonLd(string $html): string
+    {
+        if (preg_match_all('~<script\b[^>]*type=["\']application/ld\+json["\'][^>]*>(.*?)</script>~is', $html, $sm) === 0) {
+            return '';
+        }
+        foreach ($sm[1] as $json) {
+            $data = json_decode(trim($json), true);
+            if (!is_array($data)) {
+                continue;
+            }
+            $items = [];
+            $walk = static function ($node) use (&$walk, &$items): void {
+                if (!is_array($node)) {
+                    return;
+                }
+                if (($node['@type'] ?? '') === 'FAQPage' && isset($node['mainEntity'])) {
+                    foreach ((array) $node['mainEntity'] as $q) {
+                        $name = trim((string) ($q['name'] ?? ''));
+                        $answer = $q['acceptedAnswer'] ?? [];
+                        $text = trim((string) (is_array($answer) ? ($answer['text'] ?? '') : ''));
+                        if ($name !== '' && $text !== '') {
+                            $items[] = [$name, $text];
+                        }
+                    }
+                    return;
+                }
+                foreach ($node as $child) {
+                    $walk($child);
+                }
+            };
+            $walk($data);
+            if ($items !== []) {
+                $out = "\n<h2>Вопросы и ответы</h2>";
+                foreach ($items as [$name, $text]) {
+                    $out .= "\n<h3>" . htmlspecialchars($name, ENT_QUOTES | ENT_HTML5, 'UTF-8') . '</h3>'
+                        . (preg_match('~<[a-z]~i', $text) === 1 ? "\n" . $text : "\n<p>" . htmlspecialchars($text, ENT_QUOTES | ENT_HTML5, 'UTF-8') . '</p>');
+                }
+
+                return $out;
+            }
+        }
+
+        return '';
+    }
 
     /**
-     * Убирает из фрагмента статьи не-контент: медиа, интерактив, модалки, подвал, контакты, теги.
-     * DOM (а не регэкспы) — потому что модалки/блоки бывают с вложенными div, которые регэксп не осилит.
+     * Шаг 1 (мусор). Убирает из фрагмента не-контент: медиа, интерактив, модалки, подвал сайта, меню,
+     * контакты, теги. DOM (а не регэкспы) — потому что модалки/блоки бывают с вложенными div.
      */
     private function stripNonArticle(string $fragment): string
     {
-        $fragment = trim($fragment);
-        if ($fragment === '') {
-            return '';
-        }
-        $doc = new \DOMDocument();
-        $prev = libxml_use_internal_errors(true);
-        $loaded = $doc->loadHTML('<?xml encoding="UTF-8"?><div id="ys-root">' . $fragment . '</div>', LIBXML_NOWARNING | LIBXML_NOERROR);
-        libxml_clear_errors();
-        libxml_use_internal_errors($prev);
-        $root = $doc->getElementById('ys-root');
-        if (!$loaded || $root === null) {
-            return $fragment;
+        [$doc, $root] = $this->loadFragment($fragment);
+        if ($doc === null || $root === null) {
+            return trim($fragment);
         }
         $xp = new \DOMXPath($doc);
+        $lc = static fn (string $attr): string => "translate(@$attr,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz')";
+        $inFaq = "ancestor::details or ancestor::summary or ancestor::*[contains({$lc('class')},'faq') or contains({$lc('id')},'faq')]";
         $remove = [];
-        // Медиа, интерактив, служебные и медиа-теги.
-        foreach ($xp->query('//script|//style|//noscript|//template|//svg|//header|//form|//button|//input|//select|//textarea|//label|//iframe|//img|//picture|//figure|//video|//audio|//canvas|//object|//embed|//map|//source|//address|//dialog') as $n) {
+        // Медиа и интерактив, меню, контакты-адрес, диалоги.
+        foreach ($xp->query('.//script|.//style|.//noscript|.//template|.//svg|.//form|.//input|.//select|.//textarea|.//label|.//iframe|.//img|.//picture|.//video|.//audio|.//canvas|.//object|.//embed|.//map|.//source|.//address|.//dialog|.//nav', $root) as $n) {
+            $remove[] = $n;
+        }
+        // Кнопки — интерактив, но кнопка-вопрос внутри FAQ несёт текст: её разворачиваем, а не удаляем.
+        foreach ($xp->query(".//button[not($inFaq)]", $root) as $n) {
             $remove[] = $n;
         }
         // Подвал сайта — но подпись внутри цитаты (<blockquote><footer>) оставляем.
-        foreach ($xp->query('//footer[not(ancestor::blockquote)]') as $n) {
+        foreach ($xp->query('.//footer[not(ancestor::blockquote)]', $root) as $n) {
             $remove[] = $n;
         }
         // Модалки/поповеры.
-        foreach ($xp->query('//*[@role="dialog" or @aria-modal="true"]') as $n) {
+        foreach ($xp->query('.//*[@role="dialog" or @aria-modal="true"]', $root) as $n) {
             $remove[] = $n;
         }
         // Контакты, облако тегов, соцсети и пр. — по токенам класса/id.
-        foreach ($xp->query('//*[@class or @id]') as $n) {
+        foreach ($xp->query('.//*[@class or @id]', $root) as $n) {
             if (!$n instanceof \DOMElement) {
                 continue;
             }
@@ -179,80 +312,107 @@ final class ContentCleaner
         foreach ($remove as $n) {
             $n->parentNode?->removeChild($n);
         }
-        // Инлайновые стили (margin/height/padding) и пустые обёртки, оставшиеся после удаления картинок
-        // и виджетов, дают большие пустые промежутки в статье — убираем (в эталонных шаблонах их нет).
-        foreach ($xp->query('//*[@style]') as $n) {
-            if ($n instanceof \DOMElement) {
-                $n->removeAttribute('style');
-            }
-        }
-        $this->pruneEmpty($xp, $root);
-        $this->collapseBreaks($xp);
-        $out = '';
-        foreach (iterator_to_array($root->childNodes) as $child) {
-            $out .= $doc->saveHTML($child);
+        foreach (iterator_to_array($xp->query(".//button[$inFaq]", $root) ?: []) as $n) {
+            $this->unwrap($n, false);
         }
 
-        return $out;
+        return $this->serialize($doc, $root);
     }
-
-    /** Теги-контейнеры, которые убираем, если они остались пустыми (структуру таблиц не трогаем). */
-    private const PRUNE_TAGS = [
-        'div', 'p', 'span', 'section', 'article', 'aside', 'main', 'nav', 'ul', 'ol', 'li', 'dl', 'dt', 'dd',
-        'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'strong', 'em', 'b', 'i', 'u', 'small', 'a', 'sup', 'sub',
-    ];
 
     /**
-     * Удаляет пустые элементы (без текста и без потомков) снизу вверх, пока что-то удаляется:
-     * <div><div></div></div> → ничего. &nbsp; считается пустотой.
+     * Шаги 3–8 в порядке мануала: служебные теги → развёртка контейнеров → оформление → заголовки →
+     * атрибуты → ссылки; в конце — пустые элементы.
      */
-    private function pruneEmpty(\DOMXPath $xp, \DOMElement $root): void
+    private function normalizeMarkup(string $fragment): string
     {
-        $tags = implode('|', array_map(static fn (string $t): string => 'self::' . $t, self::PRUNE_TAGS));
-        do {
-            $removed = 0;
-            $nodes = iterator_to_array($xp->query('.//*[' . $tags . ']', $root) ?: []);
-            foreach (array_reverse($nodes) as $n) {
-                if (!$n instanceof \DOMElement || $n->parentNode === null) {
-                    continue;
-                }
-                $hasElementChild = false;
-                foreach ($n->childNodes as $c) {
-                    if ($c instanceof \DOMElement) {
-                        $hasElementChild = true;
-                        break;
-                    }
-                }
-                $text = str_replace("\u{00A0}", ' ', $n->textContent);
-                if (!$hasElementChild && trim($text) === '') {
-                    $n->parentNode->removeChild($n);
-                    $removed++;
-                }
-            }
-        } while ($removed > 0);
-    }
+        [$doc, $root] = $this->loadFragment($fragment);
+        if ($doc === null || $root === null) {
+            return trim($fragment);
+        }
+        $xp = new \DOMXPath($doc);
+        $query = static fn (array $tags): string => implode('|', array_map(static fn (string $t): string => './/' . $t, $tags));
 
-    /** Схлопывает подряд идущие <br> в один и убирает <br> в самом начале/конце блока. */
-    private function collapseBreaks(\DOMXPath $xp): void
-    {
-        foreach (iterator_to_array($xp->query('//br') ?: []) as $br) {
-            if (!$br instanceof \DOMElement || $br->parentNode === null) {
+        // 3. Служебное — снести с содержимым; br/hr — на перевод строки, иначе «Второй<br>абзац» слипнется.
+        foreach (iterator_to_array($xp->query($query(self::SERVICE_TAGS), $root) ?: []) as $n) {
+            if ($n instanceof \DOMElement && in_array(strtolower($n->tagName), ['br', 'hr'], true) && $n->parentNode !== null) {
+                $n->parentNode->replaceChild($doc->createTextNode("\n"), $n);
                 continue;
             }
-            // Сосед слева/справа без учёта пустых текстовых узлов.
-            $prev = $br->previousSibling;
-            while ($prev instanceof \DOMText && trim($prev->textContent) === '') {
-                $prev = $prev->previousSibling;
+            $n->parentNode?->removeChild($n);
+        }
+        // 4. Развернуть контейнеры: блочные — с переводом строки на границах, строчные — впритык.
+        foreach (iterator_to_array($xp->query($query(self::BLOCK_UNWRAP), $root) ?: []) as $n) {
+            $this->unwrap($n, true);
+        }
+        foreach (iterator_to_array($xp->query($query(self::INLINE_UNWRAP), $root) ?: []) as $n) {
+            $this->unwrap($n, false);
+        }
+        // 5. Оформление: em/i → обычный текст, b → strong.
+        foreach (iterator_to_array($xp->query('.//em|.//i', $root) ?: []) as $n) {
+            $this->unwrap($n, false);
+        }
+        foreach (iterator_to_array($xp->query('.//b', $root) ?: []) as $n) {
+            $this->rename($doc, $n, 'strong');
+        }
+        // 6. Заголовки: h1 → h2, затем h4/h5/h6 → h3.
+        foreach (iterator_to_array($xp->query('.//h1', $root) ?: []) as $n) {
+            $this->rename($doc, $n, 'h2');
+        }
+        foreach (iterator_to_array($xp->query('.//h4|.//h5|.//h6', $root) ?: []) as $n) {
+            $this->rename($doc, $n, 'h3');
+        }
+        // 7. Снять атрибуты со всех тегов, кроме href у <a>.
+        foreach (iterator_to_array($xp->query('.//*[@*]', $root) ?: []) as $n) {
+            if (!$n instanceof \DOMElement || $n->isSameNode($root)) {
+                continue;
             }
-            $next = $br->nextSibling;
-            while ($next instanceof \DOMText && trim($next->textContent) === '') {
-                $next = $next->nextSibling;
+            $names = [];
+            foreach ($n->attributes as $attr) {
+                $names[] = $attr->nodeName;
             }
-            $prevIsBr = $prev instanceof \DOMElement && strtolower($prev->tagName) === 'br';
-            if ($prevIsBr || $prev === null || $next === null) {
-                $br->parentNode->removeChild($br);
+            foreach ($names as $name) {
+                if (!(strtolower($n->tagName) === 'a' && strtolower($name) === 'href')) {
+                    $n->removeAttribute($name);
+                }
             }
         }
+        // 8. Ссылки: внешние и служебные (#, mailto:, tel:, javascript:) — развернуть в текст,
+        //    внутренние — к одному из допустимых путей (главная — «/»).
+        foreach (iterator_to_array($xp->query('.//a', $root) ?: []) as $a) {
+            if (!$a instanceof \DOMElement) {
+                continue;
+            }
+            $href = $a->hasAttribute('href') ? $a->getAttribute('href') : '';
+            if ($this->isExternalOrJunkLink($href)) {
+                $this->unwrap($a, false);
+                continue;
+            }
+            $a->setAttribute('href', $this->mapLink($href));
+        }
+        // Пустые элементы, оставшиеся после всего (пустой <p>, <a> вокруг удалённой картинки).
+        $this->pruneEmpty($xp, $root);
+
+        return $this->serialize($doc, $root);
+    }
+
+    /** Шаг 8: внешняя ли ссылка (не свой домен — к этому шагу свой уже подставлен как %domain_name%) или служебная. */
+    private function isExternalOrJunkLink(string $href): bool
+    {
+        $href = trim(html_entity_decode($href, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        if ($href === '' || str_starts_with($href, '#')) {
+            return true;
+        }
+        if (preg_match('~^(?:mailto|tel|sms|javascript|data|blob|ftp|skype|viber|whatsapp|tg):~i', $href) === 1) {
+            return true;
+        }
+        if (str_starts_with($href, '//')) {
+            $href = 'https:' . $href;
+        }
+        if (preg_match('~^[a-z][a-z0-9+.\-]*://([^/?#]*)~i', $href, $m) === 1) {
+            return !str_contains(mb_strtolower($m[1]), '%domain_name%');
+        }
+
+        return false; // относительная — внутренняя
     }
 
     /**
@@ -268,19 +428,8 @@ final class ContentCleaner
     }
 
     /**
-     * Приводит все ссылки <a href> к одному из шести относительных путей по смыслу.
-     */
-    public function normalizeLinks(string $html): string
-    {
-        return preg_replace_callback(
-            '~(<a\b[^>]*?\shref\s*=\s*)(["\'])(.*?)\2~is',
-            fn (array $m): string => $m[1] . $m[2] . $this->mapLink($m[3]) . $m[2],
-            $html,
-        ) ?? $html;
-    }
-
-    /**
-     * Одна ссылка → относительный путь из списка допустимых (по последнему сегменту и смыслу).
+     * Одна внутренняя ссылка → относительный путь из списка допустимых (по последнему сегменту и смыслу);
+     * неизвестное и главная → «/».
      */
     public function mapLink(string $href): string
     {
@@ -306,15 +455,15 @@ final class ContentCleaner
                 }
             }
         }
-        if (in_array('/' . $key, self::ALLOWED_LINKS, true)) {
+        if ($key !== '' && in_array('/' . $key, self::ALLOWED_LINKS, true)) {
             return '/' . $key;
         }
 
-        return '/main';
+        return '/';
     }
 
     /**
-     * Замены домена, даты и бренда на переменные шаблона.
+     * Шаг 2. Замены домена, даты и бренда на переменные шаблона.
      *
      * @param array{domain?: string, hosts?: list<string>, brand_ru?: string, brand_en?: string, extra_brands?: list<string>} $opt
      */
@@ -456,5 +605,104 @@ final class ContentCleaner
     private function hasCyrillic(string $text): bool
     {
         return preg_match('~\p{Cyrillic}~u', $text) === 1;
+    }
+
+    // ---- DOM-помощники -------------------------------------------------------------------------
+
+    /** Загружает фрагмент в обёртку <div id="ys-root">; [doc, root] или [null, null], если не разобралось. */
+    private function loadFragment(string $fragment): array
+    {
+        $fragment = trim($fragment);
+        if ($fragment === '') {
+            return [null, null];
+        }
+        $doc = $this->loadDocument('<div id="ys-root">' . $fragment . '</div>');
+        $root = $doc?->getElementById('ys-root');
+
+        return $root === null ? [null, null] : [$doc, $root];
+    }
+
+    private function loadDocument(string $html): ?\DOMDocument
+    {
+        $doc = new \DOMDocument();
+        $prev = libxml_use_internal_errors(true);
+        $loaded = $doc->loadHTML('<?xml encoding="UTF-8"?>' . $html, LIBXML_NOWARNING | LIBXML_NOERROR);
+        libxml_clear_errors();
+        libxml_use_internal_errors($prev);
+
+        return $loaded ? $doc : null;
+    }
+
+    private function serialize(\DOMDocument $doc, \DOMElement $root): string
+    {
+        $out = '';
+        foreach (iterator_to_array($root->childNodes) as $child) {
+            $out .= $doc->saveHTML($child);
+        }
+
+        return $out;
+    }
+
+    /** Снимает тег, оставляя содержимое; для блочных — с переводами строки на границах, чтобы текст не слипался. */
+    private function unwrap(\DOMNode $n, bool $block): void
+    {
+        $parent = $n->parentNode;
+        if ($parent === null) {
+            return;
+        }
+        $doc = $n->ownerDocument;
+        if ($block && $doc !== null) {
+            $parent->insertBefore($doc->createTextNode("\n"), $n);
+        }
+        while ($n->firstChild !== null) {
+            $parent->insertBefore($n->firstChild, $n);
+        }
+        if ($block && $doc !== null) {
+            $parent->insertBefore($doc->createTextNode("\n"), $n);
+        }
+        $parent->removeChild($n);
+    }
+
+    /** Меняет тег элемента (b → strong, h1 → h2), сохраняя содержимое; атрибуты не переносятся (шаг 7 снимает всё). */
+    private function rename(\DOMDocument $doc, \DOMNode $n, string $tag): void
+    {
+        if ($n->parentNode === null) {
+            return;
+        }
+        $new = $doc->createElement($tag);
+        while ($n->firstChild !== null) {
+            $new->appendChild($n->firstChild);
+        }
+        $n->parentNode->replaceChild($new, $n);
+    }
+
+    /**
+     * Удаляет пустые элементы (без текста и без потомков) снизу вверх, пока что-то удаляется:
+     * <div><div></div></div> → ничего. &nbsp; считается пустотой.
+     */
+    private function pruneEmpty(\DOMXPath $xp, \DOMElement $root): void
+    {
+        $tags = implode('|', array_map(static fn (string $t): string => 'self::' . $t, self::PRUNE_TAGS));
+        do {
+            $removed = 0;
+            $nodes = iterator_to_array($xp->query('.//*[' . $tags . ']', $root) ?: []);
+            foreach (array_reverse($nodes) as $n) {
+                if (!$n instanceof \DOMElement || $n->parentNode === null) {
+                    continue;
+                }
+                $hasElementChild = false;
+                foreach ($n->childNodes as $c) {
+                    if ($c instanceof \DOMElement) {
+                        $hasElementChild = true;
+                        break;
+                    }
+                }
+                $text = str_replace("\u{00A0}", ' ', $n->textContent);
+                if (!$hasElementChild && trim($text) === '') {
+                    $n->parentNode->removeChild($n);
+                    $removed++;
+                }
+            }
+        } while ($removed > 0);
     }
 }
