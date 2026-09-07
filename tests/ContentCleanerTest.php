@@ -379,6 +379,16 @@ final class ContentCleanerTest
         Assert::true(str_contains($out, 's.take') && !str_contains($out, ' stake'), 'общий бренд с точкой не трогаем, целый — заменён');
     }
 
+    public function testForeignNamePlaceholderBecomesRandomName(): void
+    {
+        // {NAME} — незаполненный плейсхолдер чужого шаблона: подставляем случайное имя (не нашу переменную).
+        $html = '<h1>x</h1><p>Где {NAME} выигрывает чаще. {NAME} входит каждый день — как это делает он.</p><h3>Популярные запросы</h3>';
+        $out = (new ContentCleaner())->clean($html);
+        Assert::false(str_contains($out, '{NAME}'), '{NAME} заменён');
+        $names = implode('|', ContentCleaner::RANDOM_NAMES);
+        Assert::same(2, preg_match_all('~(?:' . $names . ')~u', $out), 'в обоих местах стоит имя из списка: ' . $out);
+    }
+
     public function testBrandGluedToDigitsIsReplaced(): void
     {
         // Промокоды «Grizzly30», «Grizzly2024» — бренд с цифрами справа; внутри слова (mistaken) — по-прежнему нет.

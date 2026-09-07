@@ -300,7 +300,9 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   same-or-higher heading, only when `proseCount()` finds < 2 leaf blocks (`p`/`li`/`dd`/`div`/`blockquote`)
   of ≥ 120 chars — FAQ answers in `<div>` count too; a prose section about slots on the slots page stays. **2** `applyReplacements()` over body + FAQ together: domain → `%domain_name%` (the regex
   eats an optional subdomain prefix, so `kush.casinozsd.buzz` → `%domain_name%`, not «kush.%domain_name%»),
-  `dd.mm.yyyy` → `%date%`, brand → `%brand_name_ru%`/`%brand_name_en%`. This runs BEFORE unwrapping and
+  `dd.mm.yyyy` → `%date%`, brand → `%brand_name_ru%`/`%brand_name_en%`; the donor template's unfilled
+  `{NAME}` placeholder («Где {NAME} выигрывает чаще») becomes a random male name from `RANDOM_NAMES`
+  (a fresh one per occurrence; it is NOT one of our variables). This runs BEFORE unwrapping and
   attribute stripping on purpose: the own domain inside `href` becomes `%domain_name%`, which is how step 8
   tells an internal link from an external one. **3–8** `normalizeMarkup()` (DOM; every XPath is RELATIVE to
   the `ys-root` wrapper — an absolute `//div` unwrapped the wrapper itself and yielded an empty result):
