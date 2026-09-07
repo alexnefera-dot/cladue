@@ -1,4 +1,4 @@
-# День 07.09.2026 — 19 доменов, две группы
+# День 07.09.2026 — 34 домена, пять групп
 
 ## Выдача_06.09_7стр_1…_2 — id 1474-1475
 8081.team
@@ -13,6 +13,27 @@
 4313.team
 ixkf.lol
 4287.lol
+
+## nabory431435_styled_img_1…_5 — id 1484-1488, создан 14:48
+3902.team
+3869.lol
+9421.team
+5954.lol
+casinouep.team
+
+## NEW20_4_7pages_nodate_1…_5 — id 1489-1493, создан 14:51
+casinowuf.team
+dqdv.team
+k1y.team
+31casino.team
+casino072.lol
+
+## NEW20_4_7pages_withdate_1…_5 — id 1494-1498, создан 14:51
+6027.lol
+9480.team
+jwjcasino.team
+bxgi.lol
+lmnp.lol
 
 ## NEW20_4_12pages_nodate_1…_6 — id 1499-1504, создан 14:51 (без styled_img в имени)
 5256.team
