@@ -100,10 +100,44 @@ function db_ensure_schema(PDO $pdo, $driver) {
     if (is_file($marker)) return;
 
     $driver === 'mysql' ? db_create_tables_mysql($pdo) : db_create_tables_sqlite($pdo);
+    if ($driver === 'mysql') db_ensure_indexes_mysql($pdo);
 
     cache_dir();
     if (@file_put_contents($marker, (string)time()) !== false) {
         cache_fix_owner($marker, 0664);
+    }
+}
+
+/**
+ * Досоздать индексы на уже существующих таблицах MySQL.
+ *
+ * CREATE TABLE IF NOT EXISTS для существующей таблицы не делает ничего — новый
+ * индекс из схемы выше на боевой базе сам не появится. Поэтому индексы, которые
+ * добавлялись после первого деплоя, проверяются отдельно.
+ *
+ * Вызывается только когда нет маркера схемы (после обновления файлов) — то есть
+ * один раз на деплой, не на каждый запрос. MySQL не умеет CREATE INDEX IF NOT
+ * EXISTS, поэтому сначала смотрим information_schema.
+ */
+function db_ensure_indexes_mysql(PDO $pdo) {
+    $wanted = [
+        ['conversions', 'idx_conv_ts',      'ts'],
+        ['conversions', 'idx_conv_slug_ts', 'slug, ts'],
+        ['clicks',      'idx_slug_ts',      'slug, ts'],
+    ];
+    $st = $pdo->prepare('SELECT COUNT(*) FROM information_schema.statistics
+                         WHERE table_schema = DATABASE() AND table_name = ? AND index_name = ?');
+    foreach ($wanted as [$table, $index, $cols]) {
+        try {
+            $st->execute([$table, $index]);
+            if ((int)$st->fetchColumn() > 0) continue;
+            // ALGORITHM=INPLACE: таблица остаётся доступной на запись, постбеки
+            // и импорт не встают на время построения индекса.
+            $pdo->exec("ALTER TABLE `$table` ADD INDEX `$index` ($cols), ALGORITHM=INPLACE, LOCK=NONE");
+        } catch (Throwable $e) {
+            // нет прав на information_schema/ALTER — не повод ронять панель,
+            // всё продолжит работать, просто медленнее
+        }
     }
 }
 
