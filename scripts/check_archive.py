@@ -6,8 +6,9 @@
 
 Архив должен иметь структуру  <N>-стр/<домен>/<страница>.html .
 Коды проверок (A*, B*, C*, D*) соответствуют checks/00-common.md.
---sort ПАПКА  раскладывает сайты по типам: ПАПКА/годные/<тип>/<домен>/ и
-              ПАПКА/на-доработку/<тип>/<домен>/, плюс ПАПКА/сводка.md.
+--sort ПАПКА  раскладывает сайты по типам: ПАПКА/годные/<тип>/<домен>/,
+              ПАПКА/на-доработку/<тип>/<домен>/, ПАПКА/убрано/<тип>/<домен>/,
+              плюс ПАПКА/сводка.md. Группы 8/9/10-стр лежат уже в виде 7-стр.
 Код возврата: 1, если найдена хотя бы одна ошибка (ERROR), иначе 0.
 """
 import argparse
@@ -595,14 +596,14 @@ def sort_output(F, sites, out_dir, archive_name):
     for s in sites:
         k = s["key"]
         if discarded(F, s):
-            by_type[s["type"]]["gone"].append(s)
-            continue
-        bucket = "на-доработку" if F.count(k, "ERROR") else "годные"
+            bucket = "убрано"
+        else:
+            bucket = "на-доработку" if F.count(k, "ERROR") else "годные"
         dst = os.path.join(out_dir, bucket, s["type"], s["site"])
         os.makedirs(dst, exist_ok=True)
         for p, d in s["pages"].items():
             shutil.copyfile(d["path"], os.path.join(dst, p + ".html"))
-        by_type[s["type"]]["good" if bucket == "годные" else "bad"].append(s)
+        by_type[s["type"]]["good" if bucket == "годные" else ("gone" if bucket == "убрано" else "bad")].append(s)
     lines = ["# Сводка по типам: %s" % archive_name, ""]
     for t in sorted(by_type, key=lambda x: int(x.split("-")[0])):
         g, b, x = by_type[t]["good"], by_type[t]["bad"], by_type[t]["gone"]
