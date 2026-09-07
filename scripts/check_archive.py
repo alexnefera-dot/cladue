@@ -182,6 +182,34 @@ def strip_tags(raw):
     return html.unescape(re.sub(r"<[^>]+>", " ", raw))
 
 
+# Карточка слота в виджете: «Играйте в X от Y…», «X - популярный слот от Y», «Слот X от провайдера Y», строки с RTP.
+WIDGET_P = re.compile(r"^(?:Играйте в .{1,80} от |.{1,80} [-—–] популярный слот|Слот .{1,80} от провайдера|.{0,80}RTP\s*:?\s*\d)", re.I)
+MIN_MAIN_WORDS = 200   # меньше — «тонкая главная», сайт убирается
+
+
+def content_words(raw):
+    """Слова настоящего текста: абзацы, списки, таблицы, без карточек слотов и строк из 1–3 слов (бренд, провайдер)."""
+    words = 0
+    for tag in ("p", "li", "td", "dd", "summary", "blockquote"):
+        for m in re.findall(r"<%s[^>]*>(.*?)</%s>" % (tag, tag), raw, re.S):
+            t = strip_tags(m).strip()
+            n = len(re.findall(r"\w+", t))
+            if n <= 3 or WIDGET_P.match(t):
+                continue
+            words += n
+    return words
+
+
+def sections(raw):
+    """Разделы: h2 плюс h3, после которых идёт не карточка слота."""
+    n = len(re.findall(r"<h2[^>]*>", raw))
+    for m in re.finditer(r"<h3[^>]*>.*?</h3>", raw, re.S):
+        tail = strip_tags(raw[m.end(): m.end() + 300]).strip()
+        if not WIDGET_P.match(tail) and "RTP" not in tail[:120]:
+            n += 1
+    return n
+
+
 def shingles(words, n=6):
     return {" ".join(words[i:i + n]) for i in range(max(0, len(words) - n + 1))}
 
@@ -364,6 +392,12 @@ def check_site(n, tpl, key, pages, F):
             F.add(key, lvl, "B1", "%s: %d слов (минимум %d)%s" % (
                 loc, d["nwords"], tpl["min_words"],
                 " — заглушка" if d["nwords"] < 60 else ""))
+        # B13 тонкая страница: главная без текста или разделов — сайт убирается
+        cw, sec = content_words(d["raw"]), sections(d["raw"])
+        if p == "main" and (cw < MIN_MAIN_WORDS or sec == 0):
+            F.add(key, "ERROR", "B13", "%s: тонкая главная — %d слов текста, %d разделов (минимум %d и 1)" % (loc, cw, sec, MIN_MAIN_WORDS))
+        elif p != "main" and cw < 100 and sec == 0 and d["nwords"] >= 60:
+            F.add(key, "WARN", "B13", "%s: тонкая страница — %d слов текста, разделов нет" % (loc, cw))
         # B2 заголовки
         if len(d["h2"]) < tpl["min_h2"] and d["nwords"] >= 60:
             F.add(key, "WARN", "B2", "%s: заголовков h2 — %d (минимум %d)" % (
@@ -521,7 +555,7 @@ def check_cross(all_pages, F):
 LEVEL_ORDER = {"ERROR": 0, "WARN": 1, "INFO": 2}
 REASON = {  # короткая причина брака для сводки, по коду ошибки
     "A3": "не то количество страниц", "A4": "не тот набор страниц",
-    "A6": "кодировка", "B1": "заглушки", "B4": "чужой бренд или контакты",
+    "A6": "кодировка", "B1": "заглушки", "B13": "тонкая главная", "B4": "чужой бренд или контакты",
     "B5": "незаполненные переменные", "B6": "разметка",
     "C1": "ссылки в никуда", "D1": "дубль файла",
 }
@@ -535,6 +569,8 @@ def discard_reason(F, s):
         why.append("контент из заглушек")
     if any(lvl == "ERROR" and code == "D1" for lvl, code, _ in items):
         why.append("контент дублированный")
+    if any(lvl == "ERROR" and code == "B13" for lvl, code, _ in items):
+        why.append("главная без текста")
     if s["n"] in DISCARD_INCOMPLETE and any(lvl == "ERROR" and code in ("A3", "A4") for lvl, code, _ in items):
         why.append("неполный набор")
     return " и ".join(why) if why else None
