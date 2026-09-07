@@ -97,7 +97,7 @@ BRAND_AFTER = re.compile(r"^[»\"']?[\s-]*(?:казино|casino|club|bet|mirror
 SLOT_BEFORE = re.compile(r"(?:\bот|слот(?:а|е|ы|ов)?|автомат\w*|провайдер\w*|играйте\s+в|играть\s+в|игр[аыеу]\s+в|разработчик\w*|студи[яи])\s+[«\"']?$", re.I)
 SLOT_AFTER = re.compile(r"^[»\"']?\s*(?:[-—–]\s*популярн|\(RTP|\(\d{4}\)|от\s+[A-Z]|с\s+RTP|—\s*слот|-\s*слот)")
 PROVIDER_AFTER = re.compile(r"^\s+(?:Gaming|Games|Studios?|Lab|Labs|Play|Soft|Interactive|Entertainment|Authenticator|Aurora|Cloud)\b")
-BRAND_LINE = re.compile(r"^\s*<p>(?:Казино\s+|Casino\s+)?([A-Z][A-Za-z0-9]+(?:[ -][A-Z][A-Za-z0-9]+)?)(?:\s+(?:Casino|casino|казино|Казино))?\.\s*</p>")
+BRAND_LINE = re.compile(r"^\s*<p>(?:Казино\s+|Casino\s+)?([A-Z][A-Za-z0-9]+(?:[ -](?!Casino\b|casino\b)[A-Z][A-Za-z0-9]+)?)(?:\s+(?:Casino|casino|казино|Казино))?\.\s*</p>")
 LATIN_WHITELIST = {
     "rtp", "vpn", "ios", "android", "app", "store", "google", "play", "pwa",
     "ssl", "live", "faq", "usdt", "bitcoin", "btc", "eth", "visa",

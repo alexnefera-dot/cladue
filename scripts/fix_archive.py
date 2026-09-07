@@ -28,7 +28,7 @@ import sys
 from collections import Counter
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from check_archive import GENERIC_DOMAINS, brand_candidates  # noqa: E402
+from check_archive import GENERIC_DOMAINS, LATIN_WHITELIST, brand_candidates  # noqa: E402
 
 NAMES = ("Олег Пётр Петр Дмитрий Марат Георгий Юрий Эдуард Евгений Роман Михаил Валерий Фёдор Федор Иван "
          "Андрей Сергей Алексей Николай Павел Максим Артём Артем Кирилл Виктор Илья Денис Антон Станислав "
@@ -80,6 +80,18 @@ def fill_vars(raw, page, seed):
 
 
 def fix_brand(raw, brand):
+    rows = []
+    if " " in brand:   # двухсловный бренд: сначала целиком, потом каждое неслужебное слово отдельно
+        raw, rows = fix_brand_one(raw, brand)
+        for word in brand.split():
+            if word.lower() not in LATIN_WHITELIST:
+                raw, more = fix_brand_one(raw, word)
+                rows += more
+        return raw, rows
+    return fix_brand_one(raw, brand)
+
+
+def fix_brand_one(raw, brand):
     b = re.escape(brand)
     rules = [
         (r"([A-Za-z0-9._-]+)@%s(?:-casino)?\.com\b" % b, r"\1@%domain_name%", "адрес → @%domain_name%"),
