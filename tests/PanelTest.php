@@ -19,7 +19,7 @@ final class PanelTest
             mkdir($this->dir . '/runs/current', 0777, true);
             file_put_contents($this->dir . '/config.php', '<?php return ' . var_export([
                 'source' => 'xmlstock',
-                'xmlstock' => ['endpoint' => "http://127.0.0.1:$port/yandex/xml/", 'user' => 'u', 'key' => 'k'],
+                'xmlstock' => ['endpoint' => "http://127.0.0.1:$port/yandex/xml/", 'live_endpoint' => "http://127.0.0.1:$port/yandexlive/xml/", 'user' => 'u', 'key' => 'k'],
                 'api' => ['delay_ms' => 0, 'retries' => 0],
                 'search' => ['groups_on_page' => 15],
                 'filters' => ['allowed_tlds' => []],
@@ -118,6 +118,42 @@ final class PanelTest
         Assert::same('yandex.by', $got['domain'] ?? null, 'domain дошёл до запроса XMLStock');
         Assert::same('77', $got['within'] ?? null, 'доп. параметр within дошёл до запроса');
         Assert::same('tm', $got['sortby'] ?? null, 'доп. параметр перекрыл значение по умолчанию');
+        @unlink($capture);
+    }
+
+    public function testXmlstockLiveModeUsesLiveEndpointAndPaginatesByTen(): void
+    {
+        $port = FakeServer::port();
+        $dir = $this->projectDir($port);
+        $this->projectDirReset($port);
+        $capture = sys_get_temp_dir() . '/yandex-sites-fake-capture.json';
+        @unlink($capture);
+        $runDir = $dir . '/runs/xmlive';
+        mkdir($runDir, 0777, true);
+        // Панель шлёт xmlstock_mode=live: запрос уходит на /yandexlive/xml/ без groupby, а «топ 25»
+        // превращается в страницы по 10 (фейковый сервер отдаёт 15 результатов: 10 на первой + 5 на второй).
+        file_put_contents($runDir . '/settings.json', json_encode([
+            'queries' => ['окна __capture__'],
+            'source' => 'xmlstock',
+            'top' => 25,
+            'visit' => false,
+            'preview_shots' => false,
+            'xmlstock_mode' => 'live',
+            'xmlstock_device' => 'mobile',
+        ]));
+
+        $run = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $run['code'], $run['out']);
+        Assert::true(is_file($capture), 'фейковый XMLStock получил запрос');
+        $got = json_decode((string) file_get_contents($capture), true);
+        Assert::same('/yandexlive/xml/', $got['__path'] ?? null, 'запрос ушёл на адрес живой выдачи XMLStock');
+        Assert::false(isset($got['groupby']), 'у живой выдачи нет groupby');
+        Assert::same('mobile', $got['device'] ?? null, 'device дошёл и в живом режиме');
+        Assert::same('1', $got['page'] ?? null, 'первая страница дала 10 результатов — запрошена вторая');
+        $status = json_decode((string) file_get_contents($runDir . '/status.json'), true);
+        Assert::same('done', $status['state'], $run['out']);
+        Assert::same(2, $status['stats']['requests'] ?? 0, 'две страницы по 10: 10 + 5, третья не нужна');
+        Assert::same(15, $status['stats']['results'] ?? 0, 'собраны обе страницы живой выдачи');
         @unlink($capture);
     }
 
@@ -525,7 +561,7 @@ final class PanelTest
     {
         file_put_contents($this->dir . '/config.php', '<?php return ' . var_export([
             'source' => 'xmlstock',
-            'xmlstock' => ['endpoint' => "http://127.0.0.1:$port/yandex/xml/", 'user' => 'u', 'key' => 'k'],
+            'xmlstock' => ['endpoint' => "http://127.0.0.1:$port/yandex/xml/", 'live_endpoint' => "http://127.0.0.1:$port/yandexlive/xml/", 'user' => 'u', 'key' => 'k'],
             'api' => ['delay_ms' => 0, 'retries' => 0],
             'search' => ['groups_on_page' => 15],
             'filters' => ['allowed_tlds' => []],

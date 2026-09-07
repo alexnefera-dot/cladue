@@ -11,6 +11,7 @@ declare(strict_types=1);
  *   POST /v2/web/search    — Yandex Search API v2 (JSON с rawData в base64)
  *   GET  /search/xml       — Yandex Search API v1 (XML напрямую)
  *   GET  /yandex/xml/      — XMLStock (XML в формате Яндекс.XML)
+ *   GET  /yandexlive/xml/  — XMLStock, живая выдача (тот же формат, всегда по 10 результатов на странице)
  *   GET  /search/?text=…   — страница выдачи в вёрстке yandex.ru (для source = live)
  *   GET  /showcaptcha      — страница капчи
  *   любой другой путь      — «сайт», выбирается по заголовку Host; страница зависит от Referer,
@@ -273,7 +274,7 @@ if ($uri === '/yandex/xml/' || $uri === '/yandex/xml') {
     // Тестовый крючок: по запросу с маркером __capture__ записываем принятые GET-параметры в файл,
     // чтобы тест мог проверить, что device/domain/доп. параметры XMLStock дошли до запроса.
     if (str_contains((string) ($_GET['query'] ?? ''), '__capture__')) {
-        @file_put_contents(sys_get_temp_dir() . '/yandex-sites-fake-capture.json', json_encode($_GET));
+        @file_put_contents(sys_get_temp_dir() . '/yandex-sites-fake-capture.json', json_encode($_GET + ['__path' => $uri]));
     }
     if (($_GET['user'] ?? '') === '' || $key === '' || str_contains($key, 'bad-key')) {
         echo '<?xml version="1.0" encoding="utf-8"?><yandexsearch version="1.0"><response date="20260904T120000"><error code="42">Invalid user or key</error></response></yandexsearch>';
@@ -285,6 +286,23 @@ if ($uri === '/yandex/xml/' || $uri === '/yandex/xml') {
         $groupsOnPage = (int) $m[1];
     }
     echo fakeXml((string) ($_GET['query'] ?? ''), (int) ($_GET['page'] ?? 0), $groupsOnPage);
+
+    return;
+}
+
+if ($uri === '/yandexlive/xml/' || $uri === '/yandexlive/xml') {
+    header('Content-Type: text/xml; charset=utf-8');
+    $key = (string) ($_GET['key'] ?? '');
+    if (str_contains((string) ($_GET['query'] ?? ''), '__capture__')) {
+        @file_put_contents(sys_get_temp_dir() . '/yandex-sites-fake-capture.json', json_encode($_GET + ['__path' => $uri]));
+    }
+    if (($_GET['user'] ?? '') === '' || $key === '' || str_contains($key, 'bad-key')) {
+        echo '<?xml version="1.0" encoding="utf-8"?><yandexsearch version="1.0"><response date="20260904T120000"><error code="42">Invalid user or key</error></response></yandexsearch>';
+
+        return;
+    }
+    // Живая выдача: всегда по 10 результатов на странице, groupby не действует
+    echo fakeXml((string) ($_GET['query'] ?? ''), (int) ($_GET['page'] ?? 0), 10);
 
     return;
 }

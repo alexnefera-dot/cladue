@@ -189,6 +189,10 @@ final class Runtime
         if ($source === 'xmlstock') {
             $parts['domain'] = $this->config->get('xmlstock.domain');
             $parts['device'] = $this->config->get('xmlstock.device');
+            if ((string) $this->config->get('xmlstock.mode', 'xml') === 'live') {
+                // Живая выдача кэшируется отдельно от Яндекс.XML (ключи старого кэша не меняются)
+                $parts['mode'] = 'live';
+            }
         } else {
             $parts['api_version'] = $this->config->get('api.version');
         }

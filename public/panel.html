@@ -145,8 +145,15 @@
         </div>
 
         <div id="xmlstockBox" hidden style="margin:2px 0 12px;padding:10px;border:1px solid #e2e2e2;border-radius:8px;background:#fafafa">
-          <div style="font-size:13px;color:#555;margin-bottom:6px">Параметры XMLStock: устройство (мобайл/десктоп), домен Яндекса и др.</div>
+          <div style="font-size:13px;color:#555;margin-bottom:6px">Параметры XMLStock: тип выдачи (Яндекс.XML или живая), устройство (мобайл/десктоп), домен Яндекса и др.</div>
           <div class="row">
+            <div>
+              <label>Выдача <span class="hint" id="xmmodeHint"></span></label>
+              <select id="xmmode">
+                <option value="xml">Яндекс.XML — до 100 сайтов на странице, дешевле</option>
+                <option value="live">Живая выдача — как у пользователя, по 10 сайтов на странице</option>
+              </select>
+            </div>
             <div>
               <label>Устройство</label>
               <select id="xmdevice"><option value="">по умолчанию</option><option value="desktop">Компьютер</option><option value="mobile">Мобайл</option><option value="tablet">Планшет</option></select>
@@ -155,7 +162,6 @@
               <label>Домен Яндекса</label>
               <select id="xmdomain"><option value="">по умолчанию</option><option value="yandex.ru">yandex.ru</option><option value="yandex.by">yandex.by</option><option value="yandex.kz">yandex.kz</option><option value="yandex.uz">yandex.uz</option><option value="yandex.com.tr">yandex.com.tr</option><option value="yandex.com">yandex.com</option></select>
             </div>
-            <div></div>
           </div>
           <label>Доп. параметры <span class="hint">key=value через &amp;, напр. within=77&amp;sortby=tm</span></label>
           <input type="text" id="xmextra" placeholder="напр. within=77">
@@ -266,7 +272,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const FIELDS = ['queries','source','region','pages','dedupe','scope','top','minq','tlds','exclude','skipknown','previewshots','visit','variants','driver','crawl','maxpages','useproxies','repeat','xmdevice','xmdomain','xmextra'];
+const FIELDS = ['queries','source','region','pages','dedupe','scope','top','minq','tlds','exclude','skipknown','previewshots','visit','variants','driver','crawl','maxpages','useproxies','repeat','xmmode','xmdevice','xmdomain','xmextra'];
 
 function loadLocal(){
   try{ const s = JSON.parse(localStorage.getItem('ys-panel')||'{}');
@@ -292,6 +298,9 @@ showTab(startTab);
 // Параметры XMLStock показываем только когда выбран этот источник.
 function toggleXmlstock(){ $('xmlstockBox').hidden = $('source').value !== 'xmlstock'; }
 $('source').addEventListener('change', toggleXmlstock); toggleXmlstock();
+// Живая выдача XMLStock отдаёт по 10 сайтов на странице: «Топ N» превращается в N/10 страниц.
+function toggleXmMode(){ $('xmmodeHint').textContent = $('xmmode').value==='live' ? '· топ N = N/10 страниц (топ 30 — 3 запроса)' : ''; }
+$('xmmode').addEventListener('change', toggleXmMode);
 
 // «within=77&sortby=tm» → {within:'77', sortby:'tm'}
 function parseExtra(str){
@@ -304,6 +313,7 @@ function collectSettings(){
   return {
     queries: $('queries').value.split('\n').map(s=>s.trim()).filter(s=>s && !s.startsWith('#')),
     source: $('source').value,
+    xmlstock_mode: $('xmmode').value,
     xmlstock_device: $('xmdevice').value,
     xmlstock_domain: $('xmdomain').value,
     xmlstock_extra: parseExtra($('xmextra').value),
@@ -732,6 +742,7 @@ function prefill(state){
     const s=state.settings;
     if(s.queries) $('queries').value=s.queries.join('\n');
     if(s.source)$('source').value=s.source; if(s.region!=null)$('region').value=s.region;
+    if(s.xmlstock_mode)$('xmmode').value=s.xmlstock_mode;
     if(s.xmlstock_device)$('xmdevice').value=s.xmlstock_device;
     if(s.xmlstock_domain)$('xmdomain').value=s.xmlstock_domain;
     if(s.xmlstock_extra && typeof s.xmlstock_extra==='object'){ $('xmextra').value=Object.entries(s.xmlstock_extra).map(([k,v])=>v===''?k:k+'='+v).join('&'); }
@@ -761,6 +772,7 @@ async function refresh(){
 
 loadLocal();
 toggleXmlstock();
+toggleXmMode();
 refresh();
 setInterval(refresh, 1500);
 </script>

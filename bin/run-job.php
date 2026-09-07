@@ -41,6 +41,7 @@ use YandexSites\Runner;
 use YandexSites\Model\SearchResult;
 use YandexSites\Model\Site;
 use YandexSites\Runtime;
+use YandexSites\Search\XmlStockFetcher;
 use YandexSites\Support\DomainLedger;
 use YandexSites\Support\Logger;
 use YandexSites\Support\Progress;
@@ -107,6 +108,12 @@ function buildOverrides(array $s, string $runDir): array
     if (isset($s['xmlstock_domain']) && (string) $s['xmlstock_domain'] !== '') {
         $overrides['xmlstock.domain'] = (string) $s['xmlstock_domain'];
     }
+    // Режим XMLStock: xml — Яндекс.XML, live — живая выдача Яндекса через XMLStock (по 10 результатов на странице).
+    $xmlstockLive = false;
+    if (isset($s['xmlstock_mode']) && in_array((string) $s['xmlstock_mode'], XmlStockFetcher::MODES, true)) {
+        $overrides['xmlstock.mode'] = (string) $s['xmlstock_mode'];
+        $xmlstockLive = $s['xmlstock_mode'] === 'live' && (string) ($s['source'] ?? 'xmlstock') === 'xmlstock';
+    }
     if (isset($s['xmlstock_extra']) && is_array($s['xmlstock_extra'])) {
         $extra = [];
         foreach ($s['xmlstock_extra'] as $key => $value) {
@@ -126,11 +133,16 @@ function buildOverrides(array $s, string $runDir): array
     if (isset($s['groups_on_page'])) {
         $overrides['search.groups_on_page'] = max(1, min(100, (int) $s['groups_on_page']));
     }
-    // «Топ N выдачи»: берём только первые N результатов каждого запроса (одна страница по N).
+    // «Топ N выдачи»: берём только первые N результатов каждого запроса (одна страница по N;
+    // у живой выдачи XMLStock страница всегда 10 результатов — значит, N/10 страниц).
     $top = (int) ($s['top'] ?? 10);
     if ($top > 0) {
-        $overrides['search.groups_on_page'] = min(100, $top);
-        $overrides['search.pages'] = 1;
+        if ($xmlstockLive) {
+            $overrides['search.pages'] = (int) ceil($top / XmlStockFetcher::LIVE_PAGE_SIZE);
+        } else {
+            $overrides['search.groups_on_page'] = min(100, $top);
+            $overrides['search.pages'] = 1;
+        }
         $overrides['filters.max_position'] = $top;
     }
     $overrides['filters.unique_by'] = ($s['dedupe_domain'] ?? true) ? 'domain' : 'host';

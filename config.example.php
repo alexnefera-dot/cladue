@@ -49,10 +49,16 @@ return [
     ],
 
     // ---------------------------------------------------------------------
-    // XMLStock (xmlstock.com) — выдача Яндекса в формате Яндекс.XML.
+    // XMLStock (xmlstock.com) — выдача Яндекса: Яндекс.XML или живая выдача.
     // ---------------------------------------------------------------------
     'xmlstock' => [
+        // Какую выдачу брать у XMLStock:
+        //   'xml'  — Яндекс.XML: до 100 сайтов на странице (search.groups_on_page), дешевле;
+        //   'live' — живая выдача Яндекса, как у обычного пользователя (без своих прокси):
+        //            всегда по 10 сайтов на странице, поэтому топ N — это N/10 страниц (search.pages)
+        'mode' => 'xml',
         'endpoint' => 'https://xmlstock.com/yandex/xml/',
+        'live_endpoint' => 'https://xmlstock.com/yandexlive/xml/',
         'user' => getenv('XMLSTOCK_USER') ?: '',
         'key' => getenv('XMLSTOCK_KEY') ?: '',
         // Домен поиска (yandex.ru, yandex.kz, yandex.com.tr …); пусто — по умолчанию сервиса

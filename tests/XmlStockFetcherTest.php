@@ -63,6 +63,35 @@ final class XmlStockFetcherTest
         Assert::false(isset($params['device']));
     }
 
+    public function testLiveModeUsesLiveEndpointWithoutXmlParams(): void
+    {
+        $config = $this->config([
+            'search' => ['groups_on_page' => 20, 'region' => 2],
+            'xmlstock' => ['mode' => 'live', 'device' => 'mobile', 'extra_params' => ['ads' => '1']],
+        ]);
+        $http = new StubHttpClient([new HttpResponse(200, (string) file_get_contents(TESTS_ROOT . '/fixtures/response.xml'))]);
+        $fetcher = new XmlStockFetcher($config, $http, new XmlResponseParser(), $this->logger());
+
+        Assert::true($fetcher->isLive());
+        Assert::same('https://xmlstock.com/yandexlive/xml/', $fetcher->endpoint());
+        Assert::same([
+            'user' => 'u1',
+            'key' => 'k1',
+            'query' => 'окна пвх',
+            'lr' => '2',
+            'page' => '1',
+            'device' => 'mobile',
+            'ads' => '1',
+        ], $fetcher->buildParams('окна пвх', 1), 'у живой выдачи нет groupby/sortby/maxpassages');
+
+        Assert::contains('<yandexsearch', $fetcher->fetch('окна пвх', 1));
+        Assert::true(str_starts_with($http->calls[0]['url'], 'https://xmlstock.com/yandexlive/xml/?user=u1&key=k1&query='), $http->calls[0]['url']);
+
+        $xml = new XmlStockFetcher($this->config(), $http, new XmlResponseParser(), $this->logger());
+        Assert::false($xml->isLive(), 'по умолчанию — Яндекс.XML');
+        Assert::same('https://xmlstock.com/yandex/xml/', $xml->endpoint());
+    }
+
     public function testErrors(): void
     {
         $http = new StubHttpClient([new HttpResponse(401, 'Unauthorized')]);

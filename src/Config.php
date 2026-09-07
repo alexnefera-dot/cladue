@@ -72,7 +72,11 @@ final class Config
                 'max_consecutive_errors' => 5,
             ],
             'xmlstock' => [
+                // Режим: xml — Яндекс.XML через XMLStock (до 100 сайтов на странице, дешевле),
+                // live — живая выдача Яндекса через XMLStock (как у пользователя, по 10 сайтов на странице)
+                'mode' => 'xml',
                 'endpoint' => (string) (getenv('XMLSTOCK_ENDPOINT') ?: 'https://xmlstock.com/yandex/xml/'),
+                'live_endpoint' => (string) (getenv('XMLSTOCK_LIVE_ENDPOINT') ?: 'https://xmlstock.com/yandexlive/xml/'),
                 'user' => (string) (getenv('XMLSTOCK_USER') ?: ''),
                 'key' => (string) (getenv('XMLSTOCK_KEY') ?: ''),
                 'domain' => '',
@@ -313,8 +317,14 @@ final class Config
                 $errors[] = 'xmlstock.user / xmlstock.key: не заданы данные доступа XMLStock (переменные XMLSTOCK_USER и XMLSTOCK_KEY)';
             }
         }
+        if (!in_array($g('xmlstock.mode'), ['xml', 'live'], true)) {
+            $errors[] = "xmlstock.mode: допустимы 'xml' (Яндекс.XML) или 'live' (живая выдача), получено: " . var_export($g('xmlstock.mode'), true);
+        }
         if ((string) $g('xmlstock.endpoint') === '') {
             $errors[] = 'xmlstock.endpoint: не задан адрес API XMLStock';
+        }
+        if ((string) $g('xmlstock.live_endpoint') === '') {
+            $errors[] = 'xmlstock.live_endpoint: не задан адрес живой выдачи XMLStock';
         }
         if (!is_array($g('xmlstock.extra_params'))) {
             $errors[] = 'xmlstock.extra_params: ожидается массив';

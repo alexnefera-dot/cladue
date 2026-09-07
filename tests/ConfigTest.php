@@ -64,6 +64,10 @@ final class ConfigTest
 
         $badScope = new Config(['api' => ['folder_id' => 'f', 'api_key' => 'k'], 'filters' => ['domain_scope' => 'weird']]);
         Assert::contains('filters.domain_scope', implode("\n", $badScope->validate()));
+
+        $badMode = new Config(['api' => ['folder_id' => 'f', 'api_key' => 'k'], 'xmlstock' => ['mode' => 'json']]);
+        Assert::contains('xmlstock.mode', implode("\n", $badMode->validate()));
+        Assert::same([], (new Config(['api' => ['folder_id' => 'f', 'api_key' => 'k'], 'xmlstock' => ['mode' => 'live']]))->validate(), 'live — допустимый режим XMLStock');
         Assert::same('all', (new Config())->get('filters.domain_scope'));
 
         $ok = new Config(['api' => ['folder_id' => 'f', 'iam_token' => 't']]);

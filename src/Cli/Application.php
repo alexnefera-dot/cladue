@@ -37,7 +37,7 @@ final class Application
     public const VERSION = '1.2.0';
 
     /** Опции, принимающие значение (остальные — флаги). */
-    private const VALUE_OPTIONS = ['queries', 'query', 'config', 'out', 'pages', 'region', 'groups', 'limit', 'delay', 'source', 'proxies', 'proxy', 'parse-html', 'visit-driver', 'variants', 'user-agent', 'save-html'];
+    private const VALUE_OPTIONS = ['queries', 'query', 'config', 'out', 'pages', 'region', 'groups', 'limit', 'delay', 'source', 'xmlstock-mode', 'proxies', 'proxy', 'parse-html', 'visit-driver', 'variants', 'user-agent', 'save-html'];
     private const FLAG_OPTIONS = ['live', 'visit', 'no-cache', 'offline', 'check-sites', 'check-proxies', 'raw', 'dry-run', 'verbose', 'quiet', 'help', 'version'];
     private const SHORT_OPTIONS = ['q' => 'query', 'c' => 'config', 'o' => 'out', 'v' => 'verbose', 'h' => 'help'];
 
@@ -127,7 +127,10 @@ final class Application
             $this->describeSource($config),
             $config->get('search.region'),
             $pages,
-            $source === 'live' ? ' (около 10 результатов на странице)' : sprintf(', результатов на странице: %d', (int) $config->get('search.groups_on_page')),
+            $source === 'live' ? ' (около 10 результатов на странице)' : sprintf(
+                ', результатов на странице: %d',
+                $source === 'xmlstock' && $config->get('xmlstock.mode') === 'live' ? XmlStockFetcher::LIVE_PAGE_SIZE : (int) $config->get('search.groups_on_page'),
+            ),
         ));
 
         $runtime = new Runtime($config, $log, $this->cliProxies);
@@ -187,7 +190,7 @@ final class Application
     {
         return match ((string) $config->get('source')) {
             'live' => 'живая выдача ' . (preg_replace('~^https?://~', '', (string) $config->get('live.domain')) ?? ''),
-            'xmlstock' => 'XMLStock',
+            'xmlstock' => $config->get('xmlstock.mode') === 'live' ? 'XMLStock (живая выдача)' : 'XMLStock (Яндекс.XML)',
             default => $config->get('api.version') === 'xml' ? 'Yandex Search API v1 (XML)' : 'Yandex Search API v2 (REST)',
         };
     }
@@ -220,6 +223,9 @@ final class Application
         }
         if (isset($opts['live'])) {
             $overrides['source'] = 'live';
+        }
+        if (isset($opts['xmlstock-mode'])) {
+            $overrides['xmlstock.mode'] = (string) $opts['xmlstock-mode'];
         }
         if (isset($opts['proxies'])) {
             $overrides['proxy_file'] = (string) $opts['proxies'];
@@ -568,6 +574,9 @@ final class Application
                                 api — Yandex Search API (по умолчанию), xmlstock — сервис XMLStock,
                                 live — живая выдача yandex.ru как у обычного пользователя (через прокси)
           --live                то же, что --source=live
+          --xmlstock-mode=xml|live
+                                режим XMLStock: xml — Яндекс.XML, до 100 сайтов на странице (по умолчанию);
+                                live — живая выдача Яндекса через XMLStock, по 10 сайтов на странице, без своих прокси
 
         Прокси (общий список для живой выдачи и визитов, используются по кругу):
           --proxies=FILE        файл со списком прокси, по одному в строке (см. proxies.example.txt)

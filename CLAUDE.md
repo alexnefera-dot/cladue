@@ -93,7 +93,7 @@ cp .env.example .env      # fill in credentials for the chosen source
 |----------|---------|
 | `YANDEX_FOLDER_ID`, `YANDEX_API_KEY`, `YANDEX_IAM_TOKEN` | Yandex Search API (source `api`) |
 | `XMLSTOCK_USER`, `XMLSTOCK_KEY` | XMLStock (source `xmlstock`) |
-| `YANDEX_REST_ENDPOINT`, `YANDEX_XML_ENDPOINT`, `XMLSTOCK_ENDPOINT`, `YANDEX_LIVE_DOMAIN` | endpoint overrides (fake server, gateways) |
+| `YANDEX_REST_ENDPOINT`, `YANDEX_XML_ENDPOINT`, `XMLSTOCK_ENDPOINT`, `XMLSTOCK_LIVE_ENDPOINT`, `YANDEX_LIVE_DOMAIN` | endpoint overrides (fake server, gateways) |
 | `PLAYWRIGHT_BROWSERS_PATH` | passed through to `render-page.js` |
 
 ---
@@ -177,7 +177,17 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   Field names and enums follow `yandex/cloud/searchapi/v2/*.proto` from `yandex-cloud/cloudapi`.
 - Legacy XML (v1): `GET https://yandex.ru/search/xml?folderid=…&apikey=…&query=…&lr=…&groupby=…&page=…`.
 - XMLStock: `GET https://xmlstock.com/yandex/xml/?user=…&key=…&query=…&lr=…&groupby=…&page=…[&domain=…&device=…]`,
-  Yandex.XML-compatible response parsed by `XmlResponseParser`.
+  Yandex.XML-compatible response parsed by `XmlResponseParser`. `xmlstock.mode` (`xml` default | `live`,
+  CLI `--xmlstock-mode`, panel select `#xmmode` → settings `xmlstock_mode`) switches `XmlStockFetcher` to
+  XMLStock's live-SERP product: `GET https://xmlstock.com/yandexlive/xml/` (`xmlstock.live_endpoint`,
+  env `XMLSTOCK_LIVE_ENDPOINT`) with only `user/key/query/lr/page[/domain/device/extra]` — no
+  `groupby`/`sortby`/`maxpassages` — and the same Yandex.XML response, always ≤ 10 results per page
+  (`XmlStockFetcher::LIVE_PAGE_SIZE`). `Runner` uses that page size instead of `groups_on_page` for the
+  «last page» fallback, `buildOverrides()` turns «топ N» into `ceil(N/10)` pages instead of one page of N,
+  and `Runtime::cacheKeyParts()` adds `mode=live` so live and XML responses are cached apart. Fake server
+  route `/yandexlive/xml/` (10 per page, capture includes `__path`); covered by
+  `XmlStockFetcherTest::testLiveModeUsesLiveEndpointWithoutXmlParams` and
+  `PanelTest::testXmlstockLiveModeUsesLiveEndpointAndPaginatesByTen`.
 - XML response: `yandexsearch/response/results/grouping/group/doc/{url,domain,title,headline,passages/passage}`;
   `<hlword>` tags are flattened; `response/error@code` — 15 = no results (not an error),
   55 = rate limit (retry), 32/33/42/43/44/48 = fatal.
@@ -236,10 +246,11 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   spawns the job and serves `public/panel.html`. Keep CLI and panel behaviour in sync through `Runtime`.
   `public/panel.html` has two tabs (`.tabsec[data-tab=main|config]`, remembered in `localStorage['ys-tab']`):
   «Главная» (queries, run/stage, progress, log, results table) and «Настройки» (keys + all filter/visit
-  conditions). XMLStock params are panel fields `xmlstock_device`/`xmlstock_domain`/`xmlstock_extra`
+  conditions). XMLStock params are panel fields `xmlstock_mode`/`xmlstock_device`/`xmlstock_domain`/`xmlstock_extra`
   (the `#xmlstockBox`, shown only when `source=xmlstock`), mapped in `buildOverrides()` to
-  `xmlstock.device`/`xmlstock.domain`/`xmlstock.extra_params` (`extra_params` parsed from a
-  `key=value&…` string) and covered by `PanelTest::testXmlstockParamsReachRequest`.
+  `xmlstock.mode`/`xmlstock.device`/`xmlstock.domain`/`xmlstock.extra_params` (`extra_params` parsed from a
+  `key=value&…` string) and covered by `PanelTest::testXmlstockParamsReachRequest` /
+  `testXmlstockLiveModeUsesLiveEndpointAndPaginatesByTen`.
 - `Content\ContentCleaner` is the third stage (`settings.stage=clean`, `bin/clean-content.php`, and the
   per-site `/api/clean-site` button). It follows the user's manual STRICTLY IN ORDER (half the bugs came
   from reordering steps): **1** article body = after the first `</h1>`, before «Популярные запросы»

@@ -5,14 +5,23 @@ declare(strict_types=1);
 namespace YandexSites\Search;
 
 /**
- * Сервис XMLStock (xmlstock.com): выдача Яндекса в формате Яндекс.XML.
- * GET https://xmlstock.com/yandex/xml/?user=…&key=…&query=…&lr=…&groupby=…&page=…
+ * Сервис XMLStock (xmlstock.com). Два режима (xmlstock.mode):
+ *  - xml  — выдача Яндекса в формате Яндекс.XML, до 100 сайтов на странице:
+ *           GET https://xmlstock.com/yandex/xml/?user=…&key=…&query=…&lr=…&groupby=…&page=…
+ *  - live — живая выдача Яндекса (как у обычного пользователя) в том же формате ответа,
+ *           но не больше 10 результатов на странице; параметры группировки не действуют:
+ *           GET https://xmlstock.com/yandexlive/xml/?user=…&key=…&query=…&lr=…&page=…
  */
 final class XmlStockFetcher extends AbstractApiFetcher
 {
+    /** Столько результатов отдаёт одна страница живой выдачи XMLStock (ограничение Яндекса). */
+    public const LIVE_PAGE_SIZE = 10;
+
+    public const MODES = ['xml', 'live'];
+
     protected function fetchOnce(string $query, int $page): string
     {
-        $endpoint = (string) $this->config->get('xmlstock.endpoint');
+        $endpoint = $this->endpoint();
         $url = $endpoint . (str_contains($endpoint, '?') ? '&' : '?')
             . http_build_query($this->buildParams($query, $page), '', '&', PHP_QUERY_RFC3986);
 
@@ -22,6 +31,18 @@ final class XmlStockFetcher extends AbstractApiFetcher
         }
 
         return $response->body;
+    }
+
+    /** Живая выдача (xmlstock.mode = live) или Яндекс.XML. */
+    public function isLive(): bool
+    {
+        return (string) $this->config->get('xmlstock.mode', 'xml') === 'live';
+    }
+
+    /** Адрес сервиса для выбранного режима. */
+    public function endpoint(): string
+    {
+        return (string) $this->config->get($this->isLive() ? 'xmlstock.live_endpoint' : 'xmlstock.endpoint');
     }
 
     /**
@@ -38,13 +59,18 @@ final class XmlStockFetcher extends AbstractApiFetcher
             'key' => (string) $this->config->get('xmlstock.key'),
             'query' => $query,
             'lr' => (string) $s('region'),
-            'l10n' => (string) $s('l10n'),
-            'sortby' => $this->sortBy(),
-            'filter' => (string) $s('family_mode'),
-            'groupby' => $this->groupBy(),
-            'maxpassages' => (string) (int) $s('max_passages'),
-            'page' => (string) $page,
         ];
+        if (!$this->isLive()) {
+            // Параметры Яндекс.XML; у живой выдачи их нет — страница всегда 10 результатов
+            $params += [
+                'l10n' => (string) $s('l10n'),
+                'sortby' => $this->sortBy(),
+                'filter' => (string) $s('family_mode'),
+                'groupby' => $this->groupBy(),
+                'maxpassages' => (string) (int) $s('max_passages'),
+            ];
+        }
+        $params['page'] = (string) $page;
 
         foreach (['domain', 'device'] as $key) {
             $value = trim((string) $this->config->get('xmlstock.' . $key, ''));

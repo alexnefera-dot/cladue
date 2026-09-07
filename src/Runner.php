@@ -10,6 +10,7 @@ use YandexSites\Model\Site;
 use YandexSites\Search\ApiException;
 use YandexSites\Search\RawFetcherInterface;
 use YandexSites\Search\ResponseParserInterface;
+use YandexSites\Search\XmlStockFetcher;
 use YandexSites\Support\DomainLedger;
 use YandexSites\Support\Logger;
 use YandexSites\Visit\PageVisitor;
@@ -59,6 +60,10 @@ final class Runner
         );
         $pages = max(1, (int) $this->config->get('search.pages', 1));
         $groupsOnPage = max(1, (int) $this->config->get('search.groups_on_page', 10));
+        if ((string) $this->config->get('source') === 'xmlstock' && (string) $this->config->get('xmlstock.mode', 'xml') === 'live') {
+            // Живая выдача через XMLStock: на странице не больше 10 результатов независимо от groups_on_page
+            $groupsOnPage = XmlStockFetcher::LIVE_PAGE_SIZE;
+        }
         $maxErrors = max(0, (int) $this->config->get('search.max_consecutive_errors', 0));
         $consecutiveErrors = 0;
         $this->progress(['phase' => 'search', 'queries_total' => count($queries), 'queries_done' => 0]);
