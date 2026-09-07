@@ -294,7 +294,11 @@ GENERIC_DOMAINS = re.compile(r"^(?:[\w.-]+@)?(?:mirror\d*|proxy\d*|example|domai
                              r"youtube|telegram|t|vk|ok|play|facebook|instagram|twitter|x|yahoo|yopmail|"
                              r"dnschecker|ssllabs|vpn|protonmail|outlook|hotmail|icloud|cloudflare|whatsapp|"
                              r"viber|skype|paypal|qiwi|webmoney|sber|tinkoff|uk|letsencrypt|apkmirror|apkpure|"
-                             r"googleapis|ntp|pool\.ntp|time|w3|mozilla|chrome|android|microsoft|windows)"
+                             r"googleapis|ntp|pool\.ntp|time|w3|mozilla|chrome|android|microsoft|windows|"
+                             # регуляторы, сервисы проверки, ответственная игра — не чужие казино
+                             r"mga|ukgc|gamblingcommission|curacao|egaming|begambleaware|gamcare|gamblingtherapy|"
+                             r"ipleak|dnsleaktest|browserleaks|whatismyipaddress|virustotal|blockchain|blockchair|"
+                             r"etherscan|coinmarketcap|gosuslugi|nalog|akamai|digitalocean|habr|rbc|forbes|reuters)"
                              r"\.(?:com|net|org|ru|io)$", re.I)
 
 
@@ -518,6 +522,21 @@ def check_site(n, tpl, key, pages, F):
 
 
 OVERLAP = {}   # сайт -> (макс. совпадение 0..1, с каким сайтом, какая страница)
+PAIRS = []     # (совпадение, сайт A, страница A, сайт B, страница B) — для отбора дублей
+
+
+def drop_duplicates(sites, F, threshold):
+    """Сайт, чья страница совпадает с чужой на порог и больше, убирается; остаётся тот, где текста больше."""
+    words = {s["key"]: sum(d["nwords"] for d in s["pages"].values()) for s in sites}
+    removed = set()
+    for cont, sa, pa, sb, pb in sorted(PAIRS, reverse=True):
+        if cont < threshold or sa in removed or sb in removed:
+            continue
+        loser, winner, page = ((sa, sb, pa) if (words.get(sa, 0), sa) < (words.get(sb, 0), sb) else (sb, sa, pb))
+        removed.add(loser)
+        F.add(loser, "ERROR", "D2", "контент дублированный: совпадение %d %% с %s (%s)" % (
+            round(cont * 100), winner, page))
+    return removed
 
 
 def check_cross(all_pages, F):
@@ -561,13 +580,15 @@ def check_cross(all_pages, F):
             msg = "%s ≈ %s (Жаккар %.2f, вложенность %.2f)" % (a, b, j, cont)
             F.add(sa, "WARN", "D2", msg)
             F.add(sb, "WARN", "D2", msg)
+        if cont >= 0.3:
+            PAIRS.append((cont, sa, a.rsplit("/", 1)[1], sb, b.rsplit("/", 1)[1]))
 
 
 # ---------------------------------------------------------------- отчёт ---
 LEVEL_ORDER = {"ERROR": 0, "WARN": 1, "INFO": 2}
 REASON = {  # короткая причина брака для сводки, по коду ошибки
     "A3": "не то количество страниц", "A4": "не тот набор страниц",
-    "A6": "кодировка", "B1": "заглушки", "B13": "тонкая главная", "B4": "чужой бренд или контакты",
+    "A6": "кодировка", "B1": "заглушки", "B13": "тонкая главная", "B4": "чужой бренд или контакты", "D2": "дубль по тексту",
     "B5": "незаполненные переменные", "B6": "разметка",
     "C1": "ссылки в никуда", "D1": "дубль файла",
 }
@@ -579,7 +600,7 @@ def discard_reason(F, s):
     why = []
     if any(lvl == "ERROR" and code == "B1" and "заглушка" in msg for lvl, code, msg in items):
         why.append("контент из заглушек")
-    if any(lvl == "ERROR" and code == "D1" for lvl, code, _ in items):
+    if any(lvl == "ERROR" and code in ("D1", "D2") for lvl, code, _ in items):
         why.append("контент дублированный")
     if any(lvl == "ERROR" and code == "B13" for lvl, code, _ in items):
         why.append("главная без текста")
@@ -677,6 +698,8 @@ def main():
     ap.add_argument("path")
     ap.add_argument("-o", "--output", help="файл отчёта (Markdown)")
     ap.add_argument("--sort", metavar="ПАПКА", help="разложить сайты по типам в эту папку")
+    ap.add_argument("--порог", type=int, default=60,
+                    help="совпадение в процентах, с которого сайт считается дублем (по умолчанию 60)")
     args = ap.parse_args()
     root = unpack(args.path)
     F = Findings()
@@ -725,6 +748,7 @@ def main():
             for p, d in pages.items():
                 all_pages["%s/%s.html" % (key, p)] = d
     check_cross(all_pages, F)
+    drop_duplicates(sites, F, args.порог / 100)
     name = os.path.basename(args.path.rstrip("/"))
     report = render(F, sites, name, junk, unknown)
     if args.output:
