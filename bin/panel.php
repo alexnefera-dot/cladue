@@ -398,7 +398,10 @@ if ($path === '/api/clean-site' && $method === 'POST') {
         jsonOut(['ok' => false, 'error' => 'нет скачанных страниц для этого сайта — сначала «Выгрузка страниц»'], 404);
     }
     // Каталоги слотов по умолчанию остаются; галочка «Убирать каталоги слотов» приходит с кнопкой.
-    $r = cleanHostPages($runDir, $host, $files, ['remove_slots' => filter_var($b['remove_slots'] ?? false, FILTER_VALIDATE_BOOL)]);
+    $r = cleanHostPages($runDir, $host, $files, [
+        'remove_slots' => filter_var($b['remove_slots'] ?? false, FILTER_VALIDATE_BOOL),
+        'remove_widgets' => filter_var($b['remove_widgets'] ?? false, FILTER_VALIDATE_BOOL),
+    ]);
     jsonOut(['ok' => true, 'written' => $r['written'], 'skipped' => $r['skipped'], 'dir' => $r['dir'], 'brand_ru' => $r['brand_ru'], 'brand_en' => $r['brand_en']]);
 }
 

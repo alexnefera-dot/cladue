@@ -56,20 +56,25 @@ final class ContentCleaner
 
     /** Классы/id (по токенам), которые выкидываем как не-статью: контакты, облако тегов, соцсети и т.п. */
     private const JUNK_TOKENS = [
+        // Каркас и оверлеи — убираются всегда: контакты, облака тегов/ключевых слов, соцсети, попапы и плашки,
+        // куки, меню и крошки, боковые колонки, панель фильтров каталога («Все игры», «Провайдеры»).
         'tag', 'tags', 'tagcloud', 'tags-list', 'taglist', 'contact', 'contacts', 'contatti',
         'social', 'socials', 'share', 'sharing', 'popup', 'modal', 'overlay', 'backdrop',
         'cookie', 'cookies', 'subscribe', 'newsletter', 'breadcrumb', 'breadcrumbs', 'sidebar',
-        'banner', 'advert', 'ads', 'promo-modal', 'age', 'agegate',
-        // Кнопки-призывы и «счётчики срочности» (фейковый джекпот/таймер) — не тело статьи;
-        // из-за них после очистки оставались артефакты вроде «spot-cta-number 12345».
-        'cta', 'countdown', 'timer', 'ticker',
-        // Виджеты и каркас, встречающиеся в контентном блоке: герой-баннер, джекпоты и «последние выплаты»,
-        // каталог слотов, плавающие плашки/уведомления, «похожие разделы», меню и облака ключевых слов.
-        'hero', 'jackpot', 'jackpots', 'payout', 'payouts', 'dashboard', 'widget', 'widgets', 'toast', 'toasts',
-        'notification', 'notifications', 'floating', 'related', 'action', 'skip', 'topbar', 'navbar', 'menu',
-        'sitenav', 'mainnav', 'keyword', 'keywords', 'cloud', 'winners',
-        // Панель фильтров каталога игр («Все игры», «Провайдеры» с выпадающими списками).
+        'advert', 'ads', 'promo-modal', 'age', 'agegate',
+        'toast', 'toasts', 'notification', 'notifications', 'floating', 'skip', 'topbar', 'navbar', 'menu',
+        'sitenav', 'mainnav', 'keyword', 'keywords', 'cloud',
         'filter', 'filters', 'dropdown',
+    ];
+
+    /**
+     * Виджеты ВНУТРИ контентного блока — убираются только с опцией remove_widgets (галочка в панели): герой-баннер,
+     * CTA и «счётчики срочности» (таймер, джекпот), «последние выплаты», каталог слотов, «похожие разделы».
+     * По умолчанию режем только шапку, меню и подвал, а всё между ними — контент (так просил пользователь).
+     */
+    private const WIDGET_TOKENS = [
+        'cta', 'countdown', 'timer', 'ticker', 'hero', 'banner', 'jackpot', 'jackpots', 'payout', 'payouts',
+        'dashboard', 'widget', 'widgets', 'related', 'action', 'winners',
     ];
 
     /** Карточка игры/слота: gamecard, slot-card, game-tile… — каталог, а не текст статьи. */
@@ -139,18 +144,18 @@ final class ContentCleaner
      * Полная очистка страницы — шаги 1…8 в порядке мануала. Возвращает тело статьи или '' — если статья
      * не найдена (нет <h1>).
      *
-     * @param array{domain?: string, hosts?: list<string>, brand_ru?: string, brand_en?: string, extra_brands?: list<string>, remove_slots?: bool} $opt
+     * @param array{domain?: string, hosts?: list<string>, brand_ru?: string, brand_en?: string, extra_brands?: list<string>, remove_slots?: bool, remove_widgets?: bool} $opt
      */
     public function clean(string $html, array $opt = []): string
     {
         // 1. Тело + FAQ, без мусора и без слотов.
-        $body = $this->extractArticle($html);
+        $body = $this->extractArticle($html, $opt);
         if ($body === '') {
             return '';
         }
         // Каталоги слотов (карточки игр) по умолчанию ОСТАЮТСЯ — это контент; режем только шапку и подвал.
         // Удаление включается настройкой remove_slots (галочка в панели, --remove-slots в консоли).
-        if ($opt['remove_slots'] ?? false) {
+        if (($opt['remove_slots'] ?? false) || ($opt['remove_widgets'] ?? false)) {
             $body = $this->removeSlots($body);
         }
         // 2. Подстановка — по всему (тело и FAQ вместе), ДО развёртки и снятия атрибутов: домен в href
@@ -192,7 +197,8 @@ final class ContentCleaner
      * берём с начала блока, и h1 остаётся (шаг 6 сделает из него h2). Конец — «Популярные запросы» (всегда)
      * или блок «О компании» с реквизитами. FAQ, оказавшийся вне среза, приклеивается вторым потоком.
      */
-    public function extractArticle(string $html): string
+    /** @param array{remove_widgets?: bool} $opt */
+    public function extractArticle(string $html, array $opt = []): string
     {
         $doc = $this->loadDocument($html);
         $body = $doc?->getElementsByTagName('body')->item(0);
@@ -207,7 +213,7 @@ final class ContentCleaner
         // FAQ запоминаем до вырезаний: что не попадёт в срез, приклеим вторым потоком.
         $faqNodes = $this->faqNodes($xp);
         // Каркас сайта и всё, что не статья.
-        $this->stripNonArticleIn($xp, $body);
+        $this->stripNonArticleIn($xp, $body, (bool) ($opt['remove_widgets'] ?? false));
 
         $root = $this->contentRoot($xp, $body);
         $root->setAttribute('data-ys-root', '1');
@@ -504,8 +510,9 @@ final class ContentCleaner
      * медиа, интерактив, контакты, облака тегов, виджеты (джекпоты, «последние выплаты», таймеры, CTA).
      * DOM (а не регэкспы) — потому что блоки бывают с вложенными div.
      */
-    private function stripNonArticleIn(\DOMXPath $xp, \DOMElement $root): void
+    private function stripNonArticleIn(\DOMXPath $xp, \DOMElement $root, bool $widgets = false): void
     {
+        $junk = $widgets ? array_merge(self::JUNK_TOKENS, self::WIDGET_TOKENS) : self::JUNK_TOKENS;
         $lc = static fn (string $attr): string => "translate(@$attr,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz')";
         $inFaq = "ancestor::details or ancestor::summary or ancestor::*[contains({$lc('class')},'faq') or contains({$lc('id')},'faq')]";
         $remove = [];
@@ -537,7 +544,7 @@ final class ContentCleaner
             if (!$n instanceof \DOMElement) {
                 continue;
             }
-            if (array_intersect($this->tokens($n), self::JUNK_TOKENS) !== []) {
+            if (array_intersect($this->tokens($n), $junk) !== []) {
                 $remove[] = $n;
             }
         }

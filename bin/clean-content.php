@@ -10,7 +10,7 @@ declare(strict_types=1);
  *
  *   php bin/clean-content.php [--in=out/pages] [--out=out/content] [--zip=out/content.zip]
  *                             [--brand-ru=криптобосс] [--brand-en=cryptoboss] [--brands=STAKE,другой]
- *                             [--remove-slots]
+ *                             [--remove-widgets]
  *
  * Домен берётся автоматически из имени папки сайта; --brand-en по умолчанию — из домена.
  */
@@ -44,6 +44,7 @@ $opts = [
     'brand_en' => '',
     'brands' => [],
     'remove_slots' => false,
+    'remove_widgets' => false,
 ];
 foreach (array_slice($argv, 1) as $arg) {
     if (str_starts_with($arg, '--in=')) {
@@ -58,13 +59,18 @@ foreach (array_slice($argv, 1) as $arg) {
         $opts['brand_en'] = substr($arg, 11);
     } elseif (str_starts_with($arg, '--brands=')) {
         $opts['brands'] = array_values(array_filter(array_map('trim', explode(',', substr($arg, 9)))));
+    } elseif ($arg === '--remove-widgets') {
+        // По умолчанию режем только шапку, меню и подвал; этот флаг убирает и виджеты внутри контента
+        // (герой-баннер, джекпоты, таймеры, CTA) вместе с каталогами слотов.
+        $opts['remove_widgets'] = true;
+        $opts['remove_slots'] = true;
     } elseif ($arg === '--remove-slots') {
-        // Каталоги слотов по умолчанию остаются (режем только шапку и подвал); этот флаг включает их удаление.
+        // Только каталоги слотов (сетки карточек, разделы про слоты без текста).
         $opts['remove_slots'] = true;
     } elseif ($arg === '--keep-slots') {
         $opts['remove_slots'] = false;
     } elseif ($arg === '--help' || $arg === '-h') {
-        fwrite(STDOUT, "php bin/clean-content.php [--in=out/pages] [--out=out/content] [--zip=out/content.zip] [--brand-ru=…] [--brand-en=…] [--brands=a,b] [--remove-slots]\n");
+        fwrite(STDOUT, "php bin/clean-content.php [--in=out/pages] [--out=out/content] [--zip=out/content.zip] [--brand-ru=…] [--brand-en=…] [--brands=a,b] [--remove-widgets] [--remove-slots]\n");
         exit(0);
     }
 }
@@ -113,6 +119,7 @@ foreach ($files as $file) {
         'brand_en' => $opts['brand_en'],
         'extra_brands' => $opts['brands'],
         'remove_slots' => $opts['remove_slots'],
+        'remove_widgets' => $opts['remove_widgets'],
     ]));
 
     if (trim($body) === '') {

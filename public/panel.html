@@ -192,7 +192,7 @@
         </div>
         <div class="check"><input type="checkbox" id="skipknown" checked><label style="margin:0">Пропускать домены, которые уже собраны раньше (база пересечений)</label></div>
         <div class="check"><input type="checkbox" id="previewshots" checked><label style="margin:0">На этапе «Сборка» делать скриншот главной каждого сайта (предпросмотр: объём выгрузки, где наши) — нужен Chromium</label></div>
-        <div class="check"><input type="checkbox" id="removeslots"><label style="margin:0">При очистке убирать каталоги слотов (сетки карточек игр и разделы про слоты без текста). Выключено — режем только шапку и подвал, карточки игр остаются в контенте</label></div>
+        <div class="check"><input type="checkbox" id="removeslots"><label style="margin:0">При очистке убирать виджеты и каталоги слотов (герой-баннер, джекпоты, таймеры, CTA-блоки, «последние выплаты», карточки игр, «похожие разделы»). Выключено — режем только шапку, меню и подвал, всё между ними остаётся как контент</label></div>
         <div class="hint" style="margin-bottom:4px">В базе доменов: <b id="baseCount">0</b> · <a href="#" id="resetBase">очистить базу</a></div>
         <label>Исключить домены дополнительно <span class="hint">через запятую</span></label>
         <input type="text" id="exclude" placeholder="competitor.ru, spam.ru">
@@ -333,6 +333,7 @@ function collectSettings(){
     visit_driver: $('driver').value,
     crawl: $('crawl').checked,
     max_pages: parseInt($('maxpages').value)||20,
+    remove_widgets: $('removeslots').checked,
     remove_slots: $('removeslots').checked,
     proxies_file: $('useproxies').checked ? 'proxies.txt' : '',
     repeat_hours: parseFloat($('repeat').value)||0
@@ -703,7 +704,7 @@ function renderResults(sites){
 async function cleanSite(host, btn){
   const old=btn.textContent; btn.disabled=true; btn.textContent='Чищу…';
   try{
-    const r=await fetch('/api/clean-site',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({host, remove_slots: $('removeslots').checked})});
+    const r=await fetch('/api/clean-site',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({host, remove_widgets: $('removeslots').checked, remove_slots: $('removeslots').checked})});
     const j=await r.json();
     if(!j.ok){ btn.textContent='Ошибка'; alert(j.error||'Ошибка'); btn.disabled=false; setTimeout(()=>{btn.textContent=old;},2500); return; }
     if(!j.written){ btn.textContent='Нет статьи'; alert('На страницах этого сайта не найдено тело статьи (нет <h1> или блока «Популярные запросы»).'); btn.disabled=false; setTimeout(()=>{btn.textContent=old;},2500); return; }
@@ -757,7 +758,7 @@ function prefill(state){
     if(s.repeat_hours!=null)$('repeat').value=s.repeat_hours;
     if(s.top!=null)$('top').value=s.top; if(s.skip_known!=null)$('skipknown').checked=s.skip_known;
     $('crawl').checked=!!s.crawl; if(s.max_pages)$('maxpages').value=s.max_pages;
-    $('removeslots').checked=!!s.remove_slots;
+    $('removeslots').checked=!!(s.remove_widgets||s.remove_slots);
   }
 }
 

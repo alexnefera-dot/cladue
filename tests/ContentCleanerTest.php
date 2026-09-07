@@ -177,11 +177,14 @@ final class ContentCleanerTest
             . '<div class="spot-cta-number">12345</div>'
             . '<div class="cta-block"><span class="cta-title">Играть</span></div>'
             . '<div class="countdown">00:59</div><h3>Популярные запросы</h3>';
-        $out = (new ContentCleaner())->clean($html);
+        $out = (new ContentCleaner())->clean($html, ['remove_widgets' => true]);
         Assert::false(str_contains($out, '12345'), 'число из cta-блока удалено');
         Assert::false(str_contains($out, 'cta-block'), 'cta-блок удалён');
         Assert::false(str_contains($out, '00:59'), 'таймер удалён');
         Assert::true(str_contains($out, 'Тело статьи'), 'текст статьи остался');
+        // По умолчанию (режем только шапку и подвал) виджеты внутри контента остаются.
+        $keep = (new ContentCleaner())->clean($html);
+        Assert::true(str_contains($keep, '12345') && str_contains($keep, '00:59') && !str_contains($keep, 'cta-block'), 'без опции виджеты остаются как текст, без классов');
     }
 
     public function testSpacedEnglishBrandReplaced(): void
@@ -390,7 +393,8 @@ final class ContentCleanerTest
         Assert::false(str_contains($out, 'Похожие запросы') || str_contains($out, 'запрос номер'), 'облако «Похожие запросы» убрано');
         Assert::true(str_contains($out, 'радо каждому гостю'), 'текст ПОСЛЕ облака остался');
         Assert::false(str_contains($out, 'О компании') || str_contains($out, 'Юридический') || str_contains($out, 'support@') || str_contains($out, 'Yggdrasil'), 'блок «О компании» и всё после него отрезаны');
-        Assert::false(str_contains($out, 'Фриспины') || str_contains($out, 'Теория прибыли') || str_contains($out, '985-00-00'), 'шапка и герой-баннер убраны');
+        Assert::false(str_contains($out, 'Фриспины') || str_contains($out, '985-00-00'), 'шапка убрана');
+        Assert::true(str_contains($out, 'Теория прибыли'), 'герой-баннер в контенте по умолчанию остаётся (режем только шапку и подвал)');
         Assert::true(str_contains($out, '%domain_name%') && !str_contains($out, 'everum.xrg.casino'), 'домен заменён');
         Assert::false(stripos($out, 'эверум') !== false, 'бренд заменён');
     }
@@ -418,7 +422,11 @@ final class ContentCleanerTest
             . '<footer class="site-footer"><div class="keywords-block"><h3>Ключевые темы</h3><a href="/1">Бренд бонус</a><a href="/2">Бренд слоты</a></div>'
             . '<div><h4>О портале</h4><p>Бренд Казино — лицензированная платформа.</p></div></footer>'
             . '<aside id="bonusPopup" role="complementary">Приветственный пакет</aside></body>';
-        $out = (new ContentCleaner())->clean($html, ['brand_ru' => 'бренд']);
+        // Виджеты (герой, таймер, каталог, выплаты) по умолчанию остаются — режем только шапку и подвал.
+        $keep = (new ContentCleaner())->clean($html, ['brand_ru' => 'бренд']);
+        Assert::true(str_contains($keep, 'Выбор игроков') && str_contains($keep, 'Sweet Bonanza') && str_contains($keep, 'Последние выплаты'), 'по умолчанию виджеты в контенте остаются');
+        Assert::false(str_contains($keep, 'Хлебные крошки') || str_contains($keep, 'Ключевые темы') || str_contains($keep, 'Приветственный пакет'), 'а крошки, подвал и попап убраны и по умолчанию');
+        $out = (new ContentCleaner())->clean($html, ['brand_ru' => 'бренд', 'remove_widgets' => true]);
         Assert::false(str_contains($out, 'официальный портал: бонусы'), 'h1 в шапке статьи отрезан');
         Assert::false(str_contains($out, 'Выбор игроков') || str_contains($out, 'спецпредложения') || str_contains($out, 'Sweet Bonanza') || str_contains($out, 'Последние выплаты'), 'герой, таймер, каталог слотов, выплаты — виджеты убраны');
         Assert::false(str_contains($out, 'Игровой каталог'), 'заголовок вырезанного каталога не остался сиротой');

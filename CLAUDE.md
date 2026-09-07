@@ -263,11 +263,13 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   (`img`, `svg`, `video`…), interactive (`form`, `input`; `button`/`label` unless inside FAQ, where a
   question-like one (`looksLikeQuestion()`: text ends with «?» or class/id has question/faq/accordion/toggle)
   becomes `<h3>` and the rest is unwrapped), `address`, HTML comments, and blocks whose class/id token is junk
-  (`JUNK_TOKENS`: contacts, tag-cloud/keywords, social/share, popup/modal, cookie, breadcrumbs, banner/ads,
-  CTA/urgency widgets `cta`/`countdown`/`timer`/`ticker`, and the content-block widgets seen on the
-  11–15-page templates — `hero`, `jackpot`, `payout(s)`, `dashboard`, `widget`, `toast`/`notification`,
-  `floating`, `related`, `action`, `menu`/`navbar`/`topbar`, `skip`, and the game-catalog filter bar
-  `filter`/`filters`/`dropdown`). START: after the first `h1` only when
+  (`JUNK_TOKENS`, always: contacts, tag-cloud/keywords, social/share, popup/modal/overlay, cookie,
+  breadcrumbs, ads, `toast`/`notification`/`floating`, `menu`/`navbar`/`topbar`, `skip`, and the game-catalog
+  filter bar `filter`/`filters`/`dropdown`). Widgets INSIDE the content block (`WIDGET_TOKENS`: `hero`,
+  `banner`, `cta`/`countdown`/`timer`/`ticker`, `jackpot`, `payout(s)`, `dashboard`, `widget`, `related`,
+  `action`, `winners`) are content by default — the user's rule is «режем только шапку, меню и подвал» for
+  every template — and are stripped only with `remove_widgets` (the same panel checkbox as slot catalogs).
+  START: after the first `h1` only when
   `hasArticleTextBefore()` finds no article text before it (≥ 150 chars or a `<p>`/`<li>` ≥ 40 chars — the
   7–10-page template's `div.promo-text` intro is three 40–65-char paragraphs); when
   there IS text (7–10-page templates put intro paragraphs before a mid-page h1) the block is taken from its
@@ -284,8 +286,9 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   BEFORE any cut, and whatever is not inside the final root (a `section#faq` after `<main>`, a block after
   «Популярных запросов») is appended (`isInside()`), else JSON-LD `FAQPage` is rendered (`faqFromJsonLd()`:
   `<h2>Вопросы и ответы</h2>` + `<h3>`/`<p>`), so brand substitution covers it too. Slot/game CATALOG removal is OFF by
-  default (`remove_slots`; panel checkbox `#removeslots` → settings `remove_slots` → run-job/`/api/clean-site`
-  override; CLI `--remove-slots`) — on the 7–10-page template the game cards between story sections are
+  default (`remove_slots`, also implied by `remove_widgets`; one panel checkbox `#removeslots` → settings
+  `remove_widgets` + `remove_slots` → run-job/`/api/clean-site` override; CLI `--remove-widgets`,
+  catalogs only `--remove-slots`) — on the 7–10-page template the game cards between story sections are
   content («режем только шапку и подвал»); when on, `removeSlots()` (DOM)
   drops slots/games CATALOGS while keeping the article around them: (1) a grid of game cards (`isCard()`:
   `gamecard`/`slot-card`/`game-tile`… — `CARD_TOKENS`, or card/tile + slot/game) is removed as a grid together
