@@ -148,7 +148,9 @@ final class ContentCleaner
         if ($body === '') {
             return '';
         }
-        if ($opt['remove_slots'] ?? true) {
+        // Каталоги слотов (карточки игр) по умолчанию ОСТАЮТСЯ — это контент; режем только шапку и подвал.
+        // Удаление включается настройкой remove_slots (галочка в панели, --remove-slots в консоли).
+        if ($opt['remove_slots'] ?? false) {
             $body = $this->removeSlots($body);
         }
         // 2. Подстановка — по всему (тело и FAQ вместе), ДО развёртки и снятия атрибутов: домен в href
@@ -509,7 +511,8 @@ final class ContentCleaner
         $remove = [];
         // Каркас сайта: шапка (не внутри main/article — там это шапка статьи с h1), меню, боковые колонки,
         // подвал (кроме подписи в цитате: <blockquote><footer>), диалоги и служебные роли.
-        foreach ($xp->query('.//header[not(ancestor::main) and not(ancestor::article)]|.//nav|.//aside|.//footer[not(ancestor::blockquote)]|.//dialog', $root) ?: [] as $n) {
+        // <aside> внутри статьи (main/article/itemtype Article — врезка «Поддержка 24/7») — часть контента, остаётся.
+        foreach ($xp->query('.//header[not(ancestor::main) and not(ancestor::article)]|.//nav|.//aside[not(ancestor::main) and not(ancestor::article) and not(ancestor::*[contains(@itemtype,"Article")])]|.//footer[not(ancestor::blockquote)]|.//dialog', $root) ?: [] as $n) {
             $remove[] = $n;
         }
         foreach ($xp->query('.//*[@role="banner" or @role="navigation" or @role="complementary" or @role="contentinfo" or @role="dialog" or @role="alertdialog" or @aria-modal="true"]', $root) ?: [] as $n) {
@@ -612,6 +615,17 @@ final class ContentCleaner
         }
         foreach (iterator_to_array($xp->query('.//h4|.//h5|.//h6', $root) ?: []) as $n) {
             $this->rename($doc, $n, 'h3');
+        }
+        // Заголовки без переносов строк и отступов внутри: «<h4>\n  Infectus\n</h4>» → «<h3>Infectus</h3>».
+        foreach (iterator_to_array($xp->query('.//h1|.//h2|.//h3|.//h4|.//h5|.//h6', $root) ?: []) as $n) {
+            foreach ([$n->firstChild, $n->lastChild] as $edge) {
+                if ($edge instanceof \DOMText) {
+                    $edge->nodeValue = $edge->isSameNode($n->firstChild) ? ltrim($edge->nodeValue ?? '') : rtrim($edge->nodeValue ?? '');
+                }
+            }
+            if ($n->firstChild instanceof \DOMText && $n->firstChild->isSameNode($n->lastChild)) {
+                $n->firstChild->nodeValue = trim($n->firstChild->nodeValue ?? '');
+            }
         }
         // 7. Снять атрибуты со всех тегов, кроме href у <a>.
         foreach (iterator_to_array($xp->query('.//*[@*]', $root) ?: []) as $n) {

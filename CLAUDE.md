@@ -257,7 +257,8 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `contentRoot()` = `<main>`/`role=main` holding ≥ 40% of the body text, else the whole body, after
   `stripNonArticleIn()` removed the site chrome and everything that is not article text — `<header>` outside
   `main`/`article` (an `article > header` holds the h1 + hero and is kept; a `div.header`/`.logo` outside
-  `main`/`article` without an h1 is removed via `HEADER_TOKENS`), `nav`, `aside`, `footer` (a `<footer>` inside
+  `main`/`article` without an h1 is removed via `HEADER_TOKENS`), `nav`, `aside` outside `main`/`article`/
+  `itemtype=Article` (an in-article aside is content), `footer` (a `<footer>` inside
   a `<blockquote>` citation is kept), `role=banner|navigation|complementary|contentinfo|dialog`, media
   (`img`, `svg`, `video`…), interactive (`form`, `input`; `button`/`label` unless inside FAQ, where a
   question-like one (`looksLikeQuestion()`: text ends with «?» or class/id has question/faq/accordion/toggle)
@@ -282,7 +283,10 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   identity: `faqNodes()` collects the top-level Q&A blocks (`<details>`, a `faq` class/id, `itemtype=FAQPage`)
   BEFORE any cut, and whatever is not inside the final root (a `section#faq` after `<main>`, a block after
   «Популярных запросов») is appended (`isInside()`), else JSON-LD `FAQPage` is rendered (`faqFromJsonLd()`:
-  `<h2>Вопросы и ответы</h2>` + `<h3>`/`<p>`), so brand substitution covers it too; `removeSlots()` (DOM)
+  `<h2>Вопросы и ответы</h2>` + `<h3>`/`<p>`), so brand substitution covers it too. Slot/game CATALOG removal is OFF by
+  default (`remove_slots`; panel checkbox `#removeslots` → settings `remove_slots` → run-job/`/api/clean-site`
+  override; CLI `--remove-slots`) — on the 7–10-page template the game cards between story sections are
+  content («режем только шапку и подвал»); when on, `removeSlots()` (DOM)
   drops slots/games CATALOGS while keeping the article around them: (1) a grid of game cards (`isCard()`:
   `gamecard`/`slot-card`/`game-tile`… — `CARD_TOKENS`, or card/tile + slot/game) is removed as a grid together
   with its widget shell (`removeCardGrid()`: the short caption and heading right before it — «🎡 Рулетка

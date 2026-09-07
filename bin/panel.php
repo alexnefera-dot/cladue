@@ -205,9 +205,9 @@ function pagesByHost(string $pagesDir): array
  * @param list<string> $files
  * @return array{written:int, skipped:int, dir:string, brand_ru:string, brand_en:string}
  */
-function cleanHostPages(string $runDir, string $host, array $files): array
+function cleanHostPages(string $runDir, string $host, array $files, array $override = []): array
 {
-    return \YandexSites\Content\SiteCleaner::cleanHost($runDir, $host, $files);
+    return \YandexSites\Content\SiteCleaner::cleanHost($runDir, $host, $files, $override);
 }
 
 /**
@@ -397,7 +397,8 @@ if ($path === '/api/clean-site' && $method === 'POST') {
     if ($files === []) {
         jsonOut(['ok' => false, 'error' => 'нет скачанных страниц для этого сайта — сначала «Выгрузка страниц»'], 404);
     }
-    $r = cleanHostPages($runDir, $host, $files);
+    // Каталоги слотов по умолчанию остаются; галочка «Убирать каталоги слотов» приходит с кнопкой.
+    $r = cleanHostPages($runDir, $host, $files, ['remove_slots' => filter_var($b['remove_slots'] ?? false, FILTER_VALIDATE_BOOL)]);
     jsonOut(['ok' => true, 'written' => $r['written'], 'skipped' => $r['skipped'], 'dir' => $r['dir'], 'brand_ru' => $r['brand_ru'], 'brand_en' => $r['brand_en']]);
 }
 

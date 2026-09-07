@@ -10,7 +10,7 @@ declare(strict_types=1);
  *
  *   php bin/clean-content.php [--in=out/pages] [--out=out/content] [--zip=out/content.zip]
  *                             [--brand-ru=криптобосс] [--brand-en=cryptoboss] [--brands=STAKE,другой]
- *                             [--keep-slots]
+ *                             [--remove-slots]
  *
  * Домен берётся автоматически из имени папки сайта; --brand-en по умолчанию — из домена.
  */
@@ -43,7 +43,7 @@ $opts = [
     'brand_ru' => '',
     'brand_en' => '',
     'brands' => [],
-    'remove_slots' => true,
+    'remove_slots' => false,
 ];
 foreach (array_slice($argv, 1) as $arg) {
     if (str_starts_with($arg, '--in=')) {
@@ -58,10 +58,13 @@ foreach (array_slice($argv, 1) as $arg) {
         $opts['brand_en'] = substr($arg, 11);
     } elseif (str_starts_with($arg, '--brands=')) {
         $opts['brands'] = array_values(array_filter(array_map('trim', explode(',', substr($arg, 9)))));
+    } elseif ($arg === '--remove-slots') {
+        // Каталоги слотов по умолчанию остаются (режем только шапку и подвал); этот флаг включает их удаление.
+        $opts['remove_slots'] = true;
     } elseif ($arg === '--keep-slots') {
         $opts['remove_slots'] = false;
     } elseif ($arg === '--help' || $arg === '-h') {
-        fwrite(STDOUT, "php bin/clean-content.php [--in=out/pages] [--out=out/content] [--zip=out/content.zip] [--brand-ru=…] [--brand-en=…] [--brands=a,b] [--keep-slots]\n");
+        fwrite(STDOUT, "php bin/clean-content.php [--in=out/pages] [--out=out/content] [--zip=out/content.zip] [--brand-ru=…] [--brand-en=…] [--brands=a,b] [--remove-slots]\n");
         exit(0);
     }
 }

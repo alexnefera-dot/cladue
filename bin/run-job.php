@@ -367,6 +367,8 @@ while (true) {
                 ? $settings['brands']
                 : (array) (preg_split('~[,\n]+~', (string) ($settings['brands'] ?? '')) ?: []);
             $override = [
+                // Каталоги слотов по умолчанию остаются (режем только шапку и подвал); галочка в панели включает удаление.
+                'remove_slots' => filter_var($settings['remove_slots'] ?? false, FILTER_VALIDATE_BOOL),
                 'brand_ru' => trim((string) ($settings['brand_ru'] ?? '')),
                 'brand_en' => trim((string) ($settings['brand_en'] ?? '')),
                 'extra_brands' => array_values(array_filter(array_map('trim', array_map('strval', $brandList)), static fn (string $b): bool => $b !== '')),
