@@ -55,7 +55,8 @@ cladue/
 │   ├── Model/                  # SearchResult, SearchPage (hasMore), Site (check + visits)
 │   ├── Http/                   # HttpClient (curl wrapper with proxy/cookie/follow options), HttpResponse, HttpException
 │   ├── Runtime.php             # shared pipeline factory (fetcher/cache/proxies/checker/visitor) used by CLI and job
-│   ├── Content/                # ContentCleaner (article-body extraction, link normalization, %var% templating)
+│   ├── Content/                # ContentCleaner (article-body extraction, link normalization, %var% templating),
+│   │                           # SiteCleaner (one site → content/N-стр/<host>, shared by panel + run-job), BrandDetector, KnownBrands
 │   └── Support/                # Logger (STDERR), QueryList (query file reader), Progress (status JSON writer)
 ├── tests/                      # custom runner (run.php), Assert, fixtures/ (XML + SERP HTML), fake-api-server.php
 ├── config.example.php          # documented example configuration (copy to config.php)
@@ -323,21 +324,35 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   run), and queued/active hosts show «в очереди»/«докачивается…» chips. Above the table a stats line
   (`siteKind()`: own / problem = a failed page or no page at all / full = every page OK / unchecked)
   summarises the kept sites right after collect, and two bulk-remove buttons add hosts to `removedHosts`
-  (client-side, reversible via «вернуть все»): «Убрать наши» (`s.own`; works right after collect, since the
+  (server-side through `/api/remove` → `Support\RemovedSites`; reversible via «вернуть все» = `/api/restore`): «Убрать наши» (`s.own`; works right after collect, since the
   preview screenshots already mark own templates, so they are never even downloaded) and «Убрать с 404 > N»
   (`s.pages_404` from `previewSites()`, N from the `#max404` input, default 4; shown once download data exists). The `both`
   branch stays in `buildOverrides()`/run-job for CLI, just not surfaced. Content cleaning is table-only and
   writes to disk (no download): a per-site «Очистить» button (`/api/clean-site`) and a bulk «Очистить всё»
-  button (`/api/clean-all`) run `cleanHostPages()`, which cleans a site's
+  button (a background `stage=clean` job started through `/api/start`) run `Content\SiteCleaner::cleanHost()`, which cleans a site's
   pages and lays the cleaned articles into a bucket by count — `runs/current/content/<N>-стр/<host>/` —
   `removeHostContent()` clearing that host from any old bucket first so re-cleaning never leaves duplicates.
-  «Очистить всё» takes an `only` list (the sites still in the table) plus `exclude` (the ✕-removed) and
-  first `rmTree()`s the whole `content/` dir: it is a clean re-build, so a site removed after a previous
-  «Очистить всё» does not linger in the result. Shared helpers `pagesByHost()`/`cleanHostPages()`/
-  `removeHostContent()` in `bin/panel.php`. The
-  `stage=clean` job branch (reads `runs/current/pages` → `content` + `content.zip`) stays for
-  `bin/clean-content.php`/CLI, no longer surfaced in the panel UI. Covered by `tests/ContentCleanerTest.php`
+  «Очистить всё» is a BACKGROUND job (`stage=clean` in `bin/run-job.php`, launched like collect/download so the
+  panel stays responsive and shows «N из M сайтов» progress in the usual `visit` progress shape; 250 sites in
+  one synchronous HTTP request used to time out): it takes `only` (the sites still in the table) and
+  `exclude_hosts` (+ `removed.json`), first `rmTree()`s the whole `content/` dir (clean re-build, so a site
+  removed after a previous «Очистить всё» does not linger), honours the Stop button, and ends by writing the
+  sites list back into the status so the table survives. `bin/panel.php` keeps thin wrappers
+  (`pagesByHost()`/`cleanHostPages()`/`removeHostContent()`/`rmTree()`) delegating to `Content\SiteCleaner` for
+  the per-site `/api/clean-site` button. The `stage=clean` job branch is exactly what «Очистить всё» runs; `bin/clean-content.php` stays a
+  separate CLI tool with its own loop. Covered by `tests/ContentCleanerTest.php`
   and `tests/BrandDetectorTest.php`.
+- Removing a site from the table (✕, «Убрать наши», «Убрать с 404 > N») is a SERVER-SIDE, final and
+  cross-stage operation — `Support\RemovedSites` (`runs/current/removed.json`): `/api/remove` drops the site's
+  row from `sites.json` and from `status.json` (so the table updates on the next poll) and moves its folders
+  (`pages/<bucket>/<host>`, `preview/<host>`, `content/<bucket>/<host>`) into `runs/current/removed/` keeping
+  the structure; `/api/restore` brings rows and folders back. `run-job` applies `RemovedSites::filter()` right
+  after `loadSites()` AND again before the final `sites.json` write (a site removed while the job ran is not
+  resurrected; `sweep()` moves folders the job downloaded meanwhile), `/api/clean-all` excludes them too, and
+  the collect stage calls `clear()` (a new collect is a new list). The browser keeps only a mirror of the
+  server list (`removedHosts`, refreshed from `state.removed` on every poll) plus `pendingRemoved` for instant
+  hiding; the old client-side pruning of that list against the current status was what lost removals on
+  transient states (job restart, error status, list truncated at the preview limit — now 1000 rows).
 - Collect stage (`stage=collect`) dedups to unique registrable domains (`unique_by=domain`) and, when
   `preview_shots` is on (panel default), runs a lightweight home-only screenshot visit into
   `runs/current/preview` (no crawl) so the results table previews volume + own sites before the full

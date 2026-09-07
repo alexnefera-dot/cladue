@@ -195,21 +195,7 @@ function processAlive(int $pid): bool
  */
 function pagesByHost(string $pagesDir): array
 {
-    $byHost = [];
-    if (is_dir($pagesDir)) {
-        $iter = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($pagesDir, FilesystemIterator::SKIP_DOTS));
-        foreach ($iter as $f) {
-            if ($f instanceof SplFileInfo && $f->isFile() && strtolower($f->getExtension()) === 'html') {
-                $host = basename(dirname($f->getPathname()));
-                if (str_contains($host, '.')) {
-                    $byHost[$host][] = $f->getPathname();
-                }
-            }
-        }
-    }
-    ksort($byHost);
-
-    return $byHost;
+    return \YandexSites\Content\SiteCleaner::pagesByHost($pagesDir);
 }
 
 /**
@@ -221,52 +207,7 @@ function pagesByHost(string $pagesDir): array
  */
 function cleanHostPages(string $runDir, string $host, array $files): array
 {
-    sort($files);
-    $html = [];
-    foreach ($files as $f) {
-        $html[$f] = (string) file_get_contents($f);
-    }
-    $home = $files[0] ?? '';
-    foreach ($files as $f) {
-        if (basename($f) === 'main.html') {
-            $home = $f;
-            break;
-        }
-    }
-    // Бренд ищем по ВСЕМ страницам сайта, а не только по главной: если главная оказалась заглушкой
-    // или редиректом, бренд и canonical есть на внутренних страницах.
-    $moreHtml = [];
-    foreach ($files as $f) {
-        if ($f !== $home) {
-            $moreHtml[] = $html[$f];
-        }
-    }
-    $opts = \YandexSites\Content\ContentCleaner::autoOptions($home !== '' ? ($html[$home] ?? '') : '', $host, [], $moreHtml);
-    $cleaner = new \YandexSites\Content\ContentCleaner();
-    // Чистим в память, чтобы узнать итоговое число страниц и назвать по нему папку-бакет.
-    $cleaned = [];
-    $skipped = 0;
-    foreach ($files as $file) {
-        $body = $cleaner->clean($html[$file], $opts);
-        if (trim($body) === '') {
-            $skipped++;
-            continue;
-        }
-        $cleaned[basename($file)] = $body;
-    }
-    $written = count($cleaned);
-    // Прежние очищенные версии этого сайта убираем из любого бакета, чтобы не осталось дублей.
-    removeHostContent($runDir, $host);
-    $rel = 'content/' . $written . '-стр/' . $host;
-    if ($written > 0) {
-        $outDir = $runDir . '/' . $rel;
-        @mkdir($outDir, 0777, true);
-        foreach ($cleaned as $name => $body) {
-            file_put_contents($outDir . '/' . $name, $body);
-        }
-    }
-
-    return ['written' => $written, 'skipped' => $skipped, 'dir' => $rel, 'brand_ru' => (string) ($opts['brand_ru'] ?? ''), 'brand_en' => (string) ($opts['brand_en'] ?? '')];
+    return \YandexSites\Content\SiteCleaner::cleanHost($runDir, $host, $files);
 }
 
 /**
@@ -275,17 +216,7 @@ function cleanHostPages(string $runDir, string $host, array $files): array
  */
 function removeHostContent(string $runDir, string $host): void
 {
-    $dirs = array_merge(
-        glob($runDir . '/content/*/' . $host, GLOB_ONLYDIR) ?: [],
-        glob($runDir . '/content/' . $host, GLOB_ONLYDIR) ?: [],
-    );
-    foreach ($dirs as $dir) {
-        foreach (glob($dir . '/*') ?: [] as $f) {
-            @unlink($f);
-        }
-        @rmdir($dir);
-        @rmdir(dirname($dir)); // пустой бакет убираем тоже
-    }
+    \YandexSites\Content\SiteCleaner::removeHostContent($runDir, $host);
 }
 
 /**
@@ -293,19 +224,7 @@ function removeHostContent(string $runDir, string $host): void
  */
 function rmTree(string $dir): void
 {
-    if (!is_dir($dir)) {
-        return;
-    }
-    $it = new RecursiveIteratorIterator(
-        new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
-        RecursiveIteratorIterator::CHILD_FIRST,
-    );
-    foreach ($it as $f) {
-        if ($f instanceof SplFileInfo) {
-            $f->isDir() ? @rmdir($f->getPathname()) : @unlink($f->getPathname());
-        }
-    }
-    @rmdir($dir);
+    \YandexSites\Content\SiteCleaner::rmTree($dir);
 }
 
 // --- Роутинг ---
@@ -333,6 +252,8 @@ if ($path === '/api/state') {
         'settings' => readJsonFile($settingsFile),
         'status' => $status,
         'running' => $running,
+        // Серверный список убранных сайтов — источник истины для таблицы (см. Support\RemovedSites).
+        'removed' => \YandexSites\Support\RemovedSites::hosts($runDir),
         'has_config' => is_file($projectDir . '/config.php'),
         'has_proxies' => is_file($projectDir . '/proxies.txt'),
         'base_domains' => is_file($baseFile) ? count(array_filter(array_map('trim', file($baseFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: []), static fn ($l) => $l !== '' && $l[0] !== '#')) : 0,
@@ -448,6 +369,22 @@ if ($path === '/api/site-pages' && $method === 'POST') {
     jsonOut(['ok' => true, 'host' => $host, 'pages' => $pages]);
 }
 
+if ($path === '/api/remove' && $method === 'POST') {
+    // Крестик / «Убрать наши» / «Убрать с 404 > N»: удаление окончательное и сквозное — строка уходит из
+    // sites.json и статуса, папки сайта переезжают в removed/. Следующие шаги сайт больше не видят.
+    $hosts = array_values(array_filter(array_map('strval', (array) (body()['hosts'] ?? [])), static fn (string $h): bool => preg_match('~^[a-z0-9.\-]+$~i', $h) === 1));
+    $n = \YandexSites\Support\RemovedSites::remove($runDir, $hosts);
+    jsonOut(['ok' => true, 'removed' => $n, 'removed_total' => count(\YandexSites\Support\RemovedSites::hosts($runDir))]);
+}
+
+if ($path === '/api/restore' && $method === 'POST') {
+    // «Вернуть все» (или указанные хосты): строки и папки возвращаются на место.
+    $b = body();
+    $hosts = isset($b['hosts']) && is_array($b['hosts']) && $b['hosts'] !== [] ? array_values(array_map('strval', $b['hosts'])) : null;
+    $n = \YandexSites\Support\RemovedSites::restore($runDir, $hosts);
+    jsonOut(['ok' => true, 'restored' => $n, 'removed_total' => count(\YandexSites\Support\RemovedSites::hosts($runDir))]);
+}
+
 if ($path === '/api/clean-site' && $method === 'POST') {
     // Кнопка «Очистить» у сайта: чистит его страницы по инструкции и кладёт в content/<N>-стр/<host>/.
     // Ничего не скачивает; бренд определяется сам.
@@ -462,39 +399,6 @@ if ($path === '/api/clean-site' && $method === 'POST') {
     }
     $r = cleanHostPages($runDir, $host, $files);
     jsonOut(['ok' => true, 'written' => $r['written'], 'skipped' => $r['skipped'], 'dir' => $r['dir'], 'brand_ru' => $r['brand_ru'], 'brand_en' => $r['brand_en']]);
-}
-
-if ($path === '/api/clean-all' && $method === 'POST') {
-    // Кнопка «Очистить всё»: чистит оставленные сайты и раскладывает по content/<N>-стр/<host>/.
-    // Ничего не скачивает. `only` — список оставленных сайтов (что видно в таблице), `exclude` — убранные
-    // крестиком. Это чистый пере-сбор: прежний content целиком удаляем, чтобы убранные сайты, очищенные
-    // в прошлый раз, не остались в результате.
-    $b = body();
-    $only = array_flip(array_values(array_filter(array_map('strval', (array) ($b['only'] ?? [])), static fn (string $h): bool => $h !== '')));
-    $exclude = array_flip(array_map('strval', (array) ($b['exclude'] ?? [])));
-    $byHost = pagesByHost($runDir . '/pages');
-    if ($byHost === []) {
-        jsonOut(['ok' => false, 'error' => 'нет скачанных страниц — сначала «Выгрузка страниц»'], 404);
-    }
-    rmTree($runDir . '/content');
-    $written = 0;
-    $skipped = 0;
-    $sites = 0;
-    foreach ($byHost as $host => $files) {
-        if (isset($exclude[$host])) {
-            continue; // убран крестиком
-        }
-        if ($only !== [] && !isset($only[$host])) {
-            continue; // не входит в список оставленных — не чистим
-        }
-        $r = cleanHostPages($runDir, (string) $host, $files);
-        $written += $r['written'];
-        $skipped += $r['skipped'];
-        if ($r['written'] > 0) {
-            $sites++;
-        }
-    }
-    jsonOut(['ok' => true, 'written' => $written, 'skipped' => $skipped, 'sites' => $sites]);
 }
 
 if ($path === '/api/log') {

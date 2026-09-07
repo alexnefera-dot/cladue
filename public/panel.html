@@ -340,25 +340,25 @@ $('resetBase').addEventListener('click', async (e)=>{ e.preventDefault(); if(con
 async function startJob(extra){
   if(jobStarting) return false;
   const st=Object.assign(collectSettings(), extra||{});
-  if(st.stage!=='download' && st.queries.length===0){ showStart('Добавьте хотя бы один запрос','err'); return false; }
+  if(st.stage!=='download' && st.stage!=='clean' && st.queries.length===0){ showStart('Добавьте хотя бы один запрос','err'); return false; }
   jobStarting=true; updateDownloadBtn();
   try{
     const r=await fetch('/api/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(st)});
     const j=await r.json();
     if(!j.ok){ showStart(j.error||'Не удалось запустить','err'); return false; }
     jobRunning=true; // оптимистично: задание запущено, блокируем повторный старт до следующего опроса
-    showStart(st.stage==='download'?(extra&&extra.retry_hosts?'Докачка запущена':'Выгрузка страниц запущена'):'Сбор запущен','ok');
+    showStart(st.stage==='clean'?'Очистка запущена':(st.stage==='download'?(extra&&extra.retry_hosts?'Докачка запущена':'Выгрузка страниц запущена'):'Сбор запущен'),'ok');
     return true;
   }catch(e){ showStart('Не удалось запустить','err'); return false; }
   finally{ jobStarting=false; refresh(); }
 }
 // Шаг 1: сбор доменов (новый список — старые пометки удалённых сбрасываем).
-function runCollect(){ removedHosts.clear(); saveRemoved(); startJob({stage:'collect'}); }
+function runCollect(){ removedHosts.clear(); pendingRemoved.clear(); startJob({stage:'collect'}); }
 // Шаг 2: выгрузка страниц только оставшихся сайтов (убранные крестиком не качаем).
 function runDownload(){
-  const kept=lastSites.filter(s=>!removedHosts.has(s.host));
+  const kept=lastSites.filter(s=>!isRemoved(s.host));
   if(!kept.length){ showStart('Нет сайтов для выгрузки — все убраны из списка','err'); return; }
-  startJob({stage:'download', exclude_hosts:[...removedHosts]});
+  startJob({stage:'download', exclude_hosts:[...removedHosts, ...pendingRemoved]});
 }
 // Докачки идут в фоне очередью: можно поставить несколько сайтов, они выкачиваются партиями по очереди,
 // а таблица отчёта не сбивается — параллельно изучаем и добавляем ещё.
@@ -368,7 +368,7 @@ function pumpRetry(){
   if(retryQueue.size===0) return;
   retryActive = new Set(retryQueue);
   retryQueue.clear();
-  startJob({stage:'download', retry_hosts:[...retryActive], exclude_hosts:[...removedHosts]}).then(ok=>{
+  startJob({stage:'download', retry_hosts:[...retryActive], exclude_hosts:[...removedHosts, ...pendingRemoved]}).then(ok=>{
     if(!ok){ retryActive.forEach(h=>retryQueue.add(h)); retryActive.clear(); renderResults(lastSites); }
   });
 }
@@ -428,6 +428,7 @@ function renderStatus(st, running){
   else if(phase==='search'){ pText='сбор выдачи'; }
   else if(phase==='filter'){ pText='фильтрация'; }
   else if(phase==='visit'){ pText='открываю сайты в браузере'; }
+  else if(phase==='clean'){ pText='очистка контента'; }
   else if(phase==='done'){ pText='завершено'; }
   else if(phase==='error'){ pText='ошибка'; }
   $('phaseText').textContent = pText?('· '+pText):'';
@@ -474,8 +475,22 @@ let wasRunning=false;
 let jobStarting=false;          // между кликом «запустить» и подтверждением (защита от двойного старта)
 let retryQueue=new Set();       // хосты, ожидающие докачки (в очереди)
 let retryActive=new Set();      // хосты в текущей запущенной докачке
-let removedHosts=new Set(JSON.parse(localStorage.getItem('ys-removed')||'[]'));
-function saveRemoved(){ try{ localStorage.setItem('ys-removed', JSON.stringify([...removedHosts])); }catch(e){} }
+// Убранные сайты хранятся НА СЕРВЕРЕ (runs/current/removed.json) — удаление окончательное и сквозное:
+// сайт исчезает из sites.json и статуса, его папки переезжают в removed/, и ни докачка, ни выгрузка,
+// ни очистка его больше не видят. Здесь — зеркало серверного списка (обновляется каждым опросом) плюс
+// «ожидающие» — только что убранные, чтобы строка скрылась мгновенно, не дожидаясь ответа сервера.
+let removedHosts=new Set();
+let pendingRemoved=new Set();
+function isRemoved(h){ return removedHosts.has(h) || pendingRemoved.has(h); }
+async function removeOnServer(hosts){
+  hosts.forEach(h=>pendingRemoved.add(h)); renderResults(lastSites);
+  try{ await fetch('/api/remove',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({hosts})}); }catch(e){}
+  refresh();
+}
+async function restoreOnServer(){
+  try{ await fetch('/api/restore',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}); }catch(e){}
+  removedHosts.clear(); pendingRemoved.clear(); refresh();
+}
 // Раскрытые строки (список страниц сайта) и кэш их страниц.
 let expandedHosts=new Set();
 let pagesCache={};
@@ -541,15 +556,16 @@ function siteNeedsRetry(s){
   if(/не найдена|HTTP 40|HTTP 41|дубликат|исключ/i.test(e)) return false;
   return true;
 }
-function retryHostsList(){ return lastSites.filter(s=>!removedHosts.has(s.host) && siteNeedsRetry(s)).map(s=>s.host); }
+function retryHostsList(){ return lastSites.filter(s=>!isRemoved(s.host) && siteNeedsRetry(s)).map(s=>s.host); }
 
 // Кнопки под таблицей: «Выгрузить…» — когда есть что качать; «Докачать с ошибками» — когда есть
 // сайты с чинибельными ошибками. Обе блокируются на время запущенного задания.
 function updateDownloadBtn(){
-  const visible=lastSites.filter(s=>!removedHosts.has(s.host));
+  const visible=lastSites.filter(s=>!isRemoved(s.host));
   const busy = jobRunning || jobStarting;
   const db=$('downloadBtn'); if(db) db.disabled = busy || visible.length===0;
   const sb=$('startBtn'); if(sb) sb.disabled = busy;
+  const cb=$('cleanAllBtn'); if(cb) cb.disabled = busy || visible.length===0;
   // Докачку можно ставить в очередь даже во время работы — кнопку не блокируем.
   const rb=$('retryBtn');
   if(rb){
@@ -600,13 +616,13 @@ function updateStats(visible){
   }
 }
 function removeWhere(pred){
-  const hosts=lastSites.filter(s=>!removedHosts.has(s.host) && pred(s)).map(s=>s.host);
+  const hosts=lastSites.filter(s=>!isRemoved(s.host) && pred(s)).map(s=>s.host);
   if(!hosts.length) return;
-  hosts.forEach(h=>removedHosts.add(h)); saveRemoved(); renderResults(lastSites);
+  removeOnServer(hosts);
 }
 $('removeOwnBtn').addEventListener('click', ()=>removeWhere(s=>!!s.own));
 $('remove404Btn').addEventListener('click', ()=>{ const N=Math.max(0, parseInt($('max404').value,10)||0); removeWhere(s=>!s.own && (s.pages_404|0)>N); });
-$('max404').addEventListener('input', ()=>updateStats(lastSites.filter(s=>!removedHosts.has(s.host))));
+$('max404').addEventListener('input', ()=>updateStats(lastSites.filter(s=>!isRemoved(s.host))));
 
 function renderResults(sites){
   sites = sites || [];
@@ -616,15 +632,13 @@ function renderResults(sites){
   lastSites = sites;
   const card=$('resultsCard');
   if(!sites.length){ updateDownloadBtn(); card.hidden=true; return; }
-  // После выгрузки убранные сайты исчезают из данных — вычищаем их из списка «убранных», чтобы счётчик не врал.
+  // Список убранных — серверный, здесь его не «подчищаем»: раньше такая подчистка под переходный статус
+  // (перезапуск задания, ошибка, обрезанный список) теряла удаления, и убранные сайты всплывали снова.
   const present=new Set(sites.map(s=>s.host));
-  let changed=false;
-  [...removedHosts].forEach(h=>{ if(!present.has(h)){ removedHosts.delete(h); changed=true; } });
-  if(changed) saveRemoved();
   // Раскрытые строки: убираем исчезнувшие хосты и подгружаем страницы для тех, у кого их ещё нет.
   [...expandedHosts].forEach(h=>{ if(!present.has(h)) expandedHosts.delete(h); });
   [...expandedHosts].forEach(h=>{ if(!(h in pagesCache) && !pagesLoading.has(h)){ pagesLoading.add(h); loadSitePages(h); } });
-  const visible=sites.filter(s=>!removedHosts.has(s.host));
+  const visible=sites.filter(s=>!isRemoved(s.host));
   updateDownloadBtn();
   card.hidden=false;
   $('resCount').textContent='· '+visible.length+(removedHosts.size?` (убрано ${removedHosts.size})`:'');
@@ -691,23 +705,19 @@ $('resTable').addEventListener('click', e=>{
   const ct=e.target.closest('.ctBtn'); if(ct){ cleanSite(ct.dataset.host, ct); return; }
   const ex=e.target.closest('.dl.expandable'); if(ex){ const h=ex.dataset.expand; if(expandedHosts.has(h)) expandedHosts.delete(h); else expandedHosts.add(h); renderResults(lastSites); return; }
   const th=e.target.closest('.thumb'); if(th && th.dataset.full){ openLightbox(th.dataset.full, th.dataset.cap); return; }
-  const x=e.target.closest('.xBtn'); if(x){ removedHosts.add(x.dataset.remove); saveRemoved(); renderResults(lastSites); return; }
+  const x=e.target.closest('.xBtn'); if(x){ removeOnServer([x.dataset.remove]); return; }
 });
-$('removedNote').addEventListener('click', e=>{ if(e.target && e.target.id==='restoreRemoved'){ e.preventDefault(); removedHosts.clear(); saveRemoved(); renderResults(lastSites); } });
+$('removedNote').addEventListener('click', e=>{ if(e.target && e.target.id==='restoreRemoved'){ e.preventDefault(); restoreOnServer(); } });
 function openLightbox(src,cap){ $('lbimg').src=src; $('lbcap').textContent=cap||''; $('lightbox').classList.add('show'); }
 function closeLightbox(){ $('lightbox').classList.remove('show'); $('lbimg').src=''; }
 $('lightbox').addEventListener('click', closeLightbox);
 document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeLightbox(); });
-$('cleanAllBtn').addEventListener('click', async ()=>{
-  const btn=$('cleanAllBtn'); const old=btn.textContent; btn.disabled=true; btn.textContent='Чищу всё…';
-  try{
-    // only — оставленные сайты (что видно в таблице): чистим только их, убранные крестиком не трогаем.
-    const only=(lastSites||[]).filter(s=>!removedHosts.has(s.host)).map(s=>s.host);
-    const r=await fetch('/api/clean-all',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({only, exclude:[...removedHosts]})}); const j=await r.json();
-    if(!j.ok){ alert(j.error||'Ошибка'); btn.textContent=old; btn.disabled=false; return; }
-    if(!j.written){ alert('Ни на одной странице не найдено тело статьи (нет <h1> или блока «Популярные запросы»).'); btn.textContent=old; btn.disabled=false; return; }
-    btn.textContent='Очищено: '+(j.sites||0)+' сайтов, '+j.written+' стр.'; btn.title='Готово в runs/current/content/N-стр/сайт'; btn.disabled=false;
-  }catch(e){ btn.textContent=old; btn.disabled=false; alert('Ошибка'); }
+// «Очистить всё» — фоновое задание с прогрессом (stage=clean), как сбор и выгрузка: 250 сайтов одним
+// HTTP-запросом упирались в таймаут. Чистятся только оставленные сайты; итог — в строке статуса.
+$('cleanAllBtn').addEventListener('click', ()=>{
+  const only=(lastSites||[]).filter(s=>!isRemoved(s.host)).map(s=>s.host);
+  if(!only.length){ showStart('Нет сайтов для очистки — все убраны из списка','err'); return; }
+  startJob({stage:'clean', only, exclude_hosts:[...removedHosts, ...pendingRemoved]});
 });
 
 let prefilled=false;
@@ -742,6 +752,7 @@ async function refresh(){
     const r=await fetch('/api/state'); const st=await r.json();
     prefill(st);
     renderStatus(st.status, st.running);
+    removedHosts=new Set(st.removed||[]); [...pendingRemoved].forEach(h=>{ if(removedHosts.has(h)) pendingRemoved.delete(h); });
     renderResults(st.status && st.status.sites ? st.status.sites : []);
     pumpRetry(); // если освободились и в очереди есть докачки — запускаем следующую партию
   }catch(e){}

@@ -34,6 +34,7 @@ if (is_file($root . '/vendor/autoload.php')) {
 
 use YandexSites\Config;
 use YandexSites\Content\ContentCleaner;
+use YandexSites\Content\SiteCleaner;
 use YandexSites\Filter\DefaultExclusions;
 use YandexSites\Output\ReportWriter;
 use YandexSites\Runner;
@@ -43,6 +44,7 @@ use YandexSites\Runtime;
 use YandexSites\Support\DomainLedger;
 use YandexSites\Support\Logger;
 use YandexSites\Support\Progress;
+use YandexSites\Support\RemovedSites;
 
 $settingsFile = null;
 $statusFile = null;
@@ -203,7 +205,7 @@ function buildOverrides(array $s, string $runDir): array
  * @param list<\YandexSites\Model\Site> $sites
  * @return list<array<string, mixed>>
  */
-function previewSites(array $sites, string $runDir = '', int $limit = 300): array
+function previewSites(array $sites, string $runDir = '', int $limit = 1000): array
 {
     $rel = static function (string $abs) use ($runDir): string {
         $prefix = rtrim($runDir, '/\\') . '/';
@@ -335,76 +337,63 @@ while (true) {
         $baseFile = dirname($runDir) . '/domains-base.txt';
 
         if ($stage === 'clean') {
-            // --- Этап 3: подготовка контента (шаблоны статей) из ранее скачанных страниц ---
-            $pagesDir = $runDir . '/pages';
-            $outContent = $runDir . '/content';
-            $files = [];
-            if (is_dir($pagesDir)) {
-                $iter = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($pagesDir, FilesystemIterator::SKIP_DOTS));
-                foreach ($iter as $f) {
-                    if ($f instanceof SplFileInfo && $f->isFile() && strtolower($f->getExtension()) === 'html') {
-                        $files[] = $f->getPathname();
-                    }
-                }
-            }
-            if ($files === []) {
+            // --- Этап 3: очистка контента по сайтам — то же, что кнопки «Очистить»/«Очистить всё» в панели,
+            // но ФОНОМ и с прогрессом: 250 сайтов одним HTTP-запросом упирались в таймаут и роняли кнопку.
+            // Чистятся только оставленные сайты (only из панели, минус exclude_hosts и убранные removed.json);
+            // прежний content/ удаляется целиком — чистый пере-сбор, убранный сайт в результате не залипает.
+            $byHost = SiteCleaner::pagesByHost($runDir . '/pages');
+            if ($byHost === []) {
                 throw new RuntimeException('Нет скачанных страниц — сначала выполните «Выгрузку страниц»');
             }
-            sort($files);
-            $cleaner = new ContentCleaner();
-            $brandRu = trim((string) ($settings['brand_ru'] ?? ''));
-            $brandEnOpt = trim((string) ($settings['brand_en'] ?? ''));
-            $brands = is_array($settings['brands'] ?? null)
+            $only = array_flip(array_map('strval', (array) ($settings['only'] ?? [])));
+            $exclude = array_flip(array_merge(array_map('strval', (array) ($settings['exclude_hosts'] ?? [])), RemovedSites::hosts($runDir)));
+            $hosts = array_values(array_filter(
+                array_keys($byHost),
+                static fn ($h): bool => !isset($exclude[$h]) && ($only === [] || isset($only[$h])),
+            ));
+            $brandList = is_array($settings['brands'] ?? null)
                 ? $settings['brands']
                 : (array) (preg_split('~[,\n]+~', (string) ($settings['brands'] ?? '')) ?: []);
-            $brands = array_values(array_filter(array_map('trim', $brands), static fn (string $b): bool => $b !== ''));
+            $override = [
+                'brand_ru' => trim((string) ($settings['brand_ru'] ?? '')),
+                'brand_en' => trim((string) ($settings['brand_en'] ?? '')),
+                'extra_brands' => array_values(array_filter(array_map('trim', array_map('strval', $brandList)), static fn (string $b): bool => $b !== '')),
+            ];
+            SiteCleaner::rmTree($runDir . '/content');
+            $total = count($hosts);
+            $done = 0;
             $written = 0;
             $skipped = 0;
-            foreach ($files as $file) {
-                $host = basename(dirname($file));
-                if (!str_contains($host, '.')) {
-                    $host = '';
+            $sitesDone = 0;
+            $logger->info(sprintf('Очистка контента: сайтов %d', $total));
+            // Прогресс — в том же формате, что у визитов (total/done/ok/current): панель рисует его без переделок.
+            $progress->update(['phase' => 'clean', 'visit' => ['total' => $total, 'done' => 0, 'ok' => 0, 'current' => ''], 'message' => sprintf('Очистка: 0 из %d сайтов…', $total)], true);
+            foreach ($hosts as $host) {
+                if (stopped($stopFile)) {
+                    break;
                 }
-                $pageHtml = (string) file_get_contents($file);
-                // Бренд определяется автоматически по странице и домену; поля панели (если заданы) перекрывают.
-                $body = $cleaner->clean($pageHtml, ContentCleaner::autoOptions($pageHtml, $host, [
-                    'brand_ru' => $brandRu,
-                    'brand_en' => $brandEnOpt,
-                    'extra_brands' => $brands,
-                ]));
-                $rel = ltrim(str_replace($pagesDir, '', $file), '/\\');
-                if (trim($body) === '') {
-                    $skipped++;
-                    continue;
+                $r = SiteCleaner::cleanHost($runDir, (string) $host, $byHost[$host], $override);
+                $written += $r['written'];
+                $skipped += $r['skipped'];
+                if ($r['written'] > 0) {
+                    $sitesDone++;
                 }
-                $dest = $outContent . '/' . $rel;
-                @mkdir(dirname($dest), 0777, true);
-                file_put_contents($dest, $body);
-                $written++;
-                $progress->update(['phase' => 'clean', 'message' => sprintf('Подготовлено %d…', $written)]);
+                $done++;
+                $progress->update(['phase' => 'clean', 'visit' => ['total' => $total, 'done' => $done, 'ok' => $sitesDone, 'current' => (string) $host], 'message' => sprintf('Очистка: %d из %d сайтов…', $done, $total)]);
+                $logger->debug(sprintf('  [%d/%d] %s — %d стр., бренд %s / %s', $done, $total, $host, $r['written'], $r['brand_en'], $r['brand_ru']));
             }
-            $zipRel = '';
-            if ($written > 0 && class_exists('ZipArchive')) {
-                $zip = new ZipArchive();
-                if ($zip->open($runDir . '/content.zip', ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
-                    $iter = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($outContent, FilesystemIterator::SKIP_DOTS));
-                    foreach ($iter as $f) {
-                        if ($f instanceof SplFileInfo && $f->isFile()) {
-                            $zip->addFile($f->getPathname(), ltrim(str_replace($outContent, '', $f->getPathname()), '/\\'));
-                        }
-                    }
-                    $zip->close();
-                    $zipRel = 'content.zip';
-                }
-            }
+            // Таблица не должна пропасть после очистки: сайты — из sites.json (убранные исключены).
+            $siteList = array_values(RemovedSites::filter($runDir, loadSites($runDir . '/sites.json')));
+            $stoppedEarly = $done < $total;
             $progress->update([
                 'state' => 'done',
                 'phase' => 'done',
                 'run_finished_at' => date(DATE_ATOM),
-                'files' => $zipRel !== '' ? ['content' => $zipRel] : [],
-                'message' => sprintf('Контент подготовлен: %d файлов%s, пропущено (без статьи) %d', $written, $zipRel !== '' ? ' + архив content.zip' : '', $skipped),
+                'sites' => previewSites($siteList, $runDir),
+                'files' => [],
+                'message' => sprintf('%sОчищено: %d сайтов, %d стр. (без статьи: %d) → runs/current/content/N-стр/сайт', $stoppedEarly ? 'Остановлено. ' : '', $sitesDone, $written, $skipped),
             ], true);
-            $logger->info(sprintf('Очистка контента: подготовлено %d, пропущено %d', $written, $skipped));
+            $logger->info(sprintf('Очистка контента: сайтов %d, страниц %d, пропущено %d', $sitesDone, $written, $skipped));
         } elseif ($stage === 'download') {
             // --- Этап 2: выгрузка страниц ранее собранных сайтов (без обращения к источнику) ---
             $config = Config::fromFile($configPath)->withOverrides(array_merge(buildOverrides($settings, $runDir), [
@@ -413,6 +402,8 @@ while (true) {
             ]));
             $writer = new ReportWriter((string) $config->get('output.csv_delimiter', ';'), (bool) $config->get('output.csv_bom', true));
             $sites = loadSites($runDir . '/sites.json');
+            // Убранные в панели сайты — окончательно: их нет ни в докачке, ни в выгрузке (removed.json).
+            $sites = RemovedSites::filter($runDir, $sites);
             if ($sites === []) {
                 throw new RuntimeException('Нет собранных сайтов для выгрузки — сначала выполните этап «Сборка»');
             }
@@ -462,6 +453,10 @@ while (true) {
             }
 
             // Пишем ВСЕ сайты: при докачке обновлённые + сохранённые, при полной выгрузке — все заново.
+            // Убранные ВО ВРЕМЯ задания тоже не возвращаем: сверяемся с removed.json перед записью, а их
+            // папки, которые задание успело докачать, уносим в removed/.
+            $sites = RemovedSites::filter($runDir, $sites);
+            RemovedSites::sweep($runDir);
             $siteList = array_values($sites);
             $writer->writeCsv($siteList, $runDir . '/sites.csv');
             $writer->writeJson($siteList, $runDir . '/sites.json', ['source' => 'download', 'settings' => $settings]);
@@ -492,6 +487,7 @@ while (true) {
             $logger->info(sprintf('%s завершена: страниц открыто %d', $isRetry ? 'Докачка' : 'Выгрузка', $opened));
         } else {
             // --- Этап 1: сборка доменов (collect) или сборка + выгрузка (both) ---
+            RemovedSites::clear($runDir); // новый сбор — новый список: прежние удаления неактуальны
             $config = Config::fromFile($configPath)->withOverrides(buildOverrides($settings, $runDir));
             $errors = $config->validate(true);
             if ($errors !== []) {

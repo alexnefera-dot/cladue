@@ -372,6 +372,133 @@ final class PanelTest
         @rmdir($dir);
     }
 
+    public function testDownloadHonorsRemovedJsonWithoutExcludeHosts(): void
+    {
+        // Сайт убран в панели (removed.json), но exclude_hosts не передан (старая вкладка, сбитый список):
+        // выгрузка всё равно его не качает и не возвращает в sites.json.
+        $port = FakeServer::port('local');
+        $dir = sys_get_temp_dir() . '/yandex-sites-rmj-' . uniqid();
+        $runDir = $dir . '/runs/rmj';
+        mkdir($runDir, 0777, true);
+        file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
+        file_put_contents($runDir . '/sites.json', json_encode(['sites' => [
+            ['host' => 'okna-moskva.ru', 'domain' => 'okna-moskva.ru', 'url' => "http://okna-moskva.ru:$port/page-1/", 'title' => 'T', 'best_query' => 'окна', 'best_position' => 1, 'queries_count' => 1],
+            ['host' => 'okna-company.com', 'domain' => 'okna-company.com', 'url' => "http://okna-company.com:$port/page-2/", 'title' => 'T2', 'best_query' => 'окна', 'best_position' => 2, 'queries_count' => 1],
+        ]]));
+        \YandexSites\Support\RemovedSites::remove($runDir, ['okna-company.com']);
+        file_put_contents($runDir . '/settings.json', json_encode([
+            'stage' => 'download',
+            'visit_driver' => 'curl',
+            'visit_resolve' => ["okna-moskva.ru:$port:127.0.0.1", "okna-company.com:$port:127.0.0.1"],
+        ]));
+        $run = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $run['code'], $run['out']);
+        $st = json_decode((string) file_get_contents($runDir . '/status.json'), true);
+        Assert::same('done', $st['state'], $run['out']);
+        Assert::false(is_dir($runDir . '/pages/okna-company.com'), 'убранный сайт не выгружался');
+        $sites = json_decode((string) file_get_contents($runDir . '/sites.json'), true);
+        Assert::same(['okna-moskva.ru'], array_map(static fn ($s) => $s['host'], $sites['sites']), 'убранный не вернулся в sites.json');
+        Assert::same(['okna-moskva.ru'], array_map(static fn ($s) => $s['host'], $st['sites']), 'и в статусе его нет');
+
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($it as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+        @rmdir($dir);
+    }
+
+    public function testPanelRemoveAndRestoreEndpoints(): void
+    {
+        $dir = sys_get_temp_dir() . '/yandex-sites-panel-rm-' . uniqid();
+        $runDir = $dir . '/runs/current';
+        mkdir($runDir . '/pages/2-стр/gone.ru', 0777, true);
+        file_put_contents($runDir . '/pages/2-стр/gone.ru/main.html', 'x');
+        file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
+        file_put_contents($runDir . '/sites.json', json_encode(['sites' => [['host' => 'gone.ru', 'domain' => 'gone.ru'], ['host' => 'stay.ru', 'domain' => 'stay.ru']]]));
+        file_put_contents($runDir . '/status.json', json_encode(['state' => 'done', 'sites' => [['host' => 'gone.ru'], ['host' => 'stay.ru']]]));
+
+        $socket = @stream_socket_server('tcp://127.0.0.1:0', $errno, $errstr);
+        if ($socket === false) {
+            Assert::skip("нет доступа к сокетам: $errstr");
+        }
+        $name = (string) stream_socket_get_name($socket, false);
+        fclose($socket);
+        $panelPort = (int) substr($name, (int) strrpos($name, ':') + 1);
+        $log = sys_get_temp_dir() . '/yandex-sites-panel-rm.log';
+        $server = @proc_open(
+            [PHP_BINARY, '-S', '127.0.0.1:' . $panelPort, '-t', $dir, PROJECT_ROOT . '/bin/panel.php'],
+            [0 => ['pipe', 'r'], 1 => ['file', $log, 'a'], 2 => ['file', $log, 'a']],
+            $pipes,
+            $dir,
+            array_merge(getenv(), ['YS_PROJECT_DIR' => $dir]),
+        );
+        if (!is_resource($server)) {
+            Assert::skip('не удалось запустить php -S для панели');
+        }
+        fclose($pipes[0]);
+        try {
+            $base = "http://127.0.0.1:$panelPort";
+            $this->waitFor($base . '/api/state', 50);
+
+            $r = json_decode((string) $this->http('POST', $base . '/api/remove', ['hosts' => ['gone.ru']]), true);
+            Assert::true($r['ok'] ?? false, json_encode($r));
+            Assert::same(1, $r['removed_total']);
+            $state = json_decode((string) $this->http('GET', $base . '/api/state'), true);
+            Assert::same(['gone.ru'], $state['removed'], 'сервер отдаёт список убранных');
+            Assert::same(['stay.ru'], array_map(static fn ($s) => $s['host'], $state['status']['sites']), 'таблица без убранного сразу');
+            Assert::false(is_dir($runDir . '/pages/2-стр/gone.ru'), 'папки убранного уехали из pages/');
+
+            $r = json_decode((string) $this->http('POST', $base . '/api/restore', []), true);
+            Assert::true($r['ok'] ?? false, json_encode($r));
+            $state = json_decode((string) $this->http('GET', $base . '/api/state'), true);
+            Assert::same([], $state['removed']);
+            Assert::same(2, count($state['status']['sites']), 'вернуть все — строка вернулась');
+            Assert::true(is_dir($runDir . '/pages/2-стр/gone.ru'), 'и папки вернулись');
+        } finally {
+            proc_terminate($server);
+            proc_close($server);
+        }
+    }
+
+    public function testCleanStageRunsInBackgroundForKeptSitesOnly(): void
+    {
+        // «Очистить всё» — фоновый этап: чистит только оставленные (only минус exclude), сносит прежний
+        // content/ целиком (убранный сайт не залипает), сохраняет таблицу и пишет прогресс/итог.
+        $dir = sys_get_temp_dir() . '/yandex-sites-clean-' . uniqid();
+        $runDir = $dir . '/runs/clean';
+        $page = '<html><head><title>t</title></head><body><h1>Обзор</h1><p>Полезный текст статьи про бренд.</p><h3>Популярные запросы</h3></body></html>';
+        foreach (['pages/2-стр/keep.ru' => ['main', 'about'], 'pages/1-стр/skip.ru' => ['main'], 'pages/1-стр/ex.ru' => ['main']] as $d => $names) {
+            mkdir("$runDir/$d", 0777, true);
+            foreach ($names as $n) {
+                file_put_contents("$runDir/$d/$n.html", $page);
+            }
+        }
+        mkdir("$runDir/content/9-стр/skip.ru", 0777, true);
+        file_put_contents("$runDir/content/9-стр/skip.ru/old.html", 'старая очистка');
+        file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
+        file_put_contents($runDir . '/sites.json', json_encode(['sites' => [
+            ['host' => 'keep.ru', 'domain' => 'keep.ru'], ['host' => 'skip.ru', 'domain' => 'skip.ru'], ['host' => 'ex.ru', 'domain' => 'ex.ru'],
+        ]]));
+        file_put_contents($runDir . '/settings.json', json_encode(['stage' => 'clean', 'only' => ['keep.ru', 'ex.ru'], 'exclude_hosts' => ['ex.ru']]));
+
+        $run = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $run['code'], $run['out']);
+        $st = json_decode((string) file_get_contents($runDir . '/status.json'), true);
+        Assert::same('done', $st['state'], $run['out']);
+        Assert::contains('Очищено: 1 сайтов, 2 стр.', $st['message']);
+        Assert::true(is_file("$runDir/content/2-стр/keep.ru/main.html") && is_file("$runDir/content/2-стр/keep.ru/about.html"), 'оставленный сайт очищен в бакет по числу страниц');
+        Assert::false(is_dir("$runDir/content/9-стр/skip.ru"), 'прежний content/ снесён — старая очистка убранного не залипла');
+        Assert::same(0, count(glob("$runDir/content/*/skip.ru") ?: []) + count(glob("$runDir/content/*/ex.ru") ?: []), 'не-оставленные и исключённые не чистились');
+        Assert::same(3, count($st['sites']), 'таблица после очистки на месте');
+        Assert::same(1, (int) ($st['visit']['total'] ?? 0), 'прогресс считал только сайты к очистке');
+
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($it as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+        @rmdir($dir);
+    }
+
     public function testRunJobReportsErrorOnBadKey(): void
     {
         $port = FakeServer::port();
