@@ -52,6 +52,8 @@ CONVERT = {2: (1, СЛУЖЕБНЫЕ + ["slots", "bonus"]), 8: (7, СЛУЖЕБ�
 # есть заглушки или дубли файлов, а для типов из DISCARD_INCOMPLETE — ещё
 # и если не хватает страниц. Причина пишется в отчёт и сводку.
 DISCARD_INCOMPLETE = {7}
+# Коды, при которых сайт убирается, а не идёт на доработку (заполняется из --убрать).
+DISCARD_CODES = {}
 
 ALLOWED_PLACEHOLDERS = {"%brand_name_ru%", "%brand_name_en%",
                         "%domain_name%", "%date%"}
@@ -298,7 +300,9 @@ GENERIC_DOMAINS = re.compile(r"^(?:[\w.-]+@)?(?:mirror\d*|proxy\d*|example|domai
                              # регуляторы, сервисы проверки, ответственная игра — не чужие казино
                              r"mga|ukgc|gamblingcommission|curacao|egaming|begambleaware|gamcare|gamblingtherapy|"
                              r"ipleak|dnsleaktest|browserleaks|whatismyipaddress|virustotal|blockchain|blockchair|"
-                             r"etherscan|coinmarketcap|gosuslugi|nalog|akamai|digitalocean|habr|rbc|forbes|reuters)"
+                             r"etherscan|coinmarketcap|gosuslugi|nalog|akamai|digitalocean|habr|rbc|forbes|reuters|"
+                             # примеры адресов в инструкциях
+                             r"company|mailinator|tempmail|guerrillamail|10minutemail|mail\.ru|inbox|list|bk)"
                              r"\.(?:com|net|org|ru|io)$", re.I)
 
 
@@ -364,7 +368,13 @@ def brand_leaks(text):
     """Контакты и телефоны на странице (бренды считаются по сайту, см. check_site)."""
     hits = Counter()
     contacts = Counter()
-    for tok in re.findall(r"[\w.-]+@[\w.-]+\.[a-z]{2,}|\b[A-Za-z0-9-]+\.(?:com|net|org|ru|io)\b", text):
+    # Домен не берём, если он часть плейсхолдера (%brand_name_en%1.com) или продолжение пути.
+    for m in re.finditer(r"(?<![\w%.\-/])([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}|"
+                         r"[A-Za-z][A-Za-z0-9-]{1,}\.(?:com|net|org|ru|io))(?![\w\-])", text):
+        tok = m.group(1)
+        near = text[max(0, m.start() - 24): m.start()]
+        if "%" in near and not re.search(r"%\s", near[-3:]):
+            continue
         if not GENERIC_DOMAINS.match(tok):
             contacts[tok] += 1
     phones = Counter(re.findall(r"\+\d[\d ()-]{7,}\d", text))
@@ -598,6 +608,9 @@ def discard_reason(F, s):
     """Почему сайт убран из выдачи; None — не убран."""
     items = F.items[s["key"]]
     why = []
+    for code, причина in DISCARD_CODES.items():
+        if any(lvl == "ERROR" and c == code for lvl, c, _ in items):
+            why.append(причина)
     if any(lvl == "ERROR" and code == "B1" and "заглушка" in msg for lvl, code, msg in items):
         why.append("контент из заглушек")
     if any(lvl == "ERROR" and code in ("D1", "D2") for lvl, code, _ in items):
@@ -700,7 +713,13 @@ def main():
     ap.add_argument("--sort", metavar="ПАПКА", help="разложить сайты по типам в эту папку")
     ap.add_argument("--порог", type=int, default=60,
                     help="совпадение в процентах, с которого сайт считается дублем (по умолчанию 60)")
+    ap.add_argument("--убрать", default="",
+                    help="коды, при которых сайт убирается, а не идёт на доработку (например B4)")
     args = ap.parse_args()
+    ПРИЧИНЫ = {"B4": "чужой проект: бренды и контакты не наши", "B5": "незаполненные переменные",
+               "B6": "мусорная разметка", "C1": "ссылки в никуда", "B3": "тема не та"}
+    for код in [c.strip().upper() for c in args.убрать.split(",") if c.strip()]:
+        DISCARD_CODES[код] = ПРИЧИНЫ.get(код, "код %s" % код)
     root = unpack(args.path)
     F = Findings()
     junk = Counter()

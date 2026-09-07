@@ -10,6 +10,7 @@
   «В {NAME}») подставляется %brand_name_ru%.
 - {AMOUNT} -> сумма в рублях из текста раздела, иначе типовая.
 - {YYYYMMDD} -> %date%. Примерные адреса вида user@example.com -> user@%domain_name%.
+- Мусор после чистки: склейки <strongслово>, теги meter/font/center, битые <h2:, остатки [[ ]] и {a|b}.
 - --auto-brand -> бренд каждого сайта определяется сам: самое частое латинское
   слово рядом с «казино/зеркало/приложение/бонус» не из белого списка, если оно
   есть минимум на двух страницах сайта. Найденные бренды печатаются.
@@ -126,6 +127,49 @@ def site_brands(files):
     return [name for name, c, pg in brand_candidates(raws)][:2]
 
 
+def fix_markup(raw):
+    """Мусор после чистки: склейки <strongслово>, теги вне списка, остатки [[ ]] и {a|b}."""
+    rows = []
+    известные = {"a", "abbr", "article", "aside", "b", "blockquote", "body", "br", "button", "canvas",
+                 "caption", "cite", "code", "col", "colgroup", "data", "dd", "del", "details", "dfn",
+                 "div", "dl", "dt", "em", "embed", "fieldset", "figcaption", "figure", "footer", "form",
+                 "h1", "h2", "h3", "h4", "h5", "h6", "head", "header", "hgroup", "hr", "html", "i",
+                 "iframe", "img", "input", "ins", "kbd", "label", "legend", "li", "link", "main", "map",
+                 "mark", "menu", "meta", "meter", "nav", "noscript", "object", "ol", "optgroup", "option",
+                 "output", "p", "param", "picture", "pre", "progress", "q", "rp", "rt", "ruby", "s",
+                 "samp", "script", "section", "select", "small", "source", "span", "strong", "style",
+                 "sub", "summary", "sup", "table", "tbody", "td", "template", "textarea", "tfoot", "th",
+                 "thead", "time", "title", "tr", "track", "u", "ul", "var", "video", "wbr"}
+
+    def разделить(m):
+        if (m.group(1) + m.group(2)).lower() in известные:
+            return m.group(0)      # это обычный тег, не склейка
+        return "<%s>%s" % (m.group(1), m.group(2))
+
+    def разделить_закрывающий(m):
+        if (m.group(1) + m.group(2)).lower() in известные:
+            return m.group(0)
+        return "</%s>%s" % (m.group(1), m.group(2))
+
+    raw, n = re.subn(r"<(strong|em|b|i)([A-Za-zА-Яа-яЁё][\w-]*)>", разделить, raw)
+    raw, n2 = re.subn(r"</(strong|em|b|i)([A-Za-zА-Яа-яЁё][\w-]*)>", разделить_закрывающий, raw)
+    if n + n2:
+        rows.append(("склейка тега", "<strong>слово", "разделено (%d)" % (n + n2)))
+    raw, n = re.subn(r"</?(?:meter|progress|font|center|marquee|blink)[^>]*>", "", raw)
+    if n:
+        rows.append(("лишний тег", "снят", "%d" % n))
+    raw, n = re.subn(r"<h([1-6]):\s*", r"<h\1>", raw)
+    if n:
+        rows.append(("битый h", "исправлен", "%d" % n))
+    raw, n = re.subn(r"\[\[(.*?)\]\]", r"\1", raw)
+    if n:
+        rows.append(("[[ ]]", "снято", "%d" % n))
+    raw, n = re.subn(r"\{([^{}|\n]{1,60})\|[^{}\n]{1,60}\}", r"\1", raw)
+    if n:
+        rows.append(("{a|b}", "первый вариант", "%d" % n))
+    return raw, rows
+
+
 def fix_generic(raw):
     rows = []
     raw, n = re.subn(r"\{YYYYMMDD\}", "%date%", raw)
@@ -179,6 +223,8 @@ def main():
                 print("%-45s %-9s -> %-16s %s" % (rel, what, rep, how))
             raw, grows = fix_generic(raw)
             rows += grows
+            raw, mrows = fix_markup(raw)
+            rows += mrows
             for brand in brands:
                 raw, brows = fix_brand(raw, brand)
                 for bname, how, n in brows:
