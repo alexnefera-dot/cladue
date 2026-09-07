@@ -39,6 +39,30 @@ document.getElementById('main').innerHTML=`
 <div class="blk"><h2>То же самое по конфигурации</h2>
 <div class="cuts">${D.cuts.slice(3,6).map(cutBlock).join('')}</div></div>
 
+<div class="blk"><h2>Сколько проходит от регистрации до депозита</h2>
+<p class="note">В этой выгрузке есть <code>clickid</code> — идентификатор пользователя.
+Раньше приходилось связывать регистрацию с депозитом по паре домен+бренд, и это давало
+неверный ответ: подставлялась последняя регистрация на том же домене, часто чужая.
+Здесь пара точная. Все ${D.lag.length} депозитов нашли свою регистрацию, ни одного без пары.</p>
+<div class="cuts two">
+<div class="cut"><h3>Разброс лага</h3>
+<table class="ct"><tbody>`+D.lagb.map(b=>{
+  const mx=Math.max(...D.lagb.map(x=>x[1]));
+  return `<tr><td class="l k">${esc(b[0])}</td>
+   <td class="bar"><span class="bt"><span class="bf dep" style="width:${100*b[1]/mx}%"></span></span></td>
+   <td class="n"><b>${b[1]}</b></td><td class="n"></td><td class="n"></td></tr>`;}).join('')+`
+</tbody></table>
+<p class="note" style="margin-top:9px">Медиана — <b>${D.lagmed} минут</b>,
+максимум — <b>${Math.round(D.lagmax/60)} часов</b>. Половина платит почти сразу,
+но у трёх депозитов из ${D.lag.length} лаг больше шести часов, у двух — больше суток.</p></div>
+<div class="cut"><h3>Каждая пара</h3>
+<table class="ct"><tbody>`+D.lag.map(l=>`<tr>
+   <td class="l k"><code>${esc(l.dom)}</code></td>
+   <td class="l" style="font-size:11.5px;color:var(--mut)">${esc(l.br)}</td>
+   <td class="n"><b>${l.min==null?'—':l.min<60?l.min+' мин':Math.round(l.min/60)+' ч'}</b></td>
+   <td class="n"></td><td class="n"></td></tr>`).join('')+`
+</tbody></table></div></div></div>
+
 <div class="blk"><h2>Бренды и гео</h2>
 <div class="cuts two">${D.cuts.slice(6).map(cutBlock).join('')}</div></div>
 

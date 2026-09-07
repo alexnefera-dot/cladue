@@ -3,7 +3,7 @@
 import json,collections,re,glob,math,datetime as dt
 SP='/tmp/claude-0/-home-user-cladue/7a7c5bac-d634-59c6-bc3f-c4e28ea7944c/scratchpad/'
 AN='/home/user/cladue/analysis/'
-BAD={'yandex.ru','—','ru.search.yahoo.com','alice.yandex.ru'}
+BAD={'yandex.ru','','—','ru.search.yahoo.com','alice.yandex.ru','youtube.com'}
 EV=[e for e in json.load(open(SP+'convall.json')) if e['dom'] not in BAD]
 db=json.load(open(SP+'db.json')); SN=json.load(open(SP+'snapr.json'))
 TODAY=dt.date(2026,9,7); CURVE=[0,18,49,75,90,95,99]; DATA0=dt.date(2026,8,21)

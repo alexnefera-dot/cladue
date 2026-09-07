@@ -1,7 +1,7 @@
 # Данные для отчёта «Дни запуска и окна конверсий».
 import json,collections,math,random,re,datetime as dt
 SP='/tmp/claude-0/-home-user-cladue/7a7c5bac-d634-59c6-bc3f-c4e28ea7944c/scratchpad/'
-BAD={'yandex.ru','—','ru.search.yahoo.com','alice.yandex.ru'}   # события без нашего домена в адресе
+BAD={'yandex.ru','','—','ru.search.yahoo.com','alice.yandex.ru','youtube.com'}   # события без нашего домена в адресе
 EV=[e for e in json.load(open(SP+'convall.json')) if e['dom'] not in BAD]
 db=json.load(open(SP+'db.json'))
 SN=json.load(open(SP+'snapr.json')); QD=SN['qd']

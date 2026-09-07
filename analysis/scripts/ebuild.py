@@ -3,7 +3,7 @@ SP='/tmp/claude-0/-home-user-cladue/7a7c5bac-d634-59c6-bc3f-c4e28ea7944c/scratch
 S='/home/user/cladue/analysis/scripts/'
 D=json.load(open(SP+'e50.json'))
 head=open(S+'head_keys.html',encoding='utf-8').read().replace(
-    '<title>Ключи по брендам</title>','<title>Последняя выгрузка конверсий</title>')
+    '<title>Ключи по брендам</title>','<title>Конверсии: полная выгрузка</title>')
 app=open(S+'eapp.js',encoding='utf-8').read()
 extra='''
 <style>
@@ -34,10 +34,10 @@ tr.dep td{background:#1c1a12}
 body=f'''
 <header><div class="wrap">
  <div class="eyebrow">Дорвеи · выгрузка {D['days'][0][8:10]}.{D['days'][0][5:7]}–{D['days'][-1][8:10]}.{D['days'][-1][5:7]}</div>
- <h1>Последняя выгрузка конверсий</h1>
+ <h1>Конверсии: полная выгрузка</h1>
  <p class="sub">{D['n']} строк из файла: {D['reg']} регистраций и {D['dep']} депозитов
- на {D['doms']} доменах. Каждое событие привязано к группе контента, доменной зоне
- и дню запуска домена. Только эта выгрузка — истории и сравнений здесь нет.</p>
+ на {D['doms']} доменах, {D['users']} уникальных пользователей. Каждое событие привязано
+ к группе контента, доменной зоне и дню запуска домена.</p>
 </div></header>
 <main class="wrap" id="main"></main>
 <footer><div class="wrap">Собрано {D['built']}. День запуска и группа взяты из реестра

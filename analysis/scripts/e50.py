@@ -1,8 +1,8 @@
 # Разбор последней выгрузки конверсий: только её события, три разреза и полный список.
 import json,collections,re,datetime as dt
 SP='/tmp/claude-0/-home-user-cladue/7a7c5bac-d634-59c6-bc3f-c4e28ea7944c/scratchpad/'
-BAD={'yandex.ru','—','ru.search.yahoo.com','alice.yandex.ru'}
-RAW=json.load(open(SP+'conv7.json'))
+BAD={'yandex.ru','','—','ru.search.yahoo.com','alice.yandex.ru','youtube.com'}
+RAW=json.load(open(SP+'conv8.json'))
 M=json.load(open(SP+'dommap.json'))
 # реестр запусков точнее общей карты: там ветка названа полностью (7/12 стр, даты).
 # Форматы заголовков разные: где-то одна строка "## NEW50_3_7pages...", где-то основная
@@ -58,7 +58,7 @@ EV=[]
 for e in RAW:
     if e['dom'] in BAD: continue
     m=M.get(e['dom']); g=clean(m['g']) if m else None
-    EV.append(dict(t=e['t'],type=e['type'],dom=e['dom'],br=e['sub'],geo=e['geo'],
+    EV.append(dict(t=e['t'],type=e['type'],dom=e['dom'],br=e['sub'],geo=e['geo'],cid=e['cid'],eng=e['eng'],
                    zone='.'+e['dom'].split('.')[-1],g=g,day=m['day'] if m else None,
                    pg=pages(g) if g else None,dt=dates(g) if g else None,src=src(g) if g else None))
 EV.sort(key=lambda x:x['t'],reverse=True)
@@ -72,7 +72,27 @@ def cut(key,label):
     return dict(label=label,rows=sorted([dict(k=k,r=v['r'],d=v['d'],n=len(v['doms']))
         for k,v in a.items()],key=lambda x:(-(x['r']+x['d']),-x['n'])))
 
-D=dict(ev=EV,n=len(RAW),reg=sum(1 for e in EV if e['type']=='reg'),
+by=collections.defaultdict(list)
+for e in EV: by[e['cid']].append(e)
+LAG=[]
+for c,es in by.items():
+    rs=sorted([x for x in es if x['type']=='reg'],key=lambda x:x['t'])
+    for d in sorted([x for x in es if x['type']=='dep'],key=lambda x:x['t']):
+        pr=[r for r in rs if r['t']<=d['t']]
+        if not pr: LAG.append(dict(dom=d['dom'],br=d['br'],min=None)); continue
+        a=dt.datetime.strptime(pr[-1]['t'],'%Y-%m-%d %H:%M'); b=dt.datetime.strptime(d['t'],'%Y-%m-%d %H:%M')
+        LAG.append(dict(dom=d['dom'],br=d['br'],min=int((b-a).total_seconds()//60),
+                        same=pr[-1]['br']==d['br'],rt=pr[-1]['t'],dt=d['t']))
+LAG.sort(key=lambda x:-(x['min'] or 0))
+LB=collections.Counter()
+for l in LAG:
+    m=l['min']
+    LB['без пары' if m is None else '< 30 мин' if m<30 else '30-60 мин' if m<60 else
+       '1-6 ч' if m<360 else '6-24 ч' if m<1440 else 'больше суток']+=1
+mm=sorted(l['min'] for l in LAG if l['min'] is not None)
+D=dict(lag=LAG,lagb=[[k,LB[k]] for k in ['< 30 мин','30-60 мин','1-6 ч','6-24 ч','больше суток','без пары'] if LB[k]],
+       lagmed=mm[len(mm)//2] if mm else None,lagmax=max(mm) if mm else None,
+       users=len(by),ev=EV,n=len(RAW),reg=sum(1 for e in EV if e['type']=='reg'),
        dep=sum(1 for e in EV if e['type']=='dep'),doms=len({e['dom'] for e in EV}),
        skip=[dict(dom=e['dom'],type=e['type'],t=e['t'],eng=e['eng']) for e in skip],
        days=sorted({e['t'][:10] for e in EV}),
