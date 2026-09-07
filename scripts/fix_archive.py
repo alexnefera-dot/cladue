@@ -68,10 +68,14 @@ def fill_vars(raw, page, seed):
                     rep, how = POOL[seed % len(POOL)], "имя из списка"
                     seed //= 7
         else:
-            found = AMOUNT_RX.search(section)
-            if found:
-                rep, how = found.group(0).replace("руб", "₽"), "сумма из раздела"
-            else:
+            # Берём из раздела только правдоподобную сумму выигрыша или заработка:
+            # мелкие числа рядом обычно про депозит или ставку.
+            rep = how = None
+            for m2 in AMOUNT_RX.finditer(section):
+                if int(re.sub(r"\D", "", m2.group(1))) >= 10000:
+                    rep, how = m2.group(0).replace("руб", "₽"), "сумма из раздела"
+                    break
+            if rep is None:
                 rep, how = DEFAULT_AMOUNT.get(page, "42 000 ₽"), "сумма по умолчанию"
         out.append(rep)
         rows.append(("{%s}" % m.group(1), rep, how))
