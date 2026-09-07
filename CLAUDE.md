@@ -317,7 +317,11 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `/main`); finally `pruneEmpty()` drops empty wrappers (`<p>&nbsp;</p>`, an `<a>` around a removed image;
   table cells are left alone), `pruneOrphanHeadings()` drops a heading followed by nothing or by a higher-level
   heading (the h2 of a removed widget), and `wrapLooseText()` wraps top-level bare text runs into `<p>` (text
-  that lived directly in an unwrapped `div`), blank-line runs are collapsed to one newline. A second
+  that lived directly in an unwrapped `div`) — consecutive short pure-text cells (≤ 24 chars, no end
+  punctuation, no block between them) are joined into ONE `<p>` («00 / Дней / 22 / Часов» → «00 Дней 22
+  Часов», a card's provider/activity/RTP one line) and a number-only run with no such neighbours (the step
+  counter `span.spot-cta-number` «1» before an h2 — the user's «<p>1</p> в начале страницы» artifact) is
+  dropped; blank-line runs are collapsed to one newline. A second
   `applyReplacements()` pass then catches a brand that step 4 glued back
   together from `<span>` pieces (idempotent: the variables contain no brand). The output is bare semantic
   HTML — `p`, `h2`/`h3`, `ul`/`ol`/`li`, `table`/`tr`/`td`/`th`, `strong`, `a[href]`, `blockquote`,

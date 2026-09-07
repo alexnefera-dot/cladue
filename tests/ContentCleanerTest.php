@@ -351,6 +351,22 @@ final class ContentCleanerTest
         Assert::true(str_contains($drop, 'Момент') && str_contains($drop, 'Ещё абзац'), 'статья вокруг цела');
     }
 
+    public function testStepNumberDroppedAndWidgetCellsJoined(): void
+    {
+        // Номер шага «spot-cta-number» перед заголовком и ячейки таймера: абзацев из одних цифр не остаётся,
+        // короткие ячейки подряд склеиваются в один абзац.
+        $html = '<h1>x</h1><p>Абзац статьи для объёма, чтобы страница считалась статьёй и не была заглушкой.</p>'
+            . '<div class="year">2024</div>'
+            . '<div class="spot-cta"><span class="spot-cta-number">1</span><div class="spot-cta-body"><h2>Первый шаг — регистрация</h2><p>Пакет активируется сразу.</p></div></div>'
+            . '<h3>Таймер</h3><div class="timer-display"><div class="timer-item"><div class="timer-value">00</div><div class="timer-label">Дней</div></div><div class="timer-item"><div class="timer-value">22</div><div class="timer-label">Часов</div></div></div>'
+            . '<h3>Карточка</h3><div class="slot-info"><div class="slot-provider">Pragmatic Play</div><div class="slot-rtp">RTP 96.5%</div></div><h3>Популярные запросы</h3>';
+        $out = (new ContentCleaner())->clean($html);
+        Assert::false(preg_match('~<p>\s*[\d\s]+</p>~u', $out) === 1, 'абзацев из одних цифр нет: ' . $out);
+        Assert::true(str_contains($out, '<p>00 Дней 22 Часов</p>'), 'ячейки таймера склеены в один абзац');
+        Assert::true(str_contains($out, '<p>Pragmatic Play RTP 96.5%</p>'), 'короткие ячейки карточки — одной строкой');
+        Assert::true(str_contains($out, '<h2>Первый шаг — регистрация</h2>') && str_contains($out, 'Пакет активируется'), 'заголовок и текст шага на месте');
+    }
+
     public function testBrandGluedToDigitsIsReplaced(): void
     {
         // Промокоды «Grizzly30», «Grizzly2024» — бренд с цифрами справа; внутри слова (mistaken) — по-прежнему нет.

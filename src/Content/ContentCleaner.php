@@ -1165,50 +1165,108 @@ final class ContentCleaner
     }
 
     /**
-     * Оборачивает в <p> «голые» куски верхнего уровня: текст и строчные теги подряд между блоками. Пустая строка
-     * (перевод строки от развёрнутого div или <br>) разделяет абзацы.
+     * «Голый» текст верхнего уровня (после развёртки div) — в <p>. Пробег = текст и строчные теги подряд между
+     * блоками (перевод строки — граница пробега). Подряд идущие короткие «ячейки» (до 24 символов, без знаков
+     * конца предложения, только текст) склеиваются в один абзац: «00 / Дней / 22 / Часов» → «00 Дней 22 Часов»,
+     * «Pragmatic Play / Активность 24ч / RTP 96%» — одной строкой. Пробег из одних цифр (номер шага
+     * «spot-cta-number», счётчик) без соседей выбрасывается — в статье он ничего не значит.
      */
     private function wrapLooseText(\DOMDocument $doc, \DOMElement $root): void
     {
         $inline = ['a', 'strong', 'em', 'b', 'i', 'span', 'sup', 'sub', 'u', 's', 'mark', 'small', 'code', 'abbr', 'time', 'cite', 'q'];
+        $runs = [];
         $run = [];
-        $flush = static function () use (&$run, $doc, $root): void {
-            // Хвостовые пробелы абзаца — не в <p>.
+        $flushRun = static function () use (&$run, &$runs): void {
             while ($run !== [] && end($run) instanceof \DOMText && trim(end($run)->textContent) === '') {
                 array_pop($run);
             }
-            $hasText = false;
-            foreach ($run as $node) {
-                if (trim($node->textContent) !== '') {
-                    $hasText = true;
-                    break;
+            if ($run === []) {
+                return;
+            }
+            $text = '';
+            $pure = true;
+            foreach ($run as $n) {
+                $text .= $n->textContent;
+                if (!$n instanceof \DOMText) {
+                    $pure = false;
                 }
             }
-            if ($hasText) {
-                $p = $doc->createElement('p');
-                $root->insertBefore($p, $run[0]);
-                foreach ($run as $node) {
-                    $p->appendChild($node);
-                }
+            $text = trim(preg_replace('~\s+~u', ' ', $text) ?? $text);
+            if ($text !== '') {
+                $runs[] = ['nodes' => $run, 'text' => $text, 'pure' => $pure];
             }
             $run = [];
         };
         foreach (iterator_to_array($root->childNodes) as $c) {
             if ($c instanceof \DOMText && trim($c->textContent) === '') {
                 if (str_contains($c->textContent, "\n")) {
-                    $flush(); // граница блока
+                    $flushRun(); // перевод строки между развёрнутыми блоками — граница пробега
                 } elseif ($run !== []) {
-                    $run[] = $c; // пробел между строчными элементами внутри абзаца
+                    $run[] = $c;
                 }
                 continue;
             }
-            if ($c instanceof \DOMText || ($c instanceof \DOMElement && in_array(strtolower($c->tagName), $inline, true))) {
+            $isInline = $c instanceof \DOMText || ($c instanceof \DOMElement && in_array(strtolower($c->tagName), $inline, true));
+            if ($isInline) {
                 $run[] = $c;
             } else {
-                $flush();
+                $flushRun();
+                $runs[] = ['break' => true]; // блочный элемент: соседние пробеги не склеиваем через него
             }
         }
-        $flush();
+        $flushRun();
+
+        $isCell = static fn (array $r): bool => $r['pure'] && mb_strlen($r['text']) <= 24 && preg_match('~[.!?;:]$~u', $r['text']) !== 1;
+        $isNumber = static fn (array $r): bool => preg_match('~^[\d\s.,№#%+\-–—]+$~u', $r['text']) === 1;
+        $groups = [];
+        $cur = [];
+        foreach ($runs as $r) {
+            if (isset($r['break'])) {
+                if ($cur !== []) {
+                    $groups[] = $cur;
+                    $cur = [];
+                }
+                continue;
+            }
+            if ($cur !== [] && $isCell($r) && $isCell(end($cur))) {
+                $cur[] = $r;
+            } else {
+                if ($cur !== []) {
+                    $groups[] = $cur;
+                }
+                $cur = [$r];
+            }
+        }
+        if ($cur !== []) {
+            $groups[] = $cur;
+        }
+        foreach ($groups as $group) {
+            $allNumbers = true;
+            foreach ($group as $r) {
+                if (!$isNumber($r)) {
+                    $allNumbers = false;
+                    break;
+                }
+            }
+            if ($allNumbers) {
+                foreach ($group as $r) {
+                    foreach ($r['nodes'] as $n) {
+                        $n->parentNode?->removeChild($n);
+                    }
+                }
+                continue;
+            }
+            $p = $doc->createElement('p');
+            $root->insertBefore($p, $group[0]['nodes'][0]);
+            foreach ($group as $i => $r) {
+                if ($i > 0) {
+                    $p->appendChild($doc->createTextNode(' '));
+                }
+                foreach ($r['nodes'] as $n) {
+                    $p->appendChild($n);
+                }
+            }
+        }
     }
 
     /**
