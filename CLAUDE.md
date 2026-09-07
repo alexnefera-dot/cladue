@@ -328,7 +328,8 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `details`/`summary` — with no classes or styles (the user's templates wrap it in their own markup).
   Brand matching is case-insensitive and homoglyph-tolerant
   (Latin↔Cyrillic look-alikes, so `STAKE`≡`STAKЕ`; digits may follow the brand, so the promo code «Grizzly30»
-  becomes `%brand_name_en%30`, while `mistaken` never matches `stake`), and the site's OWN Russian brand also matches its declined
+  becomes `%brand_name_en%30`, while `mistaken` never matches `stake`; a dot or dash inside the site's OWN
+  brand — «Bigs.bet», «Бигс.бет», «Bigs-Bet» — matches too, but not for the known-brand list), and the site's OWN Russian brand also matches its declined
   forms («Криптобосса», «в Вулкане Вегасе» — `RU_ENDINGS`, an explicit case-ending list rather than «any 3
   letters», applied per word; deliberately NOT applied to the known/foreign brand list, where short words would
   false-match — «куш» must not eat «кушать»); a concatenated latin brand label also matches its SPACED

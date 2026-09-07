@@ -945,11 +945,11 @@ final class ContentCleaner
             // Свой русский бренд — с учётом падежей («Криптобосса», «Криптобоссе»), иначе часть упоминаний
             // оставалась незаменённой. Для чужих (известных) брендов склонение не включаем: у коротких
             // слов это даёт ложные совпадения (стейк → «стейка» — еда, а не бренд).
-            $html = $this->replaceBrand($html, (string) $opt['brand_ru'], '%brand_name_ru%', true);
+            $html = $this->replaceBrand($html, (string) $opt['brand_ru'], '%brand_name_ru%', true, true);
         }
         if (($opt['brand_en'] ?? '') !== '') {
             $b = (string) $opt['brand_en'];
-            $html = $this->replaceBrand($html, $b, '%brand_name_en%');
+            $html = $this->replaceBrand($html, $b, '%brand_name_en%', false, true);
             $this->addSpacedTarget($spaced, $b, '%brand_name_en%');
         }
         // Сначала длинные названия, потом короткие: иначе «вулкан» съест первое слово «вулкан вегас»
@@ -975,9 +975,9 @@ final class ContentCleaner
      */
     private const RU_ENDINGS = '(?:ами|ями|ом|ем|ём|ой|ей|ою|ею|ов|ев|ёв|ам|ям|ах|ях|а|я|у|ю|е|ё|ы|и|о)?';
 
-    private function replaceBrand(string $html, string $brand, string $variable, bool $declension = false): string
+    private function replaceBrand(string $html, string $brand, string $variable, bool $declension = false, bool $separators = false): string
     {
-        $pattern = $this->homoglyphPattern($brand, $declension);
+        $pattern = $this->homoglyphPattern($brand, $declension, $separators);
         if ($pattern === '') {
             return $html;
         }
@@ -1042,21 +1042,22 @@ final class ContentCleaner
      * Регэксп по названию бренда: каждая похожая буква — класс из латиницы и кириллицы (STAKE ≡ STAKЕ),
      * пробел — любой пробельный промежуток (play fortuna ≡ play&nbsp;fortuna).
      */
-    private function homoglyphPattern(string $brand, bool $declension = false): string
+    private function homoglyphPattern(string $brand, bool $declension = false, bool $separators = false): string
     {
-        $out = '';
-        foreach (preg_split('~~u', mb_strtolower(trim($brand)), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $ch) {
-            if (trim($ch) === '') {
-                // Окончание — у каждого слова составного бренда («в Вулкане Вегасе»), перед пробелом.
-                $out .= ($declension ? self::RU_ENDINGS : '') . '\s+';
-            } elseif (isset(self::HOMOGLYPHS[$ch])) {
-                $out .= '[' . self::HOMOGLYPHS[$ch] . ']';
-            } else {
-                $out .= preg_quote($ch, '~');
+        // $separators — для СВОЕГО бренда: точка/дефис внутри слова («Bigs.bet», «Bigs-Bet») и между словами
+        // («Бигс.бет» при бренде «бигс бет») тоже считаются брендом; для общего списка брендов не включаем.
+        $words = preg_split('~\s+~u', mb_strtolower(trim($brand)), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $parts = [];
+        foreach ($words as $word) {
+            $chars = [];
+            foreach (preg_split('~~u', $word, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $ch) {
+                $chars[] = isset(self::HOMOGLYPHS[$ch]) ? '[' . self::HOMOGLYPHS[$ch] . ']' : preg_quote($ch, '~');
             }
+            // Окончание — у каждого слова составного бренда («в Вулкане Вегасе»).
+            $parts[] = implode($separators ? '[.\-]?' : '', $chars) . ($declension ? self::RU_ENDINGS : '');
         }
 
-        return $out === '' ? '' : $out . ($declension ? self::RU_ENDINGS : '');
+        return $parts === [] ? '' : implode($separators ? '[\s.\-]+' : '\s+', $parts);
     }
 
     private function hasCyrillic(string $text): bool

@@ -367,6 +367,18 @@ final class ContentCleanerTest
         Assert::true(str_contains($out, '<h2>Первый шаг — регистрация</h2>') && str_contains($out, 'Пакет активируется'), 'заголовок и текст шага на месте');
     }
 
+    public function testOwnBrandWithDotOrDashIsReplaced(): void
+    {
+        // Свой бренд с точкой/дефисом внутри («Bigs.bet», «Бигс.бет», «Bigs-Bet») — тоже бренд; для общего
+        // списка брендов разделители не включаем (s.take — не stake).
+        $html = '<h1>x</h1><p>Bigs.bet, Бигс.бет и Bigs-Bet, просто bigsbet и Бигс бет. А ещё s.take и stake.</p><h3>Популярные запросы</h3>';
+        $out = (new ContentCleaner())->clean($html, ['brand_en' => 'bigsbet', 'brand_ru' => 'бигс бет', 'extra_brands' => ['stake']]);
+        // 3 своих (Bigs.bet, Bigs-Bet, bigsbet) + целый «stake» из общего списка — он тоже %brand_name_en%.
+        Assert::same(4, substr_count($out, '%brand_name_en%'), 'Bigs.bet, Bigs-Bet и bigsbet заменены: ' . $out);
+        Assert::same(2, substr_count($out, '%brand_name_ru%'), 'Бигс.бет и Бигс бет заменены');
+        Assert::true(str_contains($out, 's.take') && !str_contains($out, ' stake'), 'общий бренд с точкой не трогаем, целый — заменён');
+    }
+
     public function testBrandGluedToDigitsIsReplaced(): void
     {
         // Промокоды «Grizzly30», «Grizzly2024» — бренд с цифрами справа; внутри слова (mistaken) — по-прежнему нет.
