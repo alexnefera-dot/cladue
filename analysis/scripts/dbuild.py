@@ -2,6 +2,7 @@ import json,os
 SP='/tmp/claude-0/-home-user-cladue/7a7c5bac-d634-59c6-bc3f-c4e28ea7944c/scratchpad/'
 S='/home/user/cladue/analysis/scripts/'
 D=json.load(open(SP+'days.json'))
+D['fresh']=json.load(open(SP+'fresh.json'))
 head=open(S+'head_keys.html',encoding='utf-8').read().replace(
     '<title>Ключи по брендам</title>','<title>Дни запуска и окна конверсий</title>')
 app=open(S+'dapp.js',encoding='utf-8').read()
@@ -39,7 +40,7 @@ h3.vt{margin-top:26px}
 '''
 body=f'''
 <header><div class="wrap">
- <div class="eyebrow">Дорвеи · конверсии 21 августа — 3 сентября</div>
+ <div class="eyebrow">Дорвеи · конверсии 21 августа — 7 сентября</div>
  <h1>Дни запуска и окна конверсий</h1>
  <p class="sub">{len(D['days'])} дней запуска, {nd} доменов, {D['reg']} регистраций и {D['dep']} депозитов.
  Для каждого дня видно, закрылось ли шестидневное окно заработка, попала ли вся жизнь доменов

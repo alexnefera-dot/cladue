@@ -1,12 +1,13 @@
 # Данные для отчёта «Дни запуска и окна конверсий».
 import json,collections,math,random,re,datetime as dt
 SP='/tmp/claude-0/-home-user-cladue/7a7c5bac-d634-59c6-bc3f-c4e28ea7944c/scratchpad/'
-EV=json.load(open(SP+'convall.json'))
+BAD={'yandex.ru','—','ru.search.yahoo.com','alice.yandex.ru'}   # события без нашего домена в адресе
+EV=[e for e in json.load(open(SP+'convall.json')) if e['dom'] not in BAD]
 db=json.load(open(SP+'db.json'))
 SN=json.load(open(SP+'snapr.json')); QD=SN['qd']
 reg=collections.Counter(e['dom'] for e in EV if e['type']=='reg')
 dep=collections.Counter(e['dom'] for e in EV if e['type']=='dep')
-TODAY=dt.date(2026,9,3)
+TODAY=dt.date(2026,9,7)
 CURVE=[0,18,49,75,90,95,99]          # накопленный % заработка к концу N-х суток
 DATA0=dt.date(2026,8,21)             # первый день, покрытый выгрузкой конверсий
 
@@ -36,11 +37,20 @@ for names,g in D2708.items():
     for x in names.split():
         DAY[x+'.team']='27.08'; GRP[x+'.team']=g
         SRC[x+'.team']='генератор' if g.startswith('Generator') else 'не указано'
-# запуск 03.09 — позиций ещё нет, но день существует
-for x in open('/home/user/cladue/analysis/launch_03.09.txt'):
-    x=x.strip()
-    if x and not x.startswith('#'):
-        DAY[x]='03.09'; GRP[x]='NEW50_3 styled (четыре ветки)'; SRC[x]='готовый пак'
+# дни 03-07.09 — позиций ещё нет, но дни и группы существуют: берём из реестра запусков
+import glob
+for f in sorted(glob.glob('/home/user/cladue/analysis/launch_*.txt')):
+    if '_flat' in f: continue
+    md=re.search(r'launch_(\d\d\.\d\d)',f)
+    if not md: continue
+    dkey=md.group(1); cur=None
+    for l in open(f):
+        l=l.rstrip()
+        if l.startswith('## '): cur=re.sub(r'\s*—\s*id.*$','',l[3:]).strip()
+        elif re.match(r'^[a-z0-9\-]+\.[a-z]+$',l.strip()):
+            x=l.strip()
+            if x in DAY: continue
+            DAY[x]=dkey; GRP[x]=cur or dkey; SRC[x]=bucket('',cur or '')
 def dat(s):
     m=re.match(r'(\d\d)\.(\d\d)',str(s)); 
     return dt.date(2026,int(m.group(2)),int(m.group(1))) if m else None
