@@ -394,8 +394,10 @@ def check_site(n, tpl, key, pages, F):
                 " — заглушка" if d["nwords"] < 60 else ""))
         # B13 тонкая страница: главная без текста или разделов — сайт убирается
         cw, sec = content_words(d["raw"]), sections(d["raw"])
-        if p == "main" and (cw < MIN_MAIN_WORDS or sec == 0):
-            F.add(key, "ERROR", "B13", "%s: тонкая главная — %d слов текста, %d разделов (минимум %d и 1)" % (loc, cw, sec, MIN_MAIN_WORDS))
+        if p == "main" and (sec == 0 or cw < 150 or (cw < MIN_MAIN_WORDS and sec < 3)):
+            F.add(key, "ERROR", "B13", "%s: тонкая главная — %d слов текста, %d разделов (нужно ≥%d слов и ≥1 раздел, либо ≥150 слов и ≥3 раздела)" % (loc, cw, sec, MIN_MAIN_WORDS))
+        elif p == "main" and cw < 260:
+            F.add(key, "WARN", "B13", "%s: короткая главная — %d слов текста, %d разделов" % (loc, cw, sec))
         elif p != "main" and cw < 100 and sec == 0 and d["nwords"] >= 60:
             F.add(key, "WARN", "B13", "%s: тонкая страница — %d слов текста, разделов нет" % (loc, cw))
         # B2 заголовки
