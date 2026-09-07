@@ -254,6 +254,7 @@
     <div class="btns" id="statsRow" style="margin-bottom:8px;align-items:center;flex-wrap:wrap;gap:8px">
       <span class="hint" id="statsText"></span>
       <button class="btn-ghost" id="removeOwnBtn" hidden title="Убрать из списка все сайты, помеченные как наши (крестиком — можно вернуть). Работает сразу после сбора, по превью">Убрать наши</button>
+      <button class="btn-ghost" id="removeNoPreviewBtn" hidden title="Убрать из списка сайты, у которых не открылась ни одна страница (превью не получено, 0 стр.) — чтобы идти на выгрузку без них. Работает сразу после сбора; крестиком — можно вернуть">Убрать без превью</button>
       <span id="r404wrap" hidden style="display:inline-flex;align-items:center;gap:6px">
         <span class="hint">порог</span>
         <input type="number" id="max404" value="4" min="0" style="width:3.5em" title="Сайт убирается, если страниц с ошибкой 404 больше этого числа">
@@ -482,7 +483,7 @@ function renderStatus(st, running){
     const total = rkeys.reduce((a,k)=>a+(rej[k]||0),0), seen = rej.seen_before||0;
     const fromCache = (stats.cache_hits||0)>0 && !((stats.cache_misses||0)>0);
     const cacheNote = fromCache ? ` Все ответы (${stats.cache_hits}) взяты из кэша выдачи — новых запросов к источнику не было, те же запросы уже задавались за последние 7 дней; чтобы получить выдачу заново, включите «Свежая выдача» в настройках.` : '';
-    if(seen>0 && seen>=total*0.8) msg=`<div class="msg err">Ничего нового: ${seen} из ${total} доменов уже есть в базе пересечений (собраны прошлыми сборами) и пропущены по галочке «Пропускать домены, которые уже собраны раньше». Снимите её или нажмите «очистить базу» в настройках, чтобы отобрать эти сайты снова.${cacheNote}</div>`;
+    if(seen>0 && seen>=total*0.8) msg=`<div class="msg err">Ничего нового: ${seen} из ${total} доменов уже есть в базе пересечений (собраны прошлыми сборами) и пропущены по галочке «Пропускать домены, которые уже собраны раньше». Снимите её или нажмите «очистить базу» в настройках, чтобы отобрать эти сайты снова.${cacheNote}${st.kept_previous?' Прошлый список сайтов ниже оставлен — с ним можно продолжать (выгрузка, докачка, очистка).':''}</div>`;
     else msg=`<div class="msg err">Ничего не отобрано — все результаты отсеяны фильтрами (см. «Отсеяно» выше). Проверьте «Зоны доменов» (пусто = любые) и исключения.${cacheNote}</div>`;
   }
   else if(st.phase==='done' && (stats.cache_hits||0)>0 && !((stats.cache_misses||0)>0)) msg=`<div class="msg">Все ответы (${stats.cache_hits}) взяты из кэша выдачи — к источнику не обращались (те же запросы уже задавались за последние 7 дней). Для новой выдачи включите «Свежая выдача» в настройках.</div>`;
@@ -630,6 +631,10 @@ function updateStats(visible){
   }
   const ro=$('removeOwnBtn');
   if(ro){ ro.hidden = c.own===0; ro.textContent='Убрать наши ('+c.own+')'; }
+  // «Убрать без превью»: сайты, у которых не открылась ни одна страница (0 стр.) — сразу после сбора, как и «наши».
+  const rn=$('removeNoPreviewBtn');
+  if(rn){ const hasPreview=visible.some(s=>(s.pages_total|0)>0 || s.page_error); const cnt=visible.filter(noPreview).length;
+    rn.hidden=!hasPreview; rn.disabled=cnt===0; rn.textContent='Убрать без превью ('+cnt+')'; }
   const wrap=$('r404wrap'), rb=$('remove404Btn'), inp=$('max404');
   if(wrap && rb && inp){
     const N=Math.max(0, parseInt(inp.value,10)||0);
@@ -640,12 +645,14 @@ function updateStats(visible){
     rb.textContent='Убрать с 404 > '+N+' ('+cnt+')';
   }
 }
+function noPreview(s){ return !s.own && ((s.pages_total|0)>0 ? (s.pages_ok|0)===0 : !!s.page_error); }
 function removeWhere(pred){
   const hosts=lastSites.filter(s=>!isRemoved(s.host) && pred(s)).map(s=>s.host);
   if(!hosts.length) return;
   removeOnServer(hosts);
 }
 $('removeOwnBtn').addEventListener('click', ()=>removeWhere(s=>!!s.own));
+$('removeNoPreviewBtn').addEventListener('click', ()=>removeWhere(noPreview));
 $('remove404Btn').addEventListener('click', ()=>{ const N=Math.max(0, parseInt($('max404').value,10)||0); removeWhere(s=>!s.own && (s.pages_404|0)>N); });
 $('max404').addEventListener('input', ()=>updateStats(lastSites.filter(s=>!isRemoved(s.host))));
 

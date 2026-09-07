@@ -57,7 +57,8 @@ cladue/
 │   ├── Runtime.php             # shared pipeline factory (fetcher/cache/proxies/checker/visitor) used by CLI and job
 │   ├── Content/                # ContentCleaner (article-body extraction, link normalization, %var% templating),
 │   │                           # SiteCleaner (one site → content/N-стр/<host>, shared by panel + run-job), BrandDetector, KnownBrands
-│   └── Support/                # Logger (STDERR), QueryList (query file reader), Progress (status JSON writer)
+│   └── Support/                # Logger (STDERR), QueryList (query file reader), Progress (status JSON writer),
+│                               # SiteRows (sites.json → Site objects + panel table rows, shared by run-job and panel)
 ├── tests/                      # custom runner (run.php), Assert, fixtures/ (XML + SERP HTML), fake-api-server.php
 ├── config.example.php          # documented example configuration (copy to config.php)
 ├── proxies.example.txt         # proxy list formats
@@ -401,7 +402,17 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   the per-site `/api/clean-site` button. The `stage=clean` job branch is exactly what «Очистить всё» runs; `bin/clean-content.php` stays a
   separate CLI tool with its own loop. Covered by `tests/ContentCleanerTest.php`
   and `tests/BrandDetectorTest.php`.
-- Removing a site from the table (✕, «Убрать наши», «Убрать с 404 > N») is a SERVER-SIDE, final and
+- The previous collect must survive a page refresh, a panel restart and `setup.php --update` (the user
+  works with one list for days): `Support\SiteRows` (moved out of run-job: `load()` = the old `loadSites()`,
+  `preview()` = the old `previewSites()`) lets `/api/state` fall back to `sites.json` when `status.json` has
+  no `sites` (a download/retry/clean job in progress after a refresh, an error status, a deleted status) —
+  the response marks `sites_from_file`; a collect that selects NOTHING (everything `seen_before`/filtered)
+  does not overwrite `sites.json`/`sites.csv`/`domains.txt` (`kept_previous` in the status + message «прошлый
+  список сайтов оставлен»), so the table stays workable; `runs` is in `setup.php`'s `KEEP_FILES`. Covered
+  by `PanelTest::testLedgerSkipsAlreadyCollectedDomains` and `testPanelRemoveAndRestoreEndpoints`.
+- Removing a site from the table (✕, «Убрать наши», «Убрать без превью» = `noPreview()`: not own and no
+  page opened — `pages_total > 0 && pages_ok === 0`, or no visit at all with a `page_error`; shown as soon
+  as preview data exists, so the user can go to download without them; «Убрать с 404 > N») is a SERVER-SIDE, final and
   cross-stage operation — `Support\RemovedSites` (`runs/current/removed.json`): `/api/remove` drops the site's
   row from `sites.json` and from `status.json` (so the table updates on the next poll) and moves its folders
   (`pages/<bucket>/<host>`, `preview/<host>`, `content/<bucket>/<host>`) into `runs/current/removed/` keeping

@@ -239,6 +239,16 @@ if ($path === '/' || $path === '/index.html') {
 
 if ($path === '/api/state') {
     $status = readJsonFile($statusFile);
+    // Таблица сайтов не должна пропадать после обновления страницы или перезапуска панели: если в статусе
+    // нет списка (идёт выгрузка/докачка, была ошибка, статус стёрт), берём прошлый сбор из sites.json.
+    if (empty($status['sites']) && is_file($runDir . '/sites.json')) {
+        $rows = \YandexSites\Support\SiteRows::preview(\YandexSites\Support\SiteRows::load($runDir . '/sites.json'), $runDir);
+        if ($rows !== []) {
+            $status = is_array($status) ? $status : ['state' => 'idle', 'phase' => 'idle'];
+            $status['sites'] = $rows;
+            $status['sites_from_file'] = true;
+        }
+    }
     $pid = is_file($pidFile) ? (int) file_get_contents($pidFile) : 0;
     $running = $pid > 0 && processAlive($pid) && !is_file($stopFile);
     jsonOut([

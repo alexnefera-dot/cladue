@@ -47,6 +47,7 @@ use YandexSites\Support\DomainLedger;
 use YandexSites\Support\Logger;
 use YandexSites\Support\Progress;
 use YandexSites\Support\RemovedSites;
+use YandexSites\Support\SiteRows;
 
 $settingsFile = null;
 $statusFile = null;
@@ -225,54 +226,7 @@ function buildOverrides(array $s, string $runDir): array
  */
 function previewSites(array $sites, string $runDir = '', int $limit = 1000): array
 {
-    $rel = static function (string $abs) use ($runDir): string {
-        $prefix = rtrim($runDir, '/\\') . '/';
-        return $runDir !== '' && str_starts_with($abs, $prefix) ? substr($abs, strlen($prefix)) : $abs;
-    };
-    $rows = [];
-    foreach (array_slice($sites, 0, $limit) as $site) {
-        $data = $site->toArray();
-        $summary = $site->visitSummary();
-        $own = (bool) ($data['own'] ?? false);
-        // Для показа берём первый успешный визит, а если такого нет (ошибка/наш) — самый первый визит:
-        // так остаётся ссылка на скриншот (у «наших» он сохранён) и видна причина ошибки.
-        $visit = $site->firstVisit() ?? ($site->visits[0] ?? null);
-        // Есть ли у сайта страницы, которые докачка реально может добрать (таймаут/блок/404 с языковым
-        // префиксом) — по этому флагу панель считает кнопку «Докачать с ошибками» и не предлагает докачку впустую.
-        $retryable = false;
-        $notFound = 0; // страниц с 404/410 — для кнопки «Убрать с 404 > N» в панели
-        if (!$own) {
-            foreach ($site->visits as $v) {
-                $v = (array) $v;
-                if (!$retryable && \YandexSites\Visit\PageVisitor::isRetryableVisit($v)) {
-                    $retryable = true;
-                }
-                $e = mb_strtolower((string) ($v['error'] ?? ''));
-                if (!($v['ok'] ?? false) && (str_contains($e, 'не найдена') || str_contains($e, 'http 404') || str_contains($e, 'http 410'))) {
-                    $notFound++;
-                }
-            }
-        }
-        $rows[] = [
-            'retryable' => $retryable,
-            'pages_404' => $notFound,
-            'host' => $data['host'],
-            'domain' => $data['domain'],
-            'url' => $data['url'],
-            'title' => $data['title'],
-            'queries_count' => $data['queries_count'],
-            'best_position' => $data['best_position'],
-            'variants' => $data['variants'],
-            'own' => $own,
-            'pages_ok' => $own ? null : ($summary['total'] > 0 ? $summary['ok'] : null),
-            'pages_total' => $own ? null : ($summary['total'] > 0 ? $summary['total'] : null),
-            'page_error' => $own ? 'исключён как наш' : $summary['error'],
-            'html' => !$own && $visit !== null && ($visit['html_file'] ?? '') !== '' ? $rel((string) $visit['html_file']) : '',
-            'screenshot' => $visit !== null && ($visit['screenshot_file'] ?? '') !== '' ? $rel((string) $visit['screenshot_file']) : '',
-        ];
-    }
-
-    return $rows;
+    return SiteRows::preview($sites, $runDir, $limit);
 }
 
 function stopped(string $stopFile): bool
@@ -305,28 +259,7 @@ function rrmdir(string $dir): void
  */
 function loadSites(string $file): array
 {
-    $data = is_file($file) ? json_decode((string) file_get_contents($file), true) : null;
-    $sites = [];
-    foreach (is_array($data) && isset($data['sites']) ? $data['sites'] : [] as $row) {
-        $host = (string) ($row['host'] ?? '');
-        if ($host === '') {
-            continue;
-        }
-        $site = new Site($host, $host, (string) ($row['domain'] ?? $host));
-        $url = (string) ($row['url'] ?? '');
-        $query = (string) ($row['best_query'] ?? '');
-        $position = isset($row['best_position']) ? (int) $row['best_position'] : 1;
-        $site->add(new SearchResult($query, 0, max(1, $position), $url !== '' ? $url : 'https://' . $host . '/', $host, (string) ($row['title'] ?? '')));
-        // Восстанавливаем прошлые визиты и признак «наш» — при докачке только части сайтов остальные
-        // сохраняют свои результаты, и итоговый sites.json не теряет уже выгруженные страницы.
-        if (isset($row['visits']) && is_array($row['visits'])) {
-            $site->visits = array_values($row['visits']);
-        }
-        $site->own = (bool) ($row['own'] ?? false);
-        $sites[$host] = $site;
-    }
-
-    return $sites;
+    return SiteRows::load($file);
 }
 
 $run = 0;
@@ -541,15 +474,23 @@ while (true) {
             $result->stats['cache_misses'] = $fetcher instanceof CachingFetcher ? $fetcher->misses : (int) ($result->stats['requests'] ?? 0);
 
             $writer = new ReportWriter((string) $config->get('output.csv_delimiter', ';'), (bool) $config->get('output.csv_bom', true));
-            $writer->writeCsv($result->sites, $runDir . '/sites.csv');
-            $writer->writeJson($result->sites, $runDir . '/sites.json', [
-                'stats' => $result->stats,
-                'errors' => $result->errors,
-                'source' => $config->get('source'),
-                'settings' => $settings,
-                'proxies' => $runtime->proxies?->stats() ?? [],
-            ]);
-            $writer->writeDomains($result->sites, $runDir . '/domains.txt');
+            // Пустой сбор (всё уже в базе пересечений или отсеяно) не затирает прошлый список сайтов:
+            // с ним можно продолжать — выгружать, докачивать, чистить.
+            $previous = $result->sites === [] ? array_values(loadSites($runDir . '/sites.json')) : [];
+            $keptPrevious = $previous !== [];
+            if ($keptPrevious) {
+                $logger->info('Новый сбор ничего не отобрал — прошлый список сайтов оставлен без изменений');
+            } else {
+                $writer->writeCsv($result->sites, $runDir . '/sites.csv');
+                $writer->writeJson($result->sites, $runDir . '/sites.json', [
+                    'stats' => $result->stats,
+                    'errors' => $result->errors,
+                    'source' => $config->get('source'),
+                    'settings' => $settings,
+                    'proxies' => $runtime->proxies?->stats() ?? [],
+                ]);
+                $writer->writeDomains($result->sites, $runDir . '/domains.txt');
+            }
             $writer->writeRawCsv($result->raw, $runDir . '/results.csv');
 
             $progress->update([
@@ -559,11 +500,14 @@ while (true) {
                 'errors' => $result->errors,
                 'aborted' => $result->aborted,
                 'proxies' => $runtime->proxies?->stats() ?? [],
-                'sites' => previewSites($result->sites, $runDir),
+                'sites' => previewSites($keptPrevious ? $previous : $result->sites, $runDir),
+                'kept_previous' => $keptPrevious,
                 'base_domains' => $ledger->count(),
                 'run_finished_at' => date(DATE_ATOM),
                 'files' => ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt', 'results' => 'results.csv'],
-                'message' => $result->aborted ? 'Прогон остановлен из-за ошибки источника, см. лог' : '',
+                'message' => $result->aborted
+                    ? 'Прогон остановлен из-за ошибки источника, см. лог'
+                    : ($keptPrevious ? 'Ничего нового не отобрано — прошлый список сайтов оставлен, с ним можно продолжать' : ''),
             ], true);
             $logger->info(sprintf('Прогон %d завершён: новых сайтов %d, всего в базе %d', $run, $result->stats['sites_selected'], $ledger->count()));
         }

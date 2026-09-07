@@ -194,6 +194,12 @@ final class PanelTest
         Assert::same('done', $s2['state']);
         Assert::same(0, $s2['stats']['sites_selected'], 'повторный сбор ничего нового не отобрал');
         Assert::true(($s2['stats']['rejected']['seen_before'] ?? 0) > 0, 'домены отклонены как уже собранные');
+        // Пустой сбор не затирает прошлый список: sites.json и таблица в статусе — от первого сбора.
+        $kept = json_decode((string) file_get_contents($runDir . '/sites.json'), true);
+        Assert::same($selected, count($kept['sites']), 'прошлый sites.json оставлен');
+        Assert::true($s2['kept_previous'] ?? false, 'статус помечен kept_previous');
+        Assert::same($selected, count($s2['sites']), 'таблица в статусе — прошлый список');
+        Assert::contains('прошлый список', $s2['message']);
         Assert::true(($s2['stats']['cache_hits'] ?? 0) > 0 && ($s2['stats']['cache_misses'] ?? 0) === 0, 'повтор тех же запросов — ответы из кэша, к источнику не обращались');
 
         // «Свежая выдача» + без пропуска известных доменов: ответы получены заново, сайты отобраны снова.
@@ -499,6 +505,14 @@ final class PanelTest
             $state = json_decode((string) $this->http('GET', $base . '/api/state'), true);
             Assert::same([], $state['removed']);
             Assert::same(2, count($state['status']['sites']), 'вернуть все — строка вернулась');
+
+            // Без status.json (обновили страницу во время выгрузки, перезапустили панель) таблица берётся из sites.json.
+            @unlink($runDir . '/status.json');
+            $state = json_decode((string) $this->http('GET', $base . '/api/state'), true);
+            $hosts = array_map(static fn ($s) => $s['host'], $state['status']['sites']);
+            sort($hosts);
+            Assert::same(['gone.ru', 'stay.ru'], $hosts, 'таблица из sites.json, когда статуса нет');
+            Assert::true($state['status']['sites_from_file'] ?? false);
             Assert::true(is_dir($runDir . '/pages/2-стр/gone.ru'), 'и папки вернулись');
         } finally {
             proc_terminate($server);
