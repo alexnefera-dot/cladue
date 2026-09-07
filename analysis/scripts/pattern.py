@@ -37,7 +37,7 @@ un=[d for d in reg if d not in BASE]
 print(f"домены с деньгами вне знаменателя: {len(un)} ({sum(reg[d] for d in un)} рег) — конфигурация неизвестна\n")
 
 # ---------- окно: закрыто ли
-TODAY=dt.date(2026,9,3)
+TODAY=dt.date(2026,9,7)
 def opened(day):
     m=re.search(r'(\d\d)\.(\d\d)',str(day))
     if not m: return None
