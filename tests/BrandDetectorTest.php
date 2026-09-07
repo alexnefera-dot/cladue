@@ -14,6 +14,7 @@ final class BrandDetectorTest
         Assert::same('cryptoboss', $d->brandFromHost('cryptoboss.ccy.casino'));
         Assert::same('cryptoboss', $d->brandFromHost('www.cryptoboss.com'));
         Assert::same('pokerdom', $d->brandFromHost('pokerdom.net'));
+        Assert::same('grizzly', $d->brandFromHost('grizzly-0.xki.casino'), 'номер зеркала в метке хоста — не бренд');
     }
 
     public function testRussianBrandByTransliteration(): void

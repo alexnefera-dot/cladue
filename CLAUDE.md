@@ -265,8 +265,10 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   (`JUNK_TOKENS`: contacts, tag-cloud/keywords, social/share, popup/modal, cookie, breadcrumbs, banner/ads,
   CTA/urgency widgets `cta`/`countdown`/`timer`/`ticker`, and the content-block widgets seen on the
   11–15-page templates — `hero`, `jackpot`, `payout(s)`, `dashboard`, `widget`, `toast`/`notification`,
-  `floating`, `related`, `action`, `menu`/`navbar`/`topbar`, `skip`). START: after the first `h1` only when
-  `hasArticleTextBefore()` finds no article text before it (≥ 200 chars or a `<p>`/`<li>` ≥ 80 chars); when
+  `floating`, `related`, `action`, `menu`/`navbar`/`topbar`, `skip`, and the game-catalog filter bar
+  `filter`/`filters`/`dropdown`). START: after the first `h1` only when
+  `hasArticleTextBefore()` finds no article text before it (≥ 150 chars or a `<p>`/`<li>` ≥ 40 chars — the
+  7–10-page template's `div.promo-text` intro is three 40–65-char paragraphs); when
   there IS text (7–10-page templates put intro paragraphs before a mid-page h1) the block is taken from its
   start and the h1 stays (step 6 turns it into h2) — cutting from the h1 lost those paragraphs. END
   (`cutAtEndMarker()`): «Популярные запросы» always (manual); «О компании»/«О портале»/«Контакты»/«Реквизиты»
@@ -281,9 +283,15 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   BEFORE any cut, and whatever is not inside the final root (a `section#faq` after `<main>`, a block after
   «Популярных запросов») is appended (`isInside()`), else JSON-LD `FAQPage` is rendered (`faqFromJsonLd()`:
   `<h2>Вопросы и ответы</h2>` + `<h3>`/`<p>`), so brand substitution covers it too; `removeSlots()` (DOM)
-  drops a slots/games CATALOG — a heading with слот/игры/автоматы (whole words, so «выигрыш» is not «игры»)
-  plus its siblings up to the next same-or-higher heading — only when that section has < 2 paragraphs/items
-  of ≥ 120 chars; a prose section about slots on the slots page stays (the old regex gutted `slots.html`). **2** `applyReplacements()` over body + FAQ together: domain → `%domain_name%` (the regex
+  drops slots/games CATALOGS while keeping the article around them: (1) a grid of game cards (`isCard()`:
+  `gamecard`/`slot-card`/`game-tile`… — `CARD_TOKENS`, or card/tile + slot/game) is removed as a grid together
+  with its widget shell (`removeCardGrid()`: the short caption and heading right before it — «🎡 Рулетка
+  онлайн» + «Крупные ставки» — never a ≥ 120-char block, and the wrapper `div.info-block` once it is left with
+  < 120 chars); on the flat 7–10-page markup a story `<h2>` + `<p>` followed by such a widget keeps its text
+  (the old section-wide removal ate the story); (2) a heading with слот/игры/автоматы (whole words, so
+  «выигрыш» is not «игры»; never inside FAQ, never a question ending with «?») plus its siblings up to the next
+  same-or-higher heading, only when `proseCount()` finds < 2 leaf blocks (`p`/`li`/`dd`/`div`/`blockquote`)
+  of ≥ 120 chars — FAQ answers in `<div>` count too; a prose section about slots on the slots page stays. **2** `applyReplacements()` over body + FAQ together: domain → `%domain_name%` (the regex
   eats an optional subdomain prefix, so `kush.casinozsd.buzz` → `%domain_name%`, not «kush.%domain_name%»),
   `dd.mm.yyyy` → `%date%`, brand → `%brand_name_ru%`/`%brand_name_en%`. This runs BEFORE unwrapping and
   attribute stripping on purpose: the own domain inside `href` becomes `%domain_name%`, which is how step 8
@@ -308,7 +316,8 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   HTML — `p`, `h2`/`h3`, `ul`/`ol`/`li`, `table`/`tr`/`td`/`th`, `strong`, `a[href]`, `blockquote`,
   `details`/`summary` — with no classes or styles (the user's templates wrap it in their own markup).
   Brand matching is case-insensitive and homoglyph-tolerant
-  (Latin↔Cyrillic look-alikes, so `STAKE`≡`STAKЕ`), and the site's OWN Russian brand also matches its declined
+  (Latin↔Cyrillic look-alikes, so `STAKE`≡`STAKЕ`; digits may follow the brand, so the promo code «Grizzly30»
+  becomes `%brand_name_en%30`, while `mistaken` never matches `stake`), and the site's OWN Russian brand also matches its declined
   forms («Криптобосса», «в Вулкане Вегасе» — `RU_ENDINGS`, an explicit case-ending list rather than «any 3
   letters», applied per word; deliberately NOT applied to the known/foreign brand list, where short words would
   false-match — «куш» must not eat «кушать»); a concatenated latin brand label also matches its SPACED
@@ -317,7 +326,8 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   form equals a brand — so «Good Win» maps to a brand but the phrase «a good win» is left alone.
   `Content\BrandDetector` auto-detects the brand: EN is the label of the canonical/og:url host (so a network
   where the brand sits in the subdomain — `kush.casinozsd.buzz` → `kush`, not the shared registrable domain
-  `casinozsd`), falling back to the domain label; RU is the text token — or an adjacent pair of tokens
+  `casinozsd`), falling back to the domain label — a mirror number suffix in the label is dropped
+  (`grizzly-0.xki.casino` → `grizzly`, not `grizzly0`); RU is the text token — or an adjacent pair of tokens
   («Вулкан Вегас», «Мани Икс» — a brand is often two words) — whose transliteration matches. Detection pools
   ALL of a site's pages, not just the home (`detect($html, $host, $moreHtml)`), so the brand is still found
   when the home is an age-gate/redirect stub and the brand + canonical live on inner pages; generic theme

@@ -69,6 +69,21 @@ final class ContentCleanerTest
         Assert::true(str_contains($prose, 'Слоты с высоким RTP') && str_contains($prose, 'математике'), 'раздел с текстом про слоты остаётся');
         $wins = $cleaner->removeSlots('<h2>Истории выигрышей</h2><div>карточка</div><h2>Вывод</h2>');
         Assert::true(str_contains($wins, 'Истории выигрышей'), '«выигрыш» не считается словом «игры»');
+        // Секция карточек игр без слова «слоты» в заголовке — тоже каталог; одиночная карточка вне секции — долой.
+        $cards = $cleaner->removeSlots('<h2>🥇 Лучшие по выплатам</h2><div class="slots-grid"><div class="slot-card"><h4>Mega</h4><p>RTP: 97%</p></div><div class="slot-card"><h4>Gem</h4><p>RTP: 96%</p></div></div><h2>Вывод</h2><p>текст</p><div class="game-card"><h4>Fun</h4></div>');
+        Assert::false(str_contains($cards, 'Лучшие по выплатам') || str_contains($cards, 'Mega') || str_contains($cards, 'Fun'), 'секция карточек и одиночная карточка удалены');
+        Assert::true(str_contains($cards, 'Вывод') && str_contains($cards, 'текст'), 'остальное осталось');
+        // Плоская вёрстка: рассказ + виджет с карточками до следующего h2 — уходит только виджет, рассказ остаётся.
+        $story = str_repeat('В пятницу ближе к полуночи я сидел на кухне и ждал вывод, всё уже спали. ', 5);
+        $flat = $cleaner->removeSlots('<h2>Как всё началось</h2><p>' . $story . '</p><div class="info-block"><h2>♠️ Блэкджек</h2><p class="description">Отобрано для вас</p><div class="slots-grid"><article class="gamecard"><h4>Fun Monkey</h4><p>RTP: 94.1%</p></article><article class="gamecard"><h4>Elements</h4><p>RTP: 96%</p></article></div></div><h2>Момент</h2><p>' . $story . '</p>');
+        Assert::true(str_contains($flat, 'Как всё началось') && substr_count($flat, 'ждал вывод') === 10, 'рассказ вокруг виджета цел');
+        Assert::false(str_contains($flat, 'Блэкджек') || str_contains($flat, 'Отобрано') || str_contains($flat, 'Fun Monkey'), 'виджет с карточками убран вместе с заголовком и подписью');
+        // FAQ и вопрос со словом «слоты» — не каталог, даже если ответы лежат в div и упоминают RTP.
+        $faq = $cleaner->removeSlots('<div class="faq-section"><h2>❓ Честные ответы</h2><h3>Какие шансы выиграть в слоты?</h3><div class="faq-answer">' . str_repeat('Честно: RTP 95.9% — математика на дистанции, а не гарантия. ', 3) . '</div></div><h3>Демо-слоты без регистрации?</h3><div>' . str_repeat('Большинство слотов доступны в демо-режиме без депозита. ', 3) . '</div>');
+        Assert::true(str_contains($faq, 'Какие шансы выиграть в слоты?') && str_contains($faq, 'Демо-слоты без регистрации?') && substr_count($faq, 'RTP 95.9%') === 3, 'FAQ про слоты остался');
+        // Большая секция с классами slots-thematic glass-card — не карточка игры.
+        $big = $cleaner->removeSlots('<section class="slots-thematic glass-card"><h2>Полезно знать о слотах</h2><p>' . str_repeat('Большинство слотов доступны в демо-режиме без депозита и регистрации. ', 3) . '</p><p>' . str_repeat('RTP — это математическая отдача слота на длинной дистанции. ', 3) . '</p></section>');
+        Assert::true(str_contains($big, 'Полезно знать о слотах') && str_contains($big, 'демо-режиме'), 'большой раздел с card в классе — не карточка');
     }
 
     public function testMapLinkToAllowedPaths(): void
@@ -293,6 +308,38 @@ final class ContentCleanerTest
         $html = '<h1>x</h1><p>Играть в <span>Крипто</span><span>босс</span> выгодно.</p><h3>Популярные запросы</h3>';
         $out = (new ContentCleaner())->clean($html, ['brand_ru' => 'криптобосс']);
         Assert::true(str_contains($out, '%brand_name_ru%') && stripos($out, 'криптобосс') === false, 'разбитый бренд заменён');
+    }
+
+    public function testShortIntroBeforeH1KeptAndGameCardSectionsRemoved(): void
+    {
+        // 7–10-страничник (xki.casino): три КОРОТКИХ вводных абзаца перед h1, панель фильтров каталога, секции с
+        // карточками игр под заголовками без слова «слоты» («🎡 Рулетка онлайн»), «О компании» с реквизитами.
+        $card = static fn (string $name): string => '<article class="gamecard"><div class="gamecard-chips">Spinmatic</div><h4>' . $name . '</h4><div>RTP: 92.99% 2020</div><p>Играйте в ' . $name . ' от Spinmatic на Гризли. RTP 92.99%, жанр: Фантастика.</p></article>';
+        $html = '<header><a href="/">Казино Grizzly</a> +7 (495) 164-00-00</header>'
+            . '<div class="filters-section"><button>Все игры</button><div class="filter-dropdown">Краш-игры Mines Викинги</div></div>'
+            . '<div class="entry-content"><div class="promo-text"><p>О будущих планах и О команде доступны в О компании казино Гризли.</p><p>О сервисе Гризли О нас Клиентский фокус.</p></div>'
+            . '<h1>О сервисе Гризли О нас Клиентский фокус</h1><p>Казино Grizzly.</p>'
+            . '<section><h2>Как всё началось в тот вечер</h2><p>' . str_repeat('Это было в пятницу, около полуночи, я сидел за столом и ждал вывод. ', 3) . '</p></section>'
+            . '<section><div class="info-block"><h2>🎡 Рулетка онлайн</h2><p class="description">Крупные ставки</p><div class="slots-grid">' . $card('Infectus') . $card('Elements') . '</div></div>'
+            . '<h2>Момент, когда я напрягся</h2><p>' . str_repeat('Точно в полночь я увидел статус «Обрабатывается» и начал волноваться. ', 3) . '</p></section>'
+            . '<section class="company-info"><h2>О компании Гризли</h2><h3>Контакты</h3><p>Email: support@grizzly-0.xki.casino, +7 (495) 164-00-00</p></section>'
+            . '<footer>подвал</footer>';
+        $out = (new ContentCleaner())->clean($html, ['brand_ru' => 'гризли', 'brand_en' => 'grizzly', 'domain' => 'xki.casino']);
+        Assert::true(str_contains($out, 'О будущих планах'), 'короткие вводные абзацы перед h1 остались');
+        Assert::true(str_contains($out, '<h2>О сервисе %brand_name_ru% О нас Клиентский фокус</h2>'), 'h1 посреди контента стал h2');
+        Assert::false(str_contains($out, 'Краш-игры') || str_contains($out, 'Все игры'), 'панель фильтров каталога убрана');
+        Assert::false(str_contains($out, 'Рулетка онлайн') || str_contains($out, 'Infectus') || str_contains($out, 'Крупные ставки'), 'секция карточек игр убрана вместе с заголовком');
+        Assert::true(str_contains($out, 'Момент, когда я напрягся') && str_contains($out, 'Как всё началось'), 'разделы статьи между виджетами остались');
+        Assert::false(str_contains($out, '<h2>О компании') || str_contains($out, 'Контакты') || str_contains($out, 'support@'), 'блок «О компании» с реквизитами отрезан (а фраза во вводном абзаце осталась)');
+        Assert::false(str_contains($out, '164-00-00'), 'шапка убрана');
+    }
+
+    public function testBrandGluedToDigitsIsReplaced(): void
+    {
+        // Промокоды «Grizzly30», «Grizzly2024» — бренд с цифрами справа; внутри слова (mistaken) — по-прежнему нет.
+        $out = (new ContentCleaner())->clean('<h1>x</h1><p>Промокод «Grizzly30» и код Grizzly2024, а также mistaken.</p><h3>Популярные запросы</h3>', ['brand_en' => 'grizzly', 'extra_brands' => ['stake']]);
+        Assert::true(str_contains($out, '%brand_name_en%30') && str_contains($out, '%brand_name_en%2024'), 'бренд с цифрами справа заменён');
+        Assert::true(str_contains($out, 'mistaken'), 'бренд внутри слова не трогаем');
     }
 
     public function testNoArticleReturnsEmpty(): void

@@ -68,7 +68,14 @@ final class ContentCleaner
         'hero', 'jackpot', 'jackpots', 'payout', 'payouts', 'dashboard', 'widget', 'widgets', 'toast', 'toasts',
         'notification', 'notifications', 'floating', 'related', 'action', 'skip', 'topbar', 'navbar', 'menu',
         'sitenav', 'mainnav', 'keyword', 'keywords', 'cloud', 'winners',
+        // Панель фильтров каталога игр («Все игры», «Провайдеры» с выпадающими списками).
+        'filter', 'filters', 'dropdown',
     ];
+
+    /** Карточка игры/слота: gamecard, slot-card, game-tile… — каталог, а не текст статьи. */
+    private const CARD_TOKENS = ['gamecard', 'gamecards', 'slotcard', 'slotcards'];
+    private const CARD_GENERIC = ['card', 'cards', 'tile', 'tiles'];
+    private const CARD_SUBJECT = ['slot', 'slots', 'game', 'games'];
 
     /** Шапка сайта без тега <header>: блок с такими токенами класса/id вне main/article и без h1 внутри. */
     private const HEADER_TOKENS = ['header', 'logo'];
@@ -284,18 +291,18 @@ final class ContentCleaner
         return $body;
     }
 
-    /** Есть ли перед h1 текст статьи (абзац от 80 символов или суммарно от 200): тогда h1 — не шапка, а середина контента. */
+    /** Есть ли перед h1 текст статьи (абзац от 40 символов или суммарно от 150): тогда h1 — не шапка, а середина контента. */
     private function hasArticleTextBefore(\DOMXPath $xp, \DOMElement $h1): bool
     {
         $chars = 0;
         foreach ($xp->query('preceding::text()[ancestor::*[@data-ys-root]]', $h1) ?: [] as $t) {
             $chars += mb_strlen(trim($t->textContent));
         }
-        if ($chars >= 200) {
+        if ($chars >= 150) {
             return true;
         }
         foreach ($xp->query('preceding::*[self::p or self::li][ancestor::*[@data-ys-root]]', $h1) ?: [] as $p) {
-            if (mb_strlen($this->textOf($p)) >= 80) {
+            if (mb_strlen($this->textOf($p)) >= 40) {
                 return true;
             }
         }
@@ -671,9 +678,13 @@ final class ContentCleaner
     }
 
     /**
-     * Удаляет каталог слотов/игр: заголовок про слоты и содержимое до следующего заголовка того же или старшего
-     * уровня — но только если это список игр, а не текст статьи (в секции меньше двух абзацев/пунктов от 120
-     * символов). Раздел «Слоты с высоким RTP» с прозой на странице про слоты остаётся; «выигрыш» — не «игры».
+     * Удаляет каталоги слотов/игр, оставляя текст статьи вокруг них:
+     *  1) сетки карточек игр (gamecard, slot-card, game-tile…) — сетка целиком вместе с обёрткой-виджетом
+     *     («🎡 Рулетка онлайн» + подпись «Крупные ставки»), а одиночные карточки — поштучно;
+     *  2) секцию с заголовком про слоты/игры/автоматы (целыми словами: «выигрыш» — не «игры») до следующего
+     *     заголовка того же/старшего уровня — только если в ней нет текста статьи (меньше двух абзацев от
+     *     120 символов, абзацем считается и div) и это не FAQ/вопрос.
+     * Раздел «Слоты с высоким RTP» с прозой на странице про слоты и FAQ «Какие шансы выиграть в слоты?» остаются.
      */
     public function removeSlots(string $html): string
     {
@@ -682,11 +693,48 @@ final class ContentCleaner
             return $html;
         }
         $xp = new \DOMXPath($doc);
-        foreach (iterator_to_array($xp->query('.//h1|.//h2|.//h3|.//h4|.//h5|.//h6', $root) ?: []) as $h) {
+        // 1. Карточки → их сетки (родитель с двумя и более карточками) → обёртка виджета.
+        $grids = [];
+        $single = [];
+        foreach (iterator_to_array($xp->query('.//*[@class or @id]', $root) ?: []) as $e) {
+            if (!$e instanceof \DOMElement || !$this->isCard($e)) {
+                continue;
+            }
+            $parent = $e->parentNode;
+            if ($parent instanceof \DOMElement && !$parent->isSameNode($root)) {
+                $grids[spl_object_id($parent)] = [$parent, ($grids[spl_object_id($parent)][1] ?? 0) + 1];
+            } else {
+                $single[] = $e;
+            }
+        }
+        foreach ($grids as [$grid, $count]) {
+            if (!$this->isInside($grid, $root)) {
+                continue;
+            }
+            if ($count >= 2) {
+                $this->removeCardGrid($grid, $root);
+            } else {
+                foreach (iterator_to_array($xp->query('./*[@class or @id]', $grid) ?: []) as $e) {
+                    if ($e instanceof \DOMElement && $this->isCard($e)) {
+                        $grid->removeChild($e);
+                    }
+                }
+            }
+        }
+        foreach ($single as $e) {
+            if ($this->isInside($e, $root)) {
+                $e->parentNode?->removeChild($e);
+            }
+        }
+        // 2. Секции с заголовком про слоты/игры без текста статьи.
+        $lc = static fn (string $attr): string => "translate(@$attr,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz')";
+        $inFaq = "ancestor::details or ancestor::*[contains({$lc('class')},'faq') or contains({$lc('id')},'faq') or contains(@itemtype,'FAQPage')]";
+        foreach (iterator_to_array($xp->query(".//*[self::h1 or self::h2 or self::h3 or self::h4 or self::h5 or self::h6][not($inFaq)]", $root) ?: []) as $h) {
             if (!$h instanceof \DOMElement || !$this->isInside($h, $root)) {
                 continue;
             }
-            if (preg_match('~(?<!\p{L})(?:слот\w*|игров\w*|игр[аыеу]|автомат\w*|slots?|games?)(?!\p{L})~iu', $this->textOf($h)) !== 1) {
+            $title = $this->textOf($h);
+            if (str_ends_with($title, '?') || preg_match('~(?<!\p{L})(?:слот\w*|игров\w*|игр[аыеу]|автомат\w*|slots?|games?)(?!\p{L})~iu', $title) !== 1) {
                 continue;
             }
             $level = (int) substr($h->tagName, 1);
@@ -697,18 +745,7 @@ final class ContentCleaner
                 }
                 $section[] = $n;
             }
-            $prose = 0;
-            foreach ($section as $n) {
-                if (!$n instanceof \DOMElement) {
-                    continue;
-                }
-                foreach ($xp->query('descendant-or-self::*[self::p or self::li]', $n) ?: [] as $p) {
-                    if (mb_strlen($this->textOf($p)) >= 120) {
-                        $prose++;
-                    }
-                }
-            }
-            if ($prose >= 2) {
+            if ($this->proseCount($xp, $section) >= 2) {
                 continue; // текст статьи про слоты, а не каталог
             }
             foreach ($section as $n) {
@@ -717,6 +754,112 @@ final class ContentCleaner
         }
 
         return $this->serialize($doc, $root);
+    }
+
+    /**
+     * Убирает сетку карточек и «шапку» виджета перед ней: короткие соседи (подпись) вплоть до заголовка;
+     * длинный блок перед сеткой — это уже статья, её не трогаем. Если обёртка сетки после этого почти пуста
+     * (< 120 символов, заголовок без текста) — убираем и её.
+     */
+    private function removeCardGrid(\DOMElement $grid, \DOMElement $root): void
+    {
+        $parent = $grid->parentNode;
+        $shell = [];
+        $heading = false;
+        for ($s = $grid->previousSibling; $s !== null; $s = $s->previousSibling) {
+            if ($s instanceof \DOMText) {
+                if (mb_strlen(trim($s->textContent)) >= 120) {
+                    break;
+                }
+                $shell[] = $s;
+                continue;
+            }
+            if (!$s instanceof \DOMElement) {
+                continue;
+            }
+            if (preg_match('~^h[1-6]$~i', $s->tagName) === 1) {
+                $shell[] = $s;
+                $heading = true;
+                break;
+            }
+            if (mb_strlen($this->textOf($s)) >= 120 || $s->getElementsByTagName('*')->length > 20) {
+                break;
+            }
+            $shell[] = $s;
+        }
+        $grid->parentNode?->removeChild($grid);
+        if ($heading) {
+            foreach ($shell as $s) {
+                $s->parentNode?->removeChild($s);
+            }
+        }
+        if ($parent instanceof \DOMElement && !$parent->isSameNode($root) && mb_strlen($this->textOf($parent)) < 120) {
+            $hasHeading = false;
+            foreach ($parent->getElementsByTagName('*') as $e) {
+                if (preg_match('~^h[1-6]$~i', $e->tagName) === 1) {
+                    $hasHeading = true;
+                    break;
+                }
+            }
+            if ($hasHeading || trim($this->textOf($parent)) === '') {
+                $parent->parentNode?->removeChild($parent);
+            }
+        }
+    }
+
+    /**
+     * Сколько в узлах «абзацев статьи»: листовых блоков (p, li, dd, blockquote, div, summary) с текстом от 120
+     * символов; блок с таким же длинным дочерним блоком не считается (чтобы не считать обёртку дважды).
+     *
+     * @param list<\DOMNode> $nodes
+     */
+    private function proseCount(\DOMXPath $xp, array $nodes): int
+    {
+        $prose = 0;
+        foreach ($nodes as $n) {
+            if (!$n instanceof \DOMElement) {
+                continue;
+            }
+            foreach ($xp->query('descendant-or-self::*[self::p or self::li or self::dd or self::blockquote or self::div or self::summary]', $n) ?: [] as $b) {
+                if (!$b instanceof \DOMElement || mb_strlen($this->textOf($b)) < 120) {
+                    continue;
+                }
+                $longChild = false;
+                foreach ($b->childNodes as $c) {
+                    if ($c instanceof \DOMElement && mb_strlen($this->textOf($c)) >= 120) {
+                        $longChild = true;
+                        break;
+                    }
+                }
+                if (!$longChild) {
+                    $prose++;
+                }
+            }
+        }
+
+        return $prose;
+    }
+
+    /**
+     * Карточка игры: класс gamecard/slot-card/game-tile и т.п. (card/tile вместе со slot/game) — и при этом
+     * маленький блок (до 400 символов, без h1/h2): секция «Полезно знать о слотах» с классами
+     * slots-thematic glass-card — не карточка.
+     */
+    private function isCard(\DOMElement $e): bool
+    {
+        $tokens = $this->tokens($e);
+        $classy = array_intersect($tokens, self::CARD_TOKENS) !== []
+            || (array_intersect($tokens, self::CARD_GENERIC) !== [] && array_intersect($tokens, self::CARD_SUBJECT) !== []);
+        if (!$classy || mb_strlen($this->textOf($e)) > 400) {
+            return false;
+        }
+        foreach ($e->getElementsByTagName('*') as $child) {
+            if (in_array(strtolower($child->tagName), ['h1', 'h2'], true)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -818,8 +961,9 @@ final class ContentCleaner
             return $html;
         }
 
-        // Границы слова, чтобы не задевать бренд внутри других слов (stake ≠ mistaken).
-        return preg_replace('~(?<![\p{L}\p{N}])(?:' . $pattern . ')(?![\p{L}\p{N}])~iu', $variable, $html) ?? $html;
+        // Границы слова, чтобы не задевать бренд внутри других слов (stake ≠ mistaken); цифры справа допустимы —
+        // промокод «Grizzly30» тоже несёт бренд.
+        return preg_replace('~(?<![\p{L}\p{N}])(?:' . $pattern . ')(?!\p{L})~iu', $variable, $html) ?? $html;
     }
 
     /**

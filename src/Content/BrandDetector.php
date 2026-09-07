@@ -120,6 +120,8 @@ final class BrandDetector
         $host = mb_strtolower(trim($host));
         $host = preg_replace('~^www\d*\.~', '', $host) ?? $host;
         $label = explode('.', $host)[0] ?? '';
+        // Номер зеркала в метке (grizzly-0, brand_12) — не часть бренда.
+        $label = preg_replace('~[-_]\d+$~', '', $label) ?? $label;
 
         return (string) preg_replace('~[^a-z0-9]~', '', $label);
     }
