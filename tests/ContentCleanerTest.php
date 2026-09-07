@@ -64,6 +64,11 @@ final class ContentCleanerTest
         $body = $cleaner->removeSlots('<p>до</p><h2>Слоты</h2><div>много слотов</div><h2>Вывод</h2><p>после</p>');
         Assert::false(str_contains($body, 'много слотов'), 'секция слотов удалена');
         Assert::true(str_contains($body, 'до') && str_contains($body, 'Вывод') && str_contains($body, 'после'), 'остальное осталось');
+        // Раздел про слоты с текстом (страница «Слоты») — не каталог, остаётся; «выигрыш» — не «игры».
+        $prose = $cleaner->removeSlots('<h2>Слоты с высоким RTP</h2><p>' . str_repeat('Длинный абзац о математике слотов и отдаче. ', 4) . '</p><p>' . str_repeat('Второй абзац про провайдеров и демо-режим. ', 4) . '</p><h2>Вывод</h2>');
+        Assert::true(str_contains($prose, 'Слоты с высоким RTP') && str_contains($prose, 'математике'), 'раздел с текстом про слоты остаётся');
+        $wins = $cleaner->removeSlots('<h2>Истории выигрышей</h2><div>карточка</div><h2>Вывод</h2>');
+        Assert::true(str_contains($wins, 'Истории выигрышей'), '«выигрыш» не считается словом «игры»');
     }
 
     public function testMapLinkToAllowedPaths(): void

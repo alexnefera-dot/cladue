@@ -280,8 +280,10 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   identity: `faqNodes()` collects the top-level Q&A blocks (`<details>`, a `faq` class/id, `itemtype=FAQPage`)
   BEFORE any cut, and whatever is not inside the final root (a `section#faq` after `<main>`, a block after
   «Популярных запросов») is appended (`isInside()`), else JSON-LD `FAQPage` is rendered (`faqFromJsonLd()`:
-  `<h2>Вопросы и ответы</h2>` + `<h3>`/`<p>`), so brand substitution covers it too; `removeSlots()` drops
-  the slots section. **2** `applyReplacements()` over body + FAQ together: domain → `%domain_name%` (the regex
+  `<h2>Вопросы и ответы</h2>` + `<h3>`/`<p>`), so brand substitution covers it too; `removeSlots()` (DOM)
+  drops a slots/games CATALOG — a heading with слот/игры/автоматы (whole words, so «выигрыш» is not «игры»)
+  plus its siblings up to the next same-or-higher heading — only when that section has < 2 paragraphs/items
+  of ≥ 120 chars; a prose section about slots on the slots page stays (the old regex gutted `slots.html`). **2** `applyReplacements()` over body + FAQ together: domain → `%domain_name%` (the regex
   eats an optional subdomain prefix, so `kush.casinozsd.buzz` → `%domain_name%`, not «kush.%domain_name%»),
   `dd.mm.yyyy` → `%date%`, brand → `%brand_name_ru%`/`%brand_name_en%`. This runs BEFORE unwrapping and
   attribute stripping on purpose: the own domain inside `href` becomes `%domain_name%`, which is how step 8

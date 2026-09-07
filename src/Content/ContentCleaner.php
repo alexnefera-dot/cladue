@@ -671,15 +671,52 @@ final class ContentCleaner
     }
 
     /**
-     * Удаляет секцию слотов/игр: заголовок про слоты и содержимое до следующего заголовка.
+     * Удаляет каталог слотов/игр: заголовок про слоты и содержимое до следующего заголовка того же или старшего
+     * уровня — но только если это список игр, а не текст статьи (в секции меньше двух абзацев/пунктов от 120
+     * символов). Раздел «Слоты с высоким RTP» с прозой на странице про слоты остаётся; «выигрыш» — не «игры».
      */
     public function removeSlots(string $html): string
     {
-        return preg_replace(
-            '~<h[1-6][^>]*>(?:(?!</h[1-6]>).)*?(?:слот|игровы|игры|автомат|slots?|games?)(?:(?!</h[1-6]>).)*?</h[1-6]\s*>.*?(?=<h[1-6]\b|$)~isu',
-            '',
-            $html,
-        ) ?? $html;
+        [$doc, $root] = $this->loadFragment($html);
+        if ($doc === null || $root === null) {
+            return $html;
+        }
+        $xp = new \DOMXPath($doc);
+        foreach (iterator_to_array($xp->query('.//h1|.//h2|.//h3|.//h4|.//h5|.//h6', $root) ?: []) as $h) {
+            if (!$h instanceof \DOMElement || !$this->isInside($h, $root)) {
+                continue;
+            }
+            if (preg_match('~(?<!\p{L})(?:слот\w*|игров\w*|игр[аыеу]|автомат\w*|slots?|games?)(?!\p{L})~iu', $this->textOf($h)) !== 1) {
+                continue;
+            }
+            $level = (int) substr($h->tagName, 1);
+            $section = [$h];
+            for ($n = $h->nextSibling; $n !== null; $n = $n->nextSibling) {
+                if ($n instanceof \DOMElement && preg_match('~^h([1-6])$~i', $n->tagName, $m) === 1 && (int) $m[1] <= $level) {
+                    break;
+                }
+                $section[] = $n;
+            }
+            $prose = 0;
+            foreach ($section as $n) {
+                if (!$n instanceof \DOMElement) {
+                    continue;
+                }
+                foreach ($xp->query('descendant-or-self::*[self::p or self::li]', $n) ?: [] as $p) {
+                    if (mb_strlen($this->textOf($p)) >= 120) {
+                        $prose++;
+                    }
+                }
+            }
+            if ($prose >= 2) {
+                continue; // текст статьи про слоты, а не каталог
+            }
+            foreach ($section as $n) {
+                $n->parentNode?->removeChild($n);
+            }
+        }
+
+        return $this->serialize($doc, $root);
     }
 
     /**
