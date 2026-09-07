@@ -242,6 +242,67 @@
 | 12-стр | casinopyb.buzz | 12 | 1 | 2 | 🗑 убран: контент из заглушек |
 | 12-стр | casinorpb.buzz | 12 | 2 | 2 | 🗑 убран: контент из заглушек |
 
+## Уникальность
+
+Максимальное совпадение текста страницы с любой страницей другого сайта (6-словные цепочки, доля меньшей страницы). Показаны сайты с совпадением от 30 %.
+
+| Сайт | Совпадение | С сайтом | Страница |
+|---|---:|---|---|
+| 7-стр/v3c.casino | 73 % | 7-стр/rfk.casino | main.html |
+| 7-стр/rfk.casino | 73 % | 7-стр/v3c.casino | main.html |
+| 7-стр/71749.casino | 65 % | 7-стр/0k71.buzz | main.html |
+| 7-стр/0k71.buzz | 65 % | 7-стр/71749.casino | slots.html |
+| 7-стр/owa.casino | 59 % | 7-стр/casino548.com | slots.html |
+| 7-стр/casino548.com | 59 % | 7-стр/owa.casino | slots.html |
+| 7-стр/r7x.casino | 56 % | 7-стр/kyd.casino | bonus.html |
+| 7-стр/kyd.casino | 56 % | 7-стр/r7x.casino | slots.html |
+| 7-стр/sdt.casino | 55 % | 7-стр/eup.casino | main.html |
+| 7-стр/eup.casino | 55 % | 7-стр/sdt.casino | slots.html |
+| 7-стр/4aw.buzz | 54 % | 7-стр/owa.casino | app.html |
+| 7-стр/kky.casino | 53 % | 7-стр/rfk.casino | zerkalo.html |
+| 7-стр/3bp.casino | 53 % | 7-стр/owa.casino | zerkalo.html |
+| 7-стр/lfy.casino | 51 % | 7-стр/0k71.buzz | app.html |
+| 7-стр/308e.buzz | 51 % | 7-стр/0k71.buzz | slots.html |
+| 7-стр/301z.buzz | 50 % | 7-стр/0k71.buzz | bonus.html |
+| 7-стр/253e.casino | 49 % | 7-стр/0982.casino | zerkalo.html |
+| 7-стр/0982.casino | 49 % | 7-стр/253e.casino | main.html |
+| 7-стр/foe.casino | 48 % | 7-стр/12o.casino | slots.html |
+| 7-стр/12o.casino | 48 % | 7-стр/foe.casino | slots.html |
+| 7-стр/j000.buzz | 48 % | 7-стр/0k71.buzz | main.html |
+| 7-стр/lne.casino | 46 % | 7-стр/2823.casino | registracia.html |
+| 7-стр/2823.casino | 46 % | 7-стр/lne.casino | main.html |
+| 7-стр/884r.buzz | 45 % | 7-стр/0k71.buzz | zerkalo.html |
+| 7-стр/7690.casino | 44 % | 7-стр/0982.casino | registracia.html |
+| 7-стр/9hw.casino | 43 % | 7-стр/0982.casino | bonus.html |
+| 7-стр/ahp.buzz | 41 % | 7-стр/10k.casino | main.html |
+| 7-стр/10k.casino | 41 % | 7-стр/ahp.buzz | slots.html |
+| 7-стр/jke.casino | 40 % | 7-стр/cjw.casino | vhod.html |
+| 7-стр/cjw.casino | 40 % | 7-стр/jke.casino | bonus.html |
+| 7-стр/fd0t.casino | 39 % | 7-стр/8ae.casino | registracia.html |
+| 7-стр/8ae.casino | 39 % | 7-стр/fd0t.casino | slots.html |
+| 7-стр/pfb.casino | 39 % | 7-стр/kyd.casino | main.html |
+| 7-стр/00581.casino | 38 % | 7-стр/rfk.casino | registracia.html |
+| 7-стр/8987.buzz | 37 % | 7-стр/jke.casino | registracia.html |
+| 7-стр/5j4.casino | 37 % | 7-стр/jke.casino | main.html |
+| 12-стр/casinorpb.buzz | 37 % | 12-стр/casinoinv.buzz | main.html |
+| 12-стр/casinoinv.buzz | 37 % | 12-стр/casinorpb.buzz | main.html |
+| 7-стр/imj.casino | 37 % | 7-стр/sdt.casino | bonus.html |
+| 7-стр/var.casino | 36 % | 7-стр/jke.casino | main.html |
+| 7-стр/cld.casino | 35 % | 7-стр/kyd.casino | registracia.html |
+| 7-стр/aql.casino | 35 % | 7-стр/kyd.casino | zerkalo.html |
+| 7-стр/zqi.buzz | 34 % | 7-стр/owa.casino | vhod.html |
+| 7-стр/ez9.casino | 33 % | 7-стр/owa.casino | vhod.html |
+| 12-стр/casinopyb.buzz | 33 % | 12-стр/casinorpb.buzz | main.html |
+| 12-стр/casino00048.buzz | 32 % | 12-стр/casinorpb.buzz | main.html |
+| 12-стр/5836s.casino | 32 % | 12-стр/casinorpb.buzz | main.html |
+| 12-стр/8523casino.buzz | 32 % | 12-стр/casinorpb.buzz | main.html |
+| 7-стр/sdn.casino | 31 % | 7-стр/rfk.casino | slots.html |
+| 12-стр/casinoflower.buzz | 31 % | 12-стр/casinorpb.buzz | partnery.html |
+| 7-стр/gco.buzz | 30 % | 7-стр/3g7.casino | registracia.html |
+| 7-стр/3g7.casino | 30 % | 7-стр/gco.buzz | zerkalo.html |
+| 12-стр/casinopps.buzz | 30 % | 12-стр/casinoflower.buzz | partnery.html |
+| 12-стр/casinopioneer.buzz | 30 % | 12-стр/casinoflower.buzz | partnery.html |
+
 ## Подробно
 
 ### 1-стр/752j.org

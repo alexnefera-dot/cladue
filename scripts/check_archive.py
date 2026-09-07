@@ -513,8 +513,11 @@ def check_site(n, tpl, key, pages, F):
             len(pct), ", ".join("%d%%" % v for v in sorted(pct))))
 
 
+OVERLAP = {}   # сайт -> (макс. совпадение 0..1, с каким сайтом, какая страница)
+
+
 def check_cross(all_pages, F):
-    """D1 точные дубли и D2 почти-дубли между сайтами."""
+    """D1 точные дубли, D2 почти-дубли между сайтами, совпадение по каждому сайту (OVERLAP)."""
     by_md5 = defaultdict(list)
     for key, d in all_pages.items():
         by_md5[d["md5"]].append(key)
@@ -547,6 +550,9 @@ def check_cross(all_pages, F):
         inter = len(A & B)
         j = inter / len(A | B)
         cont = inter / min(len(A), len(B))
+        for x, y, page in ((sa, sb, a), (sb, sa, b)):
+            if cont > OVERLAP.get(x, (0, "", ""))[0]:
+                OVERLAP[x] = (cont, y, page.rsplit("/", 1)[1])
         if j >= 0.3 or cont >= 0.5:
             msg = "%s ≈ %s (Жаккар %.2f, вложенность %.2f)" % (a, b, j, cont)
             F.add(sa, "WARN", "D2", msg)
@@ -615,6 +621,12 @@ def render(F, sites, archive_name, junk, unknown_groups):
         k = s["key"]
         out.append("| %s | %s | %d | %d | %d | %s |" % (
             s["type"], s["site"] + s["note"], s["npages"], F.count(k, "ERROR"), F.count(k, "WARN"), verdict(F, s)))
+    rows = sorted(((v[0], k, v[1], v[2]) for k, v in OVERLAP.items() if v[0] >= 0.3), reverse=True)
+    if rows:
+        out += ["", "## Уникальность", "", "Максимальное совпадение текста страницы с любой страницей другого сайта (6-словные цепочки, доля меньшей страницы). Показаны сайты с совпадением от 30 %.", "",
+                "| Сайт | Совпадение | С сайтом | Страница |", "|---|---:|---|---|"]
+        for cont, k, other, page in rows:
+            out.append("| %s | %d %% | %s | %s |" % (k, round(cont * 100), other, page))
     out += ["", "## Подробно", ""]
     for s in sites:
         k = s["key"]
