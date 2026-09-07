@@ -12,7 +12,9 @@
   годные.txt  — годные «тип/домен», по одному в строке
   годные/<тип>/<домен>/ и убрано/<тип>/<домен>/ — копии страниц (без --без-копий);
                 8/9/10-стр лежат уже как 7-стр
-Уникальность: 6-словные цепочки, кандидаты по выборке 1/16 цепочек, точная проверка
+Уникальность: 6-словные цепочки, кандидаты по выборке 1/8 цепочек (короткие
+страницы — целиком), шаблонные цепочки (на более чем 50 страницах) не считаются,
+совпадение = доля общих цепочек от меньшей страницы по той же выборке; проверка
 пар; сайт, у которого страница совпадает с чужой на порог и больше, убирается,
 из пары остаётся сайт с бо́льшим объёмом текста. Рассчитан на сотни тысяч страниц:
 страницы читаются по одной, в памяти только сводные числа и выборки.
@@ -35,9 +37,10 @@ from check_archive import (CONVERT, JUNK_NAMES, MIN_MAIN_WORDS, TEMPLATES,  # no
                            content_words, sections, strip_tags)
 
 GROUP_RX = re.compile(r"^(\d+)-стр$")
-SAMPLE_MASK = 15          # выборка цепочек: hash & 15 == 0, то есть 1/16
+SAMPLE_MASK = 7           # выборка цепочек: hash & 7 == 0, то есть 1/8
+SMALL_PAGE = 300          # у страниц короче 300 цепочек индексируются все цепочки
 MAX_DF = 50               # цепочки, встречающиеся более чем на 50 страницах, — шаблонные, не улика
-MIN_SHARED = 6            # минимум общих выборочных цепочек, чтобы проверять пару точно
+MIN_SHARED = 4            # минимум общих индексированных цепочек, чтобы проверять пару точно
 
 
 # ---------------------------------------------------------------- источник ---
@@ -104,7 +107,7 @@ def page_stats(raw):
     return {
         "nwords": len(words), "cw": content_words(raw), "sec": sections(raw),
         "md5": hashlib.md5(raw.encode("utf-8")).hexdigest(), "nsh": len(sh),
-        "sampled": array("I", sorted(h for h in sh if h & SAMPLE_MASK == 0)),
+        "sampled": array("I", sorted(sh if len(sh) <= SMALL_PAGE else (h for h in sh if h & SAMPLE_MASK == 0))),
     }
 
 
@@ -187,8 +190,11 @@ def main():
             for h in sampled[pid]:
                 index[h].append(pid)
     shared = Counter()
+    boiler = set()             # шаблонные цепочки: на более чем MAX_DF страницах
     for h, pids in index.items():
-        if 2 <= len(pids) <= MAX_DF:
+        if len(pids) > MAX_DF:
+            boiler.add(h)
+        elif len(pids) >= 2:
             for a, b in itertools.combinations(pids, 2):
                 if page_meta[a][0] != page_meta[b][0]:
                     shared[(a, b) if a < b else (b, a)] += 1
@@ -196,16 +202,17 @@ def main():
 
     @lru_cache(maxsize=4000)
     def exact(pid):
+        """Цепочки страницы в общей выборке (hash & 7 == 0) без шаблонных — одинаково для обеих страниц пары."""
         idx, p = page_meta[pid]
         raw = src.read(sites[idx]["pages"][p])
-        return frozenset(shingle_hashes(re.findall(r"\w+", strip_tags(raw))))
+        return frozenset(h for h in shingle_hashes(re.findall(r"\w+", strip_tags(raw))) if h & SAMPLE_MASK == 0 and h not in boiler)
 
     pairs = []
     for (a, b), n in shared.items():
         if n < MIN_SHARED:
             continue
         A, B = exact(a), exact(b)
-        if not A or not B:
+        if len(A) < 8 or len(B) < 8:
             continue
         inter = len(A & B)
         cont = inter / min(len(A), len(B))
@@ -246,7 +253,7 @@ def main():
     for st in sites:
         by_type[st["type"]][0 if not st["why"] else 1] += 1
     lines = ["# Фильтрация: %s" % os.path.basename(args.path.rstrip("/")), "",
-             "Сайтов %d, страниц %d. **Годных %d, убрано %d.** Порог совпадения %d %%. Без правок: бренды, переменные, ссылки и разметка не смотрелись." % (
+             "Сайтов %d, страниц %d. **Годных %d, убрано %d.** Порог совпадения %d %%. Совпадение — доля общих 6-словных цепочек от меньшей страницы, без шаблонных цепочек (виджеты, повторяющиеся более чем на 50 страницах). Без правок: бренды, переменные, ссылки и разметка не смотрелись." % (
                  len(sites), total_pages, len(good), len(gone), args.порог), "",
              "| Тип | Годных | Убрано |", "|---|---:|---:|"]
     for t in sorted(by_type, key=lambda x: int(x.split("-")[0])):
