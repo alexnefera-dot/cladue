@@ -821,9 +821,9 @@ $контекст = function (array $локальные) use ($паспорт, $
         }
         // И один RTP: ответ FAQ с добором нёс «RTP 99% … RTP 97%», и
         // смысловая приёмка валила набор по спору цифр.
-        if ($ключ === 'RTP') { return $память['RTP'] ??= $изБанка('RTP'); }
+        if ($ключ === 'RTP') { return $память['RTP'] ??= v5RtpVPolose($банки, $rng); }
         if ($ключ === 'RTP2') {
-            $первый = (float) str_replace(',', '.', (string) ($память['RTP'] ??= $изБанка('RTP')));
+            $первый = (float) str_replace(',', '.', (string) ($память['RTP'] ??= v5RtpVPolose($банки, $rng)));
             $выше = array_values(array_filter(array_keys($банки['RTP'] ?? []),
                 fn($x) => (float) str_replace(',', '.', (string) $x) > $первый));
             return $память['RTP2'] ??= ($выше ? (string) $rng->pick($выше) : (string) $память['RTP']);
@@ -1069,6 +1069,7 @@ $собрать = function (string $тип) use (&$блоки, &$пулы, &$rng
         $темп, $сдвигФраз, $сдвигЗачинов, $фразИзРаспределения, &$именаСтраницы): array {
     $нумероватьНабор = v5NumerovatNabor($тип, $имяНабора);
     $именаСтраницы = ['игры' => [], 'студии' => [], 'джекпот' => 0, 'деньги' => 0, 'предложения' => []];
+    $GLOBALS['v5RtpБаза'] = null; // RTP страницы — из полосы вокруг базы, см. v5RtpVPolose
     $варианты = [];
     foreach ($блоки['скелеты'][$тип] ?? [] as $подпись => $n) {
         [$голова, , $хвост] = array_map('trim', explode('|', $подпись));
@@ -1534,7 +1535,10 @@ $собрать = function (string $тип) use (&$блоки, &$пулы, &$rng
                     if (!array_key_exists('RTP', $местные)) {
                         $свежие = count(array_unique($названныеRTP)) >= 5 ? []
                             : array_values(array_diff(array_keys($банки['RTP'] ?? []), $названныеRTP));
-                        $местные['RTP'] = $свежие ? (string) $rng->pick($свежие)
+                        // Свежее значение — только из полосы страницы (см. v5RtpPolosa):
+                        // мимо неё на странице выходили «RTP 92%» рядом с «97.5%».
+                        $свежие = v5RtpPolosa($свежие);
+                        $местные['RTP'] = $свежие ? v5RtpZapomnit((string) $rng->pick($свежие))
                             : $контекст(['ИМЯ' => $герой, 'ИМЯЖ' => $героиня])('RTP');
                         $названныеRTP[] = $местные['RTP'];
                         $местные['RTP2'] = $местные['RTP'];
@@ -1546,7 +1550,7 @@ $собрать = function (string $тип) use (&$блоки, &$пулы, &$rng
                     $выше = array_values(array_filter(array_keys($банки['RTP'] ?? []),
                         fn($x) => (float) str_replace(',', '.', (string) $x) > $первый));
                     if (!array_key_exists('RTP2', $местные)) {
-                        $свежие = array_values(array_diff($выше, $названныеRTP)) ?: $выше;
+                        $свежие = v5RtpPolosa(array_values(array_diff($выше, $названныеRTP))) ?: (v5RtpPolosa($выше) ?: $выше);
                         $местные['RTP2'] = $свежие ? (string) $rng->pick($свежие) : (string) $местные['RTP'];
                         $названныеRTP[] = $местные['RTP2'];
                     }
@@ -1561,9 +1565,9 @@ $собрать = function (string $тип) use (&$блоки, &$пулы, &$rng
                         // гонимся — иначе на страницах с десятком абзацев про RTP
                         // разброс улетает выше полосы.
                         $свежие = count(array_unique($названныеRTP)) >= 5 ? []
-                            : array_values(array_diff(array_keys($банки['RTP'] ?? []), $названныеRTP));
+                            : v5RtpPolosa(array_values(array_diff(array_keys($банки['RTP'] ?? []), $названныеRTP)));
                         $местные['RTP'] = $свежие
-                            ? (string) $rng->pick($свежие)
+                            ? v5RtpZapomnit((string) $rng->pick($свежие))
                             : $контекст(['ИМЯ' => $герой, 'ИМЯЖ' => $героиня])('RTP');
                         $названныеRTP[] = $местные['RTP'];
                         $rtpРаздела = $местные['RTP'];
@@ -1830,7 +1834,7 @@ foreach (V5_TYPES as $тип) {
         $страница = v5VpisatIgry($страница, $паспорт['игры'] ?? [], $запас['games_named'], $запас['providers_named'], $запас['names_uniq']);
     }
     $страница = v5PeresobratToc(v5UbratDubliVidzhetov(
-        v5UbratSosedniiPovtor(v5UkrotitShtampy(v5PochinitPadezhi($страница)))));
+        v5UbratSosedniiPovtor(v5UbratObryvki(v5MantryPoRazdelu(v5UkrotitShtampy(v5PochinitPadezhi($страница))), array_merge(array_keys($банки['ИМЯ'] ?? []), array_keys($банки['ИМЯЖ'] ?? []))))));
     // Ритм фраз: доля предложений в три слова и короче — цель от сида в полосе A (6–10 %).
     $цельРитма = 6.0 + (crc32('ритм|' . $сид . '|' . $тип) % 5);
     $полеВопросов = $профиль['страницы'][$тип]['поля']['questions_total'] ?? null;

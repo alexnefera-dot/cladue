@@ -1864,6 +1864,126 @@ function v5OdnaKontsovka(array $пары): array
     return $пары;
 }
 
+/** Семейства мантр — те же, что в sverka-v5.php. */
+const V5_MANTRY = [
+    '~гаранти[йя]\s+(?:тут\s+|здесь\s+)?(?:нет|никто|не\s+да[её]т)|никаких гарантий|без гарантий~ui',
+    '~не\s+сюда~ui',
+    '~движ\s+для\s+смелых|для\s+смелых~ui',
+    '~можно\s+(?:и\s+)?проиграть|можешь\s+проиграть|исход\s+в\s+обе\s+стороны~ui',
+    '~по-честному~ui',
+    '~не\s+заход[иь]т?е?,?\s+если|если\s+боишься\s+проиграть|если\s+боитесь\s+проиграть~ui',
+];
+
+/**
+ * Одна мантра семейства на раздел. У доноров A самое частое семейство встречается в разделе
+ * 0.9–2.2 раза, у нас было 2.2–2.7: «гарантий нет» стояло в четырёх абзацах подряд.
+ * Второе и дальше вхождения снимаются целым предложением, если в абзаце остаётся хотя бы одно.
+ */
+function v5MantryPoRazdelu(string $html): string
+{
+    $куски = preg_split('~(<section\b.*?</section>|<h2\b[^>]*>.*?</h2>)~su', $html, -1, PREG_SPLIT_DELIM_CAPTURE);
+    $счёт = array_fill(0, count(V5_MANTRY), 0);
+    foreach ($куски as $k => $кусок) {
+        if ($k % 2 === 1) {
+            if (str_starts_with($кусок, '<h2')) { $счёт = array_fill(0, count(V5_MANTRY), 0); }
+            continue;
+        }
+        $куски[$k] = (string) preg_replace_callback('~(<(?:p|li)\b[^>]*>)(.*?)(</(?:p|li)>)~su', function ($a) use (&$счёт) {
+            $предл = preg_split('~(?<=[.!?…])\s+(?=(?:<strong>|<em>)?\p{Lu}|<)~u', $a[2]);
+            if (count($предл) < 2) {
+                foreach (V5_MANTRY as $i => $re) { if (preg_match($re, strip_tags($a[2]))) { $счёт[$i]++; } }
+                return $a[0];
+            }
+            $оставить = [];
+            foreach ($предл as $п) {
+                $чист = strip_tags($п); $снять = false;
+                foreach (V5_MANTRY as $i => $re) {
+                    if (preg_match($re, $чист)) {
+                        if ($счёт[$i] >= 1 && count($оставить) + 1 < count($предл)) { $снять = true; }
+                        $счёт[$i]++;
+                    }
+                }
+                if (!$снять) { $оставить[] = $п; }
+            }
+            if (!$оставить) { $оставить = [$предл[0]]; }
+            return $a[1] . implode(' ', $оставить) . $a[3];
+        }, $кусок);
+    }
+    return implode('', $куски);
+}
+
+/**
+ * Обрывок без героя: короткая фраза с суммой, сроком или «он/его» в разделе, где имени героя
+ * не было. У доноров таких нет; у нас — «Между доставками — десять минут перерыва», «Проиграл 10к.».
+ */
+function v5UbratObryvki(string $html, array $имена): string
+{
+    $банк = array_fill_keys($имена, true);
+    $куски = preg_split('~(<section\b.*?</section>|<h2\b[^>]*>.*?</h2>)~su', $html, -1, PREG_SPLIT_DELIM_CAPTURE);
+    $былоИмя = false;
+    foreach ($куски as $k => $кусок) {
+        if ($k % 2 === 1) {
+            if (str_starts_with($кусок, '<h2')) {
+                $былоИмя = false;
+                if (preg_match_all('~\b(\p{Lu}[а-яё]{2,})\b~u', strip_tags($кусок), $mm)) { foreach ($mm[1] as $w) { if (isset($банк[$w])) { $былоИмя = true; } } }
+            }
+            continue;
+        }
+        $куски[$k] = (string) preg_replace_callback('~(<(?:p|li)\b[^>]*>)(.*?)(</(?:p|li)>)~su', function ($a) use (&$былоИмя, $банк) {
+            $предл = preg_split('~(?<=[.!?…])\s+(?=(?:<strong>|<em>)?\p{Lu}|<)~u', $a[2]);
+            $оставить = [];
+            foreach ($предл as $п) {
+                $чист = trim(strip_tags($п));
+                if (preg_match_all('~\b(\p{Lu}[а-яё]{2,})\b~u', $чист, $mm)) { foreach ($mm[1] as $w) { if (isset($банк[$w])) { $былоИмя = true; } } }
+                $слов = count(preg_split('~\s+~u', $чист, -1, PREG_SPLIT_NO_EMPTY));
+                $обрывок = !$былоИмя && $слов >= 2 && $слов <= 12
+                    && preg_match('~\d[\d\s]*\s*(?:₽|руб|к\b|тыс|млн)|\b(?:он|она|его|её|ему|ей)\b|\b(?:минут|часа|часов|секунд)\b~u', $чист)
+                    && preg_match('~\b(?:вывел|вывела|забрал|снял|поднял|принёс|принесла|потратил|ушло|висело|лежало|светил[а-яё]*|показывал|плюс|минус|проиграл|слил|через|было|стало|оказалось|капнуло|пришло|упало|перерыв[а-яё]*|ждал|ждала)\b~ui', $чист)
+                    && !preg_match('~^(?:если|можно|можешь|минус|плюс|честно|факт)~ui', $чист);
+                if (!$обрывок) { $оставить[] = $п; }
+            }
+            if (!$оставить) { return ''; }
+            return $a[1] . implode(' ', $оставить) . $a[3];
+        }, $кусок);
+    }
+    return implode('', $куски);
+}
+
+/** Значения RTP, попадающие в полосу страницы; пока база не задана — все. */
+function v5RtpPolosa(array $значения, float $ширина = 2.0): array
+{
+    $база = (float) ($GLOBALS['v5RtpБаза'] ?? 0);
+    if ($база <= 0) { return $значения; }
+    return array_values(array_filter($значения, fn($x) => abs((float) str_replace(',', '.', (string) $x) - $база) <= $ширина));
+}
+
+/** Первое названное на странице RTP становится базой полосы. */
+function v5RtpZapomnit(string $значение): string
+{
+    if (empty($GLOBALS['v5RtpБаза'])) { $GLOBALS['v5RtpБаза'] = (float) str_replace(',', '.', $значение); }
+    return $значение;
+}
+
+/** RTP страницы — из полосы ±ширина вокруг базы; база разыгрывается один раз на страницу. */
+function v5RtpVPolose(array $банки, $rng, float $ширина = 2.0): string
+{
+    $значения = array_keys($банки['RTP'] ?? []);
+    if (!$значения) { return '96'; }
+    if (empty($GLOBALS['v5RtpБаза'])) {
+        // База — только из «густых» значений: у 92 в полосе ±2 нет соседей,
+        // и страница получала одно RTP на всё — разных значений с % выходило 1–3
+        // при полосе профиля 4–6.
+        $ч = fn($x) => (float) str_replace(',', '.', (string) $x);
+        $густые = array_values(array_filter($значения, function ($b) use ($значения, $ч, $ширина) {
+            $n = 0; foreach ($значения as $x) { if (abs($ч($x) - $ч($b)) <= $ширина) { $n++; } } return $n >= 6;
+        }));
+        $GLOBALS['v5RtpБаза'] = $ч($rng->pick($густые ?: $значения));
+    }
+    $база = (float) $GLOBALS['v5RtpБаза'];
+    $полоса = array_values(array_filter($значения, fn($x) => abs((float) str_replace(',', '.', (string) $x) - $база) <= $ширина));
+    return (string) $rng->pick($полоса ?: $значения);
+}
+
 function v5PochinitMelochi(string $html): string
 {
     $html = (string) preg_replace_callback('~(\p{Lu}[а-яё]+)\s+(выиграл|отыграл|снял|поднял|забрал|вывел|сорвал)\(а\)~u',
