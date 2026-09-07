@@ -1,4 +1,4 @@
-# День 07.09.2026 — 62 домена, одиннадцать групп
+# День 07.09.2026 — 73 домена, двенадцать групп
 
 ## Выдача_06.09_7стр_1…_2 — id 1474-1475
 8081.team
@@ -87,3 +87,16 @@ casinohjk.lol
 9511.team
 casinoyso.team
 tsnb.team
+
+## clean12_unique11оформлено_1…_11 — id 1546-1556, создан 20:13
+7142.lol
+3434.team
+rgdf.team
+casinok7.team
+casino069.team
+0626.team
+7816.lol
+opcasino.team
+5365.team
+2528.team
+p8l7.team
