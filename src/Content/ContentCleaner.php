@@ -63,7 +63,18 @@ final class ContentCleaner
         // Кнопки-призывы и «счётчики срочности» (фейковый джекпот/таймер) — не тело статьи;
         // из-за них после очистки оставались артефакты вроде «spot-cta-number 12345».
         'cta', 'countdown', 'timer', 'ticker',
+        // Виджеты и каркас, встречающиеся в контентном блоке: герой-баннер, джекпоты и «последние выплаты»,
+        // каталог слотов, плавающие плашки/уведомления, «похожие разделы», меню и облака ключевых слов.
+        'hero', 'jackpot', 'jackpots', 'payout', 'payouts', 'dashboard', 'widget', 'widgets', 'toast', 'toasts',
+        'notification', 'notifications', 'floating', 'related', 'action', 'skip', 'topbar', 'navbar', 'menu',
+        'sitenav', 'mainnav', 'keyword', 'keywords', 'cloud', 'winners',
     ];
+
+    /** Шапка сайта без тега <header>: блок с такими токенами класса/id вне main/article и без h1 внутри. */
+    private const HEADER_TOKENS = ['header', 'logo'];
+
+    /** Плашки-«бейджи» (жанры, метки): разворачиваем с пробелом, иначе соседние слова слипаются («TouchКаскады»). */
+    private const CHIP_TOKENS = ['badge', 'badges', 'chip', 'chips', 'pill', 'pills', 'label', 'labels', 'feature', 'features'];
 
     /** Шаг 3: служебные теги — удалить вместе с содержимым (figcaption — подпись к уже удалённой картинке). */
     private const SERVICE_TAGS = ['script', 'style', 'meta', 'link', 'noscript', 'img', 'hr', 'br', 'caption', 'figcaption'];
@@ -138,6 +149,8 @@ final class ContentCleaner
         $body = $this->applyReplacements($body, $opt);
         // 3–8. Служебные теги, развёртка контейнеров, оформление, заголовки, атрибуты, ссылки.
         $body = $this->normalizeMarkup($body);
+        // Развёртка вложенных div оставляет пачки пустых строк — схлопываем до одной.
+        $body = preg_replace('~[ \t]*\n[ \t]*(?:\n[ \t]*)+~u', "\n", $body) ?? $body;
         // Страховка: после развёртки <span>ов бренд, разбитый на куски, склеивается — ловим и его.
         // Повторный проход идемпотентен (переменные бренд не содержат).
         $body = $this->applyReplacements($body, $opt);
@@ -145,82 +158,290 @@ final class ContentCleaner
         return trim($body);
     }
 
+    /** Заголовок «Популярные запросы» (мануал): отсюда и до конца — не статья. */
+    private const END_ALWAYS = '~^\W*популярн\w*\s+запрос~iu';
+
     /**
-     * Шаг 1. Тело статьи: всё после первого </h1> и до заголовка «Популярные запросы» + FAQ вторым
-     * потоком; без служебных тегов и мусорных блоков.
+     * Заголовок блока о сайте («О компании», «О портале», «Контакты», «Реквизиты»…): отсюда и до конца режем,
+     * только если дальше идут реквизиты сайта (телефон, e-mail, лицензия, ©), а не продолжение статьи.
+     */
+    private const END_ABOUT = '~^\W*(?:о\s+(?:компании|портале|нас|проекте|сайте)|юридическ\w*\s+адрес|реквизиты|контакт\w*|about\s+(?:us|company)|contacts?)\b~iu';
+
+    /** Признаки реквизитов сайта: телефон, e-mail, © / «все права», номер лицензии, юридический адрес. */
+    private const CONTACT_SIGNS = '~\+\d[\d\s()\-]{7,}\d|\b8[\s\-]?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2}\b|[\w.\-]+@[\w\-]+(?:\.[\w\-]+)+|©|\(c\)|все права защищ|лицензи\w*\s*(?:№|#|номер|no\.?)|реквизит|юридическ\w*\s+адрес|оператор:~iu';
+
+    /** Заголовок облака запросов/тегов: сам заголовок и ссылочный блок за ним — не статья (а текст после них — статья). */
+    private const CLOUD_HEADING = '~^\W*(?:похожие|популярные|связанные|ключевые|другие|рекомендуемые)\s+(?:запросы|поиски|темы|слова|запросов|статьи|материалы)|^\W*(?:теги|метки|tags|keywords|облако\s+тегов)\W*$~iu';
+
+    /** Без h1 страница считается статьёй, только если текста в контентном блоке не меньше стольких символов. */
+    private const MIN_ARTICLE_CHARS = 300;
+
+    /**
+     * Шаг 1. Тело статьи = контентный блок страницы (<main>, иначе всё тело) без каркаса сайта: шапка, меню,
+     * подвал, попапы, виджеты, облака тегов, медиа и интерактив удаляются целиком. Начало — после первого h1,
+     * если перед ним нет текста статьи (h1 — шапка статьи); если текст есть (h1 стоит посреди контента),
+     * берём с начала блока, и h1 остаётся (шаг 6 сделает из него h2). Конец — «Популярные запросы» (всегда)
+     * или блок «О компании» с реквизитами. FAQ, оказавшийся вне среза, приклеивается вторым потоком.
      */
     public function extractArticle(string $html): string
     {
-        if (preg_match('~</h1\s*>~i', $html, $m, PREG_OFFSET_CAPTURE) !== 1) {
+        $doc = $this->loadDocument($html);
+        $body = $doc?->getElementsByTagName('body')->item(0);
+        if ($doc === null || !$body instanceof \DOMElement) {
             return '';
         }
-        $body = substr($html, $m[0][1] + strlen($m[0][0]));
+        $xp = new \DOMXPath($doc);
+        // Комментарии (Яндекс.Метрика, Google Analytics и т.п.).
+        foreach (iterator_to_array($xp->query('//comment()') ?: []) as $c) {
+            $c->parentNode?->removeChild($c);
+        }
+        // FAQ запоминаем до вырезаний: что не попадёт в срез, приклеим вторым потоком.
+        $faqNodes = $this->faqNodes($xp);
+        // Каркас сайта и всё, что не статья.
+        $this->stripNonArticleIn($xp, $body);
 
-        // Обрезаем от заголовка, который вводит «Популярные запросы».
-        if (preg_match('~Популярн\w*\s+запрос~iu', $body, $mm, PREG_OFFSET_CAPTURE) === 1) {
-            $before = substr($body, 0, $mm[0][1]);
-            if (preg_match_all('~<h[1-6]\b~i', $before, $hm, PREG_OFFSET_CAPTURE) > 0) {
-                $body = substr($body, 0, (int) end($hm[0])[1]);
-            } else {
-                $body = $before;
+        $root = $this->contentRoot($xp, $body);
+        $root->setAttribute('data-ys-root', '1');
+        $h1 = $xp->query('.//h1', $root)?->item(0);
+        if ($h1 instanceof \DOMElement) {
+            if (!$this->hasArticleTextBefore($xp, $h1)) {
+                $this->cutBefore($h1, $root);
+                $h1->parentNode?->removeChild($h1);
+            }
+        } elseif (mb_strlen($this->textOf($root)) < self::MIN_ARTICLE_CHARS) {
+            return '';
+        }
+        $this->cutAtEndMarker($xp, $root);
+        $this->removeLinkClouds($xp, $root);
+        $root->removeAttribute('data-ys-root');
+
+        $out = trim($this->serialize($doc, $root));
+        // FAQ — второй поток: блоки вне среза (после «Популярных запросов», вне <main>) приклеиваем, чтобы
+        // подстановка бренда прошла и по ним; если HTML-блока нет вовсе — рендерим из JSON-LD.
+        foreach ($faqNodes as $n) {
+            if (!$this->isInside($n, $root)) {
+                $out .= "\n" . $doc->saveHTML($n);
             }
         }
+        if ($faqNodes === []) {
+            $out .= $this->faqFromJsonLd($html);
+        }
 
-        // FAQ — второй поток: если блок вопросов-ответов не попал в срез (лежит после «Популярных запросов»
-        // или есть только в JSON-LD), вынимаем его отдельно и приклеиваем — подстановка пройдёт и по нему.
-        $body .= $this->extractFaq($html, $body);
-
-        // Комментарии (Яндекс.Метрика, Google Analytics и т.п.).
-        $body = preg_replace('~<!--.*?-->~s', '', $body) ?? $body;
-        // Через DOM убираем всё, что не относится к статье: медиа, интерактив, модалки, подвал сайта,
-        // меню, контакты, облако тегов, «поделиться», куки-плашки, CTA-виджеты.
-        $body = $this->stripNonArticle($body);
-
-        return trim($body);
+        return trim($out);
     }
 
     /**
-     * FAQ, не попавший в срез тела: HTML-блок (itemtype FAQPage, class/id с «faq», <details>) где-то ещё
-     * на странице, а если его нет — из JSON-LD FAQPage. '' — если FAQ уже в теле или его нет вовсе.
+     * Верхние FAQ-блоки страницы (itemtype FAQPage, class/id с «faq», <details>); вложенные (faq-item внутри
+     * faq) входят в родителя.
+     *
+     * @return list<\DOMElement>
      */
-    private function extractFaq(string $html, string $body): string
+    private function faqNodes(\DOMXPath $xp): array
     {
-        $marker = '~<details\b|<summary\b|(?:class|id)=["\'][^"\']*faq[^"\']*["\']|schema\.org/FAQPage~iu';
-        if (preg_match($marker, $body) === 1) {
-            return ''; // FAQ уже внутри тела — второй раз не нужен
-        }
-        if (preg_match($marker, $html) === 1) {
-            $doc = $this->loadDocument($html);
-            if ($doc !== null) {
-                $xp = new \DOMXPath($doc);
-                $lc = static fn (string $attr): string => "translate(@$attr,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz')";
-                $found = $xp->query("//*[contains(@itemtype,'FAQPage') or contains({$lc('class')},'faq') or contains({$lc('id')},'faq')] | //details");
-                $parts = [];
-                foreach ($found ?: [] as $n) {
-                    if (!$n instanceof \DOMElement) {
-                        continue;
-                    }
-                    // Берём только верхние совпадения: вложенные (faq-item внутри faq) входят в родителя.
-                    $inside = false;
-                    for ($p = $n->parentNode; $p instanceof \DOMElement; $p = $p->parentNode) {
-                        foreach ($found as $other) {
-                            if ($other->isSameNode($p)) {
-                                $inside = true;
-                                break 2;
-                            }
-                        }
-                    }
-                    if (!$inside) {
-                        $parts[] = $doc->saveHTML($n);
+        $lc = static fn (string $attr): string => "translate(@$attr,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz')";
+        $found = iterator_to_array($xp->query("//*[contains(@itemtype,'FAQPage') or contains({$lc('class')},'faq') or contains({$lc('id')},'faq')] | //details") ?: []);
+        $top = [];
+        foreach ($found as $n) {
+            if (!$n instanceof \DOMElement) {
+                continue;
+            }
+            $inside = false;
+            for ($p = $n->parentNode; $p instanceof \DOMElement; $p = $p->parentNode) {
+                foreach ($found as $other) {
+                    if ($other->isSameNode($p)) {
+                        $inside = true;
+                        break 2;
                     }
                 }
-                if ($parts !== []) {
-                    return "\n" . implode("\n", $parts);
-                }
+            }
+            if (!$inside) {
+                $top[] = $n;
             }
         }
 
-        return $this->faqFromJsonLd($html);
+        return $top;
+    }
+
+    /** Контентный блок: <main> (или role=main) с наибольшим текстом, если в нём хотя бы 40% текста страницы; иначе всё тело. */
+    private function contentRoot(\DOMXPath $xp, \DOMElement $body): \DOMElement
+    {
+        $best = null;
+        $bestLen = 0;
+        foreach ($xp->query('.//main|.//*[@role="main"]', $body) ?: [] as $n) {
+            if (!$n instanceof \DOMElement) {
+                continue;
+            }
+            $len = mb_strlen($this->textOf($n));
+            if ($len > $bestLen) {
+                $best = $n;
+                $bestLen = $len;
+            }
+        }
+        if ($best !== null && $bestLen >= 0.4 * mb_strlen($this->textOf($body))) {
+            return $best;
+        }
+
+        return $body;
+    }
+
+    /** Есть ли перед h1 текст статьи (абзац от 80 символов или суммарно от 200): тогда h1 — не шапка, а середина контента. */
+    private function hasArticleTextBefore(\DOMXPath $xp, \DOMElement $h1): bool
+    {
+        $chars = 0;
+        foreach ($xp->query('preceding::text()[ancestor::*[@data-ys-root]]', $h1) ?: [] as $t) {
+            $chars += mb_strlen(trim($t->textContent));
+        }
+        if ($chars >= 200) {
+            return true;
+        }
+        foreach ($xp->query('preceding::*[self::p or self::li][ancestor::*[@data-ys-root]]', $h1) ?: [] as $p) {
+            if (mb_strlen($this->textOf($p)) >= 80) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Конец статьи: «Популярные запросы» — всегда; «О компании»/«Контакты» и т.п. — только если остаток похож на
+     * реквизиты сайта (телефон, e-mail, лицензия, ©) и не длиннее 600–1500 символов. Раздел «О портале …»
+     * посреди статьи без реквизитов остаётся.
+     */
+    private function cutAtEndMarker(\DOMXPath $xp, \DOMElement $root): void
+    {
+        $lc = static fn (string $attr): string => "translate(@$attr,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz')";
+        $inFaq = "ancestor::details or ancestor::*[contains({$lc('class')},'faq') or contains({$lc('id')},'faq')]";
+        $total = mb_strlen($this->textOf($root));
+        $nodes = $xp->query(".//*[self::h1 or self::h2 or self::h3 or self::h4 or self::h5 or self::h6 or self::p or self::div or self::strong or self::b or self::dt][not($inFaq)]", $root);
+        foreach (iterator_to_array($nodes ?: []) as $n) {
+            if (!$n instanceof \DOMElement) {
+                continue;
+            }
+            $text = $this->textOf($n);
+            if (preg_match('~^h[1-6]$~', $n->tagName) !== 1 && mb_strlen($text) > 40) {
+                continue;
+            }
+            if (preg_match(self::END_ALWAYS, $text) === 1) {
+                $this->cutAfter($n, $root);
+
+                return;
+            }
+            if (preg_match(self::END_ABOUT, $text) !== 1) {
+                continue;
+            }
+            $rest = $this->textAfter($xp, $n);
+            $len = mb_strlen($rest);
+            if (preg_match(self::CONTACT_SIGNS, $rest) === 1 && $len <= max(600, min(1500, (int) ($total * 0.35)))) {
+                $this->cutAfter($n, $root);
+
+                return;
+            }
+        }
+    }
+
+    /** Текст узла и всего, что после него внутри контентного блока. */
+    private function textAfter(\DOMXPath $xp, \DOMElement $n): string
+    {
+        $text = $this->textOf($n);
+        foreach ($xp->query('following::text()[ancestor::*[@data-ys-root]]', $n) ?: [] as $t) {
+            $text .= ' ' . trim($t->textContent);
+        }
+
+        return $text;
+    }
+
+    /** Удаляет всё до узла внутри $root (сам узел остаётся). */
+    private function cutBefore(\DOMNode $node, \DOMElement $root): void
+    {
+        for ($n = $node; $n !== null && !$n->isSameNode($root); $n = $n->parentNode) {
+            while ($n->previousSibling !== null && $n->parentNode !== null) {
+                $n->parentNode->removeChild($n->previousSibling);
+            }
+        }
+    }
+
+    /** Удаляет узел и всё после него внутри $root. */
+    private function cutAfter(\DOMNode $node, \DOMElement $root): void
+    {
+        for ($n = $node; $n !== null && !$n->isSameNode($root); $n = $n->parentNode) {
+            while ($n->nextSibling !== null && $n->parentNode !== null) {
+                $n->parentNode->removeChild($n->nextSibling);
+            }
+        }
+        $node->parentNode?->removeChild($node);
+    }
+
+    /**
+     * Облака запросов/тегов и меню: заголовок вроде «Похожие запросы»/«Ключевые темы» вместе с ссылочным блоком
+     * за ним, а также любой блок, где почти всё — ссылки (от 8 ссылок и ≥ 80% текста в них). Статья после
+     * такого блока остаётся.
+     */
+    private function removeLinkClouds(\DOMXPath $xp, \DOMElement $root): void
+    {
+        $lc = static fn (string $attr): string => "translate(@$attr,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz')";
+        $inFaq = "ancestor::details or ancestor::*[contains({$lc('class')},'faq') or contains({$lc('id')},'faq')]";
+        $headings = $xp->query(".//*[self::h1 or self::h2 or self::h3 or self::h4 or self::h5 or self::h6 or self::p or self::div or self::strong or self::b][not($inFaq)]", $root);
+        foreach (iterator_to_array($headings ?: []) as $n) {
+            if (!$n instanceof \DOMElement || !$this->isInside($n, $root)) {
+                continue;
+            }
+            $text = $this->textOf($n);
+            if (mb_strlen($text) > 40 || preg_match(self::CLOUD_HEADING, $text) !== 1) {
+                continue;
+            }
+            $next = $n->nextSibling;
+            while ($next !== null && !$next instanceof \DOMElement && trim($next->textContent) === '') {
+                $next = $next->nextSibling;
+            }
+            if ($next instanceof \DOMElement && $this->isLinkDense($xp, $next, 4, 0.7)) {
+                $next->parentNode?->removeChild($next);
+            }
+            $n->parentNode?->removeChild($n);
+        }
+        $blocks = $xp->query(".//*[self::div or self::section or self::ul or self::ol or self::p][not($inFaq)]", $root);
+        foreach (iterator_to_array($blocks ?: []) as $n) {
+            if ($n instanceof \DOMElement && $this->isInside($n, $root) && $this->isLinkDense($xp, $n, 8, 0.8)) {
+                $n->parentNode?->removeChild($n);
+            }
+        }
+    }
+
+    /** Блок почти целиком из ссылок: не меньше $minLinks ссылок и не меньше $minRatio его текста внутри них. */
+    private function isLinkDense(\DOMXPath $xp, \DOMElement $el, int $minLinks, float $minRatio): bool
+    {
+        $links = $xp->query('.//a', $el);
+        if ($links === false || $links->length < $minLinks) {
+            return false;
+        }
+        $all = mb_strlen($this->textOf($el));
+        if ($all === 0) {
+            return false;
+        }
+        $inLinks = 0;
+        foreach ($links as $a) {
+            $inLinks += mb_strlen($this->textOf($a));
+        }
+
+        return $inLinks / $all >= $minRatio;
+    }
+
+    /** Узел всё ещё внутри $root (не вырезан вместе с предком)? */
+    private function isInside(\DOMNode $n, \DOMElement $root): bool
+    {
+        for ($p = $n; $p !== null; $p = $p->parentNode) {
+            if ($p->isSameNode($root)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** Текст узла с схлопнутыми пробелами. */
+    private function textOf(\DOMNode $n): string
+    {
+        return trim(preg_replace('~\s+~u', ' ', $n->textContent) ?? $n->textContent);
     }
 
     /** FAQ из JSON-LD (schema.org/FAQPage → mainEntity[Question/acceptedAnswer]) в виде h2 + h3/p. */
@@ -270,53 +491,75 @@ final class ContentCleaner
     }
 
     /**
-     * Шаг 1 (мусор). Убирает из фрагмента не-контент: медиа, интерактив, модалки, подвал сайта, меню,
-     * контакты, теги. DOM (а не регэкспы) — потому что модалки/блоки бывают с вложенными div.
+     * Шаг 1 (мусор). Убирает всё, что не статья: каркас сайта (шапка, меню, подвал, боковые колонки, попапы),
+     * медиа, интерактив, контакты, облака тегов, виджеты (джекпоты, «последние выплаты», таймеры, CTA).
+     * DOM (а не регэкспы) — потому что блоки бывают с вложенными div.
      */
-    private function stripNonArticle(string $fragment): string
+    private function stripNonArticleIn(\DOMXPath $xp, \DOMElement $root): void
     {
-        [$doc, $root] = $this->loadFragment($fragment);
-        if ($doc === null || $root === null) {
-            return trim($fragment);
-        }
-        $xp = new \DOMXPath($doc);
         $lc = static fn (string $attr): string => "translate(@$attr,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz')";
         $inFaq = "ancestor::details or ancestor::summary or ancestor::*[contains({$lc('class')},'faq') or contains({$lc('id')},'faq')]";
         $remove = [];
-        // Медиа и интерактив, меню, контакты-адрес, диалоги.
-        foreach ($xp->query('.//script|.//style|.//noscript|.//template|.//svg|.//form|.//input|.//select|.//textarea|.//label|.//iframe|.//img|.//picture|.//video|.//audio|.//canvas|.//object|.//embed|.//map|.//source|.//address|.//dialog|.//nav', $root) as $n) {
+        // Каркас сайта: шапка (не внутри main/article — там это шапка статьи с h1), меню, боковые колонки,
+        // подвал (кроме подписи в цитате: <blockquote><footer>), диалоги и служебные роли.
+        foreach ($xp->query('.//header[not(ancestor::main) and not(ancestor::article)]|.//nav|.//aside|.//footer[not(ancestor::blockquote)]|.//dialog', $root) ?: [] as $n) {
             $remove[] = $n;
         }
-        // Кнопки — интерактив, но кнопка-вопрос внутри FAQ несёт текст: её разворачиваем, а не удаляем.
-        foreach ($xp->query(".//button[not($inFaq)]", $root) as $n) {
+        foreach ($xp->query('.//*[@role="banner" or @role="navigation" or @role="complementary" or @role="contentinfo" or @role="dialog" or @role="alertdialog" or @aria-modal="true"]', $root) ?: [] as $n) {
             $remove[] = $n;
         }
-        // Подвал сайта — но подпись внутри цитаты (<blockquote><footer>) оставляем.
-        foreach ($xp->query('.//footer[not(ancestor::blockquote)]', $root) as $n) {
+        // Шапка без тега <header>: блок с классом header/logo вне main/article, в котором нет h1.
+        foreach ($xp->query('.//*[@class or @id][not(ancestor::main) and not(ancestor::article) and not(.//h1)]', $root) ?: [] as $n) {
+            if ($n instanceof \DOMElement && array_intersect($this->tokens($n), self::HEADER_TOKENS) !== []) {
+                $remove[] = $n;
+            }
+        }
+        // Медиа, интерактив, адрес.
+        foreach ($xp->query('.//script|.//style|.//noscript|.//template|.//svg|.//form|.//input|.//select|.//textarea|.//iframe|.//img|.//picture|.//video|.//audio|.//canvas|.//object|.//embed|.//map|.//source|.//address', $root) ?: [] as $n) {
             $remove[] = $n;
         }
-        // Модалки/поповеры.
-        foreach ($xp->query('.//*[@role="dialog" or @aria-modal="true"]', $root) as $n) {
+        // Кнопки и подписи полей — интерактив; но внутри FAQ они несут вопрос: их разворачиваем, а не удаляем.
+        foreach ($xp->query(".//button[not($inFaq)]|.//label[not($inFaq)]", $root) ?: [] as $n) {
             $remove[] = $n;
         }
-        // Контакты, облако тегов, соцсети и пр. — по токенам класса/id.
-        foreach ($xp->query('.//*[@class or @id]', $root) as $n) {
+        // Контакты, облако тегов, соцсети, виджеты и пр. — по токенам класса/id.
+        foreach ($xp->query('.//*[@class or @id]', $root) ?: [] as $n) {
             if (!$n instanceof \DOMElement) {
                 continue;
             }
-            $tokens = preg_split('~[\s_\-]+~u', mb_strtolower($n->getAttribute('class') . ' ' . $n->getAttribute('id'))) ?: [];
-            if (array_intersect($tokens, self::JUNK_TOKENS) !== []) {
+            if (array_intersect($this->tokens($n), self::JUNK_TOKENS) !== []) {
                 $remove[] = $n;
             }
         }
         foreach ($remove as $n) {
             $n->parentNode?->removeChild($n);
         }
-        foreach (iterator_to_array($xp->query(".//button[$inFaq]", $root) ?: []) as $n) {
-            $this->unwrap($n, false);
+        // Кнопка/подпись внутри FAQ — это вопрос: делаем из неё h3 (как из JSON-LD); прочие — в текст.
+        foreach (iterator_to_array($xp->query(".//button[$inFaq]|.//label[$inFaq]", $root) ?: []) as $n) {
+            if ($n instanceof \DOMElement && $n->ownerDocument !== null && $this->looksLikeQuestion($n)) {
+                $this->rename($n->ownerDocument, $n, 'h3');
+            } else {
+                $this->unwrap($n, false);
+            }
         }
+    }
 
-        return $this->serialize($doc, $root);
+    /** Токены класса и id элемента (в нижнем регистре, разбитые по пробелам, «-» и «_»). */
+    private function tokens(\DOMElement $n): array
+    {
+        return preg_split('~[\s_\-]+~u', mb_strtolower($n->getAttribute('class') . ' ' . $n->getAttribute('id'))) ?: [];
+    }
+
+    /** Кнопка-вопрос FAQ: текст с «?» или класс/id/aria вроде question/faq/accordion/toggle. */
+    private function looksLikeQuestion(\DOMElement $n): bool
+    {
+        $text = $this->textOf($n);
+        if (mb_strlen($text) < 4 || mb_strlen($text) > 200) {
+            return false;
+        }
+        $attrs = mb_strtolower($n->getAttribute('class') . ' ' . $n->getAttribute('id') . ' ' . $n->getAttribute('aria-controls'));
+
+        return str_ends_with($text, '?') || preg_match('~question|faq|accordion|toggle|collapse|summary|title~', $attrs) === 1;
     }
 
     /**
@@ -345,7 +588,9 @@ final class ContentCleaner
             $this->unwrap($n, true);
         }
         foreach (iterator_to_array($xp->query($query(self::INLINE_UNWRAP), $root) ?: []) as $n) {
-            $this->unwrap($n, false);
+            // Плашки-«бейджи» стоят вплотную друг к другу: без пробела соседние слова слипнутся («TouchКаскады»).
+            $chip = $n instanceof \DOMElement && array_intersect($this->tokens($n), self::CHIP_TOKENS) !== [];
+            $this->unwrap($n, false, $chip ? ' ' : '');
         }
         // 5. Оформление: em/i → обычный текст, b → strong.
         foreach (iterator_to_array($xp->query('.//em|.//i', $root) ?: []) as $n) {
@@ -391,6 +636,16 @@ final class ContentCleaner
         }
         // Пустые элементы, оставшиеся после всего (пустой <p>, <a> вокруг удалённой картинки).
         $this->pruneEmpty($xp, $root);
+        // Осиротевшие значки верхнего уровня (эмодзи-иконки из развёрнутых карточек) — без букв и цифр — убираем.
+        foreach (iterator_to_array($root->childNodes) as $c) {
+            if ($c instanceof \DOMText && trim($c->textContent) !== '' && preg_match('~[\p{L}\p{N}]~u', $c->textContent) !== 1) {
+                $c->nodeValue = "\n";
+            }
+        }
+        // Заголовок, под которым ничего не осталось (каталог слотов вырезан, а его h2 — нет), — убираем.
+        $this->pruneOrphanHeadings($xp, $root);
+        // «Голый» текст верхнего уровня (после развёртки div) — в <p>: на выходе только семантические теги.
+        $this->wrapLooseText($doc, $root);
 
         return $this->serialize($doc, $root);
     }
@@ -643,22 +898,29 @@ final class ContentCleaner
         return $out;
     }
 
-    /** Снимает тег, оставляя содержимое; для блочных — с переводами строки на границах, чтобы текст не слипался. */
-    private function unwrap(\DOMNode $n, bool $block): void
+    /**
+     * Снимает тег, оставляя содержимое; для блочных — с переводами строки на границах, чтобы текст не слипался;
+     * $sep — разделитель для строчных (пробел для плашек).
+     */
+    private function unwrap(\DOMNode $n, bool $block, string $sep = ''): void
     {
         $parent = $n->parentNode;
         if ($parent === null) {
             return;
         }
         $doc = $n->ownerDocument;
-        if ($block && $doc !== null) {
-            $parent->insertBefore($doc->createTextNode("\n"), $n);
+        $sep = $block ? "\n" : $sep;
+        // Разделитель не дублируем, если сосед уже кончается/начинается пробелом («Touch  Каскады»).
+        $prev = $n->previousSibling;
+        if ($sep !== '' && $doc !== null && !($prev instanceof \DOMText && preg_match('~\s$~u', $prev->textContent) === 1)) {
+            $parent->insertBefore($doc->createTextNode($sep), $n);
         }
         while ($n->firstChild !== null) {
             $parent->insertBefore($n->firstChild, $n);
         }
-        if ($block && $doc !== null) {
-            $parent->insertBefore($doc->createTextNode("\n"), $n);
+        $next = $n->nextSibling;
+        if ($sep !== '' && $doc !== null && !($next instanceof \DOMText && preg_match('~^\s~u', $next->textContent) === 1)) {
+            $parent->insertBefore($doc->createTextNode($sep), $n);
         }
         $parent->removeChild($n);
     }
@@ -674,6 +936,77 @@ final class ContentCleaner
             $new->appendChild($n->firstChild);
         }
         $n->parentNode->replaceChild($new, $n);
+    }
+
+    /** Заголовок, за которым сразу заголовок старшего уровня (h3 перед h2) или конец блока, — без содержимого; убираем. */
+    private function pruneOrphanHeadings(\DOMXPath $xp, \DOMElement $root): void
+    {
+        do {
+            $removed = 0;
+            foreach (iterator_to_array($xp->query('.//h1|.//h2|.//h3|.//h4|.//h5|.//h6', $root) ?: []) as $h) {
+                if (!$h instanceof \DOMElement || $h->parentNode === null) {
+                    continue;
+                }
+                $level = (int) substr($h->tagName, 1);
+                $next = $h->nextSibling;
+                while ($next instanceof \DOMText && trim($next->textContent) === '') {
+                    $next = $next->nextSibling;
+                }
+                $orphan = $next === null
+                    || ($next instanceof \DOMElement && preg_match('~^h([1-6])$~i', $next->tagName, $m) === 1 && (int) $m[1] < $level);
+                if ($orphan) {
+                    $h->parentNode->removeChild($h);
+                    $removed++;
+                }
+            }
+        } while ($removed > 0);
+    }
+
+    /**
+     * Оборачивает в <p> «голые» куски верхнего уровня: текст и строчные теги подряд между блоками. Пустая строка
+     * (перевод строки от развёрнутого div или <br>) разделяет абзацы.
+     */
+    private function wrapLooseText(\DOMDocument $doc, \DOMElement $root): void
+    {
+        $inline = ['a', 'strong', 'em', 'b', 'i', 'span', 'sup', 'sub', 'u', 's', 'mark', 'small', 'code', 'abbr', 'time', 'cite', 'q'];
+        $run = [];
+        $flush = static function () use (&$run, $doc, $root): void {
+            // Хвостовые пробелы абзаца — не в <p>.
+            while ($run !== [] && end($run) instanceof \DOMText && trim(end($run)->textContent) === '') {
+                array_pop($run);
+            }
+            $hasText = false;
+            foreach ($run as $node) {
+                if (trim($node->textContent) !== '') {
+                    $hasText = true;
+                    break;
+                }
+            }
+            if ($hasText) {
+                $p = $doc->createElement('p');
+                $root->insertBefore($p, $run[0]);
+                foreach ($run as $node) {
+                    $p->appendChild($node);
+                }
+            }
+            $run = [];
+        };
+        foreach (iterator_to_array($root->childNodes) as $c) {
+            if ($c instanceof \DOMText && trim($c->textContent) === '') {
+                if (str_contains($c->textContent, "\n")) {
+                    $flush(); // граница блока
+                } elseif ($run !== []) {
+                    $run[] = $c; // пробел между строчными элементами внутри абзаца
+                }
+                continue;
+            }
+            if ($c instanceof \DOMText || ($c instanceof \DOMElement && in_array(strtolower($c->tagName), $inline, true))) {
+                $run[] = $c;
+            } else {
+                $flush();
+            }
+        }
+        $flush();
     }
 
     /**

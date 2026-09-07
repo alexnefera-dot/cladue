@@ -293,5 +293,79 @@ final class ContentCleanerTest
     public function testNoArticleReturnsEmpty(): void
     {
         Assert::same('', (new ContentCleaner())->clean('<html><body><p>нет заголовка</p></body></html>'));
+        // Без h1, но с настоящим текстом — это статья.
+        $long = '<body><div class="content">' . str_repeat('<p>Длинный абзац текста статьи без заголовка первого уровня на странице.</p>', 8) . '</div></body>';
+        Assert::true(str_contains((new ContentCleaner())->clean($long), 'Длинный абзац'), 'страница без h1, но с текстом — статья');
+    }
+
+    public function testKeepsContentBeforeMidPageH1AndCutsHeaderAndAboutBlock(): void
+    {
+        // Шаблон «7–10-страничников»: шапка, герой, абзацы, h1 ПОСРЕДИ контента, облако «Похожие запросы», ещё текст,
+        // блок «О компании» с реквизитами и формой отзыва. Режем только шапку и «О компании» с хвостом.
+        $links = '';
+        for ($i = 1; $i <= 12; $i++) {
+            $links .= '<a href="/q' . $i . '">запрос номер ' . $i . '</a> ';
+        }
+        $html = '<body><div class="header"><a href="/">Казино Эверум</a> <a href="tel:+74959850000">+7 (495) 985-00-00</a>'
+            . '<nav><a href="/freespins">Фриспины</a><a href="/mobile">Мобильная версия</a></nav><button>Вход</button></div>'
+            . '<div class="hero"><div>Теория прибыли</div><div>8544 Игровых автоматов</div></div>'
+            . '<p>Валидируйте бонусные программы! Казино Эверум выкатили на everum.xrg.casino. Двигайтесь к джекпоту в Everum с розыгрышами призов. Обновление 07.09.2026.</p>'
+            . '<p>Эверум, Вход на рабочий сайт.</p><p>Casino Everum - Официальный сайт.</p>'
+            . '<h1>Эверум, Вход на рабочий сайт</h1>'
+            . '<h3>Похожие запросы</h3><div class="similar">' . $links . '</div>'
+            . '<p>Казино Эверум радо каждому гостю: бонусы, турниры и быстрые выплаты.</p>'
+            . '<h2>О компании Эверум</h2><h3>Юридический адрес</h3><p>Эверум B.V., Кюрасао</p>'
+            . '<h3>Контакты</h3><p>Телефон РФ: <a href="tel:+74959850000">+7 (495) 985-00-00</a> Email: <a href="mailto:support@everum.xrg.casino">support@everum.xrg.casino</a></p>'
+            . '<form><input name="name"><textarea></textarea><button>Отправить</button></form>'
+            . '<div class="providers"><span>Yggdrasil Gaming</span><span>Amatic Industries</span></div></body>';
+        $out = (new ContentCleaner())->clean($html, ['brand_ru' => 'эверум', 'brand_en' => 'everum', 'domain' => 'everum.xrg.casino']);
+        Assert::true(str_contains($out, 'Валидируйте бонусные программы'), 'абзацы ПЕРЕД h1 остались');
+        Assert::true(str_contains($out, 'Вход на рабочий сайт</h2>'), 'h1 посреди контента остался и стал h2');
+        Assert::false(str_contains($out, 'Похожие запросы') || str_contains($out, 'запрос номер'), 'облако «Похожие запросы» убрано');
+        Assert::true(str_contains($out, 'радо каждому гостю'), 'текст ПОСЛЕ облака остался');
+        Assert::false(str_contains($out, 'О компании') || str_contains($out, 'Юридический') || str_contains($out, 'support@') || str_contains($out, 'Yggdrasil'), 'блок «О компании» и всё после него отрезаны');
+        Assert::false(str_contains($out, 'Фриспины') || str_contains($out, 'Теория прибыли') || str_contains($out, '985-00-00'), 'шапка и герой-баннер убраны');
+        Assert::true(str_contains($out, '%domain_name%') && !str_contains($out, 'everum.xrg.casino'), 'домен заменён');
+        Assert::false(stripos($out, 'эверум') !== false, 'бренд заменён');
+    }
+
+    public function testMainIsContentRootAndFaqOutsideMainIsAppended(): void
+    {
+        // Шаблон «11–15-страничников»: <header> сайта, <main> с крошками, шапкой статьи (h1 + герой + таймер +
+        // каталог слотов), виджетом выплат и статьёй, FAQ-секция ПОСЛЕ main, подвал с облаком и «О портале», попап.
+        $html = '<body><header class="header"><nav><a href="/bonus">Бонусы</a><a href="/vhod">Вход</a></nav></header>'
+            . '<main><nav class="breadcrumbs">Хлебные крошки</nav><article class="content-wrapper">'
+            . '<header class="content-header"><h1>Бренд Казино — официальный портал: бонусы, слоты</h1>'
+            . '<section class="hero-value"><span>2026</span><span>Выбор игроков</span><a href="/registracia">Играть</a></section>'
+            . '<section class="value-pillars"><h2>Что даёт Бренд Казино</h2><div><div class="icon">🎲</div><h3>Каталог</h3><p>Тысячи слотов</p></div></section>'
+            . '<section class="promo-timer-widget"><h3>До конца спецпредложения:</h3><div>00Дней22Часов</div></section>'
+            . '<section class="slots-dashboard"><h2>Игровой каталог</h2><article class="slot-card"><h3>Sweet Bonanza</h3>RTP 96.5%</article></section></header>'
+            . '<section class="recent-payouts-block"><div class="payout-feed">Последние выплаты: Максим — 75 833 ₽</div></section>'
+            . '<div class="article-content"><h2>Поддержка 24/7</h2><p>В нашем салуне не бывает закрытых дверей.</p>'
+            . '<div class="story">Голый текст истории про игрока без тега абзаца.</div>'
+            . '<div class="slot-features"><span class="badge">Touch</span><span class="badge">Каскады</span></div>'
+            . '<div class="faq-section" itemtype="https://schema.org/FAQPage"><h3>Реально ли выиграть?</h3><p>Да, но без гарантий.</p></div>'
+            . '<section class="page-thematic-block"><h2>О портале Бренд Казино</h2><p>Кратко: что есть на сайте и с чего начать.</p>'
+            . '<article class="faq-item"><button class="faq-question"><span>Бонусы и акции</span></button><div class="faq-answer"><p>Релоад-бонус и кэшбэк.</p></div></article></section>'
+            . '</div></article></main>'
+            . '<section id="faq" class="faq-section"><h2>Частые вопросы</h2><article class="faq-item"><button class="faq-question">Как зайти на сайт?</button><div class="faq-answer"><p>Через зеркало.</p></div></article></section>'
+            . '<footer class="site-footer"><div class="keywords-block"><h3>Ключевые темы</h3><a href="/1">Бренд бонус</a><a href="/2">Бренд слоты</a></div>'
+            . '<div><h4>О портале</h4><p>Бренд Казино — лицензированная платформа.</p></div></footer>'
+            . '<aside id="bonusPopup" role="complementary">Приветственный пакет</aside></body>';
+        $out = (new ContentCleaner())->clean($html, ['brand_ru' => 'бренд']);
+        Assert::false(str_contains($out, 'официальный портал: бонусы'), 'h1 в шапке статьи отрезан');
+        Assert::false(str_contains($out, 'Выбор игроков') || str_contains($out, 'спецпредложения') || str_contains($out, 'Sweet Bonanza') || str_contains($out, 'Последние выплаты'), 'герой, таймер, каталог слотов, выплаты — виджеты убраны');
+        Assert::false(str_contains($out, 'Игровой каталог'), 'заголовок вырезанного каталога не остался сиротой');
+        Assert::false(str_contains($out, 'Хлебные крошки') || str_contains($out, 'Ключевые темы') || str_contains($out, 'лицензированная платформа') || str_contains($out, 'Приветственный пакет'), 'крошки, подвал (облако + «О портале»), попап — убраны');
+        Assert::true(str_contains($out, '<h2>Что даёт %brand_name_ru% Казино</h2>') && str_contains($out, '<h3>Каталог</h3>'), 'контентный блок после h1 остался');
+        Assert::true(str_contains($out, 'закрытых дверей'), 'статья на месте');
+        Assert::true(str_contains($out, '<p>Голый текст истории про игрока без тега абзаца.</p>'), 'голый текст верхнего уровня завёрнут в <p>');
+        Assert::true(str_contains($out, 'Touch Каскады'), 'плашки-бейджи не слиплись');
+        Assert::same(1, substr_count($out, 'Реально ли выиграть?'), 'FAQ внутри статьи — один раз, на своём месте');
+        Assert::true(str_contains($out, '<h2>О портале %brand_name_ru% Казино</h2>'), 'раздел «О портале» ПОСРЕДИ статьи (без реквизитов) остался');
+        Assert::true(str_contains($out, '<h3>Бонусы и акции</h3>') && str_contains($out, 'кэшбэк'), 'кнопка-вопрос внутри FAQ-разметки стала h3');
+        Assert::true(str_contains($out, '<h3>Как зайти на сайт?</h3>') && str_contains($out, 'Через зеркало'), 'FAQ-секция вне <main> приклеена вторым потоком');
+        Assert::same(0, preg_match('~\n\s*\n~', $out), 'пустых строк подряд нет');
+        Assert::false(str_contains($out, '🎲'), 'осиротевшая иконка убрана');
     }
 }

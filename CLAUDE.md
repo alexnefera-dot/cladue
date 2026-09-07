@@ -253,16 +253,34 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `testXmlstockLiveModeUsesLiveEndpointAndPaginatesByTen`.
 - `Content\ContentCleaner` is the third stage (`settings.stage=clean`, `bin/clean-content.php`, and the
   per-site `/api/clean-site` button). It follows the user's manual STRICTLY IN ORDER (half the bugs came
-  from reordering steps): **1** article body = after the first `</h1>`, before «Популярные запросы»
-  (`extractArticle()`), plus the FAQ as a SECOND STREAM — if the Q&A block (`<details>`, a `faq` class/id,
-  `itemtype=FAQPage`) is not inside that cut, `extractFaq()` pulls it from elsewhere on the page, else renders
-  it from JSON-LD `FAQPage` (`faqFromJsonLd()`: `<h2>Вопросы и ответы</h2>` + `<h3>`/`<p>`), so brand
-  substitution covers it too (previously brand names inside FAQ survived); then `stripNonArticle()` removes,
-  via DOM, what is not article text — media (`img`, `svg`, `video`…), interactive (`form`, `input`; `button`
-  unless it sits inside FAQ, where it is unwrapped to keep the question), popovers (`role=dialog`), the site
-  `footer` (a `<footer>` inside a `<blockquote>` citation is kept), `nav`, `address`, HTML comments, and blocks
-  whose class/id token is junk (`JUNK_TOKENS`: contacts, tag-cloud, social/share, popup/modal, cookie,
-  breadcrumbs, banner/ads, CTA/urgency widgets `cta`/`countdown`/`timer`/`ticker`); `removeSlots()` drops
+  from reordering steps): **1** article body = the page's CONTENT BLOCK (`extractArticle()`, all DOM):
+  `contentRoot()` = `<main>`/`role=main` holding ≥ 40% of the body text, else the whole body, after
+  `stripNonArticleIn()` removed the site chrome and everything that is not article text — `<header>` outside
+  `main`/`article` (an `article > header` holds the h1 + hero and is kept; a `div.header`/`.logo` outside
+  `main`/`article` without an h1 is removed via `HEADER_TOKENS`), `nav`, `aside`, `footer` (a `<footer>` inside
+  a `<blockquote>` citation is kept), `role=banner|navigation|complementary|contentinfo|dialog`, media
+  (`img`, `svg`, `video`…), interactive (`form`, `input`; `button`/`label` unless inside FAQ, where a
+  question-like one (`looksLikeQuestion()`: text ends with «?» or class/id has question/faq/accordion/toggle)
+  becomes `<h3>` and the rest is unwrapped), `address`, HTML comments, and blocks whose class/id token is junk
+  (`JUNK_TOKENS`: contacts, tag-cloud/keywords, social/share, popup/modal, cookie, breadcrumbs, banner/ads,
+  CTA/urgency widgets `cta`/`countdown`/`timer`/`ticker`, and the content-block widgets seen on the
+  11–15-page templates — `hero`, `jackpot`, `payout(s)`, `dashboard`, `widget`, `toast`/`notification`,
+  `floating`, `related`, `action`, `menu`/`navbar`/`topbar`, `skip`). START: after the first `h1` only when
+  `hasArticleTextBefore()` finds no article text before it (≥ 200 chars or a `<p>`/`<li>` ≥ 80 chars); when
+  there IS text (7–10-page templates put intro paragraphs before a mid-page h1) the block is taken from its
+  start and the h1 stays (step 6 turns it into h2) — cutting from the h1 lost those paragraphs. END
+  (`cutAtEndMarker()`): «Популярные запросы» always (manual); «О компании»/«О портале»/«Контакты»/«Реквизиты»
+  (`END_ABOUT`) only when the remainder looks like company details (`CONTACT_SIGNS`: phone, e-mail, ©, licence
+  number, legal address) and is ≤ 600–1500 chars — so an in-article «О портале Бренд» section without
+  contacts stays. `removeLinkClouds()` drops a cloud heading
+  (`CLOUD_HEADING`: «Похожие/Популярные/Ключевые … запросы/темы», «Теги») together with the link-dense block
+  after it, and any block that is ≥ 8 links making ≥ 80% of its text (menus, keyword clouds) — the text AFTER
+  a mid-page cloud is kept (the old string cut at «Популярные запросы» threw it away). A page without an h1
+  is an article only if the block has ≥ `MIN_ARTICLE_CHARS` (300) of text. FAQ is a SECOND STREAM by node
+  identity: `faqNodes()` collects the top-level Q&A blocks (`<details>`, a `faq` class/id, `itemtype=FAQPage`)
+  BEFORE any cut, and whatever is not inside the final root (a `section#faq` after `<main>`, a block after
+  «Популярных запросов») is appended (`isInside()`), else JSON-LD `FAQPage` is rendered (`faqFromJsonLd()`:
+  `<h2>Вопросы и ответы</h2>` + `<h3>`/`<p>`), so brand substitution covers it too; `removeSlots()` drops
   the slots section. **2** `applyReplacements()` over body + FAQ together: domain → `%domain_name%` (the regex
   eats an optional subdomain prefix, so `kush.casinozsd.buzz` → `%domain_name%`, not «kush.%domain_name%»),
   `dd.mm.yyyy` → `%date%`, brand → `%brand_name_ru%`/`%brand_name_en%`. This runs BEFORE unwrapping and
@@ -274,12 +292,16 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `section`, `article`, `aside`, `footer`, `header`, `main`, `thead`, `tbody`, `tfoot`, `figure`) with a newline
   on each side so neighbouring text does not fuse, inline ones (`span`, `small`, `q`, `abbr`, `time`, `cite`,
   `code`, `kbd`, `samp`, `var`, `sup`, `sub`, `u`, `s`, `mark`, `ins`, `del`, `dfn`) tightly so a word split
-  as `Крип<span>то</span>босс` re-joins; **5** `em`/`i` → plain text, `b` → `strong`; **6** `h1` → `h2`, then
+  as `Крип<span>то</span>босс` re-joins (badge/chip/pill/label spans — `CHIP_TOKENS` — get a space instead, so
+  sibling genre tags do not fuse into «TouchКаскады»; `unwrap()` never doubles a separator); **5** `em`/`i` → plain text, `b` → `strong`; **6** `h1` → `h2`, then
   `h4`/`h5`/`h6` → `h3`; **7** strip every attribute except `href` on `<a>`; **8** links — external (another
   host; `#`, `mailto:`, `tel:`, `javascript:`) are unwrapped to text, internal ones go through `mapLink()` to
   one of `ALLOWED_LINKS` (`/vhod`, `/registracia`, `/`, `/app`, `/slots`, `/zerkalo`; the home is `/`, never
   `/main`); finally `pruneEmpty()` drops empty wrappers (`<p>&nbsp;</p>`, an `<a>` around a removed image;
-  table cells are left alone). A second `applyReplacements()` pass then catches a brand that step 4 glued back
+  table cells are left alone), `pruneOrphanHeadings()` drops a heading followed by nothing or by a higher-level
+  heading (the h2 of a removed widget), and `wrapLooseText()` wraps top-level bare text runs into `<p>` (text
+  that lived directly in an unwrapped `div`), blank-line runs are collapsed to one newline. A second
+  `applyReplacements()` pass then catches a brand that step 4 glued back
   together from `<span>` pieces (idempotent: the variables contain no brand). The output is bare semantic
   HTML — `p`, `h2`/`h3`, `ul`/`ol`/`li`, `table`/`tr`/`td`/`th`, `strong`, `a[href]`, `blockquote`,
   `details`/`summary` — with no classes or styles (the user's templates wrap it in their own markup).
