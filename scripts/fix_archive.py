@@ -9,6 +9,10 @@
   иначе из списка; в брендовом контексте («казино {NAME}», «приложение {NAME}»,
   «В {NAME}») подставляется %brand_name_ru%.
 - {AMOUNT} -> сумма в рублях из текста раздела, иначе типовая.
+- {YYYYMMDD} -> %date%. Примерные адреса вида user@example.com -> user@%domain_name%.
+- --auto-brand -> бренд каждого сайта определяется сам: самое частое латинское
+  слово рядом с «казино/зеркало/приложение/бонус» не из белого списка, если оно
+  есть минимум на двух страницах сайта. Найденные бренды печатаются.
 - --brand X -> чужой бренд X заменяется на плейсхолдеры:
   «X Casino», «X App», промокоды вида XFREE -> %brand_name_en%;
   адреса @X.com и @X-casino.com -> @%domain_name%; сайт X.com -> %domain_name%;
@@ -20,6 +24,11 @@ import argparse
 import hashlib
 import os
 import re
+import sys
+from collections import Counter
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from check_archive import GENERIC_DOMAINS, brand_candidates  # noqa: E402
 
 NAMES = ("Олег Пётр Петр Дмитрий Марат Георгий Юрий Эдуард Евгений Роман Михаил Валерий Фёдор Федор Иван "
          "Андрей Сергей Алексей Николай Павел Максим Артём Артем Кирилл Виктор Илья Денис Антон Станислав "
@@ -74,6 +83,8 @@ def fix_brand(raw, brand):
     b = re.escape(brand)
     rules = [
         (r"([A-Za-z0-9._-]+)@%s(?:-casino)?\.com\b" % b, r"\1@%domain_name%", "адрес → @%domain_name%"),
+        (r"\b%s(?:mirror|proxy|casino|mobile|bet|app|club)\d*\.(?:com|net|org|ru|io)\b" % b, "%domain_name%", "склейка-домен → %domain_name%"),
+        (r"\b%s(?=(?:mirror|proxy|casino|mobile|bet|app|club|games?)\b)" % b, "%brand_name_en%", "склейка → %brand_name_en%"),
         (r"\s*\(например,\s*%s[a-z]*\.com\)" % b, "", "пример зеркала убран"),
         (r"\b%s[a-z]*\.com\b" % b, "%domain_name%", "сайт → %domain_name%"),
         (r"\+\d[\d\s]{3,}%s\b" % b, "по номеру из личного кабинета", "телефон с брендом"),
@@ -89,20 +100,60 @@ def fix_brand(raw, brand):
     return raw, rows
 
 
+def strip_text(raw):
+    return re.sub(r"<[^>]+>", " ", raw)
+
+
+def site_brands(files):
+    """Бренды сайта — те же кандидаты, что находит проверка (check_archive.brand_candidates), не больше двух."""
+    raws = [open(p, encoding="utf-8").read() for p in files]
+    return [name for name, c, pg in brand_candidates(raws)][:2]
+
+
+def fix_generic(raw):
+    rows = []
+    raw, n = re.subn(r"\{YYYYMMDD\}", "%date%", raw)
+    if n:
+        rows.append(("{YYYYMMDD}", "%date%", "дата"))
+    raw, n = re.subn(r"\{\{(.*?)\}\}", r"\1", raw)
+    if n:
+        rows.append(("{{ }}", "снято", "скобки шаблонизатора (%d)" % n))
+    def email(m):
+        return m.group(1) + "@%domain_name%"
+    raw, n = re.subn(r"(?<![\w@%])([\w.-]+)@(?!%domain_name%)[A-Za-z0-9.-]+\.[a-z]{2,}\b", email, raw)
+    if n:
+        rows.append(("email", "@%domain_name%", "адрес-пример (%d)" % n))
+    def domain(m):
+        return m.group(0) if GENERIC_DOMAINS.match(m.group(2)) else m.group(1) + "%domain_name%"
+    raw, n = re.subn(r"(?<![\w@%.])((?:https?://)?(?:[a-z0-9-]+\.)*)([A-Za-z0-9-]+\.(?:com|net|org|ru|io))\b(?!\w)", domain, raw)
+    if n:
+        rows.append(("домен", "%domain_name%", "чужой домен (%d)" % n))
+    return raw, rows
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("path", help="распакованный архив")
     ap.add_argument("--brand", action="append", default=[], help="чужой бренд для замены (можно несколько раз)")
+    ap.add_argument("--auto-brand", action="store_true", help="определять бренд каждого сайта автоматически")
     args = ap.parse_args()
     if not os.path.isdir(args.path):
         raise SystemExit("нужна папка с распакованным архивом")
     total = 0
+    found = {}
     for dp, dn, fn in os.walk(args.path):
         dn[:] = [d for d in dn if d != "__MACOSX"]
-        for f in sorted(fn):
-            if not f.endswith(".html"):
-                continue
-            p = os.path.join(dp, f)
+        files = [os.path.join(dp, f) for f in sorted(fn) if f.endswith(".html")]
+        if not files:
+            continue
+        brands = list(args.brand)
+        if args.auto_brand:
+            auto = site_brands(files)
+            if auto:
+                found[os.path.relpath(dp, args.path)] = auto
+            brands += auto
+        for p in files:
+            f = os.path.basename(p)
             raw = open(p, encoding="utf-8").read()
             orig = raw
             rel = os.path.relpath(p, args.path)
@@ -110,14 +161,19 @@ def main():
             raw, rows = fill_vars(raw, f[:-5], seed)
             for what, rep, how in rows:
                 print("%-45s %-9s -> %-16s %s" % (rel, what, rep, how))
-            for brand in args.brand:
+            raw, grows = fix_generic(raw)
+            rows += grows
+            for brand in brands:
                 raw, brows = fix_brand(raw, brand)
                 for bname, how, n in brows:
-                    print("%-45s %-9s -> %-16s %s (%d)" % (rel, bname, "", how, n))
                     rows.append(how)
             if raw != orig:
                 open(p, "w", encoding="utf-8").write(raw)
                 total += len(rows)
+    if found:
+        print("\nбренды по сайтам:")
+        for site, b in sorted(found.items()):
+            print("  %-40s %s" % (site, ", ".join(b)))
     print("\nвсего замен:", total)
 
 
