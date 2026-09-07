@@ -31,6 +31,7 @@ SET_12 = SET_7 + ["info", "news", "obzor", "partnery", "promo"]
 # pages: эталонный набор; min_words: минимум слов; min_h2: минимум <h2>.
 TEMPLATES = {
     1:  {"pages": ["main"], "min_words": 300, "min_h2": 3},
+    2:  {"pages": ["main"], "min_words": 300, "min_h2": 3},   # приходит как 1-стр плюс лишняя страница
     7:  {"pages": SET_7, "min_words": 150, "min_h2": 1},
     8:  {"pages": SET_7 + ["privacy"], "min_words": 150, "min_h2": 1},
     9:  {"pages": SET_7 + ["contacts", "privacy"], "min_words": 150, "min_h2": 1},
@@ -42,8 +43,11 @@ TEMPLATES = {
 # Группа -> (тип, страницы, которые выбрасываются). Сайты 9-стр и 10-стр
 # собираются в шаблон 7-стр без служебных страниц; ссылки на убранные
 # страницы ловит C1.
-СЛУЖЕБНЫЕ = ["privacy", "contacts", "about"]
-CONVERT = {8: (7, СЛУЖЕБНЫЕ), 9: (7, СЛУЖЕБНЫЕ), 10: (7, СЛУЖЕБНЫЕ)}
+# Служебные страницы: и латиницей, и с приставкой ru (ruabout, rucontacts, ruprivacy).
+СЛУЖЕБНЫЕ = ["privacy", "contacts", "about", "privacy-policy",
+             "ruprivacy", "rucontacts", "ruabout", "ru-privacy", "ru-contacts", "ru-about"]
+CONVERT = {2: (1, СЛУЖЕБНЫЕ + ["slots", "bonus"]), 8: (7, СЛУЖЕБНЫЕ),
+           9: (7, СЛУЖЕБНЫЕ), 10: (7, СЛУЖЕБНЫЕ)}
 # Сайт убирается из выдачи (а не отправляется на доработку), если в нём
 # есть заглушки или дубли файлов, а для типов из DISCARD_INCOMPLETE — ещё
 # и если не хватает страниц. Причина пишется в отчёт и сводку.

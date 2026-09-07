@@ -5,6 +5,8 @@
     python3 scripts/filter_archive.py <архив.zip | папка> -o <папка результата> [--порог 60] [--без-копий]
 
 Ничего не чинит и не смотрит на бренды, переменные, ссылки и разметку: это другой этап.
+Страницы могут быть как фрагментами, так и целыми документами: head, script, style,
+header и footer не считаются ни текстом, ни материалом для сравнения.
 Результат в папке:
   сводка.md   — итоги по типам, причины, самые похожие пары, списки убранных
   сайты.tsv   — строка на сайт: тип, сайт, группа, вердикт, причина, страниц, слов,
@@ -34,7 +36,40 @@ from functools import lru_cache
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from check_archive import (CONVERT, JUNK_NAMES, MIN_MAIN_WORDS, TEMPLATES,  # noqa: E402
-                           content_words, sections, strip_tags)
+                           WIDGET_P, strip_tags)
+
+# Страницы бывают целыми документами: служебное и обвязку не считаем ни текстом,
+# ни материалом для сравнения.
+CUT = re.compile(r"<head\b.*?</head>|<script\b.*?</script>|<style\b.*?</style>|"
+                 r"<noscript\b.*?</noscript>|<!--.*?-->|<header\b.*?</header>|"
+                 r"<footer\b.*?</footer>|<!DOCTYPE[^>]*>", re.S | re.I)
+
+
+def body_html(raw):
+    return CUT.sub(" ", raw)
+
+
+def content_words(raw):
+    """Слова видимого текста: абзацы, списки, таблицы, врезки; без карточек слотов и строк из 1–3 слов."""
+    words = 0
+    for tag in ("p", "li", "td", "dd", "summary", "blockquote", "figcaption", "caption"):
+        for m in re.findall(r"<%s[^>]*>(.*?)</%s>" % (tag, tag), raw, re.S | re.I):
+            t = strip_tags(m).strip()
+            n = len(re.findall(r"\w+", t))
+            if n <= 3 or WIDGET_P.match(t):
+                continue
+            words += n
+    return words
+
+
+def sections(raw):
+    """Разделы: h1/h2 плюс h3, после которых идёт не карточка слота."""
+    n = len(re.findall(r"<h[12][^>]*>", raw, re.I))
+    for m in re.finditer(r"<h3[^>]*>.*?</h3>", raw, re.S | re.I):
+        tail = strip_tags(raw[m.end(): m.end() + 300]).strip()
+        if not WIDGET_P.match(tail) and "RTP" not in tail[:120]:
+            n += 1
+    return n
 
 GROUP_RX = re.compile(r"^(\d+)-стр$")
 SAMPLE_MASK = 7           # выборка цепочек: hash & 7 == 0, то есть 1/8
@@ -102,6 +137,7 @@ def shingle_hashes(words, n=6):
 
 
 def page_stats(raw):
+    raw = body_html(raw)
     words = re.findall(r"\w+", strip_tags(raw))
     sh = shingle_hashes(words)
     return {
@@ -204,7 +240,7 @@ def main():
     def exact(pid):
         """Цепочки страницы в общей выборке (hash & 7 == 0) без шаблонных — одинаково для обеих страниц пары."""
         idx, p = page_meta[pid]
-        raw = src.read(sites[idx]["pages"][p])
+        raw = body_html(src.read(sites[idx]["pages"][p]))
         return frozenset(h for h in shingle_hashes(re.findall(r"\w+", strip_tags(raw))) if h & SAMPLE_MASK == 0 and h not in boiler)
 
     pairs = []
