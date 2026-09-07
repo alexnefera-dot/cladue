@@ -50,17 +50,18 @@ function свПроза(string $html): array
 {
     $html = (string) preg_replace('~<section\b.*?</section>~su', ' ', $html);
     $html = (string) preg_replace('~<(?:script|style)\b.*?</(?:script|style)>~su', ' ', $html);
-    $разделы = []; $текущий = ['h2' => '', 'фразы' => []];
+    $разделы = []; $текущий = ['h2' => '', 'фразы' => [], 'абзацы' => []];
     if (preg_match_all('~<(h2|h3|p|li)\b[^>]*>(.*?)</\1>~su', $html, $m, PREG_SET_ORDER)) {
         foreach ($m as $x) {
             $т = html_entity_decode(trim((string) preg_replace('~\s+~u', ' ', strip_tags($x[2]))), ENT_QUOTES | ENT_HTML5, 'UTF-8');
             if ($т === '') { continue; }
             if ($x[1] === 'h2') {
                 if ($текущий['фразы'] || $текущий['h2'] !== '') { $разделы[] = $текущий; }
-                $текущий = ['h2' => $т, 'фразы' => []];
+                $текущий = ['h2' => $т, 'фразы' => [], 'абзацы' => []];
                 continue;
             }
             $текущий['фразы'][] = $т;
+            if ($x[1] === 'p') { $текущий['абзацы'][] = $т; }
         }
     }
     if ($текущий['фразы'] || $текущий['h2'] !== '') { $разделы[] = $текущий; }
@@ -149,7 +150,22 @@ function свСтраница(string $файл, array $банкИмён): array
             }
         }
     }
+    // Абзацы: сколько и по сколько слов (A: 12–24 на страницу, 53–59 слов).
+    $абзацы = [];
+    foreach ($разделы as $р) { foreach ($р['абзацы'] as $а) { $n = count(preg_split('~\s+~u', trim($а), -1, PREG_SPLIT_NO_EMPTY)); if ($n >= 6) { $абзацы[] = $n; } } }
+    // Ставки героя в разделе: две разные суммы в рублях после глаголов ставки при одном имени.
+    $ставокМакс = 0;
+    foreach ($разделы as $р) {
+        $т = $р['h2'] . ' ' . implode(' ', $р['фразы']);
+        if (!preg_match_all('~\b(\p{Lu}[а-яё]{2,})\b~u', $т, $mm) || !array_filter($mm[1], fn($w) => isset($банкИмён[$w]))) { continue; }
+        if (preg_match_all('~(?:заш[её]л\s+с|закинул\w*|поставил\w*|начал\w*\s+с|пополнил\w*|внёс|внесл\w*|депозит\w*\s+(?:в|на)?|ставк\w*\s+(?:в|на|—)?)\s*(?:<strong>)?\s*(\d[\d\s\x{00A0}]*)\s?(?:₽|руб)~u', $т, $m)) {
+            $разных = count(array_unique(array_map(fn($x) => preg_replace('~\D~u', '', $x), $m[1])));
+            if ($разных > $ставокМакс) { $ставокМакс = $разных; }
+        }
+    }
     return [
+        'paragraphs' => count($абзацы), 'words_per_para' => $абзацы ? round(array_sum($абзацы) / count($абзацы), 1) : 0,
+        'stakes_max' => $ставокМакс,
         'package_uniq' => count($пакеты), 'packages' => implode('/', array_keys($пакеты)),
         'jackpot_uniq' => count($джекпоты), 'jackpots' => implode('/', array_keys($джекпоты)),
         'rtp_uniq' => count($rtp), 'rtp_spread' => $rtp ? round(max($rtp) - min($rtp), 1) : 0,
@@ -179,12 +195,20 @@ foreach ($папки as $папка) {
         'short_dup_max' => $ср('short_dup_max'), 'fragments' => array_sum(array_column($строки, 'fragments')),
         'package_max' => $макс('package_uniq'), 'jackpot_max' => $макс('jackpot_uniq'), 'rtp_spread_max' => $макс('rtp_spread'),
         'wager' => implode('|', array_unique(array_filter(array_column($строки, 'wager')))),
+        'paragraphs' => $ср('paragraphs'), 'paragraphs_max' => $макс('paragraphs'),
+        'words_per_para' => round(array_sum(array_map(fn($x) => $x['paragraphs'] * $x['words_per_para'], $строки)) / max(1, array_sum(array_column($строки, 'paragraphs'))), 1),
+        'stakes_max' => $макс('stakes_max'),
+        'jackpot_pages_max' => (function () use ($строки): int {
+            $на = [];
+            foreach ($строки as $x) { foreach (array_unique(array_filter(explode('/', (string) $x['jackpots']))) as $j) { $на[$j] = ($на[$j] ?? 0) + 1; } }
+            return $на ? max($на) : 0;
+        })(),
     ];
 }
 if ($json) { echo json_encode($итог, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), "\n"; exit; }
-echo "| набор | пакет/стр (макс) | джекпот/стр (макс) | RTP разброс (макс) | сроков/стр | мантра макс/раздел | мантр/стр | короткий повтор | обрывков | вейджер |\n|---|---|---|---|---|---|---|---|---|---|\n";
+echo "| набор | пакет/стр (макс) | джекпот/стр (макс) | RTP разброс (макс) | сроков/стр | мантра макс/раздел | мантр/стр | короткий повтор | обрывков | вейджер | абз/стр (макс) | слов/абз | ставок героя макс | джекпот стр макс |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n";
 foreach ($итог as $имя => $и) {
-    printf("| %s | %.1f (%d) | %.1f (%d) | %.1f (%.1f) | %.1f | %.1f | %.0f | %.1f | %d | %s |\n", $имя, $и['package_uniq'], $и['package_max'], $и['jackpot_uniq'], $и['jackpot_max'], $и['rtp_spread'], $и['rtp_spread_max'], $и['payout_uniq'], $и['mantra_max'], $и['mantra_total'], $и['short_dup_max'], $и['fragments'], $и['wager']);
+    printf("| %s | %.1f (%d) | %.1f (%d) | %.1f (%.1f) | %.1f | %.1f | %.0f | %.1f | %d | %s | %.1f (%d) | %.1f | %d | %d |\n", $имя, $и['package_uniq'], $и['package_max'], $и['jackpot_uniq'], $и['jackpot_max'], $и['rtp_spread'], $и['rtp_spread_max'], $и['payout_uniq'], $и['mantra_max'], $и['mantra_total'], $и['short_dup_max'], $и['fragments'], $и['wager'], $и['paragraphs'], $и['paragraphs_max'], $и['words_per_para'], $и['stakes_max'], $и['jackpot_pages_max']);
 }
 if ($поСтраницам) {
     foreach ($итог as $имя => $и) {
