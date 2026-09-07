@@ -70,7 +70,30 @@ if (($_GET['export'] ?? '') !== '' && $_SERVER['REQUEST_METHOD'] === 'GET') {
     header('Content-Disposition: attachment; filename="stats_' . $exp . '_' . date('Ymd_His') . '.csv"');
     $out = fopen('php://output', 'w');
     fwrite($out, "\xEF\xBB\xBF"); // BOM, чтобы Excel понял UTF-8
-    if ($exp === 'daily') {
+    if ($exp === 'conversions') {
+        // Все конверсии (реги и депы) за период — одним JOIN, без подзапросов
+        // на строку, и построчной отдачей: выгрузка не зависит от их количества.
+        $expPeriod = $_GET['period'] ?? '30d';
+        $now2 = time(); $ts2 = strtotime('today');
+        switch ($expPeriod) {
+            case 'today':     $ef = $ts2;              $et = $now2 + 1; break;
+            case 'yesterday': $ef = $ts2 - 86400;      $et = $ts2;      break;
+            case '7d':        $ef = $now2 - 7 * 86400; $et = $now2 + 1; break;
+            default:          $ef = $now2 - 30 * 86400;$et = $now2 + 1; break;
+        }
+        fputcsv($out, ['datetime', 'event', 'campaign', 'name', 'clickid', 'country', 'source', 'referer', 'user_ip', 'postback_ip', 'linked']);
+        $st = conversions_export($ef, $et);
+        while ($r = $st->fetch(PDO::FETCH_ASSOC)) {
+            $stt = strtolower((string)$r['status']);
+            $event = in_array($stt, ['dep','deposit','sale','ftd','purchase'], true) ? 'dep'
+                   : (in_array($stt, ['reg','registration','lead'], true) ? 'reg' : $stt);
+            fputcsv($out, [
+                date('Y-m-d H:i:s', (int)$r['ts']), $event, $r['slug'], $r['name'], $r['clickid'],
+                $r['country'], $r['source'], $r['referer'], $r['user_ip'], $r['postback_ip'],
+                $r['slug'] !== null && $r['slug'] !== '' ? 'yes' : 'no',
+            ]);
+        }
+    } elseif ($exp === 'daily') {
         fputcsv($out, ['date', 'clicks', 'unique', 'bots', 'regs', 'deps']);
         foreach (daily_stats(30) as $r) fputcsv($out, [$r['d'], $r['humans'], $r['uniques'], $r['bots'], $r['regs'], $r['deps'] ?? 0]);
     } elseif ($exp === 'clicks_full') {
@@ -207,49 +230,70 @@ if ($tab === 'stats' && $detailSlug !== '') {
     $st->execute([$detailSlug]);
     $detailName = $st->fetchColumn();
 
-    $st = $pdo->prepare("SELECT
-            SUM(CASE WHEN is_bot=0 THEN 1 ELSE 0 END) AS humans,
-            COUNT(DISTINCT CASE WHEN is_bot=0 THEN ip END) AS uniques,
-            COUNT(DISTINCT CASE WHEN is_bot=0 AND country='RU' THEN ip END) AS uniques_ru,
-            SUM(CASE WHEN is_bot=1 THEN 1 ELSE 0 END) AS bots
-        FROM clicks WHERE slug = ? AND ts >= ? AND ts < ?");
-    $st->execute([$detailSlug, $from, $to]);
-    $detailDay = $st->fetch(PDO::FETCH_ASSOC) ?: ['humans'=>0,'uniques'=>0,'uniques_ru'=>0,'bots'=>0];
+    // Все агрегаты кампании кэшируем до следующего импорта: COUNT DISTINCT ip по
+    // сотням тысяч строк — секунда на запрос, а между импортами цифры не меняются.
+    $dkey = $detailSlug . '_' . $periodKey;
+
+    $detailDay = panel_cache("dsum_$dkey", function () use ($pdo, $detailSlug, $from, $to) {
+        $st = $pdo->prepare("SELECT
+                SUM(CASE WHEN is_bot=0 THEN 1 ELSE 0 END) AS humans,
+                COUNT(DISTINCT CASE WHEN is_bot=0 THEN ip END) AS uniques,
+                COUNT(DISTINCT CASE WHEN is_bot=0 AND country='RU' THEN ip END) AS uniques_ru,
+                SUM(CASE WHEN is_bot=1 THEN 1 ELSE 0 END) AS bots
+            FROM clicks WHERE slug = ? AND ts >= ? AND ts < ?");
+        $st->execute([$detailSlug, $from, $to]);
+        return $st->fetch(PDO::FETCH_ASSOC) ?: ['humans'=>0,'uniques'=>0,'uniques_ru'=>0,'bots'=>0];
+    });
 
     // разбивка ботов больше не нужна — боты не логируются (log_bots=false)
 
     // пагинация кликов по 100 (в пределах периода)
     $perPage = 100;
     $detailPage = max(1, (int)($_GET['page'] ?? 1));
-    $st = $pdo->prepare('SELECT COUNT(*) FROM clicks WHERE slug = ? AND ts >= ? AND ts < ?');
-    $st->execute([$detailSlug, $from, $to]);
-    $detailTotal = (int)$st->fetchColumn();
+    $detailTotal = (int)panel_cache("dcnt_$dkey", function () use ($pdo, $detailSlug, $from, $to) {
+        $st = $pdo->prepare('SELECT COUNT(*) FROM clicks WHERE slug = ? AND ts >= ? AND ts < ?');
+        $st->execute([$detailSlug, $from, $to]);
+        return (int)$st->fetchColumn();
+    });
     $detailPages = max(1, (int)ceil($detailTotal / $perPage));
     $detailPage  = min($detailPage, $detailPages);
     $offset = ($detailPage - 1) * $perPage;
 
+    // ORDER BY ts, а не id: фильтр идёт по индексу (slug, ts), и сортировка по ts
+    // берётся из того же индекса. С ORDER BY id база вытаскивала все строки
+    // кампании за период (за 7 дней это сотни тысяч) и сортировала их в памяти —
+    // страница просто зависала. ts и id растут синхронно, порядок тот же.
     $st = $pdo->prepare("SELECT ts, ip, ua, referer, source, is_bot, clickid, country
-                         FROM clicks WHERE slug = ? AND ts >= ? AND ts < ? ORDER BY id DESC LIMIT $perPage OFFSET $offset");
+                         FROM clicks WHERE slug = ? AND ts >= ? AND ts < ?
+                         ORDER BY ts DESC, id DESC LIMIT $perPage OFFSET $offset");
     $st->execute([$detailSlug, $from, $to]);
     $detailRows = $st->fetchAll(PDO::FETCH_ASSOC);
 
-    $cv = conversions_by_slug($from, $to);
+    $cv = panel_cache("convslug_$periodKey", fn() => conversions_by_slug($from, $to));
     $detailConv = $cv[$detailSlug] ?? ['reg'=>0,'dep'=>0,'other'=>0,'reg_ru'=>0];
 
-    // конверсии (реги/депы) этой кампании за период, с деталями клика
-    $st = $pdo->prepare('SELECT cv.ts, cv.status, cv.payout, cv.clickid, cv.ip,
-            (SELECT referer FROM clicks WHERE clickid = cv.clickid ORDER BY id DESC LIMIT 1) AS referer,
-            (SELECT ua      FROM clicks WHERE clickid = cv.clickid ORDER BY id DESC LIMIT 1) AS ua,
-            (SELECT source  FROM clicks WHERE clickid = cv.clickid ORDER BY id DESC LIMIT 1) AS source,
-            (SELECT country FROM clicks WHERE clickid = cv.clickid ORDER BY id DESC LIMIT 1) AS country
-        FROM conversions cv WHERE cv.slug = ? AND cv.ts >= ? AND cv.ts < ? ORDER BY cv.id DESC LIMIT 200');
-    $st->execute([$detailSlug, $from, $to]);
-    $detailConvRows = $st->fetchAll(PDO::FETCH_ASSOC);
+    // конверсии (реги/депы) этой кампании за период, с деталями клика.
+    // ORDER BY ts, а не id: фильтр идёт по idx_conv_slug_ts, и сортировка берётся
+    // из того же индекса — иначе база сортировала бы все конверсии кампании.
+    $detailConvRows = panel_cache("dconv_$dkey", function () use ($pdo, $detailSlug, $from, $to) {
+        $st = $pdo->prepare('SELECT cv.ts, cv.status, cv.payout, cv.clickid, cv.ip,
+                (SELECT referer FROM clicks WHERE clickid = cv.clickid ORDER BY id DESC LIMIT 1) AS referer,
+                (SELECT ua      FROM clicks WHERE clickid = cv.clickid ORDER BY id DESC LIMIT 1) AS ua,
+                (SELECT source  FROM clicks WHERE clickid = cv.clickid ORDER BY id DESC LIMIT 1) AS source,
+                (SELECT country FROM clicks WHERE clickid = cv.clickid ORDER BY id DESC LIMIT 1) AS country
+            FROM conversions cv WHERE cv.slug = ? AND cv.ts >= ? AND cv.ts < ?
+            ORDER BY cv.ts DESC, cv.id DESC LIMIT 200');
+        $st->execute([$detailSlug, $from, $to]);
+        return $st->fetchAll(PDO::FETCH_ASSOC);
+    });
 
-    // гео по уникам этой кампании за период
-    $detailGeo = geo_by_campaign($from, $detailSlug, $to)[$detailSlug] ?? [];
-    $detailSources = sources_by_campaign($detailSlug, $from, $to);
-    $detailSourceGroups = sources_grouped_by_campaign($detailSlug, $from, $to);
+    // Гео и источники кампании — самые дорогие запросы страницы (COUNT DISTINCT ip
+    // и GROUP BY по всем кликам кампании за период). Кэшируем до следующего
+    // импорта, как и агрегаты главной: между импортами цифры всё равно не меняются.
+    // sources_by_campaign отдельно не вызываем — sources_grouped_by_campaign
+    // считает его внутри, и раньше эта работа делалась дважды.
+    $detailGeo          = panel_cache("dgeo_$dkey",  fn() => geo_by_campaign($from, $detailSlug, $to)[$detailSlug] ?? []);
+    $detailSourceGroups = panel_cache("dsrc_$dkey",  fn() => sources_grouped_by_campaign($detailSlug, $from, $to));
 
 } elseif ($tab === 'stats') {
     // --- СВОДКА за период: все кампании с кликами ---
@@ -274,7 +318,7 @@ if ($tab === 'stats' && $detailSlug !== '') {
     });
 
     // конверсии за период по кампаниям (с RU-разбивкой) — для таблицы
-    $conv = conversions_by_slug($from, $to);
+    $conv = panel_cache("convslug_$periodKey", fn() => conversions_by_slug($from, $to));
     // ИТОГО конверсий за период — ВСЕ (включая непривязанные) — для счётчиков в шапке
     $convTot = conversions_totals($from, $to);
     $sumHumans = $sumUniq = $sumUniqRu = $sumBots = 0;
@@ -298,7 +342,14 @@ if ($tab === 'stats' && $detailSlug !== '') {
     // Тяжёлые агрегаты — из кэша (обновляются вместе с импортом).
     // recent_conversions не кэшируем: замер показал ~5 мс, смысла нет.
     $daily      = panel_cache('daily30',           fn() => daily_stats(30));
-    $recentConv = recent_conversions(50);
+    // Конверсии за выбранный период, с пагинацией. Раньше показывались просто
+    // последние 50 за всё время — при просмотре 7/30 дней глубже было не уйти.
+    $convPerPage = 50;
+    $convPage    = max(1, (int)($_GET['convpage'] ?? 1));
+    $convTotalN  = conversions_count($from, $to);
+    $convPages   = max(1, (int)ceil($convTotalN / $convPerPage));
+    $convPage    = min($convPage, $convPages);
+    $recentConv  = recent_conversions($convPerPage, ($convPage - 1) * $convPerPage, $from, $to);
     $geo        = panel_cache("geo_$periodKey",     fn() => geo_stats($from, $to));
     $geoCamp    = panel_cache("geocamp_$periodKey", fn() => geo_by_campaign($from, null, $to));
     $botsPeriod = panel_cache("bots_$periodKey",    fn() => bots_split($from, $to));
@@ -802,8 +853,13 @@ $msg = $_GET['msg'] ?? '';
     </tbody>
   </table>
 
-  <h1>Последние постбеки</h1>
-  <div class="muted">Входящие конверсии от партнёрки. «не привязан» — постбек пришёл, но clickid не совпал ни с одним кликом. У одного игрока приходят два события: рега и первый деп — это две отдельные строки. (Показаны последние 50, не зависят от периода.)</div>
+  <h1>Конверсии за период (<?= h($PERIODS[$periodKey]) ?>)</h1>
+  <div class="muted">
+    Входящие постбеки от партнёрок. «не привязан» — постбек пришёл, но clickid не совпал ни с одним кликом.
+    У одного игрока приходят два события: рега и первый деп — это две отдельные строки.
+    Всего за период: <b><?= (int)$convTotalN ?></b><?php if ($convPages > 1): ?>, страница <b><?= $convPage ?></b> из <b><?= $convPages ?></b><?php endif; ?>.
+    <a href="<?= h(tab_url('stats', $key)) ?>&export=conversions&period=<?= h($periodKey) ?>"><b>⬇ Выгрузить все конверсии за период (CSV)</b></a>
+  </div>
   <table class="sortable">
     <thead><tr><th data-sort="text">Время</th><th data-sort="text">Событие</th><th data-sort="text">clickid</th><th data-sort="text">Кампания</th><th data-sort="text">Страна</th><th data-sort="text">Источник</th><th data-sort="text">Реферер</th><th data-sort="text">User-Agent</th><th data-sort="text">IP</th></tr></thead>
     <tbody>
@@ -836,9 +892,18 @@ $msg = $_GET['msg'] ?? '';
         ?></td>
       </tr>
       <?php endforeach; ?>
-      <?php if (!$recentConv): ?><tr><td colspan="9">Постбеков ещё не было.</td></tr><?php endif; ?>
+      <?php if (!$recentConv): ?><tr><td colspan="9">За выбранный период конверсий нет.</td></tr><?php endif; ?>
     </tbody>
   </table>
+  <?php if ($convPages > 1):
+    $cbase = tab_url('stats', $key) . '&period=' . $periodKey . '&convpage=';
+  ?>
+  <div style="margin:10px 0 24px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <?php if ($convPage > 1): ?><a href="<?= h($cbase . 1) ?>">« первая</a><a href="<?= h($cbase . ($convPage-1)) ?>">← назад</a><?php endif; ?>
+    <span class="muted">стр. <?= $convPage ?> из <?= $convPages ?> · всего <?= (int)$convTotalN ?></span>
+    <?php if ($convPage < $convPages): ?><a href="<?= h($cbase . ($convPage+1)) ?>">вперёд →</a><a href="<?= h($cbase . $convPages) ?>">последняя »</a><?php endif; ?>
+  </div>
+  <?php endif; ?>
 
 <?php elseif ($tab === 'settings'): ?>
 

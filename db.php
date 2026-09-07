@@ -145,7 +145,8 @@ function db_create_tables_mysql(PDO $pdo) {
         ts INT NOT NULL,
         ip VARCHAR(64) NULL,
         INDEX idx_conv_clickid (clickid),
-        INDEX idx_conv_slug_ts (slug, ts)
+        INDEX idx_conv_slug_ts (slug, ts),
+        INDEX idx_conv_ts (ts)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
 
     $pdo->exec('CREATE TABLE IF NOT EXISTS postback_log (
@@ -224,6 +225,7 @@ function db_create_tables_sqlite(PDO $pdo) {
     )');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_conv_clickid ON conversions(clickid)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_conv_slug_ts ON conversions(slug, ts)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_conv_ts ON conversions(ts)');
 
     // сырой лог постбеков (все входящие запросы на postback.php, для отладки)
     $pdo->exec('CREATE TABLE IF NOT EXISTS postback_log (
@@ -1233,20 +1235,70 @@ function panel_cache_warm($budgetSec = 30) {
         "SELECT cl.slug, COALESCE(c.name,'') name, MAX(cl.ts) last
          FROM clicks cl LEFT JOIN campaigns c ON c.slug=cl.slug
          GROUP BY cl.slug ORDER BY last DESC LIMIT 30")->fetchAll(PDO::FETCH_ASSOC)];
+    [$f, $t] = $periods['today'];
+    $jobs[] = ['convslug_today', fn() => conversions_by_slug($f, $t)];
     foreach (['yesterday', '7d', '30d'] as $key) {
         [$pf, $pt] = $periods[$key];
-        $jobs[] = ["summary_$key", $summary($pf, $pt)];
-        $jobs[] = ["geo_$key",     fn() => geo_stats($pf, $pt)];
-        $jobs[] = ["geocamp_$key", fn() => geo_by_campaign($pf, null, $pt)];
-        $jobs[] = ["bots_$key",    fn() => bots_split($pf, $pt)];
+        $jobs[] = ["summary_$key",  $summary($pf, $pt)];
+        $jobs[] = ["geo_$key",      fn() => geo_stats($pf, $pt)];
+        $jobs[] = ["geocamp_$key",  fn() => geo_by_campaign($pf, null, $pt)];
+        $jobs[] = ["bots_$key",     fn() => bots_split($pf, $pt)];
+        $jobs[] = ["convslug_$key", fn() => conversions_by_slug($pf, $pt)];
     }
 
     $done = $skipped = 0;
+    $budgetLeft = function () use ($budgetSec, $t0) {
+        return $budgetSec <= 0 || (microtime(true) - $t0) < $budgetSec;
+    };
+
     foreach ($jobs as [$key, $build]) {
-        if ($budgetSec > 0 && (microtime(true) - $t0) >= $budgetSec) { $skipped++; continue; }
+        if (!$budgetLeft()) { $skipped++; continue; }
         panel_cache($key, $build);
         $done++;
     }
+
+    // Прогрев страниц кампаний. Открытие кампании за 7/30 дней — самые тяжёлые
+    // запросы панели (COUNT DISTINCT ip и GROUP BY по всем кликам кампании), и
+    // без прогрева первый заход ждал бы несколько секунд. Греем только топ
+    // кампаний по трафику и только пока есть бюджет: сводки выше по приоритету,
+    // и если время вышло — остальное досчитается лениво, сервер не нагружаем.
+    $topSlugs = [];
+    $summary7d = $budgetLeft()
+        ? (array)panel_cache('summary_7d', $summary($periods['7d'][0], $periods['7d'][1]))
+        : [];
+    foreach ($summary7d as $row) {
+        $topSlugs[] = (string)$row['slug'];
+        if (count($topSlugs) >= 5) break;
+    }
+    foreach ($topSlugs as $slug) {
+        foreach (['today', '7d', '30d'] as $pk) {
+            if (!$budgetLeft()) { $skipped++; continue 2; }
+            [$pf, $pt] = $periods[$pk];
+            $dkey = preg_replace('~[^\w.-]~', '_', $slug) . '_' . $pk;
+            panel_cache("dsum_$dkey", function () use ($pdo, $slug, $pf, $pt) {
+                $st = $pdo->prepare("SELECT
+                        SUM(CASE WHEN is_bot=0 THEN 1 ELSE 0 END) AS humans,
+                        COUNT(DISTINCT CASE WHEN is_bot=0 THEN ip END) AS uniques,
+                        COUNT(DISTINCT CASE WHEN is_bot=0 AND country='RU' THEN ip END) AS uniques_ru,
+                        SUM(CASE WHEN is_bot=1 THEN 1 ELSE 0 END) AS bots
+                    FROM clicks WHERE slug = ? AND ts >= ? AND ts < ?");
+                $st->execute([$slug, $pf, $pt]);
+                return $st->fetch(PDO::FETCH_ASSOC) ?: ['humans'=>0,'uniques'=>0,'uniques_ru'=>0,'bots'=>0];
+            });
+            panel_cache("dcnt_$dkey", function () use ($pdo, $slug, $pf, $pt) {
+                $st = $pdo->prepare('SELECT COUNT(*) FROM clicks WHERE slug = ? AND ts >= ? AND ts < ?');
+                $st->execute([$slug, $pf, $pt]);
+                return (int)$st->fetchColumn();
+            });
+            panel_cache("dgeo_$dkey", function () use ($slug, $pf, $pt) {
+                $g = geo_by_campaign($pf, $slug, $pt);
+                return $g[$slug] ?? [];
+            });
+            panel_cache("dsrc_$dkey", fn() => sources_grouped_by_campaign($slug, $pf, $pt));
+            $done += 4;
+        }
+    }
+
     return ['warmed' => $done, 'skipped' => $skipped, 'sec' => round(microtime(true) - $t0, 1)];
 }
 
@@ -1360,15 +1412,59 @@ function daily_stats($days = 30) {
 /**
  * Последние принятые постбеки (с гео по клику).
  */
-function recent_conversions($limit = 50) {
-    $limit = max(1, min(200, (int)$limit));
-    return db()->query("SELECT cv.ts, cv.clickid, cv.status, cv.payout, cv.slug, cv.ip AS postback_ip,
+function recent_conversions($limit = 50, $offset = 0, $from = null, $to = null) {
+    $limit  = max(1, min(500, (int)$limit));
+    $offset = max(0, (int)$offset);
+
+    $where = '';
+    $args  = [];
+    if ($from !== null) { $where .= ' WHERE cv.ts >= ?'; $args[] = $from;
+        if ($to !== null) { $where .= ' AND cv.ts < ?'; $args[] = $to; } }
+
+    // Данные клика тянем подзапросами по clickid (idx_clickid): их 4 на строку,
+    // но страница показывает десятки записей, а не тысячи — на замерах это единицы мс.
+    $st = db()->prepare("SELECT cv.ts, cv.clickid, cv.status, cv.payout, cv.slug, cv.ip AS postback_ip,
                           (SELECT country  FROM clicks WHERE clickid = cv.clickid ORDER BY id DESC LIMIT 1) AS country,
                           (SELECT source   FROM clicks WHERE clickid = cv.clickid ORDER BY id DESC LIMIT 1) AS source,
                           (SELECT referer  FROM clicks WHERE clickid = cv.clickid ORDER BY id DESC LIMIT 1) AS referer,
                           (SELECT ua       FROM clicks WHERE clickid = cv.clickid ORDER BY id DESC LIMIT 1) AS ua,
                           (SELECT ip       FROM clicks WHERE clickid = cv.clickid ORDER BY id DESC LIMIT 1) AS ip
-                        FROM conversions cv ORDER BY cv.id DESC LIMIT $limit")->fetchAll(PDO::FETCH_ASSOC);
+                        FROM conversions cv $where
+                        ORDER BY cv.ts DESC, cv.id DESC LIMIT $limit OFFSET $offset");
+    $st->execute($args);
+    return $st->fetchAll(PDO::FETCH_ASSOC);
+}
+
+/** Сколько всего конверсий за период — для пагинации. */
+function conversions_count($from = null, $to = null) {
+    $sql  = 'SELECT COUNT(*) FROM conversions';
+    $args = [];
+    if ($from !== null) { $sql .= ' WHERE ts >= ?'; $args[] = $from;
+        if ($to !== null) { $sql .= ' AND ts < ?'; $args[] = $to; } }
+    $st = db()->prepare($sql);
+    $st->execute($args);
+    return (int)$st->fetchColumn();
+}
+
+/**
+ * Все конверсии за период для выгрузки в CSV — без подзапросов на строку.
+ * Данные клика подтягиваются одним JOIN, иначе на тысячах строк выгрузка
+ * превратилась бы в тысячи отдельных запросов.
+ */
+function conversions_export($from, $to = null) {
+    $sql = "SELECT cv.ts, cv.status, cv.clickid, cv.slug,
+                   COALESCE(c.name,'') AS name,
+                   cl.country, cl.source, cl.referer, cl.ip AS user_ip, cv.ip AS postback_ip
+            FROM conversions cv
+            LEFT JOIN clicks cl ON cl.clickid = cv.clickid
+            LEFT JOIN campaigns c ON c.slug = cv.slug
+            WHERE cv.ts >= ?";
+    $args = [$from];
+    if ($to !== null) { $sql .= ' AND cv.ts < ?'; $args[] = $to; }
+    $sql .= ' ORDER BY cv.ts DESC';
+    $st = db()->prepare($sql);
+    $st->execute($args);
+    return $st;   // возвращаем курсор: выгрузка идёт построчно, без загрузки всего в память
 }
 
 /**
