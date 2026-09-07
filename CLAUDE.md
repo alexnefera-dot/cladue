@@ -459,7 +459,13 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   no longer misfires or blocks it), and clicks the consent button (e.g. «Мне есть 18») strictly inside it.
 - `Support\DomainLedger` (runs/domains-base.txt) is a cross-run base of collected registrable
   domains; `Runner` takes an optional ledger + skipKnown to drop already-seen domains (reason
-  `seen_before`) and record new ones. The panel job has two stages (`settings.stage`): `collect`
+  `seen_before`) and record new ones. A repeat collect with the same queries therefore selects nothing
+  (every domain is `seen_before`) AND makes no source requests (responses come from the 7-day cache), which
+  the user read as «he does not even fetch the XML queries»: `bin/run-job.php` records `cache_hits`/
+  `cache_misses` in `stats` (from `CachingFetcher`), the panel shows «ответов из кэша выдачи» and, when
+  `seen_before` is ≥ 80% of the rejections, says «Ничего нового: N из M доменов уже в базе пересечений…»
+  (+ a cache note) instead of blaming the filters; the panel checkbox «Свежая выдача» (`settings.no_cache`
+  → `cache.enabled=false`) refetches. Covered by `PanelTest::testLedgerSkipsAlreadyCollectedDomains`. The panel job has two stages (`settings.stage`): `collect`
   (grow the base, no visits), `download` (open the previously collected sites.json, minus
   `settings.exclude_hosts` — the sites removed with ✕; with `settings.retry_hosts` it re-fetches only
   those hosts and keeps the rest), `both`.

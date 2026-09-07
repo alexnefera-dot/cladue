@@ -190,7 +190,8 @@
             <input type="text" id="tlds" placeholder="ru, рф, su">
           </div>
         </div>
-        <div class="check"><input type="checkbox" id="skipknown" checked><label style="margin:0">Пропускать домены, которые уже собраны раньше (база пересечений)</label></div>
+        <div class="check"><input type="checkbox" id="skipknown" checked><label style="margin:0">Пропускать домены, которые уже собраны раньше (база пересечений). Если включено, повторный сбор по тем же запросам ничего нового не даст — все домены уже в базе</label></div>
+        <div class="check"><input type="checkbox" id="nocache"><label style="margin:0">Свежая выдача — не брать ответы из кэша. Ответы на те же запросы хранятся 7 дней и не тратят лимит XMLStock; включите, если выдачу нужно получить заново</label></div>
         <div class="check"><input type="checkbox" id="previewshots" checked><label style="margin:0">На этапе «Сборка» делать скриншот главной каждого сайта (предпросмотр: объём выгрузки, где наши) — нужен Chromium</label></div>
         <div class="check"><input type="checkbox" id="removeslots"><label style="margin:0">При очистке убирать виджеты и каталоги слотов (герой-баннер, джекпоты, таймеры, CTA-блоки, «последние выплаты», карточки игр, «похожие разделы»). Выключено — режем только шапку, меню и подвал, всё между ними остаётся как контент</label></div>
         <div class="hint" style="margin-bottom:4px">В базе доменов: <b id="baseCount">0</b> · <a href="#" id="resetBase">очистить базу</a></div>
@@ -273,7 +274,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const FIELDS = ['queries','source','region','pages','dedupe','scope','top','minq','tlds','exclude','skipknown','previewshots','visit','variants','driver','crawl','maxpages','useproxies','repeat','xmmode','xmdevice','xmdomain','xmextra','removeslots'];
+const FIELDS = ['queries','source','region','pages','dedupe','scope','top','minq','tlds','exclude','skipknown','nocache','previewshots','visit','variants','driver','crawl','maxpages','useproxies','repeat','xmmode','xmdevice','xmdomain','xmextra','removeslots'];
 
 function loadLocal(){
   try{ const s = JSON.parse(localStorage.getItem('ys-panel')||'{}');
@@ -325,6 +326,7 @@ function collectSettings(){
     top: parseInt($('top').value)||0,
     min_queries: parseInt($('minq').value)||1,
     skip_known: $('skipknown').checked,
+    no_cache: $('nocache').checked,
     preview_shots: $('previewshots').checked,
     allowed_tlds: $('tlds').value.split(',').map(s=>s.trim()).filter(Boolean),
     exclude_extra: $('exclude').value.split(',').map(s=>s.trim()).filter(Boolean),
@@ -460,6 +462,7 @@ function renderStatus(st, running){
   push(st.sites_total ?? stats.sites_total ?? 0,'сайтов найдено');
   push(st.sites_selected ?? stats.sites_selected ?? 0,'новых отобрано');
   const nd = st.new_domains ?? stats.new_domains; if(nd!=null) push(nd,'новых доменов в базу');
+  if(stats.cache_hits!=null) push(stats.cache_hits+' / '+((stats.cache_hits||0)+(stats.cache_misses||0)),'ответов из кэша выдачи');
   if(v && v.total) push((v.done||0)+' / '+v.total,'страниц открыто');
   $('stats').innerHTML=cells.join('');
 
@@ -473,7 +476,16 @@ function renderStatus(st, running){
   let msg='';
   if(!running && (st.state==='running'||st.state==='starting')) msg=`<div class="msg err">Прошлый сбор был прерван (панель перезапускалась). Ниже — данные с того сбора. Нажмите «Запустить», чтобы начать заново.</div>`;
   else if(st.state==='error') msg=`<div class="msg err">${st.message||'Ошибка, см. журнал'}</div>`;
-  else if((st.sites_selected===0||((st.stats||{}).sites_selected===0)) && (st.phase==='done') && rkeys.length) msg=`<div class="msg err">Ничего не отобрано — все результаты отсеяны фильтрами (см. «Отсеяно» выше). Проверьте «Зоны доменов» (пусто = любые) и исключения.</div>`;
+  else if((st.sites_selected===0||((st.stats||{}).sites_selected===0)) && (st.phase==='done') && rkeys.length){
+    // Честная причина пустого результата: чаще всего это база пересечений (все домены уже собраны) и кэш выдачи
+    // (те же запросы — ответы из кэша, к источнику не обращались), а не фильтры.
+    const total = rkeys.reduce((a,k)=>a+(rej[k]||0),0), seen = rej.seen_before||0;
+    const fromCache = (stats.cache_hits||0)>0 && !((stats.cache_misses||0)>0);
+    const cacheNote = fromCache ? ` Все ответы (${stats.cache_hits}) взяты из кэша выдачи — новых запросов к источнику не было, те же запросы уже задавались за последние 7 дней; чтобы получить выдачу заново, включите «Свежая выдача» в настройках.` : '';
+    if(seen>0 && seen>=total*0.8) msg=`<div class="msg err">Ничего нового: ${seen} из ${total} доменов уже есть в базе пересечений (собраны прошлыми сборами) и пропущены по галочке «Пропускать домены, которые уже собраны раньше». Снимите её или нажмите «очистить базу» в настройках, чтобы отобрать эти сайты снова.${cacheNote}</div>`;
+    else msg=`<div class="msg err">Ничего не отобрано — все результаты отсеяны фильтрами (см. «Отсеяно» выше). Проверьте «Зоны доменов» (пусто = любые) и исключения.${cacheNote}</div>`;
+  }
+  else if(st.phase==='done' && (stats.cache_hits||0)>0 && !((stats.cache_misses||0)>0)) msg=`<div class="msg">Все ответы (${stats.cache_hits}) взяты из кэша выдачи — к источнику не обращались (те же запросы уже задавались за последние 7 дней). Для новой выдачи включите «Свежая выдача» в настройках.</div>`;
   else if(st.errors && st.errors.length) msg=`<div class="msg err">Предупреждений: ${st.errors.length} — ${(st.errors[0]||'').slice(0,200)}</div>`;
   $('progMsg').innerHTML=msg;
 
@@ -756,7 +768,7 @@ function prefill(state){
     $('visit').checked=!!s.visit; if(s.variants)$('variants').value=s.variants;
     if(s.visit_driver)$('driver').value=s.visit_driver; $('useproxies').checked=!!s.proxies_file;
     if(s.repeat_hours!=null)$('repeat').value=s.repeat_hours;
-    if(s.top!=null)$('top').value=s.top; if(s.skip_known!=null)$('skipknown').checked=s.skip_known;
+    if(s.top!=null)$('top').value=s.top; if(s.skip_known!=null)$('skipknown').checked=s.skip_known; $('nocache').checked=!!s.no_cache;
     $('crawl').checked=!!s.crawl; if(s.max_pages)$('maxpages').value=s.max_pages;
     $('removeslots').checked=!!(s.remove_widgets||s.remove_slots);
   }

@@ -41,6 +41,7 @@ use YandexSites\Runner;
 use YandexSites\Model\SearchResult;
 use YandexSites\Model\Site;
 use YandexSites\Runtime;
+use YandexSites\Search\CachingFetcher;
 use YandexSites\Search\XmlStockFetcher;
 use YandexSites\Support\DomainLedger;
 use YandexSites\Support\Logger;
@@ -146,6 +147,11 @@ function buildOverrides(array $s, string $runDir): array
         $overrides['filters.max_position'] = $top;
     }
     $overrides['filters.unique_by'] = ($s['dedupe_domain'] ?? true) ? 'domain' : 'host';
+    // «Свежая выдача»: не брать ответы из кэша (ответы на те же запросы хранятся 7 дней и не тратят лимит;
+    // с этой галочкой каждый сбор спрашивает источник заново).
+    if (!empty($s['no_cache'])) {
+        $overrides['cache.enabled'] = false;
+    }
     if (isset($s['domain_scope'])) {
         $overrides['filters.domain_scope'] = (string) $s['domain_scope'];
     }
@@ -529,6 +535,10 @@ while (true) {
 
             $logger->info(sprintf('Прогон %d (%s): запросов %d, источник %s', $run, $stage, count($queries), $config->get('source')));
             $result = $runner->run($queries);
+            // Сколько ответов пришло из кэша выдачи: при повторе тех же запросов новых обращений к источнику нет —
+            // это не сбой, но панель должна об этом сказать («он даже не выкачивает запросы»).
+            $result->stats['cache_hits'] = $fetcher instanceof CachingFetcher ? $fetcher->hits : 0;
+            $result->stats['cache_misses'] = $fetcher instanceof CachingFetcher ? $fetcher->misses : (int) ($result->stats['requests'] ?? 0);
 
             $writer = new ReportWriter((string) $config->get('output.csv_delimiter', ';'), (bool) $config->get('output.csv_bom', true));
             $writer->writeCsv($result->sites, $runDir . '/sites.csv');

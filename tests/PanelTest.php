@@ -194,6 +194,16 @@ final class PanelTest
         Assert::same('done', $s2['state']);
         Assert::same(0, $s2['stats']['sites_selected'], 'повторный сбор ничего нового не отобрал');
         Assert::true(($s2['stats']['rejected']['seen_before'] ?? 0) > 0, 'домены отклонены как уже собранные');
+        Assert::true(($s2['stats']['cache_hits'] ?? 0) > 0 && ($s2['stats']['cache_misses'] ?? 0) === 0, 'повтор тех же запросов — ответы из кэша, к источнику не обращались');
+
+        // «Свежая выдача» + без пропуска известных доменов: ответы получены заново, сайты отобраны снова.
+        file_put_contents($runDir . '/settings.json', json_encode(array_merge((array) json_decode($settings, true), ['no_cache' => true, 'skip_known' => false])));
+        $third = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $third['code'], $third['out']);
+        $s3 = json_decode((string) file_get_contents($runDir . '/status.json'), true);
+        Assert::same('done', $s3['state']);
+        Assert::true(($s3['stats']['cache_misses'] ?? 0) > 0 && ($s3['stats']['cache_hits'] ?? 0) === 0, 'со «свежей выдачей» кэш не используется');
+        Assert::true($s3['stats']['sites_selected'] > 0, 'без пропуска известных доменов сайты отобраны снова');
     }
 
     public function testDownloadStageOpensCollectedSites(): void
