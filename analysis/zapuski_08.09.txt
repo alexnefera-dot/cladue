@@ -1,0 +1,310 @@
+ЗАПУСКИ ЗА 8 СЕНТЯБРЯ 2026
+========================================================================
+
+Присланные списки за день. Три партии линии archive37 пришли по частям,
+в двух из них не хватает доменов — помечено ниже.
+
+
+========================================================================
+Content_script_12page_08.09_1…_11 — id 1607-1617, создан 02:36
+========================================================================
+  11 доменов: .lol 7  .team 4
+
+  0697.lol
+  5076.team
+  bacasino.team
+  4609.team
+  casinouep.lol
+  8773.team
+  5826.lol
+  113casino.lol
+  3237.lol
+  qwsc.lol
+  2726.lol
+
+========================================================================
+archive37строформленоv2часть1_21…_30 — id 1638-1647, создан 13:52
+========================================================================
+  10 доменов: .lol 10
+
+  3743.lol
+  5205.lol
+  7529.lol
+  3945.lol
+  casinoa9.lol
+  8687.lol
+  389casino.lol
+  7415.lol
+  3372.lol
+  3553.lol
+
+========================================================================
+archive37строформленоv2часть1_31…_45 — id 1648-1662, создан 13:52
+========================================================================
+  ! часть1 — 45 доменов, id 1618-1662. Не хватает _1…_20, id 1618-1637.
+  15 доменов: .buzz 8  .lol 7
+
+  j9s2.buzz
+  7491.lol
+  8452.lol
+  oijl.buzz
+  4944.lol
+  n5w2.buzz
+  lwta.buzz
+  casinoqu.lol
+  ldwg.buzz
+  casinoubf.lol
+  5793.lol
+  vfra.buzz
+  l6j.buzz
+  casinoubf.buzz
+  e8k.lol
+
+========================================================================
+archive37строформленоv2часть2_1…_20 — id 1663-1682, создан 13:53
+========================================================================
+  20 доменов: .buzz 13  .lol 7
+
+  tqwy.buzz
+  casinofnl.buzz
+  4149.lol
+  ufdb.buzz
+  casinoqu.buzz
+  g7u.buzz
+  casino4244.buzz
+  0811.lol
+  casino5450.buzz
+  e8k.buzz
+  7415.buzz
+  l6j.lol
+  d3x2.lol
+  67casino.lol
+  0313.lol
+  xvcasino.buzz
+  1322.lol
+  vscasino.buzz
+  kpscasino.buzz
+  26casino.buzz
+
+========================================================================
+archive37строформленоv2часть2_21…_25 — id 1683-1687, создан 13:53
+========================================================================
+  5 доменов: .lol 5
+
+  0658.lol
+  3855.lol
+  8568.lol
+  9281.lol
+  5191.lol
+
+========================================================================
+archive37строформленоv2часть2_26…_45 — id 1688-1707, создан 13:53
+========================================================================
+  20 доменов: .buzz 13  .lol 7
+
+  135casino.buzz
+  uakcasino.buzz
+  26casino.lol
+  389casino.buzz
+  casino61.buzz
+  casinoz2.buzz
+  67casino.buzz
+  g7u.lol
+  casino61.lol
+  16casino.lol
+  5126.buzz
+  d1n1.buzz
+  casinoa9.buzz
+  5413.lol
+  xxlx.buzz
+  5730.lol
+  d3x2.buzz
+  casino86.buzz
+  arhd.buzz
+  vfra.lol
+
+========================================================================
+nabory447451_styled_img_1…_5 — id 1708-1712, создан 13:53
+========================================================================
+  5 доменов: .buzz 3  .lol 2
+
+  07casino.buzz
+  w8h.lol
+  9316.buzz
+  1514.lol
+  qqwd.buzz
+
+========================================================================
+archive37строформленоv2часть3_19…_29 — id 1731-1741, создан 15:13
+========================================================================
+  11 доменов: .buzz 6  .lol 5
+
+  casinoii.buzz
+  xoys.buzz
+  ptcasino.buzz
+  rmpd.buzz
+  gsbe.lol
+  0815.lol
+  casinobo.buzz
+  858casino.buzz
+  0336.lol
+  vlg.lol
+  5974casino.lol
+
+========================================================================
+archive37строформленоv2часть3_30…_45 — id 1742-1757, создан 15:13
+========================================================================
+  ! часть3 — 45 доменов, id 1713-1757. Не хватает _1…_18, id 1713-1730.
+  16 доменов: .lol 10  .buzz 6
+
+  ryqcasino.buzz
+  casino8463.lol
+  y4s.lol
+  n4h1.lol
+  6249casino.lol
+  5932.lol
+  5597.lol
+  61casino.lol
+  casinoanb.buzz
+  anxg.buzz
+  z1y.buzz
+  1500.lol
+  98casino.buzz
+  0496.lol
+  mpnw.lol
+  744casino.buzz
+
+========================================================================
+ИТОГО ЗА ДЕНЬ: 113 доменов
+========================================================================
+  зоны: .lol 60   .buzz 49   .team 4
+  групп: 9
+
+  не хватает: archive37 часть1 _1…_20 (id 1618-1637),
+              archive37 часть3 _1…_18 (id 1713-1730) — итого 38 доменов
+
+========================================================================
+ПЛОСКИЙ СПИСОК — 113 доменов подряд
+========================================================================
+0697.lol
+5076.team
+bacasino.team
+4609.team
+casinouep.lol
+8773.team
+5826.lol
+113casino.lol
+3237.lol
+qwsc.lol
+2726.lol
+3743.lol
+5205.lol
+7529.lol
+3945.lol
+casinoa9.lol
+8687.lol
+389casino.lol
+7415.lol
+3372.lol
+3553.lol
+j9s2.buzz
+7491.lol
+8452.lol
+oijl.buzz
+4944.lol
+n5w2.buzz
+lwta.buzz
+casinoqu.lol
+ldwg.buzz
+casinoubf.lol
+5793.lol
+vfra.buzz
+l6j.buzz
+casinoubf.buzz
+e8k.lol
+tqwy.buzz
+casinofnl.buzz
+4149.lol
+ufdb.buzz
+casinoqu.buzz
+g7u.buzz
+casino4244.buzz
+0811.lol
+casino5450.buzz
+e8k.buzz
+7415.buzz
+l6j.lol
+d3x2.lol
+67casino.lol
+0313.lol
+xvcasino.buzz
+1322.lol
+vscasino.buzz
+kpscasino.buzz
+26casino.buzz
+0658.lol
+3855.lol
+8568.lol
+9281.lol
+5191.lol
+135casino.buzz
+uakcasino.buzz
+26casino.lol
+389casino.buzz
+casino61.buzz
+casinoz2.buzz
+67casino.buzz
+g7u.lol
+casino61.lol
+16casino.lol
+5126.buzz
+d1n1.buzz
+casinoa9.buzz
+5413.lol
+xxlx.buzz
+5730.lol
+d3x2.buzz
+casino86.buzz
+arhd.buzz
+vfra.lol
+07casino.buzz
+w8h.lol
+9316.buzz
+1514.lol
+qqwd.buzz
+casinoii.buzz
+xoys.buzz
+ptcasino.buzz
+rmpd.buzz
+gsbe.lol
+0815.lol
+casinobo.buzz
+858casino.buzz
+0336.lol
+vlg.lol
+5974casino.lol
+ryqcasino.buzz
+casino8463.lol
+y4s.lol
+n4h1.lol
+6249casino.lol
+5932.lol
+5597.lol
+61casino.lol
+casinoanb.buzz
+anxg.buzz
+z1y.buzz
+1500.lol
+98casino.buzz
+0496.lol
+mpnw.lol
+744casino.buzz
+
+========================================================================
+ПОСЛЕ ПОЛУНОЧИ — 09.09.2026, 01:13
+========================================================================
+  nabory455457_styled_img_1…_3 — id 1758-1760, 3 домена, все .lol
+
+  4945casino.lol
+  casino6629.lol
+  casino91.lol
