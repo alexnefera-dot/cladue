@@ -430,22 +430,26 @@ while (true) {
                     }
                 }
             }
+            $pageStats = SiteRows::histogramText(SiteRows::pageHistogram($siteList));
             $progress->update([
                 'state' => 'done',
                 'phase' => 'done',
                 'stats' => ['sites_selected' => count($siteList)],
                 'sites' => previewSites($siteList, $runDir),
+                'page_histogram' => SiteRows::pageHistogram($siteList),
                 'run_finished_at' => date(DATE_ATOM),
                 'files' => ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt'],
                 // Докачка: говорим честно, что добрано, а если добирать было нечего — почему (иначе
                 // пользователь видит «ничего не изменилось» и думает, что докачка не запустилась).
-                'message' => !$isRetry
+                'message' => (!$isRetry
                     ? sprintf('Выгружено страниц: %d', $opened)
                     : ($retryStat['attempted'] === 0
                         ? 'Докачка: нечего добирать — оставшиеся ошибки повтором не чинятся (404 без языкового префикса, дубликаты)'
-                        : sprintf('Докачано: добрано %d из %d стр., всего открыто %d', $retryStat['recovered'], $retryStat['attempted'], $opened)),
+                        : sprintf('Докачано: добрано %d из %d стр., всего открыто %d', $retryStat['recovered'], $retryStat['attempted'], $opened)))
+                    // Разбивка по числу страниц: сколько одностраничников, сколько 9/10-страничников и т.п.
+                    . ($pageStats !== '' ? '; по страницам: ' . $pageStats : ''),
             ], true);
-            $logger->info(sprintf('%s завершена: страниц открыто %d', $isRetry ? 'Докачка' : 'Выгрузка', $opened));
+            $logger->info(sprintf('%s завершена: страниц открыто %d%s', $isRetry ? 'Докачка' : 'Выгрузка', $opened, $pageStats !== '' ? '; по страницам: ' . $pageStats : ''));
         } else {
             // --- Этап 1: сборка доменов (collect) или сборка + выгрузка (both) ---
             RemovedSites::clear($runDir); // новый сбор — новый список: прежние удаления неактуальны

@@ -242,6 +242,8 @@ final class PanelTest
         $st = json_decode((string) file_get_contents($runDir . '/status.json'), true);
         Assert::same('done', $st['state'], $run['out']);
         Assert::contains('Выгружено страниц: 1', $st['message']);
+        Assert::contains('по страницам: 1 стр. — 1', $st['message'], 'разбивка по числу страниц в сообщении');
+        Assert::same([1 => 1], $st['page_histogram'], 'гистограмма в статусе');
 
         $sites = json_decode((string) file_get_contents($runDir . '/sites.json'), true);
         Assert::true(($sites['sites'][0]['visits'][0]['ok'] ?? false), 'страница сайта открыта и сохранена');

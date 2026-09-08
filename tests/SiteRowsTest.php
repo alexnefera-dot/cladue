@@ -34,4 +34,21 @@ final class SiteRowsTest
         Assert::true(isset($loaded['rows.ru']), 'сайт прочитан');
         Assert::true($loaded['rows.ru']->own && count($loaded['rows.ru']->visits) === 2, 'визиты и «наш» восстановлены');
     }
+
+    public function testPageHistogramCountsSitesByOpenedPages(): void
+    {
+        $mk = static function (string $host, int $ok, int $total, bool $own = false): Site {
+            $s = new Site($host, $host, $host);
+            $s->own = $own;
+            for ($i = 0; $i < $total; $i++) {
+                $s->visits[] = ['variant' => $i, 'url' => "https://$host/p$i", 'ok' => $i < $ok, 'error' => $i < $ok ? '' : 'Timeout', 'status' => 200, 'html_file' => ''];
+            }
+
+            return $s;
+        };
+        $hist = SiteRows::pageHistogram([$mk('a.ru', 1, 1), $mk('b.ru', 9, 10), $mk('c.ru', 9, 9), $mk('d.ru', 0, 0), $mk('e.ru', 0, 1, true)]);
+        Assert::same([1 => 1, 9 => 2, 'own' => 1], $hist, 'по числу открытых страниц; без визитов не считаем; наши отдельно');
+        Assert::same('1 стр. — 1, 9 стр. — 2, наши — 1', SiteRows::histogramText($hist));
+        Assert::same('', SiteRows::histogramText([]));
+    }
 }

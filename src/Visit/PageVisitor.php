@@ -890,6 +890,30 @@ final class PageVisitor
                 $note,
             ));
         }
+        // Итог по папкам: сколько сайтов с каким числом страниц (то же покажет панель после выгрузки).
+        $hist = [];
+        $own = 0;
+        foreach ($sites as $site) {
+            if ($site->own) {
+                $own++;
+                continue;
+            }
+            $s = $site->visitSummary();
+            if ($s['total'] > 0) {
+                $hist[$s['ok']] = ($hist[$s['ok']] ?? 0) + 1;
+            }
+        }
+        ksort($hist);
+        $parts = [];
+        foreach ($hist as $n => $count) {
+            $parts[] = sprintf('%d-стр — %d', $n, $count);
+        }
+        if ($own > 0) {
+            $parts[] = 'наши — ' . $own;
+        }
+        if ($parts !== []) {
+            $this->log->info('Итого по папкам: ' . implode(', ', $parts));
+        }
     }
 
     /**

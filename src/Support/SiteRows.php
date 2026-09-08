@@ -47,6 +47,46 @@ final class SiteRows
     }
 
     /**
+     * Сколько сайтов с каким числом успешно открытых страниц: [1 => 12, 7 => 40, 9 => 5, 'own' => 3].
+     * Наши шаблоны считаются отдельно (ключ 'own'), сайты без единого визита не считаются.
+     *
+     * @param array<int|string, Site> $sites
+     * @return array<int|string, int>
+     */
+    public static function pageHistogram(array $sites): array
+    {
+        $hist = [];
+        $own = 0;
+        foreach ($sites as $site) {
+            if ($site->own) {
+                $own++;
+                continue;
+            }
+            $s = $site->visitSummary();
+            if ($s['total'] > 0) {
+                $hist[$s['ok']] = ($hist[$s['ok']] ?? 0) + 1;
+            }
+        }
+        ksort($hist);
+        if ($own > 0) {
+            $hist['own'] = $own;
+        }
+
+        return $hist;
+    }
+
+    /** Гистограмма текстом: «1 стр. — 12, 7 стр. — 40, наши — 3»; '' — если считать нечего. */
+    public static function histogramText(array $hist): string
+    {
+        $parts = [];
+        foreach ($hist as $n => $count) {
+            $parts[] = $n === 'own' ? 'наши — ' . $count : sprintf('%d стр. — %d', (int) $n, $count);
+        }
+
+        return implode(', ', $parts);
+    }
+
+    /**
      * Строки таблицы результатов: host, домен, число страниц (ok/всего), причина ошибки, признак «наш»,
      * есть ли что докачивать (retryable), число страниц с 404, ссылки на html/скриншот (относительно runDir).
      *

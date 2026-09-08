@@ -470,7 +470,10 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   buckets while the table said «9/9». `markMissingFiles()` (end of visit/crawl/retry, and right after unbucket in
   `retryFailed()`) turns an ok visit whose html file is gone into a failure «файл страницы отсутствует на диске»
   (retryable), and `SiteRows::preview()` reports `pages_missing` so the panel shows «нет файла на диске: N» and
-  «Докачать» re-fetches exactly those pages. `SiteCleaner::cleanHost()` returns `skipped_files` and the clean
+  «Докачать» re-fetches exactly those pages. After a download the panel's stats line, the job message
+  («Выгружено страниц: N; по страницам: 1 стр. — 12, 9 стр. — 5») and the log («Итого по папкам») show the
+  page-count breakdown (`SiteRows::pageHistogram()`/`histogramText()`, `page_histogram` in the status).
+  `SiteCleaner::cleanHost()` returns `skipped_files` and the clean
   job logs «без статьи: a.html, b.html» per site, so a page lost at cleaning is visible by name.
   Barrier stubs (age-gate 18+, cookie wall, "enable JavaScript") look identical on every URL but hide
   different content, so `PageVisitor::looksLikeStub()` excludes them from dedup (never a duplicate/one-pager,

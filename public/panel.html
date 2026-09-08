@@ -627,6 +627,10 @@ function updateStats(visible){
     else {
       let t=`Из ${visible.length}: наших ${c.own} · проблемных ${c.problem} · без ошибок (100%) ${c.full}`;
       if(c.unchecked) t+=` · не проверено ${c.unchecked}`;
+      // Разбивка по числу открытых страниц (после выгрузки): сколько одностраничников, сколько 9/10-страничников.
+      const hist={}; let withPages=0;
+      visible.forEach(s=>{ if(!s.own && (s.pages_total|0)>0){ const k=s.pages_ok|0; hist[k]=(hist[k]||0)+1; withPages++; } });
+      if(withPages){ t+=' · по страницам: '+Object.keys(hist).map(Number).sort((a,b)=>a-b).map(k=>`${k} стр. — ${hist[k]}`).join(', '); }
       st.textContent=t;
     }
   }
