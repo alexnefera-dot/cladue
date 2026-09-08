@@ -67,7 +67,15 @@ final class SiteRows
             $own = (bool) ($data['own'] ?? false);
             // Для показа берём первый успешный визит, а если такого нет (ошибка/наш) — самый первый визит:
             // так остаётся ссылка на скриншот (у «наших» он сохранён) и видна причина ошибки.
-            $visit = $site->firstVisit() ?? ($site->visits[0] ?? null);
+            $visit = null;
+            foreach ($site->visits as $candidate) {
+                $candidate = (array) $candidate;
+                if (($candidate['ok'] ?? false) && is_file((string) ($candidate['html_file'] ?? ''))) {
+                    $visit = $candidate; // ссылка «html» — на файл, который реально есть на диске
+                    break;
+                }
+            }
+            $visit ??= $site->firstVisit() ?? ($site->visits[0] ?? null);
             // Есть ли у сайта страницы, которые докачка реально может добрать (таймаут/блок/404 с языковым
             // префиксом) — по этому флагу панель считает кнопку «Докачать с ошибками» и не предлагает докачку впустую.
             $retryable = false;
