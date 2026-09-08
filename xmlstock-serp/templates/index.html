@@ -771,7 +771,7 @@ function startUI(total){
 async function refresh(){
   if(!jobId) return; let d;
   try{ d=await (await fetch("/api/status/"+jobId)).json(); }catch(e){ return; }
-  if(d.error) return;
+  if(d.error){ clearInterval(poll); poll=null; $("go").disabled=false; $("cancel").classList.add("hidden"); $("sStatus").textContent="остановлено (сервер перезапущен?)"; return; }
   const pct = d.total? Math.round(d.done/d.total*100):0;
   $("barFill").style.width=pct+"%"; $("sDone").textContent=d.done+" / "+d.total; $("sErr").textContent=d.errors_count;
   $("log").innerHTML=(d.recent||[]).slice().reverse().map(r=>{
@@ -862,7 +862,7 @@ function checkStagnant(rows){
 async function mRefresh(){
   if(!mJob) return; let d;
   try{ d=await (await fetch("/api/monitor/status/"+mJob)).json(); }catch(e){ return; }
-  if(d.error) return;
+  if(d.error){ clearInterval(mPoll); mPoll=null; if(mTick){clearInterval(mTick);mTick=null;} $("m_go").disabled=false; $("m_stop").classList.add("hidden"); mNextAt=null; $("m_statusw").textContent="остановлено (сервер перезапущен?)"; return; }
   mMulti = !!d.multi;
   $("m_th_src").classList.toggle("hidden", !mMulti);
   $("m_round").textContent = d.rounds_done+" / "+d.rounds_total;
@@ -924,7 +924,7 @@ function fmtPerOp(p){
 async function sRefresh(){
   if(!sJob) return; let d;
   try{ d=await (await fetch("/api/site/status/"+sJob)).json(); }catch(e){ return; }
-  if(d.error) return;
+  if(d.error){ clearInterval(sPoll); sPoll=null; $("s_go").disabled=false; $("s_stop").classList.add("hidden"); $("s_statusw").textContent="остановлено (сервер перезапущен?)"; return; }
   $("s_done").textContent=d.done+" / "+d.total;
   $("s_barFill").style.width=(d.total?Math.round(d.done/d.total*100):0)+"%";
   $("s_total").textContent=d.total_urls;
@@ -992,7 +992,7 @@ function startRedir(){
 async function rRefresh(){
   if(!rJob) return; let d;
   try{ d=await (await fetch("/api/redirects/status/"+rJob)).json(); }catch(e){ return; }
-  if(d.error) return;
+  if(d.error){ clearInterval(rPoll); rPoll=null; $("r_go").disabled=false; $("r_stop").classList.add("hidden"); $("r_statusw").textContent="остановлено (сервер перезапущен?)"; return; }
   $("r_done").textContent=d.done+" / "+d.total;
   $("r_barFill").style.width=(d.total?Math.round(d.done/d.total*100):0)+"%";
   const s=d.summary||{targets:[]};
@@ -1058,7 +1058,7 @@ function startLive(){
 async function lRefresh(){
   if(!lJob) return; let d;
   try{ d=await (await fetch("/api/live/status/"+lJob)).json(); }catch(e){ return; }
-  if(d.error) return;
+  if(d.error){ clearInterval(lPoll); lPoll=null; $("l_go").disabled=false; $("l_stop").classList.add("hidden"); return; }
   $("l_done").textContent=d.done+" / "+d.total; $("l_alive").textContent=d.alive; $("l_dead").textContent=d.dead;
   $("l_barFill").style.width=(d.total?Math.round(d.done/d.total*100):0)+"%";
   $("l_tbody").innerHTML=(d.rows||[]).map(r=>{
@@ -1126,7 +1126,7 @@ function startWatch(){
 async function wRefresh(){
   if(!wJob) return; let d;
   try{ d=await (await fetch("/api/watch/status/"+wJob)).json(); }catch(e){ return; }
-  if(d.error) return;
+  if(d.error){ clearInterval(wPoll); wPoll=null; if(wTick){clearInterval(wTick);wTick=null;} $("w_go").disabled=false; $("w_stop").classList.add("hidden"); wNextAt=null; $("w_statusw").textContent="остановлено (сервер перезапущен?)"; return; }
   $("w_round").textContent=d.rounds_done+" / "+d.rounds_total;
   $("w_phase").textContent=d.phase||"—";
   $("w_new").textContent=d.total_new;
