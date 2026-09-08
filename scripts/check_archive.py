@@ -48,18 +48,21 @@ TEMPLATES = {
              "ruprivacy", "rucontacts", "ruabout", "ru-privacy", "ru-contacts", "ru-about"]
 CONVERT = {2: (1, СЛУЖЕБНЫЕ + ["slots", "bonus"]), 8: (7, СЛУЖЕБНЫЕ),
            9: (7, СЛУЖЕБНЫЕ), 10: (7, СЛУЖЕБНЫЕ)}
-# Сайт убирается из выдачи (а не отправляется на доработку), если в нём
-# есть заглушки или дубли файлов, а для типов из DISCARD_INCOMPLETE — ещё
-# и если не хватает страниц. Причина пишется в отчёт и сводку.
-DISCARD_INCOMPLETE = {7}
+# Сайт убирается из выдачи (а не отправляется на доработку), если в нём есть
+# заглушки, дубли файлов или не хватает страниц шаблона — для любого типа.
+# Причина пишется в отчёт и сводку.
 # Коды, при которых сайт убирается, а не идёт на доработку (заполняется из --убрать).
 DISCARD_CODES = {}
 
 ALLOWED_PLACEHOLDERS = {"%brand_name_ru%", "%brand_name_en%",
                         "%domain_name%", "%date%"}
+# Переменные окружения Windows в текстах про установку — не плейсхолдеры шаблона.
+WIN_VARS = {"%programfiles%", "%programfiles(x86)%", "%appdata%", "%localappdata%",
+            "%userprofile%", "%temp%", "%tmp%", "%systemroot%", "%windir%", "%path%",
+            "%username%", "%homepath%", "%public%"}
 ALLOWED_TAGS = {"p", "h2", "h3", "h4", "ul", "ol", "li", "strong", "em", "b", "i", "a",
                 "table", "thead", "tbody", "tr", "th", "td", "details", "summary",
-                "blockquote", "br", "hr", "pre", "code", "dl", "dt", "dd", "section",
+                "blockquote", "br", "hr", "pre", "code", "dl", "dt", "dd", "section", "acronym", "abbr", "u", "s", "wbr", "kbd", "q",
                 "aside", "nav", "time", "figure", "figcaption", "small", "sup", "sub", "mark"}
 VOID_TAGS = {"br", "hr", "img", "meta", "link", "input"}
 JUNK_NAMES = {".DS_Store", "Thumbs.db", "desktop.ini"}
@@ -442,12 +445,14 @@ def check_site(n, tpl, key, pages, F):
         for tok in phones:
             F.add(key, "WARN", "B4", "%s: телефон в тексте: %s" % (loc, tok))
         # B5 плейсхолдеры
-        bad = [ph for ph in d["placeholders"] if ph not in ALLOWED_PLACEHOLDERS]
+        bad = [ph for ph in d["placeholders"]
+               if ph not in ALLOWED_PLACEHOLDERS and ph.lower() not in WIN_VARS]
         if bad:
             F.add(key, "ERROR", "B5", "%s: неизвестные плейсхолдеры: %s" % (loc, ", ".join(bad)))
         if re.search(r"\{\{.*?\}\}|\[\[.*?\]\]|\{[^{}\n]*\|[^{}\n]*\}", d["raw"]):
             F.add(key, "ERROR", "B5", "%s: остатки шаблонизатора {{ }} / [[ ]] / {a|b}" % loc)
-        unfilled = Counter(re.findall(r"\{[A-Z_]{2,}\}", d["raw"]))
+        # ${VAR} — переменная shell или шаблонной строки в примере команды, не наш плейсхолдер
+        unfilled = Counter(re.findall(r"(?<![$\\])\{[A-Z_]{2,}\}", d["raw"]))
         if unfilled:
             F.add(key, "ERROR", "B5", "%s: незаполненные переменные: %s" % (
                 loc, ", ".join("%s (%d)" % kv for kv in unfilled.items())))
@@ -617,7 +622,7 @@ def discard_reason(F, s):
         why.append("контент дублированный")
     if any(lvl == "ERROR" and code == "B13" for lvl, code, _ in items):
         why.append("главная без текста")
-    if s["n"] in DISCARD_INCOMPLETE and any(lvl == "ERROR" and code in ("A3", "A4") for lvl, code, _ in items):
+    if any(lvl == "ERROR" and code in ("A3", "A4") for lvl, code, _ in items):
         why.append("неполный набор")
     return " и ".join(why) if why else None
 

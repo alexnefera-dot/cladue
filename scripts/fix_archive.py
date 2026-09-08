@@ -141,7 +141,7 @@ def fix_markup(raw):
                  "sub", "summary", "sup", "table", "tbody", "td", "template", "textarea", "tfoot", "th",
                  "thead", "time", "title", "tr", "track", "u", "ul", "var", "video", "wbr"}
 
-    def разделить(m):
+    def разделить(m):  # noqa: E306
         if (m.group(1) + m.group(2)).lower() in известные:
             return m.group(0)      # это обычный тег, не склейка
         return "<%s>%s" % (m.group(1), m.group(2))
@@ -170,8 +170,17 @@ def fix_markup(raw):
     return raw, rows
 
 
+# Технические переменные, которые встречаются в текстах про доступ и установку.
+ТЕХ_ПЕРЕМЕННЫЕ = {"{PROTOCOL}": "HTTPS", "{SERVER}": "%domain_name%", "{PORT}": "443",
+                  "{DOMAIN}": "%domain_name%", "{HOST}": "%domain_name%", "{URL}": "%domain_name%"}
+
+
 def fix_generic(raw):
     rows = []
+    for var, знач in ТЕХ_ПЕРЕМЕННЫЕ.items():
+        raw, n = re.subn(r"(?<![$\\])" + re.escape(var), знач, raw)
+        if n:
+            rows.append((var, знач, "техническая переменная (%d)" % n))
     raw, n = re.subn(r"\{YYYYMMDD\}", "%date%", raw)
     if n:
         rows.append(("{YYYYMMDD}", "%date%", "дата"))
