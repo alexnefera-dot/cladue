@@ -463,7 +463,15 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   skipped, and matching inner pages are dropped (`PageVisitor::dedupVisit()`). The comparison texts are
   tracked with their page label/url, so a duplicate names its reference — «дубликат: совпадает с главной
   / с «registracia» на N%» — and carries `duplicate_of` (the reference URL) in the visit. Finished sites are
-  bucketed into `pages/<N>-стр/<host>/` by successful-page count (`PageVisitor::bucketByPageCount()`).
+  bucketed into `pages/<N>-стр/<host>/` by successful-page count (`PageVisitor::bucketByPageCount()`); the move
+  is a MERGE (`moveDirMerge()`: file by file when the target folder exists, newer wins, empty source removed) and
+  `unbucketSite()` merges EVERY copy of the host folder (`pages/*/<host>` + `pages/<host>`) before a retry — a
+  plain `rename()` used to fail silently when the target existed, leaving a site's pages split across two
+  buckets while the table said «9/9». `markMissingFiles()` (end of visit/crawl/retry, and right after unbucket in
+  `retryFailed()`) turns an ok visit whose html file is gone into a failure «файл страницы отсутствует на диске»
+  (retryable), and `SiteRows::preview()` reports `pages_missing` so the panel shows «нет файла на диске: N» and
+  «Докачать» re-fetches exactly those pages. `SiteCleaner::cleanHost()` returns `skipped_files` and the clean
+  job logs «без статьи: a.html, b.html» per site, so a page lost at cleaning is visible by name.
   Barrier stubs (age-gate 18+, cookie wall, "enable JavaScript") look identical on every URL but hide
   different content, so `PageVisitor::looksLikeStub()` excludes them from dedup (never a duplicate/one-pager,
   never a similarity reference; visit flagged `stub`). The Playwright renderer best-effort dismisses such
@@ -474,7 +482,8 @@ Run `php tests/lint.php && php tests/run.php` before committing.
 - `Support\DomainLedger` (runs/domains-base.txt) is a cross-run base of collected registrable
   domains; `Runner` takes an optional ledger + skipKnown to drop already-seen domains (reason
   `seen_before`) and record new ones. A repeat collect with the same queries therefore selects nothing
-  (every domain is `seen_before`) AND makes no source requests (responses come from the 7-day cache), which
+  (every domain is `seen_before`) AND makes no source requests (responses come from the cache — panel collects
+  set `cache.ttl` to 1 hour in `buildOverrides()`, the CLI keeps the 7-day config default), which
   the user read as «he does not even fetch the XML queries»: `bin/run-job.php` records `cache_hits`/
   `cache_misses` in `stats` (from `CachingFetcher`), the panel shows «ответов из кэша выдачи» and, when
   `seen_before` is ≥ 80% of the rejections, says «Ничего нового: N из M доменов уже в базе пересечений…»

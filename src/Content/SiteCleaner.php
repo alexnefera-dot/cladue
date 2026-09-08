@@ -43,7 +43,7 @@ final class SiteCleaner
      *
      * @param list<string> $files
      * @param array<string, mixed> $override
-     * @return array{written: int, skipped: int, dir: string, brand_ru: string, brand_en: string}
+     * @return array{written: int, skipped: int, skipped_files: list<string>, dir: string, brand_ru: string, brand_en: string}
      */
     public static function cleanHost(string $runDir, string $host, array $files, array $override = []): array
     {
@@ -72,10 +72,12 @@ final class SiteCleaner
         // Чистим в память, чтобы узнать итоговое число страниц и назвать по нему папку-бакет.
         $cleaned = [];
         $skipped = 0;
+        $skippedFiles = []; // какие именно страницы остались без статьи — чтобы потеря была видна, а не только число
         foreach ($files as $file) {
             $body = $cleaner->clean($html[$file], $opts);
             if (trim($body) === '') {
                 $skipped++;
+                $skippedFiles[] = basename($file);
                 continue;
             }
             $cleaned[basename($file)] = $body;
@@ -95,6 +97,7 @@ final class SiteCleaner
         return [
             'written' => $written,
             'skipped' => $skipped,
+            'skipped_files' => $skippedFiles,
             'dir' => $rel,
             'brand_ru' => (string) ($opts['brand_ru'] ?? ''),
             'brand_en' => (string) ($opts['brand_en'] ?? ''),

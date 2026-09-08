@@ -586,6 +586,34 @@ final class VisitTest
         Assert::true(is_file("$dir/1-стр/dupname.ru/vhod.html"), 'скачанная страница на месте');
     }
 
+    public function testRetryMergesSplitFoldersAndRefetchesMissingFiles(): void
+    {
+        // Папка сайта оказалась в двух бакетах (перенос когда-то не удался), а файл одной «успешной» страницы пропал:
+        // докачка сливает копии в одну папку, пропавшую страницу помечает и пытается перекачать (хост мёртвый —
+        // остаётся честным неуспехом), и счётчик больше не показывает «3/3» при двух файлах.
+        $dir = $this->dir() . '/split';
+        mkdir("$dir/8-стр/split.invalid", 0777, true);
+        mkdir("$dir/9-стр/split.invalid", 0777, true);
+        file_put_contents("$dir/8-стр/split.invalid/vhod.html", '<html><body><p>' . str_repeat('вход текст ', 30) . '</p></body></html>');
+        file_put_contents("$dir/9-стр/split.invalid/bonus.html", '<html><body><p>' . str_repeat('бонус текст ', 30) . '</p></body></html>');
+        $site = new Site('split.invalid', 'split.invalid', 'split.invalid');
+        $site->add(new SearchResult('x', 0, 1, 'http://split.invalid/', 'split.invalid', 'T'));
+        $site->visits = [
+            ['variant' => 0, 'url' => 'http://split.invalid/', 'ok' => true, 'error' => '', 'status' => 200, 'html_file' => "$dir/9-стр/split.invalid/main.html"],
+            ['variant' => 1, 'url' => 'http://split.invalid/vhod', 'ok' => true, 'error' => '', 'status' => 200, 'html_file' => "$dir/8-стр/split.invalid/vhod.html"],
+            ['variant' => 2, 'url' => 'http://split.invalid/bonus', 'ok' => true, 'error' => '', 'status' => 200, 'html_file' => "$dir/9-стр/split.invalid/bonus.html"],
+        ];
+        $visitor = new PageVisitor(['crawl' => true, 'dir' => $dir, 'screenshot' => false, 'timeout' => 3, 'retries' => 0, 'delay_ms' => 0], new CurlDriver(), $this->logger());
+        $r = $visitor->retryFailed(['split.invalid' => $site]);
+
+        Assert::same(1, $r['attempted'], 'пропавшую страницу пытались перекачать');
+        Assert::false($site->visits[0]['ok'] ?? true, 'страница без файла — не успех');
+        Assert::same(2, $site->visitSummary()['ok'], 'счётчик — по реальным файлам');
+        $folders = glob("$dir/*/split.invalid", GLOB_ONLYDIR) ?: [];
+        Assert::same(["$dir/2-стр/split.invalid"], $folders, 'одна папка по числу реальных страниц: ' . implode(',', $folders));
+        Assert::true(is_file("$dir/2-стр/split.invalid/vhod.html") && is_file("$dir/2-стр/split.invalid/bonus.html"), 'файлы из обеих копий слиты в одну папку');
+    }
+
     public function testCrawlReadsFooterMenuWithoutSecondMain(): void
     {
         // Меню в подвале (не в шапке); входим по «глубокому» адресу с циклом. Ссылки за циклом

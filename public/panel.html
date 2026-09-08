@@ -482,11 +482,11 @@ function renderStatus(st, running){
     // (те же запросы — ответы из кэша, к источнику не обращались), а не фильтры.
     const total = rkeys.reduce((a,k)=>a+(rej[k]||0),0), seen = rej.seen_before||0;
     const fromCache = (stats.cache_hits||0)>0 && !((stats.cache_misses||0)>0);
-    const cacheNote = fromCache ? ` Все ответы (${stats.cache_hits}) взяты из кэша выдачи — новых запросов к источнику не было, те же запросы уже задавались за последние 7 дней; чтобы получить выдачу заново, включите «Свежая выдача» в настройках.` : '';
+    const cacheNote = fromCache ? ` Все ответы (${stats.cache_hits}) взяты из кэша выдачи — новых запросов к источнику не было, те же запросы уже задавались за последний час (кэш выдачи в панели живёт час); чтобы получить выдачу заново, включите «Свежая выдача» в настройках.` : '';
     if(seen>0 && seen>=total*0.8) msg=`<div class="msg err">Ничего нового: ${seen} из ${total} доменов уже есть в базе пересечений (собраны прошлыми сборами) и пропущены по галочке «Пропускать домены, которые уже собраны раньше». Снимите её или нажмите «очистить базу» в настройках, чтобы отобрать эти сайты снова.${cacheNote}${st.kept_previous?' Прошлый список сайтов ниже оставлен — с ним можно продолжать (выгрузка, докачка, очистка).':''}</div>`;
     else msg=`<div class="msg err">Ничего не отобрано — все результаты отсеяны фильтрами (см. «Отсеяно» выше). Проверьте «Зоны доменов» (пусто = любые) и исключения.${cacheNote}</div>`;
   }
-  else if(st.phase==='done' && (stats.cache_hits||0)>0 && !((stats.cache_misses||0)>0)) msg=`<div class="msg">Все ответы (${stats.cache_hits}) взяты из кэша выдачи — к источнику не обращались (те же запросы уже задавались за последние 7 дней). Для новой выдачи включите «Свежая выдача» в настройках.</div>`;
+  else if(st.phase==='done' && (stats.cache_hits||0)>0 && !((stats.cache_misses||0)>0)) msg=`<div class="msg">Все ответы (${stats.cache_hits}) взяты из кэша выдачи — к источнику не обращались (те же запросы уже задавались за последний час (кэш выдачи в панели живёт час)). Для новой выдачи включите «Свежая выдача» в настройках.</div>`;
   else if(st.errors && st.errors.length) msg=`<div class="msg err">Предупреждений: ${st.errors.length} — ${(st.errors[0]||'').slice(0,200)}</div>`;
   $('progMsg').innerHTML=msg;
 
@@ -609,6 +609,7 @@ function siteKind(s){
   if(!s) return 'unchecked';
   if(s.own) return 'own';
   const total=s.pages_total|0, ok=s.pages_ok|0;
+  if((s.pages_missing|0)>0) return 'problem'; // файл страницы пропал с диска — есть что докачивать
   if(total>0 && ok===total) return 'full';
   if(total>0 && ok<total) return 'problem';
   if(!total && s.page_error) return 'problem';
@@ -693,7 +694,7 @@ function renderResults(sites){
   tb.innerHTML=visible.map((s,i)=>{
     let dl='—';
     if(s.own){ dl=`<span class="tag" title="наш шаблон — исключён из выгрузки">исключён как наш</span>`; }
-    else if(s.pages_total>0){ dl=`${s.pages_ok||0}/${s.pages_total}`; if((s.pages_ok||0)<s.pages_total && s.page_error) dl+=' '+errCell(s.page_error); }
+    else if(s.pages_total>0){ dl=`${s.pages_ok||0}/${s.pages_total}`; if((s.pages_ok||0)<s.pages_total && s.page_error) dl+=' '+errCell(s.page_error); if((s.pages_missing|0)>0) dl+=' '+errCell('нет файла на диске: '+s.pages_missing+' — докачайте'); }
     else if(s.page_error) dl=errCell(s.page_error);
     if(retryActive.has(s.host)) dl+=' <span class="tag" title="докачивается">докачивается…</span>';
     else if(retryQueue.has(s.host)) dl+=' <span class="tag" title="в очереди на докачку">в очереди</span>';
@@ -727,7 +728,7 @@ async function cleanSite(host, btn){
     const j=await r.json();
     if(!j.ok){ btn.textContent='Ошибка'; alert(j.error||'Ошибка'); btn.disabled=false; setTimeout(()=>{btn.textContent=old;},2500); return; }
     if(!j.written){ btn.textContent='Нет статьи'; alert('На страницах этого сайта не найдено тело статьи (нет <h1> или блока «Популярные запросы»).'); btn.disabled=false; setTimeout(()=>{btn.textContent=old;},2500); return; }
-    btn.textContent='Очищено: '+j.written+' стр.'+(j.brand_ru?' · '+j.brand_ru:'');
+    btn.textContent='Очищено: '+j.written+' стр.'+(j.brand_ru?' · '+j.brand_ru:'')+((j.skipped|0)>0?' · без статьи: '+j.skipped+(j.skipped_files&&j.skipped_files.length?' ('+j.skipped_files.join(', ')+')':''):'');
     btn.title='Готово в '+(j.dir||'content')+' · нажмите ещё раз, чтобы перечистить';
     btn.disabled=false;
   }catch(e){ btn.textContent='Ошибка'; btn.disabled=false; setTimeout(()=>{btn.textContent=old;},2500); }

@@ -72,9 +72,15 @@ final class SiteRows
             // префиксом) — по этому флагу панель считает кнопку «Докачать с ошибками» и не предлагает докачку впустую.
             $retryable = false;
             $notFound = 0; // страниц с 404/410 — для кнопки «Убрать с 404 > N» в панели
+            $missing = 0; // успешных визитов, чей файл пропал с диска — таблица честно это показывает, докачка перекачивает
             if (!$own) {
                 foreach ($site->visits as $v) {
                     $v = (array) $v;
+                    $file = (string) ($v['html_file'] ?? '');
+                    if (($v['ok'] ?? false) && $file !== '' && !is_file($file)) {
+                        $missing++;
+                        $retryable = true;
+                    }
                     if (!$retryable && PageVisitor::isRetryableVisit($v)) {
                         $retryable = true;
                     }
@@ -87,6 +93,7 @@ final class SiteRows
             $rows[] = [
                 'retryable' => $retryable,
                 'pages_404' => $notFound,
+                'pages_missing' => $missing,
                 'host' => $data['host'],
                 'domain' => $data['domain'],
                 'url' => $data['url'],

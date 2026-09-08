@@ -136,6 +136,7 @@ final class PageVisitor
             $sites[$job->siteKey]->visits[] = $visit;
         }
 
+        $this->markMissingFiles($sites);
         $this->logSiteSummary($sites);
     }
 
@@ -393,6 +394,7 @@ final class PageVisitor
         }
 
         $this->bucketByPageCount($sites, $dir);
+        $this->markMissingFiles($sites);
         $this->logSiteSummary($sites);
     }
 
@@ -423,6 +425,7 @@ final class PageVisitor
                 continue;
             }
             $this->unbucketSite($site, $dir);
+            $this->markMissingFiles([$site]); // пропавший файл — тоже «неудача»: перекачаем именно его
             $siteDir = $dir . '/' . self::safeName($site->host);
 
             // Занятые имена и эталонные тексты — от уже успешных страниц (их не перекачиваем).
@@ -526,6 +529,7 @@ final class PageVisitor
                 $this->bucketByPageCount([$key => $site], $dir);
             }
         }
+        $this->markMissingFiles($sites);
         $this->logSiteSummary($sites);
 
         return ['attempted' => $attempted, 'recovered' => $recovered];
@@ -585,29 +589,32 @@ final class PageVisitor
     private function unbucketSite(Site $site, string $dir): void
     {
         $target = $dir . '/' . self::safeName($site->host);
-        $current = is_dir($target) ? $target : null;
-        if ($current === null) {
-            foreach (glob($dir . '/*/' . self::safeName($site->host), GLOB_ONLYDIR) ?: [] as $d) {
-                $current = $d;
-                break;
+        // Все копии папки сайта: в бакетах (pages/<N>-стр/<host>) и уже вынутая (pages/<host>) — сливаем в одну,
+        // иначе страницы, разложенные по двум бакетам после неудачного переноса, считались бы по отдельности.
+        $copies = [];
+        foreach (glob($dir . '/*/' . self::safeName($site->host), GLOB_ONLYDIR) ?: [] as $d) {
+            if ($d !== $target) {
+                $copies[] = $d;
             }
         }
-        if ($current === null || $current === $target) {
+        if ($copies === []) {
             return;
         }
         @mkdir($dir, 0777, true);
-        if (!@rename($current, $target)) {
-            return;
-        }
-        foreach ($site->visits as &$v) {
-            foreach (['html_file', 'screenshot_file'] as $f) {
-                $val = (string) ($v[$f] ?? '');
-                if ($val !== '' && str_starts_with($val, $current . '/')) {
-                    $v[$f] = $target . '/' . substr($val, strlen($current) + 1);
+        foreach ($copies as $current) {
+            if (!self::moveDirMerge($current, $target)) {
+                continue;
+            }
+            foreach ($site->visits as &$v) {
+                foreach (['html_file', 'screenshot_file'] as $f) {
+                    $val = (string) ($v[$f] ?? '');
+                    if ($val !== '' && str_starts_with($val, $current . '/')) {
+                        $v[$f] = $target . '/' . substr($val, strlen($current) + 1);
+                    }
                 }
             }
+            unset($v);
         }
-        unset($v);
     }
 
     /**
@@ -773,7 +780,7 @@ final class PageVisitor
                 @mkdir($bucket, 0777, true);
             }
             $to = $bucket . '/' . self::safeName($site->host);
-            if ($to === $from || !@rename($from, $to)) {
+            if ($to === $from || !self::moveDirMerge($from, $to)) {
                 continue;
             }
             foreach ($site->visits as &$visit) {
@@ -784,6 +791,68 @@ final class PageVisitor
                 }
             }
             unset($visit);
+        }
+    }
+
+    /**
+     * Переносит папку сайта со слиянием: если папка назначения уже есть (осталась от прошлого прогона или
+     * прежней докачки), файлы переезжают по одному, свежие перекрывают старые, пустая папка-источник
+     * удаляется. Простой rename() в такой ситуации молча не срабатывал, и страницы сайта оставались
+     * разложенными по двум бакетам: в таблице «9/9», а в папке — часть файлов.
+     */
+    private static function moveDirMerge(string $from, string $to): bool
+    {
+        if (!is_dir($from) || $from === $to) {
+            return false;
+        }
+        if (!is_dir($to) && @rename($from, $to)) {
+            return true;
+        }
+        @mkdir($to, 0777, true);
+        foreach (scandir($from) ?: [] as $name) {
+            if ($name === '.' || $name === '..') {
+                continue;
+            }
+            $src = $from . '/' . $name;
+            $dst = $to . '/' . $name;
+            if (is_dir($src)) {
+                self::moveDirMerge($src, $dst);
+                continue;
+            }
+            if (is_file($dst)) {
+                @unlink($dst); // Windows не перезаписывает rename'ом
+            }
+            if (!@rename($src, $dst) && @copy($src, $dst)) {
+                @unlink($src);
+            }
+        }
+        @rmdir($from);
+
+        return !is_dir($from);
+    }
+
+    /**
+     * Сверяет визиты с диском: успешный визит, чей html-файл пропал (папка не перенеслась, файл стёрли
+     * руками, сбой на полпути), помечается неуспехом с понятной причиной — таблица показывает честное
+     * «8/9», а докачка перекачивает именно эту страницу вместо того, чтобы верить счётчику.
+     *
+     * @param array<int|string, Site> $sites
+     */
+    private function markMissingFiles(array $sites): void
+    {
+        foreach ($sites as $site) {
+            if ($site->own) {
+                continue;
+            }
+            foreach ($site->visits as &$v) {
+                $file = (string) ($v['html_file'] ?? '');
+                if (($v['ok'] ?? false) && $file !== '' && !is_file($file)) {
+                    $v['ok'] = false;
+                    $v['error'] = 'файл страницы отсутствует на диске — перекачать';
+                    $v['missing_file'] = true;
+                }
+            }
+            unset($v);
         }
     }
 

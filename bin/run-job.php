@@ -152,6 +152,10 @@ function buildOverrides(array $s, string $runDir): array
     // с этой галочкой каждый сбор спрашивает источник заново).
     if (!empty($s['no_cache'])) {
         $overrides['cache.enabled'] = false;
+    } else {
+        // Кэш выдачи в панели живёт час, а не 7 дней, как в консоли: повтор через сутки — настоящий переобход
+        // (новые сайты в выдаче), а перезапуск через пять минут (поправили фильтры) лимит не тратит.
+        $overrides['cache.ttl'] = 3600;
     }
     if (isset($s['domain_scope'])) {
         $overrides['filters.domain_scope'] = (string) $s['domain_scope'];
@@ -335,6 +339,9 @@ while (true) {
                 $done++;
                 $progress->update(['phase' => 'clean', 'visit' => ['total' => $total, 'done' => $done, 'ok' => $sitesDone, 'current' => (string) $host], 'message' => sprintf('Очистка: %d из %d сайтов…', $done, $total)]);
                 $logger->debug(sprintf('  [%d/%d] %s — %d стр., бренд %s / %s', $done, $total, $host, $r['written'], $r['brand_en'], $r['brand_ru']));
+                if ($r['skipped_files'] !== []) {
+                    $logger->info(sprintf('  %s — без статьи (пропущено): %s', $host, implode(', ', $r['skipped_files'])));
+                }
             }
             // Таблица не должна пропасть после очистки: сайты — из sites.json (убранные исключены).
             $siteList = array_values(RemovedSites::filter($runDir, loadSites($runDir . '/sites.json')));

@@ -412,7 +412,7 @@ if ($path === '/api/clean-site' && $method === 'POST') {
         'remove_slots' => filter_var($b['remove_slots'] ?? false, FILTER_VALIDATE_BOOL),
         'remove_widgets' => filter_var($b['remove_widgets'] ?? false, FILTER_VALIDATE_BOOL),
     ]);
-    jsonOut(['ok' => true, 'written' => $r['written'], 'skipped' => $r['skipped'], 'dir' => $r['dir'], 'brand_ru' => $r['brand_ru'], 'brand_en' => $r['brand_en']]);
+    jsonOut(['ok' => true, 'written' => $r['written'], 'skipped' => $r['skipped'], 'skipped_files' => $r['skipped_files'], 'dir' => $r['dir'], 'brand_ru' => $r['brand_ru'], 'brand_en' => $r['brand_en']]);
 }
 
 if ($path === '/api/log') {
