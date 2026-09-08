@@ -701,7 +701,7 @@ $("qcount").textContent=lines("queries")+" стр.";
 function mgCount(div){ const n=div.querySelector(".mg-keys").value.split("\n").map(s=>s.trim()).filter(Boolean).length;
   div.querySelector(".mg-count").textContent = n+" ключ."; }
 function saveGroups(){
-  const g=[...document.querySelectorAll(".mgroup")].map(d=>({domain:d.querySelector(".mg-domain").value, keys:d.querySelector(".mg-keys").value}));
+  const g=[...$("m_groups").querySelectorAll(".mgroup")].map(d=>({domain:d.querySelector(".mg-domain").value, keys:d.querySelector(".mg-keys").value}));
   localStorage.setItem("xmlstock_groups", JSON.stringify(g));
 }
 function makeGroup(domain="", keys=""){
@@ -714,7 +714,7 @@ function makeGroup(domain="", keys=""){
     <textarea class="mg-keys" placeholder="ключ 1&#10;ключ 2&#10;ключ 3"></textarea>`;
   div.querySelector(".mg-domain").value=domain;
   div.querySelector(".mg-keys").value=keys;
-  div.querySelector(".mg-del").onclick=()=>{ if(document.querySelectorAll(".mgroup").length>1){ div.remove(); saveGroups(); } };
+  div.querySelector(".mg-del").onclick=()=>{ if($("m_groups").querySelectorAll(".mgroup").length>1){ div.remove(); saveGroups(); } };
   div.querySelectorAll(".mg-domain,.mg-keys").forEach(el=> el.addEventListener("input", ()=>{ mgCount(div); saveGroups(); }));
   mgCount(div);
   return div;
@@ -729,7 +729,7 @@ function loadGroups(){
   g.forEach(x=> c.appendChild(makeGroup(x.domain||"", x.keys||"")));
 }
 function collectGroups(){
-  return [...document.querySelectorAll(".mgroup")].map(d=>({
+  return [...$("m_groups").querySelectorAll(".mgroup")].map(d=>({
     domains:d.querySelector(".mg-domain").value, keywords:d.querySelector(".mg-keys").value
   })).filter(x=> x.domains.trim() && x.keywords.trim());
 }
