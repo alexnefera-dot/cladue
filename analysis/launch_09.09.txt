@@ -1,4 +1,4 @@
-# День 09.09.2026 — 39 доменов зарегистрировано, пять групп (archive47: не хватает ч1 _1…_38, ч2 _14…_18 и _24)
+# День 09.09.2026 — 59 доменов зарегистрировано, пять групп (archive47: не хватает ч1 _1…_23 и ч2 _24)
 
 ## nabory455457_styled_img_1…_3 — id 1758-1760, создан 01:13, все .lol
 4945casino.lol
@@ -24,13 +24,28 @@ wbji.casino
 tqab.casino
 skxb.casino
 
-## archive47_unique119оформленочасть1_39…_40 — id 1814-1815, создан 15:19
-# ПРИМЕЧАНИЕ: часть1 — 40 доменов, id 1776-1815. Не хватает _1…_38, id 1776-1813.
+## archive47_unique119оформленочасть1_24…_40 — id 1799-1815, создан 15:19
+# ПРИМЕЧАНИЕ: часть1 — 40 доменов, id 1776-1815. Не хватает _1…_23, id 1776-1798.
+2865.lol
+8616casino.lol
+6134.lol
+5067.lol
+4236.lol
+casino6809.lol
+7761.team
+casino29.team
+2894.team
+369casino.team
+8292.team
+casino5675.team
+luts.team
+c4e8.team
+0491.team
 psbl.lol
 casino5615.lol
 
 ## archive47_unique119оформленочасть2_1…_25 — id 1816-1840, создан 15:20
-# ПРИМЕЧАНИЕ: не хватает _14…_18 (id 1829-1833) и _24 (id 1839).
+# ПРИМЕЧАНИЕ: не хватает _24 (id 1839).
 d8y5.lol
 6480.lol
 pdmw.lol
@@ -44,6 +59,11 @@ casinottb.team
 pfoi.team
 casinopo.team
 6973.team
+casino6206.team
+6477.team
+9126.team
+k9v.team
+jbrh.casino
 2518.team
 0273.team
 hjpi.team

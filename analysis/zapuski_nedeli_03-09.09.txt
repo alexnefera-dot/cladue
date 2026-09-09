@@ -700,7 +700,7 @@
     744casino.buzz
 
 ========================================================================
-09.09.2026 — 39 доменов, 5 групп   [.team 16  .lol 14  .buzz 6  .casino 3]
+09.09.2026 — 59 доменов, 5 групп   [.team 29  .lol 20  .buzz 6  .casino 4]
 ========================================================================
 
 --- nabory455457_styled_img_1…_3 — id 1758-1760, создан 01:13, все .lol
@@ -733,14 +733,29 @@
     tqab.casino
     skxb.casino
 
---- archive47_unique119оформленочасть1_39…_40 — id 1814-1815, создан 15:19
-    2 домена: .lol 2
+--- archive47_unique119оформленочасть1_24…_40 — id 1799-1815, создан 15:19
+    17 доменов: .team 9  .lol 8
 
+    2865.lol
+    8616casino.lol
+    6134.lol
+    5067.lol
+    4236.lol
+    casino6809.lol
+    7761.team
+    casino29.team
+    2894.team
+    369casino.team
+    8292.team
+    casino5675.team
+    luts.team
+    c4e8.team
+    0491.team
     psbl.lol
     casino5615.lol
 
 --- archive47_unique119оформленочасть2_1…_25 — id 1816-1840, создан 15:20
-    19 доменов: .team 16  .lol 3
+    24 домена: .team 20  .lol 3  .casino 1
 
     d8y5.lol
     6480.lol
@@ -755,6 +770,11 @@
     pfoi.team
     casinopo.team
     6973.team
+    casino6206.team
+    6477.team
+    9126.team
+    k9v.team
+    jbrh.casino
     2518.team
     0273.team
     hjpi.team
@@ -763,7 +783,7 @@
     o6q.team
 
 ========================================================================
-ИТОГО: 450 доменов
+ИТОГО: 470 доменов
 ========================================================================
   03.09    60
   04.09    56
@@ -771,13 +791,13 @@
   06.09    60
   07.09    83
   08.09   113
-  09.09    39
+  09.09    59
 
-  зоны: .team 189   .lol 172   .buzz 55   .casino 34
+  зоны: .team 202   .lol 178   .buzz 55   .casino 35
   доменов встречается более одного раза: 0
 
 ========================================================================
-ПЛОСКИЙ СПИСОК — 450 доменов подряд
+ПЛОСКИЙ СПИСОК — 470 доменов подряд
 ========================================================================
 0403.team
 7874.team
@@ -1208,6 +1228,21 @@ msvcasino.lol
 wbji.casino
 tqab.casino
 skxb.casino
+2865.lol
+8616casino.lol
+6134.lol
+5067.lol
+4236.lol
+casino6809.lol
+7761.team
+casino29.team
+2894.team
+369casino.team
+8292.team
+casino5675.team
+luts.team
+c4e8.team
+0491.team
 psbl.lol
 casino5615.lol
 d8y5.lol
@@ -1223,6 +1258,11 @@ casinottb.team
 pfoi.team
 casinopo.team
 6973.team
+casino6206.team
+6477.team
+9126.team
+k9v.team
+jbrh.casino
 2518.team
 0273.team
 hjpi.team
