@@ -13,6 +13,7 @@ use YandexSites\Visit\CurlDriver;
 use YandexSites\Visit\Fingerprint;
 use YandexSites\Visit\PageVisitor;
 use YandexSites\Visit\PlaywrightDriver;
+use YandexSites\Visit\SiteTemplate;
 use YandexSites\Visit\VisitJob;
 
 /**
@@ -20,7 +21,7 @@ use YandexSites\Visit\VisitJob;
  */
 final class VisitTest
 {
-    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'agegate.ru', 'ourtpl.ru', 'brand-a.tpl.ru', 'brand-b.tpl.ru', 'footeronly.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru', 'softsite.ru', 'duptest.ru', 'localeretry.ru', 'brandnet.ru', 'kush.brandnet.ru', 'namedup.ru', 'bigpage.ru'];
+    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'agegate.ru', 'ourtpl.ru', 'brand-a.tpl.ru', 'brand-b.tpl.ru', 'footeronly.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru', 'softsite.ru', 'duptest.ru', 'localeretry.ru', 'brandnet.ru', 'kush.brandnet.ru', 'namedup.ru', 'bigpage.ru', 'tpl7.ru', 'tpl12.ru'];
 
     private ?string $dir = null;
 
@@ -177,6 +178,24 @@ final class VisitTest
 
         Assert::same('shop.okna-moskva.ru', PageVisitor::safeName('shop.Okna-Moskva.ru'));
         Assert::same('site', PageVisitor::safeName('***'));
+    }
+
+    public function testVisitDetectsTemplateType(): void
+    {
+        // Тип вёрстки определяется по HTML уже при визите (превью главной после сбора): 7–9 / 12–15 / без категории.
+        $port = FakeServer::port();
+        $sites = [];
+        foreach (['tpl7.ru', 'tpl12.ru', 'okna-moskva.ru'] as $host) {
+            $site = new Site($host, $host, $host);
+            $site->add(new SearchResult('окна', 0, 1, "http://$host:$port/", $host, 'T'));
+            $sites[$host] = $site;
+        }
+        $visitor = new PageVisitor(['variants' => 1, 'dir' => $this->dir() . '/tpl', 'screenshot' => false, 'timeout' => 5, 'delay_ms' => 0, 'resolve' => $this->resolve($port), 'referer' => 'none', 'user_agents' => [UserAgents::BROWSERS[0]]], new CurlDriver(), $this->logger());
+        $visitor->visit($sites);
+        Assert::same(SiteTemplate::PAGES7, $sites['tpl7.ru']->visits[0]['template']);
+        Assert::same(SiteTemplate::PAGES12, $sites['tpl12.ru']->visits[0]['template']);
+        Assert::same(SiteTemplate::OTHER, $sites['okna-moskva.ru']->visits[0]['template'], 'обычный сайт — без категории');
+        Assert::same([SiteTemplate::PAGES7 => 1, SiteTemplate::PAGES12 => 1, SiteTemplate::OTHER => 1], SiteTemplate::histogram($sites));
     }
 
     public function testVisitsRotateThroughProxyList(): void

@@ -7,6 +7,7 @@ namespace YandexSites\Support;
 use YandexSites\Model\SearchResult;
 use YandexSites\Model\Site;
 use YandexSites\Visit\PageVisitor;
+use YandexSites\Visit\SiteTemplate;
 
 /**
  * Список сайтов для панели: чтение sites.json в объекты Site и строки таблицы (превью). Общий для
@@ -88,7 +89,8 @@ final class SiteRows
 
     /**
      * Строки таблицы результатов: host, домен, число страниц (ok/всего), причина ошибки, признак «наш»,
-     * есть ли что докачивать (retryable), число страниц с 404, ссылки на html/скриншот (относительно runDir).
+     * есть ли что докачивать (retryable), число страниц с 404, тип вёрстки (template/template_label),
+     * ссылки на html/скриншот (относительно runDir).
      *
      * @param array<int|string, Site> $sites
      * @return list<array<string, mixed>>
@@ -138,8 +140,12 @@ final class SiteRows
                     }
                 }
             }
+            // Тип вёрстки по открытым страницам (превью главной после сбора): pages7 / pages12 / other; '' — страниц нет.
+            $template = $own ? '' : SiteTemplate::ofVisits($site->visits);
             $rows[] = [
                 'retryable' => $retryable,
+                'template' => $template,
+                'template_label' => $template !== '' ? SiteTemplate::label($template) : '',
                 'pages_404' => $notFound,
                 'pages_missing' => $missing,
                 'host' => $data['host'],

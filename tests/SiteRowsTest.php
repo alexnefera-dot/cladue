@@ -20,13 +20,15 @@ final class SiteRowsTest
         $site->add(new SearchResult('q', 0, 1, 'https://rows.ru/', 'rows.ru', 'T'));
         $site->visits = [
             ['variant' => 0, 'url' => 'https://rows.ru/', 'ok' => true, 'error' => '', 'status' => 200, 'html_file' => "$dir/main.html"],
-            ['variant' => 1, 'url' => 'https://rows.ru/vhod', 'ok' => true, 'error' => '', 'status' => 200, 'html_file' => "$dir/vhod.html"],
+            ['variant' => 1, 'url' => 'https://rows.ru/vhod', 'ok' => true, 'error' => '', 'status' => 200, 'html_file' => "$dir/vhod.html", 'template' => 'pages7'],
         ];
         $row = SiteRows::preview([$site], $dir)[0];
         Assert::same(1, $row['pages_missing'], 'один файл пропал');
         Assert::true($row['retryable'], 'пропавший файл — повод для докачки');
         Assert::same(2, $row['pages_ok']);
         Assert::same('vhod.html', $row['html'], 'ссылка на html — относительно runDir');
+        Assert::same('pages7', $row['template'], 'тип вёрстки — из визитов');
+        Assert::same('7–9 стр.', $row['template_label']);
 
         // load(): визиты и признак «наш» восстанавливаются из sites.json.
         file_put_contents("$dir/sites.json", json_encode(['sites' => [['host' => 'rows.ru', 'domain' => 'rows.ru', 'own' => true, 'visits' => $site->visits]]]));

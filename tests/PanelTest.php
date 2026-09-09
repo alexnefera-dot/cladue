@@ -256,6 +256,46 @@ final class PanelTest
         @rmdir($dir);
     }
 
+    public function testDownloadStageReportsTemplateTypes(): void
+    {
+        // После открытия страниц статус несёт разбивку по типу вёрстки, а строки таблицы — тип каждого сайта:
+        // по нему панель оставляет в таблице только выбранные категории (7–9 / 12–15 / без категории).
+        $port = FakeServer::port('local');
+        $dir = sys_get_temp_dir() . '/yandex-sites-tpl-' . uniqid();
+        $runDir = $dir . '/runs/tpl';
+        mkdir($runDir, 0777, true);
+        file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
+        $rows = [];
+        foreach (['tpl7.ru', 'tpl12.ru', 'okna-moskva.ru'] as $i => $host) {
+            $rows[] = ['host' => $host, 'domain' => $host, 'url' => "http://$host:$port/", 'title' => 'T', 'best_query' => 'q', 'best_position' => $i + 1, 'queries_count' => 1];
+        }
+        file_put_contents($runDir . '/sites.json', json_encode(['sites' => $rows]));
+        file_put_contents($runDir . '/settings.json', json_encode([
+            'stage' => 'download',
+            'visit_driver' => 'curl',
+            'visit_resolve' => ["tpl7.ru:$port:127.0.0.1", "tpl12.ru:$port:127.0.0.1", "okna-moskva.ru:$port:127.0.0.1"],
+        ]));
+        $run = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $run['code'], $run['out']);
+        $st = json_decode((string) file_get_contents($runDir . '/status.json'), true);
+        Assert::same('done', $st['state'], $run['out']);
+        Assert::same(['pages7' => 1, 'pages12' => 1, 'other' => 1], $st['template_histogram'], 'разбивка по типу вёрстки в статусе');
+        $byHost = [];
+        foreach ($st['sites'] as $row) {
+            $byHost[$row['host']] = $row;
+        }
+        Assert::same('pages7', $byHost['tpl7.ru']['template']);
+        Assert::same('12–15 стр.', $byHost['tpl12.ru']['template_label']);
+        Assert::same('other', $byHost['okna-moskva.ru']['template'], 'обычный сайт — без категории');
+        Assert::contains('Итого по типу вёрстки: 7–9 стр. — 1, 12–15 стр. — 1, без категории — 1', (string) file_get_contents($runDir . '/run.log'));
+
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($it as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+        @rmdir($dir);
+    }
+
     public function testDownloadStageExcludesRemovedHosts(): void
     {
         $port = FakeServer::port('local');

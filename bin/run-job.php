@@ -48,6 +48,7 @@ use YandexSites\Support\Logger;
 use YandexSites\Support\Progress;
 use YandexSites\Support\RemovedSites;
 use YandexSites\Support\SiteRows;
+use YandexSites\Visit\SiteTemplate;
 
 $settingsFile = null;
 $statusFile = null;
@@ -437,6 +438,7 @@ while (true) {
                 'stats' => ['sites_selected' => count($siteList)],
                 'sites' => previewSites($siteList, $runDir),
                 'page_histogram' => SiteRows::pageHistogram($siteList),
+                'template_histogram' => SiteTemplate::histogram($siteList),
                 'run_finished_at' => date(DATE_ATOM),
                 'files' => ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt'],
                 // Докачка: говорим честно, что добрано, а если добирать было нечего — почему (иначе
@@ -504,6 +506,11 @@ while (true) {
             }
             $writer->writeRawCsv($result->raw, $runDir . '/results.csv');
 
+            // Тип вёрстки по превью главной (7–9 / 12–15 страниц / без категории) — виден сразу после сбора,
+            // по нему панель фильтрует таблицу до выгрузки.
+            $shown = $keptPrevious ? $previous : $result->sites;
+            $templateHist = SiteTemplate::histogram($shown);
+            $templateNote = $templateHist !== [] ? 'По типу вёрстки (по главной): ' . SiteTemplate::histogramText($templateHist) : '';
             $progress->update([
                 'state' => $result->aborted ? 'error' : 'done',
                 'phase' => 'done',
@@ -511,14 +518,15 @@ while (true) {
                 'errors' => $result->errors,
                 'aborted' => $result->aborted,
                 'proxies' => $runtime->proxies?->stats() ?? [],
-                'sites' => previewSites($keptPrevious ? $previous : $result->sites, $runDir),
+                'sites' => previewSites($shown, $runDir),
                 'kept_previous' => $keptPrevious,
+                'template_histogram' => $templateHist,
                 'base_domains' => $ledger->count(),
                 'run_finished_at' => date(DATE_ATOM),
                 'files' => ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt', 'results' => 'results.csv'],
                 'message' => $result->aborted
                     ? 'Прогон остановлен из-за ошибки источника, см. лог'
-                    : ($keptPrevious ? 'Ничего нового не отобрано — прошлый список сайтов оставлен, с ним можно продолжать' : ''),
+                    : trim(($keptPrevious ? 'Ничего нового не отобрано — прошлый список сайтов оставлен, с ним можно продолжать. ' : '') . $templateNote),
             ], true);
             $logger->info(sprintf('Прогон %d завершён: новых сайтов %d, всего в базе %d', $run, $result->stats['sites_selected'], $ledger->count()));
         }

@@ -260,6 +260,13 @@
         <input type="number" id="max404" value="4" min="0" style="width:3.5em" title="Сайт убирается, если страниц с ошибкой 404 больше этого числа">
         <button class="btn-ghost" id="remove404Btn" title="Убрать из списка сайты, у которых страниц с ошибкой 404 больше порога (крестиком — можно вернуть)">Убрать с 404 &gt; 4</button>
       </span>
+      <span id="tplwrap" hidden style="display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap" title="Тип вёрстки определяется сразу после сбора по HTML главной (превью): шаблон на 7–9 страниц, на 12–15 или без категории (рандомный сайт). Снимите галочки с ненужных типов и нажмите «Оставить выбранные» — сайты снятых типов уйдут из списка (обратимо: «вернуть все»). Наших сайтов это не касается — для них «Убрать наши»">
+        <span class="hint">оставить:</span>
+        <label><input type="checkbox" class="tplkeep" value="pages7" checked> <span id="tplc-pages7">7–9 стр.</span></label>
+        <label><input type="checkbox" class="tplkeep" value="pages12" checked> <span id="tplc-pages12">12–15 стр.</span></label>
+        <label><input type="checkbox" class="tplkeep" value="other" checked> <span id="tplc-other">без категории</span></label>
+        <button class="btn-ghost" id="keepTypesBtn" disabled>Оставить выбранные</button>
+      </span>
     </div>
     <div class="hint" id="removedNote" hidden style="margin-bottom:8px"></div>
     <div style="overflow:auto">
@@ -603,6 +610,14 @@ function updateDownloadBtn(){
   }
 }
 
+// Тип вёрстки сайта — по HTML главной (SiteTemplate на сервере): pages7 (7–9 стр.) / pages12 (12–15 стр.) /
+// other (рандомный, без категории); '' — ни одна страница ещё не открыта, типа нет. Наши сайты типа не имеют.
+const TYPE_KEYS=['pages7','pages12','other'];
+const TYPE_LABELS={pages7:'7–9 стр.', pages12:'12–15 стр.', other:'без категории'};
+function siteType(s){ if(!s || s.own) return ''; return TYPE_KEYS.includes(s.template) ? s.template : (s.template ? 'other' : ''); }
+function typeCounts(list){ const c={pages7:0,pages12:0,other:0,typed:0}; list.forEach(s=>{ const t=siteType(s); if(t){ c[t]++; c.typed++; } }); return c; }
+function keptTypes(){ return new Set([...document.querySelectorAll('.tplkeep')].filter(c=>c.checked).map(c=>c.value)); }
+function dropByType(s){ const t=siteType(s); return t!=='' && !keptTypes().has(t); }
 // Тип сайта для статистики: наш / проблемный (есть упавшие страницы или не открылся вовсе) /
 // 100% (все страницы открыты) / не проверено (ещё не открывали).
 function siteKind(s){
@@ -631,6 +646,9 @@ function updateStats(visible){
       const hist={}; let withPages=0;
       visible.forEach(s=>{ if(!s.own && (s.pages_total|0)>0){ const k=s.pages_ok|0; hist[k]=(hist[k]||0)+1; withPages++; } });
       if(withPages){ t+=' · по страницам: '+Object.keys(hist).map(Number).sort((a,b)=>a-b).map(k=>`${k} стр. — ${hist[k]}`).join(', '); }
+      // Разбивка по типу вёрстки (по HTML главной — есть уже после сбора с превью): 7–9 / 12–15 / без категории.
+      const tc=typeCounts(visible);
+      if(tc.typed) t+=' · по типу вёрстки: '+TYPE_KEYS.filter(k=>tc[k]>0).map(k=>`${TYPE_LABELS[k]} — ${tc[k]}`).join(', ');
       st.textContent=t;
     }
   }
@@ -649,6 +667,17 @@ function updateStats(visible){
     rb.disabled = cnt===0;
     rb.textContent='Убрать с 404 > '+N+' ('+cnt+')';
   }
+  // «Оставить выбранные»: галочки типов вёрстки (все / одна / любые); сайты снятых типов уходят из списка —
+  // тем же серверным механизмом, что и крестик (обратимо, «вернуть все»). Виден, как только у сайтов есть тип.
+  const tw=$('tplwrap'), kb=$('keepTypesBtn');
+  if(tw && kb){
+    const tc=typeCounts(visible);
+    tw.hidden = tc.typed===0;
+    TYPE_KEYS.forEach(k=>{ const el=$('tplc-'+k); if(el) el.textContent=TYPE_LABELS[k]+' ('+tc[k]+')'; });
+    const drop=visible.filter(dropByType).length;
+    kb.disabled = drop===0;
+    kb.textContent = drop>0 ? 'Оставить выбранные (убрать '+drop+')' : 'Оставить выбранные';
+  }
 }
 function noPreview(s){ return !s.own && ((s.pages_total|0)>0 ? (s.pages_ok|0)===0 : !!s.page_error); }
 function removeWhere(pred){
@@ -660,6 +689,8 @@ $('removeOwnBtn').addEventListener('click', ()=>removeWhere(s=>!!s.own));
 $('removeNoPreviewBtn').addEventListener('click', ()=>removeWhere(noPreview));
 $('remove404Btn').addEventListener('click', ()=>{ const N=Math.max(0, parseInt($('max404').value,10)||0); removeWhere(s=>!s.own && (s.pages_404|0)>N); });
 $('max404').addEventListener('input', ()=>updateStats(lastSites.filter(s=>!isRemoved(s.host))));
+document.querySelectorAll('.tplkeep').forEach(c=>c.addEventListener('change', ()=>updateStats(lastSites.filter(s=>!isRemoved(s.host)))));
+$('keepTypesBtn').addEventListener('click', ()=>removeWhere(dropByType));
 
 function renderResults(sites){
   sites = sites || [];
@@ -707,6 +738,9 @@ function renderResults(sites){
     if(s.screenshot) files.push(`<a href="/file?path=${encodeURIComponent(s.screenshot)}" target="_blank" rel="noopener">фото</a>`);
     const variants = s.variants>1 ? `<span class="tag diff">${s.variants} версии</span>` : (s.variants===1?'1':'—');
     const link = s.url?`<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.host)}</a>`:esc(s.host);
+    // Метка типа вёрстки (по главной) — только для двух семейств шаблонов; «без категории» не помечаем.
+    const tt=siteType(s);
+    const tplTag = (tt==='pages7'||tt==='pages12') ? ` <span class="tag" title="Тип вёрстки по главной: шаблон на ${TYPE_LABELS[tt]}">${TYPE_LABELS[tt]}</span>` : '';
     const ct = (!s.own && (s.pages_ok||0)>0)
       ? `<button class="ctBtn" data-host="${esc(s.host)}" title="Очистить страницы сайта по инструкции и разложить в content/N-стр/сайт">Очистить</button>`
       : '—';
@@ -719,7 +753,7 @@ function renderResults(sites){
     const dlCell = hasDetails
       ? `<td class="dl expandable" data-expand="${esc(s.host)}" title="Показать список страниц и их ошибки"><span class="caret">${exp?'▾':'▸'}</span> ${dl}</td>`
       : `<td class="dl">${dl}</td>`;
-    let row = `<tr data-host="${esc(s.host)}"><td><button class="xBtn" data-remove="${esc(s.host)}" title="Убрать сайт из списка">✕</button></td><td>${i+1}</td><td>${thumb}</td><td class="host">${link}</td><td>${s.queries_count||0}</td><td>${s.best_position??'—'}</td><td>${variants}</td>${dlCell}<td>${files.join(' · ')||'—'}</td><td>${ct}</td></tr>`;
+    let row = `<tr data-host="${esc(s.host)}"><td><button class="xBtn" data-remove="${esc(s.host)}" title="Убрать сайт из списка">✕</button></td><td>${i+1}</td><td>${thumb}</td><td class="host">${link}${tplTag}</td><td>${s.queries_count||0}</td><td>${s.best_position??'—'}</td><td>${variants}</td>${dlCell}<td>${files.join(' · ')||'—'}</td><td>${ct}</td></tr>`;
     if(exp) row += detailRowHtml(s);
     return row;
   }).join('');

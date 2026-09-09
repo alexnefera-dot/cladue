@@ -48,7 +48,8 @@ cladue/
 │   │                           # AbstractApiFetcher (throttle/retries), ApiException
 │   ├── Live/                   # LiveFetcher (live SERP through ProxyPool), Proxy, ProxyPool,
 │   │                           # HtmlResponseParser (yandex.ru SERP markup), UserAgents
-│   ├── Visit/                  # PageVisitor, DriverInterface, PlaywrightDriver, CurlDriver, VisitJob, Fingerprint
+│   ├── Visit/                  # PageVisitor, DriverInterface, PlaywrightDriver, CurlDriver, VisitJob, Fingerprint,
+│   │                           # SiteTemplate (template family of a site by its home-page HTML)
 │   ├── Filter/                 # ResultFilter rules, DomainMatcher, TextMatcher, Domains helpers, DefaultExclusions
 │   ├── Check/                  # SiteChecker (curl_multi), CheckResult, Html helpers
 │   ├── Output/ReportWriter.php # CSV / JSON / domains.txt writers
@@ -423,6 +424,33 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   server list (`removedHosts`, refreshed from `state.removed` on every poll) plus `pendingRemoved` for instant
   hiding; the old client-side pruning of that list against the current status was what lost removals on
   transient states (job restart, error status, list truncated at the preview limit — now 1000 rows).
+- `Visit\SiteTemplate` classifies a site's TEMPLATE FAMILY from its home-page HTML right after collect (the
+  preview visit), not from screenshots: `PAGES7` («7–9 стр.» — header with brand, «+7 (495)…»,
+  «Круглосуточно · 24/7», filter bar «Все игры/Провайдеры», intro text before the h1, «Навигация»/«Быстрые
+  ссылки» cloud), `PAGES12` («12–15 стр.» — «Логотип <бренд>», emoji nav, «🏠 Главная» breadcrumb, «Куда
+  перейти» cards, live-win toasts, 24/7 chat bubble, welcome popup) or `OTHER` («без категории», a random
+  site). `guess($html)` counts marker substrings (class/id names + typical labels) per family: strong markers
+  (weight 2, found in ONE family only — `tags-cloud`, `promo-text`, `filters-section`, `company-info`,
+  `Круглосуточно` / `bonusPopup`, `winNotifications`, `keywords-block`, `reserved-aux`, `quicklink`,
+  `pulse-glow`…) and weak ones (weight 1, generic names like `breadcrumbs`, `site-footer`, `skip-link`,
+  `entry-content`); a family wins with score ≥ `MIN_SCORE` (4) AND at least one strong marker, so a
+  WordPress site with skip-link + site-footer + breadcrumbs stays `OTHER`. The obfuscated PAGES12 variant
+  (random `pg-xxxxx`/`mh-xxxxx` classes) is caught by its stable ids (`reserved-aux`, `jackpots`, `levels`).
+  On the 544-site reference archive: 475/475 PAGES7, 32/32 PAGES12, 0 cross-family hits. Wiring:
+  `PageVisitor::assembleVisit()` stores `$visit['template']` for every saved page (preview, crawl, retry —
+  the HTML is already in memory), `SiteTemplate::ofVisits()` votes across a site's ok visits (a family beats
+  `other` on a tie; '' = no page opened), `SiteRows::preview()` emits `template`/`template_label`,
+  `SiteTemplate::histogram()`/`histogramText()` feed `template_histogram` in the collect/download status,
+  the collect message («По типу вёрстки (по главной): …») and the log («Итого по типу вёрстки»). Panel:
+  a «7–9 стр.»/«12–15 стр.» tag next to the host (`siteType()`; «без категории» is not tagged), «по типу
+  вёрстки: …» in the stats line, and the category filter «оставить: [x] 7–9 стр. (N) [x] 12–15 стр. (M)
+  [x] без категории (K) → Оставить выбранные (убрать D)» (`#tplwrap`, `.tplkeep` checkboxes,
+  `#keepTypesBtn`; all checked by default; any combination — all, one or two) which removes the unchecked
+  types through the same reversible server-side `removeWhere()` → `/api/remove` path; own sites and sites
+  with no opened page have no type and are never touched by it. When the templates change, re-check the
+  markers (a scratch script over `pages/*/<host>/main.html` per bucket) and update `MARKERS` + the fake
+  server hosts `tpl7.ru`/`tpl12.ru`; covered by `tests/SiteTemplateTest.php`,
+  `VisitTest::testVisitDetectsTemplateType` and `PanelTest::testDownloadStageReportsTemplateTypes`.
 - Collect stage (`stage=collect`) dedups to unique registrable domains (`unique_by=domain`) and, when
   `preview_shots` is on (panel default), runs a lightweight home-only screenshot visit into
   `runs/current/preview` (no crawl) so the results table previews volume + own sites before the full

@@ -165,6 +165,7 @@ final class PageVisitor
             'screenshot_file' => '',
             'fingerprint' => '',
             'text_length' => 0,
+            'template' => '', // тип вёрстки по HTML (SiteTemplate): pages7 / pages12 / other
         ];
 
         if ($visit['ok'] && $siteDomain !== '' && $visit['final_url'] !== '' && !SiteLinks::sameSite($job->url, $visit['final_url'])) {
@@ -215,6 +216,8 @@ final class PageVisitor
             $visit['html_file'] = $job->htmlFile;
             $visit['fingerprint'] = $fingerprint['hash'];
             $visit['text_length'] = $fingerprint['length'];
+            // Тип вёрстки (7–9 / 12–15 страниц / без категории) — по этой же странице, без лишнего чтения.
+            $visit['template'] = SiteTemplate::guess($html);
             if ($visit['title'] === '') {
                 $visit['title'] = $fingerprint['title'];
             }
@@ -913,6 +916,11 @@ final class PageVisitor
         }
         if ($parts !== []) {
             $this->log->info('Итого по папкам: ' . implode(', ', $parts));
+        }
+        // Итог по типу вёрстки (по HTML главной): 7–9 стр. / 12–15 стр. / без категории — то же покажет панель.
+        $types = SiteTemplate::histogramText(SiteTemplate::histogram($sites));
+        if ($types !== '') {
+            $this->log->info('Итого по типу вёрстки: ' . $types);
         }
     }
 

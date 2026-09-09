@@ -522,6 +522,23 @@ switch ($host) {
             . '<h1>Бонусы</h1><p class="qr">' . md5((string) mt_rand()) . '</p></body></html>';
 
         return;
+    case 'tpl7.ru':
+        // Шаблон «7–9 страниц»: шапка с телефоном и «Круглосуточно», панель фильтров, вступление, облако тегов, «О компании».
+        echo '<html><head><title>tpl7</title></head><body><header class="site-header"><div class="phone">+7 (495) 000-00-00</div><div class="hours">Круглосуточно · 24/7</div>'
+            . '<nav class="main-nav"><a href="/vhod">Вход</a><a href="/registracia">Регистрация</a></nav></header>'
+            . '<div class="filters-section">Все игры · Провайдеры</div><div class="promo-text"><p>Вступительный текст перед заголовком.</p></div>'
+            . '<h1>Бренд семь</h1><div class="entry-content"><p class="c">Текст статьи шаблона на семь страниц.</p></div>'
+            . '<div class="tags-cloud"><a href="/vhod">Навигация</a></div><footer><div class="company-info">О компании</div></footer></body></html>';
+
+        return;
+    case 'tpl12.ru':
+        // Шаблон «12–15 страниц»: попап бонуса, «выигрыши», хлебные крошки, «Куда перейти», чат, служебные id.
+        echo '<html><head><title>tpl12</title></head><body><a class="skip-link" href="#main-content">К содержимому</a><header><nav id="mobileNav"><a href="/vhod">🎰 Вход</a></nav></header>'
+            . '<div class="breadcrumbs">🏠 Главная</div><main id="main-content"><h1>Бренд двенадцать</h1><p class="c">Текст статьи шаблона на двенадцать страниц.</p>'
+            . '<section class="quicklink-grid"><div class="quicklink-item">Куда перейти</div></section><div class="keywords-block"><span class="keyword-pill">слово</span></div></main>'
+            . '<div id="winNotifications"></div><div id="bonusPopup"></div><div id="supportWidget"></div><footer class="site-footer"><div id="reserved-aux"></div></footer></body></html>';
+
+        return;
     case 'agegate.ru':
         // Заглушка проверки возраста 18+ — одинаковая на всех путях (реальный контент за ней).
         // Шапка с меню присутствует, поэтому ссылки на внутренние страницы всё равно собираются.
