@@ -1962,6 +1962,11 @@ function v5OdinIshod(string $html): string
 function v5UbratObryvki(string $html, array $имена): string
 {
     $банк = array_fill_keys($имена, true);
+    // Ответы FAQ — не история героя: «Аккаунт закрывается через поддержку…,
+    // восстановить его потом нельзя» (11 слов, «его», «через») снимался как
+    // обрывок, и от ответа оставалось одно предложение. Абзацы ответов
+    // помечаются и проходят нетронутыми.
+    $html = (string) preg_replace('~(<div class="faq-answer"[^>]*>\s*<div itemprop="text">\s*)<p\b~u', '$1<p data-faq', $html);
     $куски = preg_split('~(<section\b.*?</section>|<h2\b[^>]*>.*?</h2>)~su', $html, -1, PREG_SPLIT_DELIM_CAPTURE);
     $былоИмя = false;
     foreach ($куски as $k => $кусок) {
@@ -1975,6 +1980,7 @@ function v5UbratObryvki(string $html, array $имена): string
         $куски[$k] = (string) preg_replace_callback('~(<(?:p|li)\b[^>]*>)(.*?)(</(?:p|li)>)~su', function ($a) use (&$былоИмя, $банк) {
             $предл = preg_split('~(?<=[.!?…])\s+(?=(?:<strong>|<em>)?\p{Lu}|<)~u', $a[2]);
             $оставить = [];
+            if (str_contains($a[1], 'data-faq')) { return $a[0]; }
             foreach ($предл as $п) {
                 $чист = trim(strip_tags($п));
                 if (preg_match_all('~\b(\p{Lu}[а-яё]{2,})\b~u', $чист, $mm)) { foreach ($mm[1] as $w) { if (isset($банк[$w])) { $былоИмя = true; } } }
@@ -1989,7 +1995,7 @@ function v5UbratObryvki(string $html, array $имена): string
             return $a[1] . implode(' ', $оставить) . $a[3];
         }, $кусок);
     }
-    return implode('', $куски);
+    return str_replace('<p data-faq', '<p', implode('', $куски));
 }
 
 /** Значения RTP, попадающие в полосу страницы; пока база не задана — все. */
