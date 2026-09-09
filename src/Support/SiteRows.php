@@ -16,6 +16,8 @@ use YandexSites\Visit\SiteTemplate;
  */
 final class SiteRows
 {
+    /** Сколько байт сохранённой страницы читать при досчёте типа вёрстки (страницы и так обрезаны visit.max_bytes). */
+    private const MAX_HTML_BYTES = 2 * 1024 * 1024;
     /**
      * Сайты из sites.json (host → Site) с прошлыми визитами и признаком «наш».
      *
@@ -165,5 +167,74 @@ final class SiteRows
         }
 
         return $rows;
+    }
+
+    /**
+     * Дописывает тип вёрстки визитам прошлого сбора, сделанного версией без этого поля: читает сохранённый
+     * HTML страницы и определяет семейство (SiteTemplate). Возвращает число дописанных визитов; чтобы файлы не
+     * читались при каждом опросе панели, результат сохраняют в sites.json (saveTemplates()).
+     *
+     * @param array<int|string, Site> $sites
+     */
+    public static function backfillTemplates(array $sites): int
+    {
+        $n = 0;
+        foreach ($sites as $site) {
+            if ($site->own) {
+                continue;
+            }
+            foreach ($site->visits as &$v) {
+                $v = (array) $v;
+                if (!($v['ok'] ?? false) || (string) ($v['template'] ?? '') !== '') {
+                    continue;
+                }
+                $file = (string) ($v['html_file'] ?? '');
+                if ($file === '' || !is_file($file)) {
+                    continue;
+                }
+                $v['template'] = SiteTemplate::guess((string) file_get_contents($file, false, null, 0, self::MAX_HTML_BYTES));
+                $n++;
+            }
+            unset($v);
+        }
+
+        return $n;
+    }
+
+    /**
+     * Переписывает поле template у визитов в sites.json (остальное содержимое файла сохраняется как есть).
+     *
+     * @param array<int|string, Site> $sites
+     */
+    public static function saveTemplates(string $file, array $sites): bool
+    {
+        $data = is_file($file) ? json_decode((string) file_get_contents($file), true) : null;
+        if (!is_array($data) || !is_array($data['sites'] ?? null)) {
+            return false;
+        }
+        $byHost = [];
+        foreach ($sites as $site) {
+            $byHost[$site->host] = $site;
+        }
+        foreach ($data['sites'] as &$row) {
+            $site = $byHost[(string) ($row['host'] ?? '')] ?? null;
+            if ($site === null || !is_array($row['visits'] ?? null)) {
+                continue;
+            }
+            $visits = array_values($row['visits']); // load() тоже нумерует визиты подряд — индексы совпадают
+            foreach ($visits as $i => &$visit) {
+                $template = (string) ($site->visits[$i]['template'] ?? '');
+                if ($template !== '' && is_array($visit)) {
+                    $visit['template'] = $template;
+                }
+            }
+            unset($visit);
+            $row['visits'] = $visits;
+        }
+        unset($row);
+        $tmp = $file . '.tmp';
+        file_put_contents($tmp, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL);
+
+        return @rename($tmp, $file);
     }
 }

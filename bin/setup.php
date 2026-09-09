@@ -152,11 +152,16 @@ function updateProject(string $target, string $source): int
     }
 
     $version = '?';
+    $date = '';
     $app = @file_get_contents($target . '/src/Cli/Application.php');
     if (is_string($app) && preg_match("/VERSION = '([^']+)'/", $app, $m) === 1) {
         $version = $m[1];
     }
-    echo sprintf('Обновлено файлов: %d, версия yandex-sites %s. Настройки (config.php, .env, proxies.txt), кэш и результаты не тронуты.', $copied, $version) . PHP_EOL;
+    if (is_string($app) && preg_match("/VERSION_DATE = '(\d{4})-(\d{2})-(\d{2})'/", $app, $m) === 1) {
+        $date = " от $m[3].$m[2].$m[1]";
+    }
+    echo sprintf('Обновлено файлов: %d, версия yandex-sites %s%s. Настройки (config.php, .env, proxies.txt), кэш и результаты не тронуты.', $copied, $version, $date) . PHP_EOL;
+    echo 'Если панель запущена — остановите её (Ctrl+C в её окне) и запустите снова: php bin/panel.php. В шапке панели должна быть эта же версия.' . PHP_EOL;
 
     $cleanup = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($tmp, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
     foreach ($cleanup as $item) {

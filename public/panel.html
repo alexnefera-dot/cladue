@@ -18,6 +18,7 @@
   body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
   .wrap{max-width:1400px;margin:0 auto;padding:20px 20px 60px}
   h1{font-size:20px;margin:0 0 4px}
+  .ver{font-size:12px;font-weight:400;color:var(--muted);margin-left:10px;vertical-align:middle}
   .sub{color:var(--muted);margin:0 0 18px}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
   @media (max-width:820px){.grid{grid-template-columns:1fr}}
@@ -93,7 +94,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>yandex-sites</h1>
+  <h1>yandex-sites <span class="ver" id="version" title="Версия установленного кода. После php bin/setup.php --update остановите панель (Ctrl+C в её окне), запустите снова php bin/panel.php и сверьте номер здесь"></span></h1>
   <p class="sub">Сбор сайтов из выдачи и открытие их в браузере. Интерфейс работает локально на этом компьютере.</p>
 
   <div class="tabs">
@@ -824,6 +825,8 @@ async function refresh(){
   try{
     const r=await fetch('/api/state'); const st=await r.json();
     prefill(st);
+    // Версия кода из ответа сервера: после обновления скрипта здесь должен появиться новый номер.
+    if(st.version){ $('version').textContent='версия '+st.version+(st.version_date?' от '+String(st.version_date).split('-').reverse().join('.'):''); }
     renderStatus(st.status, st.running);
     removedHosts=new Set(st.removed||[]); [...pendingRemoved].forEach(h=>{ if(removedHosts.has(h)) pendingRemoved.delete(h); });
     renderResults(st.status && st.status.sites ? st.status.sites : []);

@@ -68,7 +68,11 @@ if (PHP_SAPI !== 'cli-server') {
     }
 
     $url = sprintf('http://%s:%d/', $bindHost, $port);
-    fwrite(STDOUT, "yandex-sites — веб-интерфейс запущен." . PHP_EOL);
+    // Версия кода — чтобы после setup.php --update было видно, что запущена именно новая сборка.
+    $verSrc = (string) @file_get_contents(dirname(__DIR__) . '/src/Cli/Application.php');
+    $ver = preg_match("/VERSION = '([^']+)'/", $verSrc, $vm) === 1 ? $vm[1] : '?';
+    $verDate = preg_match("/VERSION_DATE = '(\d{4})-(\d{2})-(\d{2})'/", $verSrc, $vm) === 1 ? " (код от $vm[3].$vm[2].$vm[1])" : '';
+    fwrite(STDOUT, "yandex-sites — веб-интерфейс запущен. Версия $ver$verDate." . PHP_EOL);
     fwrite(STDOUT, "Откройте в браузере: $url" . PHP_EOL);
     fwrite(STDOUT, "Остановить: Ctrl+C" . PHP_EOL . PHP_EOL);
 
@@ -142,6 +146,14 @@ function readJsonFile(string $file): ?array
     $data = json_decode((string) file_get_contents($file), true);
 
     return is_array($data) ? $data : null;
+}
+
+/** Атомарная запись JSON (через временный файл): задание и панель читают эти файлы параллельно. */
+function writeJsonFile(string $file, array $data): void
+{
+    $tmp = $file . '.tmp';
+    file_put_contents($tmp, json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    @rename($tmp, $file);
 }
 
 function envValue(string $file, string $key): string
@@ -239,20 +251,34 @@ if ($path === '/' || $path === '/index.html') {
 
 if ($path === '/api/state') {
     $status = readJsonFile($statusFile);
+    $pid = is_file($pidFile) ? (int) file_get_contents($pidFile) : 0;
+    $running = $pid > 0 && processAlive($pid) && !is_file($stopFile);
     // Таблица сайтов не должна пропадать после обновления страницы или перезапуска панели: если в статусе
     // нет списка (идёт выгрузка/докачка, была ошибка, статус стёрт), берём прошлый сбор из sites.json.
-    if (empty($status['sites']) && is_file($runDir . '/sites.json')) {
-        $rows = \YandexSites\Support\SiteRows::preview(\YandexSites\Support\SiteRows::load($runDir . '/sites.json'), $runDir);
+    $fromFile = empty($status['sites']);
+    // Строки прошлой версии (без поля template — тип вёрстки) один раз пересобираем из sites.json, дописав тип
+    // по сохранённому HTML: после обновления скрипта типы видны на прошлом сборе, новый сбор не нужен.
+    $stale = !$fromFile && !$running && is_array($status['sites'][0] ?? null) && !array_key_exists('template', $status['sites'][0]);
+    if (($fromFile || $stale) && is_file($runDir . '/sites.json')) {
+        $sites = \YandexSites\Support\SiteRows::load($runDir . '/sites.json');
+        if (!$running && \YandexSites\Support\SiteRows::backfillTemplates($sites) > 0) {
+            \YandexSites\Support\SiteRows::saveTemplates($runDir . '/sites.json', $sites);
+        }
+        $rows = \YandexSites\Support\SiteRows::preview($sites, $runDir);
         if ($rows !== []) {
             $status = is_array($status) ? $status : ['state' => 'idle', 'phase' => 'idle'];
             $status['sites'] = $rows;
             $status['sites_from_file'] = true;
+            if ($stale) {
+                writeJsonFile($statusFile, $status); // следующий опрос уже видит типы и ничего не пересобирает
+            }
         }
     }
-    $pid = is_file($pidFile) ? (int) file_get_contents($pidFile) : 0;
-    $running = $pid > 0 && processAlive($pid) && !is_file($stopFile);
     jsonOut([
         'ok' => true,
+        // Версия кода для шапки панели: после setup.php --update пользователь сверяет её здесь.
+        'version' => \YandexSites\Cli\Application::VERSION,
+        'version_date' => \YandexSites\Cli\Application::VERSION_DATE,
         'keys' => [
             'xmlstock_user' => envValue($envFile, 'XMLSTOCK_USER'),
             'xmlstock_key_set' => envValue($envFile, 'XMLSTOCK_KEY') !== '',

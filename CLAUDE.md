@@ -526,4 +526,17 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `settings.top` limits the SERP to the first N results (max_position + one page).
 - When Yandex changes its SERP markup, update `Live\HtmlResponseParser` and `tests/fixtures/serp.html`
   together; `--parse-html` helps to check a saved page.
+- `Cli\Application::VERSION` / `VERSION_DATE` are the only version markers and the user's way to verify an
+  update (they run `setup.php --update`, which downloads the branch zip, so there is no git metadata on their
+  machine): BUMP BOTH in every user-facing change. `setup.php --update` prints «версия X от DD.MM.YYYY» (parsed
+  by regex from `Application.php`) plus a reminder to restart the panel, `bin/panel.php` prints the same at
+  launch, `/api/state` returns `version`/`version_date` and `public/panel.html` shows «версия X от …» in the
+  `<h1>` (`#version`; `Cache-Control: no-store` on `/` keeps the HTML fresh). A running panel keeps the OLD
+  code until restarted — say so whenever the user reports «не вижу». Data written by an older version is
+  upgraded lazily: `/api/state` rebuilds status rows that lack the `template` key (or the `sites.json`
+  fallback) through `SiteRows::backfillTemplates()` (guesses the family from each saved page once, ≤ 2 MB) and
+  `SiteRows::saveTemplates()` (writes the types into `sites.json`), and persists the rebuilt rows into
+  `status.json` when no job runs — so a feature derived from saved pages appears on the existing collect right
+  after an update. Covered by `PanelTest::testPanelBackfillsTemplateTypesAndReportsVersion`,
+  `SiteRowsTest::testBackfillTemplatesReadsSavedHtmlAndSavesIntoSitesJson` and `SetupTest`.
 - Run `php tests/lint.php && php tests/run.php` after changes.

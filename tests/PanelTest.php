@@ -562,6 +562,65 @@ final class PanelTest
         }
     }
 
+    public function testPanelBackfillsTemplateTypesAndReportsVersion(): void
+    {
+        // После обновления скрипта прошлый сбор (визиты без поля template) получает типы вёрстки по сохранённому
+        // HTML при первом же опросе — новый сбор не нужен; /api/state отдаёт версию кода для шапки панели.
+        $dir = sys_get_temp_dir() . '/yandex-sites-panel-tpl-' . uniqid();
+        $runDir = $dir . '/runs/current';
+        mkdir($runDir . '/preview/old7.ru', 0777, true);
+        mkdir($runDir . '/preview/old12.ru', 0777, true);
+        file_put_contents($runDir . '/preview/old7.ru/variant-1.html', '<div class="filters-section"></div><div class="promo-text"></div><div class="tags-cloud"></div>');
+        file_put_contents($runDir . '/preview/old12.ru/variant-1.html', '<div id="bonusPopup"></div><div id="winNotifications"></div><div id="reserved-aux"></div>');
+        file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
+        $row = static fn (string $host): array => ['host' => $host, 'domain' => $host, 'url' => "https://$host/", 'visits' => [
+            ['variant' => 1, 'url' => "https://$host/", 'ok' => true, 'error' => '', 'status' => 200, 'html_file' => "$runDir/preview/$host/variant-1.html", 'screenshot_file' => ''],
+        ]];
+        file_put_contents($runDir . '/sites.json', json_encode(['sites' => [$row('old7.ru'), $row('old12.ru')]]));
+        // Статус прошлой версии: строки таблицы без поля template.
+        file_put_contents($runDir . '/status.json', json_encode(['state' => 'done', 'phase' => 'done', 'sites' => [['host' => 'old7.ru', 'pages_ok' => 1, 'pages_total' => 1], ['host' => 'old12.ru', 'pages_ok' => 1, 'pages_total' => 1]]]));
+
+        $socket = @stream_socket_server('tcp://127.0.0.1:0', $errno, $errstr);
+        if ($socket === false) {
+            Assert::skip("нет доступа к сокетам: $errstr");
+        }
+        $name = (string) stream_socket_get_name($socket, false);
+        fclose($socket);
+        $panelPort = (int) substr($name, (int) strrpos($name, ':') + 1);
+        $log = sys_get_temp_dir() . '/yandex-sites-panel-tpl.log';
+        $server = @proc_open(
+            [PHP_BINARY, '-S', '127.0.0.1:' . $panelPort, '-t', $dir, PROJECT_ROOT . '/bin/panel.php'],
+            [0 => ['pipe', 'r'], 1 => ['file', $log, 'a'], 2 => ['file', $log, 'a']],
+            $pipes,
+            $dir,
+            array_merge(getenv(), ['YS_PROJECT_DIR' => $dir]),
+        );
+        if (!is_resource($server)) {
+            Assert::skip('не удалось запустить php -S для панели');
+        }
+        fclose($pipes[0]);
+        try {
+            $base = "http://127.0.0.1:$panelPort";
+            $this->waitFor($base . '/api/state', 50);
+            $state = json_decode((string) $this->http('GET', $base . '/api/state'), true);
+            Assert::same(\YandexSites\Cli\Application::VERSION, $state['version'], 'панель отдаёт версию кода');
+            Assert::same(\YandexSites\Cli\Application::VERSION_DATE, $state['version_date']);
+            $types = [];
+            foreach ($state['status']['sites'] as $r) {
+                $types[$r['host']] = $r['template'];
+            }
+            Assert::same(['old7.ru' => 'pages7', 'old12.ru' => 'pages12'], $types, 'типы дописаны по сохранённому HTML');
+            $saved = json_decode((string) file_get_contents($runDir . '/sites.json'), true);
+            Assert::same('pages7', $saved['sites'][0]['visits'][0]['template'], 'типы записаны в sites.json');
+            $status = json_decode((string) file_get_contents($runDir . '/status.json'), true);
+            Assert::same('pages12', $status['sites'][1]['template'], 'и в status.json — следующий опрос ничего не пересобирает');
+            Assert::same('done', $status['state'], 'остальной статус сохранён');
+        } finally {
+            proc_terminate($server);
+            proc_close($server);
+        }
+    }
+
     public function testCleanStageRunsInBackgroundForKeptSitesOnly(): void
     {
         // «Очистить всё» — фоновый этап: чистит только оставленные (only минус exclude), сносит прежний

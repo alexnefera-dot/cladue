@@ -37,6 +37,29 @@ final class SiteRowsTest
         Assert::true($loaded['rows.ru']->own && count($loaded['rows.ru']->visits) === 2, 'визиты и «наш» восстановлены');
     }
 
+    public function testBackfillTemplatesReadsSavedHtmlAndSavesIntoSitesJson(): void
+    {
+        // Сбор прошлой версии: визиты без поля template. Тип дописывается по сохранённому HTML и попадает в sites.json.
+        $dir = sys_get_temp_dir() . '/yandex-sites-rows-tpl-' . uniqid();
+        mkdir($dir, 0777, true);
+        file_put_contents("$dir/main.html", '<div class="tags-cloud"></div><div class="promo-text"></div><div class="filters-section"></div>');
+        $visits = [
+            ['variant' => 1, 'url' => 'https://old.ru/', 'ok' => true, 'error' => '', 'status' => 200, 'html_file' => "$dir/main.html"],
+            ['variant' => 2, 'url' => 'https://old.ru/x', 'ok' => false, 'error' => 'Timeout', 'status' => null, 'html_file' => ''],
+        ];
+        file_put_contents("$dir/sites.json", json_encode(['stats' => ['sites_selected' => 1], 'sites' => [['host' => 'old.ru', 'domain' => 'old.ru', 'visits' => $visits]]]));
+        $sites = SiteRows::load("$dir/sites.json");
+        Assert::same('', SiteRows::preview($sites, $dir)[0]['template'], 'до досчёта типа нет');
+        Assert::same(1, SiteRows::backfillTemplates($sites), 'дописан один успешный визит');
+        Assert::same('pages7', SiteRows::preview($sites, $dir)[0]['template']);
+        Assert::same(0, SiteRows::backfillTemplates($sites), 'повторно файлы не читаются');
+        Assert::true(SiteRows::saveTemplates("$dir/sites.json", $sites));
+        $saved = json_decode((string) file_get_contents("$dir/sites.json"), true);
+        Assert::same('pages7', $saved['sites'][0]['visits'][0]['template'], 'тип записан в sites.json');
+        Assert::false(array_key_exists('template', $saved['sites'][0]['visits'][1]), 'неуспешный визит не трогаем');
+        Assert::same(1, $saved['stats']['sites_selected'], 'остальное содержимое файла сохранено');
+    }
+
     public function testPageHistogramCountsSitesByOpenedPages(): void
     {
         $mk = static function (string $host, int $ok, int $total, bool $own = false): Site {
