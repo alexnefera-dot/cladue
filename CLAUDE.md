@@ -59,7 +59,8 @@ cladue/
 │   ├── Content/                # ContentCleaner (article-body extraction, link normalization, %var% templating),
 │   │                           # SiteCleaner (one site → content/N-стр/<host>, shared by panel + run-job), BrandDetector, KnownBrands
 │   └── Support/                # Logger (STDERR), QueryList (query file reader), Progress (status JSON writer),
-│                               # SiteRows (sites.json → Site objects + panel table rows, shared by run-job and panel)
+│                               # SiteRows (sites.json → Site objects + panel table rows, shared by run-job and panel),
+│                               # Archive (zip of a folder: ZipArchive, else bsdtar — «Скачать архив контента»)
 ├── tests/                      # custom runner (run.php), Assert, fixtures/ (XML + SERP HTML), fake-api-server.php
 ├── config.example.php          # documented example configuration (copy to config.php)
 ├── proxies.example.txt         # proxy list formats
@@ -536,6 +537,17 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   M» when truncated. `renderResults()` rebuilds the `<tbody>` only when its HTML changed (`lastTableHtml`) —
   thousands of rows re-rendered every 1.5 s poll made the panel sluggish. Retries (`retry_hosts`) are
   unchanged. Covered by `PanelTest::testDownloadStageOpensOnlyTableSites`.
+- «Скачать архив контента» (`#contentZipBtn`, an `<a>` styled as a button next to «Очистить всё», shown when
+  `/api/state` reports `content_files > 0`, label «(N стр., сайтов M)» from `contentStats()`) downloads
+  `GET /download?file=content`: `bin/panel.php` builds a FRESH `runs/current/content.zip` with
+  `Support\Archive::zipDir()` from `runs/current/content/` at click time (entries `N-стр/<host>/<page>.html`,
+  no extra top-level folder, so it unpacks straight into the user's target folder) and streams it as
+  `content-YYYY-MM-DD.zip`; 404 with a Russian message when there is no cleaned content, 500 with the
+  archiver's message otherwise. `Archive` uses `ZipArchive` when the PHP zip extension is loaded and falls
+  back to the system `tar -a -cf x.zip` (bsdtar on Windows 10+/macOS writes zip by extension; GNU tar on Linux
+  cannot, which `isZip()` detects → RuntimeException «включите extension=zip»). `bin/clean-content.php --zip`
+  keeps its own ZipArchive-only code. Covered by `tests/ArchiveTest.php` and
+  `PanelTest::testContentArchiveDownload`.
 - `Cli\Application::VERSION` / `VERSION_DATE` are the only version markers and the user's way to verify an
   update (they run `setup.php --update`, which downloads the branch zip, so there is no git metadata on their
   machine): BUMP BOTH in every user-facing change. `setup.php --update` prints «версия X от DD.MM.YYYY» (parsed

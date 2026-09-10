@@ -148,6 +148,26 @@ function readJsonFile(string $file): ?array
     return is_array($data) ? $data : null;
 }
 
+/**
+ * Сколько очищенных статей и сайтов лежит в content/<N>-стр/<host>/ — для кнопки «Скачать архив контента».
+ *
+ * @return array{files: int, sites: int}
+ */
+function contentStats(string $runDir): array
+{
+    $files = 0;
+    $sites = 0;
+    foreach (glob($runDir . '/content/*/*', GLOB_ONLYDIR) ?: [] as $siteDir) {
+        $n = count(glob($siteDir . '/*.html') ?: []);
+        if ($n > 0) {
+            $files += $n;
+            $sites++;
+        }
+    }
+
+    return ['files' => $files, 'sites' => $sites];
+}
+
 /** Атомарная запись JSON (через временный файл): задание и панель читают эти файлы параллельно. */
 function writeJsonFile(string $file, array $data): void
 {
@@ -293,6 +313,9 @@ if ($path === '/api/state') {
         'removed' => \YandexSites\Support\RemovedSites::hosts($runDir),
         'has_config' => is_file($projectDir . '/config.php'),
         'has_proxies' => is_file($projectDir . '/proxies.txt'),
+        // Очищенный контент на диске — кнопка «Скачать архив контента» показывает, сколько статей и сайтов в архиве.
+        'content_files' => contentStats($runDir)['files'],
+        'content_sites' => contentStats($runDir)['sites'],
         'base_domains' => is_file($baseFile) ? count(array_filter(array_map('trim', file($baseFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: []), static fn ($l) => $l !== '' && $l[0] !== '#')) : 0,
     ]);
 }
@@ -472,8 +495,33 @@ if ($path === '/file') {
     exit;
 }
 
+if ($path === '/download' && (string) ($_GET['file'] ?? '') === 'content') {
+    // «Скачать архив контента»: свежий zip из runs/current/content — внутри папки N-стр/сайт/страница.html,
+    // ровно как на диске; распаковывается в нужную папку без лишнего верхнего уровня.
+    $contentDir = $runDir . '/content';
+    if (\YandexSites\Support\Archive::listFiles($contentDir) === []) {
+        http_response_code(404);
+        header('Content-Type: text/plain; charset=utf-8');
+        echo 'Очищенного контента пока нет — сначала «Очистить» у сайта или «Очистить всё»';
+        exit;
+    }
+    try {
+        \YandexSites\Support\Archive::zipDir($contentDir, $runDir . '/content.zip');
+    } catch (\RuntimeException $e) {
+        http_response_code(500);
+        header('Content-Type: text/plain; charset=utf-8');
+        echo $e->getMessage();
+        exit;
+    }
+    header('Content-Type: application/zip');
+    header('Content-Disposition: attachment; filename="content-' . date('Y-m-d') . '.zip"');
+    header('Content-Length: ' . (string) filesize($runDir . '/content.zip'));
+    readfile($runDir . '/content.zip');
+    exit;
+}
+
 if ($path === '/download') {
-    $map = ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt', 'results' => 'results.csv', 'content' => 'content.zip'];
+    $map = ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt', 'results' => 'results.csv'];
     $key = (string) ($_GET['file'] ?? '');
     $file = $runDir . '/' . ($map[$key] ?? '');
     if (!isset($map[$key]) || !is_file($file)) {

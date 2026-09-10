@@ -36,6 +36,7 @@
   button{font:inherit;font-weight:600;border:0;border-radius:9px;padding:10px 16px;cursor:pointer}
   .btn-primary{background:var(--accent);color:var(--accent-ink)}
   .btn-ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  a.btn-ghost{display:inline-block;text-decoration:none;font-weight:600;border-radius:9px;padding:10px 16px}
   .btn-danger{background:var(--err);color:#fff}
   button:disabled{opacity:.5;cursor:default}
   .btns{display:flex;gap:10px;align-items:center;margin-top:8px}
@@ -240,11 +241,12 @@
 
   <div class="card tabsec" data-tab="main" id="resultsCard" hidden>
     <h2>Результаты <span id="resCount" class="muted"></span></h2>
-    <div class="hint" style="margin-bottom:8px">Клик по превью — увеличить; крестик ✕ — убрать неподходящий сайт. Шаг 2 — «Выгрузить страницы оставшихся»; потом «Очистить» у сайта или «Очистить всё» по всем — очищенные статьи лягут в <b>runs/current/content/&lt;N&gt;-стр/&lt;сайт&gt;/</b>. Скачанные страницы: <b>runs/current/pages/</b>.</div>
+    <div class="hint" style="margin-bottom:8px">Клик по превью — увеличить; крестик ✕ — убрать неподходящий сайт. Шаг 2 — «Выгрузить страницы оставшихся»; потом «Очистить» у сайта или «Очистить всё» по всем — очищенные статьи лягут в <b>runs/current/content/&lt;N&gt;-стр/&lt;сайт&gt;/</b>. Скачанные страницы: <b>runs/current/pages/</b>. Все очищенные статьи одним архивом — кнопка «Скачать архив контента».</div>
     <div class="btns" style="margin-bottom:10px;align-items:center">
       <button class="btn-primary" id="downloadBtn" disabled title="Открыть в браузере и сохранить страницы ровно тех сайтов, что сейчас в таблице (убранные крестиком и галочками типов не выгружаются). Повторный клик — чистая перевыгрузка всех заново">Выгрузить страницы оставшихся</button>
       <button class="btn-ghost" id="retryBtn" hidden title="Заново выкачать только сайты с ошибками (таймаут, блок, нет соединения); уже успешные не трогаем">Докачать с ошибками</button>
       <button class="ctBtn" id="cleanAllBtn" title="Очистить страницы всех оставшихся сайтов по инструкции (наши и убранные крестиком исключены), разложить по content/N-стр/сайт">Очистить всё</button>
+      <a class="btn-ghost" id="contentZipBtn" href="/download?file=content" hidden title="Скачать все очищенные статьи одним zip-архивом: внутри папки N-стр/сайт/страница.html, как в runs/current/content — распакуйте в нужную папку. Архив собирается в момент нажатия из того, что есть на диске">Скачать архив контента</a>
     </div>
     <div class="btns" style="margin-bottom:10px;align-items:center">
       <span class="hint">Скачать списки:</span>
@@ -833,6 +835,9 @@ async function refresh(){
     prefill(st);
     // Версия кода из ответа сервера: после обновления скрипта здесь должен появиться новый номер.
     if(st.version){ $('version').textContent='версия '+st.version+(st.version_date?' от '+String(st.version_date).split('-').reverse().join('.'):''); }
+    // «Скачать архив контента» — как только на диске есть очищенные статьи; в подписи — сколько их и сайтов.
+    const cz=$('contentZipBtn');
+    if(cz){ const n=st.content_files|0; cz.hidden = n===0; cz.textContent='Скачать архив контента ('+n+' стр., сайтов '+(st.content_sites|0)+')'; }
     renderStatus(st.status, st.running);
     sitesCountTotal = (st.status && st.status.sites_count) || 0;
     removedHosts=new Set(st.removed||[]); [...pendingRemoved].forEach(h=>{ if(removedHosts.has(h)) pendingRemoved.delete(h); });

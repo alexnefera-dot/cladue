@@ -659,6 +659,77 @@ final class PanelTest
         }
     }
 
+    public function testContentArchiveDownload(): void
+    {
+        // «Скачать архив контента»: /api/state считает очищенные статьи, /download?file=content отдаёт свежий zip
+        // с папками N-стр/сайт/страница.html; без контента — 404 с понятным текстом.
+        $dir = sys_get_temp_dir() . '/yandex-sites-panel-zip-' . uniqid();
+        $runDir = $dir . '/runs/current';
+        mkdir($runDir . '/content/7-стр/a.ru', 0777, true);
+        mkdir($runDir . '/content/12-стр/b.ru', 0777, true);
+        file_put_contents($runDir . '/content/7-стр/a.ru/main.html', '<h2>a</h2>');
+        file_put_contents($runDir . '/content/7-стр/a.ru/vhod.html', '<p>v</p>');
+        file_put_contents($runDir . '/content/12-стр/b.ru/main.html', '<h2>b</h2>');
+        file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
+
+        $socket = @stream_socket_server('tcp://127.0.0.1:0', $errno, $errstr);
+        if ($socket === false) {
+            Assert::skip("нет доступа к сокетам: $errstr");
+        }
+        $name = (string) stream_socket_get_name($socket, false);
+        fclose($socket);
+        $panelPort = (int) substr($name, (int) strrpos($name, ':') + 1);
+        $log = sys_get_temp_dir() . '/yandex-sites-panel-zip.log';
+        $server = @proc_open(
+            [PHP_BINARY, '-S', '127.0.0.1:' . $panelPort, '-t', $dir, PROJECT_ROOT . '/bin/panel.php'],
+            [0 => ['pipe', 'r'], 1 => ['file', $log, 'a'], 2 => ['file', $log, 'a']],
+            $pipes,
+            $dir,
+            array_merge(getenv(), ['YS_PROJECT_DIR' => $dir]),
+        );
+        if (!is_resource($server)) {
+            Assert::skip('не удалось запустить php -S для панели');
+        }
+        fclose($pipes[0]);
+        try {
+            $base = "http://127.0.0.1:$panelPort";
+            $this->waitFor($base . '/api/state', 50);
+            $state = json_decode((string) $this->http('GET', $base . '/api/state'), true);
+            Assert::same(3, $state['content_files'], 'статей на диске');
+            Assert::same(2, $state['content_sites'], 'сайтов с контентом');
+
+            $body = $this->http('GET', $base . '/download?file=content', null, $code);
+            if ($code === 500) {
+                Assert::skip('архив создать нечем: ' . $body);
+            }
+            Assert::same(200, $code, $body);
+            Assert::same('PK', substr($body, 0, 2), 'ответ — zip');
+            Assert::true(is_file($runDir . '/content.zip'), 'архив собран в runs/current');
+            if (class_exists('ZipArchive')) {
+                $zip = new \ZipArchive();
+                Assert::true($zip->open($runDir . '/content.zip') === true);
+                $names = [];
+                for ($i = 0; $i < $zip->numFiles; $i++) {
+                    $names[] = $zip->getNameIndex($i);
+                }
+                sort($names);
+                Assert::same(['12-стр/b.ru/main.html', '7-стр/a.ru/main.html', '7-стр/a.ru/vhod.html'], $names, 'в архиве — папки N-стр/сайт/страница');
+                $zip->close();
+            }
+
+            // Без контента — 404 с объяснением, а не пустой архив.
+            \YandexSites\Content\SiteCleaner::rmTree($runDir . '/content');
+            $body = $this->http('GET', $base . '/download?file=content', null, $code);
+            Assert::same(404, $code);
+            Assert::contains('Очищенного контента пока нет', $body);
+            $state = json_decode((string) $this->http('GET', $base . '/api/state'), true);
+            Assert::same(0, $state['content_files']);
+        } finally {
+            proc_terminate($server);
+            proc_close($server);
+        }
+    }
+
     public function testCleanStageRunsInBackgroundForKeptSitesOnly(): void
     {
         // «Очистить всё» — фоновый этап: чистит только оставленные (only минус exclude), сносит прежний
