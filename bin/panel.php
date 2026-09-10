@@ -314,6 +314,9 @@ if ($path === '/api/state') {
         'has_config' => is_file($projectDir . '/config.php'),
         'has_proxies' => is_file($projectDir . '/proxies.txt'),
         // Очищенный контент на диске — кнопка «Скачать архив контента» показывает, сколько статей и сайтов в архиве.
+        // Результаты последнего сбора (results.csv): по ним панель считает запросы с одинаковой выдачей.
+        'has_results' => is_file($runDir . '/results.csv'),
+        'results_stamp' => is_file($runDir . '/results.csv') ? filemtime($runDir . '/results.csv') . '-' . filesize($runDir . '/results.csv') : '',
         'content_files' => contentStats($runDir)['files'],
         'content_sites' => contentStats($runDir)['sites'],
         'base_domains' => is_file($baseFile) ? count(array_filter(array_map('trim', file($baseFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: []), static fn ($l) => $l !== '' && $l[0] !== '#')) : 0,
@@ -429,6 +432,20 @@ if ($path === '/api/site-pages' && $method === 'POST') {
     jsonOut(['ok' => true, 'host' => $host, 'pages' => $pages]);
 }
 
+if ($path === '/api/query-dupes') {
+    // Запросы с одинаковой выдачей — по results.csv последнего сбора (работает и для сбора, сделанного до
+    // обновления). Порядок списка из settings.json решает, кто из дублей остаётся; файлы пишутся рядом.
+    $csv = $runDir . '/results.csv';
+    if (!is_file($csv)) {
+        jsonOut(['ok' => false, 'error' => 'Нет результатов сбора (results.csv) — сначала соберите сайты']);
+    }
+    $saved = readJsonFile($settingsFile) ?? [];
+    $queryList = array_values(array_filter(array_map('trim', array_map('strval', (array) ($saved['queries'] ?? []))), static fn (string $q): bool => $q !== '' && !str_starts_with($q, '#')));
+    $found = \YandexSites\Support\QueryDupes::find(\YandexSites\Support\QueryDupes::csvRows($csv), $queryList);
+    \YandexSites\Support\QueryDupes::writeFiles($runDir, $found);
+    jsonOut(['ok' => true, 'summary' => \YandexSites\Support\QueryDupes::summary($found)] + $found);
+}
+
 if ($path === '/api/remove' && $method === 'POST') {
     // Крестик / «Убрать наши» / «Убрать с 404 > N»: удаление окончательное и сквозное — строка уходит из
     // sites.json и статуса, папки сайта переезжают в removed/. Следующие шаги сайт больше не видят.
@@ -521,7 +538,7 @@ if ($path === '/download' && (string) ($_GET['file'] ?? '') === 'content') {
 }
 
 if ($path === '/download') {
-    $map = ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt', 'results' => 'results.csv'];
+    $map = ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt', 'results' => 'results.csv', 'queries-unique' => 'queries-unique.txt', 'query-dupes' => 'query-dupes.txt'];
     $key = (string) ($_GET['file'] ?? '');
     $file = $runDir . '/' . ($map[$key] ?? '');
     if (!isset($map[$key]) || !is_file($file)) {

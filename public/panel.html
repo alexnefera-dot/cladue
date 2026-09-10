@@ -116,6 +116,11 @@
         <h2>Запросы и сбор</h2>
         <textarea id="queries" placeholder="по одному запросу в строке&#10;пластиковые окна купить москва&#10;остекление балконов цена"></textarea>
         <div class="hint">По одному запросу в строке. Пустые строки и строки с # пропускаются.</div>
+        <div class="hint" id="dupesBox" hidden style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span id="dupesText"></span>
+          <button class="btn-ghost" id="dupesBtn" style="padding:4px 10px;font-size:12px" title="Убрать из списка выше запросы, у которых выдача (набор сайтов, без учёта позиций) совпала с другим запросом; в каждой группе остаётся первый по списку. Считается по результатам последнего сбора">Убрать дубли из списка</button>
+          <span id="dupesLinks">скачать: <a href="/download?file=queries-unique">список без дублей</a> · <a href="/download?file=query-dupes">группы дублей</a></span>
+        </div>
         <div class="btns" style="margin-top:12px">
           <button class="btn-primary" id="startBtn">Собрать сайты</button>
           <button class="btn-danger" id="stopBtn" disabled>Остановить</button>
@@ -425,6 +430,41 @@ $('downloadBtn').addEventListener('click', runDownload);
 $('retryBtn').addEventListener('click', runRetry);
 $('stopBtn').addEventListener('click', stop);
 function showStart(t,cls){ $('startMsg').innerHTML = t?`<div class="msg ${cls}">${t}</div>`:''; }
+
+// Дубли запросов по выдаче: два запроса с одним и тем же набором сайтов (позиции не важны) — второй лишний.
+// Считает сервер по results.csv последнего сбора (/api/query-dupes), один раз на каждый новый сбор
+// (results_stamp); кнопка убирает дубли из списка запросов выше, в каждой группе остаётся первый по списку.
+let dupes=null, dupesStamp='', dupesLoading=false;
+async function loadDupes(stamp){
+  dupesLoading=true;
+  try{ const r=await fetch('/api/query-dupes'); const j=await r.json(); dupes = j.ok ? j : null; dupesStamp=stamp; }
+  catch(e){ dupes=null; }
+  finally{ dupesLoading=false; renderDupes(); }
+}
+function renderDupes(){
+  const box=$('dupesBox'); if(!box) return;
+  if(!dupes){ box.hidden=true; return; }
+  box.hidden=false;
+  const n=dupes.duplicates.length, g=dupes.groups.length;
+  const cur=new Set(collectSettings().queries);
+  const present=dupes.duplicates.filter(q=>cur.has(q)).length; // сколько дублей ещё в списке (после чистки — 0)
+  let t = n===0 ? `Запросов с одинаковой выдачей нет (проверено ${dupes.total})` : `Одинаковая выдача (тот же набор сайтов): ${n} запросов-дублей в ${g} группах из ${dupes.total}`;
+  if(dupes.no_results.length) t+=` · без результатов: ${dupes.no_results.length}`;
+  $('dupesText').textContent=t;
+  const b=$('dupesBtn'); b.hidden = n===0; b.disabled = present===0; b.textContent = present>0 ? `Убрать дубли из списка (${present})` : 'Дубли уже убраны';
+  $('dupesLinks').hidden = n===0;
+}
+$('dupesBtn').addEventListener('click', ()=>{
+  if(!dupes) return;
+  const drop=new Set(dupes.duplicates);
+  const lines=$('queries').value.split('\n');
+  const kept=lines.filter(l=>!drop.has(l.trim()));
+  const removed=lines.length-kept.length;
+  $('queries').value=kept.join('\n'); saveLocal();
+  showStart(`Убрано ${removed} запросов-дублей, в списке осталось ${collectSettings().queries.length}`,'ok');
+  renderDupes();
+});
+$('queries').addEventListener('input', renderDupes);
 
 const STATE_LABEL={running:'идёт сбор',waiting:'ожидание повтора',done:'готово',error:'ошибка',stopped:'остановлено',starting:'запуск…'};
 const STATE_CLS={running:'s-run',starting:'s-run',waiting:'s-wait',done:'s-done',error:'s-err',stopped:'s-idle'};
@@ -840,6 +880,9 @@ async function refresh(){
     if(cz){ const n=st.content_files|0; cz.hidden = n===0; cz.textContent='Скачать архив контента ('+n+' стр., сайтов '+(st.content_sites|0)+')'; }
     renderStatus(st.status, st.running);
     sitesCountTotal = (st.status && st.status.sites_count) || 0;
+    // Дубли запросов по выдаче — по results.csv последнего сбора, пересчёт только когда файл сменился.
+    if(st.has_results && !st.running && st.results_stamp && st.results_stamp!==dupesStamp && !dupesLoading) loadDupes(st.results_stamp);
+    if(!st.has_results && dupes){ dupes=null; dupesStamp=''; renderDupes(); }
     removedHosts=new Set(st.removed||[]); [...pendingRemoved].forEach(h=>{ if(removedHosts.has(h)) pendingRemoved.delete(h); });
     renderResults(st.status && st.status.sites ? st.status.sites : []);
     pumpRetry(); // если освободились и в очереди есть докачки — запускаем следующую партию

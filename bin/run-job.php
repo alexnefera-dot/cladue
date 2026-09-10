@@ -46,6 +46,7 @@ use YandexSites\Search\XmlStockFetcher;
 use YandexSites\Support\DomainLedger;
 use YandexSites\Support\Logger;
 use YandexSites\Support\Progress;
+use YandexSites\Support\QueryDupes;
 use YandexSites\Support\RemovedSites;
 use YandexSites\Support\SiteRows;
 use YandexSites\Visit\SiteTemplate;
@@ -521,6 +522,18 @@ while (true) {
             }
             $writer->writeRawCsv($result->raw, $runDir . '/results.csv');
 
+            // Запросы с одинаковой выдачей (тот же набор сайтов, позиции не важны): панель предлагает убрать
+            // дубли из списка запросов; queries-unique.txt / query-dupes.txt лежат рядом с результатами.
+            $dupes = QueryDupes::find(QueryDupes::rawRows($result->raw), $queries);
+            if ($result->aborted) {
+                $dupes['no_results'] = []; // прерванный прогон: не дошедшие до выдачи запросы — не «без результатов»
+            }
+            QueryDupes::writeFiles($runDir, $dupes);
+            $dupeSummary = QueryDupes::summary($dupes);
+            if ($dupeSummary['duplicates'] > 0) {
+                $logger->info(sprintf('Запросов с одинаковой выдачей: %d дублей в %d группах из %d — список без дублей: %s', $dupeSummary['duplicates'], $dupeSummary['groups'], $dupeSummary['total'], QueryDupes::UNIQUE_FILE));
+            }
+
             // Тип вёрстки по превью главной (7–9 / 12–15 страниц / без категории) — виден сразу после сбора,
             // по нему панель фильтрует таблицу до выгрузки.
             $shown = $keptPrevious ? $previous : $result->sites;
@@ -537,6 +550,7 @@ while (true) {
                 'sites_count' => count($shown),
                 'kept_previous' => $keptPrevious,
                 'template_histogram' => $templateHist,
+                'query_dupes' => $dupeSummary,
                 'base_domains' => $ledger->count(),
                 'run_finished_at' => date(DATE_ATOM),
                 'files' => ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt', 'results' => 'results.csv'],

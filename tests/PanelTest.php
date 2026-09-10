@@ -77,6 +77,11 @@ final class PanelTest
         Assert::true(($status['stats']['sites_selected'] ?? 0) > 0, 'сайты отобраны');
         Assert::true(count($status['sites']) > 0, 'превью сайтов есть в статусе');
         Assert::true(is_file($runDir . '/sites.json') && is_file($runDir . '/sites.csv') && is_file($runDir . '/domains.txt'));
+        // Дубли запросов по выдаче: у фейкового источника набор сайтов для любого запроса один и тот же
+        // (сдвиг по кругу), так что второй запрос — дубль первого; список без дублей лежит рядом с результатами.
+        Assert::same(['total' => 2, 'duplicates' => 1, 'groups' => 1, 'no_results' => 0], $status['query_dupes'], 'сводка дублей в статусе');
+        Assert::same("пластиковые окна\n", (string) file_get_contents($runDir . '/queries-unique.txt'), 'первый по списку остаётся');
+        Assert::contains("оставлен: пластиковые окна (сайтов в выдаче: 14)\n  дубль: остекление балконов", (string) file_get_contents($runDir . '/query-dupes.txt'));
 
         $sites = json_decode((string) file_get_contents($runDir . '/sites.json'), true);
         $hosts = array_map(static fn ($s) => $s['host'], $sites['sites']);
@@ -724,6 +729,67 @@ final class PanelTest
             Assert::contains('Очищенного контента пока нет', $body);
             $state = json_decode((string) $this->http('GET', $base . '/api/state'), true);
             Assert::same(0, $state['content_files']);
+        } finally {
+            proc_terminate($server);
+            proc_close($server);
+        }
+    }
+
+    public function testQueryDupesEndpointAndDownloads(): void
+    {
+        // /api/query-dupes считает дубли по results.csv прошлого сбора (без нового сбора) в порядке списка из
+        // settings.json, пишет queries-unique.txt / query-dupes.txt, которые отдаёт /download.
+        $dir = sys_get_temp_dir() . '/yandex-sites-panel-qd-' . uniqid();
+        $runDir = $dir . '/runs/current';
+        mkdir($runDir, 0777, true);
+        file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
+        $mk = static fn (string $q, int $pos, string $host): array => ['result' => new \YandexSites\Model\SearchResult($q, 0, $pos, "https://$host/", $host, 'T'), 'reason' => 'selected'];
+        (new \YandexSites\Output\ReportWriter(';', true))->writeRawCsv([
+            $mk('окна', 1, 'a.ru'), $mk('окна', 2, 'b.ru'),
+            $mk('окна купить', 1, 'b.ru'), $mk('окна купить', 2, 'www.a.ru'),
+            $mk('балконы', 1, 'c.ru'),
+        ], $runDir . '/results.csv');
+        file_put_contents($runDir . '/settings.json', json_encode(['queries' => ['окна купить', 'окна', 'балконы', 'пусто']], JSON_UNESCAPED_UNICODE));
+
+        $socket = @stream_socket_server('tcp://127.0.0.1:0', $errno, $errstr);
+        if ($socket === false) {
+            Assert::skip("нет доступа к сокетам: $errstr");
+        }
+        $name = (string) stream_socket_get_name($socket, false);
+        fclose($socket);
+        $panelPort = (int) substr($name, (int) strrpos($name, ':') + 1);
+        $log = sys_get_temp_dir() . '/yandex-sites-panel-qd.log';
+        $server = @proc_open(
+            [PHP_BINARY, '-S', '127.0.0.1:' . $panelPort, '-t', $dir, PROJECT_ROOT . '/bin/panel.php'],
+            [0 => ['pipe', 'r'], 1 => ['file', $log, 'a'], 2 => ['file', $log, 'a']],
+            $pipes,
+            $dir,
+            array_merge(getenv(), ['YS_PROJECT_DIR' => $dir]),
+        );
+        if (!is_resource($server)) {
+            Assert::skip('не удалось запустить php -S для панели');
+        }
+        fclose($pipes[0]);
+        try {
+            $base = "http://127.0.0.1:$panelPort";
+            $this->waitFor($base . '/api/state', 50);
+            $state = json_decode((string) $this->http('GET', $base . '/api/state'), true);
+            Assert::true($state['has_results'], 'results.csv есть');
+            Assert::true($state['results_stamp'] !== '', 'отпечаток файла результатов');
+
+            $d = json_decode((string) $this->http('GET', $base . '/api/query-dupes'), true);
+            Assert::true($d['ok'] ?? false, json_encode($d));
+            Assert::same(['окна'], $d['duplicates'], 'порядок списка из settings.json: «окна купить» первым — остаётся, «окна» — дубль');
+            Assert::same(['окна купить', 'балконы', 'пусто'], $d['unique']);
+            Assert::same(['пусто'], $d['no_results']);
+            Assert::same(['total' => 3, 'duplicates' => 1, 'groups' => 1, 'no_results' => 1], $d['summary']);
+            Assert::same("окна купить\nбалконы\nпусто\n", $this->http('GET', $base . '/download?file=queries-unique'));
+            Assert::contains('оставлен: окна купить', $this->http('GET', $base . '/download?file=query-dupes'));
+
+            unlink($runDir . '/results.csv');
+            $d = json_decode((string) $this->http('GET', $base . '/api/query-dupes'), true);
+            Assert::false($d['ok'], 'без results.csv — понятная ошибка');
+            Assert::contains('сначала соберите', $d['error']);
         } finally {
             proc_terminate($server);
             proc_close($server);

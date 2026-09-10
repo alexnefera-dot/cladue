@@ -548,6 +548,20 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   cannot, which `isZip()` detects → RuntimeException «включите extension=zip»). `bin/clean-content.php --zip`
   keeps its own ZipArchive-only code. Covered by `tests/ArchiveTest.php` and
   `PanelTest::testContentArchiveDownload`.
+- `Support\QueryDupes` finds queries whose SERP is the same SET of sites (registrable domains, `www` folded,
+  positions ignored): `find(rows, queries)` groups queries by the sorted domain set, keeps the first query of
+  each group in the ORDER OF THE USER'S LIST (`settings.queries`) and reports `duplicates`, `groups`
+  (`kept`/`duplicates`/`sites`), `unique` and `no_results` (queries with no result at all are NOT duplicates,
+  only counted). Rows come from `rawRows(RunResult::$raw)` at the end of the collect stage (run-job writes
+  `queries-unique.txt` + `query-dupes.txt` next to the results and puts `query_dupes` = `summary()` into the
+  status) or from `csvRows(results.csv)` for `GET /api/query-dupes` in `bin/panel.php`, so the panel can
+  evaluate the collect the user already has (the request came mid-collect of 3000 queries). The panel
+  (`#dupesBox` under the queries textarea) fetches it once per `results_stamp` (mtime-size of `results.csv`
+  in `/api/state`, never while a job runs), shows «N запросов-дублей в G группах из T», and «Убрать дубли из
+  списка (P)» drops those lines from the textarea (+ `saveLocal()`), P = duplicates still present; the
+  `/download` map serves `queries-unique` / `query-dupes`. Exact set equality only — a similarity threshold
+  is a possible follow-up. Covered by `tests/QueryDupesTest.php`, `PanelTest::testRunJobProducesResults`
+  and `PanelTest::testQueryDupesEndpointAndDownloads`.
 - `Cli\Application::VERSION` / `VERSION_DATE` are the only version markers and the user's way to verify an
   update (they run `setup.php --update`, which downloads the branch zip, so there is no git metadata on their
   machine): BUMP BOTH in every user-facing change. `setup.php --update` prints «версия X от DD.MM.YYYY» (parsed
