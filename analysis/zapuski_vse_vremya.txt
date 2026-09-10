@@ -1411,7 +1411,7 @@
     9147.team
 
 ========================================================================
-10.09.2026 — 28 доменов, 3 группы   [.casino 14  .team 10  .lol 4]
+10.09.2026 — 63 домена, 3 группы   [.casino 24  .team 23  .lol 16]
 ========================================================================
 
 --- nabory470472_styled_img_1…_3 — id 1859-1861, создан 13:41, все .team
@@ -1421,9 +1421,44 @@
     d6t5.team
     u1y1.team
 
---- NEW102оформленобездаты_36…_42 — id 1897-1903, создан 18:27
-    7 доменов: .casino 7
+--- NEW102оформленобездаты_1…_42 — id 1862-1903, создан 18:27 — ВЕТКА ПОЛНАЯ
+    42 домена: .casino 17  .team 13  .lol 12
 
+    casinod1.lol
+    casino534.lol
+    6524.lol
+    1109tt.casino
+    u0a3.casino
+    casino1209.casino
+    1109sd.casino
+    dckd.casino
+    1009dd.casino
+    1109m.casino
+    i6w9.casino
+    tapz.casino
+    c8j9.casino
+    casinoozz.lol
+    mncasino.lol
+    casinoqi.team
+    casino2049.lol
+    0615.lol
+    6764.lol
+    casino351.team
+    casinodp.team
+    casino1535.lol
+    5962.lol
+    7055.team
+    y0v.team
+    i3d.team
+    6419.lol
+    0946.team
+    sdyv.team
+    htqr.team
+    rzbcasino.team
+    5882.team
+    xpnm.team
+    1040.team
+    casinos6.lol
     1009r.casino
     casino1009s.casino
     1009d.casino
@@ -1455,7 +1490,7 @@
     2129.lol
 
 ========================================================================
-ИТОГО: 906 доменов
+ИТОГО: 941 домен
 ========================================================================
   24.08    42
   25.08    52
@@ -1471,13 +1506,13 @@
   07.09    83
   08.09   151
   09.09    85
-  10.09    28
+  10.09    63
 
-  зоны: .team 529   .lol 252   .casino 70   .buzz 55
+  зоны: .team 542   .lol 264   .casino 80   .buzz 55
   доменов встречается более одного раза: 0
 
 ========================================================================
-ПЛОСКИЙ СПИСОК — 906 доменов подряд
+ПЛОСКИЙ СПИСОК — 941 домен подряд
 ========================================================================
 9928.team
 f6zn.team
@@ -2360,6 +2395,41 @@ mhob.team
 75casino.team
 d6t5.team
 u1y1.team
+casinod1.lol
+casino534.lol
+6524.lol
+1109tt.casino
+u0a3.casino
+casino1209.casino
+1109sd.casino
+dckd.casino
+1009dd.casino
+1109m.casino
+i6w9.casino
+tapz.casino
+c8j9.casino
+casinoozz.lol
+mncasino.lol
+casinoqi.team
+casino2049.lol
+0615.lol
+6764.lol
+casino351.team
+casinodp.team
+casino1535.lol
+5962.lol
+7055.team
+y0v.team
+i3d.team
+6419.lol
+0946.team
+sdyv.team
+htqr.team
+rzbcasino.team
+5882.team
+xpnm.team
+1040.team
+casinos6.lol
 1009r.casino
 casino1009s.casino
 1009d.casino
@@ -2758,12 +2828,12 @@ casino82.team
     lnwc.team
 
 ========================================================================
-ВСЕГО В РЕЕСТРЕ: 1181 домен
-  со списком запуска: 906
+ВСЕГО В РЕЕСТРЕ: 1216 доменов
+  со списком запуска: 941
   без списка: 275
 ========================================================================
 
-ПЛОСКИЙ СПИСОК — весь реестр, 1181 домен
+ПЛОСКИЙ СПИСОК — весь реестр, 1216 доменов
 ========================================================================
 0017.team
 0040.lol
@@ -3946,3 +4016,38 @@ k8z.team
 casinoj3.lol
 casino82.team
 2129.lol
+casinod1.lol
+casino534.lol
+6524.lol
+1109tt.casino
+u0a3.casino
+casino1209.casino
+1109sd.casino
+dckd.casino
+1009dd.casino
+1109m.casino
+i6w9.casino
+tapz.casino
+c8j9.casino
+casinoozz.lol
+mncasino.lol
+casinoqi.team
+casino2049.lol
+0615.lol
+6764.lol
+casino351.team
+casinodp.team
+casino1535.lol
+5962.lol
+7055.team
+y0v.team
+i3d.team
+6419.lol
+0946.team
+sdyv.team
+htqr.team
+rzbcasino.team
+5882.team
+xpnm.team
+1040.team
+casinos6.lol
