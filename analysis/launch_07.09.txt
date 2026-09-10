@@ -1,4 +1,4 @@
-# День 07.09.2026 — 83 домена из 123, тринадцать групп (в clean7_part1_50 не хватает 40 доменов)
+# День 07.09.2026 — 123 домена, тринадцать групп. Все партии полные.
 
 ## Выдача_06.09_7стр_1…_2 — id 1474-1475
 8081.team
@@ -101,9 +101,47 @@ opcasino.team
 2528.team
 p8l7.team
 
-## clean7_part1_50оформлено_41…_50 — id 1597-1606, создан 21:51
-# ПРИМЕЧАНИЕ: группа целиком — 50 доменов (id 1557-1606). Присланы только _41…_50.
-# ПРИМЕЧАНИЕ: Не хватает _1…_40, id 1557-1596.
+## clean7_part1_50оформлено_1…_50 — id 1557-1606, создан 21:51 — ПАРТИЯ ПОЛНАЯ
+8975.team
+9799.team
+casino4552.team
+5609.team
+2930.team
+4100.team
+d1c3.team
+3142.team
+casinoah.team
+casinojxu.team
+j4l8.team
+slkz.team
+5648.lol
+xqzs.team
+casinoycm.team
+hshl.casino
+2771.lol
+butcasino.team
+y1n.lol
+2384.lol
+7342.lol
+casino8189.lol
+854casino.team
+3411.lol
+uyqcasino.team
+5523.lol
+5659.team
+4797.lol
+casinog1.team
+kpkl.casino
+1025.team
+1819.lol
+e4h1.casino
+efsr.casino
+qxtl.casino
+ybcc.lol
+casinowm.lol
+mscasino.lol
+0831.lol
+casino62.lol
 3970.lol
 3574.team
 8928.team
