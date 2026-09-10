@@ -1,4 +1,4 @@
-# День 10.09.2026 — 63 домена зарегистрировано, три группы (NEW102 с датой: верхняя граница неизвестна)
+# День 10.09.2026 — 79 доменов, четыре группы. Все партии полные.
 
 ## nabory470472_styled_img_1…_3 — id 1859-1861, создан 13:41, все .team
 75casino.team
@@ -49,8 +49,8 @@ casino1009.casino
 1109g.casino
 1109ss.casino
 
-## NEW102оформленосдатой_1…_18 — id 1904-1921, создан 18:28
-# ПРИМЕЧАНИЕ: верхняя граница ветки неизвестна, суффиксы могут идти дальше _18.
+## NEW102оформленосдатой_1…_18 — id 1904-1921, создан 18:28 — ВЕТКА ПОЛНАЯ
+# ПРИМЕЧАНИЕ: граница подтверждена — следующая партия начинается с id 1922.
 1109casino.casino
 bwzs.casino
 1109r.casino
@@ -69,3 +69,21 @@ k8z.team
 casinoj3.lol
 casino82.team
 2129.lol
+
+## script_yandex_12page_1…_16 — id 1922-1937, создан 23:02, все .casino
+1009rr.casino
+1109cas.casino
+1109mm.casino
+1209hh.casino
+1209s.casino
+cgxs.casino
+1009g.casino
+pqvb.casino
+1209r.casino
+1209dk.casino
+1209cas.casino
+casino1109g.casino
+p9y.casino
+1209sg.casino
+1209casino.casino
+1209k.casino
