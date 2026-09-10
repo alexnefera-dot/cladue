@@ -151,10 +151,32 @@ def fix_markup(raw):
             return m.group(0)
         return "</%s>%s" % (m.group(1), m.group(2))
 
+    # Потерян открывающий <section>: фрагмент начинается сразу с текста, а в конце
+    # остаётся лишний </section>. Возвращаем тег с классом соседних секций.
+    if len(re.findall(r"(?i)</section>", raw)) == len(re.findall(r"(?i)<section\b", raw)) + 1:
+        m = re.search(r'(?i)<section[^>]*class="([^"]+)"', raw)
+        тег = '<section class="%s">' % m.group(1) if m else "<section>"
+        raw = тег + "\n" + raw
+        rows.append(("потерян <section>", тег, "восстановлен в начале"))
     raw, n = re.subn(r"<(strong|em|b|i)([A-Za-zА-Яа-яЁё][\w-]*)>", разделить, raw)
     raw, n2 = re.subn(r"</(strong|em|b|i)([A-Za-zА-Яа-яЁё][\w-]*)>", разделить_закрывающий, raw)
     if n + n2:
         rows.append(("склейка тега", "<strong>слово", "разделено (%d)" % (n + n2)))
+    # Закрывающий тег, которому нечего закрывать (остаток вырезанного блока).
+    for тег in ("ul", "ol", "li", "div", "table"):
+        глуб, лишние = 0, []
+        for m in re.finditer(r"(?i)<(/?)%s\b[^>]*>" % тег, raw):
+            if m.group(1):
+                глуб -= 1
+                if глуб < 0:
+                    лишние.append(m.span())
+                    глуб = 0
+            else:
+                глуб += 1
+        for a, b in reversed(лишние):
+            raw = raw[:a] + raw[b:]
+        if лишние:
+            rows.append(("лишний </%s>" % тег, "снят", "%d" % len(лишние)))
     raw, n = re.subn(r"</?(?:meter|progress|font|center|marquee|blink)[^>]*>", "", raw)
     if n:
         rows.append(("лишний тег", "снят", "%d" % n))

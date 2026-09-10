@@ -149,7 +149,7 @@ def page_stats(raw):
 
 # ---------------------------------------------------------------- решения ---
 def structural_reasons(n, pages, stats, md5_seen, key):
-    """Причины убрать сайт без сравнения с другими: набор страниц, заглушки, тонкая главная, точный дубль."""
+    """Причины убрать сайт без сравнения с другими: набор страниц, заглушки, тонкая главная, копия своей же страницы, точный дубль."""
     tpl = TEMPLATES.get(n)
     why = []
     if tpl is None:
@@ -165,6 +165,12 @@ def structural_reasons(n, pages, stats, md5_seen, key):
         m = stats["main"]
         if m["sec"] == 0 or m["cw"] < 150 or (m["cw"] < MIN_MAIN_WORDS and m["sec"] < 3):
             why.append("главная без текста: %d слов, %d разделов" % (m["cw"], m["sec"]))
+    свои = defaultdict(list)
+    for p in sorted(pages):
+        свои[stats[p]["md5"]].append(p)
+    сам = [" = ".join(v) for v in свои.values() if len(v) > 1]
+    if сам:
+        why.append("копия своей же страницы: " + "; ".join(sorted(сам)))
     dup = []
     for p in sorted(pages):
         h = stats[p]["md5"]
