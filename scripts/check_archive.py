@@ -291,6 +291,9 @@ def _utf8_ok(path):
         return "BOM"
     if b"\r" in data:
         return "CRLF"
+    n = data.count("\ufffd".encode("utf-8"))
+    if n:
+        return "битые символы (U+FFFD): %d" % n
     return ""
 
 
