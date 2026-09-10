@@ -229,7 +229,7 @@ function buildOverrides(array $s, string $runDir): array
  * @param list<\YandexSites\Model\Site> $sites
  * @return list<array<string, mixed>>
  */
-function previewSites(array $sites, string $runDir = '', int $limit = 1000): array
+function previewSites(array $sites, string $runDir = '', int $limit = SiteRows::ROW_LIMIT): array
 {
     return SiteRows::preview($sites, $runDir, $limit);
 }
@@ -352,6 +352,7 @@ while (true) {
                 'phase' => 'done',
                 'run_finished_at' => date(DATE_ATOM),
                 'sites' => previewSites($siteList, $runDir),
+                'sites_count' => count($siteList),
                 'files' => [],
                 'message' => sprintf('%sОчищено: %d сайтов, %d стр. (без статьи: %d) → runs/current/content/N-стр/сайт', $stoppedEarly ? 'Остановлено. ' : '', $sitesDone, $written, $skipped),
             ], true);
@@ -375,6 +376,19 @@ while (true) {
                 $sites = array_filter($sites, static fn (string $host): bool => !isset($excludeHosts[$host]), ARRAY_FILTER_USE_KEY);
                 if ($sites === []) {
                     throw new RuntimeException('Все собранные сайты убраны из списка — нечего выгружать');
+                }
+            }
+            // Панель присылает only — сайты, которые сейчас В ТАБЛИЦЕ: выгружаем ровно их. Всё, чего в таблице
+            // нет (например, сверх лимита строк), не качаем — иначе «выгружаются сайты, которых не видно».
+            $only = array_flip(array_map('strval', (array) ($settings['only'] ?? [])));
+            if ($only !== []) {
+                $notListed = array_keys(array_filter($sites, static fn (string $host): bool => !isset($only[$host]), ARRAY_FILTER_USE_KEY));
+                $sites = array_filter($sites, static fn (string $host): bool => isset($only[$host]), ARRAY_FILTER_USE_KEY);
+                if ($notListed !== []) {
+                    $logger->info(sprintf('Выгружаем только сайты из таблицы панели: %d; ещё %d из sites.json в таблице нет — не выгружаем (%s%s)', count($sites), count($notListed), implode(', ', array_slice($notListed, 0, 5)), count($notListed) > 5 ? ', …' : ''));
+                }
+                if ($sites === []) {
+                    throw new RuntimeException('В таблице панели нет сайтов для выгрузки');
                 }
             }
             $runtime = new Runtime($config, $logger);
@@ -437,6 +451,7 @@ while (true) {
                 'phase' => 'done',
                 'stats' => ['sites_selected' => count($siteList)],
                 'sites' => previewSites($siteList, $runDir),
+                'sites_count' => count($siteList),
                 'page_histogram' => SiteRows::pageHistogram($siteList),
                 'template_histogram' => SiteTemplate::histogram($siteList),
                 'run_finished_at' => date(DATE_ATOM),
@@ -519,6 +534,7 @@ while (true) {
                 'aborted' => $result->aborted,
                 'proxies' => $runtime->proxies?->stats() ?? [],
                 'sites' => previewSites($shown, $runDir),
+                'sites_count' => count($shown),
                 'kept_previous' => $keptPrevious,
                 'template_histogram' => $templateHist,
                 'base_domains' => $ledger->count(),

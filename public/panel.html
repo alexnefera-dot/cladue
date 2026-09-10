@@ -242,7 +242,7 @@
     <h2>Результаты <span id="resCount" class="muted"></span></h2>
     <div class="hint" style="margin-bottom:8px">Клик по превью — увеличить; крестик ✕ — убрать неподходящий сайт. Шаг 2 — «Выгрузить страницы оставшихся»; потом «Очистить» у сайта или «Очистить всё» по всем — очищенные статьи лягут в <b>runs/current/content/&lt;N&gt;-стр/&lt;сайт&gt;/</b>. Скачанные страницы: <b>runs/current/pages/</b>.</div>
     <div class="btns" style="margin-bottom:10px;align-items:center">
-      <button class="btn-primary" id="downloadBtn" disabled title="Открыть в браузере и сохранить страницы оставшихся сайтов (убранные крестиком не выгружаются). Повторный клик — чистая перевыгрузка всех заново">Выгрузить страницы оставшихся</button>
+      <button class="btn-primary" id="downloadBtn" disabled title="Открыть в браузере и сохранить страницы ровно тех сайтов, что сейчас в таблице (убранные крестиком и галочками типов не выгружаются). Повторный клик — чистая перевыгрузка всех заново">Выгрузить страницы оставшихся</button>
       <button class="btn-ghost" id="retryBtn" hidden title="Заново выкачать только сайты с ошибками (таймаут, блок, нет соединения); уже успешные не трогаем">Докачать с ошибками</button>
       <button class="ctBtn" id="cleanAllBtn" title="Очистить страницы всех оставшихся сайтов по инструкции (наши и убранные крестиком исключены), разложить по content/N-стр/сайт">Очистить всё</button>
     </div>
@@ -378,11 +378,12 @@ async function startJob(extra){
 }
 // Шаг 1: сбор доменов (новый список — старые пометки удалённых сбрасываем).
 function runCollect(){ removedHosts.clear(); pendingRemoved.clear(); startJob({stage:'collect'}); }
-// Шаг 2: выгрузка страниц только оставшихся сайтов (убранные крестиком не качаем).
+// Шаг 2: выгрузка страниц РОВНО тех сайтов, что сейчас в таблице (only) — убранные крестиком/галочками типов
+// и всё, чего в таблице нет, не качаем.
 function runDownload(){
   const kept=lastSites.filter(s=>!isRemoved(s.host));
   if(!kept.length){ showStart('Нет сайтов для выгрузки — все убраны из списка','err'); return; }
-  startJob({stage:'download', exclude_hosts:[...removedHosts, ...pendingRemoved]});
+  startJob({stage:'download', only: kept.map(s=>s.host), exclude_hosts:[...removedHosts, ...pendingRemoved]});
 }
 // Докачки идут в фоне очередью: можно поставить несколько сайтов, они выкачиваются партиями по очереди,
 // а таблица отчёта не сбивается — параллельно изучаем и добавляем ещё.
@@ -504,6 +505,8 @@ function renderStatus(st, running){
 }
 
 let lastSites=[];
+let lastTableHtml='';            // разметка таблицы с прошлого опроса — перерисовываем только при изменении
+let sitesCountTotal=0;           // сколько сайтов в списке всего (status.sites_count); таблица может быть обрезана лимитом
 let jobRunning=false;
 let wasRunning=false;
 let jobStarting=false;          // между кликом «запустить» и подтверждением (защита от двойного старта)
@@ -710,7 +713,7 @@ function renderResults(sites){
   const visible=sites.filter(s=>!isRemoved(s.host));
   updateDownloadBtn();
   card.hidden=false;
-  $('resCount').textContent='· '+visible.length+(removedHosts.size?` (убрано ${removedHosts.size})`:'');
+  $('resCount').textContent='· '+visible.length+(removedHosts.size?` (убрано ${removedHosts.size})`:'')+(sitesCountTotal>sites.length?` · показаны первые ${sites.length} из ${sitesCountTotal}`:'');
   updateStats(visible);
   const note=$('removedNote');
   if(removedHosts.size){ note.hidden=false; note.innerHTML=`Убрано сайтов: <b>${removedHosts.size}</b> · <a href="#" id="restoreRemoved">вернуть все</a>`; }
@@ -727,7 +730,7 @@ function renderResults(sites){
     return e; };
   const errCell=e=>{ const h=esc(humanErr(e)); return `<span class="tag diff" title="${esc(e)}">${h.length>70?h.slice(0,70)+'…':h}</span>`; };
   const tb=$('resTable').querySelector('tbody');
-  tb.innerHTML=visible.map((s,i)=>{
+  const tableHtml=visible.map((s,i)=>{
     let dl='—';
     if(s.own){ dl=`<span class="tag" title="наш шаблон — исключён из выгрузки">исключён как наш</span>`; }
     else if(s.pages_total>0){ dl=`${s.pages_ok||0}/${s.pages_total}`; if((s.pages_ok||0)<s.pages_total && s.page_error) dl+=' '+errCell(s.page_error); if((s.pages_missing|0)>0) dl+=' '+errCell('нет файла на диске: '+s.pages_missing+' — докачайте'); }
@@ -758,6 +761,9 @@ function renderResults(sites){
     if(exp) row += detailRowHtml(s);
     return row;
   }).join('');
+  // Таблицу перерисовываем только когда она изменилась: опрос идёт каждые 1,5 с, а пересборка тысяч строк
+  // с превью на каждый опрос делала панель вялой.
+  if(tableHtml!==lastTableHtml){ tb.innerHTML=tableHtml; lastTableHtml=tableHtml; }
 }
 
 async function cleanSite(host, btn){
@@ -828,6 +834,7 @@ async function refresh(){
     // Версия кода из ответа сервера: после обновления скрипта здесь должен появиться новый номер.
     if(st.version){ $('version').textContent='версия '+st.version+(st.version_date?' от '+String(st.version_date).split('-').reverse().join('.'):''); }
     renderStatus(st.status, st.running);
+    sitesCountTotal = (st.status && st.status.sites_count) || 0;
     removedHosts=new Set(st.removed||[]); [...pendingRemoved].forEach(h=>{ if(removedHosts.has(h)) pendingRemoved.delete(h); });
     renderResults(st.status && st.status.sites ? st.status.sites : []);
     pumpRetry(); // если освободились и в очереди есть докачки — запускаем следующую партию

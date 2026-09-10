@@ -332,6 +332,44 @@ final class PanelTest
         @rmdir($dir);
     }
 
+    public function testDownloadStageOpensOnlyTableSites(): void
+    {
+        // Панель присылает only — сайты, которые сейчас в таблице. Сайт, которого в таблице нет (например, сверх
+        // лимита строк), не выгружается и в итоговый sites.json не попадает; журнал говорит, что пропущено.
+        $port = FakeServer::port('local');
+        $dir = sys_get_temp_dir() . '/yandex-sites-dlonly-' . uniqid();
+        $runDir = $dir . '/runs/dlonly';
+        mkdir($runDir, 0777, true);
+        file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
+        $rows = [];
+        foreach (['okna-moskva.ru', 'tpl7.ru', 'hidden.ru'] as $i => $host) {
+            $rows[] = ['host' => $host, 'domain' => $host, 'url' => "http://$host:$port/", 'title' => 'T', 'best_query' => 'q', 'best_position' => $i + 1, 'queries_count' => 1];
+        }
+        file_put_contents($runDir . '/sites.json', json_encode(['sites' => $rows]));
+        file_put_contents($runDir . '/settings.json', json_encode([
+            'stage' => 'download',
+            'visit_driver' => 'curl',
+            'only' => ['okna-moskva.ru', 'tpl7.ru'],
+            'visit_resolve' => ["okna-moskva.ru:$port:127.0.0.1", "tpl7.ru:$port:127.0.0.1", "hidden.ru:$port:127.0.0.1"],
+        ]));
+        $run = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $run['code'], $run['out']);
+        $st = json_decode((string) file_get_contents($runDir . '/status.json'), true);
+        Assert::same('done', $st['state'], $run['out']);
+        Assert::same(2, $st['sites_count'], 'в статусе — число сайтов списка');
+        Assert::true(is_file($runDir . '/pages/okna-moskva.ru/variant-1.html') && is_file($runDir . '/pages/tpl7.ru/variant-1.html'), 'сайты из таблицы выгружены');
+        Assert::false(is_dir($runDir . '/pages/hidden.ru'), 'сайт, которого нет в таблице, не выгружался');
+        $hosts = array_map(static fn ($s) => $s['host'], json_decode((string) file_get_contents($runDir . '/sites.json'), true)['sites']);
+        Assert::same(['okna-moskva.ru', 'tpl7.ru'], $hosts, 'sites.json — ровно список таблицы');
+        Assert::contains('в таблице нет — не выгружаем (hidden.ru)', (string) file_get_contents($runDir . '/run.log'));
+
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($it as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+        @rmdir($dir);
+    }
+
     public function testRedownloadClearsPreviousPages(): void
     {
         $port = FakeServer::port('local');

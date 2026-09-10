@@ -526,6 +526,16 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `settings.top` limits the SERP to the first N results (max_position + one page).
 - When Yandex changes its SERP markup, update `Live\HtmlResponseParser` and `tests/fixtures/serp.html`
   together; `--parse-html` helps to check a saved page.
+- The download stage opens EXACTLY the sites in the panel table: `runDownload()` sends `only` = the hosts
+  currently visible (not removed) alongside `exclude_hosts`, and `bin/run-job.php` restricts `loadSites()` to
+  that list (a host in `sites.json` but not in `only` is logged as «в таблице нет — не выгружаем» and dropped
+  from the rewritten `sites.json`, like an excluded one). The table used to be capped at 1000 rows
+  (`previewSites()`/`SiteRows::preview()`), so sites beyond the cap were invisible, untouched by the type
+  filter and still downloaded («выкачиваются сайты, которых не видно в таблице»); the cap is now
+  `SiteRows::ROW_LIMIT` (5000), every status carries `sites_count` and the panel says «показаны первые N из
+  M» when truncated. `renderResults()` rebuilds the `<tbody>` only when its HTML changed (`lastTableHtml`) —
+  thousands of rows re-rendered every 1.5 s poll made the panel sluggish. Retries (`retry_hosts`) are
+  unchanged. Covered by `PanelTest::testDownloadStageOpensOnlyTableSites`.
 - `Cli\Application::VERSION` / `VERSION_DATE` are the only version markers and the user's way to verify an
   update (they run `setup.php --update`, which downloads the branch zip, so there is no git metadata on their
   machine): BUMP BOTH in every user-facing change. `setup.php --update` prints «версия X от DD.MM.YYYY» (parsed

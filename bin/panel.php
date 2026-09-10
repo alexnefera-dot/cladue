@@ -268,6 +268,7 @@ if ($path === '/api/state') {
         if ($rows !== []) {
             $status = is_array($status) ? $status : ['state' => 'idle', 'phase' => 'idle'];
             $status['sites'] = $rows;
+            $status['sites_count'] = count($sites);
             $status['sites_from_file'] = true;
             if ($stale) {
                 writeJsonFile($statusFile, $status); // следующий опрос уже видит типы и ничего не пересобирает

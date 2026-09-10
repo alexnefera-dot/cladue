@@ -16,6 +16,13 @@ use YandexSites\Visit\SiteTemplate;
  */
 final class SiteRows
 {
+    /**
+     * Сколько сайтов попадает в таблицу панели (status.json / ответ /api/state). Раньше было 1000: сайты сверх
+     * лимита в таблице не показывались, но выгрузка брала их из sites.json — «качаются сайты, которых не видно».
+     * Теперь выгрузка идёт строго по списку из таблицы (only), а лимит — лишь защита от гигантского статуса.
+     */
+    public const ROW_LIMIT = 5000;
+
     /** Сколько байт сохранённой страницы читать при досчёте типа вёрстки (страницы и так обрезаны visit.max_bytes). */
     private const MAX_HTML_BYTES = 2 * 1024 * 1024;
     /**
@@ -97,7 +104,7 @@ final class SiteRows
      * @param array<int|string, Site> $sites
      * @return list<array<string, mixed>>
      */
-    public static function preview(array $sites, string $runDir = '', int $limit = 1000): array
+    public static function preview(array $sites, string $runDir = '', int $limit = self::ROW_LIMIT): array
     {
         $rel = static function (string $abs) use ($runDir): string {
             $prefix = rtrim($runDir, '/\\') . '/';

@@ -34,13 +34,13 @@ use YandexSites\Visit\PlaywrightDriver;
  */
 final class Application
 {
-    public const VERSION = '1.3.0';
+    public const VERSION = '1.3.1';
 
     /**
      * Дата кода этой версии (ГГГГ-ММ-ДД). Панель показывает её в шапке, setup.php --update печатает после
      * обновления, --version — в консоли: по ней видно, что стоит именно новая сборка. Менять вместе с VERSION.
      */
-    public const VERSION_DATE = '2026-09-09';
+    public const VERSION_DATE = '2026-09-10';
 
     /** Опции, принимающие значение (остальные — флаги). */
     private const VALUE_OPTIONS = ['queries', 'query', 'config', 'out', 'pages', 'region', 'groups', 'limit', 'delay', 'source', 'xmlstock-mode', 'proxies', 'proxy', 'parse-html', 'visit-driver', 'variants', 'user-agent', 'save-html'];
