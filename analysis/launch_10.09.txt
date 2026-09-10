@@ -1,6 +1,37 @@
-# День 10.09.2026 — 3 домена, одна группа
+# День 10.09.2026 — 28 доменов зарегистрировано, три группы (NEW102 без дат: не хватает _1…_35)
 
 ## nabory470472_styled_img_1…_3 — id 1859-1861, создан 13:41, все .team
 75casino.team
 d6t5.team
 u1y1.team
+
+## NEW102оформленобездаты_36…_42 — id 1897-1903, создан 18:27
+# ПРИМЕЧАНИЕ: ветка — 42 домена, id 1862-1903. Не хватает _1…_35, id 1862-1896.
+1009r.casino
+casino1009s.casino
+1009d.casino
+1009ds.casino
+casino1009.casino
+1109g.casino
+1109ss.casino
+
+## NEW102оформленосдатой_1…_18 — id 1904-1921, создан 18:28
+# ПРИМЕЧАНИЕ: верхняя граница ветки неизвестна, суффиксы могут идти дальше _18.
+1109casino.casino
+bwzs.casino
+1109r.casino
+1109sh.casino
+1009casino.casino
+1109h.casino
+casino1109.casino
+ywm.lol
+9903.team
+2835.lol
+2334.team
+3745.team
+casino604.team
+k8z.team
+0572.team
+casinoj3.lol
+casino82.team
+2129.lol

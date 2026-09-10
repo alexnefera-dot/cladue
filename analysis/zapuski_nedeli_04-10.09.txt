@@ -783,7 +783,7 @@
     9147.team
 
 ========================================================================
-10.09.2026 — 3 домена, 1 группа   [.team 3]
+10.09.2026 — 28 доменов, 3 группы   [.casino 14  .team 10  .lol 4]
 ========================================================================
 
 --- nabory470472_styled_img_1…_3 — id 1859-1861, создан 13:41, все .team
@@ -793,8 +793,41 @@
     d6t5.team
     u1y1.team
 
+--- NEW102оформленобездаты_36…_42 — id 1897-1903, создан 18:27
+    7 доменов: .casino 7
+
+    1009r.casino
+    casino1009s.casino
+    1009d.casino
+    1009ds.casino
+    casino1009.casino
+    1109g.casino
+    1109ss.casino
+
+--- NEW102оформленосдатой_1…_18 — id 1904-1921, создан 18:28
+    18 доменов: .casino 7  .team 7  .lol 4
+
+    1109casino.casino
+    bwzs.casino
+    1109r.casino
+    1109sh.casino
+    1009casino.casino
+    1109h.casino
+    casino1109.casino
+    ywm.lol
+    9903.team
+    2835.lol
+    2334.team
+    3745.team
+    casino604.team
+    k8z.team
+    0572.team
+    casinoj3.lol
+    casino82.team
+    2129.lol
+
 ========================================================================
-ИТОГО: 477 доменов
+ИТОГО: 502 домена
 ========================================================================
   04.09    56
   05.09    39
@@ -802,13 +835,13 @@
   07.09    83
   08.09   151
   09.09    85
-  10.09     3
+  10.09    28
 
-  зоны: .team 216   .lol 165   .buzz 55   .casino 41
+  зоны: .team 223   .lol 169   .casino 55   .buzz 55
   доменов встречается более одного раза: 0
 
 ========================================================================
-ПЛОСКИЙ СПИСОК — 477 доменов подряд
+ПЛОСКИЙ СПИСОК — 502 домена подряд
 ========================================================================
 decasino.team
 2116.team
@@ -1287,3 +1320,28 @@ mhob.team
 75casino.team
 d6t5.team
 u1y1.team
+1009r.casino
+casino1009s.casino
+1009d.casino
+1009ds.casino
+casino1009.casino
+1109g.casino
+1109ss.casino
+1109casino.casino
+bwzs.casino
+1109r.casino
+1109sh.casino
+1009casino.casino
+1109h.casino
+casino1109.casino
+ywm.lol
+9903.team
+2835.lol
+2334.team
+3745.team
+casino604.team
+k8z.team
+0572.team
+casinoj3.lol
+casino82.team
+2129.lol
