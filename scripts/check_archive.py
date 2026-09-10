@@ -36,6 +36,9 @@ TEMPLATES = {
     8:  {"pages": SET_7 + ["privacy"], "min_words": 150, "min_h2": 1},
     9:  {"pages": SET_7 + ["contacts", "privacy"], "min_words": 150, "min_h2": 1},
     10: {"pages": SET_7 + ["about", "contacts", "privacy"], "min_words": 150, "min_h2": 1},
+    # 11-стр — тот же набор, что 12-стр, но одной страницы при выкачке не хватает:
+    # какой именно, у каждого сайта своё, поэтому её ловит A4 и сайт убирается.
+    11: {"pages": SET_12, "min_words": 400, "min_h2": 2},
     12: {"pages": SET_12, "min_words": 400, "min_h2": 2},
     # 13-я страница при выкачке отсутствует — шаблон без неё, те же 12 страниц.
     13: {"pages": SET_12, "min_words": 400, "min_h2": 2},

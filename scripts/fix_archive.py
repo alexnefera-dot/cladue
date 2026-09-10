@@ -177,7 +177,7 @@ def fix_markup(raw):
             raw = raw[:a] + raw[b:]
         if лишние:
             rows.append(("лишний </%s>" % тег, "снят", "%d" % len(лишние)))
-    raw, n = re.subn(r"</?(?:meter|progress|font|center|marquee|blink)[^>]*>", "", raw)
+    raw, n = re.subn(r"</?(?:meter|progress|font|center|marquee|blink|spoiler)[^>]*>", "", raw)
     if n:
         rows.append(("лишний тег", "снят", "%d" % n))
     raw, n = re.subn(r"<h([1-6]):\s*", r"<h\1>", raw)
