@@ -472,6 +472,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 .porttable tr.parthead .pname{font:600 10.5px var(--mono);letter-spacing:1.6px;text-transform:uppercase;color:var(--green)}
 .porttable tr.parthead .pname .meta{font-weight:400;letter-spacing:0;text-transform:none;margin-left:8px}
 .porttable tr:first-child+tr.parthead td{border-top:0}
+/* Семейное вне капитала: отбито сильнее, чтобы не читалось как часть итога */
+.porttable tr.parthead.partoff td{background:var(--bg);border-top:2px solid var(--line2)}
+.porttable tr.parthead.partoff .pname{color:var(--muted)}
 .partsec{margin-top:14px}
 /* Содержание имущества в Расходах: объект и его регламент одной группой */
 .upkeep{border:1px solid var(--line);border-radius:10px;padding:6px 10px;margin:6px 0}

@@ -136,7 +136,7 @@ test('две части: шапки «АКТИВЫ»/«ПАССИВЫ» со с�
   assert.ok(/>АКТИВЫ\s/.test(html) && /ПАССИВЫ/.test(html), 'части не подписаны');
   const head = html.match(/<tr><th>Название<\/th>[\s\S]*?<\/tr>/)[0];
   const cols = (head.match(/<th/g) || []).length;
-  for (const [r] of html.matchAll(/<tr class="parthead">[\s\S]*?<\/tr>/g))
+  for (const [r] of html.matchAll(/<tr class="parthead[^"]*">[\s\S]*?<\/tr>/g))
     assert.equal((r.match(/<td/g) || []).length, cols, 'шапка части не совпала с сеткой колонок');
 });
 
@@ -154,6 +154,19 @@ test('трата вычитается из активов, а не из всег
   assert.ok(line.includes('на траты') && line.includes('50 €'), 'трата не показана');
   assert.ok(line.includes('от активов останется') && line.includes('250 €'),
     'остаток должен быть 300 − 50 по активам, а не 400 − 50 по всему капиталу');
+});
+
+test('семейное — третья часть и в капитал не входит', () => {
+  const fam = { ...SPLIT, targetPortfolio: [...SPLIT.targetPortfolio,
+    { id: 30, name: 'Общее с женой', kind: 'block', side: 'fam', eur: 250,
+      children: [leaf(31, 'Квартира', { value: 250, eur: 250, target_value: 250 })] }] };
+  const html = loadFin().secPortfolio(fam, fam.summary);
+  const heads = [...html.matchAll(/<tr class="parthead[^"]*">[\s\S]*?<\/tr>/g)].map(m => m[0]);
+  assert.equal(heads.length, 3, 'частей должно быть три');
+  assert.ok(heads[2].includes('СЕМЕЙНЫЕ') && heads[2].includes('partoff'), 'семейное не отбито от капитала');
+  assert.ok(!heads[2].includes('% капитала'), 'у семейного не должно быть доли капитала');
+  assert.ok(capLine(html).includes('цель 400 €'), 'цель капитала должна остаться 300 + 100, без семейных 250');
+  assert.ok(html.includes('data-fside="30:fam"'), 'у семейного блока нет переключателя части');
 });
 
 test('две части: доли и цели считаются внутри своей части', () => {

@@ -45,7 +45,10 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         _ = try? made.run("ALTER TABLE target_items ADD COLUMN loan_due TEXT")
         _ = try? made.run("ALTER TABLE target_moves ADD COLUMN to_note TEXT")   // перенос без получателя = трата, подпись куда
         _ = try? made.run("ALTER TABLE target_items ADD COLUMN liquid INTEGER NOT NULL DEFAULT 0")   // чем можно распоряжаться  // цель долей; заполнено одно из target_pct/target_value — оно и закреплено
-        _ = try? made.run("ALTER TABLE target_items ADD COLUMN passive INTEGER NOT NULL DEFAULT 0")   // блок верхнего уровня: 1 = пассивы (вещи, которые не зарабатывают)
+        _ = try? made.run("ALTER TABLE target_items ADD COLUMN passive INTEGER NOT NULL DEFAULT 0")   // прежний флаг: остаётся в базе как страховка
+        // Часть портфеля у блока верхнего уровня: act — работает, pas — вещи, fam — семейное
+        // (общий котёл, в капитал не входит). Прежний флаг переносим разово.
+        _ = try? made.run("ALTER TABLE target_items ADD COLUMN side TEXT NOT NULL DEFAULT 'act'")
         _ = try? made.run("ALTER TABLE target_items ADD COLUMN digest INTEGER NOT NULL DEFAULT 0")   // 🎓 позиция идёт в сведение капитала (свод по географии)
         // Правка суммы внутри свода: своё значение и то, каким было «Сейчас» в момент правки.
         // Как только «Сейчас» меняется, правка перестаёт действовать — свод берёт главную сумму.
@@ -134,6 +137,10 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         // Раздел «Имущество» убран: вещь живёт позицией в портфеле, её содержание — в расходах.
         // Регламенты разово перецепляем с объектов имущества на одноимённые позиции; сами объекты
         // (таблица properties) остаются нетронутыми — как страховка.
+        if ((try? made.rows("SELECT value FROM settings WHERE key = 'side_from_passive_v1'"))?.first?["value"]) as? String != "1" {
+            _ = try? made.run("UPDATE target_items SET side = 'pas' WHERE COALESCE(passive,0) = 1")
+            _ = try? Api.setSetting(made, "side_from_passive_v1", "1")
+        }
         if ((try? made.rows("SELECT value FROM settings WHERE key = 'props_rules_link_v1'"))?.first?["value"]) as? String != "1" {
             Api.linkPropertyRules(made)
             _ = try? Api.setSetting(made, "props_rules_link_v1", "1")
@@ -1547,12 +1554,12 @@ enum Api {
         "accounts": ["name", "type", "currency", "note", "balance"],
         "steps": ["kind", "title", "amount", "planned_date", "condition", "status", "note"],
         "obligations": ["name", "amount", "currency", "period", "next_date", "remind_days", "kind", "note", "due_time", "waiting"],
-        "items": ["name", "buy_value", "value", "target_value", "currency", "is_loan", "loan_due", "asset_type", "qty", "rate_symbol", "note", "region", "liquid", "passive", "digest", "digest_value", "digest_base"],
+        "items": ["name", "buy_value", "value", "target_value", "currency", "is_loan", "loan_due", "asset_type", "qty", "rate_symbol", "note", "region", "liquid", "passive", "side", "digest", "digest_value", "digest_base"],
         "tx": ["date", "amount", "currency", "direction", "category", "note"],
         "debts": ["name", "amount", "currency", "direction", "due_date", "note"],
         "income": ["name", "amount", "currency", "period", "next_date", "note", "principal", "rate", "rate_period", "asset_type"],
         "budget": ["name", "amount", "currency", "direction", "ord", "month"],
-        "tgt": ["name", "value", "buy_value", "target_value", "target_pct", "currency", "asset_type", "qty", "rate_symbol", "note", "kind", "region", "liquid", "passive", "digest", "digest_value", "digest_base"],
+        "tgt": ["name", "value", "buy_value", "target_value", "target_pct", "currency", "asset_type", "qty", "rate_symbol", "note", "kind", "region", "liquid", "passive", "side", "digest", "digest_value", "digest_base"],
         "move": ["from_id", "to_id", "amount", "to_note"],
         "hist": ["name", "amount", "currency", "note", "excluded", "parent_id", "ord"]]
     // как называть сущность в подписи «отменить: удаление счёта «Revolut»»
@@ -1647,8 +1654,8 @@ enum Api {
     static func pinPlansAsMoney(_ db: Database, blockId: Int) throws {
         let tree = try portfolioTree(db)
         guard let block = tree.first(where: { intval($0["id"]) == blockId }) else { return }   // не корневой блок — частей не касается
-        let side = intval(block["passive"])
-        let base = tree.filter { intval($0["passive"]) == side }.reduce(0.0) { $0 + ($1["eur"] as? Double ?? 0) }
+        let side = block["side"] as? String ?? "act"
+        let base = tree.filter { ($0["side"] as? String ?? "act") == side }.reduce(0.0) { $0 + ($1["eur"] as? Double ?? 0) }
         guard base > 0 else { return }
         let rate = try eurUsdRate(db)
         func walk(_ n: [String: Any]) throws {
@@ -1688,7 +1695,7 @@ enum Api {
                     _ = try? db.run("UPDATE target_items SET digest_value = NULL, digest_base = NULL WHERE id = ?", [id])
                 }
                 // до смены части: доли целей закрепляем суммой по текущему тоталу своей части
-                if table == "target_items", body["passive"] != nil { try? pinPlansAsMoney(db, blockId: id) }
+                if table == "target_items", body["side"] != nil { try? pinPlansAsMoney(db, blockId: id) }
                 try patchCols(db, table, id, finCols[entity] ?? [], body)
                 if body["value"] != nil, body["qty"] == nil, body["rate_symbol"] == nil { try syncQtyFromValue(db, table, id) }
                 return (ok(), 200)
@@ -1800,8 +1807,10 @@ enum Api {
         case "tgt":
             let parent = numOpt(b["parent_id"]).map { Int($0) }
             let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM target_items WHERE parent_id IS ?", [parent]).first?["o"]))
-            try db.run("INSERT INTO target_items(parent_id, ord, name, kind, value, currency, asset_type, passive) VALUES(?,?,?,?,?,?,?,?)",
-                [parent, ord, b["name"] as? String ?? "", b["kind"] as? String ?? "asset", b["value"] ?? NSNull(), b["currency"] as? String ?? "€", b["asset_type"] ?? NSNull(), intval(b["passive"] ?? 0)])
+            let sides = ["act", "pas", "fam"]
+            let side = sides.contains(b["side"] as? String ?? "") ? (b["side"] as! String) : "act"
+            try db.run("INSERT INTO target_items(parent_id, ord, name, kind, value, currency, asset_type, side) VALUES(?,?,?,?,?,?,?,?)",
+                [parent, ord, b["name"] as? String ?? "", b["kind"] as? String ?? "asset", b["value"] ?? NSNull(), b["currency"] as? String ?? "€", b["asset_type"] ?? NSNull(), side])
         case "hist":
             let parent = numOpt(b["parent_id"]).map { Int($0) }
             let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM history_rows WHERE parent_id IS ?", [parent]).first?["o"]))
@@ -2700,18 +2709,22 @@ enum Api {
             accounts[i]["stale_days"] = bu.flatMap { dayDiff($0, t) }.map { Int(floor($0)) } ?? 0
         }
         let portfolio = try portfolioTree(db, "target_items")   // одно дерево на обе вкладки: факт и цель — разные колонки над ним
-        let portfolioTotal = portfolio.reduce(0.0) { $0 + ($1["eur"] as? Double ?? 0) }
+        func sideOf(_ r: [String: Any]) -> String { r["side"] as? String ?? "act" }
+        // Семейное — общий котёл, он не мой капитал: в портфельные итоги не входит вовсе.
+        let mine = portfolio.filter { sideOf($0) != "fam" }
+        let portfolioTotal = mine.reduce(0.0) { $0 + ($1["eur"] as? Double ?? 0) }
+        let familyTotal = portfolio.filter { sideOf($0) == "fam" }.reduce(0.0) { $0 + ($1["eur"] as? Double ?? 0) }
         // Активы — то, что работает. Пассивы (машина, техника) в капитал входят, но не растут
         // под доходность, поэтому FIRE считается только от активов.
-        let activeTotal = portfolio.filter { intval($0["passive"]) == 0 }
+        let activeTotal = portfolio.filter { sideOf($0) == "act" }
             .reduce(0.0) { $0 + ($1["eur"] as? Double ?? 0) }
         let portfolioTotalUsd = portfolioTotal * rate
-        let invested = portfolio.reduce(0.0) { $0 + ($1["invested"] as? Double ?? 0) }
+        let invested = mine.reduce(0.0) { $0 + ($1["invested"] as? Double ?? 0) }
         // «внесено» пишем по активам: вопрос «сколько заработано, а сколько донёс» — про них,
         // у вещей цены покупки обычно нет и переоценки тоже
-        let investedActive = portfolio.filter { intval($0["passive"]) == 0 }
+        let investedActive = portfolio.filter { sideOf($0) == "act" }
             .reduce(0.0) { $0 + ($1["invested"] as? Double ?? 0) }
-        let investedCur = portfolio.reduce(0.0) { $0 + ($1["investedCur"] as? Double ?? 0) }
+        let investedCur = mine.reduce(0.0) { $0 + ($1["investedCur"] as? Double ?? 0) }
         // снимок за день: последняя запись дня побеждает — иначе позиция, заведённая после
         // первого открытия, попадала бы в историю только назавтра
         _ = try? db.run("""
@@ -2811,7 +2824,7 @@ enum Api {
         let summary: [String: Any] = [
             "accountsByCurrency": byCur,
             "portfolioTotal": portfolioTotal, "portfolioTotalUsd": portfolioTotalUsd, "rate": rate,
-            "activeTotal": activeTotal, "passiveTotal": portfolioTotal - activeTotal,
+            "activeTotal": activeTotal, "passiveTotal": portfolioTotal - activeTotal, "familyTotal": familyTotal,
             "growth": growth, "monthlyObligations": monthlyObligations,
             "monthlyIncome": monthlyIncome, "upcoming": upcoming,
         ]
