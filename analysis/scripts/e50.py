@@ -1,7 +1,7 @@
 # Разбор последней выгрузки конверсий: только её события, три разреза и полный список.
 import json,collections,re,datetime as dt
 SP='/tmp/claude-0/-home-user-cladue/7a7c5bac-d634-59c6-bc3f-c4e28ea7944c/scratchpad/'
-BAD={'yandex.ru','','—','ru.search.yahoo.com','alice.yandex.ru','youtube.com'}
+BAD={'yandex.ru','','—','ru.search.yahoo.com','alice.yandex.ru','youtube.com','ya.ru','google.com','yahoo.com','yandex.kz','yandex.by','yandex.uz'}
 RAW=json.load(open(SP+'conv8.json'))
 M=json.load(open(SP+'dommap.json'))
 # реестр запусков точнее общей карты: там ветка названа полностью (7/12 стр, даты).

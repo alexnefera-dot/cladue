@@ -7,9 +7,9 @@ db=json.load(open(SP+'db.json'))
 SN=json.load(open(SP+'snapr.json')); QD=SN['qd']
 reg=collections.Counter(e['dom'] for e in EV if e['type']=='reg')
 dep=collections.Counter(e['dom'] for e in EV if e['type']=='dep')
-TODAY=dt.date(2026,9,7)
+TODAY=dt.date(2026,9,11)
 CURVE=[0,18,49,75,90,95,99]          # накопленный % заработка к концу N-х суток
-DATA0=dt.date(2026,8,21)             # первый день, покрытый выгрузкой конверсий
+DATA0=dt.date(2026,8,12)   # выгрузка от 11.09 начинается 12.08 — усечения слева больше нет             # первый день, покрытый выгрузкой конверсий
 
 DAY={}; GRP={}; POS={}; SRC={}
 def bucket(src,group=''):
