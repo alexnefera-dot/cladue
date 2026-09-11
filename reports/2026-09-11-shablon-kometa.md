@@ -8,32 +8,34 @@
 |---|---:|
 | бренд (рус) | 5140 |
 | домен | 2079 |
+| даты | 1716 |
 | папка картинок | 513 |
 | кнопки регистрации и входа | 391 |
 | бренд (лат) | 389 |
 | путь /ru/ru/… | 312 |
-| метрика снята | 96 |
+| метрика снята | 120 |
 | счётчик метрики | 48 |
 | ссылки без домена | 39 |
+| ссылки в скриптах | 24 |
+| картинки слотов | 21 |
 | карта сайта | 14 |
-| картинки слотов | 12 |
 
 ## По страницам
 
 | Страница | Замен | Осталось от чужого |
 |---|---:|---:|
-| app.html | 816 | 0 |
-| bonus.html | 835 | 0 |
-| info.html | 822 | 0 |
-| main.html | 92 | 0 |
-| news.html | 804 | 0 |
-| obzor.html | 799 | 0 |
-| partnery.html | 799 | 0 |
-| promo.html | 810 | 0 |
-| registracia.html | 825 | 0 |
-| slots.html | 808 | 0 |
-| vhod.html | 803 | 0 |
-| zerkalo.html | 820 | 0 |
+| app.html | 968 | 0 |
+| bonus.html | 988 | 0 |
+| info.html | 968 | 0 |
+| main.html | 238 | 0 |
+| news.html | 951 | 0 |
+| obzor.html | 945 | 0 |
+| partnery.html | 945 | 0 |
+| promo.html | 956 | 0 |
+| registracia.html | 972 | 0 |
+| slots.html | 955 | 0 |
+| vhod.html | 950 | 0 |
+| zerkalo.html | 970 | 0 |
 
 ## Ссылки на чужие домены
 
@@ -75,3 +77,15 @@
 - `tableau.json`
 - `xmlrpc.php`
 - `search`
+
+## Что осталось разработчику
+
+- Коды верификации: `your_yandex_verification_code`, `your_google_verification_code`.
+- Файлы движка: `styles.php` (весь CSS), `manifest.json`, `rss.xml`, `atom.xml`, `tableau.json`, `xmlrpc.php`, `/search?q=`.
+- Разделы `/igrat`, `/online`, `/reviews` — завести или переклеить на существующие.
+- `hreflang` со слэшем на конце, `canonical` без — привести к одному виду.
+- У событий `startDate` и `endDate` после подстановки дат совпадают: если движок умеет сдвиг, конец сдвинуть на длину акции.
+
+Даты с числом заменены на `%date%` (1716 штук): `datePublished`, `dateModified`, `startDate`, `endDate`,
+`uploadDate`, `priceValidUntil`, `validFrom`, `validThrough`, `og:updated_time`, `article:published_time`,
+`article:modified_time`, `DC.date` и одна дата в тексте новостей. Год основания `2020` без числа оставлен.
