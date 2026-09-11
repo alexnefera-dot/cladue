@@ -25,6 +25,13 @@
  *   высота     — max-height ведущей картинки, px
  *   сдвигТона  — сдвиг оттенка рисованных картинок
  *   интеграция — 'инлайн' (style= у каждого элемента) | 'style' (классы и один <style> на страницу)
+ *   текст      — цвет основного текста; шрифт — стек шрифтов; размер — кегль абзаца, px
+ *
+ * Хост всегда тёмный: фон блоков только полупрозрачный (просвечивает сайт),
+ * текст светлый и задан жёстко на каждом элементе — шаблон сайта ничего не
+ * наследует нам. Тёмные акценты (#1d3557 и подобные) на тёмном фоне не
+ * читаются, поэтому акцент осветляется до читаемой яркости (`акцентИсходный`
+ * хранит цвет темы как есть).
  */
 function v5Tema(int $n): array
 {
@@ -32,7 +39,9 @@ function v5Tema(int $n): array
         'акцент' => '#f5b52a', 'акцентТекст' => '#15161c', 'радиус' => 1.0, 'пилюля' => true, 'тень' => '',
         'кнопка' => 'сплошная', 'заголовок' => 'чистый', 'список' => 'точка', 'строка' => '1.6',
         'картинка' => 'полоса', 'высота' => 320, 'сдвигТона' => 0, 'интеграция' => 'инлайн',
-        'плюс' => '#4fbe86', 'минус' => '#f0685a'];
+        'плюс' => '#4fbe86', 'минус' => '#f0685a',
+        'текст' => '#e9ebf2', 'размер' => 16,
+        'шрифт' => "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif"];
     $темы = [
         1  => ['имя' => 'янтарь',      'тон' => [160, 138, 100], 'а1' => .09, 'а2' => .15, 'кант' => 'solid 1px', 'акцент' => '#f0a020', 'радиус' => 1.0, 'пилюля' => true,  'тень' => '', 'кнопка' => 'сплошная', 'заголовок' => 'подчерк', 'список' => 'стрелка', 'строка' => '1.65', 'картинка' => 'обтекание', 'высота' => 300, 'сдвигТона' => 12, 'интеграция' => 'инлайн'],
         2  => ['имя' => 'изумруд',     'тон' => [100, 160, 130], 'а1' => .10, 'а2' => .18, 'кант' => 'solid 2px', 'акцент' => '#2fd0a5', 'радиус' => .4,  'пилюля' => false, 'тень' => 'box-shadow:0 8px 22px rgba(0,0,0,.14)', 'кнопка' => 'контур', 'заголовок' => 'капс', 'список' => 'квадрат', 'строка' => '1.7', 'картинка' => 'сплит', 'высота' => 340, 'сдвигТона' => -40, 'интеграция' => 'style'],
@@ -156,18 +165,25 @@ function v5Tema(int $n): array
     $т = array_merge($база, $темы[$n] ?? []);
     $т['номер'] = $n;
     [$r, $g, $b] = $т['тон'];
-    $т['подложка']  = "rgba($r,$g,$b," . $т['а1'] . ')';
-    $т['подложка2'] = "rgba($r,$g,$b," . $т['а2'] . ')';
+    // Подложки прозрачнее на четверть: фон сайта должен просвечивать, блок —
+    // лишь чуть отделяться от него. Кант остаётся прежней плотности.
+    $а1 = round($т['а1'] * .75, 3); $а2 = round($т['а2'] * .75, 3);
+    $т['подложка']  = "rgba($r,$g,$b,$а1)";
+    $т['подложка2'] = "rgba($r,$g,$b,$а2)";
     $т['линия']     = "rgba($r,$g,$b,.20)";
     if ($т['кант'] === 'none') {
         // без канта заливка карточек гуще, иначе они сливаются с фоном
-        $т['подложка']  = "rgba($r,$g,$b," . ($т['а1'] + .06) . ')';
-        $т['подложка2'] = "rgba($r,$g,$b," . ($т['а2'] + .06) . ')';
+        $т['подложка']  = "rgba($r,$g,$b," . ($а1 + .05) . ')';
+        $т['подложка2'] = "rgba($r,$g,$b," . ($а2 + .05) . ')';
         $т['кантCSS'] = '1px solid transparent';
     } else {
         [$стиль, $ширина] = explode(' ', $т['кант']);
         $т['кантCSS'] = "$ширина $стиль rgba($r,$g,$b," . $т['кантА'] . ')';
     }
+    // Акцент обязан читаться на тёмном: как текст ссылки, как сумма, как кант кнопки.
+    $т['акцентИсходный'] = $т['акцент'];
+    $т['акцент'] = v5TemaChitaemyAkcent($т['акцент']);
+    if ($т['акцент'] !== $т['акцентИсходный']) { $т['акцентТекст'] = '#15161c'; }
     $т['тревога'] = 'rgba(240,90,90,.12)'; $т['успех'] = 'rgba(80,190,130,.12)';
     $т['маркер'] = ['точка' => 'disc', 'стрелка' => "'▸  '", 'квадрат' => 'square', 'тире' => "'—  '", 'ромб' => "'◆  '", 'галка' => "'✓  '", 'звезда' => "'★  '"][$т['список']] ?? 'disc';
     return $т;
@@ -202,7 +218,8 @@ function v5TemaZagolovok(array $т, string $тег): string
 {
     $а = $т['акцент'];
     $h2 = $тег === 'h2';
-    return match ($т['заголовок']) {
+    // шрифт, цвет и жирность — жёстко; вариант «тонкий» ниже перебивает жирность
+    return 'font-family:' . $т['шрифт'] . ';color:' . $т['текст'] . ';font-weight:700;text-align:left;text-transform:none;' . match ($т['заголовок']) {
         'капс'    => $h2 ? 'margin:30px 0 12px;font-size:20px;letter-spacing:.08em;text-transform:uppercase;line-height:1.3' : 'margin:22px 0 10px;font-size:15px;letter-spacing:.06em;text-transform:uppercase;line-height:1.3;opacity:.92',
         'подчерк' => $h2 ? 'margin:28px 0 12px;padding:0 0 8px;border-bottom:2px solid ' . $а . ';font-size:24px;line-height:1.25' : 'margin:22px 0 10px;font-size:19px;line-height:1.3',
         'полоса'  => $h2 ? 'margin:28px 0 12px;padding:2px 0 2px 14px;border-left:5px solid ' . $а . ';font-size:24px;line-height:1.25' : 'margin:22px 0 10px;padding-left:14px;border-left:3px solid ' . $т['линия'] . ';font-size:19px;line-height:1.3',
@@ -210,4 +227,100 @@ function v5TemaZagolovok(array $т, string $тег): string
         'рамка'   => $h2 ? 'margin:30px 0 14px;padding:8px 14px;background:' . $т['подложка2'] . ';border-radius:' . (int) round(10 * $т['радиус']) . 'px;font-size:22px;line-height:1.3' : 'margin:22px 0 10px;padding:4px 10px;background:' . $т['подложка'] . ';border-radius:' . (int) round(8 * $т['радиус']) . 'px;font-size:18px;line-height:1.3',
         default   => $h2 ? 'margin:28px 0 12px;font-size:24px;line-height:1.25' : 'margin:22px 0 10px;font-size:19px;line-height:1.3',
     };
+}
+
+/* ───────────────── жёсткая база текста: без наследования от шаблона ───────────────── */
+
+/** Относительная яркость цвета #rrggbb (0 — чёрный, 1 — белый). */
+function v5TemaYarkost(string $hex): float
+{
+    $h = ltrim($hex, '#');
+    if (strlen($h) === 3) { $h = $h[0] . $h[0] . $h[1] . $h[1] . $h[2] . $h[2]; }
+    $к = [];
+    foreach ([0, 2, 4] as $i) {
+        $v = hexdec(substr($h, $i, 2)) / 255;
+        $к[] = $v <= .03928 ? $v / 12.92 : (($v + .055) / 1.055) ** 2.4;
+    }
+    return .2126 * $к[0] + .7152 * $к[1] + .0722 * $к[2];
+}
+
+/** Тот же оттенок и насыщенность, светлота поднята до заданной (0…1, HSL). */
+function v5TemaSvetlee(string $hex, float $светлота): string
+{
+    $h = ltrim($hex, '#');
+    if (strlen($h) === 3) { $h = $h[0] . $h[0] . $h[1] . $h[1] . $h[2] . $h[2]; }
+    $r = hexdec(substr($h, 0, 2)) / 255; $g = hexdec(substr($h, 2, 2)) / 255; $b = hexdec(substr($h, 4, 2)) / 255;
+    $max = max($r, $g, $b); $min = min($r, $g, $b); $l = ($max + $min) / 2; $d = $max - $min;
+    if ($d == 0) { $hue = 0; $s = 0; }
+    else {
+        $s = $d / (1 - abs(2 * $l - 1));
+        $hue = match ($max) {
+            $r => fmod(($g - $b) / $d, 6),
+            $g => ($b - $r) / $d + 2,
+            default => ($r - $g) / $d + 4,
+        } * 60;
+        if ($hue < 0) { $hue += 360; }
+    }
+    $l = max($l, $светлота);
+    $c = (1 - abs(2 * $l - 1)) * $s; $x = $c * (1 - abs(fmod($hue / 60, 2) - 1)); $m = $l - $c / 2;
+    [$r1, $g1, $b1] = match (true) {
+        $hue < 60  => [$c, $x, 0], $hue < 120 => [$x, $c, 0], $hue < 180 => [0, $c, $x],
+        $hue < 240 => [0, $x, $c], $hue < 300 => [$x, 0, $c], default => [$c, 0, $x],
+    };
+    $out = '#';
+    foreach ([$r1, $g1, $b1] as $v) { $out .= str_pad(dechex((int) round(($v + $m) * 255)), 2, '0', STR_PAD_LEFT); }
+    return $out;
+}
+
+/**
+ * Акцент, читаемый на тёмном фоне. Яркость ниже .20 (контраст к #15171f меньше
+ * 4.5:1) — поднимаем светлоту шагами по 2 %, пока яркость не дойдёт до .30,
+ * оттенок и насыщенность остаются темы. Светлые акценты возвращаются как есть.
+ */
+function v5TemaChitaemyAkcent(string $hex): string
+{
+    if (!preg_match('~^#[0-9a-fA-F]{6}$~', $hex) || v5TemaYarkost($hex) >= .20) { return $hex; }
+    $цвет = $hex;
+    for ($л = .30; $л <= .90 && v5TemaYarkost($цвет) < .30; $л += .02) {
+        $цвет = v5TemaSvetlee($hex, $л);
+    }
+    return $цвет;
+}
+
+/** Шрифт, кегль и цвет текста — жёстко, чтобы шаблон сайта не подменил их. */
+function v5TemaShrift(array $т, int $кегль = 0): string
+{
+    return 'font-family:' . $т['шрифт'] . ';font-size:' . ($кегль ?: $т['размер']) . 'px;color:' . $т['текст'];
+}
+
+/** Ссылка в тексте: цвет акцента, без подчёркивания и без линий шаблона. */
+function v5TemaSsylka(array $т): string
+{
+    return 'color:' . $т['акцент'] . ';text-decoration:none;border-bottom:0;box-shadow:none;background:none;font-weight:600';
+}
+
+/**
+ * Последний проход по строке: элементы без style= получают жёсткий сброс, чтобы
+ * ни `a`, ни `strong`, ни `span` не взяли ничего из таблиц стилей сайта.
+ * Ссылки — стиль ссылки, выделения — жирность, курсив — наклон, остальное
+ * наследует от нашего же контейнера (inherit тянет из инлайна родителя, а
+ * инлайн бьёт любой селектор шаблона).
+ */
+function v5ZhyostkoStroka(string $л, array $т, int &$правил): string
+{
+    if (strpos($л, '<') === false) { return $л; }
+    return (string) preg_replace_callback('~<(a|strong|b|em|i|span|li|figcaption|time|cite|label|small)\b((?:[^<>"]|"[^"]*")*)>~',
+        function ($m) use ($т, &$правил) {
+            if (stripos($m[2], 'style=') !== false) { return $m[0]; }
+            $тег = strtolower($m[1]);
+            $стиль = match ($тег) {
+                'a'         => strpos($m[2], 'href=') !== false ? v5TemaSsylka($т) . ';font-family:inherit;font-size:inherit' : 'color:inherit;font-family:inherit;font-size:inherit;text-decoration:none',
+                'strong','b' => 'font-weight:700;color:inherit;font-family:inherit;font-size:inherit',
+                'em','i'    => 'font-style:italic;color:inherit;font-family:inherit;font-size:inherit',
+                'small'     => 'font-size:85%;color:inherit;font-family:inherit',
+                default     => 'color:inherit;font-family:inherit;font-size:inherit;line-height:inherit',
+            };
+            $правил++;
+            return '<' . $m[1] . $m[2] . ' style="' . $стиль . '">';
+        }, $л);
 }

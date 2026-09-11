@@ -1055,7 +1055,7 @@ function вшить(string $файл, string $страница, string $alt, boo
     if (strpos($html, $имя) !== false) return 0;
     $оформление = $безСтилей
         ? ' style="max-width:100%;height:auto"'
-        : ' style="display:block;width:100%;max-height:320px;object-fit:cover;margin:0 0 20px;border-radius:14px"';
+        : ' style="display:block;width:100%;max-width:100%;max-height:320px;object-fit:cover;margin:0 0 20px;border-radius:14px"';
     $тег = '<img src="' . $имя . '" alt="' . htmlspecialchars($alt, ENT_QUOTES, 'UTF-8')
          . '" width="1200" height="630" loading="lazy"'
          . $оформление . '>';
@@ -1076,7 +1076,8 @@ function вшитьПоТеме(string $файл, string $страница, stri
     $тень = $Т['тень'] !== '' ? ';' . $Т['тень'] : '';
     $altH = htmlspecialchars($alt, ENT_QUOTES, 'UTF-8');
     $img = function (string $стиль) use ($имя, $altH): string {
-        return '<img src="' . $имя . '" alt="' . $altH . '" width="1200" height="630" loading="lazy" style="' . $стиль . '">';
+        // max-width:100% — шаблон сайта не сожмёт картинку своим img{max-width}
+        return '<img src="' . $имя . '" alt="' . $altH . '" width="1200" height="630" loading="lazy" style="max-width:100%;' . $стиль . '">';
     };
     $строки = explode("\n", $html);
     $способ = $Т['картинка'];
@@ -1092,7 +1093,8 @@ function вшитьПоТеме(string $файл, string $страница, stri
         case 'слева':
             $i = $первая('~^<(?:p|h2)>\s*$~') ?? 0;
             $ф = $способ === 'слева' ? 'float:left;margin:4px 22px 12px 0' : 'float:right;margin:4px 0 12px 22px';
-            $вставить($i, [$img($ф . ';width:42%;max-width:440px;height:auto;border-radius:' . $р . 'px' . $тень)]);
+            // min-width: в узкой колонке картинка не сжимается в марку, а уходит на всю ширину строки
+            $вставить($i, [$img($ф . ';width:42%;min-width:180px;max-width:100%;height:auto;border-radius:' . $р . 'px' . $тень)]);
             $строки[] = '<div style="clear:both"></div>';
             break;
         case 'подзаголовком':
@@ -1110,7 +1112,7 @@ function вшитьПоТеме(string $файл, string $страница, stri
             array_splice($строки, $i, 3, [
                 '<div style="display:flex;flex-wrap:wrap;gap:22px;align-items:center;margin:0 0 22px">',
                 '  ' . $img('flex:1 1 320px;min-width:0;width:100%;max-width:560px;height:auto;border-radius:' . $р . 'px' . $тень),
-                '  <p style="flex:1 1 280px;margin:0;line-height:' . $Т['строка'] . '">',
+                '  <p style="' . v5TemaShrift($Т) . ';font-weight:400;text-align:left;flex:1 1 280px;min-width:0;margin:0;line-height:' . $Т['строка'] . '">',
                 '  ' . trim($абзац),
                 '  </p>',
                 '</div>']);
@@ -1118,7 +1120,7 @@ function вшитьПоТеме(string $файл, string $страница, stri
         case 'фигура':
             $вставить(0, ['<figure style="margin:0 0 22px">',
                 '  ' . $img('display:block;width:100%;max-height:' . $Т['высота'] . 'px;object-fit:cover;border-radius:' . $р . 'px;border:' . $Т['кантCSS'] . $тень),
-                '  <figcaption style="font-size:13px;opacity:.78;margin-top:8px;text-align:center">' . $altH . '</figcaption>',
+                '  <figcaption style="' . v5TemaShrift($Т, 13) . ';opacity:.78;margin-top:8px;text-align:center">' . $altH . '</figcaption>',
                 '</figure>']);
             break;
         case 'карточка':
@@ -1139,7 +1141,7 @@ function вшитьПоТеме(string $файл, string $страница, stri
             // подпись лентой поверх нижнего края картинки
             $вставить(0, ['<div style="position:relative;overflow:hidden;border-radius:' . $р . 'px;margin:0 0 22px' . $тень . '">',
                 '  ' . $img('display:block;width:100%;max-height:' . $Т['высота'] . 'px;object-fit:cover'),
-                '  <div style="position:absolute;left:0;right:0;bottom:0;padding:10px 16px;background:linear-gradient(transparent,rgba(0,0,0,.72));color:#fff;font-size:14px;line-height:1.3"><span style="display:inline-block;padding:2px 10px;background:' . $Т['акцент'] . ';color:' . $Т['акцентТекст'] . ';border-radius:' . ($Т['пилюля'] ? '999px' : '4px') . ';font-weight:600;margin-right:8px">' . htmlspecialchars($страница === 'main' ? 'Обзор' : ucfirst($страница), ENT_QUOTES, 'UTF-8') . '</span>' . $altH . '</div>',
+                '  <div style="position:absolute;left:0;right:0;bottom:0;padding:10px 16px;background:linear-gradient(transparent,rgba(0,0,0,.72));color:#fff;font-family:' . $Т['шрифт'] . ';font-size:14px;line-height:1.3"><span style="display:inline-block;padding:2px 10px;background:' . $Т['акцент'] . ';color:' . $Т['акцентТекст'] . ';border-radius:' . ($Т['пилюля'] ? '999px' : '4px') . ';font-weight:600;margin-right:8px">' . htmlspecialchars($страница === 'main' ? 'Обзор' : ucfirst($страница), ENT_QUOTES, 'UTF-8') . '</span>' . $altH . '</div>',
                 '</div>']);
             break;
         case 'широкая':
@@ -1229,7 +1231,7 @@ function вшитьОбложку(string $файл, string $страница, ar
             $alt = htmlspecialchars($жанры[$n % count($жанры)], ENT_QUOTES, 'UTF-8');
             $итог[] = $отступ . '<img src="' . $имяФайла . '" alt="' . $alt
                     . '" width="640" height="480" loading="lazy" style="'
-                    . ($безСтилей ? 'max-width:100%;height:auto' : 'display:block;width:100%;height:auto')
+                    . ($безСтилей ? 'max-width:100%;height:auto' : 'display:block;width:100%;max-width:100%;height:auto')
                     . '">';
             $n++;
         }
