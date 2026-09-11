@@ -97,27 +97,13 @@ def правила(html, счёт, слоты, вход):
     счёт["картинки слотов"] += n
     html, n = re.subn(r'\\/slots\\/(\d+\.jpg)', slots_путь(слоты).replace("/", "\\/") + r"\1", html)
     счёт["картинки слотов"] += n
-    # utm-хвосты — метки чужой кампании, внутренним ссылкам они не нужны
-    html, n = re.subn(r'\?utm_[^"\'<>\s\\]*', "", html)
-    счёт["utm-хвосты сняты"] += n
-    html, n = re.subn(r'\?utm_[^"\\]*(?=")', "", html)
-    счёт["utm-хвосты сняты"] += n
-    # регистрация и вход ведут на одну страницу движка; canonical, hreflang и @id
-    # не трогаем — они называют саму страницу, а не цель ссылки
-    цель = r'/(?:registracia|vhod)(?:/|#[\w-]*)?'
+    # Кнопки и текстовые ссылки на регистрацию и вход — это переходы наружу (301),
+    # а не наши страницы: им нужна одна страница движка, utm-хвост там не нужен.
+    # Служебные ссылки — prefetch, схемы, og:see_also, canonical, hreflang — называют
+    # саму страницу и остаются как были.
+    цель = r'/(?:registracia|vhod)(?:/|\?[^"\'<>\s\\]*|#[\w-]*)?'
     html, n = re.subn(r'(<a\b[^>]*?\shref=")(?:https?://%domain_name%)?' + цель + r'(?=")', r"\1" + вход, html)
-    счёт["ссылки регистрации и входа"] += n
-    html, n = re.subn(r'(<link\b[^>]*?rel="(?:prefetch|preload)"[^>]*?href=")(?:https?://%domain_name%)?' + цель + r'(?=")',
-                      r"\1" + вход, html)
-    счёт["ссылки регистрации и входа"] += n
-    html, n = re.subn(r'("(?:url|target|urlTemplate)"\s*:\s*")(https?:\\?/\\?/%domain_name%)?'
-                      + цель.replace("/", r"\\?/") + r'(?=")',
-                      lambda m: m.group(1) + (m.group(2) or "") + (вход.replace("/", r"\/") if m.group(2) and "\\" in m.group(2) else вход),
-                      html)
-    счёт["ссылки регистрации и входа"] += n
-    html, n = re.subn(r'(property="og:see_also" content="(?:https?://%domain_name%)?)' + цель + r'(?=")',
-                      r"\1" + вход, html)
-    счёт["ссылки регистрации и входа"] += n
+    счёт["кнопки регистрации и входа"] += n
     # карта сайта — без расширения
     html, n = re.subn(r'/htmlmap\.html', "/htmlmap", html)
     html2, n2 = re.subn(r'\\/htmlmap\.html', r"\\/htmlmap", html)
