@@ -73,6 +73,8 @@ if (PHP_SAPI !== 'cli-server') {
     $ver = preg_match("/VERSION = '([^']+)'/", $verSrc, $vm) === 1 ? $vm[1] : '?';
     $verDate = preg_match("/VERSION_DATE = '(\d{4})-(\d{2})-(\d{2})'/", $verSrc, $vm) === 1 ? " (код от $vm[3].$vm[2].$vm[1])" : '';
     fwrite(STDOUT, "yandex-sites — веб-интерфейс запущен. Версия $ver$verDate." . PHP_EOL);
+    // Папка проекта — та, из которой запущена панель: сюда нужно cd перед php bin/setup.php --update и т. п.
+    fwrite(STDOUT, "Папка проекта: $projectDir" . PHP_EOL);
     fwrite(STDOUT, "Откройте в браузере: $url" . PHP_EOL);
     fwrite(STDOUT, "Остановить: Ctrl+C" . PHP_EOL . PHP_EOL);
 
@@ -299,6 +301,8 @@ if ($path === '/api/state') {
         'ok' => true,
         // Версия кода для шапки панели: после setup.php --update пользователь сверяет её здесь.
         'version' => \YandexSites\Cli\Application::VERSION,
+        // Папка проекта (откуда запущена панель) — показывается в шапке, чтобы было куда делать cd в консоли.
+        'project_dir' => $projectDir,
         'version_date' => \YandexSites\Cli\Application::VERSION_DATE,
         'keys' => [
             'xmlstock_user' => envValue($envFile, 'XMLSTOCK_USER'),

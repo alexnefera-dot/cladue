@@ -96,7 +96,7 @@
 <body>
 <div class="wrap">
   <h1>yandex-sites <span class="ver" id="version" title="Версия установленного кода. После php bin/setup.php --update остановите панель (Ctrl+C в её окне), запустите снова php bin/panel.php и сверьте номер здесь"></span></h1>
-  <p class="sub">Сбор сайтов из выдачи и открытие их в браузере. Интерфейс работает локально на этом компьютере.</p>
+  <p class="sub">Сбор сайтов из выдачи и открытие их в браузере. Интерфейс работает локально на этом компьютере. <span id="projDir" title="Папка проекта: в консоли перейдите в неё командой cd, чтобы запускать php bin/panel.php и php bin/setup.php --update; внутри — runs/current с результатами"></span></p>
 
   <div class="tabs">
     <button class="tab active" data-tab="main">Главная</button>
@@ -875,6 +875,7 @@ async function refresh(){
     prefill(st);
     // Версия кода из ответа сервера: после обновления скрипта здесь должен появиться новый номер.
     if(st.version){ $('version').textContent='версия '+st.version+(st.version_date?' от '+String(st.version_date).split('-').reverse().join('.'):''); }
+    if(st.project_dir){ $('projDir').textContent='Папка проекта: '+st.project_dir; }
     // «Скачать архив контента» — как только на диске есть очищенные статьи; в подписи — сколько их и сайтов.
     const cz=$('contentZipBtn');
     if(cz){ const n=st.content_files|0; cz.hidden = n===0; cz.textContent='Скачать архив контента ('+n+' стр., сайтов '+(st.content_sites|0)+')'; }

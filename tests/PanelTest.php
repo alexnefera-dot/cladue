@@ -648,6 +648,7 @@ final class PanelTest
             $state = json_decode((string) $this->http('GET', $base . '/api/state'), true);
             Assert::same(\YandexSites\Cli\Application::VERSION, $state['version'], 'панель отдаёт версию кода');
             Assert::same(\YandexSites\Cli\Application::VERSION_DATE, $state['version_date']);
+            Assert::same($dir, $state['project_dir'], 'папка проекта для шапки панели');
             $types = [];
             foreach ($state['status']['sites'] as $r) {
                 $types[$r['host']] = $r['template'];

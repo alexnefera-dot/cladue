@@ -567,7 +567,9 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   machine): BUMP BOTH in every user-facing change. `setup.php --update` prints «версия X от DD.MM.YYYY» (parsed
   by regex from `Application.php`) plus a reminder to restart the panel, `bin/panel.php` prints the same at
   launch, `/api/state` returns `version`/`version_date` and `public/panel.html` shows «версия X от …» in the
-  `<h1>` (`#version`; `Cache-Control: no-store` on `/` keeps the HTML fresh). A running panel keeps the OLD
+  `<h1>` (`#version`; `Cache-Control: no-store` on `/` keeps the HTML fresh); `/api/state` also returns
+  `project_dir` (the launcher's `getcwd()`, i.e. the folder to `cd` into), shown under the title (`#projDir`)
+  and printed at launch («Папка проекта: …») because the user kept asking for the path. A running panel keeps the OLD
   code until restarted — say so whenever the user reports «не вижу». Data written by an older version is
   upgraded lazily: `/api/state` rebuilds status rows that lack the `template` key (or the `sites.json`
   fallback) through `SiteRows::backfillTemplates()` (guesses the family from each saved page once, ≤ 2 MB) and
