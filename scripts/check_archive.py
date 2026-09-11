@@ -753,8 +753,21 @@ def main():
             sdir = os.path.join(gdir, site)
             if not os.path.isdir(sdir):
                 continue
-            tname = "%d-стр" % target
+            # Номер группы иногда врёт: 9-стр из семьи 12-стр — это не 7-стр со
+            # служебными. Шаблон выбираем по самому набору страниц, а не по папке.
+            имена = {fn[:-5] for fn in os.listdir(sdir)
+                     if fn.endswith(".html") and fn[:-5] not in drop}
+            оценка = lambda k: (len(имена & set(TEMPLATES[k]["pages"]))
+                                - len(имена ^ set(TEMPLATES[k]["pages"])))
+            подбор = target
+            for кандидат in TEMPLATES:
+                if оценка(кандидат) > оценка(подбор):
+                    подбор = кандидат
+            tname = "%d-стр" % подбор
             key = "%s/%s" % (tname, site)
+            if подбор != target:
+                F.add(key, "INFO", "A2", "набор страниц ближе к шаблону %d-стр, чем к %d-стр" % (подбор, target))
+                target, tpl = подбор, TEMPLATES[подбор]
             pages, dropped = {}, []
             for fn in sorted(os.listdir(sdir)):
                 fp = os.path.join(sdir, fn)
