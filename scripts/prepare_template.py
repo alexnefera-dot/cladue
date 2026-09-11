@@ -79,6 +79,60 @@ def подставить(html, к, метка):
     return html, счёт
 
 
+МЕТРИКА_БЛОКИ = [
+    r'(?is)<script[^>]*mc\.yandex\.ru/metrika/[^>]*>.*?</script>',
+    r'(?is)<script[^>]*>\s*\(function\(m,e,t,r,i,k,a\).*?</script>',
+    r'(?is)<noscript>\s*<div>\s*<img[^>]*mc\.yandex\.ru/watch/[^>]*>\s*</div>\s*</noscript>',
+    r'(?is)<link[^>]*(?:preconnect|dns-prefetch)[^>]*mc\.yandex\.ru[^>]*>',
+]
+
+
+def правила(html, счёт, слоты, вход):
+    """Правки под наш движок: метрика прочь, свои пути, регистрация и вход — одна страница."""
+    for шаблон in МЕТРИКА_БЛОКИ:
+        html, n = re.subn(шаблон, "", html)
+        счёт["метрика снята"] += n
+    # картинки слотов лежат в общей папке картинок
+    html, n = re.subn(r'(?<=["\'])/slots/(\d+\.jpg)', slots_путь(слоты) + r"\1", html)
+    счёт["картинки слотов"] += n
+    html, n = re.subn(r'\\/slots\\/(\d+\.jpg)', slots_путь(слоты).replace("/", "\\/") + r"\1", html)
+    счёт["картинки слотов"] += n
+    # utm-хвосты — метки чужой кампании, внутренним ссылкам они не нужны
+    html, n = re.subn(r'\?utm_[^"\'<>\s\\]*', "", html)
+    счёт["utm-хвосты сняты"] += n
+    html, n = re.subn(r'\?utm_[^"\\]*(?=")', "", html)
+    счёт["utm-хвосты сняты"] += n
+    # регистрация и вход ведут на одну страницу движка; canonical, hreflang и @id
+    # не трогаем — они называют саму страницу, а не цель ссылки
+    цель = r'/(?:registracia|vhod)(?:/|#[\w-]*)?'
+    html, n = re.subn(r'(<a\b[^>]*?\shref=")(?:https?://%domain_name%)?' + цель + r'(?=")', r"\1" + вход, html)
+    счёт["ссылки регистрации и входа"] += n
+    html, n = re.subn(r'(<link\b[^>]*?rel="(?:prefetch|preload)"[^>]*?href=")(?:https?://%domain_name%)?' + цель + r'(?=")',
+                      r"\1" + вход, html)
+    счёт["ссылки регистрации и входа"] += n
+    html, n = re.subn(r'("(?:url|target|urlTemplate)"\s*:\s*")(https?:\\?/\\?/%domain_name%)?'
+                      + цель.replace("/", r"\\?/") + r'(?=")',
+                      lambda m: m.group(1) + (m.group(2) or "") + (вход.replace("/", r"\/") if m.group(2) and "\\" in m.group(2) else вход),
+                      html)
+    счёт["ссылки регистрации и входа"] += n
+    html, n = re.subn(r'(property="og:see_also" content="(?:https?://%domain_name%)?)' + цель + r'(?=")',
+                      r"\1" + вход, html)
+    счёт["ссылки регистрации и входа"] += n
+    # карта сайта — без расширения
+    html, n = re.subn(r'/htmlmap\.html', "/htmlmap", html)
+    html2, n2 = re.subn(r'\\/htmlmap\.html', r"\\/htmlmap", html)
+    html, n = html2, n + n2
+    счёт["карта сайта"] += n
+    # в обычных ссылках путь с доменом не нужен: canonical, hreflang и схемы его сохраняют
+    html, n = re.subn(r'(<a\b[^>]*?\shref=")https?://%domain_name%(/)', r"\1\2", html)
+    счёт["ссылки без домена"] += n
+    return html, счёт
+
+
+def slots_путь(слоты):
+    return (слоты or "/img/%directory_img%").rstrip("/") + "/"
+
+
 def остатки(html, к, метка):
     из = collections.Counter()
     for имя, шаблон in (("домен", к["домен"]), ("бренд (рус)", к["бренд_ру"]),
@@ -108,9 +162,11 @@ def main():
     p.add_argument("--бренд-ен", dest="бренд_ен")
     p.add_argument("--картинки", dest="картинки")
     p.add_argument("--метрика", dest="метрика", default="%yandex_metrika_id%",
-                   help="на что менять номер счётчика (по умолчанию %%yandex_metrika_id%%)")
-    p.add_argument("--слоты", dest="слоты",
-                   help="префикс для картинок слотов: /slots/31.jpg -> ПРЕФИКС/31.jpg")
+                   help="на что менять номер счётчика, если блок метрики оставляют (по умолчанию %%yandex_metrika_id%%)")
+    p.add_argument("--слоты", dest="слоты", default="/img/%directory_img%",
+                   help="куда переносить картинки слотов (по умолчанию /img/%%directory_img%%)")
+    p.add_argument("--вход", dest="вход", default="/singup",
+                   help="страница регистрации и входа нашего движка (по умолчанию /singup)")
     args = p.parse_args()
 
     файлы = sorted(f for f in os.listdir(args.path) if f.endswith(".html"))
@@ -136,9 +192,7 @@ def main():
     чужие_все, пути_все, файлы_все = collections.Counter(), collections.Counter(), collections.Counter()
     for f, html in zip(файлы, тексты):
         новый, счёт = подставить(html, к, args.метрика)
-        if args.слоты:
-            новый, n = re.subn(r'(?<=")/slots/(\d+\.jpg)', args.слоты.rstrip("/") + r"/\1", новый)
-            счёт["картинки слотов"] += n
+        новый, счёт = правила(новый, счёт, args.слоты, args.вход)
         из, чужие, пути, служебные = остатки(новый, к, args.метрика)
         итог.update(счёт)
         хвосты.update(из)

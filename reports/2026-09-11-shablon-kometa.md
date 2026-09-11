@@ -9,31 +9,36 @@
 | бренд (рус) | 5140 |
 | домен | 2079 |
 | папка картинок | 513 |
+| ссылки регистрации и входа | 426 |
 | бренд (лат) | 389 |
 | путь /ru/ru/… | 312 |
+| utm-хвосты сняты | 172 |
+| метрика снята | 96 |
 | счётчик метрики | 48 |
+| ссылки без домена | 39 |
+| карта сайта | 14 |
+| картинки слотов | 12 |
 
 ## По страницам
 
 | Страница | Замен | Осталось от чужого |
 |---|---:|---:|
-| app.html | 773 | 0 |
-| bonus.html | 789 | 0 |
-| info.html | 777 | 0 |
-| main.html | 30 | 0 |
-| news.html | 761 | 0 |
-| obzor.html | 760 | 0 |
-| partnery.html | 750 | 0 |
-| promo.html | 761 | 0 |
-| registracia.html | 775 | 0 |
-| slots.html | 767 | 0 |
-| vhod.html | 762 | 0 |
-| zerkalo.html | 776 | 0 |
+| app.html | 832 | 0 |
+| bonus.html | 851 | 0 |
+| info.html | 842 | 0 |
+| main.html | 119 | 0 |
+| news.html | 819 | 0 |
+| obzor.html | 814 | 0 |
+| partnery.html | 814 | 0 |
+| promo.html | 825 | 0 |
+| registracia.html | 843 | 0 |
+| slots.html | 824 | 0 |
+| vhod.html | 821 | 0 |
+| zerkalo.html | 836 | 0 |
 
 ## Ссылки на чужие домены
 
 - `fonts.googleapis.com` — 96
-- `mc.yandex.ru` — 60
 - `fonts.gstatic.com` — 36
 - `www.google-analytics.com` — 12
 - `www.googletagmanager.com` — 12
@@ -41,12 +46,12 @@
 
 ## Ссылки не на страницы набора
 
+- `/singup` — 393
 - `/igrat` — 68
 - `/online` — 42
 - `/styles.php` — 36
 - `//fonts.googleapis.com` — 24
-- `//mc.yandex.ru` — 24
-- `/htmlmap.html` — 13
+- `/htmlmap` — 13
 - `//www.googletagmanager.com` — 12
 - `//yandex.ru` — 12
 - `//www.googleadservices.com` — 12
