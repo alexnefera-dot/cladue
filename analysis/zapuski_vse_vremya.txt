@@ -1,4 +1,4 @@
-СПИСОК ЗАПУСКОВ ЗА ВСЁ ВРЕМЯ  24 августа — 11 сентября 2026
+СПИСОК ЗАПУСКОВ ЗА ВСЁ ВРЕМЯ  24 августа — 12 сентября 2026
 ========================================================================
 
 Все дни, по которым есть списки запуска.
@@ -1577,7 +1577,53 @@
     kura.team
 
 ========================================================================
-ИТОГО: 1008 доменов
+12.09.2026 — 38 доменов, 1 группа   [.team 24  .lol 10  .casino 4]
+========================================================================
+
+--- content-2026-09-12-7str-oform-1_5…_42 — id 1959-1996, создан 12:42
+    38 доменов: .team 24  .lol 10  .casino 4
+
+    1209dd.casino
+    1209ss.casino
+    casino1209s.casino
+    2250.team
+    0574.team
+    hdvg.casino
+    3508.lol
+    2273.team
+    brlu.team
+    2532.team
+    wssi.team
+    n9t.team
+    7728.team
+    1970.team
+    casino806.lol
+    o0n4.lol
+    casinob3.lol
+    42casino.lol
+    1373.lol
+    7969.team
+    0328.team
+    0784.team
+    hfhf.team
+    3885casino.team
+    0417.team
+    casino5829.team
+    4253.team
+    tuoa.team
+    8374casino.lol
+    8347.team
+    watc.team
+    ovucasino.team
+    u5k4.team
+    tiff.team
+    yxuk.team
+    uqg.lol
+    mhpl.lol
+    casino378.lol
+
+========================================================================
+ИТОГО: 1046 доменов
 ========================================================================
   24.08    42
   25.08    52
@@ -1595,12 +1641,13 @@
   09.09    85
   10.09    79
   11.09    11
+  12.09    38
 
-  зоны: .team 572   .lol 280   .casino 101   .buzz 55
+  зоны: .team 596   .lol 290   .casino 105   .buzz 55
   доменов встречается более одного раза: 0
 
 ========================================================================
-ПЛОСКИЙ СПИСОК — 1008 доменов подряд
+ПЛОСКИЙ СПИСОК — 1046 доменов подряд
 ========================================================================
 9928.team
 f6zn.team
@@ -2610,6 +2657,44 @@ h1p5.team
 z1n9.team
 5600.team
 kura.team
+1209dd.casino
+1209ss.casino
+casino1209s.casino
+2250.team
+0574.team
+hdvg.casino
+3508.lol
+2273.team
+brlu.team
+2532.team
+wssi.team
+n9t.team
+7728.team
+1970.team
+casino806.lol
+o0n4.lol
+casinob3.lol
+42casino.lol
+1373.lol
+7969.team
+0328.team
+0784.team
+hfhf.team
+3885casino.team
+0417.team
+casino5829.team
+4253.team
+tuoa.team
+8374casino.lol
+8347.team
+watc.team
+ovucasino.team
+u5k4.team
+tiff.team
+yxuk.team
+uqg.lol
+mhpl.lol
+casino378.lol
 
 
 ========================================================================
@@ -2983,12 +3068,12 @@ kura.team
     lnwc.team
 
 ========================================================================
-ВСЕГО В РЕЕСТРЕ: 1283 домена
-  со списком запуска: 1008
+ВСЕГО В РЕЕСТРЕ: 1321 домен
+  со списком запуска: 1046
   без списка: 275
 ========================================================================
 
-ПЛОСКИЙ СПИСОК — весь реестр, 1283 домена
+ПЛОСКИЙ СПИСОК — весь реестр, 1321 домен
 ========================================================================
 0017.team
 0040.lol
@@ -4273,3 +4358,41 @@ h1p5.team
 z1n9.team
 5600.team
 kura.team
+1209dd.casino
+1209ss.casino
+casino1209s.casino
+2250.team
+0574.team
+hdvg.casino
+3508.lol
+2273.team
+brlu.team
+2532.team
+wssi.team
+n9t.team
+7728.team
+1970.team
+casino806.lol
+o0n4.lol
+casinob3.lol
+42casino.lol
+1373.lol
+7969.team
+0328.team
+0784.team
+hfhf.team
+3885casino.team
+0417.team
+casino5829.team
+4253.team
+tuoa.team
+8374casino.lol
+8347.team
+watc.team
+ovucasino.team
+u5k4.team
+tiff.team
+yxuk.team
+uqg.lol
+mhpl.lol
+casino378.lol
