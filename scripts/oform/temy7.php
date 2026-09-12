@@ -3,7 +3,9 @@
 // hero-value, value-pillars, slots-dashboard, recent-payouts, faq-section и т. д.
 declare(strict_types=1);
 
-function v7Количество(): int { return 120; }
+// Сочетание полей темы повторяется только через 1440 номеров, поэтому таблицу
+// можно раздвигать: номера 1–120 при этом считаются ровно как раньше.
+function v7Количество(): int { return 240; }
 
 /** Палитры: четыре тёмные подложки и четыре светлые. */
 function v7Палитры(): array {

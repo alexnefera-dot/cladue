@@ -62,6 +62,47 @@ def карточка_слота(имя, провайдер, rtp, значок):
                                    H.escape(имя), H.escape(провайдер), rtp)
 
 
+СЛОТ7 = re.compile(r'^RTP:?\s*([\d.]+)\s*%\s*(?:\d{4})?$', re.U)
+
+
+ЗНАЧОК7 = re.compile(r'^[A-ZА-ЯЁ][A-ZА-ЯЁ0-9 ]{1,18}$')
+
+
+def значок7(rtp, метка=''):
+    в = метка.upper()
+    if 'HIGH' in в or 'ТОП' in в:
+        return 'High'
+    if 'LOW' in в:
+        return 'Low'
+    r = float(rtp)
+    return 'High' if r >= 96 else ('Medium' if r >= 94 else 'Low')
+
+
+def витрина7(блоки, i, n):
+    """Четыре блока на слот: провайдер, имя, «RTP: N% год», описание.
+
+    Отдаёт карточки, описания (их ставим абзацами под витриной, текст не теряем) и куда дошли."""
+    карточки, описания, j = [], [], i
+    while j + 2 < n:
+        метка = ''
+        if блоки[j][0] == 'p' and ЗНАЧОК7.match(блоки[j][1]):
+            метка = блоки[j][1]; j += 1       # «HIGH RTP» и прочие подписи перед слотом
+            if j + 2 >= n:
+                break
+        пров, имя, rtp = блоки[j], блоки[j + 1], блоки[j + 2]
+        if пров[0] != 'p' or имя[0] != 'h3' or rtp[0] != 'p':
+            break
+        м = СЛОТ7.match(rtp[1])
+        if not м or not пров[1] or len(пров[1].split()) > 4 or СЛОТ7.match(пров[1]):
+            break
+        карточки.append((имя[1], пров[1], м.group(1), значок7(м.group(1), метка)))
+        j += 3
+        if j < n and блоки[j][0] == 'p' and not СЛОТ7.match(блоки[j][1]) and len(блоки[j][1].split()) > 4:
+            описания.append(блоки[j][2])
+            j += 1
+    return карточки, описания, j
+
+
 ОБЁРТКА = re.compile(r'(?is)<(h2|h3|p|li)>\s*<strong>(.*?)</strong>\s*</\1>')
 
 
@@ -90,10 +131,17 @@ def разобрать(html):
         между = html[поз:m.start()]
         for c in re.findall(r'<!--ссылка(\d+)-->', между):
             блоки.append(('ссылка', ссылки[int(c)], ''))
+        остаток = re.sub(r'<!--ссылка\d+-->', '', между).strip()
+        if остаток:
+            блоки.append(('сырьё', '', остаток))
         блоки.append((m.group(1).lower(), текст(m.group(2)), m.group(2)))
         поз = m.end()
-    for c in re.findall(r'<!--ссылка(\d+)-->', html[поз:]):
+    хвост = html[поз:]
+    for c in re.findall(r'<!--ссылка(\d+)-->', хвост):
         блоки.append(('ссылка', ссылки[int(c)], ''))
+    остаток = re.sub(r'<!--ссылка\d+-->', '', хвост).strip()
+    if остаток:
+        блоки.append(('сырьё', '', остаток))
     return блоки
 
 
@@ -102,6 +150,11 @@ def собрать(блоки, стр):
     i, n = 0, len(блоки)
     while i < n:
         тег, t, сырое = блоки[i]
+
+        if тег == 'сырьё':
+            out.append(сырое)
+            i += 1
+            continue
 
         # ---- быстрые ссылки «По этой теме»
         if тег == 'ссылка':
@@ -213,6 +266,25 @@ def собрать(блоки, стр):
                 if хвост:
                     блоки[j - 1] = ('p', хвост, хвост)   # джекпоты приклеены к последней карточке
                     j -= 1
+                i = j
+                continue
+
+        # ---- витрина слотов семистраничных: провайдер, имя, «RTP: N% год», описание
+        if тег == 'h2':
+            карточки, описания, j = витрина7(блоки, i + 1, n)
+            под = ''
+            if len(карточки) < 2:
+                вторые, оп2, j2 = витрина7(блоки, i + 2, n)
+                if len(вторые) >= 2 and блоки[i + 1][0] == 'p':
+                    карточки, описания, j, под = вторые, оп2, j2, блоки[i + 1][1]
+            if len(карточки) >= 2:
+                out.append('<section class="slots-dashboard"><div class="slots-dashboard-container">'
+                           '<div class="slots-dashboard-header"><div class="slots-dashboard-title-wrap">'
+                           '<span class="slots-dashboard-icon">🎲</span><div>'
+                           '<h2 class="slots-dashboard-title">%s</h2><p class="slots-dashboard-subtitle">%s</p>'
+                           '</div></div></div><div class="slots-grid">%s</div></div></section>'
+                           % (H.escape(t), H.escape(под), ''.join(карточка_слота(*к) for к in карточки)))
+                out += ['<p>%s</p>' % о for о in описания]
                 i = j
                 continue
 
