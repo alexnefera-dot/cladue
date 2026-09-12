@@ -1,0 +1,397 @@
+<title>Что собирать по запускам</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=PT+Serif:ital,wght@0,400;0,700;1,400&family=PT+Sans:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#f6f8f7; --card:#fffffe; --ink:#12171b; --ink2:#4d5a63; --ink3:#7d8a92;
+  --rule:#d6ddd9; --rule2:#e8edea;
+  --accent:#0d5f5b; --accent-soft:#e3efed;
+  --have:#2b6a4c; --have-bg:#e6f1ea;
+  --need:#95570a; --need-bg:#f8eede;
+  --skip:#8b4a47; --skip-bg:#f6e8e7;
+  --serif:"PT Serif",Georgia,"Times New Roman",serif;
+  --sans:"PT Sans","Segoe UI",Tahoma,sans-serif;
+  --mono:"IBM Plex Mono","SF Mono",Consolas,monospace;
+}
+:root:not([data-theme="light"]){@media (prefers-color-scheme:dark){
+  --paper:#101415; --card:#171d1f; --ink:#e8eeeb; --ink2:#a3b1ae; --ink3:#74827f;
+  --rule:#2a3335; --rule2:#212a2c;
+  --accent:#5cc0b6; --accent-soft:#17302e;
+  --have:#6ec295; --have-bg:#16291f;
+  --need:#d8a85c; --need-bg:#2b2317;
+  --skip:#d38d8a; --skip-bg:#2b1c1b;
+}}
+:root[data-theme="dark"]{
+  --paper:#101415; --card:#171d1f; --ink:#e8eeeb; --ink2:#a3b1ae; --ink3:#74827f;
+  --rule:#2a3335; --rule2:#212a2c;
+  --accent:#5cc0b6; --accent-soft:#17302e;
+  --have:#6ec295; --have-bg:#16291f;
+  --need:#d8a85c; --need-bg:#2b2317;
+  --skip:#d38d8a; --skip-bg:#2b1c1b;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);
+  font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:880px;margin:0 auto;padding-block:52px 80px;padding-left:22px;padding-right:22px}
+h1,h2,h3{font-family:var(--serif);text-wrap:balance;margin:0}
+h1{font-size:39px;line-height:1.15;letter-spacing:-.012em}
+h2{font-size:25px;line-height:1.25;margin-bottom:6px}
+h3{font-size:17.5px;line-height:1.35;margin-bottom:4px}
+p{margin:0 0 14px;max-width:66ch}
+a{color:var(--accent)}
+code,.mono{font-family:var(--mono);font-size:.9em;font-variant-numeric:tabular-nums}
+code{background:var(--accent-soft);padding:.1em .34em;border-radius:2px;color:var(--ink)}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--accent);font-weight:600;margin-bottom:14px}
+.lede{font-size:18.5px;color:var(--ink2);max-width:62ch;margin-top:16px}
+.lede b{color:var(--ink)}
+
+header{border-bottom:2px solid var(--ink);padding-bottom:26px;margin-bottom:6px}
+.meta{display:flex;flex-wrap:wrap;gap:6px 26px;margin-top:22px;
+  font-family:var(--mono);font-size:12px;color:var(--ink3)}
+.meta b{color:var(--ink2);font-weight:500}
+
+section{padding-top:40px}
+.sec-head{display:flex;gap:14px;align-items:baseline;margin-bottom:16px}
+.sec-num{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--accent);
+  letter-spacing:.08em;padding-top:6px;white-space:nowrap}
+
+.note{background:var(--card);border:1px solid var(--rule);border-radius:3px;padding:18px 20px}
+.note.hot{border-left:3px solid var(--accent)}
+.note.warn{border-left:3px solid var(--need)}
+.note>*:last-child{margin-bottom:0}
+.note h3{margin-bottom:8px}
+
+.calc{font-family:var(--mono);font-size:13.5px;line-height:2;color:var(--ink2);
+  background:var(--card);border:1px solid var(--rule2);border-radius:3px;
+  padding:14px 18px;margin:0 0 16px;overflow-x:auto}
+.calc b{color:var(--ink)}
+.calc .op{color:var(--ink3)}
+
+.tw{overflow-x:auto;border:1px solid var(--rule);border-radius:3px;background:var(--card);margin-bottom:8px}
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+th{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--ink3);font-weight:600;text-align:left;padding:11px 14px;
+  border-bottom:1px solid var(--rule);white-space:nowrap;background:var(--paper)}
+td{padding:10px 14px;border-bottom:1px solid var(--rule2);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.f{font-family:var(--mono);font-size:12.5px;color:var(--ink);white-space:nowrap}
+td.w{color:var(--ink2);min-width:16em}
+td.s{white-space:nowrap;width:1%}
+table.num td{font-variant-numeric:tabular-nums}
+table.num td.r{text-align:right;font-family:var(--mono);font-size:13px}
+
+.chip{display:inline-block;font-family:var(--mono);font-size:10.5px;font-weight:600;
+  letter-spacing:.05em;text-transform:uppercase;padding:3px 7px;border-radius:2px;white-space:nowrap}
+.chip.have{color:var(--have);background:var(--have-bg)}
+.chip.need{color:var(--need);background:var(--need-bg)}
+.chip.part{color:var(--accent);background:var(--accent-soft)}
+.chip.skip{color:var(--skip);background:var(--skip-bg)}
+
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin:0 0 20px;font-size:13px;color:var(--ink2)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+ul{margin:0 0 14px;padding-left:22px;max-width:66ch}
+li{margin-bottom:7px}
+li::marker{color:var(--ink3)}
+.q{border-top:1px solid var(--rule);padding-top:14px;margin-top:14px}
+.q:first-of-type{border-top:0;padding-top:0;margin-top:0}
+.q b{font-family:var(--serif);font-size:16.5px}
+.path{font-family:var(--mono);font-size:13px;color:var(--ink2);
+  background:var(--accent-soft);padding:3px 8px;border-radius:2px;display:inline-block}
+footer{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule);
+  font-size:13px;color:var(--ink3);max-width:66ch}
+@media(max-width:560px){
+  h1{font-size:30px} .lede{font-size:17px}
+  .sec-head{flex-direction:column;gap:2px} .sec-num{padding-top:0}
+  .wrap{padding-block:34px 56px}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Дорвеи · схема данных</div>
+  <h1>Что собирать по запускам</h1>
+  <p class="lede">Разбор по уровням: партия, домен, поддомен, индексация, позиции, деньги.
+  Что уже есть, чего не хватает, и что можно перестать собирать.
+  <b>Главный пробел — уровень поддомена: его нет совсем, а именно там происходят
+  и ранжирование, и конверсия.</b></p>
+  <div class="meta">
+    <span><b>1361</b> домен в реестре</span>
+    <span><b>21</b> день запусков</span>
+    <span><b>472</b> события конверсий</span>
+    <span><b>499</b> доменов с закрытым окном</span>
+  </div>
+</header>
+
+<section>
+  <div class="sec-head"><div class="sec-num">00</div><div>
+    <h2>Сначала — единица анализа</h2>
+  </div></div>
+  <p>Я всё считал по домену: «домен дал регистрацию» или «не дал». Из вашего описания
+  следует, что это неверная единица. Сайт живёт на поддомене, поддомен = бренд,
+  контент отличается только названием бренда. Конверсия приходит на конкретный
+  поддомен, позиция измеряется по конкретному брендовому ключу.</p>
+
+  <div class="calc">
+    <b>100</b> доменов <span class="op">×</span> <b>200</b> брендов
+    <span class="op">=</span> <b>до 20 000</b> поддоменов<br>
+    а я анализирую <b>1361</b> строку — по одной на домен
+  </div>
+
+  <p>«Домен сработал» — это смесь двухсот разных сущностей, из которых сработала
+  одна. Поэтому у меня и вышло, что <b>только 13 регистраций из 92 пришли по бренду,
+  за который домен реально ранжируется</b>: я сравнивал ядро ключей домена с брендом
+  конверсии, а надо было спрашивать иначе.</p>
+
+  <div class="note hot">
+    <h3>Правильный вопрос</h3>
+    <p>Не «этот домен в десятке?», а <b>«этот поддомен в десятке по своему бренду —
+    и дал ли он регистрацию?»</b> Это и есть вопрос про деньги, и на него сейчас
+    нечем ответить: в позициях у меня домен, а не поддомен.</p>
+    <p>Переход на поддомен даёт выборку в сотни раз больше при том же числе запусков.
+    Все нынешние выводы держатся на 499 доменах с закрытым окном; на поддоменах
+    это были бы десятки тысяч наблюдений, и вопросы вроде «влияет ли класс бренда»
+    закрывались бы за один день, а не за три недели.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><div class="sec-num">01</div><div>
+    <h2>Шесть уровней данных</h2>
+    <p style="margin-bottom:0;color:var(--ink2)">Каждый следующий вкладывается
+    в предыдущий — как <span class="path">/ru/ru/ru</span> в шаблоне.</p>
+  </div></div>
+
+  <div class="legend">
+    <span><span class="chip have">есть</span> присылаете и я это использую</span>
+    <span><span class="chip part">частично</span> угадываю из имени группы</span>
+    <span><span class="chip need">нужно</span> нет, и без этого анализ слепой</span>
+  </div>
+
+  <h3 style="margin-top:24px">A · Партия — заводится один раз на запуск</h3>
+  <p style="font-size:14.5px;color:var(--ink2)">Двенадцать полей, две минуты на партию.
+  Это дешевле всего и отдаёт больше всего.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Поле</th><th>Что это</th><th>Статус</th></tr></thead>
+    <tbody>
+      <tr><td class="f">id_от, id_до</td><td class="w">диапазон в трекере</td><td class="s"><span class="chip have">есть</span></td></tr>
+      <tr><td class="f">запуск</td><td class="w">дата и время фактического запуска</td><td class="s"><span class="chip have">есть</span></td></tr>
+      <tr><td class="f">источник</td><td class="w">свой генератор · свои наборы · присланный, и от кого</td><td class="s"><span class="chip part">частично</span></td></tr>
+      <tr><td class="f">страниц</td><td class="w">7 · 11 · 12 · 37 — число, а не догадка из имени</td><td class="s"><span class="chip part">частично</span></td></tr>
+      <tr><td class="f">шаблон</td><td class="w">версия шаблона</td><td class="s"><span class="chip need">нужно</span></td></tr>
+      <tr><td class="f">оформление</td><td class="w">оформлено да/нет · тема светлая/тёмная · картинки да/нет</td><td class="s"><span class="chip need">нужно</span></td></tr>
+      <tr><td class="f">потолок_ru</td><td class="w">максимум уровней <code>/ru</code>, или «без потолка»</td><td class="s"><span class="chip need">нужно</span></td></tr>
+      <tr><td class="f">движок</td><td class="w">dorgen.com · dorgen.net · иной</td><td class="s"><span class="chip need">нужно</span></td></tr>
+      <tr><td class="f">доменов</td><td class="w">сколько в партии и как по зонам</td><td class="s"><span class="chip have">есть</span></td></tr>
+      <tr><td class="f">раздача_зон</td><td class="w">случайно · блоками · парами по одному имени</td><td class="s"><span class="chip need">нужно</span></td></tr>
+      <tr><td class="f">контроль_к</td><td class="w">если партия — половина пары, к какой партии она контроль</td><td class="s"><span class="chip need">нужно</span></td></tr>
+      <tr><td class="f">гипотеза</td><td class="w">что проверяем этой партией, одной фразой</td><td class="s"><span class="chip need">нужно</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 style="margin-top:30px">B · Домен</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Поле</th><th>Что это</th><th>Статус</th></tr></thead>
+    <tbody>
+      <tr><td class="f">домен, зона</td><td class="w">полное имя с зоной — ключ всегда с зоной</td><td class="s"><span class="chip have">есть</span></td></tr>
+      <tr><td class="f">партия</td><td class="w">к какой партии относится</td><td class="s"><span class="chip have">есть</span></td></tr>
+      <tr><td class="f">дроп_или_новый</td><td class="w">домен с историей или свежая регистрация</td><td class="s"><span class="chip need">нужно</span></td></tr>
+      <tr><td class="f">возраст</td><td class="w">дата регистрации домена</td><td class="s"><span class="chip need">нужно</span></td></tr>
+    </tbody>
+  </table></div>
+  <p style="font-size:14px;color:var(--ink2);margin-top:10px">Дроп против нового —
+  единственный признак домена, который может оказаться крупнее страниц: у дропа
+  есть история в индексе. Сейчас я не знаю про него ничего.</p>
+
+  <h3 style="margin-top:30px">C · Поддомен — главный пробел</h3>
+  <p style="font-size:14.5px;color:var(--ink2)">Эта таблица сейчас не существует.
+  Она самая большая и самая важная: до 20 000 строк.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Поле</th><th>Что это</th><th>Статус</th></tr></thead>
+    <tbody>
+      <tr><td class="f">поддомен</td><td class="w">полный хост, напр. <code>kraken.411casino.lol</code></td><td class="s"><span class="chip need">нужно</span></td></tr>
+      <tr><td class="f">бренд</td><td class="w">какой бренд на этом поддомене</td><td class="s"><span class="chip part">частично</span></td></tr>
+      <tr><td class="f">класс_бренда</td><td class="w">ВЧ ≥1 млн · СЧ 700k–1M · НЧ ниже</td><td class="s"><span class="chip part">частично</span></td></tr>
+      <tr><td class="f">страниц</td><td class="w">сколько страниц у этого поддомена</td><td class="s"><span class="chip need">нужно</span></td></tr>
+      <tr><td class="f">макс_вложенность</td><td class="w">до какого уровня <code>/ru</code> построен шаблон</td><td class="s"><span class="chip need">нужно</span></td></tr>
+    </tbody>
+  </table></div>
+  <p style="font-size:14px;color:var(--ink2);margin-top:10px">Бренд и его класс
+  у меня есть только там, где случилась конверсия — то есть по результату.
+  Это отбор по результату: сравнивать классы брендов на такой выборке нельзя.
+  Нужен полный список поддоменов, включая те, что не дали ничего.</p>
+
+  <h3 style="margin-top:30px">D · Индексация — нет ничего</h3>
+  <p style="font-size:14.5px;color:var(--ink2)">Это ровно то, о чём вы рассказали
+  про бота и вложенность. Сейчас я вижу только результат и не знаю, почему он такой.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Поле</th><th>Что это</th><th>Статус</th></tr></thead>
+    <tbody>
+      <tr><td class="f">первый_заход</td><td class="w">когда бот пришёл впервые</td><td class="s"><span class="chip need">нужно</span></td></tr>
+      <tr><td class="f">в_индексе</td><td class="w">когда поддомен попал в индекс</td><td class="s"><span class="chip need">нужно</span></td></tr>
+      <tr><td class="f">страниц_в_индексе</td><td class="w">сколько из созданных проиндексировано</td><td class="s"><span class="chip need">нужно</span></td></tr>
+      <tr><td class="f">уровень_бота</td><td class="w">на каком уровне <code>/ru</code> бот остановился</td><td class="s"><span class="chip need">нужно</span></td></tr>
+      <tr><td class="f">когда_менялся</td><td class="w">даты смены уровня</td><td class="s"><span class="chip need">нужно</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note warn" style="margin-top:14px">
+    <h3>Почему это важнее, чем кажется</h3>
+    <p>Из ваших слов: бот проваливается по вложенности и сам выбирает уровень,
+    поэтому позиции могут стартовать плохо и улучшиться без наших действий.</p>
+    <p>Я это видел со стороны результата и <b>сделал вывод наполовину неверный</b>.
+    Я нашёл, что рост вложенности сам по себе позиции не поднимает, а коррелирует
+    только с тем, что URL переобошли — и что менять URL, уже стоящие в десятке,
+    вредно. Оба наблюдения верны, но объяснения у меня не было: я не знал,
+    что уровень выбирает бот.</p>
+    <p>С логами индексации вопрос становится разрешимым: <b>у холостого поддомена
+    бот не дошёл до нужного уровня, или дошёл и уровень ему не подошёл?</b>
+    Это два разных диагноза с разными лечениями — в первом случае надо менять
+    перелинковку и потолок, во втором контент. Сейчас они для меня неразличимы.</p>
+  </div>
+
+  <h3 style="margin-top:30px">E · Позиции</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Поле</th><th>Что это</th><th>Статус</th></tr></thead>
+    <tbody>
+      <tr><td class="f">дата_съёма</td><td class="w">когда снято</td><td class="s"><span class="chip have">есть</span></td></tr>
+      <tr><td class="f">поддомен</td><td class="w">по какому поддомену позиция</td><td class="s"><span class="chip need">нужно</span></td></tr>
+      <tr><td class="f">ключ</td><td class="w">брендовый запрос</td><td class="s"><span class="chip have">есть</span></td></tr>
+      <tr><td class="f">позиция</td><td class="w">место в выдаче</td><td class="s"><span class="chip have">есть</span></td></tr>
+      <tr><td class="f">url</td><td class="w">ранжирующийся URL — из него читается вложенность</td><td class="s"><span class="chip have">есть</span></td></tr>
+    </tbody>
+  </table></div>
+  <p style="font-size:14px;color:var(--ink2);margin-top:10px">Одна поправка, и разрез
+  по брендам станет считаемым: <b>ключ и поддомен должны сходиться по бренду.</b>
+  Если поддомен <code>kraken.*</code> ранжируется по запросу другого бренда — это
+  отдельное явление, и его стоит видеть, а не усреднять.</p>
+
+  <h3 style="margin-top:30px">F · Конверсии — здесь почти всё в порядке</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Поле</th><th>Что это</th><th>Статус</th></tr></thead>
+    <tbody>
+      <tr><td class="f">время, тип</td><td class="w">рега или деп</td><td class="s"><span class="chip have">есть</span></td></tr>
+      <tr><td class="f">clickid</td><td class="w">идентификатор пользователя</td><td class="s"><span class="chip have">есть</span></td></tr>
+      <tr><td class="f">source</td><td class="w">полный хост — из него читаются бренд и домен</td><td class="s"><span class="chip have">есть</span></td></tr>
+      <tr><td class="f">гео, движок</td><td class="w">страна и платформа бренда</td><td class="s"><span class="chip have">есть</span></td></tr>
+      <tr><td class="f">сумма_депозита</td><td class="w">сколько внесли</td><td class="s"><span class="chip need">нужно</span></td></tr>
+    </tbody>
+  </table></div>
+  <p style="font-size:14px;color:var(--ink2);margin-top:10px"><code>clickid</code>
+  уже исправил мне одну ошибку: по нему медиана лага рег→деп оказалась 67 минут,
+  а не 6, как я считал по паре домен+бренд. Сумма депозита — последнее, чего
+  не хватает: сейчас все 54 депозита весят одинаково, а это почти наверняка не так,
+  и оптимизировать «число депозитов» вместо денег — разные задачи.</p>
+</section>
+
+<section>
+  <div class="sec-head"><div class="sec-num">02</div><div>
+    <h2>Поправка, которая следует прямо из вашего рассказа</h2>
+  </div></div>
+  <p>Я считал присланным контентом только <code>NEW*</code>, а <code>clean</code>
+  и <code>archive</code> шли как «источник не указан». Пересчитал верно,
+  на закрытых окнах:</p>
+  <div class="tw"><table class="num">
+    <thead><tr><th>Источник</th><th class="r">Доменов</th><th class="r">С рег.</th><th class="r">Доля</th></tr></thead>
+    <tbody>
+      <tr><td>присланный</td><td class="r">265</td><td class="r">59</td><td class="r">22,3 %</td></tr>
+      <tr><td>свой · генератор</td><td class="r">109</td><td class="r">20</td><td class="r">18,3 %</td></tr>
+      <tr><td>свой · наборы</td><td class="r">91</td><td class="r">11</td><td class="r">12,1 %</td></tr>
+    </tbody>
+  </table></div>
+  <p>Свой против присланного — 15,5 % против 22,3 %, p = 0,076.
+  <b>Но читать это как разницу источников нельзя.</b> Смотрите, как распределены
+  страницы:</p>
+  <div class="tw"><table class="num">
+    <thead><tr><th>Источник</th><th class="r">12 стр</th><th class="r">7 стр</th><th class="r">11 стр</th></tr></thead>
+    <tbody>
+      <tr><td>присланный</td><td class="r">145</td><td class="r">104</td><td class="r">—</td></tr>
+      <tr><td>свой</td><td class="r">—</td><td class="r">—</td><td class="r">35</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note hot" style="margin-top:16px">
+    <p style="margin-bottom:0">Источник и страницы сцеплены полностью.
+    Отсюда прямое следствие: <b>вывод «12 страниц лучше 7» проверен только
+    на присланном контенте.</b> Своего генератора на семи и двенадцати страницах
+    в данных нет вообще — он весь одиннадцатистраничный. Чтобы узнать, работает
+    ли правило на своём контенте, нужен отдельный запуск: свой генератор
+    в двух вариантах, в один день, равными объёмами.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><div class="sec-num">03</div><div>
+    <h2>Что можно перестать собирать</h2>
+  </div></div>
+  <p>Проверено на закрытых окнах, результат отрицательный. Место в именах
+  и внимание при заведении можно освободить.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Признак</th><th>Что показала проверка</th><th>Статус</th></tr></thead>
+    <tbody>
+      <tr><td class="f">даты в текстах</td><td class="w">22,6 % без дат против 24,3 % с датами, 251 домен, p = 0,65</td><td class="s"><span class="chip skip">не нужно</span></td></tr>
+      <tr><td class="f">тип имени домена</td><td class="w">цифры, буквы, слово casino — разницы нет</td><td class="s"><span class="chip skip">не нужно</span></td></tr>
+      <tr><td class="f">«удачные» цифры</td><td class="w">разбивка по последней цифре — чистый шум</td><td class="s"><span class="chip skip">не нужно</span></td></tr>
+      <tr><td class="f">день запуска сам по себе</td><td class="w">дни различаются, но объясняют это конфигурации, а не календарь</td><td class="s"><span class="chip skip">не нужно</span></td></tr>
+    </tbody>
+  </table></div>
+  <p style="margin-top:14px">Даты стоит убрать из имён совсем: они уже дважды
+  сбивали меня с толку — сперва я принял дату подготовки контента за дату запуска,
+  потом искал в них смысл, которого нет.</p>
+</section>
+
+<section>
+  <div class="sec-head"><div class="sec-num">04</div><div>
+    <h2>Что мне нужно от вас</h2>
+  </div></div>
+
+  <div class="q"><p><b>Чем измеряется успешный запуск?</b><br>
+  Четыре разных ответа требуют разных данных и разных решений:
+  максимум регистраций на домен · максимум денег · минимум холостых доменов ·
+  максимум срока жизни позиций. Я считал первое, потому что его было чем считать.
+  Если цель — деньги, нужна сумма депозита; если срок жизни — нужны повторные съёмы
+  позиций по расписанию.</p></div>
+
+  <div class="q"><p><b>Семь пометок в именах — что они значат?</b><br>
+  <code>styled_img</code>, <code>оформлено</code>, <code>Content_script</code>,
+  <code>script_yandex</code>, <code>clean</code>, <code>archive37/412/47</code>,
+  <code>dark</code>. Я не знаю, что из этого одно и то же под разными названиями,
+  а что разные обработки — и поэтому не знаю, что можно складывать. Сейчас
+  из-за этого висят вне сравнений 71 домен.</p></div>
+
+  <div class="q"><p><b>34 пропущенных набора — отбраковка или запуск без списка?</b><br>
+  360-367, 383-384, 397-399, 426-430, 444-446, 452-454, 458-460, 467-469, 473-480.
+  Если запускались — в реестре не хватает трёх десятков доменов, и все доли
+  считаются с заниженным знаменателем.</p></div>
+
+  <div class="q"><p><b>Списки групп по августовским партиям сохранились?</b><br>
+  110 доменов и 180 регистраций — <b>45 % всех денег</b> — приходятся на домены
+  без разбивки по группам. Домены в реестре есть, групп нет. Эти списки удвоили бы
+  выборку для всех сравнений разом.</p></div>
+</section>
+
+<section>
+  <div class="sec-head"><div class="sec-num">05</div><div>
+    <h2>Минимальный формат</h2>
+  </div></div>
+  <p>Если из всего перечисленного делать что-то одно — делайте таблицу поддоменов.
+  Одна строка на поддомен, заводится один раз при запуске:</p>
+  <div class="calc">поддомен <span class="op">·</span> домен <span class="op">·</span> зона
+  <span class="op">·</span> партия <span class="op">·</span> бренд <span class="op">·</span> класс_бренда
+  <span class="op">·</span> страниц <span class="op">·</span> макс_вложенность</div>
+  <p>Плюс двенадцать полей на партию из раздела A. Это вся разница между
+  «угадываю по имени группы» и «считаю».</p>
+  <p style="margin-bottom:0">Остальное — индексация, сумма депозита, дроп/новый —
+  добавляйте по мере возможности. Каждое закрывает свой вопрос, но без уровня
+  поддомена они всё равно упираются в ту же стену: я не вижу объект, на котором
+  всё происходит.</p>
+</section>
+
+<footer>
+  Цифры в документе — по состоянию на 12 сентября 2026: 1361 домен в реестре,
+  21 день запусков, 472 события конверсий, 499 доменов с закрытым шестидневным окном.
+  Подтверждённые рычаги: число страниц (12 против 7, p = 0,0065 с контролем на день,
+  только на присланном контенте) и класс бренда.
+</footer>
+</div>
