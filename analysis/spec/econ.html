@@ -1,0 +1,330 @@
+<title>Домен приносит $1.93</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@500;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;700&display=swap">
+<style>
+:root{
+  --paper:#eef1f4; --card:#ffffff; --ink:#161b22; --mute:#5b6672; --line:#d3dae1;
+  --loss:#8c2f27; --gain:#1f5132; --lossbg:#f7e8e6; --gainbg:#e5efe8; --flat:#6b5a1e; --flatbg:#f5efdc;
+  --rule:#161b22;
+}
+:root:not([data-theme="light"]){@media (prefers-color-scheme:dark){
+  --paper:#12171c; --card:#1a2028; --ink:#e7ecf1; --mute:#95a2b0; --line:#2c3642;
+  --loss:#e8877c; --gain:#7fc79a; --lossbg:#2e1d1b; --gainbg:#182a20; --flat:#d8be76; --flatbg:#2b2515;
+  --rule:#e7ecf1;
+}}
+:root[data-theme="dark"]{
+  --paper:#12171c; --card:#1a2028; --ink:#e7ecf1; --mute:#95a2b0; --line:#2c3642;
+  --loss:#e8877c; --gain:#7fc79a; --lossbg:#2e1d1b; --gainbg:#182a20; --flat:#d8be76; --flatbg:#2b2515;
+  --rule:#e7ecf1;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font:400 16.5px/1.62 "Source Sans 3","Segoe UI",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:860px;margin:0 auto;padding:0 20px;padding-block:56px 80px}
+h1{font:700 clamp(34px,6.4vw,54px)/1.06 Bitter,Georgia,serif;margin:0 0 18px;text-wrap:balance;
+  letter-spacing:-.015em}
+h2{font:700 clamp(22px,3.4vw,29px)/1.2 Bitter,Georgia,serif;margin:0 0 14px;text-wrap:balance}
+h3{font:700 17px/1.3 Bitter,Georgia,serif;margin:0 0 8px}
+p{margin:0 0 14px;max-width:64ch}
+.eyebrow{font:700 12px/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--gain);margin:0 0 18px}
+.lede{font-size:19px;color:var(--mute);max-width:60ch}
+.lede b{color:var(--ink)}
+hr{border:0;border-top:2px solid var(--rule);margin:38px 0 34px;opacity:.85}
+section{margin:0 0 44px}
+code,.n{font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+code{background:var(--gainbg);padding:.08em .34em;border-radius:3px;font-size:.9em}
+
+/* равенство-герой */
+.eq{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--rule);
+  padding:22px 24px;margin:0 0 26px}
+.eq .big{font:700 clamp(28px,5.2vw,42px)/1.1 "JetBrains Mono",ui-monospace,monospace;
+  letter-spacing:-.02em;margin:0 0 6px}
+.eq .sub{color:var(--mute);font-size:15px;margin:0}
+
+/* шкала безубыточности */
+.scale{background:var(--card);border:1px solid var(--line);padding:22px 24px 16px;margin:0 0 20px}
+.scale .row{display:grid;grid-template-columns:78px 1fr 104px;gap:14px;align-items:center;
+  margin:0 0 12px}
+.scale .zn{font:700 15px/1 "JetBrains Mono",ui-monospace,monospace}
+.track{position:relative;height:26px;background:linear-gradient(to right,var(--line) 0 100%);
+  background-size:100% 1px;background-repeat:no-repeat;background-position:0 50%}
+.bar{position:absolute;top:3px;height:20px;left:0;border-radius:0 2px 2px 0}
+.mark{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--rule)}
+.verdict{font:700 14px/1.2 "JetBrains Mono",ui-monospace,monospace;text-align:right}
+.gain{color:var(--gain)} .loss{color:var(--loss)} .flat{color:var(--flat)}
+.axrow{display:grid;grid-template-columns:78px 1fr 104px;gap:14px;margin-top:4px}
+.axis{grid-column:2;display:flex;justify-content:space-between;
+  font:400 12px/1 "JetBrains Mono",ui-monospace,monospace;
+  color:var(--mute);border-top:1px solid var(--line);padding-top:7px}
+.legend{font-size:14px;color:var(--mute);margin:10px 0 0}
+
+/* таблицы */
+.tw{overflow-x:auto;border:1px solid var(--line);background:var(--card);margin:0 0 16px}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:15px}
+th{font:700 11.5px/1.2 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--mute);text-align:right;padding:12px 14px;
+  border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child{text-align:left}
+td{padding:10px 14px;border-bottom:1px solid var(--line);text-align:right;
+  font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:14.5px}
+td:first-child{text-align:left;font-family:"Source Sans 3",sans-serif;font-size:15px}
+tr:last-child td{border-bottom:0}
+tr.tot td{font-weight:700;background:var(--paper)}
+tr.hl td{background:var(--gainbg)}
+tr.bad td{background:var(--lossbg)}
+
+/* выноски */
+.call{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--gain);
+  padding:18px 22px;margin:0 0 20px}
+.call.warn{border-left-color:var(--loss)}
+.call.note{border-left-color:var(--flat)}
+.call p:last-child{margin-bottom:0}
+.call h3{margin-bottom:6px}
+
+/* карточки-решения */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin:0 0 20px}
+.cards>div{background:var(--card);border:1px solid var(--line);padding:16px 18px}
+.cards .k{font:700 26px/1.1 "JetBrains Mono",ui-monospace,monospace;margin:0 0 4px}
+.cards .l{font-size:14px;color:var(--mute);margin:0}
+
+ul{margin:0 0 14px;padding-left:22px;max-width:64ch}
+li{margin:0 0 7px}
+.chip{display:inline-block;font:700 10.5px/1 "JetBrains Mono",ui-monospace,monospace;
+  letter-spacing:.08em;text-transform:uppercase;padding:4px 7px;border-radius:3px;vertical-align:2px}
+.c-need{background:var(--lossbg);color:var(--loss)}
+.c-can{background:var(--gainbg);color:var(--gain)}
+.c-bad{background:var(--flatbg);color:var(--flat)}
+.foot{font-size:14px;color:var(--mute);border-top:1px solid var(--line);padding-top:18px}
+@media(max-width:560px){
+  .scale .row{grid-template-columns:62px 1fr;grid-template-areas:"zn track" ". verdict"}
+  .scale .zn{grid-area:zn}.track{grid-area:track}.verdict{grid-area:verdict;text-align:left}
+  .axrow{grid-template-columns:62px 1fr}.axis{grid-column:2}
+}
+</style>
+<div class="wrap">
+
+<p class="eyebrow">дорвеи · юнит-экономика</p>
+<h1>Домен приносит $1.93</h1>
+<p class="lede">На 559 доменах с закрытым окном: 179 регистраций, 27 депозитов,
+$1080 выручки при $1238 затрат. <b>Математика не «около нулевая» — она нулевая
+по построению: вы покупаете домены ровно по цене их отдачи.</b></p>
+
+<hr>
+
+<section>
+<h2>Одно число, из которого всё следует</h2>
+<div class="eq">
+  <p class="big">27 деп ÷ 559 дом × $40 = $1.93</p>
+  <p class="sub">средняя выручка с одного запущенного домена при текущей конверсии</p>
+</div>
+<p>Контент бесплатный, других затрат нет — значит решение о покупке домена сводится
+к одному сравнению: <b>цена домена против $1.93</b>. Всё дороже — убыток, и никакая
+работа с контентом это не меняет, пока цена выше порога.</p>
+
+<div class="scale">
+  <div class="row">
+    <span class="zn">.lol</span>
+    <span class="track"><span class="bar" style="width:12.5%;background:var(--gain)"></span>
+      <span class="mark" style="left:24.1%"></span></span>
+    <span class="verdict gain">+$0.93</span>
+  </div>
+  <div class="row">
+    <span class="zn">.team</span>
+    <span class="track"><span class="bar" style="width:25%;background:var(--flat)"></span>
+      <span class="mark" style="left:24.1%"></span></span>
+    <span class="verdict flat">−$0.07</span>
+  </div>
+  <div class="row">
+    <span class="zn">.casino</span>
+    <span class="track"><span class="bar" style="width:87.5%;background:var(--loss)"></span>
+      <span class="mark" style="left:24.1%"></span></span>
+    <span class="verdict loss">−$5.07</span>
+  </div>
+  <div class="axrow"><div class="axis"><span>$0</span><span>$2</span><span>$4</span><span>$6</span><span>$8</span></div></div>
+  <p class="legend">Вертикальная черта — порог $1.93. Столбец — цена домена.
+  <code>.team</code> стоит $2 при отдаче $1.93: попадание в нуль с точностью до семи центов,
+  и именно <code>.team</code> — 60% реестра.</p>
+</div>
+
+<p>Порог в другой формулировке — сколько доменов зона может позволить себе потратить
+на один депозит:</p>
+<div class="tw"><table>
+<tr><th>зона</th><th>цена</th><th>нужен 1 деп на</th><th>по факту</th><th>вердикт</th></tr>
+<tr class="hl"><td>.lol</td><td>$1</td><td>40 дом</td><td>36.7 дом</td><td class="gain">проходит</td></tr>
+<tr><td>.team</td><td>$2</td><td>20 дом</td><td>20.2 дом</td><td class="flat">ровно в нуль</td></tr>
+<tr class="bad"><td>.casino</td><td>$7</td><td>5.7 дом</td><td>11.5 дом</td><td class="loss">вдвое не дотягивает</td></tr>
+</table></div>
+</section>
+
+<hr>
+
+<section>
+<h2>Весь убыток — это .casino</h2>
+<div class="tw"><table>
+<tr><th>срез</th><th>дом</th><th>затраты</th><th>рег</th><th>деп</th><th>выручка</th><th>итог</th><th>ROI</th></tr>
+<tr><td>все закрытые окна</td><td>559</td><td>$1238</td><td>179</td><td>27</td><td>$1080</td><td class="loss">−$158</td><td>0.87x</td></tr>
+<tr class="bad"><td>из них .casino</td><td>46</td><td>$322</td><td>14</td><td>4</td><td>$160</td><td class="loss">−$162</td><td>0.50x</td></tr>
+<tr class="hl"><td>всё кроме .casino</td><td>513</td><td>$916</td><td>165</td><td>23</td><td>$920</td><td class="gain">+$4</td><td>1.00x</td></tr>
+</table></div>
+<p>46 доменов <code>.casino</code> теряют $162 — больше, чем убыток всей системы.
+Без них система стоит точно в нуле. По всему реестру, включая ещё не отработавшие окна,
+<code>.casino</code> — 111 доменов, $777 затрат, 4 депозита, <span class="loss">−$617</span>
+из общих −$788.</p>
+
+<div class="call warn">
+<h3>Зона действительно ранжируется лучше — но не в семь раз</h3>
+<p><code>.casino</code> даёт больше всех депозитов на домен: 0.087 против 0.050 у
+<code>.team</code> и 0.027 у <code>.lol</code>. Это <b>в 3.2 раза лучше <code>.lol</code></b> —
+а чтобы оправдать цену, нужно в 7 раз. Против <code>.team</code>: нужно 3.5x, по факту 1.75x.</p>
+<p>Ни одна из разниц пока не значима (<span class="n">p=0.106</span> против <code>.lol</code>,
+<span class="n">p=0.293</span> против <code>.team</code>) — но для решения это неважно:
+даже если взять наблюдаемое преимущество за правду, оно вдвое меньше нужного.</p>
+</div>
+</section>
+
+<hr>
+
+<section>
+<h2>Что дороже: сменить зону или улучшить контент</h2>
+<p>Те же 559 доменов, другая раскладка по зонам:</p>
+<div class="tw"><table>
+<tr><th>сценарий</th><th>затраты</th><th>деп</th><th>выручка</th><th>итог</th><th>ROI</th></tr>
+<tr><td>как есть</td><td>$1238</td><td>27</td><td>$1080</td><td class="loss">−$158</td><td>0.87x</td></tr>
+<tr class="hl"><td>всё в .lol, если зона не влияет</td><td>$559</td><td>27</td><td>$1080</td><td class="gain">+$521</td><td>1.93x</td></tr>
+<tr><td>всё в .lol по её факт. ставке</td><td>$559</td><td>15.2</td><td>$610</td><td class="gain">+$51</td><td>1.09x</td></tr>
+<tr><td>всё в .team, если зона не влияет</td><td>$1118</td><td>27</td><td>$1080</td><td class="loss">−$38</td><td>0.97x</td></tr>
+<tr class="bad"><td>всё в .casino по её факт. ставке</td><td>$3913</td><td>48.6</td><td>$1944</td><td class="loss">−$1969</td><td>0.50x</td></tr>
+</table></div>
+<div class="cards">
+  <div><p class="k gain">1.93x</p><p class="l">перевести всё в <code>.lol</code>: бесплатно, сразу, без исследований</p></div>
+  <div><p class="k">1.74x</p><p class="l">удвоить конверсию при текущих зонах: месяцы работы над генератором</p></div>
+  <div><p class="k gain">2.58x</p><p class="l"><code>.lol</code> + 12 страниц — лучшая наблюдаемая пара, 31 домен, +$1.58/домен</p></div>
+</div>
+<p>Смена зоны даёт больше, чем удвоение конверсии — и это единственный рычаг,
+который не требует ни данных, ни экспериментов. <b>Практический вывод: перестать покупать
+<code>.casino</code> сейчас, а вопрос «стоит ли зона денег» закрыть отдельным запуском.</b>
+Расчёт мощности: 100 доменов <code>.casino</code> против 100 <code>.lol</code> в один день
+дают 98% шанс увидеть семикратную разницу, если она есть. Стоимость проверки — $800.</p>
+</section>
+
+<hr>
+
+<section>
+<h2>Воронка: насколько мало не хватает</h2>
+<div class="tw"><table>
+<tr><th>шаг</th><th>значение</th><th>на домен</th></tr>
+<tr><td>запущено доменов</td><td>559</td><td>—</td></tr>
+<tr><td>дали хотя бы 1 регистрацию</td><td>106</td><td>19.0%</td></tr>
+<tr><td>регистраций всего</td><td>179</td><td>0.32 · <span class="n">1.69</span> на сработавший</td></tr>
+<tr><td>депозитов</td><td>27</td><td>15.1% от регистраций</td></tr>
+<tr class="tot"><td>выручка</td><td>$1080</td><td>$1.93</td></tr>
+</table></div>
+<p>Чтобы выйти в плюс при <b>нынешних</b> ценах, хватит улучшения на 15% в любом
+одном месте воронки:</p>
+<ul>
+<li>заход <span class="n">19.0% → 21.7%</span></li>
+<li>регистраций на сработавший домен <span class="n">1.69 → 1.94</span></li>
+<li>регистрация→депозит <span class="n">15.1% → 17.3%</span></li>
+<li>или средняя цена домена <span class="n">$2.21 → $1.93</span></li>
+</ul>
+<p>Порог низкий: один подтверждённый результат про 12 страниц против 7
+(<span class="n">28.9%</span> против <span class="n">13.8%</span> захода) — это рост
+не на 15%, а вдвое. Система не в глубоком минусе, она стоит на грани и её сдвигает
+любой из рычагов.</p>
+</section>
+
+<hr>
+
+<section>
+<h2>Что я теперь считаю неправильно и должен снять</h2>
+<div class="call warn">
+<h3>Час запуска — таблицу считать нельзя</h3>
+<p>Вы запускаете по 5 сайтов в час круглосуточно. У меня же есть только время создания
+списка группы — одно на 40 доменов. Группа из 40 расходится по восьми часам, а у меня
+все 40 подписаны одним часом. Цифры, которые получаются («17:00 единственный
+прибыльный час»), описывают группы, а не часы, и читать их нельзя.</p>
+<p><b>Нужно:</b> метка времени постановки на индексацию у каждого домена, а не у списка.</p>
+</div>
+<div class="call note">
+<h3>День недели — депозитов слишком мало</h3>
+<p>27 депозитов на семь дней недели. Один депозит — это $40, то есть один случайный
+депозит переставляет целый день из убытка в прибыль. Разброс от 0.00x в пятницу
+до 1.67x в четверг — это ровно то, как выглядит шум при таких числах. Считать день недели
+можно будет примерно при 150 депозитах.</p>
+</div>
+<div class="call note">
+<h3>Свой контент нельзя складывать за разные недели</h3>
+<p>Генератор в доработке, значит запуск от 25.08 и запуск от 10.09 — это разный контент
+под одним именем. Все мои сравнения «свой против присланного» складывают несколько версий
+генератора в одну цифру. <b>Нужна дата или номер сборки генератора в каждой партии</b> —
+иначе улучшения генератора невидимы и размазываются в средних.</p>
+</div>
+</section>
+
+<hr>
+
+<section>
+<h2>Новые параметры из вашего описания</h2>
+<p>Три из них раньше в схеме отсутствовали, и все три собираемы уже сейчас.</p>
+
+<h3>Вложенность — это предел, а не глубина <span class="chip c-can">можно сразу</span></h3>
+<p>Я считал вложенность как наблюдаемое свойство URL. По вашим словам управляемая
+величина другая: <b>предел</b> — 20, 40, 80, 100, без ограничения — и <b>режим</b>:
+фиксированный уровень или случайный до предела. У вас сейчас случайный до 40,
+у части выдачи видно фиксированные 15 с редиректом с остальных уровней.</p>
+<p>Это лучший кандидат на эксперимент из всего, что есть: параметр управляемый,
+значений мало, стоимость смены нулевая. Собирать надо два поля на партию:
+<code>предел</code> и <code>режим</code> (фикс / рандом), плюс <code>фикс_уровень</code>
+там, где режим фиксированный.</p>
+
+<h3>Приход яндекс-бота <span class="chip c-can">есть в логах и трекере</span></h3>
+<p>Вы сказали, что заход бота виден и по серверу, и в том же трекере, откуда приходят
+переходы. Тогда у нас появляется звено, которого не было совсем: между «запустили»
+и «получили регистрацию» сейчас чёрный ящик. С логами воронка становится
+разложимой: не пришёл бот · пришёл, но не проиндексировал · проиндексировал,
+но не в десятке · в десятке, но не конвертит. Это четыре разных проблемы с четырьмя
+разными решениями, и сейчас я не могу их отличить.</p>
+<p>Минимум: <code>дата_первого_захода</code>, <code>хитов_бота</code>,
+<code>на_каких_уровнях</code>, <code>дата_первой_регистрации</code>.</p>
+
+<h3>Трафик — два разных потока <span class="chip c-need">нужно разделить</span></h3>
+<p>Трафик яндекс-ботов измерим, остальной трафик неопределим (боты или люди).
+Их нельзя складывать: первый — индикатор внимания поисковика, второй —
+индикатор спроса. Нужны две отдельные цифры на поддомен, а не одна «посещаемость».</p>
+
+<h3>Деньги <span class="chip c-can">теперь есть</span></h3>
+<p>Цены зон ($7 / $2 / $1) и цена депозита ($40) — это то, чего не хватало
+всем предыдущим отчётам. Любой срез теперь можно закрывать долларами вместо
+процентов захода, и сравнения перестают быть спором о вкусах.</p>
+</section>
+
+<hr>
+
+<section>
+<h2>Про цель «зайти сложными брендами»</h2>
+<p>Цель ВЧ/СЧ и цель «математика бьётся» совместимы только в дешёвых зонах,
+и вот почему. Сложный бренд означает больше запусков на одну конверсию — то есть
+более низкую ставку депозитов на домен. При $1.93 отдачи это допустимо ровно
+до тех пор, пока домен стоит меньше. В <code>.lol</code> за $1 можно позволить себе
+ставку вдвое ниже текущей и всё равно остаться в плюсе; в <code>.casino</code> за $7
+нужна ставка в 3.6 раза выше текущей, а сложные бренды двигают её в обратную сторону.</p>
+<div class="call warn">
+<h3>Чего не хватает, чтобы вообще проверить эту цель</h3>
+<p>Класс бренда (ВЧ / СЧ / НЧ) у меня есть <b>только там, где случилась конверсия</b> —
+то есть по результату. Это отбор по результату: на такой выборке сравнивать классы
+нельзя, ответ будет всегда «сложные бренды работают», потому что несработавших
+в ней просто нет.</p>
+<p>Нужен полный список поддоменов с брендом и его классом, включая те,
+что не дали ничего. Без этого главная заявленная цель системы не измеряется —
+ни в процентах, ни в долларах.</p>
+</div>
+</section>
+
+<p class="foot">559 доменов с закрытым окном (запуск не позже 06.09), 472 события конверсий
+от 12.08, реестр 1361 домен. Окно домена — 6 дней; открытые окна в расчёт итогов
+не входят. Цены: <code>.casino</code> $7, <code>.team</code> $2, <code>.lol</code> $1,
+контент $0, депозит $40. Скрипты: <code>analysis/scripts/econ1.py</code>,
+<code>econ2.py</code>, <code>econ3.py</code>.</p>
+
+</div>
