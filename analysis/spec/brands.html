@@ -1,0 +1,290 @@
+<title>Сложные бренды работают</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Karla:wght@400;500;700&family=Roboto+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  --paper:#fbf9f7; --card:#fff; --ink:#211d2b; --mute:#635d70; --line:#ddd8d6;
+  --t1:#33266e; --t2:#6b5fa8; --t3:#a9a2c4; --acc:#33266e; --accbg:#eceaf4;
+  --pos:#1f5a3d; --neg:#993421; --negbg:#f7e9e4; --warn:#7a5a12; --warnbg:#f6efdc;
+}
+:root:not([data-theme="light"]){@media (prefers-color-scheme:dark){
+  --paper:#141220; --card:#1d1a2b; --ink:#eceaf2; --mute:#9b95ad; --line:#2f2b40;
+  --t1:#b9aef0; --t2:#8a7ec9; --t3:#544d78; --acc:#b9aef0; --accbg:#231f38;
+  --pos:#83c9a1; --neg:#e8947c; --negbg:#2d1d18; --warn:#d9bd74; --warnbg:#2a2314;
+}}
+:root[data-theme="dark"]{
+  --paper:#141220; --card:#1d1a2b; --ink:#eceaf2; --mute:#9b95ad; --line:#2f2b40;
+  --t1:#b9aef0; --t2:#8a7ec9; --t3:#544d78; --acc:#b9aef0; --accbg:#231f38;
+  --pos:#83c9a1; --neg:#e8947c; --negbg:#2d1d18; --warn:#d9bd74; --warnbg:#2a2314;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font:400 16.5px/1.64 Karla,system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:850px;margin:0 auto;padding:0 20px;padding-block:54px 78px}
+h1{font:700 clamp(33px,6.2vw,52px)/1.04 Fraunces,Georgia,serif;letter-spacing:-.02em;
+  margin:0 0 16px;text-wrap:balance}
+h2{font:700 clamp(22px,3.3vw,28px)/1.2 Fraunces,Georgia,serif;margin:0 0 12px;text-wrap:balance}
+h3{font:700 17px/1.3 Karla,sans-serif;margin:0 0 7px}
+p{margin:0 0 14px;max-width:65ch}
+.eyebrow{font:600 12px/1 "Roboto Mono",ui-monospace,monospace;letter-spacing:.17em;
+  text-transform:uppercase;color:var(--acc);margin:0 0 16px}
+.lede{font-size:19px;color:var(--mute);max-width:61ch}
+.lede b{color:var(--ink);font-weight:700}
+hr{border:0;border-top:1px solid var(--line);margin:36px 0 32px}
+section{margin:0 0 42px}
+.n,code{font-family:"Roboto Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+code{background:var(--accbg);padding:.1em .34em;border-radius:3px;font-size:.88em}
+
+.hero{background:var(--card);border:1px solid var(--line);padding:24px 26px;margin:0 0 22px;
+  border-top:4px solid var(--acc)}
+.hero .num{font:700 clamp(40px,8vw,64px)/1 Fraunces,Georgia,serif;letter-spacing:-.03em;
+  margin:0 0 6px;color:var(--acc)}
+.hero .cap{font-size:16px;color:var(--mute);margin:0;max-width:52ch}
+
+/* шкала по частотности */
+.bars{background:var(--card);border:1px solid var(--line);padding:22px 24px 18px;margin:0 0 18px}
+.bars .r{display:grid;grid-template-columns:96px 1fr 96px;gap:13px;align-items:center;margin:0 0 11px}
+.bars .lb{font:600 13.5px/1.25 "Roboto Mono",ui-monospace,monospace}
+.bars .tr{display:block;height:24px;background:var(--accbg)}
+.bars .bar{display:block;height:24px}
+.bars .vl{font:600 13.5px/1 "Roboto Mono",ui-monospace,monospace;text-align:right}
+.bars .cap{font-size:14px;color:var(--mute);margin:12px 0 0;border-top:1px solid var(--line);
+  padding-top:11px}
+
+.tw{overflow-x:auto;border:1px solid var(--line);background:var(--card);margin:0 0 17px}
+table{border-collapse:collapse;width:100%;min-width:580px;font-size:15px}
+th{font:600 11px/1.2 "Roboto Mono",ui-monospace,monospace;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--mute);text-align:right;padding:12px 14px;
+  border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child{text-align:left}
+td{padding:10px 14px;border-bottom:1px solid var(--line);text-align:right;
+  font-family:"Roboto Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:14px}
+td:first-child{text-align:left;font-family:Karla,sans-serif;font-size:15px}
+tr:last-child td{border-bottom:0}
+tr.hl td{background:var(--accbg)}
+
+.call{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--acc);
+  padding:17px 21px;margin:0 0 18px}
+.call.warn{border-left-color:var(--warn)}
+.call.neg{border-left-color:var(--neg)}
+.call.pos{border-left-color:var(--pos)}
+.call p:last-child{margin-bottom:0}
+.pos{color:var(--pos)}.neg{color:var(--neg)}
+ul,ol{margin:0 0 14px;padding-left:22px;max-width:65ch}
+li{margin:0 0 8px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:13px;margin:0 0 18px}
+.cards>div{background:var(--card);border:1px solid var(--line);padding:15px 17px}
+.cards .k{font:700 25px/1.05 Fraunces,Georgia,serif;margin:0 0 4px}
+.cards .l{font-size:14px;color:var(--mute);margin:0;line-height:1.42}
+.foot{font-size:14px;color:var(--mute);border-top:1px solid var(--line);padding-top:17px}
+</style>
+<div class="wrap">
+
+<p class="eyebrow">дорвеи · поддомены</p>
+<h1>Сложные бренды работают</h1>
+<p class="lede">Набор брендов одинаков на всех доменах — значит знаменатель у меня
+уже есть, и ждать неделю не нужно. <b>Главная цель системы получила ответ сегодня:
+ВЧ-бренды дают в 1.6 раза больше регистраций на поддомен, чем НЧ, p=0.0105.</b></p>
+
+<hr>
+
+<section>
+<h2>Почему это стало считаться прямо сейчас</h2>
+<p>В выгрузке конверсий есть поле с поддоменом — оно заполнено у 458 событий из 472.
+То есть <b>числитель всегда был на поддоменах</b>, не хватало только знаменателя.
+Ваша фраза «набор брендов одинаковый на всех доменах» его и даёт:</p>
+<div class="hero">
+  <p class="num">111 800</p>
+  <p class="cap">поддоменов на закрытых окнах: 559 доменов × 200 брендов.
+  Ставка регистраций <span class="n">0.1601%</span> на поддомен,
+  депозитов <span class="n">0.0242%</span>.</p>
+</div>
+<div class="call pos">
+<h3>Бренд — единственное измерение в системе, рандомизированное по построению</h3>
+<p>Все 200 брендов стоят на всех 559 доменах. Значит любое сравнение брендов
+<b>автоматически сбалансировано по зоне, по числу страниц, по источнику контента,
+по дню запуска и по вложенности</b> — все домены вносят вклад в каждую группу брендов.</p>
+<p>Это объясняет, почему вопрос про страницы потребовал трёх недель и двух опровержений
+(усечение слева, путаница с источником), а вопрос про класс бренда закрылся
+на 179 регистрациях с первого раза. Здесь нет ни одного из тех confound'ов,
+и быть не может.</p>
+</div>
+</section>
+
+<hr>
+
+<section>
+<h2>Класс бренда против денег</h2>
+<div class="tw"><table>
+<tr><th>класс</th><th>брендов</th><th>поддоменов</th><th>рег</th><th>рег/поддомен</th><th>против НЧ</th></tr>
+<tr class="hl"><td>ВЧ · ≥1 млн</td><td>50</td><td>27 950</td><td>54</td><td>0.1932%</td><td class="pos">1.60x</td></tr>
+<tr><td>СЧ · 700k–1M</td><td>15</td><td>8 385</td><td>13</td><td>0.1550%</td><td>1.29x</td></tr>
+<tr><td>НЧ · ниже</td><td>92</td><td>51 428</td><td>62</td><td>0.1206%</td><td>—</td></tr>
+</table></div>
+<p>ВЧ против НЧ: <span class="n">z = +2.56, p = 0.0105</span>. ВЧ против СЧ
+(<span class="n">p=0.48</span>) и СЧ против НЧ (<span class="n">p=0.41</span>)
+по отдельности не различимы — средняя группа слишком мала, всего 15 брендов.
+Работает крайнее сравнение.</p>
+
+<p>Непрерывная версия, по частотности вместо трёх классов:</p>
+<div class="bars">
+  <div class="r"><span class="lb">свыше 1M</span>
+    <span class="tr"><span class="bar" style="width:100%;background:var(--t1)"></span></span>
+    <span class="vl">0.193%</span></div>
+  <div class="r"><span class="lb">500k–1M</span>
+    <span class="tr"><span class="bar" style="width:62.6%;background:var(--t2)"></span></span>
+    <span class="vl">0.121%</span></div>
+  <div class="r"><span class="lb">200–500k</span>
+    <span class="tr"><span class="bar" style="width:79.3%;background:var(--t2)"></span></span>
+    <span class="vl">0.153%</span></div>
+  <div class="r"><span class="lb">до 200k</span>
+    <span class="tr"><span class="bar" style="width:53.6%;background:var(--t3)"></span></span>
+    <span class="vl">0.104%</span></div>
+  <p class="cap">Ставка регистраций на поддомен по частотности бренда. Крайние точки
+  различаются в <span class="n">1.87x</span>, но середина не упорядочена: 200–500k выше,
+  чем 500k–1M. При 22–54 регистрациях в корзине это нормальный разброс —
+  читать надо тренд, а не порядок корзин.</p>
+</div>
+<div class="call warn">
+<h3>Чего не хватает, чтобы закрыть вопрос полностью</h3>
+<p>Частотность известна у <span class="n">157</span> брендов из 200. В классификацию
+попали <span class="n">129</span> регистраций из 179 — то есть 28% данных вне разреза.
+И среди неклассифицированных <b>оказался лучший бренд системы</b>:
+<code>luckybird</code> с 10 регистрациями, а также <code>pinup</code> (8)
+и <code>vulkanvegas</code> (5).</p>
+<p>Нужна частотность для 43 брендов. Это самая маленькая заявка из всех,
+что я делал, и она двигает результат сильнее любой недели запусков.</p>
+</div>
+</section>
+
+<hr>
+
+<section>
+<h2>Разброс между брендами — самый большой эффект в системе</h2>
+<div class="cards">
+  <div><p class="k pos">5.2x</p><p class="l">топ-20 брендов, отобранных на половине доменов, дают в другой половине в 5.2 раза больше регистраций на поддомен</p></div>
+  <div><p class="k">2.1x</p><p class="l">12 страниц против 7 — подтверждённый результат, стоил трёх недель</p></div>
+  <div><p class="k neg">3.2x</p><p class="l">.casino против .lol — но стоит в 7 раз дороже, поэтому убыток</p></div>
+</div>
+<p>Проверка отбора честная: топ выбирается на одной случайной половине доменов,
+а измеряется на другой. Медиана 200 разбиений — <span class="n">5.19x</span>
+(5–95%: <span class="n">3.62–7.50</span>). Для топ-10 — <span class="n">5.73x</span>,
+для топ-40 — <span class="n">4.89x</span>.</p>
+<p>Что бренды не взаимозаменяемы, видно и по одному наблюдению:
+<code>luckybird</code> набрал 10 регистраций <b>на десяти разных доменах</b>.
+Если бы все бренды были одинаковы, каждый ждал бы 0.9 регистрации, и вероятность
+набрать 10 равна <span class="n">4·10⁻⁸</span> для конкретного бренда
+и <span class="n">8·10⁻⁶</span> хотя бы для одного из двухсот.
+Разброс по всем брендам втрое выше случайного
+(<span class="n">χ²=633</span> при 199 ст. св.).</p>
+
+<div class="call neg">
+<h3>Но рейтинг отдельных брендов не измерен — и это не то же самое</h3>
+<p>Корреляция рангов между случайными половинами доменов — <span class="n">−0.08</span>.
+Работает <b>верхняя группа</b>, а не порядок внутри неё: сказать «luckybird лучше pinup»
+данные не позволяют, сказать «эти двадцать лучше тех ста» — позволяют.</p>
+<p>И отдельно: <b>«126 брендов не работают» читать нельзя.</b> Нулей наблюдается 126,
+но при равных брендах и 179 регистрациях случайность даёт <span class="n">82</span> нуля
+сама по себе. Большинство молчащих брендов просто не измерено, а не плохи.
+Чтобы ранжировать бренды по одному, нужно примерно в 16 раз больше данных —
+около 9 000 доменов.</p>
+</div>
+</section>
+
+<hr>
+
+<section>
+<h2>Что с этим делать: поддомены бесплатны</h2>
+<p>Домен стоит денег, поддомен — нет. Значит порог окупаемости нового бренда равен нулю:
+любой бренд с ненулевой ставкой добавляет деньги. А цена класса теперь измерена —
+каждый бренд приносит на каждый домен:</p>
+<div class="tw"><table>
+<tr><th>класс</th><th>рег/поддомен</th><th>$ на домен за один бренд</th></tr>
+<tr class="hl"><td>ВЧ</td><td>0.1932%</td><td>$0.0117</td></tr>
+<tr><td>СЧ</td><td>0.1550%</td><td>$0.0094</td></tr>
+<tr><td>НЧ</td><td>0.1206%</td><td>$0.0073</td></tr>
+</table></div>
+<p>Отсюда прямой расчёт: сколько добавится к нынешним <span class="n">$1.93</span>
+с домена, если расширить набор брендов при той же цене домена
+(<span class="n">$2.21</span> в среднем сейчас):</p>
+<div class="tw"><table>
+<tr><th>сценарий</th><th>$ / домен</th><th>ROI при $2.21</th><th>ROI в .lol за $1</th></tr>
+<tr><td>как есть, 200 брендов</td><td>$1.93</td><td class="neg">0.87x</td><td class="pos">1.93x</td></tr>
+<tr><td>+50 брендов НЧ</td><td>$2.29</td><td>1.04x</td><td class="pos">2.29x</td></tr>
+<tr class="hl"><td>+50 брендов ВЧ</td><td>$2.51</td><td class="pos">1.14x</td><td class="pos">2.51x</td></tr>
+<tr><td>+100 брендов ВЧ</td><td>$3.10</td><td class="pos">1.40x</td><td class="pos">3.10x</td></tr>
+</table></div>
+<p><b>Расширение набора брендов выводит систему в плюс даже без смены зоны,
+а вместе со сменой на <code>.lol</code> даёт 2.5x.</b> Оговорка честная: расчёт
+предполагает, что новые бренды работают как существующие того же класса.
+Новые бренды идут вниз по популярности, а разброс как раз по популярности —
+значит реальный прирост будет меньше расчётного. Но он не может быть отрицательным:
+поддомен ничего не стоит.</p>
+<div class="call warn">
+<h3>Проверить это запуском не получится</h3>
+<p>Сравнение 200 против 300 брендов по заходу домена: мощность
+<span class="n">13%</span> за неделю и <span class="n">23%</span> за две,
+если новые бренды вдвое хуже средних. Это не эксперимент, а монетка.
+Поэтому решение принимается из арифметики (порог нулевой → добавлять),
+а не из теста.</p>
+</div>
+</section>
+
+<hr>
+
+<section>
+<h2>Что это отменяет в прошлых выводах</h2>
+<div class="call">
+<h3>Аномалия «только 13 регистраций из 92 пришли по бренду домена» — артефакт</h3>
+<p>Я сравнивал бренд конверсии с ядром ключей домена. Но домены не ранжируются,
+и ядро домена — это объединение двухсот поддоменных ядер: в моих ключевых данных
+один ключ приходится в среднем на <span class="n">20.5</span> домена.
+Совпадение или несовпадение с таким «ядром» не значило ничего. Аномалии не было —
+была подмена единицы измерения.</p>
+</div>
+<div class="call">
+<h3>Вся позиционная база мерила не тот объект</h3>
+<p>Ключи в Т3/Т10/Т30/Т100 снимались по домену. Раз ранжируется поддомен,
+«у домена 15 ключей в Т10» означает «на 200 поддоменах суммарно 15 ключей в Т10»,
+то есть 0.075 на поддомен. Это не ошибка в цифрах, но другая величина,
+и связывать её с конверсией конкретного бренда нельзя.
+Съём позиций по поддоменам поднимается в приоритете с П3 на П2.</p>
+</div>
+<div class="call">
+<h3>Метрику менять не надо — проверил и отказался</h3>
+<p>Логично было бы считать не «заход домена» (бинарно), а регистрации на поддомен
+(счётом): домен с 8 регистрациями сейчас идёт как «один заход», информация теряется.
+Посчитал мощность — счётная метрика оказалась <b>хуже</b>: 68% против
+<span class="n">77%</span> при 293 доменах на ветку, потому что регистрации
+группируются внутри доменов и дисперсия растёт быстрее среднего.
+Бинарный заход остаётся основной метрикой для экспериментов.</p>
+</div>
+</section>
+
+<hr>
+
+<section>
+<h2>Как меняется заявка на данные</h2>
+<div class="tw"><table>
+<tr><th>что</th><th>было</th><th>стало</th><th>почему</th></tr>
+<tr class="hl"><td>частотность 43 брендов</td><td>П2, файл на 200 строк</td><td>П1, 43 строки</td>
+<td>157 из 200 уже известны из ключевых данных. 28% регистраций вне разреза, и среди них лучший бренд</td></tr>
+<tr><td>список брендов с классом</td><td>П2, нужен целиком</td><td>снято</td>
+<td>набор одинаков на всех доменах, значит знаменатель выводится из реестра</td></tr>
+<tr><td>позиции по поддоменам</td><td>П3</td><td>П2</td>
+<td>домены не ранжируются — вся текущая позиционная база про другой объект</td></tr>
+<tr><td>логи бота</td><td>П2</td><td>П2, но по поддоменам</td>
+<td>бот приходит на поддомен; «бот пришёл на домен» — снова та же подмена</td></tr>
+</table></div>
+<p>Остальное в заявке без изменений: предел и режим вложенности, страниц, источник,
+сборка генератора, время постановки по каждому домену, цена факт, дроп или новый.</p>
+</section>
+
+<p class="foot">559 доменов с закрытым окном (запуск не позже 06.09) × 200 брендов =
+111 800 поддоменов. 206 событий конверсий с известным брендом на этих доменах:
+179 регистраций, 27 депозитов. Частотность и класс бренда — из ключевых данных
+(157 брендов). Классы: ВЧ ≥1 млн кликов/мес, СЧ 700k–1M, НЧ ниже.
+Тесты: двусторонний z для двух пропорций, хи-квадрат на сверхразброс,
+кросс-валидация топ-K на случайных половинах (200–400 разбиений).
+Скрипты: <code>analysis/scripts/sub1.py</code> … <code>sub4.py</code>.</p>
+
+</div>
