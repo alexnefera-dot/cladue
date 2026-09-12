@@ -84,6 +84,23 @@ def fill_vars(raw, page, seed):
     return "".join(out), rows
 
 
+ХВОСТ_БРЕНДА = re.compile(r'(%brand_name_(?:ru|en)%)\s+([A-Z][A-Za-z]{2,})\b')
+
+
+def fix_brand_tail(raw):
+    """Второе слово чужого бренда: «%brand_name_ru% World» — автоопределение взяло только первое."""
+    счёт = [0]
+
+    def снять(m):
+        if m.group(2).lower() in LATIN_WHITELIST:
+            return m.group(0)
+        счёт[0] += 1
+        return m.group(1)
+
+    raw = ХВОСТ_БРЕНДА.sub(снять, raw)
+    return raw, ([("хвост бренда", "снят", "%d" % счёт[0])] if счёт[0] else [])
+
+
 def fix_brand(raw, brand):
     rows = []
     if " " in brand:   # двухсловный бренд: сначала целиком, потом каждое неслужебное слово отдельно
@@ -177,7 +194,7 @@ def fix_markup(raw):
             raw = raw[:a] + raw[b:]
         if лишние:
             rows.append(("лишний </%s>" % тег, "снят", "%d" % len(лишние)))
-    raw, n = re.subn(r"</?(?:meter|progress|font|center|marquee|blink|spoiler|title)[^>]*>", "", raw)
+    raw, n = re.subn(r"</?(?:meter|progress|font|center|marquee|blink|spoiler|title|felt)[^>]*>", "", raw)
     if n:
         rows.append(("лишний тег", "снят", "%d" % n))
     raw, n = re.subn(r"<h([1-6]):\s*", r"<h\1>", raw)
@@ -260,6 +277,8 @@ def main():
                 raw, brows = fix_brand(raw, brand)
                 for bname, how, n in brows:
                     rows.append(how)
+            raw, trows = fix_brand_tail(raw)
+            rows += trows
             if raw != orig:
                 open(p, "w", encoding="utf-8").write(raw)
                 total += len(rows)
