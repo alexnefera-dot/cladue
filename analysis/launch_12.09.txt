@@ -1,8 +1,8 @@
-# День 12.09.2026 — 38 доменов зарегистрировано, одна группа (не хватает _1…_4)
+# День 12.09.2026 — 78 доменов зарегистрировано, две группы (не хватает п1 _1…_4 и п2 _1)
 
 ## content-2026-09-12-7str-oform-1_5…_42 — id 1959-1996, создан 12:42
-# ПРИМЕЧАНИЕ: не хватает _1…_4, id 1955-1958. Верхняя граница неизвестна:
-# ПРИМЕЧАНИЕ: суффиксы могут идти дальше _42.
+# ПРИМЕЧАНИЕ: партия — 42 домена, id 1955-1996 (граница подтверждена: партия 2
+# ПРИМЕЧАНИЕ: начинается с 1997). Не хватает _1…_4, id 1955-1958.
 1209dd.casino
 1209ss.casino
 casino1209s.casino
@@ -41,3 +41,46 @@ yxuk.team
 uqg.lol
 mhpl.lol
 casino378.lol
+
+## content-2026-09-12-7str-oform-2_2…_41 — id 1998-2037, создан 12:42
+# ПРИМЕЧАНИЕ: не хватает _1, id 1997. Верхняя граница неизвестна.
+casino4614.team
+h8v.team
+4489.lol
+casino8915.lol
+vitt.lol
+022casino.team
+615casino.team
+khev.lol
+3001.lol
+378casino.team
+casinorlj.team
+7410.team
+casinoar.team
+qcfi.team
+rzacasino.lol
+0148.team
+vngr.team
+5740.team
+v2b.team
+1081.team
+casinojih.lol
+3002.lol
+g3p0.lol
+xwbw.team
+npj.lol
+t8s4.lol
+5046.team
+zgin.team
+8436casino.lol
+itrv.team
+5076casino.lol
+9263casino.team
+9051.team
+21casino.team
+8491.team
+6581casino.team
+2120.team
+rplcasino.lol
+evcasino.team
+oopf.team

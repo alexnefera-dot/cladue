@@ -754,7 +754,7 @@
     kura.team
 
 ========================================================================
-12.09.2026 — 38 доменов, 1 группа   [.team 24  .lol 10  .casino 4]
+12.09.2026 — 78 доменов, 2 группы   [.team 50  .lol 24  .casino 4]
 ========================================================================
 
 --- content-2026-09-12-7str-oform-1_5…_42 — id 1959-1996, создан 12:42
@@ -799,8 +799,52 @@
     mhpl.lol
     casino378.lol
 
+--- content-2026-09-12-7str-oform-2_2…_41 — id 1998-2037, создан 12:42
+    40 доменов: .team 26  .lol 14
+
+    casino4614.team
+    h8v.team
+    4489.lol
+    casino8915.lol
+    vitt.lol
+    022casino.team
+    615casino.team
+    khev.lol
+    3001.lol
+    378casino.team
+    casinorlj.team
+    7410.team
+    casinoar.team
+    qcfi.team
+    rzacasino.lol
+    0148.team
+    vngr.team
+    5740.team
+    v2b.team
+    1081.team
+    casinojih.lol
+    3002.lol
+    g3p0.lol
+    xwbw.team
+    npj.lol
+    t8s4.lol
+    5046.team
+    zgin.team
+    8436casino.lol
+    itrv.team
+    5076casino.lol
+    9263casino.team
+    9051.team
+    21casino.team
+    8491.team
+    6581casino.team
+    2120.team
+    rplcasino.lol
+    evcasino.team
+    oopf.team
+
 ========================================================================
-ИТОГО: 547 доменов
+ИТОГО: 587 доменов
 ========================================================================
   06.09    60
   07.09   123
@@ -808,13 +852,13 @@
   09.09    85
   10.09    79
   11.09    11
-  12.09    38
+  12.09    78
 
-  зоны: .team 226   .lol 203   .casino 63   .buzz 55
+  зоны: .team 252   .lol 217   .casino 63   .buzz 55
   доменов встречается более одного раза: 0
 
 ========================================================================
-ПЛОСКИЙ СПИСОК — 547 доменов подряд
+ПЛОСКИЙ СПИСОК — 587 доменов подряд
 ========================================================================
 65casino.lol
 1936.team
@@ -1363,3 +1407,43 @@ yxuk.team
 uqg.lol
 mhpl.lol
 casino378.lol
+casino4614.team
+h8v.team
+4489.lol
+casino8915.lol
+vitt.lol
+022casino.team
+615casino.team
+khev.lol
+3001.lol
+378casino.team
+casinorlj.team
+7410.team
+casinoar.team
+qcfi.team
+rzacasino.lol
+0148.team
+vngr.team
+5740.team
+v2b.team
+1081.team
+casinojih.lol
+3002.lol
+g3p0.lol
+xwbw.team
+npj.lol
+t8s4.lol
+5046.team
+zgin.team
+8436casino.lol
+itrv.team
+5076casino.lol
+9263casino.team
+9051.team
+21casino.team
+8491.team
+6581casino.team
+2120.team
+rplcasino.lol
+evcasino.team
+oopf.team
