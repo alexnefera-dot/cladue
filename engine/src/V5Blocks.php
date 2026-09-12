@@ -1965,7 +1965,7 @@ function v5OdinIshod(string $html): string
     return implode('', $части);
 }
 
-function v5UbratObryvki(string $html, array $имена): string
+function v5UbratObryvki(string $html, array $имена, bool $сFaq = false): string
 {
     $банк = array_fill_keys($имена, true);
     // Ответы FAQ — не история героя: «Аккаунт закрывается через поддержку…,
@@ -1983,10 +1983,14 @@ function v5UbratObryvki(string $html, array $имена): string
             }
             continue;
         }
-        $куски[$k] = (string) preg_replace_callback('~(<(?:p|li)\b[^>]*>)(.*?)(</(?:p|li)>)~su', function ($a) use (&$былоИмя, $банк) {
+        $куски[$k] = (string) preg_replace_callback('~(<(?:p|li)\b[^>]*>)(.*?)(</(?:p|li)>)~su', function ($a) use (&$былоИмя, $банк, $сFaq) {
             $предл = preg_split('~(?<=[.!?…])\s+(?=(?:<strong>|<em>)?\p{Lu}|<)~u', $a[2]);
             $оставить = [];
-            if (str_contains($a[1], 'data-faq')) { return $a[0]; }
+            // Ответ FAQ чистится только на финальном проходе ($сFaq) и только если
+            // после снятия остаётся не меньше двух предложений: сверка считает FAQ
+            // прозой и ловит там «Обойти его не получится ни через какой адрес».
+            $вFaq = str_contains($a[1], 'data-faq');
+            if ($вFaq && !$сFaq) { return $a[0]; }
             foreach ($предл as $п) {
                 $чист = trim(strip_tags($п));
                 if (preg_match_all('~\b(\p{Lu}[а-яё]{2,})\b~u', $чист, $mm)) { foreach ($mm[1] as $w) { if (isset($банк[$w])) { $былоИмя = true; } } }
@@ -1997,7 +2001,8 @@ function v5UbratObryvki(string $html, array $имена): string
                     && !preg_match('~^(?:если|можно|можешь|минус|плюс|честно|факт)~ui', $чист);
                 if (!$обрывок) { $оставить[] = $п; }
             }
-            if (!$оставить) { return ''; }
+            if (!$оставить) { return $вFaq ? $a[0] : ''; }
+            if ($вFaq && count($оставить) < 2 && count($предл) >= 2) { return $a[0]; }
             return $a[1] . implode(' ', $оставить) . $a[3];
         }, $кусок);
     }
