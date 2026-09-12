@@ -1,0 +1,358 @@
+<title>Система запусков: что известно</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Libre+Franklin:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#f7f6f3; --card:#fff; --ink:#191917; --mute:#61605a; --line:#dedcd5;
+  --acc:#8a6620; --accbg:#f4eddd; --pos:#2d5b3a; --posbg:#e7efe8; --neg:#8e3826;
+  --negbg:#f7e9e5; --chg:#4b4483; --chgbg:#ebe9f4;
+}
+:root:not([data-theme="light"]){@media (prefers-color-scheme:dark){
+  --paper:#161614; --card:#1f1f1c; --ink:#eeede7; --mute:#9b998f; --line:#333229;
+  --acc:#d3ae64; --accbg:#2a2316; --pos:#86c79c; --posbg:#1a2a20; --neg:#e5947c;
+  --negbg:#2c1c17; --chg:#a9a1e0; --chgbg:#211f30;
+}}
+:root[data-theme="dark"]{
+  --paper:#161614; --card:#1f1f1c; --ink:#eeede7; --mute:#9b998f; --line:#333229;
+  --acc:#d3ae64; --accbg:#2a2316; --pos:#86c79c; --posbg:#1a2a20; --neg:#e5947c;
+  --negbg:#2c1c17; --chg:#a9a1e0; --chgbg:#211f30;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font:400 16.5px/1.66 "Libre Franklin",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:870px;margin:0 auto;padding:0 20px;padding-block:56px 84px}
+h1{font:400 clamp(40px,8vw,72px)/1.0 "Instrument Serif",Georgia,serif;letter-spacing:-.01em;
+  margin:0 0 18px;text-wrap:balance}
+h2{font:400 clamp(26px,4.2vw,38px)/1.1 "Instrument Serif",Georgia,serif;margin:0 0 14px;
+  text-wrap:balance}
+h3{font:600 16.5px/1.32 "Libre Franklin",sans-serif;margin:0 0 7px}
+p{margin:0 0 14px;max-width:66ch}
+.eyebrow{font:500 12px/1 "DM Mono",ui-monospace,monospace;letter-spacing:.17em;
+  text-transform:uppercase;color:var(--acc);margin:0 0 18px}
+.lede{font-size:19.5px;color:var(--mute);max-width:60ch}
+.lede b{color:var(--ink);font-weight:600}
+hr{border:0;border-top:1px solid var(--line);margin:44px 0 36px}
+section{margin:0 0 46px}
+.n,code{font-family:"DM Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+code{background:var(--accbg);padding:.1em .34em;border-radius:3px;font-size:.88em}
+em{font-family:"Instrument Serif",Georgia,serif;font-style:italic;font-size:1.06em}
+
+/* хроника правок */
+.log{margin:0}
+.log>li{list-style:none;display:grid;grid-template-columns:34px 1fr;gap:16px;
+  padding:0 0 22px;position:relative}
+.log{padding:0}
+.log>li:not(:last-child):before{content:"";position:absolute;left:16px;top:34px;bottom:0;
+  width:1px;background:var(--line)}
+.stn{width:34px;height:34px;border-radius:50%;background:var(--card);
+  border:1px solid var(--line);display:flex;align-items:center;justify-content:center;
+  font:500 13px/1 "DM Mono",ui-monospace,monospace;color:var(--acc);position:relative;z-index:1}
+.log h3{margin-bottom:4px}
+.log .said{font-size:15px;color:var(--mute);margin:0 0 10px;font-style:italic}
+.log ul{margin:0;padding-left:0;list-style:none}
+.log ul li{margin:0 0 7px;padding-left:20px;position:relative;font-size:15.5px}
+.log ul li:before{position:absolute;left:0;top:0;font:500 12px/1.6 "DM Mono",monospace}
+.log li.add:before{content:"+";color:var(--pos)}
+.log li.del:before{content:"−";color:var(--neg)}
+.log li.mod:before{content:"~";color:var(--chg)}
+
+.tw{overflow-x:auto;border:1px solid var(--line);background:var(--card);margin:0 0 18px}
+table{border-collapse:collapse;width:100%;min-width:600px;font-size:15px}
+th{font:500 11px/1.2 "DM Mono",ui-monospace,monospace;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--mute);text-align:right;padding:12px 15px;
+  border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:bottom}
+th:first-child{text-align:left}
+td{padding:11px 15px;border-bottom:1px solid var(--line);text-align:right;
+  font-family:"DM Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;
+  font-size:14px;vertical-align:top}
+td:first-child{text-align:left;font-family:"Libre Franklin",sans-serif;font-size:15px;
+  line-height:1.45}
+td.txt{text-align:left;font-family:"Libre Franklin",sans-serif;font-size:14.5px;line-height:1.45}
+tr:last-child td{border-bottom:0}
+tr.hl td{background:var(--posbg)}
+tr.bad td{background:var(--negbg)}
+tr.tot td{font-weight:600;background:var(--paper)}
+
+.call{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--acc);
+  padding:18px 22px;margin:0 0 18px}
+.call.pos{border-left-color:var(--pos)} .call.neg{border-left-color:var(--neg)}
+.call.chg{border-left-color:var(--chg)}
+.call p:last-child{margin-bottom:0}
+.pos{color:var(--pos)}.neg{color:var(--neg)}.chg{color:var(--chg)}
+.hero{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--acc);
+  padding:24px 26px;margin:0 0 22px}
+.hero .num{font:400 clamp(38px,7vw,60px)/1 "Instrument Serif",Georgia,serif;margin:0 0 8px}
+.hero .cap{color:var(--mute);font-size:16px;margin:0;max-width:54ch}
+ol.act{counter-reset:a;list-style:none;padding:0;margin:0}
+ol.act>li{counter-increment:a;display:grid;grid-template-columns:30px 1fr;gap:14px;
+  padding:15px 0;border-bottom:1px solid var(--line)}
+ol.act>li:last-child{border-bottom:0}
+ol.act>li:before{content:counter(a);font:500 14px/1.5 "DM Mono",monospace;color:var(--acc)}
+ol.act h3{margin-bottom:3px}
+ol.act p{margin:0;font-size:15.5px;color:var(--mute);max-width:62ch}
+ol.act p b{color:var(--ink);font-weight:600}
+ul.pl{margin:0 0 14px;padding-left:22px;max-width:66ch}
+ul.pl li{margin:0 0 8px}
+.tag{display:inline-block;font:500 10.5px/1 "DM Mono",monospace;letter-spacing:.07em;
+  text-transform:uppercase;padding:4px 7px;border-radius:3px;vertical-align:1px}
+.t-yes{background:var(--posbg);color:var(--pos)}
+.t-no{background:var(--negbg);color:var(--neg)}
+.t-wait{background:var(--accbg);color:var(--acc)}
+.foot{font-size:14px;color:var(--mute);border-top:1px solid var(--line);padding-top:18px}
+@media(max-width:560px){.log>li{grid-template-columns:26px 1fr;gap:12px}
+  .log>li:not(:last-child):before{left:12px;top:28px}
+  .stn{width:26px;height:26px;font-size:11px}}
+</style>
+<div class="wrap">
+
+<p class="eyebrow">дорвеи · сводка на 12.09.2026</p>
+<h1>Система запусков: что известно</h1>
+<p class="lede">Четыре ваших сообщения про устройство системы дали семнадцать правок:
+<b>шесть выводов я снял, пять переписал, шесть появились впервые.</b>
+Итог: система сегодня работает в 0.87x, и два решения, не требующих
+ни одного эксперимента, выводят её в 1.4–2.5x.</p>
+
+<hr>
+
+<section>
+<h2>Хроника правок</h2>
+<p>Вы просили учесть, где выводы менялись. Вот всё по порядку — что вы сказали
+и что из этого пришлось переделать. <span class="n pos">+</span> новое,
+<span class="n neg">−</span> снятое, <span class="n chg">~</span> переписанное.</p>
+
+<ol class="log">
+<li><span class="stn">1</span><div>
+<h3>Контент 7–12 страниц, свой и присланный, зоны, 100 сайтов × 200 брендов, вложенность <code>/ru/ru/ru</code></h3>
+<p class="said">«бот проваливается по этим вложениям и сам определяет, на какой остановиться»</p>
+<ul>
+<li class="mod"><b>Единица анализа неверна.</b> Все мои 1361 строк — домены, а сайт живёт
+на поддомене. «Домен сработал» — смесь двухсот сущностей, из которых сработала одна.</li>
+<li class="mod"><b>«12 страниц лучше 7» сузился.</b> Пересчёт по источнику показал, что
+источник и страницы полностью перепутаны: присланный шёл на 7 и 12 страницах,
+свой — только на 11. Значит результат доказан <em>только на присланном контенте</em>.</li>
+<li class="add">Объяснился мой старый половинчатый вывод про вложенность: рост глубины
+позиции не поднимает, коррелирует только с перееобходом. Причина — бот сам выбирает уровень.</li>
+</ul></div></li>
+
+<li><span class="stn">2</span><div>
+<h3>Вложенность — это предел, а не глубина. Бот виден в логах. Цены $7/$2/$1, депозит $40. По 5 сайтов в час. Генератор в доработке</h3>
+<p class="said">«мы можем только ограничивать… максимальные двадцать, сорок, восемьдесят, сто»</p>
+<ul>
+<li class="add"><b>Появилась экономика.</b> Домен отдаёт <span class="n">$1.93</span>.
+Отсюда всё: <code>.team</code> за $2 — это нуль по построению, а не плохая конверсия.
+<code>.casino</code> за $7 — весь убыток системы.</li>
+<li class="del"><b>Снял таблицу по часу запуска.</b> Я нашёл «17:00 — единственный
+прибыльный час». Но время у меня одно на группу из 40 доменов, а вы ставите по 5 в час:
+группа расходится по восьми часам. Таблица описывала группы, а не часы.</li>
+<li class="del"><b>Снял разрез по дню недели.</b> Разброс 0.00x в пятницу против 1.67x
+в четверг — это шум: 27 депозитов по $40, один депозит переставляет целый день.</li>
+<li class="mod"><b>Переопределил вложенность.</b> Я мерил наблюдаемую глубину URL —
+а это следствие трёх причин сразу: предела, режима и выбора бота. Управляемые величины —
+<em>предел</em> и <em>режим</em>.</li>
+<li class="mod"><b>Свой контент нельзя складывать за недели.</b> Генератор в доработке —
+партии от 25.08 и 10.09 под одним именем это разный контент.</li>
+</ul></div></li>
+
+<li><span class="stn">3</span><div>
+<h3>Дай список данных и что через неделю будет понятно</h3>
+<ul>
+<li class="del"><b>Отменил свою же рекомендацию платить $800.</b> Я предлагал тест зон
+100 против 100. Оказалось, в полёте уже 65 <code>.casino</code> и 215 <code>.lol</code>:
+когда окна закроются к 18.09, будет 111 против 325 — мощность
+<span class="n">100%</span> для порога окупаемости. Тест уже оплачен.</li>
+<li class="add"><b>Мощность ограничила формат экспериментов.</b> Две ветки — 79%,
+три — 62%, четыре — 49%. Больше двух значений параметра за раз ставить нельзя.</li>
+<li class="add"><b>Разложение воронки не требует мощности.</b> Это деление, а не тест:
+логи бота дают результат на всей неделе сразу.</li>
+</ul></div></li>
+
+<li><span class="stn">4</span><div>
+<h3>Набор брендов одинаковый на всех доменах. Домены не ранжируются, ранжируются поддомены</h3>
+<ul>
+<li class="del"><b>Отменил свою заявку ждать неделю.</b> Я собирался просить таблицу
+поддоменов на 20 000 строк. Поле с поддоменом в выгрузке конверсий заполнено у 458 событий
+из 472 — числитель всегда был. А одинаковый набор брендов даёт знаменатель:
+559 × 200 = <span class="n">111 800</span> поддоменов. Всё посчиталось в тот же день.</li>
+<li class="add"><b>Главная цель системы получила ответ.</b> ВЧ против НЧ —
+<span class="n">1.60x</span>, <span class="n">p=0.0105</span>. Впервые.</li>
+<li class="add"><b>Нашёлся самый крупный эффект в системе.</b> Топ-20 брендов,
+отобранный на половине доменов, даёт <span class="n">5.19x</span> на другой половине.</li>
+<li class="del"><b>Снял аномалию «13 регистраций из 92».</b> Артефакт: я сравнивал бренд
+конверсии с ядром ключей домена, а ядро домена — объединение двухсот поддоменных ядер.
+Аномалии не было, была подмена единицы.</li>
+<li class="del"><b>Отказался от своей идеи сменить метрику.</b> Казалось логичным считать
+регистрации счётом, а не бинарный заход. Посчитал мощность — счётная хуже:
+68% против 77%, регистрации группируются внутри доменов.</li>
+<li class="mod"><b>Заявка на данные сжалась.</b> Файл на 200 строк → 43 строки.
+Список брендов с классом → снято. Позиции по поддоменам с П3 → П2.</li>
+</ul></div></li>
+</ol>
+</section>
+
+<hr>
+
+<section>
+<h2>Система как она устроена</h2>
+<p>Цепочка, в которой я теперь различаю звенья:</p>
+<div class="tw"><table>
+<tr><th>звено</th><th class="txt" style="text-align:left">чем управляем</th><th class="txt" style="text-align:left">видим ли</th></tr>
+<tr><td>контент</td><td class="txt">7 или 12 страниц, набор одинаковый; свой генератор в доработке или присланный</td><td class="txt"><span class="tag t-yes">да</span> из имени группы</td></tr>
+<tr><td>домен</td><td class="txt">зона <code>.casino</code> $7 · <code>.team</code> $2 · <code>.lol</code> $1</td><td class="txt"><span class="tag t-yes">да</span></td></tr>
+<tr><td>шаблон</td><td class="txt">предел вложенности 20/40/80/100/∞, режим фикс или рандом</td><td class="txt"><span class="tag t-no">нет</span></td></tr>
+<tr><td>поддомены</td><td class="txt">200 брендов, одинаковый набор, контент различается названием</td><td class="txt"><span class="tag t-yes">да</span> выводится</td></tr>
+<tr><td>приход бота</td><td class="txt">не управляем; бот сам выбирает уровень</td><td class="txt"><span class="tag t-wait">можно</span> логи + трекер</td></tr>
+<tr><td>трафик ботов</td><td class="txt">не управляем</td><td class="txt"><span class="tag t-wait">можно</span></td></tr>
+<tr><td>прочий трафик</td><td class="txt">боты или люди, неотличимо</td><td class="txt"><span class="tag t-wait">можно</span></td></tr>
+<tr><td>регистрации</td><td class="txt">результат</td><td class="txt"><span class="tag t-yes">да</span></td></tr>
+<tr><td>депозиты</td><td class="txt">$40 за депозит</td><td class="txt"><span class="tag t-yes">да</span></td></tr>
+</table></div>
+<div class="call pos">
+<h3>Главное свойство системы, которое я понял только из вашего описания</h3>
+<p>Все 200 брендов стоят на всех доменах. Значит <b>сравнение брендов автоматически
+сбалансировано по зоне, страницам, источнику, дню запуска и вложенности</b> — каждый
+домен вносит вклад в каждую группу брендов.</p>
+<p>Бренд — единственное измерение в системе, рандомизированное по построению. Поэтому
+вопрос про страницы стоил трёх недель и двух опровержений, а класс бренда закрылся
+на 179 регистрациях с первого раза. Любой вопрос, который можно переформулировать
+через бренды, надо решать через бренды.</p>
+</div>
+</section>
+
+<hr>
+
+<section>
+<h2>Что установлено</h2>
+<div class="tw"><table>
+<tr><th>вывод</th><th>эффект</th><th>p</th><th class="txt" style="text-align:left">на чём</th></tr>
+<tr class="hl"><td>Бренды сильно неравны; верхняя группа воспроизводится</td><td>5.19x</td><td>кросс-вал.</td><td class="txt">топ-20 с одной половины 559 доменов, измерено на другой; 5–95% 3.62–7.50</td></tr>
+<tr class="hl"><td>ВЧ-бренды конвертят лучше НЧ</td><td>1.60x</td><td>0.0105</td><td class="txt">111 800 поддоменов, 129 из 179 рег классифицированы</td></tr>
+<tr><td>12 страниц лучше 7 — <em>на присланном контенте</em></td><td>2.09x</td><td>0.0065</td><td class="txt">28.9% (39/135) против 13.8% (13/94); внутри дня z=2.38</td></tr>
+<tr class="bad"><td><code>.casino</code> не окупает свою цену</td><td>нужно 7x, есть 3.2x</td><td>—</td><td class="txt">порог задан отношением цен, а не значимостью</td></tr>
+<tr><td>Даты в контенте не влияют</td><td>1.08x</td><td>0.65</td><td class="txt">22.6% (26/115) против 24.3% (33/136), 251 домен</td></tr>
+<tr><td>Домен отдаёт $1.93 — порог цены покупки</td><td>—</td><td>—</td><td class="txt">27 деп / 559 дом × $40</td></tr>
+</table></div>
+</section>
+
+<section>
+<h2>Что не установлено</h2>
+<div class="tw"><table>
+<tr><th>вопрос</th><th class="txt" style="text-align:left">почему нет ответа</th><th class="txt" style="text-align:left">когда будет</th></tr>
+<tr><td>Зона по деньгам</td><td class="txt">окна ещё открыты</td><td class="txt"><b>18.09, бесплатно</b> — 111 против 325, мощность 100%</td></tr>
+<tr><td>Свой генератор против присланного</td><td class="txt">полностью перепутано со страницами: свой запускался только на 11 стр</td><td class="txt">нужен отдельный запуск: свой генератор, 7 и 12 стр, один день, равные объёмы</td></tr>
+<tr><td>Вложенность</td><td class="txt">параметр никогда не собирался</td><td class="txt">2 недели после начала сбора, два предела 50/50</td></tr>
+<tr><td>Час и день запуска</td><td class="txt">время только по группе; депозитов мало</td><td class="txt">4 недели после метки времени по домену</td></tr>
+<tr><td>Рейтинг отдельных брендов</td><td class="txt">ранги между половинами не коррелируют (−0.08)</td><td class="txt">~9000 доменов; работает только верхняя группа</td></tr>
+<tr><td>Цель «зайти сложными брендами»</td><td class="txt">частотность известна у 157 брендов из 200, и лучший бренд системы среди неизвестных</td><td class="txt">43 строки от вас</td></tr>
+</table></div>
+<div class="call neg">
+<h3>Что я говорил и что снял</h3>
+<p><b>Снято за этот разговор:</b> «17:00 — прибыльный час»; «день недели влияет»;
+«13 регистраций из 92 — аномалия»; «нужен тест зон за $800»; «счётная метрика мощнее
+бинарной»; «нужна таблица поддоменов на 20 000 строк».</p>
+<p><b>Снято раньше, всё ещё в силе:</b> «зона не влияет на деньги» → не установлено;
+«12 страниц лучше, 2.9σ» → было усечение слева, потом p=0.0065 уже на полной истории;
+«медиана задержки депозита 6 минут» → 67 минут после привязки по clickid.</p>
+</div>
+</section>
+
+<hr>
+
+<section>
+<h2>Экономика и что с ней делать</h2>
+<div class="hero">
+  <p class="num">0.87x <span style="color:var(--mute);font-size:.6em">сегодня</span></p>
+  <p class="cap">559 доменов с закрытым окном: $1238 затрат, 179 регистраций,
+  27 депозитов, $1080 выручки. Итог <span class="neg n">−$158</span>.</p>
+</div>
+<div class="tw"><table>
+<tr><th>сценарий</th><th>цена/дом</th><th>выручка/дом</th><th>ROI</th><th>в неделю</th></tr>
+<tr class="bad"><td>как есть: микс зон, 200 брендов</td><td>$2.21</td><td>$1.93</td><td class="neg">0.87x</td><td class="neg">−$166</td></tr>
+<tr><td>только <code>.lol</code>, по факт. ставке <code>.lol</code></td><td>$1.00</td><td>$1.09</td><td>1.09x</td><td>+$53</td></tr>
+<tr><td>только <code>.lol</code>, если зона не влияет</td><td>$1.00</td><td>$1.93</td><td class="pos">1.93x</td><td class="pos">+$547</td></tr>
+<tr class="hl"><td><code>.lol</code> + 50 брендов ВЧ</td><td>$1.00</td><td>$1.42–2.51</td><td class="pos">1.42–2.51x</td><td class="pos">+$247…+$889</td></tr>
+<tr><td><code>.lol</code> + 100 брендов ВЧ</td><td>$1.00</td><td>$1.75–3.10</td><td class="pos">1.75–3.10x</td><td class="pos">+$440…+$1231</td></tr>
+</table></div>
+<p>Диапазон — это неопределённость по зоне: нижний конец, если <code>.lol</code>
+ранжируется так же плохо, как в наблюдённых 3 депозитах на 110 доменов; верхний,
+если зона не влияет. <b>Оба конца положительны</b>, и вопрос закроется 18.09 сам.</p>
+<div class="call">
+<h3>Почему брендов это касается больше, чем контента</h3>
+<p>Домен стоит денег, поддомен — нет. Порог окупаемости нового бренда равен нулю:
+любой бренд с ненулевой ставкой добавляет деньги. Цена класса измерена —
+ВЧ <span class="n">$0.0117</span>, СЧ <span class="n">$0.0094</span>,
+НЧ <span class="n">$0.0073</span> на домен за каждый бренд.</p>
+<p>Проверить это запуском нельзя: 200 против 300 брендов по заходу — мощность 13%
+за неделю. Поэтому решение принимается арифметикой, а не тестом. Оговорка честная:
+новые бренды идут вниз по популярности, а разброс как раз по популярности, так что
+реальный прирост будет меньше расчётного — но отрицательным быть не может.</p>
+</div>
+</section>
+
+<hr>
+
+<section>
+<h2>Что делать, по порядку</h2>
+<ol class="act">
+<li><div><h3>Перестать покупать <code>.casino</code></h3>
+<p><b>Сегодня, бесплатно.</b> 46 доменов на закрытых окнах теряют $162 — больше,
+чем убыток всей системы. Без них система стоит ровно в 1.00x. Зона ранжируется лучше
+в 3.2 раза, но стоит в 7 — порог задан отношением цен.</p></div></li>
+<li><div><h3>Перевести закупку на <code>.lol</code></h3>
+<p><b>Сегодня, бесплатно.</b> Даёт больше, чем удвоение конверсии (1.93x против 1.74x),
+и не требует ни данных, ни экспериментов. К 18.09 придёт окончательное подтверждение
+на уже купленных доменах.</p></div></li>
+<li><div><h3>Прислать частотность 43 брендов</h3>
+<p><b>Самая маленькая заявка из всех.</b> 157 из 200 уже известны из ключевых данных.
+28% регистраций сейчас вне разреза, и среди неклассифицированных — лучший бренд системы
+(<code>luckybird</code>, 10 рег), плюс <code>pinup</code> (8) и <code>vulkanvegas</code> (5).</p></div></li>
+<li><div><h3>Расширить набор брендов, приоритет ВЧ</h3>
+<p>Поддомен бесплатен, значит это чистый плюс. +50 ВЧ выводит выручку с домена
+с $1.93 до $2.51. Если ВЧ-брендов больше нет — добавлять СЧ и НЧ, они тоже
+в плюс, просто слабее.</p></div></li>
+<li><div><h3>Включить выгрузку по боту, по поддоменам</h3>
+<p>Первый заход, хитов бота, максимальный уровень <code>/ru</code>, прочий трафик
+отдельно, страниц в индексе. <b>Даёт результат на 7-й день на всём объёме</b> —
+разложение воронки не требует мощности.</p></div></li>
+<li><div><h3>Дописать шесть полей в заголовок партии</h3>
+<p>Предел вложенности, режим, фикс-уровень, страниц, источник, сборка генератора.
+Плюс время постановки у каждого домена, цена факт, дроп или новый. Сейчас я вытаскиваю
+параметры из имени группы — из-за этого 71 домен вне всех сравнений.</p></div></li>
+<li><div><h3>Поставить эксперимент по вложенности</h3>
+<p><b>Только два предела, равные объёмы, каждый день недели.</b> Два значения — 79%
+мощности, три — 62%, четыре — 49%. Это единственный управляемый параметр шаблона,
+и его смена бесплатна.</p></div></li>
+</ol>
+</section>
+
+<hr>
+
+<section>
+<h2>Правила чтения, которые стоили дороже всего</h2>
+<ul class="pl">
+<li><b>Считать в долларах, а не в проценте захода.</b> Зона, которая ранжируется лучше
+втрое при цене в семь раз выше, по проценту захода выигрывает, а по деньгам проигрывает.</li>
+<li><b>«Лучше» и «стоит своих денег» — разные утверждения.</b> Порог сравнения задаёт
+отношение цен, а не значимость. Бремя доказательства на дорогом варианте.</li>
+<li><b>Недельный эксперимент читается по заходу, деньги — только накопительно.</b>
+Неделя даёт ~14 депозитов на ветку: мощность 23%.</li>
+<li><b>Прежде чем просить данные — перечитать, что уже лежит в выгрузках.</b>
+Вся поддоменная аналитика была доступна без единого нового замера.</li>
+<li><b>«Столько-то объектов не работают» — почти всегда артефакт малой выборки.</b>
+126 брендов молчат, но Пуассон даёт 82 нуля сам по себе.</li>
+<li><b>Разброс есть, а рейтинга нет — это не одно и то же.</b> «Эти двадцать лучше тех
+ста» — можно; «luckybird лучше pinup» — нельзя.</li>
+<li><b>Считать мощность до запуска, а не после.</b> Две ветки по 3 домена дают 0%
+мощности, сколько бы ни ждать.</li>
+</ul>
+</section>
+
+<p class="foot">Данные на 12.09.2026. Реестр 1361 домен, из них 559 с закрытым окном
+(запуск не позже 06.09, окно 6 дней). 472 события конверсий с 12.08, у 458 известен
+поддомен. Темп 84 домена/день, 587/неделю. Цены: <code>.casino</code> $7,
+<code>.team</code> $2, <code>.lol</code> $1, контент $0, депозит $40.
+Отдельные разборы: <a href="https://claude.ai/code/artifact/7df2774c-fa82-470e-aa06-80845263db68">юнит-экономика</a> ·
+<a href="https://claude.ai/code/artifact/49f4130d-fcf4-460f-a974-29a0464ffe77">поддомены и бренды</a> ·
+<a href="https://claude.ai/code/artifact/5fcdbce5-6c88-4e69-b285-61bf3958439e">заявка на данные</a> ·
+<a href="https://claude.ai/code/artifact/85fc433b-c3c5-429f-bbb0-4953fb72f40c">схема данных</a>.
+Реестр и скрипты — <code>analysis/</code> в репозитории.</p>
+
+</div>
