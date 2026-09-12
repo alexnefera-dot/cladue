@@ -1,0 +1,441 @@
+<title>Параметры системы запусков</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=Fira+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#eeeeea; --card:#fdfdfb; --ink:#171a15; --mute:#5d6157; --line:#d3d4cc;
+  --acc:#46602a; --accbg:#e7ecdd; --gap:#a33b2a; --gapbg:#f6e7e3;
+  --ctrl:#2c4a63; --ctrlbg:#e2e9ef;
+}
+:root:not([data-theme="light"]){@media (prefers-color-scheme:dark){
+  --paper:#151713; --card:#1e211b; --ink:#e9eae2; --mute:#9a9d91; --line:#32352c;
+  --acc:#a8c47c; --accbg:#222a17; --gap:#e2907c; --gapbg:#2c1b17;
+  --ctrl:#8db4d4; --ctrlbg:#1a242d;
+}}
+:root[data-theme="dark"]{
+  --paper:#151713; --card:#1e211b; --ink:#e9eae2; --mute:#9a9d91; --line:#32352c;
+  --acc:#a8c47c; --accbg:#222a17; --gap:#e2907c; --gapbg:#2c1b17;
+  --ctrl:#8db4d4; --ctrlbg:#1a242d;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font:400 16.5px/1.66 "Source Serif 4",Georgia,serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:900px;margin:0 auto;padding:0 20px;padding-block:54px 82px}
+h1{font:700 clamp(32px,6vw,50px)/1.06 Chivo,"Helvetica Neue",sans-serif;letter-spacing:-.022em;
+  margin:0 0 16px;text-wrap:balance}
+h2{font:700 clamp(21px,3.3vw,28px)/1.2 Chivo,sans-serif;letter-spacing:-.012em;
+  margin:0 0 12px;text-wrap:balance}
+h3{font:600 16.5px/1.32 Chivo,sans-serif;margin:0 0 7px}
+p{margin:0 0 14px;max-width:66ch}
+.eyebrow{font:500 12px/1 "Fira Mono",ui-monospace,monospace;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--acc);margin:0 0 16px}
+.lede{font-size:19px;color:var(--mute);max-width:61ch}
+.lede b{color:var(--ink);font-weight:600}
+hr{border:0;border-top:1px solid var(--line);margin:42px 0 34px}
+section{margin:0 0 44px}
+.n,code{font-family:"Fira Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+code{background:var(--accbg);padding:.1em .34em;border-radius:2px;font-size:.86em}
+
+figure{margin:0 0 20px;background:var(--card);border:1px solid var(--line);padding:22px 20px 16px}
+figure svg{display:block;max-width:100%;height:auto;margin:0 auto;color:var(--ink)}
+figcaption{font-size:14.5px;color:var(--mute);margin-top:16px;border-top:1px solid var(--line);
+  padding-top:12px;line-height:1.5}
+
+.tw{overflow-x:auto;border:1px solid var(--line);background:var(--card);margin:0 0 18px}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:15px}
+th{font:500 10.5px/1.2 "Fira Mono",ui-monospace,monospace;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--mute);text-align:left;padding:11px 14px;
+  border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:bottom}
+td{padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.45;
+  font-size:14.5px}
+td:first-child{font-family:"Fira Mono",ui-monospace,monospace;font-size:13px;
+  white-space:nowrap;font-weight:500}
+tr:last-child td{border-bottom:0}
+tr.sub td{background:var(--paper);font:600 12px/1.3 Chivo,sans-serif;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--mute)}
+tr.sub td:first-child{font-family:Chivo,sans-serif;font-size:12px}
+
+.tag{display:inline-block;font:500 10px/1 "Fira Mono",monospace;letter-spacing:.06em;
+  text-transform:uppercase;padding:3px 6px;border-radius:2px;white-space:nowrap}
+.g-ctrl{background:var(--ctrlbg);color:var(--ctrl)}
+.g-obs{background:var(--accbg);color:var(--acc)}
+.g-gap{background:var(--gapbg);color:var(--gap)}
+.g-const{background:var(--line);color:var(--mute)}
+
+.call{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--acc);
+  padding:17px 21px;margin:0 0 18px}
+.call.gap{border-left-color:var(--gap)}
+.call.q{border-left-color:var(--ctrl)}
+.call p:last-child{margin-bottom:0}
+.fmt{background:var(--card);border:1px solid var(--line);padding:15px 17px;margin:0 0 16px;
+  overflow-x:auto}
+.fmt pre{margin:0;font:400 12.5px/1.7 "Fira Mono",ui-monospace,monospace;white-space:pre}
+ul,ol{margin:0 0 14px;padding-left:22px;max-width:66ch}
+li{margin:0 0 8px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin:0 0 18px}
+.two>div{background:var(--card);border:1px solid var(--line);padding:16px 18px}
+.two h3{margin-bottom:8px}
+.two ul{padding-left:18px;margin:0}
+.two li{font-size:15px;margin:0 0 6px}
+.foot{font-size:14px;color:var(--mute);border-top:1px solid var(--line);padding-top:17px}
+</style>
+<div class="wrap">
+
+<p class="eyebrow">дорвеи · спецификация сбора</p>
+<h1>Параметры системы запусков</h1>
+<p class="lede">Каталог того, что в системе вообще можно измерить — из её механики,
+а не из накопленных данных. <b>Десять управляемых рычагов, четыре константы
+и четыре перехода воронки, по которым сейчас нет ни одной цифры.</b></p>
+
+<hr>
+
+<section>
+<h2>Сначала — что я отзываю</h2>
+<div class="call gap">
+<p>Вы правы: я ушёл в выводы по узким данным вместо того, чтобы описать параметры.
+<b>Снимаю все количественные выводы прошлых отчётов</b> — «ВЧ в 1.6 раза лучше НЧ»,
+«топ-20 брендов в 5.2 раза», «12 страниц лучше 7», «домен отдаёт $1.93»,
+«<code>.casino</code> убыточен», сценарии ROI. Это были оценки на выборке, собранной
+без половины параметров; пока нет полного сбора, ни одна из них не опора для решения.</p>
+<p><b>Снимаю рекомендацию расширять набор брендов</b> — вы сказали, что расширить нельзя.
+Значит 200 брендов это константа, а не рычаг, и брендовые данные нужны совсем для другого
+(см. ниже).</p>
+<p>Остаётся в силе только структура: депозит <span class="n">$40</span>, домен стоит
+денег по зоне, контент и поддомены бесплатны. Из этого строится арифметика,
+но числа в неё подставляются после нормального сбора.</p>
+</div>
+</section>
+
+<hr>
+
+<section>
+<h2>Модель: система — это цепочка переходов</h2>
+<p>Домен не «сработал или нет». Он проходит восемь состояний, и на каждом переходе
+теряет часть объёма. У каждого перехода своя доля и своя задержка, и — главное —
+<b>своё лечение</b>. Сейчас я вижу только концы цепочки и поэтому на любой вопрос
+«почему не работает» могу ответить только «не знаю».</p>
+
+<figure>
+<svg viewBox="0 0 620 676" role="img" aria-label="Цепочка из восьми состояний домена от покупки до депозита; четыре перехода в середине — от постановки на индексацию до перехода из поиска — не измеряются">
+<defs>
+  <marker id="ar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+    <polygon points="0,0 8,4 0,8" fill="currentColor"/>
+  </marker>
+  <marker id="arg" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+    <polygon points="0,0 8,4 0,8" fill="#c25239"/>
+  </marker>
+</defs>
+<rect x="10" y="140" width="600" height="300" fill="#c25239" opacity="0.08" rx="3"/>
+<text x="598" y="290" text-anchor="middle" transform="rotate(90 598 290)" font-family="Fira Mono, monospace" font-size="10.5" fill="#c25239" letter-spacing="0.6">ЧЕТЫРЕ ПЕРЕХОДА БЕЗ ДАННЫХ</text>
+
+<g font-family="Chivo, sans-serif" font-size="13" fill="currentColor">
+  <rect x="24" y="14" width="212" height="40" rx="2" fill="none" stroke="currentColor" stroke-width="1"/>
+  <text x="130" y="39" text-anchor="middle">Домен куплен</text>
+  <rect x="24" y="98" width="212" height="40" rx="2" fill="none" stroke="currentColor" stroke-width="1"/>
+  <text x="130" y="123" text-anchor="middle">Поставлен на индексацию</text>
+  <rect x="24" y="182" width="212" height="40" rx="2" fill="none" stroke="#c25239" stroke-width="1"/>
+  <text x="130" y="207" text-anchor="middle" fill="#c25239">Бот пришёл</text>
+  <rect x="24" y="266" width="212" height="40" rx="2" fill="none" stroke="#c25239" stroke-width="1"/>
+  <text x="130" y="291" text-anchor="middle" fill="#c25239">Страницы в индексе</text>
+  <rect x="24" y="350" width="212" height="40" rx="2" fill="none" stroke="#c25239" stroke-width="1"/>
+  <text x="130" y="375" text-anchor="middle" fill="#c25239">Поддомен в выдаче</text>
+  <rect x="24" y="434" width="212" height="40" rx="2" fill="none" stroke="currentColor" stroke-width="1"/>
+  <text x="130" y="459" text-anchor="middle">Переход из поиска</text>
+  <rect x="24" y="518" width="212" height="40" rx="2" fill="none" stroke="currentColor" stroke-width="1"/>
+  <text x="130" y="543" text-anchor="middle">Регистрация</text>
+  <rect x="24" y="602" width="212" height="40" rx="2" fill="none" stroke="currentColor" stroke-width="1"/>
+  <text x="130" y="627" text-anchor="middle">Депозит · $40</text>
+</g>
+
+<g stroke="currentColor" stroke-width="1.2">
+  <line x1="130" y1="54" x2="130" y2="94" marker-end="url(#ar)"/>
+  <line x1="130" y1="474" x2="130" y2="514" marker-end="url(#ar)"/>
+  <line x1="130" y1="558" x2="130" y2="598" marker-end="url(#ar)"/>
+</g>
+<g stroke="#c25239" stroke-width="1.2">
+  <line x1="130" y1="138" x2="130" y2="178" marker-end="url(#arg)"/>
+  <line x1="130" y1="222" x2="130" y2="262" marker-end="url(#arg)"/>
+  <line x1="130" y1="306" x2="130" y2="346" marker-end="url(#arg)"/>
+  <line x1="130" y1="390" x2="130" y2="430" marker-end="url(#arg)"/>
+</g>
+
+<g font-family="Source Serif 4, Georgia, serif" font-size="12.5" fill="currentColor">
+  <text x="252" y="70">способ и время постановки</text>
+  <text x="252" y="86" font-size="10.5" font-family="Fira Mono, monospace" fill="currentColor" opacity="0.6">ЕСТЬ ЧАСТИЧНО · время по группе</text>
+  <text x="252" y="154" fill="#c25239">доля дошедших · лаг до первого хита</text>
+  <text x="252" y="170" font-size="10.5" font-family="Fira Mono, monospace" fill="#c25239">ЛОГИ СЕРВЕРА</text>
+  <text x="252" y="238" fill="#c25239">обход → индекс · какие уровни взял</text>
+  <text x="252" y="254" font-size="10.5" font-family="Fira Mono, monospace" fill="#c25239">ЛОГИ + ПРОВЕРКА ИНДЕКСА</text>
+  <text x="252" y="322" fill="#c25239">индекс → позиция по своему бренду</text>
+  <text x="252" y="338" font-size="10.5" font-family="Fira Mono, monospace" fill="#c25239">СЪЁМ ПОЗИЦИЙ ПО ПОДДОМЕНАМ</text>
+  <text x="252" y="406" fill="#c25239">позиция → клик</text>
+  <text x="252" y="422" font-size="10.5" font-family="Fira Mono, monospace" fill="#c25239">ТРЕКЕР · реферер и лендинг</text>
+  <text x="252" y="490">клик → регистрация</text>
+  <text x="252" y="506" font-size="10.5" font-family="Fira Mono, monospace" fill="currentColor" opacity="0.6">ЕСТЬ</text>
+  <text x="252" y="574">регистрация → депозит</text>
+  <text x="252" y="590" font-size="10.5" font-family="Fira Mono, monospace" fill="currentColor" opacity="0.6">ЕСТЬ</text>
+</g>
+</svg>
+<figcaption>Между постановкой на индексацию и первым переходом из поиска —
+четыре перехода, и не измерен ни один. Всё, что я до сих пор называл «заходом домена»,
+это произведение четырёх неизвестных долей, поэтому любое сравнение конфигураций
+отвечало «в сумме лучше», но никогда — «на каком шаге лучше».</figcaption>
+</figure>
+
+<div class="call">
+<h3>Зачем разбирать цепочку на звенья</h3>
+<p>Четыре невидимых перехода — это четыре разные болезни с четырьмя разными лекарствами,
+и сейчас они неразличимы:</p>
+<ul>
+<li><b>Бот не пришёл</b> → лечится постановкой: способ, темп, sitemap, ссылки.
+Контент ни при чём.</li>
+<li><b>Пришёл, но не взял в индекс</b> → лечится шаблоном: вложенность, коды ответа,
+скорость сервера, canonical. Контент почти ни при чём.</li>
+<li><b>В индексе, но не в выдаче</b> → лечится контентом и выбором брендов.
+Вот здесь и только здесь работает «7 против 12 страниц».</li>
+<li><b>В выдаче, но нет переходов</b> → лечится сниппетом и уровнем URL, который
+показывается. Ни постановка, ни контент не помогут.</li>
+</ul>
+<p>И отдельно: у каждого перехода есть <b>лаг</b>. Лаги дают операционный выигрыш
+помимо аналитики — если типичный лаг «постановка → первый хит» равен суткам,
+то домен без хита на четвёртый день можно списывать на четвёртый день, а не ждать шестой.</p>
+</div>
+</section>
+
+<hr>
+
+<section>
+<h2>Вложенность: это два параметра, а не один</h2>
+<p>Здесь я думал неверно и меняю подход. Я мерил наблюдаемую глубину URL, но она —
+результат трёх причин сразу: что мы разрешили, как распределили, и где остановился бот.
+Разделять надо так:</p>
+<div class="two">
+<div><h3>Что задаём мы <span class="tag g-ctrl">рычаг</span></h3>
+<ul>
+<li><code>предел</code> — 20 / 40 / 80 / 100 / без ограничения</li>
+<li><code>режим</code> — фиксированный уровень или случайный до предела</li>
+<li><code>фикс_уровень</code> — если фиксированный (у части выдачи видно 15)</li>
+<li><code>гранулярность</code> — случайность на домен или на каждый поддомен</li>
+<li><code>политика_прочих</code> — что отдаётся на остальных уровнях: контент, 301 на выбранный, 404</li>
+<li><code>canonical_цель</code> — на какой уровень указывает canonical</li>
+<li><code>hreflang_уровни</code> — какие уровни объявлены</li>
+</ul></div>
+<div><h3>Что выбирает бот <span class="tag g-gap">нет данных</span></h3>
+<ul>
+<li><code>макс_уровень_бота</code> — до какого дошёл</li>
+<li><code>уровней_обойдено</code> — сколько разных уровней запросил</li>
+<li><code>уровень_в_индексе</code> — какой уровень попал в индекс</li>
+<li><code>уровень_в_выдаче</code> — какой уровень реально показывается</li>
+<li><code>лаг_до_выбора</code> — сколько дней до стабилизации</li>
+<li><code>смена_уровня</code> — менялся ли и когда</li>
+</ul></div>
+</div>
+<p><b>Вся информация — в расхождении двух колонок.</b> Если бот при пределе 40
+всегда останавливается на третьем уровне, предел не значит ничего и это измерение
+можно закрыть навсегда. Если уровень бота коррелирует с позицией — предел работает,
+но через выбор бота, и оптимизировать надо не предел, а то, что заставляет бота
+провалиться глубже. Ни то, ни другое сейчас не проверяемо, потому что не собрана
+ни одна из двух колонок.</p>
+<div class="call q">
+<h3>Вопрос, от которого зависит вся схема эксперимента</h3>
+<p><b>Случайность работает на домен или на поддомен?</b> Если каждый поддомен получает
+свой случайный уровень, то эксперимент по вложенности <em>уже идёт внутри каждого
+домена</em>, и сравнение уровней автоматически сбалансировано по зоне, контенту, дате
+и всему прочему — как у брендов. Тогда ответ можно получить на уже запущенном,
+без единого нового домена, как только появятся логи.</p>
+<p>Если же уровень один на домен — нужен полноценный эксперимент с двумя ветками
+и равными объёмами, и это недели.</p>
+</div>
+</section>
+
+<hr>
+
+<section>
+<h2>Индексация: что именно писать из логов</h2>
+<p>Вы сказали, что приход бота виден и по серверу, и в трекере. Это самый дешёвый
+из всех источников и самый информативный: он закрывает сразу два перехода из четырёх.
+Логи надо резать <b>по поддомену</b> — домены не ранжируются, приходит бот на поддомен,
+и «бот пришёл на домен» это снова подмена единицы.</p>
+<div class="tw"><table>
+<tr><th>поле</th><th>что писать</th><th>что закрывает</th></tr>
+<tr><td>первый_хит</td><td>дата и время первого запроса бота</td><td>лаг постановки; списание мёртвых доменов раньше срока</td></tr>
+<tr><td>бот</td><td>YandexBot / YandexMobile / прочие</td><td>десктоп и мобильный обходят по-разному; смешивать нельзя</td></tr>
+<tr><td>хитов_по_дням</td><td>число запросов на каждый день окна</td><td>интенсивность внимания; «перееобход» становится измеримым, а не догадкой</td></tr>
+<tr><td>url_уровни</td><td>по каким уровням <code>/ru</code> ходил</td><td>правая колонка таблицы вложенности</td></tr>
+<tr><td>коды_ответа</td><td>сколько 200 / 301 / 404 / 5xx получил бот</td><td><b>слепое пятно:</b> 5xx в первые часы убивает домен незаметно для всей остальной статистики</td></tr>
+<tr><td>robots_запрошен</td><td>да / нет и когда</td><td>отличает «не дошёл» от «дошёл и получил запрет»</td></tr>
+<tr><td>время_ответа</td><td>среднее время ответа боту</td><td>краулинговый бюджет; медленный сервер режет обход</td></tr>
+<tr><td>страниц_в_индексе</td><td>по дням, если доступно</td><td>переход «обход → индекс», третий невидимый</td></tr>
+<tr><td>хиты_прочие</td><td>весь не-яндексовый трафик, отдельно</td><td>боты и люди неотличимы, но это отдельная величина: спрос, а не внимание поисковика</td></tr>
+</table></div>
+<div class="call gap">
+<h3>Почему коды ответа важнее, чем кажется</h3>
+<p>Сейчас домен, который отдал боту 500 в первые сутки, и домен, у которого плохой контент,
+выглядят в моих данных одинаково: ноль регистраций. Первый — техническая авария,
+второй — вопрос генератора. Пока кодов нет, оба попадают в один и тот же знаменатель
+и портят любое сравнение конфигураций, потому что аварии распределены не случайно —
+они кучкуются по хостингу и по времени.</p>
+</div>
+</section>
+
+<hr>
+
+<section>
+<h2>Полный каталог параметров</h2>
+<p><span class="tag g-ctrl">рычаг</span> можно менять и на этом ставить эксперимент ·
+<span class="tag g-const">константа</span> не меняется, годится как стратификатор ·
+<span class="tag g-obs">наблюдаем</span> результат, который надо записывать ·
+<span class="tag g-gap">нет</span> не собирается сейчас</p>
+
+<div class="tw"><table>
+<tr><th>параметр</th><th>тип</th><th>откуда</th><th>зачем</th></tr>
+
+<tr class="sub"><td>A · партия</td><td></td><td></td><td></td></tr>
+<tr><td>источник</td><td><span class="tag g-ctrl">рычаг</span></td><td>вы</td><td>свой генератор / свой набор / присланный и от кого</td></tr>
+<tr><td>сборка_генератора</td><td><span class="tag g-ctrl">рычаг</span></td><td>вы</td><td>генератор в доработке — партии разных недель это разный контент под одним именем</td></tr>
+<tr><td>страниц</td><td><span class="tag g-ctrl">рычаг</span></td><td>вы</td><td>7 или 12; набор страниц внутри одинаков</td></tr>
+<tr><td>оформление</td><td><span class="tag g-gap">нет</span></td><td>вы</td><td>что означают <code>styled_img</code>, <code>оформлено</code>, <code>dark</code> — из-за нерасшифрованных маркеров 71 домен вне сравнений</td></tr>
+<tr><td>предел · режим · фикс_уровень</td><td><span class="tag g-ctrl">рычаг</span></td><td>вы</td><td>см. раздел о вложенности</td></tr>
+<tr><td>гранулярность_рандома</td><td><span class="tag g-ctrl">рычаг</span></td><td>вы</td><td>на домен или на поддомен — определяет схему эксперимента</td></tr>
+<tr><td>политика_прочих_уровней</td><td><span class="tag g-ctrl">рычаг</span></td><td>вы</td><td>контент / 301 / 404 на невыбранных уровнях</td></tr>
+<tr><td>canonical_цель · hreflang</td><td><span class="tag g-ctrl">рычаг</span></td><td>вы</td><td>куда указывает шаблон; отдельно от того, что выбрал бот</td></tr>
+
+<tr class="sub"><td>B · домен</td><td></td><td></td><td></td></tr>
+<tr><td>зона · цена_факт</td><td><span class="tag g-ctrl">рычаг</span></td><td>вы</td><td>единственная статья затрат; порог покупки считается против выручки с домена</td></tr>
+<tr><td>дроп_или_новый</td><td><span class="tag g-ctrl">рычаг</span></td><td>вы</td><td>у дропа есть история в индексе — бот приходит к нему иначе</td></tr>
+<tr><td>возраст · дата_регистрации</td><td><span class="tag g-obs">наблюдаем</span></td><td>whois</td><td>непрерывная версия «дроп или новый»</td></tr>
+<tr><td>ip · подсеть · ns</td><td><span class="tag g-ctrl">рычаг</span></td><td>хостинг</td><td>отпечаток сети; и аварии кучкуются по хостингу, портя знаменатели</td></tr>
+<tr><td>способ_постановки</td><td><span class="tag g-ctrl">рычаг</span></td><td>вы</td><td>addurl / sitemap / ссылки / IndexNow — первый переход цепочки</td></tr>
+<tr><td>время_постановки</td><td><span class="tag g-obs">наблюдаем</span></td><td>вы</td><td>по каждому домену, не по группе: 5 сайтов в час — группа из 40 расходится по восьми часам</td></tr>
+<tr><td>sitemap</td><td><span class="tag g-ctrl">рычаг</span></td><td>вы</td><td>есть или нет, сколько URL, какие уровни включены</td></tr>
+
+<tr class="sub"><td>C · поддомен</td><td></td><td></td><td></td></tr>
+<tr><td>поддомен · бренд</td><td><span class="tag g-const">константа</span></td><td>выводится</td><td>набор одинаков на всех доменах → домены × 200, отдельный файл не нужен</td></tr>
+<tr><td>частотность · класс</td><td><span class="tag g-const">константа</span></td><td>один файл</td><td>расширять нельзя, значит это <b>не рычаг, а стратификатор</b>: вычитает брендовый разброс из сравнения конфигураций</td></tr>
+<tr><td>уровень_вложенности</td><td><span class="tag g-gap">нет</span></td><td>шаблон</td><td>если рандом на поддомен — это ключевое поле, см. вопрос выше</td></tr>
+
+<tr class="sub"><td>D · индексация</td><td></td><td></td><td></td></tr>
+<tr><td>первый_хит · бот · хитов_по_дням</td><td><span class="tag g-gap">нет</span></td><td>логи</td><td>переход 2→3</td></tr>
+<tr><td>url_уровни · коды_ответа · robots · время_ответа</td><td><span class="tag g-gap">нет</span></td><td>логи</td><td>переход 3→4 и слепое пятно с авариями</td></tr>
+<tr><td>страниц_в_индексе</td><td><span class="tag g-gap">нет</span></td><td>проверка</td><td>переход 3→4</td></tr>
+
+<tr class="sub"><td>E · позиции</td><td></td><td></td><td></td></tr>
+<tr><td>позиция_по_своему_бренду</td><td><span class="tag g-gap">нет</span></td><td>съём</td><td>переход 4→5. Нынешняя база снята по доменам и меряет другой объект</td></tr>
+<tr><td>уровень_url_в_выдаче</td><td><span class="tag g-gap">нет</span></td><td>съём</td><td>связывает вложенность с ранжированием напрямую</td></tr>
+<tr><td>лучшая_позиция · дней_в_топ10</td><td><span class="tag g-gap">нет</span></td><td>съём</td><td>устойчивость, а не разовый снимок</td></tr>
+
+<tr class="sub"><td>F · трафик</td><td></td><td></td><td></td></tr>
+<tr><td>переходы_из_поиска</td><td><span class="tag g-gap">нет</span></td><td>трекер</td><td>переход 5→6; отделяется по рефереру</td></tr>
+<tr><td>хиты_прочие</td><td><span class="tag g-gap">нет</span></td><td>логи</td><td>боты или люди — неотличимо, но складывать с ботами Яндекса нельзя</td></tr>
+
+<tr class="sub"><td>G · деньги</td><td></td><td></td><td></td></tr>
+<tr><td>регистрации · депозиты</td><td><span class="tag g-obs">наблюдаем</span></td><td>трекер</td><td>уже есть, с поддоменом, гео и источником</td></tr>
+<tr><td>цена_депозита</td><td><span class="tag g-const">константа</span></td><td>$40</td><td>переводит любую метрику в деньги</td></tr>
+<tr><td>гео регистрации</td><td><span class="tag g-obs">наблюдаем</span></td><td>трекер</td><td>уже приходит; стоит следить отдельно — качество трафика</td></tr>
+</table></div>
+</section>
+
+<hr>
+
+<section>
+<h2>Десять рычагов и четыре константы</h2>
+<div class="two">
+<div><h3>Рычаги — на этом ставятся эксперименты</h3>
+<ul>
+<li>зона и цена домена</li>
+<li>число страниц, 7 или 12</li>
+<li>источник контента и сборка генератора</li>
+<li>предел вложенности</li>
+<li>режим и уровень вложенности</li>
+<li>политика прочих уровней и canonical</li>
+<li>способ постановки на индексацию</li>
+<li>темп и время постановки</li>
+<li>распределение по IP и хостингу</li>
+<li>оформление шаблона</li>
+</ul></div>
+<div><h3>Константы — стратификаторы, не рычаги</h3>
+<ul>
+<li>200 брендов, набор фиксирован</li>
+<li>класс и частотность каждого бренда</li>
+<li>депозит = $40</li>
+<li>состав страниц внутри контента</li>
+</ul>
+<p style="font-size:14.5px;color:var(--mute);margin:12px 0 0">Константы нужны не для того,
+чтобы их менять, а чтобы вычитать их влияние. Бренды сильно неравны между собой —
+значит при сравнении двух конфигураций доменов брендовый разброс это шум,
+и его можно снять, сравнивая конфигурации <b>внутри каждого бренда</b>.</p>
+</div>
+</div>
+</section>
+
+<hr>
+
+<section>
+<h2>Формат сбора</h2>
+<p>Четыре файла. Три из них — то, что вы уже делаете, плюс несколько полей.</p>
+
+<p><b>1. Партия</b> — дописать в заголовок группы, который вы и так пишете:</p>
+<div class="fmt"><pre>## clean12_unique11 — id 1546-1556
+страниц=12 | источник=присланный_clean | сборка=—
+предел=40 | режим=рандом | гранулярность=поддомен
+уровни_прочие=301 | canonical=выбранный | оформление=?</pre></div>
+
+<p><b>2. Домен</b> — в те же списки, по строке на домен:</p>
+<div class="fmt"><pre>домен;зона;цена;дроп;ip;ns;способ_постановки;время_постановки
+411casino.lol;lol;1.00;новый;5.181.x.x;ns1.x;sitemap;2026-09-13 04:05</pre></div>
+
+<p><b>3. Логи бота</b> — выгрузка раз в сутки, по строке на поддомен:</p>
+<div class="fmt"><pre>поддомен;дата;бот;хитов;уровни;код200;код301;код404;код5xx;мс_ответа
+kraken.411casino.lol;2026-09-13;YandexBot;37;1,2,3;35;0;2;0;420</pre></div>
+
+<p><b>4. Бренды</b> — один раз, 200 строк, дальше не меняется:</p>
+<div class="fmt"><pre>бренд;частотность;класс
+kraken;1400000;ВЧ</pre></div>
+
+<p>Позиции по поддоменам — отдельная задача и отдельная инфраструктура;
+их стоит ставить после того, как заработают логи, потому что логи дешевле
+и закрывают два перехода из четырёх, а позиции — один.</p>
+</section>
+
+<hr>
+
+<section>
+<h2>Что станет отвечаемым</h2>
+<div class="tw"><table>
+<tr><th>вопрос</th><th>чем закрывается</th></tr>
+<tr><td>Где именно теряется объём</td><td>логи бота — разложение цепочки на четыре перехода. Это деление, а не статистический тест: результат появляется сразу на всём объёме, без мощности и без закрытых окон</td></tr>
+<tr><td>Работает ли предел вложенности</td><td>предел и режим из партии × уровень бота из логов. Если рандом на поддомен — ответ на уже запущенном</td></tr>
+<tr><td>Убивают ли нас технические аварии</td><td>коды ответа. Сейчас авария и плохой контент неразличимы</td></tr>
+<tr><td>Когда списывать домен</td><td>лаг «постановка → первый хит». Решение на четвёртый день вместо шестого</td></tr>
+<tr><td>Влияет ли способ и время постановки</td><td>способ постановки + время по каждому домену, а не по группе</td></tr>
+<tr><td>Страницы, источник, зона</td><td>те же сравнения, но с вычтенным брендовым разбросом и без доменов, где была авария</td></tr>
+<tr><td>Окупается ли зона</td><td>выручка с домена против цены зоны — арифметика известна, числа подставляются после сбора</td></tr>
+</table></div>
+</section>
+
+<hr>
+
+<section>
+<h2>Что мне нужно от вас словами, а не данными</h2>
+<ol>
+<li><b>Случайность вложенности — на домен или на поддомен?</b> От этого зависит,
+нужен ли эксперимент вообще.</li>
+<li><b>Что означают маркеры в именах</b> — <code>styled_img</code>, <code>оформлено</code>,
+<code>Content_script</code>, <code>script_yandex</code>, <code>dark</code>.
+Это параметры шаблона, и пока они не расшифрованы, соответствующие домены
+нельзя класть ни в одну ветку.</li>
+<li><b>Как именно ставите на индексацию</b> — addurl, sitemap, ссылки, что-то ещё.
+Это первое звено цепочки, и оно вообще не описано.</li>
+<li><b>Депозит $40 — фиксирован или зависит от бренда?</b> Если зависит,
+то конверсия и деньги расходятся, и считать надо две разные величины.</li>
+<li><b>Одинаковы ли уровни вложенности у всех поддоменов одного домена</b>
+и одинаковы ли между партиями.</li>
+</ol>
+</section>
+
+<p class="foot">Документ описывает, что измерять, и не содержит выводов по накопленным данным —
+они сняты как полученные на выборке без половины параметров. Структурные константы:
+депозит $40, контент и поддомены бесплатны, затраты — только домены по цене зоны.
+Предыдущие разборы остаются в репозитории как история расчётов, но не как основание
+для решений.</p>
+
+</div>
