@@ -35,6 +35,15 @@ final class RunResult
     /** Прогон прерван из-за фатальной ошибки API. */
     public bool $aborted = false;
 
+    /** Сбор остановлен кнопкой «Остановить»: часть запросов не обработана, результаты сохраняются. */
+    public bool $stopped = false;
+
+    /**
+     * Сколько запросов списка обработано (включая завершившиеся ошибкой) — позиция для продолжения
+     * сбора: очередь запросов (Support\QueryQueue) запускает остаток именно с неё.
+     */
+    public int $processed = 0;
+
     public function reject(string $reason, int $count = 1): void
     {
         $this->stats['rejected'][$reason] = ($this->stats['rejected'][$reason] ?? 0) + $count;

@@ -47,6 +47,7 @@ use YandexSites\Support\DomainLedger;
 use YandexSites\Support\Logger;
 use YandexSites\Support\Progress;
 use YandexSites\Support\QueryDupes;
+use YandexSites\Support\QueryQueue;
 use YandexSites\Support\RemovedSites;
 use YandexSites\Support\SiteRows;
 use YandexSites\Visit\SiteTemplate;
@@ -78,7 +79,7 @@ Config::loadDotEnv(getcwd() . '/.env');
 Config::loadDotEnv($root . '/.env');
 
 // Повтор по таймеру имеет смысл только для сбора; выгрузка и очистка контента — одноразовые.
-$repeatHours = in_array((string) ($settings['stage'] ?? 'collect'), ['download', 'clean'], true)
+$repeatHours = in_array((string) ($settings['stage'] ?? 'collect'), ['download', 'clean'], true) || !empty($settings['resume'])
     ? 0.0
     : (float) ($settings['repeat_hours'] ?? 0);
 $logFile = $runDir . '/run.log';
@@ -243,6 +244,26 @@ function stopped(string $stopFile): bool
 /**
  * Рекурсивно удаляет каталог со всем содержимым (пропускает, если каталога нет).
  */
+/**
+ * Удаляет скачанные страницы и очищенный контент ПЕРЕЧИСЛЕННЫХ сайтов (в любом бакете N-стр).
+ * Перевыгрузка чистит прошлый результат только по этим сайтам: страницы других частей сбора —
+ * уже выгруженных и очищенных — остаются на месте.
+ *
+ * @param list<string> $hosts
+ */
+function removeSiteFolders(string $runDir, array $hosts): void
+{
+    foreach ($hosts as $host) {
+        $name = \YandexSites\Visit\PageVisitor::safeName((string) $host);
+        foreach ([$runDir . '/pages', $runDir . '/content'] as $top) {
+            rrmdir($top . '/' . $name);
+            foreach (glob($top . '/*/' . $name, GLOB_ONLYDIR) ?: [] as $dir) {
+                rrmdir($dir);
+            }
+        }
+    }
+}
+
 function rrmdir(string $dir): void
 {
     if (!is_dir($dir)) {
@@ -319,7 +340,11 @@ while (true) {
                 'brand_en' => trim((string) ($settings['brand_en'] ?? '')),
                 'extra_brands' => array_values(array_filter(array_map('trim', array_map('strval', $brandList)), static fn (string $b): bool => $b !== '')),
             ];
-            SiteCleaner::rmTree($runDir . '/content');
+            // Контент чистим ТОЧЕЧНО: cleanHost сам убирает прошлую версию своего сайта, а здесь снимаем
+            // убранные из таблицы. Сносить весь content нельзя — в нём лежат уже обработанные части сбора.
+            foreach (array_keys($exclude) as $excluded) {
+                SiteCleaner::removeHostContent($runDir, (string) $excluded);
+            }
             $total = count($hosts);
             $done = 0;
             $written = 0;
@@ -417,9 +442,10 @@ while (true) {
                 $logger->info(sprintf('Докачка неудачных страниц: сайтов %d через %s', count($visitList), $visitor->driver()->name()));
                 $retryStat = $visitor->retryFailed($visitList);
             } else {
-                // Полная (пере)выгрузка: чистим весь прошлый результат и качаем все сайты заново.
-                rrmdir($runDir . '/pages');
-                rrmdir($runDir . '/content');
+                // (Пере)выгрузка: прошлый результат чистим по выгружаемым сайтам и по исключённым из
+                // таблицы (их старые страницы не должны залипать). Страницы и контент ДРУГИХ частей
+                // сбора — тех, что уже выгрузили и очистили, — остаются на месте.
+                removeSiteFolders($runDir, array_merge(array_map('strval', array_keys($sites)), array_keys($excludeHosts)));
                 foreach ($sites as $site) {
                     $site->visits = [];
                 }
@@ -470,15 +496,37 @@ while (true) {
             $logger->info(sprintf('%s завершена: страниц открыто %d%s', $isRetry ? 'Докачка' : 'Выгрузка', $opened, $pageStats !== '' ? '; по страницам: ' . $pageStats : ''));
         } else {
             // --- Этап 1: сборка доменов (collect) или сборка + выгрузка (both) ---
-            RemovedSites::clear($runDir); // новый сбор — новый список: прежние удаления неактуальны
+            // Большой список обрабатывается ЧАСТЯМИ: сбор идёт, пока не нажата «Остановить», очередь
+            // (queue.json) помнит позицию, а «Продолжить сбор» запускает остаток — с прошлой таблицей
+            // (resume) или с чистой (resume + reset_sites), если предыдущая часть уже обработана.
+            $resume = (bool) ($settings['resume'] ?? false);
+            $resetSites = (bool) ($settings['reset_sites'] ?? false);
+            $queueFile = $runDir . '/' . QueryQueue::FILE;
+            $listed = array_values(array_filter(array_map('trim', (array) ($settings['queries'] ?? [])), static fn (string $q): bool => $q !== '' && !str_starts_with($q, '#')));
+            if ($resume) {
+                // Список в панели мог измениться (убрали дубли, дописали запросы) — очередь подстраиваем,
+                // не теряя позицию.
+                $queue = QueryQueue::sync(QueryQueue::load($queueFile), $listed);
+                QueryQueue::save($queueFile, $queue);
+                $queries = QueryQueue::remaining($queue);
+                if ($queries === []) {
+                    throw new RuntimeException('Все запросы очереди уже обработаны — нажмите «Собрать сайты», чтобы пройти список заново');
+                }
+            } else {
+                if ($listed === []) {
+                    throw new RuntimeException('Не задано ни одного запроса');
+                }
+                $queue = QueryQueue::start($queueFile, $listed);
+                $queries = $listed;
+            }
+            $queueOffset = $queue['done'];
+            if (!$resume || $resetSites) {
+                RemovedSites::clear($runDir); // новый список (или продолжение с чистой таблицей): прежние удаления неактуальны
+            }
             $config = Config::fromFile($configPath)->withOverrides(buildOverrides($settings, $runDir));
             $errors = $config->validate(true);
             if ($errors !== []) {
                 throw new RuntimeException('Проверьте настройки: ' . implode('; ', $errors));
-            }
-            $queries = array_values(array_filter(array_map('trim', (array) ($settings['queries'] ?? [])), static fn (string $q): bool => $q !== '' && !str_starts_with($q, '#')));
-            if ($queries === []) {
-                throw new RuntimeException('Не задано ни одного запроса');
             }
 
             $ledger = new DomainLedger($baseFile);
@@ -493,38 +541,59 @@ while (true) {
             $fetcher = $runtime->fetcher();
             $checker = $runtime->checker();
             $visitor = $runtime->visitor($onVisit);
-            $runner = new Runner($config, $fetcher, $runtime->parser(), $logger, $checker, $visitor, $onSearch, $ledger, $skipKnown);
+            $stopCheck = static fn (): bool => stopped($stopFile);
+            $runner = new Runner($config, $fetcher, $runtime->parser(), $logger, $checker, $visitor, $onSearch, $ledger, $skipKnown, $stopCheck);
 
-            $logger->info(sprintf('Прогон %d (%s): запросов %d, источник %s', $run, $stage, count($queries), $config->get('source')));
+            $logger->info(sprintf(
+                'Прогон %d (%s): запросов %d%s, источник %s',
+                $run,
+                $stage,
+                count($queries),
+                $queueOffset > 0 ? sprintf(' (продолжение с %d-го из %d)', $queueOffset + 1, count($queue['queries'])) : '',
+                $config->get('source'),
+            ));
             $result = $runner->run($queries);
+            // Позиция в очереди — сколько запросов всего обработано: с неё пойдёт «Продолжить сбор».
+            $queue['done'] = $queueOffset + $result->processed;
+            QueryQueue::save($queueFile, $queue);
+            $queueInfo = QueryQueue::summary($queue);
             // Сколько ответов пришло из кэша выдачи: при повторе тех же запросов новых обращений к источнику нет —
             // это не сбой, но панель должна об этом сказать («он даже не выкачивает запросы»).
             $result->stats['cache_hits'] = $fetcher instanceof CachingFetcher ? $fetcher->hits : 0;
             $result->stats['cache_misses'] = $fetcher instanceof CachingFetcher ? $fetcher->misses : (int) ($result->stats['requests'] ?? 0);
 
             $writer = new ReportWriter((string) $config->get('output.csv_delimiter', ';'), (bool) $config->get('output.csv_bom', true));
+            // Продолжение сбора ПОПОЛНЯЕТ таблицу: прошлые сайты остаются (с их выгруженными страницами),
+            // если при нажатии «Продолжить» не выбрано «очистить таблицу».
+            $carried = ($resume && !$resetSites) ? loadSites($runDir . '/sites.json') : [];
+            $merged = $carried;
+            foreach ($result->sites as $site) {
+                $merged[$site->host] ??= $site;
+            }
+            $merged = array_values(RemovedSites::filter($runDir, $merged));
             // Пустой сбор (всё уже в базе пересечений или отсеяно) не затирает прошлый список сайтов:
             // с ним можно продолжать — выгружать, докачивать, чистить.
-            $previous = $result->sites === [] ? array_values(loadSites($runDir . '/sites.json')) : [];
+            $previous = ($merged === [] && !$resetSites) ? array_values(loadSites($runDir . '/sites.json')) : [];
             $keptPrevious = $previous !== [];
             if ($keptPrevious) {
                 $logger->info('Новый сбор ничего не отобрал — прошлый список сайтов оставлен без изменений');
             } else {
-                $writer->writeCsv($result->sites, $runDir . '/sites.csv');
-                $writer->writeJson($result->sites, $runDir . '/sites.json', [
+                $writer->writeCsv($merged, $runDir . '/sites.csv');
+                $writer->writeJson($merged, $runDir . '/sites.json', [
                     'stats' => $result->stats,
                     'errors' => $result->errors,
                     'source' => $config->get('source'),
                     'settings' => $settings,
                     'proxies' => $runtime->proxies?->stats() ?? [],
                 ]);
-                $writer->writeDomains($result->sites, $runDir . '/domains.txt');
+                $writer->writeDomains($merged, $runDir . '/domains.txt');
             }
-            $writer->writeRawCsv($result->raw, $runDir . '/results.csv');
+            // При продолжении строки выдачи ДОПИСЫВАЮТСЯ: results.csv описывает весь список запросов.
+            $writer->writeRawCsv($result->raw, $runDir . '/results.csv', $resume);
 
             // Запросы с одинаковой выдачей (тот же набор сайтов, позиции не важны): панель предлагает убрать
             // дубли из списка запросов; queries-unique.txt / query-dupes.txt лежат рядом с результатами.
-            $dupes = QueryDupes::find(QueryDupes::rawRows($result->raw), $queries);
+            $dupes = QueryDupes::find(QueryDupes::csvRows($runDir . '/results.csv'), $queue['queries']);
             if ($result->aborted) {
                 $dupes['no_results'] = []; // прерванный прогон: не дошедшие до выдачи запросы — не «без результатов»
             }
@@ -536,12 +605,12 @@ while (true) {
 
             // Тип вёрстки по превью главной (7–9 / 12–15 страниц / без категории) — виден сразу после сбора,
             // по нему панель фильтрует таблицу до выгрузки.
-            $shown = $keptPrevious ? $previous : $result->sites;
+            $shown = $keptPrevious ? $previous : $merged;
             $templateHist = SiteTemplate::histogram($shown);
             $templateNote = $templateHist !== [] ? 'По типу вёрстки (по главной): ' . SiteTemplate::histogramText($templateHist) : '';
             $progress->update([
-                'state' => $result->aborted ? 'error' : 'done',
-                'phase' => 'done',
+                'state' => $result->aborted ? 'error' : ($result->stopped ? 'stopped' : 'done'),
+                'phase' => $result->stopped ? 'stopped' : 'done',
                 'stats' => $result->stats,
                 'errors' => $result->errors,
                 'aborted' => $result->aborted,
@@ -549,6 +618,8 @@ while (true) {
                 'sites' => previewSites($shown, $runDir),
                 'sites_count' => count($shown),
                 'kept_previous' => $keptPrevious,
+                'queue' => $queueInfo,
+                'stopped_early' => $result->stopped,
                 'template_histogram' => $templateHist,
                 'query_dupes' => $dupeSummary,
                 'base_domains' => $ledger->count(),
@@ -556,9 +627,30 @@ while (true) {
                 'files' => ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt', 'results' => 'results.csv'],
                 'message' => $result->aborted
                     ? 'Прогон остановлен из-за ошибки источника, см. лог'
-                    : trim(($keptPrevious ? 'Ничего нового не отобрано — прошлый список сайтов оставлен, с ним можно продолжать. ' : '') . $templateNote),
+                    : trim(
+                        ($result->stopped
+                            ? sprintf(
+                                'Остановлено на %d-м запросе из %d. Сайтов в таблице: %d — можно работать с этой частью (убрать лишние, выгрузить, очистить), потом «Продолжить сбор» (осталось %d запросов). ',
+                                $queueInfo['done'],
+                                $queueInfo['total'],
+                                count($shown),
+                                $queueInfo['left'],
+                            )
+                            : ($queueInfo['left'] > 0 ? sprintf('Обработано %d из %d запросов, осталось %d — «Продолжить сбор». ', $queueInfo['done'], $queueInfo['total'], $queueInfo['left']) : ''))
+                        . ($keptPrevious ? 'Ничего нового не отобрано — прошлый список сайтов оставлен, с ним можно продолжать. ' : '')
+                        . $templateNote,
+                    ),
             ], true);
-            $logger->info(sprintf('Прогон %d завершён: новых сайтов %d, всего в базе %d', $run, $result->stats['sites_selected'], $ledger->count()));
+            $logger->info(sprintf(
+                'Прогон %d завершён: новых сайтов %d, в таблице %d, запросов %d из %d%s, всего в базе %d',
+                $run,
+                $result->stats['sites_selected'],
+                count($shown),
+                $queueInfo['done'],
+                $queueInfo['total'],
+                $queueInfo['left'] > 0 ? sprintf(' (осталось %d)', $queueInfo['left']) : '',
+                $ledger->count(),
+            ));
         }
     } catch (Throwable $e) {
         $progress->update([

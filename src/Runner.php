@@ -30,6 +30,7 @@ final class Runner
         private mixed $onProgress = null,
         private ?DomainLedger $ledger = null,
         private bool $skipKnownDomains = false,
+        private mixed $shouldStop = null,
     ) {
     }
 
@@ -69,6 +70,13 @@ final class Runner
         $this->progress(['phase' => 'search', 'queries_total' => count($queries), 'queries_done' => 0]);
 
         foreach ($queries as $index => $query) {
+            // Остановка по кнопке — между запросами: текущий запрос доводим до конца, недоделанных
+            // «половинок» в выдаче не остаётся, и продолжить можно ровно со следующего запроса.
+            if ($this->shouldStop !== null && ($this->shouldStop)()) {
+                $result->stopped = true;
+                $this->log->info(sprintf('Остановка: обработано %d из %d запросов, собранное сохраняем', $index, count($queries)));
+                break;
+            }
             $this->log->info(sprintf('[%d/%d] %s', $index + 1, count($queries), $query));
             $offset = 0;
             $failed = false;
@@ -124,6 +132,9 @@ final class Runner
                     break;
                 }
             }
+
+            // Запрос пройден (даже если с ошибкой — иначе продолжение зациклится на нём).
+            $result->processed = $index + 1;
 
             if ($failed) {
                 $consecutiveErrors++;

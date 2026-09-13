@@ -93,10 +93,15 @@ final class ReportWriter
      *
      * @param list<array{result: SearchResult, reason: string|null}> $rows
      */
-    public function writeRawCsv(array $rows, string $path): void
+    public function writeRawCsv(array $rows, string $path, bool $append = false): void
     {
-        $fh = $this->open($path);
-        $this->row($fh, ['query', 'page', 'position', 'host', 'url', 'title', 'snippet', 'result']);
+        // $append — продолжение сбора частями: строки новой части дописываются к прошлым, чтобы
+        // results.csv описывал весь список запросов (по нему считаются дубли запросов по выдаче).
+        $appendTo = $append && is_file($path) && filesize($path) > 0;
+        $fh = $appendTo ? $this->openAppend($path) : $this->open($path);
+        if (!$appendTo) {
+            $this->row($fh, ['query', 'page', 'position', 'host', 'url', 'title', 'snippet', 'result']);
+        }
         foreach ($rows as $row) {
             $r = $row['result'];
             $this->row($fh, [
@@ -111,6 +116,19 @@ final class ReportWriter
             ]);
         }
         fclose($fh);
+    }
+
+    /**
+     * @return resource
+     */
+    private function openAppend(string $path)
+    {
+        $fh = fopen($path, 'a');
+        if ($fh === false) {
+            throw new \RuntimeException("Не удалось открыть файл для записи: $path");
+        }
+
+        return $fh;
     }
 
     /**

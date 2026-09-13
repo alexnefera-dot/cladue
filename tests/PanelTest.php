@@ -217,6 +217,70 @@ final class PanelTest
         Assert::true($s3['stats']['sites_selected'] > 0, 'без пропуска известных доменов сайты отобраны снова');
     }
 
+    public function testResumeCollectContinuesQueueAndMergesTable(): void
+    {
+        // Большой список обрабатывается частями: после остановки очередь помнит позицию, «Продолжить сбор»
+        // берёт остаток запросов и ПОПОЛНЯЕТ таблицу, а с «очистить таблицу» оставляет только новую часть.
+        $port = FakeServer::port();
+        $dir = $this->projectDir($port);
+        $runDir = $dir . '/runs/resume';
+        mkdir($runDir, 0777, true);
+        @unlink($dir . '/runs/domains-base.txt');
+        $queries = ['пластиковые окна', 'остекление балконов', 'двери входные'];
+        $settings = static fn (array $extra = []): string => json_encode(array_merge([
+            'queries' => $queries,
+            'source' => 'xmlstock',
+            'top' => 3,
+            'dedupe_domain' => true,
+            'allowed_tlds' => [],
+            'skip_known' => false,
+            'visit' => false,
+            'preview_shots' => false,
+        ], $extra), JSON_UNESCAPED_UNICODE);
+
+        // Первая часть: сбор только по первому запросу (как будто остановили после него).
+        file_put_contents($runDir . '/settings.json', $settings(['queries' => [$queries[0]]]));
+        $first = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $first['code'], $first['out']);
+        $s1 = json_decode((string) file_get_contents($runDir . '/status.json'), true);
+        Assert::same(['total' => 1, 'done' => 1, 'left' => 0], $s1['queue'], 'очередь пройдена целиком');
+        $batch1 = array_map(static fn ($s) => $s['host'], json_decode((string) file_get_contents($runDir . '/sites.json'), true)['sites']);
+        Assert::true($batch1 !== [], 'первая часть собрала сайты');
+
+        // Останов после первого запроса из трёх: очередь помнит позицию.
+        file_put_contents($runDir . '/queue.json', json_encode(['queries' => $queries, 'done' => 1], JSON_UNESCAPED_UNICODE));
+        file_put_contents($runDir . '/settings.json', $settings(['resume' => true]));
+        $second = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $second['code'], $second['out']);
+        $s2 = json_decode((string) file_get_contents($runDir . '/status.json'), true);
+        Assert::same('done', $s2['state'], $second['out']);
+        Assert::same(['total' => 3, 'done' => 3, 'left' => 0], $s2['queue'], 'обработан остаток очереди');
+        Assert::contains('продолжение с 2-го из 3', (string) file_get_contents($runDir . '/run.log'));
+        $merged = array_map(static fn ($s) => $s['host'], json_decode((string) file_get_contents($runDir . '/sites.json'), true)['sites']);
+        foreach ($batch1 as $host) {
+            Assert::inArray($host, $merged, 'сайты первой части остались в таблице');
+        }
+        Assert::true(count($merged) > count($batch1), 'новая часть добавила сайты');
+        Assert::same(count($merged), count(array_unique($merged)), 'без повторов');
+        Assert::same(count($merged), $s2['sites_count']);
+
+        // Повторное продолжение нечего обрабатывать — понятная ошибка, список не теряется.
+        $third = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        $s3 = json_decode((string) file_get_contents($runDir . '/status.json'), true);
+        Assert::same('error', $s3['state'], $third['out']);
+        Assert::contains('уже обработаны', $s3['message']);
+        Assert::same(count($merged), count(json_decode((string) file_get_contents($runDir . '/sites.json'), true)['sites']), 'sites.json не тронут');
+
+        // «Продолжить сбор» с очисткой таблицы: в ней только новая часть (страницы на диске не трогаются).
+        file_put_contents($runDir . '/queue.json', json_encode(['queries' => $queries, 'done' => 1], JSON_UNESCAPED_UNICODE));
+        file_put_contents($runDir . '/settings.json', $settings(['resume' => true, 'reset_sites' => true]));
+        $fourth = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $fourth['code'], $fourth['out']);
+        $reset = array_map(static fn ($s) => $s['host'], json_decode((string) file_get_contents($runDir . '/sites.json'), true)['sites']);
+        Assert::true(count($reset) < count($merged), 'в таблице только новая часть');
+        Assert::same([], array_values(array_intersect($reset, array_diff($batch1, $reset))), 'сайты первой части в таблицу не вернулись');
+    }
+
     public function testDownloadStageOpensCollectedSites(): void
     {
         $port = FakeServer::port('local');
@@ -399,7 +463,7 @@ final class PanelTest
         Assert::true(is_dir($runDir . '/pages/okna-moskva.ru'));
         Assert::true(is_dir($runDir . '/pages/okna-company.com'));
 
-        // Повторная выгрузка с исключением одного сайта — папка исключённого исчезает (чистый пере-сбор).
+        // Повторная выгрузка с исключением одного сайта — папка исключённого исчезает (его пере-сбор чистый).
         file_put_contents($runDir . '/settings.json', $settings(['exclude_hosts' => ['okna-company.com']]));
         $r2 = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
         Assert::same(0, $r2['code'], $r2['out']);
@@ -799,8 +863,9 @@ final class PanelTest
 
     public function testCleanStageRunsInBackgroundForKeptSitesOnly(): void
     {
-        // «Очистить всё» — фоновый этап: чистит только оставленные (only минус exclude), сносит прежний
-        // content/ целиком (убранный сайт не залипает), сохраняет таблицу и пишет прогресс/итог.
+        // «Очистить всё» — фоновый этап: чистит только оставленные (only минус exclude), убирает контент
+        // исключённых, сохраняет таблицу и пишет прогресс/итог. Контент сайтов, которых в таблице сейчас
+        // нет (обработанная ранее часть большого сбора), НЕ трогается — иначе прошлая работа пропадёт.
         $dir = sys_get_temp_dir() . '/yandex-sites-clean-' . uniqid();
         $runDir = $dir . '/runs/clean';
         $page = '<html><head><title>t</title></head><body><h1>Обзор</h1><p>Полезный текст статьи про бренд.</p><h3>Популярные запросы</h3></body></html>';
@@ -811,7 +876,9 @@ final class PanelTest
             }
         }
         mkdir("$runDir/content/9-стр/skip.ru", 0777, true);
-        file_put_contents("$runDir/content/9-стр/skip.ru/old.html", 'старая очистка');
+        file_put_contents("$runDir/content/9-стр/skip.ru/old.html", 'очистка прошлой части сбора');
+        mkdir("$runDir/content/3-стр/ex.ru", 0777, true);
+        file_put_contents("$runDir/content/3-стр/ex.ru/old.html", 'очистка убранного сайта');
         file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
         file_put_contents($runDir . '/sites.json', json_encode(['sites' => [
             ['host' => 'keep.ru', 'domain' => 'keep.ru'], ['host' => 'skip.ru', 'domain' => 'skip.ru'], ['host' => 'ex.ru', 'domain' => 'ex.ru'],
@@ -824,8 +891,9 @@ final class PanelTest
         Assert::same('done', $st['state'], $run['out']);
         Assert::contains('Очищено: 1 сайтов, 2 стр.', $st['message']);
         Assert::true(is_file("$runDir/content/2-стр/keep.ru/main.html") && is_file("$runDir/content/2-стр/keep.ru/about.html"), 'оставленный сайт очищен в бакет по числу страниц');
-        Assert::false(is_dir("$runDir/content/9-стр/skip.ru"), 'прежний content/ снесён — старая очистка убранного не залипла');
-        Assert::same(0, count(glob("$runDir/content/*/skip.ru") ?: []) + count(glob("$runDir/content/*/ex.ru") ?: []), 'не-оставленные и исключённые не чистились');
+        Assert::true(is_file("$runDir/content/9-стр/skip.ru/old.html"), 'контент сайта не из таблицы (прошлая часть сбора) остался');
+        Assert::same(0, count(glob("$runDir/content/*/ex.ru") ?: []), 'контент исключённого сайта убран');
+        Assert::same(1, count(glob("$runDir/content/*/skip.ru") ?: []), 'не-оставленный сайт заново не чистился');
         Assert::same(3, count($st['sites']), 'таблица после очистки на месте');
         Assert::same(1, (int) ($st['visit']['total'] ?? 0), 'прогресс считал только сайты к очистке');
 

@@ -274,7 +274,10 @@ if ($path === '/' || $path === '/index.html') {
 if ($path === '/api/state') {
     $status = readJsonFile($statusFile);
     $pid = is_file($pidFile) ? (int) file_get_contents($pidFile) : 0;
-    $running = $pid > 0 && processAlive($pid) && !is_file($stopFile);
+    // Остановка теперь мягкая: процесс ещё жив и досохраняет собранное, поэтому «выполняется» — это
+    // живой процесс, а флаг stopping говорит панели показать «останавливаю…» и кнопку аварийной остановки.
+    $running = $pid > 0 && processAlive($pid);
+    $stopping = $running && is_file($stopFile);
     // Таблица сайтов не должна пропадать после обновления страницы или перезапуска панели: если в статусе
     // нет списка (идёт выгрузка/докачка, была ошибка, статус стёрт), берём прошлый сбор из sites.json.
     $fromFile = empty($status['sites']);
@@ -313,6 +316,9 @@ if ($path === '/api/state') {
         'settings' => readJsonFile($settingsFile),
         'status' => $status,
         'running' => $running,
+        'stopping' => $stopping,
+        // Очередь запросов: сколько уже обработано и сколько осталось для «Продолжить сбор».
+        'queue' => \YandexSites\Support\QueryQueue::summary(\YandexSites\Support\QueryQueue::load($runDir . '/' . \YandexSites\Support\QueryQueue::FILE)),
         // Серверный список убранных сайтов — источник истины для таблицы (см. Support\RemovedSites).
         'removed' => \YandexSites\Support\RemovedSites::hosts($runDir),
         'has_config' => is_file($projectDir . '/config.php'),
@@ -350,8 +356,10 @@ if ($path === '/api/keys' && $method === 'POST') {
 
 if ($path === '/api/start' && $method === 'POST') {
     $pid = is_file($pidFile) ? (int) file_get_contents($pidFile) : 0;
-    if ($pid > 0 && processAlive($pid) && !is_file($stopFile)) {
-        jsonOut(['ok' => false, 'error' => 'Сбор уже запущен'], 409);
+    if ($pid > 0 && processAlive($pid)) {
+        jsonOut(['ok' => false, 'error' => is_file($stopFile)
+            ? 'Идёт остановка предыдущего задания — оно досохраняет собранное, подождите несколько секунд'
+            : 'Сбор уже запущен'], 409);
     }
     $settings = body();
     $stage = (string) ($settings['stage'] ?? 'collect');
@@ -380,9 +388,13 @@ if ($path === '/api/start' && $method === 'POST') {
 }
 
 if ($path === '/api/stop' && $method === 'POST') {
+    // Мягкая остановка: задание дописывает текущий запрос, сохраняет собранное и позицию в очереди —
+    // с этой частью можно работать, а «Продолжить сбор» запустит остаток. force=true — аварийно убить
+    // процесс (задание зависло): собранное с момента последнего сохранения теряется.
+    $force = (bool) (body()['force'] ?? false);
     file_put_contents($stopFile, '1');
     $pid = is_file($pidFile) ? (int) file_get_contents($pidFile) : 0;
-    if ($pid > 0) {
+    if ($force && $pid > 0) {
         @exec(sprintf('pkill -P %d 2>/dev/null', $pid));
         if (function_exists('posix_kill')) {
             @posix_kill($pid, 15);
@@ -390,7 +402,7 @@ if ($path === '/api/stop' && $method === 'POST') {
             @exec(sprintf('kill %d 2>/dev/null', $pid));
         }
     }
-    jsonOut(['ok' => true]);
+    jsonOut(['ok' => true, 'force' => $force]);
 }
 
 if ($path === '/api/reset-base' && $method === 'POST') {

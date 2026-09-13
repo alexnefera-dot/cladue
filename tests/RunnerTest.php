@@ -90,6 +90,33 @@ final class RunnerTest
         Assert::same(['окна' => 1, 'балконы' => 1], $result->sites[0]->queries);
     }
 
+    public function testStopBetweenQueriesKeepsCollectedPart(): void
+    {
+        // Кнопка «Остановить»: текущий запрос доводится до конца, остальные не запрашиваются, собранное
+        // возвращается, а processed — позиция для продолжения (Support\QueryQueue).
+        $calls = [];
+        $stopAfter = 2;
+        $shouldStop = static function () use (&$calls, $stopAfter): bool {
+            return count($calls) >= $stopAfter;
+        };
+        $runner = new Runner($this->config(), $this->fetcher($calls), new XmlResponseParser(), $this->logger(), null, null, null, null, false, $shouldStop);
+        $result = $runner->run(['окна', 'балконы', 'двери', 'ещё запрос']);
+
+        Assert::same(['окна/0', 'балконы/0'], $calls, 'после остановки к источнику не обращаемся');
+        Assert::true($result->stopped, 'прогон помечен остановленным');
+        Assert::false($result->aborted, 'остановка по кнопке — не ошибка');
+        Assert::same(2, $result->processed, 'обработаны два запроса — продолжать с третьего');
+        Assert::same(2, $result->stats['queries_done']);
+        Assert::same(2, $result->stats['sites_selected'], 'сайты собранной части сохранены');
+
+        // Без остановки processed — весь список, флага нет.
+        $calls = [];
+        $runner = new Runner($this->config(), $this->fetcher($calls), new XmlResponseParser(), $this->logger());
+        $result = $runner->run(['окна', 'балконы']);
+        Assert::false($result->stopped);
+        Assert::same(2, $result->processed);
+    }
+
     public function testPaginationStopsOnShortPage(): void
     {
         $calls = [];

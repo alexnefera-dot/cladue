@@ -548,7 +548,34 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   cannot, which `isZip()` detects → RuntimeException «включите extension=zip»). `bin/clean-content.php --zip`
   keeps its own ZipArchive-only code. Covered by `tests/ArchiveTest.php` and
   `PanelTest::testContentArchiveDownload`.
-- `Support\QueryDupes` finds queries whose SERP is the same SET of sites (registrable domains, `www` folded,
+- A 3000-query list is collected IN PARTS, because waiting for the whole list before touching any site is
+  what the user actually complained about. `Support\QueryQueue` (`runs/current/queue.json`: `queries` +
+  `done`) remembers the position; `Runner` takes a `$shouldStop` callback (checked BETWEEN queries, so a
+  query is atomic and `results.csv` has no half-query) and returns `RunResult::$stopped` +
+  `$processed` (counts failed queries too, otherwise resume loops on a broken one). `/api/stop` is now
+  GRACEFUL — it only writes the `stop` file, the job finishes the current query, still runs the preview
+  visits for what it collected and saves `sites.json` + the queue position; `{"force":true}` keeps the old
+  kill for a hung job (panel button «Прервать принудительно», shown while `state.stopping`). `/api/state`
+  therefore reports `running` = live process and a separate `stopping` flag, and `/api/start` refuses to
+  start while the previous job is still saving. Collect stage (`bin/run-job.php`): without `resume` it
+  starts a fresh queue from `settings.queries`; with `resume` it takes `QueryQueue::remaining()` after
+  `sync()`ing the queue with the current textarea list (the user may have removed duplicates or appended
+  queries — processed head is never touched, the tail follows the list), advances `done` by
+  `$result->processed`, merges the new sites with the previous `sites.json` by host (`resume` without
+  `reset_sites`) or starts the table from scratch (`reset_sites`, which also clears `removed.json`),
+  appends to `results.csv` (`ReportWriter::writeRawCsv($rows, $path, append: true)`) so query-dupes still
+  covers the whole list, and puts `queue` + `stopped_early` into the status. Panel: «Продолжить сбор (N)»
+  next to «Собрать сайты» opens a two-button ask («Оставить» / «Очистить таблицу») wired to
+  `resume(reset)`, and «Запросы списка: пройдено N из M» comes from `state.queue`. Because batches are now
+  a normal workflow, NEITHER stage wipes whole directories any more: download removes only the folders of
+  the sites it downloads plus `exclude_hosts` (`removeSiteFolders()`), and `stage=clean` removes only the
+  excluded hosts' content (`cleanHost()` already clears its own host) — a full `rrmdir(pages|content)`
+  would destroy the parts the user already downloaded and cleaned. `repeat_hours` is ignored on resume.
+  Covered by `tests/QueryQueueTest.php`, `RunnerTest::testStopBetweenQueriesKeepsCollectedPart`,
+  `PanelTest::testResumeCollectContinuesQueueAndMergesTable`, `testRedownloadClearsPreviousPages` and
+  `testCleanStageRunsInBackgroundForKeptSitesOnly`.
+- `Support\QueryDupes` finds queries whose SERP is the same SET of sites
+ (registrable domains, `www` folded,
   positions ignored): `find(rows, queries)` groups queries by the sorted domain set, keeps the first query of
   each group in the ORDER OF THE USER'S LIST (`settings.queries`) and reports `duplicates`, `groups`
   (`kept`/`duplicates`/`sites`), `unique` and `no_results` (queries with no result at all are NOT duplicates,
