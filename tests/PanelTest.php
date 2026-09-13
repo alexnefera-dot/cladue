@@ -729,7 +729,75 @@ final class PanelTest
         }
     }
 
+    public function testResetBaseWipesRunFiles(): void
+    {
+        // «Очистить базу и файлы»: база доменов + все рабочие файлы прогона (страницы, контент, превью,
+        // списки, очередь, статус). Настройки и запросы остаются, следующий сбор начинается с нуля.
+        $dir = sys_get_temp_dir() . '/yandex-sites-panel-reset-' . uniqid();
+        $runDir = $dir . '/runs/current';
+        mkdir($runDir . '/pages/7-стр/a.ru', 0777, true);
+        mkdir($runDir . '/content/7-стр/a.ru', 0777, true);
+        mkdir($runDir . '/preview/a.ru', 0777, true);
+        mkdir($runDir . '/removed/pages/1-стр/b.ru', 0777, true);
+        file_put_contents($runDir . '/pages/7-стр/a.ru/main.html', 'x');
+        file_put_contents($runDir . '/content/7-стр/a.ru/main.html', 'x');
+        file_put_contents($runDir . '/preview/a.ru/variant-1.png', 'x');
+        file_put_contents($runDir . '/removed/pages/1-стр/b.ru/main.html', 'x');
+        foreach (['sites.json', 'sites.csv', 'domains.txt', 'results.csv', 'queue.json', 'removed.json', 'status.json', 'queries-unique.txt'] as $f) {
+            file_put_contents($runDir . '/' . $f, '{}');
+        }
+        file_put_contents($runDir . '/settings.json', json_encode(['queries' => ['окна']], JSON_UNESCAPED_UNICODE));
+        file_put_contents($dir . '/runs/domains-base.txt', "a.ru\nb.ru\n");
+        file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
+
+        $socket = @stream_socket_server('tcp://127.0.0.1:0', $errno, $errstr);
+        if ($socket === false) {
+            Assert::skip("нет доступа к сокетам: $errstr");
+        }
+        $name = (string) stream_socket_get_name($socket, false);
+        fclose($socket);
+        $panelPort = (int) substr($name, (int) strrpos($name, ':') + 1);
+        $log = sys_get_temp_dir() . '/yandex-sites-panel-reset.log';
+        $server = @proc_open(
+            [PHP_BINARY, '-S', '127.0.0.1:' . $panelPort, '-t', $dir, PROJECT_ROOT . '/bin/panel.php'],
+            [0 => ['pipe', 'r'], 1 => ['file', $log, 'a'], 2 => ['file', $log, 'a']],
+            $pipes,
+            $dir,
+            array_merge(getenv(), ['YS_PROJECT_DIR' => $dir]),
+        );
+        if (!is_resource($server)) {
+            Assert::skip('не удалось запустить php -S для панели');
+        }
+        fclose($pipes[0]);
+        try {
+            $base = "http://127.0.0.1:$panelPort";
+            $this->waitFor($base . '/api/state', 50);
+            Assert::same(2, (json_decode((string) $this->http('GET', $base . '/api/state'), true))['base_domains']);
+
+            $r = json_decode((string) $this->http('POST', $base . '/api/reset-base', []), true);
+            Assert::true($r['ok'] ?? false, json_encode($r));
+            Assert::same(4, $r['dirs'], 'удалены pages, content, preview, removed');
+            Assert::true(($r['files'] ?? 0) >= 12, 'удалены файлы папок и списки: ' . json_encode($r));
+            foreach (['pages', 'content', 'preview', 'removed'] as $sub) {
+                Assert::false(is_dir($runDir . '/' . $sub), "папка $sub удалена");
+            }
+            foreach (['sites.json', 'results.csv', 'queue.json', 'status.json'] as $f) {
+                Assert::false(is_file($runDir . '/' . $f), "файл $f удалён");
+            }
+            Assert::true(is_file($runDir . '/settings.json'), 'настройки и запросы на месте');
+            $state = json_decode((string) $this->http('GET', $base . '/api/state'), true);
+            Assert::same(0, $state['base_domains'], 'база доменов очищена');
+            Assert::same(['total' => 0, 'done' => 0, 'left' => 0], $state['queue'], 'очередь запросов сброшена');
+            Assert::same(0, $state['content_files']);
+            Assert::true(empty($state['status']['sites']), 'таблица пуста');
+        } finally {
+            proc_terminate($server);
+            proc_close($server);
+        }
+    }
+
     public function testContentArchiveDownload(): void
+
     {
         // «Скачать архив контента»: /api/state считает очищенные статьи, /download?file=content отдаёт свежий zip
         // с папками N-стр/сайт/страница.html; без контента — 404 с понятным текстом.

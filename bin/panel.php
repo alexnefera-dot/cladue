@@ -151,6 +151,37 @@ function readJsonFile(string $file): ?array
 }
 
 /**
+ * Удаляет все рабочие файлы прогона: страницы, контент, превью, убранные сайты, списки, очередь и статус
+ * (кнопка «очистить базу и файлы»). Настройки (settings.json) остаются — список запросов не теряется.
+ *
+ * @return array{files: int, dirs: int}
+ */
+function resetRunFiles(string $runDir): array
+{
+    $files = 0;
+    $dirs = 0;
+    foreach (['pages', 'content', 'preview', 'removed'] as $sub) {
+        $dir = $runDir . '/' . $sub;
+        if (!is_dir($dir)) {
+            continue;
+        }
+        $files += count(\YandexSites\Support\Archive::listFiles($dir));
+        $dirs++;
+        rmTree($dir);
+    }
+    $names = ['sites.json', 'sites.csv', 'domains.txt', 'results.csv', 'content.zip', 'removed.json',
+        \YandexSites\Support\QueryQueue::FILE, \YandexSites\Support\QueryDupes::UNIQUE_FILE, \YandexSites\Support\QueryDupes::GROUPS_FILE, 'status.json'];
+    foreach ($names as $name) {
+        if (is_file($runDir . '/' . $name) && @unlink($runDir . '/' . $name)) {
+            $files++;
+        }
+    }
+    @file_put_contents($runDir . '/run.log', '');
+
+    return ['files' => $files, 'dirs' => $dirs];
+}
+
+/**
  * Сколько очищенных статей и сайтов лежит в content/<N>-стр/<host>/ — для кнопки «Скачать архив контента».
  *
  * @return array{files: int, sites: int}
@@ -406,8 +437,16 @@ if ($path === '/api/stop' && $method === 'POST') {
 }
 
 if ($path === '/api/reset-base' && $method === 'POST') {
+    // «Очистить базу и файлы»: база пересечений доменов + ВСЕ рабочие файлы прогона — скачанные страницы,
+    // очищенный контент, превью, списки и очередь запросов. Итоговый архив контента пользователь скачивает
+    // через панель, так что pages/ и content/ — технические папки: следующий сбор начинается с чистого листа.
+    $pid = is_file($pidFile) ? (int) file_get_contents($pidFile) : 0;
+    if ($pid > 0 && processAlive($pid)) {
+        jsonOut(['ok' => false, 'error' => 'Сначала остановите задание — сейчас оно пишет в эти папки'], 409);
+    }
     @file_put_contents($baseFile, '');
-    jsonOut(['ok' => true]);
+    $wiped = resetRunFiles($runDir);
+    jsonOut(['ok' => true] + $wiped);
 }
 
 if ($path === '/api/results') {

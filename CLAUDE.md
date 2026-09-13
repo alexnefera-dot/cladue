@@ -589,7 +589,18 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `/download` map serves `queries-unique` / `query-dupes`. Exact set equality only — a similarity threshold
   is a possible follow-up. Covered by `tests/QueryDupesTest.php`, `PanelTest::testRunJobProducesResults`
   and `PanelTest::testQueryDupesEndpointAndDownloads`.
-- `Cli\Application::VERSION` / `VERSION_DATE` are the only version markers and the user's way to verify an
+- `/api/reset-base` («очистить базу и файлы» in the settings tab) is a FULL reset, not just the domain
+  ledger: it empties `runs/domains-base.txt` and `resetRunFiles()` deletes the run's working data —
+  `pages/`, `content/`, `preview/`, `removed/` plus `sites.json|csv`, `domains.txt`, `results.csv`,
+  `content.zip`, `removed.json`, `queue.json`, the query-dupes files and `status.json` (`settings.json`
+  and the query list stay, `run.log` is truncated). The user asked for this: the content archive is
+  downloaded through the panel, so those folders are technical leftovers. It refuses with 409 while a job
+  is alive (it writes into those folders), returns `{files, dirs}` for the panel's «Очищено: удалено
+  файлов N», and the confirm dialog spells out what disappears. The browser mirror (`lastSites`,
+  `removedHosts`, `queueInfo`, `dupes`) is cleared client-side on success. Covered by
+  `PanelTest::testResetBaseWipesRunFiles`.
+- `Cli\Application::VERSION` / `VERSION_DATE` are the only version markers
+ and the user's way to verify an
   update (they run `setup.php --update`, which downloads the branch zip, so there is no git metadata on their
   machine): BUMP BOTH in every user-facing change. `setup.php --update` prints «версия X от DD.MM.YYYY» (parsed
   by regex from `Application.php`) plus a reminder to restart the panel, `bin/panel.php` prints the same at
