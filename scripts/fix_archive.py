@@ -127,6 +127,9 @@ def fix_brand_one(raw, brand):
         (r"\b%s\s+(Casino|App|Club|Bet|Play|Online)\b" % b, r"%brand_name_en% \1", "латинская связка → %brand_name_en%"),
         (r"\b%s\b" % b, "%brand_name_ru%", "бренд → %brand_name_ru%"),
     ]
+    if brand[0] >= "А":   # русское название склоняется: «в Хайпе», «бонусы Хайпа»
+        rules.insert(-1, (r"\b%s(?:а|е|у|ом|ы|ов|ам|ах|ами|ой|ою)\b" % b,
+                          "%brand_name_ru%", "бренд со склонением → %brand_name_ru%"))
     rows = []
     for rx, rep, how in rules:
         raw, n = re.subn(rx, rep, raw)
