@@ -22,7 +22,7 @@ function v7Радиус(string $форма): array {
 }
 
 function v7Заголовок(array $т, string $sc): string {
-    $а = $т['акцент'];
+    $а = $т['акцент']; $на = $т['наАкценте'];
     return match ($т['заголовок']) {
         'капс' => "
 $sc h2{font-size:1.16rem;letter-spacing:.14em;text-transform:uppercase;color:$а;margin:0 0 14px}
@@ -42,7 +42,7 @@ $sc h3{font-size:1.1rem;margin:0 0 10px;padding-left:15px;border-left:2px solid 
 }
 
 function v7Маркер(array $т, string $sc): string {
-    $а = $т['акцент'];
+    $а = $т['акцент']; $на = $т['наАкценте'];
     return match ($т['метка']) {
         'угол'  => "$sc ul:not(.hero-features)>li::before{content:'▸';color:$а;position:absolute;left:0;top:0}",
         'точки' => "$sc ul:not(.hero-features)>li::before{content:'';position:absolute;left:3px;top:.66em;width:7px;height:7px;border-radius:50%;background:$а}",
@@ -51,7 +51,7 @@ function v7Маркер(array $т, string $sc): string {
 }
 
 function v7Слоты(array $т, string $sc): string {
-    $а = $т['акцент']; $б = $т['акцент2'];
+    $а = $т['акцент']; $на = $т['наАкценте']; $б = $т['акцент2'];
     if ($т['слот'] === 'компакт') {
         return "
 $sc .slots-grid{display:grid;gap:10px}
@@ -68,7 +68,7 @@ $sc .slot-provider{font-size:.8rem;color:var(--тус)}
 $sc .slot-footer{display:flex;gap:14px;align-items:center}
 $sc .slot-rtp{font-size:.82rem;color:var(--тус);white-space:nowrap}
 $sc .slot-rtp-value{color:$а;font-weight:700}
-$sc .slot-play-btn{border:0;background:$а;color:#fff;padding:7px 14px;border-radius:999px;font-size:.82rem;font-weight:600}";
+$sc .slot-play-btn{border:0;background:$а;color:$на;padding:7px 14px;border-radius:999px;font-size:.82rem;font-weight:600}";
     }
     $подпись = $т['слот'] === 'картинка'
         ? "color:var(--тек);opacity:.72"
@@ -87,7 +87,7 @@ $sc .k7-has-img .slot-poster-fallback{display:none}
 $sc .slot-fallback-icon{font-size:26px}
 $sc .slot-fallback-name{font-size:.76rem;letter-spacing:.08em;text-transform:uppercase;opacity:.9;padding:0 8px;text-align:center}
 $sc .slot-badge{position:absolute;top:8px;right:8px;font-size:.64rem;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px;background:#000a;color:#fff}
-$sc .slot-badge-high{background:$а;color:#fff}
+$sc .slot-badge-high{background:$а;color:$на}
 $sc .slot-badge-medium{background:#0009;color:#fff}
 $sc .slot-info{padding:12px 13px 4px}
 $sc .slot-name{margin:0 0 3px;font-size:.98rem;border:0;padding:0}
@@ -101,7 +101,7 @@ $sc .slot-play-btn{border:0;background:var(--мяг);color:$а;padding:7px 13px;
 function v7CSS(array $т, string $sc): string {
     [$рад, $рад2, $скос] = v7Радиус($т['форма']);
     [$шзаг, $штек] = v7Шрифт($т['шрифт']);
-    $а = $т['акцент']; $б = $т['акцент2'];
+    $а = $т['акцент']; $на = $т['наАкценте']; $б = $т['акцент2'];
     $карточка = "background:var(--карта);border:1px solid var(--рам);border-radius:var(--r)";
     $css = "
 $sc{--акц:$а;--акц2:$б;--мяг:{$т['мягкий']};--фон:{$т['фон']};--карта:{$т['карта']};--карта2:{$т['карта2']};
@@ -120,8 +120,8 @@ $sc ul:not(.hero-features)>li,$sc ol>li{position:relative;padding-left:24px;marg
 " . v7Маркер($т, $sc) . "
 $sc ol{counter-reset:сп}
 $sc ol>li::before{content:counter(сп) '.';counter-increment:сп;background:none;width:auto;height:auto;top:0;color:$а;font-weight:700}
-$sc table{width:100%;border-collapse:collapse;margin:0 0 16px;font-size:.94rem}
-$sc th,$sc td{padding:9px 12px;border-bottom:1px solid var(--рам);text-align:left}
+$sc table{width:100%;border-collapse:collapse;margin:0 0 16px;font-size:.94rem;color:var(--тек)}
+$sc th,$sc td{padding:9px 12px;border-bottom:1px solid var(--рам);text-align:left;color:var(--тек)}
 $sc th{color:$а;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase}
 " . v7Заголовок($т, $sc) . "
 
@@ -138,7 +138,7 @@ $sc .hero-features li{display:flex;align-items:center;gap:9px;padding:9px 12px;b
 $sc .feature-icon{font-size:17px}
 $sc .hero-actions{display:flex;flex-wrap:wrap;gap:11px}
 $sc .btn-apple,$sc .btn,$sc .payout-btn{display:inline-block;padding:11px 22px;border-radius:999px;font-weight:600;font-size:.94rem;border:1px solid transparent;text-align:center}
-$sc .btn-apple-primary,$sc .btn-primary,$sc .payout-btn{background:$а;color:#fff;border-color:$а}
+$sc .btn-apple-primary,$sc .btn-primary,$sc .payout-btn{background:$а;color:$на;border-color:$а}
 $sc .btn-apple-secondary{background:transparent;color:$а;border-color:color-mix(in srgb,$а 45%,transparent)}
 $sc .hero-quicklinks{background:var(--карта2);border:1px solid var(--рам);border-radius:var(--r);padding:16px}
 $sc .quicklinks-title{font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:var(--тус);margin:0 0 12px;padding:0;border:0}
@@ -244,6 +244,9 @@ $sc .k7-fon .ql-meta,$sc .k7-fon .value-pillar-desc,$sc .k7-fon .slots-dashboard
 $sc .k7-fon .hero-badge{background:#ffffff26;color:#fff}
 $sc .k7-fon .btn-apple-secondary,$sc .k7-fon .slot-play-btn{color:#fff;border-color:#ffffff66;background:#ffffff1f}
 $sc .k7-fon p,$sc .k7-fon .hero-tagline{color:#e7e9f2}
+$sc .k7-fon .slot-card,$sc .k7-fon .slot-name,$sc .k7-fon .faq-question{color:var(--тек)}
+$sc .k7-fon .slot-provider,$sc .k7-fon .slot-rtp,$sc .k7-fon .faq-answer,$sc .k7-fon .review-quote-text{color:var(--тус)}
+$sc .k7-fon .slot-play-btn{color:$на;border-color:$а;background:$а}
 
 @media (max-width:760px){
 $sc .hero-value-grid{grid-template-columns:1fr}
@@ -256,8 +259,8 @@ $sc .payout-row-time{margin-left:0}
 
 /** Часть сайтов приходит с обфусцированными классами — для них слой по структуре. */
 function v7Структура(array $т, string $sc): string {
-    $а = $т['акцент'];
-    $кнопка = "display:inline-block;padding:10px 20px;border-radius:999px;font-weight:600;font-size:.92rem;border:1px solid $а;background:$а;color:#fff";
+    $а = $т['акцент']; $на = $т['наАкценте'];
+    $кнопка = "display:inline-block;padding:10px 20px;border-radius:999px;font-weight:600;font-size:.92rem;border:1px solid $а;background:$а;color:$на";
     $только = ":has(>a):not(:has(>:not(a)))";
     return "
 $sc section,$sc aside{background:var(--карта);border:1px solid var(--рам);border-radius:var(--r);padding:clamp(16px,2.6vw,26px)}
