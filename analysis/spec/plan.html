@@ -1,0 +1,268 @@
+<title>Что я буду считать</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=Fira+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#eeeeea; --card:#fdfdfb; --ink:#171a15; --mute:#5d6157; --line:#d3d4cc;
+  --acc:#46602a; --accbg:#e7ecdd; --gap:#a33b2a; --gapbg:#f6e7e3;
+  --ctrl:#2c4a63; --ctrlbg:#e2e9ef;
+}
+:root:not([data-theme="light"]){@media (prefers-color-scheme:dark){
+  --paper:#151713; --card:#1e211b; --ink:#e9eae2; --mute:#9a9d91; --line:#32352c;
+  --acc:#a8c47c; --accbg:#222a17; --gap:#e2907c; --gapbg:#2c1b17;
+  --ctrl:#8db4d4; --ctrlbg:#1a242d;
+}}
+:root[data-theme="dark"]{
+  --paper:#151713; --card:#1e211b; --ink:#e9eae2; --mute:#9a9d91; --line:#32352c;
+  --acc:#a8c47c; --accbg:#222a17; --gap:#e2907c; --gapbg:#2c1b17;
+  --ctrl:#8db4d4; --ctrlbg:#1a242d;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font:400 16.5px/1.66 "Source Serif 4",Georgia,serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:900px;margin:0 auto;padding:0 20px;padding-block:54px 82px}
+h1{font:700 clamp(32px,6vw,50px)/1.06 Chivo,"Helvetica Neue",sans-serif;letter-spacing:-.022em;
+  margin:0 0 16px;text-wrap:balance}
+h2{font:700 clamp(21px,3.3vw,28px)/1.2 Chivo,sans-serif;letter-spacing:-.012em;
+  margin:0 0 12px;text-wrap:balance}
+h3{font:600 16.5px/1.32 Chivo,sans-serif;margin:0 0 7px}
+p{margin:0 0 14px;max-width:66ch}
+.eyebrow{font:500 12px/1 "Fira Mono",ui-monospace,monospace;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--acc);margin:0 0 16px}
+.lede{font-size:19px;color:var(--mute);max-width:61ch}
+.lede b{color:var(--ink);font-weight:600}
+hr{border:0;border-top:1px solid var(--line);margin:42px 0 34px}
+section{margin:0 0 44px}
+.n,code{font-family:"Fira Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+code{background:var(--accbg);padding:.1em .34em;border-radius:2px;font-size:.86em}
+
+figure{margin:0 0 20px;background:var(--card);border:1px solid var(--line);padding:22px 20px 16px}
+figure svg{display:block;max-width:100%;height:auto;margin:0 auto;color:var(--ink)}
+figcaption{font-size:14.5px;color:var(--mute);margin-top:16px;border-top:1px solid var(--line);
+  padding-top:12px;line-height:1.5}
+
+.tw{overflow-x:auto;border:1px solid var(--line);background:var(--card);margin:0 0 18px}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:15px}
+th{font:500 10.5px/1.2 "Fira Mono",ui-monospace,monospace;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--mute);text-align:left;padding:11px 14px;
+  border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:bottom}
+td{padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.45;
+  font-size:14.5px}
+td:first-child{font-family:"Fira Mono",ui-monospace,monospace;font-size:13px;
+  white-space:nowrap;font-weight:500}
+tr:last-child td{border-bottom:0}
+tr.sub td{background:var(--paper);font:600 12px/1.3 Chivo,sans-serif;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--mute)}
+tr.sub td:first-child{font-family:Chivo,sans-serif;font-size:12px}
+
+.tag{display:inline-block;font:500 10px/1 "Fira Mono",monospace;letter-spacing:.06em;
+  text-transform:uppercase;padding:3px 6px;border-radius:2px;white-space:nowrap}
+.g-ctrl{background:var(--ctrlbg);color:var(--ctrl)}
+.g-obs{background:var(--accbg);color:var(--acc)}
+.g-gap{background:var(--gapbg);color:var(--gap)}
+.g-const{background:var(--line);color:var(--mute)}
+
+.call{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--acc);
+  padding:17px 21px;margin:0 0 18px}
+.call.gap{border-left-color:var(--gap)}
+.call.q{border-left-color:var(--ctrl)}
+.call p:last-child{margin-bottom:0}
+.fmt{background:var(--card);border:1px solid var(--line);padding:15px 17px;margin:0 0 16px;
+  overflow-x:auto}
+.fmt pre{margin:0;font:400 12.5px/1.7 "Fira Mono",ui-monospace,monospace;white-space:pre}
+ul,ol{margin:0 0 14px;padding-left:22px;max-width:66ch}
+li{margin:0 0 8px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin:0 0 18px}
+.two>div{background:var(--card);border:1px solid var(--line);padding:16px 18px}
+.two h3{margin-bottom:8px}
+.two ul{padding-left:18px;margin:0}
+.two li{font-size:15px;margin:0 0 6px}
+.foot{font-size:14px;color:var(--mute);border-top:1px solid var(--line);padding-top:17px}
+</style>
+<div class="wrap">
+
+<p class="eyebrow">аналитика запусков · 14.09.2026</p>
+<h1>Что я буду считать</h1>
+<p class="lede">Вся математика сводится к пяти множителям. <b>Клики ускоряют выводы
+примерно втрое: то, на что раньше уходил месяц, будет читаться за неделю.</b>
+Деньги останутся медленными — и это меняет то, как принимать решения.</p>
+
+<hr>
+
+<section>
+<h2>Математика конверсий: пять множителей</h2>
+<div class="fmt"><pre>домены × 200 брендов              =  поддомены
+      × доля, вышедшая в поиск    =  поддомены с кликом
+      × кликов на поддомен        =  клики
+      × клик → регистрация        =  регистрации
+      × регистрация → ФД          =  ФД
+      × $40                       =  выручка
+
+затраты = домены × цена зоны</pre></div>
+<p>Поднять деньги можно только подняв один из пяти множителей или снизив цену домена.
+Каждый собираемый параметр влияет ровно на один из них — и в этом весь смысл разрезов:</p>
+<div class="tw"><table>
+<tr><th>множитель</th><th>на что влияет</th><th>чем управляем</th></tr>
+<tr><td>доля в поиске</td><td>сколько сайтов вообще дошло до выдачи</td><td>предел вложенности · число страниц · источник контента · зона · волна и час отправки</td></tr>
+<tr><td>кликов на поддомен</td><td>сколько раз кликают по тем, кто дошёл</td><td>уровень вложенности, который показывается · бренд</td></tr>
+<tr><td>клик → регистрация</td><td>качество страницы и предложения</td><td>контент и оформление · бренд</td></tr>
+<tr><td>регистрация → ФД</td><td>качество трафика</td><td>почти не управляем: бренд, гео</td></tr>
+<tr><td>цена домена</td><td>затратная сторона</td><td>зона</td></tr>
+</table></div>
+<p>Первые два множителя — самые управляемые и самые быстрые в измерении.
+Четвёртый от нас почти не зависит. Это и есть ответ «куда двигаться»:
+работать надо там, где и рычаг есть, и обратная связь быстрая.</p>
+</section>
+
+<hr>
+
+<section>
+<h2>Что читается и за какое время</h2>
+<p>При нынешнем темпе — 587 доменов в неделю, около 190 регистраций и 28 ФД.
+Кликов, по разным прикидкам, от тысячи до четырёх тысяч в неделю.</p>
+
+<h3>Параметры домена: страниц, контент, зона, предел вложенности</h3>
+<p>Все двести поддоменов домена делят один и тот же параметр, поэтому размер выборки
+здесь — <b>число доменов</b>, а не поддоменов.</p>
+<div class="tw"><table>
+<tr><th>по какой метрике</th><th>разница</th><th>1 неделя</th><th>2 недели</th><th>4 недели</th><th>8 недель</th></tr>
+<tr class="sub"><td>клики — новая основная метрика</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>кликов на домен</td><td>1.2x</td><td><b>83%</b></td><td>99%</td><td>100%</td><td>100%</td></tr>
+<tr><td>кликов на домен</td><td>1.3x</td><td><b>99%</b></td><td>100%</td><td>100%</td><td>100%</td></tr>
+<tr class="sub"><td>как было раньше</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>регистраций на домен</td><td>1.3x</td><td>33%</td><td>57%</td><td>86%</td><td>99%</td></tr>
+<tr><td>регистраций на домен</td><td>1.5x</td><td>68%</td><td>93%</td><td>100%</td><td>100%</td></tr>
+<tr><td>ФД на домен</td><td>1.5x</td><td>15%</td><td>26%</td><td>46%</td><td>75%</td></tr>
+</table></div>
+<p>Числа в таблице — вероятность увидеть разницу, если она есть.
+Разница в 1.3x по регистрациям сейчас читается за месяц, по кликам — за неделю.
+<b>Это и есть главный выигрыш от новой схемы.</b></p>
+
+<h3>Параметры поддомена: волна отправки, бренд, уровень вложенности</h3>
+<p>Эти различаются <b>внутри одного домена</b>, поэтому выборка — все поддомены
+и все клики. И, что важнее, сравнение автоматически очищено от зоны, контента
+и даты: все варианты лежат на одних и тех же доменах.</p>
+<div class="tw"><table>
+<tr><th>по какой метрике</th><th>разница</th><th>1 неделя</th><th>2 недели</th><th>4 недели</th></tr>
+<tr><td>доля поддоменов с кликом</td><td>1.1x</td><td>57%</td><td>85%</td><td>99%</td></tr>
+<tr><td>доля поддоменов с кликом</td><td>1.2x</td><td><b>99%</b></td><td>100%</td><td>100%</td></tr>
+<tr><td>клик → регистрация</td><td>1.3x</td><td>53%</td><td>82%</td><td>98%</td></tr>
+<tr><td>клик → регистрация</td><td>1.5x</td><td>91%</td><td>100%</td><td>100%</td></tr>
+</table></div>
+
+<h3>Деньги остаются медленными</h3>
+<div class="tw"><table>
+<tr><th>срок</th><th>ФД всего</th><th>мощность увидеть разницу 1.5x</th></tr>
+<tr><td>1 неделя</td><td>~28</td><td>15%</td></tr>
+<tr><td>4 недели</td><td>~112</td><td>46%</td></tr>
+<tr><td>8 недель</td><td>~224</td><td>75%</td></tr>
+<tr><td>12 недель</td><td>~336</td><td>90%</td></tr>
+</table></div>
+<div class="call gap">
+<h3>Отсюда главное правило работы</h3>
+<p><b>Эксперименты судим по кликам. Деньги считаем накопительно и не сравниваем
+по неделям.</b></p>
+<p>Ветка с лучшим числом кликов может оказаться убыточной, если она в дорогой зоне —
+поэтому решение «делаем так» принимается в два шага: сначала клики говорят,
+какой вариант лучше работает, потом накопленная экономика говорит, окупается ли
+это вообще.</p>
+</div>
+</section>
+
+<hr>
+
+<section>
+<h2>Что вы получаете каждую неделю</h2>
+<p>Один отчёт, пять блоков. Цифры ниже — пример формата, не результат.</p>
+
+<h3>1 · Воронка</h3>
+<div class="tw"><table>
+<tr><th>шаг</th><th>сколько</th><th>доля от предыдущего</th><th>медиана от отправки</th><th>медиана от бота</th></tr>
+<tr><td>поддоменов отправлено</td><td>117 400</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>к скольким пришёл робот</td><td>—</td><td>—</td><td>14 ч</td><td>—</td></tr>
+<tr><td>вышли в поиск (был клик)</td><td>1 880</td><td>1.6%</td><td>2 д 6 ч</td><td>1 д 14 ч</td></tr>
+<tr><td>кликов всего</td><td>3 100</td><td>1.6 на поддомен</td><td>—</td><td>—</td></tr>
+<tr><td>регистраций</td><td>188</td><td>6.1%</td><td>3 д</td><td>2 д 8 ч</td></tr>
+<tr><td>ФД</td><td>28</td><td>14.9%</td><td>—</td><td>—</td></tr>
+</table></div>
+<p>Здесь сразу видно, какой множитель просел. Если доля вышедших в поиск низкая —
+работать надо с индексацией и шаблоном, а не с текстами. Если кликов много,
+а регистраций мало — наоборот.</p>
+
+<h3>2 · Экономика</h3>
+<div class="tw"><table>
+<tr><th>показатель</th><th>значение</th></tr>
+<tr><td>потрачено на домены</td><td>$1 174</td></tr>
+<tr><td>получено с ФД</td><td>$1 120</td></tr>
+<tr><td>итог недели</td><td>−$54</td></tr>
+<tr><td>выручка с одного домена</td><td>$1.91</td></tr>
+<tr><td><b>порог цены домена</b></td><td><b>любой домен дороже $1.91 убыточен</b></td></tr>
+<tr><td>накопительно за 8 недель</td><td>ROI 0.94x</td></tr>
+</table></div>
+
+<h3>3 · Разрезы по рычагам</h3>
+<p>По каждому управляемому параметру — эффект, интервал и <b>пометка, читается он
+или это шум</b>. Никакие цифры без такой пометки не показываются.</p>
+<div class="tw"><table>
+<tr><th>разрез</th><th>кликов на домен</th><th>разница</th><th>вердикт</th></tr>
+<tr><td>12 страниц против 7</td><td>3.8 против 2.9</td><td>1.31x</td><td><span class="tag g-obs">читается</span></td></tr>
+<tr><td>предел 40 против 20</td><td>3.3 против 3.1</td><td>1.06x</td><td><span class="tag g-gap">шум</span></td></tr>
+<tr><td>свой контент против присланного</td><td>2.7 против 3.4</td><td>0.79x</td><td><span class="tag g-obs">читается</span></td></tr>
+<tr><td>.lol против .team</td><td>3.2 против 3.2</td><td>1.00x</td><td><span class="tag g-gap">шум</span></td></tr>
+<tr><td>волна 1 против волны 2</td><td>3.6 против 2.4</td><td>1.50x</td><td><span class="tag g-obs">читается</span></td></tr>
+<tr><td>час отправки, блоки суток</td><td>—</td><td>—</td><td><span class="tag g-gap">копится</span></td></tr>
+</table></div>
+
+<h3>4 · Уровень вложенности</h3>
+<p>Распределение уровней, которые реально попали в поиск, и конверсия по каждому.
+Плюс отдельно — поддомены, у которых уровень сменился на переобходе:
+что было с деньгами до и после. Это сравнение поддомена с самим собой,
+самое чистое из возможных.</p>
+
+<h3>5 · Куда двигаться</h3>
+<p>Ранжированный список: какой множитель просел сильнее всего, какой рычаг
+на него влияет, и сколько это стоит в деньгах при нынешнем объёме.
+Не «вот двадцать наблюдений», а три строки с приоритетом.</p>
+</section>
+
+<hr>
+
+<section>
+<h2>Что будет раз в месяц</h2>
+<ul class="pl">
+<li><b>Экономика по зонам.</b> Окупается ли <code>.casino</code> свою цену —
+на ФД за месяц это уже читается.</li>
+<li><b>Срок жизни домена.</b> От первого клика до последнего. Заменит моё нынешнее
+допущение про шесть дней, которое было оценкой, а не измерением.</li>
+<li><b>Не мешаем ли мы сами себе.</b> Одни и те же 200 брендов стоят на всех доменах,
+значит по запросу конкретного бренда в выдаче конкурируют наши же поддомены.
+Проверяется отдачей с домена против числа одновременно живых. Если зависимость
+падающая — «больше запусков» перестаёт работать линейно, и это меняет стратегию целиком.</li>
+<li><b>Бренды.</b> Какие работают, какие нет, с правильным знаменателем.
+Расширять набор нельзя, но знать распределение нужно: без него брендовый разброс
+попадает во все остальные сравнения как шум.</li>
+</ul>
+</section>
+
+<hr>
+
+<section>
+<h2>Первое, что закроется</h2>
+<div class="tw"><table>
+<tr><th>вопрос</th><th>когда</th><th>почему так быстро</th></tr>
+<tr><td>Где именно теряется объём</td><td>первая неделя</td><td>это деление, а не сравнение — мощность не нужна</td></tr>
+<tr><td>Сколько стоят сутки задержки на переобходе</td><td>первая неделя</td><td>волна 1 против волны 2 внутри одного домена</td></tr>
+<tr><td>7 против 12 страниц, на кликах</td><td>1–2 недели</td><td>1.3x читается за неделю</td></tr>
+<tr><td>Свой генератор против присланного</td><td>1–2 недели</td><td>то же</td></tr>
+<tr><td>Влияет ли уровень вложенности</td><td>2–4 недели</td><td>нужен накопленный объём смен уровня</td></tr>
+<tr><td>Во сколько лучше запускать</td><td>4 недели</td><td>сутки делятся на блоки, в каждом мало доменов</td></tr>
+<tr><td>Окупается ли зона</td><td>8–12 недель</td><td>упирается в число ФД, ускорить нечем</td></tr>
+</table></div>
+</section>
+
+<p class="foot">Расчёты мощности — двусторонний тест, α=0.05, равные ветки,
+при 587 доменах в неделю и нынешних 190 регистрациях и 28 ФД.
+Число кликов пока неизвестно, взята средняя оценка при конверсии клик→регистрация 10%;
+если она окажется ниже, все сроки по кликам сократятся ещё.
+Скрипт: <code>analysis/scripts/plan3.py</code>.</p>
+
+</div>
