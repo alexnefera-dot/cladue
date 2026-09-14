@@ -61,7 +61,7 @@ def block(title,keyf,doms=None,minn=10):
 
 def pages(d,v):
     g=v[1]
-    m=re.search(r'(?:^|[^\d])(\d+)\s*(?:pages|page|стр)',g)
+    m=re.search(r'(?:^|[-_ ])(\d+)\s*(?:str|pages|page|стр)',g)
     if m: return m.group(1)+' стр'
     m=re.match(r'clean(\d+)',g)
     if m: return m.group(1)+' стр'

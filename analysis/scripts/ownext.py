@@ -70,7 +70,7 @@ for g,n in c.most_common(6): print(f"   {n:>3}  {g[:60]}")
 
 print("\n=== не перепутан ли источник со страницами? ===")
 def pages(g):
-    m=re.search(r'(?:^|[^\d])(\d+)\s*(?:pages|page|стр|str)',g) or re.match(r'clean(\d+)',g)
+    m=re.search(r'(?:^|[-_ ])(\d+)\s*(?:str|pages|page|стр)',g) or re.match(r'clean(\d+)',g)
     return m.group(1) if m else None
 tab=collections.defaultdict(lambda:[0,0])
 for d,v in CL.items():

@@ -89,7 +89,7 @@ econ('ПО ЗОНАМ — закрытые окна',sorted(byzc.items(),key=lam
 # 4. По страницам (закрытые окна)
 def pages(v):
     g=v[1]
-    m=re.search(r'(?:^|[^\d])(\d+)\s*(?:pages|page|стр)',g)
+    m=re.search(r'(?:^|[-_ ])(\d+)\s*(?:str|pages|page|стр)',g)
     if m: return m.group(1)+' стр'
     m=re.match(r'clean(\d+)',g)
     if m: return m.group(1)+' стр'
