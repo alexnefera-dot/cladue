@@ -28,6 +28,8 @@ final class SiteRowsTest
         Assert::same(2, $row['pages_ok']);
         Assert::same('vhod.html', $row['html'], 'ссылка на html — относительно runDir');
         Assert::same('pages7', $row['template'], 'тип вёрстки — из визитов');
+        Assert::same(['registracia', 'zerkalo', 'bonus', 'app', 'slots'], $row['key_missing'], 'вход скачан, остальных ключевых страниц нет');
+        Assert::same([], $row['key_failed'], 'ошибок по ключевым страницам не было');
         Assert::true(SiteRows::ROW_LIMIT >= 5000, 'таблица вмещает весь обычный сбор');
         Assert::same(0, count(SiteRows::preview([$site], $dir, 0)), 'лимит строк соблюдается');
         Assert::same('7–9 стр.', $row['template_label']);

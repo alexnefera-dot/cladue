@@ -312,6 +312,10 @@ final class PanelTest
         Assert::same('done', $st['state'], $run['out']);
         Assert::contains('Выгружено страниц: 1', $st['message']);
         Assert::contains('по страницам: 1 стр. — 1', $st['message'], 'разбивка по числу страниц в сообщении');
+        // Чего не хватает: ключевые страницы, на которые ссылается контент (у тестового сайта их нет).
+        Assert::same(['registracia' => 1, 'vhod' => 1, 'zerkalo' => 1, 'bonus' => 1, 'app' => 1, 'slots' => 1], $st['key_pages']);
+        Assert::contains('не хватает: регистрация — 1', $st['message']);
+        Assert::same(['registracia', 'vhod', 'zerkalo', 'bonus', 'app', 'slots'], $st['sites'][0]['key_missing'], 'строка таблицы знает, чего не хватает');
         Assert::same([1 => 1], $st['page_histogram'], 'гистограмма в статусе');
 
         $sites = json_decode((string) file_get_contents($runDir . '/sites.json'), true);

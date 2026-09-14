@@ -50,6 +50,7 @@ use YandexSites\Support\QueryDupes;
 use YandexSites\Support\QueryQueue;
 use YandexSites\Support\RemovedSites;
 use YandexSites\Support\SiteRows;
+use YandexSites\Visit\KeyPages;
 use YandexSites\Visit\SiteTemplate;
 
 $settingsFile = null;
@@ -199,6 +200,9 @@ function buildOverrides(array $s, string $runDir): array
     if (isset($s['browsers'])) {
         $overrides['visit.browsers'] = max(1, min(16, (int) $s['browsers']));
     }
+    // Добор ключевых страниц по стандартным адресам (кнопка «Добрать ключевые»): включается только для
+    // этой докачки, обычная докачка лишних запросов не делает.
+    $overrides['visit.retry_key_pages'] = (bool) ($s['retry_key_pages'] ?? false);
     if (isset($s['visit_dir'])) {
         $overrides['visit.dir'] = (string) $s['visit_dir'];
     } else {
@@ -483,6 +487,13 @@ while (true) {
                 }
             }
             $pageStats = SiteRows::histogramText(SiteRows::pageHistogram($siteList));
+            // Чего не хватает: ключевые страницы (регистрация, вход, зеркало, бонусы, приложение, слоты) —
+            // именно на них ссылается готовый контент, поэтому пропуск виден как «ссылка в никуда».
+            $keyHist = KeyPages::histogram($siteList);
+            $keyStats = KeyPages::histogramText($keyHist);
+            if ($keyStats !== '') {
+                $logger->info('Не хватает ключевых страниц: ' . $keyStats);
+            }
             $progress->update([
                 'state' => 'done',
                 'phase' => 'done',
@@ -491,12 +502,13 @@ while (true) {
                 'sites_count' => count($siteList),
                 'page_histogram' => SiteRows::pageHistogram($siteList),
                 'template_histogram' => SiteTemplate::histogram($siteList),
+                'key_pages' => $keyHist,
                 'run_finished_at' => date(DATE_ATOM),
                 'files' => ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt'],
                 // Докачка: говорим честно, что добрано, а если добирать было нечего — почему (иначе
                 // пользователь видит «ничего не изменилось» и думает, что докачка не запустилась).
                 'message' => (!$isRetry
-                    ? sprintf('Выгружено страниц: %d', $opened)
+                    ? sprintf('Выгружено страниц: %d', $opened) . ($keyStats !== '' ? '; не хватает: ' . $keyStats : '')
                     : ($retryStat['attempted'] === 0
                         ? 'Докачка: нечего добирать — оставшиеся ошибки повтором не чинятся (404 без языкового префикса, дубликаты)'
                         : sprintf('Докачано: добрано %d из %d стр., всего открыто %d', $retryStat['recovered'], $retryStat['attempted'], $opened)))

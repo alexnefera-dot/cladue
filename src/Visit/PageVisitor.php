@@ -477,6 +477,31 @@ final class PageVisitor
                 $name = $this->uniqueName($usedNames, $base);
                 $slots[$i] = ['name' => $name, 'prefix' => $siteDir . '/' . $name, 'candidates' => self::retryUrlCandidates($url), 'result' => null];
             }
+            // Ключевая страница, ссылки на которую в меню не нашлось: пробуем стандартный адрес
+            // (/registracia, /vhod, …) — готовый контент всё равно на неё ссылается. Если такой страницы
+            // нет, ответ 404 просто не сохранится и повторов не будет.
+            if (!empty($this->cfg['retry_key_pages'])) {
+                // Корень сайта — от уже открытой страницы (там верные схема и хост после редиректов).
+                $known = (string) ($site->firstVisit()['final_url'] ?? '');
+                if ($known === '') {
+                    $known = (string) ($site->firstVisit()['url'] ?? ($site->bestUrl !== '' ? $site->bestUrl : 'https://' . $site->host . '/'));
+                }
+                $siteRoot = $this->rootUrl($known);
+                foreach (KeyPages::statuses(array_map(static fn ($v): array => (array) $v, $site->visits)) as $name => $status) {
+                    if ($status !== 'none' || isset($takenNames[mb_strtolower((string) $name)])) {
+                        continue;
+                    }
+                    $takenNames[mb_strtolower((string) $name)] = true;
+                    $fileName = $this->uniqueName($usedNames, (string) $name);
+                    $slots['key:' . $name] = [
+                        'name' => $fileName,
+                        'prefix' => $siteDir . '/' . $fileName,
+                        'candidates' => [KeyPages::url($siteRoot, (string) $name)],
+                        'result' => null,
+                        'guess' => true,
+                    ];
+                }
+            }
             $attempted += count($slots);
             if ($slots === []) {
                 if (!empty($this->cfg['crawl'])) {
@@ -501,7 +526,7 @@ final class PageVisitor
                     $job = new VisitJob(
                         id: $key . "\t" . $st['slots'][$i]['name'] . "\t" . $it,
                         siteKey: (string) $key,
-                        variant: (int) $i,
+                        variant: is_int($i) ? $i : count($st['site']->visits),
                         url: $url,
                         referer: $this->referer($st['site']),
                         userAgent: $ua,
@@ -531,10 +556,20 @@ final class PageVisitor
                 [$key, $i] = $jobMap[$job->id];
                 $site = $state[$key]['site'];
                 $visit = $this->assembleVisit($job, $results[$job->id] ?? $this->missingResult(), $site->domain);
+                $guess = !empty($state[$key]['slots'][$i]['guess']);
                 $state[$key]['slots'][$i]['result'] = $visit;
                 if ($visit['ok'] ?? false) {
-                    $site->visits[(int) $i] = $this->dedupVisit($visit, $job, $state[$key]['texts'], $threshold, false);
+                    $done = $this->dedupVisit($visit, $job, $state[$key]['texts'], $threshold, false);
+                    if ($guess) {
+                        $site->visits[] = $done; // страница, которой не было в меню, — добавляем к сайту
+                    } else {
+                        $site->visits[(int) $i] = $done;
+                    }
                     $recovered++;
+                    $state[$key]['pending'] = array_values(array_diff($state[$key]['pending'], [$i]));
+                } elseif ($guess && !self::isRetryableVisit($visit)) {
+                    // Стандартного адреса у сайта нет (404) — больше не пробуем и в визиты не пишем.
+                    $state[$key]['slots'][$i]['result'] = null;
                     $state[$key]['pending'] = array_values(array_diff($state[$key]['pending'], [$i]));
                 }
             }
@@ -543,8 +578,10 @@ final class PageVisitor
         // Этап 3 — что не добрали: сохраняем последнюю причину и раскладываем сайты по папкам.
         foreach ($state as $key => $st) {
             foreach ($st['pending'] as $i) {
-                if ($st['slots'][$i]['result'] !== null) {
-                    $st['site']->visits[(int) $i] = $st['slots'][$i]['result'];
+                // Неудачную догадку по стандартному адресу в визиты не пишем: сайт про эту страницу
+                // ничего не сообщал, и счётчик «страниц» от неё портиться не должен.
+                if (is_int($i) && $st['slots'][$i]['result'] !== null) {
+                    $st['site']->visits[$i] = $st['slots'][$i]['result'];
                 }
             }
             if (!empty($this->cfg['crawl'])) {

@@ -6,6 +6,7 @@ namespace YandexSites\Support;
 
 use YandexSites\Model\SearchResult;
 use YandexSites\Model\Site;
+use YandexSites\Visit\KeyPages;
 use YandexSites\Visit\PageVisitor;
 use YandexSites\Visit\SiteTemplate;
 
@@ -99,6 +100,7 @@ final class SiteRows
     /**
      * Строки таблицы результатов: host, домен, число страниц (ok/всего), причина ошибки, признак «наш»,
      * есть ли что докачивать (retryable), число страниц с 404, тип вёрстки (template/template_label),
+     * каких ключевых страниц не хватает (key_missing) и какие из них можно добрать (key_failed),
      * ссылки на html/скриншот (относительно runDir).
      *
      * @param array<int|string, Site> $sites
@@ -151,10 +153,26 @@ final class SiteRows
             }
             // Тип вёрстки по открытым страницам (превью главной после сбора): pages7 / pages12 / other; '' — страниц нет.
             $template = $own ? '' : SiteTemplate::ofVisits($site->visits);
+            // Ключевые страницы (регистрация, вход, зеркало, бонусы, приложение, слоты): чего не хватает и
+            // что из этого можно добрать (ссылка была, но страница не открылась).
+            $keyStatuses = $own || $site->visits === [] ? [] : KeyPages::statuses(array_map(static fn ($v): array => (array) $v, $site->visits));
+            $keyMissing = [];
+            $keyFailed = [];
+            foreach ($keyStatuses as $name => $status) {
+                if ($status === 'ok') {
+                    continue;
+                }
+                $keyMissing[] = $name;
+                if ($status === 'failed') {
+                    $keyFailed[] = $name;
+                }
+            }
             $rows[] = [
                 'retryable' => $retryable,
                 'template' => $template,
                 'template_label' => $template !== '' ? SiteTemplate::label($template) : '',
+                'key_missing' => $keyMissing,
+                'key_failed' => $keyFailed,
                 'pages_404' => $notFound,
                 'pages_missing' => $missing,
                 'host' => $data['host'],

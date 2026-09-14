@@ -548,6 +548,26 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   cannot, which `isZip()` detects → RuntimeException «включите extension=zip»). `bin/clean-content.php --zip`
   keeps its own ZipArchive-only code. Covered by `tests/ArchiveTest.php` and
   `PanelTest::testContentArchiveDownload`.
+- `Visit\KeyPages` reports the pages the CONTENT links to — `registracia`, `vhod`, `zerkalo`, `bonus`,
+  `app`, `slots` (`PAGES`: label + URL words, matched on the LAST path segment like
+  `ContentCleaner::mapLink()`, `bonus` before `app` so «бонусы» is its own page). A missing one is a dead
+  link in the cleaned article, and the user counted them by hand («Чего не хватает (541 сайт):
+  registracia 213, vhod 115…»), so the panel now shows it: `statuses($visits)` returns `ok` / `failed`
+  (a link existed but the page did not load — retryable) / `none` (no link found at all), `missing()`
+  lists the not-ok ones, `histogram()`/`histogramText()` aggregate per site. `SiteRows::preview()` emits
+  `key_missing` + `key_failed`, the download status carries `key_pages`, and the job message and log say
+  «не хватает: регистрация — 213, …». Panel: a «нет: регистрация, зеркало» chip in the «Скачано» cell,
+  «не хватает страниц у N сайтов: …» in the stats line, a «нет страницы [любая|…] → Убрать (N)» control
+  (`#keywrap`/`#keysel`/`#removeKeyBtn`, `noKeyPage()`) and «Добрать ключевые (N)» (`runKeyRetry()` →
+  `queueRetry(hosts, true)`; `retryKeyHosts` marks the batch so `pumpRetry()` sends
+  `retry_key_pages: true`, restored if the start is rejected). With that flag `visit.retry_key_pages`
+  (default OFF, so an ordinary retry makes no extra requests) `PageVisitor::retryFailed()` adds a slot per
+  `none` key page with ONE candidate — the standard path built from the site's own root
+  (`KeyPages::url(rootUrl, name)`, scheme/port from an already-opened page, not a hardcoded https://host)
+  — appends the visit on success and, on a non-retryable answer (404), drops it without writing a failed
+  visit, so the page counter is not spoiled. Covered by `tests/KeyPagesTest.php`,
+  `VisitTest::testRetryFetchesKeyPagesByStandardUrl`, `SiteRowsTest` and
+  `PanelTest::testDownloadStageOpensCollectedSites`.
 - SPEED. Everything used to be strictly serial, which is what the user felt as «очень медленно»:
   (1) **search** — `AbstractApiFetcher::fetch()` one request at a time with `api.delay_ms` between them,
   so 3000 queries = hours of pure latency; (2) **screenshots/crawl** — `tools/render-page.js` grouped jobs

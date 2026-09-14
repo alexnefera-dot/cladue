@@ -923,6 +923,41 @@ final class VisitTest
         @rmdir($dir);
     }
 
+    public function testRetryFetchesKeyPagesByStandardUrl(): void
+    {
+        // Ссылки на /registracia в меню не нашлось, но контент на неё ссылается: докачка с retry_key_pages
+        // пробует стандартный адрес. Несуществующая ключевая страница (404) в визиты не попадает.
+        $port = FakeServer::port();
+        $dir = $this->dir() . '/keypages';
+        $site = new Site('namedup.ru', 'namedup.ru', 'namedup.ru');
+        $site->add(new SearchResult('q', 0, 1, "http://namedup.ru:$port/", 'namedup.ru', 'T'));
+        mkdir($dir . '/namedup.ru', 0777, true);
+        file_put_contents($dir . '/namedup.ru/main.html', '<html><body><h1>Главная</h1></body></html>');
+        $site->visits[] = [
+            'variant' => 0, 'url' => "http://namedup.ru:$port/", 'ok' => true, 'error' => '', 'status' => 200,
+            'html_file' => $dir . '/namedup.ru/main.html', 'screenshot_file' => '', 'fingerprint' => 'x', 'text_length' => 10,
+        ];
+
+        $visitor = new PageVisitor([
+            'dir' => $dir, 'crawl' => true, 'retries' => 0, 'retry_key_pages' => true, 'screenshot' => false,
+            'timeout' => 5, 'delay_ms' => 0, 'concurrency' => 4, 'resolve' => $this->resolve($port),
+            'referer' => 'none', 'user_agents' => [UserAgents::BROWSERS[0]], 'similarity' => 0.9,
+        ], new CurlDriver(), $this->logger());
+        $stat = $visitor->retryFailed(['namedup.ru' => $site]);
+
+        $byName = [];
+        foreach ($site->visits as $visit) {
+            $byName[basename((string) ($visit['html_file'] ?? ''), '.html')] = $visit;
+        }
+        Assert::true(isset($byName['registracia']) && ($byName['registracia']['ok'] ?? false), 'ключевая страница добрана по стандартному адресу: ' . json_encode(array_keys($byName), JSON_UNESCAPED_UNICODE));
+        Assert::same(1, count(glob($dir . '/*/namedup.ru/registracia.html') ?: []), 'файл страницы сохранён в папке сайта');
+        Assert::same(6, $stat['attempted'], 'пробовали шесть ключевых страниц');
+        Assert::true($stat['recovered'] > 0, 'докачка отчиталась о добранных страницах');
+        foreach ($site->visits as $visit) {
+            Assert::true(($visit['ok'] ?? false) || (string) ($visit['html_file'] ?? '') !== '', 'неудачные догадки в визиты не пишутся: ' . json_encode($visit, JSON_UNESCAPED_UNICODE));
+        }
+    }
+
     public function testFingerprintCapsHugeInput(): void
     {
         // 4 МБ страницы с незакрытым <script>: отпечаток не должен уходить в память/бэктрекинг — вход режется по MAX_BYTES.
