@@ -1,311 +1,14 @@
-СПИСОК ЗАПУСКОВ ЗА НЕДЕЛЮ  6–12 сентября 2026
+СПИСОК ЗАПУСКОВ ЗА НЕДЕЛЮ  8–14 сентября 2026
 ========================================================================
 
 По дням: группа, id, время создания, зоны, затем домены по одному в строке.
 В конце — общий плоский список всех доменов недели.
 
-Неполные партии: 07.09 clean7_part1_50 — присланы 10 из 50;
-08.09 archive37 часть1 — 25 из 45, часть3 — 27 из 45.
+Неполные партии: 08.09 archive37 часть1 — 25 из 45, часть3 — 27 из 45;
+12.09 content-...-7str-oform-3 — нет id 2042-2043 (_5, _6);
+12.09 content-...-7str-oform-1 — нет id 1958 (_4);
+14.09 content-2026-09-14-7str-oform-2 — группа названа, домены не присланы.
 
-
-========================================================================
-06.09.2026 — 60 доменов, 12 групп   [.team 33  .lol 23  .casino 4]
-========================================================================
-
---- drobilnyydvor1_1 — id 1413, создан 02:01
-    1 домен: .lol 1
-
-    65casino.lol
-
---- bortnichiydvor1_1 — id 1414, создан 02:47
-    1 домен: .team 1
-
-    1936.team
-
---- NEW20_3_7pages_withdate_styled_img_1…_4 — id 1434-1437, создан 14:29
-    4 домена: .team 4
-
-    casino0962.team
-    lwcasino.team
-    xycasino.team
-    casinogh.team
-
---- NEW20_3_12pages_nodate_styled_img_1…_5 — id 1438-1442, создан 14:30
-    5 доменов: .casino 4  .lol 1
-
-    0509ss.casino
-    casino0509d.casino
-    0509k.casino
-    0509ds.casino
-    055.lol
-
---- NEW20_3_12pages_withdate_styled_img_1…_5 — id 1443-1447, создан 14:30
-    5 доменов: .lol 5
-
-    4832.lol
-    441casino.lol
-    fpq.lol
-    casinoduw.lol
-    casino3704.lol
-
---- nabory400410_styled_img_1…_11 — id 1417-1427, создан 14:28 (наборы 400-410, полный)
-    11 доменов: .lol 7  .team 4
-
-    7960.lol
-    4893.lol
-    vjkd.lol
-    0778.lol
-    6294.lol
-    0697.team
-    1812.lol
-    0934.lol
-    274casino.team
-    4994.team
-    casinoh2.team
-
---- struktura8x7_1…_8 — id 1451-1458, создан 15:00
-    8 доменов: .team 8
-
-    9859casino.team
-    7142.team
-    muacasino.team
-    2663.team
-    casinodxp.team
-    q7g3.team
-    9670.team
-    4809.team
-
---- solodovnya1_1 — id 1415, создан 13:21
-    1 домен: .team 1
-
-    934.team
-
---- NEW20_3_7pages_nodate_styled_img_1…_6 — id 1428-1433, создан 14:29
-    6 доменов: .team 5  .lol 1
-
-    3211.team
-    x5i.team
-    1812.team
-    mwrp.team
-    5256.lol
-    6808.team
-
---- troykaC_1…_3 — id 1448-1450, создан 14:47
-    3 домена: .team 3
-
-    u3i.team
-    uphv.team
-    7978.team
-
---- nabory411420_styled_img_1…_10 — id 1459-1468, создан 17:19 (наборы 411-420)
-    10 доменов: .team 5  .lol 5
-
-    casinoli.team
-    4313.lol
-    5448.team
-    9413.team
-    411casino.lol
-    6808.lol
-    9800.team
-    7827.team
-    7827.lol
-    274casino.lol
-
---- nabory421425_styled_img_1…_5 — id 1469-1473, создан 18:26 (наборы 421-425)
-    5 доменов: .lol 3  .team 2
-
-    fks.lol
-    5153.team
-    939casino.lol
-    casinoodm.team
-    casinofsd.lol
-
-========================================================================
-07.09.2026 — 123 домена, 15 групп   [.team 70  .lol 48  .casino 5]
-========================================================================
-
---- Выдача_06.09_7стр_1…_2 — id 1474-1475
-    2 домена: .team 1  .lol 1
-
-    8081.team
-    2663.lol
-
---- Выдача_06.09_12стр_1…_8 — id 1476-1483
-    8 доменов: .lol 5  .team 3
-
-    4809.lol
-    4287.team
-    5448.lol
-    8061.lol
-    0017.team
-    4313.team
-    ixkf.lol
-    4287.lol
-
---- nabory431435_styled_img_1…_5 — id 1484-1488, создан 14:48
-    5 доменов: .team 3  .lol 2
-
-    3902.team
-    3869.lol
-    9421.team
-    5954.lol
-    casinouep.team
-
---- NEW20_4_7pages_nodate_1…_5 — id 1489-1493, создан 14:51
-    5 доменов: .team 4  .lol 1
-
-    casinowuf.team
-    dqdv.team
-    k1y.team
-    31casino.team
-    casino072.lol
-
---- NEW20_4_7pages_withdate_1…_5 — id 1494-1498, создан 14:51
-    5 доменов: .lol 3  .team 2
-
-    6027.lol
-    9480.team
-    jwjcasino.team
-    bxgi.lol
-    lmnp.lol
-
---- NEW20_4_12pages_nodate_1…_6 — id 1499-1504, создан 14:51 (без styled_img в имени)
-    6 доменов: .team 4  .lol 2
-
-    5256.team
-    939casino.team
-    411casino.team
-    7978.lol
-    8483.team
-    3211.lol
-
---- NEW20_4_12pages_withdate_1…_3 — id 1505-1507, создан 14:52 (без styled_img в имени)
-    3 домена: .lol 3
-
-    9413.lol
-    5153.lol
-    4994.lol
-
---- nabory436440_styled_img_1…_5 — id 1508-1512, создан 17:35, все .team
-    5 доменов: .team 5
-
-    v3w0.team
-    5406.team
-    0765.team
-    0311.team
-    casinomw.team
-
---- NEW20_7pages_nodate_оформлено_1…_5 — id 1523-1527, создан 18:26
-    5 доменов: .team 5
-
-    ssycasino.team
-    8908.team
-    fuen.team
-    6433.team
-    casinok4.team
-
---- NEW20_7pages_withdate_оформлено_1…_5 — id 1528-1532, создан 18:26
-    5 доменов: .team 4  .lol 1
-
-    8508.team
-    0147.team
-    4321.team
-    u2b7.team
-    261casino.lol
-
---- NEW20_12pages_nodate_оформлено_1…_6 — id 1533-1538, создан 18:26
-    6 доменов: .lol 3  .team 3
-
-    bacasino.lol
-    casino8643.team
-    7838.team
-    kvbcasino.lol
-    3505.team
-    casino8509.lol
-
---- NEW20_12pages_withdate_оформлено_1…_4 — id 1539-1542, создан 18:26
-    4 домена: .team 2  .lol 2
-
-    0876.team
-    casinohjk.lol
-    3237.team
-    8908.lol
-
---- nabory441443_styled_img_1…_3 — id 1543-1545, создан 19:01, все .team
-    3 домена: .team 3
-
-    9511.team
-    casinoyso.team
-    tsnb.team
-
---- clean12_unique11оформлено_1…_11 — id 1546-1556, создан 20:13
-    11 доменов: .team 9  .lol 2
-
-    7142.lol
-    3434.team
-    rgdf.team
-    casinok7.team
-    casino069.team
-    0626.team
-    7816.lol
-    opcasino.team
-    5365.team
-    2528.team
-    p8l7.team
-
---- clean7_part1_50оформлено_1…_50 — id 1557-1606, создан 21:51 — ПАРТИЯ ПОЛНАЯ
-    50 доменов: .lol 23  .team 22  .casino 5
-
-    8975.team
-    9799.team
-    casino4552.team
-    5609.team
-    2930.team
-    4100.team
-    d1c3.team
-    3142.team
-    casinoah.team
-    casinojxu.team
-    j4l8.team
-    slkz.team
-    5648.lol
-    xqzs.team
-    casinoycm.team
-    hshl.casino
-    2771.lol
-    butcasino.team
-    y1n.lol
-    2384.lol
-    7342.lol
-    casino8189.lol
-    854casino.team
-    3411.lol
-    uyqcasino.team
-    5523.lol
-    5659.team
-    4797.lol
-    casinog1.team
-    kpkl.casino
-    1025.team
-    1819.lol
-    e4h1.casino
-    efsr.casino
-    qxtl.casino
-    ybcc.lol
-    casinowm.lol
-    mscasino.lol
-    0831.lol
-    casino62.lol
-    3970.lol
-    3574.team
-    8928.team
-    opcasino.lol
-    3902.lol
-    1556.lol
-    l9z.lol
-    5307.lol
-    5406.lol
-    xret.lol
 
 ========================================================================
 08.09.2026 — 151 домен, 13 групп   [.lol 77  .buzz 49  .team 23  .casino 2]
@@ -754,7 +457,7 @@
     kura.team
 
 ========================================================================
-12.09.2026 — 78 доменов, 2 группы   [.team 50  .lol 24  .casino 4]
+12.09.2026 — 129 доменов, 7 групп   [.team 71  .lol 53  .casino 5]
 ========================================================================
 
 --- content-2026-09-12-7str-oform-1_5…_42 — id 1959-1996, создан 12:42
@@ -843,206 +546,134 @@
     evcasino.team
     oopf.team
 
+--- content-2026-09-12-12str-oform_1…_3 — id 1952-1954, создан 12.09 12:40 — 12 СТРАНИЦ, ВЕТКА ПОЛНАЯ
+    3 домена: .lol 3
+
+    qwmt.lol
+    0189.lol
+    2848.lol
+
+--- content-2026-09-12-7str-oform-1_1…_3 — id 1955-1957, создан 12.09 12:42 — добор к части 1
+    3 домена: .lol 3
+
+    453casino.lol
+    0036.lol
+    5377.lol
+
+--- content-2026-09-12-7str-oform-2_1 — id 1997, создан 12.09 12:42 — добор к части 2
+    1 домен: .lol 1
+
+    eyoz.lol
+
+--- content-2026-09-12-7str-oform-3_1…_41 — id 2038-2078, создан 12.09 12:44 — нет 2042-2043 (_5, _6)
+    39 доменов: .lol 22  .team 17
+
+    x2v4.lol
+    casinot0.lol
+    9766.lol
+    2494.lol
+    gmcasino.lol
+    0085.lol
+    3469.lol
+    casinox5.lol
+    ejucasino.lol
+    3176.team
+    casino122.team
+    llnh.team
+    p7x7.team
+    e6c.team
+    casino69.team
+    t6n1.team
+    2242.team
+    p3p.team
+    nmle.team
+    casinou1.team
+    6800.lol
+    vbiz.lol
+    casinos7.team
+    cxqj.team
+    casinolg.team
+    zimy.lol
+    casinoqqo.team
+    gqfw.lol
+    4591.lol
+    lrch.lol
+    casinocky.lol
+    8848.lol
+    2163.lol
+    tpzz.lol
+    4212.team
+    9765.team
+    5831.lol
+    0427.lol
+    diou.lol
+
+--- nabory-490-494_styled_img_1…_5 — id 2081-2085, создан 12.09 21:36
+    5 доменов: .team 4  .casino 1
+
+    dak.casino
+    casino5457.team
+    casino5463.team
+    5562.team
+    0338.team
+
 ========================================================================
-ИТОГО: 587 доменов
+13.09.2026 — 5 доменов, 1 группа   [.team 4  .lol 1]
 ========================================================================
-  06.09    60
-  07.09   123
+
+--- nabory-495-499_styled_img_1…_5 — id 2086-2090, создан 13.09 02:58
+    5 доменов: .team 4  .lol 1
+
+    4781.team
+    xpph.team
+    0108.team
+    tccasino.team
+    casinoj5.lol
+
+========================================================================
+14.09.2026 — 15 доменов, 2 группы   [.team 14  .lol 1]
+========================================================================
+
+--- nabory-500-509_styled_img_1…_10 — id 2091-2100, создан 14.09 00:12 — десять наборов
+    10 доменов: .team 9  .lol 1
+
+    0444.lol
+    0569.team
+    1163.team
+    3121.team
+    hhfr.team
+    casino936.team
+    drdj.team
+    pocasino.team
+    1787.team
+    3155.team
+
+--- nabory-510-514_styled_img_1…_5 — id 2101-2105, создан 14.09 12:24
+    5 доменов: .team 5
+
+    ustn.team
+    casinostt.team
+    5894.team
+    casino0645.team
+    4631.team
+
+========================================================================
+ИТОГО: 475 доменов
+========================================================================
   08.09   151
   09.09    85
   10.09    79
   11.09    11
-  12.09    78
+  12.09   129
+  13.09     5
+  14.09    15
 
-  зоны: .team 252   .lol 217   .casino 63   .buzz 55
+  зоны: .team 188   .lol 177   .buzz 55   .casino 55
   доменов встречается более одного раза: 0
 
 ========================================================================
-ПЛОСКИЙ СПИСОК — 587 доменов подряд
+ПЛОСКИЙ СПИСОК — 475 доменов подряд
 ========================================================================
-65casino.lol
-1936.team
-casino0962.team
-lwcasino.team
-xycasino.team
-casinogh.team
-0509ss.casino
-casino0509d.casino
-0509k.casino
-0509ds.casino
-055.lol
-4832.lol
-441casino.lol
-fpq.lol
-casinoduw.lol
-casino3704.lol
-7960.lol
-4893.lol
-vjkd.lol
-0778.lol
-6294.lol
-0697.team
-1812.lol
-0934.lol
-274casino.team
-4994.team
-casinoh2.team
-9859casino.team
-7142.team
-muacasino.team
-2663.team
-casinodxp.team
-q7g3.team
-9670.team
-4809.team
-934.team
-3211.team
-x5i.team
-1812.team
-mwrp.team
-5256.lol
-6808.team
-u3i.team
-uphv.team
-7978.team
-casinoli.team
-4313.lol
-5448.team
-9413.team
-411casino.lol
-6808.lol
-9800.team
-7827.team
-7827.lol
-274casino.lol
-fks.lol
-5153.team
-939casino.lol
-casinoodm.team
-casinofsd.lol
-8081.team
-2663.lol
-4809.lol
-4287.team
-5448.lol
-8061.lol
-0017.team
-4313.team
-ixkf.lol
-4287.lol
-3902.team
-3869.lol
-9421.team
-5954.lol
-casinouep.team
-casinowuf.team
-dqdv.team
-k1y.team
-31casino.team
-casino072.lol
-6027.lol
-9480.team
-jwjcasino.team
-bxgi.lol
-lmnp.lol
-5256.team
-939casino.team
-411casino.team
-7978.lol
-8483.team
-3211.lol
-9413.lol
-5153.lol
-4994.lol
-v3w0.team
-5406.team
-0765.team
-0311.team
-casinomw.team
-ssycasino.team
-8908.team
-fuen.team
-6433.team
-casinok4.team
-8508.team
-0147.team
-4321.team
-u2b7.team
-261casino.lol
-bacasino.lol
-casino8643.team
-7838.team
-kvbcasino.lol
-3505.team
-casino8509.lol
-0876.team
-casinohjk.lol
-3237.team
-8908.lol
-9511.team
-casinoyso.team
-tsnb.team
-7142.lol
-3434.team
-rgdf.team
-casinok7.team
-casino069.team
-0626.team
-7816.lol
-opcasino.team
-5365.team
-2528.team
-p8l7.team
-8975.team
-9799.team
-casino4552.team
-5609.team
-2930.team
-4100.team
-d1c3.team
-3142.team
-casinoah.team
-casinojxu.team
-j4l8.team
-slkz.team
-5648.lol
-xqzs.team
-casinoycm.team
-hshl.casino
-2771.lol
-butcasino.team
-y1n.lol
-2384.lol
-7342.lol
-casino8189.lol
-854casino.team
-3411.lol
-uyqcasino.team
-5523.lol
-5659.team
-4797.lol
-casinog1.team
-kpkl.casino
-1025.team
-1819.lol
-e4h1.casino
-efsr.casino
-qxtl.casino
-ybcc.lol
-casinowm.lol
-mscasino.lol
-0831.lol
-casino62.lol
-3970.lol
-3574.team
-8928.team
-opcasino.lol
-3902.lol
-1556.lol
-l9z.lol
-5307.lol
-5406.lol
-xret.lol
 0697.lol
 5076.team
 bacasino.team
@@ -1447,3 +1078,74 @@ itrv.team
 rplcasino.lol
 evcasino.team
 oopf.team
+qwmt.lol
+0189.lol
+2848.lol
+453casino.lol
+0036.lol
+5377.lol
+eyoz.lol
+x2v4.lol
+casinot0.lol
+9766.lol
+2494.lol
+gmcasino.lol
+0085.lol
+3469.lol
+casinox5.lol
+ejucasino.lol
+3176.team
+casino122.team
+llnh.team
+p7x7.team
+e6c.team
+casino69.team
+t6n1.team
+2242.team
+p3p.team
+nmle.team
+casinou1.team
+6800.lol
+vbiz.lol
+casinos7.team
+cxqj.team
+casinolg.team
+zimy.lol
+casinoqqo.team
+gqfw.lol
+4591.lol
+lrch.lol
+casinocky.lol
+8848.lol
+2163.lol
+tpzz.lol
+4212.team
+9765.team
+5831.lol
+0427.lol
+diou.lol
+dak.casino
+casino5457.team
+casino5463.team
+5562.team
+0338.team
+4781.team
+xpph.team
+0108.team
+tccasino.team
+casinoj5.lol
+0444.lol
+0569.team
+1163.team
+3121.team
+hhfr.team
+casino936.team
+drdj.team
+pocasino.team
+1787.team
+3155.team
+ustn.team
+casinostt.team
+5894.team
+casino0645.team
+4631.team
