@@ -238,24 +238,38 @@ final class PanelTest
             'preview_shots' => false,
         ], $extra), JSON_UNESCAPED_UNICODE);
 
+        // Результаты прошлого прогона на диске: новый сбор их удаляет, продолжение — нет.
+        mkdir($runDir . '/pages/7-стр/old.ru', 0777, true);
+        mkdir($runDir . '/content/7-стр/old.ru', 0777, true);
+        file_put_contents($runDir . '/pages/7-стр/old.ru/main.html', 'старая страница');
+        file_put_contents($runDir . '/content/7-стр/old.ru/main.html', 'старая статья');
+        file_put_contents($runDir . '/content.zip', 'PK старый архив');
+
         // Первая часть: сбор только по первому запросу (как будто остановили после него).
         file_put_contents($runDir . '/settings.json', $settings(['queries' => [$queries[0]]]));
         $first = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
         Assert::same(0, $first['code'], $first['out']);
         $s1 = json_decode((string) file_get_contents($runDir . '/status.json'), true);
         Assert::same(['total' => 1, 'done' => 1, 'left' => 0], $s1['queue'], 'очередь пройдена целиком');
+        Assert::false(is_dir($runDir . '/content/7-стр/old.ru'), 'новый сбор удалил прошлый контент — архив не смешается');
+        Assert::false(is_dir($runDir . '/pages/7-стр/old.ru'), 'и прошлые страницы');
+        Assert::false(is_file($runDir . '/content.zip'), 'и прошлый архив');
+        Assert::contains('прежние страницы и контент удалены', (string) file_get_contents($runDir . '/run.log'));
         $batch1 = array_map(static fn ($s) => $s['host'], json_decode((string) file_get_contents($runDir . '/sites.json'), true)['sites']);
         Assert::true($batch1 !== [], 'первая часть собрала сайты');
 
         // Останов после первого запроса из трёх: очередь помнит позицию.
         file_put_contents($runDir . '/queue.json', json_encode(['queries' => $queries, 'done' => 1], JSON_UNESCAPED_UNICODE));
         file_put_contents($runDir . '/settings.json', $settings(['resume' => true]));
+        mkdir($runDir . '/content/7-стр/part1.ru', 0777, true);
+        file_put_contents($runDir . '/content/7-стр/part1.ru/main.html', 'статья первой части');
         $second = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
         Assert::same(0, $second['code'], $second['out']);
         $s2 = json_decode((string) file_get_contents($runDir . '/status.json'), true);
         Assert::same('done', $s2['state'], $second['out']);
         Assert::same(['total' => 3, 'done' => 3, 'left' => 0], $s2['queue'], 'обработан остаток очереди');
         Assert::contains('продолжение с 2-го из 3', (string) file_get_contents($runDir . '/run.log'));
+        Assert::true(is_file($runDir . '/content/7-стр/part1.ru/main.html'), 'продолжение сбора прошлую часть не трогает');
         $merged = array_map(static fn ($s) => $s['host'], json_decode((string) file_get_contents($runDir . '/sites.json'), true)['sites']);
         foreach ($batch1 as $host) {
             Assert::inArray($host, $merged, 'сайты первой части остались в таблице');

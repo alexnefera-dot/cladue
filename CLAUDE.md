@@ -615,10 +615,21 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   a normal workflow, NEITHER stage wipes whole directories any more: download removes only the folders of
   the sites it downloads plus `exclude_hosts` (`removeSiteFolders()`), and `stage=clean` removes only the
   excluded hosts' content (`cleanHost()` already clears its own host) — a full `rrmdir(pages|content)`
-  would destroy the parts the user already downloaded and cleaned. `repeat_hours` is ignored on resume.
+  would destroy the parts the user already downloaded and cleaned.
+  A FRESH collect is the one place that still starts from a clean disk (`wipeRunOutput()` in
+  `bin/run-job.php`, guarded by `if (!$resume)` next to `RemovedSites::clear()`): it deletes `pages/`,
+  `content/`, `preview/`, `removed/` and `content.zip`, and logs «Новый сбор: прежние страницы и контент
+  удалены (N файлов)». Without it the previous run's articles stayed in `content/`, the clean stage only
+  ever touches its own hosts, and «Скачать архив контента» (which rebuilds the zip from the whole folder at
+  click time) handed the user an archive mixing the new sites with the old ones — exactly what they
+  reported. The panel asks first: `/api/state` reports `pages_sites` (downloaded site folders) next to
+  `content_files`, and `runCollect()` confirms «Новый сбор удалит результаты прошлого: … Скачайте архив
+  контента, если он ещё нужен» when either is non-zero (the last `/api/state` body is kept in `lastState`).
+  «Продолжить сбор» never wipes. `repeat_hours` is ignored on resume.
   Covered by `tests/QueryQueueTest.php`, `RunnerTest::testStopBetweenQueriesKeepsCollectedPart`,
-  `PanelTest::testResumeCollectContinuesQueueAndMergesTable`, `testRedownloadClearsPreviousPages` and
-  `testCleanStageRunsInBackgroundForKeptSitesOnly`.
+  `PanelTest::testResumeCollectContinuesQueueAndMergesTable` (asserts both directions: a fresh collect
+  removes the old `pages`/`content`/`content.zip`, a resume keeps the previous part),
+  `testRedownloadClearsPreviousPages` and `testCleanStageRunsInBackgroundForKeptSitesOnly`.
 - `Support\QueryDupes` finds queries whose SERP is the same SET of sites
  (registrable domains, `www` folded,
   positions ignored): `find(rows, queries)` groups queries by the sorted domain set, keeps the first query of

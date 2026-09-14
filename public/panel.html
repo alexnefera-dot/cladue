@@ -422,8 +422,16 @@ async function startJob(extra){
   }catch(e){ showStart('Не удалось запустить','err'); return false; }
   finally{ jobStarting=false; refresh(); }
 }
-// Шаг 1: сбор доменов (новый список — старые пометки удалённых сбрасываем).
-function runCollect(){ removedHosts.clear(); pendingRemoved.clear(); startJob({stage:'collect'}); }
+// Шаг 1: сбор доменов (новый список — старые пометки удалённых сбрасываем). Новый сбор начинает с
+// чистого листа: прошлые страницы и очищенный контент относятся к прошлому списку сайтов и удаляются,
+// иначе архив контента приходит вперемешку со старыми сайтами. Если на диске что-то есть — спрашиваем.
+function runCollect(){
+  const c=lastState||{};
+  const n=(c.content_files|0), p=(c.pages_sites|0);
+  if((n>0 || p>0) && !confirm(`Новый сбор удалит результаты прошлого: выгруженные страницы (${p} сайтов) и очищенный контент (${n} статей).\n\nСкачайте архив контента, если он ещё нужен. Продолжить?`)) return;
+  removedHosts.clear(); pendingRemoved.clear(); lastSites=[]; lastTableHtml='';
+  startJob({stage:'collect'});
+}
 // Шаг 2: выгрузка страниц РОВНО тех сайтов, что сейчас в таблице (only) — убранные крестиком/галочками типов
 // и всё, чего в таблице нет, не качаем.
 function runDownload(){
@@ -629,6 +637,7 @@ function renderStatus(st, running, stopping){
 }
 
 let lastSites=[];
+let lastState=null;              // последний ответ /api/state (нужен, чтобы предупредить перед новым сбором)
 let lastTableHtml='';            // разметка таблицы с прошлого опроса — перерисовываем только при изменении
 let sitesCountTotal=0;           // сколько сайтов в списке всего (status.sites_count); таблица может быть обрезана лимитом
 let jobRunning=false;
@@ -1006,6 +1015,7 @@ async function refresh(){
     // «Скачать архив контента» — как только на диске есть очищенные статьи; в подписи — сколько их и сайтов.
     const cz=$('contentZipBtn');
     if(cz){ const n=st.content_files|0; cz.hidden = n===0; cz.textContent='Скачать архив контента ('+n+' стр., сайтов '+(st.content_sites|0)+')'; }
+    lastState = st;
     queueInfo = st.queue || null;
     renderStatus(st.status, st.running, st.stopping);
     sitesCountTotal = (st.status && st.status.sites_count) || 0;

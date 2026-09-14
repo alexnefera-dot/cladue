@@ -278,6 +278,30 @@ function removeSiteFolders(string $runDir, array $hosts): void
     }
 }
 
+/**
+ * Удаляет результаты прошлого прогона: скачанные страницы, очищенный контент, превью, убранные сайты
+ * и готовый архив. Вызывается только НОВЫМ сбором — продолжение прошлые части не трогает.
+ *
+ * @return int сколько файлов удалено
+ */
+function wipeRunOutput(string $runDir): int
+{
+    $files = 0;
+    foreach (['pages', 'content', 'preview', 'removed'] as $sub) {
+        $dir = $runDir . '/' . $sub;
+        if (!is_dir($dir)) {
+            continue;
+        }
+        $files += count(\YandexSites\Support\Archive::listFiles($dir));
+        rrmdir($dir);
+    }
+    if (is_file($runDir . '/content.zip') && @unlink($runDir . '/content.zip')) {
+        $files++;
+    }
+
+    return $files;
+}
+
 function rrmdir(string $dir): void
 {
     if (!is_dir($dir)) {
@@ -544,6 +568,15 @@ while (true) {
             $queueOffset = $queue['done'];
             if (!$resume || $resetSites) {
                 RemovedSites::clear($runDir); // новый список (или продолжение с чистой таблицей): прежние удаления неактуальны
+            }
+            if (!$resume) {
+                // НОВЫЙ сбор — чистый лист: прошлые скачанные страницы и очищенный контент относятся к
+                // прошлому списку сайтов, их архив уже скачан. Иначе после очистки новый контент ложился
+                // к старому, и архив приходил со всеми прежними сайтами. «Продолжить сбор» это не трогает.
+                $wiped = wipeRunOutput($runDir);
+                if ($wiped > 0) {
+                    $logger->info(sprintf('Новый сбор: прежние страницы и контент удалены (%d файлов)', $wiped));
+                }
             }
             $config = Config::fromFile($configPath)->withOverrides(buildOverrides($settings, $runDir));
             $errors = $config->validate(true);

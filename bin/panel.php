@@ -359,6 +359,8 @@ if ($path === '/api/state') {
         'has_results' => is_file($runDir . '/results.csv'),
         'results_stamp' => is_file($runDir . '/results.csv') ? filemtime($runDir . '/results.csv') . '-' . filesize($runDir . '/results.csv') : '',
         'content_files' => contentStats($runDir)['files'],
+        // Сколько папок сайтов уже выгружено: новый сбор их удалит, поэтому панель предупреждает.
+        'pages_sites' => count(glob($runDir . '/pages/*/*', GLOB_ONLYDIR) ?: []) + count(glob($runDir . '/pages/*/*.html') ?: []),
         'content_sites' => contentStats($runDir)['sites'],
         'base_domains' => is_file($baseFile) ? count(array_filter(array_map('trim', file($baseFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: []), static fn ($l) => $l !== '' && $l[0] !== '#')) : 0,
     ]);
