@@ -8,6 +8,8 @@ use YandexSites\Check\SiteChecker;
 use YandexSites\Filter\ResultFilter;
 use YandexSites\Model\Site;
 use YandexSites\Search\ApiException;
+use YandexSites\Search\BatchFetcherInterface;
+use YandexSites\Search\Prefetcher;
 use YandexSites\Search\RawFetcherInterface;
 use YandexSites\Search\ResponseParserInterface;
 use YandexSites\Search\XmlStockFetcher;
@@ -67,6 +69,21 @@ final class Runner
         }
         $maxErrors = max(0, (int) $this->config->get('search.max_consecutive_errors', 0));
         $consecutiveErrors = 0;
+        // Выдачу тянем пачками параллельно: пока разбираем один запрос, ответы следующих уже получены.
+        // Лишних обращений нет — следующая страница запрашивается по тому же правилу, что и ниже в цикле.
+        $batch = max(1, (int) $this->config->get('search.concurrency', 1));
+        $prefetch = null;
+        if ($batch > 1 && count($queries) > 1 && $this->fetcher instanceof BatchFetcherInterface) {
+            $prefetch = new Prefetcher($this->fetcher, $batch, $pages, function (string $raw, int $page, string $query) use ($groupsOnPage): bool {
+                $parsed = $this->parser->parse($raw, $query, $page, 0);
+                $lastPage = $parsed->hasMore === false
+                    || ($parsed->hasMore === null && $parsed->groups < $groupsOnPage);
+
+                return $parsed->results !== [] && !$lastPage;
+            });
+            $prefetch->setQueue(array_values($queries));
+            $this->log->info(sprintf('Запросы к источнику идут пачками по %d параллельно', $batch));
+        }
         $this->progress(['phase' => 'search', 'queries_total' => count($queries), 'queries_done' => 0]);
 
         foreach ($queries as $index => $query) {
@@ -83,7 +100,7 @@ final class Runner
 
             for ($page = 0; $page < $pages; $page++) {
                 try {
-                    $raw = $this->fetcher->fetch($query, $page);
+                    $raw = $prefetch !== null ? $prefetch->get($index, $query, $page) : $this->fetcher->fetch($query, $page);
                     $result->stats['requests']++;
                     $searchPage = $this->parser->parse($raw, $query, $page, $offset);
                 } catch (ApiException $e) {

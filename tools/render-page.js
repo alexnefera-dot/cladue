@@ -157,11 +157,33 @@ async function passGate(page, timeout) {
         return null;
     }
     if (clicked) {
-        await page.waitForLoadState('load', { timeout: Math.min(timeout, 8000) }).catch(() => {});
-        await page.waitForLoadState('networkidle', { timeout: Math.min(timeout, 6000) }).catch(() => {});
-        await page.waitForTimeout(600);
+        await page.waitForLoadState('load', { timeout: Math.min(timeout, 5000) }).catch(() => {});
+        await page.waitForLoadState('networkidle', { timeout: Math.min(timeout, 3000) }).catch(() => {});
+        await page.waitForTimeout(400);
     }
     return clicked;
+}
+
+// Пауза между заходами НА ОДИН САЙТ: разные сайты открываются параллельно (в том числе разными
+// браузерами), но один сайт не заваливается запросами. Слот резервируется до ожидания, поэтому
+// параллельные воркеры встают в очередь, а не стартуют одновременно.
+const hostLastStart = new Map();
+async function hostGate(url, delay) {
+    if (!(delay > 0)) {
+        return;
+    }
+    let host;
+    try {
+        host = new URL(url).host;
+    } catch (e) {
+        return;
+    }
+    const now = Date.now();
+    const start = Math.max(now, (hostLastStart.get(host) || 0) + delay);
+    hostLastStart.set(host, start);
+    if (start > now) {
+        await new Promise((resolve) => setTimeout(resolve, start - now));
+    }
 }
 
 async function visitJob(browser, job, options) {
@@ -174,16 +196,29 @@ async function visitJob(browser, job, options) {
     });
     const page = await context.newPage();
     const timeout = Math.max(1000, (options.timeout || 30) * 1000);
+    const needsPicture = Boolean(job.screenshotFile);
+    // Страницам без снимка картинки, шрифты и видео не нужны — это основной объём трафика и времени
+    // при обходе сайта. HTML, стили и скрипты грузим как обычно, чтобы страница собралась.
+    if (!needsPicture && options.block_assets !== false) {
+        await context.route('**/*', (route) => {
+            const type = route.request().resourceType();
+            return type === 'image' || type === 'media' || type === 'font' ? route.abort() : route.continue();
+        }).catch(() => {});
+    }
     try {
         const response = await page.goto(job.url, {
             referer: job.referer || undefined,
             waitUntil: 'domcontentloaded',
             timeout,
         });
-        await page.waitForLoadState('load', { timeout: Math.min(timeout, 15000) }).catch(() => {});
-        await page.waitForLoadState('networkidle', { timeout: Math.min(timeout, 10000) }).catch(() => {});
-        if (options.wait_ms > 0) {
-            await page.waitForTimeout(options.wait_ms);
+        await page.waitForLoadState('load', { timeout: Math.min(timeout, 8000) }).catch(() => {});
+        // networkidle нужен, чтобы страница успела отрисоваться для снимка; для HTML хватает load.
+        if (needsPicture) {
+            await page.waitForLoadState('networkidle', { timeout: Math.min(timeout, 4000) }).catch(() => {});
+        }
+        const wait = needsPicture ? options.wait_ms : Math.min(options.wait_ms || 0, 500);
+        if (wait > 0) {
+            await page.waitForTimeout(wait);
         }
         if (options.pass_gate !== false) {
             await passGate(page, timeout);
@@ -257,6 +292,7 @@ async function runGroup(pw, proxyUrl, jobs, options) {
                 await new Promise((resolve) => setTimeout(resolve, delay - sinceLast));
             }
             lastStart = Date.now();
+            await hostGate(job.url, delay);
             emit(await visitJob(browser, job, options));
         }
     }
@@ -296,9 +332,18 @@ async function main() {
         }
         groups.get(key).push(job);
     }
-    for (const [proxyUrl, groupJobs] of groups) {
-        await runGroup(pw, proxyUrl || null, groupJobs, options);
+    // Группы (по одной на прокси) открываются ПАРАЛЛЕЛЬНО, каждая своим браузером: раньше они шли одна
+    // за другой, и десяток прокси не ускорял ничего. Сколько браузеров разом — options.browsers.
+    const list = [...groups.entries()];
+    const maxBrowsers = Math.max(1, Math.min(Number(options.browsers) || 1, list.length));
+    let groupIndex = 0;
+    async function groupWorker() {
+        while (groupIndex < list.length) {
+            const [proxyUrl, groupJobs] = list[groupIndex++];
+            await runGroup(pw, proxyUrl || null, groupJobs, options);
+        }
     }
+    await Promise.all(Array.from({ length: maxBrowsers }, () => groupWorker()));
 }
 
 main().catch((e) => {

@@ -235,6 +235,12 @@
           <div></div>
         </div>
         <div class="check"><input type="checkbox" id="useproxies"><label style="margin:0">Ходить через прокси из proxies.txt <span id="proxHint" class="hint"></span></label></div>
+        <label style="margin-top:10px">Скорость <span class="hint">чем больше потоков и прокси, тем быстрее; слишком много — блокировки и нагрузка на компьютер</span></label>
+        <div class="row">
+          <div><label>Запросов выдачи разом</label><input type="number" id="searchthreads" value="5" min="1" max="30" title="Сколько запросов к источнику (XMLStock/API) отправлять параллельно. Список из тысяч ключей по одному запросу собирается часами. На живую выдачу через прокси не влияет"></div>
+          <div><label>Страниц разом</label><input type="number" id="visitthreads" value="4" min="1" max="50" title="Сколько страниц сайтов открывать одновременно в одном браузере"></div>
+          <div><label>Браузеров разом</label><input type="number" id="browsers" value="2" min="1" max="16" title="Сколько браузеров (по одному на прокси) работает параллельно. Всего страниц в работе = браузеры × страницы. Каждый браузер — это ещё 200–300 МБ памяти"></div>
+        </div>
         <label>Повторять сбор каждые, часов <span class="hint">0 — один раз</span></label>
         <input type="number" id="repeat" value="0" min="0" step="1">
       </div>
@@ -299,7 +305,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const FIELDS = ['queries','source','region','pages','dedupe','scope','top','minq','tlds','exclude','skipknown','nocache','previewshots','visit','variants','driver','crawl','maxpages','useproxies','repeat','xmmode','xmdevice','xmdomain','xmextra','removeslots'];
+const FIELDS = ['queries','source','region','pages','dedupe','scope','top','minq','tlds','exclude','skipknown','nocache','previewshots','visit','variants','driver','crawl','maxpages','useproxies','searchthreads','visitthreads','browsers','repeat','xmmode','xmdevice','xmdomain','xmextra','removeslots'];
 
 function loadLocal(){
   try{ const s = JSON.parse(localStorage.getItem('ys-panel')||'{}');
@@ -347,6 +353,9 @@ function collectSettings(){
     region: $('region').value,
     pages: parseInt($('pages').value)||1,
     dedupe_domain: $('dedupe').checked,
+    search_threads: parseInt($('searchthreads').value)||5,
+    visit_threads: parseInt($('visitthreads').value)||4,
+    browsers: parseInt($('browsers').value)||2,
     domain_scope: $('scope').value,
     top: parseInt($('top').value)||0,
     min_queries: parseInt($('minq').value)||1,
@@ -918,6 +927,9 @@ function prefill(state){
     if(s.repeat_hours!=null)$('repeat').value=s.repeat_hours;
     if(s.top!=null)$('top').value=s.top; if(s.skip_known!=null)$('skipknown').checked=s.skip_known; $('nocache').checked=!!s.no_cache;
     $('crawl').checked=!!s.crawl; if(s.max_pages)$('maxpages').value=s.max_pages;
+    if(s.search_threads)$('searchthreads').value=s.search_threads;
+    if(s.visit_threads)$('visitthreads').value=s.visit_threads;
+    if(s.browsers)$('browsers').value=s.browsers;
     $('removeslots').checked=!!(s.remove_widgets||s.remove_slots);
   }
 }

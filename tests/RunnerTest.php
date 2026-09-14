@@ -7,6 +7,7 @@ namespace Tests;
 use YandexSites\Config;
 use YandexSites\Runner;
 use YandexSites\Search\ApiException;
+use YandexSites\Search\BatchFetcherInterface;
 use YandexSites\Search\RawFetcherInterface;
 use YandexSites\Search\XmlResponseParser;
 use YandexSites\Support\Logger;
@@ -52,6 +53,56 @@ final class RunnerTest
         };
     }
 
+    /**
+     * Источник, умеющий брать пачку запросов разом: записывает, какими пачками его дёрнули.
+     *
+     * @param list<list<string>> $batches
+     */
+    private function batchFetcher(array &$batches): BatchFetcherInterface
+    {
+        $fixtures = $this->fixtures;
+
+        return new class($fixtures, $batches) implements BatchFetcherInterface {
+            /** @param array<string, string> $fixtures */
+            public function __construct(private array $fixtures, private array &$batches)
+            {
+            }
+
+            public function fetch(string $query, int $page): string
+            {
+                $this->batches[] = ["$query/$page"];
+
+                return $this->one($query, $page);
+            }
+
+            public function fetchMany(array $requests, int $concurrency = 5): array
+            {
+                $batch = [];
+                $out = [];
+                foreach ($requests as $key => $req) {
+                    $batch[] = $req['query'] . '/' . $req['page'];
+                    try {
+                        $out[$key] = $this->one((string) $req['query'], (int) $req['page']);
+                    } catch (ApiException $e) {
+                        $out[$key] = $e;
+                    }
+                }
+                $this->batches[] = $batch;
+
+                return $out;
+            }
+
+            private function one(string $query, int $page): string
+            {
+                if (str_contains($query, 'broken')) {
+                    throw new ApiException('временная ошибка');
+                }
+
+                return str_contains($query, 'nothing') || $page > 0 ? $this->fixtures['empty'] : $this->fixtures['ok'];
+            }
+        };
+    }
+
     private function config(array $extra = []): Config
     {
         return new Config(array_replace_recursive([
@@ -88,6 +139,39 @@ final class RunnerTest
         Assert::same(['okna-moskva.ru', 'xn--80aswg.xn--p1ai'], $hosts, 'сортировка: по числу запросов, затем по позиции');
         Assert::same(2, $result->sites[0]->queryCount());
         Assert::same(['окна' => 1, 'балконы' => 1], $result->sites[0]->queries);
+    }
+
+    public function testFetchesQueriesInParallelBatches(): void
+    {
+        // Выдача тянется пачками: 5 запросов при concurrency=3 — это два обращения, а не пять.
+        // Результат при этом ровно такой же, как при последовательном сборе.
+        $batches = [];
+        $config = $this->config(['search' => ['concurrency' => 3, 'pages' => 1, 'groups_on_page' => 3]]);
+        $runner = new Runner($config, $this->batchFetcher($batches), new XmlResponseParser(), $this->logger());
+        $result = $runner->run(['окна', 'балконы', 'двери', 'окна пвх', 'nothing here']);
+
+        Assert::same([
+            ['окна/0', 'балконы/0', 'двери/0'],
+            ['окна пвх/0', 'nothing here/0'],
+        ], $batches, 'две пачки вместо пяти одиночных запросов');
+        Assert::same(5, $result->stats['queries_done']);
+        Assert::same(2, $result->stats['sites_selected']);
+        Assert::same(4, $result->sites[0]->queryCount(), 'сайт найден по всем запросам с выдачей');
+
+        // Ошибка в пачке разбирается как обычно: запрос помечен ошибкой, остальные собраны.
+        $batches = [];
+        $runner = new Runner($config, $this->batchFetcher($batches), new XmlResponseParser(), $this->logger());
+        $result = $runner->run(['окна', 'broken query']);
+        Assert::same([['окна/0', 'broken query/0']], $batches);
+        Assert::same(1, count($result->errors));
+        Assert::same(1, $result->stats['queries_done']);
+        Assert::same(2, $result->processed, 'упавший запрос тоже пройден — продолжение не зациклится');
+
+        // concurrency=1 — прежний режим, по одному запросу.
+        $batches = [];
+        $runner = new Runner($this->config(['search' => ['concurrency' => 1, 'pages' => 1, 'groups_on_page' => 3]]), $this->batchFetcher($batches), new XmlResponseParser(), $this->logger());
+        $runner->run(['окна', 'балконы']);
+        Assert::same([['окна/0'], ['балконы/0']], $batches);
     }
 
     public function testStopBetweenQueriesKeepsCollectedPart(): void

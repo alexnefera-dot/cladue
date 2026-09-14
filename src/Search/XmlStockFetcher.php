@@ -19,13 +19,21 @@ final class XmlStockFetcher extends AbstractApiFetcher
 
     public const MODES = ['xml', 'live'];
 
-    protected function fetchOnce(string $query, int $page): string
+    protected function buildRequest(string $query, int $page): array
     {
         $endpoint = $this->endpoint();
-        $url = $endpoint . (str_contains($endpoint, '?') ? '&' : '?')
-            . http_build_query($this->buildParams($query, $page), '', '&', PHP_QUERY_RFC3986);
 
-        $response = $this->http->get($url);
+        return [
+            'method' => 'GET',
+            'url' => $endpoint . (str_contains($endpoint, '?') ? '&' : '?')
+                . http_build_query($this->buildParams($query, $page), '', '&', PHP_QUERY_RFC3986),
+            'headers' => [],
+            'body' => null,
+        ];
+    }
+
+    protected function parseResponse(\YandexSites\Http\HttpResponse $response): string
+    {
         if ($response->status !== 200) {
             throw $this->httpError($response, 'Проверьте user и key в личном кабинете xmlstock.com и баланс');
         }

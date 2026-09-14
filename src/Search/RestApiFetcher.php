@@ -38,10 +38,18 @@ final class RestApiFetcher extends AbstractApiFetcher
         'month' => 'PERIOD_MONTH',
     ];
 
-    protected function fetchOnce(string $query, int $page): string
+    protected function buildRequest(string $query, int $page): array
     {
-        $endpoint = (string) $this->config->get('api.rest_endpoint');
-        $response = $this->http->postJson($endpoint, $this->buildPayload($query, $page), $this->authHeaders());
+        return [
+            'method' => 'POST',
+            'url' => (string) $this->config->get('api.rest_endpoint'),
+            'headers' => $this->authHeaders() + ['Content-Type' => 'application/json'],
+            'body' => json_encode($this->buildPayload($query, $page), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
+        ];
+    }
+
+    protected function parseResponse(\YandexSites\Http\HttpResponse $response): string
+    {
         if ($response->status !== 200) {
             throw $this->httpError($response);
         }

@@ -548,6 +548,31 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   cannot, which `isZip()` detects → RuntimeException «включите extension=zip»). `bin/clean-content.php --zip`
   keeps its own ZipArchive-only code. Covered by `tests/ArchiveTest.php` and
   `PanelTest::testContentArchiveDownload`.
+- SPEED. Everything used to be strictly serial, which is what the user felt as «очень медленно»:
+  (1) **search** — `AbstractApiFetcher::fetch()` one request at a time with `api.delay_ms` between them,
+  so 3000 queries = hours of pure latency; (2) **screenshots/crawl** — `tools/render-page.js` grouped jobs
+  by proxy and ran the groups ONE AFTER ANOTHER (`for … await runGroup`), so extra proxies bought nothing,
+  with `visit.concurrency` 2, a GLOBAL `delay_ms` of 1500 and `wait_ms` 2500 per page on top; (3) **retry**
+  (`PageVisitor::retryFailed()`) looped site by site, launching a fresh Chromium per site PER ITERATION.
+  Fixes: `HttpClient::requestMany()` (curl_multi, keeps request keys, returns `HttpResponse|HttpException`
+  per key) + `Search\BatchFetcherInterface::fetchMany()` implemented by `AbstractApiFetcher` (one throttle
+  per batch, retryable failures fall back to the normal single `fetch()`) and `CachingFetcher` (cache hits
+  served first, misses batched); `AbstractApiFetcher` subclasses now expose `buildRequest()` +
+  `parseResponse()` instead of `fetchOnce()`. `Search\Prefetcher` keeps `Runner`'s per-query loop intact:
+  it pulls page 0 for the next `search.concurrency` queries in ONE parallel batch and only requests page
+  N+1 for the queries whose page N was full (same rule as the Runner, so no extra source requests); live
+  SERP is not a `BatchFetcherInterface`, so it stays serial. `render-page.js` runs proxy groups in parallel
+  through a pool of `options.browsers` browsers, skips `networkidle` and blocks images/media/fonts for
+  pages without a screenshot (crawl HTML doesn't need them; the markup — and so the own-site marker
+  `/uploads/brands/` — is unaffected), shortens the gate waits and gates repeat visits PER HOST
+  (`hostGate`, module-level so it spans browsers). `CurlDriver` does the same per proxy AND per host
+  (`gateKey()`) instead of one global delay. `retryFailed()` now builds all sites' slots first, then runs
+  ONE driver pass per iteration across every site («Докачка, попытка N из M: X стр. на Y сайтах»), then
+  finalises and buckets. New defaults: `search.concurrency` 5, `visit.concurrency` 4, `visit.browsers` 2,
+  `visit.delay_ms` 400, `visit.wait_ms` 1200; panel fields `searchthreads`/`visitthreads`/`browsers` →
+  settings `search_threads`/`visit_threads`/`browsers` → those config keys. Covered by
+  `tests/HttpClientTest.php`, `tests/PrefetcherTest.php`,
+  `RunnerTest::testFetchesQueriesInParallelBatches` and the existing `VisitTest` suite.
 - A 3000-query list is collected IN PARTS, because waiting for the whole list before touching any site is
   what the user actually complained about. `Support\QueryQueue` (`runs/current/queue.json`: `queries` +
   `done`) remembers the position; `Runner` takes a `$shouldStop` callback (checked BETWEEN queries, so a

@@ -77,6 +77,7 @@ final class PlaywrightDriver implements DriverInterface
                 'timeout' => (int) ($options['timeout'] ?? 30),
                 'wait_ms' => (int) ($options['wait_ms'] ?? 0),
                 'concurrency' => (int) ($options['concurrency'] ?? 1),
+                'browsers' => max(1, (int) ($options['browsers'] ?? 1)),
                 'delay_ms' => (int) ($options['delay_ms'] ?? 0),
                 'verify_ssl' => (bool) ($options['verify_ssl'] ?? true),
                 'full_page' => (bool) ($options['full_page'] ?? false),

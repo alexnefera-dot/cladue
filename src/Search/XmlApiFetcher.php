@@ -10,14 +10,22 @@ namespace YandexSites\Search;
  */
 final class XmlApiFetcher extends AbstractApiFetcher
 {
-    protected function fetchOnce(string $query, int $page): string
+    protected function buildRequest(string $query, int $page): array
     {
         $endpoint = (string) $this->config->get('api.xml_endpoint');
-        $url = $endpoint . (str_contains($endpoint, '?') ? '&' : '?')
-            . http_build_query($this->buildParams($query, $page), '', '&', PHP_QUERY_RFC3986);
 
-        // В API v1 ключ передаётся параметром apikey; заголовок Authorization используется только для IAM-токена.
-        $response = $this->http->get($url, $this->authHeaders(false));
+        return [
+            'method' => 'GET',
+            'url' => $endpoint . (str_contains($endpoint, '?') ? '&' : '?')
+                . http_build_query($this->buildParams($query, $page), '', '&', PHP_QUERY_RFC3986),
+            // В API v1 ключ передаётся параметром apikey; заголовок Authorization — только для IAM-токена.
+            'headers' => $this->authHeaders(false),
+            'body' => null,
+        ];
+    }
+
+    protected function parseResponse(\YandexSites\Http\HttpResponse $response): string
+    {
         if ($response->status !== 200) {
             throw $this->httpError($response);
         }

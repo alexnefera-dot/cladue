@@ -17,6 +17,14 @@ final class CurlDriver implements DriverInterface
         return 'curl';
     }
 
+    /** Ключ паузы: свой для каждого прокси и для каждого сайта. */
+    private static function gateKey(VisitJob $job, string $kind): string
+    {
+        return $kind === 'proxy'
+            ? 'p:' . $job->proxyLabel
+            : 'h:' . (string) (parse_url($job->url, PHP_URL_HOST) ?: $job->url);
+    }
+
     public function visit(array $jobs, array $options, ?callable $onResult = null): array
     {
         $concurrency = max(1, (int) ($options['concurrency'] ?? 2));
@@ -31,20 +39,37 @@ final class CurlDriver implements DriverInterface
         $multi = curl_multi_init();
         /** @var array<int, array{job: VisitJob, ch: \CurlHandle, buf: object, cookie: string}> $active */
         $active = [];
-        $lastStart = 0.0;
+        // Пауза между заходами считается ОТДЕЛЬНО для каждого прокси и каждого сайта: раньше она была
+        // общей и резала скорость всей выгрузки, хотя разные сайты через разные прокси можно открывать
+        // одновременно. Ключ → время (мс), раньше которого следующий заход не начинаем.
+        $gate = [];
 
         while ($queue !== [] || $active !== []) {
             while ($queue !== [] && count($active) < $concurrency) {
-                if ($delayMs > 0 && $lastStart > 0) {
-                    $sinceLast = (microtime(true) - $lastStart) * 1000;
-                    if ($sinceLast < $delayMs) {
-                        if ($active !== []) {
-                            break;
-                        }
-                        usleep((int) (($delayMs - $sinceLast) * 1000));
+                $now = microtime(true) * 1000;
+                $pick = null;
+                $soonest = null;
+                foreach ($queue as $qk => $candidate) {
+                    $ready = max($gate[self::gateKey($candidate, 'proxy')] ?? 0, $gate[self::gateKey($candidate, 'host')] ?? 0);
+                    if ($ready <= $now) {
+                        $pick = $qk;
+                        break;
                     }
+                    $soonest = $soonest === null ? $ready : min($soonest, $ready);
                 }
-                $job = array_shift($queue);
+                if ($pick === null) {
+                    if ($active !== []) {
+                        break; // ждём, пока освободятся активные — заодно пройдёт пауза
+                    }
+                    usleep((int) max(1000, min(($soonest ?? $now) - $now, 1000) * 1000));
+                    continue;
+                }
+                $job = $queue[$pick];
+                unset($queue[$pick]);
+                if ($delayMs > 0) {
+                    $gate[self::gateKey($job, 'proxy')] = $now + $delayMs;
+                    $gate[self::gateKey($job, 'host')] = $now + $delayMs;
+                }
                 $buf = new \stdClass();
                 $buf->data = '';
                 $buf->truncated = false;
@@ -52,7 +77,6 @@ final class CurlDriver implements DriverInterface
                 $ch = $this->handle($job, $buf, $timeout, $maxBytes, $verifySsl, $resolve, (string) $cookie);
                 curl_multi_add_handle($multi, $ch);
                 $active[spl_object_id($ch)] = ['job' => $job, 'ch' => $ch, 'buf' => $buf, 'cookie' => (string) $cookie];
-                $lastStart = microtime(true);
             }
 
             do {

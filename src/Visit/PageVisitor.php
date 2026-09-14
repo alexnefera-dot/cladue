@@ -423,6 +423,9 @@ final class PageVisitor
         $baseTimeout = (int) ($options['timeout'] ?? (int) ($this->cfg['timeout'] ?? 30));
         $silent = static function (): void {};
 
+        // Этап 1 — что именно добираем: по каждому сайту собираем «слоты» (имя файла + кандидаты
+        // адреса). Сеть здесь не трогаем, поэтому это быстро даже на сотнях сайтов.
+        $state = [];
         foreach ($sites as $key => $site) {
             if ($site->own) {
                 continue;
@@ -450,12 +453,6 @@ final class PageVisitor
                 }
             }
             $failed = array_filter($failed, static fn (string $u): bool => $u !== '');
-            if ($failed === []) {
-                if (!empty($this->cfg['crawl'])) {
-                    $this->bucketByPageCount([$key => $site], $dir);
-                }
-                continue;
-            }
 
             // По одному «слоту» на неудачную страницу: имя файла и кандидаты адреса (обычный + без locale).
             // Один файл на имя: если упавший адрес — вариант уже скачанной страницы (/vhod?ref=… рядом с vhod.html),
@@ -481,55 +478,77 @@ final class PageVisitor
                 $slots[$i] = ['name' => $name, 'prefix' => $siteDir . '/' . $name, 'candidates' => self::retryUrlCandidates($url), 'result' => null];
             }
             $attempted += count($slots);
+            if ($slots === []) {
+                if (!empty($this->cfg['crawl'])) {
+                    $this->bucketByPageCount([$key => $site], $dir);
+                }
+                continue;
+            }
+            $state[$key] = ['site' => $site, 'slots' => $slots, 'texts' => $texts, 'pending' => array_keys($slots)];
+        }
 
-            $pending = array_keys($slots);
-            for ($it = 0; $it < $iterations && $pending !== []; $it++) {
-                $jobs = [];
-                $jobToIdx = [];
-                foreach ($pending as $i) {
-                    $cands = $slots[$i]['candidates'];
-                    $url = $cands[$it % count($cands)];
+        // Этап 2 — попытки: ОДИН заход драйвера на все сайты сразу. Раньше каждый сайт добирался
+        // отдельным заходом, а значит и отдельным запуском браузера — на сотне сайтов только запуски
+        // Chromium съедали больше времени, чем сама загрузка страниц.
+        for ($it = 0; $it < $iterations; $it++) {
+            $jobs = [];
+            $jobMap = [];
+            foreach ($state as $key => $st) {
+                foreach ($st['pending'] as $i) {
+                    $candidates = $st['slots'][$i]['candidates'];
+                    $url = $candidates[$it % count($candidates)];
                     $proxy = $proxies !== [] ? $proxies[$proxyIndex++ % count($proxies)] : null;
                     $job = new VisitJob(
-                        id: $key . "\t" . $slots[$i]['name'] . "\t" . $it,
+                        id: $key . "\t" . $st['slots'][$i]['name'] . "\t" . $it,
                         siteKey: (string) $key,
                         variant: (int) $i,
                         url: $url,
-                        referer: $this->referer($site),
+                        referer: $this->referer($st['site']),
                         userAgent: $ua,
                         proxyUrl: $proxy?->url,
                         proxyLabel: $proxy?->label ?? 'direct',
-                        htmlFile: $slots[$i]['prefix'] . '.html',
+                        htmlFile: $st['slots'][$i]['prefix'] . '.html',
                         screenshotFile: null,
                     );
                     $jobs[] = $job;
-                    $jobToIdx[$job->id] = $i;
+                    $jobMap[$job->id] = [$key, $i];
                 }
-                $opts = $options;
-                $opts['timeout'] = $baseTimeout + 15 * $it;
-                $this->log->info(sprintf('Докачка %s (итерация %d из %d): %d стр. через другой прокси…', $site->host, $it + 1, $iterations, count($jobs)));
-                $results = $this->driver->visit($jobs, $opts, $silent);
-                $stillPending = [];
-                foreach ($jobs as $job) {
-                    $i = $jobToIdx[$job->id];
-                    $visit = $this->assembleVisit($job, $results[$job->id] ?? $this->missingResult(), $site->domain);
-                    $slots[$i]['result'] = $visit;
-                    if ($visit['ok'] ?? false) {
-                        $site->visits[(int) $i] = $this->dedupVisit($visit, $job, $texts, $threshold, false);
-                        $recovered++;
-                    } else {
-                        $stillPending[] = $i;
-                    }
-                }
-                $pending = $stillPending;
             }
-            foreach ($pending as $i) {
-                if ($slots[$i]['result'] !== null) {
-                    $site->visits[(int) $i] = $slots[$i]['result'];
+            if ($jobs === []) {
+                break;
+            }
+            $opts = $options;
+            $opts['timeout'] = $baseTimeout + 15 * $it;
+            $this->log->info(sprintf(
+                'Докачка, попытка %d из %d: %d стр. на %d сайтах через другие прокси…',
+                $it + 1,
+                $iterations,
+                count($jobs),
+                count($state),
+            ));
+            $results = $this->driver->visit($jobs, $opts, $silent);
+            foreach ($jobs as $job) {
+                [$key, $i] = $jobMap[$job->id];
+                $site = $state[$key]['site'];
+                $visit = $this->assembleVisit($job, $results[$job->id] ?? $this->missingResult(), $site->domain);
+                $state[$key]['slots'][$i]['result'] = $visit;
+                if ($visit['ok'] ?? false) {
+                    $site->visits[(int) $i] = $this->dedupVisit($visit, $job, $state[$key]['texts'], $threshold, false);
+                    $recovered++;
+                    $state[$key]['pending'] = array_values(array_diff($state[$key]['pending'], [$i]));
+                }
+            }
+        }
+
+        // Этап 3 — что не добрали: сохраняем последнюю причину и раскладываем сайты по папкам.
+        foreach ($state as $key => $st) {
+            foreach ($st['pending'] as $i) {
+                if ($st['slots'][$i]['result'] !== null) {
+                    $st['site']->visits[(int) $i] = $st['slots'][$i]['result'];
                 }
             }
             if (!empty($this->cfg['crawl'])) {
-                $this->bucketByPageCount([$key => $site], $dir);
+                $this->bucketByPageCount([$key => $st['site']], $dir);
             }
         }
         $this->markMissingFiles($sites);
@@ -1104,6 +1123,7 @@ final class PageVisitor
             'timeout' => (int) ($this->cfg['timeout'] ?? 30),
             'wait_ms' => (int) ($this->cfg['wait_ms'] ?? 0),
             'concurrency' => (int) ($this->cfg['concurrency'] ?? 2),
+            'browsers' => (int) ($this->cfg['browsers'] ?? 1),
             'delay_ms' => (int) ($this->cfg['delay_ms'] ?? 0),
             'verify_ssl' => (bool) ($this->cfg['verify_ssl'] ?? true),
             'full_page' => (bool) ($this->cfg['full_page'] ?? false),

@@ -189,6 +189,16 @@ function buildOverrides(array $s, string $runDir): array
     if (isset($s['visit_driver'])) {
         $overrides['visit.driver'] = (string) $s['visit_driver'];
     }
+    // Скорость: сколько запросов выдачи тянуть параллельно и сколько страниц/браузеров держать разом.
+    if (isset($s['search_threads'])) {
+        $overrides['search.concurrency'] = max(1, min(30, (int) $s['search_threads']));
+    }
+    if (isset($s['visit_threads'])) {
+        $overrides['visit.concurrency'] = max(1, min(50, (int) $s['visit_threads']));
+    }
+    if (isset($s['browsers'])) {
+        $overrides['visit.browsers'] = max(1, min(16, (int) $s['browsers']));
+    }
     if (isset($s['visit_dir'])) {
         $overrides['visit.dir'] = (string) $s['visit_dir'];
     } else {
