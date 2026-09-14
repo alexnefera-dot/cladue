@@ -777,9 +777,12 @@ def main():
     for n, gdir in find_groups(root):
         gname = os.path.basename(gdir)
         if n not in TEMPLATES:
+            # Номера такой группы в шаблонах нет, но сайты бросать нельзя: иначе целая
+            # партия молча исчезает из отчёта. Шаблон подберётся по набору страниц ниже.
             unknown.append(gname)
-            continue
-        target, drop = CONVERT.get(n, (n, []))
+            target, drop = 7, СЛУЖЕБНЫЕ
+        else:
+            target, drop = CONVERT.get(n, (n, []))
         tpl = TEMPLATES[target]
         for site in sorted(os.listdir(gdir)):
             sdir = os.path.join(gdir, site)
