@@ -1,4 +1,4 @@
-// Проверка оформленных комплектов на читаемость: открывает main.html в браузере,
+// Проверка оформленных комплектов на читаемость: открывает каждую страницу в браузере,
 // для каждого текстового узла берёт вычисленный цвет и первый непрозрачный фон
 // выше по дереву и считает контраст по WCAG. Ниже 3.5 — в отчёт.
 // Запуск: NODE_PATH=/opt/node22/lib/node_modules node scripts/oform/контраст.js <папка> [сколько]
@@ -12,8 +12,9 @@ const fs = require('fs'), path = require('path');
   const стр = await браузер.newPage();
   const плохо = [];
   for (const к of комплекты) {
-    const файл = path.join(корень, к, 'main.html');
-    if (!fs.existsSync(файл)) continue;
+    const страницы = fs.readdirSync(path.join(корень, к)).filter(f => f.endsWith('.html')).sort();
+    for (const имяСтр of страницы) {
+    const файл = path.join(корень, к, имяСтр);
     await стр.goto('file://' + файл, { waitUntil: 'load' });
     const беда = await стр.evaluate(() => {
       const яр = c => { const f = x => (x /= 255) <= 0.03928 ? x / 12.92 : ((x + .055) / 1.055) ** 2.4;
@@ -42,8 +43,9 @@ const fs = require('fs'), path = require('path');
       }
       return итог;
     });
-    if (беда.length) плохо.push({ комплект: к, сколько: беда.length, примеры: беда.slice(0, 3) });
+    if (беда.length) плохо.push({ комплект: к + '/' + имяСтр, сколько: беда.length, примеры: беда.slice(0, 3) });
+    }
   }
   await браузер.close();
-  console.log(JSON.stringify({ проверено: комплекты.length, плохих: плохо.length, список: плохо.slice(0, 12) }, null, 1));
+  console.log(JSON.stringify({ комплектов: комплекты.length, плохих: плохо.length, список: плохо.slice(0, 12) }, null, 1));
 })();
