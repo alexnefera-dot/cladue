@@ -458,7 +458,9 @@ def check_site(n, tpl, key, pages, F):
         if re.search(r"\{\{.*?\}\}|\[\[.*?\]\]|\{[^{}\n]*\|[^{}\n]*\}", d["raw"]):
             F.add(key, "ERROR", "B5", "%s: остатки шаблонизатора {{ }} / [[ ]] / {a|b}" % loc)
         # ${VAR} — переменная shell или шаблонной строки в примере команды, не наш плейсхолдер
-        unfilled = Counter(re.findall(r"(?<![$\\])\{[A-Z_]{2,}\}", d["raw"]))
+        # формулы TeX ($$…$$, \(…\)) полны фигурных скобок: \frac{EV}{SD} — не наш плейсхолдер
+        без_формул = re.sub(r"(?s)\$\$.*?\$\$|\\\(.*?\\\)|\\\[.*?\\\]", " ", d["raw"])
+        unfilled = Counter(re.findall(r"(?<![$\\])\{[A-Z_]{2,}\}", без_формул))
         if unfilled:
             F.add(key, "ERROR", "B5", "%s: незаполненные переменные: %s" % (
                 loc, ", ".join("%s (%d)" % kv for kv in unfilled.items())))

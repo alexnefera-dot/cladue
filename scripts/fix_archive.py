@@ -29,7 +29,8 @@ import sys
 from collections import Counter
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from check_archive import GENERIC_DOMAINS, LATIN_WHITELIST, brand_candidates  # noqa: E402
+from check_archive import (ALLOWED_TAGS, GENERIC_DOMAINS, LATIN_WHITELIST,  # noqa: E402
+                           VOID_TAGS, brand_candidates)
 
 NAMES = ("Олег Пётр Петр Дмитрий Марат Георгий Юрий Эдуард Евгений Роман Михаил Валерий Фёдор Федор Иван "
          "Андрей Сергей Алексей Николай Павел Максим Артём Артем Кирилл Виктор Илья Денис Антон Станислав "
@@ -144,6 +145,16 @@ def site_brands(files):
     return [name for name, c, pg in brand_candidates(raws)][:2]
 
 
+# Имена, которые вообще бывают в HTML. Всё остальное в угловых скобках — не тег, а текст
+# выкачки («<http>», «<country_code>», «<d.morikova>»): скобки снимаем, текст оставляем.
+ИЗВЕСТНЫЕ_ТЕГИ = ALLOWED_TAGS | VOID_TAGS | {
+    "div", "span", "html", "head", "body", "script", "style", "iframe", "caption", "colgroup",
+    "col", "tfoot", "noscript", "main", "header", "footer", "form", "input", "button", "label",
+    "select", "option", "textarea", "picture", "source", "video", "audio", "svg", "path", "canvas",
+    "template", "slot", "object", "embed", "map", "area", "output", "progress", "meter", "ins", "del"}
+ЧУЖОЙ_ТЕГ = re.compile(r"</?([A-Za-z][\w.:-]*)\b[^>]*>")
+
+
 def fix_markup(raw):
     """Мусор после чистки: склейки <strongслово>, теги вне списка, остатки [[ ]] и {a|b}."""
     rows = []
@@ -197,6 +208,17 @@ def fix_markup(raw):
     raw, n = re.subn(r"</?(?:meter|progress|font|center|marquee|blink|spoiler|title|felt)[^>]*>", "", raw)
     if n:
         rows.append(("лишний тег", "снят", "%d" % n))
+    снято = [0]
+
+    def _снять(m):
+        if m.group(1).lower() in ИЗВЕСТНЫЕ_ТЕГИ:
+            return m.group(0)
+        снято[0] += 1
+        return ""
+
+    raw = ЧУЖОЙ_ТЕГ.sub(_снять, raw)
+    if снято[0]:
+        rows.append(("тег не из HTML", "снят", "%d" % снято[0]))
     raw, n = re.subn(r"<h([1-6]):\s*", r"<h\1>", raw)
     if n:
         rows.append(("битый h", "исправлен", "%d" % n))
