@@ -555,22 +555,29 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   (`[role=dialog]`, `[aria-modal=true]`, `<dialog open>`, or a large fixed overlay — obfuscated per-site
   class names are ignored), confirms it is an age/cookie barrier via the *overlay's own* text (footer «18+»
   no longer misfires or blocks it), and clicks the consent button (e.g. «Мне есть 18») strictly inside it.
-- `Support\CollectHistory` (`runs/history.json`, newest first, `LIMIT` 500) is the «Статистика» tab the
-  user asked for: «сколько доменов за сбор в какую дату собрал, сколько повторились, сколько доров
-  (поддоменами), какой доменной зоны». One record per collect, appended at the END of the collect stage in
-  `bin/run-job.php` from `$result->sites` (THIS run's selection — the table may carry earlier batches) and
-  `$result->stats`: date, queries done, sites, `repeats` = `rejected['seen_before']` (the ledger's
-  cross-run duplicates), `filtered` = every other rejection, `roots`/`subdomains` (a site whose normalized
-  host is longer than its registrable domain is a дор on a subdomain — `breakdown()`; `www.` is folded
-  first so it is not counted as one), `zones` (`Domains::tld`), `base_domains`, `resume`, `stopped`. The
-  same numbers go to the log («В базу за этот сбор: …»). Panel: `GET /api/history` returns `records` +
-  `totals()` (sums, except `base_domains` which is the newest record's ledger size, not a sum),
-  `loadStats()` renders the summary boxes, the zone chips and the table, `GET /download?file=history`
-  builds `csv()` on the fly (zones folded into one column so new zones cannot widen the table). The tab
-  reloads on click and whenever a job finishes while it is open. The file lives in `runs/` (not
-  `runs/current/`), so it survives `setup.php --update` AND `/api/reset-base` — it is a log, not working
-  data. Nothing is backfilled: pre-1.10.0 collects have no records and the tab says so. Covered by
-  `tests/CollectHistoryTest.php` and `PanelTest::testCollectWritesHistoryAndStatsEndpoint`.
+- `Support\CollectHistory` (`runs/history.json`, newest first, `LIMIT` 500) is the «Статистика» tab, and
+  it is entirely about ДОРЫ — the user cut the first version down to exactly that: «зоны анализируются
+  именно у поддоменов (доров), отсеяно фильтрами меня не волнует, количество запросов тоже — собрано
+  доменов, доров (процент и количество от общей массы), зоны доров, повторы ДОРОВ». So the record holds
+  date, `sites`, `doors`, `roots`, `repeats`, `repeats_doors`, `zones`, `base_domains`, `resume`,
+  `stopped` — and deliberately NOT queries or filter rejections. `isDoor($host)` = the normalized host is
+  longer than its registrable domain (`www.` folded first, and `Domains::SECOND_LEVEL` means
+  `kush.net.ru` is NOT a door); `breakdown()` counts doors/roots and builds `zones` FROM DOORS ONLY;
+  `percent()` is the share. Door repeats need the hosts, not a counter, so `Runner` pushes every
+  `seen_before` host into `RunResult::$seenBefore` (a separate field, NOT `stats` — the status and
+  sites.json must not carry a list of thousands) and `record()` counts the doors among them. One record
+  per collect, appended at the END of the collect stage in `bin/run-job.php` from `$result->sites` (THIS
+  run's selection — the table may carry earlier batches); the same numbers go to the log («За этот сбор:
+  N доменов, из них доров (поддоменов) M (X%), повторов доров …»). Panel: `GET /api/history` returns
+  `records` + `totals()` (sums, plus `doors_percent`; `base_domains` is the newest record's ledger size,
+  not a sum), `loadStats()` renders the summary boxes, the door-zone chips and the table (the door-repeat
+  cell carries the total repeats in its `title`), `GET /download?file=history` builds `csv()` on the fly
+  (zones folded into one column so new zones cannot widen the table). The tab reloads on click and
+  whenever a job finishes while it is open. The file lives in `runs/` (not `runs/current/`), so it
+  survives `setup.php --update` AND `/api/reset-base` — it is a log, not working data; `load()` maps the
+  1.10.0 key `subdomains` onto `doors` so an early history still reads. Nothing is backfilled: pre-1.10.0
+  collects have no records and the tab says so. Covered by `tests/CollectHistoryTest.php` and
+  `PanelTest::testCollectWritesHistoryAndStatsEndpoint`.
 - `Support\DomainLedger` (runs/domains-base.txt) is a cross-run base of collected registrable
   domains; `Runner` takes an optional ledger + skipKnown to drop already-seen domains (reason
   `seen_before`) and record new ones. A repeat collect with the same queries therefore selects nothing

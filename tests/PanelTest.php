@@ -690,7 +690,7 @@ final class PanelTest
     public function testCollectWritesHistoryAndStatsEndpoint(): void
     {
         // Вкладка «Статистика»: сбор дописывает строку в runs/history.json (дата, сколько доменов,
-        // сколько повторов, сколько на поддоменах, зоны), /api/history отдаёт её вместе с итогом,
+        // сколько из них доров, повторы доров, зоны доров), /api/history отдаёт её вместе с итогом,
         // /download?file=history — те же данные в CSV.
         $port = FakeServer::port();
         $dir = $this->projectDir($port);
@@ -723,9 +723,11 @@ final class PanelTest
         Assert::true($records[1]['sites'] > 0, 'первый сбор собрал домены');
         Assert::same(0, $records[0]['sites'], 'второй сбор ничего нового не взял');
         Assert::true($records[0]['repeats'] > 0, 'и посчитал повторы');
-        Assert::true($records[1]['zones'] !== [], 'зоны посчитаны');
-        Assert::same($records[1]['sites'], $records[1]['roots'] + $records[1]['subdomains'], 'корневые + поддомены = все домены');
-        Assert::contains('В базу за этот сбор', (string) file_get_contents($runDir . '/run.log'));
+        Assert::same($records[1]['sites'], $records[1]['roots'] + $records[1]['doors'], 'корневые + доры = все домены');
+        Assert::true($records[0]['repeats_doors'] <= $records[0]['repeats'], 'повторов-доров не больше, чем повторов всего');
+        Assert::false(isset($records[0]['queries']), 'запросы в статистику не пишем');
+        Assert::contains('За этот сбор', (string) file_get_contents($runDir . '/run.log'));
+        Assert::contains('доров (поддоменов)', (string) file_get_contents($runDir . '/run.log'));
 
         $socket = @stream_socket_server('tcp://127.0.0.1:0', $errno, $errstr);
         if ($socket === false) {
@@ -755,10 +757,12 @@ final class PanelTest
             Assert::same(2, count($hist['records']), '/api/history отдаёт обе записи');
             Assert::same(2, $hist['totals']['runs']);
             Assert::true($hist['totals']['sites'] > 0, 'итог по всем сборам посчитан');
-            Assert::true($hist['totals']['zones'] !== [], 'зоны в итоге');
+            Assert::true(isset($hist['totals']['doors_percent']), 'доля доров в итоге');
+            Assert::true($hist['totals']['repeats_doors'] <= $hist['totals']['repeats']);
 
             $csv = (string) $this->http('GET', $base . '/download?file=history');
-            Assert::contains('Собрано доменов', $csv, 'CSV истории скачивается');
+            Assert::contains('Доров (поддоменов)', $csv, 'CSV истории скачивается');
+            Assert::contains('Зоны доров', $csv);
         } finally {
             proc_terminate($server);
             proc_close($server);

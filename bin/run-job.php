@@ -688,19 +688,20 @@ while (true) {
             if ($offerWalls > 0) {
                 $logger->info(sprintf('Подборок офферов вместо сайта: %d (перепроверены с других IP и агентов)', $offerWalls));
             }
-            // История сборов (вкладка «Статистика»): дата, сколько доменов отобрано ИМЕННО этим сбором,
-            // сколько отсеяно как уже собранные раньше, сколько из отобранных на поддоменах (доры) и
-            // разбивка по зонам. Считаем по $result->sites, а не по таблице: таблица может нести сайты
-            // прошлых частей сбора.
-            $history = CollectHistory::record($result->sites, $result->stats, $resume, $result->stopped);
+            // История сборов (вкладка «Статистика») — про ДОРЫ: дата, сколько доменов отобрано ИМЕННО
+            // этим сбором, сколько из них на поддоменах и какая это доля, сколько повторов-доров
+            // отсеяно как уже собранные, по каким зонам разошлись доры. Считаем по $result->sites, а не
+            // по таблице: таблица может нести сайты прошлых частей сбора.
+            $history = CollectHistory::record($result->sites, $result->stats, $result->seenBefore, $resume, $result->stopped);
             CollectHistory::append(dirname($runDir), $history);
             $logger->info(sprintf(
-                'В базу за этот сбор: %d доменов (повторов %d), из них на поддоменах %d, корневых %d%s',
+                'За этот сбор: %d доменов, из них доров (поддоменов) %d (%s%%), повторов доров %d из %d%s',
                 $history['sites'],
+                $history['doors'],
+                CollectHistory::percent($history['doors'], $history['sites']),
+                $history['repeats_doors'],
                 $history['repeats'],
-                $history['subdomains'],
-                $history['roots'],
-                $history['zones'] !== [] ? '; зоны — ' . CollectHistory::zonesText($history['zones'], 8) : '',
+                $history['zones'] !== [] ? '; зоны доров — ' . CollectHistory::zonesText($history['zones'], 8) : '',
             ));
             $progress->update([
                 'state' => $result->aborted ? 'error' : ($result->stopped ? 'stopped' : 'done'),

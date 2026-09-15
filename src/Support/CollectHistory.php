@@ -10,12 +10,13 @@ use YandexSites\Model\Site;
 /**
  * История сборов — вкладка «Статистика» в панели.
  *
- * После каждого сбора дописывается одна запись: дата, сколько запросов обработано, сколько доменов
- * отобрано, сколько отсеяно как уже собранные раньше («повторы» из базы пересечений), сколько
- * отобранных сидит на ПОДДОМЕНАХ (доры сетки) и сколько корневых, а также разбивка по доменным зонам.
- * Файл лежит в `runs/history.json` (эта папка переживает setup.php --update), новые записи идут в
- * начало списка, хранится последние LIMIT записей — больше пользователю не нужно, а файл читается
- * панелью на каждом открытии вкладки.
+ * Интересуют ДОРЫ: после каждого сбора дописывается одна запись — дата, сколько доменов отобрано
+ * всего, сколько из них сидит на ПОДДОМЕНАХ (это доры сетки) и какой это процент от всей массы,
+ * сколько повторов-доров отсеяно как уже собранные раньше и по каким доменным зонам доры разошлись.
+ * Зоны считаются ИМЕННО по дорам: зона корневого сайта ничего не говорит о сетке.
+ *
+ * Файл лежит в `runs/history.json` (эта папка переживает setup.php --update и «очистить базу»),
+ * новые записи идут в начало списка, хранится последние LIMIT записей.
  */
 final class CollectHistory
 {
@@ -25,28 +26,37 @@ final class CollectHistory
     public const LIMIT = 500;
 
     /**
-     * Разбор списка отобранных сайтов: корневые домены, поддомены (доры) и зоны.
+     * Дор ли это — сайт на поддомене: хост длиннее своего регистрируемого домена
+     * (kush.casinozsd.buzz при casinozsd.buzz). `www.` сначала сбрасывается, это не поддомен.
+     */
+    public static function isDoor(string $host): bool
+    {
+        $host = Domains::normalize($host);
+
+        return $host !== '' && Domains::registrable($host) !== $host;
+    }
+
+    /**
+     * Разбор отобранных сайтов: сколько доров, сколько корневых и зоны ДОРОВ.
      *
      * @param array<int|string, Site> $sites
-     * @return array{roots: int, subdomains: int, zones: array<string, int>}
+     * @return array{doors: int, roots: int, zones: array<string, int>}
      */
     public static function breakdown(array $sites): array
     {
+        $doors = 0;
         $roots = 0;
-        $subdomains = 0;
         $zones = [];
         foreach ($sites as $site) {
-            $host = Domains::normalize((string) $site->host); // www.example.ru и example.ru — один домен
+            $host = Domains::normalize((string) $site->host);
             if ($host === '') {
                 continue;
             }
-            // Поддомен — всё, что длиннее регистрируемого домена: kush.casinozsd.buzz при
-            // casinozsd.buzz. Именно так в сетке выглядят доры.
-            if (Domains::registrable($host) === $host) {
+            if (!self::isDoor($host)) {
                 $roots++;
-            } else {
-                $subdomains++;
+                continue;
             }
+            $doors++;
             $zone = Domains::tld($host);
             if ($zone !== '') {
                 $zones[$zone] = ($zones[$zone] ?? 0) + 1;
@@ -54,36 +64,49 @@ final class CollectHistory
         }
         arsort($zones);
 
-        return ['roots' => $roots, 'subdomains' => $subdomains, 'zones' => $zones];
+        return ['doors' => $doors, 'roots' => $roots, 'zones' => $zones];
     }
 
     /**
-     * Запись одного сбора по его результату.
+     * Запись одного сбора.
      *
      * @param array<int|string, Site> $sites отобранные ЭТИМ сбором сайты
      * @param array<string, mixed> $stats RunResult::$stats
+     * @param list<string> $seenBefore хосты, отклонённые как «уже в базе» (RunResult::$seenBefore)
      * @return array<string, mixed>
      */
-    public static function record(array $sites, array $stats, bool $resume = false, bool $stopped = false): array
+    public static function record(array $sites, array $stats, array $seenBefore = [], bool $resume = false, bool $stopped = false): array
     {
-        $rejected = (array) ($stats['rejected'] ?? []);
         $breakdown = self::breakdown($sites);
+        $repeats = count($seenBefore) > 0 ? count($seenBefore) : (int) (((array) ($stats['rejected'] ?? []))['seen_before'] ?? 0);
+        $repeatsDoors = 0;
+        foreach ($seenBefore as $host) {
+            if (self::isDoor((string) $host)) {
+                $repeatsDoors++;
+            }
+        }
 
         return [
             'date' => date(DATE_ATOM),
-            'queries' => (int) ($stats['queries_done'] ?? $stats['queries'] ?? 0),
-            'results' => (int) ($stats['results'] ?? 0),
             'sites' => count($sites),
-            // Повторы — домены, которые уже были в базе пересечений и потому не взяты второй раз.
-            'repeats' => (int) ($rejected['seen_before'] ?? 0),
-            'filtered' => array_sum(array_map('intval', $rejected)) - (int) ($rejected['seen_before'] ?? 0),
+            'doors' => $breakdown['doors'],
             'roots' => $breakdown['roots'],
-            'subdomains' => $breakdown['subdomains'],
-            'zones' => $breakdown['zones'],
+            // Повторы — домены, уже бывшие в базе пересечений; отдельно считаем, сколько из них доры.
+            'repeats' => $repeats,
+            'repeats_doors' => $repeatsDoors,
+            'zones' => $breakdown['zones'], // зоны ДОРОВ
             'base_domains' => (int) ($stats['base_domains'] ?? 0),
             'resume' => $resume,
             'stopped' => $stopped,
         ];
+    }
+
+    /**
+     * Доля доров от всей массы отобранного, в процентах с одним знаком.
+     */
+    public static function percent(int $doors, int $sites): float
+    {
+        return $sites > 0 ? round($doors * 100 / $sites, 1) : 0.0;
     }
 
     /**
@@ -114,22 +137,33 @@ final class CollectHistory
             return [];
         }
         $data = json_decode((string) file_get_contents($file), true);
+        if (!is_array($data)) {
+            return [];
+        }
+        $out = [];
+        foreach ($data as $record) {
+            if (is_array($record)) {
+                // Записи версии 1.10.0 называли доры «subdomains» — читаем и их.
+                $record['doors'] ??= (int) ($record['subdomains'] ?? 0);
+                $out[] = $record;
+            }
+        }
 
-        return is_array($data) ? array_values(array_filter($data, 'is_array')) : [];
+        return $out;
     }
 
     /**
-     * Итог по всем сборам: сколько всего собрано, повторов, доров, и общая разбивка по зонам.
+     * Итог по всем сборам: сколько собрано, сколько доров и их доля, повторы доров, зоны доров.
      *
      * @param list<array<string, mixed>> $records
-     * @return array{runs: int, queries: int, sites: int, repeats: int, roots: int, subdomains: int, zones: array<string, int>, base_domains: int}
+     * @return array{runs: int, sites: int, doors: int, roots: int, doors_percent: float, repeats: int, repeats_doors: int, zones: array<string, int>, base_domains: int}
      */
     public static function totals(array $records): array
     {
-        $out = ['runs' => 0, 'queries' => 0, 'sites' => 0, 'repeats' => 0, 'roots' => 0, 'subdomains' => 0, 'zones' => [], 'base_domains' => 0];
+        $out = ['runs' => 0, 'sites' => 0, 'doors' => 0, 'roots' => 0, 'doors_percent' => 0.0, 'repeats' => 0, 'repeats_doors' => 0, 'zones' => [], 'base_domains' => 0];
         foreach ($records as $r) {
             $out['runs']++;
-            foreach (['queries', 'sites', 'repeats', 'roots', 'subdomains'] as $key) {
+            foreach (['sites', 'doors', 'roots', 'repeats', 'repeats_doors'] as $key) {
                 $out[$key] += (int) ($r[$key] ?? 0);
             }
             foreach ((array) ($r['zones'] ?? []) as $zone => $count) {
@@ -137,6 +171,7 @@ final class CollectHistory
             }
         }
         arsort($out['zones']);
+        $out['doors_percent'] = self::percent($out['doors'], $out['sites']);
         // База доменов — не сумма, а её размер на момент последнего (самого свежего) сбора.
         $out['base_domains'] = (int) ($records[0]['base_domains'] ?? 0);
 
@@ -158,16 +193,17 @@ final class CollectHistory
         if ($bom) {
             fwrite($out, "\xEF\xBB\xBF");
         }
-        fputcsv($out, ['Дата', 'Запросов', 'Собрано доменов', 'Повторов (уже в базе)', 'Отсеяно фильтрами', 'Корневых', 'Поддоменов (доры)', 'Зоны', 'Всего в базе', 'Продолжение', 'Остановлен'], $delimiter, '"', '');
+        fputcsv($out, ['Дата', 'Собрано доменов', 'Доров (поддоменов)', 'Доля доров, %', 'Повторов доров', 'Повторов всего', 'Зоны доров', 'Всего в базе', 'Продолжение', 'Остановлен'], $delimiter, '"', '');
         foreach ($records as $r) {
+            $doors = (int) ($r['doors'] ?? 0);
+            $sites = (int) ($r['sites'] ?? 0);
             fputcsv($out, [
                 self::dateHuman((string) ($r['date'] ?? '')),
-                (int) ($r['queries'] ?? 0),
-                (int) ($r['sites'] ?? 0),
+                $sites,
+                $doors,
+                self::percent($doors, $sites),
+                (int) ($r['repeats_doors'] ?? 0),
                 (int) ($r['repeats'] ?? 0),
-                (int) ($r['filtered'] ?? 0),
-                (int) ($r['roots'] ?? 0),
-                (int) ($r['subdomains'] ?? 0),
                 self::zonesText((array) ($r['zones'] ?? [])),
                 (int) ($r['base_domains'] ?? 0),
                 ($r['resume'] ?? false) ? 'да' : '',

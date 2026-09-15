@@ -32,6 +32,15 @@ final class RunResult
     /** @var list<string> */
     public array $errors = [];
 
+    /**
+     * Хосты, отклонённые как «уже в базе» (reason seen_before). Нужны статистике сборов: по ним
+     * считаются ПОВТОРЫ ДОРОВ — сколько из повторившихся доменов сидело на поддоменах. В stats их
+     * не кладём: статус и sites.json не должны раздуваться списком на тысячи строк.
+     *
+     * @var list<string>
+     */
+    public array $seenBefore = [];
+
     /** Прогон прерван из-за фатальной ошибки API. */
     public bool $aborted = false;
 
