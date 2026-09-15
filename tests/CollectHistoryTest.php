@@ -137,8 +137,9 @@ final class CollectHistoryTest
         foreach (['kush.a.buzz', 'hype.a.buzz', 'promo.b.casino', 'plain.ru', 'www.portal.ru', 'plain.ru'] as $host) {
             $raw[] = ['result' => new SearchResult('к', 0, 1, 'https://' . $host . '/', $host, ''), 'reason' => null];
         }
-        $record = CollectHistory::record($this->sites('kush.a.buzz'), ['base_domains' => 7], [], false, false, $raw);
+        $record = CollectHistory::record($this->sites('kush.a.buzz'), ['base_domains' => 7, 'results' => 6], [], false, false, $raw);
 
+        Assert::same(6, $record['results'], 'строк выдачи — все, включая повтор одного домена');
         Assert::same(5, $record['found'], 'разных доменов в выдаче (plain.ru дважды — один)');
         Assert::same(3, $record['found_doors'], 'доры: kush., hype., promo.');
         Assert::same(2, $record['found_roots'], 'корневые: plain.ru и portal.ru (www не поддомен)');
@@ -214,8 +215,9 @@ final class CollectHistoryTest
         $csv = CollectHistory::csv([
             CollectHistory::record($this->sites('a.ru', 'sub.b.ru'), ['base_domains' => 50], ['x.old.ru']),
         ]);
-        Assert::contains('Доменов в выдаче', $csv);
-        Assert::contains('Отобрано в базу', $csv);
+        Assert::contains('Результатов в выдаче', $csv);
+        Assert::contains('Доменов и поддоменов', $csv);
+        Assert::contains('Отобрано сайтов', $csv);
         Assert::contains('Зоны доров', $csv);
         Assert::contains('ru: 1', $csv, 'зоны доров сложены в одну колонку');
     }

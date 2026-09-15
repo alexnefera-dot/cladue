@@ -735,6 +735,8 @@ final class PanelTest
         Assert::true($records[1]['found'] >= $records[1]['sites'], 'доменов в выдаче не меньше, чем отобрано');
         Assert::same($records[1]['found'], $records[1]['found_doors'] + $records[1]['found_roots'], 'доры + корневые = вся масса');
         Assert::true($records[1]['found_doors'] > 0, 'доры в выдаче найдены');
+        // Результатов в выдаче всегда не меньше, чем разных доменов: сайт попадается в нескольких запросах.
+        Assert::true($records[1]['results'] >= $records[1]['found'], 'строк выдачи не меньше, чем доменов');
         // Запись создаётся сразу после отбора доменов и в конце сбора уточняется по её id —
         // на каждый сбор всё равно ровно одна строка, без дублей.
         Assert::true(($records[0]['id'] ?? '') !== '', 'у записи есть id для уточнения в конце сбора');
@@ -773,7 +775,8 @@ final class PanelTest
             Assert::true($hist['totals']['repeats_doors'] <= $hist['totals']['repeats']);
 
             $csv = (string) $this->http('GET', $base . '/download?file=history');
-            Assert::contains('Доменов в выдаче', $csv, 'CSV истории скачивается');
+            Assert::contains('Результатов в выдаче', $csv, 'CSV истории скачивается');
+            Assert::contains('Доменов и поддоменов', $csv);
             Assert::contains('Доров из них', $csv);
             Assert::contains('Зоны доров', $csv);
         } finally {

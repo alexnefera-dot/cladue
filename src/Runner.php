@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace YandexSites;
 
 use YandexSites\Check\SiteChecker;
+use YandexSites\Filter\Domains;
 use YandexSites\Filter\ResultFilter;
 use YandexSites\Model\Site;
 use YandexSites\Search\ApiException;
@@ -58,6 +59,8 @@ final class Runner
         $filtersCfg = (array) $this->config->get('filters');
         $filtersCfg['own_markers'] = \YandexSites\Filter\OwnSites::fromConfig($this->config)->markers();
         $filter = new ResultFilter($filtersCfg);
+        /** @var array<string, true> уникальные домены и поддомены из выдачи (см. цикл по результатам) */
+        $seenHosts = [];
         $aggregator = new Aggregator(
             (string) $this->config->get('filters.unique_by', 'host'),
             (bool) $this->config->get('filters.strip_www', true),
@@ -130,6 +133,13 @@ final class Runner
                 foreach ($searchPage->results as $item) {
                     $reason = $filter->reject($item);
                     $result->raw[] = ['result' => $item, 'reason' => $reason];
+                    // Сколько РАЗНЫХ доменов и поддоменов встретилось в выдаче: результатов в разы
+                    // больше (один сайт попадается в десятках запросов), и без этого числа панель
+                    // сравнивала несравнимое — «29 904 результата» и «2 043 сайта после фильтров».
+                    $seenHost = Domains::normalize($item->host !== '' ? $item->host : Domains::hostFromUrl($item->url));
+                    if ($seenHost !== '') {
+                        $seenHosts[$seenHost] = true;
+                    }
                     $this->log->debug(sprintf(
                         '  %4d. %-32s %s%s',
                         $item->position,
@@ -171,6 +181,7 @@ final class Runner
                 'queries_done' => $index + 1,
                 'current_query' => $query,
                 'results' => $result->stats['results'],
+                'hosts_total' => count($seenHosts),
                 'sites_total' => count($aggregator->sites()),
                 'rejected' => $result->stats['rejected'],
                 'error_count' => count($result->errors),
@@ -178,8 +189,9 @@ final class Runner
         }
 
         $sites = $aggregator->sites();
+        $result->stats['hosts_total'] = count($seenHosts);
         $result->stats['sites_total'] = count($sites);
-        $this->progress(['phase' => 'filter', 'sites_total' => count($sites)]);
+        $this->progress(['phase' => 'filter', 'hosts_total' => count($seenHosts), 'sites_total' => count($sites)]);
 
         $minQueries = max(1, (int) $this->config->get('filters.min_queries', 1));
         $minHits = max(1, (int) $this->config->get('filters.min_hits', 1));

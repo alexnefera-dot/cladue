@@ -14,9 +14,9 @@ use YandexSites\Model\Site;
  * Интересуют ДОРЫ, и считаются они от ВСЕЙ МАССЫ доменов из выдачи, а не от того, что осталось после
  * фильтров: фильтр «тип домена» отсекает корневые сайты, поэтому в отобранном доров почти 100% и доля
  * ничего не говорит. Поэтому запись содержит два слоя:
- *  - НАЙДЕНО в выдаче (`found`, `found_doors`, `found_roots`, `zones`) — все разные домены, которые
- *    встретились в результатах этого сбора, включая отсеянные фильтрами; от этого числа и считается
- *    доля доров, а зоны берутся по найденным дорам;
+ *  - НАЙДЕНО в выдаче: `results` — все строки выдачи (один сайт считается в каждом запросе, где он
+ *    попался), `found`/`found_doors`/`found_roots`/`zones` — сколько среди них РАЗНЫХ доменов и
+ *    поддоменов, включая отсеянные фильтрами; от `found` и считается доля доров, зоны — по дорам;
  *  - ОТОБРАНО (`sites`, `doors`, `roots`) — что реально попало в базу, плюс `repeats`/`repeats_doors`
  *    (домены, уже бывшие в базе пересечений).
  *
@@ -141,7 +141,9 @@ final class CollectHistory
             // дополняется итоговыми числами (после визитов) — по id её и находим.
             'id' => bin2hex(random_bytes(6)),
             'date' => date(DATE_ATOM),
-            // Вся масса: сколько разных доменов вообще встретилось в выдаче и сколько из них доров.
+            // Масштаб сбора: все строки выдачи (один сайт считается в каждом запросе, где он попался).
+            'results' => (int) ($stats['results'] ?? 0),
+            // Вся масса: сколько среди них РАЗНЫХ доменов и поддоменов и сколько из них доров.
             'found' => $all['found'],
             'found_doors' => $all['doors'],
             'found_roots' => $all['roots'],
@@ -299,10 +301,10 @@ final class CollectHistory
      */
     public static function totals(array $records): array
     {
-        $out = ['runs' => 0, 'found' => 0, 'found_doors' => 0, 'found_roots' => 0, 'sites' => 0, 'doors' => 0, 'roots' => 0, 'doors_percent' => 0.0, 'repeats' => 0, 'repeats_doors' => 0, 'zones' => [], 'base_domains' => 0];
+        $out = ['runs' => 0, 'results' => 0, 'found' => 0, 'found_doors' => 0, 'found_roots' => 0, 'sites' => 0, 'doors' => 0, 'roots' => 0, 'doors_percent' => 0.0, 'repeats' => 0, 'repeats_doors' => 0, 'zones' => [], 'base_domains' => 0];
         foreach ($records as $r) {
             $out['runs']++;
-            foreach (['found', 'found_doors', 'found_roots', 'sites', 'doors', 'roots', 'repeats', 'repeats_doors'] as $key) {
+            foreach (['results', 'found', 'found_doors', 'found_roots', 'sites', 'doors', 'roots', 'repeats', 'repeats_doors'] as $key) {
                 $out[$key] += (int) ($r[$key] ?? 0);
             }
             foreach ((array) ($r['zones'] ?? []) as $zone => $count) {
@@ -336,13 +338,14 @@ final class CollectHistory
         if ($bom) {
             fwrite($out, "\xEF\xBB\xBF");
         }
-        fputcsv($out, ['Дата', 'Доменов в выдаче', 'Доров из них', 'Доля доров, %', 'Корневых', 'Отобрано в базу', 'Доров среди отобранных', 'Повторов доров', 'Повторов всего', 'Зоны доров', 'Всего в базе', 'Продолжение', 'Остановлен'], $delimiter, '"', '');
+        fputcsv($out, ['Дата', 'Результатов в выдаче', 'Доменов и поддоменов', 'Доров из них', 'Доля доров, %', 'Корневых', 'Отобрано сайтов', 'Доров среди отобранных', 'Повторов доров', 'Повторов всего', 'Зоны доров', 'Всего в базе', 'Продолжение', 'Остановлен'], $delimiter, '"', '');
         foreach ($records as $r) {
             $found = (int) ($r['found'] ?? 0);
             $foundDoors = (int) ($r['found_doors'] ?? 0);
             $sites = (int) ($r['sites'] ?? 0);
             fputcsv($out, [
                 self::dateHuman((string) ($r['date'] ?? '')),
+                (int) ($r['results'] ?? 0),
                 $found,
                 $foundDoors,
                 $found > 0 ? self::percent($foundDoors, $found) : self::percent((int) ($r['doors'] ?? 0), $sites),

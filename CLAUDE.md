@@ -564,7 +564,8 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   nothing — «надо отталкиваться от общего числа всех видов доменов… всего результатов в выдаче, не тот
   тип домена тоже нам подходит». So `breakdownRaw(RunResult::$raw)` counts DISTINCT normalized hosts
   across every result of the collect, rejected ones included, and the record holds two layers: FOUND
-  (`found`, `found_doors`, `found_roots`, and `zones` = the zones of the found doors) and SELECTED
+  (`results` = every SERP row, `found`/`found_doors`/`found_roots` = how many DISTINCT hosts that is, and
+  `zones` = the zones of the found doors) and SELECTED
   (`sites`, `doors`, `roots`), plus `repeats`/`repeats_doors`, `base_domains`, `resume`, `stopped` —
   and deliberately NOT queries or filter rejections. The panel's «Доля доров» and `totals()`
   `doors_percent` divide `found_doors` by `found`, falling back to the selected pair for records
@@ -609,6 +610,15 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   on disk) and stay as written. Nothing else is backfilled: pre-1.10.0 collects have no records at all
   and the tab says so. Covered by `tests/CollectHistoryTest.php` and
   `PanelTest::testCollectWritesHistoryAndStatsEndpoint`.
+- The panel's progress cards are a FUNNEL with no repeated number, because «29 904 результата» next to
+  «2 043 сайта» read as a contradiction («а почему результатов в выдаче 29к, а доменов 7к — это
+  уникальных?»): запросов → `results` (every SERP row; one site counts again in each query that found it)
+  → `hosts_total` (how many DISTINCT normalized hosts that is — `Runner` keeps a `$seenHosts` set while
+  collecting, so the number is live, and stores it in `stats['hosts_total']`) → `sites_selected` (after
+  the filters AND the `unique_by=domain` grouping) → `new_domains`, shown ONLY when it differs from
+  `sites_selected` (with `skip_known` on they are always equal — that was one of the duplicate cards).
+  Each card carries a `title` explaining the step. The «Статистика» tab uses the same wording and the
+  same numbers, so the two screens can be compared line by line.
 - `Support\DomainLedger` (runs/domains-base.txt) is a cross-run base of collected registrable
   domains; `Runner` takes an optional ledger + skipKnown to drop already-seen domains (reason
   `seen_before`) and record new ones. A repeat collect with the same queries therefore selects nothing

@@ -174,6 +174,28 @@ final class RunnerTest
         Assert::same([['окна/0'], ['балконы/0']], $batches);
     }
 
+    public function testCountsUniqueHostsSeparatelyFromResults(): void
+    {
+        // Панель сравнивала несравнимое: «результатов в выдаче» (все строки) и «сайтов» (после
+        // фильтров и группировки). Теперь Runner отдельно считает, сколько среди результатов РАЗНЫХ
+        // доменов и поддоменов — это и есть вся масса выдачи.
+        $calls = [];
+        $runner = new Runner($this->config(), $this->fetcher($calls), new XmlResponseParser(), $this->logger());
+        $result = $runner->run(['окна', 'балконы']);
+
+        $hosts = $result->stats['hosts_total'];
+        Assert::true($hosts > 0, 'уникальные домены посчитаны');
+        Assert::true($result->stats['results'] >= $hosts, 'строк выдачи не меньше, чем разных доменов');
+        Assert::true($hosts >= $result->stats['sites_total'], 'после фильтров и группировки сайтов не больше');
+
+        // Считаем именно РАЗНЫЕ хосты: повтор одного сайта в другом запросе число не увеличивает.
+        $seen = [];
+        foreach ($result->raw as $entry) {
+            $seen[\YandexSites\Filter\Domains::normalize($entry['result']->host)] = true;
+        }
+        Assert::same(count($seen), $hosts);
+    }
+
     public function testSelectedCallbackFiresBeforeVisits(): void
     {
         // Статистика сбора наполняется, как только домены отобраны, — не дожидаясь обхода сайтов

@@ -267,7 +267,7 @@
 
   <div class="card tabsec" data-tab="stats">
     <h2>Статистика сборов</h2>
-    <div class="hint">По одной строке на сбор. Считаем от <b>всей массы выдачи</b>: сколько разных доменов вообще встретилось в результатах (включая отсеянные фильтрами — «не тот тип домена» и прочие), сколько из них <b>доров</b> (сайтов на поддоменах) и какая это доля. Рядом — сколько доменов реально отобрано в базу и сколько повторов-доров отсеяно как уже собранные раньше. Зоны считаются <b>по найденным дорам</b>. История хранится в <b>runs/history.json</b> и переживает обновление кода.</div>
+    <div class="hint">По одной строке на сбор, те же понятия, что и на «Главной». <b>Результатов в выдаче</b> — все строки по всем запросам (один сайт считается заново в каждом запросе). <b>Доменов и поддоменов</b> — сколько среди них разных, включая отсеянные фильтрами: это вся масса выдачи, и от неё считается <b>доля доров</b> (сайтов на поддоменах). <b>Отобрано сайтов</b> — что осталось после фильтров и группировки «один сайт на домен». Зоны — <b>по найденным дорам</b>. История хранится в <b>runs/history.json</b> и переживает обновление кода.</div>
     <div class="statgrid" id="statTotals"></div>
     <div class="hint" id="statZones" style="margin-bottom:10px"></div>
     <div class="btns" style="margin-bottom:10px;align-items:center">
@@ -275,8 +275,8 @@
       <a class="btn-ghost" id="statCsv" href="/download?file=history" title="Скачать историю сборов таблицей для Excel">Скачать CSV</a>
     </div>
     <div style="overflow-x:auto"><table id="statTable"><thead><tr>
-      <th>Дата</th><th>Доменов в выдаче</th><th>Доров из них</th><th>Доля доров</th>
-      <th>Отобрано в базу</th><th>Повторов доров</th><th>Зоны доров</th><th>Всего в базе</th>
+      <th>Дата</th><th>Результатов в выдаче</th><th>Доменов и поддоменов</th><th>Доров из них</th><th>Доля доров</th>
+      <th>Отобрано сайтов</th><th>Повторов доров</th><th>Зоны доров</th><th>Всего в базе</th>
     </tr></thead><tbody id="statBody"></tbody></table></div>
     <div class="hint" id="statEmpty" hidden>Истории пока нет — она появится после первого сбора на этой версии.</div>
   </div>
@@ -378,10 +378,11 @@ async function loadStats(){
   const t=(data && data.totals) || {};
   const totals=$('statTotals');
   if(totals){
-    totals.innerHTML = statBox(t.found|0,'доменов в выдаче')
+    totals.innerHTML = statBox(t.results|0,'результатов в выдаче')
+      + statBox(t.found|0,'доменов и поддоменов')
       + statBox(t.found_doors|0,'из них доров')
       + statBox(pct(t.doors_percent),'доля доров')
-      + statBox(t.sites|0,'отобрано в базу')
+      + statBox(t.sites|0,'отобрано сайтов')
       + statBox(t.repeats_doors|0,'повторов доров')
       + statBox(t.base_domains|0,'доменов в базе')
       + statBox(t.runs|0,'сборов');
@@ -403,7 +404,8 @@ async function loadStats(){
       const foundCell = found>0 ? `<b>${found}</b>` : '<span class="muted">—</span>';
       const doorsCell = found>0 ? `${foundDoors}` : `${doors}`;
       const sitesCell = `<span title="Из них доров: ${doors}">${sites}</span>`;
-      return `<tr><td>${human}${marks}</td><td>${foundCell}</td><td>${doorsCell}</td><td>${share}</td>`
+      const resCell = (r.results|0)>0 ? `${r.results|0}` : '<span class="muted">—</span>';
+      return `<tr><td>${human}${marks}</td><td>${resCell}</td><td>${foundCell}</td><td>${doorsCell}</td><td>${share}</td>`
         + `<td>${sitesCell}</td><td>${rep}</td><td class="host">${zonesHtml(r.zones,6)}</td><td>${r.base_domains|0}</td></tr>`;
     }).join('');
   }
@@ -694,14 +696,19 @@ function renderStatus(st, running, stopping){
   else if(st.state==='done'){ pct=100; }
   $('barFill').style.width=pct+'%';
 
+  // Воронка сбора без повторов одного и того же числа: строки выдачи → сколько это разных доменов
+  // и поддоменов → сколько прошло фильтры и дедуп → сколько из них новых для базы.
   const cells=[];
-  const push=(b,s)=>cells.push(`<div class="stat"><b>${b}</b><span>${s}</span></div>`);
+  const push=(b,s,t)=>cells.push(`<div class="stat"${t?` title="${t}"`:''}><b>${b}</b><span>${s}</span></div>`);
   push((st.queries_done||0)+' / '+(st.queries_total||stats.queries||'?'),'запросов');
-  push(st.results ?? stats.results ?? 0,'результатов в выдаче');
-  push(st.sites_total ?? stats.sites_total ?? 0,'сайтов найдено');
-  push(st.sites_selected ?? stats.sites_selected ?? 0,'новых отобрано');
-  const nd = st.new_domains ?? stats.new_domains; if(nd!=null) push(nd,'новых доменов в базу');
-  if(stats.cache_hits!=null) push(stats.cache_hits+' / '+((stats.cache_hits||0)+(stats.cache_misses||0)),'ответов из кэша выдачи');
+  push(st.results ?? stats.results ?? 0,'результатов в выдаче','Все строки выдачи по всем запросам и страницам. Один и тот же сайт считается заново в каждом запросе, где он встретился');
+  const hosts = st.hosts_total ?? stats.hosts_total;
+  if(hosts!=null) push(hosts,'доменов и поддоменов','Сколько среди этих результатов РАЗНЫХ доменов и поддоменов (www не считается отдельным). Это и есть вся масса выдачи — от неё статистика считает долю доров');
+  const selected = st.sites_selected ?? stats.sites_selected ?? 0;
+  push(selected,'отобрано сайтов','Осталось после фильтров (зоны, тип домена, исключения, позиция) и группировки: при галочке «один сайт на домен» поддомены одного домена сводятся в один сайт');
+  const nd = st.new_domains ?? stats.new_domains;
+  if(nd!=null && nd!==selected) push(nd,'из них новых в базу','Сколько отобранных доменов записалось в базу пересечений (остальные уже были в ней)');
+  if(stats.cache_hits!=null) push(stats.cache_hits+' / '+((stats.cache_hits||0)+(stats.cache_misses||0)),'ответов из кэша выдачи','Ответы источника на те же запросы за последний час берутся из кэша — новых обращений к источнику по ним не было');
   if(v && v.total) push((v.done||0)+' / '+v.total,'страниц открыто');
   $('stats').innerHTML=cells.join('');
 
