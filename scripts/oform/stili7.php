@@ -56,14 +56,16 @@ function v7Слоты(array $т, string $sc): string {
         return "
 $sc .slots-grid{display:grid;gap:10px}
 $sc .slot-card{background:var(--карта);border:1px solid var(--рам);border-radius:var(--r2)}
-$sc .slot-card-inner{display:grid;grid-template-columns:64px 1fr auto;gap:14px;align-items:center;padding:10px 14px}
+$sc .slot-card-inner{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;padding:10px 14px}
+$sc .slot-poster{flex:0 0 64px}
+$sc .slot-info{flex:1 1 120px;min-width:0}
+$sc .slot-footer{flex:0 0 auto;margin-left:auto}
 $sc .slot-poster{position:relative;height:52px;border-radius:var(--r2);overflow:hidden;background:linear-gradient(135deg,$а,$б)}
 $sc .slot-poster img{width:100%;height:100%;object-fit:cover;display:block}
 $sc .slot-poster-fallback{display:flex;align-items:center;justify-content:center;height:100%;font-size:22px}
 $sc .slot-fallback-name{display:none}
 $sc .slot-badge{position:absolute;inset:auto 0 0 0;font-size:9px;text-align:center;background:#0009;color:#fff;letter-spacing:.06em}
-$sc .slot-info{min-width:0}
-$sc .slot-name{margin:0;font-size:1rem;border:0;padding:0}
+$sc .slot-name{margin:0;font-size:1rem;border:0;padding:0;overflow-wrap:anywhere}
 $sc .slot-provider{font-size:.8rem;color:var(--тус)}
 $sc .slot-footer{display:flex;gap:14px;align-items:center}
 $sc .slot-rtp{font-size:.82rem;color:var(--тус);white-space:nowrap}
@@ -90,7 +92,7 @@ $sc .slot-badge{position:absolute;top:8px;right:8px;font-size:.64rem;letter-spac
 $sc .slot-badge-high{background:$а;color:$на}
 $sc .slot-badge-medium{background:#0009;color:#fff}
 $sc .slot-info{padding:12px 13px 4px}
-$sc .slot-name{margin:0 0 3px;font-size:.98rem;border:0;padding:0}
+$sc .slot-name{margin:0 0 3px;font-size:.98rem;border:0;padding:0;overflow-wrap:anywhere}
 $sc .slot-provider{font-size:.78rem;color:var(--тус)}
 $sc .slot-footer{margin-top:auto;padding:10px 13px 13px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
 $sc .slot-rtp{font-size:.78rem;color:var(--тус);white-space:nowrap}
@@ -263,17 +265,17 @@ function v7Структура(array $т, string $sc): string {
     $кнопка = "display:inline-block;padding:10px 20px;border-radius:999px;font-weight:600;font-size:.92rem;border:1px solid $а;background:$а;color:$на";
     $только = ":has(>a):not(:has(>:not(a)))";
     return "
-$sc section,$sc aside{background:var(--карта);border:1px solid var(--рам);border-radius:var(--r);padding:clamp(16px,2.6vw,26px)}
-$sc section>p:first-child{font-size:1.05rem;color:var(--тус)}
-$sc article{background:var(--карта2);border:1px solid var(--рам);border-radius:var(--r2);padding:14px}
-$sc div:has(>article+article){display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px}
-$sc div$только{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 16px}
-$sc div$только>a{ $кнопка}
-$sc div$только>a:nth-child(2){background:transparent;color:$а}
+$sc section:not([class]),$sc aside:not([class]){background:var(--карта);border:1px solid var(--рам);border-radius:var(--r);padding:clamp(16px,2.6vw,26px)}
+$sc section:not([class])>p:first-child{font-size:1.05rem;color:var(--тус)}
+$sc article:not([class]){background:var(--карта2);border:1px solid var(--рам);border-radius:var(--r2);padding:14px}
+$sc div:not([class]):has(>article+article){display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px}
+$sc div:not([class])$только{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 16px}
+$sc div:not([class])$только>a{ $кнопка}
+$sc div:not([class])$только>a:nth-child(2){background:transparent;color:$а}
 $sc button{background:var(--карта2);border:1px solid var(--рам);color:var(--тус);padding:7px 14px;border-radius:999px;font:inherit;font-size:.84rem}
-$sc div:has(>button+button){display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
-$sc div:has(>span+span){display:flex;flex-wrap:wrap;gap:8px;align-items:baseline}
-$sc article h3{margin-top:0}
+$sc div:not([class]):has(>button+button){display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+$sc div:not([class]):has(>span+span){display:flex;flex-wrap:wrap;gap:8px;align-items:baseline}
+$sc article:not([class]) h3{margin-top:0}
 ";
 }
 
