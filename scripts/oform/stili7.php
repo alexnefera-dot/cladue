@@ -105,10 +105,14 @@ function v7CSS(array $т, string $sc): string {
     [$шзаг, $штек] = v7Шрифт($т['шрифт']);
     $а = $т['акцент']; $на = $т['наАкценте']; $б = $т['акцент2'];
     $карточка = "background:var(--карта);border:1px solid var(--рам);border-radius:var(--r)";
+    $карта = ".hero-value,.slots-dashboard,.jackpot-strip,.payout-feed,.faq-section,"
+           . ".review-quotes-block,.page-thematic-block,.info-block,.slot-card,.faq-item,"
+           . ".jackpot-cell,.payout-row-normal,.stats-grid,.slots-tab";
+
     $css = "
 $sc{--акц:$а;--акц2:$б;--мяг:{$т['мягкий']};--фон:{$т['фон']};--карта:{$т['карта']};--карта2:{$т['карта2']};
 --тек:{$т['текст']};--тус:{$т['тускло']};--рам:{$т['рамка']};--r:$рад;--r2:$рад2;
-background:var(--фон);color:var(--тек);border-radius:var(--r);padding:clamp(16px,2.6vw,30px);
+background:var(--фон);color:var(--тек);border-radius:var(--r);padding:clamp(16px,2.6vw,30px);overflow-wrap:break-word;
 font:400 16px/1.68 $штек;text-align:left}
 $sc *,$sc *::before,$sc *::after{box-sizing:border-box}
 $sc>*+*{margin-top:24px}
@@ -246,8 +250,12 @@ $sc .k7-fon .ql-meta,$sc .k7-fon .value-pillar-desc,$sc .k7-fon .slots-dashboard
 $sc .k7-fon .hero-badge{background:#ffffff26;color:#fff}
 $sc .k7-fon .btn-apple-secondary,$sc .k7-fon .slot-play-btn{color:#fff;border-color:#ffffff66;background:#ffffff1f}
 $sc .k7-fon p,$sc .k7-fon .hero-tagline{color:#e7e9f2}
-$sc .k7-fon .slot-card,$sc .k7-fon .slot-name,$sc .k7-fon .faq-question{color:var(--тек)}
-$sc .k7-fon .slot-provider,$sc .k7-fon .slot-rtp,$sc .k7-fon .faq-answer,$sc .k7-fon .review-quote-text{color:var(--тус)}
+/* Блоки со своей подложкой внутри секции с картинкой: белый текст на светлой карточке
+   не читается, поэтому им возвращаются цвета темы. $карта — список таких блоков. */
+$sc .k7-fon :is($карта){color:var(--тек)}
+$sc .k7-fon :is($карта) :is(p,h2,h3,h4,li,td,th,span,div,summary,strong,em,b,i){color:inherit}
+$sc .k7-fon :is($карта) :is(.slot-provider,.slot-rtp,.faq-answer,.review-quote-text,.slots-dashboard-subtitle,.jackpot-cell-name,.payout-row-slot,.payout-row-time,.payout-row-sep,.stat-label){color:var(--тус)}
+$sc .k7-fon :is($карта) :is(.slot-rtp-value,.jackpot-cell-amount,.payout-row-amount,.stat-value,a){color:$а}
 $sc .k7-fon .slot-play-btn{color:$на;border-color:$а;background:$а}
 
 @media (max-width:760px){
