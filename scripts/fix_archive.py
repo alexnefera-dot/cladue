@@ -29,8 +29,8 @@ import sys
 from collections import Counter
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from check_archive import (ALLOWED_TAGS, GENERIC_DOMAINS, LATIN_WHITELIST,  # noqa: E402
-                           VOID_TAGS, brand_candidates)
+from check_archive import (ALLOWED_TAGS, CYR_WHITELIST, GENERIC_DOMAINS,  # noqa: E402
+                           LATIN_WHITELIST, VOID_TAGS, brand_candidates)
 
 NAMES = ("Олег Пётр Петр Дмитрий Марат Георгий Юрий Эдуард Евгений Роман Михаил Валерий Фёдор Федор Иван "
          "Андрей Сергей Алексей Николай Павел Максим Артём Артем Кирилл Виктор Илья Денис Антон Станислав "
@@ -85,15 +85,17 @@ def fill_vars(raw, page, seed):
     return "".join(out), rows
 
 
-ХВОСТ_БРЕНДА = re.compile(r'(%brand_name_(?:ru|en)%)\s+([A-Z][A-Za-z]{2,})\b')
+ХВОСТ_БРЕНДА = re.compile(r'(%brand_name_(?:ru|en)%)\s+([A-Z][A-Za-z]{2,}|[А-ЯЁ][А-Яа-яЁё]{2,})\b')
 
 
 def fix_brand_tail(raw):
-    """Второе слово чужого бренда: «%brand_name_ru% World» — автоопределение взяло только первое."""
+    """Второе слово чужого бренда: «%brand_name_ru% World», «%brand_name_ru% Бир»."""
     счёт = [0]
 
     def снять(m):
-        if m.group(2).lower() in LATIN_WHITELIST:
+        слово = m.group(2)
+        свой = LATIN_WHITELIST if слово[0] < "А" else CYR_WHITELIST
+        if слово.lower() in свой:
             return m.group(0)
         счёт[0] += 1
         return m.group(1)
