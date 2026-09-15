@@ -180,8 +180,7 @@ kogk.team
 2198.lol
 casinoz1.lol
 
-## content-2026-09-15-7str-oform-2_27…_46 — id 2951-2970, создан 15.09 17:53 — новая дата контента, нет _1…_26 (2925-2950)
-# ПРИМЕЧАНИЕ: разрыв id 2872-2924 — партия между nabory-555-564 и этой группой не присылалась
+## content-2026-09-15-7str-oform-2_1…_46 — id 2925-2970, создан 15.09 17:53 — ГРУППА ПОЛНАЯ, новая дата контента
 5202.team
 2473.lol
 casinoja.team
@@ -202,3 +201,36 @@ dsrt.team
 713casino.team
 8095.team
 8618.team
+2063.team
+8057.team
+gwrt.team
+6874.team
+casino716.lol
+gvgcasino.team
+lmlx.lol
+y6u3.lol
+nywv.lol
+3616.lol
+7966.lol
+ccrcasino.lol
+74casino.lol
+6408.team
+ozts.lol
+w7o3.team
+wxvb.team
+casinoc8.team
+k6r.team
+3152.team
+669casino.lol
+0318.team
+3665.lol
+3472.team
+m9h6.team
+b6t.lol
+
+## content-2026-09-15-7str-oform-1_47…_50 — id 2921-2924, создан 15.09 17:52 — ТОЛЬКО ХВОСТ, нет _1…_46 (2875-2920)
+# ПРИМЕЧАНИЕ: остаток разрыва — id 2872-2874, три идентификатора, группа неизвестна
+2245.team
+0305.lol
+5155.team
+2557.team
