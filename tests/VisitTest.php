@@ -21,7 +21,7 @@ use YandexSites\Visit\VisitJob;
  */
 final class VisitTest
 {
-    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'agegate.ru', 'ourtpl.ru', 'brand-a.tpl.ru', 'brand-b.tpl.ru', 'footeronly.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru', 'softsite.ru', 'duptest.ru', 'localeretry.ru', 'brandnet.ru', 'kush.brandnet.ru', 'namedup.ru', 'bigpage.ru', 'tpl7.ru', 'tpl12.ru'];
+    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'agegate.ru', 'ourtpl.ru', 'brand-a.tpl.ru', 'brand-b.tpl.ru', 'footeronly.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru', 'softsite.ru', 'duptest.ru', 'localeretry.ru', 'brandnet.ru', 'kush.brandnet.ru', 'namedup.ru', 'bigpage.ru', 'tpl7.ru', 'tpl12.ru', 'botblock.ru'];
 
     private ?string $dir = null;
 
@@ -1018,6 +1018,89 @@ final class VisitTest
 
         Assert::false($results['d']['ok']);
         Assert::true($results['d']['error'] !== '');
+    }
+
+    public function testBlockedBotIsRetriedUnderBrowserUserAgent(): void
+    {
+        // Сайт с «хитрым фильтром»: роботу поисковика отдаёт 403 с заглушкой Cloudflare, браузеру —
+        // обычную страницу. Повтор идёт под браузерным агентом, и страница всё-таки скачивается.
+        $port = FakeServer::port();
+        $dir = $this->dir() . '/botblock';
+        $site = new Site('botblock.ru', 'botblock.ru', 'botblock.ru');
+        $site->add(new SearchResult('казино', 0, 1, "http://botblock.ru:$port/", 'botblock.ru', 'BB'));
+
+        $visitor = new PageVisitor([
+            'crawl' => true,
+            'max_pages' => 3,
+            'target' => 'found',
+            'dir' => $dir,
+            'screenshot' => false,
+            'similarity' => 0.9,
+            'timeout' => 5,
+            'delay_ms' => 0,
+            'concurrency' => 3,
+            'retries' => 2,
+            'resolve' => $this->resolve($port),
+            'user_agents' => UserAgents::VISITORS,
+        ], new CurlDriver(), $this->logger());
+        $visitor->visit(['botblock.ru' => $site]);
+
+        $home = null;
+        foreach ($site->visits as $v) {
+            if (str_ends_with((string) ($v['html_file'] ?? ''), 'main.html') || ($v['variant'] ?? null) === 0) {
+                $home = $v;
+                break;
+            }
+        }
+        Assert::true($home !== null, 'главная посещена');
+        Assert::true($home['ok'] ?? false, 'страница скачана под браузером: ' . (string) ($home['error'] ?? ''));
+        Assert::false(UserAgents::isBot((string) ($home['user_agent'] ?? '')), 'сохранён браузерный User-Agent, а не робот');
+        Assert::contains('Только для браузера', (string) file_get_contents((string) $home['html_file']));
+        // Агент, которым открылась главная, используется и для остальных страниц сайта, поэтому
+        // под браузером считаются ВСЕ открытые страницы, а не только главная.
+        $opened = 0;
+        foreach ($site->visits as $v) {
+            if ($v['ok'] ?? false) {
+                $opened++;
+            }
+        }
+        Assert::true($opened > 1, 'внутренние страницы тоже открыты: ' . $opened);
+        Assert::same($opened, PageVisitor::openedAsBrowser($site->visits), 'все открытые страницы — под браузером');
+    }
+
+    public function testRetryUserAgentsCanBeDisabled(): void
+    {
+        // visit.retry_user_agents=false — ходим одним агентом: сайт, закрытый от робота, остаётся закрытым.
+        $port = FakeServer::port();
+        $dir = $this->dir() . '/botblock-off';
+        $site = new Site('botblock.ru', 'botblock.ru', 'botblock.ru');
+        $site->add(new SearchResult('казино', 0, 1, "http://botblock.ru:$port/", 'botblock.ru', 'BB'));
+
+        $visitor = new PageVisitor([
+            'crawl' => true,
+            'max_pages' => 3,
+            'target' => 'found',
+            'dir' => $dir,
+            'screenshot' => false,
+            'similarity' => 0.9,
+            'timeout' => 5,
+            'delay_ms' => 0,
+            'concurrency' => 3,
+            'retries' => 1,
+            'retry_user_agents' => false,
+            'resolve' => $this->resolve($port),
+            'user_agents' => UserAgents::VISITORS,
+        ], new CurlDriver(), $this->logger());
+        $visitor->visit(['botblock.ru' => $site]);
+
+        $ok = 0;
+        foreach ($site->visits as $v) {
+            if ($v['ok'] ?? false) {
+                $ok++;
+            }
+        }
+        Assert::same(0, $ok, 'без перебора агентов сайт так и не открылся');
+        Assert::same(0, PageVisitor::openedAsBrowser($site->visits));
     }
 
     public function tearDownClass(): void

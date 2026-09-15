@@ -22,6 +22,9 @@ final class PageVisitor
     /** @var list<string> */
     private array $userAgents;
 
+    /** @var list<string> браузерные агенты для повторов: ими приходим, когда сайт не пустил робота */
+    private array $retryAgents;
+
     private OwnSites $ownSites;
 
     /**
@@ -38,6 +41,9 @@ final class PageVisitor
     ) {
         $agents = array_values(array_filter((array) ($cfg['user_agents'] ?? []), 'is_string'));
         $this->userAgents = $agents !== [] ? $agents : UserAgents::VISITORS;
+        // Перебор агентов при повторе (visit.retry_user_agents, по умолчанию включён): пустой список
+        // значит «не менять агент», иначе это браузеры из того же visit.user_agents.
+        $this->retryAgents = ($cfg['retry_user_agents'] ?? true) ? UserAgents::browsersFrom($this->userAgents) : [];
         $this->ownSites = new OwnSites(array_values(array_filter((array) ($cfg['own_markers'] ?? []), 'is_string')));
     }
 
@@ -154,8 +160,10 @@ final class PageVisitor
         $visit = [
             'variant' => $job->variant,
             'url' => $job->url,
-            'proxy' => $job->proxyLabel,
-            'user_agent' => $job->userAgent,
+            // Прокси и агент ПОСЛЕДНЕЙ попытки: если страницу добыл повтор (другой прокси, браузерный
+            // агент), в отчёте должен стоять он, а не отказавший первый заход.
+            'proxy' => (string) ($result['retry_proxy'] ?? $job->proxyLabel),
+            'user_agent' => (string) ($result['retry_user_agent'] ?? $job->userAgent),
             'ok' => (bool) $result['ok'],
             'error' => (string) ($result['error'] ?? ''),
             'status' => $result['status'] ?? null,
@@ -263,7 +271,9 @@ final class PageVisitor
                 variant: count($state[$key]['names']),
                 url: $url,
                 referer: $referer,
-                userAgent: $ua,
+                // Агент сайта: обычно робот Яндекса, но если главная открылась только под браузером,
+                // остальные страницы сразу идут под ним — не тратим попытку на заведомый отказ.
+                userAgent: $state[$key]['ua'] ?? $ua,
                 proxyUrl: $proxy?->url,
                 proxyLabel: $proxy?->label ?? 'direct',
                 htmlFile: $prefix . '.html',
@@ -292,7 +302,7 @@ final class PageVisitor
             $url = ($this->cfg['target'] ?? 'found') === 'found' && $site->bestUrl !== '' ? $site->bestUrl : 'https://' . $site->host . '/';
             // urls — уже открытые адреса (в каноничном виде), чтобы не качать одну страницу дважды.
             // Кроме входного адреса помечаем и корень «/»: ссылка меню на главную не должна дать second main-2.
-            $state[$key] = ['names' => [], 'texts' => [], 'links' => [], 'urls' => [
+            $state[$key] = ['names' => [], 'texts' => [], 'links' => [], 'ua' => $ua, 'urls' => [
                 SiteLinks::canonical($url) => true,
                 SiteLinks::canonical($this->rootUrl($url)) => true,
             ]];
@@ -317,6 +327,9 @@ final class PageVisitor
                 continue;
             }
             if (($visit['ok'] ?? false) && is_file($job->htmlFile)) {
+                // Агент, которым главная реально открылась (повтор мог смениться на браузерный) —
+                // с ним идём и по остальным страницам этого сайта.
+                $state[$key]['ua'] = (string) ($visit['user_agent'] ?? $state[$key]['ua']);
                 $html = $this->readHtml($job->htmlFile);
                 // Адрес главной ПОСЛЕ редиректов: если apex увёл на бренд-поддомен
                 // (casinozsd.buzz → kush.casinozsd.buzz), меню и его ссылки живут уже на нём —
@@ -416,7 +429,6 @@ final class PageVisitor
         $dir = rtrim((string) ($this->cfg['dir'] ?? 'out/pages'), '/\\');
         $threshold = (float) ($this->cfg['similarity'] ?? 0.9);
         $options = $this->driverOptions();
-        $ua = $this->userAgents[0];
         $proxies = $this->proxyList();
         $proxyIndex = 0;
         $iterations = max(3, (int) ($this->cfg['retries'] ?? 2) + 2);
@@ -438,8 +450,13 @@ final class PageVisitor
             $usedNames = [];
             $texts = [];
             $failed = [];
+            $siteUa = ''; // агент, которым страницы этого сайта уже открывались (если не робот)
             foreach ($site->visits as $i => $v) {
                 if ($v['ok'] ?? false) {
+                    $ok = (string) ($v['user_agent'] ?? '');
+                    if ($ok !== '' && !UserAgents::isBot($ok)) {
+                        $siteUa = $ok;
+                    }
                     $base = pathinfo((string) ($v['html_file'] ?? ''), PATHINFO_FILENAME);
                     if ($base !== '') {
                         $usedNames[$base] = true;
@@ -509,13 +526,17 @@ final class PageVisitor
                 }
                 continue;
             }
-            $state[$key] = ['site' => $site, 'slots' => $slots, 'texts' => $texts, 'pending' => array_keys($slots)];
+            $state[$key] = ['site' => $site, 'slots' => $slots, 'texts' => $texts, 'ua' => $siteUa, 'pending' => array_keys($slots)];
         }
 
         // Этап 2 — попытки: ОДИН заход драйвера на все сайты сразу. Раньше каждый сайт добирался
         // отдельным заходом, а значит и отдельным запуском браузера — на сотне сайтов только запуски
         // Chromium съедали больше времени, чем сама загрузка страниц.
         for ($it = 0; $it < $iterations; $it++) {
+            // Первый заход — как при обходе (робот Яндекса, другой прокси и таймаут), дальше приходим
+            // браузером: если сайт закрыт именно от робота, под обычным агентом страница отдаётся.
+            $ua = $it === 0 ? $this->userAgents[0] : $this->retryUserAgent($this->userAgents[0], $it);
+            $asBrowser = !UserAgents::isBot($ua);
             $jobs = [];
             $jobMap = [];
             foreach ($state as $key => $st) {
@@ -523,13 +544,17 @@ final class PageVisitor
                     $candidates = $st['slots'][$i]['candidates'];
                     $url = $candidates[$it % count($candidates)];
                     $proxy = $proxies !== [] ? $proxies[$proxyIndex++ % count($proxies)] : null;
+                    // Если остальные страницы этого сайта открылись только под браузером, первым же
+                    // заходом идём под ним: роботу сайт всё равно откажет.
+                    $jobUa = ($it === 0 && $st['ua'] !== '') ? $st['ua'] : $ua;
+                    $asBrowser = $asBrowser || !UserAgents::isBot($jobUa);
                     $job = new VisitJob(
                         id: $key . "\t" . $st['slots'][$i]['name'] . "\t" . $it,
                         siteKey: (string) $key,
                         variant: is_int($i) ? $i : count($st['site']->visits),
                         url: $url,
                         referer: $this->referer($st['site']),
-                        userAgent: $ua,
+                        userAgent: $jobUa,
                         proxyUrl: $proxy?->url,
                         proxyLabel: $proxy?->label ?? 'direct',
                         htmlFile: $st['slots'][$i]['prefix'] . '.html',
@@ -545,11 +570,12 @@ final class PageVisitor
             $opts = $options;
             $opts['timeout'] = $baseTimeout + 15 * $it;
             $this->log->info(sprintf(
-                'Докачка, попытка %d из %d: %d стр. на %d сайтах через другие прокси…',
+                'Докачка, попытка %d из %d: %d стр. на %d сайтах через другие прокси%s…',
                 $it + 1,
                 $iterations,
                 count($jobs),
                 count($state),
+                $asBrowser ? ' под браузером' : '',
             ));
             $results = $this->driver->visit($jobs, $opts, $silent);
             foreach ($jobs as $job) {
@@ -592,6 +618,26 @@ final class PageVisitor
         $this->logSiteSummary($sites);
 
         return ['attempted' => $attempted, 'recovered' => $recovered];
+    }
+
+    /**
+     * Сколько страниц сайта открылись только под браузерным агентом: робота Яндекса сайт не пустил,
+     * и страница пришла лишь на повторе. По этому числу видно сайты с «хитрым фильтром».
+     *
+     * @param array<int, array<string, mixed>> $visits
+     */
+    public static function openedAsBrowser(array $visits): int
+    {
+        $n = 0;
+        foreach ($visits as $visit) {
+            $visit = (array) $visit;
+            $ua = (string) ($visit['user_agent'] ?? '');
+            if (($visit['ok'] ?? false) && $ua !== '' && !UserAgents::isBot($ua)) {
+                $n++;
+            }
+        }
+
+        return $n;
     }
 
     /**
@@ -978,6 +1024,19 @@ final class PageVisitor
         if ($types !== '') {
             $this->log->info('Итого по типу вёрстки: ' . $types);
         }
+        // Сайты с фильтром по User-Agent: робота не пустили, страницы пришли только под браузером.
+        $uaPages = 0;
+        $uaSites = 0;
+        foreach ($sites as $site) {
+            $n = self::openedAsBrowser($site->visits);
+            if ($n > 0) {
+                $uaPages += $n;
+                $uaSites++;
+            }
+        }
+        if ($uaSites > 0) {
+            $this->log->info(sprintf('Под браузером (робота не пустили): %d стр. на %d сайтах', $uaPages, $uaSites));
+        }
     }
 
     /**
@@ -1008,9 +1067,12 @@ final class PageVisitor
         };
         for ($attempt = 1; $attempt <= $retries; $attempt++) {
             $retry = [];
+            $asBrowser = false;
             foreach ($jobs as $job) {
                 if ($this->isRetryable($results[$job->id] ?? [], $job)) {
-                    $retry[] = $this->withProxy($job, $this->pickRetryProxy($proxies, $job->proxyLabel, $proxyIndex));
+                    $ua = $this->retryUserAgent($job->userAgent, $attempt);
+                    $asBrowser = $asBrowser || $ua !== $job->userAgent;
+                    $retry[] = $this->withRetry($job, $this->pickRetryProxy($proxies, $job->proxyLabel, $proxyIndex), $ua);
                 }
             }
             if ($retry === []) {
@@ -1019,13 +1081,25 @@ final class PageVisitor
             $opts = $options;
             $opts['timeout'] = (int) ($options['timeout'] ?? (int) ($this->cfg['timeout'] ?? 30)) + 20 * $attempt;
             $this->log->info(sprintf(
-                'Повтор загрузки (попытка %d из %d): %d стр. через другой прокси, таймаут %d с…',
+                'Повтор загрузки (попытка %d из %d): %d стр. через другой прокси%s, таймаут %d с…',
                 $attempt,
                 $retries,
                 count($retry),
+                $asBrowser ? ' и под браузером (робота не пустили)' : '',
                 $opts['timeout'],
             ));
+            // Кто именно сходил на страницу в этот раз: прокси и агент повтора. Визит собирается по
+            // ИСХОДНОМУ заданию, поэтому без этих полей в отчёте остался бы первый (отказавший) агент.
+            $byId = [];
+            foreach ($retry as $job) {
+                $byId[$job->id] = $job;
+            }
             foreach ($this->driver->visit($retry, $opts, $silent) as $id => $result) {
+                $job = $byId[$id] ?? null;
+                if ($job !== null) {
+                    $result['retry_proxy'] = $job->proxyLabel;
+                    $result['retry_user_agent'] = $job->userAgent;
+                }
                 $results[$id] = $result;
             }
         }
@@ -1106,7 +1180,28 @@ final class PageVisitor
         return $proxies[$index++ % $count]; // другого прокси нет — пробуем тем же, но с большим таймаутом
     }
 
-    private function withProxy(VisitJob $job, ?Proxy $proxy): VisitJob
+    /**
+     * User-Agent для повторной попытки. Часть сайтов отдаёт 403/антибот-заглушку именно роботу
+     * поисковика, под которым мы ходим по умолчанию (по нему видно страницу такой, какой её получает
+     * Яндекс). Поэтому повтор идёт «обычным посетителем»: номер попытки выбирает браузер из списка,
+     * так что вторая попытка пробует уже другой. Выключается настройкой visit.retry_user_agents.
+     */
+    private function retryUserAgent(string $current, int $attempt): string
+    {
+        if ($this->retryAgents === []) {
+            return $current;
+        }
+        $count = count($this->retryAgents);
+        $ua = $this->retryAgents[max(0, $attempt - 1) % $count];
+        if ($ua === $current && $count > 1) {
+            $ua = $this->retryAgents[$attempt % $count]; // тем же агентом повторять смысла нет
+        }
+
+        return $ua;
+    }
+
+    /** Та же страница, но другим «посетителем»: другой прокси и, если включён перебор, другой агент. */
+    private function withRetry(VisitJob $job, ?Proxy $proxy, string $userAgent): VisitJob
     {
         return new VisitJob(
             id: $job->id,
@@ -1114,7 +1209,7 @@ final class PageVisitor
             variant: $job->variant,
             url: $job->url,
             referer: $job->referer,
-            userAgent: $job->userAgent,
+            userAgent: $userAgent,
             proxyUrl: $proxy?->url,
             proxyLabel: $proxy?->label ?? 'direct',
             htmlFile: $job->htmlFile,

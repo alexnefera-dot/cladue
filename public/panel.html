@@ -702,7 +702,9 @@ function detailRowHtml(s){
       if(p.screenshot) f.push(`<a href="/file?path=${encodeURIComponent(p.screenshot)}" target="_blank" rel="noopener">фото</a>`);
       const u=esc(p.url||'');
       const err=p.ok?'':`<div class="muted">${esc(p.error||'')}</div>`;
-      return `<tr><td><a href="${u}" target="_blank" rel="noopener">${u}</a>${err}</td><td class="st">${f.join(' · ')}</td></tr>`;
+      // Страница открылась только под браузером — сайт закрыт от робота поисковика.
+      const ua=p.as_browser?' <span class="tag" title="Робот поисковика получил отказ — страницу взяли под обычным браузером">под браузером</span>':'';
+      return `<tr><td><a href="${u}" target="_blank" rel="noopener">${u}</a>${ua}${err}</td><td class="st">${f.join(' · ')}</td></tr>`;
     };
     const section=(title,cls,list)=> list.length?`<div class="pg-sec"><div class="pg-h ${cls}">${title} · ${list.length}</div><table class="subtable"><tbody>${list.map(rowHtml).join('')}</tbody></table></div>`:'';
     inner = section('Скачано','pg-ok',groups.ok)
@@ -806,6 +808,10 @@ function updateStats(visible){
       // Чего не хватает: ключевые страницы, на которые ссылается контент.
       const kc=keyCounts(visible);
       if(kc.sites) t+=` · не хватает страниц у ${kc.sites} сайтов: `+Object.keys(kc.byKey).sort((a,b)=>kc.byKey[b]-kc.byKey[a]).map(k=>`${KEY_LABELS[k]||k} — ${kc.byKey[k]}`).join(', ');
+      // Сайты с фильтром по User-Agent: робота не пустили, страницы взяли под браузером.
+      let uaSites=0, uaPages=0;
+      visible.forEach(s=>{ const n=s.pages_browser|0; if(n>0){ uaSites++; uaPages+=n; } });
+      if(uaSites) t+=` · под браузером (робота не пустили): ${uaPages} стр. на ${uaSites} сайтах`;
       st.textContent=t;
     }
   }

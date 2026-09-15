@@ -480,6 +480,10 @@ if ($path === '/api/site-pages' && $method === 'POST') {
                 'status' => $v['status'] ?? null,
                 'variant' => $v['variant'] ?? null,
                 'duplicate_of' => (string) ($v['duplicate_of'] ?? ''),
+                // Страница пришла только под браузером — сайт закрыт от робота поисковика.
+                'as_browser' => ($v['ok'] ?? false)
+                    && (string) ($v['user_agent'] ?? '') !== ''
+                    && !\YandexSites\Live\UserAgents::isBot((string) $v['user_agent']),
                 'html' => $rel((string) ($v['html_file'] ?? '')),
                 'screenshot' => $rel((string) ($v['screenshot_file'] ?? '')),
             ];

@@ -34,4 +34,24 @@ final class UserAgents
     {
         return stripos($userAgent, 'yandexbot') !== false;
     }
+
+    /**
+     * Агенты для перебора, когда сайт не пускает: часть сайтов закрыта именно от робота поисковика,
+     * поэтому на повторе приходим «обычным посетителем». Из переданного списка берём НЕ-роботов,
+     * а если таких нет (в настройках оставили только робота) — встроенный список браузеров.
+     *
+     * @param array<int, mixed> $agents
+     * @return list<string>
+     */
+    public static function browsersFrom(array $agents): array
+    {
+        $out = [];
+        foreach ($agents as $agent) {
+            if (is_string($agent) && $agent !== '' && !self::isBot($agent)) {
+                $out[] = $agent;
+            }
+        }
+
+        return $out !== [] ? $out : self::BROWSERS;
+    }
 }

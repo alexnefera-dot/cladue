@@ -229,6 +229,23 @@ Run `php tests/lint.php && php tests/run.php` before committing.
 - Default User-Agent for visits and site checks is `UserAgents::YANDEX_BOT` (the first visit variant
   shows the page as served to Yandex's crawler); additional variants use `UserAgents::BROWSERS`.
   The live SERP fetch always uses browser agents. `--user-agent` overrides visits/checks only.
+  Some sites filter by User-Agent and answer the crawler with 403 / an anti-bot stub, so not even a
+  screenshot comes back («хитрый фильтр» — the user's report). A retry therefore changes the AGENT as
+  well as the proxy: `visit.retry_user_agents` (default true, `Config::defaults()` + `config.example.php`)
+  makes `PageVisitor::retryUserAgent()` pick a browser from `UserAgents::browsersFrom($this->userAgents)`
+  — the attempt number selects it, so a second retry tries a different browser, and a list with no browser
+  (`--user-agent="…YandexBot…"`) falls back to `UserAgents::BROWSERS`. A single pinned browser agent stays
+  untouched (one candidate = the current one). The agent that WORKED is then reused: `crawl()` keeps it per
+  site in `$state[$key]['ua']` (set from the home visit) so the remaining pages skip the doomed first
+  attempt, and `retryFailed()` reads it back from the site's ok visits (`$state[$key]['ua']`) for
+  iteration 0. Because a visit is assembled from the ORIGINAL job, `runWithRetry()` stamps
+  `retry_proxy`/`retry_user_agent` onto the result and `assembleVisit()` prefers them — otherwise the
+  report named the agent and proxy that had just been refused. Reporting: `PageVisitor::openedAsBrowser()`
+  counts ok visits whose UA is not a bot, `SiteRows::preview()` emits `pages_browser`, `/api/site-pages`
+  emits `as_browser` per page, and the panel shows a «под браузером» tag on the page row plus «под браузером
+  (робота не пустили): N стр. на M сайтах» in the stats line, the job message and the log. Covered by
+  `VisitTest::testBlockedBotIsRetriedUnderBrowserUserAgent` / `testRetryUserAgentsCanBeDisabled` against
+  the fake-server host `botblock.ru` (403 + Cloudflare stub for YandexBot, normal page for browsers).
 - New search sources implement `Search\RawFetcherInterface` (+ `ResponseParserInterface` if the
   format is not Yandex.XML); new visit drivers implement `Visit\DriverInterface`.
 - Every new filter rule needs a reason code in `ResultFilter::reject()`, a config default in

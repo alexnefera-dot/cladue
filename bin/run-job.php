@@ -51,6 +51,7 @@ use YandexSites\Support\QueryQueue;
 use YandexSites\Support\RemovedSites;
 use YandexSites\Support\SiteRows;
 use YandexSites\Visit\KeyPages;
+use YandexSites\Visit\PageVisitor;
 use YandexSites\Visit\SiteTemplate;
 
 $settingsFile = null;
@@ -518,6 +519,17 @@ while (true) {
             if ($keyStats !== '') {
                 $logger->info('Не хватает ключевых страниц: ' . $keyStats);
             }
+            // Сайты с фильтром по User-Agent: робота поисковика не пустили, страницы взяли под браузером.
+            $uaPages = 0;
+            $uaSites = 0;
+            foreach ($siteList as $site) {
+                $n = PageVisitor::openedAsBrowser(array_map(static fn ($v): array => (array) $v, $site->visits));
+                if ($n > 0) {
+                    $uaPages += $n;
+                    $uaSites++;
+                }
+            }
+            $uaStats = $uaSites > 0 ? sprintf('%d стр. на %d сайтах', $uaPages, $uaSites) : '';
             $progress->update([
                 'state' => 'done',
                 'phase' => 'done',
@@ -537,7 +549,8 @@ while (true) {
                         ? 'Докачка: нечего добирать — оставшиеся ошибки повтором не чинятся (404 без языкового префикса, дубликаты)'
                         : sprintf('Докачано: добрано %d из %d стр., всего открыто %d', $retryStat['recovered'], $retryStat['attempted'], $opened)))
                     // Разбивка по числу страниц: сколько одностраничников, сколько 9/10-страничников и т.п.
-                    . ($pageStats !== '' ? '; по страницам: ' . $pageStats : ''),
+                    . ($pageStats !== '' ? '; по страницам: ' . $pageStats : '')
+                    . ($uaStats !== '' ? '; под браузером (робота не пустили): ' . $uaStats : ''),
             ], true);
             $logger->info(sprintf('%s завершена: страниц открыто %d%s', $isRetry ? 'Докачка' : 'Выгрузка', $opened, $pageStats !== '' ? '; по страницам: ' . $pageStats : ''));
         } else {

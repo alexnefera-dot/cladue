@@ -477,6 +477,24 @@ switch ($host) {
         }
 
         return;
+    case 'botblock.ru':
+        // Сайт с фильтром по User-Agent: роботу поисковика отдаёт 403 с заглушкой антибота,
+        // обычному браузеру — нормальную страницу с меню. Проверяем перебор агентов на повторе.
+        if (stripos($userAgent, 'yandexbot') !== false) {
+            http_response_code(403);
+            echo '<html><head><title>Attention Required! | Cloudflare</title></head>'
+                . '<body><h1>Sorry, you have been blocked</h1></body></html>';
+
+            return;
+        }
+        $bbWords = [];
+        for ($bb = 0; $bb < 40; $bb++) {
+            $bbWords[] = 'bb' . substr(md5($uri), 0, 8) . $bb;
+        }
+        echo '<html><head><title>Только для браузера</title></head><body>' . $navHtml
+            . '<h1>' . htmlspecialchars($uri) . '</h1><p class="content">' . implode(' ', $bbWords) . '</p></body></html>';
+
+        return;
     case 'variant-site.ru':
         $variant = crc32($userAgent) % 2 === 0 ? 'A' : 'B';
         echo '<html><head><title>Вариант ' . $variant . '</title></head><body><h1>Страница варианта ' . $variant . '</h1><p>' . htmlspecialchars($visitor) . '</p></body></html>';

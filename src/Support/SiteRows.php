@@ -175,6 +175,8 @@ final class SiteRows
                 'key_failed' => $keyFailed,
                 'pages_404' => $notFound,
                 'pages_missing' => $missing,
+                // Страницы, которые открылись только под браузером: робота Яндекса сайт не пустил.
+                'pages_browser' => $own ? 0 : PageVisitor::openedAsBrowser(array_map(static fn ($v): array => (array) $v, $site->visits)),
                 'host' => $data['host'],
                 'domain' => $data['domain'],
                 'url' => $data['url'],
