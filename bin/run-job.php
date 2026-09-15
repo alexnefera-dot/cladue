@@ -676,6 +676,17 @@ while (true) {
             $shown = $keptPrevious ? $previous : $merged;
             $templateHist = SiteTemplate::histogram($shown);
             $templateNote = $templateHist !== [] ? 'По типу вёрстки (по главной): ' . SiteTemplate::histogramText($templateHist) : '';
+            // Сайты, спрятавшие себя за витриной чужих офферов: их уже перепроверили с других IP и
+            // под другими агентами, настоящий сайт так и не показался — в панели их можно убрать пачкой.
+            $offerWalls = 0;
+            foreach ($shown as $site) {
+                if (PageVisitor::isOfferWallSite(array_map(static fn ($v): array => (array) $v, $site->visits))) {
+                    $offerWalls++;
+                }
+            }
+            if ($offerWalls > 0) {
+                $logger->info(sprintf('Подборок офферов вместо сайта: %d (перепроверены с других IP и агентов)', $offerWalls));
+            }
             $progress->update([
                 'state' => $result->aborted ? 'error' : ($result->stopped ? 'stopped' : 'done'),
                 'phase' => $result->stopped ? 'stopped' : 'done',
@@ -706,7 +717,8 @@ while (true) {
                             )
                             : ($queueInfo['left'] > 0 ? sprintf('Обработано %d из %d запросов, осталось %d — «Продолжить сбор». ', $queueInfo['done'], $queueInfo['total'], $queueInfo['left']) : ''))
                         . ($keptPrevious ? 'Ничего нового не отобрано — прошлый список сайтов оставлен, с ним можно продолжать. ' : '')
-                        . $templateNote,
+                        . $templateNote
+                        . ($offerWalls > 0 ? sprintf('; подборок офферов вместо сайта: %d', $offerWalls) : ''),
                     ),
             ], true);
             $logger->info(sprintf(

@@ -177,6 +177,8 @@ final class SiteRows
                 'pages_missing' => $missing,
                 // Страницы, которые открылись только под браузером: робота Яндекса сайт не пустил.
                 'pages_browser' => $own ? 0 : PageVisitor::openedAsBrowser(array_map(static fn ($v): array => (array) $v, $site->visits)),
+                // Сайт показал только витрину чужих офферов — настоящий сайт получить не удалось.
+                'offer_wall' => !$own && PageVisitor::isOfferWallSite(array_map(static fn ($v): array => (array) $v, $site->visits)),
                 'host' => $data['host'],
                 'domain' => $data['domain'],
                 'url' => $data['url'],

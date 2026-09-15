@@ -477,6 +477,33 @@ switch ($host) {
         }
 
         return;
+    case 'offerwall.ru':
+    case 'alwaysoffer.ru':
+        // Клоакинг: вместо сайта показывается витрина чужих офферов. offerwall.ru отдаёт настоящий
+        // сайт браузеру (то есть после смены агента/IP повтор его добирает), alwaysoffer.ru —
+        // витрину всегда, такой сайт помечается «подборка офферов» и убирается пачкой.
+        if ($host === 'alwaysoffer.ru' || stripos($userAgent, 'yandexbot') !== false) {
+            echo '<html><head><title>Бонусы казино</title></head><body>'
+                . '<h1>СТАРЫЕ ПРАВИЛА НОВЫЕ УСЛОВИЯ</h1>'
+                . '<p>В подборке 6 офферов, все проверены. Откройте любой, чтобы увидеть полные условия.</p>'
+                . '<div><span>Ля Casino</span><span>100% На 1-й депозит</span><span>+300 FS</span><a href="/go/1">ЗАБРАТЬ БОНУС</a></div>'
+                . '<div><span>MAD</span><span>455% или 455 FS</span><a href="/go/2">ЗАБРАТЬ БОНУС</a></div>'
+                . '<div><span>PINCO</span><span>БОНУС 120% + 250 FS</span><a href="/go/3">ЗАБРАТЬ БОНУС</a></div>'
+                . '<div><span>7K</span><span>300 000 ₽ 500 FS FREEBET</span><a href="/go/4">ЗАБРАТЬ БОНУС</a></div>'
+                . '<div class="ticker">7K КАЗИНО CASINO — 300 000 ₽ 500 FS FREEBET · ПИНКО КАЗИНО CASINO — БОНУС 120% + 250 FS</div>'
+                . '<footer>18+ Азартные игры являются развлечением. Проверяйте условия бонуса партнёра перед регистрацией.</footer>'
+                . '</body></html>';
+
+            return;
+        }
+        $owWords = [];
+        for ($ow = 0; $ow < 40; $ow++) {
+            $owWords[] = 'ow' . substr(md5($uri), 0, 8) . $ow;
+        }
+        echo '<html><head><title>Настоящий сайт</title></head><body>' . $navHtml
+            . '<h1>' . htmlspecialchars($uri) . '</h1><p class="content">' . implode(' ', $owWords) . '</p></body></html>';
+
+        return;
     case 'botblock.ru':
         // Сайт с фильтром по User-Agent: роботу поисковика отдаёт 403 с заглушкой антибота,
         // обычному браузеру — нормальную страницу с меню. Проверяем перебор агентов на повторе.

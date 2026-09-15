@@ -25,6 +25,9 @@ final class PageVisitor
     /** @var list<string> браузерные агенты для повторов: ими приходим, когда сайт не пустил робота */
     private array $retryAgents;
 
+    /** Распознавать ли витрину чужих офферов вместо сайта (visit.detect_offer_walls). */
+    private bool $detectOfferWalls;
+
     private OwnSites $ownSites;
 
     /**
@@ -44,6 +47,7 @@ final class PageVisitor
         // Перебор агентов при повторе (visit.retry_user_agents, по умолчанию включён): пустой список
         // значит «не менять агент», иначе это браузеры из того же visit.user_agents.
         $this->retryAgents = ($cfg['retry_user_agents'] ?? true) ? UserAgents::browsersFrom($this->userAgents) : [];
+        $this->detectOfferWalls = (bool) ($cfg['detect_offer_walls'] ?? true);
         $this->ownSites = new OwnSites(array_values(array_filter((array) ($cfg['own_markers'] ?? []), 'is_string')));
     }
 
@@ -207,6 +211,20 @@ final class PageVisitor
                 $status = (int) ($visit['status'] ?? 0);
 
                 return array_merge($visit, ['ok' => false, 'error' => 'заблокировано (антибот/Cloudflare' . ($status > 0 ? ", HTTP $status" : '') . ')', 'blocked' => true]);
+            }
+            // Витрина офферов вместо сайта (клоакинг): сайт прячет себя и показывает подборку чужих
+            // бонусов. Это не контент — удаляем HTML (скриншот оставляем, чтобы было видно глазами)
+            // и помечаем ошибкой, которую повтор перезапросит с другого IP и под другим агентом.
+            if ($this->detectOfferWalls && OfferWall::looksLike($html)) {
+                @unlink($job->htmlFile);
+                $shot = ($job->screenshotFile !== null && is_file($job->screenshotFile)) ? $job->screenshotFile : '';
+
+                return array_merge($visit, [
+                    'ok' => false,
+                    'error' => OfferWall::LABEL . ' вместо сайта (показана витрина бонусов)',
+                    'offer_wall' => true,
+                    'screenshot_file' => $shot,
+                ]);
             }
             // HTTP 404/410 — такой страницы на сайте нет (ссылка меню ведёт в никуда, либо это
             // динамический вход/редирект). Это не контент и НЕ дубликат: часто сервер отдаёт для
@@ -638,6 +656,29 @@ final class PageVisitor
         }
 
         return $n;
+    }
+
+    /**
+     * Показал ли сайт ТОЛЬКО витрину офферов: хотя бы одна страница распознана как подборка чужих
+     * бонусов и при этом ни одна страница так и не открылась настоящей — ни с другого IP, ни под
+     * другим агентом. Такие сайты панель помечает и убирает пачкой.
+     *
+     * @param array<int, array<string, mixed>> $visits
+     */
+    public static function isOfferWallSite(array $visits): bool
+    {
+        $walls = 0;
+        foreach ($visits as $visit) {
+            $visit = (array) $visit;
+            if ($visit['ok'] ?? false) {
+                return false; // настоящая страница всё-таки получена
+            }
+            if ($visit['offer_wall'] ?? false) {
+                $walls++;
+            }
+        }
+
+        return $walls > 0;
     }
 
     /**
@@ -1123,8 +1164,15 @@ final class PageVisitor
             return true;
         }
 
-        return is_file($job->htmlFile)
-            && self::looksLikeBlock($this->readHtml($job->htmlFile), (string) ($result['title'] ?? ''), $status);
+        if (!is_file($job->htmlFile)) {
+            return false;
+        }
+        $html = $this->readHtml($job->htmlFile);
+
+        // Витрина офферов — такая же подмена страницы, как антибот-заглушка: настоящий сайт за ней
+        // прячется и показывается другим посетителям, поэтому пробуем другой IP и другой агент.
+        return self::looksLikeBlock($html, (string) ($result['title'] ?? ''), $status)
+            || ($this->detectOfferWalls && OfferWall::looksLike($html));
     }
 
     /**

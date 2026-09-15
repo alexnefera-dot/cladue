@@ -246,6 +246,33 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   (робота не пустили): N стр. на M сайтах» in the stats line, the job message and the log. Covered by
   `VisitTest::testBlockedBotIsRetriedUnderBrowserUserAgent` / `testRetryUserAgentsCanBeDisabled` against
   the fake-server host `botblock.ru` (403 + Cloudflare stub for YandexBot, normal page for browsers).
+- `Visit\OfferWall` catches the OTHER cloaking shape the user reported (with a screenshot): instead of
+  its own content a site serves a wall of somebody else's bonuses — «В подборке 6 офферов», brand bubbles
+  with «ЗАБРАТЬ БОНУС», a ticker «7K КАЗИНО CASINO — 300 000 ₽ 500 FS», «18+ Азартные игры являются
+  развлечением. Проверяйте условия бонуса партнёра перед регистрацией» — and hides the real site from us.
+  `looksLike($html)` scores the VISIBLE text (`Fingerprint::text`) like `SiteTemplate` does: strong markers
+  (weight 2 — the words a wall uses for SOMEONE ELSE's offers: «в подборке», «оффер», «бонуса партнёра»),
+  weak ones (weight 1 — «freebet», «на 1-й депозит», «18+» and the disclaimer «Азартные игры являются
+  развлечением», which real casino sites carry too: as a strong marker it turned a short real home page
+  into a wall), and REPEATS (`забрать бонус` ≥ 3, `казино casino` ≥ 2 — one CTA is a normal site, five is
+  a list of competitors) plus ≥ 3 DIFFERENT `Content\KnownBrands` (cached once per process; a real site's
+  home talks about its own brand). Wins at `MIN_SCORE` 4 with ≥ 1 strong marker, and a hard gate rejects
+  anything over `MAX_TEXT` (4000 chars of text) — a wall is short, a real home page has SEO text, and a
+  false positive (a real site thrown away) costs more than a missed wall. Wiring in `PageVisitor`
+  (`visit.detect_offer_walls`, default true): `isRetryable()` treats a wall like an anti-bot stub so the
+  page is re-requested through ANOTHER proxy AND another User-Agent (the mechanism above) — that is the
+  user's «проверять с разных айпи и юзер агентов»; `assembleVisit()` deletes the HTML, keeps the home
+  screenshot (so the wall can be eyeballed), sets `offer_wall` and reports «подборка офферов вместо сайта».
+  A wall visit is retryable by `isRetryableVisit()` already (non-ok, not own/stub/duplicate/404), so
+  «Докачать» tries fresh identities again. `PageVisitor::isOfferWallSite()` = at least one wall visit and NO
+  ok visit → `SiteRows::preview()` emits `offer_wall`, the panel tags the host «подборка офферов», counts
+  them in the stats line, groups such pages in the expanded row and offers «Убрать подборки офферов (N)»
+  (the same reversible `removeWhere()` → `/api/remove` path), and the collect message/log say «подборок
+  офферов вместо сайта: N». Covered by `tests/OfferWallTest.php` (four negative cases — a real site, a
+  short home page, an own bonus page with three CTAs, an age gate — guard the false-positive side) and
+  `VisitTest::testOfferWallIsRetriedWithAnotherIdentity` / `testOfferWallSiteIsFlaggedWhenNeverReal`
+  against the fake-server hosts `offerwall.ru` (wall for YandexBot, real site for a browser) and
+  `alwaysoffer.ru` (wall for everyone).
 - New search sources implement `Search\RawFetcherInterface` (+ `ResponseParserInterface` if the
   format is not Yandex.XML); new visit drivers implement `Visit\DriverInterface`.
 - Every new filter rule needs a reason code in `ResultFilter::reject()`, a config default in

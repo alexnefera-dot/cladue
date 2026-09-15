@@ -21,7 +21,7 @@ use YandexSites\Visit\VisitJob;
  */
 final class VisitTest
 {
-    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'agegate.ru', 'ourtpl.ru', 'brand-a.tpl.ru', 'brand-b.tpl.ru', 'footeronly.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru', 'softsite.ru', 'duptest.ru', 'localeretry.ru', 'brandnet.ru', 'kush.brandnet.ru', 'namedup.ru', 'bigpage.ru', 'tpl7.ru', 'tpl12.ru', 'botblock.ru'];
+    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'agegate.ru', 'ourtpl.ru', 'brand-a.tpl.ru', 'brand-b.tpl.ru', 'footeronly.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru', 'softsite.ru', 'duptest.ru', 'localeretry.ru', 'brandnet.ru', 'kush.brandnet.ru', 'namedup.ru', 'bigpage.ru', 'tpl7.ru', 'tpl12.ru', 'botblock.ru', 'offerwall.ru', 'alwaysoffer.ru'];
 
     private ?string $dir = null;
 
@@ -1101,6 +1101,75 @@ final class VisitTest
         }
         Assert::same(0, $ok, 'без перебора агентов сайт так и не открылся');
         Assert::same(0, PageVisitor::openedAsBrowser($site->visits));
+    }
+
+    public function testOfferWallIsRetriedWithAnotherIdentity(): void
+    {
+        // Вместо сайта показана витрина чужих офферов (клоакинг). Её нельзя сохранять как контент:
+        // повтор идёт с другого прокси и под другим агентом — и добирает настоящий сайт.
+        $port = FakeServer::port();
+        $dir = $this->dir() . '/offerwall';
+        $site = new Site('offerwall.ru', 'offerwall.ru', 'offerwall.ru');
+        $site->add(new SearchResult('казино', 0, 1, "http://offerwall.ru:$port/", 'offerwall.ru', 'OW'));
+
+        $visitor = new PageVisitor([
+            'crawl' => true,
+            'max_pages' => 3,
+            'target' => 'found',
+            'dir' => $dir,
+            'screenshot' => false,
+            'similarity' => 0.9,
+            'timeout' => 5,
+            'delay_ms' => 0,
+            'concurrency' => 3,
+            'retries' => 2,
+            'resolve' => $this->resolve($port),
+            'user_agents' => UserAgents::VISITORS,
+        ], new CurlDriver(), $this->logger());
+        $visitor->visit(['offerwall.ru' => $site]);
+
+        $home = $site->visits[0] ?? null;
+        Assert::true($home !== null, 'главная посещена');
+        Assert::true($home['ok'] ?? false, 'настоящий сайт получен повтором: ' . (string) ($home['error'] ?? ''));
+        $html = (string) file_get_contents((string) $home['html_file']);
+        Assert::contains('Настоящий сайт', $html, 'сохранён настоящий сайт, а не витрина');
+        Assert::false(str_contains($html, 'В подборке'), 'витрина как контент не сохранена');
+        Assert::false(PageVisitor::isOfferWallSite($site->visits), 'сайт не помечен витриной — настоящий получен');
+    }
+
+    public function testOfferWallSiteIsFlaggedWhenNeverReal(): void
+    {
+        // Сайт отдаёт витрину всем: после повторов с другим прокси и агентом он так и остаётся
+        // «подборкой офферов» — HTML не сохраняется, сайт помечается, панель уберёт его пачкой.
+        $port = FakeServer::port();
+        $dir = $this->dir() . '/alwaysoffer';
+        $site = new Site('alwaysoffer.ru', 'alwaysoffer.ru', 'alwaysoffer.ru');
+        $site->add(new SearchResult('казино', 0, 1, "http://alwaysoffer.ru:$port/", 'alwaysoffer.ru', 'AO'));
+
+        $visitor = new PageVisitor([
+            'crawl' => true,
+            'max_pages' => 3,
+            'target' => 'found',
+            'dir' => $dir,
+            'screenshot' => false,
+            'similarity' => 0.9,
+            'timeout' => 5,
+            'delay_ms' => 0,
+            'concurrency' => 3,
+            'retries' => 1,
+            'resolve' => $this->resolve($port),
+            'user_agents' => UserAgents::VISITORS,
+        ], new CurlDriver(), $this->logger());
+        $visitor->visit(['alwaysoffer.ru' => $site]);
+
+        $home = $site->visits[0] ?? null;
+        Assert::true($home !== null, 'главная посещена');
+        Assert::false($home['ok'] ?? true, 'витрина не считается открытой страницей');
+        Assert::true($home['offer_wall'] ?? false, 'визит помечен как подборка офферов');
+        Assert::contains('подборка офферов', (string) ($home['error'] ?? ''));
+        Assert::same('', (string) ($home['html_file'] ?? ''), 'витрина не сохранена как контент');
+        Assert::true(PageVisitor::isOfferWallSite($site->visits), 'сайт помечен подборкой офферов');
+        Assert::true(PageVisitor::isRetryableVisit($home), 'докачка попробует ещё раз с другим IP/агентом');
     }
 
     public function tearDownClass(): void

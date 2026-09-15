@@ -279,6 +279,7 @@
       <span class="hint" id="statsText"></span>
       <button class="btn-ghost" id="removeOwnBtn" hidden title="Убрать из списка все сайты, помеченные как наши (крестиком — можно вернуть). Работает сразу после сбора, по превью">Убрать наши</button>
       <button class="btn-ghost" id="removeNoPreviewBtn" hidden title="Убрать из списка сайты, у которых не открылась ни одна страница (превью не получено, 0 стр.) — чтобы идти на выгрузку без них. Работает сразу после сбора; крестиком — можно вернуть">Убрать без превью</button>
+      <button class="btn-ghost" id="removeOfferBtn" hidden title="Убрать сайты, которые вместо своего содержимого показали витрину чужих бонусов. Их уже перепроверили с других IP и под другими User-Agent — настоящий сайт получить не удалось; крестиком — можно вернуть">Убрать подборки офферов</button>
       <span id="keywrap" hidden style="display:inline-flex;align-items:center;gap:6px">
         <span class="hint">нет страницы</span>
         <select id="keysel" title="Ключевые страницы — те, на которые ссылается готовый контент. Сайт без них даёт «ссылку в никуда»"><option value="">любой</option></select>
@@ -675,6 +676,7 @@ async function loadSitePages(host){
 function pageCategory(p){
   if(p.ok) return 'ok';
   const e=String(p.error||'');
+  if(/подборка офферов/i.test(e)) return 'offer';
   if(/дубликат|одностраничник/i.test(e)) return 'dup';
   if(/не найдена|HTTP 40|HTTP 41/i.test(e)) return 'notfound';
   if(/таймаут|timeout|соединени|connection|reset|refused|ECONN|заблокир|blocked|cloudflare|антибот|сертификат|SSL|ERR_CERT|хост не найден|resolve|ERR_NAME/i.test(e)) return 'unreach';
@@ -694,7 +696,7 @@ function detailRowHtml(s){
   if(pages===undefined){ inner='<span class="muted">Загрузка…</span>'; }
   else if(!pages.length){ inner='<span class="muted">Нет данных о страницах (сайт ещё не выгружался).</span>'; }
   else {
-    const groups={ok:[],unreach:[],dup:[],notfound:[],other:[]};
+    const groups={ok:[],offer:[],unreach:[],dup:[],notfound:[],other:[]};
     pages.forEach(p=>{ (groups[pageCategory(p)]||groups.other).push(p); });
     const rowHtml=p=>{
       const f=[];
@@ -708,6 +710,7 @@ function detailRowHtml(s){
     };
     const section=(title,cls,list)=> list.length?`<div class="pg-sec"><div class="pg-h ${cls}">${title} · ${list.length}</div><table class="subtable"><tbody>${list.map(rowHtml).join('')}</tbody></table></div>`:'';
     inner = section('Скачано','pg-ok',groups.ok)
+          + section('Подборка офферов вместо сайта (проверено с других IP и агентов)','pg-warn',groups.offer)
           + section('Не достучались (таймаут / блок / нет соединения — можно докачать)','pg-err',groups.unreach)
           + section('Дубликаты','pg-warn',groups.dup)
           + section('Не найдено (404)','pg-warn',groups.notfound)
@@ -812,11 +815,17 @@ function updateStats(visible){
       let uaSites=0, uaPages=0;
       visible.forEach(s=>{ const n=s.pages_browser|0; if(n>0){ uaSites++; uaPages+=n; } });
       if(uaSites) t+=` · под браузером (робота не пустили): ${uaPages} стр. на ${uaSites} сайтах`;
+      // Сайты, спрятавшие себя за витриной чужих офферов.
+      const ow=visible.filter(s=>!!s.offer_wall).length;
+      if(ow) t+=` · подборок офферов вместо сайта: ${ow}`;
       st.textContent=t;
     }
   }
   const ro=$('removeOwnBtn');
   if(ro){ ro.hidden = c.own===0; ro.textContent='Убрать наши ('+c.own+')'; }
+  // «Убрать подборки офферов»: сайты, которые так и не отдали ничего, кроме витрины чужих бонусов.
+  const rw=$('removeOfferBtn'), offers=visible.filter(s=>!!s.offer_wall).length;
+  if(rw){ rw.hidden = offers===0; rw.textContent='Убрать подборки офферов ('+offers+')'; }
   // «Убрать без превью»: сайты, у которых не открылась ни одна страница (0 стр.) — сразу после сбора, как и «наши».
   const rn=$('removeNoPreviewBtn');
   if(rn){ const hasPreview=visible.some(s=>(s.pages_total|0)>0 || s.page_error); const cnt=visible.filter(noPreview).length;
@@ -868,6 +877,7 @@ function removeWhere(pred){
 }
 $('removeOwnBtn').addEventListener('click', ()=>removeWhere(s=>!!s.own));
 $('removeNoPreviewBtn').addEventListener('click', ()=>removeWhere(noPreview));
+$('removeOfferBtn').addEventListener('click', ()=>removeWhere(s=>!!s.offer_wall));
 $('remove404Btn').addEventListener('click', ()=>{ const N=Math.max(0, parseInt($('max404').value,10)||0); removeWhere(s=>!s.own && (s.pages_404|0)>N); });
 $('max404').addEventListener('input', ()=>updateStats(lastSites.filter(s=>!isRemoved(s.host))));
 $('keysel').addEventListener('change', ()=>updateStats(lastSites.filter(s=>!isRemoved(s.host))));
@@ -926,6 +936,8 @@ function renderResults(sites){
     // Метка типа вёрстки (по главной) — только для двух семейств шаблонов; «без категории» не помечаем.
     const tt=siteType(s);
     const tplTag = (tt==='pages7'||tt==='pages12') ? ` <span class="tag" title="Тип вёрстки по главной: шаблон на ${TYPE_LABELS[tt]}">${TYPE_LABELS[tt]}</span>` : '';
+    // Сайт отдал только витрину чужих офферов — настоящий сайт спрятан (проверяли с разных IP и агентов).
+    const offTag = s.offer_wall ? ` <span class="tag diff" title="Вместо сайта показана подборка чужих бонусов. Перепроверено с других IP и под другими User-Agent — настоящий сайт получить не удалось">подборка офферов</span>` : '';
     const ct = (!s.own && (s.pages_ok||0)>0)
       ? `<button class="ctBtn" data-host="${esc(s.host)}" title="Очистить страницы сайта по инструкции и разложить в content/N-стр/сайт">Очистить</button>`
       : '—';
@@ -938,7 +950,7 @@ function renderResults(sites){
     const dlCell = hasDetails
       ? `<td class="dl expandable" data-expand="${esc(s.host)}" title="Показать список страниц и их ошибки"><span class="caret">${exp?'▾':'▸'}</span> ${dl}</td>`
       : `<td class="dl">${dl}</td>`;
-    let row = `<tr data-host="${esc(s.host)}"><td><button class="xBtn" data-remove="${esc(s.host)}" title="Убрать сайт из списка">✕</button></td><td>${i+1}</td><td>${thumb}</td><td class="host">${link}${tplTag}</td><td>${s.queries_count||0}</td><td>${s.best_position??'—'}</td><td>${variants}</td>${dlCell}<td>${files.join(' · ')||'—'}</td><td>${ct}</td></tr>`;
+    let row = `<tr data-host="${esc(s.host)}"><td><button class="xBtn" data-remove="${esc(s.host)}" title="Убрать сайт из списка">✕</button></td><td>${i+1}</td><td>${thumb}</td><td class="host">${link}${tplTag}${offTag}</td><td>${s.queries_count||0}</td><td>${s.best_position??'—'}</td><td>${variants}</td>${dlCell}<td>${files.join(' · ')||'—'}</td><td>${ct}</td></tr>`;
     if(exp) row += detailRowHtml(s);
     return row;
   }).join('');
