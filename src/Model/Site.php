@@ -56,6 +56,34 @@ final class Site
         }
     }
 
+    /**
+     * НАСТОЯЩИЙ хост сайта — тот, на котором он живёт, а не ключ группировки.
+     *
+     * При дедупликации по домену (filters.unique_by = domain — в панели это галочка «один сайт на
+     * домен», включена по умолчанию) Aggregator кладёт в $host РЕГИСТРИРУЕМЫЙ ДОМЕН: сайт
+     * kush.casinozsd.buzz превращается в casinozsd.buzz, и по $host уже не видно, что это дор на
+     * поддомене. Поэтому берём адрес, по которому сайт реально открывается: сначала конечный адрес
+     * успешного визита (главная сетки часто редиректит с апекса на бренд-поддомен), затем лучший
+     * адрес из выдачи, затем любой найденный, и только в конце — $host.
+     */
+    public function realHost(): string
+    {
+        foreach ($this->visits as $visit) {
+            $visit = (array) $visit;
+            $final = (string) ($visit['final_url'] ?? '');
+            if (($visit['ok'] ?? false) && $final !== '') {
+                $host = Domains::normalize(Domains::hostFromUrl($final));
+                if ($host !== '') {
+                    return $host;
+                }
+            }
+        }
+        $url = $this->bestUrl !== '' ? $this->bestUrl : (string) (array_key_first($this->urls) ?? '');
+        $host = $url !== '' ? Domains::normalize(Domains::hostFromUrl($url)) : '';
+
+        return $host !== '' ? $host : $this->host;
+    }
+
     public function queryCount(): int
     {
         return count($this->queries);

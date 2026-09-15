@@ -48,7 +48,9 @@ final class CollectHistory
         $roots = 0;
         $zones = [];
         foreach ($sites as $site) {
-            $host = Domains::normalize((string) $site->host);
+            // Именно realHost(): при дедупе по домену $site->host хранит регистрируемый домен, и все
+            // доры выглядели бы корневыми (в панели это дало «доров 0» на 339 собранных доменах).
+            $host = Domains::normalize($site->realHost());
             if ($host === '') {
                 continue;
             }
@@ -150,6 +152,45 @@ final class CollectHistory
         }
 
         return $out;
+    }
+
+    /**
+     * Пересчитывает доры в САМОЙ СВЕЖЕЙ записи по текущему списку сайтов (runs/current/sites.json).
+     *
+     * Версии 1.10.0–1.11.0 считали доры по $site->host, а при дедупе по домену там лежит
+     * регистрируемый домен — и запись получалась с «доров 0». Перечитывать выдачу ради этого не нужно:
+     * хосты видно в sites.json. Пересчитываем только последнюю запись и только когда в ней 0 доров, а
+     * число сайтов совпадает с таблицей (значит, это тот же сбор), после чего сохраняем — чтобы считать
+     * один раз. Повторы-доры так не восстановить (отклонённых хостов на диске нет), они остаются как были.
+     *
+     * @param array<int|string, Site> $sites
+     * @return array<string, mixed>|null обновлённая запись или null, если пересчитывать нечего
+     */
+    public static function backfillLatest(string $runsDir, array $sites): ?array
+    {
+        $records = self::load($runsDir);
+        if ($records === [] || $sites === []) {
+            return null;
+        }
+        $latest = $records[0];
+        if ((int) ($latest['doors'] ?? 0) > 0 || (int) ($latest['sites'] ?? 0) !== count($sites)) {
+            return null;
+        }
+        $breakdown = self::breakdown($sites);
+        if ($breakdown['doors'] === 0) {
+            return null; // доров и правда нет — запись верна
+        }
+        $records[0] = array_merge($latest, [
+            'doors' => $breakdown['doors'],
+            'roots' => $breakdown['roots'],
+            'zones' => $breakdown['zones'],
+        ]);
+        file_put_contents(
+            rtrim($runsDir, '/\\') . '/' . self::FILE,
+            json_encode($records, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+        );
+
+        return $records[0];
     }
 
     /**

@@ -509,6 +509,10 @@ if ($path === '/api/query-dupes') {
 
 if ($path === '/api/history') {
     // Вкладка «Статистика»: история сборов (runs/history.json) — по одной записи на сбор — и итог по всем.
+    // Записи версий 1.10.0–1.11.0 считали доры по ключу группировки (при дедупе по домену это
+    // регистрируемый домен), и в последней записи стояло «доров 0» — пересчитываем её по sites.json,
+    // где видно настоящие хосты. Делается один раз: результат сохраняется обратно в историю.
+    \YandexSites\Support\CollectHistory::backfillLatest($projectDir . '/runs', \YandexSites\Support\SiteRows::load($runDir . '/sites.json'));
     $records = \YandexSites\Support\CollectHistory::load($projectDir . '/runs');
     jsonOut([
         'ok' => true,

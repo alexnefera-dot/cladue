@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests;
 
+use YandexSites\Model\SearchResult;
 use YandexSites\Model\Site;
 use YandexSites\Support\CollectHistory;
 
@@ -25,6 +26,15 @@ final class CollectHistoryTest
         return $this->dir;
     }
 
+    /** Отдельная папка под каждый тест: история дописывается в файл, соседние тесты мешать не должны. */
+    private function runsDir(): string
+    {
+        $dir = $this->dir() . '/run-' . uniqid();
+        mkdir($dir);
+
+        return $dir;
+    }
+
     /** @return list<Site> */
     private function sites(string ...$hosts): array
     {
@@ -32,7 +42,9 @@ final class CollectHistoryTest
         foreach ($hosts as $host) {
             $parts = explode('.', $host);
             $domain = count($parts) > 2 ? implode('.', array_slice($parts, -2)) : $host;
-            $out[] = new Site($host, $host, $domain); // key, host, регистрируемый домен
+            $site = new Site($host, $host, $domain); // key, host, регистрируемый домен
+            $site->add(new SearchResult('запрос', 0, 1, 'https://' . $host . '/', $host, ''));
+            $out[] = $site;
         }
 
         return $out;
@@ -52,6 +64,61 @@ final class CollectHistoryTest
         Assert::same(2, $b['zones']['buzz'] ?? 0);
         Assert::same(1, $b['zones']['com'] ?? 0);
         Assert::same(0, $b['zones']['ru'] ?? 0, 'зона корневых сайтов в статистику доров не идёт');
+    }
+
+    public function testDeduplicatedByDomainSiteIsStillADoor(): void
+    {
+        // Главный баг первой версии: при дедупе по домену (панель включает его по умолчанию)
+        // Aggregator кладёт в Site::$host РЕГИСТРИРУЕМЫЙ домен, поэтому дор выглядел корневым —
+        // в панели вышло «339 доменов, доров 0». Настоящий хост берётся из адреса выдачи.
+        $site = new Site('casinozsd.buzz', 'casinozsd.buzz', 'casinozsd.buzz'); // ключ = домен
+        $site->add(new SearchResult('казино', 0, 1, 'https://kush.casinozsd.buzz/', 'kush.casinozsd.buzz', 'Куш'));
+
+        $b = CollectHistory::breakdown([$site]);
+        Assert::same(1, $b['doors'], 'сайт на поддомене — дор, даже если сгруппирован по домену');
+        Assert::same(0, $b['roots']);
+        Assert::same(1, $b['zones']['buzz'] ?? 0);
+    }
+
+    public function testRedirectToBrandSubdomainCountsAsDoor(): void
+    {
+        // Сетка часто собирается по апексу, а главная редиректит на бренд-поддомен — по адресу из
+        // выдачи это ещё не дор, а по конечному адресу визита уже дор.
+        $site = new Site('casinozsd.buzz', 'casinozsd.buzz', 'casinozsd.buzz');
+        $site->add(new SearchResult('казино', 0, 1, 'https://casinozsd.buzz/', 'casinozsd.buzz', 'Куш'));
+        $site->visits = [['ok' => true, 'url' => 'https://casinozsd.buzz/', 'final_url' => 'https://kush.casinozsd.buzz/']];
+
+        Assert::same('kush.casinozsd.buzz', $site->realHost(), 'настоящий хост — куда привёл редирект');
+        Assert::same(1, CollectHistory::breakdown([$site])['doors']);
+    }
+
+    public function testBackfillLatestRecomputesDoorsFromSites(): void
+    {
+        // Записи старых версий: «доров 0» при непустой таблице — пересчитываем по текущему списку сайтов.
+        $dir = $this->runsDir();
+        $site = new Site('casinozsd.buzz', 'casinozsd.buzz', 'casinozsd.buzz');
+        $site->add(new SearchResult('казино', 0, 1, 'https://kush.casinozsd.buzz/', 'kush.casinozsd.buzz', 'Куш'));
+        file_put_contents($dir . '/' . CollectHistory::FILE, json_encode([
+            ['date' => '2026-09-15T17:48:00+00:00', 'sites' => 1, 'doors' => 0, 'roots' => 1, 'zones' => [], 'repeats' => 5],
+        ]));
+
+        $updated = CollectHistory::backfillLatest($dir, [$site]);
+        Assert::true($updated !== null, 'запись пересчитана');
+        Assert::same(1, $updated['doors']);
+        Assert::same(1, $updated['zones']['buzz'] ?? 0);
+        Assert::same(5, $updated['repeats'], 'остальные поля записи не тронуты');
+        Assert::same(1, CollectHistory::load($dir)[0]['doors'], 'пересчёт сохранён на диск');
+        Assert::same(null, CollectHistory::backfillLatest($dir, [$site]), 'второй раз пересчитывать нечего');
+    }
+
+    public function testBackfillLatestSkipsDifferentCollect(): void
+    {
+        // Число сайтов в таблице не совпало с записью — это другой сбор, не трогаем.
+        $dir = $this->runsDir();
+        $site = new Site('a.example.ru', 'a.example.ru', 'example.ru');
+        $site->add(new SearchResult('к', 0, 1, 'https://a.example.ru/', 'a.example.ru', 'A'));
+        file_put_contents($dir . '/' . CollectHistory::FILE, json_encode([['date' => '2026-09-15T17:48:00+00:00', 'sites' => 42, 'doors' => 0]]));
+        Assert::same(null, CollectHistory::backfillLatest($dir, [$site]));
     }
 
     public function testIsDoorIgnoresWww(): void
@@ -83,7 +150,7 @@ final class CollectHistoryTest
 
     public function testAppendKeepsNewestFirstAndTotalsAggregate(): void
     {
-        $dir = $this->dir();
+        $dir = $this->runsDir();
         CollectHistory::append($dir, CollectHistory::record($this->sites('a.ru'), ['base_domains' => 10], ['x.old.ru']));
         CollectHistory::append($dir, CollectHistory::record($this->sites('b.com', 'x.c.com'), ['base_domains' => 12], ['old.com']));
 
@@ -106,7 +173,7 @@ final class CollectHistoryTest
     public function testLoadReadsOldSubdomainsKey(): void
     {
         // Записи версии 1.10.0 звали доры «subdomains» — старая история должна читаться.
-        $dir = $this->dir();
+        $dir = $this->runsDir();
         file_put_contents($dir . '/' . CollectHistory::FILE, json_encode([['date' => '2026-09-15T10:00:00+00:00', 'sites' => 5, 'subdomains' => 3]]));
         $records = CollectHistory::load($dir);
         Assert::same(3, $records[0]['doors'], 'старый ключ subdomains читается как doors');
@@ -131,8 +198,12 @@ final class CollectHistoryTest
     public function tearDownClass(): void
     {
         if ($this->dir !== null && is_dir($this->dir)) {
-            foreach (glob($this->dir . '/*') ?: [] as $file) {
-                @unlink($file);
+            $it = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($this->dir, \FilesystemIterator::SKIP_DOTS),
+                \RecursiveIteratorIterator::CHILD_FIRST,
+            );
+            foreach ($it as $item) {
+                $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
             }
             @rmdir($this->dir);
         }

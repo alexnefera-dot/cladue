@@ -197,7 +197,9 @@ final class Runner
                 foreach ($sites as $key => $site) {
                     if ($this->ledger->has($site->domain)) {
                         $result->reject('seen_before');
-                        $result->seenBefore[] = $site->host; // для статистики: повтор был дором или корневым?
+                        // Для статистики: повтор был дором или корневым? realHost() — потому что при
+                        // дедупе по домену $site->host хранит регистрируемый домен, а не хост.
+                        $result->seenBefore[] = $site->realHost();
                         unset($sites[$key]);
                     }
                 }

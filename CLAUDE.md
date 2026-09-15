@@ -562,7 +562,12 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   date, `sites`, `doors`, `roots`, `repeats`, `repeats_doors`, `zones`, `base_domains`, `resume`,
   `stopped` — and deliberately NOT queries or filter rejections. `isDoor($host)` = the normalized host is
   longer than its registrable domain (`www.` folded first, and `Domains::SECOND_LEVEL` means
-  `kush.net.ru` is NOT a door); `breakdown()` counts doors/roots and builds `zones` FROM DOORS ONLY;
+  `kush.net.ru` is NOT a door). The host MUST come from `Site::realHost()`, never `Site::$host`: with
+  `filters.unique_by = domain` (the panel's «один сайт на домен», on by default) `Aggregator` puts the
+  REGISTRABLE DOMAIN in `$host`, so every door read as a root and the user's first real collect showed
+  «339 доменов, доров 0». `realHost()` takes the final URL of an ok visit first (a network collected by
+  its apex redirects the home to the brand subdomain — that is a door too), then `bestUrl`, then any
+  collected URL, then `$host`. `breakdown()` counts doors/roots and builds `zones` FROM DOORS ONLY;
   `percent()` is the share. Door repeats need the hosts, not a counter, so `Runner` pushes every
   `seen_before` host into `RunResult::$seenBefore` (a separate field, NOT `stats` — the status and
   sites.json must not carry a list of thousands) and `record()` counts the doors among them. One record
@@ -575,8 +580,13 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   (zones folded into one column so new zones cannot widen the table). The tab reloads on click and
   whenever a job finishes while it is open. The file lives in `runs/` (not `runs/current/`), so it
   survives `setup.php --update` AND `/api/reset-base` — it is a log, not working data; `load()` maps the
-  1.10.0 key `subdomains` onto `doors` so an early history still reads. Nothing is backfilled: pre-1.10.0
-  collects have no records and the tab says so. Covered by `tests/CollectHistoryTest.php` and
+  1.10.0 key `subdomains` onto `doors` so an early history still reads. Records written by 1.10.0–1.11.0
+  counted doors off `$host` and therefore say 0: `backfillLatest()` (called from `/api/history`)
+  recomputes the NEWEST record's doors/roots/zones from `sites.json` when it says 0 doors and its site
+  count matches the table, then saves it back — the same lazy-upgrade pattern as
+  `SiteRows::backfillTemplates()`. Door repeats cannot be recovered that way (the rejected hosts are not
+  on disk) and stay as written. Nothing else is backfilled: pre-1.10.0 collects have no records at all
+  and the tab says so. Covered by `tests/CollectHistoryTest.php` and
   `PanelTest::testCollectWritesHistoryAndStatsEndpoint`.
 - `Support\DomainLedger` (runs/domains-base.txt) is a cross-run base of collected registrable
   domains; `Runner` takes an optional ledger + skipKnown to drop already-seen domains (reason

@@ -724,6 +724,9 @@ final class PanelTest
         Assert::same(0, $records[0]['sites'], 'второй сбор ничего нового не взял');
         Assert::true($records[0]['repeats'] > 0, 'и посчитал повторы');
         Assert::same($records[1]['sites'], $records[1]['roots'] + $records[1]['doors'], 'корневые + доры = все домены');
+        // Дедуп по домену включён: раньше Site::$host хранил регистрируемый домен и доров выходило 0.
+        Assert::true($records[1]['doors'] > 0, 'сайты на поддоменах посчитаны как доры даже при дедупе по домену');
+        Assert::true($records[1]['zones'] !== [], 'зоны доров посчитаны');
         Assert::true($records[0]['repeats_doors'] <= $records[0]['repeats'], 'повторов-доров не больше, чем повторов всего');
         Assert::false(isset($records[0]['queries']), 'запросы в статистику не пишем');
         Assert::contains('За этот сбор', (string) file_get_contents($runDir . '/run.log'));
