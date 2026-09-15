@@ -1,0 +1,496 @@
+Каталог параметров для аналитики запусков (dorgen-engine)
+Снято: 2026-09-15. Код и схема не менялись — только инвентарь того, что уже можно отдавать.
+Ключ джойна с трекером: полный хост сабдомена (domains.url), например shuffle.3479.team.
+«Запуск» = lifecycle одного content_domain (база xxx.team), не отдельная таблица.
+
+Снимок БД на момент съёмки:
+  ~1649 баз (soft-deleted = 0), ~306k сабдоменов, ~206 видимых брендов на запуск,
+  пайплайн completed ~1358 баз, Cloudflare-аккаунтов ~898, YA-аккаунтов ~1378.
+
+
+==============================================================================
+ЧТО ВАЖНО ПОНЯТЬ ДО СПИСКА
+==============================================================================
+
+Глубина /ru/ru/ НЕ пишется в строку запуска.
+  Это глобальный runtime: PHP maxRuDepth=40, Apache RewriteMap режет (/ru){21,}
+  (зашито как 20). Историю «какой лимит был в день запуска» из БД не восстановить.
+  Для людей любой URL с /ru уже уходит 302 на ref_link; боты видят сайт.
+  Hreflang наращивает /ru до лимита.
+  Коды hreflang: ru, en, x-default, ru-KZ, en-AU, ru-BY, ru-UZ, ru-SG, ru-ZA,
+  ru-PH, ru-RU, ru-HK, ru-PK, ru-US, ru-CA, ru-IE.
+
+Cloudflare Worker сейчас не живой:
+  cron add_workers_to_cloudflare выключен, domains.is_worker_added у всех NULL.
+  Гео-редирект идёт с origin (PHP + Apache map).
+  IndexNow-ключи есть, cron отключён.
+  Позиции Яндекс/Google — 0 строк.
+
+После soft-delete базы сайты/домены/клики purge — аналитика по сабдомену пропадает.
+Сейчас soft-deleted = 0.
+
+Практичная выгрузка: одна строка = сабдомен, конверсии джойнятся по url;
+поля запуска/аккаунта/пака/бренда денормализовать в эту строку.
+
+
+==============================================================================
+A. КЛЮЧИ ДЖОЙНА
+==============================================================================
+
+subdomain / domains.url          сабдомен   канонический ключ к трекеру (?s=host)
+domain_id                        сабдомен   PK
+site_id                          сайт       карточка
+brand_id                         бренд      видимый бренд (~206 в генерации)
+content_id                       контент    у старых сайтов часто NULL
+content_domain_id                запуск     база
+content_domain.url               запуск     3479.team
+yandex_webmaster_account_id      запуск/сабдомен   аккаунт Вебмастера
+cloudflare_account_id            запуск     CF-аккаунт базы
+ref_link                         сайт       куда уходит живой трафик
+ref_link_host                    сайт       например sitegrator.com
+ref_link_slug                    сайт       например /go/dorgen_engine
+
+
+==============================================================================
+B. ЗАПУСК / ВРЕМЯ
+==============================================================================
+
+cd.created                       запуск     база заведена
+cd.modified                      запуск
+job.created / started / finished запуск     генерация сайтов (~50 сек);
+                                            есть только у ~177/1649 баз
+min(sites.created)               запуск     когда разложились бренды
+max(sites.created)               запуск
+domains.created                  сабдомен
+schedule.trigger_mode            запуск     at_time (~806) / when_ready (~59+75 pending)
+schedule.run_at                  запуск     план
+schedule.activated_at            запуск     факт
+delay_schedule_created_to_activated_h  запуск   обычно 4–5 ч
+auto_start.started_at            запуск     факт auto_gate; только 59 записей
+auto_start.cpu_percent           запуск     avg CPU ~38, max 83
+auto_start.load_percent          запуск
+auto_start.reason                запуск     все auto_gate
+pipeline_accounts.started_at     запуск     лучший «старт запуска», если CD.started ещё null
+cd.yandex_pipeline_started       запуск     ~1420 стартовали
+cd.yandex_pipeline_finished      запуск     duration чаще 3–9 ч, хвост до 30+ ч
+hrs_cd_created_to_pipeline_started     запуск   0 дней ~1093, 1 день ~249, редко 2–11
+hrs_sites_created_to_pipeline_started  запуск   лаг генерация → индексация
+hrs_pipeline_started_to_finished       запуск
+hrs_domain_created_to_recrawl_done     сабдомен из events
+
+Календарь старта (из yandex_pipeline_started):
+  start_hour                     запуск     пик 14–21 Киев
+  start_dow                      запуск     вс меньше
+  start_date
+  start_week
+  start_month
+  is_weekend
+  is_night_kiev
+
+is_after_ip_migrate_2026_08_11   запуск     переезд сервера 87.199.206.213;
+                                            клики/views с этой даты
+days_since_ip_migrate            запуск
+quota_resume_slot                запуск     слот допрохода после 00:10 Киев
+                                            (из next_check / текста ошибки)
+
+Статусы CD:
+  yandex_pipeline_desired        idle / run_to_recrawl / paused / cancelled
+  yandex_pipeline_status         idle / running / waiting_verify / waiting_quota /
+                                 completed / failed / partial
+  снимок: completed 1358, partial 41, idle 229
+
+
+==============================================================================
+C. БАЗА / ИНФРА / CLOUDFLARE / NS
+==============================================================================
+
+cd.url                           запуск
+tld                              запуск     team 963, lol 490, casino 110, buzz 66,
+                                            плюс единицы: online, shop, work, live,
+                                            click, fun, space, cloud, store, site,
+                                            cfd, rest, quest, sbs, bond, cyou, xyz,
+                                            top, icu
+base_name_pattern                запуск     numeric ~677, alpha_other ~626,
+                                            casino* prefix ~198, *casino.* infix ~148
+base_label_len                   запуск     чаще 4 символа
+base_has_casino                  запуск     ~437
+registrar                        запуск     все Spaceship
+dns_provider                     запуск     cloudflare 1648 / spaceship 1
+use_cloudflare                   запуск     почти все 1
+cd.is_ns_added                   запуск     ~1646/1649
+setup_last_error                 запуск     почти пусто
+setup_retry_after                запуск     почти пусто
+
+cf_account_id                    запуск
+cf_email                         запуск     без секретов/ключей
+cf_email_domain                  запуск     rambler.ru 892, brands.rest 6
+cf_account.created               запуск
+cf_account_age_at_launch_days    запуск
+cf_cd_count_now                  запуск     сколько CD на аккаунте сейчас:
+                                            1→411 акк., 2→209, 3→273
+cf_cd_count_at_launch            запуск     сколько CD было на дату запуска
+cf_subdomains_on_account         запуск     ≈ cnt × ~206  (~200 / 400 / 600 хостов)
+cf_cd_seq                        запуск     порядковый номер этой базы на CF (1/2/3)
+cf_days_since_prev_launch        запуск
+cf_at_soft_limit                 запуск     софт-лимит кода 30 CD; сейчас никто не у 30
+
+domains.is_cloudflare_added      сабдомен   ~99%
+is_virtual_host_added            сабдомен   ~98–99%
+is_certificate_added             сабдомен   ~98–99%
+is_ns_added                      сабдомен   ~98–99%
+is_spaceship_added               сабдомен   почти не используется
+is_namesilo_added                сабдомен   почти не используется
+is_worker_added                  сабдомен   все NULL, воркеры не ставятся
+is_page_rule_created             сабдомен   все 0
+is_paused                        сабдомен   все NULL
+
+server_ip                        глобально  87.199.206.213 с 11.08.2026
+apache_wildcard_vhost            запуск     да
+ref_link_map_refresh_min         глобально  cron build_ref_link_map каждые 5 мин
+geoip_mmdb_country_asn           глобально  обновление 1-го числа
+
+
+==============================================================================
+D. ЯНДЕКС.ВЕБМАСТЕР (АККАУНТ + ПАЙПЛАЙН)
+==============================================================================
+
+ya_account_id                    запуск/сабдомен
+ya_name                          аккаунт    без секретов; имена — почты
+ya_is_active                     аккаунт    все active (1378)
+ya_last_used_at                  аккаунт
+ya_created                       аккаунт
+ya_prior_launches                запуск     запусков на этом YA до текущего
+ya_launches_total                запуск     всего; 1 launch≈1337 акк., 2≈36, 3≈4
+ya_launch_seq                    запуск     порядковый номер запуска на YA
+ya_days_since_prev_launch        запуск
+ya_account_age_days_at_start     запуск     бимодально: 0–1 день и ~29–38 дней
+ya_hosts_before                  запуск     сколько хостов уже висит на YA
+                                            (сумма доменов по всем CD аккаунта)
+hours_since_ya_last_used         запуск
+had_hosts_purge                  запуск     events у 1081 CD
+
+yandex_pipeline_stage            сабдомен   done ~289k, quota_wait ~840, error ~448,
+                                            verify/recrawl/meta хвост
+verification_status              сабдомен   VERIFIED ~290k, FAILED ~554,
+                                            IN_PROGRESS, INTERNAL_ERROR, NULL
+yandex_verification_fail_count   сабдомен   0 / 1 / 2 / 3=исчерпан лимит (439 шт.)
+yandex_webmaster_recrawled       сабдомен   ~95%
+yandex_webmaster_added           сабдомен   ~96%
+yandex_webmaster_host_id_present сабдомен
+yandex_pipeline_error            сабдомен   квота / VERIFICATION_FAILED 3/3 / HTTP 504
+cd_pipeline_error                запуск     «ошибки N, готово M» / «ждут квоту до …»
+
+pct_verified                     запуск
+pct_recrawled                    запуск
+pct_error                        запуск
+pct_quota_wait                   запуск
+sites_in_launch                  запуск     обычно 166–206; старые джобы 106–114
+
+verify_retry_count               запуск/сабдомен   из events (~78k retry)
+verify_failed_count              запуск/сабдомен   из events (~78k failed)
+verify_error_count               запуск/сабдомен
+quota_hit_count                  запуск     recrawl/quota; чаще 2–5 раз за запуск
+duration_add_h                   запуск/сабдомен   из timestamps events
+duration_meta_h
+duration_verify_h
+duration_recrawl_h
+
+Лимиты кода (глобальные константы, не колонки):
+  VERIFY_FAIL_LIMIT=3
+  verify retry 30 мин
+  квота 150 URL/сутки Киев
+  quotaResumeFrom=00:10, шаг 12 мин (с недавнего фикса)
+
+auto_start_cpu_percent           запуск     только если есть auto_start_log
+auto_start_load_percent          запуск
+auto_start_hour                  запуск
+hot_pipelines_at_start           запуск     если логировать/есть рядом
+
+is_yandex_integration_added      сабдомен   legacy, все 0
+is_google_integration_added      сабдомен   не наполняется
+is_gsa_email_added               сабдомен   не наполняется
+rkn_status                       сабдомен   не наполняется
+ping_status                      сабдомен   все down (не обновляется)
+search_status                    сабдомен   все new
+spin_status                      сабдомен   все no
+gsa_status                       сабдомен   все no
+ban_date                         сабдомен   пусто
+positions_rank                   сабдомен   пусто
+domain_positions                 таблица    0 строк
+domain_positions_google          таблица    0 строк
+
+
+==============================================================================
+E. САБДОМЕН / БРЕНД КАК «ОБЛОЖКА»
+==============================================================================
+
+subdomain_label                  сабдомен   shuffle из shuffle.3479.team
+                                            = brand.name_en очищенный
+sub_len                          бренд/сабдомен   1–39, среднее ~8, пик 6–9
+sub_has_hyphen                   бренд      редко (29 из 6159)
+sub_has_digits                   сабдомен
+sub_is_latin_only                сабдомен
+language                         сабдомен   все ru
+status                           сабдомен   все in_use
+is_hidden_source                 сайт/домен все 0 (генерация include_hidden=0)
+brand.is_hidden                  бренд      5953 hidden / 206 visible;
+                                            в запуски идут visible
+brand.label                      бренд
+brand.name_ru                    бренд
+brand.name_en                    бренд
+brand_release_count              бренд      ~1500–1547 сайтов на бренд
+brand_release_seq                сайт       N-й сайт этого бренда
+days_since_brand_last_release    сайт
+established                      бренд/сайт у брендов заполнено ~1534/6159
+established_year                 бренд/сайт
+has_established                  бренд/сайт
+popup                            бренд→сайт бренды: popup 1466
+api_form                         бренд→сайт бренды: api_form 1485
+                                  на свежих сайтах popup чаще без api_form
+has_logo                         сайт
+has_favicon                      сайт
+has_icon                         сайт
+has_logo_footer                  сайт
+has_sidebar_logo                 сайт
+in_production                    сайт       новые = 1
+indexnow_key_present             сабдомен   ключи есть, отправка выключена
+comment                          сабдомен   пусто
+
+
+==============================================================================
+F. КОНТЕНТ-ПАК / СТРАНИЦЫ / ТЕКСТЫ
+==============================================================================
+
+contents.label парсится на токены:
+  pack_date            дата пака (2026-09-14)
+  pack_series          серия a/b/c
+  pack_kind            7str / 12str / nabory
+  oform_version        oform / oform-2 / styled_img
+  pack_serial          суффикс _44
+
+Живые цифры: 674 пака; 7str=630, 12str=20, nabory=20;
+реально гонялись 140 паков (generation_runs_count>0).
+content_pages: 6 страниц у 633 паков, 11 у 41.
+
+URL набора:
+  всегда: bonus, registracia, app, zerkalo, vhod, slots
+  у 12-страничных ещё: news, info, promo, obzor, partnery
+  (7str = home + 6 inner; 12str = home + 11 inner)
+
+content_id                       запуск/сайт
+content_label                    пак
+pack_date / pack_series / pack_kind / oform_version / pack_serial
+generation_runs_count            пак        0 / 1 / редко 2
+content_reuse_count              пак        сколько сайтов уже с этим паком; типично 206
+content_pack_seq                 пак
+include_hidden                   запуск     все джобы 0
+job.template                     запуск     все Theme1
+sites.template                   сайт       Theme1 доминирует;
+                                            Theme2 только на очень старых
+                                            (~166 из первой пятитысячи)
+theme2_section_order             страница   только Theme2
+theme2_hero_variant              страница   slider / compact / split
+theme2_cards_variant             страница   classic / minimal / contrast
+theme2_faq_variant               страница   accordion / list / two-column
+theme2_cta_variant               страница   default / outline / highlight
+theme2_decor_variant             страница   triangles / minimal / noise
+
+welcome_bonus                    пак        везде «275% + 150FS» — сейчас константа,
+                                            слабый сигнал
+pages_count                      сайт       7 vs 12
+has_extra_pages                  сайт       extra-5 у 12str
+page_url_set                     сайт       набор URL
+slides_count                     сайт       ~6
+tabs_count                       сайт       ~1
+site_faqs_count                  сайт       0
+site_games_count                 сайт       0
+
+brand_pages_count                бренд      4 или 19
+brand_slides_count               бренд      4–8
+brand_tabs_count                 бренд      7
+brand_faqs_count                 бренд      10
+  На новых сайтах brand_pages НЕ копируются,
+  только content_pages + brand_slides.
+
+Длины текстов пака (можно отдать CHAR_LENGTH и производные):
+  title_ru_len                   ~26k (спинтакс)
+  description_ru_len             ~2.6k
+  additional_text_ru_len         ~3.2k
+  additional_text_2_ru_len       ~140k
+  footer_text_ru_len             ~49
+  header_menu_items_ru_len       ~3.3k
+  header_phone_ru_len            ~22k (спинтакс)
+  page_body_len                  ~27k
+  h1_len                         ~1.2k
+home_page_keywords_ru            пак        пусто
+page_keywords_ru                 страница   пусто
+keywords                         бренд      avg ~7.3k символов, max ~70k
+keywords_len                     бренд
+keywords_word_count              бренд
+spintax_branch_count             пак        число {a|b} в title/body/phone
+frontend_spintax_seed            страница   детерминированный спинтакс
+                                            seed = host+path+ruDepth
+                                            (мета/телефон зависят от URL-глубины)
+cssPrefix                        сайт       буква(site_id%26)+site_id
+css_variables                    бренд/сайт ~6004 уникальных палитр / 6159 брендов
+metrika_counter                  сайт       пусто
+EN-поля                          сайт       почти пусто
+orphan_sites_without_domain      —          ~1487, в аналитику сабдоменов не попадают
+
+CSS-ключи (каждый как признак + brightness/contrast производные):
+  main-background
+  secondary-background
+  content-background
+  unactive-background
+  highlighter
+  button-color
+  link-font-color
+  main-font-color
+  button-hover-color
+  main-border-radius
+  button-border-radius
+  font-scale-factor
+  gradient-first-color
+  gradient-second-color
+  alternative-highlighter
+  button-hover-background
+  vendors-animation-speed
+
+Производные по CSS:
+  css_bg_brightness
+  css_button_brightness
+  css_contrast_button_text
+  css_palette_hash / уникальность палитры
+
+
+==============================================================================
+G. РЕДИРЕКТ / ЧТО ВИДИТ ЧЕЛОВЕК VS БОТ
+==============================================================================
+
+Это не колонка БД, но одинаково для всех живых запусков
+и объясняет, откуда трекерные регистрации.
+
+ref_link + ?s=<host>             сайт       метка в трекер
+GeoRedirect.enabled              глобально  да
+apache_any_ru_human_to_ref       глобально  любой /ru → человек 302 на ref,
+                                            бот/whitelist → сайт
+apache_ru_cut                    глобально  глубже 20×/ru → 302 на / всем,
+                                            включая ботов; расходится с PHP 40
+php_max_ru_depth                 глобально  40
+php_georedirect_non_ru_html      глобально  люди → ref; боты/whitelist/static → сайт
+origin_skip_rules                глобально  bot-UA, IP whitelist, Sec-Fetch-Dest,
+                                            Accept, UIR=0, _georedir
+cf_worker_geo_mobile             код есть   exclude CO/PT/UA + ASN ботов;
+                                            на домены НЕ накатывается
+ip_whitelist                     глобально  4 IP в runtime_settings
+hreflang_n                       глобально  16
+hreflang_codes                   глобально  список выше
+sitemap_has_nested_ru            сайт       нет: только / + плоские /bonus…
+sitemap_lastmod_random           сайт       случайная дата текущего месяца
+sitemap_all_subdomains           запуск     /sitemap/all
+htmlmap_brands                   запуск     кэш 5 мин
+rss_atom_feeds                   сайт
+robots_txt_template              глобально  Allow /; Disallow query;
+                                            блок Semrush/Ahrefs/MJ12/rogerbot/xenu;
+                                            Sitemap: https://{host}/sitemap.xml
+page_cache_key                   страница   host + canonicalPath с /ru
+indexnow_submit_enabled          сабдомен   ключ есть, cron выключен
+
+
+==============================================================================
+H. УЖЕ ЛЕЖАЩИЙ ТРАФИК (НЕ РЕГИСТРАЦИИ)
+==============================================================================
+
+С 2026-08-11:
+
+views_sum                        сабдомен   ~29k доменов, ~70k просмотров
+views_days_with                  сабдомен
+first_view_date                  сабдомен
+last_view_date                   сабдомен
+clicks_sum                       сабдомен   ~226k доменов, ~870k кликов
+clicks_days_with                 сабдомен
+first_click_date                 сабдомен
+last_click_date                  сабдомен
+click_country_mix                клик       Russia ~472k, NULL ~396k, US ~2k,
+                                            остальные единицы
+click_os                         клик       почти все Unknown
+clicks_7d / clicks_30d           сабдомен
+views_7d / views_30d             сабдомен
+days_to_first_click_after_recrawl сабдомен
+ctr_proxy                        сабдомен   clicks/views где есть views
+
+clients (регистрации на домене в нашей БД) — 0 строк.
+Регистрации только из внешнего трекера.
+
+
+==============================================================================
+I. ПРОИЗВОДНЫЕ, КОТОРЫЕ СТОИТ СРАЗУ ПОСЧИТАТЬ
+==============================================================================
+
+1. ya_launch_seq, ya_prior_launches, ya_hosts_before,
+   ya_account_age_days, hours_since_ya_last_used
+2. cf_cd_seq, cf_prior_cds, cf_subdomains_on_account, cf_email_domain
+3. brand_release_seq, brand_age_days, days_since_brand_last_release
+4. content_pack_seq, content_reuse_count, pack_kind (7str/12str/nabory),
+   pack_date, oform_version
+5. pages_count (7 vs 12), has_extra_pages, slides_count, tabs_count
+6. pipeline_duration_h, verify_fail_rate, quota_hit_count,
+   had_hosts_purge, partial_vs_completed
+7. tld, base_name_pattern (numeric/casino/alpha),
+   sub_len, sub_hyphen, sub_digits
+8. start_hour, start_dow, is_night_kiev, is_weekend, days_after_server_move
+9. template, popup, api_form, has_established, keywords_len
+10. css_* + perceived brightness фона/кнопки, contrast ratio кнопка/текст
+11. text_len_* (title/body/additional_2), spintax_branch_count
+12. clicks_7d, clicks_30d, views_7d, days_to_first_click_after_recrawl
+13. ref_slug, ref_host
+14. глобальные константы среза:
+      php_max_ru_depth=40
+      apache_ru_cut=20
+      hreflang_n=16
+      geo_redirect=1
+      workers_enabled=0
+      indexnow_cron=0
+15. sites_in_launch (обычно 166–206; старые джобы 106–114)
+
+
+==============================================================================
+J. ПОЛЕЗНО НА ВИД, НО СИГНАЛА НЕТ / НЕЛЬЗЯ ВОССТАНОВИТЬ
+==============================================================================
+
+- исторический maxRuDepth на дату запуска
+- факт «воркер CF включён» по доменам (флаг пустой, cron выкл)
+- IndexNow success/fail
+- позиции Яндекс/Google, RKN, GSA, ping, бан
+- Я.Метрика
+- EN-язык сайтов
+- welcome_bonus как дискриминатор (сейчас константа)
+- clients
+- скрытые бренды в запусках (include_hidden всегда 0)
+- игры/FAQ на сайтах
+
+
+==============================================================================
+МОДЕЛЬ ДАННЫХ (кратко)
+==============================================================================
+
+content_domains (база: xxx.team)
+  ├── cloudflare_accounts
+  ├── yandex_webmaster_accounts
+  ├── yandex_webmaster_pipeline_accounts / events / schedules / auto_start_log
+  ├── content_generation_jobs
+  └── domains (поддомены brand.xxx.team)
+        └── sites
+              ├── brands (+ brand_pages / slides / tabs / faqs)
+              └── contents (+ content_pages / tabs)
+                    └── site_pages / site_slides / site_tabs
+
+Таймстемпы запуска:
+  content_domains.created                         база заведена
+  content_generation_jobs.started/finished
+    + sites.created / domains.created             бренды разложены
+  yandex_webmaster_pipeline_schedules             когда запланирован старт
+  yandex_webmaster_auto_start_log                 фактический auto_gate (+ CPU/load)
+  content_domains.yandex_pipeline_started
+    + pipeline_accounts.started_at                add → verify → recrawl
+  yandex_pipeline_finished + events completed     финиш
