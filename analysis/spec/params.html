@@ -80,172 +80,304 @@ li{margin:0 0 8px}
 </style>
 <div class="wrap">
 
-<p class="eyebrow">api · аналитика запусков · 15.09.2026</p>
-<h1>Эндпоинты для выгрузки данных</h1>
-<p class="lede">Четыре GET-эндпоинта. Основной отдаёт денормализованную строку
-на сабдомен, остальные — временной ряд трафика, сырые события пайплайна
-и снимок глобальных констант. <b>Ключ соединения с трекером — полный хост
-сабдомена.</b></p>
+<p class="eyebrow">аналитика запусков · 15.09.2026</p>
+<h1>Параметры, план анализа и API</h1>
+<p class="lede">Свод из нашего плана и каталога системы. <b>Три части: что вообще
+можно получить, что я буду с этим делать, и точный контракт двух API —
+системы запусков и трекера.</b></p>
 
 <hr>
 
 <section>
-<h2>Общие правила</h2>
-<div class="tw"><table>
-<tr><th>что</th><th>как</th></tr>
-<tr><td>формат</td><td>JSON, <code>Content-Type: application/json; charset=utf-8</code></td></tr>
-<tr><td>метод</td><td>только <code>GET</code></td></tr>
-<tr><td>авторизация</td><td><code>Authorization: Bearer &lt;token&gt;</code></td></tr>
-<tr><td>время</td><td>ISO 8601 со смещением: <code>2026-09-15T13:03:11+03:00</code>. <b>Europe/Kyiv везде</b></td></tr>
-<tr><td>только дата</td><td><code>2026-09-15</code></td></tr>
-<tr><td>отсутствующее значение</td><td><code>null</code>. Не пустая строка, не <code>0</code>, не <code>"-"</code></td></tr>
-<tr><td>булево</td><td><code>true</code> / <code>false</code>, не <code>1</code> / <code>0</code></td></tr>
-<tr><td>сабдомен</td><td>полный хост, нижний регистр, без схемы и <code>www</code>: <code>shuffle.3479.team</code></td></tr>
-<tr><td>пагинация</td><td>курсорная, см. ниже. Offset не используем — 306 тысяч строк</td></tr>
-<tr><td>повторный запрос</td><td>тот же диапазон дат → те же строки. Порядок стабильный</td></tr>
-</table></div>
-
-<h3>Пагинация</h3>
-<p>Все списочные эндпоинты принимают <code>limit</code> и <code>cursor</code>
-и возвращают одинаковую обёртку:</p>
-<div class="fmt"><pre>{
-  "data": [ ... ],
-  "meta": {
-    "count": 1000,
-    "next_cursor": "eyJpZCI6MzA0MTJ9",   // null, если это последняя страница
-    "generated_at": "2026-09-15T18:20:04+03:00"
-  }
-}</pre></div>
-<p><code>limit</code> — по умолчанию 1000, максимум 5000.
-<code>cursor</code> — непрозрачная строка из предыдущего ответа.
-Пока <code>next_cursor</code> не <code>null</code>, клиент запрашивает дальше.</p>
-
-<h3>Ошибки</h3>
-<div class="fmt"><pre>{ "error": { "code": "invalid_range", "message": "date_to earlier than date_from" } }</pre></div>
-<p>Коды: <code>unauthorized</code> 401 · <code>invalid_param</code> 400 ·
-<code>invalid_range</code> 400 · <code>rate_limited</code> 429 ·
-<code>internal</code> 500.</p>
+<h2>Что нужно знать до списка</h2>
+<div class="two">
+<div><h3>Человек не видит сайт</h3>
+<p>Любой URL с <code>/ru</code> отдаёт человеку 302 на <code>ref_link</code>;
+страницу видят только боты и whitelist. Значит контент, палитра, логотипы и popup
+влияют <b>не на конверсию, а на то, как страницу оценивает Яндекс</b>.
+Связывать оформление с регистрацией — искать эффект там, где его не может быть.</p></div>
+<div><h3>«Клик» в системе ≠ посетитель</h3>
+<p>870 тысяч кликов на 226 тысячах сабдоменов при ~500 регистрациях: 0.05%,
+и клики есть у 74% сабдоменов. Это счётчик срабатываний редиректа.
+Метрика полезная, но деньги считаются только по трекеру.</p></div>
+<div><h3>Единица — сабдомен</h3>
+<p>306 тысяч сабдоменов на 1649 баз, в среднем <b>186 на базу, не 200</b>.
+Знаменатель берётся из фактических строк.</p></div>
+<div><h3>Ключ соединения — хост</h3>
+<p><code>shuffle.3479.team</code> связывает запуск, пайплайн, трафик и деньги.
+Во всех ответах пишется одинаково: нижний регистр, без схемы и <code>www</code>.</p></div>
+</div>
 </section>
 
 <hr>
 
 <section>
-<h2>1 · GET /v1/subdomains</h2>
-<p>Основной эндпоинт. <b>Одна строка = один сабдомен.</b> Поля запуска, аккаунтов,
-пака и бренда денормализованы в строку.</p>
+<h2>Часть 1 · Пул параметров</h2>
+<p>Всё, что можно получить, по группам. Точные имена, типы и примеры — в части 3.</p>
 
-<h3>Параметры</h3>
 <div class="tw"><table>
-<tr><th>параметр</th><th>тип</th><th>обяз.</th><th>что значит</th></tr>
-<tr><td>date_from</td><td>date</td><td>да</td><td>фильтр по <code>domain_created</code>, включительно</td></tr>
-<tr><td>date_to</td><td>date</td><td>да</td><td>включительно</td></tr>
-<tr><td>date_field</td><td>enum</td><td>нет</td><td><code>domain_created</code> (по умолчанию) · <code>cd_created</code> · <code>pipeline_started</code></td></tr>
-<tr><td>content_domain_id</td><td>int</td><td>нет</td><td>вернуть только эту базу</td></tr>
-<tr><td>limit · cursor</td><td>int · string</td><td>нет</td><td>пагинация</td></tr>
-</table></div>
-<div class="fmt"><pre>GET /v1/subdomains?date_from=2026-09-14&amp;date_to=2026-09-15&amp;limit=1000</pre></div>
+<tr><th>группа</th><th>откуда</th><th>ключевое в ней</th><th>что закрывает</th></tr>
 
-<h3>Поля ответа — ключи</h3>
-<div class="tw"><table>
-<tr><th>поле</th><th>тип</th><th>пример</th><th>что это</th></tr>
-<tr><td>subdomain</td><td>string</td><td><code>shuffle.3479.team</code></td><td>ключ соединения с трекером (<code>?s=host</code>)</td></tr>
-<tr><td>domain_id</td><td>int</td><td><code>418203</code></td><td>PK сабдомена</td></tr>
-<tr><td>site_id</td><td>int</td><td><code>418203</code></td><td>карточка сайта</td></tr>
-<tr><td>content_domain_id</td><td>int</td><td><code>2844</code></td><td>база = «запуск»</td></tr>
-<tr><td>content_domain_url</td><td>string</td><td><code>3479.team</code></td><td>база</td></tr>
-<tr><td>brand_id</td><td>int</td><td><code>1187</code></td><td></td></tr>
-<tr><td>content_id</td><td>int · null</td><td><code>674</code></td><td>у старых сайтов часто <code>null</code></td></tr>
+<tr class="sub"><td>система запусков</td><td></td><td></td><td></td></tr>
+<tr><td>A · запуск и время</td><td>CD, jobs, schedules</td><td><code>pipeline_started</code>, час и день старта, план против факта</td><td>когда запускать; нулевая точка всех лагов</td></tr>
+<tr><td>B · пайплайн Яндекса</td><td>pipeline, events</td><td><b><code>recrawl_sent_at</code></b>, волна, верификация, квота, длительности</td><td>главный разрез: волна различается внутри базы</td></tr>
+<tr><td>C · база и инфраструктура</td><td>CD, CF, YA</td><td>зона, шаблон имени, возраст и нагруженность YA-аккаунта, номер базы на CF</td><td>цена домена; износ аккаунтов; отпечаток</td></tr>
+<tr><td>D · контент-пак</td><td>contents</td><td>7str/12str, oform-версия, длины текстов, спинтакс, переиспользование пака</td><td>контент как рычаг</td></tr>
+<tr><td>E · бренд и оформление</td><td>brands, sites, CSS</td><td>палитра и контраст, логотипы, popup, <b>номер сайта этого бренда</b></td><td>оценка страницы роботом; износ бренда</td></tr>
+<tr><td>F · трафик-счётчики</td><td>clicks, views</td><td>клики и просмотры по дням, лаг до первого клика</td><td>быстрая метрика сравнения конфигураций</td></tr>
+<tr><td>H · глобальные константы</td><td>runtime</td><td>глубина <code>/ru</code>, срез Apache, hreflang, квота, гео-редирект</td><td>без них сравнение периодов некорректно</td></tr>
+
+<tr class="sub"><td>трекер</td><td></td><td></td><td></td></tr>
+<tr><td>G1 · клики</td><td>трекер</td><td>время, <code>clickid</code>, хост, реферер, гео, <b>путь страницы входа</b></td><td>доказательство попадания в выдачу; уровень вложенности</td></tr>
+<tr><td>G2 · конверсии</td><td>трекер</td><td>регистрация и ФД, <code>clickid</code>, выплата</td><td>деньги</td></tr>
 </table></div>
 
-<h3>Запуск и время</h3>
+<h3>Чего нет и не будет</h3>
 <div class="tw"><table>
-<tr><th>поле</th><th>тип</th><th>пример</th><th>что это</th></tr>
-<tr><td>cd_created</td><td>datetime</td><td><code>2026-09-15T13:03:11+03:00</code></td><td>база заведена</td></tr>
-<tr><td>job_started · job_finished</td><td>datetime · null</td><td></td><td>генерация сайтов, ~50 сек</td></tr>
-<tr><td>site_created · domain_created</td><td>datetime</td><td></td><td>бренды разложены</td></tr>
-<tr><td>schedule_trigger_mode</td><td>enum · null</td><td><code>at_time</code></td><td><code>at_time</code> · <code>when_ready</code></td></tr>
-<tr><td>schedule_run_at</td><td>datetime · null</td><td></td><td>план старта</td></tr>
-<tr><td>schedule_activated_at</td><td>datetime · null</td><td></td><td>факт</td></tr>
-<tr><td>pipeline_started</td><td>datetime · null</td><td></td><td><b>нулевая точка отсчёта</b></td></tr>
-<tr><td>pipeline_finished</td><td>datetime · null</td><td></td><td></td></tr>
-<tr><td>start_hour</td><td>int 0–23</td><td><code>13</code></td><td>час от <code>pipeline_started</code>, Киев</td></tr>
-<tr><td>start_dow</td><td>int 1–7</td><td><code>2</code></td><td>1 = понедельник</td></tr>
-<tr><td>is_weekend · is_night_kiev</td><td>bool</td><td><code>false</code></td><td>ночь = 00:00–06:00</td></tr>
-</table></div>
-
-<h3>Пайплайн Яндекса — по сабдомену</h3>
-<div class="tw"><table>
-<tr><th>поле</th><th>тип</th><th>значения</th><th>что это</th></tr>
-<tr><td>yandex_pipeline_stage</td><td>enum</td><td><code>done</code> · <code>quota_wait</code> · <code>error</code> · <code>verify</code> · <code>recrawl</code> · <code>meta</code></td><td>где сабдомен сейчас</td></tr>
-<tr><td>verification_status</td><td>enum · null</td><td><code>VERIFIED</code> · <code>FAILED</code> · <code>IN_PROGRESS</code> · <code>INTERNAL_ERROR</code></td><td>подтверждение прав в Вебмастере</td></tr>
-<tr><td>verification_fail_count</td><td>int 0–3</td><td><code>0</code></td><td>3 = лимит исчерпан</td></tr>
-<tr><td>webmaster_added_at</td><td>datetime · null</td><td></td><td>когда хост добавлен</td></tr>
-<tr><td>verified_at</td><td>datetime · null</td><td></td><td>когда подтверждён</td></tr>
-<tr><td><b>recrawl_sent_at</b></td><td>datetime · null</td><td></td><td><b>отправка на переобход — главное поле</b></td></tr>
-<tr><td>recrawl_done_at</td><td>datetime · null</td><td></td><td>подтверждение от Яндекса</td></tr>
-<tr><td>quota_wait_until</td><td>datetime · null</td><td></td><td>если упёрлись в квоту 150/сутки</td></tr>
-<tr><td>recrawl_wave</td><td>int · null</td><td><code>1</code> · <code>2</code></td><td>волна: сразу или после <code>00:10</code></td></tr>
-<tr><td>pipeline_error</td><td>string · null</td><td><code>VERIFICATION_FAILED 3/3</code></td><td></td></tr>
-<tr><td>verify_retry_count</td><td>int</td><td><code>1</code></td><td></td></tr>
-<tr><td>duration_add_h · duration_verify_h · duration_recrawl_h</td><td>float · null</td><td><code>2.4</code></td><td>часы, из событий</td></tr>
+<tr><th>что</th><th>почему</th></tr>
+<tr><td>позиции Яндекса и Google</td><td>таблицы пустые, съёма нет. Заменяется кликом с реферером Яндекса — он доказывает и индекс, и попадание в выдачу</td></tr>
+<tr><td>предел вложенности на запуск</td><td>глобальный runtime, в строку не пишется, историю не восстановить. Сравнение пределов — только вперёд, через <code>/v1/globals</code></td></tr>
+<tr><td>RKN, GSA, ping, ban_date, Метрика, EN-язык</td><td>не наполняются</td></tr>
+<tr><td>clients — регистрации в вашей БД</td><td>0 строк, регистрации только из трекера</td></tr>
+<tr><td>факт включённого CF-воркера, IndexNow success</td><td>cron выключены, флаги пустые</td></tr>
+<tr><td><code>welcome_bonus</code>, <code>language</code>, <code>registrar</code>, <code>include_hidden</code></td><td>константы, сигнала не несут</td></tr>
 </table></div>
 <div class="call gap">
-<h3>Про <code>recrawl_sent_at</code> и <code>recrawl_wave</code></h3>
-<p>Это два самых важных поля во всём ответе. Квота — 150 URL в сутки, возобновление
-с 00:10 Киев шагом 12 минут. Значит часть сабдоменов одной базы уходит на переобход
-сразу, а остаток почти сутки спустя, и это <b>единственный параметр, который
-различается внутри одной базы</b>. Сравнение по нему автоматически очищено
-от зоны, контента и даты.</p>
-<p>Если <code>recrawl_wave</code> не хранится — не считайте его, отдайте только
-<code>recrawl_sent_at</code>, волну я выведу сам по времени относительно
-<code>pipeline_started</code>.</p>
+<h3>Два расхождения, которые стоит проверить отдельно</h3>
+<p><b>Apache режет глубину на 20, PHP разрешает 40, hreflang объявляет 40.</b>
+Значит уровни 21–40 объявлены, но ведут в 302 на корень — всем, включая ботов.
+Половина заявленной структуры мертва. Увидим по тому, какие уровни реально
+приходят в кликах.</p>
+<p><b>После soft-delete базы сабдомены и клики зачищаются.</b> Сейчас удалённых нет,
+но если появятся — аналитика по ним исчезнет задним числом. Стоит либо не удалять,
+либо выгружать до удаления.</p>
+</div>
+</section>
+
+<hr>
+
+<section>
+<h2>Часть 2 · План анализа</h2>
+
+<h3>Вся математика — пять множителей</h3>
+<div class="fmt"><pre>базы × сабдоменов на базу          =  сабдомены
+     × доля, вышедшая в поиск      =  сабдомены с кликом из Яндекса
+     × кликов на сабдомен          =  клики
+     × клик → регистрация          =  регистрации
+     × регистрация → ФД            =  ФД
+     × $40                         =  выручка
+
+затраты = базы × цена зоны</pre></div>
+<div class="tw"><table>
+<tr><th>множитель</th><th>чем управляем</th><th>чем меряем</th></tr>
+<tr><td>доля в поиске</td><td>контент, зона, время отправки, волна, аккаунты</td><td>клики с реферером Яндекса против полного списка сабдоменов</td></tr>
+<tr><td>кликов на сабдомен</td><td>уровень вложенности в выдаче, бренд</td><td>путь страницы входа в клике</td></tr>
+<tr><td>клик → регистрация</td><td>оффер и бренд; <b>не наш контент</b> — человек его не видит</td><td><code>clickid</code></td></tr>
+<tr><td>регистрация → ФД</td><td>почти не управляем</td><td>трекер</td></tr>
+<tr><td>цена домена</td><td>зона</td><td>справочник</td></tr>
+</table></div>
+
+<h3>Четыре главных разреза</h3>
+
+<p><b>1 · Вложенность.</b> Четыре разных вопроса, путать нельзя.</p>
+<div class="tw"><table>
+<tr><th>вопрос</th><th>как считаю</th><th>когда</th></tr>
+<tr><td>какие уровни вообще ранжируются</td><td>распределение пути страницы входа по всем кликам</td><td>первая неделя</td></tr>
+<tr><td>работает ли срез Apache на 20</td><td>есть ли клики с уровней 21+; если нет — половина hreflang мертва</td><td>первая неделя</td></tr>
+<tr><td>влияет ли уровень на деньги</td><td>конверсия по уровню, с оговоркой: уровень выбирает Яндекс, это связь, а не причина</td><td>2 недели</td></tr>
+<tr><td><b>смена уровня на переобходе</b></td><td>один сабдомен до и после, <b>против контрольной группы</b> тех, у кого уровень не менялся</td><td>2–4 недели</td></tr>
+</table></div>
+
+<p><b>2 · Время отправки на переобход.</b> Естественный эксперимент с непрерывной дозой.</p>
+<div class="tw"><table>
+<tr><th>вопрос</th><th>как считаю</th><th>когда</th></tr>
+<tr><td>волна 1 против волны 2</td><td>внутри одной базы — чистое сравнение, очищено от зоны, контента и даты</td><td><b>первая неделя</b></td></tr>
+<tr><td>сколько стоит каждый час задержки</td><td>квота возобновляется в 00:10, значит задержка зависит от часа старта и плавно меняется от 0 до 24 ч — получается кривая, а не бинарный ответ</td><td>1–2 недели</td></tr>
+<tr><td>час и день старта</td><td>от <code>pipeline_started</code>; выборка — базы, поэтому медленнее</td><td>4 недели</td></tr>
+<tr><td>когда списывать сабдомен</td><td>лаг до первого клика; порог, после которого клика уже не будет</td><td>2 недели</td></tr>
+</table></div>
+
+<p><b>3 · Аккаунты и износ — этого в прежнем плане не было.</b></p>
+<div class="tw"><table>
+<tr><th>вопрос</th><th>как считаю</th><th>почему важно</th></tr>
+<tr><td><b>износ бренда</b></td><td>отдача против <code>brand_release_seq</code></td><td>на бренд приходится ~1500 сайтов. Если поздние сайты бренда работают хуже — «больше запусков» не масштабируется линейно, и это главный вопрос про рост</td></tr>
+<tr><td>переиспользование пака</td><td>отдача против <code>content_reuse_count</code></td><td>один пак идёт на ~206 сайтов; текст дублируется</td></tr>
+<tr><td>возраст YA-аккаунта</td><td>отдача против <code>ya_account_age_days_at_start</code></td><td>возраст бимодален: 0–1 день и 29–38 дней. Готовая пара для сравнения</td></tr>
+<tr><td>нагруженность YA-аккаунта</td><td>отдача против <code>ya_hosts_before</code> и <code>ya_launch_seq</code></td><td>1378 аккаунтов, 1 запуск на 1337 — второй и третий запуск редки и видны отдельно</td></tr>
+<tr><td>номер базы на CF</td><td>отдача против <code>cf_cd_seq</code> 1/2/3</td><td>411 аккаунтов с одной базой, 209 с двумя, 273 с тремя</td></tr>
+<tr><td>верификация</td><td>доля FAILED и исчерпавших 3/3, влияние на дальнейшее</td><td>новый шаг воронки: 554 FAILED, 439 исчерпали лимит</td></tr>
+</table></div>
+
+<p><b>4 · Контент и оформление — только против выдачи, не против денег.</b></p>
+<div class="tw"><table>
+<tr><th>вопрос</th><th>как считаю</th></tr>
+<tr><td>7 против 12 страниц</td><td>клики на базу; разрез по <code>pack_kind</code></td></tr>
+<tr><td>версия оформления</td><td><code>oform</code> · <code>oform-2</code> · <code>styled_img</code></td></tr>
+<tr><td>длина текстов и спинтакс</td><td>непрерывные величины, корреляция с долей в поиске</td></tr>
+<tr><td><b>контраст</b></td><td>WCAG-отношение фон/текст, кнопка/текст, фон/ссылка. Гипотеза: влияет на оценку страницы роботом</td></tr>
+<tr><td>палитра</td><td>~6004 уникальных на 6159 брендов — почти у каждого своя; годится как контроль, не как рычаг</td></tr>
+</table></div>
+
+<h3>Что читается за какой срок</h3>
+<p>При 587 базах в неделю, ~190 регистрациях и ~28 ФД. Вероятность увидеть разницу,
+если она есть:</p>
+<div class="tw"><table>
+<tr><th>метрика</th><th>разница</th><th>1 неделя</th><th>2 недели</th><th>4 недели</th><th>8 недель</th></tr>
+<tr><td>клики на базу</td><td>1.2x</td><td><b>87%</b></td><td>100%</td><td>100%</td><td>100%</td></tr>
+<tr><td>доля сабдоменов с кликом</td><td>1.2x</td><td><b>99%</b></td><td>100%</td><td>100%</td><td>100%</td></tr>
+<tr><td>регистрации на базу</td><td>1.3x</td><td>33%</td><td>57%</td><td>86%</td><td>99%</td></tr>
+<tr><td>ФД на базу</td><td>1.5x</td><td>15%</td><td>26%</td><td>46%</td><td>75%</td></tr>
+</table></div>
+<div class="call gap">
+<h3>Правило</h3>
+<p><b>Эксперименты судим по кликам. Деньги считаем накопительно и по неделям
+не сравниваем.</b> Ветка с лучшими кликами может быть убыточной, если она в дорогой
+зоне — поэтому решение в два шага: клики говорят, какой вариант работает,
+накопленная экономика говорит, окупается ли.</p>
+<p>И: параметры базы (контент, зона, пак) ограничены числом баз — 587 в неделю.
+Параметры сабдомена (волна, бренд, уровень) различаются внутри базы, там выборка
+в двести раз больше. Путать эти два случая — завышать мощность в двести раз.</p>
 </div>
 
-<h3>База и инфраструктура</h3>
+<h3>Что вы получаете</h3>
+<p><b>Каждую неделю:</b> воронка по шагам с долями и лагами от обеих точек отсчёта ·
+экономика с порогом цены домена · разрезы по каждому рычагу с пометкой
+«читается / шум / копится» · распределение уровней вложенности ·
+три строки приоритетов.</p>
+<p><b>Раз в месяц:</b> окупаемость зон · измеренный срок жизни сабдомена ·
+износ бренда и переиспользование пака · верификация и квота как источник потерь.</p>
+</section>
+
+<hr>
+
+<section>
+<h2>Часть 3 · API</h2>
+<p>Две системы отдают данные. <b>Система запусков</b> — четыре эндпоинта,
+<b>трекер</b> — два. Контракт одинаковый.</p>
+
+<h3>Общие правила обеих систем</h3>
 <div class="tw"><table>
-<tr><th>поле</th><th>тип</th><th>пример</th></tr>
+<tr><th>что</th><th>как</th></tr>
+<tr><td>метод и формат</td><td>только <code>GET</code>, ответ JSON, <code>charset=utf-8</code></td></tr>
+<tr><td>авторизация</td><td><code>Authorization: Bearer &lt;token&gt;</code></td></tr>
+<tr><td>время</td><td>ISO 8601 со смещением: <code>2026-09-15T13:03:11+03:00</code>. <b>Europe/Kyiv везде, в обеих системах</b></td></tr>
+<tr><td>только дата</td><td><code>2026-09-15</code>, границы включительно</td></tr>
+<tr><td>нет значения</td><td><code>null</code>. Не пустая строка, не <code>0</code>, не <code>"-"</code></td></tr>
+<tr><td>булево</td><td><code>true</code> / <code>false</code></td></tr>
+<tr><td>хост</td><td>нижний регистр, без схемы и <code>www</code>: <code>shuffle.3479.team</code>. <b>Одинаково в обеих системах — это ключ соединения</b></td></tr>
+<tr><td>повторный запрос</td><td>тот же диапазон → те же строки, порядок стабильный</td></tr>
+</table></div>
+
+<p><b>Обёртка ответа</b> — одна на все списочные эндпоинты:</p>
+<div class="fmt"><pre>{
+  "data": [ ... ],
+  "meta": {
+    "count": 1000,
+    "next_cursor": "eyJpZCI6MzA0MTJ9",     // null — это последняя страница
+    "generated_at": "2026-09-15T18:20:04+03:00"
+  }
+}</pre></div>
+<p><code>limit</code> по умолчанию 1000, максимум 5000. <code>cursor</code> —
+непрозрачная строка из предыдущего ответа. Offset не используем: 306 тысяч строк.</p>
+
+<p><b>Ошибки:</b></p>
+<div class="fmt"><pre>{ "error": { "code": "invalid_range", "message": "date_to earlier than date_from" } }</pre></div>
+<p><code>unauthorized</code> 401 · <code>invalid_param</code> 400 ·
+<code>invalid_range</code> 400 · <code>rate_limited</code> 429 · <code>internal</code> 500.</p>
+
+<hr style="margin:32px 0 26px">
+
+<h2 style="font-size:23px">Система запусков</h2>
+
+<h3>1 · GET /v1/subdomains</h3>
+<p>Основной. <b>Одна строка = сабдомен</b>, поля запуска, аккаунтов, пака и бренда
+денормализованы в строку.</p>
+<div class="fmt"><pre>GET /v1/subdomains?date_from=2026-09-14&amp;date_to=2026-09-15&amp;limit=1000</pre></div>
+<div class="tw"><table>
+<tr><th>параметр</th><th>тип</th><th>обяз.</th><th>что значит</th></tr>
+<tr><td>date_from · date_to</td><td>date</td><td>да</td><td>включительно</td></tr>
+<tr><td>date_field</td><td>enum</td><td>нет</td><td><code>domain_created</code> (по умолч.) · <code>cd_created</code> · <code>pipeline_started</code></td></tr>
+<tr><td>content_domain_id</td><td>int</td><td>нет</td><td>только эта база</td></tr>
+<tr><td>limit · cursor</td><td>int · string</td><td>нет</td><td></td></tr>
+</table></div>
+
+<p><b>Ключи</b></p>
+<div class="tw"><table>
+<tr><th>поле</th><th>тип</th><th>пример</th><th>что это</th></tr>
+<tr><td>subdomain</td><td>string</td><td><code>shuffle.3479.team</code></td><td>ключ соединения с трекером</td></tr>
+<tr><td>domain_id · site_id · brand_id</td><td>int</td><td><code>418203</code></td><td></td></tr>
+<tr><td>content_domain_id</td><td>int</td><td><code>2844</code></td><td>база = «запуск»</td></tr>
+<tr><td>content_domain_url</td><td>string</td><td><code>3479.team</code></td><td></td></tr>
+<tr><td>content_id</td><td>int · null</td><td><code>674</code></td><td>у старых часто <code>null</code></td></tr>
+</table></div>
+
+<p><b>Запуск и время</b></p>
+<div class="tw"><table>
+<tr><th>поле</th><th>тип</th><th>пример · значения</th></tr>
+<tr><td>cd_created · site_created · domain_created</td><td>datetime</td><td><code>2026-09-15T13:03:11+03:00</code></td></tr>
+<tr><td>job_started · job_finished</td><td>datetime · null</td><td>генерация, ~50 сек</td></tr>
+<tr><td>schedule_trigger_mode</td><td>enum · null</td><td><code>at_time</code> · <code>when_ready</code></td></tr>
+<tr><td>schedule_run_at · schedule_activated_at</td><td>datetime · null</td><td>план и факт</td></tr>
+<tr><td><b>pipeline_started</b></td><td>datetime · null</td><td><b>нулевая точка отсчёта</b></td></tr>
+<tr><td>pipeline_finished</td><td>datetime · null</td><td></td></tr>
+<tr><td>start_hour · start_dow</td><td>int</td><td><code>13</code> · <code>2</code> (1 = пн)</td></tr>
+<tr><td>is_weekend · is_night_kiev</td><td>bool</td><td>ночь = 00:00–06:00</td></tr>
+</table></div>
+
+<p><b>Пайплайн Яндекса</b></p>
+<div class="tw"><table>
+<tr><th>поле</th><th>тип</th><th>значения</th></tr>
+<tr><td>yandex_pipeline_stage</td><td>enum</td><td><code>done</code> · <code>quota_wait</code> · <code>error</code> · <code>verify</code> · <code>recrawl</code> · <code>meta</code></td></tr>
+<tr><td>verification_status</td><td>enum · null</td><td><code>VERIFIED</code> · <code>FAILED</code> · <code>IN_PROGRESS</code> · <code>INTERNAL_ERROR</code></td></tr>
+<tr><td>verification_fail_count</td><td>int 0–3</td><td>3 = лимит исчерпан</td></tr>
+<tr><td>webmaster_added_at · verified_at</td><td>datetime · null</td><td></td></tr>
+<tr><td><b>recrawl_sent_at</b></td><td>datetime · null</td><td><b>отправка на переобход — главное поле</b></td></tr>
+<tr><td>recrawl_done_at</td><td>datetime · null</td><td>подтверждение Яндекса</td></tr>
+<tr><td>quota_wait_until</td><td>datetime · null</td><td>если упёрлись в 150/сутки</td></tr>
+<tr><td>recrawl_wave</td><td>int · null</td><td><code>1</code> · <code>2</code>. Если не хранится — не считайте, выведу из <code>recrawl_sent_at</code></td></tr>
+<tr><td>pipeline_error</td><td>string · null</td><td><code>VERIFICATION_FAILED 3/3</code></td></tr>
+<tr><td>verify_retry_count</td><td>int</td><td></td></tr>
+<tr><td>duration_add_h · duration_verify_h · duration_recrawl_h</td><td>float · null</td><td><code>2.4</code></td></tr>
+</table></div>
+
+<p><b>База, CF и YA</b></p>
+<div class="tw"><table>
+<tr><th>поле</th><th>тип</th><th>пример · значения</th></tr>
 <tr><td>tld</td><td>string</td><td><code>team</code> · <code>lol</code> · <code>casino</code> · <code>buzz</code></td></tr>
 <tr><td>base_name_pattern</td><td>enum</td><td><code>numeric</code> · <code>alpha_other</code> · <code>casino_prefix</code> · <code>casino_infix</code></td></tr>
 <tr><td>base_label_len</td><td>int</td><td><code>4</code></td></tr>
-<tr><td>cf_account_id</td><td>int</td><td><code>612</code></td></tr>
-<tr><td>cf_email_domain</td><td>string</td><td><code>rambler.ru</code></td></tr>
-<tr><td>cf_cd_seq</td><td>int</td><td><code>2</code> — какая по счёту база на этом CF-аккаунте</td></tr>
-<tr><td>cf_cd_count_at_launch</td><td>int</td><td><code>1</code></td></tr>
+<tr><td>cf_account_id · cf_email_domain</td><td>int · string</td><td><code>612</code> · <code>rambler.ru</code></td></tr>
+<tr><td>cf_cd_seq · cf_cd_count_at_launch</td><td>int</td><td><code>2</code> · <code>1</code></td></tr>
 <tr><td>cf_days_since_prev_launch</td><td>int · null</td><td><code>6</code></td></tr>
 <tr><td>ya_account_id</td><td>int</td><td><code>1301</code></td></tr>
-<tr><td>ya_launch_seq</td><td>int</td><td><code>1</code></td></tr>
-<tr><td>ya_prior_launches</td><td>int</td><td><code>0</code></td></tr>
-<tr><td>ya_hosts_before</td><td>int</td><td><code>0</code> — сколько хостов уже висело на аккаунте</td></tr>
+<tr><td>ya_launch_seq · ya_prior_launches</td><td>int</td><td><code>1</code> · <code>0</code></td></tr>
+<tr><td>ya_hosts_before</td><td>int</td><td>сколько хостов уже висело на аккаунте</td></tr>
 <tr><td>ya_account_age_days_at_start</td><td>int</td><td><code>31</code></td></tr>
 <tr><td>hours_since_ya_last_used</td><td>float · null</td><td><code>18.5</code></td></tr>
-<tr><td>had_hosts_purge</td><td>bool</td><td><code>false</code></td></tr>
+<tr><td>had_hosts_purge</td><td>bool</td><td></td></tr>
 </table></div>
 
-<h3>Контент-пак</h3>
+<p><b>Контент-пак</b></p>
 <div class="tw"><table>
-<tr><th>поле</th><th>тип</th><th>пример</th></tr>
+<tr><th>поле</th><th>тип</th><th>пример · значения</th></tr>
 <tr><td>content_label</td><td>string</td><td><code>content-2026-09-14c-7str-oform-2_44</code></td></tr>
-<tr><td>pack_date</td><td>date · null</td><td><code>2026-09-14</code></td></tr>
-<tr><td>pack_series</td><td>string · null</td><td><code>c</code></td></tr>
+<tr><td>pack_date · pack_series · pack_serial</td><td>date · string · int (nullable)</td><td><code>2026-09-14</code> · <code>c</code> · <code>44</code></td></tr>
 <tr><td>pack_kind</td><td>enum</td><td><code>7str</code> · <code>12str</code> · <code>nabory</code></td></tr>
 <tr><td>oform_version</td><td>enum · null</td><td><code>oform</code> · <code>oform-2</code> · <code>styled_img</code></td></tr>
-<tr><td>pack_serial</td><td>int · null</td><td><code>44</code></td></tr>
 <tr><td>pages_count</td><td>int</td><td><code>7</code> · <code>12</code></td></tr>
 <tr><td>page_url_set</td><td>array&lt;string&gt;</td><td><code>["bonus","registracia","app","zerkalo","vhod","slots"]</code></td></tr>
-<tr><td>content_reuse_count</td><td>int</td><td><code>206</code></td></tr>
-<tr><td>generation_runs_count</td><td>int</td><td><code>1</code></td></tr>
+<tr><td>content_reuse_count · generation_runs_count · content_pack_seq</td><td>int</td><td><code>206</code> · <code>1</code></td></tr>
 <tr><td>template</td><td>enum</td><td><code>Theme1</code> · <code>Theme2</code></td></tr>
 <tr><td>title_ru_len · description_ru_len · additional_text_ru_len · additional_text_2_ru_len · page_body_len · h1_len</td><td>int</td><td><code>26431</code></td></tr>
 <tr><td>spintax_branch_count</td><td>int</td><td><code>312</code></td></tr>
 </table></div>
 
-<h3>Бренд и оформление</h3>
+<p><b>Бренд и оформление</b></p>
 <div class="tw"><table>
 <tr><th>поле</th><th>тип</th><th>пример</th></tr>
-<tr><td>subdomain_label</td><td>string</td><td><code>shuffle</code></td></tr>
-<tr><td>brand_label · brand_name_ru · brand_name_en</td><td>string</td><td></td></tr>
+<tr><td>subdomain_label · brand_label · brand_name_ru · brand_name_en</td><td>string</td><td><code>shuffle</code></td></tr>
 <tr><td>sub_len · sub_has_digits · sub_has_hyphen</td><td>int · bool · bool</td><td><code>7</code></td></tr>
-<tr><td>brand_release_seq</td><td>int</td><td><code>1512</code> — какой по счёту сайт этого бренда</td></tr>
+<tr><td><b>brand_release_seq</b></td><td>int</td><td><code>1512</code> — какой по счёту сайт этого бренда</td></tr>
 <tr><td>days_since_brand_last_release</td><td>int · null</td><td><code>1</code></td></tr>
 <tr><td>has_established · established_year</td><td>bool · int·null</td><td><code>true</code> · <code>2019</code></td></tr>
 <tr><td>popup · api_form</td><td>bool</td><td></td></tr>
@@ -253,108 +385,57 @@ li{margin:0 0 8px}
 <tr><td>keywords_len · keywords_word_count</td><td>int</td><td><code>7312</code></td></tr>
 </table></div>
 
-<h3>Палитра и контраст</h3>
-<p>Сырые CSS-значения отдать как есть, производные — посчитать на вашей стороне
-по формуле ниже (они чисто арифметические и не зависят от того, кто считает).</p>
-<div class="tw"><table>
-<tr><th>поле</th><th>тип</th><th>пример</th><th>что это</th></tr>
-<tr><td>css.main_background · css.secondary_background · css.content_background · css.button_color · css.button_hover_color · css.main_font_color · css.link_font_color · css.highlighter · css.gradient_first_color · css.gradient_second_color</td><td>string</td><td><code>#1b2f4a</code></td><td>hex, нижний регистр, всегда 6 знаков</td></tr>
-<tr><td>css.main_border_radius · css.button_border_radius · css.font_scale_factor</td><td>string</td><td><code>8px</code> · <code>1.05</code></td><td>как в CSS</td></tr>
-<tr><td>css_bg_luminance · css_button_luminance</td><td>float 0–1</td><td><code>0.043</code></td><td>относительная яркость по WCAG</td></tr>
-<tr><td><b>contrast_body_text</b></td><td>float 1–21</td><td><code>12.6</code></td><td>фон против основного текста</td></tr>
-<tr><td><b>contrast_button_text</b></td><td>float 1–21</td><td><code>4.1</code></td><td>кнопка против текста на ней</td></tr>
-<tr><td><b>contrast_link</b></td><td>float 1–21</td><td><code>3.2</code></td><td>фон против ссылки</td></tr>
-<tr><td>css_palette_hash</td><td>string</td><td><code>a3f19c</code></td><td>для поиска дублей палитр</td></tr>
-</table></div>
-<div class="fmt"><pre>// относительная яркость канала
-f(c) = c/255 <= 0.03928 ? c/255/12.92 : ((c/255 + 0.055)/1.055)^2.4
-L = 0.2126*f(R) + 0.7152*f(G) + 0.0722*f(B)
-
-// контраст двух цветов, диапазон 1..21
-contrast = (max(L1,L2) + 0.05) / (min(L1,L2) + 0.05)</pre></div>
-
-<h3>Трафик — агрегаты</h3>
+<p><b>Палитра и контраст.</b> Сырые значения — как есть; производные считаются
+арифметически, формула ниже.</p>
 <div class="tw"><table>
 <tr><th>поле</th><th>тип</th><th>пример</th></tr>
-<tr><td>clicks_sum · views_sum</td><td>int</td><td><code>4</code> · <code>0</code></td></tr>
-<tr><td>clicks_7d · clicks_30d · views_7d · views_30d</td><td>int</td><td></td></tr>
+<tr><td>css.main_background · css.secondary_background · css.content_background · css.button_color · css.button_hover_color · css.main_font_color · css.link_font_color · css.highlighter · css.gradient_first_color · css.gradient_second_color</td><td>string</td><td><code>#1b2f4a</code> — hex, нижний регистр, 6 знаков</td></tr>
+<tr><td>css.main_border_radius · css.button_border_radius · css.font_scale_factor</td><td>string</td><td><code>8px</code> · <code>1.05</code></td></tr>
+<tr><td>css_bg_luminance · css_button_luminance</td><td>float 0–1</td><td><code>0.043</code></td></tr>
+<tr><td><b>contrast_body_text</b></td><td>float 1–21</td><td><code>12.6</code> — фон против текста</td></tr>
+<tr><td><b>contrast_button_text</b></td><td>float 1–21</td><td><code>4.1</code> — кнопка против текста на ней</td></tr>
+<tr><td><b>contrast_link</b></td><td>float 1–21</td><td><code>3.2</code> — фон против ссылки</td></tr>
+<tr><td>css_palette_hash</td><td>string</td><td><code>a3f19c</code></td></tr>
+</table></div>
+<div class="fmt"><pre>f(c) = c/255 &lt;= 0.03928 ? c/255/12.92 : ((c/255 + 0.055)/1.055)^2.4
+L    = 0.2126*f(R) + 0.7152*f(G) + 0.0722*f(B)
+contrast = (max(L1,L2) + 0.05) / (min(L1,L2) + 0.05)     // 1..21</pre></div>
+
+<p><b>Трафик-агрегаты и ссылка</b></p>
+<div class="tw"><table>
+<tr><th>поле</th><th>тип</th><th>пример</th></tr>
+<tr><td>clicks_sum · views_sum · clicks_7d · clicks_30d · views_7d · views_30d</td><td>int</td><td><code>4</code></td></tr>
 <tr><td>first_click_at · last_click_at · first_view_at · last_view_at</td><td>datetime · null</td><td></td></tr>
 <tr><td>days_to_first_click_after_recrawl</td><td>float · null</td><td><code>1.8</code></td></tr>
 <tr><td>ref_link_host · ref_link_slug</td><td>string</td><td><code>sitegrator.com</code> · <code>/go/dorgen_engine</code></td></tr>
 </table></div>
-</section>
 
-<hr>
+<h3>2 · GET /v1/traffic</h3>
+<p><b>Одна строка = сабдомен × дата.</b> Только дни с ненулевым значением.
+Параметры: <code>date_from</code>, <code>date_to</code>, опц. <code>subdomain</code>, пагинация.</p>
+<div class="fmt"><pre>{ "subdomain": "shuffle.3479.team", "date": "2026-09-15",
+  "clicks": 4, "views": 1, "country_mix": { "RU": 3, "null": 1 } }</pre></div>
 
-<section>
-<h2>2 · GET /v1/traffic</h2>
-<p>Временной ряд — в строку сабдомена не денормализуется.
-<b>Одна строка = сабдомен × дата.</b> Отдавать только дни с ненулевым значением.</p>
-<div class="tw"><table>
-<tr><th>параметр</th><th>тип</th><th>обяз.</th><th>что значит</th></tr>
-<tr><td>date_from · date_to</td><td>date</td><td>да</td><td>по дате трафика</td></tr>
-<tr><td>subdomain</td><td>string</td><td>нет</td><td>вернуть только этот хост</td></tr>
-<tr><td>limit · cursor</td><td></td><td>нет</td><td></td></tr>
-</table></div>
-<div class="fmt"><pre>{
-  "data": [
-    { "subdomain": "shuffle.3479.team", "date": "2026-09-15",
-      "clicks": 4, "views": 1, "country_mix": { "RU": 3, "null": 1 } }
-  ]
-}</pre></div>
-<div class="call gap">
-<h3>Важно: ваш «клик» — это не переход человека из поиска</h3>
-<p>870 тысяч кликов на 226 тысячах сабдоменов, а регистраций за тот же период —
-около пятисот. Конверсия <span class="n">0.05%</span>. При этом клики есть
-у 74% всех сабдоменов. Значит счётчик считает срабатывание редиректа,
-а не живого посетителя.</p>
-<p>Это не делает его бесполезным — наоборот, объёма хватает, чтобы сравнивать
-конфигурации за неделю. Но <b>называть его конверсией нельзя</b>, и в отчётах
-он пойдёт как отдельная метрика «срабатываний редиректа», а деньги —
-только из трекера.</p>
-</div>
-</section>
-
-<hr>
-
-<section>
-<h2>3 · GET /v1/events</h2>
-<p>Сырые события пайплайна. Нужны, чтобы пересчитывать длительности под любое
-определение, а не полагаться на заранее посчитанные.
-<b>Одна строка = одно событие.</b></p>
-<div class="fmt"><pre>{
-  "data": [
-    { "subdomain": "shuffle.3479.team", "content_domain_id": 2844,
-      "event": "recrawl_sent", "at": "2026-09-15T13:41:02+03:00",
-      "detail": null },
-    { "subdomain": "shuffle.3479.team", "content_domain_id": 2844,
-      "event": "verify_failed", "at": "2026-09-15T13:12:40+03:00",
-      "detail": "VERIFICATION_FAILED 1/3" }
-  ]
-}</pre></div>
-<p>Значения <code>event</code>: <code>host_added</code> · <code>verify_started</code> ·
+<h3>3 · GET /v1/events</h3>
+<p><b>Одна строка = событие пайплайна.</b> Нужны сырые, чтобы пересчитывать
+длительности под любое определение. Параметры: даты, опц. <code>subdomain</code>
+или <code>content_domain_id</code>, пагинация.</p>
+<div class="fmt"><pre>{ "subdomain": "shuffle.3479.team", "content_domain_id": 2844,
+  "event": "recrawl_sent", "at": "2026-09-15T13:41:02+03:00", "detail": null }</pre></div>
+<p><code>event</code>: <code>host_added</code> · <code>verify_started</code> ·
 <code>verify_ok</code> · <code>verify_failed</code> · <code>meta_set</code> ·
 <code>recrawl_sent</code> · <code>recrawl_done</code> · <code>quota_hit</code> ·
 <code>error</code> · <code>hosts_purge</code>.</p>
-<p>Параметры те же: <code>date_from</code>, <code>date_to</code>, опционально
-<code>subdomain</code> или <code>content_domain_id</code>, плюс пагинация.</p>
-</section>
 
-<hr>
-
-<section>
-<h2>4 · GET /v1/globals</h2>
-<p>Снимок глобальных констант на дату. Их нет в строке запуска, но они меняются
-и влияют на всё сразу — без них сравнение периодов между собой некорректно.</p>
+<h3>4 · GET /v1/globals</h3>
+<p>Снимок констант на дату. Без них сравнение периодов некорректно.</p>
 <div class="fmt"><pre>GET /v1/globals?on=2026-09-15
 
-{
-  "on": "2026-09-15",
+{ "on": "2026-09-15",
   "php_max_ru_depth": 40,
   "apache_ru_cut": 20,
-  "hreflang_codes": ["ru","en","x-default","ru-KZ","en-AU","ru-BY","ru-UZ",
-                     "ru-SG","ru-ZA","ru-PH","ru-RU","ru-HK","ru-PK","ru-US",
-                     "ru-CA","ru-IE"],
+  "hreflang_codes": ["ru","en","x-default","ru-KZ","en-AU","ru-BY","ru-UZ","ru-SG",
+                     "ru-ZA","ru-PH","ru-RU","ru-HK","ru-PK","ru-US","ru-CA","ru-IE"],
   "geo_redirect_enabled": true,
   "cf_worker_enabled": false,
   "indexnow_cron_enabled": false,
@@ -363,11 +444,44 @@ contrast = (max(L1,L2) + 0.05) / (min(L1,L2) + 0.05)</pre></div>
   "quota_step_minutes": 12,
   "verify_fail_limit": 3,
   "server_ip": "87.199.206.213",
-  "server_ip_since": "2026-08-11"
-}</pre></div>
-<p>Если история констант не хранится — отдавайте текущее состояние
-и логируйте изменения с этого момента. Без этого любой сдвиг настроек
-будет выглядеть как эффект контента.</p>
+  "server_ip_since": "2026-08-11" }</pre></div>
+<p>Если история не хранится — отдавайте текущее состояние и логируйте изменения
+с этого момента. Без этого сдвиг настроек будет выглядеть как эффект контента.</p>
+
+<hr style="margin:32px 0 26px">
+
+<h2 style="font-size:23px">Трекер</h2>
+
+<h3>5 · GET /v1/clicks</h3>
+<p><b>Одна строка = переход.</b> Переход с реферером Яндекса доказывает,
+что сабдомен был в выдаче — это заменяет съём позиций.</p>
+<div class="fmt"><pre>GET /v1/clicks?date_from=2026-09-14&amp;date_to=2026-09-15&amp;limit=1000</pre></div>
+<div class="tw"><table>
+<tr><th>поле</th><th>тип</th><th>пример</th><th>что это</th></tr>
+<tr><td>at</td><td>datetime</td><td><code>2026-09-15T15:02:41+03:00</code></td><td>Киев</td></tr>
+<tr><td>clickid</td><td>string</td><td><code>73aa6251ac4c4421</code></td><td>уникален <b>на переход</b>, не на человека</td></tr>
+<tr><td>subdomain</td><td>string</td><td><code>shuffle.3479.team</code></td><td>сейчас поле <code>source</code></td></tr>
+<tr><td>referer</td><td>string · null</td><td><code>https://yandex.ru/</code></td><td>отделяет поиск от прочего</td></tr>
+<tr><td>country</td><td>string · null</td><td><code>RU</code></td><td></td></tr>
+<tr><td><b>landing_path</b></td><td>string · null</td><td><code>/ru/ru/ru/</code></td><td><b>новое.</b> Путь страницы, <b>на которую пришли из поиска</b>, не той, с которой ушли. При внутренних переходах — адрес входа из сессии</td></tr>
+<tr><td>content_label</td><td>string · null</td><td><code>content-2026-09-14c-7str-oform-2_44</code></td><td>необязательно; снимает зависимость от системы запусков</td></tr>
+<tr><td>campaign</td><td>string · null</td><td><code>dorgen_engine</code></td><td></td></tr>
+</table></div>
+
+<h3>6 · GET /v1/conversions</h3>
+<p><b>Одна строка = событие.</b> Текущая выгрузка, плюс два поля.</p>
+<div class="tw"><table>
+<tr><th>поле</th><th>тип</th><th>пример · значения</th></tr>
+<tr><td>at</td><td>datetime</td><td><code>2026-09-15T15:15:11+03:00</code></td></tr>
+<tr><td>event</td><td>enum</td><td><code>reg</code> · <code>fd</code></td></tr>
+<tr><td>clickid</td><td>string</td><td>связывает с переходом</td></tr>
+<tr><td>subdomain</td><td>string</td><td></td></tr>
+<tr><td>referer · country</td><td>string · null</td><td></td></tr>
+<tr><td>payout</td><td>float · null</td><td><code>40.00</code> — фактическая выплата, если различается</td></tr>
+<tr><td>status</td><td>enum · null</td><td><code>approved</code> · <code>hold</code> · <code>rejected</code> — если есть холд</td></tr>
+</table></div>
+<p>Уровень вложенности в конверсии передавать <b>не нужно</b> — подтянется
+по <code>clickid</code> из <code>/v1/clicks</code>.</p>
 </section>
 
 <hr>
@@ -376,57 +490,21 @@ contrast = (max(L1,L2) + 0.05) / (min(L1,L2) + 0.05)</pre></div>
 <h2>Чего в API быть не должно</h2>
 <div class="tw"><table>
 <tr><th>что</th><th>почему</th></tr>
-<tr><td>готовые флаги «первый заход» и «вернулся ли»</td><td>определение ещё не выбрано; из событий пересчитается любое, из флага — никакое</td></tr>
-<tr><td>агрегаты по базе (<code>pct_verified</code>, <code>pct_error</code>)</td><td>считаются из строк сабдоменов; в API это дубль, который может разойтись</td></tr>
+<tr><td>готовые флаги «первый заход», «вернулся ли»</td><td>определение ещё не выбрано; из событий пересчитается любое, из флага — никакое</td></tr>
+<tr><td>агрегаты по базе (<code>pct_verified</code>, <code>pct_error</code>)</td><td>считаются из строк сабдоменов; в API это дубль, который разойдётся</td></tr>
 <tr><td>позиции, RKN, GSA, ping, ban_date, Метрика</td><td>таблицы пустые</td></tr>
-<tr><td>секреты, ключи, пароли аккаунтов</td><td>для анализа не нужны; достаточно id и домена почты</td></tr>
-<tr><td>поля, которые везде одинаковы</td><td><code>language</code>, <code>status</code>, <code>welcome_bonus</code>, <code>include_hidden</code>, <code>registrar</code> — константы, сигнала не несут</td></tr>
+<tr><td>секреты, ключи, пароли</td><td>достаточно id и домена почты</td></tr>
+<tr><td>константные поля</td><td><code>language</code>, <code>status</code>, <code>welcome_bonus</code>, <code>include_hidden</code>, <code>registrar</code></td></tr>
 </table></div>
 </section>
 
-<hr>
-
-<section>
-<h2>Что выяснилось из вашей выгрузки и меняет схему</h2>
-
-<h3>Человек не видит сайт</h3>
-<p>Любой URL с <code>/ru</code> отдаёт человеку 302 на <code>ref_link</code>;
-сайт видят только боты и whitelist. Значит <b>контент и оформление влияют
-не на конверсию, а только на то, как страницу оценивает Яндекс</b>.
-Это переворачивает интерпретацию всей группы «оформление»: контраст, логотипы,
-popup работают как сигнал качества для робота, а не как элементы, которые
-кто-то увидит. Мерить их всё равно нужно — но связывать надо с попаданием
-в выдачу, а не с регистрацией.</p>
-
-<h3>Apache и PHP не согласованы по глубине</h3>
-<p>PHP разрешает 40 уровней, hreflang наращивает до 40, а Apache режет
-<code>(/ru){21,}</code> и отдаёт 302 на корень <b>всем, включая ботов</b>.
-То есть половина объявленных в hreflang уровней ведёт в редирект.
-Это проверяемо и, возможно, лечится одной строкой конфига —
-но сначала надо увидеть в данных, какие уровни реально ранжируются.</p>
-
-<h3>Предела вложенности на запуск не существует</h3>
-<p>Глубина не пишется в строку запуска — это глобальный runtime, и историю
-восстановить нельзя. Значит поля <code>предел_вложенности</code> в API не будет,
-а сравнение пределов возможно только вперёд, после того как вы начнёте
-менять константу и логировать изменения через <code>/v1/globals</code>.</p>
-
-<h3>Верификация — отдельный шаг воронки</h3>
-<p>Между «хост добавлен» и «отправлен на переобход» стоит подтверждение прав:
-<span class="n">290k</span> VERIFIED, <span class="n">554</span> FAILED,
-<span class="n">439</span> исчерпали лимит 3 из 3. Доля небольшая,
-но шаг в воронке есть, и его надо считать отдельно.</p>
-
-<h3>Сабдоменов на базу не 200, а 166–206</h3>
-<p>306 тысяч сабдоменов на 1649 баз — в среднем 186. Я считал знаменатель
-как «домены × 200»; теперь он берётся из фактических строк, и это
-единственный правильный способ.</p>
-</section>
-
-<p class="foot">Все поля названы так же, как в вашем каталоге от 15.09,
-чтобы не пришлось сопоставлять. Если какое-то поле дорого отдавать —
-скажите до реализации: почти всё заменимо, кроме <code>subdomain</code>,
-<code>recrawl_sent_at</code> и <code>pipeline_started</code>.
-Без этих трёх не считается ничего.</p>
+<p class="foot">Имена полей взяты из вашего каталога от 15.09, чтобы не пришлось
+сопоставлять. Порядок реализации: сначала <code>/v1/clicks</code> с
+<code>landing_path</code> и <code>/v1/subdomains</code> — без них не считается ничего;
+затем <code>/v1/globals</code> и <code>/v1/events</code>; <code>/v1/traffic</code>
+последним, он только ускоряет то, что и так будет видно.
+Если какое-то поле дорого отдавать — скажите до реализации: заменимо почти всё,
+кроме <code>subdomain</code>, <code>recrawl_sent_at</code>,
+<code>pipeline_started</code> и <code>landing_path</code>.</p>
 
 </div>
