@@ -851,6 +851,8 @@ final class PanelTest
         }
         file_put_contents($runDir . '/settings.json', json_encode(['queries' => ['окна']], JSON_UNESCAPED_UNICODE));
         file_put_contents($dir . '/runs/domains-base.txt', "a.ru\nb.ru\n");
+        // История сборов — тоже часть базы: после полного сброса она не должна остаться.
+        file_put_contents($dir . '/runs/history.json', json_encode([['date' => '2026-09-15T10:00:00+00:00', 'sites' => 5, 'doors' => 2]]));
         file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
 
         $socket = @stream_socket_server('tcp://127.0.0.1:0', $errno, $errstr);
@@ -893,6 +895,22 @@ final class PanelTest
             Assert::same(['total' => 0, 'done' => 0, 'left' => 0], $state['queue'], 'очередь запросов сброшена');
             Assert::same(0, $state['content_files']);
             Assert::true(empty($state['status']['sites']), 'таблица пуста');
+            Assert::same(1, $r['history'] ?? 0, 'записи статистики посчитаны');
+            Assert::false(is_file($dir . '/runs/history.json'), 'статистика очищена вместе с базой');
+            $hist = json_decode((string) $this->http('GET', $base . '/api/history'), true);
+            Assert::same([], $hist['records'], 'вкладка статистики пуста');
+
+            // Отдельная кнопка «очистить статистику»: база и файлы остаются, уходит только история.
+            file_put_contents($dir . '/runs/history.json', json_encode([
+                ['date' => '2026-09-16T10:00:00+00:00', 'sites' => 7, 'doors' => 3],
+                ['date' => '2026-09-15T10:00:00+00:00', 'sites' => 5, 'doors' => 2],
+            ]));
+            file_put_contents($dir . '/runs/domains-base.txt', "c.ru\n");
+            $rh = json_decode((string) $this->http('POST', $base . '/api/reset-history', []), true);
+            Assert::true($rh['ok'] ?? false, json_encode($rh));
+            Assert::same(2, $rh['records'], 'удалены обе записи');
+            Assert::false(is_file($dir . '/runs/history.json'), 'история удалена');
+            Assert::same(1, (json_decode((string) $this->http('GET', $base . '/api/state'), true))['base_domains'], 'база доменов не тронута');
         } finally {
             proc_terminate($server);
             proc_close($server);

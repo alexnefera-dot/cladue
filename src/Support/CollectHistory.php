@@ -194,6 +194,19 @@ final class CollectHistory
     }
 
     /**
+     * Удаляет историю сборов целиком («очистить статистику» в настройках, а также полный сброс базы).
+     *
+     * @return int сколько записей было удалено
+     */
+    public static function clear(string $runsDir): int
+    {
+        $n = count(self::load($runsDir));
+        @unlink(rtrim($runsDir, '/\\') . '/' . self::FILE);
+
+        return $n;
+    }
+
+    /**
      * Итог по всем сборам: сколько собрано, сколько доров и их доля, повторы доров, зоны доров.
      *
      * @param list<array<string, mixed>> $records

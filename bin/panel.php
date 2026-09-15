@@ -447,8 +447,18 @@ if ($path === '/api/reset-base' && $method === 'POST') {
         jsonOut(['ok' => false, 'error' => 'Сначала остановите задание — сейчас оно пишет в эти папки'], 409);
     }
     @file_put_contents($baseFile, '');
+    // Статистика сборов — тоже часть «базы»: после полного сброса история прошлых сборов
+    // рассказывала бы про домены, которых в базе уже нет.
+    $history = \YandexSites\Support\CollectHistory::clear($projectDir . '/runs');
     $wiped = resetRunFiles($runDir);
-    jsonOut(['ok' => true] + $wiped);
+    jsonOut(['ok' => true, 'history' => $history] + $wiped);
+}
+
+if ($path === '/api/reset-history' && $method === 'POST') {
+    // «Очистить статистику» — только история сборов (runs/history.json), база доменов и файлы прогона
+    // не трогаются. Отдельная кнопка: статистику иногда надо начать с чистого листа, не теряя базу.
+    $n = \YandexSites\Support\CollectHistory::clear($projectDir . '/runs');
+    jsonOut(['ok' => true, 'records' => $n]);
 }
 
 if ($path === '/api/results') {

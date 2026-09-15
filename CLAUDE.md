@@ -579,7 +579,11 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   cell carries the total repeats in its `title`), `GET /download?file=history` builds `csv()` on the fly
   (zones folded into one column so new zones cannot widen the table). The tab reloads on click and
   whenever a job finishes while it is open. The file lives in `runs/` (not `runs/current/`), so it
-  survives `setup.php --update` AND `/api/reset-base` — it is a log, not working data; `load()` maps the
+  survives `setup.php --update`. It does NOT survive `/api/reset-base` any more: the user cleared the base
+  and expected the statistics to go with it («я отчистил базу, сбрось и статистику»), so that endpoint
+  calls `CollectHistory::clear()` too and reports `history` (records removed); `POST /api/reset-history`
+  («очистить статистику» next to «очистить базу и файлы» in the settings tab) clears ONLY the history and
+  leaves the ledger and the run files alone. `load()` maps the
   1.10.0 key `subdomains` onto `doors` so an early history still reads. Records written by 1.10.0–1.11.0
   counted doors off `$host` and therefore say 0: `backfillLatest()` (called from `/api/history`)
   recomputes the NEWEST record's doors/roots/zones from `sites.json` when it says 0 doors and its site
@@ -725,8 +729,9 @@ Run `php tests/lint.php && php tests/run.php` before committing.
 - `/api/reset-base` («очистить базу и файлы» in the settings tab) is a FULL reset, not just the domain
   ledger: it empties `runs/domains-base.txt` and `resetRunFiles()` deletes the run's working data —
   `pages/`, `content/`, `preview/`, `removed/` plus `sites.json|csv`, `domains.txt`, `results.csv`,
-  `content.zip`, `removed.json`, `queue.json`, the query-dupes files and `status.json` (`settings.json`
-  and the query list stay, `run.log` is truncated). The user asked for this: the content archive is
+  `content.zip`, `removed.json`, `queue.json`, the query-dupes files and `status.json`, plus
+  `runs/history.json` through `CollectHistory::clear()` (`settings.json` and the query list stay,
+  `run.log` is truncated). The user asked for this: the content archive is
   downloaded through the panel, so those folders are technical leftovers. It refuses with 409 while a job
   is alive (it writes into those folders), returns `{files, dirs}` for the panel's «Очищено: удалено
   файлов N», and the confirm dialog spells out what disappears. The browser mirror (`lastSites`,
