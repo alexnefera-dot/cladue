@@ -291,9 +291,9 @@ Run `php tests/lint.php && php tests/run.php` before committing.
 - `Runner` and `PageVisitor` accept an optional `$onProgress` callback; `bin/run-job.php` wires it
   to `Support\Progress`, and `bin/panel.php` (dual launcher/router via `PHP_SAPI==='cli-server'`)
   spawns the job and serves `public/panel.html`. Keep CLI and panel behaviour in sync through `Runtime`.
-  `public/panel.html` has two tabs (`.tabsec[data-tab=main|config]`, remembered in `localStorage['ys-tab']`):
-  «Главная» (queries, run/stage, progress, log, results table) and «Настройки» (keys + all filter/visit
-  conditions). XMLStock params are panel fields `xmlstock_mode`/`xmlstock_device`/`xmlstock_domain`/`xmlstock_extra`
+  `public/panel.html` has three tabs (`.tabsec[data-tab=main|config|stats]`, remembered in
+  `localStorage['ys-tab']`): «Главная» (queries, run/stage, progress, log, results table), «Настройки»
+  (keys + all filter/visit conditions) and «Статистика» (the collect history, see `Support\CollectHistory`). XMLStock params are panel fields `xmlstock_mode`/`xmlstock_device`/`xmlstock_domain`/`xmlstock_extra`
   (the `#xmlstockBox`, shown only when `source=xmlstock`), mapped in `buildOverrides()` to
   `xmlstock.mode`/`xmlstock.device`/`xmlstock.domain`/`xmlstock.extra_params` (`extra_params` parsed from a
   `key=value&…` string) and covered by `PanelTest::testXmlstockParamsReachRequest` /
@@ -555,6 +555,22 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   (`[role=dialog]`, `[aria-modal=true]`, `<dialog open>`, or a large fixed overlay — obfuscated per-site
   class names are ignored), confirms it is an age/cookie barrier via the *overlay's own* text (footer «18+»
   no longer misfires or blocks it), and clicks the consent button (e.g. «Мне есть 18») strictly inside it.
+- `Support\CollectHistory` (`runs/history.json`, newest first, `LIMIT` 500) is the «Статистика» tab the
+  user asked for: «сколько доменов за сбор в какую дату собрал, сколько повторились, сколько доров
+  (поддоменами), какой доменной зоны». One record per collect, appended at the END of the collect stage in
+  `bin/run-job.php` from `$result->sites` (THIS run's selection — the table may carry earlier batches) and
+  `$result->stats`: date, queries done, sites, `repeats` = `rejected['seen_before']` (the ledger's
+  cross-run duplicates), `filtered` = every other rejection, `roots`/`subdomains` (a site whose normalized
+  host is longer than its registrable domain is a дор on a subdomain — `breakdown()`; `www.` is folded
+  first so it is not counted as one), `zones` (`Domains::tld`), `base_domains`, `resume`, `stopped`. The
+  same numbers go to the log («В базу за этот сбор: …»). Panel: `GET /api/history` returns `records` +
+  `totals()` (sums, except `base_domains` which is the newest record's ledger size, not a sum),
+  `loadStats()` renders the summary boxes, the zone chips and the table, `GET /download?file=history`
+  builds `csv()` on the fly (zones folded into one column so new zones cannot widen the table). The tab
+  reloads on click and whenever a job finishes while it is open. The file lives in `runs/` (not
+  `runs/current/`), so it survives `setup.php --update` AND `/api/reset-base` — it is a log, not working
+  data. Nothing is backfilled: pre-1.10.0 collects have no records and the tab says so. Covered by
+  `tests/CollectHistoryTest.php` and `PanelTest::testCollectWritesHistoryAndStatsEndpoint`.
 - `Support\DomainLedger` (runs/domains-base.txt) is a cross-run base of collected registrable
   domains; `Runner` takes an optional ledger + skipKnown to drop already-seen domains (reason
   `seen_before`) and record new ones. A repeat collect with the same queries therefore selects nothing

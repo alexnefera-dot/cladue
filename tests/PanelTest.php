@@ -687,6 +687,84 @@ final class PanelTest
         }
     }
 
+    public function testCollectWritesHistoryAndStatsEndpoint(): void
+    {
+        // Вкладка «Статистика»: сбор дописывает строку в runs/history.json (дата, сколько доменов,
+        // сколько повторов, сколько на поддоменах, зоны), /api/history отдаёт её вместе с итогом,
+        // /download?file=history — те же данные в CSV.
+        $port = FakeServer::port();
+        $dir = $this->projectDir($port);
+        $this->projectDirReset($port);
+        $runDir = $dir . '/runs/hist';
+        mkdir($runDir, 0777, true);
+        @unlink($dir . '/runs/domains-base.txt');
+        @unlink($dir . '/runs/history.json');
+        $settings = json_encode([
+            'queries' => ['пластиковые окна', 'остекление балконов'],
+            'source' => 'xmlstock',
+            'top' => 0,
+            'dedupe_domain' => true,
+            'allowed_tlds' => [],
+            'skip_known' => true,
+            'visit' => false,
+            'preview_shots' => false,
+        ]);
+
+        file_put_contents($runDir . '/settings.json', $settings);
+        $first = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $first['code'], $first['out']);
+        // Повторный сбор теми же запросами: домены уже в базе — это и есть «повторы».
+        file_put_contents($runDir . '/settings.json', $settings);
+        $second = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $second['code'], $second['out']);
+
+        $records = json_decode((string) file_get_contents($dir . '/runs/history.json'), true);
+        Assert::same(2, count($records), 'по записи на каждый сбор');
+        Assert::true($records[1]['sites'] > 0, 'первый сбор собрал домены');
+        Assert::same(0, $records[0]['sites'], 'второй сбор ничего нового не взял');
+        Assert::true($records[0]['repeats'] > 0, 'и посчитал повторы');
+        Assert::true($records[1]['zones'] !== [], 'зоны посчитаны');
+        Assert::same($records[1]['sites'], $records[1]['roots'] + $records[1]['subdomains'], 'корневые + поддомены = все домены');
+        Assert::contains('В базу за этот сбор', (string) file_get_contents($runDir . '/run.log'));
+
+        $socket = @stream_socket_server('tcp://127.0.0.1:0', $errno, $errstr);
+        if ($socket === false) {
+            Assert::skip("нет доступа к сокетам: $errstr");
+        }
+        $name = (string) stream_socket_get_name($socket, false);
+        fclose($socket);
+        $panelPort = (int) substr($name, (int) strrpos($name, ':') + 1);
+        $log = sys_get_temp_dir() . '/yandex-sites-panel-hist.log';
+        $server = @proc_open(
+            [PHP_BINARY, '-S', '127.0.0.1:' . $panelPort, '-t', $dir, PROJECT_ROOT . '/bin/panel.php'],
+            [0 => ['pipe', 'r'], 1 => ['file', $log, 'a'], 2 => ['file', $log, 'a']],
+            $pipes,
+            $dir,
+            array_merge(getenv(), ['YS_PROJECT_DIR' => $dir]),
+        );
+        if (!is_resource($server)) {
+            Assert::skip('не удалось запустить php -S для панели');
+        }
+        fclose($pipes[0]);
+        try {
+            $base = "http://127.0.0.1:$panelPort";
+            $this->waitFor($base . '/api/state', 50);
+
+            $hist = json_decode((string) $this->http('GET', $base . '/api/history'), true);
+            Assert::true($hist['ok'] ?? false, json_encode($hist, JSON_UNESCAPED_UNICODE));
+            Assert::same(2, count($hist['records']), '/api/history отдаёт обе записи');
+            Assert::same(2, $hist['totals']['runs']);
+            Assert::true($hist['totals']['sites'] > 0, 'итог по всем сборам посчитан');
+            Assert::true($hist['totals']['zones'] !== [], 'зоны в итоге');
+
+            $csv = (string) $this->http('GET', $base . '/download?file=history');
+            Assert::contains('Собрано доменов', $csv, 'CSV истории скачивается');
+        } finally {
+            proc_terminate($server);
+            proc_close($server);
+        }
+    }
+
     public function testPanelBackfillsTemplateTypesAndReportsVersion(): void
     {
         // После обновления скрипта прошлый сбор (визиты без поля template) получает типы вёрстки по сохранённому

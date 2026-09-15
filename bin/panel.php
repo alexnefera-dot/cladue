@@ -507,6 +507,16 @@ if ($path === '/api/query-dupes') {
     jsonOut(['ok' => true, 'summary' => \YandexSites\Support\QueryDupes::summary($found)] + $found);
 }
 
+if ($path === '/api/history') {
+    // Вкладка «Статистика»: история сборов (runs/history.json) — по одной записи на сбор — и итог по всем.
+    $records = \YandexSites\Support\CollectHistory::load($projectDir . '/runs');
+    jsonOut([
+        'ok' => true,
+        'records' => $records,
+        'totals' => \YandexSites\Support\CollectHistory::totals($records),
+    ]);
+}
+
 if ($path === '/api/remove' && $method === 'POST') {
     // Крестик / «Убрать наши» / «Убрать с 404 > N»: удаление окончательное и сквозное — строка уходит из
     // sites.json и статуса, папки сайта переезжают в removed/. Следующие шаги сайт больше не видят.
@@ -595,6 +605,21 @@ if ($path === '/download' && (string) ($_GET['file'] ?? '') === 'content') {
     header('Content-Disposition: attachment; filename="content-' . date('Y-m-d') . '.zip"');
     header('Content-Length: ' . (string) filesize($runDir . '/content.zip'));
     readfile($runDir . '/content.zip');
+    exit;
+}
+
+if ($path === '/download' && (string) ($_GET['file'] ?? '') === 'history') {
+    // История сборов в CSV (открывается в Excel) — строится из runs/history.json на лету.
+    $records = \YandexSites\Support\CollectHistory::load($projectDir . '/runs');
+    if ($records === []) {
+        http_response_code(404);
+        header('Content-Type: text/plain; charset=utf-8');
+        echo 'История сборов пока пуста — соберите сайты хотя бы один раз';
+        exit;
+    }
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="collects-' . date('Y-m-d') . '.csv"');
+    echo \YandexSites\Support\CollectHistory::csv($records);
     exit;
 }
 

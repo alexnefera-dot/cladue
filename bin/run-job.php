@@ -43,6 +43,7 @@ use YandexSites\Model\Site;
 use YandexSites\Runtime;
 use YandexSites\Search\CachingFetcher;
 use YandexSites\Search\XmlStockFetcher;
+use YandexSites\Support\CollectHistory;
 use YandexSites\Support\DomainLedger;
 use YandexSites\Support\Logger;
 use YandexSites\Support\Progress;
@@ -687,6 +688,20 @@ while (true) {
             if ($offerWalls > 0) {
                 $logger->info(sprintf('Подборок офферов вместо сайта: %d (перепроверены с других IP и агентов)', $offerWalls));
             }
+            // История сборов (вкладка «Статистика»): дата, сколько доменов отобрано ИМЕННО этим сбором,
+            // сколько отсеяно как уже собранные раньше, сколько из отобранных на поддоменах (доры) и
+            // разбивка по зонам. Считаем по $result->sites, а не по таблице: таблица может нести сайты
+            // прошлых частей сбора.
+            $history = CollectHistory::record($result->sites, $result->stats, $resume, $result->stopped);
+            CollectHistory::append(dirname($runDir), $history);
+            $logger->info(sprintf(
+                'В базу за этот сбор: %d доменов (повторов %d), из них на поддоменах %d, корневых %d%s',
+                $history['sites'],
+                $history['repeats'],
+                $history['subdomains'],
+                $history['roots'],
+                $history['zones'] !== [] ? '; зоны — ' . CollectHistory::zonesText($history['zones'], 8) : '',
+            ));
             $progress->update([
                 'state' => $result->aborted ? 'error' : ($result->stopped ? 'stopped' : 'done'),
                 'phase' => $result->stopped ? 'stopped' : 'done',

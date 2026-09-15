@@ -88,6 +88,11 @@
   .msg.ok{background:#dcfce7;color:var(--ok)}
   .saved{color:var(--ok);font-size:12px;margin-left:8px}
   a{color:var(--accent)}
+  .statgrid{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0 16px}
+  .statbox{flex:1 1 150px;min-width:140px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--bg)}
+  .statbox .n{font-size:22px;font-weight:700;color:var(--accent);line-height:1.2}
+  .statbox .l{font-size:12px;color:var(--muted);margin-top:2px}
+  .zonebar{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
   .tabs{display:flex;gap:4px;margin:12px 0 18px;border-bottom:1px solid var(--line)}
   .tab{border:none;background:none;padding:10px 18px;font-size:15px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
   .tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
@@ -101,6 +106,7 @@
   <div class="tabs">
     <button class="tab active" data-tab="main">Главная</button>
     <button class="tab" data-tab="config">Настройки</button>
+    <button class="tab" data-tab="stats">Статистика</button>
   </div>
 
   <div class="card tabsec" data-tab="config">
@@ -259,6 +265,22 @@
     <pre class="log" id="log">—</pre>
   </div>
 
+  <div class="card tabsec" data-tab="stats">
+    <h2>Статистика сборов</h2>
+    <div class="hint">По одной строке на сбор: когда собирали, сколько доменов отобрано, сколько отсеяно как уже собранные раньше (повторы из базы пересечений), сколько из отобранных сидит на поддоменах — это доры сетки — и какие доменные зоны попались. История хранится в <b>runs/history.json</b> и переживает обновление кода.</div>
+    <div class="statgrid" id="statTotals"></div>
+    <div class="hint" id="statZones" style="margin-bottom:10px"></div>
+    <div class="btns" style="margin-bottom:10px;align-items:center">
+      <button class="btn-ghost" id="statRefresh" title="Перечитать историю сборов">Обновить</button>
+      <a class="btn-ghost" id="statCsv" href="/download?file=history" title="Скачать историю сборов таблицей для Excel">Скачать CSV</a>
+    </div>
+    <div style="overflow-x:auto"><table id="statTable"><thead><tr>
+      <th>Дата</th><th>Запросов</th><th>Собрано доменов</th><th>Повторов</th><th>Отсеяно фильтрами</th>
+      <th>Корневых</th><th>Поддоменов (доры)</th><th>Зоны</th><th>Всего в базе</th>
+    </tr></thead><tbody id="statBody"></tbody></table></div>
+    <div class="hint" id="statEmpty" hidden>Истории пока нет — она появится после первого сбора на этой версии.</div>
+  </div>
+
   <div class="card tabsec" data-tab="main" id="resultsCard" hidden>
     <h2>Результаты <span id="resCount" class="muted"></span></h2>
     <div class="hint" style="margin-bottom:8px">Клик по превью — увеличить; крестик ✕ — убрать неподходящий сайт. Шаг 2 — «Выгрузить страницы оставшихся»; потом «Очистить» у сайта или «Очистить всё» по всем — очищенные статьи лягут в <b>runs/current/content/&lt;N&gt;-стр/&lt;сайт&gt;/</b>. Скачанные страницы: <b>runs/current/pages/</b>. Все очищенные статьи одним архивом — кнопка «Скачать архив контента».</div>
@@ -331,9 +353,55 @@ function showTab(name){
   document.querySelectorAll('.tabsec').forEach(el=>{ el.style.display = (el.dataset.tab===name) ? '' : 'none'; });
   try{ localStorage.setItem('ys-tab', name); }catch(e){}
 }
-document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click', ()=>showTab(b.dataset.tab)));
+document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click', ()=>{ showTab(b.dataset.tab); if(b.dataset.tab==='stats') loadStats(); }));
 let startTab='main'; try{ startTab=localStorage.getItem('ys-tab')||'main'; }catch(e){}
 showTab(startTab);
+
+// ---- Вкладка «Статистика»: история сборов (runs/history.json через /api/history) --------------
+// Что тут видно: за какую дату сколько доменов собрано, сколько из них повторились (были в базе),
+// сколько сидит на поддоменах (доры сетки) и какие доменные зоны попались.
+let statsLoaded=false;
+function statBox(n, label){ return `<div class="statbox"><div class="n">${n}</div><div class="l">${label}</div></div>`; }
+function zonesHtml(zones, limit){
+  const keys=Object.keys(zones||{}).sort((a,b)=>zones[b]-zones[a]);
+  const shown = limit>0 ? keys.slice(0,limit) : keys;
+  if(!shown.length) return '—';
+  const tail = keys.length>shown.length ? ` <span class="muted">и ещё ${keys.length-shown.length}</span>` : '';
+  return shown.map(z=>`<span class="tag">.${z} — ${zones[z]}</span>`).join(' ')+tail;
+}
+async function loadStats(){
+  statsLoaded=true;
+  let data=null;
+  try{ const r=await fetch('/api/history'); data=await r.json(); }catch(e){ data=null; }
+  const recs=(data && data.ok && Array.isArray(data.records)) ? data.records : [];
+  const t=(data && data.totals) || {};
+  const totals=$('statTotals');
+  if(totals){
+    totals.innerHTML = statBox(t.base_domains|0,'доменов в базе')
+      + statBox(t.sites|0,'собрано за всё время')
+      + statBox(t.repeats|0,'повторов (были в базе)')
+      + statBox(t.subdomains|0,'на поддоменах (доры)')
+      + statBox(t.roots|0,'корневых доменов')
+      + statBox(t.runs|0,'сборов');
+  }
+  const zs=$('statZones');
+  if(zs) zs.innerHTML = recs.length ? ('Зоны за всё время: <span class="zonebar">'+zonesHtml(t.zones,20)+'</span>') : '';
+  const body=$('statBody');
+  if(body){
+    body.innerHTML = recs.map(r=>{
+      const d=String(r.date||''); const ts=Date.parse(d);
+      const human = isNaN(ts) ? d : new Date(ts).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+      const marks = (r.resume?' <span class="tag">продолжение</span>':'') + (r.stopped?' <span class="tag diff">остановлен</span>':'');
+      return `<tr><td>${human}${marks}</td><td>${r.queries|0}</td><td><b>${r.sites|0}</b></td><td>${r.repeats|0}</td><td>${r.filtered|0}</td>`
+        + `<td>${r.roots|0}</td><td>${r.subdomains|0}</td><td class="host">${zonesHtml(r.zones,6)}</td><td>${r.base_domains|0}</td></tr>`;
+    }).join('');
+  }
+  const empty=$('statEmpty'); if(empty) empty.hidden = recs.length>0;
+  const tbl=$('statTable'); if(tbl) tbl.hidden = recs.length===0;
+  const csv=$('statCsv'); if(csv) csv.hidden = recs.length===0;
+}
+$('statRefresh').addEventListener('click', loadStats);
+if(startTab==='stats') loadStats();
 
 // Параметры XMLStock показываем только когда выбран этот источник.
 function toggleXmlstock(){ $('xmlstockBox').hidden = $('source').value !== 'xmlstock'; }
@@ -569,7 +637,10 @@ function renderStatus(st, running, stopping){
   const CLS=Object.assign({interrupted:'s-err', idle:'s-idle', stopping:'s-wait'}, STATE_CLS);
   badge.textContent = key==='interrupted' ? 'прошлый сбор прерван' : (key==='stopping' ? 'останавливаю…' : (running && key!=='waiting' ? (STATE_LABEL[key]||'идёт сбор') : (LABEL[key]||'не запущено')));
   badge.className='state '+(key==='interrupted'?'s-err':(CLS[key]||'s-idle'));
-  if(wasRunning && !running){ pagesCache={}; retryActive.clear(); } // задание завершилось — детали устарели, докачанные сайты больше не «в работе»
+  if(wasRunning && !running){
+    pagesCache={}; retryActive.clear(); // задание завершилось — детали устарели, докачанные сайты больше не «в работе»
+    if(statsLoaded) loadStats();       // после сбора в истории появилась новая строка
+  }
   wasRunning = running;
   jobRunning = running;
   $('startBtn').disabled = running;
