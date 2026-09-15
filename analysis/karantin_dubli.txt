@@ -1,0 +1,13 @@
+# КАРАНТИН: один домен числится за двумя сайтами. В реестр НЕ внесены.
+# Присланы 15.09. Нужно решить, какой id владеет доменом — второй записи быть не должно.
+#
+# домен;id_A;группа_A;id_B;группа_B
+7371.lol;2700;content-2026-09-14b-7str-oform-2_13;2844;nabory-535-544_styled_img_3
+d4n.lol;2701;content-2026-09-14b-7str-oform-2_14;2845;nabory-535-544_styled_img_4
+casinob4.team;2702;content-2026-09-14b-7str-oform-2_15;2846;nabory-535-544_styled_img_5
+vdvg.lol;2703;content-2026-09-14b-7str-oform-2_16;2847;nabory-535-544_styled_img_6
+dwyv.team;2704;content-2026-09-14b-7str-oform-2_17;2848;nabory-535-544_styled_img_7
+5226casino.lol;2863;nabory-555-564_styled_img_2;2849;nabory-535-544_styled_img_8
+5653.lol;2864;nabory-555-564_styled_img_3;2850;nabory-535-544_styled_img_9
+3663.team;2865;nabory-555-564_styled_img_4;2851;nabory-535-544_styled_img_10
+0332casino.team;2866;nabory-555-564_styled_img_5;2852;nabory-545-554_styled_img_1

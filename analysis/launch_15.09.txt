@@ -1,4 +1,5 @@
-# День 15.09.2026 — 152 домена, семь групп.
+# День 15.09.2026 — 163 домена, восемь групп.
+# ВНИМАНИЕ: 9 доменов в карантине — см. karantin_dubli.txt
 
 ## content-2026-09-14b-7str-oform-2_18…_51 — id 2705-2738, создан 15.09 00:49 — нет _1…_17 (2688-2704)
 d5r.team
@@ -35,6 +36,7 @@ xxhcasino.team
 hmhh.team
 8531.team
 ttbz.team
+0291.lol
 
 ## content-2026-09-14c-12str-oform_1…_4 — id 2739-2742, создан 15.09 01:58 — 12 СТРАНИЦ, ветка полная
 casinobzb.team
@@ -141,6 +143,10 @@ casinox1.lol
 2544.team
 2551.team
 0558.lol
+ymrb.team
+casino72.team
+8838.lol
+casinobwf.team
 
 ## nabory-535-544_styled_img_1…_10 — id 2842-2851, создан 15.09 13:03 — десять наборов
 8382.lol
@@ -165,3 +171,11 @@ casino705.lol
 casinoph.lol
 mfmj.lol
 casinov6.lol
+
+## nabory-555-564_styled_img_1,_6…_10 — id 2862, 2867-2871, создан 15.09 16:55 — ЧАСТИЧНО: id 2863-2866 в карантине, конфликт доменов
+casinoaun.lol
+kogk.team
+7907.team
+2514.team
+2198.lol
+casinoz1.lol
