@@ -558,9 +558,17 @@ Run `php tests/lint.php && php tests/run.php` before committing.
 - `Support\CollectHistory` (`runs/history.json`, newest first, `LIMIT` 500) is the «Статистика» tab, and
   it is entirely about ДОРЫ — the user cut the first version down to exactly that: «зоны анализируются
   именно у поддоменов (доров), отсеяно фильтрами меня не волнует, количество запросов тоже — собрано
-  доменов, доров (процент и количество от общей массы), зоны доров, повторы ДОРОВ». So the record holds
-  date, `sites`, `doors`, `roots`, `repeats`, `repeats_doors`, `zones`, `base_domains`, `resume`,
-  `stopped` — and deliberately NOT queries or filter rejections. `isDoor($host)` = the normalized host is
+  доменов, доров (процент и количество от общей массы), зоны доров, повторы ДОРОВ». The base of that
+  percentage is the WHOLE SERP MASS, not the selection: their `domain_scope` filter drops root domains
+  («не тот тип домена — 13250»), so among the SELECTED sites doors were 94.6% and the number said
+  nothing — «надо отталкиваться от общего числа всех видов доменов… всего результатов в выдаче, не тот
+  тип домена тоже нам подходит». So `breakdownRaw(RunResult::$raw)` counts DISTINCT normalized hosts
+  across every result of the collect, rejected ones included, and the record holds two layers: FOUND
+  (`found`, `found_doors`, `found_roots`, and `zones` = the zones of the found doors) and SELECTED
+  (`sites`, `doors`, `roots`), plus `repeats`/`repeats_doors`, `base_domains`, `resume`, `stopped` —
+  and deliberately NOT queries or filter rejections. The panel's «Доля доров» and `totals()`
+  `doors_percent` divide `found_doors` by `found`, falling back to the selected pair for records
+  written before 1.13.0 (which have no `found`). `isDoor($host)` = the normalized host is
   longer than its registrable domain (`www.` folded first, and `Domains::SECOND_LEVEL` means
   `kush.net.ru` is NOT a door). The host MUST come from `Site::realHost()`, never `Site::$host`: with
   `filters.unique_by = domain` (the panel's «один сайт на домен», on by default) `Aggregator` puts the
@@ -577,8 +585,9 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   моменте когда домены собрались, не ждать прохода по сайтам с скринами») — the crawl of hundreds of sites
   takes ages and the numbers are already final; the record also survives a force-kill during the visits.
   The record carries an `id`, and the end of the collect stage patches THAT record through
-  `CollectHistory::update()` with the final `doors`/`roots`/`zones` (a visit may reveal an apex
-  redirecting to a brand subdomain — also a door), `base_domains` and `stopped`; if the patch finds no
+  `CollectHistory::update()` with the final `doors`/`roots` (a visit may reveal an apex redirecting to a
+  brand subdomain — also a door), `base_domains` and `stopped`; `found*`/`zones` come from the raw SERP
+  and never change after the visits, so they are not patched; if the patch finds no
   record (an old job, selection never reached), it appends one as before, so there is always exactly one
   row per collect. The same numbers go to the log («За этот сбор:
   N доменов, из них доров (поддоменов) M (X%), повторов доров …»). Panel: `GET /api/history` returns

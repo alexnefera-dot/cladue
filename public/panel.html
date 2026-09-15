@@ -267,7 +267,7 @@
 
   <div class="card tabsec" data-tab="stats">
     <h2>Статистика сборов</h2>
-    <div class="hint">По одной строке на сбор: когда собирали, сколько доменов отобрано всего, сколько из них сидит на поддоменах — это <b>доры</b> — и какая это доля, сколько повторов-доров отсеяно как уже собранные раньше, и по каким доменным зонам доры разошлись. Зоны считаются <b>только по дорам</b>. История хранится в <b>runs/history.json</b> и переживает обновление кода.</div>
+    <div class="hint">По одной строке на сбор. Считаем от <b>всей массы выдачи</b>: сколько разных доменов вообще встретилось в результатах (включая отсеянные фильтрами — «не тот тип домена» и прочие), сколько из них <b>доров</b> (сайтов на поддоменах) и какая это доля. Рядом — сколько доменов реально отобрано в базу и сколько повторов-доров отсеяно как уже собранные раньше. Зоны считаются <b>по найденным дорам</b>. История хранится в <b>runs/history.json</b> и переживает обновление кода.</div>
     <div class="statgrid" id="statTotals"></div>
     <div class="hint" id="statZones" style="margin-bottom:10px"></div>
     <div class="btns" style="margin-bottom:10px;align-items:center">
@@ -275,8 +275,8 @@
       <a class="btn-ghost" id="statCsv" href="/download?file=history" title="Скачать историю сборов таблицей для Excel">Скачать CSV</a>
     </div>
     <div style="overflow-x:auto"><table id="statTable"><thead><tr>
-      <th>Дата</th><th>Собрано доменов</th><th>Доров (поддоменов)</th><th>Доля доров</th>
-      <th>Повторов доров</th><th>Зоны доров</th><th>Всего в базе</th>
+      <th>Дата</th><th>Доменов в выдаче</th><th>Доров из них</th><th>Доля доров</th>
+      <th>Отобрано в базу</th><th>Повторов доров</th><th>Зоны доров</th><th>Всего в базе</th>
     </tr></thead><tbody id="statBody"></tbody></table></div>
     <div class="hint" id="statEmpty" hidden>Истории пока нет — она появится после первого сбора на этой версии.</div>
   </div>
@@ -378,15 +378,16 @@ async function loadStats(){
   const t=(data && data.totals) || {};
   const totals=$('statTotals');
   if(totals){
-    totals.innerHTML = statBox(t.base_domains|0,'доменов в базе')
-      + statBox(t.sites|0,'собрано за всё время')
-      + statBox(t.doors|0,'доров (поддоменов)')
+    totals.innerHTML = statBox(t.found|0,'доменов в выдаче')
+      + statBox(t.found_doors|0,'из них доров')
       + statBox(pct(t.doors_percent),'доля доров')
+      + statBox(t.sites|0,'отобрано в базу')
       + statBox(t.repeats_doors|0,'повторов доров')
+      + statBox(t.base_domains|0,'доменов в базе')
       + statBox(t.runs|0,'сборов');
   }
   const zs=$('statZones');
-  if(zs) zs.innerHTML = recs.length ? ('Зоны доров за всё время: <span class="zonebar">'+zonesHtml(t.zones,20)+'</span>') : '';
+  if(zs) zs.innerHTML = recs.length ? ('Зоны найденных доров за всё время: <span class="zonebar">'+zonesHtml(t.zones,20)+'</span>') : '';
   const body=$('statBody');
   if(body){
     body.innerHTML = recs.map(r=>{
@@ -394,10 +395,16 @@ async function loadStats(){
       const human = isNaN(ts) ? d : new Date(ts).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
       const marks = (r.resume?' <span class="tag">продолжение</span>':'') + (r.stopped?' <span class="tag diff">остановлен</span>':'');
       const sites=r.sites|0, doors=(r.doors!=null?r.doors:r.subdomains)|0;
-      const share = sites>0 ? pct(Math.round(doors*1000/sites)/10) : '—';
+      // База для доли — вся масса доменов из выдачи; у записей старых версий её нет, там от отобранного.
+      const found=r.found|0, foundDoors=r.found_doors|0;
+      const base = found>0 ? found : sites, baseDoors = found>0 ? foundDoors : doors;
+      const share = base>0 ? pct(Math.round(baseDoors*1000/base)/10) : '—';
       const rep=`<span title="Повторов всего (с корневыми): ${r.repeats|0}">${r.repeats_doors|0}</span>`;
-      return `<tr><td>${human}${marks}</td><td><b>${sites}</b></td><td>${doors}</td><td>${share}</td>`
-        + `<td>${rep}</td><td class="host">${zonesHtml(r.zones,6)}</td><td>${r.base_domains|0}</td></tr>`;
+      const foundCell = found>0 ? `<b>${found}</b>` : '<span class="muted">—</span>';
+      const doorsCell = found>0 ? `${foundDoors}` : `${doors}`;
+      const sitesCell = `<span title="Из них доров: ${doors}">${sites}</span>`;
+      return `<tr><td>${human}${marks}</td><td>${foundCell}</td><td>${doorsCell}</td><td>${share}</td>`
+        + `<td>${sitesCell}</td><td>${rep}</td><td class="host">${zonesHtml(r.zones,6)}</td><td>${r.base_domains|0}</td></tr>`;
     }).join('');
   }
   const empty=$('statEmpty'); if(empty) empty.hidden = recs.length>0;

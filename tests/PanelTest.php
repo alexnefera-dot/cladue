@@ -729,8 +729,12 @@ final class PanelTest
         Assert::true($records[1]['zones'] !== [], 'зоны доров посчитаны');
         Assert::true($records[0]['repeats_doors'] <= $records[0]['repeats'], 'повторов-доров не больше, чем повторов всего');
         Assert::false(isset($records[0]['queries']), 'запросы в статистику не пишем');
-        Assert::contains('За этот сбор', (string) file_get_contents($runDir . '/run.log'));
-        Assert::contains('доров (поддоменов)', (string) file_get_contents($runDir . '/run.log'));
+        Assert::contains('За этот сбор: в выдаче', (string) file_get_contents($runDir . '/run.log'));
+        Assert::contains('из них доров', (string) file_get_contents($runDir . '/run.log'));
+        // Доля доров считается от ВСЕЙ выдачи, а не от того, что осталось после фильтров.
+        Assert::true($records[1]['found'] >= $records[1]['sites'], 'доменов в выдаче не меньше, чем отобрано');
+        Assert::same($records[1]['found'], $records[1]['found_doors'] + $records[1]['found_roots'], 'доры + корневые = вся масса');
+        Assert::true($records[1]['found_doors'] > 0, 'доры в выдаче найдены');
         // Запись создаётся сразу после отбора доменов и в конце сбора уточняется по её id —
         // на каждый сбор всё равно ровно одна строка, без дублей.
         Assert::true(($records[0]['id'] ?? '') !== '', 'у записи есть id для уточнения в конце сбора');
@@ -769,7 +773,8 @@ final class PanelTest
             Assert::true($hist['totals']['repeats_doors'] <= $hist['totals']['repeats']);
 
             $csv = (string) $this->http('GET', $base . '/download?file=history');
-            Assert::contains('Доров (поддоменов)', $csv, 'CSV истории скачивается');
+            Assert::contains('Доменов в выдаче', $csv, 'CSV истории скачивается');
+            Assert::contains('Доров из них', $csv);
             Assert::contains('Зоны доров', $csv);
         } finally {
             proc_terminate($server);

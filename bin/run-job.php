@@ -617,14 +617,15 @@ while (true) {
             // В конце сбора эта же запись уточняется: визиты показывают редиректы на бренд-поддомены.
             $historyId = '';
             $onSelected = function (array $sites, RunResult $r) use ($runDir, $resume, &$historyId, $logger): void {
-                $record = CollectHistory::record($sites, $r->stats, $r->seenBefore, $resume, false);
+                $record = CollectHistory::record($sites, $r->stats, $r->seenBefore, $resume, false, $r->raw);
                 $historyId = (string) $record['id'];
                 CollectHistory::append(dirname($runDir), $record);
                 $logger->info(sprintf(
-                    'За этот сбор: %d доменов, из них доров (поддоменов) %d (%s%%), повторов доров %d из %d%s',
+                    'За этот сбор: в выдаче %d доменов, из них доров %d (%s%%); отобрано в базу %d, повторов доров %d из %d%s',
+                    $record['found'],
+                    $record['found_doors'],
+                    CollectHistory::percent($record['found_doors'], $record['found']),
                     $record['sites'],
-                    $record['doors'],
-                    CollectHistory::percent($record['doors'], $record['sites']),
                     $record['repeats_doors'],
                     $record['repeats'],
                     $record['zones'] !== [] ? '; зоны доров — ' . CollectHistory::zonesText($record['zones'], 8) : '',
@@ -711,16 +712,17 @@ while (true) {
             // уточняем её итогом: визиты могли показать редирект апекса на бренд-поддомен (это тоже
             // дор), и теперь известно, останавливали ли сбор. Если запись почему-то не появилась
             // (старое задание, отбор не дошёл) — пишем её сейчас.
+            // Зоны и вся масса выдачи уже посчитаны по сырым результатам и после визитов не меняются —
+            // уточняем только отобранное (редирект апекса на бренд-поддомен — тоже дор) и хвост записи.
             $finalBreakdown = CollectHistory::breakdown($result->sites);
             $patched = CollectHistory::update(dirname($runDir), $historyId, [
                 'doors' => $finalBreakdown['doors'],
                 'roots' => $finalBreakdown['roots'],
-                'zones' => $finalBreakdown['zones'],
                 'base_domains' => (int) ($result->stats['base_domains'] ?? 0),
                 'stopped' => $result->stopped,
             ]);
             if (!$patched) {
-                CollectHistory::append(dirname($runDir), CollectHistory::record($result->sites, $result->stats, $result->seenBefore, $resume, $result->stopped));
+                CollectHistory::append(dirname($runDir), CollectHistory::record($result->sites, $result->stats, $result->seenBefore, $resume, $result->stopped, $result->raw));
             }
             $progress->update([
                 'state' => $result->aborted ? 'error' : ($result->stopped ? 'stopped' : 'done'),
