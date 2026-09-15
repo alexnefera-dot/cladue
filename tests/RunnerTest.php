@@ -174,6 +174,26 @@ final class RunnerTest
         Assert::same([['окна/0'], ['балконы/0']], $batches);
     }
 
+    public function testSelectedCallbackFiresBeforeVisits(): void
+    {
+        // Статистика сбора наполняется, как только домены отобраны, — не дожидаясь обхода сайтов
+        // со скриншотами. Runner отдаёт отобранные сайты в $onSelected ДО этапа визитов.
+        $calls = [];
+        $seen = null;
+        $visitsAtCallback = null;
+        $onSelected = static function (array $sites, $result) use (&$seen, &$visitsAtCallback): void {
+            $seen = array_map(static fn ($s): string => $s->host, $sites);
+            $visitsAtCallback = array_sum(array_map(static fn ($s): int => count($s->visits), $sites));
+        };
+        $runner = new Runner($this->config(), $this->fetcher($calls), new XmlResponseParser(), $this->logger(), null, null, null, null, false, null, $onSelected);
+        $result = $runner->run(['окна', 'балконы']);
+
+        Assert::true(is_array($seen), 'колбэк вызван');
+        Assert::same(count($result->sites), count($seen), 'отданы те же отобранные сайты');
+        Assert::same(0, $visitsAtCallback, 'на этом моменте визитов ещё нет — они идут после');
+        Assert::true($result->stats['sites_selected'] > 0);
+    }
+
     public function testStopBetweenQueriesKeepsCollectedPart(): void
     {
         // Кнопка «Остановить»: текущий запрос доводится до конца, остальные не запрашиваются, собранное

@@ -38,6 +38,7 @@ use YandexSites\Content\SiteCleaner;
 use YandexSites\Filter\DefaultExclusions;
 use YandexSites\Output\ReportWriter;
 use YandexSites\Runner;
+use YandexSites\RunResult;
 use YandexSites\Model\SearchResult;
 use YandexSites\Model\Site;
 use YandexSites\Runtime;
@@ -611,7 +612,25 @@ while (true) {
             $checker = $runtime->checker();
             $visitor = $runtime->visitor($onVisit);
             $stopCheck = static fn (): bool => stopped($stopFile);
-            $runner = new Runner($config, $fetcher, $runtime->parser(), $logger, $checker, $visitor, $onSearch, $ledger, $skipKnown, $stopCheck);
+            // Статистика сбора пишется СРАЗУ, как только домены отобраны, — не дожидаясь обхода сайтов
+            // со скриншотами: он идёт долго, а цифры по доменам уже готовы (и переживут остановку).
+            // В конце сбора эта же запись уточняется: визиты показывают редиректы на бренд-поддомены.
+            $historyId = '';
+            $onSelected = function (array $sites, RunResult $r) use ($runDir, $resume, &$historyId, $logger): void {
+                $record = CollectHistory::record($sites, $r->stats, $r->seenBefore, $resume, false);
+                $historyId = (string) $record['id'];
+                CollectHistory::append(dirname($runDir), $record);
+                $logger->info(sprintf(
+                    'За этот сбор: %d доменов, из них доров (поддоменов) %d (%s%%), повторов доров %d из %d%s',
+                    $record['sites'],
+                    $record['doors'],
+                    CollectHistory::percent($record['doors'], $record['sites']),
+                    $record['repeats_doors'],
+                    $record['repeats'],
+                    $record['zones'] !== [] ? '; зоны доров — ' . CollectHistory::zonesText($record['zones'], 8) : '',
+                ));
+            };
+            $runner = new Runner($config, $fetcher, $runtime->parser(), $logger, $checker, $visitor, $onSearch, $ledger, $skipKnown, $stopCheck, $onSelected);
 
             $logger->info(sprintf(
                 'Прогон %d (%s): запросов %d%s, источник %s',
@@ -688,21 +707,21 @@ while (true) {
             if ($offerWalls > 0) {
                 $logger->info(sprintf('Подборок офферов вместо сайта: %d (перепроверены с других IP и агентов)', $offerWalls));
             }
-            // История сборов (вкладка «Статистика») — про ДОРЫ: дата, сколько доменов отобрано ИМЕННО
-            // этим сбором, сколько из них на поддоменах и какая это доля, сколько повторов-доров
-            // отсеяно как уже собранные, по каким зонам разошлись доры. Считаем по $result->sites, а не
-            // по таблице: таблица может нести сайты прошлых частей сбора.
-            $history = CollectHistory::record($result->sites, $result->stats, $result->seenBefore, $resume, $result->stopped);
-            CollectHistory::append(dirname($runDir), $history);
-            $logger->info(sprintf(
-                'За этот сбор: %d доменов, из них доров (поддоменов) %d (%s%%), повторов доров %d из %d%s',
-                $history['sites'],
-                $history['doors'],
-                CollectHistory::percent($history['doors'], $history['sites']),
-                $history['repeats_doors'],
-                $history['repeats'],
-                $history['zones'] !== [] ? '; зоны доров — ' . CollectHistory::zonesText($history['zones'], 8) : '',
-            ));
+            // Статистику по доменам уже записал $onSelected (сразу после отбора). Здесь только
+            // уточняем её итогом: визиты могли показать редирект апекса на бренд-поддомен (это тоже
+            // дор), и теперь известно, останавливали ли сбор. Если запись почему-то не появилась
+            // (старое задание, отбор не дошёл) — пишем её сейчас.
+            $finalBreakdown = CollectHistory::breakdown($result->sites);
+            $patched = CollectHistory::update(dirname($runDir), $historyId, [
+                'doors' => $finalBreakdown['doors'],
+                'roots' => $finalBreakdown['roots'],
+                'zones' => $finalBreakdown['zones'],
+                'base_domains' => (int) ($result->stats['base_domains'] ?? 0),
+                'stopped' => $result->stopped,
+            ]);
+            if (!$patched) {
+                CollectHistory::append(dirname($runDir), CollectHistory::record($result->sites, $result->stats, $result->seenBefore, $resume, $result->stopped));
+            }
             $progress->update([
                 'state' => $result->aborted ? 'error' : ($result->stopped ? 'stopped' : 'done'),
                 'phase' => $result->stopped ? 'stopped' : 'done',

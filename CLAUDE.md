@@ -570,9 +570,17 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   collected URL, then `$host`. `breakdown()` counts doors/roots and builds `zones` FROM DOORS ONLY;
   `percent()` is the share. Door repeats need the hosts, not a counter, so `Runner` pushes every
   `seen_before` host into `RunResult::$seenBefore` (a separate field, NOT `stats` — the status and
-  sites.json must not carry a list of thousands) and `record()` counts the doors among them. One record
-  per collect, appended at the END of the collect stage in `bin/run-job.php` from `$result->sites` (THIS
-  run's selection — the table may carry earlier batches); the same numbers go to the log («За этот сбор:
+  sites.json must not carry a list of thousands) and `record()` counts the doors among them. One record per collect, written in TWO steps
+  from `$result->sites` (THIS run's selection — the table may carry earlier batches). `Runner` calls its
+  new `$onSelected($sites, $result)` hook as soon as the domains are selected and checked, BEFORE the
+  visit stage, and `bin/run-job.php` appends the record there («мне кажется статистику можно наполнять на
+  моменте когда домены собрались, не ждать прохода по сайтам с скринами») — the crawl of hundreds of sites
+  takes ages and the numbers are already final; the record also survives a force-kill during the visits.
+  The record carries an `id`, and the end of the collect stage patches THAT record through
+  `CollectHistory::update()` with the final `doors`/`roots`/`zones` (a visit may reveal an apex
+  redirecting to a brand subdomain — also a door), `base_domains` and `stopped`; if the patch finds no
+  record (an old job, selection never reached), it appends one as before, so there is always exactly one
+  row per collect. The same numbers go to the log («За этот сбор:
   N доменов, из них доров (поддоменов) M (X%), повторов доров …»). Panel: `GET /api/history` returns
   `records` + `totals()` (sums, plus `doors_percent`; `base_domains` is the newest record's ledger size,
   not a sum), `loadStats()` renders the summary boxes, the door-zone chips and the table (the door-repeat

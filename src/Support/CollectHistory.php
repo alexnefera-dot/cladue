@@ -89,6 +89,9 @@ final class CollectHistory
         }
 
         return [
+            // Идентификатор записи: она пишется СРАЗУ после отбора доменов, а в конце сбора
+            // дополняется итоговыми числами (после визитов) — по id её и находим.
+            'id' => bin2hex(random_bytes(6)),
             'date' => date(DATE_ATOM),
             'sites' => count($sites),
             'doors' => $breakdown['doors'],
@@ -191,6 +194,35 @@ final class CollectHistory
         );
 
         return $records[0];
+    }
+
+    /**
+     * Дополняет уже записанную запись (ищет по `id`): статистика пишется сразу после отбора доменов,
+     * а в конце сбора уточняется — визиты могли показать редиректы на бренд-поддомены, и появляется
+     * признак «остановлен». Возвращает true, если запись нашлась и обновилась.
+     *
+     * @param array<string, mixed> $fields
+     */
+    public static function update(string $runsDir, string $id, array $fields): bool
+    {
+        if ($id === '') {
+            return false;
+        }
+        $records = self::load($runsDir);
+        foreach ($records as $i => $record) {
+            if ((string) ($record['id'] ?? '') !== $id) {
+                continue;
+            }
+            $records[$i] = array_merge($record, $fields);
+            file_put_contents(
+                rtrim($runsDir, '/\\') . '/' . self::FILE,
+                json_encode($records, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            );
+
+            return true;
+        }
+
+        return false;
     }
 
     /**

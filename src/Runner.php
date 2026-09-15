@@ -33,6 +33,7 @@ final class Runner
         private ?DomainLedger $ledger = null,
         private bool $skipKnownDomains = false,
         private mixed $shouldStop = null,
+        private mixed $onSelected = null,
     ) {
     }
 
@@ -224,6 +225,13 @@ final class Runner
                     unset($sites[$key]);
                 }
             }
+        }
+
+        // Домены отобраны и проверены — отдаём их СРАЗУ, до прохода по сайтам со скриншотами: обход
+        // сотен сайтов идёт долго, а статистика сбора (сколько доменов, сколько доров, зоны) уже готова
+        // и не должна ждать его конца. Задание дописывает её в историю прямо здесь.
+        if ($this->onSelected !== null) {
+            ($this->onSelected)(array_values($sites), $result);
         }
 
         if ($this->visitor !== null && $sites !== []) {

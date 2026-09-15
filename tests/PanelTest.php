@@ -731,6 +731,11 @@ final class PanelTest
         Assert::false(isset($records[0]['queries']), 'запросы в статистику не пишем');
         Assert::contains('За этот сбор', (string) file_get_contents($runDir . '/run.log'));
         Assert::contains('доров (поддоменов)', (string) file_get_contents($runDir . '/run.log'));
+        // Запись создаётся сразу после отбора доменов и в конце сбора уточняется по её id —
+        // на каждый сбор всё равно ровно одна строка, без дублей.
+        Assert::true(($records[0]['id'] ?? '') !== '', 'у записи есть id для уточнения в конце сбора');
+        Assert::true(($records[1]['id'] ?? '') !== ($records[0]['id'] ?? ''), 'у каждого сбора свой id');
+        Assert::false($records[0]['stopped'], 'итоговый флаг остановки проставлен');
 
         $socket = @stream_socket_server('tcp://127.0.0.1:0', $errno, $errstr);
         if ($socket === false) {
