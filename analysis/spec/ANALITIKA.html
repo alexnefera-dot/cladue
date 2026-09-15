@@ -95,7 +95,7 @@ li{margin:0 0 8px}
 
 <p class="eyebrow">система запусков · 15.09.2026</p>
 <h1>Данные и аналитика</h1>
-<p class="lede"><b>Блок 1</b> — условия к выгрузке и контракт шести эндпоинтов,
+<p class="lede"><b>Блок 1</b> — условия к выгрузке и контракт восьми эндпоинтов,
 по нему готовится API. <b>Блок 2</b> — схема расчёта и порядок работы,
 по нему считаю я.</p>
 
@@ -153,10 +153,10 @@ soft-delete базы сабдомены и клики удаляются. Выг
 <p>Всё остальное в системе уже есть и берётся как есть. Не хватает трёх вещей:</p>
 <div class="tw"><table>
 <tr><th>#</th><th>что</th><th>без этого не считается</th></tr>
-<tr><td class="n">1</td><td><b>Лог обращений робота</b> по хосту: время, путь,
-User-Agent, код ответа. Либо сырой за окно, либо агрегатом — <code>bot_hits</code>,
-<code>bot_first_hit_at</code>, <code>bot_last_hit_at</code>,
-<code>bot_paths_distinct</code>, <code>bot_max_ru_depth</code></td>
+<tr><td class="n">1</td><td><b>Лог обращений робота.</b> Живёт в access-логе
+origin, в БД его нет — надо разобрать в хранилище и отдавать.
+Контракт — эндпоинты <b>7 и 8</b> ниже. Единственная позиция,
+которую строят с нуля</td>
 <td>глубина обхода; срез Apache на 20; разделение «робот не пришёл»
 и «пришёл, но в выдачу не попал»</td></tr>
 <tr><td class="n">2</td><td><b>Снимок <code>runtime_*</code> в строку запуска</b>
@@ -173,6 +173,49 @@ User-Agent, код ответа. Либо сырой за окно, либо а�
 <code>main-font-color</code>, <code>link-font-color</code>, <code>button-color</code>),
 разбивка хвоста пайплайна — из <code>yandex_pipeline_stage</code>. Добавлять
 для них ничего не надо.</p>
+
+
+<h3 style="font-size:19px;margin:34px 0 10px">Что даст больше, чем новые поля</h3>
+<p>Полей хватает. Сроки в блоке 2 упираются не в них, а в 190 регистраций
+в неделю. Ускоряют только эти три вещи.</p>
+
+<div class="tw"><table>
+<tr><th>#</th><th>что</th><th>что меняет</th></tr>
+
+<tr><td class="n">1</td><td><b>Случайное назначение при запуске.</b>
+Контент, зона и час старта выбираются жребием, а не по очереди и не по удобству.
+82 запуска в сутки — рандомизация бесплатна</td>
+<td>сейчас весь анализ наблюдательный: OR — связь, и её приходится чистить
+поправками. При случайном назначении OR становится <b>причинным</b>,
+поправки не нужны, а мощность растёт, потому что не тратится на выравнивание.
+Сбалансированный 2×2 по оформлению и датам вы уже делали руками —
+это то же самое, но на всех параметрах и постоянно</td></tr>
+
+<tr><td class="n">2</td><td><b>Снимать позиции внутри живого окна:</b>
+переобход + 1, + 3, + 5 дней. Не после выпадения</td>
+<td>позиции — единственная <b>обильная</b> метрика: 1571 ключ на домен против
+190 конверсий в неделю. Читаются за дни, а не за месяц. Прежние данные пусты
+не потому, что позиции бесполезны, а потому что снимались с выпавших сайтов.
+Снятые вовремя — быстрый опережающий показатель, конверсии остаются
+подтверждающим</td></tr>
+
+<tr><td class="n">3</td><td><b>Проверить, отделимы ли человеческие клики.</b>
+Один запрос: конверсия на клик отдельно для <code>click_os ≠ Unknown</code>
+и <code>country ≠ NULL</code>, против остальных</td>
+<td>в каталоге <code>click_os</code> почти везде <code>Unknown</code>,
+страна <code>NULL</code> у 396 тысяч из 870. Если у отфильтрованных клики
+конвертят на порядок лучше — возвращается ещё одна быстрая метрика.
+Если нет — вопрос закрыт навсегда, и это тоже результат</td></tr>
+</table></div>
+
+<div class="miss"><b>Ещё два открытых вопроса.</b>
+<ul>
+<li><b>Холдаут.</b> Сейчас всё найденное проверяется на тех же данных,
+на которых найдено. Нужна доля запусков (10–15%), исключённая из поиска
+и используемая только для подтверждения</li>
+<li><b>Отказы по ФД.</b> Неизвестно, снимаются ли депозиты задним числом
+(холд, реджект). Если да — свежие ФД занижены, и порог окупаемости $1.94 неверен</li>
+</ul></div>
 
 <h3 style="font-size:19px;margin:34px 0 10px">Пул параметров</h3>
 <p>Всё, что можно получить, по группам — <b>только то, что в системе уже есть</b>.
@@ -459,6 +502,58 @@ contrast = (max(L1,L2) + 0.05) / (min(L1,L2) + 0.05)     // 1..21</pre></div>
 </table></div>
 <p>Уровень вложенности в конверсии передавать <b>не нужно</b> — подтянется
 по <code>clickid</code> из <code>/v1/clicks</code>.</p>
+
+<hr style="margin:32px 0 26px">
+
+<h2 style="font-size:23px">Лог обращений</h2>
+<p>Живёт не в БД, а в access-логе origin — <b>это единственная позиция,
+которую надо строить с нуля.</b> Нужен разбор лога в запрашиваемое хранилище.
+Основной эндпоинт — агрегат: он закрывает все вопросы. Сырой нужен точечно.</p>
+
+<h3>7 · GET /v1/botlog</h3>
+<p>Агрегат по сабдомену за период.</p>
+<div class="fmt"><pre>GET /v1/botlog?date_from=2026-09-14&amp;date_to=2026-09-20&amp;ua_class=yandex&amp;limit=1000</pre></div>
+<div class="tw"><table>
+<tr><th>параметр</th><th>тип</th><th>обяз.</th><th>что значит</th></tr>
+<tr><td>date_from · date_to</td><td>date</td><td>да</td><td>окно наблюдения, включительно</td></tr>
+<tr><td>ua_class</td><td>enum</td><td>нет</td><td><code>yandex</code> (по умолч.) · <code>google</code> · <code>other_bot</code> · <code>all</code></td></tr>
+<tr><td>subdomain</td><td>string</td><td>нет</td><td>только этот хост</td></tr>
+<tr><td>limit · cursor</td><td>int · string</td><td>нет</td><td></td></tr>
+</table></div>
+<div class="tw"><table>
+<tr><th>поле</th><th>тип</th><th>пример · что это</th></tr>
+<tr><td>subdomain</td><td>string</td><td><code>shuffle.3479.team</code></td></tr>
+<tr><td>window_from · window_to</td><td>date</td><td>эхо запроса</td></tr>
+<tr><td><b>hits</b></td><td>int</td><td><code>37</code> — обращений за окно. <b>0 — это тоже строка,</b> сабдомен не пропускается</td></tr>
+<tr><td>first_hit_at · last_hit_at</td><td>datetime · null</td><td>первое и последнее обращение</td></tr>
+<tr><td>days_with_hits</td><td>int</td><td><code>4</code> — в скольких сутках окна были обращения</td></tr>
+<tr><td>paths_distinct</td><td>int</td><td><code>19</code> — сколько разных URL робот тронул</td></tr>
+<tr><td><b>max_ru_depth</b></td><td>int</td><td><code>7</code> — максимальная глубина <code>/ru</code>, куда дошёл</td></tr>
+<tr><td><b>hits_by_depth</b></td><td>object</td><td><code>{"0":12,"1":8,"2":5,…,"20":1,"21plus":0}</code> — гистограмма по уровням. Ключи строками, <code>21plus</code> одним ведром</td></tr>
+<tr><td>status_2xx · status_3xx · status_4xx · status_5xx</td><td>int</td><td>распределение кодов ответа</td></tr>
+</table></div>
+<div class="miss"><b>Глубину считает система, не я.</b>
+<code>ru_depth</code> = число сегментов <code>/ru</code> в пути.
+Отдавать полные пути ради этого числа не нужно.</div>
+
+<h3>8 · GET /v1/botlog/raw</h3>
+<p>Сырые строки. Нужен для точечной проверки, не для регулярной выгрузки:
+при 15 тысячах сабдоменов в сутки объём идёт на миллионы строк.
+Обязателен либо <code>subdomain</code>, либо окно не больше суток.</p>
+<div class="fmt"><pre>GET /v1/botlog/raw?subdomain=shuffle.3479.team&amp;date_from=2026-09-14&amp;date_to=2026-09-20</pre></div>
+<div class="tw"><table>
+<tr><th>поле</th><th>тип</th><th>пример</th></tr>
+<tr><td>subdomain</td><td>string</td><td><code>shuffle.3479.team</code></td></tr>
+<tr><td>hit_at</td><td>datetime</td><td><code>2026-09-15T04:12:08+03:00</code></td></tr>
+<tr><td>path</td><td>string</td><td><code>/ru/ru/ru/bonus</code></td></tr>
+<tr><td>ru_depth</td><td>int</td><td><code>3</code></td></tr>
+<tr><td>ua_class</td><td>enum</td><td><code>yandex</code> · <code>google</code> · <code>other_bot</code> · <code>human</code></td></tr>
+<tr><td>user_agent</td><td>string</td><td>как в логе</td></tr>
+<tr><td>status</td><td>int</td><td><code>200</code> · <code>302</code></td></tr>
+</table></div>
+<div class="miss"><b>Хранить минимум 30 дней.</b> Окно домена ~6 дней, но выгрузка
+идёт после его закрытия, и запас нужен на разбор задним числом.</div>
+
 </section>
 
 <hr>
