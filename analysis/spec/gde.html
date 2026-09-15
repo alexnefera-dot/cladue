@@ -1,0 +1,304 @@
+<title>Где вмешиваться</title>
+<style>
+:root{
+  --paper:#eeeeea; --card:#fdfdfb; --ink:#171a15; --mute:#5d6157; --line:#d3d4cc;
+  --acc:#46602a; --accbg:#e7ecdd; --gap:#a33b2a; --gapbg:#f6e7e3;
+  --ctrl:#2c4a63; --ctrlbg:#e2e9ef;
+}
+:root:not([data-theme="light"]){@media (prefers-color-scheme:dark){
+  --paper:#151713; --card:#1e211b; --ink:#e9eae2; --mute:#9a9d91; --line:#32352c;
+  --acc:#a8c47c; --accbg:#222a17; --gap:#e2907c; --gapbg:#2c1b17;
+  --ctrl:#8db4d4; --ctrlbg:#1a242d;
+}}
+:root[data-theme="dark"]{
+  --paper:#151713; --card:#1e211b; --ink:#e9eae2; --mute:#9a9d91; --line:#32352c;
+  --acc:#a8c47c; --accbg:#222a17; --gap:#e2907c; --gapbg:#2c1b17;
+  --ctrl:#8db4d4; --ctrlbg:#1a242d;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font:400 16.5px/1.66 "Source Serif 4",Georgia,serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:900px;margin:0 auto;padding:0 20px;padding-block:54px 82px}
+h1{font:700 clamp(32px,6vw,50px)/1.06 Chivo,"Helvetica Neue",sans-serif;letter-spacing:-.022em;
+  margin:0 0 16px;text-wrap:balance}
+h2{font:700 clamp(21px,3.3vw,28px)/1.2 Chivo,sans-serif;letter-spacing:-.012em;
+  margin:0 0 12px;text-wrap:balance}
+h3{font:600 16.5px/1.32 Chivo,sans-serif;margin:0 0 7px}
+p{margin:0 0 14px;max-width:66ch}
+.eyebrow{font:500 12px/1 "Fira Mono",ui-monospace,monospace;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--acc);margin:0 0 16px}
+.lede{font-size:19px;color:var(--mute);max-width:61ch}
+.lede b{color:var(--ink);font-weight:600}
+hr{border:0;border-top:1px solid var(--line);margin:42px 0 34px}
+section{margin:0 0 44px}
+.n,code{font-family:"Fira Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+code{background:var(--accbg);padding:.1em .34em;border-radius:2px;font-size:.86em}
+
+figure{margin:0 0 20px;background:var(--card);border:1px solid var(--line);padding:22px 20px 16px}
+figure svg{display:block;max-width:100%;height:auto;margin:0 auto;color:var(--ink)}
+figcaption{font-size:14.5px;color:var(--mute);margin-top:16px;border-top:1px solid var(--line);
+  padding-top:12px;line-height:1.5}
+
+.tw{overflow-x:auto;border:1px solid var(--line);background:var(--card);margin:0 0 18px}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:15px}
+th{font:500 10.5px/1.2 "Fira Mono",ui-monospace,monospace;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--mute);text-align:left;padding:11px 14px;
+  border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:bottom}
+td{padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.45;
+  font-size:14.5px}
+td:first-child{font-family:"Fira Mono",ui-monospace,monospace;font-size:13px;
+  white-space:nowrap;font-weight:500}
+tr:last-child td{border-bottom:0}
+tr.sub td{background:var(--paper);font:600 12px/1.3 Chivo,sans-serif;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--mute)}
+tr.sub td:first-child{font-family:Chivo,sans-serif;font-size:12px}
+
+.tag{display:inline-block;font:500 10px/1 "Fira Mono",monospace;letter-spacing:.06em;
+  text-transform:uppercase;padding:3px 6px;border-radius:2px;white-space:nowrap}
+.g-ctrl{background:var(--ctrlbg);color:var(--ctrl)}
+.g-obs{background:var(--accbg);color:var(--acc)}
+.g-gap{background:var(--gapbg);color:var(--gap)}
+.g-const{background:var(--line);color:var(--mute)}
+
+.call{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--acc);
+  padding:17px 21px;margin:0 0 18px}
+.call.gap{border-left-color:var(--gap)}
+.call.q{border-left-color:var(--ctrl)}
+.call p:last-child{margin-bottom:0}
+.fmt{background:var(--card);border:1px solid var(--line);padding:15px 17px;margin:0 0 16px;
+  overflow-x:auto}
+.fmt pre{margin:0;font:400 12.5px/1.7 "Fira Mono",ui-monospace,monospace;white-space:pre}
+ul,ol{margin:0 0 14px;padding-left:22px;max-width:66ch}
+li{margin:0 0 8px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin:0 0 18px}
+.two>div{background:var(--card);border:1px solid var(--line);padding:16px 18px}
+.two h3{margin-bottom:8px}
+.two ul{padding-left:18px;margin:0}
+.two li{font-size:15px;margin:0 0 6px}
+.miss{background:var(--gapbg);border-left:3px solid var(--gap);padding:11px 15px;
+  margin:-4px 0 20px;font-size:14.5px;line-height:1.55;max-width:66ch}
+.miss ul{margin:5px 0 0;padding-left:18px}
+.miss li{margin:0 0 4px;font-size:14.5px}
+.miss p{margin:0;font-size:14.5px}
+.foot{font-size:14px;color:var(--mute);border-top:1px solid var(--line);padding-top:17px}
+</style><div class="wrap">
+
+<p class="eyebrow">решение · 15.09.2026</p>
+<h1>Где вмешиваться</h1>
+<p class="lede">Свод всего, что мы уже измерили, и ответ на вопрос, с которого всё началось:
+<b>на каком шаге менять, чтобы вышло из нуля.</b> Ответ короткий — весь дефицит
+недели создаёт одна зона.</p>
+
+<hr>
+
+<section>
+<h2>Шаг за шагом: где деньги</h2>
+<p>Неделя 09–15.09 по реестру: <b>576 доменов, расход $1223, доход $1120,
+итог −$103</b>. Разложение по шагам, и что даёт полное исправление каждого:</p>
+
+<div class="tw"><table>
+<tr><th>шаг</th><th>сейчас</th><th>потолок исправления</th><th>стоит ли трогать</th></tr>
+<tr><td>производство</td><td>82 запуска и 15 252 сабдомена в сутки</td>
+<td>—</td><td>не узкое место</td></tr>
+<tr><td>пайплайн</td><td>94% проходят переобход, терминальных отказов 0.75%</td>
+<td class="n">+$67/нед</td><td><b>нет.</b> Полное исправление даёт вчетверо меньше,
+чем одна правка зоны</td></tr>
+<tr><td><b>зона домена</b></td><td><code>.casino</code> — 9% доменов и <b>30% расхода</b></td>
+<td class="n"><b>+$268/нед</b></td><td><b>да, первым делом</b></td></tr>
+<tr><td>контент</td><td>7 и 12 страниц примерно поровну</td>
+<td class="n">+$390/нед и выше</td><td><b>да, вторым</b></td></tr>
+<tr><td>даты на странице</td><td>24 пака с датами против 18 без</td>
+<td>не измерено в деньгах</td><td><b>да — стоит ноль</b></td></tr>
+<tr><td>масштаб</td><td>576 доменов в неделю</td>
+<td>отрицательный</td><td><b>нет, пока маржа минусовая</b> — рост умножает убыток</td></tr>
+</table></div>
+</section>
+
+<hr>
+
+<section>
+<h2>1 · Зона: весь дефицит — это <code>.casino</code></h2>
+<p>Расходная сторона считается точно, без всякой статистики. Домен отдаёт
+в среднем <b>$1.94</b> — это $1120 дохода на 576 доменов.</p>
+
+<div class="tw"><table>
+<tr><th>зона</th><th>доменов</th><th>цена</th><th>расход</th><th>доля расхода</th><th>во сколько раз должна быть лучше <code>.team</code></th></tr>
+<tr><td>team</td><td class="n">317</td><td class="n">$2</td><td class="n">$634</td><td class="n">51.8%</td><td class="n">1.0×</td></tr>
+<tr><td>lol</td><td class="n">200</td><td class="n">$1</td><td class="n">$200</td><td class="n">16.4%</td><td class="n">0.5×</td></tr>
+<tr><td><b>casino</b></td><td class="n"><b>53</b></td><td class="n"><b>$7</b></td><td class="n"><b>$371</b></td><td class="n"><b>30.3%</b></td><td class="n"><b>3.5×</b></td></tr>
+<tr><td>buzz</td><td class="n">6</td><td class="n">$3</td><td class="n">$18</td><td class="n">1.5%</td><td class="n">1.5×</td></tr>
+</table></div>
+
+<div class="call gap">
+<h3>Девять процентов доменов съедают треть бюджета</h3>
+<p>Чтобы <code>.casino</code> себя окупал, он должен приносить <b>в 3.5 раза больше
+на домен</b>, чем <code>.team</code>. Единственное измерение, которое у нас есть,
+говорит обратное: по 194 конверсиям зоны разложились <b>пропорционально числу
+доменов</b> — <code>.team</code> 157 регистраций, <code>.casino</code> 5,
+<code>.lol</code> 4. Никакого преимущества у дорогой зоны не видно.</p>
+<p>Это не вывод из узких данных, а <b>правило решения</b>: покупать домен втрое
+дороже имеет смысл только при доказанном трёхкратном превосходстве.
+Доказательства нет — значит покупать не надо.</p>
+<div class="fmt" style="margin:12px 0 0"><pre>сейчас        576 доменов   расход $1223   доход $1120   итог  −$103
+без .casino   523 домена    расход  $852   доход $1017   итог  +$165</pre></div>
+<p style="margin-top:12px">Доход падает пропорционально потерянным доменам —
+это самое осторожное допущение. Средняя цена домена уходит с $2.12 на <b>$1.63</b>,
+то есть ниже порога окупаемости в $1.94. <b>Бизнес выходит в плюс от одной правки
+в списке зон.</b></p>
+</div>
+</section>
+
+<hr>
+
+<section>
+<h2>2 · Контент: двенадцать страниц против семи</h2>
+<p>Самый крупный измеренный эффект за всю историю, и он на конверсиях,
+а не на позициях.</p>
+<div class="tw"><table>
+<tr><th>формат</th><th>доменов</th><th>рег/дом/день</th><th>рег на 100 ключей в Т10</th></tr>
+<tr><td><b>12 страниц</b></td><td class="n">52</td><td class="n"><b>0.20</b></td><td class="n">4.0</td></tr>
+<tr><td>11 страниц</td><td class="n">30</td><td class="n">0.17</td><td class="n">3.1</td></tr>
+<tr><td>7 страниц</td><td class="n">57</td><td class="n"><b>0.03</b></td><td class="n">2.3</td></tr>
+</table></div>
+<p>Разрыв шестикратный, <span class="n">P = 0.0002</span>. Но нормировка на видимость
+почти его съедает: из 6× остаётся 1.7×. <b>Двенадцать страниц выигрывают тем,
+что лучше стоят, а не тем, что лучше конвертят.</b> Для практики это одно и то же —
+запускать надо двенадцатистраничные, — но механизм другой, и это важно:
+значит эффект пойдёт через видимость и будет чувствителен ко всему,
+что на видимость влияет.</p>
+<p>Сейчас в обороте примерно поровну: <b>31 пак на 7 страниц и 30 на 12</b>.
+Сдвиг половины объёма даёт, по осторожной оценке (только эффект видимости, 1.7×),
+<b>28 → 38 ФД в неделю</b>.</p>
+<div class="miss"><b>Оговорка:</b> замер сделан на 194 конверсиях августа,
+на других контентах и другом объёме. Он задаёт направление, но величину
+надо переподтвердить — это первое, что закроется на новых данных,
+за 1–2 недели.</div>
+</section>
+
+<hr>
+
+<section>
+<h2>3 · Даты на странице: стоит ноль, проверено дважды</h2>
+<p>Тест A, пятый заход, первый чистый — 8 доменов против 8, одна дата запуска:</p>
+<div class="tw"><table>
+<tr><th>ветка</th><th>Т10 на домен</th><th>без лидера</th><th>ТОП-3</th><th>ТОП-30</th></tr>
+<tr><td>12 стр + даты</td><td class="n">8.88</td><td class="n">5.00</td><td class="n">15</td><td class="n">125</td></tr>
+<tr><td><b>12 стр без дат</b></td><td class="n"><b>18.38</b></td><td class="n"><b>11.86</b></td><td class="n"><b>34</b></td><td class="n"><b>255</b></td></tr>
+</table></div>
+<p>Тест F — независимая пара, другой контент, другой прогон: направление совпало
+по всем семи показателям на обоих съёмах, и разрыв рос от съёма к съёму.
+Порога <span class="n">p&nbsp;&lt;&nbsp;0.05</span> ни один не взял.</p>
+<div class="call">
+<h3>Почему действовать всё равно стоит</h3>
+<p>Два независимых чистых сравнения, направление совпало по всем показателям,
+разрыв растёт со временем наблюдения. Этого мало для утверждения «доказано»,
+но <b>отключение дат не стоит ничего</b>. При нулевой цене действия
+достаточно перевеса вероятности, а он есть.</p>
+<p>При этом в обороте до сих пор <b>24 пака с датами против 18 без</b> — то есть
+найденное дважды направление в производство не перенесено.</p>
+</div>
+</section>
+
+<hr>
+
+<section>
+<h2>Что уже измерено: сводка выводов</h2>
+<p>Всё, что считалось с 21.08, со статусом на сегодня.</p>
+<div class="tw"><table>
+<tr><th>вывод</th><th>на чём мерялось</th><th>статус</th></tr>
+<tr><td>12 страниц против 7 — 6×, P=0.0002</td><td>конверсии, 194 события</td>
+<td><span class="tag g-obs">держится</span> механизм — видимость, не конверсия</td></tr>
+<tr><td>без дат лучше, чем с датами</td><td>позиции, тесты A и F</td>
+<td><span class="tag g-obs">направление дважды</span> на конверсиях не проверялось</td></tr>
+<tr><td>две трети конверсий — с брендов, не попавших даже в сотню</td><td>конверсии, 62 события</td>
+<td><span class="tag g-obs">держится</span> обесценивает все позиционные метрики</td></tr>
+<tr><td>депозит приходит сразу, медиана 1 минута</td><td>26 депозитов</td>
+<td><span class="tag g-obs">держится</span> ФД можно сравнивать между запусками разного возраста</td></tr>
+<tr><td>удачных дней запуска нет</td><td>конверсии, 493 домена</td>
+<td><span class="tag g-obs">держится</span> размах в 95 пунктов оказался тремя артефактами</td></tr>
+<tr><td>18% свежих доменов дают хоть одну регистрацию</td><td>272 домена</td>
+<td><span class="tag g-obs">держится</span> два домена из 272 дали 11 из 74 регистраций</td></tr>
+<tr><td>зоны разложились пропорционально числу доменов</td><td>позиции + конверсии</td>
+<td><span class="tag g-obs">держится</span> преимущества у дорогой зоны нет</td></tr>
+<tr><td>картинки против без картинок</td><td>позиции, шесть заходов</td>
+<td><span class="tag g-gap">не вывод</span> направление переворачивалось пять раз</td></tr>
+<tr><td>порядок партий внутри конфигурации (тест G)</td><td>позиции</td>
+<td><span class="tag g-gap">не вывод</span> переворачивается за 12 часов</td></tr>
+<tr><td>ВЧ-бренды дают в 1.6× больше, p=0.0105</td><td>поддомены</td>
+<td><span class="tag g-const">отозвано</span> узкие данные</td></tr>
+<tr><td>домен отдаёт $1.93</td><td>экономика</td>
+<td><span class="tag g-const">отозвано как вывод</span> но расходная сторона точна и используется выше</td></tr>
+<tr><td>потолок вложенности, позиции</td><td>много заходов</td>
+<td><span class="tag g-const">обесценено</span> позиции описывают витрину, а не поток</td></tr>
+</table></div>
+</section>
+
+<hr>
+
+<section>
+<h2>Почему выводы переворачивались — и как считать, чтобы перестали</h2>
+<p>Больше десяти выводов пришлось переписать. Причины повторялись, и это
+не случайность, а пять ловушек. Каждая теперь проверяется до расчёта, а не после.</p>
+
+<div class="tw"><table>
+<tr><th>ловушка</th><th>как выглядела</th><th>правило</th></tr>
+<tr><td>усечение слева</td><td>выгрузка конверсий начинается 21.08, а домен зарабатывает
+три четверти в первые двое суток. Запуски 19.08 выглядели провальными</td>
+<td>окно запуска целиком внутри окна выгрузки, иначе запуск не берём</td></tr>
+<tr><td>отбор по результату</td><td>восемь доменов 27.08 добавлены вручную потому,
+что нашлись в списке с конверсиями. 8 из 8 = 100%</td>
+<td>выборка определяется до того, как видны исходы. Всегда</td></tr>
+<tr><td>эффект группы под видом эффекта дня</td><td>«удачное 22.08» — это все пять
+доменов одной группы контента. При базовой доле 24% и двадцати группах
+одна такая обязана появиться</td>
+<td>дробим до уровня, на котором значение постоянно, и считаем поправку
+на число проверенных срезов</td></tr>
+<tr><td>неизвестный возраст</td><td>время выкладки не присылалось; сравнение
+«чужой контент против генератора» пришлось снять целиком</td>
+<td>сравниваем только то, что запущено вместе. Между парами — не сравниваем</td></tr>
+<tr><td>один домен держит среднее</td><td>тест E: 12.00 против 5.50 держал
+<code>1520.team</code>, прошедший 13 → 65. Без него 5.38 против 3.40</td>
+<td>каждое среднее публикуется вместе со значением «без лидера»</td></tr>
+</table></div>
+
+<div class="call gap">
+<h3>Шестая, самая дорогая: мы мерили не то</h3>
+<p><b>Две трети конверсий пришли с брендов, по которым домен ни разу не попадал
+даже в сотню</b> — 40% не ранжировался, 27% бренда вообще нет в ядре из 1571 ключа.
+Показательна <code>Generation 50</code>: худшая видимость во всём наборе
+и лучшая отдача с неё, три из шести конверсий — с доменов, у которых в ТОП-10
+нет ни одного ключа.</p>
+<p>Значит Т10 на домен, ТОП-3, ВЧ+СЧ — всё, чем мерялись тесты A–G, —
+описывает витрину, а не поток. Тесты дат и картинок выиграны или проиграны
+на метрике, которая с деньгами связана слабо. <b>Отсюда весь разворот плана
+на конверсии как единственную метрику.</b></p>
+</div>
+</section>
+
+<hr>
+
+<section>
+<h2>Порядок действий</h2>
+<ol>
+<li><b>Убрать <code>.casino</code> из закупки.</b> Стоит ноль, даёт +$268/нед,
+переводит неделю из −$103 в +$165. Расходная сторона точна, а требование
+«в 3.5 раза лучше» ничем не подтверждено. Возвращать — только если появится
+измерение, показывающее превосходство.</li>
+<li><b>Выключить даты на странице.</b> Стоит ноль. Два независимых чистых теста
+дали одно направление; порога значимости нет, но при нулевой цене хватает перевеса.</li>
+<li><b>Сдвинуть производство на 12 страниц.</b> Сейчас примерно поровну.
+По осторожной оценке 28 → 38 ФД в неделю. Это первое, что переподтвердится
+на новых данных — за 1–2 недели.</li>
+<li><b>Пайплайн не трогать.</b> Полное исправление всех 6% потерь даёт $67/нед,
+вчетверо меньше первого пункта, и чинить там по сути нечего:
+терминальных отказов 0.75%.</li>
+<li><b>Масштаб — после первых трёх.</b> Пока маржа отрицательная, рост
+умножает убыток. После пунктов 1–3 маржа положительная, и тогда
+масштабирование становится главным рычагом.</li>
+</ol>
+<p class="foot">Пункты 1–3 не требуют новых данных и выполняются сегодня.
+Всё, что требует данных, — переподтверждение величин — закрывается
+за первые две недели по новой схеме.</p>
+</section>
+
+</div>
