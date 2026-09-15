@@ -26,14 +26,18 @@ if ($папка === null || !is_dir($папка)) {
 // Без темы — прежние значения.
 require_once __DIR__ . '/temy-v5.php';
 $Т = v5Tema($тема);
-define('ПОДЛОЖКА', $Т['подложка']);
-define('ПОДЛОЖКА2', $Т['подложка2']);
+// Фон не наш. Подложки были полупрозрачной заливкой цвета темы, а цвет текста
+// шёл из темы же (#e9ebf2 — почти белый): на светлом шаблоне выходил белый
+// текст по белому. Ни фон, ни цвет текста мы больше не задаём — их даёт
+// шаблон сайта, а тема отвечает за рамки, радиусы, кегль, маркеры и акцент
+// в линиях. Константы остаются прозрачными, чтобы правила не переписывать.
+define('ПОДЛОЖКА', 'transparent');
+define('ПОДЛОЖКА2', 'transparent');
 define('КАНТ', $Т['кантCSS']);
 define('ЗОЛОТО', $Т['акцент']);
 define('ТРЕВОГА', $Т['тревога']);
 define('УСПЕХ', $Т['успех']);
-// Шрифт, кегль и цвет — жёстко на каждом текстовом элементе и на каждом
-// контейнере: шаблон сайта ничего не наследует нам. Ссылки — без подчёркивания.
+// Шрифт и кегль — на каждом текстовом элементе; цвет наследуется от шаблона.
 define('ШРИФТ', v5TemaShrift($Т));
 define('ССЫЛКА', v5TemaSsylka($Т));
 
@@ -49,7 +53,7 @@ $ПРАВИЛА = [
     'hero-features'     => 'display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px;padding:0;list-style:none',
     'feature-icon'      => 'margin-right:6px;flex:0 0 auto;line-height:1',
     'hero-actions'      => 'display:flex;flex-wrap:wrap;gap:10px',
-    'btn'               => 'display:inline-block;padding:10px 18px;border:0;border-radius:10px;background:' . ЗОЛОТО . ';color:#15161c;font-weight:700;font-family:inherit;line-height:1.3;text-decoration:none',
+    'btn'               => 'display:inline-block;padding:10px 18px;border:1px solid ' . ЗОЛОТО . ';border-radius:10px;color:inherit;font-weight:700;font-family:inherit;line-height:1.3;text-decoration:none',
     'btn-apple'         => 'display:inline-block;padding:10px 18px;border-radius:10px;border:' . КАНТ . ';text-decoration:none;font-weight:600;font-family:inherit;line-height:1.3;color:inherit',
 
     // ── куда перейти
@@ -76,11 +80,11 @@ $ПРАВИЛА = [
     'payout-row-icon'   => 'font-size:16px;line-height:1;white-space:nowrap',
     'payout-row-name'   => 'font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis',
     'payout-row-sep'    => 'display:none',
-    'payout-row-amount' => 'font-weight:700;color:' . ЗОЛОТО . ';white-space:nowrap',
+    'payout-row-amount' => 'font-weight:700;color:inherit;white-space:nowrap',
     'payout-row-slot'   => 'font-size:13px;opacity:.88;white-space:nowrap;overflow:hidden;text-overflow:ellipsis',
     'payout-row-time'   => 'font-size:12px;opacity:.9;text-align:right;white-space:nowrap',
     'payout-cta'        => 'padding:14px;background:' . ПОДЛОЖКА . ';text-align:center',
-    'payout-btn'        => 'display:inline-block;padding:10px 20px;border:0;border-radius:10px;background:' . ЗОЛОТО . ';color:#15161c;font-weight:700;font-family:inherit;line-height:1.3;text-decoration:none',
+    'payout-btn'        => 'display:inline-block;padding:10px 20px;border:1px solid ' . ЗОЛОТО . ';border-radius:10px;color:inherit;font-weight:700;font-family:inherit;line-height:1.3;text-decoration:none',
 
     // ── джекпоты и статистика: плитки
     'jackpot-strip'      => '' . ШРИФТ . ';line-height:1.5;text-align:left;display:block;border:' . КАНТ . ';border-radius:14px;background:' . ПОДЛОЖКА . ';padding:16px;margin:0 0 22px',
@@ -90,12 +94,12 @@ $ПРАВИЛА = [
     'jackpot-cell'       => 'display:block;min-width:0;padding:12px;border:' . КАНТ . ';border-radius:12px;background:' . ПОДЛОЖКА2 . ';text-align:center',
     'jackpot-cell-icon'  => 'display:block;font-size:22px;line-height:1;margin-bottom:6px',
     'jackpot-cell-name'  => 'display:block;font-size:12px;opacity:.86',
-    'jackpot-cell-amount' => 'display:block;font-size:18px;font-weight:800;color:' . ЗОЛОТО . ';margin:4px 0 2px',
+    'jackpot-cell-amount' => 'display:block;font-size:18px;font-weight:800;color:inherit;margin:4px 0 2px',
     'jackpot-cell-info'  => 'display:block;font-size:11px;opacity:.9',
     'stats-grid'         => '' . ШРИФТ . ';line-height:1.5;text-align:left;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0',
     'stat-card'          => 'display:block;min-width:0;padding:14px;border:' . КАНТ . ';border-radius:12px;background:' . ПОДЛОЖКА . ';text-align:center',
     'stat-icon'          => 'display:block;font-size:22px;line-height:1;margin-bottom:6px',
-    'stat-value'         => 'display:block;font-size:19px;font-weight:800;color:' . ЗОЛОТО,
+    'stat-value'         => 'display:block;font-size:19px;font-weight:800;color:inherit',
     'stat-label'         => 'display:block;font-size:12px;opacity:.84;margin-top:2px',
 
     // ── преимущества
@@ -154,7 +158,7 @@ $ПРАВИЛА = [
     'slot-rtp'      => 'font-size:11px;opacity:.9',
     'slot-rtp-label' => 'display:block;opacity:.86',
     'slot-rtp-value' => 'display:block;font-weight:700',
-    'slot-play-btn' => 'display:inline-block;font-size:12px;padding:5px 11px;border:0;border-radius:8px;background:' . ЗОЛОТО . ';color:#15161c;font-family:inherit;line-height:1.3;text-decoration:none;white-space:nowrap',
+    'slot-play-btn' => 'display:inline-block;font-size:12px;padding:5px 11px;border:1px solid ' . ЗОЛОТО . ';border-radius:8px;color:inherit;font-weight:700;font-family:inherit;line-height:1.3;text-decoration:none;white-space:nowrap',
 ];
 
 // Тема: радиусы по множителю, тени на карточках, кнопки по форме темы, кант.
@@ -282,10 +286,10 @@ foreach ($файлы as $файл) {
             continue;
         }
         if (preg_match('~^\\s*<strong>(Плюс|Минус|Совет|Факт|Итог|Важно|Кстати)~u', $л) === 1 && strpos($л, 'style=') === false) {
-            $карта = ['Плюс' => $Т['плюс'], 'Минус' => $Т['минус'], 'Совет' => ЗОЛОТО,
-                      'Факт' => ЗОЛОТО, 'Итог' => ЗОЛОТО, 'Важно' => '#f0685a', 'Кстати' => ЗОЛОТО];
+            // Цвет метки («Плюс» зелёным, «Минус» красным) снят вместе с остальной
+            // раскраской текста: на светлом шаблоне наши цвета не читались.
             $итог[] = preg_replace_callback('~<strong>(Плюс|Минус|Совет|Факт|Итог|Важно|Кстати)~u',
-                function ($m) use ($карта) { return '<strong style="font-weight:700;color:' . $карта[$m[1]] . '">' . $m[1]; }, $л, 1);
+                function ($m) { return '<strong style="font-weight:700;color:inherit">' . $m[1]; }, $л, 1);
             $правил++;
             continue;
         }

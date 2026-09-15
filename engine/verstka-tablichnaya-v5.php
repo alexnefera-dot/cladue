@@ -17,8 +17,9 @@ if ($папка === null || !is_dir($папка)) { fwrite(STDERR, "usage: php e
 
 require_once __DIR__ . '/temy-v5.php';
 $Т = v5Tema($тема);
-define('ПОДЛОЖКА', $Т['подложка']);
-define('ПОДЛОЖКА2', $Т['подложка2']);
+// Фон задаёт шаблон сайта, не мы: см. verstka-v5.php.
+define('ПОДЛОЖКА', 'transparent');
+define('ПОДЛОЖКА2', 'transparent');
 define('КАНТ', $Т['кантCSS']);
 define('ЗОЛОТО', $Т['акцент']);
 // Шрифт, кегль и цвет — жёстко на каждом текстовом теге: шаблон сайта ничего не наследует нам.
@@ -93,7 +94,7 @@ foreach ($файлы as $файл) {
         function ($m) use ($ДАТА, &$правил) { $правил++; return '<em style="' . $ДАТА . '">' . trim($m[1]) . '</em>'; }, $html);
     // цветные метки «Плюс:», «Минус:», «Ключевой вывод:»
     $html = preg_replace_callback('~<(strong|b)>(' . implode('|', array_map('preg_quote', array_keys($СТРОНГ))) . ')(?=[:\s])~u',
-        function ($m) use ($СТРОНГ, &$правил) { $правил++; return '<' . $m[1] . ' style="color:' . $СТРОНГ[$m[2]] . '">' . $m[2]; }, $html);
+        function ($m) use (&$правил) { $правил++; return '<' . $m[1] . ' style="font-weight:700;color:inherit">' . $m[2]; }, $html);
     // последний проход: всё, что осталось без style=, получает жёсткий сброс (ссылки — без подчёркивания)
     $html = v5ZhyostkoStroka($html, $Т, $правил);
     file_put_contents($файл, $html); $всего += $правил;

@@ -254,7 +254,8 @@ function v5Tema(int $n): array
     $т['акцентИсходный'] = $т['акцент'];
     $т['акцент'] = v5TemaChitaemyAkcent($т['акцент']);
     if ($т['акцент'] !== $т['акцентИсходный']) { $т['акцентТекст'] = '#15161c'; }
-    $т['тревога'] = 'rgba(240,90,90,.12)'; $т['успех'] = 'rgba(80,190,130,.12)';
+    // Подсветки «успех»/«тревога» тоже без заливки: фон страницы не наш.
+    $т['тревога'] = 'none'; $т['успех'] = 'none';
     $т['маркер'] = ['точка' => 'disc', 'стрелка' => "'▸  '", 'квадрат' => 'square', 'тире' => "'—  '", 'ромб' => "'◆  '", 'галка' => "'✓  '", 'звезда' => "'★  '"][$т['список']] ?? 'disc';
     return $т;
 }
@@ -276,10 +277,12 @@ function v5TemaRadius(string $css, array $т): string
 function v5TemaKnopka(array $т, string $база): string
 {
     $а = $т['акцент'];
+    // Кнопка держится рамкой, а не заливкой: фон и цвет текста задаёт шаблон
+    // сайта. Заливка акцентом с собственным цветом текста («Играть» тёмным по
+    // персиковому) жила своей жизнью и на светлом шаблоне спорила со страницей.
     return match ($т['кнопка']) {
-        'контур'   => $база . ';background:transparent;border:2px solid ' . $а . ';color:inherit',
-        'градиент' => $база . ';background:linear-gradient(135deg,' . $а . ',' . $т['акцент'] . 'cc);color:' . $т['акцентТекст'] . ';box-shadow:0 4px 12px ' . $а . '55',
-        default    => $база . ';background:' . $а . ';color:' . $т['акцентТекст'],
+        'градиент' => $база . ';background:none;border:2px solid ' . $а . ';color:inherit;font-weight:700',
+        default    => $база . ';background:none;border:' . ($т['кнопка'] === 'контур' ? '2px' : '1px') . ' solid ' . $а . ';color:inherit',
     };
 }
 
@@ -289,12 +292,13 @@ function v5TemaZagolovok(array $т, string $тег): string
     $а = $т['акцент'];
     $h2 = $тег === 'h2';
     // шрифт, цвет и жирность — жёстко; вариант «тонкий» ниже перебивает жирность
-    return 'font-family:' . $т['шрифт'] . ';color:' . $т['текст'] . ';font-weight:700;text-align:left;text-transform:none;' . match ($т['заголовок']) {
+    // Цвет заголовка — от шаблона: свой (#e9ebf2) на светлом фоне не читался.
+    return 'font-family:' . $т['шрифт'] . ';font-weight:700;text-align:left;text-transform:none;' . match ($т['заголовок']) {
         'капс'    => $h2 ? 'margin:30px 0 12px;font-size:20px;letter-spacing:.08em;text-transform:uppercase;line-height:1.3' : 'margin:22px 0 10px;font-size:15px;letter-spacing:.06em;text-transform:uppercase;line-height:1.3;opacity:.92',
         'подчерк' => $h2 ? 'margin:28px 0 12px;padding:0 0 8px;border-bottom:2px solid ' . $а . ';font-size:24px;line-height:1.25' : 'margin:22px 0 10px;font-size:19px;line-height:1.3',
         'полоса'  => $h2 ? 'margin:28px 0 12px;padding:2px 0 2px 14px;border-left:5px solid ' . $а . ';font-size:24px;line-height:1.25' : 'margin:22px 0 10px;padding-left:14px;border-left:3px solid ' . $т['линия'] . ';font-size:19px;line-height:1.3',
         'тонкий'  => $h2 ? 'margin:30px 0 12px;font-size:27px;font-weight:500;line-height:1.2;letter-spacing:-.01em' : 'margin:22px 0 10px;font-size:20px;font-weight:500;line-height:1.3',
-        'рамка'   => $h2 ? 'margin:30px 0 14px;padding:8px 14px;background:' . $т['подложка2'] . ';border-radius:' . (int) round(10 * $т['радиус']) . 'px;font-size:22px;line-height:1.3' : 'margin:22px 0 10px;padding:4px 10px;background:' . $т['подложка'] . ';border-radius:' . (int) round(8 * $т['радиус']) . 'px;font-size:18px;line-height:1.3',
+        'рамка'   => $h2 ? 'margin:30px 0 14px;padding:8px 14px;border:1px solid ' . $а . ';border-radius:' . (int) round(10 * $т['радиус']) . 'px;font-size:22px;line-height:1.3' : 'margin:22px 0 10px;padding:4px 10px;background:' . $т['подложка'] . ';border-radius:' . (int) round(8 * $т['радиус']) . 'px;font-size:18px;line-height:1.3',
         default   => $h2 ? 'margin:28px 0 12px;font-size:24px;line-height:1.25' : 'margin:22px 0 10px;font-size:19px;line-height:1.3',
     };
 }
@@ -360,13 +364,18 @@ function v5TemaChitaemyAkcent(string $hex): string
 /** Шрифт, кегль и цвет текста — жёстко, чтобы шаблон сайта не подменил их. */
 function v5TemaShrift(array $т, int $кегль = 0): string
 {
-    return 'font-family:' . $т['шрифт'] . ';font-size:' . ($кегль ?: $т['размер']) . 'px;color:' . $т['текст'];
+    // Цвет текста не наш: тема даёт шрифт и кегль, цвет приходит из шаблона
+    // сайта. Пока цвет стоял здесь (#e9ebf2 — почти белый), на светлом
+    // шаблоне страница выходила белым по белому.
+    return 'font-family:' . $т['шрифт'] . ';font-size:' . ($кегль ?: $т['размер']) . 'px';
 }
 
 /** Ссылка в тексте: цвет акцента, без подчёркивания и без линий шаблона. */
 function v5TemaSsylka(array $т): string
 {
-    return 'color:' . $т['акцент'] . ';text-decoration:none;border-bottom:0;box-shadow:none;background:none;font-weight:600';
+    // Ссылка тоже берёт цвет шаблона: подчёркивание оставляем, чтобы её было
+    // видно на любом фоне, а окраску решает сайт-хозяин.
+    return 'color:inherit;text-decoration:underline;border-bottom:0;box-shadow:none;background:none;font-weight:600';
 }
 
 /**
