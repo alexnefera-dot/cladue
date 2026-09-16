@@ -714,15 +714,28 @@ while (true) {
             // (старое задание, отбор не дошёл) — пишем её сейчас.
             // Зоны и вся масса выдачи уже посчитаны по сырым результатам и после визитов не меняются —
             // уточняем только отобранное (редирект апекса на бренд-поддомен — тоже дор) и хвост записи.
+            // Наши шаблоны тоже видно только сейчас: признак ставится по меткам в HTML на превью-визите
+            // (скриншот — чтобы проверить глазами), поэтому в ранней записи там был 0.
             $finalBreakdown = CollectHistory::breakdown($result->sites);
             $patched = CollectHistory::update(dirname($runDir), $historyId, [
                 'doors' => $finalBreakdown['doors'],
                 'roots' => $finalBreakdown['roots'],
+                'own' => $finalBreakdown['own'],
                 'base_domains' => (int) ($result->stats['base_domains'] ?? 0),
                 'stopped' => $result->stopped,
             ]);
             if (!$patched) {
                 CollectHistory::append(dirname($runDir), CollectHistory::record($result->sites, $result->stats, $result->seenBefore, $resume, $result->stopped, $result->raw));
+            }
+            $ownNote = '';
+            if ($finalBreakdown['own'] > 0) {
+                $ownNote = sprintf(
+                    'наших шаблонов: %d из %d (%s%%)',
+                    $finalBreakdown['own'],
+                    count($result->sites),
+                    CollectHistory::percent($finalBreakdown['own'], count($result->sites)),
+                );
+                $logger->info(sprintf('Наши шаблоны среди отобранного (по меткам в HTML): %s — выгружать их не нужно', $ownNote));
             }
             $progress->update([
                 'state' => $result->aborted ? 'error' : ($result->stopped ? 'stopped' : 'done'),
@@ -755,6 +768,7 @@ while (true) {
                             : ($queueInfo['left'] > 0 ? sprintf('Обработано %d из %d запросов, осталось %d — «Продолжить сбор». ', $queueInfo['done'], $queueInfo['total'], $queueInfo['left']) : ''))
                         . ($keptPrevious ? 'Ничего нового не отобрано — прошлый список сайтов оставлен, с ним можно продолжать. ' : '')
                         . $templateNote
+                        . ($ownNote !== '' ? ($templateNote !== '' ? '; ' : '') . $ownNote : '')
                         . ($offerWalls > 0 ? sprintf('; подборок офферов вместо сайта: %d', $offerWalls) : ''),
                     ),
             ], true);

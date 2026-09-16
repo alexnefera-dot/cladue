@@ -121,6 +121,62 @@ final class CollectHistoryTest
         Assert::same(null, CollectHistory::backfillLatest($dir, [$site]));
     }
 
+    public function testBreakdownCountsOwnTemplates(): void
+    {
+        // «Наш» ставится не по картинке скриншота, а по меткам в HTML страницы (Filter\OwnSites):
+        // в статистике это отдельное число и доля от отобранного.
+        $sites = $this->sites('a.ru', 'b.ru', 'kush.c.ru');
+        $sites[1]->own = true;
+
+        $b = CollectHistory::breakdown($sites);
+        Assert::same(1, $b['own'], 'наш шаблон посчитан');
+        Assert::same(1, $b['doors'], 'наши на счёт доров не влияют');
+        Assert::same(2, $b['roots']);
+
+        $record = CollectHistory::record($sites, []);
+        Assert::same(1, $record['own']);
+        Assert::same(3, $record['sites']);
+        Assert::same(33.3, CollectHistory::percent($record['own'], $record['sites']), 'доля наших');
+    }
+
+    public function testTotalsAndCsvCarryOwnShare(): void
+    {
+        $first = $this->sites('a.ru', 'b.ru');
+        $first[0]->own = true;
+        $second = $this->sites('c.ru', 'd.ru');
+
+        $totals = CollectHistory::totals([
+            CollectHistory::record($second, []),
+            CollectHistory::record($first, []),
+        ]);
+        Assert::same(1, $totals['own'], 'наши складываются по всем сборам');
+        Assert::same(25.0, $totals['own_percent'], 'доля наших — от отобранного за всё время');
+
+        $csv = CollectHistory::csv([CollectHistory::record($first, [])]);
+        Assert::contains('Наших сайтов', $csv);
+        Assert::contains('Доля наших', $csv);
+    }
+
+    public function testBackfillLatestFillsOwnForOldRecords(): void
+    {
+        // Записи до 1.15.0 не знали про наши шаблоны — дописываем число по текущему sites.json,
+        // не трогая уже посчитанные доры.
+        $dir = $this->runsDir();
+        $sites = $this->sites('kush.example.ru', 'own.example.com');
+        $sites[1]->own = true;
+        file_put_contents($dir . '/' . CollectHistory::FILE, json_encode([
+            ['date' => '2026-09-15T17:48:00+00:00', 'found' => 9, 'sites' => 2, 'doors' => 1, 'roots' => 1, 'zones' => ['ru' => 1]],
+        ]));
+
+        $updated = CollectHistory::backfillLatest($dir, $sites);
+        Assert::true($updated !== null, 'запись дополнена');
+        Assert::same(1, $updated['own']);
+        Assert::same(1, $updated['doors'], 'посчитанные доры не тронуты');
+        Assert::same(1, $updated['zones']['ru'] ?? 0, 'зоны всей выдачи не перезаписаны отобранным');
+        Assert::same(1, CollectHistory::load($dir)[0]['own'], 'дописано на диск');
+        Assert::same(null, CollectHistory::backfillLatest($dir, $sites), 'второй раз дописывать нечего');
+    }
+
     public function testIsDoorIgnoresWww(): void
     {
         Assert::true(CollectHistory::isDoor('kush.casinozsd.buzz'));

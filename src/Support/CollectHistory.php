@@ -42,17 +42,24 @@ final class CollectHistory
     }
 
     /**
-     * Разбор отобранных сайтов: сколько доров, сколько корневых и зоны ДОРОВ.
+     * Разбор отобранных сайтов: сколько доров, сколько корневых, сколько НАШИХ и зоны ДОРОВ.
+     *
+     * «Наш» ставится не по картинке, а по меткам в HTML страницы (Filter\OwnSites, own-markers.txt):
+     * признак появляется на превью-визите после сбора, скриншот нужен только чтобы проверить глазами.
      *
      * @param array<int|string, Site> $sites
-     * @return array{doors: int, roots: int, zones: array<string, int>}
+     * @return array{doors: int, roots: int, own: int, zones: array<string, int>}
      */
     public static function breakdown(array $sites): array
     {
         $doors = 0;
         $roots = 0;
+        $own = 0;
         $zones = [];
         foreach ($sites as $site) {
+            if ($site->own) {
+                $own++; // наш шаблон: в базу он попал, но выгружать и чистить его не будем
+            }
             // Именно realHost(): при дедупе по домену $site->host хранит регистрируемый домен, и все
             // доры выглядели бы корневыми (в панели это дало «доров 0» на 339 собранных доменах).
             $host = Domains::normalize($site->realHost());
@@ -71,7 +78,7 @@ final class CollectHistory
         }
         arsort($zones);
 
-        return ['doors' => $doors, 'roots' => $roots, 'zones' => $zones];
+        return ['doors' => $doors, 'roots' => $roots, 'own' => $own, 'zones' => $zones];
     }
 
     /**
@@ -151,6 +158,9 @@ final class CollectHistory
             'sites' => count($sites),
             'doors' => $breakdown['doors'],
             'roots' => $breakdown['roots'],
+            // Наши шаблоны среди отобранного: на момент этой записи визитов ещё не было, число
+            // уточняется в конце сбора (признак «наш» ставится по меткам в HTML на превью-визите).
+            'own' => $breakdown['own'],
             // Повторы — домены, уже бывшие в базе пересечений; отдельно считаем, сколько из них доры.
             'repeats' => $repeats,
             'repeats_doors' => $repeatsDoors,
@@ -213,13 +223,15 @@ final class CollectHistory
     }
 
     /**
-     * Пересчитывает доры в САМОЙ СВЕЖЕЙ записи по текущему списку сайтов (runs/current/sites.json).
+     * Дописывает в САМУЮ СВЕЖУЮ запись то, что можно пересчитать по текущему списку сайтов
+     * (runs/current/sites.json), — доры и наши шаблоны.
      *
      * Версии 1.10.0–1.11.0 считали доры по $site->host, а при дедупе по домену там лежит
-     * регистрируемый домен — и запись получалась с «доров 0». Перечитывать выдачу ради этого не нужно:
-     * хосты видно в sites.json. Пересчитываем только последнюю запись и только когда в ней 0 доров, а
-     * число сайтов совпадает с таблицей (значит, это тот же сбор), после чего сохраняем — чтобы считать
-     * один раз. Повторы-доры так не восстановить (отклонённых хостов на диске нет), они остаются как были.
+     * регистрируемый домен — и запись получалась с «доров 0». Записи до 1.15.0 вообще не знали про
+     * наши шаблоны. Перечитывать выдачу ради этого не нужно: хосты и признак «наш» видно в sites.json.
+     * Трогаем только последнюю запись и только когда число сайтов совпадает с таблицей (значит, это
+     * тот же сбор), после чего сохраняем — чтобы считать один раз. Повторы-доры так не восстановить
+     * (отклонённых хостов на диске нет), они остаются как были.
      *
      * @param array<int|string, Site> $sites
      * @return array<string, mixed>|null обновлённая запись или null, если пересчитывать нечего
@@ -231,18 +243,31 @@ final class CollectHistory
             return null;
         }
         $latest = $records[0];
-        if ((int) ($latest['doors'] ?? 0) > 0 || (int) ($latest['sites'] ?? 0) !== count($sites)) {
+        if ((int) ($latest['sites'] ?? 0) !== count($sites)) {
+            return null; // таблица уже от другого сбора — пересчитывать нечего
+        }
+        $needDoors = (int) ($latest['doors'] ?? 0) === 0;
+        $needOwn = !array_key_exists('own', $latest);
+        if (!$needDoors && !$needOwn) {
             return null;
         }
         $breakdown = self::breakdown($sites);
-        if ($breakdown['doors'] === 0) {
+        $fields = [];
+        if ($needDoors && $breakdown['doors'] > 0) {
+            $fields['doors'] = $breakdown['doors'];
+            $fields['roots'] = $breakdown['roots'];
+            // Зоны в записях с 1.13.0 считаются по всей выдаче (есть ключ found) — их не трогаем.
+            if (!isset($latest['found'])) {
+                $fields['zones'] = $breakdown['zones'];
+            }
+        }
+        if ($needOwn) {
+            $fields['own'] = $breakdown['own'];
+        }
+        if ($fields === []) {
             return null; // доров и правда нет — запись верна
         }
-        $records[0] = array_merge($latest, [
-            'doors' => $breakdown['doors'],
-            'roots' => $breakdown['roots'],
-            'zones' => $breakdown['zones'],
-        ]);
+        $records[0] = array_merge($latest, $fields);
         file_put_contents(
             rtrim($runsDir, '/\\') . '/' . self::FILE,
             json_encode($records, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
@@ -301,10 +326,10 @@ final class CollectHistory
      */
     public static function totals(array $records): array
     {
-        $out = ['runs' => 0, 'results' => 0, 'found' => 0, 'found_doors' => 0, 'found_roots' => 0, 'sites' => 0, 'doors' => 0, 'roots' => 0, 'doors_percent' => 0.0, 'repeats' => 0, 'repeats_doors' => 0, 'zones' => [], 'base_domains' => 0];
+        $out = ['runs' => 0, 'results' => 0, 'found' => 0, 'found_doors' => 0, 'found_roots' => 0, 'sites' => 0, 'doors' => 0, 'roots' => 0, 'own' => 0, 'doors_percent' => 0.0, 'own_percent' => 0.0, 'repeats' => 0, 'repeats_doors' => 0, 'zones' => [], 'base_domains' => 0];
         foreach ($records as $r) {
             $out['runs']++;
-            foreach (['results', 'found', 'found_doors', 'found_roots', 'sites', 'doors', 'roots', 'repeats', 'repeats_doors'] as $key) {
+            foreach (['results', 'found', 'found_doors', 'found_roots', 'sites', 'doors', 'roots', 'own', 'repeats', 'repeats_doors'] as $key) {
                 $out[$key] += (int) ($r[$key] ?? 0);
             }
             foreach ((array) ($r['zones'] ?? []) as $zone => $count) {
@@ -317,6 +342,9 @@ final class CollectHistory
         $out['doors_percent'] = $out['found'] > 0
             ? self::percent($out['found_doors'], $out['found'])
             : self::percent($out['doors'], $out['sites']);
+        // Наши считаются от ОТОБРАННОГО: в выдаче мы их по одному адресу не узнаём, признак ставится
+        // по меткам в HTML уже на визите.
+        $out['own_percent'] = self::percent($out['own'], $out['sites']);
         // База доменов — не сумма, а её размер на момент последнего (самого свежего) сбора.
         $out['base_domains'] = (int) ($records[0]['base_domains'] ?? 0);
 
@@ -338,7 +366,7 @@ final class CollectHistory
         if ($bom) {
             fwrite($out, "\xEF\xBB\xBF");
         }
-        fputcsv($out, ['Дата', 'Результатов в выдаче', 'Доменов и поддоменов', 'Доров из них', 'Доля доров, %', 'Корневых', 'Отобрано сайтов', 'Доров среди отобранных', 'Повторов доров', 'Повторов всего', 'Зоны доров', 'Всего в базе', 'Продолжение', 'Остановлен'], $delimiter, '"', '');
+        fputcsv($out, ['Дата', 'Результатов в выдаче', 'Доменов и поддоменов', 'Доров из них', 'Доля доров, %', 'Корневых', 'Отобрано сайтов', 'Доров среди отобранных', 'Наших сайтов', 'Доля наших, %', 'Повторов доров', 'Повторов всего', 'Зоны доров', 'Всего в базе', 'Продолжение', 'Остановлен'], $delimiter, '"', '');
         foreach ($records as $r) {
             $found = (int) ($r['found'] ?? 0);
             $foundDoors = (int) ($r['found_doors'] ?? 0);
@@ -352,6 +380,8 @@ final class CollectHistory
                 (int) ($r['found_roots'] ?? 0),
                 $sites,
                 (int) ($r['doors'] ?? 0),
+                (int) ($r['own'] ?? 0),
+                self::percent((int) ($r['own'] ?? 0), $sites),
                 (int) ($r['repeats_doors'] ?? 0),
                 (int) ($r['repeats'] ?? 0),
                 self::zonesText((array) ($r['zones'] ?? [])),

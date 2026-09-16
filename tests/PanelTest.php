@@ -845,6 +845,67 @@ final class PanelTest
         }
     }
 
+    public function testHistoryCountsOwnSitesForOldRecords(): void
+    {
+        // Наши шаблоны в статистике: признак «наш» ставится по меткам в HTML на превью-визите, поэтому
+        // в записях до 1.15.0 такого числа нет. /api/history дописывает его по текущему sites.json —
+        // статистика прошлого сбора показывает наши сразу после обновления, без нового сбора.
+        $dir = sys_get_temp_dir() . '/yandex-sites-panel-own-' . uniqid();
+        $runDir = $dir . '/runs/current';
+        mkdir($runDir, 0777, true);
+        file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
+        $row = static fn (string $host, bool $own): array => ['host' => $host, 'domain' => $host, 'url' => "https://$host/", 'own' => $own];
+        file_put_contents($runDir . '/sites.json', json_encode(['sites' => [
+            $row('chuzhoy.ru', false),
+            $row('nash.ru', true),
+            $row('kush.example.com', false),
+            $row('esche-nash.ru', true),
+        ]]));
+        file_put_contents($dir . '/runs/history.json', json_encode([
+            ['id' => 'old', 'date' => '2026-09-15T10:00:00+00:00', 'results' => 40, 'found' => 30, 'found_doors' => 10, 'found_roots' => 20, 'sites' => 4, 'doors' => 1, 'roots' => 3, 'zones' => ['com' => 10], 'repeats' => 0, 'repeats_doors' => 0, 'base_domains' => 4],
+        ]));
+
+        $socket = @stream_socket_server('tcp://127.0.0.1:0', $errno, $errstr);
+        if ($socket === false) {
+            Assert::skip("нет доступа к сокетам: $errstr");
+        }
+        $name = (string) stream_socket_get_name($socket, false);
+        fclose($socket);
+        $panelPort = (int) substr($name, (int) strrpos($name, ':') + 1);
+        $log = sys_get_temp_dir() . '/yandex-sites-panel-own.log';
+        $server = @proc_open(
+            [PHP_BINARY, '-S', '127.0.0.1:' . $panelPort, '-t', $dir, PROJECT_ROOT . '/bin/panel.php'],
+            [0 => ['pipe', 'r'], 1 => ['file', $log, 'a'], 2 => ['file', $log, 'a']],
+            $pipes,
+            $dir,
+            array_merge(getenv(), ['YS_PROJECT_DIR' => $dir]),
+        );
+        if (!is_resource($server)) {
+            Assert::skip('не удалось запустить php -S для панели');
+        }
+        fclose($pipes[0]);
+        try {
+            $base = "http://127.0.0.1:$panelPort";
+            $this->waitFor($base . '/api/state', 50);
+
+            $hist = json_decode((string) $this->http('GET', $base . '/api/history'), true);
+            Assert::true($hist['ok'] ?? false, json_encode($hist, JSON_UNESCAPED_UNICODE));
+            Assert::same(2, $hist['records'][0]['own'], 'наши посчитаны по sites.json');
+            Assert::same(1, $hist['records'][0]['doors'], 'посчитанные доры не тронуты');
+            Assert::same(10, $hist['records'][0]['zones']['com'] ?? 0, 'зоны всей выдачи остались');
+            Assert::same(2, $hist['totals']['own'], 'наши в итоге по всем сборам');
+            Assert::same(50.0, (float) $hist['totals']['own_percent'], 'доля наших — от отобранного');
+            Assert::same(2, \YandexSites\Support\CollectHistory::load($dir . '/runs')[0]['own'], 'дописано в историю на диске');
+
+            $csv = (string) $this->http('GET', $base . '/download?file=history');
+            Assert::contains('Наших сайтов', $csv, 'наши есть и в CSV истории');
+            Assert::contains('Доля наших', $csv);
+        } finally {
+            proc_terminate($server);
+            proc_close($server);
+        }
+    }
+
     public function testResetBaseWipesRunFiles(): void
     {
         // «Очистить базу и файлы»: база доменов + все рабочие файлы прогона (страницы, контент, превью,

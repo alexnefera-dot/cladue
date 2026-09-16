@@ -267,7 +267,7 @@
 
   <div class="card tabsec" data-tab="stats">
     <h2>Статистика сборов</h2>
-    <div class="hint">По одной строке на сбор, те же понятия, что и на «Главной». <b>Результатов в выдаче</b> — все строки по всем запросам (один сайт считается заново в каждом запросе). <b>Доменов и поддоменов</b> — сколько среди них разных, включая отсеянные фильтрами: это вся масса выдачи, и от неё считается <b>доля доров</b> (сайтов на поддоменах). <b>Отобрано сайтов</b> — что осталось после фильтров и группировки «один сайт на домен». Зоны — <b>по найденным дорам</b>. История хранится в <b>runs/history.json</b> и переживает обновление кода.</div>
+    <div class="hint">По одной строке на сбор, те же понятия, что и на «Главной». <b>Результатов в выдаче</b> — все строки по всем запросам (один сайт считается заново в каждом запросе). <b>Доменов и поддоменов</b> — сколько среди них разных, включая отсеянные фильтрами: это вся масса выдачи, и от неё считается <b>доля доров</b> (сайтов на поддоменах). <b>Отобрано сайтов</b> — что осталось после фильтров и группировки «один сайт на домен», <b>наши</b> — сколько из них наши шаблоны (узнаём по меткам в HTML страницы на превью-визите, скриншот — чтобы проверить глазами), доля наших считается от отобранного. Зоны — <b>по найденным дорам</b>. История хранится в <b>runs/history.json</b> и переживает обновление кода.</div>
     <div class="statgrid" id="statTotals"></div>
     <div class="hint" id="statZones" style="margin-bottom:10px"></div>
     <div class="btns" style="margin-bottom:10px;align-items:center">
@@ -276,7 +276,7 @@
     </div>
     <div style="overflow-x:auto"><table id="statTable"><thead><tr>
       <th>Дата</th><th>Результатов в выдаче</th><th>Доменов и поддоменов</th><th>Доров из них</th><th>Доля доров</th>
-      <th>Отобрано сайтов</th><th>Повторов доров</th><th>Зоны доров</th><th>Всего в базе</th>
+      <th>Отобрано сайтов</th><th>Наших</th><th>Повторов доров</th><th>Зоны доров</th><th>Всего в базе</th>
     </tr></thead><tbody id="statBody"></tbody></table></div>
     <div class="hint" id="statEmpty" hidden>Истории пока нет — она появится после первого сбора на этой версии.</div>
   </div>
@@ -361,7 +361,7 @@ showTab(startTab);
 // Что тут видно: за какую дату сколько доменов собрано, сколько из них повторились (были в базе),
 // сколько сидит на поддоменах (доры сетки) и какие доменные зоны попались.
 let statsLoaded=false;
-function statBox(n, label){ return `<div class="statbox"><div class="n">${n}</div><div class="l">${label}</div></div>`; }
+function statBox(n, label, title){ return `<div class="statbox"${title?` title="${title}"`:''}><div class="n">${n}</div><div class="l">${label}</div></div>`; }
 function pct(v){ const n=Number(v)||0; return (Number.isInteger(n) ? n : n.toFixed(1)) + '%'; }
 function zonesHtml(zones, limit){
   const keys=Object.keys(zones||{}).sort((a,b)=>zones[b]-zones[a]);
@@ -383,6 +383,8 @@ async function loadStats(){
       + statBox(t.found_doors|0,'из них доров')
       + statBox(pct(t.doors_percent),'доля доров')
       + statBox(t.sites|0,'отобрано сайтов')
+      + statBox(t.own|0,'наших сайтов','Наши шаблоны среди отобранного: узнаём по меткам в HTML страницы (own-markers.txt), выгружать и чистить их не нужно')
+      + statBox(pct(t.own_percent),'доля наших','Сколько процентов отобранного — наши шаблоны')
       + statBox(t.repeats_doors|0,'повторов доров')
       + statBox(t.base_domains|0,'доменов в базе')
       + statBox(t.runs|0,'сборов');
@@ -404,9 +406,12 @@ async function loadStats(){
       const foundCell = found>0 ? `<b>${found}</b>` : '<span class="muted">—</span>';
       const doorsCell = found>0 ? `${foundDoors}` : `${doors}`;
       const sitesCell = `<span title="Из них доров: ${doors}">${sites}</span>`;
+      // Наши шаблоны: у записей до 1.15.0 такого числа нет — там прочерк, а не «0».
+      const ownCell = (r.own==null) ? '<span class="muted">—</span>'
+        : `<span title="Доля наших от отобранного">${r.own|0}${sites>0&&(r.own|0)>0?` <span class="muted">${Math.round((r.own|0)*1000/sites)/10}%</span>`:''}</span>`;
       const resCell = (r.results|0)>0 ? `${r.results|0}` : '<span class="muted">—</span>';
       return `<tr><td>${human}${marks}</td><td>${resCell}</td><td>${foundCell}</td><td>${doorsCell}</td><td>${share}</td>`
-        + `<td>${sitesCell}</td><td>${rep}</td><td class="host">${zonesHtml(r.zones,6)}</td><td>${r.base_domains|0}</td></tr>`;
+        + `<td>${sitesCell}</td><td>${ownCell}</td><td>${rep}</td><td class="host">${zonesHtml(r.zones,6)}</td><td>${r.base_domains|0}</td></tr>`;
     }).join('');
   }
   const empty=$('statEmpty'); if(empty) empty.hidden = recs.length>0;
@@ -902,7 +907,10 @@ function updateStats(visible){
   if(st){
     if(!visible.length){ st.textContent=''; }
     else {
-      let t=`Из ${visible.length}: наших ${c.own} · проблемных ${c.problem} · без ошибок (100%) ${c.full}`;
+      // Наши шаблоны узнаём по меткам в HTML страницы (own-markers.txt), не по картинке скриншота;
+      // рядом с числом показываем долю — её же считает статистика сборов.
+      const ownPct = visible.length ? Math.round(c.own*1000/visible.length)/10 : 0;
+      let t=`Из ${visible.length}: наших ${c.own}${c.own?` (${ownPct}%)`:''} · проблемных ${c.problem} · без ошибок (100%) ${c.full}`;
       if(c.unchecked) t+=` · не проверено ${c.unchecked}`;
       // Разбивка по числу открытых страниц (после выгрузки): сколько одностраничников, сколько 9/10-страничников.
       const hist={}; let withPages=0;

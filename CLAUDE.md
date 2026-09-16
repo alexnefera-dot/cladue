@@ -587,12 +587,19 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   takes ages and the numbers are already final; the record also survives a force-kill during the visits.
   The record carries an `id`, and the end of the collect stage patches THAT record through
   `CollectHistory::update()` with the final `doors`/`roots` (a visit may reveal an apex redirecting to a
-  brand subdomain — also a door), `base_domains` and `stopped`; `found*`/`zones` come from the raw SERP
+  brand subdomain — also a door), `own`, `base_domains` and `stopped`; `found*`/`zones` come from the raw SERP
   and never change after the visits, so they are not patched; if the patch finds no
   record (an old job, selection never reached), it appends one as before, so there is always exactly one
-  row per collect. The same numbers go to the log («За этот сбор:
-  N доменов, из них доров (поддоменов) M (X%), повторов доров …»). Panel: `GET /api/history` returns
-  `records` + `totals()` (sums, plus `doors_percent`; `base_domains` is the newest record's ledger size,
+  row per collect. OWN sites («внеси как-то в скрипт еще и подсчет наших и процент / ты их определяешь
+  скринами» — they are NOT read off the screenshot: `Site::$own` is set by `PageVisitor` from the HTML
+  markers of `Filter\OwnSites`, the shot is only there to eyeball it) are counted by `breakdown()` as
+  `own` and shown as a share of the SELECTED sites (`totals()['own_percent']`), because a SERP row alone
+  cannot tell our template from anybody else's — the flag appears on the preview visit, which is why the
+  early record says 0 and the end-of-collect patch fixes it. The same numbers go to the log («За этот сбор:
+  N доменов, из них доров (поддоменов) M (X%), повторов доров …», «Наши шаблоны среди отобранного …») and
+  to the collect message; the panel's own stats line above the results table prints the same percent next
+  to «наших N». Panel: `GET /api/history` returns
+  `records` + `totals()` (sums, plus `doors_percent`/`own_percent`; `base_domains` is the newest record's ledger size,
   not a sum), `loadStats()` renders the summary boxes, the door-zone chips and the table (the door-repeat
   cell carries the total repeats in its `title`), `GET /download?file=history` builds `csv()` on the fly
   (zones folded into one column so new zones cannot widen the table). The tab reloads on click and
@@ -603,13 +610,17 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   («очистить статистику» next to «очистить базу и файлы» in the settings tab) clears ONLY the history and
   leaves the ledger and the run files alone. `load()` maps the
   1.10.0 key `subdomains` onto `doors` so an early history still reads. Records written by 1.10.0–1.11.0
-  counted doors off `$host` and therefore say 0: `backfillLatest()` (called from `/api/history`)
-  recomputes the NEWEST record's doors/roots/zones from `sites.json` when it says 0 doors and its site
-  count matches the table, then saves it back — the same lazy-upgrade pattern as
-  `SiteRows::backfillTemplates()`. Door repeats cannot be recovered that way (the rejected hosts are not
-  on disk) and stay as written. Nothing else is backfilled: pre-1.10.0 collects have no records at all
-  and the tab says so. Covered by `tests/CollectHistoryTest.php` and
-  `PanelTest::testCollectWritesHistoryAndStatsEndpoint`.
+  counted doors off `$host` and therefore say 0, and records before 1.15.0 have no `own` key at all:
+  `backfillLatest()` (called from `/api/history`) recomputes the NEWEST record from `sites.json` when its
+  site count matches the table — doors/roots (and `zones` only for a pre-1.13.0 record, which has no
+  `found`: since 1.13.0 the zones belong to the whole SERP mass and must not be overwritten with the
+  selected ones) when it says 0 doors, and `own` when the key is missing — then saves it back, the same
+  lazy-upgrade pattern as `SiteRows::backfillTemplates()`. A row with no `own` key shows «—», not «0», so
+  an old collect does not claim it had no own templates. Door repeats cannot be recovered that way (the
+  rejected hosts are not on disk) and stay as written. Nothing else is backfilled: pre-1.10.0 collects have no records at all
+  and the tab says so. Covered by `tests/CollectHistoryTest.php`,
+  `PanelTest::testCollectWritesHistoryAndStatsEndpoint` and
+  `PanelTest::testHistoryCountsOwnSitesForOldRecords`.
 - The panel's progress cards are a FUNNEL with no repeated number, because «29 904 результата» next to
   «2 043 сайта» read as a contradiction («а почему результатов в выдаче 29к, а доменов 7к — это
   уникальных?»): запросов → `results` (every SERP row; one site counts again in each query that found it)
