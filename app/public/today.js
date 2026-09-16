@@ -74,6 +74,77 @@ const REST_KINDS = [
   ['play', '🧒', 'играть'], ['restore', '😴', 'восстановиться'], ['people', '👥', 'люди'],
   ['create', '🎨', 'творить'], ['trip', '🌍', 'вылазка'], ['couple', '💞', 'вдвоём'],
 ];
+// Набор идей — это контент, а не логика, поэтому он живёт во фронте: список правится
+// и приезжает без пересборки. Дубли отсекаем по тексту здесь же. [текст, вид, когда, минуты]
+const REST_PACK = [
+  ['КС или катка: 40–60 минут по таймеру и без «ещё одну»', 'play', 'weekday', 50],
+  ['Дэмку разобрать или aim_botz — ради движения рук', 'play', 'weekday', 30],
+  ['Старая игра из детства на эмуляторе', 'play', 'weekday', 40],
+  ['Покататься на Мазде вечером без цели', 'play', 'weekday', 40],
+  ['Дурацкое видео, выбранное заранее', 'play', 'weekday', 15],
+  ['Длинная сессия CS без чувства вины', 'play', 'weekend', 180],
+  ['Картинг', 'play', 'weekend', 120],
+  ['Стрельбище', 'play', 'weekend', 120],
+  ['Серпантины на Мазде полдня', 'play', 'weekend', 240],
+  ['Зал в удовольствие вместо программы — потягать, что хочется', 'play', 'weekend', 90],
+  ['20 минут тишины без телефона', 'restore', 'weekday', 20],
+  ['Дневной сон 20 минут', 'restore', 'weekday', 20],
+  ['Горячий душ не спеша', 'restore', 'weekday', 25],
+  ['Растяжка после зала', 'restore', 'weekday', 15],
+  ['Прогулка без цели и без наушников', 'restore', 'weekday', 30],
+  ['Кофеин до полудня', 'restore', 'weekday', null],
+  ['Термалка — их рядом полно и это дёшево', 'restore', 'weekend', 180],
+  ['Сауна', 'restore', 'weekend', 120],
+  ['Массаж', 'restore', 'weekend', 90],
+  ['Выспаться без будильника — один раз, а не два', 'restore', 'weekend', null],
+  ['День без auto.ria и без подсчёта портфеля', 'restore', 'weekend', null],
+  ['Анализы: ферритин, железо, D, B12, ТТГ, Т4', 'restore', 'global', null],
+  ['Найти терапевта под ГТР', 'restore', 'global', null],
+  ['Позвонить другу просто так, а не по вопросу', 'people', 'weekday', 20],
+  ['Катка в голосовом — это тоже общение', 'people', 'weekday', 60],
+  ['Ужин без телефонов', 'people', 'weekday', 60],
+  ['Кофе с кем-то и ни слова про квартиры, растаможку и переборы', 'people', 'weekday', 45],
+  ['Спортзал с напарником', 'people', 'weekday', 90],
+  ['Написать тому, с кем не общался полгода', 'people', 'weekday', 10],
+  ['Позвать гостей или пойти в гости', 'people', 'weekend', 180],
+  ['Час с близкими без дел и планов', 'people', 'weekend', 60],
+  ['Шашлык', 'people', 'weekend', 180],
+  ['Встретиться с кем-то из своих, кто осел рядом', 'people', 'weekend', 120],
+  ['Разговор, где ты не решаешь чужой вопрос и никого не тянешь', 'people', 'weekend', 60],
+  ['20 минут музыки целиком, а не фоном', 'create', 'weekday', 20],
+  ['Три строчки в стол о том, что в голове', 'create', 'weekday', 10],
+  ['Набросать идею проекта без обязательства её делать', 'create', 'weekday', 25],
+  ['Повозиться с железом или настройками ПК ради процесса', 'create', 'weekday', 45],
+  ['Приготовить блюдо, которого не готовил', 'create', 'weekend', 60],
+  ['Помыть и вылизать машину руками, а не на мойке', 'create', 'weekend', 90],
+  ['Починить или доделать что-то по дому', 'create', 'weekend', 120],
+  ['Поснимать в поездке', 'create', 'weekend', 60],
+  ['Разобрать старые фото', 'create', 'weekend', 60],
+  ['Другой маршрут домой', 'trip', 'weekday', 20],
+  ['Район, где не был', 'trip', 'weekday', 40],
+  ['Кофе не в привычном месте', 'trip', 'weekday', 30],
+  ['Вечером к воде на полчаса', 'trip', 'weekday', 30],
+  ['Татры или любой холм, где видно далеко', 'trip', 'weekend', 300],
+  ['60–80 км по серпантинам без цели', 'trip', 'weekend', 180],
+  ['Соседний город на день без плана и без брони', 'trip', 'weekend', 300],
+  ['Замок по дороге', 'trip', 'weekend', 120],
+  ['Дунай или озеро', 'trip', 'weekend', 180],
+  ['Ночёвка одну ночь где-то рядом', 'trip', 'weekend', null],
+  ['Массаж друг другу — по очереди, без спешки', 'couple', 'weekday', 30],
+  ['Душ вдвоём', 'couple', 'weekday', 20],
+  ['Свидание дома: ужин, свечи, телефоны в другой комнате', 'couple', 'weekday', 90],
+  ['Лечь раньше вместе — не спать, а побыть', 'couple', 'weekday', 40],
+  ['Обняться и помолчать десять минут', 'couple', 'weekday', 10],
+  ['Целоваться так, будто всё только начинается', 'couple', 'weekday', 10],
+  ['Спросить, чего хочется — и правда послушать', 'couple', 'weekday', 20],
+  ['Близость без спешки и без плана', 'couple', 'weekend', 90],
+  ['Вечер только вдвоём: без гостей, без экранов', 'couple', 'weekend', 180],
+  ['Завтрак в постели и никуда не вставать', 'couple', 'weekend', 90],
+  ['Ванна вдвоём', 'couple', 'weekend', 45],
+  ['Ночь в отеле неподалёку', 'couple', 'weekend', null],
+  ['Поговорить о желаниях: что хотим попробовать', 'couple', 'weekend', 60],
+  ['Свидание как в начале: новое место, только вдвоём', 'couple', 'weekend', 150],
+];
 const REST_GOAL = { weekday: 3, weekend: 2 };   // мягкая цель на неделю: не сгорает, не штрафует
 const restKind = k => REST_KINDS.find(x => x[0] === k) || REST_KINDS[1];
 
@@ -185,7 +256,7 @@ function tdRest() {
           <span class="pill btn ok" id="tdRestAdd">＋</span>
         </div>
         <div style="margin-top:4px"><span class="pill btn" id="tdRestSeed"
-          title="добавит 67 идей по всем видам; уже заведённые не продублируются">＋ набор идей</span></div>
+          title="добавит недостающие идеи по всем видам; заведённые не продублируются">＋ набор идей</span></div>
       </details>
     </div>`;
 }
@@ -807,15 +878,16 @@ function bindToday() {
     try { delete localStorage.restPick; } catch (e) { /* приватный режим */ }
     window.loadToday();
   });
-  document.getElementById('tdRestSeed')?.addEventListener('click', async () => {
-    // Набор живёт в Swift: на старой сборке роут просто не отвечает, и раньше клик молчал
-    const res = await fetch('/api/rest/seed', { method: 'POST' }).catch(() => null);
-    const r = res && res.ok ? await res.json().catch(() => null) : null;
-    if (!r || typeof r.added !== 'number') {
-      alert('Набор идей не приехал: приложение собрано до его появления. Пересобери в Xcode (⌘R) и нажми ещё раз.');
-      return;
+  document.getElementById('tdRestSeed')?.addEventListener('click', async el => {
+    const have = new Set(((window.tdRestData || {}).ideas || []).map(r => (r.text || '').trim().toLowerCase()));
+    const missing = REST_PACK.filter(([text]) => !have.has(text.trim().toLowerCase()));
+    if (!missing.length) { alert('Все идеи из набора уже заведены.'); return; }
+    const btn = document.getElementById('tdRestSeed');
+    if (btn) btn.textContent = `＋ добавляю ${missing.length}…`;
+    for (const [text, kind, scope, mins] of missing) {
+      await fetch('/api/rest', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, kind, scope, mins }) }).catch(() => {});
     }
-    if (r.added === 0) alert('Все идеи из набора уже заведены.');
     window.loadToday();
   });
   document.querySelectorAll('#screen-today [data-tdwait]').forEach(el =>

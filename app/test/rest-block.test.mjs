@@ -112,6 +112,21 @@ test('кайф: «вдвоём» — такой же вид, и он попад�
   assert.ok(html.includes('value="couple"'), 'при добавлении вид «вдвоём» выбрать нельзя');
 });
 
+test('набор идей живёт во фронте: все виды на месте, будни и выходные', () => {
+  const ctx = loadToday();
+  // const в песочнице не свойство глобала — достаём выражением
+  const pack = vm.runInContext('REST_PACK', ctx);
+  assert.ok(Array.isArray(pack) && pack.length > 60, 'набор не в фронте или усох');
+  const kinds = new Set(pack.map(p => p[1]));
+  for (const [k] of vm.runInContext('REST_KINDS', ctx)) assert.ok(kinds.has(k), `в наборе нет ни одной идеи вида «${k}»`);
+  const couple = pack.filter(p => p[1] === 'couple');
+  assert.equal(couple.length, 14, 'парных идей должно быть 14');
+  assert.ok(couple.some(p => p[2] === 'weekday') && couple.some(p => p[2] === 'weekend'),
+    'парные должны быть и на будни, и на выходные');
+  const texts = pack.map(p => p[0].trim().toLowerCase());
+  assert.equal(new Set(texts).size, texts.length, 'в наборе есть повторы — они создадут дубли');
+});
+
 test('кайф: три дня тишины — блок говорит об этом', () => {
   const ctx = loadToday();
   ctx.window.tdRestData = { ...DATA, log: [{ date: ago(4), kind: 'restore' }] };
