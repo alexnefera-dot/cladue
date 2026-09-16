@@ -7,11 +7,16 @@
  * Смена офера пишется в offer_history, чтобы была история.
  */
 
-// Единый часовой пояс для всей системы (панель, график, границы суток).
-// Ставим принудительно: весь трафик российский, «сегодня» должно считаться
-// по Москве и в PHP (strtotime), и в MySQL (time_zone сессии ниже).
-// Без единого пояса шапка расходится с графиком на границе суток.
-@date_default_timezone_set('Europe/Moscow');
+// Единый часовой пояс для всей системы (панель, график, границы суток, API).
+// Europe/Kyiv — так требует контракт выгрузки для аналитики: обе системы
+// (трекер и система запусков) обязаны отдавать время в одном поясе, иначе
+// лаги между кликом и конверсией считаются неверно и без всякой ошибки.
+//
+// Раньше стояла Europe/Moscow. Летом пояса совпадают (+03:00), но с конца
+// октября Киев уходит на +02:00 — именно поэтому пояс задаётся здесь и
+// в MySQL-сессии (см. db()) одновременно. Разъедутся — шапка панели
+// разойдётся с графиком на границе суток.
+@date_default_timezone_set('Europe/Kyiv');
 
 /**
  * Возвращает драйвер текущего подключения: 'sqlite' или 'mysql'.
@@ -64,10 +69,19 @@ function db() {
         $pdo  = new PDO($dsn, $user, $pass, [
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_EMULATE_PREPARES   => false,
-            // фиксируем пояс сессии (+03:00 = Москва), чтобы FROM_UNIXTIME/UNIX_TIMESTAMP
-            // считали даты так же, как PHP, и шапка не расходилась с графиком.
-            PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4, time_zone = '+03:00'",
+            PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8mb4',
         ]);
+        // Пояс сессии должен совпадать с PHP, иначе FROM_UNIXTIME посчитает дату
+        // иначе, чем date(), и шапка панели разойдётся с графиком.
+        // Именованный пояс требует залитых таблиц mysql.time_zone_name — если их
+        // нет, SET бросит ошибку, и мы откатываемся на текущий офсет из PHP.
+        // Офсет следует переходу на зимнее время сам (date('P') отдаёт +03:00
+        // летом и +02:00 зимой), поэтому запасной вариант тоже корректен.
+        try {
+            $pdo->exec("SET time_zone = 'Europe/Kyiv'");
+        } catch (Throwable $e) {
+            $pdo->exec("SET time_zone = '" . date('P') . "'");
+        }
         db_ensure_schema($pdo, 'mysql');
     } else {
         // -------- SQLite --------
@@ -139,6 +153,78 @@ function db_ensure_indexes_mysql(PDO $pdo) {
             // всё продолжит работать, просто медленнее
         }
     }
+
+    // Колонки, добавленные после первого деплоя. Та же история, что с индексами:
+    // CREATE TABLE IF NOT EXISTS их на живой таблице не создаст.
+    $wantedCols = [
+        ['clicks',      'lp',        'VARCHAR(255) NULL'],
+        ['conversions', 'sub',       'VARCHAR(190) NULL'],
+        ['conversions', 'ref',       'VARCHAR(255) NULL'],
+        ['conversions', 'country',   'VARCHAR(8) NULL'],
+        ['conversions', 'lp',        'VARCHAR(255) NULL'],
+        ['conversions', 'linked_at', 'INT NULL'],
+    ];
+    $stc = $pdo->prepare('SELECT COUNT(*) FROM information_schema.columns
+                          WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?');
+    foreach ($wantedCols as [$table, $col, $type]) {
+        try {
+            $stc->execute([$table, $col]);
+            if ((int)$stc->fetchColumn() > 0) continue;
+            $pdo->exec("ALTER TABLE `$table` ADD COLUMN `$col` $type, ALGORITHM=INPLACE, LOCK=NONE");
+        } catch (Throwable $e) {
+            // см. выше
+        }
+    }
+}
+
+/**
+ * Дозаполнить снимок клика в старых строках конверсий (sub/ref/country/lp).
+ *
+ * Разовая операция после добавления колонок: у конверсий, записанных до правки,
+ * поля пустые, хотя клики для них в базе ещё есть. Без этого вся история до
+ * деплоя ушла бы в выгрузку без сабдомена.
+ *
+ * Идёт пачками и только из CLI (крон) — на живой базе это UPDATE по сотням
+ * тысяч строк, из веба такое запускать нельзя. Возвращает число заполненных.
+ */
+function conversions_backfill($batch = 2000, $maxBatches = 500) {
+    if (php_sapi_name() !== 'cli') return 0;
+    $pdo   = db();
+    $batch = max(100, (int)$batch);
+
+    // Идём окнами по первичному ключу, а не LIMIT'ом: многотабличный UPDATE
+    // в MySQL LIMIT не принимает вовсе, а окно по id ещё и ложится на PRIMARY.
+    $maxId = (int)$pdo->query('SELECT COALESCE(MAX(id),0) FROM conversions')->fetchColumn();
+    if ($maxId === 0) return 0;
+
+    if (db_driver() === 'mysql') {
+        $sql = "UPDATE conversions cv
+                JOIN clicks c ON c.clickid = cv.clickid
+                SET cv.slug = COALESCE(cv.slug, c.slug), cv.sub = c.source,
+                    cv.ref = c.referer, cv.country = c.country, cv.lp = c.lp,
+                    cv.linked_at = cv.ts
+                WHERE cv.linked_at IS NULL AND cv.clickid <> ''
+                  AND cv.id >= ? AND cv.id < ?";
+    } else {
+        $sql = "UPDATE conversions
+                SET slug      = COALESCE(slug, (SELECT c.slug FROM clicks c WHERE c.clickid = conversions.clickid ORDER BY c.id DESC LIMIT 1)),
+                    sub       = (SELECT c.source  FROM clicks c WHERE c.clickid = conversions.clickid ORDER BY c.id DESC LIMIT 1),
+                    ref       = (SELECT c.referer FROM clicks c WHERE c.clickid = conversions.clickid ORDER BY c.id DESC LIMIT 1),
+                    country   = (SELECT c.country FROM clicks c WHERE c.clickid = conversions.clickid ORDER BY c.id DESC LIMIT 1),
+                    lp        = (SELECT c.lp      FROM clicks c WHERE c.clickid = conversions.clickid ORDER BY c.id DESC LIMIT 1),
+                    linked_at = ts
+                WHERE linked_at IS NULL AND clickid <> ''
+                  AND EXISTS (SELECT 1 FROM clicks c WHERE c.clickid = conversions.clickid)
+                  AND id >= ? AND id < ?";
+    }
+
+    $st    = $pdo->prepare($sql);
+    $total = 0;
+    for ($from = 1, $i = 0; $from <= $maxId && $i < $maxBatches; $from += $batch, $i++) {
+        $st->execute([$from, $from + $batch]);
+        $total += $st->rowCount();
+    }
+    return $total;
 }
 
 /** Создание таблиц под MySQL (InnoDB, utf8mb4). Идемпотентно. */
@@ -163,6 +249,7 @@ function db_create_tables_mysql(PDO $pdo) {
         is_bot TINYINT UNSIGNED NOT NULL DEFAULT 0,
         clickid VARCHAR(64) NULL,
         country VARCHAR(8) NULL,
+        lp VARCHAR(255) NULL,
         INDEX idx_slug (slug),
         INDEX idx_ts (ts),
         INDEX idx_slug_ts (slug, ts),
@@ -178,6 +265,11 @@ function db_create_tables_mysql(PDO $pdo) {
         payout DECIMAL(10,2) NOT NULL DEFAULT 0,
         ts INT NOT NULL,
         ip VARCHAR(64) NULL,
+        sub VARCHAR(190) NULL,
+        ref VARCHAR(255) NULL,
+        country VARCHAR(8) NULL,
+        lp VARCHAR(255) NULL,
+        linked_at INT NULL,
         INDEX idx_conv_clickid (clickid),
         INDEX idx_conv_slug_ts (slug, ts),
         INDEX idx_conv_ts (ts)
@@ -245,6 +337,10 @@ function db_create_tables_sqlite(PDO $pdo) {
     if (!in_array('country', $cols, true)) {
         $pdo->exec('ALTER TABLE clicks ADD COLUMN country TEXT');
     }
+    // миграция: путь страницы входа (?lp=... от дор-движка) — для аналитики
+    if (!in_array('lp', $cols, true)) {
+        $pdo->exec('ALTER TABLE clicks ADD COLUMN lp TEXT');
+    }
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_clickid ON clicks(clickid)');
 
     // конверсии из постбэка партнёрки
@@ -257,6 +353,14 @@ function db_create_tables_sqlite(PDO $pdo) {
         ts      INTEGER NOT NULL,
         ip      TEXT
     )');
+    // миграция: снимок данных клика в строку конверсии (см. relink_conversions)
+    $cvCols = $pdo->query("PRAGMA table_info(conversions)")->fetchAll(PDO::FETCH_COLUMN, 1);
+    foreach (['sub' => 'TEXT', 'ref' => 'TEXT', 'country' => 'TEXT',
+              'lp' => 'TEXT', 'linked_at' => 'INTEGER'] as $col => $type) {
+        if (!in_array($col, $cvCols, true)) {
+            $pdo->exec("ALTER TABLE conversions ADD COLUMN $col $type");
+        }
+    }
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_conv_clickid ON conversions(clickid)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_conv_slug_ts ON conversions(slug, ts)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_conv_ts ON conversions(ts)');
@@ -1593,15 +1697,28 @@ function record_conversion($clickid, $status, $payout, $ip, $raw = '') {
     if ($clickid === '') return ['ok' => false, 'found' => false, 'slug' => null];
 
     $pdo = db();
-    $st = $pdo->prepare('SELECT slug FROM clicks WHERE clickid = ? ORDER BY id DESC LIMIT 1');
+    // Данные клика снимаем в строку конверсии сразу (не только slug): выгрузка
+    // для аналитики не должна зависеть от того, жив ли ещё клик — retention его
+    // однажды удалит. Если клик ещё не доехал из лога, всё это допишет
+    // relink_conversions() при ближайшем импорте.
+    $st = $pdo->prepare('SELECT slug, source, referer, country, lp FROM clicks
+                         WHERE clickid = ? ORDER BY id DESC LIMIT 1');
     $st->execute([$clickid]);
-    $slug  = $st->fetchColumn();
-    $found = $slug !== false;
+    $cl    = $st->fetch(PDO::FETCH_ASSOC);
+    $found = $cl !== false;
 
-    $pdo->prepare('INSERT INTO conversions (clickid, slug, status, payout, ts, ip) VALUES (?,?,?,?,?,?)')
-        ->execute([$clickid, $found ? $slug : null, $status, $payout, time(), substr((string)$ip, 0, 64)]);
+    $pdo->prepare('INSERT INTO conversions (clickid, slug, status, payout, ts, ip, sub, ref, country, lp, linked_at)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?)')
+        ->execute([
+            $clickid, $found ? $cl['slug'] : null, $status, $payout, time(), substr((string)$ip, 0, 64),
+            $found ? $cl['source']  : null,
+            $found ? $cl['referer'] : null,
+            $found ? $cl['country'] : null,
+            $found ? $cl['lp']      : null,
+            $found ? time()         : null,
+        ]);
 
-    return ['ok' => true, 'found' => $found, 'slug' => $found ? $slug : null];
+    return ['ok' => true, 'found' => $found, 'slug' => $found ? $cl['slug'] : null];
 }
 
 /**
@@ -1629,20 +1746,32 @@ function relink_conversions($sinceDays = 7) {
     $since = null;
     if ($sinceDays > 0) $since = time() - (int)$sinceDays * 86400;
 
+    // Вместе со slug снимаем в строку конверсии и данные клика (sub/ref/country).
+    // Это снимок на момент привязки, а не ссылка: выгрузка для аналитики обязана
+    // при повторном запросе того же диапазона отдавать те же строки, а чистка
+    // старых кликов по retention иначе обнулила бы конверсии задним числом.
+    // linked_at — отметка «строка финальная», по ней аналитик видит, что тут
+    // больше ничего не изменится.
     if (db_driver() === 'mysql') {
         $sql = "UPDATE conversions cv
                 JOIN clicks c ON c.clickid = cv.clickid
-                SET cv.slug = c.slug
-                WHERE cv.slug IS NULL AND cv.clickid <> ''";
+                SET cv.slug = c.slug, cv.sub = c.source, cv.ref = c.referer,
+                    cv.country = c.country, cv.lp = c.lp, cv.linked_at = ?
+                WHERE cv.linked_at IS NULL AND cv.clickid <> ''";
+        $args[] = time();
         if ($since !== null) { $sql .= ' AND cv.ts >= ?'; $args[] = $since; }
     } else {
         // SQLite не умеет UPDATE ... JOIN — коррелированный подзапрос
         $sql = "UPDATE conversions
-                SET slug = (SELECT c.slug FROM clicks c
-                            WHERE c.clickid = conversions.clickid
-                            ORDER BY c.id DESC LIMIT 1)
-                WHERE slug IS NULL AND clickid <> ''
+                SET slug      = (SELECT c.slug    FROM clicks c WHERE c.clickid = conversions.clickid ORDER BY c.id DESC LIMIT 1),
+                    sub       = (SELECT c.source  FROM clicks c WHERE c.clickid = conversions.clickid ORDER BY c.id DESC LIMIT 1),
+                    ref       = (SELECT c.referer FROM clicks c WHERE c.clickid = conversions.clickid ORDER BY c.id DESC LIMIT 1),
+                    country   = (SELECT c.country FROM clicks c WHERE c.clickid = conversions.clickid ORDER BY c.id DESC LIMIT 1),
+                    lp        = (SELECT c.lp      FROM clicks c WHERE c.clickid = conversions.clickid ORDER BY c.id DESC LIMIT 1),
+                    linked_at = ?
+                WHERE linked_at IS NULL AND clickid <> ''
                   AND EXISTS (SELECT 1 FROM clicks c WHERE c.clickid = conversions.clickid)";
+        $args[] = time();
         if ($since !== null) { $sql .= ' AND ts >= ?'; $args[] = $since; }
     }
 

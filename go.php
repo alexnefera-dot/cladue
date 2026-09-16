@@ -84,6 +84,18 @@ $country = strtoupper(substr(preg_replace('~[^A-Za-z]~', '', $_SERVER['HTTP_CF_I
 
 $referer = substr($_SERVER['HTTP_REFERER'] ?? '', 0, 255);
 
+// Путь страницы входа на доре (?lp=/ru/ru/ru/) — для аналитики вложенности.
+// Реферер для этого не годится: он показывает страницу, С КОТОРОЙ ушли, и вовсе
+// пропадает при rel="noreferrer". Берём именно путь, а не число уровней:
+// из пути глубина выводится, из числа путь — нет.
+$lp = (string)($_GET['lp'] ?? '');
+if ($lp !== '') {
+    if (($q = strpos($lp, '?')) !== false) $lp = substr($lp, 0, $q);   // хвост запроса не нужен
+    $lp = preg_replace('~^https?://[^/]+~i', '', $lp);                 // прислали полный URL — оставим путь
+    if ($lp !== '' && $lp[0] !== '/') $lp = '/' . $lp;
+    $lp = substr(preg_replace('~[^\w/.\-]~u', '', $lp), 0, 255);
+}
+
 // лёгкое определение бота по UA (простая проверка подстрок, без БД).
 $isBot = 0;
 if ($ua === '') {
@@ -110,6 +122,7 @@ if (($cfg['db_write'] ?? true) !== false) {
         $isBot,
         $clickid,
         $clean($country),
+        $clean($lp),          // 10-е поле, добавлено позже: import.php читает старые строки тоже
     ]) . "\n";
 
     $logFile = ($cfg['click_log'] ?? (sys_get_temp_dir() . '/sitegrator_clicks.log'));

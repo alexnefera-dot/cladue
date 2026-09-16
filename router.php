@@ -20,6 +20,13 @@ if (preg_match('~^/go/([A-Za-z0-9_-]+)/?$~', $uri, $m)) {
     return true;
 }
 
+// /v1/clicks, /v1/conversions -> api.php (как RewriteRule в .htaccess)
+if (preg_match('~^/v1/(clicks|conversions)/?$~', $uri, $m)) {
+    $_GET['ep'] = $m[1];
+    require __DIR__ . '/api.php';
+    return true;
+}
+
 // данные наружу не отдаём (в Apache это делает .htaccess)
 if (preg_match('~\.(cache|log|sqlite)$~', $uri)) {
     http_response_code(403);

@@ -3,6 +3,15 @@
 RewriteEngine On
 RewriteRule ^go/([A-Za-z0-9_-]+)/?$ /go.php?l=$1 [L,QSA]
 
+# API выгрузки для аналитики: /v1/clicks -> /api.php?ep=clicks
+RewriteRule ^v1/(clicks|conversions)/?$ /api.php?ep=$1 [L,QSA]
+
+# Apache в режиме CGI не отдаёт PHP заголовок Authorization — пробрасываем сами,
+# иначе Bearer-токен просто не доедет и API будет отвечать 401 на всё.
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+
 # Запрет на скачивание файла базы напрямую из браузера
 <Files "stats.sqlite">
     Require all denied

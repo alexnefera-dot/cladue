@@ -102,7 +102,7 @@ $fh = @fopen($procFile, 'r');
 if (!$fh) { say("! не открыть $procFile"); exit(1); }
 
 $pdo = db();
-$cols = ['ts','slug','ip','ua','referer','source','is_bot','clickid','country'];
+$cols = ['ts','slug','ip','ua','referer','source','is_bot','clickid','country','lp'];
 $colsSql = implode(',', $cols);
 $batchSize = 500;
 $buf = [];
@@ -137,6 +137,9 @@ try {
         $buf[] = (int)$f[6];        // is_bot
         $buf[] = $f[7];             // clickid
         $buf[] = $f[8];             // country
+        // lp добавлено позже: в момент деплоя в логе лежат строки старого формата
+        // (9 полей) — читаем их как lp = NULL, иначе пачка на них бы развалилась.
+        $buf[] = isset($f[9]) && $f[9] !== '' ? $f[9] : null;
         $rowN++;
         $total++;
         if ($rowN >= $batchSize) {
@@ -164,6 +167,20 @@ try {
         if ($relinked > 0) say("досвязано конверсий: $relinked");
     } catch (Throwable $e) {
         say("! досвязать конверсии не удалось: " . $e->getMessage());
+    }
+
+    // -------- 5.2 Разовое дозаполнение снимка клика в старых конверсиях --------
+    // Колонки sub/ref/country/lp появились позже, у записанных до этого строк
+    // они пусты. Клики для них ещё в базе — переносим, пока retention их не съел.
+    // Отрабатывает один раз: после заполнения linked_at строки больше не выбираются.
+    try {
+        if ((int)meta_get('conv_backfill_done', 0) === 0) {
+            $filled = conversions_backfill();
+            say("дозаполнено старых конверсий: $filled");
+            meta_upsert('conv_backfill_done', time());
+        }
+    } catch (Throwable $e) {
+        say("! дозаполнить старые конверсии не удалось: " . $e->getMessage());
     }
 
     // -------- 5.5 Очистка старых кликов (retention) --------
