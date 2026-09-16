@@ -397,7 +397,7 @@ if ($path === '/api/start' && $method === 'POST') {
     $settings = body();
     $stage = (string) ($settings['stage'] ?? 'collect');
     $queries = array_values(array_filter(array_map('trim', (array) ($settings['queries'] ?? [])), static fn (string $q): bool => $q !== ''));
-    if (!in_array($stage, ['download', 'clean'], true) && $queries === []) {
+    if (!in_array($stage, ['download', 'clean', 'preview'], true) && $queries === []) {
         jsonOut(['ok' => false, 'error' => 'Добавьте хотя бы один запрос'], 400);
     }
     @unlink($stopFile);

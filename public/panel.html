@@ -322,6 +322,7 @@
     <div class="btns" id="statsRow" style="margin-bottom:8px;align-items:center;flex-wrap:wrap;gap:8px">
       <span class="hint" id="statsText"></span>
       <button class="btn-ghost" id="removeOwnBtn" hidden title="Убрать из списка все сайты, помеченные как наши (крестиком — можно вернуть). Работает сразу после сбора, по превью">Убрать наши</button>
+      <button class="btn-ghost" id="retryPreviewBtn" hidden title="Ещё раз попробовать открыть сайты, у которых не получилось превью: несколько заходов на главную, каждый с другого прокси и под другим браузерным агентом. Уже открытые сайты и наши шаблоны не трогаются">Перепробовать без превью</button>
       <button class="btn-ghost" id="removeNoPreviewBtn" hidden title="Убрать из списка сайты, у которых не открылась ни одна страница (превью не получено, 0 стр.) — чтобы идти на выгрузку без них. Работает сразу после сбора; крестиком — можно вернуть">Убрать без превью</button>
       <button class="btn-ghost" id="removeOfferBtn" hidden title="Убрать сайты, которые вместо своего содержимого показали витрину чужих бонусов. Их уже перепроверили с других IP и под другими User-Agent — настоящий сайт получить не удалось; крестиком — можно вернуть">Убрать подборки офферов</button>
       <span id="keywrap" hidden style="display:inline-flex;align-items:center;gap:6px">
@@ -1080,9 +1081,11 @@ function updateStats(visible){
   const rw=$('removeOfferBtn'), offers=visible.filter(s=>!!s.offer_wall).length;
   if(rw){ rw.hidden = offers===0; rw.textContent='Убрать подборки офферов ('+offers+')'; }
   // «Убрать без превью»: сайты, у которых не открылась ни одна страница (0 стр.) — сразу после сбора, как и «наши».
-  const rn=$('removeNoPreviewBtn');
-  if(rn){ const hasPreview=visible.some(s=>(s.pages_total|0)>0 || s.page_error); const cnt=visible.filter(noPreview).length;
-    rn.hidden=!hasPreview; rn.disabled=cnt===0; rn.textContent='Убрать без превью ('+cnt+')'; }
+  const rn=$('removeNoPreviewBtn'), rp=$('retryPreviewBtn');
+  const hasPreview=visible.some(s=>(s.pages_total|0)>0 || s.page_error), noPrevCnt=visible.filter(noPreview).length;
+  if(rn){ rn.hidden=!hasPreview; rn.disabled=noPrevCnt===0; rn.textContent='Убрать без превью ('+noPrevCnt+')'; }
+  // «Перепробовать» — то же множество сайтов, но вместо удаления ещё пара заходов с других IP и агентов.
+  if(rp){ rp.hidden=!hasPreview||noPrevCnt===0; rp.disabled=jobRunning; rp.textContent='Перепробовать без превью ('+noPrevCnt+')'; }
   // «Убрать без страницы»: выбираем ключевую страницу (или «любой») и убираем сайты, у которых её нет.
   const kw=$('keywrap'), ksel=$('keysel'), kbtn=$('removeKeyBtn');
   if(kw && ksel && kbtn){
@@ -1130,6 +1133,13 @@ function removeWhere(pred){
 }
 $('removeOwnBtn').addEventListener('click', ()=>removeWhere(s=>!!s.own));
 $('removeNoPreviewBtn').addEventListener('click', ()=>removeWhere(noPreview));
+// Ещё пара заходов на главную у сайтов без превью — фоновое задание stage=preview.
+function runRetryPreview(){
+  const hosts=lastSites.filter(s=>!isRemoved(s.host)&&noPreview(s)).map(s=>s.host);
+  if(!hosts.length){ showStart('Сайтов без превью нет','err'); return; }
+  startJob({stage:'preview', only:hosts, exclude_hosts:[...removedHosts, ...pendingRemoved]});
+}
+$('retryPreviewBtn').addEventListener('click', runRetryPreview);
 $('removeOfferBtn').addEventListener('click', ()=>removeWhere(s=>!!s.offer_wall));
 $('remove404Btn').addEventListener('click', ()=>{ const N=Math.max(0, parseInt($('max404').value,10)||0); removeWhere(s=>!s.own && (s.pages_404|0)>N); });
 $('max404').addEventListener('input', ()=>updateStats(lastSites.filter(s=>!isRemoved(s.host))));

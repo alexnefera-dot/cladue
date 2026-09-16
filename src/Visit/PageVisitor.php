@@ -146,6 +146,9 @@ final class PageVisitor
             $sites[$job->siteKey]->visits[] = $visit;
         }
 
+        // Сайты, у которых так и не открылась ни одна страница, пробуем ещё раз — с другого прокси
+        // и под другим браузерным агентом: часть из них отдаётся не с первого раза.
+        $this->retryPreview($sites);
         $this->markMissingFiles($sites);
         $this->logSiteSummary($sites);
     }
@@ -159,6 +162,135 @@ final class PageVisitor
      * @param array<string, mixed> $result
      * @return array<string, mixed>
      */
+    /**
+     * Ещё несколько заходов на ГЛАВНУЮ у сайтов, где превью так и не получилось («без превью» в
+     * таблице панели). Внутри обычного визита повтор уже был (runWithRetry — другой прокси и другой
+     * агент), но часть сайтов открывается не с первого раза: подвис прокси, сработал лимит, антибот
+     * пустил «посетителя», но не робота. Поэтому здесь ещё `visit.preview_retries` попыток, и КАЖДАЯ —
+     * с другим прокси И другим браузерным агентом, с растущим таймаутом.
+     *
+     * Удачный заход ЗАМЕНЯЕТ неудачный визит того же варианта, поэтому счётчик страниц не раздувается,
+     * а в отчёте стоят тот прокси и агент, которые реально сработали.
+     *
+     * @param array<string, Site> $sites
+     * @return array{attempted: int, recovered: int}
+     */
+    public function retryPreview(array $sites): array
+    {
+        $iterations = max(0, (int) ($this->cfg['preview_retries'] ?? 2));
+        $targets = [];
+        foreach ($sites as $key => $site) {
+            // Наш шаблон и уже открытые сайты не трогаем: перепробовать нужно только пустые.
+            if ($site->own || $site->visitSummary()['ok'] > 0) {
+                continue;
+            }
+            $targets[(string) $key] = $site;
+        }
+        if ($iterations === 0 || $targets === []) {
+            return ['attempted' => 0, 'recovered' => 0];
+        }
+
+        $dir = rtrim((string) ($this->cfg['dir'] ?? 'out/pages'), '/\\');
+        $screenshot = (bool) ($this->cfg['screenshot'] ?? true) && $this->driver->name() === 'playwright';
+        $proxies = $this->proxyList();
+        // Ходим «обычным посетителем»: робота такие сайты как раз и не пускают.
+        $agents = $this->retryAgents !== [] ? $this->retryAgents : UserAgents::BROWSERS;
+        $attempted = count($targets);
+        $recovered = 0;
+        $proxyIndex = 0;
+
+        for ($attempt = 1; $attempt <= $iterations && $targets !== []; $attempt++) {
+            $jobs = [];
+            foreach ($targets as $key => $site) {
+                $url = ($this->cfg['target'] ?? 'found') === 'root' || $site->bestUrl === ''
+                    ? 'https://' . $site->host . '/'
+                    : $site->bestUrl;
+                $siteDir = $dir . '/' . self::safeName($site->host);
+                $proxy = $this->pickRetryProxy($proxies, self::lastProxyLabel($site), $proxyIndex);
+                $jobs[] = new VisitJob(
+                    id: (string) $key,
+                    siteKey: (string) $key,
+                    variant: 1,
+                    url: $url,
+                    referer: $this->referer($site),
+                    userAgent: $agents[($attempt - 1) % count($agents)],
+                    proxyUrl: $proxy?->url,
+                    proxyLabel: $proxy?->label ?? 'direct',
+                    htmlFile: $siteDir . '/variant-1.html',
+                    screenshotFile: $screenshot ? $siteDir . '/variant-1.png' : null,
+                );
+            }
+            $options = $this->driverOptions();
+            $options['timeout'] = (int) $options['timeout'] + 20 * $attempt;
+            $this->log->info(sprintf(
+                'Ещё попытка открыть сайты без превью (%d из %d): %d сайтов, другой прокси и браузерный агент, таймаут %d с…',
+                $attempt,
+                $iterations,
+                count($jobs),
+                $options['timeout'],
+            ));
+            $total = count($jobs);
+            $done = 0;
+            $okNow = 0;
+            $results = $this->driver->visit($jobs, $options, function (VisitJob $job, array $result) use (&$done, &$okNow, $total): void {
+                $done++;
+                if ($result['ok'] ?? false) {
+                    $okNow++;
+                }
+                if ($this->onProgress !== null) {
+                    ($this->onProgress)(['total' => $total, 'done' => $done, 'ok' => $okNow, 'current' => $job->url]);
+                }
+            });
+            foreach ($jobs as $job) {
+                $site = $targets[$job->siteKey] ?? null;
+                if ($site === null) {
+                    continue;
+                }
+                $result = $results[$job->id] ?? ['ok' => false, 'error' => 'нет результата', 'status' => null, 'final_url' => '', 'title' => ''];
+                $visit = $this->assembleVisit($job, $result);
+                self::replaceVisit($site, $visit);
+                if ($visit['own'] ?? false) {
+                    $site->own = true;
+                }
+                if (($visit['ok'] ?? false) || ($visit['own'] ?? false)) {
+                    $recovered++;
+                    unset($targets[$job->siteKey]);
+                }
+            }
+        }
+        $this->log->info(sprintf('Сайты без превью: перепробовано %d, открылось %d', $attempted, $recovered));
+
+        return ['attempted' => $attempted, 'recovered' => $recovered];
+    }
+
+    /** Прокси последней попытки по этому сайту — чтобы следующая пошла через другой. */
+    private static function lastProxyLabel(Site $site): string
+    {
+        $label = '';
+        foreach ($site->visits as $visit) {
+            $label = (string) (((array) $visit)['proxy'] ?? $label);
+        }
+
+        return $label;
+    }
+
+    /**
+     * Заменяет визит того же варианта (или добавляет, если такого не было).
+     *
+     * @param array<string, mixed> $visit
+     */
+    private static function replaceVisit(Site $site, array $visit): void
+    {
+        foreach ($site->visits as $i => $old) {
+            if ((int) (((array) $old)['variant'] ?? 0) === (int) ($visit['variant'] ?? 0)) {
+                $site->visits[$i] = $visit;
+
+                return;
+            }
+        }
+        $site->visits[] = $visit;
+    }
+
     private function assembleVisit(VisitJob $job, array $result, string $siteDomain = ''): array
     {
         $visit = [

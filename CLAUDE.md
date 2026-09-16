@@ -500,6 +500,26 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `preview_shots` is on (panel default), runs a lightweight home-only screenshot visit into
   `runs/current/preview` (no crawl) so the results table previews volume + own sites before the full
   download; wired in `buildOverrides()`.
+- Sites whose PREVIEW came back empty («без превью» in the table) get extra identities, because the user
+  asked for it: «те что с битыми скринами (без превью) надо пытаться открыть разными юзер агентами,
+  разными прокси хотя бы пару попыток». `runWithRetry()` already rotates proxy+UA inside a visit, but it
+  gives up after `visit.retries` and there was no way to try again later — the only offer was «Убрать без
+  превью». `PageVisitor::retryPreview($sites)` takes the sites with NO ok visit (own templates and
+  already-opened sites are skipped) and re-opens the home page `visit.preview_retries` times (default 2,
+  `Config::defaults()` + `config.example.php`, 0 disables), EACH attempt through another proxy
+  (`pickRetryProxy()` against the site's last used label, `lastProxyLabel()`) and under another BROWSER
+  agent (`$this->retryAgents` indexed by the attempt — a bot is what such sites refuse), with the timeout
+  growing by 20 s per attempt. A successful attempt REPLACES the failed visit of the same variant
+  (`replaceVisit()`), so page counters don't inflate and the report names the proxy/agent that actually
+  worked. It returns `{attempted, recovered}` and is called automatically at the end of `visit()` (the
+  preview path) AND on demand: `stage=preview` in `bin/run-job.php` (loads `sites.json`, filters by
+  `only`/`removed.json`, runs it with the preview overrides, rewrites sites.json/csv/domains and reports
+  «Перепробовано сайтов без превью: N, открылось M») behind the panel button «Перепробовать без превью (N)»
+  (`#retryPreviewBtn`, `runRetryPreview()`, same `noPreview()` set as «Убрать без превью»). `repeat_hours`
+  is ignored for that stage and `/api/start` lets it run without queries. Covered by
+  `VisitTest::testPreviewRetryOpensSiteWithAnotherIdentity` / `testPreviewRetrySkipsOpenedAndOwnSites` /
+  `testPreviewRetryCanBeDisabled` and `PanelTest::testPreviewStageRetriesSitesWithoutPreview` (the
+  fake-server host `botblock.ru`, which 403s the bot and serves browsers).
 - `domain_scope` (all/root/subdomain) and `unique_by=domain` implement the "one site per domain,
   skip other subdomains" rule; covered by `tests/ResultFilterTest.php` and `tests/PanelTest.php`.
 - `Visit\SiteLinks::fromHeader()` extracts **same-host** links from a page's header/nav **and footer**

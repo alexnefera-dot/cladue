@@ -83,7 +83,7 @@ Config::loadDotEnv(getcwd() . '/.env');
 Config::loadDotEnv($root . '/.env');
 
 // Повтор по таймеру имеет смысл только для сбора; выгрузка и очистка контента — одноразовые.
-$repeatHours = in_array((string) ($settings['stage'] ?? 'collect'), ['download', 'clean'], true) || !empty($settings['resume'])
+$repeatHours = in_array((string) ($settings['stage'] ?? 'collect'), ['download', 'clean', 'preview'], true) || !empty($settings['resume'])
     ? 0.0
     : (float) ($settings['repeat_hours'] ?? 0);
 $logFile = $runDir . '/run.log';
@@ -218,6 +218,10 @@ function buildOverrides(array $s, string $runDir): array
     $overrides['visit.crawl'] = (bool) ($s['crawl'] ?? false);
     if (isset($s['max_pages'])) {
         $overrides['visit.max_pages'] = max(1, (int) $s['max_pages']);
+    }
+    // Сколько ещё раз пробовать открыть сайты без превью (другой прокси + другой браузерный агент).
+    if (isset($s['preview_retries'])) {
+        $overrides['visit.preview_retries'] = max(0, (int) $s['preview_retries']);
     }
     // Продвинутое/для тестов: сопоставление host:port:ip для визитов (CURLOPT_RESOLVE / Chromium).
     if (isset($s['visit_resolve']) && is_array($s['visit_resolve'])) {
@@ -424,6 +428,54 @@ while (true) {
                 'message' => sprintf('%sОчищено: %d сайтов, %d стр. (без статьи: %d) → runs/current/content/N-стр/сайт', $stoppedEarly ? 'Остановлено. ' : '', $sitesDone, $written, $skipped),
             ], true);
             $logger->info(sprintf('Очистка контента: сайтов %d, страниц %d, пропущено %d', $sitesDone, $written, $skipped));
+        } elseif ($stage === 'preview') {
+            // --- Перепробовать сайты без превью: ещё несколько заходов на главную, каждый с ДРУГОГО
+            // прокси и под ДРУГИМ браузерным агентом. Скачанные страницы других сайтов не трогаем.
+            $config = Config::fromFile($configPath)->withOverrides(array_merge(buildOverrides($settings, $runDir), [
+                'visit.enabled' => true,
+                'visit.crawl' => false,
+                'visit.variants' => 1,
+                'visit.screenshot' => true,
+                'visit.max_pages' => 0,
+                'visit.dir' => $runDir . '/preview',
+            ]));
+            $writer = new ReportWriter((string) $config->get('output.csv_delimiter', ';'), (bool) $config->get('output.csv_bom', true));
+            $sites = RemovedSites::filter($runDir, loadSites($runDir . '/sites.json'));
+            if ($sites === []) {
+                throw new RuntimeException('Нет собранных сайтов — сначала выполните сбор');
+            }
+            // Панель присылает сайты без превью (only); если списка нет — берём все пустые сами.
+            $only = array_flip(array_map('strval', (array) ($settings['only'] ?? [])));
+            $visitList = $only !== []
+                ? array_filter($sites, static fn (string $host): bool => isset($only[$host]), ARRAY_FILTER_USE_KEY)
+                : $sites;
+            $runtime = new Runtime($config, $logger);
+            $visitor = $runtime->visitor(static function (array $event) use ($progress): void {
+                $progress->update(['phase' => 'visit', 'visit' => $event]);
+            });
+            if ($visitor === null) {
+                throw new RuntimeException('Визиты отключены в настройках');
+            }
+            $progress->update(['phase' => 'visit', 'sites_selected' => count($visitList)], true);
+            $stat = $visitor->retryPreview($visitList);
+            // Объекты сайтов общие с $sites, поэтому просто перезаписываем список целиком.
+            $sites = RemovedSites::filter($runDir, $sites);
+            $siteList = array_values($sites);
+            $writer->writeCsv($siteList, $runDir . '/sites.csv');
+            $writer->writeJson($siteList, $runDir . '/sites.json', ['source' => 'preview', 'settings' => $settings]);
+            $writer->writeDomains($siteList, $runDir . '/domains.txt');
+            $progress->update([
+                'state' => 'done',
+                'phase' => 'done',
+                'run_finished_at' => date(DATE_ATOM),
+                'sites' => previewSites($siteList, $runDir),
+                'sites_count' => count($siteList),
+                'files' => ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt'],
+                'message' => $stat['attempted'] === 0
+                    ? 'Сайтов без превью нет — пробовать нечего'
+                    : sprintf('Перепробовано сайтов без превью: %d, открылось %d', $stat['attempted'], $stat['recovered']),
+            ], true);
+            $logger->info(sprintf('Перепробовано без превью: %d, открылось %d', $stat['attempted'], $stat['recovered']));
         } elseif ($stage === 'download') {
             // --- Этап 2: выгрузка страниц ранее собранных сайтов (без обращения к источнику) ---
             $config = Config::fromFile($configPath)->withOverrides(array_merge(buildOverrides($settings, $runDir), [

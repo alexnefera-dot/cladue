@@ -668,6 +668,152 @@ final class VisitTest
         Assert::false(is_file("$dir/4-стр/footeronly.ru/main-2.html"), 'второй главной не бывает');
     }
 
+    public function testPreviewRetryOpensSiteWithAnotherIdentity(): void
+    {
+        // Сайт «без превью» перепробуем ещё несколько раз: каждый заход — другой прокси и другой
+        // браузерный агент. Драйвер здесь пускает только браузер, и то не с первого раза.
+        $dir = $this->dir() . '/prevretry';
+        $site = new Site('shy.ru', 'shy.ru', 'shy.ru');
+        $site->add(new SearchResult('казино', 0, 1, 'http://shy.ru/', 'shy.ru', 'Тихий'));
+
+        $seen = [];
+        $driver = new class($seen) implements \YandexSites\Visit\DriverInterface {
+            /** @param list<string> $seen агенты по порядку заходов */
+            public function __construct(private array &$seen)
+            {
+            }
+
+            public function name(): string
+            {
+                return 'curl';
+            }
+
+            public function visit(array $jobs, array $options, ?callable $onResult = null): array
+            {
+                $out = [];
+                foreach ($jobs as $job) {
+                    $this->seen[] = $job->userAgent;
+                    $browser = !str_contains($job->userAgent, 'YandexBot');
+                    if ($browser && count($this->seen) >= 3) {
+                        @mkdir(dirname($job->htmlFile), 0777, true);
+                        file_put_contents($job->htmlFile, '<html><head><title>Сайт</title></head><body>' . str_repeat('текст сайта ', 60) . '</body></html>');
+                        $out[$job->id] = ['ok' => true, 'error' => '', 'status' => 200, 'final_url' => $job->url, 'title' => 'Сайт'];
+                    } else {
+                        $out[$job->id] = ['ok' => false, 'error' => 'таймаут', 'status' => 0, 'final_url' => '', 'title' => ''];
+                    }
+                    if ($onResult !== null) {
+                        $onResult($job, $out[$job->id]);
+                    }
+                }
+
+                return $out;
+            }
+        };
+
+        $visitor = new PageVisitor([
+            'target' => 'found',
+            'dir' => $dir,
+            'screenshot' => false,
+            'retries' => 0,       // обычные повторы выключены — проверяем именно перебор «без превью»
+            'preview_retries' => 3,
+            'timeout' => 5,
+            'delay_ms' => 0,
+            'user_agents' => [UserAgents::YANDEX_BOT],
+        ], $driver, $this->logger());
+        $visitor->visit(['shy.ru' => $site]);
+
+        Assert::same(1, $site->visitSummary()['ok'], 'сайт открылся с очередной попытки');
+        Assert::same(1, count($site->visits), 'удачный заход ЗАМЕНИЛ неудачный визит, а не добавился');
+        Assert::true(is_file("$dir/shy.ru/variant-1.html"), 'страница сохранена');
+        Assert::same(3, count($seen), 'заход обычный + два перебора, после успеха дальше не ходим');
+        Assert::contains('YandexBot', $seen[0], 'первый заход — роботом поисковика');
+        Assert::false(str_contains($seen[1], 'YandexBot'), 'перебор идёт под браузером');
+        Assert::true($seen[1] !== $seen[2], 'каждая попытка — другой агент');
+        Assert::false(str_contains((string) ($site->visits[0]['user_agent'] ?? ''), 'YandexBot'), 'в отчёте агент, который сработал');
+    }
+
+    public function testPreviewRetrySkipsOpenedAndOwnSites(): void
+    {
+        // Перебирать нужно только пустые сайты: уже открытые и наши шаблоны не трогаем.
+        $opened = new Site('open.ru', 'open.ru', 'open.ru');
+        $opened->add(new SearchResult('к', 0, 1, 'http://open.ru/', 'open.ru', 'Открытый'));
+        $opened->visits[] = ['variant' => 1, 'url' => 'http://open.ru/', 'ok' => true, 'error' => '', 'status' => 200];
+        $ours = new Site('our.ru', 'our.ru', 'our.ru');
+        $ours->add(new SearchResult('к', 0, 1, 'http://our.ru/', 'our.ru', 'Наш'));
+        $ours->own = true;
+        $ours->visits[] = ['variant' => 1, 'url' => 'http://our.ru/', 'ok' => false, 'error' => 'исключён как наш', 'own' => true];
+
+        $calls = 0;
+        $driver = new class($calls) implements \YandexSites\Visit\DriverInterface {
+            public function __construct(private int &$calls)
+            {
+            }
+
+            public function name(): string
+            {
+                return 'curl';
+            }
+
+            public function visit(array $jobs, array $options, ?callable $onResult = null): array
+            {
+                $this->calls += count($jobs);
+
+                return [];
+            }
+        };
+        $visitor = new PageVisitor([
+            'target' => 'found', 'dir' => $this->dir() . '/prevskip', 'screenshot' => false,
+            'preview_retries' => 3, 'timeout' => 5, 'delay_ms' => 0,
+            'user_agents' => [UserAgents::YANDEX_BOT],
+        ], $driver, $this->logger());
+
+        $stat = $visitor->retryPreview(['open.ru' => $opened, 'our.ru' => $ours]);
+        Assert::same(['attempted' => 0, 'recovered' => 0], $stat);
+        Assert::same(0, $calls, 'драйвер не дёргался');
+    }
+
+    public function testPreviewRetryCanBeDisabled(): void
+    {
+        // preview_retries = 0 — никаких лишних заходов (например, когда прокси кончились).
+        $dir = $this->dir() . '/prevoff';
+        $site = new Site('shy2.ru', 'shy2.ru', 'shy2.ru');
+        $site->add(new SearchResult('казино', 0, 1, 'http://shy2.ru/', 'shy2.ru', 'Тихий'));
+        $calls = 0;
+        $driver = new class($calls) implements \YandexSites\Visit\DriverInterface {
+            public function __construct(private int &$calls)
+            {
+            }
+
+            public function name(): string
+            {
+                return 'curl';
+            }
+
+            public function visit(array $jobs, array $options, ?callable $onResult = null): array
+            {
+                $out = [];
+                foreach ($jobs as $job) {
+                    $this->calls++;
+                    $out[$job->id] = ['ok' => false, 'error' => 'таймаут', 'status' => 0, 'final_url' => '', 'title' => ''];
+                    if ($onResult !== null) {
+                        $onResult($job, $out[$job->id]);
+                    }
+                }
+
+                return $out;
+            }
+        };
+        $visitor = new PageVisitor([
+            'target' => 'found', 'dir' => $dir, 'screenshot' => false,
+            'retries' => 0, 'preview_retries' => 0, 'timeout' => 5, 'delay_ms' => 0,
+            'user_agents' => [UserAgents::YANDEX_BOT],
+        ], $driver, $this->logger());
+        $visitor->visit(['shy2.ru' => $site]);
+
+        Assert::same(1, $calls, 'один заход и всё');
+        Assert::same(1, count($site->visits));
+    }
+
     public function testOwnTemplateKeepsScreenshot(): void
     {
         // Наш шаблон исключаем, но скриншот главной оставляем (в папке «наши») — чтобы проверить глазами.

@@ -591,6 +591,56 @@ final class PanelTest
         @rmdir($dir);
     }
 
+    public function testPreviewStageRetriesSitesWithoutPreview(): void
+    {
+        // «Перепробовать без превью»: сайт, который не пустил робота (403 + заглушка антибота),
+        // открывается при повторном заходе под браузером — и в таблице перестаёт быть пустым.
+        $port = FakeServer::port('local');
+        $dir = sys_get_temp_dir() . '/yandex-sites-prevretry-' . uniqid();
+        $runDir = $dir . '/runs/prev';
+        mkdir($runDir, 0777, true);
+        file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
+        file_put_contents($runDir . '/sites.json', json_encode(['sites' => [
+            [
+                'host' => 'botblock.ru', 'domain' => 'botblock.ru', 'url' => "http://botblock.ru:$port/",
+                'title' => 'T', 'best_query' => 'к', 'best_position' => 1, 'queries_count' => 1,
+                'visits' => [[
+                    'variant' => 1, 'url' => "http://botblock.ru:$port/", 'ok' => false, 'proxy' => 'direct',
+                    'user_agent' => 'Mozilla/5.0 (compatible; YandexBot/3.0)',
+                    'error' => 'заблокировано (антибот/Cloudflare, HTTP 403)', 'status' => 403,
+                    'html_file' => '', 'screenshot_file' => '',
+                ]],
+            ],
+        ]]));
+        file_put_contents($runDir . '/settings.json', json_encode([
+            'stage' => 'preview',
+            'visit_driver' => 'curl',
+            'only' => ['botblock.ru'],
+            'visit_resolve' => ["botblock.ru:$port:127.0.0.1"],
+        ]));
+
+        $run = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $run['code'], $run['out']);
+
+        $status = json_decode((string) file_get_contents($runDir . '/status.json'), true);
+        Assert::same('done', $status['state'], $run['out']);
+        Assert::contains('Перепробовано сайтов без превью: 1, открылось 1', $status['message'], $run['out']);
+        Assert::same(1, (int) ($status['sites'][0]['pages_ok'] ?? 0), 'в таблице сайт больше не пустой');
+
+        $saved = json_decode((string) file_get_contents($runDir . '/sites.json'), true);
+        $visits = $saved['sites'][0]['visits'];
+        Assert::same(1, count($visits), 'удачный заход заменил неудачный визит');
+        Assert::true($visits[0]['ok'], 'страница открыта: ' . $run['out']);
+        Assert::false(str_contains((string) $visits[0]['user_agent'], 'YandexBot'), 'открылось под браузером');
+        Assert::true(is_file($runDir . '/preview/botblock.ru/variant-1.html'), 'страница сохранена в preview');
+
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($it as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+        @rmdir($dir);
+    }
+
     public function testDownloadHonorsRemovedJsonWithoutExcludeHosts(): void
     {
         // Сайт убран в панели (removed.json), но exclude_hosts не передан (старая вкладка, сбитый список):
