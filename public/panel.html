@@ -267,16 +267,17 @@
 
   <div class="card tabsec" data-tab="stats">
     <h2>Статистика сборов</h2>
-    <div class="hint">По одной строке на сбор, те же понятия, что и на «Главной». <b>Результатов в выдаче</b> — все строки по всем запросам (один сайт считается заново в каждом запросе). <b>Доменов и поддоменов</b> — сколько среди них разных, включая отсеянные фильтрами: это вся масса выдачи, и от неё считается <b>доля доров</b> (сайтов на поддоменах). <b>Отобрано сайтов</b> — что осталось после фильтров и группировки «один сайт на домен», <b>наши</b> — сколько из них наши шаблоны (узнаём по меткам в HTML страницы на превью-визите, скриншот — чтобы проверить глазами), доля наших считается от отобранного. Зоны — <b>по найденным дорам</b>. История хранится в <b>runs/history.json</b> и переживает обновление кода.</div>
+    <div class="hint">По одной строке на сбор, те же понятия, что и на «Главной». Это <b>воронка</b>: каждое число вытекает из предыдущего. <b>Результатов в выдаче</b> — все строки по всем запросам (один сайт считается заново в каждом запросе). <b>Сайтов в выдаче</b> — сколько это разных сайтов после группировки «один сайт на домен»: поддомены одного домена (доры одной сетки) считаются одним сайтом, отсеянные фильтрами тоже здесь. От этого числа считается <b>доля доров</b> (сайтов на поддоменах), и из него же вычитается <b>срезанное фильтрами</b> — наведите на ячейку «Срезано», там разбивка по причинам и сколько среди них доров. Остаток — <b>отобрано сайтов</b> (это ещё не значит «сайт открылся»: заходим мы на них позже). <b>Наши</b> — сколько из отобранного наши шаблоны (узнаём по меткам в HTML страницы на превью-визите, скриншот — чтобы проверить глазами), доля наших считается от отобранного. Зоны — <b>по найденным дорам</b>. История хранится в <b>runs/history.json</b> и переживает обновление кода.</div>
     <div class="statgrid" id="statTotals"></div>
+    <div class="hint" id="statCut" style="margin-bottom:10px"></div>
     <div class="hint" id="statZones" style="margin-bottom:10px"></div>
     <div class="btns" style="margin-bottom:10px;align-items:center">
       <button class="btn-ghost" id="statRefresh" title="Перечитать историю сборов">Обновить</button>
       <a class="btn-ghost" id="statCsv" href="/download?file=history" title="Скачать историю сборов таблицей для Excel">Скачать CSV</a>
     </div>
     <div style="overflow-x:auto"><table id="statTable"><thead><tr>
-      <th>Дата</th><th>Результатов в выдаче</th><th>Доменов и поддоменов</th><th>Доров из них</th><th>Доля доров</th>
-      <th>Отобрано сайтов</th><th>Наших</th><th>Повторов доров</th><th>Зоны доров</th><th>Всего в базе</th>
+      <th>Дата</th><th>Результатов в выдаче</th><th>Сайтов в выдаче</th><th>Доров из них</th><th>Доля доров</th>
+      <th>Срезано</th><th>Отобрано сайтов</th><th>Наших</th><th>Повторов доров</th><th>Зоны доров</th><th>Всего в базе</th>
     </tr></thead><tbody id="statBody"></tbody></table></div>
     <div class="hint" id="statEmpty" hidden>Истории пока нет — она появится после первого сбора на этой версии.</div>
   </div>
@@ -363,6 +364,21 @@ showTab(startTab);
 let statsLoaded=false;
 function statBox(n, label, title){ return `<div class="statbox"${title?` title="${title}"`:''}><div class="n">${n}</div><div class="l">${label}</div></div>`; }
 function pct(v){ const n=Number(v)||0; return (Number.isInteger(n) ? n : n.toFixed(1)) + '%'; }
+// Причины отсева одинаково подписаны в журнале, CSV и здесь; чип показывает сайты и доры среди них.
+const CUT_LABELS={position:'позиция ниже лимита',no_host:'без адреса',include_domains:'нет в списке нужных',exclude_domains:'в списке исключений',own_site:'наш шаблон',tld:'зона домена не разрешена',domain_scope:'не тот тип домена',url_must_match:'URL не подходит',url_must_not_match:'URL исключён',title_any:'нет слов в заголовке',title_all:'нет всех слов в заголовке',title_none:'стоп‑слово в заголовке',snippet_any:'нет слов в описании',snippet_none:'стоп‑слово в описании',min_queries:'мало запросов',min_hits:'мало попаданий',seen_before:'уже в базе доменов',other:'прочее (старая запись)'};
+function cutLabel(code){ return CUT_LABELS[code] || (String(code).startsWith('site_check:') ? 'не ответил на проверку' : code); }
+function cutHtml(cut, limit){
+  const keys=Object.keys(cut||{}).sort((a,b)=>(cut[b].sites|0)-(cut[a].sites|0));
+  const shown = limit>0 ? keys.slice(0,limit) : keys;
+  if(!shown.length) return '—';
+  const tail = keys.length>shown.length ? ` <span class="muted">и ещё ${keys.length-shown.length}</span>` : '';
+  return shown.map(k=>{
+    const d=cut[k].doors|0;
+    return `<span class="tag" title="${cutLabel(k)}: срезано сайтов ${cut[k].sites|0}${d?`, из них доров ${d}`:''}">${cutLabel(k)} — ${cut[k].sites|0}${d?` <span class="muted">(доров ${d})</span>`:''}</span>`;
+  }).join(' ')+tail;
+}
+function cutSum(cut){ return Object.keys(cut||{}).reduce((n,k)=>n+(cut[k].sites|0),0); }
+function cutText(cut){ return Object.keys(cut||{}).sort((a,b)=>(cut[b].sites|0)-(cut[a].sites|0)).map(k=>`${cutLabel(k)} — ${cut[k].sites|0}${(cut[k].doors|0)?` (доров ${cut[k].doors|0})`:''}`).join('; '); }
 function zonesHtml(zones, limit){
   const keys=Object.keys(zones||{}).sort((a,b)=>zones[b]-zones[a]);
   const shown = limit>0 ? keys.slice(0,limit) : keys;
@@ -378,17 +394,23 @@ async function loadStats(){
   const t=(data && data.totals) || {};
   const totals=$('statTotals');
   if(totals){
-    totals.innerHTML = statBox(t.results|0,'результатов в выдаче')
-      + statBox(t.found|0,'доменов и поддоменов')
-      + statBox(t.found_doors|0,'из них доров')
-      + statBox(pct(t.doors_percent),'доля доров')
-      + statBox(t.sites|0,'отобрано сайтов')
+    const mass = t.unique_sites|0;
+    totals.innerHTML = statBox(t.results|0,'результатов в выдаче','Все строки выдачи по всем сборам: один сайт считается заново в каждом запросе, где он попался')
+      + statBox(mass||(t.found|0), mass?'сайтов в выдаче':'доменов и поддоменов', mass?`Вся масса выдачи, сведённая по правилу «один сайт на домен». Разных адресов при этом ${t.found|0}`:'Разных адресов в выдаче (старые записи считались без группировки по домену)')
+      + statBox(t.found_doors|0,'из них доров','Сайты на поддоменах (kush.casinozsd.buzz при casinozsd.buzz)')
+      + statBox(pct(t.doors_percent),'доля доров','Доля доров от всей массы выдачи, а не от отобранного')
+      + statBox(t.cut_total|0,'срезано фильтрами','Сколько сайтов выдачи не прошло дальше — разбивка по причинам ниже. Сайтов в выдаче = срезано + отобрано. У сборов до версии 1.16.0 разбивки нет, их срезанное попадает в «прочее»')
+      + statBox(t.sites|0,'отобрано сайтов','Остаток после всех фильтров. Это ещё не значит «сайт открылся» — заходим мы на них позже')
       + statBox(t.own|0,'наших сайтов','Наши шаблоны среди отобранного: узнаём по меткам в HTML страницы (own-markers.txt), выгружать и чистить их не нужно')
       + statBox(pct(t.own_percent),'доля наших','Сколько процентов отобранного — наши шаблоны')
-      + statBox(t.repeats_doors|0,'повторов доров')
-      + statBox(t.base_domains|0,'доменов в базе')
+      + statBox(t.repeats_doors|0,'повторов доров','Доры, которые уже были в базе пересечений (они же одна из причин в «срезано»)')
+      + statBox(t.base_domains|0,'доменов в базе','Размер базы пересечений на момент последнего сбора')
       + statBox(t.runs|0,'сборов');
   }
+  const cb=$('statCut');
+  if(cb) cb.innerHTML = (recs.length && t.cut && Object.keys(t.cut).length)
+    ? 'Что срезали фильтры за всё время: <span class="zonebar">'+cutHtml(t.cut,0)+'</span>'
+    : '';
   const zs=$('statZones');
   if(zs) zs.innerHTML = recs.length ? ('Зоны найденных доров за всё время: <span class="zonebar">'+zonesHtml(t.zones,20)+'</span>') : '';
   const body=$('statBody');
@@ -398,20 +420,28 @@ async function loadStats(){
       const human = isNaN(ts) ? d : new Date(ts).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
       const marks = (r.resume?' <span class="tag">продолжение</span>':'') + (r.stopped?' <span class="tag diff">остановлен</span>':'');
       const sites=r.sites|0, doors=(r.doors!=null?r.doors:r.subdomains)|0;
-      // База для доли — вся масса доменов из выдачи; у записей старых версий её нет, там от отобранного.
-      const found=r.found|0, foundDoors=r.found_doors|0;
-      const base = found>0 ? found : sites, baseDoors = found>0 ? foundDoors : doors;
+      // База для доли — вся масса выдачи, сведённая в сайты; у записей до 1.16.0 группировки нет,
+      // там база — разные адреса, у совсем старых (до 1.13.0) — отобранное.
+      const found=r.found|0, foundDoors=r.found_doors|0, mass=r.unique_sites|0;
+      const base = mass>0 ? mass : (found>0 ? found : sites), baseDoors = (mass>0||found>0) ? foundDoors : doors;
       const share = base>0 ? pct(Math.round(baseDoors*1000/base)/10) : '—';
       const rep=`<span title="Повторов всего (с корневыми): ${r.repeats|0}">${r.repeats_doors|0}</span>`;
-      const foundCell = found>0 ? `<b>${found}</b>` : '<span class="muted">—</span>';
-      const doorsCell = found>0 ? `${foundDoors}` : `${doors}`;
+      const foundCell = mass>0
+        ? `<b title="Разных адресов в выдаче: ${found} — они сведены в ${mass} сайтов по правилу «один сайт на домен»">${mass}</b>`
+        : (found>0 ? `<b title="Старая запись: это число РАЗНЫХ АДРЕСОВ, без группировки по домену">${found}<span class="muted">*</span></b>` : '<span class="muted">—</span>');
+      const doorsCell = (mass>0||found>0) ? `${foundDoors}` : `${doors}`;
+      // Что срезали фильтры: сумма в ячейке, разбивка по причинам — в подсказке.
+      const cut=r.cut||null, cutN=cut?cutSum(cut):0;
+      const cutCell = cut
+        ? `<span title="Срезано по причинам (сайтов): ${cutText(cut)}">${cutN}</span>`
+        : '<span class="muted">—</span>';
       const sitesCell = `<span title="Из них доров: ${doors}">${sites}</span>`;
       // Наши шаблоны: у записей до 1.15.0 такого числа нет — там прочерк, а не «0».
       const ownCell = (r.own==null) ? '<span class="muted">—</span>'
         : `<span title="Доля наших от отобранного">${r.own|0}${sites>0&&(r.own|0)>0?` <span class="muted">${Math.round((r.own|0)*1000/sites)/10}%</span>`:''}</span>`;
       const resCell = (r.results|0)>0 ? `${r.results|0}` : '<span class="muted">—</span>';
       return `<tr><td>${human}${marks}</td><td>${resCell}</td><td>${foundCell}</td><td>${doorsCell}</td><td>${share}</td>`
-        + `<td>${sitesCell}</td><td>${ownCell}</td><td>${rep}</td><td class="host">${zonesHtml(r.zones,6)}</td><td>${r.base_domains|0}</td></tr>`;
+        + `<td>${cutCell}</td><td>${sitesCell}</td><td>${ownCell}</td><td>${rep}</td><td class="host">${zonesHtml(r.zones,6)}</td><td>${r.base_domains|0}</td></tr>`;
     }).join('');
   }
   const empty=$('statEmpty'); if(empty) empty.hidden = recs.length>0;
@@ -701,16 +731,20 @@ function renderStatus(st, running, stopping){
   else if(st.state==='done'){ pct=100; }
   $('barFill').style.width=pct+'%';
 
-  // Воронка сбора без повторов одного и того же числа: строки выдачи → сколько это разных доменов
-  // и поддоменов → сколько прошло фильтры и дедуп → сколько из них новых для базы.
+  // Воронка сбора без повторов одного и того же числа: строки выдачи → сколько это разных САЙТОВ
+  // (адреса сведены по правилу «один сайт на домен», как и при отборе) → сколько прошло фильтры →
+  // сколько из них новых для базы. Число разных адресов — в подсказке, отдельной карточкой оно
+  // только путало: из 6460 адресов никогда не получится 602 сайта напрямую.
   const cells=[];
   const push=(b,s,t)=>cells.push(`<div class="stat"${t?` title="${t}"`:''}><b>${b}</b><span>${s}</span></div>`);
   push((st.queries_done||0)+' / '+(st.queries_total||stats.queries||'?'),'запросов');
   push(st.results ?? stats.results ?? 0,'результатов в выдаче','Все строки выдачи по всем запросам и страницам. Один и тот же сайт считается заново в каждом запросе, где он встретился');
   const hosts = st.hosts_total ?? stats.hosts_total;
-  if(hosts!=null) push(hosts,'доменов и поддоменов','Сколько среди этих результатов РАЗНЫХ доменов и поддоменов (www не считается отдельным). Это и есть вся масса выдачи — от неё статистика считает долю доров');
+  const mass = st.unique_sites ?? stats.unique_sites;
+  if(mass!=null) push(mass,'сайтов в выдаче',`Вся масса выдачи, сведённая по правилу «один сайт на домен»: поддомены одного домена (доры одной сетки) — это один сайт.${hosts!=null?` Разных адресов при этом ${hosts}`:''}. От этого числа статистика считает долю доров, и из него же вычитается срезанное фильтрами`);
+  else if(hosts!=null) push(hosts,'доменов и поддоменов','Сколько среди этих результатов РАЗНЫХ доменов и поддоменов (www не считается отдельным)');
   const selected = st.sites_selected ?? stats.sites_selected ?? 0;
-  push(selected,'отобрано сайтов','Осталось после фильтров (зоны, тип домена, исключения, позиция) и группировки: при галочке «один сайт на домен» поддомены одного домена сводятся в один сайт');
+  push(selected,'отобрано сайтов','Осталось после фильтров (зоны, тип домена, исключения, позиция, «уже в базе»). Это ещё НЕ значит «сайт открылся»: заходим мы на них позже, результат — в строке над таблицей результатов');
   const nd = st.new_domains ?? stats.new_domains;
   if(nd!=null && nd!==selected) push(nd,'из них новых в базу','Сколько отобранных доменов записалось в базу пересечений (остальные уже были в ней)');
   if(stats.cache_hits!=null) push(stats.cache_hits+' / '+((stats.cache_hits||0)+(stats.cache_misses||0)),'ответов из кэша выдачи','Ответы источника на те же запросы за последний час берутся из кэша — новых обращений к источнику по ним не было');
@@ -721,7 +755,7 @@ function renderStatus(st, running, stopping){
   const rej = (st.stats && st.stats.rejected) || st.rejected || {};
   const rkeys = Object.keys(rej).sort((a,b)=>rej[b]-rej[a]);
   if(rkeys.length){
-    $('reject').innerHTML = 'Отсеяно: ' + rkeys.map(k=>`${REASONS[k]||k} — <b>${rej[k]}</b>`).join(' · ');
+    $('reject').innerHTML = '<span title="Фильтры выдачи считаются здесь по СТРОКАМ выдачи (один сайт попадается в десятках запросов), а «уже в базе» и «мало запросов» — сразу по сайтам. Пересчёт того же самого по сайтам — во вкладке «Статистика», колонка «Срезано»">Отсеяно (по строкам выдачи):</span> ' + rkeys.map(k=>`${REASONS[k]||k} — <b>${rej[k]}</b>`).join(' · ');
   } else $('reject').innerHTML='';
 
   let msg='';

@@ -620,16 +620,24 @@ while (true) {
                 $record = CollectHistory::record($sites, $r->stats, $r->seenBefore, $resume, false, $r->raw);
                 $historyId = (string) $record['id'];
                 CollectHistory::append(dirname($runDir), $record);
+                // Воронка одной строкой: каждое число вытекает из предыдущего, и сумма срезанного
+                // с отобранным даёт массу выдачи — чтобы было видно, что именно срезали фильтры.
                 $logger->info(sprintf(
-                    'За этот сбор: в выдаче %d доменов, из них доров %d (%s%%); отобрано в базу %d, повторов доров %d из %d%s',
+                    'За этот сбор: %d строк выдачи → %d адресов → %d сайтов (один на домен), из них доров %d (%s%%) → срезано фильтрами %d → отобрано в базу %d',
+                    $record['results'],
                     $record['found'],
+                    $record['unique_sites'],
                     $record['found_doors'],
-                    CollectHistory::percent($record['found_doors'], $record['found']),
+                    CollectHistory::percent($record['found_doors'], $record['unique_sites']),
+                    CollectHistory::cutTotal($record['cut']),
                     $record['sites'],
-                    $record['repeats_doors'],
-                    $record['repeats'],
-                    $record['zones'] !== [] ? '; зоны доров — ' . CollectHistory::zonesText($record['zones'], 8) : '',
                 ));
+                if ($record['cut'] !== []) {
+                    $logger->info('Срезано по причинам (сайтов): ' . CollectHistory::cutText($record['cut']));
+                }
+                if ($record['zones'] !== []) {
+                    $logger->info('Зоны доров: ' . CollectHistory::zonesText($record['zones'], 8));
+                }
             };
             $runner = new Runner($config, $fetcher, $runtime->parser(), $logger, $checker, $visitor, $onSearch, $ledger, $skipKnown, $stopCheck, $onSelected);
 

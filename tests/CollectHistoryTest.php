@@ -177,6 +177,61 @@ final class CollectHistoryTest
         Assert::same(null, CollectHistory::backfillLatest($dir, $sites), 'второй раз дописывать нечего');
     }
 
+    public function testBackfillFunnelRecomputesFromResultsCsv(): void
+    {
+        // Запись версии 1.15.0: масса выдачи посчитана по АДРЕСАМ, про срезанное ничего нет.
+        // В results.csv лежат те же строки выдачи с причинами — пересчитываем воронку по ним,
+        // чтобы после обновления не пришлось собирать заново.
+        $dir = $this->runsDir();
+        $csv = $dir . '/results.csv';
+        $rows = [
+            ['kush.a.buzz', 1, 'selected'],
+            ['hype.a.buzz', 4, 'selected'],
+            ['root.ru', 2, 'domain_scope'],
+            ['shop.root2.ru', 3, 'tld'],
+            ['old.c.casino', 5, 'selected'],
+        ];
+        $out = "query;page;position;host;url;title;snippet;result\n";
+        foreach ($rows as [$host, $pos, $reason]) {
+            $out .= sprintf("окна;1;%d;%s;https://%s/;т;с;%s\n", $pos, $host, $host, $reason);
+        }
+        file_put_contents($csv, $out);
+        file_put_contents($dir . '/' . CollectHistory::FILE, json_encode([
+            ['id' => 'old', 'date' => '2026-09-16T11:08:00+00:00', 'results' => 5, 'found' => 5, 'found_doors' => 3, 'found_roots' => 2, 'sites' => 1, 'doors' => 1, 'repeats' => 1, 'repeats_doors' => 1, 'zones' => ['buzz' => 2, 'casino' => 1]],
+        ]));
+
+        $updated = CollectHistory::backfillFunnel($dir, $csv);
+        Assert::true($updated !== null, 'воронка пересчитана');
+        Assert::same(4, $updated['unique_sites'], 'сайтов выдачи: a.buzz, root.ru, root2.ru, c.casino');
+        Assert::same(3, $updated['found_doors'], 'доры-сайты: a.buzz, root2.ru, c.casino');
+        Assert::same(1, $updated['cut']['domain_scope']['sites'] ?? 0);
+        Assert::same(1, $updated['cut']['tld']['sites'] ?? 0);
+        Assert::same(1, $updated['cut']['seen_before']['sites'] ?? 0, '«уже в базе» берётся из самой записи');
+        Assert::same(
+            $updated['unique_sites'],
+            $updated['sites'] + CollectHistory::cutTotal($updated['cut']),
+            'воронка сходится и после пересчёта',
+        );
+        Assert::same(5, $updated['found'], 'число адресов не изменилось');
+        Assert::same(4, CollectHistory::load($dir)[0]['unique_sites'], 'пересчёт сохранён на диск');
+        Assert::same(null, CollectHistory::backfillFunnel($dir, $csv), 'второй раз считать нечего');
+    }
+
+    public function testBackfillFunnelSkipsForeignResultsFile(): void
+    {
+        // Сбор шёл частями: results.csv описывает весь список запросов, а запись — только свою часть.
+        // Считать по такому файлу нельзя — запись остаётся как была.
+        $dir = $this->runsDir();
+        $csv = $dir . '/results.csv';
+        file_put_contents($csv, "query;page;position;host;url;title;snippet;result\nокна;1;1;a.ru;https://a.ru/;т;с;selected\n");
+        file_put_contents($dir . '/' . CollectHistory::FILE, json_encode([
+            ['id' => 'old', 'date' => '2026-09-16T11:08:00+00:00', 'results' => 42, 'found' => 30, 'sites' => 5],
+        ]));
+
+        Assert::same(null, CollectHistory::backfillFunnel($dir, $csv));
+        Assert::false(isset(CollectHistory::load($dir)[0]['unique_sites']), 'запись не тронута');
+    }
+
     public function testIsDoorIgnoresWww(): void
     {
         Assert::true(CollectHistory::isDoor('kush.casinozsd.buzz'));
@@ -188,7 +243,8 @@ final class CollectHistoryTest
     {
         // Главное для пользователя: доля доров считается от ВСЕЙ выдачи, включая домены, отсеянные
         // фильтрами («не тот тип домена» — 13250 результатов у него отсеклось), иначе в отобранном
-        // доров почти 100% и цифра ничего не значит.
+        // доров почти 100% и цифра ничего не значит. Но масса — это САЙТЫ после группировки «один
+        // сайт на домен»: kush.a.buzz и hype.a.buzz — одна сетка, один сайт, а не два.
         $raw = [];
         foreach (['kush.a.buzz', 'hype.a.buzz', 'promo.b.casino', 'plain.ru', 'www.portal.ru', 'plain.ru'] as $host) {
             $raw[] = ['result' => new SearchResult('к', 0, 1, 'https://' . $host . '/', $host, ''), 'reason' => null];
@@ -196,14 +252,66 @@ final class CollectHistoryTest
         $record = CollectHistory::record($this->sites('kush.a.buzz'), ['base_domains' => 7, 'results' => 6], [], false, false, $raw);
 
         Assert::same(6, $record['results'], 'строк выдачи — все, включая повтор одного домена');
-        Assert::same(5, $record['found'], 'разных доменов в выдаче (plain.ru дважды — один)');
-        Assert::same(3, $record['found_doors'], 'доры: kush., hype., promo.');
+        Assert::same(5, $record['found'], 'разных адресов в выдаче (plain.ru дважды — один)');
+        Assert::same(4, $record['unique_sites'], 'сайтов после группировки: a.buzz, b.casino, plain.ru, portal.ru');
+        Assert::same(2, $record['found_doors'], 'доры-сайты: a.buzz (kush+hype) и b.casino');
         Assert::same(2, $record['found_roots'], 'корневые: plain.ru и portal.ru (www не поддомен)');
-        Assert::same(60.0, CollectHistory::percent($record['found_doors'], $record['found']), 'доля доров от всей массы');
+        Assert::same(50.0, CollectHistory::percent($record['found_doors'], $record['unique_sites']), 'доля доров от массы сайтов');
         Assert::same(1, $record['sites'], 'отобрано в базу — отдельное число');
-        Assert::same(2, $record['zones']['buzz'] ?? 0, 'зоны — по НАЙДЕННЫМ дорам, а не по отобранным');
+        Assert::same(1, $record['zones']['buzz'] ?? 0, 'зоны — по найденным дорам-САЙТАМ');
         Assert::same(1, $record['zones']['casino'] ?? 0);
         Assert::same(0, $record['zones']['ru'] ?? 0, 'зона корневых в статистику доров не идёт');
+    }
+
+    public function testFunnelAddsUpAndNamesWhatWasCut(): void
+    {
+        // Ответ на вопрос «куда делись домены»: масса выдачи = отобрано + срезанное по причинам,
+        // и по каждой причине видно, сколько среди срезанного доров.
+        $raw = [];
+        $add = static function (string $host, ?string $reason, int $position = 1) use (&$raw): void {
+            $raw[] = ['result' => new SearchResult('к', 0, $position, 'https://' . $host . '/', $host, ''), 'reason' => $reason];
+        };
+        $add('kush.a.buzz', null);                 // отобран
+        $add('hype.a.buzz', null, 5);              // тот же сайт (a.buzz), вторым адресом
+        $add('root.ru', 'domain_scope');           // срезан: не тот тип домена (корневой)
+        $add('shop.root2.ru', 'tld');              // срезан: зона
+        $add('deep.b.casino', 'domain_scope');     // ещё один срезанный, тот же повод
+        $add('old.c.casino', null);                // прошёл фильтры, но уже в базе (см. seenBefore)
+
+        $record = CollectHistory::record(
+            $this->sites('kush.a.buzz'),
+            ['results' => 6, 'unique_by' => 'domain', 'rejected' => ['domain_scope' => 2, 'tld' => 1, 'seen_before' => 1]],
+            ['old.c.casino'],
+            false,
+            false,
+            $raw,
+        );
+
+        Assert::same(5, $record['unique_sites'], 'сайтов в выдаче: a.buzz, root.ru, root2.ru, b.casino, c.casino');
+        Assert::same(2, $record['cut']['domain_scope']['sites'], 'не тот тип домена — два сайта');
+        Assert::same(1, $record['cut']['domain_scope']['doors'], 'из них дор один (deep.b.casino)');
+        Assert::same(1, $record['cut']['tld']['sites'], 'зона домена — один сайт');
+        Assert::same(1, $record['cut']['seen_before']['sites'], 'уже в базе — считается по сайтам, не по строкам');
+        Assert::same(1, $record['cut']['seen_before']['doors'], 'и это дор');
+        Assert::same(4, CollectHistory::cutTotal($record['cut']), 'срезано всего');
+        Assert::same(
+            $record['unique_sites'],
+            $record['sites'] + CollectHistory::cutTotal($record['cut']),
+            'воронка сходится: сайтов в выдаче = отобрано + срезано',
+        );
+        Assert::contains('не тот тип домена — 2 (доров 1)', CollectHistory::cutText($record['cut']), 'подпись причины для журнала');
+    }
+
+    public function testGroupingFollowsUniqueBySetting(): void
+    {
+        // Без галочки «один сайт на домен» сайт — это адрес: тогда доры считаются по адресам.
+        $raw = [];
+        foreach (['kush.a.buzz', 'hype.a.buzz'] as $host) {
+            $raw[] = ['result' => new SearchResult('к', 0, 1, 'https://' . $host . '/', $host, ''), 'reason' => null];
+        }
+        Assert::same(1, CollectHistory::breakdownRaw($raw, 'domain')['unique'], 'один сайт на домен');
+        Assert::same(2, CollectHistory::breakdownRaw($raw, 'host')['unique'], 'без группировки — два сайта');
+        Assert::same(2, CollectHistory::breakdownRaw($raw, 'host')['doors']);
     }
 
     public function testRecordWithoutRawFallsBackToSelected(): void
@@ -257,6 +365,32 @@ final class CollectHistoryTest
         Assert::same(0, $totals['zones']['ru'] ?? 0, 'корневой a.ru в зоны не попал');
     }
 
+    public function testTotalsMixOldAndNewRecordsWithoutBreakingPercent(): void
+    {
+        // В истории соседствуют записи разных версий: у старой нет ни группировки, ни разбивки отсева.
+        // Итог всё равно должен сходиться и не давать «доля доров 114%» (сумма доров делилась на массу
+        // только новых записей).
+        $totals = CollectHistory::totals([
+            ['results' => 24544, 'found' => 6460, 'unique_sites' => 2431, 'found_doors' => 1580, 'sites' => 602,
+             'cut' => ['domain_scope' => ['sites' => 1002, 'doors' => 180], 'seen_before' => ['sites' => 641, 'doors' => 604]],
+             'base_domains' => 2645],
+            ['results' => 9000, 'found' => 3000, 'found_doors' => 1200, 'sites' => 300, 'doors' => 280, 'base_domains' => 2043],
+        ]);
+
+        Assert::same(5431, $totals['unique_sites'], 'у старой записи массой считаются адреса');
+        Assert::same(2780, $totals['found_doors']);
+        Assert::same(51.2, $totals['doors_percent'], 'доля доров не может быть больше 100%');
+        Assert::same(902, $totals['sites']);
+        Assert::same(
+            $totals['unique_sites'],
+            $totals['sites'] + $totals['cut_total'],
+            'итог сходится: масса выдачи = отобрано + срезано',
+        );
+        // 2700 от старой записи (там разбивки нет вовсе) + 186 неразобранного остатка новой.
+        Assert::same(2886, $totals['cut']['other']['sites'] ?? 0, 'неразобранное уходит в «прочее»');
+        Assert::same(2645, $totals['base_domains'], 'база — по самой свежей записи');
+    }
+
     public function testLoadReadsOldSubdomainsKey(): void
     {
         // Записи версии 1.10.0 звали доры «subdomains» — старая история должна читаться.
@@ -272,7 +406,8 @@ final class CollectHistoryTest
             CollectHistory::record($this->sites('a.ru', 'sub.b.ru'), ['base_domains' => 50], ['x.old.ru']),
         ]);
         Assert::contains('Результатов в выдаче', $csv);
-        Assert::contains('Доменов и поддоменов', $csv);
+        Assert::contains('Сайтов в выдаче', $csv);
+        Assert::contains('Что срезано', $csv);
         Assert::contains('Отобрано сайтов', $csv);
         Assert::contains('Зоны доров', $csv);
         Assert::contains('ru: 1', $csv, 'зоны доров сложены в одну колонку');

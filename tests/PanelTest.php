@@ -729,11 +729,25 @@ final class PanelTest
         Assert::true($records[1]['zones'] !== [], 'зоны доров посчитаны');
         Assert::true($records[0]['repeats_doors'] <= $records[0]['repeats'], 'повторов-доров не больше, чем повторов всего');
         Assert::false(isset($records[0]['queries']), 'запросы в статистику не пишем');
-        Assert::contains('За этот сбор: в выдаче', (string) file_get_contents($runDir . '/run.log'));
-        Assert::contains('из них доров', (string) file_get_contents($runDir . '/run.log'));
+        $log = (string) file_get_contents($runDir . '/run.log');
+        Assert::contains('За этот сбор:', $log);
+        Assert::contains('сайтов (один на домен)', $log, 'в журнале воронка целиком');
+        Assert::contains('Срезано по причинам (сайтов):', $log);
+        // Воронка должна СХОДИТЬСЯ: сайты выдачи = отобрано + срезанное по причинам. Это и есть ответ
+        // на «куда делись домены»; отдельно проверяем, что причины названы по сайтам, а не по строкам.
+        foreach ([0, 1] as $i) {
+            Assert::same(
+                (int) $records[$i]['unique_sites'],
+                (int) $records[$i]['sites'] + \YandexSites\Support\CollectHistory::cutTotal($records[$i]['cut']),
+                "воронка сходится в записи $i",
+            );
+        }
+        Assert::true($records[1]['unique_sites'] > 0, 'сайты выдачи посчитаны');
+        Assert::true($records[1]['found'] >= $records[1]['unique_sites'], 'адресов не меньше, чем сайтов после группировки');
+        Assert::true($records[0]['cut']['seen_before']['sites'] > 0, 'повторный сбор срезан как «уже в базе»');
         // Доля доров считается от ВСЕЙ выдачи, а не от того, что осталось после фильтров.
         Assert::true($records[1]['found'] >= $records[1]['sites'], 'доменов в выдаче не меньше, чем отобрано');
-        Assert::same($records[1]['found'], $records[1]['found_doors'] + $records[1]['found_roots'], 'доры + корневые = вся масса');
+        Assert::same($records[1]['unique_sites'], $records[1]['found_doors'] + $records[1]['found_roots'], 'доры + корневые = масса сайтов');
         Assert::true($records[1]['found_doors'] > 0, 'доры в выдаче найдены');
         // Результатов в выдаче всегда не меньше, чем разных доменов: сайт попадается в нескольких запросах.
         Assert::true($records[1]['results'] >= $records[1]['found'], 'строк выдачи не меньше, чем доменов');
@@ -774,9 +788,18 @@ final class PanelTest
             Assert::true(isset($hist['totals']['doors_percent']), 'доля доров в итоге');
             Assert::true($hist['totals']['repeats_doors'] <= $hist['totals']['repeats']);
 
+            Assert::true(($hist['totals']['unique_sites'] ?? 0) > 0, 'масса сайтов в итоге');
+            Assert::true(($hist['totals']['cut_total'] ?? 0) > 0, 'срезанное в итоге посчитано');
+            Assert::same(
+                (int) $hist['totals']['unique_sites'],
+                (int) $hist['totals']['sites'] + (int) $hist['totals']['cut_total'],
+                'итог по всем сборам тоже сходится',
+            );
+
             $csv = (string) $this->http('GET', $base . '/download?file=history');
             Assert::contains('Результатов в выдаче', $csv, 'CSV истории скачивается');
-            Assert::contains('Доменов и поддоменов', $csv);
+            Assert::contains('Сайтов в выдаче', $csv);
+            Assert::contains('Что срезано', $csv);
             Assert::contains('Доров из них', $csv);
             Assert::contains('Зоны доров', $csv);
         } finally {
@@ -864,6 +887,22 @@ final class PanelTest
         file_put_contents($dir . '/runs/history.json', json_encode([
             ['id' => 'old', 'date' => '2026-09-15T10:00:00+00:00', 'results' => 40, 'found' => 30, 'found_doors' => 10, 'found_roots' => 20, 'sites' => 4, 'doors' => 1, 'roots' => 3, 'zones' => ['com' => 10], 'repeats' => 0, 'repeats_doors' => 0, 'base_domains' => 4],
         ]));
+        // Та же запись старой версии не знает и про воронку — зато рядом лежит results.csv того же
+        // сбора (40 строк, 30 адресов): по нему панель досчитывает сайты выдачи и что срезали фильтры.
+        $csv = "query;page;position;host;url;title;snippet;result\n";
+        foreach (['chuzhoy.ru', 'nash.ru', 'kush.example.com', 'esche-nash.ru'] as $host) {
+            for ($i = 1; $i <= 3; $i++) {
+                $csv .= sprintf("окна %d;1;%d;%s;https://%s/;т;с;selected\n", $i, $i, $host, $host);
+            }
+        }
+        for ($i = 1; $i <= 26; $i++) {
+            $host = sprintf('sub%d.junk%d.ru', $i, $i);
+            $csv .= sprintf("окна;1;%d;%s;https://%s/;т;с;domain_scope\n", $i, $host, $host);
+            if ($i <= 2) {
+                $csv .= sprintf("двери;1;%d;%s;https://%s/;т;с;domain_scope\n", $i, $host, $host);
+            }
+        }
+        file_put_contents($runDir . '/results.csv', $csv);
 
         $socket = @stream_socket_server('tcp://127.0.0.1:0', $errno, $errstr);
         if ($socket === false) {
@@ -891,8 +930,19 @@ final class PanelTest
             $hist = json_decode((string) $this->http('GET', $base . '/api/history'), true);
             Assert::true($hist['ok'] ?? false, json_encode($hist, JSON_UNESCAPED_UNICODE));
             Assert::same(2, $hist['records'][0]['own'], 'наши посчитаны по sites.json');
+            Assert::same(30, $hist['records'][0]['unique_sites'], 'сайты выдачи досчитаны по results.csv');
+            Assert::same(26, $hist['records'][0]['cut']['domain_scope']['sites'] ?? 0, 'и видно, что срезал фильтр типа домена');
+            Assert::same(
+                30,
+                (int) $hist['records'][0]['sites'] + \YandexSites\Support\CollectHistory::cutTotal($hist['records'][0]['cut']),
+                'воронка старой записи сходится после пересчёта',
+            );
             Assert::same(1, $hist['records'][0]['doors'], 'посчитанные доры не тронуты');
-            Assert::same(10, $hist['records'][0]['zones']['com'] ?? 0, 'зоны всей выдачи остались');
+            // Зоны пересчитываются вместе с дорами (иначе они бы противоречили новому числу):
+            // .com — это kush.example.com, .ru — 26 срезанных поддоменов.
+            Assert::same(27, $hist['records'][0]['found_doors'], 'доры пересчитаны по сайтам выдачи');
+            Assert::same(1, $hist['records'][0]['zones']['com'] ?? 0, 'зона дора из отобранного');
+            Assert::same(26, $hist['records'][0]['zones']['ru'] ?? 0, 'зоны срезанных доров тоже в статистике');
             Assert::same(2, $hist['totals']['own'], 'наши в итоге по всем сборам');
             Assert::same(50.0, (float) $hist['totals']['own_percent'], 'доля наших — от отобранного');
             Assert::same(2, \YandexSites\Support\CollectHistory::load($dir . '/runs')[0]['own'], 'дописано в историю на диске');

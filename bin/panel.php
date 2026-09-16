@@ -523,6 +523,11 @@ if ($path === '/api/history') {
     // регистрируемый домен), и в последней записи стояло «доров 0»; записи до 1.15.0 не знали про
     // наши шаблоны — пересчитываем последнюю запись по sites.json, где видно и хосты, и признак «наш».
     // Делается один раз: результат сохраняется обратно в историю.
+    // Воронку (сайты выдачи + что срезали фильтры) прошлого сбора можно пересчитать по results.csv —
+    // там лежат те же строки выдачи с причинами; иначе старая запись показывала бы прочерки.
+    $savedSettings = (array) (readJsonFile($settingsFile) ?? []);
+    $historyUniqueBy = ($savedSettings['dedupe_domain'] ?? true) ? 'domain' : 'host';
+    \YandexSites\Support\CollectHistory::backfillFunnel($projectDir . '/runs', $runDir . '/results.csv', $historyUniqueBy);
     \YandexSites\Support\CollectHistory::backfillLatest($projectDir . '/runs', \YandexSites\Support\SiteRows::load($runDir . '/sites.json'));
     $records = \YandexSites\Support\CollectHistory::load($projectDir . '/runs');
     jsonOut([

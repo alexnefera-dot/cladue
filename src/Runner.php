@@ -61,10 +61,18 @@ final class Runner
         $filter = new ResultFilter($filtersCfg);
         /** @var array<string, true> уникальные домены и поддомены из выдачи (см. цикл по результатам) */
         $seenHosts = [];
-        $aggregator = new Aggregator(
-            (string) $this->config->get('filters.unique_by', 'host'),
-            (bool) $this->config->get('filters.strip_www', true),
-        );
+        /**
+         * То же самое, но СГРУППИРОВАННОЕ так же, как группирует Aggregator («один сайт на домен»):
+         * все доры одной сетки — это один сайт, а не десять. Именно от этого числа считается, сколько
+         * в выдаче доров и сколько срезали фильтры, иначе воронка не сходится (6460 адресов → 602 сайта).
+         *
+         * @var array<string, true>
+         */
+        $seenKeys = [];
+        $uniqueBy = (string) $this->config->get('filters.unique_by', 'host');
+        $stripWww = (bool) $this->config->get('filters.strip_www', true);
+        $result->stats['unique_by'] = $uniqueBy; // как группировать выдачу в статистике сбора
+        $aggregator = new Aggregator($uniqueBy, $stripWww);
         $pages = max(1, (int) $this->config->get('search.pages', 1));
         $groupsOnPage = max(1, (int) $this->config->get('search.groups_on_page', 10));
         if ((string) $this->config->get('source') === 'xmlstock' && (string) $this->config->get('xmlstock.mode', 'xml') === 'live') {
@@ -136,9 +144,12 @@ final class Runner
                     // Сколько РАЗНЫХ доменов и поддоменов встретилось в выдаче: результатов в разы
                     // больше (один сайт попадается в десятках запросов), и без этого числа панель
                     // сравнивала несравнимое — «29 904 результата» и «2 043 сайта после фильтров».
-                    $seenHost = Domains::normalize($item->host !== '' ? $item->host : Domains::hostFromUrl($item->url));
+                    $seenHost = Domains::normalize($item->host !== '' ? $item->host : Domains::hostFromUrl($item->url), $stripWww);
                     if ($seenHost !== '') {
                         $seenHosts[$seenHost] = true;
+                        // Ключ группировки — тот же, что у Aggregator: при «один сайт на домен» это
+                        // регистрируемый домен, и поддомены одной сетки складываются в один сайт.
+                        $seenKeys[$uniqueBy === 'domain' ? Domains::registrable($seenHost) : $seenHost] = true;
                     }
                     $this->log->debug(sprintf(
                         '  %4d. %-32s %s%s',
@@ -182,6 +193,7 @@ final class Runner
                 'current_query' => $query,
                 'results' => $result->stats['results'],
                 'hosts_total' => count($seenHosts),
+                'unique_sites' => count($seenKeys),
                 'sites_total' => count($aggregator->sites()),
                 'rejected' => $result->stats['rejected'],
                 'error_count' => count($result->errors),
@@ -190,8 +202,9 @@ final class Runner
 
         $sites = $aggregator->sites();
         $result->stats['hosts_total'] = count($seenHosts);
+        $result->stats['unique_sites'] = count($seenKeys);
         $result->stats['sites_total'] = count($sites);
-        $this->progress(['phase' => 'filter', 'hosts_total' => count($seenHosts), 'sites_total' => count($sites)]);
+        $this->progress(['phase' => 'filter', 'hosts_total' => count($seenHosts), 'unique_sites' => count($seenKeys), 'sites_total' => count($sites)]);
 
         $minQueries = max(1, (int) $this->config->get('filters.min_queries', 1));
         $minHits = max(1, (int) $this->config->get('filters.min_hits', 1));

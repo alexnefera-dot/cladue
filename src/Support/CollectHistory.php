@@ -11,14 +11,18 @@ use YandexSites\Model\Site;
 /**
  * История сборов — вкладка «Статистика» в панели.
  *
- * Интересуют ДОРЫ, и считаются они от ВСЕЙ МАССЫ доменов из выдачи, а не от того, что осталось после
- * фильтров: фильтр «тип домена» отсекает корневые сайты, поэтому в отобранном доров почти 100% и доля
- * ничего не говорит. Поэтому запись содержит два слоя:
- *  - НАЙДЕНО в выдаче: `results` — все строки выдачи (один сайт считается в каждом запросе, где он
- *    попался), `found`/`found_doors`/`found_roots`/`zones` — сколько среди них РАЗНЫХ доменов и
- *    поддоменов, включая отсеянные фильтрами; от `found` и считается доля доров, зоны — по дорам;
- *  - ОТОБРАНО (`sites`, `doors`, `roots`) — что реально попало в базу, плюс `repeats`/`repeats_doors`
- *    (домены, уже бывшие в базе пересечений).
+ * Интересуют ДОРЫ, и считаются они от ВСЕЙ МАССЫ выдачи, а не от того, что осталось после фильтров:
+ * фильтр «тип домена» отсекает корневые сайты, поэтому в отобранном доров почти 100% и доля ничего
+ * не говорит. Запись — это ВОРОНКА, где каждое число вытекает из предыдущего:
+ *  - `results` — все строки выдачи (один сайт считается в каждом запросе, где он попался);
+ *  - `found` — сколько среди них разных АДРЕСОВ (хостов);
+ *  - `unique_sites` — сколько это САЙТОВ после группировки «один сайт на домен» (доры одной сетки —
+ *    один сайт); от него считаются `found_doors`/`found_roots` и доля доров, зоны — по дорам;
+ *  - `cut` — что срезали фильтры, ПО САЙТАМ и по причинам (плюс сколько из них доров);
+ *  - `sites`/`doors`/`roots`/`own` — что отобрано в базу, плюс `repeats`/`repeats_doors`
+ *    (домены, уже бывшие в базе пересечений; они же одна из причин в `cut`).
+ * Проверка сходимости: `unique_sites` = `sites` + сумма `cut` — это и есть ответ на вопрос «куда
+ * делись 6460 доменов, если отобрано 602».
  *
  * Файл лежит в `runs/history.json` (эта папка переживает setup.php --update), новые записи идут в
  * начало списка, хранится последние LIMIT записей.
@@ -82,44 +86,182 @@ final class CollectHistory
     }
 
     /**
-     * Разбор ВСЕЙ выдачи: сколько разных доменов встретилось, сколько из них доров и корневых,
-     * по каким зонам разошлись доры. Считается по сырым результатам (RunResult::$raw), поэтому сюда
-     * попадают и домены, отсеянные фильтрами («не тот тип домена», исключения, позиция) — именно от
-     * этой массы пользователь считает долю доров.
+     * Человеческие названия причин отсева — для журнала, CSV и подписей в панели.
+     * Те же коды, что возвращает Filter\ResultFilter::reject() и считает Runner.
+     */
+    public const REASONS = [
+        'position' => 'позиция ниже лимита',
+        'no_host' => 'без адреса',
+        'include_domains' => 'нет в списке нужных',
+        'exclude_domains' => 'в списке исключений',
+        'own_site' => 'наш шаблон',
+        'tld' => 'зона домена не разрешена',
+        'domain_scope' => 'не тот тип домена',
+        'url_must_match' => 'URL не подходит',
+        'url_must_not_match' => 'URL исключён',
+        'title_any' => 'нет слов в заголовке',
+        'title_all' => 'нет всех слов в заголовке',
+        'title_none' => 'стоп-слово в заголовке',
+        'snippet_any' => 'нет слов в описании',
+        'snippet_none' => 'стоп-слово в описании',
+        'min_queries' => 'мало запросов',
+        'min_hits' => 'мало попаданий',
+        'seen_before' => 'уже в базе доменов',
+        'other' => 'прочее (старая запись, причина не сохранена)',
+    ];
+
+    /** Причины, которые срабатывают уже ПОСЛЕ группировки, — Runner считает их сразу по сайтам. */
+    private const SITE_REASONS = ['min_queries', 'min_hits', 'seen_before'];
+
+    /** Название причины для показа; неизвестный код (site_check:…) отдаём как есть. */
+    public static function reasonLabel(string $code): string
+    {
+        if (str_starts_with($code, 'site_check:')) {
+            return 'не ответил на проверку (' . substr($code, strlen('site_check:')) . ')';
+        }
+
+        return self::REASONS[$code] ?? $code;
+    }
+
+    /**
+     * Разбор ВСЕЙ выдачи по сырым результатам (RunResult::$raw) — то, из чего строится воронка сбора.
+     *
+     * Считаем ДВА разных числа, потому что пользователь читал их как противоречие («а почему
+     * результатов 25к, а доменов 6.5к, а отобрано 600?»):
+     *  - `found` — сколько разных АДРЕСОВ (хостов) встретилось в выдаче;
+     *  - `unique` — сколько это САЙТОВ после группировки «один сайт на домен»: все доры одной сетки
+     *    (kush./hype./max.casinozsd.buzz) — это один сайт, а не три. Группируем тем же ключом, что и
+     *    Aggregator, поэтому от `unique` воронка идёт дальше без разрывов: unique = отобрано + срезано.
+     *
+     * Доры и зоны считаются по `unique`: у группы берётся хост её ЛУЧШЕГО результата (как Aggregator
+     * берёт bestUrl), причём у прошедшей фильтры группы — лучший из прошедших: это тот адрес, который
+     * и попал бы в таблицу.
+     *
+     * `cut` — что срезали фильтры выдачи, ПО САЙТАМ (группа попадает сюда, только если ни один её
+     * результат фильтры не прошёл; причина — у лучшего результата) и отдельно сколько из них доров.
+     * Причины, работающие после группировки (мало запросов, уже в базе), сюда не попадают — их
+     * добавляет record() из счётчиков Runner.
      *
      * @param list<array{result: SearchResult, reason: string|null}> $raw
-     * @return array{found: int, doors: int, roots: int, zones: array<string, int>}
+     * @param string $uniqueBy как группировать: domain («один сайт на домен») или host
+     * @return array{found: int, unique: int, doors: int, roots: int, zones: array<string, int>, cut: array<string, array{sites: int, doors: int}>}
      */
-    public static function breakdownRaw(array $raw): array
+    public static function breakdownRaw(array $raw, string $uniqueBy = 'domain'): array
     {
-        $seen = [];
-        foreach ($raw as $entry) {
-            $item = is_array($entry) ? ($entry['result'] ?? null) : null;
-            if (!$item instanceof SearchResult) {
-                continue;
+        return self::breakdownRows((static function () use ($raw): \Generator {
+            foreach ($raw as $entry) {
+                $item = is_array($entry) ? ($entry['result'] ?? null) : null;
+                if (!$item instanceof SearchResult) {
+                    continue;
+                }
+                $reason = is_array($entry) ? ($entry['reason'] ?? null) : null;
+                yield [
+                    $item->host !== '' ? $item->host : Domains::hostFromUrl($item->url),
+                    $item->position,
+                    is_string($reason) ? $reason : null,
+                ];
             }
-            $host = Domains::normalize($item->host !== '' ? $item->host : Domains::hostFromUrl($item->url));
-            if ($host !== '') {
-                $seen[$host] = true; // один домен считаем один раз, сколько бы запросов его ни нашло
+        })(), $uniqueBy);
+    }
+
+    /**
+     * Тот же разбор, но по «сырым» тройкам [хост, позиция, причина или null] — так его можно
+     * посчитать и по строкам results.csv, не поднимая в память тысячи объектов выдачи.
+     *
+     * @param iterable<array{0: string, 1: int, 2: string|null}> $rows
+     * @return array{found: int, unique: int, doors: int, roots: int, zones: array<string, int>, cut: array<string, array{sites: int, doors: int}>}
+     */
+    public static function breakdownRows(iterable $rows, string $uniqueBy = 'domain'): array
+    {
+        $hosts = [];
+        /** @var array<string, array{host: string, pos: int, reason: string|null, okHost: string, okPos: int, passed: bool}> */
+        $groups = [];
+        foreach ($rows as [$rawHost, $position, $reason]) {
+            $host = Domains::normalize((string) $rawHost);
+            if ($host === '') {
+                continue; // результат без адреса сайтом не считается (счётчик no_host остаётся в stats)
             }
+            $position = (int) $position;
+            $hosts[$host] = true; // один адрес считаем один раз, сколько бы запросов его ни нашло
+            $key = $uniqueBy === 'domain' ? Domains::registrable($host) : $host;
+            $group = $groups[$key] ?? ['host' => '', 'pos' => PHP_INT_MAX, 'reason' => null, 'okHost' => '', 'okPos' => PHP_INT_MAX, 'passed' => false];
+            if ($position < $group['pos']) {
+                $group['pos'] = $position;
+                $group['host'] = $host;
+                $group['reason'] = $reason;
+            }
+            if ($reason === null) {
+                $group['passed'] = true;
+                if ($position < $group['okPos']) {
+                    $group['okPos'] = $position;
+                    $group['okHost'] = $host;
+                }
+            }
+            $groups[$key] = $group;
         }
+
         $doors = 0;
         $roots = 0;
         $zones = [];
-        foreach (array_keys($seen) as $host) {
-            if (!self::isDoor((string) $host)) {
+        $cut = [];
+        foreach ($groups as $group) {
+            $host = $group['passed'] && $group['okHost'] !== '' ? $group['okHost'] : $group['host'];
+            $isDoor = self::isDoor($host);
+            if ($isDoor) {
+                $doors++;
+                $zone = Domains::tld($host);
+                if ($zone !== '') {
+                    $zones[$zone] = ($zones[$zone] ?? 0) + 1;
+                }
+            } else {
                 $roots++;
-                continue;
             }
-            $doors++;
-            $zone = Domains::tld((string) $host);
-            if ($zone !== '') {
-                $zones[$zone] = ($zones[$zone] ?? 0) + 1;
+            if (!$group['passed']) {
+                $reason = $group['reason'] ?? 'other';
+                $cut[$reason] ??= ['sites' => 0, 'doors' => 0];
+                $cut[$reason]['sites']++;
+                $cut[$reason]['doors'] += $isDoor ? 1 : 0;
             }
         }
         arsort($zones);
+        uasort($cut, static fn (array $a, array $b): int => $b['sites'] <=> $a['sites']);
 
-        return ['found' => count($seen), 'doors' => $doors, 'roots' => $roots, 'zones' => $zones];
+        return ['found' => count($hosts), 'unique' => count($groups), 'doors' => $doors, 'roots' => $roots, 'zones' => $zones, 'cut' => $cut];
+    }
+
+    /**
+     * Сколько всего сайтов срезано (сумма по причинам).
+     *
+     * @param array<string, array{sites: int, doors: int}> $cut
+     */
+    public static function cutTotal(array $cut, string $field = 'sites'): int
+    {
+        $n = 0;
+        foreach ($cut as $row) {
+            $n += (int) (((array) $row)[$field] ?? 0);
+        }
+
+        return $n;
+    }
+
+    /**
+     * Строка «что срезано» для журнала и CSV: «не тот тип домена — 3200 (доров 2100); уже в базе — 1185».
+     *
+     * @param array<string, array{sites: int, doors: int}> $cut
+     */
+    public static function cutText(array $cut, int $limit = 0): string
+    {
+        $parts = [];
+        foreach ($cut as $code => $row) {
+            $row = (array) $row;
+            $doors = (int) ($row['doors'] ?? 0);
+            $parts[] = self::reasonLabel((string) $code) . ' — ' . (int) ($row['sites'] ?? 0) . ($doors > 0 ? sprintf(' (доров %d)', $doors) : '');
+            if ($limit > 0 && count($parts) >= $limit) {
+                break;
+            }
+        }
+
+        return implode('; ', $parts);
     }
 
     /**
@@ -134,14 +276,32 @@ final class CollectHistory
     public static function record(array $sites, array $stats, array $seenBefore = [], bool $resume = false, bool $stopped = false, array $raw = []): array
     {
         $breakdown = self::breakdown($sites);
-        $all = self::breakdownRaw($raw);
-        $repeats = count($seenBefore) > 0 ? count($seenBefore) : (int) (((array) ($stats['rejected'] ?? []))['seen_before'] ?? 0);
+        $rejected = (array) ($stats['rejected'] ?? []);
+        $all = self::breakdownRaw($raw, (string) ($stats['unique_by'] ?? 'domain'));
+        $repeats = count($seenBefore) > 0 ? count($seenBefore) : (int) ($rejected['seen_before'] ?? 0);
         $repeatsDoors = 0;
         foreach ($seenBefore as $host) {
             if (self::isDoor((string) $host)) {
                 $repeatsDoors++;
             }
         }
+        // Причины, которые срабатывают уже ПОСЛЕ группировки в сайты (мало запросов, уже в базе,
+        // не ответил на проверку), Runner считает сразу по сайтам — берём его счётчики как есть.
+        // Вместе с фильтрами выдачи из breakdownRaw() получается сходящаяся воронка:
+        // сайтов в выдаче = отобрано + срезано по всем причинам.
+        $cut = $all['cut'];
+        foreach ($rejected as $code => $count) {
+            $code = (string) $code;
+            if (!in_array($code, self::SITE_REASONS, true) && !str_starts_with($code, 'site_check:')) {
+                continue;
+            }
+            $count = $code === 'seen_before' ? $repeats : (int) $count;
+            if ($count > 0) {
+                // Доры известны только по повторам: у остальных причин Runner хостов не запоминает.
+                $cut[$code] = ['sites' => $count, 'doors' => $code === 'seen_before' ? $repeatsDoors : 0];
+            }
+        }
+        uasort($cut, static fn (array $a, array $b): int => $b['sites'] <=> $a['sites']);
 
         return [
             // Идентификатор записи: она пишется СРАЗУ после отбора доменов, а в конце сбора
@@ -150,10 +310,14 @@ final class CollectHistory
             'date' => date(DATE_ATOM),
             // Масштаб сбора: все строки выдачи (один сайт считается в каждом запросе, где он попался).
             'results' => (int) ($stats['results'] ?? 0),
-            // Вся масса: сколько среди них РАЗНЫХ доменов и поддоменов и сколько из них доров.
+            // Вся масса: сколько среди них РАЗНЫХ адресов (found) и сколько это САЙТОВ после
+            // группировки «один сайт на домен» (unique_sites) — доры и зоны считаются по второму.
             'found' => $all['found'],
+            'unique_sites' => $all['unique'],
             'found_doors' => $all['doors'],
             'found_roots' => $all['roots'],
+            // Что срезали фильтры, по сайтам и по причинам: unique_sites = sites + сумма cut.
+            'cut' => $cut,
             // Что отобрано в базу (после фильтров).
             'sites' => count($sites),
             'doors' => $breakdown['doors'],
@@ -277,6 +441,109 @@ final class CollectHistory
     }
 
     /**
+     * Читает результаты прошлого сбора из results.csv тройками [хост, позиция, причина].
+     *
+     * @return \Generator<int, array{0: string, 1: int, 2: string|null}>
+     */
+    public static function resultRows(string $file): \Generator
+    {
+        $fh = is_file($file) ? @fopen($file, 'r') : false;
+        if ($fh === false) {
+            return;
+        }
+        try {
+            $first = fgets($fh);
+            if ($first === false) {
+                return;
+            }
+            $first = (string) preg_replace('/^\xEF\xBB\xBF/', '', $first);
+            $delimiter = substr_count($first, ';') >= substr_count($first, ',') ? ';' : ',';
+            $header = str_getcsv(rtrim($first, "\r\n"), $delimiter, '"', '');
+            $hi = array_search('host', $header, true);
+            $ui = array_search('url', $header, true);
+            $pi = array_search('position', $header, true);
+            $ri = array_search('result', $header, true);
+            if ($hi === false || $ri === false) {
+                return;
+            }
+            while (($row = fgetcsv($fh, 0, $delimiter, '"', '')) !== false) {
+                if (!isset($row[$hi], $row[$ri])) {
+                    continue;
+                }
+                $host = (string) $row[$hi];
+                if ($host === '' && $ui !== false && isset($row[$ui])) {
+                    $host = Domains::hostFromUrl((string) $row[$ui]);
+                }
+                $reason = (string) $row[$ri];
+                yield [$host, $pi !== false && isset($row[$pi]) ? (int) $row[$pi] : 1, $reason === 'selected' || $reason === '' ? null : $reason];
+            }
+        } finally {
+            fclose($fh);
+        }
+    }
+
+    /**
+     * Досчитывает воронку (сайты выдачи + что срезано) в САМОЙ СВЕЖЕЙ записи по results.csv прошлого
+     * сбора — чтобы после обновления не пришлось собирать заново ради новых чисел.
+     *
+     * Записи до 1.16.0 считали массу выдачи по АДРЕСАМ и не знали, что именно срезали фильтры; в
+     * results.csv лежат ровно те строки выдачи с причинами, по которым это считается. Берём файл
+     * только если он описывает ИМЕННО этот сбор: число строк и число разных адресов должны совпасть
+     * с записью (при сборе частями файл описывает весь список, а запись — только свою часть).
+     * Причины, работающие после группировки, в файле не отражены — «уже в базе» берём из записи,
+     * необъяснённый остаток кладём в «прочее», чтобы воронка сходилась.
+     *
+     * @return array<string, mixed>|null обновлённая запись или null, если пересчитывать нечего
+     */
+    public static function backfillFunnel(string $runsDir, string $resultsCsv, string $uniqueBy = 'domain'): ?array
+    {
+        $records = self::load($runsDir);
+        if ($records === [] || isset($records[0]['unique_sites'])) {
+            return null;
+        }
+        $latest = $records[0];
+        $expected = (int) ($latest['results'] ?? 0);
+        if ($expected <= 0 || !is_file($resultsCsv)) {
+            return null;
+        }
+        $rows = 0;
+        $all = self::breakdownRows((static function () use ($resultsCsv, &$rows): \Generator {
+            foreach (self::resultRows($resultsCsv) as $row) {
+                $rows++;
+                yield $row;
+            }
+        })(), $uniqueBy);
+        if ($rows !== $expected || $all['found'] !== (int) ($latest['found'] ?? -1)) {
+            return null; // файл описывает другой сбор (или сбор шёл частями) — не трогаем запись
+        }
+
+        $cut = $all['cut'];
+        $repeats = (int) ($latest['repeats'] ?? 0);
+        if ($repeats > 0) {
+            $cut['seen_before'] = ['sites' => $repeats, 'doors' => (int) ($latest['repeats_doors'] ?? 0)];
+        }
+        $rest = $all['unique'] - (int) ($latest['sites'] ?? 0) - self::cutTotal($cut);
+        if ($rest > 0) {
+            $cut['other'] = ['sites' => $rest, 'doors' => 0];
+        }
+        uasort($cut, static fn (array $a, array $b): int => $b['sites'] <=> $a['sites']);
+
+        $records[0] = array_merge($latest, [
+            'unique_sites' => $all['unique'],
+            'found_doors' => $all['doors'],
+            'found_roots' => $all['roots'],
+            'zones' => $all['zones'],
+            'cut' => $cut,
+        ]);
+        file_put_contents(
+            rtrim($runsDir, '/\\') . '/' . self::FILE,
+            json_encode($records, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+        );
+
+        return $records[0];
+    }
+
+    /**
      * Дополняет уже записанную запись (ищет по `id`): статистика пишется сразу после отбора доменов,
      * а в конце сбора уточняется — визиты могли показать редиректы на бренд-поддомены, и появляется
      * признак «остановлен». Возвращает true, если запись нашлась и обновилась.
@@ -326,22 +593,48 @@ final class CollectHistory
      */
     public static function totals(array $records): array
     {
-        $out = ['runs' => 0, 'results' => 0, 'found' => 0, 'found_doors' => 0, 'found_roots' => 0, 'sites' => 0, 'doors' => 0, 'roots' => 0, 'own' => 0, 'doors_percent' => 0.0, 'own_percent' => 0.0, 'repeats' => 0, 'repeats_doors' => 0, 'zones' => [], 'base_domains' => 0];
+        $out = ['runs' => 0, 'results' => 0, 'found' => 0, 'unique_sites' => 0, 'found_doors' => 0, 'found_roots' => 0, 'sites' => 0, 'doors' => 0, 'roots' => 0, 'own' => 0, 'cut' => [], 'cut_total' => 0, 'doors_percent' => 0.0, 'own_percent' => 0.0, 'repeats' => 0, 'repeats_doors' => 0, 'zones' => [], 'base_domains' => 0];
         foreach ($records as $r) {
             $out['runs']++;
-            foreach (['results', 'found', 'found_doors', 'found_roots', 'sites', 'doors', 'roots', 'own', 'repeats', 'repeats_doors'] as $key) {
+            foreach (['results', 'found', 'found_roots', 'sites', 'doors', 'roots', 'own', 'repeats', 'repeats_doors'] as $key) {
                 $out[$key] += (int) ($r[$key] ?? 0);
             }
+            // Масса выдачи и доры в ней: у записей до 1.16.0 группировки нет — берём адреса, у совсем
+            // старых (до 1.13.0) — отобранное. Иначе сумма доров делилась бы на массу только новых
+            // записей и доля доров вылетала за 100%.
+            $sites = (int) ($r['sites'] ?? 0);
+            $mass = (int) ($r['unique_sites'] ?? 0) ?: ((int) ($r['found'] ?? 0) ?: $sites);
+            $massDoors = (int) ($r['unique_sites'] ?? 0) > 0 || (int) ($r['found'] ?? 0) > 0
+                ? (int) ($r['found_doors'] ?? 0)
+                : (int) ($r['doors'] ?? 0); // запись без сырой выдачи: доры известны только по отобранному
+            $out['unique_sites'] += $mass;
+            $out['found_doors'] += $massDoors;
             foreach ((array) ($r['zones'] ?? []) as $zone => $count) {
                 $out['zones'][(string) $zone] = ($out['zones'][(string) $zone] ?? 0) + (int) $count;
             }
+            $cut = (array) ($r['cut'] ?? []);
+            foreach ($cut as $code => $row) {
+                $row = (array) $row;
+                $code = (string) $code;
+                $out['cut'][$code] ??= ['sites' => 0, 'doors' => 0];
+                $out['cut'][$code]['sites'] += (int) ($row['sites'] ?? 0);
+                $out['cut'][$code]['doors'] += (int) ($row['doors'] ?? 0);
+            }
+            // Чтобы итог тоже сходился (масса = отобрано + срезано), необъяснённый остаток записи
+            // (у старых записей — всё срезанное) кладём в «прочее».
+            $rest = $mass - $sites - self::cutTotal($cut);
+            if ($rest > 0) {
+                $out['cut']['other'] ??= ['sites' => 0, 'doors' => 0];
+                $out['cut']['other']['sites'] += $rest;
+            }
         }
         arsort($out['zones']);
-        // Доля доров — от ВСЕЙ массы найденных доменов; у записей старых версий этой массы нет,
-        // тогда считаем как раньше, от отобранного.
-        $out['doors_percent'] = $out['found'] > 0
-            ? self::percent($out['found_doors'], $out['found'])
-            : self::percent($out['doors'], $out['sites']);
+        uasort($out['cut'], static fn (array $a, array $b): int => $b['sites'] <=> $a['sites']);
+        $out['cut_total'] = self::cutTotal($out['cut']);
+        // Доля доров — от массы САЙТОВ выдачи (после группировки «один сайт на домен»): именно из
+        // этого числа дальше вычитается срезанное. У записей до 1.16.0 группировки нет — там считаем
+        // от разных адресов, а у совсем старых (до 1.13.0) — от отобранного, как было.
+        $out['doors_percent'] = self::percent($out['found_doors'], $out['unique_sites']);
         // Наши считаются от ОТОБРАННОГО: в выдаче мы их по одному адресу не узнаём, признак ставится
         // по меткам в HTML уже на визите.
         $out['own_percent'] = self::percent($out['own'], $out['sites']);
@@ -366,18 +659,26 @@ final class CollectHistory
         if ($bom) {
             fwrite($out, "\xEF\xBB\xBF");
         }
-        fputcsv($out, ['Дата', 'Результатов в выдаче', 'Доменов и поддоменов', 'Доров из них', 'Доля доров, %', 'Корневых', 'Отобрано сайтов', 'Доров среди отобранных', 'Наших сайтов', 'Доля наших, %', 'Повторов доров', 'Повторов всего', 'Зоны доров', 'Всего в базе', 'Продолжение', 'Остановлен'], $delimiter, '"', '');
+        fputcsv($out, ['Дата', 'Результатов в выдаче', 'Адресов в выдаче', 'Сайтов в выдаче', 'Доров из них', 'Доля доров, %', 'Корневых', 'Срезано фильтрами', 'Что срезано', 'Отобрано сайтов', 'Доров среди отобранных', 'Наших сайтов', 'Доля наших, %', 'Повторов доров', 'Повторов всего', 'Зоны доров', 'Всего в базе', 'Продолжение', 'Остановлен'], $delimiter, '"', '');
         foreach ($records as $r) {
             $found = (int) ($r['found'] ?? 0);
             $foundDoors = (int) ($r['found_doors'] ?? 0);
             $sites = (int) ($r['sites'] ?? 0);
+            // База для доли доров: сайты выдачи после группировки, у старых записей — адреса.
+            $mass = (int) ($r['unique_sites'] ?? 0);
+            $cut = (array) ($r['cut'] ?? []);
             fputcsv($out, [
                 self::dateHuman((string) ($r['date'] ?? '')),
                 (int) ($r['results'] ?? 0),
                 $found,
+                $mass > 0 ? $mass : '', // у старых записей группировки нет — пусто, а не «0 сайтов»
                 $foundDoors,
-                $found > 0 ? self::percent($foundDoors, $found) : self::percent((int) ($r['doors'] ?? 0), $sites),
+                $mass > 0
+                    ? self::percent($foundDoors, $mass)
+                    : ($found > 0 ? self::percent($foundDoors, $found) : self::percent((int) ($r['doors'] ?? 0), $sites)),
                 (int) ($r['found_roots'] ?? 0),
+                $cut !== [] ? self::cutTotal($cut) : '',
+                self::cutText($cut),
                 $sites,
                 (int) ($r['doors'] ?? 0),
                 (int) ($r['own'] ?? 0),

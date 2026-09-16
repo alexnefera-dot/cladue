@@ -562,14 +562,32 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   percentage is the WHOLE SERP MASS, not the selection: their `domain_scope` filter drops root domains
   («не тот тип домена — 13250»), so among the SELECTED sites doors were 94.6% and the number said
   nothing — «надо отталкиваться от общего числа всех видов доменов… всего результатов в выдаче, не тот
-  тип домена тоже нам подходит». So `breakdownRaw(RunResult::$raw)` counts DISTINCT normalized hosts
-  across every result of the collect, rejected ones included, and the record holds two layers: FOUND
-  (`results` = every SERP row, `found`/`found_doors`/`found_roots` = how many DISTINCT hosts that is, and
-  `zones` = the zones of the found doors) and SELECTED
-  (`sites`, `doors`, `roots`), plus `repeats`/`repeats_doors`, `base_domains`, `resume`, `stopped` —
-  and deliberately NOT queries or filter rejections. The panel's «Доля доров» and `totals()`
-  `doors_percent` divide `found_doors` by `found`, falling back to the selected pair for records
-  written before 1.13.0 (which have no `found`). `isDoor($host)` = the normalized host is
+  тип домена тоже нам подходит». The record is therefore a FUNNEL where every number follows from the
+  previous one («переделай чтоб и на главной и в статистике были понятные данные, без повторов»;
+  «1 — результаты выдачи все не уникальное, 2 — уникальных доменов и поддоменов (уже после группировки
+  «один сайт на домен»). И потом из этого числа количество доров. А потом уже фильтр отсева»):
+  `results` (every SERP row) → `found` (DISTINCT normalized hosts) → `unique_sites` (what that is after
+  the Aggregator's grouping — with `unique_by=domain` all doors of one network are ONE site) →
+  `found_doors`/`found_roots` + `zones` COUNTED ON THOSE GROUPS → `cut` (what the filters removed, BY
+  SITE and per reason, with the doors among them) → SELECTED (`sites`, `doors`, `roots`, `own`), plus
+  `repeats`/`repeats_doors`, `base_domains`, `resume`, `stopped` — and deliberately NOT queries.
+  The invariant is `unique_sites == sites + cutTotal(cut)`, asserted both in `CollectHistoryTest` and
+  end to end in `PanelTest::testCollectWritesHistoryAndStatsEndpoint`: it is the answer to «куда делись
+  6460 доменов, если отобрано 602». Counting the mass by HOST made that question unanswerable — 6460
+  addresses never turn into 602 sites directly, because the doors of one network collapse first.
+  `breakdownRaw()` delegates to `breakdownRows(iterable $rows, $uniqueBy)` (triples
+  `[host, position, reason]`), which groups like `Aggregator` (key = registrable domain or host, from
+  `stats['unique_by']`, set by `Runner`) and takes each group's representative host from its BEST result
+  — the best PASSING one when the group passed, since that is the address that would land in the table.
+  A group lands in `cut` only when NONE of its results passed, under the reason of its best result; the
+  reasons that fire AFTER grouping (`min_queries`, `min_hits`, `seen_before`, `site_check:*`) are already
+  per-site counters in `Runner`, so `record()` copies them from `stats['rejected']` (with `seen_before`
+  carrying `repeats_doors` as its door count). `Runner` also keeps a live `$seenKeys` set →
+  `stats['unique_sites']`, so the panel's progress funnel shows the same number while the collect runs.
+  `CollectHistory::REASONS`/`reasonLabel()`/`cutText()` give the Russian labels for the log and CSV;
+  `public/panel.html` has the same map in `CUT_LABELS`/`cutHtml()`. The panel's «Доля доров» and `totals()`
+  `doors_percent` divide `found_doors` by `unique_sites`, falling back to `found` for records written
+  before 1.16.0 and to the selected pair for records before 1.13.0 (which have no `found`). `isDoor($host)` = the normalized host is
   longer than its registrable domain (`www.` folded first, and `Domains::SECOND_LEVEL` means
   `kush.net.ru` is NOT a door). The host MUST come from `Site::realHost()`, never `Site::$host`: with
   `filters.unique_by = domain` (the panel's «один сайт на домен», on by default) `Aggregator` puts the
@@ -599,10 +617,13 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   N доменов, из них доров (поддоменов) M (X%), повторов доров …», «Наши шаблоны среди отобранного …») and
   to the collect message; the panel's own stats line above the results table prints the same percent next
   to «наших N». Panel: `GET /api/history` returns
-  `records` + `totals()` (sums, plus `doors_percent`/`own_percent`; `base_domains` is the newest record's ledger size,
-  not a sum), `loadStats()` renders the summary boxes, the door-zone chips and the table (the door-repeat
-  cell carries the total repeats in its `title`), `GET /download?file=history` builds `csv()` on the fly
-  (zones folded into one column so new zones cannot widen the table). The tab reloads on click and
+  `records` + `totals()` (sums, plus `doors_percent`/`own_percent`/`cut_total` and a merged `cut`;
+  `base_domains` is the newest record's ledger size,
+  not a sum), `loadStats()` renders the summary boxes, the «что срезали фильтры» chips, the door-zone
+  chips and the table (the door-repeat cell carries the total repeats in its `title`, the «Срезано»
+  cell the per-reason breakdown, the «Сайтов в выдаче» cell the host count before grouping),
+  `GET /download?file=history` builds `csv()` on the fly
+  (zones and the cut breakdown each folded into one column so new reasons cannot widen the table). The tab reloads on click and
   whenever a job finishes while it is open. The file lives in `runs/` (not `runs/current/`), so it
   survives `setup.php --update`. It does NOT survive `/api/reset-base` any more: the user cleared the base
   and expected the statistics to go with it («я отчистил базу, сбрось и статистику»), so that endpoint
@@ -616,19 +637,33 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `found`: since 1.13.0 the zones belong to the whole SERP mass and must not be overwritten with the
   selected ones) when it says 0 doors, and `own` when the key is missing — then saves it back, the same
   lazy-upgrade pattern as `SiteRows::backfillTemplates()`. A row with no `own` key shows «—», not «0», so
-  an old collect does not claim it had no own templates. Door repeats cannot be recovered that way (the
+  an old collect does not claim it had no own templates. `backfillFunnel()` (also called from
+  `/api/history`, before `backfillLatest()`) recomputes the NEWEST record's `unique_sites`/`found_doors`/
+  `found_roots`/`zones`/`cut` from `runs/current/results.csv` — the raw SERP rows with their reasons are
+  in that file — but ONLY when the file describes exactly that collect (its row count equals the record's
+  `results` AND its distinct-host count equals `found`; a collect done in parts writes one results.csv for
+  several records). Reasons that fire after grouping are not in the file: `seen_before` comes from the
+  record's own `repeats`, and any unexplained remainder goes into an `other` bucket labelled «прочее
+  (старая запись)» so the invariant still holds. Zones are recomputed together with the doors — leaving
+  the host-level ones would contradict the new count. Door repeats cannot be recovered that way (the
   rejected hosts are not on disk) and stay as written. Nothing else is backfilled: pre-1.10.0 collects have no records at all
-  and the tab says so. Covered by `tests/CollectHistoryTest.php`,
-  `PanelTest::testCollectWritesHistoryAndStatsEndpoint` and
-  `PanelTest::testHistoryCountsOwnSitesForOldRecords`.
+  and the tab says so. Covered by `tests/CollectHistoryTest.php` (incl.
+  `testFunnelAddsUpAndNamesWhatWasCut`, `testGroupingFollowsUniqueBySetting`,
+  `testBackfillFunnelRecomputesFromResultsCsv`), `RunnerTest::testCountsUniqueHostsSeparatelyFromResults`,
+  `PanelTest::testCollectWritesHistoryAndStatsEndpoint` (asserts the invariant on a real collect) and
+  `PanelTest::testHistoryCountsOwnSitesForOldRecords` (both backfills on one record).
 - The panel's progress cards are a FUNNEL with no repeated number, because «29 904 результата» next to
   «2 043 сайта» read as a contradiction («а почему результатов в выдаче 29к, а доменов 7к — это
   уникальных?»): запросов → `results` (every SERP row; one site counts again in each query that found it)
-  → `hosts_total` (how many DISTINCT normalized hosts that is — `Runner` keeps a `$seenHosts` set while
-  collecting, so the number is live, and stores it in `stats['hosts_total']`) → `sites_selected` (after
-  the filters AND the `unique_by=domain` grouping) → `new_domains`, shown ONLY when it differs from
+  → `unique_sites` (the SERP mass GROUPED the way the collect groups it — `Runner` keeps a `$seenKeys`
+  set next to `$seenHosts`, so both are live; the raw host count `hosts_total` is now only the card's
+  tooltip, because 6460 addresses never turn into 602 sites directly and the two cards read as a
+  contradiction) → `sites_selected` (after the filters) → `new_domains`, shown ONLY when it differs from
   `sites_selected` (with `skip_known` on they are always equal — that was one of the duplicate cards).
-  Each card carries a `title` explaining the step. The «Статистика» tab uses the same wording and the
+  Each card carries a `title` explaining the step; «отобрано сайтов» says explicitly that it is the
+  filter result and NOT «the site opened» — the user asked «это те что мы смогли зайти без ошибки или
+  как?». The live «Отсеяно» line is labelled «(по строкам выдачи)» with a tooltip pointing at the
+  per-site recount in the statistics tab, because its row-level and site-level counters cannot be added. The «Статистика» tab uses the same wording and the
   same numbers, so the two screens can be compared line by line.
 - `Support\DomainLedger` (runs/domains-base.txt) is a cross-run base of collected registrable
   domains; `Runner` takes an optional ledger + skipKnown to drop already-seen domains (reason

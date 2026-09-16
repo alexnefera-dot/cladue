@@ -194,6 +194,20 @@ final class RunnerTest
             $seen[\YandexSites\Filter\Domains::normalize($entry['result']->host)] = true;
         }
         Assert::same(count($seen), $hosts);
+
+        // И отдельно — сколько это САЙТОВ после группировки «один сайт на домен»: воронка панели
+        // и статистики идёт именно от этого числа, из адресов 602 сайта напрямую не получаются.
+        $grouped = new Runner($this->config(['filters' => ['unique_by' => 'domain']]), $this->fetcher($calls), new XmlResponseParser(), $this->logger());
+        $result = $grouped->run(['окна', 'балконы']);
+        $keys = [];
+        foreach ($result->raw as $entry) {
+            $host = \YandexSites\Filter\Domains::normalize($entry['result']->host);
+            $keys[\YandexSites\Filter\Domains::registrable($host)] = true;
+        }
+        Assert::same('domain', $result->stats['unique_by'], 'способ группировки уходит в статистику сбора');
+        Assert::same(count($keys), $result->stats['unique_sites'], 'сайты выдачи считаются тем же ключом, что и отбор');
+        Assert::true($result->stats['unique_sites'] <= $result->stats['hosts_total'], 'сайтов не больше, чем адресов');
+        Assert::true($result->stats['unique_sites'] >= $result->stats['sites_total'], 'после фильтров сайтов не больше');
     }
 
     public function testSelectedCallbackFiresBeforeVisits(): void
