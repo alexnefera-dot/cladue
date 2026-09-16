@@ -2537,10 +2537,13 @@ function v5SrokVRazdele(string $часть): string
 function v5DoborSsylok(string $html, string $тип, int $сид = 0): string
 {
     // Цель профиля по типам — середина полосы, снятой с доноров.
+    // Цель — нижний край полосы, а не середина: перекрут добирает ссылки
+    // после генератора и кладёт сверху ещё десяток. При цели в середину
+    // info выходил на 51 при полосе 37–47.
     static $цели = [
-        'main' => 69, 'obzor' => 39, 'slots' => 47, 'bonus' => 48, 'promo' => 43,
-        'registracia' => 43, 'vhod' => 39, 'zerkalo' => 44, 'app' => 47,
-        'news' => 43, 'partnery' => 41, 'info' => 43,
+        'main' => 60, 'obzor' => 33, 'slots' => 32, 'bonus' => 36, 'promo' => 34,
+        'registracia' => 40, 'vhod' => 35, 'zerkalo' => 35, 'app' => 37,
+        'news' => 37, 'partnery' => 36, 'info' => 38,
     ];
     // Что во что ведёт. Порядок — по частоте анкора в корпусе.
     $адреса = [
