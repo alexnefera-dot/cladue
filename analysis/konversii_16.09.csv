@@ -1,0 +1,21 @@
+﻿datetime,event,campaign,name,clickid,country,source,referer,user_ip,postback_ip,linked
+"2026-09-16 16:22:46",dep,dorgen_engine,Dorgen_engine,85e975656d65b7f1,DE,leon.2837.team,https://yandex.ru/,57.129.105.203,209.38.42.185,yes
+"2026-09-16 16:15:10",reg,dorgen_engine,Dorgen_engine,fb747386d5c413fe,NL,shuffle.kogk.team,https://yandex.ru/,193.41.68.50,209.38.42.185,yes
+"2026-09-16 15:15:10",reg,dorgen_engine,Dorgen_engine,1e7eb3b25d9b638d,NL,pinco.itsr.team,https://yandex.ru/,107.151.194.84,209.38.42.185,yes
+"2026-09-16 15:15:09",reg,dorgen_engine,Dorgen_engine,85e975656d65b7f1,DE,leon.2837.team,https://yandex.ru/,57.129.105.203,209.38.42.185,yes
+"2026-09-16 14:22:47",dep,dorgen_engine,Dorgen_engine,bf5b30ea77e37aac,DE,iris.1206.lol,https://yandex.ru/,83.98.199.85,209.38.42.185,yes
+"2026-09-16 13:16:37",reg,eva_engine,Eva_engine,b50076890a57484d,ES,eva.ploo.team,https://yandex.ru/,85.90.217.172,209.38.42.185,yes
+"2026-09-16 12:15:10",reg,dorgen_engine,Dorgen_engine,36a2255383e92d55,FR,luckybird.2659.team,https://yandex.ru/,149.34.245.12,209.38.42.185,yes
+"2026-09-16 12:15:09",reg,dorgen_engine,Dorgen_engine,09b2243500a013bf,NL,luckybird.rdpo.lol,https://yandex.ru/,77.238.253.86,209.38.42.185,yes
+"2026-09-16 11:15:10",reg,dorgen_engine,Dorgen_engine,bf5b30ea77e37aac,DE,iris.1206.lol,https://yandex.ru/,83.98.199.85,209.38.42.185,yes
+"2026-09-16 10:15:09",reg,dorgen_engine,Dorgen_engine,fa0c1dcf474e6ccc,DE,martin.3709.team,https://yandex.ru/,64.226.114.160,209.38.42.185,yes
+"2026-09-16 09:15:09",reg,dorgen_engine,Dorgen_engine,3dd2b7aa8cd2a7a5,DE,shuffle.9430.team,https://yandex.ru/,91.196.32.31,209.38.42.185,yes
+"2026-09-16 09:15:08",reg,dorgen_engine,Dorgen_engine,f6f3a23e89011d4d,NL,luckybird.imic.team,https://yandex.ru/,195.85.197.245,209.38.42.185,yes
+"2026-09-16 09:15:08",reg,dorgen_engine,Dorgen_engine,0e9d4d0a5f14f29b,FR,pinco.ciye.team,https://yandex.ru/,16.216.132.18,209.38.42.185,yes
+"2026-09-16 05:15:07",reg,dorgen_engine,Dorgen_engine,6bbcefe29060ac9b,NL,luckybird.ploo.team,https://yandex.ru/,89.125.100.27,209.38.42.185,yes
+"2026-09-16 03:15:09",reg,dorgen_engine,Dorgen_engine,a14b1b0476bd1a51,NL,cactus.2544.team,https://yandex.ru/,2a00:7c80:0:1f8::3,209.38.42.185,yes
+"2026-09-16 02:22:01",dep,dorgen_engine,Dorgen_engine,7b7f7896ddd0ec4c,EE,marathon.ploo.team,https://yandex.ru/,185.246.187.84,209.38.42.185,yes
+"2026-09-16 01:15:10",reg,dorgen_engine,Dorgen_engine,1a170fe56329b9f0,DE,lootrun.2600.team,https://yandex.ru/,178.17.58.28,209.38.42.185,yes
+"2026-09-16 01:15:10",reg,dorgen_engine,Dorgen_engine,7b7f7896ddd0ec4c,EE,marathon.ploo.team,https://yandex.ru/,185.246.187.84,209.38.42.185,yes
+"2026-09-16 01:15:10",reg,dorgen_engine,Dorgen_engine,8ee465fb552e34b5,DE,brillx.qlmf.lol,https://yandex.ru/,23.251.48.228,209.38.42.185,yes
+"2026-09-16 00:15:11",reg,dorgen_engine,Dorgen_engine,2514e0334399426c,FI,vulkanrussia.4982.team,https://alice.yandex.ru/,194.34.134.166,209.38.42.185,yes
