@@ -1,0 +1,209 @@
+<title>Регистрации по контентам</title>
+<style>
+:root{
+  --paper:#eeeeea; --card:#fdfdfb; --ink:#171a15; --mute:#5d6157; --line:#d3d4cc;
+  --acc:#46602a; --accbg:#e7ecdd; --gap:#a33b2a; --gapbg:#f6e7e3;
+  --ctrl:#2c4a63; --ctrlbg:#e2e9ef;
+}
+:root:not([data-theme="light"]){@media (prefers-color-scheme:dark){
+  --paper:#151713; --card:#1e211b; --ink:#e9eae2; --mute:#9a9d91; --line:#32352c;
+  --acc:#a8c47c; --accbg:#222a17; --gap:#e2907c; --gapbg:#2c1b17;
+  --ctrl:#8db4d4; --ctrlbg:#1a242d;
+}}
+:root[data-theme="dark"]{
+  --paper:#151713; --card:#1e211b; --ink:#e9eae2; --mute:#9a9d91; --line:#32352c;
+  --acc:#a8c47c; --accbg:#222a17; --gap:#e2907c; --gapbg:#2c1b17;
+  --ctrl:#8db4d4; --ctrlbg:#1a242d;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font:400 16.5px/1.66 "Source Serif 4",Georgia,serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:900px;margin:0 auto;padding:0 20px;padding-block:54px 82px}
+h1{font:700 clamp(32px,6vw,50px)/1.06 Chivo,"Helvetica Neue",sans-serif;letter-spacing:-.022em;
+  margin:0 0 16px;text-wrap:balance}
+h2{font:700 clamp(21px,3.3vw,28px)/1.2 Chivo,sans-serif;letter-spacing:-.012em;
+  margin:0 0 12px;text-wrap:balance}
+h3{font:600 16.5px/1.32 Chivo,sans-serif;margin:0 0 7px}
+p{margin:0 0 14px;max-width:66ch}
+.eyebrow{font:500 12px/1 "Fira Mono",ui-monospace,monospace;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--acc);margin:0 0 16px}
+.lede{font-size:19px;color:var(--mute);max-width:61ch}
+.lede b{color:var(--ink);font-weight:600}
+hr{border:0;border-top:1px solid var(--line);margin:42px 0 34px}
+section{margin:0 0 44px}
+.n,code{font-family:"Fira Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+code{background:var(--accbg);padding:.1em .34em;border-radius:2px;font-size:.86em}
+
+figure{margin:0 0 20px;background:var(--card);border:1px solid var(--line);padding:22px 20px 16px}
+figure svg{display:block;max-width:100%;height:auto;margin:0 auto;color:var(--ink)}
+figcaption{font-size:14.5px;color:var(--mute);margin-top:16px;border-top:1px solid var(--line);
+  padding-top:12px;line-height:1.5}
+
+.tw{overflow-x:auto;border:1px solid var(--line);background:var(--card);margin:0 0 18px}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:15px}
+th{font:500 10.5px/1.2 "Fira Mono",ui-monospace,monospace;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--mute);text-align:left;padding:11px 14px;
+  border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:bottom}
+td{padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.45;
+  font-size:14.5px}
+td:first-child{font-family:"Fira Mono",ui-monospace,monospace;font-size:13px;
+  white-space:nowrap;font-weight:500}
+tr:last-child td{border-bottom:0}
+tr.sub td{background:var(--paper);font:600 12px/1.3 Chivo,sans-serif;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--mute)}
+tr.sub td:first-child{font-family:Chivo,sans-serif;font-size:12px}
+
+.tag{display:inline-block;font:500 10px/1 "Fira Mono",monospace;letter-spacing:.06em;
+  text-transform:uppercase;padding:3px 6px;border-radius:2px;white-space:nowrap}
+.g-ctrl{background:var(--ctrlbg);color:var(--ctrl)}
+.g-obs{background:var(--accbg);color:var(--acc)}
+.g-gap{background:var(--gapbg);color:var(--gap)}
+.g-const{background:var(--line);color:var(--mute)}
+
+.call{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--acc);
+  padding:17px 21px;margin:0 0 18px}
+.call.gap{border-left-color:var(--gap)}
+.call.q{border-left-color:var(--ctrl)}
+.call p:last-child{margin-bottom:0}
+.fmt{background:var(--card);border:1px solid var(--line);padding:15px 17px;margin:0 0 16px;
+  overflow-x:auto}
+.fmt pre{margin:0;font:400 12.5px/1.7 "Fira Mono",ui-monospace,monospace;white-space:pre}
+ul,ol{margin:0 0 14px;padding-left:22px;max-width:66ch}
+li{margin:0 0 8px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin:0 0 18px}
+.two>div{background:var(--card);border:1px solid var(--line);padding:16px 18px}
+.two h3{margin-bottom:8px}
+.two ul{padding-left:18px;margin:0}
+.two li{font-size:15px;margin:0 0 6px}
+.miss{background:var(--gapbg);border-left:3px solid var(--gap);padding:11px 15px;
+  margin:-4px 0 20px;font-size:14.5px;line-height:1.55;max-width:66ch}
+.miss ul{margin:5px 0 0;padding-left:18px}
+.miss li{margin:0 0 4px;font-size:14.5px}
+.miss p{margin:0;font-size:14.5px}
+.foot{font-size:14px;color:var(--mute);border-top:1px solid var(--line);padding-top:17px}
+</style><div class="wrap">
+
+<p class="eyebrow">отчёт · окно 09–16.09.2026</p>
+<h1>Регистрации по контентам</h1>
+<p class="lede">164 события за восемь дней: <b>138 регистраций и 26 ФД</b>
+на 99 доменах. 149 событий сведены с группой контента из реестра запусков.</p>
+
+<hr>
+
+<section>
+<h2>Главное</h2>
+<div class="tw"><table>
+<tr><th>что</th><th>значение</th></tr>
+<tr><td>семейства контента различаются <b>больше случайного</b></td><td class="n">χ² = 23.4, df = 7, p ≈ 0.0015</td></tr>
+<tr><td>лучшее семейство — <code>NEW102</code></td><td class="n">0.064 рег/дом/день, 1.82× среднего</td></tr>
+<tr><td>худшее — <code>nabory</code></td><td class="n">0.013, 0.37× среднего, <b>ноль ФД</b></td></tr>
+<tr><td>текущее производство <code>content-2026-*</code></td><td class="n">0.028, <b>0.79× среднего</b></td></tr>
+</table></div>
+<div class="call gap">
+<h3>Неудобное в этой таблице</h3>
+<p>Лучше всех работает то, что мы <b>перестали запускать</b>. <code>NEW102</code>
+выкладывался один день — 10.09, <code>clean</code> один день — 07.09.
+Сегодня в производстве <code>content-2026-*</code> и <code>nabory</code>,
+и это два из трёх худших семейства по отдаче.</p>
+</div>
+</section>
+
+<hr>
+
+<section>
+<h2>Семейства с поправкой на экспозицию</h2>
+<p>Прямое «регистраций на домен» сравнивать нельзя: семейства запускались
+в разные дни, и у свежих было меньше времени внутри окна. Экспозиция считается
+как пересечение шестидневного окна жизни домена с окном выгрузки, в домен·днях.</p>
+<div class="tw"><table>
+<tr><th>семейство</th><th>дни запуска</th><th>доменов</th><th>дом·дней</th><th>рег</th><th>ФД</th><th>рег/дом/день</th><th>к среднему</th></tr>
+<tr><td><b>NEW102</b></td><td>10.09</td><td class="n">60</td><td class="n">360</td><td class="n">23</td><td class="n">7</td><td class="n"><b>0.0639</b></td><td class="n"><b>1.82×</b></td></tr>
+<tr><td>clean</td><td>07.09</td><td class="n">61</td><td class="n">231</td><td class="n">13</td><td class="n">2</td><td class="n">0.0564</td><td class="n">1.61×</td></tr>
+<tr><td>script_12page</td><td>08–11.09</td><td class="n">32</td><td class="n">175</td><td class="n">9</td><td class="n">0</td><td class="n">0.0516</td><td class="n">1.47×</td></tr>
+<tr><td>archive</td><td>08–09.09</td><td class="n">211</td><td class="n">1085</td><td class="n">35</td><td class="n">9</td><td class="n">0.0323</td><td class="n">0.92×</td></tr>
+<tr><td>NEW20</td><td>05–07.09</td><td class="n">78</td><td class="n">218</td><td class="n">7</td><td class="n">1</td><td class="n">0.0321</td><td class="n">0.92×</td></tr>
+<tr><td><b>content-2026-*</b></td><td>12, 14, 15.09</td><td class="n">390</td><td class="n">935</td><td class="n">26</td><td class="n">5</td><td class="n">0.0278</td><td class="n">0.79×</td></tr>
+<tr><td><b>nabory</b></td><td>31.08–16.09</td><td class="n">188</td><td class="n">387</td><td class="n">5</td><td class="n">0</td><td class="n"><b>0.0129</b></td><td class="n"><b>0.37×</b></td></tr>
+<tr><td>прочее</td><td>31.08–11.09</td><td class="n">110</td><td class="n">173</td><td class="n">2</td><td class="n">0</td><td class="n">0.0115</td><td class="n">0.33×</td></tr>
+<tr class="sub"><td>ВСЕГО</td><td></td><td class="n">1259</td><td class="n">3563</td><td class="n">125</td><td class="n">24</td><td class="n">0.0351</td><td></td></tr>
+</table></div>
+
+<h3>Попарные сравнения</h3>
+<div class="tw"><table>
+<tr><th>пара</th><th>отношение</th><th>95% доверительный интервал</th><th>p</th></tr>
+<tr><td>NEW102 против nabory</td><td class="n"><b>4.95×</b></td><td class="n">1.88 — 13.01</td><td class="n"><b>0.0005</b></td></tr>
+<tr><td>clean против nabory</td><td class="n">4.36×</td><td class="n">1.55 — 12.22</td><td class="n"><b>0.0057</b></td></tr>
+<tr><td>NEW102 против content-2026-*</td><td class="n"><b>2.30×</b></td><td class="n">1.31 — 4.03</td><td class="n"><b>0.0066</b></td></tr>
+<tr><td>NEW102 против archive</td><td class="n">1.98×</td><td class="n">1.17 — 3.35</td><td class="n">0.0189</td></tr>
+<tr><td>archive против nabory</td><td class="n">2.50×</td><td class="n">0.98 — 6.37</td><td class="n">0.0587</td></tr>
+<tr><td>content-2026-* против nabory</td><td class="n">2.15×</td><td class="n">0.83 — 5.60</td><td class="n">0.1477</td></tr>
+</table></div>
+<p>Первые четыре строки проходят порог. Последние две — направление есть,
+значимости нет.</p>
+</section>
+
+<hr>
+
+<section>
+<h2>Регистрации по дням</h2>
+<p>Строки — группы контента, столбцы — день события. Точка означает ноль.</p>
+<div class="tw"><table>
+<tr><th>группа</th><th>запущена</th><th>09</th><th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>всего</th></tr>
+<tr><td>NEW102оформленосдатой</td><td>10.09</td><td>·</td><td>·</td><td class="n">4</td><td class="n">5</td><td class="n">4</td><td class="n">1</td><td class="n">1</td><td>·</td><td class="n"><b>15</b></td></tr>
+<tr><td>archive412_unique12оформлено</td><td>09.09</td><td class="n">3</td><td class="n">2</td><td class="n">3</td><td class="n">4</td><td class="n">1</td><td>·</td><td>·</td><td class="n">1</td><td class="n"><b>14</b></td></tr>
+<tr><td>— вне списков</td><td>—</td><td class="n">1</td><td class="n">2</td><td class="n">3</td><td class="n">1</td><td class="n">4</td><td>·</td><td class="n">2</td><td>·</td><td class="n">13</td></tr>
+<tr><td>clean7_part1_50оформлено</td><td>07.09</td><td class="n">1</td><td class="n">1</td><td class="n">2</td><td class="n">5</td><td class="n">1</td><td>·</td><td>·</td><td>·</td><td class="n">10</td></tr>
+<tr><td>NEW102оформленобездаты</td><td>10.09</td><td>·</td><td>·</td><td class="n">4</td><td class="n">1</td><td class="n">3</td><td>·</td><td>·</td><td>·</td><td class="n">8</td></tr>
+<tr><td>archive47_unique119 часть1</td><td>09.09</td><td>·</td><td class="n">3</td><td class="n">1</td><td>·</td><td class="n">2</td><td>·</td><td>·</td><td>·</td><td class="n">6</td></tr>
+<tr><td>Content_script_12page_08.09</td><td>08.09</td><td class="n">1</td><td class="n">5</td><td>·</td><td>·</td><td>·</td><td>·</td><td>·</td><td>·</td><td class="n">6</td></tr>
+<tr><td>archive37строформленоv2 ч3</td><td>08.09</td><td>·</td><td class="n">1</td><td class="n">2</td><td class="n">1</td><td class="n">1</td><td>·</td><td>·</td><td>·</td><td class="n">5</td></tr>
+<tr><td>content-2026-09-14c-7str-oform-2</td><td>15.09</td><td>·</td><td>·</td><td>·</td><td>·</td><td>·</td><td>·</td><td class="n">1</td><td class="n">4</td><td class="n">5</td></tr>
+<tr><td>content-2026-09-14-7str-oform-9</td><td>14.09</td><td>·</td><td>·</td><td>·</td><td>·</td><td>·</td><td>·</td><td class="n">4</td><td>·</td><td class="n">4</td></tr>
+<tr><td>NEW20_4_12pages_withdate</td><td>07.09</td><td class="n">3</td><td>·</td><td>·</td><td class="n">1</td><td>·</td><td>·</td><td>·</td><td>·</td><td class="n">4</td></tr>
+<tr class="sub"><td colspan="2">остальные 30 групп — по 1–3 регистрации</td><td class="n">6</td><td class="n">5</td><td class="n">2</td><td class="n">6</td><td class="n">5</td><td class="n">3</td><td class="n">8</td><td class="n">7</td><td class="n">42</td></tr>
+<tr class="sub"><td colspan="2">ВСЕГО</td><td class="n">16</td><td class="n">19</td><td class="n">21</td><td class="n">24</td><td class="n">21</td><td class="n"><b>4</b></td><td class="n">16</td><td class="n">17</td><td class="n">138</td></tr>
+</table></div>
+
+<div class="call gap">
+<h3>14.09 — дыра в данных, а не спад</h3>
+<p>Четыре события против 19–24 в соседние дни. По часам видно почему:
+события есть только в 10, 11, 12 и 23 часа — <b>пропуск с 12:00 до 23:00</b>,
+одиннадцать часов подряд. В остальные дни события идут почти ежечасно.
+Это потеря доставки постбэков. <b>14.09 из расчётов исключён не был</b> —
+он занижает все семейства примерно одинаково, поэтому отношения выживают,
+а абсолютные ставки процента на три ниже истинных.</p>
+</div>
+</section>
+
+<hr>
+
+<section>
+<h2>Что с этим делать</h2>
+<div class="tw"><table>
+<tr><th>#</th><th>действие</th><th>на чём основано</th></tr>
+<tr><td class="n">1</td><td><b>Поднять из архива <code>NEW102</code> и <code>clean</code></b>
+и запустить повторно — в объёме, сравнимом с текущим производством</td>
+<td>оба вдвое-впятеро выше того, что запускается сейчас, оба проходят порог
+значимости против <code>nabory</code>, <code>NEW102</code> — и против
+<code>content-2026-*</code></td></tr>
+<tr><td class="n">2</td><td><b>Сократить долю <code>nabory</code></b></td>
+<td>0.37× среднего, <b>ноль ФД на 188 доменов</b> за окно.
+Единственное семейство с нулём депозитов при заметном объёме</td></tr>
+<tr><td class="n">3</td><td>Разобраться с потерей постбэков 14.09</td>
+<td>одиннадцать часов без событий; если такое повторяется, все ставки
+занижены неизвестно насколько</td></tr>
+<tr><td class="n">4</td><td>Прислать <code>pipeline_started</code> по доменам</td>
+<td>время запуска известно только для 18 из 99 конверсионных доменов;
+без него экспозиция считается по дню файла, а не по факту</td></tr>
+</table></div>
+
+<div class="miss"><b>Чего эта таблица не доказывает.</b> 138 регистраций на
+восемь семейств — у половины групп по одной-две. Различия читаются только
+на уровне семейств, не отдельных групп и тем более не отдельных имён.
+Шестидневное окно жизни домена — допущение, не измерение: если отдача
+смещена к первым суткам, экспозиция свежих семейств завышена, и тогда
+<code>nabory</code> и <code>content-2026-*</code> выглядят даже лучше,
+чем есть. Направление выводов от этого не меняется.</div>
+</section>
+
+</div>
