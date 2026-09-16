@@ -808,8 +808,14 @@ function bindToday() {
     window.loadToday();
   });
   document.getElementById('tdRestSeed')?.addEventListener('click', async () => {
-    const r = await fetch('/api/rest/seed', { method: 'POST' }).then(x => x.json()).catch(() => null);
-    if (r && r.added === 0) alert('Все идеи из набора уже заведены.');
+    // Набор живёт в Swift: на старой сборке роут просто не отвечает, и раньше клик молчал
+    const res = await fetch('/api/rest/seed', { method: 'POST' }).catch(() => null);
+    const r = res && res.ok ? await res.json().catch(() => null) : null;
+    if (!r || typeof r.added !== 'number') {
+      alert('Набор идей не приехал: приложение собрано до его появления. Пересобери в Xcode (⌘R) и нажми ещё раз.');
+      return;
+    }
+    if (r.added === 0) alert('Все идеи из набора уже заведены.');
     window.loadToday();
   });
   document.querySelectorAll('#screen-today [data-tdwait]').forEach(el =>
