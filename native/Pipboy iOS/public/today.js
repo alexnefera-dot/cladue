@@ -72,7 +72,7 @@ window.loadToday = async function () {
 // набирается само, а «играть» без напоминания не случается никогда.
 const REST_KINDS = [
   ['play', '🧒', 'играть'], ['restore', '😴', 'восстановиться'], ['people', '👥', 'люди'],
-  ['create', '🎨', 'творить'], ['trip', '🌍', 'вылазка'],
+  ['create', '🎨', 'творить'], ['trip', '🌍', 'вылазка'], ['couple', '💞', 'вдвоём'],
 ];
 const REST_GOAL = { weekday: 3, weekend: 2 };   // мягкая цель на неделю: не сгорает, не штрафует
 const restKind = k => REST_KINDS.find(x => x[0] === k) || REST_KINDS[1];
@@ -185,7 +185,7 @@ function tdRest() {
           <span class="pill btn ok" id="tdRestAdd">＋</span>
         </div>
         <div style="margin-top:4px"><span class="pill btn" id="tdRestSeed"
-          title="добавит 53 идеи по всем видам; уже заведённые не продублируются">＋ набор идей</span></div>
+          title="добавит 67 идей по всем видам; уже заведённые не продублируются">＋ набор идей</span></div>
       </details>
     </div>`;
 }

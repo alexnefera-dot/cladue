@@ -525,7 +525,7 @@ enum Api {
             let text = (body["text"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             guard !text.isEmpty else { return (try json(["error": "text required"]), 400) }
             let scope = ["weekday", "weekend", "global"].contains(body["scope"] as? String ?? "") ? (body["scope"] as! String) : "weekday"
-            let kinds = ["play", "restore", "people", "create", "trip"]
+            let kinds = ["play", "restore", "people", "create", "trip", "couple"]
             let kind = kinds.contains(body["kind"] as? String ?? "") ? (body["kind"] as! String) : "restore"
             try db.run("INSERT INTO rest_ideas(text, scope, kind, mins, ord) VALUES(?,?,?,?, (SELECT COALESCE(MAX(ord),0)+1 FROM rest_ideas))",
                 [text, scope, kind, numOpt(body["mins"]) ?? NSNull()])
@@ -589,6 +589,20 @@ enum Api {
                 ("Замок по дороге", "trip", "weekend", 120),
                 ("Дунай или озеро", "trip", "weekend", 180),
                 ("Ночёвка одну ночь где-то рядом", "trip", "weekend", 0),
+                ("Массаж друг другу — по очереди, без спешки", "couple", "weekday", 30),
+                ("Душ вдвоём", "couple", "weekday", 20),
+                ("Свидание дома: ужин, свечи, телефоны в другой комнате", "couple", "weekday", 90),
+                ("Лечь раньше вместе — не спать, а побыть", "couple", "weekday", 40),
+                ("Обняться и помолчать десять минут", "couple", "weekday", 10),
+                ("Целоваться так, будто всё только начинается", "couple", "weekday", 10),
+                ("Спросить, чего хочется — и правда послушать", "couple", "weekday", 20),
+                ("Близость без спешки и без плана", "couple", "weekend", 90),
+                ("Вечер только вдвоём: без гостей, без экранов", "couple", "weekend", 180),
+                ("Завтрак в постели и никуда не вставать", "couple", "weekend", 90),
+                ("Ванна вдвоём", "couple", "weekend", 45),
+                ("Ночь в отеле неподалёку", "couple", "weekend", 0),
+                ("Поговорить о желаниях: что хотим попробовать", "couple", "weekend", 60),
+                ("Свидание как в начале: новое место, только вдвоём", "couple", "weekend", 150),
             ]
             var added = 0
             for (text, kind, scope, mins) in pack {

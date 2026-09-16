@@ -100,6 +100,18 @@ test('кайф: без идей блок не падает и зовёт доб�
   assert.ok(html.includes('tdRestKind'), 'нет выбора вида отдыха при добавлении');
 });
 
+test('кайф: «вдвоём» — такой же вид, и он попадает в баланс и в подбор', () => {
+  const ctx = loadToday();
+  const data = { today: iso(new Date()),
+    ideas: [{ id: 4, text: 'Свидание дома', scope: scopeToday, kind: 'couple', mins: 90, last_at: null, done_today: 0 }],
+    log: [{ date: ago(1), kind: 'couple' }] };
+  ctx.window.tdRestData = data;
+  const html = ctx.tdRest();
+  assert.ok(html.includes('💞'), 'вида «вдвоём» нет в полоске баланса');
+  assert.ok(html.includes('Свидание дома') && html.includes('вдвоём'), 'парная идея не попала в подбор и не подписана');
+  assert.ok(html.includes('value="couple"'), 'при добавлении вид «вдвоём» выбрать нельзя');
+});
+
 test('кайф: три дня тишины — блок говорит об этом', () => {
   const ctx = loadToday();
   ctx.window.tdRestData = { ...DATA, log: [{ date: ago(4), kind: 'restore' }] };
