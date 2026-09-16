@@ -619,9 +619,19 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   to «наших N». Panel: `GET /api/history` returns
   `records` + `totals()` (sums, plus `doors_percent`/`own_percent`/`cut_total` and a merged `cut`;
   `base_domains` is the newest record's ledger size,
-  not a sum), `loadStats()` renders the summary boxes, the «что срезали фильтры» chips, the door-zone
-  chips and the table (the door-repeat cell carries the total repeats in its `title`, the «Срезано»
-  cell the per-reason breakdown, the «Сайтов в выдаче» cell the host count before grouping),
+  not a sum). The tab's main view is the FUNNEL ITSELF — «так статистику и веди как ты описал в цепочке,
+  чтоб было наглядно и чтоб и проценты были на разных шагах»: `renderFunnel(record)` draws one `.fnrow`
+  per step (label · number · bar · percent) with indented `.sub` rows for doors/roots, for every `cut`
+  reason (percent of the mass + «доров N») and for doors/own among the selected, in TWO scales that are
+  each labelled by a `.fnsep`: the first block (строки → адреса → сайты) is scaled to `results`, the
+  second (everything after) to the mass, because a 602-of-24544 bar is invisible on one scale. Old
+  records degrade in place: no `results` → the first block is skipped and the mass row is marked «*»
+  «без группировки»; no `cut` → one «разбивки нет · старая запись» row. `#statRun` switches the funnel
+  between «За всё время» (`totals()`) and any single collect (default: the newest), and clicking a table
+  row selects it (`.selrow`). The old summary-card grid was REMOVED with `statBox()` — it repeated every
+  funnel number. `loadStats()` also renders the door-zone chips (of the selected collect, or of all time),
+  the base/runs line and the table (the door-repeat cell carries the total repeats in its `title`, the
+  «Срезано» cell the per-reason breakdown, the «Сайтов в выдаче» cell the host count before grouping),
   `GET /download?file=history` builds `csv()` on the fly
   (zones and the cut breakdown each folded into one column so new reasons cannot widen the table). The tab reloads on click and
   whenever a job finishes while it is open. The file lives in `runs/` (not `runs/current/`), so it
