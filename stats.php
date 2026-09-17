@@ -263,7 +263,7 @@ if ($tab === 'stats' && $detailSlug !== '') {
     // берётся из того же индекса. С ORDER BY id база вытаскивала все строки
     // кампании за период (за 7 дней это сотни тысяч) и сортировала их в памяти —
     // страница просто зависала. ts и id растут синхронно, порядок тот же.
-    $st = $pdo->prepare("SELECT ts, ip, ua, referer, source, is_bot, clickid, country
+    $st = $pdo->prepare("SELECT ts, ip, ua, referer, source, is_bot, clickid, country, lp
                          FROM clicks WHERE slug = ? AND ts >= ? AND ts < ?
                          ORDER BY ts DESC, id DESC LIMIT $perPage OFFSET $offset");
     $st->execute([$detailSlug, $from, $to]);
@@ -644,7 +644,7 @@ $msg = $_GET['msg'] ?? '';
 
   <h2 style="margin:18px 0 8px;font-size:16px">Клики <span class="muted" style="font-weight:400">(всего <?= (int)$detailTotal ?>, стр. <?= $detailPage ?>/<?= $detailPages ?>)</span></h2>
   <table class="sortable">
-    <thead><tr><th data-sort="text">Время</th><th data-sort="text">Страна</th><th data-sort="text">IP</th><th data-sort="text">clickid</th><th data-sort="text">User-Agent</th><th data-sort="text">Реферер</th><th data-sort="text">Источник</th></tr></thead>
+    <thead><tr><th data-sort="text">Время</th><th data-sort="text">Страна</th><th data-sort="text">IP</th><th data-sort="text">clickid</th><th data-sort="text">User-Agent</th><th data-sort="text">Реферер</th><th data-sort="text">Источник</th><th data-sort="text">Страница дора</th></tr></thead>
     <tbody>
       <?php foreach ($detailRows as $r): ?>
       <tr>
@@ -655,9 +655,10 @@ $msg = $_GET['msg'] ?? '';
         <td class="ref" title="<?= h($r['ua']) ?>"><?= h($r['ua'] ?: '—') ?></td>
         <td class="refurl"><?= ref_url($r['referer']) ?></td>
         <td><?= h(($r['source'] ?? '') !== '' ? $r['source'] : '—') ?></td>
+        <td class="refurl"><?= ($r['lp'] ?? '') !== '' ? '<span class="rpath">'.h($r['lp']).'</span>' : '—' ?></td>
       </tr>
       <?php endforeach; ?>
-      <?php if (!$detailRows): ?><tr><td colspan="7">Кликов по этой кампании за период нет.</td></tr><?php endif; ?>
+      <?php if (!$detailRows): ?><tr><td colspan="8">Кликов по этой кампании за период нет.</td></tr><?php endif; ?>
     </tbody>
   </table>
   <?php if ($detailPages > 1):
