@@ -46,6 +46,7 @@ use YandexSites\Search\CachingFetcher;
 use YandexSites\Search\XmlStockFetcher;
 use YandexSites\Support\CollectHistory;
 use YandexSites\Support\DomainLedger;
+use YandexSites\Support\DropDomains;
 use YandexSites\Support\Logger;
 use YandexSites\Support\Progress;
 use YandexSites\Support\QueryDupes;
@@ -690,6 +691,20 @@ while (true) {
                 if ($record['zones'] !== []) {
                     $logger->info('Зоны доров: ' . CollectHistory::zonesText($record['zones'], 8));
                 }
+                // Дроп-домены: сетки, держащие на поддоменах сайты многих разных брендов. Полный
+                // список пишем рядом с результатами — в записи истории остаются только первые.
+                $drop = DropDomains::find($r->raw, $sites);
+                file_put_contents($runDir . '/' . DropDomains::FILE, DropDomains::text($drop));
+                if ($drop !== []) {
+                    $first = array_slice(DropDomains::top($drop), 0, 5);
+                    $logger->info(sprintf(
+                        'Дроп-доменов (от %d брендов на поддоменах): %d — %s%s',
+                        DropDomains::MIN_BRANDS,
+                        count($drop),
+                        implode(', ', array_map(static fn (array $d): string => sprintf('%s (%d)', $d['domain'], $d['brands']), $first)),
+                        count($drop) > count($first) ? ', …' : '',
+                    ));
+                }
             };
             $runner = new Runner($config, $fetcher, $runtime->parser(), $logger, $checker, $visitor, $onSearch, $ledger, $skipKnown, $stopCheck, $onSelected);
 
@@ -813,7 +828,7 @@ while (true) {
                 'query_dupes' => $dupeSummary,
                 'base_domains' => $ledger->count(),
                 'run_finished_at' => date(DATE_ATOM),
-                'files' => ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt', 'results' => 'results.csv'],
+                'files' => ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt', 'results' => 'results.csv', 'drop' => DropDomains::FILE],
                 'message' => $result->aborted
                     ? 'Прогон остановлен из-за ошибки источника, см. лог'
                     : trim(

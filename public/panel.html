@@ -284,7 +284,7 @@
 
   <div class="card tabsec" data-tab="stats">
     <h2>Статистика сборов</h2>
-    <div class="hint">Воронка сбора: каждое число вытекает из предыдущего, проценты — на каждом шаге. Первый блок считается <b>от строк выдачи</b>, второй — <b>от сайтов выдачи</b> (это масса после склейки поддоменов одного домена: доры одной сетки — один сайт). Проверка сходимости: <b>сайтов в выдаче = срезано + отобрано</b>. «Отобрано» — результат фильтров, это ещё не значит «сайт открылся»: заходим мы на них позже. <b>Наши</b> узнаются по меткам в HTML страницы на превью-визите (скриншот — чтобы проверить глазами), поэтому их доля считается от отобранного. Ниже — по строке на каждый сбор; клик по строке показывает её воронку. История хранится в <b>runs/history.json</b> и переживает обновление кода.</div>
+    <div class="hint">Воронка сбора: каждое число вытекает из предыдущего, проценты — на каждом шаге. Первый блок считается <b>от строк выдачи</b>, второй — <b>от сайтов выдачи</b> (это масса после склейки поддоменов одного домена: доры одной сетки — один сайт). Проверка сходимости: <b>сайтов в выдаче = срезано + отобрано</b>. «Отобрано» — результат фильтров, это ещё не значит «сайт открылся»: заходим мы на них позже. <b>Наши</b> узнаются по меткам в HTML страницы на превью-визите (скриншот — чтобы проверить глазами), поэтому их доля считается от отобранного. <b>Дроп-домены</b> — домены, которые держат на поддоменах сайты 6 и более разных брендов (бренд берётся из поискового запроса; «Вулкан Вегас» и «Vulkan Vegas» — один бренд); полный список с названиями брендов лежит в <b>runs/current/drop-domains.txt</b> и скачивается ссылкой под таблицей результатов. Ниже — по строке на каждый сбор; клик по строке показывает её воронку. История хранится в <b>runs/history.json</b> и переживает обновление кода.</div>
     <div class="row" style="align-items:center;gap:8px;margin:0 0 6px">
       <div style="flex:0 0 auto"><span class="hint">Показать воронку:</span></div>
       <div style="flex:0 0 260px"><select id="statRun" title="Один сбор или итог по всем сборам"></select></div>
@@ -298,7 +298,7 @@
     </div>
     <div style="overflow-x:auto"><table id="statTable"><thead><tr>
       <th>Дата</th><th>Результатов в выдаче</th><th>Сайтов в выдаче</th><th>Доров из них</th><th>Доля доров</th>
-      <th>Срезано</th><th>Отобрано сайтов</th><th>Наших</th><th>Повторов доров</th><th>Зоны доров</th><th>Всего в базе</th>
+      <th>Срезано</th><th>Отобрано сайтов</th><th>Наших</th><th>Дроп-доменов</th><th>Повторов доров</th><th>Зоны доров</th><th>Всего в базе</th>
     </tr></thead><tbody id="statBody"></tbody></table></div>
     <div class="hint" id="statEmpty" hidden>Истории пока нет — она появится после первого сбора на этой версии.</div>
   </div>
@@ -318,6 +318,7 @@
       <a class="tag" id="dlCsv" href="/download?file=csv">CSV</a>
       <a class="tag" id="dlJson" href="/download?file=json">JSON</a>
       <a class="tag" id="dlDomains" href="/download?file=domains">domains.txt</a>
+      <a class="tag" id="dlDrop" href="/download?file=drop-domains" title="Домены, которые держат на поддоменах сайты 6 и более разных брендов, с названиями брендов">дроп-домены</a>
     </div>
     <div class="btns" id="statsRow" style="margin-bottom:8px;align-items:center;flex-wrap:wrap;gap:8px">
       <span class="hint" id="statsText"></span>
@@ -475,6 +476,15 @@ function renderFunnel(r){
   h+=fnRow({sub:true, cls:'keep', label:'наших шаблонов', value: r.own==null?'—':num(r.own),
     width: r.own==null?0:share(r.own|0,sites), pct: r.own==null?'нет данных':share(r.own|0,sites)+'% от отобранного',
     title:'Узнаём по меткам в HTML страницы (own-markers.txt) на превью-визите, а не по картинке скриншота. Поэтому доля считается от отобранного: в выдаче свой шаблон не опознать'});
+  // Дроп-домены: сетки, которые держат на поддоменах сайты многих разных брендов.
+  if(r.drop_domains!=null){
+    const dd=r.drop_domains|0, top=(r.drop_domains_top||[]).slice(0,10)
+      .map(d=>`${d.domain} — ${d.brands} брендов, доров ${d.hosts|0}`).join('\n');
+    h+=fnRow({sub:true, cls:'keep', label:'дроп-доменов', value:num(dd), width:share(dd,sites),
+      pct: sites>0?share(dd,sites)+'% от отобранного':'',
+      title:'Домены, которые держат на поддоменах сайты 6 и более РАЗНЫХ брендов (бренд берётся из поискового запроса, написания «Вулкан Вегас» и «Vulkan Vegas» считаются одним). Это площадки сеток, а не обычные сайты'
+        + (top?'.\n\n'+top:'')});
+  }
   box.innerHTML = h+'</div>';
 }
 let statRecords=[], statTotals={};
@@ -542,8 +552,11 @@ async function loadStats(){
       const ownCell = (r.own==null) ? '<span class="muted">—</span>'
         : `<span title="Доля наших от отобранного">${r.own|0}${sites>0&&(r.own|0)>0?` <span class="muted">${share(r.own|0,sites)}%</span>`:''}</span>`;
       const resCell = (r.results|0)>0 ? `${r.results|0}` : '<span class="muted">—</span>';
+      // Дроп-домены: у записей до 1.19.0 такого числа нет — прочерк, а не «0».
+      const dropCell = (r.drop_domains==null) ? '<span class="muted">—</span>'
+        : `<span title="${((r.drop_domains_top||[]).slice(0,10).map(d=>`${d.domain} — ${d.brands} брендов`).join('&#10;'))||'Доменов с 6+ брендами на поддоменах нет'}">${r.drop_domains|0}</span>`;
       return `<tr data-i="${i}" title="Показать воронку этого сбора"><td>${human}${marks}</td><td>${resCell}</td><td>${foundCell}</td><td>${doorsCell}</td><td>${shr}</td>`
-        + `<td>${cutCell}</td><td>${sitesCell}</td><td>${ownCell}</td><td>${rep}</td><td class="host">${zonesHtml(r.zones,6)}</td><td>${r.base_domains|0}</td></tr>`;
+        + `<td>${cutCell}</td><td>${sitesCell}</td><td>${ownCell}</td><td>${dropCell}</td><td>${rep}</td><td class="host">${zonesHtml(r.zones,6)}</td><td>${r.base_domains|0}</td></tr>`;
     }).join('');
     // Клик по строке таблицы показывает воронку этого сбора.
     body.querySelectorAll('tr').forEach(tr=>tr.addEventListener('click', ()=>{

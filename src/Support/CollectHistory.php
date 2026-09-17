@@ -276,6 +276,9 @@ final class CollectHistory
     public static function record(array $sites, array $stats, array $seenBefore = [], bool $resume = false, bool $stopped = false, array $raw = []): array
     {
         $breakdown = self::breakdown($sites);
+        // Дроп-домены: сетки, которые держат на поддоменах сайты многих РАЗНЫХ брендов (бренд берётся
+        // из поискового запроса, написания RU/EN сводятся к одному ключу).
+        $drop = DropDomains::find($raw, $sites);
         $rejected = (array) ($stats['rejected'] ?? []);
         $all = self::breakdownRaw($raw, (string) ($stats['unique_by'] ?? 'domain'));
         $repeats = count($seenBefore) > 0 ? count($seenBefore) : (int) ($rejected['seen_before'] ?? 0);
@@ -325,6 +328,9 @@ final class CollectHistory
             // Наши шаблоны среди отобранного: на момент этой записи визитов ещё не было, число
             // уточняется в конце сбора (признак «наш» ставится по меткам в HTML на превью-визите).
             'own' => $breakdown['own'],
+            // Домены, которые держат на поддоменах от DropDomains::MIN_BRANDS разных брендов.
+            'drop_domains' => count($drop),
+            'drop_domains_top' => DropDomains::top($drop),
             // Повторы — домены, уже бывшие в базе пересечений; отдельно считаем, сколько из них доры.
             'repeats' => $repeats,
             'repeats_doors' => $repeatsDoors,
@@ -593,10 +599,10 @@ final class CollectHistory
      */
     public static function totals(array $records): array
     {
-        $out = ['runs' => 0, 'results' => 0, 'found' => 0, 'unique_sites' => 0, 'found_doors' => 0, 'found_roots' => 0, 'sites' => 0, 'doors' => 0, 'roots' => 0, 'own' => 0, 'cut' => [], 'cut_total' => 0, 'doors_percent' => 0.0, 'own_percent' => 0.0, 'repeats' => 0, 'repeats_doors' => 0, 'zones' => [], 'base_domains' => 0];
+        $out = ['runs' => 0, 'results' => 0, 'found' => 0, 'unique_sites' => 0, 'found_doors' => 0, 'found_roots' => 0, 'sites' => 0, 'doors' => 0, 'roots' => 0, 'own' => 0, 'drop_domains' => 0, 'cut' => [], 'cut_total' => 0, 'doors_percent' => 0.0, 'own_percent' => 0.0, 'repeats' => 0, 'repeats_doors' => 0, 'zones' => [], 'base_domains' => 0];
         foreach ($records as $r) {
             $out['runs']++;
-            foreach (['results', 'found', 'found_roots', 'sites', 'doors', 'roots', 'own', 'repeats', 'repeats_doors'] as $key) {
+            foreach (['results', 'found', 'found_roots', 'sites', 'doors', 'roots', 'own', 'drop_domains', 'repeats', 'repeats_doors'] as $key) {
                 $out[$key] += (int) ($r[$key] ?? 0);
             }
             // Масса выдачи и доры в ней: у записей до 1.16.0 группировки нет — берём адреса, у совсем
@@ -659,7 +665,7 @@ final class CollectHistory
         if ($bom) {
             fwrite($out, "\xEF\xBB\xBF");
         }
-        fputcsv($out, ['Дата', 'Результатов в выдаче', 'Адресов в выдаче', 'Сайтов в выдаче', 'Доров из них', 'Доля доров, %', 'Корневых', 'Срезано фильтрами', 'Что срезано', 'Отобрано сайтов', 'Доров среди отобранных', 'Наших сайтов', 'Доля наших, %', 'Повторов доров', 'Повторов всего', 'Зоны доров', 'Всего в базе', 'Продолжение', 'Остановлен'], $delimiter, '"', '');
+        fputcsv($out, ['Дата', 'Результатов в выдаче', 'Адресов в выдаче', 'Сайтов в выдаче', 'Доров из них', 'Доля доров, %', 'Корневых', 'Срезано фильтрами', 'Что срезано', 'Отобрано сайтов', 'Доров среди отобранных', 'Наших сайтов', 'Доля наших, %', 'Дроп-доменов', 'Повторов доров', 'Повторов всего', 'Зоны доров', 'Всего в базе', 'Продолжение', 'Остановлен'], $delimiter, '"', '');
         foreach ($records as $r) {
             $found = (int) ($r['found'] ?? 0);
             $foundDoors = (int) ($r['found_doors'] ?? 0);
@@ -683,6 +689,7 @@ final class CollectHistory
                 (int) ($r['doors'] ?? 0),
                 (int) ($r['own'] ?? 0),
                 self::percent((int) ($r['own'] ?? 0), $sites),
+                isset($r['drop_domains']) ? (int) $r['drop_domains'] : '',
                 (int) ($r['repeats_doors'] ?? 0),
                 (int) ($r['repeats'] ?? 0),
                 self::zonesText((array) ($r['zones'] ?? [])),

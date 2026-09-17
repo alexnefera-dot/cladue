@@ -11,6 +11,7 @@
 /proxies.txt
 /own-markers.txt
 /brands.txt
+/brand-pairs.txt
 /node_modules/
 /package-lock.json
 /runs/

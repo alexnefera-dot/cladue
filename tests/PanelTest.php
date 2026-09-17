@@ -1178,6 +1178,8 @@ final class PanelTest
             $mk('балконы', 1, 'c.ru'),
         ], $runDir . '/results.csv');
         file_put_contents($runDir . '/settings.json', json_encode(['queries' => ['окна купить', 'окна', 'балконы', 'пусто']], JSON_UNESCAPED_UNICODE));
+        // Список дроп-доменов пишет сбор; здесь кладём его руками — проверяем, что панель его отдаёт.
+        file_put_contents($runDir . '/' . \YandexSites\Support\DropDomains::FILE, \YandexSites\Support\DropDomains::text([]));
 
         $socket = @stream_socket_server('tcp://127.0.0.1:0', $errno, $errstr);
         if ($socket === false) {
@@ -1212,6 +1214,8 @@ final class PanelTest
             Assert::same(['пусто'], $d['no_results']);
             Assert::same(['total' => 3, 'duplicates' => 1, 'groups' => 1, 'no_results' => 1], $d['summary']);
             Assert::same("окна купить\nбалконы\nпусто\n", $this->http('GET', $base . '/download?file=queries-unique'));
+            // Список дроп-доменов пишется тем же сбором и отдаётся ссылкой под таблицей.
+            Assert::contains('Доменов с несколькими брендами', $this->http('GET', $base . '/download?file=drop-domains'), 'список дроп-доменов скачивается');
             Assert::contains('оставлен: окна купить', $this->http('GET', $base . '/download?file=query-dupes'));
 
             unlink($runDir . '/results.csv');
