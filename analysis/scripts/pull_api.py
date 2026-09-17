@@ -95,7 +95,7 @@ def audit():
     keys = sorted({k for r in rows for k in r})
     print(f"строк в выборке: {len(rows)}, полей: {len(keys)}\n")
     NEED = {'brand_id':'износ бренда', 'ya_account_id':'нагруженность YA',
-            'cloudflare_account_id':'номер базы на CF', 'recrawl_sent_at':'волны переобхода',
+            'cf_account_id':'номер базы на CF', 'recrawl_sent_at':'волны переобхода',
             'content_label':'контент как параметр', 'subdomain':'ключ соединения',
             'content_domain_id':'группировка по запуску', 'tld':'зона'}
     print(f"{'поле':<40}{'непустых':>10}  пример")
