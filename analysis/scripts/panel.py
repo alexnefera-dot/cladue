@@ -10,7 +10,7 @@
 и наши сабдомены расходятся по многим кампаниям. Источник истины — выгрузка
 `/v1/subdomains`.
 
-    python3 panel.py <subdomains.jsonl> <clicks.jsonl>[,<clicks2.jsonl>] \\
+    python3 panel.py <subdomains.jsonl>[,<subs2.jsonl>] <clicks.jsonl>[,<clicks2.jsonl>] \\
                      <conversions.jsonl> <наблюдение_до YYYY-MM-DD> [панель.jsonl]
 """
 import os, re, sys, json, collections, importlib.util
@@ -79,12 +79,14 @@ def nesting(path):
     return sum(1 for x in (path or '').split('/') if x == 'ru')
 
 
-def load_subdomains(path):
+def load_subdomains(paths):
+    """Несколько выгрузок подряд: окно дат режется на куски, а панель одна."""
     rows = {}
-    with open(path, encoding='utf-8') as f:
-        for line in f:
-            r = json.loads(line)
-            rows[r['subdomain'].lower()] = {k: r.get(k) for k in KEEP}
+    for path in paths:
+        with open(path, encoding='utf-8') as f:
+            for line in f:
+                r = json.loads(line)
+                rows[r['subdomain'].lower()] = {k: r.get(k) for k in KEEP}
     return rows
 
 
@@ -129,9 +131,9 @@ def add_conversions(rows, path, stat):
             row.get('reg' if r.get('event') == 'reg' else 'fd', 0) + 1
 
 
-def main(subs_path, clicks_paths, conv_path, obs_to, out=None):
+def main(subs_paths, clicks_paths, conv_path, obs_to, out=None):
     stat = collections.Counter()
-    rows = load_subdomains(subs_path)
+    rows = load_subdomains(subs_paths)
     print(f"сабдоменов в выгрузке запусков: {len(rows)}")
 
     reg = content_by_domain()
@@ -195,5 +197,5 @@ def main(subs_path, clicks_paths, conv_path, obs_to, out=None):
 if __name__ == '__main__':
     if len(sys.argv) < 5:
         raise SystemExit(__doc__)
-    main(sys.argv[1], sys.argv[2].split(','), sys.argv[3], sys.argv[4],
+    main(sys.argv[1].split(','), sys.argv[2].split(','), sys.argv[3], sys.argv[4],
          sys.argv[5] if len(sys.argv) > 5 else None)
