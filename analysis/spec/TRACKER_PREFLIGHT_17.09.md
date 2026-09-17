@@ -30,6 +30,23 @@ curl -sS -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $TRACKER_TOK
   "$TRACKER_BASE/v1/conversions?date_from=2026-09-10&date_to=2026-09-17&limit=2"   # ждём 200
 ```
 
+### Cloudflare режет Python по User-Agent
+
+Найдено при первом же вызове скрипта. Перед `sitegrator.com` стоит Cloudflare, и
+он отвечает **403 Error 1010** на User-Agent вида `Python-urllib/*`:
+
+| клиент | ответ |
+|---|---|
+| `curl` со своим UA | 401 (нормальный ответ API) |
+| `curl -A "Python-urllib/3.11"` | **403 Cloudflare** |
+| `urllib` без UA (шлёт `Python-urllib/3.11`) | **403 Cloudflare** |
+| `urllib` с `User-Agent: cladue-analytics/1.0` | 401 (нормальный ответ API) |
+| dorgen, `urllib` без UA | 200 — такого правила нет |
+
+Поэтому `pull_tracker.py` шлёт явный `User-Agent`. Без него выгрузка упала бы на
+первом запросе после получения токена, причём с ошибкой Cloudflare, которая ни
+на что осмысленное не указывает.
+
 ---
 
 ## 2 · Ключ соединения работает, но 2% строк отравлены

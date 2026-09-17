@@ -130,6 +130,7 @@ python3 analysis/scripts/pull_api.py subdomains 2026-09-10 2026-09-17   # про
 в минуту, 2 одновременных. Ключ соединения — `subdomain`, совпадает с
 `subdomain` из `/v1/subdomains`.
 
+Выгрузка — `analysis/scripts/pull_tracker.py` (`audit`, `clicks`, `conversions`).
 Что уже проверено и что проверить при первом доступе — в
 `analysis/spec/TRACKER_PREFLIGHT_17.09.md`. Коротко: ключ состоятелен (заполнен
 у 100% конверсий, 97% опознаются в реестре), но **2% строк отравлены подстановкой
@@ -297,7 +298,9 @@ Europe/Kyiv. Нет значения → `null`. Пагинация `limit` (max
 | `analysis/spec/AUDIT_API_17.09.md` | аудит API 17.09: что API реально отдаёт, список разработчику |
 | `analysis/spec/content_label_propusheno.txt` | 286 баз без `content_label`, для разработчика |
 | `analysis/spec/TRACKER_PREFLIGHT_17.09.md` | трекер: проверка ключа соединения, что смотреть при первом доступе |
-| `analysis/scripts/pull_api.py` | выгрузка из API |
+| `analysis/scripts/apidump.py` | общий механизм выгрузки с возобновлением, для обоих источников |
+| `analysis/scripts/pull_api.py` | выгрузка из API системы запусков |
+| `analysis/scripts/pull_tracker.py` | выгрузка из API трекера: клики и конверсии |
 | `analysis/scripts/alltxt.py` | генерация txt-списков запусков |
 | `analysis/launches.md`, `analysis/launch_*.txt` | реестр запусков |
 | `analysis/domains_flat.txt` | плоский список всех доменов, проверка коллизий |
