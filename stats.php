@@ -363,6 +363,27 @@ if ($tab === 'stats' && $detailSlug !== '') {
 
 function h($s)  { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 function dt($t) { return $t ? date('Y-m-d H:i', (int)$t) : '—'; }
+/**
+ * Реферер целиком, кликабельно, с выделенным путём.
+ *
+ * Схему прячем (шум), хост приглушаем, путь показываем тёмным — именно он
+ * и нужен: по нему видно, с какой страницы дора ушёл клик и какая там была
+ * вложенность /ru. Если пути нет вовсе — значит браузер прислал только домен
+ * (Referrer-Policy на доре), и это видно сразу, а не выглядит как наша потеря.
+ */
+function ref_url($url) {
+    $u = trim((string)$url);
+    if ($u === '') return '—';
+    $host = parse_url($u, PHP_URL_HOST);
+    $path = (string)parse_url($u, PHP_URL_PATH);
+    $qs   = parse_url($u, PHP_URL_QUERY);
+    if (!$host) return '<span class="rpath">' . h($u) . '</span>';
+    $tail = $path . ($qs !== null && $qs !== '' ? '?' . $qs : '');
+    $shown = h($host) . ($tail !== '' && $tail !== '/'
+        ? '<span class="rpath">' . h($tail) . '</span>'
+        : '<span class="muted"> · только домен</span>');
+    return '<a href="' . h($u) . '" target="_blank" rel="noopener noreferrer">' . $shown . '</a>';
+}
 function is_suspicious_ua($ua) {
     $ua = trim((string)$ua);
     if ($ua === '') return true;
@@ -411,6 +432,14 @@ $msg = $_GET['msg'] ?? '';
   td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   code { background: #f0f0f5; padding: 2px 6px; border-radius: 5px; font-size: 13px; }
   .ref { color: var(--muted); font-size: 12px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Реферер — отдельно от .ref: он должен читаться целиком, с путём, а не
+     обрезаться многоточием на 200px (полный URL был виден только в подсказке
+     при наведении). Переносим по любому символу — иначе длинная вложенность
+     /ru/ru/ru/… растянула бы таблицу по горизонтали. */
+  .refurl { font-size: 12px; max-width: 340px; word-break: break-all; line-height: 1.35; }
+  .refurl a { color: var(--muted); text-decoration: none; }
+  .refurl a:hover { color: var(--accent); text-decoration: underline; }
+  .refurl .rpath { color: #111; }
   tr.bot { background: #fff4f4; }
   tr.bot td:first-child { box-shadow: inset 3px 0 0 var(--bot); }
   table.rowlink tbody tr[data-href] { cursor: pointer; }
@@ -604,7 +633,7 @@ $msg = $_GET['msg'] ?? '';
         <td><code style="font-size:11px"><?= h($r['clickid']) ?></code></td>
         <td><?= ($r['country'] ?? '') !== '' ? country_flag($r['country']).' '.h($r['country']) : '—' ?></td>
         <td><?= h(($r['source'] ?? '') !== '' ? $r['source'] : '—') ?></td>
-        <td class="ref" title="<?= h($r['referer'] ?? '') ?>"><?= h(($r['referer'] ?? '') !== '' ? $r['referer'] : '—') ?></td>
+        <td class="refurl"><?= ref_url($r['referer'] ?? '') ?></td>
         <td class="ref" title="<?= h($r['ua'] ?? '') ?>"><?= h(($r['ua'] ?? '') !== '' ? $r['ua'] : '—') ?></td>
         <td><?= h($r['ip']) ?></td>
       </tr>
@@ -624,7 +653,7 @@ $msg = $_GET['msg'] ?? '';
         <td><?= h($r['ip']) ?></td>
         <td><code style="font-size:11px"><?= h($r['clickid'] ?? '') ?: '—' ?></code></td>
         <td class="ref" title="<?= h($r['ua']) ?>"><?= h($r['ua'] ?: '—') ?></td>
-        <td class="ref" title="<?= h($r['referer']) ?>"><?= h($r['referer'] ?: '—') ?></td>
+        <td class="refurl"><?= ref_url($r['referer']) ?></td>
         <td><?= h(($r['source'] ?? '') !== '' ? $r['source'] : '—') ?></td>
       </tr>
       <?php endforeach; ?>
@@ -880,7 +909,7 @@ $msg = $_GET['msg'] ?? '';
         <td><?= $r['slug'] ? '<code>'.h($r['slug']).'</code>' : '<span style="color:var(--bot)">не привязан</span>' ?></td>
         <td><?= ($r['country'] ?? '') !== '' ? country_flag($r['country']).' '.h($r['country']) : '—' ?></td>
         <td><?= h(($r['source'] ?? '') !== '' ? $r['source'] : '—') ?></td>
-        <td class="ref" title="<?= h($r['referer'] ?? '') ?>"><?= h(($r['referer'] ?? '') !== '' ? $r['referer'] : '—') ?></td>
+        <td class="refurl"><?= ref_url($r['referer'] ?? '') ?></td>
         <td class="ref" title="<?= h($r['ua'] ?? '') ?>"><?= h(($r['ua'] ?? '') !== '' ? $r['ua'] : '—') ?></td>
         <td><?php
           $userIp = $r['ip'] ?? '';
