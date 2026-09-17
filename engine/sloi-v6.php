@@ -149,16 +149,41 @@ if (!is_dir($vyhod)) { mkdir($vyhod, 0777, true); }
 $slogany = dannye('slogany.json');
 $katalog = dannye('slots-katalog.json')['каталог'];
 $kategorii = dannye('vitrina-kategorii.json');
+// Нормы бренда: сборщик добирает плейсхолдеры до полосы. Без этого доля
+// кириллического написания зависела от того, какие слоганы вытянулись, и
+// приёмка заворачивала комплект по школе бренда на четырёх страницах из семи.
+$brendNorma = [];
+$pf = __DIR__ . '/data-v6/profil-v6.json';
+if (is_file($pf)) {
+    $pr = json_decode((string) file_get_contents($pf), true);
+    foreach ($pr['бренд'] ?? [] as $shkola) {
+        $brendNorma = $shkola['страницы'] ?? [];
+        break;
+    }
+}
 $zh = new Zhereb($semya);
 
 // Розыгрыш на весь комплект: внутри него ничего не повторяется.
-$shapki   = $zh->vzyat($slogany['шапка'], 7 * SHAPKA_VNUTR + 4);
+// Шапка тянется не вся разом: каждой странице подбирают строки под её нехватку.
+$pulShapok = $slogany['шапка'];
 $tri      = $zh->vzyat($slogany['h2_слоган'], 7);
 $podvalH3 = $zh->vzyat($slogany['подвал_h3'], 7);
 $podvalP  = $zh->vzyat($slogany['подвал_p'], 7 * 3);
 $kat      = $zh->vzyat(array_column($kategorii['категории'], 'имя'), 7);
 $pod      = $zh->vzyat(array_column($kategorii['подзаголовки'], 'текст'), 7);
-$taytly   = $zh->vzyat($katalog, TAYTLOV_NA_KOMPLEKT);
+// Тайтлы берём с разными студиями: providers_named считает РАЗНЫЕ имена, и
+// пятёрка от двух поставщиков давала на витрине двойку при норме в шесть.
+$taytly = [];
+$vzyatyeStudii = [];
+$pulTaytlov = $katalog;
+while (count($taytly) < TAYTLOV_NA_KOMPLEKT && $pulTaytlov) {
+    $k = $zh->chislo(count($pulTaytlov));
+    $t = $pulTaytlov[$k];
+    array_splice($pulTaytlov, $k, 1);
+    if (in_array($t['студия'], $vzyatyeStudii, true)) { continue; }
+    $vzyatyeStudii[] = $t['студия'];
+    $taytly[] = $t;
+}
 $stroki3  = ['%brand_name_ru%.', '%brand_name_en%.', 'Казино %brand_name_ru%.',
              '%brand_name_en% казино.', '%brand_name_ru% казино.', 'Casino %brand_name_en%.',
              '%brand_name_en% Casino.'];
@@ -187,12 +212,78 @@ foreach (TIPY_V6 as $i => $tip) {
     }
 
     $skolko = $tip === 'main' ? 4 : SHAPKA_VNUTR;
-    $moi = array_splice($shapki, 0, $skolko);
+    // Считаем, чего не хватает написанному тексту, и тянем слоганы с нужным
+    // написанием имени. Строки берутся по одной, чтобы каждая закрывала дыру.
+    // $telo по ССЫЛКЕ: замыкание захватывает по значению, и нехватка не
+    // убывала по мере добора — кириллица уезжала к одиннадцати при норме шесть.
+    // Счёт ведём по ОТДЕЛЬНОЙ строке, а не по телу страницы. Первая версия
+    // дописывала выбранные слоганы прямо в $telo, чтобы пересчитать нехватку, —
+    // и они уезжали в вёрстку голым текстом после последнего абзаца, а заодно
+    // удваивали бренд в замере. Нашлось чтением собранной страницы.
+    $uchyot = $telo . $faq;
+    $nado = static function (string $vid) use ($brendNorma, $tip, &$uchyot): int {
+        $n = $brendNorma[$tip][$vid === 'ru' ? 'кир' : 'лат'] ?? null;
+        if (!$n) { return 0; }
+        $est = preg_match_all('~%brand_name_' . $vid . '%~', $uchyot);
+        // Цель — НИЖНЯЯ граница полосы, не середина: слоган несёт плейсхолдер
+        // по два, и добор до середины стабильно проскакивал верх.
+        return (int) max(0, (int) $n['низ'] - $est);
+    };
+    // Перебор считаем отдельно от нехватки: страница, где кириллицы уже больше
+    // верхней границы, не должна получать слоганы с нею, даже когда латиницы
+    // тоже недостаёт. Иначе сумма по комплекту уезжает вверх по обоим написаниям.
+    $perebor = static function (string $vid) use ($brendNorma, $tip, &$uchyot): bool {
+        $n = $brendNorma[$tip][$vid === 'ru' ? 'кир' : 'лат'] ?? null;
+        if (!$n) { return false; }
+        return preg_match_all('~%brand_name_' . $vid . '%~', $uchyot) >= (int) $n['верх'];
+    };
+    $moi = [];
+    for ($j = 0; $j < $skolko; $j++) {
+        $nRu = $nado('ru');
+        $nEn = $nado('en');
+        // Нехватки нет — берём строку с наименьшим числом плейсхолдеров, иначе
+        // добор проскакивает норму: слоган несёт их по два, и три строки подряд
+        // уводили кириллицу к восьми при полосе 5–7.
+        $godnye = array_values($pulShapok);
+        if ($nRu <= 0 && $nEn <= 0) {
+            $bednye = array_values(array_filter($godnye,
+                static fn(string $x) => !str_contains($x, '%brand_name_')));
+            if ($bednye) { $godnye = $bednye; }
+        }
+        if ($nRu > 0 || $nEn > 0) {
+            $vid = $nRu > $nEn ? 'ru' : 'en';
+            if ($perebor($vid)) { $vid = $vid === 'ru' ? 'en' : 'ru'; }
+            // Ровно ОДНО вхождение: слоган с двумя плейсхолдерами закрывает
+            // нехватку с перелётом, и сумма по комплекту уходит за верх полосы.
+            $otbor = array_values(array_filter($pulShapok,
+                static fn(string $x) => substr_count($x, '%brand_name_' . $vid . '%') === 1
+                    && !str_contains($x, '%brand_name_' . ($vid === 'ru' ? 'en' : 'ru') . '%')));
+            // Запасной отбор — БЕЗ чужого написания. Прежний пускал смешанные
+            // строки, и добор латиницы тянул за собой кириллицу: восемь на
+            // странице при полосе 5–7 и пятьдесят два по комплекту при верхе 45.
+            if (!$otbor) {
+                $chuzhoy = '%brand_name_' . ($vid === 'ru' ? 'en' : 'ru') . '%';
+                $otbor = array_values(array_filter($pulShapok,
+                    static fn(string $x) => str_contains($x, '%brand_name_' . $vid . '%')
+                        && !str_contains($x, $chuzhoy)));
+            }
+            if ($otbor) { $godnye = $otbor; }
+        }
+        $vzyal = $zh->vzyat($godnye, 1)[0] ?? '';
+        $pulShapok = array_values(array_filter($pulShapok, static fn(string $x) => $x !== $vzyal));
+        $moi[] = $vzyal;
+        $uchyot .= ' ' . $vzyal;
+    }
     // Второй абзац шапки и есть H2-слоган: так на 253 страницах из 294.
     $moi[1] = $tri[$i] . '.';
     $sloj1 = implode(' ', array_map(static fn(string $p) => "<p>$p</p>", $moi));
     $sloj2 = '<h2>' . rtrim($tri[$i], '.') . '</h2>';
-    $sloj3 = '<p>' . $stroki3[$zh->chislo(count($stroki3))] . '</p>';
+    $vid3 = $nado('ru') > $nado('en') ? 'ru' : 'en';
+    if ($perebor($vid3)) { $vid3 = $vid3 === 'ru' ? 'en' : 'ru'; }
+    $godnye3 = array_values(array_filter($stroki3,
+        static fn(string $x) => str_contains($x, '%brand_name_' . $vid3 . '%')));
+    if (!$godnye3) { $godnye3 = $stroki3; }
+    $sloj3 = '<p>' . $godnye3[$zh->chislo(count($godnye3))] . '</p>';
 
     // Четыре тайтла из пяти, порядок свой на каждой странице.
     $moiTaytly = array_slice(array_merge(

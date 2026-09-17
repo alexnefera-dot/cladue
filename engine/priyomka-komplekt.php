@@ -195,8 +195,8 @@ foreach (PAGES_K as $p) {
     $prov = [
         "H2 = $nH2" => count($h2) === $nH2,
         'последний H2 — FAQ' => $h2 && (bool) preg_match('~вопрос|faq|ответ~iu', end($h2)),
-        "H3 $h3Niz–$h3Verh" => count($h3) >= $h3Niz && count($h3) <= $h3Verh,
-        "цитата $citNiz–$citVerh" => $cit >= $citNiz && $cit <= $citVerh,
+        "H3 {$h3Niz}–{$h3Verh}" => count($h3) >= $h3Niz && count($h3) <= $h3Verh,
+        "цитата {$citNiz}–{$citVerh}" => $cit >= $citNiz && $cit <= $citVerh,
     ];
     $vnutr[$p] = ['первый H2' => $h2[0] ?? '—', 'проверки' => $prov,
         'ок' => count(array_filter($prov)), 'всего' => count($prov)];

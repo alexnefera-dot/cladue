@@ -23,9 +23,29 @@ final class NicheLexicon
         'Dead or Alive', 'Immortal Romance', 'Twin Spin', 'Space Wars',
         'Book of Ra', 'Crazy Monkey', 'Fruit Cocktail', 'Resident',
     ];
+    // Список поставщиков был на двенадцати именах, и мера providers_named
+    // недосчитывала: витрина называет студию на каждой карточке, а в зачёт шли
+    // единицы. Пополнен по каталогу образца — 96 студий на 206 тайтлов.
+    // Короткие и двусмысленные имена (Everi, Drift, Maverick, True Lab, Woohoo,
+    // Promatic, Saucify) не взяты: они дали бы ложные срабатывания в прозе.
     private const EXTRA_PROVIDERS = [
         'Igrosoft', 'Novomatic', 'Amatic', 'Endorphina', 'Tom Horn', 'Kalamba',
         'Mascot', 'Onlyplay', 'Belatra', 'Gamzix', 'Fugaso', 'ELK',
+        '1Spin4Win', '1x2 Gaming', '2By2 Gaming', 'AlteaGaming', 'Amusnet', 'Apollo Games',
+        'Arrows Edge', 'Aspect Gaming', 'August Gaming', 'BGaming', 'Betixon', 'Betsoft',
+        'Big Time Gaming', 'Booming Games', 'Booongo', 'CQ9 Gaming', 'Caleta Gaming',
+        'Charismatic', 'Dragoon Soft', 'ELK Studios', 'Espresso Games', 'Evolution Gaming',
+        'Evoplay Entertainment', 'Fils Game', 'FunTa Gaming', 'GameBeat', 'Gameplay',
+        'Gaming1', 'Gamomat', 'Ganapati', 'Genesis', 'Giocaonline', 'GluckGamevy', 'Habanero',
+        'Hacksaw Gaming', 'Iconic Gaming', 'Inbet Games', 'KA Gaming', 'Kajot Games',
+        'Lady Luck Games', 'Leander Games', 'MGA Games', 'Microgaming', 'Mobilots',
+        'NOVOMATIC', 'NetEnt', 'Netgaming', 'Nolimit City', 'Nucleus Gaming', 'Pg Soft',
+        'Play\'n GO', 'PlayPearls', 'Playbro', 'Playson', 'Playstar', 'Playtech',
+        'Popok Gaming', 'Pragmatic Play', 'Push Gaming', 'Quickspin', 'RTG Slots', 'Red Rake',
+        'Red Tiger Gaming', 'Ruby Play', 'SimplePlay', 'Skywind Group', 'SmartSoft',
+        'Spadegaming', 'Spearhead', 'Spinmatic', 'Spinomenal', 'Swintt', 'Synot Games',
+        'Thunderspin', 'Top Trend Gaming', 'Triple PG', 'Vibra Gaming', 'Wazdan',
+        'Yggdrasil Gaming', 'Zeus Play', 'iSoftBet',
     ];
 
 
