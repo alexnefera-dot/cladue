@@ -5,15 +5,22 @@
  * <table> и новых <ul> не добавляем, потому что профиль держит
  * table_cols = 0 и полосу по спискам.
  *
- * php engine/verstka-v5.php <папка> [--без-картинок]
+ * php engine/verstka-v5.php <папка> [--без-картинок] [--игры=1|2]
  *
  * --без-картинок: обложек в карточках слотов нет, поэтому заглушку с эмодзи
  * не прячем, а оформляем как плитку — иначе у карточки остаётся пустой верх.
+ *
+ * --игры: сколько карточек слотов в ряд. Шаблон сайта бывает узким, и сетка
+ * «сколько влезет» давала там три колонки по 90 пикселей: название ломалось
+ * по слову на строку, RTP налезал на кнопку. Поэтому в ряд — две карточки
+ * (по умолчанию) или одна широкая (`--игры=1`), и ни при каких размерах
+ * контейнера не больше.
  */
 
-$папка = null; $безКартинок = false; $тема = 0;
+$папка = null; $безКартинок = false; $тема = 0; $вРяд = 2;
 foreach (array_slice($argv, 1) as $а) {
     if ($а === '--без-картинок') { $безКартинок = true; continue; }
+    if (preg_match('~^--игры=(1|2)$~u', $а, $m)) { $вРяд = (int) $m[1]; continue; }
     if (preg_match('~^--тема=(\d+)$~u', $а, $m)) { $тема = (int) $m[1]; continue; }
     if ($а[0] !== '-') { $папка = rtrim($а, '/'); }
 }
@@ -145,16 +152,21 @@ $ПРАВИЛА = [
     'slots-dashboard-tabs'      => 'display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px',
     'slots-tab'                 => 'display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border:' . КАНТ . ';border-radius:999px;background:' . ПОДЛОЖКА2 . ';color:inherit;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer',
     'slots-tab-content'         => 'display:block',
-    'slots-grid'    => 'display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;margin:14px 0 0',
-    'slot-card'     => 'display:block;min-width:0;border:' . КАНТ . ';border-radius:12px;background:' . ПОДЛОЖКА2 . ';overflow:hidden',
-    'slot-card-inner' => 'display:flex;flex-direction:column;height:100%',
-    'slot-poster'   => 'position:relative;line-height:0',
+    'slots-grid'    => 'display:grid;grid-template-columns:repeat(' . $вРяд . ',minmax(0,1fr));gap:14px;margin:14px 0 0',
+    'slot-card'     => 'display:block;min-width:0;float:none;border:' . КАНТ . ';border-radius:12px;background:' . ПОДЛОЖКА2 . ';overflow:hidden',
+    // Колонкой, а не флексом: шаблон сайта, который кладёт картинку в обтекание
+    // (`img{float:left}` — обычное дело в узких темах), растаскивал содержимое
+    // карточки в строку. Блоки в потоке обтеканию не поддаются, а рамка
+    // карточки его обрезает.
+    'slot-card-inner' => 'display:block',
+    'slot-poster'   => 'position:relative;display:block;overflow:hidden;line-height:0'
+                       . ($вРяд === 1 ? ';max-height:260px' : ''),
     'slot-poster-fallback' => 'display:none',   // при --без-картинок заменяется ниже
     'slot-badge'    => 'position:absolute;top:8px;right:8px;padding:3px 9px;border-radius:999px;background:rgba(10,12,20,.72);color:#fff;font-size:11px;line-height:1.4',
     'slot-info'     => 'padding:9px 11px 3px',
-    'slot-name'     => 'font-weight:600;margin:0;font-size:14px;line-height:1.3',
+    'slot-name'     => 'font-weight:600;margin:0;font-size:14px;line-height:1.3;overflow-wrap:break-word',
     'slot-provider' => 'font-size:11px;opacity:.84;margin-top:3px',
-    'slot-footer'   => 'display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 11px 11px;margin-top:auto',
+    'slot-footer'   => 'display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:7px 11px 11px;clear:both',
     'slot-rtp'      => 'font-size:11px;opacity:.9',
     'slot-rtp-label' => 'display:block;opacity:.86',
     'slot-rtp-value' => 'display:block;font-weight:700',

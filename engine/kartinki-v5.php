@@ -1231,7 +1231,9 @@ function вшитьОбложку(string $файл, string $страница, ar
             $alt = htmlspecialchars($жанры[$n % count($жанры)], ENT_QUOTES, 'UTF-8');
             $итог[] = $отступ . '<img src="' . $имяФайла . '" alt="' . $alt
                     . '" width="640" height="480" loading="lazy" style="'
-                    . ($безСтилей ? 'max-width:100%;height:auto' : 'display:block;width:100%;max-width:100%;height:auto')
+                    // float:none — узкие шаблоны сайтов нередко держат
+                    // `img{float:left}`, и обложка растаскивала карточку в строку
+                    . ($безСтилей ? 'max-width:100%;height:auto;float:none' : 'display:block;width:100%;max-width:100%;height:auto;float:none')
                     . '">';
             $n++;
         }
