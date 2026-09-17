@@ -130,6 +130,83 @@ function vitrina(array $taytly, string $kategoria, string $podzag, array $shabl,
     return $out;
 }
 
+/**
+ * Довести имя бренда до полосы профиля, правя только механические строки.
+ *
+ * Прежде счёт добирался ВЫБОРОМ слогана: под нехватку подбиралась строка с
+ * нужным написанием. Шаг такого добора — целое имя, а часто и два, потому что
+ * слоган несёт их сколько несёт; полоса же у профиля шириной в три (5–7 на
+ * страницу). Комплект качало: правка на одно упоминание в написанном тексте
+ * перекидывала страницу с недобора на перебор, а всякая попытка починить один
+ * набор роняла соседний. Отладка шла кругами, пока причину не назвали вслух.
+ *
+ * Здесь шаг равен единице. Слоганы тянутся вслепую, а имя дописывается или
+ * снимается поштучно — и только в шапке, строке бренда и подвале. Написанный
+ * текст неприкосновенен: он проходит свою приёмку отдельно.
+ *
+ * Абзац шапки под индексом 1 не правится: его дословно повторяет H2-слоган,
+ * и всякое имя в нём считается дважды.
+ *
+ * @param list<string> $shapka  абзацы шапки, правятся по ссылке
+ * @param list<string> $podval  абзацы подвала, правятся по ссылке
+ * @param array{кир?:array{низ:int,верх:int},лат?:array{низ:int,верх:int}} $norma
+ */
+function dovesti_brend(array &$shapka, string &$stroka3, array &$podval,
+                       string $napisano, array $norma): void
+{
+    $schet = static function (string $vid) use (&$shapka, &$stroka3, &$podval, $napisano): int {
+        $ves = $napisano . ' ' . implode(' ', $shapka) . ' ' . ($shapka[1] ?? '')
+             . ' ' . $stroka3 . ' ' . implode(' ', $podval);
+        return preg_match_all('~%brand_name_' . $vid . '%~', $ves);
+    };
+    foreach (['ru' => 'кир', 'en' => 'лат'] as $vid => $imya) {
+        $n = $norma[$imya] ?? null;
+        if (!$n) { continue; }
+        $metka = '%brand_name_' . $vid . '%';
+        $verh = (int) $n['верх'];
+        $cel = (int) round(((int) $n['низ'] + $verh) / 2);
+
+        // Недобор: дописываем имя в конец строки. Порядок мест — от шапки к
+        // подвалу: у образца имя чаще стоит именно в верхних слоганах.
+        //
+        // Целимся в СЕРЕДИНУ полосы, а не в нижний край. По краю каждая
+        // страница проходила свою проверку, а сумма по комплекту падала ниже
+        // своей: у неё полоса ýже суммы семи страничных, и семь минимумов в
+        // неё не укладываются.
+        for ($shag = 0; $shag < 20 && $schet($vid) < $cel; $shag++) {
+            $kuda = null;
+            foreach ([0, 2, 3] as $k) {
+                if (isset($shapka[$k]) && !str_contains($shapka[$k], $metka)) { $kuda = &$shapka[$k]; break; }
+            }
+            if ($kuda === null) {
+                foreach (array_keys($podval) as $k) {
+                    if (!str_contains($podval[$k], $metka)) { $kuda = &$podval[$k]; break; }
+                }
+            }
+            if ($kuda === null) { break; }
+            $kuda = rtrim($kuda, ' .') . ' ' . $metka;
+            unset($kuda);
+        }
+        // Перебор: снимаем лишнее оттуда же. Строку бренда не трогаем — без
+        // имени она превратится в пустой абзац, которого у образца не бывает.
+        for ($shag = 0; $shag < 20 && $schet($vid) > $verh; $shag++) {
+            $otkuda = null;
+            foreach ([0, 2, 3] as $k) {
+                if (isset($shapka[$k]) && str_contains($shapka[$k], $metka)) { $otkuda = &$shapka[$k]; break; }
+            }
+            if ($otkuda === null) {
+                foreach (array_keys($podval) as $k) {
+                    if (str_contains($podval[$k], $metka)) { $otkuda = &$podval[$k]; break; }
+                }
+            }
+            if ($otkuda === null) { break; }
+            $otkuda = trim((string) preg_replace('~\s*' . preg_quote($metka, '~') . '\s*~u', ' ',
+                $otkuda, 1));
+            unset($otkuda);
+        }
+    }
+}
+
 // ── разбор флагов ───────────────────────────────────────────────────────────
 $dir = ''; $vyhod = ''; $semya = ''; $snyat = false;
 foreach (array_slice($argv, 1) as $a) {
@@ -230,101 +307,21 @@ foreach (TIPY_V6 as $i => $tip) {
     }
 
     $skolko = $tip === 'main' ? 4 : SHAPKA_VNUTR;
-    // Считаем, чего не хватает написанному тексту, и тянем слоганы с нужным
-    // написанием имени. Строки берутся по одной, чтобы каждая закрывала дыру.
-    // $telo по ССЫЛКЕ: замыкание захватывает по значению, и нехватка не
-    // убывала по мере добора — кириллица уезжала к одиннадцати при норме шесть.
-    // Счёт ведём по ОТДЕЛЬНОЙ строке, а не по телу страницы. Первая версия
-    // дописывала выбранные слоганы прямо в $telo, чтобы пересчитать нехватку, —
-    // и они уезжали в вёрстку голым текстом после последнего абзаца, а заодно
-    // удваивали бренд в замере. Нашлось чтением собранной страницы.
-    // H2-слоган повторяет второй абзац шапки, и его плейсхолдеры попадают на
-    // страницу ДВАЖДЫ. Учитываем их заранее, иначе добор считает нехватку по
-    // пустому месту и уводит кириллицу к двенадцати при полосе 5–7.
-    $uchyot = $telo . $faq . ' ' . $tri[$i] . ' ' . $tri[$i];
-    $nado = static function (string $vid) use ($brendNorma, $tip, &$uchyot): int {
-        $n = $brendNorma[$tip][$vid === 'ru' ? 'кир' : 'лат'] ?? null;
-        if (!$n) { return 0; }
-        $est = preg_match_all('~%brand_name_' . $vid . '%~', $uchyot);
-        // Цель — на единицу выше нижней границы. Ровно по низу добор промахивался
-        // вниз: H2-слоган отбирается с одним плейсхолдером, и прежний запас в
-        // два имени на строку пропал вместе с ним.
-        return (int) max(0, (int) $n['низ'] + 1 - $est);
-    };
-    // Перебор считаем отдельно от нехватки: страница, где кириллицы уже больше
-    // верхней границы, не должна получать слоганы с нею, даже когда латиницы
-    // тоже недостаёт. Иначе сумма по комплекту уезжает вверх по обоим написаниям.
-    $perebor = static function (string $vid) use ($brendNorma, $tip, &$uchyot): bool {
-        $n = $brendNorma[$tip][$vid === 'ru' ? 'кир' : 'лат'] ?? null;
-        if (!$n) { return false; }
-        return preg_match_all('~%brand_name_' . $vid . '%~', $uchyot) >= (int) $n['верх'];
-    };
+    // Слоганы тянутся вслепую: имя бренда доводит dovesti_brend() поштучно.
+    // Подбор строк «под нехватку» жил здесь раньше и качал комплект целыми
+    // именами при полосе шириной в три.
     $moi = [];
     for ($j = 0; $j < $skolko; $j++) {
-        $nRu = $nado('ru');
-        $nEn = $nado('en');
-        // Нехватки нет — берём строку с наименьшим числом плейсхолдеров, иначе
-        // добор проскакивает норму: слоган несёт их по два, и три строки подряд
-        // уводили кириллицу к восьми при полосе 5–7.
-        $godnye = $tip === 'main' ? array_values($pulShapok) : array_values($bezKlyucha);
-        if ($nRu <= 0 && $nEn <= 0) {
-            $bednye = array_values(array_filter($godnye,
-                static fn(string $x) => !str_contains($x, '%brand_name_')));
-            if ($bednye) { $godnye = $bednye; }
-        }
-        if ($nRu > 0 || $nEn > 0) {
-            $vid = $nRu > $nEn ? 'ru' : 'en';
-            if ($perebor($vid)) { $vid = $vid === 'ru' ? 'en' : 'ru'; }
-            // Ровно ОДНО вхождение: слоган с двумя плейсхолдерами закрывает
-            // нехватку с перелётом, и сумма по комплекту уходит за верх полосы.
-            $otbor = array_values(array_filter($godnye,
-                static fn(string $x) => substr_count($x, '%brand_name_' . $vid . '%') === 1
-                    && !str_contains($x, '%brand_name_' . ($vid === 'ru' ? 'en' : 'ru') . '%')));
-            // Запасной отбор — БЕЗ чужого написания. Прежний пускал смешанные
-            // строки, и добор латиницы тянул за собой кириллицу: восемь на
-            // странице при полосе 5–7 и пятьдесят два по комплекту при верхе 45.
-            if (!$otbor) {
-                $chuzhoy = '%brand_name_' . ($vid === 'ru' ? 'en' : 'ru') . '%';
-                $otbor = array_values(array_filter($godnye,
-                    static fn(string $x) => str_contains($x, '%brand_name_' . $vid . '%')
-                        && !str_contains($x, $chuzhoy)));
-            }
-            if ($otbor) { $godnye = $otbor; }
-        }
-        $vzyal = $zh->vzyat($godnye, 1)[0] ?? '';
+        $pul = $tip === 'main' ? $pulShapok : $bezKlyucha;
+        if (!$pul) { $pul = $pulShapok; }
+        $vzyal = $zh->vzyat($pul, 1)[0] ?? '';
         $pulShapok = array_values(array_filter($pulShapok, static fn(string $x) => $x !== $vzyal));
         $bezKlyucha = array_values(array_filter($bezKlyucha, static fn(string $x) => $x !== $vzyal));
         $moi[] = $vzyal;
-        $uchyot .= ' ' . $vzyal;
     }
     // Второй абзац шапки и есть H2-слоган: так на 253 страницах из 294.
     $moi[1] = $tri[$i] . '.';
-    $sloj1 = implode(' ', array_map(static fn(string $p) => "<p>$p</p>", $moi));
-    $sloj2 = '<h2>' . rtrim($tri[$i], '.') . '</h2>';
-    // Слой 3 доводит счёт бренда до полосы. Добор целыми слоганами шагает по
-    // два имени за раз, а полоса шириной в три, и комплект качало: правка на
-    // одно упоминание в тексте перекидывала страницу с недобора на перебор.
-    // Короткая строка бренда — единственное место, которое сборщик держит
-    // полностью, поэтому вариант выбирается замером, а не жребием.
-    $shtraf = static function (string $stroka) use ($brendNorma, $tip, $uchyot, $moi): int {
-        $ves = $uchyot . ' ' . implode(' ', $moi) . ' ' . $stroka;
-        $sum = 0;
-        foreach (['ru' => 'кир', 'en' => 'лат'] as $vid => $imya) {
-            $n = $brendNorma[$tip][$imya] ?? null;
-            if (!$n) { continue; }
-            $est = preg_match_all('~%brand_name_' . $vid . '%~', $ves);
-            if ($est < (int) $n['низ']) { $sum += (int) $n['низ'] - $est; }
-            if ($est > (int) $n['верх']) { $sum += $est - (int) $n['верх']; }
-        }
-        return $sum;
-    };
-    $luchshaya = $stroki3[0];
-    $luchshiy = PHP_INT_MAX;
-    foreach ($stroki3 as $var) {
-        $c = $shtraf($var);
-        if ($c < $luchshiy) { $luchshiy = $c; $luchshaya = $var; }
-    }
-    $sloj3 = '<p>' . $luchshaya . '</p>';
+    $stroka3 = $stroki3[$zh->chislo(count($stroki3))];
 
     // Четыре тайтла из пяти, порядок свой на каждой странице.
     $moiTaytly = array_slice(array_merge(
@@ -334,6 +331,20 @@ foreach (TIPY_V6 as $i => $tip) {
     $sloj5 = vitrina($moiTaytly, $kat[$i], $pod[$i], ['A', 'B', 'C', 'A'], $i);
 
     $p3 = array_splice($podvalP, 0, 3);
+
+    // Доводка бренда — последним шагом, по готовым механическим строкам и
+    // уже написанному тексту. Раньше счёт сводился выбором слоганов, и шаг
+    // добора был размером в целое имя; здесь он равен единице.
+    // Витрину и H3 подвала считаем наравне с написанным: шаблон A карточек
+    // несёт «на %brand_name_ru%», а слоган подвала — своё имя. Без них доводка
+    // считала по неполной странице и промахивалась вверх на две единицы.
+    dovesti_brend($moi, $stroka3, $p3, $telo . $faq . $sloj5 . $podvalH3[$i], $brendNorma[$tip] ?? []);
+
+    // Слои собираются ПОСЛЕ доводки: первая версия печатала шапку до неё, и
+    // правка уходила в пустоту, ничего не меняя на выходе.
+    $sloj1 = implode(' ', array_map(static fn(string $p) => "<p>$p</p>", $moi));
+    $sloj2 = '<h2>' . rtrim($tri[$i], '.') . '</h2>';
+    $sloj3 = '<p>' . $stroka3 . '</p>';
     $sloj7 = "<p>Последнее обновление %domain_name%:\n%date%          \n        </p>\n"
            . "<h3>{$podvalH3[$i]}</h3>\n"
            . implode("\n", array_map(static fn(string $p) => "<p>$p</p>", $p3)) . "\n";
