@@ -1446,6 +1446,7 @@ foreach (glob("$папка/*.html") as $файл) {
     // ещё раз здесь — перекрут работает последним, и слово за ним.
     $итог = v5AnkorPoPadezhu($итог);
     $итог = v5OtvetBezVoprosa($итог);
+    $итог = v5OdnoslovnyFinal($итог, $сид);
     $итог = v5OdinAnkorVAbzatse($итог);
     if ($итог !== $html) { file_put_contents($файл, $итог); }
     $сводка[$тип] = $сделано;
