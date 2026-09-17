@@ -159,7 +159,7 @@ function db_ensure_indexes_mysql(PDO $pdo) {
     $wantedCols = [
         ['clicks',      'lp',        'VARCHAR(255) NULL'],
         ['conversions', 'sub',       'VARCHAR(190) NULL'],
-        ['conversions', 'ref',       'VARCHAR(255) NULL'],
+        ['conversions', 'ref',       'TEXT NULL'],
         ['conversions', 'country',   'VARCHAR(8) NULL'],
         ['conversions', 'lp',        'VARCHAR(255) NULL'],
         ['conversions', 'linked_at', 'INT NULL'],
@@ -174,6 +174,18 @@ function db_ensure_indexes_mysql(PDO $pdo) {
         } catch (Throwable $e) {
             // см. выше
         }
+    }
+
+    // conversions.ref создавалась как VARCHAR(255) — расширяем до TEXT, чтобы
+    // длинный URL дора не обрезался в снимке конверсии (в clicks он уже TEXT).
+    try {
+        $stt = $pdo->prepare("SELECT data_type FROM information_schema.columns
+                              WHERE table_schema = DATABASE() AND table_name = 'conversions' AND column_name = 'ref'");
+        $stt->execute();
+        $t = strtolower((string)$stt->fetchColumn());
+        if ($t !== '' && $t !== 'text') $pdo->exec('ALTER TABLE conversions MODIFY `ref` TEXT NULL');
+    } catch (Throwable $e) {
+        // см. выше
     }
 }
 
@@ -266,7 +278,7 @@ function db_create_tables_mysql(PDO $pdo) {
         ts INT NOT NULL,
         ip VARCHAR(64) NULL,
         sub VARCHAR(190) NULL,
-        ref VARCHAR(255) NULL,
+        ref TEXT NULL,
         country VARCHAR(8) NULL,
         lp VARCHAR(255) NULL,
         linked_at INT NULL,
