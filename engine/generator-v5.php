@@ -79,6 +79,7 @@ foreach (array_slice($argv, 1) as $a) {
     elseif (str_starts_with($a, '--корпус=')) { $корпус = rtrim(substr($a, strlen('--корпус=')), '/'); }
     elseif (str_starts_with($a, '--данные=')) { $данныеПуть = rtrim(substr($a, strlen('--данные=')), '/'); }
     elseif (str_starts_with($a, '--обращение=')) { $обращениеОверрайд = substr($a, strlen('--обращение=')); }
+    elseif (str_starts_with($a, '--манера=')) { v5ManeraNabora(substr($a, strlen('--манера=')) === 'густая'); }
 }
 if ($выход === '') { fwrite(STDERR, "usage: php engine/generator-v5.php --выход=samples/v5-final/<имя> [--сид=n]\n"); exit(1); }
 $имяНабора = basename($выход);
