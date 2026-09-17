@@ -2232,7 +2232,7 @@
     casinow7.team
 
 ========================================================================
-17.09.2026 — 48 доменов, 2 группы   [.team 27  .lol 21]
+17.09.2026 — 58 доменов, 3 группы   [.team 32  .lol 26]
 ========================================================================
 
 --- content-2026-09-16-12str_1…_6 — id 3063-3068, создан 17.09 01:07 — 12 СТРАНИЦ, ветка полная
@@ -2291,8 +2291,22 @@
     qwzn.lol
     1978.lol
 
+--- nabory-611-620_1…_10 — id 3069-3078, создан 17.09 11:26 — десять наборов, ГРУППА ПОЛНАЯ
+    10 доменов: .lol 5  .team 5
+
+    3655.lol
+    7316.team
+    casinole.lol
+    casinou0.team
+    1186.lol
+    4572.lol
+    3829.lol
+    casino0752.team
+    casinonz.team
+    casinoydl.team
+
 ========================================================================
-ИТОГО: 1579 доменов
+ИТОГО: 1589 доменов
 ========================================================================
   24.08    42
   25.08    52
@@ -2315,13 +2329,13 @@
   14.09   104
   15.09   265
   16.09    20
-  17.09    48
+  17.09    58
 
-  зоны: .team 911   .lol 507   .casino 106   .buzz 55
+  зоны: .team 916   .lol 512   .casino 106   .buzz 55
   доменов встречается более одного раза: 0
 
 ========================================================================
-ПЛОСКИЙ СПИСОК — 1579 доменов подряд
+ПЛОСКИЙ СПИСОК — 1589 доменов подряд
 ========================================================================
 9928.team
 f6zn.team
@@ -3902,6 +3916,16 @@ ihkx.lol
 hkucasino.team
 qwzn.lol
 1978.lol
+3655.lol
+7316.team
+casinole.lol
+casinou0.team
+1186.lol
+4572.lol
+3829.lol
+casino0752.team
+casinonz.team
+casinoydl.team
 
 
 ========================================================================
@@ -4275,12 +4299,12 @@ qwzn.lol
     lnwc.team
 
 ========================================================================
-ВСЕГО В РЕЕСТРЕ: 1854 домена
-  со списком запуска: 1579
+ВСЕГО В РЕЕСТРЕ: 1864 домена
+  со списком запуска: 1589
   без списка: 275
 ========================================================================
 
-ПЛОСКИЙ СПИСОК — весь реестр, 1854 домена
+ПЛОСКИЙ СПИСОК — весь реестр, 1864 домена
 ========================================================================
 0017.team
 0036.lol
@@ -4422,6 +4446,7 @@ qwzn.lol
 1163.team
 1185.lol
 1185.team
+1186.lol
 1191.team
 1206.lol
 1209cas.casino
@@ -4675,6 +4700,7 @@ qwzn.lol
 3628.team
 3635.team
 3654.team
+3655.lol
 3663.team
 3664.team
 3665.lol
@@ -4693,6 +4719,7 @@ qwzn.lol
 3789.team
 378casino.team
 3803.lol
+3829.lol
 3833.lol
 3839.team
 3855.lol
@@ -4759,6 +4786,7 @@ qwzn.lol
 4527.team
 453casino.lol
 4558.lol
+4572.lol
 4573.team
 4582.team
 4586.team
@@ -5003,6 +5031,7 @@ qwzn.lol
 7227.team
 7283.lol
 7311.team
+7316.team
 7326.team
 7342.lol
 7371.lol
@@ -5291,6 +5320,7 @@ casino0509s.casino
 casino0645.team
 casino069.team
 casino072.lol
+casino0752.team
 casino088.team
 casino0962.lol
 casino0962.team
@@ -5424,6 +5454,7 @@ casinojr.team
 casinojxu.team
 casinok4.team
 casinok7.team
+casinole.lol
 casinolg.team
 casinoli.team
 casinomw.team
@@ -5431,6 +5462,7 @@ casinonb.lol
 casinonck.lol
 casinonck.team
 casinoni.lol
+casinonz.team
 casinoodm.team
 casinoopk.lol
 casinoopk.team
@@ -5461,6 +5493,7 @@ casinostt.team
 casinosw.team
 casinot0.lol
 casinottb.team
+casinou0.team
 casinou1.team
 casinou5.team
 casinoubf.buzz
@@ -5478,6 +5511,7 @@ casinoxm.team
 casinoxr.lol
 casinoy1.team
 casinoycm.team
+casinoydl.team
 casinoyso.team
 casinoz1.lol
 casinoz2.buzz
