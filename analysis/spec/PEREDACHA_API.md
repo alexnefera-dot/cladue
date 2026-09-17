@@ -202,8 +202,12 @@ Europe/Kyiv. Нет значения → `null`. Пагинация `limit` (max
 
 ## 8 · Что открыто
 
-- Аудит API: отдаёт ли `/v1/subdomains` поля `brand_id`, `ya_account_id`,
-  `cloudflare_account_id`. **Не проверено — хост был закрыт политикой окружения.**
+- ~~Аудит API~~ — **сделан 17.09**, результат в `analysis/spec/AUDIT_API_17.09.md`.
+  Все три поля есть: `brand_id`, `ya_account_id` и `cf_account_id` (именно так, не
+  `cloudflare_account_id`) — 100% заполнены на всех датах 09–17.09. Вместо этого
+  открылись два новых блокера: `/v1/subdomains` отдаёт 500 на 50–75% запросов
+  недетерминированно, и `content_label` пуст для всех запусков до 15.09.
+  Список разработчику — §8 того же файла.
 - Карантин: 9 доменов заявлены двумя site id каждый, `analysis/karantin_dubli.txt`.
   Нужно решение пользователя.
 - Дыры в нумерации id: 2637-2665 (29), 2698-2704 (7), 2875-2890 (16), 2901-2910 (10),
@@ -242,6 +246,7 @@ Europe/Kyiv. Нет значения → `null`. Пагинация `limit` (max
 | `analysis/spec/params.html` | живой мануал: Блок 1 API + Блок 2 аналитика |
 | `analysis/spec/ANALITIKA.html` | самодостаточная копия того же, для передачи третьим лицам |
 | `analysis/spec/API_USAGE_17.09.md` | контракт API от разработчика |
+| `analysis/spec/AUDIT_API_17.09.md` | аудит API 17.09: что API реально отдаёт, список разработчику |
 | `analysis/scripts/pull_api.py` | выгрузка из API |
 | `analysis/scripts/alltxt.py` | генерация txt-списков запусков |
 | `analysis/launches.md`, `analysis/launch_*.txt` | реестр запусков |
