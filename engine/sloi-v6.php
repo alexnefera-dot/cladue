@@ -37,6 +37,8 @@ declare(strict_types=1);
  * слоганы и разные тайтлы витрины. Внутри комплекта ничего не повторяется.
  */
 
+require_once __DIR__ . '/src/Sloi.php';
+
 const TIPY_V6 = ['main', 'app', 'bonus', 'registracia', 'slots', 'vhod', 'zerkalo'];
 
 /** Абзацев шапки: у внутренних ровно три (41 из 42), у главной 3–7. */
@@ -86,33 +88,6 @@ function dannye(string $imya): array
     $d = is_file($f) ? json_decode((string) file_get_contents($f), true) : null;
     if (!is_array($d)) { fwrite(STDERR, "нет или испорчен $f\n"); exit(1); }
     return $d;
-}
-
-/** Страница со слоями начинается абзацем; написанная нами — сразу с H2. */
-function so_sloyami(string $html): bool
-{
-    return (bool) preg_match('~^\s*<p[ >]~i', $html);
-}
-
-/** Снять слои: оставить от первого H2 без эмодзи до витрины и FAQ. */
-function snyat_sloi(string $html): string
-{
-    // Слои 1–3 режем по концу третьего, а не по второму H2: у главной между
-    // слоганом и первым своим H2 стоит лид — абзац, перечень и таблица, и счёт
-    // по заголовкам съедал его целиком.
-    if (preg_match('~<h2[^>]*>.*?</h2>\s*<p\b[^>]*>.*?</p>\s*~is', $html, $m, PREG_OFFSET_CAPTURE)
-        && $m[0][1] < 600) {
-        $html = substr($html, $m[0][1] + strlen($m[0][0]));
-    }
-    // Слой 5 — H2 с эмодзи и всё до следующего H2.
-    $html = preg_replace(
-        '~<h2[^>]*>\s*[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}\x{2B00}-\x{2BFF}\x{FE0F}].*?(?=<h2|$)~us',
-        '', $html
-    ) ?? $html;
-    // Слой 7 — от строки с датой до конца.
-    $p = mb_strpos($html, '<p>Последнее обновление');
-    if ($p !== false) { $html = mb_substr($html, 0, $p); }
-    return rtrim($html) . "\n";
 }
 
 /** Микроразметку FAQ снимаем: её нет ни на одной из 294 страниц образца. */
@@ -193,7 +168,7 @@ foreach (TIPY_V6 as $i => $tip) {
     $f = "$dir/$tip.html";
     if (!is_file($f)) { continue; }
     $html = (string) file_get_contents($f);
-    if (so_sloyami($html)) { $html = snyat_sloi($html); }
+    $html = Sloi::snyat($html);
     if ($snyat) {
         file_put_contents("$vyhod/$tip.html", $html);
         $sdelano++;
@@ -234,5 +209,10 @@ foreach (TIPY_V6 as $i => $tip) {
     file_put_contents("$vyhod/$tip.html",
         "$sloj1\n$sloj2\n$sloj3\n" . rtrim($telo) . "\n" . $sloj5 . rtrim($faq) . "\n" . $sloj7);
     $sdelano++;
+}
+// Свод комплекта едет вместе со страницами: без него сквозная сверка фактов
+// на приёмке молча проваливается в режим «свода нет» и проверяет вчетверо меньше.
+if ($vyhod !== $dir && is_file("$dir/svod.json")) {
+    copy("$dir/svod.json", "$vyhod/svod.json");
 }
 printf("%s: %d страниц, семя «%s»%s\n", $vyhod, $sdelano, $semya, $snyat ? ', слои сняты' : '');

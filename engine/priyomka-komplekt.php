@@ -42,6 +42,7 @@ require_once __DIR__ . '/src/Soglasovanie.php';
 require_once __DIR__ . '/src/Ekho.php';
 require_once __DIR__ . '/src/Rossyp.php';
 require_once __DIR__ . '/src/Skvoznye.php';
+require_once __DIR__ . '/src/Sloi.php';
 
 const PAGES_K = ['main', 'app', 'bonus', 'registracia', 'slots', 'vhod', 'zerkalo'];
 /** Доля удержанных полей, ниже которой страница не принимается. */
@@ -110,6 +111,15 @@ foreach (PAGES_K as $p) {
 }
 if ($net) { fwrite(STDERR, 'нет страниц: ' . implode(', ', $net) . "\n"); exit(1); }
 
+// Две копии комплекта, и это не удвоение, а разделение проверок. Поля,
+// разметку и граф меряем по СОБРАННОЙ странице: её получает читатель, и
+// профиль снят с таких же. Текст — по СНЯТОЙ: механические слои одинаковы у
+// всех комплектов по замыслу, и шинглы, согласование и сквозные факты на них
+// сорвались бы по делу, ничего не сказав о написанном. Почему именно так —
+// engine/src/Sloi.php.
+$napisano = Sloi::snyat_vse($stranicy);
+$soSloyami = (bool) array_filter($stranicy, static fn(string $h) => Sloi::est($h));
+
 $provaly = [];
 $a = new Analyzer();
 $otchet = [];
@@ -174,11 +184,19 @@ foreach (PAGES_K as $p) {
     $h2 = zag($html, 'h2');
     $h3 = zag($html, 'h3');
     $cit = preg_match_all('~(?i)<blockquote~', $html);
+    // Границы каркаса несёт профиль: у нас внутренняя страница это два H2 и
+    // два-десять H3, у образца — ровно четыре H2 (240 страниц из 252) и
+    // шесть-шестнадцать H3, потому что к нашим двум слоям добавлены витрина и
+    // слоган. Захардкоженная двойка заворачивала бы весь собранный комплект.
+    $kar = $profil['структура']['каркас_внутренней'] ?? [];
+    $nH2 = (int) ($kar['h2'] ?? 2);
+    [$h3Niz, $h3Verh] = $kar['h3'] ?? [2, 10];
+    [$citNiz, $citVerh] = $kar['цитат'] ?? [1, 4];
     $prov = [
-        'H2 = 2' => count($h2) === 2,
+        "H2 = $nH2" => count($h2) === $nH2,
         'последний H2 — FAQ' => $h2 && (bool) preg_match('~вопрос|faq|ответ~iu', end($h2)),
-        'H3 2–10' => count($h3) >= 2 && count($h3) <= 10,
-        'цитата 1–4' => $cit >= 1 && $cit <= 4,
+        "H3 $h3Niz–$h3Verh" => count($h3) >= $h3Niz && count($h3) <= $h3Verh,
+        "цитата $citNiz–$citVerh" => $cit >= $citNiz && $cit <= $citVerh,
     ];
     $vnutr[$p] = ['первый H2' => $h2[0] ?? '—', 'проверки' => $prov,
         'ок' => count(array_filter($prov)), 'всего' => count($prov)];
@@ -203,7 +221,9 @@ $levye = static function (string $html): array {
     }
     return $out;
 };
-$nashSkelet = $levye($stranicy['main']);
+// Скелет считаем по написанному: H2-слоган механика, он одинаков у всех
+// комплектов и один затянул бы совпадение скелета к сотне процентов.
+$nashSkelet = $levye($napisano['main']);
 
 // ── 3а. хвосты внутренних: шесть закрытий обязаны быть разными ───────
 //
@@ -217,7 +237,7 @@ const POTOLOK_HVOSTOV = 12.0;
 $hvosty = [];
 foreach (PAGES_K as $hp) {
     if ($hp === 'main') { continue; }
-    $hdo = explode('<details', $stranicy[$hp])[0];
+    $hdo = explode('<details', $napisano[$hp])[0];
     preg_match_all('~(?is)<p[^>]*>(.*?)</p>~', $hdo, $mh);
     $hvosty[$hp] = $mh[1] ? shingle(chist((string) end($mh[1])), 5) : [];
 }
@@ -244,14 +264,14 @@ $sovpavshie = [];
 $hudshayaPara = 0.0; $hudshiy = '—';
 $skeletMax = 0.0; $skeletKto = '—';
 $nashSh = [];
-foreach (PAGES_K as $p) { $nashSh[$p] = shingle(chist($stranicy[$p])); }
+foreach (PAGES_K as $p) { $nashSh[$p] = shingle(chist($napisano[$p])); }
 
 foreach (glob(rtrim($put, '/') . '/*', GLOB_ONLYDIR) ?: [] as $other) {
     if (realpath($other) === realpath($dir)) { continue; }
     foreach (PAGES_K as $p) {
         $f = "$other/$p.html";
         if (!is_file($f)) { continue; }
-        $oh = preg_replace('~<(?![a-zA-Z/!?])~', '&lt;', (string) file_get_contents($f));
+        $oh = Sloi::snyat(preg_replace('~<(?![a-zA-Z/!?])~', '&lt;', (string) file_get_contents($f)) ?? '');
         $v = peresech($nashSh[$p], shingle(chist($oh)));
         if ($v > $hudshayaPara) { $hudshayaPara = $v; $hudshiy = basename($other) . "/$p"; }
         if ($p === 'main' && $nashSkelet) {
@@ -298,7 +318,7 @@ if ($kanMax > 3.0) { $provaly['каннибализация'] = 1; }
 $roliSlova = [];
 foreach (PAGES_K as $pp) {
     if ($pp === 'main') { continue; }
-    foreach (zag($stranicy[$pp], 'h3') as $t) {
+    foreach (zag($napisano[$pp], 'h3') as $t) {
         $w = preg_split('~[^\p{L}]+~u', mb_strtolower($t), -1, PREG_SPLIT_NO_EMPTY);
         if ($w) { $roliSlova[] = $w[0]; }
     }
@@ -534,6 +554,9 @@ printf("  %sH1 %d · H4 %d · сбоев иерархии %d · картинок
     $teh['картинок'], $teh['nofollow'], $teh['внешних']);
 
 echo "\n── уникальность ──\n";
+if ($soSloyami) {
+    echo "  · слои сняты: текст мерен без шапки, витрины и подвала\n";
+}
 printf("  срезы тем внутри комплекта: %s\n", $dubliVnutri ? "✗ $dubliVnutri повтора" : 'все разные');
 printf("  срезы совпали с корпусом:   %s\n", $sovpavshie ? '✗ ' . implode(', ', $sovpavshie) : 'нет');
 printf("  худшая пара по шинглам:     %.2f%%  (%s), порог %s%%\n", $hudshayaPara, $hudshiy,
@@ -553,7 +576,7 @@ printf("  повтор роли в H3:           %.1f%%  (потолок 60%%, �
 echo "\n── согласование ──\n";
 $sryvyVsego = 0;
 foreach (PAGES_K as $p) {
-    $sr = Soglasovanie::proverit($stranicy[$p]);
+    $sr = Soglasovanie::proverit($napisano[$p]);
     $sryvyVsego += count($sr);
     if (!$sr) { continue; }
     printf("  ✗ %s — %d\n", $p, count($sr));
@@ -573,7 +596,7 @@ else { $provaly['согласование'] = 1; }
 echo "\n── эхо тела в ответах ──\n";
 $ekhoVsego = 0;
 foreach (PAGES_K as $p) {
-    $ek = Ekho::proverit($stranicy[$p]);
+    $ek = Ekho::proverit($napisano[$p]);
     $ekhoVsego += count($ek);
     if (!$ek) { continue; }
     printf("  ✗ %s — %d\n", $p, count($ek));
@@ -591,7 +614,7 @@ else { $provaly['эхо тела'] = 1; }
 echo "\n── россыпь коротких абзацев ──\n";
 $rossypVsego = 0;
 foreach (PAGES_K as $p) {
-    $rs = Rossyp::proverit($stranicy[$p]);
+    $rs = Rossyp::proverit($napisano[$p]);
     $rossypVsego += count($rs);
     foreach ($rs as $r) {
         printf("  ✗ %s — %d однофразовых подряд, с «%s…»\n",
@@ -613,9 +636,9 @@ if ($rossypVsego === 0) {
 echo "\n── сквозная сверка фактов ──\n";
 $svodFile = $dir . '/svod.json';
 $svod = is_file($svodFile) ? json_decode((string) file_get_contents($svodFile), true) : null;
-$rashozhdeniya = Skvoznye::schyotPerechnya($stranicy);
+$rashozhdeniya = Skvoznye::schyotPerechnya($napisano);
 if (is_array($svod)) {
-    $rashozhdeniya = array_merge(Skvoznye::poSvodu($stranicy, $svod), $rashozhdeniya);
+    $rashozhdeniya = array_merge(Skvoznye::poSvodu($napisano, $svod), $rashozhdeniya);
     printf("  · свод: %d величин\n", count($svod));
 } else {
     echo "  · свода нет — сверены только счёт против перечня\n";
@@ -635,6 +658,15 @@ foreach ($rashozhdeniya as $r) {
 }
 if (!$rashozhdeniya) { echo "  · расхождений между страницами нет\n"; }
 else { $provaly['сквозные факты'] = 1; }
+
+// Дискриминатор — мерка КОРПУСНАЯ, и вторым шлюзом внутрь приёмки её ставить
+// нельзя: лучший одиночный порог по семи страницам скачет от набора к набору и
+// ничего не значит. Приёмка отвечает за комплект, разделимость — за партию.
+if ($soSloyami) {
+    echo "\n── разделимость (корпусная мерка, здесь не считается) ──\n";
+    echo "  · после партии: php tools/zamery/razdelimost.php <чужой корпус> <наш корпус>\n";
+    echo "  · комплект годен, когда ни одно поле не выдаёт автора чаще 70 % раз\n";
+}
 
 printf("\nИТОГ: %s\n", $provaly ? 'НЕ ПРОЙДЕНО — ' . implode(', ', array_keys($provaly)) : 'комплект принят');
 exit($provaly ? 1 : 0);
