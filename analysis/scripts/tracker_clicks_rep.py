@@ -21,14 +21,13 @@
 даёт больше LEAD_MIN кликов кампании, он выносится в лидеры и все доли
 показываются ещё раз без него.
 
-    python3 tracker_clicks_rep.py analysis/api/tracker_clicks_<from>_<to>.jsonl
+    python3 tracker_clicks_rep.py <clicks.jsonl> [conversions.jsonl]
 """
 import os, sys, json, collections
 from urllib.parse import urlsplit
 
 OURS     = 'dorgen_engine'
 TLD      = ('casino', 'team', 'lol', 'buzz')  # зоны, в которых работает сеть
-TRAP_RUN = 4        # столько одинаковых сегментов подряд в хвосте пути = ловушка
 LEAD_MIN = 0.05     # доля кликов кампании, с которой сабдомен считается лидером
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 
@@ -40,15 +39,13 @@ def host(url):
     return h[4:] if h.startswith('www.') else h or None
 
 
-def is_trap(path):
-    """Путь вида `/promo/ru/ru/ru/…` — обход бесконечного дерева URL.
+def nesting(path):
+    """Вложенность: сколько уровней `/ru` в пути, с которого ушёл клик.
 
-    Берём хвост: если последние TRAP_RUN сегментов одинаковы, это не навигация,
-    а рекурсивная ссылка, по которой краулер уходит вглубь. На выгрузке 11–17.09
-    таких кликов 199 275, и 99.9% из них на одном сабдомене.
+    На входе всегда 0, дальше наращивает hreflang. Лимит Apache — 20 уровней,
+    и по выгрузке 11–17.09 он соблюдается: кликов глубже 20 нет вовсе.
     """
-    segs = [x for x in (path or '').split('/') if x]
-    return len(segs) >= TRAP_RUN and len(set(segs[-TRAP_RUN:])) == 1
+    return sum(1 for x in (path or '').split('/') if x == 'ru')
 
 
 def registry():
@@ -84,7 +81,7 @@ def pct(a, b):
     return f"{100.0 * a / b:.2f}%" if b else "—"
 
 
-def main(path):
+def main(path, conv_path=None):
     doms = registry()
     camp = collections.Counter()
     refs = collections.Counter()
@@ -95,8 +92,9 @@ def main(path):
     subs = collections.defaultdict(set)
     sub_clicks = collections.Counter()      # только наша кампания: клики на сабдомен
     sub_bots = collections.Counter()
-    sub_traps = collections.Counter()
-    trap_paths = collections.Counter()
+    sub_deep = collections.Counter()
+    nest_clicks = collections.Counter()
+    nest_subs = collections.defaultdict(set)
 
     n = 0
     with open(path, encoding='utf-8') as f:
@@ -134,18 +132,20 @@ def main(path):
                 k['яндекс-реферер'] += 1
             if r.get('landing_path'):
                 k['landing_path'] += 1
-            trap = is_trap(r.get('exit_path'))
-            if trap:
-                k['краулерная ловушка'] += 1
+            deep = nesting(r.get('exit_path')) > 0
+            if deep:
+                k['клики с вложенности'] += 1
             if c == OURS:
                 days[(r.get('at') or '')[:10]] += 1
                 refs[h or '(пусто)'] += 1
                 sub_clicks[s or '(пусто)'] += 1
                 if r.get('is_bot'):
                     sub_bots[s or '(пусто)'] += 1
-                if trap:
-                    sub_traps[s or '(пусто)'] += 1
-                    trap_paths[(r.get('exit_path') or '')[:60]] += 1
+                nd = nesting(r.get('exit_path'))
+                nest_clicks[nd] += 1
+                nest_subs[nd].add(s)
+                if deep:
+                    sub_deep[s or '(пусто)'] += 1
 
     print(f"ВСЕГО КЛИКОВ В ВЫГРУЗКЕ: {n}\n")
     print("КАМПАНИИ (клики трекера, не только наши):")
@@ -162,7 +162,7 @@ def main(path):
         for name in ('без ключа', 'в реестре', 'самореферер', 'внешний реферер',
                      'наша форма, вне реестра', 'чужая форма',
                      'из них взят из реферера', 'из них чужая сетка', 'боты',
-                     'краулерная ловушка',
+                     'клики с вложенности',
                      'яндекс-реферер', 'без реферера', 'landing_path'):
             print(f"  {name:<18} {k[name]:>8}  {pct(k[name], t)}")
         if c != OURS:
@@ -180,31 +180,42 @@ def main(path):
     print("  топ-5:")
     for x, v in sub_clicks.most_common(5):
         print(f"    {x:<38} {v:>8}  {pct(v, t)}  боты {pct(sub_bots[x], v)}"
-              f"  ловушка {pct(sub_traps[x], v)}")
+              f"  вложенность {pct(sub_deep[x], v)}")
 
     if lead:
         # правило мануала: один домен держит среднее — показать и без него
         drop = {x for x, _ in lead}
         t2 = t - sum(v for _, v in lead)
         b2 = st[OURS]['боты'] - sum(sub_bots[x] for x in drop)
-        p2 = st[OURS]['краулерная ловушка'] - sum(sub_traps[x] for x in drop)
+        p2 = st[OURS]['клики с вложенности'] - sum(sub_deep[x] for x in drop)
         print(f"\n  ЛИДЕРЫ (≥{LEAD_MIN:.0%} кликов кампании) — доли пересчитаны без них:")
         for x, v in lead:
             print(f"    {x:<38} {v:>8}  {pct(v, t)}")
         print(f"    {'клики':<38} {t:>8} -> {t2}")
         print(f"    {'боты':<38} {pct(st[OURS]['боты'], t):>8} -> {pct(b2, t2)}")
-        print(f"    {'краулерная ловушка':<38} {pct(st[OURS]['краулерная ловушка'], t):>8} -> {pct(p2, t2)}")
+        print(f"    {'клики с вложенности':<38} {pct(st[OURS]['клики с вложенности'], t):>8} -> {pct(p2, t2)}")
     else:
         print(f"  сабдоменов с долей ≥{LEAD_MIN:.0%} нет — пересчитывать без лидера нечего")
 
-    if trap_paths:
-        print(f"\nКРАУЛЕРНАЯ ЛОВУШКА {OURS}: {st[OURS]['краулерная ловушка']} кликов "
-              f"на {len(sub_traps)} сабдоменах")
-        for x, v in sub_traps.most_common(5):
-            print(f"    {x:<38} {v:>8}  {pct(v, sub_clicks[x])} кликов этого сабдомена")
-        print("  пути:")
-        for x, v in trap_paths.most_common(3):
-            print(f"    {x:<60} {v:>8}")
+    if conv_path and os.path.exists(conv_path):
+        nest_conv = collections.Counter()
+        with open(conv_path, encoding='utf-8') as f:
+            for line in f:
+                r = json.loads(line)
+                if r.get('campaign') == OURS:
+                    nest_conv[nesting(r.get('exit_path'))] += 1
+    else:
+        nest_conv = None
+
+    print(f"\nВЛОЖЕННОСТЬ {OURS} (уровней /ru в exit_path) — исход, не предиктор:")
+    for d in sorted(nest_clicks):
+        line = (f"  {d:>3}  клики {nest_clicks[d]:>8}  {pct(nest_clicks[d], t):>7}"
+                f"  сабдоменов {len(nest_subs[d]):>6}")
+        if nest_conv is not None:
+            line += f"  конверсий {nest_conv.get(d, 0):>4}"
+        print(line)
+    if max(nest_clicks, default=0) <= 20:
+        print("  глубже 20 уровней кликов нет — срез Apache соблюдается")
 
     print(f"\nКЛИКИ {OURS} ПО ДНЯМ:")
     for d, v in sorted(days.items()):
@@ -227,4 +238,4 @@ def main(path):
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         raise SystemExit(__doc__)
-    main(sys.argv[1])
+    main(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else None)
