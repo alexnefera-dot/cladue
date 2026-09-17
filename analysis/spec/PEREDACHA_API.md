@@ -120,7 +120,30 @@ python3 analysis/scripts/pull_api.py subdomains 2026-09-10 2026-09-17   # про
 
 ---
 
-## 5 · API — что есть
+## 5 · Второй источник — API трекера
+
+`sitegrator.com`, эндпоинты `/v1/clicks` и `/v1/conversions`. Конверсии и клики
+берутся оттуда напрямую, **CSV больше не нужен**. Контракт — `API.md` в ветке
+`claude/sitegrator-redirector`. Переменные `TRACKER_BASE` / `TRACKER_TOKEN`.
+
+Отличия от контракта dorgen: `limit` до 5000, окно дат до 92 суток, 60 запросов
+в минуту, 2 одновременных. Ключ соединения — `subdomain`, совпадает с
+`subdomain` из `/v1/subdomains`.
+
+Что уже проверено и что проверить при первом доступе — в
+`analysis/spec/TRACKER_PREFLIGHT_17.09.md`. Коротко: ключ состоятелен (заполнен
+у 100% конверсий, 97% опознаются в реестре), но **2% строк отравлены подстановкой
+хоста реферера** вместо сабдомена (`yandex.com`, `lelang.su`). Такие строки в
+расчёт не брать, но считать их долю и показывать: её рост означает, что дор
+перестал передавать `site=`.
+
+Всегда `null`: `payout`, `status` (партнёрка не шлёт суммы и отмены),
+`landing_path` (дор не передаёт `lp=`, правка в работе). Боты не отфильтрованы,
+есть `is_bot` и параметр `ua_class`.
+
+---
+
+## 5-бис · API системы запусков — что есть
 
 Полный контракт: `analysis/spec/API_USAGE_17.09.md`. Коротко:
 
@@ -273,11 +296,12 @@ Europe/Kyiv. Нет значения → `null`. Пагинация `limit` (max
 | `analysis/spec/API_USAGE_17.09.md` | контракт API от разработчика |
 | `analysis/spec/AUDIT_API_17.09.md` | аудит API 17.09: что API реально отдаёт, список разработчику |
 | `analysis/spec/content_label_propusheno.txt` | 286 баз без `content_label`, для разработчика |
+| `analysis/spec/TRACKER_PREFLIGHT_17.09.md` | трекер: проверка ключа соединения, что смотреть при первом доступе |
 | `analysis/scripts/pull_api.py` | выгрузка из API |
 | `analysis/scripts/alltxt.py` | генерация txt-списков запусков |
 | `analysis/launches.md`, `analysis/launch_*.txt` | реестр запусков |
 | `analysis/domains_flat.txt` | плоский список всех доменов, проверка коллизий |
-| `analysis/konversii_7dney.csv` | 164 конверсии 09–16.09 |
+| `analysis/konversii_7dney.csv` | 164 конверсии 09–16.09. **Историческая копия**: конверсии теперь из API трекера |
 | `analysis/serp_17.09.json` | срез выдачи 17.09: 291 наш домен, 1029 запросов |
 
 При правке `params.html` копия `ANALITIKA.html` пересобирается: берётся блок `<style>`
