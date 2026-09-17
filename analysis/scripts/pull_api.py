@@ -10,7 +10,9 @@
     python3 pull_api.py globals
     python3 pull_api.py subdomains 2026-09-10 2026-09-17
     python3 pull_api.py events     2026-09-16 2026-09-17
-    python3 pull_api.py traffic    2026-09-10 2026-09-17
+
+traffic отключён: курсор /v1/traffic сломан, дальше 1000 строк не уйти, а трафик
+переедет в отдельное API, которое ещё не реализовано.
 
 Кладёт JSONL в analysis/api/<endpoint>_<from>_<to>.jsonl
 
@@ -225,7 +227,15 @@ if __name__ == '__main__':
         elif a[0] == 'globals':
             print(json.dumps(_get('/v1/globals', dict(on=a[1] if len(a) > 1 else str(date.today()))),
                              ensure_ascii=False, indent=1))
-        elif a[0] in ('subdomains', 'traffic', 'events'):
+        elif a[0] == 'traffic':
+            raise SystemExit(
+                "traffic выгружать нечем: курсор /v1/traffic отвергается сервером, "
+                "который его же выдал, поэтому дальше первых 1000 строк не уйти.\n"
+                "Эти 1000 строк — смещённая выборка (первые по дате), анализировать "
+                "её нельзя, поэтому файл не пишется вовсе.\n"
+                "Трафик переедет в отдельное API, оно ещё не реализовано. "
+                "Подробности — analysis/spec/AUDIT_API_17.09.md §2-бис.")
+        elif a[0] in ('subdomains', 'events'):
             if len(a) < 3: raise SystemExit(f"использование: pull_api.py {a[0]} <date_from> <date_to>")
             extra = {'date_field': 'pipeline_started'} if a[0] == 'subdomains' else {}
             dump(a[0], a[1], a[2], **extra)
