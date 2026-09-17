@@ -6,14 +6,14 @@ namespace Tests;
 
 use YandexSites\Model\SearchResult;
 use YandexSites\Model\Site;
-use YandexSites\Support\DropDomains;
+use YandexSites\Support\BrandDomains;
 
 /**
- * Дроп-домены: сетки, которые держат на поддоменах сайты многих РАЗНЫХ брендов.
+ * Домены, которые держат много брендов: на их поддоменах сайты разных брендов.
  * Главное здесь — не посчитать лишнего: один бренд в двух написаниях и портал с обзорами
- * (шесть брендовых запросов на ОДИН адрес без поддомена) дроп-доменом не являются.
+ * (шесть брендовых запросов на ОДИН адрес без поддомена) в список не идут.
  */
-final class DropDomainsTest
+final class BrandDomainsTest
 {
     /**
      * @param list<array{0: string, 1: string}> $rows пары «хост, запрос»
@@ -55,12 +55,12 @@ final class DropDomainsTest
             ['irwin.net-drop.buzz', 'ирвин казино'],
         ]);
 
-        $found = DropDomains::find($raw, $this->sites(['net-drop.buzz']));
+        $found = BrandDomains::find($raw, $this->sites(['net-drop.buzz']));
         Assert::same(['net-drop.buzz'], array_keys($found), 'домен сетки найден');
         Assert::same(7, count($found['net-drop.buzz']['brands']), 'семь разных брендов');
         Assert::same(7, $found['net-drop.buzz']['hosts'], 'семь доров');
-        Assert::contains('net-drop.buzz — брендов 7', DropDomains::text($found));
-        Assert::same([['domain' => 'net-drop.buzz', 'brands' => 7, 'hosts' => 7]], DropDomains::top($found));
+        Assert::contains('net-drop.buzz — брендов 7', BrandDomains::text($found));
+        Assert::same([['domain' => 'net-drop.buzz', 'brands' => 7, 'hosts' => 7]], BrandDomains::top($found));
     }
 
     public function testFiveBrandsIsNotEnough(): void
@@ -73,7 +73,7 @@ final class DropDomainsTest
             ['d.small.buzz', 'гизбо казино'],
             ['e.small.buzz', 'лекс казино'],
         ]);
-        Assert::same([], DropDomains::find($raw, $this->sites(['small.buzz'])));
+        Assert::same([], BrandDomains::find($raw, $this->sites(['small.buzz'])));
     }
 
     public function testSameBrandInDifferentSpellingsCountsOnce(): void
@@ -87,9 +87,9 @@ final class DropDomainsTest
             ['e.mix.buzz', 'мани икс казино'],
             ['f.mix.buzz', 'Money X casino'],
         ]);
-        $found = DropDomains::find($raw, $this->sites(['mix.buzz']), 4);
+        $found = BrandDomains::find($raw, $this->sites(['mix.buzz']), 4);
         Assert::same([], $found, 'три бренда в шести написаниях порога не дают');
-        Assert::same(3, count(DropDomains::find($raw, $this->sites(['mix.buzz']), 3)['mix.buzz']['brands']));
+        Assert::same(3, count(BrandDomains::find($raw, $this->sites(['mix.buzz']), 3)['mix.buzz']['brands']));
     }
 
     public function testPortalOnItsOwnDomainIsNotADropDomain(): void
@@ -105,7 +105,7 @@ final class DropDomainsTest
             ['review.ru', 'ирвин казино'],
             ['www.review.ru', 'вулкан вегас казино'],
         ]);
-        Assert::same([], DropDomains::find($raw, $this->sites(['review.ru'])), 'www — тоже не поддомен');
+        Assert::same([], BrandDomains::find($raw, $this->sites(['review.ru'])), 'www — тоже не поддомен');
     }
 
     public function testRejectedRowsAndForeignDomainsAreIgnored(): void
@@ -119,9 +119,9 @@ final class DropDomainsTest
             ['f.cut.buzz', 'ирвин казино'],
         ];
         // Те же строки, но отсеянные фильтрами — в отобранное они не попали.
-        Assert::same([], DropDomains::find($this->raw($rows, 'domain_scope'), $this->sites(['cut.buzz'])), 'срезанные строки не считаем');
+        Assert::same([], BrandDomains::find($this->raw($rows, 'domain_scope'), $this->sites(['cut.buzz'])), 'срезанные строки не считаем');
         // И домен, которого нет среди отобранных сайтов, тоже не считаем.
-        Assert::same([], DropDomains::find($this->raw($rows), $this->sites(['other.buzz'])), 'чужой домен не считаем');
+        Assert::same([], BrandDomains::find($this->raw($rows), $this->sites(['other.buzz'])), 'чужой домен не считаем');
     }
 
     public function testQueriesWithoutBrandDoNotCount(): void
@@ -134,6 +134,6 @@ final class DropDomainsTest
             ['e.plain.buzz', 'балконы под ключ стоимость'],
             ['f.plain.buzz', 'окна рехау официальный дилер москва'],
         ]);
-        Assert::same([], DropDomains::find($raw, $this->sites(['plain.buzz'])), 'бренда в запросах нет — считать нечего');
+        Assert::same([], BrandDomains::find($raw, $this->sites(['plain.buzz'])), 'бренда в запросах нет — считать нечего');
     }
 }

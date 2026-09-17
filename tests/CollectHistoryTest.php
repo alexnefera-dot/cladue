@@ -232,10 +232,10 @@ final class CollectHistoryTest
         Assert::false(isset(CollectHistory::load($dir)[0]['unique_sites']), 'запись не тронута');
     }
 
-    public function testRecordCountsDropDomains(): void
+    public function testRecordCountsBrandDomains(): void
     {
         // Домен сетки, который держит на поддоменах сайты шести разных брендов, попадает в запись
-        // отдельным числом — «дроп-домены» (бренд берётся из поискового ключа).
+        // отдельным числом — «домены с 6+ брендами» (бренд берётся из поискового ключа).
         $raw = [];
         $brands = ['куш казино', 'комета казино', 'старда казино', 'гизбо казино', 'лекс казино', 'ирвин казино'];
         foreach ($brands as $i => $query) {
@@ -246,13 +246,13 @@ final class CollectHistoryTest
         $site->add(new SearchResult('куш казино', 0, 1, 'https://b0.dropnet.buzz/', 'b0.dropnet.buzz', 'T'));
 
         $record = CollectHistory::record([$site], ['results' => count($raw)], [], false, false, $raw);
-        Assert::same(1, $record['drop_domains'], 'дроп-домен посчитан');
-        Assert::same('dropnet.buzz', $record['drop_domains_top'][0]['domain']);
-        Assert::same(6, $record['drop_domains_top'][0]['brands']);
+        Assert::same(1, $record['brand_domains'], 'домен с шестью брендами посчитан');
+        Assert::same('dropnet.buzz', $record['brand_domains_top'][0]['domain']);
+        Assert::same(6, $record['brand_domains_top'][0]['brands']);
 
         $totals = CollectHistory::totals([$record, $record]);
-        Assert::same(2, $totals['drop_domains'], 'в итоге складываются по сборам');
-        Assert::contains('Дроп-доменов', CollectHistory::csv([$record]), 'колонка в CSV');
+        Assert::same(2, $totals['brand_domains'], 'в итоге складываются по сборам');
+        Assert::contains('Доменов с 6+ брендами', CollectHistory::csv([$record]), 'колонка в CSV');
     }
 
     public function testIsDoorIgnoresWww(): void

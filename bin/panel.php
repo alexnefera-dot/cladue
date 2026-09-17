@@ -644,7 +644,7 @@ if ($path === '/download' && (string) ($_GET['file'] ?? '') === 'history') {
 }
 
 if ($path === '/download') {
-    $map = ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt', 'results' => 'results.csv', 'queries-unique' => 'queries-unique.txt', 'query-dupes' => 'query-dupes.txt', 'drop-domains' => \YandexSites\Support\DropDomains::FILE];
+    $map = ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt', 'results' => 'results.csv', 'queries-unique' => 'queries-unique.txt', 'query-dupes' => 'query-dupes.txt', 'brand-domains' => \YandexSites\Support\BrandDomains::FILE];
     $key = (string) ($_GET['file'] ?? '');
     $file = $runDir . '/' . ($map[$key] ?? '');
     if (!isset($map[$key]) || !is_file($file)) {

@@ -46,7 +46,7 @@ use YandexSites\Search\CachingFetcher;
 use YandexSites\Search\XmlStockFetcher;
 use YandexSites\Support\CollectHistory;
 use YandexSites\Support\DomainLedger;
-use YandexSites\Support\DropDomains;
+use YandexSites\Support\BrandDomains;
 use YandexSites\Support\Logger;
 use YandexSites\Support\Progress;
 use YandexSites\Support\QueryDupes;
@@ -691,18 +691,18 @@ while (true) {
                 if ($record['zones'] !== []) {
                     $logger->info('Зоны доров: ' . CollectHistory::zonesText($record['zones'], 8));
                 }
-                // Дроп-домены: сетки, держащие на поддоменах сайты многих разных брендов. Полный
+                // Домены, которые держат много брендов: на поддоменах сайты разных брендов. Полный
                 // список пишем рядом с результатами — в записи истории остаются только первые.
-                $drop = DropDomains::find($r->raw, $sites);
-                file_put_contents($runDir . '/' . DropDomains::FILE, DropDomains::text($drop));
-                if ($drop !== []) {
-                    $first = array_slice(DropDomains::top($drop), 0, 5);
+                $brandDomains = BrandDomains::find($r->raw, $sites);
+                file_put_contents($runDir . '/' . BrandDomains::FILE, BrandDomains::text($brandDomains));
+                if ($brandDomains !== []) {
+                    $first = array_slice(BrandDomains::top($brandDomains), 0, 5);
                     $logger->info(sprintf(
-                        'Дроп-доменов (от %d брендов на поддоменах): %d — %s%s',
-                        DropDomains::MIN_BRANDS,
-                        count($drop),
+                        'Доменов, которые держат более %d брендов: %d — %s%s',
+                        BrandDomains::MIN_BRANDS - 1,
+                        count($brandDomains),
                         implode(', ', array_map(static fn (array $d): string => sprintf('%s (%d)', $d['domain'], $d['brands']), $first)),
-                        count($drop) > count($first) ? ', …' : '',
+                        count($brandDomains) > count($first) ? ', …' : '',
                     ));
                 }
             };
@@ -828,7 +828,7 @@ while (true) {
                 'query_dupes' => $dupeSummary,
                 'base_domains' => $ledger->count(),
                 'run_finished_at' => date(DATE_ATOM),
-                'files' => ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt', 'results' => 'results.csv', 'drop' => DropDomains::FILE],
+                'files' => ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt', 'results' => 'results.csv', 'brands' => BrandDomains::FILE],
                 'message' => $result->aborted
                     ? 'Прогон остановлен из-за ошибки источника, см. лог'
                     : trim(

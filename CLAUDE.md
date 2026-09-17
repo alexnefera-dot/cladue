@@ -522,10 +522,10 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   fake-server host `botblock.ru`, which 403s the bot and serves browsers).
 - `domain_scope` (all/root/subdomain) and `unique_by=domain` implement the "one site per domain,
   skip other subdomains" rule; covered by `tests/ResultFilterTest.php` and `tests/PanelTest.php`.
-- DROP DOMAINS — «домены, которые встречаются более чем в 5 разных брендов (это именно отобранные после
+- DOMAINS HOLDING MANY BRANDS — «домены, которые встречаются более чем в 5 разных брендов (это именно отобранные после
   фильтрации домены с поддоменами), которые были на разных бренд-ключах (не на одном)». A network's
   domain hosts one door per brand, and the only way to see that is the QUERY each door was found by, so
-  `Content\BrandKeys` turns a search key into a canonical brand key and `Support\DropDomains` counts
+  `Content\BrandKeys` turns a search key into a canonical brand key and `Support\BrandDomains` counts
   domains with ≥ `MIN_BRANDS` (6 — «более 5») distinct brands. `BrandKeys::of($query)`: match the query's
   word n-grams (3 → 2 → 1, longest first, so «Вулкан Вегас» beats «Вулкан») against the alias table, else
   require a THEME word («казино»/«зеркал»/«слот»… by stem, `bet`/`casino` exactly) and take the leftover
@@ -535,19 +535,21 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   the TRANSLATED ones («Money X»/«Мани Икс», «Dragon Money»/«Драгон Мани», «Lex»/«Лекс»), and
   `normalize()` (cyrillic translit + c/q→k, y→i, w→v, doubles collapsed, DIGITS KEPT for 1xBet/Azino777/7K)
   folds the transliterated ones by itself — on that list of 166 it unifies 97 pairs with no table at all.
-  `DropDomains::find($raw, $sites)` walks the SERP rows that PASSED the filters (`reason === null`), keeps
+  `BrandDomains::find($raw, $sites)` walks the SERP rows that PASSED the filters (`reason === null`), keeps
   only doors (`registrable !== host` — a review portal ranking for six brand keys from its own domain is
   not a network) whose registrable domain is among the selected sites, and groups brand keys per domain.
-  `CollectHistory::record()` stores `drop_domains` (count) + `drop_domains_top` (30 × `{domain, brands,
-  hosts}`), `totals()` sums the count, the CSV gains a «Дроп-доменов» column (blank for older records),
+  `CollectHistory::record()` stores `brand_domains` (count) + `brand_domains_top` (30 × `{domain, brands,
+  hosts}`), `totals()` sums the count, the CSV gains a «Доменов с 6+ брендами» column (blank for older records),
   the funnel gets a `keep` sub-row under «Отобрано сайтов» whose tooltip lists the top domains, and the
-  history table a «Дроп-доменов» cell. `bin/run-job.php` also writes the FULL list with brand names to
-  `runs/current/drop-domains.txt` (`DropDomains::text()`) and logs the first five; `/download?file=drop-domains`
-  serves it behind the «дроп-домены» chip under the results table. Covered by `tests/BrandKeysTest.php`
+  history table a «Доменов с 6+ брендами» cell. `bin/run-job.php` also writes the FULL list with brand names to
+  `runs/current/brand-domains.txt` (`BrandDomains::text()`) and logs the first five; `/download?file=brand-domains`
+  serves it behind the «домены с 6+ брендами» chip under the results table. The user rejected the name
+  «дроп-домены» («это не дроп домены называется, а домены которые держат более 5 брендов»), so every
+  visible label says exactly that — class, keys and file are `BrandDomains`/`brand_domains`/`brand-domains.txt`. Covered by `tests/BrandKeysTest.php`
   (both spellings → one key, translit folding without the table, digits kept, generic queries rejected),
-  `tests/DropDomainsTest.php` (6 brands found, 5 not enough, one brand in two spellings counts once,
+  `tests/BrandDomainsTest.php` (6 brands found, 5 not enough, one brand in two spellings counts once,
   own-domain portal ignored, rejected rows and foreign domains ignored) and
-  `CollectHistoryTest::testRecordCountsDropDomains` + `PanelTest` (the file is written by a real collect
+  `CollectHistoryTest::testRecordCountsBrandDomains` + `PanelTest` (the file is written by a real collect
   and served by `/download`).
 - `Visit\SiteLinks::fromHeader()` extracts **same-host** links from a page's header/nav **and footer**
   (home page as base; `www` folded, but sibling subdomains like `hype.`/`max.` of the same domain are
