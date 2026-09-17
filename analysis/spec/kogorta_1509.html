@@ -1,0 +1,194 @@
+<title>Когорта 15.09</title>
+<style>
+:root{
+  --paper:#eeeeea; --card:#fdfdfb; --ink:#171a15; --mute:#5d6157; --line:#d3d4cc;
+  --acc:#46602a; --accbg:#e7ecdd; --gap:#a33b2a; --gapbg:#f6e7e3;
+  --ctrl:#2c4a63; --ctrlbg:#e2e9ef;
+}
+:root:not([data-theme="light"]){@media (prefers-color-scheme:dark){
+  --paper:#151713; --card:#1e211b; --ink:#e9eae2; --mute:#9a9d91; --line:#32352c;
+  --acc:#a8c47c; --accbg:#222a17; --gap:#e2907c; --gapbg:#2c1b17;
+  --ctrl:#8db4d4; --ctrlbg:#1a242d;
+}}
+:root[data-theme="dark"]{
+  --paper:#151713; --card:#1e211b; --ink:#e9eae2; --mute:#9a9d91; --line:#32352c;
+  --acc:#a8c47c; --accbg:#222a17; --gap:#e2907c; --gapbg:#2c1b17;
+  --ctrl:#8db4d4; --ctrlbg:#1a242d;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);
+  font:400 16.5px/1.66 "Source Serif 4",Georgia,serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:900px;margin:0 auto;padding:0 20px;padding-block:54px 82px}
+h1{font:700 clamp(32px,6vw,50px)/1.06 Chivo,"Helvetica Neue",sans-serif;letter-spacing:-.022em;
+  margin:0 0 16px;text-wrap:balance}
+h2{font:700 clamp(21px,3.3vw,28px)/1.2 Chivo,sans-serif;letter-spacing:-.012em;
+  margin:0 0 12px;text-wrap:balance}
+h3{font:600 16.5px/1.32 Chivo,sans-serif;margin:0 0 7px}
+p{margin:0 0 14px;max-width:66ch}
+.eyebrow{font:500 12px/1 "Fira Mono",ui-monospace,monospace;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--acc);margin:0 0 16px}
+.lede{font-size:19px;color:var(--mute);max-width:61ch}
+.lede b{color:var(--ink);font-weight:600}
+hr{border:0;border-top:1px solid var(--line);margin:42px 0 34px}
+section{margin:0 0 44px}
+.n,code{font-family:"Fira Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+code{background:var(--accbg);padding:.1em .34em;border-radius:2px;font-size:.86em}
+
+figure{margin:0 0 20px;background:var(--card);border:1px solid var(--line);padding:22px 20px 16px}
+figure svg{display:block;max-width:100%;height:auto;margin:0 auto;color:var(--ink)}
+figcaption{font-size:14.5px;color:var(--mute);margin-top:16px;border-top:1px solid var(--line);
+  padding-top:12px;line-height:1.5}
+
+.tw{overflow-x:auto;border:1px solid var(--line);background:var(--card);margin:0 0 18px}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:15px}
+th{font:500 10.5px/1.2 "Fira Mono",ui-monospace,monospace;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--mute);text-align:left;padding:11px 14px;
+  border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:bottom}
+td{padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.45;
+  font-size:14.5px}
+td:first-child{font-family:"Fira Mono",ui-monospace,monospace;font-size:13px;
+  white-space:nowrap;font-weight:500}
+tr:last-child td{border-bottom:0}
+tr.sub td{background:var(--paper);font:600 12px/1.3 Chivo,sans-serif;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--mute)}
+tr.sub td:first-child{font-family:Chivo,sans-serif;font-size:12px}
+
+.tag{display:inline-block;font:500 10px/1 "Fira Mono",monospace;letter-spacing:.06em;
+  text-transform:uppercase;padding:3px 6px;border-radius:2px;white-space:nowrap}
+.g-ctrl{background:var(--ctrlbg);color:var(--ctrl)}
+.g-obs{background:var(--accbg);color:var(--acc)}
+.g-gap{background:var(--gapbg);color:var(--gap)}
+.g-const{background:var(--line);color:var(--mute)}
+
+.call{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--acc);
+  padding:17px 21px;margin:0 0 18px}
+.call.gap{border-left-color:var(--gap)}
+.call.q{border-left-color:var(--ctrl)}
+.call p:last-child{margin-bottom:0}
+.fmt{background:var(--card);border:1px solid var(--line);padding:15px 17px;margin:0 0 16px;
+  overflow-x:auto}
+.fmt pre{margin:0;font:400 12.5px/1.7 "Fira Mono",ui-monospace,monospace;white-space:pre}
+ul,ol{margin:0 0 14px;padding-left:22px;max-width:66ch}
+li{margin:0 0 8px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin:0 0 18px}
+.two>div{background:var(--card);border:1px solid var(--line);padding:16px 18px}
+.two h3{margin-bottom:8px}
+.two ul{padding-left:18px;margin:0}
+.two li{font-size:15px;margin:0 0 6px}
+.miss{background:var(--gapbg);border-left:3px solid var(--gap);padding:11px 15px;
+  margin:-4px 0 20px;font-size:14.5px;line-height:1.55;max-width:66ch}
+.miss ul{margin:5px 0 0;padding-left:18px}
+.miss li{margin:0 0 4px;font-size:14.5px}
+.miss p{margin:0;font-size:14.5px}
+.foot{font-size:14px;color:var(--mute);border-top:1px solid var(--line);padding-top:17px}
+</style><div class="wrap">
+
+<p class="eyebrow">разбор · выдача 17.09 11:00</p>
+<h1>Когорта 15.09</h1>
+<p class="lede">58% видимости против 13–27% у остальных. <b>Три четверти этой
+разницы — возраст на момент снимка, а не качество когорты.</b> Оставшаяся
+четверть реальна и указывает на конкретный контент.</p>
+
+<hr>
+
+<section>
+<h2>Видимость — это кривая, а снимок один</h2>
+<p>Все когорты сняты в один момент, но каждая на своей точке жизненного цикла:</p>
+<div class="tw"><table>
+<tr><th>возраст на момент снимка</th><th>доменов</th><th>видно в выдаче</th><th>доля</th><th>кто там</th></tr>
+<tr><td>0–12 ч</td><td class="n">48</td><td class="n">0</td><td class="n"><b>0%</b></td><td>вся когорта 17.09</td></tr>
+<tr><td>12–24 ч</td><td class="n">20</td><td class="n">11</td><td class="n">55%</td><td>16.09</td></tr>
+<tr><td><b>36–48 ч</b></td><td class="n">96</td><td class="n">71</td><td class="n"><b>74%</b></td><td>половина 15.09</td></tr>
+<tr><td>48–60 ч</td><td class="n">169</td><td class="n">84</td><td class="n">50%</td><td>вторая половина 15.09</td></tr>
+<tr><td>60–80 ч</td><td class="n">94</td><td class="n">27</td><td class="n">29%</td><td>вся когорта 14.09</td></tr>
+</table></div>
+<div class="call">
+<h3>Отсюда и «в три раза лучше»</h3>
+<p>Когорта 15.09 попала под снимок в пике и сразу после: <b>96 её доменов
+в полосе 36–48 часов, где видно 74%</b>, и 169 в полосе 48–60 часов, где 50%.
+Когорта 14.09 попала в хвост распада на 60–80 часах, а 17.09 — на десятый час,
+когда в выдаче ещё нет никого.</p>
+<p>Один снимок сравнивает не когорты, а разные точки одной кривой.</p>
+</div>
+<div class="miss"><b>Практическое следствие:</b> выдачу надо снимать
+<b>на 36–48 часах после запуска</b>. Раньше двенадцати часов там пусто,
+после шестидесяти уже распад. Снимок «когда получится» будет мерить возраст.</div>
+</section>
+
+<hr>
+
+<section>
+<h2>Но остаток реален: одна полоса, два кластера</h2>
+<p>В полосе 48–60 часов лежат шесть групп одного возраста. Разброс внутри неё
+не объясняется ничем возрастным:</p>
+<div class="tw"><table>
+<tr><th>возраст</th><th>группа</th><th>создан</th><th>доменов</th><th>видно</th><th>доля</th></tr>
+<tr><td class="n">57 ч</td><td><code>content-2026-09-14c-7str-oform-1</code></td><td>01:58</td><td class="n">44</td><td class="n">35</td><td class="n"><b>80%</b></td></tr>
+<tr><td class="n">57 ч</td><td><code>content-2026-09-14c-12str-oform</code></td><td>01:58</td><td class="n">4</td><td class="n">3</td><td class="n">75%</td></tr>
+<tr><td class="n">57 ч</td><td><code>content-2026-09-14c-7str-oform-2</code></td><td>01:59</td><td class="n">44</td><td class="n">27</td><td class="n">61%</td></tr>
+<tr><td class="n">58 ч</td><td><code>content-2026-09-14b-7str-oform-2</code></td><td>00:49</td><td class="n">45</td><td class="n">14</td><td class="n"><b>31%</b></td></tr>
+<tr><td class="n">58 ч</td><td><code>content-2026-09-14b-7str-oform-1</code></td><td>00:48</td><td class="n">22</td><td class="n">4</td><td class="n"><b>18%</b></td></tr>
+<tr><td class="n">57 ч</td><td><code>nabory-525-534_styled_img</code></td><td>01:58</td><td class="n">10</td><td class="n">1</td><td class="n"><b>10%</b></td></tr>
+</table></div>
+<div class="call gap">
+<h3>Серия <code>c</code> против серии <code>b</code></h3>
+<p><b>14c — 65 из 92 = 71%. 14b — 18 из 67 = 27%.</b>
+Отношение 2.6×, <span class="n">p = 0.00015</span>.</p>
+<p>Разница во времени создания — <b>семьдесят минут</b>. Один день, один пак
+(<code>7str</code>), одинаковые зоны, одинаковые шаблоны имён, одинаковая
+глубина <code>/ru</code>. Отличается только серия контента.</p>
+</div>
+<p><code>nabory-525-534</code> — третий выпадающий: 1 домен из 10 при том, что
+соседние по минуте группы дают 75–80%, а остальные наборы того же дня — 70, 90
+и 100%. Десять доменов мало для вывода, но если бы истинная доля была 70%,
+вероятность увидеть 1 из 10 равна <span class="n">1.4 × 10⁻⁴</span>.
+Похоже на сбой запуска именно этой партии.</p>
+</section>
+
+<hr>
+
+<section>
+<h2>Что различает 14b и 14c — по имеющимся данным не видно</h2>
+<div class="tw"><table>
+<tr><th>признак</th><th>14b (67 дом)</th><th>14c (92 дом)</th><th>разница</th></tr>
+<tr><td>зоны</td><td><code>.team</code> 44 · <code>.lol</code> 23</td><td><code>.team</code> 53 · <code>.lol</code> 39</td><td>нет</td></tr>
+<tr><td><code>.casino</code></td><td class="n">0</td><td class="n">0</td><td>нет</td></tr>
+<tr><td>чисто числовых имён</td><td class="n">27 из 67</td><td class="n">41 из 92</td><td>нет</td></tr>
+<tr><td>с <code>casino</code> в имени</td><td class="n">22</td><td class="n">27</td><td>нет</td></tr>
+<tr><td>средняя длина метки</td><td class="n">5.6</td><td class="n">5.4</td><td>нет</td></tr>
+<tr><td>медиана <code>/ru</code> у видимых</td><td class="n">17</td><td class="n">15</td><td>нет</td></tr>
+<tr><td>пак</td><td><code>7str-oform-1/-2</code></td><td><code>7str-oform-1/-2</code> + <code>12str</code></td><td>нет</td></tr>
+</table></div>
+<p>Всё, что я могу измерить, совпадает. Значит различие сидит <b>внутри самого
+пака</b> — в текстах, спинтаксе, оформлении — либо в чём-то операционном,
+что произошло между 00:49 и 01:58.</p>
+</section>
+
+<hr>
+
+<section>
+<h2>Что делать</h2>
+<div class="tw"><table>
+<tr><th>#</th><th>действие</th><th>почему</th></tr>
+<tr><td class="n">1</td><td><b>Снимать выдачу на 36–48 часах после запуска,
+одинаково для всех партий</b></td><td>иначе сравнение партий мерит возраст.
+Именно это и произошло с «когортой 15.09»</td></tr>
+<tr><td class="n">2</td><td><b>Сравнить паки <code>14b</code> и <code>14c</code>
+вручную</b> — тексты, длины, спинтакс, оформление</td>
+<td>71% против 27% при p = 0.00015 на 159 доменах. Самый крупный измеренный
+контраст между двумя паками одного дня</td></tr>
+<tr><td class="n">3</td><td>Проверить, что все 10 доменов
+<code>nabory-525-534</code> вообще запустились</td>
+<td>1 видимый из 10 при ожидании 7 — вероятность 1.4 × 10⁻⁴.
+Похоже на сбой партии, а не на свойство контента</td></tr>
+<tr><td class="n">4</td><td>Не трогать когорту 17.09 ещё сутки</td>
+<td>ноль из 48 на десятом часе — это нормально, а не провал</td></tr>
+</table></div>
+<div class="miss"><b>Границы.</b> Один снимок выдачи. Кривая возраста построена
+на 21 группе и 427 доменах — этого хватает на форму, но не на точное положение
+пика: полосы 24–36 часов в данных нет вовсе, там ни одна группа не запускалась.
+Контраст 14b/14c измерен на видимости, не на деньгах: конверсий у 14b две,
+у 14c восемь, на таких числах денежная разница не читается.</div>
+</section>
+
+</div>
