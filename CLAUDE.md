@@ -660,9 +660,22 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   row per collect. OWN sites («внеси как-то в скрипт еще и подсчет наших и процент / ты их определяешь
   скринами» — they are NOT read off the screenshot: `Site::$own` is set by `PageVisitor` from the HTML
   markers of `Filter\OwnSites`, the shot is only there to eyeball it) are counted by `breakdown()` as
-  `own` and shown as a share of the SELECTED sites (`totals()['own_percent']`), because a SERP row alone
-  cannot tell our template from anybody else's — the flag appears on the preview visit, which is why the
-  early record says 0 and the end-of-collect patch fixes it. The same numbers go to the log («За этот сбор:
+  `own`, and the share is taken from the TOTAL DOORS of the SERP mass, not from the selection
+  («давай считать процент наших всегда от общего числа доров»): our templates ARE doors, so «what share
+  of the niche's doors is ours» only makes sense against `found_doors` (`ownBase()` falls back to the
+  selected `doors`, then `sites`, for old records). The count also includes the ones that arrived as
+  REPEATS («наши учитывать и те что были повторами»): a domain already in the ledger is never visited,
+  so `Site::$own` can't fire, yet it stands in the SERP and it is ours. `bin/run-job.php` therefore keeps
+  a second `DomainLedger` at `runs/own-domains.txt` (`rememberOwnDomains()` after every stage that
+  visits: collect, download, preview; cleared by `/api/reset-base` together with the base) and passes
+  `$ownLedger->all()` into `record()`; `CollectHistory::ownRepeats($seenBefore, $ownDomains)` counts
+  DISTINCT registrable domains among the repeats that are ours — by domain, not by host, because
+  everything after «сайтов в выдаче» counts sites, and by host our own count could exceed the door
+  count. The record stores `own_repeats` next to `own`. The early record already knows the repeats part;
+  the end-of-collect patch adds the visited part. The panel shows the row under «доров (на поддоменах)»,
+  not under «Отобрано сайтов», and the results-table stats line prints «наших N» WITHOUT a percent — two
+  percents under one word (one of the table, one of the doors) is exactly the contradiction the user
+  complained about twice. The same numbers go to the log («За этот сбор:
   N доменов, из них доров (поддоменов) M (X%), повторов доров …», «Наши шаблоны среди отобранного …») and
   to the collect message; the panel's own stats line above the results table prints the same percent next
   to «наших N». Panel: `GET /api/history` returns

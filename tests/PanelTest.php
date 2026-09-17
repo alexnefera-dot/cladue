@@ -994,7 +994,8 @@ final class PanelTest
             Assert::same(1, $hist['records'][0]['zones']['com'] ?? 0, 'зона дора из отобранного');
             Assert::same(26, $hist['records'][0]['zones']['ru'] ?? 0, 'зоны срезанных доров тоже в статистике');
             Assert::same(2, $hist['totals']['own'], 'наши в итоге по всем сборам');
-            Assert::same(50.0, (float) $hist['totals']['own_percent'], 'доля наших — от отобранного');
+            // Доля наших считается от ОБЩЕГО числа доров в выдаче (27), а не от четырёх отобранных сайтов.
+            Assert::same(7.4, (float) $hist['totals']['own_percent'], 'доля наших — от доров выдачи');
             Assert::same(2, \YandexSites\Support\CollectHistory::load($dir . '/runs')[0]['own'], 'дописано в историю на диске');
 
             $csv = (string) $this->http('GET', $base . '/download?file=history');

@@ -230,6 +230,23 @@ final class CollectHistory
     }
 
     /**
+     * От чего считается доля наших: всего доров в выдаче, иначе доры среди отобранного, иначе отобранное.
+     *
+     * @param array<string, mixed> $record запись сбора или итог totals()
+     */
+    public static function ownBase(array $record): int
+    {
+        foreach (['found_doors', 'doors', 'sites'] as $key) {
+            $n = (int) ($record[$key] ?? 0);
+            if ($n > 0) {
+                return $n;
+            }
+        }
+
+        return 0;
+    }
+
+    /**
      * Сколько всего сайтов срезано (сумма по причинам).
      *
      * @param array<string, array{sites: int, doors: int}> $cut
@@ -271,9 +288,10 @@ final class CollectHistory
      * @param array<string, mixed> $stats RunResult::$stats
      * @param list<string> $seenBefore хосты, отклонённые как «уже в базе» (RunResult::$seenBefore)
      * @param list<array{result: SearchResult, reason: string|null}> $raw все результаты выдачи сбора
+     * @param list<string> $ownDomains домены НАШИХ шаблонов, найденные за все сборы (runs/own-domains.txt)
      * @return array<string, mixed>
      */
-    public static function record(array $sites, array $stats, array $seenBefore = [], bool $resume = false, bool $stopped = false, array $raw = []): array
+    public static function record(array $sites, array $stats, array $seenBefore = [], bool $resume = false, bool $stopped = false, array $raw = [], array $ownDomains = []): array
     {
         $breakdown = self::breakdown($sites);
         // Домены, которые держат много брендов: на их поддоменах сайты разных брендов (бренд берётся
@@ -288,6 +306,7 @@ final class CollectHistory
                 $repeatsDoors++;
             }
         }
+        $ownRepeats = self::ownRepeats($seenBefore, $ownDomains);
         // Причины, которые срабатывают уже ПОСЛЕ группировки в сайты (мало запросов, уже в базе,
         // не ответил на проверку), Runner считает сразу по сайтам — берём его счётчики как есть.
         // Вместе с фильтрами выдачи из breakdownRaw() получается сходящаяся воронка:
@@ -325,9 +344,11 @@ final class CollectHistory
             'sites' => count($sites),
             'doors' => $breakdown['doors'],
             'roots' => $breakdown['roots'],
-            // Наши шаблоны среди отобранного: на момент этой записи визитов ещё не было, число
-            // уточняется в конце сбора (признак «наш» ставится по меткам в HTML на превью-визите).
-            'own' => $breakdown['own'],
+            // Наши шаблоны: отобранные (признак ставится по меткам в HTML на превью-визите — на момент
+            // этой записи визитов ещё не было, число уточняется в конце сбора) ПЛЮС те, что пришли
+            // повторами: домен уже в базе, сайт мы даже не открываем, но он наш и в выдаче стоит.
+            'own' => $breakdown['own'] + $ownRepeats,
+            'own_repeats' => $ownRepeats,
             // Домены, которые держат на поддоменах от BrandDomains::MIN_BRANDS разных брендов.
             'brand_domains' => count($brandDomains),
             'brand_domains_top' => BrandDomains::top($brandDomains),
@@ -339,6 +360,39 @@ final class CollectHistory
             'resume' => $resume,
             'stopped' => $stopped,
         ];
+    }
+
+    /**
+     * Сколько НАШИХ шаблонов среди повторов: домен уже был в базе, поэтому сайт даже не открывался,
+     * но в выдаче он стоит и он наш. Свои домены накапливаются в runs/own-domains.txt.
+     *
+     * @param list<string> $seenBefore хосты, отклонённые как «уже в базе»
+     * @param list<string> $ownDomains домены наших шаблонов
+     */
+    public static function ownRepeats(array $seenBefore, array $ownDomains): int
+    {
+        if ($seenBefore === [] || $ownDomains === []) {
+            return 0;
+        }
+        $own = [];
+        foreach ($ownDomains as $domain) {
+            $domain = mb_strtolower(trim((string) $domain));
+            if ($domain !== '') {
+                $own[$domain] = true;
+            }
+        }
+        // Считаем ДОМЕНЫ, а не адреса: в воронке всё после «сайтов в выдаче» считается сайтами
+        // (поддомены одного домена — один сайт), иначе наших оказалось бы больше, чем доров.
+        $found = [];
+        foreach ($seenBefore as $host) {
+            $host = Domains::normalize((string) $host);
+            $domain = $host !== '' ? Domains::registrable($host) : '';
+            if ($domain !== '' && isset($own[$domain])) {
+                $found[$domain] = true;
+            }
+        }
+
+        return count($found);
     }
 
     /**
@@ -599,10 +653,10 @@ final class CollectHistory
      */
     public static function totals(array $records): array
     {
-        $out = ['runs' => 0, 'results' => 0, 'found' => 0, 'unique_sites' => 0, 'found_doors' => 0, 'found_roots' => 0, 'sites' => 0, 'doors' => 0, 'roots' => 0, 'own' => 0, 'brand_domains' => 0, 'cut' => [], 'cut_total' => 0, 'doors_percent' => 0.0, 'own_percent' => 0.0, 'repeats' => 0, 'repeats_doors' => 0, 'zones' => [], 'base_domains' => 0];
+        $out = ['runs' => 0, 'results' => 0, 'found' => 0, 'unique_sites' => 0, 'found_doors' => 0, 'found_roots' => 0, 'sites' => 0, 'doors' => 0, 'roots' => 0, 'own' => 0, 'own_repeats' => 0, 'brand_domains' => 0, 'cut' => [], 'cut_total' => 0, 'doors_percent' => 0.0, 'own_percent' => 0.0, 'repeats' => 0, 'repeats_doors' => 0, 'zones' => [], 'base_domains' => 0];
         foreach ($records as $r) {
             $out['runs']++;
-            foreach (['results', 'found', 'found_roots', 'sites', 'doors', 'roots', 'own', 'brand_domains', 'repeats', 'repeats_doors'] as $key) {
+            foreach (['results', 'found', 'found_roots', 'sites', 'doors', 'roots', 'own', 'own_repeats', 'brand_domains', 'repeats', 'repeats_doors'] as $key) {
                 $out[$key] += (int) ($r[$key] ?? 0);
             }
             // Масса выдачи и доры в ней: у записей до 1.16.0 группировки нет — берём адреса, у совсем
@@ -641,9 +695,9 @@ final class CollectHistory
         // этого числа дальше вычитается срезанное. У записей до 1.16.0 группировки нет — там считаем
         // от разных адресов, а у совсем старых (до 1.13.0) — от отобранного, как было.
         $out['doors_percent'] = self::percent($out['found_doors'], $out['unique_sites']);
-        // Наши считаются от ОТОБРАННОГО: в выдаче мы их по одному адресу не узнаём, признак ставится
-        // по меткам в HTML уже на визите.
-        $out['own_percent'] = self::percent($out['own'], $out['sites']);
+        // Доля наших — от ОБЩЕГО ЧИСЛА ДОРОВ в выдаче: наши шаблоны и есть доры, и вопрос «сколько
+        // доров ниши наши» отвечается только так. У старых записей массы доров нет — берём отобранное.
+        $out['own_percent'] = self::percent($out['own'], self::ownBase($out));
         // База доменов — не сумма, а её размер на момент последнего (самого свежего) сбора.
         $out['base_domains'] = (int) ($records[0]['base_domains'] ?? 0);
 
@@ -688,7 +742,7 @@ final class CollectHistory
                 $sites,
                 (int) ($r['doors'] ?? 0),
                 (int) ($r['own'] ?? 0),
-                self::percent((int) ($r['own'] ?? 0), $sites),
+                self::percent((int) ($r['own'] ?? 0), self::ownBase($r)),
                 isset($r['brand_domains']) ? (int) $r['brand_domains'] : '',
                 (int) ($r['repeats_doors'] ?? 0),
                 (int) ($r['repeats'] ?? 0),

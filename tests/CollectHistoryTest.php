@@ -388,6 +388,41 @@ final class CollectHistoryTest
         Assert::same(0, $totals['zones']['ru'] ?? 0, 'корневой a.ru в зоны не попал');
     }
 
+    public function testOwnCountsRepeatsAndSharesDoors(): void
+    {
+        // Наши шаблоны — это доры, поэтому их доля считается от ОБЩЕГО числа доров в выдаче, а в само
+        // число входят и те, что пришли повторами: домен уже в базе, сайт мы даже не открывали.
+        $raw = [];
+        $hosts = ['a.our.ru', 'b.our.ru', 'c.other.ru', 'x.third.ru', 'y.fourth.ru', 'root.ru'];
+        foreach ($hosts as $i => $host) {
+            $raw[] = ['result' => new SearchResult('куш казино', 0, $i + 1, 'https://' . $host . '/', $host, 'T'), 'reason' => null];
+        }
+        $selected = $this->sites('c.other.ru');
+        $selected[0]->own = true; // наш шаблон, открытый на визите
+
+        $record = CollectHistory::record(
+            $selected,
+            ['results' => count($raw)],
+            ['a.our.ru', 'b.our.ru', 'z.strange.ru'], // повторы: два адреса НАШЕГО домена и чужой
+            false,
+            false,
+            $raw,
+            ['our.ru'], // список наших доменов, накопленный прошлыми сборами
+        );
+
+        Assert::same(4, $record['found_doors'], 'доров-сайтов в выдаче: our.ru, other.ru, third.ru, fourth.ru');
+        Assert::same(1, $record['own_repeats'], 'два адреса одного домена — один наш сайт');
+        Assert::same(2, $record['own'], 'наши = открытый на визите + пришедший повтором');
+        Assert::same(1, CollectHistory::ownRepeats(['a.our.ru', 'www.our.ru', 'b.our.ru'], ['our.ru']), 'считаем домены, не адреса');
+        Assert::same(0, CollectHistory::ownRepeats(['a.our.ru'], []), 'без списка наших доменов считать нечего');
+
+        // Доля наших — от доров, а не от одного отобранного сайта.
+        $totals = CollectHistory::totals([$record]);
+        Assert::same(2, $totals['own']);
+        Assert::same(50.0, $totals['own_percent'], 'два наших из четырёх доров выдачи');
+        Assert::contains('50', CollectHistory::csv([$record]), 'та же доля в CSV');
+    }
+
     public function testTotalsMixOldAndNewRecordsWithoutBreakingPercent(): void
     {
         // В истории соседствуют записи разных версий: у старой нет ни группировки, ни разбивки отсева.

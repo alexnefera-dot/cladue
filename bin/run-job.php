@@ -258,6 +258,25 @@ function previewSites(array $sites, string $runDir = '', int $limit = SiteRows::
     return SiteRows::preview($sites, $runDir, $limit);
 }
 
+/**
+ * Запоминает домены НАШИХ шаблонов: следующий сбор такой домен пропустит как «уже в базе» и
+ * открывать не станет, но в статистике он должен остаться нашим.
+ *
+ * @param array<int|string, \YandexSites\Model\Site> $sites
+ * @return int сколько новых домен добавлено
+ */
+function rememberOwnDomains(DomainLedger $ledger, array $sites): int
+{
+    $domains = [];
+    foreach ($sites as $site) {
+        if ($site->own && $site->domain !== '') {
+            $domains[] = $site->domain;
+        }
+    }
+
+    return $domains === [] ? 0 : $ledger->add($domains);
+}
+
 function stopped(string $stopFile): bool
 {
     return is_file($stopFile);
@@ -359,6 +378,9 @@ while (true) {
     try {
         $stage = (string) ($settings['stage'] ?? 'collect');
         $baseFile = dirname($runDir) . '/domains-base.txt';
+        // Наши шаблоны, найденные за ВСЕ сборы: повторный сбор такой домен даже не открывает («уже в
+        // базе»), а в статистике он всё равно наш — поэтому свои домены копим отдельным списком.
+        $ownLedger = new DomainLedger(dirname($runDir) . '/own-domains.txt');
 
         if ($stage === 'clean') {
             // --- Этап 3: очистка контента по сайтам — то же, что кнопки «Очистить»/«Очистить всё» в панели,
@@ -461,6 +483,7 @@ while (true) {
             $stat = $visitor->retryPreview($visitList);
             // Объекты сайтов общие с $sites, поэтому просто перезаписываем список целиком.
             $sites = RemovedSites::filter($runDir, $sites);
+            rememberOwnDomains($ownLedger, $sites); // сайт мог открыться нашим шаблоном только сейчас
             $siteList = array_values($sites);
             $writer->writeCsv($siteList, $runDir . '/sites.csv');
             $writer->writeJson($siteList, $runDir . '/sites.json', ['source' => 'preview', 'settings' => $settings]);
@@ -554,6 +577,7 @@ while (true) {
             // папки, которые задание успело докачать, уносим в removed/.
             $sites = RemovedSites::filter($runDir, $sites);
             RemovedSites::sweep($runDir);
+            rememberOwnDomains($ownLedger, $sites); // наш шаблон может открыться и на выгрузке
             $siteList = array_values($sites);
             $writer->writeCsv($siteList, $runDir . '/sites.csv');
             $writer->writeJson($siteList, $runDir . '/sites.json', ['source' => 'download', 'settings' => $settings]);
@@ -669,8 +693,8 @@ while (true) {
             // со скриншотами: он идёт долго, а цифры по доменам уже готовы (и переживут остановку).
             // В конце сбора эта же запись уточняется: визиты показывают редиректы на бренд-поддомены.
             $historyId = '';
-            $onSelected = function (array $sites, RunResult $r) use ($runDir, $resume, &$historyId, $logger): void {
-                $record = CollectHistory::record($sites, $r->stats, $r->seenBefore, $resume, false, $r->raw);
+            $onSelected = function (array $sites, RunResult $r) use ($runDir, $resume, &$historyId, $logger, $ownLedger): void {
+                $record = CollectHistory::record($sites, $r->stats, $r->seenBefore, $resume, false, $r->raw, $ownLedger->all());
                 $historyId = (string) $record['id'];
                 CollectHistory::append(dirname($runDir), $record);
                 // Воронка одной строкой: каждое число вытекает из предыдущего, и сумма срезанного
@@ -792,25 +816,35 @@ while (true) {
             // Наши шаблоны тоже видно только сейчас: признак ставится по меткам в HTML на превью-визите
             // (скриншот — чтобы проверить глазами), поэтому в ранней записи там был 0.
             $finalBreakdown = CollectHistory::breakdown($result->sites);
+            $newOwn = rememberOwnDomains($ownLedger, $result->sites);
+            if ($newOwn > 0) {
+                $logger->info(sprintf('Запомнили наших доменов: %d (всего в списке %d)', $newOwn, $ownLedger->count()));
+            }
+            $ownRepeats = CollectHistory::ownRepeats($result->seenBefore, $ownLedger->all());
             $patched = CollectHistory::update(dirname($runDir), $historyId, [
                 'doors' => $finalBreakdown['doors'],
                 'roots' => $finalBreakdown['roots'],
-                'own' => $finalBreakdown['own'],
+                'own' => $finalBreakdown['own'] + $ownRepeats,
+                'own_repeats' => $ownRepeats,
                 'base_domains' => (int) ($result->stats['base_domains'] ?? 0),
                 'stopped' => $result->stopped,
             ]);
             if (!$patched) {
-                CollectHistory::append(dirname($runDir), CollectHistory::record($result->sites, $result->stats, $result->seenBefore, $resume, $result->stopped, $result->raw));
+                CollectHistory::append(dirname($runDir), CollectHistory::record($result->sites, $result->stats, $result->seenBefore, $resume, $result->stopped, $result->raw, $ownLedger->all()));
             }
             $ownNote = '';
-            if ($finalBreakdown['own'] > 0) {
+            $ownTotal = $finalBreakdown['own'] + $ownRepeats;
+            if ($ownTotal > 0) {
+                // Доля наших считается от ВСЕХ доров выдачи: наши шаблоны и есть доры.
+                $doorsAll = (int) (CollectHistory::breakdownRaw($result->raw, (string) ($result->stats['unique_by'] ?? 'domain'))['doors'] ?? 0);
                 $ownNote = sprintf(
-                    'наших шаблонов: %d из %d (%s%%)',
-                    $finalBreakdown['own'],
-                    count($result->sites),
-                    CollectHistory::percent($finalBreakdown['own'], count($result->sites)),
+                    'наших шаблонов: %d%s из %d доров выдачи (%s%%)',
+                    $ownTotal,
+                    $ownRepeats > 0 ? sprintf(' (из них %d повторами)', $ownRepeats) : '',
+                    $doorsAll,
+                    CollectHistory::percent($ownTotal, $doorsAll),
                 );
-                $logger->info(sprintf('Наши шаблоны среди отобранного (по меткам в HTML): %s — выгружать их не нужно', $ownNote));
+                $logger->info(sprintf('Наши шаблоны (по меткам в HTML): %s — выгружать их не нужно', $ownNote));
             }
             $progress->update([
                 'state' => $result->aborted ? 'error' : ($result->stopped ? 'stopped' : 'done'),

@@ -35,6 +35,16 @@ final class DomainLedger
     }
 
     /**
+     * Все домены базы (нужен, например, набор «наших» для статистики).
+     *
+     * @return list<string>
+     */
+    public function all(): array
+    {
+        return array_keys($this->set);
+    }
+
+    /**
      * Добавляет новые домены в базу и в файл. Уже известные пропускает.
      *
      * @param iterable<string> $domains

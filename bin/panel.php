@@ -447,6 +447,8 @@ if ($path === '/api/reset-base' && $method === 'POST') {
         jsonOut(['ok' => false, 'error' => 'Сначала остановите задание — сейчас оно пишет в эти папки'], 409);
     }
     @file_put_contents($baseFile, '');
+    // Список НАШИХ доменов — тоже часть базы: он накоплен прошлыми сборами.
+    @file_put_contents($projectDir . '/runs/own-domains.txt', '');
     // Статистика сборов — тоже часть «базы»: после полного сброса история прошлых сборов
     // рассказывала бы про домены, которых в базе уже нет.
     $history = \YandexSites\Support\CollectHistory::clear($projectDir . '/runs');
