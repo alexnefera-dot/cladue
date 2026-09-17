@@ -132,7 +132,7 @@ Europe/Kyiv. Нет значения → `null`. Пагинация `limit` (max
 | endpoint | одна строка = | ключевое |
 |----------|---------------|----------|
 | `/v1/subdomains` | сабдомен (включая мёртвые) | ids, pipeline/*, `recrawl_sent_at`, tld/pattern, `content_label`, brand/*, css + contrast_*, суммы clicks/views |
-| `/v1/traffic` | сабдомен × дата (только дни с clicks+views > 0) | `clicks`, `views`, `country_mix` |
+| `/v1/traffic` | сабдомен × дата (только дни с clicks+views > 0) | `clicks`, `views`, `country_mix`. **Сломан: курсор отвергается, дальше 1000 строк не выгрузить** |
 | `/v1/events` | событие пайплайна | `host_added`, `verify_ok/failed`, `meta_set`, `recrawl_sent`, `quota_hit`, `hosts_purge`, `error` |
 | `/v1/globals` | один объект, не массив | текущий снимок констант, **не журнал истории** |
 

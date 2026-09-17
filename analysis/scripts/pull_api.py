@@ -43,7 +43,11 @@ STATS = {'ok': 0, 'err_5xx': 0, 'err_429': 0}
 
 
 class ApiError(Exception):
-    """Страница не взялась за отведённое число попыток."""
+    """Страница не взялась. permanent=True — повторять бесполезно (4xx кроме 429):
+    так, /v1/traffic отдаёт курсор, который сам же потом не принимает."""
+    def __init__(self, msg, permanent=False):
+        super().__init__(msg)
+        self.permanent = permanent
 
 
 def _get(path, params):
@@ -76,7 +80,8 @@ def _get(path, params):
                 d = min(2 + attempt, 8) + random.uniform(0, 0.5)
                 print(f"    {e.code} ({attempt + 1}/{TRIES}), жду {d:.1f}s", file=sys.stderr)
                 time.sleep(d); continue
-            raise ApiError(f"HTTP {e.code} на {path}: {body}")
+            raise ApiError(f"HTTP {e.code} на {path}: {body}",
+                           permanent=400 <= e.code < 500 and e.code != 429)
         except urllib.error.URLError as e:
             # сетевая ошибка повторяется дважды: блокировка политикой не «рассосётся»
             if attempt < 2:
@@ -172,6 +177,9 @@ def dump(ep, d1, d2, **extra):
         f.close()
         print(f"\nПРЕРВАНО: {e}", file=sys.stderr)
         print(f"{st['total']} строк сохранено в {fn}.", file=sys.stderr)
+        if isinstance(e, ApiError) and e.permanent:
+            print("Ошибка не временная — повтор не поможет, надо разбираться.", file=sys.stderr)
+            raise SystemExit(3)
         print("Повторите ту же команду — продолжу с этого места.", file=sys.stderr)
         raise SystemExit(2)
     f.close()
