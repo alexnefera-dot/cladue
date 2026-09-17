@@ -2632,9 +2632,9 @@ function v5DoborKlyuchey(string $html, string $тип, int $сид = 0): string
         'registracia' => 'регистрация|аккаунт', 'vhod' => 'вход|кабинет',
     ];
     $ключ = $ключи[$тип] ?? null;
-    if ($ключ === null) { return $html; }
+    if ($ключ === null) { return $густой ? v5LatinicaBrenda($html, $сид) : $html; }
     $m = 0;
-    return (string) preg_replace_callback('~(<p\b[^>]*>)(.*?)(</p>)~su',
+    $итог = (string) preg_replace_callback('~(<p\b[^>]*>)(.*?)(</p>)~su',
         static function (array $аб) use (&$надо, &$m, $ключ, $сид): string {
             if ($надо <= 0 || preg_match('~\bказино\b~ui', strip_tags($аб[2]))) { return $аб[0]; }
             $куски = preg_split('~(<a\b[^>]*>.*?</a>)~su', $аб[2], -1, PREG_SPLIT_DELIM_CAPTURE);
@@ -2895,15 +2895,30 @@ function v5ImenaGeroya(string $html, string $тип = '', int $сид = 0): stri
 function v5BrendStranicy(string $html, string $тип, int $сид = 0): string
 {
     // Корпусная норма бренд-ключей на 1000 слов по типам страниц.
-    // Медиана по 43 чужим наборам, а не среднее: группа NEW17 ставит бренд
-    // втрое плотнее остальных и одна тянет среднее вверх. На slots, bonus и
-    // promo медиана нулевая — там большинство наборов имени не упоминает,
-    // и наши нули были нормой, а не провалом.
-    static $норма = [
-        'main' => 3.50, 'obzor' => 3.01, 'slots' => 0.0, 'bonus' => 0.0,
-        'promo' => 0.0, 'registracia' => 0.0, 'vhod' => 0.0, 'zerkalo' => 1.89,
-        'app' => 0.53, 'news' => 1.83, 'partnery' => 0.78, 'info' => 2.46,
+    // Корпус из 102 наборов делится надвое по манере с именем.
+    //
+    // Обычные (73 из 102): имя стоит на main, obzor, zerkalo, news, info и
+    // partnery, а на slots, bonus, promo, registracia и vhod его нет вовсе.
+    // Только кириллица.
+    //
+    // Густые (29 из 102): имя на каждой странице, вчетверо плотнее, и четверть
+    // написаний — латиницей. Это не выброс, а вторая манера: `%brand_name_en%`
+    // стоит в 30 наборах из 102, по 13 на набор медианой, и почти весь он на
+    // main (333 вхождения из 334).
+    //
+    // Манера выбирается сидом набора: 28 % густых, как в корпусе.
+    static $обычная = [
+        'main' => 3.78, 'obzor' => 2.97, 'slots' => 0.0, 'bonus' => 0.0,
+        'promo' => 0.0, 'registracia' => 0.0, 'vhod' => 0.0, 'zerkalo' => 2.27,
+        'app' => 0.83, 'news' => 2.15, 'partnery' => 1.67, 'info' => 2.20,
     ];
+    static $густая = [
+        'main' => 17.22, 'obzor' => 9.54, 'slots' => 6.28, 'bonus' => 6.93,
+        'promo' => 6.80, 'registracia' => 6.27, 'vhod' => 6.15, 'zerkalo' => 8.91,
+        'app' => 6.03, 'news' => 8.89, 'partnery' => 8.86, 'info' => 8.30,
+    ];
+    $густой = (crc32('манера|' . $сид) % 100) < 28;
+    $норма = $густой ? $густая : $обычная;
     // Ключевое слово страницы, к которому корпус цепляет имя.
     static $ключи = [
         'slots' => 'каталог слотов|слоты|слотах|слотов', 'bonus' => 'бонус|бонусы|бонусов',
@@ -2922,7 +2937,7 @@ function v5BrendStranicy(string $html, string $тип, int $сид = 0): string
     $слов = max(1, count(preg_split('~\s+~u', trim($плоский))));
     $есть = preg_match_all('~%brand_name_(?:ru|en)%~', $html);
     $надо = (int) round($цель * $слов / 1000) - $есть;
-    if ($надо <= 0) { return $html; }
+    if ($надо <= 0) { return $густой ? v5LatinicaBrenda($html, $сид) : $html; }
 
     // 1. «площадк-» уступает бренду. Две трети вхождений — корпус слово
     //    не выбрасывает совсем, у него 0.7 на страницу против наших 1.9.
@@ -2942,14 +2957,14 @@ function v5BrendStranicy(string $html, string $тип, int $сид = 0): string
             $надо--;
             return ($м[1] ?? '') . '%brand_name_ru%';
         }, $html) ?? $html;
-    if ($надо <= 0) { return $html; }
+    if ($надо <= 0) { return $густой ? v5LatinicaBrenda($html, $сид) : $html; }
 
     // 2. Бренд к ключу страницы — только в прозе, не в ссылке и не в
     //    заголовке, и не там, где имя уже стоит рядом.
     $ключ = $ключи[$тип] ?? null;
-    if ($ключ === null) { return $html; }
+    if ($ключ === null) { return $густой ? v5LatinicaBrenda($html, $сид) : $html; }
     $m = 0;
-    return (string) preg_replace_callback('~(<p\b[^>]*>)(.*?)(</p>)~su',
+    $итог = (string) preg_replace_callback('~(<p\b[^>]*>)(.*?)(</p>)~su',
         static function (array $аб) use (&$надо, &$m, $ключ, $сид): string {
             if ($надо <= 0 || str_contains($аб[2], '%brand_name_')) { return $аб[0]; }
             // Внутри абзаца ссылки не трогаем: вырезаем их из поиска.
@@ -2968,6 +2983,30 @@ function v5BrendStranicy(string $html, string $тип, int $сид = 0): string
                 $куски[$i] = $новый ?? $к;
             }
             return $аб[1] . implode('', $куски) . $аб[3];
+        }, $html) ?: $html;
+
+    return $густой ? v5LatinicaBrenda($итог, $сид) : $итог;
+}
+
+/**
+ * Четверть написаний имени латиницей — манера густых наборов.
+ *
+ * `%brand_name_en%` стоит в 30 чужих наборах из 102, медианой 13 на набор,
+ * и почти весь — на main: 333 вхождения из 334. Внутри такого набора
+ * латиница занимает 26 % всех написаний имени, остальное кириллица.
+ */
+function v5LatinicaBrenda(string $html, int $сид = 0): string
+{
+    // Каждое четвёртое написание, а не бросок монеты: на странице с десятком
+    // ключей вероятность в 26 % даёт то ноль латиницы, то половину.
+    $всего = preg_match_all('~%brand_name_ru%~', $html);
+    if ($всего < 2) { return $html; }
+    $сдвиг = crc32('латиница|' . $сид) % 4;
+    $n = -1;
+    return (string) preg_replace_callback('~%brand_name_ru%~',
+        static function () use (&$n, $сдвиг): string {
+            $n++;
+            return (($n + $сдвиг) % 4) === 0 ? '%brand_name_en%' : '%brand_name_ru%';
         }, $html) ?: $html;
 }
 
