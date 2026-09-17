@@ -168,6 +168,8 @@ def main(subs_path, clicks_paths, conv_path, obs_to, out=None):
         closed += r['window_closed']
 
     cases = sum(1 for r in rows.values() if r['case'] and r['window_closed'])
+    open_rows = [r for r in rows.values() if not r['window_closed']]
+    open_cases = sum(1 for r in open_rows if r['case'])
     print(f"\nсоединение по ключу:")
     for k in ('клики всего', 'клики наши', 'клики не нашей сети',
               'конверсии всего', 'конверсии наши', 'конверсии не нашей сети'):
@@ -175,6 +177,13 @@ def main(subs_path, clicks_paths, conv_path, obs_to, out=None):
     print(f"\nокно {WINDOW_DAYS} суток от recrawl_sent_at, наблюдение до {obs_to}:")
     print(f"  сабдоменов с закрытым окном {closed}  ({100.0*closed/len(rows):.1f}%)")
     print(f"  из них случаев (есть конверсия) {cases}")
+    # правило 10 в новой редакции: незакрытые не выбрасываются, а помечаются и
+    # пересматриваются на следующем расчёте, когда их окна закроются
+    print(f"  ОКНО НЕ ЗАКРЫТО: {len(open_rows)} сабдоменов, в них уже {open_cases} конверсий —"
+          f"\n  в выводы не идут, переснять на следующем расчёте")
+    if open_rows:
+        last = max((r.get('recrawl_sent_at') or '') for r in open_rows)[:10]
+        print(f"  самый свежий переобход среди незакрытых: {last}")
 
     if out:
         with open(out, 'w', encoding='utf-8') as f:
