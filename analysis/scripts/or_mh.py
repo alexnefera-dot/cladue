@@ -116,9 +116,21 @@ def report(rows, field, strata=DEFAULT_STRATA, top=12, min_cases=3):
 if __name__ == '__main__':
     if len(sys.argv) < 3:
         raise SystemExit("or_mh.py <панель.jsonl> <поле> [<поле> …]")
-    rows = [json.loads(l) for l in open(sys.argv[1], encoding='utf-8')]
+    args = sys.argv[2:]
+    # outcome=<поле>: исходом становится «поле > 0» вместо конверсии. Нужно для
+    # анализа B: «был в выдаче» (ya_clicks) даёт на два порядка больше событий,
+    # чем регистрация, и потому читается на куда более слабых эффектах.
+    outcome = None
+    for a in list(args):
+        if a.startswith('outcome='):
+            outcome = a.split('=', 1)[1]; args.remove(a)
+    rows = [json.loads(l) for l in open(sys.argv[1], encoding='utf-8') if l.strip()]
     rows = [r for r in rows if r.get('window_closed')]
-    for f in sys.argv[2:]:
+    if outcome:
+        for r in rows:
+            r['case'] = bool(r.get(outcome, 0))
+        print(f"исход: {outcome} > 0  ({sum(1 for r in rows if r['case'])} событий)")
+    for f in args:
         # синтаксис «поле@страта1+страта2» задаёт свои страты вместо умолчания
         if '@' in f:
             f, st = f.split('@', 1)
