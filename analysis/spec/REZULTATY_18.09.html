@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ru">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Переанализ 18.09</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chivo:wght@400;500;600;700&family=Fira+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#eeeeea; --card:#fdfdfb; --ink:#171a15; --mute:#5d6157; --line:#d3d4cc;
+  --acc:#46602a; --accbg:#e7ecdd; --gap:#a33b2a; --gapbg:#f6e7e3;
+  --ctrl:#2c4a63; --ctrlbg:#e2e9ef;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a;
+}
+:root:not([data-theme="light"]){@media (prefers-color-scheme:dark){
+  --paper:#151713; --card:#1e211b; --ink:#e9eae2; --mute:#9a9d91; --line:#32352c;
+  --acc:#a8c47c; --accbg:#222a17; --gap:#e2907c; --gapbg:#2c1b17;
+  --ctrl:#8db4d4; --ctrlbg:#1a242d;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70;
+}}
+:root[data-theme="dark"]{
+  --paper:#151713; --card:#1e211b; --ink:#e9eae2; --mute:#9a9d91; --line:#32352c;
+  --acc:#a8c47c; --accbg:#222a17; --gap:#e2907c; --gapbg:#2c1b17;
+  --ctrl:#8db4d4; --ctrlbg:#1a242d;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);margin:0;
+  font:400 16.5px/1.66 "Source Serif 4",Georgia,serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:900px;margin:0 auto;padding:0 20px;padding-block:54px 82px}
+h1{font:700 clamp(30px,6vw,48px)/1.06 Chivo,"Helvetica Neue",sans-serif;letter-spacing:-.022em;
+  margin:0 0 16px;text-wrap:balance}
+h2{font:700 clamp(21px,3.3vw,28px)/1.2 Chivo,sans-serif;letter-spacing:-.012em;
+  margin:0 0 12px;text-wrap:balance}
+h3{font:600 16.5px/1.32 Chivo,sans-serif;margin:26px 0 7px}
+p{margin:0 0 14px;max-width:66ch}
+.eyebrow{font:500 12px/1 "Fira Mono",ui-monospace,monospace;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--acc);margin:0 0 16px}
+.lede{font-size:19px;color:var(--mute);max-width:61ch}
+.lede b{color:var(--ink);font-weight:600}
+hr{border:0;border-top:1px solid var(--line);margin:42px 0 34px}
+section{margin:0 0 44px}
+.n,code{font-family:"Fira Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+code{background:var(--accbg);padding:.1em .34em;border-radius:2px;font-size:.86em}
+b.hl{background:var(--accbg);padding:.05em .3em;border-radius:2px}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:14px;margin:0 0 26px}
+.kpi{background:var(--card);border:1px solid var(--line);padding:16px 17px}
+.kpi .v{font:600 clamp(26px,4.4vw,34px)/1 Chivo,sans-serif;font-variant-numeric:tabular-nums;
+  letter-spacing:-.02em;display:block;margin-bottom:7px}
+.kpi .l{font-size:14px;color:var(--mute);line-height:1.42;display:block}
+
+figure{margin:0 0 20px;background:var(--card);border:1px solid var(--line);padding:22px 20px 16px}
+figure svg{display:block;max-width:100%;height:auto;margin:0 auto}
+figcaption{font-size:14.5px;color:var(--mute);margin-top:14px;border-top:1px solid var(--line);
+  padding-top:12px;line-height:1.5}
+.legend{display:flex;flex-wrap:wrap;gap:8px 20px;margin:0 0 14px;
+  font:500 13px/1.3 Chivo,sans-serif}
+.legend span{display:inline-flex;align-items:center;gap:7px;color:var(--mute)}
+.legend i{width:13px;height:3px;border-radius:2px;display:inline-block}
+
+.tw{overflow-x:auto;border:1px solid var(--line);background:var(--card);margin:0 0 18px}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:15px}
+th{font:500 10.5px/1.2 "Fira Mono",ui-monospace,monospace;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--mute);text-align:left;padding:11px 13px;
+  border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:bottom}
+th.r,td.r{text-align:right}
+td{padding:9px 13px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.45;
+  font-size:14.5px}
+td.r,td.n{font-family:"Fira Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;
+  font-size:13.5px;white-space:nowrap}
+td:first-child{font-weight:500}
+tr:last-child td{border-bottom:0}
+tr.tot td{background:var(--paper);font-weight:600}
+.good{color:var(--acc);font-weight:600}
+.bad{color:var(--gap);font-weight:600}
+.note{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--acc);
+  padding:15px 17px;margin:0 0 18px}
+.note.warn{border-left-color:var(--gap)}
+.note p:last-child{margin-bottom:0}
+ul{margin:0 0 14px;padding-left:20px;max-width:66ch}
+li{margin-bottom:8px}
+.foot{font-size:14px;color:var(--mute);border-top:1px solid var(--line);padding-top:18px}
+</style>
+<div class="wrap">
+
+<p class="eyebrow">Дорвейная сеть · 18.09.2026</p>
+<h1>Переанализ на полной истории</h1>
+<p class="lede">Первый расчёт на двух источниках сразу — система запусков и трекер соединены по ключу <code>subdomain</code>. Выборка: <b>236 456 сабдоменов с закрытым окном, 308 конверсий</b> за 17.08–13.09. Главный вывод: сеть теряет не конверсию, а видимость.</p>
+
+<div class="kpis">
+  <div class="kpi"><span class="v">−$0.72</span><span class="l">маржа на домен, вся сеть</span></div>
+  <div class="kpi"><span class="v">14.6%</span><span class="l">сабдоменов попадают в выдачу</span></div>
+  <div class="kpi"><span class="v">0.70%</span><span class="l">конверсия среди попавших<br>против 0.0007% у остальных</span></div>
+  <div class="kpi"><span class="v">+$2.98</span><span class="l">лучшая ячейка:<br>12 страниц на <code>.lol</code></span></div>
+</div>
+
+<hr>
+
+<section>
+<h2>1 · Главная потеря — видимость, а не конверсия</h2>
+<p>Клики трекера за 28.07–17.09 (11.4 млн строк) дали воронку, которую прежде нельзя было построить: она требовала лога обращений робота, а его система не отдаёт. Признак «сабдомен был в выдаче» заменён на «есть клик с яндексовым реферером».</p>
+
+<div class="legend">
+  <span><i style="background:var(--s1)"></i>доля попавших в выдачу</span>
+  <span><i style="background:var(--s2)"></i>конверсия от всех</span>
+  <span><i style="background:var(--s3)"></i>конверсия среди попавших в выдачу</span>
+</div>
+
+<figure>
+<svg viewBox="0 0 720 320" role="img" aria-label="Индексированный тренд по четырём неделям: доля выдачи падает до 55, общая конверсия до 48, конверсия из выдачи держится около 85">
+  <g stroke="var(--line)" stroke-width="1">
+    <line x1="58" y1="40" x2="600" y2="40"/><line x1="58" y1="97" x2="600" y2="97"/>
+    <line x1="58" y1="154" x2="600" y2="154"/><line x1="58" y1="211" x2="600" y2="211"/>
+    <line x1="58" y1="268" x2="600" y2="268"/>
+  </g>
+  <g font-family="Fira Mono,monospace" font-size="11" fill="var(--mute)" text-anchor="end">
+    <text x="48" y="44">110</text><text x="48" y="101">100</text><text x="48" y="158">80</text>
+    <text x="48" y="215">60</text><text x="48" y="272">40</text>
+  </g>
+  <g font-family="Chivo,sans-serif" font-size="11.5" fill="var(--mute)" text-anchor="middle">
+    <text x="58" y="292">17–23.08</text><text x="239" y="292">24–30.08</text>
+    <text x="419" y="292">31.08–06.09</text><text x="600" y="292">07–13.09</text>
+  </g>
+  <polyline fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round"
+    points="58,97 239,171 419,163 600,225"/>
+  <polyline fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round"
+    points="58,97 239,163 419,222 600,245"/>
+  <polyline fill="none" stroke="var(--s3)" stroke-width="2" stroke-linejoin="round"
+    points="58,97 239,88 419,194 600,151"/>
+  <g stroke="var(--card)" stroke-width="2">
+    <circle cx="58" cy="97" r="4.5" fill="var(--s1)"><title>17–23.08 · в выдаче 22.9% · индекс 100</title></circle>
+    <circle cx="239" cy="171" r="4.5" fill="var(--s1)"><title>24–30.08 · в выдаче 17.0% · индекс 74</title></circle>
+    <circle cx="419" cy="163" r="4.5" fill="var(--s1)"><title>31.08–06.09 · в выдаче 17.6% · индекс 77</title></circle>
+    <circle cx="600" cy="225" r="4.5" fill="var(--s1)"><title>07–13.09 · в выдаче 12.7% · индекс 55</title></circle>
+    <circle cx="239" cy="163" r="4.5" fill="var(--s2)"><title>24–30.08 · конверсия 0.158% · индекс 77</title></circle>
+    <circle cx="419" cy="222" r="4.5" fill="var(--s2)"><title>31.08–06.09 · конверсия 0.115% · индекс 56</title></circle>
+    <circle cx="600" cy="245" r="4.5" fill="var(--s2)"><title>07–13.09 · конверсия 0.098% · индекс 48</title></circle>
+    <circle cx="239" cy="88" r="4.5" fill="var(--s3)"><title>24–30.08 · конверсия из выдачи 0.913% · индекс 103</title></circle>
+    <circle cx="419" cy="194" r="4.5" fill="var(--s3)"><title>31.08–06.09 · конверсия из выдачи 0.653% · индекс 73</title></circle>
+    <circle cx="600" cy="151" r="4.5" fill="var(--s3)"><title>07–13.09 · конверсия из выдачи 0.759% · индекс 85</title></circle>
+  </g>
+  <g font-family="Chivo,sans-serif" font-size="12" font-weight="600">
+    <text x="614" y="229" fill="var(--s1)">55</text>
+    <text x="614" y="249" fill="var(--s2)">48</text>
+    <text x="614" y="155" fill="var(--s3)">85</text>
+  </g>
+</svg>
+<figcaption>Индекс к первой неделе = 100; три величины разного масштаба сведены к одной шкале. Доля выдачи и общая конверсия падают вместе, конверсия внутри выдачи тренда не имеет. Абсолютные значения — в таблице ниже.</figcaption>
+</figure>
+
+<div class="tw"><table>
+<tr><th>Неделя переобхода</th><th class="r">Сабдоменов</th><th class="r">Получили клик</th><th class="r">Клик из Яндекса</th><th class="r">Конверсия</th><th class="r">Конверсия из выдачи</th></tr>
+<tr><td>17–23.08</td><td class="r">42 723</td><td class="r">86.2%</td><td class="r good">22.9%</td><td class="r">0.206%</td><td class="r">0.890%</td></tr>
+<tr><td>24–30.08</td><td class="r">29 656</td><td class="r">85.2%</td><td class="r">17.0%</td><td class="r">0.158%</td><td class="r">0.913%</td></tr>
+<tr><td>31.08–06.09</td><td class="r">73 926</td><td class="r">88.0%</td><td class="r">17.6%</td><td class="r">0.115%</td><td class="r">0.653%</td></tr>
+<tr><td>07–13.09</td><td class="r">89 985</td><td class="r">70.0%</td><td class="r bad">12.7%</td><td class="r">0.098%</td><td class="r">0.759%</td></tr>
+</table></div>
+
+<p>Общая конверсия падает монотонно вдвое, <b class="hl">доля попадания в выдачу — с 22.9% до 12.7%</b>, а конверсия внутри выдачи колеблется без направления: 0.890, 0.913, 0.653, 0.759. Вся потеря приходится на видимость — кто попал в выдачу, конвертит так же, как месяц назад.</p>
+
+<p>Одновременно число баз выросло с 217 до 516, а регистраций на базу упало с 0.44 до 0.19. Это прямой ответ на развилку «сложные бренды против масштабирования»: <b>масштабирование даёт убывающую отдачу, и упирается оно в видимость</b>.</p>
+
+<div class="note warn">
+<p>Причин падения видимости эти данные не различают. Кандидаты: квота Вебмастера (150 URL в сутки на почти одноразовые аккаунты), насыщение выдачи собственными сайтами, реакция поиска на объём. Чтобы развести их, нужны позиции или лог обращений робота — ни того, ни другого система не отдаёт.</p>
+</div>
+
+<p class="n" style="font-size:14px;color:var(--mute)">Оговорка: на последней неделе доля получивших любой клик 70.0% против 85–88% ранее — частично это свежесть сабдоменов, поэтому 12.7% могут быть занижены. На трёх первых неделях доля выдачи падает и без неё.</p>
+</section>
+
+<hr>
+
+<section>
+<h2>2 · Что устояло на удвоенной выборке</h2>
+<p>Дизайн — случай-контроль по правилам мануала: случаи — сабдомены с конверсией, фон — остальные с закрытым окном, мера — odds ratio, объединение страт по Мантелю–Хенцелю. Рядом всегда сырой OR и MH со стратой по бренду и по дню запуска.</p>
+
+<div class="tw"><table>
+<tr><th>Срез</th><th class="r">Было, 176 случаев</th><th class="r">Стало, 308 случаев</th><th class="r">p</th></tr>
+<tr><td>12 страниц</td><td class="r">2.28 [1.36–3.81]</td><td class="r good">2.39 [1.70–3.38]</td><td class="r">3.8e-07</td></tr>
+<tr><td>Префикс <code>casino</code> в имени</td><td class="r">0.36 [0.18–0.71]</td><td class="r bad">0.31 [0.16–0.62]</td><td class="r">0.0007</td></tr>
+<tr><td>Числовое имя домена</td><td class="r">1.49 [1.08–2.06]</td><td class="r good">1.42 [1.12–1.80]</td><td class="r">0.004</td></tr>
+<tr><td>Зона <code>.casino</code></td><td class="r">1.78 [1.08–2.94]</td><td class="r">1.88 [1.18–3.00]</td><td class="r">0.007</td></tr>
+</table></div>
+
+<h3>Холдаут по трём периодам</h3>
+<p>По новому правилу всё, что найдено перебором, проверяется на разбиении выборки по времени.</p>
+<div class="tw"><table>
+<tr><th>Признак</th><th class="r">Август</th><th class="r">01–06.09</th><th class="r">07–11.09</th></tr>
+<tr><td>12 страниц</td><td class="r">1.41</td><td class="r good">3.02</td><td class="r good">2.30</td></tr>
+<tr><td>Префикс <code>casino</code></td><td class="r">случаев нет</td><td class="r bad">0.31</td><td class="r bad">0.34</td></tr>
+<tr><td>Числовое имя</td><td class="r">1.36</td><td class="r">1.46</td><td class="r">1.41</td></tr>
+<tr><td>Зона <code>.casino</code></td><td class="r">2.60</td><td class="r">1.22</td><td class="r">2.23</td></tr>
+</table></div>
+<p>У числового имени величина совпадает с точностью до сотых во всех трёх периодах, хотя по отдельности ни один не дотягивает до значимости — это и есть устойчивость. Зона <code>.casino</code> разбросана сильнее, к ней доверия меньше.</p>
+
+<h3>Двенадцать страниц против семи</h3>
+<p>Самый практический вывод. Эффект согласован на обеих стадиях: <b class="hl">12-страничные паки в 1.9 раза лучше попадают в выдачу и в 2.4 раза лучше конвертят</b>. При этом по инвентарю системы семистраничных паков <b>630 из 674</b> — почти всё производство идёт в формат, который по этим данным вдвое хуже.</p>
+<div class="tw"><table>
+<tr><th>Группа</th><th class="r">Сабдоменов</th><th class="r">OR «в выдаче»</th><th class="r">OR конверсии</th></tr>
+<tr><td>12 страниц</td><td class="r">35 581</td><td class="r good">1.88 [1.81–1.94]</td><td class="r good">2.39 [1.70–3.38]</td></tr>
+<tr><td>7 страниц</td><td class="r">23 276</td><td class="r">0.95 [0.91–0.99]</td><td class="r bad">0.60 [0.37–0.98]</td></tr>
+</table></div>
+
+<h3>Пары</h3>
+<div class="tw"><table>
+<tr><th>Сочетание</th><th class="r">OR конверсии</th><th class="r">p</th></tr>
+<tr><td>12 страниц + числовое имя</td><td class="r good">2.52 [1.79–3.56]</td><td class="r">1.2e-07</td></tr>
+<tr><td>только 12 страниц</td><td class="r">1.77 [1.20–2.62]</td><td class="r">0.004</td></tr>
+<tr><td>только числовое имя</td><td class="r">1.35 [1.04–1.74]</td><td class="r">0.024</td></tr>
+<tr><td>12 страниц + префикс <code>casino</code></td><td class="r bad">0.57 [0.14–2.28]</td><td class="r">0.42</td></tr>
+</table></div>
+<p>Числовое имя само по себе слабое, но с 12-страничным паком даёт лучшее сочетание. Префикс <code>casino</code>, наоборот, съедает преимущество 12 страниц целиком — с 1.84 до 0.57.</p>
+</section>
+
+<hr>
+
+<section>
+<h2>3 · Что снято переанализом</h2>
+<ul>
+<li><b>Ночной старт пайплайна.</b> Давал 2.26–2.62 на прежней выборке, на удвоенной — 1.17 (p=0.58). Весь эффект оказался одним паком, запущенным ночью 10.09: без него OR 0.89. Страты по бренду и дню ловушку не поймали, конфаундером был контент — отсюда новое правило: <b>для часовых разрезов нужна страта по контенту</b>.</li>
+<li><b>Зоны <code>.team</code> и <code>.lol</code> как фактор.</b> Сырой OR даёт 1.33 и 0.84, MH по дню — 1.09 и 0.97. Разница целиком возрастная; экономика зон определяется ценой домена, а не качеством трафика.</li>
+<li><b>Контраст и палитра.</b> Мануал допускал, что контраст по факту рендера не спутан с брендом. Разброс внутри бренда нулевой на всех 206 брендах — величины спутаны с брендом, прежнее правило остаётся. Заявленного <code>oform_contrast_min</code> в API нет вовсе.</li>
+<li><b>Фильтр по кампании трекера.</b> Кампания — это бренд или оффер, а не принадлежность сети: 295 673 клика вне <code>dorgen_engine</code> оказались нашими. Отбор строк идёт только по ключу.</li>
+</ul>
+</section>
+
+<hr>
+
+<section>
+<h2>4 · Экономика</h2>
+<p>Ставка ФД не постоянна: доля ФД от регистрации росла монотонно — июль 0.067, август 0.117, сентябрь <b>0.187</b> — и внутри сентября стабильна. Усечения справа нет: лаг регистрация → ФД по 84 связанным парам имеет медиану 0.1 часа. Поэтому периоды не смешиваются: структурные выводы считаются на всей истории, денежные — только на свежем периоде.</p>
+
+<div class="tw"><table>
+<tr><th>Страниц</th><th>Зона</th><th class="r">Баз</th><th class="r">Рег/база</th><th class="r">Цена домена</th><th class="r">Ожид. маржа</th></tr>
+<tr><td>12 страниц</td><td><code>.lol</code></td><td class="r">47</td><td class="r">0.53</td><td class="r">$1</td><td class="r good">+$2.98</td></tr>
+<tr><td>12 страниц</td><td><code>.team</code></td><td class="r">54</td><td class="r">0.50</td><td class="r">$2</td><td class="r good">+$1.74</td></tr>
+<tr><td>прочее</td><td><code>.lol</code></td><td class="r">218</td><td class="r">0.19</td><td class="r">$1</td><td class="r">+$0.41</td></tr>
+<tr><td>7 страниц</td><td><code>.team</code></td><td class="r">73</td><td class="r">0.30</td><td class="r">$2</td><td class="r">+$0.25</td></tr>
+<tr><td>прочее</td><td><code>.team</code></td><td class="r">269</td><td class="r">0.13</td><td class="r">$2</td><td class="r bad">−$1.03</td></tr>
+<tr><td>прочее</td><td><code>.buzz</code></td><td class="r">55</td><td class="r">0.04</td><td class="r">$3</td><td class="r bad">−$2.73</td></tr>
+<tr><td>прочее</td><td><code>.casino</code></td><td class="r">37</td><td class="r">0.41</td><td class="r">$7</td><td class="r bad">−$3.97</td></tr>
+<tr><td>12 страниц</td><td><code>.casino</code></td><td class="r">43</td><td class="r">0.33</td><td class="r">$7</td><td class="r bad">−$4.56</td></tr>
+</table></div>
+
+<p>Мануальный порог окупаемости — <b>$1.94 на домен</b>. Его перекрывает одна ячейка, <b class="hl">12 страниц на <code>.lol</code></b>; вторая, на <code>.team</code>, близка. Вместе это 101 база из 829 — около 12% производства.</p>
+
+<p><b>Вопрос про <code>.casino</code> закрыт отрицательно.</b> Зона правда лучше: она в 1.7 раза чаще попадает в выдачу и даёт 0.33–0.45 регистрации на базу — выше среднего. Но при $7 за домен это минус четыре доллара с лишним на любом сочетании. Мануал оценивал необходимое превосходство в 3.5 раза, фактическое — 2.6.</p>
+</section>
+
+<hr>
+
+<section>
+<h2>5 · Чего эти числа не выдержат</h2>
+<ul>
+<li><b>32 ФД в сентябрьской выборке.</b> Долларовые величины — оценка с большой неопределённостью: ставка 0.187 держится на 51 сентябрьском ФД и входит в каждую ячейку общим множителем. Направление ячеек читается по регистрациям (182), деньги — нет.</li>
+<li><b>Вывод про 12 страниц получен группировкой постфактум.</b> Он выдержал холдаут по трём периодам, но честная проверка — заложить долю 12-страничных паков в ближайшие запуски заранее.</li>
+<li><b>61 конверсия ждёт в незакрытых окнах.</b> По новому правилу ни один запуск не выбрасывается: свежие помечаются, и следующий расчёт начинается с их пересмотра.</li>
+<li><b>Вложенность в анализ не входит.</b> На вложенных кликах реферер всегда свой же сабдомен — источник не передаётся, и заход из выдачи неотличим от хождения по сайту. Ждём правки на стороне дора.</li>
+</ul>
+</section>
+
+<p class="foot">Источники: <code>/v1/subdomains</code> за 01.08–17.09 (379 033 сабдомена), клики трекера за 28.07–17.09 (11 448 438 строк), конверсии за 20.06–17.09 (753 строки, 97 ФД). Расчёт: <code>analysis/scripts/panel.py</code>, <code>or_mh.py</code>, <code>pairs.py</code>. Текстовая версия со всеми таблицами — <code>analysis/spec/REZULTATY_18.09.md</code>.</p>
+
+</div>
