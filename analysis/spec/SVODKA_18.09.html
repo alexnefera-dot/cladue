@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ru">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Сводка по сети</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chivo:wght@400;500;600;700&family=Fira+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#eeeeea; --card:#fdfdfb; --ink:#171a15; --mute:#5d6157; --line:#d3d4cc;
+  --acc:#46602a; --accbg:#e7ecdd; --gap:#a33b2a; --gapbg:#f6e7e3;
+  --ctrl:#2c4a63; --ctrlbg:#e2e9ef;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a;
+}
+:root:not([data-theme="light"]){@media (prefers-color-scheme:dark){
+  --paper:#151713; --card:#1e211b; --ink:#e9eae2; --mute:#9a9d91; --line:#32352c;
+  --acc:#a8c47c; --accbg:#222a17; --gap:#e2907c; --gapbg:#2c1b17;
+  --ctrl:#8db4d4; --ctrlbg:#1a242d;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70;
+}}
+:root[data-theme="dark"]{
+  --paper:#151713; --card:#1e211b; --ink:#e9eae2; --mute:#9a9d91; --line:#32352c;
+  --acc:#a8c47c; --accbg:#222a17; --gap:#e2907c; --gapbg:#2c1b17;
+  --ctrl:#8db4d4; --ctrlbg:#1a242d;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);margin:0;
+  font:400 16.5px/1.66 "Source Serif 4",Georgia,serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:900px;margin:0 auto;padding:0 20px;padding-block:54px 82px}
+h1{font:700 clamp(30px,6vw,48px)/1.06 Chivo,"Helvetica Neue",sans-serif;letter-spacing:-.022em;
+  margin:0 0 16px;text-wrap:balance}
+h2{font:700 clamp(21px,3.3vw,28px)/1.2 Chivo,sans-serif;letter-spacing:-.012em;
+  margin:0 0 12px;text-wrap:balance}
+h3{font:600 16.5px/1.32 Chivo,sans-serif;margin:26px 0 7px}
+p{margin:0 0 14px;max-width:66ch}
+.eyebrow{font:500 12px/1 "Fira Mono",ui-monospace,monospace;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--acc);margin:0 0 16px}
+.lede{font-size:19px;color:var(--mute);max-width:61ch}
+.lede b{color:var(--ink);font-weight:600}
+hr{border:0;border-top:1px solid var(--line);margin:42px 0 34px}
+section{margin:0 0 44px}
+.n,code{font-family:"Fira Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+code{background:var(--accbg);padding:.1em .34em;border-radius:2px;font-size:.86em}
+b.hl{background:var(--accbg);padding:.05em .3em;border-radius:2px}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:14px;margin:0 0 26px}
+.kpi{background:var(--card);border:1px solid var(--line);padding:16px 17px}
+.kpi .v{font:600 clamp(26px,4.4vw,34px)/1 Chivo,sans-serif;font-variant-numeric:tabular-nums;
+  letter-spacing:-.02em;display:block;margin-bottom:7px}
+.kpi .l{font-size:14px;color:var(--mute);line-height:1.42;display:block}
+
+figure{margin:0 0 20px;background:var(--card);border:1px solid var(--line);padding:22px 20px 16px}
+figure svg{display:block;max-width:100%;height:auto;margin:0 auto}
+figcaption{font-size:14.5px;color:var(--mute);margin-top:14px;border-top:1px solid var(--line);
+  padding-top:12px;line-height:1.5}
+.legend{display:flex;flex-wrap:wrap;gap:8px 20px;margin:0 0 14px;
+  font:500 13px/1.3 Chivo,sans-serif}
+.legend span{display:inline-flex;align-items:center;gap:7px;color:var(--mute)}
+.legend i{width:13px;height:3px;border-radius:2px;display:inline-block}
+
+.tw{overflow-x:auto;border:1px solid var(--line);background:var(--card);margin:0 0 18px}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:15px}
+th{font:500 10.5px/1.2 "Fira Mono",ui-monospace,monospace;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--mute);text-align:left;padding:11px 13px;
+  border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:bottom}
+th.r,td.r{text-align:right}
+td{padding:9px 13px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.45;
+  font-size:14.5px}
+td.r,td.n{font-family:"Fira Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;
+  font-size:13.5px;white-space:nowrap}
+td:first-child{font-weight:500}
+tr:last-child td{border-bottom:0}
+tr.tot td{background:var(--paper);font-weight:600}
+.good{color:var(--acc);font-weight:600}
+.bad{color:var(--gap);font-weight:600}
+.note{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--acc);
+  padding:15px 17px;margin:0 0 18px}
+.note.warn{border-left-color:var(--gap)}
+.note p:last-child{margin-bottom:0}
+ul{margin:0 0 14px;padding-left:20px;max-width:66ch}
+li{margin-bottom:8px}
+.foot{font-size:14px;color:var(--mute);border-top:1px solid var(--line);padding-top:18px}
+</style>
+<div class="wrap">
+
+<p class="eyebrow">Дорвейная сеть · сводка для передачи · 18.09.2026</p>
+<h1>Что установлено, что снято, что ждёт решения</h1>
+<p class="lede">Реестр 11.08–18.09: <b>1926 баз, 394 689 сабдоменов</b>. Клики 28.07–18.09: <b>11.7 млн строк, наших 6.38 млн</b>. Конверсии 20.06–18.09: <b>771, из них 99 ФД</b>. В расчёт идут 258 437 сабдоменов с закрытым окном и 322 конверсии; ещё 61 ждёт в незакрытых окнах.</p>
+
+<div class="kpis">
+  <div class="kpi"><span class="v">31.31</span><span class="l">разброс по брендам, OR<br>от лучшего к худшему — до 0.00</span></div>
+  <div class="kpi"><span class="v">2 суток</span><span class="l">база держит аккаунт<br>Вебмастера: 206 брендов &gt; квоты 150</span></div>
+  <div class="kpi"><span class="v">3.7×</span><span class="l">падение отдачи базы за месяц<br>при утроении числа запусков</span></div>
+  <div class="kpi"><span class="v">24.8%</span><span class="l">кликов помечены ботами<br>и дали ноль конверсий</span></div>
+</div>
+
+<div class="note">
+<p><b>Главное в трёх строках.</b></p>
+<p>1. Узкое место сети — <b class="hl">аккаунты Вебмастера, а не контент</b>. Набор из 206 брендов не влезает в суточную квоту 150, поэтому база занимает аккаунт двое суток, а чтобы поставить новую, с аккаунта сносят хосты предыдущей.</p>
+<p>2. Самый сильный фактор — <b class="hl">бренд</b>, и он в тысячи раз сильнее всего, что мы настраивали. При этом бренд — пакет: палитра, ядро запросов, форма страницы привязаны к нему один в один и отдельно неизмеримы.</p>
+<p>3. Отдача базы <b class="hl">упала в 3.7 раза за месяц</b>, а суммарный трафик сети при этом не вырос.</p>
+</div>
+
+<hr>
+
+<section>
+<h2>1 · Что установлено — по силе эффекта</h2>
+<p>Исход везде, где не сказано иное, — сабдомен получил клик из поиска. Он выбран из-за мощности: 42 051 событие против 412 регистраций и 63 ФД. Оговорка: поисковый клик означает «стоит в выдаче и по ней кликают», а не «в индексе».</p>
+
+<div class="tw"><table>
+<tr><th>Фактор</th><th>Эффект</th><th>Как чистилось</th></tr>
+<tr><td>Бренд</td><td>OR от <b class="good">31.31</b> (Покердом, 76.7% выхода) до <b class="bad">0.00</b> (1xbit, 0.1%)</td><td class="n">страта по базе</td></tr>
+<tr><td>Пак контента</td><td>от <b class="good">4.16</b> до <b class="bad">0.23</b>; 33 пака лучше, 33 хуже из 81</td><td class="n">страта по дню</td></tr>
+<tr><td>Ожидание перед переобходом</td><td>до часа <b class="good">1.98</b>, больше суток <b class="bad">0.47</b></td><td class="n">бренд, бренд+день</td></tr>
+<tr><td>12 страниц против 7</td><td>по конверсии <b class="good">2.39</b> [1.70–3.38], выдержало холдаут на трёх периодах</td><td class="n">бренд+день</td></tr>
+<tr><td>Имя базы</td><td><code>numeric</code> <b class="good">1.42</b>, префикс <code>casino</code> <b class="bad">0.31</b></td><td class="n">бренд+день</td></tr>
+<tr><td>Зона</td><td><code>casino</code> 1.88 по входу, но экономику решает цена домена</td><td class="n">страта по дню</td></tr>
+<tr><td>Возраст базы</td><td>пик <b>375</b> кликов на вторые сутки, к восьмым <b>14</b>, дальше пол 12–14 месяцами</td><td class="n">риск-сет по возрасту</td></tr>
+</table></div>
+
+<p><b>Концентрация по брендам.</b> Верхние 75 из 206 дают <b>84% кликов и 56% конверсий</b>. Но чем реже бренд выходит в выдачу, тем лучше конвертит: 3.1 конверсии на тысячу вышедших у верхних 25 против <b class="hl">23.5 у нижних 56</b>.</p>
+
+<p><b>Окно.</b> Шестисуточное окно ловит <b>90.8%</b> поисковых кликов и <b>96%</b> конверсий — как мера отдачи выбрано верно. За окном остаётся пол в 12–14 кликов на базу в сутки, который держится месяцами.</p>
+</section>
+
+<hr>
+
+<section>
+<h2>2 · Что снято — чтобы не открывали заново</h2>
+
+<div class="tw"><table>
+<tr><th>Вывод</th><th>Почему снят</th></tr>
+<tr><td>Ночной старт лучше</td><td>весь эффект был одним паком от 10.09; на удвоенной выборке 1.17 [0.74–1.86]</td></tr>
+<tr><td>Час переобхода</td><td>ночной блок на 80% состоит из второй волны; при равном лаге разброс 16.0–17.7%</td></tr>
+<tr><td>Зоны <code>team</code> и <code>lol</code> как фактор</td><td>сырой OR 1.33 и 0.84, MH по дню 1.09 и 0.97 — это возраст</td></tr>
+<tr><td>Окно считать от первого клика</td><td>лаг «переобход → первый клик» медиана <b>0.51 суток</b>; пересчёт даёт 95.6% против 95.8%</td></tr>
+<tr><td>Длина имени базы</td><td>почти нацело определяется типом имени; внутри типа 0.88–1.13</td></tr>
+<tr><td>Возраст домена сам по себе</td><td>совпадает с ожиданием перед отправкой; где возраст есть, а ожидания нет, вреда нет</td></tr>
+<tr><td>Вложенность <code>/ru/ru/…</code></td><td>из 105 005 поисковых кликов за сутки уровень &gt; 0 <b>у ноля</b></td></tr>
+<tr><td>Износ бренда</td><td>размах внутри базы — 4, фактор коллинеарен базе</td></tr>
+<tr><td>Волна и позиция переобхода</td><td>со стратой по базе 2.04 и 0.49, со стратой по бренду — ровно единица</td></tr>
+<tr><td>Палитра, контраст, ядро запросов, форма, попап, год, слаг</td><td><b class="hl">все привязаны к бренду один в один</b>: внутри бренда одно значение</td></tr>
+<tr><td>Число баз в сутки</td><td>коллинеарно дню, стратой по дню не чистится</td></tr>
+<tr><td>Переиспользование пака</td><td>15.7 / 15.9 / 17.0 / 13.5% — монотонности нет</td></tr>
+<tr><td>Аккаунт с историей лучше</td><td>доля конвертящих баз одинакова (10.6% и 12.4%). Конверсий на базу вдвое больше [1.15–4.08] — наблюдение, не опыт</td></tr>
+</table></div>
+
+<p>Из тринадцати позиций <b>восемь оказались тенью бренда</b>: показывали красивый эффект со стратой по базе и ровно единицу со стратой по бренду.</p>
+
+<p>Отдельно: <b><code>.casino</code> закрыт отрицательно.</b> Зона правда в 1.7 раза чаще попадает в выдачу, но при $7 за домен это минус четыре доллара на любом сочетании.</p>
+</section>
+
+<hr>
+
+<section>
+<h2>3 · Как устроено узкое место</h2>
+
+<figure>
+<svg viewBox="0 0 460 452" role="img" aria-label="Цепочка: квота, аккаунты, зачистки, смерть старых баз">
+<style>
+.bx{fill:var(--card);stroke:var(--line);stroke-width:1.5}
+.bxa{fill:var(--accbg);stroke:var(--acc);stroke-width:1.5}
+.bxg{fill:var(--gapbg);stroke:var(--gap);stroke-width:1.5}
+.tx{font:500 14px Chivo,sans-serif;fill:var(--ink)}
+.tn{font:400 11.5px "Fira Mono",monospace;fill:var(--mute)}
+.ar{stroke:var(--mute);stroke-width:1.5;fill:none;marker-end:url(#a)}
+</style>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+<path d="M0 0 10 5 0 10z" fill="var(--mute)"/></marker></defs>
+
+<rect class="bxa" x="8" y="6" width="444" height="52" rx="3"/>
+<text class="tx" x="22" y="27">Квота Вебмастера — 150 URL в сутки</text>
+<text class="tn" x="22" y="47">набор из 206 брендов в неё не влезает</text>
+<path class="ar" d="M230 58 230 78"/>
+
+<rect class="bx" x="8" y="80" width="444" height="70" rx="3"/>
+<text class="tx" x="22" y="101">База занимает аккаунт двое суток</text>
+<text class="tn" x="22" y="121">150 URL в первый день, 56 во второй;</text>
+<text class="tn" x="22" y="139">1.00 база на аккаунт — во все дни</text>
+<path class="ar" d="M230 150 230 170"/>
+
+<rect class="bx" x="8" y="172" width="444" height="52" rx="3"/>
+<text class="tx" x="22" y="193">Аккаунты в дефиците</text>
+<text class="tn" x="22" y="213">под новую базу аккаунт надо освободить</text>
+<path class="ar" d="M230 224 230 244"/>
+
+<rect class="bxg" x="8" y="246" width="444" height="88" rx="3"/>
+<text class="tx" x="22" y="267">С аккаунта сносят 166 хостов</text>
+<text class="tx" x="22" y="285">предыдущей базы</text>
+<text class="tn" x="22" y="305">690 зачисток с 31.08, ~114 тысяч хостов;</text>
+<text class="tn" x="22" y="323">688 из 690 — на первой базе аккаунта</text>
+<path class="ar" d="M230 334 230 354"/>
+
+<rect class="bxg" x="8" y="356" width="444" height="52" rx="3"/>
+<text class="tx" x="22" y="377">Базы старше реестра теряют трафик</text>
+<text class="tn" x="22" y="397">и вдвое чаще умирают</text>
+</svg>
+<figcaption>Цена измерена: старые базы, созданные до 11.08 — их 117, — дают <b>22% поисковых кликов и треть конверсий</b>, и к 18.09 из них активны 26.</figcaption>
+</figure>
+
+<div class="note">
+<p><b>Что даёт сокращение набора до 150 брендов.</b> База укладывается в один аккаунто-день, пропускная способность на том же пуле аккаунтов удваивается, зачисток вдвое меньше. Цена — нижние 53 бренда: <b>2.9% выходов и 8% конверсий</b>. Это единственное решение в проекте, где посчитаны обе стороны обмена.</p>
+</div>
+</section>
+
+<hr>
+
+<section>
+<h2>4 · Качество трафика</h2>
+
+<div class="tw"><table>
+<tr><th>Источник клика</th><th class="r">Кликов</th><th class="r">Конверсий</th><th class="r">Конверсия</th></tr>
+<tr><td>яндекс <b>BY</b></td><td class="r">423</td><td class="r">13</td><td class="r good">3.07%</td></tr>
+<tr><td><code>alice.yandex.ru</code></td><td class="r">91</td><td class="r">12</td><td class="r good">13%</td></tr>
+<tr><td>яндекс KZ</td><td class="r">9 719</td><td class="r">33</td><td class="r">0.34%</td></tr>
+<tr><td>яндекс UZ</td><td class="r">11 797</td><td class="r">12</td><td class="r">0.10%</td></tr>
+<tr><td>яндекс <b>RU</b></td><td class="r">1 976 511</td><td class="r">395</td><td class="r">0.0200%</td></tr>
+<tr><td>гугл</td><td class="r">130 567</td><td class="r">1</td><td class="r">0.0008%</td></tr>
+<tr><td>свой сайт (внутренняя навигация)</td><td class="r">1 759 377</td><td class="r">8</td><td class="r">0.0005%</td></tr>
+<tr><td>нет реферера</td><td class="r">2 386 066</td><td class="r">7</td><td class="r">0.0003%</td></tr>
+<tr><td>яндекс <b>COM.TR</b></td><td class="r">99 551</td><td class="r">2</td><td class="r bad">0.0020%</td></tr>
+</table></div>
+
+<ul>
+<li><b>Боты: 24.8% всех кликов, конверсий ноль.</b> Отбрасывать всегда.</li>
+<li><b>Суточный профиль подтверждает то же самое:</b> конверсионные клики ведут себя как люди — провал под утро, пик вечером, отношение <b>3.5</b>. Основная масса поисковых — ровная линия по всем часам, <b>1.4</b>. Значит 24.8% — нижняя оценка доли не-людей.</li>
+<li><b>Страна как фильтр качества не годится:</b> у конверсий DE 88, NL 87, RU 53 — аудитория ходит через VPN, и <code>country</code> показывает выходной узел.</li>
+<li><b><code>yandex.com.tr</code> исключить из исхода</b> — 99 551 клик, две конверсии.</li>
+<li><b>Беларусь и Алиса</b> — либо самые недоиспользованные каналы, либо артефакт привязки. Числа маленькие, но держатся от выгрузки к выгрузке. Стоят одного вопроса партнёрке.</li>
+</ul>
+</section>
+
+<hr>
+
+<section>
+<h2>5 · Экономика</h2>
+<p>Маржа на домен = <code>регистраций на базу × (ставка ФД × $40) − цена домена</code>.</p>
+<ul>
+<li><b>Ставка ФД сентября — 0.161</b> (была 0.187 на данных по 17.09). Пересчитывать на каждом расчёте, периоды не смешивать: июль 0.051, август 0.111.</li>
+<li>Порог окупаемости мануала — <b>$1.94 на домен</b>.</li>
+<li>Лучшая ячейка — 12-страничные паки на <code>.lol</code>. При этом <b class="hl">80% разрыва между <code>.lol</code> и <code>.team</code> создаёт цена домена</b> ($1 против $2), а не отдача (0.53 против 0.50 регистрации на базу).</li>
+<li><code>payout</code> и <code>status</code> трекер не отдаёт — деньги всегда расчётные.</li>
+</ul>
+
+<div class="note warn">
+<p><b>Чем нельзя выбирать контент: ФД.</b> Их 63 на 590 паков, 554 пака с нулём. Различить паки по ФД нельзя никаким методом — нужно около 750 баз на пак. По входу в выдачу хватает <b>7 баз</b>, по регистрациям <b>около 100</b>.</p>
+</div>
+</section>
+
+<hr>
+
+<section>
+<h2>6 · Чего нельзя узнать наблюдением</h2>
+<div class="tw"><table>
+<tr><th>Чего нет</th><th>Почему это тупик</th></tr>
+<tr><td>Обращения робота</td><td>классы «робот не пришёл» и «пришёл, но не взял» навсегда слиты в один</td></tr>
+<tr><td>Индексация</td><td>отсутствие клика не опровергает индекс; заместителя нет</td></tr>
+<tr><td>Позиция в выдаче</td><td>заместитель — клики на вышедший сабдомен — смешан со спросом</td></tr>
+<tr><td>Признаки страницы</td><td>13 полей пусты; без обхода «почему этот пак лучше» не отвечается</td></tr>
+<tr><td>Бренд по частям</td><td>палитра, ядро, форма привязаны к бренду один в один</td></tr>
+<tr><td>Эффект уровня дня и сети</td><td>IP, шаблон, квота, нагрузка — коллинеарны со стратой</td></tr>
+<tr><td>История до 11.08</td><td>треть конверсий приходит с баз, о которых нет ничего</td></tr>
+</table></div>
+</section>
+
+<hr>
+
+<section>
+<h2>7 · Решения, которые ждут — с ценой каждого</h2>
+<div class="tw"><table>
+<tr><th></th><th>Решение</th><th>Что даёт</th><th>Что стоит</th></tr>
+<tr><td class="n">1</td><td>Сократить набор брендов до 150</td><td>удвоение пропускной способности, вдвое меньше зачисток</td><td class="bad">−8% конверсий</td></tr>
+<tr><td class="n">2</td><td><b>Вариация внутри бренда</b><br><span class="tn">одна палитра на половине баз, другая на второй</span></td><td>раскладывает фактор силой 31× — единственный способ</td><td class="good">ничего</td></tr>
+<tr><td class="n">3</td><td><b>Смешанная раздача аккаунтов</b> 50/50 в один день</td><td>закрывает вопрос про историю аккаунта за неделю</td><td class="good">ничего</td></tr>
+<tr><td class="n">4</td><td>Холдаут по брендам</td><td>отвечает, есть ли потолок ёмкости выдачи</td><td>часть объёма на 2–3 недели</td></tr>
+<tr><td class="n">5</td><td>50 доменов на другой IP</td><td>единственный способ проверить отпечаток сети</td><td>50 доменов</td></tr>
+<tr><td class="n">6</td><td>Обход своих сайтов</td><td>признаки страницы, без них «почему» не отвечается</td><td>час работы там, где сеть не закрыта</td></tr>
+</table></div>
+<p>Пункты <b>2 и 3 не стоят ничего</b> и закрывают самые дорогие пробелы — с них стоит начинать.</p>
+</section>
+
+<hr>
+
+<section>
+<h2>8 · Вопросы разработчику</h2>
+<ul>
+<li><b><code>/v1/subdomains</code> пуст раньше 11.08</b> — ротация или данные прежней версии системы не мигрированы? За сутки граница не сдвинулась, похоже на второе. Треть конверсий приходит из-под этой границы.</li>
+<li><b><code>hosts_purge</code> не называет удалённых хостов</b> — без этого нельзя связать зачистку с умершей базой. Достаточно прежнего <code>content_domain_id</code> аккаунта.</li>
+<li><b>В <code>subdomain</code> кликов попадает хост реферера</b> (<code>yandex.ru</code>, <code>ya.ru</code>, <code>google.com</code>) — 65 738 строк, 17 конверсий не привязываются к сайту.</li>
+<li><b><code>title_ru_len</code> = 25 855, <code>description_ru_len</code> = 2642</b> и соседние — одно значение на все 228 баз с разными паками. Что именно измеряется? Заголовков в 25 855 символов не бывает.</li>
+<li><b>Нужны:</b> <code>page_url_set</code>, <code>pages_count</code>, <code>page_body_len</code>, <code>h1_len</code>, <code>spintax_branch_count</code>, <code>landing_path</code>, <code>recrawl_done_at</code>, <code>webmaster_added_at</code>.</li>
+<li><b><code>payout</code> и <code>status</code></b> в конверсиях всегда пусты.</li>
+<li><b>В журнале пусто поле <code>subdomain</code></b> — воронку по хостам из него собрать нельзя.</li>
+</ul>
+
+<div class="note">
+<p><b>Что поставщик уже закрыл</b> (проверено 18.09): <code>content_label</code>, <code>content_id</code>, <code>pack_kind</code>, <code>generation_runs_count</code>, <code>oform_version</code> заполнены у 94.7% строк с 14.09 · <code>quota_wait_until</code> проставлен · <code>subdomain</code> в конверсиях заполнен у 99% строк с августа.</p>
+</div>
+</section>
+
+<hr>
+
+<section>
+<h2>9 · Как это пересчитывать</h2>
+<p>Регламент — <code>PLAN_ANALIZA.md</code> §12, каталог всех полей — <code>PLAN_PARAMETROV.md</code>. Весь список прогоняется <b>целиком</b> на каждом обновлении данных, потому что почти каждый вывод здесь уже один раз переворачивался от добавления недели. Каждый расчёт начинается с пересмотра прежде незакрытых окон.</p>
+<p>Три правила, которые стоили дороже всего:</p>
+<ul>
+<li><b>Уровень фактора решает, что с ним можно сделать.</b> Сабдомен чистится базой, база — днём, день и сеть в наблюдении не живут вовсе.</li>
+<li><b>Проверять коллинеарность с самым сильным фактором до расчёта.</b> Волна, позиция, палитра, ядро запросов — каждое показывало красивый эффект и каждое было брендом.</li>
+<li><b>Заполненное поле — не то же самое, что рабочий фактор.</b> Смотреть не на долю непустых, а на число различных значений.</li>
+</ul>
+</section>
+
+<p class="foot">Подробности — в архиве <code>analysis/spec/</code>: <code>PLAN_ANALIZA.md</code> (регламент) · <code>PLAN_PARAMETROV.md</code> (каталог 152 полей) · <code>PERESCHET_18.09.md</code> (полный прогон) · <code>KVOTA_18.09.md</code> (узкое место) · <code>OSTALNOE_18.09.md</code> · <code>REJTING_PAKOV_18.09.md</code> · <code>SROK_ZHIZNI_18.09.md</code> · <code>KAK_MERIT_KONTENT.md</code> · <code>REZULTATY_18.09.md</code> · <code>PROGRAMMA_TESTOV.md</code> · <code>AUDIT_API_17.09.md</code> · <code>INDEKSACIYA_18.09.md</code> · <code>ENDPOINT_BOTLOG.md</code> · <code>analysis/method.md</code> (методические уроки).</p>
+
+</div>
