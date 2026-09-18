@@ -220,7 +220,7 @@ Europe/Kyiv. Нет значения → `null`. Пагинация `limit` (max
 |----------|---------------|----------|
 | `/v1/subdomains` | сабдомен (включая мёртвые) | ids, pipeline/*, `recrawl_sent_at`, tld/pattern, `content_label`, brand/*, css + contrast_*, суммы clicks/views |
 | `/v1/traffic` | сабдомен × дата (только дни с clicks+views > 0) | `clicks`, `views`, `country_mix`. **Не использовать:** курсор сломан, дальше 1000 строк не выгрузить. Трафик переедет в отдельное API, оно не реализовано |
-| `/v1/events` | событие пайплайна | `host_added`, `verify_ok/failed`, `meta_set`, `recrawl_sent`, `quota_hit`, `hosts_purge`, `error` |
+| `/v1/events` | событие пайплайна | `host_added`, `verify_ok/failed`, `meta_set`, `recrawl_sent`, `quota_hit`, `hosts_purge`, `error`. **Выгружать по одному дню:** при окне больше суток отдаёт только первую дату |
 | `/v1/globals` | один объект, не массив | текущий снимок констант, **не журнал истории** |
 
 **Чего в v1 нет и не будет:**
