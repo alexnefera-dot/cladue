@@ -1,17 +1,22 @@
 // Проверка вёрстки: текст, который не влезает в свою коробку и налезает на соседей.
 // Ловит схлопнутые колонки (1fr в узкой сетке), длинные слова без переноса, обрезанные подписи.
-// Запуск: NODE_PATH=/opt/node22/lib/node_modules node scripts/oform/верстка.js <папка> [сколько]
+// Комплект живёт в узкой колонке сайта-хозяина, поэтому ширину проверяем не одну:
+// по умолчанию 1100 и 420 px. Третьим аргументом можно задать свои через запятую.
+// Запуск: NODE_PATH=/opt/node22/lib/node_modules node scripts/oform/верстка.js <папка> [сколько] [ширины]
 const { chromium } = require('playwright');
 const fs = require('fs'), path = require('path');
 
 (async () => {
   const корень = process.argv[2], предел = Number(process.argv[3] || 1e9);
+  const ширины = (process.argv[4] || '1100,420').split(',').map(Number);
   const комплекты = fs.readdirSync(корень).filter(d => fs.statSync(path.join(корень, d)).isDirectory()).slice(0, предел);
   const браузер = await chromium.launch();
-  const стр = await браузер.newPage({ viewport: { width: 1100, height: 900 } });
+  const стр = await браузер.newPage({ viewport: { width: ширины[0], height: 900 } });
   const плохо = [];
   for (const к of комплекты) {
     for (const f of fs.readdirSync(path.join(корень, к)).filter(x => x.endsWith('.html')).sort()) {
+     for (const ш of ширины) {
+      await стр.setViewportSize({ width: ш, height: 900 });
       await стр.goto('file://' + path.join(корень, к, f), { waitUntil: 'load' });
       const беда = await стр.evaluate(() => {
         const итог = [];
@@ -31,9 +36,10 @@ const fs = require('fs'), path = require('path');
         }
         return итог;
       });
-      if (беда.length) плохо.push({ страница: к + '/' + f, сколько: беда.length, примеры: беда.slice(0, 3) });
+      if (беда.length) плохо.push({ страница: к + '/' + f, ширина: ш, сколько: беда.length, примеры: беда.slice(0, 3) });
+     }
     }
   }
   await браузер.close();
-  console.log(JSON.stringify({ комплектов: комплекты.length, страницСБедой: плохо.length, список: плохо.slice(0, 10) }, null, 1));
+  console.log(JSON.stringify({ комплектов: комплекты.length, ширины, страницСБедой: плохо.length, список: плохо.slice(0, 10) }, null, 1));
 })();

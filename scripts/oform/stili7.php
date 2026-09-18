@@ -112,7 +112,7 @@ function v7CSS(array $т, string $sc): string {
     $css = "
 $sc{--акц:$а;--акц2:$б;--мяг:{$т['мягкий']};--фон:{$т['фон']};--карта:{$т['карта']};--карта2:{$т['карта2']};
 --тек:{$т['текст']};--тус:{$т['тускло']};--рам:{$т['рамка']};--r:$рад;--r2:$рад2;
-background:var(--фон);color:var(--тек);border-radius:var(--r);padding:clamp(16px,2.6vw,30px);overflow-wrap:break-word;
+background:var(--фон);color:var(--тек);border-radius:var(--r);padding:clamp(16px,2.6vw,30px);overflow-wrap:anywhere;container-type:inline-size;
 font:400 16px/1.68 $штек;text-align:left}
 $sc *,$sc *::before,$sc *::after{box-sizing:border-box}
 $sc>*+*{margin-top:24px}
@@ -255,8 +255,19 @@ $sc .k7-fon p,$sc .k7-fon .hero-tagline{color:#e7e9f2}
 $sc .k7-fon :is($карта){color:var(--тек)}
 $sc .k7-fon :is($карта) :is(p,h2,h3,h4,li,td,th,span,div,summary,strong,em,b,i){color:inherit}
 $sc .k7-fon :is($карта) :is(.slot-provider,.slot-rtp,.faq-answer,.review-quote-text,.slots-dashboard-subtitle,.jackpot-cell-name,.payout-row-slot,.payout-row-time,.payout-row-sep,.stat-label){color:var(--тус)}
-$sc .k7-fon :is($карта) :is(.slot-rtp-value,.jackpot-cell-amount,.payout-row-amount,.stat-value,a){color:$а}
+$sc .k7-fon :is($карта) :is(.slot-rtp-value,.jackpot-cell-amount,.payout-row-amount,.stat-value,a:not([class])){color:$а}
 $sc .k7-fon .slot-play-btn{color:$на;border-color:$а;background:$а}
+
+/* Комплект часто стоит в узкой колонке чужого шаблона. Ширину меряем по самой обёртке
+   (container-type выше), а не по окну: медиазапрос в такой колонке не сработал бы. */
+@container (max-width:560px){
+$sc table{display:block;overflow-x:auto;max-width:100%}
+$sc .slot-card-inner{gap:8px 10px}
+$sc .slot-footer{margin-left:0;width:100%;justify-content:space-between}
+$sc .slots-grid{grid-template-columns:1fr}
+$sc .hero-value-grid,$sc .value-pillars-grid,$sc .stats-grid,$sc .jackpot-strip-grid{grid-template-columns:1fr}
+$sc .k7-vrezka{float:none;width:auto;margin:0 0 16px}
+}
 
 @media (max-width:760px){
 $sc .hero-value-grid{grid-template-columns:1fr}

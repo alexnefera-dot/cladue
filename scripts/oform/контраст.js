@@ -23,7 +23,7 @@ const fs = require('fs'), path = require('path');
         return m ? [ +m[1], +m[2], +m[3], m[4] === undefined ? 1 : +m[4] ] : null; };
       const итог = [];
       for (const el of document.querySelectorAll('p,li,td,th,h1,h2,h3,h4,span,a,div,summary,figcaption')) {
-        const свой = [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim().length > 12);
+        const свой = [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim().length > 1);
         if (!свой) continue;
         const st = getComputedStyle(el);
         const цв = разбор(st.color); if (!цв) continue;
