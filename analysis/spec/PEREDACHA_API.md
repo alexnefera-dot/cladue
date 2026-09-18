@@ -96,8 +96,21 @@ python3 analysis/scripts/tracker_conv_rep.py  analysis/api/tracker_conversions_2
                                               analysis/api/tracker_clicks_2026-09-11_2026-09-17.jsonl
 ```
 
-**Данные на диске не переживают сессию.** Каталог `analysis/api/` в `.gitignore`
-и живёт в контейнере. Если нужны выгрузки — снять заново:
+**Конверсии хранятся в репозитории, всё остальное — снимается заново.**
+Клики и сабдомены API отдаёт всегда, а конверсии малочисленны, они и есть
+исход, и при скользящем хранении старые месяцы однажды перестанут отдаваться.
+Поэтому после каждой выгрузки:
+
+```bash
+python3 analysis/scripts/pull_tracker.py conversions <from> <to>
+python3 analysis/scripts/keep_conversions.py analysis/api/tracker_conversions_<from>_<to>.jsonl
+git add analysis/export/tracker_conversions.jsonl && git commit -m 'chore(data): refresh conversions archive'
+```
+
+Состояние архива на 18.09: 753 строки, 20.06–17.09, 97 ФД.
+
+**Остальные данные на диске не переживают сессию.** Каталог `analysis/api/` в
+`.gitignore` и живёт в контейнере. Если нужны выгрузки — снять заново:
 
 ```bash
 python3 analysis/scripts/pull_api.py subdomains 2026-09-11 2026-09-17   # ~12 мин, 613 МБ
@@ -451,6 +464,8 @@ Europe/Kyiv. Нет значения → `null`. Пагинация `limit` (max
 | `analysis/scripts/apidump.py` | общий механизм выгрузки с возобновлением, для обоих источников |
 | `analysis/scripts/pull_api.py` | выгрузка из API системы запусков |
 | `analysis/scripts/pull_tracker.py` | выгрузка из API трекера: клики и конверсии |
+| `analysis/scripts/keep_conversions.py` | вливает выгрузку конверсий в архив, дедуп по строке |
+| `analysis/export/tracker_conversions.jsonl` | **архив конверсий, в репозитории** — единственный источник цели |
 | `analysis/scripts/tracker_clicks_rep.py` | разбор выгрузки кликов: ключ, кампании, боты |
 | `analysis/scripts/tracker_conv_rep.py` | разбор конверсий и их связки с кликами по `clickid` |
 | `analysis/scripts/alltxt.py` | генерация txt-списков запусков |
