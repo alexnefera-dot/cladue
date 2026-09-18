@@ -423,6 +423,56 @@ final class CollectHistoryTest
         Assert::contains('50', CollectHistory::csv([$record]), 'та же доля в CSV');
     }
 
+    public function testOwnCountsTemplatesCutByOwnMarker(): void
+    {
+        // Третья часть «наших»: домены, срезанные ещё на выдаче по метке-домену (own-markers.txt).
+        // Собирать и открывать мы их не собираемся, но в выдаче они стоят и они наши — без этого
+        // «наших» всегда меньше, чем есть на самом деле.
+        $raw = [
+            ['result' => new SearchResult('куш казино', 0, 1, 'https://a.mine.ru/', 'a.mine.ru', 'T'), 'reason' => 'own_site'],
+            ['result' => new SearchResult('куш казино', 0, 2, 'https://b.mine.ru/', 'b.mine.ru', 'T'), 'reason' => 'own_site'],
+            ['result' => new SearchResult('куш казино', 0, 3, 'https://x.old.ru/', 'x.old.ru', 'T'), 'reason' => null],
+            ['result' => new SearchResult('куш казино', 0, 4, 'https://y.new.ru/', 'y.new.ru', 'T'), 'reason' => null],
+        ];
+        $selected = $this->sites('y.new.ru');
+        $selected[0]->own = true;
+
+        $record = CollectHistory::record(
+            $selected,
+            ['results' => count($raw), 'rejected' => ['seen_before' => 1]],
+            ['x.old.ru'],
+            false,
+            false,
+            $raw,
+            ['old.ru', 'OLD.RU ', ''], // список наших доменов: повторы и пустые строки не в счёт
+        );
+
+        Assert::same(1, $record['own_selected'], 'открыт на визите и помечен меткой в HTML');
+        Assert::same(1, $record['own_repeats'], 'домен уже в базе — сайт не открывали, но он наш');
+        Assert::same(1, $record['own_cut'], 'два адреса одного домена срезаны меткой — это один сайт');
+        Assert::same(3, $record['own'], 'наши = отобранные + повторы + срезанные по метке');
+        Assert::same(1, $record['own_known'], 'в списке наших доменов один домен');
+        Assert::same(3, CollectHistory::ownTotal($record), 'сумма частей');
+        Assert::same(7, CollectHistory::ownTotal(['own' => 7]), 'у старой записи частей нет — берём готовое число');
+        // Воронка по-прежнему сходится: срезанное меткой остаётся в cut.
+        Assert::same($record['unique_sites'], $record['sites'] + CollectHistory::cutTotal($record['cut']));
+    }
+
+    public function testUpdateRecomputesOwnFromParts(): void
+    {
+        // Конец сбора уточняет только отобранную часть: повторы и срезанное по метке остаются от
+        // ранней записи, а итог пересобирается — иначе патч затирал бы две трети наших.
+        $dir = sys_get_temp_dir() . '/ys-history-own-' . uniqid();
+        mkdir($dir, 0777, true);
+        CollectHistory::append($dir, ['id' => 'abc', 'own' => 3, 'own_selected' => 1, 'own_repeats' => 1, 'own_cut' => 1]);
+        Assert::true(CollectHistory::update($dir, 'abc', ['own_selected' => 4]), 'запись найдена по id');
+        $records = CollectHistory::load($dir);
+        Assert::same(4, $records[0]['own_selected']);
+        Assert::same(6, $records[0]['own'], 'пересчитано: 4 отобранных + 1 повтор + 1 по метке');
+        @unlink($dir . '/' . CollectHistory::FILE);
+        @rmdir($dir);
+    }
+
     public function testTotalsMixOldAndNewRecordsWithoutBreakingPercent(): void
     {
         // В истории соседствуют записи разных версий: у старой нет ни группировки, ни разбивки отсева.

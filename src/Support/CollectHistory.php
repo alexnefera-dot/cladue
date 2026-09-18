@@ -19,8 +19,10 @@ use YandexSites\Model\Site;
  *  - `unique_sites` — сколько это САЙТОВ после группировки «один сайт на домен» (доры одной сетки —
  *    один сайт); от него считаются `found_doors`/`found_roots` и доля доров, зоны — по дорам;
  *  - `cut` — что срезали фильтры, ПО САЙТАМ и по причинам (плюс сколько из них доров);
- *  - `sites`/`doors`/`roots`/`own` — что отобрано в базу, плюс `repeats`/`repeats_doors`
- *    (домены, уже бывшие в базе пересечений; они же одна из причин в `cut`).
+ *  - `sites`/`doors`/`roots` — что отобрано в базу, плюс `repeats`/`repeats_doors`
+ *    (домены, уже бывшие в базе пересечений; они же одна из причин в `cut`);
+ *  - `own` — НАШИ шаблоны во всей этой массе, суммой трёх частей (`own_selected` отобранные +
+ *    `own_repeats` пришедшие повторами + `own_cut` срезанные по метке-домену), доля — от `found_doors`.
  * Проверка сходимости: `unique_sites` = `sites` + сумма `cut` — это и есть ответ на вопрос «куда
  * делись 6460 доменов, если отобрано 602».
  *
@@ -324,6 +326,9 @@ final class CollectHistory
             }
         }
         uasort($cut, static fn (array $a, array $b): int => $b['sites'] <=> $a['sites']);
+        // Наши шаблоны, срезанные ещё на выдаче по метке-домену (own-markers.txt): их мы не собираем
+        // и не открываем, но в выдаче они стоят и они наши — иначе «наших» всегда меньше, чем есть.
+        $ownCut = (int) ($cut['own_site']['sites'] ?? 0);
 
         return [
             // Идентификатор записи: она пишется СРАЗУ после отбора доменов, а в конце сбора
@@ -344,11 +349,16 @@ final class CollectHistory
             'sites' => count($sites),
             'doors' => $breakdown['doors'],
             'roots' => $breakdown['roots'],
-            // Наши шаблоны: отобранные (признак ставится по меткам в HTML на превью-визите — на момент
-            // этой записи визитов ещё не было, число уточняется в конце сбора) ПЛЮС те, что пришли
-            // повторами: домен уже в базе, сайт мы даже не открываем, но он наш и в выдаче стоит.
-            'own' => $breakdown['own'] + $ownRepeats,
+            // Наши шаблоны — сумма трёх частей (см. ownTotal): отобранные (признак ставится по меткам
+            // в HTML на превью-визите — на момент этой записи визитов ещё не было, число уточняется в
+            // конце сбора), пришедшие повторами (домен уже в базе, сайт мы даже не открываем, но он наш
+            // и в выдаче стоит) и срезанные на выдаче по метке-домену.
+            'own' => $breakdown['own'] + $ownRepeats + $ownCut,
+            'own_selected' => $breakdown['own'],
             'own_repeats' => $ownRepeats,
+            'own_cut' => $ownCut,
+            // Сколько наших доменов вообще известно (runs/own-domains.txt): если 0 — повторы искать не в чем.
+            'own_known' => self::countDomains($ownDomains),
             // Домены, которые держат на поддоменах от BrandDomains::MIN_BRANDS разных брендов.
             'brand_domains' => count($brandDomains),
             'brand_domains_top' => BrandDomains::top($brandDomains),
@@ -393,6 +403,39 @@ final class CollectHistory
         }
 
         return count($found);
+    }
+
+    /**
+     * Наши шаблоны одной записи: отобранные + пришедшие повторами + срезанные по метке-домену.
+     * У старых записей частей нет — берём готовое поле `own` как есть.
+     *
+     * @param array<string, mixed> $record
+     */
+    public static function ownTotal(array $record): int
+    {
+        if (!array_key_exists('own_selected', $record) && !array_key_exists('own_cut', $record)) {
+            return (int) ($record['own'] ?? 0);
+        }
+
+        return (int) ($record['own_selected'] ?? 0) + (int) ($record['own_repeats'] ?? 0) + (int) ($record['own_cut'] ?? 0);
+    }
+
+    /**
+     * Сколько РАЗНЫХ доменов в списке (пустые и повторы не считаем).
+     *
+     * @param list<string> $domains
+     */
+    public static function countDomains(array $domains): int
+    {
+        $seen = [];
+        foreach ($domains as $domain) {
+            $domain = mb_strtolower(trim((string) $domain));
+            if ($domain !== '') {
+                $seen[$domain] = true;
+            }
+        }
+
+        return count($seen);
     }
 
     /**
@@ -621,6 +664,11 @@ final class CollectHistory
                 continue;
             }
             $records[$i] = array_merge($record, $fields);
+            // Наши считаются из частей: конец сбора уточняет только отобранную часть, повторы и
+            // срезанное по меткам остаются от ранней записи — сумму пересобираем здесь, а не у вызова.
+            if (array_key_exists('own_selected', $records[$i]) || array_key_exists('own_cut', $records[$i])) {
+                $records[$i]['own'] = self::ownTotal($records[$i]);
+            }
             file_put_contents(
                 rtrim($runsDir, '/\\') . '/' . self::FILE,
                 json_encode($records, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
@@ -653,10 +701,10 @@ final class CollectHistory
      */
     public static function totals(array $records): array
     {
-        $out = ['runs' => 0, 'results' => 0, 'found' => 0, 'unique_sites' => 0, 'found_doors' => 0, 'found_roots' => 0, 'sites' => 0, 'doors' => 0, 'roots' => 0, 'own' => 0, 'own_repeats' => 0, 'brand_domains' => 0, 'cut' => [], 'cut_total' => 0, 'doors_percent' => 0.0, 'own_percent' => 0.0, 'repeats' => 0, 'repeats_doors' => 0, 'zones' => [], 'base_domains' => 0];
+        $out = ['runs' => 0, 'results' => 0, 'found' => 0, 'unique_sites' => 0, 'found_doors' => 0, 'found_roots' => 0, 'sites' => 0, 'doors' => 0, 'roots' => 0, 'own' => 0, 'own_selected' => 0, 'own_repeats' => 0, 'own_cut' => 0, 'brand_domains' => 0, 'cut' => [], 'cut_total' => 0, 'doors_percent' => 0.0, 'own_percent' => 0.0, 'repeats' => 0, 'repeats_doors' => 0, 'zones' => [], 'base_domains' => 0];
         foreach ($records as $r) {
             $out['runs']++;
-            foreach (['results', 'found', 'found_roots', 'sites', 'doors', 'roots', 'own', 'own_repeats', 'brand_domains', 'repeats', 'repeats_doors'] as $key) {
+            foreach (['results', 'found', 'found_roots', 'sites', 'doors', 'roots', 'own', 'own_selected', 'own_repeats', 'own_cut', 'brand_domains', 'repeats', 'repeats_doors'] as $key) {
                 $out[$key] += (int) ($r[$key] ?? 0);
             }
             // Масса выдачи и доры в ней: у записей до 1.16.0 группировки нет — берём адреса, у совсем

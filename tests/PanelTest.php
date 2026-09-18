@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests;
 
+use YandexSites\Support\CollectHistory;
+
 /**
  * Фоновое задание веб-интерфейса (bin/run-job.php) и HTTP-панель (bin/panel.php)
  * через фейковый XMLStock.
@@ -215,6 +217,77 @@ final class PanelTest
         Assert::same('done', $s3['state']);
         Assert::true(($s3['stats']['cache_misses'] ?? 0) > 0 && ($s3['stats']['cache_hits'] ?? 0) === 0, 'со «свежей выдачей» кэш не используется');
         Assert::true($s3['stats']['sites_selected'] > 0, 'без пропуска известных доменов сайты отобраны снова');
+    }
+
+    public function testOwnDomainsAreSeededFromDiskAndCountedAmongRepeats(): void
+    {
+        // Домен, который уже есть в базе пересечений, повторный сбор даже не открывает — а «наш»
+        // ставится только при визите, по меткам в HTML. Поэтому наши шаблоны, собранные раньше,
+        // в статистике не всплывали: «наших» было столько, сколько нашлось свежих. Список наших
+        // доменов достраивается тем, что помнит диск (таблица, убранные сайты, папки pages/наши),
+        // и ручным own-domains.txt в корне проекта.
+        $port = FakeServer::port();
+        $dir = $this->projectDir($port);
+        $this->projectDirReset($port);
+        $runDir = $dir . '/runs/ownseed';
+        mkdir($runDir, 0777, true);
+        @unlink($dir . '/runs/domains-base.txt');
+        @unlink($dir . '/runs/own-domains.txt');
+        @unlink($dir . '/runs/history.json');
+        $settings = json_encode([
+            'queries' => ['пластиковые окна', 'остекление балконов'],
+            'source' => 'xmlstock',
+            'top' => 0,
+            'dedupe_domain' => true,
+            'allowed_tlds' => [],
+            'skip_known' => true,
+            'visit' => false,
+            'preview_shots' => false,
+        ]);
+        file_put_contents($runDir . '/settings.json', $settings);
+
+        // Первый сбор: домены уходят в базу пересечений, таблица — в sites.json.
+        $first = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $first['code'], $first['out']);
+        $table = json_decode((string) file_get_contents($runDir . '/sites.json'), true);
+        $hosts = array_map(static fn (array $row): string => (string) $row['host'], $table['sites']);
+        Assert::true(count($hosts) >= 2, 'первый сбор отобрал сайты: ' . implode(', ', $hosts));
+
+        // Так выглядит диск после прошлых сборов: один сайт помечен нашим в таблице, второй убран
+        // кнопкой «Убрать наши», третий лежит папкой в раскладке, четвёртый вписан руками.
+        $inTable = $hosts[0];
+        $removed = $hosts[1];
+        foreach ($table['sites'] as $i => $row) {
+            if ($row['host'] === $inTable) {
+                $table['sites'][$i]['own'] = true;
+            }
+        }
+        file_put_contents($runDir . '/sites.json', json_encode($table));
+        file_put_contents($runDir . '/removed.json', json_encode(['hosts' => [
+            $removed => ['row' => ['host' => $removed, 'domain' => $removed, 'own' => true], 'status_row' => null, 'paths' => [], 'removed_at' => date(DATE_ATOM)],
+        ]]));
+        mkdir($runDir . '/pages/наши/folder-own.ru', 0777, true);
+        file_put_contents($dir . '/own-domains.txt', "# свои домены
+MANUAL-OWN.RU
+мусор без точки
+");
+
+        // Повторный сбор теми же запросами: все домены — повторы, ни одного визита.
+        file_put_contents($runDir . '/settings.json', $settings);
+        $second = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $second['code'], $second['out']);
+
+        $own = array_map('trim', file($dir . '/runs/own-domains.txt', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: []);
+        Assert::true(in_array('manual-own.ru', $own, true), 'ручной own-domains.txt подмешан: ' . implode(', ', $own));
+        Assert::true(in_array('folder-own.ru', $own, true), 'папка pages/наши подмешана: ' . implode(', ', $own));
+        Assert::true(in_array($inTable, $own, true), 'строка «наш» из таблицы подмешана: ' . implode(', ', $own));
+        Assert::true(in_array($removed, $own, true), 'убранный кнопкой «Убрать наши» тоже наш: ' . implode(', ', $own));
+        Assert::true(!in_array('мусор без точки', $own, true), 'строка, не похожая на адрес, в список наших не идёт');
+
+        $record = CollectHistory::load($dir . '/runs')[0];
+        Assert::same(2, $record['own_repeats'], 'оба наших домена пришли повторами, открывать их не пришлось');
+        Assert::same(2, $record['own'], 'в «наших» попали старые домены, а не только свежие');
+        Assert::true(($record['own_known'] ?? 0) >= 4, 'в списке наших доменов видно, сколько их вообще известно');
     }
 
     public function testResumeCollectContinuesQueueAndMergesTable(): void

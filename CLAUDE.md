@@ -285,7 +285,10 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   collection (`own_site`); `PageVisitor::assembleVisit()` matches HTML/host at visit time, deletes the
   HTML but keeps the home screenshot, sets `Site::$own`, reports «исключён как наш», and buckets the site
   into `pages/наши/<host>/` (screenshot only, for eyeballing) instead of `N-стр`. Real markers stay in
-  the untracked `own-markers.txt`, not committed. Screenshots are captured for the home page only in
+  the untracked `own-markers.txt`, not committed; the markers answer «is this page ours», while the
+  separate `own-domains.txt` (project root, manual) + `runs/own-domains.txt` (accumulated) answer «is this
+  DOMAIN ours» for the statistics, where a repeat is never opened — see the CollectHistory notes below.
+  Screenshots are captured for the home page only in
   crawl mode; `SiteLinks::canonical()` folds `/index.*` and trailing-slash aliases so a page is not
   fetched twice.
 - `Runner` and `PageVisitor` accept an optional `$onProgress` callback; `bin/run-job.php` wires it
@@ -654,7 +657,7 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   takes ages and the numbers are already final; the record also survives a force-kill during the visits.
   The record carries an `id`, and the end of the collect stage patches THAT record through
   `CollectHistory::update()` with the final `doors`/`roots` (a visit may reveal an apex redirecting to a
-  brand subdomain — also a door), `own`, `base_domains` and `stopped`; `found*`/`zones` come from the raw SERP
+  brand subdomain — also a door), `own_selected`/`own_repeats`/`own_known`, `base_domains` and `stopped`; `found*`/`zones` come from the raw SERP
   and never change after the visits, so they are not patched; if the patch finds no
   record (an old job, selection never reached), it appends one as before, so there is always exactly one
   row per collect. OWN sites («внеси как-то в скрипт еще и подсчет наших и процент / ты их определяешь
@@ -671,13 +674,29 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `$ownLedger->all()` into `record()`; `CollectHistory::ownRepeats($seenBefore, $ownDomains)` counts
   DISTINCT registrable domains among the repeats that are ours — by domain, not by host, because
   everything after «сайтов в выдаче» counts sites, and by host our own count could exceed the door
-  count. The record stores `own_repeats` next to `own`. The early record already knows the repeats part;
-  the end-of-collect patch adds the visited part. The panel shows the row under «доров (на поддоменах)»,
+  count. `own` is therefore a SUM OF THREE PARTS, each stored next to it and recomputed by
+  `CollectHistory::ownTotal()`: `own_selected` (marked on the preview visit), `own_repeats` (in the SERP,
+  in the ledger, never opened) and `own_cut` (`cut['own_site']['sites']` — a domain marker rejects them at
+  collection, so they are ours and we never even collect them). `update()` re-derives `own` after merging,
+  so the end-of-collect patch can refine only the visited part without wiping the other two. The early
+  record already knows the repeats and the cut part; the end-of-collect patch adds the visited part.
+  The ledger alone was not enough — the user's real collect showed «наших 49 (3.4%)» next to 1228 door
+  repeats («Мне кажется не учитываются старые наши, только новые… на уровне повторов старые наши
+  отрезаются»): the list only started filling in 1.20.0 and a repeat is never visited, so everything
+  collected earlier was invisible. `seedOwnDomains()` (bin/run-job.php, called right after the ledger is
+  built and BEFORE `wipeRunOutput()` deletes the folders it reads) tops it up from what the disk still
+  remembers — `sites.json` rows with `own`, `removed.json` rows with `own` (the «Убрать наши» button moves
+  them there with their row), the `pages/наши/<host>` and `removed/pages/наши/<host>` folders — plus a
+  manual, gitignored `own-domains.txt` in the PROJECT ROOT (`own-domains.example.txt`, copied by
+  `setup.php`, listed in its `KEEP_FILES`) for the domains that are no longer on disk at all. A line or a
+  folder name that does not look like an address (no dot, or a space in it) is skipped. `own_known` (the
+  ledger size) is stored in the record and shown in the panel's tooltip, and the log says the list is
+  empty when it is — a silent 0 is what hid the problem. The panel shows the row under «доров (на поддоменах)»,
   not under «Отобрано сайтов», and the results-table stats line prints «наших N» WITHOUT a percent — two
   percents under one word (one of the table, one of the doors) is exactly the contradiction the user
   complained about twice. The same numbers go to the log («За этот сбор:
-  N доменов, из них доров (поддоменов) M (X%), повторов доров …», «Наши шаблоны среди отобранного …») and
-  to the collect message; the panel's own stats line above the results table prints the same percent next
+  N доменов, из них доров (поддоменов) M (X%), повторов доров …», «Наши шаблоны (по меткам в HTML): N
+  (из них M повторами, K срезано по меткам) из D доров выдачи») and to the collect message; the panel's own stats line above the results table prints the same percent next
   to «наших N». Panel: `GET /api/history` returns
   `records` + `totals()` (sums, plus `doors_percent`/`own_percent`/`cut_total` and a merged `cut`;
   `base_domains` is the newest record's ledger size,
