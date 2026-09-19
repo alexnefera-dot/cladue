@@ -2371,6 +2371,8 @@ foreach (V5_TYPES as $тип) {
     // Висячий ответ: связка «Потому что…» в разделе, где вопроса никто не задавал.
     $страница = v5OtvetBezVoprosa($страница);
     $страница = v5OdnoslovnyFinal($страница, $сид);
+    $страница = v5MenshePassiva($страница, $сид);
+    $страница = v5RazvernutVlozhennye($страница);
     file_put_contents("$выход/$тип.html", $страница);
     if (preg_match_all('~<h3 class="faq-question"[^>]*>(.*?)</h3>~su', $страница, $mq)) {
         foreach ($mq[1] as $q) { $GLOBALS['v5ВопросыНабора'][v5KlyuchVoprosa($q)] = true; }

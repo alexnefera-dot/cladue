@@ -1448,6 +1448,7 @@ foreach (glob("$папка/*.html") as $файл) {
     $итог = v5OtvetBezVoprosa($итог);
     $итог = v5OdnoslovnyFinal($итог, $сид);
     $итог = v5OdinAnkorVAbzatse($итог);
+    $итог = v5RazvernutVlozhennye($итог);
     if ($итог !== $html) { file_put_contents($файл, $итог); }
     $сводка[$тип] = $сделано;
 }
