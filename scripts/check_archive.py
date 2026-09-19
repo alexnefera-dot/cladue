@@ -134,7 +134,13 @@ CYR_WHITELIST = {"актуальная", "актуальное", "актуаль
     "проверка", "проверьте", "промокод", "рабочее", "рабочие", "реальные", "регистрация", "рейтинг",
     "рекомендованные", "сайт", "сайта", "свежие", "сегодня", "сейчас", "скачай", "скачайте", "скачать",
     "скачивание", "скорость", "слот", "слоты", "сначала", "спецпредложения", "статус", "только", "топ",
-    "тёмный", "удобство", "чат", "через", "что", "шаг", "это"}
+    "тёмный", "удобство", "чат", "через", "что", "шаг", "это",
+    # генератор ставит эти слова с заглавной посреди фразы
+    "играй", "веб", "параметр", "таблица", "турбо", "войдите", "частые", "ноль",
+    "удобно", "нажал", "рекомендуемая", "скоростной", "настоятельно", "наше",
+    "устройства", "кол", "получаешь", "настройки", "ссылка", "факт", "здесь",
+    "ставка", "крупный", "тихий", "старый", "зайдите", "пароль", "помните",
+    "наша", "сканируете", "коротко", "захожу"}
 
 LATIN_WHITELIST = {
     "rtp", "vpn", "ios", "android", "app", "store", "google", "play", "pwa",
@@ -176,6 +182,8 @@ LATIN_WHITELIST = {
     "coinbase", "crush", "mystic", "flame", "calavera", "werewolf", "monte",
     "carlo", "amusnet", "spadegaming", "rake", "red", "wolf", "book", "sweet",
     "ios", "tor", "sim", "esim", "kyc", "vip", "rtp", "id", "pin", "otp", "qr",
+    # рейтинговые площадки — их упоминают как источник оценок, это не казино
+    "askgamblers", "trustpilot", "guru", "whois", "license",
     # провайдеры, техника, английские слова из инструкций
     "true", "lab", "mancala", "aspect", "thunderspin", "stars", "burning",
     "aurora", "amazon", "ram", "redis", "docker", "linux", "cloudflare", "nginx",
@@ -340,6 +348,24 @@ GENERIC_DOMAINS = re.compile(r"^(?:[\w.-]+@)?(?:mirror\d*|proxy\d*|example|domai
                              r"\.(?:com|net|org|ru|io)$", re.I)
 
 
+# Токены фразы: плейсхолдер считается одним словом.
+ТОКЕН_ФРАЗЫ = re.compile(r"%brand_name_(?:ru|en)%|[A-Za-zА-Яа-яЁё0-9][A-Za-zА-Яа-яЁё0-9'’-]*")
+ЗАГЛАВНЫЙ_ТОКЕН = re.compile(r"^(?:[A-Z][A-Za-z0-9]{2,}|[А-ЯЁ][А-Яа-яЁё0-9]{2,})$")
+# Латинские служебные слова: в зачине встречаются, брендом не бывают.
+ТВИН_СТОП = {"casino", "club", "bet", "online", "app", "play", "mobile", "bonus",
+             "promo", "mirror", "slots", "vip", "live", "faq", "google", "apple",
+             "yandex", "windows", "chrome", "safari", "telegram", "whatsapp",
+             "email", "visa", "mastercard", "android", "ios", "web",
+             "know", "your", "customer"}   # «Know Your Customer» — это KYC
+
+
+def _твин_мимо(tok):
+    """Слово, которое не может быть чужим названием: служебное или обычное русское."""
+    if tok.isupper() and len(tok) <= 4:
+        return True
+    return tok.lower() in (CYR_WHITELIST if tok[0] >= "А" else ТВИН_СТОП)
+
+
 def brand_hits(text):
     """По тексту страницы: Counter брендовых контекстов, Counter пар (слово перед, токен), Counter слотовых контекстов."""
     hits, prev, slot = Counter(), Counter(), Counter()
@@ -356,32 +382,76 @@ def brand_hits(text):
         if BRAND_BEFORE.search(before) or BRAND_AFTER.match(after):
             hits[tok] += 1
             pm = re.search(r"([A-Z][A-Za-z0-9]{2,}|[А-ЯЁ][А-Яа-яЁё]{2,})\s+$", before)
-            if pm and pm.group(1).lower() not in (LATIN_WHITELIST | CYR_WHITELIST):
+            # Первое слово двухсловного названия: латинский словарь тут не годится,
+            # в нём лежат lucky, mega, royal — из них такие названия и собраны.
+            if pm and not _твин_мимо(pm.group(1)):
                 prev[(pm.group(1), tok)] += 1
     return hits, prev, slot
 
 
 БЕЙДЖ_СЛОТА = re.compile(r"(?is)<p>[^<>]{1,30}</p>\s*(?=<h3\b)")
 
+def brand_twins(text):
+    """Чужое название на месте плейсхолдера в такой же фразе.
+
+    Генератор повторяет одну заготовку дважды: «Дивиденд Доступ %brand_name_ru%.»
+    и «Дивиденд Доступ Lucky Bird.» — во второй строке и стоит чужой бренд.
+    Зачин берём в два слова и без плейсхолдеров, поэтому обычное слово сюда
+    почти не попадает; латинский словарь тут не применяем — в нём есть слова
+    вроде lucky и bird, из которых и собраны такие названия.
+    """
+    матчи = list(ТОКЕН_ФРАЗЫ.finditer(text))
+    токены = [m.group(0) for m in матчи]
+    зачины = set()
+    for i, tok in enumerate(токены):
+        if not tok.startswith("%brand_name") or i < 2:
+            continue
+        пара = (токены[i - 2], токены[i - 1])
+        if any(w.startswith("%brand_name") for w in пара):
+            continue   # «Доступ %brand_name_ru% %brand_name_en%» — это не зачин, а хвост
+        зачины.add((пара[0].lower(), пара[1].lower()))
+    найдено = Counter()
+    for i, m in enumerate(матчи):
+        tok = токены[i]
+        if i < 2 or (токены[i - 2].lower(), токены[i - 1].lower()) not in зачины:
+            continue
+        if not ЗАГЛАВНЫЙ_ТОКЕН.match(tok) or _твин_мимо(tok):
+            continue
+        before, after = text[max(0, m.start() - 30): m.start()], text[m.end(): m.end() + 24]
+        if PROVIDER_AFTER.match(after) or SLOT_BEFORE.search(before) or SLOT_AFTER.match(after):
+            continue   # карточка слота: «Играйте в Lucky Luck Games от…»
+        след = токены[i + 1] if i + 1 < len(токены) else ""
+        if след != tok and ЗАГЛАВНЫЙ_ТОКЕН.match(след) and not _твин_мимо(след):
+            найдено[tok + " " + след] += 1
+        elif tok.lower() not in LATIN_WHITELIST:
+            найдено[tok] += 1   # одно слово — тут словарь ещё работает: Push, License не бренды
+    return найдено
+
 
 def brand_candidates(raws):
     """Бренды сайта по всем страницам: [(имя, упоминаний, страниц)], сильные первыми."""
     total, pages, prev, slot, line = Counter(), Counter(), Counter(), Counter(), Counter()
+    twins, h3 = Counter(), []
     for raw in raws:
+        h3 += [strip_tags(t).strip() for t in re.findall(r"<h3[^>]*>(.*?)</h3>", raw, re.S)]
         raw = БЕЙДЖ_СЛОТА.sub("", raw)   # «<p>Mascot</p><h3>Evil Bet</h3>» — провайдер, а не бренд
         m = BRAND_LINE.match(raw)
         if m and m.group(1).split()[0].lower() not in (LATIN_WHITELIST | CYR_WHITELIST):
             line[m.group(1)] += 1
+        twins.update(set(brand_twins(strip_tags(raw))))   # имя считаем один раз на страницу
         hits, pr, sl = brand_hits(strip_tags(raw))
         for tok, c in hits.items():
             total[tok] += c
             pages[tok] += 1
         prev.update(pr)
         slot.update(sl)
+    имена_слотов = " ".join(h3)
+    twins = Counter({t: c for t, c in twins.items()       # нужно 2+ страницы и не слот
+                     if c >= 2 and slot[t.split()[0]] == 0 and t not in имена_слотов})
     out = []
-    for tok in set(total) | set(line):
+    for tok in set(total) | set(line) | set(twins):
         first = tok.split()[0]
-        strong = line[tok] >= 2
+        strong = line[tok] >= 2 or twins[tok] >= 2
         ok = (pages[first] >= 2 and total[first] >= 3) or total[first] >= 5
         if not (strong or ok):
             continue
@@ -392,7 +462,8 @@ def brand_candidates(raws):
             pair = max(((w, n) for (w, t), n in prev.items() if t == tok), key=lambda x: x[1], default=None)
             if pair and pair[1] >= total[tok] * 0.5:
                 name = pair[0] + " " + tok
-        out.append((name, total[first] + line[tok], max(pages[first], line[tok]), strong))
+        out.append((name, total[first] + line[tok] + twins[tok],
+                    max(pages[first], line[tok], twins[tok]), strong))
     out.sort(key=lambda x: (-x[3], -x[1]))
     seen, res = set(), []
     for name, c, pg, strong in out:
@@ -401,6 +472,9 @@ def brand_candidates(raws):
         seen.add(name.split()[0])
         res.append((name, c, pg))
     return res
+
+
+ОШИБОЧНЫЙ_ДОМЕН = re.compile(r"(?i)опечатк|ошибк[аи]?\s+в\s+домен|неверн\w*\s+домен|поддельн|фишинг|мошенн")
 
 
 def brand_leaks(text):
@@ -413,6 +487,9 @@ def brand_leaks(text):
         tok = m.group(1)
         near = text[max(0, m.start() - 24): m.start()]
         if "%" in near and not re.search(r"%\s", near[-3:]):
+            continue
+        # Домен, названный как пример ошибки («опечатка в домене (@gmil.com)»), — это текст, а не контакт.
+        if ОШИБОЧНЫЙ_ДОМЕН.search(text[max(0, m.start() - 70): m.start()]):
             continue
         if not GENERIC_DOMAINS.match(tok):
             contacts[tok] += 1
