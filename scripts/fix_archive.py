@@ -145,9 +145,22 @@ def strip_text(raw):
 
 
 def site_brands(files):
-    """Бренды сайта — те же кандидаты, что находит проверка (check_archive.brand_candidates), не больше двух."""
+    """Бренды сайта — те же кандидаты, что находит проверка (check_archive.brand_candidates).
+
+    Ищем в два захода: второе написание названия видно только после того, как
+    первое ушло в плейсхолдер. На сайте с «Лаки Бир» латинское «Lucky Bear»
+    до замены не набирает порога, а после — набирает.
+    """
     raws = [open(p, encoding="utf-8").read() for p in files]
-    return [name for name, c, pg in brand_candidates(raws)][:2]
+    найдено = []
+    for _ in range(2):
+        новые = [name for name, c, pg in brand_candidates(raws) if name not in найдено][:2]
+        if not новые:
+            break
+        найдено += новые
+        for brand in новые:
+            raws = [fix_brand(raw, brand)[0] for raw in raws]
+    return найдено
 
 
 # Имена, которые вообще бывают в HTML. Всё остальное в угловых скобках — не тег, а текст
