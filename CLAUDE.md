@@ -294,10 +294,9 @@ Run `php tests/lint.php && php tests/run.php` before committing.
 - `Runner` and `PageVisitor` accept an optional `$onProgress` callback; `bin/run-job.php` wires it
   to `Support\Progress`, and `bin/panel.php` (dual launcher/router via `PHP_SAPI==='cli-server'`)
   spawns the job and serves `public/panel.html`. Keep CLI and panel behaviour in sync through `Runtime`.
-  `public/panel.html` has four tabs (`.tabsec[data-tab=main|config|problems|stats]`, remembered in
+  `public/panel.html` has three tabs (`.tabsec[data-tab=main|config|stats]`, remembered in
   `localStorage['ys-tab']`): «Главная» (queries, run/stage, progress, log, results table), «Настройки»
-  (keys + all filter/visit conditions), «Проблемные» (sites we failed to get, by stage, see
-  `Support\ProblemSites`) and «Статистика» (the collect history, see `Support\CollectHistory`). XMLStock params are panel fields `xmlstock_mode`/`xmlstock_device`/`xmlstock_domain`/`xmlstock_extra`
+  (keys + all filter/visit conditions) and «Статистика» (the collect history, see `Support\CollectHistory`). XMLStock params are panel fields `xmlstock_mode`/`xmlstock_device`/`xmlstock_domain`/`xmlstock_extra`
   (the `#xmlstockBox`, shown only when `source=xmlstock`), mapped in `buildOverrides()` to
   `xmlstock.mode`/`xmlstock.device`/`xmlstock.domain`/`xmlstock.extra_params` (`extra_params` parsed from a
   `key=value&…` string) and covered by `PanelTest::testXmlstockParamsReachRequest` /
@@ -628,13 +627,21 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `downloaded` flag (not by `stageOf()`, so a downloaded offer-wall lands under «по выгрузке»),
   `histogramText()` renders «по сбору: … ; по выгрузке: …». `bin/run-job.php` puts `problem_histogram`
   into BOTH the collect-done status (its preview rows) and the download-done status, logs «Проблемных
-  сайтов: N — …» and appends «; проблемных: N (вкладка «Проблемные»)» to the message. Panel:
-  `public/panel.html` has a `data-tab=problems` card with a `#probBadge` count in the tab button;
-  `renderProblems(visible)` groups by stage→code into `.pgroup` blocks (label · count · hint · actions ·
-  host chips), the action is `PROBLEM_ACTION[code]` (`preview` → `retryPreviewHosts()` = `stage=preview`
-  for that host set; `download` → `queueRetry(hosts,false)`), plus a per-group «Убрать (N)» and per-host
-  ✕ through the reversible `/api/remove`. `renderProblems()` runs from `renderResults()` on every poll so
-  the badge and tab stay live. Covered by `tests/ProblemSitesTest.php`,
+  сайтов: N — …» and appends «; проблемных: N (фильтр над таблицей)» to the message. Panel: it lives
+  IN THE RESULTS TABLE, not in a tab — the first version was a separate «Проблемные» tab and the user corrected it («я имел ввиду
+  таблицу результатов переделать а не отдельной вкладкой»). Each row carries a red `.tag.prob` per code
+  (`PROBLEM_TAGS`, short labels; it REPLACED the old standalone «подборка офферов» tag, which is just one
+  of the codes), and `#probwrap` in the stats row holds a `#probsel` select («все сайты» / «только
+  проблемные (N)» / one option per `стадия:код` with counts, rebuilt each poll by
+  `updateProblemFilter()`, selection kept in `problemSel`). The select NARROWS THE TABLE ONLY
+  (`renderResults()` renders `shown = visible.filter(matchesProblem)`, `#resCount` says «N из M (фильтр
+  по проблеме)»); `runDownload()`/«Очистить всё» keep using all visible sites, so a filter never silently
+  shrinks the work. The three buttons act on the filtered set and appear only while a filter is on:
+  `#probRetryBtn` → `retryPreviewHosts()` (`stage=preview`) for its NOT-downloaded sites, `#probDlBtn` →
+  `queueRetry(hosts,false)` for its downloaded ones, `#probRemoveBtn` → the reversible `/api/remove`.
+  `siteKind()` now derives `problem` from the SAME `s.problems` (two definitions under one word made the
+  stats line and the filter disagree) and gained a `partial` bucket — «частично (404/дубли)» — for a site
+  whose only missing pages are 404s/duplicates: not a problem, but not «100%» either. Covered by `tests/ProblemSitesTest.php`,
   `SiteRowsTest::testPreviewEmitsDownloadedFlagAndProblemCodes` and
   `PanelTest::testDownloadStageMarksProblemSites` (the fake host `alwaysoffer.ru`, an offer wall for
   everyone, becomes a `download`-stage `offer_wall` problem end to end).

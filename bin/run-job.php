@@ -717,7 +717,7 @@ while (true) {
                         : sprintf('Докачано: добрано %d из %d стр., всего открыто %d', $retryStat['recovered'], $retryStat['attempted'], $opened)))
                     // Разбивка по числу страниц: сколько одностраничников, сколько 9/10-страничников и т.п.
                     . ($pageStats !== '' ? '; по страницам: ' . $pageStats : '')
-                    . ($problemHist['sites'] > 0 ? sprintf('; проблемных: %d (вкладка «Проблемные»)', $problemHist['sites']) : '')
+                    . ($problemHist['sites'] > 0 ? sprintf('; проблемных: %d (фильтр над таблицей)', $problemHist['sites']) : '')
                     . ($uaStats !== '' ? '; под браузером (робота не пустили): ' . $uaStats : ''),
             ], true);
             $logger->info(sprintf('%s завершена: страниц открыто %d%s', $isRetry ? 'Докачка' : 'Выгрузка', $opened, $pageStats !== '' ? '; по страницам: ' . $pageStats : ''));
@@ -992,7 +992,7 @@ while (true) {
                         . $templateNote
                         . ($ownNote !== '' ? ($templateNote !== '' ? '; ' : '') . $ownNote : '')
                         . ($offerWalls > 0 ? sprintf('; подборок офферов вместо сайта: %d', $offerWalls) : '')
-                        . ($problemHist['sites'] > 0 ? sprintf('; проблемных: %d (вкладка «Проблемные»)', $problemHist['sites']) : ''),
+                        . ($problemHist['sites'] > 0 ? sprintf('; проблемных: %d (фильтр над таблицей)', $problemHist['sites']) : ''),
                     ),
             ], true);
             $logger->info(sprintf(

@@ -69,15 +69,7 @@
   .pg-sec{margin-bottom:8px}
   .pg-h{font-weight:700;font-size:12px;margin:6px 0 3px}
   .tag{font-size:11px;padding:1px 7px;border-radius:99px;background:var(--chip);color:var(--accent)}
-  .tabbadge{font-size:11px;padding:0 6px;border-radius:99px;background:#e5484d;color:#fff;font-weight:600;vertical-align:middle}
-  .pgroup{border:1px solid var(--line);border-radius:10px;padding:12px;margin:10px 0}
-  .pgroup h3{margin:0 0 4px;font-size:15px}
-  .pgroup .phint{font-size:12px;color:var(--muted);margin-bottom:8px}
-  .pgroup .pacts{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
-  .psec-h{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:14px 0 4px}
-  .phost{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:3px 8px;border-radius:7px;background:var(--chip);margin:2px 4px 2px 0}
-  .phost a{color:var(--accent)}
-  .phost .px{cursor:pointer;color:var(--muted);border:none;background:none;padding:0;font-size:13px;line-height:1}
+  .tag.prob{background:#fdecec;color:#c02b2b}
   .ctBtn{font-size:12px;padding:4px 10px;border-radius:7px;border:1px solid var(--accent);background:#fff;color:var(--accent);cursor:pointer;white-space:nowrap}
   .ctBtn:hover{background:var(--accent);color:#fff}
   .ctBtn:disabled{opacity:.6;cursor:default}
@@ -132,7 +124,6 @@
   <div class="tabs">
     <button class="tab active" data-tab="main">Главная</button>
     <button class="tab" data-tab="config">Настройки</button>
-    <button class="tab" data-tab="problems">Проблемные <span class="tabbadge" id="probBadge" hidden></span></button>
     <button class="tab" data-tab="stats">Статистика</button>
   </div>
 
@@ -292,12 +283,6 @@
     <pre class="log" id="log">—</pre>
   </div>
 
-  <div class="card tabsec" data-tab="problems">
-    <h2>Проблемные сайты</h2>
-    <div class="hint">Сайты, которые <b>не удалось получить</b> (а не те, у которых чего-то нет). Причина привязана к стадии: <b>по сбору</b> определяется сразу после сбора со скриншотами (сайт не открылся вовсе или показал витрину чужих офферов), <b>по выгрузке</b> — после «Выгрузить страницы» (ни одной страницы, часть страниц не скачалась, файл пропал с диска). Одностраничник (после выгрузки открылась только главная) и пропуск целевой страницы проблемой <b>не считаются</b>. Кнопки в каждой группе перепробуют сайты с других IP и агентов или уберут их из списка (обратимо — «вернуть все» на «Главной»).</div>
-    <div id="problemsBox"></div>
-  </div>
-
   <div class="card tabsec" data-tab="stats">
     <h2>Статистика сборов</h2>
     <div class="hint">Воронка сбора: каждое число вытекает из предыдущего, проценты — на каждом шаге. Первый блок считается <b>от строк выдачи</b>, второй — <b>от сайтов выдачи</b> (это масса после склейки поддоменов одного домена: доры одной сетки — один сайт). Проверка сходимости: <b>сайтов в выдаче = срезано + отобрано</b>. «Отобрано» — результат фильтров, это ещё не значит «сайт открылся»: заходим мы на них позже. <b>Наши</b> узнаются по меткам в HTML страницы на превью-визите (скриншот — чтобы проверить глазами); их доля считается <b>от общего числа доров в выдаче</b> — наши шаблоны и есть доры, — и в число входят пришедшие повторами (домен уже в базе, сайт не открывали, но он наш) и срезанные по метке-домену. Свои домены копятся сами и добираются с диска; те, что собраны ещё раньше, можно вписать в <b>own-domains.txt</b> в папке проекта — иначе среди повторов их не узнать (сколько их известно, видно в подсказке к числу наших). <b>Домены с 6+ брендами</b> — те, что держат на своих поддоменах сайты более чем пяти разных брендов (бренд берётся из поискового запроса; «Вулкан Вегас» и «Vulkan Vegas» — один бренд); полный список с названиями брендов лежит в <b>runs/current/brand-domains.txt</b> и скачивается ссылкой под таблицей результатов. Ниже — по строке на каждый сбор; клик по строке показывает её воронку. История хранится в <b>runs/history.json</b> и переживает обновление кода.</div>
@@ -342,6 +327,13 @@
       <button class="btn-ghost" id="retryPreviewBtn" hidden title="Ещё раз попробовать открыть сайты, у которых не получилось превью: несколько заходов на главную, каждый с другого прокси и под другим браузерным агентом. Уже открытые сайты и наши шаблоны не трогаются">Перепробовать без превью</button>
       <button class="btn-ghost" id="removeNoPreviewBtn" hidden title="Убрать из списка сайты, у которых не открылась ни одна страница (превью не получено, 0 стр.) — чтобы идти на выгрузку без них. Работает сразу после сбора; крестиком — можно вернуть">Убрать без превью</button>
       <button class="btn-ghost" id="removeOfferBtn" hidden title="Убрать сайты, которые вместо своего содержимого показали витрину чужих бонусов. Их уже перепроверили с других IP и под другими User-Agent — настоящий сайт получить не удалось; крестиком — можно вернуть">Убрать подборки офферов</button>
+      <span id="probwrap" hidden style="display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap" title="Проблемные — сайты, которые НЕ УДАЛОСЬ ПОЛУЧИТЬ (а не те, у которых чего-то нет). Причина привязана к стадии: «по сбору» видно сразу после сбора со скриншотами, «по выгрузке» — после выгрузки страниц. Одностраничник и пропуск целевой страницы проблемой не считаются. Выбор причины сужает таблицу, кнопки действуют на то, что осталось видно; на выгрузку фильтр не влияет">
+        <span class="hint">проблемные</span>
+        <select id="probsel" title="Показать только сайты с выбранной проблемой"><option value="">все сайты</option></select>
+        <button class="btn-ghost" id="probRetryBtn" hidden title="Ещё заходы на главную с других прокси и под другими браузерными агентами — для показанных сайтов, которые ещё не выгружались">Перепробовать с других IP</button>
+        <button class="btn-ghost" id="probDlBtn" hidden title="Поставить показанные выгруженные сайты в очередь докачки: перезагрузятся только упавшие страницы">Докачать</button>
+        <button class="btn-ghost" id="probRemoveBtn" hidden title="Убрать из списка все показанные сайты (обратимо — «вернуть все»)">Убрать</button>
+      </span>
       <span id="keywrap" hidden style="display:inline-flex;align-items:center;gap:6px">
         <span class="hint">нет страницы</span>
         <select id="keysel" title="Ключевые страницы — те, на которые ссылается готовый контент. Сайт без них даёт «ссылку в никуда»"><option value="">любой</option></select>
@@ -1075,23 +1067,24 @@ function siteType(s){ if(!s || s.own) return ''; return TYPE_KEYS.includes(s.tem
 function typeCounts(list){ const c={pages7:0,pages12:0,other:0,typed:0}; list.forEach(s=>{ const t=siteType(s); if(t){ c[t]++; c.typed++; } }); return c; }
 function keptTypes(){ return new Set([...document.querySelectorAll('.tplkeep')].filter(c=>c.checked).map(c=>c.value)); }
 function dropByType(s){ const t=siteType(s); return t!=='' && !keptTypes().has(t); }
-// Тип сайта для статистики: наш / проблемный (есть упавшие страницы или не открылся вовсе) /
-// 100% (все страницы открыты) / не проверено (ещё не открывали).
+// Тип сайта для статистики: наш / проблемный / 100% (все страницы открыты) / частично (страницы
+// есть, но не все — и это 404 либо дубликаты, докачкой не чинится) / не проверено (ещё не открывали).
+// «Проблемный» здесь — РОВНО то же, что в фильтре над таблицей (s.problems с сервера): два разных
+// определения под одним словом давали в строке одно число, а в фильтре другое.
 function siteKind(s){
   if(!s) return 'unchecked';
   if(s.own) return 'own';
+  if(problemsOf(s).length) return 'problem';
   const total=s.pages_total|0, ok=s.pages_ok|0;
-  if((s.pages_missing|0)>0) return 'problem'; // файл страницы пропал с диска — есть что докачивать
   if(total>0 && ok===total) return 'full';
-  if(total>0 && ok<total) return 'problem';
-  if(!total && s.page_error) return 'problem';
+  if(total>0) return 'partial';
   return 'unchecked';
 }
 // Строка статистики над таблицей и кнопки массовой чистки: «Убрать наши» (работает сразу после сбора —
 // признак «наш» появляется уже на превью-скриншотах) и «Убрать с 404 > N» (по числу страниц с 404 после
 // выгрузки). Убирают через тот же механизм, что и крестик: обратимо, «вернуть все» возвращает.
 function updateStats(visible){
-  const c={own:0,problem:0,full:0,unchecked:0};
+  const c={own:0,problem:0,full:0,partial:0,unchecked:0};
   visible.forEach(s=>{ c[siteKind(s)]++; });
   const st=$('statsText');
   if(st){
@@ -1100,6 +1093,9 @@ function updateStats(visible){
       // Наши шаблоны узнаём по меткам в HTML страницы (own-markers.txt), не по картинке скриншота.
       // Процент здесь не пишем: доля наших считается от общего числа доров и живёт во вкладке «Статистика».
       let t=`Из ${visible.length}: наших ${c.own} · проблемных ${c.problem} · без ошибок (100%) ${c.full}`;
+      // Страницы есть, но не все: не хватает только 404 и дубликатов — докачкой это не чинится,
+      // поэтому в «проблемные» такой сайт не идёт, но и «100%» про него сказать нельзя.
+      if(c.partial) t+=` · частично (404/дубли) ${c.partial}`;
       if(c.unchecked) t+=` · не проверено ${c.unchecked}`;
       // Разбивка по числу открытых страниц (после выгрузки): сколько одностраничников, сколько 9/10-страничников.
       const hist={}; let withPages=0;
@@ -1194,10 +1190,11 @@ $('removeKeyBtn').addEventListener('click', ()=>{ const k=$('keysel').value; rem
 document.querySelectorAll('.tplkeep').forEach(c=>c.addEventListener('change', ()=>updateStats(lastSites.filter(s=>!isRemoved(s.host)))));
 $('keepTypesBtn').addEventListener('click', ()=>removeWhere(dropByType));
 
-// ---- Вкладка «Проблемные» ---------------------------------------------------------------------
-// «Проблемный» = сайт, который НЕ УДАЛОСЬ ПОЛУЧИТЬ. Коды приходят в s.problems (считает сервер,
-// см. Support\ProblemSites), здесь только группируем по стадии и рисуем. Секция сайта — по флагу
-// s.downloaded (дошёл ли до выгрузки), а не по стадии кода: offer_wall бывает и там, и там.
+// ---- Проблемные сайты прямо в таблице результатов ---------------------------------------------
+// «Проблемный» = сайт, который НЕ УДАЛОСЬ ПОЛУЧИТЬ. Коды считает сервер и кладёт в s.problems
+// (см. Support\ProblemSites); стадия сайта — по флагу s.downloaded (дошёл ли до выгрузки), а не по
+// стадии кода: подборка офферов бывает и до выгрузки, и после. Над таблицей — выбор причины: он
+// СУЖАЕТ показ таблицы, а кнопки рядом действуют ровно на то, что осталось видно.
 const PROBLEM_LABELS={
   no_preview:'не открылся (без превью)',
   offer_wall:'подборка офферов вместо сайта',
@@ -1205,81 +1202,94 @@ const PROBLEM_LABELS={
   pages_failed:'часть страниц не скачалась',
   missing_files:'нет файла на диске',
 };
+// Короткая метка для ячейки таблицы — длинную в строку не вписать.
+const PROBLEM_TAGS={
+  no_preview:'не открылся',
+  offer_wall:'подборка офферов',
+  no_pages:'0 страниц',
+  pages_failed:'не все страницы',
+  missing_files:'нет файла на диске',
+};
 const PROBLEM_HINT={
   no_preview:'Ни одна страница не открылась при сборе — сайт мог отсечь по прокси/агенту. Пара заходов с других IP и браузерных агентов часто помогает.',
-  offer_wall:'Вместо сайта показана витрина чужих бонусов. Перепробуем с других IP и агентов — иначе уберите.',
+  offer_wall:'Вместо сайта показана витрина чужих бонусов. Перепроверено с других IP и агентов — настоящий сайт получить не удалось.',
   no_pages:'Выгрузка не получила ни одной страницы. Докачка попробует снова с других прокси и с растущим таймаутом.',
   pages_failed:'Часть страниц упала с ошибкой, которую докачка может добрать (таймаут/блок/пропавший файл).',
   missing_files:'Файлы открытых страниц пропали с диска — докачка их перекачает.',
 };
-// Действие для группы: preview — ещё заходы на главную (stage=preview), download — докачка (очередь).
 const PROBLEM_ACTION={ no_preview:'preview', offer_wall:'preview', no_pages:'download', pages_failed:'download', missing_files:'download' };
+const STAGE_LABELS={collect:'по сбору', download:'по выгрузке'};
 function problemsOf(s){ return (s && Array.isArray(s.problems)) ? s.problems : []; }
-// Ещё заходы на главную у конкретного набора хостов (как «Перепробовать без превью», но для группы).
+function problemStage(s){ return (s && s.downloaded) ? 'download' : 'collect'; }
+// Что выбрано в фильтре: '' — все сайты, 'all' — все проблемные, 'стадия:код' — конкретная причина.
+let problemSel='';
+function matchesProblem(s, sel){
+  if(!sel) return true;
+  const codes=problemsOf(s);
+  if(!codes.length) return false;
+  if(sel==='all') return true;
+  const i=sel.indexOf(':');
+  return problemStage(s)===sel.slice(0,i) && codes.includes(sel.slice(i+1));
+}
+// Сайты, которые сейчас показаны фильтром (без убранных) — на них и действуют кнопки.
+function problemFiltered(){
+  return lastSites.filter(s=>!isRemoved(s.host) && matchesProblem(s, problemSel));
+}
+// Ещё заходы на главную у набора хостов (как «Перепробовать без превью», но для выбранной причины).
 function retryPreviewHosts(hosts){
   hosts=hosts.filter(h=>!isRemoved(h));
   if(!hosts.length){ showStart('Нет сайтов для повтора','err'); return; }
   startJob({stage:'preview', only:hosts, exclude_hosts:[...removedHosts, ...pendingRemoved]});
 }
 function countProblems(visible){
-  const c={collect:{}, download:{}, sites:0};
+  const c={sites:0, byKey:{}};
   visible.forEach(s=>{
     const codes=problemsOf(s); if(!codes.length) return;
     c.sites++;
-    const sec=s.downloaded?'download':'collect';
-    codes.forEach(k=>{ c[sec][k]=(c[sec][k]||0)+1; });
+    const stage=problemStage(s);
+    codes.forEach(code=>{ const k=stage+':'+code; c.byKey[k]=(c.byKey[k]||0)+1; });
   });
   return c;
 }
-function renderProblems(visible){
-  const box=$('problemsBox'); if(!box) return;
+// Фильтр причин над таблицей: пересобираем список опций под текущие данные, выбор сохраняем.
+function updateProblemFilter(visible){
+  const wrap=$('probwrap'), sel=$('probsel');
+  if(!wrap || !sel) return;
   const c=countProblems(visible);
-  const badge=$('probBadge');
-  if(badge){ if(c.sites>0){ badge.hidden=false; badge.textContent=c.sites; } else badge.hidden=true; }
-  if(!c.sites){ box.innerHTML='<div class="hint">Проблемных сайтов нет. После сбора и после выгрузки страниц здесь появятся те, которые не удалось получить.</div>'; return; }
-  const esc=t=>String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
-  const SEC=[['collect','По сбору','Определяются сразу после сбора со скриншотами'],['download','По выгрузке страниц','Определяются после «Выгрузить страницы оставшихся»']];
-  let h='';
-  SEC.forEach(([sec,secTitle,secHint])=>{
-    const codes=c[sec]; const keys=Object.keys(codes).sort((a,b)=>codes[b]-codes[a]);
-    if(!keys.length) return;
-    h+=`<div class="psec-h" title="${esc(secHint)}">${secTitle}</div>`;
-    keys.forEach(code=>{
-      const hosts=visible.filter(s=>(s.downloaded?'download':'collect')===sec && problemsOf(s).includes(code)).map(s=>s.host);
-      const act=PROBLEM_ACTION[code];
-      const actLabel=act==='preview'?'Перепробовать с других IP':'Докачать';
-      h+=`<div class="pgroup">`;
-      h+=`<h3>${esc(PROBLEM_LABELS[code]||code)} <span class="tag">${hosts.length}</span></h3>`;
-      h+=`<div class="phint">${esc(PROBLEM_HINT[code]||'')}</div>`;
-      h+=`<div class="pacts">`;
-      h+=`<button class="ctBtn" data-prob-act="${act}" data-prob-code="${code}" data-prob-sec="${sec}">${actLabel} (${hosts.length})</button>`;
-      h+=`<button class="ctBtn" data-prob-remove="${code}" data-prob-sec="${sec}" title="Убрать эти сайты из списка (обратимо)">Убрать (${hosts.length})</button>`;
-      h+=`</div>`;
-      h+=hosts.slice(0,200).map(host=>{
-        const s=visible.find(x=>x.host===host);
-        const link=s&&s.url?`<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(host)}</a>`:esc(host);
-        const shot=s&&s.screenshot?` <a href="/file?path=${encodeURIComponent(s.screenshot)}" target="_blank" rel="noopener">фото</a>`:'';
-        return `<span class="phost"><button class="px" data-prob-x="${esc(host)}" title="Убрать сайт">✕</button>${link}${shot}</span>`;
-      }).join('');
-      if(hosts.length>200) h+=`<div class="phint">…и ещё ${hosts.length-200}</div>`;
-      h+=`</div>`;
-    });
-  });
-  box.innerHTML=h;
+  wrap.hidden = c.sites===0;
+  if(c.sites===0){ problemSel=''; sel.value=''; }
+  const keys=Object.keys(c.byKey).sort((a,b)=>c.byKey[b]-c.byKey[a]);
+  const opts=['<option value="">все сайты</option>', `<option value="all">только проблемные (${c.sites})</option>`]
+    .concat(keys.map(k=>{
+      const i=k.indexOf(':'), stage=k.slice(0,i), code=k.slice(i+1);
+      return `<option value="${k}">${STAGE_LABELS[stage]}: ${PROBLEM_LABELS[code]||code} (${c.byKey[k]})</option>`;
+    })).join('');
+  if(sel.innerHTML!==opts){ sel.innerHTML=opts; }
+  if(problemSel && !sel.querySelector(`option[value="${problemSel}"]`)) problemSel='';
+  sel.value=problemSel;
+  // Кнопки действуют на отфильтрованное и появляются, только когда фильтр включён.
+  const shown=problemFiltered();
+  const prev=shown.filter(s=>problemStage(s)==='collect').map(s=>s.host);
+  const dl=shown.filter(s=>problemStage(s)==='download').map(s=>s.host);
+  const rb=$('probRetryBtn'), db=$('probDlBtn'), xb=$('probRemoveBtn');
+  const on = problemSel!=='';
+  if(rb){ rb.hidden=!on||prev.length===0; rb.disabled=jobRunning; rb.textContent='Перепробовать с других IP ('+prev.length+')'; }
+  if(db){ db.hidden=!on||dl.length===0; db.textContent='Докачать ('+dl.length+')'; }
+  if(xb){ xb.hidden=!on; xb.disabled=shown.length===0; xb.textContent='Убрать ('+shown.length+')'; }
 }
-// Множество хостов группы (стадия + код), с учётом убранных.
-function problemHosts(sec, code){
-  return lastSites.filter(s=>!isRemoved(s.host) && (s.downloaded?'download':'collect')===sec && problemsOf(s).includes(code)).map(s=>s.host);
-}
-$('problemsBox').addEventListener('click', e=>{
-  const px=e.target.closest('[data-prob-x]'); if(px){ removeOnServer([px.dataset.probX]); return; }
-  const rm=e.target.closest('[data-prob-remove]'); if(rm){ const hosts=problemHosts(rm.dataset.probSec, rm.dataset.probRemove); if(hosts.length) removeOnServer(hosts); return; }
-  const ac=e.target.closest('[data-prob-act]'); if(ac){
-    const hosts=problemHosts(ac.dataset.probSec, ac.dataset.probCode);
-    if(!hosts.length){ showStart('Сайтов в группе не осталось','err'); return; }
-    if(ac.dataset.probAct==='preview') retryPreviewHosts(hosts); else queueRetry(hosts, false);
-    return;
-  }
+$('probsel').addEventListener('change', ()=>{ problemSel=$('probsel').value; renderResults(lastSites); });
+$('probRetryBtn').addEventListener('click', ()=>{
+  const hosts=problemFiltered().filter(s=>problemStage(s)==='collect').map(s=>s.host);
+  retryPreviewHosts(hosts);
+});
+$('probDlBtn').addEventListener('click', ()=>{
+  const hosts=problemFiltered().filter(s=>problemStage(s)==='download').map(s=>s.host);
+  if(!hosts.length){ showStart('Нечего докачивать','err'); return; }
+  queueRetry(hosts, false);
+});
+$('probRemoveBtn').addEventListener('click', ()=>{
+  const hosts=problemFiltered().map(s=>s.host);
+  if(hosts.length) removeOnServer(hosts);
 });
 
 function renderResults(sites){
@@ -1289,7 +1299,7 @@ function renderResults(sites){
   if(!sites.length && (jobRunning || jobStarting) && lastSites.length){ sites = lastSites; }
   lastSites = sites;
   const card=$('resultsCard');
-  if(!sites.length){ updateDownloadBtn(); card.hidden=true; renderProblems([]); return; }
+  if(!sites.length){ updateDownloadBtn(); card.hidden=true; updateProblemFilter([]); return; }
   // Список убранных — серверный, здесь его не «подчищаем»: раньше такая подчистка под переходный статус
   // (перезапуск задания, ошибка, обрезанный список) теряла удаления, и убранные сайты всплывали снова.
   const present=new Set(sites.map(s=>s.host));
@@ -1299,9 +1309,14 @@ function renderResults(sites){
   const visible=sites.filter(s=>!isRemoved(s.host));
   updateDownloadBtn();
   card.hidden=false;
-  $('resCount').textContent='· '+visible.length+(removedHosts.size?` (убрано ${removedHosts.size})`:'')+(sitesCountTotal>sites.length?` · показаны первые ${sites.length} из ${sitesCountTotal}`:'');
   updateStats(visible);
-  renderProblems(visible);
+  updateProblemFilter(visible);
+  // Фильтр причин сужает ТОЛЬКО показ таблицы: выгрузка и «Очистить всё» по-прежнему берут все
+  // оставшиеся сайты, иначе фильтр молча урезал бы работу.
+  const shown = visible.filter(s=>matchesProblem(s, problemSel));
+  $('resCount').textContent='· '+(problemSel!=='' ? shown.length+' из '+visible.length+' (фильтр по проблеме)' : String(visible.length))
+    +(removedHosts.size?` (убрано ${removedHosts.size})`:'')
+    +(sitesCountTotal>sites.length?` · показаны первые ${sites.length} из ${sitesCountTotal}`:'');
   const note=$('removedNote');
   if(removedHosts.size){ note.hidden=false; note.innerHTML=`Убрано сайтов: <b>${removedHosts.size}</b> · <a href="#" id="restoreRemoved">вернуть все</a>`; }
   else note.hidden=true;
@@ -1317,7 +1332,7 @@ function renderResults(sites){
     return e; };
   const errCell=e=>{ const h=esc(humanErr(e)); return `<span class="tag diff" title="${esc(e)}">${h.length>70?h.slice(0,70)+'…':h}</span>`; };
   const tb=$('resTable').querySelector('tbody');
-  const tableHtml=visible.map((s,i)=>{
+  const tableHtml=shown.map((s,i)=>{
     let dl='—';
     if(s.own){ dl=`<span class="tag" title="наш шаблон — исключён из выгрузки">исключён как наш</span>`; }
     else if(s.pages_total>0){ dl=`${s.pages_ok||0}/${s.pages_total}`; if((s.pages_ok||0)<s.pages_total && s.page_error) dl+=' '+errCell(s.page_error); if((s.pages_missing|0)>0) dl+=' '+errCell('нет файла на диске: '+s.pages_missing+' — докачайте'); }
@@ -1335,7 +1350,9 @@ function renderResults(sites){
     const tt=siteType(s);
     const tplTag = (tt==='pages7'||tt==='pages12') ? ` <span class="tag" title="Тип вёрстки по главной: шаблон на ${TYPE_LABELS[tt]}">${TYPE_LABELS[tt]}</span>` : '';
     // Сайт отдал только витрину чужих офферов — настоящий сайт спрятан (проверяли с разных IP и агентов).
-    const offTag = s.offer_wall ? ` <span class="tag diff" title="Вместо сайта показана подборка чужих бонусов. Перепроверено с других IP и под другими User-Agent — настоящий сайт получить не удалось">подборка офферов</span>` : '';
+    // Метки проблем: почему сайт не получен. Подборка офферов — один из кодов, отдельной метки нет.
+    const offTag = problemsOf(s).map(code=>
+      ` <span class="tag prob" title="${esc(STAGE_LABELS[problemStage(s)]+': '+(PROBLEM_LABELS[code]||code)+'. '+(PROBLEM_HINT[code]||''))}">${esc(PROBLEM_TAGS[code]||code)}</span>`).join('');
     const ct = (!s.own && (s.pages_ok||0)>0)
       ? `<button class="ctBtn" data-host="${esc(s.host)}" title="Очистить страницы сайта по инструкции и разложить в content/N-стр/сайт">Очистить</button>`
       : '—';
