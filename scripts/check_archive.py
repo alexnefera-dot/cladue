@@ -47,8 +47,9 @@ TEMPLATES = {
 # собираются в шаблон 7-стр без служебных страниц; ссылки на убранные
 # страницы ловит C1.
 # Служебные страницы: и латиницей, и с приставкой ru (ruabout, rucontacts, ruprivacy).
-СЛУЖЕБНЫЕ = ["privacy", "contacts", "about", "privacy-policy",
-             "ruprivacy", "rucontacts", "ruabout", "ru-privacy", "ru-contacts", "ru-about"]
+СЛУЖЕБНЫЕ = ["privacy", "contacts", "about", "privacy-policy", "terms",
+             "ruprivacy", "rucontacts", "ruabout", "ru-privacy", "ru-contacts", "ru-about",
+             "ruterms", "ru-terms"]
 CONVERT = {2: (1, СЛУЖЕБНЫЕ + ["slots", "bonus"]), 8: (7, СЛУЖЕБНЫЕ),
            9: (7, СЛУЖЕБНЫЕ), 10: (7, СЛУЖЕБНЫЕ)}
 # Сайт убирается из выдачи (а не отправляется на доработку), если в нём есть
@@ -142,16 +143,19 @@ CYR_WHITELIST = {"актуальная", "актуальное", "актуаль
     "ставка", "крупный", "тихий", "старый", "зайдите", "пароль", "помните",
     "наша", "сканируете", "коротко", "захожу", "обратите", "данные", "мин",
     "бонусный", "максимум", "читай", "получи", "там", "весь", "отображение",
-    "холодный", "финансовый", "нажмите", "включите", "запустить", "твой"}
+    "холодный", "финансовый", "нажмите", "включите", "запустить", "твой",
+    "цифры", "проверить", "хватит", "один", "профиль", "акции", "кешбэк",
+    "открыл", "выплата"}
 
 LATIN_WHITELIST = {
     "rtp", "vpn", "ios", "android", "app", "store", "google", "play", "pwa",
-    "ssl", "live", "faq", "usdt", "bitcoin", "btc", "eth", "visa",
+    "ssl", "live", "faq", "usdt", "bitcoin", "btc", "eth", "ethereum",
+    "litecoin", "tron", "visa",
     "mastercard", "mir", "skrill", "neteller", "trustly", "telegram",
     "messenger", "whatsapp", "email", "e-mail", "id", "ip", "url", "html",
     "apk", "wild", "fast", "expanding", "high", "medium", "low", "megaways",
     "jackpot", "ok", "top", "vip", "cpa", "revshare", "hybrid", "kyc", "aml",
-    "curacao", "ukgc", "mga", "gmt", "chat", "sms", "push", "pin", "2fa",
+    "curacao", "ukgc", "mga", "gmt", "chat", "sms", "push", "pin", "2fa", "authy",
     "casino", "name", "face", "touch", "apple", "samsung", "huawei", "xiaomi",
     "windows", "chrome", "safari", "firefox", "opera", "yandex", "mail",
     "gmail", "wifi", "mac", "pc", "tv", "qr", "gdpr", "cookies", "cookie",
@@ -393,6 +397,10 @@ def brand_hits(text):
 
 БЕЙДЖ_СЛОТА = re.compile(r"(?is)<p>[^<>]{1,30}</p>\s*(?=<h3\b)")
 
+# «в разделе «Профиль»», «на вкладке «Акции»» — название раздела, а не чужое казино.
+РАЗДЕЛ_САЙТА = re.compile(r"(?i)(?:раздел\w*|вкладк\w*|меню|кнопк\w*|пункт\w*)\s*[«\"']?\s*$")
+
+
 def _пара_имени(tok, след):
     """Годится ли второе слово в пару: не повтор первого и того же алфавита."""
     return (ЗАГЛАВНЫЙ_ТОКЕН.match(след) is not None and след != tok
@@ -428,6 +436,8 @@ def brand_twins(text):
         before, after = text[max(0, m.start() - 30): m.start()], text[m.end(): m.end() + 24]
         if PROVIDER_AFTER.match(after) or SLOT_BEFORE.search(before) or SLOT_AFTER.match(after):
             continue   # карточка слота: «Играйте в Lucky Luck Games от…»
+        if РАЗДЕЛ_САЙТА.search(before):
+            continue   # «в разделе «Профиль»» — это название нашего же раздела
         след = токены[i + 1] if i + 1 < len(токены) else ""
         if _пара_имени(tok, след) and not _твин_мимо(след):
             найдено[tok + " " + след] += 1
