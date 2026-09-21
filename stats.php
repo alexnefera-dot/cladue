@@ -219,11 +219,11 @@ $detailName = null; $detailDay = ['humans'=>0,'uniques'=>0,'bots'=>0]; $detailRo
 $detailConv = ['reg'=>0,'dep'=>0,'other'=>0]; $detailConvRows = [];
 $detailPage = 1; $detailPages = 1; $detailTotal = 0;
 $campaigns = []; $domains = [];
+$sourceGroups = [];
 $daily = []; $recentConv = []; $pbLog = []; $geo = []; $geoCamp = []; $detailGeo = [];
 $detailBots = [];
 $detailSources = [];
 $detailSourceGroups = [];
-$detailDepth = [];
 
 if ($tab === 'stats' && $detailSlug !== '') {
     // --- ПОДРОБНО по одной кампании ---
@@ -295,7 +295,6 @@ if ($tab === 'stats' && $detailSlug !== '') {
     // считает его внутри, и раньше эта работа делалась дважды.
     $detailGeo          = panel_cache("dgeo_$dkey",  fn() => geo_by_campaign($from, $detailSlug, $to)[$detailSlug] ?? []);
     $detailSourceGroups = panel_cache("dsrc_$dkey",  fn() => sources_grouped_by_campaign($detailSlug, $from, $to));
-    $detailDepth        = panel_cache("ddep_$dkey",  fn() => depth_by_campaign($detailSlug, $from, $to));
 
 } elseif ($tab === 'stats') {
     // --- СВОДКА за период: все кампании с кликами ---
@@ -355,6 +354,7 @@ if ($tab === 'stats' && $detailSlug !== '') {
     $geo        = panel_cache("geo_$periodKey",     fn() => geo_stats($from, $to));
     $geoCamp    = panel_cache("geocamp_$periodKey", fn() => geo_by_campaign($from, null, $to));
     $botsPeriod = panel_cache("bots_$periodKey",    fn() => bots_split($from, $to));
+    $sourceGroups = panel_cache("srcall_$periodKey", fn() => sources_grouped_by_campaign(null, $from, $to));
 
 } else {
     // --- вкладка «Кампании»: только справочник кампаний (без счётчиков кликов) ---
@@ -365,6 +365,72 @@ if ($tab === 'stats' && $detailSlug !== '') {
 
 function h($s)  { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 function dt($t) { return $t ? date('Y-m-d H:i', (int)$t) : '—'; }
+/**
+ * Значок вложенности рядом с источником: ru ×3.
+ *
+ * Показываем число сегментов, а не сам путь: у дора это всегда повторяющийся
+ * /ru, и «ru ×15» читается с одного взгляда, а «/ru/ru/ru/ru/…» растягивает
+ * таблицу и ничего не добавляет.
+ */
+function depth_badge($depth) {
+    $d = (int)$depth;
+    if ($d < 0) return '<span class="muted" style="font-size:11px"> · путь не передан</span>';
+    if ($d === 0) return '<span class="dbadge dbadge-0">корень</span>';
+    return '<span class="dbadge">ru &times;' . $d . '</span>';
+}
+
+/**
+ * Таблица источников: группы по корневому домену, внутри — сабдомен с уровнем
+ * вложенности. Одна и та же разметка на главной и на странице кампании.
+ */
+function render_sources(array $groups) {
+    $totalU = 0;
+    foreach ($groups as $g) $totalU += (int)$g['uniques'];
+    ?>
+    <table class="src-group-table">
+      <thead><tr>
+        <th style="width:32px"></th>
+        <th>Источник / домен</th>
+        <th class="num">Клики</th>
+        <th class="num">Уники</th>
+        <th class="num">Реги</th>
+        <th class="num" title="Первые депозиты (FTD)">Депы</th>
+        <th class="num">Доля уник.</th>
+      </tr></thead>
+      <tbody>
+        <?php foreach ($groups as $gi => $g):
+          $multi = count($g['subs']) > 1 || ($g['subs'][0]['source'] ?? '') !== $g['root'];
+        ?>
+        <tr class="src-grp<?= $multi ? ' has-subs' : '' ?>"<?= $multi ? ' data-grp="'.$gi.'"' : '' ?>>
+          <td class="src-toggle"><?= $multi ? '<span class="tri">▶</span>' : '' ?></td>
+          <td>
+            <?= $g['root'] === '(прямые)' ? '<span class="muted">(прямые)</span>' : '<b><code>'.h($g['root']).'</code></b>' ?>
+            <?php if ($multi): ?><span class="muted" style="font-size:11px"> · <?= count($g['subs']) ?> строк</span><?php endif; ?>
+          </td>
+          <td class="num"><?= (int)$g['clicks'] ?></td>
+          <td class="num"><b><?= (int)$g['uniques'] ?></b></td>
+          <td class="num"><?= (int)$g['regs'] ? '<b style="color:#a855f7">'.(int)$g['regs'].'</b>' : '0' ?></td>
+          <td class="num"><?= (int)($g['deps'] ?? 0) ? '<b style="color:#ea580c">'.(int)$g['deps'].'</b>' : '0' ?></td>
+          <td class="num"><?= $totalU ? round($g['uniques'] * 100 / $totalU) . '%' : '—' ?></td>
+        </tr>
+        <?php if ($multi): foreach ($g['subs'] as $s): ?>
+        <tr class="src-sub src-sub-<?= $gi ?>" style="display:none">
+          <td></td>
+          <td style="padding-left:28px"><span class="muted">└</span> <code style="font-size:12px"><?= h($s['source']) ?></code><?= depth_badge($s['depth'] ?? -1) ?></td>
+          <td class="num" style="color:#888"><?= (int)$s['clicks'] ?></td>
+          <td class="num"><?= (int)$s['uniques'] ?></td>
+          <td class="num"><?= (int)$s['regs'] ? '<span style="color:#a855f7">'.(int)$s['regs'].'</span>' : '0' ?></td>
+          <td class="num"><?= (int)($s['deps'] ?? 0) ? '<span style="color:#ea580c">'.(int)$s['deps'].'</span>' : '0' ?></td>
+          <td class="num" style="color:#aaa"><?= $totalU ? round($s['uniques'] * 100 / $totalU) . '%' : '—' ?></td>
+        </tr>
+        <?php endforeach; endif; ?>
+        <?php endforeach; ?>
+        <?php if (!$groups): ?><tr><td colspan="7">За период данных нет.</td></tr><?php endif; ?>
+      </tbody>
+    </table>
+    <?php
+}
+
 /**
  * Реферер целиком, кликабельно, с выделенным путём.
  *
@@ -442,6 +508,22 @@ $msg = $_GET['msg'] ?? '';
   .refurl a { color: var(--muted); text-decoration: none; }
   .refurl a:hover { color: var(--accent); text-decoration: underline; }
   .refurl .rpath { color: #111; }
+  /* таблица источников — общая для главной и страницы кампании */
+  .src-group-table{width:100%;border-collapse:collapse;font-size:14px}
+  .src-group-table th{text-align:left;padding:8px 10px;border-bottom:2px solid #e2e4ea;color:#666;font-weight:600;font-size:13px}
+  .src-group-table th.num{text-align:right}
+  .src-group-table td{padding:7px 10px;border-bottom:1px solid #f0f1f4}
+  .src-group-table td.num{text-align:right}
+  .src-grp.has-subs{cursor:pointer}
+  .src-grp.has-subs:hover{background:#f6f7fb}
+  .src-toggle{width:32px;text-align:center;color:#999}
+  .src-grp .tri{display:inline-block;transition:transform .15s;font-size:10px}
+  .src-grp.open .tri{transform:rotate(90deg)}
+  .src-sub{background:#fafbfc}
+  .src-sub:hover{background:#f4f6f8}
+  .dbadge{display:inline-block;margin-left:7px;padding:1px 6px;border-radius:5px;font-size:11px;
+          background:#eef2ff;color:#4338ca;border:1px solid #e0e7ff;font-family:ui-monospace,monospace}
+  .dbadge-0{background:#f3f4f6;color:#6b7280;border-color:#e5e7eb}
   tr.bot { background: #fff4f4; }
   tr.bot td:first-child { box-shadow: inset 3px 0 0 var(--bot); }
   table.rowlink tbody tr[data-href] { cursor: pointer; }
@@ -534,96 +616,7 @@ $msg = $_GET['msg'] ?? '';
 
   <h2 style="margin:18px 0 8px;font-size:16px">Источники (<?= h($PERIODS[$periodKey]) ?>)</h2>
   <div class="muted">Сгруппировано по корневому домену. Нажми на строку группы (▶), чтобы раскрыть поддомены. Источник берётся из <code>?s=</code> в рефке, а если параметра нет — из HTTP Referer. «(прямые)» — переходы без источника.</div>
-  <?php
-    $srcTotalU = 0; foreach ($detailSourceGroups as $g) $srcTotalU += (int)$g['uniques'];
-  ?>
-  <table class="src-group-table">
-    <thead><tr>
-      <th style="width:32px"></th>
-      <th>Источник / домен</th>
-      <th class="num">Клики</th>
-      <th class="num">Уники</th>
-      <th class="num">Реги</th>
-      <th class="num" title="Первые депозиты (FTD)">Депы</th>
-      <th class="num">Доля уник.</th>
-    </tr></thead>
-    <tbody>
-      <?php foreach ($detailSourceGroups as $gi => $g):
-        $multi = count($g['subs']) > 1 || ($g['subs'][0]['source'] ?? '') !== $g['root'];
-      ?>
-      <tr class="src-grp<?= $multi ? ' has-subs' : '' ?>"<?= $multi ? ' data-grp="'.$gi.'"' : '' ?>>
-        <td class="src-toggle"><?= $multi ? '<span class="tri">▶</span>' : '' ?></td>
-        <td>
-          <?= $g['root'] === '(прямые)' ? '<span class="muted">(прямые)</span>' : '<b><code>'.h($g['root']).'</code></b>' ?>
-          <?php if ($multi): ?><span class="muted" style="font-size:11px"> · <?= count($g['subs']) ?> подд.</span><?php endif; ?>
-        </td>
-        <td class="num"><?= (int)$g['clicks'] ?></td>
-        <td class="num"><b><?= (int)$g['uniques'] ?></b></td>
-        <td class="num"><?= (int)$g['regs'] ? '<b style="color:#a855f7">'.(int)$g['regs'].'</b>' : '0' ?></td>
-        <td class="num"><?= (int)($g['deps'] ?? 0) ? '<b style="color:#ea580c">'.(int)$g['deps'].'</b>' : '0' ?></td>
-        <td class="num"><?= $srcTotalU ? round($g['uniques'] * 100 / $srcTotalU) . '%' : '—' ?></td>
-      </tr>
-      <?php if ($multi): foreach ($g['subs'] as $s): ?>
-      <tr class="src-sub src-sub-<?= $gi ?>" style="display:none">
-        <td></td>
-        <td style="padding-left:28px"><span class="muted">└</span> <code style="font-size:12px"><?= h($s['source']) ?></code></td>
-        <td class="num" style="color:#888"><?= (int)$s['clicks'] ?></td>
-        <td class="num"><?= (int)$s['uniques'] ?></td>
-        <td class="num"><?= (int)$s['regs'] ? '<span style="color:#a855f7">'.(int)$s['regs'].'</span>' : '0' ?></td>
-        <td class="num"><?= (int)($s['deps'] ?? 0) ? '<span style="color:#ea580c">'.(int)$s['deps'].'</span>' : '0' ?></td>
-        <td class="num" style="color:#aaa"><?= $srcTotalU ? round($s['uniques'] * 100 / $srcTotalU) . '%' : '—' ?></td>
-      </tr>
-      <?php endforeach; endif; ?>
-      <?php endforeach; ?>
-      <?php if (!$detailSourceGroups): ?><tr><td colspan="7">За период данных нет.</td></tr><?php endif; ?>
-    </tbody>
-  </table>
-  <style>
-    .src-group-table{width:100%;border-collapse:collapse;font-size:14px}
-    .src-group-table th{text-align:left;padding:8px 10px;border-bottom:2px solid #e2e4ea;color:#666;font-weight:600;font-size:13px}
-    .src-group-table th.num{text-align:right}
-    .src-group-table td{padding:7px 10px;border-bottom:1px solid #f0f1f4}
-    .src-group-table td.num{text-align:right}
-    .src-grp.has-subs{cursor:pointer}
-    .src-grp.has-subs:hover{background:#f6f7fb}
-    .src-toggle{width:32px;text-align:center;color:#999}
-    .src-grp .tri{display:inline-block;transition:transform .15s;font-size:10px}
-    .src-grp.open .tri{transform:rotate(90deg)}
-    .src-sub{background:#fafbfc}
-    .src-sub:hover{background:#f4f6f8}
-  </style>
-  <script>
-  (function(){
-    document.querySelectorAll('.src-grp.has-subs').forEach(function(row){
-      row.addEventListener('click', function(){
-        var gi = row.getAttribute('data-grp');
-        var subs = document.querySelectorAll('.src-sub-' + gi);
-        var open = row.classList.toggle('open');
-        subs.forEach(function(s){ s.style.display = open ? '' : 'none'; });
-      });
-    });
-  })();
-  </script>
-
-  <h2 style="margin:18px 0 8px;font-size:16px">Вложенность (<?= h($PERIODS[$periodKey]) ?>)</h2>
-  <div class="muted">Сколько сегментов <code>/ru</code> было в адресе страницы дора, с которой пришёл клик. Путь передаётся в <code>?s=</code> вместе с хостом.</div>
-  <?php $depTotal = 0; foreach ($detailDepth as $d) $depTotal += (int)$d['clicks']; ?>
-  <table class="sortable">
-    <thead><tr><th data-sort="text">Уровень</th><th class="num" data-sort="num">Клики</th><th class="num" data-sort="num">Доля</th><th class="num" data-sort="num">Реги</th><th class="num" data-sort="num">Депы</th><th class="num" data-sort="num">Конверсия</th></tr></thead>
-    <tbody>
-      <?php foreach ($detailDepth as $d): $dep = (int)$d['depth']; ?>
-      <tr<?= $dep < 0 ? ' style="color:#999"' : '' ?>>
-        <td><?= $dep < 0 ? 'путь не передан' : '<b>' . $dep . '</b> &times; /ru' ?></td>
-        <td class="num"><?= (int)$d['clicks'] ?></td>
-        <td class="num" style="color:#aaa"><?= $depTotal ? round($d['clicks'] * 100 / $depTotal) . '%' : '—' ?></td>
-        <td class="num"><?= (int)$d['regs'] ? '<span style="color:#a855f7">'.(int)$d['regs'].'</span>' : '0' ?></td>
-        <td class="num"><?= (int)$d['deps'] ? '<span style="color:#ea580c">'.(int)$d['deps'].'</span>' : '0' ?></td>
-        <td class="num" style="color:#aaa"><?= (int)$d['clicks'] ? round((int)$d['regs'] * 100 / (int)$d['clicks'], 2) . '%' : '—' ?></td>
-      </tr>
-      <?php endforeach; ?>
-      <?php if (!$detailDepth): ?><tr><td colspan="6">За период данных нет.</td></tr><?php endif; ?>
-    </tbody>
-  </table>
+  <?php render_sources($detailSourceGroups); ?>
 
   <h2 style="margin:18px 0 8px;font-size:16px">Гео (уники, <?= h($PERIODS[$periodKey]) ?>)</h2>
   <?php $geoTotal = 0; foreach ($detailGeo as $g) $geoTotal += $g['uniques']; ?>
@@ -904,6 +897,10 @@ $msg = $_GET['msg'] ?? '';
       <?php if (!$geo): ?><tr><td colspan="3">За период данных нет.</td></tr><?php endif; ?>
     </tbody>
   </table>
+
+  <h1>Источники (<?= h($PERIODS[$periodKey]) ?>)</h1>
+  <div class="muted">Сгруппировано по корневому домену. Нажми на строку группы (▶), чтобы раскрыть сабдомены. Рядом с сабдоменом — вложенность страницы, с которой пришёл клик: <span class="dbadge">ru &times;3</span> значит три сегмента <code>/ru</code> в адресе. Источник и путь берутся из <code>?s=</code> в рефке.</div>
+  <?php render_sources($sourceGroups); ?>
 
   <h1>Конверсии за период (<?= h($PERIODS[$periodKey]) ?>)</h1>
   <div class="muted">
@@ -1322,6 +1319,17 @@ $msg = $_GET['msg'] ?? '';
         });
         rows.forEach(function(r){tbody.appendChild(r);});
       });
+    });
+  });
+})();
+/* Раскрытие группы источников (▶) — на главной и на странице кампании */
+(function(){
+  document.querySelectorAll('.src-grp.has-subs').forEach(function(row){
+    row.addEventListener('click', function(){
+      var gi = row.getAttribute('data-grp');
+      var subs = document.querySelectorAll('.src-sub-' + gi);
+      var open = row.classList.toggle('open');
+      subs.forEach(function(s){ s.style.display = open ? '' : 'none'; });
     });
   });
 })();

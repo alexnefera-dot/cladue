@@ -978,43 +978,62 @@ function bots_counter_read() {
  * под меткой "(прямые)".
  */
 function sources_by_campaign($slug, $from, $to = null) {
-    $sql = "SELECT COALESCE(NULLIF(source,''),'(прямые)') AS src,
+    // Группируем по паре (источник, путь): один и тот же сабдомен даёт клики
+    // с разной вложенностью, и это разные строки. Уровень считаем из пути
+    // в PHP — в SQL сегменты пришлось бы считать по-разному под MySQL и SQLite.
+    // $slug === null — по всем кампаниям сразу (сводка на главной).
+    $sql = "SELECT COALESCE(NULLIF(source,''),'(прямые)') AS src, lp,
                    COUNT(*) AS clicks,
                    COUNT(DISTINCT ip) AS uniques
             FROM clicks
-            WHERE slug = ? AND is_bot = 0 AND ts >= ?";
-    $args = [$slug, $from];
-    if ($to !== null) { $sql .= ' AND ts < ?'; $args[] = $to; }
-    $sql .= ' GROUP BY src ORDER BY uniques DESC, clicks DESC';
+            WHERE is_bot = 0 AND ts >= ?";
+    $args = [$from];
+    if ($to !== null)   { $sql .= ' AND ts < ?';  $args[] = $to; }
+    if ($slug !== null) { $sql .= ' AND slug = ?'; $args[] = $slug; }
+    $sql .= ' GROUP BY src, lp';
     $st = db()->prepare($sql);
     $st->execute($args);
-    $rows = $st->fetchAll(PDO::FETCH_ASSOC);
 
+    $rows = [];
+    foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        $depth = ($r['lp'] === null || $r['lp'] === '') ? -1 : ru_depth($r['lp']);
+        $key   = $r['src'] . "\x00" . $depth;
+        if (!isset($rows[$key])) {
+            $rows[$key] = ['src' => $r['src'], 'depth' => $depth,
+                           'clicks' => 0, 'uniques' => 0, 'regs' => 0, 'deps' => 0];
+        }
+        $rows[$key]['clicks']  += (int)$r['clicks'];
+        // уники складываются по разным путям: один ip мог зайти с двух уровней.
+        // Расхождение в пределах единиц, ради точности пришлось бы тянуть все ip.
+        $rows[$key]['uniques'] += (int)$r['uniques'];
+    }
     if (!$rows) return [];
 
-    // подсчёт регистраций и депов по source (через привязку clickid к конверсиям)
-    $sqlR = "SELECT COALESCE(NULLIF(cl.source,''),'(прямые)') AS src,
-                    SUM(CASE WHEN cv.status IN('reg','registration','lead') THEN 1 ELSE 0 END) AS regs,
-                    SUM(CASE WHEN cv.status IN('dep','deposit','sale','ftd','purchase') THEN 1 ELSE 0 END) AS deps
-             FROM conversions cv
-             JOIN clicks cl ON cl.clickid = cv.clickid
-             WHERE cl.slug = ? AND cv.ts >= ?";
-    $argsR = [$slug, $from];
-    if ($to !== null) { $sqlR .= ' AND cv.ts < ?'; $argsR[] = $to; }
-    $sqlR .= ' GROUP BY src';
+    // Реги и депы берём из снимка в строке конверсии (sub/lp), без JOIN к кликам:
+    // так быстрее и не рвётся, когда retention удалит старые клики.
+    $sqlR = "SELECT COALESCE(NULLIF(sub,''),'(прямые)') AS src, lp,
+                    SUM(CASE WHEN status IN('reg','registration','lead') THEN 1 ELSE 0 END) AS regs,
+                    SUM(CASE WHEN status IN('dep','deposit','sale','ftd','purchase') THEN 1 ELSE 0 END) AS deps
+             FROM conversions
+             WHERE ts >= ?";
+    $argsR = [$from];
+    if ($to !== null)   { $sqlR .= ' AND ts < ?';  $argsR[] = $to; }
+    if ($slug !== null) { $sqlR .= ' AND slug = ?'; $argsR[] = $slug; }
+    $sqlR .= ' GROUP BY src, lp';
     $st = db()->prepare($sqlR);
     $st->execute($argsR);
-    $regs = $deps = [];
     foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
-        $regs[$r['src']] = (int)$r['regs'];
-        $deps[$r['src']] = (int)$r['deps'];
+        $depth = ($r['lp'] === null || $r['lp'] === '') ? -1 : ru_depth($r['lp']);
+        $key   = $r['src'] . "\x00" . $depth;
+        if (!isset($rows[$key])) continue;   // конверсия без кликов в периоде
+        $rows[$key]['regs'] += (int)$r['regs'];
+        $rows[$key]['deps'] += (int)$r['deps'];
     }
 
-    foreach ($rows as &$r) {
-        $r['regs'] = $regs[$r['src']] ?? 0;
-        $r['deps'] = $deps[$r['src']] ?? 0;
-    }
-    unset($r);
+    $rows = array_values($rows);
+    usort($rows, function ($a, $b) {
+        return [$b['uniques'], $b['clicks']] <=> [$a['uniques'], $a['clicks']];
+    });
     return $rows;
 }
 
@@ -1048,54 +1067,6 @@ function ru_depth($path) {
 }
 
 /**
- * Разбивка кампании по вложенности страницы дора.
- *
- * Путь приходит в ?s= вместе с хостом и лежит в clicks.lp. Группируем сперва
- * по самому пути (разных путей немного, они повторяются), потом сворачиваем
- * в уровни на стороне PHP — считать сегменты в SQL пришлось бы по-разному
- * для MySQL и SQLite.
- *
- * Ключ -1 — клики, у которых пути нет вовсе (дор его ещё не слал). Держим их
- * отдельной строкой, а не прячем: иначе непонятно, какая часть данных покрыта.
- */
-function depth_by_campaign($slug, $from, $to = null) {
-    $pdo  = db();
-    $out  = [];
-    $add  = function (&$out, $d) {
-        if (!isset($out[$d])) $out[$d] = ['depth' => $d, 'clicks' => 0, 'regs' => 0, 'deps' => 0];
-    };
-
-    $sql  = "SELECT lp, COUNT(*) AS n FROM clicks
-             WHERE slug = ? AND ts >= ?" . ($to !== null ? ' AND ts < ?' : '') . "
-               AND is_bot = 0 GROUP BY lp";
-    $args = $to !== null ? [$slug, $from, $to] : [$slug, $from];
-    $st   = $pdo->prepare($sql);
-    $st->execute($args);
-    foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
-        $d = ($r['lp'] === null || $r['lp'] === '') ? -1 : ru_depth($r['lp']);
-        $add($out, $d);
-        $out[$d]['clicks'] += (int)$r['n'];
-    }
-
-    // конверсии: путь снят в строку конверсии при привязке, соединение не нужно
-    $sql2 = "SELECT lp, status, COUNT(*) AS n FROM conversions
-             WHERE slug = ? AND ts >= ?" . ($to !== null ? ' AND ts < ?' : '') . "
-             GROUP BY lp, status";
-    $st = $pdo->prepare($sql2);
-    $st->execute($args);
-    foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
-        $d = ($r['lp'] === null || $r['lp'] === '') ? -1 : ru_depth($r['lp']);
-        $add($out, $d);
-        $s = strtolower((string)$r['status']);
-        if (in_array($s, ['reg', 'registration', 'lead'], true))                        $out[$d]['regs'] += (int)$r['n'];
-        elseif (in_array($s, ['dep', 'deposit', 'sale', 'ftd', 'purchase'], true))      $out[$d]['deps'] += (int)$r['n'];
-    }
-
-    ksort($out);
-    return array_values($out);
-}
-
-/**
  * Источники кампании, СГРУППИРОВАННЫЕ по корневому домену.
  * Возвращает массив групп, отсортированных по uniques DESC:
  * [
@@ -1122,6 +1093,7 @@ function sources_grouped_by_campaign($slug, $from, $to = null) {
         $groups[$root]['deps']    += (int)($r['deps'] ?? 0);
         $groups[$root]['subs'][]  = [
             'source'  => $r['src'],
+            'depth'   => (int)($r['depth'] ?? -1),
             'clicks'  => (int)$r['clicks'],
             'uniques' => (int)$r['uniques'],
             'regs'    => (int)$r['regs'],
@@ -1448,6 +1420,7 @@ function panel_cache_warm($budgetSec = 30) {
          GROUP BY cl.slug ORDER BY last DESC LIMIT 30")->fetchAll(PDO::FETCH_ASSOC)];
     [$f, $t] = $periods['today'];
     $jobs[] = ['convslug_today', fn() => conversions_by_slug($f, $t)];
+    $jobs[] = ['srcall_today',   fn() => sources_grouped_by_campaign(null, $f, $t)];
     foreach (['yesterday', '7d', '30d'] as $key) {
         [$pf, $pt] = $periods[$key];
         $jobs[] = ["summary_$key",  $summary($pf, $pt)];
@@ -1455,6 +1428,7 @@ function panel_cache_warm($budgetSec = 30) {
         $jobs[] = ["geocamp_$key",  fn() => geo_by_campaign($pf, null, $pt)];
         $jobs[] = ["bots_$key",     fn() => bots_split($pf, $pt)];
         $jobs[] = ["convslug_$key", fn() => conversions_by_slug($pf, $pt)];
+        $jobs[] = ["srcall_$key",   fn() => sources_grouped_by_campaign(null, $pf, $pt)];
     }
 
     $done = $skipped = 0;
