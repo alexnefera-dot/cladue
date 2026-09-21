@@ -28,8 +28,8 @@
 перед сравнением.
 
     python3 svod_domenov.py <панель.jsonl> <профиль-кликов.jsonl>
-                            <аккаунты.jsonl> <конверсии.jsonl> <выход.csv>
-                            [последний день кликов]
+                            <аккаунты.jsonl> <конверсии.jsonl> <окно3.jsonl>
+                            <выход.csv> [последний день кликов]
 """
 import sys, json, csv, re, collections, datetime, statistics
 
@@ -77,7 +77,7 @@ def семейство(name):
     return 'прочее' if name != 'КОНТЕНТ НЕ ЗАПИСАН' else 'не записан'
 
 
-def main(panel, prof, accpath, convpath, out, last='2026-09-21'):
+def main(panel, prof, accpath, convpath, oknopath, out, last='2026-09-21'):
     P = {}
     for line in open(prof, encoding='utf-8'):
         a = json.loads(line)
@@ -86,6 +86,10 @@ def main(panel, prof, accpath, convpath, out, last='2026-09-21'):
     for line in open(accpath, encoding='utf-8'):
         a = json.loads(line)
         acc[a[0]] = a[1]
+    W = {}
+    for line in open(oknopath, encoding='utf-8'):
+        a = json.loads(line)
+        W[a[0]] = a[1:]
     conv = collections.defaultdict(list)
     for line in open(convpath, encoding='utf-8'):
         r = json.loads(line)
@@ -104,7 +108,8 @@ def main(panel, prof, accpath, convpath, out, last='2026-09-21'):
         'reg': 0, 'fd': 0, 'regbrands': collections.Counter(), 'byday': collections.Counter(),
         'sites_ya': 0, 'label_len': None, 'vfail': 0, 'stage': collections.Counter(),
         'regdates': [], 'fddates': [], 'first_click': None, 'last_click': None,
-        'sites_reg': 0, 'lagfirst': None})
+        'sites_reg': 0, 'lagfirst': None,
+        'wcl': 0, 'wbot': 0, 'wall': 0, 'wreg': 0, 'wfd': 0})
 
     for line in open(panel, encoding='utf-8'):
         r = json.loads(line)
@@ -144,6 +149,13 @@ def main(panel, prof, accpath, convpath, out, last='2026-09-21'):
             t['first_click'] = fc
         if lc and (t['last_click'] is None or lc > t['last_click']):
             t['last_click'] = lc
+        wa = W.get(r['subdomain'])
+        if wa:
+            t['wall'] += wa[0]
+            t['wbot'] += wa[1]
+            t['wcl'] += wa[2]
+            t['wreg'] += wa[3]
+            t['wfd'] += wa[4]
         for at, ev in conv.get(r['subdomain'], ()):
             (t['fddates'] if ev == 'fd' else t['regdates']).append(at)
         t['n'] += n
@@ -236,6 +248,12 @@ def main(panel, prof, accpath, convpath, out, last='2026-09-21'):
             'кликов на сайт с поиском': (round(t['cl'] / t['sites_ya'], 1)
                                          if t['sites_ya'] else ''),
             'регистраций': t['reg'], 'ФД': t['fd'],
+            'регистраций в окне 3 суток': t['wreg'], 'ФД в окне 3 суток': t['wfd'],
+            'кликов из поиска в окне': t['wcl'],
+            'кликов всего в окне': t['wall'], 'ботов в окне': t['wbot'],
+            'ботов в окне %': pc(t['wbot'], t['wall']),
+            'рег на 10 тыс. поисковых в окне': (round(10000 * t['wreg'] / t['wcl'], 1)
+                                                if t['wcl'] else ''),
             'сайтов с регистрацией': t['sites_reg'],
             'рег на 100 сайтов': round(100 * t['reg'] / t['sites'], 2) if t['sites'] else '',
             'первая регистрация': rd[0] if rd else '',
@@ -270,6 +288,6 @@ def main(panel, prof, accpath, convpath, out, last='2026-09-21'):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) < 6:
+    if len(sys.argv) < 7:
         sys.exit(__doc__)
-    main(*sys.argv[1:7])
+    main(*sys.argv[1:8])
