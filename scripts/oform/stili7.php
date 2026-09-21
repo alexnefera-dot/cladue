@@ -129,6 +129,7 @@ $sc ol>li::before{content:counter(сп) '.';counter-increment:сп;background:no
 $sc table{width:100%;border-collapse:collapse;margin:0 0 16px;font-size:.94rem;color:var(--тек)}
 $sc th,$sc td{padding:9px 12px;border-bottom:1px solid var(--рам);text-align:left;color:var(--тек)}
 $sc th{color:$а;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase}
+$sc pre{white-space:pre-wrap;overflow-wrap:anywhere;overflow-x:auto;max-width:100%;margin:0 0 12px}
 " . v7Заголовок($т, $sc) . "
 
 /* --- герой --- */
@@ -253,7 +254,7 @@ $sc .k7-fon p,$sc .k7-fon .hero-tagline{color:#e7e9f2}
 /* Блоки со своей подложкой внутри секции с картинкой: белый текст на светлой карточке
    не читается, поэтому им возвращаются цвета темы. $карта — список таких блоков. */
 $sc .k7-fon :is($карта){color:var(--тек)}
-$sc .k7-fon :is($карта) :is(p,h2,h3,h4,li,td,th,span,div,summary,strong,em,b,i){color:inherit}
+$sc .k7-fon :is($карта) :is(p,h2,h3,h4,li,td,th,span,div,summary,strong,em,b,i):not([class*=slot-badge]){color:inherit}
 $sc .k7-fon :is($карта) :is(.slot-provider,.slot-rtp,.faq-answer,.review-quote-text,.slots-dashboard-subtitle,.jackpot-cell-name,.payout-row-slot,.payout-row-time,.payout-row-sep,.stat-label){color:var(--тус)}
 $sc .k7-fon :is($карта) :is(.slot-rtp-value,.jackpot-cell-amount,.payout-row-amount,.stat-value,a:not([class])){color:$а}
 $sc .k7-fon .slot-play-btn{color:$на;border-color:$а;background:$а}
@@ -262,6 +263,7 @@ $sc .k7-fon .slot-play-btn{color:$на;border-color:$а;background:$а}
    (container-type выше), а не по окну: медиазапрос в такой колонке не сработал бы. */
 @container (max-width:560px){
 $sc table{display:block;overflow-x:auto;max-width:100%}
+$sc th,$sc td{min-width:6.5em}   /* таблица и так прокручивается: пусть слово стоит целиком */
 $sc .slot-card-inner{gap:8px 10px}
 $sc .slot-footer{margin-left:0;width:100%;justify-content:space-between}
 $sc .slots-grid{grid-template-columns:1fr}
