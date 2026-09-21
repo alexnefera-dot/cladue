@@ -56,7 +56,13 @@ if ($offer === null || $offer === '') {
 }
 
 // ---------- 2. Собираем данные клика ----------
-$src = '';
+// Дор присылает хост вместе с путём одной строкой:
+//   ?s=mrgreen.lgzq.lol/ru/ru/ru
+// Хост кладём в source (как и раньше), путь — в lp: вложенность /ru нужна
+// аналитике, а из реферера её не достать (дор редиректит на сервере, его
+// страница не рендерится и реферером не становится — там оказывается Яндекс).
+$src     = '';
+$srcPath = '';
 foreach (['site', 's', 'src', 'source', 'sub', 'subid', 'utm_source'] as $k) {
     if (isset($_GET[$k]) && $_GET[$k] !== '') { $src = (string)$_GET[$k]; break; }
 }
@@ -65,7 +71,12 @@ if ($src === '' && !empty($_SERVER['HTTP_REFERER'])) {
     if ($refHost) $src = $refHost;
 }
 $src = preg_replace('~^https?://~i', '', trim($src));
-$src = preg_replace('~[/?#].*$~', '', $src);
+// отделяем путь по первому слэшу — до него хост, после него вложенность
+if (($slash = strpos($src, '/')) !== false) {
+    $srcPath = substr($src, $slash);
+    $src     = substr($src, 0, $slash);
+}
+$src = preg_replace('~[?#].*$~', '', $src);
 $src = preg_replace('~^www\.~i', '', $src);
 $src = strtolower($src);
 $src = substr(preg_replace('~[^\w.\-]~u', '', $src), 0, 100);
@@ -87,11 +98,11 @@ $country = strtoupper(substr(preg_replace('~[^A-Za-z]~', '', $_SERVER['HTTP_CF_I
 // и URL обрезался уже на нашей стороне. Колонка в базе TEXT, места хватает.
 $referer = substr($_SERVER['HTTP_REFERER'] ?? '', 0, 1024);
 
-// Путь страницы входа на доре (?lp=/ru/ru/ru/) — для аналитики вложенности.
-// Реферер для этого не годится: он показывает страницу, С КОТОРОЙ ушли, и вовсе
-// пропадает при rel="noreferrer". Берём именно путь, а не число уровней:
+// Путь страницы дора. Берём либо из отдельного ?lp=, либо из хвоста ?s=,
+// где дор присылает его вместе с хостом. Именно путь, а не число уровней:
 // из пути глубина выводится, из числа путь — нет.
 $lp = (string)($_GET['lp'] ?? '');
+if ($lp === '') $lp = $srcPath;
 if ($lp !== '') {
     if (($q = strpos($lp, '?')) !== false) $lp = substr($lp, 0, $q);   // хвост запроса не нужен
     $lp = preg_replace('~^https?://[^/]+~i', '', $lp);                 // прислали полный URL — оставим путь
