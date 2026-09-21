@@ -2362,6 +2362,7 @@ foreach (V5_TYPES as $тип) {
     $страница = v5DoborKlyuchey($страница, $тип, $сид);
     $страница = v5DoborBonusa($страница, $тип, $сид);
     $страница = v5DoborSsylok($страница, $тип, $сид);
+    $страница = v5PotolokSsylok($страница, $тип, $сид);
     $страница = v5PlotnostKlyuchey($страница, $сид);
     $страница = v5ImenaGeroya($страница, $тип, $сид);
     $страница = v5BrendStranicy($страница, $тип, $сид);
