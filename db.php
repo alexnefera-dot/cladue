@@ -1608,10 +1608,13 @@ function recent_conversions($limit = 50, $offset = 0, $from = null, $to = null) 
 
     // Данные клика тянем подзапросами по clickid (idx_clickid): их 4 на строку,
     // но страница показывает десятки записей, а не тысячи — на замерах это единицы мс.
-    $st = db()->prepare("SELECT cv.ts, cv.clickid, cv.status, cv.payout, cv.slug, cv.ip AS postback_ip,
-                          (SELECT country  FROM clicks WHERE clickid = cv.clickid ORDER BY id DESC LIMIT 1) AS country,
-                          (SELECT source   FROM clicks WHERE clickid = cv.clickid ORDER BY id DESC LIMIT 1) AS source,
-                          (SELECT referer  FROM clicks WHERE clickid = cv.clickid ORDER BY id DESC LIMIT 1) AS referer,
+    // Страну, источник, реферер и путь берём из снимка в самой строке конверсии:
+    // он сделан на момент привязки и переживает удаление старых кликов. Подзапрос
+    // остаётся запасным вариантом для строк, записанных до появления снимка.
+    $st = db()->prepare("SELECT cv.ts, cv.clickid, cv.status, cv.payout, cv.slug, cv.ip AS postback_ip, cv.lp,
+                          COALESCE(cv.country, (SELECT country FROM clicks WHERE clickid = cv.clickid ORDER BY id DESC LIMIT 1)) AS country,
+                          COALESCE(cv.sub,     (SELECT source  FROM clicks WHERE clickid = cv.clickid ORDER BY id DESC LIMIT 1)) AS source,
+                          COALESCE(cv.ref,     (SELECT referer FROM clicks WHERE clickid = cv.clickid ORDER BY id DESC LIMIT 1)) AS referer,
                           (SELECT ua       FROM clicks WHERE clickid = cv.clickid ORDER BY id DESC LIMIT 1) AS ua,
                           (SELECT ip       FROM clicks WHERE clickid = cv.clickid ORDER BY id DESC LIMIT 1) AS ip
                         FROM conversions cv $where
@@ -1637,9 +1640,14 @@ function conversions_count($from = null, $to = null) {
  * превратилась бы в тысячи отдельных запросов.
  */
 function conversions_export($from, $to = null) {
-    $sql = "SELECT cv.ts, cv.status, cv.clickid, cv.slug,
+    // Страна, источник, реферер и путь — из снимка в строке конверсии, с откатом
+    // на данные клика для строк, записанных до появления снимка.
+    $sql = "SELECT cv.ts, cv.status, cv.clickid, cv.slug, cv.lp,
                    COALESCE(c.name,'') AS name,
-                   cl.country, cl.source, cl.referer, cl.ip AS user_ip, cv.ip AS postback_ip
+                   COALESCE(cv.country, cl.country) AS country,
+                   COALESCE(cv.sub,     cl.source)  AS source,
+                   COALESCE(cv.ref,     cl.referer) AS referer,
+                   cl.ip AS user_ip, cv.ip AS postback_ip
             FROM conversions cv
             LEFT JOIN clicks cl ON cl.clickid = cv.clickid
             LEFT JOIN campaigns c ON c.slug = cv.slug

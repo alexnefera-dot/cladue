@@ -81,15 +81,18 @@ if (($_GET['export'] ?? '') !== '' && $_SERVER['REQUEST_METHOD'] === 'GET') {
             case '7d':        $ef = $now2 - 7 * 86400; $et = $now2 + 1; break;
             default:          $ef = $now2 - 30 * 86400;$et = $now2 + 1; break;
         }
-        fputcsv($out, ['datetime', 'event', 'campaign', 'name', 'clickid', 'country', 'source', 'referer', 'user_ip', 'postback_ip', 'linked']);
+        fputcsv($out, ['datetime', 'event', 'campaign', 'name', 'clickid', 'country', 'source',
+                       'landing_path', 'ru_depth', 'referer', 'user_ip', 'postback_ip', 'linked']);
         $st = conversions_export($ef, $et);
         while ($r = $st->fetch(PDO::FETCH_ASSOC)) {
             $stt = strtolower((string)$r['status']);
             $event = in_array($stt, ['dep','deposit','sale','ftd','purchase'], true) ? 'dep'
                    : (in_array($stt, ['reg','registration','lead'], true) ? 'reg' : $stt);
+            $lp = (string)($r['lp'] ?? '');
             fputcsv($out, [
                 date('Y-m-d H:i:s', (int)$r['ts']), $event, $r['slug'], $r['name'], $r['clickid'],
-                $r['country'], $r['source'], $r['referer'], $r['user_ip'], $r['postback_ip'],
+                $r['country'], $r['source'], $lp, $lp !== '' ? ru_depth($lp) : '',
+                $r['referer'], $r['user_ip'], $r['postback_ip'],
                 $r['slug'] !== null && $r['slug'] !== '' ? 'yes' : 'no',
             ]);
         }
@@ -277,11 +280,11 @@ if ($tab === 'stats' && $detailSlug !== '') {
     // ORDER BY ts, а не id: фильтр идёт по idx_conv_slug_ts, и сортировка берётся
     // из того же индекса — иначе база сортировала бы все конверсии кампании.
     $detailConvRows = panel_cache("dconv_$dkey", function () use ($pdo, $detailSlug, $from, $to) {
-        $st = $pdo->prepare('SELECT cv.ts, cv.status, cv.payout, cv.clickid, cv.ip,
-                (SELECT referer FROM clicks WHERE clickid = cv.clickid ORDER BY id DESC LIMIT 1) AS referer,
+        $st = $pdo->prepare('SELECT cv.ts, cv.status, cv.payout, cv.clickid, cv.ip, cv.lp,
+                COALESCE(cv.ref,     (SELECT referer FROM clicks WHERE clickid = cv.clickid ORDER BY id DESC LIMIT 1)) AS referer,
                 (SELECT ua      FROM clicks WHERE clickid = cv.clickid ORDER BY id DESC LIMIT 1) AS ua,
-                (SELECT source  FROM clicks WHERE clickid = cv.clickid ORDER BY id DESC LIMIT 1) AS source,
-                (SELECT country FROM clicks WHERE clickid = cv.clickid ORDER BY id DESC LIMIT 1) AS country
+                COALESCE(cv.sub,     (SELECT source  FROM clicks WHERE clickid = cv.clickid ORDER BY id DESC LIMIT 1)) AS source,
+                COALESCE(cv.country, (SELECT country FROM clicks WHERE clickid = cv.clickid ORDER BY id DESC LIMIT 1)) AS country
             FROM conversions cv WHERE cv.slug = ? AND cv.ts >= ? AND cv.ts < ?
             ORDER BY cv.ts DESC, cv.id DESC LIMIT 200');
         $st->execute([$detailSlug, $from, $to]);
@@ -372,6 +375,20 @@ function dt($t) { return $t ? date('Y-m-d H:i', (int)$t) : '—'; }
  * /ru, и «ru ×15» читается с одного взгляда, а «/ru/ru/ru/ru/…» растягивает
  * таблицу и ничего не добавляет.
  */
+/**
+ * Вложенность на момент конверсии: значок + сам путь в подсказке.
+ *
+ * Путь снят в строку конверсии при привязке клика, поэтому показывает состояние
+ * на момент события и не меняется, даже когда клик удалит retention.
+ */
+function conv_depth($lp) {
+    $lp = (string)$lp;
+    if ($lp === '') return '<span class="muted">—</span>';
+    $d = ru_depth($lp);
+    return '<span class="dbadge' . ($d === 0 ? ' dbadge-0' : '') . '" title="' . h($lp) . '">'
+         . ($d === 0 ? 'корень' : 'ru &times;' . $d) . '</span>';
+}
+
 function depth_badge($depth) {
     $d = (int)$depth;
     if ($d < 0) return '<span class="muted" style="font-size:11px"> · путь не передан</span>';
@@ -638,7 +655,7 @@ $msg = $_GET['msg'] ?? '';
   <h2 style="margin:18px 0 8px;font-size:16px">Конверсии (реги / депы)</h2>
   <div class="muted">Реферер, User-Agent, источник и страна берутся из клика, к которому привязана конверсия (по clickid).</div>
   <table class="sortable">
-    <thead><tr><th data-sort="text">Время</th><th data-sort="text">Статус</th><th class="num" data-sort="num">Сумма</th><th data-sort="text">clickid</th><th data-sort="text">Страна</th><th data-sort="text">Источник</th><th data-sort="text">Реферер</th><th data-sort="text">User-Agent</th><th data-sort="text">IP</th></tr></thead>
+    <thead><tr><th data-sort="text">Время</th><th data-sort="text">Статус</th><th class="num" data-sort="num">Сумма</th><th data-sort="text">clickid</th><th data-sort="text">Страна</th><th data-sort="text">Источник</th><th class="num" data-sort="num">Вложенность</th><th data-sort="text">Реферер</th><th data-sort="text">User-Agent</th><th data-sort="text">IP</th></tr></thead>
     <tbody>
       <?php foreach ($detailConvRows as $r): $isreg = in_array($r['status'],['reg','registration','lead'],true); ?>
       <tr>
@@ -648,12 +665,13 @@ $msg = $_GET['msg'] ?? '';
         <td><code style="font-size:11px"><?= h($r['clickid']) ?></code></td>
         <td><?= ($r['country'] ?? '') !== '' ? country_flag($r['country']).' '.h($r['country']) : '—' ?></td>
         <td><?= h(($r['source'] ?? '') !== '' ? $r['source'] : '—') ?></td>
+        <td class="num" data-val="<?= ($r['lp'] ?? '') !== '' ? ru_depth($r['lp']) : -1 ?>"><?= conv_depth($r['lp'] ?? '') ?></td>
         <td class="refurl"><?= ref_url($r['referer'] ?? '') ?></td>
         <td class="ref" title="<?= h($r['ua'] ?? '') ?>"><?= h(($r['ua'] ?? '') !== '' ? $r['ua'] : '—') ?></td>
         <td><?= h($r['ip']) ?></td>
       </tr>
       <?php endforeach; ?>
-      <?php if (!$detailConvRows): ?><tr><td colspan="9">Конверсий по этой кампании за период нет.</td></tr><?php endif; ?>
+      <?php if (!$detailConvRows): ?><tr><td colspan="10">Конверсий по этой кампании за период нет.</td></tr><?php endif; ?>
     </tbody>
   </table>
 
@@ -910,7 +928,7 @@ $msg = $_GET['msg'] ?? '';
     <a href="<?= h(tab_url('stats', $key)) ?>&export=conversions&period=<?= h($periodKey) ?>"><b>⬇ Выгрузить все конверсии за период (CSV)</b></a>
   </div>
   <table class="sortable">
-    <thead><tr><th data-sort="text">Время</th><th data-sort="text">Событие</th><th data-sort="text">clickid</th><th data-sort="text">Кампания</th><th data-sort="text">Страна</th><th data-sort="text">Источник</th><th data-sort="text">Реферер</th><th data-sort="text">User-Agent</th><th data-sort="text">IP</th></tr></thead>
+    <thead><tr><th data-sort="text">Время</th><th data-sort="text">Событие</th><th data-sort="text">clickid</th><th data-sort="text">Кампания</th><th data-sort="text">Страна</th><th data-sort="text">Источник</th><th class="num" data-sort="num">Вложенность</th><th data-sort="text">Реферер</th><th data-sort="text">User-Agent</th><th data-sort="text">IP</th></tr></thead>
     <tbody>
       <?php foreach ($recentConv as $r): ?>
       <tr>
@@ -929,6 +947,7 @@ $msg = $_GET['msg'] ?? '';
         <td><?= $r['slug'] ? '<code>'.h($r['slug']).'</code>' : '<span style="color:var(--bot)">не привязан</span>' ?></td>
         <td><?= ($r['country'] ?? '') !== '' ? country_flag($r['country']).' '.h($r['country']) : '—' ?></td>
         <td><?= h(($r['source'] ?? '') !== '' ? $r['source'] : '—') ?></td>
+        <td class="num" data-val="<?= ($r['lp'] ?? '') !== '' ? ru_depth($r['lp']) : -1 ?>"><?= conv_depth($r['lp'] ?? '') ?></td>
         <td class="refurl"><?= ref_url($r['referer'] ?? '') ?></td>
         <td class="ref" title="<?= h($r['ua'] ?? '') ?>"><?= h(($r['ua'] ?? '') !== '' ? $r['ua'] : '—') ?></td>
         <td><?php
@@ -941,7 +960,7 @@ $msg = $_GET['msg'] ?? '';
         ?></td>
       </tr>
       <?php endforeach; ?>
-      <?php if (!$recentConv): ?><tr><td colspan="9">За выбранный период конверсий нет.</td></tr><?php endif; ?>
+      <?php if (!$recentConv): ?><tr><td colspan="10">За выбранный период конверсий нет.</td></tr><?php endif; ?>
     </tbody>
   </table>
   <?php if ($convPages > 1):
