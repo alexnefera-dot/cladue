@@ -15,14 +15,21 @@
   • когда            — час, блок, ночь, выходной, день недели
   • трафик           — клики, боты, поиск, прочее
   • индексация       — сколько сайтов вышло в поиск за 1, 3 и 7 суток, задержка
-  • деньги           — регистрации, ФД, отдача с клика, какие бренды сконвертили
+  • деньги           — регистрации и ФД, когда они пришли, сколько ждали после
+                       переобхода и после первого клика, какие бренды сконвертили
+  • жизнь            — первый и последний клик, сколько суток домен живой
+
+Ведущая величина — регистрации, не клики. Клики стоят рядом как объяснение,
+почему регистраций столько: без поискового клика регистраций не бывает вовсе,
+но и больше кликов само по себе больше денег не даёт.
 
 Колонка «окно закрыто» отмечает домены, у которых трёхсуточное окно ещё не
 прошло: у них выход в поиск занижен по построению, и их надо отфильтровывать
 перед сравнением.
 
     python3 svod_domenov.py <панель.jsonl> <профиль-кликов.jsonl>
-                            <аккаунты.jsonl> <выход.csv> [последний день кликов]
+                            <аккаунты.jsonl> <конверсии.jsonl> <выход.csv>
+                            [последний день кликов]
 """
 import sys, json, csv, re, collections, datetime, statistics
 
@@ -70,7 +77,7 @@ def семейство(name):
     return 'прочее' if name != 'КОНТЕНТ НЕ ЗАПИСАН' else 'не записан'
 
 
-def main(panel, prof, accpath, out, last='2026-09-21'):
+def main(panel, prof, accpath, convpath, out, last='2026-09-21'):
     P = {}
     for line in open(prof, encoding='utf-8'):
         a = json.loads(line)
@@ -79,6 +86,12 @@ def main(panel, prof, accpath, out, last='2026-09-21'):
     for line in open(accpath, encoding='utf-8'):
         a = json.loads(line)
         acc[a[0]] = a[1]
+    conv = collections.defaultdict(list)
+    for line in open(convpath, encoding='utf-8'):
+        r = json.loads(line)
+        s_ = (r.get('subdomain') or '').lower()
+        if s_ and r.get('at'):
+            conv[s_].append((r['at'][:10], r.get('event')))
 
     D = collections.defaultdict(lambda: {
         'days': set(), 'tld': None, 'content': collections.Counter(),
@@ -89,7 +102,9 @@ def main(panel, prof, accpath, out, last='2026-09-21'):
         'n': 0, 'bot': 0, 'cl': 0, 'other': 0,
         'lags': [], 'hit1': 0, 'hit3': 0, 'hit7': 0, 'cl_hit': 0,
         'reg': 0, 'fd': 0, 'regbrands': collections.Counter(), 'byday': collections.Counter(),
-        'sites_ya': 0, 'label_len': None, 'vfail': 0, 'stage': collections.Counter()})
+        'sites_ya': 0, 'label_len': None, 'vfail': 0, 'stage': collections.Counter(),
+        'regdates': [], 'fddates': [], 'first_click': None, 'last_click': None,
+        'sites_reg': 0, 'lagfirst': None})
 
     for line in open(panel, encoding='utf-8'):
         r = json.loads(line)
@@ -122,7 +137,15 @@ def main(panel, prof, accpath, out, last='2026-09-21'):
         t['label_len'] = r.get('base_label_len')
         t['vfail'] += r.get('verification_fail_count') or 0
         t['stage'][r.get('yandex_pipeline_stage')] += 1
-        n, bot, ya, yah, yaf = P.get(r['subdomain'], [0, 0, 0, 0, None])
+        pr = P.get(r['subdomain'], [0, 0, 0, 0, None, None, None, None])
+        n, bot, ya, yah, yaf = pr[0], pr[1], pr[2], pr[3], pr[4]
+        fc, lc = (pr[5], pr[6]) if len(pr) > 6 else (None, None)
+        if fc and (t['first_click'] is None or fc < t['first_click']):
+            t['first_click'] = fc
+        if lc and (t['last_click'] is None or lc > t['last_click']):
+            t['last_click'] = lc
+        for at, ev in conv.get(r['subdomain'], ()):
+            (t['fddates'] if ev == 'fd' else t['regdates']).append(at)
         t['n'] += n
         t['bot'] += bot
         t['cl'] += ya
@@ -130,6 +153,8 @@ def main(panel, prof, accpath, out, last='2026-09-21'):
         if ya:
             t['sites_ya'] += 1
         if yaf:
+            if t.get('lagfirst') is None or yaf < t['lagfirst']:
+                t['lagfirst'] = yaf
             lag = (datetime.date.fromisoformat(yaf) - datetime.date.fromisoformat(d)).days
             if lag >= 0:
                 t['lags'].append(lag)
@@ -144,6 +169,7 @@ def main(panel, prof, accpath, out, last='2026-09-21'):
         t['fd'] += r.get('fd', 0)
         if r.get('reg') or r.get('fd'):
             t['regbrands'][r.get('brand_label')] += (r.get('reg', 0) + r.get('fd', 0))
+            t['sites_reg'] += 1
 
     # который раз аккаунт взят в работу и сколько баз на нём всего
     first = {dom: min(t['days']) for dom, t in D.items()}
@@ -164,6 +190,13 @@ def main(panel, prof, accpath, out, last='2026-09-21'):
     for dom, t in D.items():
         cname = t['content'].most_common(1)[0][0]
         d0 = min(t['days'])
+        rd = sorted(t['regdates'])
+        fdd = sorted(t['fddates'])
+        def lag(a, b):
+            return ((datetime.date.fromisoformat(b) - datetime.date.fromisoformat(a)).days
+                    if a and b else '')
+        firstclick = t['first_click']
+        lastclick = t['last_click']
         closed = d0 <= str(datetime.date.fromisoformat(last) - datetime.timedelta(days=3))
         nd = t['sites'] if closed else 0
         rows.append({
@@ -203,6 +236,21 @@ def main(panel, prof, accpath, out, last='2026-09-21'):
             'кликов на сайт с поиском': (round(t['cl'] / t['sites_ya'], 1)
                                          if t['sites_ya'] else ''),
             'регистраций': t['reg'], 'ФД': t['fd'],
+            'сайтов с регистрацией': t['sites_reg'],
+            'рег на 100 сайтов': round(100 * t['reg'] / t['sites'], 2) if t['sites'] else '',
+            'первая регистрация': rd[0] if rd else '',
+            'последняя регистрация': rd[-1] if rd else '',
+            'дней до первой регистрации': lag(d0, rd[0]) if rd else '',
+            'от первого поиска до регистрации, дней': (
+                lag(t['lagfirst'], rd[0]) if rd and t.get('lagfirst') else ''),
+            'первый ФД': fdd[0] if fdd else '',
+            'дней до первого ФД': lag(d0, fdd[0]) if fdd else '',
+            'даты регистраций': ' '.join(rd),
+            'даты ФД': ' '.join(fdd),
+            'первый клик': firstclick or '', 'последний клик': lastclick or '',
+            'суток с кликами': lag(firstclick, lastclick) if firstclick and lastclick else '',
+            'дней от запуска до последнего клика': (
+                lag(d0, lastclick) if lastclick else ''),
             'рег на 10 тыс. поисковых': (round(10000 * t['reg'] / t['cl'], 1)
                                          if t['cl'] else ''),
             'кликов на регистрацию': (t['cl'] // t['reg']) if t['reg'] else '',
@@ -210,7 +258,7 @@ def main(panel, prof, accpath, out, last='2026-09-21'):
             'какие бренды конвертили': ', '.join(
                 '%s (%d)' % (b, n) for b, n in t['regbrands'].most_common()),
         })
-    rows.sort(key=lambda r: (-r['регистраций'], -r['из поиска']))
+    rows.sort(key=lambda r: (-r['регистраций'], -r['ФД'], -r['из поиска']))
     with open(out, 'w', encoding='utf-8', newline='') as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
         w.writeheader()
@@ -222,6 +270,6 @@ def main(panel, prof, accpath, out, last='2026-09-21'):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) < 5:
+    if len(sys.argv) < 6:
         sys.exit(__doc__)
-    main(*sys.argv[1:6])
+    main(*sys.argv[1:7])
