@@ -1069,6 +1069,46 @@ final class VisitTest
         @rmdir($dir);
     }
 
+    public function testRetryCrawlsMenuOfHomeRecoveredOnlyNow(): void
+    {
+        // Сайт не пустил робота — при обходе не открылась ни одна страница, поэтому и МЕНЮ разобрать было
+        // не по чему. Докачка открывает главную под браузером, и раньше сайт так и оставался «1 стр.»:
+        // внутренние страницы никто не спрашивал. Теперь меню разбирается по добранной главной.
+        $port = FakeServer::port();
+        $dir = $this->dir() . '/recovered';
+        $site = new Site('botblock.ru', 'botblock.ru', 'botblock.ru');
+        $site->add(new SearchResult('казино', 0, 1, "http://botblock.ru:$port/", 'botblock.ru', 'BB'));
+        $sites = ['botblock.ru' => $site];
+
+        $cfg = [
+            'crawl' => true, 'max_pages' => 10, 'target' => 'found', 'dir' => $dir,
+            'screenshot' => false, 'similarity' => 0.9, 'timeout' => 5, 'delay_ms' => 0,
+            'concurrency' => 3, 'retries' => 0, 'resolve' => $this->resolve($port),
+            'user_agents' => [UserAgents::YANDEX_BOT],
+            'retry_user_agents' => false, // при обходе агент не меняем — сайт остаётся закрытым
+        ];
+        (new PageVisitor($cfg, new CurlDriver(), $this->logger()))->visit($sites);
+        Assert::same(0, $site->visitSummary()['ok'], 'робота не пустили: ни одной страницы');
+
+        // Докачка с перебором агентов: главная открывается под браузером И её меню обходится.
+        $retryCfg = array_merge($cfg, ['retry_user_agents' => true, 'retries' => 1]);
+        $stat = (new PageVisitor($retryCfg, new CurlDriver(), $this->logger()))->retryFailed($sites);
+
+        $opened = $site->visitSummary()['ok'];
+        Assert::true($opened > 1, "добрана не только главная, а и страницы меню (открыто: $opened)");
+        Assert::true($stat['recovered'] >= $opened, 'добранные страницы посчитаны в отчёте докачки');
+        $urls = array_map(static fn (array $v): string => (string) $v['url'], $site->visits);
+        Assert::inArray("http://botblock.ru:$port/about", $urls, 'страница из меню добрана');
+        Assert::true(is_file("$dir/$opened-стр/botblock.ru/main.html"), 'главная сохранена и сайт разложен по числу страниц');
+        Assert::true(is_file("$dir/$opened-стр/botblock.ru/about.html"), 'страница меню сохранена рядом');
+
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($it as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+        @rmdir($dir);
+    }
+
     public function testRetryFetchesKeyPagesByStandardUrl(): void
     {
         // Ссылки на /registracia в меню не нашлось, но контент на неё ссылается: докачка с retry_key_pages

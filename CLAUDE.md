@@ -419,7 +419,21 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   (already-downloaded pages are kept, not re-fetched) over several iterations through DIFFERENT proxies with a
   growing timeout; one candidate per page is the URL without a leading language prefix (`/ru/app → /app` —
   the prefixed form sometimes 404s while the bare one opens, `retryUrlCandidates()`/`stripLocaleFromUrl()`),
-  and `isRetryableVisit()` treats such a locale-404 as retryable. `unbucketSite()` pulls the site's folder out
+  and `isRetryableVisit()` treats such a locale-404 as retryable. A real collect showed the retry was
+  WEAK on exactly the sites that need it most — «0 стр. — 73» before and after («слабый результат
+  выгрузки страниц по второму кругу»), so three things follow the per-site flag `has_ok` (did ANY page of
+  this site ever open): (1) a site with nothing opened does NOT waste iteration 0 on `UserAgents::YANDEX_BOT`
+  — the bot is exactly who was refused — and starts under a browser; (2) its failed URL gains the site
+  ROOT as an extra candidate next to the locale-stripped one, because the SERP address is often a deep
+  link that is already gone while `/` opens; (3) `crawlRecoveredHomes()` runs after the attempts and
+  before the bucketing: `crawl()` parses the menu right after the home, so when the home failed THEN,
+  there were no links to follow and the retry only ever fixed that one slot — the site stayed «1 стр.»
+  and showed up as «не хватает ключевых страниц» although its pages exist. The helper takes the sites
+  with `has_ok = false` whose home opened just now, re-reads the saved HTML, extracts the menu with
+  `SiteLinks::fromHeader()` (same name/canonical de-duplication as the crawl), and fetches them in ONE
+  driver pass under the agent that worked. Covered by
+  `VisitTest::testRetryCrawlsMenuOfHomeRecoveredOnlyNow` (the fake host `botblock.ru`: the crawl with
+  `retry_user_agents=false` opens nothing, the retry opens the home under a browser and brings its menu). `unbucketSite()` pulls the site's folder out
   of its `N-стр` bucket for the re-fetch and `bucketByPageCount()` re-buckets it after; the other sites keep
   their pages and visits (`loadSites()` restores `visits`/`own` from `sites.json` so the merged output is not
   lost). A results row expands (caret on the «Скачано» cell) into that site's

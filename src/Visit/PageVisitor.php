@@ -607,8 +607,10 @@ final class PageVisitor
             $texts = [];
             $failed = [];
             $siteUa = ''; // агент, которым страницы этого сайта уже открывались (если не робот)
+            $hasOk = false; // открылась ли у сайта хоть одна страница: от этого зависит вся тактика докачки
             foreach ($site->visits as $i => $v) {
                 if ($v['ok'] ?? false) {
+                    $hasOk = true;
                     $ok = (string) ($v['user_agent'] ?? '');
                     if ($ok !== '' && !UserAgents::isBot($ok)) {
                         $siteUa = $ok;
@@ -648,7 +650,16 @@ final class PageVisitor
                 }
                 $takenNames[$lower] = true;
                 $name = $this->uniqueName($usedNames, $base);
-                $slots[$i] = ['name' => $name, 'prefix' => $siteDir . '/' . $name, 'candidates' => self::retryUrlCandidates($url), 'result' => null];
+                $candidates = self::retryUrlCandidates($url);
+                if (!$hasOk) {
+                    // Сайт не отдал НИ ОДНОЙ страницы. Адрес из выдачи бывает глубокой ссылкой, которой
+                    // уже нет, а корень при этом открывается — пробуем и его.
+                    $root = $this->rootUrl($url);
+                    if ($root !== '' && !in_array($root, $candidates, true)) {
+                        $candidates[] = $root;
+                    }
+                }
+                $slots[$i] = ['name' => $name, 'prefix' => $siteDir . '/' . $name, 'candidates' => $candidates, 'result' => null];
             }
             // Ключевая страница, ссылки на которую в меню не нашлось: пробуем стандартный адрес
             // (/registracia, /vhod, …) — готовый контент всё равно на неё ссылается. Если такой страницы
@@ -682,7 +693,7 @@ final class PageVisitor
                 }
                 continue;
             }
-            $state[$key] = ['site' => $site, 'slots' => $slots, 'texts' => $texts, 'ua' => $siteUa, 'pending' => array_keys($slots)];
+            $state[$key] = ['site' => $site, 'slots' => $slots, 'texts' => $texts, 'ua' => $siteUa, 'has_ok' => $hasOk, 'pending' => array_keys($slots)];
         }
 
         // Этап 2 — попытки: ОДИН заход драйвера на все сайты сразу. Раньше каждый сайт добирался
@@ -701,8 +712,17 @@ final class PageVisitor
                     $url = $candidates[$it % count($candidates)];
                     $proxy = $proxies !== [] ? $proxies[$proxyIndex++ % count($proxies)] : null;
                     // Если остальные страницы этого сайта открылись только под браузером, первым же
-                    // заходом идём под ним: роботу сайт всё равно откажет.
-                    $jobUa = ($it === 0 && $st['ua'] !== '') ? $st['ua'] : $ua;
+                    // заходом идём под ним: роботу сайт всё равно откажет. А если у сайта не открылось
+                    // ВООБЩЕ ничего, первая попытка роботом — заведомо выброшенная (им уже отказали),
+                    // поэтому такие сайты сразу пробуем браузером: у них каждый заход на счету.
+                    $jobUa = $ua;
+                    if ($it === 0) {
+                        if ($st['ua'] !== '') {
+                            $jobUa = $st['ua'];
+                        } elseif (empty($st['has_ok'])) {
+                            $jobUa = $this->retryUserAgent($this->userAgents[0], 1);
+                        }
+                    }
                     $asBrowser = $asBrowser || !UserAgents::isBot($jobUa);
                     $job = new VisitJob(
                         id: $key . "\t" . $st['slots'][$i]['name'] . "\t" . $it,
@@ -757,6 +777,12 @@ final class PageVisitor
             }
         }
 
+        // Этап 2б — сайты, главная которых открылась ТОЛЬКО сейчас: их меню никто не разбирал,
+        // поэтому без этого шага сайт навсегда оставался «1 стр.».
+        if (!empty($this->cfg['crawl'])) {
+            $recovered += $this->crawlRecoveredHomes($state, $dir, $options, $threshold);
+        }
+
         // Этап 3 — что не добрали: сохраняем последнюю причину и раскладываем сайты по папкам.
         foreach ($state as $key => $st) {
             foreach ($st['pending'] as $i) {
@@ -774,6 +800,123 @@ final class PageVisitor
         $this->logSiteSummary($sites);
 
         return ['attempted' => $attempted, 'recovered' => $recovered];
+    }
+
+    /**
+     * Досбор внутренних страниц у сайтов, главная которых открылась ТОЛЬКО на докачке.
+     *
+     * Обход (crawl) разбирает меню сразу после главной. Если главная тогда не открылась, ссылок взять
+     * было неоткуда, и докачка чинила ровно один «слот» — саму главную. Сайт так и оставался «1 стр.»,
+     * а в отчёте выходило «не хватает ключевых страниц» — хотя страницы у сайта есть, просто их никто
+     * не спросил. Здесь меню разбирается по уже скачанной главной и внутренние страницы добираются
+     * ОДНИМ заходом драйвера на все такие сайты.
+     *
+     * @param array<string, array<string, mixed>> $state состояние докачки (site / has_ok)
+     * @param array<string, mixed> $options
+     * @return int сколько страниц добрано
+     */
+    private function crawlRecoveredHomes(array $state, string $dir, array $options, float $threshold): int
+    {
+        $maxPages = max(1, (int) ($this->cfg['max_pages'] ?? 20));
+        $proxies = $this->proxyList();
+        $proxyIndex = 0;
+        $jobs = [];
+        $plan = [];
+        $byKey = [];
+        foreach ($state as $key => $st) {
+            if (!empty($st['has_ok'])) {
+                continue; // меню этого сайта уже разбирали при обходе
+            }
+            $site = $st['site'];
+            $home = null;
+            foreach ($site->visits as $v) {
+                $v = (array) $v;
+                $file = (string) ($v['html_file'] ?? '');
+                if (($v['ok'] ?? false) && $file !== '' && is_file($file)) {
+                    $home = $v;
+                    break;
+                }
+            }
+            if ($home === null) {
+                continue; // сайт так и не открылся — добирать нечего
+            }
+            $html = $this->readHtml((string) $home['html_file']);
+            $homeUrl = ((string) ($home['final_url'] ?? '')) !== '' ? (string) $home['final_url'] : (string) ($home['url'] ?? '');
+            $siteDir = $dir . '/' . self::safeName($site->host);
+            $used = [];
+            $taken = [];
+            foreach ($site->visits as $v) {
+                $base = pathinfo((string) (((array) $v)['html_file'] ?? ''), PATHINFO_FILENAME);
+                if ($base !== '') {
+                    $used[$base] = true;
+                    $taken[mb_strtolower($base)] = true;
+                }
+            }
+            $seen = [SiteLinks::canonical($homeUrl) => true, SiteLinks::canonical($this->rootUrl($homeUrl)) => true];
+            $ua = (string) ($home['user_agent'] ?? '');
+            if ($ua === '') {
+                $ua = $this->userAgents[0];
+            }
+            $added = 0;
+            foreach (SiteLinks::fromHeader($html, $homeUrl, $site->domain, $maxPages - 1) as $link) {
+                $canon = SiteLinks::canonical($link);
+                if (isset($seen[$canon])) {
+                    continue;
+                }
+                $seen[$canon] = true;
+                $base = self::fileNameFromUrl($link);
+                if (isset($taken[mb_strtolower($base)])) {
+                    continue; // та же страница под другим адресом — второй файл не заводим
+                }
+                $taken[mb_strtolower($base)] = true;
+                $name = $this->uniqueName($used, $base);
+                $proxy = $proxies !== [] ? $proxies[$proxyIndex++ % count($proxies)] : null;
+                $job = new VisitJob(
+                    id: $key . "\tmenu\t" . $name,
+                    siteKey: (string) $key,
+                    variant: 0,
+                    url: $link,
+                    referer: $this->referer($site),
+                    // Тем же агентом, которым открылась главная: робот этому сайту, скорее всего, не подходит.
+                    userAgent: $ua,
+                    proxyUrl: $proxy?->url,
+                    proxyLabel: $proxy?->label ?? 'direct',
+                    htmlFile: $siteDir . '/' . $name . '.html',
+                    screenshotFile: null,
+                );
+                $jobs[] = $job;
+                $plan[$job->id] = (string) $key;
+                $added++;
+            }
+            if ($added > 0) {
+                $byKey[(string) $key] = [
+                    'site' => $site,
+                    'texts' => [['text' => Fingerprint::text($html), 'label' => self::fileNameFromUrl($homeUrl), 'url' => $homeUrl]],
+                ];
+            }
+        }
+        if ($jobs === []) {
+            return 0;
+        }
+        $this->log->info(sprintf(
+            'Докачка: у %d сайтов главная открылась только сейчас — разбираем их меню (%d стр.)…',
+            count($byKey),
+            count($jobs),
+        ));
+        $results = $this->runWithRetry($jobs, $options, static function (): void {});
+        $ok = 0;
+        foreach ($jobs as $job) {
+            $key = $plan[$job->id];
+            $site = $byKey[$key]['site'];
+            $visit = $this->assembleVisit($job, $results[$job->id] ?? $this->missingResult(), $site->domain);
+            $visit = $this->dedupVisit($visit, $job, $byKey[$key]['texts'], $threshold, false);
+            $site->visits[] = $visit;
+            if ($visit['ok'] ?? false) {
+                $ok++;
+            }
+        }
+
+        return $ok;
     }
 
     /**
