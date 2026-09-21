@@ -216,6 +216,13 @@ heartbeat($cfg['downtime_gap'] ?? 300);
 
 $detailSlug = ($tab === 'stats') ? trim((string)($_GET['slug'] ?? '')) : '';
 
+// Подстраница сводки: '' — главная, 'geo'/'sources' — раскрытый блок.
+// Главная показывает по ним только виджеты: полные таблицы гео и источников
+// занимали два экрана и топили то, ради чего страницу открывают — конверсии.
+$statsView = ($tab === 'stats' && $detailSlug === '')
+    ? (in_array($_GET['view'] ?? '', ['geo', 'sources'], true) ? $_GET['view'] : '')
+    : '';
+
 $today = []; $sumHumans = 0; $sumUniq = 0; $sumUniqRu = 0; $sumBots = 0; $sumReg = 0; $sumRegRu = 0; $sumDep = 0; $sumDepRu = 0; $sumRegUnlinked = 0; $sumDepUnlinked = 0;
 $botsPeriod = ['yandex' => 0, 'other' => 0, 'total' => 0];
 $detailName = null; $detailDay = ['humans'=>0,'uniques'=>0,'bots'=>0]; $detailRows = [];
@@ -375,6 +382,33 @@ function dt($t) { return $t ? date('Y-m-d H:i', (int)$t) : '—'; }
  * /ru, и «ru ×15» читается с одного взгляда, а «/ru/ru/ru/ru/…» растягивает
  * таблицу и ничего не добавляет.
  */
+/**
+ * Компактный виджет-сводка: заголовок, несколько верхних строк и ссылка внутрь.
+ * $rows — [['label'=>HTML, 'value'=>int, 'sub'=>HTML|null], ...], уже отсортированные.
+ */
+function render_widget($title, $hint, array $rows, $total, $moreUrl, $moreText) {
+    ?>
+    <div class="card widget">
+      <div class="widget-head">
+        <b><?= h($title) ?></b>
+        <span class="muted" style="font-size:12px"><?= $hint ?></span>
+      </div>
+      <table class="widget-tbl">
+        <?php foreach ($rows as $r): ?>
+        <tr>
+          <td class="wlabel"><?= $r['label'] ?><?= isset($r['sub']) ? ' ' . $r['sub'] : '' ?></td>
+          <td class="wbar"><span style="width:<?= $total ? max(2, round($r['value'] * 100 / $total)) : 0 ?>%"></span></td>
+          <td class="wval"><b><?= (int)$r['value'] ?></b></td>
+          <td class="wpct"><?= $total ? round($r['value'] * 100 / $total) . '%' : '—' ?></td>
+        </tr>
+        <?php endforeach; ?>
+        <?php if (!$rows): ?><tr><td colspan="4" class="muted">За период данных нет.</td></tr><?php endif; ?>
+      </table>
+      <a class="widget-more" href="<?= h($moreUrl) ?>"><?= h($moreText) ?> →</a>
+    </div>
+    <?php
+}
+
 /**
  * Вложенность на момент конверсии: значок + сам путь в подсказке.
  *
@@ -541,6 +575,22 @@ $msg = $_GET['msg'] ?? '';
   .dbadge{display:inline-block;margin-left:7px;padding:1px 6px;border-radius:5px;font-size:11px;
           background:#eef2ff;color:#4338ca;border:1px solid #e0e7ff;font-family:ui-monospace,monospace}
   .dbadge-0{background:#f3f4f6;color:#6b7280;border-color:#e5e7eb}
+  /* компактные виджеты на главной */
+  .widgets{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:10px 0 18px}
+  @media (max-width:820px){ .widgets{grid-template-columns:1fr} }
+  .widget{padding:14px 16px}
+  .widget-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:8px}
+  .widget-tbl{width:100%;border-collapse:collapse;font-size:13px}
+  .widget-tbl td{padding:4px 0;border:none;vertical-align:middle}
+  .widget-tbl .wlabel{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}
+  .widget-tbl .wbar{width:100%;padding:0 10px}
+  .widget-tbl .wbar span{display:block;height:6px;border-radius:3px;background:#c7d2fe;min-width:2px}
+  .widget-tbl .wval{text-align:right;white-space:nowrap}
+  .widget-tbl .wpct{text-align:right;color:#aaa;width:40px;white-space:nowrap}
+  .widget-more{display:inline-block;margin-top:10px;font-size:13px;text-decoration:none}
+  .widget-more:hover{text-decoration:underline}
+  .backlink{display:inline-block;margin-bottom:10px;font-size:13px;text-decoration:none}
+  .backlink:hover{text-decoration:underline}
   tr.bot { background: #fff4f4; }
   tr.bot td:first-child { box-shadow: inset 3px 0 0 var(--bot); }
   table.rowlink tbody tr[data-href] { cursor: pointer; }
@@ -604,7 +654,11 @@ $msg = $_GET['msg'] ?? '';
   <?php if ($msg !== ''): ?><div class="note"><?= h($msg) ?></div><?php endif; ?>
 
 <?php if ($tab === 'stats'):
-  $pbase = tab_url('stats', $key) . ($detailSlug !== '' ? '&slug=' . rawurlencode($detailSlug) : '');
+  // Переключатель периода сохраняет, где ты находишься: внутри кампании или
+  // на раскрытом блоке гео/источников — иначе смена периода выкидывала бы на сводку.
+  $pbase = tab_url('stats', $key)
+         . ($detailSlug !== '' ? '&slug=' . rawurlencode($detailSlug) : '')
+         . ($statsView !== '' ? '&view=' . $statsView : '');
 ?>
   <div class="period">
     <?php foreach ($PERIODS as $pk => $plabel): ?>
@@ -749,6 +803,115 @@ $msg = $_GET['msg'] ?? '';
       <?= $stale ? '⚠ ' : '' ?>Обновлено: <b><?= h($upd) ?></b><?= $stale ? ' <span style="color:var(--muted)">— проверь крон</span>' : '' ?>
     </span>
   </div>
+
+<?php if ($statsView === 'geo'): ?>
+
+  <a class="backlink" href="<?= h(tab_url('stats', $key)) ?>&period=<?= h($periodKey) ?>">← к сводке</a>
+  <h1>Гео (страны, <?= h($PERIODS[$periodKey]) ?>)</h1>
+  <div class="muted">Юзеры — уникальные IP (реальные посетители). Страна из заголовка Cloudflare <code>CF-IPCountry</code>.</div>
+  <table class="sortable">
+    <thead><tr><th data-sort="text">Страна</th><th class="num" data-sort="num">Юзеры</th><th class="num" data-sort="num">Клики</th></tr></thead>
+    <tbody>
+      <?php foreach ($geo as $g): ?>
+      <tr>
+        <td><?= country_flag($g['country']) ?> <?= h($g['country']) ?></td>
+        <td class="num"><b><?= (int)$g['uniques'] ?></b></td>
+        <td class="num" style="color:#888"><?= (int)$g['humans'] ?></td>
+      </tr>
+      <?php endforeach; ?>
+      <?php if (!$geo): ?><tr><td colspan="3">За период данных нет.</td></tr><?php endif; ?>
+    </tbody>
+  </table>
+
+
+<?php elseif ($statsView === 'sources'): ?>
+
+  <a class="backlink" href="<?= h(tab_url('stats', $key)) ?>&period=<?= h($periodKey) ?>">← к сводке</a>
+  <h1>Источники (<?= h($PERIODS[$periodKey]) ?>)</h1>
+  <div class="muted">Сгруппировано по корневому домену. Нажми на строку группы (▶), чтобы раскрыть сабдомены. Рядом с сабдоменом — вложенность страницы, с которой пришёл клик: <span class="dbadge">ru &times;3</span> значит три сегмента <code>/ru</code> в адресе. Источник и путь берутся из <code>?s=</code> в рефке.</div>
+  <?php render_sources($sourceGroups); ?>
+
+
+<?php else: ?>
+
+  <h1>Конверсии за период (<?= h($PERIODS[$periodKey]) ?>)</h1>
+  <div class="muted">
+    Входящие постбеки от партнёрок. «не привязан» — постбек пришёл, но clickid не совпал ни с одним кликом.
+    У одного игрока приходят два события: рега и первый деп — это две отдельные строки.
+    Всего за период: <b><?= (int)$convTotalN ?></b><?php if ($convPages > 1): ?>, страница <b><?= $convPage ?></b> из <b><?= $convPages ?></b><?php endif; ?>.
+    <a href="<?= h(tab_url('stats', $key)) ?>&export=conversions&period=<?= h($periodKey) ?>"><b>⬇ Выгрузить все конверсии за период (CSV)</b></a>
+  </div>
+  <table class="sortable">
+    <thead><tr><th data-sort="text">Время</th><th data-sort="text">Событие</th><th data-sort="text">clickid</th><th data-sort="text">Кампания</th><th data-sort="text">Страна</th><th data-sort="text">Источник</th><th class="num" data-sort="num">Вложенность</th><th data-sort="text">Реферер</th><th data-sort="text">User-Agent</th><th data-sort="text">IP</th></tr></thead>
+    <tbody>
+      <?php foreach ($recentConv as $r): ?>
+      <tr>
+        <td><?= dt($r['ts']) ?></td>
+        <td><?php
+          $stt = strtolower((string)($r['status'] ?? ''));
+          if (in_array($stt, ['dep','deposit','sale','ftd','purchase'], true)) {
+            echo '<span class="chip" style="background:#fff7ed;border-color:#fed7aa;color:#9a3412">деп</span>';
+          } elseif (in_array($stt, ['reg','registration','lead'], true)) {
+            echo '<span class="chip" style="background:#faf5ff;border-color:#e9d5ff;color:#7e22ce">рега</span>';
+          } else {
+            echo '<span class="chip muted">'.h($stt !== '' ? $stt : '—').'</span>';
+          }
+        ?></td>
+        <td><code style="font-size:11px"><?= h($r['clickid']) ?></code></td>
+        <td><?= $r['slug'] ? '<code>'.h($r['slug']).'</code>' : '<span style="color:var(--bot)">не привязан</span>' ?></td>
+        <td><?= ($r['country'] ?? '') !== '' ? country_flag($r['country']).' '.h($r['country']) : '—' ?></td>
+        <td><?= h(($r['source'] ?? '') !== '' ? $r['source'] : '—') ?></td>
+        <td class="num" data-val="<?= ($r['lp'] ?? '') !== '' ? ru_depth($r['lp']) : -1 ?>"><?= conv_depth($r['lp'] ?? '') ?></td>
+        <td class="refurl"><?= ref_url($r['referer'] ?? '') ?></td>
+        <td class="ref" title="<?= h($r['ua'] ?? '') ?>"><?= h(($r['ua'] ?? '') !== '' ? $r['ua'] : '—') ?></td>
+        <td><?php
+          $userIp = $r['ip'] ?? '';
+          if ($userIp !== '') {
+            echo h($userIp);
+          } else {
+            echo '<span class="muted" title="IP отправителя постбека (клик не привязан, IP юзера неизвестен)">'.h($r['postback_ip'] ?? '—').'</span>';
+          }
+        ?></td>
+      </tr>
+      <?php endforeach; ?>
+      <?php if (!$recentConv): ?><tr><td colspan="10">За выбранный период конверсий нет.</td></tr><?php endif; ?>
+    </tbody>
+  </table>
+  <?php if ($convPages > 1):
+    $cbase = tab_url('stats', $key) . '&period=' . $periodKey . '&convpage=';
+  ?>
+  <div style="margin:10px 0 24px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <?php if ($convPage > 1): ?><a href="<?= h($cbase . 1) ?>">« первая</a><a href="<?= h($cbase . ($convPage-1)) ?>">← назад</a><?php endif; ?>
+    <span class="muted">стр. <?= $convPage ?> из <?= $convPages ?> · всего <?= (int)$convTotalN ?></span>
+    <?php if ($convPage < $convPages): ?><a href="<?= h($cbase . ($convPage+1)) ?>">вперёд →</a><a href="<?= h($cbase . $convPages) ?>">последняя »</a><?php endif; ?>
+  </div>
+  <?php endif; ?>
+
+  <div class="widgets">
+    <?php
+      $geoTotalW = 0; foreach ($geo as $g) $geoTotalW += (int)$g['uniques'];
+      $geoRows = [];
+      foreach (array_slice($geo, 0, 6) as $g) {
+          $geoRows[] = ['label' => country_flag($g['country']) . ' ' . h($g['country']),
+                        'value' => (int)$g['uniques']];
+      }
+      render_widget('Гео', 'юзеры, ' . h($PERIODS[$periodKey]), $geoRows, $geoTotalW,
+                    tab_url('stats', $key) . '&period=' . $periodKey . '&view=geo',
+                    'Все страны (' . count($geo) . ')');
+
+      $srcTotalW = 0; foreach ($sourceGroups as $g) $srcTotalW += (int)$g['uniques'];
+      $srcRows = [];
+      foreach (array_slice($sourceGroups, 0, 6) as $g) {
+          $srcRows[] = ['label' => '<code style="font-size:12px">' . h($g['root']) . '</code>',
+                        'sub'   => '<span class="muted" style="font-size:11px">· ' . count($g['subs']) . '</span>',
+                        'value' => (int)$g['uniques']];
+      }
+      render_widget('Источники', 'юзеры, ' . h($PERIODS[$periodKey]), $srcRows, $srcTotalW,
+                    tab_url('stats', $key) . '&period=' . $periodKey . '&view=sources',
+                    'Все источники (' . count($sourceGroups) . ')');
+    ?>
+  </div>
+
   <div class="muted">
     Все кампании с кликами за выбранный период. Клик по строке — подробности кампании. Колонки сортируются — кликни по заголовку.
   </div>
@@ -900,78 +1063,7 @@ $msg = $_GET['msg'] ?? '';
     </tbody>
   </table>
 
-  <h1>Гео (страны, <?= h($PERIODS[$periodKey]) ?>)</h1>
-  <div class="muted">Юзеры — уникальные IP (реальные посетители). Страна из заголовка Cloudflare <code>CF-IPCountry</code>.</div>
-  <table class="sortable">
-    <thead><tr><th data-sort="text">Страна</th><th class="num" data-sort="num">Юзеры</th><th class="num" data-sort="num">Клики</th></tr></thead>
-    <tbody>
-      <?php foreach ($geo as $g): ?>
-      <tr>
-        <td><?= country_flag($g['country']) ?> <?= h($g['country']) ?></td>
-        <td class="num"><b><?= (int)$g['uniques'] ?></b></td>
-        <td class="num" style="color:#888"><?= (int)$g['humans'] ?></td>
-      </tr>
-      <?php endforeach; ?>
-      <?php if (!$geo): ?><tr><td colspan="3">За период данных нет.</td></tr><?php endif; ?>
-    </tbody>
-  </table>
-
-  <h1>Источники (<?= h($PERIODS[$periodKey]) ?>)</h1>
-  <div class="muted">Сгруппировано по корневому домену. Нажми на строку группы (▶), чтобы раскрыть сабдомены. Рядом с сабдоменом — вложенность страницы, с которой пришёл клик: <span class="dbadge">ru &times;3</span> значит три сегмента <code>/ru</code> в адресе. Источник и путь берутся из <code>?s=</code> в рефке.</div>
-  <?php render_sources($sourceGroups); ?>
-
-  <h1>Конверсии за период (<?= h($PERIODS[$periodKey]) ?>)</h1>
-  <div class="muted">
-    Входящие постбеки от партнёрок. «не привязан» — постбек пришёл, но clickid не совпал ни с одним кликом.
-    У одного игрока приходят два события: рега и первый деп — это две отдельные строки.
-    Всего за период: <b><?= (int)$convTotalN ?></b><?php if ($convPages > 1): ?>, страница <b><?= $convPage ?></b> из <b><?= $convPages ?></b><?php endif; ?>.
-    <a href="<?= h(tab_url('stats', $key)) ?>&export=conversions&period=<?= h($periodKey) ?>"><b>⬇ Выгрузить все конверсии за период (CSV)</b></a>
-  </div>
-  <table class="sortable">
-    <thead><tr><th data-sort="text">Время</th><th data-sort="text">Событие</th><th data-sort="text">clickid</th><th data-sort="text">Кампания</th><th data-sort="text">Страна</th><th data-sort="text">Источник</th><th class="num" data-sort="num">Вложенность</th><th data-sort="text">Реферер</th><th data-sort="text">User-Agent</th><th data-sort="text">IP</th></tr></thead>
-    <tbody>
-      <?php foreach ($recentConv as $r): ?>
-      <tr>
-        <td><?= dt($r['ts']) ?></td>
-        <td><?php
-          $stt = strtolower((string)($r['status'] ?? ''));
-          if (in_array($stt, ['dep','deposit','sale','ftd','purchase'], true)) {
-            echo '<span class="chip" style="background:#fff7ed;border-color:#fed7aa;color:#9a3412">деп</span>';
-          } elseif (in_array($stt, ['reg','registration','lead'], true)) {
-            echo '<span class="chip" style="background:#faf5ff;border-color:#e9d5ff;color:#7e22ce">рега</span>';
-          } else {
-            echo '<span class="chip muted">'.h($stt !== '' ? $stt : '—').'</span>';
-          }
-        ?></td>
-        <td><code style="font-size:11px"><?= h($r['clickid']) ?></code></td>
-        <td><?= $r['slug'] ? '<code>'.h($r['slug']).'</code>' : '<span style="color:var(--bot)">не привязан</span>' ?></td>
-        <td><?= ($r['country'] ?? '') !== '' ? country_flag($r['country']).' '.h($r['country']) : '—' ?></td>
-        <td><?= h(($r['source'] ?? '') !== '' ? $r['source'] : '—') ?></td>
-        <td class="num" data-val="<?= ($r['lp'] ?? '') !== '' ? ru_depth($r['lp']) : -1 ?>"><?= conv_depth($r['lp'] ?? '') ?></td>
-        <td class="refurl"><?= ref_url($r['referer'] ?? '') ?></td>
-        <td class="ref" title="<?= h($r['ua'] ?? '') ?>"><?= h(($r['ua'] ?? '') !== '' ? $r['ua'] : '—') ?></td>
-        <td><?php
-          $userIp = $r['ip'] ?? '';
-          if ($userIp !== '') {
-            echo h($userIp);
-          } else {
-            echo '<span class="muted" title="IP отправителя постбека (клик не привязан, IP юзера неизвестен)">'.h($r['postback_ip'] ?? '—').'</span>';
-          }
-        ?></td>
-      </tr>
-      <?php endforeach; ?>
-      <?php if (!$recentConv): ?><tr><td colspan="10">За выбранный период конверсий нет.</td></tr><?php endif; ?>
-    </tbody>
-  </table>
-  <?php if ($convPages > 1):
-    $cbase = tab_url('stats', $key) . '&period=' . $periodKey . '&convpage=';
-  ?>
-  <div style="margin:10px 0 24px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-    <?php if ($convPage > 1): ?><a href="<?= h($cbase . 1) ?>">« первая</a><a href="<?= h($cbase . ($convPage-1)) ?>">← назад</a><?php endif; ?>
-    <span class="muted">стр. <?= $convPage ?> из <?= $convPages ?> · всего <?= (int)$convTotalN ?></span>
-    <?php if ($convPage < $convPages): ?><a href="<?= h($cbase . ($convPage+1)) ?>">вперёд →</a><a href="<?= h($cbase . $convPages) ?>">последняя »</a><?php endif; ?>
-  </div>
-  <?php endif; ?>
+<?php endif; ?>
 
 <?php elseif ($tab === 'settings'): ?>
 
