@@ -223,6 +223,7 @@ $daily = []; $recentConv = []; $pbLog = []; $geo = []; $geoCamp = []; $detailGeo
 $detailBots = [];
 $detailSources = [];
 $detailSourceGroups = [];
+$detailDepth = [];
 
 if ($tab === 'stats' && $detailSlug !== '') {
     // --- ПОДРОБНО по одной кампании ---
@@ -294,6 +295,7 @@ if ($tab === 'stats' && $detailSlug !== '') {
     // считает его внутри, и раньше эта работа делалась дважды.
     $detailGeo          = panel_cache("dgeo_$dkey",  fn() => geo_by_campaign($from, $detailSlug, $to)[$detailSlug] ?? []);
     $detailSourceGroups = panel_cache("dsrc_$dkey",  fn() => sources_grouped_by_campaign($detailSlug, $from, $to));
+    $detailDepth        = panel_cache("ddep_$dkey",  fn() => depth_by_campaign($detailSlug, $from, $to));
 
 } elseif ($tab === 'stats') {
     // --- СВОДКА за период: все кампании с кликами ---
@@ -602,6 +604,26 @@ $msg = $_GET['msg'] ?? '';
     });
   })();
   </script>
+
+  <h2 style="margin:18px 0 8px;font-size:16px">Вложенность (<?= h($PERIODS[$periodKey]) ?>)</h2>
+  <div class="muted">Сколько сегментов <code>/ru</code> было в адресе страницы дора, с которой пришёл клик. Путь передаётся в <code>?s=</code> вместе с хостом.</div>
+  <?php $depTotal = 0; foreach ($detailDepth as $d) $depTotal += (int)$d['clicks']; ?>
+  <table class="sortable">
+    <thead><tr><th data-sort="text">Уровень</th><th class="num" data-sort="num">Клики</th><th class="num" data-sort="num">Доля</th><th class="num" data-sort="num">Реги</th><th class="num" data-sort="num">Депы</th><th class="num" data-sort="num">Конверсия</th></tr></thead>
+    <tbody>
+      <?php foreach ($detailDepth as $d): $dep = (int)$d['depth']; ?>
+      <tr<?= $dep < 0 ? ' style="color:#999"' : '' ?>>
+        <td><?= $dep < 0 ? 'путь не передан' : '<b>' . $dep . '</b> &times; /ru' ?></td>
+        <td class="num"><?= (int)$d['clicks'] ?></td>
+        <td class="num" style="color:#aaa"><?= $depTotal ? round($d['clicks'] * 100 / $depTotal) . '%' : '—' ?></td>
+        <td class="num"><?= (int)$d['regs'] ? '<span style="color:#a855f7">'.(int)$d['regs'].'</span>' : '0' ?></td>
+        <td class="num"><?= (int)$d['deps'] ? '<span style="color:#ea580c">'.(int)$d['deps'].'</span>' : '0' ?></td>
+        <td class="num" style="color:#aaa"><?= (int)$d['clicks'] ? round((int)$d['regs'] * 100 / (int)$d['clicks'], 2) . '%' : '—' ?></td>
+      </tr>
+      <?php endforeach; ?>
+      <?php if (!$detailDepth): ?><tr><td colspan="6">За период данных нет.</td></tr><?php endif; ?>
+    </tbody>
+  </table>
 
   <h2 style="margin:18px 0 8px;font-size:16px">Гео (уники, <?= h($PERIODS[$periodKey]) ?>)</h2>
   <?php $geoTotal = 0; foreach ($detailGeo as $g) $geoTotal += $g['uniques']; ?>

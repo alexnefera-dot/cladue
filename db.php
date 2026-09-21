@@ -1035,6 +1035,67 @@ function source_root($src) {
 }
 
 /**
+ * Уровень вложенности пути: сколько сегментов «ru» в нём встречается.
+ * /ru/ru/ru/bonus -> 3, /bonus -> 0. Число сегментов, а не длина пути:
+ * именно так считает вложенность аналитика (ru_depth).
+ */
+function ru_depth($path) {
+    $n = 0;
+    foreach (explode('/', trim((string)$path, '/')) as $seg) {
+        if (strtolower($seg) === 'ru') $n++;
+    }
+    return $n;
+}
+
+/**
+ * Разбивка кампании по вложенности страницы дора.
+ *
+ * Путь приходит в ?s= вместе с хостом и лежит в clicks.lp. Группируем сперва
+ * по самому пути (разных путей немного, они повторяются), потом сворачиваем
+ * в уровни на стороне PHP — считать сегменты в SQL пришлось бы по-разному
+ * для MySQL и SQLite.
+ *
+ * Ключ -1 — клики, у которых пути нет вовсе (дор его ещё не слал). Держим их
+ * отдельной строкой, а не прячем: иначе непонятно, какая часть данных покрыта.
+ */
+function depth_by_campaign($slug, $from, $to = null) {
+    $pdo  = db();
+    $out  = [];
+    $add  = function (&$out, $d) {
+        if (!isset($out[$d])) $out[$d] = ['depth' => $d, 'clicks' => 0, 'regs' => 0, 'deps' => 0];
+    };
+
+    $sql  = "SELECT lp, COUNT(*) AS n FROM clicks
+             WHERE slug = ? AND ts >= ?" . ($to !== null ? ' AND ts < ?' : '') . "
+               AND is_bot = 0 GROUP BY lp";
+    $args = $to !== null ? [$slug, $from, $to] : [$slug, $from];
+    $st   = $pdo->prepare($sql);
+    $st->execute($args);
+    foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        $d = ($r['lp'] === null || $r['lp'] === '') ? -1 : ru_depth($r['lp']);
+        $add($out, $d);
+        $out[$d]['clicks'] += (int)$r['n'];
+    }
+
+    // конверсии: путь снят в строку конверсии при привязке, соединение не нужно
+    $sql2 = "SELECT lp, status, COUNT(*) AS n FROM conversions
+             WHERE slug = ? AND ts >= ?" . ($to !== null ? ' AND ts < ?' : '') . "
+             GROUP BY lp, status";
+    $st = $pdo->prepare($sql2);
+    $st->execute($args);
+    foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        $d = ($r['lp'] === null || $r['lp'] === '') ? -1 : ru_depth($r['lp']);
+        $add($out, $d);
+        $s = strtolower((string)$r['status']);
+        if (in_array($s, ['reg', 'registration', 'lead'], true))                        $out[$d]['regs'] += (int)$r['n'];
+        elseif (in_array($s, ['dep', 'deposit', 'sale', 'ftd', 'purchase'], true))      $out[$d]['deps'] += (int)$r['n'];
+    }
+
+    ksort($out);
+    return array_values($out);
+}
+
+/**
  * Источники кампании, СГРУППИРОВАННЫЕ по корневому домену.
  * Возвращает массив групп, отсортированных по uniques DESC:
  * [
