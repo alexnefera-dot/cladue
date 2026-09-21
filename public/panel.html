@@ -69,6 +69,15 @@
   .pg-sec{margin-bottom:8px}
   .pg-h{font-weight:700;font-size:12px;margin:6px 0 3px}
   .tag{font-size:11px;padding:1px 7px;border-radius:99px;background:var(--chip);color:var(--accent)}
+  .tabbadge{font-size:11px;padding:0 6px;border-radius:99px;background:#e5484d;color:#fff;font-weight:600;vertical-align:middle}
+  .pgroup{border:1px solid var(--line);border-radius:10px;padding:12px;margin:10px 0}
+  .pgroup h3{margin:0 0 4px;font-size:15px}
+  .pgroup .phint{font-size:12px;color:var(--muted);margin-bottom:8px}
+  .pgroup .pacts{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+  .psec-h{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:14px 0 4px}
+  .phost{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:3px 8px;border-radius:7px;background:var(--chip);margin:2px 4px 2px 0}
+  .phost a{color:var(--accent)}
+  .phost .px{cursor:pointer;color:var(--muted);border:none;background:none;padding:0;font-size:13px;line-height:1}
   .ctBtn{font-size:12px;padding:4px 10px;border-radius:7px;border:1px solid var(--accent);background:#fff;color:var(--accent);cursor:pointer;white-space:nowrap}
   .ctBtn:hover{background:var(--accent);color:#fff}
   .ctBtn:disabled{opacity:.6;cursor:default}
@@ -123,6 +132,7 @@
   <div class="tabs">
     <button class="tab active" data-tab="main">Главная</button>
     <button class="tab" data-tab="config">Настройки</button>
+    <button class="tab" data-tab="problems">Проблемные <span class="tabbadge" id="probBadge" hidden></span></button>
     <button class="tab" data-tab="stats">Статистика</button>
   </div>
 
@@ -280,6 +290,12 @@
   <div class="card tabsec" data-tab="main">
     <h2>Журнал</h2>
     <pre class="log" id="log">—</pre>
+  </div>
+
+  <div class="card tabsec" data-tab="problems">
+    <h2>Проблемные сайты</h2>
+    <div class="hint">Сайты, которые <b>не удалось получить</b> (а не те, у которых чего-то нет). Причина привязана к стадии: <b>по сбору</b> определяется сразу после сбора со скриншотами (сайт не открылся вовсе или показал витрину чужих офферов), <b>по выгрузке</b> — после «Выгрузить страницы» (ни одной страницы, часть страниц не скачалась, файл пропал с диска). Одностраничник (после выгрузки открылась только главная) и пропуск целевой страницы проблемой <b>не считаются</b>. Кнопки в каждой группе перепробуют сайты с других IP и агентов или уберут их из списка (обратимо — «вернуть все» на «Главной»).</div>
+    <div id="problemsBox"></div>
   </div>
 
   <div class="card tabsec" data-tab="stats">
@@ -1178,6 +1194,94 @@ $('removeKeyBtn').addEventListener('click', ()=>{ const k=$('keysel').value; rem
 document.querySelectorAll('.tplkeep').forEach(c=>c.addEventListener('change', ()=>updateStats(lastSites.filter(s=>!isRemoved(s.host)))));
 $('keepTypesBtn').addEventListener('click', ()=>removeWhere(dropByType));
 
+// ---- Вкладка «Проблемные» ---------------------------------------------------------------------
+// «Проблемный» = сайт, который НЕ УДАЛОСЬ ПОЛУЧИТЬ. Коды приходят в s.problems (считает сервер,
+// см. Support\ProblemSites), здесь только группируем по стадии и рисуем. Секция сайта — по флагу
+// s.downloaded (дошёл ли до выгрузки), а не по стадии кода: offer_wall бывает и там, и там.
+const PROBLEM_LABELS={
+  no_preview:'не открылся (без превью)',
+  offer_wall:'подборка офферов вместо сайта',
+  no_pages:'ни одной страницы не выгрузилось',
+  pages_failed:'часть страниц не скачалась',
+  missing_files:'нет файла на диске',
+};
+const PROBLEM_HINT={
+  no_preview:'Ни одна страница не открылась при сборе — сайт мог отсечь по прокси/агенту. Пара заходов с других IP и браузерных агентов часто помогает.',
+  offer_wall:'Вместо сайта показана витрина чужих бонусов. Перепробуем с других IP и агентов — иначе уберите.',
+  no_pages:'Выгрузка не получила ни одной страницы. Докачка попробует снова с других прокси и с растущим таймаутом.',
+  pages_failed:'Часть страниц упала с ошибкой, которую докачка может добрать (таймаут/блок/пропавший файл).',
+  missing_files:'Файлы открытых страниц пропали с диска — докачка их перекачает.',
+};
+// Действие для группы: preview — ещё заходы на главную (stage=preview), download — докачка (очередь).
+const PROBLEM_ACTION={ no_preview:'preview', offer_wall:'preview', no_pages:'download', pages_failed:'download', missing_files:'download' };
+function problemsOf(s){ return (s && Array.isArray(s.problems)) ? s.problems : []; }
+// Ещё заходы на главную у конкретного набора хостов (как «Перепробовать без превью», но для группы).
+function retryPreviewHosts(hosts){
+  hosts=hosts.filter(h=>!isRemoved(h));
+  if(!hosts.length){ showStart('Нет сайтов для повтора','err'); return; }
+  startJob({stage:'preview', only:hosts, exclude_hosts:[...removedHosts, ...pendingRemoved]});
+}
+function countProblems(visible){
+  const c={collect:{}, download:{}, sites:0};
+  visible.forEach(s=>{
+    const codes=problemsOf(s); if(!codes.length) return;
+    c.sites++;
+    const sec=s.downloaded?'download':'collect';
+    codes.forEach(k=>{ c[sec][k]=(c[sec][k]||0)+1; });
+  });
+  return c;
+}
+function renderProblems(visible){
+  const box=$('problemsBox'); if(!box) return;
+  const c=countProblems(visible);
+  const badge=$('probBadge');
+  if(badge){ if(c.sites>0){ badge.hidden=false; badge.textContent=c.sites; } else badge.hidden=true; }
+  if(!c.sites){ box.innerHTML='<div class="hint">Проблемных сайтов нет. После сбора и после выгрузки страниц здесь появятся те, которые не удалось получить.</div>'; return; }
+  const esc=t=>String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+  const SEC=[['collect','По сбору','Определяются сразу после сбора со скриншотами'],['download','По выгрузке страниц','Определяются после «Выгрузить страницы оставшихся»']];
+  let h='';
+  SEC.forEach(([sec,secTitle,secHint])=>{
+    const codes=c[sec]; const keys=Object.keys(codes).sort((a,b)=>codes[b]-codes[a]);
+    if(!keys.length) return;
+    h+=`<div class="psec-h" title="${esc(secHint)}">${secTitle}</div>`;
+    keys.forEach(code=>{
+      const hosts=visible.filter(s=>(s.downloaded?'download':'collect')===sec && problemsOf(s).includes(code)).map(s=>s.host);
+      const act=PROBLEM_ACTION[code];
+      const actLabel=act==='preview'?'Перепробовать с других IP':'Докачать';
+      h+=`<div class="pgroup">`;
+      h+=`<h3>${esc(PROBLEM_LABELS[code]||code)} <span class="tag">${hosts.length}</span></h3>`;
+      h+=`<div class="phint">${esc(PROBLEM_HINT[code]||'')}</div>`;
+      h+=`<div class="pacts">`;
+      h+=`<button class="ctBtn" data-prob-act="${act}" data-prob-code="${code}" data-prob-sec="${sec}">${actLabel} (${hosts.length})</button>`;
+      h+=`<button class="ctBtn" data-prob-remove="${code}" data-prob-sec="${sec}" title="Убрать эти сайты из списка (обратимо)">Убрать (${hosts.length})</button>`;
+      h+=`</div>`;
+      h+=hosts.slice(0,200).map(host=>{
+        const s=visible.find(x=>x.host===host);
+        const link=s&&s.url?`<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(host)}</a>`:esc(host);
+        const shot=s&&s.screenshot?` <a href="/file?path=${encodeURIComponent(s.screenshot)}" target="_blank" rel="noopener">фото</a>`:'';
+        return `<span class="phost"><button class="px" data-prob-x="${esc(host)}" title="Убрать сайт">✕</button>${link}${shot}</span>`;
+      }).join('');
+      if(hosts.length>200) h+=`<div class="phint">…и ещё ${hosts.length-200}</div>`;
+      h+=`</div>`;
+    });
+  });
+  box.innerHTML=h;
+}
+// Множество хостов группы (стадия + код), с учётом убранных.
+function problemHosts(sec, code){
+  return lastSites.filter(s=>!isRemoved(s.host) && (s.downloaded?'download':'collect')===sec && problemsOf(s).includes(code)).map(s=>s.host);
+}
+$('problemsBox').addEventListener('click', e=>{
+  const px=e.target.closest('[data-prob-x]'); if(px){ removeOnServer([px.dataset.probX]); return; }
+  const rm=e.target.closest('[data-prob-remove]'); if(rm){ const hosts=problemHosts(rm.dataset.probSec, rm.dataset.probRemove); if(hosts.length) removeOnServer(hosts); return; }
+  const ac=e.target.closest('[data-prob-act]'); if(ac){
+    const hosts=problemHosts(ac.dataset.probSec, ac.dataset.probCode);
+    if(!hosts.length){ showStart('Сайтов в группе не осталось','err'); return; }
+    if(ac.dataset.probAct==='preview') retryPreviewHosts(hosts); else queueRetry(hosts, false);
+    return;
+  }
+});
+
 function renderResults(sites){
   sites = sites || [];
   // Во время запущенного задания статус временно пуст (status.json пере-создаётся). Не сбрасываем
@@ -1185,7 +1289,7 @@ function renderResults(sites){
   if(!sites.length && (jobRunning || jobStarting) && lastSites.length){ sites = lastSites; }
   lastSites = sites;
   const card=$('resultsCard');
-  if(!sites.length){ updateDownloadBtn(); card.hidden=true; return; }
+  if(!sites.length){ updateDownloadBtn(); card.hidden=true; renderProblems([]); return; }
   // Список убранных — серверный, здесь его не «подчищаем»: раньше такая подчистка под переходный статус
   // (перезапуск задания, ошибка, обрезанный список) теряла удаления, и убранные сайты всплывали снова.
   const present=new Set(sites.map(s=>s.host));
@@ -1197,6 +1301,7 @@ function renderResults(sites){
   card.hidden=false;
   $('resCount').textContent='· '+visible.length+(removedHosts.size?` (убрано ${removedHosts.size})`:'')+(sitesCountTotal>sites.length?` · показаны первые ${sites.length} из ${sitesCountTotal}`:'');
   updateStats(visible);
+  renderProblems(visible);
   const note=$('removedNote');
   if(removedHosts.size){ note.hidden=false; note.innerHTML=`Убрано сайтов: <b>${removedHosts.size}</b> · <a href="#" id="restoreRemoved">вернуть все</a>`; }
   else note.hidden=true;

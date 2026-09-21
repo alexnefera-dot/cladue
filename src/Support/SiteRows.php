@@ -167,8 +167,23 @@ final class SiteRows
                     $keyFailed[] = $name;
                 }
             }
-            $rows[] = [
+            // Прошёл ли сайт стадию выгрузки: у визитов обхода стадия 'download' (проставлена при сборке
+            // визита, ещё до удаления файла у заблокированных/офферных/наших). По этому флагу проблемы
+            // делятся на «по сбору» и «по выгрузке» — не выгруженный сайт не помечается download-причинами.
+            // Старый sites.json без поля stage — по расположению файла (pages/ против preview/).
+            $downloaded = false;
+            foreach ($site->visits as $v) {
+                $v = (array) $v;
+                $stage = (string) ($v['stage'] ?? '');
+                $paths = str_replace('\\', '/', (string) ($v['html_file'] ?? '') . '|' . (string) ($v['screenshot_file'] ?? ''));
+                if ($stage === 'download' || ($stage === '' && str_contains($paths, '/pages/'))) {
+                    $downloaded = true;
+                    break;
+                }
+            }
+            $row = [
                 'retryable' => $retryable,
+                'downloaded' => $downloaded,
                 'template' => $template,
                 'template_label' => $template !== '' ? SiteTemplate::label($template) : '',
                 'key_missing' => $keyMissing,
@@ -193,6 +208,10 @@ final class SiteRows
                 'html' => !$own && $visit !== null && ($visit['html_file'] ?? '') !== '' ? $rel((string) $visit['html_file']) : '',
                 'screenshot' => $visit !== null && ($visit['screenshot_file'] ?? '') !== '' ? $rel((string) $visit['screenshot_file']) : '',
             ];
+            // Коды проблем считаем по готовой строке: «не открылся», «подборка офферов», «часть страниц
+            // не скачалась» и т.п. Пропуски целевых страниц и 404 сюда не идут — это не сбой загрузки.
+            $row['problems'] = ProblemSites::codes($row);
+            $rows[] = $row;
         }
 
         return $rows;

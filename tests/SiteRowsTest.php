@@ -41,6 +41,40 @@ final class SiteRowsTest
         Assert::true($loaded['rows.ru']->own && count($loaded['rows.ru']->visits) === 2, 'визиты и «наш» восстановлены');
     }
 
+    public function testPreviewEmitsDownloadedFlagAndProblemCodes(): void
+    {
+        // Флаг «выгружен» — по расположению файлов визитов: pages/ (обход) против preview/ (скриншот).
+        // Проблемные коды считаются по строке, и стадия зависит от этого флага.
+        $base = sys_get_temp_dir() . '/yandex-sites-rows-prob-' . uniqid();
+        mkdir($base . '/pages/dl.ru', 0777, true);
+        mkdir($base . '/preview/pv.ru', 0777, true);
+        file_put_contents("$base/pages/dl.ru/main.html", '<p>home</p>');
+
+        // Выгруженный сайт: главная открылась, вторая страница упала с чинибельной ошибкой → pages_failed.
+        $dl = new Site('dl.ru', 'dl.ru', 'dl.ru');
+        $dl->add(new SearchResult('q', 0, 1, 'https://dl.ru/', 'dl.ru', 'T'));
+        $dl->visits = [
+            ['variant' => 0, 'url' => 'https://dl.ru/', 'ok' => true, 'error' => '', 'status' => 200, 'html_file' => "$base/pages/dl.ru/main.html"],
+            ['variant' => 0, 'url' => 'https://dl.ru/vhod', 'ok' => false, 'error' => 'Timeout 30000 ms', 'status' => null, 'html_file' => "$base/pages/dl.ru/vhod.html"],
+        ];
+        // Сайт только со скриншотом (сбор): превью не получилось → no_preview, стадия «по сбору».
+        $pv = new Site('pv.ru', 'pv.ru', 'pv.ru');
+        $pv->add(new SearchResult('q', 0, 1, 'https://pv.ru/', 'pv.ru', 'T'));
+        $pv->visits = [
+            ['variant' => 0, 'url' => 'https://pv.ru/', 'ok' => false, 'error' => 'нет соединения с сайтом', 'status' => null, 'html_file' => "$base/preview/pv.ru/variant-0.html", 'screenshot_file' => ''],
+        ];
+
+        $rows = SiteRows::preview([$dl, $pv], $base);
+        $byHost = [];
+        foreach ($rows as $r) {
+            $byHost[$r['host']] = $r;
+        }
+        Assert::true($byHost['dl.ru']['downloaded'], 'файлы под pages/ — сайт выгружался');
+        Assert::same(['pages_failed'], $byHost['dl.ru']['problems'], 'часть страниц упала — проблема по выгрузке');
+        Assert::true(!$byHost['pv.ru']['downloaded'], 'файлы под preview/ — выгрузки ещё не было');
+        Assert::same(['no_preview'], $byHost['pv.ru']['problems'], 'превью не получилось — проблема по сбору');
+    }
+
     public function testBackfillTemplatesReadsSavedHtmlAndSavesIntoSitesJson(): void
     {
         // Сбор прошлой версии: визиты без поля template. Тип дописывается по сохранённому HTML и попадает в sites.json.

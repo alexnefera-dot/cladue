@@ -293,9 +293,15 @@ final class PageVisitor
 
     private function assembleVisit(VisitJob $job, array $result, string $siteDomain = ''): array
     {
+        // Стадия визита — по каталогу, куда он писался: pages/ (выгрузка/обход) или preview/ (скриншот
+        // при сборе). Пишем её СРАЗУ, до любого удаления файла (наш/блок/офферная витрина/404 стирают
+        // html_file), чтобы «выгружен ли сайт» определялось надёжно, а не по пути к уже удалённому файлу.
+        $jobPath = str_replace('\\', '/', $job->htmlFile);
+        $stage = str_contains($jobPath, '/pages/') ? 'download' : (str_contains($jobPath, '/preview/') ? 'preview' : '');
         $visit = [
             'variant' => $job->variant,
             'url' => $job->url,
+            'stage' => $stage,
             // Прокси и агент ПОСЛЕДНЕЙ попытки: если страницу добыл повтор (другой прокси, браузерный
             // агент), в отчёте должен стоять он, а не отказавший первый заход.
             'proxy' => (string) ($result['retry_proxy'] ?? $job->proxyLabel),

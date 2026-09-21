@@ -416,6 +416,46 @@ MANUAL-OWN.RU
         @rmdir($dir);
     }
 
+    public function testDownloadStageMarksProblemSites(): void
+    {
+        // «Проблемные» по выгрузке: сайт, который отдаёт только витрину чужих офферов (и браузеру тоже),
+        // так и не открылся — попадает в статистику проблемных со стадией «по выгрузке».
+        $port = FakeServer::port('local');
+        $dir = sys_get_temp_dir() . '/yandex-sites-prob-' . uniqid();
+        $runDir = $dir . '/runs/prob';
+        mkdir($runDir, 0777, true);
+        file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
+        file_put_contents($runDir . '/sites.json', json_encode(['sites' => [[
+            'host' => 'alwaysoffer.ru', 'domain' => 'alwaysoffer.ru',
+            'url' => "http://alwaysoffer.ru:$port/", 'title' => 'T',
+            'best_query' => 'к', 'best_position' => 1, 'queries_count' => 1,
+        ]]]));
+        file_put_contents($runDir . '/settings.json', json_encode([
+            'stage' => 'download',
+            'visit_driver' => 'curl',
+            'visit_resolve' => ["alwaysoffer.ru:$port:127.0.0.1"],
+        ]));
+
+        $run = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $run['code'], $run['out']);
+        $st = json_decode((string) file_get_contents($runDir . '/status.json'), true);
+        Assert::same('done', $st['state'], $run['out']);
+        // Гистограмма проблемных в статусе: один сайт, стадия «по выгрузке», причина — витрина офферов.
+        Assert::same(1, (int) ($st['problem_histogram']['sites'] ?? 0), $run['out']);
+        Assert::same(1, (int) ($st['problem_histogram']['download']['offer_wall'] ?? 0), 'офферная витрина — по выгрузке');
+        Assert::contains('проблемных: 1', $st['message']);
+        // Строка таблицы несёт флаг «выгружен» и коды проблем — по ним рисуется вкладка «Проблемные».
+        $row = $st['sites'][0];
+        Assert::true($row['downloaded'] ?? false, 'сайт прошёл стадию выгрузки');
+        Assert::same(['offer_wall'], $row['problems'] ?? null, 'код проблемы в строке');
+
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($it as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+        @rmdir($dir);
+    }
+
     public function testDownloadStageReportsTemplateTypes(): void
     {
         // После открытия страниц статус несёт разбивку по типу вёрстки, а строки таблицы — тип каждого сайта:

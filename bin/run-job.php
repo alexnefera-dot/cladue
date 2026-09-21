@@ -49,6 +49,7 @@ use YandexSites\Support\CollectHistory;
 use YandexSites\Support\DomainLedger;
 use YandexSites\Support\BrandDomains;
 use YandexSites\Support\Logger;
+use YandexSites\Support\ProblemSites;
 use YandexSites\Support\Progress;
 use YandexSites\Support\QueryDupes;
 use YandexSites\Support\QueryQueue;
@@ -687,15 +688,24 @@ while (true) {
                 }
             }
             $uaStats = $uaSites > 0 ? sprintf('%d стр. на %d сайтах', $uaPages, $uaSites) : '';
+            $rows = previewSites($siteList, $runDir);
+            // Проблемные ПО ВЫГРУЗКЕ: сайт не отдал ни одной страницы, часть страниц упала так, что
+            // докачка их доберёт, или файл пропал с диска. Одностраничник и пропуск целевой — не проблема.
+            $problemHist = ProblemSites::histogram($rows);
+            $problemStats = ProblemSites::histogramText($problemHist);
+            if ($problemStats !== '') {
+                $logger->info(sprintf('Проблемных сайтов: %d — %s', $problemHist['sites'], $problemStats));
+            }
             $progress->update([
                 'state' => 'done',
                 'phase' => 'done',
                 'stats' => ['sites_selected' => count($siteList)],
-                'sites' => previewSites($siteList, $runDir),
+                'sites' => $rows,
                 'sites_count' => count($siteList),
                 'page_histogram' => SiteRows::pageHistogram($siteList),
                 'template_histogram' => SiteTemplate::histogram($siteList),
                 'key_pages' => $keyHist,
+                'problem_histogram' => $problemHist,
                 'run_finished_at' => date(DATE_ATOM),
                 'files' => ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt'],
                 // Докачка: говорим честно, что добрано, а если добирать было нечего — почему (иначе
@@ -707,6 +717,7 @@ while (true) {
                         : sprintf('Докачано: добрано %d из %d стр., всего открыто %d', $retryStat['recovered'], $retryStat['attempted'], $opened)))
                     // Разбивка по числу страниц: сколько одностраничников, сколько 9/10-страничников и т.п.
                     . ($pageStats !== '' ? '; по страницам: ' . $pageStats : '')
+                    . ($problemHist['sites'] > 0 ? sprintf('; проблемных: %d (вкладка «Проблемные»)', $problemHist['sites']) : '')
                     . ($uaStats !== '' ? '; под браузером (робота не пустили): ' . $uaStats : ''),
             ], true);
             $logger->info(sprintf('%s завершена: страниц открыто %d%s', $isRetry ? 'Докачка' : 'Выгрузка', $opened, $pageStats !== '' ? '; по страницам: ' . $pageStats : ''));
@@ -940,6 +951,13 @@ while (true) {
             if ($ownLedger->count() === 0) {
                 $logger->info('Список наших доменов пуст (runs/own-domains.txt): среди повторов наши не опознаются — впишите свои домены в own-domains.txt');
             }
+            $collectRows = previewSites($shown, $runDir);
+            // Проблемные ПО СБОРУ: сайт не открылся на превью или показал витрину чужих офферов. Целевые
+            // страницы здесь не считаем — открыта только главная, судить о них рано (это делает выгрузка).
+            $problemHist = ProblemSites::histogram($collectRows);
+            if ($problemHist['sites'] > 0) {
+                $logger->info(sprintf('Проблемных сайтов по сбору: %d — %s', $problemHist['sites'], ProblemSites::histogramText($problemHist)));
+            }
             $progress->update([
                 'state' => $result->aborted ? 'error' : ($result->stopped ? 'stopped' : 'done'),
                 'phase' => $result->stopped ? 'stopped' : 'done',
@@ -947,12 +965,13 @@ while (true) {
                 'errors' => $result->errors,
                 'aborted' => $result->aborted,
                 'proxies' => $runtime->proxies?->stats() ?? [],
-                'sites' => previewSites($shown, $runDir),
+                'sites' => $collectRows,
                 'sites_count' => count($shown),
                 'kept_previous' => $keptPrevious,
                 'queue' => $queueInfo,
                 'stopped_early' => $result->stopped,
                 'template_histogram' => $templateHist,
+                'problem_histogram' => $problemHist,
                 'query_dupes' => $dupeSummary,
                 'base_domains' => $ledger->count(),
                 'run_finished_at' => date(DATE_ATOM),
@@ -972,7 +991,8 @@ while (true) {
                         . ($keptPrevious ? 'Ничего нового не отобрано — прошлый список сайтов оставлен, с ним можно продолжать. ' : '')
                         . $templateNote
                         . ($ownNote !== '' ? ($templateNote !== '' ? '; ' : '') . $ownNote : '')
-                        . ($offerWalls > 0 ? sprintf('; подборок офферов вместо сайта: %d', $offerWalls) : ''),
+                        . ($offerWalls > 0 ? sprintf('; подборок офферов вместо сайта: %d', $offerWalls) : '')
+                        . ($problemHist['sites'] > 0 ? sprintf('; проблемных: %d (вкладка «Проблемные»)', $problemHist['sites']) : ''),
                     ),
             ], true);
             $logger->info(sprintf(

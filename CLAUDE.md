@@ -294,9 +294,10 @@ Run `php tests/lint.php && php tests/run.php` before committing.
 - `Runner` and `PageVisitor` accept an optional `$onProgress` callback; `bin/run-job.php` wires it
   to `Support\Progress`, and `bin/panel.php` (dual launcher/router via `PHP_SAPI==='cli-server'`)
   spawns the job and serves `public/panel.html`. Keep CLI and panel behaviour in sync through `Runtime`.
-  `public/panel.html` has three tabs (`.tabsec[data-tab=main|config|stats]`, remembered in
+  `public/panel.html` has four tabs (`.tabsec[data-tab=main|config|problems|stats]`, remembered in
   `localStorage['ys-tab']`): «Главная» (queries, run/stage, progress, log, results table), «Настройки»
-  (keys + all filter/visit conditions) and «Статистика» (the collect history, see `Support\CollectHistory`). XMLStock params are panel fields `xmlstock_mode`/`xmlstock_device`/`xmlstock_domain`/`xmlstock_extra`
+  (keys + all filter/visit conditions), «Проблемные» (sites we failed to get, by stage, see
+  `Support\ProblemSites`) and «Статистика» (the collect history, see `Support\CollectHistory`). XMLStock params are panel fields `xmlstock_mode`/`xmlstock_device`/`xmlstock_domain`/`xmlstock_extra`
   (the `#xmlstockBox`, shown only when `source=xmlstock`), mapped in `buildOverrides()` to
   `xmlstock.mode`/`xmlstock.device`/`xmlstock.domain`/`xmlstock.extra_params` (`extra_params` parsed from a
   `key=value&…` string) and covered by `PanelTest::testXmlstockParamsReachRequest` /
@@ -607,6 +608,36 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   (`[role=dialog]`, `[aria-modal=true]`, `<dialog open>`, or a large fixed overlay — obfuscated per-site
   class names are ignored), confirms it is an age/cookie barrier via the *overlay's own* text (footer «18+»
   no longer misfires or blocks it), and clicks the consent button (e.g. «Мне есть 18») strictly inside it.
+- `Support\ProblemSites` is the «Проблемные» tab — sites we FAILED TO GET, with the reason bound to the
+  STAGE, because after one collect only the home is open and judging the rest is premature («проблемные
+  определяются и после сбора и после выгрузки страниц … а не сразу все проблемные после скринов»).
+  `codes($row)` (over a `SiteRows::preview()` row) returns: `no_preview` / `offer_wall` for a NOT-yet-
+  downloaded site (collect stage), `no_pages` / `pages_failed` / `missing_files` for a downloaded one
+  (`offer_wall` short-circuits and is the only code — it is the sharpest diagnosis, not doubled as
+  «не открылся»). Explicitly NOT a problem, per the user: a one-pager (downloaded, `pages_ok===total`,
+  «если сайт 1 стр это не проблемный, если больше страниц не было после выгрузки»), a missing key/target
+  page («пропуск считать проблемным не надо» — `key_missing` is never read here), and 404s/duplicates
+  (`pages_failed` gates on the row's `retryable`, which is false for those, so a 404/dup gap is a content
+  gap, not a load failure; 404 has its own «Убрать с 404 > N»). The split «downloaded vs not» is
+  `SiteRows::preview()`'s new `downloaded` flag, computed from each visit's `stage` (`'download'` for a
+  `pages/` crawl, `'preview'` for a `preview/` screenshot). `PageVisitor::assembleVisit()` stamps
+  `$visit['stage']` from the job's htmlFile path FIRST THING — before the own/block/offer-wall/404
+  branches blank `html_file` — so a wall/blocked site (whose file is deleted) is still known to have been
+  downloaded (a `sites.json` without `stage` falls back to a `/pages/` path check). `SiteRows::preview()`
+  also emits `problems` (the codes) per row; `ProblemSites::histogram($rows)` sections by the row's
+  `downloaded` flag (not by `stageOf()`, so a downloaded offer-wall lands under «по выгрузке»),
+  `histogramText()` renders «по сбору: … ; по выгрузке: …». `bin/run-job.php` puts `problem_histogram`
+  into BOTH the collect-done status (its preview rows) and the download-done status, logs «Проблемных
+  сайтов: N — …» and appends «; проблемных: N (вкладка «Проблемные»)» to the message. Panel:
+  `public/panel.html` has a `data-tab=problems` card with a `#probBadge` count in the tab button;
+  `renderProblems(visible)` groups by stage→code into `.pgroup` blocks (label · count · hint · actions ·
+  host chips), the action is `PROBLEM_ACTION[code]` (`preview` → `retryPreviewHosts()` = `stage=preview`
+  for that host set; `download` → `queueRetry(hosts,false)`), plus a per-group «Убрать (N)» and per-host
+  ✕ through the reversible `/api/remove`. `renderProblems()` runs from `renderResults()` on every poll so
+  the badge and tab stay live. Covered by `tests/ProblemSitesTest.php`,
+  `SiteRowsTest::testPreviewEmitsDownloadedFlagAndProblemCodes` and
+  `PanelTest::testDownloadStageMarksProblemSites` (the fake host `alwaysoffer.ru`, an offer wall for
+  everyone, becomes a `download`-stage `offer_wall` problem end to end).
 - `Support\CollectHistory` (`runs/history.json`, newest first, `LIMIT` 500) is the «Статистика» tab, and
   it is entirely about ДОРЫ — the user cut the first version down to exactly that: «зоны анализируются
   именно у поддоменов (доров), отсеяно фильтрами меня не волнует, количество запросов тоже — собрано
