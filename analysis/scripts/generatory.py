@@ -58,6 +58,8 @@ def main(panel, oknopath):
         W[a[0]] = a[1:]
     gen = collections.defaultdict(lambda: [0, 0, 0, 0, set(), set()])
     var = collections.defaultdict(lambda: [0, 0, 0])
+    zones = collections.defaultdict(collections.Counter)
+    byzone = collections.defaultdict(lambda: collections.defaultdict(lambda: [0, 0, 0, 0]))
     for line in open(panel, encoding='utf-8'):
         r = json.loads(line)
         d = (r.get('recrawl_sent_at') or '')[:10]
@@ -74,6 +76,12 @@ def main(panel, oknopath):
         t[3] += w[2]
         t[4].add(b)
         t[5].add(name)
+        zones[g][r.get('tld')] += 1
+        tz = byzone[r.get('tld')][g]
+        tz[0] += 1
+        tz[1] += w[3]
+        tz[2] += w[4]
+        tz[3] += w[2]
         t2 = var[(g, v)]
         t2[0] += 1
         t2[1] += w[3]
@@ -103,10 +111,29 @@ def main(panel, oknopath):
             continue
         names = sorted(t[5])
         print('\n  %s  (%d сайтов, %d наборов)' % (g, t[0], len(names)))
-        for n in names[:8]:
-            print('      %s' % n[:70])
-        if len(names) > 8:
-            print('      … ещё %d' % (len(names) - 8))
+        for n in names:
+            print('      %s' % n)
+
+    print('\n\nСОСТАВ ЗОН У КАЖДОГО ГЕНЕРАТОРА')
+    print('%-24s %8s %s' % ('генератор', 'сайтов', 'зоны'))
+    for g, t in o:
+        if t[0] < 1000:
+            continue
+        z = zones[g]
+        tot = sum(z.values())
+        print('%-24s %8d %s' % (g[:24], t[0],
+              '  '.join('.%s %.0f%%' % (k, 100 * v / tot) for k, v in z.most_common())))
+
+    print('\n\nГЕНЕРАТОР ВНУТРИ ЗОНЫ — чтобы отделить генератор от зоны')
+    for z in ('team', 'lol', 'casino'):
+        print('\n  зона .%s' % z)
+        print('    %-24s %8s %6s %5s %13s %16s'
+              % ('генератор', 'сайтов', 'рег', 'ФД', 'рег на 100', 'рег на 10 тыс. кл'))
+        rowsz = [(g, t) for g, t in byzone[z].items() if t[0] >= 1500]
+        for g, t in sorted(rowsz, key=lambda x: -(x[1][1] / x[1][0])):
+            print('    %-24s %8d %6d %5d %13.3f %16.1f'
+                  % (g[:24], t[0], t[1], t[2], 100 * t[1] / t[0],
+                     10000 * t[1] / t[3] if t[3] else 0))
 
     print('\n\nВАРИАНТЫ ВНУТРИ ГЕНЕРАТОРА (только там, где вариантов несколько)')
     bygen = collections.defaultdict(list)

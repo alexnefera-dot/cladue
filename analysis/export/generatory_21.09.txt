@@ -35,7 +35,36 @@ struktura                     8     1648      0     0          0.000            
       NEW20_12pages_nodate_оформлено
       NEW20_12pages_withdate_styled_img
       NEW20_12pages_withdate_оформлено
-      … ещё 30
+      NEW20_3_12pages_nodate_styled_img
+      NEW20_3_12pages_withdate_styled_img
+      NEW20_3_7pages_nodate_styled_img
+      NEW20_3_7pages_withdate_styled_img
+      NEW20_4_12pages_nodate
+      NEW20_4_12pages_withdate
+      NEW20_4_7pages_nodate
+      NEW20_4_7pages_withdate
+      NEW20_7pages_nodate_styled_img
+      NEW20_7pages_nodate_оформлено
+      NEW20_7pages_withdate_styled_img
+      NEW20_7pages_withdate_оформлено
+      NEW21_12pages_nodate_styled_img
+      NEW21_12pages_withdate_styled_img
+      NEW21_7pages_nodate_styled_img
+      NEW21_7pages_withdate_styled_img
+      NEW33_12pages_nodate+img_25.08
+      NEW33_12pages_withdate+img_25.08
+      NEW33_12pages_withdate_25.08
+      NEW50_12pages_nodate_01.09
+      NEW50_12pages_withdate_01.09
+      NEW50_2_12pages_nodate_02.09
+      NEW50_2_12pages_withdate_02.09
+      NEW50_2_7pages_withdate
+      NEW50_3_12pages_nodate_styled
+      NEW50_3_12pages_withdate_styled
+      NEW50_3_7pages_nodate_styled
+      NEW50_3_7pages_withdate_styled
+      NEW50_7pages_nodate_01.09
+      NEW50_7pages_withdate_01.09
 
   Выдача  (2060 сайтов, 2 наборов)
       Выдача_06.09_12стр
@@ -65,7 +94,19 @@ struktura                     8     1648      0     0          0.000            
       content-2026-09-14-7str-oform-9
       content-2026-09-14b-7str-oform-1
       content-2026-09-14b-7str-oform-2
-      … ещё 13
+      content-2026-09-14c-12str-oform
+      content-2026-09-14c-7str-oform-1
+      content-2026-09-14c-7str-oform-2
+      content-2026-09-15-12str-oform
+      content-2026-09-15-7str-oform-1
+      content-2026-09-15-7str-oform-2
+      content-2026-09-16-12str
+      content-2026-09-16-7str
+      content-2026-09-17-12str-oform
+      content-2026-09-17-7str-oform-1
+      content-2026-09-17-7str-oform-2
+      content-2026-09-17b-7str-oform
+      content-2026-09-19-12str
 
   script yandex  (4326 сайтов, 1 наборов)
       script_yandex_12page
@@ -79,7 +120,7 @@ struktura                     8     1648      0     0          0.000            
       Generator_370382_styled_img
       Generator_385390_styled_img
       Generator_392396_styled_img
-      … ещё 1
+      ТЕСТ B Generator_11page_NOimg_24.08
 
   nabory  (53871 сайтов, 35 наборов)
       nabory-490-494_styled_img
@@ -90,10 +131,83 @@ struktura                     8     1648      0     0          0.000            
       nabory-525-534_styled_img
       nabory-535-544_styled_img
       nabory-545-554_styled_img
-      … ещё 27
+      nabory-555-564_styled_img
+      nabory-565-580
+      nabory-581-590
+      nabory-591-600
+      nabory-601-610
+      nabory-611-620
+      nabory-621-630
+      nabory-631-640
+      nabory-641-650
+      nabory-651-660
+      nabory264268_01.09
+      nabory274283
+      nabory284293
+      nabory294303
+      nabory400410_styled_img
+      nabory411420_styled_img
+      nabory421425_styled_img
+      nabory431435_styled_img
+      nabory436440_styled_img
+      nabory441443_styled_img
+      nabory447451_styled_img
+      nabory455457_styled_img
+      nabory461463_styled_img
+      nabory464466
+      nabory470472_styled_img
+      nabory481483_styled_img_dark
+      nabory484486_styled_img
 
   struktura  (1648 сайтов, 1 наборов)
       struktura8x7
+
+
+СОСТАВ ЗОН У КАЖДОГО ГЕНЕРАТОРА
+генератор                  сайтов зоны
+Generator (dorgen com        1854 .team 100%
+Content script               2266 .lol 64%  .team 36%
+КОНТЕНТ ЗАПИСАН             66990 .team 77%  .lol 13%  .buzz 3%  .casino 1%  .online 1%  .cloud 0%  .store 0%  .site 0%  .shop 0%  .work 0%  .live 0%  .click 0%  .fun 0%  .space 0%  .sbs 0%  .rest 0%  .xyz 0%  .cfd 0%  .cyou 0%  .top 0%  .icu 0%  .quest 0%  .bond 0%
+NEW                         70649 .team 56%  .lol 23%  .casino 20%
+Выдача                       2060 .lol 60%  .team 40%
+КОНТРОЛЬ NEW                 3707 .team 89%  .lol 11%
+clean                       12566 .team 51%  .lol 41%  .casino 8%
+archive                     43463 .lol 44%  .team 28%  .buzz 25%  .casino 3%
+content                    137848 .lol 51%  .team 48%  .casino 1%
+script yandex                4326 .casino 76%  .team 19%  .lol 5%
+Generator                   13595 .team 92%  .lol 8%
+nabory                      53871 .lol 51%  .team 46%  .casino 1%  .buzz 1%
+struktura                    1648 .team 100%
+
+
+ГЕНЕРАТОР ВНУТРИ ЗОНЫ — чтобы отделить генератор от зоны
+
+  зона .team
+    генератор                  сайтов    рег    ФД    рег на 100 рег на 10 тыс. кл
+    Generator (dorgen com        1854      8     0         0.431              1.4
+    КОНТЕНТ ЗАПИСАН             51423     89     8         0.173              1.6
+    NEW                         39750     59    12         0.148              2.6
+    clean                        6386      8     1         0.125              3.5
+    КОНТРОЛЬ NEW                 3295      4     1         0.121              0.9
+    content                     66803     58    11         0.087              2.4
+    Generator                   12565      6     0         0.048              1.2
+    nabory                      24754      6     2         0.024              1.3
+    archive                     12153      2     1         0.016              1.3
+    struktura                    1648      0     0         0.000              0.0
+
+  зона .lol
+    генератор                  сайтов    рег    ФД    рег на 100 рег на 10 тыс. кл
+    NEW                         16479     24     3         0.146              3.3
+    archive                     19157     21     4         0.110              5.2
+    КОНТЕНТ ЗАПИСАН              8644      8     0         0.093              1.9
+    content                     70221     31     8         0.044              1.8
+    clean                        5150      2     1         0.039              1.8
+    nabory                      27699     10     1         0.036              1.5
+
+  зона .casino
+    генератор                  сайтов    рег    ФД    рег на 100 рег на 10 тыс. кл
+    NEW                         14420     21     6         0.146              2.2
+    script yandex                3296      0     0         0.000              0.0
 
 
 ВАРИАНТЫ ВНУТРИ ГЕНЕРАТОРА (только там, где вариантов несколько)
