@@ -15,6 +15,11 @@
   6. Кластерный бутстрэп по пулам — 95% интервал для O/E по регистрациям.
   7. Раздельно по зонам team / lol.
   8. Чувствительность: добавить «КОНТЕНТ НЕ ЗАПИСАН» как пул «не записан + день».
+  Второй проход (разделы 10–12):
+  10. Держится ли дефицит на «горячих» доменах: бинарный исход, потолок, без доменов с ≥3 рег, регистрации за всё время,
+      сайтов с регистрацией, ФД; выход без «мёртвых» доменов и с потолком.
+  11. След партии: ID cf-аккаунта и аккаунта Вебмастера (ранг внутри пула, страта +половина дня, +блок cf-ID).
+  12. Негативный контроль: «ложные признаки» (произвольные разбиения обычных меток) при той же страте.
 Только stdlib. Вывод: stdout и analysis/export/gipotezy_svod/v02_teni.txt
 """
 import csv
@@ -575,6 +580,209 @@ for z in ('team', 'lol', 'casino'):
         p('    %-7s %-22s страт %2d, дом %3d: выход O=%5d E=%7.1f O/E=%.2f; рег O=%2d E=%5.2f O/E=%s' % (
             z, nm, len(used), nf, Oo, Eo, Oo / Eo if Eo else 0, Or, Er, ('%.2f' % (Or / Er)) if Er else 'nan'))
 
+
+# ================================================================== 10. устойчивость к тяжёлым доменам
+p()
+p('=' * 100)
+p('10. ДЕРЖИТСЯ ЛИ ДЕФИЦИТ НА «ГОРЯЧИХ» ДОМЕНАХ СРАВНЕНИЯ (второй проход скептика)')
+p('    Страта контент+день+зона+паттерн (самая жёсткая) и контент+день (тестировщик). Исходы: регистрации в окне как есть;')
+p('    бинарно «домен с ≥1 рег в окне»; потолок 2 рег на домен; без доменов с ≥3 рег (обе группы); без топ-3 сравнения;')
+p('    регистраций за всё время (больше событий); сайтов с регистрацией; ФД в окне.')
+p('=' * 100)
+for r in scope:
+    r['_regall'] = to_int(r['регистраций'])
+    r['_any'] = 1 if r['_regs'] >= 1 else 0
+    r['_cap2'] = min(r['_regs'], 2)
+    r['_sreg'] = to_int(r['сайтов с регистрацией'])
+
+heavy_f = [r for r in scope if isGen(r) and r['_regs'] >= 3]
+heavy_r = [r for r in scope if (not isGen(r)) and r['_regs'] >= 3]
+p('  Доменов с ≥3 рег в окне среди numeric+alpha_other после фильтра: признак %d из %d, обычные %d из %d; макс. рег у признака = %d' % (
+    len(heavy_f), sum(1 for r in scope if isGen(r)), len(heavy_r), sum(1 for r in scope if not isGen(r)),
+    max(r['_regs'] for r in scope if isGen(r))))
+
+
+def strat_field(rs, is_feat, keyf, field, n_perm=3000):
+    """O/E по произвольному полю-исходу внутри страт keyf; перестановка признака внутри страты (односторонний p «хуже»)."""
+    pools_ = defaultdict(list)
+    for r in rs:
+        pools_[keyf(r)].append(r)
+    used_ = {k: v for k, v in pools_.items() if any(is_feat(r) for r in v) and any(not is_feat(r) for r in v)}
+    rate = {}
+    for k, v in used_.items():
+        S = sum(r['_sites'] for r in v)
+        rate[k] = sum(r[field] for r in v) / S
+    feat = [r for v in used_.values() for r in v if is_feat(r)]
+    ref = [r for v in used_.values() for r in v if not is_feat(r)]
+    O = sum(r[field] for r in feat)
+    E = sum(rate[keyf(r)] * r['_sites'] for r in feat)
+    oe = O / E if E else float('nan')
+    pl = [(list(v), sum(1 for r in v if is_feat(r)), k) for k, v in used_.items()]
+    c = 0
+    for _ in range(n_perm):
+        po = pe = 0.0
+        for v, m, k in pl:
+            random.shuffle(v)
+            for r in v[:m]:
+                po += r[field]
+                pe += rate[k] * r['_sites']
+        if (po / pe if pe else 0) <= oe + 1e-12:
+            c += 1
+    return dict(pools=len(used_), nf=len(feat), nr=len(ref), O=O, E=E, oe=oe, p=c / n_perm,
+                ref=sum(r[field] for r in ref), pois=poisson_cdf(O, E) if float(O).is_integer() else float('nan'))
+
+
+def show_field(title, res):
+    p('    %-46s страт %3d, %3d/%-3d: O=%6.1f E=%6.2f O/E=%.3f перест. p=%.3f (у сравнения %d)' % (
+        title, res['pools'], res['nf'], res['nr'], res['O'], res['E'], res['oe'], res['p'], res['ref']))
+
+
+top3_ref = sorted([r for r in scope if not isGen(r)], key=lambda r: -r['_regs'])[:3]
+p('  Топ-3 домена сравнения по рег в окне: %s' % ', '.join('%s (%d)' % (r['домен'], r['_regs']) for r in top3_ref))
+rob = {}
+for snm in ('контент+день+зона+паттерн', 'контент+день'):
+    kf = K[snm]
+    p('  --- страта %s ---' % snm)
+    rob[(snm, 'as_is')] = strat_field(scope, isGen, kf, '_regs')
+    show_field('регистрации в окне, как есть', rob[(snm, 'as_is')])
+    rob[(snm, 'any')] = strat_field(scope, isGen, kf, '_any')
+    show_field('бинарно: доменов с ≥1 рег', rob[(snm, 'any')])
+    rob[(snm, 'cap2')] = strat_field(scope, isGen, kf, '_cap2')
+    show_field('потолок 2 рег на домен', rob[(snm, 'cap2')])
+    rob[(snm, 'no3')] = strat_field([r for r in scope if r['_regs'] < 3], isGen, kf, '_regs')
+    show_field('без доменов с ≥3 рег (обе группы, %d дом.)' % (len(heavy_f) + len(heavy_r)), rob[(snm, 'no3')])
+    rob[(snm, 'notop3')] = strat_field([r for r in scope if r not in top3_ref], isGen, kf, '_regs')
+    show_field('без топ-3 сравнения', rob[(snm, 'notop3')])
+    rob[(snm, 'sreg')] = strat_field(scope, isGen, kf, '_sreg')
+    show_field('сайтов с регистрацией', rob[(snm, 'sreg')])
+    rob[(snm, 'all')] = strat_field(scope, isGen, kf, '_regall')
+    show_field('регистраций за всё время', rob[(snm, 'all')])
+    rob[(snm, 'fd')] = strat_field(scope, isGen, kf, '_fd')
+    show_field('ФД в окне', rob[(snm, 'fd')])
+
+# сколько «горячих» доменов ждать у признака под нулём (перестановка в самой жёсткой страте)
+cnt_hot = 0
+NP = 3000
+plz = [(list(v), sum(1 for r in v if isGen(r))) for v in usedz.values()]
+obs_hot = sum(1 for v in usedz.values() for r in v if isGen(r) and r['_regs'] >= 3)
+hot_tot = sum(1 for v in usedz.values() for r in v if r['_regs'] >= 3)
+hist_hot = Counter()
+for _ in range(NP):
+    h = 0
+    for v, m in plz:
+        random.shuffle(v)
+        h += sum(1 for r in v[:m] if r['_regs'] >= 3)
+    hist_hot[h] += 1
+    if h <= obs_hot:
+        cnt_hot += 1
+p('  «Горячих» (≥3 рег) доменов у признака в страте контент+день+зона+паттерн: %d при %d таких доменах в стратах; под нулём среднее %.2f, P(≤%d) = %.3f' % (
+    obs_hot, hot_tot, sum(k * v for k, v in hist_hot.items()) / NP, obs_hot, cnt_hot / NP))
+
+
+# 10b. выход: не сидит ли дефицит на «мёртвых» доменах (0–5 вышедших сайтов из 206)
+p()
+p('  10b. ВЫХОД: держится ли −8% на «мёртвых» доменах (≤5 вышедших сайтов из 206) — страта контент+день+зона+паттерн')
+for r in scope:
+    r['_dead'] = 1 if r['_out3'] <= 5 else 0
+    r['_out_alive'] = r['_out3']
+dead_f = sum(1 for v in usedz.values() for r in v if isGen(r) and r['_dead'])
+dead_r = sum(1 for v in usedz.values() for r in v if (not isGen(r)) and r['_dead'])
+p('    «мёртвых» доменов в стратах: признак %d из %d, сравнение %d из %d' % (
+    dead_f, sum(1 for v in usedz.values() for r in v if isGen(r)), dead_r, sum(1 for v in usedz.values() for r in v if not isGen(r))))
+show_field('доля мёртвых (O/E по числу доменов)', strat_field(scope, isGen, K['контент+день+зона+паттерн'], '_dead'))
+show_field('выход без мёртвых доменов', strat_field([r for r in scope if not r['_dead']], isGen, K['контент+день+зона+паттерн'], '_out3'))
+show_field('выход как есть', strat_field(scope, isGen, K['контент+день+зона+паттерн'], '_out3'))
+# выход с потолком: медианный домен пула — робастно к «звёздам»
+for r in scope:
+    r['_out_cap'] = min(r['_out3'], 40)
+show_field('выход с потолком 40 сайтов на домен', strat_field(scope, isGen, K['контент+день+зона+паттерн'], '_out_cap'))
+
+# ================================================================== 11. порядок запуска внутри дня / cf как партия
+p()
+p('=' * 100)
+p('11. СЛЕД ПАРТИИ: ID cf-аккаунта и ID аккаунта Вебмастера (последовательные номера ≈ порядок в дне / партия закупки)')
+p('=' * 100)
+for r in scope:
+    r['_cfid'] = int(r['cf-аккаунт']) if r['cf-аккаунт'].isdigit() else -1
+    r['_wmid'] = int(r['аккаунт вебмастера']) if r['аккаунт вебмастера'].isdigit() else -1
+# ID cf по дням: насколько cf сцеплен с днём
+byday = defaultdict(list)
+for r in rows:
+    byday[r['день запуска']].append(int(r['cf-аккаунт']))
+p('  cf-аккаунт ID по дням запуска (мин/медиана/макс) — ID идут блоками по датам, т.е. cf ≈ тень дня, пул его закрывает:')
+p('    ' + '; '.join('%s: %d–%d' % (d[5:], min(v), max(v)) for d, v in sorted(byday.items())[:12]) + ' …')
+# внутри пула: ранг ID у признака (0..1), ожидание 0.5
+def rank_balance(field, name):
+    tot = 0.0
+    n = 0
+    lo = hi = 0
+    for k, v in used68.items():
+        ids = sorted(r[field] for r in v)
+        if len(set(ids)) < 2:
+            continue
+        for r in v:
+            if isGen(r):
+                rk = (ids.index(r[field])) / (len(ids) - 1)
+                tot += rk
+                n += 1
+                if rk < 0.5:
+                    lo += 1
+                elif rk > 0.5:
+                    hi += 1
+    p('  %s: средний ранг признака внутри пула %.3f (ожидание 0.5), ниже медианы %d, выше %d из %d' % (name, tot / n if n else 0, lo, hi, n))
+
+
+rank_balance('_cfid', 'ID cf-аккаунта')
+rank_balance('_wmid', 'ID аккаунта Вебмастера (порядок постановки в дне)')
+# страта контент+день+зона+паттерн + половина дня по ID Вебмастера (ранняя/поздняя)
+med_wm = {}
+wm_by_day = defaultdict(list)
+for r in scope:
+    wm_by_day[r['день запуска']].append(r['_wmid'])
+for d, v in wm_by_day.items():
+    s = sorted(v)
+    med_wm[d] = s[len(s) // 2]
+half = lambda r: 'ранняя' if r['_wmid'] < med_wm[r['день запуска']] else 'поздняя'
+res_half = strat(scope, isGen, lambda r: (r['набор контента'], r['день запуска'], r['_zone'], r['_pat'], half(r)),
+                 n_perm=3000, title='Все признаки, страта контент+день+зона+паттерн+половина дня (по ID Вебмастера)')
+res_cf = strat(scope, isGen, lambda r: (r['набор контента'], r['день запуска'], r['_zone'], r['_pat'], r['_cfid'] // 50),
+               n_perm=3000, title='Все признаки, страта контент+день+зона+паттерн+блок cf-ID по 50')
+
+# ================================================================== 12. негативный контроль: ложные признаки
+p()
+p('=' * 100)
+p('12. НЕГАТИВНЫЙ КОНТРОЛЬ: «ложные признаки» той же природы (произвольные разбиения ОБЫЧНЫХ меток), та же страта')
+p('    Если ложный признак даёт такой же дефицит, наблюдённый — не про «сгенерированность». Страта контент+день+зона+паттерн.')
+p('=' * 100)
+normal = [r for r in scope if not isGen(r)]
+fakes = (
+    ('numeric: первая цифра 1–4 vs 5–9', lambda r: r['_pat'] == 'numeric', lambda r: r['_lab'][0] in '1234'),
+    ('numeric: последняя цифра нечётная', lambda r: r['_pat'] == 'numeric', lambda r: r['_lab'][-1] in '13579'),
+    ('numeric: есть цифра 8 в метке', lambda r: r['_pat'] == 'numeric', lambda r: '8' in r['_lab']),
+    ('буквы: первая буква a–m vs n–z', lambda r: r['_pat'] == 'alpha_other', lambda r: r['_lab'][0] <= 'm'),
+    ('буквы: есть гласная (aeiouy)', lambda r: r['_pat'] == 'alpha_other', lambda r: any(c in 'aeiouy' for c in r['_lab'])),
+    ('буквы: последняя буква a–m', lambda r: r['_pat'] == 'alpha_other', lambda r: r['_lab'][-1] <= 'm'),
+)
+p('  %-40s %5s %8s %8s %6s %6s | %6s %6s %6s %6s' % ('ложный признак', 'страт', 'дом.', 'срав.', 'O/Eвых', 'p', 'рег O', 'E', 'O/E', 'p'))
+fake_oes = []
+fake_oes_out = []
+for nm, sub, ff in fakes:
+    rr = [r for r in normal if sub(r)]
+    res = strat(rr, ff, K['контент+день+зона+паттерн'], n_perm=2000, verbose=False)
+    if 'oe_out' in res:
+        fake_oes.append(res['oe_reg'])
+        fake_oes_out.append(res['oe_out'])
+        p('  %-40s %5d %8d %8d %6.3f %6.3f | %6d %6.2f %6.3f %6.3f' % (
+            nm, res['pools'], res['n_feat'], res['n_ref'], res['oe_out'], res['p_out'], res['O_reg'], res['E_reg'], res['oe_reg'], res['p_reg']))
+# объединённый ложный признак того же объёма
+fake_all = lambda r: (r['_pat'] == 'numeric' and r['_lab'][0] in '1234') or (r['_pat'] == 'alpha_other' and r['_lab'][0] <= 'm')
+resF = strat(normal, fake_all, K['контент+день+зона+паттерн'], n_perm=2000, verbose=False)
+p('  %-40s %5d %8d %8d %6.3f %6.3f | %6d %6.2f %6.3f %6.3f' % (
+    'объединённый ложный (1–4 или a–m)', resF['pools'], resF['n_feat'], resF['n_ref'], resF['oe_out'], resF['p_out'], resF['O_reg'], resF['E_reg'], resF['oe_reg'], resF['p_reg']))
+_gz = resG['контент+день+зона+паттерн']
+p('  Для сравнения настоящий признак при той же страте: выход O/E %.3f (p=%.4f), регистрации O/E %.3f (перест. p=%.3f)' % (
+    _gz['oe_out'], _gz['p_out'], _gz['oe_reg'], _gz['p_reg']))
+
 # ================================================================== 10. сводка
 p()
 p('=' * 100)
@@ -615,9 +823,39 @@ p('   там, где хуже выход, регистрации в норме, 
 p('6. «КОНТЕНТ НЕ ЗАПИСАН» исключён правильно: среди этих 335 признак чаще (37% против 28%) и «эффект» там втрое сильнее (выход 0.71, рег 0.42)')
 p('   без контроля контента — то есть в августе имена с признаком шли вместе с определённым контентом/партией. Включать их нельзя.')
 p()
-p('ИТОГ: тенями контента, дня, зоны, даты, выбросов и объёма дня эффект не объясняется — при самой жёсткой страте знак тот же (рег O/E 0.67, выход 0.92).')
-p('Но заявленные «O/E 0.61, p≈0.02» завышены тенью паттерна внутри пула: по правилам самой гипотезы (тот же паттерн) это O/E 0.67–0.71 при p 0.04–0.09.')
-p('Вердикт тестировщика «частично» выживает; формулировку надо ужать (см. fix).')
+rz = rob[('контент+день+зона+паттерн', 'as_is')]
+rb = rob[('контент+день+зона+паттерн', 'any')]
+rn = rob[('контент+день+зона+паттерн', 'no3')]
+rc = rob[('контент+день+зона+паттерн', 'cap2')]
+ra = rob[('контент+день+зона+паттерн', 'all')]
+r0b = rob[('контент+день', 'any')]
+r0n = rob[('контент+день', 'no3')]
+p('7. (второй проход) Дефицит регистраций держится на «горячих» доменах сравнения: среди numeric+alpha_other 19 доменов с ≥3 рег в окне,')
+p('   и все 19 — обычные метки (у признака максимум 2 рег). В самой жёсткой страте: как есть O/E %.2f (p=%.3f); бинарно «домен с ≥1 рег» %.2f (p=%.2f);' % (
+    rz['oe'], rz['p'], rb['oe'], rb['p']))
+p('   потолок 2 рег %.2f (p=%.2f); без доменов с ≥3 рег %.2f (p=%.2f) — это уже коридор опровержения 0.85–1.15. При страте тестировщика то же: бинарно %.2f (p=%.2f), без горячих %.2f (p=%.2f).' % (
+    rc['oe'], rc['p'], rn['oe'], rn['p'], r0b['oe'], r0b['p'], r0n['oe'], r0n['p']))
+p('   Оговорка: «у признака нет ни одного горячего домена» — само по себе часть сигнала (0 при ожидании %.1f в стратах, p=%.3f), поэтому выкидывать их нельзя;' % (
+    sum(k * v for k, v in hist_hot.items()) / NP, cnt_hot / NP))
+p('   но значит, «в 1.6 раза меньше регистраций» — это не «каждый домен с признаком конвертит хуже», а «домены с признаком реже дают ≥1 рег (−18…−20%, n.s.) и ни разу не выстрелили».')
+p('   Регистрации за всё время (событий больше: %d против %.1f) дают O/E %.2f (p=%.3f) — то же, что в окне.' % (ra['O'], ra['E'], ra['oe'], ra['p']))
+p('8. (второй проход) След партии по ID cf-аккаунта и аккаунта Вебмастера: cf-ID сцеплен с днём (пул закрывает), ранг признака внутри пула 0.46 / 0.52')
+p('   (ожидание 0.5); страта +половина дня по ID Вебмастера: рег O/E %.2f (p=%.3f), выход %.3f; +блок cf-ID: рег %.2f (p=%.3f), выход %.3f. Порядок постановки и cf — не тени.' % (
+    res_half['oe_reg'], res_half['p_reg'], res_half['oe_out'], res_cf['oe_reg'], res_cf['p_reg'], res_cf['oe_out']))
+p('9. (второй проход) Негативный контроль — 7 «ложных признаков» (цифра 1–4, нечётная последняя цифра, есть 8, буква a–m, есть гласная …) при той же страте:')
+fake_oes_out.append(resF['oe_out'])
+fake_oes.append(resF['oe_reg'])
+p('   по выходу O/E %.2f–%.2f (ни один не ниже 0.96; настоящий %.2f, p=%.3f) — дефицит выхода не воспроизводится произвольным разбиением;' % (
+    min(fake_oes_out), max(fake_oes_out), _gz['oe_out'], _gz['p_out']))
+p('   по регистрациям O/E %.2f–%.2f (два ложных признака дали 0.73 при p 0.08–0.15) — настоящий 0.67 (p=0.037) на самом краю того, что даёт случайное разбиение.' % (
+    min(fake_oes), max(fake_oes)))
+p()
+p('ИТОГ: тенями контента, дня, зоны, даты, объёма дня, порядка постановки и cf-аккаунта эффект не объясняется — при самой жёсткой страте знак тот же')
+p('(рег O/E 0.67, выход 0.92), ложные признаки дефицита выхода не дают. Но заявленные «в 1.6 раза меньше регистраций, p≈0.02» завышены дважды:')
+p('(а) тенью паттерна внутри пула — по правилам самой гипотезы (тот же паттерн) это O/E 0.67–0.71 при p 0.04–0.09;')
+p('(б) тяжёлым хвостом — весь дефицит сверх −20% сделан 19 «горячими» обычными доменами; на устойчивых исходах (≥1 рег, потолок 2, без горячих)')
+p('    O/E 0.75–0.90 и ничего не значимо. Выход −8% (p=0.002) — единственная устойчивая часть, но она внутри коридора опровержения 0.85–1.15 по критерию постановки.')
+p('Вердикт «частично» выживает только как «выход чуть ниже (−8%), регистрации — слабый сигнал того же знака»; формулировку про регистрации надо ужать (см. fix).')
 
 with open(OUT, 'w', encoding='utf-8') as fh:
     fh.write('\n'.join(_lines) + '\n')

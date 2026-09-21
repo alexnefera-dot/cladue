@@ -1,14 +1,21 @@
 #!/usr/bin/env python3
 """
-Проверка «тени» для гипотезы №1 (паттерн имени домена).
+Скептик, угол «ТЕНИ» (конфаундинг) для гипотезы №1 (паттерн имени домена).
 
-Вопрос скептика: не является ли остаток результата (casino_infix по регистрациям O/E 1,56, p = 0,041;
-casino_* по выходу в lol 1,13 при p = 0,009 и в team 0,92) тенью зоны, блока часа (партии), одного-двух пулов,
-объёма пула или дат. Страта тестировщика — «набор контента + день». Здесь та же выборка и те же
-ожидания, но страты ужесточаются: + зона (все четыре: team / lol / casino / buzz), + блок часа.
-Плюс вклад каждого пула в O−E, leave-one-pool-out, парные сравнения внутри страты и разбивка по размеру пула.
+Что проверяем: не являются ли остатки результата тестировщика тенью
+  - зоны (в том числе .casino и .buzz, которых зонный разрез тестировщика не видел),
+  - часа запуска внутри пула («партия»: регистрации внутри пула сидят кучно по часу),
+  - одного-двух пулов / одного-двух доменов,
+  - дат (casino-имена есть только с 04.09) и «КОНТЕНТ НЕ ЗАПИСАН»,
+  - объёма пула.
+Остатки, которые проверяем:
+  (1) casino_infix по регистрациям O/E 1,56 (p 0,041) — «формально проходит порог»;
+  (2) «выход от имени не зависит» при противоположных знаках в зонах (team 0,92 / lol 1,13, p 0,009);
+  (3) повтор метки: второй экземпляр O/E 1,15 (выход) / 1,33 (регистрации);
+  (4) имя снимает 35,8 % χ² сверхдисперсии против 27,9 % у случайной разбивки (7,8 п.п., p 0,002).
 
-Только стандартная библиотека. Вывод — в stdout и в analysis/export/gipotezy_svod/v01_teni.txt.
+Фильтр тот же, что у тестировщика. Только стандартная библиотека.
+Вывод — в stdout и в analysis/export/gipotezy_svod/v01_teni.txt.
 """
 
 import csv
@@ -25,6 +32,8 @@ OUT_PATH = os.path.join(OUT_DIR, 'v01_teni.txt')
 os.makedirs(OUT_DIR, exist_ok=True)
 
 N_PERM = 10000
+N_PERM_SMALL = 5000
+N_SPLIT = 1000
 PATTERNS = ['numeric', 'alpha_other', 'casino_prefix', 'casino_infix']
 CASINO = ('casino_prefix', 'casino_infix')
 OUTLIERS = {'3615.team', '3286.team'}
@@ -55,11 +64,15 @@ def binom_two_sided(k, n):
     return min(1.0, 2 * p)
 
 
+def label_of(domain):
+    return domain.rsplit('.', 1)[0]
+
+
 # ---------------------------------------------------------------------------
-# загрузка и тот же фильтр, что у тестировщика
+# загрузка, тот же фильтр
 # ---------------------------------------------------------------------------
 
-def load_kept():
+def load():
     with open(CSV_PATH, encoding='utf-8', newline='') as fh:
         rows = list(csv.DictReader(fh))
     kept = []
@@ -68,9 +81,9 @@ def load_kept():
             continue
         z = r['зона'] if r['зона'] in ('team', 'lol', 'casino', 'buzz') else 'прочие'
         kept.append(dict(
-            домен=r['домен'], зона=z, день=r['день запуска'], набор=r['набор контента'],
-            паттерн=r['паттерн имени'], блок=r['блок часа'], час=r['час запуска'],
-            аккаунт=r['аккаунт вебмастера'],
+            домен=r['домен'], метка=label_of(r['домен']), зона=z, день=r['день запуска'], набор=r['набор контента'],
+            паттерн=r['паттерн имени'], блок=r['блок часа'], час=int(r['час запуска']),
+            cf=r['cf-аккаунт'], wm=r['аккаунт вебмастера'],
             сайтов=toi(r['сайтов в окне']), вышли3=toi(r['вышли за 3 суток']),
             рег=toi(r['регистраций в окне 3 суток']), клик=toi(r['кликов из поиска в окне']),
         ))
@@ -78,20 +91,18 @@ def load_kept():
 
 
 # ---------------------------------------------------------------------------
-# стратифицированный расчёт O/E и перестановка метки внутри страты
+# страты, ожидания, перестановка
 # ---------------------------------------------------------------------------
 
-def stratify(kept, strat_key, min_patterns=2):
-    """Оставляет только страты с >= min_patterns паттернами, дописывает ожидания E_сайт."""
+def stratify(kept, key, min_patterns=2, sub=None):
     strata = defaultdict(list)
     for d in kept:
-        strata[strat_key(d)].append(d)
+        if sub is None or sub(d):
+            strata[key(d)].append(d)
     strata = {k: v for k, v in strata.items() if len(set(d['паттерн'] for d in v)) >= min_patterns}
     items = []
     for k, ds in strata.items():
-        S = sum(d['сайтов'] for d in ds)
-        V = sum(d['вышли3'] for d in ds)
-        R = sum(d['рег'] for d in ds)
+        S = sum(d['сайтов'] for d in ds); V = sum(d['вышли3'] for d in ds); R = sum(d['рег'] for d in ds)
         for d in ds:
             e = dict(d)
             e['страта'] = k
@@ -102,9 +113,11 @@ def stratify(kept, strat_key, min_patterns=2):
     return strata, items
 
 
-def perm_sums(items, n_perm, seed=1, fields=('сайтов', 'вышли3', 'E_вых', 'рег', 'E_рег')):
-    groups = PATTERNS
-    labels = [d['паттерн'] for d in items]
+FIELDS = ('сайтов', 'вышли3', 'E_вых', 'рег', 'E_рег')
+
+
+def perm_sums(items, n_perm, seed=1, group_of=lambda d: d['паттерн'], groups=PATTERNS, fields=FIELDS):
+    labels = [group_of(d) for d in items]
     cols = {f: [float(d[f]) for d in items] for f in fields}
     pools = defaultdict(list)
     for i, d in enumerate(items):
@@ -131,13 +144,12 @@ def perm_sums(items, n_perm, seed=1, fields=('сайтов', 'вышли3', 'E_�
     return obs, perms
 
 
-def chi(s, o_f, e_f):
-    return sum((s[g][o_f] - s[g][e_f]) ** 2 / s[g][e_f] for g in PATTERNS if s[g][e_f] > 0)
+def chi(s, o_f, e_f, groups=PATTERNS):
+    return sum((s[g][o_f] - s[g][e_f]) ** 2 / s[g][e_f] for g in groups if s[g][e_f] > 0)
 
 
-def contrast_p(obs, perms, gs, o_f, e_f):
-    o = sum(obs[g][o_f] for g in gs)
-    e = sum(obs[g][e_f] for g in gs)
+def contrast(obs, perms, gs, o_f, e_f):
+    o = sum(obs[g][o_f] for g in gs); e = sum(obs[g][e_f] for g in gs)
     d = o - e
     diffs = [sum(p[g][o_f] for g in gs) - sum(p[g][e_f] for g in gs) for p in perms]
     p2 = (sum(1 for v in diffs if abs(v) >= abs(d)) + 1) / (len(diffs) + 1)
@@ -147,86 +159,45 @@ def contrast_p(obs, perms, gs, o_f, e_f):
     return o, e, p2, lo, hi
 
 
-def run_stratum(title, kept, strat_key, n_perm=N_PERM, only=None):
-    strata, items = stratify(kept, strat_key)
-    if only:
-        items = [d for d in items if only(d)]
-        strata = {k: v for k, v in strata.items() if any(only(d) for d in v)}
+def run(title, kept, key, n_perm=N_PERM, sub=None, quiet=False):
+    strata, items = stratify(kept, key, sub=sub)
     cnt = Counter(d['паттерн'] for d in items)
-    P()
-    P(f'--- {title} ---')
-    P(f'страт с >= 2 паттернами: {len(strata)}; доменов: {len(items)}; сайтов: {sum(d["сайтов"] for d in items)}; '
-      f'регистраций: {sum(d["рег"] for d in items)}; страт со всеми 4 паттернами: '
-      f'{sum(1 for v in strata.values() if len(set(d["паттерн"] for d in v)) == 4)}; '
-      f'страт с casino_infix и хотя бы одним другим: {sum(1 for v in strata.values() if any(d["паттерн"] == "casino_infix" for d in v))}')
     obs, perms = perm_sums(items, n_perm)
-    res = {}
-    for nm, o_f, e_f in [('ВЫХОД (вышли за 3 суток, E_сайт)', 'вышли3', 'E_вых'), ('РЕГИСТРАЦИИ в окне (E_сайт)', 'рег', 'E_рег')]:
-        P(f'  {nm}:')
-        P(f'  {"паттерн":<14} {"доменов":>7} {"O":>7} {"E":>8} {"O/E":>5} {"O−E":>7}')
-        for g in PATTERNS:
-            o, e = obs[g][o_f], obs[g][e_f]
-            P(f'  {g:<14} {cnt[g]:>7} {int(o):>7} {e:>8.1f} {oe(o, e):>5} {o - e:>+7.1f}')
-            res[(g, o_f)] = (o, e)
+    res = dict(items=items, strata=strata, n=len(items), reg=sum(d['рег'] for d in items), n_str=len(strata))
+    if not quiet:
+        P()
+        P(f'--- {title} ---')
+        P(f'страт с >= 2 паттернами: {len(strata)}; доменов: {len(items)}; сайтов: {sum(d["сайтов"] for d in items)}; '
+          f'регистраций: {sum(d["рег"] for d in items)}; страт со всеми 4 паттернами: '
+          f'{sum(1 for v in strata.values() if len(set(d["паттерн"] for d in v)) == 4)}')
+    for nm, o_f, e_f in [('ВЫХОД', 'вышли3', 'E_вых'), ('РЕГИСТРАЦИИ', 'рег', 'E_рег')]:
         c_o = chi(obs, o_f, e_f)
         pv = (sum(1 for p in perms if chi(p, o_f, e_f) >= c_o) + 1) / (len(perms) + 1)
-        P(f'  Σ(O−E)²/E = {c_o:.2f}; перестановочное p (4 группы) = {pv:.3f}')
         res[('p4', o_f)] = pv
-    o, e, p2, lo, hi = contrast_p(obs, perms, CASINO, 'вышли3', 'E_вых')
-    P(f'  контраст А1 casino_* по выходу: O = {int(o)}, E = {e:.0f}, O/E = {oe(o, e)}, O−E = {o - e:+.0f}, p (двуст.) = {p2:.3f}; коридор нуля {lo:.2f}–{hi:.2f}')
-    res['A1'] = (o / e if e else float('nan'), p2)
-    o, e, p2, lo, hi = contrast_p(obs, perms, ('casino_infix',), 'рег', 'E_рег')
-    P(f'  контраст А2 casino_infix по регистрациям: O = {int(o)}, E = {e:.1f}, O/E = {oe(o, e)}, O−E = {o - e:+.1f}, p (двуст.) = {p2:.3f}; коридор нуля {lo:.2f}–{hi:.2f}')
-    res['A2'] = (o / e if e else float('nan'), p2)
-    o, e, p2, lo, hi = contrast_p(obs, perms, CASINO, 'рег', 'E_рег')
-    P(f'  справочно casino_* по регистрациям: O = {int(o)}, E = {e:.1f}, O/E = {oe(o, e)}, p = {p2:.3f}')
-    res['casino_reg'] = (o / e if e else float('nan'), p2)
-    res['items'] = items
-    res['strata'] = strata
+        for g in PATTERNS:
+            res[(g, o_f)] = (obs[g][o_f], obs[g][e_f])
+        if not quiet:
+            P(f'  {nm}: ' + '; '.join(f'{g} {oe(obs[g][o_f], obs[g][e_f])} ({int(obs[g][o_f])}/{obs[g][e_f]:.1f}, n={cnt[g]})' for g in PATTERNS)
+              + f';  Σ(O−E)²/E = {c_o:.2f}, p (4 группы) = {pv:.3f}')
+    for nm, gs, o_f, e_f in [('A1 casino_* выход', CASINO, 'вышли3', 'E_вых'),
+                             ('A2 casino_infix рег', ('casino_infix',), 'рег', 'E_рег'),
+                             ('casino_* рег', CASINO, 'рег', 'E_рег'),
+                             ('casino_prefix рег', ('casino_prefix',), 'рег', 'E_рег'),
+                             ('casino_infix выход', ('casino_infix',), 'вышли3', 'E_вых')]:
+        o, e, p2, lo, hi = contrast(obs, perms, gs, o_f, e_f)
+        res[nm] = (o / e if e else float('nan'), p2, o, e, lo, hi)
+        if not quiet:
+            P(f'  контраст {nm}: O = {int(o)}, E = {e:.1f}, O/E = {oe(o, e)}, O−E = {o - e:+.1f}, p (двуст.) = {p2:.3f}; коридор нуля {lo:.2f}–{hi:.2f}')
     return res
 
 
-# ---------------------------------------------------------------------------
-# вклад пулов и leave-one-out
-# ---------------------------------------------------------------------------
-
-def pool_contributions(items, strata, group_test, o_f, e_f, title, top=8):
-    P()
-    P(f'--- {title}: вклад страт в O−E ---')
-    contrib = []
-    for k, ds in strata.items():
-        sel = [d for d in items if d['страта'] == k and group_test(d)]
-        if not sel:
-            continue
-        o = sum(d[o_f] for d in sel)
-        e = sum(d[e_f] for d in sel)
-        contrib.append((o - e, o, e, k, len(sel), len(ds), sum(d[o_f] for d in items if d['страта'] == k)))
-    contrib.sort(key=lambda x: -abs(x[0]))
-    tot_o = sum(c[1] for c in contrib); tot_e = sum(c[2] for c in contrib)
-    P(f'  всего: O = {tot_o:.0f}, E = {tot_e:.1f}, O/E = {oe(tot_o, tot_e)}, O−E = {tot_o - tot_e:+.1f}; страт с группой: {len(contrib)}; '
-      f'страт с O−E > 0: {sum(1 for c in contrib if c[0] > 1e-9)}, < 0: {sum(1 for c in contrib if c[0] < -1e-9)}, = 0: {sum(1 for c in contrib if abs(c[0]) <= 1e-9)}')
-    P(f'  {"страта":<62} {"домен.гр":>8} {"в стр":>5} {"O":>4} {"E":>6} {"O−E":>6} {"O стр":>6}')
-    for c in contrib[:top]:
-        P(f'  {str(c[3])[:62]:<62} {c[4]:>8} {c[5]:>5} {c[1]:>4.0f} {c[2]:>6.1f} {c[0]:>+6.1f} {c[6]:>6.0f}')
-    # leave-one-out
-    P('  leave-one-stratum-out (O/E без самой сильной страты, без двух, без трёх):')
-    o, e = tot_o, tot_e
-    for i, c in enumerate(contrib[:3]):
-        o -= c[1]; e -= c[2]
-        P(f'    без {i + 1} самых сильных: O = {o:.0f}, E = {e:.1f}, O/E = {oe(o, e)}')
-    return contrib
-
-
-def sign_test_within(items, strata, group_test, o_f, title, per='сайтов'):
-    """Парные сравнения внутри страты: ставка группы против ставки остальных."""
+def sign_test(items, strata, test, o_f, per='сайтов'):
     w = l = t = 0
-    n = 0
-    for k, ds in strata.items():
-        a = [d for d in items if d['страта'] == k and group_test(d)]
-        b = [d for d in items if d['страта'] == k and not group_test(d)]
+    for k in strata:
+        a = [d for d in items if d['страта'] == k and test(d)]
+        b = [d for d in items if d['страта'] == k and not test(d)]
         if not a or not b:
             continue
-        n += 1
         ra = sum(d[o_f] for d in a) / sum(d[per] for d in a)
         rb = sum(d[o_f] for d in b) / sum(d[per] for d in b)
         if ra > rb + 1e-12:
@@ -235,160 +206,467 @@ def sign_test_within(items, strata, group_test, o_f, title, per='сайтов'):
             l += 1
         else:
             t += 1
-    p = binom_two_sided(w, w + l)
-    P(f'  {title}: страт с обеими группами {n}; группа ЛУЧШЕ остальных в {w}, ХУЖЕ в {l}, равна в {t}; знаковый p (без равных) = {p:.3f}')
-    return w, l, t, p
+    return w, l, t, binom_two_sided(w, w + l)
 
 
 # ---------------------------------------------------------------------------
-# main
+# блоки
 # ---------------------------------------------------------------------------
 
-def main():
-    rows, kept = load_kept()
-    P('=' * 100)
-    P('ПРОВЕРКА ТЕНЕЙ для гипотезы №1: паттерн имени домена')
-    P('=' * 100)
-    P(f'Фильтр тот же: окно закрыто, дней != 1, без 3615.team/3286.team, без «КОНТЕНТ НЕ ЗАПИСАН». Осталось доменов: {len(kept)}')
-    P('Зоны в отфильтрованном наборе: ' + ', '.join(f'{k}:{v}' for k, v in Counter(d['зона'] for d in kept).most_common()))
-
-    # 0. ставки по зонам — тень зоны
-    P()
-    P('--- Ставки по зонам (без страты, для справки): почему зона — тень для casino-имён ---')
-    P(f'  {"зона":<7} {"доменов":>7} {"сайтов":>7} {"выход %":>8} {"рег":>4} {"рег/100 сайтов":>15}   доля паттернов в зоне (numeric / alpha / prefix / infix)')
-    for z in ['team', 'lol', 'casino', 'buzz']:
-        ds = [d for d in kept if d['зона'] == z]
-        S = sum(d['сайтов'] for d in ds); V = sum(d['вышли3'] for d in ds); R = sum(d['рег'] for d in ds)
-        c = Counter(d['паттерн'] for d in ds)
-        P(f'  {z:<7} {len(ds):>7} {S:>7} {100 * V / S:>8.1f} {R:>4} {100 * R / S:>15.3f}   ' + ' / '.join(f'{100 * c[g] / len(ds):.0f}%' for g in PATTERNS))
-    P('  Зона .casino: 87 из 106 доменов — alpha_other (метки вида 1109r, 1109sh), ставка регистраций в 1,5 раза выше team и в 1,9 раза выше lol;')
-    P('  зона .buzz: 0,018 рег/100 сайтов, 55 доменов, из них 26 casino-имён. Зонный разрез тестировщика (только team и lol) эти две зоны не видел.')
-
-    # 1. страта тестировщика — воспроизведение
-    r1 = run_stratum('СТРАТА 1 (как у тестировщика): набор контента + день', kept, lambda d: (d['набор'], d['день']))
-    # 2. + зона (все четыре)
-    r2 = run_stratum('СТРАТА 2: набор контента + день + зона (team / lol / casino / buzz)', kept, lambda d: (d['набор'], d['день'], d['зона']))
-    # 3. + блок часа (партия)
-    r3 = run_stratum('СТРАТА 3: набор контента + день + зона + блок часа', kept, lambda d: (d['набор'], d['день'], d['зона'], d['блок']))
-    # 3б. набор + день + блок часа (без зоны) — чтобы отделить вклад зоны от вклада партии
-    r3b = run_stratum('СТРАТА 3б: набор контента + день + блок часа (без зоны)', kept, lambda d: (d['набор'], d['день'], d['блок']))
-    # 4. + час запуска точный
-    r4 = run_stratum('СТРАТА 4: набор контента + день + зона + час запуска (точный)', kept, lambda d: (d['набор'], d['день'], d['зона'], d['час']))
-
-    # сводная таблица
+def block_raw_gap(rows, kept):
     P()
     P('=' * 100)
-    P('СВОДКА: как меняются контрасты при ужесточении страты')
+    P('БЛОК А. Сырой разрыв casino-имён (0,04 против 0,11 рег/100 сайтов) — откуда он: даты, «КОНТЕНТ НЕ ЗАПИСАН», зона')
     P('=' * 100)
-    P(f'  {"страта":<48} {"доменов":>7} {"рег":>4} {"A1 casino_* выход O/E":>22} {"p":>6} {"A2 casino_infix рег O/E":>24} {"p":>6} {"casino_* рег":>12} {"p4 выход":>8} {"p4 рег":>7}')
-    for nm, r in [('1: набор + день', r1), ('2: + зона', r2), ('3: + зона + блок часа', r3), ('3б: + блок часа (без зоны)', r3b), ('4: + зона + час точный', r4)]:
-        P(f'  {nm:<48} {len(r["items"]):>7} {sum(d["рег"] for d in r["items"]):>4} {r["A1"][0]:>22.2f} {r["A1"][1]:>6.3f} {r["A2"][0]:>24.2f} {r["A2"][1]:>6.3f} {r["casino_reg"][0]:>12.2f} {r[("p4", "вышли3")]:>8.3f} {r[("p4", "рег")]:>7.3f}')
-    P('  O/E по 4 паттернам (регистрации, E_сайт):')
-    for nm, r in [('1: набор + день', r1), ('2: + зона', r2), ('3: + зона + блок часа', r3), ('3б: + блок часа (без зоны)', r3b), ('4: + зона + час точный', r4)]:
-        P(f'    {nm:<30} ' + ', '.join(f'{g} {oe(*r[(g, "рег")])} ({int(r[(g, "рег")][0])}/{r[(g, "рег")][1]:.1f})' for g in PATTERNS))
-    P('  O/E по 4 паттернам (выход):')
-    for nm, r in [('1: набор + день', r1), ('2: + зона', r2), ('3: + зона + блок часа', r3), ('3б: + блок часа (без зоны)', r3b), ('4: + зона + час точный', r4)]:
-        P(f'    {nm:<30} ' + ', '.join(f'{g} {oe(*r[(g, "вышли3")])}' for g in PATTERNS))
+    allr = [r for r in rows if r['домен'] not in OUTLIERS and r['окно закрыто'] == 'да' and r['дней'] != '1']
+    def line(lbl, ds):
+        S = sum(toi(r['сайтов в окне']) for r in ds); V = sum(toi(r['вышли за 3 суток']) for r in ds); R = sum(toi(r['регистраций в окне 3 суток']) for r in ds)
+        return f'  {lbl:<58} доменов {len(ds):>4}  сайтов {S:>6}  выход {100 * V / S if S else 0:>5.1f}%  рег {R:>3}  рег/100 сайтов {100 * R / S if S else 0:.3f}'
+    P('Все домены с закрытым окном и дней != 1 (без выбросов), по периодам и паттернам:')
+    for lbl, sub in [('«КОНТЕНТ НЕ ЗАПИСАН» (до 24.08)', lambda r: r['набор контента'] == NO_CONTENT),
+                     ('с набором, запуск до 04.09 (casino-имён ещё нет)', lambda r: r['набор контента'] != NO_CONTENT and r['день запуска'] < '2026-09-04'),
+                     ('с набором, запуск с 04.09', lambda r: r['набор контента'] != NO_CONTENT and r['день запуска'] >= '2026-09-04')]:
+        ds = [r for r in allr if sub(r)]
+        P(line(lbl, ds))
+        for g in PATTERNS:
+            gg = [r for r in ds if r['паттерн имени'] == g]
+            if gg:
+                P(line('    ' + g, gg))
+    P('Вывод по блоку: сырой разрыв складывается из дат (до 04.09 ставка регистраций у numeric/alpha выше, casino-имён там нет)')
+    P('и внутри сентября — из casino_prefix; casino_infix в сентябре сырой ставкой от numeric/alpha не отличается.')
 
-    # 5. вклад пулов в casino_infix по регистрациям, страта 1 и страта 2
+
+def block_strata_ladder(kept):
     P()
     P('=' * 100)
-    P('ВКЛАД ПУЛОВ: на каких стратах держится casino_infix 21 против 13,4')
+    P('БЛОК Б. Лестница страт: набор+день → +зона → +час → +зона+час (+ блок часа). Что остаётся от 1,56 и от «выход 1,01»')
     P('=' * 100)
-    c1 = pool_contributions(r1['items'], r1['strata'], lambda d: d['паттерн'] == 'casino_infix', 'рег', 'E_рег', 'Страта 1 (набор + день), casino_infix регистрации')
-    c2 = pool_contributions(r2['items'], r2['strata'], lambda d: d['паттерн'] == 'casino_infix', 'рег', 'E_рег', 'Страта 2 (набор + день + зона), casino_infix регистрации')
-    c3 = pool_contributions(r3['items'], r3['strata'], lambda d: d['паттерн'] == 'casino_infix', 'рег', 'E_рег', 'Страта 3 (набор + день + зона + блок часа), casino_infix регистрации')
-
-    # два самых богатых домена — как меняется их E при ужесточении страты
+    ladder = [
+        ('1: набор + день (тестировщик)', lambda d: (d['набор'], d['день'])),
+        ('2: набор + день + зона (4 зоны)', lambda d: (d['набор'], d['день'], d['зона'])),
+        ('3: набор + день + блок часа', lambda d: (d['набор'], d['день'], d['блок'])),
+        ('4: набор + день + час точный', lambda d: (d['набор'], d['день'], d['час'])),
+        ('5: набор + день + зона + блок часа', lambda d: (d['набор'], d['день'], d['зона'], d['блок'])),
+        ('6: набор + день + зона + час точный', lambda d: (d['набор'], d['день'], d['зона'], d['час'])),
+    ]
+    res = {}
+    for nm, key in ladder:
+        res[nm] = run(f'СТРАТА {nm}', kept, key)
     P()
-    P('--- Два самых богатых casino_infix-домена: O и E при разных стратах ---')
-    for dom in ['1109casino.casino', 'msvcasino.lol']:
-        line = f'  {dom}: O = ' + str(next(d['рег'] for d in kept if d['домен'] == dom))
-        for nm, r in [('страта 1', r1), ('страта 2', r2), ('страта 3', r3)]:
-            e = next((d['E_рег'] for d in r['items'] if d['домен'] == dom), None)
-            k = next((d['страта'] for d in r['items'] if d['домен'] == dom), None)
-            n = len(r['strata'][k]) if k else 0
-            line += f'; {nm}: E = {e:.2f} (в страте {n} доменов)' if e is not None else f'; {nm}: не в смешанной страте'
-        P(line)
-    # и что стоит рядом с ними
-    for dom in ['1109casino.casino', 'msvcasino.lol']:
-        k = next(d['страта'] for d in r1['items'] if d['домен'] == dom)
-        ds = r1['strata'][k]
-        P(f'  соседи {dom} по пулу {k}: ' + '; '.join(f'{d["домен"]} ({d["зона"]}, {d["блок"]}, рег {d["рег"]})' for d in sorted(ds, key=lambda d: -d['рег'])))
+    P('СВОДКА ЛЕСТНИЦЫ')
+    P(f'  {"страта":<40} {"домен":>5} {"рег":>4} | {"A1 casino_* выход":>18} {"p":>6} | {"A2 casino_infix рег":>20} {"p":>6} | {"casino_* рег":>12} {"p":>6} | {"casino_prefix рег":>17} | {"p4 вых":>6} {"p4 рег":>6}')
+    for nm, _ in ladder:
+        r = res[nm]
+        P(f'  {nm:<40} {r["n"]:>5} {r["reg"]:>4} | {r["A1 casino_* выход"][0]:>18.2f} {r["A1 casino_* выход"][1]:>6.3f} | '
+          f'{r["A2 casino_infix рег"][0]:>20.2f} {r["A2 casino_infix рег"][1]:>6.3f} | {r["casino_* рег"][0]:>12.2f} {r["casino_* рег"][1]:>6.3f} | '
+          f'{r["casino_prefix рег"][0]:>17.2f} | {r[("p4", "вышли3")]:>6.3f} {r[("p4", "рег")]:>6.3f}')
+    P('  O/E регистраций по 4 паттернам:')
+    for nm, _ in ladder:
+        r = res[nm]
+        P(f'    {nm:<40} ' + ', '.join(f'{g} {oe(*r[(g, "рег")])} ({int(r[(g, "рег")][0])}/{r[(g, "рег")][1]:.1f})' for g in PATTERNS))
+    P('  O/E выхода по 4 паттернам:')
+    for nm, _ in ladder:
+        r = res[nm]
+        P(f'    {nm:<40} ' + ', '.join(f'{g} {oe(*r[(g, "вышли3")])}' for g in PATTERNS))
+    # знаковые критерии внутри страты
+    P()
+    P('  Парные сравнения внутри страты (знаковый критерий: ставка группы против ставки остальных в той же страте):')
+    for nm, _ in ladder:
+        r = res[nm]
+        w, l, t, p = sign_test(r['items'], r['strata'], lambda d: d['паттерн'] == 'casino_infix', 'рег')
+        w2, l2, t2, p2 = sign_test(r['items'], r['strata'], lambda d: d['паттерн'] in CASINO, 'вышли3')
+        w3, l3, t3, p3 = sign_test(r['items'], r['strata'], lambda d: d['паттерн'] == 'casino_infix', 'вышли3')
+        P(f'    {nm:<40} casino_infix рег: лучше {w:>2} / хуже {l:>2} / ничья {t:>2} (p {p:.2f});  casino_* выход: лучше {w2:>2} / хуже {l2:>2} (p {p2:.2f});  casino_infix выход: лучше {w3:>2} / хуже {l3:>2} (p {p3:.2f})')
+    return res
 
-    # 6. парные сравнения внутри страты
+
+def block_hour_batch(kept, res):
     P()
     P('=' * 100)
-    P('ПАРНЫЕ СРАВНЕНИЯ ВНУТРИ СТРАТЫ (знаковый критерий): ставка группы против ставки остальных в той же страте')
+    P('БЛОК В. Партия по часу внутри пула: регистрации сидят кучно по часу запуска — и casino_infix-богачи сидят в богатых партиях')
     P('=' * 100)
-    for nm, r in [('страта 1 (набор + день)', r1), ('страта 2 (+ зона)', r2), ('страта 3 (+ зона + блок часа)', r3)]:
-        P(f'  [{nm}]')
-        sign_test_within(r['items'], r['strata'], lambda d: d['паттерн'] == 'casino_infix', 'рег', 'casino_infix по регистрациям (рег/сайт)')
-        sign_test_within(r['items'], r['strata'], lambda d: d['паттерн'] in CASINO, 'рег', 'casino_* по регистрациям (рег/сайт)')
-        sign_test_within(r['items'], r['strata'], lambda d: d['паттерн'] in CASINO, 'вышли3', 'casino_* по выходу (вышли/сайт)')
-        sign_test_within(r['items'], r['strata'], lambda d: d['паттерн'] == 'casino_infix', 'вышли3', 'casino_infix по выходу (вышли/сайт)')
-    P('  Замечание: по регистрациям большинство страт — ничья 0:0 (регистраций 175 на ~1000 доменов), знаковый критерий здесь малосилен.')
+    strata, items = stratify(kept, lambda d: (d['набор'], d['день']))
+    # сверхдисперсия регистраций по (пул, час) относительно пула: χ² Пуассона
+    chi_pool = 0.0; df_pool = 0; chi_hour = 0.0; df_hour = 0
+    for k, ds in strata.items():
+        S = sum(d['сайтов'] for d in ds); R = sum(d['рег'] for d in ds)
+        if R == 0:
+            continue
+        for d in ds:
+            e = R / S * d['сайтов']
+            chi_pool += (d['рег'] - e) ** 2 / e
+        df_pool += len(ds) - 1
+        byh = defaultdict(list)
+        for d in ds:
+            byh[d['час']].append(d)
+        for hds in byh.values():
+            Sh = sum(d['сайтов'] for d in hds); Rh = sum(d['рег'] for d in hds)
+            if Rh == 0:
+                continue
+            for d in hds:
+                e = Rh / Sh * d['сайтов']
+                chi_hour += (d['рег'] - e) ** 2 / e
+            df_hour += len(hds) - 1
+    P(f'  χ² Пуассона регистраций по доменам: ставка пула → χ²/df = {chi_pool / df_pool:.2f} (df {df_pool}); ставка (пул, час) → χ²/df = {chi_hour / df_hour:.2f} (df {df_hour})')
+    # случайные разбивки на часы тех же размеров
+    rng = random.Random(1)
+    drops = []
+    real_drop = 1 - chi_hour / chi_pool
+    for _ in range(N_SPLIT):
+        tot = 0.0
+        for k, ds in strata.items():
+            R = sum(d['рег'] for d in ds)
+            if R == 0:
+                continue
+            hs = [d['час'] for d in ds]
+            rng.shuffle(hs)
+            byh = defaultdict(list)
+            for d, h in zip(ds, hs):
+                byh[h].append(d)
+            for hds in byh.values():
+                Sh = sum(d['сайтов'] for d in hds); Rh = sum(d['рег'] for d in hds)
+                if Rh == 0:
+                    continue
+                for d in hds:
+                    e = Rh / Sh * d['сайтов']
+                    tot += (d['рег'] - e) ** 2 / e
+        drops.append(1 - tot / chi_pool)
+    mean_drop = sum(drops) / len(drops)
+    p_split = (sum(1 for x in drops if x >= real_drop) + 1) / (len(drops) + 1)
+    P(f'  Ячейки (пул, час) снимают {100 * real_drop:.1f}% χ² регистраций; случайные разбивки на те же ячейки — {100 * mean_drop:.1f}% (p = {p_split:.3f}).')
+    # пулы с >= 4 регистрациями: концентрация по часу
+    P('  Пулы с >= 4 регистрациями: регистрации по часам запуска (рег / доменов в партии), casino_infix-домены с рег помечены *:')
+    for k, ds in sorted(strata.items(), key=lambda kv: -sum(d['рег'] for d in kv[1])):
+        R = sum(d['рег'] for d in ds)
+        if R < 4:
+            break
+        byh = defaultdict(lambda: [0, 0, []])
+        for d in ds:
+            byh[d['час']][0] += d['рег']; byh[d['час']][1] += 1
+            if d['паттерн'] == 'casino_infix' and d['рег'] > 0:
+                byh[d['час']][2].append(f'{d["домен"]}={d["рег"]}')
+        P(f'    {str(k)[:60]:<60} доменов {len(ds):>2}, рег {R:>2}: ' + ', '.join(f'{h:02d}ч {v[0]}/{v[1]}' + (' *' + ' '.join(v[2]) if v[2] else '') for h, v in sorted(byh.items())))
+    # casino_infix: E от (пул, час) для каждого casino_infix-домена с рег
+    P()
+    P('  casino_infix-домены с регистрациями: O, E от пула и E от партии (пул + час точный), число доменов в партии:')
+    s4, it4 = stratify(kept, lambda d: (d['набор'], d['день'], d['час']))
+    e4 = {d['домен']: (d['E_рег'], len(s4[d['страта']])) for d in it4}
+    e1 = {d['домен']: d['E_рег'] for d in items}
+    for d in sorted([d for d in items if d['паттерн'] == 'casino_infix' and d['рег'] > 0], key=lambda d: -d['рег']):
+        a = e4.get(d['домен'])
+        P(f'    {d["домен"]:<22} {d["зона"]:<6} {d["день"]} {d["час"]:02d}ч  O = {d["рег"]}  E_пул = {e1[d["домен"]]:.2f}  ' + (f'E_партия = {a[0]:.2f} (в партии {a[1]} доменов)' if a else 'партия однородна по паттерну — вне сравнения'))
 
-    # 7. зона lol: выход casino_* 1,13 — тень партии?
+
+def block_two_domains(kept, res):
     P()
     P('=' * 100)
-    P('ВЫХОД В ЗОНАХ: casino_* team 0,92 / lol 1,13 (p 0,009) — держится ли при страте + блок часа')
+    P('БЛОК Г. Два домена и зона .casino / .buzz: на чём держится 21 против 13,4')
     P('=' * 100)
+    r1 = res['1: набор + день (тестировщик)']
+    items = r1['items']
+    ci = [d for d in items if d['паттерн'] == 'casino_infix']
+    O = sum(d['рег'] for d in ci); E = sum(d['E_рег'] for d in ci)
+    P(f'  casino_infix в страте 1: доменов {len(ci)}, O = {O}, E = {E:.1f}, O/E = {oe(O, E)}; по зонам: ' +
+      ', '.join(f'{z}: {sum(1 for d in ci if d["зона"] == z)} доменов, O {sum(d["рег"] for d in ci if d["зона"] == z)}, E {sum(d["E_рег"] for d in ci if d["зона"] == z):.1f}' for z in ['team', 'lol', 'casino', 'buzz']))
+    for lbl, drop in [('без зоны .casino (5 доменов casino_infix)', lambda d: d['зона'] == 'casino'),
+                      ('без зон .casino и .buzz', lambda d: d['зона'] in ('casino', 'buzz')),
+                      ('без 1109casino.casino', lambda d: d['домен'] == '1109casino.casino'),
+                      ('без 1109casino.casino и msvcasino.lol', lambda d: d['домен'] in ('1109casino.casino', 'msvcasino.lol'))]:
+        sel = [d for d in ci if not drop(d)]
+        o = sum(d['рег'] for d in sel); e = sum(d['E_рег'] for d in sel)
+        P(f'    {lbl:<48}: доменов {len(sel):>3}, O = {o:>2}, E = {e:.1f}, O/E = {oe(o, e)}')
+    # доля доменов с регистрацией — не зависит от кучности
+    P('  Доля доменов с хотя бы одной регистрацией (устойчива к кучности регистраций на домене), страта 1:')
+    for g in PATTERNS:
+        ds = [d for d in items if d['паттерн'] == g]
+        n1 = sum(1 for d in ds if d['рег'] > 0)
+        # ожидание: доля доменов с рег в пуле × число доменов группы в пуле
+        e = 0.0
+        for k, v in r1['strata'].items():
+            ng = sum(1 for d in v if d['паттерн'] == g)
+            if ng:
+                e += ng * sum(1 for d in v if d['рег'] > 0) / len(v)
+        P(f'    {g:<14} доменов {len(ds):>3}, с регистрацией {n1:>2}, ожидалось {e:.1f}, O/E = {oe(n1, e)}')
+    # перестановочный p для доли доменов с рег (casino_infix)
+    strata = r1['strata']
+    obs_n = sum(1 for d in items if d['паттерн'] == 'casino_infix' and d['рег'] > 0)
+    rng = random.Random(1)
+    cnt = 0
+    for _ in range(N_PERM):
+        tot = 0
+        for k, v in strata.items():
+            labs = [d['паттерн'] for d in v]
+            rng.shuffle(labs)
+            tot += sum(1 for d, l in zip(v, labs) if l == 'casino_infix' and d['рег'] > 0)
+        if tot >= obs_n:
+            cnt += 1
+    P(f'    casino_infix: доменов с регистрацией {obs_n}; перестановочное p (односторон., >=) = {(cnt + 1) / (N_PERM + 1):.3f}')
+
+
+def block_zone_interaction(kept):
+    P()
+    P('=' * 100)
+    P('БЛОК Д. Выход: casino_* team 0,92 / lol 1,13 — разница между зонами значима? (перестановка внутри страты, статистика = разность O/E)')
+    P('=' * 100)
+    out = {}
+    for nm, key in [('пул + зона', lambda d: (d['набор'], d['день'], d['зона'])),
+                    ('пул + зона + блок часа', lambda d: (d['набор'], d['день'], d['зона'], d['блок'])),
+                    ('пул + зона + час точный', lambda d: (d['набор'], d['день'], d['зона'], d['час']))]:
+        strata, items = stratify(kept, key)
+        items = [d for d in items if d['зона'] in ('team', 'lol')]
+        labels = [d['паттерн'] for d in items]
+        zones = [d['зона'] for d in items]
+        v3 = [float(d['вышли3']) for d in items]; ev = [d['E_вых'] for d in items]
+        pools = defaultdict(list)
+        for i, d in enumerate(items):
+            pools[d['страта']].append(i)
+        pool_idx = [v for v in pools.values() if len(v) >= 2]
+
+        def stat(lab):
+            o = {'team': 0.0, 'lol': 0.0}; e = {'team': 0.0, 'lol': 0.0}
+            for i, g in enumerate(lab):
+                if g in CASINO:
+                    o[zones[i]] += v3[i]; e[zones[i]] += ev[i]
+            rt = o['team'] / e['team'] if e['team'] else float('nan')
+            rl = o['lol'] / e['lol'] if e['lol'] else float('nan')
+            return rt, rl
+        rt, rl = stat(labels)
+        d_obs = rl - rt
+        rng = random.Random(1)
+        lab = labels[:]
+        cnt = 0; cnt_lol = 0; cnt_team = 0
+        for _ in range(N_PERM):
+            for idx in pool_idx:
+                cur = [lab[i] for i in idx]
+                rng.shuffle(cur)
+                for i, g in zip(idx, cur):
+                    lab[i] = g
+            t, l = stat(lab)
+            if abs(l - t) >= abs(d_obs):
+                cnt += 1
+            if abs(l - 1) >= abs(rl - 1):
+                cnt_lol += 1
+            if abs(t - 1) >= abs(rt - 1):
+                cnt_team += 1
+        P(f'  [{nm}] casino_* выход O/E: team {rt:.3f} (p {(cnt_team + 1) / (N_PERM + 1):.3f}), lol {rl:.3f} (p {(cnt_lol + 1) / (N_PERM + 1):.3f}); '
+          f'разность lol − team = {d_obs:+.3f}, перестановочное p = {(cnt + 1) / (N_PERM + 1):.3f}; доменов {len(items)}, страт {len(pool_idx)}')
+        out[nm] = (rt, rl, d_obs, (cnt + 1) / (N_PERM + 1))
+    # что отличается у casino-имён от остальных внутри пула в lol и в team: часы, блоки
+    P('  Проверка записанных признаков внутри страты пул+зона: доля casino-имён по блокам часа (team / lol) против остальных:')
+    strata, items = stratify(kept, lambda d: (d['набор'], d['день'], d['зона']))
     for z in ['team', 'lol']:
-        zk = [d for d in kept if d['зона'] == z]
-        rz2 = run_stratum(f'[{z}] набор + день (внутри зоны = страта 2 тестировщика)', zk, lambda d: (d['набор'], d['день']), n_perm=5000)
-        rz3 = run_stratum(f'[{z}] набор + день + блок часа', zk, lambda d: (d['набор'], d['день'], d['блок']), n_perm=5000)
-        rz4 = run_stratum(f'[{z}] набор + день + час точный', zk, lambda d: (d['набор'], d['день'], d['час']), n_perm=5000)
-        P(f'  [{z}] casino_* по выходу: страта пул+зона O/E {rz2["A1"][0]:.2f} (p {rz2["A1"][1]:.3f}) → + блок часа {rz3["A1"][0]:.2f} (p {rz3["A1"][1]:.3f}) → + час точный {rz4["A1"][0]:.2f} (p {rz4["A1"][1]:.3f})')
-        pool_contributions(rz2['items'], rz2['strata'], lambda d: d['паттерн'] in CASINO, 'вышли3', 'E_вых', f'[{z}] casino_* выход, страта пул+зона', top=6)
-        sign_test_within(rz2['items'], rz2['strata'], lambda d: d['паттерн'] in CASINO, 'вышли3', f'[{z}] casino_* по выходу, пул+зона')
-        sign_test_within(rz3['items'], rz3['strata'], lambda d: d['паттерн'] in CASINO, 'вышли3', f'[{z}] casino_* по выходу, пул+зона+блок часа')
+        zi = [d for d in items if d['зона'] == z]
+        c = Counter((d['паттерн'] in CASINO, d['блок']) for d in zi)
+        nc = sum(1 for d in zi if d['паттерн'] in CASINO); nn = len(zi) - nc
+        P(f'    {z}: casino ' + ', '.join(f'{b} {100 * c[(True, b)] / nc:.0f}%' for b in ['00-05', '06-11', '12-17', '18-23']) + ' | остальные ' +
+          ', '.join(f'{b} {100 * c[(False, b)] / nn:.0f}%' for b in ['00-05', '06-11', '12-17', '18-23']))
+    P('  cf-аккаунт и аккаунт Вебмастера внутри пула уникальны для каждого домена (проверено: 0 пар доменов одного пула на одном cf-аккаунте) —')
+    P('  партию по аккаунту проверить нельзя; партия по часу (выше) разницу между зонами не снимает.')
+    return out
 
-    # 8. объём пула: держится ли casino_infix на больших пулах
+
+def block_overdispersion(kept):
     P()
     P('=' * 100)
-    P('ОБЪЁМ ПУЛА: casino_infix по регистрациям в малых и больших пулах (страта 1 и страта 2)')
+    P('БЛОК Е. Сверхдисперсия выхода: снимает ли имя что-то сверх случайной разбивки, когда ячейки уже учитывают зону (и час)')
     P('=' * 100)
-    for nm, r in [('страта 1', r1), ('страта 2', r2)]:
+    pools_all = defaultdict(list)
+    for d in kept:
+        pools_all[(d['набор'], d['день'])].append(d)
+    pools = {k: v for k, v in pools_all.items() if len(v) >= 5}
+    items = [d for v in pools.values() for d in v]
+    for d in items:
+        lab = d['метка']
+        if d['паттерн'] == 'numeric':
+            d['ячейка'] = 'numeric: ведущий 0' if lab.startswith('0') else 'numeric: без 0'
+        elif d['паттерн'] == 'alpha_other':
+            d['ячейка'] = 'alpha_other: только буквы' if lab.isalpha() else 'alpha_other: смесь'
+        else:
+            d['ячейка'] = d['паттерн']
+
+    def chi_cells(ds, cell_of):
+        cells = defaultdict(list)
+        for d in ds:
+            cells[cell_of(d)].append(d)
+        c = 0.0
+        for cds in cells.values():
+            S = sum(d['сайтов'] for d in cds); V = sum(d['вышли3'] for d in cds)
+            if S == 0:
+                continue
+            p = V / S
+            if p <= 0 or p >= 1:
+                continue
+            for d in cds:
+                c += (d['вышли3'] - d['сайтов'] * p) ** 2 / (d['сайтов'] * p * (1 - p))
+        return c, len(cells)
+
+    P(f'  Пулов >= 5 доменов: {len(pools)}; доменов: {len(items)}')
+    rng = random.Random(1)
+    for base_nm, base_of in [('пул', lambda d: 0), ('пул × зона', lambda d: d['зона']), ('пул × зона × блок часа', lambda d: (d['зона'], d['блок'])),
+                             ('пул × зона × час точный', lambda d: (d['зона'], d['час']))]:
+        chi_b = 0.0; df_b = 0; chi_n = 0.0; df_n = 0
+        for k, ds in pools.items():
+            c, nc = chi_cells(ds, base_of); chi_b += c; df_b += len(ds) - nc
+            c2, nc2 = chi_cells(ds, lambda d: (base_of(d), d['ячейка'])); chi_n += c2; df_n += len(ds) - nc2
+        real = 1 - chi_n / chi_b
+        drops = []
+        for _ in range(N_SPLIT):
+            tot = 0.0
+            for k, ds in pools.items():
+                # перестановка ячейки имени внутри базовой ячейки (сохраняем размеры)
+                groups = defaultdict(list)
+                for d in ds:
+                    groups[base_of(d)].append(d)
+                m = {}
+                for g in groups.values():
+                    labs = [d['ячейка'] for d in g]
+                    rng.shuffle(labs)
+                    for d, l in zip(g, labs):
+                        m[id(d)] = l
+                c, _ = chi_cells(ds, lambda d: (base_of(d), m[id(d)]))
+                tot += c
+            drops.append(1 - tot / chi_b)
+        mean_drop = sum(drops) / len(drops)
+        p_split = (sum(1 for x in drops if x >= real) + 1) / (len(drops) + 1)
+        P(f'  база «{base_nm}»: χ²/df {chi_b / df_b:.2f} (df {df_b}) → + признак имени {chi_n / df_n:.2f} (df {df_n}); '
+          f'снято {100 * real:.1f}% против {100 * mean_drop:.1f}% у случайной разбивки (разница {100 * (real - mean_drop):+.1f} п.п., p = {p_split:.3f})')
+    # зона сама по себе против случайной
+    chi_b = 0.0; chi_z = 0.0; df_z = 0
+    drops = []
+    for k, ds in pools.items():
+        c, _ = chi_cells(ds, lambda d: 0); chi_b += c
+        c2, nc = chi_cells(ds, lambda d: d['зона']); chi_z += c2; df_z += len(ds) - nc
+    real_z = 1 - chi_z / chi_b
+    for _ in range(N_SPLIT):
+        tot = 0.0
+        for k, ds in pools.items():
+            labs = [d['зона'] for d in ds]
+            rng.shuffle(labs)
+            m = {id(d): l for d, l in zip(ds, labs)}
+            c, _ = chi_cells(ds, lambda d: m[id(d)]); tot += c
+        drops.append(1 - tot / chi_b)
+    P(f'  для сравнения: зона одна снимает {100 * real_z:.1f}% χ² против {100 * sum(drops) / len(drops):.1f}% у случайной (разница {100 * (real_z - sum(drops) / len(drops)):+.1f} п.п.)')
+
+
+def block_repeat(kept):
+    P()
+    P('=' * 100)
+    P('БЛОК Ж. Повтор метки: второй экземпляр O/E 1,15 / 1,33 — относительно пула или относительно пула + зоны?')
+    P('=' * 100)
+    lab = defaultdict(list)
+    for d in kept:
+        lab[d['метка']].append(d)
+    pairs = [sorted(v, key=lambda d: d['день']) for v in lab.values() if len(v) == 2]
+    diff = [v for v in pairs if v[0]['день'] != v[1]['день']]
+    P(f'  пар {len(pairs)}, с разными днями {len(diff)}; зона второго по дате экземпляра: ' + ', '.join(f'{k}:{v}' for k, v in Counter(v[1]['зона'] for v in diff).most_common())
+      + '; зона первого: ' + ', '.join(f'{k}:{v}' for k, v in Counter(v[0]['зона'] for v in diff).most_common()))
+    for nm, key in [('пул', lambda d: (d['набор'], d['день'])), ('пул + зона', lambda d: (d['набор'], d['день'], d['зона']))]:
+        strata = defaultdict(list)
+        for d in kept:
+            strata[key(d)].append(d)
+        loo = {}
+        for k, ds in strata.items():
+            S = sum(d['сайтов'] for d in ds); V = sum(d['вышли3'] for d in ds); R = sum(d['рег'] for d in ds)
+            for d in ds:
+                s2, v2, r2 = S - d['сайтов'], V - d['вышли3'], R - d['рег']
+                loo[d['домен']] = (v2 / s2 * d['сайтов'], r2 / s2 * d['сайтов']) if len(ds) >= 2 and s2 > 0 else None
+        for idx, lbl in [(0, 'первый'), (1, 'второй')]:
+            ds = [v[idx] for v in diff if loo.get(v[idx]['домен'])]
+            o = sum(d['вышли3'] for d in ds); e = sum(loo[d['домен']][0] for d in ds)
+            o2 = sum(d['рег'] for d in ds); e2 = sum(loo[d['домен']][1] for d in ds)
+            P(f'    [{nm}] {lbl} экземпляр: выход O/E = {oe(o, e)} ({int(o)}/{e:.0f}), регистрации O/E = {oe(o2, e2)} ({o2}/{e2:.1f}), доменов с E: {len(ds)}')
+        w = l = t = 0
+        for a, b in diff:
+            if loo.get(a['домен']) and loo.get(b['домен']):
+                ra = a['вышли3'] / loo[a['домен']][0] if loo[a['домен']][0] else None
+                rb = b['вышли3'] / loo[b['домен']][0] if loo[b['домен']][0] else None
+                if ra is None or rb is None:
+                    continue
+                if rb < ra - 1e-12: w += 1
+                elif rb > ra + 1e-12: l += 1
+                else: t += 1
+        P(f'    [{nm}] знаковый (O/E выхода относительно страты): второй ХУЖЕ в {w}, ЛУЧШЕ в {l}, равен {t}; p = {binom_two_sided(w, w + l):.3f}')
+
+
+def block_pool_volume(res):
+    P()
+    P('=' * 100)
+    P('БЛОК З. Объём пула: casino_infix по регистрациям и выходу в малых / средних / больших пулах (страта 1 и страта 2)')
+    P('=' * 100)
+    for nm in ['1: набор + день (тестировщик)', '2: набор + день + зона (4 зоны)']:
+        r = res[nm]
         for lo, hi, lab in [(2, 6, 'пулы 2–6 доменов'), (7, 12, 'пулы 7–12 доменов'), (13, 999, 'пулы >= 13 доменов')]:
-            ks = [k for k, v in r['strata'].items() if lo <= len(v) <= hi]
-            sel = [d for d in r['items'] if d['страта'] in set(ks)]
+            ks = set(k for k, v in r['strata'].items() if lo <= len(v) <= hi)
+            sel = [d for d in r['items'] if d['страта'] in ks]
             ci = [d for d in sel if d['паттерн'] == 'casino_infix']
             o = sum(d['рег'] for d in ci); e = sum(d['E_рег'] for d in ci)
             oc = sum(d['вышли3'] for d in ci); ec = sum(d['E_вых'] for d in ci)
-            P(f'  [{nm}] {lab:<22}: страт {len(ks):>3}, доменов {len(sel):>4}, casino_infix {len(ci):>3}; рег O/E = {oe(o, e)} ({int(o)}/{e:.1f}); выход O/E = {oe(oc, ec)}')
+            P(f'  [{nm[:2]}] {lab:<22}: страт {len(ks):>3}, доменов {len(sel):>4}, casino_infix {len(ci):>3}; рег O/E = {oe(o, e)} ({o}/{e:.1f}); выход O/E = {oe(oc, ec)}')
 
-    # 9. даты: только пулы с 04.09 (где casino-имена вообще есть) — как ведут себя numeric/alpha
+
+def block_knz(rows):
     P()
     P('=' * 100)
-    P('ДАТЫ: пулы только с 04.09 (в них есть casino-имена) — numeric 1,08 / alpha_other 0,87 те же?')
+    P('БЛОК И. «КОНТЕНТ НЕ ЗАПИСАН»: 21 casino-имя, которые тестировщик не считал, — где они и что с их выходом внутри дня')
     P('=' * 100)
-    sept = [d for d in kept if d['день'] >= '2026-09-04']
-    rs = run_stratum('пулы с 04.09, страта набор + день', sept, lambda d: (d['набор'], d['день']), n_perm=5000)
-    rs2 = run_stratum('пулы с 04.09, страта набор + день + зона', sept, lambda d: (d['набор'], d['день'], d['зона']), n_perm=5000)
+    knz = [r for r in rows if r['набор контента'] == NO_CONTENT and r['окно закрыто'] == 'да' and r['домен'] not in OUTLIERS]
+    cas = [r for r in knz if r['паттерн имени'].startswith('casino')]
+    P(f'  casino-имён среди «КОНТЕНТ НЕ ЗАПИСАН» с закрытым окном: {len(cas)}; дни запуска: ' + ', '.join(f'{k}:{v}' for k, v in sorted(Counter(r['день запуска'] for r in cas).items()))
+      + '; регистраций у них: ' + str(sum(toi(r['регистраций в окне 3 суток']) for r in cas)))
+    days = defaultdict(list)
+    for r in knz:
+        days[r['день запуска']].append(r)
+    for lbl, keyz in [('день', lambda r: ()), ('день + зона', lambda r: (r['зона'],))]:
+        oc = ec = 0.0
+        for d, v in days.items():
+            byk = defaultdict(list)
+            for r in v:
+                byk[keyz(r)].append(r)
+            for ds in byk.values():
+                c = [r for r in ds if r['паттерн имени'].startswith('casino')]; o = [r for r in ds if not r['паттерн имени'].startswith('casino')]
+                if c and o:
+                    Sc = sum(toi(r['сайтов в окне']) for r in c); Vc = sum(toi(r['вышли за 3 суток']) for r in c)
+                    So = sum(toi(r['сайтов в окне']) for r in o); Vo = sum(toi(r['вышли за 3 суток']) for r in o)
+                    oc += Vc; ec += (Vc + Vo) / (Sc + So) * Sc
+        P(f'  выход casino-имён внутри страты «{lbl}» (набор неизвестен): O = {int(oc)}, E = {ec:.1f}, O/E = {oe(oc, ec)}')
+    P('  То есть и там, где набор не записан, casino-имена внутри дня выходят как соседи; исключение этих 21 домена результат не меняет.')
 
-    # 10. буфер: E_вышли под стратой 2 и 3 (регистрации на вышедший сайт)
+
+def main():
+    rows, kept = load()
+    P('=' * 100)
+    P('СКЕПТИК (ТЕНИ) по гипотезе №1: паттерн имени домена. Фильтр тестировщика: окно закрыто, дней != 1, без выбросов, без «КОНТЕНТ НЕ ЗАПИСАН»')
+    P('=' * 100)
+    P(f'Доменов после фильтра: {len(kept)}; зоны: ' + ', '.join(f'{k}:{v}' for k, v in Counter(d['зона'] for d in kept).most_common()))
+    P('Паттерн × зона (после фильтра): ' + '; '.join(f'{g}: ' + '/'.join(f'{z} {sum(1 for d in kept if d["паттерн"] == g and d["зона"] == z)}' for z in ['team', 'lol', 'casino', 'buzz']) for g in PATTERNS))
+    P('Ставки по зонам (без страты): ' + '; '.join(f'{z}: выход {100 * sum(d["вышли3"] for d in kept if d["зона"] == z) / sum(d["сайтов"] for d in kept if d["зона"] == z):.1f}%, '
+      f'рег/100 сайтов {100 * sum(d["рег"] for d in kept if d["зона"] == z) / sum(d["сайтов"] for d in kept if d["зона"] == z):.3f}' for z in ['team', 'lol', 'casino', 'buzz']))
+    P('Скрытых полей, различающихся внутри пула по паттерну, нет: шаблон, страниц, оформление, наборов на домене — свойства набора (в пуле одно значение);')
+    P('который раз аккаунт = 1, аккаунт свежий = да, дней = 2 у всех доменов смешанных пулов; cf-аккаунт и аккаунт Вебмастера уникальны внутри пула.')
+    P('Остаётся проверяемое: зона, час/блок часа (партия), отдельные домены и пулы, объём пула, даты.')
+
+    block_raw_gap(rows, kept)
+    res = block_strata_ladder(kept)
+    block_hour_batch(kept, res)
+    block_two_domains(kept, res)
+    inter = block_zone_interaction(kept)
+    block_overdispersion(kept)
+    block_repeat(kept)
+    block_pool_volume(res)
+    block_knz(rows)
+
     P()
     P('=' * 100)
-    P('РЕГИСТРАЦИИ НА ВЫШЕДШИЙ САЙТ (E_вышли) при жёстких стратах — casino_infix')
+    P('ИТОГ СКЕПТИКА (ТЕНИ)')
     P('=' * 100)
-    for nm, r in [('страта 1', r1), ('страта 2', r2), ('страта 3', r3)]:
-        ci = [d for d in r['items'] if d['паттерн'] == 'casino_infix']
-        o = sum(d['рег'] for d in ci); e = sum(d['E_рег_вышли'] for d in ci)
-        P(f'  [{nm}] casino_infix: O = {int(o)}, E_вышли = {e:.1f}, O/E = {oe(o, e)}')
-
-    # 11. итог
-    P()
-    P('=' * 100)
-    P('ИТОГ СКЕПТИКА')
-    P('=' * 100)
-    a2_1, p_1 = r1['A2']; a2_2, p_2 = r2['A2']; a2_3, p_3 = r3['A2']; a2_4, p_4 = r4['A2']
-    P(f'1. Контраст А2 (casino_infix по регистрациям): страта «набор + день» O/E {a2_1:.2f} (p {p_1:.3f}) → + зона {a2_2:.2f} (p {p_2:.3f}) → '
-      f'+ зона + блок часа {a2_3:.2f} (p {p_3:.3f}) → + зона + час точный {a2_4:.2f} (p {p_4:.3f}).')
-    a1_1, q_1 = r1['A1']; a1_2, q_2 = r2['A1']; a1_3, q_3 = r3['A1']
-    P(f'2. Контраст А1 (casino_* по выходу): {a1_1:.2f} (p {q_1:.3f}) → + зона {a1_2:.2f} (p {q_2:.3f}) → + зона + блок часа {a1_3:.2f} (p {q_3:.3f}).')
-    P(f'3. Все O/E регистраций (4 паттерна) при страте 3: ' + ', '.join(f'{g} {oe(*r3[(g, "рег")])}' for g in PATTERNS) + f'; p (4 группы) = {r3[("p4", "рег")]:.3f}.')
-    P(f'4. Все O/E выхода (4 паттерна) при страте 3: ' + ', '.join(f'{g} {oe(*r3[(g, "вышли3")])}' for g in PATTERNS) + f'; p (4 группы) = {r3[("p4", "вышли3")]:.3f}.')
+    r1 = res['1: набор + день (тестировщик)']; r2 = res['2: набор + день + зона (4 зоны)']; r4 = res['4: набор + день + час точный']; r6 = res['6: набор + день + зона + час точный']
+    P(f'1. casino_infix по регистрациям: {r1["A2 casino_infix рег"][0]:.2f} (p {r1["A2 casino_infix рег"][1]:.3f}) → + зона {r2["A2 casino_infix рег"][0]:.2f} (p {r2["A2 casino_infix рег"][1]:.3f}) '
+      f'→ + час {r4["A2 casino_infix рег"][0]:.2f} (p {r4["A2 casino_infix рег"][1]:.3f}) → + зона + час {r6["A2 casino_infix рег"][0]:.2f} (p {r6["A2 casino_infix рег"][1]:.3f}).')
+    P(f'2. casino_* по выходу: {r1["A1 casino_* выход"][0]:.2f} (p {r1["A1 casino_* выход"][1]:.3f}) → + зона {r2["A1 casino_* выход"][0]:.2f} (p {r2["A1 casino_* выход"][1]:.3f}) '
+      f'→ + зона + час {r6["A1 casino_* выход"][0]:.2f} (p {r6["A1 casino_* выход"][1]:.3f}); разность зон lol − team: ' +
+      '; '.join(f'{k}: {v[2]:+.2f} (p {v[3]:.3f})' for k, v in inter.items()))
+    P(f'3. 4 группы по регистрациям при + зона + час: ' + ', '.join(f'{g} {oe(*r6[(g, "рег")])}' for g in PATTERNS) + f'; p = {r6[("p4", "рег")]:.3f}. По выходу: '
+      + ', '.join(f'{g} {oe(*r6[(g, "вышли3")])}' for g in PATTERNS) + f'; p = {r6[("p4", "вышли3")]:.3f}.')
 
     with open(OUT_PATH, 'w', encoding='utf-8') as fh:
         fh.write('\n'.join(_out) + '\n')

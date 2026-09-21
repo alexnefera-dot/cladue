@@ -1,49 +1,54 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Скептик к гипотезе №3 (шаблон Theme2). Угол — ТЕНИ (конфаундинг).
+Скептик, угол «тени» (конфаундинг) к гипотезе №3 (шаблон Theme2).
 
-Тестировщик уже показал, что грубый разрыв «вдвое по выходу, в 8 раз по регистрациям» — тень партии
-постановки (30 из 47 Theme2 — одна вечерняя партия 20.08 без Theme1-пары). Остался «остаточный эффект»
-внутри двух смешанных партий: O/E по Theme1 = 0,74, перестановка p = 0,032 (односторонняя), 17 Theme2
-против 16 Theme1. Здесь проверяем, выживает ли ЭТОТ остаток, если:
-  1. считать p двусторонне и на уровне домена (ранги / средние по доменам), а не по сайтам, где один
-     домен с выходом 60% (1908.team) тянет ожидание Theme1;
-  2. выкидывать по одному домену (leave-one-out) и по одной партии;
-  3. делать парные сравнения внутри партии по соседним номерам аккаунта Вебмастера / cf (знаковый критерий);
-  4. ужесточать страту: партия × паттерн имени, партия × половина сеанса (ранний/поздний номер аккаунта);
-  5. считать регистрации без 1908.team, по доменам (Фишер) и на поисковый клик;
-  6. смотреть на пары одной зоны вне .team внутри той же партии.
-Срез тот же, что у тестировщика: день ∈ {19.08, 20.08}, зона team, окно закрыто, дней ≠ 1 (106 доменов),
-контент у всех «КОНТЕНТ НЕ ЗАПИСАН» — страта «контент + день» вырождается в «день», партия = день × час × «сайтов».
+Что проверяем поверх h03_theme2_template.py:
+  1. Решающие партии (19.08 23:00/198 и 20.08 12:00/199) на уровне ДОМЕНА:
+     медианы, ранговый тест (стратифицированный Манн–Уитни через перестановку),
+     двусторонний p к статистике тестировщика, каждая партия отдельно.
+  2. Влияние одного домена: leave-one-out по 33 доменам решающих партий;
+     отдельно — без 1908.team (119 вышедших, 5 регистраций).
+  3. Регистрации на уровне домена (есть/нет) внутри партий; без 1908.team.
+  4. Ещё более жёсткая страта: партия × паттерн имени; партия × «аккаунт свежий».
+  5. Сеанс постановки по номерам аккаунтов: вечер 20.08. Theme2 стоит на wm 108–137,
+     сразу за ними Theme1 на wm 138–142 (2328 в 21:00, 2650/2872/3164/fjnv в 22:00),
+     а остальные Theme1 в 22:00 — на повторных аккаунтах wm 4–23. Сравниваем
+     Theme2 с Theme1 того же сеанса и Theme1 свежие против Theme1 повторные
+     (тот же шаблон, тот же час — масштаб «тени сеанса»).
+  6. Страта = сеанс (день × блок номеров wm): решающие партии + вечерний сеанс,
+     все 47 Theme2 получают пару. O/E, перестановка, ранговый тест.
+  7. Плацебо: пары чисто-Theme1 партий тех же дней как «псевдо-Theme2»:
+     распределение грубого O/E по дню — насколько 0,54 выделяется на фоне
+     разброса между партиями одного шаблона.
+  8. Позиция в сеансе (номер wm) против выхода внутри решающих партий.
+
 Только stdlib. Вывод — stdout и analysis/export/gipotezy_svod/v03_teni.txt
 """
 import csv
-import itertools
 import math
 import os
 import random
 import sys
 from collections import Counter, defaultdict
+from itertools import combinations
 
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 SRC = os.path.join(BASE, 'export', 'svod_domenov_21.09.csv')
-OUT = os.path.join(BASE, 'export', 'gipotezy_svod', 'v03_teni.txt')
-N_PERM = 10000
-DAYS = ('2026-08-19', '2026-08-20')
-OUTLIERS = {'3615.team', '3286.team'}
+OUT_DIR = os.path.join(BASE, 'export', 'gipotezy_svod')
+OUT = os.path.join(OUT_DIR, 'v03_teni.txt')
+os.makedirs(OUT_DIR, exist_ok=True)
 
+N_PERM = 10000
+OUTLIERS = {'3615.team', '3286.team'}
+DAYS = ('2026-08-19', '2026-08-20')
 _lines = []
 
 
-def p(*a):
-    s = ' '.join(str(x) for x in a)
+def p(*args):
+    s = ' '.join(str(a) for a in args)
     _lines.append(s)
     print(s)
-
-
-def f(x, d=2):
-    return '—' if x is None else ('%.' + str(d) + 'f') % x
 
 
 def fnum(x):
@@ -53,486 +58,419 @@ def fnum(x):
         return 0.0
 
 
+def fmt(x, d=2):
+    return '—' if x is None else ('%.' + str(d) + 'f') % x
+
+
+def ratio(o, e):
+    return None if e <= 0 else o / e
+
+
 def poisson_le(k, lam):
     if lam <= 0:
         return 1.0
     return min(1.0, sum(math.exp(-lam + i * math.log(lam) - math.lgamma(i + 1)) for i in range(int(k) + 1)))
 
 
-def binom_two_sided(k, n, pr=0.5):
-    """двусторонний точный биномиальный тест: сумма вероятностей исходов не больше вероятности наблюдённого."""
-    probs = [math.comb(n, i) * pr ** i * (1 - pr) ** (n - i) for i in range(n + 1)]
-    pk = probs[k]
-    return min(1.0, sum(q for q in probs if q <= pk + 1e-12))
+def hypergeom_le(k, K, n, N):
+    """P(X <= k), X — число «успехов» в выборке n из N, где K успехов всего."""
+    def c(a, b):
+        return math.comb(a, b) if 0 <= b <= a else 0
+    tot = c(N, n)
+    return sum(c(K, i) * c(N - K, n - i) for i in range(0, int(k) + 1)) / tot
 
 
-def fisher_two_sided(a, b, c, d):
-    """точный тест Фишера для таблицы [[a,b],[c,d]] (двусторонний, по вероятностям таблиц)."""
-    n = a + b + c + d
-    r1, c1 = a + b, a + c
-
-    def hyp(x):
-        return math.comb(r1, x) * math.comb(n - r1, c1 - x) / math.comb(n, c1)
-    lo, hi = max(0, r1 + c1 - n), min(r1, c1)
-    pobs = hyp(a)
-    return min(1.0, sum(hyp(x) for x in range(lo, hi + 1) if hyp(x) <= pobs + 1e-12))
-
-
-# ------------------------------------------------------------------ данные
-rows = list(csv.DictReader(open(SRC, encoding='utf-8')))
-for r in rows:
-    r['_S'] = fnum(r['сайтов в окне'])
-    r['_v3'] = fnum(r['вышли за 3 суток'])
-    r['_v7'] = fnum(r['вышли за 7 суток'])
-    r['_reg'] = fnum(r['регистраций в окне 3 суток'])
-    r['_clk'] = fnum(r['кликов из поиска в окне'])
-    r['_h'] = int(fnum(r['час запуска']))
-    r['_day'] = r['день запуска'][5:]
-    r['_t'] = r['шаблон']
-    r['_ex'] = 100 * r['_v3'] / r['_S'] if r['_S'] else 0.0
-    r['_wm'] = int(r['аккаунт вебмастера']) if r['аккаунт вебмастера'].isdigit() else -1
-    r['_cf'] = int(r['cf-аккаунт']) if r['cf-аккаунт'].isdigit() else -1
-    r['_batch'] = (r['_day'], r['_h'], r['сайтов'])
-
-sl = [r for r in rows if r['день запуска'] in DAYS and r['домен'] not in OUTLIERS
-      and r['окно закрыто'] == 'да' and r['дней'] != '1']
-main = [r for r in sl if r['зона'] == 'team']
-p('Срез: team, 19–20.08, окно закрыто, дней ≠ 1, без выбросов:', len(main), 'доменов;',
-  'Theme2:', sum(1 for r in main if r['_t'] == 'Theme2'), '; наборы контента:',
-  dict(Counter(r['набор контента'] for r in main)))
-p()
-
-batches = defaultdict(list)
-for r in main:
-    batches[r['_batch']].append(r)
-mixed = {k: v for k, v in batches.items()
-         if sum(1 for r in v if r['_t'] == 'Theme1') >= 3 and sum(1 for r in v if r['_t'] == 'Theme2') >= 3}
-E_KEY = ('08-19', 23, '198')
-F_KEY = ('08-20', 12, '199')
-p('Смешанные партии (≥3 доменов каждого шаблона):', sorted(mixed.keys()))
-dec = [r for k in mixed for r in mixed[k]]
-p('Домены в решающем тесте:', len(dec), '(Theme2 %d, Theme1 %d)' %
-  (sum(1 for r in dec if r['_t'] == 'Theme2'), sum(1 for r in dec if r['_t'] == 'Theme1')))
-p()
-
-
-# ------------------------------------------------------------------ движки
-def oe(ds, strat_fn, metric='_v3', label='Theme2', other='Theme1', min_each=1):
-    """O/E по пулу и по Theme1 внутри страт (как у тестировщика)."""
-    strata = defaultdict(list)
-    for r in ds:
-        strata[strat_fn(r)].append(r)
-    used = [v for v in strata.values()
-            if sum(1 for r in v if r['_t'] == label) >= min_each and sum(1 for r in v if r['_t'] == other) >= min_each]
-    O = E = Er = 0.0
-    n_l = n_o = 0
-    for v in used:
-        tm, ts = sum(r[metric] for r in v), sum(r['_S'] for r in v)
-        mo, so = sum(r[metric] for r in v if r['_t'] == other), sum(r['_S'] for r in v if r['_t'] == other)
-        rp, rr = (tm / ts if ts else 0), (mo / so if so else 0)
-        for r in v:
-            if r['_t'] == label:
-                O += r[metric]
-                E += rp * r['_S']
-                Er += rr * r['_S']
-                n_l += 1
-            else:
-                n_o += 1
-    return dict(O=O, E=E, Er=Er, oe=(O / E if E else None), oer=(O / Er if Er else None),
-                n_l=n_l, n_o=n_o, used=used)
-
-
-def perm_oe(ds, strat_fn, metric='_v3', n_perm=N_PERM, seed=1, min_each=1, stat='oe'):
-    """перестановка метки внутри страт; возвращает (набл., p_one(≤), p_two).
-    stat='oe' — O/E по пулу, взвешенный по сайтам (как у тестировщика);
-    stat='dom' — разность средних долей выхода по ДОМЕНАМ (Theme2 − Theme1), усреднённая по стратам с весом n;
-    stat='rank' — стратифицированная сумма рангов Theme2 (ван Элтерен без нормировки: сумма (R − E[R]) по стратам)."""
-    res = oe(ds, strat_fn, metric, min_each=min_each)
-    used = res['used']
-    rnd = random.Random(seed)
-
-    def statistic(labels_by_stratum):
-        if stat == 'oe':
-            O = E = 0.0
-            for v, labs in zip(used, labels_by_stratum):
-                tm, ts = sum(r[metric] for r in v), sum(r['_S'] for r in v)
-                rp = tm / ts if ts else 0
-                for r, lb in zip(v, labs):
-                    if lb == 'Theme2':
-                        O += r[metric]
-                        E += rp * r['_S']
-            return O / E if E else 1.0
-        if stat == 'dom':
-            num = den = 0.0
-            for v, labs in zip(used, labels_by_stratum):
-                a = [100 * r[metric] / r['_S'] for r, lb in zip(v, labs) if lb == 'Theme2']
-                b = [100 * r[metric] / r['_S'] for r, lb in zip(v, labs) if lb == 'Theme1']
-                if a and b:
-                    w = len(a) * len(b) / (len(a) + len(b))
-                    num += w * (sum(a) / len(a) - sum(b) / len(b))
-                    den += w
-            return num / den if den else 0.0
-        if stat == 'rank':
-            tot = 0.0
-            for v, labs in zip(used, labels_by_stratum):
-                vals = [100 * r[metric] / r['_S'] for r in v]
-                order = sorted(range(len(vals)), key=lambda i: vals[i])
-                ranks = [0.0] * len(vals)
-                i = 0
-                while i < len(order):
-                    j = i
-                    while j + 1 < len(order) and vals[order[j + 1]] == vals[order[i]]:
-                        j += 1
-                    for k in range(i, j + 1):
-                        ranks[order[k]] = (i + j) / 2 + 1
-                    i = j + 1
-                n2 = sum(1 for lb in labs if lb == 'Theme2')
-                R = sum(rk for rk, lb in zip(ranks, labs) if lb == 'Theme2')
-                tot += R - n2 * (len(v) + 1) / 2
-            return tot
-    obs_labels = [[r['_t'] for r in v] for v in used]
-    obs = statistic(obs_labels)
-    le = ge = 0
-    for _ in range(n_perm):
-        labs = []
-        for v in used:
-            l = [r['_t'] for r in v]
-            rnd.shuffle(l)
-            labs.append(l)
-        s = statistic(labs)
-        if s <= obs + 1e-12:
-            le += 1
-        if s >= obs - 1e-12:
-            ge += 1
-    p1 = le / n_perm
-    p2 = min(1.0, 2 * min(le, ge) / n_perm)
-    return obs, p1, p2, res
-
-
-def exact_mw(a, b):
-    """точный тест Манна–Уитни перебором: p(сумма рангов группы a ≤ набл.) и двусторонний."""
-    vals = a + b
-    n = len(vals)
-    order = sorted(range(n), key=lambda i: vals[i])
-    ranks = [0.0] * n
-    i = 0
-    while i < n:
-        j = i
-        while j + 1 < n and vals[order[j + 1]] == vals[order[i]]:
-            j += 1
-        for k in range(i, j + 1):
-            ranks[order[k]] = (i + j) / 2 + 1
-        i = j + 1
-    na = len(a)
-    obs = sum(ranks[:na])
-    cnt_le = cnt_ge = tot = 0
-    for comb in itertools.combinations(range(n), na):
-        s = sum(ranks[i] for i in comb)
-        tot += 1
-        if s <= obs + 1e-9:
-            cnt_le += 1
-        if s >= obs - 1e-9:
-            cnt_ge += 1
-    return obs, na * (n + 1) / 2, cnt_le / tot, min(1.0, 2 * min(cnt_le, cnt_ge) / tot)
-
-
-def med(xs):
+def median(xs):
     xs = sorted(xs)
     n = len(xs)
     return xs[n // 2] if n % 2 else (xs[n // 2 - 1] + xs[n // 2]) / 2
 
 
-def descr(ds):
-    S = sum(r['_S'] for r in ds)
-    V = sum(r['_v3'] for r in ds)
-    R = sum(r['_reg'] for r in ds)
-    C = sum(r['_clk'] for r in ds)
-    ex = [r['_ex'] for r in ds]
-    return dict(n=len(ds), S=S, V=V, R=R, C=C, ex=100 * V / S if S else 0, med=med(ex) if ex else 0,
-                mean=sum(ex) / len(ex) if ex else 0, cps=C / S if S else 0)
+# ---------------------------------------------------------------- чтение и срез (как в h03)
+with open(SRC, encoding='utf-8') as fh:
+    rows = list(csv.DictReader(fh))
+for r in rows:
+    r['_sites'] = fnum(r['сайтов в окне'])
+    r['_v3'] = fnum(r['вышли за 3 суток'])
+    r['_v7'] = fnum(r['вышли за 7 суток'])
+    r['_v1'] = fnum(r['вышли за 1 сутки'])
+    r['_reg'] = fnum(r['регистраций в окне 3 суток'])
+    r['_hour'] = int(fnum(r['час запуска']))
+    r['_day'] = r['день запуска'][5:]
+    r['_t'] = r['шаблон']
+    r['_wm'] = int(fnum(r['аккаунт вебмастера']))
+    r['_cf'] = int(fnum(r['cf-аккаунт']))
+    r['_rate'] = r['_v3'] / r['_sites'] if r['_sites'] else 0.0
+    r['_hasreg'] = 1.0 if r['_reg'] > 0 else 0.0
 
-
-batch_fn = lambda r: r['_batch']
-
-# ------------------------------------------------------------------ 1. воспроизведение + двусторонний p
-p('=' * 100)
-p('1. РЕШАЮЩИЙ ТЕСТ ТЕСТИРОВЩИКА (страта = партия, 2 партии): воспроизведение и двусторонний p')
-p('=' * 100)
-obs, p1, p2, res = perm_oe(dec, batch_fn, stat='oe')
-p('  Выход 3 суток, статистика O/E по пулу (взвешено сайтами): O = %d, E(пул) = %.1f, O/E = %.3f; O/E по Theme1 = %.3f' %
-  (res['O'], res['E'], obs, res['oer']))
-p('  перестановка %d: p одностор. = %.4f, p ДВУСТОР. = %.4f' % (N_PERM, p1, p2))
-for k in sorted(mixed):
-    d1, d2 = descr([r for r in mixed[k] if r['_t'] == 'Theme1']), descr([r for r in mixed[k] if r['_t'] == 'Theme2'])
-    p('  партия %s %02d:00 / %s сайтов: Theme1 n=%d выход %.1f%% (медиана по доменам %.1f%%, среднее %.1f%%) | '
-      'Theme2 n=%d выход %.1f%% (медиана %.1f%%, среднее %.1f%%)' %
-      (k[0], k[1], k[2], d1['n'], d1['ex'], d1['med'], d1['mean'], d2['n'], d2['ex'], d2['med'], d2['mean']))
+main = [r for r in rows if r['день запуска'] in DAYS and r['домен'] not in OUTLIERS
+        and r['окно закрыто'] == 'да' and r['дней'] != '1' and r['зона'] == 'team']
+p('Файл:', SRC)
+p('Срез (как в h03): team, 19–20.08, окно закрыто, дней ≠ 1, без выбросов:', len(main), 'доменов;',
+  'Theme2:', sum(1 for r in main if r['_t'] == 'Theme2'), '; Theme1:', sum(1 for r in main if r['_t'] == 'Theme1'))
+p('Набор контента:', dict(Counter(r['набор контента'] for r in main)), '— страта «контент + день + зона» = «день».')
 p()
 
-# ------------------------------------------------------------------ 2. уровень домена
+
+def batch_key(r):
+    return (r['_day'], r['_hour'], r['сайтов'])
+
+
+batches = defaultdict(list)
+for r in main:
+    batches[batch_key(r)].append(r)
+DEC_KEYS = [('08-19', 23, '198'), ('08-20', 12, '199')]
+dec = [r for k in DEC_KEYS for r in batches[k]]
+
+
+# ---------------------------------------------------------------- движок O/E + перестановка (как у тестировщика) + ранговый тест
+def oe_stat(strata, assign, metric, label='Theme2', other='Theme1'):
+    O = E = Eref = 0.0
+    for v in strata:
+        tot_m = sum(r[metric] for r in v)
+        tot_s = sum(r['_sites'] for r in v)
+        m_o = sum(r[metric] for r in v if assign[id(r)] == other)
+        s_o = sum(r['_sites'] for r in v if assign[id(r)] == other)
+        rp = tot_m / tot_s if tot_s else 0
+        rr = m_o / s_o if s_o else 0
+        for r in v:
+            if assign[id(r)] == label:
+                O += r[metric]
+                E += rp * r['_sites']
+                Eref += rr * r['_sites']
+    return O, E, Eref
+
+
+def rank_stat(strata, assign, metric='_rate', label='Theme2', other='Theme1'):
+    """Стратифицированный Манн–Уитни: доля пар (Theme2, Theme1) внутри страты, где Theme2 < Theme1 (ничья = 0,5)."""
+    u = 0.0
+    pairs = 0
+    for v in strata:
+        a = [r[metric] for r in v if assign[id(r)] == label]
+        b = [r[metric] for r in v if assign[id(r)] == other]
+        for x in a:
+            for y in b:
+                u += 1.0 if x < y else (0.5 if x == y else 0.0)
+        pairs += len(a) * len(b)
+    return u / pairs if pairs else 0.5
+
+
+def perm_test(strata, metric, n_perm=N_PERM, seed=1, rank=False):
+    """Возвращает O, E, Eref, O/E_pool, O/E_ref, p_le (одностор.), p_two (двустор.), AUC, p_rank."""
+    ds = [r for v in strata for r in v]
+    obs_assign = {id(r): r['_t'] for r in ds}
+    O, E, Eref = oe_stat(strata, obs_assign, metric)
+    obs = ratio(O, E)
+    auc = rank_stat(strata, obs_assign, metric if metric == '_rate' else metric)
+    rnd = random.Random(seed)
+    le = ge = 0
+    rk = 0
+    for _ in range(n_perm):
+        assign = dict(obs_assign)
+        for v in strata:
+            labs = [r['_t'] for r in v]
+            rnd.shuffle(labs)
+            for r, lb in zip(v, labs):
+                assign[id(r)] = lb
+        Op, Ep, _ = oe_stat(strata, assign, metric)
+        rp = ratio(Op, Ep)
+        rp = 1.0 if rp is None else rp
+        if rp <= obs + 1e-12:
+            le += 1
+        if rp >= obs - 1e-12:
+            ge += 1
+        if rank:
+            if rank_stat(strata, assign, metric) >= auc - 1e-12:
+                rk += 1
+    return dict(O=O, E=E, Eref=Eref, oe=obs, oe_ref=ratio(O, Eref), p_le=le / n_perm,
+                p_two=min(1.0, 2 * min(le, ge) / n_perm), auc=auc, p_rank=(rk / n_perm if rank else None),
+                n_l=sum(1 for r in ds if r['_t'] == 'Theme2'), n_o=sum(1 for r in ds if r['_t'] == 'Theme1'))
+
+
+def show(title, strata, metric='_v3', rank=True, n_perm=N_PERM):
+    res = perm_test(strata, metric, n_perm=n_perm, rank=rank)
+    p('  %s' % title)
+    p('     Theme2 %d дом., Theme1 %d дом.; O = %d, E(пул) = %.1f → O/E = %s; E(Theme1) = %.1f → O/E = %s; перестановка p одностор. = %s, двустор. = %s' %
+      (res['n_l'], res['n_o'], res['O'], res['E'], fmt(res['oe']), res['Eref'], fmt(res['oe_ref']), fmt(res['p_le'], 4), fmt(res['p_two'], 4)))
+    if rank:
+        p('     ранговый тест (единица — домен): доля пар «Theme2 ниже Theme1» = %.3f (0,5 = нет разницы), p = %s' % (res['auc'], fmt(res['p_rank'], 4)))
+    return res
+
+
+# ================================================================ 1. решающие партии на уровне домена
 p('=' * 100)
-p('2. ТОТ ЖЕ ТЕСТ НА УРОВНЕ ДОМЕНА (единица анализа — домен, а не сайт)')
+p('1. РЕШАЮЩИЕ ПАРТИИ НА УРОВНЕ ДОМЕНА (единица анализа — домен, правило 1 методики)')
 p('=' * 100)
-p('  Почему: χ²/df внутри партии ≈ 8 — домены разбросаны в 8 раз сильнее биномиального шума, поэтому взвешивание по')
-p('  сайтам отдаёт вес крупным выбросам (1908.team: 119 из 199 = 59,8%, 5 регистраций, 33 156 поисковых кликов).')
-for k in sorted(mixed):
-    a = [r['_ex'] for r in mixed[k] if r['_t'] == 'Theme2']
-    b = [r['_ex'] for r in mixed[k] if r['_t'] == 'Theme1']
-    R, ER, pl, p2mw = exact_mw(a, b)
-    p('  партия %s %02d:00: Манн–Уитни точный, ранги Theme2: сумма %.1f при ожидании %.1f; p(≤) = %.3f, p двустор. = %.3f' %
-      (k[0], k[1], R, ER, pl, p2mw))
-    p('     Theme1 по доменам: %s' % ' '.join('%.0f' % x for x in sorted(b)))
-    p('     Theme2 по доменам: %s' % ' '.join('%.0f' % x for x in sorted(a)))
-obs_r, p1_r, p2_r, _ = perm_oe(dec, batch_fn, stat='rank')
-p('  Стратифицированный ранговый тест (обе партии, перестановка %d): Σ(R − E[R]) для Theme2 = %.1f; p одностор. = %.4f, двустор. = %.4f' %
-  (N_PERM, obs_r, p1_r, p2_r))
-obs_d, p1_d, p2_d, _ = perm_oe(dec, batch_fn, stat='dom')
-p('  Разность средних долей выхода по доменам (Theme2 − Theme1, взвешено по партиям): %.1f п.п.; p одностор. = %.4f, двустор. = %.4f' %
-  (obs_d, p1_d, p2_d))
+for k in DEC_KEYS:
+    v = batches[k]
+    for t in ('Theme1', 'Theme2'):
+        ds = sorted((r for r in v if r['_t'] == t), key=lambda r: r['_v3'])
+        rates = [r['_rate'] * 100 for r in ds]
+        p('  %s %02d:00 сайтов %s %s: n = %d, вышли3 по доменам: %s' % (k[0], k[1], k[2], t, len(ds), ' '.join('%d' % r['_v3'] for r in ds)))
+        p('       выход %%: медиана %.1f, среднее %.1f, мин %.1f, макс %.1f; регистрации по доменам: %s' %
+          (median(rates), sum(rates) / len(rates), min(rates), max(rates), ' '.join('%d' % r['_reg'] for r in ds)))
+p()
+p('  Ранговый тест и двусторонний p (10 000 перестановок метки внутри партии):')
+r_dec = show('1a. Обе решающие партии вместе (как 5a у тестировщика):', [batches[k] for k in DEC_KEYS])
+r_b1 = show('1b. Только 19.08 23:00/198 (4 Theme1 против 9 Theme2):', [batches[DEC_KEYS[0]]])
+r_b2 = show('1c. Только 20.08 12:00/199 (12 Theme1 против 8 Theme2):', [batches[DEC_KEYS[1]]])
+r_v1 = show('1d. Обе партии, показатель «вышли за 1 сутки»:', [batches[k] for k in DEC_KEYS], metric='_v1', rank=False)
+r_v7 = show('1e. Обе партии, показатель «вышли за 7 суток»:', [batches[k] for k in DEC_KEYS], metric='_v7', rank=False)
 p()
 
-# ------------------------------------------------------------------ 3. leave-one-out
+# ================================================================ 2. влияние одного домена
 p('=' * 100)
-p('3. LEAVE-ONE-OUT: убираем по одному домену из 33 и пересчитываем решающий тест (O/E по пулу, перестановка 3000)')
+p('2. ВЛИЯНИЕ ОДНОГО ДОМЕНА: leave-one-out по 33 доменам решающих партий (3000 перестановок на прогон)')
 p('=' * 100)
 loo = []
 for drop in dec:
-    ds = [r for r in dec if r is not drop]
-    o, q1, q2, rs = perm_oe(ds, batch_fn, stat='oe', n_perm=3000, seed=7)
-    loo.append((drop['домен'], drop['_t'], drop['_ex'], o, rs['oer'], q1, q2))
-loo.sort(key=lambda x: -x[5])
-p('  %-12s %-7s %6s %8s %9s %8s %8s' % ('убран', 'шаблон', 'выход%', 'O/E пул', 'O/E Th1', 'p одн.', 'p двуст.'))
-for x in loo[:8]:
-    p('  %-12s %-7s %6.1f %8.3f %9.3f %8.4f %8.4f' % x)
-p('  ...')
-for x in loo[-3:]:
-    p('  %-12s %-7s %6.1f %8.3f %9.3f %8.4f %8.4f' % x)
-n_over = sum(1 for x in loo if x[5] >= 0.05)
-p('  Итого: при удалении %d из 33 доменов односторонний p ≥ 0,05; при удалении любого домена двусторонний p ≥ 0,05: %s' %
-  (n_over, 'да' if all(x[6] >= 0.05 for x in loo) else 'нет'))
-# без 1908.team явно
-ds = [r for r in dec if r['домен'] != '1908.team']
-o_x, q1_x, q2_x, rs_x = perm_oe(ds, batch_fn, stat='oe')
-p('  Без 1908.team (перестановка %d): O = %d, E(пул) = %.1f, O/E пул = %.3f, O/E по Theme1 = %.3f, p одн. = %.4f, двуст. = %.4f' %
-  (N_PERM, rs_x['O'], rs_x['E'], o_x, rs_x['oer'], q1_x, q2_x))
-o_xd, q1_xd, q2_xd, _ = perm_oe(ds, batch_fn, stat='dom')
-p('  Без 1908.team по доменам: разность средних (Theme2 − Theme1) = %+.1f п.п., p одн. = %.4f, двуст. = %.4f' % (o_xd, q1_xd, q2_xd))
-dF1 = descr([r for r in mixed[F_KEY] if r['_t'] == 'Theme1' and r['домен'] != '1908.team'])
-dF2 = descr([r for r in mixed[F_KEY] if r['_t'] == 'Theme2'])
-p('  Партия 20.08 12:00 без 1908.team: Theme1 %d дом. выход %.1f%% (кликов на сайт %.1f) | Theme2 %d дом. выход %.1f%% (кликов на сайт %.1f) → O/E по Theme1 = %.2f' %
-  (dF1['n'], dF1['ex'], dF1['cps'], dF2['n'], dF2['ex'], dF2['cps'], dF2['ex'] / dF1['ex']))
+    strata = [[r for r in batches[k] if r is not drop] for k in DEC_KEYS]
+    res = perm_test(strata, '_v3', n_perm=3000, seed=7)
+    loo.append((drop['домен'], drop['_t'], drop['_v3'], res['oe_ref'], res['p_le'], res['oe']))
+loo.sort(key=lambda x: -x[4])
+p('  %-12s %-7s %6s %10s %10s %8s' % ('убран', 'шаблон', 'вышли3', 'O/E(T1)', 'O/E(пул)', 'p'))
+for d, t, v, oe_ref, pl, oe in loo[:8]:
+    p('  %-12s %-7s %6d %10s %10s %8s' % (d, t, v, fmt(oe_ref), fmt(oe), fmt(pl, 4)))
+p('  ... (всего %d прогонов; p ≥ 0,05 у %d из %d, p ≥ 0,10 у %d)' %
+  (len(loo), sum(1 for x in loo if x[4] >= 0.05), len(loo), sum(1 for x in loo if x[4] >= 0.10)))
+strata_no1908 = [[r for r in batches[k] if r['домен'] != '1908.team'] for k in DEC_KEYS]
+r_no1908 = show('2a. Без 1908.team (Theme1, 119 вышедших из 199, 5 регистраций):', strata_no1908)
+top2 = max((r for r in dec if r['_t'] == 'Theme2'), key=lambda r: r['_v3'])
+strata_sym = [[r for r in batches[k] if r['домен'] not in ('1908.team', top2['домен'])] for k in DEC_KEYS]
+r_sym = show('2b. Симметрично: без лучшего Theme1 (1908.team) и лучшего Theme2 (%s, %d вышедших):' % (top2['домен'], top2['_v3']), strata_sym)
 p()
 
-# ------------------------------------------------------------------ 4. по одной партии
+# ================================================================ 3. регистрации на уровне домена
 p('=' * 100)
-p('4. ПО ОДНОЙ ПАРТИИ: откуда берётся эффект')
+p('3. РЕГИСТРАЦИИ ВНУТРИ РЕШАЮЩИХ ПАРТИЙ НА УРОВНЕ ДОМЕНА')
 p('=' * 100)
-for k in sorted(mixed):
-    o, q1, q2, rs = perm_oe(mixed[k], batch_fn, stat='oe')
-    p('  только партия %s %02d:00 (%d Theme2 против %d Theme1): O/E пул = %.3f, O/E по Theme1 = %.3f, p одн. = %.4f, двуст. = %.4f' %
-      (k[0], k[1], rs['n_l'], rs['n_o'], o, rs['oer'], q1, q2))
+v12 = batches[DEC_KEYS[1]]
+t1 = [r for r in v12 if r['_t'] == 'Theme1']
+t2 = [r for r in v12 if r['_t'] == 'Theme2']
+k1 = sum(1 for r in t1 if r['_reg'] > 0)
+k2 = sum(1 for r in t2 if r['_reg'] > 0)
+p('  20.08 12:00/199: доменов с ≥1 регистрацией: Theme1 %d из %d, Theme2 %d из %d (в 19.08 23:00 регистраций нет ни у кого)' % (k1, len(t1), k2, len(t2)))
+p('     точный гипергеометрический тест P(у Theme2 ≤ %d из %d при %d «успешных» на %d доменов) = %s' %
+  (k2, len(t2), k1 + k2, len(v12), fmt(hypergeom_le(k2, k1 + k2, len(t2), len(v12)), 3)))
+reg1 = sum(r['_reg'] for r in t1)
+reg1_no = sum(r['_reg'] for r in t1 if r['домен'] != '1908.team')
+s1_no = sum(r['_sites'] for r in t1 if r['домен'] != '1908.team')
+s2 = sum(r['_sites'] for r in t2)
+reg2 = sum(r['_reg'] for r in t2)
+e_no = reg1_no / s1_no * s2
+p('  Регистрации: Theme1 %d (из них 5 у 1908.team и 3 у cfpm.team), Theme2 %d.' % (reg1, reg2))
+p('     без 1908.team: Theme1 %d на %d сайтов → E для Theme2 = %.2f, O = %d, O/E = %s, пуассон P(X ≤ %d) = %s' %
+  (reg1_no, s1_no, e_no, reg2, fmt(ratio(reg2, e_no)), reg2, fmt(poisson_le(reg2, e_no), 3)))
+e_pool_no = (reg1_no + reg2) / (s1_no + s2) * s2
+p('     без 1908.team, E по пулу = %.2f → O/E = %s, пуассон = %s' % (e_pool_no, fmt(ratio(reg2, e_pool_no)), fmt(poisson_le(reg2, e_pool_no), 3)))
 p()
 
-# ------------------------------------------------------------------ 5. парные сравнения
+# ================================================================ 4. ещё более жёсткие страты
 p('=' * 100)
-p('5. ПАРНЫЕ СРАВНЕНИЯ ВНУТРИ ПАРТИИ: сосед по номеру аккаунта (ближайший Theme1 к каждому Theme2, каждый домен один раз)')
+p('4. ЖЁСТЧЕ: партия × паттерн имени; партия × «аккаунт свежий» (только страты с обоими шаблонами)')
 p('=' * 100)
 
 
-def pair_by(ds_batches, key):
-    pairs = []
-    for k, v in ds_batches.items():
-        t2 = sorted([r for r in v if r['_t'] == 'Theme2'], key=lambda r: r[key])
-        t1 = [r for r in v if r['_t'] == 'Theme1']
-        # жадно: пары с минимальной разницей номеров, без повторов
-        cand = sorted(((abs(a[key] - b[key]), i, j) for i, a in enumerate(t2) for j, b in enumerate(t1)))
-        ui, uj = set(), set()
-        for d, i, j in cand:
-            if i in ui or j in uj:
-                continue
-            ui.add(i)
-            uj.add(j)
-            pairs.append((k, t2[i], t1[j], d))
-    return pairs
+def strata_by(fn, ds, min_each=1):
+    d = defaultdict(list)
+    for r in ds:
+        d[fn(r)].append(r)
+    return [v for v in d.values() if sum(1 for r in v if r['_t'] == 'Theme2') >= min_each and sum(1 for r in v if r['_t'] == 'Theme1') >= min_each]
 
 
-for key, name in (('_wm', 'аккаунт Вебмастера'), ('_cf', 'cf-аккаунт')):
-    pairs = pair_by(mixed, key)
-    win2 = sum(1 for k, a, b, d in pairs if a['_ex'] > b['_ex'])
-    win1 = sum(1 for k, a, b, d in pairs if a['_ex'] < b['_ex'])
-    diffs = [a['_ex'] - b['_ex'] for k, a, b, d in pairs]
-    p('  Пары по %s: %d пар; Theme2 лучше в %d, хуже в %d; медиана разности (Theme2 − Theme1) = %.1f п.п.; знаковый тест двустор. p = %.3f' %
-      (name, len(pairs), win2, win1, med(diffs), binom_two_sided(min(win1, win2), win1 + win2)))
-    for k, a, b, d in sorted(pairs, key=lambda x: (x[0], x[1][key])):
-        p('     %s %02d: Theme2 %-10s (акк %3d) %5.1f%%  vs  Theme1 %-10s (акк %3d) %5.1f%%  → %+5.1f' %
-          (k[0], k[1], a['домен'], a[key], a['_ex'], b['домен'], b[key], b['_ex'], a['_ex'] - b['_ex']))
+s_pat = strata_by(lambda r: batch_key(r) + (r['паттерн имени'],), dec)
+p('  Страт партия × паттерн: %d; состав: %s' % (len(s_pat), '; '.join('%s/%s/%s/%s: T1 %d, T2 %d' %
+  (v[0]['_day'], v[0]['_hour'], v[0]['сайтов'], v[0]['паттерн имени'], sum(1 for r in v if r['_t'] == 'Theme1'), sum(1 for r in v if r['_t'] == 'Theme2')) for v in s_pat)))
+r_pat = show('4a. Страта = партия × паттерн имени:', s_pat)
+s_fresh = strata_by(lambda r: batch_key(r) + (r['аккаунт свежий'],), dec)
+p('  Страт партия × свежесть аккаунта: %d; состав: %s' % (len(s_fresh), '; '.join('%s/%s/свежий=%s: T1 %d, T2 %d' %
+  (v[0]['_day'], v[0]['_hour'], v[0]['аккаунт свежий'], sum(1 for r in v if r['_t'] == 'Theme1'), sum(1 for r in v if r['_t'] == 'Theme2')) for v in s_fresh)))
+r_fresh = show('4b. Страта = партия × «аккаунт свежий»:', s_fresh)
+s_both = strata_by(lambda r: batch_key(r) + (r['паттерн имени'], r['аккаунт свежий']), dec)
+r_both = show('4c. Страта = партия × паттерн × свежесть (%d страт):' % len(s_both), s_both)
 p()
 
-# ------------------------------------------------------------------ 6. ужесточение страты
+# ================================================================ 5. сеанс по номерам аккаунтов: вечер 20.08
 p('=' * 100)
-p('6. ЖЁСТКИЕ СТРАТЫ ВНУТРИ ПАРТИИ')
+p('5. СЕАНС ПОСТАНОВКИ ПО НОМЕРАМ АККАУНТОВ: ВЕЧЕР 20.08 (пропущенная пара для 30 вечерних Theme2)')
 p('=' * 100)
-
-
-def half(r):
-    v = batches[r['_batch']]
-    m = med([x['_wm'] for x in v])
-    return 'ранний' if r['_wm'] <= m else 'поздний'
-
-
-def quarter(r):
-    v = sorted(batches[r['_batch']], key=lambda x: x['_wm'])
-    i = [x['домен'] for x in v].index(r['домен'])
-    return 'q%d' % (1 + i * 4 // len(v))
-
-
-for name, fn in (('партия × паттерн имени', lambda r: r['_batch'] + (r['паттерн имени'],)),
-                 ('партия × половина сеанса (номер wm-аккаунта ≤/> медианы партии)', lambda r: r['_batch'] + (half(r),)),
-                 ('партия × четверть сеанса (ранг wm-аккаунта внутри партии, 4 корзины)', lambda r: r['_batch'] + (quarter(r),)),
-                 ('партия × аккаунт свежий', lambda r: r['_batch'] + (r['аккаунт свежий'],)),
-                 ('партия × паттерн имени × половина сеанса', lambda r: r['_batch'] + (r['паттерн имени'], half(r)))):
-    for st in ('oe', 'dom'):
-        o, q1, q2, rs = perm_oe(dec, fn, stat=st)
-        if st == 'oe':
-            p('  %s: страт с парой %d (Theme2 %d, Theme1 %d); O = %d, E(пул) = %.1f → O/E = %.3f, O/E по Theme1 = %.3f; p одн. = %.4f, двуст. = %.4f' %
-              (name, len(rs['used']), rs['n_l'], rs['n_o'], rs['O'], rs['E'], o, rs['oer'], q1, q2))
-        else:
-            p('     по доменам: разность средних (Theme2 − Theme1) = %+.1f п.п., p одн. = %.4f, двуст. = %.4f' % (o, q1, q2))
+ev = sorted((r for r in main if r['_day'] == '08-20' and r['_hour'] >= 20), key=lambda r: r['_wm'])
+p('  Все домены 20.08 с 20:00, по возрастанию номера аккаунта Вебмастера:')
+p('  %-11s %-7s %3s %6s %4s %4s %5s %7s %7s %5s %3s' % ('домен', 'шаблон', 'час', 'сайтов', 'wm', 'cf', 'раз', 'свежий', 'вышли3', 'вых%', 'рег'))
+for r in ev:
+    p('  %-11s %-7s %3d %6s %4d %4d %5s %7s %7d %5.1f %3d' %
+      (r['домен'], r['_t'], r['_hour'], r['сайтов'], r['_wm'], r['_cf'], r['который раз аккаунт'], r['аккаунт свежий'], r['_v3'], 100 * r['_rate'], r['_reg']))
 p()
-p('  Состав страт партия × паттерн имени (выход, %):')
-for k in sorted(mixed):
-    for pat in ('numeric', 'alpha_other'):
-        a = [r for r in mixed[k] if r['паттерн имени'] == pat and r['_t'] == 'Theme1']
-        b = [r for r in mixed[k] if r['паттерн имени'] == pat and r['_t'] == 'Theme2']
-        p('     %s %02d %-11s Theme1 n=%2d выход %5.1f%% [%s] | Theme2 n=%2d выход %5.1f%% [%s]' %
-          (k[0], k[1], pat, len(a), descr(a)['ex'], ' '.join('%.0f' % r['_ex'] for r in sorted(a, key=lambda r: r['_ex'])),
-           len(b), descr(b)['ex'], ' '.join('%.0f' % r['_ex'] for r in sorted(b, key=lambda r: r['_ex']))))
-p()
-p('  Положение в сеансе (партия 20.08 12:00, номер wm-аккаунта): аккаунты ≥ 100 — хвост сеанса:')
-for r in sorted(mixed[F_KEY], key=lambda r: r['_wm']):
-    p('     акк %3d %-7s %-10s выход %5.1f%%  кликов/сайт %5.1f  рег %d' % (r['_wm'], r['_t'], r['домен'], r['_ex'], r['_clk'] / r['_S'], r['_reg']))
-tail = [r for r in mixed[F_KEY] if r['_wm'] >= 100]
-head = [r for r in mixed[F_KEY] if 80 <= r['_wm'] < 100]
-p('  хвост (акк ≥100): %d доменов, выход %.1f%% (Theme2 %d из %d); середина (80–99): %d доменов, выход %.1f%% (Theme2 %d)' %
-  (len(tail), descr(tail)['ex'], sum(1 for r in tail if r['_t'] == 'Theme2'), len(tail),
-   len(head), descr(head)['ex'], sum(1 for r in head if r['_t'] == 'Theme2')))
-p()
+ev_t2 = [r for r in ev if r['_t'] == 'Theme2']
+ev_t1_fresh = [r for r in ev if r['_t'] == 'Theme1' and r['аккаунт свежий'] == 'да']
+ev_t1_reused = [r for r in ev if r['_t'] == 'Theme1' and r['аккаунт свежий'] == 'нет']
 
-# ------------------------------------------------------------------ 7. регистрации
-p('=' * 100)
-p('7. РЕГИСТРАЦИИ ВНУТРИ ПАРТИИ')
-p('=' * 100)
-F = mixed[F_KEY]
-t1F = [r for r in F if r['_t'] == 'Theme1']
-t2F = [r for r in F if r['_t'] == 'Theme2']
-p('  Все регистрации решающего теста — в партии 20.08 12:00 (в партии 19.08 23:00 их нет ни у кого).')
-p('  Theme1: %d регистраций на %d доменах: %s' % (sum(r['_reg'] for r in t1F), len(t1F),
-  ', '.join('%s %d' % (r['домен'], r['_reg']) for r in t1F if r['_reg'] > 0)))
-p('  Theme2: %d регистраций на %d доменах: %s' % (sum(r['_reg'] for r in t2F), len(t2F),
-  ', '.join('%s %d' % (r['домен'], r['_reg']) for r in t2F if r['_reg'] > 0)))
-a = sum(1 for r in t2F if r['_reg'] > 0)
-b = sum(1 for r in t1F if r['_reg'] > 0)
-p('  Доменов хотя бы с одной регистрацией: Theme2 %d из %d, Theme1 %d из %d; Фишер двустор. p = %.3f' %
-  (a, len(t2F), b, len(t1F), fisher_two_sided(a, len(t2F) - a, b, len(t1F) - b)))
-t1x = [r for r in t1F if r['домен'] != '1908.team']
-R1, S1, C1 = sum(r['_reg'] for r in t1x), sum(r['_S'] for r in t1x), sum(r['_clk'] for r in t1x)
-R2, S2, C2 = sum(r['_reg'] for r in t2F), sum(r['_S'] for r in t2F), sum(r['_clk'] for r in t2F)
-lam_site = R1 / S1 * S2
-lam_clk = R1 / C1 * C2
-p('  Без 1908.team: Theme1 %d рег / %d сайтов / %d поисковых кликов; Theme2 %d / %d / %d' % (R1, S1, C1, R2, S2, C2))
-p('     ожидание для Theme2 по сайтам = %.2f → O/E = %.2f, пуассон P(X ≤ %d) = %.3f' % (lam_site, R2 / lam_site, R2, poisson_le(R2, lam_site)))
-p('     ожидание по поисковым кликам = %.2f → O/E = %.2f, пуассон P(X ≤ %d) = %.3f' % (lam_clk, R2 / lam_clk, R2, poisson_le(R2, lam_clk)))
-R1a, S1a, C1a = sum(r['_reg'] for r in t1F), sum(r['_S'] for r in t1F), sum(r['_clk'] for r in t1F)
-p('  С 1908.team (как у тестировщика): по сайтам E = %.2f (O/E %.2f, p = %.3f); по кликам E = %.2f (O/E %.2f, p = %.3f)' %
-  (R1a / S1a * S2, R2 / (R1a / S1a * S2), poisson_le(R2, R1a / S1a * S2), R1a / C1a * C2, R2 / (R1a / C1a * C2), poisson_le(R2, R1a / C1a * C2)))
-p('  Рег на 10 тыс. поисковых кликов: Theme1 с 1908 = %.1f, без 1908 = %.1f; Theme2 = %.1f' % (1e4 * R1a / C1a, 1e4 * R1 / C1, 1e4 * R2 / C2))
-t2x = [r for r in t2F if r['домен'] != '1467.team']
-R2x, S2x, C2x = sum(r['_reg'] for r in t2x), sum(r['_S'] for r in t2x), sum(r['_clk'] for r in t2x)
-lam_clk_x = R1 / C1 * C2x
-p('  «По кликам» разницу делает один Theme2-домен 1467.team: %d поисковых кликов, 0 регистраций (известный эффект: больше кликов у домена → хуже отдача с клика).' %
-  next(r['_clk'] for r in t2F if r['домен'] == '1467.team'))
-p('     без 1908.team и без 1467.team: Theme1 %d рег / %d кликов, Theme2 %d / %d; E по кликам = %.2f → O/E = %.2f, пуассон P(X ≤ %d) = %.3f' %
-  (R1, C1, R2x, C2x, lam_clk_x, R2x / lam_clk_x, R2x, poisson_le(R2x, lam_clk_x)))
+
+def agg(ds):
+    S = sum(r['_sites'] for r in ds)
+    V = sum(r['_v3'] for r in ds)
+    R = sum(r['_reg'] for r in ds)
+    return dict(n=len(ds), S=S, V=V, R=R, ex=100 * V / S if S else 0, wm='%d–%d' % (min(r['_wm'] for r in ds), max(r['_wm'] for r in ds)),
+                cf='%d–%d' % (min(r['_cf'] for r in ds), max(r['_cf'] for r in ds)), rates=[r['_rate'] * 100 for r in ds])
+
+
+for name, ds in (('Theme2, 20–21 час, свежие аккаунты', ev_t2), ('Theme1, 21–22 час, свежие аккаунты', ev_t1_fresh), ('Theme1, 22 час, повторные аккаунты', ev_t1_reused)):
+    a = agg(ds)
+    p('  %-38s n = %2d, сайтов %5d, вышли3 %4d, выход %5.1f%%, медиана по доменам %5.1f%%, рег %d, wm %s, cf %s' %
+      (name, a['n'], a['S'], a['V'], a['ex'], median(a['rates']), a['R'], a['wm'], a['cf']))
+p('  Номера идут одной цепочкой: Theme2 wm 108–137 → Theme1 2328.team wm 138 (21:00) → 2650/2872/3164/fjnv wm 139–142 (22:00);')
+p('  по cf: Theme1 свежие cf 132–135 → Theme2 cf 136–165. Это один сеанс постановки с одной пачки аккаунтов; Theme1 на повторных')
+p('  аккаунтах (wm 4–23, «который раз» = 2) — другая пачка. Тестировщик сравнивал Theme2 (7,4%%) с ВСЕМИ Theme1 22:00 (13,4%%).')
+p()
+sess_ev = ev_t2 + ev_t1_fresh
+r_ev = show('5a. Вечерний сеанс: Theme2 (30) против Theme1 на свежих аккаунтах того же сеанса (%d):' % len(ev_t1_fresh), [sess_ev])
+# отрицательный контроль: внутри Theme1 22:00 свежие против повторных
+t1_22 = [r for r in ev if r['_t'] == 'Theme1' and r['_hour'] == 22]
+a_f = agg([r for r in t1_22 if r['аккаунт свежий'] == 'да'])
+a_r = agg([r for r in t1_22 if r['аккаунт свежий'] == 'нет'])
+e_f = a_r['ex'] / 100 * a_f['S']
+# перестановка метки «свежий» внутри Theme1 22:00
+rnd = random.Random(3)
+obs_f = a_f['V'] / ((a_f['V'] + a_r['V']) / (a_f['S'] + a_r['S']) * a_f['S'])
+cnt = 0
+labs0 = [r['аккаунт свежий'] for r in t1_22]
+for _ in range(N_PERM):
+    labs = labs0[:]
+    rnd.shuffle(labs)
+    Vf = sum(r['_v3'] for r, lb in zip(t1_22, labs) if lb == 'да')
+    Sf = sum(r['_sites'] for r, lb in zip(t1_22, labs) if lb == 'да')
+    st = Vf / ((a_f['V'] + a_r['V']) / (a_f['S'] + a_r['S']) * Sf)
+    if st <= obs_f + 1e-12:
+        cnt += 1
+p('  5b. Отрицательный контроль, ТОЛЬКО Theme1 в 22:00 20.08: свежие аккаунты (n = %d) выход %.1f%% против повторных (n = %d) %.1f%%' %
+  (a_f['n'], a_f['ex'], a_r['n'], a_r['ex']))
+p('      O/E свежих по повторным = %s (O = %d, E = %.1f); O/E по пулу = %s, перестановка p = %s.' %
+  (fmt(ratio(a_f['V'], e_f)), a_f['V'], e_f, fmt(obs_f), fmt(cnt / N_PERM, 4)))
+p('      Тот же шаблон, тот же час, те же 202–206 сайтов — а разница такого же размера, как «эффект шаблона» (0,54–0,74).')
 p()
 
-# ------------------------------------------------------------------ 8. клики на сайт
+# ================================================================ 6. страта = сеанс
 p('=' * 100)
-p('8. ПОИСКОВЫЕ КЛИКИ НА САЙТ ВНУТРИ ПАРТИИ (объяснение, не цель)')
+p('6. СТРАТА = СЕАНС (партия по дню × часу × сайтов для 12:00 и 23:00 + вечерний сеанс по цепочке аккаунтов): все 47 Theme2 с парой')
 p('=' * 100)
-for k in sorted(mixed):
-    for t in ('Theme1', 'Theme2'):
-        ds = [r for r in mixed[k] if r['_t'] == t]
-        d = descr(ds)
-        dsx = [r for r in ds if r['домен'] != '1908.team']
-        dx = descr(dsx)
-        p('  %s %02d %s: кликов/сайт %.1f (медиана по доменам %.1f)%s' %
-          (k[0], k[1], t, d['cps'], med([r['_clk'] / r['_S'] for r in ds]),
-           '; без 1908.team %.1f' % dx['cps'] if len(dsx) != len(ds) else ''))
+sess_strata = [batches[k] for k in DEC_KEYS] + [sess_ev]
+r_sess = show('6a. Выход за 3 суток, страта = сеанс:', sess_strata)
+r_sess7 = show('6b. Выход за 7 суток, страта = сеанс:', sess_strata, metric='_v7', rank=False)
+r_sess_no = show('6c. То же без 1908.team:', [[r for r in v if r['домен'] != '1908.team'] for v in sess_strata])
+r_sreg = perm_test(sess_strata, '_reg', n_perm=N_PERM)
+p('  6d. Регистрации, страта = сеанс: O = %d, E(пул) = %.2f → O/E = %s, пуассон P(X ≤ %d) = %s, перестановка p = %s; E(Theme1) = %.2f (из них вечер: 2 регистрации одного домена 2650.team на 5 доменов)' %
+  (r_sreg['O'], r_sreg['E'], fmt(r_sreg['oe']), r_sreg['O'], fmt(poisson_le(r_sreg['O'], r_sreg['E']), 3), fmt(r_sreg['p_le'], 3), r_sreg['Eref']))
+r_shas = perm_test(sess_strata, '_hasreg', n_perm=N_PERM)
+p('  6e. Доменов с ≥1 регистрацией, страта = сеанс: O = %d, E(пул) = %.2f → O/E = %s, перестановка p = %s' %
+  (r_shas['O'], r_shas['E'], fmt(r_shas['oe']), fmt(r_shas['p_le'], 3)))
 p()
 
-# ------------------------------------------------------------------ 9. вне team, та же партия
+# ================================================================ 7. плацебо: партии Theme1 как псевдо-Theme2
 p('=' * 100)
-p('9. ТА ЖЕ ПАРТИЯ, ОДНА ЗОНА ВНЕ .team (единичные домены — только как знак направления)')
+p('7. ПЛАЦЕБО: чисто-Theme1 партии тех же дней в роли «псевдо-Theme2» (грубая страта = день, как в плане)')
 p('=' * 100)
-tail_all = [r for r in sl if r['зона'] != 'team']
-bz = defaultdict(list)
-for r in tail_all:
-    bz[(r['_batch'], r['зона'])].append(r)
-for k in sorted(bz):
-    v = bz[k]
-    if len(set(r['_t'] for r in v)) < 2:
-        continue
-    p('  партия %s %02d / %s сайтов, зона %s: %s' % (k[0][0], k[0][1], k[0][2], k[1],
-      '; '.join('%s [%s] %.1f%% рег %d' % (r['домен'], r['_t'], r['_ex'], r['_reg']) for r in sorted(v, key=lambda r: r['_t']))))
-p('  Все Theme2 вне team в партии 20.08 12:00: %s' % '; '.join('%s %.1f%%' % (r['домен'], r['_ex']) for r in tail_all if r['_t'] == 'Theme2' and r['_batch'] == F_KEY))
-p('  Все Theme1 вне team в той же партии: %s' % '; '.join('%s %.1f%%' % (r['домен'], r['_ex']) for r in tail_all if r['_t'] == 'Theme1' and r['_batch'] == F_KEY))
+t1_only = [r for r in main if r['_t'] == 'Theme1']
+groups = defaultdict(list)
+for r in t1_only:
+    groups[(r['_day'], r['_hour'], r['сайтов'])].append(r)
+g19 = [k for k in groups if k[0] == '08-19' and len(groups[k]) >= 3]
+g20 = [k for k in groups if k[0] == '08-20' and len(groups[k]) >= 3]
+p('  Партии Theme1 (день × час × сайтов, ≥3 доменов): 19.08 — %d, 20.08 — %d. Для каждой пары (одна партия 19.08 + одна 20.08)' % (len(g19), len(g20)))
+p('  считаем O/E «псевдо-Theme2» по остальным Theme1 того же дня — ровно как грубый O/E по Theme1 в п.2 у тестировщика.')
+res_pl = []
+for a in g19:
+    for b in g20:
+        O = E = 0.0
+        for d, k in (('08-19', a), ('08-20', b)):
+            ps = groups[k]
+            rest = [r for r in t1_only if r['_day'] == d and (r['_day'], r['_hour'], r['сайтов']) != k]
+            rate = sum(r['_v3'] for r in rest) / sum(r['_sites'] for r in rest)
+            O += sum(r['_v3'] for r in ps)
+            E += rate * sum(r['_sites'] for r in ps)
+        res_pl.append((O / E, a, b, len(groups[a]) + len(groups[b])))
+res_pl.sort()
+p('  Пар: %d; O/E от %.2f до %.2f; медиана %.2f; пар с O/E ≤ 0,54: %d; ≤ 0,60: %d; ≤ 0,74: %d' %
+  (len(res_pl), res_pl[0][0], res_pl[-1][0], median([x[0] for x in res_pl]),
+   sum(1 for x in res_pl if x[0] <= 0.54), sum(1 for x in res_pl if x[0] <= 0.60), sum(1 for x in res_pl if x[0] <= 0.74)))
+for oe, a, b, n in res_pl[:5]:
+    p('     O/E = %.2f: %s %02d:00/%s + %s %02d:00/%s (%d доменов)' % (oe, a[0], a[1], a[2], b[0], b[1], b[2], n))
+# уровень часа (как «блок 18-23» у тестировщика): 22:00 Theme1 против 12:00 Theme1 на 20.08
+a22 = agg([r for r in t1_only if r['_day'] == '08-20' and r['_hour'] == 22])
+a12 = agg([r for r in t1_only if r['_day'] == '08-20' and r['_hour'] == 12])
+p('  Тот же день 20.08, только Theme1: 22:00 (n = %d) %.1f%% против 12:00 (n = %d) %.1f%% → отношение %.2f; регистраций %d против %d.' %
+  (a22['n'], a22['ex'], a12['n'], a12['ex'], a22['ex'] / a12['ex'], a22['R'], a12['R']))
 p()
 
-# ------------------------------------------------------------------ 10. семь суток и «догоняет ли» по доменам
+# ================================================================ 8. позиция в сеансе
 p('=' * 100)
-p('10. 7 СУТОК, ПО ДОМЕНАМ (тот же решающий срез)')
+p('8. ПОЗИЦИЯ В СЕАНСЕ: номер wm-аккаунта (свежие) против выхода внутри решающих партий')
 p('=' * 100)
-obs7, p17, p27, rs7 = perm_oe(dec, batch_fn, metric='_v7', stat='oe')
-obs7d, p17d, p27d, _ = perm_oe(dec, batch_fn, metric='_v7', stat='dom')
-p('  7 суток: O/E пул = %.3f (по Theme1 %.3f), p одн. = %.4f, двуст. = %.4f; по доменам разность %+.1f п.п., p двуст. = %.4f' %
-  (obs7, rs7['oer'], p17, p27, obs7d, p27d))
+
+
+def spearman(xs, ys):
+    def ranks(v):
+        order = sorted(range(len(v)), key=lambda i: v[i])
+        rk = [0.0] * len(v)
+        i = 0
+        while i < len(order):
+            j = i
+            while j + 1 < len(order) and v[order[j + 1]] == v[order[i]]:
+                j += 1
+            for k in range(i, j + 1):
+                rk[order[k]] = (i + j) / 2 + 1
+            i = j + 1
+        return rk
+    rx, ry = ranks(xs), ranks(ys)
+    mx, my = sum(rx) / len(rx), sum(ry) / len(ry)
+    num = sum((a - mx) * (b - my) for a, b in zip(rx, ry))
+    den = math.sqrt(sum((a - mx) ** 2 for a in rx) * sum((b - my) ** 2 for b in ry))
+    return num / den if den else 0.0
+
+
+for k in DEC_KEYS:
+    v = [r for r in batches[k] if r['аккаунт свежий'] == 'да']
+    v.sort(key=lambda r: r['_wm'])
+    rho = spearman([r['_wm'] for r in v], [r['_rate'] for r in v])
+    p('  %s %02d:00/%s, свежие аккаунты (n = %d): по порядку wm → выход%%: %s' %
+      (k[0], k[1], k[2], len(v), ' '.join('%s%d' % ('T2:' if r['_t'] == 'Theme2' else 'T1:', round(100 * r['_rate'])) for r in v)))
+    p('     Спирмен(номер wm, выход) = %.2f; средняя позиция Theme2 в сеансе (1 = первый): %.1f из %d, Theme1: %.1f' %
+      (rho, sum(i + 1 for i, r in enumerate(v) if r['_t'] == 'Theme2') / max(1, sum(1 for r in v if r['_t'] == 'Theme2')), len(v),
+       sum(i + 1 for i, r in enumerate(v) if r['_t'] == 'Theme1') / max(1, sum(1 for r in v if r['_t'] == 'Theme1'))))
 p()
 
-# ------------------------------------------------------------------ ВЫВОД
+# ================================================================ ВЫВОД
 p('=' * 100)
-p('ВЫВОД СКЕПТИКА')
+p('ВЫВОД СКЕПТИКА (тени)')
 p('=' * 100)
-dE1 = descr([r for r in mixed[E_KEY] if r['_t'] == 'Theme1'])
-dE2 = descr([r for r in mixed[E_KEY] if r['_t'] == 'Theme2'])
-dF1a = descr([r for r in mixed[F_KEY] if r['_t'] == 'Theme1'])
-p('1. Грубый разрыв (0,54 по выходу, 3 регистрации вместо 23) — тень партии постановки: это уже показал тестировщик, спорить не с чем.')
-p('2. «Остаточный эффект внутри партии» (O/E 0,74, p = 0,032) не выживает более жёсткой проверки:')
-p('   — p односторонний; двусторонний p = %.3f (та же статистика, те же 10 000 перестановок).' % p2)
-p('   — на уровне домена: ранговый стратифицированный тест p двустор. = %.3f, разность средних по доменам %+.1f п.п. (p = %.3f).' % (p2_r, obs_d, p2_d))
-p('   — эффект целиком в одной партии 19.08 23:00 (4 Theme1 против 9 Theme2: медианы %.1f%% против %.1f%%); во второй партии 20.08 12:00' % (dE1['med'], dE2['med']))
-p('     (12 против 8) медианы по доменам %.1f%% против %.1f%% — знак ОБРАТНЫЙ, а O/E по Theme1 0,81 держится на одном домене 1908.team (59,8%%).' % (dF1a['med'], dF2['med']))
-p('   — без 1908.team O/E по Theme1 = %.2f, p одн. = %.3f, двуст. = %.3f; в партии 20.08 12:00 без него Theme2 %.1f%% против Theme1 %.1f%%.' % (rs_x['oer'], q1_x, q2_x, dF2['ex'], dF1['ex']))
-p('   — парные сравнения по соседним номерам аккаунта (12 пар): по wm-аккаунту Theme2 хуже в 7, лучше в 5 (знаковый p = 0,77);')
-p('     по cf-аккаунту хуже в 8, лучше в 4 (p = 0,39); медиана разности −4…−7 п.п.')
-p('   — жёсткие страты: партия × паттерн имени O/E по Theme1 0,76 (p двуст. 0,067); партия × половина сеанса 0,73 (0,066);')
-p('     партия × четверть сеанса 0,73 (0,196); партия × паттерн × половина 0,74 (0,088). Знак не меняется, но нигде не значимо.')
-p('3. Регистрации внутри партии: 2 против 12, но 5 из 12 — один домен 1908.team; без него ожидание для Theme2 %.1f при 2 наблюдённых (p = %.2f);' % (lam_site, poisson_le(R2, lam_site)))
-p('   доменов с регистрацией %d из %d против %d из %d (Фишер p = %.2f). На поисковый клик разница (p = 0,008) держится на одном' % (a, len(t2F), b, len(t1F), fisher_two_sided(a, len(t2F) - a, b, len(t1F) - b)))
-p('   Theme2-домене 1467.team (11 478 кликов, 0 регистраций); без него и без 1908.team O/E = %.2f, p = %.2f. Разницы нет.' % (R2x / lam_clk_x, poisson_le(R2x, lam_clk_x)))
-p('4. Вне .team в той же партии 20.08 12:00 единственная пара одной зоны — .buzz: Theme2 20,1% против Theme1 11,1% (знак обратный, n = 1 + 1).')
+p('1. Внутри решающих партий на уровне домена разницы почти нет. В партии 20.08 12:00 медиана выхода по доменам у Theme2 %.1f%% против %.1f%% у Theme1;' %
+  (median([r['_rate'] * 100 for r in batches[DEC_KEYS[1]] if r['_t'] == 'Theme2']), median([r['_rate'] * 100 for r in batches[DEC_KEYS[1]] if r['_t'] == 'Theme1'])))
+p('   весь разрыв по сумме (27,4%% против 22,0%%) даёт один домен 1908.team (119 из 199). Ранговый тест по двум партиям: доля пар «Theme2 ниже» %.2f, p = %s;' % (r_dec['auc'], fmt(r_dec['p_rank'], 3)))
+p('   двусторонний p к статистике тестировщика = %s; партия 12:00 отдельно p = %s, партия 23:00 отдельно (4 против 9 доменов) p = %s.' %
+  (fmt(r_dec['p_two'], 3), fmt(r_b2['p_le'], 3), fmt(r_b1['p_le'], 3)))
+p('2. Без 1908.team: O/E по Theme1 = %s, p = %s; ранговый p = %s. Leave-one-out: p ≥ 0,05 при удалении %d из 33 доменов. Результат p = 0,032 держится на одном домене.' %
+  (fmt(r_no1908['oe_ref']), fmt(r_no1908['p_le'], 3), fmt(r_no1908['p_rank'], 3), sum(1 for x in loo if x[4] >= 0.05)))
+p('3. Регистрации внутри партии: доменов с регистрацией %d из %d против %d из %d, гипергеометрический p = %s; без 1908.team O/E = %s, пуассон p = %s. Разницы нет.' %
+  (k1, len(t1), k2, len(t2), fmt(hypergeom_le(k2, k1 + k2, len(t2), len(v12)), 2), fmt(ratio(reg2, e_no)), fmt(poisson_le(reg2, e_no), 2)))
+p('4. Вечер 20.08: Theme2 (30 дом., wm 108–137) выход %.1f%%, Theme1 на свежих аккаунтах той же цепочки (wm 138–142, 5 дом.) %.1f%% — O/E = %s, p = %s.' %
+  (agg(ev_t2)['ex'], agg(ev_t1_fresh)['ex'], fmt(r_ev['oe_ref']), fmt(r_ev['p_le'], 2)))
+p('   А внутри одного Theme1 в 22:00 свежие аккаунты против повторных: %.1f%% против %.1f%% (O/E %s, p = %s) — «тень сеанса» того же размера, что весь «эффект шаблона».' %
+  (a_f['ex'], a_r['ex'], fmt(ratio(a_f['V'], e_f)), fmt(cnt / N_PERM, 3)))
+p('5. Страта = сеанс (все 47 Theme2 с парой, 3 страты): выход O/E по пулу %s, по Theme1 %s, p одностор. %s, двустор. %s; ранговый p = %s; без 1908.team O/E %s, p = %s.' %
+  (fmt(r_sess['oe']), fmt(r_sess['oe_ref']), fmt(r_sess['p_le'], 3), fmt(r_sess['p_two'], 3), fmt(r_sess['p_rank'], 3), fmt(r_sess_no['oe_ref']), fmt(r_sess_no['p_le'], 3)))
+p('   Регистрации в этой страте: O = %d, E = %.1f, p = %s.' % (r_sreg['O'], r_sreg['E'], fmt(poisson_le(r_sreg['O'], r_sreg['E']), 2)))
+p('6. Плацебо: пары чисто-Theme1 партий тех же дней дают грубый O/E от %.2f до %.2f, %d из %d пар не хуже «0,54» Theme2. Грубая «вдвое» — обычный разброс между партиями.' %
+  (res_pl[0][0], res_pl[-1][0], sum(1 for x in res_pl if x[0] <= 0.54), len(res_pl)))
 p()
-p('ИТОГ: заявленный эффект шаблона (вдвое по выходу, в 4–8 раз по регистрациям) опровергнут как тень партии постановки;')
-p('остаточный эффект ≈0,75 внутри партии не устойчив: он односторонний, держится на 4 доменах Theme1 одной партии и одном домене-выбросе')
-p('другой, на уровне домена и в парах не отличим от нуля, в большей партии по медианам доменов меняет знак (24,6% против 23,6%).')
-p('По заранее заданным критериям плана (O/E выхода ≤ 0,6 и регистраций ≤ 0,4 при p < 0,05, не совпадать с недоборной подгруппой)')
-p('не выполнен ни один. На этом файле шаблон Theme2 — не фактор; вердикт «частично» завышен.')
+p('ИТОГ: опровергнуто как эффект шаблона. Грубые «вдвое» и «в 8 раз» — тень партии/сеанса постановки (плацебо-партии Theme1 дают тот же размер).')
+p('Остаточный «0,74, p = 0,03» внутри партии не переживает ни ранговый тест по доменам, ни удаление одного домена 1908.team, ни двусторонний p,')
+p('ни добавление вечернего сеанса с Theme1-парой на тех же аккаунтах. По регистрациям различий нет ни в одном разрезе. Вердикт «частично» завышен:')
+p('на этом файле шаблон от сеанса постановки неотделим, а там, где отделим, разницы нет.')
 p()
-p('ЧТО С ЭТИМ ДЕЛАТЬ: ничего по шаблону — это знание, не рычаг. Не запрещать Theme2 и не приписывать ему потери. Если шаблон нужен как')
-p('рычаг — нужен запуск с Theme1 и Theme2 вперемешку в одной партии (одна дата, один час, один записанный набор, по 20–30 доменов) и')
-p('заранее заданная двусторонняя проверка на уровне домена. На уже запущенных данных проверяемо одно: дозаписать набор контента для')
-p('106 доменов 19–20.08 и пересчитать тем же скриптом со стратой «набор + день + партия».')
+p('ЧТО С ЭТИМ ДЕЛАТЬ: ничего по шаблону — это не рычаг и не подозрение, а артефакт того, что Theme2 ставили отдельными сеансами.')
+p('Проверяемо на уже запущенных данных: (а) дозаписать набор контента для 106 доменов 19–20.08; (б) взять «сеанс» (день × цепочка номеров wm/cf)')
+p('как страту в других гипотезах о днях до 24.08 — разница свежие/повторные аккаунты внутри Theme1 22:00 (%.1f%% против %.1f%%) говорит, что')
+p('сеанс постановки объясняет часть «необъяснимого» разброса внутри пула «КОНТЕНТ НЕ ЗАПИСАН».' % (a_f['ex'], a_r['ex']))
 
-os.makedirs(os.path.dirname(OUT), exist_ok=True)
 with open(OUT, 'w', encoding='utf-8') as fh:
     fh.write('\n'.join(_lines) + '\n')
 print('\nСохранено:', OUT, file=sys.stderr)

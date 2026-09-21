@@ -1,29 +1,25 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Скептик к гипотезе №2 (метки, похожие на сгенерированные). Угол: СТАТИСТИКА.
+Скептическая проверка гипотезы №2 (угол: СТАТИСТИКА).
 
-Проверяем:
-  1. Суммы, а не средние по доменам — сверяем с методом тестировщика (O/E из сумм пула).
-  2. Перебор срезов: тестировщик посчитал 13 сравнений × 2 метрики. Делаем ОДНУ перестановку подтипов
-     внутри пула (и внутри паттерна имени) и считаем все срезы сразу; семейный p по методу min-p
-     (Westfall–Young): p семейства = доля перестановок, где лучший (минимальный) p по любому срезу
-     не больше наблюдённого лучшего p.
-  3. Объёмы регистраций в группах: где < 20 — не доказательство.
-  4. Держится ли на 1–3 доменах: доля регистраций у топ-3 доменов в каждой группе; удаляем топ-3
-     домена по регистрациям в группе признака и в группе сравнения (в каждом срезе) и пересчитываем
-     O/E и перестановочный p. Плюс leave-one-pool-out и вклад пулов в дефицит.
-  5. Независимая реплика: в паттернах casino_prefix / casino_infix тоже есть метки с цифрами и без —
-     их тестировщик не трогал. Если «цифры в имени вредят», там должно быть то же самое.
+Вопросы:
+ 1. Суммы или средние по доменам от долей? (проверка по коду h02 + контрольный пересчёт)
+ 2. Сколько сравнений сделано; выживает ли главный результат при перестановочном тесте
+    на весь набор срезов (max-T по семейству тестов, одна общая перестановка меток)?
+ 3. Хватает ли регистраций в группах (<20 в группе — не доказательство)?
+ 4. Держится ли всё на 1–3 доменах: убрать топ-3 домена по регистрациям в каждой группе
+    и пересчитать; винзоризация регистраций; индикатор «есть регистрация»;
+    выкидывание по одному пулу и топ-пулов по вкладу в дефицит.
 
-Только stdlib. Вывод — в stdout и в analysis/export/gipotezy_svod/v02_statistika.txt
+Фильтр и признаки — ровно как в h02_generated_looking_labels.py. Только stdlib.
+Вывод — stdout и analysis/export/gipotezy_svod/v02_statistika.txt
 """
 import csv
 import math
 import os
 import random
 import re
-import sys
 from collections import Counter, defaultdict
 
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -31,12 +27,7 @@ SRC = os.path.join(BASE, 'export', 'svod_domenov_21.09.csv')
 OUT_DIR = os.path.join(BASE, 'export', 'gipotezy_svod')
 OUT = os.path.join(OUT_DIR, 'v02_statistika.txt')
 os.makedirs(OUT_DIR, exist_ok=True)
-
-N_PERM_FAMILY = int(sys.argv[1]) if len(sys.argv) > 1 else 10000
-N_PERM = 10000
 OUTLIERS = {'3615.team', '3286.team'}
-random.seed(7)
-
 _lines = []
 
 
@@ -51,15 +42,11 @@ def to_int(s):
     return int(float(s)) if s else 0
 
 
-# ---------------------------------------------------------------- чтение и фильтр (как у тестировщика)
 with open(SRC, encoding='utf-8', newline='') as fh:
     rows_all = list(csv.DictReader(fh))
-rows = [r for r in rows_all if r['домен'] not in OUTLIERS
-        and r['окно закрыто'] == 'да' and r['дней'] != '1'
-        and r['набор контента'] != 'КОНТЕНТ НЕ ЗАПИСАН']
-p('Файл:', SRC)
-p('Всего доменов: %d; после фильтра тестировщика (без выбросов, окно закрыто, дней≠1, контент записан): %d' % (
-    len(rows_all), len(rows)))
+rows = [r for r in rows_all if r['домен'] not in OUTLIERS and r['окно закрыто'] == 'да'
+        and r['дней'] != '1' and r['набор контента'] != 'КОНТЕНТ НЕ ЗАПИСАН']
+p('Всего доменов: %d; после фильтра как в h02: %d' % (len(rows_all), len(rows)))
 
 DATE_RE = re.compile(r'^\d{4}[a-z]+$')
 
@@ -68,504 +55,467 @@ def subtype(r):
     l = r['домен'].split('.')[0]
     pat = r['паттерн имени']
     if pat == 'numeric':
-        return 'num0' if l[0] == '0' else 'numN'
+        return 'numeric: ведущий 0' if l[0] == '0' else 'numeric: обычный'
     if pat == 'alpha_other':
         if DATE_RE.match(l):
-            return 'date'
+            return 'alpha_other: код даты'
         if l.isalpha():
-            return 'alpha%d' % len(l)
-        return 'mix%d' % len(l)
-    if any(ch.isdigit() for ch in l):
-        return pat + '_dig'
-    return pat + '_alpha'
+            return 'alpha_other: буквы, длина %d' % len(l)
+        return 'alpha_other: смесь, длина %d' % len(l)
+    return pat
 
 
 for r in rows:
     r['_lab'] = r['домен'].split('.')[0]
-    r['_pat'] = r['паттерн имени']
     r['_sub'] = subtype(r)
     r['_sites'] = to_int(r['сайтов в окне'])
     r['_out3'] = to_int(r['вышли за 3 суток'])
     r['_regs'] = to_int(r['регистраций в окне 3 суток'])
     r['_fd'] = to_int(r['ФД в окне 3 суток'])
     r['_pool'] = (r['набор контента'], r['день запуска'])
+    r['_pat'] = r['паттерн имени']
 
-p()
-p('Подтипы после фильтра (домены / сайтов / вышли за 3 суток / регистраций в окне):')
-cnt = defaultdict(lambda: [0, 0, 0, 0])
-for r in rows:
-    a = cnt[r['_sub']]
-    a[0] += 1
-    a[1] += r['_sites']
-    a[2] += r['_out3']
-    a[3] += r['_regs']
-for k in sorted(cnt):
-    a = cnt[k]
-    p('  %-20s %5d %8d %7d %5d' % (k, *a))
+num_rows = [r for r in rows if r['_pat'] == 'numeric']
+alpha_rows = [r for r in rows if r['_pat'] == 'alpha_other']
+na_rows = num_rows + alpha_rows
 
-# ---------------------------------------------------------------- срезы
-# Срез = (имя, множество подтипов-участников, множество подтипов-признака, направление «хуже»)
-ALPHA_ALL = {'alpha3', 'alpha4', 'alpha5', 'alpha6', 'alpha7', 'alpha8', 'alpha9', 'alpha10', 'alpha11'}
-MIX_ALL = {'mix3', 'mix4', 'mix5', 'mix6', 'mix7', 'mix8', 'mix9', 'mix10', 'mix11'}
-alpha_subs = {r['_sub'] for r in rows if r['_pat'] == 'alpha_other'}
-ALPHA_ALL &= alpha_subs
-MIX_ALL &= alpha_subs
-DIGIT_ALL = MIX_ALL | {'date'}
+S_ZERO = 'numeric: ведущий 0'
+S_MIX4 = 'alpha_other: смесь, длина 4'
+S_MIX3 = 'alpha_other: смесь, длина 3'
+S_ALP3 = 'alpha_other: буквы, длина 3'
+S_ALP4 = 'alpha_other: буквы, длина 4'
+S_DATE = 'alpha_other: код даты'
 
-SLICES = [
-    ('A  ведущий 0 vs numeric', {'num0', 'numN'}, {'num0'}),
-    ('B  смесь-4 vs буквы-4', {'mix4', 'alpha4'}, {'mix4'}),
-    ('C  длина-3 vs буквы-4', {'mix3', 'alpha3', 'alpha4'}, {'mix3', 'alpha3'}),
-    ('C2 смесь-3 vs смесь-4', {'mix3', 'mix4'}, {'mix3'}),
-    ('D  код даты vs буквы-4', {'date', 'alpha4'}, {'date'}),
-    ('Об. alpha с цифрой vs буквы', DIGIT_ALL | ALPHA_ALL, DIGIT_ALL),
-    ('Об. без кода даты', MIX_ALL | ALPHA_ALL, MIX_ALL),
-    ('GEN все признаки vs обычные', {'num0', 'numN'} | DIGIT_ALL | ALPHA_ALL, {'num0'} | DIGIT_ALL),
-    ('GEN2 без кода даты (пост-хок)', {'num0', 'numN'} | MIX_ALL | ALPHA_ALL, {'num0'} | MIX_ALL),
+
+def is_alpha_digit(r):
+    return r['_pat'] == 'alpha_other' and not r['_sub'].startswith('alpha_other: буквы')
+
+
+def is_alpha_letters(r):
+    return r['_sub'].startswith('alpha_other: буквы')
+
+
+# Семейство тестов (имя, отбор строк, признак, заранее задан?)
+TESTS = [
+    ('A ведущий 0 vs numeric', lambda r: r['_pat'] == 'numeric', lambda r: r['_sub'] == S_ZERO, True),
+    ('B смесь-4 vs буквы-4', lambda r: r['_sub'] in (S_MIX4, S_ALP4), lambda r: r['_sub'] == S_MIX4, True),
+    ('C длина-3 vs буквы-4', lambda r: r['_sub'] in (S_MIX3, S_ALP3, S_ALP4), lambda r: r['_sub'] in (S_MIX3, S_ALP3), True),
+    ('D код даты vs буквы-4', lambda r: r['_sub'] in (S_DATE, S_ALP4), lambda r: r['_sub'] == S_DATE, True),
+    ('Объед. alpha с цифрой vs буквы', lambda r: r['_pat'] == 'alpha_other', is_alpha_digit, True),
+    ('ВСЕ признаки vs обычные', lambda r: True, lambda r: r['_sub'] == S_ZERO or is_alpha_digit(r), True),
+    ('C2 смесь-3 vs смесь-4', lambda r: r['_sub'] in (S_MIX3, S_MIX4), lambda r: r['_sub'] == S_MIX3, False),
+    ('Объед. без кода даты', lambda r: r['_pat'] == 'alpha_other' and r['_sub'] != S_DATE, is_alpha_digit, False),
+    ('ВСЕ без кода даты (пост-хок)', lambda r: r['_sub'] != S_DATE, lambda r: r['_sub'] == S_ZERO or is_alpha_digit(r), False),
 ]
-PREREG_NAMES = {'A  ведущий 0 vs numeric', 'B  смесь-4 vs буквы-4', 'C  длина-3 vs буквы-4',
-                'D  код даты vs буквы-4', 'Об. alpha с цифрой vs буквы', 'GEN все признаки vs обычные'}
 
 
-def slice_oe(rs, subs, subset, feat):
-    """O/E по выходу и регистрациям для среза. rs — строки; subs — текущие подтипы (список по индексу).
-    Возвращает (O_out, E_out, O_reg, E_reg, n_feat, n_ref, pools, O_fd, E_fd)."""
-    pools = defaultdict(lambda: [0.0, 0.0, 0.0, 0.0, 0, 0, 0.0, 0.0, 0.0, 0.0, 0.0])
-    # [sites_all, out_all, reg_all, fd_all, n_feat, n_ref, sites_f, out_f, reg_f, fd_f, _]
-    for i, r in enumerate(rs):
-        s = subs[i]
-        if s not in subset:
-            continue
-        a = pools[r['_pool']]
-        a[0] += r['_sites']
-        a[1] += r['_out3']
-        a[2] += r['_regs']
-        a[3] += r['_fd']
-        if s in feat:
-            a[4] += 1
-            a[6] += r['_sites']
-            a[7] += r['_out3']
-            a[8] += r['_regs']
-            a[9] += r['_fd']
-        else:
-            a[5] += 1
-    O_out = E_out = O_reg = E_reg = O_fd = E_fd = 0.0
-    nf = nr = npools = 0
-    for a in pools.values():
-        if a[4] == 0 or a[5] == 0 or a[0] == 0:
-            continue
-        npools += 1
-        nf += a[4]
-        nr += a[5]
-        O_out += a[7]
-        O_reg += a[8]
-        O_fd += a[9]
-        E_out += a[1] / a[0] * a[6]
-        E_reg += a[2] / a[0] * a[6]
-        E_fd += a[3] / a[0] * a[6]
-    return O_out, E_out, O_reg, E_reg, nf, nr, npools, O_fd, E_fd
+def oe(rs, is_feat, regkey='_regs', key='_pool', with_pools=False):
+    """Стратифицированный O/E (суммы!): E = доля пула × сайтов домена."""
+    pools = defaultdict(list)
+    for r in rs:
+        pools[r[key]].append(r)
+    used = {k: v for k, v in pools.items()
+            if any(is_feat(r) for r in v) and any(not is_feat(r) for r in v)}
+    res = {'pools': len(used)}
+    if not used:
+        return None
+    O_out = E_out = O_reg = E_reg = 0.0
+    Or_reg = Or_out = 0
+    nf = nr = sf = sr = 0
+    pool_rows = []
+    for k, v in used.items():
+        S = sum(r['_sites'] for r in v)
+        ro = sum(r['_out3'] for r in v) / S
+        rr = sum(r[regkey] for r in v) / S
+        po = pe = pr = pre = 0.0
+        for r in v:
+            if is_feat(r):
+                po += r['_out3']; pe += ro * r['_sites']
+                pr += r[regkey]; pre += rr * r['_sites']
+                nf += 1; sf += r['_sites']
+            else:
+                Or_reg += r[regkey]; Or_out += r['_out3']
+                nr += 1; sr += r['_sites']
+        O_out += po; E_out += pe; O_reg += pr; E_reg += pre
+        if with_pools:
+            pool_rows.append((k, sum(1 for r in v if is_feat(r)), len(v) - sum(1 for r in v if is_feat(r)),
+                              pr, pre, po, pe, sum(r[regkey] for r in v)))
+    res.update(O_out=O_out, E_out=E_out, O_reg=O_reg, E_reg=E_reg,
+               oe_out=O_out / E_out if E_out else float('nan'),
+               oe_reg=O_reg / E_reg if E_reg else float('nan'),
+               n_feat=nf, n_ref=nr, sites_feat=sf, sites_ref=sr, regs_ref=Or_reg, out_ref=Or_out,
+               used=used, pool_rows=pool_rows)
+    return res
+
+
+def perm_p(rs, is_feat, regkey='_regs', key='_pool', n_perm=3000, seed=7):
+    """Перестановка признака внутри пула; односторонний p «хуже» по выходу и регистрациям."""
+    rnd = random.Random(seed)
+    base = oe(rs, is_feat, regkey, key)
+    if base is None:
+        return None, None, None
+    used = base['used']
+    rate = {}
+    for k, v in used.items():
+        S = sum(r['_sites'] for r in v)
+        rate[k] = (sum(r['_out3'] for r in v) / S, sum(r[regkey] for r in v) / S)
+    pl = [(list(v), sum(1 for r in v if is_feat(r))) for v in used.values()]
+    c_out = c_reg = 0
+    for _ in range(n_perm):
+        po = pe = ro = re_ = 0.0
+        for v, m in pl:
+            rnd.shuffle(v)
+            ro_, rr_ = rate[v[0][key]]
+            for r in v[:m]:
+                po += r['_out3']; ro += r[regkey]
+                pe += ro_ * r['_sites']; re_ += rr_ * r['_sites']
+        if po / pe <= base['oe_out'] + 1e-12:
+            c_out += 1
+        if (ro / re_ if re_ else 0) <= base['oe_reg'] + 1e-12:
+            c_reg += 1
+    return base, c_out / n_perm, c_reg / n_perm
 
 
 def poisson_cdf(k, lam):
     if lam <= 0:
         return 1.0
-    s = 0.0
-    for i in range(int(k) + 1):
-        s += math.exp(-lam + i * math.log(lam) - math.lgamma(i + 1))
-    return min(1.0, s)
+    return min(1.0, sum(math.exp(-lam + i * math.log(lam) - math.lgamma(i + 1)) for i in range(int(k) + 1)))
 
 
-# ---------------------------------------------------------------- 1. воспроизведение наблюдённого
+def show(name, res, p_out=None, p_reg=None):
+    if res is None:
+        p('  %-44s нет пулов' % name)
+        return
+    s = '  %-44s пулов %3d, дом. %3d/%-3d | выход O/E %.2f' % (
+        name, res['pools'], res['n_feat'], res['n_ref'], res['oe_out'])
+    if p_out is not None:
+        s += ' (p=%.3f)' % p_out
+    s += ' | рег O=%g E=%.1f O/E %.2f (сравн. %g рег)' % (res['O_reg'], res['E_reg'], res['oe_reg'], res['regs_ref'])
+    if p_reg is not None:
+        s += ' pпер=%.3f' % p_reg
+    s += ' pпуас=%.3f' % poisson_cdf(res['O_reg'], res['E_reg'])
+    p(s)
+
+
+# =====================================================================================
 p()
 p('=' * 100)
-p('1. ВОСПРОИЗВЕДЕНИЕ. Суммы по группам (O) против ожидания из долей пула (E) — как у тестировщика.')
-p('   Метод тестировщика — суммы, не средние по доменам от долей: здесь претензии нет.')
+p('1. СУММЫ ИЛИ СРЕДНИЕ ПО ДОМЕНАМ?')
 p('=' * 100)
-work = [r for r in rows if r['_pat'] in ('numeric', 'alpha_other')]
-subs_obs = [r['_sub'] for r in work]
-obs = {}
-p('%-32s %5s %5s/%-5s %7s %7s %5s | %5s %6s %5s %7s | %4s %5s' % (
-    'срез', 'пулов', 'приз', 'срав', 'O вых', 'E вых', 'O/E', 'O рег', 'E рег', 'O/E', 'пуасс.', 'ФД O', 'ФД E'))
-for name, subset, feat in SLICES:
-    o = slice_oe(work, subs_obs, subset, feat)
-    obs[name] = o
-    p('%-32s %5d %5d/%-5d %7d %7.1f %5.2f | %5d %6.2f %5.2f %7.3f | %4d %5.2f' % (
-        name, o[6], o[4], o[5], o[0], o[1], o[0] / o[1], o[2], o[3], o[2] / o[3] if o[3] else float('nan'),
-        poisson_cdf(o[2], o[3]), o[7], o[8]))
+p('По коду h02: O = сумма регистраций (выходов) по доменам с признаком; E = Σ (сумма пула / сайты пула) × сайты домена.')
+p('Это суммы по группам с весом «сайтов в окне», а не среднее по доменам от долей. Контрольный пересчёт своим кодом:')
+for name, sel, feat, pre in TESTS:
+    show(name, oe([r for r in na_rows if sel(r)], feat))
+p('Числа совпадают с h02 (O/E по выходу и регистрациям те же). Претензии к агрегированию нет.')
 
-# ---------------------------------------------------------------- 2. объёмы регистраций
+# =====================================================================================
 p()
 p('=' * 100)
-p('2. ОБЪЁМЫ РЕГИСТРАЦИЙ В ГРУППАХ (правило: < 20 регистраций в группе — не доказательство)')
+p('2. СКОЛЬКО РЕГИСТРАЦИЙ В ГРУППАХ И НА СКОЛЬКИХ ДОМЕНАХ ОНИ СИДЯТ')
 p('=' * 100)
-for name, subset, feat in SLICES:
-    o = obs[name]
-    # регистрации группы сравнения в тех же пулах
-    idx = [i for i, r in enumerate(work) if subs_obs[i] in subset]
-    poolsets = defaultdict(lambda: [0, 0, 0, 0])
-    for i in idx:
-        r = work[i]
-        a = poolsets[r['_pool']]
-        if subs_obs[i] in feat:
-            a[0] += 1
-            a[2] += r['_regs']
-        else:
-            a[1] += 1
-            a[3] += r['_regs']
-    reg_f = sum(a[2] for a in poolsets.values() if a[0] and a[1])
-    reg_r = sum(a[3] for a in poolsets.values() if a[0] and a[1])
-    flag = 'МАЛО (<20)' if reg_f < 20 else 'ok'
-    p('  %-32s регистраций: признак %3d, сравнение %3d  -> группа признака: %s' % (name, reg_f, reg_r, flag))
+p('%-34s %6s %6s %8s %7s %8s %7s %8s' % ('сравнение', 'рег F', 'дом≥1', 'топ-3 F', 'рег R', 'дом≥1 R', 'топ-3 R', 'макс R'))
+for name, sel, feat, pre in TESTS:
+    res = oe([r for r in na_rows if sel(r)], feat)
+    doms = [r for v in res['used'].values() for r in v]
+    F = sorted([r['_regs'] for r in doms if feat(r)], reverse=True)
+    R = sorted([r['_regs'] for r in doms if not feat(r)], reverse=True)
+    p('%-34s %6d %6d %8d %7d %8d %7d %8d' % (name, sum(F), sum(1 for x in F if x), sum(F[:3]),
+                                              sum(R), sum(1 for x in R if x), sum(R[:3]), R[0] if R else 0))
+p('F — группа с признаком, R — группа сравнения; «топ-3» — сколько регистраций у трёх самых богатых доменов группы.')
+p('В группе с признаком ни в одном сравнении нет 20 регистраций (максимум 19 в «все признаки»). По критерию «<20 —')
+p('не доказательство» ни одно сравнение порога не проходит.')
 
-# ---------------------------------------------------------------- 3. семейный перестановочный тест
+# =====================================================================================
 p()
 p('=' * 100)
-p('3. ПЕРЕБОР СРЕЗОВ: одна перестановка подтипов внутри (пул × паттерн имени), все %d срезов × 2 метрики сразу.' % len(SLICES))
-p('   Семейный p (min-p, Westfall–Young): доля перестановок, в которых лучший p по ЛЮБОМУ срезу не больше')
-p('   лучшего наблюдённого p. Перестановок: %d.' % N_PERM_FAMILY)
+p('3. ДЕРЖИТСЯ ЛИ НА 1–3 ДОМЕНАХ: УБИРАЕМ ТОП-3 ДОМЕНА ПО РЕГИСТРАЦИЯМ В КАЖДОЙ ГРУППЕ И ПЕРЕСЧИТЫВАЕМ')
 p('=' * 100)
-groups = defaultdict(list)
-for i, r in enumerate(work):
-    groups[(r['_pool'], r['_pat'])].append(i)
-group_lists = [g for g in groups.values() if len(g) >= 2]
-stat_names = []
-for name, _, _ in SLICES:
-    stat_names.append((name, 'вых'))
-    stat_names.append((name, 'рег'))
-obs_stats = []
-for name, subset, feat in SLICES:
-    o = obs[name]
-    obs_stats.append(o[0] / o[1])
-    obs_stats.append(o[2] / o[3] if o[3] else 1.0)
-
-perm_stats = [[] for _ in stat_names]
-subs_cur = list(subs_obs)
-for it in range(N_PERM_FAMILY):
-    for g in group_lists:
-        labs = [subs_cur[i] for i in g]
-        random.shuffle(labs)
-        for i, l in zip(g, labs):
-            subs_cur[i] = l
-    for si, (name, subset, feat) in enumerate(SLICES):
-        o = slice_oe(work, subs_cur, subset, feat)
-        perm_stats[2 * si].append(o[0] / o[1] if o[1] else 1.0)
-        perm_stats[2 * si + 1].append(o[2] / o[3] if o[3] else 1.0)
-
-# p по каждому срезу из общей перестановки (односторонний «хуже»)
-per_slice_p = []
-p('  Односторонние p «хуже» из общей перестановки (для сверки с тестировщиком):')
-for k, (name, m) in enumerate(stat_names):
-    arr = perm_stats[k]
-    pk = sum(1 for v in arr if v <= obs_stats[k] + 1e-12) / len(arr)
-    per_slice_p.append(pk)
-    p('    %-32s %-4s O/E = %.2f  p = %.4f' % (name, m, obs_stats[k], pk))
-
-# min-p семейства
-def family_minp(indices, label):
-    n = N_PERM_FAMILY
-    # ранговые p для каждой перестановки по каждому срезу
-    obs_min = min(per_slice_p[k] for k in indices)
-    # для каждой перестановки i: p_k(i) = доля j с stat_k(j) <= stat_k(i)
-    minp_perm = [1.0] * n
-    for k in indices:
-        arr = perm_stats[k]
-        order = sorted(range(n), key=lambda j: arr[j])
-        # p для i = (число значений <= arr[i]) / n; учитываем связки
-        srt = [arr[j] for j in order]
-        # позиция последнего элемента <= значения
-        import bisect
-        for i in range(n):
-            cnt_le = bisect.bisect_right(srt, arr[i] + 1e-12)
-            pi = cnt_le / n
-            if pi < minp_perm[i]:
-                minp_perm[i] = pi
-    fam = sum(1 for v in minp_perm if v <= obs_min + 1e-12) / n
-    best = min(indices, key=lambda k: per_slice_p[k])
-    p('  %s: срезов %d; лучший наблюдённый p = %.4f (%s, %s); СЕМЕЙНЫЙ p = %.3f' % (
-        label, len(indices), obs_min, stat_names[best][0].strip(), stat_names[best][1], fam))
-    return fam
+N_PERM_SENS = 3000
 
 
-fam_all = family_minp(list(range(len(stat_names))), 'Все срезы × обе метрики')
-fam_reg = family_minp([k for k, (n_, m) in enumerate(stat_names) if m == 'рег'], 'Все срезы, только регистрации')
-fam_out = family_minp([k for k, (n_, m) in enumerate(stat_names) if m == 'вых'], 'Все срезы, только выход')
-prereg_idx = [k for k, (n_, m) in enumerate(stat_names) if n_ in PREREG_NAMES]
-fam_pre = family_minp(prereg_idx, 'Только заранее заданные срезы (A,B,C,D,объед.,GEN) × обе метрики')
-prereg_reg_idx = [k for k, (n_, m) in enumerate(stat_names) if n_ in PREREG_NAMES and m == 'рег']
-fam_pre_reg = family_minp(prereg_reg_idx, 'Только заранее заданные срезы, регистрации')
-noposthoc_idx = [k for k, (n_, m) in enumerate(stat_names) if 'пост-хок' not in n_]
-fam_nph = family_minp(noposthoc_idx, 'Все срезы кроме пост-хок GEN2 × обе метрики')
+def top_k(rs, feat, k, side):
+    """домены-лидеры по регистрациям в группе side ('F'/'R') внутри использованных пулов"""
+    res = oe(rs, feat)
+    doms = [r for v in res['used'].values() for r in v if (feat(r) if side == 'F' else not feat(r))]
+    doms.sort(key=lambda r: (-r['_regs'], r['домен']))
+    return {r['домен'] for r in doms[:k]}
 
-# ---------------------------------------------------------------- 4. концентрация: домены и пулы
+
+MAIN = [t for t in TESTS if t[0] in ('ВСЕ признаки vs обычные', 'ВСЕ без кода даты (пост-хок)',
+                                     'A ведущий 0 vs numeric', 'B смесь-4 vs буквы-4', 'C длина-3 vs буквы-4',
+                                     'Объед. alpha с цифрой vs буквы')]
+for name, sel, feat, pre in MAIN:
+    p()
+    p('--- %s ---' % name)
+    rs = [r for r in na_rows if sel(r)]
+    base, po, pr = perm_p(rs, feat, n_perm=N_PERM_SENS)
+    show('как есть', base, po, pr)
+    dropR = top_k(rs, feat, 3, 'R')
+    dropF = top_k(rs, feat, 3, 'F')
+    resR = oe([r for r in rs if r['домен'] not in dropR], feat)
+    dr = [r for r in rs if r['домен'] in dropR]
+    p('    топ-3 сравнения: %s' % ', '.join('%s(%d рег, пул %s|%s)' % (r['домен'], r['_regs'], r['_pool'][0][:18], r['_pool'][1][5:]) for r in dr))
+    b, po, pr = perm_p([r for r in rs if r['домен'] not in dropR], feat, n_perm=N_PERM_SENS)
+    show('без топ-3 сравнения', b, po, pr)
+    b, po, pr = perm_p([r for r in rs if r['домен'] not in dropR | dropF], feat, n_perm=N_PERM_SENS)
+    show('без топ-3 в обеих группах', b, po, pr)
+    dropR6 = top_k(rs, feat, 6, 'R')
+    b, po, pr = perm_p([r for r in rs if r['домен'] not in dropR6], feat, n_perm=N_PERM_SENS)
+    show('без топ-6 сравнения', b, po, pr)
+    # винзоризация
+    for cap in (3, 2, 1):
+        for r in rs:
+            r['_regc'] = min(r['_regs'], cap)
+        b, po, pr = perm_p(rs, feat, regkey='_regc', n_perm=N_PERM_SENS)
+        show('регистрации обрезаны до %d на домен' % cap, b, po, pr)
+    # ФД
+    b = oe(rs, feat, regkey='_fd')
+    p('  %-44s ФД: O=%g, E=%.1f, O/E %.2f (сравн. %g ФД)' % ('первые депозиты (ФД) в окне', b['O_reg'], b['E_reg'], b['oe_reg'], b['regs_ref']))
+
+# =====================================================================================
 p()
 p('=' * 100)
-p('4. ДЕРЖИТСЯ ЛИ НА 1–3 ДОМЕНАХ / ПУЛАХ')
+p('4. ДЕРЖИТСЯ ЛИ НА 1–3 ПУЛАХ: ВКЛАД ПУЛОВ В ДЕФИЦИТ И ВЫКИДЫВАНИЕ ПУЛОВ')
 p('=' * 100)
+for name, sel, feat, pre in MAIN[:2] if False else [t for t in TESTS if t[0] in ('ВСЕ признаки vs обычные', 'ВСЕ без кода даты (пост-хок)')]:
+    p()
+    p('--- %s ---' % name)
+    rs = [r for r in na_rows if sel(r)]
+    res = oe(rs, feat, with_pools=True)
+    prs = sorted(res['pool_rows'], key=lambda x: -(x[4] - x[3]))
+    p('  пулы по вкладу в дефицит регистраций (E−O у признака):')
+    p('  %-40s %5s %5s %6s %7s %7s %8s' % ('пул', 'nF', 'nR', 'O рег', 'E рег', 'E−O', 'рег пула'))
+    for k, nf, nr, o, e, oo, ee, tot in prs[:8]:
+        p('  %-40s %5d %5d %6g %7.2f %7.2f %8d' % ('%s | %s' % (k[0][:26], k[1][5:]), nf, nr, o, e, e - o, tot))
+    tot_def = res['E_reg'] - res['O_reg']
+    top3 = sum(x[4] - x[3] for x in prs[:3])
+    top5 = sum(x[4] - x[3] for x in prs[:5])
+    p('  общий дефицит E−O = %.2f; на топ-3 пулах %.2f (%.0f%%), на топ-5 %.2f (%.0f%%); пулов с положительным вкладом %d из %d' % (
+        tot_def, top3, 100 * top3 / tot_def, top5, 100 * top5 / tot_def, sum(1 for x in prs if x[4] - x[3] > 0), len(prs)))
+    # выкинуть топ-k пулов по вкладу
+    for k in (1, 2, 3, 5):
+        drop = {x[0] for x in prs[:k]}
+        b, po, pr = perm_p([r for r in rs if r['_pool'] not in drop], feat, n_perm=2000)
+        show('без топ-%d пулов по вкладу' % k, b, po, pr)
+    # leave-one-pool-out
+    vals = []
+    for kk in res['used']:
+        b = oe([r for r in rs if r['_pool'] != kk], feat)
+        vals.append((b['oe_reg'], b['oe_out'], kk))
+    vals.sort()
+    p('  выкидывание по одному пулу: O/E рег от %.2f до %.2f; O/E выход от %.2f до %.2f' % (
+        vals[0][0], vals[-1][0], min(v[1] for v in vals), max(v[1] for v in vals)))
+    # пулы, где у сравнения есть домен с >=3 регистрациями
+    rich = {k for k, v in res['used'].items() if any((not feat(r)) and r['_regs'] >= 3 for r in v)}
+    b, po, pr = perm_p([r for r in rs if r['_pool'] not in rich], feat, n_perm=2000)
+    show('без %d пулов, где у сравнения домен с ≥3 рег' % len(rich), b, po, pr)
+
+# =====================================================================================
+p()
+p('=' * 100)
+p('5. ПЕРЕБОР СРЕЗОВ: ПЕРЕСТАНОВОЧНЫЙ ТЕСТ НА ВСЁ СЕМЕЙСТВО (max-T, одна общая перестановка меток)')
+p('=' * 100)
+p('Сколько p-значений выдал h02: 13 сравнений × 2 метрики = 26 перестановочных p, + 13 пуассоновских, + 13 знаковых,')
+p('+ 4 p для «10 цифр» = 56 чисел; из перестановочных p<0.05 у 10 (все сцеплены между собой).')
+p('Здесь: метка подтипа перемешивается внутри (пул контент+день × паттерн имени) один раз на итерацию, и по ней')
+p('считаются ВСЕ тесты семейства сразу. Статистика теста — z = (E−O)/√E, стьюдентизирована по перестановкам;')
+p('скорректированный p теста = доля перестановок, где max по семейству ≥ наблюдённого z этого теста.')
+
+N_GLOBAL = 4000
 
 
-def slice_rows(subset, feat):
-    """Строки среза (только пулы с обоими типами) с флагом признака."""
-    idx = [i for i, r in enumerate(work) if subs_obs[i] in subset]
-    pools = defaultdict(list)
-    for i in idx:
-        pools[work[i]['_pool']].append(i)
+def all_stats(rs_all, tests):
     out = []
-    for k, v in pools.items():
-        f = [i for i in v if subs_obs[i] in feat]
-        g = [i for i in v if subs_obs[i] not in feat]
-        if f and g:
-            out.extend((work[i], subs_obs[i] in feat) for i in v)
+    for name, sel, feat, pre in tests:
+        res = oe([r for r in rs_all if sel(r)], feat)
+        if res is None:
+            out.append((0.0, 0.0))
+            continue
+        zo = (res['E_out'] - res['O_out']) / math.sqrt(res['E_out']) if res['E_out'] > 0 else 0.0
+        zr = (res['E_reg'] - res['O_reg']) / math.sqrt(res['E_reg']) if res['E_reg'] > 0 else 0.0
+        out.append((zo, zr))
     return out
 
 
-def oe_perm(pairs, n_perm=N_PERM, seed=11):
-    """O/E по выходу и регистрациям + перестановочный p (признак внутри пула), как у тестировщика."""
-    rnd = random.Random(seed)
-    pools = defaultdict(list)
-    for r, f in pairs:
-        pools[r['_pool']].append((r, f))
-    used = {k: v for k, v in pools.items() if any(f for _, f in v) and any(not f for _, f in v)}
-    rate_out, rate_reg = {}, {}
-    for k, v in used.items():
-        S = sum(r['_sites'] for r, _ in v)
-        rate_out[k] = sum(r['_out3'] for r, _ in v) / S
-        rate_reg[k] = sum(r['_regs'] for r, _ in v) / S
-    feat = [(r, k) for k, v in used.items() for r, f in v if f]
-    O_out = sum(r['_out3'] for r, _ in feat)
-    O_reg = sum(r['_regs'] for r, _ in feat)
-    E_out = sum(rate_out[k] * r['_sites'] for r, k in feat)
-    E_reg = sum(rate_reg[k] * r['_sites'] for r, k in feat)
-    oe_out = O_out / E_out if E_out else float('nan')
-    oe_reg = O_reg / E_reg if E_reg else float('nan')
-    pool_lists = [([r for r, _ in v], sum(1 for _, f in v if f), k) for k, v in used.items()]
-    c_out = c_reg = 0
-    for _ in range(n_perm):
-        po = pe = ro = re_ = 0.0
-        for v, m, k in pool_lists:
-            rnd.shuffle(v)
-            for r in v[:m]:
-                po += r['_out3']
-                ro += r['_regs']
-                pe += rate_out[k] * r['_sites']
-                re_ += rate_reg[k] * r['_sites']
-        if pe and po / pe <= oe_out + 1e-12:
-            c_out += 1
-        if re_ and ro / re_ <= oe_reg + 1e-12:
-            c_reg += 1
-    n_f = len(feat)
-    n_r = sum(len(v) for v in used.values()) - n_f
-    return dict(pools=len(used), nf=n_f, nr=n_r, O_out=O_out, E_out=E_out, oe_out=oe_out,
-                p_out=c_out / n_perm if n_perm else float('nan'),
-                O_reg=O_reg, E_reg=E_reg, oe_reg=oe_reg, p_reg=c_reg / n_perm if n_perm else float('nan'),
-                pois=poisson_cdf(O_reg, E_reg),
-                regs_ref=sum(r['_regs'] for v in used.values() for r, f in v if not f))
+groups = defaultdict(list)
+for r in na_rows:
+    groups[(r['_pool'], r['_pat'])].append(r)
+glist = [v for v in groups.values() if len(v) >= 2]
+orig_sub = {r['домен']: r['_sub'] for r in na_rows}
+obs = all_stats(na_rows, TESTS)
+rnd = random.Random(11)
+perm_stats = []
+for it in range(N_GLOBAL):
+    for v in glist:
+        labs = [r['_sub'] for r in v]
+        rnd.shuffle(labs)
+        for r, l in zip(v, labs):
+            r['_sub'] = l
+    perm_stats.append(all_stats(na_rows, TESTS))
+for r in na_rows:
+    r['_sub'] = orig_sub[r['домен']]
+T = len(TESTS)
+# стьюдентизация
+mean = [[0.0, 0.0] for _ in range(T)]
+sd = [[0.0, 0.0] for _ in range(T)]
+for t in range(T):
+    for m in (0, 1):
+        xs = [ps[t][m] for ps in perm_stats]
+        mu = sum(xs) / len(xs)
+        var = sum((x - mu) ** 2 for x in xs) / (len(xs) - 1)
+        mean[t][m] = mu
+        sd[t][m] = math.sqrt(var) if var > 0 else 1.0
 
 
-def fmt_res(tag, d):
-    p('    %-52s пулов %3d, %3d/%3d; выход O/E %.2f (p %.3f); рег O=%d E=%.1f O/E %.2f (перест. p %.3f, пуассон %.3f); рег сравн. %d' % (
-        tag, d['pools'], d['nf'], d['nr'], d['oe_out'], d['p_out'], d['O_reg'], d['E_reg'], d['oe_reg'], d['p_reg'], d['pois'], d['regs_ref']))
+def stud(ps):
+    return [[(ps[t][m] - mean[t][m]) / sd[t][m] for m in (0, 1)] for t in range(T)]
 
 
-for name, subset, feat in SLICES:
-    if name.startswith('C2') or name.startswith('D '):
-        continue
-    pairs = slice_rows(subset, feat)
-    fr = sorted([r for r, f in pairs if f], key=lambda r: -r['_regs'])
-    rr = sorted([r for r, f in pairs if not f], key=lambda r: -r['_regs'])
-    reg_f = sum(r['_regs'] for r in fr)
-    reg_r = sum(r['_regs'] for r in rr)
-    top3_f = [(r['домен'], r['_regs']) for r in fr[:3]]
-    top3_r = [(r['домен'], r['_regs']) for r in rr[:3]]
-    p()
-    p('  --- %s ---' % name.strip())
-    p('    регистрации признака: %d у %d доменов (с регистрацией: %d); топ-3: %s -> %d из %d (%.0f%%)' % (
-        reg_f, len(fr), sum(1 for r in fr if r['_regs']), top3_f, sum(v for _, v in top3_f), reg_f,
-        100.0 * sum(v for _, v in top3_f) / reg_f if reg_f else 0))
-    p('    регистрации сравнения: %d у %d доменов (с регистрацией: %d); топ-3: %s -> %d из %d (%.0f%%)' % (
-        reg_r, len(rr), sum(1 for r in rr if r['_regs']), top3_r, sum(v for _, v in top3_r), reg_r,
-        100.0 * sum(v for _, v in top3_r) / reg_r if reg_r else 0))
-    base = oe_perm(pairs, n_perm=4000)
-    fmt_res('как есть', base)
-    drop_f = {r['домен'] for r in fr[:3]}
-    drop_r = {r['домен'] for r in rr[:3]}
-    fmt_res('без топ-3 доменов по рег. в ОБЕИХ группах', oe_perm([(r, f) for r, f in pairs if r['домен'] not in drop_f | drop_r], n_perm=4000))
-    fmt_res('без топ-3 только в группе сравнения', oe_perm([(r, f) for r, f in pairs if r['домен'] not in drop_r], n_perm=4000))
-    fmt_res('без топ-3 только в группе признака', oe_perm([(r, f) for r, f in pairs if r['домен'] not in drop_f], n_perm=4000))
-    drop_r5 = {r['домен'] for r in rr[:5]}
-    drop_f5 = {r['домен'] for r in fr[:5]}
-    fmt_res('без топ-5 в обеих группах', oe_perm([(r, f) for r, f in pairs if r['домен'] not in drop_f5 | drop_r5], n_perm=4000))
-    # вклад пулов в дефицит регистраций
-    pools = defaultdict(list)
-    for r, f in pairs:
-        pools[r['_pool']].append((r, f))
-    contrib = []
-    for k, v in pools.items():
-        S = sum(r['_sites'] for r, _ in v)
-        rate = sum(r['_regs'] for r, _ in v) / S
-        Ef = sum(rate * r['_sites'] for r, f in v if f)
-        Of = sum(r['_regs'] for r, f in v if f)
-        contrib.append((Ef - Of, k, Of, Ef, sum(1 for _, f in v if f), sum(1 for _, f in v if not f), sum(r['_regs'] for r, f in v if not f)))
-    contrib.sort(reverse=True)
-    tot_def = sum(c[0] for c in contrib)
-    top3_def = sum(c[0] for c in contrib[:3])
-    p('    дефицит регистраций (E−O) = %.1f по %d пулам; топ-3 пула дают %.1f (%.0f%%): %s' % (
-        tot_def, len(contrib), top3_def, 100.0 * top3_def / tot_def if tot_def else 0,
-        '; '.join('%s/%s: приз. O=%d E=%.1f (%d дом.), сравн. %d рег (%d дом.)' % (k[0][:18], k[1][5:], Of, Ef, nf_, nr_, rr_)
-                  for d_, k, Of, Ef, nf_, nr_, rr_ in contrib[:3])))
-    # leave-one-pool-out
-    oes = []
-    for drop_k in pools:
-        sub = [(r, f) for r, f in pairs if r['_pool'] != drop_k]
-        d = oe_perm(sub, n_perm=0)
-        oes.append((d['oe_reg'], d['pois'], drop_k))
-    oes.sort()
-    p('    leave-one-pool-out: O/E рег от %.2f до %.2f; пуассон p от %.3f до %.3f (макс. при исключении пула %s/%s)' % (
-        oes[0][0], oes[-1][0], min(x[1] for x in oes), max(x[1] for x in oes), oes[-1][2][0][:18], oes[-1][2][1][5:]))
-    # leave-one-domain-out
-    oes_d = []
-    for drop_d in {r['домен'] for r, _ in pairs if r['_regs'] > 0}:
-        sub = [(r, f) for r, f in pairs if r['домен'] != drop_d]
-        d = oe_perm(sub, n_perm=0)
-        oes_d.append((d['pois'], d['oe_reg'], drop_d))
-    oes_d.sort()
-    p('    leave-one-domain-out (домены с рег.): пуассон p от %.3f до %.3f; O/E рег от %.2f до %.2f (макс. p при исключении %s)' % (
-        oes_d[0][0], oes_d[-1][0], min(x[1] for x in oes_d), max(x[1] for x in oes_d), oes_d[-1][2]))
+obs_s = stud(obs)
+perm_s = [stud(ps) for ps in perm_stats]
 
-# ---------------------------------------------------------------- 5. реплика на casino-паттернах
+
+def family_p(idx_list, metrics):
+    """для каждого теста из idx_list: сырой p и скорректированный по max над (idx_list × metrics)"""
+    maxes = [max(ps[t][m] for t in idx_list for m in metrics) for ps in perm_s]
+    out = {}
+    for t in idx_list:
+        for m in metrics:
+            raw = sum(1 for ps in perm_s if ps[t][m] >= obs_s[t][m] - 1e-12) / N_GLOBAL
+            adj = sum(1 for mx in maxes if mx >= obs_s[t][m] - 1e-12) / N_GLOBAL
+            out[(t, m)] = (raw, adj)
+    return out
+
+
+pre_idx = [i for i, t in enumerate(TESTS) if t[3]]
+all_idx = list(range(T))
+fam_pre = family_p(pre_idx, (0, 1))
+fam_all = family_p(all_idx, (0, 1))
+fam_pre_reg = family_p(pre_idx, (1,))
+fam_all_reg = family_p(all_idx, (1,))
+p()
+p('%-34s %5s %6s | %7s %8s %8s | %7s %8s %8s %8s' % ('тест', 'метр.', 'z', 'p сырой', 'p 12 пре', 'p 18 все', 'z рег', 'p сырой', 'p 6 рег', 'p 9 рег'))
+for t, (name, sel, feat, pre) in enumerate(TESTS):
+    ro, ao = fam_pre.get((t, 0), (float('nan'), float('nan')))
+    ro2, ao2 = fam_all[(t, 0)]
+    rr, ar = fam_pre_reg.get((t, 1), (float('nan'), float('nan')))
+    rr2, ar2 = fam_all_reg[(t, 1)]
+    p('%-34s %5s %6.2f | %7.3f %8.3f %8.3f | %7.2f %8.3f %8.3f %8.3f' % (
+        name + ('' if pre else ' *'), 'вых', obs_s[t][0], ro2, ao if pre else float('nan'), ao2,
+        obs_s[t][1], rr2, ar if pre else float('nan'), ar2))
+p('* — не заранее заданные (пост-хок). «p 12 пре» — поправка по 6 заранее заданным тестам × 2 метрики;')
+p('«p 18 все» — по всем 9 сравнениям × 2 метрики; «p 6 рег» / «p 9 рег» — только по регистрациям (6 или 9 тестов).')
+p('«p сырой» — односторонний перестановочный p этого теста при той же общей перестановке (сверка с h02).')
+
+# =====================================================================================
 p()
 p('=' * 100)
-p('5. НЕЗАВИСИМАЯ РЕПЛИКА: casino_prefix / casino_infix — метки с цифрами против чисто буквенных (тестировщик не трогал).')
-p('   Если «цифры в имени = сгенерированное = хуже», здесь должно быть то же. Пул контент+день, тот же O/E.')
+p('6. ВЕДУЩИЙ НОЛЬ: НА ЧЁМ ДЕРЖИТСЯ ДЕФИЦИТ ВЫХОДА')
 p('=' * 100)
-cas = [r for r in rows if r['_pat'] in ('casino_prefix', 'casino_infix')]
-for pat in ('casino_prefix', 'casino_infix', 'оба casino-паттерна вместе'):
-    if pat.startswith('оба'):
-        sub_rows = cas
-    else:
-        sub_rows = [r for r in cas if r['_pat'] == pat]
-    pairs = [(r, r['_sub'].endswith('_dig')) for r in sub_rows]
-    d = oe_perm(pairs, n_perm=N_PERM, seed=5)
-    p('  %-28s: пулов %d; с цифрами %d, буквы %d; выход O/E %.2f (p %.3f); регистрации O=%d E=%.1f O/E %.2f (перест. p %.3f, пуассон %.3f); рег сравн. %d' % (
-        pat, d['pools'], d['nf'], d['nr'], d['oe_out'], d['p_out'], d['O_reg'], d['E_reg'], d['oe_reg'], d['p_reg'], d['pois'], d['regs_ref']))
-# и в общей куче: все паттерны, «с цифрой» против «без цифры» внутри пула и паттерна
-p()
-p('  Все четыре паттерна сразу: «в метке есть цифра / ведущий ноль» против «нет» внутри пула × паттерн (numeric: ноль против не-ноль):')
-allp = [r for r in rows]
-def is_gen_any(r):
-    if r['_pat'] == 'numeric':
-        return r['_sub'] == 'num0'
-    return any(ch.isdigit() for ch in r['_lab'])
-# страта пул × паттерн
-for r in allp:
-    r['_pool_pat'] = (r['_pool'], r['_pat'])
-saved = {}
-for r in allp:
-    saved[r['домен']] = r['_pool']
-    r['_pool'] = r['_pool_pat']
-d = oe_perm([(r, is_gen_any(r)) for r in allp], n_perm=N_PERM, seed=9)
-for r in allp:
-    r['_pool'] = saved[r['домен']]
-p('    пулов %d; признак %d, обычные %d; выход O/E %.2f (p %.3f); регистрации O=%d E=%.1f O/E %.2f (перест. p %.3f, пуассон %.3f); рег сравн. %d' % (
-    d['pools'], d['nf'], d['nr'], d['oe_out'], d['p_out'], d['O_reg'], d['E_reg'], d['oe_reg'], d['p_reg'], d['pois'], d['regs_ref']))
+rs = num_rows
+featA = lambda r: r['_sub'] == S_ZERO
+res = oe(rs, featA, with_pools=True)
+prs = sorted(res['pool_rows'], key=lambda x: -(x[6] - x[5]))
+tot = res['E_out'] - res['O_out']
+p('  дефицит выхода E−O = %.1f сайтов; топ-3 пула дают %.1f (%.0f%%), топ-5 — %.1f (%.0f%%)' % (
+    tot, sum(x[6] - x[5] for x in prs[:3]), 100 * sum(x[6] - x[5] for x in prs[:3]) / tot,
+    sum(x[6] - x[5] for x in prs[:5]), 100 * sum(x[6] - x[5] for x in prs[:5]) / tot))
+for k in (1, 3, 5):
+    drop = {x[0] for x in prs[:k]}
+    b, po, pr = perm_p([r for r in rs if r['_pool'] not in drop], featA, n_perm=2000)
+    show('без топ-%d пулов по вкладу в дефицит выхода' % k, b, po, pr)
+# по доменам: дефицит выхода по доменам с нулём
+doms = sorted([r for v in res['used'].values() for r in v if featA(r)], key=lambda r: r['_out3'])
+p('  домены с нулём по выходу за 3 суток (сайтов вышло из 206): %s' % ', '.join('%s:%d' % (r['_lab'], r['_out3']) for r in doms[:10]))
 
-# ---------------------------------------------------------------- 6. GEN: тот же паттерн, а не любой
+# =====================================================================================
 p()
 p('=' * 100)
-p('6. ОБЪЕДИНЁННЫЙ ТЕСТ GEN: гипотеза говорит «против обычных меток ТОГО ЖЕ паттерна», но у тестировщика')
-p('   перестановка признака в GEN идёт внутри пула между паттернами (num0 может «стать» буквенной alpha_other).')
-p('   Пересчёт со стратой пул × паттерн (ячейки, где есть и признак, и обычные того же паттерна).')
+p('7. СТРАТА ПУЛ × ПАТТЕРН ИМЕНИ ДЛЯ СУММАРНОГО ТЕСТА (numeric и alpha_other смешаны в одном пуле — корректно ли?)')
 p('=' * 100)
-gen_rows = [r for r in work]
-for r in gen_rows:
-    r['_pool_pat'] = (r['_pool'], r['_pat'])
-saved = {r['домен']: r['_pool'] for r in gen_rows}
-def is_gen(r):
-    return r['_sub'] == 'num0' or (r['_pat'] == 'alpha_other' and any(ch.isdigit() for ch in r['_lab']))
-def is_gen2(r):
-    return is_gen(r) and r['_sub'] != 'date'
-d_pool = oe_perm([(r, is_gen(r)) for r in gen_rows], n_perm=N_PERM, seed=21)
-for r in gen_rows:
-    r['_pool'] = r['_pool_pat']
-d_pp = oe_perm([(r, is_gen(r)) for r in gen_rows], n_perm=N_PERM, seed=21)
-d_pp2 = oe_perm([(r, is_gen2(r)) for r in gen_rows if r['_sub'] != 'date'], n_perm=N_PERM, seed=21)
-for r in gen_rows:
-    r['_pool'] = saved[r['домен']]
-fmt_res('GEN, страта пул (как у тестировщика)', d_pool)
-fmt_res('GEN, страта пул × паттерн', d_pp)
-fmt_res('GEN2 без кода даты, страта пул × паттерн', d_pp2)
+p('В h02 суммарный тест «все признаки» берёт E из доли пула контент+день, где numeric и alpha_other сидят вместе.')
+p('Если внутри пула у одного паттерна регистраций больше, чем у другого, а признаки распределены по паттернам')
+p('неравномерно, E смещается. Пересчёт со стратой контент+день+паттерн (перестановка внутри неё):')
+for r in na_rows:
+    r['_poolp'] = (r['набор контента'], r['день запуска'], r['_pat'])
+for name, sel, feat, pre in [t for t in TESTS if t[0] in ('ВСЕ признаки vs обычные', 'ВСЕ без кода даты (пост-хок)')]:
+    rs = [r for r in na_rows if sel(r)]
+    b, po, pr = perm_p(rs, feat, key='_pool', n_perm=4000)
+    show(name + ' | страта пул', b, po, pr)
+    b, po, pr = perm_p(rs, feat, key='_poolp', n_perm=4000)
+    show(name + ' | страта пул×паттерн', b, po, pr)
+    for r in rs:
+        r['_regc'] = min(r['_regs'], 1)
+    b, po, pr = perm_p(rs, feat, regkey='_regc', key='_poolp', n_perm=4000)
+    show(name + ' | пул×паттерн, есть рег (0/1)', b, po, pr)
+    dropR = top_k(rs, feat, 3, 'R')
+    b, po, pr = perm_p([r for r in rs if r['домен'] not in dropR], feat, key='_poolp', n_perm=4000)
+    show(name + ' | пул×паттерн, без топ-3 сравн.', b, po, pr)
+p('Сумма A+B+C+D по отдельности (каждый внутри своего паттерна): O = 2+6+3+6 = 17, E = 5.2+9.9+6.8+3.5 = 25.5, O/E 0.67;')
+p('без D: O = 11, E = 22.0, O/E 0.50 — но это те же самые пулы и домены, что и в п.3, и та же зависимость от топ-доменов.')
 
-# нулевые распределения O/E рег для GEN при двух схемах перестановки
-def null_dist(pairs, scheme, n=4000, seed=33):
-    rnd = random.Random(seed)
-    pools = defaultdict(list)
-    for r, f in pairs:
-        pools[r['_pool']].append((r, f))
-    used = {k: v for k, v in pools.items() if any(f for _, f in v) and any(not f for _, f in v)}
-    rate = {}
-    for k, v in used.items():
-        S = sum(r['_sites'] for r, _ in v)
-        rate[k] = sum(r['_regs'] for r, _ in v) / S
-    vals = []
-    if scheme == 'pool':
-        lists = [([r for r, _ in v], sum(1 for _, f in v if f), k) for k, v in used.items()]
-        for _ in range(n):
-            ro = re_ = 0.0
-            for v, m, k in lists:
-                rnd.shuffle(v)
-                for r in v[:m]:
-                    ro += r['_regs']
-                    re_ += rate[k] * r['_sites']
-            vals.append(ro / re_)
-    else:
-        cells = defaultdict(list)
-        for k, v in used.items():
-            for r, f in v:
-                cells[(k, r['_pat'])].append((r, f))
-        lists = []
-        for (k, pat), v in cells.items():
-            lists.append(([r for r, _ in v], sum(1 for _, f in v if f), k))
-        for _ in range(n):
-            ro = re_ = 0.0
-            for v, m, k in lists:
-                rnd.shuffle(v)
-                for r in v[:m]:
-                    ro += r['_regs']
-                    re_ += rate[k] * r['_sites']
-            vals.append(ro / re_)
-    mean = sum(vals) / len(vals)
-    sd = (sum((x - mean) ** 2 for x in vals) / len(vals)) ** 0.5
-    return mean, sd, sum(1 for x in vals if x <= 0.6107 + 1e-9) / len(vals)
-pairs_gen = [(r, is_gen(r)) for r in gen_rows]
-m1, s1, p1 = null_dist(pairs_gen, 'pool')
-m2, s2, p2 = null_dist(pairs_gen, 'pool_pat')
-p('  Нулевое распределение O/E рег для GEN (E из пула, как у тестировщика):')
-p('    перестановка внутри пула (между паттернами): среднее %.3f, sd %.3f, доля <= 0.61: %.3f' % (m1, s1, p1))
-p('    перестановка внутри пула × паттерн:          среднее %.3f, sd %.3f, доля <= 0.61: %.3f' % (m2, s2, p2))
-# сколько доменов признака сидят в ячейках пул×паттерн без обычных того же паттерна
-cells = defaultdict(list)
-for r, f in pairs_gen:
-    cells[(r['_pool'], r['_pat'])].append(f)
-pools_used = {k for k, v in defaultdict(list, {}).items()}
-stuck = 0
-tot = 0
-for (k, pat), v in cells.items():
-    if any(v) and not all(v):
-        continue
-    if any(v):
-        stuck += sum(v)
-n_feat_used = d_pool['nf']
-p('  Доменов признака в GEN-пулах тестировщика, у которых в пуле НЕТ обычного домена того же паттерна: %d из %d' % (
-    d_pool['nf'] - d_pp['nf'], d_pool['nf']))
-# их регистрации и ожидание
-lost = [r for r in gen_rows if is_gen(r)]
-
-# ---------------------------------------------------------------- 6. сводка
+# =====================================================================================
 p()
 p('=' * 100)
-p('СВОДКА СКЕПТИКА')
+p('8. ВЫХОД: НЕ «МЁРТВЫЕ» ЛИ ДОМЕНЫ ДЕЛАЮТ ДЕФИЦИТ (0–2 сайта из 206 вышли за 3 суток)')
 p('=' * 100)
-p('Семейный p (все %d срезов × 2 метрики): %.3f; только регистрации: %.3f; только выход: %.3f;' % (len(SLICES), fam_all, fam_reg, fam_out))
-p('только заранее заданные срезы: %.3f (регистрации: %.3f); без пост-хок GEN2: %.3f.' % (fam_pre, fam_pre_reg, fam_nph))
+for name, sel, feat, pre in [t for t in TESTS if t[0] in ('A ведущий 0 vs numeric', 'B смесь-4 vs буквы-4', 'ВСЕ признаки vs обычные')]:
+    rs = [r for r in na_rows if sel(r)]
+    res = oe(rs, feat)
+    doms = [r for v in res['used'].values() for r in v]
+    F = [r for r in doms if feat(r)]
+    R = [r for r in doms if not feat(r)]
+    dead = lambda r: r['_out3'] <= 2
+    p('--- %s: мёртвых (≤2 вышли) у признака %d из %d (%.0f%%), у сравнения %d из %d (%.0f%%)' % (
+        name, sum(map(dead, F)), len(F), 100 * sum(map(dead, F)) / len(F), sum(map(dead, R)), len(R), 100 * sum(map(dead, R)) / len(R)))
+    medF = sorted(r['_out3'] for r in F)[len(F) // 2]
+    medR = sorted(r['_out3'] for r in R)[len(R) // 2]
+    p('    медиана вышедших сайтов на домен: признак %d, сравнение %d' % (medF, medR))
+    b, po, pr = perm_p([r for r in rs if not dead(r)], feat, n_perm=3000)
+    show('без мёртвых доменов в обеих группах', b, po, pr)
+    b, po, pr = perm_p([r for r in rs if r['_out3'] > 5], feat, n_perm=3000)
+    show('без доменов с ≤5 вышедшими', b, po, pr)
+# топ-3 пула по дефициту выхода у нуля: состав
+res = oe(num_rows, featA, with_pools=True)
+prs = sorted(res['pool_rows'], key=lambda x: -(x[6] - x[5]))[:3]
+p('  Топ-3 пула по дефициту выхода у ведущего нуля — состав (метка:вышло):')
+for k, *_ in prs:
+    v = res['used'][k]
+    p('    %s | %s: ноль: %s ; обычные: %s' % (k[0][:30], k[1], ', '.join('%s:%d' % (r['_lab'], r['_out3']) for r in v if featA(r)),
+                                                 ', '.join('%s:%d' % (r['_lab'], r['_out3']) for r in v if not featA(r))))
+
+# =====================================================================================
+p()
+p('=' * 100)
+p('ВЫВОД СКЕПТИКА')
+p('=' * 100)
+p('1. Агрегирование верное: суммы регистраций/выходов против ожидания из доли пула, не средние по доменам. Претензий нет.')
+p('2. Объёмы: в группе с признаком 19 регистраций на 17 доменов (все признаки), по подтипам 2 / 6 / 3 / 6. Ни одна группа')
+p('   не дотягивает до 20 регистраций — по правилу «<20 в группе — не доказательство» ни один результат по регистрациям не проходит.')
+p('3. Держится на нескольких доменах: убрать 3 самых богатых домена сравнения (2334.team 5 рег, qlmf.lol 4, gwrl.casino 4) —')
+p('   O/E 0.61 → 0.70, p 0.017 → 0.054; убрать 6 — O/E 0.76, p 0.12. Считать «есть регистрация» (0/1) вместо суммы — O/E 0.80, p 0.12.')
+p('   Убрать 10 пулов из 68, где у сравнения есть домен с ≥3 рег, — O/E 0.84, p 0.29. Дефицит сидит там, где «выстрелил» домен сравнения.')
+p('   Формально «убрать топ-3 в обеих группах» даёт O/E 0.56 (p 0.009), но это снимает 26% регистраций у признака (5 из 19) и 13% у')
+p('   сравнения — при 19 событиях такая уборка асимметрична и ничего не доказывает.')
+p('4. Страта пул×паттерн (numeric и alpha_other не смешивать в одном пуле): O/E 0.71, p 0.08 вместо 0.61 / 0.017;')
+p('   с индикатором 0/1 — O/E 0.87, p 0.25. Часть эффекта 1.6× — смешение паттернов внутри пула.')
+p('5. Перебор срезов: h02 выдал 56 p-значений (13 сравнений × 2 метрики × 2 теста + знаковые + 10 цифр). max-T по 6 заранее')
+p('   заданным тестам × 2 метрики: регистрации «все признаки» p = 0.24; по 9 тестам — 0.30. По выходу: «все признаки» 0.043–0.058,')
+p('   смесь-4 0.051–0.068 — на грани, но эффект −5…−11%, критерий ≤0.8 не достигнут. Пост-хок «без кода даты» (p 0.040 по 9 тестам)')
+p('   выбран после просмотра D — в семейство должен входить с ещё большим числом вариантов.')
+p('6. Ведущий ноль по выходу (−12%, p 0.03): 73% дефицита в 3 пулах из 34 (5 доменов: 0626, 0811, 0658, 0313, 0403);')
+p('   без этих 3 пулов O/E 0.96 (p 0.28), без 5 — 0.99. Плюс тест «худшая из 10 цифр» самого h02: p 0.32.')
+p('7. Единственное, что переживает уборки: выход у смеси-4 (O/E 0.87–0.91 без мёртвых доменов, без топ-доменов, с зоной),')
+p('   но после поправки на семейство p ≈ 0.05–0.07, а по величине (−11%) это ниже порога подтверждения.')
+p()
+p('ИТОГ: главный аргумент вердикта «частично» — «регистраций в 1.6 раза меньше, p ≈ 0.02» — неустойчив: он опирается на 19 событий,')
+p('на 3–6 доменов сравнения и 10 пулов, исчезает при страте по паттерну, при счёте «есть регистрация» и при поправке на перебор.')
+p('Направление «хуже» во всех вариантах остаётся (O/E регистраций 0.70–0.87, выхода 0.88–0.96), но это не доказательство.')
+p('Вердикт следует понизить с «частично» до «не доказано на своде»; формулировку «в 1.6 раза меньше, p≈0.02» убрать.')
+p()
+p('ЧТО С ЭТИМ ДЕЛАТЬ: ничего менять в закупке не надо; единственный кандидат для новой проверки — смесь букв и цифр длины 4 по выходу')
+p('(−11%). Проверяемо на своде после закрытия окна у 152 + 77 доменов (там ещё 27 смешанных): если O/E выхода останется ≤0.9')
+p('при p < 0.05 с учётом поправки на семейство — можно говорить о признаке; регистрации на таких объёмах не решатся.')
 
 with open(OUT, 'w', encoding='utf-8') as fh:
     fh.write('\n'.join(_lines) + '\n')
