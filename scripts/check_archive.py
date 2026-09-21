@@ -140,7 +140,9 @@ CYR_WHITELIST = {"актуальная", "актуальное", "актуаль
     "удобно", "нажал", "рекомендуемая", "скоростной", "настоятельно", "наше",
     "устройства", "кол", "получаешь", "настройки", "ссылка", "факт", "здесь",
     "ставка", "крупный", "тихий", "старый", "зайдите", "пароль", "помните",
-    "наша", "сканируете", "коротко", "захожу"}
+    "наша", "сканируете", "коротко", "захожу", "обратите", "данные", "мин",
+    "бонусный", "максимум", "читай", "получи", "там", "весь", "отображение",
+    "холодный", "финансовый", "нажмите", "включите", "запустить", "твой"}
 
 LATIN_WHITELIST = {
     "rtp", "vpn", "ios", "android", "app", "store", "google", "play", "pwa",
@@ -391,6 +393,12 @@ def brand_hits(text):
 
 БЕЙДЖ_СЛОТА = re.compile(r"(?is)<p>[^<>]{1,30}</p>\s*(?=<h3\b)")
 
+def _пара_имени(tok, след):
+    """Годится ли второе слово в пару: не повтор первого и того же алфавита."""
+    return (ЗАГЛАВНЫЙ_ТОКЕН.match(след) is not None and след != tok
+            and (tok[0] < "А") == (след[0] < "А"))
+
+
 def brand_twins(text):
     """Чужое название на месте плейсхолдера в такой же фразе.
 
@@ -421,7 +429,7 @@ def brand_twins(text):
         if PROVIDER_AFTER.match(after) or SLOT_BEFORE.search(before) or SLOT_AFTER.match(after):
             continue   # карточка слота: «Играйте в Lucky Luck Games от…»
         след = токены[i + 1] if i + 1 < len(токены) else ""
-        if след != tok and ЗАГЛАВНЫЙ_ТОКЕН.match(след) and not _твин_мимо(след):
+        if _пара_имени(tok, след) and not _твин_мимо(след):
             найдено[tok + " " + след] += 1
         elif tok.lower() not in LATIN_WHITELIST:
             найдено[tok] += 1   # одно слово — тут словарь ещё работает: Push, License не бренды
@@ -445,9 +453,12 @@ def brand_candidates(raws):
             pages[tok] += 1
         prev.update(pr)
         slot.update(sl)
-    имена_слотов = " ".join(h3)
+    # Заголовок слота — короткое название без знаков предложения; вопрос из FAQ
+    # («Что именно собирает Lucky Bird Casino?») именем слота не считается.
+    имена_слотов = [t for t in h3 if len(t.split()) <= 5 and not re.search(r"[?!.:,]", t)]
     twins = Counter({t: c for t, c in twins.items()       # нужно 2+ страницы и не слот
-                     if c >= 2 and slot[t.split()[0]] == 0 and t not in имена_слотов})
+                     if c >= 2 and slot[t.split()[0]] < c
+                     and not any(t in имя for имя in имена_слотов)})
     out = []
     for tok in set(total) | set(line) | set(twins):
         first = tok.split()[0]
@@ -459,7 +470,8 @@ def brand_candidates(raws):
             continue
         name = tok
         if " " not in tok:
-            pair = max(((w, n) for (w, t), n in prev.items() if t == tok), key=lambda x: x[1], default=None)
+            pair = max(((w, n) for (w, t), n in prev.items() if t == tok and _пара_имени(w, tok)),
+                       key=lambda x: x[1], default=None)
             if pair and pair[1] >= total[tok] * 0.5:
                 name = pair[0] + " " + tok
         out.append((name, total[first] + line[tok] + twins[tok],
