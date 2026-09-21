@@ -44,7 +44,7 @@ def main(panel, subs_paths, out_csv):
         if not d or not b:
             continue
         rows.append({
-            'fam': family(api.get(r['subdomain']), r.get('content')) or 'ПАК НЕИЗВЕСТЕН',
+            'fam': family(api.get(r['subdomain']), r.get('content')) or 'КОНТЕНТ НЕ ЗАПИСАН',
             'base': b, 'day': d, 'tld': r.get('tld'),
             'ya': 1 if r.get('ya_clicks') else 0, 'clicks': r.get('ya_clicks') or 0,
             'reg': r.get('reg', 0), 'fd': r.get('fd', 0),

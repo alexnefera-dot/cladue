@@ -54,7 +54,7 @@ def main(panel, subs_paths, subsclicks, fresh_paths, out_csv, last):
             continue
         bd[b].add(d)
         sites[r['subdomain']] = {
-            'pack': fam(api.get(r['subdomain']) or r.get('content') or 'ПАК НЕИЗВЕСТЕН'),
+            'pack': fam(api.get(r['subdomain']) or r.get('content') or 'КОНТЕНТ НЕ ЗАПИСАН'),
             'day': d, 'base': b, 'tld': r.get('tld'),
             'cl': r.get('ya_clicks') or 0, 'reg': r.get('reg', 0), 'fd': r.get('fd', 0),
         }
@@ -97,8 +97,8 @@ def main(panel, subs_paths, subsclicks, fresh_paths, out_csv, last):
     for b, a in g.items():
         rows.append({
             'домен базы': b, 'зона': a['tld'],
-            'пак': a['packs'].most_common(1)[0][0],
-            'паков на базе': len(a['packs']),
+            'набор контента': a['packs'].most_common(1)[0][0],
+            'наборов на базе': len(a['packs']),
             'первый день': min(a['days']), 'дней': len(a['days']),
             'сайтов': a['n'], 'во второй волне': a['w2'],
             'вышли в поиск за 3 суток': a['hit'],

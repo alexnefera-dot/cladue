@@ -74,7 +74,7 @@ def load(panel, subsclicks, fresh, last):
         bd[b].add(d)
         rows.append({
             'sub': r['subdomain'], 'base': b, 'day': d, 'tld': r.get('tld'),
-            'pack': fam(r.get('content') or 'ПАК НЕИЗВЕСТЕН'),
+            'pack': fam(r.get('content') or 'КОНТЕНТ НЕ ЗАПИСАН'),
             'brand': r.get('brand_label'), 'block': r.get('recrawl_block'),
             'night': r.get('is_night_kiev'), 'ya': r.get('ya_account_id'),
             'kw': r.get('keywords_len'), 'tpl': r.get('template'),
@@ -199,7 +199,7 @@ def obzor(rs, name, last):
 
 
 def razrezy(rs, name, last):
-    pd = lambda r: (r['pack'], r['day']) if r['pack'] != 'ПАК НЕИЗВЕСТЕН' else None
+    pd = lambda r: (r['pack'], r['day']) if r['pack'] != 'КОНТЕНТ НЕ ЗАПИСАН' else None
     h2(name + ' · ФАКТОРЫ: ДЕНЬ ПРОТИВ ПАКА+ДНЯ')
     for t, f in (('ЗОНА', lambda r: r['tld']),
                  ('ЧАС ПЕРЕОБХОДА', lambda r: r['block']),
@@ -312,7 +312,7 @@ def domeny(rs, name):
     e = [r for r in rs if r['ok']]
     pool = collections.defaultdict(lambda: collections.defaultdict(lambda: [0, 0]))
     for r in e:
-        if r['pack'] == 'ПАК НЕИЗВЕСТЕН':
+        if r['pack'] == 'КОНТЕНТ НЕ ЗАПИСАН':
             continue
         t = pool[(r['pack'], r['day'])][r['base']]
         t[0] += r['hit']

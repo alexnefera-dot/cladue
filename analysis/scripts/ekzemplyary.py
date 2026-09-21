@@ -35,7 +35,7 @@ def main(panel, subs_paths, out_csv):
         b = r.get('content_domain_url')
         if not d or not b:
             continue
-        name = api.get(r['subdomain']) or r.get('content') or 'ПАК НЕИЗВЕСТЕН'
+        name = api.get(r['subdomain']) or r.get('content') or 'КОНТЕНТ НЕ ЗАПИСАН'
         rows.append({
             'inst': name,
             'fam': re.sub(r'[_\-]\d+$', '', name),
