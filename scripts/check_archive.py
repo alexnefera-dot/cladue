@@ -146,7 +146,8 @@ CYR_WHITELIST = {"актуальная", "актуальное", "актуаль
     "холодный", "финансовый", "нажмите", "включите", "запустить", "твой",
     "цифры", "проверить", "хватит", "один", "профиль", "акции", "кешбэк",
     "открыл", "выплата", "начать", "также", "сокровища", "сокровищам",
-    "вердикт", "проверь", "касса"}
+    "вердикт", "проверь", "касса", "без", "баланс", "система", "извержение",
+    "извержению", "дополнительные", "дополнительную", "всё", "все"}
 
 LATIN_WHITELIST = {
     "rtp", "vpn", "ios", "android", "app", "store", "google", "play", "pwa",
@@ -178,7 +179,7 @@ LATIN_WHITELIST = {
     "hold", "win", "cash", "coin", "volcano", "cocktail", "monkey", "resident",
     "garage", "keks", "island", "pirate", "rock", "climber", "lady", "charm",
     "sizzling", "hot", "deluxe", "dolphin", "pearl", "beetle", "mania",
-    "columbus", "lord", "ocean", "ramses", "thunder", "bird", "pharaoh",
+    "columbus", "lord", "ocean", "ramses", "nile", "thunder", "bird", "pharaoh",
     "cleopatra", "zeus", "hercules", "thor", "viking", "valhalla", "odin",
     "ra", "of", "and", "or", "in", "on", "for", "with", "to", "new", "best",
     "welcome", "extra", "max", "min", "pro", "plus", "premium", "ultra",
