@@ -60,11 +60,16 @@ for p in CLICK_P:
     print(f'  клики {p.split("/")[-1]}: {n} строк, сайтов с поиском {len(first)}', flush=True)
 
 CONV = collections.defaultdict(collections.Counter)
+seen_conv = set()                                   # выгрузки конверсий перекрываются по датам
 for p in CONV_P:
     for line in open(p, encoding='utf-8'):
         r = json.loads(line)
         if r.get('campaign') != 'dorgen_engine':
             continue
+        key = (r.get('clickid'), r.get('event'), r.get('at'))
+        if key in seen_conv:
+            continue
+        seen_conv.add(key)
         s = (r.get('subdomain') or '').lower()
         if s not in SUB:
             continue
