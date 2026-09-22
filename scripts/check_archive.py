@@ -145,7 +145,8 @@ CYR_WHITELIST = {"актуальная", "актуальное", "актуаль
     "бонусный", "максимум", "читай", "получи", "там", "весь", "отображение",
     "холодный", "финансовый", "нажмите", "включите", "запустить", "твой",
     "цифры", "проверить", "хватит", "один", "профиль", "акции", "кешбэк",
-    "открыл", "выплата"}
+    "открыл", "выплата", "начать", "также", "сокровища", "сокровищам",
+    "вердикт", "проверь", "касса"}
 
 LATIN_WHITELIST = {
     "rtp", "vpn", "ios", "android", "app", "store", "google", "play", "pwa",
@@ -360,7 +361,7 @@ GENERIC_DOMAINS = re.compile(r"^(?:[\w.-]+@)?(?:mirror\d*|proxy\d*|example|domai
 ТОКЕН_ФРАЗЫ = re.compile(r"%brand_name_(?:ru|en)%|[A-Za-zА-Яа-яЁё0-9][A-Za-zА-Яа-яЁё0-9'’-]*")
 ЗАГЛАВНЫЙ_ТОКЕН = re.compile(r"^(?:[A-Z][A-Za-z0-9]{2,}|[А-ЯЁ][А-Яа-яЁё0-9]{2,})$")
 # Латинские служебные слова: в зачине встречаются, брендом не бывают.
-ТВИН_СТОП = {"casino", "club", "bet", "online", "app", "play", "mobile", "bonus",
+ТВИН_СТОП = {"casino", "club", "bet", "online", "app", "mobile", "bonus",
              "promo", "mirror", "slots", "vip", "live", "faq", "google", "apple",
              "yandex", "windows", "chrome", "safari", "telegram", "whatsapp",
              "email", "visa", "mastercard", "android", "ios", "web",

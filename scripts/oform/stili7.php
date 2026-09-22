@@ -32,8 +32,10 @@ $sc h2{font-size:clamp(1.45rem,3vw,2.05rem);line-height:1.18;margin:0 0 16px;box
 $sc h3{font-size:1.16rem;margin:0 0 10px}",
         'номерной' => "
 $sc{counter-reset:зг}
-$sc h2{font-size:1.42rem;margin:0 0 15px;display:flex;gap:12px;align-items:baseline}
-$sc h2::before{counter-increment:зг;content:counter(зг,decimal-leading-zero);font-size:.8em;color:$а;font-variant-numeric:tabular-nums;opacity:.85}
+$sc h2{font-size:1.42rem;margin:0 0 15px;position:relative;padding-left:2.4em}
+/* Номер висит слева отдельной коробкой: при display:flex ссылка внутри заголовка
+   становилась отдельным флекс-элементом и схлопывалась в узкой колонке. */
+$sc h2::before{counter-increment:зг;content:counter(зг,decimal-leading-zero);position:absolute;left:0;top:0;font-size:.8em;color:$а;font-variant-numeric:tabular-nums;opacity:.85}
 $sc h3{font-size:1.1rem;margin:0 0 10px;color:var(--тек)}",
         default => "
 $sc h2{font-size:1.44rem;line-height:1.25;margin:0 0 16px;padding-left:15px;border-left:4px solid $а}
