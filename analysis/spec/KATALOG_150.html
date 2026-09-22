@@ -1,0 +1,243 @@
+<title>Каталог 150 брендов</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;600&family=PT+Sans:wght@400;700&display=swap">
+<style>
+:root{
+  --bg:#f5f4f0; --card:#fffefb; --ink:#15171a; --ink2:#5b5e63; --ink3:#8a8c8f;
+  --line:#e3e1db; --grid:#eceae4;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#8a8c8f;
+  --good:#1baf7a; --bad:#c2410c;
+  --shadow:0 1px 2px rgba(20,22,26,.06);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#131412; --card:#1c1d1a; --ink:#f2f1ec; --ink2:#b5b4ac; --ink3:#86857e;
+  --line:#2c2d29; --grid:#26271f;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#86857e;
+  --good:#199e70; --bad:#e08a5a;
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+}}
+:root[data-theme="dark"]{
+  --bg:#131412; --card:#1c1d1a; --ink:#f2f1ec; --ink2:#b5b4ac; --ink3:#86857e;
+  --line:#2c2d29; --grid:#26271f;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#86857e;
+  --good:#199e70; --bad:#e08a5a;
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:"PT Sans",system-ui,sans-serif;font-size:16px;line-height:1.55;margin:0}
+.wrap{max-width:900px;margin:0 auto;padding-inline:20px;padding-block:40px 64px}
+h1,h2,h3{font-family:Rubik,system-ui,sans-serif;font-weight:600;text-wrap:balance;margin:0}
+h1{font-size:clamp(26px,4.4vw,36px);line-height:1.15;letter-spacing:-.01em}
+h2{font-size:20px;margin-top:44px;padding-top:18px;border-top:1px solid var(--line)}
+h3{font-size:16px;font-weight:500}
+p{margin:12px 0;max-width:68ch}
+.lead{font-size:17px;color:var(--ink2)}
+.eyebrow{font-family:Rubik,sans-serif;font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);margin-bottom:10px}
+.answer{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--s2);border-radius:4px;padding:18px 20px;margin:24px 0;box-shadow:var(--shadow)}
+.answer p{margin:0 0 10px}
+.answer p:last-child{margin-bottom:0}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:4px;overflow:hidden;margin:22px 0}
+.tile{background:var(--card);padding:16px 18px}
+.tile .n{font-family:Rubik,sans-serif;font-size:30px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1}
+.tile .t{font-size:13.5px;color:var(--ink2);margin-top:6px}
+.fig{margin:22px 0 8px}
+.fig .cap{font-size:13.5px;color:var(--ink2);margin:0 0 12px;max-width:68ch}
+.fig svg{display:block;width:100%;height:auto;overflow:visible}
+.note{font-size:13px;color:var(--ink3);margin-top:8px}
+table{border-collapse:collapse;width:100%;font-size:14.5px;font-variant-numeric:tabular-nums}
+.scroll{overflow-x:auto}
+th,td{text-align:right;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal;min-width:190px}
+thead th{font-family:Rubik,sans-serif;font-weight:500;font-size:12.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink3)}
+tbody tr:last-child td{border-bottom:none}
+.win{color:var(--good);font-weight:700}
+.lose{color:var(--bad);font-weight:700}
+ul{max-width:68ch;padding-left:20px}
+li{margin:7px 0}
+.tip{position:fixed;pointer-events:none;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:3px;padding:6px 9px;font-size:13px;box-shadow:var(--shadow);opacity:0;transition:opacity .1s;z-index:9;font-variant-numeric:tabular-nums}
+.foot{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);font-size:13px;color:var(--ink3)}
+</style>
+
+<div class="wrap">
+<div class="eyebrow">Свод доменов на 21.09 · 2077 баз · 382 регистрации в окне</div>
+<h1>Стоит ли урезать каталог до 150 брендов</h1>
+<p class="lead">Смысл урезания не в том, что оставшиеся 150 брендов станут лучше. Смысл в квоте: Вебмастер переобходит 150 сайтов в сутки, а брендов 206 — поэтому каждая база занимает <b>двое суток</b> вместо одних. Каталог в 150 брендов делает цикл базы односуточным. Вопрос ровно один: выигрыш от ускорения больше потери от снятых брендов или нет.</p>
+
+<div class="answer">
+<p><b>Короткий ответ: при нынешнем устройстве — нет.</b> Снятые бренды стоят 15% регистраций, а ускорение даёт не вдвое, а +7%, потому что база держит аккаунт 2 дня из 16, остальные 14 аккаунт отдыхает. Итог 0,91 — потеря около 9%.</p>
+<p>Удвоение появляется только там, где узкое место — сами сутки переобхода, а не пул аккаунтов. Сегодня сеть ставит в среднем 61 базу в день при ёмкости пула 86 — то есть в квоту вы не упираетесь вовсе.</p>
+</div>
+
+<div class="tiles">
+  <div class="tile"><div class="n">25,7%</div><div class="t">сайтов сети приходится на второй день базы</div></div>
+  <div class="tile"><div class="n">15,2%</div><div class="t">регистраций приходит с этих сайтов</div></div>
+  <div class="tile"><div class="n">16 дней</div><div class="t">полный цикл аккаунта: 2 дня работы, 14 отдыха</div></div>
+  <div class="tile"><div class="n">+6,7%</div><div class="t">баз в день даст цикл в 15 дней вместо 16</div></div>
+</div>
+
+<h2>Что именно вы снимаете</h2>
+<p>Второй день базы — это 56 брендов, всегда одни и те же (порядок постановки фиксирован). Они занимают четверть сайтов сети, но приносят заметно меньше четверти денег.</p>
+<div class="fig">
+  <p class="cap">Доля второго дня базы в разных величинах, в окне трёх суток от переобхода. Серая черта — доля сайтов: всё, что левее неё, приносит меньше, чем занимает.</p>
+  <svg id="c1" role="img" aria-label="Доля второго дня: сайты 25,7%, поисковые клики 16,7%, регистрации 15,2%, первые депозиты 14,5%"></svg>
+</div>
+
+<h2>Где на самом деле узкое место</h2>
+<p>Аккаунт Вебмастера после базы уходит на отдых: медиана перерыва — 16 дней, у трёх четвертей повторов он 15 дней и больше. Значит один аккаунт даёт одну базу примерно раз в 16 дней, а весь пул из 1377 аккаунтов — около 86 баз в день. Сеть ставит в среднем 61.</p>
+<div class="fig">
+  <p class="cap">Сколько баз запускалось в день, 11.08 – 21.09. Пунктир — ёмкость пула при нынешнем цикле в 16 дней.</p>
+  <svg id="c2" role="img" aria-label="Базы в день: среднее 61 при ёмкости 86"></svg>
+</div>
+<div class="fig">
+  <p class="cap">Сколько дней проходит между двумя запусками на одном аккаунте Вебмастера (700 повторных использований).</p>
+  <svg id="c3" role="img" aria-label="Интервал повторного использования аккаунта: пик на 15 днях, медиана 16"></svg>
+</div>
+<p class="note">Урезание каталога сокращает только рабочую часть цикла — с 2 дней до 1. Отдых в 14 дней остаётся, поэтому цикл идёт 16 → 15, а не 2 → 1.</p>
+
+<h2>Кого резать, если резать</h2>
+<p>Половину всех регистраций приносит 21 бренд, а 86 брендов не дали ни одной — при том что на них приходится 41% всех сайтов. Отбор работает и вне своей выборки: если взять 150 лучших по августу и посмотреть сентябрь, они удерживают 92% сентябрьских регистраций. Резать текущий хвост очереди — хуже: там 14,7% денег.</p>
+<div class="fig">
+  <p class="cap">Накопленная доля регистраций по брендам, от самого денежного к самому пустому.</p>
+  <svg id="c4" role="img" aria-label="21 бренд даёт половину регистраций, 120 брендов дают все 100%"></svg>
+</div>
+
+<h2>Сценарии</h2>
+<p>Множитель — во сколько раз изменится число регистраций в сутки. Меньше 1,00 значит потерю.</p>
+<div class="fig">
+  <svg id="c5" role="img" aria-label="Сценарии: от 0,85 до 1,84"></svg>
+</div>
+<div class="scroll">
+<table>
+<thead><tr><th>Что ограничивает темп</th><th>Баз в день</th><th>Денег с базы</th><th>Итог</th></tr></thead>
+<tbody>
+<tr><td>Пул аккаунтов, режем хвост очереди</td><td>×1,07</td><td>×0,85</td><td class="lose">0,91</td></tr>
+<tr><td>Пул аккаунтов, режем 56 худших по деньгам</td><td>×1,07</td><td>×0,92</td><td class="lose">0,98</td></tr>
+<tr><td>Домены или контент (темп не вырастет)</td><td>×1,00</td><td>×0,92</td><td class="lose">0,92</td></tr>
+<tr><td>Сутки переобхода, режем хвост очереди</td><td>×2,00</td><td>×0,85</td><td class="win">1,71</td></tr>
+<tr><td>Сутки переобхода, режем худших по деньгам</td><td>×2,00</td><td>×0,92</td><td class="win">1,84</td></tr>
+</tbody>
+</table>
+</div>
+<p class="note">«Денег с базы» — доля регистраций в окне, остающаяся после снятия 56 брендов: 85,3% при резке хвоста очереди, 92,1% при отборе по деньгам (проверено вне выборки: отбор по августу, замер по сентябрю).</p>
+
+<h2>Что нужно от вас, чтобы решить</h2>
+<ul>
+<li><b>Во что вы упираетесь сейчас.</b> Если в аккаунты — урезание каталога в убыток. Если в сутки переобхода (то есть аккаунты простаивают, а поставить больше баз нечем именно из-за квоты) — выигрыш до 1,8 раза.</li>
+<li><b>Откуда 61 база в день при ёмкости 86.</b> Не хватает доменов, контента или рук? Тогда первым рычагом будет не каталог, а то, чего не хватает.</li>
+<li><b>Обязателен ли отдых аккаунта в 14 дней.</b> 31 повтор из 700 прошёл быстрее двух недель. Если правило ваше, а не Яндекса, сокращение отдыха даёт больше, чем весь каталог: цикл 16 → 9 дней это +78% баз в день без потери брендов.</li>
+</ul>
+
+<div class="foot">Источник: <code>analysis/export/svod_domenov_21.09.csv</code> и панель сайтов на 21.09. Волны разделены по дате переобхода каждого сайта, деньги считаны в окне трёх суток от переобхода: 382 регистрации, 62 первых депозита.</div>
+</div>
+
+<div class="tip" id="tip"></div>
+
+<script>
+const SV="http://www.w3.org/2000/svg";
+const tip=document.getElementById('tip');
+function el(n,a){const e=document.createElementNS(SV,n);for(const k in a)e.setAttribute(k,a[k]);return e;}
+function hov(node,html){
+  node.addEventListener('pointerenter',e=>{tip.innerHTML=html;tip.style.opacity=1;});
+  node.addEventListener('pointermove',e=>{tip.style.left=Math.min(e.clientX+12,innerWidth-170)+'px';tip.style.top=(e.clientY-36)+'px';});
+  node.addEventListener('pointerleave',()=>{tip.style.opacity=0;});
+}
+function txt(p,x,y,s,o){const t=el('text',Object.assign({x:x,y:y,fill:'var(--ink2)','font-size':12,'font-family':'PT Sans, sans-serif'},o||{}));t.textContent=s;p.appendChild(t);return t;}
+
+/* 1. доля второго дня */
+(function(){
+  const rows=[['сайты',25.7,'107 570 из 418 963'],['поисковые клики',16.7,'316 087 из 1 889 734'],
+              ['регистрации',15.2,'58 из 382'],['первые депозиты',14.5,'9 из 62']];
+  const W=760,rh=46,H=rows.length*rh+34,L=150,R=W-56,sc=v=>L+(R-L)*v/30;
+  const s=document.getElementById('c1');s.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  [0,10,20,30].forEach(v=>{s.appendChild(el('line',{x1:sc(v),x2:sc(v),y1:8,y2:H-26,stroke:'var(--grid)','stroke-width':1}));
+    txt(s,sc(v),H-8,v+'%',{'text-anchor':'middle',fill:'var(--ink3)'});});
+  rows.forEach((r,i)=>{
+    const y=16+i*rh;
+    txt(s,L-12,y+20,r[0],{'text-anchor':'end',fill:'var(--ink)','font-size':13.5});
+    const w=sc(r[1])-L;
+    const b=el('rect',{x:L,y:y+4,width:w,height:22,rx:4,fill:i?'var(--s1)':'var(--s4)'});
+    s.appendChild(b);hov(b,`<b>${r[0]}</b><br>${r[1]}% — ${r[2]}`);
+    txt(s,L+w+8,y+20,r[1].toString().replace('.',',')+'%',{fill:'var(--ink)','font-size':13});
+  });
+  s.appendChild(el('line',{x1:sc(25.7),x2:sc(25.7),y1:8,y2:H-26,stroke:'var(--s4)','stroke-width':1.5,'stroke-dasharray':'4 4'}));
+})();
+
+/* 2. базы в день */
+(function(){
+  const d=[["2026-08-11",1],["2026-08-17",2],["2026-08-18",36],["2026-08-19",46],["2026-08-20",77],["2026-08-21",34],["2026-08-22",22],["2026-08-24",22],["2026-08-25",42],["2026-08-26",55],["2026-08-27",22],["2026-08-28",3],["2026-08-31",11],["2026-09-01",25],["2026-09-02",56],["2026-09-03",88],["2026-09-04",86],["2026-09-05",47],["2026-09-06",63],["2026-09-07",73],["2026-09-08",123],["2026-09-09",38],["2026-09-10",97],["2026-09-11",122],["2026-09-12",101],["2026-09-13",35],["2026-09-14",71],["2026-09-15",159],["2026-09-16",138],["2026-09-17",152],["2026-09-18",78],["2026-09-19",38],["2026-09-20",70],["2026-09-21",44]];
+  const W=760,H=250,L=44,R=W-96,T=14,B=H-30,mx=160;
+  const s=document.getElementById('c2');s.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  const x=i=>L+(R-L)*i/(d.length-1), y=v=>B-(B-T)*v/mx;
+  [0,50,100,150].forEach(v=>{s.appendChild(el('line',{x1:L,x2:R,y1:y(v),y2:y(v),stroke:'var(--grid)','stroke-width':1}));
+    txt(s,L-8,y(v)+4,v,{'text-anchor':'end',fill:'var(--ink3)','font-size':11.5});});
+  let p='';d.forEach((r,i)=>p+=(i?'L':'M')+x(i)+' '+y(r[1]));
+  s.appendChild(el('path',{d:p+`L${x(d.length-1)} ${B} L${x(0)} ${B} Z`,fill:'var(--s1)','fill-opacity':.1}));
+  s.appendChild(el('path',{d:p,fill:'none',stroke:'var(--s1)','stroke-width':2,'stroke-linejoin':'round'}));
+  s.appendChild(el('line',{x1:L,x2:R,y1:y(86),y2:y(86),stroke:'var(--s2)','stroke-width':2,'stroke-dasharray':'5 4'}));
+  txt(s,R+8,y(86)+4,'ёмкость 86',{fill:'var(--s2)','font-size':12});
+  s.appendChild(el('line',{x1:L,x2:R,y1:y(61),y2:y(61),stroke:'var(--ink3)','stroke-width':1,'stroke-dasharray':'2 4'}));
+  txt(s,R+8,y(61)+4,'среднее 61',{fill:'var(--ink3)','font-size':12});
+  d.forEach((r,i)=>{const c=el('circle',{cx:x(i),cy:y(r[1]),r:3.5,fill:'var(--s1)',stroke:'var(--card)','stroke-width':2});
+    s.appendChild(c);hov(c,`<b>${r[0].slice(8)}.${r[0].slice(5,7)}</b> — ${r[1]} баз`);});
+  txt(s,L,H-8,'11.08',{fill:'var(--ink3)','font-size':11.5});
+  txt(s,R,H-8,'21.09',{'text-anchor':'end',fill:'var(--ink3)','font-size':11.5});
+})();
+
+/* 3. интервалы аккаунта */
+(function(){
+  const g=[[1,5],[2,20],[6,1],[8,3],[11,2],[14,24],[15,225],[16,76],[17,13],[20,3],[21,60],[22,57],[23,22],[25,41],[26,87],[27,52],[28,9]];
+  const W=760,H=200,L=44,R=W-16,T=14,B=H-34,mx=230;
+  const s=document.getElementById('c3');s.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  const bw=(R-L)/29;
+  [0,100,200].forEach(v=>{s.appendChild(el('line',{x1:L,x2:R,y1:B-(B-T)*v/mx,y2:B-(B-T)*v/mx,stroke:'var(--grid)','stroke-width':1}));
+    txt(s,L-8,B-(B-T)*v/mx+4,v,{'text-anchor':'end',fill:'var(--ink3)','font-size':11.5});});
+  g.forEach(([k,v])=>{
+    const h=(B-T)*v/mx, x=L+(k-0.5)*bw;
+    const b=el('rect',{x:x,y:B-h,width:bw-2,height:h,rx:3,fill:k<14?'var(--s2)':'var(--s1)'});
+    s.appendChild(b);hov(b,`<b>${k} дней</b> — ${v} повторов`);
+  });
+  [1,7,14,21,28].forEach(k=>txt(s,L+(k-0.5)*bw+bw/2-2,B+16,k,{'text-anchor':'middle',fill:'var(--ink3)','font-size':11.5}));
+  txt(s,L,H-2,'дней между запусками на одном аккаунте · оранжевым — быстрее двух недель (31 из 700)',{fill:'var(--ink3)','font-size':11.5});
+})();
+
+/* 4. концентрация брендов */
+(function(){
+  const lor=[6.8, 11.3, 14.9, 18.3, 21.2, 23.8, 26.2, 28.5, 30.9, 33.0, 35.1, 37.2, 39.0, 40.8, 42.4, 44.0, 45.5, 46.9, 48.2, 49.5, 50.8, 52.1, 53.1, 54.2, 55.2, 56.3, 57.3, 58.4, 59.4, 60.5, 61.5, 62.6, 63.4, 64.1, 64.9, 65.7, 66.5, 67.3, 68.1, 68.8, 69.6, 70.4, 71.2, 72.0, 72.8, 73.6, 74.3, 75.1, 75.7, 76.2, 76.7, 77.2, 77.7, 78.3, 78.8, 79.3, 79.8, 80.4, 80.9, 81.4, 81.9, 82.5, 83.0, 83.5, 84.0, 84.6, 85.1, 85.6, 86.1, 86.6, 87.2, 87.4, 87.7, 88.0, 88.2, 88.5, 88.7, 89.0, 89.3, 89.5, 89.8, 90.1, 90.3, 90.6, 90.8, 91.1, 91.4, 91.6, 91.9, 92.1, 92.4, 92.7, 92.9, 93.2, 93.5, 93.7, 94.0, 94.2, 94.5, 94.8, 95.0, 95.3, 95.5, 95.8, 96.1, 96.3, 96.6, 96.9, 97.1, 97.4, 97.6, 97.9, 98.2, 98.4, 98.7, 99.0, 99.2, 99.5, 99.7, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0];
+  const W=760,H=240,L=44,R=W-16,T=14,B=H-34;
+  const s=document.getElementById('c4');s.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  const x=i=>L+(R-L)*i/206, y=v=>B-(B-T)*v/100;
+  [0,25,50,75,100].forEach(v=>{s.appendChild(el('line',{x1:L,x2:R,y1:y(v),y2:y(v),stroke:'var(--grid)','stroke-width':1}));
+    txt(s,L-8,y(v)+4,v+'%',{'text-anchor':'end',fill:'var(--ink3)','font-size':11.5});});
+  let p='M'+L+' '+y(0);
+  lor.forEach((v,i)=>p+='L'+x(i+1)+' '+y(v));
+  s.appendChild(el('path',{d:p,fill:'none',stroke:'var(--s1)','stroke-width':2}));
+  [[21,50.8,'21 бренд — половина денег'],[120,100,'120 брендов — все деньги']].forEach(m=>{
+    s.appendChild(el('line',{x1:x(m[0]),x2:x(m[0]),y1:y(m[1]),y2:B,stroke:'var(--s2)','stroke-width':1.5,'stroke-dasharray':'4 4'}));
+    s.appendChild(el('circle',{cx:x(m[0]),cy:y(m[1]),r:4.5,fill:'var(--s2)',stroke:'var(--card)','stroke-width':2}));
+    txt(s,x(m[0])+8,y(m[1])-8,m[2],{fill:'var(--ink)','font-size':12.5});
+  });
+  s.appendChild(el('line',{x1:x(150),x2:x(150),y1:T,y2:B,stroke:'var(--ink3)','stroke-width':1}));
+  txt(s,x(150)+6,B-6,'150-й',{fill:'var(--ink3)','font-size':11.5});
+  txt(s,L,H-4,'бренды по убыванию регистраций · последние 86 не дали ни одной, занимая 41% сайтов',{fill:'var(--ink3)','font-size':11.5});
+  lor.forEach((v,i)=>{if(i%4)return;const c=el('rect',{x:x(i+1)-3,y:T,width:6,height:B-T,fill:'transparent'});
+    s.appendChild(c);hov(c,`<b>${i+1} брендов</b> — ${String(v).replace('.',',')}% регистраций`);});
+})();
+
+/* 5. сценарии */
+(function(){
+  const r=[['Пул аккаунтов, хвост очереди',0.91],['Пул аккаунтов, худшие по деньгам',0.98],
+           ['Домены или контент',0.92],['Сутки переобхода, хвост очереди',1.71],['Сутки переобхода, худшие по деньгам',1.84]];
+  const W=760,rh=44,H=r.length*rh+30,L=270,R=W-46,sc=v=>L+(R-L)*v/2;
+  const s=document.getElementById('c5');s.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  [0,0.5,1,1.5,2].forEach(v=>{s.appendChild(el('line',{x1:sc(v),x2:sc(v),y1:6,y2:H-24,stroke:'var(--grid)','stroke-width':1}));
+    txt(s,sc(v),H-6,String(v).replace('.',','),{'text-anchor':'middle',fill:'var(--ink3)','font-size':11.5});});
+  r.forEach((q,i)=>{
+    const y=12+i*rh, w=sc(q[1])-L;
+    txt(s,L-12,y+20,q[0],{'text-anchor':'end',fill:'var(--ink)','font-size':13});
+    const b=el('rect',{x:L,y:y+5,width:w,height:22,rx:4,fill:q[1]>=1?'var(--s1)':'var(--s2)'});
+    s.appendChild(b);hov(b,`<b>${q[0]}</b><br>${String(q[1]).replace('.',',')} от нынешних регистраций в сутки`);
+    txt(s,R+34,y+21,String(q[1]).replace('.',','),{fill:'var(--ink)','font-size':13.5,'text-anchor':'end','font-weight':700});
+  });
+  s.appendChild(el('line',{x1:sc(1),x2:sc(1),y1:6,y2:H-24,stroke:'var(--ink)','stroke-width':1.5}));
+  txt(s,sc(1)+5,14,'как сейчас',{fill:'var(--ink2)','font-size':11.5});
+})();
+</script>
