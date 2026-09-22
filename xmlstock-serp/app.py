@@ -47,7 +47,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "whois-вкладка"
+APP_BUILD = "whois-поддомены"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -1385,14 +1385,17 @@ def _rdap_full(regdom, timeout):
     rec = {"created": "", "expires": "", "changed": "", "registrar": "",
            "registrar_id": "", "nameservers": [], "statuses": [],
            "dnssec": "", "registrant": "", "country": ""}
+    rec["reregistered"] = ""
     for ev in (data.get("events") or []):
         act = (ev.get("eventAction") or "").lower()
         date = (ev.get("eventDate") or "").strip()
         if act == "registration" and not rec["created"]:
             rec["created"] = date
+        elif act == "reregistration" and not rec["reregistered"]:
+            rec["reregistered"] = date
         elif act == "expiration" and not rec["expires"]:
             rec["expires"] = date
-        elif act in ("last changed", "last update of rdap database") and not rec["changed"]:
+        elif act == "last changed" and not rec["changed"]:   # не «last update of RDAP database» (это лишь обновление БД RDAP)
             rec["changed"] = date
     for ent in (data.get("entities") or []):
         roles = [x.lower() for x in (ent.get("roles") or [])]
@@ -1416,9 +1419,9 @@ def _rdap_full(regdom, timeout):
 
 
 def _empty_whois(source="", error=""):
-    return {"created": "", "expires": "", "changed": "", "registrar": "",
-            "registrar_id": "", "nameservers": [], "statuses": [], "dnssec": "",
-            "registrant": "", "country": "", "source": source, "error": error}
+    return {"created": "", "reregistered": "", "expires": "", "changed": "",
+            "registrar": "", "registrar_id": "", "nameservers": [], "statuses": [],
+            "dnssec": "", "registrant": "", "country": "", "source": source, "error": error}
 
 
 def domain_whois(regdom, cfg):
@@ -1441,13 +1444,19 @@ def domain_whois(regdom, cfg):
     return _empty_whois(error="нет данных")
 
 
-def _whois_row(regdom, rec):
-    """Плоская строка для таблицы/выгрузки."""
+def _whois_row(host, root, rec):
+    """Плоская строка для таблицы/выгрузки. host — как ввёл пользователь,
+    root — корневой (регистрируемый) домен, по которому реально смотрели WHOIS."""
+    # «Актуальная» дата владения: reregistration, если домен перехватывали, иначе registration.
+    own = rec.get("reregistered") or rec.get("created", "")
     return {
-        "domain": regdom,
+        "domain": host,
+        "root": root,
+        "is_sub": host != root,
         "created": rec.get("created", ""),
         "created_date": _date_only(rec.get("created", "")),
-        "age_days": _age_days(rec.get("created", "")),
+        "reregistered": _date_only(rec.get("reregistered", "")),
+        "age_days": _age_days(own),
         "expires": _date_only(rec.get("expires", "")),
         "changed": _date_only(rec.get("changed", "")),
         "registrar": rec.get("registrar", ""),
@@ -1461,11 +1470,19 @@ def _whois_row(regdom, rec):
     }
 
 
-def run_whois_job(job_id, cfg, regdoms):
+def run_whois_job(job_id, cfg, items):
+    """items — список пар (host, root). WHOIS смотрим по уникальным root (одна пара
+    запросов на корневой домен), но строку показываем на каждый введённый host —
+    чтобы поддомены дорвеев не схлопывались и было видно, что смотрели корень."""
     job = WHOISJOBS[job_id]
     cache = _load_whois_full()
     force = cfg.get("force")
     changed = [False]
+    roots = list(dict.fromkeys(root for _, root in items))
+    per_root = {}
+    for host, root in items:
+        per_root.setdefault(root, 0)
+        per_root[root] += 1
 
     def resolve(rd):
         if job["cancel"].is_set():
@@ -1483,19 +1500,19 @@ def run_whois_job(job_id, cfg, regdoms):
     results = {}
 
     def snapshot(default_err=""):
-        return [_whois_row(rd, results.get(rd) or _empty_whois(error=default_err))
-                for rd in regdoms]
+        return [_whois_row(host, root, results.get(root) or _empty_whois(error=default_err))
+                for host, root in items]
 
     try:
         with ThreadPoolExecutor(max_workers=cfg.get("whois_workers", 5)) as ex:
-            futs = [ex.submit(resolve, rd) for rd in regdoms]
+            futs = [ex.submit(resolve, r) for r in roots]
             for fut in as_completed(futs):
                 rd, rec = fut.result()
                 if rec is not None:
                     results[rd] = rec
                 with job["lock"]:
-                    job["done"] += 1
-                    job["rows"] = snapshot()      # обновляем таблицу по мере готовности
+                    job["done"] += per_root.get(rd, 1)   # прогресс — по строкам
+                    job["rows"] = snapshot()             # обновляем таблицу по мере готовности
     except Exception as e:              # pragma: no cover
         with job["lock"]:
             job["fatal"] = str(e)
@@ -2749,15 +2766,15 @@ def api_watch_download_zip(job_id):
 @app.route("/api/whois/run", methods=["POST"])
 def api_whois_run():
     data = request.get_json(force=True, silent=True) or {}
-    seen, regdoms = set(), []
+    seen, items = set(), []
     for token in _split_multi(data.get("domains") or ""):
-        rd = registrable_domain(normalize_domain(token))
-        if rd and rd not in seen:
-            seen.add(rd)
-            regdoms.append(rd)
-    if not regdoms:
+        host = normalize_domain(token)
+        if host and host not in seen:
+            seen.add(host)
+            items.append((host, registrable_domain(host)))
+    if not items:
         return jsonify({"error": "Добавьте хотя бы один домен."}), 400
-    regdoms = regdoms[:1000]
+    items = items[:1000]
 
     def clamp(val, lo, hi, default):
         try:
@@ -2783,13 +2800,13 @@ def api_whois_run():
     with WHOIS_LOCK:
         WHOISJOBS[job_id] = {
             "id": job_id, "status": "running",
-            "total": len(regdoms), "done": 0, "rows": [],
+            "total": len(items), "done": 0, "rows": [],
             "lock": Lock(), "cancel": Event(), "started_at": time.time(),
             "fatal": None,
         }
         ACTIVE_WHOIS["id"] = job_id
-    Thread(target=run_whois_job, args=(job_id, cfg, regdoms), daemon=True).start()
-    return jsonify({"job_id": job_id, "total": len(regdoms),
+    Thread(target=run_whois_job, args=(job_id, cfg, items), daemon=True).start()
+    return jsonify({"job_id": job_id, "total": len(items),
                     "whois_cli": bool(_WHOIS_BIN)})
 
 
@@ -2822,12 +2839,14 @@ def api_whois_download(job_id):
     fmt = request.args.get("fmt", "csv")
     with job["lock"]:
         rows = list(job["rows"])
-    headers = ["Домен", "Дата регистрации", "Возраст (дней)", "Истекает",
-               "Обновлён", "Регистратор", "IANA ID", "NS-серверы",
-               "Статусы", "DNSSEC", "Страна", "Источник", "Ошибка"]
+    headers = ["Домен", "Корневой домен", "Поддомен?", "Дата регистрации",
+               "Перерегистрация", "Возраст (дней)", "Истекает", "Обновлён",
+               "Регистратор", "IANA ID", "NS-серверы", "Статусы", "DNSSEC",
+               "Страна", "Источник", "Ошибка"]
 
     def cells(r):
-        return [r["domain"], r["created_date"],
+        return [r["domain"], r["root"], "да" if r["is_sub"] else "",
+                r["created_date"], r["reregistered"],
                 r["age_days"] if r["age_days"] is not None else "",
                 r["expires"], r["changed"], r["registrar"], r["registrar_id"],
                 " ".join(r["nameservers"]), " | ".join(r["statuses"]),

@@ -643,7 +643,8 @@
     <div class="card">
       <label>Домены — по одному в строке (можно с www/https:// и путём) <span class="count" id="wh_count">0</span></label>
       <textarea id="wh_domains" placeholder="spacewin.k4r.team&#10;example.casino&#10;https://foo.top/path"></textarea>
-      <div class="hint">Для каждого домена берём дату регистрации и данные из RDAP (фолбэк — системный whois). Поддомены сводятся к корневому домену. Ответы кэшируются — повторная проверка мгновенна.</div>
+      <div class="hint">Для каждого домена берём дату регистрации и данные из RDAP (фолбэк — системный whois). Ответы кэшируются — повторная проверка мгновенна.
+        <b>Важно про дорвеи на поддоменах</b> (напр. <code>spacewin.k4r.team</code>): у поддомена нет своей записи WHOIS — дата регистрации есть только у <b>корня</b> (<code>k4r.team</code>). Поэтому для поддоменов показывается возраст корневого домена (он и помечается «🌐 поддомен»). Когда именно появился сам дорвей-поддомен — WHOIS не знает; это ловит вкладка «🚀 Мониторинг 48ч» (первое появление в выдаче).</div>
 
       <div class="grid g4" style="margin-top:12px">
         <div><label>Параллельно</label><input id="wh_workers" type="number" value="5" min="1" max="10"></div>
@@ -1383,11 +1384,17 @@ function whRenderRows(rows){
   let fresh=0;
   $("wh_tbody").innerHTML = rows.map(r=>{
     const a=whAge(r.age_days); if(r.age_days!=null && r.age_days<60) fresh++;
+    const dom = r.is_sub
+      ? `${esc(r.domain)}<div class="muted" style="font-size:11px">🌐 поддомен · смотрели корень <b>${esc(r.root)}</b></div>`
+      : esc(r.domain);
     const created = r.created_date ? esc(r.created_date)
                   : (r.error ? `<span class="p-no">${esc(r.error)}</span>` : '<span class="miss">…</span>');
+    const createdCell = r.reregistered
+      ? `${created}<div class="muted" style="font-size:11px">перерег.: ${esc(r.reregistered)}</div>`
+      : created;
     return `<tr>
-      <td>${esc(r.domain)}</td>
-      <td>${created}</td>
+      <td>${dom}</td>
+      <td>${createdCell}</td>
       <td>${a.c ? `<span class="${a.c}">${a.t}</span>` : a.t}</td>
       <td>${r.expires ? esc(r.expires) : '<span class="miss">—</span>'}</td>
       <td>${r.changed ? esc(r.changed) : '<span class="miss">—</span>'}</td>
