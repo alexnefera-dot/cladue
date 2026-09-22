@@ -47,7 +47,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "кнопка-жмётся"
+APP_BUILD = "whois-вкладка"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -153,6 +153,11 @@ ACTIVE_LIVE = {"id": None}
 WATCHJOBS = {}
 WATCH_LOCK = Lock()
 ACTIVE_WATCH = {"id": None}
+
+# Хранилище задач проверки WHOIS/RDAP (дата регистрации и др. данные по доменам).
+WHOISJOBS = {}
+WHOIS_LOCK = Lock()
+ACTIVE_WHOIS = {"id": None}
 
 
 # --------------------------------------------------------------------------- #
@@ -1285,6 +1290,222 @@ def domain_created(regdom, cfg):
     if w:
         return w, "whois"
     return None, ""
+
+
+# --------------------------------------------------------------------------- #
+#  Проверка WHOIS/RDAP: дата регистрации + регистратор/NS/статусы/срок          #
+# --------------------------------------------------------------------------- #
+# Та же RDAP-машина, но вытаскиваем не только дату регистрации, а весь полезный
+# набор полей (регистратор, срок, NS, статусы, DNSSEC) и показываем таблицей.
+# Полные записи кэшируются на диск отдельным файлом (durable) — повторная
+# проверка идёт мгновенно и переживает перезапуск сервера.
+WHOIS_FULL_CACHE_FILE = os.path.join(OUTPUT_DIR, "whois_full_cache.json")
+_DMON = {"jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
+         "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12}
+
+
+def _load_whois_full():
+    try:
+        with open(WHOIS_FULL_CACHE_FILE, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def _save_whois_full(cache):
+    try:
+        tmp = WHOIS_FULL_CACHE_FILE + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(cache, f, ensure_ascii=False)
+        os.replace(tmp, WHOIS_FULL_CACHE_FILE)
+    except Exception:
+        pass
+
+
+def _parse_date(s):
+    """datetime из ISO ('2024-05-01T..') или '01-may-2024'. Иначе None."""
+    s = (s or "").strip()
+    if not s:
+        return None
+    m = re.search(r"(\d{4})-(\d{2})-(\d{2})", s)
+    if m:
+        try:
+            return datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        except ValueError:
+            return None
+    m = re.search(r"(\d{2})-([a-zA-Z]{3})-(\d{4})", s)
+    if m and m.group(2).lower() in _DMON:
+        try:
+            return datetime(int(m.group(3)), _DMON[m.group(2).lower()], int(m.group(1)))
+        except ValueError:
+            return None
+    return None
+
+
+def _date_only(s):
+    d = _parse_date(s)
+    return d.strftime("%Y-%m-%d") if d else (s or "").strip()[:10]
+
+
+def _age_days(created):
+    d = _parse_date(created)
+    return (datetime.utcnow() - d).days if d else None
+
+
+def _vcard_get(entity, field):
+    """Значение поля jCard (fn/adr/…) из RDAP-сущности."""
+    try:
+        for item in entity.get("vcardArray", ["", []])[1]:
+            if item and item[0] == field:
+                return item[3]
+    except Exception:
+        pass
+    return None
+
+
+def _rdap_full(regdom, timeout):
+    """Полная запись RDAP по домену. Возвращает (record|None, retry_bool)."""
+    try:
+        r = requests.get(_RDAP_URL + regdom, timeout=timeout,
+                         headers={"Accept": "application/rdap+json"},
+                         allow_redirects=True)
+    except requests.RequestException:
+        return None, True
+    if r.status_code == 429 or r.status_code >= 500:
+        return None, True
+    if r.status_code == 404:
+        return {"not_found": True}, False
+    if r.status_code != 200:
+        return None, False
+    try:
+        data = r.json()
+    except Exception:
+        return None, False
+
+    rec = {"created": "", "expires": "", "changed": "", "registrar": "",
+           "registrar_id": "", "nameservers": [], "statuses": [],
+           "dnssec": "", "registrant": "", "country": ""}
+    for ev in (data.get("events") or []):
+        act = (ev.get("eventAction") or "").lower()
+        date = (ev.get("eventDate") or "").strip()
+        if act == "registration" and not rec["created"]:
+            rec["created"] = date
+        elif act == "expiration" and not rec["expires"]:
+            rec["expires"] = date
+        elif act in ("last changed", "last update of rdap database") and not rec["changed"]:
+            rec["changed"] = date
+    for ent in (data.get("entities") or []):
+        roles = [x.lower() for x in (ent.get("roles") or [])]
+        if "registrar" in roles and not rec["registrar"]:
+            rec["registrar"] = _vcard_get(ent, "fn") or ""
+            for pid in (ent.get("publicIds") or []):
+                if "iana" in (pid.get("type") or "").lower():
+                    rec["registrar_id"] = str(pid.get("identifier") or "")
+        if "registrant" in roles and not rec["registrant"]:
+            rec["registrant"] = _vcard_get(ent, "fn") or ""
+            adr = _vcard_get(ent, "adr")
+            if isinstance(adr, list) and adr:
+                rec["country"] = (adr[-1] or "").strip()
+    rec["nameservers"] = [(ns.get("ldhName") or "").lower()
+                          for ns in (data.get("nameservers") or []) if ns.get("ldhName")]
+    rec["statuses"] = [str(s) for s in (data.get("status") or [])]
+    ds = data.get("secureDNS") or {}
+    if "delegationSigned" in ds:
+        rec["dnssec"] = "да" if ds.get("delegationSigned") else "нет"
+    return rec, False
+
+
+def _empty_whois(source="", error=""):
+    return {"created": "", "expires": "", "changed": "", "registrar": "",
+            "registrar_id": "", "nameservers": [], "statuses": [], "dnssec": "",
+            "registrant": "", "country": "", "source": source, "error": error}
+
+
+def domain_whois(regdom, cfg):
+    """Полная запись WHOIS/RDAP с ретраями. Фолбэк на системный whois — только дата."""
+    for attempt in range(cfg.get("whois_retries", 1) + 1):
+        rec, retry = _rdap_full(regdom, cfg.get("whois_timeout", 15))
+        if rec is not None and not rec.get("not_found"):
+            rec["source"], rec["error"] = "rdap", ""
+            return rec
+        if rec is not None and rec.get("not_found"):
+            return _empty_whois(error="домен не найден")
+        if not retry:
+            break
+        time.sleep(min(2 ** attempt, 6))
+    w = _whois_created(regdom, cfg.get("whois_timeout", 15))
+    if w:
+        rec = _empty_whois(source="whois")
+        rec["created"] = w
+        return rec
+    return _empty_whois(error="нет данных")
+
+
+def _whois_row(regdom, rec):
+    """Плоская строка для таблицы/выгрузки."""
+    return {
+        "domain": regdom,
+        "created": rec.get("created", ""),
+        "created_date": _date_only(rec.get("created", "")),
+        "age_days": _age_days(rec.get("created", "")),
+        "expires": _date_only(rec.get("expires", "")),
+        "changed": _date_only(rec.get("changed", "")),
+        "registrar": rec.get("registrar", ""),
+        "registrar_id": rec.get("registrar_id", ""),
+        "nameservers": rec.get("nameservers", []),
+        "statuses": rec.get("statuses", []),
+        "dnssec": rec.get("dnssec", ""),
+        "country": rec.get("country", ""),
+        "source": rec.get("source", ""),
+        "error": rec.get("error", ""),
+    }
+
+
+def run_whois_job(job_id, cfg, regdoms):
+    job = WHOISJOBS[job_id]
+    cache = _load_whois_full()
+    force = cfg.get("force")
+    changed = [False]
+
+    def resolve(rd):
+        if job["cancel"].is_set():
+            return rd, None
+        if not force and rd in cache and cache[rd].get("source"):
+            return rd, cache[rd]
+        rec = domain_whois(rd, cfg)
+        if rec.get("source"):          # кэшируем только удачные ответы
+            cache[rd] = rec
+            changed[0] = True
+        if cfg.get("whois_delay", 0) > 0:
+            time.sleep(cfg["whois_delay"])
+        return rd, rec
+
+    results = {}
+
+    def snapshot(default_err=""):
+        return [_whois_row(rd, results.get(rd) or _empty_whois(error=default_err))
+                for rd in regdoms]
+
+    try:
+        with ThreadPoolExecutor(max_workers=cfg.get("whois_workers", 5)) as ex:
+            futs = [ex.submit(resolve, rd) for rd in regdoms]
+            for fut in as_completed(futs):
+                rd, rec = fut.result()
+                if rec is not None:
+                    results[rd] = rec
+                with job["lock"]:
+                    job["done"] += 1
+                    job["rows"] = snapshot()      # обновляем таблицу по мере готовности
+    except Exception as e:              # pragma: no cover
+        with job["lock"]:
+            job["fatal"] = str(e)
+
+    if changed[0]:
+        _save_whois_full(cache)
+
+    with job["lock"]:
+        job["rows"] = snapshot("отменено" if job["cancel"].is_set() else "")
+        job["status"] = "cancelled" if job["cancel"].is_set() else "done"
 
 
 # --------------------------------------------------------------------------- #
@@ -2520,6 +2741,126 @@ def api_watch_download_zip(job_id):
     return send_file(buf, as_attachment=True,
                      download_name=f"watch_{job_id[:8]}_{fmt}.zip",
                      mimetype="application/zip")
+
+
+# --------------------------------------------------------------------------- #
+#  Проверка WHOIS: список доменов → таблица с датой регистрации и данными       #
+# --------------------------------------------------------------------------- #
+@app.route("/api/whois/run", methods=["POST"])
+def api_whois_run():
+    data = request.get_json(force=True, silent=True) or {}
+    seen, regdoms = set(), []
+    for token in _split_multi(data.get("domains") or ""):
+        rd = registrable_domain(normalize_domain(token))
+        if rd and rd not in seen:
+            seen.add(rd)
+            regdoms.append(rd)
+    if not regdoms:
+        return jsonify({"error": "Добавьте хотя бы один домен."}), 400
+    regdoms = regdoms[:1000]
+
+    def clamp(val, lo, hi, default):
+        try:
+            return max(lo, min(hi, int(val)))
+        except (TypeError, ValueError):
+            return default
+
+    def fnum(val, default):
+        try:
+            return max(0.0, float(val))
+        except (TypeError, ValueError):
+            return default
+
+    cfg = {
+        "whois_workers": clamp(data.get("whois_workers"), 1, 10, 5),
+        "whois_timeout": clamp(data.get("whois_timeout"), 5, 60, 15),
+        "whois_retries": clamp(data.get("whois_retries"), 0, 3, 1),
+        "whois_delay": fnum(data.get("whois_delay"), 0.0),
+        "force": bool(data.get("force")),
+    }
+
+    job_id = uuid.uuid4().hex
+    with WHOIS_LOCK:
+        WHOISJOBS[job_id] = {
+            "id": job_id, "status": "running",
+            "total": len(regdoms), "done": 0, "rows": [],
+            "lock": Lock(), "cancel": Event(), "started_at": time.time(),
+            "fatal": None,
+        }
+        ACTIVE_WHOIS["id"] = job_id
+    Thread(target=run_whois_job, args=(job_id, cfg, regdoms), daemon=True).start()
+    return jsonify({"job_id": job_id, "total": len(regdoms),
+                    "whois_cli": bool(_WHOIS_BIN)})
+
+
+@app.route("/api/whois/status/<job_id>")
+def api_whois_status(job_id):
+    job = WHOISJOBS.get(job_id)
+    if not job:
+        return jsonify({"error": "Задача не найдена"}), 404
+    with job["lock"]:
+        return jsonify({
+            "status": job["status"], "total": job["total"], "done": job["done"],
+            "rows": job["rows"], "fatal": job.get("fatal"),
+        })
+
+
+@app.route("/api/whois/cancel/<job_id>", methods=["POST"])
+def api_whois_cancel(job_id):
+    job = WHOISJOBS.get(job_id)
+    if not job:
+        return jsonify({"error": "Задача не найдена"}), 404
+    job["cancel"].set()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/whois/download/<job_id>")
+def api_whois_download(job_id):
+    job = WHOISJOBS.get(job_id)
+    if not job:
+        return jsonify({"error": "Задача не найдена"}), 404
+    fmt = request.args.get("fmt", "csv")
+    with job["lock"]:
+        rows = list(job["rows"])
+    headers = ["Домен", "Дата регистрации", "Возраст (дней)", "Истекает",
+               "Обновлён", "Регистратор", "IANA ID", "NS-серверы",
+               "Статусы", "DNSSEC", "Страна", "Источник", "Ошибка"]
+
+    def cells(r):
+        return [r["domain"], r["created_date"],
+                r["age_days"] if r["age_days"] is not None else "",
+                r["expires"], r["changed"], r["registrar"], r["registrar_id"],
+                " ".join(r["nameservers"]), " | ".join(r["statuses"]),
+                r["dnssec"], r["country"], r["source"], r["error"]]
+
+    if fmt == "xlsx":
+        try:
+            from openpyxl import Workbook
+        except Exception:
+            return jsonify({"error": "openpyxl не установлен"}), 400
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "whois"
+        ws.append(headers)
+        for r in rows:
+            ws.append(cells(r))
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        return send_file(
+            buf, as_attachment=True,
+            download_name=f"whois_{job_id[:8]}.xlsx",
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
+    sbuf = io.StringIO()
+    w = csv.writer(sbuf, delimiter=";")
+    w.writerow(headers)
+    for r in rows:
+        w.writerow(cells(r))
+    payload = ("﻿" + sbuf.getvalue()).encode("utf-8")
+    return send_file(io.BytesIO(payload), as_attachment=True,
+                     download_name=f"whois_{job_id[:8]}.csv", mimetype="text/csv")
 
 
 # --------------------------------------------------------------------------- #

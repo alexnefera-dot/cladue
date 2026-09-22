@@ -137,6 +137,7 @@
     <button class="tab" data-tab="live">✅ Живость</button>
     <button class="tab" data-tab="watch">🚀 Мониторинг 48ч</button>
     <button class="tab" data-tab="launch">📊 Отчёты по запускам</button>
+    <button class="tab" data-tab="whois">🕵 Проверка WHOIS</button>
   </div>
 
   <!-- ================= ВКЛАДКА 1: СБОР ТОП ================= -->
@@ -637,6 +638,59 @@
     </div>
   </div>
 
+  <!-- ================= ВКЛАДКА 8: ПРОВЕРКА WHOIS ================= -->
+  <div id="panel-whois" class="hidden">
+    <div class="card">
+      <label>Домены — по одному в строке (можно с www/https:// и путём) <span class="count" id="wh_count">0</span></label>
+      <textarea id="wh_domains" placeholder="spacewin.k4r.team&#10;example.casino&#10;https://foo.top/path"></textarea>
+      <div class="hint">Для каждого домена берём дату регистрации и данные из RDAP (фолбэк — системный whois). Поддомены сводятся к корневому домену. Ответы кэшируются — повторная проверка мгновенна.</div>
+
+      <div class="grid g4" style="margin-top:12px">
+        <div><label>Параллельно</label><input id="wh_workers" type="number" value="5" min="1" max="10"></div>
+        <div><label>Таймаут, сек</label><input id="wh_timeout" type="number" value="15" min="5" max="60"></div>
+        <div><label>Пауза, сек</label><input id="wh_delay" type="number" value="0" min="0" max="5" step="0.1"></div>
+        <div style="display:flex;align-items:flex-end">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;font-size:14px;color:var(--txt)">
+            <input type="checkbox" id="wh_force" style="width:auto"> Игнорировать кэш
+          </label>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:16px">
+        <button class="btn-go" id="wh_go">▶ Проверить</button>
+        <button class="btn-cancel hidden" id="wh_stop">■ Остановить</button>
+      </div>
+    </div>
+
+    <div class="card hidden" id="wh_panel">
+      <div class="row" style="justify-content:space-between">
+        <div class="stat" style="margin:0">
+          <div><span class="muted">Проверено</span><b id="wh_done">0 / 0</b></div>
+          <div class="ok"><span class="muted">Статус</span><b id="wh_statusw">—</b></div>
+          <div><span class="muted">Свежих (&lt;60 дн)</span><b id="wh_fresh">0</b></div>
+        </div>
+        <div class="row">
+          <button class="btn-dl hidden" id="wh_dlXlsx">⬇ XLSX</button>
+          <button class="btn-dl hidden" id="wh_dlCsv">⬇ CSV</button>
+        </div>
+      </div>
+      <div class="bar" style="margin:10px 0 14px"><i id="wh_barFill"></i></div>
+
+      <div class="tbl-wrap">
+        <table class="pos" id="wh_table">
+          <thead><tr>
+            <th>Домен</th><th>Дата рег.</th><th>Возраст</th><th>Истекает</th>
+            <th>Обновлён</th><th>Регистратор</th><th>NS</th><th>Статусы</th>
+            <th>DNSSEC</th><th>Ист.</th>
+          </tr></thead>
+          <tbody id="wh_tbody"></tbody>
+        </table>
+      </div>
+      <div class="hint">«Возраст» — сколько прошло с даты регистрации. Свежие домены (мало дней) подсвечены — это, как правило, недавно запущенные дорвеи. Наведите на NS/статусы — увидите полностью.</div>
+      <div class="hint err-text" id="wh_err" style="color:var(--warn)"></div>
+    </div>
+  </div>
+
   <p class="sub" style="text-align:center; margin-top:24px">
     Запущено локально на вашем компьютере · данные никуда не уходят, кроме API xmlstock
     (мониторинг ещё дёргает RDAP/WHOIS для даты регистрации).<span id="buildmark"></span>
@@ -681,6 +735,7 @@ document.querySelectorAll(".tab").forEach(t=> t.onclick = ()=>{
   $("panel-live").classList.toggle("hidden", t.dataset.tab!=="live");
   $("panel-watch").classList.toggle("hidden", t.dataset.tab!=="watch");
   $("panel-launch").classList.toggle("hidden", t.dataset.tab!=="launch");
+  $("panel-whois").classList.toggle("hidden", t.dataset.tab!=="whois");
 });
 
 // ---- движок / свой URL ----
@@ -1301,6 +1356,85 @@ setInterval(plRefresh, 3000); plRefresh();
     if(wc.job_id && wc.status==="running"){ wJob=wc.job_id; document.querySelector('.tab[data-tab="watch"]').click(); startWatch(); wPoll=setInterval(wRefresh,2000); wRefresh(); }
   }catch(e){}
 })();
+
+// ===================== ВКЛАДКА 8: ПРОВЕРКА WHOIS =====================
+let whPoll=null, whJob=null;
+const WHOIS_FIELDS=["wh_domains","wh_workers","wh_timeout","wh_delay","wh_force"];
+function saveWhois(){ const o={}; WHOIS_FIELDS.forEach(f=>{const el=$(f); if(el)o[f]=fval(el);}); localStorage.setItem("xmlstock_whois",JSON.stringify(o)); }
+function loadWhois(){ try{ const o=JSON.parse(localStorage.getItem("xmlstock_whois")||"{}"); WHOIS_FIELDS.forEach(f=>{const el=$(f); if(o[f]!==undefined&&el) setval(el,o[f]);}); }catch(e){} }
+loadWhois();
+WHOIS_FIELDS.forEach(f=>{ const el=$(f); if(el){ el.addEventListener("input",saveWhois); el.addEventListener("change",saveWhois);} });
+$("wh_domains").addEventListener("input", ()=> $("wh_count").textContent=lines("wh_domains")+" стр.");
+$("wh_count").textContent=lines("wh_domains")+" стр.";
+
+function whAge(days){
+  if(days==null) return {t:"—", c:""};
+  if(days<0) return {t:"?", c:""};
+  let t; if(days<60) t=days+" дн"; else if(days<730) t=Math.round(days/30.44)+" мес"; else t=(days/365.25).toFixed(1)+" г";
+  const c = days<60 ? "p-top" : (days<365 ? "p-mid" : "");
+  return {t, c};
+}
+function whList(list){
+  const arr=list||[]; if(!arr.length) return '<span class="miss">—</span>';
+  const short = arr.length>2 ? esc(arr.slice(0,2).join(", "))+" +"+(arr.length-2) : esc(arr.join(", "));
+  return `<span title="${esc(arr.join("\n"))}">${short}</span>`;
+}
+function whRenderRows(rows){
+  let fresh=0;
+  $("wh_tbody").innerHTML = rows.map(r=>{
+    const a=whAge(r.age_days); if(r.age_days!=null && r.age_days<60) fresh++;
+    const created = r.created_date ? esc(r.created_date)
+                  : (r.error ? `<span class="p-no">${esc(r.error)}</span>` : '<span class="miss">…</span>');
+    return `<tr>
+      <td>${esc(r.domain)}</td>
+      <td>${created}</td>
+      <td>${a.c ? `<span class="${a.c}">${a.t}</span>` : a.t}</td>
+      <td>${r.expires ? esc(r.expires) : '<span class="miss">—</span>'}</td>
+      <td>${r.changed ? esc(r.changed) : '<span class="miss">—</span>'}</td>
+      <td>${r.registrar ? esc(r.registrar) : '<span class="miss">—</span>'}</td>
+      <td class="seq" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${whList(r.nameservers)}</td>
+      <td class="seq" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${whList(r.statuses)}</td>
+      <td>${esc(r.dnssec||"")}</td>
+      <td class="pill">${esc(r.source||"")}</td></tr>`;
+  }).join("");
+  $("wh_fresh").textContent=fresh;
+}
+$("wh_go").onclick = async ()=>{
+  hideErr();
+  if(!$("wh_domains").value.trim()){ showErr("Добавьте хотя бы один домен."); return; }
+  const payload={ domains:$("wh_domains").value, whois_workers:$("wh_workers").value,
+    whois_timeout:$("wh_timeout").value, whois_delay:$("wh_delay").value, force:$("wh_force").checked };
+  $("wh_go").disabled=true;
+  try{
+    const r=await fetch("/api/whois/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    const d=await r.json();
+    if(!r.ok){ showErr(d.error||"Ошибка запуска"); $("wh_go").disabled=false; return; }
+    whJob=d.job_id; startWhois(); whPoll=setInterval(whRefresh,1000); whRefresh();
+  }catch(e){ showErr("Нет связи с сервером: "+e); $("wh_go").disabled=false; }
+};
+function startWhois(){
+  $("wh_panel").classList.remove("hidden"); $("wh_tbody").innerHTML=""; $("wh_err").textContent="";
+  $("wh_statusw").textContent="идёт…"; $("wh_barFill").style.width="0%"; $("wh_fresh").textContent="0";
+  $("wh_dlXlsx").classList.add("hidden"); $("wh_dlCsv").classList.add("hidden"); $("wh_stop").classList.remove("hidden");
+  $("wh_panel").scrollIntoView({behavior:"smooth"});
+}
+async function whRefresh(){
+  if(!whJob) return; let d;
+  try{ d=await (await fetch("/api/whois/status/"+whJob)).json(); }catch(e){ return; }
+  if(d.error){ clearInterval(whPoll); whPoll=null; $("wh_go").disabled=false; $("wh_stop").classList.add("hidden"); $("wh_statusw").textContent="остановлено (сервер перезапущен?)"; return; }
+  $("wh_done").textContent=d.done+" / "+d.total;
+  $("wh_barFill").style.width=(d.total? Math.round(d.done/d.total*100):0)+"%";
+  whRenderRows(d.rows||[]);
+  if(d.status!=="running"){
+    clearInterval(whPoll); whPoll=null; $("wh_go").disabled=false; $("wh_stop").classList.add("hidden");
+    $("wh_statusw").textContent={done:"готово ✓",cancelled:"остановлено",error:"ошибка"}[d.status]||d.status;
+    if(d.fatal) showErr("Сбой: "+d.fatal);
+    if((d.rows||[]).length){ $("wh_dlXlsx").classList.remove("hidden"); $("wh_dlCsv").classList.remove("hidden"); }
+  }
+}
+$("wh_stop").onclick = async ()=>{ if(whJob){ await fetch("/api/whois/cancel/"+whJob,{method:"POST"}); $("wh_statusw").textContent="останавливаю…"; } };
+$("wh_dlXlsx").onclick=()=> whJob && (location.href="/api/whois/download/"+whJob+"?fmt=xlsx");
+$("wh_dlCsv").onclick =()=> whJob && (location.href="/api/whois/download/"+whJob+"?fmt=csv");
 </script>
 </body>
 </html>
