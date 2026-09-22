@@ -86,10 +86,15 @@ def свод(шаблоны, метка):
         out[k]=(round(statistics.median(v),2), round(min(v),2), round(max(v),2))
     return out, len(строки)
 
-наши,na = свод(['samples/v5-final/nabor-6[67][0-9]'],'наши')
-их,nb  = свод(['samples/v5-konkurent/NEW17/*','samples/v5-konkurent/NEW50_5/*'],'их')
-print('наших наборов %d, чужих %d' % (na,nb))
-print('| параметр | наши: медиана | наши: полоса | их: медиана | их: полоса |')
+# аргументы: <шаблон наших> <шаблон чужих> [метка1] [метка2]
+шабА = sys.argv[1] if len(sys.argv) > 1 else 'samples/v5-final/nabor-6[67][0-9]'
+шабБ = sys.argv[2] if len(sys.argv) > 2 else 'samples/v5-konkurent/NEW100/*'
+м1 = sys.argv[3] if len(sys.argv) > 3 else 'наши'
+м2 = sys.argv[4] if len(sys.argv) > 4 else 'их'
+наши,na = свод(шабА.split(','), м1)
+их,nb  = свод(шабБ.split(','), м2)
+print('наборов: %s — %d, %s — %d' % (м1, na, м2, nb))
+print('| параметр | %s: медиана | %s: полоса | %s: медиана | %s: полоса |' % (м1,м1,м2,м2))
 print('|---|---|---|---|---|')
 for k in наши:
     a=наши[k]; b=их[k]
