@@ -475,6 +475,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 /* Семейное вне капитала: отбито сильнее, чтобы не читалось как часть итога */
 .porttable tr.parthead.partoff td{background:var(--bg);border-top:2px solid var(--line2)}
 .porttable tr.parthead.partoff .pname{color:var(--muted)}
+/* Сводка всего: капитал и семейное вместе — одна строка внизу таблицы */
+.porttable tr.partall td{background:var(--bg2);border-top:2px solid var(--line2);border-bottom:0;font-weight:600;padding-top:10px}
+.porttable tr.partall .pname .meta{font-weight:400;margin-left:8px}
 .partsec{margin-top:14px}
 /* Содержание имущества в Расходах: объект и его регламент одной группой */
 .upkeep{border:1px solid var(--line);border-radius:10px;padding:6px 10px;margin:6px 0}

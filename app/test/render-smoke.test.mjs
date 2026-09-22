@@ -156,17 +156,25 @@ test('трата вычитается из активов, а не из всег
     'остаток должен быть 300 − 50 по активам, а не 400 − 50 по всему капиталу');
 });
 
-test('семейное — третья часть и в капитал не входит', () => {
-  const fam = { ...SPLIT, targetPortfolio: [...SPLIT.targetPortfolio,
+test('четыре части: подушка в капитале, семейное вне его, внизу сводка всего', () => {
+  const four = { ...SPLIT, targetPortfolio: [
+    SPLIT.targetPortfolio[0],
+    { id: 15, name: 'Запас', kind: 'block', side: 'safe', eur: 50,
+      children: [leaf(16, 'Кэш', { value: 50, eur: 50, target_value: 50 })] },
+    { ...SPLIT.targetPortfolio[1], side: 'pas' },
     { id: 30, name: 'Общее с женой', kind: 'block', side: 'fam', eur: 250,
       children: [leaf(31, 'Квартира', { value: 250, eur: 250, target_value: 250 })] }] };
-  const html = loadFin().secPortfolio(fam, fam.summary);
+  const html = loadFin().secPortfolio(four, four.summary).replace(/\u00a0/g, ' ');
   const heads = [...html.matchAll(/<tr class="parthead[^"]*">[\s\S]*?<\/tr>/g)].map(m => m[0]);
-  assert.equal(heads.length, 3, 'частей должно быть три');
-  assert.ok(heads[2].includes('СЕМЕЙНЫЕ') && heads[2].includes('partoff'), 'семейное не отбито от капитала');
-  assert.ok(!heads[2].includes('% капитала'), 'у семейного не должно быть доли капитала');
-  assert.ok(capLine(html).includes('цель 400 €'), 'цель капитала должна остаться 300 + 100, без семейных 250');
-  assert.ok(html.includes('data-fside="30:fam"'), 'у семейного блока нет переключателя части');
+  assert.equal(heads.length, 4, 'частей должно быть четыре');
+  assert.ok(heads[1].includes('ПОДУШКА') && heads[1].includes('% капитала'), 'подушка — часть капитала');
+  assert.ok(heads[3].includes('СЕМЕЙНЫЕ') && heads[3].includes('partoff'), 'семейное не отбито от капитала');
+  assert.ok(!heads[3].includes('% капитала'), 'у семейного не должно быть доли капитала');
+  assert.ok(capLine(html).includes('цель 450 €'), 'цель капитала: 300 + 50 + 100, без семейных 250');
+  const all = (html.match(/<tr class="partall">[\s\S]*?<\/tr>/) || [''])[0];
+  assert.ok(all.includes('700 €') && all.includes('капитал 450 €') && all.includes('семейные 250 €'),
+    'сводка всего должна складывать капитал и семейное');
+  assert.ok(html.includes('data-fside="15:safe"') && html.includes('data-fside="30:fam"'), 'переключателей частей нет');
 });
 
 test('две части: доли и цели считаются внутри своей части', () => {

@@ -46,8 +46,9 @@ final class PipboySchemeHandler: NSObject, WKURLSchemeHandler {
         _ = try? made.run("ALTER TABLE target_moves ADD COLUMN to_note TEXT")   // перенос без получателя = трата, подпись куда
         _ = try? made.run("ALTER TABLE target_items ADD COLUMN liquid INTEGER NOT NULL DEFAULT 0")   // чем можно распоряжаться  // цель долей; заполнено одно из target_pct/target_value — оно и закреплено
         _ = try? made.run("ALTER TABLE target_items ADD COLUMN passive INTEGER NOT NULL DEFAULT 0")   // прежний флаг: остаётся в базе как страховка
-        // Часть портфеля у блока верхнего уровня: act — работает, pas — вещи, fam — семейное
-        // (общий котёл, в капитал не входит). Прежний флаг переносим разово.
+        // Часть портфеля у блока верхнего уровня: act — работает, safe — подушка (неприкосновенный
+        // запас), pas — вещи, fam — семейное (общий котёл, в капитал не входит).
+        // Прежний флаг переносим разово.
         _ = try? made.run("ALTER TABLE target_items ADD COLUMN side TEXT NOT NULL DEFAULT 'act'")
         _ = try? made.run("ALTER TABLE target_items ADD COLUMN digest INTEGER NOT NULL DEFAULT 0")   // 🎓 позиция идёт в сведение капитала (свод по географии)
         // Правка суммы внутри свода: своё значение и то, каким было «Сейчас» в момент правки.
@@ -1738,7 +1739,7 @@ enum Api {
         case "tgt":
             let parent = numOpt(b["parent_id"]).map { Int($0) }
             let ord = Int(num(try db.rows("SELECT COALESCE(MAX(ord),0)+1 AS o FROM target_items WHERE parent_id IS ?", [parent]).first?["o"]))
-            let sides = ["act", "pas", "fam"]
+            let sides = ["act", "safe", "pas", "fam"]
             let side = sides.contains(b["side"] as? String ?? "") ? (b["side"] as! String) : "act"
             try db.run("INSERT INTO target_items(parent_id, ord, name, kind, value, currency, asset_type, side) VALUES(?,?,?,?,?,?,?,?)",
                 [parent, ord, b["name"] as? String ?? "", b["kind"] as? String ?? "asset", b["value"] ?? NSNull(), b["currency"] as? String ?? "€", b["asset_type"] ?? NSNull(), side])
@@ -2756,6 +2757,7 @@ enum Api {
             "accountsByCurrency": byCur,
             "portfolioTotal": portfolioTotal, "portfolioTotalUsd": portfolioTotalUsd, "rate": rate,
             "activeTotal": activeTotal, "passiveTotal": portfolioTotal - activeTotal, "familyTotal": familyTotal,
+            "safeTotal": portfolio.filter { sideOf($0) == "safe" }.reduce(0.0) { $0 + ($1["eur"] as? Double ?? 0) },
             "growth": growth, "monthlyObligations": monthlyObligations,
             "monthlyIncome": monthlyIncome, "upcoming": upcoming,
         ]

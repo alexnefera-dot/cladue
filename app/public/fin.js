@@ -79,7 +79,12 @@ let tgtMove = null;   // {from, to, amount} — раскрытая форма п
 const savePortFold = () => localStorage.portFold = JSON.stringify([...portFold]);
 
 // Части портфеля по кругу: активы → пассивы → семейные → активы
-const SIDE_NEXT = { act: ['pas', 'в пассивы — вещи, которые не зарабатывают'], pas: ['fam', 'в семейные — общее, вне капитала'], fam: ['act', 'вернуть в активы'] };
+const SIDE_NEXT = {
+  act: ['safe', 'в подушку — неприкосновенный запас'],
+  safe: ['pas', 'в пассивы — вещи, которые не зарабатывают'],
+  pas: ['fam', 'в семейные — общее, вне капитала'],
+  fam: ['act', 'вернуть в активы'],
+};
 const sideKey = n => n.side || (n.passive ? 'pas' : 'act');
 function sideBtn(it) {
   const cur = sideKey(it), [, hint] = SIDE_NEXT[cur];
@@ -420,12 +425,14 @@ function secPortfolio(d, s) {
   // Семейное в капитал НЕ входит: это не мои деньги, а общие, у них своя арифметика.
   const sideOf = n => n.side || (n.passive ? 'pas' : 'act');
   const acts = tree.filter(n => sideOf(n) === 'act');
+  const safes = tree.filter(n => sideOf(n) === 'safe');
   const pass = tree.filter(n => sideOf(n) === 'pas');
   const fams = tree.filter(n => sideOf(n) === 'fam');
-  const split = pass.length > 0 || fams.length > 0;   // ничего не помечено — экран ровно такой, каким был
+  const split = safes.length > 0 || pass.length > 0 || fams.length > 0;   // ничего не помечено — экран прежний
   const sumEur = ns => ns.reduce((a, b) => a + (b.eur || 0), 0);
-  const actTotal = sumEur(acts), pasTotal = sumEur(pass), famTotal = sumEur(fams);
-  const rootTotal = tgt ? actTotal + pasTotal : s.portfolioTotal;   // капитал: активы + пассивы, без семейного
+  const actTotal = sumEur(acts), safeTotal = sumEur(safes), pasTotal = sumEur(pass), famTotal = sumEur(fams);
+  const rootTotal = tgt ? actTotal + safeTotal + pasTotal : s.portfolioTotal;   // капитал: мои части, без семейного
+  const allTotal = rootTotal + famTotal;   // сводка всего, включая семейное
   // Цель узла задаётся долей ИЛИ суммой: закреплено то поле, что заполнено, второе выводится.
   // Если своей цели нет — берём сумму вложенных. Бэкенд (calcNode) для узлов с детьми всегда
   // отдаёт сумму и собственное target_value игнорирует, поэтому считаем здесь.
@@ -448,21 +455,24 @@ function secPortfolio(d, s) {
       n.planPin = n.target_pct != null ? 'pct' : n.target_value != null ? 'eur' : null;   // что закреплено
     };
     acts.forEach(n => setPlan(n, actTotal));
+    safes.forEach(n => setPlan(n, safeTotal));
     pass.forEach(n => setPlan(n, pasTotal));
     fams.forEach(n => setPlan(n, famTotal));
   }
   const sumPlan = ns => ns.reduce((a, b) => a + (b.planEur || 0), 0);
-  const actPlan = tgt ? sumPlan(acts) : 0, pasPlan = tgt ? sumPlan(pass) : 0, famPlan = tgt ? sumPlan(fams) : 0;
-  const planTotal = actPlan + pasPlan;   // цель по капиталу — тоже без семейного
+  const actPlan = tgt ? sumPlan(acts) : 0, safePlan = tgt ? sumPlan(safes) : 0;
+  const pasPlan = tgt ? sumPlan(pass) : 0, famPlan = tgt ? sumPlan(fams) : 0;
+  const planTotal = actPlan + safePlan + pasPlan;   // цель по капиталу — тоже без семейного
   // Мониторинг: один и тот же вопрос «сколько чего» в трёх разрезах.
   // Блоки — своя схема пользователя (защита/рост/развитие), по ней и проваливаемся вглубь;
   // типы и регионы — плоские срезы по листьям.
   // Разбор идёт по одной части за раз: у активов и пассивов свои цели, смешивать их в одной
   // диаграмме нечестно — доли получились бы от чужого тотала.
   const monSide = split ? (localStorage.monSide ?? 'act') : 'all';
-  const monTree = monSide === 'act' ? acts : monSide === 'pas' ? pass : monSide === 'fam' ? fams : [...acts, ...pass];
-  const monRoot = monSide === 'act' ? actTotal : monSide === 'pas' ? pasTotal : monSide === 'fam' ? famTotal : rootTotal;
-  const monRootPlan = monSide === 'act' ? actPlan : monSide === 'pas' ? pasPlan : monSide === 'fam' ? famPlan : planTotal;
+  const monBy = { act: [acts, actTotal, actPlan], safe: [safes, safeTotal, safePlan],
+    pas: [pass, pasTotal, pasPlan], fam: [fams, famTotal, famPlan],
+    all: [[...acts, ...safes, ...pass], rootTotal, planTotal] };
+  const [monTree, monRoot, monRootPlan] = monBy[monSide] || monBy.all;
   const findKid = (ns, id) => (ns || []).find(n => n.id === id);
   let monLevel = monTree, monCrumbs = [];
   if (tgt && monCut === 'blocks') {
@@ -521,7 +531,7 @@ function secPortfolio(d, s) {
   const catMaxP = Math.max(1, ...catRows.map(r => Math.max(r.nowP, r.planP)));
   // Капитал, не покрытый ни одной целью: без этой строки деньги молча растворяются.
   // Считаем внутри разбираемой части — у активов и пассивов свои цели и свой капитал.
-  const capWhat = monSide === 'pas' ? 'пассивов' : monSide === 'act' ? 'активов' : monSide === 'fam' ? 'семейного' : 'капитала';
+  const capWhat = { act: 'активов', safe: 'подушки', pas: 'пассивов', fam: 'семейного' }[monSide] || 'капитала';
   const capGap = monRoot - monRootPlan;
   const capNote = !tgt || monRoot <= 0 ? '' : Math.abs(capGap) < 1
     ? `<div class="bsum"><span class="ok-dev">✓ цели покрывают ${monSide === 'all' ? 'весь капитал' : 'всю часть'}</span></div>`
@@ -532,7 +542,7 @@ function secPortfolio(d, s) {
   if (tgt) {   // ручные связки ребаланса (из target_moves): сопоставляем id позиций с путём/именем
     const byId = {};
     const mapIds = (ns, pre, side) => (ns || []).forEach(n => { const p = pre + '/' + (n.name || '').trim().toLowerCase(); byId[n.id] = { path: p, name: n.name, cur: n.currency ?? '€', side }; mapIds(n.children, p, side); });
-    mapIds(acts, '', 'act'); mapIds(pass, '', 'pas'); mapIds(fams, '', 'fam');
+    mapIds(acts, '', 'act'); mapIds(safes, '', 'safe'); mapIds(pass, '', 'pas'); mapIds(fams, '', 'fam');
     const rate = s.rate || d.rate || 1.08;   // курс лежит в summary (s.rate), не в d
     rctx.rate = rate;                        // нужен строкам: суммы показываем в валюте позиции
     // содержание вещи (обязательства с item_id) — €/мес рядом с позицией; сами суммы правятся в Расходах
@@ -576,6 +586,7 @@ function secPortfolio(d, s) {
   // доли внутри части считаются от неё, а не от общего капитала.
   const parts = split
     ? [{ key: 'act', title: 'АКТИВЫ', hint: 'работают на капитал', nodes: acts, now: actTotal, plan: actPlan },
+       { key: 'safe', title: 'ПОДУШКА', hint: 'неприкосновенный запас', nodes: safes, now: safeTotal, plan: safePlan },
        { key: 'pas', title: 'ПАССИВЫ', hint: 'твои, но капитал не растят', nodes: pass, now: pasTotal, plan: pasPlan },
        { key: 'fam', title: 'СЕМЕЙНЫЕ', hint: 'общее, вне капитала', nodes: fams, now: famTotal, plan: famPlan, off: true }]
       .filter(p => p.nodes.length)
@@ -635,6 +646,12 @@ function secPortfolio(d, s) {
       ${parts.map(p => (split ? partHead(p) : '')
         + p.nodes.map(b => portRows(b, 0, partCtx(p))).join('')).join('')
         || '<tr><td colspan="9"><div class="empty">пусто</div></td></tr>'}
+      ${split ? `<tr class="partall"><td class="pname">ВСЕГО
+          <span class="meta">капитал ${fmt(rootTotal)} €${famTotal ? ` + семейные ${fmt(famTotal)} €` : ''}</span></td>
+        <td></td><td></td>
+        <td class="r num now sep">${fmt(allTotal)} €</td><td></td>
+        <td class="r num goal sep">${planTotal + famPlan > 0 ? fmt(planTotal + famPlan) + ' €' : ''}</td>
+        <td></td><td class="sep"></td><td></td></tr>` : ''}
     </table>`}
     ${tgt ? `<div class="task finadd" style="margin-top:6px"><input id="tgt_block" placeholder="новый блок целевого" style="flex:1">
         <span class="pill btn ok" data-tgtadd="block:">＋ блок</span>
@@ -686,7 +703,8 @@ function secPortfolio(d, s) {
     <div class="kv" style="margin-bottom:8px;flex-wrap:wrap;gap:6px">
       <span class="meta">РАСПРЕДЕЛЕНИЕ · СЕЙЧАС ПРОТИВ ЦЕЛИ</span>
       ${split ? `<span class="moncuts">
-        ${[['act', 'активы'], ['pas', 'пассивы'], ...(fams.length ? [['fam', 'семейные']] : []), ['all', 'капитал целиком']].map(([k, t]) =>
+        ${[['act', 'активы'], ...(safes.length ? [['safe', 'подушка']] : []), ['pas', 'пассивы'],
+           ...(fams.length ? [['fam', 'семейные']] : []), ['all', 'капитал целиком']].map(([k, t]) =>
           `<span class="pill btn${monSide === k ? ' ok' : ''}" data-monside="${k}">${t}</span>`).join('')}
       </span>` : ''}
       <span class="moncuts">
@@ -696,7 +714,8 @@ function secPortfolio(d, s) {
       ${catOrder.length ? '<span class="pill btn" id="catOrderReset" title="вернуть сортировку по величине отклонения">↕ по отклонению</span>' : ''}
     </div>
     ${monCut === 'blocks' ? `<div class="moncrumbs">
-      <span class="crumb${monCrumbs.length ? ' btn' : ''}" data-moncrumb="-1">${monSide === 'pas' ? 'Все пассивы' : monSide === 'act' ? 'Все активы' : monSide === 'fam' ? 'Всё семейное' : 'Весь капитал'}</span>
+      <span class="crumb${monCrumbs.length ? ' btn' : ''}" data-moncrumb="-1">${
+        { act: 'Все активы', safe: 'Вся подушка', pas: 'Все пассивы', fam: 'Всё семейное' }[monSide] || 'Весь капитал'}</span>
       ${monCrumbs.map((c, k) => `<span class="sepc">›</span><span class="crumb${k < monCrumbs.length - 1 ? ' btn' : ''}" data-moncrumb="${k}">${fesc(c.name)}</span>`).join('')}
     </div>` : ''}
     <div class="tgtmon">
