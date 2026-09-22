@@ -47,7 +47,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "whois-поддомены"
+APP_BUILD = "whois-источник"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -1212,13 +1212,16 @@ def monitor_rows(job):
 WHOIS_CACHE_FILE = os.path.join(OUTPUT_DIR, "whois_cache.json")
 _WHOIS_BIN = shutil.which("whois")
 _RDAP_URL = "https://rdap.org/domain/"
+_DATE_CORE = (r"\d{4}-\d{2}-\d{2}(?:[ tT]\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?(?:z|[+-]\d{2}:?\d{2})?)?"
+              r"|\d{2}-[a-zA-Z]{3}-\d{4}")
 _WHOIS_DATE_RE = re.compile(
     r"(?:creation date|created on|created|registered on|registration date|"
-    r"registration time|domain registration date)\s*:?\s*"
-    r"(\d{4}-\d{2}-\d{2}(?:[ tT]\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?(?:z|[+-]\d{2}:?\d{2})?)?"
-    r"|\d{2}-[a-zA-Z]{3}-\d{4})",
+    r"registration time|domain registration date)\s*:?\s*(" + _DATE_CORE + r")",
     re.I,
 )
+# ICANN-стандартное поле именно домена (у whois.iana.org для самого TLD его нет —
+# там «created:», поэтому так не поймаем дату создания зоны вместо домена).
+_WHOIS_CREATION_RE = re.compile(r"creation date\s*:?\s*(" + _DATE_CORE + r")", re.I)
 
 
 def _load_whois_cache():
@@ -1239,22 +1242,84 @@ def _save_whois_cache(cache):
         pass
 
 
+# Реестры отдают RDAP на своих авторитетных серверах. rdap.org — общий редиректор,
+# который под пачкой запросов легко отдаёт 429 (и мы уходили в whois → неверные даты
+# уровня TLD). Поэтому берём адрес RDAP-сервера прямо из бутстрапа IANA (tld → URL)
+# и ходим в реестр напрямую; rdap.org остаётся запасным.
+_RDAP_BOOTSTRAP_URL = "https://data.iana.org/rdap/dns.json"
+_RDAP_BOOT = {"map": None, "ts": 0.0}
+_RDAP_BOOT_LOCK = Lock()
+
+
+def _rdap_bootstrap(timeout):
+    """{tld: базовый RDAP-URL реестра} из IANA, кэш в памяти на сутки."""
+    now = time.time()
+    with _RDAP_BOOT_LOCK:
+        if _RDAP_BOOT["map"] is not None and now - _RDAP_BOOT["ts"] < 86400:
+            return _RDAP_BOOT["map"]
+    m = {}
+    try:
+        r = requests.get(_RDAP_BOOTSTRAP_URL, timeout=timeout)
+        if r.status_code == 200:
+            for svc in (r.json().get("services") or []):
+                tlds = svc[0] if len(svc) > 0 else []
+                urls = svc[1] if len(svc) > 1 else []
+                base = next((u for u in urls if u.startswith("https://")),
+                            (urls[0] if urls else "")).rstrip("/")
+                if base:
+                    for t in tlds:
+                        m[t.lower()] = base
+    except Exception:
+        pass
+    if m:
+        with _RDAP_BOOT_LOCK:
+            _RDAP_BOOT["map"], _RDAP_BOOT["ts"] = m, now
+        return m
+    with _RDAP_BOOT_LOCK:
+        return _RDAP_BOOT["map"] or {}
+
+
+def _rdap_urls(regdom, timeout):
+    """RDAP-адреса для домена: сначала авторитетный сервер реестра, затем rdap.org."""
+    urls = []
+    tld = regdom.rsplit(".", 1)[-1] if "." in regdom else regdom
+    base = _rdap_bootstrap(timeout).get(tld)
+    if base:
+        urls.append(base + "/domain/" + regdom)
+    urls.append(_RDAP_URL + regdom)
+    return urls
+
+
+def _rdap_get(regdom, timeout):
+    """JSON RDAP по домену (реестр → rdap.org). Возвращает (data|None, not_found, retry)."""
+    retry_any = False
+    for url in _rdap_urls(regdom, timeout):
+        try:
+            r = requests.get(url, timeout=timeout,
+                             headers={"Accept": "application/rdap+json"},
+                             allow_redirects=True)
+        except requests.RequestException:
+            retry_any = True
+            continue
+        if r.status_code == 429 or r.status_code >= 500:
+            retry_any = True
+            continue
+        if r.status_code == 404:
+            return None, True, False        # домен реально не найден
+        if r.status_code != 200:
+            continue
+        try:
+            return r.json(), False, False
+        except Exception:
+            continue
+    return None, False, retry_any
+
+
 def _rdap_created(regdom, timeout):
     """Дата регистрации через RDAP. Возвращает (iso_str|None, retry_bool)."""
-    try:
-        r = requests.get(_RDAP_URL + regdom, timeout=timeout,
-                         headers={"Accept": "application/rdap+json"},
-                         allow_redirects=True)
-    except requests.RequestException:
-        return None, True
-    if r.status_code == 429 or r.status_code >= 500:
-        return None, True
-    if r.status_code != 200:
-        return None, False
-    try:
-        data = r.json()
-    except Exception:
-        return None, False
+    data, not_found, retry = _rdap_get(regdom, timeout)
+    if data is None:
+        return None, retry
     for ev in (data.get("events") or []):
         if ev.get("eventAction") == "registration":
             d = (ev.get("eventDate") or "").strip()
@@ -1273,7 +1338,12 @@ def _whois_created(regdom, timeout):
                              timeout=timeout).stdout or ""
     except Exception:
         return None
-    m = _WHOIS_DATE_RE.search(out)
+    # Часть whois с реестра начинается со строки «Domain Name:». Всё, что выше —
+    # ответ whois.iana.org о самом TLD (с датой создания ЗОНЫ). Берём только
+    # реестровую часть, чтобы не поймать дату TLD вместо даты домена.
+    idx = out.lower().rfind("domain name:")
+    scope = out[idx:] if idx != -1 else out
+    m = _WHOIS_CREATION_RE.search(scope) or _WHOIS_DATE_RE.search(scope)
     return m.group(1).strip() if m else None
 
 
@@ -1364,23 +1434,12 @@ def _vcard_get(entity, field):
 
 
 def _rdap_full(regdom, timeout):
-    """Полная запись RDAP по домену. Возвращает (record|None, retry_bool)."""
-    try:
-        r = requests.get(_RDAP_URL + regdom, timeout=timeout,
-                         headers={"Accept": "application/rdap+json"},
-                         allow_redirects=True)
-    except requests.RequestException:
-        return None, True
-    if r.status_code == 429 or r.status_code >= 500:
-        return None, True
-    if r.status_code == 404:
+    """Полная запись RDAP по домену (реестр → rdap.org). Возвращает (record|None, retry_bool)."""
+    data, not_found, retry = _rdap_get(regdom, timeout)
+    if not_found:
         return {"not_found": True}, False
-    if r.status_code != 200:
-        return None, False
-    try:
-        data = r.json()
-    except Exception:
-        return None, False
+    if data is None:
+        return None, retry
 
     rec = {"created": "", "expires": "", "changed": "", "registrar": "",
            "registrar_id": "", "nameservers": [], "statuses": [],
