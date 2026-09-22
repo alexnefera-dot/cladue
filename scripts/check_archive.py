@@ -350,7 +350,9 @@ GENERIC_DOMAINS = re.compile(r"^(?:[\w.-]+@)?(?:mirror\d*|proxy\d*|example|domai
                              r"ipleak|dnsleaktest|browserleaks|whatismyipaddress|virustotal|blockchain|blockchair|"
                              r"etherscan|coinmarketcap|gosuslugi|nalog|akamai|digitalocean|habr|rbc|forbes|reuters|"
                              # примеры адресов в инструкциях
-                             r"company|mailinator|tempmail|guerrillamail|10minutemail|mail\.ru|inbox|list|bk)"
+                             r"company|mailinator|tempmail|guerrillamail|10minutemail|mail\.ru|inbox|list|bk|"
+                             # национальные почтовые сервисы из списка допустимых ящиков
+                             r"ukr|rambler|bigmir|meta|i\.ua)"
                              r"\.(?:com|net|org|ru|io)$", re.I)
 
 
