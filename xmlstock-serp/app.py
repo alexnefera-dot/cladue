@@ -1546,7 +1546,9 @@ def run_whois_job(job_id, cfg, items):
     def resolve(rd):
         if job["cancel"].is_set():
             return rd, None
-        if not force and rd in cache and cache[rd].get("source"):
+        # Кэшу доверяем только для ответов RDAP. Старые записи из whois-фолбэка
+        # (могли содержать дату TLD) перезапрашиваем — теперь RDAP ходит в реестр.
+        if not force and rd in cache and cache[rd].get("source") == "rdap":
             return rd, cache[rd]
         rec = domain_whois(rd, cfg)
         if rec.get("source"):          # кэшируем только удачные ответы
