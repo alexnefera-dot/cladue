@@ -16,8 +16,8 @@ def bloki(path):
         t = re.sub(r'\s+', ' ', t).strip()
         t = re.sub(r'\s+([,.;:!?%)\u00bb])', r'\1', t)
         t = re.sub(r'([(\u00ab])\s+', r'\1', t)
-        t = re.sub(r'\s*\x01\s*', '\x01', t)
-        t = re.sub(r'\s*\x02', '\x02', t)
+        t = re.sub(r'\x01\s+', '\x01', t)      # пробел внутри анкера, а не перед ним
+        t = re.sub(r'\s+\x02', '\x02', t)
         if t:
             out.append((tag, t))
     return out
