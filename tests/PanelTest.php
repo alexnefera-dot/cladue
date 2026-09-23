@@ -1139,7 +1139,7 @@ MANUAL-OWN.RU
         }
         file_put_contents($runDir . '/settings.json', json_encode(['queries' => ['окна']], JSON_UNESCAPED_UNICODE));
         file_put_contents($dir . '/runs/domains-base.txt', "a.ru\nb.ru\n");
-        // История сборов — тоже часть базы: после полного сброса она не должна остаться.
+        // История сборов НЕ часть базы: полный сброс её не трогает, для неё отдельная кнопка.
         file_put_contents($dir . '/runs/history.json', json_encode([['date' => '2026-09-15T10:00:00+00:00', 'sites' => 5, 'doors' => 2]]));
         file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
 
@@ -1183,10 +1183,11 @@ MANUAL-OWN.RU
             Assert::same(['total' => 0, 'done' => 0, 'left' => 0], $state['queue'], 'очередь запросов сброшена');
             Assert::same(0, $state['content_files']);
             Assert::true(empty($state['status']['sites']), 'таблица пуста');
-            Assert::same(1, $r['history'] ?? 0, 'записи статистики посчитаны');
-            Assert::false(is_file($dir . '/runs/history.json'), 'статистика очищена вместе с базой');
+            // Статистика сборов ПЕРЕЖИВАЕТ очистку базы: это летопись, её чистит своя кнопка.
+            Assert::same(0, $r['history'] ?? -1, 'очистка базы записей статистики не трогает');
+            Assert::true(is_file($dir . '/runs/history.json'), 'файл истории на месте');
             $hist = json_decode((string) $this->http('GET', $base . '/api/history'), true);
-            Assert::same([], $hist['records'], 'вкладка статистики пуста');
+            Assert::same(1, count($hist['records']), 'запись сбора осталась во вкладке статистики');
 
             // Отдельная кнопка «очистить статистику»: база и файлы остаются, уходит только история.
             file_put_contents($dir . '/runs/history.json', json_encode([

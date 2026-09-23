@@ -776,11 +776,11 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `GET /download?file=history` builds `csv()` on the fly
   (zones and the cut breakdown each folded into one column so new reasons cannot widen the table). The tab reloads on click and
   whenever a job finishes while it is open. The file lives in `runs/` (not `runs/current/`), so it
-  survives `setup.php --update`. It does NOT survive `/api/reset-base` any more: the user cleared the base
-  and expected the statistics to go with it («я отчистил базу, сбрось и статистику»), so that endpoint
-  calls `CollectHistory::clear()` too and reports `history` (records removed); `POST /api/reset-history`
-  («очистить статистику» next to «очистить базу и файлы» in the settings tab) clears ONLY the history and
-  leaves the ledger and the run files alone. `load()` maps the
+  survives `setup.php --update`, AND it survives `/api/reset-base`: the user first cleared the base
+  and expected the statistics to go with it («я отчистил базу, сбрось и статистику»), and then reversed
+  that call («очистка базы удаляет и очистку статистики, так не должно быть»): `/api/reset-base` no longer
+  touches the history at all. Clearing it is `POST /api/reset-history` alone («очистить статистику» next
+  to «очистить базу и файлы» in the settings tab), which leaves the ledger and the run files alone. `load()` maps the
   1.10.0 key `subdomains` onto `doors` so an early history still reads. Records written by 1.10.0–1.11.0
   counted doors off `$host` and therefore say 0, and records before 1.15.0 have no `own` key at all:
   `backfillLatest()` (called from `/api/history`) recomputes the NEWEST record from `sites.json` when its
@@ -953,9 +953,11 @@ Run `php tests/lint.php && php tests/run.php` before committing.
 - `/api/reset-base` («очистить базу и файлы» in the settings tab) is a FULL reset, not just the domain
   ledger: it empties `runs/domains-base.txt` and `resetRunFiles()` deletes the run's working data —
   `pages/`, `content/`, `preview/`, `removed/` plus `sites.json|csv`, `domains.txt`, `results.csv`,
-  `content.zip`, `removed.json`, `queue.json`, the query-dupes files and `status.json`, plus
-  `runs/history.json` through `CollectHistory::clear()` (`settings.json` and the query list stay,
-  `run.log` is truncated). The user asked for this: the content archive is
+  `content.zip`, `removed.json`, `queue.json`, the query-dupes files and `status.json` (`settings.json`,
+  the query list and `runs/history.json` stay, `run.log` is truncated). The statistics used to go with it
+  («я отчистил базу, сбрось и статистику»), but the user reversed that — «очистка базы удаляет и очистку
+  статистики, так не должно быть» — so the history is now untouched here and `history` is always 0 in the
+  response; only `POST /api/reset-history` clears it. The user asked for this: the content archive is
   downloaded through the panel, so those folders are technical leftovers. It refuses with 409 while a job
   is alive (it writes into those folders), returns `{files, dirs}` for the panel's «Очищено: удалено
   файлов N», and the confirm dialog spells out what disappears. The browser mirror (`lastSites`,

@@ -449,11 +449,11 @@ if ($path === '/api/reset-base' && $method === 'POST') {
     @file_put_contents($baseFile, '');
     // Список НАШИХ доменов — тоже часть базы: он накоплен прошлыми сборами.
     @file_put_contents($projectDir . '/runs/own-domains.txt', '');
-    // Статистика сборов — тоже часть «базы»: после полного сброса история прошлых сборов
-    // рассказывала бы про домены, которых в базе уже нет.
-    $history = \YandexSites\Support\CollectHistory::clear($projectDir . '/runs');
+    // Статистику сборов (runs/history.json) здесь НЕ трогаем: это летопись, ради которой вкладка
+    // и заведена, и терять её вместе с базой пользователь не хочет. Для неё есть своя кнопка
+    // «очистить статистику» (/api/reset-history) — чистки разделены намеренно.
     $wiped = resetRunFiles($runDir);
-    jsonOut(['ok' => true, 'history' => $history] + $wiped);
+    jsonOut(['ok' => true, 'history' => 0] + $wiped);
 }
 
 if ($path === '/api/reset-history' && $method === 'POST') {
