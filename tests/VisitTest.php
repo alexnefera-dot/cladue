@@ -1069,6 +1069,38 @@ final class VisitTest
         @rmdir($dir);
     }
 
+    public function testPreviewDoesNotSaveRedirectToAnotherSite(): void
+    {
+        // Дор честно отдаёт РОБОТУ свою страницу (на ней наши метки), а живого посетителя уводит
+        // редиректом на сайт рекламодателя. Превью-визит обязан такой уход отбраковать: иначе в
+        // таблице вместо дора оказывалась чужая страница, на ней наших меток нет — и сайт переставал
+        // считаться нашим. Именно это и сломалось: «открывает не сайт, а редирект».
+        $port = FakeServer::port();
+        $dir = $this->dir() . '/previewredirect';
+        $site = new Site('redirect-site.ru', 'redirect-site.ru', 'redirect-site.ru');
+        $site->add(new SearchResult('казино', 0, 1, "http://redirect-site.ru:$port/", 'redirect-site.ru', 'RS'));
+        $sites = ['redirect-site.ru' => $site];
+
+        $cfg = [
+            'crawl' => false, 'variants' => 1, 'target' => 'found', 'dir' => $dir,
+            'screenshot' => false, 'timeout' => 5, 'delay_ms' => 0, 'concurrency' => 2,
+            'retries' => 0, 'preview_retries' => 0, 'resolve' => $this->resolve($port),
+            'user_agents' => [UserAgents::YANDEX_BOT],
+        ];
+        (new PageVisitor($cfg, new CurlDriver(), $this->logger()))->visit($sites);
+
+        Assert::same(0, $site->visitSummary()['ok'], 'страница чужого сайта не засчитана как открытая');
+        Assert::contains('редирект на другой сайт', (string) ($site->visits[0]['error'] ?? ''), 'причина названа честно');
+        Assert::false($site->own, 'чужой сайт не помечается нашим');
+        Assert::false(is_file("$dir/redirect-site.ru/variant-1.html"), 'HTML чужого сайта не сохранён');
+
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($it as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+        @rmdir($dir);
+    }
+
     public function testRetryCrawlsMenuOfHomeRecoveredOnlyNow(): void
     {
         // Сайт не пустил робота — при обходе не открылась ни одна страница, поэтому и МЕНЮ разобрать было

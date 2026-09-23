@@ -138,12 +138,17 @@ final class PageVisitor
         });
 
         foreach ($jobs as $job) {
+            $site = $sites[$job->siteKey];
             $result = $results[$job->id] ?? ['ok' => false, 'error' => 'нет результата', 'status' => null, 'final_url' => '', 'title' => ''];
-            $visit = $this->assembleVisit($job, $result);
+            // Домен сайта здесь ОБЯЗАТЕЛЕН: без него assembleVisit не проверяет, не увёл ли редирект на
+            // ЧУЖОЙ сайт. Дор показывает роботу свою страницу, а живого посетителя уводит на сайт
+            // рекламодателя — и в превью сохранялась чужая страница. Наших меток на ней нет, поэтому
+            // сайт переставал считаться нашим, а в таблице вместо дора висел чужой бренд.
+            $visit = $this->assembleVisit($job, $result, $site->domain);
             if ($visit['own'] ?? false) {
-                $sites[$job->siteKey]->own = true;
+                $site->own = true;
             }
-            $sites[$job->siteKey]->visits[] = $visit;
+            $site->visits[] = $visit;
         }
 
         // Сайты, у которых так и не открылась ни одна страница, пробуем ещё раз — с другого прокси
@@ -247,7 +252,8 @@ final class PageVisitor
                     continue;
                 }
                 $result = $results[$job->id] ?? ['ok' => false, 'error' => 'нет результата', 'status' => null, 'final_url' => '', 'title' => ''];
-                $visit = $this->assembleVisit($job, $result);
+                // Домен — чтобы редирект на чужой сайт не сохранился вместо самого сайта (см. visit()).
+                $visit = $this->assembleVisit($job, $result, $site->domain);
                 self::replaceVisit($site, $visit);
                 if ($visit['own'] ?? false) {
                     $site->own = true;
@@ -608,6 +614,7 @@ final class PageVisitor
             $failed = [];
             $siteUa = ''; // агент, которым страницы этого сайта уже открывались (если не робот)
             $hasOk = false; // открылась ли у сайта хоть одна страница: от этого зависит вся тактика докачки
+            $blocked = self::wasBlockedAsBot($site); // отказали ИМЕННО роботу (403/антибот)?
             foreach ($site->visits as $i => $v) {
                 if ($v['ok'] ?? false) {
                     $hasOk = true;
@@ -693,7 +700,7 @@ final class PageVisitor
                 }
                 continue;
             }
-            $state[$key] = ['site' => $site, 'slots' => $slots, 'texts' => $texts, 'ua' => $siteUa, 'has_ok' => $hasOk, 'pending' => array_keys($slots)];
+            $state[$key] = ['site' => $site, 'slots' => $slots, 'texts' => $texts, 'ua' => $siteUa, 'has_ok' => $hasOk, 'blocked' => $blocked, 'pending' => array_keys($slots)];
         }
 
         // Этап 2 — попытки: ОДИН заход драйвера на все сайты сразу. Раньше каждый сайт добирался
@@ -719,7 +726,10 @@ final class PageVisitor
                     if ($it === 0) {
                         if ($st['ua'] !== '') {
                             $jobUa = $st['ua'];
-                        } elseif (empty($st['has_ok'])) {
+                        } elseif (empty($st['has_ok']) && !empty($st['blocked'])) {
+                            // Браузером с первой попытки идём ТОЛЬКО туда, где отказали роботу. Если сайт
+                            // просто не ответил (таймаут, сеть), агент ни при чём — а у дора робот и есть
+                            // правильный посетитель: живого он уводит редиректом на сайт рекламодателя.
                             $jobUa = $this->retryUserAgent($this->userAgents[0], 1);
                         }
                     }
@@ -917,6 +927,33 @@ final class PageVisitor
         }
 
         return $ok;
+    }
+
+    /**
+     * Отказал ли сайт ИМЕННО роботу: 403 / антибот-заглушка / Cloudflare.
+     *
+     * По этому признаку выбирается первый агент докачки. Смысл в том, что два вида отказа лечатся
+     * по-разному: закрытому от робота сайту нужен браузер, а у ДОРА всё наоборот — роботу он честно
+     * отдаёт свою страницу (её мы и собираем, на ней наши метки), а живого посетителя уводит
+     * редиректом на сайт рекламодателя. Приходить туда браузером — значит получить чужой сайт.
+     */
+    private static function wasBlockedAsBot(Site $site): bool
+    {
+        foreach ($site->visits as $visit) {
+            $visit = (array) $visit;
+            if ($visit['ok'] ?? false) {
+                continue;
+            }
+            if ($visit['blocked'] ?? false) {
+                return true;
+            }
+            $error = mb_strtolower((string) ($visit['error'] ?? ''));
+            if (str_contains($error, 'заблокировано') || str_contains($error, 'http 403') || str_contains($error, 'http 429')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

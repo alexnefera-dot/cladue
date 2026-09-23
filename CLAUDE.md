@@ -290,7 +290,15 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   DOMAIN ours» for the statistics, where a repeat is never opened — see the CollectHistory notes below.
   Screenshots are captured for the home page only in
   crawl mode; `SiteLinks::canonical()` folds `/index.*` and trailing-slash aliases so a page is not
-  fetched twice.
+  fetched twice. THE PREVIEW PATHS MUST PASS `$site->domain` TO `assembleVisit()` — `visit()` and
+  `retryPreview()` did not, so the cross-site redirect guard never ran during collect. A door serves the
+  BOT its own page (that is where our markers are) and sends a live visitor on to the advertiser's
+  casino; without the guard that foreign page was saved as the site's preview, carried no own marker,
+  and the site silently stopped counting as ours — the user's «теперь наши он не правильно считает,
+  открывает не сайт, а редирект». For the same reason `retryFailed()` starts under a browser ONLY when
+  the site refused the BOT (`wasBlockedAsBot()`: a `blocked` visit or an error naming 403/429/антибот);
+  a site that merely timed out keeps the bot, because for a door the bot IS the right visitor. Covered by
+  `VisitTest::testPreviewDoesNotSaveRedirectToAnotherSite` (the fake host `redirect-site.ru`).
 - `Runner` and `PageVisitor` accept an optional `$onProgress` callback; `bin/run-job.php` wires it
   to `Support\Progress`, and `bin/panel.php` (dual launcher/router via `PHP_SAPI==='cli-server'`)
   spawns the job and serves `public/panel.html`. Keep CLI and panel behaviour in sync through `Runtime`.

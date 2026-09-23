@@ -246,9 +246,10 @@ final class IntegrationTest
         Assert::contains("http://127.0.0.1:$captchaPort", $run['out']);
         Assert::contains('капч: 1', $run['out'], 'первый прокси получил капчу один раз и ушёл на паузу');
         Assert::contains('капчу', $run['err']);
-        // 11 сайтов × 2 варианта = 22, минус 2 страницы dead-site.ru: его главная отдаёт HTTP 404 и
-        // теперь помечается «не найдена», а не сохраняется как контент.
-        Assert::contains('Визиты (curl): сайтов 11, страниц сохранено 20', $run['out'], '15 хостов минус 3 исключённых и 1 в зоне com; dead-site.ru (404) страниц не даёт');
+        // 11 сайтов × 2 варианта = 22, минус 2 страницы dead-site.ru (главная отдаёт HTTP 404 и
+        // помечается «не найдена», а не сохраняется как контент) и минус 2 страницы redirect-site.ru
+        // (уводит на other-domain.ru — чужую страницу вместо сайта не сохраняем).
+        Assert::contains('Визиты (curl): сайтов 11, страниц сохранено 18', $run['out'], '15 хостов минус 3 исключённых и 1 в зоне com; 404 и редирект на чужой сайт страниц не дают');
 
         $domains = explode("
 ", trim((string) file_get_contents($dir . '/out-live/domains.txt')));
@@ -271,7 +272,8 @@ final class IntegrationTest
         Assert::contains('Версия для поискового робота Яндекса', (string) file_get_contents($okna['visits'][0]['html_file']));
         Assert::contains('Вы пришли из поиска Яндекса', (string) file_get_contents($okna['visits'][1]['html_file']));
         Assert::same(2, $okna['variants'], 'сайт показал роботу и посетителю разные версии');
-        Assert::contains('сайтов с разными вариантами страницы: 7', $run['out'], 'страницы 404, «домен продаётся», телефона и cp1251 одинаковы для робота и посетителя');
+        // redirect-site.ru вариантов больше не даёт: он уводит на чужой сайт, и его страницы не сохраняются.
+        Assert::contains('сайтов с разными вариантами страницы: 6', $run['out'], 'страницы 404, «домен продаётся», телефона и cp1251 одинаковы для робота и посетителя');
         $proxies = array_unique(array_map(static fn (array $v): string => $v['proxy'], $okna['visits']));
         Assert::same(2, count($proxies), 'визиты чередуют оба прокси из общего списка');
         $redirected = array_values(array_filter($json['sites'], static fn (array $site): bool => $site['host'] === 'redirect-site.ru'))[0];
