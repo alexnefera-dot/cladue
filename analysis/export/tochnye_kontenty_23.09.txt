@@ -1,0 +1,60 @@
+доменов сентября с закрытым окном: 1552
+откуда взято точное имя: журнал — 897, реестр — 570, — — 85
+уникальных точных имён: 1374
+на одно имя приходится доменов: 1.13
+
+ТОП-30 ТОЧНЫХ ИМЁН ПО ИНДЕКСУ (у каждого имени один домен, 150–206 сайтов)
+   точное имя контента                           домен                зона   день сайтов  индекс   клики  рег  ФД
+   content-2026-09-17-7str-oform-2_42            k6x.team             team  09-18    150   52.7%    1272    1   0
+   content-2026-09-17b-7str-oform_38             3785.lol              lol  09-18    150   50.7%    3129    1   0
+   content-2026-09-14c-7str-oform-2_25           itsr.team            team  09-15    206   45.6%    4903    2   0
+   content-2026-09-14c-12str-oform_1             casinobzb.team       team  09-15    206   45.1%    4462    2   0
+   content-2026-09-14c-7str-oform-1_44           2551.team            team  09-15    206   44.7%    8388    0   0
+   archive412_unique12оформлено_12               msvcasino.lol         lol  09-09    206   44.2%    6536    4   0
+   content-2026-09-16-7str_21                    levu.team            team  09-17    206   43.7%    1816    1   0
+   NEW20_12pages_nodate_styled_img_3             0409cas.casino     casino  09-04    206   43.2%    9809    2   0
+   archive412_unique12оформлено_4                casinoes.lol          lol  09-09    206   42.2%    4337    0   0
+   content-2026-09-17b-7str-oform_2              2756.lol              lol  09-18    150   42.0%     940    1   0
+   content-2026-09-14c-12str-oform_2             ploo.team            team  09-15    206   41.7%    4764    4   2
+   NEW20_3_12pages_nodate_styled_img_3           0509k.casino       casino  09-06    206   40.8%    3124    0   0
+   NEW50_12pages_withdate_01.09_7                gwrl.casino        casino  09-01    206   39.8%    2860    4   1
+   content-2026-09-17b-7str-oform_26             2928.lol              lol  09-18    150   39.3%     775    0   0
+   NEW50_3_12pages_withdate_styled_7             mkmt.team            team  09-03    206   38.8%    2108    1   0
+   nabory-621-630_3                              casinog4.lol          lol  09-18    150   38.7%     601    0   0
+   content-2026-09-14c-7str-oform-1_25           6200.team            team  09-15    206   38.3%    2731    1   0
+   NEW50_12pages_withdate_01.09_6                llvm.casino        casino  09-01    206   38.3%    1135    0   0
+   NEW50_3_12pages_nodate_styled_4               2097.lol              lol  09-03    206   37.9%    9592    3   0
+   NEW50_7pages_withdate_01.09_3                 rvue.team            team  09-02    206   37.4%    9279    2   1
+   NEW50_3_12pages_withdate_styled_3             2097.team            team  09-03    206   37.4%    4903    1   0
+   12 стр, С ДАТАМИ, семейство NEW50_2_11        vzto.team            team  09-02    206   37.4%    2148    0   0
+   12 стр, С ДАТАМИ, семейство NEW50_2           tgmb.team            team  09-03    206   36.9%    1870    3   0
+   content-2026-09-14c-7str-oform-2_17           imic.team            team  09-15    206   36.9%    1873    4   0
+   content-2026-09-17b-7str-oform_40             casino45.lol          lol  09-18    150   36.0%    1357    0   0
+   NEW50_3_12pages_withdate_styled_4             ypur.team            team  09-03    206   35.9%    2415    0   0
+   NEW50_3_12pages_withdate_styled_9             2369.lol              lol  09-03    206   35.0%    2746    3   1
+   NEW102оформленобездаты_6                      casino1209.casino  casino  09-12    206   35.0%    7218    1   0
+   Generator_346353_styled_img_7                 ombr.team            team  09-04    206   35.0%    4159    1   0
+   NEW50_12pages_nodate_01.09_7                  stma.casino        casino  09-01    206   35.0%    3210    0   0
+
+ТОП-20 ТОЧНЫХ ИМЁН ПО РЕГИСТРАЦИЯМ (для сравнения — видно, что событий единицы)
+   точное имя контента                           домен              сайтов  индекс  рег  ФД
+   NEW102оформленосдатой_1                       1109casino.casino     206   30.6%    5   2
+   NEW102оформленосдатой_11                      2334.team             206   24.3%    5   1
+   content-2026-09-14c-12str-oform_2             ploo.team             206   41.7%    4   2
+   NEW50_12pages_withdate_01.09_7                gwrl.casino           206   39.8%    4   1
+   archive412_unique12оформлено_1                qlmf.lol              206   34.0%    4   1
+   archive412_unique12оформлено_12               msvcasino.lol         206   44.2%    4   0
+   content-2026-09-14c-7str-oform-2_17           imic.team             206   36.9%    4   0
+   NEW50_3_12pages_withdate_styled_9             2369.lol              206   35.0%    3   1
+   12 стр, БЕЗ ДАТ, семейство NEW50_2_4          1083.lol              206   34.0%    3   1
+   archive412_unique12оформлено_10               xpba.lol              206   32.5%    3   1
+   7 стр, БЕЗ ДАТ, семейство NEW50_6             5580.team             206   20.4%    3   1
+   NEW102оформленосдатой_18                      2129.lol              206   18.9%    3   1
+   content-2026-09-15-7str-oform-1_43            5779.team             206   18.9%    3   1
+   NEW50_3_12pages_nodate_styled_4               2097.lol              206   37.9%    3   0
+   12 стр, С ДАТАМИ, семейство NEW50_2           tgmb.team             206   36.9%    3   0
+   content-2026-09-17-7str-oform-2_34            2596.team             150   34.7%    3   0
+   NEW20_4_12pages_withdate_3                    4994.lol              206   34.0%    3   0
+   content-2026-09-14c-7str-oform-2_24           2600.team             206   33.5%    3   0
+   12 стр, БЕЗ ДАТ, семейство NEW50_2_3          7395.lol              206   30.6%    3   0
+   Content_script_12page_08.09_9                 3237.lol              206   15.5%    3   0
