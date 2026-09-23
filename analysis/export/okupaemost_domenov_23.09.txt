@@ -1,0 +1,77 @@
+Доменов 1601, затраты $3141, доход $2440, итог $-701. Доля ФД от рег 0.203.
+Окупились (есть хоть один ФД): 54 доменов = 3.4%. Их прибыль $2314; остальные 1547 доменов: $-3015.
+С регистрацией: 200 доменов (12.5%), без единой рег: 1401.
+
+По индексу домена (что было бы, если запускать только такие):
+индекс домена  доменов  с рег  окупилось   рег   ФД  затраты  доход  на домен  на домен ожид.
+0–5%               394      5     0   0%     5    0      724      0     -1.84           -1.73
+5–10%              371     17     4   1%    17    4      668    160     -1.37           -1.43
+10–15%             313     33    10   3%    38   10      624    400     -0.72           -1.01
+15–20%             221     35    10   5%    52   11      448    440     -0.04           -0.12
+20–25%             132     37    12   9%    55   13      286    520     +1.77           +1.21
+25–30%              74     21     6   8%    27    6      166    240     +1.00           +0.71
+30–40%              72     36    11  15%    80   15      172    600     +5.94           +6.62
+40–100%             24     16     1   4%    27    2       53     80     +1.12           +6.91
+
+По зоне и индексу (на домен ожид.):
+   .lol     0–10%: 323 дом. -0.72 | 10–20%: 218 дом. +0.19 | 20–30%: 73 дом. +0.78 | 30–100%: 37 дом. +8.42
+   .team    0–10%: 369 дом. -1.85 | 10–20%: 266 дом. -0.42 | 20–30%: 108 дом. +2.35 | 30–100%: 45 дом. +6.47
+   .buzz    0–10%: 45 дом. -2.64 | 10–20%: 7 дом. -3.00 | 20–30%: 3 дом. -3.00
+   .casino  0–10%: 28 дом. -6.42 | 10–20%: 43 дом. -5.87 | 20–30%: 22 дом. -4.05 | 30–100%: 14 дом. +2.84
+
+Все 54 окупившихся доменов:
+домен                  зона    запуск      контент                                           индекс  рег  ФД  прибыль  бренды ФД
+1109casino.casino      casino  2026-09-11  NEW102оформленосдатой                              30.6%    5   3     +113  stake fenix trix
+2334.team              team    2026-09-11  NEW102оформленосдатой                              24.3%    7   2      +78  martin twin
+gwrl.casino            casino  2026-09-01  NEW50_12pages_withdate_01.09                       40.8%    4   2      +73  1go spinto
+ploo.team              team    2026-09-15  content-2026-09-14c-12str-oform_2                  39.8%    4   2      +78  marathon getx
+1083.lol               lol     2026-09-02  NEW50_2_12pages_nodate_02.09                       34.0%    3   2      +79  slotgames slotgames
+9051.team              team    2026-09-12  content-2026-09-12-7str-oform-2                    17.0%    2   2      +78  martin martin
+5580.team              team    2026-09-02  NEW50_7pages_nodate_01.09                          20.4%    5   1      +38  goodwin
+qlmf.lol               lol     2026-09-09  archive412_unique12оформлено                       35.4%    5   1      +39  leebet
+rvue.team              team    2026-09-02  NEW50_7pages_withdate_01.09                        37.4%    3   1      +38  olimp
+3242.team              team    2026-09-02  NEW50_2_7pages_withdate                            18.4%    3   1      +38  leon
+2369.lol               lol     2026-09-03  NEW50_3_12pages_withdate_styled                    35.4%    3   1      +39  bounty
+xpba.lol               lol     2026-09-09  archive412_unique12оформлено                       32.5%    3   1      +39  leon
+2129.lol               lol     2026-09-11  NEW102оформленосдатой                              18.9%    3   1      +39  slotozal
+5779.team              team    2026-09-17  content-2026-09-15-7str-oform-1_43                 18.0%    3   1      +38  frank
+h6k8.team              team    2026-09-02  nabory274283                                       18.4%    2   1      +38  bigsbet
+7079.team              team    2026-09-03  NEW50_3_12pages_withdate_styled                    16.0%    2   1      +38  frank
+0509gg.casino          casino  2026-09-05  NEW21_12pages_withdate_styled_img                  29.1%    2   1      +33  vulkanplatinum
+1009gg.casino          casino  2026-09-10  archive37строформленоv2часть3                      22.3%    2   1      +33  spinto
+ajjk.casino            casino  2026-09-10  archive37строформленоv2часть3                      31.6%    2   1      +33  sol
+6655.team              team    2026-09-10  archive37строформленоv2часть1                      20.4%    2   1      +38  iris
+1109r.casino           casino  2026-09-11  NEW102оформленосдатой                              24.3%    2   1      +33  r7
+rzbcasino.team         team    2026-09-12  NEW102оформленобездаты                             20.4%    2   1      +38  r7
+itym.team              team    2026-09-15  content-2026-09-14b-7str-oform-2_20                26.2%    2   1      +38  upx
+0749.team              team    2026-09-15  content-2026-09-14c-7str-oform-2_3                 24.8%    2   1      +38  trix
+casinosz.lol           lol     2026-09-16  content-2026-09-15-7str-oform-2_48                 32.5%    2   1      +39  unlim
+l3c7.lol               lol     2026-09-19  content-2026-09-17b-7str-oform_25                  39.3%    2   1      +39  selector
+tghc.casino            casino  2026-09-01  NEW50_12pages_nodate_01.09                         20.4%    1   1      +33  fenix
+6418.team              team    2026-09-03  КОНТЕНТ НЕ ЗАПИСАН                                 13.6%    1   1      +38  r7
+t8n2.team              team    2026-09-03  NEW50_12pages_withdate_01.09                       21.4%    1   1      +38  kent
+5298.team              team    2026-09-05  trikomplektaB                                      12.1%    1   1      +38  martin
+casinonck.team         team    2026-09-05  NEW21_7pages_nodate_styled_img                     27.2%    1   1      +38  r7
+9800.team              team    2026-09-06  nabory411420_styled_img                            29.6%    1   1      +38  onion
+411casino.lol          lol     2026-09-06  nabory411420_styled_img                             7.3%    1   1      +39  kraken
+casinofsd.lol          lol     2026-09-06  nabory421425_styled_img                            24.3%    1   1      +39  iris
+939casino.team         team    2026-09-07  NEW20_4_12pages_nodate                             15.0%    1   1      +38  martin
+9480.team              team    2026-09-07  NEW20_4_7pages_withdate                            13.1%    1   1      +38  mellstroy
+7816.lol               lol     2026-09-07  clean12_unique11оформлено                           8.7%    1   1      +39  moneyx
+3574.team              team    2026-09-08  clean7_part1_50оформлено                           19.4%    1   1      +38  leon
+casino4244.buzz        buzz    2026-09-08  archive37строформленоv2часть2                       8.3%    1   1      +37  leon
+casino5615.lol         lol     2026-09-09  archive47_unique119оформленочасть1                 11.7%    1   1      +39  winline
+4236.lol               lol     2026-09-09  archive47_unique119оформленочасть1                 16.0%    1   1      +39  bounty
+jgcasino.team          team    2026-09-11  archive37строформленоv2часть1                      11.2%    1   1      +38  eva
+y0v.team               team    2026-09-12  NEW102оформленобездаты                             12.6%    1   1      +38  unlim
+r6a3.lol               lol     2026-09-15  content-2026-09-14-7str-oform-9_3                  20.4%    1   1      +39  vodka
+2837.team              team    2026-09-15  content-2026-09-14b-7str-oform-2_37                11.2%    1   1      +38  leon
+vecasino.lol           lol     2026-09-15  content-2026-09-14b-7str-oform-2_21                33.5%    1   1      +39  why
+5713.lol               lol     2026-09-15  content-2026-09-14c-7str-oform-2_13                16.5%    1   1      +39  leon
+7492.lol               lol     2026-09-15  content-2026-09-14c-7str-oform-2_2                 20.9%    1   1      +39  beef
+casinocr.lol           lol     2026-09-16  content-2026-09-14c-7str-oform-1_38                28.2%    1   1      +39  upx
+1206.lol               lol     2026-09-15  content-2026-09-14c-7str-oform-1_22                25.7%    1   1      +39  iris
+6874.team              team    2026-09-16  content-2026-09-15-7str-oform-2_23                 14.6%    1   1      +38  pinco
+3134.team              team    2026-09-16  content-2026-09-15-7str-oform-1_45                  8.7%    1   1      +38  kush
+3087.team              team    2026-09-17  nabory-601-610_2                                   11.7%    1   1      +38  shuffle
+2815.team              team    2026-09-17  content-2026-09-16-7str_23                         14.6%    1   1      +38  luckybird
