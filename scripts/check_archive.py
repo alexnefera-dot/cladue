@@ -148,7 +148,8 @@ CYR_WHITELIST = {"актуальная", "актуальное", "актуаль
     "открыл", "выплата", "начать", "также", "сокровища", "сокровищам",
     "вердикт", "проверь", "касса", "без", "баланс", "система", "извержение",
     "извержению", "дополнительные", "дополнительную", "всё", "все",
-    "открой", "при"}
+    "открой", "при", "получите", "выберите", "последнее", "теоретически",
+    "отсутствует", "сигналы", "внутри"}
 
 LATIN_WHITELIST = {
     "rtp", "vpn", "ios", "android", "app", "store", "google", "play", "pwa",
@@ -175,7 +176,7 @@ LATIN_WHITELIST = {
     "fire", "joker", "buffalo", "king", "reactoonz", "lucky", "blue",
     "christmas", "catch", "asalto", "al", "banco", "crazy", "time", "monopoly",
     "lightning", "roulette", "blackjack", "baccarat", "poker", "aviator",
-    "plinko", "mines", "crash", "keno", "dragon", "tiger", "mega", "moolah",
+    "plinko", "mines", "crash", "keno", "dragon", "tiger", "mega", "moolah", "jackpots",
     "gonzo", "quest", "alive", "wolf", "gold", "bonus", "buy", "free", "spins",
     "hold", "win", "cash", "coin", "volcano", "cocktail", "monkey", "resident",
     "garage", "keks", "island", "pirate", "rock", "climber", "lady", "charm",
@@ -401,9 +402,13 @@ def brand_hits(text):
 
 
 БЕЙДЖ_СЛОТА = re.compile(r"(?is)<p>[^<>]{1,30}</p>\s*(?=<h3\b)")
+# Карточка слота: <h3>имя</h3> и сразу за ним строка RTP или описание (WIDGET_P).
+# Заголовок раздела («Программа лояльности «Lucky Bird PressClub»») так не выглядит.
+КАРТОЧКА_СЛОТА = re.compile(r"(?is)<h3[^>]*>(.*?)</h3>\s*(?:<(?!p\b)[^>]+>\s*)*<p[^>]*>(.*?)</p>")
 
 # «в разделе «Профиль»», «на вкладке «Акции»» — название раздела, а не чужое казино.
-РАЗДЕЛ_САЙТА = re.compile(r"(?i)(?:раздел\w*|вкладк\w*|меню|кнопк\w*|пункт\w*)\s*[«\"']?\s*$")
+РАЗДЕЛ_САЙТА = re.compile(r"(?i)(?:раздел\w*|вкладк\w*|меню|кнопк\w*|пункт\w*|турнир\w*)"
+                          r"\s*[«\"'\u201c]?\s*$")
 
 
 def _пара_имени(tok, след):
@@ -456,7 +461,8 @@ def brand_candidates(raws):
     total, pages, prev, slot, line = Counter(), Counter(), Counter(), Counter(), Counter()
     twins, h3 = Counter(), []
     for raw in raws:
-        h3 += [strip_tags(t).strip() for t in re.findall(r"<h3[^>]*>(.*?)</h3>", raw, re.S)]
+        h3 += [strip_tags(имя).strip() for имя, за in КАРТОЧКА_СЛОТА.findall(raw)
+               if WIDGET_P.match(strip_tags(за).strip())]
         raw = БЕЙДЖ_СЛОТА.sub("", raw)   # «<p>Mascot</p><h3>Evil Bet</h3>» — провайдер, а не бренд
         m = BRAND_LINE.match(raw)
         if m and m.group(1).split()[0].lower() not in (LATIN_WHITELIST | CYR_WHITELIST):
@@ -468,11 +474,12 @@ def brand_candidates(raws):
             pages[tok] += 1
         prev.update(pr)
         slot.update(sl)
-    # Заголовок слота — короткое название без знаков предложения; вопрос из FAQ
-    # («Что именно собирает Lucky Bird Casino?») именем слота не считается.
-    имена_слотов = [t for t in h3 if len(t.split()) <= 5 and not re.search(r"[?!.:,]", t)]
+    имена_слотов = h3
+    # Слотовые попадания считаются по первому слову, а оно у бренда и у слота бывает общим
+    # («Lucky Bird» и «Lucky Mr Wild»), поэтому для двухсловного имени эта проверка не годится:
+    # его от слота отделяет список имён из <h3>.
     twins = Counter({t: c for t, c in twins.items()       # нужно 2+ страницы и не слот
-                     if c >= 2 and slot[t.split()[0]] < c
+                     if c >= 2 and (" " in t or slot[t] < c)
                      and not any(t in имя for имя in имена_слотов)})
     out = []
     for tok in set(total) | set(line) | set(twins):
