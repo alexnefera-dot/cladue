@@ -158,6 +158,8 @@ function db_ensure_indexes_mysql(PDO $pdo) {
     // CREATE TABLE IF NOT EXISTS их на живой таблице не создаст.
     $wantedCols = [
         ['clicks',      'lp',        'VARCHAR(255) NULL'],
+        ['clicks',      'event',     'VARCHAR(16) NULL'],
+        ['campaigns',   'prelander', 'VARCHAR(64) NULL'],
         ['conversions', 'sub',       'VARCHAR(190) NULL'],
         ['conversions', 'ref',       'TEXT NULL'],
         ['conversions', 'country',   'VARCHAR(8) NULL'],
@@ -246,6 +248,7 @@ function db_create_tables_mysql(PDO $pdo) {
         slug VARCHAR(190) NOT NULL UNIQUE,
         name VARCHAR(255) NOT NULL DEFAULT "",
         offer_url TEXT NOT NULL,
+        prelander VARCHAR(64) NULL,
         created_at INT NOT NULL,
         updated_at INT NOT NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
@@ -262,6 +265,7 @@ function db_create_tables_mysql(PDO $pdo) {
         clickid VARCHAR(64) NULL,
         country VARCHAR(8) NULL,
         lp VARCHAR(255) NULL,
+        event VARCHAR(16) NULL,
         INDEX idx_slug (slug),
         INDEX idx_ts (ts),
         INDEX idx_slug_ts (slug, ts),
@@ -353,6 +357,10 @@ function db_create_tables_sqlite(PDO $pdo) {
     if (!in_array('lp', $cols, true)) {
         $pdo->exec('ALTER TABLE clicks ADD COLUMN lp TEXT');
     }
+    // миграция: событие клика — direct / view (показан преленд) / click (клик на преленде)
+    if (!in_array('event', $cols, true)) {
+        $pdo->exec('ALTER TABLE clicks ADD COLUMN event TEXT');
+    }
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_clickid ON clicks(clickid)');
 
     // конверсии из постбэка партнёрки
@@ -399,6 +407,11 @@ function db_create_tables_sqlite(PDO $pdo) {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
     )');
+    // миграция: выбранный преленд кампании ('' / NULL — редирект сразу, как раньше)
+    $cmpCols = $pdo->query("PRAGMA table_info(campaigns)")->fetchAll(PDO::FETCH_COLUMN, 1);
+    if (!in_array('prelander', $cmpCols, true)) {
+        $pdo->exec('ALTER TABLE campaigns ADD COLUMN prelander TEXT');
+    }
 
     $pdo->exec('CREATE TABLE IF NOT EXISTS offer_history (
         id      INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -986,7 +999,7 @@ function sources_by_campaign($slug, $from, $to = null) {
                    COUNT(*) AS clicks,
                    COUNT(DISTINCT ip) AS uniques
             FROM clicks
-            WHERE is_bot = 0 AND ts >= ?";
+            WHERE is_bot = 0 AND " . sql_visit() . " AND ts >= ?";
     $args = [$from];
     if ($to !== null)   { $sql .= ' AND ts < ?';  $args[] = $to; }
     if ($slug !== null) { $sql .= ' AND slug = ?'; $args[] = $slug; }
@@ -1051,6 +1064,145 @@ function source_root($src) {
     $n = count($parts);
     if ($n <= 2) return $src;                    // уже корень или без точки
     return $parts[$n - 2] . '.' . $parts[$n - 1]; // последние две метки
+}
+
+/**
+ * Показы и клики преленда за период: сколько дошло до кнопки.
+ * Ради этой цифры преленд и разводится на два события — без неё непонятно,
+ * помогает он или просто вставляет лишний шаг перед оффером.
+ */
+function prelander_stats($slug, $from, $to = null) {
+    $sql  = "SELECT
+                SUM(CASE WHEN event = 'view'  THEN 1 ELSE 0 END) AS views,
+                SUM(CASE WHEN event = 'click' THEN 1 ELSE 0 END) AS clicks
+             FROM clicks WHERE slug = ? AND is_bot = 0 AND ts >= ?";
+    $args = [$slug, $from];
+    if ($to !== null) { $sql .= ' AND ts < ?'; $args[] = $to; }
+    $st = db()->prepare($sql);
+    $st->execute($args);
+    $r = $st->fetch(PDO::FETCH_ASSOC) ?: [];
+    $v = (int)($r['views'] ?? 0);
+    $c = (int)($r['clicks'] ?? 0);
+    return ['views' => $v, 'clicks' => $c, 'ctr' => $v ? round($c * 100 / $v, 1) : 0.0];
+}
+
+/**
+ * SQL-условие «строка — это визит, а не нажатие кнопки на преленде».
+ *
+ * С прелендом на одного посетителя приходится ДВЕ строки: показ (view) и клик
+ * по кнопке (click). Во всех сводках клик считать нельзя — иначе цифры
+ * удвоятся на кампаниях с прелендом и разойдутся с теми, где его нет.
+ * NULL — это строки, записанные до появления колонки: обычные переходы.
+ */
+function sql_visit($alias = '') {
+    $p = $alias !== '' ? $alias . '.' : '';
+    return "({$p}event IS NULL OR {$p}event <> 'click')";
+}
+
+/**
+ * Назначить кампании преленд (или снять его пустым значением).
+ * Имя шаблона проверяем по списку файлов: в базу не должно попасть ничего,
+ * из чего потом сложится путь к постороннему файлу.
+ */
+function set_prelander($id, $tpl) {
+    $id  = (int)$id;
+    $tpl = preg_replace('~[^\w.\-]~', '', (string)$tpl);
+    if ($tpl !== '' && !in_array($tpl, prelander_templates(), true)) $tpl = '';
+    db()->prepare('UPDATE campaigns SET prelander = ?, updated_at = ? WHERE id = ?')
+        ->execute([$tpl !== '' ? $tpl : null, time(), $id]);
+    return true;
+}
+
+/** Каталог шаблонов прелендов (исходники) и готовых страниц (out/). */
+function prelanders_dir() { return __DIR__ . '/prelanders'; }
+
+/**
+ * Список доступных шаблонов прелендов: имена *.html в prelanders/, без out/.
+ */
+function prelander_templates() {
+    $out = [];
+    foreach (glob(prelanders_dir() . '/*.html') ?: [] as $f) {
+        $out[] = basename($f, '.html');
+    }
+    sort($out);
+    return $out;
+}
+
+/**
+ * Собрать готовую страницу преленда для одной кампании.
+ *
+ * Страница генерируется ЗАРАНЕЕ и лежит статикой — её отдаёт Apache, а не PHP.
+ * В этом весь смысл: 87 КБ на каждый показ через PHP съели бы сервер, на котором
+ * и так крутятся доры. Готовый файл одинаков для всех посетителей, поэтому его
+ * кэширует ещё и Cloudflare — до сервера показы почти не доходят.
+ *
+ * Уникальность появляется не в странице, а в момент клика: кнопки ведут на
+ * /go/СЛАГ?slot=N, где go.php и выдаёт clickid.
+ */
+function prelander_build_one($slug, $tpl, $title = '') {
+    $slug = normalize_slug($slug);
+    $tpl  = preg_replace('~[^\w.\-]~', '', (string)$tpl);
+    if ($slug === '' || $tpl === '') return false;
+
+    $src = prelanders_dir() . '/' . $tpl . '.html';
+    if (!is_file($src)) return false;
+    $html = (string)@file_get_contents($src);
+    if ($html === '') return false;
+
+    $outDir = prelanders_dir() . '/out';
+    if (!is_dir($outDir)) { @mkdir($outDir, 0775, true); cache_fix_owner($outDir, 0775); }
+
+    $html = strtr($html, [
+        '{{GO}}'    => '/go/' . $slug,
+        '{{TITLE}}' => htmlspecialchars($title !== '' ? $title : $slug, ENT_QUOTES, 'UTF-8'),
+        '{{SLUG}}'  => htmlspecialchars($slug, ENT_QUOTES, 'UTF-8'),
+    ]);
+
+    $file = $outDir . '/' . $slug . '.html';
+    $tmp  = $file . '.tmp';
+    // пишем во временный и переименовываем: посетитель никогда не увидит полуфайл
+    if (@file_put_contents($tmp, $html, LOCK_EX) === false) return false;
+    @rename($tmp, $file);
+    cache_fix_owner($file, 0664);
+    return true;
+}
+
+/**
+ * Пересобрать карту прелендов и все готовые страницы.
+ *
+ * Карта — отдельный файл prelanders.php, а не поле в offers.php: формат офферов
+ * трогать не стали, чтобы деплой не мог сломать отдачу рефок. go.php читает обе
+ * карты из opcache, диск при этом не дёргается.
+ * Возвращает число кампаний с прелендом.
+ */
+function prelanders_cache_rebuild() {
+    $rows = db()->query("SELECT slug, name, prelander FROM campaigns
+                         WHERE prelander IS NOT NULL AND prelander <> ''")->fetchAll(PDO::FETCH_ASSOC);
+    $map = [];
+    foreach ($rows as $r) {
+        if (prelander_build_one($r['slug'], $r['prelander'], (string)$r['name'])) {
+            $map[$r['slug']] = $r['prelander'];
+        }
+    }
+
+    // подчищаем страницы кампаний, у которых преленд выключили
+    foreach (glob(prelanders_dir() . '/out/*.html') ?: [] as $f) {
+        if (!isset($map[basename($f, '.html')])) @unlink($f);
+    }
+
+    $file = __DIR__ . '/prelanders.php';
+    $php  = "<?php\n// АВТОГЕНЕРАЦИЯ. Не редактировать вручную — перезапишется.\n"
+          . "// Обновлено: " . date('Y-m-d H:i:s') . "\n"
+          . "// Карта: слаг => имя шаблона преленда.\n"
+          . "return " . var_export($map, true) . ";\n";
+    $tmp = $file . '.tmp';
+    if (@file_put_contents($tmp, $php, LOCK_EX) !== false) {
+        @rename($tmp, $file);
+        // без сброса opcache go.php продолжил бы видеть старую карту — на этом
+        // уже обжигались с whitelist доменов
+        if (function_exists('opcache_invalidate')) @opcache_invalidate($file, true);
+    }
+    return count($map);
 }
 
 /**
@@ -1394,7 +1546,7 @@ function panel_cache_warm($budgetSec = 30) {
                        MAX(cl.ts)                                                         AS last_ts
                 FROM clicks cl
                 LEFT JOIN campaigns c ON c.slug = cl.slug
-                WHERE cl.ts >= ? AND cl.ts < ?
+                WHERE cl.ts >= ? AND cl.ts < ? AND " . sql_visit('cl') . "
                 GROUP BY cl.slug
                 ORDER BY humans DESC, bots DESC
             ");
@@ -1466,12 +1618,12 @@ function panel_cache_warm($budgetSec = 30) {
                         COUNT(DISTINCT CASE WHEN is_bot=0 THEN ip END) AS uniques,
                         COUNT(DISTINCT CASE WHEN is_bot=0 AND country='RU' THEN ip END) AS uniques_ru,
                         SUM(CASE WHEN is_bot=1 THEN 1 ELSE 0 END) AS bots
-                    FROM clicks WHERE slug = ? AND ts >= ? AND ts < ?");
+                    FROM clicks WHERE slug = ? AND ts >= ? AND ts < ? AND " . sql_visit() . "");
                 $st->execute([$slug, $pf, $pt]);
                 return $st->fetch(PDO::FETCH_ASSOC) ?: ['humans'=>0,'uniques'=>0,'uniques_ru'=>0,'bots'=>0];
             });
             panel_cache("dcnt_$dkey", function () use ($pdo, $slug, $pf, $pt) {
-                $st = $pdo->prepare('SELECT COUNT(*) FROM clicks WHERE slug = ? AND ts >= ? AND ts < ?');
+                $st = $pdo->prepare('SELECT COUNT(*) FROM clicks WHERE slug = ? AND ts >= ? AND ts < ? AND ' . sql_visit());
                 $st->execute([$slug, $pf, $pt]);
                 return (int)$st->fetchColumn();
             });
@@ -1554,7 +1706,7 @@ function daily_stats($days = 30) {
                SUM(CASE WHEN is_bot=0 THEN 1 ELSE 0 END)      AS humans,
                COUNT(DISTINCT CASE WHEN is_bot=0 THEN ip END) AS uniques,
                SUM(CASE WHEN is_bot=1 THEN 1 ELSE 0 END)      AS bots
-        FROM clicks WHERE ts >= ?
+        FROM clicks WHERE ts >= ? AND " . sql_visit() . "
         GROUP BY d
     ");
     $st->execute([$from]);
@@ -1696,7 +1848,7 @@ function recent_postback_log($n = 50) {
 function geo_by_campaign($from, $slug = null, $to = null) {
     $sql = "SELECT slug, COALESCE(NULLIF(country,''),'??') AS country,
                    COUNT(DISTINCT ip) AS uniques, COUNT(*) AS clicks
-            FROM clicks WHERE ts >= ? AND is_bot = 0";
+            FROM clicks WHERE ts >= ? AND is_bot = 0 AND " . sql_visit() . "";
     $args = [$from];
     if ($to !== null) { $sql .= ' AND ts < ?'; $args[] = $to; }
     if ($slug !== null) { $sql .= ' AND slug = ?'; $args[] = $slug; }
@@ -1721,7 +1873,7 @@ function geo_stats($from, $to = null) {
                SUM(CASE WHEN is_bot=0 THEN 1 ELSE 0 END)      AS humans,
                COUNT(DISTINCT CASE WHEN is_bot=0 THEN ip END) AS uniques,
                SUM(CASE WHEN is_bot=1 THEN 1 ELSE 0 END)      AS bots
-        FROM clicks WHERE ts >= ?";
+        FROM clicks WHERE ts >= ? AND " . sql_visit() . "";
     $args = [$from];
     if ($to !== null) { $sql .= ' AND ts < ?'; $args[] = $to; }
     $sql .= ' GROUP BY country ORDER BY humans DESC, bots DESC';

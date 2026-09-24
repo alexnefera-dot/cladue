@@ -27,6 +27,13 @@ if (preg_match('~^/v1/(clicks|conversions)/?$~', $uri, $m)) {
     return true;
 }
 
+// /p/СЛАГ -> собранная страница преленда (как RewriteRule в .htaccess)
+if (preg_match('~^/p/([A-Za-z0-9_.-]+)/?$~', $uri, $m)) {
+    $f = __DIR__ . '/prelanders/out/' . $m[1] . '.html';
+    if (is_file($f)) { header('Content-Type: text/html; charset=utf-8'); readfile($f); return true; }
+    http_response_code(404); echo 'Not found'; return true;
+}
+
 // данные наружу не отдаём (в Apache это делает .htaccess)
 if (preg_match('~\.(cache|log|sqlite)$~', $uri)) {
     http_response_code(403);

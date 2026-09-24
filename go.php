@@ -28,6 +28,14 @@ if (is_file($offersFile)) {
     if (is_array($offers) && isset($offers[$slug])) $offer = $offers[$slug];
 }
 
+// СЛОТ: кнопки преленда ведут на ?slot=N — это «дай N-й оффер кампании»,
+// а не случайный. Слоты нумеруются с единицы, в том же порядке, в каком офферы
+// перечислены у кампании. Нет такого слота — падаем на обычную ротацию ниже.
+$slot = (int)($_GET['slot'] ?? 0);
+if ($slot > 0 && is_array($offer) && isset($offer[$slot - 1])) {
+    $offer = (string)$offer[$slot - 1][0];
+}
+
 // РОТАЦИЯ: если у слага несколько офферов, значение — массив [[url, вес], ...].
 // Выбираем случайно с учётом весов. Состояние нигде не храним: при потоке
 // кликов случайный выбор даёт нужные пропорции, а go.php остаётся без БД,
@@ -89,7 +97,14 @@ $ip = $_SERVER['HTTP_CF_CONNECTING_IP']
         : ($_SERVER['REMOTE_ADDR'] ?? ''));
 $ip = substr((string)$ip, 0, 45);
 
-$clickid = bin2hex(random_bytes(8));
+// clickid: с преленда возвращается тот же ?cid=, что выдали при показе —
+// иначе цепочка «показ -> клик -> постбек» разорвалась бы и конверсия
+// привязалась бы к клику, которого посетитель не делал.
+$clickid = '';
+if (isset($_GET['cid'])) {
+    $clickid = substr(preg_replace('~[^a-f0-9]~i', '', (string)$_GET['cid']), 0, 32);
+}
+if ($clickid === '') $clickid = bin2hex(random_bytes(8));
 
 $country = strtoupper(substr(preg_replace('~[^A-Za-z]~', '', $_SERVER['HTTP_CF_IPCOUNTRY'] ?? ''), 0, 2));
 
@@ -110,6 +125,15 @@ if ($lp !== '') {
     $lp = substr(preg_replace('~[^\w/.\-]~u', '', $lp), 0, 255);
 }
 
+// ПРЕЛЕНД: включён ли он у этой кампании. Карта лежит отдельным файлом,
+// формат offers.php не трогали — чтобы обновление не могло сломать отдачу рефок.
+$preTpl = '';
+$preFile = __DIR__ . '/prelanders.php';
+if ($slot === 0 && is_file($preFile)) {
+    $pre = include $preFile;                     // тоже из opcache, диск не дёргаем
+    if (is_array($pre) && !empty($pre[$slug])) $preTpl = (string)$pre[$slug];
+}
+
 // лёгкое определение бота по UA (простая проверка подстрок, без БД).
 $isBot = 0;
 if ($ua === '') {
@@ -120,6 +144,12 @@ if ($ua === '') {
         if (strpos($ual, $sig) !== false) { $isBot = 1; break; }
     }
 }
+
+// Событие: показ преленда и клик по его кнопке — разные вещи, и считать их
+// как два клика нельзя. Боту преленд не отдаём: незачем гнать ему 87 КБ,
+// он всё равно не конвертит — уходит сразу на оффер, как и раньше.
+$showPre = ($preTpl !== '' && !$isBot);
+$event   = $showPre ? 'view' : ($slot > 0 ? 'click' : 'direct');
 
 // ---------- 3. Пишем клик строкой в лог-файл (атомарно, без БД) ----------
 if (($cfg['db_write'] ?? true) !== false) {
@@ -137,10 +167,24 @@ if (($cfg['db_write'] ?? true) !== false) {
         $clickid,
         $clean($country),
         $clean($lp),          // 10-е поле, добавлено позже: import.php читает старые строки тоже
+        $event,               // 11-е: direct (без преленда) / view (показан) / click (кнопка)
     ]) . "\n";
 
     $logFile = ($cfg['click_log'] ?? (sys_get_temp_dir() . '/sitegrator_clicks.log'));
     @file_put_contents($logFile, $line, FILE_APPEND | LOCK_EX);
+}
+
+// ---------- 4а. Преленд: уводим на заранее собранную статическую страницу ----------
+// Страница одна на всех и её отдаёт Apache (а при включённом кэше — Cloudflare),
+// поэтому PHP здесь заканчивается: ни одного байта HTML мы не генерируем.
+// clickid и метку источника передаём в адресе — кнопки подхватят их скриптом.
+if ($showPre) {
+    $q = 'cid=' . rawurlencode($clickid);
+    if (($_GET['s'] ?? '') !== '')    $q .= '&s=' . rawurlencode((string)$_GET['s']);
+    if (($_GET['site'] ?? '') !== '') $q .= '&site=' . rawurlencode((string)$_GET['site']);
+    header('Location: /p/' . rawurlencode($slug) . '?' . $q, true, 302);
+    if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
+    exit;
 }
 
 // ---------- 4. Формируем целевой URL и редиректим ----------

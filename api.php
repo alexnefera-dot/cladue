@@ -166,9 +166,14 @@ $uaClass = strtolower(trim((string)($_GET['ua_class'] ?? 'all')));
 if (!in_array($uaClass, ['all', 'human', 'bot'], true)) {
     api_fail(400, 'invalid_param', 'ua_class must be all, human or bot');
 }
-$evFilter  = strtolower(trim((string)($_GET['event'] ?? '')));
-if ($evFilter !== '' && !in_array($evFilter, ['reg', 'fd'], true)) {
-    api_fail(400, 'invalid_param', 'event must be reg or fd');
+// Параметр event означает разное у двух эндпоинтов: у конверсий это рега/ФД,
+// у кликов — переход/показ преленда/клик по нему. Проверяем по месту.
+$evFilter = strtolower(trim((string)($_GET['event'] ?? '')));
+if ($evFilter !== '') {
+    $allowed = $ep === 'conversions' ? ['reg', 'fd'] : ['direct', 'view', 'click'];
+    if (!in_array($evFilter, $allowed, true)) {
+        api_fail(400, 'invalid_param', 'event must be ' . implode(', ', $allowed));
+    }
 }
 
 // ---------- 6. Запрос ----------
@@ -180,9 +185,17 @@ $args = [$from, $to, $curTs, $curTs, $curId];
 $keys = 'ts >= ? AND ts < ? AND (ts > ? OR (ts = ? AND id > ?))';
 
 if ($ep === 'clicks') {
-    $sql = "SELECT id, ts, clickid, source, referer, country, slug, lp, is_bot
+    $sql = "SELECT id, ts, clickid, source, referer, country, slug, lp, is_bot, event
             FROM clicks
             WHERE $keys";
+    // фильтр по событию (direct / view / click) — см. API.md
+    if ($evFilter !== '') {
+        // NULL — строки, записанные до появления колонки: обычные переходы
+        $sql .= $evFilter === 'direct'
+            ? " AND (event IS NULL OR event = 'direct')"
+            : ' AND event = ?';
+        if ($evFilter !== 'direct') $args[] = $evFilter;
+    }
     if ($uaClass === 'human') $sql .= ' AND is_bot = 0';
     if ($uaClass === 'bot')   $sql .= ' AND is_bot = 1';
     if ($subFilter !== '') { $sql .= ' AND source = ?'; $args[] = strtolower($subFilter); }
@@ -257,6 +270,11 @@ while ($row = $st->fetch(PDO::FETCH_ASSOC)) {
             'exit_path' => api_path($row['referer']),
             // Классификация по User-Agent на момент клика (подстроки бот-сигнатур).
             'is_bot'    => (bool)$row['is_bot'],
+            // direct — переход сразу на оффер; view — показан преленд;
+            // click — нажата кнопка на преленде (тот же clickid, что у view).
+            // Один посетитель на кампании с прелендом даёт view + click:
+            // считать переходом нужно view, иначе трафик удвоится.
+            'event'     => api_str($row['event']) ?? 'direct',
         ];
     } else {
         $ev = api_event($row['status']);

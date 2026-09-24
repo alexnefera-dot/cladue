@@ -11,3 +11,5 @@ cache/                   # кэш агрегатов панели (panel_cache)
 
 # Прочее
 .DS_Store
+prelanders.php           # автогенерируемая карта прелендов (db.php/import.php)
+prelanders/out/          # собранные страницы прелендов (генерируются из шаблонов)

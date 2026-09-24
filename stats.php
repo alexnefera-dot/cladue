@@ -117,7 +117,7 @@ if (($_GET['export'] ?? '') !== '' && $_SERVER['REQUEST_METHOD'] === 'GET') {
                 SUM(CASE WHEN cl.is_bot=1 THEN 1 ELSE 0 END) bots,
                 MAX(cl.ts) last
             FROM clicks cl LEFT JOIN campaigns c ON c.slug=cl.slug
-            WHERE cl.ts >= ? GROUP BY cl.slug ORDER BY humans DESC");
+            WHERE cl.ts >= ? AND " . sql_visit('cl') . " GROUP BY cl.slug ORDER BY humans DESC");
         $st->execute([time() - 86400]);
         $convAll = conversions_by_slug(time() - 86400);
         foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
@@ -145,6 +145,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check
     if ($action === 'add') {
         $err = add_campaign($_POST['slug'] ?? '', $_POST['name'] ?? '', $_POST['offer_url'] ?? '');
         $msg = $err === null ? 'Кампания добавлена' : ('Ошибка: ' . $err);
+    } elseif ($action === 'set_prelander') {
+        // Переключение преленда сразу пересобирает статическую страницу и карту
+        // для go.php — иначе настройка в панели была бы, а в бою не применилась.
+        set_prelander($_POST['id'] ?? 0, $_POST['prelander'] ?? '');
+        $n = prelanders_cache_rebuild();
+        $msg = 'Преленд сохранён. Собрано страниц: ' . $n;
     } elseif ($action === 'update_offer') {
         $err = update_offer($_POST['id'] ?? 0, $_POST['offer_url'] ?? '');
         $msg = $err === null ? 'Офер обновлён' : ('Ошибка: ' . $err);
@@ -225,11 +231,12 @@ $statsView = ($tab === 'stats' && $detailSlug === '')
 
 $today = []; $sumHumans = 0; $sumUniq = 0; $sumUniqRu = 0; $sumBots = 0; $sumReg = 0; $sumRegRu = 0; $sumDep = 0; $sumDepRu = 0; $sumRegUnlinked = 0; $sumDepUnlinked = 0;
 $botsPeriod = ['yandex' => 0, 'other' => 0, 'total' => 0];
-$detailName = null; $detailDay = ['humans'=>0,'uniques'=>0,'bots'=>0]; $detailRows = [];
+$detailName = null; $detailDay = ['humans'=>0,'uniques'=>0,'bots'=>0]; $detailPre = ['views'=>0,'clicks'=>0,'ctr'=>0.0]; $detailRows = [];
 $detailConv = ['reg'=>0,'dep'=>0,'other'=>0]; $detailConvRows = [];
 $detailPage = 1; $detailPages = 1; $detailTotal = 0;
 $campaigns = []; $domains = [];
 $sourceGroups = [];
+$preTemplates = [];
 $daily = []; $recentConv = []; $pbLog = []; $geo = []; $geoCamp = []; $detailGeo = [];
 $detailBots = [];
 $detailSources = [];
@@ -251,7 +258,7 @@ if ($tab === 'stats' && $detailSlug !== '') {
                 COUNT(DISTINCT CASE WHEN is_bot=0 THEN ip END) AS uniques,
                 COUNT(DISTINCT CASE WHEN is_bot=0 AND country='RU' THEN ip END) AS uniques_ru,
                 SUM(CASE WHEN is_bot=1 THEN 1 ELSE 0 END) AS bots
-            FROM clicks WHERE slug = ? AND ts >= ? AND ts < ?");
+            FROM clicks WHERE slug = ? AND ts >= ? AND ts < ? AND " . sql_visit() . "");
         $st->execute([$detailSlug, $from, $to]);
         return $st->fetch(PDO::FETCH_ASSOC) ?: ['humans'=>0,'uniques'=>0,'uniques_ru'=>0,'bots'=>0];
     });
@@ -262,7 +269,7 @@ if ($tab === 'stats' && $detailSlug !== '') {
     $perPage = 100;
     $detailPage = max(1, (int)($_GET['page'] ?? 1));
     $detailTotal = (int)panel_cache("dcnt_$dkey", function () use ($pdo, $detailSlug, $from, $to) {
-        $st = $pdo->prepare('SELECT COUNT(*) FROM clicks WHERE slug = ? AND ts >= ? AND ts < ?');
+        $st = $pdo->prepare('SELECT COUNT(*) FROM clicks WHERE slug = ? AND ts >= ? AND ts < ? AND ' . sql_visit());
         $st->execute([$detailSlug, $from, $to]);
         return (int)$st->fetchColumn();
     });
@@ -275,7 +282,7 @@ if ($tab === 'stats' && $detailSlug !== '') {
     // кампании за период (за 7 дней это сотни тысяч) и сортировала их в памяти —
     // страница просто зависала. ts и id растут синхронно, порядок тот же.
     $st = $pdo->prepare("SELECT ts, ip, ua, referer, source, is_bot, clickid, country, lp
-                         FROM clicks WHERE slug = ? AND ts >= ? AND ts < ?
+                         FROM clicks WHERE slug = ? AND ts >= ? AND ts < ? AND " . sql_visit() . "
                          ORDER BY ts DESC, id DESC LIMIT $perPage OFFSET $offset");
     $st->execute([$detailSlug, $from, $to]);
     $detailRows = $st->fetchAll(PDO::FETCH_ASSOC);
@@ -303,6 +310,7 @@ if ($tab === 'stats' && $detailSlug !== '') {
     // импорта, как и агрегаты главной: между импортами цифры всё равно не меняются.
     // sources_by_campaign отдельно не вызываем — sources_grouped_by_campaign
     // считает его внутри, и раньше эта работа делалась дважды.
+    $detailPre          = panel_cache("dpre_$dkey",  fn() => prelander_stats($detailSlug, $from, $to));
     $detailGeo          = panel_cache("dgeo_$dkey",  fn() => geo_by_campaign($from, $detailSlug, $to)[$detailSlug] ?? []);
     $detailSourceGroups = panel_cache("dsrc_$dkey",  fn() => sources_grouped_by_campaign($detailSlug, $from, $to));
 
@@ -320,7 +328,7 @@ if ($tab === 'stats' && $detailSlug !== '') {
                    MAX(cl.ts)                                                         AS last_ts
             FROM clicks cl
             LEFT JOIN campaigns c ON c.slug = cl.slug
-            WHERE cl.ts >= ? AND cl.ts < ?
+            WHERE cl.ts >= ? AND cl.ts < ? AND " . sql_visit('cl') . "
             GROUP BY cl.slug
             ORDER BY humans DESC, bots DESC
         ");
@@ -368,8 +376,9 @@ if ($tab === 'stats' && $detailSlug !== '') {
 
 } else {
     // --- вкладка «Кампании»: только справочник кампаний (без счётчиков кликов) ---
-    $campaigns = $pdo->query('SELECT id, slug, name, offer_url, updated_at
+    $campaigns = $pdo->query('SELECT id, slug, name, offer_url, prelander, updated_at
                               FROM campaigns ORDER BY name, slug')->fetchAll(PDO::FETCH_ASSOC);
+    $preTemplates = prelander_templates();
     $domains = domain_stats();
 }
 
@@ -674,6 +683,15 @@ $msg = $_GET['msg'] ?? '';
     <code><?= h($detailSlug) ?></code> · рефка <code><?= h($refBase . $detailSlug) ?></code>
     <a href="<?= h($withPeriod(tab_url('stats', $key))) ?>" style="margin-left:8px">← ко всем кампаниям</a>
   </div>
+  <?php if ($detailPre['views'] || $detailPre['clicks']): ?>
+  <div class="bots-box" style="margin-top:8px">
+    <span class="chip" style="background:#eef2ff;border-color:#e0e7ff;color:#4338ca"
+          title="Преленд: сколько раз страница была показана и сколько раз с неё нажали кнопку. CTR — доля дошедших до оффера.">
+      Преленд: показов <b><?= (int)$detailPre['views'] ?></b> · кликов <b><?= (int)$detailPre['clicks'] ?></b> ·
+      CTR <b style="color:#4338ca"><?= h((string)$detailPre['ctr']) ?>%</b>
+    </span>
+  </div>
+  <?php endif; ?>
 
   <div class="bots-box">
     <span class="chip" style="background:#ecfdf5;border-color:#a7f3d0;color:#166534;font-size:14px">Юзеры (уники): <b style="color:#16a34a"><?= (int)$detailDay['uniques'] ?></b></span>
@@ -1247,7 +1265,7 @@ $msg = $_GET['msg'] ?? '';
   <table>
     <thead><tr>
       <th>Кампания</th><th>Рефка (стабильна)</th><th>Офер (можно менять)</th>
-      <th>Изменён</th><th></th>
+      <th>Преленд</th><th>Изменён</th><th></th>
     </tr></thead>
     <tbody>
       <?php foreach ($campaigns as $c): $link = $refBase . $c['slug']; ?>
@@ -1278,6 +1296,23 @@ $msg = $_GET['msg'] ?? '';
                       title="Одна ссылка — обычный оффер. Несколько строк — ротация трафика между ними. Вес: URL|3"><?= h($c['offer_url']) ?></textarea>
             <button type="submit">Сохранить</button>
           </form>
+        </td>
+        <td>
+          <form method="post" class="inline">
+            <input type="hidden" name="key" value="<?= h($key) ?>">
+            <input type="hidden" name="action" value="set_prelander">
+            <input type="hidden" name="id" value="<?= (int)$c['id'] ?>">
+            <select name="prelander" onchange="this.form.submit()" style="font-size:12px"
+                    title="Нет — рефка редиректит сразу, как обычно. Выбран шаблон — сначала показывается страница-преленд, кнопки на ней ведут на офферы кампании по номерам слотов.">
+              <option value="">— нет —</option>
+              <?php foreach ($preTemplates as $t): ?>
+                <option value="<?= h($t) ?>"<?= ($c['prelander'] ?? '') === $t ? ' selected' : '' ?>><?= h($t) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </form>
+          <?php if (($c['prelander'] ?? '') !== ''): ?>
+            <a href="/p/<?= h($c['slug']) ?>" target="_blank" class="muted" style="font-size:11px">открыть →</a>
+          <?php endif; ?>
         </td>
         <td class="ref"><?= dt($c['updated_at']) ?></td>
         <td>

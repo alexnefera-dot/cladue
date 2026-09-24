@@ -69,6 +69,12 @@ try {
             say("!! Проверь кампании в панели и доступность MySQL. Редиректы работают.");
         } else {
             say("offers.php обновлён: $n кампаний");
+            try {
+                $np = prelanders_cache_rebuild();
+                say("преленды пересобраны: $np кампаний");
+            } catch (Throwable $e) {
+                say("! преленды не пересобраны: " . $e->getMessage());
+            }
         }
     }
 } catch (Throwable $e) {
@@ -102,7 +108,7 @@ $fh = @fopen($procFile, 'r');
 if (!$fh) { say("! не открыть $procFile"); exit(1); }
 
 $pdo = db();
-$cols = ['ts','slug','ip','ua','referer','source','is_bot','clickid','country','lp'];
+$cols = ['ts','slug','ip','ua','referer','source','is_bot','clickid','country','lp','event'];
 $colsSql = implode(',', $cols);
 $batchSize = 500;
 $buf = [];
@@ -140,6 +146,9 @@ try {
         // lp добавлено позже: в момент деплоя в логе лежат строки старого формата
         // (9 полей) — читаем их как lp = NULL, иначе пачка на них бы развалилась.
         $buf[] = isset($f[9]) && $f[9] !== '' ? $f[9] : null;
+        // event добавлено ещё позже: у строк старого формата его нет — это
+        // обычный переход без преленда, то есть 'direct'.
+        $buf[] = isset($f[10]) && $f[10] !== '' ? $f[10] : 'direct';
         $rowN++;
         $total++;
         if ($rowN >= $batchSize) {

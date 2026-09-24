@@ -3,6 +3,10 @@
 RewriteEngine On
 RewriteRule ^go/([A-Za-z0-9_-]+)/?$ /go.php?l=$1 [L,QSA]
 
+# Преленд: /p/СЛАГ -> заранее собранный статический файл.
+# PHP не участвует — страницу отдаёт Apache, поэтому показы не стоят ничего.
+RewriteRule ^p/([A-Za-z0-9_.-]+)/?$ /prelanders/out/$1.html [L]
+
 # API выгрузки для аналитики: /v1/clicks -> /api.php?ep=clicks
 RewriteRule ^v1/(clicks|conversions)/?$ /api.php?ep=$1 [L,QSA]
 
@@ -14,6 +18,12 @@ SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
 
 # Запрет на скачивание файла базы напрямую из браузера
 <Files "stats.sqlite">
+    Require all denied
+</Files>
+
+# Исходники шаблонов прелендов наружу не отдаём: посетителю нужен только
+# собранный файл в out/, а в шаблоне лежат подстановки вида {{GO}}.
+<Files "prelanders.php">
     Require all denied
 </Files>
 
