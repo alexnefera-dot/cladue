@@ -62,6 +62,25 @@ $profil = is_file($profilFile) ? json_decode((string) file_get_contents($profilF
 if (!$profil) { fwrite(STDERR, "нет профиля $profilFile\n"); exit(1); }
 if (!isset($profil['страницы'])) { fwrite(STDERR, "в профиле нет раздела «страницы»\n"); exit(1); }
 
+// Голос комплекта (golos.json кладёт zadanie-v4 из пула голосов) перекрывает
+// профиль по голосовым полям: профиль описывает безличный образец, а комплект
+// в голосе «случай вечера» законно пишет 12–21 «я» на внутреннюю страницу.
+// Удержанное поле берёт цель — медиану голоса, пол по рынку — его нижний
+// квартиль. Остальные поля профиля голос не трогает.
+$golos = is_file("$dir/golos.json") ? json_decode((string) file_get_contents("$dir/golos.json"), true) : null;
+if ($golos) {
+    foreach ($profil['страницы'] as $p => &$str) {
+        $c = $golos['цели'][$p === 'main' ? 'main' : 'внутренние'];
+        foreach ($c as $k => [$niz, $med]) {
+            if (!isset($str['поля'][$k])) { continue; }
+            $str['поля'][$k]['цель'] = $med;
+            if (isset($str['поля'][$k]['пол_рынка'])) { $str['поля'][$k]['пол_рынка'] = $niz; }
+        }
+    }
+    unset($str);
+    fwrite(STDERR, "голос комплекта: {$golos['имя']} — голосовые поля по нему\n");
+}
+
 function chist(string $h): string
 {
     $h = preg_replace('~(?is)<(script|style)\b.*?</\1>~', ' ', $h);
