@@ -5,6 +5,7 @@ import json, os, re, shutil, subprocess, sys
 from concurrent.futures import ThreadPoolExecutor
 КОРЕНЬ=os.environ.get('V5_KOREN', '/home/user/cladue')
 БАЗА=sys.argv[1]; СИДЫ=[int(x) for x in sys.argv[2].split(',')]
+МАНЕРА=os.environ.get('V5_MANERA','обычная')
 def php(*a, t=900):
     return subprocess.run(['php']+list(a), cwd=КОРЕНЬ, capture_output=True, text=True, timeout=t)
 def песочница(и=0):
@@ -26,7 +27,7 @@ def один(задание):
     и, сид = задание
     п=os.path.join(БАЗА,'s%d'%сид); shutil.rmtree(п, ignore_errors=True)
     php('engine/generator-v5.php','--выход='+п,'--сид=%d'%сид,'--тихо',
-        '--данные='+os.path.join(БАЗА,'pesok%d'%и),'--манера=обычная')
+        '--данные='+os.path.join(БАЗА,'pesok%d'%и),'--манера='+МАНЕРА)
     if not os.path.isdir(п) or len(os.listdir(п))<12: return сид, None
     php('engine/perekrut-v5.php',п,'--сид=%d'%сид,'--тихо')
     try:
