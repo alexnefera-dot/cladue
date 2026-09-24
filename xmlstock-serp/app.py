@@ -47,7 +47,7 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Маркер сборки backend — показывается в футере. Если после обновления в футере
 # старый маркер, значит сервер не перезапущен (app.py подхватывается только при рестарте).
-APP_BUILD = "whois-источник"
+APP_BUILD = "индекс-поддомены"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -2294,19 +2294,26 @@ def api_site_urls(job_id):
     job = SITEJOBS.get(job_id)
     if not job:
         return jsonify({"error": "Задача не найдена"}), 404
-    limit, out = 5000, []
+    limit = 8000
+    seen, out, subs = set(), [], {}
     with job["lock"]:
         for d in job["domains"]:
             r = job["results"].get(d)
             if not r:
                 continue
             for u in r["urls"]:
-                out.append({"domain": d, "url": u["url"], "title": u["title"]})
-                if len(out) >= limit:
-                    break
-            if len(out) >= limit:
-                break
-    return jsonify({"urls": out, "truncated": len(out) >= limit})
+                url = u["url"]
+                if url in seen:          # глобальная дедупликация по всем доменам
+                    continue
+                seen.add(url)
+                h = url_host(url)
+                subs[h] = subs.get(h, 0) + 1
+                if len(out) < limit:
+                    out.append({"domain": d, "host": h, "url": url, "title": u["title"]})
+    subs_list = sorted(({"host": h, "count": c} for h, c in subs.items()),
+                       key=lambda x: (-x["count"], x["host"]))
+    return jsonify({"urls": out, "subs": subs_list, "unique": len(seen),
+                    "subs_count": len(subs), "truncated": len(seen) > len(out)})
 
 
 @app.route("/api/site/download/<job_id>")
@@ -2319,6 +2326,19 @@ def api_site_download(job_id):
         domains = list(job["domains"])
         results = {d: job["results"].get(d) for d in domains}
 
+    # общий срез уникальных страниц + разбивка по поддоменам
+    uniq_seen, subs = set(), {}
+    for d in domains:
+        r = results.get(d)
+        if not r:
+            continue
+        for u in r["urls"]:
+            if u["url"] in uniq_seen:
+                continue
+            uniq_seen.add(u["url"])
+            subs[url_host(u["url"])] = subs.get(url_host(u["url"]), 0) + 1
+    subs_sorted = sorted(subs.items(), key=lambda kv: (-kv[1], kv[0]))
+
     if fmt == "xlsx":
         try:
             from openpyxl import Workbook
@@ -2327,18 +2347,24 @@ def api_site_download(job_id):
         wb = Workbook()
         ws = wb.active
         ws.title = "urls"
-        ws.append(["domain", "url", "title"])
+        ws.append(["domain", "subdomain", "url", "title"])
         for d in domains:
             r = results.get(d)
             if not r:
                 continue
             for u in r["urls"]:
-                ws.append([d, u["url"], u["title"]])
-        ws2 = wb.create_sheet("summary")
-        ws2.append(["domain", "found_estimate", "collected"])
+                ws.append([d, url_host(u["url"]), u["url"], u["title"]])
+        ws2 = wb.create_sheet("subdomains")
+        ws2.append(["subdomain", "pages"])
+        for h, c in subs_sorted:
+            ws2.append([h, c])
+        ws3 = wb.create_sheet("summary")
+        ws3.append(["domain", "found_estimate", "collected"])
         for d in domains:
             r = results.get(d) or {}
-            ws2.append([d, r.get("found"), r.get("collected", 0)])
+            ws3.append([d, r.get("found"), r.get("collected", 0)])
+        ws3.append([])
+        ws3.append(["ИТОГО уникальных страниц", "", len(uniq_seen)])
         buf = io.BytesIO()
         wb.save(buf)
         buf.seek(0)
@@ -2347,13 +2373,13 @@ def api_site_download(job_id):
 
     sbuf = io.StringIO()
     w = csv.writer(sbuf, delimiter=";")
-    w.writerow(["domain", "url", "title"])
+    w.writerow(["domain", "subdomain", "url", "title"])
     for d in domains:
         r = results.get(d)
         if not r:
             continue
         for u in r["urls"]:
-            w.writerow([d, u["url"], u["title"]])
+            w.writerow([d, url_host(u["url"]), u["url"], u["title"]])
     payload = ("﻿" + sbuf.getvalue()).encode("utf-8")
     return send_file(io.BytesIO(payload), as_attachment=True,
                      download_name=f"site_pages_{job_id[:8]}.csv", mimetype="text/csv")
