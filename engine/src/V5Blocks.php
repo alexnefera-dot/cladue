@@ -2926,6 +2926,8 @@ function v5DoborSsylok(string $html, string $тип, int $сид = 0): string
         [$низ, $верх] = $полосы[$тип];
         $цель = $низ + v5RazbrosPoSidu($сид, 'ссылки', 0.0, 0.5) * ($верх - $низ);
     }
+    // Густой набор — другой формат: ссылок на странице у корпуса 12, а не 45.
+    if (v5GustoyNabor($сид)) { $цель = 10 + v5RazbrosPoSidu($сид, 'ссылки', 0.0, 1.0) * 6; }
     $надо = (int) round($цель) - preg_match_all('~<a\b~', $html);
     if ($надо <= 0) { return $html; }
 
@@ -3032,8 +3034,40 @@ function v5DoborSsylok(string $html, string $тип, int $сид = 0): string
  *
  * Виджеты и списки не трогаются: режутся только абзацы прозы.
  */
-function v5RovnyeAbzatsy(string $html): string
+/**
+ * Короткие абзацы густого набора: каждое предложение — свой абзац, пока
+ * абзац длиннее восемнадцати слов. Формат снят с 18 густых наборов корпуса:
+ * медиана абзаца 13 слов, 42.95 абзаца на страницу против наших 25.
+ */
+function v5KorotkieAbzatsy(string $html): string
 {
+    for ($круг = 0; $круг < 4; $круг++) {
+        $поделили = false;
+        $html = (string) preg_replace_callback('~(<p\b[^>]*>)(.*?)(</p>)~su',
+            static function (array $м) use (&$поделили): string {
+                $чисто = trim(preg_replace('~\s+~u', ' ', strip_tags($м[2])));
+                $слов = $чисто === '' ? 0 : count(preg_split('~\s+~u', $чисто));
+                if ($слов <= 24) { return $м[0]; }
+                $части = preg_split('~(?<=[.!?…])\s+~u', trim($м[2]), -1, PREG_SPLIT_NO_EMPTY);
+                if (count($части) < 2) { return $м[0]; }
+                $поделили = true;
+                $середина = (int) ceil(count($части) / 2);
+                return $м[1] . implode(' ', array_slice($части, 0, $середина)) . $м[3] . "\n"
+                     . $м[1] . implode(' ', array_slice($части, $середина)) . $м[3];
+            }, $html) ?: $html;
+        if (!$поделили) { break; }
+    }
+    return $html;
+}
+
+function v5RovnyeAbzatsy(string $html, int $сид = 0, string $тип = ''): string
+{
+    // Густой набор — другой формат, но не везде: замер по 18 густым наборам
+    // даёт короткий абзац (15–18 слов) на main, bonus, registracia, vhod,
+    // zerkalo, app и slots, а на obzor, promo, news, partnery и info у них
+    // проза по 52–83 слова, длиннее нашей. Режем только там, где коротко.
+    static $короткие = ['main', 'bonus', 'registracia', 'vhod', 'zerkalo', 'app'];
+    if (v5GustoyNabor($сид) && in_array($тип, $короткие, true)) { return v5KorotkieAbzatsy($html); }
     // Абзацы прозы: без разметки внутри, кроме простых выделений и ссылок.
     $делитель = static function (string $тело): ?array {
         $части = preg_split('~(?<=[.!?…])\s+~u', trim($тело), -1, PREG_SPLIT_NO_EMPTY);
@@ -3151,7 +3185,9 @@ function v5PotolokSsylok(string $html, string $тип, int $сид = 0): string
         'zerkalo' => [34, 59], 'app' => [36, 63], 'news' => [36, 53],
         'partnery' => [35, 52], 'info' => [37, 47],
     ];
-    [$низ, $верх] = $полосы[$тип] ?? [31, 60];
+    // Густой набор — другой формат: у их густых страниц 12.1 ссылки медианой
+    // (полоса 11.4–16.8) против 44.8 у обычных. Полоса на все типы одна.
+    [$низ, $верх] = v5GustoyNabor($сид) ? [10, 17] : ($полосы[$тип] ?? [31, 60]);
     // Потолок гуляет по верхней четверти полосы: у корпуса число ссылок не
     // липнет к краю, и у нас липнуть не должно.
     $потолок = (int) round($верх - v5RazbrosPoSidu($сид, 'потолок-ссылок', 0.0, 0.25) * ($верх - $низ));
@@ -3459,10 +3495,13 @@ function v5BrendStranicy(string $html, string $тип, int $сид = 0): string
         'promo' => 0.0, 'registracia' => 0.0, 'vhod' => 0.0, 'zerkalo' => 2.27,
         'app' => 0.83, 'news' => 2.15, 'partnery' => 1.67, 'info' => 2.20,
     ];
+    // Пересчитано по 18 густым наборам NEW100: прежние числа сняты со старого
+    // корпуса и вдвое ниже — бренда на странице у нас выходило семь при их
+    // шестнадцати.
     static $густая = [
-        'main' => 17.22, 'obzor' => 9.54, 'slots' => 6.28, 'bonus' => 6.93,
-        'promo' => 6.80, 'registracia' => 6.27, 'vhod' => 6.15, 'zerkalo' => 8.91,
-        'app' => 6.03, 'news' => 8.89, 'partnery' => 8.86, 'info' => 8.30,
+        'main' => 17.64, 'obzor' => 12.43, 'slots' => 4.14, 'bonus' => 23.43,
+        'promo' => 8.98, 'registracia' => 20.04, 'vhod' => 17.14, 'zerkalo' => 23.24,
+        'app' => 23.02, 'news' => 12.45, 'partnery' => 10.09, 'info' => 8.99,
     ];
     $густой = v5GustoyNabor($сид);
     $норма = $густой ? $густая : $обычная;

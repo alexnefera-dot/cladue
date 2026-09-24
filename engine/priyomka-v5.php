@@ -54,6 +54,15 @@ $сид = (int) ($паспорт['сид'] ?? 0);
 // долю: его двенадцать страниц написаны по обычной полосе, и судить их
 // густыми воротами — значит задним числом провалить сданное.
 $густой = !empty($паспорт['густой']);
+// Длины густой манеры, снятые с 18 густых наборов NEW100 нашей же меркой.
+const V5_GUSTYE_DLINY = [
+    'main' => ['paragraphs' => 23, 'words_per_para' => 18.3, 'para_short' => 11, 'para_spread' => 10.9, 'words' => 943, 'sections' => 17],
+    'bonus' => ['paragraphs' => 20, 'words_per_para' => 17.5, 'para_short' => 12, 'para_spread' => 8.9, 'words' => 557, 'sections' => 8],
+    'registracia' => ['paragraphs' => 20, 'words_per_para' => 15.1, 'para_short' => 12, 'para_spread' => 6.2, 'words' => 639, 'sections' => 9],
+    'vhod' => ['paragraphs' => 22, 'words_per_para' => 17.9, 'para_short' => 11, 'para_spread' => 8.6, 'words' => 752, 'sections' => 11],
+    'zerkalo' => ['paragraphs' => 23, 'words_per_para' => 16.8, 'para_short' => 14, 'para_spread' => 8.6, 'words' => 544, 'sections' => 11],
+    'app' => ['paragraphs' => 34, 'words_per_para' => 17.6, 'para_short' => 20, 'para_spread' => 12.4, 'words' => 809, 'sections' => 17],
+];
 const V5_BREND_POLIA = ['brand_ru', 'brand_en', 'brand_in_h', 'brand_first_third'];
 $надбавка = $сборка ? 100 / max(1, (int) ($профиль['источник']['в_расчёте'] ?? 11)) : 0.0;
 
@@ -83,6 +92,16 @@ foreach (V5_TYPES as $тип) {
         // ноль имени на slots, promo и bonus. У густого набора имя стоит на
         // каждой странице — его бренд судят отдельные ворота ниже.
         if ($густой && in_array($k, V5_BREND_POLIA, true)) { continue; }
+        // Длины густого набора судим по густому корпусу: полосы профиля сняты
+        // с обычных доноров, где абзац 47 слов, а у густых страниц он 15–18 на
+        // main, bonus, registracia, vhod, zerkalo и app.
+        if ($густой && isset(V5_GUSTYE_DLINY[$тип][$k])) {
+            $всего++;
+            $цельГ = (float) V5_GUSTYE_DLINY[$тип][$k];
+            if (abs((float) $карта[$k] - $цельГ) <= max(0.3 * $цельГ, 2.0)) { $сошлось++; }
+            else { $мимо[$k] = [round((float) $карта[$k], 1), $цельГ]; }
+            continue;
+        }
         if (!isset($карта[$k]) || !is_numeric($карта[$k])) { continue; }
         $всего++;
         $наше = (float) $карта[$k];
@@ -213,7 +232,9 @@ foreach ($всеHtml as $тип => $html) {
 $ссылкиМимо = [];
 foreach ($профиль['ссылки']['на_страницу'] ?? [] as $тип => $п) {
     if (!isset($ссылки[$тип])) { continue; }
-    [$низ, $верх] = $п['полоса'];
+    // Густая манера — свой формат: у их густых страниц 12.1 ссылки медианой
+    // (полоса 11.4–16.8) против 44.8 у обычных, и полосы профиля тут не судьи.
+    [$низ, $верх] = $густой ? [9, 20] : $п['полоса'];
     if ($ссылки[$тип] < $низ || $ссылки[$тип] > $верх) { $ссылкиМимо[$тип] = [$ссылки[$тип], $п['полоса']]; }
 }
 $брендRu = 0;
