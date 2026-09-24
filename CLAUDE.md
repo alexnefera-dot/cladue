@@ -325,6 +325,18 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `other-domain.ru`, with `redir-hub.ru` as the marker), `VisitTest::testOwnSiteIsDetectedWhenPageNeverOpened`
   (`ourfail.ru` → `redir-hub.ru/dead-end` → a dead port: no page, still ours) and `tests/OwnSitesTest.php`
   (marker boundaries).
+  MARKERS ARE ENTERED IN THE PANEL, not by editing a file: the user asked «запиши сам», and the honest
+  answer is that neither of us should — the repository is PUBLIC, so a real marker committed to
+  `Config::defaults()` would publish their network. So «Настройки» gained the textarea «Метки наших
+  шаблонов» (`#ownmarkers`, one per line, in `FIELDS` so it survives a reload) → `settings.own_markers` →
+  `buildOverrides()` sets `filters.own_markers` = `Config::defaults()`'s list + theirs, deduplicated,
+  under the `array_key_exists` rule of `allowed_tlds` (the panel is the source of truth when the key is
+  sent, even empty; a manual `run-job` without it keeps `config.php`). The built-in `/uploads/brands/` is
+  always merged in so a careless save cannot lose it, and `own_markers_file` still merges
+  `own-markers.txt` in `OwnSites::fromConfig()` — both routes work together, and the markers live only on
+  the user's machine (`runs/settings.json` + localStorage), never in the repo. Covered by
+  `PanelTest::testOwnMarkersFromPanelSettingsMarkSite` (a `stage=preview` run whose only marker comes from
+  the panel settings flags `ourdoor.ru` as ours through the redirect hop).
 - `Runner` and `PageVisitor` accept an optional `$onProgress` callback; `bin/run-job.php` wires it
   to `Support\Progress`, and `bin/panel.php` (dual launcher/router via `PHP_SAPI==='cli-server'`)
   spawns the job and serves `public/panel.html`. Keep CLI and panel behaviour in sync through `Runtime`.

@@ -188,6 +188,20 @@ function buildOverrides(array $s, string $runDir): array
         }
     }
     $overrides['filters.exclude_domains'] = $exclude;
+    // Метки НАШИХ шаблонов из панели («Настройки» → «Метки наших шаблонов»): панель — источник
+    // истины, если ключ передан (даже пустым списком). Встроенная метка из Config::defaults()
+    // добавляется всегда, чтобы её нельзя было потерять случайным сохранением настроек, а файл
+    // own-markers.txt подмешивается отдельно в OwnSites::fromConfig() — оба способа работают вместе.
+    if (array_key_exists('own_markers', $s)) {
+        $markers = Config::defaults()['filters']['own_markers'];
+        foreach (is_array($s['own_markers']) ? $s['own_markers'] : [] as $marker) {
+            $marker = trim((string) $marker);
+            if ($marker !== '') {
+                $markers[] = $marker;
+            }
+        }
+        $overrides['filters.own_markers'] = array_values(array_unique($markers));
+    }
 
     $stage = (string) ($s['stage'] ?? 'collect');
     if (isset($s['variants'])) {

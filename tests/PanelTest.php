@@ -754,6 +754,47 @@ MANUAL-OWN.RU
         @rmdir($dir);
     }
 
+    public function testOwnMarkersFromPanelSettingsMarkSite(): void
+    {
+        // Метки наших шаблонов задаются В ПАНЕЛИ («Настройки» → «Метки наших шаблонов»), а не правкой
+        // файла на диске: пользователь работает только через веб-интерфейс. Метка домена НАШЕГО
+        // редиректора должна ловить дор по промежуточному хопу цепочки редиректов.
+        $port = FakeServer::port('local');
+        $dir = sys_get_temp_dir() . '/yandex-sites-ownmark-' . uniqid();
+        $runDir = $dir . '/runs/own';
+        mkdir($runDir, 0777, true);
+        file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
+        file_put_contents($runDir . '/sites.json', json_encode(['sites' => [
+            [
+                'host' => 'ourdoor.ru', 'domain' => 'ourdoor.ru', 'url' => "http://ourdoor.ru:$port/",
+                'title' => 'T', 'best_query' => 'к', 'best_position' => 1, 'queries_count' => 1,
+            ],
+        ]]));
+        file_put_contents($runDir . '/settings.json', json_encode([
+            'stage' => 'preview',
+            'visit_driver' => 'curl',
+            'only' => ['ourdoor.ru'],
+            'own_markers' => ['redir-hub.ru'], // домен нашего редиректора — промежуточный адрес
+            'visit_resolve' => [
+                "ourdoor.ru:$port:127.0.0.1",
+                "redir-hub.ru:$port:127.0.0.1",
+                "other-domain.ru:$port:127.0.0.1",
+            ],
+        ]));
+
+        $run = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $run['code'], $run['out']);
+
+        $saved = json_decode((string) file_get_contents($runDir . '/sites.json'), true);
+        Assert::true((bool) ($saved['sites'][0]['own'] ?? false), 'сайт помечен нашим по метке из настроек панели: ' . $run['out']);
+
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($it as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+        @rmdir($dir);
+    }
+
     public function testDownloadHonorsRemovedJsonWithoutExcludeHosts(): void
     {
         // Сайт убран в панели (removed.json), но exclude_hosts не передан (старая вкладка, сбитый список):

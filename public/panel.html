@@ -237,6 +237,9 @@
         <div class="hint" style="margin-bottom:4px">В базе доменов: <b id="baseCount">0</b> · <a href="#" id="resetBase" title="Очистить базу собранных доменов И удалить рабочие файлы: скачанные страницы, очищенный контент, превью и списки. Статистика сборов, запросы и настройки останутся — историю чистит соседняя кнопка">очистить базу и файлы</a> · <a href="#" id="resetHistory" title="Удалить только историю сборов со вкладки «Статистика» (runs/history.json). База доменов, скачанные страницы и контент останутся на месте">очистить статистику</a></div>
         <label>Исключить домены дополнительно <span class="hint">через запятую</span></label>
         <input type="text" id="exclude" placeholder="competitor.ru, spam.ru">
+        <label style="margin-top:10px">Метки наших шаблонов <span class="hint">по одной на строку — по ним сайт помечается «исключён как наш» и не скачивается</span></label>
+        <textarea id="ownmarkers" style="min-height:90px" placeholder="sitegrator&#10;faro&#10;a1b2c3d4e5f6a7b8"></textarea>
+        <div class="hint">Метка — то, что стабильно есть у нашего шаблона и почти наверняка нет у чужих: домен размещения, <b>домен редиректора</b> (наш дор сначала уводит на него, а тот дальше — на рефку; в конечном адресе его уже нет, поэтому проверяется вся цепочка редиректов — и даже если страница не открылась), токен из <code>&lt;head&gt;</code>, путь к ассетам. Метка <b>без «/»</b> — имя: ищется по границам слова, поэтому «faro» поймает faro.com, go.faro.net и casino-faro.ru, но не заденет чужой safaro.ru. Метка <b>с «/»</b> — путь, ищется подстрокой. Встроенная метка <code>/uploads/brands/</code> работает всегда, её вписывать не нужно. Метки хранятся только на этом компьютере (в настройках панели и в файле own-markers.txt) и никуда не отправляются.</div>
       </div>
 
   <div class="card tabsec" data-tab="config">
@@ -366,7 +369,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const FIELDS = ['queries','source','region','pages','dedupe','scope','top','minq','tlds','exclude','skipknown','nocache','previewshots','visit','variants','driver','crawl','maxpages','useproxies','searchthreads','visitthreads','browsers','repeat','xmmode','xmdevice','xmdomain','xmextra','removeslots'];
+const FIELDS = ['queries','source','region','pages','dedupe','scope','top','minq','tlds','exclude','skipknown','nocache','previewshots','visit','variants','driver','crawl','maxpages','useproxies','searchthreads','visitthreads','browsers','repeat','xmmode','xmdevice','xmdomain','xmextra','removeslots','ownmarkers'];
 
 function loadLocal(){
   try{ const s = JSON.parse(localStorage.getItem('ys-panel')||'{}');
@@ -635,6 +638,7 @@ function collectSettings(){
     preview_shots: $('previewshots').checked,
     allowed_tlds: $('tlds').value.split(',').map(s=>s.trim()).filter(Boolean),
     exclude_extra: $('exclude').value.split(',').map(s=>s.trim()).filter(Boolean),
+    own_markers: $('ownmarkers').value.split('\n').map(s=>s.trim()).filter(Boolean),
     visit: $('visit').checked,
     variants: parseInt($('variants').value)||1,
     visit_driver: $('driver').value,
@@ -1425,6 +1429,7 @@ function prefill(state){
     if(s.domain_scope)$('scope').value=s.domain_scope; if(s.min_queries)$('minq').value=s.min_queries;
     if(s.allowed_tlds)$('tlds').value=(s.allowed_tlds||[]).join(', ');
     if(s.exclude_extra)$('exclude').value=(s.exclude_extra||[]).join(', ');
+    if(s.own_markers)$('ownmarkers').value=(s.own_markers||[]).join('\n');
     $('visit').checked=!!s.visit; if(s.variants)$('variants').value=s.variants;
     if(s.visit_driver)$('driver').value=s.visit_driver; $('useproxies').checked=!!s.proxies_file;
     if(s.repeat_hours!=null)$('repeat').value=s.repeat_hours;
