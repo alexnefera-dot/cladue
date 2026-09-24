@@ -55,13 +55,18 @@ $сид = (int) ($паспорт['сид'] ?? 0);
 // густыми воротами — значит задним числом провалить сданное.
 $густой = !empty($паспорт['густой']);
 // Длины густой манеры, снятые с 18 густых наборов NEW100 нашей же меркой.
-const V5_GUSTYE_DLINY = [
-    'main' => ['paragraphs' => 23, 'words_per_para' => 18.3, 'para_short' => 11, 'para_spread' => 10.9, 'words' => 943, 'sections' => 17],
-    'bonus' => ['paragraphs' => 20, 'words_per_para' => 17.5, 'para_short' => 12, 'para_spread' => 8.9, 'words' => 557, 'sections' => 8],
-    'registracia' => ['paragraphs' => 20, 'words_per_para' => 15.1, 'para_short' => 12, 'para_spread' => 6.2, 'words' => 639, 'sections' => 9],
-    'vhod' => ['paragraphs' => 22, 'words_per_para' => 17.9, 'para_short' => 11, 'para_spread' => 8.6, 'words' => 752, 'sections' => 11],
-    'zerkalo' => ['paragraphs' => 23, 'words_per_para' => 16.8, 'para_short' => 14, 'para_spread' => 8.6, 'words' => 544, 'sections' => 11],
-    'app' => ['paragraphs' => 34, 'words_per_para' => 17.6, 'para_short' => 20, 'para_spread' => 12.4, 'words' => 809, 'sections' => 17],
+// Полосы густой страницы — дециль p10–p90 по 21 густому набору NEW100, а не
+// медиана с допуском: у полей густой страницы разброс широкий (sections на
+// главной 11–71, слов в абзаце 16.7–41), и коридор вокруг медианы отбраковывал
+// бы и сами образцы — bonus у «eva» с его двенадцатью разделами при медиане 8.
+// Поля профиля здесь сняты с обычных доноров и густой странице не подходят.
+const V5_GUSTYE_POLOSY = [
+    'main' => ['paragraphs' => [18.0, 44.0], 'words_per_para' => [16.7, 41.0], 'para_short' => [1.0, 24.0], 'para_spread' => [7.8, 21.7], 'words' => [582.0, 1918.0], 'sections' => [11.0, 71.0], 'h2' => [7.0, 15.0], 'nausea_acad' => [25.8, 44.5], 'water' => [20.3, 28.9], 'adj_pct' => [7.6, 14.1]],
+    'bonus' => ['paragraphs' => [17.0, 24.0], 'words_per_para' => [17.3, 52.6], 'para_short' => [0.0, 12.0], 'para_spread' => [8.4, 14.7], 'words' => [541.0, 1404.0], 'sections' => [8.0, 43.0], 'h2' => [5.0, 7.0], 'nausea_acad' => [25.2, 45.2], 'water' => [23.6, 29.8], 'adj_pct' => [8.5, 12.6]],
+    'registracia' => ['paragraphs' => [18.0, 25.0], 'words_per_para' => [14.8, 47.7], 'para_short' => [2.0, 12.0], 'para_spread' => [5.3, 21.1], 'words' => [625.0, 1482.0], 'sections' => [9.0, 40.0], 'h2' => [6.0, 8.0], 'nausea_acad' => [28.0, 40.2], 'water' => [25.0, 28.7], 'adj_pct' => [7.7, 11.1]],
+    'vhod' => ['paragraphs' => [16.0, 28.0], 'words_per_para' => [17.7, 52.4], 'para_short' => [1.0, 11.0], 'para_spread' => [8.4, 19.2], 'words' => [742.0, 1278.0], 'sections' => [11.0, 38.0], 'h2' => [6.0, 9.0], 'nausea_acad' => [29.5, 39.5], 'water' => [27.6, 31.1], 'adj_pct' => [9.3, 10.8]],
+    'zerkalo' => ['paragraphs' => [20.0, 29.0], 'words_per_para' => [16.5, 54.4], 'para_short' => [2.0, 14.0], 'para_spread' => [7.9, 18.2], 'words' => [518.0, 1592.0], 'sections' => [11.0, 42.0], 'h2' => [6.0, 8.0], 'nausea_acad' => [25.6, 38.5], 'water' => [27.3, 32.4], 'adj_pct' => [11.2, 15.8]],
+    'app' => ['paragraphs' => [14.0, 34.0], 'words_per_para' => [17.4, 55.7], 'para_short' => [0.0, 20.0], 'para_spread' => [12.1, 19.3], 'words' => [796.0, 1348.0], 'sections' => [12.0, 38.0], 'h2' => [6.0, 8.0], 'nausea_acad' => [22.9, 39.0], 'water' => [20.2, 30.9], 'adj_pct' => [9.5, 12.7]],
 ];
 const V5_BREND_POLIA = ['brand_ru', 'brand_en', 'brand_in_h', 'brand_first_third'];
 $надбавка = $сборка ? 100 / max(1, (int) ($профиль['источник']['в_расчёте'] ?? 11)) : 0.0;
@@ -95,11 +100,12 @@ foreach (V5_TYPES as $тип) {
         // Длины густого набора судим по густому корпусу: полосы профиля сняты
         // с обычных доноров, где абзац 47 слов, а у густых страниц он 15–18 на
         // main, bonus, registracia, vhod, zerkalo и app.
-        if ($густой && isset(V5_GUSTYE_DLINY[$тип][$k])) {
+        if ($густой && isset(V5_GUSTYE_POLOSY[$тип][$k])) {
             $всего++;
-            $цельГ = (float) V5_GUSTYE_DLINY[$тип][$k];
-            if (abs((float) $карта[$k] - $цельГ) <= max(0.3 * $цельГ, 2.0)) { $сошлось++; }
-            else { $мимо[$k] = [round((float) $карта[$k], 1), $цельГ]; }
+            [$низ, $верх] = V5_GUSTYE_POLOSY[$тип][$k];
+            $наше = (float) $карта[$k];
+            if ($наше >= $низ && $наше <= $верх) { $сошлось++; }
+            else { $мимо[$k] = [round($наше, 1), $низ . '–' . $верх]; }
             continue;
         }
         if (!isset($карта[$k]) || !is_numeric($карта[$k])) { continue; }
