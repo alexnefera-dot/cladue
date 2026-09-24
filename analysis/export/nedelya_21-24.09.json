@@ -1,0 +1,468 @@
+{
+ "lo": "2026-09-21",
+ "hi": "2026-09-24",
+ "last_click": "2026-09-24T16:00:01+03:00",
+ "last_conv": "2026-09-24T16:22:39+03:00",
+ "by_day": [
+  {
+   "key": "2026-09-21",
+   "domains": 57,
+   "sites": 11742,
+   "recrawled": 11742,
+   "i1": 1729,
+   "inow": 2233,
+   "reg": 18,
+   "fd": 4,
+   "zones": {
+    "lol": 31,
+    "team": 26
+   }
+  },
+  {
+   "key": "2026-09-22",
+   "domains": 84,
+   "sites": 17304,
+   "recrawled": 12674,
+   "i1": 2247,
+   "inow": 2807,
+   "reg": 25,
+   "fd": 1,
+   "zones": {
+    "team": 38,
+    "lol": 46
+   }
+  },
+  {
+   "key": "2026-09-23",
+   "domains": 75,
+   "sites": 15450,
+   "recrawled": 15449,
+   "i1": 1166,
+   "inow": 1293,
+   "reg": 5,
+   "fd": 0,
+   "zones": {
+    "team": 36,
+    "lol": 39
+   }
+  },
+  {
+   "key": "2026-09-24",
+   "domains": 41,
+   "sites": 8446,
+   "recrawled": 6000,
+   "i1": 150,
+   "inow": 150,
+   "reg": 0,
+   "fd": 0,
+   "zones": {
+    "team": 35,
+    "lol": 6
+   }
+  }
+ ],
+ "by_zone": [
+  {
+   "key": "lol",
+   "domains": 122,
+   "sites": 25132,
+   "recrawled": 22238,
+   "i1": 2441,
+   "inow": 3046,
+   "reg": 16,
+   "fd": 3,
+   "zones": {
+    "lol": 122
+   }
+  },
+  {
+   "key": "team",
+   "domains": 135,
+   "sites": 27810,
+   "recrawled": 23627,
+   "i1": 2851,
+   "inow": 3437,
+   "reg": 32,
+   "fd": 2,
+   "zones": {
+    "team": 135
+   }
+  }
+ ],
+ "by_content": [
+  {
+   "key": "content-2026-09-17-7str-oform-1",
+   "domains": 18,
+   "sites": 3708,
+   "recrawled": 3652,
+   "i1": 492,
+   "inow": 621,
+   "reg": 7,
+   "fd": 1,
+   "zones": {
+    "lol": 10,
+    "team": 8
+   }
+  },
+  {
+   "key": "content-2026-09-14b-7str-oform-1",
+   "domains": 30,
+   "sites": 6180,
+   "recrawled": 6068,
+   "i1": 1000,
+   "inow": 1279,
+   "reg": 11,
+   "fd": 2,
+   "zones": {
+    "lol": 12,
+    "team": 18
+   }
+  },
+  {
+   "key": "content-2026-09-14-7str-oform-9",
+   "domains": 11,
+   "sites": 2266,
+   "recrawled": 1930,
+   "i1": 237,
+   "inow": 336,
+   "reg": 1,
+   "fd": 0,
+   "zones": {
+    "team": 4,
+    "lol": 7
+   }
+  },
+  {
+   "key": "content-2026-09-14-7str-oform-8",
+   "domains": 16,
+   "sites": 3296,
+   "recrawled": 2848,
+   "i1": 372,
+   "inow": 482,
+   "reg": 1,
+   "fd": 1,
+   "zones": {
+    "lol": 14,
+    "team": 2
+   }
+  },
+  {
+   "key": "nabory-661-669",
+   "domains": 9,
+   "sites": 1854,
+   "recrawled": 1350,
+   "i1": 302,
+   "inow": 400,
+   "reg": 2,
+   "fd": 0,
+   "zones": {
+    "team": 5,
+    "lol": 4
+   }
+  },
+  {
+   "key": "content-2026-09-21-7str-oform-3",
+   "domains": 25,
+   "sites": 5150,
+   "recrawled": 3750,
+   "i1": 635,
+   "inow": 789,
+   "reg": 6,
+   "fd": 1,
+   "zones": {
+    "team": 10,
+    "lol": 15
+   }
+  },
+  {
+   "key": "content-2026-09-21b-12str",
+   "domains": 11,
+   "sites": 2266,
+   "recrawled": 1930,
+   "i1": 369,
+   "inow": 417,
+   "reg": 4,
+   "fd": 0,
+   "zones": {
+    "team": 6,
+    "lol": 5
+   }
+  },
+  {
+   "key": "content-2026-09-21b-7str-2",
+   "domains": 29,
+   "sites": 5974,
+   "recrawled": 5190,
+   "i1": 441,
+   "inow": 511,
+   "reg": 3,
+   "fd": 0,
+   "zones": {
+    "team": 14,
+    "lol": 15
+   }
+  },
+  {
+   "key": "NEW100-оформлено",
+   "domains": 48,
+   "sites": 9888,
+   "recrawled": 9010,
+   "i1": 1036,
+   "inow": 1223,
+   "reg": 11,
+   "fd": 0,
+   "zones": {
+    "lol": 20,
+    "team": 28
+   }
+  },
+  {
+   "key": "content-2026-09-22-12str-1-oform",
+   "domains": 2,
+   "sites": 412,
+   "recrawled": 412,
+   "i1": 13,
+   "inow": 15,
+   "reg": 0,
+   "fd": 0,
+   "zones": {
+    "lol": 2
+   }
+  },
+  {
+   "key": "content-2026-09-22b-12str",
+   "domains": 7,
+   "sites": 1442,
+   "recrawled": 1442,
+   "i1": 166,
+   "inow": 181,
+   "reg": 1,
+   "fd": 0,
+   "zones": {
+    "lol": 7
+   }
+  },
+  {
+   "key": "content-2026-09-22b-7str",
+   "domains": 23,
+   "sites": 4738,
+   "recrawled": 4233,
+   "i1": 111,
+   "inow": 111,
+   "reg": 1,
+   "fd": 0,
+   "zones": {
+    "lol": 9,
+    "team": 14
+   }
+  },
+  {
+   "key": "content-2026-09-17-7str-oform-2",
+   "domains": 3,
+   "sites": 618,
+   "recrawled": 450,
+   "i1": 7,
+   "inow": 7,
+   "reg": 0,
+   "fd": 0,
+   "zones": {
+    "team": 3
+   }
+  },
+  {
+   "key": "content-2026-09-14c-12str-oform",
+   "domains": 1,
+   "sites": 206,
+   "recrawled": 150,
+   "i1": 6,
+   "inow": 6,
+   "reg": 0,
+   "fd": 0,
+   "zones": {
+    "team": 1
+   }
+  },
+  {
+   "key": "content-2026-09-14c-7str-oform-2",
+   "domains": 6,
+   "sites": 1236,
+   "recrawled": 900,
+   "i1": 44,
+   "inow": 44,
+   "reg": 0,
+   "fd": 0,
+   "zones": {
+    "team": 6
+   }
+  },
+  {
+   "key": "content-2026-09-15-7str-oform-1",
+   "domains": 1,
+   "sites": 206,
+   "recrawled": 150,
+   "i1": 0,
+   "inow": 0,
+   "reg": 0,
+   "fd": 0,
+   "zones": {
+    "team": 1
+   }
+  },
+  {
+   "key": "content-2026-09-15-7str-oform-2",
+   "domains": 2,
+   "sites": 412,
+   "recrawled": 300,
+   "i1": 3,
+   "inow": 3,
+   "reg": 0,
+   "fd": 0,
+   "zones": {
+    "team": 2
+   }
+  },
+  {
+   "key": "content-2026-09-14b-7str-oform-2",
+   "domains": 3,
+   "sites": 618,
+   "recrawled": 450,
+   "i1": 36,
+   "inow": 36,
+   "reg": 0,
+   "fd": 0,
+   "zones": {
+    "team": 3
+   }
+  },
+  {
+   "key": "content-2026-09-17b-7str-oform",
+   "domains": 1,
+   "sites": 206,
+   "recrawled": 150,
+   "i1": 7,
+   "inow": 7,
+   "reg": 0,
+   "fd": 0,
+   "zones": {
+    "team": 1
+   }
+  },
+  {
+   "key": "content-2026-09-14c-7str-oform-1",
+   "domains": 2,
+   "sites": 412,
+   "recrawled": 300,
+   "i1": 2,
+   "inow": 2,
+   "reg": 0,
+   "fd": 0,
+   "zones": {
+    "team": 2
+   }
+  },
+  {
+   "key": "content-2026-09-16-7str",
+   "domains": 1,
+   "sites": 206,
+   "recrawled": 150,
+   "i1": 12,
+   "inow": 12,
+   "reg": 0,
+   "fd": 0,
+   "zones": {
+    "team": 1
+   }
+  },
+  {
+   "key": "content-2026-09-23-7str-6-oform",
+   "domains": 3,
+   "sites": 618,
+   "recrawled": 450,
+   "i1": 1,
+   "inow": 1,
+   "reg": 0,
+   "fd": 0,
+   "zones": {
+    "lol": 2,
+    "team": 1
+   }
+  },
+  {
+   "key": "content-2026-09-23-7str-5-oform",
+   "domains": 4,
+   "sites": 824,
+   "recrawled": 450,
+   "i1": 0,
+   "inow": 0,
+   "reg": 0,
+   "fd": 0,
+   "zones": {
+    "team": 4
+   }
+  },
+  {
+   "key": "content-2026-09-23-7str-4-oform",
+   "domains": 1,
+   "sites": 206,
+   "recrawled": 150,
+   "i1": 0,
+   "inow": 0,
+   "reg": 0,
+   "fd": 0,
+   "zones": {
+    "team": 1
+   }
+  }
+ ],
+ "daily": {
+  "2026-09-19": {
+   "reg": 23,
+   "reg_prev": 21,
+   "fd": 7,
+   "fd_prev": 6,
+   "reg_stock": 2,
+   "fd_stock": 1
+  },
+  "2026-09-20": {
+   "reg": 17,
+   "reg_prev": 16,
+   "reg_stock": 1,
+   "fd": 1,
+   "fd_prev": 1
+  },
+  "2026-09-21": {
+   "reg": 20,
+   "reg_prev": 12,
+   "fd": 5,
+   "fd_prev": 4,
+   "reg_week": 7,
+   "fd_week": 1,
+   "reg_stock": 1
+  },
+  "2026-09-22": {
+   "reg": 20,
+   "reg_prev": 6,
+   "reg_week": 13,
+   "fd": 3,
+   "fd_prev": 2,
+   "reg_stock": 1,
+   "fd_week": 1
+  },
+  "2026-09-23": {
+   "reg": 20,
+   "reg_week": 16,
+   "reg_prev": 3,
+   "fd": 2,
+   "fd_prev": 1,
+   "reg_stock": 1,
+   "fd_week": 1
+  },
+  "2026-09-24": {
+   "reg": 14,
+   "reg_week": 12,
+   "fd": 2,
+   "fd_week": 2,
+   "reg_prev": 2
+  }
+ }
+}
