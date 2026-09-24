@@ -58,6 +58,14 @@ $raw = (string) file_get_contents($file);
 /** У доноров попадается голая «<» в тексте; strip_tags глотает от неё до «>». */
 $html = preg_replace('~<(?![a-zA-Z/!?])~', '&lt;', $raw);
 
+/** Тип главной комплекта — из живого data-v6/skelety.json по букве в skelet.json. */
+function tipGlavnoy(string $dir): ?array
+{
+    if (!is_file("$dir/skelet.json")) { return null; }
+    $bukva = json_decode((string) file_get_contents("$dir/skelet.json"), true)['главная'] ?? '';
+    return json_decode((string) file_get_contents(__DIR__ . '/data-v6/skelety.json'), true)['главная'][$bukva] ?? null;
+}
+
 function chist(string $h): string
 {
     $h = preg_replace('~(?is)<(script|style)\b.*?</\1>~', ' ', $h);
@@ -89,6 +97,16 @@ $provaly = [];
 // ── 1. параметры ────────────────────────────────────────────────────
 $a = new Analyzer();
 $card = PageMetrics::measure($a, 'main', $html, ['ru' => '%brand_name_ru%', 'en' => '%brand_name_en%']);
+// Голос и тип главной комплекта (golos.json, skelet.json от zadanie-v4)
+// перекрывают цели профиля по своим полям: профиль описывает главную-сборку
+// старого образца, а статья на одну тему у пула — это тошнота 22, не 35.
+foreach (['golos.json' => fn($j) => array_map(fn($b) => [$b[0], $b[1]], $j['цели']['main']),
+          'skelet.json' => fn($j) => tipGlavnoy($dir)['поля'] ?? []] as $fajl => $vzyat) {
+    if (!is_file("$dir/$fajl")) { continue; }
+    foreach ($vzyat(json_decode((string) file_get_contents("$dir/$fajl"), true)) as $k => [$niz, $med]) {
+        if (isset($profil['поля'][$k])) { $profil['поля'][$k]['цель'] = $med; }
+    }
+}
 $parOk = 0; $parVsego = 0; $parBad = [];
 foreach ($profil['поля'] as $k => $p) {
     if (!$p['держат'] || !array_key_exists($k, $card)) { continue; }
@@ -203,9 +221,8 @@ $priyomy = [
 // Статья на одну тему зачина не имеет и кончается FAQ; сборка глав кончается
 // последней главой и FAQ не имеет. Список-оглавление в зачине у пула — 3–6 %
 // главных, требовать его больше нельзя ни от одного типа.
-$skelet = is_file("$dir/skelet.json") ? json_decode((string) file_get_contents("$dir/skelet.json"), true) : null;
-if ($skelet) {
-    $T = $skelet['тип'];
+$T = tipGlavnoy($dir);
+if ($T) {
     $v = fn(int $n, array $b) => [$n, "{$b[0]}–{$b[1]}", $n >= $b[0] && $n <= $b[1]];
     unset($priyomy['зачин: список-оглавление'], $priyomy['финал: предпоследний H2']);
     if ($T['зачин'] === null) {
@@ -257,6 +274,7 @@ $tehnika = [
     'цитат blockquote' => (function (int $n) use ($profil) {
         // Полоса из профиля: август держал 7–12 цитат на главной, новый корпус — 2–7.
         $b = $profil['семерка']['цитата_blockquote']['полоса_на_главной'] ?? [7, 12];
+        $b = tipGlavnoy($GLOBALS['dir'])['цитат'] ?? $b;
         return [$n, $b[0] . '–' . $b[1], $n >= $b[0] && $n <= $b[1]];
     })($citat),
     'текст/код' => [$seo->textHtmlRatio() . '%', '70–90%',

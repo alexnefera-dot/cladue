@@ -80,6 +80,18 @@ if ($golos) {
     unset($str);
     fwrite(STDERR, "голос комплекта: {$golos['имя']} — голосовые поля по нему\n");
 }
+// Тип главной из скелета пула: свои цели по тошноте, длине H2 и открытию H2.
+foreach (tipGlavnoy($dir)['поля'] ?? [] as $k => [$niz, $med]) {
+    if (isset($profil['страницы']['main']['поля'][$k])) { $profil['страницы']['main']['поля'][$k]['цель'] = $med; }
+}
+
+/** Тип главной комплекта — из живого data-v6/skelety.json по букве в skelet.json. */
+function tipGlavnoy(string $dir): ?array
+{
+    if (!is_file("$dir/skelet.json")) { return null; }
+    $bukva = json_decode((string) file_get_contents("$dir/skelet.json"), true)['главная'] ?? '';
+    return json_decode((string) file_get_contents(__DIR__ . '/data-v6/skelety.json'), true)['главная'][$bukva] ?? null;
+}
 
 function chist(string $h): string
 {
