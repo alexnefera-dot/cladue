@@ -51,7 +51,7 @@ const PORog_POLEY = 95.0;
 $dir = rtrim($argv[1] ?? '', '/');
 $korpus = 'samples/v5-final';
 $profilFile = __DIR__ . '/data-v5/profil-v5.json';
-[$opts] = Flagi::razobrat($argv, 2, ['корпус', 'профиль']);
+[$opts] = Flagi::razobrat($argv, 2, ['корпус', 'профиль', 'без']);
 $korpus = $opts['корпус'] ?? $korpus;
 $profilFile = $opts['профиль'] ?? $profilFile;
 if ($dir === '' || !is_dir($dir)) {
@@ -134,7 +134,10 @@ $pad = fn($v, $w, $l = false) => $l
 // ── чтение комплекта ────────────────────────────────────────────────
 $stranicy = [];
 $net = [];
-foreach (PAGES_K as $p) {
+// --без=zerkalo: комплект собран без этих страниц (их пишут не здесь), и
+// приёмка идёт по остальным. Без флага пропуск страницы — провал, как раньше.
+$pagesK = array_values(array_diff(PAGES_K, array_filter(explode(',', (string) ($opts['без'] ?? '')))));
+foreach ($pagesK as $p) {
     $f = "$dir/$p.html";
     if (!is_file($f)) { $net[] = $p; continue; }
     $raw = (string) file_get_contents($f);
@@ -166,7 +169,7 @@ const POLY = [
 $poly = [];
 
 // ── 1. каждая страница по своей мерке ───────────────────────────────
-foreach (PAGES_K as $p) {
+foreach ($pagesK as $p) {
     $html = $stranicy[$p];
     $card = PageMetrics::measure($a, $p, $html, ['ru' => '%brand_name_ru%', 'en' => '%brand_name_en%']);
     $ok = 0; $vsego = 0; $bad = [];
@@ -209,7 +212,7 @@ foreach (PAGES_K as $p) {
 
 // ── 2. каркас внутренней страницы ───────────────────────────────────
 $vnutr = [];
-foreach (PAGES_K as $p) {
+foreach ($pagesK as $p) {
     if ($p === 'main') { continue; }
     $html = $stranicy[$p];
     $h2 = zag($html, 'h2');
@@ -268,7 +271,7 @@ $nashSkelet = $levye($napisano['main']);
 // («ставка уменьшает счёт») от переписанного под копирку абзаца.
 const POTOLOK_HVOSTOV = 12.0;
 $hvosty = [];
-foreach (PAGES_K as $hp) {
+foreach ($pagesK as $hp) {
     if ($hp === 'main') { continue; }
     $hdo = explode('<details', $napisano[$hp])[0];
     preg_match_all('~(?is)<p[^>]*>(.*?)</p>~', $hdo, $mh);
@@ -297,11 +300,11 @@ $sovpavshie = [];
 $hudshayaPara = 0.0; $hudshiy = '—';
 $skeletMax = 0.0; $skeletKto = '—';
 $nashSh = [];
-foreach (PAGES_K as $p) { $nashSh[$p] = shingle(chist($napisano[$p])); }
+foreach ($pagesK as $p) { $nashSh[$p] = shingle(chist($napisano[$p])); }
 
 foreach (glob(rtrim($put, '/') . '/*', GLOB_ONLYDIR) ?: [] as $other) {
     if (realpath($other) === realpath($dir)) { continue; }
-    foreach (PAGES_K as $p) {
+    foreach ($pagesK as $p) {
         $f = "$other/$p.html";
         if (!is_file($f)) { continue; }
         $oh = Sloi::snyat(preg_replace('~<(?![a-zA-Z/!?])~', '&lt;', (string) file_get_contents($f)) ?? '');
@@ -328,7 +331,7 @@ if ($skeletMax > POTOLOK_SKELETA) { $provaly['скелет'] = 1; }
 
 // ── 4. каннибализация внутри комплекта ──────────────────────────────
 $mVn = []; $vnVn = [];
-$imena = PAGES_K;
+$imena = $pagesK;
 for ($i = 0; $i < count($imena); $i++) {
     for ($j = $i + 1; $j < count($imena); $j++) {
         $v = peresech($nashSh[$imena[$i]], $nashSh[$imena[$j]]);
@@ -349,7 +352,7 @@ if ($kanMax > 3.0) { $provaly['каннибализация'] = 1; }
 // У 38 доноров это 25–52 % (медиана 38, максимум 85). Порог — 60 %: выше уже
 // не разброс жанра, а один шаблон, размноженный шесть раз.
 $roliSlova = [];
-foreach (PAGES_K as $pp) {
+foreach ($pagesK as $pp) {
     if ($pp === 'main') { continue; }
     foreach (zag($napisano[$pp], 'h3') as $t) {
         $w = preg_split('~[^\p{L}]+~u', mb_strtolower($t), -1, PREG_SPLIT_NO_EMPTY);
@@ -370,7 +373,7 @@ if ($roliSlova) {
 $smeshenie = [];
 foreach (['words' => 'объём', 'terms_total' => 'профильных терминов'] as $pole => $imya) {
     $nashSum = 0; $ihSum = 0;
-    foreach (PAGES_K as $p) {
+    foreach ($pagesK as $p) {
         $c = PageMetrics::measure($a, $p, $stranicy[$p], ['ru' => '%brand_name_ru%', 'en' => '%brand_name_en%']);
         $nashSum += (float) ($c[$pole] ?? 0);
         $ihSum += (float) ($profil['страницы'][$p]['поля'][$pole]['цель'] ?? 0);
@@ -386,7 +389,7 @@ foreach (['words' => 'объём', 'terms_total' => 'профильных тер
 $brend = [];
 $sумLat = 0; $sумCyr = 0;
 $zamer = [];
-foreach (PAGES_K as $p) {
+foreach ($pagesK as $p) {
     $c = PageMetrics::measure($a, $p, $stranicy[$p], ['ru' => '%brand_name_ru%', 'en' => '%brand_name_en%']);
     $zamer[$p] = ['лат' => (int) $c['brand_en'], 'кир' => (int) $c['brand_ru']];
     $sумLat += $zamer[$p]['лат']; $sумCyr += $zamer[$p]['кир'];
@@ -395,7 +398,7 @@ $shkola = $sумLat > 0 ? 'латиничная' : 'кириллическая';
 $norma = $profil['бренд'][$shkola] ?? null;
 $brend['школа'] = [$shkola, 'одна на комплект', true];
 if ($norma) {
-    foreach (PAGES_K as $p) {
+    foreach ($pagesK as $p) {
         foreach (['лат', 'кир'] as $pismo) {
             $n = $norma['страницы'][$p][$pismo];
             $niz = (int) $n['низ']; $verh = (int) $n['верх'];
@@ -419,7 +422,7 @@ if ($brendOk < count($brend)) { $provaly['бренд'] = 1; }
 // доноров почти нет — приём есть у всех, меняется только доза.
 $razmetka = [];
 $normaR = $profil['разметка']['страницы'] ?? [];
-foreach (PAGES_K as $p) {
+foreach ($pagesK as $p) {
     if (!isset($normaR[$p])) { continue; }
     $html = $stranicy[$p];
     $st = substr_count($html, '<strong');
@@ -452,7 +455,7 @@ if ($razmetka && $razmOk / count($razmetka) < 0.8) { $provaly['разметка'
 
 // ── 5. граф перелинковки ────────────────────────────────────────────
 $ishod = [];
-foreach (PAGES_K as $p) {
+foreach ($pagesK as $p) {
     // Хвост после пути ссылку не отменяет: «/registracia/», «/vhod#kod» и
     // «/slots?tab=new» — это те же внутренние переходы, а прежняя строгая
     // форма их не видела и заносила страницу в нулевые.
@@ -464,14 +467,14 @@ foreach ($ishod as $lst) { foreach ($lst as $h) { if (trim($h, '/') === 'bonus')
 $sGlavnoy = [];
 foreach ($ishod['main'] as $h) { $c = trim($h, '/'); if ($c !== '' && $c !== 'bonus') { $sGlavnoy[$c] = 1; } }
 $nazadNaGlavnuyu = 0;
-foreach (PAGES_K as $p) {
+foreach ($pagesK as $p) {
     if ($p === 'main') { continue; }
     foreach ($ishod[$p] as $h) { if (trim($h, '/') === '') { $nazadNaGlavnuyu++; break; } }
 }
 $ssylokVsego = 0;
-foreach (PAGES_K as $p) { $ssylokVsego += count($ishod[$p]); }
+foreach ($pagesK as $p) { $ssylokVsego += count($ishod[$p]); }
 $ssylokCel = 0;
-foreach (PAGES_K as $p) { $ssylokCel += (int) ($profil['страницы'][$p]['жанр']['ссылок'] ?? 50); }
+foreach ($pagesK as $p) { $ssylokCel += (int) ($profil['страницы'][$p]['жанр']['ссылок'] ?? 50); }
 $smeshenie['внутренних ссылок'] = [$ssylokVsego . ' из ' . $ssylokCel, '≥85%',
     $ssylokVsego / max(1, $ssylokCel) * 100 >= 85, round($ssylokVsego / max(1, $ssylokCel) * 100)];
 
@@ -487,7 +490,7 @@ $graf = [
     'входящих на /bonus' => [$vhodBonus, '0', $vhodBonus === 0],
     'внутренних, ведущих назад' => [$nazadNaGlavnuyu, '0–2', $nazadNaGlavnuyu <= 2],
 ];
-foreach (PAGES_K as $p) {
+foreach ($pagesK as $p) {
     if ($p === 'main') { continue; }
     $graf["ссылок с /$p"] = [count($ishod[$p]), '3–11',
         count($ishod[$p]) >= 3 && count($ishod[$p]) <= 11];
@@ -497,7 +500,7 @@ if ($grafOk < count($graf)) { $provaly['граф'] = 1; }
 
 // ── 6. техника по всем страницам ────────────────────────────────────
 $teh = ['H1' => 0, 'H4' => 0, 'иерархия' => 0, 'картинок' => 0, 'nofollow' => 0, 'внешних' => 0];
-foreach (PAGES_K as $p) {
+foreach ($pagesK as $p) {
     $d = new DOMDocument();
     $prev = libxml_use_internal_errors(true);
     $d->loadHTML('<?xml encoding="utf-8"?><html><body>' . $stranicy[$p] . '</body></html>',
@@ -520,10 +523,10 @@ $tehOk = ($teh['H1'] === 0) + ($teh['H4'] === 0) + ($teh['иерархия'] ===
 if ($tehOk < 6) { $provaly['техника'] = 1; }
 
 // ── отчёт ───────────────────────────────────────────────────────────
-printf("%s — комплект из %d страниц\n\n", basename($dir), count(PAGES_K));
+printf("%s — комплект из %d страниц\n\n", basename($dir), count($pagesK));
 
 echo "── параметры по типам ──\n";
-foreach (PAGES_K as $p) {
+foreach ($pagesK as $p) {
     [$ok, $vs] = $otchet[$p]['поля'];
     $d = $otchet[$p]['доля'];
     echo '  ' . ($d >= PORog_POLEY ? '·' : '✗') . ' ' . $pad($p, 13, true)
@@ -546,7 +549,7 @@ echo "\n── полы по рынку ──\n";
 echo '  ' . $pad('', 14, true);
 foreach (POLY as $imya) { echo $pad($imya, 15, true); }
 echo "\n";
-foreach (PAGES_K as $p) {
+foreach ($pagesK as $p) {
     echo '  ' . $pad($p, 14, true);
     foreach (POLY as $imya) {
         [$nash, $pol, $ok] = $poly[$imya][$p];
@@ -608,7 +611,7 @@ printf("  повтор роли в H3:           %.1f%%  (потолок 60%%, �
 // шинглы. Единственная проверка комплекта, которая смотрит на связность речи.
 echo "\n── согласование ──\n";
 $sryvyVsego = 0;
-foreach (PAGES_K as $p) {
+foreach ($pagesK as $p) {
     $sr = Soglasovanie::proverit($napisano[$p]);
     $sryvyVsego += count($sr);
     if (!$sr) { continue; }
@@ -628,7 +631,7 @@ else { $provaly['согласование'] = 1; }
 // заикание видел только человек.
 echo "\n── эхо тела в ответах ──\n";
 $ekhoVsego = 0;
-foreach (PAGES_K as $p) {
+foreach ($pagesK as $p) {
     $ek = Ekho::proverit($napisano[$p]);
     $ekhoVsego += count($ek);
     if (!$ek) { continue; }
@@ -646,7 +649,7 @@ else { $provaly['эхо тела'] = 1; }
 // вставки под полы выходили короче — и лежали под измерительным порогом.
 echo "\n── россыпь коротких абзацев ──\n";
 $rossypVsego = 0;
-foreach (PAGES_K as $p) {
+foreach ($pagesK as $p) {
     $rs = Rossyp::proverit($napisano[$p]);
     $rossypVsego += count($rs);
     foreach ($rs as $r) {
