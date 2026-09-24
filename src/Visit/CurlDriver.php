@@ -73,6 +73,7 @@ final class CurlDriver implements DriverInterface
                 $buf = new \stdClass();
                 $buf->data = '';
                 $buf->truncated = false;
+                $buf->redirects = []; // цепочка редиректов: по ней опознаётся наш редиректор
                 $cookie = tempnam(sys_get_temp_dir(), 'ys-visit-');
                 $ch = $this->handle($job, $buf, $timeout, $maxBytes, $verifySsl, $resolve, (string) $cookie);
                 curl_multi_add_handle($multi, $ch);
@@ -104,7 +105,7 @@ final class CurlDriver implements DriverInterface
                 @unlink($entry['cookie']);
 
                 if ($errno !== CURLE_OK && !$buf->truncated) {
-                    $result = ['ok' => false, 'error' => sprintf('curl %d: %s', $errno, curl_strerror($errno) ?? ''), 'status' => null, 'final_url' => $finalUrl, 'title' => ''];
+                    $result = ['ok' => false, 'error' => sprintf('curl %d: %s', $errno, curl_strerror($errno) ?? ''), 'status' => null, 'final_url' => $finalUrl, 'title' => '', 'redirects' => $buf->redirects];
                 } else {
                     $html = Html::toUtf8($buf->data, $contentType);
                     $dir = dirname($job->htmlFile);
@@ -118,6 +119,7 @@ final class CurlDriver implements DriverInterface
                         'status' => $httpStatus,
                         'final_url' => $finalUrl,
                         'title' => Html::title($html),
+                        'redirects' => $buf->redirects,
                     ];
                 }
                 $results[$job->id] = $result;
@@ -145,6 +147,18 @@ final class CurlDriver implements DriverInterface
         $ch = curl_init();
         $options = [
             CURLOPT_URL => $job->url,
+            // Заголовки нужны только ради Location: цепочка редиректов — это то, по чему опознаётся
+            // наш дор (он уводит через свой редиректор, а конечный адрес — уже чужая рефка).
+            CURLOPT_HEADERFUNCTION => static function ($ch, string $header) use ($buf): int {
+                if (stripos($header, 'location:') === 0) {
+                    $to = trim(substr($header, 9));
+                    if ($to !== '') {
+                        $buf->redirects[] = $to;
+                    }
+                }
+
+                return strlen($header);
+            },
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_MAXREDIRS => 5,
             CURLOPT_TIMEOUT => $timeout,

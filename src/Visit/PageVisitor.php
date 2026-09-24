@@ -322,29 +322,40 @@ final class PageVisitor
             'fingerprint' => '',
             'text_length' => 0,
             'template' => '', // тип вёрстки по HTML (SiteTemplate): pages7 / pages12 / other
+            // Цепочка редиректов (все промежуточные адреса): по ней опознаётся наш редиректор.
+            'redirects' => array_values(array_map('strval', (array) ($result['redirects'] ?? []))),
         ];
+        $shot = static fn (): string => ($job->screenshotFile !== null && is_file($job->screenshotFile)) ? $job->screenshotFile : '';
+        $html = ($visit['ok'] && is_file($job->htmlFile)) ? $this->readHtml($job->htmlFile) : '';
 
-        if ($visit['ok'] && $siteDomain !== '' && $visit['final_url'] !== '' && !SiteLinks::sameSite($job->url, $visit['final_url'])) {
-            @unlink($job->htmlFile);
-            if ($job->screenshotFile !== null) {
-                @unlink($job->screenshotFile);
+        // НАШ ШАБЛОН проверяем ПЕРВЫМ — до отбраковки редиректа на чужой сайт. Наш дор сначала уводит
+        // на свой редиректор, а тот дальше на чужую партнёрскую ссылку, так что «уход на другой сайт»
+        // — это как раз нормальное поведение НАШЕГО сайта. Если сначала отбросить визит по редиректу,
+        // метка никогда не проверится и сайт перестанет считаться нашим.
+        if ($html !== '' && !$this->ownSites->isEmpty()) {
+            $chain = array_merge([$job->url, $visit['final_url']], $visit['redirects']);
+            $host = Domains::hostFromUrl($visit['final_url'] !== '' ? $visit['final_url'] : $job->url);
+            if ($this->ownSites->matchesHtml($html) || $this->ownSites->matchesHost($host) || $this->ownSites->matchesAnyUrl($chain)) {
+                // Наш шаблон — HTML не храним, но скриншот оставляем, чтобы можно было проверить глазами.
+                @unlink($job->htmlFile);
+
+                return array_merge($visit, ['ok' => false, 'error' => 'исключён как наш', 'own' => true, 'screenshot_file' => $shot()]);
             }
-
-            return array_merge($visit, ['ok' => false, 'error' => 'редирект на другой сайт: ' . $visit['final_url']]);
         }
 
-        if ($visit['ok'] && is_file($job->htmlFile)) {
-            $html = $this->readHtml($job->htmlFile);
-            if (!$this->ownSites->isEmpty()) {
-                $host = Domains::hostFromUrl($visit['final_url'] !== '' ? $visit['final_url'] : $job->url);
-                if ($this->ownSites->matchesHtml($html) || $this->ownSites->matchesHost($host)) {
-                    // Наш шаблон — HTML не храним, но скриншот оставляем, чтобы можно было проверить глазами.
-                    @unlink($job->htmlFile);
-                    $shot = ($job->screenshotFile !== null && is_file($job->screenshotFile)) ? $job->screenshotFile : '';
+        if ($visit['ok'] && $siteDomain !== '' && $visit['final_url'] !== '' && !SiteLinks::sameSite($job->url, $visit['final_url'])) {
+            // Ушли на чужой сайт: его страницу как страницу ЭТОГО сайта не сохраняем, но СКРИНШОТ
+            // оставляем — иначе в таблице пропадает превью и не видно, куда именно увёл редирект.
+            @unlink($job->htmlFile);
 
-                    return array_merge($visit, ['ok' => false, 'error' => 'исключён как наш', 'own' => true, 'screenshot_file' => $shot]);
-                }
-            }
+            return array_merge($visit, [
+                'ok' => false,
+                'error' => 'редирект на другой сайт: ' . $visit['final_url'],
+                'screenshot_file' => $shot(),
+            ]);
+        }
+
+        if ($visit['ok'] && $html !== '') {
             // Страница-блокировка (Cloudflare/антибот/403/429/5xx) — это не контент. Удаляем и помечаем
             // ошибкой (её потом повторяем через другой прокси), а не сохраняем как страницу сайта.
             if (self::looksLikeBlock($html, (string) $visit['title'], (int) ($visit['status'] ?? 0))) {
@@ -361,13 +372,12 @@ final class PageVisitor
             // и помечаем ошибкой, которую повтор перезапросит с другого IP и под другим агентом.
             if ($this->detectOfferWalls && OfferWall::looksLike($html)) {
                 @unlink($job->htmlFile);
-                $shot = ($job->screenshotFile !== null && is_file($job->screenshotFile)) ? $job->screenshotFile : '';
 
                 return array_merge($visit, [
                     'ok' => false,
                     'error' => OfferWall::LABEL . ' вместо сайта (показана витрина бонусов)',
                     'offer_wall' => true,
-                    'screenshot_file' => $shot,
+                    'screenshot_file' => $shot(),
                 ]);
             }
             // HTTP 404/410 — такой страницы на сайте нет (ссылка меню ведёт в никуда, либо это

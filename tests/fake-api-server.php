@@ -375,6 +375,18 @@ switch ($host) {
         header('Location: http://other-domain.ru:' . $port . '/');
 
         return;
+    case 'ourdoor.ru':
+        // НАШ дор: уводит на свой редиректор, а тот дальше — на чужую партнёрскую ссылку.
+        // В конечном адресе редиректора уже нет, он виден только в ЦЕПОЧКЕ редиректов.
+        http_response_code(302);
+        header('Location: http://redir-hub.ru:' . $port . '/go/1');
+
+        return;
+    case 'redir-hub.ru':
+        http_response_code(302);
+        header('Location: http://other-domain.ru:' . $port . '/');
+
+        return;
     case 'brandnet.ru':
         // apex редиректит на бренд-поддомен ТОГО ЖЕ сайта (kush.brandnet.ru) — это не уход
         // на чужой сайт: страницу надо сохранить, а меню разобрать относительно поддомена.

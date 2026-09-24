@@ -84,6 +84,43 @@ final class OwnSites
     }
 
     /**
+     * Совпадает ли метка с АДРЕСОМ (подстрока, без учёта регистра).
+     *
+     * Нужно для ЦЕПОЧКИ РЕДИРЕКТОВ: наш дор сначала уводит на свой редиректор, а уже он — на чужую
+     * партнёрскую ссылку. В конечном адресе редиректора уже нет, поэтому сайт переставал опознаваться
+     * как наш. Метка вида «sitegrator» ловит именно промежуточный адрес.
+     */
+    public function matchesUrl(string $url): bool
+    {
+        if (trim($url) === '') {
+            return false;
+        }
+        foreach ($this->markers as $marker) {
+            if (stripos($url, $marker) !== false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Совпадает ли метка с любым адресом цепочки редиректов.
+     *
+     * @param list<string> $urls
+     */
+    public function matchesAnyUrl(array $urls): bool
+    {
+        foreach ($urls as $url) {
+            if ($this->matchesUrl((string) $url)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Совпадает ли метка-домен с хостом сайта: точное равенство или поддомен (kush.oasc.team ~ oasc.team).
      */
     public function matchesHost(string $host): bool

@@ -21,7 +21,7 @@ use YandexSites\Visit\VisitJob;
  */
 final class VisitTest
 {
-    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'agegate.ru', 'ourtpl.ru', 'brand-a.tpl.ru', 'brand-b.tpl.ru', 'footeronly.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru', 'softsite.ru', 'duptest.ru', 'localeretry.ru', 'brandnet.ru', 'kush.brandnet.ru', 'namedup.ru', 'bigpage.ru', 'tpl7.ru', 'tpl12.ru', 'botblock.ru', 'offerwall.ru', 'alwaysoffer.ru'];
+    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'agegate.ru', 'ourtpl.ru', 'brand-a.tpl.ru', 'brand-b.tpl.ru', 'footeronly.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru', 'softsite.ru', 'duptest.ru', 'localeretry.ru', 'brandnet.ru', 'kush.brandnet.ru', 'namedup.ru', 'bigpage.ru', 'tpl7.ru', 'tpl12.ru', 'botblock.ru', 'offerwall.ru', 'alwaysoffer.ru', 'ourdoor.ru', 'redir-hub.ru'];
 
     private ?string $dir = null;
 
@@ -1061,6 +1061,42 @@ final class VisitTest
         Assert::inArray("http://localeretry.ru:$port/app", $urls, 'страница добрана по адресу без /ru');
         Assert::true(is_file("$dir/3-стр/localeretry.ru/app.html"), 'файл добранной страницы сохранён');
         Assert::true(is_file("$dir/3-стр/localeretry.ru/main.html"), 'главная не перекачивалась, осталась');
+
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($it as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+        @rmdir($dir);
+    }
+
+    public function testOwnSiteIsDetectedByRedirectChain(): void
+    {
+        // Наш дор сначала уводит на СВОЙ редиректор, а тот дальше — на чужую партнёрскую ссылку.
+        // В конечном адресе редиректора уже нет, поэтому метка должна ловиться по ЦЕПОЧКЕ редиректов,
+        // и проверка «наш» обязана идти ДО отбраковки «редирект на другой сайт» — иначе наши сайты
+        // перестают опознаваться, что и случилось у пользователя.
+        $port = FakeServer::port();
+        $dir = $this->dir() . '/ownchain';
+        $site = new Site('ourdoor.ru', 'ourdoor.ru', 'ourdoor.ru');
+        $site->add(new SearchResult('казино', 0, 1, "http://ourdoor.ru:$port/", 'ourdoor.ru', 'OD'));
+        $sites = ['ourdoor.ru' => $site];
+
+        $cfg = [
+            'crawl' => false, 'variants' => 1, 'target' => 'found', 'dir' => $dir,
+            'screenshot' => false, 'timeout' => 5, 'delay_ms' => 0, 'concurrency' => 2,
+            'retries' => 0, 'preview_retries' => 0, 'resolve' => $this->resolve($port),
+            'user_agents' => [UserAgents::YANDEX_BOT],
+            'own_markers' => ['redir-hub.ru'], // домен НАШЕГО редиректора — промежуточный хоп
+        ];
+        (new PageVisitor($cfg, new CurlDriver(), $this->logger()))->visit($sites);
+
+        $visit = (array) $site->visits[0];
+        Assert::true(in_array('redir-hub.ru', array_map(
+            static fn (string $u): string => (string) parse_url($u, PHP_URL_HOST),
+            (array) ($visit['redirects'] ?? []),
+        ), true), 'промежуточный адрес сохранён в цепочке: ' . json_encode($visit['redirects'] ?? []));
+        Assert::true($site->own, 'сайт опознан нашим по промежуточному адресу редиректа');
+        Assert::contains('исключён как наш', (string) ($visit['error'] ?? ''));
 
         $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
         foreach ($it as $item) {

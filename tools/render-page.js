@@ -205,6 +205,15 @@ async function visitJob(browser, job, options) {
             return type === 'image' || type === 'media' || type === 'font' ? route.abort() : route.continue();
         }).catch(() => {});
     }
+    // Цепочка редиректов: наш дор уводит через свой редиректор, а тот — дальше на чужую рефку,
+    // поэтому в конечном адресе редиректора уже нет. Ловим и серверные хопы (redirectedFrom), и
+    // клиентские переходы (framenavigated — meta refresh, JS).
+    const navigated = [];
+    page.on('framenavigated', (frame) => {
+        if (frame === page.mainFrame()) {
+            navigated.push(frame.url());
+        }
+    });
     try {
         const response = await page.goto(job.url, {
             referer: job.referer || undefined,
@@ -235,12 +244,22 @@ async function visitJob(browser, job, options) {
         if (job.screenshotFile) {
             await page.screenshot({ path: job.screenshotFile, fullPage: Boolean(options.full_page) }).catch(() => {});
         }
+        const hops = [];
+        try {
+            let req = response ? response.request() : null;
+            while (req) {
+                hops.unshift(req.url());
+                req = req.redirectedFrom();
+            }
+        } catch (e) { /* цепочка недоступна — не беда, останутся переходы фрейма */ }
+        const redirects = [...new Set([...hops, ...navigated].filter(Boolean))];
         return {
             id: job.id,
             ok: true,
             status: response ? response.status() : null,
             finalUrl: page.url(),
             title: await page.title().catch(() => ''),
+            redirects,
         };
     } catch (e) {
         return { id: job.id, ok: false, error: String(e.message || e).split('\n')[0] };

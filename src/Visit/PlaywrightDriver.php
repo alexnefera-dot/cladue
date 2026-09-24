@@ -179,6 +179,8 @@ final class PlaywrightDriver implements DriverInterface
             'status' => isset($data['status']) ? (int) $data['status'] : null,
             'final_url' => (string) ($data['finalUrl'] ?? ''),
             'title' => (string) ($data['title'] ?? ''),
+            // Цепочка редиректов — по ней PageVisitor опознаёт наш редиректор.
+            'redirects' => array_values(array_map('strval', (array) ($data['redirects'] ?? []))),
         ];
         $results[$data['id']] = $result;
         if ($onResult !== null) {

@@ -299,6 +299,20 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   the site refused the BOT (`wasBlockedAsBot()`: a `blocked` visit or an error naming 403/429/антибот);
   a site that merely timed out keeps the bot, because for a door the bot IS the right visitor. Covered by
   `VisitTest::testPreviewDoesNotSaveRedirectToAnotherSite` (the fake host `redirect-site.ru`).
+  That guard then broke the user's own sites («перестали отображаться наши сайты, так как там редиректы
+  срабатывают»), because THEIR doors redirect on purpose: «наш сначала пуляет на sitegrator домен, потом
+  дальше на другие рефки». So `assembleVisit()` now checks the OWN MARKERS FIRST, before the redirect
+  bail-out, and matches them against the whole REDIRECT CHAIN as well as the HTML and the final host —
+  the redirector is an INTERMEDIATE hop and is already gone from `final_url`. Both drivers report it:
+  `CurlDriver` collects `Location:` through `CURLOPT_HEADERFUNCTION`, `tools/render-page.js` merges the
+  server-side chain (`request().redirectedFrom()`) with client-side navigations (`framenavigated`, i.e.
+  meta refresh and JS), `PlaywrightDriver` relays `redirects`, and the visit stores it. Matching is
+  `OwnSites::matchesUrl()`/`matchesAnyUrl()` — a plain case-insensitive substring, so a marker like the
+  redirector's domain in `own-markers.txt` is enough. A cross-site redirect that is NOT ours also KEEPS
+  ITS SCREENSHOT now (the HTML is still dropped): deleting it made previews vanish from the table
+  («перестали загружаться превью») and hid where the redirect went. Covered by
+  `VisitTest::testOwnSiteIsDetectedByRedirectChain` (fake hosts `ourdoor.ru` → `redir-hub.ru` →
+  `other-domain.ru`, with `redir-hub.ru` as the marker).
 - `Runner` and `PageVisitor` accept an optional `$onProgress` callback; `bin/run-job.php` wires it
   to `Support\Progress`, and `bin/panel.php` (dual launcher/router via `PHP_SAPI==='cli-server'`)
   spawns the job and serves `public/panel.html`. Keep CLI and panel behaviour in sync through `Runtime`.
