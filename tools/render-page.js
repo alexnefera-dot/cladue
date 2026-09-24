@@ -262,7 +262,17 @@ async function visitJob(browser, job, options) {
             redirects,
         };
     } catch (e) {
-        return { id: job.id, ok: false, error: String(e.message || e).split('\n')[0] };
+        // Даже если страница не открылась (таймаут, обрыв), переходы главного фрейма уже случились:
+        // наш дор мог успеть увести на свой редиректор. Отдаём их, иначе сайт не опознать как наш.
+        let finalUrl = '';
+        try { finalUrl = page.url(); } catch (e2) { /* страница закрыта */ }
+        return {
+            id: job.id,
+            ok: false,
+            error: String(e.message || e).split('\n')[0],
+            finalUrl: finalUrl && finalUrl !== 'about:blank' ? finalUrl : '',
+            redirects: [...new Set(navigated.filter((u) => Boolean(u) && u !== 'about:blank'))],
+        };
     } finally {
         await context.close().catch(() => {});
     }

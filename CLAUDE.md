@@ -306,13 +306,25 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   the redirector is an INTERMEDIATE hop and is already gone from `final_url`. Both drivers report it:
   `CurlDriver` collects `Location:` through `CURLOPT_HEADERFUNCTION`, `tools/render-page.js` merges the
   server-side chain (`request().redirectedFrom()`) with client-side navigations (`framenavigated`, i.e.
-  meta refresh and JS), `PlaywrightDriver` relays `redirects`, and the visit stores it. Matching is
-  `OwnSites::matchesUrl()`/`matchesAnyUrl()` — a plain case-insensitive substring, so a marker like the
-  redirector's domain in `own-markers.txt` is enough. A cross-site redirect that is NOT ours also KEEPS
-  ITS SCREENSHOT now (the HTML is still dropped): deleting it made previews vanish from the table
-  («перестали загружаться превью») and hid where the redirect went. Covered by
+  meta refresh and JS) — its CATCH branch reports them too, so a navigation that redirected and only THEN
+  timed out is not lost —, `PlaywrightDriver` relays `redirects`, and the visit stores it. Matching is
+  `OwnSites::matchesUrl()`/`matchesAnyUrl()`: a marker with a `/` is a PATH and stays a plain
+  case-insensitive substring (`/uploads/brands/`), a marker without one is a NAME (`faro`, `sitegrator`,
+  `redir-hub.ru`) and matches on WORD BOUNDARIES (`(?<![\p{L}\p{N}])…(?![\p{L}\p{N}])`), so the
+  redirector's domain in `own-markers.txt` is enough while a short marker does not eat a stranger's
+  `safaro.ru` — a false «наш» throws a real site away and costs more than a miss. A cross-site redirect
+  that is NOT ours also KEEPS ITS SCREENSHOT now (the HTML is still dropped): deleting it made previews
+  vanish from the table («перестали загружаться превью») and hid where the redirect went.
+  The URL/host half of the check runs on EVERY visit, not only on a saved page: the user reported «наши
+  пропускаешь все равно» because the whole own block sat behind «if the HTML is there», and a door we
+  never reached (timeout, обрыв, антибот) silently stopped counting as ours although its redirect chain
+  was already known. `assembleVisit()` therefore evaluates `matchesHost()`/`matchesAnyUrl()` first and
+  only asks `matchesHtml()` when a page was actually saved — that is the user's rule «будем считать все
+  кто на faro редиректит наши». Covered by
   `VisitTest::testOwnSiteIsDetectedByRedirectChain` (fake hosts `ourdoor.ru` → `redir-hub.ru` →
-  `other-domain.ru`, with `redir-hub.ru` as the marker).
+  `other-domain.ru`, with `redir-hub.ru` as the marker), `VisitTest::testOwnSiteIsDetectedWhenPageNeverOpened`
+  (`ourfail.ru` → `redir-hub.ru/dead-end` → a dead port: no page, still ours) and `tests/OwnSitesTest.php`
+  (marker boundaries).
 - `Runner` and `PageVisitor` accept an optional `$onProgress` callback; `bin/run-job.php` wires it
   to `Support\Progress`, and `bin/panel.php` (dual launcher/router via `PHP_SAPI==='cli-server'`)
   spawns the job and serves `public/panel.html`. Keep CLI and panel behaviour in sync through `Runtime`.

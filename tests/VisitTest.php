@@ -21,7 +21,7 @@ use YandexSites\Visit\VisitJob;
  */
 final class VisitTest
 {
-    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'agegate.ru', 'ourtpl.ru', 'brand-a.tpl.ru', 'brand-b.tpl.ru', 'footeronly.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru', 'softsite.ru', 'duptest.ru', 'localeretry.ru', 'brandnet.ru', 'kush.brandnet.ru', 'namedup.ru', 'bigpage.ru', 'tpl7.ru', 'tpl12.ru', 'botblock.ru', 'offerwall.ru', 'alwaysoffer.ru', 'ourdoor.ru', 'redir-hub.ru'];
+    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'agegate.ru', 'ourtpl.ru', 'brand-a.tpl.ru', 'brand-b.tpl.ru', 'footeronly.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru', 'softsite.ru', 'duptest.ru', 'localeretry.ru', 'brandnet.ru', 'kush.brandnet.ru', 'namedup.ru', 'bigpage.ru', 'tpl7.ru', 'tpl12.ru', 'botblock.ru', 'offerwall.ru', 'alwaysoffer.ru', 'ourdoor.ru', 'redir-hub.ru', 'ourfail.ru'];
 
     private ?string $dir = null;
 
@@ -1103,6 +1103,34 @@ final class VisitTest
             $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
         }
         @rmdir($dir);
+    }
+
+    public function testOwnSiteIsDetectedWhenPageNeverOpened(): void
+    {
+        // «Наши пропускаешь все равно»: до нашего дора часто вообще не достучаться (таймаут, обрыв,
+        // антибот), HTML не сохраняется — а проверка «наш» стояла за условием «если HTML есть» и на
+        // упавшем визите не срабатывала. Цепочка редиректов известна и БЕЗ страницы, значит по ней
+        // сайт обязан опознаваться как наш.
+        $port = FakeServer::port();
+        $dir = $this->dir() . '/ownfail';
+        $site = new Site('ourfail.ru', 'ourfail.ru', 'ourfail.ru');
+        $site->add(new SearchResult('казино', 0, 1, "http://ourfail.ru:$port/", 'ourfail.ru', 'OF'));
+        $sites = ['ourfail.ru' => $site];
+
+        $cfg = [
+            'crawl' => false, 'variants' => 1, 'target' => 'found', 'dir' => $dir,
+            'screenshot' => false, 'timeout' => 5, 'delay_ms' => 0, 'concurrency' => 2,
+            'retries' => 0, 'preview_retries' => 0, 'resolve' => $this->resolve($port),
+            'user_agents' => [UserAgents::YANDEX_BOT],
+            'own_markers' => ['redir-hub.ru'], // домен НАШЕГО редиректора — промежуточный хоп
+        ];
+        (new PageVisitor($cfg, new CurlDriver(), $this->logger()))->visit($sites);
+
+        $visit = (array) $site->visits[0];
+        Assert::false((bool) ($visit['ok'] ?? false), 'страница так и не открылась');
+        Assert::true($site->own, 'сайт опознан нашим по цепочке редиректов, хотя страницы нет');
+        Assert::contains('исключён как наш', (string) ($visit['error'] ?? ''));
+        Assert::false(is_dir($dir), 'страницы не сохранялись — каталог визита пуст');
     }
 
     public function testPreviewDoesNotSaveRedirectToAnotherSite(): void

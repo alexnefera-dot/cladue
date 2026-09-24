@@ -84,11 +84,15 @@ final class OwnSites
     }
 
     /**
-     * Совпадает ли метка с АДРЕСОМ (подстрока, без учёта регистра).
+     * Совпадает ли метка с АДРЕСОМ (без учёта регистра).
      *
      * Нужно для ЦЕПОЧКИ РЕДИРЕКТОВ: наш дор сначала уводит на свой редиректор, а уже он — на чужую
      * партнёрскую ссылку. В конечном адресе редиректора уже нет, поэтому сайт переставал опознаваться
      * как наш. Метка вида «sitegrator» ловит именно промежуточный адрес.
+     *
+     * Метка с «/» — это путь (`/uploads/brands/`), он ищется подстрокой. Метка без «/» — имя
+     * (домен или его часть: `faro`, `sitegrator`, `redir-hub.ru`) и ищется ПО ГРАНИЦАМ СЛОВА, иначе
+     * короткая метка «faro» поймала бы чужой `safaro.ru`, а ложное «наш» стоит дороже пропуска.
      */
     public function matchesUrl(string $url): bool
     {
@@ -96,7 +100,14 @@ final class OwnSites
             return false;
         }
         foreach ($this->markers as $marker) {
-            if (stripos($url, $marker) !== false) {
+            if (str_contains($marker, '/')) {
+                if (stripos($url, $marker) !== false) {
+                    return true;
+                }
+                continue;
+            }
+            $re = '~(?<![\p{L}\p{N}])' . preg_quote($marker, '~') . '(?![\p{L}\p{N}])~ui';
+            if (@preg_match($re, $url) === 1) {
                 return true;
             }
         }

@@ -382,9 +382,17 @@ switch ($host) {
         header('Location: http://redir-hub.ru:' . $port . '/go/1');
 
         return;
+    case 'ourfail.ru':
+        // НАШ дор, до которого мы НЕ достучались: уводит на свой редиректор, а дальше связь обрывается.
+        // Страницы нет и HTML не сохранён — опознать его можно только по ЦЕПОЧКЕ редиректов.
+        http_response_code(302);
+        header('Location: http://redir-hub.ru:' . $port . '/dead-end');
+
+        return;
     case 'redir-hub.ru':
         http_response_code(302);
-        header('Location: http://other-domain.ru:' . $port . '/');
+        // /dead-end — обрыв связи (порт 1 никто не слушает), обычный путь — чужая партнёрская ссылка.
+        header('Location: ' . ($uri === '/dead-end' ? 'http://127.0.0.1:1/' : 'http://other-domain.ru:' . $port . '/'));
 
         return;
     case 'brandnet.ru':

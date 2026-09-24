@@ -42,6 +42,38 @@ final class OwnSitesTest
         Assert::false($own->matchesHtml('что угодно oasc.team'), 'без меток ничего не наше');
     }
 
+    public function testMatchesUrlByWordBoundaries(): void
+    {
+        // Метка-имя (без «/») ищется по ГРАНИЦАМ СЛОВА: короткое «faro» обязано ловить наш редиректор
+        // в любом виде, но не чужой safaro.ru — ложное «наш» стоит дороже пропуска.
+        $own = new OwnSites(['faro']);
+        Assert::true($own->matchesUrl('http://faro.com/go/1'), 'сам домен');
+        Assert::true($own->matchesUrl('https://go.faro.net/r?id=7'), 'поддомен');
+        Assert::true($own->matchesUrl('https://faro-casino.ru/'), 'домен с дефисом');
+        Assert::true($own->matchesUrl('https://casino-faro.ru/'), 'метка в конце имени');
+        Assert::false($own->matchesUrl('https://safaro.ru/'), 'чужой домен, лишь содержащий буквы метки');
+        Assert::false($own->matchesUrl('https://farolux.ru/'), 'метка склеена со следующим словом');
+        Assert::false($own->matchesUrl(''), 'пустой адрес');
+    }
+
+    public function testMatchesUrlKeepsSubstringForPathMarkers(): void
+    {
+        // Метка-путь (с «/») — это кусок адреса, а не имя: ищем подстрокой, как и раньше.
+        $own = new OwnSites(['/uploads/brands/']);
+        Assert::true($own->matchesUrl('https://okna.ru/uploads/brands/logo.svg'), 'путь к ассетам');
+        Assert::false($own->matchesUrl('https://okna.ru/brands/logo.svg'), 'другой путь');
+    }
+
+    public function testMatchesAnyUrlWalksRedirectChain(): void
+    {
+        // Наш дор уводит на свой редиректор, а тот дальше — на чужую рефку: в конечном адресе метки
+        // уже нет, она только в промежуточном хопе.
+        $own = new OwnSites(['sitegrator']);
+        $chain = ['http://ourdoor.ru/', 'https://go.sitegrator.com/r/12', 'https://partner-casino.com/?ref=9'];
+        Assert::true($own->matchesAnyUrl($chain), 'метка найдена в промежуточном адресе');
+        Assert::false($own->matchesAnyUrl(['http://ourdoor.ru/', 'https://partner-casino.com/']), 'без нашего хопа — не наш');
+    }
+
     public function testFromConfigMergesListAndFile(): void
     {
         $file = sys_get_temp_dir() . '/own-markers-' . getmypid() . '.txt';

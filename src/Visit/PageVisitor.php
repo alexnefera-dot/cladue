@@ -332,10 +332,18 @@ final class PageVisitor
         // на свой редиректор, а тот дальше на чужую партнёрскую ссылку, так что «уход на другой сайт»
         // — это как раз нормальное поведение НАШЕГО сайта. Если сначала отбросить визит по редиректу,
         // метка никогда не проверится и сайт перестанет считаться нашим.
-        if ($html !== '' && !$this->ownSites->isEmpty()) {
+        if (!$this->ownSites->isEmpty()) {
+            // По АДРЕСАМ проверяем ВСЕГДА, даже если страница не открылась (таймаут, блок, антибот):
+            // цепочка редиректов уже известна, и метка стоит как раз на промежуточном адресе. Раньше
+            // вся проверка стояла за «если HTML сохранился», и на упавших визитах наши сайты молча
+            // переставали считаться нашими — «наши пропускаешь все равно».
             $chain = array_merge([$job->url, $visit['final_url']], $visit['redirects']);
             $host = Domains::hostFromUrl($visit['final_url'] !== '' ? $visit['final_url'] : $job->url);
-            if ($this->ownSites->matchesHtml($html) || $this->ownSites->matchesHost($host) || $this->ownSites->matchesAnyUrl($chain)) {
+            $own = $this->ownSites->matchesHost($host) || $this->ownSites->matchesAnyUrl($chain);
+            if (!$own && $html !== '') {
+                $own = $this->ownSites->matchesHtml($html);
+            }
+            if ($own) {
                 // Наш шаблон — HTML не храним, но скриншот оставляем, чтобы можно было проверить глазами.
                 @unlink($job->htmlFile);
 
