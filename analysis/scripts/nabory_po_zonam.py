@@ -31,6 +31,7 @@ for g, d in rows:
         if c and c[2]:
             cells.append(f'{100*c[1]/c[0]:>5.1f}% ({c[2]:>3} д.)')
             rec[z] = round(100 * c[1] / c[0], 1); rec[z + '_domains'] = c[2]
+            rec[z + '_reg'] = c[3]; rec[z + '_fd'] = c[4]
         else:
             cells.append(f'{"—":^15}')
     out.append(f'{g:<44} {a[2]:>7} {100*a[1]/a[0]:>6.1f}% {a[3]:>4} {a[4]:>3} | ' + ' | '.join(cells))
@@ -46,7 +47,7 @@ for z in Z:
     if ng:
         out.append(f'   .{z:<7} групп {ng:>3}, доменов {nd:>4}: индекс к своей группе {o/e:.2f}×; выше своей группы в {better} из {ng}')
 open(out_p, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
-keys = ['content', 'domains', 'index', 'reg', 'fd'] + [x for z in Z for x in (z, z + '_domains')]
+keys = ['content', 'domains', 'index', 'reg', 'fd'] + [x for z in Z for x in (z, z + '_domains', z + '_reg', z + '_fd')]
 with open(csv_p, 'w', newline='', encoding='utf-8') as f:
     w = csv.DictWriter(f, fieldnames=keys); w.writeheader(); w.writerows(recs)
 print('\n'.join(out))
