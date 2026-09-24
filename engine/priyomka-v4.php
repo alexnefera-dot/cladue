@@ -199,6 +199,30 @@ $priyomy = [
     'ссылок внутри прозы' => [$ssylokVsego ? round($ssylkiVProze / $ssylokVsego * 100) . '%' : '0%', '≥85%',
         $ssylokVsego && $ssylkiVProze / $ssylokVsego >= 0.85],
 ];
+// Скелет пула (skelet.json от zadanie-v4): тип главной задаёт свои полосы.
+// Статья на одну тему зачина не имеет и кончается FAQ; сборка глав кончается
+// последней главой и FAQ не имеет. Список-оглавление в зачине у пула — 3–6 %
+// главных, требовать его больше нельзя ни от одного типа.
+$skelet = is_file("$dir/skelet.json") ? json_decode((string) file_get_contents("$dir/skelet.json"), true) : null;
+if ($skelet) {
+    $T = $skelet['тип'];
+    $v = fn(int $n, array $b) => [$n, "{$b[0]}–{$b[1]}", $n >= $b[0] && $n <= $b[1]];
+    unset($priyomy['зачин: список-оглавление'], $priyomy['финал: предпоследний H2']);
+    if ($T['зачин'] === null) {
+        unset($priyomy['зачин: слов'], $priyomy['зачин: сайт+регистрация+зеркало'], $priyomy['зачин: таблица-паспорт']);
+    } else {
+        $priyomy['зачин: слов'] = $v(count(slv($leadText)), $T['зачин']);
+        if ($T['таблица_паспорт'] !== true) { unset($priyomy['зачин: таблица-паспорт']); }
+    }
+    if ($T['FAQ']) {
+        $priyomy['финал: последний H2'][1] = 'FAQ';
+    } else {
+        unset($priyomy['финал: последний H2'], $priyomy['вопросов про сбой']);
+    }
+    $priyomy['таблиц'] = $v(count($tm[0]), $T['таблиц']);
+    $priyomy['пар «вопрос-ответ»'] = $v(count($voprosy), $T['пар']);
+    $priyomy['внутренних ссылок'] = [$ssylokVsego, '≥' . $T['ссылок'][0], $ssylokVsego >= $T['ссылок'][0]];
+}
 $prOk = count(array_filter($priyomy, fn($x) => $x[2]));
 if ($prOk < count($priyomy)) { $provaly[] = 'приёмы'; }
 
@@ -271,6 +295,8 @@ foreach (glob(rtrim($put, '/') . '/*', GLOB_ONLYDIR) ?: [] as $other) {
     }
     foreach (zagolovki((string) file_get_contents("$other/main.html")) as $z) {
         $k = mb_strtolower($z['текст']);
+        // Стандартный заголовок FAQ пула общий по природе — это не повтор.
+        if (preg_match('~^(вопросы и ответы|ответы на частые вопросы|ответы на вопросы|faq)$~u', trim($k))) { continue; }
         if (isset($nashZag[$k])) { $povtorZag[$k] = basename($other); }
     }
 }

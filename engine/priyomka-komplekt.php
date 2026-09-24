@@ -234,6 +234,8 @@ $levye = static function (string $html): array {
     $out = [];
     foreach (zag($html, 'h2') as $t) {
         $t = preg_replace('~%[a-z_]+%~u', ' ', $t);
+        // Стандартный заголовок FAQ пула общий у половины сайтов — не скелет.
+        if (preg_match('~^\s*(вопросы и ответы|ответы на частые вопросы|ответы на вопросы|faq)\s*$~iu', $t)) { continue; }
         $l = preg_split('~\s*[:—–|]\s*~u', $t)[0] ?? $t;
         $l = trim(preg_replace('~\s+~u', ' ', mb_strtolower(preg_replace('~[^\p{L}\s]~u', ' ', $l))));
         if ($l !== '') { $out[$l] = 1; }
