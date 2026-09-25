@@ -973,8 +973,16 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   that can be dropped without touching the ledger. Entry points: `bin/dorgen-sync.php`
   (`--from`/`--to`/`--days`/`--list`, no dates = only new days) and `POST /api/dorgen-refresh` behind the
   page button «Обновить наши домены», which also reports «наших баз из системы запусков: N (по ДАТА)» or
-  tells the user the token is missing. `.env.example` gained `DORGEN_BASE`/`DORGEN_TOKEN` (`.env` was
-  already gitignored). Covered by `tests/DorgenTest.php` against the fake-server route `/v1/subdomains`
+  tells the user the token is missing.
+  THE KEY IS ENTERED IN THE PANEL («давай ключ вписывать в настройках»), next to the XMLStock one:
+  «Настройки» → «Ключи доступа» → «Система запусков dorgen — ключ» (`#k_dorgen`, a password field; an
+  empty value means «не менять», so a careless save cannot wipe it) plus «Адрес системы запусков»
+  (`#k_dorgen_base`). `/api/keys` writes `DORGEN_TOKEN`/`DORGEN_BASE` into `.env` through the existing
+  `setEnvValues()`, `/api/state` reports only `dorgen_key_set` (never the key itself), and the new
+  `dorgenClient($envFile)` re-reads `.env` ON EVERY REQUEST so a just-saved key works without restarting
+  the panel; `DorgenClient::fromEnv()` stays the fallback for `bin/dorgen-sync.php`.
+  `.env.example` gained `DORGEN_BASE`/`DORGEN_TOKEN` (`.env` was
+  already gitignored) and points at the panel as the easier route. Covered by `tests/DorgenTest.php` against the fake-server route `/v1/subdomains`
   (two cursor pages; `FAKE_MODE=dorgenflaky` breaks the first two answers with 500 then 429 to exercise
   the retries) — period splitting, base extraction, only-needed-fields, retries, the incremental cache
   (a repeat refresh adds no bases, the file holds no subdomains and no raw fields) and the SERP wiring
