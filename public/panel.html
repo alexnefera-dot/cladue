@@ -337,10 +337,10 @@
         <button class="btn-ghost" id="probDlBtn" hidden title="Поставить показанные выгруженные сайты в очередь докачки: перезагрузятся только упавшие страницы">Докачать</button>
         <button class="btn-ghost" id="probRemoveBtn" hidden title="Убрать из списка все показанные сайты (обратимо — «вернуть все»)">Убрать</button>
       </span>
-      <span id="keywrap" hidden style="display:inline-flex;align-items:center;gap:6px">
+      <span id="keywrap" hidden style="display:inline-flex;align-items:center;gap:6px" title="Появляется ПОСЛЕ выгрузки страниц: до неё открыта только главная, меню ещё не обходили, и «нет регистрации» верно про любой сайт">
         <span class="hint">нет страницы</span>
-        <select id="keysel" title="Ключевые страницы — те, на которые ссылается готовый контент. Сайт без них даёт «ссылку в никуда»"><option value="">любой</option></select>
-        <button class="btn-ghost" id="removeKeyBtn" title="Убрать из списка сайты, у которых нет выбранной ключевой страницы (крестиком — можно вернуть)">Убрать</button>
+        <select id="keysel" title="Ключевые страницы — те, на которые ссылается готовый контент. Сайт без них даёт «ссылку в никуда». Считаются только у выгруженных сайтов"><option value="">любой</option></select>
+        <button class="btn-ghost" id="removeKeyBtn" title="Убрать из списка выгруженные сайты, у которых нет выбранной ключевой страницы (обратимо — «вернуть все»)">Убрать</button>
       </span>
       <span id="r404wrap" hidden style="display:inline-flex;align-items:center;gap:6px">
         <span class="hint">порог</span>
@@ -1062,6 +1062,10 @@ function keyCounts(list){
   list.forEach(s=>{ const m=keyMissing(s); if(m.length) sites++; m.forEach(k=>{ c[k]=(c[k]||0)+1; }); });
   return {byKey:c, sites};
 }
+// Ключевые страницы имеют смысл только у ВЫГРУЖЕННОГО сайта: после сбора открыта одна главная, меню
+// ещё не обходили, и «нет регистрации» верно про каждый сайт — кнопка «нет страницы → Убрать» тогда
+// выбирала весь список. Сервер поэтому не заполняет key_missing до выгрузки, а здесь ещё и страхуемся.
+function keyChecked(s){ return !!(s && s.downloaded && !s.own); }
 // Тип вёрстки сайта — по HTML главной (SiteTemplate на сервере): pages7 (7–9 стр.) / pages12 (12–15 стр.) /
 // other (рандомный, без категории); '' — ни одна страница ещё не открыта, типа нет. Наши сайты типа не имеют.
 const TYPE_KEYS=['pages7','pages12','other'];
@@ -1166,14 +1170,19 @@ function updateStats(visible){
   }
 }
 function noKeyPage(s, key){
-  if(!s || s.own) return false;
+  if(!keyChecked(s)) return false;
   const m=keyMissing(s);
   return key ? m.includes(key) : m.length>0;
 }
 function noPreview(s){ return !s.own && ((s.pages_total|0)>0 ? (s.pages_ok|0)===0 : !!s.page_error); }
 function removeWhere(pred){
-  const hosts=lastSites.filter(s=>!isRemoved(s.host) && pred(s)).map(s=>s.host);
+  const visible=lastSites.filter(s=>!isRemoved(s.host));
+  const hosts=visible.filter(pred).map(s=>s.host);
   if(!hosts.length) return;
+  // Массовое «Убрать», которое заберёт ВЕСЬ список, спрашивает подтверждение: пользователь нажал
+  // кнопку с непонятным счётчиком и остался с пустой таблицей — «не с чем дальше работать».
+  if(hosts.length===visible.length && visible.length>1
+     && !confirm('Убрать все '+hosts.length+' сайтов? Таблица останется пустой.\n\nВернуть их можно ссылкой «вернуть все» над таблицей.')) return;
   removeOnServer(hosts);
 }
 $('removeOwnBtn').addEventListener('click', ()=>removeWhere(s=>!!s.own));
@@ -1302,7 +1311,9 @@ function renderResults(sites){
   if(!sites.length && (jobRunning || jobStarting) && lastSites.length){ sites = lastSites; }
   lastSites = sites;
   const card=$('resultsCard');
-  if(!sites.length){ updateDownloadBtn(); card.hidden=true; updateProblemFilter([]); return; }
+  // Пустой список — но что-то убрано: карточку НЕ прячем. Иначе вместе с таблицей исчезала ссылка
+  // «вернуть все», и вернуть только что убранные сайты было уже нечем.
+  if(!sites.length && !removedHosts.size && !pendingRemoved.size){ updateDownloadBtn(); card.hidden=true; updateProblemFilter([]); return; }
   // Список убранных — серверный, здесь его не «подчищаем»: раньше такая подчистка под переходный статус
   // (перезапуск задания, ошибка, обрезанный список) теряла удаления, и убранные сайты всплывали снова.
   const present=new Set(sites.map(s=>s.host));
@@ -1372,9 +1383,15 @@ function renderResults(sites){
     if(exp) row += detailRowHtml(s);
     return row;
   }).join('');
+  // Пустая таблица должна объяснять себя: иначе после массового «Убрать» человек видит только пустоту
+  // и не понимает, что список цел и возвращается одной ссылкой.
+  const emptyHtml = removedHosts.size
+    ? `<tr><td colspan="10" class="hint" style="padding:14px">Все сайты убраны из списка (${removedHosts.size}). Нажмите «вернуть все» над таблицей — они вернутся со страницами и превью.</td></tr>`
+    : (problemSel!=='' ? '<tr><td colspan="10" class="hint" style="padding:14px">Под выбранную проблему сайтов нет. Выберите «все сайты», чтобы увидеть список целиком.</td></tr>' : '');
+  const finalHtml = tableHtml || emptyHtml;
   // Таблицу перерисовываем только когда она изменилась: опрос идёт каждые 1,5 с, а пересборка тысяч строк
   // с превью на каждый опрос делала панель вялой.
-  if(tableHtml!==lastTableHtml){ tb.innerHTML=tableHtml; lastTableHtml=tableHtml; }
+  if(finalHtml!==lastTableHtml){ tb.innerHTML=finalHtml; lastTableHtml=finalHtml; }
 }
 
 async function cleanSite(host, btn){

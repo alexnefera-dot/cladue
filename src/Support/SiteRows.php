@@ -153,20 +153,6 @@ final class SiteRows
             }
             // Тип вёрстки по открытым страницам (превью главной после сбора): pages7 / pages12 / other; '' — страниц нет.
             $template = $own ? '' : SiteTemplate::ofVisits($site->visits);
-            // Ключевые страницы (регистрация, вход, зеркало, бонусы, приложение, слоты): чего не хватает и
-            // что из этого можно добрать (ссылка была, но страница не открылась).
-            $keyStatuses = $own || $site->visits === [] ? [] : KeyPages::statuses(array_map(static fn ($v): array => (array) $v, $site->visits));
-            $keyMissing = [];
-            $keyFailed = [];
-            foreach ($keyStatuses as $name => $status) {
-                if ($status === 'ok') {
-                    continue;
-                }
-                $keyMissing[] = $name;
-                if ($status === 'failed') {
-                    $keyFailed[] = $name;
-                }
-            }
             // Прошёл ли сайт стадию выгрузки: у визитов обхода стадия 'download' (проставлена при сборке
             // визита, ещё до удаления файла у заблокированных/офферных/наших). По этому флагу проблемы
             // делятся на «по сбору» и «по выгрузке» — не выгруженный сайт не помечается download-причинами.
@@ -179,6 +165,23 @@ final class SiteRows
                 if ($stage === 'download' || ($stage === '' && str_contains($paths, '/pages/'))) {
                     $downloaded = true;
                     break;
+                }
+            }
+            // Ключевые страницы (регистрация, вход, зеркало, бонусы, приложение, слоты): чего не хватает и
+            // что из этого можно добрать (ссылка была, но страница не открылась). Считаем ТОЛЬКО у
+            // выгруженных сайтов: после сбора открыта одна главная, меню ещё никто не обходил — тогда
+            // «нет регистрации» верно про КАЖДЫЙ сайт, и кнопка «нет страницы → Убрать» выбирала весь
+            // список разом («под фильтр убрать попадают все сайты»).
+            $keyStatuses = $own || !$downloaded ? [] : KeyPages::statuses(array_map(static fn ($v): array => (array) $v, $site->visits));
+            $keyMissing = [];
+            $keyFailed = [];
+            foreach ($keyStatuses as $name => $status) {
+                if ($status === 'ok') {
+                    continue;
+                }
+                $keyMissing[] = $name;
+                if ($status === 'failed') {
+                    $keyFailed[] = $name;
                 }
             }
             $row = [

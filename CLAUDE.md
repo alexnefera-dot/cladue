@@ -908,8 +908,21 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `none` key page with ONE candidate — the standard path built from the site's own root
   (`KeyPages::url(rootUrl, name)`, scheme/port from an already-opened page, not a hardcoded https://host)
   — appends the visit on success and, on a non-retryable answer (404), drops it without writing a failed
-  visit, so the page counter is not spoiled. Covered by `tests/KeyPagesTest.php`,
-  `VisitTest::testRetryFetchesKeyPagesByStandardUrl`, `SiteRowsTest` and
+  visit, so the page counter is not spoiled. Key pages are read ONLY off a DOWNLOADED site
+  (`SiteRows::preview()` gates `key_missing`/`key_failed` on the row's `downloaded` flag, so the flag is
+  now computed before them; the panel's `keyChecked()` repeats the gate): after a collect only the home
+  is open and the menu was never crawled, so «нет регистрации» was true of EVERY site — `#keywrap`
+  appeared right after the collect and its «Убрать» selected the whole list. The user pressed it and lost
+  the table: «при нажатии кнопки убрать, убирается вся нижняя таблица с результатами и не с чем дальше
+  работать, под фильтр убрать попадают все сайты». Two more guards came with the fix, and they apply to
+  EVERY bulk-remove button: `removeWhere()` asks for confirmation when the selection equals the whole
+  visible list, and `renderResults()` no longer hides the results card on an empty list while
+  `removedHosts`/`pendingRemoved` hold anything — hiding it took the «вернуть все» link away with the
+  table, which is what left the user with no way back. An empty `<tbody>` now renders a one-row
+  explanation (everything removed → point at «вернуть все»; a problem filter matching nothing → point at
+  «все сайты»). Covered by `tests/KeyPagesTest.php`,
+  `VisitTest::testRetryFetchesKeyPagesByStandardUrl`,
+  `SiteRowsTest::testKeyPagesAreCountedOnlyAfterDownload` and
   `PanelTest::testDownloadStageOpensCollectedSites`.
 - SPEED. Everything used to be strictly serial, which is what the user felt as «очень медленно»:
   (1) **search** — `AbstractApiFetcher::fetch()` one request at a time with `api.delay_ms` between them,

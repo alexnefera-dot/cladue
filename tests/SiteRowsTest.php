@@ -19,8 +19,8 @@ final class SiteRowsTest
         $site = new Site('rows.ru', 'rows.ru', 'rows.ru');
         $site->add(new SearchResult('q', 0, 1, 'https://rows.ru/', 'rows.ru', 'T'));
         $site->visits = [
-            ['variant' => 0, 'url' => 'https://rows.ru/', 'ok' => true, 'error' => '', 'status' => 200, 'html_file' => "$dir/main.html"],
-            ['variant' => 1, 'url' => 'https://rows.ru/vhod', 'ok' => true, 'error' => '', 'status' => 200, 'html_file' => "$dir/vhod.html", 'template' => 'pages7'],
+            ['variant' => 0, 'url' => 'https://rows.ru/', 'ok' => true, 'error' => '', 'status' => 200, 'stage' => 'download', 'html_file' => "$dir/main.html"],
+            ['variant' => 1, 'url' => 'https://rows.ru/vhod', 'ok' => true, 'error' => '', 'status' => 200, 'stage' => 'download', 'html_file' => "$dir/vhod.html", 'template' => 'pages7'],
         ];
         $row = SiteRows::preview([$site], $dir)[0];
         Assert::same(1, $row['pages_missing'], 'один файл пропал');
@@ -39,6 +39,39 @@ final class SiteRowsTest
         $loaded = SiteRows::load("$dir/sites.json");
         Assert::true(isset($loaded['rows.ru']), 'сайт прочитан');
         Assert::true($loaded['rows.ru']->own && count($loaded['rows.ru']->visits) === 2, 'визиты и «наш» восстановлены');
+    }
+
+    public function testKeyPagesAreCountedOnlyAfterDownload(): void
+    {
+        // После СБОРА открыта одна главная: меню ещё никто не обходил, поэтому «нет регистрации»
+        // верно про каждый сайт. Раньше key_missing заполнялся и здесь, и кнопка панели
+        // «нет страницы → Убрать» выбирала ВЕСЬ список разом — таблица очищалась одним нажатием.
+        $base = sys_get_temp_dir() . '/yandex-sites-rows-key-' . uniqid();
+        mkdir($base . '/preview/pv.ru', 0777, true);
+        mkdir($base . '/pages/dl.ru', 0777, true);
+        file_put_contents("$base/preview/pv.ru/variant-1.html", '<p>home</p>');
+        file_put_contents("$base/pages/dl.ru/main.html", '<p>home</p>');
+
+        $pv = new Site('pv.ru', 'pv.ru', 'pv.ru');
+        $pv->add(new SearchResult('q', 0, 1, 'https://pv.ru/', 'pv.ru', 'T'));
+        $pv->visits = [['variant' => 1, 'url' => 'https://pv.ru/', 'ok' => true, 'error' => '', 'status' => 200, 'stage' => 'preview', 'html_file' => "$base/preview/pv.ru/variant-1.html"]];
+
+        $dl = new Site('dl.ru', 'dl.ru', 'dl.ru');
+        $dl->add(new SearchResult('q', 0, 1, 'https://dl.ru/', 'dl.ru', 'T'));
+        $dl->visits = [['variant' => 0, 'url' => 'https://dl.ru/', 'ok' => true, 'error' => '', 'status' => 200, 'stage' => 'download', 'html_file' => "$base/pages/dl.ru/main.html"]];
+
+        $rows = SiteRows::preview([$pv, $dl], $base);
+        Assert::false($rows[0]['downloaded'], 'сайт только со скриншотом сбора');
+        Assert::same([], $rows[0]['key_missing'], 'до выгрузки про ключевые страницы ничего не известно');
+        Assert::same([], $rows[0]['key_failed']);
+        Assert::true($rows[1]['downloaded'], 'сайт прошёл выгрузку');
+        Assert::same(['registracia', 'vhod', 'zerkalo', 'bonus', 'app', 'slots'], $rows[1]['key_missing'], 'у выгруженного считаем как раньше');
+
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($base, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($it as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+        @rmdir($base);
     }
 
     public function testPreviewEmitsDownloadedFlagAndProblemCodes(): void
