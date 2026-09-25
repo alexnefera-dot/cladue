@@ -2751,7 +2751,7 @@ if ($SKELET !== null) {
     $a = strpos($glavnaya, "## Каркас\n");
     $b = strpos($glavnaya, "## Опорные формулы");
     $glavnaya = substr($glavnaya, 0, $a) . $txtK . "\n" . substr($glavnaya, $b);
-    $glavnaya .= dopMain($IMYA, $T['тип'], $GOLOS, $karta['рефрен'], zanyatyeYarlyki($root, $KORPUS, $IMYA));
+    $glavnaya .= dopMain($IMYA, $T['тип'], $GOLOS, $karta['рефрен'], zanyatyeYarlyki($root, $KORPUS, $IMYA), temaA($root, $KORPUS, $IMYA));
     // Числа «Приёмов» старого образца уступают числам типа.
     $glavnaya = preg_replace(
         ['~^  таблиц \d.*$~mu', '~^  цитат <blockquote>.*$~mu', '~^  пар «вопрос-ответ».*$~mu', '~^  внутренних ссылок .*$~mu',
