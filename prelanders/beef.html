@@ -578,7 +578,9 @@
 
 
 
-<script>/* переносим ?cid= и ?s= с адреса страницы на кнопки: страница одна на всех и кэшируется, уникальность появляется в момент клика */
-(function(){var q=location.search;if(!q)return;document.querySelectorAll('a[href*="slot="]').forEach(function(a){a.href+='&'+q.slice(1);});})();
+<script>/* Переносим cid и s с адреса страницы на кнопки. Читаем из #фрагмента:
+   он не уходит на сервер, поэтому страница одна на всех и кэшируется
+   целиком. location.search оставлен запасным вариантом. */
+(function(){var q=location.hash.slice(1)||location.search.slice(1);if(!q)return;document.querySelectorAll('a[href^="/go/"]').forEach(function(a){a.href+=(a.href.indexOf('?')<0?'?':'&')+q;});})();
 </script>
 </body></html>

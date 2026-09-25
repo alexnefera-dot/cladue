@@ -183,10 +183,14 @@ if (($cfg['db_write'] ?? true) !== false) {
 // поэтому PHP здесь заканчивается: ни одного байта HTML мы не генерируем.
 // clickid и метку источника передаём в адресе — кнопки подхватят их скриптом.
 if ($showPre) {
+    // Параметры уходят ПОСЛЕ РЕШЁТКИ, а не в query. Фрагмент браузер на сервер
+    // не отправляет, значит Cloudflare видит один и тот же адрес /p/СЛАГ для всех
+    // и может его закэшировать. С ?cid=... в ключе кэша каждый посетитель был бы
+    // новым URL, и кэш не срабатывал бы ни разу.
     $q = 'cid=' . rawurlencode($clickid);
     if (($_GET['s'] ?? '') !== '')    $q .= '&s=' . rawurlencode((string)$_GET['s']);
     if (($_GET['site'] ?? '') !== '') $q .= '&site=' . rawurlencode((string)$_GET['site']);
-    header('Location: /p/' . rawurlencode($slug) . '?' . $q, true, 302);
+    header('Location: /p/' . rawurlencode($slug) . '#' . $q, true, 302);
     if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
     exit;
 }
