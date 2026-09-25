@@ -3,27 +3,62 @@
 
     python3 serp_html.py <serp.json> <out.html>
 """
-import sys, json, html, collections, datetime as dt
+import sys, re, json, html, difflib, collections, datetime as dt
 
 inp, out_p = sys.argv[1:3]
 D = json.load(open(inp, encoding='utf-8'))
 Q = D['queries']
-BR = [('Pinco', ('пинко', 'pinco')), ('Leon', ('леон', 'leon')), ('Banda', ('банда', 'banda')),
-      ('Leebet', ('либет', 'leebet')), ('Apex', ('apex',)), ('Twin', ('твин', 'twin')), ('Trix', ('трикс', 'trix'))]
+STOP = set("""казино casino официальный официальная официальные официальное сайт сайта зеркало зеркала вход регистрация
+играть онлайн online промокод промокоды бонус бонусы игровые автоматы автомат казик слоты slots на деньги реальные рабочее
+рабочее сегодня скачать приложение app личный кабинет отзывы бездепозитный на и в с ру ru com the""".split())
+TR = dict(zip('абвгдеёжзийклмнопрстуфхцчшщъыьэюя', ['a','b','v','g','d','e','e','zh','z','i','y','k','l','m','n','o','p','r','s','t','u','f','h','ts','ch','sh','sch','','y','','e','yu','ya']))
 today = dt.date.fromisoformat(D['scrape'][:10])
 
 
-def brand(q):
-    for b, keys in BR:
-        if any(k in q.lower() for k in keys):
-            return b
-    return 'Прочее'
+def key(q):
+    toks = [t for t in re.findall(r'[\wё]+', q.lower()) if t not in STOP]
+    lat = [''.join(TR.get(ch, ch) for ch in t) for t in toks]
+    return toks, ''.join(lat)
+
+
+def skel(a):
+    for x, y in (('dzh', 'j'), ('zh', 'j'), ('kh', 'h'), ('ck', 'k'), ('ph', 'f'), ('ee', 'i'), ('oo', 'u'),
+                 ('c', 'k'), ('q', 'k'), ('w', 'v'), ('x', 'ks'), ('y', 'i')):
+        a = a.replace(x, y)
+    return a[:1] + re.sub(r'[aeiou]', '', a[1:])
+
+
+def similar(a, keys):
+    if not a:
+        return False
+    for b in keys:
+        if not b:
+            continue
+        sa, sb = skel(a), skel(b)
+        if sa == sb or (len(sa) >= 3 and len(sb) >= 3 and sa[:3] == sb[:3]) or difflib.SequenceMatcher(None, a, b).ratio() >= 0.6:
+            return True
+    return False
 
 
 e = html.escape
 groups = collections.OrderedDict()
+cur_keys, cur_name = [], None
+names = collections.defaultdict(collections.Counter)
 for q, items in Q.items():
-    groups.setdefault(brand(q), []).append((q, sorted(items, key=lambda x: x['pos'])))
+    toks, k = key(q)
+    if cur_name is None or not similar(k, cur_keys):
+        cur_keys, cur_name = [], len(groups)
+        groups[cur_name] = []
+    cur_keys.append(k)
+    groups[cur_name].append((q, sorted(items, key=lambda x: x['pos'])))
+    lat = [t for t in toks if re.fullmatch(r'[a-z0-9]+', t)]
+    names[cur_name][' '.join(lat) if lat else ' '.join(toks)] += 1
+_g = collections.OrderedDict()
+for g, v in groups.items():
+    nm = names[g].most_common(1)[0][0].title() or f'группа {g}'
+    _g.setdefault(nm, []).extend(v)
+groups = _g
+anchor = {b: f'b{i}' for i, b in enumerate(groups)}
 ours = [it for items in Q.values() for it in items if it['who']]
 qwith = sum(1 for items in Q.values() if any(it['who'] for it in items))
 top3 = sum(1 for it in ours if it['pos'] <= 3)
@@ -59,10 +94,19 @@ for b, qs in groups.items():
         cells = ''.join(cell(by[p]) if p in by else '<td class="c"></td>' for p in range(1, 11))
         k = sum(1 for it in items if it['who'])
         rows.append(f'<tr><th class="q">{e(q)}<span class="k{" z" if not k else ""}">{k} наш.</span></th>{cells}</tr>')
-    sec.append(f'''<section class="br" id="{e(b.lower())}">
-<div class="bh"><h2>{e(b)}</h2><span>{q_our} из {len(qs)} запросов с нашими · {n_our} позиций в топ-10</span></div>
+    sec.append(f'''<details class="br" id="{anchor[b]}"{" open" if n_our else ""}>
+<summary class="bh"><h2>{e(b)}</h2><span>{q_our} из {len(qs)} запросов с нашими · {n_our} позиций в топ-10</span></summary>
 <div class="tw"><table><thead><tr><th class="q">запрос</th>{"".join(f"<th>{p}</th>" for p in range(1, 11))}</tr></thead>
-<tbody>{"".join(rows)}</tbody></table></div></section>''')
+<tbody>{"".join(rows)}</tbody></table></div></details>''')
+
+# сводка по брендам
+brow = []
+for b, qs in sorted(groups.items(), key=lambda kv: (-sum(1 for _, it in kv[1] for x in it if x['who']), kv[0])):
+    n_our = sum(1 for _, items in qs for it in items if it['who'])
+    q_our = sum(1 for _, items in qs if any(it['who'] for it in items))
+    bp = min((it['pos'] for _, items in qs for it in items if it['who']), default=None)
+    brow.append(f'<tr class="{"" if n_our else "nil"}"><td><a href="#{anchor[b]}">{e(b)}</a></td><td class="num">{len(qs)}</td>'
+                f'<td class="num">{q_our}</td><td class="num">{n_our}</td><td class="num">{bp if bp else "—"}</td></tr>')
 
 # список наших сайтов
 S = collections.OrderedDict()
@@ -104,7 +148,7 @@ h1{{font-size:24px;font-weight:600;margin:0;text-wrap:balance}} h2{{font-size:18
 .pill{{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:2px 9px;font-size:12.5px}}
 nav{{display:flex;flex-wrap:wrap;gap:8px}} nav a{{color:var(--accent);text-decoration:none;border:1px solid var(--line);background:var(--panel);padding:4px 10px;border-radius:6px}}
 nav a:hover{{border-color:var(--accent)}}
-.br{{display:flex;flex-direction:column;gap:8px}} .bh{{display:flex;flex-wrap:wrap;gap:12px;align-items:baseline}} .bh span{{color:var(--muted)}}
+.br{{display:flex;flex-direction:column;gap:8px}} details.br>summary{{cursor:pointer;list-style:none}} details.br>summary::-webkit-details-marker{{display:none}} details.br>summary h2::before{{content:'▸ ';color:var(--muted)}} details[open].br>summary h2::before{{content:'▾ '}} details.br[open]{{gap:8px}} .sm table{{width:auto;min-width:100%}} .sm td a{{color:var(--accent);text-decoration:none}} tr.nil td{{color:var(--muted)}} tr.nil td a{{color:var(--muted)}} .bh{{display:flex;flex-wrap:wrap;gap:12px;align-items:baseline}} .bh span{{color:var(--muted)}}
 .tw{{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:8px}}
 table{{border-collapse:collapse;width:100%}}
 th,td{{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}}
@@ -119,7 +163,7 @@ td.our .h{{font-weight:600;display:block}} td .m{{display:block;color:var(--ourb
 </style>
 <div class="wrap">
 <header><h1>Наши сайты в выдаче Яндекса, {today.strftime("%d.%m.%Y")}</h1>
-<p class="sub">Снимок топ-10 от {e(D["scrape"][11:16])} по {len(Q)} запросам ({len(groups)} брендов). Наш сайт — если его базовый домен есть в реестре запусков (выгрузка dorgen по 24.09 включительно, {D["bases"]} баз). Зелёная ячейка — наш сайт, под ним дата запуска и возраст.</p></header>
+<p class="sub">Снимок топ-10 от {e(D["scrape"][11:16])} по {len(Q)} запросам ({len(groups)} брендов). Наш сайт — если его базовый домен есть в реестре запусков (выгрузка dorgen по {today.strftime("%d.%m")} включительно, {D["bases"]} баз). Зелёная ячейка — наш сайт, под ним дата запуска и возраст.</p></header>
 <div class="kpi">
 <div><b>{len(ours)}</b><span>наших позиций в топ-10 из {sum(len(v) for v in Q.values())}</span></div>
 <div><b>{qwith} / {len(Q)}</b><span>запросов, где есть хотя бы один наш</span></div>
@@ -128,7 +172,9 @@ td.our .h{{font-weight:600;display:block}} td .m{{display:block;color:var(--ourb
 </div>
 <div class="pills"><span class="l">По дню запуска:</span>{chips_day}</div>
 <div class="pills"><span class="l">По зоне:</span>{chips_zone}</div>
-<nav>{"".join(f'<a href="#{e(b.lower())}">{e(b)}</a>' for b in groups)}<a href="#spisok">Список наших сайтов</a></nav>
+<section class="br"><div class="bh"><h2>По брендам</h2><span>{sum(1 for b in groups if any(x['who'] for _, it in groups[b] for x in it))} из {len(groups)} брендов с нашими · <a href="#spisok">список наших сайтов</a></span></div>
+<div class="tw sm"><table><thead><tr><th>бренд</th><th>запросов</th><th>с нашими</th><th>наших позиций</th><th>лучшая</th></tr></thead><tbody>{"".join(brow)}</tbody></table></div></section>
+{('<p class="sub">Парсер не получил выдачу по ' + str(len(D.get('failed', []))) + ' запросам: ' + e(', '.join(f['query'] for f in D.get('failed', []))) + '.</p>') if D.get('failed') else ''}
 {"".join(sec)}
 <section class="br" id="spisok"><div class="bh"><h2>Все наши сайты в выдаче</h2><span>по лучшей позиции</span></div>
 <div class="tw list"><table><thead><tr><th>сайт</th><th>зона</th><th>запуск</th><th>дней</th><th>контент</th><th>лучшая</th><th>позиции по запросам</th></tr></thead>

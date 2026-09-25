@@ -59,7 +59,11 @@ for p in trk:
 
 found = []
 Q = collections.OrderedDict()
+failed = []
 for r in res:
+    if not re.fullmatch(r'\d+(\.0)?', str(r.get('position', '')).strip()):
+        failed.append(dict(query=r.get('query', ''), error=str(r.get('position', ''))[:200]))
+        continue
     url = r.get('url', '')
     host = (urlparse(url).hostname or '').lower()
     b = '.'.join(host.split('.')[-2:])
@@ -71,7 +75,12 @@ for r in res:
     Q.setdefault(r['query'], []).append(item)
     if who:
         found.append(item)
-json.dump(dict(scrape=res[0].get('scrape_ts', '') if res else '', queries=Q, bases=len(base)),
+scrape = res[0].get('scrape_ts', '') if res else ''
+if not scrape:
+    m = re.search(r'(\d{4})(\d\d)(\d\d)_(\d\d)(\d\d)(\d\d)', xlsx)
+    if m:
+        scrape = f'{m[1]}-{m[2]}-{m[3]}T{m[4]}:{m[5]}:{m[6]}'
+json.dump(dict(scrape=scrape, queries=Q, bases=len(base), failed=failed),
           open(out_p, 'w', encoding='utf-8'), ensure_ascii=False)
 print(f'запросов {len(Q)}, строк {len(res)}, баз в реестре {len(base)}, наших позиций {sum(f["who"]=="наш" for f in found)}, '
-      f'сайтов {len({f["host"] for f in found})}')
+      f'сайтов {len({f["host"] for f in found})}, запросов без выдачи {len(failed)}')
