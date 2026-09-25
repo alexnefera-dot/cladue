@@ -36,8 +36,16 @@ def один(задание):
         return сид, None
     зн=list(стр.values()); ср=lambda k: sum(v[k] for v in зн)/len(зн)
     r=php('engine/priyomka-v5.php',п)
+    # Пройденная приёмка не печатает строку с числом провалов — она печатает
+    # «приёмка пройдена». Без этой ветки чистый набор писался как −1 и тянул
+    # среднее вниз, а в счёте «прошло всё» не учитывался вовсе.
     м=re.findall(r'провалов:\s*(\d+)', r.stdout)
-    провалов=int(м[-1]) if м else -1
+    if м:
+        провалов=int(м[-1])
+    elif 'приёмка пройдена' in r.stdout:
+        провалов=0
+    else:
+        провалов=-1
     if провалов < 0:
         open(os.path.join(БАЗА,'приёмка-%d.err'%сид),'w',encoding='utf-8').write(r.stdout+'\n=== stderr ===\n'+r.stderr)
     try: находок=len(json.loads(php('engine/smysl-v5.php',п,'--json').stdout).get('находки',[]))
