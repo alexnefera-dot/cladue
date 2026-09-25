@@ -145,6 +145,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check
     if ($action === 'add') {
         $err = add_campaign($_POST['slug'] ?? '', $_POST['name'] ?? '', $_POST['offer_url'] ?? '');
         $msg = $err === null ? 'Кампания добавлена' : ('Ошибка: ' . $err);
+    } elseif ($action === 'set_slots') {
+        set_prelander_slots($_POST['id'] ?? 0, (array)($_POST['slot'] ?? []));
+        $n = prelanders_cache_rebuild();
+        $msg = 'Слоты сохранены. Пересобрано страниц: ' . $n;
     } elseif ($action === 'set_prelander') {
         // Переключение преленда сразу пересобирает статическую страницу и карту
         // для go.php — иначе настройка в панели была бы, а в бою не применилась.
@@ -231,7 +235,7 @@ $statsView = ($tab === 'stats' && $detailSlug === '')
 
 $today = []; $sumHumans = 0; $sumUniq = 0; $sumUniqRu = 0; $sumBots = 0; $sumReg = 0; $sumRegRu = 0; $sumDep = 0; $sumDepRu = 0; $sumRegUnlinked = 0; $sumDepUnlinked = 0;
 $botsPeriod = ['yandex' => 0, 'other' => 0, 'total' => 0];
-$detailName = null; $detailDay = ['humans'=>0,'uniques'=>0,'bots'=>0]; $detailPre = ['views'=>0,'clicks'=>0,'ctr'=>0.0]; $detailRows = [];
+$detailName = null; $detailDay = ['humans'=>0,'uniques'=>0,'bots'=>0]; $detailPre = ['views'=>0,'clicks'=>0,'incoming'=>0,'ctr'=>0.0]; $detailRows = [];
 $detailConv = ['reg'=>0,'dep'=>0,'other'=>0]; $detailConvRows = [];
 $detailPage = 1; $detailPages = 1; $detailTotal = 0;
 $campaigns = []; $domains = [];
@@ -376,7 +380,7 @@ if ($tab === 'stats' && $detailSlug !== '') {
 
 } else {
     // --- вкладка «Кампании»: только справочник кампаний (без счётчиков кликов) ---
-    $campaigns = $pdo->query('SELECT id, slug, name, offer_url, prelander, updated_at
+    $campaigns = $pdo->query('SELECT id, slug, name, offer_url, prelander, prelander_slots, updated_at
                               FROM campaigns ORDER BY name, slug')->fetchAll(PDO::FETCH_ASSOC);
     $preTemplates = prelander_templates();
     $domains = domain_stats();
@@ -683,6 +687,14 @@ $msg = $_GET['msg'] ?? '';
     <code><?= h($detailSlug) ?></code> · рефка <code><?= h($refBase . $detailSlug) ?></code>
     <a href="<?= h($withPeriod(tab_url('stats', $key))) ?>" style="margin-left:8px">← ко всем кампаниям</a>
   </div>
+  <?php if (($detailPre['incoming'] ?? 0) > 0): ?>
+  <div class="bots-box" style="margin-top:8px">
+    <span class="chip" style="background:#ecfeff;border-color:#a5f3fc;color:#155e75"
+          title="Переходы, пришедшие на эту кампанию с преленда другой. В «Клики» они не входят, чтобы один посетитель не посчитался дважды, но конверсии по ним привязываются сюда.">
+      Переходов с прелендов: <b><?= (int)$detailPre['incoming'] ?></b>
+    </span>
+  </div>
+  <?php endif; ?>
   <?php if ($detailPre['views'] || $detailPre['clicks']): ?>
   <div class="bots-box" style="margin-top:8px">
     <span class="chip" style="background:#eef2ff;border-color:#e0e7ff;color:#4338ca"
@@ -1310,8 +1322,29 @@ $msg = $_GET['msg'] ?? '';
               <?php endforeach; ?>
             </select>
           </form>
-          <?php if (($c['prelander'] ?? '') !== ''): ?>
+          <?php if (($c['prelander'] ?? '') !== ''):
+            $slots = prelander_slots_get($c['prelander_slots'] ?? '');
+          ?>
             <a href="/p/<?= h($c['slug']) ?>" target="_blank" class="muted" style="font-size:11px">открыть →</a>
+            <form method="post" style="margin-top:6px">
+              <input type="hidden" name="key" value="<?= h($key) ?>">
+              <input type="hidden" name="action" value="set_slots">
+              <input type="hidden" name="id" value="<?= (int)$c['id'] ?>">
+              <?php foreach ([1, 2, 3] as $n): ?>
+                <div style="display:flex;align-items:center;gap:4px;margin-bottom:3px">
+                  <span class="muted" style="font-size:11px;width:44px">блок <?= $n ?></span>
+                  <select name="slot[<?= $n ?>]" style="font-size:11px;max-width:150px">
+                    <option value="">— не задан —</option>
+                    <?php foreach ($campaigns as $cc): ?>
+                      <option value="<?= h($cc['slug']) ?>"<?= (($slots[$n] ?? $slots[(string)$n] ?? '') === $cc['slug']) ? ' selected' : '' ?>>
+                        <?= h($cc['name'] ?: $cc['slug']) ?>
+                      </option>
+                    <?php endforeach; ?>
+                  </select>
+                </div>
+              <?php endforeach; ?>
+              <button type="submit" style="font-size:11px">Сохранить блоки</button>
+            </form>
           <?php endif; ?>
         </td>
         <td class="ref"><?= dt($c['updated_at']) ?></td>

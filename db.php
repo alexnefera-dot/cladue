@@ -160,6 +160,7 @@ function db_ensure_indexes_mysql(PDO $pdo) {
         ['clicks',      'lp',        'VARCHAR(255) NULL'],
         ['clicks',      'event',     'VARCHAR(16) NULL'],
         ['campaigns',   'prelander', 'VARCHAR(64) NULL'],
+        ['campaigns',   'prelander_slots', 'TEXT NULL'],
         ['conversions', 'sub',       'VARCHAR(190) NULL'],
         ['conversions', 'ref',       'TEXT NULL'],
         ['conversions', 'country',   'VARCHAR(8) NULL'],
@@ -249,6 +250,7 @@ function db_create_tables_mysql(PDO $pdo) {
         name VARCHAR(255) NOT NULL DEFAULT "",
         offer_url TEXT NOT NULL,
         prelander VARCHAR(64) NULL,
+        prelander_slots TEXT NULL,
         created_at INT NOT NULL,
         updated_at INT NOT NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4');
@@ -411,6 +413,9 @@ function db_create_tables_sqlite(PDO $pdo) {
     $cmpCols = $pdo->query("PRAGMA table_info(campaigns)")->fetchAll(PDO::FETCH_COLUMN, 1);
     if (!in_array('prelander', $cmpCols, true)) {
         $pdo->exec('ALTER TABLE campaigns ADD COLUMN prelander TEXT');
+    }
+    if (!in_array('prelander_slots', $cmpCols, true)) {
+        $pdo->exec('ALTER TABLE campaigns ADD COLUMN prelander_slots TEXT');
     }
 
     $pdo->exec('CREATE TABLE IF NOT EXISTS offer_history (
@@ -1072,18 +1077,35 @@ function source_root($src) {
  * помогает он или просто вставляет лишний шаг перед оффером.
  */
 function prelander_stats($slug, $from, $to = null) {
-    $sql  = "SELECT
-                SUM(CASE WHEN event = 'view'  THEN 1 ELSE 0 END) AS views,
-                SUM(CASE WHEN event = 'click' THEN 1 ELSE 0 END) AS clicks
-             FROM clicks WHERE slug = ? AND is_bot = 0 AND ts >= ?";
-    $args = [$slug, $from];
-    if ($to !== null) { $sql .= ' AND ts < ?'; $args[] = $to; }
-    $st = db()->prepare($sql);
-    $st->execute($args);
-    $r = $st->fetch(PDO::FETCH_ASSOC) ?: [];
-    $v = (int)($r['views'] ?? 0);
-    $c = (int)($r['clicks'] ?? 0);
-    return ['views' => $v, 'clicks' => $c, 'ctr' => $v ? round($c * 100 / $v, 1) : 0.0];
+    // Показ записан на саму кампанию, а клик — уже на ту, куда ведёт блок.
+    // Связывает их общий clickid, по нему и считаем: сколько показов дошло
+    // до кнопки. Внешний набор мал (только преленды), idx_clickid справляется.
+    $w  = ' ts >= ?' . ($to !== null ? ' AND ts < ?' : '');
+    $a1 = $to !== null ? [$slug, $from, $to] : [$slug, $from];
+    $st = db()->prepare("SELECT COUNT(*) FROM clicks
+                         WHERE slug = ? AND event = 'view' AND is_bot = 0 AND $w");
+    $st->execute($a1);
+    $v = (int)$st->fetchColumn();
+
+    $a2 = $to !== null ? [$from, $to, $slug] : [$from, $slug];
+    $w2 = ' c.ts >= ?' . ($to !== null ? ' AND c.ts < ?' : '');
+    $st = db()->prepare("SELECT COUNT(*) FROM clicks c
+                         WHERE c.event = 'click' AND $w2
+                           AND EXISTS (SELECT 1 FROM clicks v
+                                       WHERE v.clickid = c.clickid AND v.event = 'view' AND v.slug = ?)");
+    $st->execute($a2);
+    $c = (int)$st->fetchColumn();
+
+    // Входящие: переходы, ПРИШЕДШИЕ на эту кампанию с чужого преленда.
+    // В визитах они не считаются (иначе один посетитель дал бы два клика —
+    // на преленде и здесь), но конверсии садятся именно сюда, и без этой
+    // цифры страница выглядела бы как «реги есть, трафика нет».
+    $st = db()->prepare("SELECT COUNT(*) FROM clicks WHERE slug = ? AND event = 'click' AND $w");
+    $st->execute($a1);
+    $in = (int)$st->fetchColumn();
+
+    return ['views' => $v, 'clicks' => $c, 'incoming' => $in,
+            'ctr' => $v ? round($c * 100 / $v, 1) : 0.0];
 }
 
 /**
@@ -1113,6 +1135,30 @@ function set_prelander($id, $tpl) {
     return true;
 }
 
+/**
+ * Слоты преленда: какая кампания стоит за каждым блоком страницы.
+ * Хранятся JSON-ом в campaigns.prelander_slots: {"1":"7k","2":"faro","3":"leebet"}.
+ * Слот указывает на ГОТОВУЮ кампанию, а не на строку оффера — значит у блока
+ * своя рефка, свой оффер, свой whitelist и своя статистика.
+ */
+function prelander_slots_get($raw) {
+    $v = json_decode((string)$raw, true);
+    return is_array($v) ? $v : [];
+}
+
+function set_prelander_slots($id, array $slots) {
+    $known = db()->query('SELECT slug FROM campaigns')->fetchAll(PDO::FETCH_COLUMN);
+    $clean = [];
+    foreach ($slots as $n => $slug) {
+        $n = (int)$n;
+        $slug = normalize_slug((string)$slug);
+        if ($n >= 1 && $n <= 9 && $slug !== '' && in_array($slug, $known, true)) $clean[$n] = $slug;
+    }
+    db()->prepare('UPDATE campaigns SET prelander_slots = ?, updated_at = ? WHERE id = ?')
+        ->execute([$clean ? json_encode($clean) : null, time(), (int)$id]);
+    return $clean;
+}
+
 /** Каталог шаблонов прелендов (исходники) и готовых страниц (out/). */
 function prelanders_dir() { return __DIR__ . '/prelanders'; }
 
@@ -1139,7 +1185,7 @@ function prelander_templates() {
  * Уникальность появляется не в странице, а в момент клика: кнопки ведут на
  * /go/СЛАГ?slot=N, где go.php и выдаёт clickid.
  */
-function prelander_build_one($slug, $tpl, $title = '') {
+function prelander_build_one($slug, $tpl, $title = '', array $slots = []) {
     $slug = normalize_slug($slug);
     $tpl  = preg_replace('~[^\w.\-]~', '', (string)$tpl);
     if ($slug === '' || $tpl === '') return false;
@@ -1152,11 +1198,32 @@ function prelander_build_one($slug, $tpl, $title = '') {
     $outDir = prelanders_dir() . '/out';
     if (!is_dir($outDir)) { @mkdir($outDir, 0775, true); cache_fix_owner($outDir, 0775); }
 
-    $html = strtr($html, [
+    $map = [
         '{{GO}}'    => '/go/' . $slug,
         '{{TITLE}}' => htmlspecialchars($title !== '' ? $title : $slug, ENT_QUOTES, 'UTF-8'),
         '{{SLUG}}'  => htmlspecialchars($slug, ENT_QUOTES, 'UTF-8'),
-    ]);
+    ];
+
+    // Слоты: ссылка и подпись каждого блока берутся у выбранной кампании.
+    // Ничего не выбрано — блок ведёт на саму кампанию с ?slot=N, как раньше.
+    $names = [];
+    if ($slots) {
+        $in  = implode(',', array_fill(0, count($slots), '?'));
+        $st2 = db()->prepare("SELECT slug, name FROM campaigns WHERE slug IN ($in)");
+        $st2->execute(array_values($slots));
+        foreach ($st2->fetchAll(PDO::FETCH_ASSOC) as $r) $names[$r['slug']] = $r['name'];
+    }
+    for ($n = 1; $n <= 9; $n++) {
+        $target = $slots[$n] ?? ($slots[(string)$n] ?? '');
+        $nm     = $target !== '' ? ($names[$target] ?: $target) : '';
+        $map["{{GO$n}}"]   = $target !== '' ? '/go/' . $target : '/go/' . $slug . '?slot=' . $n;
+        $map["{{NAME$n}}"] = htmlspecialchars($nm, ENT_QUOTES, 'UTF-8');
+        // текстовый логотип: первое слово названия сверху, «CASINO» снизу
+        $word = mb_strtoupper(trim(explode(' ', $nm)[0] ?? ''), 'UTF-8');
+        $map["{{LOGO{$n}TOP}}"] = htmlspecialchars($word, ENT_QUOTES, 'UTF-8');
+        $map["{{LOGO{$n}BOT}}"] = 'CASINO';
+    }
+    $html = strtr($html, $map);
 
     $file = $outDir . '/' . $slug . '.html';
     $tmp  = $file . '.tmp';
@@ -1176,11 +1243,12 @@ function prelander_build_one($slug, $tpl, $title = '') {
  * Возвращает число кампаний с прелендом.
  */
 function prelanders_cache_rebuild() {
-    $rows = db()->query("SELECT slug, name, prelander FROM campaigns
+    $rows = db()->query("SELECT slug, name, prelander, prelander_slots FROM campaigns
                          WHERE prelander IS NOT NULL AND prelander <> ''")->fetchAll(PDO::FETCH_ASSOC);
     $map = [];
     foreach ($rows as $r) {
-        if (prelander_build_one($r['slug'], $r['prelander'], (string)$r['name'])) {
+        $slots = prelander_slots_get($r['prelander_slots'] ?? '');
+        if (prelander_build_one($r['slug'], $r['prelander'], (string)$r['name'], $slots)) {
             $map[$r['slug']] = $r['prelander'];
         }
     }
