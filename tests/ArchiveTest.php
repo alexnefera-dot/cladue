@@ -8,6 +8,44 @@ use YandexSites\Support\Archive;
 
 final class ArchiveTest
 {
+    public function testZipFilesPacksOnlyTheGivenSubset(): void
+    {
+        // Архив «только новое»: упаковываем ПОДМНОЖЕСТВО файлов, а не всю папку.
+        $dir = sys_get_temp_dir() . '/yandex-sites-zipsub-' . uniqid();
+        mkdir($dir . '/content/7-стр/a.ru', 0777, true);
+        file_put_contents($dir . '/content/7-стр/a.ru/main.html', '<h2>a</h2>');
+        file_put_contents($dir . '/content/7-стр/a.ru/vhod.html', '<p>v</p>');
+        $all = Archive::listFiles($dir . '/content');
+        $subset = ['7-стр/a.ru/vhod.html' => $all['7-стр/a.ru/vhod.html']];
+        $zipFile = $dir . '/part.zip';
+        try {
+            Assert::same(1, Archive::zipFiles($subset, $zipFile), 'в архиве один файл');
+        } catch (\RuntimeException $e) {
+            Assert::skip('архив создать нечем: ' . $e->getMessage());
+        }
+        Assert::true(Archive::isZip($zipFile), 'это zip');
+        if (class_exists('ZipArchive')) {
+            $zip = new \ZipArchive();
+            Assert::true($zip->open($zipFile) === true);
+            Assert::same(1, $zip->numFiles, 'вторая статья в архив не попала');
+            Assert::same('7-стр/a.ru/vhod.html', $zip->getNameIndex(0), 'путь внутри архива сохранён');
+            $zip->close();
+        }
+        $thrown = false;
+        try {
+            Archive::zipFiles([], $dir . '/empty.zip');
+        } catch (\RuntimeException $e) {
+            $thrown = true;
+        }
+        Assert::true($thrown, 'пустой набор — понятная ошибка, а не битый архив');
+
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($it as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+        @rmdir($dir);
+    }
+
     public function testZipDirPacksFolderWithRelativePaths(): void
     {
         // Архив контента: внутри папки N-стр/сайт/страница.html — ровно как на диске, без лишнего верхнего уровня.

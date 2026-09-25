@@ -660,6 +660,40 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   page-count breakdown (`SiteRows::pageHistogram()`/`histogramText()`, `page_histogram` in the status).
   `SiteCleaner::cleanHost()` returns `skipped_files` and the clean
   job logs «без статьи: a.html, b.html» per site, so a page lost at cleaning is visible by name.
+  THE DOWNLOAD RUNS IN WAVES (`visit.batch_sites`, default 50; panel field `#batchsize` → settings
+  `batch_size`), because `crawl()` is PHASE-based over the whole list — all home pages, then all probe
+  pages, then all menu pages — so until the last site is done, NO site is done, and the user had to wait
+  out the entire download before touching anything («чтоб не ждать все выгруженые страницы, дай частями
+  работать»). `bin/run-job.php` therefore `array_chunk`s the list and, per wave: removes THAT wave's old
+  folders and clears THEIR visits only (an interrupted download leaves the untouched sites with their
+  preview visits — wiping everything up front used to lose them), crawls the wave, cleans its sites when
+  `settings.clean_while_download` is on (`cleanWave()` + the shared `cleanOptions()`, so «Очистить всё»
+  and the per-wave clean read the same panel checkboxes), rewrites `sites.csv`/`sites.json`/`domains.txt`
+  with everything ready so far, and checks the stop file. The per-wave status update deliberately does
+  NOT carry the table rows: `/api/state` already falls back to `sites.json` while a job runs
+  (`sites_from_file`), and `Progress::flush()` writes 4×/s — a list of thousands of rows in the progress
+  state would be megabytes of churn. Progress counters are cumulative across waves (`$base` + the current
+  wave's event), and `wave` = `{n, total, sites_done, sites_total}` drives the panel's «открываю сайты:
+  готово N из M (волна K из L)».
+- `Support\ContentTaken` (`runs/current/content-taken.json`) makes the content archive INCREMENTAL —
+  «если эту часть уже отчистили, в новый архив вторую волну добавляй уже без первой части». It stores
+  `wave` (a counter that names the file) + `files`: path inside `content/` → sha1 of the article WHEN it
+  was handed out. «New» = a path that is absent or whose hash changed. The hash, not mtime, is the key
+  decision: «Очистить всё» re-cleans every page, so every file's mtime moves while the article text is
+  identical — by time the whole archive would count as new again. `Archive::zipFiles()` packs an
+  arbitrary subset (ZipArchive directly; the bsdtar fallback copies the subset into a temp dir and zips
+  that). Panel: `/download?file=content&part=new` streams `content-part-N-YYYY-MM-DD.zip` with only the
+  new files, `/download?file=content` streams everything as before — and BOTH mark what they sent as
+  taken, so «new» always means «since the last archive you took». `/api/state` carries
+  `content_new: {files, sites}` and `content_waves`; the buttons are «Скачать новое (N стр.)»
+  (`#contentNewBtn`, hidden until part of the content has been taken) and «Скачать всё (M стр.)»
+  (`#contentZipBtn`), with «считать всё новым» (`#contentResetLink` → `POST /api/content-reset`) to
+  forget the marks without touching the articles. A fresh collect (`wipeRunOutput()`) and
+  `/api/reset-base` (`resetRunFiles()`) drop the ledger with the content it describes. Covered by
+  `tests/ContentTakenTest.php`, `ArchiveTest::testZipFilesPacksOnlyTheGivenSubset`,
+  `PanelTest::testDownloadRunsInWavesAndCleansReadyPart` (batch_size 1 over two sites: the log shows the
+  waves, the message says «очищено сразу», the articles exist with no separate clean stage) and
+  `PanelTest::testContentArchiveDownload` (the whole part/new flow over HTTP).
   Barrier stubs (age-gate 18+, cookie wall, "enable JavaScript") look identical on every URL but hide
   different content, so `PageVisitor::looksLikeStub()` excludes them from dedup (never a duplicate/one-pager,
   never a similarity reference; visit flagged `stub`). The Playwright renderer best-effort dismisses such

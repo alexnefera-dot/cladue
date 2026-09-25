@@ -46,6 +46,7 @@ use YandexSites\Runtime;
 use YandexSites\Search\CachingFetcher;
 use YandexSites\Search\XmlStockFetcher;
 use YandexSites\Support\CollectHistory;
+use YandexSites\Support\ContentTaken;
 use YandexSites\Support\DomainLedger;
 use YandexSites\Support\BrandDomains;
 use YandexSites\Support\Logger;
@@ -156,6 +157,11 @@ function buildOverrides(array $s, string $runDir): array
             $overrides['search.pages'] = 1;
         }
         $overrides['filters.max_position'] = $top;
+    }
+    // Сколько сайтов выгружать за одну волну: после каждой волны её сайты попадают в таблицу и в
+    // контент, поэтому число задаёт, как часто появляется готовая порция.
+    if (isset($s['batch_size'])) {
+        $overrides['visit.batch_sites'] = max(1, min(1000, (int) $s['batch_size']));
     }
     $overrides['filters.unique_by'] = ($s['dedupe_domain'] ?? true) ? 'domain' : 'host';
     // «Свежая выдача»: не брать ответы из кэша (ответы на те же запросы хранятся 7 дней и не тратят лимит;
@@ -392,6 +398,63 @@ function removeSiteFolders(string $runDir, array $hosts): void
 }
 
 /**
+ * Настройки очистки контента из панели (галочки и ручные бренды) — одни и те же для этапа «clean»
+ * и для очистки сразу после волны выгрузки.
+ *
+ * @param array<string, mixed> $settings
+ * @return array<string, mixed>
+ */
+function cleanOptions(array $settings): array
+{
+    $brandList = is_array($settings['brands'] ?? null)
+        ? $settings['brands']
+        : (array) (preg_split('~[,\n]+~', (string) ($settings['brands'] ?? '')) ?: []);
+
+    return [
+        // Каталоги слотов по умолчанию остаются (режем только шапку и подвал); галочка в панели включает удаление.
+        'remove_slots' => filter_var($settings['remove_slots'] ?? false, FILTER_VALIDATE_BOOL),
+        'remove_widgets' => filter_var($settings['remove_widgets'] ?? false, FILTER_VALIDATE_BOOL),
+        'brand_ru' => trim((string) ($settings['brand_ru'] ?? '')),
+        'brand_en' => trim((string) ($settings['brand_en'] ?? '')),
+        'extra_brands' => array_values(array_filter(array_map('trim', array_map('strval', $brandList)), static fn (string $b): bool => $b !== '')),
+    ];
+}
+
+/**
+ * Чистит контент сайтов одной волны выгрузки — сразу после того, как их страницы легли на диск.
+ * Так готовую часть можно забирать архивом, не дожидаясь конца выгрузки.
+ *
+ * @param list<string> $hosts
+ * @param array<string, mixed> $override
+ * @return array{written: int, sites: int}
+ */
+function cleanWave(string $runDir, array $hosts, array $override, Logger $logger): array
+{
+    $byHost = SiteCleaner::pagesByHost($runDir . '/pages');
+    $written = 0;
+    $sites = 0;
+    foreach ($hosts as $host) {
+        $files = $byHost[$host] ?? [];
+        if ($files === []) {
+            continue;
+        }
+        $r = SiteCleaner::cleanHost($runDir, $host, $files, $override);
+        $written += $r['written'];
+        if ($r['written'] > 0) {
+            $sites++;
+        }
+        if ($r['skipped_files'] !== []) {
+            $logger->info(sprintf('  %s — без статьи (пропущено): %s', $host, implode(', ', $r['skipped_files'])));
+        }
+    }
+    if ($written > 0) {
+        $logger->info(sprintf('  очищено сразу: %d стр. на %d сайтах', $written, $sites));
+    }
+
+    return ['written' => $written, 'sites' => $sites];
+}
+
+/**
  * Удаляет результаты прошлого прогона: скачанные страницы, очищенный контент, превью, убранные сайты
  * и готовый архив. Вызывается только НОВЫМ сбором — продолжение прошлые части не трогает.
  *
@@ -411,6 +474,8 @@ function wipeRunOutput(string $runDir): int
     if (is_file($runDir . '/content.zip') && @unlink($runDir . '/content.zip')) {
         $files++;
     }
+    // Отметки «этот контент уже скачан» относятся к удалённым статьям — новый сбор начинает счёт заново.
+    ContentTaken::reset($runDir);
 
     return $files;
 }
@@ -490,17 +555,7 @@ while (true) {
                 array_keys($byHost),
                 static fn ($h): bool => !isset($exclude[$h]) && ($only === [] || isset($only[$h])),
             ));
-            $brandList = is_array($settings['brands'] ?? null)
-                ? $settings['brands']
-                : (array) (preg_split('~[,\n]+~', (string) ($settings['brands'] ?? '')) ?: []);
-            $override = [
-                // Каталоги слотов по умолчанию остаются (режем только шапку и подвал); галочка в панели включает удаление.
-                'remove_slots' => filter_var($settings['remove_slots'] ?? false, FILTER_VALIDATE_BOOL),
-                'remove_widgets' => filter_var($settings['remove_widgets'] ?? false, FILTER_VALIDATE_BOOL),
-                'brand_ru' => trim((string) ($settings['brand_ru'] ?? '')),
-                'brand_en' => trim((string) ($settings['brand_en'] ?? '')),
-                'extra_brands' => array_values(array_filter(array_map('trim', array_map('strval', $brandList)), static fn (string $b): bool => $b !== '')),
-            ];
+            $override = cleanOptions($settings);
             // Контент чистим ТОЧЕЧНО: cleanHost сам убирает прошлую версию своего сайта, а здесь снимаем
             // убранные из таблицы. Сносить весь content нельзя — в нём лежат уже обработанные части сбора.
             foreach (array_keys($exclude) as $excluded) {
@@ -641,6 +696,8 @@ while (true) {
             $retryHosts = array_flip(array_map('strval', (array) ($settings['retry_hosts'] ?? [])));
             $isRetry = $retryHosts !== [];
             $retryStat = ['attempted' => 0, 'recovered' => 0];
+            $cleanStats = ''; // сколько очищено прямо во время выгрузки (волнами)
+            $waveStopped = false; // выгрузку остановили между волнами — часть сайтов не тронута
             if ($isRetry) {
                 // Докачка: успешные страницы сохраняем, перекачиваем ТОЛЬКО неудачные (несколько попыток
                 // через разные прокси, одной попыткой — без языкового префикса).
@@ -652,17 +709,80 @@ while (true) {
                 $logger->info(sprintf('Докачка неудачных страниц: сайтов %d через %s', count($visitList), $visitor->driver()->name()));
                 $retryStat = $visitor->retryFailed($visitList);
             } else {
-                // (Пере)выгрузка: прошлый результат чистим по выгружаемым сайтам и по исключённым из
-                // таблицы (их старые страницы не должны залипать). Страницы и контент ДРУГИХ частей
-                // сбора — тех, что уже выгрузили и очистили, — остаются на месте.
-                removeSiteFolders($runDir, array_merge(array_map('strval', array_keys($sites)), array_keys($excludeHosts)));
-                foreach ($sites as $site) {
-                    $site->visits = [];
+                // (Пере)выгрузка идёт ВОЛНАМИ по visit.batch_sites сайтов: обход устроен по этапам
+                // (сначала все главные, потом пробные, потом остальные страницы), поэтому пока список
+                // не кончится, ни один сайт не считается готовым — ждать пришлось бы всю выгрузку.
+                // После каждой волны её сайты попадают в sites.json и в таблицу, их контент чистится
+                // (если включено), и можно скачать архив только нового. Остановка срабатывает между
+                // волнами: уже готовые части остаются на диске.
+                removeSiteFolders($runDir, array_keys($excludeHosts));
+                $batch = max(1, (int) $config->get('visit.batch_sites', 50));
+                $waves = array_chunk($sites, $batch, true);
+                $waveCount = count($waves);
+                // Чистить контент сразу после каждой волны — чтобы работать с готовой частью, не дожидаясь конца.
+                $cleanNow = filter_var($settings['clean_while_download'] ?? true, FILTER_VALIDATE_BOOL);
+                $cleanOverride = cleanOptions($settings);
+                $cleanedPages = 0;
+                $cleanedSites = 0;
+                // Прогресс копим по всем волнам: иначе счётчик страниц обнулялся бы на каждой волне.
+                $base = ['done' => 0, 'ok' => 0, 'total' => 0];
+                $last = ['done' => 0, 'ok' => 0, 'total' => 0];
+                $waveNo = 0;
+                $sitesDone = 0;
+                $onVisit = static function (array $event) use ($progress, &$base, &$last, &$waveNo, $waveCount, &$sitesDone, $sites): void {
+                    $last = ['done' => (int) ($event['done'] ?? 0), 'ok' => (int) ($event['ok'] ?? 0), 'total' => (int) ($event['total'] ?? 0)];
+                    $progress->update(['phase' => 'visit', 'visit' => [
+                        'done' => $base['done'] + $last['done'],
+                        'ok' => $base['ok'] + $last['ok'],
+                        'total' => $base['total'] + $last['total'],
+                        'current' => (string) ($event['current'] ?? ''),
+                    ], 'wave' => ['n' => $waveNo, 'total' => $waveCount, 'sites_done' => $sitesDone, 'sites_total' => count($sites)]]);
+                };
+                $visitor = $runtime->visitor($onVisit);
+                if ($visitor === null) {
+                    throw new RuntimeException('Визиты отключены в настройках');
+                }
+                $progress->update(['phase' => 'visit', 'sites_selected' => count($sites)], true);
+                $logger->info(sprintf('Выгрузка страниц: сайтов %d волнами по %d через %s', count($sites), $batch, $visitor->driver()->name()));
+                foreach ($waves as $wave) {
+                    $waveNo++;
+                    // Прошлые страницы и контент — только у сайтов ЭТОЙ волны: если выгрузку остановят,
+                    // сайты, до которых не дошли, сохранят прежние визиты и превью.
+                    removeSiteFolders($runDir, array_map('strval', array_keys($wave)));
+                    foreach ($wave as $site) {
+                        $site->visits = [];
+                    }
+                    $logger->info(sprintf('Волна %d из %d: сайтов %d', $waveNo, $waveCount, count($wave)));
+                    $visitor->visit($wave);
+                    $base = ['done' => $base['done'] + $last['done'], 'ok' => $base['ok'] + $last['ok'], 'total' => $base['total'] + $last['total']];
+                    $last = ['done' => 0, 'ok' => 0, 'total' => 0];
+                    $sitesDone += count($wave);
+                    if ($cleanNow) {
+                        $c = cleanWave($runDir, array_map('strval', array_keys($wave)), $cleanOverride, $logger);
+                        $cleanedPages += $c['written'];
+                        $cleanedSites += $c['sites'];
+                    }
+                    // Готовая часть — сразу в файлы: дальше с ней уже можно работать. Строки таблицы в
+                    // статус НЕ кладём — панель и так берёт их из sites.json, пока задание идёт
+                    // (sites_from_file), а таскать список из тысяч строк в каждом обновлении прогресса
+                    // (а он пишется по 4 раза в секунду) — лишние мегабайты на диск.
+                    $ready = array_values(RemovedSites::filter($runDir, $sites));
+                    $writer->writeCsv($ready, $runDir . '/sites.csv');
+                    $writer->writeJson($ready, $runDir . '/sites.json', ['source' => 'download', 'settings' => $settings]);
+                    $writer->writeDomains($ready, $runDir . '/domains.txt');
+                    $progress->update([
+                        'phase' => 'visit',
+                        'wave' => ['n' => $waveNo, 'total' => $waveCount, 'sites_done' => $sitesDone, 'sites_total' => count($sites)],
+                        'message' => sprintf('Выгрузка: готово %d из %d сайтов (волна %d из %d)%s', $sitesDone, count($sites), $waveNo, $waveCount, $cleanNow ? sprintf(', очищено %d стр.', $cleanedPages) : ''),
+                    ], true);
+                    if (stopped($stopFile)) {
+                        $logger->info(sprintf('Остановлено между волнами: выгружено %d из %d сайтов', $sitesDone, count($sites)));
+                        break;
+                    }
                 }
                 $visitList = $sites;
-                $progress->update(['phase' => 'visit', 'sites_selected' => count($visitList)], true);
-                $logger->info(sprintf('Выгрузка страниц: сайтов %d через %s', count($visitList), $visitor->driver()->name()));
-                $visitor->visit($visitList);
+                $cleanStats = $cleanNow ? sprintf('%d стр. на %d сайтах', $cleanedPages, $cleanedSites) : '';
+                $waveStopped = $sitesDone < count($sites);
             }
 
             // Пишем ВСЕ сайты: при докачке обновлённые + сохранённые, при полной выгрузке — все заново.
@@ -724,8 +844,8 @@ while (true) {
                 'files' => ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt'],
                 // Докачка: говорим честно, что добрано, а если добирать было нечего — почему (иначе
                 // пользователь видит «ничего не изменилось» и думает, что докачка не запустилась).
-                'message' => (!$isRetry
-                    ? sprintf('Выгружено страниц: %d', $opened) . ($keyStats !== '' ? '; не хватает: ' . $keyStats : '')
+                'message' => ($waveStopped ? 'Остановлено. ' : '') . (!$isRetry
+                    ? sprintf('Выгружено страниц: %d', $opened) . ($cleanStats !== '' ? '; очищено сразу: ' . $cleanStats : '') . ($keyStats !== '' ? '; не хватает: ' . $keyStats : '')
                     : ($retryStat['attempted'] === 0
                         ? 'Докачка: нечего добирать — оставшиеся ошибки повтором не чинятся (404 без языкового префикса, дубликаты)'
                         : sprintf('Докачано: добрано %d из %d стр., всего открыто %d', $retryStat['recovered'], $retryStat['attempted'], $opened)))

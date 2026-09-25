@@ -123,6 +123,10 @@ final class Config
                 'full_page' => false,
                 'crawl' => false,
                 'max_pages' => 20,
+                // Сколько сайтов выгружать за одну ВОЛНУ. Обход устроен по этапам (сначала все главные,
+                // потом пробные, потом остальные страницы), поэтому до конца списка ни один сайт не
+                // готов. Волнами готовая часть попадает в таблицу и в контент, не дожидаясь остальных.
+                'batch_sites' => 50,
                 // Порог похожести страниц (0..1): если внутренняя страница совпадает с уже скачанной
                 // сильнее этого порога — считается дубликатом (одностраничник), дальше не качаем
                 'similarity' => 0.9,
@@ -435,7 +439,7 @@ final class Config
                 $errors[] = "$path: ожидается массив";
             }
         }
-        foreach (['visit.variants' => [1, 50], 'visit.concurrency' => [1, 50], 'visit.browsers' => [1, 16], 'visit.timeout' => [1, 600]] as $path => [$min, $max]) {
+        foreach (['visit.variants' => [1, 50], 'visit.concurrency' => [1, 50], 'visit.browsers' => [1, 16], 'visit.timeout' => [1, 600], 'visit.batch_sites' => [1, 1000]] as $path => [$min, $max]) {
             $v = $g($path);
             if (!is_numeric($v) || $v < $min || $v > $max) {
                 $errors[] = "$path: ожидается число от $min до $max";

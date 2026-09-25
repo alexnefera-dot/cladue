@@ -170,6 +170,7 @@ function resetRunFiles(string $runDir): array
         rmTree($dir);
     }
     $names = ['sites.json', 'sites.csv', 'domains.txt', 'results.csv', 'content.zip', 'removed.json',
+        \YandexSites\Support\ContentTaken::FILE,
         \YandexSites\Support\QueryQueue::FILE, \YandexSites\Support\QueryDupes::UNIQUE_FILE, \YandexSites\Support\QueryDupes::GROUPS_FILE, 'status.json'];
     foreach ($names as $name) {
         if (is_file($runDir . '/' . $name) && @unlink($runDir . '/' . $name)) {
@@ -359,6 +360,10 @@ if ($path === '/api/state') {
         'has_results' => is_file($runDir . '/results.csv'),
         'results_stamp' => is_file($runDir . '/results.csv') ? filemtime($runDir . '/results.csv') . '-' . filesize($runDir . '/results.csv') : '',
         'content_files' => contentStats($runDir)['files'],
+        // Сколько статей ещё НЕ забирали архивом: выгрузка идёт волнами, и забирать каждый раз весь
+        // контент заново незачем — кнопка «Скачать новое» отдаёт только их (см. Support\ContentTaken).
+        'content_new' => \YandexSites\Support\ContentTaken::stats(\YandexSites\Support\ContentTaken::newFiles($runDir, $runDir . '/content')),
+        'content_waves' => \YandexSites\Support\ContentTaken::load($runDir)['wave'],
         // Сколько папок сайтов уже выгружено: новый сбор их удалит, поэтому панель предупреждает.
         'pages_sites' => count(glob($runDir . '/pages/*/*', GLOB_ONLYDIR) ?: []) + count(glob($runDir . '/pages/*/*.html') ?: []),
         'content_sites' => contentStats($runDir)['sites'],
@@ -461,6 +466,14 @@ if ($path === '/api/reset-history' && $method === 'POST') {
     // не трогаются. Отдельная кнопка: статистику иногда надо начать с чистого листа, не теряя базу.
     $n = \YandexSites\Support\CollectHistory::clear($projectDir . '/runs');
     jsonOut(['ok' => true, 'records' => $n]);
+}
+
+if ($path === '/api/content-reset' && $method === 'POST') {
+    // «Считать весь контент новым» — забываем отметки о скачанных архивах. Нужно, если архив потерялся
+    // или его надо пересобрать по частям заново; сами статьи на диске при этом не трогаются.
+    $before = \YandexSites\Support\ContentTaken::load($runDir)['files'];
+    \YandexSites\Support\ContentTaken::reset($runDir);
+    jsonOut(['ok' => true, 'forgotten' => count($before)]);
 }
 
 if ($path === '/api/results') {
@@ -608,23 +621,33 @@ if ($path === '/file') {
 if ($path === '/download' && (string) ($_GET['file'] ?? '') === 'content') {
     // «Скачать архив контента»: свежий zip из runs/current/content — внутри папки N-стр/сайт/страница.html,
     // ровно как на диске; распаковывается в нужную папку без лишнего верхнего уровня.
+    // part=new отдаёт ТОЛЬКО то, что ещё не забирали (следующая волна выгрузки), и помечает забранным;
+    // без part отдаётся весь контент — и тоже помечается, чтобы «новое» дальше считалось от этой точки.
     $contentDir = $runDir . '/content';
-    if (\YandexSites\Support\Archive::listFiles($contentDir) === []) {
+    $onlyNew = (string) ($_GET['part'] ?? '') === 'new';
+    $files = $onlyNew
+        ? \YandexSites\Support\ContentTaken::newFiles($runDir, $contentDir)
+        : \YandexSites\Support\Archive::listFiles($contentDir);
+    if ($files === []) {
         http_response_code(404);
         header('Content-Type: text/plain; charset=utf-8');
-        echo 'Очищенного контента пока нет — сначала «Очистить» у сайта или «Очистить всё»';
+        echo $onlyNew
+            ? 'Нового контента нет — всё, что очищено, уже скачано. Нажмите «Скачать всё», если нужен полный архив'
+            : 'Очищенного контента пока нет — сначала «Очистить» у сайта или «Очистить всё»';
         exit;
     }
     try {
-        \YandexSites\Support\Archive::zipDir($contentDir, $runDir . '/content.zip');
+        \YandexSites\Support\Archive::zipFiles($files, $runDir . '/content.zip');
     } catch (\RuntimeException $e) {
         http_response_code(500);
         header('Content-Type: text/plain; charset=utf-8');
         echo $e->getMessage();
         exit;
     }
+    $wave = \YandexSites\Support\ContentTaken::markTaken($runDir, $files);
+    $name = ($onlyNew ? 'content-part-' . $wave . '-' : 'content-') . date('Y-m-d') . '.zip';
     header('Content-Type: application/zip');
-    header('Content-Disposition: attachment; filename="content-' . date('Y-m-d') . '.zip"');
+    header('Content-Disposition: attachment; filename="' . $name . '"');
     header('Content-Length: ' . (string) filesize($runDir . '/content.zip'));
     readfile($runDir . '/content.zip');
     exit;

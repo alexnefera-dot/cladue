@@ -570,6 +570,59 @@ MANUAL-OWN.RU
         @rmdir($dir);
     }
 
+    public function testDownloadRunsInWavesAndCleansReadyPart(): void
+    {
+        // Выгрузка идёт ВОЛНАМИ: обход устроен по этапам (все главные → пробные → остальные), поэтому
+        // до конца списка ни один сайт не готов и ждать пришлось бы всю выгрузку. С batch_size = 1
+        // каждая волна — один сайт: его страницы сразу ложатся на диск, чистятся (clean_while_download)
+        // и попадают в sites.json, так что с готовой частью можно работать, не дожидаясь остальных.
+        $port = FakeServer::port('local');
+        $dir = sys_get_temp_dir() . '/yandex-sites-waves-' . uniqid();
+        $runDir = $dir . '/runs/waves';
+        mkdir($runDir, 0777, true);
+        file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
+        $hosts = ['okna-moskva.ru', 'tpl7.ru'];
+        $rows = [];
+        foreach ($hosts as $i => $host) {
+            $rows[] = ['host' => $host, 'domain' => $host, 'url' => "http://$host:$port/", 'title' => 'T', 'best_query' => 'q', 'best_position' => $i + 1, 'queries_count' => 1];
+        }
+        file_put_contents($runDir . '/sites.json', json_encode(['sites' => $rows]));
+        file_put_contents($runDir . '/settings.json', json_encode([
+            'stage' => 'download',
+            'visit_driver' => 'curl',
+            'batch_size' => 1,
+            'clean_while_download' => true,
+            'only' => $hosts,
+            'visit_resolve' => array_map(static fn (string $h): string => "$h:$port:127.0.0.1", $hosts),
+        ]));
+
+        $run = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $run['code'], $run['out']);
+        $log = (string) file_get_contents($runDir . '/run.log');
+        Assert::contains('волнами по 1', $log, 'выгрузка разбита на волны');
+        Assert::contains('Волна 1 из 2', $log);
+        Assert::contains('Волна 2 из 2', $log);
+
+        $st = json_decode((string) file_get_contents($runDir . '/status.json'), true);
+        Assert::same('done', $st['state'], $run['out']);
+        Assert::same(2, $st['sites_count'], 'в таблице оба сайта');
+        Assert::contains('очищено сразу', (string) $st['message'], 'контент почистился по ходу выгрузки');
+
+        // Контент готовой части лежит на диске, и «Скачать новое» отдаёт именно его.
+        $content = \YandexSites\Support\Archive::listFiles($runDir . '/content');
+        Assert::true($content !== [], 'очищенные статьи появились без отдельного этапа очистки');
+        $new = \YandexSites\Support\ContentTaken::newFiles($runDir, $runDir . '/content');
+        Assert::same(count($content), count($new), 'пока ничего не забирали — новое это весь контент');
+        \YandexSites\Support\ContentTaken::markTaken($runDir, $new);
+        Assert::same(0, count(\YandexSites\Support\ContentTaken::newFiles($runDir, $runDir . '/content')), 'забранное второй раз не приедет');
+
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($it as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+        @rmdir($dir);
+    }
+
     public function testRedownloadClearsPreviousPages(): void
     {
         $port = FakeServer::port('local');
@@ -1305,6 +1358,38 @@ MANUAL-OWN.RU
                 Assert::same(['12-стр/b.ru/main.html', '7-стр/a.ru/main.html', '7-стр/a.ru/vhod.html'], $names, 'в архиве — папки N-стр/сайт/страница');
                 $zip->close();
             }
+
+            // После «Скачать всё» новым считается только то, что появится дальше.
+            $state = json_decode((string) $this->http('GET', $base . '/api/state'), true);
+            Assert::same(0, $state['content_new']['files'], 'весь контент отмечен забранным');
+            Assert::same(1, $state['content_waves'], 'счётчик волн — им называется файл архива части');
+            $body = $this->http('GET', $base . '/download?file=content&part=new', null, $code);
+            Assert::same(404, $code, 'нового нет — честный отказ, а не архив со старым');
+            Assert::contains('Нового контента нет', $body);
+
+            // Вторая волна выгрузки: архив «только новое» приезжает БЕЗ уже скачанной части.
+            file_put_contents($runDir . '/content/12-стр/b.ru/vhod.html', '<p>вторая волна</p>');
+            $state = json_decode((string) $this->http('GET', $base . '/api/state'), true);
+            Assert::same(1, $state['content_new']['files'], 'новая статья видна панели');
+            $body = $this->http('GET', $base . '/download?file=content&part=new', null, $code);
+            Assert::same(200, $code, $body);
+            Assert::same('PK', substr($body, 0, 2), 'ответ — zip');
+            if (class_exists('ZipArchive')) {
+                $zip = new \ZipArchive();
+                Assert::true($zip->open($runDir . '/content.zip') === true);
+                Assert::same(1, $zip->numFiles, 'первая часть в архив второй волны не попала');
+                Assert::same('12-стр/b.ru/vhod.html', $zip->getNameIndex(0));
+                $zip->close();
+            }
+            $state = json_decode((string) $this->http('GET', $base . '/api/state'), true);
+            Assert::same(0, $state['content_new']['files'], 'вторая волна тоже отмечена забранной');
+            Assert::same(2, $state['content_waves']);
+
+            // «считать всё новым» — забываем отметки, статьи на диске остаются.
+            $this->http('POST', $base . '/api/content-reset', []);
+            $state = json_decode((string) $this->http('GET', $base . '/api/state'), true);
+            Assert::same(4, $state['content_files'], 'статьи на месте');
+            Assert::same(4, $state['content_new']['files'], 'весь контент снова новый');
 
             // Без контента — 404 с объяснением, а не пустой архив.
             \YandexSites\Content\SiteCleaner::rmTree($runDir . '/content');
