@@ -132,6 +132,36 @@ final class OwnSites
     }
 
     /**
+     * КАКАЯ метка совпала с хостом; '' — ни одна. Нужно, чтобы отчёт мог объяснить, почему сайт
+     * считается нашим: пользователь увидел кучу чужих доров с меткой «наш» и без такого объяснения
+     * не мог понять, какая именно метка ловит лишнее.
+     *
+     * Метка-путь (с «/») здесь не участвует — в голом хосте пути нет.
+     */
+    public function markerForHost(string $host): string
+    {
+        $host = mb_strtolower(trim($host));
+        if ($host === '') {
+            return '';
+        }
+        foreach ($this->markers as $marker) {
+            if (str_contains($marker, '/')) {
+                continue;
+            }
+            $domain = mb_strtolower($marker);
+            if ($host === $domain || str_ends_with($host, '.' . $domain)) {
+                return $marker;
+            }
+            $re = '~(?<![\p{L}\p{N}])' . preg_quote($marker, '~') . '(?![\p{L}\p{N}])~ui';
+            if (@preg_match($re, $host) === 1) {
+                return $marker;
+            }
+        }
+
+        return '';
+    }
+
+    /**
      * Совпадает ли метка-домен с хостом сайта: точное равенство или поддомен (kush.oasc.team ~ oasc.team).
      */
     public function matchesHost(string $host): bool

@@ -132,6 +132,7 @@
       <span class="tag social">соцсети</span><span class="tag known">известные</span><span class="tag other">прочие</span>
     </div>
     <div class="hint" id="repeatLine" style="margin-top:10px"></div>
+    <div class="hint" id="ownLine" style="margin-top:4px"></div>
     <div class="hint" id="diffLine" style="margin-top:4px"></div>
   </div>
 
@@ -176,7 +177,7 @@ function brandHtml(b){
       <span class="name">${esc(b.label)}</span>
       <span class="hint">ключей ${b.query_count|0} · сайтов ${b.sites|0} · строк ${b.rows|0}</span>
       ${countsHtml(b.counts||{})}
-      ${(b.own_doors|0) > 0 ? `<span class="tag our" title="доры, опознанные как НАШИ: по меткам наших шаблонов и по накопленному списку наших доменов">наших доров ${b.own_doors|0}</span>` : ''}
+      ${(b.own_doors|0) > 0 ? `<span class="tag our" title="Доры, опознанные как НАШИ. Причина у каждого своя — раскройте бренд и наведите на метку «наш»">наших доров ${b.own_doors|0}</span>` : ''}
       ${(b.crossed|0) > 0 ? `<span class="tag" title="сайтов, которые встретились больше чем в одном ключе этого бренда">пересечений ${b.crossed|0}</span>` : ''}
       ${(b.networked|0) > 0 ? `<span class="tag" title="сайтов, которые держатся сразу на нескольких брендах — это сетка">на нескольких брендах ${b.networked|0}</span>` : ''}
       ${d}
@@ -198,7 +199,7 @@ function queriesHtml(brand){
       const link = r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.host)}</a>` : esc(r.host);
       // У дора отдельно помечаем, наш он или чужой — по этому и смотрят на сетку.
       const ours = r.type === 'door'
-        ? (h.own ? ` <span class="tag our" title="наш дор: опознан по меткам наших шаблонов или по списку наших доменов">наш</span>`
+        ? (h.own ? ` <span class="tag our" title="Наш дор. Причина: ${esc(h.own_reason || 'не указана')}">наш</span>`
                  : ` <span class="tag" title="дор не опознан как наш">чужой</span>`)
         : '';
       return `<tr class="${cls}">
@@ -300,6 +301,16 @@ async function load(){
       + `<b>${rep.sites|0}</b> сайтов держатся сразу на нескольких брендах (из них доров <b>${repDoors}</b>). `
       + `Это и есть повторы между брендами; в блоке бренда они подсвечены сиреневым.`;
     const dt = j.diff_totals || {};
+    // ПОЧЕМУ доры помечены нашими: разбивка по причинам. Без неё непонятно, какая метка ловит лишнее.
+    const own = j.own || {}, byReason = own.by_reason || {};
+    const reasons = Object.keys(byReason).map(r => `${esc(r)} — <b>${byReason[r]|0}</b>`).join(' · ');
+    const markers = (j.own_markers || []).map(esc).join(', ');
+    $('ownLine').innerHTML = (own.doors|0)
+      ? `Наших доров: <b>${own.doors|0}</b>. Почему: ${reasons}.`
+        + (markers ? ` Действующие метки: <b>${markers}</b> (поправить — «Настройки» → «Метки наших шаблонов»).` : '')
+        + ` В списке наших доменов: <b>${j.own_domains|0}</b>.`
+        + ` Метка сверяется ТОЛЬКО с адресом сайта — если чужие доры помечены нашими, метка слишком общая.`
+      : (markers ? `Наших доров не найдено. Действующие метки: <b>${markers}</b>.` : 'Метки наших шаблонов не заданы — «наши» не отмечаются.');
     $('diffLine').innerHTML = (dt.added|0) || (dt.removed|0)
       ? `С прошлого сбора: <b>+${dt.added|0}</b> сайтов появилось, <b>−${dt.removed|0}</b> пропало. Разбивка — в блоке каждого бренда.`
       : 'Сравнение с прошлым сбором появится после следующего сбора.';

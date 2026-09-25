@@ -24,6 +24,9 @@ use YandexSites\Filter\OwnSites;
  */
 final class SerpAnalysis
 {
+    /** Причина «наш» по накопленному списку наших доменов (вторая причина — конкретная метка). */
+    public const REASON_LIST = 'домен в списке наших';
+
     /** Индекс прошлого сбора для сравнения — рядом с историей, переживает обновление кода. */
     public const INDEX_FILE = 'serp-prev.json';
 
@@ -124,8 +127,11 @@ final class SerpAnalysis
                 'type' => $type,
                 'reason' => (string) ($row['reason'] ?? ''),
             ];
-            $brands[$bucket]['hosts'][$host] ??= ['type' => $type, 'keys' => [], 'count' => 0,
-                'own' => self::isOurs($host, (string) ($row['url'] ?? ''), $own, $ourDomains)];
+            if (!isset($brands[$bucket]['hosts'][$host])) {
+                $reason = self::ownReason($host, $own, $ourDomains);
+                $brands[$bucket]['hosts'][$host] = ['type' => $type, 'keys' => [], 'count' => 0,
+                    'own' => $reason !== '', 'own_reason' => $reason];
+            }
             $brands[$bucket]['hosts'][$host]['keys'][$query] = true;
             $brands[$bucket]['hosts'][$host]['count']++;
             $hostBrands[$host][$bucket] = true;
@@ -136,7 +142,7 @@ final class SerpAnalysis
         $totalsSum = array_fill_keys(array_keys(self::TYPES), 0);   // сумма по брендам (с повторами)
         $repeats = array_fill_keys(array_keys(self::TYPES), 0);     // сайты, которые держатся на 2+ брендах
         $seenHost = [];
-        $ownAll = ['doors' => 0, 'sites' => 0];
+        $ownAll = ['doors' => 0, 'sites' => 0, 'by_reason' => []];
         $out = [];
         $queries = 0;
         foreach ($brands as $bucket => $brand) {
@@ -158,6 +164,9 @@ final class SerpAnalysis
                         $ownAll['sites']++;
                         if ($info['type'] === 'door') {
                             $ownAll['doors']++;
+                            // Разбивка «по какой причине наш»: сразу видно, какая метка ловит лишнее.
+                            $r = (string) $info['own_reason'];
+                            $ownAll['by_reason'][$r] = ($ownAll['by_reason'][$r] ?? 0) + 1;
                         }
                     }
                 }
@@ -184,6 +193,7 @@ final class SerpAnalysis
             $out[] = $brand;
         }
         // Бренды по числу ключей: самые проработанные — сверху; «без бренда» всегда последним.
+        arsort($ownAll['by_reason']);
         usort($out, static function (array $a, array $b): int {
             if (($a['key'] === '') !== ($b['key'] === '')) {
                 return $a['key'] === '' ? 1 : -1;
@@ -205,26 +215,32 @@ final class SerpAnalysis
     }
 
     /**
-     * Наш ли это сайт. HTML здесь нет (разбор строится по строкам выдачи), поэтому судим по адресу:
-     * метки наших шаблонов (домен размещения, домен редиректора) и накопленный список наших доменов,
-     * который ведёт сбор — по нему узнаются и те, что пришли повторами и уже не открывались.
+     * ПОЧЕМУ сайт считается нашим; '' — не наш. HTML здесь нет (разбор строится по строкам выдачи),
+     * поэтому судим ТОЛЬКО ПО ХОСТУ: накопленный список наших доменов (по нему узнаются и те, что
+     * пришли повторами и уже не открывались) и метки наших шаблонов.
+     *
+     * Полный АДРЕС строки выдачи намеренно НЕ проверяем, хотя при визите он проверяется: там в адресе
+     * есть цепочка редиректов, где и стоит наш редиректор, а здесь это просто страница чужого сайта —
+     * и метка вроде «faro» помечала нашим любой чужой `site.top/faro-bonus`. Пользователь получил
+     * «много доров определены как наши» на зонах, которых у него вообще нет.
      *
      * @param array<string, bool> $ourDomains
      */
-    private static function isOurs(string $host, string $url, ?OwnSites $own, array $ourDomains): bool
+    private static function ownReason(string $host, ?OwnSites $own, array $ourDomains): string
     {
         $host = Domains::normalize($host);
         if ($host === '') {
-            return false;
+            return '';
         }
         if (isset($ourDomains[$host]) || isset($ourDomains[Domains::registrable($host)])) {
-            return true;
+            return self::REASON_LIST;
         }
         if ($own === null || $own->isEmpty()) {
-            return false;
+            return '';
         }
+        $marker = $own->markerForHost($host);
 
-        return $own->matchesHost($host) || $own->matchesUrl($host) || ($url !== '' && $own->matchesUrl($url));
+        return $marker !== '' ? 'метка «' . $marker . '»' : '';
     }
 
     /**

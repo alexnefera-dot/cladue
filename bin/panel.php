@@ -604,11 +604,13 @@ if ($path === '/api/serp') {
     }
     $top = max(0, min(100, (int) ($_GET['top'] ?? 10)));
     $saved = readJsonFile($settingsFile) ?? [];
+    $ownSites = ownSitesForPanel($projectDir, $saved);
+    $ownDomains = ownDomainsForPanel($projectDir);
     $analysis = \YandexSites\Support\SerpAnalysis::build(
         \YandexSites\Support\SerpAnalysis::csvRows($csv),
         $top,
-        ownSitesForPanel($projectDir, $saved),
-        ownDomainsForPanel($projectDir),
+        $ownSites,
+        $ownDomains,
     );
     $diff = readJsonFile($runDir . '/' . \YandexSites\Support\SerpAnalysis::DIFF_FILE) ?? ['brands' => [], 'totals' => ['added' => 0, 'removed' => 0]];
     $want = trim((string) ($_GET['brand'] ?? ''));
@@ -639,6 +641,9 @@ if ($path === '/api/serp') {
         'queries' => $analysis['queries'],
         'top' => $top,
         'types' => \YandexSites\Support\SerpAnalysis::TYPES,
+        // Действующие метки и размер списка наших доменов: без них не понять, ПОЧЕМУ сайт «наш».
+        'own_markers' => $ownSites->markers(),
+        'own_domains' => count($ownDomains),
         'diff_totals' => $diff['totals'] ?? ['added' => 0, 'removed' => 0],
         'diff_at' => $diff['compared_at'] ?? '',
         'version' => \YandexSites\Cli\Application::VERSION,

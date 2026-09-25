@@ -114,6 +114,42 @@ final class SerpAnalysisTest
         Assert::same(2, $by['lex']['counts']['door']);
     }
 
+    public function testDoesNotCallStrangerOursBecauseOfItsUrl(): void
+    {
+        // Пользователь: «вижу много доров определены как наши, но у нас нет доменов .top/.click».
+        // Метка сверялась и с полным АДРЕСОМ строки выдачи, поэтому любой чужой site.top/faro-bonus
+        // становился нашим. При визите адрес проверять нужно (там цепочка редиректов), здесь — нет.
+        $rows = [
+            ['query' => 'вулкан казино', 'position' => 1, 'host' => 'kush.stranger.top',
+                'url' => 'https://kush.stranger.top/faro-bonus', 'title' => 'Вулкан', 'snippet' => 'казино', 'reason' => 'selected'],
+            ['query' => 'вулкан казино', 'position' => 2, 'host' => 'a.faro-hub.ru',
+                'url' => 'https://a.faro-hub.ru/', 'title' => 'Вулкан', 'snippet' => 'казино', 'reason' => 'selected'],
+        ];
+        $a = SerpAnalysis::build($rows, 10, new OwnSites(['faro']), []);
+        $hosts = $a['brands'][0]['hosts'];
+
+        Assert::false($hosts['kush.stranger.top']['own'], 'метка в пути чужого адреса — это не наш сайт');
+        Assert::true($hosts['a.faro-hub.ru']['own'], 'а в самом хосте — наш');
+        Assert::same(1, $a['own']['doors'], 'наш дор ровно один');
+    }
+
+    public function testExplainsWhyADoorIsConsideredOurs(): void
+    {
+        // Чтобы понять, какая метка ловит лишнее, у каждого «нашего» должна быть причина.
+        $rows = [
+            $this->row('вулкан казино', 1, 'a.faro-hub.ru', 'Вулкан', 'казино'),
+            $this->row('вулкан казино', 2, 'b.old-ours.ru', 'Вулкан', 'казино'),
+            $this->row('вулкан казино', 3, 'c.stranger.top', 'Вулкан', 'казино'),
+        ];
+        $a = SerpAnalysis::build($rows, 10, new OwnSites(['faro']), ['old-ours.ru']);
+        $hosts = $a['brands'][0]['hosts'];
+
+        Assert::same('метка «faro»', $hosts['a.faro-hub.ru']['own_reason'], 'видно, ИМЕННО какая метка сработала');
+        Assert::same(SerpAnalysis::REASON_LIST, $hosts['b.old-ours.ru']['own_reason'], 'вторая причина — список наших доменов');
+        Assert::same('', $hosts['c.stranger.top']['own_reason'], 'у чужого причины нет');
+        Assert::same(['метка «faro»' => 1, SerpAnalysis::REASON_LIST => 1], $a['own']['by_reason'], 'разбивка по причинам в итогах');
+    }
+
     public function testMarksOurDoorsByMarkersAndByDomainList(): void
     {
         // Наш дор узнаётся без HTML (его здесь нет): по меткам наших шаблонов и по накопленному списку
