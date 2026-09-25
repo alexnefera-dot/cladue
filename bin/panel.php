@@ -349,6 +349,22 @@ function ownDomainsForPanel(string $projectDir): array
     return array_values(array_unique($out));
 }
 
+/**
+ * Клиент системы запусков по ключу из «Настроек». Ключ лежит в .env рядом с проектом (туда его пишет
+ * кнопка «Сохранить ключи»), и читаем мы его НА КАЖДЫЙ запрос: иначе только что сохранённый ключ
+ * заработал бы лишь после перезапуска панели. Переменная окружения остаётся запасным путём для консоли.
+ */
+function dorgenClient(string $envFile): ?\YandexSites\Dorgen\DorgenClient
+{
+    $token = envValue($envFile, \YandexSites\Dorgen\DorgenClient::TOKEN_ENV);
+    if ($token === '') {
+        return \YandexSites\Dorgen\DorgenClient::fromEnv();
+    }
+    $base = envValue($envFile, \YandexSites\Dorgen\DorgenClient::BASE_ENV);
+
+    return new \YandexSites\Dorgen\DorgenClient($token, $base !== '' ? $base : \YandexSites\Dorgen\DorgenClient::DEFAULT_BASE);
+}
+
 // --- Роутинг ---
 
 if ($path === '/' || $path === '/index.html') {
@@ -409,6 +425,9 @@ if ($path === '/api/state') {
             'xmlstock_key_set' => envValue($envFile, 'XMLSTOCK_KEY') !== '',
             'yandex_folder' => envValue($envFile, 'YANDEX_FOLDER_ID'),
             'yandex_key_set' => envValue($envFile, 'YANDEX_API_KEY') !== '',
+            // Система запусков: сам ключ наружу не отдаём — только «задан или нет».
+            'dorgen_key_set' => envValue($envFile, \YandexSites\Dorgen\DorgenClient::TOKEN_ENV) !== '',
+            'dorgen_base' => envValue($envFile, \YandexSites\Dorgen\DorgenClient::BASE_ENV),
         ],
         'settings' => readJsonFile($settingsFile),
         'status' => $status,
@@ -450,6 +469,14 @@ if ($path === '/api/keys' && $method === 'POST') {
     }
     if (isset($b['yandex_key']) && trim((string) $b['yandex_key']) !== '') {
         $values['YANDEX_API_KEY'] = trim((string) $b['yandex_key']);
+    }
+    // Ключ системы запусков вводится там же, где остальные, — в «Настройках», а не правкой .env руками.
+    // Пустое поле означает «не менять», поэтому сохранённый ключ случайным сохранением не сотрётся.
+    if (isset($b['dorgen_token']) && trim((string) $b['dorgen_token']) !== '') {
+        $values[\YandexSites\Dorgen\DorgenClient::TOKEN_ENV] = trim((string) $b['dorgen_token']);
+    }
+    if (isset($b['dorgen_base'])) {
+        $values[\YandexSites\Dorgen\DorgenClient::BASE_ENV] = trim((string) $b['dorgen_base']);
     }
     if ($values !== []) {
         setEnvValues($envFile, $values);
@@ -650,7 +677,7 @@ if ($path === '/api/serp') {
         // Действующие метки и размер списка наших доменов: без них не понять, ПОЧЕМУ сайт «наш».
         'own_markers' => $ownSites->markers(),
         'own_domains' => count($ownDomains),
-        'dorgen' => $dorgen->load() + ['has_token' => \YandexSites\Dorgen\DorgenClient::fromEnv() !== null] + ['bases' => []],
+        'dorgen' => $dorgen->load() + ['has_token' => dorgenClient($envFile) !== null] + ['bases' => []],
         'dorgen_bases' => $dorgen->count(),
         'diff_totals' => $diff['totals'] ?? ['added' => 0, 'removed' => 0],
         'diff_at' => $diff['compared_at'] ?? '',
@@ -661,9 +688,9 @@ if ($path === '/api/serp') {
 if ($path === '/api/dorgen-refresh' && $method === 'POST') {
     // Догрузка наших поддоменов из системы запусков. Без дат берём только НОВЫЕ дни: кэш помнит,
     // по какой день уже выгружено, поэтому всю историю заново не тянем (API отдаёт ~110 МБ в сутки).
-    $client = \YandexSites\Dorgen\DorgenClient::fromEnv();
+    $client = dorgenClient($envFile);
     if ($client === null) {
-        jsonOut(['ok' => false, 'error' => 'Не задан ' . \YandexSites\Dorgen\DorgenClient::TOKEN_ENV . ' — впишите ключ в файл .env рядом с проектом (образец: .env.example) и перезапустите панель']);
+        jsonOut(['ok' => false, 'error' => 'Ключ системы запусков не задан — впишите его в «Настройках» («Ключи доступа» → «Система запусков dorgen») и нажмите «Сохранить ключи»']);
     }
     $b = body();
     $cache = \YandexSites\Dorgen\OwnBases::inRuns($projectDir . '/runs');

@@ -134,6 +134,11 @@
         <input type="text" id="k_user" placeholder="например 12478">
         <label>XMLStock — ключ <span id="xmkey" class="hint"></span></label>
         <input type="password" id="k_key" placeholder="оставьте пустым, чтобы не менять">
+        <label style="margin-top:14px">Система запусков dorgen — ключ <span id="dgkey" class="hint"></span></label>
+        <input type="password" id="k_dorgen" placeholder="оставьте пустым, чтобы не менять">
+        <div class="hint">По этому ключу страница «Разбор выдачи» выгружает НАШИ запущенные поддомены и помечает такие сайты «наш» точнее всего — не по меткам, а по списку от самой системы. Ключ хранится только на этом компьютере (файл .env) и никуда не отправляется.</div>
+        <label style="margin-top:10px">Адрес системы запусков <span class="hint">можно не менять</span></label>
+        <input type="text" id="k_dorgen_base" placeholder="https://dorgen-engine.com">
         <div class="btns"><button class="btn-ghost" id="saveKeys">Сохранить ключи</button><span id="keysSaved" class="saved" hidden>сохранено</span></div>
       </div>
 
@@ -659,9 +664,10 @@ function collectSettings(){
 }
 
 async function saveKeys(){
-  const body={ xmlstock_user:$('k_user').value.trim(), xmlstock_key:$('k_key').value.trim() };
+  const body={ xmlstock_user:$('k_user').value.trim(), xmlstock_key:$('k_key').value.trim(),
+    dorgen_token:$('k_dorgen').value.trim(), dorgen_base:$('k_dorgen_base').value.trim() };
   await fetch('/api/keys',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  $('k_key').value='';
+  $('k_key').value=''; $('k_dorgen').value='';
   const s=$('keysSaved'); s.hidden=false; setTimeout(()=>s.hidden=true,2500);
   refresh();
 }
@@ -1450,7 +1456,9 @@ let prefilled=false;
 function prefill(state){
   if(prefilled) return; prefilled=true;
   if(state.keys){ if(state.keys.xmlstock_user) $('k_user').value=state.keys.xmlstock_user;
-    $('xmkey').textContent = state.keys.xmlstock_key_set ? '· ключ сохранён' : '· не задан'; }
+    $('xmkey').textContent = state.keys.xmlstock_key_set ? '· ключ сохранён' : '· не задан';
+    $('dgkey').textContent = state.keys.dorgen_key_set ? '· ключ сохранён' : '· не задан';
+    if(state.keys.dorgen_base) $('k_dorgen_base').value=state.keys.dorgen_base; }
   $('proxHint').textContent = state.has_proxies ? '· файл найден' : '· proxies.txt не найден';
   if(typeof state.base_domains==='number') $('baseCount').textContent = state.base_domains;
   const saved = JSON.parse(localStorage.getItem('ys-panel')||'null');

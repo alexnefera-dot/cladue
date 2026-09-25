@@ -1507,6 +1507,28 @@ MANUAL-OWN.RU
             $raw = (string) $this->http('GET', $base . '/api/serp?brand=' . rawurlencode('нетакого'));
             $bad = json_decode($raw, true);
             Assert::false($bad['ok'] ?? true, 'неизвестный бренд — понятный отказ: ' . $raw);
+
+            // Ключ системы запусков вводится В ПАНЕЛИ («Настройки» → «Ключи доступа»), а не правкой .env,
+            // и начинает работать СРАЗУ — без перезапуска панели.
+            Assert::false($j['dorgen']['has_token'] ?? true, 'пока ключа нет');
+            $dorgenPort = FakeServer::port();
+            $this->http('POST', $base . '/api/keys', ['dorgen_token' => 'panel-token', 'dorgen_base' => "http://127.0.0.1:$dorgenPort"]);
+            $st = json_decode((string) $this->http('GET', $base . '/api/state'), true);
+            Assert::true($st['keys']['dorgen_key_set'] ?? false, 'панель видит сохранённый ключ');
+            Assert::false(str_contains((string) $this->http('GET', $base . '/api/state'), 'panel-token'), 'сам ключ наружу не отдаётся');
+
+            $ref = json_decode((string) $this->http('POST', $base . '/api/dorgen-refresh', ['date_from' => '2026-01-01', 'date_to' => '2026-01-02']), true);
+            Assert::true($ref['ok'] ?? false, json_encode($ref, JSON_UNESCAPED_UNICODE));
+            Assert::same(2, $ref['bases'], 'базы выгружены по ключу из настроек');
+
+            // Сайт с выгруженной базой помечается нашим с причиной «запущен в dorgen».
+            (new \YandexSites\Output\ReportWriter(';', true))->writeRawCsv([
+                $mk('лекс казино вход', 1, 'kush.4916.team', 'Лекс', 'selected'),
+            ], $runDir . '/results.csv', true);
+            $j2 = json_decode((string) $this->http('GET', $base . '/api/serp?brand=lex'), true);
+            $our = $j2['brand']['hosts']['kush.4916.team'] ?? [];
+            Assert::true($our['own'] ?? false, 'дор на нашей базе — наш: ' . json_encode($j2, JSON_UNESCAPED_UNICODE));
+            Assert::same(\YandexSites\Support\SerpAnalysis::REASON_DORGEN, $our['own_reason'] ?? '', 'причина — выгрузка');
         } finally {
             proc_terminate($server);
             proc_close($server);
