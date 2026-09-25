@@ -50,6 +50,7 @@ declare(strict_types=1);
  */
 
 require_once __DIR__ . '/src/PageMetrics.php';
+require_once __DIR__ . '/zadanie-pravki.php';
 
 const PAGES_Z = ['main', 'app', 'bonus', 'registracia', 'slots', 'vhod', 'zerkalo'];
 
@@ -238,7 +239,18 @@ foreach (PAGES_Z as $p) {
         $vReestre[] = mb_strtolower(is_array($z) ? $z['срез'] : $z);
     }
     $zan = array_merge($vReestre, $srezyKorpusa[$p] ?? []);
+    // Вычитка партий 1–7: slots ушли в сетевую технику, registracia — в документы
+    // KYC (10 из 14), vhod — в сеанс и cookie (11 из 14). Такие срезы пропускаем.
+    $stopSrez = [
+        'slots' => '~связ|сет[иь]|загруз|обновлен|кэш|вкладк|браузер|мобильной сборке|две вкладки~iu',
+        'registracia' => '~провер|документ|доход|родствен|сотрудник|работник|семь|паспорт|снимок~iu',
+        'vhod' => '~сеанс|cookie|токен|инкогнито|вкладк|спутник~iu',
+        'app' => '~обход|блокир|спутник|документ~iu',
+        'bonus' => '~семь|двоих|жалоба~iu',
+    ];
     foreach ($maski['срезы_запас'][$p] ?? [] as $s) {
+        if (isset($stopSrez[$p]) && preg_match($stopSrez[$p], $s)) { continue; }
+        if (preg_match('~стран|юрисдикц|недоступн|блокир|обход~iu', $s)) { continue; }
         if (!zanyat($s, $zan)) { $srezy[$p] = $s; break; }
     }
     if (!isset($srezy[$p]) && $IMYA !== '' && is_file("$root/$KORPUS/$IMYA/$p.html")) {
@@ -2739,6 +2751,7 @@ if ($SKELET !== null) {
     $a = strpos($glavnaya, "## Каркас\n");
     $b = strpos($glavnaya, "## Опорные формулы");
     $glavnaya = substr($glavnaya, 0, $a) . $txtK . "\n" . substr($glavnaya, $b);
+    $glavnaya .= dopMain($IMYA, $T['тип'], $GOLOS, $karta['рефрен'], zanyatyeYarlyki($root, $KORPUS, $IMYA));
     // Числа «Приёмов» старого образца уступают числам типа.
     $glavnaya = preg_replace(
         ['~^  таблиц \d.*$~mu', '~^  цитат <blockquote>.*$~mu', '~^  пар «вопрос-ответ».*$~mu', '~^  внутренних ссылок .*$~mu',
@@ -2827,9 +2840,6 @@ H3 — {$vn['H3']} штук, роли: {$roliStr}.
 ## Разметка FAQ
 {$faqObrazec}
 TXT;
-    // Полосы пула по типу внутренней: повелительные [4, q3 − 2], обращения [q1, q3].
-    $KAP_VN = ['app' => [4, 18, 0, 4], 'bonus' => [3, 10, 0, 4], 'registracia' => [4, 16, 1, 6],
-               'slots' => [4, 13, 0, 4], 'vhod' => [5, 18, 1, 6]];
     // Скелет пула на внутренней: формула H2, заголовок FAQ, плашка, трио слотов.
     if ($SKELET !== null) {
         $dop = "H2-срез пишется по формуле пула «срез: хвост маски»: двоеточие, 9–11 слов,\n"
@@ -2856,11 +2866,7 @@ TXT;
             . "столько пунктов.\n"
             . sprintf("Тошнота страницы — %d–%d %% (квартили пула), прилагательных 10–13 %%, воды 23–29 %%.\n",
                 ...$SKELETY['тошнота'][$p])
-            . sprintf("Повелительных форм на странице, вместе с шагами и ответами FAQ, — %d–%d; в ответах\n"
-                . "FAQ повелительное не чаще, чем в каждом третьем. Обращений («вы/вам/ваш» или\n"
-                . "«ты/тебе/твой» — по голосу) — %d–%d. У пятой партии повелительных было 15–19\n"
-                . "при потолке пула 12–15 на bonus и slots, обращений — 5–6 при потолке 4.\n",
-                ...($KAP_VN[$p] ?? [4, 14, 1, 4]))
+            // полосы повелительных и обращений — в dopVnutrennie(), от цели голоса
             . "Прилагательных не ниже 10 % — на 650 слов это 65 и больше: у пятой партии app,\n"
             . "registracia и vhod вышли 7–9 %, у шестой bonus и slots — 8,4–9,7 %.\n"
             . "Признак ставится к каждому второму узловому термину — ручная сверка, суточный\n"
@@ -2879,6 +2885,7 @@ TXT;
                 . "примером к нему, а не темой.\n";
         }
         $stranicy[$p] = str_replace("не сразу после H2.\n\n## Жанр", "не сразу после H2.\n$dop\n## Жанр", $stranicy[$p]);
+        $stranicy[$p] .= dopVnutrennie($IMYA, $p, $GOLOS, $karta['рефрен']);
     }
 }
 
@@ -3137,7 +3144,7 @@ if ($svoiStranicy !== '') {
 
 foreach (PAGES_SLUZH as $p) {
     $f = "$OUT/prompt-$p.md";
-    file_put_contents($f, $sluzhObshee . "\n" . $sluzh[$p] . "\n");
+    file_put_contents($f, $sluzhObshee . sluzhObsheeDop($IMYA, $GOLOS) . "\n" . $sluzh[$p] . sluzhVariant($IMYA, $p) . "\n");
     $gotovo[$p] = $f;
 }
 
