@@ -934,6 +934,19 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   what actually matters. Covered additionally by
   `SerpAnalysisTest::testTotalsCountDistinctSitesAndCrossBrandRepeats` /
   `testMarksOurDoorsByMarkersAndByDomainList`.
+  FALSE «наш»: the user reported «вижу много доров определены как наши, но у нас нет доменов
+  .top/.click». Two causes, both fixed. (1) `ownReason()` no longer matches the FULL SERP URL, only the
+  HOST — on the visit path the URL carries the redirect chain where the redirector lives, but a SERP row
+  is just a page of the door's own site, so a marker like `faro` flagged any stranger's
+  `site.top/faro-bonus`. (2) A marker that is a common word flags every host containing it as a token,
+  and nothing said WHICH marker fired, so it could not be found. `ownReason()` therefore returns a
+  REASON instead of a bool — `SerpAnalysis::REASON_LIST` («домен в списке наших») or «метка «X»» from
+  the new `OwnSites::markerForHost()` — every host carries `own_reason`, `own.by_reason` counts the
+  doors per reason, `/api/serp` also returns `own_markers` (the effective list) and `own_domains` (the
+  ledger size), and the page prints «Наших доров: N. Почему: метка «faro» — 120 · домен в списке наших —
+  18. Действующие метки: … (поправить — «Настройки»)» plus the reason in each «наш» tag's tooltip.
+  Covered by `SerpAnalysisTest::testDoesNotCallStrangerOursBecauseOfItsUrl` /
+  `testExplainsWhyADoorIsConsideredOurs`.
 - The panel's progress cards are a FUNNEL with no repeated number, because «29 904 результата» next to
   «2 043 сайта» read as a contradiction («а почему результатов в выдаче 29к, а доменов 7к — это
   уникальных?»): запросов → `results` (every SERP row; one site counts again in each query that found it)
