@@ -1342,6 +1342,20 @@ const V5_IMENA = ['games_named', 'providers_named', 'names_uniq'];
 const V5_S_OBJEMOM = ['words', 'paragraphs', 'sections', 'anchors', 'questions_total', 'faq',
     'strong', 'honest', 'terms_total', 'address_total', 'ty', 'imperatives', 'cta', 'lists', 'h2'];
 
+// Полосы густой страницы — дециль p10–p90 по 21 густому набору NEW100, а не
+// медиана с допуском: у полей густой страницы разброс широкий (sections на
+// главной 11–71, слов в абзаце 16.7–41), и коридор вокруг медианы отбраковывал
+// бы и сами образцы — bonus у «eva» с его двенадцатью разделами при медиане 8.
+// Поля профиля здесь сняты с обычных доноров и густой странице не подходят.
+const V5_GUSTYE_POLOSY = [
+    'main' => ['paragraphs' => [18.0, 44.0], 'words_per_para' => [16.7, 41.0], 'para_short' => [1.0, 24.0], 'para_spread' => [7.8, 21.7], 'words' => [582.0, 1918.0], 'sections' => [11.0, 71.0], 'h2' => [7.0, 15.0], 'nausea_acad' => [25.8, 44.5], 'water' => [20.3, 28.9], 'adj_pct' => [7.6, 14.1]],
+    'bonus' => ['paragraphs' => [17.0, 24.0], 'words_per_para' => [17.3, 52.6], 'para_short' => [0.0, 12.0], 'para_spread' => [8.4, 14.7], 'words' => [541.0, 1404.0], 'sections' => [8.0, 43.0], 'h2' => [5.0, 7.0], 'nausea_acad' => [25.2, 45.2], 'water' => [23.6, 29.8], 'adj_pct' => [8.5, 12.6]],
+    'registracia' => ['paragraphs' => [18.0, 25.0], 'words_per_para' => [14.8, 47.7], 'para_short' => [2.0, 12.0], 'para_spread' => [5.3, 21.1], 'words' => [625.0, 1482.0], 'sections' => [9.0, 40.0], 'h2' => [6.0, 8.0], 'nausea_acad' => [28.0, 40.2], 'water' => [25.0, 28.7], 'adj_pct' => [7.7, 11.1]],
+    'vhod' => ['paragraphs' => [16.0, 28.0], 'words_per_para' => [17.7, 52.4], 'para_short' => [1.0, 11.0], 'para_spread' => [8.4, 19.2], 'words' => [742.0, 1278.0], 'sections' => [11.0, 38.0], 'h2' => [6.0, 9.0], 'nausea_acad' => [29.5, 39.5], 'water' => [27.6, 31.1], 'adj_pct' => [9.3, 10.8]],
+    'zerkalo' => ['paragraphs' => [20.0, 29.0], 'words_per_para' => [16.5, 54.4], 'para_short' => [2.0, 14.0], 'para_spread' => [7.9, 18.2], 'words' => [518.0, 1592.0], 'sections' => [11.0, 42.0], 'h2' => [6.0, 8.0], 'nausea_acad' => [25.6, 38.5], 'water' => [27.3, 32.4], 'adj_pct' => [11.2, 15.8]],
+    'app' => ['paragraphs' => [14.0, 34.0], 'words_per_para' => [17.4, 55.7], 'para_short' => [0.0, 20.0], 'para_spread' => [12.1, 19.3], 'words' => [796.0, 1348.0], 'sections' => [12.0, 38.0], 'h2' => [6.0, 8.0], 'nausea_acad' => [22.9, 39.0], 'water' => [20.2, 30.9], 'adj_pct' => [9.5, 12.7]],
+];
+
 // Полосы и цели, перенесённые с двенадцати доноров на корпус из ста наборов.
 // Профиль строится по донорам, и на части полей их середина стоит не там: цель
 // terms_total на news выходила 95 при медиане NEW100 68 — ровно там, где стоит
