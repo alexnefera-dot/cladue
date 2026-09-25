@@ -7,6 +7,7 @@ namespace YandexSites\Support;
 use YandexSites\Content\BrandKeys;
 use YandexSites\Filter\DefaultExclusions;
 use YandexSites\Filter\Domains;
+use YandexSites\Filter\OwnSites;
 
 /**
  * ТЕХНИЧЕСКИЙ РАЗБОР ВЫДАЧИ — отдельная страница панели (/serp), которая показывает выдачу КАК ОНА ЕСТЬ,
@@ -71,12 +72,26 @@ final class SerpAnalysis
     /**
      * Разбор выдачи по брендам.
      *
+     * ВСЁ СЧИТАЕТСЯ ПО РАЗНЫМ САЙТАМ, а не по строкам: один дор на пяти ключах — это один дор. Внутри
+     * бренда уникальность по домену, в итогах по всем брендам — тоже (домен, который держится на трёх
+     * брендах, в общем числе доров один). Разница между суммой по брендам и общим числом — это и есть
+     * повторы между брендами, она показана отдельной строкой.
+     *
      * @param iterable<array{query: string, position: int, host: string, url: string, title: string, snippet: string, reason: string}> $rows
      * @param int $top оставить только первые N позиций каждого запроса (0 — все)
-     * @return array{brands: list<array<string, mixed>>, totals: array<string, int>, results: int, queries: int}
+     * @param OwnSites|null $own метки наших шаблонов: дор помечается «наш» по домену/адресу
+     * @param array<int, string> $ownDomains накопленный список НАШИХ доменов (runs/own-domains.txt)
+     * @return array<string, mixed>
      */
-    public static function build(iterable $rows, int $top = 10): array
+    public static function build(iterable $rows, int $top = 10, ?OwnSites $own = null, array $ownDomains = []): array
     {
+        $ourDomains = [];
+        foreach ($ownDomains as $domain) {
+            $domain = Domains::normalize(trim((string) $domain));
+            if ($domain !== '') {
+                $ourDomains[$domain] = true;
+            }
+        }
         $brands = [];
         $results = 0;
         $hostBrands = []; // host => [brandKey => true] — сколько РАЗНЫХ брендов держится на домене
@@ -109,27 +124,51 @@ final class SerpAnalysis
                 'type' => $type,
                 'reason' => (string) ($row['reason'] ?? ''),
             ];
-            $brands[$bucket]['hosts'][$host] ??= ['type' => $type, 'keys' => [], 'count' => 0];
+            $brands[$bucket]['hosts'][$host] ??= ['type' => $type, 'keys' => [], 'count' => 0,
+                'own' => self::isOurs($host, (string) ($row['url'] ?? ''), $own, $ourDomains)];
             $brands[$bucket]['hosts'][$host]['keys'][$query] = true;
             $brands[$bucket]['hosts'][$host]['count']++;
             $hostBrands[$host][$bucket] = true;
             $results++;
         }
 
-        $totals = array_fill_keys(array_keys(self::TYPES), 0);
+        $totals = array_fill_keys(array_keys(self::TYPES), 0);      // УНИКАЛЬНЫЕ сайты по всем брендам
+        $totalsSum = array_fill_keys(array_keys(self::TYPES), 0);   // сумма по брендам (с повторами)
+        $repeats = array_fill_keys(array_keys(self::TYPES), 0);     // сайты, которые держатся на 2+ брендах
+        $seenHost = [];
+        $ownAll = ['doors' => 0, 'sites' => 0];
         $out = [];
         $queries = 0;
         foreach ($brands as $bucket => $brand) {
             ksort($brand['queries']);
             $counts = array_fill_keys(array_keys(self::TYPES), 0);
+            $ownDoors = 0;
             foreach ($brand['hosts'] as $host => $info) {
                 // Считаем по РАЗНЫМ сайтам, а не по строкам: один дор на пяти ключах — это один дор.
                 $counts[$info['type']]++;
-                $totals[$info['type']]++;
+                $totalsSum[$info['type']]++;
+                if (!isset($seenHost[$host])) {
+                    // В общий итог домен попадает ОДИН раз, даже если он стоит на нескольких брендах.
+                    $seenHost[$host] = true;
+                    $totals[$info['type']]++;
+                    if (count($hostBrands[$host] ?? []) > 1) {
+                        $repeats[$info['type']]++;
+                    }
+                    if ($info['own']) {
+                        $ownAll['sites']++;
+                        if ($info['type'] === 'door') {
+                            $ownAll['doors']++;
+                        }
+                    }
+                }
+                if ($info['own'] && $info['type'] === 'door') {
+                    $ownDoors++;
+                }
                 $brand['hosts'][$host]['keys'] = count($info['keys']);
                 // На скольких брендах держится этот домен: 2+ — это сетка, подсвечиваем отдельно.
                 $brand['hosts'][$host]['brands'] = count($hostBrands[$host] ?? []);
             }
+            $brand['own_doors'] = $ownDoors;
             $queries += count($brand['queries']);
             $rowsCount = 0;
             foreach ($brand['queries'] as $list) {
@@ -153,7 +192,39 @@ final class SerpAnalysis
             return $b['query_count'] <=> $a['query_count'] ?: strcmp((string) $a['label'], (string) $b['label']);
         });
 
-        return ['brands' => $out, 'totals' => $totals, 'results' => $results, 'queries' => $queries];
+        return [
+            'brands' => $out,
+            'totals' => $totals,          // уникальные сайты по всем брендам, по типам
+            'totals_sum' => $totalsSum,   // сумма по брендам: больше на величину повторов между брендами
+            'repeats' => ['sites' => array_sum($repeats), 'by_type' => $repeats],
+            'own' => $ownAll,
+            'sites' => count($seenHost),
+            'results' => $results,
+            'queries' => $queries,
+        ];
+    }
+
+    /**
+     * Наш ли это сайт. HTML здесь нет (разбор строится по строкам выдачи), поэтому судим по адресу:
+     * метки наших шаблонов (домен размещения, домен редиректора) и накопленный список наших доменов,
+     * который ведёт сбор — по нему узнаются и те, что пришли повторами и уже не открывались.
+     *
+     * @param array<string, bool> $ourDomains
+     */
+    private static function isOurs(string $host, string $url, ?OwnSites $own, array $ourDomains): bool
+    {
+        $host = Domains::normalize($host);
+        if ($host === '') {
+            return false;
+        }
+        if (isset($ourDomains[$host]) || isset($ourDomains[Domains::registrable($host)])) {
+            return true;
+        }
+        if ($own === null || $own->isEmpty()) {
+            return false;
+        }
+
+        return $own->matchesHost($host) || $own->matchesUrl($host) || ($url !== '' && $own->matchesUrl($url));
     }
 
     /**

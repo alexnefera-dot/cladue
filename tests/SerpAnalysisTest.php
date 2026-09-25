@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests;
 
+use YandexSites\Filter\OwnSites;
 use YandexSites\Support\SerpAnalysis;
 
 final class SerpAnalysisTest
@@ -83,6 +84,59 @@ final class SerpAnalysisTest
         $last = $a['brands'][count($a['brands']) - 1];
         Assert::same('', $last['key'], 'запросы без бренда — отдельным блоком');
         Assert::same('без бренда', $last['label']);
+    }
+
+    public function testTotalsCountDistinctSitesAndCrossBrandRepeats(): void
+    {
+        // «Доры по всем ключам бренда — это уникальные?» Да: и внутри бренда, и в общем итоге считаем
+        // РАЗНЫЕ сайты. Домен, который держится на двух брендах, в общем числе доров один, а разница
+        // между суммой по брендам и общим итогом — это и есть повторы между брендами.
+        $rows = [
+            $this->row('вулкан казино зеркало', 1, 'kush.grid-f.ru', 'Вулкан', 'казино'),
+            $this->row('вулкан казино бонус', 1, 'kush.grid-f.ru', 'Вулкан', 'бонус'),
+            $this->row('вулкан казино бонус', 2, 'only-v.grid-f.ru', 'Вулкан', 'казино'),
+            $this->row('лекс казино вход', 1, 'kush.grid-f.ru', 'Лекс', 'казино'),
+            $this->row('лекс казино вход', 2, 'only-l.grid-f.ru', 'Лекс', 'казино'),
+        ];
+        $a = SerpAnalysis::build($rows);
+
+        Assert::same(3, $a['sites'], 'разных сайтов всего три, хотя строк пять');
+        Assert::same(3, $a['totals']['door'], 'доров всего по всем брендам — уникальных');
+        Assert::same(4, $a['totals_sum']['door'], 'сумма по брендам больше: общий дор посчитан в обоих');
+        Assert::same(1, $a['repeats']['sites'], 'один сайт держится сразу на нескольких брендах');
+        Assert::same(1, $a['repeats']['by_type']['door'], 'и это дор');
+
+        $by = [];
+        foreach ($a['brands'] as $b) {
+            $by[$b['key']] = $b;
+        }
+        Assert::same(2, $by['vulkan']['counts']['door'], 'внутри бренда — тоже разные сайты');
+        Assert::same(2, $by['lex']['counts']['door']);
+    }
+
+    public function testMarksOurDoorsByMarkersAndByDomainList(): void
+    {
+        // Наш дор узнаётся без HTML (его здесь нет): по меткам наших шаблонов и по накопленному списку
+        // наших доменов — последний важен, потому что повтор мы уже не открываем, а он наш.
+        $rows = [
+            $this->row('вулкан казино', 1, 'a.faro-hub.ru', 'Вулкан', 'казино'),
+            $this->row('вулкан казино', 2, 'b.old-ours.ru', 'Вулкан', 'казино'),
+            $this->row('вулкан казино', 3, 'c.stranger.ru', 'Вулкан', 'казино'),
+            $this->row('вулкан казино', 4, 'casino-x.ru', 'Обзор', 'казино'),
+        ];
+        $a = SerpAnalysis::build($rows, 10, new OwnSites(['faro-hub.ru']), ['old-ours.ru']);
+        $brand = $a['brands'][0];
+
+        Assert::true($brand['hosts']['a.faro-hub.ru']['own'], 'наш по метке шаблона');
+        Assert::true($brand['hosts']['b.old-ours.ru']['own'], 'наш по списку наших доменов (поддомен тоже наш)');
+        Assert::false($brand['hosts']['c.stranger.ru']['own'], 'чужой дор');
+        Assert::same(2, $brand['own_doors'], 'наших доров у бренда');
+        Assert::same(2, $a['own']['doors'], 'наших доров всего');
+        Assert::same(3, $a['totals']['door'], 'тематический домен в доры не попал');
+
+        // Без меток и без списка «наших» нет вовсе — ложных пометок не появляется.
+        $plain = SerpAnalysis::build($rows);
+        Assert::same(0, $plain['own']['doors'], 'без меток никто не помечен нашим');
     }
 
     public function testDiffShowsWhatAppearedAndDisappeared(): void

@@ -1417,6 +1417,8 @@ MANUAL-OWN.RU
         $runDir = $dir . '/runs/current';
         mkdir($runDir, 0777, true);
         file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
+        // Метка наших шаблонов приходит из настроек панели — тем же полем, что и на главной.
+        file_put_contents($runDir . '/settings.json', json_encode(['own_markers' => ['grid-x.ru']], JSON_UNESCAPED_UNICODE));
         $mk = static fn (string $q, int $pos, string $host, string $title, string $reason): array => [
             'result' => new \YandexSites\Model\SearchResult($q, 0, $pos, "https://$host/", $host, $title, '', 'казино онлайн'),
             'reason' => $reason === 'selected' ? null : $reason,
@@ -1482,6 +1484,16 @@ MANUAL-OWN.RU
             Assert::same(1, $byKey['vulkan']['diff']['added']['total'], 'разница с прошлым сбором приехала');
             Assert::same(2, $j['diff_totals']['removed']);
 
+            // Итоги — по РАЗНЫМ сайтам: дор на двух брендах в общем числе один, и он же повтор между брендами.
+            Assert::same(1, $j['totals']['door'], 'доров всего — уникальных');
+            Assert::same(2, $j['totals_sum']['door'], 'сумма по брендам больше на повтор');
+            Assert::same(1, $j['repeats']['sites'], 'сайт держится сразу на двух брендах');
+            Assert::same(1, $j['repeats']['by_type']['door']);
+            Assert::same(3, $j['sites'], 'разных сайтов в сборе');
+            // Дор опознан как НАШ по метке из настроек панели.
+            Assert::same(1, $j['own']['doors'], 'наших доров всего');
+            Assert::same(1, $byKey['vulkan']['own_doors'], 'наших доров у бренда');
+
             // Отдельный бренд — со всей своей выдачей и причинами отсева главной.
             $b = json_decode((string) $this->http('GET', $base . '/api/serp?brand=vulkan'), true);
             Assert::true($b['ok'] ?? false, json_encode($b, JSON_UNESCAPED_UNICODE));
@@ -1490,6 +1502,7 @@ MANUAL-OWN.RU
             Assert::inArray('excluded_domain', $reasons, 'видно, что именно убрала главная');
             Assert::same(2, $b['brand']['hosts']['kush.grid-x.ru']['keys']);
             Assert::same(2, $b['brand']['hosts']['kush.grid-x.ru']['brands'], 'домен держится на двух брендах');
+            Assert::true($b['brand']['hosts']['kush.grid-x.ru']['own'], 'дор помечен нашим — по метке из настроек панели');
 
             $raw = (string) $this->http('GET', $base . '/api/serp?brand=' . rawurlencode('нетакого'));
             $bad = json_decode($raw, true);

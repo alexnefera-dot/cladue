@@ -47,6 +47,7 @@
     .tag.social{background:#42191c;color:#ffb0b0} .tag.known{background:#3d2f10;color:#ffd98a}
     .tag.other{background:#2a323d;color:#c7cedb}
   }
+  .tag.our{background:#0f766e;color:#fff}
   .tag.add{background:#dcfce7;color:#14532d}
   .tag.gone{background:#fee2e2;color:#7f1d1d}
   .brand{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;background:var(--card);overflow:hidden}
@@ -92,8 +93,36 @@
           <option value="0">все позиции</option>
         </select>
       </label>
-      <input type="text" id="find" placeholder="фильтр: бренд или сайт" style="min-width:220px">
+      <input type="text" id="find" placeholder="фильтр по названию бренда" style="min-width:200px">
       <span class="hint" id="updated"></span>
+    </div>
+    <div class="btns" style="margin-bottom:12px">
+      <label class="hint" style="display:flex;align-items:center;gap:6px">сортировать
+        <select id="sort">
+          <option value="door">по дорам</option>
+          <option value="own_doors">по нашим дорам</option>
+          <option value="sites">по числу сайтов</option>
+          <option value="query_count">по числу ключей</option>
+          <option value="crossed">по пересечениям внутри бренда</option>
+          <option value="networked">по сайтам на нескольких брендах</option>
+          <option value="theme">по тематическим доменам</option>
+          <option value="changed">по изменениям с прошлого сбора</option>
+          <option value="label">по названию</option>
+        </select>
+      </label>
+      <button class="btn-ghost" id="dir" title="Порядок: от большего к меньшему или наоборот">↓ от большего</button>
+      <label class="hint" style="display:flex;align-items:center;gap:6px">показывать
+        <select id="only">
+          <option value="">все бренды</option>
+          <option value="door">только с дорами</option>
+          <option value="own">только с нашими дорами</option>
+          <option value="noown">с дорами, но без наших</option>
+          <option value="net">только с сайтами на нескольких брендах</option>
+          <option value="crossed">только с пересечениями внутри бренда</option>
+          <option value="changed">только изменившиеся</option>
+        </select>
+      </label>
+      <span class="hint" id="shownCount"></span>
     </div>
     <div class="stats" id="stats"></div>
     <div class="legend">
@@ -102,7 +131,8 @@
       <span class="tag door">доры</span><span class="tag theme">тематические</span>
       <span class="tag social">соцсети</span><span class="tag known">известные</span><span class="tag other">прочие</span>
     </div>
-    <div class="hint" id="diffLine" style="margin-top:10px"></div>
+    <div class="hint" id="repeatLine" style="margin-top:10px"></div>
+    <div class="hint" id="diffLine" style="margin-top:4px"></div>
   </div>
 
   <div id="brands"></div>
@@ -146,6 +176,7 @@ function brandHtml(b){
       <span class="name">${esc(b.label)}</span>
       <span class="hint">ключей ${b.query_count|0} · сайтов ${b.sites|0} · строк ${b.rows|0}</span>
       ${countsHtml(b.counts||{})}
+      ${(b.own_doors|0) > 0 ? `<span class="tag our" title="доры, опознанные как НАШИ: по меткам наших шаблонов и по накопленному списку наших доменов">наших доров ${b.own_doors|0}</span>` : ''}
       ${(b.crossed|0) > 0 ? `<span class="tag" title="сайтов, которые встретились больше чем в одном ключе этого бренда">пересечений ${b.crossed|0}</span>` : ''}
       ${(b.networked|0) > 0 ? `<span class="tag" title="сайтов, которые держатся сразу на нескольких брендах — это сетка">на нескольких брендах ${b.networked|0}</span>` : ''}
       ${d}
@@ -165,10 +196,15 @@ function queriesHtml(brand){
       const cls = (h.brands|0) > 1 ? 'net' : ((h.keys|0) > 1 ? 'cross' : '');
       const why = (h.brands|0) > 1 ? `держится на ${h.brands} брендах` : ((h.keys|0) > 1 ? `встретился в ${h.keys} ключах бренда` : '');
       const link = r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.host)}</a>` : esc(r.host);
+      // У дора отдельно помечаем, наш он или чужой — по этому и смотрят на сетку.
+      const ours = r.type === 'door'
+        ? (h.own ? ` <span class="tag our" title="наш дор: опознан по меткам наших шаблонов или по списку наших доменов">наш</span>`
+                 : ` <span class="tag" title="дор не опознан как наш">чужой</span>`)
+        : '';
       return `<tr class="${cls}">
         <td class="pos">${r.position|0}</td>
         <td class="site"${why ? ` title="${esc(why)}"` : ''}>${link}</td>
-        <td>${typeTag(r.type)}</td>
+        <td>${typeTag(r.type)}${ours}</td>
         <td class="ttl">${esc(r.title).slice(0,120)}</td>
         <td class="ttl">${r.reason && r.reason !== 'selected' ? esc(r.reason) : ''}</td>
       </tr>`;
@@ -200,9 +236,39 @@ async function loadBrand(el, key){
   }catch(e){ body.innerHTML = `<div class="err">Не удалось загрузить: ${esc(e.message || e)}</div>`; }
 }
 
+let sortDesc = true;
+
+/** Значение бренда по выбранному параметру сортировки. */
+function sortValue(b, key){
+  if(key === 'label') return String(b.label || '').toLowerCase();
+  if(key === 'changed'){ const d = b.diff || {}; return ((d.added&&d.added.total)|0) + ((d.removed&&d.removed.total)|0); }
+  if(key in (b.counts || {})) return b.counts[key]|0;
+  return b[key]|0;
+}
+
+/** Оставить только интересные бренды: с дорами, с нашими, с сеткой, изменившиеся. */
+function matchesOnly(b, only){
+  const doors = (b.counts && b.counts.door)|0, own = b.own_doors|0, d = b.diff || {};
+  if(only === 'door') return doors > 0;
+  if(only === 'own') return own > 0;
+  if(only === 'noown') return doors > 0 && own === 0;
+  if(only === 'net') return (b.networked|0) > 0;
+  if(only === 'crossed') return (b.crossed|0) > 0;
+  if(only === 'changed') return ((d.added&&d.added.total)|0) > 0 || ((d.removed&&d.removed.total)|0) > 0 || !!d.is_new || !!d.gone;
+  return true;
+}
+
 function render(){
   const q = $('find').value.trim().toLowerCase();
-  const shown = q ? brands.filter(b => String(b.label).toLowerCase().includes(q) || String(b.key).toLowerCase().includes(q)) : brands;
+  const only = $('only').value, key = $('sort').value;
+  let shown = brands.filter(b => matchesOnly(b, only));
+  if(q) shown = shown.filter(b => String(b.label).toLowerCase().includes(q) || String(b.key).toLowerCase().includes(q));
+  shown = shown.slice().sort((a, b) => {
+    const va = sortValue(a, key), vb = sortValue(b, key);
+    const cmp = typeof va === 'string' ? va.localeCompare(vb, 'ru') : (va - vb);
+    return sortDesc ? -cmp : cmp;
+  });
+  $('shownCount').textContent = shown.length === brands.length ? `брендов ${brands.length}` : `показано ${shown.length} из ${brands.length}`;
   $('brands').innerHTML = shown.map(brandHtml).join('');
   $('status').textContent = shown.length ? '' : (brands.length ? 'Под фильтр ничего не попало' : 'Брендов не найдено');
   document.querySelectorAll('.brand').forEach(el => {
@@ -221,9 +287,18 @@ async function load(){
     TYPES = j.types || {};
     brands = j.brands || [];
     $('version').textContent = j.version ? 'версия ' + j.version : '';
-    const cells = [['брендов', brands.length], ['запросов', j.queries|0], ['строк выдачи', j.results|0]];
+    const cells = [['брендов', brands.length], ['запросов', j.queries|0], ['строк выдачи', j.results|0],
+      ['разных сайтов', j.sites|0]];
     for(const t of Object.keys(TYPES)) cells.push([TYPES[t], (j.totals||{})[t]|0]);
+    cells.push(['наших доров', (j.own && j.own.doors)|0]);
     $('stats').innerHTML = cells.map(([s, b]) => `<div class="stat"><b>${b}</b><span>${esc(s)}</span></div>`).join('');
+    // Все числа выше — по РАЗНЫМ сайтам. Сумма по брендам больше ровно на повторы между брендами.
+    const rep = j.repeats || {}, sum = j.totals_sum || {}, tot = j.totals || {};
+    const repDoors = (rep.by_type && rep.by_type.door)|0;
+    $('repeatLine').innerHTML = `Все числа — по <b>разным сайтам</b>: домен, который стоит на нескольких брендах, в общем итоге считается один раз. `
+      + `Сумма по брендам: доров <b>${sum.door|0}</b> против <b>${tot.door|0}</b> разных — значит `
+      + `<b>${rep.sites|0}</b> сайтов держатся сразу на нескольких брендах (из них доров <b>${repDoors}</b>). `
+      + `Это и есть повторы между брендами; в блоке бренда они подсвечены сиреневым.`;
     const dt = j.diff_totals || {};
     $('diffLine').innerHTML = (dt.added|0) || (dt.removed|0)
       ? `С прошлого сбора: <b>+${dt.added|0}</b> сайтов появилось, <b>−${dt.removed|0}</b> пропало. Разбивка — в блоке каждого бренда.`
@@ -236,6 +311,13 @@ async function load(){
 $('reload').addEventListener('click', load);
 $('top').addEventListener('change', load);
 $('find').addEventListener('input', render);
+$('sort').addEventListener('change', render);
+$('only').addEventListener('change', render);
+$('dir').addEventListener('click', () => {
+  sortDesc = !sortDesc;
+  $('dir').textContent = sortDesc ? '↓ от большего' : '↑ от меньшего';
+  render();
+});
 load();
 </script>
 </body>

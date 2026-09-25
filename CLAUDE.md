@@ -911,6 +911,29 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   unchanged brand is absent from the diff, results.csv reading) and
   `PanelTest::testSerpAnalysisPageAndEndpoint` (the page and both API shapes over HTTP) +
   `testRunJobProducesResults` (a real collect writes the snapshot and the diff).
+  EVERYTHING IS COUNTED BY DISTINCT SITE, and the user asked explicitly («это уникальные? если нет,
+  считай уникальные везде»): inside a brand the hosts map is keyed by host, and the GLOBAL `totals` now
+  count each host ONCE even when it stands on several brands. `totals_sum` keeps the per-brand sum next
+  to it, because the gap between the two IS the cross-brand repeat count: `repeats` = `{sites, by_type}`
+  over the hosts whose `brands > 1`, and the page spells the arithmetic out («сумма по брендам: доров X
+  против Y разных — значит Z сайтов держатся сразу на нескольких брендах»). `sites` is the distinct host
+  count of the whole collect. OURS: there is no HTML here (the analysis is built from SERP rows), so
+  `isOurs()` judges by address — `OwnSites::matchesHost()`/`matchesUrl()` (markers from
+  `Config::defaults()`, `config.php`, `own-markers.txt` AND the panel's `settings.own_markers`) plus the
+  accumulated `runs/own-domains.txt` + the manual `own-domains.txt`, matched on the host and on its
+  registrable domain — the ledger matters because a repeat is never opened yet is still ours. Each host
+  carries `own`, each brand `own_doors`, the whole analysis `own: {doors, sites}`; a door row on the page
+  is tagged «наш» or «чужой» and the brand header shows «наших доров N». `bin/panel.php` builds the
+  markers with `ownSitesForPanel()` (it `@include`s config.php as a plain array — the panel works without
+  a valid config and must not die on unfilled credentials) and the domains with `ownDomainsForPanel()`;
+  `bin/run-job.php` passes `OwnSites::fromConfig($config)` + `$ownLedger->all()` and logs «наших доров N;
+  сайтов на нескольких брендах M». The page sorts brands by doors / own doors / sites / keys /
+  intersections / cross-brand sites / theme domains / changes / name with a direction toggle, and filters
+  to «только с дорами», «только с нашими», «с дорами, но без наших», «только с сайтами на нескольких
+  брендах», «только с пересечениями», «только изменившиеся» — so a big collect can be worked through by
+  what actually matters. Covered additionally by
+  `SerpAnalysisTest::testTotalsCountDistinctSitesAndCrossBrandRepeats` /
+  `testMarksOurDoorsByMarkersAndByDomainList`.
 - The panel's progress cards are a FUNNEL with no repeated number, because «29 904 результата» next to
   «2 043 сайта» read as a contradiction («а почему результатов в выдаче 29к, а доменов 7к — это
   уникальных?»): запросов → `results` (every SERP row; one site counts again in each query that found it)

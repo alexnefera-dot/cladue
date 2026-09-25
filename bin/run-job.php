@@ -37,6 +37,7 @@ use YandexSites\Content\ContentCleaner;
 use YandexSites\Content\SiteCleaner;
 use YandexSites\Filter\DefaultExclusions;
 use YandexSites\Filter\Domains;
+use YandexSites\Filter\OwnSites;
 use YandexSites\Output\ReportWriter;
 use YandexSites\Runner;
 use YandexSites\RunResult;
@@ -1028,14 +1029,23 @@ while (true) {
             // повторами и отсеянными, с разбивкой по типу сайта. Сам разбор страница строит на лету из
             // results.csv; здесь считаем только РАЗНИЦУ с прошлым сбором (что появилось и что пропало по
             // каждому бренду) и обновляем слепок, потому что после следующего сбора сравнивать будет не с чем.
-            $serp = SerpAnalysis::build(SerpAnalysis::csvRows($runDir . '/results.csv'));
+            $serp = SerpAnalysis::build(
+                SerpAnalysis::csvRows($runDir . '/results.csv'),
+                10,
+                OwnSites::fromConfig($config),
+                $ownLedger->all(), // наши домены из прошлых сборов: повтор мы не открываем, а он наш
+            );
             $indexFile = dirname($runDir) . '/' . SerpAnalysis::INDEX_FILE; // рядом с историей сборов
             $prevIndex = (array) (@json_decode((string) @file_get_contents($indexFile), true) ?: []);
             $serpDiff = SerpAnalysis::diff($prevIndex, $serp);
             saveJson($runDir . '/' . SerpAnalysis::DIFF_FILE, $serpDiff);
             saveJson($indexFile, SerpAnalysis::index($serp));
             $serpTotals = SerpAnalysis::totalsText($serp['totals']);
-            $logger->info(sprintf('Разбор выдачи: брендов %d, запросов %d, строк %d — %s', count($serp['brands']), $serp['queries'], $serp['results'], $serpTotals));
+            $logger->info(sprintf(
+                'Разбор выдачи: брендов %d, запросов %d, строк %d, разных сайтов %d — %s; наших доров %d; сайтов на нескольких брендах %d',
+                count($serp['brands']), $serp['queries'], $serp['results'], $serp['sites'], $serpTotals,
+                $serp['own']['doors'], $serp['repeats']['sites'],
+            ));
             if ($prevIndex !== []) {
                 $logger->info(sprintf('С прошлого сбора: появилось сайтов %d, пропало %d (изменились %d брендов) — вкладка «Разбор выдачи»', $serpDiff['totals']['added'], $serpDiff['totals']['removed'], count($serpDiff['brands'])));
             }

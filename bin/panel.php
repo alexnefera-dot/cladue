@@ -293,6 +293,59 @@ function rmTree(string $dir): void
     \YandexSites\Content\SiteCleaner::rmTree($dir);
 }
 
+/**
+ * Метки НАШИХ шаблонов для разбора выдачи: встроенная + из config.php + из own-markers.txt + из поля
+ * панели «Метки наших шаблонов». config.php читаем как обычный массив, без проверки настроек: панель
+ * работает и без него, а падать из-за незаполненных ключей источника здесь незачем.
+ */
+function ownSitesForPanel(string $projectDir, array $settings): \YandexSites\Filter\OwnSites
+{
+    $markers = (array) (\YandexSites\Config::defaults()['filters']['own_markers'] ?? []);
+    $file = 'own-markers.txt';
+    $raw = is_file($projectDir . '/config.php') ? @include $projectDir . '/config.php' : null;
+    if (is_array($raw)) {
+        foreach ((array) ($raw['filters']['own_markers'] ?? []) as $m) {
+            $markers[] = (string) $m;
+        }
+        $file = (string) ($raw['filters']['own_markers_file'] ?? $file);
+    }
+    $path = $file !== '' && $file[0] !== '/' ? $projectDir . '/' . $file : $file;
+    if ($path !== '' && is_file($path)) {
+        foreach (file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $line) {
+            $markers[] = (string) $line;
+        }
+    }
+    foreach ((array) ($settings['own_markers'] ?? []) as $m) {
+        $markers[] = (string) $m;
+    }
+
+    return new \YandexSites\Filter\OwnSites($markers);
+}
+
+/**
+ * Накопленный список НАШИХ доменов: его ведёт сбор (runs/own-domains.txt) плюс ручной own-domains.txt
+ * в папке проекта. По нему «наш» узнаётся и у домена, который пришёл повтором и уже не открывался.
+ *
+ * @return list<string>
+ */
+function ownDomainsForPanel(string $projectDir): array
+{
+    $out = [];
+    foreach ([$projectDir . '/runs/own-domains.txt', $projectDir . '/own-domains.txt'] as $file) {
+        if (!is_file($file)) {
+            continue;
+        }
+        foreach (file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $line) {
+            $line = trim($line);
+            if ($line !== '' && $line[0] !== '#') {
+                $out[] = $line;
+            }
+        }
+    }
+
+    return array_values(array_unique($out));
+}
+
 // --- Роутинг ---
 
 if ($path === '/' || $path === '/index.html') {
@@ -550,7 +603,13 @@ if ($path === '/api/serp') {
         jsonOut(['ok' => false, 'error' => 'Нет результатов сбора (results.csv) — сначала соберите сайты']);
     }
     $top = max(0, min(100, (int) ($_GET['top'] ?? 10)));
-    $analysis = \YandexSites\Support\SerpAnalysis::build(\YandexSites\Support\SerpAnalysis::csvRows($csv), $top);
+    $saved = readJsonFile($settingsFile) ?? [];
+    $analysis = \YandexSites\Support\SerpAnalysis::build(
+        \YandexSites\Support\SerpAnalysis::csvRows($csv),
+        $top,
+        ownSitesForPanel($projectDir, $saved),
+        ownDomainsForPanel($projectDir),
+    );
     $diff = readJsonFile($runDir . '/' . \YandexSites\Support\SerpAnalysis::DIFF_FILE) ?? ['brands' => [], 'totals' => ['added' => 0, 'removed' => 0]];
     $want = trim((string) ($_GET['brand'] ?? ''));
     if ($want !== '' || isset($_GET['brand'])) {
@@ -572,6 +631,10 @@ if ($path === '/api/serp') {
         'ok' => true,
         'brands' => $list,
         'totals' => $analysis['totals'],
+        'totals_sum' => $analysis['totals_sum'],
+        'repeats' => $analysis['repeats'],
+        'own' => $analysis['own'],
+        'sites' => $analysis['sites'],
         'results' => $analysis['results'],
         'queries' => $analysis['queries'],
         'top' => $top,
