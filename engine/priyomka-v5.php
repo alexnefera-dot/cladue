@@ -45,6 +45,7 @@ if ($папка === '' || !is_dir($папка)) {
 }
 $профиль = json_decode((string) file_get_contents(__DIR__ . '/data-v5/profil-v5.json'), true);
 if (!$профиль) { fwrite(STDERR, "нет data-v5/profil-v5.json\n"); exit(1); }
+$профиль = v5ProfilNew100((array) $профиль);
 $паспорт = is_file("$папка/nabor.json")
     ? json_decode((string) file_get_contents("$папка/nabor.json"), true) : [];
 $сборка = ($паспорт['способ'] ?? '') === 'сборка';
