@@ -111,6 +111,9 @@ if (is_file($root . '/vendor/autoload.php')) {
 }
 
 $projectDir = getenv('YS_PROJECT_DIR') ?: getcwd();
+// .env рядом с проектом: из него берётся ключ системы запусков (DORGEN_TOKEN). Сам ключ нигде не печатаем.
+\YandexSites\Config::loadDotEnv($projectDir . '/.env');
+\YandexSites\Config::loadDotEnv(dirname(__DIR__) . '/.env');
 $runDir = $projectDir . '/runs/current';
 @mkdir($runDir, 0777, true);
 $statusFile = $runDir . '/status.json';
@@ -606,11 +609,14 @@ if ($path === '/api/serp') {
     $saved = readJsonFile($settingsFile) ?? [];
     $ownSites = ownSitesForPanel($projectDir, $saved);
     $ownDomains = ownDomainsForPanel($projectDir);
+    // Наши базы из системы запусков: самый точный источник «наш» — список даёт сама система.
+    $dorgen = \YandexSites\Dorgen\OwnBases::inRuns($projectDir . '/runs');
     $analysis = \YandexSites\Support\SerpAnalysis::build(
         \YandexSites\Support\SerpAnalysis::csvRows($csv),
         $top,
         $ownSites,
         $ownDomains,
+        $dorgen->bases(),
     );
     $diff = readJsonFile($runDir . '/' . \YandexSites\Support\SerpAnalysis::DIFF_FILE) ?? ['brands' => [], 'totals' => ['added' => 0, 'removed' => 0]];
     $want = trim((string) ($_GET['brand'] ?? ''));
@@ -644,10 +650,32 @@ if ($path === '/api/serp') {
         // Действующие метки и размер списка наших доменов: без них не понять, ПОЧЕМУ сайт «наш».
         'own_markers' => $ownSites->markers(),
         'own_domains' => count($ownDomains),
+        'dorgen' => $dorgen->load() + ['has_token' => \YandexSites\Dorgen\DorgenClient::fromEnv() !== null] + ['bases' => []],
+        'dorgen_bases' => $dorgen->count(),
         'diff_totals' => $diff['totals'] ?? ['added' => 0, 'removed' => 0],
         'diff_at' => $diff['compared_at'] ?? '',
         'version' => \YandexSites\Cli\Application::VERSION,
     ]);
+}
+
+if ($path === '/api/dorgen-refresh' && $method === 'POST') {
+    // Догрузка наших поддоменов из системы запусков. Без дат берём только НОВЫЕ дни: кэш помнит,
+    // по какой день уже выгружено, поэтому всю историю заново не тянем (API отдаёт ~110 МБ в сутки).
+    $client = \YandexSites\Dorgen\DorgenClient::fromEnv();
+    if ($client === null) {
+        jsonOut(['ok' => false, 'error' => 'Не задан ' . \YandexSites\Dorgen\DorgenClient::TOKEN_ENV . ' — впишите ключ в файл .env рядом с проектом (образец: .env.example) и перезапустите панель']);
+    }
+    $b = body();
+    $cache = \YandexSites\Dorgen\OwnBases::inRuns($projectDir . '/runs');
+    $to = trim((string) ($b['date_to'] ?? '')) ?: date('Y-m-d');
+    $from = trim((string) ($b['date_from'] ?? '')) ?: $cache->nextFrom(date('Y-m-d', strtotime('-7 days')));
+    set_time_limit(0);
+    try {
+        $r = $cache->refresh($client, $from, $to);
+    } catch (\Throwable $e) {
+        jsonOut(['ok' => false, 'error' => $e->getMessage()]);
+    }
+    jsonOut(['ok' => true] + $r + ['updated_at' => $cache->load()['updated_at']]);
 }
 
 if ($path === '/api/history') {

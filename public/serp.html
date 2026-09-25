@@ -123,6 +123,8 @@
         </select>
       </label>
       <span class="hint" id="shownCount"></span>
+      <button class="btn-ghost" id="dorgen" title="Догрузить наши запущенные поддомены из системы запусков (dorgen) — только новые дни. По ним сайт из выдачи помечается «наш» точнее всего: список даёт сама система">Обновить наши домены</button>
+      <span class="hint" id="dorgenState"></span>
     </div>
     <div class="stats" id="stats"></div>
     <div class="legend">
@@ -311,6 +313,12 @@ async function load(){
         + ` В списке наших доменов: <b>${j.own_domains|0}</b>.`
         + ` Метка сверяется ТОЛЬКО с адресом сайта — если чужие доры помечены нашими, метка слишком общая.`
       : (markers ? `Наших доров не найдено. Действующие метки: <b>${markers}</b>.` : 'Метки наших шаблонов не заданы — «наши» не отмечаются.');
+    // Состояние выгрузки из системы запусков: по ней «наш» определяется точнее всего.
+    const d = j.dorgen || {}, nb = j.dorgen_bases|0;
+    $('dorgenState').innerHTML = nb
+      ? `наших баз из системы запусков: <b>${nb}</b>${d.date_to ? ` (по ${esc(d.date_to)})` : ''}`
+      : (d.has_token ? 'наши домены ещё не выгружены — нажмите «Обновить наши домены»'
+                     : 'выгрузка наших доменов не настроена: впишите DORGEN_TOKEN в .env');
     $('diffLine').innerHTML = (dt.added|0) || (dt.removed|0)
       ? `С прошлого сбора: <b>+${dt.added|0}</b> сайтов появилось, <b>−${dt.removed|0}</b> пропало. Разбивка — в блоке каждого бренда.`
       : 'Сравнение с прошлым сбором появится после следующего сбора.';
@@ -319,6 +327,18 @@ async function load(){
   }catch(e){ $('status').innerHTML = `<span class="err">Не удалось загрузить: ${esc(e.message || e)}</span>`; }
 }
 
+// Догрузка наших доменов из системы запусков: тянет только новые дни, поэтому это быстро.
+$('dorgen').addEventListener('click', async () => {
+  const btn = $('dorgen'), old = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Выгружаю…';
+  try{
+    const r = await fetch('/api/dorgen-refresh', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'});
+    const j = await r.json();
+    if(!j.ok){ alert(j.error || 'Не удалось выгрузить'); }
+    else { $('dorgenState').textContent = `выгружено строк ${j.rows|0}, баз ${j.bases|0} (новых ${j.new_bases|0})`; await load(); }
+  }catch(e){ alert('Не удалось выгрузить: ' + (e.message || e)); }
+  btn.disabled = false; btn.textContent = old;
+});
 $('reload').addEventListener('click', load);
 $('top').addEventListener('change', load);
 $('find').addEventListener('input', render);

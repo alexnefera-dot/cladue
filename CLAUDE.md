@@ -35,6 +35,7 @@ cladue/
 ├── bin/panel.php               # local web UI: launcher + php -S router (keys, run, progress, schedule)
 ├── bin/run-job.php             # background job: collect / download / clean stages, writes runs/current/status.json
 ├── bin/clean-content.php       # content prep: article-body templates from downloaded pages (%domain%/%date%/%brand%)
+├── bin/dorgen-sync.php         # fetch OUR launched subdomains from the dorgen API into runs/dorgen-bases.json
 ├── public/panel.html           # single-file web UI (inline CSS/JS, polls the panel API)
 ├── public/serp.html            # separate page /serp — technical SERP breakdown by brand (own CSS/JS + /api/serp)
 ├── tools/render-page.js        # Node.js + Playwright renderer used by Visit\PlaywrightDriver (stdin JSON → stdout JSON lines)
@@ -57,6 +58,8 @@ cladue/
 │   ├── Model/                  # SearchResult, SearchPage (hasMore), Site (check + visits)
 │   ├── Http/                   # HttpClient (curl wrapper with proxy/cookie/follow options), HttpResponse, HttpException
 │   ├── Runtime.php             # shared pipeline factory (fetcher/cache/proxies/checker/visitor) used by CLI and job
+│   ├── Dorgen/                 # DorgenClient (launch-system API: paging, throttle, 500/429 retries),
+│   │                           # OwnBases (cached set of OUR bases — last two labels of a host)
 │   ├── Content/                # ContentCleaner (article-body extraction, link normalization, %var% templating),
 │   │                           # SiteCleaner (one site → content/N-стр/<host>, shared by panel + run-job), BrandDetector, KnownBrands
 │   └── Support/                # Logger (STDERR), QueryList (query file reader), Progress (status JSON writer),
@@ -947,6 +950,35 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   18. Действующие метки: … (поправить — «Настройки»)» plus the reason in each «наш» tag's tooltip.
   Covered by `SerpAnalysisTest::testDoesNotCallStrangerOursBecauseOfItsUrl` /
   `testExplainsWhyADoorIsConsideredOurs`.
+- `Dorgen\DorgenClient` + `Dorgen\OwnBases` are the PRECISE answer to «наш ли это сайт»: instead of
+  guessing from markers, the list comes from the user's own launch system. The user supplied the API
+  contract (written for a Python script — implemented here in PHP, no third-party packages, `.env` is
+  already read by `Config::loadDotEnv`). `GET {DORGEN_BASE}/v1/subdomains` with
+  `Authorization: Bearer {DORGEN_TOKEN}`, `date_from`/`date_to`/`date_field=pipeline_started`/`limit=1000`,
+  paged by `meta.next_cursor`. The API's quirks are handled in `page()`: 2.1 s between requests (28/min),
+  a random HTTP 500 on up to half the requests → the SAME cursor is retried up to 15 times with a 3–5 s
+  pause, 429 → wait 60 s, and a period longer than 31 days is cut by `splitPeriod()`. The token is read
+  from the env and never printed or put in an error. `subdomains()` is a GENERATOR yielding only the six
+  needed fields (`subdomain`, `content_domain_url`, `brand_label`, `pipeline_started`, `recrawl_sent_at`,
+  `content_label`) — the raw answer is ~110 MB/day and is never stored.
+  MATCHING IS BY BASE — the last two labels of the host (`DorgenClient::baseOf()`:
+  `leebet.4916.team` → `4916.team`), because each base carries every brand, so the set of bases is
+  enough. `OwnBases` (`runs/dorgen-bases.json`) therefore caches ONLY the bases (with a per-base
+  subdomain count and `first_seen`) plus the covered period, so `nextFrom()` makes the next refresh
+  load only NEW days with a one-day overlap — ~15 000 rows/day would otherwise be re-downloaded forever.
+  Wiring is PURELY ADDITIVE, per «не ломай текущую реализацию просто интегрируй выгрузку»: `build()`
+  takes a fifth argument `$dorgenBases`, `ownReason()` checks it FIRST and returns
+  `SerpAnalysis::REASON_DORGEN` («запущен в dorgen»); markers and `own-domains.txt` keep working exactly
+  as before, and the bases are NEVER merged into `runs/own-domains.txt` — a separate, auditable source
+  that can be dropped without touching the ledger. Entry points: `bin/dorgen-sync.php`
+  (`--from`/`--to`/`--days`/`--list`, no dates = only new days) and `POST /api/dorgen-refresh` behind the
+  page button «Обновить наши домены», which also reports «наших баз из системы запусков: N (по ДАТА)» or
+  tells the user the token is missing. `.env.example` gained `DORGEN_BASE`/`DORGEN_TOKEN` (`.env` was
+  already gitignored). Covered by `tests/DorgenTest.php` against the fake-server route `/v1/subdomains`
+  (two cursor pages; `FAKE_MODE=dorgenflaky` breaks the first two answers with 500 then 429 to exercise
+  the retries) — period splitting, base extraction, only-needed-fields, retries, the incremental cache
+  (a repeat refresh adds no bases, the file holds no subdomains and no raw fields) and the SERP wiring
+  with the untouched marker path.
 - The panel's progress cards are a FUNNEL with no repeated number, because «29 904 результата» next to
   «2 043 сайта» read as a contradiction («а почему результатов в выдаче 29к, а доменов 7к — это
   уникальных?»): запросов → `results` (every SERP row; one site counts again in each query that found it)

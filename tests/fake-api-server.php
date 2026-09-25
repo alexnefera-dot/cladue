@@ -11,6 +11,7 @@ declare(strict_types=1);
  *   POST /v2/web/search    — Yandex Search API v2 (JSON с rawData в base64)
  *   GET  /search/xml       — Yandex Search API v1 (XML напрямую)
  *   GET  /yandex/xml/      — XMLStock (XML в формате Яндекс.XML)
+ *   GET  /v1/subdomains    — система запусков dorgen: наши поддомены постранично (cursor), с норовом 500/429
  *   GET  /yandexlive/xml/  — XMLStock, живая выдача (тот же формат, всегда по 10 результатов на странице)
  *   GET  /search/?text=…   — страница выдачи в вёрстке yandex.ru (для source = live)
  *   GET  /showcaptcha      — страница капчи
@@ -286,6 +287,53 @@ if ($uri === '/yandex/xml/' || $uri === '/yandex/xml') {
         $groupsOnPage = (int) $m[1];
     }
     echo fakeXml((string) ($_GET['query'] ?? ''), (int) ($_GET['page'] ?? 0), $groupsOnPage);
+
+    return;
+}
+
+if ($uri === '/v1/subdomains') {
+    // Система запусков dorgen: наши поддомены постранично через cursor. Заодно изображаем её норов —
+    // случайные 500 и 429, — чтобы проверить повторы клиента: DORGEN_FAIL=<сколько первых ответов сорвать>.
+    header('Content-Type: application/json; charset=utf-8');
+    if (!str_starts_with((string) ($_SERVER['HTTP_AUTHORIZATION'] ?? ''), 'Bearer ')) {
+        http_response_code(401);
+        echo json_encode(['error' => 'no token']);
+
+        return;
+    }
+    $stateFile = sys_get_temp_dir() . '/yandex-sites-dorgen-fails.txt';
+    // Норов включается режимом сервера: FAKE_MODE=dorgenflaky срывает два первых ответа (500, затем 429).
+    $fail = (getenv('FAKE_MODE') === 'dorgenflaky') ? 2 : (int) (getenv('DORGEN_FAIL') ?: 0);
+    if ($fail > 0) {
+        $done = (int) @file_get_contents($stateFile);
+        if ($done < $fail) {
+            @file_put_contents($stateFile, (string) ($done + 1));
+            http_response_code($done === 0 ? 500 : 429); // первый срыв — 500, следующий — 429
+            echo json_encode(['error' => 'flaky']);
+
+            return;
+        }
+    }
+    $cursor = (string) ($_GET['cursor'] ?? '');
+    $page = $cursor === '' ? 1 : (int) $cursor;
+    $from = (string) ($_GET['date_from'] ?? '');
+    $rows = [];
+    // Две страницы по две строки: на одной базе несколько брендов — ровно как в бою.
+    $data = $page === 1
+        ? [['leebet', '4916.team'], ['kush', '4916.team']]
+        : [['grizzly', '7788.team']];
+    foreach ($data as [$brand, $base]) {
+        $rows[] = [
+            'subdomain' => $brand . '.' . $base,
+            'content_domain_url' => $base,
+            'brand_label' => $brand,
+            'pipeline_started' => $from . 'T10:00:00Z',
+            'recrawl_sent_at' => $from . 'T11:00:00Z',
+            'content_label' => 'content-' . $brand,
+            'huge_raw_field' => str_repeat('x', 200), // лишнее поле: клиент его не хранит
+        ];
+    }
+    echo json_encode(['data' => $rows, 'meta' => ['next_cursor' => $page === 1 ? '2' : null]]);
 
     return;
 }
