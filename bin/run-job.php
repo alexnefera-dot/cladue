@@ -55,6 +55,7 @@ use YandexSites\Support\Progress;
 use YandexSites\Support\QueryDupes;
 use YandexSites\Support\QueryQueue;
 use YandexSites\Support\RemovedSites;
+use YandexSites\Support\SerpAnalysis;
 use YandexSites\Support\SiteRows;
 use YandexSites\Visit\KeyPages;
 use YandexSites\Visit\PageVisitor;
@@ -395,6 +396,15 @@ function removeSiteFolders(string $runDir, array $hosts): void
             }
         }
     }
+}
+
+/** Атомарная запись JSON: панель читает эти файлы параллельно с заданием. */
+function saveJson(string $file, array $data): void
+{
+    @mkdir(dirname($file), 0777, true);
+    $tmp = $file . '.tmp';
+    @file_put_contents($tmp, (string) json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    @rename($tmp, $file);
 }
 
 /**
@@ -1012,6 +1022,22 @@ while (true) {
             $dupeSummary = QueryDupes::summary($dupes);
             if ($dupeSummary['duplicates'] > 0) {
                 $logger->info(sprintf('Запросов с одинаковой выдачей: %d дублей в %d группах из %d — список без дублей: %s', $dupeSummary['duplicates'], $dupeSummary['groups'], $dupeSummary['total'], QueryDupes::UNIQUE_FILE));
+            }
+
+            // ТЕХНИЧЕСКИЙ РАЗБОР ВЫДАЧИ (страница /serp): выдача как она есть — по брендам, со всеми
+            // повторами и отсеянными, с разбивкой по типу сайта. Сам разбор страница строит на лету из
+            // results.csv; здесь считаем только РАЗНИЦУ с прошлым сбором (что появилось и что пропало по
+            // каждому бренду) и обновляем слепок, потому что после следующего сбора сравнивать будет не с чем.
+            $serp = SerpAnalysis::build(SerpAnalysis::csvRows($runDir . '/results.csv'));
+            $indexFile = dirname($runDir) . '/' . SerpAnalysis::INDEX_FILE; // рядом с историей сборов
+            $prevIndex = (array) (@json_decode((string) @file_get_contents($indexFile), true) ?: []);
+            $serpDiff = SerpAnalysis::diff($prevIndex, $serp);
+            saveJson($runDir . '/' . SerpAnalysis::DIFF_FILE, $serpDiff);
+            saveJson($indexFile, SerpAnalysis::index($serp));
+            $serpTotals = SerpAnalysis::totalsText($serp['totals']);
+            $logger->info(sprintf('Разбор выдачи: брендов %d, запросов %d, строк %d — %s', count($serp['brands']), $serp['queries'], $serp['results'], $serpTotals));
+            if ($prevIndex !== []) {
+                $logger->info(sprintf('С прошлого сбора: появилось сайтов %d, пропало %d (изменились %d брендов) — вкладка «Разбор выдачи»', $serpDiff['totals']['added'], $serpDiff['totals']['removed'], count($serpDiff['brands'])));
             }
 
             // Тип вёрстки по превью главной (7–9 / 12–15 страниц / без категории) — виден сразу после сбора,

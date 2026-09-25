@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Технический разбор выдачи</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --card:#fff; --ink:#1c2330; --muted:#6b7280; --line:#e5e7eb;
+    --accent:#2b6cff; --accent-ink:#fff; --ok:#137a3f; --warn:#b45309; --err:#b91c1c;
+    --chip:#eef2ff;
+    /* подсветка пересечений: жёлтая — сайт на нескольких ключах бренда, сиреневая — на нескольких брендах */
+    --cross:#fff3c4; --cross-ink:#7a5a00; --net:#ede0ff; --net-ink:#5b2ea6;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#11151c; --card:#1a2029; --ink:#e6e9ef; --muted:#9aa4b2; --line:#2a323d;
+      --accent:#4f86ff; --chip:#22304d; --cross:#4a3c10; --cross-ink:#ffdf7a;
+      --net:#372a54; --net-ink:#cfb4ff; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:1400px;margin:0 auto;padding:20px 20px 60px}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{color:var(--muted);margin:0 0 16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+  .card h2{font-size:14px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:0 0 12px}
+  .hint{color:var(--muted);font-size:12px}
+  a{color:var(--accent)}
+  button{font:inherit;font-weight:600;border:0;border-radius:9px;padding:8px 14px;cursor:pointer}
+  .btn-primary{background:var(--accent);color:var(--accent-ink)}
+  .btn-ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  a.btn-ghost{display:inline-block;text-decoration:none;font-weight:600;border-radius:9px;padding:8px 14px}
+  .btns{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  input[type=text],select{padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+  .stats{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 12px}
+  .stat{background:var(--chip);border-radius:10px;padding:8px 12px;min-width:110px}
+  .stat b{display:block;font-size:18px}
+  .stat span{font-size:12px;color:var(--muted)}
+  .tag{display:inline-block;background:var(--chip);border-radius:999px;padding:1px 9px;font-size:12px;white-space:nowrap}
+  .tag.door{background:#dcfce7;color:#14532d}
+  .tag.theme{background:#dbeafe;color:#1e3a8a}
+  .tag.social{background:#fee2e2;color:#7f1d1d}
+  .tag.known{background:#fef3c7;color:#713f12}
+  .tag.other{background:#e5e7eb;color:#374151}
+  @media (prefers-color-scheme: dark){
+    .tag.door{background:#14371f;color:#8ceaa9} .tag.theme{background:#1b2c52;color:#9dc0ff}
+    .tag.social{background:#42191c;color:#ffb0b0} .tag.known{background:#3d2f10;color:#ffd98a}
+    .tag.other{background:#2a323d;color:#c7cedb}
+  }
+  .tag.add{background:#dcfce7;color:#14532d}
+  .tag.gone{background:#fee2e2;color:#7f1d1d}
+  .brand{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;background:var(--card);overflow:hidden}
+  .brand>summary{cursor:pointer;padding:12px 14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;list-style:none}
+  .brand>summary::-webkit-details-marker{display:none}
+  .brand>summary::before{content:'▸';color:var(--muted);width:12px;display:inline-block}
+  .brand[open]>summary::before{content:'▾'}
+  .brand .name{font-weight:700;font-size:15px}
+  .brand .body{padding:0 14px 14px;border-top:1px solid var(--line)}
+  .qblock{margin:14px 0 0}
+  .qblock .q{font-weight:600;margin:0 0 6px}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th,td{border-bottom:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:12px;white-space:nowrap}
+  td.pos{width:38px;color:var(--muted);text-align:right}
+  td.site{white-space:nowrap}
+  td.ttl{color:var(--muted)}
+  tr.cross td.site{background:var(--cross)}
+  tr.cross td.site a{color:var(--cross-ink)}
+  tr.net td.site{background:var(--net)}
+  tr.net td.site a{color:var(--net-ink)}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--muted)}
+  .sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:4px}
+  .err{color:var(--err);font-weight:600}
+  .loading{color:var(--muted);padding:10px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Технический разбор выдачи <span class="hint" id="version"></span></h1>
+  <p class="sub">Выдача как она есть: по брендам, со всеми повторами и всем, что главная страница отсеяла или склеила.
+    Ничего не удаляется и не объединяется — видно, что именно ушло, когда в таблице остались одни доры.
+    <a href="/">← вернуться на главную</a></p>
+
+  <div class="card">
+    <div class="btns" style="margin-bottom:12px">
+      <button class="btn-primary" id="reload">Обновить разбор</button>
+      <label class="hint" style="display:flex;align-items:center;gap:6px">топ
+        <select id="top">
+          <option value="10" selected>10</option>
+          <option value="20">20</option>
+          <option value="50">50</option>
+          <option value="0">все позиции</option>
+        </select>
+      </label>
+      <input type="text" id="find" placeholder="фильтр: бренд или сайт" style="min-width:220px">
+      <span class="hint" id="updated"></span>
+    </div>
+    <div class="stats" id="stats"></div>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--cross)"></span>сайт в нескольких ключах бренда</span>
+      <span><span class="sw" style="background:var(--net)"></span>сайт сразу на нескольких брендах (сетка)</span>
+      <span class="tag door">доры</span><span class="tag theme">тематические</span>
+      <span class="tag social">соцсети</span><span class="tag known">известные</span><span class="tag other">прочие</span>
+    </div>
+    <div class="hint" id="diffLine" style="margin-top:10px"></div>
+  </div>
+
+  <div id="brands"></div>
+  <div class="loading" id="status">Загружаю…</div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = t => String(t == null ? '' : t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+let TYPES = {};          // код типа → подпись (приходит с сервера)
+let brands = [];         // список брендов последнего разбора
+const loaded = {};       // ключ бренда → его выдача (подгружается при раскрытии)
+
+function typeTag(t){ return `<span class="tag ${esc(t)}">${esc(TYPES[t] || t)}</span>`; }
+
+/** Сводка по типам одной строкой: «доры 12 · тематические 3 · …» — пустые типы не показываем. */
+function countsHtml(counts){
+  return Object.keys(TYPES).filter(t => (counts[t]|0) > 0)
+    .map(t => `${typeTag(t)} <b>${counts[t]|0}</b>`).join(' · ') || '<span class="hint">нет данных</span>';
+}
+
+/** Что изменилось у бренда с прошлого сбора: «+5 / −2» с разбивкой по типам в подсказке. */
+function diffHtml(d){
+  if(!d) return '';
+  const part = (c, sign) => Object.keys(TYPES).filter(t => (c[t]|0) > 0).map(t => `${TYPES[t]} ${sign}${c[t]|0}`).join(', ');
+  const a = d.added && d.added.total|0, r = d.removed && d.removed.total|0;
+  if(!a && !r && !d.is_new) return '';
+  const title = [part(d.added||{}, '+'), part(d.removed||{}, '−')].filter(Boolean).join(' · ');
+  let html = '';
+  if(d.is_new) html += `<span class="tag add" title="этого бренда в прошлом сборе не было">новый бренд</span> `;
+  if(d.gone) html += `<span class="tag gone" title="в этом сборе бренд не собрался вовсе">пропал</span> `;
+  if(a) html += `<span class="tag add" title="${esc(title)}">+${a} сайтов</span> `;
+  if(r) html += `<span class="tag gone" title="${esc(title)}">−${r} сайтов</span>`;
+  return html;
+}
+
+function brandHtml(b){
+  const d = diffHtml(b.diff);
+  return `<details class="brand" data-key="${esc(b.key)}">
+    <summary>
+      <span class="name">${esc(b.label)}</span>
+      <span class="hint">ключей ${b.query_count|0} · сайтов ${b.sites|0} · строк ${b.rows|0}</span>
+      ${countsHtml(b.counts||{})}
+      ${(b.crossed|0) > 0 ? `<span class="tag" title="сайтов, которые встретились больше чем в одном ключе этого бренда">пересечений ${b.crossed|0}</span>` : ''}
+      ${(b.networked|0) > 0 ? `<span class="tag" title="сайтов, которые держатся сразу на нескольких брендах — это сетка">на нескольких брендах ${b.networked|0}</span>` : ''}
+      ${d}
+    </summary>
+    <div class="body"><div class="loading">Загружаю выдачу…</div></div>
+  </details>`;
+}
+
+/** Выдача одного бренда: по ключу — таблица топа, каждая строка со своим типом и подсветкой. */
+function queriesHtml(brand){
+  const hosts = brand.hosts || {};
+  const parts = [];
+  for(const q of Object.keys(brand.queries || {})){
+    const rows = brand.queries[q].slice().sort((a,b) => (a.position|0) - (b.position|0));
+    const trs = rows.map(r => {
+      const h = hosts[r.host] || {};
+      const cls = (h.brands|0) > 1 ? 'net' : ((h.keys|0) > 1 ? 'cross' : '');
+      const why = (h.brands|0) > 1 ? `держится на ${h.brands} брендах` : ((h.keys|0) > 1 ? `встретился в ${h.keys} ключах бренда` : '');
+      const link = r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.host)}</a>` : esc(r.host);
+      return `<tr class="${cls}">
+        <td class="pos">${r.position|0}</td>
+        <td class="site"${why ? ` title="${esc(why)}"` : ''}>${link}</td>
+        <td>${typeTag(r.type)}</td>
+        <td class="ttl">${esc(r.title).slice(0,120)}</td>
+        <td class="ttl">${r.reason && r.reason !== 'selected' ? esc(r.reason) : ''}</td>
+      </tr>`;
+    }).join('');
+    parts.push(`<div class="qblock"><div class="q">${esc(q)} <span class="hint">· ${rows.length} строк</span></div>
+      <table><thead><tr><th>#</th><th>Сайт</th><th>Тип</th><th>Заголовок</th><th>Что сделала главная</th></tr></thead>
+      <tbody>${trs}</tbody></table></div>`);
+  }
+  const d = brand.diff;
+  let tail = `<div class="qblock"><b>Итого по бренду:</b> ${countsHtml(brand.counts||{})} · всего сайтов ${brand.sites|0}</div>`;
+  if(d && ((d.added_hosts||[]).length || (d.removed_hosts||[]).length)){
+    const list = (arr, cls, word) => arr.length
+      ? `<div style="margin-top:6px"><span class="tag ${cls}">${word} ${arr.length}</span> <span class="hint">${arr.map(esc).join(', ')}</span></div>` : '';
+    tail += list(d.added_hosts||[], 'add', 'появились') + list(d.removed_hosts||[], 'gone', 'пропали');
+  }
+  return parts.join('') + tail;
+}
+
+async function loadBrand(el, key){
+  const body = el.querySelector('.body');
+  if(loaded[key]){ body.innerHTML = queriesHtml(loaded[key]); return; }
+  try{
+    const r = await fetch('/api/serp?top=' + encodeURIComponent($('top').value) + '&brand=' + encodeURIComponent(key));
+    const j = await r.json();
+    if(!j.ok){ body.innerHTML = `<div class="err">${esc(j.error || 'Ошибка')}</div>`; return; }
+    j.brand.diff = j.diff;
+    loaded[key] = j.brand;
+    body.innerHTML = queriesHtml(j.brand);
+  }catch(e){ body.innerHTML = `<div class="err">Не удалось загрузить: ${esc(e.message || e)}</div>`; }
+}
+
+function render(){
+  const q = $('find').value.trim().toLowerCase();
+  const shown = q ? brands.filter(b => String(b.label).toLowerCase().includes(q) || String(b.key).toLowerCase().includes(q)) : brands;
+  $('brands').innerHTML = shown.map(brandHtml).join('');
+  $('status').textContent = shown.length ? '' : (brands.length ? 'Под фильтр ничего не попало' : 'Брендов не найдено');
+  document.querySelectorAll('.brand').forEach(el => {
+    el.addEventListener('toggle', () => { if(el.open) loadBrand(el, el.dataset.key); });
+  });
+}
+
+async function load(){
+  $('status').textContent = 'Загружаю…';
+  $('brands').innerHTML = '';
+  for(const k of Object.keys(loaded)) delete loaded[k];
+  try{
+    const r = await fetch('/api/serp?top=' + encodeURIComponent($('top').value));
+    const j = await r.json();
+    if(!j.ok){ $('status').innerHTML = `<span class="err">${esc(j.error || 'Ошибка')}</span>`; return; }
+    TYPES = j.types || {};
+    brands = j.brands || [];
+    $('version').textContent = j.version ? 'версия ' + j.version : '';
+    const cells = [['брендов', brands.length], ['запросов', j.queries|0], ['строк выдачи', j.results|0]];
+    for(const t of Object.keys(TYPES)) cells.push([TYPES[t], (j.totals||{})[t]|0]);
+    $('stats').innerHTML = cells.map(([s, b]) => `<div class="stat"><b>${b}</b><span>${esc(s)}</span></div>`).join('');
+    const dt = j.diff_totals || {};
+    $('diffLine').innerHTML = (dt.added|0) || (dt.removed|0)
+      ? `С прошлого сбора: <b>+${dt.added|0}</b> сайтов появилось, <b>−${dt.removed|0}</b> пропало. Разбивка — в блоке каждого бренда.`
+      : 'Сравнение с прошлым сбором появится после следующего сбора.';
+    $('updated').textContent = j.diff_at ? 'сравнение от ' + new Date(j.diff_at).toLocaleString('ru-RU') : '';
+    render();
+  }catch(e){ $('status').innerHTML = `<span class="err">Не удалось загрузить: ${esc(e.message || e)}</span>`; }
+}
+
+$('reload').addEventListener('click', load);
+$('top').addEventListener('change', load);
+$('find').addEventListener('input', render);
+load();
+</script>
+</body>
+</html>

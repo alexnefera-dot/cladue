@@ -84,6 +84,11 @@ final class PanelTest
         Assert::same(['total' => 2, 'duplicates' => 1, 'groups' => 1, 'no_results' => 0], $status['query_dupes'], 'сводка дублей в статусе');
         Assert::same("пластиковые окна\n", (string) file_get_contents($runDir . '/queries-unique.txt'), 'первый по списку остаётся');
         Assert::contains("оставлен: пластиковые окна (сайтов в выдаче: 14)\n  дубль: остекление балконов", (string) file_get_contents($runDir . '/query-dupes.txt'));
+        // Технический разбор выдачи: сам разбор страница строит из results.csv, а сбор оставляет слепок
+        // для сравнения со следующим сбором и посчитанную разницу.
+        Assert::true(is_file(dirname($runDir) . '/' . \YandexSites\Support\SerpAnalysis::INDEX_FILE), 'слепок выдачи сохранён для сравнения');
+        Assert::true(is_file($runDir . '/' . \YandexSites\Support\SerpAnalysis::DIFF_FILE), 'разница с прошлым сбором посчитана');
+        Assert::contains('Разбор выдачи: брендов', (string) file_get_contents($runDir . '/run.log'));
 
         $sites = json_decode((string) file_get_contents($runDir . '/sites.json'), true);
         $hosts = array_map(static fn ($s) => $s['host'], $sites['sites']);
@@ -1402,6 +1407,103 @@ MANUAL-OWN.RU
             proc_terminate($server);
             proc_close($server);
         }
+    }
+
+    public function testSerpAnalysisPageAndEndpoint(): void
+    {
+        // Технический разбор выдачи — ОТДЕЛЬНАЯ страница /serp со своим API: строит блоки по брендам прямо
+        // из results.csv (главная и её данные не трогаются), ничего не склеивает и не выбрасывает.
+        $dir = sys_get_temp_dir() . '/yandex-sites-panel-serp-' . uniqid();
+        $runDir = $dir . '/runs/current';
+        mkdir($runDir, 0777, true);
+        file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
+        $mk = static fn (string $q, int $pos, string $host, string $title, string $reason): array => [
+            'result' => new \YandexSites\Model\SearchResult($q, 0, $pos, "https://$host/", $host, $title, '', 'казино онлайн'),
+            'reason' => $reason === 'selected' ? null : $reason,
+        ];
+        (new \YandexSites\Output\ReportWriter(';', true))->writeRawCsv([
+            $mk('вулкан казино зеркало', 1, 'kush.grid-x.ru', 'Вулкан', 'selected'),
+            $mk('вулкан казино зеркало', 2, 'vk.com', 'Группа', 'excluded_domain'),
+            $mk('вулкан казино бонус', 1, 'kush.grid-x.ru', 'Вулкан', 'selected'),
+            $mk('вулкан казино бонус', 2, 'lenta.ru', 'Новость', 'excluded_domain'),
+            $mk('лекс казино вход', 1, 'kush.grid-x.ru', 'Лекс', 'selected'),
+        ], $runDir . '/results.csv');
+        // Разницу с прошлым сбором пишет задание; здесь кладём её руками — проверяем, что панель отдаёт.
+        file_put_contents($runDir . '/' . \YandexSites\Support\SerpAnalysis::DIFF_FILE, json_encode([
+            'brands' => ['vulkan' => ['label' => 'vulkan', 'is_new' => false,
+                'added' => ['door' => 1, 'total' => 1], 'removed' => ['door' => 2, 'total' => 2],
+                'added_hosts' => ['new.grid-x.ru'], 'removed_hosts' => ['old1.grid-x.ru', 'old2.grid-x.ru']]],
+            'totals' => ['added' => 1, 'removed' => 2],
+            'compared_at' => date(DATE_ATOM),
+        ], JSON_UNESCAPED_UNICODE));
+
+        $socket = @stream_socket_server('tcp://127.0.0.1:0', $errno, $errstr);
+        if ($socket === false) {
+            Assert::skip("нет доступа к сокетам: $errstr");
+        }
+        $name = (string) stream_socket_get_name($socket, false);
+        fclose($socket);
+        $panelPort = (int) substr($name, (int) strrpos($name, ':') + 1);
+        $log = sys_get_temp_dir() . '/yandex-sites-panel-serp.log';
+        $server = @proc_open(
+            [PHP_BINARY, '-S', '127.0.0.1:' . $panelPort, '-t', $dir, PROJECT_ROOT . '/bin/panel.php'],
+            [0 => ['pipe', 'r'], 1 => ['file', $log, 'a'], 2 => ['file', $log, 'a']],
+            $pipes,
+            $dir,
+            array_merge(getenv(), ['YS_PROJECT_DIR' => $dir]),
+        );
+        if (!is_resource($server)) {
+            Assert::skip('не удалось запустить php -S для панели');
+        }
+        fclose($pipes[0]);
+        try {
+            $base = "http://127.0.0.1:$panelPort";
+            $this->waitFor($base . '/api/state', 50);
+
+            // Страница отдаётся отдельно от главной.
+            $page = $this->http('GET', $base . '/serp', null, $code);
+            Assert::same(200, $code);
+            Assert::contains('Технический разбор выдачи', $page);
+            Assert::contains('/api/serp', $page, 'страница ходит в своё API');
+
+            $j = json_decode((string) $this->http('GET', $base . '/api/serp'), true);
+            Assert::true($j['ok'] ?? false, json_encode($j, JSON_UNESCAPED_UNICODE));
+            Assert::same(5, $j['results'], 'все строки выдачи на месте, повторы не выброшены');
+            Assert::same(3, $j['queries']);
+            $byKey = [];
+            foreach ($j['brands'] as $b) {
+                $byKey[$b['key']] = $b;
+            }
+            Assert::true(isset($byKey['vulkan'], $byKey['lex']), 'блоки по брендам: ' . implode(',', array_keys($byKey)));
+            Assert::same(2, $byKey['vulkan']['query_count'], 'оба ключа бренда в одном блоке');
+            Assert::same(1, $byKey['vulkan']['crossed'], 'дор в двух ключах — пересечение');
+            Assert::same(1, $byKey['vulkan']['counts']['social'], 'соцсеть посчитана отдельно');
+            Assert::same(1, $byKey['vulkan']['counts']['known'], 'известный сайт рунета посчитан отдельно');
+            Assert::same(1, $byKey['vulkan']['diff']['added']['total'], 'разница с прошлым сбором приехала');
+            Assert::same(2, $j['diff_totals']['removed']);
+
+            // Отдельный бренд — со всей своей выдачей и причинами отсева главной.
+            $b = json_decode((string) $this->http('GET', $base . '/api/serp?brand=vulkan'), true);
+            Assert::true($b['ok'] ?? false, json_encode($b, JSON_UNESCAPED_UNICODE));
+            Assert::same(2, count($b['brand']['queries']), 'ключи бренда со своей выдачей');
+            $reasons = array_column($b['brand']['queries']['вулкан казино зеркало'], 'reason');
+            Assert::inArray('excluded_domain', $reasons, 'видно, что именно убрала главная');
+            Assert::same(2, $b['brand']['hosts']['kush.grid-x.ru']['keys']);
+            Assert::same(2, $b['brand']['hosts']['kush.grid-x.ru']['brands'], 'домен держится на двух брендах');
+
+            $raw = (string) $this->http('GET', $base . '/api/serp?brand=' . rawurlencode('нетакого'));
+            $bad = json_decode($raw, true);
+            Assert::false($bad['ok'] ?? true, 'неизвестный бренд — понятный отказ: ' . $raw);
+        } finally {
+            proc_terminate($server);
+            proc_close($server);
+        }
+
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($it as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+        @rmdir($dir);
     }
 
     public function testQueryDupesEndpointAndDownloads(): void

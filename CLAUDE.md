@@ -36,6 +36,7 @@ cladue/
 ├── bin/run-job.php             # background job: collect / download / clean stages, writes runs/current/status.json
 ├── bin/clean-content.php       # content prep: article-body templates from downloaded pages (%domain%/%date%/%brand%)
 ├── public/panel.html           # single-file web UI (inline CSS/JS, polls the panel API)
+├── public/serp.html            # separate page /serp — technical SERP breakdown by brand (own CSS/JS + /api/serp)
 ├── tools/render-page.js        # Node.js + Playwright renderer used by Visit\PlaywrightDriver (stdin JSON → stdout JSON lines)
 ├── src/
 │   ├── Cli/Application.php     # argument parsing, dependency wiring (sources, cache, checker, visitor), summary output
@@ -875,6 +876,41 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `testBackfillFunnelRecomputesFromResultsCsv`), `RunnerTest::testCountsUniqueHostsSeparatelyFromResults`,
   `PanelTest::testCollectWritesHistoryAndStatsEndpoint` (asserts the invariant on a real collect) and
   `PanelTest::testHistoryCountsOwnSitesForOldRecords` (both backfills on one record).
+- `Support\SerpAnalysis` + `public/serp.html` are the SEPARATE page «Технический разбор выдачи» (`/serp`,
+  opened from the main panel's tab row in a new window). The main page and the whole pipeline are
+  UNCHANGED — «функционал системы и другие страниц не меняем… Главная остаётся главной» — this page only
+  shows the SERP as it actually was, before the grouping and the filters that leave the main table with
+  doors only: «я буду видеть все что ты удалял, объеденял уже на текущей главной». Nothing is deduped
+  here: every row of every query stays, with the reason the main pipeline rejected it.
+  It is built ON DEMAND from `runs/current/results.csv` (that file already describes the WHOLE current
+  collect — parts append to it), so nothing extra is stored per collect and the page also works on a
+  collect made before the update. `build($rows, $top = 10)` groups by `Content\BrandKeys::of($query)` —
+  the same brand key the BrandDomains feature uses — into one block per brand: its queries, each query's
+  top-N rows, per-host `keys` (how many of the brand's queries it appears in) and `brands` (how many
+  DIFFERENT brands hold it). Those two numbers are the highlighting the user asked for: yellow = a site
+  crossing several keys of one brand, purple = a site sitting on several brands, i.e. a network.
+  `classify($host, $title, $snippet)` returns the five types of `TYPES`, and the ORDER matters: the
+  social list (`SOCIAL`) and the known-Runet list (`DefaultExclusions::LIST` minus the social ones) are
+  checked FIRST, because `m.vk.com` and `companies.rbc.ru` are pages of a known site, not doors; then
+  `registrable !== host` → `door`; then theme words in the domain label / title / snippet → `theme`,
+  else `other`. Counts are per DISTINCT SITE, not per row — one door on five keys is one door.
+  Queries with no recognisable brand fall into one block with key `''` («без бренда»), always sorted last.
+  CHANGES BETWEEN COLLECTS («после пересбора мы указываем сколько сайтов поменялось в каждом бренде и
+  какого типа»): `index($analysis)` is a compact brand → host → type snapshot kept at
+  `runs/serp-prev.json` (next to `history.json`, so it survives `setup.php --update` and `/api/reset-base`),
+  and `diff($prev, $analysis)` reports per brand what appeared and what disappeared, split by type, plus
+  `is_new` / `gone`. The end of the collect stage in `bin/run-job.php` computes the analysis, logs
+  «Разбор выдачи: брендов N, запросов M, строк K — …» and «С прошлого сбора: появилось …», writes the
+  diff to `runs/current/serp-diff.json` and rotates the snapshot — the diff must be computed there
+  because after the next collect there is nothing left to compare against. Panel: `GET /api/serp` returns
+  the brand list with counts and each brand's diff (the rows are stripped — they would be megabytes),
+  `GET /api/serp?brand=<key>` returns that one brand with all its queries and rows, and `/serp` serves
+  the page. `resetRunFiles()` drops `serp-diff.json` with the results.csv it describes; the snapshot
+  stays, so the next collect still has something to compare with. Covered by
+  `tests/SerpAnalysisTest.php` (types, brand grouping, intersections, the diff in both directions, an
+  unchanged brand is absent from the diff, results.csv reading) and
+  `PanelTest::testSerpAnalysisPageAndEndpoint` (the page and both API shapes over HTTP) +
+  `testRunJobProducesResults` (a real collect writes the snapshot and the diff).
 - The panel's progress cards are a FUNNEL with no repeated number, because «29 904 результата» next to
   «2 043 сайта» read as a contradiction («а почему результатов в выдаче 29к, а доменов 7к — это
   уникальных?»): запросов → `results` (every SERP row; one site counts again in each query that found it)

@@ -170,7 +170,7 @@ function resetRunFiles(string $runDir): array
         rmTree($dir);
     }
     $names = ['sites.json', 'sites.csv', 'domains.txt', 'results.csv', 'content.zip', 'removed.json',
-        \YandexSites\Support\ContentTaken::FILE,
+        \YandexSites\Support\ContentTaken::FILE, \YandexSites\Support\SerpAnalysis::DIFF_FILE,
         \YandexSites\Support\QueryQueue::FILE, \YandexSites\Support\QueryDupes::UNIQUE_FILE, \YandexSites\Support\QueryDupes::GROUPS_FILE, 'status.json'];
     foreach ($names as $name) {
         if (is_file($runDir . '/' . $name) && @unlink($runDir . '/' . $name)) {
@@ -300,6 +300,15 @@ if ($path === '/' || $path === '/index.html') {
     header('Content-Type: text/html; charset=utf-8');
     header('Cache-Control: no-store, must-revalidate'); // всегда свежий интерфейс после обновления
     echo $html !== false ? $html : '<h1>Не найден public/panel.html</h1>';
+    exit;
+}
+
+if ($path === '/serp' || $path === '/serp.html') {
+    // Технический разбор выдачи — ОТДЕЛЬНАЯ страница: собственный HTML, свой опрос API, главная не меняется.
+    $html = @file_get_contents(dirname(__DIR__) . '/public/serp.html');
+    header('Content-Type: text/html; charset=utf-8');
+    header('Cache-Control: no-store, must-revalidate');
+    echo $html !== false ? $html : '<h1>Не найден public/serp.html</h1>';
     exit;
 }
 
@@ -530,6 +539,47 @@ if ($path === '/api/query-dupes') {
     $found = \YandexSites\Support\QueryDupes::find(\YandexSites\Support\QueryDupes::csvRows($csv), $queryList);
     \YandexSites\Support\QueryDupes::writeFiles($runDir, $found);
     jsonOut(['ok' => true, 'summary' => \YandexSites\Support\QueryDupes::summary($found)] + $found);
+}
+
+if ($path === '/api/serp') {
+    // Разбор строится НА ЛЕТУ из results.csv: он описывает весь текущий сбор, поэтому разбор всегда
+    // соответствует собранному и работает даже для сбора, сделанного до обновления скрипта.
+    // Без параметра — список брендов с итогами; brand=<ключ> — ключи этого бренда со всей выдачей.
+    $csv = $runDir . '/results.csv';
+    if (!is_file($csv)) {
+        jsonOut(['ok' => false, 'error' => 'Нет результатов сбора (results.csv) — сначала соберите сайты']);
+    }
+    $top = max(0, min(100, (int) ($_GET['top'] ?? 10)));
+    $analysis = \YandexSites\Support\SerpAnalysis::build(\YandexSites\Support\SerpAnalysis::csvRows($csv), $top);
+    $diff = readJsonFile($runDir . '/' . \YandexSites\Support\SerpAnalysis::DIFF_FILE) ?? ['brands' => [], 'totals' => ['added' => 0, 'removed' => 0]];
+    $want = trim((string) ($_GET['brand'] ?? ''));
+    if ($want !== '' || isset($_GET['brand'])) {
+        foreach ($analysis['brands'] as $brand) {
+            if ((string) $brand['key'] === $want) {
+                jsonOut(['ok' => true, 'brand' => $brand, 'diff' => $diff['brands'][$want] ?? null]);
+            }
+        }
+        jsonOut(['ok' => false, 'error' => 'Бренд не найден в текущем сборе']);
+    }
+    // В списке брендов сами строки выдачи не нужны — их запрашивает раскрытый блок.
+    $list = [];
+    foreach ($analysis['brands'] as $brand) {
+        unset($brand['queries'], $brand['hosts']);
+        $brand['diff'] = $diff['brands'][(string) $brand['key']] ?? null;
+        $list[] = $brand;
+    }
+    jsonOut([
+        'ok' => true,
+        'brands' => $list,
+        'totals' => $analysis['totals'],
+        'results' => $analysis['results'],
+        'queries' => $analysis['queries'],
+        'top' => $top,
+        'types' => \YandexSites\Support\SerpAnalysis::TYPES,
+        'diff_totals' => $diff['totals'] ?? ['added' => 0, 'removed' => 0],
+        'diff_at' => $diff['compared_at'] ?? '',
+        'version' => \YandexSites\Cli\Application::VERSION,
+    ]);
 }
 
 if ($path === '/api/history') {
