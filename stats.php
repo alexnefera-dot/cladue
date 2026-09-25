@@ -1397,9 +1397,12 @@ $msg = $_GET['msg'] ?? '';
             <select name="prelander" onchange="this.form.submit()" style="font-size:12px"
                     title="Нет — рефка редиректит сразу, как обычно. Выбран шаблон — сначала показывается страница-преленд, кнопки на ней ведут на офферы кампании по номерам слотов.">
               <option value="">— нет —</option>
-              <?php foreach ($preTemplates as $t): ?>
-                <option value="<?= h($t) ?>"<?= ($c['prelander'] ?? '') === $t ? ' selected' : '' ?>><?= h($t) ?></option>
+              <?php foreach ($preTemplates as $t): $tm = prelander_meta($t); ?>
+                <option value="<?= h($t) ?>"<?= ($c['prelander'] ?? '') === $t ? ' selected' : '' ?>><?= h($tm['name']) ?></option>
               <?php endforeach; ?>
+              <?php if (($c['prelander'] ?? '') !== '' && !in_array($c['prelander'], $preTemplates, true)): ?>
+                <option value="<?= h($c['prelander']) ?>" selected>⚠ <?= h($c['prelander']) ?> — шаблон не найден</option>
+              <?php endif; ?>
             </select>
           </form>
           <?php if (($c['prelander'] ?? '') !== ''): ?>
