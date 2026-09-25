@@ -51,7 +51,7 @@ $runsDir = (is_dir(getcwd() . '/runs') ? getcwd() : $root) . '/runs';
 $cache = OwnBases::inRuns($runsDir);
 
 if (isset($args['help'])) {
-    fwrite(STDOUT, "php bin/dorgen-sync.php [--from=ГГГГ-ММ-ДД] [--to=ГГГГ-ММ-ДД] [--days=N] [--list]\n");
+    fwrite(STDOUT, "php bin/dorgen-sync.php [--from=ГГГГ-ММ-ДД] [--to=ГГГГ-ММ-ДД] [--days=N] [--list] [--progress=файл]\n");
     exit(0);
 }
 
@@ -88,13 +88,37 @@ if (isset($args['days'])) {
     $from = $cache->nextFrom(date('Y-m-d', strtotime('-7 days')));
 }
 
+// --progress=<файл>: пишем ход выгрузки в JSON, чтобы панель показывала прогресс. Выгрузка идёт
+// минутами (пауза 2,1 с между запросами + повторы), и без этого непонятно, сколько ждать.
+$progressFile = isset($args['progress']) ? trim($args['progress']) : '';
+$started = microtime(true);
+$writeProgress = static function (array $data) use ($progressFile, $started, $from, $to): void {
+    if ($progressFile === '') {
+        return;
+    }
+    $data += ['date_from' => $from, 'date_to' => $to, 'seconds' => (int) round(microtime(true) - $started), 'updated_at' => date(DATE_ATOM)];
+    @mkdir(dirname($progressFile), 0777, true);
+    $tmp = $progressFile . '.tmp';
+    @file_put_contents($tmp, (string) json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    @rename($tmp, $progressFile);
+};
+
+$writeProgress(['state' => 'running', 'chunk' => 0, 'chunks' => count(DorgenClient::splitPeriod($from, $to)), 'pages' => 0, 'rows' => 0, 'bases' => $cache->count(), 'new_bases' => 0]);
 fwrite(STDOUT, sprintf("Выгружаю наши поддомены за %s — %s…\n", $from, $to));
 try {
-    $r = $cache->refresh($client, $from, $to);
+    // Последний снимок держим при себе: в итоговую запись «готово» должны попасть и страницы с кусками,
+    // иначе после окончания в прогрессе останутся только итоговые числа и пропадёт, сколько было сделано.
+    $last = [];
+    $r = $cache->refresh($client, $from, $to, static function (array $p) use ($writeProgress, &$last): void {
+        $last = $p;
+        $writeProgress(['state' => 'running'] + $p);
+    });
 } catch (Throwable $e) {
+    $writeProgress(['state' => 'error', 'error' => $e->getMessage()] + $last);
     fwrite(STDERR, 'Ошибка выгрузки: ' . $e->getMessage() . "\n");
     exit(1);
 }
+$writeProgress(['state' => 'done', 'rows' => $r['rows'], 'bases' => $r['bases'], 'new_bases' => $r['new_bases'], 'more' => false] + $last);
 fwrite(STDOUT, sprintf(
     "Готово: строк %d, баз всего %d (новых %d)%s\n",
     $r['rows'],

@@ -982,7 +982,22 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `dorgenClient($envFile)` re-reads `.env` ON EVERY REQUEST so a just-saved key works without restarting
   the panel; `DorgenClient::fromEnv()` stays the fallback for `bin/dorgen-sync.php`.
   `.env.example` gained `DORGEN_BASE`/`DORGEN_TOKEN` (`.env` was
-  already gitignored) and points at the panel as the easier route. Covered by `tests/DorgenTest.php` against the fake-server route `/v1/subdomains`
+  already gitignored) and points at the panel as the easier route.
+  THE REFRESH RUNS IN THE BACKGROUND with a progress bar («когда выгружаешь показывай какой-то прогресс
+  бар или лог, не понятно сколько ждать»): a month of days is ~450 pages × 2.1 s ≈ 15 minutes plus
+  retries, and a synchronous HTTP request that long simply dies. `POST /api/dorgen-refresh` therefore
+  `exec`s `bin/dorgen-sync.php --progress=runs/dorgen-progress.json` the same way `/api/start` launches
+  `run-job.php`, stamps the pid into the file and returns immediately; `GET /api/dorgen-progress` reads
+  it back and, if the state says `running` while the pid is dead, reports an error pointing at
+  `runs/dorgen.log` instead of hanging forever. `DorgenClient::subdomains()` takes an `$onPage` callback
+  (chunk / chunks / chunk_from / chunk_to / pages / rows / more) which `OwnBases::refresh()` enriches with
+  the live base counts, so the page shows «Выгружаю: период 2 из 3 · 2026-02-01 — 2026-03-03 · страниц
+  14 · строк 13 500 · баз 42 (новых 5) · прошло 1 мин 20 с» under a bar scaled BY PERIOD CHUNKS — the API
+  never says how many pages are still ahead, so a page-based percent would be a lie. A second refresh is
+  refused with 409 while one is running, and reopening the page picks up a refresh already in flight. The
+  analysis itself needs no recomputation step: `/api/serp` rebuilds it from `results.csv` on every
+  request and reads the bases from the cache, so `load()` right after the refresh already shows the new
+  «наш/чужой». Covered by `tests/DorgenTest.php` against the fake-server route `/v1/subdomains`
   (two cursor pages; `FAKE_MODE=dorgenflaky` breaks the first two answers with 500 then 429 to exercise
   the retries) — period splitting, base extraction, only-needed-fields, retries, the incremental cache
   (a repeat refresh adds no bases, the file holds no subdomains and no raw fields) and the SERP wiring

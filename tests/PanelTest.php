@@ -1517,9 +1517,23 @@ MANUAL-OWN.RU
             Assert::true($st['keys']['dorgen_key_set'] ?? false, 'панель видит сохранённый ключ');
             Assert::false(str_contains((string) $this->http('GET', $base . '/api/state'), 'panel-token'), 'сам ключ наружу не отдаётся');
 
+            // Выгрузка идёт ФОНОМ (у API пауза 2,1 с между запросами — держать HTTP-запрос открытым нельзя):
+            // ручка сразу отдаёт pid, а ход видно через /api/dorgen-progress.
             $ref = json_decode((string) $this->http('POST', $base . '/api/dorgen-refresh', ['date_from' => '2026-01-01', 'date_to' => '2026-01-02']), true);
             Assert::true($ref['ok'] ?? false, json_encode($ref, JSON_UNESCAPED_UNICODE));
-            Assert::same(2, $ref['bases'], 'базы выгружены по ключу из настроек');
+            Assert::true(($ref['pid'] ?? 0) > 0, 'выгрузка запущена фоном');
+            $prog = ['state' => ''];
+            for ($i = 0; $i < 100 && ($prog['state'] ?? '') !== 'done'; $i++) {
+                usleep(200_000);
+                $prog = json_decode((string) $this->http('GET', $base . '/api/dorgen-progress'), true) ?: [];
+                if (($prog['state'] ?? '') === 'error') {
+                    Assert::true(false, 'выгрузка упала: ' . json_encode($prog, JSON_UNESCAPED_UNICODE));
+                }
+            }
+            Assert::same('done', $prog['state'] ?? '', 'выгрузка дошла до конца: ' . json_encode($prog, JSON_UNESCAPED_UNICODE));
+            Assert::same(2, $prog['bases'], 'базы выгружены по ключу из настроек');
+            Assert::same(3, $prog['rows'], 'строк прочитано — видно в прогрессе');
+            Assert::true(($prog['pages'] ?? 0) >= 2, 'обе страницы курсора отражены в прогрессе');
 
             // Сайт с выгруженной базой помечается нашим с причиной «запущен в dorgen».
             (new \YandexSites\Output\ReportWriter(';', true))->writeRawCsv([

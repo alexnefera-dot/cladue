@@ -118,6 +118,7 @@ $runDir = $projectDir . '/runs/current';
 @mkdir($runDir, 0777, true);
 $statusFile = $runDir . '/status.json';
 $settingsFile = $runDir . '/settings.json';
+$dorgenProgressFile = $projectDir . '/runs/dorgen-progress.json'; // ход выгрузки наших доменов
 $stopFile = $runDir . '/stop';
 $pidFile = $runDir . '/pid';
 $logFile = $runDir . '/run.log';
@@ -686,23 +687,53 @@ if ($path === '/api/serp') {
 }
 
 if ($path === '/api/dorgen-refresh' && $method === 'POST') {
-    // Догрузка наших поддоменов из системы запусков. Без дат берём только НОВЫЕ дни: кэш помнит,
-    // по какой день уже выгружено, поэтому всю историю заново не тянем (API отдаёт ~110 МБ в сутки).
-    $client = dorgenClient($envFile);
-    if ($client === null) {
+    // Догрузка наших поддоменов из системы запусков идёт ФОНОМ: пауза 2,1 с между запросами плюс
+    // повторы на 500/429 — это минуты, и держать всё это время открытый HTTP-запрос нельзя. Ход
+    // выгрузки процесс пишет в dorgen-progress.json, панель показывает его полоской (/api/dorgen-progress).
+    // Без дат берём только НОВЫЕ дни: кэш помнит, по какой день уже выгружено.
+    if (dorgenClient($envFile) === null) {
         jsonOut(['ok' => false, 'error' => 'Ключ системы запусков не задан — впишите его в «Настройках» («Ключи доступа» → «Система запусков dorgen») и нажмите «Сохранить ключи»']);
+    }
+    $progress = readJsonFile($dorgenProgressFile);
+    $pid = (int) ($progress['pid'] ?? 0);
+    if (($progress['state'] ?? '') === 'running' && $pid > 0 && processAlive($pid)) {
+        jsonOut(['ok' => false, 'error' => 'Выгрузка уже идёт — дождитесь её окончания'], 409);
     }
     $b = body();
     $cache = \YandexSites\Dorgen\OwnBases::inRuns($projectDir . '/runs');
     $to = trim((string) ($b['date_to'] ?? '')) ?: date('Y-m-d');
     $from = trim((string) ($b['date_from'] ?? '')) ?: $cache->nextFrom(date('Y-m-d', strtotime('-7 days')));
-    set_time_limit(0);
-    try {
-        $r = $cache->refresh($client, $from, $to);
-    } catch (\Throwable $e) {
-        jsonOut(['ok' => false, 'error' => $e->getMessage()]);
+    @unlink($dorgenProgressFile);
+    $cmd = sprintf(
+        '%s %s --from=%s --to=%s --progress=%s >> %s 2>&1 & echo $!',
+        escapeshellarg(PHP_BINARY),
+        escapeshellarg(dirname(__DIR__) . '/bin/dorgen-sync.php'),
+        escapeshellarg($from),
+        escapeshellarg($to),
+        escapeshellarg($dorgenProgressFile),
+        escapeshellarg($projectDir . '/runs/dorgen.log'),
+    );
+    $out = [];
+    exec($cmd, $out);
+    $newPid = (int) ($out[0] ?? 0);
+    // pid дописываем сами: по нему видно, жив ли процесс, если он упал, не успев дописать прогресс.
+    writeJsonFile($dorgenProgressFile, ['state' => 'running', 'pid' => $newPid, 'date_from' => $from, 'date_to' => $to,
+        'chunks' => count(\YandexSites\Dorgen\DorgenClient::splitPeriod($from, $to)), 'chunk' => 0,
+        'pages' => 0, 'rows' => 0, 'bases' => $cache->count(), 'new_bases' => 0, 'updated_at' => date(DATE_ATOM)]);
+
+    jsonOut(['ok' => true, 'pid' => $newPid, 'date_from' => $from, 'date_to' => $to]);
+}
+
+if ($path === '/api/dorgen-progress') {
+    // Ход выгрузки для полоски прогресса. Процесс мог умереть, не дописав файл, — сверяемся с pid.
+    $p = readJsonFile($dorgenProgressFile) ?? ['state' => 'idle'];
+    $pid = (int) ($p['pid'] ?? 0);
+    if (($p['state'] ?? '') === 'running' && $pid > 0 && !processAlive($pid)) {
+        $p['state'] = 'error';
+        $p['error'] = 'Выгрузка прервалась — подробности в runs/dorgen.log';
     }
-    jsonOut(['ok' => true] + $r + ['updated_at' => $cache->load()['updated_at']]);
+    $cache = \YandexSites\Dorgen\OwnBases::inRuns($projectDir . '/runs');
+    jsonOut(['ok' => true] + $p + ['bases_now' => $cache->count()]);
 }
 
 if ($path === '/api/history') {

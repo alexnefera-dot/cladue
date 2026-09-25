@@ -77,11 +77,16 @@ final class DorgenClient
     /**
      * Наши запущенные поддомены за период (включительно), потоком.
      *
+     * @param callable(array<string, mixed>):void|null $onPage вызывается после каждой полученной страницы:
+     *        выгрузка идёт минутами (пауза 2,1 с между запросами), и без этого не видно, сколько ждать
      * @return \Generator<int, array{subdomain: string, content_domain_url: string, brand_label: string, pipeline_started: string, recrawl_sent_at: string, content_label: string}>
      */
-    public function subdomains(string $dateFrom, string $dateTo): \Generator
+    public function subdomains(string $dateFrom, string $dateTo, ?callable $onPage = null): \Generator
     {
-        foreach (self::splitPeriod($dateFrom, $dateTo) as [$from, $to]) {
+        $chunks = self::splitPeriod($dateFrom, $dateTo);
+        $rows = 0;
+        $pages = 0;
+        foreach ($chunks as $i => [$from, $to]) {
             $cursor = '';
             $first = true;
             do {
@@ -90,13 +95,26 @@ final class DorgenClient
                 }
                 $first = false;
                 $page = $this->page($from, $to, $cursor);
+                $pages++;
                 foreach ($page['data'] as $row) {
                     $item = self::row((array) $row);
                     if ($item !== null) {
+                        $rows++;
                         yield $item;
                     }
                 }
                 $cursor = $page['next_cursor'];
+                if ($onPage !== null) {
+                    $onPage([
+                        'chunk' => $i + 1,
+                        'chunks' => count($chunks),
+                        'chunk_from' => $from,
+                        'chunk_to' => $to,
+                        'pages' => $pages,
+                        'rows' => $rows,
+                        'more' => $cursor !== '',
+                    ]);
+                }
             } while ($cursor !== '');
         }
     }

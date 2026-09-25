@@ -102,13 +102,18 @@ final class OwnBases
      *
      * @return array{rows: int, bases: int, new_bases: int, new_base_list: list<string>, date_from: string, date_to: string}
      */
-    public function refresh(DorgenClient $client, string $dateFrom, string $dateTo): array
+    public function refresh(DorgenClient $client, string $dateFrom, string $dateTo, ?callable $onProgress = null): array
     {
         $state = $this->load();
         $known = $state['bases'];
         $rows = 0;
         $new = [];
-        foreach ($client->subdomains($dateFrom, $dateTo) as $row) {
+        // Прогресс отдаём наружу после каждой страницы: выгрузка идёт минутами, и без него непонятно,
+        // сколько ждать. Число баз считаем на ходу — оно и есть полезный результат.
+        $onPage = $onProgress === null ? null : static function (array $p) use (&$known, &$new, $onProgress): void {
+            $onProgress($p + ['bases' => count($known), 'new_bases' => count($new)]);
+        };
+        foreach ($client->subdomains($dateFrom, $dateTo, $onPage) as $row) {
             $rows++;
             $base = $row['content_domain_url'];
             if ($base === '') {
