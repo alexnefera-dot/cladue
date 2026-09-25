@@ -1160,10 +1160,6 @@ function prelander_slots_get($raw) {
  */
 function set_prelander_slots($id, array $slots, $title = '') {
     $known = db()->query('SELECT slug FROM campaigns')->fetchAll(PDO::FETCH_COLUMN);
-    // Кампанию-носитель в слот не пускаем: подпись была бы от одного бренда,
-    // а ссылка вела бы обратно на сам преленд. У посетителя без JS (адрес
-    // приходит без cid) это замкнулось бы в петлю показ -> показ.
-    $self = (string)db()->query('SELECT slug FROM campaigns WHERE id = ' . (int)$id)->fetchColumn();
     $clean = [];
     foreach ($slots as $n => $row) {
         $n = (int)$n;
@@ -1171,7 +1167,6 @@ function set_prelander_slots($id, array $slots, $title = '') {
         $row  = (array)$row;
         $slug = normalize_slug((string)($row['slug'] ?? ''));
         if ($slug !== '' && !in_array($slug, $known, true)) $slug = '';
-        if ($slug !== '' && $slug === $self) $slug = '';
         $name = trim(mb_substr((string)($row['name'] ?? ''), 0, 80));
         $logo = trim(mb_substr((string)($row['logo'] ?? ''), 0, 500));
         // картинка только по http(s) или data: — чтобы в разметку не попало
@@ -1266,7 +1261,9 @@ function prelander_build_one($slug, $tpl, $title = '', array $slots = []) {
         $target = normalize_slug((string)($row['slug'] ?? ''));
         $nm     = (string)($row['name'] ?? '');
         if ($nm === '') $nm = $meta['slots'][$n] ?? '';      // подпись из шаблона
-        $map["{{GO$n}}"]   = $target !== '' ? '/go/' . $target : '/go/' . $slug . '?slot=' . $n;
+        $map["{{GO$n}}"]   = $target !== ''
+            ? '/go/' . $target . '?np=1'
+            : '/go/' . $slug . '?slot=' . $n . '&np=1';
         $map["{{NAME$n}}"] = htmlspecialchars($nm, ENT_QUOTES, 'UTF-8');
         // текстовый логотип: первое слово подписи сверху, «CASINO» снизу
         $word = mb_strtoupper(trim(explode(' ', $nm)[0] ?? ''), 'UTF-8');

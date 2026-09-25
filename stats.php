@@ -1150,7 +1150,7 @@ $msg = $_GET['msg'] ?? '';
             <label style="display:block;font-size:12px;margin-bottom:3px">Куда ведёт (кампания)</label>
             <select name="slot[<?= $n ?>][slug]" style="width:100%">
               <option value="">— не задано —</option>
-              <?php foreach ($campaigns as $cc): if ($cc['slug'] === $preCamp['slug']) continue; ?>
+              <?php foreach ($campaigns as $cc): ?>
                 <option value="<?= h($cc['slug']) ?>"<?= (($row['slug'] ?? '') === $cc['slug']) ? ' selected' : '' ?>>
                   <?= h($cc['name'] ?: $cc['slug']) ?> (<?= h($cc['slug']) ?>)
                 </option>
