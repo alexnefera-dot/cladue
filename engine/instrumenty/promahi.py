@@ -40,10 +40,12 @@ def один(задание):
         return None
     промахи = []
     for тип, s in итог.get('страницы', {}).items():
-        if not isinstance(s, dict) or 'мимо' not in s:
+        # Пустой список промахов PHP отдаёт как [], а не как объект.
+        мимо = s.get('мимо') if isinstance(s, dict) else None
+        if not isinstance(мимо, dict):
             continue
         плохая = s.get('процент', 100) < 95
-        for поле, пара in s['мимо'].items():
+        for поле, пара in мимо.items():
             промахи.append((поле, тип, плохая, пара))
     shutil.rmtree(п, ignore_errors=True)
     return промахи
