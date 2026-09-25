@@ -1143,20 +1143,60 @@ function set_prelander($id, $tpl) {
  */
 function prelander_slots_get($raw) {
     $v = json_decode((string)$raw, true);
-    return is_array($v) ? $v : [];
+    if (!is_array($v)) return ['title' => '', 'slots' => []];
+    // старый формат — плоская карта {"1":"7k"}; приводим к новому
+    if (!isset($v['slots'])) {
+        $slots = [];
+        foreach ($v as $n => $slug) if (is_scalar($slug)) $slots[(int)$n] = ['slug' => (string)$slug];
+        return ['title' => '', 'slots' => $slots];
+    }
+    return ['title' => (string)($v['title'] ?? ''), 'slots' => (array)$v['slots']];
 }
 
-function set_prelander_slots($id, array $slots) {
+/**
+ * Сохранить настройку преленда: заголовок страницы и параметры блоков.
+ * $slots — [номер => ['slug'=>…, 'name'=>…, 'logo'=>…]]. Пустые поля означают
+ * «как в шаблоне»: значения по умолчанию лежат в самом шаблоне, а не в коде.
+ */
+function set_prelander_slots($id, array $slots, $title = '') {
     $known = db()->query('SELECT slug FROM campaigns')->fetchAll(PDO::FETCH_COLUMN);
     $clean = [];
-    foreach ($slots as $n => $slug) {
+    foreach ($slots as $n => $row) {
         $n = (int)$n;
-        $slug = normalize_slug((string)$slug);
-        if ($n >= 1 && $n <= 9 && $slug !== '' && in_array($slug, $known, true)) $clean[$n] = $slug;
+        if ($n < 1 || $n > 9) continue;
+        $row  = (array)$row;
+        $slug = normalize_slug((string)($row['slug'] ?? ''));
+        if ($slug !== '' && !in_array($slug, $known, true)) $slug = '';
+        $name = trim(mb_substr((string)($row['name'] ?? ''), 0, 80));
+        $logo = trim(mb_substr((string)($row['logo'] ?? ''), 0, 500));
+        // картинка только по http(s) или data: — чтобы в разметку не попало
+        // произвольное значение и не превратилось в чужой скрипт
+        if ($logo !== '' && !preg_match('~^(https?://|data:image/|/)~i', $logo)) $logo = '';
+        if ($slug === '' && $name === '' && $logo === '') continue;
+        $clean[$n] = ['slug' => $slug, 'name' => $name, 'logo' => $logo];
     }
+    $conf = ['title' => trim(mb_substr((string)$title, 0, 200)), 'slots' => $clean];
     db()->prepare('UPDATE campaigns SET prelander_slots = ?, updated_at = ? WHERE id = ?')
-        ->execute([$clean ? json_encode($clean) : null, time(), (int)$id]);
-    return $clean;
+        ->execute([json_encode($conf, JSON_UNESCAPED_UNICODE), time(), (int)$id]);
+    return $conf;
+}
+
+/**
+ * Манифест шаблона: имя для списка, заголовок и подписи блоков по умолчанию.
+ * Лежит комментариями в начале файла — шаблон сам себя описывает, и добавить
+ * новый можно, ничего не правя в коде.
+ */
+function prelander_meta($tpl) {
+    $file = prelanders_dir() . '/' . preg_replace('~[^\w.\-]~', '', (string)$tpl) . '.html';
+    $meta = ['name' => (string)$tpl, 'title' => '', 'slots' => []];
+    if (!is_file($file)) return $meta;
+    $head = (string)@file_get_contents($file, false, null, 0, 2048);
+    if (preg_match('~<!--\s*prelander:name\s+(.+?)\s*-->~u', $head, $m)) $meta['name'] = trim($m[1]);
+    if (preg_match('~<!--\s*prelander:title\s+(.+?)\s*-->~u', $head, $m)) $meta['title'] = trim($m[1]);
+    if (preg_match_all('~<!--\s*prelander:slot(\d+)\s+(.+?)\s*-->~u', $head, $m, PREG_SET_ORDER)) {
+        foreach ($m as $x) $meta['slots'][(int)$x[1]] = trim($x[2]);
+    }
+    return $meta;
 }
 
 /** Каталог шаблонов прелендов (исходники) и готовых страниц (out/). */
@@ -1198,32 +1238,50 @@ function prelander_build_one($slug, $tpl, $title = '', array $slots = []) {
     $outDir = prelanders_dir() . '/out';
     if (!is_dir($outDir)) { @mkdir($outDir, 0775, true); cache_fix_owner($outDir, 0775); }
 
+    // Значения по умолчанию берём из самого шаблона: пустое поле в настройке
+    // означает «оставить как в шаблоне», а не «стереть».
+    $meta  = prelander_meta($tpl);
+    $conf  = ['title' => '', 'slots' => []];
+    if (isset($slots['slots'])) { $conf = $slots; }
+    elseif ($slots)             { foreach ($slots as $n => $v) $conf['slots'][$n] = is_array($v) ? $v : ['slug' => $v]; }
+
+    $pageTitle = $conf['title'] !== '' ? $conf['title']
+               : ($meta['title'] !== '' ? $meta['title'] : ($title !== '' ? $title : $slug));
+
     $map = [
         '{{GO}}'    => '/go/' . $slug,
-        '{{TITLE}}' => htmlspecialchars($title !== '' ? $title : $slug, ENT_QUOTES, 'UTF-8'),
+        '{{TITLE}}' => htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8'),
         '{{SLUG}}'  => htmlspecialchars($slug, ENT_QUOTES, 'UTF-8'),
     ];
 
-    // Слоты: ссылка и подпись каждого блока берутся у выбранной кампании.
-    // Ничего не выбрано — блок ведёт на саму кампанию с ?slot=N, как раньше.
-    $names = [];
-    if ($slots) {
-        $in  = implode(',', array_fill(0, count($slots), '?'));
-        $st2 = db()->prepare("SELECT slug, name FROM campaigns WHERE slug IN ($in)");
-        $st2->execute(array_values($slots));
-        foreach ($st2->fetchAll(PDO::FETCH_ASSOC) as $r) $names[$r['slug']] = $r['name'];
-    }
+    // Ссылка блока — рефка выбранной кампании. Ничего не выбрано — блок ведёт
+    // на саму кампанию с ?slot=N, как было до появления выбора.
     for ($n = 1; $n <= 9; $n++) {
-        $target = $slots[$n] ?? ($slots[(string)$n] ?? '');
-        $nm     = $target !== '' ? ($names[$target] ?: $target) : '';
+        $row    = (array)($conf['slots'][$n] ?? $conf['slots'][(string)$n] ?? []);
+        $target = normalize_slug((string)($row['slug'] ?? ''));
+        $nm     = (string)($row['name'] ?? '');
+        if ($nm === '') $nm = $meta['slots'][$n] ?? '';      // подпись из шаблона
         $map["{{GO$n}}"]   = $target !== '' ? '/go/' . $target : '/go/' . $slug . '?slot=' . $n;
         $map["{{NAME$n}}"] = htmlspecialchars($nm, ENT_QUOTES, 'UTF-8');
-        // текстовый логотип: первое слово названия сверху, «CASINO» снизу
+        // текстовый логотип: первое слово подписи сверху, «CASINO» снизу
         $word = mb_strtoupper(trim(explode(' ', $nm)[0] ?? ''), 'UTF-8');
         $map["{{LOGO{$n}TOP}}"] = htmlspecialchars($word, ENT_QUOTES, 'UTF-8');
         $map["{{LOGO{$n}BOT}}"] = 'CASINO';
     }
     $html = strtr($html, $map);
+
+    // Картинка блока: задана — подменяем содержимое логотипа, не задана —
+    // остаётся то, что нарисовано в шаблоне.
+    for ($n = 1; $n <= 9; $n++) {
+        $row  = (array)($conf['slots'][$n] ?? $conf['slots'][(string)$n] ?? []);
+        $logo = (string)($row['logo'] ?? '');
+        if ($logo === '') continue;
+        $alt  = htmlspecialchars((string)($row['name'] ?? ''), ENT_QUOTES, 'UTF-8');
+        $img  = '<img src="' . htmlspecialchars($logo, ENT_QUOTES, 'UTF-8') . '" alt="' . $alt
+              . '" style="max-width:100%;max-height:100%;object-fit:contain">';
+        $html = preg_replace('~<!--LOGO' . $n . '-->.*?<!--/LOGO' . $n . '-->~s',
+                             '<!--LOGO' . $n . '-->' . $img . '<!--/LOGO' . $n . '-->', $html, 1);
+    }
 
     $file = $outDir . '/' . $slug . '.html';
     $tmp  = $file . '.tmp';
@@ -1247,7 +1305,7 @@ function prelanders_cache_rebuild() {
                          WHERE prelander IS NOT NULL AND prelander <> ''")->fetchAll(PDO::FETCH_ASSOC);
     $map = [];
     foreach ($rows as $r) {
-        $slots = prelander_slots_get($r['prelander_slots'] ?? '');
+        $slots = prelander_slots_get($r['prelander_slots'] ?? '');   // ['title'=>…, 'slots'=>…]
         if (prelander_build_one($r['slug'], $r['prelander'], (string)$r['name'], $slots)) {
             $map[$r['slug']] = $r['prelander'];
         }

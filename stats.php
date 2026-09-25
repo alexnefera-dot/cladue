@@ -130,7 +130,7 @@ if (($_GET['export'] ?? '') !== '' && $_SERVER['REQUEST_METHOD'] === 'GET') {
     exit;
 }
 
-$tab = in_array($_REQUEST['tab'] ?? 'stats', ['campaigns', 'settings'], true) ? $_REQUEST['tab'] : 'stats';
+$tab = in_array($_REQUEST['tab'] ?? 'stats', ['campaigns', 'settings', 'prelander'], true) ? $_REQUEST['tab'] : 'stats';
 $checkResults = null;
 
 // ---------- обработка действий (POST) ----------
@@ -146,9 +146,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check
         $err = add_campaign($_POST['slug'] ?? '', $_POST['name'] ?? '', $_POST['offer_url'] ?? '');
         $msg = $err === null ? 'Кампания добавлена' : ('Ошибка: ' . $err);
     } elseif ($action === 'set_slots') {
-        set_prelander_slots($_POST['id'] ?? 0, (array)($_POST['slot'] ?? []));
+        set_prelander_slots($_POST['id'] ?? 0, (array)($_POST['slot'] ?? []), $_POST['page_title'] ?? '');
         $n = prelanders_cache_rebuild();
-        $msg = 'Слоты сохранены. Пересобрано страниц: ' . $n;
+        $msg = 'Настройка преленда сохранена. Пересобрано страниц: ' . $n;
     } elseif ($action === 'set_prelander') {
         // Переключение преленда сразу пересобирает статическую страницу и карту
         // для go.php — иначе настройка в панели была бы, а в бою не применилась.
@@ -241,6 +241,7 @@ $detailPage = 1; $detailPages = 1; $detailTotal = 0;
 $campaigns = []; $domains = [];
 $sourceGroups = [];
 $preTemplates = [];
+$preCamp = null; $preConf = ['title'=>'','slots'=>[]]; $preMeta = ['name'=>'','title'=>'','slots'=>[]];
 $daily = []; $recentConv = []; $pbLog = []; $geo = []; $geoCamp = []; $detailGeo = [];
 $detailBots = [];
 $detailSources = [];
@@ -377,6 +378,16 @@ if ($tab === 'stats' && $detailSlug !== '') {
     $geoCamp    = panel_cache("geocamp_$periodKey", fn() => geo_by_campaign($from, null, $to));
     $botsPeriod = panel_cache("bots_$periodKey",    fn() => bots_split($from, $to));
     $sourceGroups = panel_cache("srcall_$periodKey", fn() => sources_grouped_by_campaign(null, $from, $to));
+
+} elseif ($tab === 'prelander') {
+    // Отдельная страница настройки: в колонке таблицы кампаний это не помещалось.
+    $preSlug = normalize_slug((string)($_GET['slug'] ?? ''));
+    $st = $pdo->prepare('SELECT id, slug, name, prelander, prelander_slots FROM campaigns WHERE slug = ?');
+    $st->execute([$preSlug]);
+    $preCamp = $st->fetch(PDO::FETCH_ASSOC) ?: null;
+    $preConf = $preCamp ? prelander_slots_get($preCamp['prelander_slots'] ?? '') : ['title' => '', 'slots' => []];
+    $preMeta = $preCamp ? prelander_meta($preCamp['prelander'] ?? '') : ['name' => '', 'title' => '', 'slots' => []];
+    $campaigns = $pdo->query('SELECT slug, name FROM campaigns ORDER BY name, slug')->fetchAll(PDO::FETCH_ASSOC);
 
 } else {
     // --- вкладка «Кампании»: только справочник кампаний (без счётчиков кликов) ---
@@ -1095,6 +1106,75 @@ $msg = $_GET['msg'] ?? '';
 
 <?php endif; ?>
 
+<?php elseif ($tab === 'prelander'): ?>
+
+  <?php if (!$preCamp): ?>
+    <h1>Преленд</h1>
+    <div class="note">Кампания не найдена. <a href="<?= h(tab_url('campaigns')) ?>">← к кампаниям</a></div>
+  <?php elseif (($preCamp['prelander'] ?? '') === ''): ?>
+    <h1>Преленд: <?= h($preCamp['name'] ?: $preCamp['slug']) ?></h1>
+    <div class="note">У этой кампании преленд выключен. Включите его в <a href="<?= h(tab_url('campaigns')) ?>">списке кампаний</a>.</div>
+  <?php else: ?>
+    <h1>Преленд: <?= h($preCamp['name'] ?: $preCamp['slug']) ?></h1>
+    <div class="muted">
+      Шаблон <b><?= h($preMeta['name']) ?></b> · рефка <code><?= h($refBase . $preCamp['slug']) ?></code> ·
+      <a href="/p/<?= h($preCamp['slug']) ?>" target="_blank">открыть страницу →</a> ·
+      <a href="<?= h(tab_url('campaigns')) ?>">← к кампаниям</a>
+    </div>
+    <div class="muted" style="margin-top:6px">
+      Пустое поле означает «как в шаблоне» — ничего не сотрётся. Название кампании
+      (<code><?= h($preCamp['slug']) ?></code>) на странице не показывается: подписи блоков задаются здесь.
+    </div>
+
+    <form method="post" style="margin-top:14px">
+      <input type="hidden" name="key" value="<?= h($key) ?>">
+      <input type="hidden" name="action" value="set_slots">
+      <input type="hidden" name="id" value="<?= (int)$preCamp['id'] ?>">
+
+      <div class="card" style="padding:14px 16px;margin-bottom:14px">
+        <label style="display:block;font-size:13px;margin-bottom:4px"><b>Заголовок страницы</b>
+          <span class="muted">— то, что видно во вкладке браузера</span></label>
+        <input type="text" name="page_title" style="width:100%;max-width:640px"
+               placeholder="<?= h($preMeta['title']) ?>"
+               value="<?= h($preConf['title']) ?>">
+      </div>
+
+      <?php foreach ([1, 2, 3] as $n):
+        $row  = (array)($preConf['slots'][$n] ?? $preConf['slots'][(string)$n] ?? []);
+        $dflt = $preMeta['slots'][$n] ?? '';
+      ?>
+      <div class="card" style="padding:14px 16px;margin-bottom:12px">
+        <div style="font-weight:600;margin-bottom:10px">Блок <?= $n ?><?= $dflt !== '' ? ' <span class="muted" style="font-weight:400">· в шаблоне: ' . h($dflt) . '</span>' : '' ?></div>
+        <div class="grid3" style="gap:12px">
+          <div>
+            <label style="display:block;font-size:12px;margin-bottom:3px">Куда ведёт (кампания)</label>
+            <select name="slot[<?= $n ?>][slug]" style="width:100%">
+              <option value="">— не задано —</option>
+              <?php foreach ($campaigns as $cc): ?>
+                <option value="<?= h($cc['slug']) ?>"<?= (($row['slug'] ?? '') === $cc['slug']) ? ' selected' : '' ?>>
+                  <?= h($cc['name'] ?: $cc['slug']) ?> (<?= h($cc['slug']) ?>)
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;margin-bottom:3px">Название на странице</label>
+            <input type="text" name="slot[<?= $n ?>][name]" style="width:100%"
+                   placeholder="<?= h($dflt) ?>" value="<?= h($row['name'] ?? '') ?>">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;margin-bottom:3px">Картинка (ссылка)</label>
+            <input type="text" name="slot[<?= $n ?>][logo]" style="width:100%"
+                   placeholder="оставить как в шаблоне" value="<?= h($row['logo'] ?? '') ?>">
+          </div>
+        </div>
+      </div>
+      <?php endforeach; ?>
+
+      <button type="submit">Сохранить и пересобрать</button>
+    </form>
+  <?php endif; ?>
+
 <?php elseif ($tab === 'settings'): ?>
 
   <h1>Настройки</h1>
@@ -1322,29 +1402,11 @@ $msg = $_GET['msg'] ?? '';
               <?php endforeach; ?>
             </select>
           </form>
-          <?php if (($c['prelander'] ?? '') !== ''):
-            $slots = prelander_slots_get($c['prelander_slots'] ?? '');
-          ?>
-            <a href="/p/<?= h($c['slug']) ?>" target="_blank" class="muted" style="font-size:11px">открыть →</a>
-            <form method="post" style="margin-top:6px">
-              <input type="hidden" name="key" value="<?= h($key) ?>">
-              <input type="hidden" name="action" value="set_slots">
-              <input type="hidden" name="id" value="<?= (int)$c['id'] ?>">
-              <?php foreach ([1, 2, 3] as $n): ?>
-                <div style="display:flex;align-items:center;gap:4px;margin-bottom:3px">
-                  <span class="muted" style="font-size:11px;width:44px">блок <?= $n ?></span>
-                  <select name="slot[<?= $n ?>]" style="font-size:11px;max-width:150px">
-                    <option value="">— не задан —</option>
-                    <?php foreach ($campaigns as $cc): ?>
-                      <option value="<?= h($cc['slug']) ?>"<?= (($slots[$n] ?? $slots[(string)$n] ?? '') === $cc['slug']) ? ' selected' : '' ?>>
-                        <?= h($cc['name'] ?: $cc['slug']) ?>
-                      </option>
-                    <?php endforeach; ?>
-                  </select>
-                </div>
-              <?php endforeach; ?>
-              <button type="submit" style="font-size:11px">Сохранить блоки</button>
-            </form>
+          <?php if (($c['prelander'] ?? '') !== ''): ?>
+            <div style="margin-top:4px;display:flex;gap:8px;font-size:11px">
+              <a href="<?= h(tab_url('prelander')) ?>&slug=<?= h($c['slug']) ?>"><b>настроить →</b></a>
+              <a href="/p/<?= h($c['slug']) ?>" target="_blank" class="muted">открыть</a>
+            </div>
           <?php endif; ?>
         </td>
         <td class="ref"><?= dt($c['updated_at']) ?></td>
