@@ -149,7 +149,10 @@ CYR_WHITELIST = {"актуальная", "актуальное", "актуаль
     "вердикт", "проверь", "касса", "без", "баланс", "система", "извержение",
     "извержению", "дополнительные", "дополнительную", "всё", "все",
     "открой", "при", "получите", "выберите", "последнее", "теоретически",
-    "отсутствует", "сигналы", "внутри", "плюс", "доступные", "доступный"}
+    "отсутствует", "сигналы", "внутри", "плюс", "доступные", "доступный",
+    "сбросьте", "какие", "каждая", "скинул", "сделал", "зарегистрируйтесь",
+    "признак", "готовы", "среднее", "статистика", "отмечаю", "вот", "тип",
+    "доступны", "поначалу", "используй", "настраивай", "начисление", "перед"}
 
 LATIN_WHITELIST = {
     "rtp", "vpn", "ios", "android", "app", "store", "google", "play", "pwa",
@@ -160,6 +163,7 @@ LATIN_WHITELIST = {
     "apk", "wild", "fast", "expanding", "high", "medium", "low", "megaways",
     "jackpot", "ok", "top", "vip", "cpa", "revshare", "hybrid", "kyc", "aml",
     "curacao", "ukgc", "mga", "gmt", "chat", "sms", "push", "pin", "2fa", "authy",
+    "webgl", "battery",
     "casino", "name", "face", "touch", "apple", "samsung", "huawei", "xiaomi",
     "windows", "chrome", "safari", "firefox", "opera", "yandex", "mail",
     "gmail", "wifi", "mac", "pc", "tv", "qr", "gdpr", "cookies", "cookie",
@@ -461,8 +465,11 @@ def brand_candidates(raws):
     total, pages, prev, slot, line = Counter(), Counter(), Counter(), Counter(), Counter()
     twins, h3 = Counter(), []
     for raw in raws:
-        h3 += [strip_tags(имя).strip() for имя, за in КАРТОЧКА_СЛОТА.findall(raw)
-               if WIDGET_P.match(strip_tags(за).strip())]
+        # Имя слота короткое. Длинное означает незакрытый <h3> в исходнике: тогда
+        # в захват попадает целый раздел до следующего </h3>, и это не имя.
+        h3 += [имя for имя, за in ((strip_tags(и).strip(), strip_tags(з).strip())
+                                   for и, з in КАРТОЧКА_СЛОТА.findall(raw))
+               if len(имя) <= 60 and WIDGET_P.match(за)]
         raw = БЕЙДЖ_СЛОТА.sub("", raw)   # «<p>Mascot</p><h3>Evil Bet</h3>» — провайдер, а не бренд
         m = BRAND_LINE.match(raw)
         if m and m.group(1).split()[0].lower() not in (LATIN_WHITELIST | CYR_WHITELIST):
@@ -475,6 +482,12 @@ def brand_candidates(raws):
         prev.update(pr)
         slot.update(sl)
     имена_слотов = h3
+    # Первое слово карточки ловится по контексту («Слот Casino Royale от провайдера»),
+    # а следующие от маркера оторваны и в slot не попадают. Досчитываем их по заголовкам:
+    # если все упоминания слова — оттуда, это слот, и проверка slot >= total его уберёт.
+    for имя in имена_слотов:
+        for слово in имя.split()[1:]:
+            slot[слово] += 1
     # Слотовые попадания считаются по первому слову, а оно у бренда и у слота бывает общим
     # («Lucky Bird» и «Lucky Mr Wild»), поэтому для двухсловного имени эта проверка не годится:
     # его от слота отделяет список имён из <h3>.

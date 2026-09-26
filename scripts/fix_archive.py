@@ -144,6 +144,37 @@ def strip_text(raw):
     return re.sub(r"<[^>]+>", " ", raw)
 
 
+ЗАЧИН_БРЕНДА = re.compile(r"([A-Z][A-Za-z]{2,}|[А-ЯЁ][А-Яа-яЁё]{2,})\s+%brand_name_(?:ru|en)%")
+
+
+def site_zachin(исходные, заменённые, бренды):
+    """Первое слово двухсловного названия, если оно словарное: «Новое Ретро», «Casino Royale».
+
+    Такое слово детектор пропускает (оно в словаре), и после замены второго
+    остаётся висеть: «Новое %brand_name_ru%». Забираем его только тогда, когда
+    название без него в текстах не встречается ни разу: «Казино Лекс» рядом с
+    74 отдельными «Лекс» — обычное слово перед брендом, а не часть имени.
+    """
+    зачины = Counter(ЗАЧИН_БРЕНДА.findall(" ".join(заменённые)))
+    if not зачины:
+        return None
+    слово, n = зачины.most_common(1)[0]
+    if n < 5:
+        return None
+    исходный = " ".join(исходные)
+    for бренд in бренды:
+        имя = re.escape(бренд)
+        всего = len(re.findall(r"\b%s\b" % имя, исходный))
+        if всего == n and len(re.findall(r"%s\s+%s\b" % (re.escape(слово), имя), исходный)) == n:
+            return слово
+    return None
+
+
+def fix_brand_head(raw, зачин):
+    raw, n = re.subn(r"\b%s\s+(%%brand_name_(?:ru|en)%%)" % re.escape(зачин), r"\1", raw)
+    return raw, ([("зачин бренда", "снят", "%d" % n)] if n else [])
+
+
 def site_brands(files):
     """Бренды сайта — те же кандидаты, что находит проверка (check_archive.brand_candidates).
 
@@ -151,7 +182,8 @@ def site_brands(files):
     первое ушло в плейсхолдер. На сайте с «Лаки Бир» латинское «Lucky Bear»
     до замены не набирает порога, а после — набирает.
     """
-    raws = [open(p, encoding="utf-8").read() for p in files]
+    исходные = [open(p, encoding="utf-8").read() for p in files]
+    raws = list(исходные)
     найдено = []
     for _ in range(2):
         новые = [name for name, c, pg in brand_candidates(raws) if name not in найдено][:2]
@@ -160,7 +192,7 @@ def site_brands(files):
         найдено += новые
         for brand in новые:
             raws = [fix_brand(raw, brand)[0] for raw in raws]
-    return найдено
+    return найдено, (site_zachin(исходные, raws, найдено) if найдено else None)
 
 
 # Имена, которые вообще бывают в HTML. Всё остальное в угловых скобках — не тег, а текст
@@ -295,10 +327,11 @@ def main():
         if not files:
             continue
         brands = list(args.brand)
+        зачин = None
         if args.auto_brand:
-            auto = site_brands(files)
+            auto, зачин = site_brands(files)
             if auto:
-                found[os.path.relpath(dp, args.path)] = auto
+                found[os.path.relpath(dp, args.path)] = auto + ([зачин + " …"] if зачин else [])
             brands += auto
         for p in files:
             f = os.path.basename(p)
@@ -319,6 +352,9 @@ def main():
                     rows.append(how)
             raw, trows = fix_brand_tail(raw)
             rows += trows
+            if зачин:
+                raw, hrows = fix_brand_head(raw, зачин)
+                rows += hrows
             if raw != orig:
                 open(p, "w", encoding="utf-8").write(raw)
                 total += len(rows)
