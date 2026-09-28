@@ -96,6 +96,15 @@ if (($_GET['export'] ?? '') !== '' && $_SERVER['REQUEST_METHOD'] === 'GET') {
                 $r['slug'] !== null && $r['slug'] !== '' ? 'yes' : 'no',
             ]);
         }
+    } elseif ($exp === 'reflinks') {
+        // Список рефок на текущем домене — то, что отдаётся дор-движку при переезде.
+        // $refBase считается ниже по файлу, здесь собираем его сами
+        $base = 'https://' . ref_domain($_SERVER['HTTP_HOST'] ?? '') . '/go/';
+        fputcsv($out, ['slug', 'name', 'ref_link']);
+        $rows = db()->query('SELECT slug, name FROM campaigns ORDER BY slug')->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($rows as $r) {
+            fputcsv($out, [$r['slug'], $r['name'], $base . $r['slug']]);
+        }
     } elseif ($exp === 'daily') {
         fputcsv($out, ['date', 'clicks', 'unique', 'bots', 'regs', 'deps']);
         foreach (daily_stats(30) as $r) fputcsv($out, [$r['d'], $r['humans'], $r['uniques'], $r['bots'], $r['regs'], $r['deps'] ?? 0]);
@@ -145,6 +154,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check
     if ($action === 'add') {
         $err = add_campaign($_POST['slug'] ?? '', $_POST['name'] ?? '', $_POST['offer_url'] ?? '');
         $msg = $err === null ? 'Кампания добавлена' : ('Ошибка: ' . $err);
+    } elseif ($action === 'set_ref_domain') {
+        $d = set_ref_domain($_POST['ref_domain'] ?? '');
+        panel_cache_flush();
+        $msg = $d !== '' ? 'Домен рефок: ' . $d : 'Домен рефок сброшен на домен панели';
     } elseif ($action === 'set_slots') {
         set_prelander_slots($_POST['id'] ?? 0, (array)($_POST['slot'] ?? []), $_POST['page_title'] ?? '');
         $n = prelanders_cache_rebuild();
@@ -203,7 +216,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check
 $pdo    = db();
 $now    = time();
 $host    = $_SERVER['HTTP_HOST'] ?? 'sitegrator.com';
-$refBase = 'https://' . $host . '/go/';
+// Домен рефок задаётся отдельно от домена панели: при переезде редиректора
+// панель остаётся на прежнем адресе, а ссылки надо выдавать уже на новом.
+$refHost = ref_domain($host);
+$refBase = 'https://' . $refHost . '/go/';
 
 // период: today / yesterday / 7d / 30d
 $PERIODS = ['today'=>'Сегодня', 'yesterday'=>'Вчера', '7d'=>'7 дней', '30d'=>'30 дней'];
@@ -1289,6 +1305,48 @@ $msg = $_GET['msg'] ?? '';
         <span class="muted" style="margin-left:10px">сейчас в списке: <b><?= count($wlNow) ?></b></span>
       </div>
     </form>
+  </div>
+
+  <div class="card">
+    <h2>Домен редиректора</h2>
+    <div class="muted">
+      Домен, из которого панель собирает рефки. В кампаниях он не хранится:
+      рефка — это всегда <code>/go/СЛАГ</code>, и она работает на любом домене,
+      который смотрит на этот сервер. Поэтому переезд — это не правка базы,
+      а выдача дорам нового списка ссылок; старые работают, пока жив старый домен.
+      Панель при этом может оставаться на прежнем адресе.
+    </div>
+    <form method="post" style="margin-top:10px">
+      <input type="hidden" name="key" value="<?= h($key) ?>">
+      <input type="hidden" name="action" value="set_ref_domain">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input type="text" name="ref_domain" value="<?= h(ref_domain('')) ?>"
+               placeholder="<?= h($host) ?> (домен панели)" style="min-width:260px">
+        <button type="submit">Сохранить</button>
+        <span class="muted">сейчас рефки: <code><?= h($refBase) ?>СЛАГ</code></span>
+      </div>
+    </form>
+    <p style="margin-top:10px">
+      <a href="stats.php?tab=settings&export=reflinks"><b>⬇ Выгрузить все рефки (CSV)</b></a>
+      — список <code>слаг → ссылка</code> на текущем домене, для передачи в дор-движок.
+    </p>
+
+    <?php $hosts = hosts_breakdown(time() - 7 * 86400); ?>
+    <h3 style="font-size:14px;margin:16px 0 6px">Куда идёт трафик (7 дней)</h3>
+    <div class="muted">Старый домен можно гасить, когда его строка обнулится. Клики бота не считаются.</div>
+    <table class="sortable" style="margin-top:8px">
+      <thead><tr><th data-sort="text">Домен</th><th class="num" data-sort="num">Клики</th><th data-sort="num">Последний</th></tr></thead>
+      <tbody>
+        <?php foreach ($hosts as $hh): ?>
+        <tr>
+          <td><code><?= h($hh['host']) ?></code><?= $hh['host'] === $refHost ? ' <span class="chip" style="background:#ecfdf5;border-color:#a7f3d0;color:#166534;font-size:11px">текущий</span>' : '' ?></td>
+          <td class="num"><b><?= (int)$hh['clicks'] ?></b></td>
+          <td data-val="<?= (int)$hh['last_ts'] ?>"><?= dt($hh['last_ts']) ?></td>
+        </tr>
+        <?php endforeach; ?>
+        <?php if (!$hosts): ?><tr><td colspan="3">За неделю кликов нет.</td></tr><?php endif; ?>
+      </tbody>
+    </table>
   </div>
 
   <div class="card">

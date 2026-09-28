@@ -108,7 +108,7 @@ $fh = @fopen($procFile, 'r');
 if (!$fh) { say("! не открыть $procFile"); exit(1); }
 
 $pdo = db();
-$cols = ['ts','slug','ip','ua','referer','source','is_bot','clickid','country','lp','event'];
+$cols = ['ts','slug','ip','ua','referer','source','is_bot','clickid','country','lp','event','host'];
 $colsSql = implode(',', $cols);
 $batchSize = 500;
 $buf = [];
@@ -149,6 +149,7 @@ try {
         // event добавлено ещё позже: у строк старого формата его нет — это
         // обычный переход без преленда, то есть 'direct'.
         $buf[] = isset($f[10]) && $f[10] !== '' ? $f[10] : 'direct';
+        $buf[] = isset($f[11]) && $f[11] !== '' ? $f[11] : null;   // host, добавлено ещё позже
         $rowN++;
         $total++;
         if ($rowN >= $batchSize) {

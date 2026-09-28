@@ -159,6 +159,7 @@ function db_ensure_indexes_mysql(PDO $pdo) {
     $wantedCols = [
         ['clicks',      'lp',        'VARCHAR(255) NULL'],
         ['clicks',      'event',     'VARCHAR(16) NULL'],
+        ['clicks',      'host',      'VARCHAR(190) NULL'],
         ['campaigns',   'prelander', 'VARCHAR(64) NULL'],
         ['campaigns',   'prelander_slots', 'TEXT NULL'],
         ['conversions', 'sub',       'VARCHAR(190) NULL'],
@@ -268,6 +269,7 @@ function db_create_tables_mysql(PDO $pdo) {
         country VARCHAR(8) NULL,
         lp VARCHAR(255) NULL,
         event VARCHAR(16) NULL,
+        host VARCHAR(190) NULL,
         INDEX idx_slug (slug),
         INDEX idx_ts (ts),
         INDEX idx_slug_ts (slug, ts),
@@ -362,6 +364,11 @@ function db_create_tables_sqlite(PDO $pdo) {
     // миграция: событие клика — direct / view (показан преленд) / click (клик на преленде)
     if (!in_array('event', $cols, true)) {
         $pdo->exec('ALTER TABLE clicks ADD COLUMN event TEXT');
+    }
+    // миграция: домен редиректора, на который пришёл клик — по нему видно,
+    // когда старый домен перестал получать трафик и его можно отключать
+    if (!in_array('host', $cols, true)) {
+        $pdo->exec('ALTER TABLE clicks ADD COLUMN host TEXT');
     }
     $pdo->exec('CREATE INDEX IF NOT EXISTS idx_clickid ON clicks(clickid)');
 
@@ -1197,6 +1204,45 @@ function prelander_meta($tpl) {
         foreach ($m as $x) $meta['slots'][(int)$x[1]] = trim($x[2]);
     }
     return $meta;
+}
+
+/**
+ * Домен, из которого панель собирает рефки.
+ *
+ * Хранится в meta, а не в config: менять его приходится в момент переезда,
+ * и лезть при этом на сервер незачем. Пусто — берётся домен, на котором
+ * открыта панель (как было до появления настройки).
+ *
+ * В самих кампаниях домен не хранится нигде: рефка это всегда /go/СЛАГ,
+ * и она работает на любом домене, который смотрит на этот сервер. Поэтому
+ * «сменить домен у всех кампаний» — это не правка базы, а выдача дорам
+ * нового списка ссылок; старые продолжают работать, пока жив старый домен.
+ */
+function ref_domain($fallback = '') {
+    $d = trim((string)meta_get('ref_domain', ''));
+    return $d !== '' ? $d : $fallback;
+}
+
+function set_ref_domain($d) {
+    $d = normalize_domain((string)$d);
+    meta_upsert('ref_domain', $d);
+    return $d;
+}
+
+/**
+ * Клики по доменам редиректора за период.
+ * Главная цифра при переезде: пока у старого домена не ноль, гасить его рано.
+ */
+function hosts_breakdown($from, $to = null) {
+    $sql  = "SELECT COALESCE(NULLIF(host,''),'(не записан)') AS host,
+                    COUNT(*) AS clicks, MAX(ts) AS last_ts
+             FROM clicks WHERE ts >= ? AND is_bot = 0 AND " . sql_visit();
+    $args = [$from];
+    if ($to !== null) { $sql .= ' AND ts < ?'; $args[] = $to; }
+    $sql .= ' GROUP BY host ORDER BY clicks DESC';
+    $st = db()->prepare($sql);
+    $st->execute($args);
+    return $st->fetchAll(PDO::FETCH_ASSOC);
 }
 
 /** Каталог шаблонов прелендов (исходники) и готовых страниц (out/). */
