@@ -155,7 +155,8 @@ CYR_WHITELIST = {"актуальная", "актуальное", "актуаль
     "доступны", "поначалу", "используй", "настраивай", "начисление", "перед",
     "ночь", "зеркале", "версия", "симптом", "игроков", "технические",
     "простота", "реальный", "брат", "популярные", "честные", "актуальную",
-    "порядок", "зайди", "установка", "ступени", "ступеням"}
+    "порядок", "зайди", "установка", "ступени", "ступеням",
+    "открыть", "дары", "дарам", "искать"}
 
 LATIN_WHITELIST = {
     "rtp", "vpn", "ios", "android", "app", "store", "google", "play", "pwa",
@@ -166,7 +167,7 @@ LATIN_WHITELIST = {
     "apk", "wild", "fast", "expanding", "high", "medium", "low", "megaways",
     "jackpot", "ok", "top", "vip", "cpa", "revshare", "hybrid", "kyc", "aml",
     "curacao", "ukgc", "mga", "gmt", "chat", "sms", "push", "pin", "2fa", "authy",
-    "webgl", "battery",
+    "webgl", "battery", "tether",
     "casino", "name", "face", "touch", "apple", "samsung", "huawei", "xiaomi",
     "windows", "chrome", "safari", "firefox", "opera", "yandex", "mail",
     "gmail", "wifi", "mac", "pc", "tv", "qr", "gdpr", "cookies", "cookie",
