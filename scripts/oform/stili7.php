@@ -1,5 +1,7 @@
 <?php
 // stili7.php — стили третьей системы: CSS под разметку контента (hero, слоты, выплаты, FAQ).
+// Комплект встаёт на чужую страницу: своего фона не рисует, текст светлый,
+// карточки и рамки — полупрозрачные накладки поверх фона заказчика.
 // php stili7.php <папка комплекта> --тема=N
 declare(strict_types=1);
 require __DIR__ . '/temy7.php';
@@ -114,7 +116,7 @@ function v7CSS(array $т, string $sc): string {
     $css = "
 $sc{--акц:$а;--акц2:$б;--мяг:{$т['мягкий']};--фон:{$т['фон']};--карта:{$т['карта']};--карта2:{$т['карта2']};
 --тек:{$т['текст']};--тус:{$т['тускло']};--рам:{$т['рамка']};--r:$рад;--r2:$рад2;
-background:var(--фон);color:var(--тек);border-radius:var(--r);padding:clamp(16px,2.6vw,30px);overflow-wrap:anywhere;container-type:inline-size;
+background:transparent;color:var(--тек);border-radius:var(--r);padding:clamp(16px,2.6vw,30px);overflow-wrap:anywhere;container-type:inline-size;
 font:400 16px/1.68 $штек;text-align:left}
 $sc *,$sc *::before,$sc *::after{box-sizing:border-box}
 $sc>*+*{margin-top:24px}
@@ -245,7 +247,7 @@ $sc .k7-fig{margin:0 0 22px}
 $sc .k7-fig img{display:block;width:100%;height:auto;border-radius:var(--r)}
 $sc .k7-fig figcaption{margin-top:7px;font-size:.8rem;color:var(--тус);letter-spacing:.04em}
 $sc .k7-vrezka{float:right;width:min(300px,42%);margin:0 0 16px 20px}
-$sc .k7-fon{position:relative;padding:clamp(20px,4vw,38px);border-radius:var(--r);background-color:#1b1f2b;background-size:cover;background-position:center;color:#fff;border:0}
+$sc .k7-fon{position:relative;padding:clamp(20px,4vw,38px);border-radius:var(--r);background-color:rgba(8,10,14,.55);background-size:cover;background-position:center;color:#fff;border:0}
 $sc .k7-fon>*{background:transparent;border-color:#ffffff33}
 $sc .k7-fon h2,$sc .k7-fon h3,$sc .k7-fon .hero-headline{color:#fff}
 $sc .k7-fon .hero-quicklinks,$sc .k7-fon .hero-features li,$sc .k7-fon .quicklink-item,$sc .k7-fon .value-pillar{background:#00000052;border-color:#ffffff2e;color:#fff}

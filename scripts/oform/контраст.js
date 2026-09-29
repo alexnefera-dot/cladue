@@ -1,12 +1,15 @@
 // Проверка оформленных комплектов на читаемость: открывает каждую страницу в браузере,
 // для каждого текстового узла берёт вычисленный цвет и первый непрозрачный фон
 // выше по дереву и считает контраст по WCAG. Ниже 3.5 — в отчёт.
-// Запуск: NODE_PATH=/opt/node22/lib/node_modules node scripts/oform/контраст.js <папка> [сколько]
+// Комплект своего фона не рисует, поэтому страница красится в подложку заказчика:
+// тёмную по умолчанию, иначе меряться не от чего.
+// Запуск: NODE_PATH=/opt/node22/lib/node_modules node scripts/oform/контраст.js <папка> [фон] [сколько]
 const { chromium } = require('playwright');
 const fs = require('fs'), path = require('path');
 
 (async () => {
-  const корень = process.argv[2], предел = Number(process.argv[3] || 1e9);
+  const корень = process.argv[2], фонСтраницы = process.argv[3] || '#0d1016';
+  const предел = Number(process.argv[4] || 1e9);
   const комплекты = fs.readdirSync(корень).filter(d => fs.statSync(path.join(корень, d)).isDirectory()).slice(0, предел);
   const браузер = await chromium.launch();
   const стр = await браузер.newPage();
@@ -16,6 +19,7 @@ const fs = require('fs'), path = require('path');
     for (const имяСтр of страницы) {
     const файл = path.join(корень, к, имяСтр);
     await стр.goto('file://' + файл, { waitUntil: 'load' });
+    await стр.addStyleTag({ content: `html,body{background:${фонСтраницы} !important}` });
     const беда = await стр.evaluate(() => {
       const яр = c => { const f = x => (x /= 255) <= 0.03928 ? x / 12.92 : ((x + .055) / 1.055) ** 2.4;
         return .2126 * f(c[0]) + .7152 * f(c[1]) + .0722 * f(c[2]); };
@@ -47,5 +51,6 @@ const fs = require('fs'), path = require('path');
     }
   }
   await браузер.close();
-  console.log(JSON.stringify({ комплектов: комплекты.length, плохих: плохо.length, список: плохо.slice(0, 12) }, null, 1));
+  console.log(JSON.stringify({ комплектов: комплекты.length, фон: фонСтраницы,
+                               плохих: плохо.length, список: плохо.slice(0, 12) }, null, 1));
 })();
