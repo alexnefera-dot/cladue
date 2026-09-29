@@ -36,11 +36,16 @@ b8w.team 8215.team z5m.team 4974.team m1y.team 6648.team hzyb.team
 `;
 
   const DRY     = true;    // <-- false, когда проверишь вывод
+  const FROM    = 1;       // с какого домена начать (нумерация с 1)
+  const TO      = 0;       // по какой включительно; 0 — до конца списка
   const PAUSE   = 600;     // пауза между доменами, мс — не долбим сервер
   const TIMEOUT = 15000;   // сколько ждать перерисовку таблицы
 
   const log  = (...a) => console.log('%c[сабдомены]', 'color:#b91c1c;font-weight:bold', ...a);
-  const list = DOMAINS.trim().split(/[\s,;]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
+  // FROM/TO те же, что в скрипте создания сайтов: удаляем и пересоздаём одну и ту
+  // же пачку, чтобы сайты не лежали дольше, чем идёт генерация этой пачки.
+  const all  = DOMAINS.trim().split(/[\s,;]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
+  const list = all.slice(FROM - 1, TO > 0 ? TO : all.length);
 
   const table = document.querySelector('#content-domains-table')
              || document.querySelector('table.dataTable')
@@ -95,13 +100,15 @@ b8w.team 8215.team z5m.team 4974.team m1y.team 6648.team hzyb.team
     };
   };
 
-  log('доменов в списке:', list.length, DRY ? '· РЕЖИМ ПРОВЕРКИ (ничего не удаляется)' : '· БОЕВОЙ РЕЖИМ — УДАЛЯЕТ');
+  log('доменов в списке:', all.length, '· в работе:', list.length,
+      `(${FROM}..${TO > 0 ? TO : all.length})`,
+      DRY ? '· РЕЖИМ ПРОВЕРКИ (ничего не удаляется)' : '· БОЕВОЙ РЕЖИМ — УДАЛЯЕТ');
 
   let done = 0, zero = 0, notFound = 0, failed = 0, subs = 0;
   const plan = [];
 
   for (const [i, dom] of list.entries()) {
-    const nom = `${i + 1}/${list.length} ${dom}`;
+    const nom = `${FROM + i}/${all.length} ${dom}`;
     try {
       await filter(dom);
 
