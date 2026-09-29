@@ -10,6 +10,7 @@
   «В {NAME}») подставляется %brand_name_ru%.
 - {AMOUNT} -> сумма в рублях из текста раздела, иначе типовая.
 - {YYYYMMDD} -> %date%. Примерные адреса вида user@example.com -> user@%domain_name%.
+- {PROTOCOL}, {SERVER}, {PORT}, {DOMAIN}, {HOST}, {URL}, {ID} -> техническое значение.
 - Мусор после чистки: склейки <strongслово>, теги meter/font/center, битые <h2:, остатки [[ ]] и {a|b}.
 - --auto-brand -> бренд каждого сайта определяется сам: самое частое латинское
   слово рядом с «казино/зеркало/приложение/бонус» не из белого списка, если оно
@@ -283,7 +284,9 @@ def fix_markup(raw):
 
 # Технические переменные, которые встречаются в текстах про доступ и установку.
 ТЕХ_ПЕРЕМЕННЫЕ = {"{PROTOCOL}": "HTTPS", "{SERVER}": "%domain_name%", "{PORT}": "443",
-                  "{DOMAIN}": "%domain_name%", "{HOST}": "%domain_name%", "{URL}": "%domain_name%"}
+                  "{DOMAIN}": "%domain_name%", "{HOST}": "%domain_name%", "{URL}": "%domain_name%",
+                  # номер обращения в поддержку: «#502-{ID}», «/ticket {ID} {Текст}»
+                  "{ID}": "4187"}
 
 
 def fix_generic(raw):
