@@ -63,6 +63,12 @@ NODE_PATH=/opt/node22/lib/node_modules /opt/node22/bin/node scripts/oform/вер
 NODE_PATH=/opt/node22/lib/node_modules /opt/node22/bin/node scripts/oform/контраст.js <папка выдачи>
 ```
 
+Проверка под формат импорта — комплект целиком: `main.html` на месте, лишних файлов нет, имена картинок по правилу, и главное — в HTML стоит **голое имя файла** (`main_img_1.webp`), а не путь с папкой: путь подставляет импорт сам. Ошибка в любой папке отменяет весь импорт, поэтому гоняем до упаковки:
+
+```bash
+python3 scripts/oform/импорт.py <папка выдачи>
+```
+
 Разобранные дефекты оформления и как они чинятся — в `docs/oformlenie-defekty.md`.
 
 Посмотреть результат:

@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Нумерация картинок подряд с единицы: после чистки неиспользованных остаются дыры."""
+"""Нумерация картинок подряд с единицы: после чистки неиспользованных остаются дыры.
+
+В HTML стоит голое имя файла (`main_img_1.webp`) — путь подставляет импорт.
+"""
 import os, re, sys
 
 def перенумеровать(kit: str) -> int:
@@ -12,7 +15,7 @@ def перенумеровать(kit: str) -> int:
         путь = os.path.join(kit, f)
         html = open(путь, encoding='utf-8').read()
         порядок = []
-        for m in re.finditer(r'images/(%s_img_\d+\.webp)' % re.escape(стр), html):
+        for m in re.finditer(r'(%s_img_\d+\.webp)' % re.escape(стр), html):
             if m.group(1) not in порядок: порядок.append(m.group(1))
         карта = {}
         for i, старое in enumerate(порядок, 1):
@@ -26,9 +29,9 @@ def перенумеровать(kit: str) -> int:
         for t, новое in врем.items():
             os.rename(t, os.path.join(imgs, новое)); переименовано += 1
         for k, (старое, _) in enumerate(карта.items()):
-            html = html.replace('images/' + старое, 'images/@%d@' % k)
+            html = html.replace(старое, '@%d@' % k)
         for k, (_, новое) in enumerate(карта.items()):
-            html = html.replace('images/@%d@' % k, 'images/' + новое)
+            html = html.replace('@%d@' % k, новое)
         open(путь, 'w', encoding='utf-8').write(html)
     return переименовано
 

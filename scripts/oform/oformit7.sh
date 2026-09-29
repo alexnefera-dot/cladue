@@ -31,7 +31,8 @@ for site in sorted(os.listdir(OUT)):
         if not f.endswith('.html'): continue
         стр = f[:-5]
         t = open(os.path.join(d, f), encoding='utf-8').read()
-        for m in re.findall(r'images/([\w.-]+\.webp)', t):
+        # в HTML стоит голое имя файла: путь подставляет импорт
+        for m in re.findall(r'["\'(]([\w.-]+_img_\d+\.webp)', t):
             ссылки.add(m)
             if not ШАБЛОН.match(m) or not m.startswith(стр + '_img_'):
                 print('  ОШИБКА имени:', site, f, m); ошибок += 1

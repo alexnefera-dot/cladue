@@ -245,7 +245,7 @@ $sc .k7-fig{margin:0 0 22px}
 $sc .k7-fig img{display:block;width:100%;height:auto;border-radius:var(--r)}
 $sc .k7-fig figcaption{margin-top:7px;font-size:.8rem;color:var(--тус);letter-spacing:.04em}
 $sc .k7-vrezka{float:right;width:min(300px,42%);margin:0 0 16px 20px}
-$sc .k7-fon{position:relative;padding:clamp(20px,4vw,38px);border-radius:var(--r);background-size:cover;background-position:center;color:#fff;border:0}
+$sc .k7-fon{position:relative;padding:clamp(20px,4vw,38px);border-radius:var(--r);background-color:#1b1f2b;background-size:cover;background-position:center;color:#fff;border:0}
 $sc .k7-fon>*{background:transparent;border-color:#ffffff33}
 $sc .k7-fon h2,$sc .k7-fon h3,$sc .k7-fon .hero-headline{color:#fff}
 $sc .k7-fon .hero-quicklinks,$sc .k7-fon .hero-features li,$sc .k7-fon .quicklink-item,$sc .k7-fon .value-pillar{background:#00000052;border-color:#ffffff2e;color:#fff}

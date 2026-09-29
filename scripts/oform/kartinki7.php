@@ -44,9 +44,11 @@ function v7Конец(string $h, int $откр): int {
     return -1;
 }
 
+/* Импорт кладёт картинки в /uploads/content/{id}/ и подменяет путь сам,
+   поэтому в HTML пишется только имя файла; на диск они ложатся в images/. */
 function v7Фигура(string $файл, string $подпись, string $класс = 'k7-fig'): string {
     $п = htmlspecialchars($подпись, ENT_QUOTES);
-    return "<figure class=\"$класс\"><img src=\"images/$файл\" alt=\"$п\" loading=\"lazy\"></figure>\n";
+    return "<figure class=\"$класс\"><img src=\"$файл\" alt=\"$п\" loading=\"lazy\"></figure>\n";
 }
 
 /** Плитки автоматов в карточки: рисунок под название игры, не больше восьми на страницу. */
@@ -60,7 +62,7 @@ function v7Плитки(string $html, string $стр, string $dir, callable $и�
         g7Плитка("$dir/images/$ф", $игра, 480, 300);
         $п = htmlspecialchars($игра, ENT_QUOTES);
         $вставки[] = [$поп[1], strlen($поп[0]),
-                      "<div class=\"slot-poster k7-has-img\"><img src=\"images/$ф\" alt=\"$п\" loading=\"lazy\">"];
+                      "<div class=\"slot-poster k7-has-img\"><img src=\"$ф\" alt=\"$п\" loading=\"lazy\">"];
     }
     foreach (array_reverse($вставки) as [$поз, $длина, $тег]) {
         $html = substr($html, 0, $поз) . $тег . substr($html, $поз + $длина);
@@ -93,10 +95,10 @@ function v7Вставить(string $html, string $стр, array $т, string $dir
             if ($конец > 0) {
                 $блок = substr($html, $первый, $конец - $первый);
                 $html = substr($html, 0, $первый)
-                    . "<div class=\"k7-fon\" style=\"background-image:url('images/$ф')\">\n$блок\n</div>\n"
+                    . "<div class=\"k7-fon\" style=\"background-image:url('$ф')\">\n$блок\n</div>\n"
                     . substr($html, $конец);
             } else {
-                $html = "<div class=\"k7-fon\" style=\"background-image:url('images/$ф')\">\n"
+                $html = "<div class=\"k7-fon\" style=\"background-image:url('$ф')\">\n"
                     . "<h2>{$разд[1]}</h2>\n<p>{$разд[2]}</p>\n</div>\n" . $html;
             }
             break;
