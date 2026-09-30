@@ -10,6 +10,7 @@
   «В {NAME}») подставляется %brand_name_ru%.
 - {AMOUNT} -> сумма в рублях из текста раздела, иначе типовая.
 - {YYYYMMDD} -> %date%. Примерные адреса вида user@example.com -> user@%domain_name%.
+  Голый домен после собаки («whitelist для @yourcompany.com») — тоже.
 - {PROTOCOL}, {SERVER}, {PORT}, {DOMAIN}, {HOST}, {URL}, {ID}, {IP} -> техническое значение.
 - Мусор после чистки: склейки <strongслово>, теги meter/font/center, битые <h2:, остатки [[ ]] и {a|b}.
 - --auto-brand -> бренд каждого сайта определяется сам: самое частое латинское
@@ -305,7 +306,9 @@ def fix_generic(raw):
         rows.append(("{{ }}", "снято", "скобки шаблонизатора (%d)" % n))
     def email(m):
         return m.group(1) + "@%domain_name%"
-    raw, n = re.subn(r"(?<![\w@%])([\w.-]+)@(?!%domain_name%)[A-Za-z0-9.-]+\.[a-z]{2,}\b", email, raw)
+    # локальная часть необязательна: бывает голое «whitelist для @yourcompany.com»,
+    # а правило ниже про домен отсекает всё, перед чем стоит @
+    raw, n = re.subn(r"(?<![\w@%])([\w.-]*)@(?!%domain_name%)[A-Za-z0-9.-]+\.[a-z]{2,}\b", email, raw)
     if n:
         rows.append(("email", "@%domain_name%", "адрес-пример (%d)" % n))
     def domain(m):
