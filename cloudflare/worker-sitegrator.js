@@ -1,5 +1,15 @@
 /**
- * Cloudflare Worker для старого домена sitegrator.com
+ * Cloudflare Worker для отслуживших доменов редиректора.
+ *
+ * Один и тот же код ставится на каждый домен, с которого уже ушли: меняется
+ * только TARGET ниже. Код не знает, на каком домене он стоит, — хост берётся
+ * из самого запроса, поэтому править под конкретный домен больше нечего.
+ *
+ * ВАЖНО при следующей смене домена: TARGET у ВСЕХ воркеров переставляется на
+ * новый домен сразу. Если оставить старый воркер указывающим на предыдущий
+ * домен, переходы пойдут цепочкой через два-три редиректа, а метку _src
+ * перепишет последний воркер — и в статистике пропадёт, с какого домена
+ * пришёл клик.
  *
  * Переводит переходы по старым рефкам на новый домен, сохраняя слаг кампании
  * и все параметры: /go/dorgen_engine?s=x.team/ru -> тот же адрес на новом домене.
@@ -26,6 +36,10 @@
 // Проверка нарочно узкая. Ловить просто слово «yandex» нельзя: мобильное
 // приложение Яндекса у живого человека шлёт UA с YandexSearch — такой посетитель
 // остался бы на старом домене и потерялся бы из статистики нового.
+// Куда уводим. Единственное, что меняется при переезде на следующий домен,
+// и меняется одинаково во всех воркерах.
+const TARGET = 'sitegrator-red1.top';
+
 const SEARCH_BOTS = /(yandex\.com\/bots|yandex(bot|mobilebot|images|imageresizer|video|media|blogs|news|direct|directdyn|market|pagechecker|webmaster|metrika|calendar|sitelinks|adnet|favicons|renderresourcesbot|screenshotbot|turbo|verticals|accessibilitybot|ontodb|vertis)\b|googlebot|adsbot-google|mediapartners-google|apis-google|feedfetcher-google|storebot-google|googleother|google-inspectiontool|google-extended|google-read-aloud|google-site-verification|google-safety)/i;
 
 export default {
@@ -41,8 +55,12 @@ export default {
       return fetch(request);
     }
 
+    // на себя не редиректим: если воркер по недосмотру окажется на том же
+    // домене, что и TARGET, получилась бы бесконечная петля
+    if (url.hostname === TARGET) return fetch(request);
+
     const to = new URL(url);
-    to.hostname = 'sitegrator-red1.top';
+    to.hostname = TARGET;
     to.searchParams.set('_src', url.hostname);
     return Response.redirect(to.toString(), 302);
   },
