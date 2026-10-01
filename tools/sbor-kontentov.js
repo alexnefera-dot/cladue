@@ -10,9 +10,16 @@
 (async () => {
 
   const DOMAINS = `
-2573.team
-x7x3.team
-8788.team
+0796.team 1154.team 1441.team 1754.team 4250.team 5957.team 6650.team
+7606.team 7754.team 8726.team 9287.team 9944.team azjo.team f5v7.team
+kzbc.team l9l9.team qovi.team sbjy.team tnes.team udqe.team ugpr.team
+k7l4.team 0029.team 0077.team 0231.team 0378.team 0988.team 1529.team
+1895.team 2247.team 2278.team 2829.team 2867.team 3355.team 3968.team
+4342.team 4478.team 4658.team 4791.team 5401.team 5606.team 5776.team
+5980.team 6249.team 6327.team 6342.team 7041.team 7496.team 9368.team
+9674.team 9806.team h4u5.team hils.team ijlp.team jfsf.team kjzq.team
+l2z9.team qjbs.team rghe.team utwe.team xtve.team yheh.team v3v6.team
+w2b7.team wgwi.team wjfb.team yrlw.team zlhz.team 0550.team
 `;
 
   const PAUSE   = 400;    // пауза между доменами, мс
@@ -75,8 +82,16 @@ x7x3.team
 
   const tsv = results.map(r => r.join('\t')).join('\n');
   console.log('\n===== для вставки в таблицу (домен / контент / url) =====\n' + tsv + '\n');
-  try { await navigator.clipboard.writeText(tsv); log('скопировано в буфер'); }
-  catch (e) { log('в буфер не скопировалось — выдели вывод выше вручную'); }
+  // Буфер — не на критическом пути: из консоли браузер часто отказывает
+  // (вкладка не в фокусе), а с паузой на исключениях в DevTools ожидание
+  // такого отказа останавливает выполнение. Список всё равно выведен выше.
+  if (navigator.clipboard && document.hasFocus()) {
+    navigator.clipboard.writeText(tsv)
+      .then(() => log('скопировано в буфер'))
+      .catch(() => log('в буфер не легло — забери из вывода или: copy(__sbor.map(r=>r.join("\\t")).join("\\n"))'));
+  } else {
+    log('буфер недоступен (вкладка не в фокусе) — скопировать: copy(__sbor.map(r=>r.join("\\t")).join("\\n"))');
+  }
   log(`ГОТОВО. собрано: ${results.length - notFound - empty}, нет в списке: ${notFound}, без сайтов: ${empty}`);
   window.__sbor = results;
 })();
