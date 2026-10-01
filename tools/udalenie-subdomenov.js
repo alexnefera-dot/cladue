@@ -13,26 +13,16 @@
 (async () => {
 
   const DOMAINS = `
-8788.team d6e9.team 9530.team 1609.team gkyh.team z0e1.team zhjs.team
-9024.team 9132.team 5246.team 6957.team 4559.team 8958.team 9298.team
-enmu.team okev.team 7932.team 2573.team senu.team q6f1.team elmu.team
-2651.team v1a1.team 0769.team x4g1.team 8289.team 3061.team foal.team
-j2q5.team 3964.team 4020.team ocnk.team 2499.team wgjh.team fzie.team
-5605.team 0640.team 9773.team 7001.team 9724.team 1308.team x4m8.team
-t6h8.team krla.team 6108.team n3y6.team 3424.team o3d3.team 8189.team
-5383.team e1g4.team 0810.team 8882.team agvl.team 2065.team bitr.team
-5833.team bxul.team oxkn.team h2s2.team 7638.team 1260.team zrwd.team
-m4f6.team 3102.team 3071.team 0361.team vxoq.team 6381.team e4g4.team
-kcoi.team dtkx.team 0756.team jazg.team xvtj.team b8s6.team 9009.team
-bvrl.team 0146.team 9399.team nvcl.team q9o7.team rjsi.team jlrl.team
-2683.team 7618.team 0517.team 5221.team akwh.team 7380.team mrwy.team
-cyrq.team bxgr.team cdfb.team u0x1.team 7094.team pypp.team 9201.team
-r6n.team 8403.team xhza.team 5028.team 9164.team 6966.team v1l0.team
-d5e.team c0o.team airk.team j9o.team e7p3.team jmeb.team 9069.team
-6467.team w4k.team 9446.team 9687.team 8089.team s7e.team 8785.team
-kcvt.team 7462.team 6581.team 4934.team y1k.team zwpw.team 6000.team
-b8w.team 8215.team z5m.team 4974.team m1y.team 6648.team hzyb.team
-8650.team davv.team
+0796.team 1154.team 1441.team 1754.team 4250.team 5957.team 6650.team
+7606.team 7754.team 8726.team 9287.team 9944.team azjo.team f5v7.team
+kzbc.team l9l9.team qovi.team sbjy.team tnes.team udqe.team ugpr.team
+k7l4.team 0029.team 0077.team 0231.team 0378.team 0988.team 1529.team
+1895.team 2247.team 2278.team 2829.team 2867.team 3355.team 3968.team
+4342.team 4478.team 4658.team 4791.team 5401.team 5606.team 5776.team
+5980.team 6249.team 6327.team 6342.team 7041.team 7496.team 9368.team
+9674.team 9806.team h4u5.team hils.team ijlp.team jfsf.team kjzq.team
+l2z9.team qjbs.team rghe.team utwe.team xtve.team yheh.team v3v6.team
+w2b7.team wgwi.team wjfb.team yrlw.team zlhz.team 0550.team
 `;
 
   const DRY     = true;    // <-- false, когда проверишь вывод
