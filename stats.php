@@ -105,6 +105,26 @@ if (($_GET['export'] ?? '') !== '' && $_SERVER['REQUEST_METHOD'] === 'GET') {
         foreach ($rows as $r) {
             fputcsv($out, [$r['slug'], $r['name'], $base . $r['slug']]);
         }
+    } elseif ($exp === 'offers') {
+        // Слаг -> прямая ссылка оффера. Нужно, когда рефка в дор-движке меняется
+        // на прямую: там сейчас стоит /go/СЛАГ, и по слагу надо подставить
+        // актуальный адрес. Берётся из базы, а не из памяти — в этом весь смысл.
+        // У кампании с ротацией офферов прямая ссылка может быть только одна,
+        // поэтому отдаём и самый весомый вариант, и весь список: подменять
+        // ротацию молча нельзя, человек должен видеть, что он теряет.
+        fputcsv($out, ['slug', 'name', 'offer_url', 'offers_count', 'all_offers']);
+        $rows = db()->query('SELECT slug, name, offer_url FROM campaigns ORDER BY slug')
+                    ->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($rows as $r) {
+            $list = parse_offer_urls((string)$r['offer_url']);
+            if (!$list) { fputcsv($out, [$r['slug'], $r['name'], '', 0, '']); continue; }
+            $top = $list[0];
+            foreach ($list as $o) if ((int)$o[1] > (int)$top[1]) $top = $o;
+            fputcsv($out, [
+                $r['slug'], $r['name'], $top[0], count($list),
+                implode(' | ', array_map(fn($o) => $o[0] . ' (вес ' . $o[1] . ')', $list)),
+            ]);
+        }
     } elseif ($exp === 'daily') {
         fputcsv($out, ['date', 'clicks', 'unique', 'bots', 'regs', 'deps']);
         foreach (daily_stats(30) as $r) fputcsv($out, [$r['d'], $r['humans'], $r['uniques'], $r['bots'], $r['regs'], $r['deps'] ?? 0]);
@@ -1329,6 +1349,13 @@ $msg = $_GET['msg'] ?? '';
     <p style="margin-top:10px">
       <a href="stats.php?tab=settings&export=reflinks"><b>⬇ Выгрузить все рефки (CSV)</b></a>
       — список <code>слаг → ссылка</code> на текущем домене, для передачи в дор-движок.
+    </p>
+    <p>
+      <a href="stats.php?tab=settings&export=offers"><b>⬇ Выгрузить офферы (CSV)</b></a>
+      — список <code>слаг → прямая ссылка оффера</code>. Нужен, когда в брендах
+      ставится прямая рефка вместо нашей: статистика кликов по таким сайтам
+      пропадёт, а у кампаний с ротацией останется только один оффер — в выгрузке
+      видно, у каких их несколько.
     </p>
 
     <?php $hosts = hosts_breakdown(time() - 7 * 86400); ?>
