@@ -87,6 +87,30 @@ export default {
     const url     = new URL(request.url);
     const clickid = makeClickId();
 
+    // Откуда пришёл человек. Воркер стоит в двух разных местах, и источник
+    // в них берётся по-разному:
+    //   на домене дора      — источник это сам хост и путь запроса;
+    //   на домене трекера   — хост всегда наш, а настоящий сайт лежит в ?s=
+    //                         (его дописывает движок дора), кампания — в /go/СЛАГ.
+    // Без этого разбора все клики с трекера записались бы под одним хостом и
+    // одним слагом, и статистика по сайтам и кампаниям пропала бы.
+    let srcRaw = '';
+    for (const k of ['site', 's', 'src', 'source', 'sub', 'subid', 'utm_source']) {
+      const v = url.searchParams.get(k);
+      if (v) { srcRaw = v; break; }
+    }
+    srcRaw = srcRaw.replace(/^https?:\/\//i, '');
+
+    let srcHost = srcRaw, srcPath = '';
+    const slash = srcRaw.indexOf('/');
+    if (slash >= 0) { srcPath = srcRaw.slice(slash); srcHost = srcRaw.slice(0, slash); }
+    if (!srcHost) { srcHost = url.hostname; srcPath = url.pathname; }
+
+    const lp   = url.searchParams.get('lp') || srcPath;
+    const go   = url.pathname.match(/^\/go\/([^\/?#]+)/);
+    const slug = go ? decodeURIComponent(go[1])
+                    : String((env && env.CAMPAIGN) || CAMPAIGN_FALLBACK);
+
     // ---- адрес оффера ----
     let target = String((env && env.TARGET_URL) || TARGET_URL_FALLBACK).trim();
     let dest;
@@ -102,15 +126,17 @@ export default {
     if (collect && ctx && ctx.waitUntil) {
       const body = new URLSearchParams({
         t:   String((env && env.COLLECT_TOKEN) || ''),
-        l:   String((env && env.CAMPAIGN) || CAMPAIGN_FALLBACK),
-        s:   url.hostname,                     // сабдомен дора — источник
-        lp:  url.pathname,                     // страница, с которой ушли
+        l:   slug,                             // кампания: из /go/СЛАГ или из CAMPAIGN
+        s:   srcHost,                          // сабдомен дора — источник
+        lp,                                    // страница, с которой ушли
         cid: clickid,
         ua,
         ref: request.headers.get('referer') || '',
         ip:  request.headers.get('cf-connecting-ip') || '',
         c:   request.headers.get('cf-ipcountry') || '',
-        h:   url.hostname,                     // домен, на который пришёл клик
+        // домен, на который пришёл клик. _src ставит воркер на отслужившем
+        // домене — тогда настоящий домен входа лежит в нём, а не в хосте
+        h:   url.searchParams.get('_src') || url.hostname,
       });
       ctx.waitUntil(
         fetch(collect, {
