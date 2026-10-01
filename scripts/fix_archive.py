@@ -10,6 +10,7 @@
   «В {NAME}») подставляется %brand_name_ru%.
 - {AMOUNT} -> сумма в рублях из текста раздела, иначе типовая.
 - {YYYYMMDD} -> %date%. Примерные адреса вида user@example.com -> user@%domain_name%.
+  Два плейсхолдера бренда подряд схлопываются в один.
   Голый домен после собаки («whitelist для @yourcompany.com») — тоже.
 - {PROTOCOL}, {SERVER}, {PORT}, {DOMAIN}, {HOST}, {URL}, {ID}, {IP} -> техническое значение.
 - Мусор после чистки: склейки <strongслово>, теги meter/font/center, битые <h2:, остатки [[ ]] и {a|b}.
@@ -32,7 +33,8 @@ from collections import Counter
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from check_archive import (ALLOWED_TAGS, CYR_WHITELIST, GENERIC_DOMAINS,  # noqa: E402
-                           LATIN_WHITELIST, VOID_TAGS, brand_candidates)
+                           LATIN_WHITELIST, VOID_TAGS, brand_candidates,
+                           вырезать_карточки)
 
 NAMES = ("Олег Пётр Петр Дмитрий Марат Георгий Юрий Эдуард Евгений Роман Михаил Валерий Фёдор Федор Иван "
          "Андрей Сергей Алексей Николай Павел Максим Артём Артем Кирилл Виктор Илья Денис Антон Станислав "
@@ -90,20 +92,68 @@ def fill_vars(raw, page, seed):
 ХВОСТ_БРЕНДА = re.compile(r'(%brand_name_(?:ru|en)%)\s+([A-Z][A-Za-z]{2,}|[А-ЯЁ][А-Яа-яЁё]{2,})\b')
 
 
-def fix_brand_tail(raw):
-    """Второе слово чужого бренда: «%brand_name_ru% World», «%brand_name_ru% Бир»."""
+def site_khvost(исходные):
+    """Второе слово чужого бренда, оставшееся словом: «%brand_name_ru% Икс», «… Prestige».
+
+    Генератор пишет первое слово названия плейсхолдером, второе оставляет как есть.
+    Берём слово только тогда, когда в текстах сайта оно нигде не стоит само — тот же
+    предохранитель, что у зачина. Иначе под нож идут обычные слова из фразы-двойника:
+    «%brand_name_ru% Фактология Blitz Red» — здесь имя это «Blitz Red», а «Фактология»
+    просто слово. Имена слотов не считаются: «Cats Royal» — слот, а не бренд.
+    """
+    текст = " ".join(исходные)
+    хвосты = Counter(ХВОСТ_БРЕНДА.findall(текст))
+    if not хвосты:
+        return set()
+    # имена слотов вычитаем целиком: карточка снимает заголовок «<h3>Royal Golden
+    # Dragon</h3>», но строка «Играйте в Royal Golden Dragon от Swintt» остаётся,
+    # и слово из имени слота проходило бы за самостоятельное
+    без_карточек, имена = вырезать_карточки(текст)
+    for имя in set(имена):
+        без_карточек = без_карточек.replace(имя, " ")
+    вышло = set()
+    for (_, слово), n in хвосты.items():
+        if n < 5:
+            continue
+        свой = LATIN_WHITELIST if слово[0] < "А" else CYR_WHITELIST
+        if слово.lower() in свой:
+            continue
+        один = r"(?<![\w%%])%s(?![\w])" % re.escape(слово)
+        if len(re.findall(один, без_карточек)) == n:
+            вышло.add(слово)
+    return вышло
+
+
+def fix_brand_tail(raw, хвосты):
+    """Снять хвосты названия, отобранные по сайту в site_khvost."""
     счёт = [0]
 
     def снять(m):
-        слово = m.group(2)
-        свой = LATIN_WHITELIST if слово[0] < "А" else CYR_WHITELIST
-        if слово.lower() in свой:
+        if m.group(2) not in хвосты:
             return m.group(0)
         счёт[0] += 1
         return m.group(1)
 
     raw = ХВОСТ_БРЕНДА.sub(снять, raw)
     return raw, ([("хвост бренда", "снят", "%d" % счёт[0])] if счёт[0] else [])
+
+
+ДВА_ПЛЕЙСХОЛДЕРА = re.compile(r"(%brand_name_(?:ru|en)%)\s+%brand_name_(?:ru|en)%")
+
+
+def fix_double_brand(raw):
+    """Два плейсхолдера подряд — остаток от замены слова, стоявшего сразу за первым.
+
+    «%brand_name_ru% Prestige» превращается в «%brand_name_ru% %brand_name_en%»:
+    название целиком, а выглядит как сказанное дважды. Оставляем первый.
+    """
+    всего = 0
+    while True:
+        raw, n = ДВА_ПЛЕЙСХОЛДЕРА.subn(r"\1", raw)
+        всего += n
+        if not n:
+            break
+    return raw, ([("два плейсхолдера", "схлопнуты", "%d" % всего)] if всего else [])
 
 
 def fix_brand(raw, brand):
@@ -183,9 +233,14 @@ def site_brands(files):
     Ищем в два захода: второе написание названия видно только после того, как
     первое ушло в плейсхолдер. На сайте с «Лаки Бир» латинское «Lucky Bear»
     до замены не набирает порога, а после — набирает.
+
+    Хвост названия снимается до детекции: генератор пишет «%brand_name_ru% Икс»,
+    и само «Икс» стоит в брендовом контексте, поэтому проходит за отдельный бренд
+    и на его месте встаёт второй плейсхолдер («%brand_name_ru% %brand_name_ru%»).
     """
     исходные = [open(p, encoding="utf-8").read() for p in files]
-    raws = list(исходные)
+    хвосты = site_khvost(исходные)
+    raws = [fix_brand_tail(raw, хвосты)[0] for raw in исходные]
     найдено = []
     for _ in range(2):
         новые = [name for name, c, pg in brand_candidates(raws) if name not in найдено][:2]
@@ -194,7 +249,7 @@ def site_brands(files):
         найдено += новые
         for brand in новые:
             raws = [fix_brand(raw, brand)[0] for raw in raws]
-    return найдено, (site_zachin(исходные, raws, найдено) if найдено else None)
+    return найдено, (site_zachin(исходные, raws, найдено) if найдено else None), хвосты
 
 
 # Имена, которые вообще бывают в HTML. Всё остальное в угловых скобках — не тег, а текст
@@ -336,8 +391,9 @@ def main():
             continue
         brands = list(args.brand)
         зачин = None
+        хвосты = set()
         if args.auto_brand:
-            auto, зачин = site_brands(files)
+            auto, зачин, хвосты = site_brands(files)
             if auto:
                 found[os.path.relpath(dp, args.path)] = auto + ([зачин + " …"] if зачин else [])
             brands += auto
@@ -358,11 +414,13 @@ def main():
                 raw, brows = fix_brand(raw, brand)
                 for bname, how, n in brows:
                     rows.append(how)
-            raw, trows = fix_brand_tail(raw)
+            raw, trows = fix_brand_tail(raw, хвосты)
             rows += trows
             if зачин:
                 raw, hrows = fix_brand_head(raw, зачин)
                 rows += hrows
+            raw, drows = fix_double_brand(raw)
+            rows += drows
             if raw != orig:
                 open(p, "w", encoding="utf-8").write(raw)
                 total += len(rows)
