@@ -61,8 +61,17 @@
   window.__ocheredi = { items: items.map(({ form, ...rest }) => rest), domains };
   console.log('\n===== домены (для списка в другие скрипты) =====\n' + domains.join('\n') + '\n');
   console.log('===== подробно (домен / аккаунт / id) =====\n' + tsv + '\n');
-  try { await navigator.clipboard.writeText(domains.join('\n')); log('домены скопированы в буфер'); }
-  catch (e) { log('в буфер не легло — выдели список выше вручную'); }
+
+  // Буфер обмена — не на критическом пути. Из консоли браузер часто отказывает
+  // (вкладка не в фокусе), и если этого дождаться, отмены просто не начнутся.
+  // Поэтому не ждём и гасим отказ на месте; список всё равно выведен выше.
+  if (navigator.clipboard && document.hasFocus()) {
+    navigator.clipboard.writeText(domains.join('\n'))
+      .then(() => log('домены скопированы в буфер'))
+      .catch(() => log('в буфер не легло — скопируй из вывода выше или командой: copy(__ocheredi.domains.join("\\n"))'));
+  } else {
+    log('буфер недоступен (вкладка не в фокусе) — скопировать можно командой: copy(__ocheredi.domains.join("\\n"))');
+  }
   log(`строк: ${items.length}, уникальных доменов: ${domains.length}`);
 
   if (DRY) {
@@ -81,7 +90,13 @@
         credentials: 'same-origin',
       });
       if (res.ok) { done++; log(`${nom} — отменено`); }
-      else        { failed++; log(`${nom} — ошибка HTTP ${res.status}`); }
+      else {
+        failed++;
+        // первый отказ разбираем подробно: по коду и началу ответа сразу видно,
+        // что именно не так — права, токен или форма
+        const body = await res.text().catch(() => '');
+        log(`${nom} — ошибка HTTP ${res.status}`, failed === 1 ? body.slice(0, 300) : '');
+      }
     } catch (e) { failed++; log(`${nom} — сбой: ${e.message}`); }
     await new Promise(r => setTimeout(r, PAUSE));
   }
@@ -94,5 +109,5 @@
   } catch (e) { /* не критично */ }
 
   log(`ГОТОВО. отменено: ${done}, ошибок: ${failed}, осталось ожидающих: ${left}`);
-  log('домены лежат в буфере и в window.__ocheredi.domains');
+  log("домены — в window.__ocheredi.domains, скопировать: copy(__ocheredi.domains.join(\"\\n\"))");
 })();
