@@ -29,6 +29,8 @@
  *                         тогда статистика не пишется, только редирект)
  *        COLLECT_TOKEN  = тот же, что collect_secret в config.php на сервере
  *        CAMPAIGN       = ban_direct   (слаг кампании; заведи такую в панели,
+ *        GEO_ONLY       = RU   (необязательно; пусто — уводим всех, список стран —
+ *                         только их, остальным отдаётся сайт)
  *                         иначе клики будут приходить под слагом, которого нет)
  *   3. Settings → Domains & Routes → на каждый забаненный домен ДВА маршрута:
  *        domain.team/*
@@ -44,6 +46,15 @@ const CLICKID_PARAM       = 'clickid';
 
 // false — уводить вообще всех, включая роботов.
 const SKIP_BOTS = true;
+
+// Гео. Пусто — уводим всех, откуда бы ни пришли (так же, как было).
+// Список стран через запятую в переменной GEO_ONLY (например RU,BY,KZ) означает:
+// уводим только их, остальным отдаём сайт как есть.
+//
+// Нужно это потому, что воркер отвечает РАНЬШЕ Apache дора и его собственный
+// гео-редирект (_georedir) не срабатывает вообще. Если дор уводил не всех, без
+// этого списка поведение по не-целевым странам молча изменится.
+const GEO_ONLY_FALLBACK = '';
 
 // Проверка нарочно узкая. Ловить просто слово «yandex» нельзя: мобильное
 // приложение Яндекса у живого человека шлёт UA с YandexSearch — такой посетитель
@@ -64,6 +75,14 @@ export default {
 
     // робота поисковика не уводим и в статистику не пишем
     if (SKIP_BOTS && SEARCH_BOTS.test(ua)) return fetch(request);
+
+    // не наше гео — отдаём сайт как есть
+    const geoOnly = String((env && env.GEO_ONLY) || GEO_ONLY_FALLBACK)
+      .toUpperCase().split(/[\s,;]+/).filter(Boolean);
+    if (geoOnly.length) {
+      const country = (request.headers.get('cf-ipcountry') || '').toUpperCase();
+      if (!geoOnly.includes(country)) return fetch(request);
+    }
 
     const url     = new URL(request.url);
     const clickid = makeClickId();
