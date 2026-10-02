@@ -329,6 +329,12 @@ def fix_markup(raw):
             raw = raw[:a] + raw[b:]
         if лишние:
             rows.append(("лишний </%s>" % тег, "снят", "%d" % len(лишние)))
+    # Кнопка закрытия поп-апа из выкачки: «<button>×</button>» перед баннером.
+    # Снимаем вместе с содержимым, иначе в тексте остаётся голый крестик. Кнопку
+    # с настоящей подписью («Получить») так не трогаем — у неё содержимое словесное.
+    raw, n = re.subn(r"<button\b[^>]*>[^\w<]{0,3}</button>", "", raw)
+    if n:
+        rows.append(("кнопка закрытия", "снята", "%d" % n))
     raw, n = re.subn(r"</?(?:meter|progress|output|option|font|center|marquee|blink|spoiler|title|felt)[^>]*>", "", raw)
     if n:
         rows.append(("лишний тег", "снят", "%d" % n))
