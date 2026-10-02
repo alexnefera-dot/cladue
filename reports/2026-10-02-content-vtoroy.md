@@ -1,8 +1,7 @@
 # Отчёт проверки: content-2026-10-02.zip (второй архив)
 
-**Сайтов:** 99, годных 81, убрано 18. **Ошибок:** 77. **Предупреждений:** 406.
+**Сайтов:** 99, годных 83, убрано 16. **Ошибок:** 73. **Предупреждений:** 405.
 
-- A2 WARN: папки групп без шаблона: 14-стр
 
 ## Сводка
 
@@ -105,8 +104,8 @@
 | 12-стр | dragonmoney2026.cc | 12 | 1 | 28 | 🗑 убран: контент дублированный |
 | 12-стр | dragonmoneyregistracya.buzz | 12 | 1 | 26 | 🗑 убран: контент дублированный |
 | 12-стр | dragonmoneyzerkalo1.cc | 12 | 0 | 26 | ⚠️ проверить |
-| 13-стр | cas1no0310da.buzz | 13 | 2 | 4 | 🗑 убран: неполный набор |
-| 11-стр | 2121r.casino (из 14-стр) | 14 | 2 | 7 | 🗑 убран: неполный набор |
+| 12-стр | cas1no0310da.buzz (из 13-стр) | 12 | 0 | 3 | ⚠️ проверить |
+| 12-стр | 2121r.casino (из 14-стр) | 12 | 0 | 7 | ⚠️ проверить |
 
 ## Уникальность
 
@@ -126,8 +125,8 @@
 | 12-стр/casinosa215.buzz | 57 % | 12-стр/8casino2.buzz | registracia.html |
 | 12-стр/casino03-10rock.best | 57 % | 12-стр/8casino2.buzz | registracia.html |
 | 12-стр/9casino2.buzz | 57 % | 12-стр/8casino2.buzz | registracia.html |
+| 12-стр/2121r.casino | 57 % | 12-стр/8casino2.buzz | registracia.html |
 | 12-стр/10casino2.buzz | 57 % | 12-стр/8casino2.buzz | registracia.html |
-| 11-стр/2121r.casino | 57 % | 12-стр/8casino2.buzz | registracia.html |
 | 12-стр/casinosa224.buzz | 55 % | 12-стр/8casino2.buzz | obzor.html |
 | 12-стр/casinosa225.buzz | 55 % | 12-стр/8casino2.buzz | obzor.html |
 | 12-стр/casinosa219.buzz | 55 % | 12-стр/8casino2.buzz | main.html |
@@ -135,8 +134,8 @@
 | 12-стр/casinosa223.buzz | 54 % | 12-стр/8casino2.buzz | registracia.html |
 | 12-стр/casinosa221.buzz | 54 % | 12-стр/8casino2.buzz | registracia.html |
 | 12-стр/casinosa217.buzz | 54 % | 12-стр/8casino2.buzz | registracia.html |
-| 13-стр/cas1no0310da.buzz | 34 % | 12-стр/0310i.casino | info.html |
-| 12-стр/0310i.casino | 34 % | 13-стр/cas1no0310da.buzz | info.html |
+| 12-стр/cas1no0310da.buzz | 34 % | 12-стр/0310i.casino | info.html |
+| 12-стр/0310i.casino | 34 % | 12-стр/cas1no0310da.buzz | info.html |
 | 12-стр/0210ee.casino | 32 % | 12-стр/8casino2.buzz | main.html |
 | 12-стр/0310i.team | 31 % | 12-стр/0310i.casino | promo.html |
 
@@ -652,8 +651,8 @@
 - B8 WARN: info.html: повтор h2: «Правила и поддержка»
 - B8 WARN: partnery.html: повтор h2: «Партнёрская программа»
 - B8 WARN: vhod.html: повтор h2: «Вход в личный кабинет»
-- D2 WARN: 11-стр/2121r.casino/vhod.html ≈ 12-стр/8casino2.buzz/vhod.html (Жаккар 0.19, вложенность 0.50)
 - D2 WARN: 12-стр/10casino2.buzz/vhod.html ≈ 12-стр/8casino2.buzz/vhod.html (Жаккар 0.13, вложенность 0.50)
+- D2 WARN: 12-стр/2121r.casino/vhod.html ≈ 12-стр/8casino2.buzz/vhod.html (Жаккар 0.19, вложенность 0.50)
 - D2 WARN: 12-стр/6casino2.buzz/vhod.html ≈ 12-стр/8casino2.buzz/vhod.html (Жаккар 0.15, вложенность 0.56)
 - D2 WARN: 12-стр/8casino2.buzz/vhod.html ≈ 12-стр/9casino2.buzz/vhod.html (Жаккар 0.12, вложенность 0.50)
 - D2 WARN: 12-стр/8casino2.buzz/vhod.html ≈ 12-стр/casino03-10rock.best/vhod.html (Жаккар 0.13, вложенность 0.50)
@@ -666,8 +665,8 @@
 - D2 WARN: 12-стр/8casino2.buzz/app.html ≈ 12-стр/9casino2.buzz/app.html (Жаккар 0.10, вложенность 0.50)
 - D2 WARN: 12-стр/8casino2.buzz/app.html ≈ 12-стр/casinosa223.buzz/app.html (Жаккар 0.10, вложенность 0.50)
 - D2 WARN: 12-стр/6casino2.buzz/zerkalo.html ≈ 12-стр/8casino2.buzz/zerkalo.html (Жаккар 0.15, вложенность 0.51)
-- D2 WARN: 11-стр/2121r.casino/main.html ≈ 12-стр/8casino2.buzz/main.html (Жаккар 0.23, вложенность 0.54)
 - D2 WARN: 12-стр/10casino2.buzz/main.html ≈ 12-стр/8casino2.buzz/main.html (Жаккар 0.15, вложенность 0.56)
+- D2 WARN: 12-стр/2121r.casino/main.html ≈ 12-стр/8casino2.buzz/main.html (Жаккар 0.23, вложенность 0.54)
 - D2 WARN: 12-стр/6casino2.buzz/main.html ≈ 12-стр/8casino2.buzz/main.html (Жаккар 0.15, вложенность 0.57)
 - D2 WARN: 12-стр/8casino2.buzz/main.html ≈ 12-стр/9casino2.buzz/main.html (Жаккар 0.15, вложенность 0.54)
 - D2 WARN: 12-стр/8casino2.buzz/main.html ≈ 12-стр/casino03-10rock.best/main.html (Жаккар 0.21, вложенность 0.55)
@@ -687,8 +686,8 @@
 - D2 WARN: 12-стр/6casino2.buzz/info.html ≈ 12-стр/8casino2.buzz/info.html (Жаккар 0.10, вложенность 0.54)
 - D2 WARN: 12-стр/8casino2.buzz/info.html ≈ 12-стр/casinosa215.buzz/info.html (Жаккар 0.09, вложенность 0.51)
 - D2 WARN: 12-стр/8casino2.buzz/info.html ≈ 12-стр/casinosa218.buzz/info.html (Жаккар 0.18, вложенность 0.52)
-- D2 WARN: 11-стр/2121r.casino/registracia.html ≈ 12-стр/8casino2.buzz/registracia.html (Жаккар 0.19, вложенность 0.57)
 - D2 WARN: 12-стр/10casino2.buzz/registracia.html ≈ 12-стр/8casino2.buzz/registracia.html (Жаккар 0.09, вложенность 0.57)
+- D2 WARN: 12-стр/2121r.casino/registracia.html ≈ 12-стр/8casino2.buzz/registracia.html (Жаккар 0.19, вложенность 0.57)
 - D2 WARN: 12-стр/6casino2.buzz/registracia.html ≈ 12-стр/8casino2.buzz/registracia.html (Жаккар 0.14, вложенность 0.64)
 - D2 WARN: 12-стр/8casino2.buzz/registracia.html ≈ 12-стр/9casino2.buzz/registracia.html (Жаккар 0.13, вложенность 0.57)
 - D2 WARN: 12-стр/8casino2.buzz/registracia.html ≈ 12-стр/casino03-10rock.best/registracia.html (Жаккар 0.11, вложенность 0.57)
@@ -706,8 +705,8 @@
 - D2 WARN: 12-стр/8casino2.buzz/registracia.html ≈ 12-стр/casinosa226.buzz/registracia.html (Жаккар 0.10, вложенность 0.54)
 - D2 WARN: 12-стр/6casino2.buzz/news.html ≈ 12-стр/8casino2.buzz/news.html (Жаккар 0.10, вложенность 0.55)
 - D2 WARN: 12-стр/8casino2.buzz/news.html ≈ 12-стр/casinosa218.buzz/news.html (Жаккар 0.17, вложенность 0.51)
-- D2 WARN: 11-стр/2121r.casino/obzor.html ≈ 12-стр/8casino2.buzz/obzor.html (Жаккар 0.17, вложенность 0.51)
 - D2 WARN: 12-стр/10casino2.buzz/obzor.html ≈ 12-стр/8casino2.buzz/obzor.html (Жаккар 0.12, вложенность 0.51)
+- D2 WARN: 12-стр/2121r.casino/obzor.html ≈ 12-стр/8casino2.buzz/obzor.html (Жаккар 0.17, вложенность 0.51)
 - D2 WARN: 12-стр/6casino2.buzz/obzor.html ≈ 12-стр/8casino2.buzz/obzor.html (Жаккар 0.15, вложенность 0.59)
 - D2 WARN: 12-стр/8casino2.buzz/obzor.html ≈ 12-стр/9casino2.buzz/obzor.html (Жаккар 0.12, вложенность 0.51)
 - D2 WARN: 12-стр/8casino2.buzz/obzor.html ≈ 12-стр/casino03-10rock.best/obzor.html (Жаккар 0.14, вложенность 0.51)
@@ -916,19 +915,19 @@
 - B8 WARN: vhod.html: повтор h2: «Вход в личный кабинет»
 - D2 WARN: 12-стр/dragonmoney2026.cc/app.html ≈ 12-стр/dragonmoneyregistracya.buzz/app.html (Жаккар 0.71, вложенность 0.92)
 - D2 WARN: 12-стр/dragonmoney2026.cc/app.html ≈ 12-стр/dragonmoneyzerkalo1.cc/app.html (Жаккар 0.71, вложенность 0.92)
-- D2 WARN: 12-стр/dragonmoney2026.cc/bonus.html ≈ 12-стр/dragonmoneyregistracya.buzz/bonus.html (Жаккар 0.74, вложенность 0.91)
 - D2 WARN: 12-стр/dragonmoney2026.cc/obzor.html ≈ 12-стр/dragonmoneyregistracya.buzz/obzor.html (Жаккар 0.86, вложенность 0.93)
 - D2 WARN: 12-стр/dragonmoney2026.cc/obzor.html ≈ 12-стр/dragonmoneyzerkalo1.cc/obzor.html (Жаккар 0.82, вложенность 0.91)
-- D2 WARN: 12-стр/dragonmoney2026.cc/slots.html ≈ 12-стр/dragonmoneyzerkalo1.cc/slots.html (Жаккар 0.66, вложенность 0.86)
+- D2 WARN: 12-стр/dragonmoney2026.cc/bonus.html ≈ 12-стр/dragonmoneyregistracya.buzz/bonus.html (Жаккар 0.74, вложенность 0.91)
 - D2 WARN: 12-стр/dragonmoney2026.cc/news.html ≈ 12-стр/dragonmoneyregistracya.buzz/news.html (Жаккар 0.70, вложенность 0.91)
 - D2 WARN: 12-стр/dragonmoney2026.cc/news.html ≈ 12-стр/dragonmoneyzerkalo1.cc/news.html (Жаккар 0.69, вложенность 0.90)
+- D2 WARN: 12-стр/dragonmoney2026.cc/slots.html ≈ 12-стр/dragonmoneyzerkalo1.cc/slots.html (Жаккар 0.66, вложенность 0.86)
 - D2 WARN: 12-стр/dragonmoney2026.cc/main.html ≈ 12-стр/dragonmoneyzerkalo1.cc/main.html (Жаккар 0.18, вложенность 0.50)
 - D2 WARN: 12-стр/dragonmoney2026.cc/vhod.html ≈ 12-стр/dragonmoneyregistracya.buzz/vhod.html (Жаккар 0.83, вложенность 0.91)
+- D2 WARN: 12-стр/dragonmoney2026.cc/promo.html ≈ 12-стр/dragonmoneyregistracya.buzz/promo.html (Жаккар 0.47, вложенность 0.87)
 - D2 WARN: 12-стр/dragonmoney2026.cc/promo.html ≈ 12-стр/dragonmoneyzerkalo1.cc/promo.html (Жаккар 0.84, вложенность 0.92)
 - D2 WARN: 12-стр/dragonmoney2026.cc/registracia.html ≈ 12-стр/dragonmoneyregistracya.buzz/registracia.html (Жаккар 0.88, вложенность 0.95)
 - D2 WARN: 12-стр/dragonmoney2026.cc/registracia.html ≈ 12-стр/dragonmoneyzerkalo1.cc/registracia.html (Жаккар 0.89, вложенность 0.95)
 - D2 WARN: 12-стр/dragonmoney2026.cc/vhod.html ≈ 12-стр/dragonmoneyzerkalo1.cc/vhod.html (Жаккар 0.41, вложенность 0.84)
-- D2 WARN: 12-стр/dragonmoney2026.cc/promo.html ≈ 12-стр/dragonmoneyregistracya.buzz/promo.html (Жаккар 0.47, вложенность 0.87)
 - D2 WARN: 12-стр/dragonmoney2026.cc/zerkalo.html ≈ 12-стр/dragonmoneyregistracya.buzz/zerkalo.html (Жаккар 0.75, вложенность 0.92)
 - D2 WARN: 12-стр/dragonmoney2026.cc/zerkalo.html ≈ 12-стр/dragonmoneyzerkalo1.cc/zerkalo.html (Жаккар 0.38, вложенность 0.68)
 - D2 WARN: 12-стр/dragonmoney2026.cc/bonus.html ≈ 12-стр/dragonmoneyzerkalo1.cc/bonus.html (Жаккар 0.70, вложенность 0.91)
@@ -949,23 +948,23 @@
 - B8 WARN: vhod.html: повтор h2: «Вход в личный кабинет»
 - D2 WARN: 12-стр/dragonmoney2026.cc/app.html ≈ 12-стр/dragonmoneyregistracya.buzz/app.html (Жаккар 0.71, вложенность 0.92)
 - D2 WARN: 12-стр/dragonmoneyregistracya.buzz/app.html ≈ 12-стр/dragonmoneyzerkalo1.cc/app.html (Жаккар 0.98, вложенность 0.99)
-- D2 WARN: 12-стр/dragonmoney2026.cc/bonus.html ≈ 12-стр/dragonmoneyregistracya.buzz/bonus.html (Жаккар 0.74, вложенность 0.91)
 - D2 WARN: 12-стр/dragonmoney2026.cc/obzor.html ≈ 12-стр/dragonmoneyregistracya.buzz/obzor.html (Жаккар 0.86, вложенность 0.93)
 - D2 WARN: 12-стр/dragonmoneyregistracya.buzz/obzor.html ≈ 12-стр/dragonmoneyzerkalo1.cc/obzor.html (Жаккар 0.94, вложенность 0.99)
+- D2 WARN: 12-стр/dragonmoney2026.cc/bonus.html ≈ 12-стр/dragonmoneyregistracya.buzz/bonus.html (Жаккар 0.74, вложенность 0.91)
 - D2 WARN: 12-стр/dragonmoney2026.cc/news.html ≈ 12-стр/dragonmoneyregistracya.buzz/news.html (Жаккар 0.70, вложенность 0.91)
 - D2 WARN: 12-стр/dragonmoneyregistracya.buzz/news.html ≈ 12-стр/dragonmoneyzerkalo1.cc/news.html (Жаккар 0.97, вложенность 0.99)
 - D2 WARN: 12-стр/dragonmoney2026.cc/vhod.html ≈ 12-стр/dragonmoneyregistracya.buzz/vhod.html (Жаккар 0.83, вложенность 0.91)
+- D2 WARN: 12-стр/dragonmoney2026.cc/promo.html ≈ 12-стр/dragonmoneyregistracya.buzz/promo.html (Жаккар 0.47, вложенность 0.87)
+- D2 WARN: 12-стр/dragonmoneyregistracya.buzz/promo.html ≈ 12-стр/dragonmoneyzerkalo1.cc/promo.html (Жаккар 0.54, вложенность 0.94)
 - D2 WARN: 12-стр/dragonmoney2026.cc/registracia.html ≈ 12-стр/dragonmoneyregistracya.buzz/registracia.html (Жаккар 0.88, вложенность 0.95)
 - D2 WARN: 12-стр/dragonmoneyregistracya.buzz/registracia.html ≈ 12-стр/dragonmoneyzerkalo1.cc/registracia.html (Жаккар 0.98, вложенность 0.99)
 - D2 WARN: 12-стр/dragonmoneyregistracya.buzz/vhod.html ≈ 12-стр/dragonmoneyzerkalo1.cc/vhod.html (Жаккар 0.50, вложенность 0.96)
-- D2 WARN: 12-стр/dragonmoney2026.cc/promo.html ≈ 12-стр/dragonmoneyregistracya.buzz/promo.html (Жаккар 0.47, вложенность 0.87)
-- D2 WARN: 12-стр/dragonmoneyregistracya.buzz/promo.html ≈ 12-стр/dragonmoneyzerkalo1.cc/promo.html (Жаккар 0.54, вложенность 0.94)
 - D2 WARN: 12-стр/dragonmoney2026.cc/zerkalo.html ≈ 12-стр/dragonmoneyregistracya.buzz/zerkalo.html (Жаккар 0.75, вложенность 0.92)
 - D2 WARN: 12-стр/dragonmoneyregistracya.buzz/zerkalo.html ≈ 12-стр/dragonmoneyzerkalo1.cc/zerkalo.html (Жаккар 0.58, вложенность 0.99)
 - D2 WARN: 12-стр/dragonmoneyregistracya.buzz/bonus.html ≈ 12-стр/dragonmoneyzerkalo1.cc/bonus.html (Жаккар 0.69, вложенность 0.98)
+- D2 WARN: 12-стр/dragonmoneyregistracya.buzz/info.html ≈ 12-стр/dragonmoneyzerkalo1.cc/info.html (Жаккар 0.50, вложенность 0.99)
 - D2 WARN: 12-стр/dragonmoney2026.cc/partnery.html ≈ 12-стр/dragonmoneyregistracya.buzz/partnery.html (Жаккар 0.72, вложенность 0.91)
 - D2 WARN: 12-стр/dragonmoneyregistracya.buzz/partnery.html ≈ 12-стр/dragonmoneyzerkalo1.cc/partnery.html (Жаккар 0.99, вложенность 0.99)
-- D2 WARN: 12-стр/dragonmoneyregistracya.buzz/info.html ≈ 12-стр/dragonmoneyzerkalo1.cc/info.html (Жаккар 0.50, вложенность 0.99)
 - D2 WARN: 12-стр/dragonmoney2026.cc/info.html ≈ 12-стр/dragonmoneyregistracya.buzz/info.html (Жаккар 0.47, вложенность 0.64)
 - D2 WARN: 12-стр/dragonmoney2026.cc/slots.html ≈ 12-стр/dragonmoneyregistracya.buzz/slots.html (Жаккар 0.28, вложенность 0.73)
 - D2 WARN: 12-стр/dragonmoneyregistracya.buzz/slots.html ≈ 12-стр/dragonmoneyzerkalo1.cc/slots.html (Жаккар 0.43, вложенность 0.91)
@@ -981,58 +980,52 @@
 - D2 WARN: 12-стр/dragonmoneyregistracya.buzz/app.html ≈ 12-стр/dragonmoneyzerkalo1.cc/app.html (Жаккар 0.98, вложенность 0.99)
 - D2 WARN: 12-стр/dragonmoney2026.cc/obzor.html ≈ 12-стр/dragonmoneyzerkalo1.cc/obzor.html (Жаккар 0.82, вложенность 0.91)
 - D2 WARN: 12-стр/dragonmoneyregistracya.buzz/obzor.html ≈ 12-стр/dragonmoneyzerkalo1.cc/obzor.html (Жаккар 0.94, вложенность 0.99)
-- D2 WARN: 12-стр/dragonmoney2026.cc/slots.html ≈ 12-стр/dragonmoneyzerkalo1.cc/slots.html (Жаккар 0.66, вложенность 0.86)
 - D2 WARN: 12-стр/dragonmoney2026.cc/news.html ≈ 12-стр/dragonmoneyzerkalo1.cc/news.html (Жаккар 0.69, вложенность 0.90)
+- D2 WARN: 12-стр/dragonmoney2026.cc/slots.html ≈ 12-стр/dragonmoneyzerkalo1.cc/slots.html (Жаккар 0.66, вложенность 0.86)
 - D2 WARN: 12-стр/dragonmoneyregistracya.buzz/news.html ≈ 12-стр/dragonmoneyzerkalo1.cc/news.html (Жаккар 0.97, вложенность 0.99)
 - D2 WARN: 12-стр/dragonmoney2026.cc/main.html ≈ 12-стр/dragonmoneyzerkalo1.cc/main.html (Жаккар 0.18, вложенность 0.50)
 - D2 WARN: 12-стр/dragonmoney2026.cc/promo.html ≈ 12-стр/dragonmoneyzerkalo1.cc/promo.html (Жаккар 0.84, вложенность 0.92)
+- D2 WARN: 12-стр/dragonmoneyregistracya.buzz/promo.html ≈ 12-стр/dragonmoneyzerkalo1.cc/promo.html (Жаккар 0.54, вложенность 0.94)
 - D2 WARN: 12-стр/dragonmoney2026.cc/registracia.html ≈ 12-стр/dragonmoneyzerkalo1.cc/registracia.html (Жаккар 0.89, вложенность 0.95)
 - D2 WARN: 12-стр/dragonmoney2026.cc/vhod.html ≈ 12-стр/dragonmoneyzerkalo1.cc/vhod.html (Жаккар 0.41, вложенность 0.84)
 - D2 WARN: 12-стр/dragonmoneyregistracya.buzz/registracia.html ≈ 12-стр/dragonmoneyzerkalo1.cc/registracia.html (Жаккар 0.98, вложенность 0.99)
 - D2 WARN: 12-стр/dragonmoneyregistracya.buzz/vhod.html ≈ 12-стр/dragonmoneyzerkalo1.cc/vhod.html (Жаккар 0.50, вложенность 0.96)
-- D2 WARN: 12-стр/dragonmoneyregistracya.buzz/promo.html ≈ 12-стр/dragonmoneyzerkalo1.cc/promo.html (Жаккар 0.54, вложенность 0.94)
 - D2 WARN: 12-стр/dragonmoney2026.cc/zerkalo.html ≈ 12-стр/dragonmoneyzerkalo1.cc/zerkalo.html (Жаккар 0.38, вложенность 0.68)
 - D2 WARN: 12-стр/dragonmoneyregistracya.buzz/zerkalo.html ≈ 12-стр/dragonmoneyzerkalo1.cc/zerkalo.html (Жаккар 0.58, вложенность 0.99)
 - D2 WARN: 12-стр/dragonmoney2026.cc/bonus.html ≈ 12-стр/dragonmoneyzerkalo1.cc/bonus.html (Жаккар 0.70, вложенность 0.91)
 - D2 WARN: 12-стр/dragonmoneyregistracya.buzz/bonus.html ≈ 12-стр/dragonmoneyzerkalo1.cc/bonus.html (Жаккар 0.69, вложенность 0.98)
+- D2 WARN: 12-стр/dragonmoneyregistracya.buzz/info.html ≈ 12-стр/dragonmoneyzerkalo1.cc/info.html (Жаккар 0.50, вложенность 0.99)
 - D2 WARN: 12-стр/dragonmoney2026.cc/partnery.html ≈ 12-стр/dragonmoneyzerkalo1.cc/partnery.html (Жаккар 0.72, вложенность 0.91)
 - D2 WARN: 12-стр/dragonmoneyregistracya.buzz/partnery.html ≈ 12-стр/dragonmoneyzerkalo1.cc/partnery.html (Жаккар 0.99, вложенность 0.99)
-- D2 WARN: 12-стр/dragonmoneyregistracya.buzz/info.html ≈ 12-стр/dragonmoneyzerkalo1.cc/info.html (Жаккар 0.50, вложенность 0.99)
 - D2 WARN: 12-стр/dragonmoney2026.cc/info.html ≈ 12-стр/dragonmoneyzerkalo1.cc/info.html (Жаккар 0.43, вложенность 0.89)
 - D2 WARN: 12-стр/dragonmoneyregistracya.buzz/slots.html ≈ 12-стр/dragonmoneyzerkalo1.cc/slots.html (Жаккар 0.43, вложенность 0.91)
 - B11 INFO: разных процентов бонуса по сайту — 19: 30%, 49%, 50%, 65%, 75%, 100%, 125%, 150%, 175%, 200%, 250%, 286%, 300%, 350%, 400%, 450%, 500%, 600%, 750%
 - B9 INFO: info.html: FAQ стоит первым блоком
 - C2 INFO: ссылок не на свой раздел — 254 на 12 страницах, чаще всего: «🚀 не заходи, если боишься выиграть!» → /registracia (33); «обзор казино» → / (13); «бонусы» → /app (13); «промо акции» → / (12)
 
-### 13-стр/cas1no0310da.buzz
-- A3 ERROR: страниц 13, по шаблону 13-стр ожидается 12
-- A4 ERROR: лишние страницы: payments
-- B3 WARN: payments.html: содержимое похоже на раздел «contacts» (27 совпадений против 0 своих); первый h2: «Способы пополнения счёта»
+### 12-стр/cas1no0310da.buzz
 - B8 WARN: info.html: повтор h2: «Правила и поддержка»
 - B8 WARN: partnery.html: повтор h2: «Партнёрская программа»
 - B8 WARN: vhod.html: повтор h2: «Вход в личный кабинет»
+- A2 INFO: собрано из 13-стр: убраны payments
 - B10 INFO: info.html: склеек слов/чисел без пробела — 6
 - B10 INFO: main.html: склеек слов/чисел без пробела — 20
 - B10 INFO: obzor.html: склеек слов/чисел без пробела — 6
 - B10 INFO: slots.html: склеек слов/чисел без пробела — 9
 - B11 INFO: разных процентов бонуса по сайту — 6: 2%, 19%, 50%, 74%, 110%, 486%
-- C2 INFO: ссылок не на свой раздел — 317 на 13 страницах, чаще всего: «🚀 не заходи, если боишься выиграть!» → /registracia (41); «промокоды» → / (16); «обзор казино» → / (16); «бонусы» → /app (16)
+- C2 INFO: ссылок не на свой раздел — 315 на 12 страницах, чаще всего: «🚀 не заходи, если боишься выиграть!» → /registracia (41); «промокоды» → / (16); «обзор казино» → / (16); «бонусы» → /app (15)
 
-### 11-стр/2121r.casino
-- A3 ERROR: страниц 14, по шаблону 11-стр ожидается 12
-- A4 ERROR: лишние страницы: otzyvy, platezhi
+### 12-стр/2121r.casino
 - B8 WARN: info.html: повтор h2: «Правила и поддержка»
 - B8 WARN: partnery.html: повтор h2: «Партнёрская программа»
 - B8 WARN: vhod.html: повтор h2: «Вход в личный кабинет»
-- D2 WARN: 11-стр/2121r.casino/vhod.html ≈ 12-стр/8casino2.buzz/vhod.html (Жаккар 0.19, вложенность 0.50)
-- D2 WARN: 11-стр/2121r.casino/main.html ≈ 12-стр/8casino2.buzz/main.html (Жаккар 0.23, вложенность 0.54)
-- D2 WARN: 11-стр/2121r.casino/registracia.html ≈ 12-стр/8casino2.buzz/registracia.html (Жаккар 0.19, вложенность 0.57)
-- D2 WARN: 11-стр/2121r.casino/obzor.html ≈ 12-стр/8casino2.buzz/obzor.html (Жаккар 0.17, вложенность 0.51)
-- A2 INFO: набор страниц ближе к шаблону 11-стр, чем к 7-стр
-- A2 INFO: собрано из 14-стр: убраны ничего
+- D2 WARN: 12-стр/2121r.casino/vhod.html ≈ 12-стр/8casino2.buzz/vhod.html (Жаккар 0.19, вложенность 0.50)
+- D2 WARN: 12-стр/2121r.casino/main.html ≈ 12-стр/8casino2.buzz/main.html (Жаккар 0.23, вложенность 0.54)
+- D2 WARN: 12-стр/2121r.casino/registracia.html ≈ 12-стр/8casino2.buzz/registracia.html (Жаккар 0.19, вложенность 0.57)
+- D2 WARN: 12-стр/2121r.casino/obzor.html ≈ 12-стр/8casino2.buzz/obzor.html (Жаккар 0.17, вложенность 0.51)
+- A2 INFO: собрано из 14-стр: убраны otzyvy, platezhi
 - B11 INFO: разных процентов бонуса по сайту — 13: 50%, 90%, 100%, 125%, 150%, 175%, 200%, 250%, 300%, 328%, 350%, 500%, 750%
-- C2 INFO: ссылок не на свой раздел — 155 на 14 страницах, чаще всего: «играть» → /registracia (14); «бонусы» → /app (13); «обзор казино» → / (8); «бонусыбонусная программа» → /app (6)
-
+- C2 INFO: ссылок не на свой раздел — 143 на 12 страницах, чаще всего: «играть» → /registracia (14); «бонусы» → /app (11); «обзор казино» → / (8); «бонусыбонусная программа» → /app (6)
 
 ## Чистка
 
@@ -1069,7 +1062,7 @@ Sweet Bonanza», «Будь в курсе Sweet Bonanza» вперемежку �
 
 ## Убранные сайты
 
-Убрано 18 из 99 — больше обычного.
+Убрано 16 из 99 — больше обычного.
 
 **Тринадцать сайтов 9-стр с неполным набором.** Все принесли по 9 файлов, но служебных
 страниц у них три (about, contacts, privacy) вместо двух, и контентная страница в наборе
@@ -1082,14 +1075,14 @@ Sweet Bonanza», «Будь в курсе Sweet Bonanza» вперемежку �
 пограничный: порог проверки (60 % цепочек на странице) сработал, но дословно это не копия,
 а переписанный двойник. Убран по порогу.
 
-**13-стр `cas1no0310da.buzz`** — набор 12-стр плюс `payments`. **14-стр `2121r.casino`** —
-набор 12-стр плюс `otzyvy` и `platezhi`, те же лишние страницы, что у 14-стр `2609w.team`
-из давнего открытого вопроса. Третий и четвёртый такой сайт за три дня.
+Расширенные наборы — 13-стр `cas1no0310da.buzz` (12-стр плюс `payments`) и 14-стр
+`2121r.casino` (12-стр плюс `otzyvy` и `platezhi`) — поначалу тоже убирались, но после
+решения пользователя сведены к 12-стр и отданы; в счёт убранных они не входят.
 
 ## Уникальность
 
 Сверка с тем, что реально уходило в архивах, — 114 722 страницы, 2 884 332 цепочки.
-**11 сайтов из 81 повторяют отданное.** Три совпадают на 100 %, остальные восемь — на 95–98 %.
+**11 сайтов из 83 повторяют отданное.** Три совпадают на 100 %, остальные восемь — на 95–98 %.
 
 | Партия | Повторов |
 |---|---:|
@@ -1118,15 +1111,20 @@ Sweet Bonanza», «Будь в курсе Sweet Bonanza» вперемежку �
 |---|---|---:|
 | `content-2026-10-02-vtoroy-12str.zip` | 12-стр | 19 |
 | `content-2026-10-02-vtoroy-7str.zip` | 7-стр | 51 |
+| `rasshirennye-12str-oform.zip` (часть) | 12-стр | 2 |
 
-70 комплектов: 81 годный минус 11 повторов.
+72 комплекта: 83 годных минус 11 повторов. Два последних — `cas1no0310da.buzz`
+и `2121r.casino` — вернулись после сведения расширенных наборов к 12-стр и ушли
+в общем архиве с такими же сайтами из партий 1 и 2 октября (см. раздел ниже).
+Всего по этому архиву 21 комплект 12-стр и 51 комплект 7-стр.
 
 ## Оформление
 
-Оформлены все 70 комплектов. Темы сквозные: 2787–2805 у 12-стр, 2806–2856 у 7-стр,
-следующий свободный номер — 2857.
+Оформлены все 72 комплекта. Темы сквозные: 2787–2805 у 12-стр, 2806–2856 у 7-стр;
+двум вернувшимся достались номера из 2857–2860 вместе с остальными расширенными
+наборами. Следующий свободный номер — 2861.
 
-Аудиты чистые: контраст на тёмном фоне заказчика (`#0d1016`) — 0 плохих из 70;
+Аудиты чистые: контраст на тёмном фоне заказчика (`#0d1016`) — 0 плохих из 72;
 вёрстка на ширинах 1100 и 420 — 0 страниц с бедой. `scripts/oform/импорт.py` —
 0 ошибок в обоих наборах.
 
