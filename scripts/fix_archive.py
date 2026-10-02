@@ -12,7 +12,9 @@
 - {YYYYMMDD} -> %date%. Примерные адреса вида user@example.com -> user@%domain_name%.
   Два плейсхолдера бренда подряд схлопываются в один.
   Голый домен после собаки («whitelist для @yourcompany.com») — тоже.
-- {PROTOCOL}, {SERVER}, {PORT}, {DOMAIN}, {HOST}, {URL}, {ID}, {IP} -> техническое значение.
+- {PROTOCOL}, {SERVER}, {PORT}, {DOMAIN}, {HOST}, {URL}, {ID}, {IP}, {MIN_WITHDRAWAL},
+  {UUID}, {DDMMYY} -> техническое значение.
+- ru.html -> main.html, если main.html в наборе нет: главная скачана под языковой приставкой.
 - Мусор после чистки: склейки <strongслово>, теги meter/font/center, битые <h2:, остатки [[ ]] и {a|b}.
 - --auto-brand -> бренд каждого сайта определяется сам: самое частое латинское
   слово рядом с «казино/зеркало/приложение/бонус» не из белого списка, если оно
@@ -227,6 +229,21 @@ def fix_brand_head(raw, зачин):
     return raw, ([("зачин бренда", "снят", "%d" % n)] if n else [])
 
 
+def fix_glavnaya(dp, fn):
+    """Главная, скачанная под языковой приставкой: «ru.html» вместо «main.html».
+
+    Переименовываем только когда main.html в наборе нет: вместе они не бывают —
+    у сайтов с главной на месте ru.html не встречается. Без этого набор считается
+    неполным (A4) и сайт убирается из выдачи целиком.
+    """
+    if "ru.html" not in fn or "main.html" in fn:
+        return fn
+    os.rename(os.path.join(dp, "ru.html"), os.path.join(dp, "main.html"))
+    print("%-45s %-9s -> %-16s %s" % (os.path.basename(dp), "ru.html", "main.html",
+                                      "главная под приставкой"))
+    return [f for f in fn if f != "ru.html"] + ["main.html"]
+
+
 def site_brands(files):
     """Бренды сайта — те же кандидаты, что находит проверка (check_archive.brand_candidates).
 
@@ -344,7 +361,14 @@ def fix_markup(raw):
                   # номер обращения в поддержку: «#502-{ID}», «/ticket {ID} {Текст}»
                   "{ID}": "4187",
                   # адрес зеркала в обход блокировки: «вставьте в браузер https://{IP}/{path}»
-                  "{IP}": "%domain_name%"}
+                  "{IP}": "%domain_name%",
+                  # минимальная сумма вывода: «Минимальная сумма вывода составляет {MIN_WITHDRAWAL}»
+                  "{MIN_WITHDRAWAL}": "1 000 ₽",
+                  # id запроса в примере обращения к API: «X-Request-ID: {UUID}»
+                  "{UUID}": "7c1f4ae0-9b2d-4e13-8a57-16f0c3d2b985",
+                  # дата внутри номера обращения: «Reference ID: CB-{DDMMYY}-001». Не %date%:
+                  # тот подставляется прописью («Обновление 2 октября»), а здесь нужны шесть цифр.
+                  "{DDMMYY}": "021026"}
 
 
 def fix_generic(raw):
@@ -386,6 +410,7 @@ def main():
     found = {}
     for dp, dn, fn in os.walk(args.path):
         dn[:] = [d for d in dn if d != "__MACOSX"]
+        fn = fix_glavnaya(dp, fn)
         files = [os.path.join(dp, f) for f in sorted(fn) if f.endswith(".html")]
         if not files:
             continue
