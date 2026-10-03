@@ -2633,6 +2633,10 @@ foreach (V5_TYPES as $тип) {
     $страница = v5OdnoslovnyFinal($страница, $сид);
     $страница = v5MenshePassiva($страница, $сид);
     $страница = v5RazvernutVlozhennye($страница);
+    // Зачин перед первым h2 — манера густых наборов: он есть на 225 страницах
+    // из 252 у густого корпуса и ни на одной из 360 у обычного. Ставится
+    // последним, чтобы собраться из уже готовых h2 страницы.
+    if (v5ManeraNabora() ?? false) { $страница = v5ZachinStranicy($страница, $тип, $сид); }
     file_put_contents("$выход/$тип.html", $страница);
     if (preg_match_all('~<h3 class="faq-question"[^>]*>(.*?)</h3>~su', $страница, $mq)) {
         foreach ($mq[1] as $q) { $GLOBALS['v5ВопросыНабора'][v5KlyuchVoprosa($q)] = true; }
