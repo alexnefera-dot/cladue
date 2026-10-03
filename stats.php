@@ -1365,11 +1365,13 @@ $msg = $_GET['msg'] ?? '';
 
     <?php
       // Пул доменов: заранее заведённые запасные. Рядом с каждым — трафик за
-      // неделю, чтобы переключение делалось по цифрам, а не на ощупь.
+      // неделю и состояние сейчас, чтобы переключение делалось по цифрам.
       $pool     = ref_domains();
       $hostsMap = [];
       foreach (hosts_breakdown(time() - 7 * 86400) as $hh) $hostsMap[$hh['host']] = $hh;
+      $trend    = hosts_trend(7);
       $cur      = ref_domain('');
+      $since    = ref_domain_since();
     ?>
     <h3 style="font-size:14px;margin:16px 0 6px">Пул доменов</h3>
     <div class="muted">
@@ -1378,10 +1380,31 @@ $msg = $_GET['msg'] ?? '';
       какие ссылки отдаёт панель: уже созданные сайты держат ту ссылку, что была
       запечена при их создании, и живут, пока жив их домен.
     </div>
+    <?php if ($cur !== '' && $since > 0):
+      $hrs  = max(0, time() - $since) / 3600;
+      $got  = $trend[$cur]['total'] ?? 0;
+    ?>
+      <div class="muted" style="margin-top:6px">
+        Переключён на <code><?= h($cur) ?></code> <?= $hrs < 1 ? 'меньше часа назад' : (round($hrs) . ' ч назад') ?>,
+        кликов с тех пор: <b><?= (int)$got ?></b>.
+        <?php if ($hrs >= 1 && $got === 0): ?>
+          <b style="color:#b91c1c">Трафика нет — похоже, новые ссылки не доехали до движка.</b>
+        <?php endif; ?>
+      </div>
+    <?php endif; ?>
     <table style="margin-top:8px">
-      <thead><tr><th>Домен</th><th class="num">Клики (7 дней)</th><th>Последний</th><th>Рефки</th><th></th></tr></thead>
+      <thead><tr>
+        <th>Домен</th><th class="num">Клики (7 дней)</th>
+        <th class="num">Сейчас/час</th><th class="num">Обычно/час</th>
+        <th>Состояние</th><th>Последний</th><th>Рефки</th><th></th>
+      </tr></thead>
       <tbody>
-        <?php foreach ($pool as $pd): $hh = $hostsMap[$pd] ?? null; ?>
+        <?php foreach ($pool as $pd):
+          $hh = $hostsMap[$pd] ?? null;
+          $t  = $trend[$pd] ?? ['last_hour' => 0, 'avg_hour' => 0, 'total' => 0, 'last_ts' => 0];
+          [$stateText, $stateKind] = host_state($t);
+          $stateColor = ['ok' => '#166534', 'warn' => '#92400e', 'bad' => '#b91c1c', 'muted' => '#64748b'][$stateKind];
+        ?>
         <tr>
           <td>
             <code><?= h($pd) ?></code>
@@ -1390,6 +1413,9 @@ $msg = $_GET['msg'] ?? '';
             <?php endif; ?>
           </td>
           <td class="num"><?= $hh ? (int)$hh['clicks'] : '—' ?></td>
+          <td class="num"><?= (int)$t['last_hour'] ?></td>
+          <td class="num"><?= $t['avg_hour'] > 0 ? $t['avg_hour'] : '—' ?></td>
+          <td style="color:<?= $stateColor ?>"><?= h($stateText) ?></td>
           <td><?= $hh ? dt($hh['last_ts']) : '<span class="muted">трафика не было</span>' ?></td>
           <td><a href="stats.php?tab=settings&export=reflinks&domain=<?= urlencode($pd) ?>">⬇ CSV</a></td>
           <td style="white-space:nowrap">
@@ -1411,7 +1437,7 @@ $msg = $_GET['msg'] ?? '';
           </td>
         </tr>
         <?php endforeach; ?>
-        <?php if (!$pool): ?><tr><td colspan="5">Пул пуст — добавь запасные домены заранее.</td></tr><?php endif; ?>
+        <?php if (!$pool): ?><tr><td colspan="8">Пул пуст — добавь запасные домены заранее.</td></tr><?php endif; ?>
       </tbody>
     </table>
     <form method="post" style="margin-top:8px">

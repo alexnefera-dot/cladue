@@ -1225,9 +1225,72 @@ function ref_domain($fallback = '') {
 
 function set_ref_domain($d) {
     $d = normalize_domain((string)$d);
+    $prev = ref_domain('');
     meta_upsert('ref_domain', $d);
+    if ($d !== '' && $d !== $prev) {
+        // Момент переключения — точка отсчёта для контроля: после него новый
+        // домен обязан начать набирать клики. Если за час их нет, значит
+        // ссылки до движка не доехали, и узнать об этом надо сразу, а не к вечеру.
+        meta_upsert('ref_domain_since', time());
+    }
     if ($d !== '') ref_domain_add($d);   // текущий всегда остаётся в пуле
     return $d;
+}
+
+/** Когда переключились на текущий домен рефок (0 — неизвестно). */
+function ref_domain_since() { return (int)meta_get('ref_domain_since', 0); }
+
+/**
+ * Трафик по доменам редиректора: сколько сейчас и сколько обычно.
+ *
+ * Домен не «выключается» в один момент — он проседает: часть провайдеров ещё
+ * пускает, часть уже нет. Поэтому смотрим не на факт наличия кликов, а на
+ * отношение последнего часа к обычному часу этого же домена. Так проседание
+ * видно из своей статистики раньше, чем о нём расскажут люди.
+ *
+ * Один проход по таблице с условным суммированием: отдельные запросы на «сейчас»
+ * и «обычно» читали бы одни и те же строки дважды.
+ */
+function hosts_trend($baselineDays = 7) {
+    $now  = time();
+    $h1   = $now - 3600;
+    $from = $now - max(1, (int)$baselineDays) * 86400;
+
+    $sql = "SELECT COALESCE(NULLIF(host,''),'(не записан)') AS host,
+                   SUM(CASE WHEN ts >= ? THEN 1 ELSE 0 END) AS last_hour,
+                   SUM(CASE WHEN ts <  ? THEN 1 ELSE 0 END) AS base_total,
+                   COUNT(*) AS total,
+                   MAX(ts)  AS last_ts
+            FROM clicks
+            WHERE ts >= ? AND is_bot = 0 AND " . sql_visit() . "
+            GROUP BY host";
+    $st = db()->prepare($sql);
+    $st->execute([$h1, $h1, $from]);
+
+    $baseHours = max(1, ($h1 - $from) / 3600);
+    $out = [];
+    foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        $out[$r['host']] = [
+            'last_hour' => (int)$r['last_hour'],
+            'avg_hour'  => round((int)$r['base_total'] / $baseHours, 1),
+            'total'     => (int)$r['total'],
+            'last_ts'   => (int)$r['last_ts'],
+        ];
+    }
+    return $out;
+}
+
+/**
+ * Состояние домена одним словом. Пороги намеренно грубые: это сигнал «иди
+ * посмотри», а не повод переключать автоматически — ночной спад трафика тоже
+ * даёт проседание, и решение остаётся за человеком.
+ */
+function host_state(array $t) {
+    if ($t['avg_hour'] < 5)                       return ['мало данных', 'muted'];
+    if ($t['last_hour'] === 0)                    return ['молчит',      'bad'];
+    if ($t['last_hour'] < $t['avg_hour'] * 0.4)   return ['просел',      'bad'];
+    if ($t['last_hour'] < $t['avg_hour'] * 0.7)   return ['проседает',   'warn'];
+    return ['ок', 'ok'];
 }
 
 /**
