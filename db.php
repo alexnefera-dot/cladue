@@ -1226,7 +1226,60 @@ function ref_domain($fallback = '') {
 function set_ref_domain($d) {
     $d = normalize_domain((string)$d);
     meta_upsert('ref_domain', $d);
+    if ($d !== '') ref_domain_add($d);   // текущий всегда остаётся в пуле
     return $d;
+}
+
+/**
+ * Пул доменов редиректора.
+ *
+ * Домены расходные: сгорел — переключаемся на следующий. Держать их списком, а
+ * не вспоминать по одному в момент аварии, и есть весь смысл: домен заводится
+ * заранее, спокойно, и в нужный момент переключение занимает один клик.
+ *
+ * Текущий домен всегда присутствует в списке, даже если его туда не добавляли.
+ */
+function ref_domains() {
+    $raw  = (string)meta_get('ref_domains', '');
+    $list = $raw !== '' ? json_decode($raw, true) : [];
+    $out  = [];
+    foreach ((array)$list as $d) {
+        $d = normalize_domain((string)$d);
+        if ($d !== '' && !in_array($d, $out, true)) $out[] = $d;
+    }
+    $cur = ref_domain('');
+    if ($cur !== '' && !in_array($cur, $out, true)) array_unshift($out, $cur);
+    return $out;
+}
+
+function ref_domains_save(array $list) {
+    $out = [];
+    foreach ($list as $d) {
+        $d = normalize_domain((string)$d);
+        if ($d !== '' && !in_array($d, $out, true)) $out[] = $d;
+    }
+    meta_upsert('ref_domains', json_encode($out, JSON_UNESCAPED_SLASHES));
+    return $out;
+}
+
+/** Добавить домен в пул (заранее, до того как он понадобится). */
+function ref_domain_add($d) {
+    $d = normalize_domain((string)$d);
+    if ($d === '') return ref_domains();
+    $list = ref_domains();
+    if (!in_array($d, $list, true)) $list[] = $d;
+    return ref_domains_save($list);
+}
+
+/**
+ * Убрать домен из пула. Текущий убрать нельзя: сначала переключись на другой,
+ * иначе панель осталась бы без домена для рефок в самый неподходящий момент.
+ */
+function ref_domain_remove($d) {
+    $d = normalize_domain((string)$d);
+    if ($d === '' || $d === ref_domain('')) return false;
+    ref_domains_save(array_values(array_filter(ref_domains(), fn($x) => $x !== $d)));
+    return true;
 }
 
 /**

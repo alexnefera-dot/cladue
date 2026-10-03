@@ -97,9 +97,14 @@ if (($_GET['export'] ?? '') !== '' && $_SERVER['REQUEST_METHOD'] === 'GET') {
             ]);
         }
     } elseif ($exp === 'reflinks') {
-        // Список рефок на текущем домене — то, что отдаётся дор-движку при переезде.
-        // $refBase считается ниже по файлу, здесь собираем его сами
-        $base = 'https://' . ref_domain($_SERVER['HTTP_HOST'] ?? '') . '/go/';
+        // Список рефок на выбранном домене — то, что отдаётся дор-движку при
+        // переезде. По умолчанию текущий домен, но можно выгрузить и под любой
+        // из пула: список готовится заранее, до переключения.
+        $expDom = normalize_domain((string)($_GET['domain'] ?? ''));
+        if ($expDom === '' || !in_array($expDom, ref_domains(), true)) {
+            $expDom = ref_domain($_SERVER['HTTP_HOST'] ?? '');
+        }
+        $base = 'https://' . $expDom . '/go/';
         fputcsv($out, ['slug', 'name', 'ref_link']);
         $rows = db()->query('SELECT slug, name FROM campaigns ORDER BY slug')->fetchAll(PDO::FETCH_ASSOC);
         foreach ($rows as $r) {
@@ -175,9 +180,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check
         $err = add_campaign($_POST['slug'] ?? '', $_POST['name'] ?? '', $_POST['offer_url'] ?? '');
         $msg = $err === null ? 'Кампания добавлена' : ('Ошибка: ' . $err);
     } elseif ($action === 'set_ref_domain') {
+        $prev = ref_domain('');
         $d = set_ref_domain($_POST['ref_domain'] ?? '');
         panel_cache_flush();
         $msg = $d !== '' ? 'Домен рефок: ' . $d : 'Домен рефок сброшен на домен панели';
+        if ($d !== '' && $prev !== '' && $prev !== $d) $msg .= ' (был ' . $prev . ')';
+    } elseif ($action === 'ref_domain_add') {
+        $before = count(ref_domains());
+        $list = ref_domain_add($_POST['ref_domain'] ?? '');
+        $msg = count($list) > $before ? 'Домен добавлен в пул' : 'Такой домен уже в пуле (или пустой)';
+    } elseif ($action === 'ref_domain_remove') {
+        $d = (string)($_POST['ref_domain'] ?? '');
+        $msg = ref_domain_remove($d)
+            ? 'Домен убран из пула: ' . $d
+            : 'Текущий домен убрать нельзя — сначала переключись на другой';
     } elseif ($action === 'set_slots') {
         set_prelander_slots($_POST['id'] ?? 0, (array)($_POST['slot'] ?? []), $_POST['page_title'] ?? '');
         $n = prelanders_cache_rebuild();
@@ -1346,6 +1362,76 @@ $msg = $_GET['msg'] ?? '';
         <span class="muted">сейчас рефки: <code><?= h($refBase) ?>СЛАГ</code></span>
       </div>
     </form>
+
+    <?php
+      // Пул доменов: заранее заведённые запасные. Рядом с каждым — трафик за
+      // неделю, чтобы переключение делалось по цифрам, а не на ощупь.
+      $pool     = ref_domains();
+      $hostsMap = [];
+      foreach (hosts_breakdown(time() - 7 * 86400) as $hh) $hostsMap[$hh['host']] = $hh;
+      $cur      = ref_domain('');
+    ?>
+    <h3 style="font-size:14px;margin:16px 0 6px">Пул доменов</h3>
+    <div class="muted">
+      Запасные домены заводятся заранее — тогда замена сгоревшего это один клик,
+      а не поиск свободного домена в момент аварии. Переключение меняет только то,
+      какие ссылки отдаёт панель: уже созданные сайты держат ту ссылку, что была
+      запечена при их создании, и живут, пока жив их домен.
+    </div>
+    <table style="margin-top:8px">
+      <thead><tr><th>Домен</th><th class="num">Клики (7 дней)</th><th>Последний</th><th>Рефки</th><th></th></tr></thead>
+      <tbody>
+        <?php foreach ($pool as $pd): $hh = $hostsMap[$pd] ?? null; ?>
+        <tr>
+          <td>
+            <code><?= h($pd) ?></code>
+            <?php if ($pd === $cur): ?>
+              <span class="chip" style="background:#ecfdf5;border-color:#a7f3d0;color:#166534;font-size:11px">текущий</span>
+            <?php endif; ?>
+          </td>
+          <td class="num"><?= $hh ? (int)$hh['clicks'] : '—' ?></td>
+          <td><?= $hh ? dt($hh['last_ts']) : '<span class="muted">трафика не было</span>' ?></td>
+          <td><a href="stats.php?tab=settings&export=reflinks&domain=<?= urlencode($pd) ?>">⬇ CSV</a></td>
+          <td style="white-space:nowrap">
+            <?php if ($pd !== $cur): ?>
+              <form method="post" class="inline" style="display:inline">
+                <input type="hidden" name="key" value="<?= h($key) ?>">
+                <input type="hidden" name="action" value="set_ref_domain">
+                <input type="hidden" name="ref_domain" value="<?= h($pd) ?>">
+                <button type="submit">Сделать текущим</button>
+              </form>
+              <form method="post" class="inline" style="display:inline"
+                    onsubmit="return confirm('Убрать <?= h($pd) ?> из пула? Сайты, уже созданные с этой рефкой, это не затронет.')">
+                <input type="hidden" name="key" value="<?= h($key) ?>">
+                <input type="hidden" name="action" value="ref_domain_remove">
+                <input type="hidden" name="ref_domain" value="<?= h($pd) ?>">
+                <button type="submit" class="ghost">убрать</button>
+              </form>
+            <?php endif; ?>
+          </td>
+        </tr>
+        <?php endforeach; ?>
+        <?php if (!$pool): ?><tr><td colspan="5">Пул пуст — добавь запасные домены заранее.</td></tr><?php endif; ?>
+      </tbody>
+    </table>
+    <form method="post" style="margin-top:8px">
+      <input type="hidden" name="key" value="<?= h($key) ?>">
+      <input type="hidden" name="action" value="ref_domain_add">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input type="text" name="ref_domain" placeholder="запасной-домен.top" style="min-width:260px">
+        <button type="submit">Добавить в пул</button>
+        <span class="muted">домен должен уже смотреть на этот сервер — проверь до того, как он понадобится</span>
+      </div>
+    </form>
+
+    <div class="muted" style="margin-top:12px">
+      После переключения новые рефки надо отдать дор-движку: выгрузить CSV выше
+      или прогнать по брендам скрипт <code>tools/smena-refok.js</code> с такими
+      значениями —
+    </div>
+    <pre style="margin:6px 0 0;padding:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;font:12px ui-monospace,monospace">const OLD = '<?= h($cur) ?>';   // сюда подставь домен, с которого уходишь
+const NEW = '<?= h($cur) ?>';</pre>
+
     <p style="margin-top:10px">
       <a href="stats.php?tab=settings&export=reflinks"><b>⬇ Выгрузить все рефки (CSV)</b></a>
       — список <code>слаг → ссылка</code> на текущем домене, для передачи в дор-движок.
