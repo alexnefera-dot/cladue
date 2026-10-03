@@ -28,8 +28,8 @@ from predstavitel import порядок
 НАШ = os.path.join(КОРЕНЬ, 'samples/v5-final')
 ТИПЫ = ['main','obzor','slots','bonus','promo','registracia','vhod','zerkalo','app','news','partnery','info']
 
-НАШИ_ГУСТЫЕ = ['nabor-711', 'nabor-713']
-НАШИ_ОБЫЧНЫЕ = ['nabor-715', 'nabor-712', 'nabor-714']
+НАШИ_ГУСТЫЕ = ['nabor-741', 'nabor-744']
+НАШИ_ОБЫЧНЫЕ = ['nabor-743', 'nabor-745', 'nabor-742']
 
 def деление():
     """Густые и обычные наборы корпуса: медиана бренд-переменных на страницу > 8."""
@@ -77,8 +77,8 @@ def собрать(выход, соседей=3):
     рангГ = порядок(ссылки(густ, os.path.join(врем, 'gustye')))[0][:соседей]
     рангО = порядок(ссылки(обыч, os.path.join(врем, 'obychnye')))[0][:соседей]
 
-    Г = таблица(os.path.join(КОРЕНЬ, 'docs/shirokoe/shire-gustye-711-713.md'))
-    О = таблица(os.path.join(КОРЕНЬ, 'docs/shirokoe/shire-obychnye-712-715.md'))
+    Г = таблица(os.path.join(КОРЕНЬ, 'docs/shirokoe/shire-gustye-741-744.md'))
+    О = таблица(os.path.join(КОРЕНЬ, 'docs/shirokoe/shire-obychnye-742-745.md'))
     ряды = []
     for к in ОПОРНЫЕ:
         г, о = Г.get(к), О.get(к)
@@ -89,9 +89,9 @@ def собрать(выход, соседей=3):
                     % (H.escape(к), о[2], о[3], кл(о), о[0], г[2], г[3], кл(г), г[0]))
     сводка = ('<table class="svod"><thead><tr><th>параметр</th>'
               '<th>корпус обычные<br><span>%d наборов, p10–p90</span></th>'
-              '<th>наши обычные<br><span>712, 714, 715</span></th>'
+              '<th>наши обычные<br><span>742, 743, 745</span></th>'
               '<th>корпус густые<br><span>%d наборов, p10–p90</span></th>'
-              '<th>наши густые<br><span>711, 713</span></th></tr></thead>'
+              '<th>наши густые<br><span>741, 744</span></th></tr></thead>'
               '<tbody>%s</tbody></table>'
               '<p class="note">Вне полосы по всей широкой таблице: обычная манера — '
               '%d параметра из %d, густая — %d из %d. Полный список в '
@@ -123,9 +123,9 @@ def собрать(выход, соседей=3):
     html = '''<!doctype html>
 <html lang="ru"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Вычитка рядом, партия 711–715</title>
+<title>Вычитка рядом, партия 741–745</title>
 <style>%s</style></head><body><div class="wrap">
-<h1>Вычитка рядом: корпус NEW100 против партии 711–715</h1>
+<h1>Вычитка рядом: корпус NEW100 против партии 741–745</h1>
 <p class="sub">Слева страница корпусного набора, справа наша страница того же типа.
 По %d соседа на манеру, выбранных счётом: это наборы, ближе всех стоящие к медиане своей
 группы. Бренд-переменные подсвечены, метрики каждой страницы — под её заголовком.</p>
