@@ -312,6 +312,23 @@ foreach ($блоки as $t => $ks) {
     foreach ($ks as $k => $vs) { foreach ($vs as $v => $h) { $выкладкаБлоков[$t][$k][$v] = array_values($h); } }
 }
 
+// Разделы, написанные нами, корпус не воспроизводит: сбор блоков их не
+// видит и перезаписью pools.json стёр бы молча. Признак своего раздела —
+// все доноры из семейства «наш*». Такие разделы переносим из прежнего
+// файла, а всё донорское оставляем как собрано.
+if (is_file("$данные/pools.json")) {
+    $прежние = json_decode((string) file_get_contents("$данные/pools.json"), true);
+    foreach (($прежние['разделы'] ?? []) as $тип => $секции) {
+        foreach ($секции as $h => $r) {
+            $доноры = $r['доноры'] ?? [];
+            if (!$доноры || isset($разделы[$тип][$h])) { continue; }
+            $свой = true;
+            foreach ($доноры as $д) { if (!str_starts_with((string) $д, 'наш')) { $свой = false; break; } }
+            if ($свой) { $разделы[$тип][$h] = $r; $допСчёт['свой раздел'] = ($допСчёт['свой раздел'] ?? 0) + 1; }
+        }
+    }
+}
+
 if (!is_dir($данные)) { mkdir($данные, 0777, true); }
 $опции = JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES;
 file_put_contents("$данные/bloki.json", json_encode([
