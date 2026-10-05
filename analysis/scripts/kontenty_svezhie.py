@@ -65,10 +65,13 @@ cell = collections.defaultdict(lambda: [0, 0])
 for s, v in site.items():
     k = (v['d'], v['z']); cell[k][0] += clicks.get(s, 0); cell[k][1] += 1
 base = {k: a / b for k, (a, b) in cell.items() if b}
-# текст -> сайты, клики, прорыв
-T = collections.defaultdict(lambda: dict(n=0, c=0, hit=0, d='', z=None))
+# текст -> сайты, клики, прорыв, ожидание. Сайты одного контента переобходятся
+# не в один день: квота 150 в сутки на домен при 206 сайтах, поэтому 329 контентов
+# из 471 размазаны на два дня. Ожидание копится по каждому сайту отдельно.
+T = collections.defaultdict(lambda: dict(n=0, c=0, hit=0, exp=0.0, days=set(), z=None))
 for s, v in site.items():
-    g = T[v['c']]; g['n'] += 1; g['c'] += clicks.get(s, 0); g['d'] = v['d']; g['z'] = v['z']
+    g = T[v['c']]; g['n'] += 1; g['c'] += clicks.get(s, 0); g['z'] = v['z']
+    g['days'].add(v['d']); g['exp'] += base.get((v['d'], v['z']), 0)
     if clicks.get(s, 0):
         g['hit'] += 1
 F = collections.defaultdict(list)
@@ -78,7 +81,7 @@ for c, g in T.items():
 
 def norm(v):
     c = sum(g['c'] for _, g in v)
-    wb = sum(g['n'] * base.get((g['d'], g['z']), 0) for _, g in v)
+    wb = sum(g['exp'] for _, g in v)
     return c / wb if wb else 0
 
 
@@ -94,15 +97,15 @@ for f, v in F.items():
     v2 = sorted(v, key=lambda x: -x[1]['c'])
     n = sum(g['n'] for _, g in v)
     lol = 100 * sum(g['n'] for _, g in v if g['z'] == 'lol') / n
-    med = statistics.median([(g['c'] / g['n']) / base.get((g['d'], g['z']), 1) or 0 for _, g in v])
+    med = statistics.median([g['c'] / g['exp'] if g['exp'] else 0 for _, g in v])
     rows.append((norm(v), f, len(v), n, lol, norm(v2[1:]), norm(v2[2:]), med,
                  sum(1 for _, g in v if g['c'] == 0)))
 for k, f, t, n, lol, b1, b2, med, zero in sorted(rows, reverse=True):
     P(f'{f[:24]:<24} {t:>8} {n:>7} {lol:>5.0f}% {k:>7.2f}× {b1:>9.2f}× {b2:>9.2f}× {med:>15.2f} {zero:>4}/{t:<4}')
-P('\nЛучшие тексты (полные имена), к фону своего дня и зоны:')
-P(f'{"текст":<44} {"день":<11} {"зона":<6} {"кликов":>8} {"прорыв":>8} {"к фону":>8}')
-for c, g in sorted(T.items(), key=lambda x: -x[1]['c'])[:15]:
-    b = base.get((g['d'], g['z']), 0)
-    P(f'{c:<44} {g["d"]:<11} {g["z"]:<6} {g["c"]:>8} {100*g["hit"]/g["n"]:>7.1f}% '
-      f'{((g["c"]/g["n"])/b if b else 0):>7.1f}×')
+P('\nЛучшие тексты (полные имена), к фону своих дней и зоны:')
+P(f'{"текст":<44} {"дни":<13} {"зона":<6} {"сайтов":>7} {"кликов":>8} {"прорыв":>8} {"к фону":>8}')
+for c, g in sorted(T.items(), key=lambda x: -x[1]['c'])[:20]:
+    dd = '/'.join(d[5:] for d in sorted(g['days']))
+    P(f'{c:<44} {dd:<13} {g["z"]:<6} {g["n"]:>7} {g["c"]:>8} {100*g["hit"]/g["n"]:>7.1f}% '
+      f'{(g["c"]/g["exp"] if g["exp"] else 0):>7.1f}×')
 open(out_p, 'w', encoding='utf-8').write('\n'.join(out) + '\n')
