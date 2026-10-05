@@ -28,7 +28,7 @@ final class PageMetrics
         'myth' => ['зачинов «а на деле»', 0],
         'insider' => ['заявок на закрытое знание', 0],
         'letter' => ['шаблонов обращения', 0],
-        'imperatives' => ['императивов', 0], 'numbers_per100' => ['цифр на 100 слов', 1],
+        'imperatives' => ['императивов', 0], 'imperatives_all' => ['императивов, обе формы', 0], 'numbers_per100' => ['цифр на 100 слов', 1],
         'adj_pct' => ['прилагательных %', 1], 'nausea_acad' => ['тошнота %', 1], 'water' => ['водность %', 1],
         'brand_ru' => ['бренд кириллицей', 0], 'brand_en' => ['бренд латиницей', 0],
         // Общий счёт бренда сходился, а расположение расходилось: у образца
@@ -361,6 +361,7 @@ final class PageMetrics
             'faq' => (int) $s['faq_questions'], 'emoji' => (int) $s['emoji'],
             'first_person' => (int) $s['first_person'], 'vy' => (int) $s['second_person'],
             'imperatives' => (int) $s['imperatives'],
+            'imperatives_all' => (int) ($s['imperatives_all'] ?? 0),
             'numbers_per100' => round((float) $s['numbers_per_100w'], 1),
             'adj_pct' => round((float) $s['adj_pct'], 1),
             'nausea_acad' => round((float) $m['nausea_academic'], 1),
