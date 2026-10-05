@@ -24,10 +24,7 @@ use YandexSites\Filter\OwnSites;
  */
 final class SerpAnalysis
 {
-    /** Причина «наш» по накопленному списку наших доменов (вторая причина — конкретная метка). */
-    public const REASON_LIST = 'домен в списке наших';
-
-    /** Причина «наш» по выгрузке из системы запусков — самая точная: список даёт сама система. */
+    /** ЕДИНСТВЕННАЯ причина «наш»: сайт запущен в системе запусков (список даёт сама система). */
     public const REASON_DORGEN = 'запущен в dorgen';
 
     /** Индекс прошлого сбора для сравнения — рядом с историей, переживает обновление кода. */
@@ -85,21 +82,12 @@ final class SerpAnalysis
      *
      * @param iterable<array{query: string, position: int, host: string, url: string, title: string, snippet: string, reason: string}> $rows
      * @param int $top оставить только первые N позиций каждого запроса (0 — все)
-     * @param OwnSites|null $own метки наших шаблонов: дор помечается «наш» по домену/адресу
-     * @param array<int, string> $ownDomains накопленный список НАШИХ доменов (runs/own-domains.txt)
-     * @param array<string, bool> $dorgenBases наши БАЗЫ из системы запусков (Dorgen\OwnBases): самый
-     *        точный источник — сверяем последние две метки хоста, метки и список доменов остаются как были
+     * @param OwnSites|null $own список запущенных доменов из системы запусков: по нему и только по нему
+     *        дор помечается «наш» (сверка по базе = регистрируемому домену хоста)
      * @return array<string, mixed>
      */
-    public static function build(iterable $rows, int $top = 10, ?OwnSites $own = null, array $ownDomains = [], array $dorgenBases = []): array
+    public static function build(iterable $rows, int $top = 10, ?OwnSites $own = null): array
     {
-        $ourDomains = [];
-        foreach ($ownDomains as $domain) {
-            $domain = Domains::normalize(trim((string) $domain));
-            if ($domain !== '') {
-                $ourDomains[$domain] = true;
-            }
-        }
         $brands = [];
         $results = 0;
         $hostBrands = []; // host => [brandKey => true] — сколько РАЗНЫХ брендов держится на домене
@@ -133,7 +121,7 @@ final class SerpAnalysis
                 'reason' => (string) ($row['reason'] ?? ''),
             ];
             if (!isset($brands[$bucket]['hosts'][$host])) {
-                $reason = self::ownReason($host, $own, $ourDomains, $dorgenBases);
+                $reason = self::ownReason($host, $own);
                 $brands[$bucket]['hosts'][$host] = ['type' => $type, 'keys' => [], 'count' => 0,
                     'own' => $reason !== '', 'own_reason' => $reason];
             }
@@ -229,29 +217,18 @@ final class SerpAnalysis
      * и метка вроде «faro» помечала нашим любой чужой `site.top/faro-bonus`. Пользователь получил
      * «много доров определены как наши» на зонах, которых у него вообще нет.
      *
-     * @param array<string, bool> $ourDomains
-     * @param array<string, bool> $dorgenBases
      */
-    private static function ownReason(string $host, ?OwnSites $own, array $ourDomains, array $dorgenBases = []): string
+    private static function ownReason(string $host, ?OwnSites $own): string
     {
-        $host = Domains::normalize($host);
-        if ($host === '') {
-            return '';
-        }
-        // Выгрузка из системы запусков — первая и самая точная проверка: список даёт сама система,
-        // гадать по меткам не нужно. Сверяем базу — последние две метки хоста (leebet.4916.team → 4916.team).
-        if ($dorgenBases !== [] && isset($dorgenBases[\YandexSites\Dorgen\DorgenClient::baseOf($host)])) {
-            return self::REASON_DORGEN;
-        }
-        if (isset($ourDomains[$host]) || isset($ourDomains[Domains::registrable($host)])) {
-            return self::REASON_LIST;
-        }
         if ($own === null || $own->isEmpty()) {
             return '';
         }
-        $marker = $own->markerForHost($host);
-
-        return $marker !== '' ? 'метка «' . $marker . '»' : '';
+        $host = Domains::normalize($host);
+        // ТОЛЬКО список из системы запусков. HTML здесь нет (разбор строится по строкам выдачи), и
+        // гадать по адресу больше не нужно: раньше метка вроде «faro» помечала нашим любой чужой
+        // site.top/faro-bonus, и пользователь получил «много доров определены как наши» в зонах,
+        // которых у него нет вовсе.
+        return $host !== '' && $own->matchesBase($host) ? self::REASON_DORGEN : '';
     }
 
     /**

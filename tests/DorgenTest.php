@@ -52,6 +52,12 @@ final class DorgenTest
         Assert::same('4916.team', DorgenClient::baseOf('4916.team'));
         Assert::same('4916.team', DorgenClient::baseOf('WWW.4916.TEAM'), 'регистр и www не мешают');
         Assert::same('', DorgenClient::baseOf('localhost'), 'без точки базы нет');
+        // ЗОНА базой быть не может: прежняя версия брала две последние метки, и у базы в зоне второго
+        // уровня «базой» становился сам суффикс net.ru — нашими оказывались ВСЕ сайты зоны.
+        Assert::same('4916.net.ru', DorgenClient::baseOf('leebet.4916.net.ru'), 'зона второго уровня: база из трёх меток');
+        Assert::same('brand.com.ru', DorgenClient::baseOf('kush.brand.com.ru'));
+        Assert::same('', DorgenClient::baseOf('net.ru'), 'сама зона базой не становится');
+        Assert::same('', DorgenClient::baseOf('co.uk'));
         Assert::same('', DorgenClient::baseOf(''));
     }
 
@@ -111,12 +117,12 @@ final class DorgenTest
 
     public function testSerpAnalysisMarksOursByDorgenBases(): void
     {
-        // Выгрузка — самый точный источник: он перебивает догадки по меткам и понятен в отчёте.
+        // Выгрузка — ЕДИНСТВЕННЫЙ источник «наш»: догадки по меткам и спискам доменов убраны.
         $row = static fn (string $host): array => ['query' => 'вулкан казино', 'position' => 1, 'host' => $host,
             'url' => "https://$host/", 'title' => 'Вулкан', 'snippet' => 'казино', 'reason' => 'selected'];
         $rows = [$row('leebet.4916.team'), $row('kush.stranger.top')];
 
-        $a = SerpAnalysis::build($rows, 10, new OwnSites([]), [], ['4916.team' => true]);
+        $a = SerpAnalysis::build($rows, 10, new OwnSites(['4916.team' => true]));
         $hosts = $a['brands'][0]['hosts'];
         Assert::true($hosts['leebet.4916.team']['own'], 'база из выгрузки — наш');
         Assert::same(SerpAnalysis::REASON_DORGEN, $hosts['leebet.4916.team']['own_reason'], 'причина названа');
@@ -124,10 +130,9 @@ final class DorgenTest
         Assert::same(1, $a['own']['doors']);
         Assert::same([SerpAnalysis::REASON_DORGEN => 1], $a['own']['by_reason']);
 
-        // Без выгрузки прежняя логика не меняется: метки и список доменов работают как работали.
-        $b = SerpAnalysis::build($rows, 10, new OwnSites(['4916.team']), []);
-        Assert::true($b['brands'][0]['hosts']['leebet.4916.team']['own'], 'метка по-прежнему работает');
-        Assert::same('метка «4916.team»', $b['brands'][0]['hosts']['leebet.4916.team']['own_reason']);
+        // Без выгрузки наших не определяем вовсе — других источников больше нет.
+        $b = SerpAnalysis::build($rows, 10, new OwnSites([]));
+        Assert::same(0, $b['own']['doors'], 'пустой список — наших нет');
     }
 
     public function testNoTokenMeansFeatureIsSimplyOff(): void

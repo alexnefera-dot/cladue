@@ -224,77 +224,6 @@ final class PanelTest
         Assert::true($s3['stats']['sites_selected'] > 0, 'без пропуска известных доменов сайты отобраны снова');
     }
 
-    public function testOwnDomainsAreSeededFromDiskAndCountedAmongRepeats(): void
-    {
-        // Домен, который уже есть в базе пересечений, повторный сбор даже не открывает — а «наш»
-        // ставится только при визите, по меткам в HTML. Поэтому наши шаблоны, собранные раньше,
-        // в статистике не всплывали: «наших» было столько, сколько нашлось свежих. Список наших
-        // доменов достраивается тем, что помнит диск (таблица, убранные сайты, папки pages/наши),
-        // и ручным own-domains.txt в корне проекта.
-        $port = FakeServer::port();
-        $dir = $this->projectDir($port);
-        $this->projectDirReset($port);
-        $runDir = $dir . '/runs/ownseed';
-        mkdir($runDir, 0777, true);
-        @unlink($dir . '/runs/domains-base.txt');
-        @unlink($dir . '/runs/own-domains.txt');
-        @unlink($dir . '/runs/history.json');
-        $settings = json_encode([
-            'queries' => ['пластиковые окна', 'остекление балконов'],
-            'source' => 'xmlstock',
-            'top' => 0,
-            'dedupe_domain' => true,
-            'allowed_tlds' => [],
-            'skip_known' => true,
-            'visit' => false,
-            'preview_shots' => false,
-        ]);
-        file_put_contents($runDir . '/settings.json', $settings);
-
-        // Первый сбор: домены уходят в базу пересечений, таблица — в sites.json.
-        $first = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
-        Assert::same(0, $first['code'], $first['out']);
-        $table = json_decode((string) file_get_contents($runDir . '/sites.json'), true);
-        $hosts = array_map(static fn (array $row): string => (string) $row['host'], $table['sites']);
-        Assert::true(count($hosts) >= 2, 'первый сбор отобрал сайты: ' . implode(', ', $hosts));
-
-        // Так выглядит диск после прошлых сборов: один сайт помечен нашим в таблице, второй убран
-        // кнопкой «Убрать наши», третий лежит папкой в раскладке, четвёртый вписан руками.
-        $inTable = $hosts[0];
-        $removed = $hosts[1];
-        foreach ($table['sites'] as $i => $row) {
-            if ($row['host'] === $inTable) {
-                $table['sites'][$i]['own'] = true;
-            }
-        }
-        file_put_contents($runDir . '/sites.json', json_encode($table));
-        file_put_contents($runDir . '/removed.json', json_encode(['hosts' => [
-            $removed => ['row' => ['host' => $removed, 'domain' => $removed, 'own' => true], 'status_row' => null, 'paths' => [], 'removed_at' => date(DATE_ATOM)],
-        ]]));
-        mkdir($runDir . '/pages/наши/folder-own.ru', 0777, true);
-        file_put_contents($dir . '/own-domains.txt', "# свои домены
-MANUAL-OWN.RU
-мусор без точки
-");
-
-        // Повторный сбор теми же запросами: все домены — повторы, ни одного визита.
-        file_put_contents($runDir . '/settings.json', $settings);
-        $second = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
-        Assert::same(0, $second['code'], $second['out']);
-
-        $own = array_map('trim', file($dir . '/runs/own-domains.txt', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: []);
-        Assert::true(in_array('manual-own.ru', $own, true), 'ручной own-domains.txt подмешан: ' . implode(', ', $own));
-        Assert::true(in_array('folder-own.ru', $own, true), 'папка pages/наши подмешана: ' . implode(', ', $own));
-        Assert::true(in_array($inTable, $own, true), 'строка «наш» из таблицы подмешана: ' . implode(', ', $own));
-        Assert::true(in_array($removed, $own, true), 'убранный кнопкой «Убрать наши» тоже наш: ' . implode(', ', $own));
-        Assert::true(!in_array('мусор без точки', $own, true), 'строка, не похожая на адрес, в список наших не идёт');
-
-        $record = CollectHistory::load($dir . '/runs')[0];
-        Assert::same(2, $record['own_repeats'], 'оба наших домена пришли повторами, открывать их не пришлось');
-        Assert::same(2, $record['own'], 'в «наших» попали старые домены, а не только свежие');
-        Assert::true(($record['own_known'] ?? 0) >= 4, 'в списке наших доменов видно, сколько их вообще известно');
-    }
-
     public function testResumeCollectContinuesQueueAndMergesTable(): void
     {
         // Большой список обрабатывается частями: после остановки очередь помнит позицию, «Продолжить сбор»
@@ -812,45 +741,56 @@ MANUAL-OWN.RU
         @rmdir($dir);
     }
 
-    public function testOwnMarkersFromPanelSettingsMarkSite(): void
+    public function testCollectComparesSelectedSitesWithLaunchSystemListAtTheEnd(): void
     {
-        // Метки наших шаблонов задаются В ПАНЕЛИ («Настройки» → «Метки наших шаблонов»), а не правкой
-        // файла на диске: пользователь работает только через веб-интерфейс. Метка домена НАШЕГО
-        // редиректора должна ловить дор по промежуточному хопу цепочки редиректов.
-        $port = FakeServer::port('local');
-        $dir = sys_get_temp_dir() . '/yandex-sites-ownmark-' . uniqid();
-        $runDir = $dir . '/runs/own';
+        // «Перед сбором мы выкачиваем с апи новый список и в конце сбора сравниваем с ним»: сверка
+        // идёт по КАЖДОМУ отобранному сайту и не зависит ни от визита, ни от содержимого страницы —
+        // здесь визиты выключены вовсе (preview_shots=false), а пометка всё равно должна появиться.
+        $port = FakeServer::port();
+        $dir = $this->projectDir($port);
+        $this->projectDirReset($port);
+        $runDir = $dir . '/runs/ownend';
         mkdir($runDir, 0777, true);
-        file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
-        file_put_contents($runDir . '/sites.json', json_encode(['sites' => [
-            [
-                'host' => 'ourdoor.ru', 'domain' => 'ourdoor.ru', 'url' => "http://ourdoor.ru:$port/",
-                'title' => 'T', 'best_query' => 'к', 'best_position' => 1, 'queries_count' => 1,
-            ],
-        ]]));
+        @unlink($dir . '/runs/domains-base.txt');
+        // Фейковая выдача содержит okna-moskva.ru и его поддомен shop.okna-moskva.ru — берём их базу.
+        file_put_contents($dir . '/runs/' . \YandexSites\Dorgen\OwnBases::FILE, (string) json_encode([
+            'updated_at' => date(DATE_ATOM), 'date_from' => '2026-10-01', 'date_to' => date('Y-m-d'),
+            'bases' => ['okna-moskva.ru' => ['subdomains' => 2, 'first_seen' => '2026-10-01']],
+        ]));
         file_put_contents($runDir . '/settings.json', json_encode([
-            'stage' => 'preview',
-            'visit_driver' => 'curl',
-            'only' => ['ourdoor.ru'],
-            'own_markers' => ['redir-hub.ru'], // домен нашего редиректора — промежуточный адрес
-            'visit_resolve' => [
-                "ourdoor.ru:$port:127.0.0.1",
-                "redir-hub.ru:$port:127.0.0.1",
-                "other-domain.ru:$port:127.0.0.1",
-            ],
+            'queries' => ['пластиковые окна'],
+            'source' => 'xmlstock',
+            'top' => 0,
+            'visit' => false,
+            'preview_shots' => false, // ни одного визита: решает только сверка со списком
+            'repeat_hours' => 0,
         ]));
 
         $run = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
         Assert::same(0, $run['code'], $run['out']);
 
-        $saved = json_decode((string) file_get_contents($runDir . '/sites.json'), true);
-        Assert::true((bool) ($saved['sites'][0]['own'] ?? false), 'сайт помечен нашим по метке из настроек панели: ' . $run['out']);
-
-        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
-        foreach ($it as $item) {
-            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        $sites = json_decode((string) file_get_contents($runDir . '/sites.json'), true);
+        $own = [];
+        $foreign = [];
+        foreach ((array) ($sites['sites'] ?? []) as $row) {
+            if ($row['own'] ?? false) {
+                $own[] = (string) $row['host'];
+            } else {
+                $foreign[] = (string) $row['host'];
+            }
         }
-        @rmdir($dir);
+        Assert::same(['okna-moskva.ru'], $own, 'наш сайт найден сверкой, без всякого визита');
+        Assert::true(count($foreign) > 0, 'остальные сайты остались чужими');
+        Assert::notInArray('okna-moskva.ru', $foreign);
+
+        $log = (string) file_get_contents($runDir . '/run.log');
+        Assert::contains('Сверка со списком системы запусков: наших сайтов 1', $log);
+        Assert::contains('Наши сайты (по списку системы запусков)', $log);
+
+        // В статистике это же число, и видно, сколько баз участвовало в сверке.
+        $history = json_decode((string) file_get_contents($dir . '/runs/history.json'), true);
+        Assert::same(1, (int) ($history[0]['own_selected'] ?? 0), 'в записи истории наш один');
+        Assert::same(1, (int) ($history[0]['own_bases'] ?? 0), 'сверка шла по списку из одной базы');
     }
 
     public function testLaunchSystemBasesMarkOwnSitesInTableAndStats(): void
@@ -882,7 +822,6 @@ MANUAL-OWN.RU
             'stage' => 'preview',
             'visit_driver' => 'curl',
             'only' => ['kush.brandnet.ru', 'okna-moskva.ru'],
-            'own_markers' => [], // меток нет: пометка может прийти только из системы запусков
             'visit_resolve' => [
                 "kush.brandnet.ru:$port:127.0.0.1",
                 "okna-moskva.ru:$port:127.0.0.1",
@@ -941,7 +880,6 @@ MANUAL-OWN.RU
             'stage' => 'preview',
             'visit_driver' => 'curl',
             'only' => ['okna-moskva.ru'],
-            'own_markers' => [],
             'visit_resolve' => ["okna-moskva.ru:$port:127.0.0.1"],
         ];
         $basesFile = $dir . '/runs/' . \YandexSites\Dorgen\OwnBases::FILE;
@@ -1557,8 +1495,13 @@ MANUAL-OWN.RU
         $runDir = $dir . '/runs/current';
         mkdir($runDir, 0777, true);
         file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
-        // Метка наших шаблонов приходит из настроек панели — тем же полем, что и на главной.
-        file_put_contents($runDir . '/settings.json', json_encode(['own_markers' => ['grid-x.ru']], JSON_UNESCAPED_UNICODE));
+        file_put_contents($runDir . '/settings.json', json_encode([], JSON_UNESCAPED_UNICODE));
+        // «Наш» определяется ТОЛЬКО списком из системы запусков — его и кладём в кэш выгрузки.
+        mkdir($dir . '/runs', 0777, true);
+        file_put_contents($dir . '/runs/' . \YandexSites\Dorgen\OwnBases::FILE, (string) json_encode([
+            'updated_at' => date(DATE_ATOM), 'date_from' => '2026-10-01', 'date_to' => date('Y-m-d'),
+            'bases' => ['grid-x.ru' => ['subdomains' => 3, 'first_seen' => '2026-10-01']],
+        ]));
         $mk = static fn (string $q, int $pos, string $host, string $title, string $reason): array => [
             'result' => new \YandexSites\Model\SearchResult($q, 0, $pos, "https://$host/", $host, $title, '', 'казино онлайн'),
             'reason' => $reason === 'selected' ? null : $reason,
@@ -1630,7 +1573,7 @@ MANUAL-OWN.RU
             Assert::same(1, $j['repeats']['sites'], 'сайт держится сразу на двух брендах');
             Assert::same(1, $j['repeats']['by_type']['door']);
             Assert::same(3, $j['sites'], 'разных сайтов в сборе');
-            // Дор опознан как НАШ по метке из настроек панели.
+            // Дор опознан как НАШ по списку из системы запусков (других источников нет).
             Assert::same(1, $j['own']['doors'], 'наших доров всего');
             Assert::same(1, $byKey['vulkan']['own_doors'], 'наших доров у бренда');
 
@@ -1671,7 +1614,9 @@ MANUAL-OWN.RU
                 }
             }
             Assert::same('done', $prog['state'] ?? '', 'выгрузка дошла до конца: ' . json_encode($prog, JSON_UNESCAPED_UNICODE));
-            Assert::same(2, $prog['bases'], 'базы выгружены по ключу из настроек');
+            // В кэше уже была база grid-x.ru, фейковый API добавляет ещё две.
+            Assert::same(3, $prog['bases'], 'базы выгружены по ключу из настроек и добавлены к прежним');
+            Assert::same(2, $prog['new_bases'] ?? 0, 'две из них новые');
             Assert::same(3, $prog['rows'], 'строк прочитано — видно в прогрессе');
             Assert::true(($prog['pages'] ?? 0) >= 2, 'обе страницы курсора отражены в прогрессе');
 

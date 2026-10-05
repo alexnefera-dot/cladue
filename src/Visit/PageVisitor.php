@@ -48,7 +48,7 @@ final class PageVisitor
         // значит «не менять агент», иначе это браузеры из того же visit.user_agents.
         $this->retryAgents = ($cfg['retry_user_agents'] ?? true) ? UserAgents::browsersFrom($this->userAgents) : [];
         $this->detectOfferWalls = (bool) ($cfg['detect_offer_walls'] ?? true);
-        $this->ownSites = new OwnSites(array_values(array_filter((array) ($cfg['own_markers'] ?? []), 'is_string')), (array) ($cfg['own_bases'] ?? []));
+        $this->ownSites = new OwnSites((array) ($cfg['own_bases'] ?? []));
     }
 
     public function driver(): DriverInterface
@@ -328,34 +328,22 @@ final class PageVisitor
         $shot = static fn (): string => ($job->screenshotFile !== null && is_file($job->screenshotFile)) ? $job->screenshotFile : '';
         $html = ($visit['ok'] && is_file($job->htmlFile)) ? $this->readHtml($job->htmlFile) : '';
 
-        // НАШ ШАБЛОН проверяем ПЕРВЫМ — до отбраковки редиректа на чужой сайт. Наш дор сначала уводит
-        // на свой редиректор, а тот дальше на чужую партнёрскую ссылку, так что «уход на другой сайт»
-        // — это как раз нормальное поведение НАШЕГО сайта. Если сначала отбросить визит по редиректу,
-        // метка никогда не проверится и сайт перестанет считаться нашим.
+        // НАШ САЙТ проверяем ПЕРВЫМ — до отбраковки редиректа на чужой сайт: наш дор сначала уводит на
+        // свой редиректор, а тот дальше на чужую партнёрскую ссылку, так что «уход на другой сайт» —
+        // это как раз нормальное поведение НАШЕГО сайта.
+        //
+        // Единственный источник — список запущенных доменов из системы запусков (сверка по базе).
+        // Никаких догадок: ни по HTML, ни по офферной витрине, ни по скриншоту. Содержимое страницы
+        // здесь вообще не смотрим, поэтому проверка работает и на упавшем визите — цепочка редиректов
+        // известна и без страницы.
         if (!$this->ownSites->isEmpty()) {
-            // По АДРЕСАМ проверяем ВСЕГДА, даже если страница не открылась (таймаут, блок, антибот):
-            // цепочка редиректов уже известна, и метка стоит как раз на промежуточном адресе. Раньше
-            // вся проверка стояла за «если HTML сохранился», и на упавших визитах наши сайты молча
-            // переставали считаться нашими — «наши пропускаешь все равно».
             $chain = array_merge([$job->url, $visit['final_url']], $visit['redirects']);
             $host = Domains::hostFromUrl($visit['final_url'] !== '' ? $visit['final_url'] : $job->url);
-            // ПОЧЕМУ наш — сохраняем вместе с признаком: иначе в таблице не отличить точную пометку
-            // из системы запусков от догадки по метке, а пользователь спрашивал ровно это («точно
-            // работает система?»). Порядок = порядок точности: база из системы запусков, потом метка.
-            $reason = '';
             if ($this->ownSites->matchesBase($host) || $this->ownSites->matchesBaseInUrls($chain)) {
-                $reason = OwnSites::REASON_BASE;
-            } elseif ($this->ownSites->matchesHost($host) || $this->ownSites->matchesAnyUrl($chain)) {
-                $marker = $this->ownSites->markerForHost($host);
-                $reason = $marker !== '' ? 'метка «' . $marker . '»' : 'метка в адресе';
-            } elseif ($html !== '' && $this->ownSites->matchesHtml($html)) {
-                $reason = 'метка в HTML';
-            }
-            if ($reason !== '') {
-                // Наш шаблон — HTML не храним, но скриншот оставляем, чтобы можно было проверить глазами.
+                // Наш сайт — HTML не храним, но скриншот оставляем, чтобы можно было глянуть глазами.
                 @unlink($job->htmlFile);
 
-                return array_merge($visit, ['ok' => false, 'error' => 'исключён как наш', 'own' => true, 'own_reason' => $reason, 'screenshot_file' => $shot()]);
+                return array_merge($visit, ['ok' => false, 'error' => 'исключён как наш', 'own' => true, 'own_reason' => OwnSites::REASON_BASE, 'screenshot_file' => $shot()]);
             }
         }
 

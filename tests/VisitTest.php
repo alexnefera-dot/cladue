@@ -853,7 +853,7 @@ final class VisitTest
             'target' => 'found',
             'dir' => $dir,
             'screenshot' => true,
-            'own_markers' => ['OWNMARK123'],
+            'own_bases' => ['ourhost.ru'], // «наш» — только по списку из системы запусков
         ], $driver, $this->logger());
         $visitor->visit($sites);
 
@@ -865,7 +865,7 @@ final class VisitTest
 
     public function testCrawlExcludesOwnTemplate(): void
     {
-        // Наш шаблон опознаётся по метке в HTML — сайт исключается целиком, страницы не сохраняются.
+        // Наш сайт есть в списке системы запусков — исключается целиком, страницы не сохраняются.
         $port = FakeServer::port();
         $dir = $this->dir() . '/own';
         $site = new Site('ourtpl.ru', 'ourtpl.ru', 'ourtpl.ru');
@@ -878,7 +878,7 @@ final class VisitTest
             'target' => 'found',
             'dir' => $dir,
             'screenshot' => false,
-            'own_markers' => ['OWNMARK123'],
+            'own_bases' => ['ourtpl.ru'],
             'timeout' => 5,
             'delay_ms' => 0,
             'concurrency' => 3,
@@ -1087,7 +1087,7 @@ final class VisitTest
             'screenshot' => false, 'timeout' => 5, 'delay_ms' => 0, 'concurrency' => 2,
             'retries' => 0, 'preview_retries' => 0, 'resolve' => $this->resolve($port),
             'user_agents' => [UserAgents::YANDEX_BOT],
-            'own_markers' => ['redir-hub.ru'], // домен НАШЕГО редиректора — промежуточный хоп
+            'own_bases' => ['redir-hub.ru'], // база НАШЕГО редиректора — промежуточный хоп
         ];
         (new PageVisitor($cfg, new CurlDriver(), $this->logger()))->visit($sites);
 
@@ -1108,9 +1108,8 @@ final class VisitTest
 
     public function testOwnSiteIsDetectedByLaunchSystemBaseWithoutMarkers(): void
     {
-        // ТОЧНЫЙ источник «наш»: базы из системы запусков (dorgen). Меток нет вовсе — сайт должен
-        // опознаться по базе (последние две метки хоста), и причина должна быть записана в визит,
-        // чтобы в таблице было видно, что пометка проверенная, а не совпадение метки.
+        // ЕДИНСТВЕННЫЙ источник «наш»: список запущенных доменов из системы запусков. Сверка по базе
+        // (регистрируемому домену хоста), причина записывается в визит — в таблице видно, откуда пометка.
         $port = FakeServer::port();
         $dir = $this->dir() . '/ownbase';
         // Дор на поддомене нашей базы: база — ПОСЛЕДНИЕ ДВЕ МЕТКИ хоста (kush.brandnet.ru → brandnet.ru),
@@ -1124,7 +1123,6 @@ final class VisitTest
             'screenshot' => false, 'timeout' => 5, 'delay_ms' => 0, 'concurrency' => 2,
             'retries' => 0, 'preview_retries' => 0, 'resolve' => $this->resolve($port),
             'user_agents' => [UserAgents::YANDEX_BOT],
-            'own_markers' => [],                        // меток нет — работает только выгрузка
             'own_bases' => ['brandnet.ru'],             // база из системы запусков
         ];
         (new PageVisitor($cfg, new CurlDriver(), $this->logger()))->visit($sites);
@@ -1132,7 +1130,7 @@ final class VisitTest
         $visit = (array) $site->visits[0];
         Assert::true($site->own, 'сайт опознан нашим по базе из системы запусков');
         Assert::contains('исключён как наш', (string) ($visit['error'] ?? ''));
-        Assert::same(OwnSites::REASON_BASE, (string) ($visit['own_reason'] ?? ''), 'причина названа — пометка точная, не по метке');
+        Assert::same(OwnSites::REASON_BASE, (string) ($visit['own_reason'] ?? ''), 'причина одна: список из системы запусков');
         Assert::false(is_file((string) ($visit['html_file'] ?? '')), 'HTML нашего шаблона не храним');
 
         // Чужая база нашим сайт не делает.
@@ -1167,7 +1165,7 @@ final class VisitTest
             'screenshot' => false, 'timeout' => 5, 'delay_ms' => 0, 'concurrency' => 2,
             'retries' => 0, 'preview_retries' => 0, 'resolve' => $this->resolve($port),
             'user_agents' => [UserAgents::YANDEX_BOT],
-            'own_markers' => ['redir-hub.ru'], // домен НАШЕГО редиректора — промежуточный хоп
+            'own_bases' => ['redir-hub.ru'], // база НАШЕГО редиректора — промежуточный хоп
         ];
         (new PageVisitor($cfg, new CurlDriver(), $this->logger()))->visit($sites);
 

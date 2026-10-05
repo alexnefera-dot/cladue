@@ -88,6 +88,22 @@ final class Domains
     }
 
     /**
+     * Это ЗОНА целиком, а не чей-то домен: `ru`, `team` или домен второго уровня `net.ru`, `co.uk`.
+     *
+     * Нужно, чтобы такая строка никогда не попала в список «наших»: пометка по зоне сделала бы нашими
+     * ВСЕ сайты зоны. Именно так и вышло у пользователя — «исключён как наш, но это не наш».
+     */
+    public static function isPublicSuffix(string $host): bool
+    {
+        $host = mb_strtolower(trim($host, ". \t\n\r"));
+        if ($host === '') {
+            return true;
+        }
+
+        return !str_contains($host, '.') || in_array($host, self::SECOND_LEVEL, true);
+    }
+
+    /**
      * Регистрируемый домен: example.ru для shop.example.ru, example.msk.ru для www.example.msk.ru.
      */
     public static function registrable(string $host): string

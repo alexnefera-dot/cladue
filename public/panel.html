@@ -245,9 +245,6 @@
         <div class="hint" style="margin-bottom:4px">В базе доменов: <b id="baseCount">0</b> · <a href="#" id="resetBase" title="Очистить базу собранных доменов И удалить рабочие файлы: скачанные страницы, очищенный контент, превью и списки. Статистика сборов, запросы и настройки останутся — историю чистит соседняя кнопка">очистить базу и файлы</a> · <a href="#" id="resetHistory" title="Удалить только историю сборов со вкладки «Статистика» (runs/history.json). База доменов, скачанные страницы и контент останутся на месте">очистить статистику</a></div>
         <label>Исключить домены дополнительно <span class="hint">через запятую</span></label>
         <input type="text" id="exclude" placeholder="competitor.ru, spam.ru">
-        <label style="margin-top:10px">Метки наших шаблонов <span class="hint">по одной на строку — по ним сайт помечается «исключён как наш» и не скачивается</span></label>
-        <textarea id="ownmarkers" style="min-height:90px" placeholder="sitegrator&#10;faro&#10;a1b2c3d4e5f6a7b8"></textarea>
-        <div class="hint">Метка — то, что стабильно есть у нашего шаблона и почти наверняка нет у чужих: домен размещения, <b>домен редиректора</b> (наш дор сначала уводит на него, а тот дальше — на рефку; в конечном адресе его уже нет, поэтому проверяется вся цепочка редиректов — и даже если страница не открылась), токен из <code>&lt;head&gt;</code>, путь к ассетам. Метка <b>без «/»</b> — имя: ищется по границам слова, поэтому «faro» поймает faro.com, go.faro.net и casino-faro.ru, но не заденет чужой safaro.ru. Метка <b>с «/»</b> — путь, ищется подстрокой. Встроенная метка <code>/uploads/brands/</code> работает всегда, её вписывать не нужно. Метки хранятся только на этом компьютере (в настройках панели и в файле own-markers.txt) и никуда не отправляются.</div>
       </div>
 
   <div class="card tabsec" data-tab="config">
@@ -300,7 +297,7 @@
 
   <div class="card tabsec" data-tab="stats">
     <h2>Статистика сборов</h2>
-    <div class="hint">Воронка сбора: каждое число вытекает из предыдущего, проценты — на каждом шаге. Первый блок считается <b>от строк выдачи</b>, второй — <b>от сайтов выдачи</b> (это масса после склейки поддоменов одного домена: доры одной сетки — один сайт). Проверка сходимости: <b>сайтов в выдаче = срезано + отобрано</b>. «Отобрано» — результат фильтров, это ещё не значит «сайт открылся»: заходим мы на них позже. <b>Наши</b> узнаются двумя способами: точно — по базам из <b>системы запусков dorgen</b> (список даёт сама система; обновляется кнопкой «Обновить наши домены» на странице разбора выдачи), и по меткам в HTML страницы и в цепочке редиректов на превью-визите (скриншот — чтобы проверить глазами, по картинке ничего не определяется); их доля считается <b>от общего числа доров в выдаче</b> — наши шаблоны и есть доры, — и в число входят пришедшие повторами (домен уже в базе, сайт не открывали, но он наш) и срезанные по метке-домену. Свои домены копятся сами и добираются с диска; те, что собраны ещё раньше, можно вписать в <b>own-domains.txt</b> в папке проекта — иначе среди повторов их не узнать (сколько их известно, видно в подсказке к числу наших). <b>Домены с 6+ брендами</b> — те, что держат на своих поддоменах сайты более чем пяти разных брендов (бренд берётся из поискового запроса; «Вулкан Вегас» и «Vulkan Vegas» — один бренд); полный список с названиями брендов лежит в <b>runs/current/brand-domains.txt</b> и скачивается ссылкой под таблицей результатов. Ниже — по строке на каждый сбор; клик по строке показывает её воронку. История хранится в <b>runs/history.json</b> и переживает обновление кода.</div>
+    <div class="hint">Воронка сбора: каждое число вытекает из предыдущего, проценты — на каждом шаге. Первый блок считается <b>от строк выдачи</b>, второй — <b>от сайтов выдачи</b> (это масса после склейки поддоменов одного домена: доры одной сетки — один сайт). Проверка сходимости: <b>сайтов в выдаче = срезано + отобрано</b>. «Отобрано» — результат фильтров, это ещё не значит «сайт открылся»: заходим мы на них позже. <b>Наши</b> определяются ТОЛЬКО по списку запущенных доменов из <b>системы запусков dorgen</b>: список догружается перед сбором, а в конце сбора с ним сверяется каждый отобранный сайт. Ни метки в HTML, ни офферная витрина, ни скриншот на это не влияют; их доля считается <b>от общего числа доров в выдаче</b> — наши шаблоны и есть доры, — и в число входят пришедшие повторами (домен уже в базе, сайт не открывали, но он наш) и срезанные по метке-домену. Свои домены копятся сами и добираются с диска; те, что собраны ещё раньше, можно вписать в <b>own-domains.txt</b> в папке проекта — иначе среди повторов их не узнать (сколько их известно, видно в подсказке к числу наших). <b>Домены с 6+ брендами</b> — те, что держат на своих поддоменах сайты более чем пяти разных брендов (бренд берётся из поискового запроса; «Вулкан Вегас» и «Vulkan Vegas» — один бренд); полный список с названиями брендов лежит в <b>runs/current/brand-domains.txt</b> и скачивается ссылкой под таблицей результатов. Ниже — по строке на каждый сбор; клик по строке показывает её воронку. История хранится в <b>runs/history.json</b> и переживает обновление кода.</div>
     <div class="row" style="align-items:center;gap:8px;margin:0 0 6px">
       <div style="flex:0 0 auto"><span class="hint">Показать воронку:</span></div>
       <div style="flex:0 0 260px"><select id="statRun" title="Один сбор или итог по всем сборам"></select></div>
@@ -383,7 +380,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const FIELDS = ['queries','source','region','pages','dedupe','scope','top','minq','tlds','exclude','skipknown','nocache','previewshots','visit','variants','driver','crawl','maxpages','useproxies','searchthreads','visitthreads','browsers','repeat','xmmode','xmdevice','xmdomain','xmextra','removeslots','ownmarkers','batchsize','cleanwhile','proxylist','dorgenauto'];
+const FIELDS = ['queries','source','region','pages','dedupe','scope','top','minq','tlds','exclude','skipknown','nocache','previewshots','visit','variants','driver','crawl','maxpages','useproxies','searchthreads','visitthreads','browsers','repeat','xmmode','xmdevice','xmdomain','xmextra','removeslots','batchsize','cleanwhile','proxylist','dorgenauto'];
 
 function loadLocal(){
   try{ const s = JSON.parse(localStorage.getItem('ys-panel')||'{}');
@@ -473,12 +470,11 @@ function fnSep(text){ return `<div class="fnsep">${text}</div>`; }
 // Из чего сложилось число наших: части появились с 1.21.0, у старых записей их нет.
 function ownParts(r){
   const parts=[];
-  if(r.own_selected!=null) parts.push(`открыты и опознаны по меткам: ${r.own_selected|0}`);
+  if(r.own_selected!=null) parts.push(`среди отобранных: ${r.own_selected|0}`);
   if(r.own_repeats!=null) parts.push(`повторами: ${r.own_repeats|0}`);
-  if(r.own_cut) parts.push(`срезано по метке-домену: ${r.own_cut|0}`);
-  if(r.own_known!=null) parts.push(`наших доменов в списке: ${r.own_known|0}${(r.own_known|0)?'':' — впишите свои домены в own-domains.txt, иначе среди повторов их не узнать'}`);
-  // Точный источник: базы из системы запусков. 0 — выгрузка не настроена, и «наши» считались по меткам.
-  if(r.own_bases!=null) parts.push(`баз из системы запусков: ${r.own_bases|0}${(r.own_bases|0)?'':' — выгрузка не настроена, считали только по меткам'}`);
+  if(r.own_cut) parts.push(`срезано на сборе: ${r.own_cut|0} (старая запись)`);
+  // Единственный источник: список из системы запусков. 0 — список пуст, наших не определяли вовсе.
+  if(r.own_bases!=null) parts.push(`баз в списке системы запусков: ${r.own_bases|0}${(r.own_bases|0)?'':' — список пуст, наших не определяли'}`);
   return parts.length ? '.\n\n'+parts.join('\n') : '';
 }
 function renderFunnel(r){
@@ -517,7 +513,7 @@ function renderFunnel(r){
     const own=r.own|0;
     h+=fnRow({sub:true, cls:'keep', label:'из них наших', value:num(own), width:share(own,doors),
       pct: doors>0 ? share(own,doors)+'% от доров' : '',
-      title:'Наши шаблоны: узнаём по меткам в HTML страницы (own-markers.txt) на превью-визите, а не по картинке скриншота.'
+      title:'Наши сайты: сверка со списком запущенных доменов из системы запусков в конце сбора. Ни меток, ни офферов, ни скриншотов.'
         + ' Считаются все, что стоят в выдаче: отобранные, пришедшие повторами (домен уже в базе, сайт мы не открывали) и срезанные по метке-домену'
         + ownParts(r)});
   }
@@ -678,7 +674,6 @@ function collectSettings(){
     preview_shots: $('previewshots').checked,
     allowed_tlds: $('tlds').value.split(',').map(s=>s.trim()).filter(Boolean),
     exclude_extra: $('exclude').value.split(',').map(s=>s.trim()).filter(Boolean),
-    own_markers: $('ownmarkers').value.split('\n').map(s=>s.trim()).filter(Boolean),
     proxies: $('proxylist').value.split('\n').map(s=>s.trim()).filter(Boolean),
     dorgen_auto: $('dorgenauto').checked,
     visit: $('visit').checked,
@@ -1146,7 +1141,7 @@ function updateStats(visible){
   if(st){
     if(!visible.length){ st.textContent=''; }
     else {
-      // Наши шаблоны узнаём по меткам в HTML страницы (own-markers.txt), не по картинке скриншота.
+      // Наши сайты — только по списку из системы запусков (сверка в конце сбора).
       // Процент здесь не пишем: доля наших считается от общего числа доров и живёт во вкладке «Статистика».
       let t=`Из ${visible.length}: наших ${c.own} · проблемных ${c.problem} · без ошибок (100%) ${c.full}`;
       // Страницы есть, но не все: не хватает только 404 и дубликатов — докачкой это не чинится,
@@ -1398,11 +1393,10 @@ function renderResults(sites){
   const tableHtml=shown.map((s,i)=>{
     let dl='—';
     if(s.own){
-      // ПОЧЕМУ наш: точный список из системы запусков или догадка по метке. Видно в подсказке, а у
-      // точного источника — и в самом теге: иначе не отличить проверенную пометку от совпадения метки.
+      // «Наш» ставится ТОЛЬКО по списку из системы запусков — другого источника нет, поэтому и
+      // причина одна. Старые сборы могли пометить сайт по меткам: там причина не записана.
       const r=s.own_reason||'';
-      const exact=r.startsWith('запущен');
-      dl=`<span class="tag" title="наш шаблон — исключён из выгрузки${r?'. Почему: '+esc(r):'. Причина не записана (сбор до 1.35.0)'}">исключён как наш${exact?' · из системы запусков':''}</span>`;
+      dl=`<span class="tag" title="наш сайт по списку из системы запусков — исключён из выгрузки${r?'. Почему: '+esc(r):'. Пометка от старого сбора (по меткам) — пересоберите, чтобы сверить со списком'}">исключён как наш</span>`;
     }
     else if(s.pages_total>0){ dl=`${s.pages_ok||0}/${s.pages_total}`; if((s.pages_ok||0)<s.pages_total && s.page_error) dl+=' '+errCell(s.page_error); if((s.pages_missing|0)>0) dl+=' '+errCell('нет файла на диске: '+s.pages_missing+' — докачайте'); }
     else if(s.page_error) dl=errCell(s.page_error);
@@ -1513,7 +1507,6 @@ function prefill(state){
     if(s.domain_scope)$('scope').value=s.domain_scope; if(s.min_queries)$('minq').value=s.min_queries;
     if(s.allowed_tlds)$('tlds').value=(s.allowed_tlds||[]).join(', ');
     if(s.exclude_extra)$('exclude').value=(s.exclude_extra||[]).join(', ');
-    if(s.own_markers)$('ownmarkers').value=(s.own_markers||[]).join('\n');
     if(s.proxies)$('proxylist').value=(s.proxies||[]).join('\n');
     if(s.dorgen_auto!=null)$('dorgenauto').checked=!!s.dorgen_auto;
     $('visit').checked=!!s.visit; if(s.variants)$('variants').value=s.variants;

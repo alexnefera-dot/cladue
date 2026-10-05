@@ -298,56 +298,24 @@ function rmTree(string $dir): void
 }
 
 /**
- * Метки НАШИХ шаблонов для разбора выдачи: встроенная + из config.php + из own-markers.txt + из поля
- * панели «Метки наших шаблонов». config.php читаем как обычный массив, без проверки настроек: панель
- * работает и без него, а падать из-за незаполненных ключей источника здесь незачем.
+ * Список НАШИХ доменов для разбора выдачи — из системы запусков (кэш runs/dorgen-bases.json) плюс
+ * `filters.own_bases` из config.php. Это единственный источник «наш»: догадки по меткам в HTML, по
+ * накопленному списку доменов и по офферам убраны, они давали ложное «наш» на чужих сайтах.
+ *
+ * config.php читаем как обычный массив, без проверки настроек: панель работает и без него, а падать
+ * из-за незаполненных ключей источника здесь незачем.
  */
 function ownSitesForPanel(string $projectDir, array $settings): \YandexSites\Filter\OwnSites
 {
-    $markers = (array) (\YandexSites\Config::defaults()['filters']['own_markers'] ?? []);
-    $file = 'own-markers.txt';
+    $bases = array_keys(\YandexSites\Dorgen\OwnBases::inRuns($projectDir . '/runs')->bases());
     $raw = is_file($projectDir . '/config.php') ? @include $projectDir . '/config.php' : null;
     if (is_array($raw)) {
-        foreach ((array) ($raw['filters']['own_markers'] ?? []) as $m) {
-            $markers[] = (string) $m;
-        }
-        $file = (string) ($raw['filters']['own_markers_file'] ?? $file);
-    }
-    $path = $file !== '' && $file[0] !== '/' ? $projectDir . '/' . $file : $file;
-    if ($path !== '' && is_file($path)) {
-        foreach (file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $line) {
-            $markers[] = (string) $line;
-        }
-    }
-    foreach ((array) ($settings['own_markers'] ?? []) as $m) {
-        $markers[] = (string) $m;
-    }
-
-    return new \YandexSites\Filter\OwnSites($markers);
-}
-
-/**
- * Накопленный список НАШИХ доменов: его ведёт сбор (runs/own-domains.txt) плюс ручной own-domains.txt
- * в папке проекта. По нему «наш» узнаётся и у домена, который пришёл повтором и уже не открывался.
- *
- * @return list<string>
- */
-function ownDomainsForPanel(string $projectDir): array
-{
-    $out = [];
-    foreach ([$projectDir . '/runs/own-domains.txt', $projectDir . '/own-domains.txt'] as $file) {
-        if (!is_file($file)) {
-            continue;
-        }
-        foreach (file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $line) {
-            $line = trim($line);
-            if ($line !== '' && $line[0] !== '#') {
-                $out[] = $line;
-            }
+        foreach ((array) ($raw['filters']['own_bases'] ?? []) as $b) {
+            $bases[] = (string) $b;
         }
     }
 
-    return array_values(array_unique($out));
+    return new \YandexSites\Filter\OwnSites($bases);
 }
 
 /**
@@ -635,16 +603,13 @@ if ($path === '/api/serp') {
     }
     $top = max(0, min(100, (int) ($_GET['top'] ?? 10)));
     $saved = readJsonFile($settingsFile) ?? [];
+    // ЕДИНСТВЕННЫЙ источник «наш» — список из системы запусков.
     $ownSites = ownSitesForPanel($projectDir, $saved);
-    $ownDomains = ownDomainsForPanel($projectDir);
-    // Наши базы из системы запусков: самый точный источник «наш» — список даёт сама система.
     $dorgen = \YandexSites\Dorgen\OwnBases::inRuns($projectDir . '/runs');
     $analysis = \YandexSites\Support\SerpAnalysis::build(
         \YandexSites\Support\SerpAnalysis::csvRows($csv),
         $top,
         $ownSites,
-        $ownDomains,
-        $dorgen->bases(),
     );
     $diff = readJsonFile($runDir . '/' . \YandexSites\Support\SerpAnalysis::DIFF_FILE) ?? ['brands' => [], 'totals' => ['added' => 0, 'removed' => 0]];
     $want = trim((string) ($_GET['brand'] ?? ''));
@@ -675,11 +640,9 @@ if ($path === '/api/serp') {
         'queries' => $analysis['queries'],
         'top' => $top,
         'types' => \YandexSites\Support\SerpAnalysis::TYPES,
-        // Действующие метки и размер списка наших доменов: без них не понять, ПОЧЕМУ сайт «наш».
-        'own_markers' => $ownSites->markers(),
-        'own_domains' => count($ownDomains),
+        // Сколько баз в списке и за какой период он выгружен: без этого не понять, почему наших 0.
         'dorgen' => $dorgen->load() + ['has_token' => dorgenClient($envFile) !== null] + ['bases' => []],
-        'dorgen_bases' => $dorgen->count(),
+        'dorgen_bases' => $ownSites->count(),
         'diff_totals' => $diff['totals'] ?? ['added' => 0, 'removed' => 0],
         'diff_at' => $diff['compared_at'] ?? '',
         'version' => \YandexSites\Cli\Application::VERSION,

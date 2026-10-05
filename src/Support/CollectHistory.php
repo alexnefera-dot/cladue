@@ -51,8 +51,8 @@ final class CollectHistory
     /**
      * Разбор отобранных сайтов: сколько доров, сколько корневых, сколько НАШИХ и зоны ДОРОВ.
      *
-     * «Наш» ставится не по картинке, а по меткам в HTML страницы (Filter\OwnSites, own-markers.txt):
-     * признак появляется на превью-визите после сбора, скриншот нужен только чтобы проверить глазами.
+     * «Наш» ставится сверкой со списком запущенных доменов из системы запусков (Filter\OwnSites) в
+     * конце сбора — ни по меткам, ни по офферам, ни по скриншоту: такие догадки давали ложное «наш».
      *
      * @param array<int|string, Site> $sites
      * @return array{doors: int, roots: int, own: int, zones: array<string, int>}
@@ -291,11 +291,11 @@ final class CollectHistory
      * @param array<string, mixed> $stats RunResult::$stats
      * @param list<string> $seenBefore хосты, отклонённые как «уже в базе» (RunResult::$seenBefore)
      * @param list<array{result: SearchResult, reason: string|null}> $raw все результаты выдачи сбора
-     * @param list<string> $ownDomains домены НАШИХ шаблонов, найденные за все сборы (runs/own-domains.txt)
-     * @param array<string, bool>|list<string> $ownBases наши БАЗЫ из системы запусков (Dorgen\OwnBases)
+     * @param array<string, bool>|list<string> $ownBases наши БАЗЫ из системы запусков — ЕДИНСТВЕННЫЙ
+     *        источник «наш»: догадки по меткам и накопленный список доменов убраны
      * @return array<string, mixed>
      */
-    public static function record(array $sites, array $stats, array $seenBefore = [], bool $resume = false, bool $stopped = false, array $raw = [], array $ownDomains = [], array $ownBases = []): array
+    public static function record(array $sites, array $stats, array $seenBefore = [], bool $resume = false, bool $stopped = false, array $raw = [], array $ownBases = []): array
     {
         $breakdown = self::breakdown($sites);
         // Домены, которые держат много брендов: на их поддоменах сайты разных брендов (бренд берётся
@@ -310,7 +310,7 @@ final class CollectHistory
                 $repeatsDoors++;
             }
         }
-        $ownRepeats = self::ownRepeats($seenBefore, $ownDomains, $ownBases);
+        $ownRepeats = self::ownRepeats($seenBefore, $ownBases);
         // Причины, которые срабатывают уже ПОСЛЕ группировки в сайты (мало запросов, уже в базе,
         // не ответил на проверку), Runner считает сразу по сайтам — берём его счётчики как есть.
         // Вместе с фильтрами выдачи из breakdownRaw() получается сходящаяся воронка:
@@ -328,8 +328,8 @@ final class CollectHistory
             }
         }
         uasort($cut, static fn (array $a, array $b): int => $b['sites'] <=> $a['sites']);
-        // Наши шаблоны, срезанные ещё на выдаче по метке-домену (own-markers.txt): их мы не собираем
-        // и не открываем, но в выдаче они стоят и они наши — иначе «наших» всегда меньше, чем есть.
+        // Поле от прежних версий: тогда своих срезала метка-домен ещё на выдаче. Такой причины больше
+        // нет (своих на сборе не отсеиваем), но у старых записей число должно читаться как написано.
         $ownCut = (int) ($cut['own_site']['sites'] ?? 0);
 
         return [
@@ -359,10 +359,8 @@ final class CollectHistory
             'own_selected' => $breakdown['own'],
             'own_repeats' => $ownRepeats,
             'own_cut' => $ownCut,
-            // Сколько наших доменов вообще известно (runs/own-domains.txt): если 0 — повторы искать не в чем.
-            'own_known' => self::countDomains($ownDomains),
             // Сколько баз пришло из системы запусков: 0 — выгрузка не настроена или не сделана, и тогда
-            // «наши» считаются только по меткам. Это видно в подсказке на вкладке «Статистика».
+            // наших не определяем вовсе. Видно в подсказке на вкладке «Статистика».
             'own_bases' => count(self::baseMap($ownBases)),
             // Домены, которые держат на поддоменах от BrandDomains::MIN_BRANDS разных брендов.
             'brand_domains' => count($brandDomains),
@@ -382,35 +380,23 @@ final class CollectHistory
      * но в выдаче он стоит и он наш. Свои домены накапливаются в runs/own-domains.txt.
      *
      * @param list<string> $seenBefore хосты, отклонённые как «уже в базе»
-     * @param list<string> $ownDomains домены наших шаблонов
-     * @param array<string, bool>|list<string> $ownBases наши базы из системы запусков: повтор на нашей
-     *        базе тоже наш, и это самый точный признак — поддомен мог ни разу не открываться
+     * @param array<string, bool>|list<string> $ownBases наши базы из системы запусков — единственный
+     *        источник: повтор мы не открываем, но его база известна и этого достаточно
      */
-    public static function ownRepeats(array $seenBefore, array $ownDomains, array $ownBases = []): int
+    public static function ownRepeats(array $seenBefore, array $ownBases = []): int
     {
         $bases = self::baseMap($ownBases);
-        if ($seenBefore === [] || ($ownDomains === [] && $bases === [])) {
+        if ($seenBefore === [] || $bases === []) {
             return 0;
-        }
-        $own = [];
-        foreach ($ownDomains as $domain) {
-            $domain = mb_strtolower(trim((string) $domain));
-            if ($domain !== '') {
-                $own[$domain] = true;
-            }
         }
         // Считаем ДОМЕНЫ, а не адреса: в воронке всё после «сайтов в выдаче» считается сайтами
         // (поддомены одного домена — один сайт), иначе наших оказалось бы больше, чем доров.
         $found = [];
         foreach ($seenBefore as $host) {
             $host = Domains::normalize((string) $host);
-            $domain = $host !== '' ? Domains::registrable($host) : '';
-            if ($domain === '') {
-                continue;
-            }
-            $base = DorgenClient::baseOf($host);
-            if (isset($own[$domain]) || ($base !== '' && isset($bases[$base]))) {
-                $found[$domain] = true;
+            $base = $host !== '' ? DorgenClient::baseOf($host) : '';
+            if ($base !== '' && isset($bases[$base])) {
+                $found[Domains::registrable($host)] = true;
             }
         }
 

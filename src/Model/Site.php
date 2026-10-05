@@ -29,7 +29,7 @@ final class Site
     /** @var list<array<string, mixed>> визиты на сайт (если включены) */
     public array $visits = [];
 
-    /** Наш собственный шаблон — исключён из выгрузки (см. filters.own_markers). */
+    /** Наш сайт по списку из системы запусков — исключён из выгрузки (см. filters.own_bases). */
     public bool $own = false;
 
     public function __construct(

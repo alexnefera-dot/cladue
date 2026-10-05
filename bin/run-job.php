@@ -161,6 +161,49 @@ function refreshOwnBases(OwnBases $cache, Logger $logger): void
 }
 
 /**
+ * СВЕРКА С СИСТЕМОЙ ЗАПУСКОВ: помечает «наш» те отобранные сайты, чья база есть в списке.
+ *
+ * Это единственное место, где решается «наш», и делается это в КОНЦЕ сбора по списку, догруженному
+ * перед его началом. Поэтому:
+ *   • сверяется каждый отобранный сайт, а не только тот, который удалось открыть;
+ *   • содержимое страницы не смотрим вообще — ни метки в HTML, ни офферная витрина, ни скриншот;
+ *   • пометка снимается, если сайта в списке нет (прежний прогон мог поставить её по старым правилам).
+ *
+ * Сверяем и сам хост, и адреса визитов: наш дор мог уйти на наш же редиректор, и в выдаче стоит он.
+ *
+ * @param array<string, Site> $sites
+ * @param array<string, bool> $bases
+ * @return int сколько сайтов признано нашими
+ */
+function markOwnByBases(array $sites, array $bases): int
+{
+    $own = new OwnSites($bases);
+    if ($own->isEmpty()) {
+        return 0;
+    }
+    $marked = 0;
+    foreach ($sites as $site) {
+        $urls = [$site->host, $site->realHost(), $site->bestUrl];
+        foreach ($site->visits as $visit) {
+            $visit = (array) $visit;
+            $urls[] = (string) ($visit['url'] ?? '');
+            $urls[] = (string) ($visit['final_url'] ?? '');
+            foreach ((array) ($visit['redirects'] ?? []) as $hop) {
+                $urls[] = (string) $hop;
+            }
+        }
+        $site->own = $own->matchesBase($site->host)
+            || $own->matchesBase($site->realHost())
+            || $own->matchesBaseInUrls(array_values(array_filter($urls, static fn (string $u): bool => $u !== '')));
+        if ($site->own) {
+            $marked++;
+        }
+    }
+
+    return $marked;
+}
+
+/**
  * Настройки для отчёта: без прокси.
  *
  * sites.json — выгружаемый файл: его архивируют и пересылают. Список прокси содержит пароли, и в
@@ -270,21 +313,6 @@ function buildOverrides(array $s, string $runDir): array
         }
     }
     $overrides['filters.exclude_domains'] = $exclude;
-    // Метки НАШИХ шаблонов из панели («Настройки» → «Метки наших шаблонов»): панель — источник
-    // истины, если ключ передан (даже пустым списком). Встроенная метка из Config::defaults()
-    // добавляется всегда, чтобы её нельзя было потерять случайным сохранением настроек, а файл
-    // own-markers.txt подмешивается отдельно в OwnSites::fromConfig() — оба способа работают вместе.
-    if (array_key_exists('own_markers', $s)) {
-        $markers = Config::defaults()['filters']['own_markers'];
-        foreach (is_array($s['own_markers']) ? $s['own_markers'] : [] as $marker) {
-            $marker = trim((string) $marker);
-            if ($marker !== '') {
-                $markers[] = $marker;
-            }
-        }
-        $overrides['filters.own_markers'] = array_values(array_unique($markers));
-    }
-
     $stage = (string) ($s['stage'] ?? 'collect');
     if (isset($s['variants'])) {
         $overrides['visit.variants'] = max(1, (int) $s['variants']);
@@ -371,95 +399,6 @@ function buildOverrides(array $s, string $runDir): array
 function previewSites(array $sites, string $runDir = '', int $limit = SiteRows::ROW_LIMIT): array
 {
     return SiteRows::preview($sites, $runDir, $limit);
-}
-
-/**
- * Запоминает домены НАШИХ шаблонов: следующий сбор такой домен пропустит как «уже в базе» и
- * открывать не станет, но в статистике он должен остаться нашим.
- *
- * @param array<int|string, \YandexSites\Model\Site> $sites
- * @return int сколько новых домен добавлено
- */
-function rememberOwnDomains(DomainLedger $ledger, array $sites): int
-{
-    $domains = [];
-    foreach ($sites as $site) {
-        if ($site->own && $site->domain !== '') {
-            $domains[] = $site->domain;
-        }
-    }
-
-    return $domains === [] ? 0 : $ledger->add($domains);
-}
-
-/**
- * Достраивает список наших доменов по тому, что уже лежит на диске, и по ручному списку
- * own-domains.txt в корне проекта.
- *
- * Нужно вот зачем: домен, который уже есть в базе пересечений, повторный сбор даже не открывает
- * («уже в базе»), а признак «наш» ставится только при визите — по меткам в HTML. Поэтому наши
- * шаблоны, собранные ДО того, как появился этот список, ниоткуда не всплывали: в статистике
- * «наших» оставались только свежие, и процент считался от одних новых. Всё, что помнит диск:
- *   • ручной список own-domains.txt (свои домены можно просто вписать руками);
- *   • таблица прошлого сбора sites.json (строки с «наш») и убранные из неё сайты (removed.json —
- *     кнопка «Убрать наши» уводит их туда вместе со строкой);
- *   • папки раскладки visits: pages/наши/<хост> и removed/pages/наши/<хост>.
- *
- * @param list<string> $manualFiles где искать ручной список (обычно корень проекта)
- * @return int сколько доменов добавилось в список
- */
-function seedOwnDomains(DomainLedger $ledger, string $runDir, array $manualFiles): int
-{
-    $domains = [];
-    $add = static function (string $host) use (&$domains): void {
-        $host = Domains::normalize($host);
-        // Похоже на адрес: точка есть, пробелов нет. Иначе в список наших попадёт случайная строка
-        // из файла — а по ней потом ничего не сойдётся.
-        if ($host === '' || !str_contains($host, '.') || preg_match('~\s~u', $host) === 1) {
-            return;
-        }
-        $domain = Domains::registrable($host);
-        if ($domain !== '') {
-            $domains[] = $domain;
-        }
-    };
-
-    foreach (array_unique($manualFiles) as $file) {
-        foreach (is_file($file) ? (file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: []) : [] as $line) {
-            $line = trim($line);
-            if ($line !== '' && !str_starts_with($line, '#')) {
-                $add($line);
-            }
-        }
-    }
-
-    foreach (SiteRows::load($runDir . '/sites.json') as $site) {
-        if ($site->own) {
-            $add($site->domain !== '' ? $site->domain : $site->host);
-        }
-    }
-
-    foreach (RemovedSites::all($runDir) as $host => $entry) {
-        $row = is_array($entry['row'] ?? null) ? $entry['row'] : [];
-        $statusRow = is_array($entry['status_row'] ?? null) ? $entry['status_row'] : [];
-        if (!($row['own'] ?? false) && !($statusRow['own'] ?? false)) {
-            continue;
-        }
-        $domain = (string) ($row['domain'] ?? '');
-        $add($domain !== '' ? $domain : (string) $host);
-    }
-
-    foreach ([$runDir . '/pages/наши', $runDir . '/' . RemovedSites::DIR . '/pages/наши'] as $dir) {
-        foreach (is_dir($dir) ? (scandir($dir) ?: []) : [] as $name) {
-            // Имя папки — хост, пропущенный через PageVisitor::safeName(): берём только то,
-            // что и правда похоже на адрес, иначе в список наших попадёт мусор.
-            if (is_dir($dir . '/' . $name) && preg_match('~^[a-z0-9][a-z0-9.\-]*\.[a-z0-9\-]{2,}$~i', $name) === 1) {
-                $add($name);
-            }
-        }
-    }
-
-    return $domains === [] ? 0 : $ledger->add($domains);
 }
 
 function stopped(string $stopFile): bool
@@ -640,16 +579,6 @@ while (true) {
             $logger->warn(sprintf('Файл с прокси %s не найден — беру только прокси из настроек панели', $proxyFile));
         }
         $baseFile = dirname($runDir) . '/domains-base.txt';
-        // Наши шаблоны, найденные за ВСЕ сборы: повторный сбор такой домен даже не открывает («уже в
-        // базе»), а в статистике он всё равно наш — поэтому свои домены копим отдельным списком.
-        $ownLedger = new DomainLedger(dirname($runDir) . '/own-domains.txt');
-        // Список появился не сразу, а старые наши домены повторный сбор не открывает — поэтому перед
-        // работой добираем их с диска и из ручного own-domains.txt (до чистки нового сбора: она
-        // удаляет pages/ и removed/, откуда мы их и читаем).
-        $seededOwn = seedOwnDomains($ownLedger, $runDir, [getcwd() . '/own-domains.txt', $root . '/own-domains.txt']);
-        if ($seededOwn > 0) {
-            $logger->info(sprintf('Наших доменов добавлено из прошлых сборов и own-domains.txt: %d (всего %d)', $seededOwn, $ownLedger->count()));
-        }
         // ТОЧНЫЙ источник «наш» — базы из системы запусков dorgen. В фильтры и визиты они попадают
         // сами (Config::defaults()['filters']['own_bases_file'] → OwnSites::fromConfig), здесь они
         // нужны для статистики (повтор на нашей базе — наш) и для журнала.
@@ -768,7 +697,6 @@ while (true) {
             $stat = $visitor->retryPreview($visitList);
             // Объекты сайтов общие с $sites, поэтому просто перезаписываем список целиком.
             $sites = RemovedSites::filter($runDir, $sites);
-            rememberOwnDomains($ownLedger, $sites); // сайт мог открыться нашим шаблоном только сейчас
             $siteList = array_values($sites);
             $writer->writeCsv($siteList, $runDir . '/sites.csv');
             $writer->writeJson($siteList, $runDir . '/sites.json', ['source' => 'preview', 'settings' => settingsForReport($settings)]);
@@ -927,7 +855,6 @@ while (true) {
             // папки, которые задание успело докачать, уносим в removed/.
             $sites = RemovedSites::filter($runDir, $sites);
             RemovedSites::sweep($runDir);
-            rememberOwnDomains($ownLedger, $sites); // наш шаблон может открыться и на выгрузке
             $siteList = array_values($sites);
             $writer->writeCsv($siteList, $runDir . '/sites.csv');
             $writer->writeJson($siteList, $runDir . '/sites.json', ['source' => 'download', 'settings' => settingsForReport($settings)]);
@@ -1053,8 +980,8 @@ while (true) {
             // со скриншотами: он идёт долго, а цифры по доменам уже готовы (и переживут остановку).
             // В конце сбора эта же запись уточняется: визиты показывают редиректы на бренд-поддомены.
             $historyId = '';
-            $onSelected = function (array $sites, RunResult $r) use ($runDir, $resume, &$historyId, $logger, $ownLedger, $ownBases): void {
-                $record = CollectHistory::record($sites, $r->stats, $r->seenBefore, $resume, false, $r->raw, $ownLedger->all(), $ownBases);
+            $onSelected = function (array $sites, RunResult $r) use ($runDir, $resume, &$historyId, $logger, $ownBases): void {
+                $record = CollectHistory::record($sites, $r->stats, $r->seenBefore, $resume, false, $r->raw, $ownBases);
                 $historyId = (string) $record['id'];
                 CollectHistory::append(dirname($runDir), $record);
                 // Воронка одной строкой: каждое число вытекает из предыдущего, и сумма срезанного
@@ -1110,6 +1037,20 @@ while (true) {
             $result->stats['cache_hits'] = $fetcher instanceof CachingFetcher ? $fetcher->hits : 0;
             $result->stats['cache_misses'] = $fetcher instanceof CachingFetcher ? $fetcher->misses : (int) ($result->stats['requests'] ?? 0);
 
+            // СВЕРКА СО СПИСКОМ ИЗ СИСТЕМЫ ЗАПУСКОВ — конец сбора, по списку, догруженному перед его
+            // началом. Это ЕДИНСТВЕННОЕ место, где решается «наш»: сверяется КАЖДЫЙ отобранный сайт,
+            // поэтому пометка не зависит ни от визита, ни от содержимого страницы. Обязательно ДО
+            // записи отчётов — иначе признак не попадёт в sites.json, а значит и в таблицу.
+            $markedOwn = markOwnByBases($result->sites, $ownBases);
+            if ($ownBases !== []) {
+                $logger->info(sprintf(
+                    'Сверка со списком системы запусков: наших сайтов %d из %d отобранных (баз в списке %d)',
+                    $markedOwn,
+                    count($result->sites),
+                    count($ownBases),
+                ));
+            }
+
             $writer = new ReportWriter((string) $config->get('output.csv_delimiter', ';'), (bool) $config->get('output.csv_bom', true));
             // Продолжение сбора ПОПОЛНЯЕТ таблицу: прошлые сайты остаются (с их выгруженными страницами),
             // если при нажатии «Продолжить» не выбрано «очистить таблицу».
@@ -1158,9 +1099,7 @@ while (true) {
             $serp = SerpAnalysis::build(
                 SerpAnalysis::csvRows($runDir . '/results.csv'),
                 10,
-                OwnSites::fromConfig($config),
-                $ownLedger->all(), // наши домены из прошлых сборов: повтор мы не открываем, а он наш
-                $ownBases, // и точный список из системы запусков — он перебивает догадки по меткам
+                OwnSites::fromConfig($config), // единственный источник «наш» — список из системы запусков
             );
             $indexFile = dirname($runDir) . '/' . SerpAnalysis::INDEX_FILE; // рядом с историей сборов
             $prevIndex = (array) (@json_decode((string) @file_get_contents($indexFile), true) ?: []);
@@ -1202,11 +1141,7 @@ while (true) {
             // Наши шаблоны тоже видно только сейчас: признак ставится по меткам в HTML на превью-визите
             // (скриншот — чтобы проверить глазами), поэтому в ранней записи там был 0.
             $finalBreakdown = CollectHistory::breakdown($result->sites);
-            $newOwn = rememberOwnDomains($ownLedger, $result->sites);
-            if ($newOwn > 0) {
-                $logger->info(sprintf('Запомнили наших доменов: %d (всего в списке %d)', $newOwn, $ownLedger->count()));
-            }
-            $ownRepeats = CollectHistory::ownRepeats($result->seenBefore, $ownLedger->all(), $ownBases);
+            $ownRepeats = CollectHistory::ownRepeats($result->seenBefore, $ownBases);
             // Наши в записи — сумма трёх частей; здесь уточняем отобранную и повторы, срезанное по
             // метке-домену уже посчитано ранней записью (сумму пересобирает CollectHistory::update()).
             $patched = CollectHistory::update(dirname($runDir), $historyId, [
@@ -1214,44 +1149,30 @@ while (true) {
                 'roots' => $finalBreakdown['roots'],
                 'own_selected' => $finalBreakdown['own'],
                 'own_repeats' => $ownRepeats,
-                'own_known' => $ownLedger->count(),
                 'own_bases' => count($ownBases),
                 'base_domains' => (int) ($result->stats['base_domains'] ?? 0),
                 'stopped' => $result->stopped,
             ]);
             if (!$patched) {
-                CollectHistory::append(dirname($runDir), CollectHistory::record($result->sites, $result->stats, $result->seenBefore, $resume, $result->stopped, $result->raw, $ownLedger->all(), $ownBases));
+                CollectHistory::append(dirname($runDir), CollectHistory::record($result->sites, $result->stats, $result->seenBefore, $resume, $result->stopped, $result->raw, $ownBases));
             }
             $ownNote = '';
-            // Доля наших считается от ВСЕХ доров выдачи: наши шаблоны и есть доры. Оттуда же берём
-            // наших, срезанных по метке-домену: собирать их мы не собираемся, но в выдаче они стоят.
+            // Доля наших — от ВСЕХ доров выдачи: наши сайты и есть доры.
             $allRaw = CollectHistory::breakdownRaw($result->raw, (string) ($result->stats['unique_by'] ?? 'domain'));
             $doorsAll = (int) ($allRaw['doors'] ?? 0);
-            $ownCut = (int) ($allRaw['cut']['own_site']['sites'] ?? 0);
-            $ownTotal = $finalBreakdown['own'] + $ownRepeats + $ownCut;
+            $ownTotal = $finalBreakdown['own'] + $ownRepeats;
             if ($ownTotal > 0) {
-                $parts = [];
-                if ($ownRepeats > 0) {
-                    $parts[] = sprintf('%d повторами', $ownRepeats);
-                }
-                if ($ownCut > 0) {
-                    $parts[] = sprintf('%d срезано по меткам', $ownCut);
-                }
                 $ownNote = sprintf(
-                    'наших шаблонов: %d%s из %d доров выдачи (%s%%)',
+                    'наших сайтов: %d%s из %d доров выдачи (%s%%)',
                     $ownTotal,
-                    $parts !== [] ? ' (из них ' . implode(', ', $parts) . ')' : '',
+                    $ownRepeats > 0 ? sprintf(' (из них %d повторами)', $ownRepeats) : '',
                     $doorsAll,
                     CollectHistory::percent($ownTotal, $doorsAll),
                 );
-                $logger->info(sprintf(
-                    'Наши шаблоны (%s): %s — выгружать их не нужно',
-                    $ownBases !== [] ? 'по выгрузке из системы запусков и меткам' : 'по меткам, выгрузка из системы запусков не настроена',
-                    $ownNote,
-                ));
+                $logger->info(sprintf('Наши сайты (по списку системы запусков): %s — выгружать их не нужно', $ownNote));
             }
-            if ($ownLedger->count() === 0) {
-                $logger->info('Список наших доменов пуст (runs/own-domains.txt): среди повторов наши не опознаются — впишите свои домены в own-domains.txt');
+            if ($ownBases === []) {
+                $logger->warn('Список системы запусков пуст — наши сайты НЕ определяются. Впишите ключ в «Настройках» и нажмите «Обновить наши домены» на странице разбора выдачи');
             }
             $collectRows = previewSites($shown, $runDir);
             // Проблемные ПО СБОРУ: сайт не открылся на превью или показал витрину чужих офферов. Целевые

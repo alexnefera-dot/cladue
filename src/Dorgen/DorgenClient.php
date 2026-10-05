@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace YandexSites\Dorgen;
 
 use RuntimeException;
+use YandexSites\Filter\Domains;
 use YandexSites\Http\HttpClient;
 use YandexSites\Http\HttpException;
 
@@ -145,7 +146,15 @@ final class DorgenClient
         return $out;
     }
 
-    /** База (последние две метки хоста): leebet.4916.team → 4916.team. */
+    /**
+     * База хоста: leebet.4916.team → 4916.team.
+     *
+     * Это РЕГИСТРИРУЕМЫЙ домен, а не слепые две последние метки. Разница критична для зон второго
+     * уровня: у базы 4916.net.ru две последние метки — это сам суффикс net.ru, и такая «база» делала
+     * нашим КАЖДЫЙ чужой сайт в зоне (пользователь увидел «исключён как наш» на чужом сайте).
+     * Строка, которая целиком является зоной, базой быть не может — возвращаем пусто: пропустить
+     * свой домен дешевле, чем выбросить чужой живой сайт.
+     */
     public static function baseOf(string $host): string
     {
         $host = mb_strtolower(trim($host));
@@ -154,10 +163,9 @@ final class DorgenClient
         if ($host === '' || !str_contains($host, '.')) {
             return '';
         }
-        $parts = explode('.', $host);
-        $last = array_slice($parts, -2);
+        $base = Domains::registrable($host);
 
-        return implode('.', $last);
+        return Domains::isPublicSuffix($base) ? '' : $base;
     }
 
     /**

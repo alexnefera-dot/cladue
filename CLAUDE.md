@@ -312,66 +312,51 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   format is not Yandex.XML); new visit drivers implement `Visit\DriverInterface`.
 - Every new filter rule needs a reason code in `ResultFilter::reject()`, a config default in
   `Config::defaults()`, an example in `config.example.php` and a test in `tests/ResultFilterTest.php`.
-- `Filter\OwnSites` marks our own templates so they are neither collected nor downloaded: markers
-  (`filters.own_markers` list + gitignored `filters.own_markers_file`, default `own-markers.txt`)
-  are stable substrings of the page/URL (hosting domain, `<head>` verification token, asset path) —
-  never the changing codes/styles (QR, CSS). The default marker `/uploads/brands/` (asset path shared
-  by all their brand templates) is in `Config::defaults()`; `ResultFilter` rejects domain markers at
-  collection (`own_site`); `PageVisitor::assembleVisit()` matches HTML/host at visit time, deletes the
-  HTML but keeps the home screenshot, sets `Site::$own`, reports «исключён как наш», and buckets the site
-  into `pages/наши/<host>/` (screenshot only, for eyeballing) instead of `N-стр`. Real markers stay in
-  the untracked `own-markers.txt`, not committed; the markers answer «is this page ours», while the
-  separate `own-domains.txt` (project root, manual) + `runs/own-domains.txt` (accumulated) answer «is this
-  DOMAIN ours» for the statistics, where a repeat is never opened — see the CollectHistory notes below.
-  Screenshots are captured for the home page only in
-  crawl mode; `SiteLinks::canonical()` folds `/index.*` and trailing-slash aliases so a page is not
-  fetched twice. THE PREVIEW PATHS MUST PASS `$site->domain` TO `assembleVisit()` — `visit()` and
-  `retryPreview()` did not, so the cross-site redirect guard never ran during collect. A door serves the
-  BOT its own page (that is where our markers are) and sends a live visitor on to the advertiser's
-  casino; without the guard that foreign page was saved as the site's preview, carried no own marker,
-  and the site silently stopped counting as ours — the user's «теперь наши он не правильно считает,
-  открывает не сайт, а редирект». For the same reason `retryFailed()` starts under a browser ONLY when
-  the site refused the BOT (`wasBlockedAsBot()`: a `blocked` visit or an error naming 403/429/антибот);
-  a site that merely timed out keeps the bot, because for a door the bot IS the right visitor. Covered by
-  `VisitTest::testPreviewDoesNotSaveRedirectToAnotherSite` (the fake host `redirect-site.ru`).
-  That guard then broke the user's own sites («перестали отображаться наши сайты, так как там редиректы
-  срабатывают»), because THEIR doors redirect on purpose: «наш сначала пуляет на sitegrator домен, потом
-  дальше на другие рефки». So `assembleVisit()` now checks the OWN MARKERS FIRST, before the redirect
-  bail-out, and matches them against the whole REDIRECT CHAIN as well as the HTML and the final host —
-  the redirector is an INTERMEDIATE hop and is already gone from `final_url`. Both drivers report it:
-  `CurlDriver` collects `Location:` through `CURLOPT_HEADERFUNCTION`, `tools/render-page.js` merges the
-  server-side chain (`request().redirectedFrom()`) with client-side navigations (`framenavigated`, i.e.
-  meta refresh and JS) — its CATCH branch reports them too, so a navigation that redirected and only THEN
-  timed out is not lost —, `PlaywrightDriver` relays `redirects`, and the visit stores it. Matching is
-  `OwnSites::matchesUrl()`/`matchesAnyUrl()`: a marker with a `/` is a PATH and stays a plain
-  case-insensitive substring (`/uploads/brands/`), a marker without one is a NAME (`faro`, `sitegrator`,
-  `redir-hub.ru`) and matches on WORD BOUNDARIES (`(?<![\p{L}\p{N}])…(?![\p{L}\p{N}])`), so the
-  redirector's domain in `own-markers.txt` is enough while a short marker does not eat a stranger's
-  `safaro.ru` — a false «наш» throws a real site away and costs more than a miss. A cross-site redirect
-  that is NOT ours also KEEPS ITS SCREENSHOT now (the HTML is still dropped): deleting it made previews
-  vanish from the table («перестали загружаться превью») and hid where the redirect went.
-  The URL/host half of the check runs on EVERY visit, not only on a saved page: the user reported «наши
-  пропускаешь все равно» because the whole own block sat behind «if the HTML is there», and a door we
-  never reached (timeout, обрыв, антибот) silently stopped counting as ours although its redirect chain
-  was already known. `assembleVisit()` therefore evaluates `matchesHost()`/`matchesAnyUrl()` first and
-  only asks `matchesHtml()` when a page was actually saved — that is the user's rule «будем считать все
-  кто на faro редиректит наши». Covered by
-  `VisitTest::testOwnSiteIsDetectedByRedirectChain` (fake hosts `ourdoor.ru` → `redir-hub.ru` →
-  `other-domain.ru`, with `redir-hub.ru` as the marker), `VisitTest::testOwnSiteIsDetectedWhenPageNeverOpened`
-  (`ourfail.ru` → `redir-hub.ru/dead-end` → a dead port: no page, still ours) and `tests/OwnSitesTest.php`
-  (marker boundaries).
-  MARKERS ARE ENTERED IN THE PANEL, not by editing a file: the user asked «запиши сам», and the honest
-  answer is that neither of us should — the repository is PUBLIC, so a real marker committed to
-  `Config::defaults()` would publish their network. So «Настройки» gained the textarea «Метки наших
-  шаблонов» (`#ownmarkers`, one per line, in `FIELDS` so it survives a reload) → `settings.own_markers` →
-  `buildOverrides()` sets `filters.own_markers` = `Config::defaults()`'s list + theirs, deduplicated,
-  under the `array_key_exists` rule of `allowed_tlds` (the panel is the source of truth when the key is
-  sent, even empty; a manual `run-job` without it keeps `config.php`). The built-in `/uploads/brands/` is
-  always merged in so a careless save cannot lose it, and `own_markers_file` still merges
-  `own-markers.txt` in `OwnSites::fromConfig()` — both routes work together, and the markers live only on
-  the user's machine (`runs/settings.json` + localStorage), never in the repo. Covered by
-  `PanelTest::testOwnMarkersFromPanelSettingsMarkSite` (a `stage=preview` run whose only marker comes from
-  the panel settings flags `ourdoor.ru` as ours through the redirect hop).
+- `Filter\OwnSites` answers «is this site ours», and since 1.37.0 it has EXACTLY ONE source: the list
+  of launched domains from the dorgen launch system. The user cut every other source after seeing a
+  stranger's site tagged «исключён как наш» — «наши только с базы апи должны браться, не по оферу,
+  скрину, домену и тп» — and the flow they named is «перед сбором мы выкачиваем с апи новый список и в
+  конце сбора сравниваем с ним». What was REMOVED: markers in the page HTML / URL / redirect chain
+  (`own_markers`, `own_markers_file`, `own-markers.txt`, the panel textarea «Метки наших шаблонов», the
+  built-in `/uploads/brands/`), the accumulated `runs/own-domains.txt` ledger with its manual
+  `own-domains.txt` and the `seedOwnDomains()`/`rememberOwnDomains()` machinery, and the `own_site`
+  rejection in `ResultFilter` (own sites are no longer cut at collection at all). The offer wall and the
+  screenshot never decided «наш» and still don't — `OfferWall` only sets its own problem code.
+  WHY THE FALSE «наш» HAPPENED, and the bug that made it catastrophic: `DorgenClient::baseOf()` took the
+  last two LABELS of a host, so a base in a second-level zone (`4916.net.ru`) produced the SUFFIX itself
+  (`net.ru`) as «our base» — after one such row in the API answer EVERY `*.net.ru` in the SERP was ours.
+  `baseOf()` now returns `Domains::registrable()` (suffix-aware: `leebet.4916.net.ru` → `4916.net.ru`)
+  and '' when the result is a zone, guarded by the new `Domains::isPublicSuffix()` (single label, or one
+  of `Domains::SECOND_LEVEL`). `OwnBases::load()` drops such poisoned entries written by the old code and
+  counts them in `dropped`, so an existing cache is cleaned on read rather than kept marking a whole zone.
+  THE DECISION POINT is `markOwnByBases()` in `bin/run-job.php`, called at the end of the collect stage
+  BEFORE the reports are written (placing it after the `sites.json` write is the bug to avoid — the flag
+  never reaches the table). It walks EVERY selected site, not only the ones that opened, and compares the
+  host, `Site::realHost()`, `bestUrl` and every visit's url/final_url/redirect chain against the list, so
+  the mark depends on nothing about the page; it also CLEARS a stale `own` left by an older version.
+  `PageVisitor::assembleVisit()` keeps a base-only check (same list, so the two cannot disagree) which is
+  what buckets an own site into `pages/наши/<host>/` with its screenshot and drops its HTML.
+  `OwnSites` API: `__construct(iterable $bases)` (a list or the `base => true` map `OwnBases::bases()`
+  returns), `fromConfig()` (`filters.own_bases` + `filters.own_bases_file`, default
+  `runs/dorgen-bases.json`, loaded with `OwnBases` so every screen reads ONE list), `bases()`, `count()`,
+  `isEmpty()`, `matchesBase()`, `matchesBaseInUrls()` (the redirect chain: our door hops through our own
+  redirector, which is gone from `final_url`), `REASON_BASE`. `Runtime::visitor()` passes
+  `$cfg['own_bases']`; `Runner` passes nothing (the filter has no own rule any more).
+  `SerpAnalysis::build($rows, $top, ?OwnSites $own)` lost its `$ownDomains`/`$dorgenBases` arguments and
+  `REASON_LIST`; `ownReason()` is base-only. `CollectHistory::record(..., $ownBases)` and
+  `ownRepeats($seenBefore, $ownBases)` lost `$ownDomains`; `own_known` is no longer written and `own_cut`
+  stays only for old records (`ownTotal()` still sums all three parts so a 1.21–1.36 record reads the
+  same). CONSEQUENCE, stated to the user: a door of theirs launched OUTSIDE dorgen, or older than the
+  synced period, is no longer recognised at all — and an empty list means NOTHING is ours, which the job
+  log says outright («Список системы запусков пуст — наши сайты НЕ определяются»). Covered by the
+  rewritten `tests/OwnSitesTest.php` (incl. `testZoneIsNeverABase`),
+  `DorgenTest::testBaseIsLastTwoLabels` (the zone cases),
+  `SerpAnalysisTest::testOursOnlyByLaunchSystemList` / `testZoneInTheListMarksNobody`,
+  `ResultFilterTest::testOwnSitesAreNotCutAtCollection`,
+  `VisitTest::testOwnSiteIsDetectedByLaunchSystemBaseWithoutMarkers` / `testOwnSiteIsDetectedByRedirectChain`
+  (now a base) and `PanelTest::testCollectComparesSelectedSitesWithLaunchSystemListAtTheEnd` (a collect
+  with `preview_shots: false` — NO visits at all — where the only own site is found by the end-of-collect
+  comparison and reaches `sites.json`, the log and the history record).
 - `Runner` and `PageVisitor` accept an optional `$onProgress` callback; `bin/run-job.php` wires it
   to `Support\Progress`, and `bin/panel.php` (dual launcher/router via `PHP_SAPI==='cli-server'`)
   spawns the job and serves `public/panel.html`. Keep CLI and panel behaviour in sync through `Runtime`.
@@ -1015,10 +1000,8 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   subdomain count and `first_seen`) plus the covered period, so `nextFrom()` makes the next refresh
   load only NEW days with a one-day overlap — ~15 000 rows/day would otherwise be re-downloaded forever.
   Wiring is PURELY ADDITIVE, per «не ломай текущую реализацию просто интегрируй выгрузку»: `build()`
-  takes a fifth argument `$dorgenBases`, `ownReason()` checks it FIRST and returns
-  `SerpAnalysis::REASON_DORGEN` («запущен в dorgen»); markers and `own-domains.txt` keep working exactly
-  as before, and the bases are NEVER merged into `runs/own-domains.txt` — a separate, auditable source
-  that can be dropped without touching the ledger. Entry points: `bin/dorgen-sync.php`
+  takes a fifth argument `$dorgenBases`, `ownReason()` returns `SerpAnalysis::REASON_DORGEN` («запущен в dorgen»), and since 1.37.0 it is the
+  ONLY source (see the `Filter\OwnSites` notes). Entry points: `bin/dorgen-sync.php`
   (`--from`/`--to`/`--days`/`--list`, no dates = only new days) and `POST /api/dorgen-refresh` behind the
   page button «Обновить наши домены», which also reports «наших баз из системы запусков: N (по ДАТА)» or
   tells the user the token is missing.
@@ -1057,8 +1040,7 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   consumer already asks «is this ours»: its constructor takes a second argument (a list OR the
   `base => true` map `OwnBases::bases()` returns), `matchesBase($host)` compares
   `DorgenClient::baseOf($host)` against it, `matchesBaseInUrls($chain)` does the same for the redirect
-  chain (our door hops through our own redirector, which is gone from `final_url`), `bases()` exposes
-  them and `isEmpty()` is now «no markers AND no bases» so a bases-only setup still runs the own check.
+  chain (our door hops through our own redirector, which is gone from `final_url`).
   `OwnSites::fromConfig()` reads `filters.own_bases` (list) + `filters.own_bases_file`
   (`Config::defaults()`: `runs/dorgen-bases.json`, loaded with `OwnBases` itself so every screen reads
   ONE list), which is why `Runner` and `Runtime::visitor()` only had to pass `$own->bases()` next to

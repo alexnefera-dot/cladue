@@ -34,15 +34,21 @@ final class OwnBases
     }
 
     /**
-     * @return array{updated_at: string, date_from: string, date_to: string, bases: array<string, array{subdomains: int, first_seen: string}>}
+     * @return array{updated_at: string, date_from: string, date_to: string, bases: array<string, array{subdomains: int, first_seen: string}>, dropped: int}
      */
     public function load(): array
     {
         $data = @json_decode((string) @file_get_contents($this->file), true);
         $bases = [];
+        $dropped = 0;
         foreach ((array) ($data['bases'] ?? []) as $base => $info) {
-            $base = DorgenClient::baseOf((string) $base);
+            $raw = (string) $base;
+            $base = DorgenClient::baseOf($raw);
             if ($base === '') {
+                // Непригодная запись: зона целиком (net.ru) вместо чьего-то домена. Такие писала
+                // прежняя версия baseOf() для баз в зонах второго уровня, и из-за одной строки НАШИМИ
+                // становились все сайты зоны. Молча оставлять нельзя — считаем и говорим наверх.
+                $dropped += $raw !== '' ? 1 : 0;
                 continue;
             }
             $bases[$base] = [
@@ -56,6 +62,8 @@ final class OwnBases
             'date_from' => (string) ($data['date_from'] ?? ''),
             'date_to' => (string) ($data['date_to'] ?? ''),
             'bases' => $bases,
+            // Сколько записей отброшено как непригодные: повод сделать полную выгрузку за период.
+            'dropped' => $dropped,
         ];
     }
 

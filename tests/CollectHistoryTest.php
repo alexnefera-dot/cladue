@@ -390,40 +390,38 @@ final class CollectHistoryTest
 
     public function testOwnCountsRepeatsAndSharesDoors(): void
     {
-        // Наши шаблоны — это доры, поэтому их доля считается от ОБЩЕГО числа доров в выдаче, а в само
-        // число входят и те, что пришли повторами: домен уже в базе, сайт мы даже не открывали.
+        // Наши сайты — это доры, поэтому их доля считается от ОБЩЕГО числа доров в выдаче, а в само
+        // число входят и те, что пришли повторами: домен уже в базе, сайт мы даже не открывали, но его
+        // база есть в списке системы запусков — этого достаточно.
         $raw = [];
-        $hosts = ['a.our.ru', 'b.our.ru', 'c.other.ru', 'x.third.ru', 'y.fourth.ru', 'root.ru'];
+        $hosts = ['a.our.team', 'b.our.team', 'c.other.ru', 'x.third.ru', 'y.fourth.ru', 'root.ru'];
         foreach ($hosts as $i => $host) {
             $raw[] = ['result' => new SearchResult('куш казино', 0, $i + 1, 'https://' . $host . '/', $host, 'T'), 'reason' => null];
         }
         $selected = $this->sites('c.other.ru');
-        $selected[0]->own = true; // наш шаблон, открытый на визите
+        $selected[0]->own = true; // сверка в конце сбора нашла этот сайт в списке
 
         $record = CollectHistory::record(
             $selected,
             ['results' => count($raw)],
-            ['a.our.ru', 'b.our.ru', 'z.strange.ru'], // повторы: два адреса НАШЕГО домена и чужой
+            ['a.our.team', 'b.our.team', 'z.strange.ru'], // повторы: два адреса НАШЕЙ базы и чужой
             false,
             false,
             $raw,
-            ['our.ru'], // список наших доменов, накопленный прошлыми сборами
+            ['our.team'], // список запущенных доменов из системы запусков
         );
 
-        Assert::same(0, $record['own_bases'], 'выгрузка из системы запусков в этом сборе не использовалась');
-        Assert::same(4, $record['found_doors'], 'доров-сайтов в выдаче: our.ru, other.ru, third.ru, fourth.ru');
-        Assert::same(1, $record['own_repeats'], 'два адреса одного домена — один наш сайт');
-        Assert::same(2, $record['own'], 'наши = открытый на визите + пришедший повтором');
-        Assert::same(1, CollectHistory::ownRepeats(['a.our.ru', 'www.our.ru', 'b.our.ru'], ['our.ru']), 'считаем домены, не адреса');
-        Assert::same(0, CollectHistory::ownRepeats(['a.our.ru'], []), 'без списка наших доменов считать нечего');
+        Assert::same(1, $record['own_bases'], 'в сборе участвовал список из одной базы');
+        Assert::same(4, $record['found_doors'], 'доров-сайтов в выдаче: our.team, other.ru, third.ru, fourth.ru');
+        Assert::same(1, $record['own_repeats'], 'два адреса одной базы — один наш сайт');
+        Assert::same(2, $record['own'], 'наши = найденный сверкой + пришедший повтором');
 
-        // БАЗЫ ИЗ СИСТЕМЫ ЗАПУСКОВ: повтор мы не открываем, признак «наш» на визите не ставится, но
-        // база хоста известна — и это самый точный ответ, так что повтор на нашей базе тоже наш.
-        Assert::same(1, CollectHistory::ownRepeats(['kush.4916.team'], [], ['4916.team']), 'повтор на нашей базе');
-        Assert::same(1, CollectHistory::ownRepeats(['kush.4916.team', 'lee.4916.team'], [], ['4916.team' => true]), 'два поддомена одной базы — один сайт');
-        Assert::same(0, CollectHistory::ownRepeats(['kush.stranger.top'], [], ['4916.team']), 'чужая база');
-        Assert::same(2, CollectHistory::ownRepeats(['a.our.ru', 'kush.4916.team'], ['our.ru'], ['4916.team']), 'список доменов и базы складываются');
-        Assert::same(1, CollectHistory::ownRepeats(['a.our.ru', 'www.our.ru'], ['our.ru'], ['4916.team']), 'без двойного счёта');
+        // Повторы считаем ПО ДОМЕНАМ и только по списку: других источников больше нет.
+        Assert::same(1, CollectHistory::ownRepeats(['a.our.team', 'www.our.team', 'b.our.team'], ['our.team']), 'считаем домены, не адреса');
+        Assert::same(1, CollectHistory::ownRepeats(['kush.4916.team', 'lee.4916.team'], ['4916.team' => true]), 'карта баз тоже принимается');
+        Assert::same(0, CollectHistory::ownRepeats(['kush.stranger.top'], ['4916.team']), 'чужая база');
+        Assert::same(0, CollectHistory::ownRepeats(['a.our.team'], []), 'без списка считать нечего');
+        Assert::same(0, CollectHistory::ownRepeats(['stranger.net.ru'], ['net.ru']), 'зона в списке никого не помечает');
 
         // Доля наших — от доров, а не от одного отобранного сайта.
         $totals = CollectHistory::totals([$record]);
@@ -432,40 +430,14 @@ final class CollectHistoryTest
         Assert::contains('50', CollectHistory::csv([$record]), 'та же доля в CSV');
     }
 
-    public function testOwnCountsTemplatesCutByOwnMarker(): void
+    public function testOwnTotalStillReadsOldRecords(): void
     {
-        // Третья часть «наших»: домены, срезанные ещё на выдаче по метке-домену (own-markers.txt).
-        // Собирать и открывать мы их не собираемся, но в выдаче они стоят и они наши — без этого
-        // «наших» всегда меньше, чем есть на самом деле.
-        $raw = [
-            ['result' => new SearchResult('куш казино', 0, 1, 'https://a.mine.ru/', 'a.mine.ru', 'T'), 'reason' => 'own_site'],
-            ['result' => new SearchResult('куш казино', 0, 2, 'https://b.mine.ru/', 'b.mine.ru', 'T'), 'reason' => 'own_site'],
-            ['result' => new SearchResult('куш казино', 0, 3, 'https://x.old.ru/', 'x.old.ru', 'T'), 'reason' => null],
-            ['result' => new SearchResult('куш казино', 0, 4, 'https://y.new.ru/', 'y.new.ru', 'T'), 'reason' => null],
-        ];
-        $selected = $this->sites('y.new.ru');
-        $selected[0]->own = true;
-
-        $record = CollectHistory::record(
-            $selected,
-            ['results' => count($raw), 'rejected' => ['seen_before' => 1]],
-            ['x.old.ru'],
-            false,
-            false,
-            $raw,
-            ['old.ru', 'OLD.RU ', ''], // список наших доменов: повторы и пустые строки не в счёт
-        );
-
-        Assert::same(1, $record['own_selected'], 'открыт на визите и помечен меткой в HTML');
-        Assert::same(1, $record['own_repeats'], 'домен уже в базе — сайт не открывали, но он наш');
-        Assert::same(1, $record['own_cut'], 'два адреса одного домена срезаны меткой — это один сайт');
-        Assert::same(3, $record['own'], 'наши = отобранные + повторы + срезанные по метке');
-        Assert::same(1, $record['own_known'], 'в списке наших доменов один домен');
-        Assert::same(3, CollectHistory::ownTotal($record), 'сумма частей');
-        Assert::same(7, CollectHistory::ownTotal(['own' => 7]), 'у старой записи частей нет — берём готовое число');
-        // Воронка по-прежнему сходится: срезанное меткой остаётся в cut.
-        Assert::same($record['unique_sites'], $record['sites'] + CollectHistory::cutTotal($record['cut']));
+        // Записи прежних версий хранят own_cut (срезано по метке-домену) — такой причины больше нет,
+        // но сумму старой записи ломать нельзя: она читается как написана.
+        Assert::same(3, CollectHistory::ownTotal(['own_selected' => 1, 'own_repeats' => 1, 'own_cut' => 1]));
+        Assert::same(7, CollectHistory::ownTotal(['own' => 7]), 'у совсем старой записи частей нет — берём готовое число');
     }
+
 
     public function testUpdateRecomputesOwnFromParts(): void
     {
