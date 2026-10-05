@@ -214,8 +214,10 @@ $sc .payout-cta{text-align:center;margin-top:13px}
 $sc .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
 $sc .stat-card{padding:15px;text-align:center;$карточка}
 $sc .stat-icon{font-size:21px}
-$sc .stat-value{display:block;font-size:1.45rem;font-weight:700;color:$а;font-variant-numeric:tabular-nums;margin:5px 0 3px}
+$sc .stat-value{display:block;font-size:1.45rem;font-weight:700;color:$а;line-height:1.15;margin:0 0 4px}
 $sc .stat-label{font-size:.82rem;color:var(--тус)}
+$sc .stat-card{display:flex;flex-direction:column;justify-content:center;gap:2px}
+$sc .stat-card-text .stat-label{font-size:1rem;font-weight:600;color:var(--тек)}
 
 /* --- вопросы, отзывы, тематические блоки --- */
 $sc .faq-section,$sc .review-quotes-block,$sc .page-thematic-block,$sc .info-block,$sc .layout-block>section{ $карточка;padding:clamp(16px,2.6vw,26px)}
