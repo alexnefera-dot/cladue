@@ -398,6 +398,22 @@ if ($path === '/api/state') {
             'dorgen_key_set' => envValue($envFile, \YandexSites\Dorgen\DorgenClient::TOKEN_ENV) !== '',
             'dorgen_base' => envValue($envFile, \YandexSites\Dorgen\DorgenClient::BASE_ENV),
         ],
+        // Состояние списка наших доменов: по нему весь конвейер решает «наш», поэтому его свежесть
+        // должна быть видна НА ГЛАВНОЙ, а не только на странице разбора выдачи.
+        'dorgen' => (static function () use ($projectDir, $envFile): array {
+            $cache = \YandexSites\Dorgen\OwnBases::inRuns($projectDir . '/runs');
+            $state = $cache->load();
+            $to = (string) $state['date_to'];
+            $stale = $to !== '' ? (int) floor((strtotime(date('Y-m-d')) - strtotime($to)) / 86400) : 0;
+
+            return [
+                'has_token' => dorgenClient($envFile) !== null,
+                'bases' => count($state['bases']),
+                'date_to' => $to,
+                'stale_days' => max(0, $stale),
+                'dropped' => (int) ($state['dropped'] ?? 0),
+            ];
+        })(),
         'settings' => readJsonFile($settingsFile),
         'status' => $status,
         'running' => $running,

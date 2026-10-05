@@ -1084,6 +1084,14 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   continues on the cached bases plus the markers. Progress goes to the job log every 10th page. The log
   line now also says «устарело на N дн. — обновите кнопкой» when the base is behind, and `serp.html`
   prints the same in amber next to «наших баз из системы запусков: N (по ДАТА)».
+  THE REFRESH BUTTON IS ON THE MAIN PANEL since 1.38.0 — «Настройки» → «Ключи доступа», right under the
+  dorgen key: a state line (`showDorgenState()` off `/api/state`'s new `dorgen` block: bases, `date_to`,
+  `stale_days` in amber, `dropped`), the button `#dorgenBtn`, a depth select `#dorgenDepth` (only new
+  days / 30 / 90 / 365 days — a gap deeper than the auto-refresh's 7 days needs a period) and the same
+  background flow as the SERP page (`POST /api/dorgen-refresh` + 1 s polling of `/api/dorgen-progress`,
+  bar scaled by period chunks). It was ONLY on `/serp` before, so the job log's «обновите кнопкой
+  «Обновить наши домены»» pointed at a page the user never had open — «а как обновить наши не вижу
+  кнопки?». All three warnings now name «Настройки» → «Ключи доступа».
   Covered by `OwnSitesTest::testMatchesBaseFromLaunchSystem` / `testMatchesBaseInRedirectChain` /
   `testFromConfigReadsBasesFromLaunchSystemCache`,
   `PanelTest::testBasesAreToppedUpBeforeCollectAndDeepGapIsSkipped` (three cases against the fake

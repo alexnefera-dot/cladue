@@ -1616,6 +1616,12 @@ final class PanelTest
             Assert::same('done', $prog['state'] ?? '', 'выгрузка дошла до конца: ' . json_encode($prog, JSON_UNESCAPED_UNICODE));
             // В кэше уже была база grid-x.ru, фейковый API добавляет ещё две.
             Assert::same(3, $prog['bases'], 'базы выгружены по ключу из настроек и добавлены к прежним');
+            // Состояние списка видно НА ГЛАВНОЙ: там же, где кнопка «Обновить наши домены».
+            $state = json_decode((string) $this->http('GET', $base . '/api/state'), true);
+            Assert::same(3, (int) ($state['dorgen']['bases'] ?? 0), '/api/state отдаёт число баз для главной');
+            Assert::true((bool) ($state['dorgen']['has_token'] ?? false), 'и то, что ключ задан');
+            Assert::same(date('Y-m-d'), (string) ($state['dorgen']['date_to'] ?? ''), 'и по какой день выгружено');
+            Assert::same(0, (int) ($state['dorgen']['stale_days'] ?? -1), 'список свежий');
             Assert::same(2, $prog['new_bases'] ?? 0, 'две из них новые');
             Assert::same(3, $prog['rows'], 'строк прочитано — видно в прогрессе');
             Assert::true(($prog['pages'] ?? 0) >= 2, 'обе страницы курсора отражены в прогрессе');

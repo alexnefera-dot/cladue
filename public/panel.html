@@ -139,6 +139,20 @@
         <div class="hint">По этому ключу выгружаются НАШИ запущенные поддомены, и такие сайты помечаются «наш» точнее всего — не по меткам, а по списку от самой системы. Работает везде: таблица результатов, статистика, разбор выдачи. Ключ хранится только на этом компьютере (файл .env) и никуда не отправляется.</div>
         <label style="margin-top:10px">Адрес системы запусков <span class="hint">можно не менять</span></label>
         <input type="text" id="k_dorgen_base" placeholder="https://dorgen-engine.com">
+        <div class="btns" style="margin-top:8px">
+          <button class="btn-ghost" id="dorgenBtn" title="Догрузить наши запущенные поддомены из системы запусков. По этому списку — и только по нему — сайт из выдачи помечается «наш»">Обновить наши домены</button>
+          <select id="dorgenDepth" title="Обычно нужны только новые дни. Если список давно не обновляли, возьмите период побольше — выгрузка идёт ~35 с на сутки">
+            <option value="0">только новые дни</option>
+            <option value="30">за 30 дней</option>
+            <option value="90">за 90 дней</option>
+            <option value="365">за год</option>
+          </select>
+          <span id="dorgenState" class="hint"></span>
+        </div>
+        <div id="dorgenBox" hidden style="margin-top:6px">
+          <div class="bar"><span id="dorgenBar"></span></div>
+          <div class="hint" id="dorgenProgress"></div>
+        </div>
         <div class="check"><input type="checkbox" id="dorgenauto" checked><label style="margin:0">Догружать наши домены перед сбором <span class="hint">— доры запускаются каждый день, и вчерашний список не знает про сегодняшние. Берутся только новые дни (обычно секунды). Провал глубже 7 дней автодогрузка не трогает — такой выгружайте кнопкой «Обновить наши домены» на странице разбора выдачи, там есть полоска прогресса</span></label></div>
         <div class="btns"><button class="btn-ghost" id="saveKeys">Сохранить ключи</button><span id="keysSaved" class="saved" hidden>сохранено</span></div>
       </div>
@@ -414,6 +428,69 @@ function updateProxyCount(){
     : `<b>Прокси в списке: ${ok}</b>${bad?` · <b style="color:#b45309">не похожи на прокси: ${bad}</b> (будут пропущены)`:''}. `;
 }
 $('proxylist').addEventListener('input', updateProxyCount);
+
+const escH = t => String(t ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+// СПИСОК НАШИХ ДОМЕНОВ из системы запусков: по нему весь конвейер решает «наш», поэтому кнопка и
+// состояние живут здесь, на главной. Раньше они были только на отдельной странице разбора выдачи, и
+// предупреждение «обновите кнопкой» вело в никуда — «а как обновить наши не вижу кнопки?».
+let dorgenTimer = null;
+function showDorgenState(d){
+  d = d || {};
+  const el = $('dorgenState'); if(!el) return;
+  if(!d.has_token){ el.innerHTML = '· ключ не задан — впишите его выше и сохраните'; return; }
+  const n = d.bases|0, stale = d.stale_days|0;
+  el.innerHTML = n
+    ? `· наших баз: <b>${n}</b>${d.date_to?` (по ${escH(d.date_to)})`:''}`
+      + (stale > 1 ? ` · <b style="color:#b45309">устарело на ${stale} дн.</b>` : '')
+      + ((d.dropped|0) ? ` · отброшено непригодных записей: ${d.dropped|0}` : '')
+    : '· список пуст — наши сайты не определяются, нажмите «Обновить наши домены»';
+}
+function dorgenProgressText(p){
+  const secs = p.seconds|0, mins = Math.floor(secs/60);
+  const spent = mins ? `${mins} мин ${secs%60} с` : `${secs} с`;
+  if(p.state === 'error') return `<span class="err">Не удалось: ${escH(p.error||'ошибка')}</span>`;
+  if(p.state === 'done') return `Готово: баз ${p.bases|0} (новых ${p.new_bases|0}), строк ${p.rows|0}, прошло ${spent}`;
+  const period = (p.chunks|0) > 1 ? `период ${p.chunk|0} из ${p.chunks|0} · ` : '';
+  return `Выгружаю: ${period}${escH(p.chunk_from||p.date_from||'')} — ${escH(p.chunk_to||p.date_to||'')}`
+    + ` · страниц ${p.pages|0} · строк ${p.rows|0} · баз ${p.bases|0} (новых ${p.new_bases|0}) · прошло ${spent}`;
+}
+async function pollDorgen(){
+  try{
+    const p = await (await fetch('/api/dorgen-progress')).json();
+    $('dorgenBox').hidden = false;
+    // Полоску масштабируем по ПЕРИОДАМ: сколько ещё страниц впереди, API не сообщает.
+    const pct = p.state === 'done' ? 100 : Math.min(95, Math.round(((p.chunk|0) ? (p.chunk-1) : 0) / Math.max(1, p.chunks|0) * 100) + 5);
+    $('dorgenBar').style.width = pct + '%';
+    $('dorgenProgress').innerHTML = dorgenProgressText(p);
+    if(p.state === 'done' || p.state === 'error'){
+      clearInterval(dorgenTimer); dorgenTimer = null;
+      $('dorgenBtn').disabled = false; $('dorgenBtn').textContent = 'Обновить наши домены';
+      refresh(); // подтянуть новое число баз в строку состояния
+    }
+  }catch(e){}
+}
+$('dorgenBtn').addEventListener('click', async () => {
+  const btn = $('dorgenBtn');
+  btn.disabled = true; btn.textContent = 'Выгружаю…';
+  try{
+    const days = parseInt($('dorgenDepth').value, 10) || 0;
+    const body = {};
+    if(days > 0){
+      const from = new Date(Date.now() - days*86400000);
+      body.date_from = from.toISOString().slice(0,10);
+    }
+    const r = await fetch('/api/dorgen-refresh', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+    const j = await r.json();
+    if(!j.ok){ alert(j.error || 'Не удалось запустить выгрузку'); btn.disabled = false; btn.textContent = 'Обновить наши домены'; return; }
+    $('dorgenBox').hidden = false;
+    if(dorgenTimer) clearInterval(dorgenTimer);
+    dorgenTimer = setInterval(pollDorgen, 1000);
+    pollDorgen();
+  }catch(e){
+    alert('Не удалось запустить выгрузку: ' + e.message);
+    btn.disabled = false; btn.textContent = 'Обновить наши домены';
+  }
+});
 
 // Вкладки: «Главная» (запросы, запуск, прогресс, лог, результаты) и «Настройки» (ключи, условия, открытие).
 function showTab(name){
@@ -1531,6 +1608,7 @@ async function refresh(){
     // Версия кода из ответа сервера: после обновления скрипта здесь должен появиться новый номер.
     if(st.version){ $('version').textContent='версия '+st.version+(st.version_date?' от '+String(st.version_date).split('-').reverse().join('.'):''); }
     if(st.project_dir){ $('projDir').textContent='Папка проекта: '+st.project_dir; }
+    showDorgenState(st.dorgen);
     // «Скачать архив контента» — как только на диске есть очищенные статьи; в подписи — сколько их и сайтов.
     const cz=$('contentZipBtn'), cn=$('contentNewBtn'), cr=$('contentResetLink');
     const nAll=st.content_files|0, nNew=(st.content_new&&st.content_new.files|0)||0, sNew=(st.content_new&&st.content_new.sites|0)||0;
