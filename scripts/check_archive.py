@@ -954,7 +954,10 @@ def main():
             имена = {fn[:-5] for fn in os.listdir(sdir) if fn.endswith(".html")}
             сем = семья(имена)
             tpl = СЕМЬИ[сем]
-            tname = "%d-стр" % сем
+            # Тип комплекта — сколько в нём страниц на самом деле, а не номер семьи:
+            # страницы не выбрасываются, и в семье 7-стр лежат комплекты на 7, 9 и 10
+            # страниц. Семья нужна только для порогов объёма и остаётся в поле "n".
+            tname = "%d-стр" % len(имена)
             key = "%s/%s" % (tname, site)
             pages = {}
             for fn in sorted(os.listdir(sdir)):
@@ -968,7 +971,8 @@ def main():
             note = ""
             if gname != tname:
                 note = " (папка %s)" % gname
-                F.add(key, "INFO", "A2", "папка %s, семья %s по набору страниц" % (gname, tname))
+            F.add(key, "INFO", "A2", "папка %s, страниц %d, семья %d-стр по набору страниц"
+                  % (gname, len(имена), сем))
             sites.append({"key": key, "type": tname, "site": site, "note": note, "n": сем,
                           "pages": pages, "npages": len(pages)})
             check_site(сем, tpl, key, pages, F)
