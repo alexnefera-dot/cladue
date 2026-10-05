@@ -1,0 +1,923 @@
+<title>Сеть после слепоты</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Отчёт-лента: статусная шапка, ряд показателей, затем секции «график + вывод» в одну колонку */
+:root{
+  --paper:#f3f4f6; --card:#fcfcfb; --ink:#14171c; --ink-2:#4a525e; --ink-3:#7b8593;
+  --line:#dde0e6; --line-2:#eceef2;
+  --traffic:#a05c12; --money:#0083a0; --bad:#a3301f; --ok:#1f6b3a;
+  --traffic-soft:rgba(160,92,18,.13); --money-soft:rgba(0,131,160,.13);
+  --display:"IBM Plex Sans Condensed",system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#111316; --card:#1a1d21; --ink:#e8eaed; --ink-2:#a6aeb9; --ink-3:#79828e;
+  --line:#2b2f36; --line-2:#22262b;
+  --traffic:#c07f28; --money:#159bb8; --bad:#d9705f; --ok:#5aa87a;
+  --traffic-soft:rgba(192,127,40,.18); --money-soft:rgba(21,155,184,.18);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --paper:#111316; --card:#1a1d21; --ink:#e8eaed; --ink-2:#a6aeb9; --ink-3:#79828e;
+  --line:#2b2f36; --line-2:#22262b;
+  --traffic:#c07f28; --money:#159bb8; --bad:#d9705f; --ok:#5aa87a;
+  --traffic-soft:rgba(192,127,40,.18); --money-soft:rgba(21,155,184,.18);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55;
+     -webkit-font-smoothing:antialiased}
+.wrap{max-width:980px;margin:0 auto;padding-block:28px 64px;padding-left:16px;padding-right:16px;
+      display:flex;flex-direction:column;gap:34px}
+h1{font-family:var(--display);font-size:clamp(28px,5.5vw,42px);line-height:1.05;margin:0;
+   font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+h2{font-family:var(--display);font-size:clamp(20px,3.4vw,25px);line-height:1.15;margin:0 0 4px;
+   font-weight:600;text-wrap:balance}
+p{margin:0}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+         color:var(--ink-3);margin:0 0 10px}
+.lede{color:var(--ink-2);max-width:62ch}
+header .meta{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-top:12px}
+section{display:flex;flex-direction:column;gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 18px 14px}
+.verdict{border-left:3px solid var(--traffic);padding:2px 0 2px 14px;color:var(--ink-2);max-width:66ch}
+.verdict.money{border-left-color:var(--money)}
+.verdict b{color:var(--ink);font-weight:600}
+/* ряд показателей */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 15px}
+.stat .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.stat .v{font-family:var(--display);font-size:30px;font-weight:700;line-height:1.1;margin-top:5px;
+         font-variant-numeric:tabular-nums}
+.stat .n{font-size:12.5px;color:var(--ink-2);margin-top:3px}
+.v.t{color:var(--traffic)} .v.m{color:var(--money)} .v.b{color:var(--bad)}
+/* графики */
+figure{margin:0}
+figcaption{font-size:12.5px;color:var(--ink-3);margin-top:8px;font-family:var(--mono)}
+svg{display:block;width:100%;height:auto;overflow:visible}
+.ax{font-family:var(--mono);font-size:10.5px;fill:var(--ink-3)}
+.axl{font-family:var(--mono);font-size:11px;fill:var(--ink-2)}
+.grid{stroke:var(--line-2);stroke-width:1}
+.base{stroke:var(--line);stroke-width:1}
+.lbl{font-family:var(--body);font-size:11.5px;fill:var(--ink-2);font-weight:500}
+.hit{fill:transparent;cursor:pointer}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-2);margin-bottom:10px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+/* таблицы */
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:520px}
+th,td{text-align:right;padding:7px 10px;border-bottom:1px solid var(--line-2);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{font-family:var(--mono);font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;
+         color:var(--ink-3);font-weight:500;border-bottom:1px solid var(--line);
+         position:sticky;top:0;background:var(--card);z-index:1}
+tbody td{font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:12.5px}
+tbody td:first-child{font-family:var(--body);font-size:13.5px}
+tbody tr:hover{background:var(--line-2)}
+.num-t{color:var(--traffic);font-weight:500} .num-m{color:var(--money);font-weight:500}
+.dim{color:var(--ink-3)}
+.bar-cell{position:relative}
+.bar-cell span{position:relative;z-index:1}
+.bar-cell::before{content:"";position:absolute;right:4px;top:4px;bottom:4px;background:var(--traffic-soft);
+                  width:var(--w,0);border-radius:2px}
+.bar-cell.m::before{background:var(--money-soft)}
+.tall{max-height:460px;overflow-y:auto;overflow-x:auto}
+/* сортировка */
+.sorters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.sorters button{font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;padding:6px 11px;
+  border:1px solid var(--line);background:transparent;color:var(--ink-2);border-radius:6px;cursor:pointer}
+.sorters button[aria-pressed="true"]{border-color:var(--ink-2);color:var(--ink);background:var(--line-2)}
+.sorters button:focus-visible{outline:2px solid var(--traffic);outline-offset:2px}
+/* подсказка */
+#tip{position:fixed;pointer-events:none;opacity:0;transition:opacity .09s;background:var(--ink);
+     color:var(--paper);font-family:var(--mono);font-size:11.5px;padding:6px 9px;border-radius:5px;
+     z-index:9;white-space:pre;line-height:1.45}
+.flag{display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;
+      text-transform:uppercase;padding:2px 7px;border-radius:4px;border:1px solid currentColor}
+.flag.bad{color:var(--bad)} .flag.ok{color:var(--ok)}
+.todo{display:flex;flex-direction:column;gap:11px;counter-reset:n}
+.todo li{list-style:none;display:flex;gap:12px;align-items:baseline}
+.todo li::before{counter-increment:n;content:counter(n);font-family:var(--mono);font-size:11px;
+  color:var(--ink-3);border:1px solid var(--line);border-radius:5px;min-width:22px;text-align:center;
+  padding:2px 0;flex:none}
+.todo ul{margin:0;padding:0}
+.caveat{font-size:13px;color:var(--ink-3);max-width:66ch;border-top:1px solid var(--line-2);padding-top:12px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+<div class="wrap">
+<header>
+<p class="eyebrow">Разбор сети · 5 октября 2026</p>
+<h1>Трекер ожил, и сеть выглядит не так, как мы думали</h1>
+<p class="lede">59 часов мы не видели ничего. Когда учёт вернулся, поиск давал вдвое больше трафика, чем до поломки, — но идёт он почти целиком на бренды, которые не приносят денег.</p>
+<p class="meta">Данные выгружены 05.10 14:00 · запуски 03–05.10 (45&nbsp;114 сайтов) · клики 29.09–05.10 · конверсии за всё время</p>
+</header>
+<div class="stats">
+<div class="stat"><div class="k">Живых кликов с поиска</div><div class="v t">70 025</div><div class="n">05.10 за 14 часов · вдвое больше, чем 01.10</div></div>
+<div class="stat"><div class="k">Слепота трекера</div><div class="v b">59 ч</div><div class="n">01.10 13:58 → 04.10 01:56</div></div>
+<div class="stat"><div class="k">Индекс 24 ч</div><div class="v">1,7%</div><div class="n">запуски 04.10 · мера больше не работает</div></div>
+<div class="stat"><div class="k">Брендов с нулём кликов</div><div class="v b">61</div><div class="n">из 206 · на тех же доменах</div></div>
+</div>
+<section>
+<div><p class="eyebrow">01 · Восстановление</p><h2>Поиск вернулся выше прежнего</h2></div>
+<div class="card"><figure><svg viewBox="0 0 900 260" role="img" aria-label="Живые клики с Яндекса по дням, окно 00:00–14:00"><line class="grid" x1="52" x2="888" y1="218.0" y2="218.0"/><text class="ax" x="44" y="221.5" text-anchor="end">0</text><line class="grid" x1="52" x2="888" y1="161.3" y2="161.3"/><text class="ax" x="44" y="164.8" text-anchor="end">20 000</text><line class="grid" x1="52" x2="888" y1="104.7" y2="104.7"/><text class="ax" x="44" y="108.2" text-anchor="end">40 000</text><line class="grid" x1="52" x2="888" y1="48.0" y2="48.0"/><text class="ax" x="44" y="51.5" text-anchor="end">60 000</text><rect x="82.7" y="122.2" width="58.0" height="95.8" rx="4" fill="var(--traffic)"/><text class="lbl" x="111.7" y="115.2" text-anchor="middle">33 811</text><text class="ax" x="111.7" y="236.0" text-anchor="middle">29.09</text><rect class="hit" x="52.0" y="14" width="119.4" height="204" data-tip="29.09  33 811 живых кликов с Яндекса"/><rect x="202.1" y="136.6" width="58.0" height="81.4" rx="4" fill="var(--traffic)"/><text class="lbl" x="231.1" y="129.6" text-anchor="middle">28 712</text><text class="ax" x="231.1" y="236.0" text-anchor="middle">30.09</text><rect class="hit" x="171.4" y="14" width="119.4" height="204" data-tip="30.09  28 712 живых кликов с Яндекса"/><rect x="321.6" y="122.6" width="58.0" height="95.4" rx="4" fill="var(--traffic)"/><text class="lbl" x="350.6" y="115.6" text-anchor="middle">33 685</text><text class="ax" x="350.6" y="236.0" text-anchor="middle">01.10</text><rect class="hit" x="290.9" y="14" width="119.4" height="204" data-tip="01.10  33 685 живых кликов с Яндекса"/><rect x="441.0" y="215.0" width="58.0" height="3" rx="1.5" fill="var(--bad)"/><text class="lbl" x="470.0" y="207.0" text-anchor="middle" fill="var(--bad)">0</text><text class="ax" x="470.0" y="236.0" text-anchor="middle">02.10</text><rect class="hit" x="410.3" y="14" width="119.4" height="204" data-tip="02.10  0 живых кликов с Яндекса"/><rect x="560.4" y="215.0" width="58.0" height="3" rx="1.5" fill="var(--bad)"/><text class="lbl" x="589.4" y="207.0" text-anchor="middle" fill="var(--bad)">0</text><text class="ax" x="589.4" y="236.0" text-anchor="middle">03.10</text><rect class="hit" x="529.7" y="14" width="119.4" height="204" data-tip="03.10  0 живых кликов с Яндекса"/><rect x="679.9" y="208.7" width="58.0" height="9.3" rx="4" fill="var(--traffic)"/><text class="lbl" x="708.9" y="201.7" text-anchor="middle">3 275</text><text class="ax" x="708.9" y="236.0" text-anchor="middle">04.10</text><rect class="hit" x="649.1" y="14" width="119.4" height="204" data-tip="04.10  3 275 живых кликов с Яндекса"/><rect x="799.3" y="19.6" width="58.0" height="198.4" rx="4" fill="var(--traffic)"/><text class="lbl" x="828.3" y="12.6" text-anchor="middle">70 025</text><text class="ax" x="828.3" y="236.0" text-anchor="middle">05.10</text><rect class="hit" x="768.6" y="14" width="119.4" height="204" data-tip="05.10  70 025 живых кликов с Яндекса"/><line class="base" x1="52" x2="888" y1="218" y2="218"/><rect x="410.3" y="14" width="238.9" height="204" fill="var(--bad)" opacity=".07"/><text class="ax" x="529.7" y="28" text-anchor="middle" fill="var(--bad)">слепота</text></svg>
+<figcaption>Живые клики с реферером Яндекса, одинаковое окно 00:00–14:00 каждый день</figcaption></figure></div>
+<p class="verdict">Запись входа вернулась сама <b>4 октября в 01:56</b> — откатывать прямые реф-ссылки не пришлось. 5 октября поиск дал <b>70 025 живых кликов за 14 часов</b>: вдвое больше, чем 1 октября до поломки.</p>
+<p class="verdict money">Что всё ещё не работает — <b>привязка регистраций к домену</b>. За 04–05.10 в трекер пришло 5 рег против 10–20 в сутки раньше: постбэк без clickid не сшивается. Пока в прямую ссылку не добавлен subid, деньги по доменам и контентам не считаются.</p>
+</section>
+<section>
+<div><p class="eyebrow">02 · Возраст домена</p><h2>Две трети трафика дают запуски 1–3 октября</h2></div>
+<div class="card"><figure><svg viewBox="0 0 900 366" role="img" aria-label="Клики 5 октября по дате запуска домена"><text class="axl" x="168" y="17.0" text-anchor="end">август и раньше</text><rect x="176" y="0" width="27.6" height="26" rx="4" fill="var(--ink-3)" opacity=".42"/><text class="lbl" x="212.6" y="17.0">762 · 1.1%</text><rect class="hit" x="176" y="0" width="628" height="26" data-tip="август и раньше
+762 кликов · 283 сайтов с кликом
+2.7 кликов на такой сайт"/><text class="axl" x="168" y="51.0" text-anchor="end">сентябрь до 20-го</text><rect x="176" y="34" width="236.9" height="26" rx="4" fill="var(--ink-3)" opacity=".42"/><text class="lbl" x="421.9" y="51.0">6 536 · 9.3%</text><rect class="hit" x="176" y="34" width="628" height="26" data-tip="сентябрь до 20-го
+6 536 кликов · 2 949 сайтов с кликом
+2.2 кликов на такой сайт"/><text class="axl" x="168" y="85.0" text-anchor="end">20–28.09</text><rect x="176" y="68" width="169.2" height="26" rx="4" fill="var(--ink-3)" opacity=".42"/><text class="lbl" x="354.2" y="85.0">4 669 · 6.7%</text><rect class="hit" x="176" y="68" width="628" height="26" data-tip="20–28.09
+4 669 кликов · 1 656 сайтов с кликом
+2.8 кликов на такой сайт"/><text class="axl" x="168" y="119.0" text-anchor="end">29–30.09</text><rect x="176" y="102" width="124.3" height="26" rx="4" fill="var(--ink-3)" opacity=".42"/><text class="lbl" x="309.3" y="119.0">3 430 · 4.9%</text><rect class="hit" x="176" y="102" width="628" height="26" data-tip="29–30.09
+3 430 кликов · 294 сайтов с кликом
+11.7 кликов на такой сайт"/><text class="axl" x="168" y="153.0" text-anchor="end">01.10</text><rect x="176" y="136" width="389.4" height="26" rx="4" fill="var(--traffic)" opacity="1"/><text class="lbl" x="574.4" y="153.0">10 744 · 15.4%</text><rect class="hit" x="176" y="136" width="628" height="26" data-tip="01.10
+10 744 кликов · 373 сайтов с кликом
+28.8 кликов на такой сайт"/><text class="axl" x="168" y="187.0" text-anchor="end">02.10</text><rect x="176" y="170" width="628.0" height="26" rx="4" fill="var(--traffic)" opacity="1"/><text class="lbl" x="813.0" y="187.0">17 329 · 24.8%</text><rect class="hit" x="176" y="170" width="628" height="26" data-tip="02.10
+17 329 кликов · 664 сайтов с кликом
+26.1 кликов на такой сайт"/><text class="axl" x="168" y="221.0" text-anchor="end">03.10</text><rect x="176" y="204" width="619.2" height="26" rx="4" fill="var(--traffic)" opacity="1"/><text class="lbl" x="804.2" y="221.0">17 085 · 24.4%</text><rect class="hit" x="176" y="204" width="628" height="26" data-tip="03.10
+17 085 кликов · 613 сайтов с кликом
+27.9 кликов на такой сайт"/><text class="axl" x="168" y="255.0" text-anchor="end">04.10</text><rect x="176" y="238" width="166.4" height="26" rx="4" fill="var(--ink-3)" opacity=".42"/><text class="lbl" x="351.4" y="255.0">4 591 · 6.6%</text><rect class="hit" x="176" y="238" width="628" height="26" data-tip="04.10
+4 591 кликов · 265 сайтов с кликом
+17.3 кликов на такой сайт"/><text class="axl" x="168" y="289.0" text-anchor="end">05.10</text><rect x="176" y="272" width="54.7" height="26" rx="4" fill="var(--ink-3)" opacity=".42"/><text class="lbl" x="239.7" y="289.0">1 509 · 2.2%</text><rect class="hit" x="176" y="272" width="628" height="26" data-tip="05.10
+1 509 кликов · 84 сайтов с кликом
+18.0 кликов на такой сайт"/><text class="axl" x="168" y="323.0" text-anchor="end">нет в реестре</text><rect x="176" y="306" width="118.6" height="26" rx="4" fill="var(--ink-3)" opacity=".42"/><text class="lbl" x="303.6" y="323.0">3 272 · 4.7%</text><rect class="hit" x="176" y="306" width="628" height="26" data-tip="нет в реестре
+3 272 кликов · 444 сайтов с кликом
+7.4 кликов на такой сайт"/></svg>
+<figcaption>Живые клики с Яндекса за 5 октября, по дате переобхода домена</figcaption></figure></div>
+<p class="verdict">Сентябрьские домены дают 17% трафика, хотя их в десятки раз больше. Но главное — <b>сменился режим</b>: прорывается меньше сайтов, зато каждый прорвавшийся даёт в разы больше.</p>
+<div class="card"><div class="scroll"><table>
+<thead><tr><th>Когда запущен</th><th>Доля сайтов с кликом</th><th>Кликов на такой сайт</th></tr></thead>
+<tbody>
+<tr><td>сентябрь</td><td class="dim">2–4%</td><td class="dim">1,4–4,4</td></tr>
+<tr><td>01–05.10</td><td class="num-t">1,5–3%</td><td class="num-t">17–29</td></tr>
+</tbody></table></div></div>
+<p class="verdict">Отсюда расхождение с индексом. Индекс 24 ч по запускам 04.10 — <b>1,7%</b>, по старой мере сеть на дне. А трафика вдвое больше, чем в лучшие сентябрьские дни. <b>Индекс считает сайты, а деньги приносят клики</b> — правильная мера теперь «кликов на запущенный сайт».</p>
+<p class="verdict">Трафик предельно сконцентрирован: из 471 домена, запущенного 01–05.10, работают <b>91</b> — они дают 96,2% всего. Медиана по сайту с кликом — 2 клика, максимум 2 884.</p>
+</section>
+<section>
+<div><p class="eyebrow">03 · Доменные зоны</p><h2>.lol обогнал .team вдвое</h2></div>
+<div class="card"><div class="scroll"><table>
+<thead><tr><th>Зона</th><th>Запущено сайтов</th><th>Кликов 05.10</th><th>Прорвалось</th><th>Кликов на запуск</th><th>Цена домена</th></tr></thead>
+<tbody>
+<tr><td><b>.lol</b></td><td>46 071</td><td class="num-t">37 199</td><td class="num-t">3,15%</td><td class="num-t">0,81</td><td>$1</td></tr>
+<tr><td>.team</td><td>35 773</td><td>14 059</td><td>1,54%</td><td>0,39</td><td>$2</td></tr>
+</tbody></table></div></div>
+<p class="verdict">Это <b>разворот</b>. В сентябре по индексу было casino&nbsp;1,22× &gt; team&nbsp;1,04× &gt; lol&nbsp;0,93×: <code>.lol</code> был худшим по индексу и при этом единственным окупавшимся. Сейчас он лучший и по трафику — вдвое лучше по обеим мерам и вдвое дешевле.</p>
+</section><section>
+<div><p class="eyebrow">04 · Готовый эксперимент</p><h2>Один домен, один текст, 206 брендов</h2></div>
+<p class="lede">Система сама поставила нам чистый опыт: каждый из 206 брендов стоит на <b>одном и том же наборе доменов с одним и тем же контентом</b> — по 91 рабочему домену, по ~3&nbsp;150 сайтов за всё время у каждого. Домен, текст и день держатся постоянными сами собой. Отличается только бренд.</p>
+<div class="card"><figure><svg viewBox="0 0 900 488" role="img" aria-label="Клики 5 октября по брендам, топ-15"><text class="axl" x="132" y="16.0" text-anchor="end">Jetton</text><rect x="140" y="0" width="642.0" height="24" rx="4" fill="var(--traffic)"/><text class="lbl" x="791.0" y="16.0">19 898</text><rect class="hit" x="140" y="0" width="642" height="24" data-tip="Jetton
+19 898 кликов 05.10
+3 рег · 0 ФД за всё время"/><text class="axl" x="132" y="48.0" text-anchor="end">1win</text><rect x="140" y="32" width="104.4" height="24" rx="4" fill="var(--traffic)"/><text class="lbl" x="253.4" y="48.0">3 237</text><rect class="hit" x="140" y="32" width="642" height="24" data-tip="1win
+3 237 кликов 05.10
+5 рег · 0 ФД за всё время"/><text class="axl" x="132" y="80.0" text-anchor="end">Pinco</text><rect x="140" y="64" width="102.6" height="24" rx="4" fill="var(--traffic)"/><text class="lbl" x="251.6" y="80.0">3 180</text><rect class="hit" x="140" y="64" width="642" height="24" data-tip="Pinco
+3 180 кликов 05.10
+20 рег · 2 ФД за всё время"/><text class="axl" x="132" y="112.0" text-anchor="end">1Go</text><rect x="140" y="96" width="73.2" height="24" rx="4" fill="var(--traffic)"/><text class="lbl" x="222.2" y="112.0">2 270</text><rect class="hit" x="140" y="96" width="642" height="24" data-tip="1Go
+2 270 кликов 05.10
+4 рег · 1 ФД за всё время"/><text class="axl" x="132" y="144.0" text-anchor="end">Leebet</text><rect x="140" y="128" width="60.2" height="24" rx="4" fill="var(--traffic)"/><text class="lbl" x="209.2" y="144.0">1 865</text><rect class="hit" x="140" y="128" width="642" height="24" data-tip="Leebet
+1 865 кликов 05.10
+0 рег · 0 ФД за всё время"/><text class="axl" x="132" y="176.0" text-anchor="end">Motor</text><rect x="140" y="160" width="54.2" height="24" rx="4" fill="var(--traffic)"/><text class="lbl" x="203.2" y="176.0">1 679</text><rect class="hit" x="140" y="160" width="642" height="24" data-tip="Motor
+1 679 кликов 05.10
+1 рег · 0 ФД за всё время"/><text class="axl" x="132" y="208.0" text-anchor="end">Vavada</text><rect x="140" y="192" width="50.0" height="24" rx="4" fill="var(--traffic)"/><text class="lbl" x="199.0" y="208.0">1 550</text><rect class="hit" x="140" y="192" width="642" height="24" data-tip="Vavada
+1 550 кликов 05.10
+1 рег · 0 ФД за всё время"/><text class="axl" x="132" y="240.0" text-anchor="end">Fugu</text><rect x="140" y="224" width="46.9" height="24" rx="4" fill="var(--traffic)"/><text class="lbl" x="195.9" y="240.0">1 454</text><rect class="hit" x="140" y="224" width="642" height="24" data-tip="Fugu
+1 454 кликов 05.10
+2 рег · 1 ФД за всё время"/><text class="axl" x="132" y="272.0" text-anchor="end">Селектор</text><rect x="140" y="256" width="42.9" height="24" rx="4" fill="var(--traffic)"/><text class="lbl" x="191.9" y="272.0">1 330</text><rect class="hit" x="140" y="256" width="642" height="24" data-tip="Селектор
+1 330 кликов 05.10
+11 рег · 1 ФД за всё время"/><text class="axl" x="132" y="304.0" text-anchor="end">Kush</text><rect x="140" y="288" width="37.6" height="24" rx="4" fill="var(--traffic)"/><text class="lbl" x="186.6" y="304.0">1 164</text><rect class="hit" x="140" y="288" width="642" height="24" data-tip="Kush
+1 164 кликов 05.10
+0 рег · 0 ФД за всё время"/><text class="axl" x="132" y="336.0" text-anchor="end">Kent</text><rect x="140" y="320" width="37.3" height="24" rx="4" fill="var(--traffic)"/><text class="lbl" x="186.3" y="336.0">1 155</text><rect class="hit" x="140" y="320" width="642" height="24" data-tip="Kent
+1 155 кликов 05.10
+6 рег · 1 ФД за всё время"/><text class="axl" x="132" y="368.0" text-anchor="end">Spinto</text><rect x="140" y="352" width="36.9" height="24" rx="4" fill="var(--traffic)"/><text class="lbl" x="185.9" y="368.0">1 145</text><rect class="hit" x="140" y="352" width="642" height="24" data-tip="Spinto
+1 145 кликов 05.10
+7 рег · 5 ФД за всё время"/><text class="axl" x="132" y="400.0" text-anchor="end">Eva</text><rect x="140" y="384" width="33.1" height="24" rx="4" fill="var(--traffic)"/><text class="lbl" x="182.1" y="400.0">1 026</text><rect class="hit" x="140" y="384" width="642" height="24" data-tip="Eva
+1 026 кликов 05.10
+2 рег · 0 ФД за всё время"/><text class="axl" x="132" y="432.0" text-anchor="end">Enomo</text><rect x="140" y="416" width="30.9" height="24" rx="4" fill="var(--traffic)"/><text class="lbl" x="179.9" y="432.0">958</text><rect class="hit" x="140" y="416" width="642" height="24" data-tip="Enomo
+958 кликов 05.10
+3 рег · 1 ФД за всё время"/><text class="axl" x="132" y="464.0" text-anchor="end">Riobet</text><rect x="140" y="448" width="27.4" height="24" rx="4" fill="var(--traffic)"/><text class="lbl" x="176.4" y="464.0">849</text><rect class="hit" x="140" y="448" width="642" height="24" data-tip="Riobet
+849 кликов 05.10
+4 рег · 1 ФД за всё время"/></svg>
+<figcaption>Живые клики с Яндекса за 5 октября · топ-15 брендов из 206</figcaption></figure></div>
+<p class="verdict">Jetton забирает <b>32% всего трафика сети</b> и прорывается на 56 доменах из 91 — вдвое чаще любого другого бренда. Топ-3 дают 43%, топ-10 — 62%. <b>61 бренд из 206 получил ровно ноль кликов.</b> Это не удачный домен и не удачный текст: домены и тексты у всех общие.</p>
+</section>
+<section>
+<div><p class="eyebrow">05 · Главное</p><h2>Трафик и деньги почти не связаны</h2></div>
+<div class="card">
+<div class="legend"><span><i style="background:var(--traffic)"></i>бренд · один кружок</span></div>
+<figure><svg viewBox="0 0 900 420" role="img" aria-label="Бренды: клики за 5 октября против регистраций за всё время"><line class="grid" x1="58" x2="866" y1="374.0" y2="374.0"/><text class="ax" x="50" y="377.5" text-anchor="end">0</text><line class="grid" x1="58" x2="866" y1="285.0" y2="285.0"/><text class="ax" x="50" y="288.5" text-anchor="end">10</text><line class="grid" x1="58" x2="866" y1="196.0" y2="196.0"/><text class="ax" x="50" y="199.5" text-anchor="end">20</text><line class="grid" x1="58" x2="866" y1="107.0" y2="107.0"/><text class="ax" x="50" y="110.5" text-anchor="end">30</text><line class="grid" x1="58" x2="866" y1="18.0" y2="18.0"/><text class="ax" x="50" y="21.5" text-anchor="end">40</text><line class="grid" x1="58.0" x2="58.0" y1="18" y2="374"/><text class="ax" x="58.0" y="391.0" text-anchor="middle">0</text><line class="grid" x1="115.3" x2="115.3" y1="18" y2="374"/><text class="ax" x="115.3" y="391.0" text-anchor="middle">100</text><line class="grid" x1="239.1" x2="239.1" y1="18" y2="374"/><text class="ax" x="239.1" y="391.0" text-anchor="middle">1 000</text><line class="grid" x1="463.0" x2="463.0" y1="18" y2="374"/><text class="ax" x="463.0" y="391.0" text-anchor="middle">5 000</text><line class="grid" x1="868.1" x2="868.1" y1="18" y2="374"/><text class="ax" x="868.1" y="391.0" text-anchor="middle">20 000</text><line class="base" x1="58" x2="866" y1="374" y2="374"/><line class="base" x1="58" x2="58" y1="18" y2="374"/><text class="ax" x="462.0" y="414" text-anchor="middle">клики 05.10 (шкала корневая)</text><text class="ax" transform="translate(13,196.0) rotate(-90)" text-anchor="middle">регистраций за всё время</text><circle cx="58.0" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="356.2" r="11" data-tip="BitStarz
+0 кликов 05.10
+2 рег · 0 ФД
+0.63 рег на 1000 сайтов"/><circle cx="58.0" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="374.0" r="11" data-tip="Baboss
+0 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="58.0" cy="347.3" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="347.3" r="11" data-tip="Avocado
+0 кликов 05.10
+3 рег · 2 ФД
+0.95 рег на 1000 сайтов"/><circle cx="58.0" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="374.0" r="11" data-tip="Bonsai
+0 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="58.0" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="374.0" r="11" data-tip="Вулкан Мега
+0 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="58.0" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="374.0" r="11" data-tip="Волна
+0 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="58.0" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="374.0" r="11" data-tip="Vibe
+0 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="58.0" cy="329.5" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="329.5" r="11" data-tip="Эверум
+0 кликов 05.10
+5 рег · 2 ФД
+1.59 рег на 1000 сайтов"/><circle cx="58.0" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="374.0" r="11" data-tip="Crystalslot
+0 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="58.0" cy="347.3" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="347.3" r="11" data-tip="Ezcash
+0 кликов 05.10
+3 рег · 0 ФД
+0.95 рег на 1000 сайтов"/><circle cx="58.0" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="356.2" r="11" data-tip="Fairspin
+0 кликов 05.10
+2 рег · 0 ФД
+0.63 рег на 1000 сайтов"/><circle cx="58.0" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="356.2" r="11" data-tip="Fonbet
+0 кликов 05.10
+2 рег · 0 ФД
+0.63 рег на 1000 сайтов"/><circle cx="58.0" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="374.0" r="11" data-tip="Lukkly
+0 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="58.0" cy="311.7" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="311.7" r="11" data-tip="Marathon
+0 кликов 05.10
+7 рег · 2 ФД
+2.22 рег на 1000 сайтов"/><circle cx="58.0" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="374.0" r="11" data-tip="Pari
+0 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="58.0" cy="347.3" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="347.3" r="11" data-tip="Slotgames
+0 кликов 05.10
+3 рег · 2 ФД
+1.28 рег на 1000 сайтов"/><circle cx="58.0" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="374.0" r="11" data-tip="Spacewin
+0 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="58.0" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="374.0" r="11" data-tip="Spinbetter
+0 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="58.0" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="374.0" r="11" data-tip="Tippy
+0 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="58.0" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="356.2" r="11" data-tip="Volta
+0 кликов 05.10
+2 рег · 0 ФД
+0.89 рег на 1000 сайтов"/><circle cx="58.0" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="374.0" r="11" data-tip="Weiss
+0 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="58.0" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="356.2" r="11" data-tip="Winity
+0 кликов 05.10
+2 рег · 0 ФД
+0.89 рег на 1000 сайтов"/><circle cx="58.0" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="374.0" r="11" data-tip="Betobet
+0 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="58.0" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="374.0" r="11" data-tip="1xbit
+0 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="58.0" cy="320.6" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="320.6" r="11" data-tip="Iris
+0 кликов 05.10
+6 рег · 3 ФД
+2.67 рег на 1000 сайтов"/><circle cx="58.0" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="365.1" r="11" data-tip="Leovegas
+0 кликов 05.10
+1 рег · 0 ФД
+0.45 рег на 1000 сайтов"/><circle cx="58.0" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="374.0" r="11" data-tip="National
+0 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="58.0" cy="320.6" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="320.6" r="11" data-tip="Olympus-play
+0 кликов 05.10
+6 рег · 1 ФД
+2.67 рег на 1000 сайтов"/><circle cx="58.0" cy="347.3" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="347.3" r="11" data-tip="Platinum
+0 кликов 05.10
+3 рег · 0 ФД
+1.34 рег на 1000 сайтов"/><circle cx="58.0" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="374.0" r="11" data-tip="Rizk
+0 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="58.0" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="365.1" r="11" data-tip="Slotoro
+0 кликов 05.10
+1 рег · 0 ФД
+0.45 рег на 1000 сайтов"/><circle cx="58.0" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="374.0" r="11" data-tip="Sprut
+0 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="58.0" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="374.0" r="11" data-tip="Wildblaster
+0 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="58.0" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="374.0" r="11" data-tip="Winna
+0 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="58.0" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="374.0" r="11" data-tip="WinWin
+0 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="58.0" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="374.0" r="11" data-tip="Banzaibet
+0 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="58.0" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="374.0" r="11" data-tip="Betus X
+0 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="58.0" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="365.1" r="11" data-tip="Bwin
+0 кликов 05.10
+1 рег · 1 ФД
+0.46 рег на 1000 сайтов"/><circle cx="58.0" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="374.0" r="11" data-tip="Spartans
+0 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="58.0" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="374.0" r="11" data-tip="Mr. Green
+0 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="58.0" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="356.2" r="11" data-tip="Metelitsa
+0 кликов 05.10
+2 рег · 0 ФД
+0.93 рег на 1000 сайтов"/><circle cx="58.0" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="58.0" cy="356.2" r="11" data-tip="Realslots
+0 кликов 05.10
+2 рег · 0 ФД
+0.94 рег на 1000 сайтов"/><circle cx="63.7" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="63.7" cy="356.2" r="11" data-tip="Onion
+1 кликов 05.10
+2 рег · 1 ФД
+0.63 рег на 1000 сайтов"/><circle cx="63.7" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="63.7" cy="365.1" r="11" data-tip="888
+1 кликов 05.10
+1 рег · 0 ФД
+0.32 рег на 1000 сайтов"/><circle cx="63.7" cy="347.3" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="63.7" cy="347.3" r="11" data-tip="Fontan
+1 кликов 05.10
+3 рег · 0 ФД
+0.95 рег на 1000 сайтов"/><circle cx="63.7" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="63.7" cy="365.1" r="11" data-tip="Legzo
+1 кликов 05.10
+1 рег · 0 ФД
+0.32 рег на 1000 сайтов"/><circle cx="63.7" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="63.7" cy="374.0" r="11" data-tip="Вулкан Престиж
+1 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="63.7" cy="320.6" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="63.7" cy="320.6" r="11" data-tip="Spin City
+1 кликов 05.10
+6 рег · 0 ФД
+1.9 рег на 1000 сайтов"/><circle cx="63.7" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="63.7" cy="365.1" r="11" data-tip="Вулкан Старс
+1 кликов 05.10
+1 рег · 0 ФД
+0.32 рег на 1000 сайтов"/><circle cx="63.7" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="63.7" cy="374.0" r="11" data-tip="Jackpoker
+1 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="63.7" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="63.7" cy="356.2" r="11" data-tip="F1
+1 кликов 05.10
+2 рег · 0 ФД
+0.89 рег на 1000 сайтов"/><circle cx="63.7" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="63.7" cy="365.1" r="11" data-tip="Vulkan Pobeda
+1 кликов 05.10
+1 рег · 0 ФД
+0.46 рег на 1000 сайтов"/><circle cx="66.1" cy="338.4" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="66.1" cy="338.4" r="11" data-tip="Aurora Casino
+2 кликов 05.10
+4 рег · 0 ФД
+1.27 рег на 1000 сайтов"/><circle cx="66.1" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="66.1" cy="356.2" r="11" data-tip="Sol
+2 кликов 05.10
+2 рег · 1 ФД
+0.63 рег на 1000 сайтов"/><circle cx="66.1" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="66.1" cy="365.1" r="11" data-tip="Boost
+2 кликов 05.10
+1 рег · 0 ФД
+0.32 рег на 1000 сайтов"/><circle cx="66.1" cy="329.5" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="66.1" cy="329.5" r="11" data-tip="Maxline
+2 кликов 05.10
+5 рег · 0 ФД
+1.59 рег на 1000 сайтов"/><circle cx="66.1" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="66.1" cy="356.2" r="11" data-tip="Parimatch
+2 кликов 05.10
+2 рег · 0 ФД
+0.63 рег на 1000 сайтов"/><circle cx="66.1" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="66.1" cy="374.0" r="11" data-tip="Onetap
+2 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="66.1" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="66.1" cy="365.1" r="11" data-tip="Sweet
+2 кликов 05.10
+1 рег · 0 ФД
+0.44 рег на 1000 сайтов"/><circle cx="66.1" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="66.1" cy="374.0" r="11" data-tip="Betunlim
+2 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="66.1" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="66.1" cy="374.0" r="11" data-tip="RPTbet
+2 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="67.9" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="67.9" cy="356.2" r="11" data-tip="Lex
+3 кликов 05.10
+2 рег · 0 ФД
+0.63 рег на 1000 сайтов"/><circle cx="67.9" cy="293.9" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="67.9" cy="293.9" r="11" data-tip="Goodwin
+3 кликов 05.10
+9 рег · 1 ФД
+2.85 рег на 1000 сайтов"/><circle cx="67.9" cy="347.3" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="67.9" cy="347.3" r="11" data-tip="Fraga
+3 кликов 05.10
+3 рег · 0 ФД
+0.95 рег на 1000 сайтов"/><circle cx="67.9" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="67.9" cy="374.0" r="11" data-tip="Loft
+3 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="69.5" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="69.5" cy="374.0" r="11" data-tip="Champion Slots
+4 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="69.5" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="69.5" cy="374.0" r="11" data-tip="Vovan
+4 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="69.5" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="69.5" cy="374.0" r="11" data-tip="Vegasy
+4 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="69.5" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="69.5" cy="374.0" r="11" data-tip="Laki
+4 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="70.8" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="70.8" cy="365.1" r="11" data-tip="Azino888
+5 кликов 05.10
+1 рег · 0 ФД
+0.32 рег на 1000 сайтов"/><circle cx="70.8" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="70.8" cy="374.0" r="11" data-tip="Blitzred
+5 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="70.8" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="70.8" cy="374.0" r="11" data-tip="Casinora
+5 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="70.8" cy="329.5" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="70.8" cy="329.5" r="11" data-tip="Winline
+5 кликов 05.10
+5 рег · 1 ФД
+2.22 рег на 1000 сайтов"/><circle cx="72.0" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="72.0" cy="365.1" r="11" data-tip="Starda
+6 кликов 05.10
+1 рег · 0 ФД
+0.32 рег на 1000 сайтов"/><circle cx="72.0" cy="320.6" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="72.0" cy="320.6" r="11" data-tip="Stake
+6 кликов 05.10
+6 рег · 2 ФД
+1.9 рег на 1000 сайтов"/><circle cx="72.0" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="72.0" cy="365.1" r="11" data-tip="Jet
+6 кликов 05.10
+1 рег · 0 ФД
+0.32 рег на 1000 сайтов"/><circle cx="72.0" cy="249.4" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="72.0" cy="249.4" r="11" data-tip="Luckybear
+6 кликов 05.10
+14 рег · 2 ФД
+4.45 рег на 1000 сайтов"/><circle cx="73.2" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="73.2" cy="365.1" r="11" data-tip="Вулкан Россия
+7 кликов 05.10
+1 рег · 0 ФД
+0.32 рег на 1000 сайтов"/><circle cx="73.2" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="73.2" cy="374.0" r="11" data-tip="Kilogram
+7 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="73.2" cy="347.3" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="73.2" cy="347.3" r="11" data-tip="Slott
+7 кликов 05.10
+3 рег · 0 ФД
+1.32 рег на 1000 сайтов"/><circle cx="74.2" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="74.2" cy="374.0" r="11" data-tip="Betwinner
+8 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="74.2" cy="347.3" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="74.2" cy="347.3" r="11" data-tip="Million
+8 кликов 05.10
+3 рег · 0 ФД
+0.95 рег на 1000 сайтов"/><circle cx="74.2" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="74.2" cy="365.1" r="11" data-tip="Dune
+8 кликов 05.10
+1 рег · 1 ФД
+0.46 рег на 1000 сайтов"/><circle cx="75.2" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="75.2" cy="365.1" r="11" data-tip="Rox
+9 кликов 05.10
+1 рег · 0 ФД
+0.32 рег на 1000 сайтов"/><circle cx="76.1" cy="320.6" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="76.1" cy="320.6" r="11" data-tip="Frank
+10 кликов 05.10
+6 рег · 2 ФД
+1.9 рег на 1000 сайтов"/><circle cx="76.1" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="76.1" cy="365.1" r="11" data-tip="Faro
+10 кликов 05.10
+1 рег · 0 ФД
+0.46 рег на 1000 сайтов"/><circle cx="77.0" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="77.0" cy="365.1" r="11" data-tip="Фреш
+11 кликов 05.10
+1 рег · 0 ФД
+0.32 рег на 1000 сайтов"/><circle cx="77.0" cy="249.4" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="77.0" cy="249.4" r="11" data-tip="Олимп
+11 кликов 05.10
+14 рег · 1 ФД
+4.44 рег на 1000 сайтов"/><circle cx="77.8" cy="347.3" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="77.8" cy="347.3" r="11" data-tip="Nomad
+12 кликов 05.10
+3 рег · 0 ФД
+0.95 рег на 1000 сайтов"/><circle cx="78.7" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="78.7" cy="356.2" r="11" data-tip="Izzi
+13 кликов 05.10
+2 рег · 1 ФД
+0.63 рег на 1000 сайтов"/><circle cx="79.4" cy="285.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="79.4" cy="285.0" r="11" data-tip="Money X
+14 кликов 05.10
+10 рег · 1 ФД
+3.17 рег на 1000 сайтов"/><circle cx="80.2" cy="329.5" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="80.2" cy="329.5" r="11" data-tip="Brillx
+15 кликов 05.10
+5 рег · 0 ФД
+1.59 рег на 1000 сайтов"/><circle cx="81.6" cy="44.7" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="81.6" cy="44.7" r="11" data-tip="Lucky Bird
+17 кликов 05.10
+37 рег · 2 ФД
+11.73 рег на 1000 сайтов"/><circle cx="82.3" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="82.3" cy="356.2" r="11" data-tip="Клуб Вулкан
+18 кликов 05.10
+2 рег · 0 ФД
+0.63 рег на 1000 сайтов"/><circle cx="83.0" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="83.0" cy="374.0" r="11" data-tip="Yardwin
+19 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="83.6" cy="276.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="83.6" cy="276.1" r="11" data-tip="Dragon Money
+20 кликов 05.10
+11 рег · 1 ФД
+3.49 рег на 1000 сайтов"/><circle cx="84.2" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="84.2" cy="365.1" r="11" data-tip="Drip
+21 кликов 05.10
+1 рег · 0 ФД
+0.32 рег на 1000 сайтов"/><circle cx="85.5" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="85.5" cy="365.1" r="11" data-tip="Monro
+23 кликов 05.10
+1 рег · 0 ФД
+0.32 рег на 1000 сайтов"/><circle cx="87.2" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="87.2" cy="356.2" r="11" data-tip="Casino7
+26 кликов 05.10
+2 рег · 0 ФД
+0.63 рег на 1000 сайтов"/><circle cx="88.8" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="88.8" cy="365.1" r="11" data-tip="Irwin
+29 кликов 05.10
+1 рег · 1 ФД
+0.32 рег на 1000 сайтов"/><circle cx="89.9" cy="276.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="89.9" cy="276.1" r="11" data-tip="Shuffle
+31 кликов 05.10
+11 рег · 1 ФД
+3.49 рег на 1000 сайтов"/><circle cx="90.9" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="90.9" cy="374.0" r="11" data-tip="Crypto
+33 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="91.4" cy="293.9" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="91.4" cy="293.9" r="11" data-tip="GetX
+34 кликов 05.10
+9 рег · 2 ФД
+2.85 рег на 1000 сайтов"/><circle cx="92.8" cy="347.3" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="92.8" cy="347.3" r="11" data-tip="Casino X
+37 кликов 05.10
+3 рег · 0 ФД
+0.95 рег на 1000 сайтов"/><circle cx="92.8" cy="320.6" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="92.8" cy="320.6" r="11" data-tip="Why
+37 кликов 05.10
+6 рег · 1 ФД
+1.9 рег на 1000 сайтов"/><circle cx="93.8" cy="329.5" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="93.8" cy="329.5" r="11" data-tip="Kraken
+39 кликов 05.10
+5 рег · 1 ФД
+1.58 рег на 1000 сайтов"/><circle cx="96.4" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="96.4" cy="356.2" r="11" data-tip="Atom
+45 кликов 05.10
+2 рег · 1 ФД
+0.63 рег на 1000 сайтов"/><circle cx="96.8" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="96.8" cy="356.2" r="11" data-tip="Friends
+46 кликов 05.10
+2 рег · 0 ФД
+0.63 рег на 1000 сайтов"/><circle cx="98.5" cy="329.5" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="98.5" cy="329.5" r="11" data-tip="Twin
+50 кликов 05.10
+5 рег · 2 ФД
+1.59 рег на 1000 сайтов"/><circle cx="99.3" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="99.3" cy="365.1" r="11" data-tip="Champion
+52 кликов 05.10
+1 рег · 0 ФД
+0.46 рег на 1000 сайтов"/><circle cx="99.7" cy="338.4" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="99.7" cy="338.4" r="11" data-tip="Вулкан 24
+53 кликов 05.10
+4 рег · 0 ФД
+1.27 рег на 1000 сайтов"/><circle cx="100.1" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="100.1" cy="374.0" r="11" data-tip="Booi
+54 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="100.5" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="100.5" cy="365.1" r="11" data-tip="Onlybets
+55 кликов 05.10
+1 рег · 0 ФД
+0.32 рег на 1000 сайтов"/><circle cx="100.9" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="100.9" cy="365.1" r="11" data-tip="Cat
+56 кликов 05.10
+1 рег · 0 ФД
+0.32 рег на 1000 сайтов"/><circle cx="101.6" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="101.6" cy="374.0" r="11" data-tip="Explosino
+58 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="103.1" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="103.1" cy="374.0" r="11" data-tip="Luckyduck
+62 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="103.8" cy="338.4" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="103.8" cy="338.4" r="11" data-tip="888starz
+64 кликов 05.10
+4 рег · 0 ФД
+1.27 рег на 1000 сайтов"/><circle cx="103.8" cy="329.5" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="103.8" cy="329.5" r="11" data-tip="Мелбет
+64 кликов 05.10
+5 рег · 0 ФД
+1.59 рег на 1000 сайтов"/><circle cx="104.9" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="104.9" cy="374.0" r="11" data-tip="Maxbetslots
+67 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="105.2" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="105.2" cy="374.0" r="11" data-tip="Bitzamo
+68 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="105.2" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="105.2" cy="356.2" r="11" data-tip="Betera
+68 кликов 05.10
+2 рег · 0 ФД
+0.63 рег на 1000 сайтов"/><circle cx="105.9" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="105.9" cy="374.0" r="11" data-tip="Grizzly
+70 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="106.3" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="106.3" cy="374.0" r="11" data-tip="Unlim Casino
+71 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="107.3" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="107.3" cy="374.0" r="11" data-tip="Ramenbet
+74 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="110.5" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="110.5" cy="374.0" r="11" data-tip="Jozz
+84 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="110.5" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="110.5" cy="374.0" r="11" data-tip="Win777
+84 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="112.3" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="112.3" cy="374.0" r="11" data-tip="Kometa
+90 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="112.3" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="112.3" cy="356.2" r="11" data-tip="Mad
+90 кликов 05.10
+2 рег · 0 ФД
+0.63 рег на 1000 сайтов"/><circle cx="113.5" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="113.5" cy="374.0" r="11" data-tip="Bollywood
+94 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="116.7" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="116.7" cy="374.0" r="11" data-tip="Honey Money
+105 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="117.5" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="117.5" cy="356.2" r="11" data-tip="Slotozal
+108 кликов 05.10
+2 рег · 1 ФД
+0.63 рег на 1000 сайтов"/><circle cx="120.0" cy="338.4" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="120.0" cy="338.4" r="11" data-tip="Pin Up
+117 кликов 05.10
+4 рег · 0 ФД
+1.27 рег на 1000 сайтов"/><circle cx="120.0" cy="311.7" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="120.0" cy="311.7" r="11" data-tip="Fenix
+117 кликов 05.10
+7 рег · 2 ФД
+3.11 рег на 1000 сайтов"/><circle cx="120.2" cy="178.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="120.2" cy="178.2" r="11" data-tip="Martin
+118 кликов 05.10
+22 рег · 6 ФД
+6.98 рег на 1000 сайтов"/><circle cx="122.0" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="122.0" cy="365.1" r="11" data-tip="Spinwin
+125 кликов 05.10
+1 рег · 0 ФД
+0.47 рег на 1000 сайтов"/><circle cx="122.6" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="122.6" cy="356.2" r="11" data-tip="Лутран
+127 кликов 05.10
+2 рег · 1 ФД
+0.63 рег на 1000 сайтов"/><circle cx="123.6" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="123.6" cy="374.0" r="11" data-tip="Shot
+131 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="125.0" cy="311.7" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="125.0" cy="311.7" r="11" data-tip="R7
+137 кликов 05.10
+7 рег · 5 ФД
+2.22 рег на 1000 сайтов"/><circle cx="127.2" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="127.2" cy="374.0" r="11" data-tip="Hype
+146 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="128.6" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="128.6" cy="374.0" r="11" data-tip="Lilbet
+152 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="128.9" cy="338.4" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="128.9" cy="338.4" r="11" data-tip="Turbo
+153 кликов 05.10
+4 рег · 0 ФД
+1.27 рег на 1000 сайтов"/><circle cx="129.1" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="129.1" cy="365.1" r="11" data-tip="Smoky
+154 кликов 05.10
+1 рег · 0 ФД
+0.44 рег на 1000 сайтов"/><circle cx="132.2" cy="338.4" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="132.2" cy="338.4" r="11" data-tip="Tonplay
+168 кликов 05.10
+4 рег · 2 ФД
+1.77 рег на 1000 сайтов"/><circle cx="133.1" cy="329.5" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="133.1" cy="329.5" r="11" data-tip="UP-X
+172 кликов 05.10
+5 рег · 3 ФД
+1.58 рег на 1000 сайтов"/><circle cx="133.6" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="133.6" cy="356.2" r="11" data-tip="Flagman
+174 кликов 05.10
+2 рег · 0 ФД
+0.63 рег на 1000 сайтов"/><circle cx="133.6" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="133.6" cy="356.2" r="11" data-tip="Bigsbet
+174 кликов 05.10
+2 рег · 1 ФД
+0.63 рег на 1000 сайтов"/><circle cx="134.4" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="134.4" cy="365.1" r="11" data-tip="AUF
+178 кликов 05.10
+1 рег · 0 ФД
+0.32 рег на 1000 сайтов"/><circle cx="135.3" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="135.3" cy="356.2" r="11" data-tip="Goldfishka
+182 кликов 05.10
+2 рег · 0 ФД
+0.64 рег на 1000 сайтов"/><circle cx="139.4" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="139.4" cy="374.0" r="11" data-tip="Luckmore
+202 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="140.8" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="140.8" cy="356.2" r="11" data-tip="MostBet Bookmaker
+209 кликов 05.10
+2 рег · 1 ФД
+0.63 рег на 1000 сайтов"/><circle cx="141.4" cy="311.7" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="141.4" cy="311.7" r="11" data-tip="Like
+212 кликов 05.10
+7 рег · 0 ФД
+3.12 рег на 1000 сайтов"/><circle cx="143.2" cy="338.4" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="143.2" cy="338.4" r="11" data-tip="Arkada
+221 кликов 05.10
+4 рег · 0 ФД
+1.27 рег на 1000 сайтов"/><circle cx="147.7" cy="320.6" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="147.7" cy="320.6" r="11" data-tip="Trix
+245 кликов 05.10
+6 рег · 3 ФД
+1.9 рег на 1000 сайтов"/><circle cx="148.6" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="148.6" cy="356.2" r="11" data-tip="Zooma
+250 кликов 05.10
+2 рег · 0 ФД
+0.63 рег на 1000 сайтов"/><circle cx="149.5" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="149.5" cy="365.1" r="11" data-tip="Joycasino
+255 кликов 05.10
+1 рег · 0 ФД
+0.32 рег на 1000 сайтов"/><circle cx="152.5" cy="178.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="152.5" cy="178.2" r="11" data-tip="Mellstroy
+272 кликов 05.10
+22 рег · 1 ФД
+6.98 рег на 1000 сайтов"/><circle cx="154.9" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="154.9" cy="356.2" r="11" data-tip="Jvspin
+286 кликов 05.10
+2 рег · 0 ФД
+0.89 рег на 1000 сайтов"/><circle cx="155.2" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="155.2" cy="374.0" r="11" data-tip="AdmiralX
+288 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="158.7" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="158.7" cy="365.1" r="11" data-tip="CryptoBoss
+309 кликов 05.10
+1 рег · 0 ФД
+0.32 рег на 1000 сайтов"/><circle cx="158.9" cy="347.3" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="158.9" cy="347.3" r="11" data-tip="Gama
+310 кликов 05.10
+3 рег · 0 ФД
+0.95 рег на 1000 сайтов"/><circle cx="159.0" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="159.0" cy="365.1" r="11" data-tip="New Retro
+311 кликов 05.10
+1 рег · 0 ФД
+0.32 рег на 1000 сайтов"/><circle cx="159.0" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="159.0" cy="365.1" r="11" data-tip="Dbbet
+311 кликов 05.10
+1 рег · 0 ФД
+0.32 рег на 1000 сайтов"/><circle cx="159.3" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="159.3" cy="374.0" r="11" data-tip="Eldorado
+313 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="160.3" cy="302.8" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="160.3" cy="302.8" r="11" data-tip="Bounty
+319 кликов 05.10
+8 рег · 3 ФД
+2.53 рег на 1000 сайтов"/><circle cx="160.6" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="160.6" cy="374.0" r="11" data-tip="Play Fortuna
+321 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="160.8" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="160.8" cy="356.2" r="11" data-tip="Mers
+322 кликов 05.10
+2 рег · 0 ФД
+0.63 рег на 1000 сайтов"/><circle cx="161.1" cy="338.4" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="161.1" cy="338.4" r="11" data-tip="Vivaro
+324 кликов 05.10
+4 рег · 0 ФД
+1.27 рег на 1000 сайтов"/><circle cx="161.1" cy="320.6" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="161.1" cy="320.6" r="11" data-tip="Покердом
+324 кликов 05.10
+6 рег · 0 ФД
+1.9 рег на 1000 сайтов"/><circle cx="166.5" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="166.5" cy="374.0" r="11" data-tip="1xSlots
+359 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="166.8" cy="124.8" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="166.8" cy="124.8" r="11" data-tip="Leon
+361 кликов 05.10
+28 рег · 8 ФД
+8.87 рег на 1000 сайтов"/><circle cx="172.0" cy="329.5" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="172.0" cy="329.5" r="11" data-tip="Вулкан Вегас
+396 кликов 05.10
+5 рег · 0 ФД
+1.59 рег на 1000 сайтов"/><circle cx="172.1" cy="347.3" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="172.1" cy="347.3" r="11" data-tip="Pokerok
+397 кликов 05.10
+3 рег · 0 ФД
+0.95 рег на 1000 сайтов"/><circle cx="176.1" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="176.1" cy="374.0" r="11" data-tip="Sever
+425 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="180.0" cy="276.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="180.0" cy="276.1" r="11" data-tip="Cactus
+454 кликов 05.10
+11 рег · 1 ФД
+3.49 рег на 1000 сайтов"/><circle cx="187.5" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="187.5" cy="374.0" r="11" data-tip="7K
+511 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="191.4" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="191.4" cy="374.0" r="11" data-tip="Azino777
+542 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="195.1" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="195.1" cy="374.0" r="11" data-tip="Wazbee
+573 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="199.7" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="199.7" cy="356.2" r="11" data-tip="Beef
+612 кликов 05.10
+2 рег · 1 ФД
+0.63 рег на 1000 сайтов"/><circle cx="200.1" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="200.1" cy="356.2" r="11" data-tip="Epicstar
+615 кликов 05.10
+2 рег · 0 ФД
+0.92 рег на 1000 сайтов"/><circle cx="203.7" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="203.7" cy="374.0" r="11" data-tip="Lev
+647 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="205.8" cy="302.8" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="205.8" cy="302.8" r="11" data-tip="Vodka
+666 кликов 05.10
+8 рег · 1 ФД
+2.54 рег на 1000 сайтов"/><circle cx="206.9" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="206.9" cy="374.0" r="11" data-tip="Banda
+676 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="208.4" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="208.4" cy="365.1" r="11" data-tip="Bitz
+689 кликов 05.10
+1 рег · 0 ФД
+0.32 рег на 1000 сайтов"/><circle cx="208.5" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="208.5" cy="374.0" r="11" data-tip="ClubNika
+690 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="210.0" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="210.0" cy="356.2" r="11" data-tip="Gizbo
+704 кликов 05.10
+2 рег · 0 ФД
+0.63 рег на 1000 сайтов"/><circle cx="210.2" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="210.2" cy="365.1" r="11" data-tip="Daddy
+706 кликов 05.10
+1 рег · 0 ФД
+0.32 рег на 1000 сайтов"/><circle cx="211.0" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="211.0" cy="374.0" r="11" data-tip="Gold
+713 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="213.6" cy="329.5" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="213.6" cy="329.5" r="11" data-tip="Vulkan Platinum
+738 кликов 05.10
+5 рег · 2 ФД
+1.58 рег на 1000 сайтов"/><circle cx="217.3" cy="347.3" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="217.3" cy="347.3" r="11" data-tip="Apex
+773 кликов 05.10
+3 рег · 0 ФД
+1.37 рег на 1000 сайтов"/><circle cx="221.1" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="221.1" cy="374.0" r="11" data-tip="Sykaaa
+811 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="221.8" cy="285.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="221.8" cy="285.0" r="11" data-tip="1xbet
+818 кликов 05.10
+10 рег · 0 ФД
+3.17 рег на 1000 сайтов"/><circle cx="224.9" cy="338.4" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="224.9" cy="338.4" r="11" data-tip="Riobet
+849 кликов 05.10
+4 рег · 1 ФД
+1.27 рег на 1000 сайтов"/><circle cx="235.3" cy="347.3" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="235.3" cy="347.3" r="11" data-tip="Enomo
+958 кликов 05.10
+3 рег · 1 ФД
+0.95 рег на 1000 сайтов"/><circle cx="241.5" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="241.5" cy="356.2" r="11" data-tip="Eva
+1 026 кликов 05.10
+2 рег · 0 ФД
+0.89 рег на 1000 сайтов"/><circle cx="251.8" cy="311.7" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="251.8" cy="311.7" r="11" data-tip="Spinto
+1 145 кликов 05.10
+7 рег · 5 ФД
+3.1 рег на 1000 сайтов"/><circle cx="252.7" cy="320.6" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="252.7" cy="320.6" r="11" data-tip="Kent
+1 155 кликов 05.10
+6 рег · 1 ФД
+1.9 рег на 1000 сайтов"/><circle cx="253.4" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="253.4" cy="374.0" r="11" data-tip="Kush
+1 164 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="266.9" cy="276.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="266.9" cy="276.1" r="11" data-tip="Селектор
+1 330 кликов 05.10
+11 рег · 1 ФД
+3.5 рег на 1000 сайтов"/><circle cx="276.4" cy="356.2" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="276.4" cy="356.2" r="11" data-tip="Fugu
+1 454 кликов 05.10
+2 рег · 1 ФД
+0.92 рег на 1000 сайтов"/><circle cx="283.5" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="283.5" cy="365.1" r="11" data-tip="Vavada
+1 550 кликов 05.10
+1 рег · 0 ФД
+0.32 рег на 1000 сайтов"/><circle cx="292.7" cy="365.1" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="292.7" cy="365.1" r="11" data-tip="Motor
+1 679 кликов 05.10
+1 рег · 0 ФД
+0.32 рег на 1000 сайтов"/><circle cx="305.4" cy="374.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="305.4" cy="374.0" r="11" data-tip="Leebet
+1 865 кликов 05.10
+0 рег · 0 ФД
+0.0 рег на 1000 сайтов"/><circle cx="330.9" cy="338.4" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="330.9" cy="338.4" r="11" data-tip="1Go
+2 270 кликов 05.10
+4 рег · 1 ФД
+1.27 рег на 1000 сайтов"/><circle cx="381.0" cy="196.0" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="381.0" cy="196.0" r="11" data-tip="Pinco
+3 180 кликов 05.10
+20 рег · 2 ФД
+6.34 рег на 1000 сайтов"/><circle cx="383.9" cy="329.5" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="383.9" cy="329.5" r="11" data-tip="1win
+3 237 кликов 05.10
+5 рег · 0 ФД
+1.59 рег на 1000 сайтов"/><circle cx="866.0" cy="347.3" r="5" fill="var(--traffic)" fill-opacity=".5" stroke="var(--card)" stroke-width="2"/><circle class="hit" cx="866.0" cy="347.3" r="11" data-tip="Jetton
+19 898 кликов 05.10
+3 рег · 0 ФД
+0.95 рег на 1000 сайтов"/><text class="lbl" x="853.0" y="335.3" text-anchor="end">Jetton</text><text class="lbl" x="372.9" y="318.5" text-anchor="end">1win</text><text class="lbl" x="394.0" y="187.0" text-anchor="start">Pinco</text><text class="lbl" x="314.4" y="392.0" text-anchor="start">Leebet</text><text class="lbl" x="179.8" y="116.8" text-anchor="start">Leon</text><text class="lbl" x="165.5" y="171.2" text-anchor="start">Mellstroy</text><text class="lbl" x="133.2" y="194.2" text-anchor="start">Martin</text><text class="lbl" x="94.6" y="48.7" text-anchor="start">Lucky Bird</text></svg>
+<figcaption>Каждый кружок — бренд. Горизонталь: клики за 5 октября. Вертикаль: регистрации за всё время. Запущенных сайтов у всех поровну (~3&nbsp;150), поэтому сравнение честное.</figcaption></figure></div>
+<p class="verdict money">Если бы трафик вёл к деньгам, кружки легли бы по диагонали. Они рассыпаны: <b>Спирмен клики ↔ регистрации всего +0,21</b> (клики ↔ ФД +0,13, при этом регистрации ↔ ФД +0,64 — то есть сами деньги между собой связаны нормально, а трафик к ним не ведёт).</p>
+<div class="stats">
+<div class="stat"><div class="k">Топ-10 по трафику</div><div class="v t">56%</div><div class="n">кликов сети — и только <b>8%</b> регистраций</div></div>
+<div class="stat"><div class="k">Топ-10 по регистрациям</div><div class="v m">33%</div><div class="n">регистраций — и всего <b>9%</b> кликов</div></div>
+<div class="stat"><div class="k">Jetton</div><div class="v b">3</div><div class="n">регистрации и 0 ФД на 19 898 кликов</div></div>
+<div class="stat"><div class="k">Lucky Bird</div><div class="v m">37</div><div class="n">регистраций на 17 кликов</div></div>
+</div>
+<div><p class="eyebrow" style="margin-top:8px">Топ-10 по трафику <span class="flag bad">мало денег</span></p><div class="scroll"><table><thead><tr><th>Бренд</th><th>Запущено</th><th>Клики 05.10</th><th>Рег</th><th>ФД</th><th>Рег/1000 сайтов</th></tr></thead><tbody><tr><td>Jetton</td><td class="dim">3 157</td><td class="bar-cell" style="--w:80%"><span class="num-t">19 898</span></td><td class="num-m">3</td><td class="num-m">0</td><td class="bar-cell m" style="--w:12%"><span class="num-m">0.95</span></td></tr><tr><td>1win</td><td class="dim">3 154</td><td class="bar-cell" style="--w:13%"><span class="num-t">3 237</span></td><td class="num-m">5</td><td class="num-m">0</td><td class="bar-cell m" style="--w:20%"><span class="num-m">1.59</span></td></tr><tr><td>Pinco</td><td class="dim">3 155</td><td class="bar-cell" style="--w:13%"><span class="num-t">3 180</span></td><td class="num-m">20</td><td class="num-m">2</td><td class="bar-cell m" style="--w:80%"><span class="num-m">6.34</span></td></tr><tr><td>1Go</td><td class="dim">3 155</td><td class="bar-cell" style="--w:9%"><span class="num-t">2 270</span></td><td class="num-m">4</td><td class="num-m">1</td><td class="bar-cell m" style="--w:16%"><span class="num-m">1.27</span></td></tr><tr><td>Leebet</td><td class="dim">3 154</td><td class="bar-cell" style="--w:7%"><span class="num-t">1 865</span></td><td class="num-m">0</td><td class="num-m">0</td><td class="bar-cell m" style="--w:0%"><span class="num-m">0.00</span></td></tr><tr><td>Motor</td><td class="dim">3 154</td><td class="bar-cell" style="--w:7%"><span class="num-t">1 679</span></td><td class="num-m">1</td><td class="num-m">0</td><td class="bar-cell m" style="--w:4%"><span class="num-m">0.32</span></td></tr><tr><td>Vavada</td><td class="dim">3 155</td><td class="bar-cell" style="--w:6%"><span class="num-t">1 550</span></td><td class="num-m">1</td><td class="num-m">0</td><td class="bar-cell m" style="--w:4%"><span class="num-m">0.32</span></td></tr><tr><td>Fugu</td><td class="dim">2 179</td><td class="bar-cell" style="--w:6%"><span class="num-t">1 454</span></td><td class="num-m">2</td><td class="num-m">1</td><td class="bar-cell m" style="--w:12%"><span class="num-m">0.92</span></td></tr><tr><td>Селектор</td><td class="dim">3 147</td><td class="bar-cell" style="--w:5%"><span class="num-t">1 330</span></td><td class="num-m">11</td><td class="num-m">1</td><td class="bar-cell m" style="--w:44%"><span class="num-m">3.50</span></td></tr><tr><td>Kush</td><td class="dim">3 154</td><td class="bar-cell" style="--w:5%"><span class="num-t">1 164</span></td><td class="num-m">0</td><td class="num-m">0</td><td class="bar-cell m" style="--w:0%"><span class="num-m">0.00</span></td></tr></tbody></table></div></div>
+<div><p class="eyebrow">Топ-10 по регистрациям <span class="flag ok">мало трафика</span></p><div class="scroll"><table><thead><tr><th>Бренд</th><th>Запущено</th><th>Клики 05.10</th><th>Рег</th><th>ФД</th><th>Рег/1000 сайтов</th></tr></thead><tbody><tr><td>Lucky Bird</td><td class="dim">3 154</td><td class="bar-cell" style="--w:0%"><span class="num-t">17</span></td><td class="num-m">37</td><td class="num-m">2</td><td class="bar-cell m" style="--w:80%"><span class="num-m">11.73</span></td></tr><tr><td>Leon</td><td class="dim">3 155</td><td class="bar-cell" style="--w:9%"><span class="num-t">361</span></td><td class="num-m">28</td><td class="num-m">8</td><td class="bar-cell m" style="--w:60%"><span class="num-m">8.87</span></td></tr><tr><td>Martin</td><td class="dim">3 151</td><td class="bar-cell" style="--w:3%"><span class="num-t">118</span></td><td class="num-m">22</td><td class="num-m">6</td><td class="bar-cell m" style="--w:48%"><span class="num-m">6.98</span></td></tr><tr><td>Mellstroy</td><td class="dim">3 154</td><td class="bar-cell" style="--w:7%"><span class="num-t">272</span></td><td class="num-m">22</td><td class="num-m">1</td><td class="bar-cell m" style="--w:48%"><span class="num-m">6.98</span></td></tr><tr><td>Pinco</td><td class="dim">3 155</td><td class="bar-cell" style="--w:80%"><span class="num-t">3 180</span></td><td class="num-m">20</td><td class="num-m">2</td><td class="bar-cell m" style="--w:43%"><span class="num-m">6.34</span></td></tr><tr><td>Luckybear</td><td class="dim">3 149</td><td class="bar-cell" style="--w:0%"><span class="num-t">6</span></td><td class="num-m">14</td><td class="num-m">2</td><td class="bar-cell m" style="--w:30%"><span class="num-m">4.45</span></td></tr><tr><td>Олимп</td><td class="dim">3 153</td><td class="bar-cell" style="--w:0%"><span class="num-t">11</span></td><td class="num-m">14</td><td class="num-m">1</td><td class="bar-cell m" style="--w:30%"><span class="num-m">4.44</span></td></tr><tr><td>Селектор</td><td class="dim">3 147</td><td class="bar-cell" style="--w:33%"><span class="num-t">1 330</span></td><td class="num-m">11</td><td class="num-m">1</td><td class="bar-cell m" style="--w:24%"><span class="num-m">3.50</span></td></tr><tr><td>Cactus</td><td class="dim">3 155</td><td class="bar-cell" style="--w:11%"><span class="num-t">454</span></td><td class="num-m">11</td><td class="num-m">1</td><td class="bar-cell m" style="--w:24%"><span class="num-m">3.49</span></td></tr><tr><td>Shuffle</td><td class="dim">3 149</td><td class="bar-cell" style="--w:1%"><span class="num-t">31</span></td><td class="num-m">11</td><td class="num-m">1</td><td class="bar-cell m" style="--w:24%"><span class="num-m">3.49</span></td></tr></tbody></table></div></div>
+<p class="verdict money"><b>Больше половины трафика сети уходит на бренды, которые не конвертят.</b> Pinco показывает, что совмещать можно — он в топ-3 и по трафику, и по деньгам.</p>
+<p class="caveat">Оговорка: клики — за один день, регистрации — за всё время, и привязка рег к домену сейчас работает частично. Это сравнение направления, не точных величин. Но разрыв слишком велик, чтобы быть шумом.</p>
+</section><section>
+<div><p class="eyebrow">06 · Все бренды</p><h2>206 брендов целиком</h2></div>
+<p class="lede">У каждого бренда минимум 2&nbsp;000 запущенных сайтов, поэтому колонки сравнимы между собой без поправок.</p>
+<div class="card">
+<div class="sorters" role="group" aria-label="Сортировка">
+<button data-k="c" aria-pressed="true">по кликам</button>
+<button data-k="reg" aria-pressed="false">по регистрациям</button>
+<button data-k="fd" aria-pressed="false">по ФД</button>
+<button data-k="r1k" aria-pressed="false">по рег на 1000 сайтов</button>
+</div>
+<div class="scroll tall"><table id="all">
+<thead><tr><th>#</th><th>Бренд</th><th>Запущено</th><th>Клики 05.10</th><th>Рег</th><th>ФД</th><th>Рег/1000</th></tr></thead>
+<tbody></tbody></table></div></div>
+</section>
+<section>
+<div><p class="eyebrow">07 · Конвейер</p><h2>Упираемся в суточную квоту переобхода</h2></div>
+<div class="card"><div class="scroll"><table>
+<thead><tr><th>День запуска</th><th>Доменов</th><th>Сайтов</th><th>Переобход отправлен</th><th>Конвейер завершён</th><th>С ошибкой</th></tr></thead>
+<tbody>
+<tr><td>03.10</td><td>81</td><td>16 686</td><td>16 686</td><td>16 686</td><td class="dim">0</td></tr>
+<tr><td>04.10</td><td>79</td><td>16 274</td><td>15 621</td><td>14 626</td><td>1 854</td></tr>
+<tr><td>05.10</td><td>59</td><td>12 154</td><td>8 820</td><td class="dim">0</td><td>11 796</td></tr>
+</tbody></table></div></div>
+<p class="verdict">Почти все «ошибки» — не поломка, а <b>ожидание суточной квоты переобхода</b>: 3&nbsp;626 сайтов с текстами вида «150 готово, 56 ждут квоту до 06.10 07:22». Квота — <b>150 сайтов на домен в сутки</b>, а на запуск приходится 206, так что ~56 сайтов каждый раз переносятся на следующие сутки.</p>
+<p class="verdict">Остальное здорово: стадия <code>done</code> у 91,2%, верификация пройдена у 99,4%. Редиректор у всех 45&nbsp;114 сайтов один — <code>sitegoratorr2.top</code>.</p>
+</section>
+<section>
+<div><p class="eyebrow">08 · Решения</p><h2>Что из этого делать</h2></div>
+<div class="card"><ul class="todo">
+<li><span><b>Добавить subid в прямую реф-ссылку</b> — значение <code>бренд.база.зона</code>. Без него выводы по деньгам опираются на историю, а режим сети уже поменялся. Разбивка придёт прямо из партнёрки, трекер для этого не нужен.</span></li>
+<li><span><b>Пересобрать список брендов.</b> 61 из 206 даёт ноль кликов — треть запусков впустую. Слоты отдать тем, кто справа: Lucky Bird, Leon, Martin, Mellstroy, Pinco, Luckybear, Олимп.</span></li>
+<li><span><b>Не гнаться за Jetton.</b> Он выигрывает поиск и проигрывает кассу. Держать как источник объёма можно, считать успехом — нет.</span></li>
+<li><span><b>Сдвигать долю в <code>.lol</code>.</b> Вдвое лучше <code>.team</code> по трафику и вдвое дешевле.</span></li>
+<li><span><b>Сменить меру успеха.</b> Индекс 1,7% при удвоенном трафике — мера больше не описывает происходящее. Считать кликами на запущенный сайт.</span></li>
+<li><span><b>Разобраться с квотой 150/домен/сутки.</b> Либо поднимать, либо распределять сайты по доменам ровнее — сейчас четверть каждого запуска ждёт следующих суток.</span></li>
+</ul></div>
+</section>
+<div id="tip" role="status" aria-live="polite"></div>
+</div>
+<script>
+const BR=[{"b":"Jetton","n":3157,"c":19898,"reg":3,"fd":0,"r1k":0.95},{"b":"1win","n":3154,"c":3237,"reg":5,"fd":0,"r1k":1.59},{"b":"Pinco","n":3155,"c":3180,"reg":20,"fd":2,"r1k":6.34},{"b":"1Go","n":3155,"c":2270,"reg":4,"fd":1,"r1k":1.27},{"b":"Leebet","n":3154,"c":1865,"reg":0,"fd":0,"r1k":0.0},{"b":"Motor","n":3154,"c":1679,"reg":1,"fd":0,"r1k":0.32},{"b":"Vavada","n":3155,"c":1550,"reg":1,"fd":0,"r1k":0.32},{"b":"Fugu","n":2179,"c":1454,"reg":2,"fd":1,"r1k":0.92},{"b":"Селектор","n":3147,"c":1330,"reg":11,"fd":1,"r1k":3.5},{"b":"Kush","n":3154,"c":1164,"reg":0,"fd":0,"r1k":0.0},{"b":"Kent","n":3156,"c":1155,"reg":6,"fd":1,"r1k":1.9},{"b":"Spinto","n":2260,"c":1145,"reg":7,"fd":5,"r1k":3.1},{"b":"Eva","n":2252,"c":1026,"reg":2,"fd":0,"r1k":0.89},{"b":"Enomo","n":3156,"c":958,"reg":3,"fd":1,"r1k":0.95},{"b":"Riobet","n":3153,"c":849,"reg":4,"fd":1,"r1k":1.27},{"b":"1xbet","n":3152,"c":818,"reg":10,"fd":0,"r1k":3.17},{"b":"Sykaaa","n":3156,"c":811,"reg":0,"fd":0,"r1k":0.0},{"b":"Apex","n":2183,"c":773,"reg":3,"fd":0,"r1k":1.37},{"b":"Vulkan Platinum","n":3155,"c":738,"reg":5,"fd":2,"r1k":1.58},{"b":"Gold","n":3155,"c":713,"reg":0,"fd":0,"r1k":0.0},{"b":"Daddy","n":3155,"c":706,"reg":1,"fd":0,"r1k":0.32},{"b":"Gizbo","n":3157,"c":704,"reg":2,"fd":0,"r1k":0.63},{"b":"ClubNika","n":3156,"c":690,"reg":0,"fd":0,"r1k":0.0},{"b":"Bitz","n":3153,"c":689,"reg":1,"fd":0,"r1k":0.32},{"b":"Banda","n":3152,"c":676,"reg":0,"fd":0,"r1k":0.0},{"b":"Vodka","n":3154,"c":666,"reg":8,"fd":1,"r1k":2.54},{"b":"Lev","n":3157,"c":647,"reg":0,"fd":0,"r1k":0.0},{"b":"Epicstar","n":2181,"c":615,"reg":2,"fd":0,"r1k":0.92},{"b":"Beef","n":3153,"c":612,"reg":2,"fd":1,"r1k":0.63},{"b":"Wazbee","n":2097,"c":573,"reg":0,"fd":0,"r1k":0.0},{"b":"Azino777","n":3157,"c":542,"reg":0,"fd":0,"r1k":0.0},{"b":"7K","n":3156,"c":511,"reg":0,"fd":0,"r1k":0.0},{"b":"Cactus","n":3155,"c":454,"reg":11,"fd":1,"r1k":3.49},{"b":"Sever","n":2135,"c":425,"reg":0,"fd":0,"r1k":0.0},{"b":"Pokerok","n":3149,"c":397,"reg":3,"fd":0,"r1k":0.95},{"b":"Вулкан Вегас","n":3154,"c":396,"reg":5,"fd":0,"r1k":1.59},{"b":"Leon","n":3155,"c":361,"reg":28,"fd":8,"r1k":8.87},{"b":"1xSlots","n":3157,"c":359,"reg":0,"fd":0,"r1k":0.0},{"b":"Vivaro","n":3153,"c":324,"reg":4,"fd":0,"r1k":1.27},{"b":"Покердом","n":3151,"c":324,"reg":6,"fd":0,"r1k":1.9},{"b":"Mers","n":3151,"c":322,"reg":2,"fd":0,"r1k":0.63},{"b":"Play Fortuna","n":3155,"c":321,"reg":0,"fd":0,"r1k":0.0},{"b":"Bounty","n":3156,"c":319,"reg":8,"fd":3,"r1k":2.53},{"b":"Eldorado","n":3156,"c":313,"reg":0,"fd":0,"r1k":0.0},{"b":"New Retro","n":3156,"c":311,"reg":1,"fd":0,"r1k":0.32},{"b":"Dbbet","n":3150,"c":311,"reg":1,"fd":0,"r1k":0.32},{"b":"Gama","n":3153,"c":310,"reg":3,"fd":0,"r1k":0.95},{"b":"CryptoBoss","n":3156,"c":309,"reg":1,"fd":0,"r1k":0.32},{"b":"AdmiralX","n":3156,"c":288,"reg":0,"fd":0,"r1k":0.0},{"b":"Jvspin","n":2250,"c":286,"reg":2,"fd":0,"r1k":0.89},{"b":"Mellstroy","n":3154,"c":272,"reg":22,"fd":1,"r1k":6.98},{"b":"Joycasino","n":3154,"c":255,"reg":1,"fd":0,"r1k":0.32},{"b":"Zooma","n":3155,"c":250,"reg":2,"fd":0,"r1k":0.63},{"b":"Trix","n":3155,"c":245,"reg":6,"fd":3,"r1k":1.9},{"b":"Arkada","n":3156,"c":221,"reg":4,"fd":0,"r1k":1.27},{"b":"Like","n":2246,"c":212,"reg":7,"fd":0,"r1k":3.12},{"b":"MostBet Bookmaker","n":3155,"c":209,"reg":2,"fd":1,"r1k":0.63},{"b":"Luckmore","n":2248,"c":202,"reg":0,"fd":0,"r1k":0.0},{"b":"Goldfishka","n":3149,"c":182,"reg":2,"fd":0,"r1k":0.64},{"b":"AUF","n":3152,"c":178,"reg":1,"fd":0,"r1k":0.32},{"b":"Flagman","n":3153,"c":174,"reg":2,"fd":0,"r1k":0.63},{"b":"Bigsbet","n":3152,"c":174,"reg":2,"fd":1,"r1k":0.63},{"b":"UP-X","n":3156,"c":172,"reg":5,"fd":3,"r1k":1.58},{"b":"Tonplay","n":2254,"c":168,"reg":4,"fd":2,"r1k":1.77},{"b":"Smoky","n":2248,"c":154,"reg":1,"fd":0,"r1k":0.44},{"b":"Turbo","n":3155,"c":153,"reg":4,"fd":0,"r1k":1.27},{"b":"Lilbet","n":3148,"c":152,"reg":0,"fd":0,"r1k":0.0},{"b":"Hype","n":3156,"c":146,"reg":0,"fd":0,"r1k":0.0},{"b":"R7","n":3156,"c":137,"reg":7,"fd":5,"r1k":2.22},{"b":"Shot","n":3155,"c":131,"reg":0,"fd":0,"r1k":0.0},{"b":"Лутран","n":3153,"c":127,"reg":2,"fd":1,"r1k":0.63},{"b":"Spinwin","n":2111,"c":125,"reg":1,"fd":0,"r1k":0.47},{"b":"Martin","n":3151,"c":118,"reg":22,"fd":6,"r1k":6.98},{"b":"Pin Up","n":3155,"c":117,"reg":4,"fd":0,"r1k":1.27},{"b":"Fenix","n":2251,"c":117,"reg":7,"fd":2,"r1k":3.11},{"b":"Slotozal","n":3155,"c":108,"reg":2,"fd":1,"r1k":0.63},{"b":"Honey Money","n":3155,"c":105,"reg":0,"fd":0,"r1k":0.0},{"b":"Bollywood","n":3153,"c":94,"reg":0,"fd":0,"r1k":0.0},{"b":"Kometa","n":3155,"c":90,"reg":0,"fd":0,"r1k":0.0},{"b":"Mad","n":3151,"c":90,"reg":2,"fd":0,"r1k":0.63},{"b":"Jozz","n":3152,"c":84,"reg":0,"fd":0,"r1k":0.0},{"b":"Win777","n":2252,"c":84,"reg":0,"fd":0,"r1k":0.0},{"b":"Ramenbet","n":3153,"c":74,"reg":0,"fd":0,"r1k":0.0},{"b":"Unlim Casino","n":3157,"c":71,"reg":0,"fd":0,"r1k":0.0},{"b":"Grizzly","n":3152,"c":70,"reg":0,"fd":0,"r1k":0.0},{"b":"Bitzamo","n":3156,"c":68,"reg":0,"fd":0,"r1k":0.0},{"b":"Betera","n":3153,"c":68,"reg":2,"fd":0,"r1k":0.63},{"b":"Maxbetslots","n":3153,"c":67,"reg":0,"fd":0,"r1k":0.0},{"b":"888starz","n":3154,"c":64,"reg":4,"fd":0,"r1k":1.27},{"b":"Мелбет","n":3151,"c":64,"reg":5,"fd":0,"r1k":1.59},{"b":"Luckyduck","n":3151,"c":62,"reg":0,"fd":0,"r1k":0.0},{"b":"Explosino","n":2249,"c":58,"reg":0,"fd":0,"r1k":0.0},{"b":"Cat","n":3155,"c":56,"reg":1,"fd":0,"r1k":0.32},{"b":"Onlybets","n":3148,"c":55,"reg":1,"fd":0,"r1k":0.32},{"b":"Booi","n":3155,"c":54,"reg":0,"fd":0,"r1k":0.0},{"b":"Вулкан 24","n":3154,"c":53,"reg":4,"fd":0,"r1k":1.27},{"b":"Champion","n":2178,"c":52,"reg":1,"fd":0,"r1k":0.46},{"b":"Twin","n":3154,"c":50,"reg":5,"fd":2,"r1k":1.59},{"b":"Friends","n":3155,"c":46,"reg":2,"fd":0,"r1k":0.63},{"b":"Atom","n":3151,"c":45,"reg":2,"fd":1,"r1k":0.63},{"b":"Kraken","n":3155,"c":39,"reg":5,"fd":1,"r1k":1.58},{"b":"Casino X","n":3154,"c":37,"reg":3,"fd":0,"r1k":0.95},{"b":"Why","n":3154,"c":37,"reg":6,"fd":1,"r1k":1.9},{"b":"GetX","n":3157,"c":34,"reg":9,"fd":2,"r1k":2.85},{"b":"Crypto","n":2249,"c":33,"reg":0,"fd":0,"r1k":0.0},{"b":"Shuffle","n":3149,"c":31,"reg":11,"fd":1,"r1k":3.49},{"b":"Irwin","n":3153,"c":29,"reg":1,"fd":1,"r1k":0.32},{"b":"Casino7","n":3151,"c":26,"reg":2,"fd":0,"r1k":0.63},{"b":"Monro","n":3152,"c":23,"reg":1,"fd":0,"r1k":0.32},{"b":"Drip","n":3156,"c":21,"reg":1,"fd":0,"r1k":0.32},{"b":"Dragon Money","n":3156,"c":20,"reg":11,"fd":1,"r1k":3.49},{"b":"Yardwin","n":2181,"c":19,"reg":0,"fd":0,"r1k":0.0},{"b":"Клуб Вулкан","n":3152,"c":18,"reg":2,"fd":0,"r1k":0.63},{"b":"Lucky Bird","n":3154,"c":17,"reg":37,"fd":2,"r1k":11.73},{"b":"Brillx","n":3152,"c":15,"reg":5,"fd":0,"r1k":1.59},{"b":"Money X","n":3154,"c":14,"reg":10,"fd":1,"r1k":3.17},{"b":"Izzi","n":3156,"c":13,"reg":2,"fd":1,"r1k":0.63},{"b":"Nomad","n":3154,"c":12,"reg":3,"fd":0,"r1k":0.95},{"b":"Фреш","n":3150,"c":11,"reg":1,"fd":0,"r1k":0.32},{"b":"Олимп","n":3153,"c":11,"reg":14,"fd":1,"r1k":4.44},{"b":"Frank","n":3152,"c":10,"reg":6,"fd":2,"r1k":1.9},{"b":"Faro","n":2165,"c":10,"reg":1,"fd":0,"r1k":0.46},{"b":"Rox","n":3148,"c":9,"reg":1,"fd":0,"r1k":0.32},{"b":"Betwinner","n":3152,"c":8,"reg":0,"fd":0,"r1k":0.0},{"b":"Million","n":3150,"c":8,"reg":3,"fd":0,"r1k":0.95},{"b":"Dune","n":2178,"c":8,"reg":1,"fd":1,"r1k":0.46},{"b":"Вулкан Россия","n":3153,"c":7,"reg":1,"fd":0,"r1k":0.32},{"b":"Kilogram","n":3151,"c":7,"reg":0,"fd":0,"r1k":0.0},{"b":"Slott","n":2278,"c":7,"reg":3,"fd":0,"r1k":1.32},{"b":"Starda","n":3156,"c":6,"reg":1,"fd":0,"r1k":0.32},{"b":"Stake","n":3157,"c":6,"reg":6,"fd":2,"r1k":1.9},{"b":"Jet","n":3152,"c":6,"reg":1,"fd":0,"r1k":0.32},{"b":"Luckybear","n":3149,"c":6,"reg":14,"fd":2,"r1k":4.45},{"b":"Azino888","n":3150,"c":5,"reg":1,"fd":0,"r1k":0.32},{"b":"Blitzred","n":3149,"c":5,"reg":0,"fd":0,"r1k":0.0},{"b":"Casinora","n":3151,"c":5,"reg":0,"fd":0,"r1k":0.0},{"b":"Winline","n":2255,"c":5,"reg":5,"fd":1,"r1k":2.22},{"b":"Champion Slots","n":3152,"c":4,"reg":0,"fd":0,"r1k":0.0},{"b":"Vovan","n":3155,"c":4,"reg":0,"fd":0,"r1k":0.0},{"b":"Vegasy","n":3156,"c":4,"reg":0,"fd":0,"r1k":0.0},{"b":"Laki","n":3150,"c":4,"reg":0,"fd":0,"r1k":0.0},{"b":"Lex","n":3157,"c":3,"reg":2,"fd":0,"r1k":0.63},{"b":"Goodwin","n":3156,"c":3,"reg":9,"fd":1,"r1k":2.85},{"b":"Fraga","n":3151,"c":3,"reg":3,"fd":0,"r1k":0.95},{"b":"Loft","n":3149,"c":3,"reg":0,"fd":0,"r1k":0.0},{"b":"Aurora Casino","n":3155,"c":2,"reg":4,"fd":0,"r1k":1.27},{"b":"Sol","n":3153,"c":2,"reg":2,"fd":1,"r1k":0.63},{"b":"Boost","n":3151,"c":2,"reg":1,"fd":0,"r1k":0.32},{"b":"Maxline","n":3148,"c":2,"reg":5,"fd":0,"r1k":1.59},{"b":"Parimatch","n":3150,"c":2,"reg":2,"fd":0,"r1k":0.63},{"b":"Onetap","n":2261,"c":2,"reg":0,"fd":0,"r1k":0.0},{"b":"Sweet","n":2256,"c":2,"reg":1,"fd":0,"r1k":0.44},{"b":"Betunlim","n":2252,"c":2,"reg":0,"fd":0,"r1k":0.0},{"b":"RPTbet","n":2141,"c":2,"reg":0,"fd":0,"r1k":0.0},{"b":"Onion","n":3157,"c":1,"reg":2,"fd":1,"r1k":0.63},{"b":"888","n":3152,"c":1,"reg":1,"fd":0,"r1k":0.32},{"b":"Fontan","n":3155,"c":1,"reg":3,"fd":0,"r1k":0.95},{"b":"Legzo","n":3155,"c":1,"reg":1,"fd":0,"r1k":0.32},{"b":"Вулкан Престиж","n":3156,"c":1,"reg":0,"fd":0,"r1k":0.0},{"b":"Spin City","n":3155,"c":1,"reg":6,"fd":0,"r1k":1.9},{"b":"Вулкан Старс","n":3152,"c":1,"reg":1,"fd":0,"r1k":0.32},{"b":"Jackpoker","n":3149,"c":1,"reg":0,"fd":0,"r1k":0.0},{"b":"F1","n":2250,"c":1,"reg":2,"fd":0,"r1k":0.89},{"b":"Vulkan Pobeda","n":2192,"c":1,"reg":1,"fd":0,"r1k":0.46},{"b":"BitStarz","n":3156,"c":0,"reg":2,"fd":0,"r1k":0.63},{"b":"Baboss","n":3155,"c":0,"reg":0,"fd":0,"r1k":0.0},{"b":"Avocado","n":3154,"c":0,"reg":3,"fd":2,"r1k":0.95},{"b":"Bonsai","n":3154,"c":0,"reg":0,"fd":0,"r1k":0.0},{"b":"Вулкан Мега","n":3156,"c":0,"reg":0,"fd":0,"r1k":0.0},{"b":"Волна","n":3155,"c":0,"reg":0,"fd":0,"r1k":0.0},{"b":"Vibe","n":3154,"c":0,"reg":0,"fd":0,"r1k":0.0},{"b":"Эверум","n":3151,"c":0,"reg":5,"fd":2,"r1k":1.59},{"b":"Crystalslot","n":3149,"c":0,"reg":0,"fd":0,"r1k":0.0},{"b":"Ezcash","n":3150,"c":0,"reg":3,"fd":0,"r1k":0.95},{"b":"Fairspin","n":3150,"c":0,"reg":2,"fd":0,"r1k":0.63},{"b":"Fonbet","n":3151,"c":0,"reg":2,"fd":0,"r1k":0.63},{"b":"Lukkly","n":3150,"c":0,"reg":0,"fd":0,"r1k":0.0},{"b":"Marathon","n":3149,"c":0,"reg":7,"fd":2,"r1k":2.22},{"b":"Pari","n":3149,"c":0,"reg":0,"fd":0,"r1k":0.0},{"b":"Slotgames","n":2341,"c":0,"reg":3,"fd":2,"r1k":1.28},{"b":"Spacewin","n":2267,"c":0,"reg":0,"fd":0,"r1k":0.0},{"b":"Spinbetter","n":2267,"c":0,"reg":0,"fd":0,"r1k":0.0},{"b":"Tippy","n":2254,"c":0,"reg":0,"fd":0,"r1k":0.0},{"b":"Volta","n":2255,"c":0,"reg":2,"fd":0,"r1k":0.89},{"b":"Weiss","n":2251,"c":0,"reg":0,"fd":0,"r1k":0.0},{"b":"Winity","n":2252,"c":0,"reg":2,"fd":0,"r1k":0.89},{"b":"Betobet","n":2252,"c":0,"reg":0,"fd":0,"r1k":0.0},{"b":"1xbit","n":2250,"c":0,"reg":0,"fd":0,"r1k":0.0},{"b":"Iris","n":2249,"c":0,"reg":6,"fd":3,"r1k":2.67},{"b":"Leovegas","n":2247,"c":0,"reg":1,"fd":0,"r1k":0.45},{"b":"National","n":2247,"c":0,"reg":0,"fd":0,"r1k":0.0},{"b":"Olympus-play","n":2247,"c":0,"reg":6,"fd":1,"r1k":2.67},{"b":"Platinum","n":2246,"c":0,"reg":3,"fd":0,"r1k":1.34},{"b":"Rizk","n":2247,"c":0,"reg":0,"fd":0,"r1k":0.0},{"b":"Slotoro","n":2246,"c":0,"reg":1,"fd":0,"r1k":0.45},{"b":"Sprut","n":2247,"c":0,"reg":0,"fd":0,"r1k":0.0},{"b":"Wildblaster","n":2188,"c":0,"reg":0,"fd":0,"r1k":0.0},{"b":"Winna","n":2179,"c":0,"reg":0,"fd":0,"r1k":0.0},{"b":"WinWin","n":2180,"c":0,"reg":0,"fd":0,"r1k":0.0},{"b":"Banzaibet","n":2181,"c":0,"reg":0,"fd":0,"r1k":0.0},{"b":"Betus X","n":2182,"c":0,"reg":0,"fd":0,"r1k":0.0},{"b":"Bwin","n":2177,"c":0,"reg":1,"fd":1,"r1k":0.46},{"b":"Spartans","n":2178,"c":0,"reg":0,"fd":0,"r1k":0.0},{"b":"Mr. Green","n":2137,"c":0,"reg":0,"fd":0,"r1k":0.0},{"b":"Metelitsa","n":2140,"c":0,"reg":2,"fd":0,"r1k":0.93},{"b":"Realslots","n":2138,"c":0,"reg":2,"fd":0,"r1k":0.94}];
+const nf=n=>String(n).replace(/\B(?=(\d{3})+(?!\d))/g," ");
+const tb=document.querySelector("#all tbody");
+function draw(k){
+  const rows=[...BR].sort((a,b)=>b[k]-a[k]||b.c-a.c);
+  const mx=Math.max(...rows.map(r=>r[k]))||1;
+  tb.innerHTML=rows.map((r,i)=>{
+    const w=(100*r[k]/mx*0.8).toFixed(0);
+    const cls=k==="c"?"":"m";
+    const cell=(key,txt,color)=>key===k
+      ? `<td class="bar-cell ${cls}" style="--w:${w}%"><span class="${color}">${txt}</span></td>`
+      : `<td class="${color}">${txt}</td>`;
+    return `<tr><td class="dim">${i+1}</td><td>${r.b}</td><td class="dim">${nf(r.n)}</td>`
+      +cell("c",nf(r.c),"num-t")+cell("reg",r.reg,"num-m")+cell("fd",r.fd,"num-m")
+      +cell("r1k",r.r1k.toFixed(2),"num-m")+`</tr>`;
+  }).join("");
+}
+draw("c");
+document.querySelectorAll(".sorters button").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll(".sorters button").forEach(x=>x.setAttribute("aria-pressed",x===b));
+  draw(b.dataset.k);
+}));
+const tip=document.getElementById("tip");
+function show(e,t){
+  tip.textContent=t; tip.style.opacity="1";
+  const r=tip.getBoundingClientRect();
+  let x=e.clientX+14, y=e.clientY-r.height-12;
+  if(x+r.width>innerWidth-8) x=innerWidth-r.width-8;
+  if(y<8) y=e.clientY+18;
+  tip.style.left=x+"px"; tip.style.top=y+"px";
+}
+document.addEventListener("pointerover",e=>{
+  const h=e.target.closest("[data-tip]");
+  if(h) show(e,h.dataset.tip); else tip.style.opacity="0";
+});
+document.addEventListener("pointermove",e=>{
+  const h=e.target.closest("[data-tip]");
+  if(h) show(e,h.dataset.tip);
+});
+document.addEventListener("pointerleave",()=>tip.style.opacity="0");
+</script>
