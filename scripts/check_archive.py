@@ -6,9 +6,10 @@
 
 Архив должен иметь структуру  <N>-стр/<домен>/<страница>.html .
 Коды проверок (A*, B*, C*, D*) соответствуют checks/00-common.md.
---sort ПАПКА  раскладывает сайты по типам: ПАПКА/годные/<тип>/<домен>/,
-              ПАПКА/на-доработку/<тип>/<домен>/, ПАПКА/убрано/<тип>/<домен>/,
-              плюс ПАПКА/сводка.md. Группы 8/9/10-стр лежат уже в виде 7-стр.
+--sort ПАПКА  раскладывает сайты по семьям: ПАПКА/годные/<семья>/<домен>/,
+              ПАПКА/на-доработку/<семья>/<домен>/, ПАПКА/убрано/<семья>/<домен>/,
+              плюс ПАПКА/сводка.md. Страницы не выбрасываются: комплект лежит
+              как пришёл, семья берётся по самому набору страниц.
 Код возврата: 1, если найдена хотя бы одна ошибка (ERROR), иначе 0.
 """
 import argparse
@@ -28,36 +29,32 @@ from html.parser import HTMLParser
 SET_7 = ["app", "bonus", "main", "registracia", "slots", "vhod", "zerkalo"]
 SET_12 = SET_7 + ["info", "news", "obzor", "partnery", "promo"]
 
-# pages: эталонный набор; min_words: минимум слов; min_h2: минимум <h2>.
-TEMPLATES = {
-    1:  {"pages": ["main"], "min_words": 300, "min_h2": 3},
-    2:  {"pages": ["main"], "min_words": 300, "min_h2": 3},   # приходит как 1-стр плюс лишняя страница
-    7:  {"pages": SET_7, "min_words": 150, "min_h2": 1},
-    8:  {"pages": SET_7 + ["privacy"], "min_words": 150, "min_h2": 1},
-    9:  {"pages": SET_7 + ["contacts", "privacy"], "min_words": 150, "min_h2": 1},
-    10: {"pages": SET_7 + ["about", "contacts", "privacy"], "min_words": 150, "min_h2": 1},
-    # 11-стр — тот же набор, что 12-стр, но одной страницы при выкачке не хватает:
-    # какой именно, у каждого сайта своё, поэтому её ловит A4 и сайт убирается.
-    11: {"pages": SET_12, "min_words": 400, "min_h2": 2},
-    12: {"pages": SET_12, "min_words": 400, "min_h2": 2},
-    # 13-стр и 14-стр — тот же набор 12-стр плюс лишние контентные страницы;
-    # сводятся к 12-стр через CONVERT.
-    13: {"pages": SET_12, "min_words": 400, "min_h2": 2},
-    14: {"pages": SET_12, "min_words": 400, "min_h2": 2},
+ТОЛЬКО_12 = [p for p in SET_12 if p not in SET_7]
+
+# Семья комплекта: пороги объёма и заголовков. Эталонного набора страниц нет —
+# комплект отдаётся как пришёл, ничего не выбрасывается и ничего не требуется.
+# Страница, которой нет, сама по себе не дефект; дефект — ссылка на страницу,
+# которой нет (C1), и по ней сайт убирается.
+СЕМЬИ = {
+    1:  {"min_words": 300, "min_h2": 3},
+    7:  {"min_words": 150, "min_h2": 1},
+    12: {"min_words": 400, "min_h2": 2},
 }
-# Группа -> (тип, страницы, которые выбрасываются). Сайты 9-стр и 10-стр
-# собираются в шаблон 7-стр без служебных страниц; ссылки на убранные
-# страницы ловит C1.
-# Служебные страницы: и латиницей, и с приставкой ru (ruabout, rucontacts, ruprivacy).
-СЛУЖЕБНЫЕ = ["privacy", "contacts", "about", "privacy-policy", "terms",
-             "ruprivacy", "rucontacts", "ruabout", "ru-privacy", "ru-contacts", "ru-about",
-             "ruterms", "ru-terms"]
-# Лишние контентные страницы расширенных наборов: 13-стр приносит payments,
-# 14-стр — otzyvy и platezhi. Сводим к 12-стр, лишние выбрасываем.
-ЛИШНИЕ_12 = ["payments", "otzyvy", "platezhi"]
-CONVERT = {2: (1, СЛУЖЕБНЫЕ + ["slots", "bonus"]), 8: (7, СЛУЖЕБНЫЕ),
-           9: (7, СЛУЖЕБНЫЕ), 10: (7, СЛУЖЕБНЫЕ),
-           13: (12, ЛИШНИЕ_12), 14: (12, ЛИШНИЕ_12)}
+
+
+def семья(имена):
+    """Семья по самому набору страниц: номер папки не значит ничего.
+
+    Страницы info, news, obzor, partnery, promo бывают только в шаблоне на 12
+    страниц, поэтому хоть одна из них переводит комплект в семью 12-стр. Одна
+    `main` — семья 1-стр, всё остальное — 7-стр. Так 9-стр из семьи 12-стр
+    и 13-стр с лишней страницей попадают каждый в свою семью сами.
+    """
+    if имена & set(ТОЛЬКО_12):
+        return 12
+    if имена <= {"main"}:
+        return 1
+    return 7
 # Сайт убирается из выдачи (а не отправляется на доработку), если в нём есть
 # заглушки, дубли файлов или не хватает страниц шаблона — для любого типа.
 # Причина пишется в отчёт и сводку.
@@ -599,16 +596,15 @@ def brand_leaks(text):
 # ------------------------------------------------------------- проверки ---
 def check_site(n, tpl, key, pages, F):
     names = sorted(pages)
-    exp = tpl["pages"]
-    # A3 / A4: количество и набор страниц
-    if len(names) != len(exp):
-        F.add(key, "ERROR", "A3", "страниц %d, по шаблону %d-стр ожидается %d" % (len(names), n, len(exp)))
-    missing = sorted(set(exp) - set(names))
-    extra = sorted(set(names) - set(exp))
-    if missing:
-        F.add(key, "ERROR", "A4", "нет страниц: " + ", ".join(missing))
-    if extra:
-        F.add(key, "ERROR", "A4", "лишние страницы: " + ", ".join(extra))
+    # A4: набор страниц записывается справочно. Он не эталон: ни лишняя страница,
+    # ни отсутствующая сами по себе не дефект — дефект только ссылка в никуда (C1).
+    база = set(SET_12 if n == 12 else SET_7 if n == 7 else ["main"])
+    сверх = sorted(set(names) - база)
+    if сверх:
+        F.add(key, "INFO", "A4", "сверх базового набора семьи %d-стр: %s" % (n, ", ".join(сверх)))
+    нет = sorted(база - set(names))
+    if нет:
+        F.add(key, "INFO", "A4", "из базового набора семьи %d-стр нет: %s" % (n, ", ".join(нет)))
     for p in names:
         if not re.fullmatch(r"[a-z0-9-]+", p):
             F.add(key, "WARN", "A5", "имя файла не в нижнем регистре латиницей: %s.html" % p)
@@ -721,7 +717,7 @@ def check_site(n, tpl, key, pages, F):
             misrouted_all.update(misrouted)
         if external:
             F.add(key, "WARN", "C3", "%s: внешних ссылок — %d" % (loc, external))
-        if not d["anchors"] and len(exp) > 1:
+        if not d["anchors"] and len(names) > 1:
             F.add(key, "INFO", "C4", "%s: нет внутренних ссылок" % loc)
     for name, c, pg in brand_candidates([pages[p]["raw"] for p in names]):
         F.add(key, "ERROR", "B4", "возможный чужой бренд «%s»: %d упоминаний на %d страницах" % (name, c, pg))
@@ -816,7 +812,6 @@ def check_cross(all_pages, F):
 # ---------------------------------------------------------------- отчёт ---
 LEVEL_ORDER = {"ERROR": 0, "WARN": 1, "INFO": 2}
 REASON = {  # короткая причина брака для сводки, по коду ошибки
-    "A3": "не то количество страниц", "A4": "не тот набор страниц",
     "A6": "кодировка", "B1": "заглушки", "B13": "тонкая главная", "B4": "чужой бренд или контакты", "D2": "дубль по тексту",
     "B5": "незаполненные переменные", "B6": "разметка",
     "C1": "ссылки в никуда", "D1": "дубль файла",
@@ -836,8 +831,8 @@ def discard_reason(F, s):
         why.append("контент дублированный")
     if any(lvl == "ERROR" and code == "B13" for lvl, code, _ in items):
         why.append("главная без текста")
-    if any(lvl == "ERROR" and code in ("A3", "A4") for lvl, code, _ in items):
-        why.append("неполный набор")
+    if any(lvl == "ERROR" and code == "C1" for lvl, code, _ in items):
+        why.append("ссылки в никуда")
     return " и ".join(why) if why else None
 
 
@@ -857,7 +852,7 @@ def reasons(F, key):
     return "; ".join("%s (%d)" % (REASON.get(c, c), n) for c, n in sorted(codes.items()))
 
 
-def render(F, sites, archive_name, junk, unknown_groups):
+def render(F, sites, archive_name, junk):
     out = ["# Отчёт проверки: %s" % archive_name, ""]
     tot = Counter()
     for s in sites:
@@ -870,8 +865,6 @@ def render(F, sites, archive_name, junk, unknown_groups):
     if junk:
         out += ["- A1 WARN: мусорные файлы в архиве — %s" % ", ".join(
             "%s (%d)" % kv for kv in junk.items())]
-    if unknown_groups:
-        out += ["- A2 WARN: папки групп без шаблона: %s" % ", ".join(unknown_groups)]
     out += ["", "## Сводка", "", "| Тип | Сайт | Страниц | Ошибок | Предупр. | Итог |",
             "|---|---|---:|---:|---:|---|"]
     for s in sites:
@@ -949,62 +942,42 @@ def main():
         for fn in filenames:
             if fn in JUNK_NAMES or fn.startswith("._"):
                 junk[fn] += 1
-    all_pages, sites, unknown = {}, [], []
+    all_pages, sites = {}, []
     for n, gdir in find_groups(root):
         gname = os.path.basename(gdir)
-        if n not in TEMPLATES:
-            # Номера такой группы в шаблонах нет, но сайты бросать нельзя: иначе целая
-            # партия молча исчезает из отчёта. Шаблон подберётся по набору страниц ниже.
-            unknown.append(gname)
-            target, drop = 7, СЛУЖЕБНЫЕ
-        else:
-            target, drop = CONVERT.get(n, (n, []))
-        tpl = TEMPLATES[target]
         for site in sorted(os.listdir(gdir)):
             sdir = os.path.join(gdir, site)
             if not os.path.isdir(sdir):
                 continue
-            # Номер группы иногда врёт: 9-стр из семьи 12-стр — это не 7-стр со
-            # служебными. Шаблон выбираем по самому набору страниц, а не по папке.
-            имена = {fn[:-5] for fn in os.listdir(sdir)
-                     if fn.endswith(".html") and fn[:-5] not in drop}
-            оценка = lambda k: (len(имена & set(TEMPLATES[k]["pages"]))
-                                - len(имена ^ set(TEMPLATES[k]["pages"])))
-            подбор = target
-            for кандидат in TEMPLATES:
-                if оценка(кандидат) > оценка(подбор):
-                    подбор = кандидат
-            tname = "%d-стр" % подбор
+            # Номер папки ничего не значит: 9-стр бывает и из семьи 12-стр. Семью
+            # определяем по самому набору страниц, комплект берём как пришёл.
+            имена = {fn[:-5] for fn in os.listdir(sdir) if fn.endswith(".html")}
+            сем = семья(имена)
+            tpl = СЕМЬИ[сем]
+            tname = "%d-стр" % сем
             key = "%s/%s" % (tname, site)
-            if подбор != target:
-                F.add(key, "INFO", "A2", "набор страниц ближе к шаблону %d-стр, чем к %d-стр" % (подбор, target))
-                target, tpl = подбор, TEMPLATES[подбор]
-            pages, dropped = {}, []
+            pages = {}
             for fn in sorted(os.listdir(sdir)):
                 fp = os.path.join(sdir, fn)
                 if fn.endswith(".html"):
-                    if fn[:-5] in drop:
-                        dropped.append(fn[:-5])
-                    else:
-                        pages[fn[:-5]] = analyze_page(fp)
+                    pages[fn[:-5]] = analyze_page(fp)
                 elif os.path.isfile(fp) and fn not in JUNK_NAMES and not fn.startswith("._"):
                     F.add(key, "WARN", "A5", "посторонний файл: %s" % fn)
                 elif os.path.isdir(fp):
                     F.add(key, "WARN", "A5", "вложенная папка: %s" % fn)
             note = ""
-            if target != n:
-                note = " (из %s)" % gname
-                F.add(key, "INFO", "A2", "собрано из %s: убраны %s" % (
-                    gname, ", ".join(dropped) if dropped else "ничего"))
-            sites.append({"key": key, "type": tname, "site": site, "note": note, "n": target,
+            if gname != tname:
+                note = " (папка %s)" % gname
+                F.add(key, "INFO", "A2", "папка %s, семья %s по набору страниц" % (gname, tname))
+            sites.append({"key": key, "type": tname, "site": site, "note": note, "n": сем,
                           "pages": pages, "npages": len(pages)})
-            check_site(target, tpl, key, pages, F)
+            check_site(сем, tpl, key, pages, F)
             for p, d in pages.items():
                 all_pages["%s/%s.html" % (key, p)] = d
     check_cross(all_pages, F)
     drop_duplicates(sites, F, args.порог / 100)
     name = os.path.basename(args.path.rstrip("/"))
-    report = render(F, sites, name, junk, unknown)
+    report = render(F, sites, name, junk)
     if args.output:
         open(args.output, "w", encoding="utf-8").write(report + "\n")
         print("отчёт записан: %s" % args.output)

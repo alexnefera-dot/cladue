@@ -12,8 +12,8 @@
 - {YYYYMMDD} -> %date%. Примерные адреса вида user@example.com -> user@%domain_name%.
   Два плейсхолдера бренда подряд схлопываются в один.
   Голый домен после собаки («whitelist для @yourcompany.com») — тоже.
-- {PROTOCOL}, {SERVER}, {PORT}, {DOMAIN}, {HOST}, {URL}, {ID}, {IP}, {MIN_WITHDRAWAL},
-  {UUID}, {DDMMYY} -> техническое значение.
+- {PROTOCOL}, {SERVER}, {PORT}, {DOMAIN}, {HOST}, {URL}, {ID}, {NNN}, {IP},
+  {MIN_WITHDRAWAL}, {UUID}, {DDMMYY} -> техническое значение.
 - ru.html -> main.html, если main.html в наборе нет: главная скачана под языковой приставкой.
 - Мусор после чистки: склейки <strongслово>, теги meter/font/center, битые <h2:, остатки [[ ]] и {a|b}.
 - --auto-brand -> бренд каждого сайта определяется сам: самое частое латинское
@@ -395,6 +395,8 @@ def fix_markup(raw):
                   "{DOMAIN}": "%domain_name%", "{HOST}": "%domain_name%", "{URL}": "%domain_name%",
                   # номер обращения в поддержку: «#502-{ID}», «/ticket {ID} {Текст}»
                   "{ID}": "4187",
+                  # хвост тикет-ида: «автоматический тикет-ид #WIN-%date%-{NNN}»
+                  "{NNN}": "317",
                   # адрес зеркала в обход блокировки: «вставьте в браузер https://{IP}/{path}»
                   "{IP}": "%domain_name%",
                   # минимальная сумма вывода: «Минимальная сумма вывода составляет {MIN_WITHDRAWAL}»

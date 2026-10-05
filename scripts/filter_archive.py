@@ -35,8 +35,8 @@ from collections import Counter, defaultdict
 from functools import lru_cache
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from check_archive import (CONVERT, JUNK_NAMES, MIN_MAIN_WORDS, TEMPLATES,  # noqa: E402
-                           WIDGET_P, strip_tags)
+from check_archive import (JUNK_NAMES, MIN_MAIN_WORDS, SET_7, SET_12,  # noqa: E402
+                           WIDGET_P, strip_tags, семья)
 
 # Страницы бывают целыми документами: служебное и обвязку не считаем ни текстом,
 # ни материалом для сравнения.
@@ -136,12 +136,29 @@ def shingle_hashes(words, n=6):
     return {zlib.crc32(" ".join(w[i:i + n]).encode()) for i in range(max(0, len(w) - n + 1))}
 
 
+# Внутренняя ссылка: нужна, чтобы поймать ссылку на страницу, которой нет, —
+# единственная причина считать набор страниц неполным.
+ССЫЛКА = re.compile(r'(?i)<a[^>]+href="([^"]+)"')
+
+
+def внутренние(raw):
+    цели = set()
+    for href in ССЫЛКА.findall(raw):
+        if re.match(r"(https?:|//|mailto:|tel:|#)", href):
+            continue
+        цель = href.strip("/").split("/")[0].split("?")[0].split("#")[0]
+        if цель:
+            цели.add(цель)
+    return цели
+
+
 def page_stats(raw):
+    ссылки = внутренние(raw)
     raw = body_html(raw)
     words = re.findall(r"\w+", strip_tags(raw))
     sh = shingle_hashes(words)
     return {
-        "nwords": len(words), "cw": content_words(raw), "sec": sections(raw),
+        "nwords": len(words), "cw": content_words(raw), "sec": sections(raw), "ссылки": ссылки,
         "md5": hashlib.md5(raw.encode("utf-8")).hexdigest(), "nsh": len(sh),
         "sampled": array("I", sorted(sh if len(sh) <= SMALL_PAGE else (h for h in sh if h & SAMPLE_MASK == 0))),
     }
@@ -149,15 +166,17 @@ def page_stats(raw):
 
 # ---------------------------------------------------------------- решения ---
 def structural_reasons(n, pages, stats, md5_seen, key):
-    """Причины убрать сайт без сравнения с другими: набор страниц, заглушки, тонкая главная, копия своей же страницы, точный дубль."""
-    tpl = TEMPLATES.get(n)
+    """Причины убрать сайт без сравнения с другими: ссылки в никуда, заглушки, тонкая главная, копия своей же страницы, точный дубль.
+
+    Набор страниц не эталон: комплект берётся как пришёл, лишняя страница остаётся,
+    а отсутствующая сама по себе не дефект. Дефект — ссылка на страницу, которой нет.
+    """
     why = []
-    if tpl is None:
-        return ["неизвестный тип %d-стр" % n]
-    exp = set(tpl["pages"])
-    missing, extra = sorted(exp - set(pages)), sorted(set(pages) - exp)
-    if missing or extra:
-        why.append("неполный набор" + (": нет " + ", ".join(missing) if missing else "") + (": лишние " + ", ".join(extra) if extra else ""))
+    нет = set()
+    for p in pages:
+        нет |= stats[p]["ссылки"] - set(pages)
+    if нет:
+        why.append("ссылки в никуда: " + ", ".join(sorted(нет)))
     stubs = [p for p in pages if stats[p]["nwords"] < 60]
     if stubs:
         why.append("контент из заглушек: " + ", ".join(sorted(stubs)))
@@ -200,9 +219,8 @@ def main():
     md5_seen = {}
     total_pages = 0
     for g, s, pages in src.sites():
-        n = int(GROUP_RX.match(g).group(1))
-        target, drop = CONVERT.get(n, (n, []))
-        keep = {p: k for p, k in pages.items() if p not in drop}
+        target = семья(set(pages))
+        keep = dict(pages)
         stats = {}
         for p, k in sorted(keep.items()):
             stats[p] = page_stats(src.read(k))
