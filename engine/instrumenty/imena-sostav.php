@@ -44,8 +44,12 @@ $свод = function (array $папки, string $имя) use ($набор) {
     }
     echo "\n";
 };
-$СП = '/tmp/claude-0/-home-user-cladue/ea580ece-89cc-5463-b9fe-78c4a0a08b0d/scratchpad';
-$свод(glob('/home/user/cladue/samples/v5-final/nabor-75[2-6]'), 'наши 752–756');
+$папки = array_slice($argv, 1);
+if ($папки) {
+    foreach ($папки as $п) { $свод([$п], basename($п)); }
+    exit(0);
+}
+$СП = getenv('V5_NEW100') ?: '/tmp/claude-0/-home-user-cladue/ea580ece-89cc-5463-b9fe-78c4a0a08b0d/scratchpad';
 $свод(array_slice(glob('/home/user/cladue/samples/v5-final/nabor-7*'), -20), 'наши последние 20');
 $свод(glob("$СП/new100-obychnye/*"), 'NEW100 обычные');
 $свод(glob("$СП/new100-gustye/*"), 'NEW100 густые');
