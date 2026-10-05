@@ -920,6 +920,79 @@ MANUAL-OWN.RU
         @rmdir($dir);
     }
 
+    public function testBasesAreToppedUpBeforeCollectAndDeepGapIsSkipped(): void
+    {
+        // БАЗУ НАДО ОБНОВЛЯТЬ: доры запускаются каждый день, и вчерашний список не знает про сегодняшние.
+        // Перед сбором догружаются ТОЛЬКО новые дни (кэш помнит период), а провал глубже 7 дней
+        // автодогрузка не трогает — он выгружается кнопкой с полоской прогресса, а не молча в сборе.
+        $port = FakeServer::port('local');
+        $dir = sys_get_temp_dir() . '/yandex-sites-dgauto-' . uniqid();
+        $runDir = $dir . '/runs/current';
+        mkdir($runDir, 0777, true);
+        file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
+        file_put_contents($dir . '/.env', "DORGEN_TOKEN=test-token\nDORGEN_BASE=http://127.0.0.1:$port\n");
+        file_put_contents($runDir . '/sites.json', json_encode(['sites' => [
+            [
+                'host' => 'okna-moskva.ru', 'domain' => 'okna-moskva.ru', 'url' => "http://okna-moskva.ru:$port/",
+                'title' => 'O', 'best_query' => 'окна', 'best_position' => 1, 'queries_count' => 1,
+            ],
+        ]]));
+        $settings = [
+            'stage' => 'preview',
+            'visit_driver' => 'curl',
+            'only' => ['okna-moskva.ru'],
+            'own_markers' => [],
+            'visit_resolve' => ["okna-moskva.ru:$port:127.0.0.1"],
+        ];
+        $basesFile = $dir . '/runs/' . \YandexSites\Dorgen\OwnBases::FILE;
+        $cache = static fn (string $dateTo): string => (string) json_encode([
+            'updated_at' => date(DATE_ATOM), 'date_from' => '2026-01-01', 'date_to' => $dateTo,
+            'bases' => ['old.team' => ['subdomains' => 1, 'first_seen' => '2026-01-01']],
+        ]);
+
+        // 1. База отстала на двое суток — догружаем сами, в кэш приезжают базы фейкового API.
+        file_put_contents($basesFile, $cache(date('Y-m-d', strtotime('-2 days'))));
+        file_put_contents($runDir . '/settings.json', json_encode($settings));
+        $run = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $run['code'], $run['out']);
+        $log = (string) file_get_contents($runDir . '/run.log');
+        Assert::contains('Догружаю наши базы из системы запусков', $log);
+        Assert::contains('Догружено: строк', $log);
+        $bases = json_decode((string) file_get_contents($basesFile), true);
+        Assert::true(isset($bases['bases']['4916.team']), 'база из API добавилась к прежним: ' . implode(', ', array_keys((array) $bases['bases'])));
+        Assert::true(isset($bases['bases']['old.team']), 'прежние базы не потеряны');
+        Assert::same(date('Y-m-d'), $bases['date_to'], 'период доведён до сегодня');
+
+        // 2. Провал глубже 7 дней автодогрузка НЕ закрывает: иначе сбор встанет на десятки минут,
+        //    а в кэше образуется незаметная дыра в покрытии.
+        file_put_contents($basesFile, $cache(date('Y-m-d', strtotime('-40 days'))));
+        file_put_contents($runDir . '/run.log', '');
+        $run = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $run['code'], $run['out']);
+        $log = (string) file_get_contents($runDir . '/run.log');
+        Assert::contains('устарели на 40 дн.', $log);
+        Assert::contains('автодогрузка пропущена', $log);
+        Assert::false(str_contains($log, 'Догружаю наши базы'), 'в сборе ничего не качалось');
+        $bases = json_decode((string) file_get_contents($basesFile), true);
+        Assert::same(date('Y-m-d', strtotime('-40 days')), $bases['date_to'], 'период не подменён — дыры в покрытии нет');
+
+        // 3. Галочка выключена — не догружаем вообще, даже если база отстала.
+        file_put_contents($basesFile, $cache(date('Y-m-d', strtotime('-2 days'))));
+        file_put_contents($runDir . '/run.log', '');
+        file_put_contents($runDir . '/settings.json', json_encode($settings + ['dorgen_auto' => false]));
+        $run = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $run['code'], $run['out']);
+        $log = (string) file_get_contents($runDir . '/run.log');
+        Assert::false(str_contains($log, 'Догружаю наши базы'), 'с выключенной галочкой догрузки нет');
+        Assert::contains('устарело на 2 дн.', $log, 'но про устаревшую базу сказано');
+
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($it as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+        @rmdir($dir);
+    }
+
     public function testDownloadHonorsRemovedJsonWithoutExcludeHosts(): void
     {
         // Сайт убран в панели (removed.json), но exclude_hosts не передан (старая вкладка, сбитый список):

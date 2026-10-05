@@ -405,6 +405,27 @@ final class ContentCleanerTest
         Assert::true(str_contains((new ContentCleaner())->clean($long), 'Длинный абзац'), 'страница без h1, но с текстом — статья');
     }
 
+    public function testKeepShortKeepsPageInTheTemplateSet(): void
+    {
+        // Мы работаем с двумя известными шаблонами, у них набор страниц фиксирован: страница с короткой
+        // статьёй (без h1 и меньше минимума) не должна выпадать из набора — иначе у сайта «9 стр.»
+        // в контенте окажется 7 статей и внутренние ссылки поведут в пустоту.
+        $short = '<html><body><header><nav><a href="/">Лого</a></nav></header>'
+            . '<div class="content"><p>Короткий текст страницы входа.</p></div>'
+            . '<footer>подвал</footer></body></html>';
+        $cleaner = new ContentCleaner();
+
+        Assert::same('', $cleaner->clean($short), 'по умолчанию короткая страница статьёй не считается');
+
+        $kept = $cleaner->clean($short, ['keep_short' => true]);
+        Assert::contains('Короткий текст страницы входа', $kept, 'с keep_short страница остаётся в наборе');
+        Assert::false(str_contains($kept, 'Лого'), 'шапка всё равно срезана');
+        Assert::false(str_contains($kept, 'подвал'), 'подвал всё равно срезан');
+
+        // Совсем пустую страницу оставлять нечего — и keep_short её не выдумывает.
+        Assert::same('', $cleaner->clean('<html><body><header>шапка</header><footer>подвал</footer></body></html>', ['keep_short' => true]));
+    }
+
     public function testKeepsContentBeforeMidPageH1AndCutsHeaderAndAboutBlock(): void
     {
         // Шаблон «7–10-страничников»: шапка, герой, абзацы, h1 ПОСРЕДИ контента, облако «Похожие запросы», ещё текст,

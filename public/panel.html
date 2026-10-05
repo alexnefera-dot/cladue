@@ -136,9 +136,10 @@
         <input type="password" id="k_key" placeholder="оставьте пустым, чтобы не менять">
         <label style="margin-top:14px">Система запусков dorgen — ключ <span id="dgkey" class="hint"></span></label>
         <input type="password" id="k_dorgen" placeholder="оставьте пустым, чтобы не менять">
-        <div class="hint">По этому ключу страница «Разбор выдачи» выгружает НАШИ запущенные поддомены и помечает такие сайты «наш» точнее всего — не по меткам, а по списку от самой системы. Ключ хранится только на этом компьютере (файл .env) и никуда не отправляется.</div>
+        <div class="hint">По этому ключу выгружаются НАШИ запущенные поддомены, и такие сайты помечаются «наш» точнее всего — не по меткам, а по списку от самой системы. Работает везде: таблица результатов, статистика, разбор выдачи. Ключ хранится только на этом компьютере (файл .env) и никуда не отправляется.</div>
         <label style="margin-top:10px">Адрес системы запусков <span class="hint">можно не менять</span></label>
         <input type="text" id="k_dorgen_base" placeholder="https://dorgen-engine.com">
+        <div class="check"><input type="checkbox" id="dorgenauto" checked><label style="margin:0">Догружать наши домены перед сбором <span class="hint">— доры запускаются каждый день, и вчерашний список не знает про сегодняшние. Берутся только новые дни (обычно секунды). Провал глубже 7 дней автодогрузка не трогает — такой выгружайте кнопкой «Обновить наши домены» на странице разбора выдачи, там есть полоска прогресса</span></label></div>
         <div class="btns"><button class="btn-ghost" id="saveKeys">Сохранить ключи</button><span id="keysSaved" class="saved" hidden>сохранено</span></div>
       </div>
 
@@ -382,7 +383,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const FIELDS = ['queries','source','region','pages','dedupe','scope','top','minq','tlds','exclude','skipknown','nocache','previewshots','visit','variants','driver','crawl','maxpages','useproxies','searchthreads','visitthreads','browsers','repeat','xmmode','xmdevice','xmdomain','xmextra','removeslots','ownmarkers','batchsize','cleanwhile','proxylist'];
+const FIELDS = ['queries','source','region','pages','dedupe','scope','top','minq','tlds','exclude','skipknown','nocache','previewshots','visit','variants','driver','crawl','maxpages','useproxies','searchthreads','visitthreads','browsers','repeat','xmmode','xmdevice','xmdomain','xmextra','removeslots','ownmarkers','batchsize','cleanwhile','proxylist','dorgenauto'];
 
 function loadLocal(){
   try{ const s = JSON.parse(localStorage.getItem('ys-panel')||'{}');
@@ -679,6 +680,7 @@ function collectSettings(){
     exclude_extra: $('exclude').value.split(',').map(s=>s.trim()).filter(Boolean),
     own_markers: $('ownmarkers').value.split('\n').map(s=>s.trim()).filter(Boolean),
     proxies: $('proxylist').value.split('\n').map(s=>s.trim()).filter(Boolean),
+    dorgen_auto: $('dorgenauto').checked,
     visit: $('visit').checked,
     variants: parseInt($('variants').value)||1,
     visit_driver: $('driver').value,
@@ -1454,7 +1456,10 @@ async function cleanSite(host, btn){
     const j=await r.json();
     if(!j.ok){ btn.textContent='Ошибка'; alert(j.error||'Ошибка'); btn.disabled=false; setTimeout(()=>{btn.textContent=old;},2500); return; }
     if(!j.written){ btn.textContent='Нет статьи'; alert('На страницах этого сайта не найдено тело статьи (нет <h1> или блока «Популярные запросы»).'); btn.disabled=false; setTimeout(()=>{btn.textContent=old;},2500); return; }
-    btn.textContent='Очищено: '+j.written+' стр.'+(j.brand_ru?' · '+j.brand_ru:'')+((j.skipped|0)>0?' · без статьи: '+j.skipped+(j.skipped_files&&j.skipped_files.length?' ('+j.skipped_files.join(', ')+')':''):'');
+    // Набор страниц шаблона сохраняется: короткая статья — страница осталась, «пусто» — файл был пустой.
+    btn.textContent='Очищено: '+j.written+' стр.'+(j.brand_ru?' · '+j.brand_ru:'')
+      +((j.short|0)>0?' · коротких: '+j.short:'')
+      +((j.skipped|0)>0?' · пустых: '+j.skipped+(j.skipped_files&&j.skipped_files.length?' ('+j.skipped_files.join(', ')+')':''):'');
     btn.title='Готово в '+(j.dir||'content')+' · нажмите ещё раз, чтобы перечистить';
     btn.disabled=false;
   }catch(e){ btn.textContent='Ошибка'; btn.disabled=false; setTimeout(()=>{btn.textContent=old;},2500); }
@@ -1510,6 +1515,7 @@ function prefill(state){
     if(s.exclude_extra)$('exclude').value=(s.exclude_extra||[]).join(', ');
     if(s.own_markers)$('ownmarkers').value=(s.own_markers||[]).join('\n');
     if(s.proxies)$('proxylist').value=(s.proxies||[]).join('\n');
+    if(s.dorgen_auto!=null)$('dorgenauto').checked=!!s.dorgen_auto;
     $('visit').checked=!!s.visit; if(s.variants)$('variants').value=s.variants;
     if(s.visit_driver)$('driver').value=s.visit_driver; $('useproxies').checked=!!s.proxies_file;
     if(s.repeat_hours!=null)$('repeat').value=s.repeat_hours;

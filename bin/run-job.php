@@ -46,6 +46,7 @@ use YandexSites\Model\Site;
 use YandexSites\Runtime;
 use YandexSites\Search\CachingFetcher;
 use YandexSites\Search\XmlStockFetcher;
+use YandexSites\Dorgen\DorgenClient;
 use YandexSites\Dorgen\OwnBases;
 use YandexSites\Support\CollectHistory;
 use YandexSites\Support\ContentTaken;
@@ -103,6 +104,61 @@ $progress = new Progress($statusFile, [
     'started_at' => date(DATE_ATOM),
     'settings' => $settings,
 ]);
+
+/**
+ * Догружает наши базы из системы запусков за НОВЫЕ дни (перед сбором).
+ *
+ * Кэш помнит покрытый период, поэтому запрашиваются только недостающие сутки с нахлёстом в одни —
+ * это обычно 1–2 дня, десяток-полтора запросов, секунды. Делать это молча и без ограничений нельзя:
+ *   • глубже AUTO_DAYS не идём — догрузка выполняется в том же процессе, а 60 дней это ~900 запросов
+ *     по 2,1 с, то есть полчаса к сбору; про такой провал честно пишем в журнал, а выгрузить его
+ *     целиком можно кнопкой на странице разбора выдачи, где есть полоска прогресса;
+ *   • пустой кэш не наполняем автоматически — первая выгрузка это осознанное действие пользователя;
+ *   • любая ошибка API сбор не роняет: работаем с тем, что уже в кэше.
+ */
+function refreshOwnBases(OwnBases $cache, Logger $logger): void
+{
+    /** Насколько глубокий провал догружаем сами, дней. */
+    $autoDays = 7;
+
+    $state = $cache->load();
+    if ($state['date_to'] === '') {
+        return; // пустой кэш: первая выгрузка — кнопкой, она длинная и с прогрессом
+    }
+    $today = date('Y-m-d');
+    $gap = (int) floor((strtotime($today) - strtotime($state['date_to'])) / 86400);
+    if ($gap < 1) {
+        return; // уже выгружено по сегодня
+    }
+    if ($gap > $autoDays) {
+        $logger->warn(sprintf(
+            'Наши базы устарели на %d дн. (выгружено по %s) — это больше %d дн., автодогрузка пропущена: обновите кнопкой «Обновить наши домены» на странице разбора выдачи',
+            $gap,
+            $state['date_to'],
+            $autoDays,
+        ));
+
+        return;
+    }
+    $client = DorgenClient::fromEnv();
+    if ($client === null) {
+        return; // ключа нет — функция просто не используется
+    }
+    $from = $cache->nextFrom($today);
+    $logger->info(sprintf('Догружаю наши базы из системы запусков за %s — %s…', $from, $today));
+    try {
+        $r = $cache->refresh($client, $from, $today, static function (array $p) use ($logger): void {
+            // Выгрузка идёт минутами; в журнал пишем не каждую страницу, чтобы не залить его.
+            if (($p['pages'] ?? 0) % 10 === 0) {
+                $logger->info(sprintf('  … страниц %d, строк %d, баз %d', (int) $p['pages'], (int) $p['rows'], (int) ($p['bases'] ?? 0)));
+            }
+        });
+        $logger->info(sprintf('Догружено: строк %d, баз всего %d (новых %d)', $r['rows'], $r['bases'], $r['new_bases']));
+    } catch (Throwable $e) {
+        // Сбор продолжаем на том, что уже есть: «наш» определится по прежним базам и меткам.
+        $logger->warn('Не удалось догрузить наши базы: ' . $e->getMessage() . ' — работаем с прежним списком');
+    }
+}
 
 /**
  * Настройки для отчёта: без прокси.
@@ -489,8 +545,11 @@ function cleanWave(string $runDir, array $hosts, array $override, Logger $logger
         if ($r['written'] > 0) {
             $sites++;
         }
+        if ($r['short_files'] !== []) {
+            $logger->info(sprintf('  %s — короткая статья, страница оставлена в наборе: %s', $host, implode(', ', $r['short_files'])));
+        }
         if ($r['skipped_files'] !== []) {
-            $logger->info(sprintf('  %s — без статьи (пропущено): %s', $host, implode(', ', $r['skipped_files'])));
+            $logger->info(sprintf('  %s — пустая страница (нечего оставлять): %s', $host, implode(', ', $r['skipped_files'])));
         }
     }
     if ($written > 0) {
@@ -595,9 +654,24 @@ while (true) {
         // сами (Config::defaults()['filters']['own_bases_file'] → OwnSites::fromConfig), здесь они
         // нужны для статистики (повтор на нашей базе — наш) и для журнала.
         $ownBasesCache = OwnBases::inRuns(dirname($runDir));
+        // База должна быть СВЕЖЕЙ: доры запускаются каждый день, и вчерашний список не знает про
+        // сегодняшние. Поэтому перед сбором сами догружаем только новые дни (кэш помнит покрытый
+        // период, нахлёст — сутки). Глубина ограничена AUTO_DAYS: догрузка идёт в том же процессе и
+        // держать сбор лишние десятки минут нельзя — большой провал выгружается кнопкой на странице
+        // разбора выдачи, где есть полоска прогресса.
+        if ($stage !== 'clean' && (bool) ($settings['dorgen_auto'] ?? true)) {
+            refreshOwnBases($ownBasesCache, $logger);
+        }
         $ownBases = $ownBasesCache->bases();
+        $basesTo = $ownBasesCache->load()['date_to'];
+        $staleDays = $basesTo !== '' ? (int) floor((strtotime(date('Y-m-d')) - strtotime($basesTo)) / 86400) : 0;
         $logger->info($ownBases !== []
-            ? sprintf('Наших баз из системы запусков: %d (выгружено по %s)', count($ownBases), $ownBasesCache->load()['date_to'] !== '' ? $ownBasesCache->load()['date_to'] : '—')
+            ? sprintf(
+                'Наших баз из системы запусков: %d (выгружено по %s%s)',
+                count($ownBases),
+                $basesTo !== '' ? $basesTo : '—',
+                $staleDays > 1 ? sprintf(', устарело на %d дн. — обновите кнопкой «Обновить наши домены»', $staleDays) : '',
+            )
             : 'Баз из системы запусков нет — «наши» считаем только по меткам (кнопка «Обновить наши домены» на странице разбора выдачи)');
 
         if ($stage === 'clean') {
@@ -642,8 +716,11 @@ while (true) {
                 $done++;
                 $progress->update(['phase' => 'clean', 'visit' => ['total' => $total, 'done' => $done, 'ok' => $sitesDone, 'current' => (string) $host], 'message' => sprintf('Очистка: %d из %d сайтов…', $done, $total)]);
                 $logger->debug(sprintf('  [%d/%d] %s — %d стр., бренд %s / %s', $done, $total, $host, $r['written'], $r['brand_en'], $r['brand_ru']));
+                if ($r['short_files'] !== []) {
+                    $logger->info(sprintf('  %s — короткая статья, страница оставлена в наборе: %s', $host, implode(', ', $r['short_files'])));
+                }
                 if ($r['skipped_files'] !== []) {
-                    $logger->info(sprintf('  %s — без статьи (пропущено): %s', $host, implode(', ', $r['skipped_files'])));
+                    $logger->info(sprintf('  %s — пустая страница (нечего оставлять): %s', $host, implode(', ', $r['skipped_files'])));
                 }
             }
             // Таблица не должна пропасть после очистки: сайты — из sites.json (убранные исключены).

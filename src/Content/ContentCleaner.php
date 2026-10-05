@@ -204,7 +204,7 @@ final class ContentCleaner
      * берём с начала блока, и h1 остаётся (шаг 6 сделает из него h2). Конец — «Популярные запросы» (всегда)
      * или блок «О компании» с реквизитами. FAQ, оказавшийся вне среза, приклеивается вторым потоком.
      */
-    /** @param array{remove_widgets?: bool} $opt */
+    /** @param array{remove_widgets?: bool, keep_short?: bool} $opt */
     public function extractArticle(string $html, array $opt = []): string
     {
         $doc = $this->loadDocument($html);
@@ -230,7 +230,10 @@ final class ContentCleaner
                 $this->cutBefore($h1, $root);
                 $h1->parentNode?->removeChild($h1);
             }
-        } elseif (mb_strlen($this->textOf($root)) < self::MIN_ARTICLE_CHARS) {
+        } elseif (!($opt['keep_short'] ?? false) && mb_strlen($this->textOf($root)) < self::MIN_ARTICLE_CHARS) {
+            // Нет h1 и текста меньше минимума — обычно это не статья (заглушка, карта сайта, витрина).
+            // С keep_short страницу всё равно возвращаем: мы работаем с двумя известными шаблонами, у
+            // них набор страниц фиксирован, и терять страницу из набора нельзя — лучше короткая статья.
             return '';
         }
         $this->cutAtEndMarker($xp, $root);

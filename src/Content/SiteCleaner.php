@@ -43,7 +43,7 @@ final class SiteCleaner
      *
      * @param list<string> $files
      * @param array<string, mixed> $override
-     * @return array{written: int, skipped: int, skipped_files: list<string>, dir: string, brand_ru: string, brand_en: string}
+     * @return array{written: int, skipped: int, skipped_files: list<string>, short: int, short_files: list<string>, dir: string, brand_ru: string, brand_en: string}
      */
     public static function cleanHost(string $runDir, string $host, array $files, array $override = []): array
     {
@@ -73,9 +73,23 @@ final class SiteCleaner
         $cleaned = [];
         $skipped = 0;
         $skippedFiles = []; // какие именно страницы остались без статьи — чтобы потеря была видна, а не только число
+        $short = 0;
+        $shortFiles = []; // страницы, оставленные в наборе по короткой статье
         foreach ($files as $file) {
             $body = $cleaner->clean($html[$file], $opts);
             if (trim($body) === '') {
+                // НАБОР СТРАНИЦ ШАБЛОНА НЕ МЕНЯЕМ: мы работаем с двумя известными шаблонами, у них
+                // набор страниц фиксирован, и выбрасывать страницу из набора нельзя — иначе у сайта
+                // «9 стр.» в выгрузке оказывается 7 статей, ломаются внутренние ссылки и бакет.
+                // Поэтому пробуем ещё раз, не требуя минимальной длины статьи.
+                $body = $cleaner->clean($html[$file], $opts + ['keep_short' => true]);
+                if (trim($body) !== '') {
+                    $short++;
+                    $shortFiles[] = basename($file);
+                }
+            }
+            if (trim($body) === '') {
+                // Совсем пусто (битый файл, заглушка без текста) — тут уже нечего оставлять.
                 $skipped++;
                 $skippedFiles[] = basename($file);
                 continue;
@@ -98,6 +112,9 @@ final class SiteCleaner
             'written' => $written,
             'skipped' => $skipped,
             'skipped_files' => $skippedFiles,
+            // Страницы, оставленные в наборе с короткой статьёй: набор шаблона сохранён, но вычитать стоит.
+            'short' => $short,
+            'short_files' => $shortFiles,
             'dir' => $rel,
             'brand_ru' => (string) ($opts['brand_ru'] ?? ''),
             'brand_en' => (string) ($opts['brand_en'] ?? ''),

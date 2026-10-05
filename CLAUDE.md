@@ -693,8 +693,25 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   «Докачать» re-fetches exactly those pages. After a download the panel's stats line, the job message
   («Выгружено страниц: N; по страницам: 1 стр. — 12, 9 стр. — 5») and the log («Итого по папкам») show the
   page-count breakdown (`SiteRows::pageHistogram()`/`histogramText()`, `page_histogram` in the status).
-  `SiteCleaner::cleanHost()` returns `skipped_files` and the clean
-  job logs «без статьи: a.html, b.html» per site, so a page lost at cleaning is visible by name.
+  `SiteCleaner::cleanHost()` returns `skipped_files`/`short_files` and the clean job logs them per site,
+  so what happened to a page is visible by name.
+  THE TEMPLATE'S PAGE SET IS NEVER REDUCED AT CLEANING («мы сейчас работаем только с двумя шаблонами
+  страниц, срезаем при отчистке, не нужно удалять лишние страницы. оставляем шаблоны так как они есть с
+  тем же набором страниц»): `cleanHost()` used to `continue` when `ContentCleaner::clean()` returned ''
+  — which `extractArticle()` does for a page with no `h1` and under `MIN_ARTICLE_CHARS` (300) of text —
+  so a 9-page site became 7 cleaned articles, the content bucket got a different number than the
+  `pages/` one, and the internal links of the remaining articles pointed at pages that were not in the
+  archive. Both templates have a FIXED page set (вход, зеркало and the like are legitimately two
+  sentences long), so a short page is kept: on an empty result `cleanHost()` retries with
+  `$opts + ['keep_short' => true]`, the new `ContentCleaner` option that skips ONLY the
+  `MIN_ARTICLE_CHARS` gate — the chrome/menu/footer cut, the brand substitution and the markup
+  normalisation all still run. The page is dropped only when even that is empty (a broken file, a bare
+  frame with no text), and then it lands in `skipped_files` as «пустая страница (нечего оставлять)»
+  while a kept-but-short one is reported separately as «короткая статья, страница оставлена в наборе»
+  (the per-site «Очистить» button shows «коротких: N · пустых: M»). Covered by
+  `ContentCleanerTest::testKeepShortKeepsPageInTheTemplateSet` and the new `tests/SiteCleanerTest.php`
+  (a three-page site whose two short pages stay, bucket `content/3-стр/`, and the one truly empty page
+  that is still the only thing dropped).
   THE DOWNLOAD RUNS IN WAVES (`visit.batch_sites`, default 50; panel field `#batchsize` → settings
   `batch_size`), because `crawl()` is PHASE-based over the whole list — all home pages, then all probe
   pages, then all menu pages — so until the last site is done, NO site is done, and the user had to wait
@@ -1071,8 +1088,25 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   line now names its sources («по выгрузке из системы запусков и меткам» / «по меткам, выгрузка не
   настроена»). The funnel's explanatory text and `serp.html`'s missing-token hint (which still said
   «впишите DORGEN_TOKEN в .env», stale since 1.32.1) were corrected to point at the panel.
+  THE CACHE IS TOPPED UP BEFORE EVERY COLLECT («базу надо обновлять учти»): doors are launched daily, so
+  yesterday's list cannot know today's, and a stale cache silently UNDER-counts «наши» everywhere now that
+  the whole pipeline reads it. `refreshOwnBases()` (bin/run-job.php, called where the cache is loaded, for
+  every stage but `clean`, behind the panel checkbox «Догружать наши домены перед сбором» →
+  `settings.dorgen_auto`, default ON) asks `OwnBases::nextFrom()` for the missing days and refreshes only
+  those — usually 1–2 days, a dozen requests, seconds. Three guards keep it from hurting: a gap deeper
+  than `$autoDays` (7) is NOT auto-filled but warned about («устарели на 40 дн. … обновите кнопкой»),
+  because the refresh runs INLINE in the collect (60 days ≈ 900 requests × 2.1 s ≈ half an hour) and
+  because closing it by fetching only the last 7 days would move `date_to` to today and leave an
+  INVISIBLE HOLE in the covered period; an EMPTY cache is never auto-filled (the first, long refresh is
+  the user's explicit click, which has the progress bar); and every API error is caught — the collect
+  continues on the cached bases plus the markers. Progress goes to the job log every 10th page. The log
+  line now also says «устарело на N дн. — обновите кнопкой» when the base is behind, and `serp.html`
+  prints the same in amber next to «наших баз из системы запусков: N (по ДАТА)».
   Covered by `OwnSitesTest::testMatchesBaseFromLaunchSystem` / `testMatchesBaseInRedirectChain` /
   `testFromConfigReadsBasesFromLaunchSystemCache`,
+  `PanelTest::testBasesAreToppedUpBeforeCollectAndDeepGapIsSkipped` (three cases against the fake
+  `/v1/subdomains`: a two-day gap is topped up and merged with the old bases, a 40-day gap is refused
+  with `date_to` left untouched, and the checkbox off disables it),
   `VisitTest::testOwnSiteIsDetectedByLaunchSystemBaseWithoutMarkers` (the fake host `kush.brandnet.ru`
   with base `brandnet.ru` and NO markers; `okna-moskva.ru` stays a stranger — note `baseOf()` is the last
   two LABELS, so the base of a two-label host is the host itself),
