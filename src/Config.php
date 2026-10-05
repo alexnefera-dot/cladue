@@ -192,6 +192,12 @@ final class Config
                 // '/uploads/brands/' — общий путь к ассетам нашего шаблона: ловит все бренды на любых доменах.
                 'own_markers' => ['/uploads/brands/'],
                 'own_markers_file' => 'own-markers.txt',
+                // ТОЧНЫЙ источник «наш»: базы из системы запусков dorgen (последние две метки хоста).
+                // Список приходит от самой системы, поэтому перебивает догадки по меткам. Кэш пишет
+                // bin/dorgen-sync.php (кнопка «Обновить наши домены» на странице разбора выдачи);
+                // пустой или отсутствующий файл просто означает «считаем только по меткам».
+                'own_bases' => [],
+                'own_bases_file' => 'runs/dorgen-bases.json',
             ],
             'site_check' => [
                 'enabled' => false,
@@ -434,7 +440,7 @@ final class Config
                 $errors[] = "$path: ожидается неотрицательное число";
             }
         }
-        foreach (['filters.allowed_tlds', 'filters.include_domains', 'filters.exclude_domains', 'filters.own_markers', 'filters.url_must_match', 'filters.url_must_not_match', 'filters.title_any', 'filters.title_all', 'filters.title_none', 'filters.snippet_any', 'filters.snippet_none', 'site_check.require_status', 'site_check.page_must_match', 'site_check.page_must_not_match'] as $path) {
+        foreach (['filters.allowed_tlds', 'filters.include_domains', 'filters.exclude_domains', 'filters.own_markers', 'filters.own_bases', 'filters.url_must_match', 'filters.url_must_not_match', 'filters.title_any', 'filters.title_all', 'filters.title_none', 'filters.snippet_any', 'filters.snippet_none', 'site_check.require_status', 'site_check.page_must_match', 'site_check.page_must_not_match'] as $path) {
             if (!is_array($g($path))) {
                 $errors[] = "$path: ожидается массив";
             }

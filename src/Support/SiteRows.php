@@ -151,6 +151,20 @@ final class SiteRows
                     }
                 }
             }
+            // ПОЧЕМУ сайт признан нашим: «запущен в системе запусков» (точный список из dorgen) или
+            // «метка «X»». Без этого точную пометку не отличить от догадки по метке — а ложное «наш»
+            // выбрасывает живой сайт, поэтому причину видно прямо в таблице.
+            $ownReason = '';
+            if ($own) {
+                foreach ($site->visits as $v) {
+                    $v = (array) $v;
+                    $r = trim((string) ($v['own_reason'] ?? ''));
+                    if ($r !== '') {
+                        $ownReason = $r;
+                        break;
+                    }
+                }
+            }
             // Тип вёрстки по открытым страницам (превью главной после сбора): pages7 / pages12 / other; '' — страниц нет.
             $template = $own ? '' : SiteTemplate::ofVisits($site->visits);
             // Прошёл ли сайт стадию выгрузки: у визитов обхода стадия 'download' (проставлена при сборке
@@ -187,6 +201,7 @@ final class SiteRows
             $row = [
                 'retryable' => $retryable,
                 'downloaded' => $downloaded,
+                'own_reason' => $ownReason,
                 'template' => $template,
                 'template_label' => $template !== '' ? SiteTemplate::label($template) : '',
                 'key_missing' => $keyMissing,

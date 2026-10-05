@@ -96,7 +96,9 @@ final class Runtime
             return null;
         }
         $cfg = (array) $this->config->get('visit');
-        $cfg['own_markers'] = \YandexSites\Filter\OwnSites::fromConfig($this->config)->markers();
+        $own = \YandexSites\Filter\OwnSites::fromConfig($this->config);
+        $cfg['own_markers'] = $own->markers();
+        $cfg['own_bases'] = $own->bases();
         $driver = $this->visitDriver($cfg);
 
         $proxies = null;

@@ -57,7 +57,9 @@ final class Runner
         $result->stats['queries'] = count($queries);
 
         $filtersCfg = (array) $this->config->get('filters');
-        $filtersCfg['own_markers'] = \YandexSites\Filter\OwnSites::fromConfig($this->config)->markers();
+        $own = \YandexSites\Filter\OwnSites::fromConfig($this->config);
+        $filtersCfg['own_markers'] = $own->markers();
+        $filtersCfg['own_bases'] = $own->bases();
         $filter = new ResultFilter($filtersCfg);
         /** @var array<string, true> уникальные домены и поддомены из выдачи (см. цикл по результатам) */
         $seenHosts = [];

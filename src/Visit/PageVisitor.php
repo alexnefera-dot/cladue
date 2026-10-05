@@ -48,7 +48,7 @@ final class PageVisitor
         // значит «не менять агент», иначе это браузеры из того же visit.user_agents.
         $this->retryAgents = ($cfg['retry_user_agents'] ?? true) ? UserAgents::browsersFrom($this->userAgents) : [];
         $this->detectOfferWalls = (bool) ($cfg['detect_offer_walls'] ?? true);
-        $this->ownSites = new OwnSites(array_values(array_filter((array) ($cfg['own_markers'] ?? []), 'is_string')));
+        $this->ownSites = new OwnSites(array_values(array_filter((array) ($cfg['own_markers'] ?? []), 'is_string')), (array) ($cfg['own_bases'] ?? []));
     }
 
     public function driver(): DriverInterface
@@ -339,15 +339,23 @@ final class PageVisitor
             // переставали считаться нашими — «наши пропускаешь все равно».
             $chain = array_merge([$job->url, $visit['final_url']], $visit['redirects']);
             $host = Domains::hostFromUrl($visit['final_url'] !== '' ? $visit['final_url'] : $job->url);
-            $own = $this->ownSites->matchesHost($host) || $this->ownSites->matchesAnyUrl($chain);
-            if (!$own && $html !== '') {
-                $own = $this->ownSites->matchesHtml($html);
+            // ПОЧЕМУ наш — сохраняем вместе с признаком: иначе в таблице не отличить точную пометку
+            // из системы запусков от догадки по метке, а пользователь спрашивал ровно это («точно
+            // работает система?»). Порядок = порядок точности: база из системы запусков, потом метка.
+            $reason = '';
+            if ($this->ownSites->matchesBase($host) || $this->ownSites->matchesBaseInUrls($chain)) {
+                $reason = OwnSites::REASON_BASE;
+            } elseif ($this->ownSites->matchesHost($host) || $this->ownSites->matchesAnyUrl($chain)) {
+                $marker = $this->ownSites->markerForHost($host);
+                $reason = $marker !== '' ? 'метка «' . $marker . '»' : 'метка в адресе';
+            } elseif ($html !== '' && $this->ownSites->matchesHtml($html)) {
+                $reason = 'метка в HTML';
             }
-            if ($own) {
+            if ($reason !== '') {
                 // Наш шаблон — HTML не храним, но скриншот оставляем, чтобы можно было проверить глазами.
                 @unlink($job->htmlFile);
 
-                return array_merge($visit, ['ok' => false, 'error' => 'исключён как наш', 'own' => true, 'screenshot_file' => $shot()]);
+                return array_merge($visit, ['ok' => false, 'error' => 'исключён как наш', 'own' => true, 'own_reason' => $reason, 'screenshot_file' => $shot()]);
             }
         }
 

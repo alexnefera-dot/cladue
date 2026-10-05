@@ -410,11 +410,20 @@ final class CollectHistoryTest
             ['our.ru'], // список наших доменов, накопленный прошлыми сборами
         );
 
+        Assert::same(0, $record['own_bases'], 'выгрузка из системы запусков в этом сборе не использовалась');
         Assert::same(4, $record['found_doors'], 'доров-сайтов в выдаче: our.ru, other.ru, third.ru, fourth.ru');
         Assert::same(1, $record['own_repeats'], 'два адреса одного домена — один наш сайт');
         Assert::same(2, $record['own'], 'наши = открытый на визите + пришедший повтором');
         Assert::same(1, CollectHistory::ownRepeats(['a.our.ru', 'www.our.ru', 'b.our.ru'], ['our.ru']), 'считаем домены, не адреса');
         Assert::same(0, CollectHistory::ownRepeats(['a.our.ru'], []), 'без списка наших доменов считать нечего');
+
+        // БАЗЫ ИЗ СИСТЕМЫ ЗАПУСКОВ: повтор мы не открываем, признак «наш» на визите не ставится, но
+        // база хоста известна — и это самый точный ответ, так что повтор на нашей базе тоже наш.
+        Assert::same(1, CollectHistory::ownRepeats(['kush.4916.team'], [], ['4916.team']), 'повтор на нашей базе');
+        Assert::same(1, CollectHistory::ownRepeats(['kush.4916.team', 'lee.4916.team'], [], ['4916.team' => true]), 'два поддомена одной базы — один сайт');
+        Assert::same(0, CollectHistory::ownRepeats(['kush.stranger.top'], [], ['4916.team']), 'чужая база');
+        Assert::same(2, CollectHistory::ownRepeats(['a.our.ru', 'kush.4916.team'], ['our.ru'], ['4916.team']), 'список доменов и базы складываются');
+        Assert::same(1, CollectHistory::ownRepeats(['a.our.ru', 'www.our.ru'], ['our.ru'], ['4916.team']), 'без двойного счёта');
 
         // Доля наших — от доров, а не от одного отобранного сайта.
         $totals = CollectHistory::totals([$record]);

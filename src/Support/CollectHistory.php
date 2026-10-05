@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace YandexSites\Support;
 
+use YandexSites\Dorgen\DorgenClient;
 use YandexSites\Filter\Domains;
 use YandexSites\Model\SearchResult;
 use YandexSites\Model\Site;
@@ -291,9 +292,10 @@ final class CollectHistory
      * @param list<string> $seenBefore хосты, отклонённые как «уже в базе» (RunResult::$seenBefore)
      * @param list<array{result: SearchResult, reason: string|null}> $raw все результаты выдачи сбора
      * @param list<string> $ownDomains домены НАШИХ шаблонов, найденные за все сборы (runs/own-domains.txt)
+     * @param array<string, bool>|list<string> $ownBases наши БАЗЫ из системы запусков (Dorgen\OwnBases)
      * @return array<string, mixed>
      */
-    public static function record(array $sites, array $stats, array $seenBefore = [], bool $resume = false, bool $stopped = false, array $raw = [], array $ownDomains = []): array
+    public static function record(array $sites, array $stats, array $seenBefore = [], bool $resume = false, bool $stopped = false, array $raw = [], array $ownDomains = [], array $ownBases = []): array
     {
         $breakdown = self::breakdown($sites);
         // Домены, которые держат много брендов: на их поддоменах сайты разных брендов (бренд берётся
@@ -308,7 +310,7 @@ final class CollectHistory
                 $repeatsDoors++;
             }
         }
-        $ownRepeats = self::ownRepeats($seenBefore, $ownDomains);
+        $ownRepeats = self::ownRepeats($seenBefore, $ownDomains, $ownBases);
         // Причины, которые срабатывают уже ПОСЛЕ группировки в сайты (мало запросов, уже в базе,
         // не ответил на проверку), Runner считает сразу по сайтам — берём его счётчики как есть.
         // Вместе с фильтрами выдачи из breakdownRaw() получается сходящаяся воронка:
@@ -359,6 +361,9 @@ final class CollectHistory
             'own_cut' => $ownCut,
             // Сколько наших доменов вообще известно (runs/own-domains.txt): если 0 — повторы искать не в чем.
             'own_known' => self::countDomains($ownDomains),
+            // Сколько баз пришло из системы запусков: 0 — выгрузка не настроена или не сделана, и тогда
+            // «наши» считаются только по меткам. Это видно в подсказке на вкладке «Статистика».
+            'own_bases' => count(self::baseMap($ownBases)),
             // Домены, которые держат на поддоменах от BrandDomains::MIN_BRANDS разных брендов.
             'brand_domains' => count($brandDomains),
             'brand_domains_top' => BrandDomains::top($brandDomains),
@@ -378,10 +383,13 @@ final class CollectHistory
      *
      * @param list<string> $seenBefore хосты, отклонённые как «уже в базе»
      * @param list<string> $ownDomains домены наших шаблонов
+     * @param array<string, bool>|list<string> $ownBases наши базы из системы запусков: повтор на нашей
+     *        базе тоже наш, и это самый точный признак — поддомен мог ни разу не открываться
      */
-    public static function ownRepeats(array $seenBefore, array $ownDomains): int
+    public static function ownRepeats(array $seenBefore, array $ownDomains, array $ownBases = []): int
     {
-        if ($seenBefore === [] || $ownDomains === []) {
+        $bases = self::baseMap($ownBases);
+        if ($seenBefore === [] || ($ownDomains === [] && $bases === [])) {
             return 0;
         }
         $own = [];
@@ -397,12 +405,35 @@ final class CollectHistory
         foreach ($seenBefore as $host) {
             $host = Domains::normalize((string) $host);
             $domain = $host !== '' ? Domains::registrable($host) : '';
-            if ($domain !== '' && isset($own[$domain])) {
+            if ($domain === '') {
+                continue;
+            }
+            $base = DorgenClient::baseOf($host);
+            if (isset($own[$domain]) || ($base !== '' && isset($bases[$base]))) {
                 $found[$domain] = true;
             }
         }
 
         return count($found);
+    }
+
+    /**
+     * Базы в виде карты «база => true»: на вход принимаем и список, и готовую карту.
+     *
+     * @param array<string, bool>|list<string> $bases
+     * @return array<string, bool>
+     */
+    private static function baseMap(array $bases): array
+    {
+        $map = [];
+        foreach ($bases as $key => $value) {
+            $base = DorgenClient::baseOf(is_string($key) ? $key : (string) $value);
+            if ($base !== '') {
+                $map[$base] = true;
+            }
+        }
+
+        return $map;
     }
 
     /**

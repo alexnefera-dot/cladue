@@ -5,25 +5,46 @@ declare(strict_types=1);
 namespace YandexSites\Filter;
 
 /**
- * «Свои» сайты — шаблоны, которые мы сами размещаем и не хотим собирать/скачивать.
- * Опознаются по устойчивым меткам (домен размещения, токен верификации, путь к ассетам
- * и т.п.) — подстрокам, которые ищем в HTML страницы и в адресе сайта. Метки не зависят
- * от меняющихся кодов/стилей (QR и оформление), поэтому опираемся на них, а не на текст.
+ * «Свои» сайты — шаблоны, которые мы сами размещаем и не хотим скачивать и чистить.
  *
- * Метки берутся из `filters.own_markers` (список) и файла `filters.own_markers_file`
- * (по одной на строку, `#` — комментарий). Файл не коммитится (см. .gitignore), чтобы
- * не публиковать свою инфраструктуру в открытом репозитории.
+ * Два источника, в порядке точности:
+ *
+ * 1. БАЗЫ из системы запусков (Dorgen\OwnBases, кэш runs/dorgen-bases.json): список даёт сама
+ *    система, которая эти доры и запускала, поэтому он точный. База — последние две метки хоста
+ *    (leebet.4916.team → 4916.team); каждая база несёт все бренды, так что множества баз достаточно,
+ *    и новый поддомен на нашей базе опознаётся сразу, ещё до того как попадёт в выгрузку.
+ * 2. МЕТКИ — устойчивые подстроки (домен размещения, домен редиректора, токен верификации, путь к
+ *    ассетам), которые ищем в HTML страницы и в адресе. Это догадка по признаку, и она нужна там,
+ *    где системы запусков нет: чужая площадка, старый дор, свой шаблон вне dorgen.
+ *
+ * Метки берутся из `filters.own_markers` (список) и файла `filters.own_markers_file` (по одной на
+ * строку, `#` — комментарий), базы — из `filters.own_bases` и `filters.own_bases_file`. Файлы не
+ * коммитятся (см. .gitignore), чтобы не публиковать свою инфраструктуру в открытом репозитории.
  */
 final class OwnSites
 {
+    /** Почему сайт признан нашим: он запущен в системе запусков (самый точный источник). */
+    public const REASON_BASE = 'запущен в системе запусков';
+
     /** @var list<string> */
     private array $markers;
 
+    /** @var array<string, bool> базы (последние две метки хоста) для сверки за один шаг */
+    private array $bases = [];
+
     /**
      * @param list<string> $markers
+     * @param iterable<mixed> $bases базы из системы запусков: список или карта «база => true»
      */
-    public function __construct(array $markers)
+    public function __construct(array $markers, iterable $bases = [])
     {
+        foreach ($bases as $key => $value) {
+            // Принимаем и список баз, и карту «база => true» (её отдаёт Dorgen\OwnBases::bases()).
+            $base = \YandexSites\Dorgen\DorgenClient::baseOf(is_string($key) ? $key : (string) $value);
+            if ($base !== '') {
+                $this->bases[$base] = true;
+            }
+        }
         $seen = [];
         $clean = [];
         foreach ($markers as $marker) {
@@ -52,13 +73,72 @@ final class OwnSites
                 $markers[] = $line;
             }
         }
+        // Базы из системы запусков лежат в кэше выгрузки (runs/dorgen-bases.json) — читаем его тем же
+        // загрузчиком, что и страница разбора выдачи, чтобы «наш» везде считался по одному списку.
+        $bases = array_values((array) $config->get('filters.own_bases', []));
+        $basesFile = (string) $config->get('filters.own_bases_file', '');
+        if ($basesFile !== '' && is_file($basesFile)) {
+            $bases = array_merge($bases, array_keys((new \YandexSites\Dorgen\OwnBases($basesFile))->bases()));
+        }
 
-        return new self($markers);
+        return new self($markers, $bases);
     }
 
+    /** Нечем определять «наш»: ни меток, ни баз. */
     public function isEmpty(): bool
     {
-        return $this->markers === [];
+        return $this->markers === [] && $this->bases === [];
+    }
+
+    /**
+     * Базы из системы запусков.
+     *
+     * @return list<string>
+     */
+    public function bases(): array
+    {
+        return array_keys($this->bases);
+    }
+
+    /**
+     * Наш ли хост ПО БАЗЕ: последние две метки хоста есть среди наших баз.
+     *
+     * Это самый точный ответ — список пришёл из системы, которая эти доры и запускала.
+     */
+    public function matchesBase(string $host): bool
+    {
+        if ($this->bases === []) {
+            return false;
+        }
+        $base = \YandexSites\Dorgen\DorgenClient::baseOf($host);
+
+        return $base !== '' && isset($this->bases[$base]);
+    }
+
+    /**
+     * Есть ли наша база в любом адресе цепочки редиректов.
+     *
+     * Как и с метками: наш дор сначала уводит на свой редиректор, и в конечном адресе того уже нет.
+     *
+     * @param list<string> $urls
+     */
+    public function matchesBaseInUrls(array $urls): bool
+    {
+        if ($this->bases === []) {
+            return false;
+        }
+        foreach ($urls as $url) {
+            $url = trim((string) $url);
+            if ($url === '') {
+                continue;
+            }
+            $host = (string) parse_url(preg_match('~^[a-z0-9+.-]+://~i', $url) === 1 ? $url : 'http://' . $url, PHP_URL_HOST);
+            if ($host !== '' && $this->matchesBase($host)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

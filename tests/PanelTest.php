@@ -853,6 +853,73 @@ MANUAL-OWN.RU
         @rmdir($dir);
     }
 
+    public function testLaunchSystemBasesMarkOwnSitesInTableAndStats(): void
+    {
+        // ГЛАВНОЕ про точность: «наш» берётся из системы запусков (кэш runs/dorgen-bases.json), а не
+        // угадывается по метке. Меток в этом прогоне нет вовсе — пометка должна прийти из выгрузки и
+        // дойти до таблицы (sites.json), и статистика должна посчитать её вместе с повторами.
+        $port = FakeServer::port('local');
+        $dir = sys_get_temp_dir() . '/yandex-sites-dgown-' . uniqid();
+        $runDir = $dir . '/runs/current';
+        mkdir($runDir, 0777, true);
+        file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
+        // Кэш выгрузки: база дора kush.brandnet.ru — это brandnet.ru (последние две метки хоста).
+        file_put_contents($dir . '/runs/' . \YandexSites\Dorgen\OwnBases::FILE, (string) json_encode([
+            'updated_at' => date(DATE_ATOM), 'date_from' => '2026-10-01', 'date_to' => '2026-10-04',
+            'bases' => ['brandnet.ru' => ['subdomains' => 7, 'first_seen' => '2026-10-01']],
+        ]));
+        file_put_contents($runDir . '/sites.json', json_encode(['sites' => [
+            [
+                'host' => 'kush.brandnet.ru', 'domain' => 'brandnet.ru', 'url' => "http://kush.brandnet.ru:$port/",
+                'title' => 'K', 'best_query' => 'казино', 'best_position' => 1, 'queries_count' => 1,
+            ],
+            [
+                'host' => 'okna-moskva.ru', 'domain' => 'okna-moskva.ru', 'url' => "http://okna-moskva.ru:$port/",
+                'title' => 'O', 'best_query' => 'окна', 'best_position' => 2, 'queries_count' => 1,
+            ],
+        ]]));
+        file_put_contents($runDir . '/settings.json', json_encode([
+            'stage' => 'preview',
+            'visit_driver' => 'curl',
+            'only' => ['kush.brandnet.ru', 'okna-moskva.ru'],
+            'own_markers' => [], // меток нет: пометка может прийти только из системы запусков
+            'visit_resolve' => [
+                "kush.brandnet.ru:$port:127.0.0.1",
+                "okna-moskva.ru:$port:127.0.0.1",
+            ],
+        ]));
+
+        $run = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $run['code'], $run['out']);
+
+        $saved = json_decode((string) file_get_contents($runDir . '/sites.json'), true);
+        $byHost = [];
+        foreach ((array) ($saved['sites'] ?? []) as $row) {
+            $byHost[(string) $row['host']] = $row;
+        }
+        Assert::true((bool) ($byHost['kush.brandnet.ru']['own'] ?? false), 'дор на нашей базе помечен нашим: ' . $run['out']);
+        Assert::false((bool) ($byHost['okna-moskva.ru']['own'] ?? false), 'чужой сайт нашим не стал');
+
+        // Причина доходит до строки таблицы — по ней в панели видно, что пометка точная, а не по метке.
+        $rows = \YandexSites\Support\SiteRows::preview(\YandexSites\Support\SiteRows::load($runDir . '/sites.json'), $runDir);
+        $reason = '';
+        foreach ($rows as $row) {
+            if ($row['host'] === 'kush.brandnet.ru') {
+                $reason = (string) ($row['own_reason'] ?? '');
+            }
+        }
+        Assert::same(\YandexSites\Filter\OwnSites::REASON_BASE, $reason, 'в таблице названа причина «запущен в системе запусков»');
+
+        $log = (string) file_get_contents($runDir . '/run.log');
+        Assert::contains('Наших баз из системы запусков: 1', $log, 'журнал говорит, что список подхвачен');
+
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($it as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+        @rmdir($dir);
+    }
+
     public function testDownloadHonorsRemovedJsonWithoutExcludeHosts(): void
     {
         // Сайт убран в панели (removed.json), но exclude_hosts не передан (старая вкладка, сбитый список):

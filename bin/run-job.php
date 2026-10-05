@@ -46,6 +46,7 @@ use YandexSites\Model\Site;
 use YandexSites\Runtime;
 use YandexSites\Search\CachingFetcher;
 use YandexSites\Search\XmlStockFetcher;
+use YandexSites\Dorgen\OwnBases;
 use YandexSites\Support\CollectHistory;
 use YandexSites\Support\ContentTaken;
 use YandexSites\Support\DomainLedger;
@@ -590,6 +591,14 @@ while (true) {
         if ($seededOwn > 0) {
             $logger->info(sprintf('Наших доменов добавлено из прошлых сборов и own-domains.txt: %d (всего %d)', $seededOwn, $ownLedger->count()));
         }
+        // ТОЧНЫЙ источник «наш» — базы из системы запусков dorgen. В фильтры и визиты они попадают
+        // сами (Config::defaults()['filters']['own_bases_file'] → OwnSites::fromConfig), здесь они
+        // нужны для статистики (повтор на нашей базе — наш) и для журнала.
+        $ownBasesCache = OwnBases::inRuns(dirname($runDir));
+        $ownBases = $ownBasesCache->bases();
+        $logger->info($ownBases !== []
+            ? sprintf('Наших баз из системы запусков: %d (выгружено по %s)', count($ownBases), $ownBasesCache->load()['date_to'] !== '' ? $ownBasesCache->load()['date_to'] : '—')
+            : 'Баз из системы запусков нет — «наши» считаем только по меткам (кнопка «Обновить наши домены» на странице разбора выдачи)');
 
         if ($stage === 'clean') {
             // --- Этап 3: очистка контента по сайтам — то же, что кнопки «Очистить»/«Очистить всё» в панели,
@@ -967,8 +976,8 @@ while (true) {
             // со скриншотами: он идёт долго, а цифры по доменам уже готовы (и переживут остановку).
             // В конце сбора эта же запись уточняется: визиты показывают редиректы на бренд-поддомены.
             $historyId = '';
-            $onSelected = function (array $sites, RunResult $r) use ($runDir, $resume, &$historyId, $logger, $ownLedger): void {
-                $record = CollectHistory::record($sites, $r->stats, $r->seenBefore, $resume, false, $r->raw, $ownLedger->all());
+            $onSelected = function (array $sites, RunResult $r) use ($runDir, $resume, &$historyId, $logger, $ownLedger, $ownBases): void {
+                $record = CollectHistory::record($sites, $r->stats, $r->seenBefore, $resume, false, $r->raw, $ownLedger->all(), $ownBases);
                 $historyId = (string) $record['id'];
                 CollectHistory::append(dirname($runDir), $record);
                 // Воронка одной строкой: каждое число вытекает из предыдущего, и сумма срезанного
@@ -1074,6 +1083,7 @@ while (true) {
                 10,
                 OwnSites::fromConfig($config),
                 $ownLedger->all(), // наши домены из прошлых сборов: повтор мы не открываем, а он наш
+                $ownBases, // и точный список из системы запусков — он перебивает догадки по меткам
             );
             $indexFile = dirname($runDir) . '/' . SerpAnalysis::INDEX_FILE; // рядом с историей сборов
             $prevIndex = (array) (@json_decode((string) @file_get_contents($indexFile), true) ?: []);
@@ -1119,7 +1129,7 @@ while (true) {
             if ($newOwn > 0) {
                 $logger->info(sprintf('Запомнили наших доменов: %d (всего в списке %d)', $newOwn, $ownLedger->count()));
             }
-            $ownRepeats = CollectHistory::ownRepeats($result->seenBefore, $ownLedger->all());
+            $ownRepeats = CollectHistory::ownRepeats($result->seenBefore, $ownLedger->all(), $ownBases);
             // Наши в записи — сумма трёх частей; здесь уточняем отобранную и повторы, срезанное по
             // метке-домену уже посчитано ранней записью (сумму пересобирает CollectHistory::update()).
             $patched = CollectHistory::update(dirname($runDir), $historyId, [
@@ -1128,11 +1138,12 @@ while (true) {
                 'own_selected' => $finalBreakdown['own'],
                 'own_repeats' => $ownRepeats,
                 'own_known' => $ownLedger->count(),
+                'own_bases' => count($ownBases),
                 'base_domains' => (int) ($result->stats['base_domains'] ?? 0),
                 'stopped' => $result->stopped,
             ]);
             if (!$patched) {
-                CollectHistory::append(dirname($runDir), CollectHistory::record($result->sites, $result->stats, $result->seenBefore, $resume, $result->stopped, $result->raw, $ownLedger->all()));
+                CollectHistory::append(dirname($runDir), CollectHistory::record($result->sites, $result->stats, $result->seenBefore, $resume, $result->stopped, $result->raw, $ownLedger->all(), $ownBases));
             }
             $ownNote = '';
             // Доля наших считается от ВСЕХ доров выдачи: наши шаблоны и есть доры. Оттуда же берём
@@ -1156,7 +1167,11 @@ while (true) {
                     $doorsAll,
                     CollectHistory::percent($ownTotal, $doorsAll),
                 );
-                $logger->info(sprintf('Наши шаблоны (по меткам в HTML): %s — выгружать их не нужно', $ownNote));
+                $logger->info(sprintf(
+                    'Наши шаблоны (%s): %s — выгружать их не нужно',
+                    $ownBases !== [] ? 'по выгрузке из системы запусков и меткам' : 'по меткам, выгрузка из системы запусков не настроена',
+                    $ownNote,
+                ));
             }
             if ($ownLedger->count() === 0) {
                 $logger->info('Список наших доменов пуст (runs/own-domains.txt): среди повторов наши не опознаются — впишите свои домены в own-domains.txt');

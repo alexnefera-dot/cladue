@@ -7,6 +7,7 @@ namespace Tests;
 use YandexSites\Live\ProxyPool;
 use YandexSites\Live\UserAgents;
 use YandexSites\Model\SearchResult;
+use YandexSites\Filter\OwnSites;
 use YandexSites\Model\Site;
 use YandexSites\Support\Logger;
 use YandexSites\Visit\CurlDriver;
@@ -1097,6 +1098,50 @@ final class VisitTest
         ), true), 'промежуточный адрес сохранён в цепочке: ' . json_encode($visit['redirects'] ?? []));
         Assert::true($site->own, 'сайт опознан нашим по промежуточному адресу редиректа');
         Assert::contains('исключён как наш', (string) ($visit['error'] ?? ''));
+
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($it as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+        @rmdir($dir);
+    }
+
+    public function testOwnSiteIsDetectedByLaunchSystemBaseWithoutMarkers(): void
+    {
+        // ТОЧНЫЙ источник «наш»: базы из системы запусков (dorgen). Меток нет вовсе — сайт должен
+        // опознаться по базе (последние две метки хоста), и причина должна быть записана в визит,
+        // чтобы в таблице было видно, что пометка проверенная, а не совпадение метки.
+        $port = FakeServer::port();
+        $dir = $this->dir() . '/ownbase';
+        // Дор на поддомене нашей базы: база — ПОСЛЕДНИЕ ДВЕ МЕТКИ хоста (kush.brandnet.ru → brandnet.ru),
+        // так их и называет система запусков, поэтому любой поддомен на базе опознаётся сразу.
+        $site = new Site('kush.brandnet.ru', 'brandnet.ru', 'kush.brandnet.ru');
+        $site->add(new SearchResult('казино', 0, 1, "http://kush.brandnet.ru:$port/", 'kush.brandnet.ru', 'KB'));
+        $sites = ['kush.brandnet.ru' => $site];
+
+        $cfg = [
+            'crawl' => false, 'variants' => 1, 'target' => 'found', 'dir' => $dir,
+            'screenshot' => false, 'timeout' => 5, 'delay_ms' => 0, 'concurrency' => 2,
+            'retries' => 0, 'preview_retries' => 0, 'resolve' => $this->resolve($port),
+            'user_agents' => [UserAgents::YANDEX_BOT],
+            'own_markers' => [],                        // меток нет — работает только выгрузка
+            'own_bases' => ['brandnet.ru'],             // база из системы запусков
+        ];
+        (new PageVisitor($cfg, new CurlDriver(), $this->logger()))->visit($sites);
+
+        $visit = (array) $site->visits[0];
+        Assert::true($site->own, 'сайт опознан нашим по базе из системы запусков');
+        Assert::contains('исключён как наш', (string) ($visit['error'] ?? ''));
+        Assert::same(OwnSites::REASON_BASE, (string) ($visit['own_reason'] ?? ''), 'причина названа — пометка точная, не по метке');
+        Assert::false(is_file((string) ($visit['html_file'] ?? '')), 'HTML нашего шаблона не храним');
+
+        // Чужая база нашим сайт не делает.
+        $other = new Site('okna-moskva.ru', 'okna-moskva.ru', 'okna-moskva.ru');
+        $other->add(new SearchResult('окна', 0, 1, "http://okna-moskva.ru:$port/", 'okna-moskva.ru', 'OM'));
+        $others = ['okna-moskva.ru' => $other];
+        (new PageVisitor($cfg, new CurlDriver(), $this->logger()))->visit($others);
+        Assert::false($other->own, 'чужая база — не наш');
+        Assert::true((bool) ((array) $other->visits[0])['ok'], 'чужой сайт открылся как обычно');
 
         $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
         foreach ($it as $item) {

@@ -1033,6 +1033,52 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   the retries) — period splitting, base extraction, only-needed-fields, retries, the incremental cache
   (a repeat refresh adds no bases, the file holds no subdomains and no raw fields) and the SERP wiring
   with the untouched marker path.
+  THE BASES NOW REACH THE MAIN TABLE AND THE STATISTICS TOO («протяни базы из апи в главную таблицу и
+  статистику»), because for three versions they only fed `/serp`: the main table, `Site::$own`, «Убрать
+  наши» and the «Статистика» funnel still judged by markers alone, so the answer to «наши сайты по апи
+  получаем?» was «only on one page». The bases enter through `Filter\OwnSites`, which is where every
+  consumer already asks «is this ours»: its constructor takes a second argument (a list OR the
+  `base => true` map `OwnBases::bases()` returns), `matchesBase($host)` compares
+  `DorgenClient::baseOf($host)` against it, `matchesBaseInUrls($chain)` does the same for the redirect
+  chain (our door hops through our own redirector, which is gone from `final_url`), `bases()` exposes
+  them and `isEmpty()` is now «no markers AND no bases» so a bases-only setup still runs the own check.
+  `OwnSites::fromConfig()` reads `filters.own_bases` (list) + `filters.own_bases_file`
+  (`Config::defaults()`: `runs/dorgen-bases.json`, loaded with `OwnBases` itself so every screen reads
+  ONE list), which is why `Runner` and `Runtime::visitor()` only had to pass `$own->bases()` next to
+  `$own->markers()` into the `filters`/`visit` sub-configs — no new plumbing in `run-job`.
+  A BASE MARKS, IT DOES NOT CUT: `ResultFilter`'s `own_site` rejection still consults markers only
+  (`matchesHost()` is deliberately NOT base-aware), so a door on our base lands in the table tagged
+  «исключён как наш · из системы запусков» and leaves by the reversible «Убрать наши» button. Cutting it
+  at collection would be silent and irreversible, and CLAUDE.md's own rule is that a false «наш» throws
+  a real site away and costs more than a miss — one wrong base in the API answer would delete live
+  competitor sites with no trace. `PageVisitor::assembleVisit()` therefore evaluates, IN ORDER OF
+  PRECISION, base (host, then redirect chain) → marker (host/chain, with `markerForHost()` naming it) →
+  HTML marker, and stamps `$visit['own_reason']` (`OwnSites::REASON_BASE` «запущен в системе запусков»,
+  «метка «X»», «метка в адресе», «метка в HTML») next to `own`. `SiteRows::preview()` emits `own_reason`
+  per row (read off the site's visits, so an old `sites.json` degrades to «причина не записана») and the
+  panel puts it in the own tag's tooltip, appending « · из системы запусков» to the tag itself for the
+  exact source — that is the visible answer to «точно работает система?».
+  STATISTICS: `own_selected` needed nothing (it reads `Site::$own`), but a REPEAT is never visited, so
+  `CollectHistory::ownRepeats($seenBefore, $ownDomains, $ownBases)` now also counts a repeat whose BASE
+  is ours — still keyed by registrable domain, so a base and the ledger cannot double-count the same
+  site. `record()` takes the bases as its eighth argument and stores `own_bases` (how many came from the
+  launch system; 0 means «выгрузка не настроена, считали по меткам»), shown in the panel's own-count
+  tooltip via `ownParts()`. `bin/run-job.php` loads the cache ONCE
+  (`$ownBasesCache = OwnBases::inRuns(dirname($runDir))`), logs «Наших баз из системы запусков: N
+  (выгружено по ДАТА)» or says the list is empty, passes the bases to both `record()` calls, to the
+  end-of-collect `update()` patch and to `SerpAnalysis::build()` (which the collect stage had been
+  calling WITHOUT them, so the log's «наших доров N» disagreed with the page), and the own-template log
+  line now names its sources («по выгрузке из системы запусков и меткам» / «по меткам, выгрузка не
+  настроена»). The funnel's explanatory text and `serp.html`'s missing-token hint (which still said
+  «впишите DORGEN_TOKEN в .env», stale since 1.32.1) were corrected to point at the panel.
+  Covered by `OwnSitesTest::testMatchesBaseFromLaunchSystem` / `testMatchesBaseInRedirectChain` /
+  `testFromConfigReadsBasesFromLaunchSystemCache`,
+  `VisitTest::testOwnSiteIsDetectedByLaunchSystemBaseWithoutMarkers` (the fake host `kush.brandnet.ru`
+  with base `brandnet.ru` and NO markers; `okna-moskva.ru` stays a stranger — note `baseOf()` is the last
+  two LABELS, so the base of a two-label host is the host itself),
+  `CollectHistoryTest` (repeats by base, no double count, `own_bases` stored) and
+  `PanelTest::testLaunchSystemBasesMarkOwnSitesInTableAndStats` (a `stage=preview` run whose only source
+  of «наш» is `runs/dorgen-bases.json`: the table row gets `own` + the reason, the log names the count).
 - The panel's progress cards are a FUNNEL with no repeated number, because «29 904 результата» next to
   «2 043 сайта» read as a contradiction («а почему результатов в выдаче 29к, а доменов 7к — это
   уникальных?»): запросов → `results` (every SERP row; one site counts again in each query that found it)

@@ -40,6 +40,9 @@ final class ResultFilter
 
         $this->include = new DomainMatcher($cfg['include_domains'] ?? []);
         $this->exclude = new DomainMatcher($cfg['exclude_domains'] ?? []);
+        // Базы из системы запусков здесь НЕ отсеивают: matchesHost() сверяется только с метками, а
+        // наш дор по базе помечается на визите и остаётся в таблице (кнопка «Убрать наши»). Срезать
+        // его молча на сборе опаснее: ошибка в списке баз выбросила бы живой чужой сайт без следа.
         $this->own = new OwnSites(array_values(array_filter((array) ($cfg['own_markers'] ?? []), 'is_string')));
 
         $this->tlds = [];
