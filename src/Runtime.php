@@ -138,7 +138,17 @@ final class Runtime
         $requestsPerProxy = (int) $this->config->get('live.requests_per_proxy');
         $maxFailures = (int) $this->config->get('live.max_proxy_failures');
         $pool = ProxyPool::fromLines($lines, $requestsPerProxy, $maxFailures);
-        if ($pool->isEmpty()) {
+        // Непонятные строки сбор не роняют (их вставляют руками), но молчать о них нельзя: иначе
+        // «прокси не работают» при том, что половина списка просто не разобралась.
+        foreach ($pool->skipped() as $bad) {
+            $this->log->warn(sprintf('Прокси: строка пропущена — %s (%s)', $bad['line'], $bad['error']));
+        }
+        if (!$pool->isEmpty()) {
+            $this->log->info(sprintf('Прокси в списке: %d%s', $pool->count(), $pool->skipped() !== [] ? sprintf(', пропущено строк %d', count($pool->skipped())) : ''));
+        } else {
+            if ($pool->skipped() !== []) {
+                $this->log->warn('Прокси: ни одной строки разобрать не удалось — идём напрямую, без прокси');
+            }
             $pool = ProxyPool::fromLines(['direct'], $requestsPerProxy, $maxFailures);
         }
 

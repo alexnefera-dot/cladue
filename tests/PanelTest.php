@@ -1685,6 +1685,66 @@ MANUAL-OWN.RU
         $this->projectDirReset($port);
     }
 
+    public function testProxiesFromPanelSettingsAreUsedAndBadLinesSkipped(): void
+    {
+        // Прокси вписываются в «Настройках» панели (settings.proxies), файла proxies.txt нет вовсе.
+        // Фейковый прокси — это ещё один экземпляр фейкового сервера: curl отправляет ему запрос
+        // в абсолютной форме, и встроенный сервер отвечает сам.
+        $proxyPort = FakeServer::port();
+        $dir = $this->projectDir($proxyPort);
+        file_put_contents($dir . '/config.php', '<?php return ' . var_export([
+            'source' => 'live',
+            'live' => [
+                'domain' => 'http://yandex.test',
+                'delay_ms' => 0, 'jitter_ms' => 0, 'min_gap_ms' => 0, 'attempts' => 2,
+                'cookies' => false, 'max_wait' => 0,
+            ],
+            'search' => ['pages' => 1],
+            'filters' => ['allowed_tlds' => []],
+        ], true) . ';');
+        $runDir = $dir . '/runs/panelproxy';
+        mkdir($runDir, 0777, true);
+        @unlink($dir . '/runs/domains-base.txt');
+        Assert::false(is_file($dir . '/proxies.txt'), 'файла со списком прокси в проекте нет');
+        file_put_contents($runDir . '/settings.json', json_encode([
+            'queries' => ['пластиковые окна'],
+            'source' => 'live',
+            'top' => 0,
+            'visit' => false,
+            'preview_shots' => false,
+            'repeat_hours' => 0,
+            // Галочка «ещё и из файла» включена, а файла нет: задание не должно падать на проверке
+            // конфигурации — список из панели работает сам.
+            'proxies_file' => 'proxies.txt',
+            'proxies' => [
+                "127.0.0.1:$proxyPort:login:SecretPass",
+                '# заметка про поставщика',
+                'Список прокси от 5 октября',
+            ],
+        ]));
+
+        $run = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $run['code'], $run['out']);
+        $status = json_decode((string) file_get_contents($runDir . '/status.json'), true);
+        Assert::same('done', $status['state'], $run['out']);
+        Assert::true(($status['stats']['sites_selected'] ?? 0) > 0, 'выдача получена через прокси из настроек');
+
+        $labels = array_column((array) ($status['proxies'] ?? []), 'proxy');
+        Assert::same(["http://127.0.0.1:$proxyPort"], $labels, 'в работе ровно один прокси — из настроек панели');
+        Assert::true(($status['proxies'][0]['requests'] ?? 0) > 0, 'запросы выдачи шли через него');
+
+        $log = (string) file_get_contents($runDir . '/run.log');
+        Assert::contains('Прокси в списке: 1', $log);
+        Assert::contains('строка пропущена — Список прокси от 5 октября', $log, 'непонятная строка названа, а не уронила сбор');
+        Assert::contains('proxies.txt не найден', $log, 'про отсутствующий файл сказано отдельно');
+        Assert::false(str_contains($log, 'SecretPass'), 'пароль прокси в журнал не попадает');
+        // sites.json выгружают и пересылают — паролям там места нет. В рабочем status.json список
+        // остаётся: из него «Настройки» восстанавливают поле «Прокси» на этом же компьютере.
+        Assert::false(str_contains((string) file_get_contents($runDir . '/sites.json'), 'SecretPass'), 'в выгружаемый отчёт прокси не попадают');
+        $status = json_decode((string) file_get_contents($runDir . '/status.json'), true);
+        Assert::same(3, count($status['settings']['proxies'] ?? []), 'панель получает свой список назад, чтобы поле не опустело');
+    }
+
     private function projectDirReset(int $port): void
     {
         file_put_contents($this->dir . '/config.php', '<?php return ' . var_export([

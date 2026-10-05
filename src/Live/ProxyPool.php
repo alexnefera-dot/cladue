@@ -12,6 +12,8 @@ final class ProxyPool
 {
     /** @var list<Proxy> */
     private array $proxies = [];
+    /** @var list<array{line: string, error: string}> строки, которые не удалось разобрать */
+    private array $skipped = [];
     private int $cursor = -1;
     private ?Proxy $current = null;
     private int $leaseLeft = 0;
@@ -28,18 +30,30 @@ final class ProxyPool
     }
 
     /**
-     * @param iterable<mixed> $lines строки в форматах Proxy::parse(); пустые и комментарии (#) пропускаются
+     * Список из строк: пустые и комментарии (#) пропускаются, дубли убираются.
+     *
+     * Непонятная строка НЕ роняет сбор: список вставляют руками (панель, файл от поставщика), и из-за
+     * одной лишней строки — заголовка таблицы, обрывка, лишнего символа — нельзя терять весь прогон.
+     * Такие строки складываются в skipped() без пароля, вызывающая сторона о них предупреждает.
+     *
+     * @param iterable<mixed> $lines строки в форматах Proxy::parse()
      */
     public static function fromLines(iterable $lines, int $requestsPerProxy = 1, int $maxFailures = 5): self
     {
         $proxies = [];
         $seen = [];
+        $skipped = [];
         foreach ($lines as $line) {
             $line = trim((string) $line);
             if ($line === '' || str_starts_with($line, '#')) {
                 continue;
             }
-            $proxy = Proxy::parse($line);
+            try {
+                $proxy = Proxy::parse($line);
+            } catch (\InvalidArgumentException $e) {
+                $skipped[] = ['line' => Proxy::maskLine($line), 'error' => $e->getMessage()];
+                continue;
+            }
             $key = $proxy->url ?? 'direct';
             if (isset($seen[$key])) {
                 continue;
@@ -47,8 +61,10 @@ final class ProxyPool
             $seen[$key] = true;
             $proxies[] = $proxy;
         }
+        $pool = new self($proxies, $requestsPerProxy, $maxFailures);
+        $pool->skipped = $skipped;
 
-        return new self($proxies, $requestsPerProxy, $maxFailures);
+        return $pool;
     }
 
     public static function fromFile(string $path, int $requestsPerProxy = 1, int $maxFailures = 5): self
@@ -68,6 +84,16 @@ final class ProxyPool
     public function count(): int
     {
         return count($this->proxies);
+    }
+
+    /**
+     * Строки списка, которые не удалось разобрать (без пароля): «что именно пропущено и почему».
+     *
+     * @return list<array{line: string, error: string}>
+     */
+    public function skipped(): array
+    {
+        return $this->skipped;
     }
 
     /**

@@ -40,6 +40,41 @@ final class ProxyPoolTest
         }
     }
 
+    public function testSkipsUnparsableLinesWithoutPassword(): void
+    {
+        // Список вставляют целиком из панели поставщика: в нём приезжает заголовок, обрывок, лишний
+        // символ. Раньше такая строка валила весь сбор — теперь она пропускается и названа в журнале.
+        $pool = ProxyPool::fromLines([
+            '203.0.113.133:59100:login:SecretPass',
+            'Список прокси от 5 октября',
+            'login:SecretPass',
+            '203.0.113.10:8080',
+            '203.0.113.11:99999',
+            '# заметка',
+            '',
+            'direct',
+        ]);
+
+        Assert::same(3, $pool->count(), 'разобрались только три строки, остальное пропущено');
+        Assert::same(['http://203.0.113.133:59100', 'http://203.0.113.10:8080', 'direct'], array_map(static fn (Proxy $p): string => $p->label, $pool->all()));
+
+        $skipped = $pool->skipped();
+        Assert::same(3, count($skipped), 'мусор, строка без порта и порт вне диапазона');
+        $lines = array_column($skipped, 'line');
+        Assert::same('Список прокси от 5 октября', $lines[0], 'непохожая строка названа как есть — по ней её и найти');
+        Assert::same('login:***', $lines[1], 'пароль в журнал не попадает');
+        Assert::same('203.0.113.11:***', $lines[2]);
+        Assert::contains('не удалось разобрать', $skipped[0]['error']);
+    }
+
+    public function testMaskLineKeepsPasswordOut(): void
+    {
+        Assert::same('203.0.113.10:***', Proxy::maskLine('203.0.113.10:59100:login:password'));
+        Assert::same('http://203.0.113.10:***', Proxy::maskLine('http://203.0.113.10:59100:login:password'));
+        Assert::same('socks5://***@203.0.113.10:1080', Proxy::maskLine('socks5://login:password@203.0.113.10:1080'));
+        Assert::same('host', Proxy::maskLine('host'), 'строке без двоеточия скрывать нечего');
+    }
+
     public function testRotationAndLeases(): void
     {
         $pool = ProxyPool::fromLines(['# комментарий', '', 'a.ru:1', 'a.ru:1', 'b.ru:2']);

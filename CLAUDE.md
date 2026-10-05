@@ -223,6 +223,37 @@ Run `php tests/lint.php && php tests/run.php` before committing.
 - Proxies live in the top-level `proxies` list / `proxy_file` (format `scheme://host:port:user:pass`
   and others parsed by `Live\Proxy::parse()`); `live.proxies`/`live.proxy_file` are legacy aliases merged
   in `Application::buildProxyPool()`. The live source rotates them per request, visits per job.
+  PROXIES ARE ENTERED IN THE PANEL («давай добавь прокси в настройки панели»), like the own-site markers:
+  «Настройки» → textarea «Прокси» (`#proxylist`, one per line, in `FIELDS` so it survives a reload) →
+  `settings.proxies` → `buildOverrides()` sets the top-level `proxies` under the `array_key_exists` rule
+  (the panel is the source of truth when the key is sent, even empty — saving with an empty field honestly
+  means «go direct»; a manual `run-job` without it keeps `config.php`). The user's own format is
+  `host:port:user:pass` with NO scheme (`72.56.153.133:59100:user:pass`), which `Proxy::parse()` already
+  took; the panel's placeholder and every example use the RFC 5737 range `203.0.113.x`, never their real
+  proxies — the repository is PUBLIC. `proxies.txt` keeps working and the two lists ADD UP in
+  `Runtime::proxyPool()`; the checkbox is now «Брать ещё и прокси из файла proxies.txt», and because it
+  could be left on from months ago with no file, `buildOverrides()` sets `proxy_file` only when the file
+  EXISTS (`Config::validate()` turns a missing one into a fatal config error that killed the whole job)
+  and run-job logs «Файл с прокси … не найден — беру только прокси из настроек панели».
+  A PASTED LIST IS NEVER CLEAN — a provider's table header, a stray line, a half-copied row — and
+  `Proxy::parse()` throws, so `ProxyPool::fromLines()` now SKIPS an unparsable line instead of letting one
+  character kill a 3000-query collect: the line goes into `ProxyPool::skipped()` and `Runtime::proxyPool()`
+  logs «Прокси: строка пропущена — X (причина)» plus «Прокси в списке: N», and warns «ни одной строки
+  разобрать не удалось — идём напрямую» before the `direct` fallback (which builds a fresh pool and would
+  otherwise drop the list of skipped lines). `Proxy::maskLine()` keeps the PASSWORD out of that message:
+  the line did not parse, so which part is the login is unknown — everything after the first `:` becomes
+  `***` (`login:***`), and a `user:pass@host:port` shape becomes `***@host:port`. The same rule as
+  `Proxy::$label` (`scheme://host:port`), which is what `ProxyPool::stats()` shows in the panel.
+  The panel also counts the list client-side as it is pasted (`proxyLineOk()`/`updateProxyCount()` →
+  «Прокси в списке: 12 · не похожи на прокси: 2 (будут пропущены)»), mirroring the PHP parser's rules, so
+  a bad paste is visible before the run rather than as «прокси не работают».
+  The list contains PASSWORDS, so `settingsForReport()` strips `proxies` from the `settings` copy written
+  into `sites.json` (an exportable, archived, forwarded report) while `status.json`/`settings.json` keep it
+  — `/api/state` feeds it back into the textarea, and masking it there would make the next save overwrite
+  the real list with asterisks. Covered by
+  `ProxyPoolTest::testSkipsUnparsableLinesWithoutPassword` / `testMaskLineKeepsPasswordOut` and
+  `PanelTest::testProxiesFromPanelSettingsAreUsedAndBadLinesSkipped` (a live-source collect whose only
+  proxy comes from the panel settings, with `proxies_file` pointing at a file that does not exist).
 - Page size is capped at `visit.max_bytes` (default 2 MB) in BOTH drivers: `CurlDriver` stops reading, and
   `tools/render-page.js` truncates `page.content()` before writing (the option is passed through
   `PlaywrightDriver`). `PageVisitor::readHtml()` reads saved pages with the same cap, and

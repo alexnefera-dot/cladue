@@ -93,6 +93,31 @@ final class Proxy
         return new self(sprintf('%s://%s%s:%d', $scheme, $auth, $host, $port), sprintf('%s://%s:%d', $scheme, $host, $port));
     }
 
+    /**
+     * Строка списка без пароля — для журнала и сообщений об ошибке.
+     *
+     * Списки вставляют руками (панель, файл от поставщика), и про непонятную строку надо сказать,
+     * КАКАЯ она, не напечатав при этом пароль. Разобрать её уже не удалось, поэтому где в ней логин,
+     * а где хост, неизвестно: оставляем только первый отрезок до двоеточия.
+     */
+    public static function maskLine(string $line): string
+    {
+        $line = trim($line);
+        $scheme = '';
+        if (preg_match('~^([a-z0-9]+)://(.*)$~i', $line, $m) === 1) {
+            $scheme = $m[1] . '://';
+            $line = $m[2];
+        }
+        if (str_contains($line, '@')) {
+            $at = (int) strrpos($line, '@');
+
+            return $scheme . '***@' . substr($line, $at + 1);
+        }
+        $cut = strpos($line, ':');
+
+        return $cut === false ? $scheme . $line : $scheme . substr($line, 0, $cut) . ':***';
+    }
+
     public function isDirect(): bool
     {
         return $this->url === null;

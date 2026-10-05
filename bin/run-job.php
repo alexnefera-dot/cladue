@@ -104,6 +104,23 @@ $progress = new Progress($statusFile, [
 ]);
 
 /**
+ * Настройки для отчёта: без прокси.
+ *
+ * sites.json — выгружаемый файл: его архивируют и пересылают. Список прокси содержит пароли, и в
+ * таком файле им места нет. В рабочих файлах панели (settings.json, status.json) список остаётся:
+ * из него «Настройки» восстанавливают поле «Прокси», а они живут только на этом компьютере.
+ *
+ * @param array<string, mixed> $settings
+ * @return array<string, mixed>
+ */
+function settingsForReport(array $settings): array
+{
+    unset($settings['proxies']);
+
+    return $settings;
+}
+
+/**
  * @return array<string, mixed>
  */
 function buildOverrides(array $s, string $runDir): array
@@ -236,7 +253,24 @@ function buildOverrides(array $s, string $runDir): array
     } else {
         $overrides['visit.dir'] = $runDir . '/pages';
     }
-    if (isset($s['proxies_file']) && (string) $s['proxies_file'] !== '') {
+    // Прокси из «Настроек» панели: по одной строке, форматы Live\Proxy::parse() (основной —
+    // host:port:user:pass). Как и метки наших шаблонов, панель — источник истины, если ключ передан
+    // (даже пустым списком): так сохранение настроек без прокси честно означает «ходить напрямую».
+    // Ручной run-job без этого ключа оставляет список из config.php.
+    if (array_key_exists('proxies', $s)) {
+        $proxies = [];
+        foreach (is_array($s['proxies']) ? $s['proxies'] : (preg_split('~\R~', (string) $s['proxies']) ?: []) as $line) {
+            $line = trim((string) $line);
+            if ($line !== '' && !str_starts_with($line, '#')) {
+                $proxies[] = $line;
+            }
+        }
+        $overrides['proxies'] = array_values(array_unique($proxies));
+    }
+    // Файл proxies.txt работает вместе со списком из панели (Runtime их складывает). Галочку могли
+    // включить когда-то давно, а файл не создать: отсутствующий файл — это ошибка конфигурации и
+    // падение всего задания, поэтому берём его только если он есть, а про пропуск скажем в журнале.
+    if (isset($s['proxies_file']) && (string) $s['proxies_file'] !== '' && is_file((string) $s['proxies_file'])) {
         $overrides['proxy_file'] = (string) $s['proxies_file'];
     }
     // Обход всех страниц из шапки сайта.
@@ -539,6 +573,12 @@ while (true) {
 
     try {
         $stage = (string) ($settings['stage'] ?? 'collect');
+        // Галочка «ещё и из файла proxies.txt» включена, а файла нет: раньше это валило всё задание
+        // проверкой конфигурации. Теперь просто говорим об этом — список из панели работает сам.
+        $proxyFile = (string) ($settings['proxies_file'] ?? '');
+        if ($proxyFile !== '' && !is_file($proxyFile)) {
+            $logger->warn(sprintf('Файл с прокси %s не найден — беру только прокси из настроек панели', $proxyFile));
+        }
         $baseFile = dirname($runDir) . '/domains-base.txt';
         // Наши шаблоны, найденные за ВСЕ сборы: повторный сбор такой домен даже не открывает («уже в
         // базе»), а в статистике он всё равно наш — поэтому свои домены копим отдельным списком.
@@ -645,7 +685,7 @@ while (true) {
             rememberOwnDomains($ownLedger, $sites); // сайт мог открыться нашим шаблоном только сейчас
             $siteList = array_values($sites);
             $writer->writeCsv($siteList, $runDir . '/sites.csv');
-            $writer->writeJson($siteList, $runDir . '/sites.json', ['source' => 'preview', 'settings' => $settings]);
+            $writer->writeJson($siteList, $runDir . '/sites.json', ['source' => 'preview', 'settings' => settingsForReport($settings)]);
             $writer->writeDomains($siteList, $runDir . '/domains.txt');
             $progress->update([
                 'state' => 'done',
@@ -779,7 +819,7 @@ while (true) {
                     // (а он пишется по 4 раза в секунду) — лишние мегабайты на диск.
                     $ready = array_values(RemovedSites::filter($runDir, $sites));
                     $writer->writeCsv($ready, $runDir . '/sites.csv');
-                    $writer->writeJson($ready, $runDir . '/sites.json', ['source' => 'download', 'settings' => $settings]);
+                    $writer->writeJson($ready, $runDir . '/sites.json', ['source' => 'download', 'settings' => settingsForReport($settings)]);
                     $writer->writeDomains($ready, $runDir . '/domains.txt');
                     $progress->update([
                         'phase' => 'visit',
@@ -804,7 +844,7 @@ while (true) {
             rememberOwnDomains($ownLedger, $sites); // наш шаблон может открыться и на выгрузке
             $siteList = array_values($sites);
             $writer->writeCsv($siteList, $runDir . '/sites.csv');
-            $writer->writeJson($siteList, $runDir . '/sites.json', ['source' => 'download', 'settings' => $settings]);
+            $writer->writeJson($siteList, $runDir . '/sites.json', ['source' => 'download', 'settings' => settingsForReport($settings)]);
             $writer->writeDomains($siteList, $runDir . '/domains.txt');
             $opened = 0;
             foreach ($siteList as $site) {
@@ -1005,7 +1045,7 @@ while (true) {
                     'stats' => $result->stats,
                     'errors' => $result->errors,
                     'source' => $config->get('source'),
-                    'settings' => $settings,
+                    'settings' => settingsForReport($settings),
                     'proxies' => $runtime->proxies?->stats() ?? [],
                 ]);
                 $writer->writeDomains($merged, $runDir . '/domains.txt');

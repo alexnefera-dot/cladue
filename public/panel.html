@@ -268,7 +268,10 @@
           <div><label>Макс. страниц на сайт</label><input type="number" id="maxpages" value="20" min="1" max="200"></div>
           <div></div>
         </div>
-        <div class="check"><input type="checkbox" id="useproxies"><label style="margin:0">Ходить через прокси из proxies.txt <span id="proxHint" class="hint"></span></label></div>
+        <label style="margin-top:10px">Прокси <span class="hint">по одной на строку; через них идёт живая выдача и открываются сайты (скриншоты, выгрузка страниц)</span></label>
+        <textarea id="proxylist" style="min-height:90px" placeholder="203.0.113.10:59100:login:password&#10;203.0.113.11:59100:login:password"></textarea>
+        <div class="hint"><span id="proxCount"></span> Формат — <code>host:port:user:pass</code> (как даёт поставщик), а также <code>host:port</code>, <code>user:pass@host:port</code> и с явным типом: <code>socks5://user:pass@host:1080</code> (http, https, socks4, socks4a, socks5, socks5h). Строка <code>direct</code> — без прокси, её можно смешивать со списком. Строки с <code>#</code> — заметки. Непонятная строка просто пропускается, в журнале будет видно какая (без пароля). Прокси берутся по кругу; при повторе сайт открывается через ДРУГОЙ прокси и другой браузерный агент, а на капче прокси уходит на паузу. Список хранится только на этом компьютере (в настройках панели) и в репозиторий не попадает.</div>
+        <div class="check"><input type="checkbox" id="useproxies"><label style="margin:0">Брать ещё и прокси из файла proxies.txt <span id="proxHint" class="hint"></span> <span class="hint">— работает вместе со списком выше</span></label></div>
         <label style="margin-top:10px">Скорость <span class="hint">чем больше потоков и прокси, тем быстрее; слишком много — блокировки и нагрузка на компьютер</span></label>
         <div class="row">
           <div><label>Запросов выдачи разом</label><input type="number" id="searchthreads" value="5" min="1" max="30" title="Сколько запросов к источнику (XMLStock/API) отправлять параллельно. Список из тысяч ключей по одному запросу собирается часами. На живую выдачу через прокси не влияет"></div>
@@ -379,7 +382,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const FIELDS = ['queries','source','region','pages','dedupe','scope','top','minq','tlds','exclude','skipknown','nocache','previewshots','visit','variants','driver','crawl','maxpages','useproxies','searchthreads','visitthreads','browsers','repeat','xmmode','xmdevice','xmdomain','xmextra','removeslots','ownmarkers','batchsize','cleanwhile'];
+const FIELDS = ['queries','source','region','pages','dedupe','scope','top','minq','tlds','exclude','skipknown','nocache','previewshots','visit','variants','driver','crawl','maxpages','useproxies','searchthreads','visitthreads','browsers','repeat','xmmode','xmdevice','xmdomain','xmextra','removeslots','ownmarkers','batchsize','cleanwhile','proxylist'];
 
 function loadLocal(){
   try{ const s = JSON.parse(localStorage.getItem('ys-panel')||'{}');
@@ -391,6 +394,28 @@ function saveLocal(){
   try{ localStorage.setItem('ys-panel', JSON.stringify(s)); }catch(e){}
 }
 FIELDS.forEach(k=>$(k).addEventListener('input', saveLocal));
+
+// Прокси: сразу после вставки показываем, сколько строк разобралось. Список вставляют целиком из
+// панели поставщика, и в нём легко приезжает заголовок или обрывок — молча пропустить их нельзя,
+// иначе «прокси не работают» при том, что половина списка просто не похожа на прокси.
+function proxyLineOk(line){
+  let s=line.trim();
+  if(!s || s.startsWith('#')) return null;      // пусто и заметки не считаем
+  if(/^direct$/i.test(s)) return true;
+  s=s.replace(/^[a-z0-9]+:\/\//i,'').replace(/\/+$/,'');
+  if(s.includes('@')) s=s.slice(s.lastIndexOf('@')+1);
+  const p=s.split(':');
+  if(p.length<2) return false;
+  const port=parseInt(p[1],10);
+  return /^(\[[0-9a-f:.]+\]|[a-z0-9.\-_]+)$/i.test(p[0]) && /^\d{1,5}$/.test(p[1]) && port>0 && port<65536;
+}
+function updateProxyCount(){
+  const lines=$('proxylist').value.split('\n').map(proxyLineOk).filter(v=>v!==null);
+  const ok=lines.filter(v=>v).length, bad=lines.length-ok;
+  $('proxCount').innerHTML = lines.length===0 ? ''
+    : `<b>Прокси в списке: ${ok}</b>${bad?` · <b style="color:#b45309">не похожи на прокси: ${bad}</b> (будут пропущены)`:''}. `;
+}
+$('proxylist').addEventListener('input', updateProxyCount);
 
 // Вкладки: «Главная» (запросы, запуск, прогресс, лог, результаты) и «Настройки» (ключи, условия, открытие).
 function showTab(name){
@@ -651,6 +676,7 @@ function collectSettings(){
     allowed_tlds: $('tlds').value.split(',').map(s=>s.trim()).filter(Boolean),
     exclude_extra: $('exclude').value.split(',').map(s=>s.trim()).filter(Boolean),
     own_markers: $('ownmarkers').value.split('\n').map(s=>s.trim()).filter(Boolean),
+    proxies: $('proxylist').value.split('\n').map(s=>s.trim()).filter(Boolean),
     visit: $('visit').checked,
     variants: parseInt($('variants').value)||1,
     visit_driver: $('driver').value,
@@ -1475,6 +1501,7 @@ function prefill(state){
     if(s.allowed_tlds)$('tlds').value=(s.allowed_tlds||[]).join(', ');
     if(s.exclude_extra)$('exclude').value=(s.exclude_extra||[]).join(', ');
     if(s.own_markers)$('ownmarkers').value=(s.own_markers||[]).join('\n');
+    if(s.proxies)$('proxylist').value=(s.proxies||[]).join('\n');
     $('visit').checked=!!s.visit; if(s.variants)$('variants').value=s.variants;
     if(s.visit_driver)$('driver').value=s.visit_driver; $('useproxies').checked=!!s.proxies_file;
     if(s.repeat_hours!=null)$('repeat').value=s.repeat_hours;
@@ -1487,6 +1514,7 @@ function prefill(state){
     if(s.clean_while_download!=null)$('cleanwhile').checked=!!s.clean_while_download;
     $('removeslots').checked=!!(s.remove_widgets||s.remove_slots);
   }
+  updateProxyCount();
 }
 
 async function refresh(){
@@ -1518,6 +1546,7 @@ async function refresh(){
 }
 
 loadLocal();
+updateProxyCount();
 toggleXmlstock();
 toggleXmMode();
 refresh();
