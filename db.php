@@ -1361,6 +1361,89 @@ function hosts_breakdown($from, $to = null) {
     return $st->fetchAll(PDO::FETCH_ASSOC);
 }
 
+/**
+ * Клики живых посетителей из России по часам.
+ *
+ * Именно RU и именно живые: это тот трафик, ради которого всё работает, и
+ * просадка по нему — первый признак, что с доменом редиректора что-то не так.
+ * Боты и переходы по кнопке преленда исключены, иначе бот-волна маскировала бы
+ * падение живого трафика.
+ *
+ * Возвращает [начало часа => клики] подряд, без пропусков: час без кликов —
+ * это ноль, а не отсутствующая точка, иначе на графике провал выглядел бы
+ * как непрерывная линия.
+ */
+function ru_hourly($hours = 48) {
+    $hours = max(1, (int)$hours);
+    $h0    = time() - time() % 3600;          // начало текущего часа
+    $from  = $h0 - ($hours - 1) * 3600;
+
+    $st = db()->prepare(
+        "SELECT (ts - ts % 3600) AS h, COUNT(*) AS clicks
+         FROM clicks
+         WHERE ts >= ? AND is_bot = 0 AND country = 'RU' AND " . sql_visit() . "
+         GROUP BY h"
+    );
+    $st->execute([$from]);
+
+    $got = [];
+    foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) $got[(int)$r['h']] = (int)$r['clicks'];
+
+    $out = [];
+    for ($t = $from; $t <= $h0; $t += 3600) $out[$t] = $got[$t] ?? 0;
+    return $out;
+}
+
+/**
+ * Пульс редиректора: последний полный час против обычного такого же часа.
+ *
+ * Сравнивается час с тем же часом суток за предыдущие дни, а не со средним по
+ * суткам: ночью трафик падает в разы, и среднесуточная база давала бы ложную
+ * тревогу каждую ночь и молчала бы днём. Берётся медиана, а не среднее —
+ * один выбившийся день (праздник, авария) не должен сдвигать базу.
+ *
+ * Текущий, ещё не закончившийся час в расчёт не идёт: он всегда неполный и
+ * всегда выглядел бы просадкой.
+ */
+function ru_pulse($days = 7) {
+    $days   = max(1, (int)$days);
+    $series = ru_hourly(($days + 1) * 24);
+
+    $h0        = time() - time() % 3600;
+    $lastStart = $h0 - 3600;                  // последний полный час
+    $last      = $series[$lastStart] ?? 0;
+
+    $vals = [];
+    for ($d = 1; $d <= $days; $d++) {
+        $t = $lastStart - $d * 86400;
+        if (isset($series[$t])) $vals[] = $series[$t];
+    }
+    sort($vals);
+    $n    = count($vals);
+    $base = $n === 0 ? 0
+          : ($n % 2 ? $vals[intdiv($n, 2)]
+                    : (int)round(($vals[$n / 2 - 1] + $vals[$n / 2]) / 2));
+
+    $ratio = $base > 0 ? $last / $base : null;
+
+    // Порог намеренно низкий: при базе меньше 20 кликов в час случайный разброс
+    // сам по себе даёт двукратные скачки, и любой алерт был бы шумом.
+    if ($base < 20)            $state = 'nodata';
+    elseif ($last === 0)       $state = 'down';
+    elseif ($ratio < 0.4)      $state = 'down';
+    elseif ($ratio < 0.7)      $state = 'warn';
+    else                       $state = 'ok';
+
+    return [
+        'state'      => $state,
+        'last'       => $last,
+        'base'       => $base,
+        'ratio'      => $ratio,
+        'hour_start' => $lastStart,
+        'days'       => $n,
+    ];
+}
+
 /** Каталог шаблонов прелендов (исходники) и готовых страниц (out/). */
 function prelanders_dir() { return __DIR__ . '/prelanders'; }
 
@@ -1736,7 +1819,7 @@ function meta_set($k, $v) {
  * Файлы лежат в cache/ и создаются веб-процессом (панель). Крон эти функции
  * не вызывает, так что конфликта прав root/www-root нет.
  */
-define('PANEL_CACHE_VER', 3);   // 2 — депы; 3 — из daily_stats убрана RU-разбивка
+define('PANEL_CACHE_VER', 4);   // 2 — депы; 3 — из daily_stats убрана RU-разбивка; 4 — пульс RU по часам
 
 /**
  * Выровнять владельца файла/каталога кэша по владельцу config.php.
@@ -1864,6 +1947,10 @@ function panel_cache_warm($budgetSec = 30) {
     $jobs[] = ['geocamp_today', fn() => geo_by_campaign($f, null, $t)];
     $jobs[] = ['bots_today',    fn() => bots_split($f, $t)];
     $jobs[] = ['daily30',       fn() => daily_stats(30)];
+    // Пульс RU по часам — на главной вверху, считается каждый заход, поэтому
+    // греем его тут вместе с остальным, а не оставляем на первого зашедшего.
+    $jobs[] = ['ruhourly48',    fn() => ru_hourly(48)];
+    $jobs[] = ['rupulse',       fn() => ru_pulse(7)];
     $jobs[] = ['health',        fn() => service_health()];
     $jobs[] = ['lastbycamp',    fn() => $pdo->query(
         "SELECT cl.slug, COALESCE(c.name,'') name, MAX(cl.ts) last

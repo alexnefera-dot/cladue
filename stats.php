@@ -418,6 +418,10 @@ if ($tab === 'stats' && $detailSlug !== '') {
     // Тяжёлые агрегаты — из кэша (обновляются вместе с импортом).
     // recent_conversions не кэшируем: замер показал ~5 мс, смысла нет.
     $daily      = panel_cache('daily30',           fn() => daily_stats(30));
+    // Пульс RU: живой трафик по часам и состояние последнего полного часа.
+    // Короткий ttl — просадку надо видеть в пределах часа, а не после импорта.
+    $ruHourly   = panel_cache('ruhourly48', fn() => ru_hourly(48), 300);
+    $ruPulse    = panel_cache('rupulse',    fn() => ru_pulse(7),   300);
     // Конверсии за выбранный период, с пагинацией. Раньше показывались просто
     // последние 50 за всё время — при просмотре 7/30 дней глубже было не уйти.
     $convPerPage = 50;
@@ -853,6 +857,30 @@ $msg = $_GET['msg'] ?? '';
 
 <?php elseif ($tab === 'stats'): ?>
 
+  <?php
+    // ПУЛЬС РЕДИРЕКТОРА. Вверху страницы и до всего остального: если живой
+    // трафик из России просел, это надо увидеть сразу, а не найти, пролистав
+    // до графиков. Сравнение — с тем же часом суток за прошлые дни, поэтому
+    // ночное падение само по себе алерт не рисует.
+    $pulseHour = date('H:00', $ruPulse['hour_start']);
+    $pulsePct  = $ruPulse['ratio'] !== null ? round($ruPulse['ratio'] * 100) : null;
+  ?>
+  <?php if ($ruPulse['state'] === 'down' || $ruPulse['state'] === 'warn'):
+    $isDown = $ruPulse['state'] === 'down';
+  ?>
+    <div class="card" style="margin-bottom:12px;padding:12px 14px;border-left:4px solid <?= $isDown ? '#dc2626' : '#f59e0b' ?>;background:<?= $isDown ? '#fef2f2' : '#fffbeb' ?>">
+      <b style="color:<?= $isDown ? '#b91c1c' : '#92400e' ?>">
+        <?= $isDown ? 'Трафик из России просел' : 'Трафик из России ниже обычного' ?>
+      </b>
+      — за час <?= h($pulseHour) ?> пришло <b><?= (int)$ruPulse['last'] ?></b> кликов,
+      обычно в это время <b><?= (int)$ruPulse['base'] ?></b><?= $pulsePct !== null ? ' (' . $pulsePct . '%)' : '' ?>.
+      <div class="muted" style="margin-top:4px">
+        Проверь домены редиректора в <a href="stats.php?tab=settings">Настройках</a>: если просел один домен,
+        а остальные в норме — дело в нём, пора переключаться. Если просели все — это общий спад трафика.
+      </div>
+    </div>
+  <?php endif; ?>
+
   <h1>Статистика: <?= h($PERIODS[$periodKey]) ?></h1>
   <?php $botsCnt = bots_counter_read(); ?>
   <div class="bots-box">
@@ -1025,6 +1053,65 @@ $msg = $_GET['msg'] ?? '';
       ['key'=>'deps',    'color'=>'#ea580c', 'label'=>'Депы (FTD)'],
     ];
   ?>
+  <?php
+    // ПУЛЬС ПО ЧАСАМ. Отдельно от месячного графика: тот показывает динамику
+    // бизнеса, а этот — жив ли редиректор прямо сейчас. Поэтому только живые
+    // клики из России и только по часам.
+    $ruVals   = array_values($ruHourly);
+    $ruKeys   = array_keys($ruHourly);
+    $ruMax    = max(1, max($ruVals ?: [0]));
+    $ruSum24  = array_sum(array_slice($ruVals, -24));
+    $ruPrev24 = array_sum(array_slice($ruVals, -48, 24));
+    $bw       = 100 / max(1, count($ruVals));   // ширина столбика в процентах
+    $pulseColor = ['ok' => '#16a34a', 'warn' => '#f59e0b', 'down' => '#dc2626', 'nodata' => '#94a3b8'][$ruPulse['state']];
+  ?>
+  <h1 style="margin-top:8px">Пульс редиректора (живые клики из России)</h1>
+  <div class="muted">
+    По часам за двое суток. Последний столбик — текущий час, он ещё не закончился
+    и всегда ниже остальных; алерт считается по предыдущему, полному.
+  </div>
+  <div class="card" style="margin-top:8px">
+    <div class="bots-box" style="margin-bottom:10px">
+      <span class="chip" style="background:#f6f7f9;border-color:#e2e4ea;color:#333">
+        Час <?= h($pulseHour) ?>: <b style="color:<?= $pulseColor ?>"><?= (int)$ruPulse['last'] ?></b>
+      </span>
+      <span class="chip" style="background:#f6f7f9;border-color:#e2e4ea;color:#333" title="Медиана этого же часа суток за предыдущие дни">
+        Обычно в это время: <b><?= (int)$ruPulse['base'] ?></b>
+        <?php if ($pulsePct !== null): ?><span style="color:var(--muted)">· сейчас <?= $pulsePct ?>%</span><?php endif; ?>
+      </span>
+      <span class="chip" style="background:#f6f7f9;border-color:#e2e4ea;color:#333">
+        Сутки: <b><?= (int)$ruSum24 ?></b>
+        <?php if ($ruPrev24 > 0): $dd = round(($ruSum24 - $ruPrev24) / $ruPrev24 * 100); ?>
+          <span style="color:<?= $dd < -20 ? '#b91c1c' : 'var(--muted)' ?>">· к предыдущим <?= $dd > 0 ? '+' : '' ?><?= $dd ?>%</span>
+        <?php endif; ?>
+      </span>
+      <?php if ($ruPulse['state'] === 'nodata'): ?>
+        <span class="chip" style="background:#f8fafc;border-color:#e2e8f0;color:#64748b">данных мало — алерт не считается</span>
+      <?php endif; ?>
+    </div>
+    <svg viewBox="0 0 100 30" preserveAspectRatio="none" style="width:100%;height:120px;background:#fafafa;border-radius:6px">
+      <?php foreach ($ruVals as $i => $v):
+        $hgt = $v / $ruMax * 28;
+        $isLast = $i === count($ruVals) - 1;
+      ?>
+        <rect x="<?= round($i * $bw, 3) ?>" y="<?= round(29 - $hgt, 3) ?>"
+              width="<?= round($bw * 0.8, 3) ?>" height="<?= round($hgt, 3) ?>"
+              fill="<?= $isLast ? '#cbd5e1' : '#2563eb' ?>">
+          <title><?= h(date('d.m H:00', $ruKeys[$i])) ?> — <?= (int)$v ?></title>
+        </rect>
+      <?php endforeach; ?>
+    </svg>
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px">
+      <span><?= h(date('d.m H:00', $ruKeys[0] ?? time())) ?></span>
+      <span><?= h(date('d.m H:00', $ruKeys[intdiv(count($ruKeys), 2)] ?? time())) ?></span>
+      <span><?= h(date('d.m H:00', end($ruKeys) ?: time())) ?></span>
+    </div>
+    <table style="margin-top:10px">
+      <thead><tr><th>Час</th><?php foreach (array_slice($ruKeys, -12) as $k): ?><th class="num"><?= h(date('H', $k)) ?></th><?php endforeach; ?></tr></thead>
+      <tbody><tr><td>Клики RU</td><?php foreach (array_slice($ruVals, -12) as $v): ?><td class="num"><?= (int)$v ?></td><?php endforeach; ?></tr></tbody>
+    </table>
+  </div>
+
   <h1 style="margin-top:8px">График за месяц</h1>
   <div class="muted">Наведи на график — покажет цифры за день. По оси X — дни, по Y — количество.</div>
   <div class="card chart-wrap" style="overflow-x:auto">
