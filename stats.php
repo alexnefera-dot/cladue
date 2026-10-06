@@ -1669,7 +1669,7 @@ const NEW = '<?= h($cur) ?>';</pre>
             <?php $offerLines = max(1, min(6, substr_count(trim($c['offer_url']), "\n") + 1)); ?>
             <textarea name="offer_url" rows="<?= $offerLines ?>" required
                       style="width:100%;min-width:280px;font:12px ui-monospace,monospace;resize:vertical"
-                      title="Одна ссылка — обычный оффер. Несколько строк — ротация трафика между ними. Вес: URL|3"><?= h($c['offer_url']) ?></textarea>
+                      title="Одна ссылка — обычный оффер. Несколько строк — ротация трафика между ними. Вес: URL|3&#10;Метку можно поставить вручную: {clickid} в любом месте ссылки — пригодится, когда партнёрка принимает её не под именем clickid (sub_id, subid и т.п.)"><?= h($c['offer_url']) ?></textarea>
             <button type="submit">Сохранить</button>
           </form>
         </td>
@@ -1775,7 +1775,12 @@ const NEW = '<?= h($cur) ?>';</pre>
     </table>
     <div class="muted">
       <code>${clickid}</code> — это макрос партнёрки (подставит наш clickid). Если у партнёрки макрос другой
-      (<code>{clickid}</code>, <code>{subid}</code>, <code>{externalid}</code>) — ставь его вместо <code>${clickid}</code>.
+      (<code>{clickid}</code>, <code>{subid}</code>, <code>##SUB_ID##</code>) — ставь его вместо <code>${clickid}</code>.
+      Важно: нужен тот макрос, который возвращает <b>наше</b> значение из ссылки, а не внутренний
+      идентификатор партнёрки. У платформ с макросами вида <code>##…##</code> это обычно
+      <code>##SUB_ID##</code>, а <code>##CLICK_ID##</code> — их собственный клик, он нам ничего не скажет.
+      А чтобы наша метка доехала до партнёрки под нужным именем, в ссылке оффера можно написать
+      <code>{clickid}</code> прямо там, где партнёрка её ждёт: <code>https://partner.top/abc?sub_id={clickid}</code>.
       Секрет <code>key</code> и список доменов меняются в <code>config.php</code>.
     </div>
   </div>

@@ -236,7 +236,16 @@ if (!$allow && $host) {
         if ($h === $d || substr($h, -strlen($d) - 1) === '.' . $d) { $allow = true; break; }
     }
 }
-if ($host && $allow) {
+// Метка {clickid} прямо в ссылке оффера. Разные партнёрки принимают наш
+// идентификатор под разными именами: у одной это clickid, у другой sub_id,
+// у третьей он вообще в середине пути. Имя параметра в config.php одно на всех,
+// поэтому для таких случаев место метки указывается в самой ссылке кампании:
+//   https://partner.top/abc?sub_id={clickid}
+// Явно написанная метка сильнее whitelist: её туда поставил человек руками,
+// а не код угадал по домену.
+if (stripos($dest, '{clickid}') !== false) {
+    $dest = str_ireplace('{clickid}', rawurlencode($clickid), $dest);
+} elseif ($host && $allow) {
     $param = $cfg['clickid_param'] ?? 'clickid';
     if (stripos($dest, $param . '=') === false) {
         $sep = (strpos($dest, '?') === false) ? '?' : '&';
