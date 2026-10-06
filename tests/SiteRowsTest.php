@@ -56,16 +56,32 @@ final class SiteRowsTest
         $pv->add(new SearchResult('q', 0, 1, 'https://pv.ru/', 'pv.ru', 'T'));
         $pv->visits = [['variant' => 1, 'url' => 'https://pv.ru/', 'ok' => true, 'error' => '', 'status' => 200, 'stage' => 'preview', 'html_file' => "$base/preview/pv.ru/variant-1.html"]];
 
+        // Шаблон на 7–9 страниц: набор страниц у него известен, поэтому пропуски спрашиваем.
         $dl = new Site('dl.ru', 'dl.ru', 'dl.ru');
         $dl->add(new SearchResult('q', 0, 1, 'https://dl.ru/', 'dl.ru', 'T'));
-        $dl->visits = [['variant' => 0, 'url' => 'https://dl.ru/', 'ok' => true, 'error' => '', 'status' => 200, 'stage' => 'download', 'html_file' => "$base/pages/dl.ru/main.html"]];
+        $dl->visits = [['variant' => 0, 'url' => 'https://dl.ru/', 'ok' => true, 'error' => '', 'status' => 200, 'stage' => 'download', 'template' => 'pages7', 'menu' => 8, 'html_file' => "$base/pages/dl.ru/main.html"]];
 
-        $rows = SiteRows::preview([$pv, $dl], $base);
+        // А это маленький шаблон: обе его страницы получены, терять нечего — требовать с него
+        // «регистрацию, вход, зеркало…» нельзя. Иначе в таблице выходило «2/2» и рядом список из
+        // пяти недостающих страниц — пользователь прочитал это как ошибку счёта.
+        mkdir($base . '/pages/small.ru', 0777, true);
+        file_put_contents("$base/pages/small.ru/main.html", '<p>home</p>');
+        file_put_contents("$base/pages/small.ru/o-nas.html", '<p>about</p>');
+        $sm = new Site('small.ru', 'small.ru', 'small.ru');
+        $sm->add(new SearchResult('q', 0, 1, 'https://small.ru/', 'small.ru', 'T'));
+        $sm->visits = [
+            ['variant' => 0, 'url' => 'https://small.ru/', 'ok' => true, 'error' => '', 'status' => 200, 'stage' => 'download', 'template' => 'other', 'html_file' => "$base/pages/small.ru/main.html"],
+            ['variant' => 1, 'url' => 'https://small.ru/o-nas', 'ok' => true, 'error' => '', 'status' => 200, 'stage' => 'download', 'template' => 'other', 'html_file' => "$base/pages/small.ru/o-nas.html"],
+        ];
+
+        $rows = SiteRows::preview([$pv, $dl, $sm], $base);
         Assert::false($rows[0]['downloaded'], 'сайт только со скриншотом сбора');
         Assert::same([], $rows[0]['key_missing'], 'до выгрузки про ключевые страницы ничего не известно');
         Assert::same([], $rows[0]['key_failed']);
         Assert::true($rows[1]['downloaded'], 'сайт прошёл выгрузку');
-        Assert::same(['registracia', 'vhod', 'zerkalo', 'bonus', 'app', 'slots'], $rows[1]['key_missing'], 'у выгруженного считаем как раньше');
+        Assert::same(['registracia', 'vhod', 'zerkalo', 'bonus', 'app', 'slots'], $rows[1]['key_missing'], 'у известного шаблона пропуски считаем как раньше');
+        Assert::same('pages5', $rows[2]['template'], 'две страницы и ни одной потери — маленький шаблон');
+        Assert::same([], $rows[2]['key_missing'], 'с маленького шаблона ключевые страницы не спрашиваем');
 
         $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($base, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
         foreach ($it as $item) {

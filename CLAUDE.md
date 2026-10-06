@@ -606,9 +606,23 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   site». The DOM parse only happens for pages the markers did not recognise, so a PAGES7/PAGES12 page
   costs nothing extra. `assembleVisit()` stores `template` + the new `menu` count per visit,
   `SiteRows::preview()` emits `menu` (max over ok visits) for the panel tooltip, `ofVisits()` falls back
-  to the stored `menu` when every vote is OTHER (a `sites.json` written before 1.39.0 already has no
-  `menu`, so it simply stays «без категории» until the pages are re-read by `backfillTemplates()`, which
-  now also stamps `menu`, and `saveTemplates()` persists it). CONSEQUENCES, all of them the point of the
+  to the stored `menu` when every vote is OTHER.
+  WHAT THE SITE GAVE US is the second fallback, added in 1.41.0 after the user hit the contradiction it
+  removes: «пишет 2/2, но перечисляется страниц которых не хватает» — the row said every page we tried
+  came back AND listed five missing key pages. When the vote is OTHER and no `menu` was recorded (a
+  collect made before 1.39.0 whose saved pages are gone), `ofVisits()` counts the site's DOWNLOAD-stage
+  visits: all of them ok, none lost (`PageVisitor::isRetryableVisit()` — a duplicate or a plain 404 is
+  not a loss, the site simply has fewer distinct pages) and at most `SMALL_MAX_PAGES` of them → SMALL.
+  The «none lost» condition is what keeps a 9-page template whose crawl only got 2 pages out of this
+  branch: there the missing pages are a real gap, not a small template. A preview-only site never
+  qualifies (no download visits) — after a collect only the home is open and judging the size is
+  premature. LAZY UPGRADE of an existing collect needed two more fixes, because the user's rows already
+  carried `template` from 1.33.0: `SiteRows::backfillTemplates()` now also re-reads a page whose type is
+  OTHER but has no `menu` key (a known family is never re-read — SMALL never overrides one),
+  `saveTemplates()` writes `menu` ONLY where it was actually computed (a blanket `menu: 0` would have
+  made the backfill skip those visits forever), and `bin/panel.php`'s `$stale` check keys on the NEWEST
+  row field (`menu`) instead of `template`, so rows built by an older version are rebuilt once on the
+  first poll. CONSEQUENCES, all of them the point of the
   change: `SiteRows::preview()` does not compute `key_missing`/`key_failed` for a SMALL site,
   `KeyPages::histogram()` skips it, and `PageVisitor::retryFailed()` adds no key-page guesses for it
   (nor for a site with no ok page at all — it needs its home first, not six guessed URLs). Covered by
@@ -616,7 +630,12 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `VisitTest::testVisitDetectsTemplateType` (fake hosts: a generic one has a 3-link menu → `pages5`, the
   new `bigmenu.ru` has a 7-link menu and no markers → `other`) and
   `PanelTest::testDownloadStageReportsTemplateTypes` / `testDownloadStageOpensCollectedSites` (the
-  small-template site is NOT asked for key pages while `bigmenu.ru` still is).
+  small-template site is NOT asked for key pages while `bigmenu.ru` still is),
+  `SiteTemplateTest::testSmallTemplateIsRecognisedByWhatTheSiteGaveUs` (the count rule and every case
+  that must NOT fire it), `SiteRowsTest::testKeyPagesAreCountedOnlyAfterDownload` (a two-page site gets
+  `pages5` and an empty `key_missing`, a `pages7` one is still asked) and
+  `PanelTest::testPanelBackfillsTemplateTypesAndReportsVersion` (status rows that have `template` but no
+  `menu` are rebuilt on the first poll and the small site's key-page chip disappears).
 - Collect stage (`stage=collect`) dedups to unique registrable domains (`unique_by=domain`) and, when
   `preview_shots` is on (panel default), runs a lightweight home-only screenshot visit into
   `runs/current/preview` (no crawl) so the results table previews volume + own sites before the full

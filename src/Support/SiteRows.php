@@ -279,7 +279,11 @@ final class SiteRows
             }
             foreach ($site->visits as &$v) {
                 $v = (array) $v;
-                if (!($v['ok'] ?? false) || (string) ($v['template'] ?? '') !== '') {
+                $type = (string) ($v['template'] ?? '');
+                // Перечитываем страницу, если типа нет совсем ИЛИ он «без категории», а размер меню не
+                // записан: именно по меню с 1.39.0 узнаётся маленький шаблон (1–5 стр.). Семейства
+                // (7–9 / 12–15) уже определены — их трогать незачем.
+                if (!($v['ok'] ?? false) || ($type !== '' && $type !== SiteTemplate::OTHER) || array_key_exists('menu', $v)) {
                     continue;
                 }
                 $file = (string) ($v['html_file'] ?? '');
@@ -326,7 +330,11 @@ final class SiteRows
                 $template = (string) ($site->visits[$i]['template'] ?? '');
                 if ($template !== '' && is_array($visit)) {
                     $visit['template'] = $template;
-                    $visit['menu'] = (int) ($site->visits[$i]['menu'] ?? 0);
+                    // Размер меню пишем только там, где он реально посчитан: нулём на нетронутых визитах
+                    // мы бы навсегда закрыли им дорогу к досчёту (backfillTemplates пропускает их).
+                    if (array_key_exists('menu', (array) $site->visits[$i])) {
+                        $visit['menu'] = (int) $site->visits[$i]['menu'];
+                    }
                 }
             }
             unset($visit);

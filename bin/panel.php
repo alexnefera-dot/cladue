@@ -363,9 +363,14 @@ if ($path === '/api/state') {
     // Таблица сайтов не должна пропадать после обновления страницы или перезапуска панели: если в статусе
     // нет списка (идёт выгрузка/докачка, была ошибка, статус стёрт), берём прошлый сбор из sites.json.
     $fromFile = empty($status['sites']);
-    // Строки прошлой версии (без поля template — тип вёрстки) один раз пересобираем из sites.json, дописав тип
-    // по сохранённому HTML: после обновления скрипта типы видны на прошлом сборе, новый сбор не нужен.
-    $stale = !$fromFile && !$running && is_array($status['sites'][0] ?? null) && !array_key_exists('template', $status['sites'][0]);
+    // Строки прошлой версии один раз пересобираем из sites.json, дописав недостающее по сохранённому
+    // HTML: после обновления скрипта новые признаки видны на ПРОШЛОМ сборе, пересобирать не нужно.
+    // Признак устаревшей строки — отсутствие самого нового поля: сперва это был template (тип вёрстки),
+    // с 1.39.0 — menu (размер меню, по нему узнаётся шаблон на 1–5 страниц). Без второй проверки строка
+    // со старым типом «без категории» так и осталась бы требовать ключевые страницы с маленького сайта.
+    $row0 = is_array($status['sites'][0] ?? null) ? $status['sites'][0] : null;
+    $stale = !$fromFile && !$running && $row0 !== null
+        && (!array_key_exists('template', $row0) || !array_key_exists('menu', $row0));
     if (($fromFile || $stale) && is_file($runDir . '/sites.json')) {
         $sites = \YandexSites\Support\SiteRows::load($runDir . '/sites.json');
         if (!$running && \YandexSites\Support\SiteRows::backfillTemplates($sites) > 0) {

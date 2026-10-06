@@ -99,6 +99,49 @@ final class SiteTemplateTest
         Assert::same(SiteTemplate::PAGES7, SiteTemplate::ofVisits([['ok' => true, 'template' => 'pages7', 'menu' => 3]]), 'семейство не пересчитываем');
     }
 
+    public function testSmallTemplateIsRecognisedByWhatTheSiteGaveUs(): void
+    {
+        // Сбор прошлой версии: размера меню в визитах нет. Тогда смотрим, ЧТО ВЫШЛО: сайт выгружен,
+        // все его страницы получены, и их мало — это маленький шаблон. Иначе в таблице стояло «2/2»
+        // и тут же «нет: регистрация, вход, зеркало…» — скачали всё, что сайт отдал, и сами же
+        // требуем с него полдюжины страниц, которых у него нет.
+        $page = static fn (bool $ok, string $stage = 'download', array $extra = []): array => $extra + [
+            'ok' => $ok,
+            'stage' => $stage,
+            'template' => 'other',
+            'url' => 'https://a.ru/x',
+            'html_file' => '/runs/current/pages/2-стр/a.ru/x.html',
+        ];
+
+        Assert::same(SiteTemplate::SMALL, SiteTemplate::ofVisits([$page(true), $page(true)]), 'две страницы и ни одной потери');
+        Assert::same(
+            SiteTemplate::SMALL,
+            SiteTemplate::ofVisits([$page(true), $page(true), $page(false, 'download', ['duplicate' => true, 'error' => 'дубликат'])]),
+            'дубликат — не потеря: у сайта просто меньше разных страниц',
+        );
+        Assert::same(
+            SiteTemplate::OTHER,
+            SiteTemplate::ofVisits([$page(true), $page(false, 'download', ['error' => 'таймаут'])]),
+            'страница не далась — настоящий размер сайта неизвестен',
+        );
+        Assert::same(
+            SiteTemplate::OTHER,
+            SiteTemplate::ofVisits(array_fill(0, 6, $page(true))),
+            'шесть страниц — уже не маленький шаблон',
+        );
+        Assert::same(
+            SiteTemplate::OTHER,
+            SiteTemplate::ofVisits([$page(true, 'preview', ['html_file' => '/runs/current/preview/a.ru/variant-1.html'])]),
+            'после сбора открыта одна главная — о размере сайта судить рано',
+        );
+        // Записанный размер меню точнее и имеет приоритет над «что вышло».
+        Assert::same(
+            SiteTemplate::OTHER,
+            SiteTemplate::ofVisits([$page(true, 'download', ['menu' => 8]), $page(true)]),
+            'в меню восемь страниц — выгрузили две, но шаблон не маленький',
+        );
+    }
+
     public function testHistogramCountsSitesByTypeInFixedOrder(): void
     {
         $mk = static function (string $host, string $type, bool $own = false): Site {

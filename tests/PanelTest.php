@@ -1216,13 +1216,29 @@ final class PanelTest
         mkdir($runDir . '/preview/old12.ru', 0777, true);
         file_put_contents($runDir . '/preview/old7.ru/variant-1.html', '<div class="filters-section"></div><div class="promo-text"></div><div class="tags-cloud"></div>');
         file_put_contents($runDir . '/preview/old12.ru/variant-1.html', '<div id="bonusPopup"></div><div id="winNotifications"></div><div id="reserved-aux"></div>');
+        // Третий сайт — выгруженный маленький шаблон прошлой версии: тип у него уже стоял («без
+        // категории»), поэтому раньше строка не пересобиралась и в таблице оставалось «1/1» рядом со
+        // списком «нет: регистрация, вход, зеркало…».
+        mkdir($runDir . '/pages/small.ru', 0777, true);
+        file_put_contents(
+            $runDir . '/pages/small.ru/main.html',
+            '<header class="site-header"><nav class="main-menu"><a href="/">Главная</a><a href="/o-nas">О нас</a><a href="/kontakty">Контакты</a></nav></header><h1>Сайт</h1><p>Текст.</p>',
+        );
         file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
         $row = static fn (string $host): array => ['host' => $host, 'domain' => $host, 'url' => "https://$host/", 'visits' => [
             ['variant' => 1, 'url' => "https://$host/", 'ok' => true, 'error' => '', 'status' => 200, 'html_file' => "$runDir/preview/$host/variant-1.html", 'screenshot_file' => ''],
         ]];
-        file_put_contents($runDir . '/sites.json', json_encode(['sites' => [$row('old7.ru'), $row('old12.ru')]]));
-        // Статус прошлой версии: строки таблицы без поля template.
-        file_put_contents($runDir . '/status.json', json_encode(['state' => 'done', 'phase' => 'done', 'sites' => [['host' => 'old7.ru', 'pages_ok' => 1, 'pages_total' => 1], ['host' => 'old12.ru', 'pages_ok' => 1, 'pages_total' => 1]]]));
+        $small = ['host' => 'small.ru', 'domain' => 'small.ru', 'url' => 'https://small.ru/', 'visits' => [
+            ['variant' => 0, 'url' => 'https://small.ru/', 'ok' => true, 'error' => '', 'status' => 200, 'stage' => 'download', 'template' => 'other', 'html_file' => "$runDir/pages/small.ru/main.html", 'screenshot_file' => ''],
+        ]];
+        file_put_contents($runDir . '/sites.json', json_encode(['sites' => [$row('old7.ru'), $row('old12.ru'), $small]]));
+        // Статус прошлой версии: тип вёрстки в строках уже есть, а размера меню (поле menu, с 1.39.0)
+        // ещё нет — по нему и видно, что строки собраны старым кодом и их надо пересобрать.
+        file_put_contents($runDir . '/status.json', json_encode(['state' => 'done', 'phase' => 'done', 'sites' => [
+            ['host' => 'old7.ru', 'pages_ok' => 1, 'pages_total' => 1, 'template' => ''],
+            ['host' => 'old12.ru', 'pages_ok' => 1, 'pages_total' => 1, 'template' => ''],
+            ['host' => 'small.ru', 'pages_ok' => 1, 'pages_total' => 1, 'template' => 'other', 'key_missing' => ['registracia', 'vhod']],
+        ]]));
 
         $socket = @stream_socket_server('tcp://127.0.0.1:0', $errno, $errstr);
         if ($socket === false) {
@@ -1251,10 +1267,13 @@ final class PanelTest
             Assert::same(\YandexSites\Cli\Application::VERSION_DATE, $state['version_date']);
             Assert::same($dir, $state['project_dir'], 'папка проекта для шапки панели');
             $types = [];
+            $byHost = [];
             foreach ($state['status']['sites'] as $r) {
                 $types[$r['host']] = $r['template'];
+                $byHost[$r['host']] = $r;
             }
-            Assert::same(['old7.ru' => 'pages7', 'old12.ru' => 'pages12'], $types, 'типы дописаны по сохранённому HTML');
+            Assert::same(['old7.ru' => 'pages7', 'old12.ru' => 'pages12', 'small.ru' => 'pages5'], $types, 'типы дописаны по сохранённому HTML');
+            Assert::same([], $byHost['small.ru']['key_missing'], 'с маленького шаблона ключевые страницы больше не спрашиваются');
             $saved = json_decode((string) file_get_contents($runDir . '/sites.json'), true);
             Assert::same('pages7', $saved['sites'][0]['visits'][0]['template'], 'типы записаны в sites.json');
             $status = json_decode((string) file_get_contents($runDir . '/status.json'), true);

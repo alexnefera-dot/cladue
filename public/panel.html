@@ -1480,10 +1480,16 @@ function renderResults(sites){
       const r=s.own_reason||'';
       dl=`<span class="tag" title="наш сайт по списку из системы запусков — исключён из выгрузки${r?'. Почему: '+esc(r):'. Пометка от старого сбора (по меткам) — пересоберите, чтобы сверить со списком'}">исключён как наш</span>`;
     }
-    else if(s.pages_total>0){ dl=`${s.pages_ok||0}/${s.pages_total}`; if((s.pages_ok||0)<s.pages_total && s.page_error) dl+=' '+errCell(s.page_error); if((s.pages_missing|0)>0) dl+=' '+errCell('нет файла на диске: '+s.pages_missing+' — докачайте'); }
+    else if(s.pages_total>0){
+      // N/M — это «получили N из M страниц, которые нашли в меню сайта», а НЕ «из скольких страниц
+      // состоит шаблон». Без подписи «2/2» рядом со списком недостающих страниц читалось как ошибка счёта.
+      dl=`<span title="Получено ${s.pages_ok||0} из ${s.pages_total} страниц, которые нашлись в меню сайта. Это не «сколько страниц должно быть у шаблона» — столько мы у сайта нашли и попробовали открыть">${s.pages_ok||0}/${s.pages_total}</span>`;
+      if((s.pages_ok||0)<s.pages_total && s.page_error) dl+=' '+errCell(s.page_error);
+      if((s.pages_missing|0)>0) dl+=' '+errCell('нет файла на диске: '+s.pages_missing+' — докачайте');
+    }
     else if(s.page_error) dl=errCell(s.page_error);
     const km=keyMissingText(s);
-    if(km) dl+=` <span class="tag diff" title="Этих страниц нет: на них ссылается готовый контент. «Добрать всё» попробует их получить">нет: ${km}</span>`;
+    if(km) dl+=` <span class="tag diff" title="Этих страниц у сайта нет, а готовый контент на них ссылается — выйдет «ссылка в никуда». «Добрать всё» попробует взять их по стандартным адресам. У шаблонов на 1–5 страниц такой набор не предусмотрен, с них эти страницы не спрашиваются">нет: ${km}</span>`;
     if(retryActive.has(s.host)) dl+=' <span class="tag" title="докачивается">докачивается…</span>';
     else if(retryQueue.has(s.host)) dl+=' <span class="tag" title="в очереди на докачку">в очереди</span>';
     let files=[];
