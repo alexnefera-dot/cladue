@@ -396,9 +396,22 @@ GENERIC_DOMAINS = re.compile(r"^(?:[\w.-]+@)?(?:mirror\d*|proxy\d*|example|domai
              "know", "your", "customer"}   # «Know Your Customer» — это KYC
 
 
+# Русское прилагательное в косвенном падеже: «Королевскому Дару», «Адмиральскому
+# Залпу» — это название нашего же бонуса внутри фразы, а не чужое казино. Бренд
+# стоит в именительном («казино Вулкан»), а склоняется у него существительное
+# («в Вулкане»), поэтому такие окончания у названия не встречаются.
+КОСВЕННОЕ_ПРИЛ = re.compile(r"(?i)(?:ого|его|ому|ему|ую|юю|ых|их|ыми|ими)$")
+
+
+def _не_бренд(tok):
+    """Слово, которое не может быть чужим названием: аббревиатура или склонённое прилагательное."""
+    return bool(tok.isupper() and len(tok) <= 4
+                or tok[0] >= "А" and КОСВЕННОЕ_ПРИЛ.search(tok))
+
+
 def _твин_мимо(tok):
     """Слово, которое не может быть чужим названием: служебное или обычное русское."""
-    if tok.isupper() and len(tok) <= 4:
+    if _не_бренд(tok):
         return True
     return tok.lower() in (CYR_WHITELIST if tok[0] >= "А" else ТВИН_СТОП)
 
@@ -409,7 +422,7 @@ def brand_hits(text):
     for m in re.finditer(r"\b([A-Z][A-Za-z0-9]{2,}|[А-ЯЁ][А-Яа-яЁё]{2,})\b", text):
         tok = m.group(1)
         свой = LATIN_WHITELIST if tok[0] < "А" else CYR_WHITELIST
-        if tok.lower() in свой or (tok.isupper() and len(tok) <= 4):
+        if tok.lower() in свой or _не_бренд(tok):
             continue
         before = text[max(0, m.start() - 30): m.start()]
         after = text[m.end(): m.end() + 24]
@@ -447,6 +460,10 @@ def _пара_имени(tok, след):
             and (tok[0] < "А") == (след[0] < "А"))
 
 
+# Конец предложения между двумя словами: заготовка генератора через него не тянется.
+КОНЕЦ_ФРАЗЫ = re.compile(r"[.!?;…]")
+
+
 def brand_twins(text):
     """Чужое название на месте плейсхолдера в такой же фразе.
 
@@ -455,9 +472,18 @@ def brand_twins(text):
     Зачин берём в два слова и без плейсхолдеров, поэтому обычное слово сюда
     почти не попадает; латинский словарь тут не применяем — в нём есть слова
     вроде lucky и bird, из которых и собраны такие названия.
+
+    Зачин и слово обязаны стоять в одном предложении. Иначе зачином оказывается
+    хвост предыдущей фразы, и под правило попадает любое русское слово с большой
+    буквы в начале своего предложения («…в журнале операций. Площадка работает
+    с 2020 года»): заготовка через точку не продолжается.
     """
     матчи = list(ТОКЕН_ФРАЗЫ.finditer(text))
     токены = [m.group(0) for m in матчи]
+
+    def одна_фраза(i):
+        return not КОНЕЦ_ФРАЗЫ.search(text[матчи[i - 2].start(): матчи[i].start()])
+
     зачины = set()
     for i, tok in enumerate(токены):
         if not tok.startswith("%brand_name") or i < 2:
@@ -465,11 +491,15 @@ def brand_twins(text):
         пара = (токены[i - 2], токены[i - 1])
         if any(w.startswith("%brand_name") for w in пара):
             continue   # «Доступ %brand_name_ru% %brand_name_en%» — это не зачин, а хвост
+        if not одна_фраза(i):
+            continue
         зачины.add((пара[0].lower(), пара[1].lower()))
     найдено = Counter()
     for i, m in enumerate(матчи):
         tok = токены[i]
         if i < 2 or (токены[i - 2].lower(), токены[i - 1].lower()) not in зачины:
+            continue
+        if not одна_фраза(i):
             continue
         if not ЗАГЛАВНЫЙ_ТОКЕН.match(tok) or _твин_мимо(tok):
             continue

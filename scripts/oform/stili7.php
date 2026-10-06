@@ -291,7 +291,12 @@ $sc .payout-row-time{margin-left:0}
 function v7Структура(array $т, string $sc): string {
     $а = $т['акцент']; $на = $т['наАкценте'];
     $кнопка = "display:inline-block;padding:10px 20px;border-radius:999px;font-weight:600;font-size:.92rem;border:1px solid $а;background:$а;color:$на";
-    $только = ":has(>a):not(:has(>:not(a)))";
+    // Ряд кнопок — div без класса, внутри которого только ссылки. Текстовые узлы
+    // CSS не видит, поэтому под «только ссылки» подходит и ответ FAQ
+    // (<div itemprop="text">… <a>информация о бонусах</a>, где показаны …</div>):
+    // ссылка посреди фразы становилась кнопкой, а flex рвал фразу на куски.
+    // Разметка schema.org — обёртка содержания, а не ряд кнопок, и из слоя выпадает.
+    $только = ":not([itemprop]):has(>a):not(:has(>:not(a)))";
     return "
 $sc section:not([class]),$sc aside:not([class]){background:var(--карта);border:1px solid var(--рам);border-radius:var(--r);padding:clamp(16px,2.6vw,26px)}
 $sc section:not([class])>p:first-child{font-size:1.05rem;color:var(--тус)}
