@@ -256,19 +256,27 @@ def fix_brand_head(raw, зачин):
     return raw, ([("зачин бренда", "снят", "%d" % n)] if n else [])
 
 
+# Приставки, под которыми выкачка сохраняет главную: «ru.html», «ru-ru.html»,
+# «RU-ru.html», «rus.html». Регистр и дефис у приставки разные, страница одна и та же.
+ПРИСТАВКА_ГЛАВНОЙ = re.compile(r"(?i)^(?:ru|ru-ru|rus|ru_ru)\.html$")
+
+
 def fix_glavnaya(dp, fn):
     """Главная, скачанная под языковой приставкой: «ru.html» вместо «main.html».
 
     Переименовываем только когда main.html в наборе нет. Если лежат оба, ru.html —
-    побайтовая копия главной, и её ловит D1 как дубль файла. Без переименования набор
-    считается неполным (A4) и сайт убирается из выдачи целиком.
+    побайтовая копия главной, и её ловит D1 как дубль файла. Без переименования
+    комплект уходит без главной, а импорт без «main.html» не принимает всю партию.
     """
-    if "ru.html" not in fn or "main.html" in fn:
+    if "main.html" in fn:
         return fn
-    os.rename(os.path.join(dp, "ru.html"), os.path.join(dp, "main.html"))
-    print("%-45s %-9s -> %-16s %s" % (os.path.basename(dp), "ru.html", "main.html",
+    под = [f for f in fn if ПРИСТАВКА_ГЛАВНОЙ.match(f)]
+    if len(под) != 1:
+        return fn          # ни одной — переименовывать нечего; две — какая из них главная, неясно
+    os.rename(os.path.join(dp, под[0]), os.path.join(dp, "main.html"))
+    print("%-45s %-9s -> %-16s %s" % (os.path.basename(dp), под[0], "main.html",
                                       "главная под приставкой"))
-    return [f for f in fn if f != "ru.html"] + ["main.html"]
+    return [f for f in fn if f != под[0]] + ["main.html"]
 
 
 def site_brands(files):

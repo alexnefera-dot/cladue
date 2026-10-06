@@ -123,7 +123,8 @@ BRAND_LINE = re.compile(r"^\s*<p>(?:Казино\s+|Casino\s+)?((?:[A-Z][A-Za-z0
 # Обычные русские слова, которые стоят в тех же оборотах, что и бренд
 # («Зеркало казино», «казино Сегодня»): бренд по ним не определяется.
 CYR_WHITELIST = {"актуальная", "актуальное", "актуальные", "альтернативный", "анонсы", "бонус",
-    "бонусы", "быстрые", "быстрый", "войти", "время", "все", "вход", "выдержки", "где", "главная",
+    "бонусы", "бро", "быстрые", "быстрый", "войти", "время", "все", "вход", "выдержки", "где",
+    "главная", "логика", "мгновенно", "отличное", "развернуть",
     "продукты", "проверил", "проверила", "предыдущие", "круглосуточно", "название",
     "аэропорт", "преимущества", "недостатки", "особенности", "возможности",
     "контакты", "контакт", "бот", "круглосуточная", "круглосуточный", "платформа",
@@ -176,7 +177,7 @@ CYR_WHITELIST = {"актуальная", "актуальное", "актуаль
     "общую", "сканируйте", "прямое", "орден", "методика"}
 
 LATIN_WHITELIST = {
-    "rtp", "vpn", "ios", "android", "app", "store", "google", "play", "pwa",
+    "rtp", "vpn", "ios", "android", "app", "store", "google", "play", "pwa", "ltd", "tea",
     "ssl", "live", "faq", "usdt", "bitcoin", "btc", "eth", "ethereum",
     "litecoin", "tron", "visa",
     "mastercard", "mir", "skrill", "neteller", "trustly", "telegram",
@@ -392,7 +393,7 @@ GENERIC_DOMAINS = re.compile(r"^(?:[\w.-]+@)?(?:mirror\d*|proxy\d*|example|domai
 ТВИН_СТОП = {"casino", "club", "bet", "online", "app", "mobile", "bonus",
              "promo", "mirror", "slots", "vip", "live", "faq", "google", "apple",
              "yandex", "windows", "chrome", "safari", "telegram", "whatsapp",
-             "email", "visa", "mastercard", "android", "ios", "web",
+             "email", "visa", "mastercard", "android", "ios", "web", "ltd",
              "know", "your", "customer"}   # «Know Your Customer» — это KYC
 
 
