@@ -22,7 +22,7 @@ use YandexSites\Visit\VisitJob;
  */
 final class VisitTest
 {
-    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'agegate.ru', 'ourtpl.ru', 'brand-a.tpl.ru', 'brand-b.tpl.ru', 'footeronly.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru', 'softsite.ru', 'duptest.ru', 'localeretry.ru', 'brandnet.ru', 'kush.brandnet.ru', 'namedup.ru', 'bigpage.ru', 'tpl7.ru', 'tpl12.ru', 'botblock.ru', 'offerwall.ru', 'alwaysoffer.ru', 'ourdoor.ru', 'redir-hub.ru', 'ourfail.ru'];
+    private const HOSTS = ['okna-moskva.ru', 'onepager.ru', 'agegate.ru', 'ourtpl.ru', 'brand-a.tpl.ru', 'brand-b.tpl.ru', 'footeronly.ru', 'variant-site.ru', 'honest-site.ru', 'dead-site.ru', 'redirect-site.ru', 'other-domain.ru', 'softsite.ru', 'duptest.ru', 'localeretry.ru', 'brandnet.ru', 'kush.brandnet.ru', 'namedup.ru', 'bigpage.ru', 'tpl7.ru', 'tpl12.ru', 'bigmenu.ru', 'refblock.ru', 'botblock.ru', 'offerwall.ru', 'alwaysoffer.ru', 'ourdoor.ru', 'redir-hub.ru', 'ourfail.ru'];
 
     private ?string $dir = null;
 
@@ -183,10 +183,11 @@ final class VisitTest
 
     public function testVisitDetectsTemplateType(): void
     {
-        // Тип вёрстки определяется по HTML уже при визите (превью главной после сбора): 7–9 / 12–15 / без категории.
+        // Тип вёрстки определяется по HTML уже при визите (превью главной после сбора): 7–9 / 12–15 /
+        // 1–5 стр. (по размеру меню, признаков у таких шаблонов нет) / без категории.
         $port = FakeServer::port();
         $sites = [];
-        foreach (['tpl7.ru', 'tpl12.ru', 'okna-moskva.ru'] as $host) {
+        foreach (['tpl7.ru', 'tpl12.ru', 'okna-moskva.ru', 'bigmenu.ru'] as $host) {
             $site = new Site($host, $host, $host);
             $site->add(new SearchResult('окна', 0, 1, "http://$host:$port/", $host, 'T'));
             $sites[$host] = $site;
@@ -195,8 +196,15 @@ final class VisitTest
         $visitor->visit($sites);
         Assert::same(SiteTemplate::PAGES7, $sites['tpl7.ru']->visits[0]['template']);
         Assert::same(SiteTemplate::PAGES12, $sites['tpl12.ru']->visits[0]['template']);
-        Assert::same(SiteTemplate::OTHER, $sites['okna-moskva.ru']->visits[0]['template'], 'обычный сайт — без категории');
-        Assert::same([SiteTemplate::PAGES7 => 1, SiteTemplate::PAGES12 => 1, SiteTemplate::OTHER => 1], SiteTemplate::histogram($sites));
+        // Меню из трёх внутренних страниц — это шаблон на 1–5 страниц, а не «неизвестно что».
+        Assert::same(SiteTemplate::SMALL, $sites['okna-moskva.ru']->visits[0]['template'], 'меню из 3 страниц — шаблон 1–5 стр.');
+        Assert::same(3, $sites['okna-moskva.ru']->visits[0]['menu'], 'размер меню сохранён в визите');
+        // А вот большое меню без признаков семейств — именно «без категории»: размер не маленький.
+        Assert::same(SiteTemplate::OTHER, $sites['bigmenu.ru']->visits[0]['template'], 'большое меню — без категории');
+        Assert::same(
+            [SiteTemplate::SMALL => 1, SiteTemplate::PAGES7 => 1, SiteTemplate::PAGES12 => 1, SiteTemplate::OTHER => 1],
+            SiteTemplate::histogram($sites),
+        );
     }
 
     public function testVisitsRotateThroughProxyList(): void
@@ -1343,6 +1351,73 @@ final class VisitTest
 
         Assert::false($results['d']['ok']);
         Assert::true($results['d']['error'] !== '');
+    }
+
+    public function testVisitorFromSearchIsRetriedWithoutReferer(): void
+    {
+        // Сайт закрыт не от нашего IP и не от робота, а от посетителя ИЗ ПОИСКА: с реферером яндекса
+        // он отдаёт 403-заглушку, прямым заходом — страницу. Повтор перебирает и реферер тоже, поэтому
+        // страница всё-таки скачивается. Агенты при этом НЕ перебираем — проверяем именно реферер.
+        $port = FakeServer::port();
+        $site = new Site('refblock.ru', 'refblock.ru', 'refblock.ru');
+        $site->add(new SearchResult('казино', 0, 1, "http://refblock.ru:$port/", 'refblock.ru', 'RB'));
+
+        $cfg = [
+            'variants' => 1,
+            'dir' => $this->dir() . '/refblock',
+            'screenshot' => false,
+            'timeout' => 5,
+            'delay_ms' => 0,
+            'retries' => 2,
+            'retry_user_agents' => false,
+            'preview_retries' => 0,
+            'referer' => 'serp',
+            'resolve' => $this->resolve($port),
+            'user_agents' => [UserAgents::BROWSERS[0]],
+        ];
+        (new PageVisitor($cfg, new CurlDriver(), $this->logger()))->visit(['refblock.ru' => $site]);
+
+        $visit = (array) $site->visits[0];
+        Assert::true((bool) ($visit['ok'] ?? false), 'страница добралась другим способом: ' . (string) ($visit['error'] ?? ''));
+        Assert::same('', (string) ($visit['referer'] ?? 'нет'), 'в отчёте стоит тот заход, который сработал — прямой');
+
+        // А с выключенным перебором рефереров сайт так и остаётся закрытым.
+        $site2 = new Site('refblock.ru', 'refblock.ru', 'refblock.ru');
+        $site2->add(new SearchResult('казино', 0, 1, "http://refblock.ru:$port/", 'refblock.ru', 'RB'));
+        $off = $cfg;
+        $off['dir'] = $this->dir() . '/refblock-off';
+        $off['retry_referers'] = false;
+        (new PageVisitor($off, new CurlDriver(), $this->logger()))->visit(['refblock.ru' => $site2]);
+        Assert::false((bool) (((array) $site2->visits[0])['ok'] ?? false), 'без перебора рефереров сайт не открывается');
+    }
+
+    public function testPreviewRetryAlternatesRefererAndProxy(): void
+    {
+        // «Перепробовать без превью» тоже меняет способ захода, а не только IP: первая же попытка идёт
+        // прямым заходом, и сайт, закрытый от посетителя из поиска, открывается.
+        $port = FakeServer::port();
+        $site = new Site('refblock.ru', 'refblock.ru', 'refblock.ru');
+        $site->add(new SearchResult('казино', 0, 1, "http://refblock.ru:$port/", 'refblock.ru', 'RB'));
+        $site->visits[] = ['variant' => 1, 'url' => "http://refblock.ru:$port/", 'ok' => false, 'error' => 'заблокировано (антибот/Cloudflare, HTTP 403)', 'proxy' => 'direct', 'user_agent' => UserAgents::YANDEX_BOT];
+
+        $visitor = new PageVisitor([
+            'variants' => 1,
+            'dir' => $this->dir() . '/refprev',
+            'screenshot' => false,
+            'timeout' => 5,
+            'delay_ms' => 0,
+            'retries' => 0,
+            'preview_retries' => 2,
+            'referer' => 'serp',
+            'resolve' => $this->resolve($port),
+            'user_agents' => UserAgents::VISITORS,
+        ], new CurlDriver(), $this->logger());
+        $out = $visitor->retryPreview(['refblock.ru' => $site]);
+
+        Assert::same(1, $out['attempted']);
+        Assert::same(1, $out['recovered'], 'сайт открылся прямым заходом');
+        Assert::same(1, count($site->visits), 'удачная попытка заменила неудачный визит того же варианта');
+        Assert::true((bool) (((array) $site->visits[0])['ok'] ?? false));
     }
 
     public function testBlockedBotIsRetriedUnderBrowserUserAgent(): void

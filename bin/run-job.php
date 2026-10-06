@@ -330,7 +330,7 @@ function buildOverrides(array $s, string $runDir): array
     if (isset($s['browsers'])) {
         $overrides['visit.browsers'] = max(1, min(16, (int) $s['browsers']));
     }
-    // Добор ключевых страниц по стандартным адресам (кнопка «Добрать ключевые»): включается только для
+    // Добор ключевых страниц по стандартным адресам (кнопка «Добрать всё»): включается только для
     // этой докачки, обычная докачка лишних запросов не делает.
     $overrides['visit.retry_key_pages'] = (bool) ($s['retry_key_pages'] ?? false);
     if (isset($s['visit_dir'])) {

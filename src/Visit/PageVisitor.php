@@ -28,6 +28,9 @@ final class PageVisitor
     /** Распознавать ли витрину чужих офферов вместо сайта (visit.detect_offer_walls). */
     private bool $detectOfferWalls;
 
+    /** Чередовать ли реферер на повторах: заход «из выдачи» и заход напрямую (visit.retry_referers). */
+    private bool $retryReferers;
+
     private OwnSites $ownSites;
 
     /**
@@ -48,6 +51,7 @@ final class PageVisitor
         // значит «не менять агент», иначе это браузеры из того же visit.user_agents.
         $this->retryAgents = ($cfg['retry_user_agents'] ?? true) ? UserAgents::browsersFrom($this->userAgents) : [];
         $this->detectOfferWalls = (bool) ($cfg['detect_offer_walls'] ?? true);
+        $this->retryReferers = (bool) ($cfg['retry_referers'] ?? true);
         $this->ownSites = new OwnSites((array) ($cfg['own_bases'] ?? []));
     }
 
@@ -151,8 +155,9 @@ final class PageVisitor
             $site->visits[] = $visit;
         }
 
-        // Сайты, у которых так и не открылась ни одна страница, пробуем ещё раз — с другого прокси
-        // и под другим браузерным агентом: часть из них отдаётся не с первого раза.
+        // Сайты, у которых так и не открылась ни одна страница, пробуем ещё — каждый раз ДРУГИМ
+        // способом: другой прокси, другой браузерный агент и другой реферер (из выдачи / прямой заход).
+        // Часть сайтов закрыта не от нашего IP, а от робота или от посетителя из поиска.
         $this->retryPreview($sites);
         $this->markMissingFiles($sites);
         $this->logSiteSummary($sites);
@@ -172,7 +177,9 @@ final class PageVisitor
      * таблице панели). Внутри обычного визита повтор уже был (runWithRetry — другой прокси и другой
      * агент), но часть сайтов открывается не с первого раза: подвис прокси, сработал лимит, антибот
      * пустил «посетителя», но не робота. Поэтому здесь ещё `visit.preview_retries` попыток, и КАЖДАЯ —
-     * с другим прокси И другим браузерным агентом, с растущим таймаутом.
+     * с другим прокси, другим браузерным агентом И другим реферером (нечётная попытка — прямой заход
+     * без реферера, чётная — снова «из выдачи»), с растущим таймаутом. Это и есть «разные способы»:
+     * сайт может быть закрыт не от нашего IP, а от робота или от посетителя из поиска.
      *
      * Удачный заход ЗАМЕНЯЕТ неудачный визит того же варианта, поэтому счётчик страниц не раздувается,
      * а в отчёте стоят тот прокси и агент, которые реально сработали.
@@ -217,7 +224,9 @@ final class PageVisitor
                     siteKey: (string) $key,
                     variant: 1,
                     url: $url,
-                    referer: $this->referer($site),
+                    // Нечётная попытка — прямой заход без реферера, чётная — снова «из выдачи»:
+                    // первый заход уже был с реферером и не удался, значит пробуем ДРУГОЙ способ.
+                    referer: $this->retryReferer($this->referer($site), $attempt),
                     userAgent: $agents[($attempt - 1) % count($agents)],
                     proxyUrl: $proxy?->url,
                     proxyLabel: $proxy?->label ?? 'direct',
@@ -228,10 +237,11 @@ final class PageVisitor
             $options = $this->driverOptions();
             $options['timeout'] = (int) $options['timeout'] + 20 * $attempt;
             $this->log->info(sprintf(
-                'Ещё попытка открыть сайты без превью (%d из %d): %d сайтов, другой прокси и браузерный агент, таймаут %d с…',
+                'Ещё попытка открыть сайты без превью (%d из %d): %d сайтов, другой прокси и браузерный агент, %s, таймаут %d с…',
                 $attempt,
                 $iterations,
                 count($jobs),
+                $attempt % 2 === 1 && $this->retryReferers ? 'прямой заход без реферера' : 'заход из выдачи',
                 $options['timeout'],
             ));
             $total = count($jobs);
@@ -312,6 +322,8 @@ final class PageVisitor
             // агент), в отчёте должен стоять он, а не отказавший первый заход.
             'proxy' => (string) ($result['retry_proxy'] ?? $job->proxyLabel),
             'user_agent' => (string) ($result['retry_user_agent'] ?? $job->userAgent),
+            // С реферером из выдачи страница взялась или прямым заходом — видно, как сайт пускает.
+            'referer' => (string) ($result['retry_referer'] ?? $job->referer),
             'ok' => (bool) $result['ok'],
             'error' => (string) ($result['error'] ?? ''),
             'status' => $result['status'] ?? null,
@@ -321,7 +333,8 @@ final class PageVisitor
             'screenshot_file' => '',
             'fingerprint' => '',
             'text_length' => 0,
-            'template' => '', // тип вёрстки по HTML (SiteTemplate): pages7 / pages12 / other
+            'template' => '', // тип вёрстки по HTML (SiteTemplate): pages7 / pages12 / pages5 / other
+            'menu' => 0, // сколько внутренних ссылок в меню страницы — по ним узнаётся маленький шаблон
             // Цепочка редиректов (все промежуточные адреса): по ней опознаётся наш редиректор.
             'redirects' => array_values(array_map('strval', (array) ($result['redirects'] ?? []))),
         ];
@@ -400,8 +413,11 @@ final class PageVisitor
             $visit['html_file'] = $job->htmlFile;
             $visit['fingerprint'] = $fingerprint['hash'];
             $visit['text_length'] = $fingerprint['length'];
-            // Тип вёрстки (7–9 / 12–15 страниц / без категории) — по этой же странице, без лишнего чтения.
-            $visit['template'] = SiteTemplate::guess($html);
+            // Тип вёрстки (7–9 / 12–15 / 1–5 страниц / без категории) — по этой же странице, без лишнего
+            // чтения. Признаков семейств нет — считаем ссылки меню: у маленького шаблона их 1–4.
+            $page = SiteTemplate::ofPage($html, $visit['final_url'] !== '' ? (string) $visit['final_url'] : $job->url, $siteDomain);
+            $visit['template'] = $page['type'];
+            $visit['menu'] = $page['menu'];
             if ($visit['title'] === '') {
                 $visit['title'] = $fingerprint['title'];
             }
@@ -685,7 +701,12 @@ final class PageVisitor
             // Ключевая страница, ссылки на которую в меню не нашлось: пробуем стандартный адрес
             // (/registracia, /vhod, …) — готовый контент всё равно на неё ссылается. Если такой страницы
             // нет, ответ 404 просто не сохранится и повторов не будет.
-            if (!empty($this->cfg['retry_key_pages'])) {
+            // Догадки по стандартным адресам имеют смысл только там, где сайт вообще отвечает и где
+            // такой набор страниц предусмотрен шаблоном: у маленького шаблона (1–5 стр.) их нет, и
+            // шесть лишних запросов на сайт — это только время. Сайту, не отдавшему НИ ОДНОЙ страницы,
+            // сначала нужна главная, а не угаданные адреса.
+            $small = SiteTemplate::ofVisits(array_map(static fn ($v): array => (array) $v, $site->visits)) === SiteTemplate::SMALL;
+            if (!empty($this->cfg['retry_key_pages']) && $hasOk && !$small) {
                 // Корень сайта — от уже открытой страницы (там верные схема и хост после редиректов).
                 $known = (string) ($site->firstVisit()['final_url'] ?? '');
                 if ($known === '') {
@@ -753,7 +774,10 @@ final class PageVisitor
                         siteKey: (string) $key,
                         variant: is_int($i) ? $i : count($st['site']->visits),
                         url: $url,
-                        referer: $this->referer($st['site']),
+                        // Нулевой заход повторяет обход (реферер из выдачи — для дора это правильный
+                        // посетитель), дальше чередуем с прямым заходом: сайт мог отказать именно
+                        // посетителю из поиска, уводя его редиректом.
+                        referer: $this->retryReferer($this->referer($st['site']), $it),
                         userAgent: $jobUa,
                         proxyUrl: $proxy?->url,
                         proxyLabel: $proxy?->label ?? 'direct',
@@ -770,12 +794,13 @@ final class PageVisitor
             $opts = $options;
             $opts['timeout'] = $baseTimeout + 15 * $it;
             $this->log->info(sprintf(
-                'Докачка, попытка %d из %d: %d стр. на %d сайтах через другие прокси%s…',
+                'Докачка, попытка %d из %d: %d стр. на %d сайтах через другие прокси%s%s…',
                 $it + 1,
                 $iterations,
                 count($jobs),
                 count($state),
                 $asBrowser ? ' под браузером' : '',
+                $it % 2 === 1 && $this->retryReferers ? ', прямым заходом (без реферера)' : '',
             ));
             $results = $this->driver->visit($jobs, $opts, $silent);
             foreach ($jobs as $job) {
@@ -1016,7 +1041,7 @@ final class PageVisitor
     /**
      * Визит стоит перекачать: неуспех, но не наш/заглушка/дубликат; 404 — только если есть языковой
      * префикс (его можно убрать). Публичный и статический — по нему панель считает, у каких сайтов
-     * есть что докачивать, чтобы кнопка «Докачать с ошибками» совпадала с тем, что реально чинится.
+     * есть что докачивать, чтобы кнопка «Добрать всё» совпадала с тем, что реально чинится.
      *
      * @param array<string, mixed> $visit
      */
@@ -1435,17 +1460,25 @@ final class PageVisitor
         }
         $proxies = $this->proxyList();
         $proxyIndex = 0;
+        // Исходный реферер задания: чередование «с реферером / без» должно возвращаться к нему.
+        $refererOf = [];
+        foreach ($jobs as $job) {
+            $refererOf[$job->id] = $job->referer;
+        }
         $silent = function (VisitJob $job, array $result): void {
             $this->log->debug(sprintf('  повтор %s — %s', $job->url, ($result['ok'] ?? false) ? 'ок' : 'снова ошибка'));
         };
         for ($attempt = 1; $attempt <= $retries; $attempt++) {
             $retry = [];
             $asBrowser = false;
+            $noReferer = false;
             foreach ($jobs as $job) {
                 if ($this->isRetryable($results[$job->id] ?? [], $job)) {
                     $ua = $this->retryUserAgent($job->userAgent, $attempt);
+                    $ref = $this->retryReferer($job->referer, $attempt, $refererOf[$job->id] ?? '');
                     $asBrowser = $asBrowser || $ua !== $job->userAgent;
-                    $retry[] = $this->withRetry($job, $this->pickRetryProxy($proxies, $job->proxyLabel, $proxyIndex), $ua);
+                    $noReferer = $noReferer || ($ref === '' && $job->referer !== '');
+                    $retry[] = $this->withRetry($job, $this->pickRetryProxy($proxies, $job->proxyLabel, $proxyIndex), $ua, $ref);
                 }
             }
             if ($retry === []) {
@@ -1454,11 +1487,12 @@ final class PageVisitor
             $opts = $options;
             $opts['timeout'] = (int) ($options['timeout'] ?? (int) ($this->cfg['timeout'] ?? 30)) + 20 * $attempt;
             $this->log->info(sprintf(
-                'Повтор загрузки (попытка %d из %d): %d стр. через другой прокси%s, таймаут %d с…',
+                'Повтор загрузки (попытка %d из %d): %d стр. через другой прокси%s%s, таймаут %d с…',
                 $attempt,
                 $retries,
                 count($retry),
                 $asBrowser ? ' и под браузером (робота не пустили)' : '',
+                $noReferer ? ', прямым заходом (без реферера)' : '',
                 $opts['timeout'],
             ));
             // Кто именно сходил на страницу в этот раз: прокси и агент повтора. Визит собирается по
@@ -1472,6 +1506,7 @@ final class PageVisitor
                 if ($job !== null) {
                     $result['retry_proxy'] = $job->proxyLabel;
                     $result['retry_user_agent'] = $job->userAgent;
+                    $result['retry_referer'] = $job->referer;
                 }
                 $results[$id] = $result;
             }
@@ -1580,15 +1615,33 @@ final class PageVisitor
         return $ua;
     }
 
+    /**
+     * Реферер для повторной попытки: ЧЕРЕДУЕМ заход «из выдачи» (как пришёл бы живой посетитель
+     * Яндекса) и заход НАПРЯМУЮ, без реферера. Сайты сети по-разному относятся к этим двум случаям:
+     * одни отдают страницу только посетителю из поиска, другие, наоборот, уводят такого посетителя
+     * редиректом и показывают контент только при прямом заходе. Пара «прокси + агент + реферер» и
+     * есть «разные способы достучаться», а не один и тот же заход через другой IP.
+     * Выключается настройкой visit.retry_referers.
+     */
+    private function retryReferer(string $current, int $attempt, string $full = ''): string
+    {
+        if (!$this->retryReferers) {
+            return $current;
+        }
+        $full = $full !== '' ? $full : $current;
+
+        return $attempt % 2 === 1 ? '' : $full;
+    }
+
     /** Та же страница, но другим «посетителем»: другой прокси и, если включён перебор, другой агент. */
-    private function withRetry(VisitJob $job, ?Proxy $proxy, string $userAgent): VisitJob
+    private function withRetry(VisitJob $job, ?Proxy $proxy, string $userAgent, ?string $referer = null): VisitJob
     {
         return new VisitJob(
             id: $job->id,
             siteKey: $job->siteKey,
             variant: $job->variant,
             url: $job->url,
-            referer: $job->referer,
+            referer: $referer ?? $job->referer,
             userAgent: $userAgent,
             proxyUrl: $proxy?->url,
             proxyLabel: $proxy?->label ?? 'direct',

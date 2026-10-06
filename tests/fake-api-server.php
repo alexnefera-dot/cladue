@@ -652,6 +652,40 @@ switch ($host) {
             . '<div id="winNotifications"></div><div id="bonusPopup"></div><div id="supportWidget"></div><footer class="site-footer"><div id="reserved-aux"></div></footer></body></html>';
 
         return;
+    case 'refblock.ru':
+        // Сайт, закрытый от посетителя ИЗ ПОИСКА: с реферером яндекса отдаёт 403 с антибот-заглушкой,
+        // при прямом заходе — обычную страницу. Проверяем перебор реферера на повторе (не только IP).
+        if (str_contains($referer, 'yandex')) {
+            http_response_code(403);
+            echo '<html><head><title>Attention Required! | Cloudflare</title></head>'
+                . '<body><h1>Sorry, you have been blocked</h1></body></html>';
+
+            return;
+        }
+        $rbWords = [];
+        for ($rb = 0; $rb < 40; $rb++) {
+            $rbWords[] = 'rb' . substr(md5($uri), 0, 8) . $rb;
+        }
+        echo '<html><head><title>Только прямой заход</title></head><body>' . $navHtml
+            . '<h1>' . htmlspecialchars($uri) . '</h1><p class="content">' . implode(' ', $rbWords) . '</p></body></html>';
+
+        return;
+    case 'bigmenu.ru':
+        // Сайт БЕЗ признаков семейств, но с большим меню (7 внутренних страниц): «без категории».
+        // Нужен, чтобы отличать «маленький шаблон на 1–5 страниц» от «тип не определён».
+        $bmNav = '<header class="site-header"><nav class="main-menu">';
+        foreach (['/', '/about', '/contacts', '/price', '/dostavka', '/garantiya', '/otzyvy', '/vakansii'] as $bmLink) {
+            $bmNav .= '<a href="' . $bmLink . '">' . htmlspecialchars($bmLink) . '</a>';
+        }
+        $bmNav .= '</nav></header>';
+        $bmWords = [];
+        for ($bm = 0; $bm < 40; $bm++) {
+            $bmWords[] = 'bm' . substr(md5($uri), 0, 8) . $bm;
+        }
+        echo '<html><head><title>Большое меню</title></head><body>' . $bmNav
+            . '<h1>' . htmlspecialchars($uri) . '</h1><p class="content">' . implode(' ', $bmWords) . '</p></body></html>';
+
+        return;
     case 'agegate.ru':
         // Заглушка проверки возраста 18+ — одинаковая на всех путях (реальный контент за ней).
         // Шапка с меню присутствует, поэтому ссылки на внутренние страницы всё равно собираются.

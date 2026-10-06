@@ -130,7 +130,7 @@ final class SiteRows
             }
             $visit ??= $site->firstVisit() ?? ($site->visits[0] ?? null);
             // Есть ли у сайта страницы, которые докачка реально может добрать (таймаут/блок/404 с языковым
-            // префиксом) — по этому флагу панель считает кнопку «Докачать с ошибками» и не предлагает докачку впустую.
+            // префиксом) — по этому флагу панель считает кнопку «Добрать всё» и не предлагает докачку впустую.
             $retryable = false;
             $notFound = 0; // страниц с 404/410 — для кнопки «Убрать с 404 > N» в панели
             $missing = 0; // успешных визитов, чей файл пропал с диска — таблица честно это показывает, докачка перекачивает
@@ -165,8 +165,17 @@ final class SiteRows
                     }
                 }
             }
-            // Тип вёрстки по открытым страницам (превью главной после сбора): pages7 / pages12 / other; '' — страниц нет.
+            // Тип вёрстки по открытым страницам (превью главной после сбора): pages7 / pages12 /
+            // pages5 (маленький шаблон — по размеру меню) / other; '' — страниц нет.
             $template = $own ? '' : SiteTemplate::ofVisits($site->visits);
+            // Сколько внутренних страниц в меню главной — показываем в подсказке к типу «1–5 стр.».
+            $menu = 0;
+            foreach ($own ? [] : $site->visits as $v) {
+                $v = (array) $v;
+                if ($v['ok'] ?? false) {
+                    $menu = max($menu, (int) ($v['menu'] ?? 0));
+                }
+            }
             // Прошёл ли сайт стадию выгрузки: у визитов обхода стадия 'download' (проставлена при сборке
             // визита, ещё до удаления файла у заблокированных/офферных/наших). По этому флагу проблемы
             // делятся на «по сбору» и «по выгрузке» — не выгруженный сайт не помечается download-причинами.
@@ -186,7 +195,11 @@ final class SiteRows
             // выгруженных сайтов: после сбора открыта одна главная, меню ещё никто не обходил — тогда
             // «нет регистрации» верно про КАЖДЫЙ сайт, и кнопка «нет страницы → Убрать» выбирала весь
             // список разом («под фильтр убрать попадают все сайты»).
-            $keyStatuses = $own || !$downloaded ? [] : KeyPages::statuses(array_map(static fn ($v): array => (array) $v, $site->visits));
+            // У шаблона на 1–5 страниц ключевых страниц попросту нет — это его набор, а не пропуск:
+            // иначе «не хватает регистрации» пишется про каждый маленький сайт, а «Добрать всё»
+            // стучится по стандартным адресам, которых у него не существует.
+            $small = $template === SiteTemplate::SMALL;
+            $keyStatuses = $own || !$downloaded || $small ? [] : KeyPages::statuses(array_map(static fn ($v): array => (array) $v, $site->visits));
             $keyMissing = [];
             $keyFailed = [];
             foreach ($keyStatuses as $name => $status) {
@@ -204,6 +217,7 @@ final class SiteRows
                 'own_reason' => $ownReason,
                 'template' => $template,
                 'template_label' => $template !== '' ? SiteTemplate::label($template) : '',
+                'menu' => $menu,
                 'key_missing' => $keyMissing,
                 'key_failed' => $keyFailed,
                 'pages_404' => $notFound,
@@ -258,7 +272,13 @@ final class SiteRows
                 if ($file === '' || !is_file($file)) {
                     continue;
                 }
-                $v['template'] = SiteTemplate::guess((string) file_get_contents($file, false, null, 0, self::MAX_HTML_BYTES));
+                $page = SiteTemplate::ofPage(
+                    (string) file_get_contents($file, false, null, 0, self::MAX_HTML_BYTES),
+                    (string) ($v['final_url'] ?? '') !== '' ? (string) $v['final_url'] : (string) ($v['url'] ?? ''),
+                    $site->domain,
+                );
+                $v['template'] = $page['type'];
+                $v['menu'] = $page['menu'];
                 $n++;
             }
             unset($v);
@@ -292,6 +312,7 @@ final class SiteRows
                 $template = (string) ($site->visits[$i]['template'] ?? '');
                 if ($template !== '' && is_array($visit)) {
                     $visit['template'] = $template;
+                    $visit['menu'] = (int) ($site->visits[$i]['menu'] ?? 0);
                 }
             }
             unset($visit);

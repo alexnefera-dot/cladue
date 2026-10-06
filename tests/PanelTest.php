@@ -310,9 +310,14 @@ final class PanelTest
         mkdir($runDir, 0777, true);
         file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
         file_put_contents($runDir . '/sites.json', json_encode(['sites' => [[
+            'host' => 'bigmenu.ru', 'domain' => 'bigmenu.ru',
+            'url' => "http://bigmenu.ru:$port/page-1/", 'title' => 'T',
+            'best_query' => 'окна', 'best_position' => 1, 'queries_count' => 1,
+        ], [
+            // Шаблон на 1–5 страниц: ключевых страниц у него нет по устройству, и требовать их нельзя.
             'host' => 'okna-moskva.ru', 'domain' => 'okna-moskva.ru',
             'url' => "http://okna-moskva.ru:$port/page-1/", 'title' => 'T',
-            'best_query' => 'окна', 'best_position' => 1, 'queries_count' => 1,
+            'best_query' => 'окна', 'best_position' => 2, 'queries_count' => 1,
         ]]]));
 
         // нет собранных сайтов → ошибка
@@ -325,23 +330,29 @@ final class PanelTest
         file_put_contents($runDir . '/settings.json', json_encode([
             'stage' => 'download',
             'visit_driver' => 'curl',
-            'visit_resolve' => ["okna-moskva.ru:$port:127.0.0.1"],
+            'visit_resolve' => ["okna-moskva.ru:$port:127.0.0.1", "bigmenu.ru:$port:127.0.0.1"],
         ]));
         $run = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
         Assert::same(0, $run['code'], $run['out']);
         $st = json_decode((string) file_get_contents($runDir . '/status.json'), true);
         Assert::same('done', $st['state'], $run['out']);
-        Assert::contains('Выгружено страниц: 1', $st['message']);
-        Assert::contains('по страницам: 1 стр. — 1', $st['message'], 'разбивка по числу страниц в сообщении');
+        Assert::contains('Выгружено страниц: 2', $st['message']);
+        Assert::contains('по страницам: 1 стр. — 2', $st['message'], 'разбивка по числу страниц в сообщении');
         // Чего не хватает: ключевые страницы, на которые ссылается контент (у тестового сайта их нет).
+        // Считается ОДИН сайт из двух: у шаблона на 1–5 страниц такого набора страниц нет и быть не должно.
         Assert::same(['registracia' => 1, 'vhod' => 1, 'zerkalo' => 1, 'bonus' => 1, 'app' => 1, 'slots' => 1], $st['key_pages']);
         Assert::contains('не хватает: регистрация — 1', $st['message']);
-        Assert::same(['registracia', 'vhod', 'zerkalo', 'bonus', 'app', 'slots'], $st['sites'][0]['key_missing'], 'строка таблицы знает, чего не хватает');
-        Assert::same([1 => 1], $st['page_histogram'], 'гистограмма в статусе');
+        $byHost = [];
+        foreach ($st['sites'] as $row) {
+            $byHost[$row['host']] = $row;
+        }
+        Assert::same(['registracia', 'vhod', 'zerkalo', 'bonus', 'app', 'slots'], $byHost['bigmenu.ru']['key_missing'], 'строка таблицы знает, чего не хватает');
+        Assert::same([], $byHost['okna-moskva.ru']['key_missing'], 'у шаблона на 1–5 страниц ключевых страниц не требуем');
+        Assert::same([1 => 2], $st['page_histogram'], 'гистограмма в статусе');
 
         $sites = json_decode((string) file_get_contents($runDir . '/sites.json'), true);
         Assert::true(($sites['sites'][0]['visits'][0]['ok'] ?? false), 'страница сайта открыта и сохранена');
-        Assert::true(is_file($runDir . '/pages/okna-moskva.ru/variant-1.html'));
+        Assert::true(is_file($runDir . '/pages/bigmenu.ru/variant-1.html'));
 
         $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
         foreach ($it as $item) {
@@ -400,28 +411,32 @@ final class PanelTest
         mkdir($runDir, 0777, true);
         file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
         $rows = [];
-        foreach (['tpl7.ru', 'tpl12.ru', 'okna-moskva.ru'] as $i => $host) {
+        $hosts = ['tpl7.ru', 'tpl12.ru', 'okna-moskva.ru', 'bigmenu.ru'];
+        foreach ($hosts as $i => $host) {
             $rows[] = ['host' => $host, 'domain' => $host, 'url' => "http://$host:$port/", 'title' => 'T', 'best_query' => 'q', 'best_position' => $i + 1, 'queries_count' => 1];
         }
         file_put_contents($runDir . '/sites.json', json_encode(['sites' => $rows]));
         file_put_contents($runDir . '/settings.json', json_encode([
             'stage' => 'download',
             'visit_driver' => 'curl',
-            'visit_resolve' => ["tpl7.ru:$port:127.0.0.1", "tpl12.ru:$port:127.0.0.1", "okna-moskva.ru:$port:127.0.0.1"],
+            'visit_resolve' => array_map(static fn (string $h): string => "$h:$port:127.0.0.1", $hosts),
         ]));
         $run = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
         Assert::same(0, $run['code'], $run['out']);
         $st = json_decode((string) file_get_contents($runDir . '/status.json'), true);
         Assert::same('done', $st['state'], $run['out']);
-        Assert::same(['pages7' => 1, 'pages12' => 1, 'other' => 1], $st['template_histogram'], 'разбивка по типу вёрстки в статусе');
+        Assert::same(['pages5' => 1, 'pages7' => 1, 'pages12' => 1, 'other' => 1], $st['template_histogram'], 'разбивка по типу вёрстки в статусе');
         $byHost = [];
         foreach ($st['sites'] as $row) {
             $byHost[$row['host']] = $row;
         }
         Assert::same('pages7', $byHost['tpl7.ru']['template']);
         Assert::same('12–15 стр.', $byHost['tpl12.ru']['template_label']);
-        Assert::same('other', $byHost['okna-moskva.ru']['template'], 'обычный сайт — без категории');
-        Assert::contains('Итого по типу вёрстки: 7–9 стр. — 1, 12–15 стр. — 1, без категории — 1', (string) file_get_contents($runDir . '/run.log'));
+        // Шаблон на 1–5 страниц узнаём по размеру меню — иначе такие сайты сваливались в «без категории».
+        Assert::same('pages5', $byHost['okna-moskva.ru']['template'], 'меню из 3 страниц — шаблон 1–5 стр.');
+        Assert::same('1–5 стр.', $byHost['okna-moskva.ru']['template_label']);
+        Assert::same('other', $byHost['bigmenu.ru']['template'], 'большое меню без признаков — без категории');
+        Assert::contains('Итого по типу вёрстки: 1–5 стр. — 1, 7–9 стр. — 1, 12–15 стр. — 1, без категории — 1', (string) file_get_contents($runDir . '/run.log'));
 
         $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
         foreach ($it as $item) {

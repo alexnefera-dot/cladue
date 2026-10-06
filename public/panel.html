@@ -332,11 +332,10 @@
 
   <div class="card tabsec" data-tab="main" id="resultsCard" hidden>
     <h2>Результаты <span id="resCount" class="muted"></span></h2>
-    <div class="hint" style="margin-bottom:8px">Клик по превью — увеличить; крестик ✕ — убрать неподходящий сайт. Шаг 2 — «Выгрузить страницы оставшихся»; потом «Очистить» у сайта или «Очистить всё» по всем — очищенные статьи лягут в <b>runs/current/content/&lt;N&gt;-стр/&lt;сайт&gt;/</b>. Скачанные страницы: <b>runs/current/pages/</b>. Все очищенные статьи одним архивом — кнопка «Скачать архив контента».</div>
+    <div class="hint" style="margin-bottom:8px">Клик по превью — увеличить; крестик ✕ — убрать неподходящий сайт. Шаг 2 — «Выгрузить страницы оставшихся»; потом «Очистить» у сайта или «Очистить всё» по всем — очищенные статьи лягут в <b>runs/current/content/&lt;N&gt;-стр/&lt;сайт&gt;/</b>. Скачанные страницы: <b>runs/current/pages/</b>. Все очищенные статьи одним архивом — кнопка «Скачать архив контента». Если часть сайтов не открылась или у них не хватает страниц — одна кнопка «Добрать всё»: она сама решит, какому сайту нужны ещё заходы с других IP, а какому — перекачать упавшие страницы.</div>
     <div class="btns" style="margin-bottom:10px;align-items:center">
       <button class="btn-primary" id="downloadBtn" disabled title="Открыть в браузере и сохранить страницы ровно тех сайтов, что сейчас в таблице (убранные крестиком и галочками типов не выгружаются). Повторный клик — чистая перевыгрузка всех заново">Выгрузить страницы оставшихся</button>
-      <button class="btn-ghost" id="retryBtn" hidden title="Заново выкачать только сайты с ошибками (таймаут, блок, нет соединения); уже успешные не трогаем">Докачать с ошибками</button>
-      <button class="btn-ghost" id="keyRetryBtn" hidden title="Добрать ключевые страницы (регистрация, вход, зеркало, бонусы, приложение, слоты) у сайтов, где их не хватает: страницы с ошибкой перекачиваются, а те, ссылки на которые не нашлось в меню, пробуются по стандартному адресу (/registracia, /vhod…). Если такой страницы у сайта нет, ответ 404 просто не сохранится">Добрать ключевые</button>
+      <button class="btn-ghost" id="fixAllBtn" hidden title="Один шаг вместо трёх. По каждому сайту делается ровно то, чего ему не хватает: сайту без превью — ещё заходы на главную (другой прокси, другой браузерный агент, с реферером из выдачи и прямым заходом); выгруженному сайту — перезагрузка только упавших страниц; если не хватает ключевых страниц (регистрация, вход, зеркало, бонусы, приложение, слоты) — попытка взять их по стандартному адресу. Уже скачанное не трогается, шаблоны на 1–5 страниц ключевых страниц не требуют. Можно нажимать несколько раз — сайты встают в очередь">Добрать всё</button>
       <button class="ctBtn" id="cleanAllBtn" title="Очистить страницы всех оставшихся сайтов по инструкции (наши и убранные крестиком исключены), разложить по content/N-стр/сайт">Очистить всё</button>
       <a class="btn-primary" id="contentNewBtn" href="/download?file=content&amp;part=new" hidden title="Скачать только те статьи, которых ещё не было в прошлых архивах: выгрузка идёт волнами, и вторая волна приедет без первой части. Имя файла — content-part-N-дата.zip">Скачать новое</a>
       <a class="btn-ghost" id="contentZipBtn" href="/download?file=content" hidden title="Скачать ВЕСЬ очищенный контент одним zip-архивом: внутри папки N-стр/сайт/страница.html, как в runs/current/content. После этого «новым» считается только то, что появится дальше">Скачать всё</a>
@@ -352,7 +351,6 @@
     <div class="btns" id="statsRow" style="margin-bottom:8px;align-items:center;flex-wrap:wrap;gap:8px">
       <span class="hint" id="statsText"></span>
       <button class="btn-ghost" id="removeOwnBtn" hidden title="Убрать из списка все сайты, помеченные как наши (крестиком — можно вернуть). Работает сразу после сбора, по превью">Убрать наши</button>
-      <button class="btn-ghost" id="retryPreviewBtn" hidden title="Ещё раз попробовать открыть сайты, у которых не получилось превью: несколько заходов на главную, каждый с другого прокси и под другим браузерным агентом. Уже открытые сайты и наши шаблоны не трогаются">Перепробовать без превью</button>
       <button class="btn-ghost" id="removeNoPreviewBtn" hidden title="Убрать из списка сайты, у которых не открылась ни одна страница (превью не получено, 0 стр.) — чтобы идти на выгрузку без них. Работает сразу после сбора; крестиком — можно вернуть">Убрать без превью</button>
       <button class="btn-ghost" id="removeOfferBtn" hidden title="Убрать сайты, которые вместо своего содержимого показали витрину чужих бонусов. Их уже перепроверили с других IP и под другими User-Agent — настоящий сайт получить не удалось; крестиком — можно вернуть">Убрать подборки офферов</button>
       <span id="probwrap" hidden style="display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap" title="Проблемные — сайты, которые НЕ УДАЛОСЬ ПОЛУЧИТЬ (а не те, у которых чего-то нет). Причина привязана к стадии: «по сбору» видно сразу после сбора со скриншотами, «по выгрузке» — после выгрузки страниц. Одностраничник и пропуск целевой страницы проблемой не считаются. Выбор причины сужает таблицу, кнопки действуют на то, что осталось видно; на выгрузку фильтр не влияет">
@@ -372,8 +370,9 @@
         <input type="number" id="max404" value="4" min="0" style="width:3.5em" title="Сайт убирается, если страниц с ошибкой 404 больше этого числа">
         <button class="btn-ghost" id="remove404Btn" title="Убрать из списка сайты, у которых страниц с ошибкой 404 больше порога (крестиком — можно вернуть)">Убрать с 404 &gt; 4</button>
       </span>
-      <span id="tplwrap" hidden style="display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap" title="Тип вёрстки определяется сразу после сбора по HTML главной (превью): шаблон на 7–9 страниц, на 12–15 или без категории (рандомный сайт). Снимите галочки с ненужных типов и нажмите «Оставить выбранные» — сайты снятых типов уйдут из списка (обратимо: «вернуть все»). Наших сайтов это не касается — для них «Убрать наши»">
+      <span id="tplwrap" hidden style="display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap" title="Тип вёрстки определяется сразу после сбора по HTML главной (превью): шаблон на 7–9 страниц, на 12–15, на 1–5 (у маленьких шаблонов устойчивых признаков нет — их узнаём по размеру меню главной) или без категории (признаков нет, а меню большое или его не видно). Снимите галочки с ненужных типов и нажмите «Оставить выбранные» — сайты снятых типов уйдут из списка (обратимо: «вернуть все»). Наших сайтов это не касается — для них «Убрать наши»">
         <span class="hint">оставить:</span>
+        <label><input type="checkbox" class="tplkeep" value="pages5" checked> <span id="tplc-pages5">1–5 стр.</span></label>
         <label><input type="checkbox" class="tplkeep" value="pages7" checked> <span id="tplc-pages7">7–9 стр.</span></label>
         <label><input type="checkbox" class="tplkeep" value="pages12" checked> <span id="tplc-pages12">12–15 стр.</span></label>
         <label><input type="checkbox" class="tplkeep" value="other" checked> <span id="tplc-other">без категории</span></label>
@@ -844,7 +843,7 @@ function pumpRetry(){
   if(retryQueue.size===0) return;
   retryActive = new Set(retryQueue);
   retryQueue.clear();
-  // Если в партию попали сайты из «Добрать ключевые», добор по стандартным адресам включаем для всей
+  // Если в партию попали сайты из «Добрать всё», добор ключевых по стандартным адресам включаем для всей
   // партии: на сайтах без нехватки он ничего лишнего не делает.
   const keyMode=[...retryActive].some(h=>retryKeyHosts.has(h));
   retryActive.forEach(h=>retryKeyHosts.delete(h));
@@ -853,24 +852,37 @@ function pumpRetry(){
     if(!ok){ retryActive.forEach(h=>{ retryQueue.add(h); if(keyMode) retryKeyHosts.add(h); }); retryActive.clear(); renderResults(lastSites); }
   });
 }
-let retryKeyHosts=new Set(); // сайты, поставленные кнопкой «Добрать ключевые»
+let retryKeyHosts=new Set(); // сайты, которым вместе с докачкой добираем и ключевые страницы
 function queueRetry(hosts, keyPages){
   hosts.forEach(h=>{ if(!retryActive.has(h)) retryQueue.add(h); if(keyPages) retryKeyHosts.add(h); });
   renderResults(lastSites); // сразу показать «в очереди»
   pumpRetry();
 }
-// Добор ключевых страниц: сайты, где чего-то из них не хватает (страница с ошибкой перекачается,
-// ненайденная в меню — пробуется по стандартному адресу).
-function runKeyRetry(){
-  const hosts=lastSites.filter(s=>!isRemoved(s.host) && keyMissing(s).length>0).map(s=>s.host);
-  if(!hosts.length){ showStart('Ключевых страниц хватает всем сайтам','ok'); return; }
-  queueRetry(hosts, true);
+// «Добрать всё» — ОДИН шаг вместо трёх («Докачать с ошибками», «Добрать ключевые», «Перепробовать без
+// превью»): у них была по сути одна задача — получить то, что с первого раза не далось, — и выбирать
+// между ними приходилось, зная, на какой стадии какой сайт. Теперь стадию определяет панель:
+//  — сайт ещё не выгружался и не открылся вовсе → ещё заходы на главную (stage=preview: другой прокси,
+//    другой браузерный агент, с реферером из выдачи и прямым заходом);
+//  — сайт выгружен, но часть страниц упала или не хватает ключевых → докачка этих страниц (очередь).
+// Сайт, который открылся, но ещё не выгружался, здесь не трогаем: ему нужна кнопка «Выгрузить страницы».
+function fixAllGroups(){
+  const visible=lastSites.filter(s=>!isRemoved(s.host) && !s.own);
+  return {
+    prev: visible.filter(s=>!s.downloaded && noPreview(s)).map(s=>s.host),
+    dl: visible.filter(s=>s.downloaded && (siteNeedsRetry(s) || keyMissing(s).length>0)).map(s=>s.host),
+  };
 }
-// Докачка всех сайтов с чинибельными ошибками (ставит их в очередь).
-function runRetry(){
-  const hosts=retryHostsList();
-  if(!hosts.length){ showStart('Нет сайтов с ошибками для докачки','err'); return; }
-  queueRetry(hosts);
+function runFixAll(){
+  const g=fixAllGroups();
+  if(!g.prev.length && !g.dl.length){ showStart('Добирать нечего — у всех сайтов всё на месте','ok'); return; }
+  if(g.prev.length){
+    // Заходы на главную запускаем сразу, докачку кладём в очередь: она стартует, когда панель освободится.
+    g.dl.forEach(h=>{ if(!retryActive.has(h)){ retryQueue.add(h); retryKeyHosts.add(h); } });
+    retryPreviewHosts(g.prev);
+    renderResults(lastSites);
+    return;
+  }
+  queueRetry(g.dl, true);
 }
 // Докачка одного сайта (кнопка в раскрытой строке): в очереди — отменяем, иначе — ставим.
 function runRetryOne(host){
@@ -909,8 +921,7 @@ $('resumeReset').addEventListener('click', ()=>resume(true));
 $('resumeCancel').addEventListener('click', e=>{ e.preventDefault(); $('resumeAsk').hidden=true; });
 $('startBtn').addEventListener('click', runCollect);
 $('downloadBtn').addEventListener('click', runDownload);
-$('retryBtn').addEventListener('click', runRetry);
-$('keyRetryBtn').addEventListener('click', runKeyRetry);
+$('fixAllBtn').addEventListener('click', runFixAll);
 $('stopBtn').addEventListener('click', ()=>stop(false));
 $('killBtn').addEventListener('click', ()=>{ if(confirm('Прервать задание принудительно? Собранное с момента последнего сохранения будет потеряно.')) stop(true); });
 function showStart(t,cls){ $('startMsg').innerHTML = t?`<div class="msg ${cls}">${t}</div>`:''; }
@@ -1145,31 +1156,25 @@ function siteNeedsRetry(s){
   if(/не найдена|HTTP 40|HTTP 41|дубликат|исключ/i.test(e)) return false;
   return true;
 }
-function retryHostsList(){ return lastSites.filter(s=>!isRemoved(s.host) && siteNeedsRetry(s)).map(s=>s.host); }
 
-// Кнопки под таблицей: «Выгрузить…» — когда есть что качать; «Докачать с ошибками» — когда есть
-// сайты с чинибельными ошибками. Обе блокируются на время запущенного задания.
+// Кнопки под таблицей: «Выгрузить…» — когда есть что качать; «Добрать всё» — когда у сайтов осталось
+// что-то недополученное. Обе блокируются на время запущенного задания.
 function updateDownloadBtn(){
   const visible=lastSites.filter(s=>!isRemoved(s.host));
   const busy = jobRunning || jobStarting;
   const db=$('downloadBtn'); if(db) db.disabled = busy || visible.length===0;
   const sb=$('startBtn'); if(sb) sb.disabled = busy;
   const cb=$('cleanAllBtn'); if(cb) cb.disabled = busy || visible.length===0;
-  // «Добрать ключевые» — по числу сайтов, где не хватает страниц, на которые ссылается контент.
-  const kb=$('keyRetryBtn');
-  if(kb){
-    const n=visible.filter(s=>keyMissing(s).length>0).length;
-    kb.hidden = n===0;
-    kb.textContent='Добрать ключевые ('+n+')';
-  }
+  // «Добрать всё»: сайты без превью + выгруженные с упавшими или недостающими страницами.
   // Докачку можно ставить в очередь даже во время работы — кнопку не блокируем.
-  const rb=$('retryBtn');
-  if(rb){
-    const n=retryHostsList().length;
+  const fb=$('fixAllBtn');
+  if(fb){
+    const g=fixAllGroups();
+    const n=g.prev.length+g.dl.length;
     const q=retryQueue.size+retryActive.size;
-    rb.hidden = n===0 && q===0;
-    rb.disabled = n===0;
-    rb.textContent = q>0 ? ('Докачать с ошибками ('+n+') · в работе '+q) : ('Докачать с ошибками ('+n+')');
+    fb.hidden = n===0 && q===0;
+    fb.disabled = n===0;
+    fb.textContent = q>0 ? ('Добрать всё ('+n+') · в работе '+q) : ('Добрать всё ('+n+')');
   }
 }
 
@@ -1188,11 +1193,12 @@ function keyCounts(list){
 // выбирала весь список. Сервер поэтому не заполняет key_missing до выгрузки, а здесь ещё и страхуемся.
 function keyChecked(s){ return !!(s && s.downloaded && !s.own); }
 // Тип вёрстки сайта — по HTML главной (SiteTemplate на сервере): pages7 (7–9 стр.) / pages12 (12–15 стр.) /
-// other (рандомный, без категории); '' — ни одна страница ещё не открыта, типа нет. Наши сайты типа не имеют.
-const TYPE_KEYS=['pages7','pages12','other'];
-const TYPE_LABELS={pages7:'7–9 стр.', pages12:'12–15 стр.', other:'без категории'};
+// pages5 (1–5 стр. — по размеру меню: у маленьких шаблонов признаков разметки нет) / other (без категории);
+// '' — ни одна страница ещё не открыта, типа нет. Наши сайты типа не имеют.
+const TYPE_KEYS=['pages5','pages7','pages12','other'];
+const TYPE_LABELS={pages5:'1–5 стр.', pages7:'7–9 стр.', pages12:'12–15 стр.', other:'без категории'};
 function siteType(s){ if(!s || s.own) return ''; return TYPE_KEYS.includes(s.template) ? s.template : (s.template ? 'other' : ''); }
-function typeCounts(list){ const c={pages7:0,pages12:0,other:0,typed:0}; list.forEach(s=>{ const t=siteType(s); if(t){ c[t]++; c.typed++; } }); return c; }
+function typeCounts(list){ const c={pages5:0,pages7:0,pages12:0,other:0,typed:0}; list.forEach(s=>{ const t=siteType(s); if(t){ c[t]++; c.typed++; } }); return c; }
 function keptTypes(){ return new Set([...document.querySelectorAll('.tplkeep')].filter(c=>c.checked).map(c=>c.value)); }
 function dropByType(s){ const t=siteType(s); return t!=='' && !keptTypes().has(t); }
 // Тип сайта для статистики: наш / проблемный / 100% (все страницы открыты) / частично (страницы
@@ -1251,11 +1257,9 @@ function updateStats(visible){
   const rw=$('removeOfferBtn'), offers=visible.filter(s=>!!s.offer_wall).length;
   if(rw){ rw.hidden = offers===0; rw.textContent='Убрать подборки офферов ('+offers+')'; }
   // «Убрать без превью»: сайты, у которых не открылась ни одна страница (0 стр.) — сразу после сбора, как и «наши».
-  const rn=$('removeNoPreviewBtn'), rp=$('retryPreviewBtn');
+  const rn=$('removeNoPreviewBtn');
   const hasPreview=visible.some(s=>(s.pages_total|0)>0 || s.page_error), noPrevCnt=visible.filter(noPreview).length;
   if(rn){ rn.hidden=!hasPreview; rn.disabled=noPrevCnt===0; rn.textContent='Убрать без превью ('+noPrevCnt+')'; }
-  // «Перепробовать» — то же множество сайтов, но вместо удаления ещё пара заходов с других IP и агентов.
-  if(rp){ rp.hidden=!hasPreview||noPrevCnt===0; rp.disabled=jobRunning; rp.textContent='Перепробовать без превью ('+noPrevCnt+')'; }
   // «Убрать без страницы»: выбираем ключевую страницу (или «любой») и убираем сайты, у которых её нет.
   const kw=$('keywrap'), ksel=$('keysel'), kbtn=$('removeKeyBtn');
   if(kw && ksel && kbtn){
@@ -1308,13 +1312,6 @@ function removeWhere(pred){
 }
 $('removeOwnBtn').addEventListener('click', ()=>removeWhere(s=>!!s.own));
 $('removeNoPreviewBtn').addEventListener('click', ()=>removeWhere(noPreview));
-// Ещё пара заходов на главную у сайтов без превью — фоновое задание stage=preview.
-function runRetryPreview(){
-  const hosts=lastSites.filter(s=>!isRemoved(s.host)&&noPreview(s)).map(s=>s.host);
-  if(!hosts.length){ showStart('Сайтов без превью нет','err'); return; }
-  startJob({stage:'preview', only:hosts, exclude_hosts:[...removedHosts, ...pendingRemoved]});
-}
-$('retryPreviewBtn').addEventListener('click', runRetryPreview);
 $('removeOfferBtn').addEventListener('click', ()=>removeWhere(s=>!!s.offer_wall));
 $('remove404Btn').addEventListener('click', ()=>{ const N=Math.max(0, parseInt($('max404').value,10)||0); removeWhere(s=>!s.own && (s.pages_404|0)>N); });
 $('max404').addEventListener('input', ()=>updateStats(lastSites.filter(s=>!isRemoved(s.host))));
@@ -1368,7 +1365,7 @@ function matchesProblem(s, sel){
 function problemFiltered(){
   return lastSites.filter(s=>!isRemoved(s.host) && matchesProblem(s, problemSel));
 }
-// Ещё заходы на главную у набора хостов (как «Перепробовать без превью», но для выбранной причины).
+// Ещё заходы на главную у набора хостов (то же, что делает «Добрать всё», но для выбранной причины).
 function retryPreviewHosts(hosts){
   hosts=hosts.filter(h=>!isRemoved(h));
   if(!hosts.length){ showStart('Нет сайтов для повтора','err'); return; }
@@ -1478,7 +1475,7 @@ function renderResults(sites){
     else if(s.pages_total>0){ dl=`${s.pages_ok||0}/${s.pages_total}`; if((s.pages_ok||0)<s.pages_total && s.page_error) dl+=' '+errCell(s.page_error); if((s.pages_missing|0)>0) dl+=' '+errCell('нет файла на диске: '+s.pages_missing+' — докачайте'); }
     else if(s.page_error) dl=errCell(s.page_error);
     const km=keyMissingText(s);
-    if(km) dl+=` <span class="tag diff" title="Этих страниц нет: на них ссылается готовый контент. «Добрать ключевые» попробует их получить">нет: ${km}</span>`;
+    if(km) dl+=` <span class="tag diff" title="Этих страниц нет: на них ссылается готовый контент. «Добрать всё» попробует их получить">нет: ${km}</span>`;
     if(retryActive.has(s.host)) dl+=' <span class="tag" title="докачивается">докачивается…</span>';
     else if(retryQueue.has(s.host)) dl+=' <span class="tag" title="в очереди на докачку">в очереди</span>';
     let files=[];
@@ -1488,7 +1485,8 @@ function renderResults(sites){
     const link = s.url?`<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.host)}</a>`:esc(s.host);
     // Метка типа вёрстки (по главной) — только для двух семейств шаблонов; «без категории» не помечаем.
     const tt=siteType(s);
-    const tplTag = (tt==='pages7'||tt==='pages12') ? ` <span class="tag" title="Тип вёрстки по главной: шаблон на ${TYPE_LABELS[tt]}">${TYPE_LABELS[tt]}</span>` : '';
+    const tplTag = (tt==='pages7'||tt==='pages12') ? ` <span class="tag" title="Тип вёрстки по главной: шаблон на ${TYPE_LABELS[tt]}">${TYPE_LABELS[tt]}</span>`
+      : (tt==='pages5' ? ` <span class="tag" title="Маленький шаблон: в меню главной ${(s.menu|0)||'меньше пяти'} внутренних страниц. Ключевых страниц (регистрация, вход, зеркало…) у такого шаблона нет — это его набор, а не пропуск">1–5 стр.</span>` : '');
     // Сайт отдал только витрину чужих офферов — настоящий сайт спрятан (проверяли с разных IP и агентов).
     // Метки проблем: почему сайт не получен. Подборка офферов — один из кодов, отдельной метки нет.
     const offTag = problemsOf(s).map(code=>

@@ -55,6 +55,50 @@ final class SiteTemplateTest
         Assert::same('', SiteTemplate::ofVisits([['ok' => true]]), 'старый визит без поля template — типа нет');
     }
 
+    public function testSmallTemplateIsRecognisedByMenuSize(): void
+    {
+        // Шаблоны на 1–5 страниц устойчивых признаков разметки не имеют, поэтому тип берём по размеру
+        // меню: сколько внутренних страниц в шапке — столько их у сайта и есть.
+        $menu = static function (array $links): string {
+            $html = '<html><body><header class="site-header"><nav class="main-menu">';
+            foreach ($links as $href) {
+                $html .= '<a href="' . $href . '">ссылка</a>';
+            }
+
+            return $html . '</nav></header><h1>Бренд</h1><p>Текст страницы.</p></body></html>';
+        };
+
+        $small = SiteTemplate::ofPage($menu(['/', '/vhod', '/bonus', 'https://vk.com/brand']), 'https://brand.ru/', 'brand.ru');
+        Assert::same(SiteTemplate::SMALL, $small['type'], 'меню из двух внутренних страниц — шаблон 1–5 стр.');
+        Assert::same(2, $small['menu'], 'главная и внешняя ссылка не считаются');
+
+        $big = SiteTemplate::ofPage($menu(['/a', '/b', '/c', '/d', '/e', '/f', '/g']), 'https://brand.ru/', 'brand.ru');
+        Assert::same(SiteTemplate::OTHER, $big['type'], 'меню больше пяти страниц — не маленький шаблон');
+
+        // Меню не распознано — это «мы не увидели меню», а не «маленький сайт».
+        $none = SiteTemplate::ofPage('<html><body><h1>Бренд</h1><p>Текст.</p></body></html>', 'https://brand.ru/', 'brand.ru');
+        Assert::same(SiteTemplate::OTHER, $none['type']);
+        Assert::same(0, $none['menu']);
+
+        // Признаки семейства сильнее размера: у шаблона 7–9 страниц меню тоже бывает коротким.
+        $seven = '<header><div class="phone">+7 (495) 111-22-33</div><span>Круглосуточно · 24/7</span>'
+            . '<nav class="main-nav"><a href="/vhod">Вход</a></nav></header><div class="filters-section">Все игры</div>'
+            . '<div class="promo-text"><p>Вступление</p></div><div class="tags-cloud"></div>';
+        Assert::same(SiteTemplate::PAGES7, SiteTemplate::ofPage($seven, 'https://brand.ru/', 'brand.ru')['type']);
+
+        // Без адреса страницы меню разобрать не по чему — остаются только признаки.
+        Assert::same(SiteTemplate::OTHER, SiteTemplate::ofPage($menu(['/vhod']), '', 'brand.ru')['type']);
+
+        Assert::same(SiteTemplate::OTHER, SiteTemplate::bySize(0));
+        Assert::same(SiteTemplate::SMALL, SiteTemplate::bySize(4), 'четыре ссылки + главная = пять страниц');
+        Assert::same(SiteTemplate::OTHER, SiteTemplate::bySize(5));
+
+        // Запись прошлой версии: типа «1–5 стр.» ещё не было, но размер меню в визите уже есть.
+        Assert::same(SiteTemplate::SMALL, SiteTemplate::ofVisits([['ok' => true, 'template' => 'other', 'menu' => 3]]));
+        Assert::same(SiteTemplate::OTHER, SiteTemplate::ofVisits([['ok' => true, 'template' => 'other', 'menu' => 9]]));
+        Assert::same(SiteTemplate::PAGES7, SiteTemplate::ofVisits([['ok' => true, 'template' => 'pages7', 'menu' => 3]]), 'семейство не пересчитываем');
+    }
+
     public function testHistogramCountsSitesByTypeInFixedOrder(): void
     {
         $mk = static function (string $host, string $type, bool $own = false): Site {
@@ -66,9 +110,9 @@ final class SiteTemplateTest
 
             return $s;
         };
-        $hist = SiteTemplate::histogram([$mk('a.ru', 'other'), $mk('b.ru', 'pages12'), $mk('c.ru', 'pages7'), $mk('d.ru', 'pages7'), $mk('e.ru', ''), $mk('f.ru', 'pages7', true)]);
-        Assert::same(['pages7' => 2, 'pages12' => 1, 'other' => 1], $hist, 'порядок фиксированный; без страниц и наши не считаются');
-        Assert::same('7–9 стр. — 2, 12–15 стр. — 1, без категории — 1', SiteTemplate::histogramText($hist));
+        $hist = SiteTemplate::histogram([$mk('a.ru', 'other'), $mk('b.ru', 'pages12'), $mk('c.ru', 'pages7'), $mk('d.ru', 'pages7'), $mk('e.ru', ''), $mk('f.ru', 'pages7', true), $mk('g.ru', 'pages5')]);
+        Assert::same(['pages5' => 1, 'pages7' => 2, 'pages12' => 1, 'other' => 1], $hist, 'порядок фиксированный; без страниц и наши не считаются');
+        Assert::same('1–5 стр. — 1, 7–9 стр. — 2, 12–15 стр. — 1, без категории — 1', SiteTemplate::histogramText($hist));
         Assert::same('', SiteTemplate::histogramText([]));
         Assert::same('без категории', SiteTemplate::label('unknown'), 'неизвестный тип — без категории');
     }

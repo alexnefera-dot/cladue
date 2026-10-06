@@ -121,7 +121,8 @@ final class KeyPages
 
     /**
      * Сколько сайтов недосчитались каждой ключевой страницы: ['registracia' => 213, 'vhod' => 115, …].
-     * Наши шаблоны и сайты, которые вообще не открывались, не считаются.
+     * Не считаются: наши шаблоны, сайты, которые вообще не открывались, и маленькие шаблоны на 1–5
+     * страниц — у них такого набора страниц нет по устройству, а не из-за сбоя выгрузки.
      *
      * @param array<int|string, Site> $sites
      * @return array<string, int>
@@ -130,7 +131,7 @@ final class KeyPages
     {
         $hist = array_fill_keys(array_keys(self::PAGES), 0);
         foreach ($sites as $site) {
-            if ($site->own || $site->visits === []) {
+            if ($site->own || $site->visits === [] || SiteTemplate::ofVisits($site->visits) === SiteTemplate::SMALL) {
                 continue;
             }
             foreach (self::missing(array_map(static fn ($v): array => (array) $v, $site->visits)) as $name) {

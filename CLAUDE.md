@@ -275,7 +275,21 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   attempt, and `retryFailed()` reads it back from the site's ok visits (`$state[$key]['ua']`) for
   iteration 0. Because a visit is assembled from the ORIGINAL job, `runWithRetry()` stamps
   `retry_proxy`/`retry_user_agent` onto the result and `assembleVisit()` prefers them — otherwise the
-  report named the agent and proxy that had just been refused. Reporting: `PageVisitor::openedAsBrowser()`
+  report named the agent and proxy that had just been refused. THE THIRD DIAL IS THE REFERER, because a
+  site can be closed not to our IP and not to the robot but to the VISITOR FROM SEARCH: a door shows the
+  robot its page and redirects a live visitor coming from the SERP to the advertiser, while other sites
+  do the opposite and only serve someone who arrived from Yandex. `visit.retry_referers` (default true,
+  `Config::defaults()` + `config.example.php`) makes `PageVisitor::retryReferer()` ALTERNATE the two —
+  odd attempt = direct hit with no referer, even attempt = back to the configured `visit.referer` — in
+  ALL THREE retry paths: `runWithRetry()` (through the new 4th argument of `withRetry()`, with the job's
+  ORIGINAL referer kept in `$refererOf` so the alternation returns to it), `retryPreview()` per attempt
+  and `retryFailed()` per iteration, where `$it = 0` keeps the SERP referer because for a door the robot
+  from search IS the right visitor. The referer that WORKED is reported: `runWithRetry()` stamps
+  `retry_referer` next to `retry_proxy`/`retry_user_agent`, `assembleVisit()` writes `$visit['referer']`,
+  and the log lines say «прямым заходом (без реферера)». Covered by
+  `VisitTest::testVisitorFromSearchIsRetriedWithoutReferer` / `testPreviewRetryAlternatesRefererAndProxy`
+  against the fake host `refblock.ru` (403 + Cloudflare stub when the Referer carries `yandex`, a normal
+  page on a direct hit). Reporting: `PageVisitor::openedAsBrowser()`
   counts ok visits whose UA is not a bot, `SiteRows::preview()` emits `pages_browser`, `/api/site-pages`
   emits `as_browser` per page, and the panel shows a «под браузером» tag on the page row plus «под браузером
   (робота не пустили): N стр. на M сайтах» in the stats line, the job message and the log. Covered by
@@ -570,15 +584,39 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `other` on a tie; '' = no page opened), `SiteRows::preview()` emits `template`/`template_label`,
   `SiteTemplate::histogram()`/`histogramText()` feed `template_histogram` in the collect/download status,
   the collect message («По типу вёрстки (по главной): …») and the log («Итого по типу вёрстки»). Panel:
-  a «7–9 стр.»/«12–15 стр.» tag next to the host (`siteType()`; «без категории» is not tagged), «по типу
-  вёрстки: …» in the stats line, and the category filter «оставить: [x] 7–9 стр. (N) [x] 12–15 стр. (M)
-  [x] без категории (K) → Оставить выбранные (убрать D)» (`#tplwrap`, `.tplkeep` checkboxes,
-  `#keepTypesBtn`; all checked by default; any combination — all, one or two) which removes the unchecked
+  a «1–5 стр.»/«7–9 стр.»/«12–15 стр.» tag next to the host (`siteType()`; «без категории» is not tagged),
+  «по типу вёрстки: …» in the stats line, and the category filter «оставить: [x] 1–5 стр. (L)
+  [x] 7–9 стр. (N) [x] 12–15 стр. (M) [x] без категории (K) → Оставить выбранные (убрать D)»
+  (`#tplwrap`, `.tplkeep` checkboxes,
+  `#keepTypesBtn`; all checked by default; any combination) which removes the unchecked
   types through the same reversible server-side `removeWhere()` → `/api/remove` path; own sites and sites
   with no opened page have no type and are never touched by it. When the templates change, re-check the
   markers (a scratch script over `pages/*/<host>/main.html` per bucket) and update `MARKERS` + the fake
   server hosts `tpl7.ru`/`tpl12.ru`; covered by `tests/SiteTemplateTest.php`,
   `VisitTest::testVisitDetectsTemplateType` and `PanelTest::testDownloadStageReportsTemplateTypes`.
+  THE THIRD CATEGORY IS `SMALL` («1–5 стр.», key `pages5`), added in 1.39.0 because the user also runs
+  templates with 1–5 pages and «оно не понимает что происходит»: such a site has NO stable markup markers
+  (there are many of them and they look different), so it fell into «без категории» together with every
+  random site, and the key-pages report then demanded `registracia`/`vhod`/… from it. It is therefore
+  classified BY SIZE, not by family, and the UI says so: `SiteTemplate::ofPage($html, $url, $siteDomain)`
+  runs `guess()` first and, only when that returns OTHER, counts the MENU of the page with
+  `SiteLinks::fromHeader()` (the same list the crawl would fetch — home and external links already
+  excluded, `MENU_LIMIT` 12) and maps it with `bySize()`: 1–4 inner links (≤ `SMALL_MAX_PAGES` 5 pages
+  with the home) → SMALL, more → OTHER, and ZERO → OTHER as well, because «no menu found» is not «a small
+  site». The DOM parse only happens for pages the markers did not recognise, so a PAGES7/PAGES12 page
+  costs nothing extra. `assembleVisit()` stores `template` + the new `menu` count per visit,
+  `SiteRows::preview()` emits `menu` (max over ok visits) for the panel tooltip, `ofVisits()` falls back
+  to the stored `menu` when every vote is OTHER (a `sites.json` written before 1.39.0 already has no
+  `menu`, so it simply stays «без категории» until the pages are re-read by `backfillTemplates()`, which
+  now also stamps `menu`, and `saveTemplates()` persists it). CONSEQUENCES, all of them the point of the
+  change: `SiteRows::preview()` does not compute `key_missing`/`key_failed` for a SMALL site,
+  `KeyPages::histogram()` skips it, and `PageVisitor::retryFailed()` adds no key-page guesses for it
+  (nor for a site with no ok page at all — it needs its home first, not six guessed URLs). Covered by
+  `SiteTemplateTest::testSmallTemplateIsRecognisedByMenuSize`,
+  `VisitTest::testVisitDetectsTemplateType` (fake hosts: a generic one has a 3-link menu → `pages5`, the
+  new `bigmenu.ru` has a 7-link menu and no markers → `other`) and
+  `PanelTest::testDownloadStageReportsTemplateTypes` / `testDownloadStageOpensCollectedSites` (the
+  small-template site is NOT asked for key pages while `bigmenu.ru` still is).
 - Collect stage (`stage=collect`) dedups to unique registrable domains (`unique_by=domain`) and, when
   `preview_shots` is on (panel default), runs a lightweight home-only screenshot visit into
   `runs/current/preview` (no crawl) so the results table previews volume + own sites before the full
@@ -588,17 +626,20 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   разными прокси хотя бы пару попыток». `runWithRetry()` already rotates proxy+UA inside a visit, but it
   gives up after `visit.retries` and there was no way to try again later — the only offer was «Убрать без
   превью». `PageVisitor::retryPreview($sites)` takes the sites with NO ok visit (own templates and
-  already-opened sites are skipped) and re-opens the home page `visit.preview_retries` times (default 2,
+  already-opened sites are skipped) and re-opens the home page `visit.preview_retries` times (default 3,
   `Config::defaults()` + `config.example.php`, 0 disables), EACH attempt through another proxy
-  (`pickRetryProxy()` against the site's last used label, `lastProxyLabel()`) and under another BROWSER
-  agent (`$this->retryAgents` indexed by the attempt — a bot is what such sites refuse), with the timeout
-  growing by 20 s per attempt. A successful attempt REPLACES the failed visit of the same variant
+  (`pickRetryProxy()` against the site's last used label, `lastProxyLabel()`), under another BROWSER
+  agent (`$this->retryAgents` indexed by the attempt — a bot is what such sites refuse) AND with the
+  other referer (`retry_referers` above), with the timeout growing by 20 s per attempt. Together with the
+  2 in-visit retries that is SIX different identities on the first collect, which is the point: the user
+  reported the pages only came through «с 3 повторов или же с другого шага», i.e. after pressing more
+  buttons by hand («сайты скачиваются с большим лагом»). A successful attempt REPLACES the failed visit of the same variant
   (`replaceVisit()`), so page counters don't inflate and the report names the proxy/agent that actually
   worked. It returns `{attempted, recovered}` and is called automatically at the end of `visit()` (the
   preview path) AND on demand: `stage=preview` in `bin/run-job.php` (loads `sites.json`, filters by
   `only`/`removed.json`, runs it with the preview overrides, rewrites sites.json/csv/domains and reports
-  «Перепробовано сайтов без превью: N, открылось M») behind the panel button «Перепробовать без превью (N)»
-  (`#retryPreviewBtn`, `runRetryPreview()`, same `noPreview()` set as «Убрать без превью»). `repeat_hours`
+  «Перепробовано сайтов без превью: N, открылось M») behind the panel button «Добрать всё» (since 1.39.0;
+  it was its own `#retryPreviewBtn` before — see the unified button below). `repeat_hours`
   is ignored for that stage and `/api/start` lets it run without queries. Covered by
   `VisitTest::testPreviewRetryOpensSiteWithAnotherIdentity` / `testPreviewRetrySkipsOpenedAndOwnSites` /
   `testPreviewRetryCanBeDisabled` and `PanelTest::testPreviewStageRetriesSitesWithoutPreview` (the
@@ -1163,14 +1204,25 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   `key_missing` + `key_failed`, the download status carries `key_pages`, and the job message and log say
   «не хватает: регистрация — 213, …». Panel: a «нет: регистрация, зеркало» chip in the «Скачано» cell,
   «не хватает страниц у N сайтов: …» in the stats line, a «нет страницы [любая|…] → Убрать (N)» control
-  (`#keywrap`/`#keysel`/`#removeKeyBtn`, `noKeyPage()`) and «Добрать ключевые (N)» (`runKeyRetry()` →
-  `queueRetry(hosts, true)`; `retryKeyHosts` marks the batch so `pumpRetry()` sends
-  `retry_key_pages: true`, restored if the start is rejected). With that flag `visit.retry_key_pages`
-  (default OFF, so an ordinary retry makes no extra requests) `PageVisitor::retryFailed()` adds a slot per
+  (`#keywrap`/`#keysel`/`#removeKeyBtn`, `noKeyPage()`).
+  ONE BUTTON «Добрать всё (N)» (`#fixAllBtn`, `runFixAll()`/`fixAllGroups()`) REPLACED the three that
+  used to sit there — «Докачать с ошибками», «Добрать ключевые» and «Перепробовать без превью» — because
+  «их задача в целом одинаковая» and choosing between them meant knowing which stage each site was at.
+  The panel decides that instead, from the row's own `downloaded` flag: a site that is NOT downloaded and
+  has no opened page goes to `retryPreviewHosts()` (`stage=preview`, more home visits with another proxy,
+  agent and referer), a DOWNLOADED site with a retryable failure or a missing key page goes into the
+  retry queue with `retry_key_pages: true`. A site that opened but was never downloaded is left alone —
+  it needs «Выгрузить страницы», not a retry. When both groups are non-empty the download batch is put in
+  `retryQueue` BEFORE the preview job starts, so `pumpRetry()` picks it up when the panel frees up
+  instead of being refused by `/api/start`. The per-site «Докачать этот сайт» and the problem-filter
+  buttons («Перепробовать с других IP» / «Докачать») stay as the precise, filtered tools. With the flag `visit.retry_key_pages`
+  (default OFF, so a `retry_hosts` batch started any other way makes no extra requests) `PageVisitor::retryFailed()` adds a slot per
   `none` key page with ONE candidate — the standard path built from the site's own root
   (`KeyPages::url(rootUrl, name)`, scheme/port from an already-opened page, not a hardcoded https://host)
   — appends the visit on success and, on a non-retryable answer (404), drops it without writing a failed
-  visit, so the page counter is not spoiled. Key pages are read ONLY off a DOWNLOADED site
+  visit, so the page counter is not spoiled. Those guesses are made ONLY for a site that has at least one
+  opened page and is not a `SiteTemplate::SMALL` template: a 1–5-page template has no such pages by
+  design, and a site that gave us nothing needs its home, not six guessed URLs. Key pages are read ONLY off a DOWNLOADED site
   (`SiteRows::preview()` gates `key_missing`/`key_failed` on the row's `downloaded` flag, so the flag is
   now computed before them; the panel's `keyChecked()` repeats the gate): after a collect only the home
   is open and the menu was never crawled, so «нет регистрации» was true of EVERY site — `#keywrap`
