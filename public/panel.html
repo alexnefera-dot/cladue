@@ -291,6 +291,10 @@
           <div><label>Браузеров разом</label><input type="number" id="browsers" value="2" min="1" max="16" title="Сколько браузеров (по одному на прокси) работает параллельно. Всего страниц в работе = браузеры × страницы. Каждый браузер — это ещё 200–300 МБ памяти"></div>
           <div><label>Сайтов в волне</label><input type="number" id="batchsize" value="50" min="1" max="1000" title="Выгрузка идёт волнами: после каждой волны её сайты появляются в таблице, чистятся и их можно забрать архивом, не дожидаясь остальных. Меньше число — чаще готовые порции, но чуть медленнее в сумме"></div>
         </div>
+        <div class="row">
+          <div><label>Кругов добора</label><input type="number" id="fixrounds" value="3" min="1" max="20" title="Сколько раз подряд «Добрать всё» заходит за недостающими страницами и превью. Сайт, который сейчас не отдал страницу (лимит на IP, антибот), через несколько минут часто отдаёт её сам — поэтому круг с паузой работает лучше, чем ещё одна попытка подряд. Добрали всё — круги заканчиваются сами. 1 — один круг, как раньше"></div>
+          <div><label>Пауза между кругами, мин</label><input type="number" id="fixpause" value="2" min="0" max="120" title="Сколько ждать перед следующим кругом добора. В это время задание ничего не делает — именно пауза и помогает сайтам «остыть». Кнопка «Остановить» срабатывает сразу, ждать конца паузы не нужно"></div>
+        </div>
         <label>Повторять сбор каждые, часов <span class="hint">0 — один раз</span></label>
         <input type="number" id="repeat" value="0" min="0" step="1">
       </div>
@@ -335,7 +339,7 @@
     <div class="hint" style="margin-bottom:8px">Клик по превью — увеличить; крестик ✕ — убрать неподходящий сайт. Шаг 2 — «Выгрузить страницы оставшихся»; потом «Очистить» у сайта или «Очистить всё» по всем — очищенные статьи лягут в <b>runs/current/content/&lt;N&gt;-стр/&lt;сайт&gt;/</b>. Скачанные страницы: <b>runs/current/pages/</b>. Все очищенные статьи одним архивом — кнопка «Скачать архив контента». Если часть сайтов не открылась или у них не хватает страниц — одна кнопка «Добрать всё»: она сама решит, какому сайту нужны ещё заходы с других IP, а какому — перекачать упавшие страницы.</div>
     <div class="btns" style="margin-bottom:10px;align-items:center">
       <button class="btn-primary" id="downloadBtn" disabled title="Открыть в браузере и сохранить страницы ровно тех сайтов, что сейчас в таблице (убранные крестиком и галочками типов не выгружаются). Повторный клик — чистая перевыгрузка всех заново">Выгрузить страницы оставшихся</button>
-      <button class="btn-ghost" id="fixAllBtn" hidden title="Один шаг вместо трёх. По каждому сайту делается ровно то, чего ему не хватает: сайту без превью — ещё заходы на главную (другой прокси, другой браузерный агент, с реферером из выдачи и прямым заходом); выгруженному сайту — перезагрузка только упавших страниц; если не хватает ключевых страниц (регистрация, вход, зеркало, бонусы, приложение, слоты) — попытка взять их по стандартному адресу. Уже скачанное не трогается, шаблоны на 1–5 страниц ключевых страниц не требуют. Можно нажимать несколько раз — сайты встают в очередь">Добрать всё</button>
+      <button class="btn-ghost" id="fixAllBtn" hidden title="Один шаг вместо трёх. По каждому сайту делается ровно то, чего ему не хватает: сайту без превью — ещё заходы на главную (другой прокси, другой браузерный агент, с реферером из выдачи и прямым заходом); выгруженному сайту — перезагрузка только упавших страниц; если не хватает ключевых страниц (регистрация, вход, зеркало, бонусы, приложение, слоты) — попытка взять их по стандартному адресу. Уже скачанное не трогается, шаблоны на 1–5 страниц ключевых страниц не требуют. Заходов делается несколько кругов с паузой («Настройки» → «Кругов добора»): сайт, который сейчас не ответил, через несколько минут часто открывается сам. Можно нажимать несколько раз — сайты встают в очередь">Добрать всё</button>
       <button class="ctBtn" id="cleanAllBtn" title="Очистить страницы всех оставшихся сайтов по инструкции (наши и убранные крестиком исключены), разложить по content/N-стр/сайт">Очистить всё</button>
       <a class="btn-primary" id="contentNewBtn" href="/download?file=content&amp;part=new" hidden title="Скачать только те статьи, которых ещё не было в прошлых архивах: выгрузка идёт волнами, и вторая волна приедет без первой части. Имя файла — content-part-N-дата.zip">Скачать новое</a>
       <a class="btn-ghost" id="contentZipBtn" href="/download?file=content" hidden title="Скачать ВЕСЬ очищенный контент одним zip-архивом: внутри папки N-стр/сайт/страница.html, как в runs/current/content. После этого «новым» считается только то, что появится дальше">Скачать всё</a>
@@ -393,7 +397,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-const FIELDS = ['queries','source','region','pages','dedupe','scope','top','minq','tlds','exclude','skipknown','nocache','previewshots','visit','variants','driver','crawl','maxpages','useproxies','searchthreads','visitthreads','browsers','repeat','xmmode','xmdevice','xmdomain','xmextra','removeslots','batchsize','cleanwhile','proxylist','dorgenauto'];
+const FIELDS = ['queries','source','region','pages','dedupe','scope','top','minq','tlds','exclude','skipknown','nocache','previewshots','visit','variants','driver','crawl','maxpages','useproxies','searchthreads','visitthreads','browsers','repeat','xmmode','xmdevice','xmdomain','xmextra','removeslots','batchsize','fixrounds','fixpause','cleanwhile','proxylist','dorgenauto'];
 
 function loadLocal(){
   try{ const s = JSON.parse(localStorage.getItem('ys-panel')||'{}');
@@ -741,6 +745,8 @@ function collectSettings(){
     visit_threads: parseInt($('visitthreads').value)||4,
     browsers: parseInt($('browsers').value)||2,
     batch_size: parseInt($('batchsize').value)||50,
+    retry_rounds: parseInt($('fixrounds').value)||1,
+    retry_pause_min: Math.max(0, parseInt($('fixpause').value)||0),
     clean_while_download: $('cleanwhile').checked,
     domain_scope: $('scope').value,
     top: parseInt($('top').value)||0,
@@ -997,10 +1003,12 @@ function renderStatus(st, running, stopping){
   else if(phase==='filter'){ pText='фильтрация'; }
   else if(phase==='visit'){
     // Волнами: показываем, сколько сайтов уже готово — их строки в таблице уже есть, с ними можно работать.
-    const w=st.wave;
-    pText = (w && w.sites_total)
-      ? `открываю сайты: готово ${w.sites_done} из ${w.sites_total} (волна ${w.n} из ${w.total})`
-      : 'открываю сайты в браузере';
+    const w=st.wave, wt=st.wait;
+    pText = wt && wt.left
+      ? `пауза перед кругом ${wt.round} из ${wt.rounds}: ${fmtCountdown(wt.left)} (сайты «остывают»)`
+      : ((w && w.sites_total)
+        ? `открываю сайты: готово ${w.sites_done} из ${w.sites_total} (волна ${w.n} из ${w.total})`
+        : 'открываю сайты в браузере');
   }
   else if(phase==='clean'){ pText='очистка контента'; }
   else if(phase==='done'){ pText='завершено'; }
@@ -1593,6 +1601,8 @@ function prefill(state){
     if(s.visit_threads)$('visitthreads').value=s.visit_threads;
     if(s.browsers)$('browsers').value=s.browsers;
     if(s.batch_size)$('batchsize').value=s.batch_size;
+    if(s.retry_rounds)$('fixrounds').value=s.retry_rounds;
+    if(s.retry_pause_min!==undefined)$('fixpause').value=s.retry_pause_min;
     if(s.clean_while_download!=null)$('cleanwhile').checked=!!s.clean_while_download;
     $('removeslots').checked=!!(s.remove_widgets||s.remove_slots);
   }

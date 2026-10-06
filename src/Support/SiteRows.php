@@ -129,6 +129,20 @@ final class SiteRows
                 }
             }
             $visit ??= $site->firstVisit() ?? ($site->visits[0] ?? null);
+            // Картинка сайта может лежать НЕ на той странице, которую мы показываем: скриншот снимается
+            // с главной, а показываем первую страницу с сохранённым HTML; превью могли добрать и позже
+            // (PageVisitor::capturePreviews) с другой страницы. Берём любой снимок, который есть на диске.
+            $shotFile = (string) ($visit['screenshot_file'] ?? '');
+            if ($shotFile === '' || !is_file($shotFile)) {
+                $shotFile = '';
+                foreach ($site->visits as $v) {
+                    $f = (string) (((array) $v)['screenshot_file'] ?? '');
+                    if ($f !== '' && is_file($f)) {
+                        $shotFile = $f;
+                        break;
+                    }
+                }
+            }
             // Есть ли у сайта страницы, которые докачка реально может добрать (таймаут/блок/404 с языковым
             // префиксом) — по этому флагу панель считает кнопку «Добрать всё» и не предлагает докачку впустую.
             $retryable = false;
@@ -238,7 +252,7 @@ final class SiteRows
                 'pages_total' => $own ? null : ($summary['total'] > 0 ? $summary['total'] : null),
                 'page_error' => $own ? 'исключён как наш' : $summary['error'],
                 'html' => !$own && $visit !== null && ($visit['html_file'] ?? '') !== '' ? $rel((string) $visit['html_file']) : '',
-                'screenshot' => $visit !== null && ($visit['screenshot_file'] ?? '') !== '' ? $rel((string) $visit['screenshot_file']) : '',
+                'screenshot' => $shotFile !== '' ? $rel($shotFile) : '',
             ];
             // Коды проблем считаем по готовой строке: «не открылся», «подборка офферов», «часть страниц
             // не скачалась» и т.п. Пропуски целевых страниц и 404 сюда не идут — это не сбой загрузки.

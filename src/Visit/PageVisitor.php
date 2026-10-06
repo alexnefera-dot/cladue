@@ -159,6 +159,8 @@ final class PageVisitor
         // способом: другой прокси, другой браузерный агент и другой реферер (из выдачи / прямой заход).
         // Часть сайтов закрыта не от нашего IP, а от робота или от посетителя из поиска.
         $this->retryPreview($sites);
+        // Открылась страница, но снимок не получился — снимем её ещё раз (см. capturePreviews).
+        $this->capturePreviews($sites);
         $this->markMissingFiles($sites);
         $this->logSiteSummary($sites);
     }
@@ -275,8 +277,140 @@ final class PageVisitor
             }
         }
         $this->log->info(sprintf('Сайты без превью: перепробовано %d, открылось %d', $attempted, $recovered));
+        $this->capturePreviews($sites);
 
         return ['attempted' => $attempted, 'recovered' => $recovered];
+    }
+
+    /**
+     * С какой страницы снимать превью сайта. null — снимать не нужно (наш сайт, скриншот уже есть) или
+     * не с чего (ни одной открытой страницы). Главную предпочитаем, но если открылась только внутренняя
+     * — берём её: в таблице важна картинка сайта, а не то, какая именно это страница.
+     *
+     * @return array{index: int, url: string, user_agent: string, referer: ?string, proxy: string}|null
+     */
+    public static function previewTarget(Site $site): ?array
+    {
+        if ($site->own) {
+            return null;
+        }
+        $best = null;
+        $bestHome = false;
+        foreach ($site->visits as $i => $visit) {
+            $visit = (array) $visit;
+            $shot = (string) ($visit['screenshot_file'] ?? '');
+            if ($shot !== '' && is_file($shot)) {
+                return null; // превью уже есть — второй раз не ходим
+            }
+            if (!($visit['ok'] ?? false)) {
+                continue;
+            }
+            $url = (string) ($visit['final_url'] ?? '');
+            if ($url === '') {
+                $url = (string) ($visit['url'] ?? '');
+            }
+            if ($url === '') {
+                continue;
+            }
+            $name = pathinfo((string) ($visit['html_file'] ?? ''), PATHINFO_FILENAME);
+            $home = $name === 'main' || $name === 'variant-1' || (int) ($visit['variant'] ?? -1) === 0;
+            if ($best !== null && (!$home || $bestHome)) {
+                continue;
+            }
+            $bestHome = $home;
+            $best = [
+                'index' => (int) $i,
+                'url' => $url,
+                'user_agent' => (string) ($visit['user_agent'] ?? ''),
+                // Реферер записан в визите с 1.39.0; у прошлых сборов его нет — решит вызывающий.
+                'referer' => array_key_exists('referer', $visit) ? (string) $visit['referer'] : null,
+                'proxy' => (string) ($visit['proxy'] ?? ''),
+            ];
+        }
+
+        return $best;
+    }
+
+    /**
+     * Превью ЛЮБОЙ ЦЕНОЙ и НЕ ОБЯЗАТЕЛЬНО С ГЛАВНОЙ («страницы появляются, но превью нет»). Скриншот
+     * снимается только с главной (обход снимает её одну), поэтому сайт, у которого главная не далась,
+     * а внутренние страницы скачались, оставался в таблице без картинки — и выглядел как неудача, хотя
+     * смотреть есть на что. Здесь берём ЛЮБУЮ открывшуюся страницу и снимаем её тем способом, который
+     * на ней уже сработал: тот же агент, тот же реферер и по возможности тот же прокси. Снимок кладём
+     * туда же, где лежат превью сбора, и прописываем в ТОТ ЖЕ визит — новых визитов не добавляем, так
+     * что счётчик страниц не меняется.
+     *
+     * @param array<string, Site> $sites
+     * @return array{attempted: int, captured: int}
+     */
+    public function capturePreviews(array $sites): array
+    {
+        // Скриншот умеет только браузер; с curl-драйвером шагу делать нечего.
+        if (!((bool) ($this->cfg['screenshot'] ?? true)) || $this->driver->name() !== 'playwright') {
+            return ['attempted' => 0, 'captured' => 0];
+        }
+        $dir = rtrim((string) ($this->cfg['preview_dir'] ?? $this->cfg['dir'] ?? 'out/preview'), '/\\');
+        $proxies = $this->proxyList();
+        $proxyIndex = 0;
+        $jobs = [];
+        $targets = [];
+        foreach ($sites as $key => $site) {
+            $target = self::previewTarget($site);
+            if ($target === null) {
+                continue;
+            }
+            $siteDir = $dir . '/' . self::safeName($site->host);
+            $proxy = $this->pickProxyByLabel($proxies, $target['proxy'], $proxyIndex);
+            $jobs[] = new VisitJob(
+                id: (string) $key,
+                siteKey: (string) $key,
+                variant: 1,
+                url: $target['url'],
+                referer: $target['referer'] ?? $this->referer($site),
+                userAgent: $target['user_agent'] !== '' ? $target['user_agent'] : $this->userAgents[0],
+                proxyUrl: $proxy?->url,
+                proxyLabel: $proxy?->label ?? 'direct',
+                // HTML этой страницы у нас уже есть в pages/ — вторая копия не нужна, удалим после снимка.
+                htmlFile: $siteDir . '/preview.html',
+                screenshotFile: $siteDir . '/variant-1.png',
+            );
+            $targets[(string) $key] = $target;
+        }
+        if ($jobs === []) {
+            return ['attempted' => 0, 'captured' => 0];
+        }
+        $this->log->info(sprintf('Добираю превью по уже открытым страницам: %d сайтов…', count($jobs)));
+        $done = 0;
+        $total = count($jobs);
+        $results = $this->runWithRetry($jobs, $this->driverOptions(), function (VisitJob $job, array $result) use (&$done, $total): void {
+            $done++;
+            if ($this->onProgress !== null) {
+                ($this->onProgress)(['total' => $total, 'done' => $done, 'ok' => $done, 'current' => $job->url]);
+            }
+        });
+        $captured = 0;
+        foreach ($jobs as $job) {
+            $site = $sites[$job->siteKey] ?? null;
+            $result = $results[$job->id] ?? [];
+            $shot = (string) $job->screenshotFile;
+            $html = is_file($job->htmlFile) ? $this->readHtml($job->htmlFile) : '';
+            @unlink($job->htmlFile);
+            // Снимок страницы-заглушки антибота как превью сайта — хуже, чем пустая ячейка: по нему
+            // решают, оставлять сайт или нет.
+            $blocked = $html !== '' && self::looksLikeBlock($html, (string) ($result['title'] ?? ''), (int) ($result['status'] ?? 0));
+            if ($site === null || !($result['ok'] ?? false) || $blocked || !is_file($shot)) {
+                @unlink($shot);
+                continue;
+            }
+            $i = $targets[$job->siteKey]['index'];
+            $visit = (array) ($site->visits[$i] ?? []);
+            $visit['screenshot_file'] = $shot;
+            $site->visits[$i] = $visit;
+            $captured++;
+        }
+        $this->log->info(sprintf('Превью по открытым страницам: снято %d из %d', $captured, $total));
+
+        return ['attempted' => $total, 'captured' => $captured];
     }
 
     /** Прокси последней попытки по этому сайту — чтобы следующая пошла через другой. */
@@ -601,6 +735,9 @@ final class PageVisitor
             }
         }
 
+        // Снимок делается только с главной: если она не открылась, а внутренние страницы скачались,
+        // сайт остаётся в таблице без картинки. Добираем превью с любой открывшейся страницы.
+        $this->capturePreviews($sites);
         $this->bucketByPageCount($sites, $dir);
         $this->markMissingFiles($sites);
         $this->logSiteSummary($sites);
@@ -845,6 +982,7 @@ final class PageVisitor
                 $this->bucketByPageCount([$key => $st['site']], $dir);
             }
         }
+        $this->capturePreviews($sites);
         $this->markMissingFiles($sites);
         $this->logSiteSummary($sites);
 
@@ -1572,6 +1710,25 @@ final class PageVisitor
         }
         // Очень короткая страница + код блокировки — тоже похоже на заглушку антибота.
         return self::isBlockStatus($status) && mb_strlen(trim(strip_tags($html))) < 200;
+    }
+
+    /**
+     * Прокси с нужной меткой (тот, через который страница уже открывалась), иначе следующий по кругу.
+     *
+     * @param list<Proxy> $proxies
+     */
+    private function pickProxyByLabel(array $proxies, string $label, int &$index): ?Proxy
+    {
+        if ($proxies === []) {
+            return null;
+        }
+        foreach ($proxies as $proxy) {
+            if ($label !== '' && $proxy->label === $label) {
+                return $proxy;
+            }
+        }
+
+        return $proxies[$index++ % count($proxies)];
     }
 
     /**

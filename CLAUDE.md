@@ -635,7 +635,27 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   reported the pages only came through «с 3 повторов или же с другого шага», i.e. after pressing more
   buttons by hand («сайты скачиваются с большим лагом»). A successful attempt REPLACES the failed visit of the same variant
   (`replaceVisit()`), so page counters don't inflate and the report names the proxy/agent that actually
-  worked. It returns `{attempted, recovered}` and is called automatically at the end of `visit()` (the
+  worked.
+  PREVIEW FROM ANY OPENED PAGE, NOT ONLY THE HOME (1.40.0) — the user's next report was «после добрать
+  всё появляются страницы, но превью нет … надо добывать превью любыми методами, может не с главной»:
+  the screenshot is taken ONLY for the home (`crawl()` passes `screenshotFile` for `$isHome` alone), so a
+  site whose home never opened while its inner pages downloaded sat in the table with an empty picture
+  and looked like a failure. `PageVisitor::previewTarget(Site)` (static, testable, no network) answers
+  «which page to shoot»: null when the site is ours or ANY visit already has a screenshot on disk,
+  otherwise the home (`main`/`variant-1`/variant 0) if it opened, else the FIRST ok visit — with the
+  identity that already worked on it (`user_agent`, `referer` since 1.39.0, `proxy` label).
+  `capturePreviews($sites)` builds one job per target into `visit.preview_dir` (set by `bin/run-job.php`
+  to `runs/current/preview` for the download and preview stages; falls back to `visit.dir`), runs them
+  through `runWithRetry()` (so a refusal rotates proxy/agent/referer as everywhere else), DELETES the
+  duplicate HTML it had to fetch (the page is already in `pages/`), drops the shot when the page came
+  back as an anti-bot stub (`looksLikeBlock()` — a Cloudflare screenshot as the site's preview is worse
+  than an empty cell) and writes `screenshot_file` into THAT SAME visit — no new visit, so page counters
+  are untouched. It no-ops without Playwright (curl takes no screenshots) and is called at the end of
+  `visit()`, `crawl()` (per wave), `retryPreview()` and `retryFailed()`. `SiteRows::preview()` also stops
+  depending on which visit it shows: the row's `screenshot` falls back to ANY visit whose file is on
+  disk. Covered by `VisitTest::testPreviewTargetPicksAnyOpenedPage` (selection rules) and
+  `testCapturePreviewsShootsPageThatOpened` (a real Playwright run: an inner page is shot, the visit
+  count stays 1, the temporary HTML is gone, a second call is a no-op). It returns `{attempted, recovered}` and is called automatically at the end of `visit()` (the
   preview path) AND on demand: `stage=preview` in `bin/run-job.php` (loads `sites.json`, filters by
   `only`/`removed.json`, runs it with the preview overrides, rewrites sites.json/csv/domains and reports
   «Перепробовано сайтов без превью: N, открылось M») behind the panel button «Добрать всё» (since 1.39.0;
@@ -1215,7 +1235,23 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   it needs «Выгрузить страницы», not a retry. When both groups are non-empty the download batch is put in
   `retryQueue` BEFORE the preview job starts, so `pumpRetry()` picks it up when the panel frees up
   instead of being refused by `/api/start`. The per-site «Докачать этот сайт» and the problem-filter
-  buttons («Перепробовать с других IP» / «Докачать») stay as the precise, filtered tools. With the flag `visit.retry_key_pages`
+  buttons («Перепробовать с других IP» / «Докачать») stay as the precise, filtered tools.
+  THE DEFERRED RE-RETRY (1.40.0) is what makes one press enough — «добор с первого раза может не
+  скачивать, но 3-4 раза и докачивает, надо тогда делать отложенный передобор». The decisive ingredient
+  is TIME, not another attempt in the same second: a site that refuses now (per-IP limit, a hot anti-bot)
+  often serves the page a few minutes later, which is exactly why pressing the button again worked. So
+  `bin/run-job.php` loops ROUNDS inside the job itself, for the retry branch (`retryFailed()`) and for
+  `stage=preview` (`retryPreview()`) alike: `visit.retry_rounds` (default 3) rounds with
+  `visit.retry_pause_sec` (default 120) between them, panel fields `#fixrounds` / `#fixpause` →
+  `retry_rounds` / `retry_pause_min` → those config keys. A round that finds nothing to do
+  (`attempted === 0`) or recovers everything (`recovered >= attempted`) ends the loop, so a healthy run
+  costs nothing extra. `waitBetweenRounds()` sleeps ONE SECOND AT A TIME checking the stop file, so
+  «Остановить» still works during the pause, and writes `wait: {left, round, rounds}` into the status —
+  the panel's phase line shows «пауза перед кругом 2 из 3: 1:45 (сайты «остывают»)» so a waiting job does
+  not read as a hung one. The job message gains «за N круга(ов)». Covered by
+  `PanelTest::testRetryRunsSeveralRoundsWithPause` (an unresolvable host with `retry_rounds: 2` and
+  `retry_pause_min: 0`: both rounds are in `run.log` and the message names them).
+  With the flag `visit.retry_key_pages`
   (default OFF, so a `retry_hosts` batch started any other way makes no extra requests) `PageVisitor::retryFailed()` adds a slot per
   `none` key page with ONE candidate — the standard path built from the site's own root
   (`KeyPages::url(rootUrl, name)`, scheme/port from an already-opened page, not a hardcoded https://host)

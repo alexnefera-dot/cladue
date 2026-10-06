@@ -1325,6 +1325,96 @@ final class VisitTest
         Assert::true(filesize("$bigDir/bigpage.ru/variant-1.html") <= 200000 + 64, 'HTML обрезан по max_bytes');
     }
 
+    public function testPreviewTargetPicksAnyOpenedPage(): void
+    {
+        // Какую страницу снимать для превью: главную, если она открылась, иначе ЛЮБУЮ открывшуюся —
+        // «страницы появляются, но превью нет» было именно из-за того, что снимок брали только с главной.
+        $dir = $this->dir() . '/target';
+        mkdir($dir, 0777, true);
+        $png = $dir . '/shot.png';
+        file_put_contents($png, 'png');
+
+        $mk = static function (array ...$visits): Site {
+            $site = new Site('a.ru', 'a.ru', 'a.ru');
+            $site->visits = $visits;
+
+            return $site;
+        };
+        $home = ['variant' => 0, 'url' => 'https://a.ru/', 'ok' => true, 'html_file' => '/tmp/x/main.html', 'user_agent' => 'UA-home', 'proxy' => 'http://p1', 'referer' => ''];
+        $inner = ['variant' => 1, 'url' => 'https://a.ru/vhod', 'final_url' => 'https://a.ru/vhod/', 'ok' => true, 'html_file' => '/tmp/x/vhod.html', 'user_agent' => 'UA-inner', 'proxy' => 'http://p2'];
+        $failed = ['variant' => 0, 'url' => 'https://a.ru/', 'ok' => false, 'error' => 'таймаут'];
+
+        Assert::same(null, PageVisitor::previewTarget($mk()), 'страниц нет — снимать нечего');
+        Assert::same(null, PageVisitor::previewTarget($mk($failed)), 'ни одна страница не открылась');
+
+        $target = PageVisitor::previewTarget($mk($failed, $inner));
+        Assert::same(1, $target['index'], 'главной нет — берём внутреннюю страницу');
+        Assert::same('https://a.ru/vhod/', $target['url'], 'адрес после редиректов');
+        Assert::same('UA-inner', $target['user_agent'], 'тем же агентом, которым она уже открылась');
+        Assert::same('http://p2', $target['proxy']);
+        Assert::same(null, $target['referer'], 'у старой записи реферера нет — решит вызывающий');
+
+        $target = PageVisitor::previewTarget($mk($inner, $home));
+        Assert::same(1, $target['index'], 'главная предпочтительнее внутренней');
+        Assert::same('UA-home', $target['user_agent']);
+        Assert::same('', $target['referer'], 'прямой заход сохраняем как есть');
+
+        // Снимок уже есть — второй раз не ходим (файл проверяется на диске).
+        Assert::same(null, PageVisitor::previewTarget($mk($inner, ['variant' => 2, 'ok' => true, 'url' => 'https://a.ru/x', 'screenshot_file' => $png])));
+        $site = $mk($inner);
+        $site->own = true;
+        Assert::same(null, PageVisitor::previewTarget($site), 'наш сайт превью не добираем');
+    }
+
+    public function testCapturePreviewsShootsPageThatOpened(): void
+    {
+        // Сквозная проверка: у сайта есть открытая ВНУТРЕННЯЯ страница и нет ни одного скриншота —
+        // снимок делается с неё и прописывается в тот же визит (новых визитов не появляется).
+        $driver = new PlaywrightDriver();
+        $probe = $driver->probe();
+        if (!$probe['ok']) {
+            Assert::skip('Playwright недоступен: ' . $probe['message']);
+        }
+        $port = FakeServer::port();
+        $dir = $this->dir() . '/capture';
+        $site = new Site('okna-moskva.ru', 'okna-moskva.ru', 'okna-moskva.ru');
+        $site->add(new SearchResult('окна', 0, 1, "http://okna-moskva.ru:$port/", 'okna-moskva.ru', 'T'));
+        $site->visits[] = [
+            'variant' => 1,
+            'url' => "http://okna-moskva.ru:$port/vhod",
+            'ok' => true,
+            'error' => '',
+            'status' => 200,
+            'html_file' => $dir . '/pages/okna-moskva.ru/vhod.html',
+            'screenshot_file' => '',
+            'user_agent' => UserAgents::BROWSERS[0],
+            'proxy' => 'direct',
+        ];
+        $visitor = new PageVisitor([
+            'dir' => $dir . '/pages',
+            'preview_dir' => $dir . '/preview',
+            'screenshot' => true,
+            'timeout' => 20,
+            'wait_ms' => 100,
+            'delay_ms' => 0,
+            'retries' => 1,
+            'resolve' => $this->resolve($port),
+            'user_agents' => UserAgents::VISITORS,
+        ], $driver, $this->logger());
+        $out = $visitor->capturePreviews(['okna-moskva.ru' => $site]);
+
+        Assert::same(1, $out['attempted']);
+        Assert::same(1, $out['captured'], 'превью добрано с внутренней страницы');
+        Assert::same(1, count($site->visits), 'новых визитов не появилось — счётчик страниц не раздут');
+        $shot = (string) (((array) $site->visits[0])['screenshot_file'] ?? '');
+        Assert::same($dir . '/preview/okna-moskva.ru/variant-1.png', $shot);
+        Assert::true(is_file($shot) && filesize($shot) > 0, 'файл скриншота на месте');
+        Assert::false(is_file($dir . '/preview/okna-moskva.ru/preview.html'), 'лишняя копия HTML не остаётся');
+
+        // Повторный заход ничего не делает: снимок уже есть.
+        Assert::same(['attempted' => 0, 'captured' => 0], $visitor->capturePreviews(['okna-moskva.ru' => $site]));
+    }
+
     public function testPlaywrightDriverRendersJavascript(): void
     {
         $driver = new PlaywrightDriver();

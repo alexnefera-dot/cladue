@@ -401,6 +401,49 @@ final class PanelTest
         @rmdir($dir);
     }
 
+    public function testRetryRunsSeveralRoundsWithPause(): void
+    {
+        // Отложенный передобор: докачка делает несколько кругов подряд (между кругами — пауза, здесь 0).
+        // Сайт, который так и не отдаёт страницу, пробуется каждый круг заново — именно это пользователь
+        // делал руками: «с первого раза может не скачивать, но 3–4 раза и докачивает».
+        $dir = sys_get_temp_dir() . '/yandex-sites-rounds-' . uniqid();
+        $runDir = $dir . '/runs/rounds';
+        mkdir($runDir, 0777, true);
+        file_put_contents($dir . '/config.php', '<?php return ["source"=>"xmlstock","xmlstock"=>["user"=>"u","key"=>"k"]];');
+        file_put_contents($runDir . '/sites.json', json_encode(['sites' => [[
+            'host' => 'nothing.invalid', 'domain' => 'nothing.invalid',
+            'url' => 'http://nothing.invalid/', 'title' => 'T',
+            'best_query' => 'q', 'best_position' => 1, 'queries_count' => 1,
+            'visits' => [[
+                'variant' => 0, 'url' => 'http://nothing.invalid/', 'stage' => 'download',
+                'ok' => false, 'error' => 'сетевая ошибка (curl 6): не удалось разрешить имя',
+                'status' => null, 'html_file' => '', 'screenshot_file' => '',
+            ]],
+        ]]]));
+        file_put_contents($runDir . '/settings.json', json_encode([
+            'stage' => 'download',
+            'visit_driver' => 'curl',
+            'crawl' => true,
+            'retry_hosts' => ['nothing.invalid'],
+            'retry_rounds' => 2,
+            'retry_pause_min' => 0, // без паузы, иначе тест ждал бы минуты
+        ]));
+        $run = $this->php([PROJECT_ROOT . '/bin/run-job.php', '--settings=' . $runDir . '/settings.json'], $dir);
+        Assert::same(0, $run['code'], $run['out']);
+        $st = json_decode((string) file_get_contents($runDir . '/status.json'), true);
+        Assert::same('done', $st['state'], $run['out']);
+        $log = (string) file_get_contents($runDir . '/run.log');
+        Assert::contains('Круг добора 1 из 2', $log, 'первый круг');
+        Assert::contains('Круг добора 2 из 2', $log, 'второй круг — сайт не дался и с первого раза');
+        Assert::contains('за 2 круга', $st['message'], 'сообщение честно говорит, сколько кругов прошло');
+
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($it as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+        @rmdir($dir);
+    }
+
     public function testDownloadStageReportsTemplateTypes(): void
     {
         // После открытия страниц статус несёт разбивку по типу вёрстки, а строки таблицы — тип каждого сайта:

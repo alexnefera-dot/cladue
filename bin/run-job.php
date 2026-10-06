@@ -367,6 +367,13 @@ function buildOverrides(array $s, string $runDir): array
     if (isset($s['preview_retries'])) {
         $overrides['visit.preview_retries'] = max(0, (int) $s['preview_retries']);
     }
+    // Отложенный передобор: кругов добора и пауза между ними (в панели — в минутах).
+    if (isset($s['retry_rounds'])) {
+        $overrides['visit.retry_rounds'] = max(1, min(20, (int) $s['retry_rounds']));
+    }
+    if (isset($s['retry_pause_min'])) {
+        $overrides['visit.retry_pause_sec'] = max(0, min(120, (int) $s['retry_pause_min'])) * 60;
+    }
     // Продвинутое/для тестов: сопоставление host:port:ip для визитов (CURLOPT_RESOLVE / Chromium).
     if (isset($s['visit_resolve']) && is_array($s['visit_resolve'])) {
         $overrides['visit.resolve'] = array_values(array_map('strval', $s['visit_resolve']));
@@ -404,6 +411,35 @@ function previewSites(array $sites, string $runDir = '', int $limit = SiteRows::
 function stopped(string $stopFile): bool
 {
     return is_file($stopFile);
+}
+
+/**
+ * Пауза между кругами добора. Сайт, который ПРЯМО СЕЙЧАС не отдал страницу (лимит на IP, «горячий»
+ * антибот), через несколько минут часто отдаёт её сам — именно поэтому у пользователя «с первого раза
+ * может не скачивать, но 3–4 раза и докачивает». Ждём посекундно, чтобы кнопка «Остановить» срабатывала
+ * сразу, и кладём остаток в прогресс — в панели видно, что задание не зависло, а ждёт.
+ *
+ * @return bool можно ли продолжать (false — нажали «Остановить»)
+ */
+function waitBetweenRounds(int $seconds, string $stopFile, Progress $progress, Logger $logger, int $round, int $rounds): bool
+{
+    if (stopped($stopFile)) {
+        return false;
+    }
+    if ($seconds <= 0) {
+        return true;
+    }
+    $logger->info(sprintf('Пауза %d с перед кругом %d из %d — за это время сайты часто «остывают»…', $seconds, $round, $rounds));
+    for ($left = $seconds; $left > 0; $left--) {
+        if (stopped($stopFile)) {
+            return false;
+        }
+        $progress->update(['phase' => 'visit', 'wait' => ['left' => $left, 'round' => $round, 'rounds' => $rounds]], true);
+        sleep(1);
+    }
+    $progress->update(['phase' => 'visit', 'wait' => null], true);
+
+    return !stopped($stopFile);
 }
 
 /**
@@ -675,6 +711,7 @@ while (true) {
                 'visit.screenshot' => true,
                 'visit.max_pages' => 0,
                 'visit.dir' => $runDir . '/preview',
+                'visit.preview_dir' => $runDir . '/preview',
             ]));
             $writer = new ReportWriter((string) $config->get('output.csv_delimiter', ';'), (bool) $config->get('output.csv_bom', true));
             $sites = RemovedSites::filter($runDir, loadSites($runDir . '/sites.json'));
@@ -694,7 +731,29 @@ while (true) {
                 throw new RuntimeException('Визиты отключены в настройках');
             }
             $progress->update(['phase' => 'visit', 'sites_selected' => count($visitList)], true);
-            $stat = $visitor->retryPreview($visitList);
+            // Те же круги с паузой, что и у докачки: сайт, который сейчас не пустил, через несколько
+            // минут часто открывается сам — ждать этого руками пользователь не должен.
+            $rounds = max(1, (int) $config->get('visit.retry_rounds', 3));
+            $pause = max(0, (int) $config->get('visit.retry_pause_sec', 120));
+            $stat = ['attempted' => 0, 'recovered' => 0];
+            $previewRounds = 0;
+            for ($round = 1; $round <= $rounds; $round++) {
+                if ($rounds > 1) {
+                    $logger->info(sprintf('Круг добора превью %d из %d', $round, $rounds));
+                }
+                $one = $visitor->retryPreview($visitList);
+                $previewRounds = $round;
+                if ($round === 1) {
+                    $stat['attempted'] = $one['attempted'];
+                }
+                $stat['recovered'] += $one['recovered'];
+                if ($one['attempted'] === 0 || $one['recovered'] >= $one['attempted'] || $round >= $rounds) {
+                    break;
+                }
+                if (!waitBetweenRounds($pause, $stopFile, $progress, $logger, $round + 1, $rounds)) {
+                    break;
+                }
+            }
             // Объекты сайтов общие с $sites, поэтому просто перезаписываем список целиком.
             $sites = RemovedSites::filter($runDir, $sites);
             $siteList = array_values($sites);
@@ -710,7 +769,12 @@ while (true) {
                 'files' => ['csv' => 'sites.csv', 'json' => 'sites.json', 'domains' => 'domains.txt'],
                 'message' => $stat['attempted'] === 0
                     ? 'Сайтов без превью нет — пробовать нечего'
-                    : sprintf('Перепробовано сайтов без превью: %d, открылось %d', $stat['attempted'], $stat['recovered']),
+                    : sprintf(
+                        'Перепробовано сайтов без превью: %d, открылось %d%s',
+                        $stat['attempted'],
+                        $stat['recovered'],
+                        $previewRounds > 1 ? sprintf(' за %d круга(ов)', $previewRounds) : '',
+                    ),
             ], true);
             $logger->info(sprintf('Перепробовано без превью: %d, открылось %d', $stat['attempted'], $stat['recovered']));
         } elseif ($stage === 'download') {
@@ -718,6 +782,8 @@ while (true) {
             $config = Config::fromFile($configPath)->withOverrides(array_merge(buildOverrides($settings, $runDir), [
                 'visit.enabled' => true,
                 'visit.dir' => $runDir . '/pages',
+                // Куда класть добранные превью: туда же, где превью сбора, — их показывает таблица.
+                'visit.preview_dir' => $runDir . '/preview',
             ]));
             $writer = new ReportWriter((string) $config->get('output.csv_delimiter', ';'), (bool) $config->get('output.csv_bom', true));
             $sites = loadSites($runDir . '/sites.json');
@@ -761,6 +827,7 @@ while (true) {
             $retryHosts = array_flip(array_map('strval', (array) ($settings['retry_hosts'] ?? [])));
             $isRetry = $retryHosts !== [];
             $retryStat = ['attempted' => 0, 'recovered' => 0];
+            $retryRounds = 0; // сколько кругов добора реально прошло — попадёт в сообщение задания
             $cleanStats = ''; // сколько очищено прямо во время выгрузки (волнами)
             $waveStopped = false; // выгрузку остановили между волнами — часть сайтов не тронута
             if ($isRetry) {
@@ -772,7 +839,30 @@ while (true) {
                 }
                 $progress->update(['phase' => 'visit', 'sites_selected' => count($visitList)], true);
                 $logger->info(sprintf('Докачка неудачных страниц: сайтов %d через %s', count($visitList), $visitor->driver()->name()));
-                $retryStat = $visitor->retryFailed($visitList);
+                // ОТЛОЖЕННЫЙ ПЕРЕДОБОР: несколько кругов с паузой между ними. Пользователь заметил, что
+                // «с первого раза может не скачивать, но 3–4 раза и докачивает» — кнопку приходилось
+                // жать вручную. Теперь это делает само задание: добрали всё — круги заканчиваются,
+                // остались неудачи — ждём и заходим снова, уже другими прокси/агентами/реферерами.
+                $rounds = max(1, (int) $config->get('visit.retry_rounds', 3));
+                $pause = max(0, (int) $config->get('visit.retry_pause_sec', 120));
+                for ($round = 1; $round <= $rounds; $round++) {
+                    if ($rounds > 1) {
+                        $logger->info(sprintf('Круг добора %d из %d', $round, $rounds));
+                    }
+                    $stat = $visitor->retryFailed($visitList);
+                    $retryRounds = $round;
+                    if ($round === 1) {
+                        $retryStat['attempted'] = $stat['attempted'];
+                    }
+                    $retryStat['recovered'] += $stat['recovered'];
+                    // Нечего добирать или добрали всё — следующий круг был бы пустым заходом.
+                    if ($stat['attempted'] === 0 || $stat['recovered'] >= $stat['attempted'] || $round >= $rounds) {
+                        break;
+                    }
+                    if (!waitBetweenRounds($pause, $stopFile, $progress, $logger, $round + 1, $rounds)) {
+                        break;
+                    }
+                }
             } else {
                 // (Пере)выгрузка идёт ВОЛНАМИ по visit.batch_sites сайтов: обход устроен по этапам
                 // (сначала все главные, потом пробные, потом остальные страницы), поэтому пока список
@@ -912,7 +1002,13 @@ while (true) {
                     ? sprintf('Выгружено страниц: %d', $opened) . ($cleanStats !== '' ? '; очищено сразу: ' . $cleanStats : '') . ($keyStats !== '' ? '; не хватает: ' . $keyStats : '')
                     : ($retryStat['attempted'] === 0
                         ? 'Докачка: нечего добирать — оставшиеся ошибки повтором не чинятся (404 без языкового префикса, дубликаты)'
-                        : sprintf('Докачано: добрано %d из %d стр., всего открыто %d', $retryStat['recovered'], $retryStat['attempted'], $opened)))
+                        : sprintf(
+                            'Докачано: добрано %d из %d стр.%s, всего открыто %d',
+                            $retryStat['recovered'],
+                            $retryStat['attempted'],
+                            $retryRounds > 1 ? sprintf(' за %d круга(ов)', $retryRounds) : '',
+                            $opened,
+                        )))
                     // Разбивка по числу страниц: сколько одностраничников, сколько 9/10-страничников и т.п.
                     . ($pageStats !== '' ? '; по страницам: ' . $pageStats : '')
                     . ($problemHist['sites'] > 0 ? sprintf('; проблемных: %d (фильтр над таблицей)', $problemHist['sites']) : '')
