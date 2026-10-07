@@ -1783,6 +1783,33 @@ const NEW = '<?= h($cur) ?>';</pre>
       <code>{clickid}</code> прямо там, где партнёрка её ждёт: <code>https://partner.top/abc?sub_id={clickid}</code>.
       Секрет <code>key</code> и список доменов меняются в <code>config.php</code>.
     </div>
+
+    <?php $pbLog = recent_postback_log(20); ?>
+    <h3 style="font-size:14px;margin:16px 0 6px">Последние запросы на postback.php</h3>
+    <div class="muted">
+      Сырые запросы, как они пришли. Нужны при подключении новой партнёрки: видно,
+      какой макрос что подставил и почему конверсия не привязалась.
+      <b>matched</b> — клик с таким <code>cnv_id</code> нашёлся;
+      <b>unmatched</b> — не нашёлся (чаще всего прислали не ту метку);
+      <b>forbidden_key</b> — не совпал <code>key</code>;
+      <b>no_cnv_id</b> — метка пустая, макрос не раскрылся.
+    </div>
+    <table style="margin-top:8px">
+      <thead><tr><th>Время</th><th>Итог</th><th>IP</th><th>Запрос</th></tr></thead>
+      <tbody>
+        <?php foreach ($pbLog as $pl):
+          $color = ['matched' => '#166534', 'unmatched' => '#b45309'][$pl['outcome']] ?? '#b91c1c';
+        ?>
+        <tr>
+          <td style="white-space:nowrap"><?= dt($pl['ts']) ?></td>
+          <td style="color:<?= $color ?>"><?= h($pl['outcome']) ?></td>
+          <td class="muted"><?= h($pl['ip']) ?></td>
+          <td style="font:11px ui-monospace,monospace;word-break:break-all"><?= h($pl['query']) ?></td>
+        </tr>
+        <?php endforeach; ?>
+        <?php if (!$pbLog): ?><tr><td colspan="4">Запросов пока не было.</td></tr><?php endif; ?>
+      </tbody>
+    </table>
   </div>
 
   <div class="card">
