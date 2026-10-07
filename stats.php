@@ -443,6 +443,9 @@ if ($tab === 'stats' && $detailSlug !== '') {
     $preCamp = $st->fetch(PDO::FETCH_ASSOC) ?: null;
     $preConf = $preCamp ? prelander_slots_get($preCamp['prelander_slots'] ?? '') : ['title' => '', 'slots' => []];
     $preMeta = $preCamp ? prelander_meta($preCamp['prelander'] ?? '') : ['name' => '', 'title' => '', 'slots' => []];
+    // Цифры за сутки прямо на странице настройки: иначе их видно только в
+    // карточке кампании, и непонятно, работает заглушка или нет.
+    $preStat = $preCamp ? prelander_stats($preCamp['slug'], time() - 86400) : null;
     $campaigns = $pdo->query('SELECT slug, name FROM campaigns ORDER BY name, slug')->fetchAll(PDO::FETCH_ASSOC);
 
 } else {
@@ -762,13 +765,19 @@ $msg = $_GET['msg'] ?? '';
     </span>
   </div>
   <?php endif; ?>
-  <?php if ($detailPre['views'] || $detailPre['clicks']): ?>
+  <?php if ($detailPre['views'] || $detailPre['clicks'] || $detailPre['incoming']): ?>
   <div class="bots-box" style="margin-top:8px">
     <span class="chip" style="background:#eef2ff;border-color:#e0e7ff;color:#4338ca"
           title="Преленд: сколько раз страница была показана и сколько раз с неё нажали кнопку. CTR — доля дошедших до оффера.">
       Преленд: показов <b><?= (int)$detailPre['views'] ?></b> · кликов <b><?= (int)$detailPre['clicks'] ?></b> ·
       CTR <b style="color:#4338ca"><?= h((string)$detailPre['ctr']) ?>%</b>
     </span>
+    <?php if ($detailPre['incoming']): ?>
+    <span class="chip" style="background:#f6f7f9;border-color:#e2e4ea;color:#333"
+          title="Переходы, пришедшие на эту кампанию с преленда другой. В клики они не считаются (иначе один посетитель дал бы два), но конверсии садятся именно на них.">
+      Входящие с преленда: <b><?= (int)$detailPre['incoming'] ?></b>
+    </span>
+    <?php endif; ?>
   </div>
   <?php endif; ?>
 
@@ -1264,6 +1273,24 @@ $msg = $_GET['msg'] ?? '';
       Пустое поле означает «как в шаблоне» — ничего не сотрётся. Название кампании
       (<code><?= h($preCamp['slug']) ?></code>) на странице не показывается: подписи блоков задаются здесь.
     </div>
+
+    <?php if ($preStat): ?>
+    <div class="bots-box" style="margin-top:10px">
+      <span class="chip" style="background:#eef2ff;border-color:#e0e7ff;color:#4338ca" title="Сколько раз страница была показана живым людям за сутки">
+        Показы: <b><?= (int)$preStat['views'] ?></b>
+      </span>
+      <span class="chip" style="background:#eef2ff;border-color:#e0e7ff;color:#4338ca" title="Сколько из показов дошло до нажатия кнопки">
+        Нажатий: <b><?= (int)$preStat['clicks'] ?></b>
+      </span>
+      <span class="chip" style="background:#eef2ff;border-color:#e0e7ff;color:#4338ca" title="Доля дошедших до оффера. Главная цифра: ниже 30% — заглушка не убеждает">
+        CTR: <b><?= h((string)$preStat['ctr']) ?>%</b>
+      </span>
+      <span class="chip" style="background:#f6f7f9;border-color:#e2e4ea;color:#333" title="Переходы, пришедшие НА эту кампанию с чужого преленда. В клики не считаются, но конверсии садятся на них">
+        Входящие с чужих прелендов: <b><?= (int)$preStat['incoming'] ?></b>
+      </span>
+      <span class="muted">за сутки</span>
+    </div>
+    <?php endif; ?>
 
     <form method="post" style="margin-top:14px">
       <input type="hidden" name="key" value="<?= h($key) ?>">
