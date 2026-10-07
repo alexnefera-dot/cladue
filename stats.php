@@ -424,14 +424,27 @@ if ($tab === 'stats' && $detailSlug !== '') {
     $ruPulse    = panel_cache('rupulse',    fn() => ru_pulse(7),   300);
     // Конверсии за выбранный период, с пагинацией. Раньше показывались просто
     // последние 50 за всё время — при просмотре 7/30 дней глубже было не уйти.
-    $convPerPage = 50;
+    // 15 строк: таблица широкая, и полсотни строк на главной — это стена,
+    // через которую не видно ничего другого. Глубже — страницами.
+    $convPerPage = 15;
     $convPage    = max(1, (int)($_GET['convpage'] ?? 1));
     $convTotalN  = conversions_count($from, $to);
     $convPages   = max(1, (int)ceil($convTotalN / $convPerPage));
     $convPage    = min($convPage, $convPages);
     $recentConv  = recent_conversions($convPerPage, ($convPage - 1) * $convPerPage, $from, $to);
+
+    // Кампании тоже страницами: их бывает полторы сотни, и таблица во весь
+    // экран мешает смотреть всё остальное. Режем уже посчитанный массив —
+    // отдельный запрос ради этого не нужен.
+    $campPerPage = 20;
+    $campTotalN  = count($today);
+    $campPages   = max(1, (int)ceil($campTotalN / $campPerPage));
+    $campPage    = min(max(1, (int)($_GET['camppage'] ?? 1)), $campPages);
+    $todayPage   = array_slice($today, ($campPage - 1) * $campPerPage, $campPerPage);
     $geo        = panel_cache("geo_$periodKey",     fn() => geo_stats($from, $to));
     $geoCamp    = panel_cache("geocamp_$periodKey", fn() => geo_by_campaign($from, null, $to));
+    // Сводка по прелендам — на главную: цифры на странице настройки искать никто не будет.
+    $preOver    = panel_cache("preover_$periodKey", fn() => prelanders_overview($from, $to));
     $botsPeriod = panel_cache("bots_$periodKey",    fn() => bots_split($from, $to));
     $sourceGroups = panel_cache("srcall_$periodKey", fn() => sources_grouped_by_campaign(null, $from, $to));
 
@@ -964,104 +977,6 @@ $msg = $_GET['msg'] ?? '';
 
 <?php else: ?>
 
-  <h1>Конверсии за период (<?= h($PERIODS[$periodKey]) ?>)</h1>
-  <div class="muted">
-    Входящие постбеки от партнёрок. «не привязан» — постбек пришёл, но clickid не совпал ни с одним кликом.
-    У одного игрока приходят два события: рега и первый деп — это две отдельные строки.
-    Всего за период: <b><?= (int)$convTotalN ?></b><?php if ($convPages > 1): ?>, страница <b><?= $convPage ?></b> из <b><?= $convPages ?></b><?php endif; ?>.
-    <a href="<?= h(tab_url('stats', $key)) ?>&export=conversions&period=<?= h($periodKey) ?>"><b>⬇ Выгрузить все конверсии за период (CSV)</b></a>
-  </div>
-  <table class="sortable">
-    <thead><tr><th data-sort="text">Время</th><th data-sort="text">Событие</th><th data-sort="text">clickid</th><th data-sort="text">Кампания</th><th data-sort="text">Страна</th><th data-sort="text">Источник</th><th class="num" data-sort="num">Вложенность</th><th data-sort="text">Реферер</th><th data-sort="text">User-Agent</th><th data-sort="text">IP</th></tr></thead>
-    <tbody>
-      <?php foreach ($recentConv as $r): ?>
-      <tr>
-        <td><?= dt($r['ts']) ?></td>
-        <td><?php
-          $stt = strtolower((string)($r['status'] ?? ''));
-          if (in_array($stt, ['dep','deposit','sale','ftd','purchase'], true)) {
-            echo '<span class="chip" style="background:#fff7ed;border-color:#fed7aa;color:#9a3412">деп</span>';
-          } elseif (in_array($stt, ['reg','registration','lead'], true)) {
-            echo '<span class="chip" style="background:#faf5ff;border-color:#e9d5ff;color:#7e22ce">рега</span>';
-          } else {
-            echo '<span class="chip muted">'.h($stt !== '' ? $stt : '—').'</span>';
-          }
-        ?></td>
-        <td><code style="font-size:11px"><?= h($r['clickid']) ?></code></td>
-        <td><?= $r['slug'] ? '<code>'.h($r['slug']).'</code>' : '<span style="color:var(--bot)">не привязан</span>' ?></td>
-        <td><?= ($r['country'] ?? '') !== '' ? country_flag($r['country']).' '.h($r['country']) : '—' ?></td>
-        <td><?= h(($r['source'] ?? '') !== '' ? $r['source'] : '—') ?></td>
-        <td class="num" data-val="<?= ($r['lp'] ?? '') !== '' ? ru_depth($r['lp']) : -1 ?>"><?= conv_depth($r['lp'] ?? '') ?></td>
-        <td class="refurl"><?= ref_url($r['referer'] ?? '') ?></td>
-        <td class="ref" title="<?= h($r['ua'] ?? '') ?>"><?= h(($r['ua'] ?? '') !== '' ? $r['ua'] : '—') ?></td>
-        <td><?php
-          $userIp = $r['ip'] ?? '';
-          if ($userIp !== '') {
-            echo h($userIp);
-          } else {
-            echo '<span class="muted" title="IP отправителя постбека (клик не привязан, IP юзера неизвестен)">'.h($r['postback_ip'] ?? '—').'</span>';
-          }
-        ?></td>
-      </tr>
-      <?php endforeach; ?>
-      <?php if (!$recentConv): ?><tr><td colspan="10">За выбранный период конверсий нет.</td></tr><?php endif; ?>
-    </tbody>
-  </table>
-  <?php if ($convPages > 1):
-    $cbase = tab_url('stats', $key) . '&period=' . $periodKey . '&convpage=';
-  ?>
-  <div style="margin:10px 0 24px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-    <?php if ($convPage > 1): ?><a href="<?= h($cbase . 1) ?>">« первая</a><a href="<?= h($cbase . ($convPage-1)) ?>">← назад</a><?php endif; ?>
-    <span class="muted">стр. <?= $convPage ?> из <?= $convPages ?> · всего <?= (int)$convTotalN ?></span>
-    <?php if ($convPage < $convPages): ?><a href="<?= h($cbase . ($convPage+1)) ?>">вперёд →</a><a href="<?= h($cbase . $convPages) ?>">последняя »</a><?php endif; ?>
-  </div>
-  <?php endif; ?>
-
-  <div class="widgets">
-    <?php
-      $geoTotalW = 0; foreach ($geo as $g) $geoTotalW += (int)$g['uniques'];
-      $geoRows = [];
-      foreach (array_slice($geo, 0, 6) as $g) {
-          $geoRows[] = ['label' => country_flag($g['country']) . ' ' . h($g['country']),
-                        'value' => (int)$g['uniques']];
-      }
-      render_widget('Гео', 'юзеры, ' . h($PERIODS[$periodKey]), $geoRows, $geoTotalW,
-                    tab_url('stats', $key) . '&period=' . $periodKey . '&view=geo',
-                    'Все страны (' . count($geo) . ')');
-
-      $srcTotalW = 0; foreach ($sourceGroups as $g) $srcTotalW += (int)$g['uniques'];
-      $srcRows = [];
-      foreach (array_slice($sourceGroups, 0, 6) as $g) {
-          $srcRows[] = ['label' => '<code style="font-size:12px">' . h($g['root']) . '</code>',
-                        'sub'   => '<span class="muted" style="font-size:11px">· ' . count($g['subs']) . '</span>',
-                        'value' => (int)$g['uniques']];
-      }
-      render_widget('Источники', 'юзеры, ' . h($PERIODS[$periodKey]), $srcRows, $srcTotalW,
-                    tab_url('stats', $key) . '&period=' . $periodKey . '&view=sources',
-                    'Все источники (' . count($sourceGroups) . ')');
-    ?>
-  </div>
-
-  <div class="muted">
-    Все кампании с кликами за выбранный период. Клик по строке — подробности кампании. Колонки сортируются — кликни по заголовку.
-  </div>
-
-  <?php
-    // --- график за 30 дней (inline SVG, без внешних библиотек) ---
-    $n = count($daily);
-    $todayRow = $n ? $daily[$n-1] : ['humans'=>0,'uniques'=>0,'bots'=>0,'regs'=>0,'deps'=>0];
-    $maxV = 1;
-    foreach ($daily as $r) $maxV = max($maxV, $r['uniques'], $r['regs'], $r['deps'] ?? 0);
-    $W=920; $H=300; $pl=46; $pr=14; $pt=18; $pb=34;
-    $plotW = $W-$pl-$pr; $plotH = $H-$pt-$pb;
-    $xat = function($i) use($pl,$plotW,$n){ return $pl + ($n<=1?0:$plotW*$i/($n-1)); };
-    $yat = function($v) use($pt,$plotH,$maxV){ return $pt + $plotH - ($plotH*$v/$maxV); };
-    $series = [
-      ['key'=>'uniques', 'color'=>'#16a34a', 'label'=>'Юзеры (уники)'],
-      ['key'=>'regs',    'color'=>'#a855f7', 'label'=>'Реги'],
-      ['key'=>'deps',    'color'=>'#ea580c', 'label'=>'Депы (FTD)'],
-    ];
-  ?>
   <?php
     // ПУЛЬС ПО ЧАСАМ. Отдельно от месячного графика: тот показывает динамику
     // бизнеса, а этот — жив ли редиректор прямо сейчас. Поэтому только живые
@@ -1121,6 +1036,22 @@ $msg = $_GET['msg'] ?? '';
     </table>
   </div>
 
+  <?php
+    // --- график за 30 дней (inline SVG, без внешних библиотек) ---
+    $n = count($daily);
+    $todayRow = $n ? $daily[$n-1] : ['humans'=>0,'uniques'=>0,'bots'=>0,'regs'=>0,'deps'=>0];
+    $maxV = 1;
+    foreach ($daily as $r) $maxV = max($maxV, $r['uniques'], $r['regs'], $r['deps'] ?? 0);
+    $W=920; $H=300; $pl=46; $pr=14; $pt=18; $pb=34;
+    $plotW = $W-$pl-$pr; $plotH = $H-$pt-$pb;
+    $xat = function($i) use($pl,$plotW,$n){ return $pl + ($n<=1?0:$plotW*$i/($n-1)); };
+    $yat = function($v) use($pt,$plotH,$maxV){ return $pt + $plotH - ($plotH*$v/$maxV); };
+    $series = [
+      ['key'=>'uniques', 'color'=>'#16a34a', 'label'=>'Юзеры (уники)'],
+      ['key'=>'regs',    'color'=>'#a855f7', 'label'=>'Реги'],
+      ['key'=>'deps',    'color'=>'#ea580c', 'label'=>'Депы (FTD)'],
+    ];
+  ?>
   <h1 style="margin-top:8px">График за месяц</h1>
   <div class="muted">Наведи на график — покажет цифры за день. По оси X — дни, по Y — количество.</div>
   <div class="card chart-wrap" style="overflow-x:auto">
@@ -1207,6 +1138,9 @@ $msg = $_GET['msg'] ?? '';
   })();
   </script>
 
+  <div class="muted">
+    Все кампании с кликами за выбранный период. Клик по строке — подробности кампании. Колонки сортируются — кликни по заголовку.
+  </div>
   <h1>По кампаниям (<?= h($PERIODS[$periodKey]) ?>)</h1>
   <div class="muted">Клик по строке — подробности кампании. Отдельно вынесены RU-показатели (уники, реги и депы только из России). Деп — отдельное событие: у одного игрока может быть и рега, и первый деп.</div>
   <table class="sortable rowlink">
@@ -1223,7 +1157,7 @@ $msg = $_GET['msg'] ?? '';
       <th data-sort="num">Последний</th>
     </tr></thead>
     <tbody>
-      <?php foreach ($today as $r):
+      <?php foreach ($todayPage as $r):
         $du = tab_url('stats', $key) . '&slug=' . rawurlencode($r['slug']) . '&period=' . $periodKey;
         $tg = $geoCamp[$r['slug']] ?? [];
       ?>
@@ -1251,6 +1185,147 @@ $msg = $_GET['msg'] ?? '';
       <?php if (!$today): ?><tr><td colspan="11">За выбранный период юзеров нет.</td></tr><?php endif; ?>
     </tbody>
   </table>
+  <?php if ($campPages > 1):
+    $kbase = tab_url('stats', $key) . '&period=' . $periodKey . '&camppage=';
+  ?>
+  <div style="margin:10px 0 18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <?php if ($campPage > 1): ?><a href="<?= h($kbase . 1) ?>">« первая</a><a href="<?= h($kbase . ($campPage-1)) ?>">← назад</a><?php endif; ?>
+    <span class="muted">стр. <?= $campPage ?> из <?= $campPages ?> · всего кампаний <?= (int)$campTotalN ?></span>
+    <?php if ($campPage < $campPages): ?><a href="<?= h($kbase . ($campPage+1)) ?>">вперёд →</a><a href="<?= h($kbase . $campPages) ?>">последняя »</a><?php endif; ?>
+  </div>
+  <?php endif; ?>
+
+  <?php if ($preOver): ?>
+  <h1 style="margin-top:8px">Преленды (<?= h($PERIODS[$periodKey]) ?>)</h1>
+  <div class="muted">
+    Показ и нажатие — разные кампании: показ пишется той, где включён преленд,
+    нажатие — той, куда ведёт кнопка. Поэтому в «Кликах» ниже видно только показы,
+    а нажатия — здесь. CTR ниже 30% означает, что заглушка не убеждает.
+    Строками со стрелкой — куда разошлись нажатия и что каждая кнопка принесла:
+    доля в третьей колонке, реги и депы этих же посетителей — в последней.
+  </div>
+  <table class="sortable" style="margin-top:8px">
+    <thead><tr>
+      <th data-sort="text">Кампания</th>
+      <th class="num" data-sort="num" title="Сколько раз страница показана живым людям">Показы</th>
+      <th class="num" data-sort="num" title="Сколько из показов дошло до нажатия кнопки">Нажатий</th>
+      <th class="num" data-sort="num">CTR</th>
+      <th class="num" data-sort="num" title="Переходы, пришедшие НА эту кампанию с чужого преленда. В клики не считаются, но конверсии садятся на них">Входящие</th>
+      <th></th>
+    </tr></thead>
+    <tbody>
+      <?php foreach ($preOver as $po): ?>
+      <tr>
+        <td><a href="stats.php?tab=stats&slug=<?= urlencode($po['slug']) ?>"><?= h($po['name'] ?: $po['slug']) ?></a>
+            <code class="muted" style="font-size:11px"><?= h($po['slug']) ?></code></td>
+        <td class="num"><b><?= (int)$po['views'] ?></b></td>
+        <td class="num"><?= (int)$po['clicks'] ?></td>
+        <td class="num" style="color:<?= $po['ctr'] >= 30 ? '#166534' : ($po['views'] ? '#b45309' : 'var(--muted)') ?>"><?= h((string)$po['ctr']) ?>%</td>
+        <td class="num"><?= (int)$po['incoming'] ?></td>
+        <td><a href="stats.php?tab=prelander&slug=<?= urlencode($po['slug']) ?>">настроить</a> ·
+            <a href="/p/<?= h($po['slug']) ?>" target="_blank">страница</a></td>
+      </tr>
+        <?php foreach ($po['by'] as $b): ?>
+        <tr style="background:#fbfbfd">
+          <td style="padding-left:22px" class="muted">
+            → <a href="stats.php?tab=stats&slug=<?= urlencode($b['slug']) ?>"><?= h($b['name'] ?? $b['slug']) ?></a>
+          </td>
+          <td class="num muted">—</td>
+          <td class="num"><?= (int)$b['clicks'] ?></td>
+          <td class="num muted"><?= $po['clicks'] ? round($b['clicks'] * 100 / $po['clicks']) . '%' : '—' ?></td>
+          <td class="num" colspan="2">
+            <span style="color:#a855f7">реги <b><?= (int)$b['reg'] ?></b></span> ·
+            <span style="color:#ea580c">депы <b><?= (int)$b['dep'] ?></b></span>
+          </td>
+        </tr>
+        <?php endforeach; ?>
+        <?php if (!$po['by'] && $po['views']): ?>
+        <tr style="background:#fbfbfd"><td colspan="6" class="muted" style="padding-left:22px">
+          Показы есть, нажатий нет — ни одна кнопка не сработала.
+        </td></tr>
+        <?php endif; ?>
+      <?php endforeach; ?>
+    </tbody>
+  </table>
+  <?php endif; ?>
+
+  <div class="widgets">
+    <?php
+      $geoTotalW = 0; foreach ($geo as $g) $geoTotalW += (int)$g['uniques'];
+      $geoRows = [];
+      foreach (array_slice($geo, 0, 6) as $g) {
+          $geoRows[] = ['label' => country_flag($g['country']) . ' ' . h($g['country']),
+                        'value' => (int)$g['uniques']];
+      }
+      render_widget('Гео', 'юзеры, ' . h($PERIODS[$periodKey]), $geoRows, $geoTotalW,
+                    tab_url('stats', $key) . '&period=' . $periodKey . '&view=geo',
+                    'Все страны (' . count($geo) . ')');
+
+      $srcTotalW = 0; foreach ($sourceGroups as $g) $srcTotalW += (int)$g['uniques'];
+      $srcRows = [];
+      foreach (array_slice($sourceGroups, 0, 6) as $g) {
+          $srcRows[] = ['label' => '<code style="font-size:12px">' . h($g['root']) . '</code>',
+                        'sub'   => '<span class="muted" style="font-size:11px">· ' . count($g['subs']) . '</span>',
+                        'value' => (int)$g['uniques']];
+      }
+      render_widget('Источники', 'юзеры, ' . h($PERIODS[$periodKey]), $srcRows, $srcTotalW,
+                    tab_url('stats', $key) . '&period=' . $periodKey . '&view=sources',
+                    'Все источники (' . count($sourceGroups) . ')');
+    ?>
+  </div>
+
+  <h1>Конверсии за период (<?= h($PERIODS[$periodKey]) ?>)</h1>
+  <div class="muted">
+    Входящие постбеки от партнёрок. «не привязан» — постбек пришёл, но clickid не совпал ни с одним кликом.
+    У одного игрока приходят два события: рега и первый деп — это две отдельные строки.
+    Всего за период: <b><?= (int)$convTotalN ?></b><?php if ($convPages > 1): ?>, страница <b><?= $convPage ?></b> из <b><?= $convPages ?></b><?php endif; ?>.
+    <a href="<?= h(tab_url('stats', $key)) ?>&export=conversions&period=<?= h($periodKey) ?>"><b>⬇ Выгрузить все конверсии за период (CSV)</b></a>
+  </div>
+  <table class="sortable">
+    <thead><tr><th data-sort="text">Время</th><th data-sort="text">Событие</th><th data-sort="text">clickid</th><th data-sort="text">Кампания</th><th data-sort="text">Страна</th><th data-sort="text">Источник</th><th class="num" data-sort="num">Вложенность</th><th data-sort="text">Реферер</th><th data-sort="text">User-Agent</th><th data-sort="text">IP</th></tr></thead>
+    <tbody>
+      <?php foreach ($recentConv as $r): ?>
+      <tr>
+        <td><?= dt($r['ts']) ?></td>
+        <td><?php
+          $stt = strtolower((string)($r['status'] ?? ''));
+          if (in_array($stt, ['dep','deposit','sale','ftd','purchase'], true)) {
+            echo '<span class="chip" style="background:#fff7ed;border-color:#fed7aa;color:#9a3412">деп</span>';
+          } elseif (in_array($stt, ['reg','registration','lead'], true)) {
+            echo '<span class="chip" style="background:#faf5ff;border-color:#e9d5ff;color:#7e22ce">рега</span>';
+          } else {
+            echo '<span class="chip muted">'.h($stt !== '' ? $stt : '—').'</span>';
+          }
+        ?></td>
+        <td><code style="font-size:11px"><?= h($r['clickid']) ?></code></td>
+        <td><?= $r['slug'] ? '<code>'.h($r['slug']).'</code>' : '<span style="color:var(--bot)">не привязан</span>' ?></td>
+        <td><?= ($r['country'] ?? '') !== '' ? country_flag($r['country']).' '.h($r['country']) : '—' ?></td>
+        <td><?= h(($r['source'] ?? '') !== '' ? $r['source'] : '—') ?></td>
+        <td class="num" data-val="<?= ($r['lp'] ?? '') !== '' ? ru_depth($r['lp']) : -1 ?>"><?= conv_depth($r['lp'] ?? '') ?></td>
+        <td class="refurl"><?= ref_url($r['referer'] ?? '') ?></td>
+        <td class="ref" title="<?= h($r['ua'] ?? '') ?>"><?= h(($r['ua'] ?? '') !== '' ? $r['ua'] : '—') ?></td>
+        <td><?php
+          $userIp = $r['ip'] ?? '';
+          if ($userIp !== '') {
+            echo h($userIp);
+          } else {
+            echo '<span class="muted" title="IP отправителя постбека (клик не привязан, IP юзера неизвестен)">'.h($r['postback_ip'] ?? '—').'</span>';
+          }
+        ?></td>
+      </tr>
+      <?php endforeach; ?>
+      <?php if (!$recentConv): ?><tr><td colspan="10">За выбранный период конверсий нет.</td></tr><?php endif; ?>
+    </tbody>
+  </table>
+  <?php if ($convPages > 1):
+    $cbase = tab_url('stats', $key) . '&period=' . $periodKey . '&convpage=';
+  ?>
+  <div style="margin:10px 0 24px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <?php if ($convPage > 1): ?><a href="<?= h($cbase . 1) ?>">« первая</a><a href="<?= h($cbase . ($convPage-1)) ?>">← назад</a><?php endif; ?>
+    <span class="muted">стр. <?= $convPage ?> из <?= $convPages ?> · всего <?= (int)$convTotalN ?></span>
+    <?php if ($convPage < $convPages): ?><a href="<?= h($cbase . ($convPage+1)) ?>">вперёд →</a><a href="<?= h($cbase . $convPages) ?>">последняя »</a><?php endif; ?>
+  </div>
+  <?php endif; ?>
 
 <?php endif; ?>
 

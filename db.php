@@ -1444,6 +1444,86 @@ function ru_pulse($days = 7) {
     ];
 }
 
+/**
+ * Распределение трафика преленда по кнопкам: куда уходят люди и что приносят.
+ *
+ * Показ записан на кампанию с прелендом, нажатие — на ту, куда ведёт блок,
+ * а связывает их общий clickid. По нему и раскладываем: сколько нажатий
+ * досталось каждой кнопке и сколько конверсий с них пришло. Без этого видно
+ * только суммарный CTR, а какой из блоков тянет — нет.
+ */
+function prelander_breakdown($slug, $from, $to = null) {
+    $w    = 'c.ts >= ?' . ($to !== null ? ' AND c.ts < ?' : '');
+    $args = $to !== null ? [$from, $to, $slug] : [$from, $slug];
+
+    $st = db()->prepare("SELECT c.slug, COUNT(*) AS clicks
+                         FROM clicks c
+                         WHERE c.event = 'click' AND c.is_bot = 0 AND $w
+                           AND EXISTS (SELECT 1 FROM clicks v
+                                       WHERE v.clickid = c.clickid AND v.event = 'view' AND v.slug = ?)
+                         GROUP BY c.slug");
+    $st->execute($args);
+
+    $out = [];
+    foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r)
+        $out[$r['slug']] = ['slug' => $r['slug'], 'clicks' => (int)$r['clicks'], 'reg' => 0, 'dep' => 0];
+
+    // Конверсии тех же посетителей: берём по clickid, которому показывали
+    // именно этот преленд. Слаг в строке конверсии — это кампания-получатель,
+    // то есть ровно та кнопка, по которой ушли.
+    $w2 = 'cv.ts >= ?' . ($to !== null ? ' AND cv.ts < ?' : '');
+    $st = db()->prepare("SELECT cv.slug,
+                                SUM(CASE WHEN cv.status IN('reg','registration','lead') THEN 1 ELSE 0 END) AS reg,
+                                SUM(CASE WHEN cv.status IN('dep','deposit','sale','ftd','purchase') THEN 1 ELSE 0 END) AS dep
+                         FROM conversions cv
+                         WHERE $w2
+                           AND EXISTS (SELECT 1 FROM clicks v
+                                       WHERE v.clickid = cv.clickid AND v.event = 'view' AND v.slug = ?)
+                         GROUP BY cv.slug");
+    $st->execute($args);
+    foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        $k = (string)$r['slug'];
+        if (!isset($out[$k])) $out[$k] = ['slug' => $k, 'clicks' => 0, 'reg' => 0, 'dep' => 0];
+        $out[$k]['reg'] = (int)$r['reg'];
+        $out[$k]['dep'] = (int)$r['dep'];
+    }
+
+    // имена кампаний, чтобы в таблице были не голые слаги
+    if ($out) {
+        $in = implode(',', array_fill(0, count($out), '?'));
+        $st = db()->prepare("SELECT slug, name FROM campaigns WHERE slug IN ($in)");
+        $st->execute(array_keys($out));
+        foreach ($st->fetchAll(PDO::FETCH_KEY_PAIR) as $s => $n)
+            if (isset($out[$s])) $out[$s]['name'] = $n;
+    }
+
+    usort($out, fn($a, $b) => $b['clicks'] <=> $a['clicks']);
+    return $out;
+}
+
+/**
+ * Сводка по всем кампаниям с прелендом — для главной.
+ *
+ * Отдельная функция, а не цифры внутри общей таблицы кампаний: показы и
+ * нажатия живут на разных кампаниях (показ — на той, где преленд, нажатие — на
+ * той, куда ведёт кнопка), и в строке обычной таблицы это не укладывается.
+ */
+function prelanders_overview($from, $to = null) {
+    $rows = db()->query("SELECT slug, name FROM campaigns
+                         WHERE prelander IS NOT NULL AND prelander <> ''
+                         ORDER BY name, slug")->fetchAll(PDO::FETCH_ASSOC);
+    $out = [];
+    foreach ($rows as $r) {
+        $s = prelander_stats($r['slug'], $from, $to);
+        $out[] = ['slug' => $r['slug'], 'name' => $r['name'],
+                  'by' => prelander_breakdown($r['slug'], $from, $to)] + $s;
+    }
+    // Сначала то, где трафик есть: кампания с прелендом без показов обычно
+    // означает, что рефку ещё не раздали, и смотреть там нечего.
+    usort($out, fn($a, $b) => $b['views'] <=> $a['views']);
+    return $out;
+}
+
 /** Каталог шаблонов прелендов (исходники) и готовых страниц (out/). */
 function prelanders_dir() { return __DIR__ . '/prelanders'; }
 
