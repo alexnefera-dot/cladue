@@ -66,7 +66,7 @@ $sc .slot-poster{flex:0 0 64px}
 $sc .slot-info{flex:1 1 120px;min-width:0}
 $sc .slot-footer{flex:0 0 auto;margin-left:auto}
 $sc .slot-poster{position:relative;height:52px;border-radius:var(--r2);overflow:hidden;background:linear-gradient(135deg,$а,$б)}
-$sc .slot-poster img{width:100%;height:100%;object-fit:cover;display:block}
+$sc .slot-poster img{width:100%;height:100%;max-width:100%;max-height:100%;object-fit:cover;display:block}
 $sc .slot-poster-fallback{display:flex;align-items:center;justify-content:center;height:100%;font-size:22px}
 $sc .slot-fallback-name{display:none}
 $sc .slot-badge{position:absolute;inset:auto 0 0 0;font-size:9px;text-align:center;background:#0009;color:#fff;letter-spacing:.06em}
@@ -87,8 +87,8 @@ $sc .slot-play-btn{border:0;background:$а;color:$на;padding:7px 14px;border-r
 $sc .slots-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
 $sc .slot-card{background:var(--карта);border:1px solid var(--рам);border-radius:var(--r);overflow:hidden}
 $sc .slot-card-inner{display:flex;flex-direction:column;height:100%}
-$sc .slot-poster{position:relative;aspect-ratio:16/10;$постер}
-$sc .slot-poster img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+$sc .slot-poster{position:relative;aspect-ratio:16/10;overflow:hidden;flex:0 0 auto;$постер}
+$sc .slot-poster img{position:absolute;inset:0;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:cover;display:block}
 $sc .slot-poster-fallback{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;$подпись}
 $sc .k7-has-img .slot-poster-fallback{display:none}
 $sc .slot-fallback-icon{font-size:26px}

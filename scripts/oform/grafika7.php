@@ -224,6 +224,38 @@ function g7символ($im, string $вид, float $x, float $y, float $s, array
     }
 }
 
+// ----------------------------------------------------------- надпись ---
+/** Жирный шрифт для подписи на плитке. Берём первый, который есть в системе. */
+function g7Шрифт(): ?string {
+    static $путь = false;
+    if ($путь !== false) return $путь;
+    foreach (['/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+              '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
+              '/usr/share/fonts/truetype/freefont/FreeSansBold.ttf'] as $f) {
+        if (is_file($f)) return $путь = $f;
+    }
+    return $путь = null;
+}
+
+/** Строка по центру, ужатая под ширину коробки. Возвращает высоту занятой полосы. */
+function g7Надпись($im, string $текст, float $cx, float $базис, float $ширина, float $кегль,
+                   array $цвет, array $тень): float {
+    $шрифт = g7Шрифт();
+    $текст = trim(preg_replace('/\s+/u', ' ', $текст));
+    if ($шрифт === null || $текст === '') return 0;
+    for ($к = $кегль; $к > 6; $к *= .92) {            // ужимаем, пока не влезет
+        $b = imagettfbbox($к, 0, $шрифт, $текст);
+        $w = $b[2] - $b[0];
+        if ($w <= $ширина) break;
+    }
+    $b = imagettfbbox($к, 0, $шрифт, $текст);
+    $x = (int) round($cx - ($b[2] - $b[0]) / 2);
+    $y = (int) round($базис);
+    imagettftext($im, $к, 0, $x + (int) max(1, $к * .06), $y + (int) max(1, $к * .06), g7c($im, $тень, .55), $шрифт, $текст);
+    imagettftext($im, $к, 0, $x, $y, g7c($im, $цвет, 1), $шрифт, $текст);
+    return $к;
+}
+
 // ------------------------------------------------------- семьи автоматов ---
 /** Название игры -> тема оформления: цвета, главный символ, мелочь по фону. */
 function g7Семья(string $игра): array {
@@ -288,7 +320,7 @@ function g7Плитка(string $file, string $игра, int $w = 640, int $h = 4
     imagecopyresampled($im, $под, 0, 0, 0, 0, $W, $H, $sw, $sh);
     imagedestroy($под);
     imagealphablending($im, true);
-    $cx = $W * .5; $cy = $H * .46;
+    $cx = $W * .5; $cy = $H * .42;   // герой выше середины: внизу плашка с названием
     // мелкие символы по углам
     $мел = $сем['мелкие'];
     $места = [[.13, .20], [.87, .17], [.09, .78], [.90, .80], [.28, .90], [.72, .09]];
@@ -307,6 +339,14 @@ function g7Плитка(string $file, string $игра, int $w = 640, int $h = 4
         imageline($im, 0, $H - 1 - $i, $W, $H - 1 - $i, g7c($im, [0, 0, 0], $op));
         imageline($im, 0, $i, $W, $i, g7c($im, [0, 0, 0], $op * .5));
     }
+    // Плашка с названием игры: у настоящей обложки автомата всегда есть логотип,
+    // без него плитка читается как случайный значок, а не как игра.
+    $плашка = (int) ($H * .34);
+    for ($i = 0; $i < $плашка; $i++) {
+        $op = .62 * pow($i / $плашка, 1.4);
+        imageline($im, 0, $H - $плашка + $i, $W, $H - $плашка + $i, g7c($im, [0, 0, 0], $op));
+    }
+    g7Надпись($im, mb_strtoupper($игра, "UTF-8"), $cx, $H - $H * .115, $W * .84, $H * .135, $свет, [0, 0, 0]);
     imagesetthickness($im, (int) max(2, $H * .012));
     imagerectangle($im, 2, 2, $W - 3, $H - 3, g7c($im, $свет, .16));
     imagesetthickness($im, 1);
