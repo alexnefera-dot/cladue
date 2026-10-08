@@ -674,7 +674,23 @@ Run `php tests/lint.php && php tests/run.php` before committing.
   depending on which visit it shows: the row's `screenshot` falls back to ANY visit whose file is on
   disk. Covered by `VisitTest::testPreviewTargetPicksAnyOpenedPage` (selection rules) and
   `testCapturePreviewsShootsPageThatOpened` (a real Playwright run: an inner page is shot, the visit
-  count stays 1, the temporary HTML is gone, a second call is a no-op). It returns `{attempted, recovered}` and is called automatically at the end of `visit()` (the
+  count stays 1, the temporary HTML is gone, a second call is a no-op).
+  A RETRY MUST NEVER LOSE A SCREENSHOT IT ALREADY HAS (1.41.1) — «когда нажимаю добрать он скидывает
+  превью». A visit assembled from a FAILED attempt has `screenshot_file = ''`, and writing it over the
+  previous visit threw away the picture even though the file was still on disk. It bites hardest exactly
+  where the picture is the only thing to look at: an offer wall and a «редирект на другой сайт» keep
+  their screenshot on a NON-ok visit (`$shot()` in `assembleVisit()`), and such a site counts as
+  `noPreview()`, so «Добрать всё» sends it to `stage=preview`, the retry fails again and the thumbnail
+  disappears. `PageVisitor::keepScreenshot($new, $old)` carries the old path over whenever the new visit
+  has none and the file still exists, and it is applied at every place a visit is OVERWRITTEN:
+  `replaceVisit()` (the preview retry), and in `retryFailed()` both the recovered-page write and the
+  final failed-slot write. Two more layers under it: `capturePreviews()` ADOPTS an existing
+  `preview/<host>/variant-1.png` instead of re-shooting it (no browser needed, so it works with the curl
+  driver too — the collect's shot comes back after a download has overwritten the visit that referenced
+  it), and only deletes a file it created itself; and `SiteRows::preview()` falls back, as a last resort,
+  to that standard path on disk, so a row shows the picture whenever the file exists at all. Covered by
+  `VisitTest::testRetryKeepsTheScreenshotItAlreadyHas` / `testCapturePreviewsTakesTheShotAlreadyOnDisk`
+  and `SiteRowsTest::testScreenshotFallsBackToTheFileOnDisk`. It returns `{attempted, recovered}` and is called automatically at the end of `visit()` (the
   preview path) AND on demand: `stage=preview` in `bin/run-job.php` (loads `sites.json`, filters by
   `only`/`removed.json`, runs it with the preview overrides, rewrites sites.json/csv/domains and reports
   «Перепробовано сайтов без превью: N, открылось M») behind the panel button «Добрать всё» (since 1.39.0;

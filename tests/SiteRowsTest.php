@@ -41,6 +41,35 @@ final class SiteRowsTest
         Assert::true($loaded['rows.ru']->own && count($loaded['rows.ru']->visits) === 2, 'визиты и «наш» восстановлены');
     }
 
+    public function testScreenshotFallsBackToTheFileOnDisk(): void
+    {
+        // Картинку в таблице ищем сначала в показываемом визите, потом в любом другом, и лишь потом —
+        // по стандартному пути превью на диске. Последний шаг спасает строку, у которой визит со
+        // снимком перезаписала выгрузка или неудачная докачка: файл есть — значит, и превью есть.
+        $base = sys_get_temp_dir() . '/yandex-sites-rows-shot-' . uniqid();
+        mkdir($base . '/preview/shot.ru', 0777, true);
+        mkdir($base . '/pages/shot.ru', 0777, true);
+        file_put_contents("$base/pages/shot.ru/main.html", '<p>home</p>');
+        file_put_contents("$base/preview/shot.ru/variant-1.png", 'png');
+
+        $site = new Site('shot.ru', 'shot.ru', 'shot.ru');
+        $site->add(new SearchResult('q', 0, 1, 'https://shot.ru/', 'shot.ru', 'T'));
+        $site->visits = [['variant' => 0, 'url' => 'https://shot.ru/', 'ok' => true, 'error' => '', 'status' => 200, 'stage' => 'download', 'html_file' => "$base/pages/shot.ru/main.html", 'screenshot_file' => '']];
+
+        $rows = SiteRows::preview([$site], $base);
+        Assert::same('preview/shot.ru/variant-1.png', $rows[0]['screenshot'], 'снимок найден по пути на диске');
+
+        unlink("$base/preview/shot.ru/variant-1.png");
+        $rows = SiteRows::preview([$site], $base);
+        Assert::same('', $rows[0]['screenshot'], 'файла нет — и ссылки на него нет');
+
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($base, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
+        foreach ($it as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+        @rmdir($base);
+    }
+
     public function testKeyPagesAreCountedOnlyAfterDownload(): void
     {
         // После СБОРА открыта одна главная: меню ещё никто не обходил, поэтому «нет регистрации»

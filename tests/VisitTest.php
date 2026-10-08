@@ -1366,6 +1366,75 @@ final class VisitTest
         Assert::same(null, PageVisitor::previewTarget($site), 'наш сайт превью не добираем');
     }
 
+    public function testRetryKeepsTheScreenshotItAlreadyHas(): void
+    {
+        // «Нажимаю добрать — он скидывает превью»: повтор, который снова не открыл страницу, собирался
+        // с пустым screenshot_file и затирал им прежний визит. Картинка пропадала из таблицы, хотя файл
+        // лежит на диске — а для витрины офферов и редиректа снимок и есть единственное, что видно глазами.
+        $dir = $this->dir() . '/keepshot';
+        mkdir($dir . '/alwaysoffer.ru', 0777, true);
+        $shot = $dir . '/alwaysoffer.ru/variant-1.png';
+        file_put_contents($shot, 'png');
+
+        $site = new Site('alwaysoffer.ru', 'alwaysoffer.ru', 'alwaysoffer.ru');
+        $site->add(new SearchResult('казино', 0, 1, 'http://nothing.invalid/', 'alwaysoffer.ru', 'T'));
+        $site->visits[] = [
+            'variant' => 1,
+            'url' => 'http://nothing.invalid/',
+            'ok' => false,
+            'error' => 'подборка офферов вместо сайта (показана витрина бонусов)',
+            'offer_wall' => true,
+            'status' => 200,
+            'stage' => 'preview',
+            'html_file' => '',
+            'screenshot_file' => $shot,
+        ];
+
+        $visitor = new PageVisitor([
+            'variants' => 1,
+            'dir' => $dir,
+            'screenshot' => false,
+            'timeout' => 5,
+            'delay_ms' => 0,
+            'retries' => 0,
+            'preview_retries' => 1,
+            'user_agents' => UserAgents::VISITORS,
+        ], new CurlDriver(), $this->logger());
+        $visitor->retryPreview(['alwaysoffer.ru' => $site]);
+
+        Assert::same(1, count($site->visits), 'визит заменён, а не добавлен');
+        $visit = (array) $site->visits[0];
+        Assert::false((bool) ($visit['ok'] ?? false), 'сайт так и не открылся');
+        Assert::same($shot, (string) ($visit['screenshot_file'] ?? ''), 'снимок остался при неудачном повторе');
+    }
+
+    public function testCapturePreviewsTakesTheShotAlreadyOnDisk(): void
+    {
+        // Снимок сбора лежит в preview/<сайт>/variant-1.png, но визит, который на него ссылался,
+        // перезаписала выгрузка. Ходить на сайт незачем — берём файл с диска (и без браузера).
+        $dir = $this->dir() . '/adopt';
+        mkdir($dir . '/preview/okna-moskva.ru', 0777, true);
+        $shot = $dir . '/preview/okna-moskva.ru/variant-1.png';
+        file_put_contents($shot, 'png');
+
+        $site = new Site('okna-moskva.ru', 'okna-moskva.ru', 'okna-moskva.ru');
+        $site->add(new SearchResult('окна', 0, 1, 'https://okna-moskva.ru/', 'okna-moskva.ru', 'T'));
+        $site->visits[] = ['variant' => 0, 'url' => 'https://okna-moskva.ru/vhod', 'ok' => true, 'error' => '', 'status' => 200, 'stage' => 'download', 'html_file' => $dir . '/pages/okna-moskva.ru/vhod.html', 'screenshot_file' => ''];
+
+        $visitor = new PageVisitor([
+            'dir' => $dir . '/pages',
+            'preview_dir' => $dir . '/preview',
+            'screenshot' => true,
+            'timeout' => 5,
+            'delay_ms' => 0,
+            'user_agents' => UserAgents::VISITORS,
+        ], new CurlDriver(), $this->logger());
+
+        Assert::same(['attempted' => 1, 'captured' => 1], $visitor->capturePreviews(['okna-moskva.ru' => $site]));
+        Assert::same($shot, (string) (((array) $site->visits[0])['screenshot_file'] ?? ''), 'снимок с диска вернулся в визит');
+        Assert::same(1, count($site->visits), 'новых визитов не появилось');
+    }
+
     public function testCapturePreviewsShootsPageThatOpened(): void
     {
         // Сквозная проверка: у сайта есть открытая ВНУТРЕННЯЯ страница и нет ни одного скриншота —

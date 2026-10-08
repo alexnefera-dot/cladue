@@ -345,21 +345,33 @@ final class PageVisitor
      */
     public function capturePreviews(array $sites): array
     {
-        // Скриншот умеет только браузер; с curl-драйвером шагу делать нечего.
-        if (!((bool) ($this->cfg['screenshot'] ?? true)) || $this->driver->name() !== 'playwright') {
-            return ['attempted' => 0, 'captured' => 0];
-        }
         $dir = rtrim((string) ($this->cfg['preview_dir'] ?? $this->cfg['dir'] ?? 'out/preview'), '/\\');
         $proxies = $this->proxyList();
         $proxyIndex = 0;
         $jobs = [];
         $targets = [];
+        $adopted = 0;
+        // Скриншот умеет только браузер; но ПОДОБРАТЬ уже лежащий на диске снимок можно с любым драйвером.
+        $canShoot = ((bool) ($this->cfg['screenshot'] ?? true)) && $this->driver->name() === 'playwright';
         foreach ($sites as $key => $site) {
             $target = self::previewTarget($site);
             if ($target === null) {
                 continue;
             }
             $siteDir = $dir . '/' . self::safeName($site->host);
+            $shot = $siteDir . '/variant-1.png';
+            // Снимок этого сайта УЖЕ ЕСТЬ на диске — остался от сбора, а визит, который на него
+            // ссылался, перезаписала выгрузка. Берём файл как есть: ходить на сайт незачем.
+            if (is_file($shot)) {
+                $visit = (array) ($site->visits[$target['index']] ?? []);
+                $visit['screenshot_file'] = $shot;
+                $site->visits[$target['index']] = $visit;
+                $adopted++;
+                continue;
+            }
+            if (!$canShoot) {
+                continue;
+            }
             $proxy = $this->pickProxyByLabel($proxies, $target['proxy'], $proxyIndex);
             $jobs[] = new VisitJob(
                 id: (string) $key,
@@ -376,8 +388,11 @@ final class PageVisitor
             );
             $targets[(string) $key] = $target;
         }
+        if ($adopted > 0) {
+            $this->log->info(sprintf('Превью: у %d сайтов снимок уже был на диске — вернули в таблицу', $adopted));
+        }
         if ($jobs === []) {
-            return ['attempted' => 0, 'captured' => 0];
+            return ['attempted' => $adopted, 'captured' => $adopted];
         }
         $this->log->info(sprintf('Добираю превью по уже открытым страницам: %d сайтов…', count($jobs)));
         $done = 0;
@@ -399,6 +414,8 @@ final class PageVisitor
             // решают, оставлять сайт или нет.
             $blocked = $html !== '' && self::looksLikeBlock($html, (string) ($result['title'] ?? ''), (int) ($result['status'] ?? 0));
             if ($site === null || !($result['ok'] ?? false) || $blocked || !is_file($shot)) {
+                // Удаляем только то, что сняли сами: файла по этому пути до захода не было (иначе мы бы
+                // его подобрали выше), так что чужую картинку это не трогает.
                 @unlink($shot);
                 continue;
             }
@@ -410,7 +427,7 @@ final class PageVisitor
         }
         $this->log->info(sprintf('Превью по открытым страницам: снято %d из %d', $captured, $total));
 
-        return ['attempted' => $total, 'captured' => $captured];
+        return ['attempted' => $total + $adopted, 'captured' => $captured + $adopted];
     }
 
     /** Прокси последней попытки по этому сайту — чтобы следующая пошла через другой. */
@@ -425,6 +442,30 @@ final class PageVisitor
     }
 
     /**
+     * Переносит УЖЕ ДОБЫТЫЙ снимок в новый визит той же страницы.
+     *
+     * Повтор, который снова не открыл страницу, собирается с пустым screenshot_file — и, заменяя им
+     * прежний визит, мы теряли ссылку на картинку, хотя файл лежит на диске. Со стороны это выглядело
+     * как «нажимаю добрать — он скидывает превью»: страница не далась, а заодно пропало и то
+     * единственное, по чему сайт видно глазами. Снимок старше страницы, но это не повод его терять.
+     *
+     * @param array<string, mixed> $new
+     * @return array<string, mixed>
+     */
+    private static function keepScreenshot(array $new, mixed $old): array
+    {
+        if ((string) ($new['screenshot_file'] ?? '') !== '') {
+            return $new;
+        }
+        $shot = (string) (((array) $old)['screenshot_file'] ?? '');
+        if ($shot !== '' && is_file($shot)) {
+            $new['screenshot_file'] = $shot;
+        }
+
+        return $new;
+    }
+
+    /**
      * Заменяет визит того же варианта (или добавляет, если такого не было).
      *
      * @param array<string, mixed> $visit
@@ -433,7 +474,7 @@ final class PageVisitor
     {
         foreach ($site->visits as $i => $old) {
             if ((int) (((array) $old)['variant'] ?? 0) === (int) ($visit['variant'] ?? 0)) {
-                $site->visits[$i] = $visit;
+                $site->visits[$i] = self::keepScreenshot($visit, $old);
 
                 return;
             }
@@ -951,7 +992,7 @@ final class PageVisitor
                     if ($guess) {
                         $site->visits[] = $done; // страница, которой не было в меню, — добавляем к сайту
                     } else {
-                        $site->visits[(int) $i] = $done;
+                        $site->visits[(int) $i] = self::keepScreenshot($done, $site->visits[(int) $i] ?? []);
                     }
                     $recovered++;
                     $state[$key]['pending'] = array_values(array_diff($state[$key]['pending'], [$i]));
@@ -975,7 +1016,7 @@ final class PageVisitor
                 // Неудачную догадку по стандартному адресу в визиты не пишем: сайт про эту страницу
                 // ничего не сообщал, и счётчик «страниц» от неё портиться не должен.
                 if (is_int($i) && $st['slots'][$i]['result'] !== null) {
-                    $st['site']->visits[$i] = $st['slots'][$i]['result'];
+                    $st['site']->visits[$i] = self::keepScreenshot($st['slots'][$i]['result'], $st['site']->visits[$i] ?? []);
                 }
             }
             if (!empty($this->cfg['crawl'])) {
