@@ -51,7 +51,46 @@ function v7Фигура(string $файл, string $подпись, string $кла
     return "<figure class=\"$класс\"><img src=\"$файл\" alt=\"$п\" loading=\"lazy\"></figure>\n";
 }
 
-/** Плитки автоматов в карточки: рисунок под название игры, не больше восьми на страницу. */
+/** Готовая обложка автомата из папки с настоящими картинками: ищем по названию игры.
+ *
+ * Папка задаётся ключом --обложки=<папка>. Имя файла приводится к тем же буквам и цифрам,
+ * что и название игры («Sweet Bonanza» -> «sweetbonanza»), поэтому годится любой разделитель
+ * в имени: `sweet-bonanza.webp`, `Sweet Bonanza.png`, `sweet_bonanza.jpg`.
+ * Чего в папке нет — рисуется как раньше.
+ */
+function v7Обложка(string $игра): ?string {
+    static $карта = null;
+    $папка = $GLOBALS['v7Обложки'] ?? '';
+    if ($папка === '' || !is_dir($папка)) return null;
+    $ключ = fn(string $t) => preg_replace('~[^a-z0-9а-яё]~u', '', mb_strtolower($t, 'UTF-8'));
+    if ($карта === null) {
+        $карта = [];
+        foreach (scandir($папка) as $f) {
+            if (!preg_match('~\.(webp|png|jpe?g)$~i', $f)) continue;
+            $карта[$ключ(pathinfo($f, PATHINFO_FILENAME))] = $папка . '/' . $f;
+        }
+    }
+    return $карта[$ключ($игра)] ?? null;
+}
+
+/** Обложку приводим к размеру плитки: обрезаем по центру и сохраняем в webp. */
+function v7ОбложкаВФайл(string $исходник, string $файл, int $w, int $h): bool {
+    $данные = @file_get_contents($исходник);
+    if ($данные === false) return false;
+    $im = @imagecreatefromstring($данные);
+    if ($im === false) return false;
+    $sw = imagesx($im); $sh = imagesy($im);
+    $k = max($w / $sw, $h / $sh);                  // заполняем плитку целиком, лишнее режем
+    $nw = (int) round($sw * $k); $nh = (int) round($sh * $k);
+    $out = imagecreatetruecolor($w, $h);
+    imagecopyresampled($out, $im, (int) (($w - $nw) / 2), (int) (($h - $nh) / 2), 0, 0, $nw, $nh, $sw, $sh);
+    imagedestroy($im);
+    $ок = imagewebp($out, $файл, 82);
+    imagedestroy($out);
+    return $ок;
+}
+
+/** Плитки автоматов в карточки: обложка из папки, иначе рисунок под название игры. */
 function v7Плитки(string $html, string $стр, string $dir, callable $имя, int &$счёт): string {
     if (!preg_match_all('~<div class="slot-poster">~', $html, $m, PREG_OFFSET_CAPTURE)) return $html;
     $игры = v7Игры($html);
@@ -59,7 +98,10 @@ function v7Плитки(string $html, string $стр, string $dir, callable $и�
     foreach (array_slice($m[0], 0, 8) as $i => $поп) {
         $игра = $игры[$i] ?? ('Slot ' . ($i + 1));
         $ф = $имя();
-        g7Плитка("$dir/images/$ф", $игра, 480, 300);
+        $готовая = v7Обложка($игра);
+        if ($готовая === null || !v7ОбложкаВФайл($готовая, "$dir/images/$ф", 480, 300)) {
+            g7Плитка("$dir/images/$ф", $игра, 480, 300);
+        }
         $п = htmlspecialchars($игра, ENT_QUOTES);
         $вставки[] = [$поп[1], strlen($поп[0]),
                       "<div class=\"slot-poster k7-has-img\"><img src=\"$ф\" alt=\"$п\" loading=\"lazy\">"];
@@ -137,6 +179,7 @@ if (PHP_SAPI === 'cli' && realpath($argv[0] ?? '') === __FILE__) {
     foreach ($арг as $a) {
         if (preg_match('/^--сид=(\d+)$/u', $a, $m)) $seed = (int) $m[1];
         if (preg_match('/^--тема=(\d+)$/u', $a, $m)) $номер = (int) $m[1];
+        if (preg_match('/^--обложки=(.+)$/u', $a, $m)) $GLOBALS['v7Обложки'] = rtrim($m[1], '/');
     }
     if (!is_dir($dir)) { fwrite(STDERR, "нет папки $dir\n"); exit(2); }
     $т = v7Tema($номер);
