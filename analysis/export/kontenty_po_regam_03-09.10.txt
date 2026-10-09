@@ -1,0 +1,150 @@
+Контенты по регистрациям за 2026-10-03 — 2026-10-09
+Всего 57 регистраций и 12 ФД на 46 контентах.
+Считаются все конверсии окна, независимо от даты запуска сайта: старые сайты
+продолжают приносить регистрации. Колонка «переобход» показывает возраст.
+Клики — живые поисковые за 2026-10-09, по всем сайтам контента.
+
+   #  контент                                      зона        сайтов  доменов переобход               рег  ФД   кликов
+--------------------------------------------------------------------------------------------------------------------------------
+   1  content-2026-10-02-7str-oform_34             lol            206        1 10-06                     4   1      545
+   2  content-2026-10-02-7str-oform_76             lol            206        1 10-03                     3   1       20
+   3  content-2026-10-02-7str-oform_31             lol            206        1 10-06                     3   0      209
+   4  partiya-752-756_1                            lol            206        1 10-06                     3   0      989
+   5  content-2026-09-29-pul1-oform_48             team           206        1                           2   2       26
+   6  content-2026-10-02-12str-oform_2             lol            206        1 10-03                     2   0       12
+   7  content-2026-09-22b-7str_24                  team           206        1                           1   1        5
+   8  content-2026-09-25-пул4-oform_20             team           206        1 09-27                     1   1      166
+   9  content-2026-09-29-pul1-oform_9              team           206        1 10-01                     1   1      436
+  10  content-2026-10-01-7str-oform_63             lol            206        1 10-02                     1   1       20
+  11  content-2026-10-02-7str-oform_60             lol            206        1 10-03                     1   1       10
+  12  content-2026-10-03-7str-1-oform_7            lol            206        1 10-06                     1   1     1811
+  13  content-2026-10-06-10str-oform_11            lol            206        1 10-07                     1   1       53
+  14  nabory-712-714-715-obychnye_3                team           206        1 10-01                     1   1      717
+  15  content-2026-09-14-12str-oform_13            team           206        1 09-14                     1   0       33
+  16  content-2026-09-14-12str-oform_2             lol            206        1 09-14                     1   0       10
+  17  content-2026-09-14c-7str-oform-2_13          team           412        2 09-24                     1   0       21
+  18  content-2026-09-14c-7str-oform-2_44          lol            206        1 09-15                     1   0       20
+  19  content-2026-09-15-7str-oform-1_50           team           206        1 09-16                     1   0        9
+  20  content-2026-09-17-7str-oform-1_34           team           412        2 09-24                     1   0       13
+  21  content-2026-09-23-7str-4-oform_34           team           206        1 09-25                     1   0        9
+  22  content-2026-09-23-7str-6-oform_24           team           206        1                           1   0       54
+  23  content-2026-09-23-7str-6-oform_39           lol            206        1 09-24                     1   0        6
+  24  content-2026-09-25-пул4-oform_27             team           206        1 09-27                     1   0      124
+  25  content-2026-09-26-пул1-oform_49             team           206        1                           1   0       27
+  26  content-2026-09-29-pul1-oform_49             team           206        1 09-30                     1   0       81
+  27  content-2026-09-30-pul2-oform_32             team           206        1 10-01                     1   0        6
+  28  content-2026-09-30-pul2-oform_34             team           206        1 10-01                     1   0       15
+  29  content-2026-09-30-pul2-oform_42             team           206        1 10-01                     1   0       92
+  30  content-2026-10-01-7str-oform_47             lol            206        1 10-02                     1   0      563
+  31  content-2026-10-01-7str-oform_64             lol            206        1 10-02                     1   0       28
+  32  content-2026-10-01-7str-oform_65             lol            206        1 10-02                     1   0       17
+  33  content-2026-10-02-12str-oform_4             lol            206        1 10-02                     1   0        9
+  34  content-2026-10-02-7str-oform_32             lol            206        1                           1   0      117
+  35  content-2026-10-03-7str-1-oform_5            lol            206        1 10-06                     1   0      375
+  36  content-2026-10-04-7str-oform_1              lol            206        1 10-05                     1   0       27
+  37  content-2026-10-04-7str-oform_10             lol            206        1 10-05                     1   0      146
+  38  content-2026-10-04-7str-oform_13             lol            206        1                           1   0     6776
+  39  content-2026-10-04-7str-oform_9              lol            206        1 10-05                     1   0       94
+  40  nabor-710_1                                  team           206        1 10-01                     1   0        5
+  41  nabory-565-580_11                            team           206        1 09-16                     1   0        0
+  42  nabory-601-610_4                             team           206        1 09-17                     1   0        4
+  43  nabory-712-714-715-obychnye_1                team           206        1 10-01                     1   0      584
+  44  nabory-726-729-gustye_2                      lol            206        1 10-03                     1   0        8
+  45  partiya-705-709_4                            team           206        1                           1   0      177
+  46  partiya-752-756_5                            lol            206        1                           1   0      162
+
+
+По группам контента:
+
+Знаменатель — все сайты группы за всё время, включая тексты без регистраций.
+
+группа                              текстов  из них с рег  сайтов всего   рег   ФД  рег на 10тыс
+------------------------------------------------------------------------------------------------
+7str-oform                              209            13         43054    20    4          4.65
+12str-oform                              90             4         18540     5    0          2.70
+pul1-oform                               72             3         14832     4    3          2.70
+partiya-752-756                           5             2          1030     4    0         38.83
+pul2-oform                               30             3          6180     3    0          4.85
+пул4-oform                               50             2         10300     2    1          1.94
+7str-1-oform                             55             2         11330     2    1          1.77
+nabory-712-714-715-obychnye               3             2           618     2    1         32.36
+content-2026-09-14c-7str-oform-2         44             2         10300     2    0          1.94
+7str-oform-1                            109             2         23278     2    0          0.86
+7str-6-oform                             39             2          8240     2    0          2.43
+content-2026-09-22b-7str                 23             1          4738     1    1          2.11
+10str-oform                              58             1         11948     1    1          0.84
+7str-4-oform                             26             1          5356     1    0          1.87
+пул1-oform                               97             1         19982     1    0          0.50
+nabor-710                                 1             1           206     1    0         48.54
+nabory-565-580                           16             1          3296     1    0          3.03
+nabory-601-610                           10             1          2060     1    0          4.85
+nabory-726-729-gustye                     2             1           412     1    0         24.27
+partiya-705-709                           5             1          1030     1    0          9.71
+
+Не привязались к контенту — 20 конверсий:
+    4 x  leon.2663.lol — без имени контента, переобход 2026-09-07
+    2 x  why.0665.team — без имени контента, переобход 2026-09-02
+    1 x  kometa.9284.team — нет в реестре
+    1 x  vavada.5365.team — без имени контента, переобход 2026-09-07
+    1 x  avocado.hjtb.team — нет в реестре
+    1 x  vodka.t2z.team — нет в реестре
+    1 x  luckybird.jlnd.team — нет в реестре
+    1 x  like.w2yn.team — без имени контента, переобход 2026-08-25
+    1 x  eldorado.mmbr.team — без имени контента, переобход 2026-09-02
+    1 x  like.llvm.casino — без имени контента, переобход 2026-09-02
+    1 x  ya.ru — нет в реестре
+    1 x  trix.16casino.lol — без имени контента, переобход 2026-09-08
+    1 x  pokerdom.1947.team — без имени контента, переобход 2026-08-21
+    1 x  trix.1520.team — без имени контента, переобход 2026-08-26
+    1 x  gold.1109sh.casino — без имени контента, переобход 2026-09-11
+    1 x  vibe.1063.team — нет в реестре
+
+
+Только имена, по одному в строке:
+
+content-2026-09-14-12str-oform_13
+content-2026-09-14-12str-oform_2
+content-2026-09-14c-7str-oform-2_13
+content-2026-09-14c-7str-oform-2_44
+content-2026-09-15-7str-oform-1_50
+content-2026-09-17-7str-oform-1_34
+content-2026-09-22b-7str_24
+content-2026-09-23-7str-4-oform_34
+content-2026-09-23-7str-6-oform_24
+content-2026-09-23-7str-6-oform_39
+content-2026-09-25-пул4-oform_20
+content-2026-09-25-пул4-oform_27
+content-2026-09-26-пул1-oform_49
+content-2026-09-29-pul1-oform_48
+content-2026-09-29-pul1-oform_49
+content-2026-09-29-pul1-oform_9
+content-2026-09-30-pul2-oform_32
+content-2026-09-30-pul2-oform_34
+content-2026-09-30-pul2-oform_42
+content-2026-10-01-7str-oform_47
+content-2026-10-01-7str-oform_63
+content-2026-10-01-7str-oform_64
+content-2026-10-01-7str-oform_65
+content-2026-10-02-12str-oform_2
+content-2026-10-02-12str-oform_4
+content-2026-10-02-7str-oform_31
+content-2026-10-02-7str-oform_32
+content-2026-10-02-7str-oform_34
+content-2026-10-02-7str-oform_60
+content-2026-10-02-7str-oform_76
+content-2026-10-03-7str-1-oform_5
+content-2026-10-03-7str-1-oform_7
+content-2026-10-04-7str-oform_1
+content-2026-10-04-7str-oform_10
+content-2026-10-04-7str-oform_13
+content-2026-10-04-7str-oform_9
+content-2026-10-06-10str-oform_11
+nabor-710_1
+nabory-565-580_11
+nabory-601-610_4
+nabory-712-714-715-obychnye_1
+nabory-712-714-715-obychnye_3
+nabory-726-729-gustye_2
+partiya-705-709_4
+partiya-752-756_1
+partiya-752-756_5
