@@ -12,7 +12,11 @@ import sys
 
 СТРАНИЦА = re.compile(r"^[a-z][a-z0-9_-]*$")
 КАРТИНКА = re.compile(r"^([a-z][a-z0-9_-]*)_img_\d+\.[a-z0-9]+$")
-ИСТОЧНИК = re.compile(r'(?:src="([^"]*)"|url\((?:\'|")?([^\'")]*)(?:\'|")?\))')
+СТИЛЬ = re.compile(r'(?is)<style[^>]*>.*?</style>|style="[^"]*"')
+# url() ищем только в стилях: в тексте страницы попадается и обычная проза
+# («base64url(sha256(секрет))»), и проверка принимала её за ссылку на картинку.
+ССЫЛКА_СТИЛЯ = re.compile(r'url\((?:\'|")?([^\'")]*)(?:\'|")?\)')
+ИСТОЧНИК = re.compile(r'src="([^"]*)"')
 
 
 def проверить(kit):
@@ -42,8 +46,10 @@ def проверить(kit):
         if not f.endswith(".html"):
             continue
         html = open(os.path.join(kit, f), encoding="utf-8").read()
-        for m in ИСТОЧНИК.finditer(html):
-            ссылка = m.group(1) or m.group(2) or ""
+        ссылки = [m.group(1) for m in ИСТОЧНИК.finditer(html)]
+        for кусок in СТИЛЬ.findall(html):
+            ссылки += ССЫЛКА_СТИЛЯ.findall(кусок)
+        for ссылка in ссылки:
             if not ссылка or ссылка.startswith(("http", "data:", "/", "#")):
                 continue
             # в HTML должно стоять голое имя файла: путь подставляет импорт
