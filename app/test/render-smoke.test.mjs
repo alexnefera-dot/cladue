@@ -145,7 +145,8 @@ test('над таблицей — тонкая строка: расхожден�
   const line = capLine(html);
   assert.ok(line, 'строки над таблицей нет');
   assert.ok(!html.includes('ОБЩИЙ КАПИТАЛ') && !html.includes('capsum'), 'плашка капитала осталась');
-  assert.ok(line.includes('цель 400 €') && line.includes('✓ сейчас = плану'), 'цель и расхождение не выведены');
+  assert.ok(line.includes('цель 300 €') && line.includes('✓ сейчас = плану'),
+    'цель капитала — только инвестиции, пользовательские активы в неё не входят');
 });
 
 test('трата вычитается из активов, а не из всего капитала', () => {
@@ -156,7 +157,7 @@ test('трата вычитается из активов, а не из всег
     'остаток должен быть 300 − 50 по активам, а не 400 − 50 по всему капиталу');
 });
 
-test('пять частей: капитал — активы, подушка и пассивы; заморозка и семейное только в сводке', () => {
+test('пять частей: капитал — инвестиции и резерв; остальное фиксируется внизу', () => {
   const five = { ...SPLIT, targetPortfolio: [
     SPLIT.targetPortfolio[0],
     { id: 15, name: 'Запас', kind: 'block', side: 'safe', eur: 50,
@@ -170,16 +171,17 @@ test('пять частей: капитал — активы, подушка и 
   const heads = [...html.matchAll(/<tr class="parthead[^"]*">[\s\S]*?<\/tr>/g)].map(m => m[0]);
   assert.equal(heads.length, 5, 'частей должно быть пять');
   assert.ok(heads[1].includes('РЕЗЕРВ') && heads[1].includes('% капитала'), 'резерв — часть капитала');
-  for (const i of [3, 4]) {
-    assert.ok(heads[i].includes('partoff'), 'заморозка и семейное должны быть отбиты от капитала');
+  for (const i of [2, 3, 4]) {
+    assert.ok(heads[i].includes('partoff'), 'вещи, заморозка и долги должны быть отбиты от капитала');
     assert.ok(!heads[i].includes('% капитала'), 'у частей вне капитала не должно быть его доли');
   }
   assert.ok(heads[3].includes('ЗАМОРОЖЕННЫЕ АКТИВЫ') && heads[4].includes('ОБЯЗАТЕЛЬСТВА'), 'части не на своих местах');
-  assert.ok(capLine(html).includes('цель 450 €'), 'цель капитала: 300 + 50 + 100, без заморозки и семейного');
+  assert.ok(capLine(html).includes('цель 350 €'), 'цель капитала: 300 инвестиций + 50 резерва');
   const all = (html.match(/<tr class="partall">[\s\S]*?<\/tr>/) || [''])[0];
-  assert.ok(all.includes('1 100 €'), 'сводка всего: 450 + 400 + 250');
-  assert.ok(all.includes('капитал 450 €') && all.includes('заморозка 400 €') && all.includes('обязательства 250 €'),
-    'в сводке не видно, из чего она сложена');
+  assert.ok(all.includes('600 €'), 'сводка всего: 350 + 100 + 400 − 250');
+  assert.ok(all.includes('капитал 350 €') && all.includes('вещи 100 €')
+    && all.includes('заморозка 400 €') && all.includes('− обязательства 250 €'),
+    'в сводке не видно, из чего она сложена и что долги вычитаются');
   assert.ok(html.includes('data-fside="25:frozen"') && html.includes('data-fside="30:debt"'), 'переключателей частей нет');
 });
 
@@ -319,10 +321,10 @@ test('шапка: в капитале нет заморозки и семейн�
   ctx.renderFin();
   const html = node.innerHTML.replace(/\u00a0/g, ' ');
   const big = (html.match(/КАПИТАЛ<\/div>\s*<div class="bignum">([\s\S]*?)<\/div>/) || [])[1] || '';
-  assert.ok(big.includes('400 €'), 'капитал должен быть 300 + 100, без заморозки и семейного');
+  assert.ok(big.includes('300 €'), 'капитал — только инвестиции и резерв');
   assert.ok(!big.includes('1 050'), 'в крупном числе шапки сумма со всем подряд');
-  assert.ok(html.includes('вне капитала 650 €') && html.includes('всего 1 050 €'),
-    'не видно, сколько стоит вне капитала и сколько всего');
+  assert.ok(html.includes('вне капитала 500 €') && html.includes('долги −250 €') && html.includes('всего 550 €'),
+    'не видно, что стоит вне капитала, сколько долгов и сколько всего');
   assert.ok(html.includes('108 $'), 'валютный разрез должен считаться по капиталу');
 });
 

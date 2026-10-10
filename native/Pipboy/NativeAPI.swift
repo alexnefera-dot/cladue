@@ -2643,7 +2643,9 @@ enum Api {
         let portfolio = try portfolioTree(db, "target_items")   // одно дерево на обе вкладки: факт и цель — разные колонки над ним
         func sideOf(_ r: [String: Any]) -> String { r["side"] as? String ?? "act" }
         // Семейное — общий котёл, он не мой капитал: в портфельные итоги не входит вовсе.
-        let mine = portfolio.filter { !["fam", "frozen"].contains(sideOf($0)) }
+        // Капитал — инвестиции и резерв. Вещи, заморозка и долги фиксируются в таблице,
+        // но в портфельные итоги, прирост и историю не идут.
+        let mine = portfolio.filter { ["act", "safe"].contains(sideOf($0)) }
         let portfolioTotal = mine.reduce(0.0) { $0 + ($1["eur"] as? Double ?? 0) }
         let outsideTotal = portfolio.filter { ["debt", "fam"].contains(sideOf($0)) }.reduce(0.0) { $0 + ($1["eur"] as? Double ?? 0) }
         // Активы — то, что работает. Пассивы (машина, техника) в капитал входят, но не растут
