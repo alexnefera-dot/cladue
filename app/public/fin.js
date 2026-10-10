@@ -946,6 +946,19 @@ function catStack(rows, total, planTotal) {
 
 // Итог по счетам: суммы по валютам и общий пересчёт в €. Одна функция на карточку сверху
 // и на строку под списком — чтобы они не могли показать разное.
+// Капитал против того, что вне его: заморозка и семейное считаются, но в объём не идут.
+// Валютный разрез — тоже только по капиталу, иначе доля $ скачет от чужой квартиры.
+const SIDE_OUT = ['frozen', 'fam'];
+function capitalSplit(tree, rate) {
+  const side = n => n.side || (n.passive ? 'pas' : 'act');
+  const inCap = (tree || []).filter(n => !SIDE_OUT.includes(side(n)));
+  const out = (tree || []).filter(n => SIDE_OUT.includes(side(n)));
+  const sum = (ns, k) => ns.reduce((a, n) => a + (n[k] || 0), 0);
+  const capital = sum(inCap, 'eur'), outside = sum(out, 'eur');
+  return { capital, outside, all: capital + outside,
+    usd: sum(inCap, 'usdPart'), eur: sum(inCap, 'eurPart') };
+}
+
 function accountsSum(accounts, rate) {
   const r = rate || 1.08;
   const byCur = {};
@@ -1386,6 +1399,9 @@ function renderFin() {
   const hidden = key => hide && !finShown.has(key);
   // Итог по счетам считаем из того же массива, что рисует строки: сводка с бэкенда была
   // вторым источником правды и могла разойтись со списком после правки баланса.
+  // Капитал считаем из самого дерева, а не из сводки: заморозка и семейное в него не входят,
+  // и полагаться на второй источник правды мы уже обжигались.
+  const capBy = capitalSplit(d.targetPortfolio || d.portfolio, s.rate);
   const accSum = accountsSum(d.accounts, s.rate);
   const accStr = hidden('acc') ? '—' : (accSum.parts || '—');
   // сборка старее последней правки Swift: бэкенд ещё со старым поведением — правки будут слетать
@@ -1409,17 +1425,16 @@ function renderFin() {
     <div class="card"><div class="meta">СЧЕТА</div>
       <div class="bignum" style="font-size:16px">${accStr}</div>
       <div class="meta">${d.accounts.length} счетов</div></div>
-    <div class="card"><div class="meta">ПОРТФЕЛЬ · ФАКТ</div>
-      <div class="bignum">${hidden('port') ? '—' : `${fmtE(s.portfolioTotal)} <span style="font-size:14px;color:var(--muted)">· ${fmt(s.portfolioTotalUsd)} $</span>`}</div>
+    <div class="card"><div class="meta">КАПИТАЛ</div>
+      <div class="bignum">${hidden('port') ? '—' : `${fmtE(capBy.capital)} <span style="font-size:14px;color:var(--muted)">· ${fmt(capBy.capital * (s.rate || 1.08))} $</span>`}</div>
       <div class="meta">${hidden('port') ? 'значения скрыты — 👁 наверху'
+        : capBy.outside > 0 ? `вне капитала ${fmt(capBy.outside)} € · всего ${fmt(capBy.all)} €`
         : (s.growth ? `прирост: ${s.growth.abs >= 0 ? '+' : ''}${fmt(s.growth.abs)} € (${s.growth.pct.toFixed(1)}%)` : '')}</div></div>
     ${(() => {
-      const usd = (d.portfolio || []).reduce((a, b) => a + (b.usdPart || 0), 0);   // все позиции в $
-      const eur = (d.portfolio || []).reduce((a, b) => a + (b.eurPart || 0), 0);   // все позиции в €
-      const tot = s.portfolioTotal || 0, pe = tot > 0 ? Math.round(eur / tot * 100) : 0;   // €-часть от портфеля; $-часть = остаток
+      const tot = capBy.capital, pe = tot > 0 ? Math.round(capBy.eur / tot * 100) : 0;   // €-часть капитала; $-часть = остаток
       return `<div class="card"><div class="meta">ПОЗИЦИИ · USD / EUR</div>
-      <div class="bignum">${hidden('port') ? '—' : `${fmt(usd)} $ <span style="font-size:14px;color:var(--muted)">· ${fmt(eur)} €</span>`}</div>
-      <div class="meta">${hidden('port') ? 'значения скрыты — 👁 наверху' : `$ ${tot > 0 ? 100 - pe : 0}% · € ${pe}% от портфеля`}</div></div>`;
+      <div class="bignum">${hidden('port') ? '—' : `${fmt(capBy.usd)} $ <span style="font-size:14px;color:var(--muted)">· ${fmt(capBy.eur)} €</span>`}</div>
+      <div class="meta">${hidden('port') ? 'значения скрыты — 👁 наверху' : `$ ${tot > 0 ? 100 - pe : 0}% · € ${pe}% капитала`}</div></div>`;
     })()}
   </div>
   <div class="viewtabs">

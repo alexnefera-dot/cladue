@@ -303,6 +303,29 @@ test('свод: у ⚡ идёт цена входа, своя сумма жив�
     'после правки главной свод должен вернуться к своей цифре');
 });
 
+test('шапка: в капитале нет заморозки и семейного, но всего они видны', () => {
+  const ctx = loadFin();
+  const blk = (id, name, side, eur, usd) => ({ id, name, kind: 'block', side, eur,
+    usdPart: usd || 0, eurPart: usd ? 0 : eur, children: [leaf(id + 1, name + '·1', { value: eur, eur })] });
+  const d = { ...DATA, accounts: [], budgetItems: [], obligations: [],
+    targetPortfolio: [blk(10, 'Рост', 'act', 300, 108), blk(20, 'Вещи', 'pas', 100),
+      blk(25, 'Недвижка', 'frozen', 400), blk(30, 'Общее', 'fam', 250)],
+    summary: { ...DATA.summary, rate: 1.08, portfolioTotal: 1050, accountsByCurrency: {} } };
+  const node = { addEventListener() {}, appendChild() {}, replaceWith() {}, focus() {},
+    classList: { add() {}, remove() {} }, dataset: {}, style: {}, innerHTML: '', value: '' };
+  ctx.document.getElementById = () => node;
+  ctx.__d = d;
+  vm.runInContext('finSection = "__none__"; finHide = false; finData = __d; finBuild = null', ctx);
+  ctx.renderFin();
+  const html = node.innerHTML.replace(/\u00a0/g, ' ');
+  const big = (html.match(/КАПИТАЛ<\/div>\s*<div class="bignum">([\s\S]*?)<\/div>/) || [])[1] || '';
+  assert.ok(big.includes('400 €'), 'капитал должен быть 300 + 100, без заморозки и семейного');
+  assert.ok(!big.includes('1 050'), 'в крупном числе шапки сумма со всем подряд');
+  assert.ok(html.includes('вне капитала 650 €') && html.includes('всего 1 050 €'),
+    'не видно, сколько стоит вне капитала и сколько всего');
+  assert.ok(html.includes('108 $'), 'валютный разрез должен считаться по капиталу');
+});
+
 test('счета: карточка сверху и итог в разделе считают одно и то же', () => {
   const ctx = loadFin();
   const accounts = [
