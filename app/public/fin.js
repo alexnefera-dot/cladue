@@ -658,10 +658,10 @@ function secPortfolio(d, s) {
       ${parts.map(p => (split ? partHead(p) : '')
         + p.nodes.map(b => portRows(b, 0, partCtx(p))).join('')).join('')
         || '<tr><td colspan="9"><div class="empty">пусто</div></td></tr>'}
-      ${split ? `<tr class="partall"><td class="pname">ВСЕГО
-          <span class="meta">капитал ${fmt(rootTotal)} €${pasTotal ? ` + вещи ${fmt(pasTotal)} €` : ''}${frozTotal ? ` + заморозка ${fmt(frozTotal)} €` : ''}${famTotal ? ` − обязательства ${fmt(famTotal)} €` : ''}</span></td>
+      ${split ? `<tr class="partall"><td class="pname">ВСЕГО</td>
         <td></td><td></td>
-        <td class="r num now sep">${fmt(allTotal)} €</td><td></td>
+        <td class="r num now sep">${fmt(allTotal)} €
+          <span class="sub">${fmt(allTotal * (s.rate || d.rate || 1.08))} $</span></td><td></td>
         <td class="r num goal sep">${planTotal + pasPlan + frozPlan - famPlan > 0 ? fmt(planTotal + pasPlan + frozPlan - famPlan) + ' €' : ''}</td>
         <td></td><td class="sep"></td><td></td></tr>` : ''}
     </table>`}

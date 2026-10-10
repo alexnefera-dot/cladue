@@ -179,9 +179,8 @@ test('пять частей: капитал — инвестиции и резе
   assert.ok(capLine(html).includes('цель 350 €'), 'цель капитала: 300 инвестиций + 50 резерва');
   const all = (html.match(/<tr class="partall">[\s\S]*?<\/tr>/) || [''])[0];
   assert.ok(all.includes('600 €'), 'сводка всего: 350 + 100 + 400 − 250');
-  assert.ok(all.includes('капитал 350 €') && all.includes('вещи 100 €')
-    && all.includes('заморозка 400 €') && all.includes('− обязательства 250 €'),
-    'в сводке не видно, из чего она сложена и что долги вычитаются');
+  assert.ok(all.includes('648 $'), 'в сводке нет доллара по курсу 1.08');
+  assert.ok(!all.includes('капитал 350'), 'расшифровка повторяет таблицу — её быть не должно');
   assert.ok(html.includes('data-fside="25:frozen"') && html.includes('data-fside="30:debt"'), 'переключателей частей нет');
 });
 
