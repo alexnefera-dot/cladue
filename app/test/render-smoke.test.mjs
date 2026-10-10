@@ -130,10 +130,10 @@ test('свежая сборка и node-прототип: предупрежде
   assert.ok(!renderHead(loadFin(), null).includes('staleapp'), 'без /api/version предупреждения быть не должно');
 });
 
-test('две части: шапки «АКТИВЫ»/«ПАССИВЫ» со своими итогами', () => {
+test('две части: шапки «ИНВЕСТИЦИИ»/«ПОЛЬЗОВАТЕЛЬСКИЕ» со своими итогами', () => {
   const html = loadFin().secPortfolio(SPLIT, SPLIT.summary);
   assert.ok(html.includes('parthead'), 'шапок частей нет');
-  assert.ok(/>АКТИВЫ\s/.test(html) && /ПАССИВЫ/.test(html), 'части не подписаны');
+  assert.ok(/ИНВЕСТИЦИИ/.test(html) && /ПОЛЬЗОВАТЕЛЬСКИЕ АКТИВЫ/.test(html), 'части не подписаны');
   const head = html.match(/<tr><th>Название<\/th>[\s\S]*?<\/tr>/)[0];
   const cols = (head.match(/<th/g) || []).length;
   for (const [r] of html.matchAll(/<tr class="parthead[^"]*">[\s\S]*?<\/tr>/g))
@@ -164,23 +164,23 @@ test('пять частей: капитал — активы, подушка и 
     { ...SPLIT.targetPortfolio[1], side: 'pas' },
     { id: 25, name: 'Недвижка', kind: 'block', side: 'frozen', eur: 400,
       children: [leaf(26, 'Квартира UA', { value: 400, eur: 400, target_value: 400 })] },
-    { id: 30, name: 'Общее с женой', kind: 'block', side: 'fam', eur: 250,
-      children: [leaf(31, 'Дом', { value: 250, eur: 250, target_value: 250 })] }] };
+    { id: 30, name: 'Долги', kind: 'block', side: 'debt', eur: 250,
+      children: [leaf(31, 'Кредит', { value: 250, eur: 250, target_value: 250 })] }] };
   const html = loadFin().secPortfolio(five, five.summary).replace(/\u00a0/g, ' ');
   const heads = [...html.matchAll(/<tr class="parthead[^"]*">[\s\S]*?<\/tr>/g)].map(m => m[0]);
   assert.equal(heads.length, 5, 'частей должно быть пять');
-  assert.ok(heads[1].includes('ПОДУШКА') && heads[1].includes('% капитала'), 'подушка — часть капитала');
+  assert.ok(heads[1].includes('РЕЗЕРВ') && heads[1].includes('% капитала'), 'резерв — часть капитала');
   for (const i of [3, 4]) {
     assert.ok(heads[i].includes('partoff'), 'заморозка и семейное должны быть отбиты от капитала');
     assert.ok(!heads[i].includes('% капитала'), 'у частей вне капитала не должно быть его доли');
   }
-  assert.ok(heads[3].includes('ЗАМОРОЖЕННЫЕ') && heads[4].includes('СЕМЕЙНЫЕ'), 'части не на своих местах');
+  assert.ok(heads[3].includes('ЗАМОРОЖЕННЫЕ АКТИВЫ') && heads[4].includes('ОБЯЗАТЕЛЬСТВА'), 'части не на своих местах');
   assert.ok(capLine(html).includes('цель 450 €'), 'цель капитала: 300 + 50 + 100, без заморозки и семейного');
   const all = (html.match(/<tr class="partall">[\s\S]*?<\/tr>/) || [''])[0];
   assert.ok(all.includes('1 100 €'), 'сводка всего: 450 + 400 + 250');
-  assert.ok(all.includes('капитал 450 €') && all.includes('заморозка 400 €') && all.includes('семейные 250 €'),
+  assert.ok(all.includes('капитал 450 €') && all.includes('заморозка 400 €') && all.includes('обязательства 250 €'),
     'в сводке не видно, из чего она сложена');
-  assert.ok(html.includes('data-fside="25:frozen"') && html.includes('data-fside="30:fam"'), 'переключателей частей нет');
+  assert.ok(html.includes('data-fside="25:frozen"') && html.includes('data-fside="30:debt"'), 'переключателей частей нет');
 });
 
 test('две части: доли и цели считаются внутри своей части', () => {
@@ -309,7 +309,7 @@ test('шапка: в капитале нет заморозки и семейн�
     usdPart: usd || 0, eurPart: usd ? 0 : eur, children: [leaf(id + 1, name + '·1', { value: eur, eur })] });
   const d = { ...DATA, accounts: [], budgetItems: [], obligations: [],
     targetPortfolio: [blk(10, 'Рост', 'act', 300, 108), blk(20, 'Вещи', 'pas', 100),
-      blk(25, 'Недвижка', 'frozen', 400), blk(30, 'Общее', 'fam', 250)],
+      blk(25, 'Недвижка', 'frozen', 400), blk(30, 'Долги', 'debt', 250)],
     summary: { ...DATA.summary, rate: 1.08, portfolioTotal: 1050, accountsByCurrency: {} } };
   const node = { addEventListener() {}, appendChild() {}, replaceWith() {}, focus() {},
     classList: { add() {}, remove() {} }, dataset: {}, style: {}, innerHTML: '', value: '' };

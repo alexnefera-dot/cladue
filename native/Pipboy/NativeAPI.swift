@@ -2645,7 +2645,7 @@ enum Api {
         // Семейное — общий котёл, он не мой капитал: в портфельные итоги не входит вовсе.
         let mine = portfolio.filter { !["fam", "frozen"].contains(sideOf($0)) }
         let portfolioTotal = mine.reduce(0.0) { $0 + ($1["eur"] as? Double ?? 0) }
-        let familyTotal = portfolio.filter { sideOf($0) == "fam" }.reduce(0.0) { $0 + ($1["eur"] as? Double ?? 0) }
+        let outsideTotal = portfolio.filter { ["debt", "fam"].contains(sideOf($0)) }.reduce(0.0) { $0 + ($1["eur"] as? Double ?? 0) }
         // Активы — то, что работает. Пассивы (машина, техника) в капитал входят, но не растут
         // под доходность, поэтому FIRE считается только от активов.
         let activeTotal = portfolio.filter { sideOf($0) == "act" }
@@ -2756,7 +2756,7 @@ enum Api {
         let summary: [String: Any] = [
             "accountsByCurrency": byCur,
             "portfolioTotal": portfolioTotal, "portfolioTotalUsd": portfolioTotalUsd, "rate": rate,
-            "activeTotal": activeTotal, "passiveTotal": portfolioTotal - activeTotal, "familyTotal": familyTotal,
+            "activeTotal": activeTotal, "passiveTotal": portfolioTotal - activeTotal, "outsideTotal": outsideTotal,
             "safeTotal": portfolio.filter { sideOf($0) == "safe" }.reduce(0.0) { $0 + ($1["eur"] as? Double ?? 0) },
             "frozenTotal": portfolio.filter { sideOf($0) == "frozen" }.reduce(0.0) { $0 + ($1["eur"] as? Double ?? 0) },
             "growth": growth, "monthlyObligations": monthlyObligations,

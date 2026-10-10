@@ -80,13 +80,16 @@ const savePortFold = () => localStorage.portFold = JSON.stringify([...portFold])
 
 // Части портфеля по кругу: активы → пассивы → семейные → активы
 const SIDE_NEXT = {
-  act: ['safe', 'в подушку — неприкосновенный запас'],
-  safe: ['pas', 'в пассивы — вещи, которые не зарабатывают'],
-  pas: ['frozen', 'в замороженные — вне оборота и вне капитала'],
-  frozen: ['fam', 'в семейные — общее, вне капитала'],
-  fam: ['act', 'вернуть в активы'],
+  act: ['safe', 'в резерв — неприкосновенный запас'],
+  safe: ['use', 'в пользовательские активы — вещи, которыми пользуешься'],
+  use: ['frozen', 'в замороженные — вне оборота и вне капитала'],
+  frozen: ['debt', 'в обязательства — вне капитала'],
+  debt: ['act', 'вернуть в инвестиции'],
 };
-const sideKey = n => n.side || (n.passive ? 'pas' : 'act');
+// Старые значения (до переименования) читаем как новые: база мигрирует при сборке,
+// а фронт приезжает раньше неё — иначе блоки на день-другой уехали бы в «инвестиции».
+const SIDE_OLD = { pas: 'use', fam: 'debt' };
+const sideKey = n => { const k = n.side || (n.passive ? 'pas' : 'act'); return SIDE_OLD[k] || k; };
 function sideBtn(it) {
   const cur = sideKey(it), [, hint] = SIDE_NEXT[cur];
   return `<span class="rowbtn${cur === 'act' ? '' : ' on'}" data-fside="${it.id}:${cur}" title="${hint}">⇄</span>`;
@@ -424,12 +427,12 @@ function secPortfolio(d, s) {
   // и математика каждой считается от её собственного тотала. Общая — сверху.
   // Три части: активы работают, пассивы — вещи, семейное — общий котёл.
   // Семейное в капитал НЕ входит: это не мои деньги, а общие, у них своя арифметика.
-  const sideOf = n => n.side || (n.passive ? 'pas' : 'act');
+  const sideOf = sideKey;
   const acts = tree.filter(n => sideOf(n) === 'act');
   const safes = tree.filter(n => sideOf(n) === 'safe');
-  const pass = tree.filter(n => sideOf(n) === 'pas');
+  const pass = tree.filter(n => sideOf(n) === 'use');
   const froz = tree.filter(n => sideOf(n) === 'frozen');
-  const fams = tree.filter(n => sideOf(n) === 'fam');
+  const fams = tree.filter(n => sideOf(n) === 'debt');
   const split = safes.length > 0 || pass.length > 0 || froz.length > 0 || fams.length > 0;
   const sumEur = ns => ns.reduce((a, b) => a + (b.eur || 0), 0);
   const actTotal = sumEur(acts), safeTotal = sumEur(safes), pasTotal = sumEur(pass);
@@ -475,7 +478,7 @@ function secPortfolio(d, s) {
   // диаграмме нечестно — доли получились бы от чужого тотала.
   const monSide = split ? (localStorage.monSide ?? 'act') : 'all';
   const monBy = { act: [acts, actTotal, actPlan], safe: [safes, safeTotal, safePlan],
-    pas: [pass, pasTotal, pasPlan], frozen: [froz, frozTotal, frozPlan], fam: [fams, famTotal, famPlan],
+    use: [pass, pasTotal, pasPlan], frozen: [froz, frozTotal, frozPlan], debt: [fams, famTotal, famPlan],
     all: [[...acts, ...safes, ...pass], rootTotal, planTotal] };
   const [monTree, monRoot, monRootPlan] = monBy[monSide] || monBy.all;
   const findKid = (ns, id) => (ns || []).find(n => n.id === id);
@@ -536,8 +539,8 @@ function secPortfolio(d, s) {
   const catMaxP = Math.max(1, ...catRows.map(r => Math.max(r.nowP, r.planP)));
   // Капитал, не покрытый ни одной целью: без этой строки деньги молча растворяются.
   // Считаем внутри разбираемой части — у активов и пассивов свои цели и свой капитал.
-  const capWhat = { act: 'активов', safe: 'подушки', pas: 'пассивов',
-    frozen: 'замороженного', fam: 'семейного' }[monSide] || 'капитала';
+  const capWhat = { act: 'инвестиций', safe: 'резерва', use: 'пользовательских активов',
+    frozen: 'замороженного', debt: 'обязательств' }[monSide] || 'капитала';
   const capGap = monRoot - monRootPlan;
   const capNote = !tgt || monRoot <= 0 ? '' : Math.abs(capGap) < 1
     ? `<div class="bsum"><span class="ok-dev">✓ цели покрывают ${monSide === 'all' ? 'весь капитал' : 'всю часть'}</span></div>`
@@ -548,8 +551,8 @@ function secPortfolio(d, s) {
   if (tgt) {   // ручные связки ребаланса (из target_moves): сопоставляем id позиций с путём/именем
     const byId = {};
     const mapIds = (ns, pre, side) => (ns || []).forEach(n => { const p = pre + '/' + (n.name || '').trim().toLowerCase(); byId[n.id] = { path: p, name: n.name, cur: n.currency ?? '€', side }; mapIds(n.children, p, side); });
-    mapIds(acts, '', 'act'); mapIds(safes, '', 'safe'); mapIds(pass, '', 'pas');
-    mapIds(froz, '', 'frozen'); mapIds(fams, '', 'fam');
+    mapIds(acts, '', 'act'); mapIds(safes, '', 'safe'); mapIds(pass, '', 'use');
+    mapIds(froz, '', 'frozen'); mapIds(fams, '', 'debt');
     const rate = s.rate || d.rate || 1.08;   // курс лежит в summary (s.rate), не в d
     rctx.rate = rate;                        // нужен строкам: суммы показываем в валюте позиции
     // содержание вещи (обязательства с item_id) — €/мес рядом с позицией; сами суммы правятся в Расходах
@@ -592,11 +595,11 @@ function secPortfolio(d, s) {
   // Часть портфеля: свой тотал, свой план, своё отклонение. Контекст строк тоже свой —
   // доли внутри части считаются от неё, а не от общего капитала.
   const parts = split
-    ? [{ key: 'act', title: 'АКТИВЫ', hint: 'работают на капитал', nodes: acts, now: actTotal, plan: actPlan },
-       { key: 'safe', title: 'ПОДУШКА', hint: 'неприкосновенный запас', nodes: safes, now: safeTotal, plan: safePlan },
-       { key: 'pas', title: 'ПАССИВЫ', hint: 'твои, но капитал не растят', nodes: pass, now: pasTotal, plan: pasPlan },
-       { key: 'frozen', title: 'ЗАМОРОЖЕННЫЕ', hint: 'вне оборота, в капитал не идут', nodes: froz, now: frozTotal, plan: frozPlan, off: true },
-       { key: 'fam', title: 'СЕМЕЙНЫЕ', hint: 'общее, вне капитала', nodes: fams, now: famTotal, plan: famPlan, off: true }]
+    ? [{ key: 'act', title: 'ИНВЕСТИЦИИ', hint: 'работают на капитал', nodes: acts, now: actTotal, plan: actPlan },
+       { key: 'safe', title: 'РЕЗЕРВ · ПОДУШКА', hint: 'неприкосновенный запас', nodes: safes, now: safeTotal, plan: safePlan },
+       { key: 'use', title: 'ПОЛЬЗОВАТЕЛЬСКИЕ АКТИВЫ', hint: 'вещи, которыми пользуешься', nodes: pass, now: pasTotal, plan: pasPlan },
+       { key: 'frozen', title: 'ЗАМОРОЖЕННЫЕ АКТИВЫ', hint: 'вне оборота, в капитал не идут', nodes: froz, now: frozTotal, plan: frozPlan, off: true },
+       { key: 'debt', title: 'ОБЯЗАТЕЛЬСТВА · ДОЛГИ', hint: 'вне капитала', nodes: fams, now: famTotal, plan: famPlan, off: true }]
       .filter(p => p.nodes.length)
     : [{ key: 'act', title: '', hint: '', nodes: acts, now: actTotal, plan: actPlan }];
   const partNet = ns => ns.reduce((a, n) => a + (rctx.netByPath?.['/' + (n.name || '').trim().toLowerCase()] || 0), 0);
@@ -626,7 +629,7 @@ function secPortfolio(d, s) {
     // только расхождение с целевым. Остаток после трат считаем от активов — машину не потратишь.
     const sp = rctx.spends || [];
     const spendTotal = sp.reduce((a, x) => a + x.eur, 0);
-    const spendAct = sp.filter(x => (x.side || 'act') === 'act').reduce((a, x) => a + x.eur, 0);
+    const spendAct = sp.filter(x => (x.side || 'act') === 'act').reduce((a, x) => a + x.eur, 0);   // траты из инвестиций
     const gap = planTotal - rootTotal;
     return `<div class="capline">
       ${planTotal > 0
@@ -655,7 +658,7 @@ function secPortfolio(d, s) {
         + p.nodes.map(b => portRows(b, 0, partCtx(p))).join('')).join('')
         || '<tr><td colspan="9"><div class="empty">пусто</div></td></tr>'}
       ${split ? `<tr class="partall"><td class="pname">ВСЕГО
-          <span class="meta">капитал ${fmt(rootTotal)} €${frozTotal ? ` + заморозка ${fmt(frozTotal)} €` : ''}${famTotal ? ` + семейные ${fmt(famTotal)} €` : ''}</span></td>
+          <span class="meta">капитал ${fmt(rootTotal)} €${frozTotal ? ` + заморозка ${fmt(frozTotal)} €` : ''}${famTotal ? ` + обязательства ${fmt(famTotal)} €` : ''}</span></td>
         <td></td><td></td>
         <td class="r num now sep">${fmt(allTotal)} €</td><td></td>
         <td class="r num goal sep">${planTotal + frozPlan + famPlan > 0 ? fmt(planTotal + frozPlan + famPlan) + ' €' : ''}</td>
@@ -711,8 +714,8 @@ function secPortfolio(d, s) {
     <div class="kv" style="margin-bottom:8px;flex-wrap:wrap;gap:6px">
       <span class="meta">РАСПРЕДЕЛЕНИЕ · СЕЙЧАС ПРОТИВ ЦЕЛИ</span>
       ${split ? `<span class="moncuts">
-        ${[['act', 'активы'], ...(safes.length ? [['safe', 'подушка']] : []), ['pas', 'пассивы'],
-           ...(froz.length ? [['frozen', 'заморозка']] : []), ...(fams.length ? [['fam', 'семейные']] : []),
+        ${[['act', 'инвестиции'], ...(safes.length ? [['safe', 'резерв']] : []), ['use', 'пользовательские'],
+           ...(froz.length ? [['frozen', 'заморозка']] : []), ...(fams.length ? [['debt', 'обязательства']] : []),
            ['all', 'капитал целиком']].map(([k, t]) =>
           `<span class="pill btn${monSide === k ? ' ok' : ''}" data-monside="${k}">${t}</span>`).join('')}
       </span>` : ''}
@@ -724,8 +727,8 @@ function secPortfolio(d, s) {
     </div>
     ${monCut === 'blocks' ? `<div class="moncrumbs">
       <span class="crumb${monCrumbs.length ? ' btn' : ''}" data-moncrumb="-1">${
-        { act: 'Все активы', safe: 'Вся подушка', pas: 'Все пассивы',
-          frozen: 'Всё замороженное', fam: 'Всё семейное' }[monSide] || 'Весь капитал'}</span>
+        { act: 'Все инвестиции', safe: 'Весь резерв', use: 'Все пользовательские',
+          frozen: 'Всё замороженное', debt: 'Все обязательства' }[monSide] || 'Весь капитал'}</span>
       ${monCrumbs.map((c, k) => `<span class="sepc">›</span><span class="crumb${k < monCrumbs.length - 1 ? ' btn' : ''}" data-moncrumb="${k}">${fesc(c.name)}</span>`).join('')}
     </div>` : ''}
     <div class="tgtmon">
@@ -948,9 +951,9 @@ function catStack(rows, total, planTotal) {
 // и на строку под списком — чтобы они не могли показать разное.
 // Капитал против того, что вне его: заморозка и семейное считаются, но в объём не идут.
 // Валютный разрез — тоже только по капиталу, иначе доля $ скачет от чужой квартиры.
-const SIDE_OUT = ['frozen', 'fam'];
+const SIDE_OUT = ['frozen', 'debt'];
 function capitalSplit(tree, rate) {
-  const side = n => n.side || (n.passive ? 'pas' : 'act');
+  const side = sideKey;
   const inCap = (tree || []).filter(n => !SIDE_OUT.includes(side(n)));
   const out = (tree || []).filter(n => SIDE_OUT.includes(side(n)));
   const sum = (ns, k) => ns.reduce((a, n) => a + (n[k] || 0), 0);
