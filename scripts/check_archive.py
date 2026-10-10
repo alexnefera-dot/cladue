@@ -126,8 +126,8 @@ CYR_WHITELIST = {"актуальная", "актуальное", "актуаль
     "бонусы", "бро", "быстрые", "быстрый", "виртуальный", "войти", "время", "все", "вход",
     "выдержки", "где", "забрать",
     "главная", "доход", "логика", "логин", "мгновенно", "медиана", "мобильный", "новинки",
-    "отличное", "отчёт", "публикуем", "развернуть",
-    "слушай", "этап",
+    "отличное", "отчёт", "платежные", "публикуем", "развернуть",
+    "слушай", "супер", "этап",
     "продукты", "проверил", "проверила", "предыдущие", "круглосуточно", "название",
     "аэропорт", "преимущества", "недостатки", "особенности", "возможности",
     "контакты", "контакт", "бот", "круглосуточная", "круглосуточный", "платформа",
@@ -261,6 +261,18 @@ class TagChecker(HTMLParser):
     def finish(self):
         self.errors += ["незакрытый <%s>" % t for t in self.stack]
         return self.errors
+
+
+# Слот слова, который генератор не заполнил: «добавляем новые {slots}», «вы можете {igrat}
+# в демо-режиме», «публикуем {news} казино». Имена те же, что у наших страниц, плюс «igrat».
+# Список закрытый: строчными в фигурных скобках лежат и законные вещи — переменная примера
+# запроса ({id}, {token}, {subdomain}, {provider} в URL) и нижний индекс формулы
+# (K_{periphery}, Δ_{lic}, C_{\text{login}}). Падежа у слота нет, а русское слово стоит тут
+# в косвенном («текущими {promo}», «Подробную {info}», «выполнить {vhod}»), поэтому одним
+# словом это не заменить: сайт уходит на доработку к тому, кто делал текст.
+СЛОТ_СЛОВА = re.compile(r"(?<![$\\_])\{(?:main|slots|bonus|promo|obzor|news|info|zerkalo|"
+                        r"registracia|vhod|app|contacts|about|privacy|payments|otzyvy|"
+                        r"platezhi|oplata|igrat)\}")
 
 
 def strip_tags(raw):
@@ -472,6 +484,11 @@ def _пара_имени(tok, след):
 
 # Конец предложения между двумя словами: заготовка генератора через него не тянется.
 КОНЕЦ_ФРАЗЫ = re.compile(r"[.!?;…]")
+# Закрытие блока — такой же конец фразы. strip_tags ставит на месте тега пробел, и
+# соседние ячейка, пункт или заголовок склеиваются в одно предложение: зачин заготовки
+# собирается из хвоста соседней ячейки («…в профиле</td><td>Обновите ФИО»), а брендовый
+# оборот — из конца соседнего заголовка («Рабочее зеркало</h3><p>Запасной адрес входа»).
+КОНЕЦ_БЛОКА = re.compile(r"(?i)</(?:td|th|tr|p|li|h[1-6]|dt|dd|summary|blockquote|caption|div|section)>")
 
 
 def brand_twins(text):
@@ -575,8 +592,9 @@ def brand_candidates(raws):
         m = BRAND_LINE.match(raw)
         if m and m.group(1).split()[0].lower() not in (LATIN_WHITELIST | CYR_WHITELIST):
             line[m.group(1)] += 1
-        twins.update(set(brand_twins(strip_tags(raw))))   # имя считаем один раз на страницу
-        hits, pr, sl = brand_hits(strip_tags(raw))
+        текст = strip_tags(КОНЕЦ_БЛОКА.sub(". ", raw))
+        twins.update(set(brand_twins(текст)))   # имя считаем один раз на страницу
+        hits, pr, sl = brand_hits(текст)
         for tok, c in hits.items():
             total[tok] += c
             pages[tok] += 1
@@ -712,6 +730,10 @@ def check_site(n, tpl, key, pages, F):
         if unfilled:
             F.add(key, "ERROR", "B5", "%s: незаполненные переменные: %s" % (
                 loc, ", ".join("%s (%d)" % kv for kv in unfilled.items())))
+        слоты = Counter(СЛОТ_СЛОВА.findall(без_формул))
+        if слоты:
+            F.add(key, "ERROR", "B5", "%s: незаполненные слоты слов: %s" % (
+                loc, ", ".join("%s (%d)" % kv for kv in слоты.items())))
         if not any(ph.startswith("%brand_name") for ph in d["placeholders"]) and d["nwords"] >= 60:
             no_brand.append(p)
         # B6 разметка
