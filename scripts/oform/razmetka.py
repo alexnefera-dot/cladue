@@ -80,7 +80,19 @@ def кнопки(строка):
 
 
 def это_кнопка(t):
+    """Похожа ли строка на призыв к действию.
+
+    Призыв у нас всегда по-русски: «Играть», «Получить бонус», «Зарегистрироваться»,
+    «На главную» — на партии 10 октября это все 3398 настоящих кнопок. Строка без
+    кириллицы — не призыв, а название: имя автомата из списка, который не удалось
+    собрать витриной («Mighty Wild Panther», «Retro Tapes»), провайдер («Pragmatic
+    Play LIVE») или подпись карты из выкачки («OpenStreetMap contributors»). Кнопкой
+    такая строка быть не может: из списка автоматов получались огромные пилюли вместо
+    витрины, и пользователь просил такого оформления не делать никогда.
+    """
     if len(t) > 46 or re.search(r'[.,!?:;—]', t) or not t:
+        return False
+    if not re.search(r'[А-Яа-яЁё]', t):
         return False
     части = [x.strip() for x in re.split(r'(?<=[а-яё%])\s*(?=[А-ЯЁ])', t) if x.strip()]
     if not части or len(части) > 2:
@@ -449,15 +461,19 @@ def собрать(блоки, стр):
             continue
 
         # ---- абзац, в котором только ссылки: ряд кнопок с их же адресами
+        # Призыв у нас всегда по-русски, поэтому ряд ссылок, где ни в одной нет кириллицы, —
+        # не кнопки, а список названий («Mighty Wild Panther», «Retro Tapes», «Starburst»):
+        # такой абзац остаётся как есть, иначе список автоматов расходится по пилюлям.
         if тег == 'p' and re.search(r'(?is)<a\b', сырое) \
                 and re.sub(r'(?is)<a[^>]*>.*?</a>', '', сырое).strip() == '':
             пары = re.findall(r'(?is)<a href="([^"]+)"[^>]*>(.*?)</a>', сырое)
-            out.append('<div class="hero-actions">%s</div>' % ''.join(
-                '<a class="btn-apple btn-apple-%s" href="%s">%s</a>'
-                % ('primary' if k == 0 else 'secondary', a, H.escape(текст(b)))
-                for k, (a, b) in enumerate(пары)))
-            i += 1
-            continue
+            if any(re.search(r'[А-Яа-яЁё]', текст(b)) for _, b in пары):
+                out.append('<div class="hero-actions">%s</div>' % ''.join(
+                    '<a class="btn-apple btn-apple-%s" href="%s">%s</a>'
+                    % ('primary' if k == 0 else 'secondary', a, H.escape(текст(b)))
+                    for k, (a, b) in enumerate(пары)))
+                i += 1
+                continue
 
         # ---- полоса показателей: значение и подпись в одной плитке
         if тег == 'p' and ЗНАЧЕНИЕ.match(сырое):
