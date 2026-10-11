@@ -475,6 +475,13 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-di
 /* Семейное вне капитала: отбито сильнее, чтобы не читалось как часть итога */
 .porttable tr.parthead.partoff td{background:var(--bg);border-top:2px solid var(--line2)}
 .porttable tr.parthead.partoff .pname{color:var(--muted)}
+/* Цели накопления: прогресс и журнал взносов */
+.savegoal{padding:8px 0;border-bottom:1px solid var(--bg2)}
+.savegoal:last-child{border-bottom:0}
+.savehead{font-size:13.5px}
+.savegoal .bar{margin:5px 0}
+.savelog{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px}
+.savelog:hover .rowbtn{opacity:1}
 /* Сводка всего: капитал и семейное вместе — одна строка внизу таблицы */
 .porttable tr.partall td{background:var(--bg2);border-top:2px solid var(--line2);border-bottom:0;font-weight:600;padding-top:10px}
 .porttable tr.partall .pname .meta{font-weight:400;margin-left:8px}

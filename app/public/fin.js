@@ -695,21 +695,6 @@ function secPortfolio(d, s) {
       </div>
     </div>` : ''}
   </div>` : ''}
-  ${tgt ? secDigest(tree) : ''}
-  ${tgt ? secHistory(d.historyRows, s.rate || d.rate) : ''}
-  ${tgt ? capHistory(d.history, monSide) : ''}
-  ${(rctx.spends || []).length ? `
-  <div class="card">
-    <div class="meta" style="margin-bottom:8px">ПОТРАТИМ · деньги уйдут из портфеля насовсем</div>
-    ${rctx.spends.map(x => `<div class="kv spendrow">
-      <span><span class="ed mono spendnote" data-fe="move:${x.id}:to_note:text"${x.note ? '' : ' data-hint="вписать, на что"'} title="на что тратим (клик — вписать)">${x.note ? fesc(x.note) : ''}</span>
-        <span class="meta">из «${fesc(x.fromName)}»</span></span>
-      <span><b class="num dev-over">${fmt(x.amount)} ${fesc(x.cur)}</b>
-        <span class="rowbtn del" data-movedel="${x.id}" title="убрать трату">✕</span></span>
-    </div>`).join('')}
-    <div class="kv" style="border-top:1px solid var(--line);margin-top:6px;padding-top:6px">
-      <span class="meta">итого</span><b class="num dev-over">${fmt(rctx.spends.reduce((a, x) => a + x.eur, 0))} €</b></div>
-  </div>` : ''}
   ${tgt && catRows.length ? `
   <div class="card">
     <div class="kv" style="margin-bottom:8px;flex-wrap:wrap;gap:6px">
@@ -759,7 +744,65 @@ function secPortfolio(d, s) {
         }).join('')}
       </div>${capNote}</div>
     </div>
-  </div>` : ''}`;
+  </div>` : ''}
+  ${(rctx.spends || []).length ? `
+  <div class="card">
+    <div class="meta" style="margin-bottom:8px">ПОТРАТИМ · деньги уйдут из портфеля насовсем</div>
+    ${rctx.spends.map(x => `<div class="kv spendrow">
+      <span><span class="ed mono spendnote" data-fe="move:${x.id}:to_note:text"${x.note ? '' : ' data-hint="вписать, на что"'} title="на что тратим (клик — вписать)">${x.note ? fesc(x.note) : ''}</span>
+        <span class="meta">из «${fesc(x.fromName)}»</span></span>
+      <span><b class="num dev-over">${fmt(x.amount)} ${fesc(x.cur)}</b>
+        <span class="rowbtn del" data-movedel="${x.id}" title="убрать трату">✕</span></span>
+    </div>`).join('')}
+    <div class="kv" style="border-top:1px solid var(--line);margin-top:6px;padding-top:6px">
+      <span class="meta">итого</span><b class="num dev-over">${fmt(rctx.spends.reduce((a, x) => a + x.eur, 0))} €</b></div>
+  </div>` : ''}
+  ${tgt ? secSaveGoals(d.saveGoals) : ''}
+  ${tgt ? secDigest(tree) : ''}
+  ${tgt ? secHistory(d.historyRows, s.rate || d.rate) : ''}
+  ${tgt ? capHistory(d.history, monSide) : ''}
+
+`;
+}
+
+
+// Цели накопления: сколько уже отложено и сколько класть в этом месяце. Процент считается
+// от дохода, внесённого в бюджет за месяц, — поэтому до внесения дохода подсказки суммы нет.
+function secSaveGoals(goals) {
+  const gs = goals || [];
+  if (!gs.length) return '';
+  const pctLabel = g => g.pct_min == null ? ''
+    : g.pct_max != null && g.pct_max !== g.pct_min ? `${g.pct_min}–${g.pct_max}%` : `${g.pct_min}%`;
+  const planned = g => {
+    const inc = g.incomeMonth || 0;
+    if (!inc || g.pct_min == null) return null;
+    return { min: inc * g.pct_min / 100, max: inc * (g.pct_max ?? g.pct_min) / 100 };
+  };
+  return `
+  <div class="sec">Цели накопления · процент от дохода месяца</div>
+  <div class="card">
+    ${gs.map(g => {
+      const saved = g.saved || 0, target = g.target || 0;
+      const pct = target > 0 ? Math.min(100, saved / target * 100) : null;
+      const p = planned(g), done = (g.thisMonth || 0) > 0;
+      return `<div class="savegoal">
+        <div class="kv savehead">
+          <span><b>${fesc(g.name)}</b>${g.note ? ` <span class="meta">${fesc(g.note)}</span>` : ''}</span>
+          <span class="num">${fmt(saved)} €${target > 0 ? ` <span class="meta">из ${fmt(target)} €</span>` : ''}</span>
+        </div>
+        ${pct != null ? `<div class="bar"><i style="width:${pct.toFixed(1)}%"></i></div>` : ''}
+        <div class="kv">
+          <span class="meta">${pctLabel(g)} дохода${p ? ` · это ${fmt(p.min)}${p.max !== p.min ? `–${fmt(p.max)}` : ''} €` : ' · внеси доход месяца, посчитаю сумму'}</span>
+          <span>${done ? `<span class="pill ok">✓ в этом месяце ${fmt(g.thisMonth)} €</span>`
+            : `<span class="pill btn" data-saveput="${g.id}">＋ отложить</span>`}
+            ${pct != null ? `<span class="meta">${pct.toFixed(0)}%</span>` : ''}</span>
+        </div>
+        ${(g.log || []).length ? `<div class="meta savelog">${g.log.slice(0, 6).map(l =>
+          `<span title="${fesc(l.note || '')}">${fesc(String(l.date).slice(5))} · ${fmt(l.amount)} €
+           <span class="rowbtn del" data-savedel="${l.id}" title="убрать взнос">✕</span></span>`).join(' ')}</div>` : ''}
+      </div>`;
+    }).join('')}
+  </div>`;
 }
 
 // Сведение капитала: свод отмеченных 🎓 позиций по географии. Регион берётся из общей
@@ -1753,6 +1796,25 @@ function bindFin() {
     el.addEventListener('click', async () => {
       const [id, cur] = el.dataset.hcurtog.split(':');
       await finApi.patch('hist', +id, { currency: cur === '€' ? '$' : '€' });
+      window.loadFin();
+    }));
+  document.querySelectorAll('[data-saveput]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const g = (finData.saveGoals || []).find(x => x.id === +el.dataset.saveput);
+      if (!g) return;
+      const inc = g.incomeMonth || 0;
+      const sug = inc && g.pct_min != null ? Math.round(inc * g.pct_min / 100) : '';
+      const v = parseNum(prompt(`Сколько откладываем в «${g.name}»?`
+        + (inc ? `\nДоход месяца ${fmt(inc)} € · ${g.pct_min}% = ${fmt(inc * g.pct_min / 100)} €` : '\nДоход месяца не внесён'),
+        String(sug)) ?? '');
+      if (v == null) return;
+      await fetch(`/api/fin/save/${g.id}/put`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: v }) });
+      window.loadFin();
+    }));
+  document.querySelectorAll('[data-savedel]').forEach(el =>
+    el.addEventListener('click', async () => {
+      await finApi.del('savelog', +el.dataset.savedel);
       window.loadFin();
     }));
   document.querySelectorAll('[data-dgval]').forEach(el =>

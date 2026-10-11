@@ -471,6 +471,31 @@ const tdWeekStart = () => {   // неделя с понедельника
 const TD_WD = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
 const TD_TYPE = { task: 'ev-task', money: 'ev-money', step: 'ev-step', event: 'ev-cal', practice: 'ev-psy' };
 
+// Первого числа всплывает напоминание отложить процент дохода. Висит, пока не отложил:
+// пропустить месяц молча нельзя, в этом вся затея.
+function tdSaveDue() {
+  const due = (tdData || {}).saveDue || [];
+  if (!due.length) return '';
+  return `<div class="sec">💰 Отложить в этом месяце</div>
+  <div class="card">
+    ${due.map(g => {
+      const inc = g.incomeMonth || 0;
+      const pct = g.pct_max != null && g.pct_max !== g.pct_min ? `${g.pct_min}–${g.pct_max}%` : `${g.pct_min}%`;
+      const sum = inc && g.pct_min != null
+        ? ` · ${tdMoney(inc * g.pct_min / 100)}${g.pct_max !== g.pct_min ? `–${tdMoney(inc * g.pct_max / 100)}` : ''} €`
+        : '';
+      return `<div class="task">
+        <span class="pill p1">${pct} дохода</span>
+        <span class="t">${tesc(g.name)}${g.target ? ` <span class="meta">${tdMoney(g.saved || 0)} из ${tdMoney(g.target)} €</span>` : ''}</span>
+        <span class="meta">${inc ? `доход ${tdMoney(inc)} €${sum}` : 'доход месяца не внесён'}</span>
+        <span class="pill btn ok" data-savedue="${g.id}">✓ отложил</span>
+      </div>`;
+    }).join('')}
+    <div class="empty">сумма считается от дохода, внесённого в Финансах за этот месяц</div>
+  </div>`;
+}
+const tdMoney = n => Math.round(n || 0).toLocaleString('ru-RU');
+
 // Единый блок: просроченное сверху без дат, сегодня — широкой панелью с полными строками,
 // остальные дни недели — компактной полосой. Дела тащатся между днями и в сегодня.
 function tdWeekBoard(compact) {
@@ -516,6 +541,7 @@ function tdWeekBoard(compact) {
   </div>`;
 
   return `
+  ${tdSaveDue()}
   <div class="sec">План недели · тащи дело на другой день</div>
   <div class="tdboard">
     ${wait.length || obWait.length ? `<div class="tdover" data-tdday="${today}">
@@ -890,6 +916,22 @@ function bindToday() {
     }
     window.loadToday();
   });
+  document.querySelectorAll('#screen-today [data-savedue]').forEach(el =>
+    el.addEventListener('click', async () => {
+      const g = ((tdData || {}).saveDue || []).find(x => x.id === +el.dataset.savedue);
+      if (!g) return;
+      const inc = g.incomeMonth || 0;
+      const sug = inc && g.pct_min != null ? Math.round(inc * g.pct_min / 100) : '';
+      const raw = prompt(`Сколько отложил в «${g.name}»?`
+        + (inc ? `\nДоход месяца ${tdMoney(inc)} € · ${g.pct_min}% = ${tdMoney(inc * g.pct_min / 100)} €`
+               : '\nДоход месяца не внесён — впиши сумму руками'), String(sug));
+      if (raw == null) return;
+      const v = parseFloat(String(raw).replace(/\s/g, '').replace(',', '.'));
+      if (!Number.isFinite(v)) return;
+      await fetch(`/api/fin/save/${g.id}/put`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: v }) });
+      window.loadToday();
+    }));
   document.querySelectorAll('#screen-today [data-tdwait]').forEach(el =>
     el.addEventListener('click', async e => {
       e.stopPropagation();

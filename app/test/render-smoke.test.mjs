@@ -387,6 +387,32 @@ test('история: подпункт вычитается из пункта и
   assert.ok(html.includes('data-hlvl="2"'), 'подпункт не помечен уровнем для перетаскивания');
 });
 
+test('цели накопления: прогресс, сумма от дохода и отметка за месяц', () => {
+  const ctx = loadFin();
+  const html = ctx.secSaveGoals([
+    { id: 1, name: 'Фан-кар', note: '370Z · M2', target: 15000, pct_min: 5, pct_max: 5,
+      saved: 3200, thisMonth: 0, incomeMonth: 6000, log: [{ id: 9, date: '2026-09-01', amount: 300 }] },
+    { id: 2, name: 'EXUS', target: null, pct_min: 10, pct_max: 30,
+      saved: 12000, thisMonth: 800, incomeMonth: 6000, log: [] },
+  ]).replace(/\u00a0/g, ' ');
+  assert.ok(html.includes('3 200 €') && html.includes('из 15 000 €'), 'накопленное и цель не выведены');
+  assert.ok(html.includes('width:21.3%'), 'прогресс 3200 из 15000 не посчитался');
+  assert.ok(html.includes('5% дохода · это 300 €'), 'сумма взноса от дохода месяца не посчитана');
+  assert.ok(html.includes('10–30% дохода · это 600–1 800 €'), 'вилка процентов не раскрыта в суммы');
+  assert.ok(html.includes('data-saveput="1"'), 'нечем отложить по невыполненной цели');
+  assert.ok(html.includes('✓ в этом месяце 800 €') && !html.includes('data-saveput="2"'),
+    'по выполненной за месяц цели кнопка не должна предлагаться');
+  assert.ok(html.includes('data-savedel="9"'), 'взнос нельзя убрать');
+  assert.equal(ctx.secSaveGoals([]), '', 'без целей блока быть не должно');
+});
+
+test('цели накопления: без дохода за месяц сумма не выдумывается', () => {
+  const html = loadFin().secSaveGoals([{ id: 1, name: 'Фан-кар', target: 15000, pct_min: 5, pct_max: 5,
+    saved: 0, thisMonth: 0, incomeMonth: 0, log: [] }]);
+  assert.ok(html.includes('внеси доход месяца'), 'надо сказать, почему суммы нет');
+  assert.ok(!html.includes('это 0 €'), 'нулевая подсказка хуже, чем её отсутствие');
+});
+
 test('цель: закреплено то поле, что заполнено', () => {
   const html = loadFin().secPortfolio(DATA, DATA.summary);
   assert.ok(html.includes('target_pct'), 'нет поля доли');
