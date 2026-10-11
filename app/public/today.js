@@ -473,6 +473,9 @@ const TD_TYPE = { task: 'ev-task', money: 'ev-money', step: 'ev-step', event: 'e
 
 // Первого числа всплывает напоминание отложить процент дохода. Висит, пока не отложил:
 // пропустить месяц молча нельзя, в этом вся затея.
+const TD_MON_RU = ['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
+const tdMonthName = ym => TD_MON_RU[+String(ym || '').slice(5, 7) - 1] || '';
+
 function tdSaveDue() {
   const due = (tdData || {}).saveDue || [];
   if (!due.length) return '';
@@ -487,11 +490,11 @@ function tdSaveDue() {
       return `<div class="task">
         <span class="pill p1">${pct} дохода</span>
         <span class="t">${tesc(g.name)}${g.target ? ` <span class="meta">${tdMoney(g.saved || 0)} из ${tdMoney(g.target)} €</span>` : ''}</span>
-        <span class="meta">${inc ? `доход ${tdMoney(inc)} €${sum}` : 'доход месяца не внесён'}</span>
+        <span class="meta">${inc ? `доход за ${tdMonthName(g.incomeYm)} ${tdMoney(inc)} €${sum}` : `доход за ${tdMonthName(g.incomeYm)} не внесён`}</span>
         <span class="pill btn ok" data-savedue="${g.id}">✓ отложил</span>
       </div>`;
     }).join('')}
-    <div class="empty">сумма считается от дохода, внесённого в Финансах за этот месяц</div>
+    <div class="empty">процент считается от дохода прошлого месяца — он уже прожит и известен</div>
   </div>`;
 }
 const tdMoney = n => Math.round(n || 0).toLocaleString('ru-RU');
@@ -923,8 +926,8 @@ function bindToday() {
       const inc = g.incomeMonth || 0;
       const sug = inc && g.pct_min != null ? Math.round(inc * g.pct_min / 100) : '';
       const raw = prompt(`Сколько отложил в «${g.name}»?`
-        + (inc ? `\nДоход месяца ${tdMoney(inc)} € · ${g.pct_min}% = ${tdMoney(inc * g.pct_min / 100)} €`
-               : '\nДоход месяца не внесён — впиши сумму руками'), String(sug));
+        + (inc ? `\nДоход за ${tdMonthName(g.incomeYm)} ${tdMoney(inc)} € · ${g.pct_min}% = ${tdMoney(inc * g.pct_min / 100)} €`
+               : `\nДоход за ${tdMonthName(g.incomeYm)} не внесён — впиши сумму руками`), String(sug));
       if (raw == null) return;
       const v = parseFloat(String(raw).replace(/\s/g, '').replace(',', '.'));
       if (!Number.isFinite(v)) return;

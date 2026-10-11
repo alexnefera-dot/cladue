@@ -768,6 +768,9 @@ function secPortfolio(d, s) {
 
 // Цели накопления: сколько уже отложено и сколько класть в этом месяце. Процент считается
 // от дохода, внесённого в бюджет за месяц, — поэтому до внесения дохода подсказки суммы нет.
+const MON_RU = ['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
+const monthName = ym => MON_RU[+String(ym || '').slice(5, 7) - 1] || '';
+
 function secSaveGoals(goals) {
   const gs = goals || [];
   if (!gs.length) return '';
@@ -792,7 +795,7 @@ function secSaveGoals(goals) {
         </div>
         ${pct != null ? `<div class="bar"><i style="width:${pct.toFixed(1)}%"></i></div>` : ''}
         <div class="kv">
-          <span class="meta">${pctLabel(g)} дохода${p ? ` · это ${fmt(p.min)}${p.max !== p.min ? `–${fmt(p.max)}` : ''} €` : ' · внеси доход месяца, посчитаю сумму'}</span>
+          <span class="meta">${pctLabel(g)} дохода за ${fesc(monthName(g.incomeYm))}${p ? ` · это ${fmt(p.min)}${p.max !== p.min ? `–${fmt(p.max)}` : ''} €` : ' · внеси доход за этот месяц, посчитаю сумму'}</span>
           <span>${done ? `<span class="pill ok">✓ в этом месяце ${fmt(g.thisMonth)} €</span>`
             : `<span class="pill btn" data-saveput="${g.id}">＋ отложить</span>`}
             ${pct != null ? `<span class="meta">${pct.toFixed(0)}%</span>` : ''}</span>
@@ -1805,7 +1808,8 @@ function bindFin() {
       const inc = g.incomeMonth || 0;
       const sug = inc && g.pct_min != null ? Math.round(inc * g.pct_min / 100) : '';
       const v = parseNum(prompt(`Сколько откладываем в «${g.name}»?`
-        + (inc ? `\nДоход месяца ${fmt(inc)} € · ${g.pct_min}% = ${fmt(inc * g.pct_min / 100)} €` : '\nДоход месяца не внесён'),
+        + (inc ? `\nДоход за ${monthName(g.incomeYm)} ${fmt(inc)} € · ${g.pct_min}% = ${fmt(inc * g.pct_min / 100)} €`
+               : `\nДоход за ${monthName(g.incomeYm)} не внесён`),
         String(sug)) ?? '');
       if (v == null) return;
       await fetch(`/api/fin/save/${g.id}/put`, { method: 'POST', headers: { 'Content-Type': 'application/json' },

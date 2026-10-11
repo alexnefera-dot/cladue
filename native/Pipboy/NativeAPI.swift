@@ -2680,9 +2680,12 @@ enum Api {
     // клал ли в этом месяце и какой доход месяца — от него считается процент.
     static func saveGoals(_ db: Database) throws -> [[String: Any]] {
         let ym = String(localToday().prefix(7))
+        // Процент считается от дохода ПРОШЛОГО месяца: первого числа октября кладём
+        // от сентябрьского заработка, текущий месяц ещё не прожит.
+        let prevYm = String((try db.rows("SELECT strftime('%Y-%m', date('now','localtime','start of month','-1 day')) AS m")
+            .first?["m"] as? String) ?? ym)
         let rate = (try? eurUsdRate(db)) ?? 1.08
-        // доход месяца — то, что внесено в бюджет помесячно; в € по курсу
-        let incomeMonth = (try db.rows("SELECT amount, currency FROM budget_items WHERE direction = 'income' AND month = ?", [ym]))
+        let incomeMonth = (try db.rows("SELECT amount, currency FROM budget_items WHERE direction = 'income' AND month = ?", [prevYm]))
             .reduce(0.0) { $0 + ((($1["currency"] as? String) == "$") ? num($1["amount"]) / rate : num($1["amount"])) }
         var out: [[String: Any]] = []
         for var g in try db.rows("SELECT * FROM save_goals WHERE COALESCE(archived,0) = 0 ORDER BY ord, id") {
@@ -2691,6 +2694,7 @@ enum Api {
             g["thisMonth"] = num(try db.rows("SELECT COALESCE(SUM(amount),0) AS s FROM save_log WHERE goal_id = ? AND substr(date,1,7) = ?", [gid, ym]).first?["s"])
             g["log"] = try db.rows("SELECT id, date, amount, note FROM save_log WHERE goal_id = ? ORDER BY date DESC, id DESC LIMIT 12", [gid])
             g["incomeMonth"] = incomeMonth
+            g["incomeYm"] = prevYm
             out.append(g)
         }
         return out

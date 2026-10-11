@@ -76,12 +76,13 @@ test('на десктопе просроченное осталось на эк�
 });
 
 test('первого числа на главной висит «отложить», пока не отложил', () => {
-  const due = [{ id: 1, name: 'Фан-кар', target: 15000, saved: 3200, pct_min: 5, pct_max: 5, incomeMonth: 6000 },
-    { id: 2, name: 'EXUS', target: null, saved: 12000, pct_min: 10, pct_max: 30, incomeMonth: 6000 }];
+  const due = [{ id: 1, name: 'Фан-кар', target: 15000, saved: 3200, pct_min: 5, pct_max: 5, incomeMonth: 6000, incomeYm: '2026-09' },
+    { id: 2, name: 'EXUS', target: null, saved: 12000, pct_min: 10, pct_max: 30, incomeMonth: 6000, incomeYm: '2026-09' }];
   const html = loadToday({ ...DATA, saveDue: due }).tdWeekBoard(false).replace(/\u00a0/g, ' ');
   assert.ok(html.includes('Отложить в этом месяце'), 'напоминания нет');
   assert.ok(html.includes('5% дохода') && html.includes('10–30% дохода'), 'проценты целей не показаны');
   assert.ok(html.includes('· 300 €') && html.includes('600–1 800 €'), 'суммы от дохода не посчитаны');
+  assert.ok(html.includes('доход за сентябрь'), 'не названо, за какой месяц считается процент');
   assert.ok(html.includes('data-savedue="1"') && html.includes('data-savedue="2"'), 'нечем отметить');
   assert.ok(!loadToday(DATA).tdWeekBoard(false).includes('Отложить в этом месяце'),
     'когда класть нечего, блок не должен занимать место');
