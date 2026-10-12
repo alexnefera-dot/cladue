@@ -5766,3 +5766,124 @@ function v5VpisatVitrinu(string $html, array $витрина): string
             return $карточка;
         }, $html);
 }
+
+/* ───────────── перелинковка: блок «читайте также» ─────────────
+ * Блок корпуса ТЗ: стоит на всех двенадцати страницах, четыре карточки,
+ * разметка ItemList → ListItem → Article (docs/tz-bloki-plan.md, раздел «Перемер»).
+ *
+ * Тексты карточек не из списка: заголовок и подпись берутся из настоящего h2
+ * той страницы, на которую карточка ведёт. Наши h2 устроены как «Казино
+ * %brand%: Фриспины — Крутишь бесплатно, вейджер остаётся»: до тире выходит
+ * короткий заголовок, после тире — готовая подпись. Текст уже сгенерирован
+ * под этот набор, значит карточка уникальна по построению, а не выбрана из
+ * шести строк на всю сеть, как у доноров.
+ */
+
+/** Заголовки h2 страницы: для перелинковки нужны чужие, поэтому собираются до вставки. */
+function v5ZagolovkiStranicy(string $html): array
+{
+    if (!preg_match_all('~<h2\b[^>]*>(.*?)</h2>~su', $html, $m)) { return []; }
+    $из = [];
+    foreach ($m[1] as $з) {
+        $з = trim((string) preg_replace('~\s+~u', ' ', strip_tags($з)));
+        // Шапка страницы — это бренд, не тема: «%brand_name_ru%» карточкой не станет.
+        if ($з === '' || preg_match('~^%brand_name_(?:ru|en)%$~u', $з)) { continue; }
+        $из[] = $з;
+    }
+    return $из;
+}
+
+/** Заголовок h2 → [заголовок карточки, подпись]. */
+function v5PerelinkovkaIzZagolovka(string $h2): array
+{
+    // «Казино %brand%: Фриспины — Крутишь бесплатно» → «Фриспины» + хвост.
+    $ч = (string) preg_replace('~^(?:Казино|Клуб)\s+%brand_name_(?:ru|en)%\s*:\s*~u', '', $h2);
+    $ч = (string) preg_replace('~^%brand_name_(?:ru|en)%\s*[:—–-]\s*~u', '', $ч);
+    $части = preg_split('~\s+[—–]\s+~u', $ч, 2);
+    $имя = trim($части[0]);
+    $подпись = trim($части[1] ?? '');
+    if (mb_strlen($имя) > 58) { $имя = trim(mb_substr($имя, 0, 55)) . '…'; }
+    if (mb_strlen($подпись) > 72) { $подпись = trim(mb_substr($подпись, 0, 69)) . '…'; }
+    return [$имя, $подпись];
+}
+
+/**
+ * Блок перелинковки для страницы: четыре карточки на другие страницы набора.
+ *
+ * Свой Rng, а не общий поток отбора: блок собирается после страниц и не должен
+ * сдвигать ни одного прежнего розыгрыша.
+ */
+function v5BlokPerelinkovki(string $тип, array $заголовки, int $сид, array $имена = []): string
+{
+    $rng = new Rng('перелинковка|' . $сид . '|' . $тип);
+    // Карточка — это анкор на соседний раздел, а не пересказ его истории.
+    // Заголовки с именем героя или суммой отбрасываются: на первой пробе блок
+    // принёс на info «Марат сорвал 410к здесь» со страницы slots, и сито
+    // честно показало два разных итога у одного имени. Имя и сумма привязаны
+    // к своей странице, анкор их переносить не должен.
+    $годен = static function (string $з) use ($имена): bool {
+        if (preg_match('~\d[\d\s]*(?:[.,]\d+)?\s*(?:%|млн|тыс|к\b|₽)~ui', $з)) { return false; }
+        foreach ($имена as $имя) {
+            if ($имя !== '' && mb_stripos($з, (string) $имя) !== false) { return false; }
+        }
+        return true;
+    };
+    foreach ($заголовки as $т => $список) {
+        $чистые = array_values(array_filter($список, $годен));
+        $заголовки[$т] = $чистые ?: [];
+    }
+    $цели = array_values(array_filter(array_keys($заголовки), static fn ($т) => $т !== $тип && $заголовки[$т]));
+    if (count($цели) < 3) { return ''; }
+    $rng->shuffle($цели);
+    $цели = array_slice($цели, 0, 4);
+
+    $шапки = ['По этой теме', 'Читайте по теме', 'Куда смотреть дальше', 'Соседние разделы',
+              'Что ещё посмотреть', 'Рядом по теме', 'Дальше по сайту', 'Смежные разделы'];
+    $подводки = ['Полезные разделы по теме страницы', 'Короткий путь в соседние разделы',
+                 'То, что чаще всего читают следом', 'Разделы, куда переходят с этой страницы',
+                 'Если нужного здесь не нашлось', 'Ближайшие по смыслу страницы'];
+    $запасные = [
+        'main' => 'Главная страница', 'slots' => 'Каталог автоматов', 'bonus' => 'Бонусы и акции',
+        'promo' => 'Акции и промокоды', 'registracia' => 'Регистрация', 'vhod' => 'Вход в кабинет',
+        'zerkalo' => 'Рабочее зеркало', 'app' => 'Мобильное приложение', 'obzor' => 'Обзор казино',
+        'news' => 'Новости', 'info' => 'Справка', 'partnery' => 'Партнёрам',
+    ];
+
+    $карточки = [];
+    foreach ($цели as $n => $цель) {
+        $список = $заголовки[$цель];
+        // Заголовок с тире даёт сразу и имя, и подпись — берём такой, если есть.
+        $сТире = array_values(array_filter($список, static fn ($з) => preg_match('~\s[—–]\s~u', $з)));
+        $взят = (string) $rng->pick($сТире ?: $список);
+        [$имя, $подпись] = v5PerelinkovkaIzZagolovka($взят);
+        if ($имя === '') { $имя = $запасные[$цель] ?? $цель; }
+        if ($подпись === '') {
+            [$и2, $п2] = v5PerelinkovkaIzZagolovka((string) $rng->pick($список));
+            $подпись = $п2 !== '' ? $п2 : ($запасные[$цель] ?? $цель);
+        }
+        $адрес = $цель === 'main' ? '/' : '/' . $цель;
+        $карточки[] = '    <article class="related-card" itemprop="itemListElement" itemscope="" itemtype="https://schema.org/ListItem">' . "\n"
+            . '      <meta itemprop="position" content="' . ($n + 1) . '">' . "\n"
+            . '      <div itemprop="item" itemscope="" itemtype="https://schema.org/Article">' . "\n"
+            . '        <a href="' . $адрес . '" class="related-card-link" itemprop="url">' . "\n"
+            . '          <h3 class="related-card-title" itemprop="headline">' . "\n            "
+            . htmlspecialchars($имя, ENT_NOQUOTES, 'UTF-8') . "\n" . '          </h3>' . "\n"
+            . '          <p class="related-card-desc" itemprop="description">' . "\n            "
+            . htmlspecialchars($подпись, ENT_NOQUOTES, 'UTF-8') . "\n" . '          </p>' . "\n"
+            . '        </a>' . "\n"
+            . '      </div>' . "\n"
+            . '    </article>';
+    }
+
+    $версия = 'variant-v' . $rng->int(1, 4);
+    return '<section class="related-sections ' . $версия . '" itemscope="" itemtype="https://schema.org/ItemList">' . "\n"
+        . '  <meta itemprop="numberOfItems" content="' . count($карточки) . '">' . "\n"
+        . '  <h2 class="related-sections-heading" itemprop="name">' . "\n    "
+        . $rng->pick($шапки) . "\n" . '  </h2>' . "\n"
+        . '  <p class="related-sections-desc">' . "\n    "
+        . $rng->pick($подводки) . "\n" . '  </p>' . "\n"
+        . '  <div class="related-cards">' . "\n"
+        . implode("\n", $карточки) . "\n"
+        . '  </div>' . "\n"
+        . '</section>';
+}

@@ -126,6 +126,19 @@ function vsТаблицаВерсий(): array
             'jackpot-strip'   => 'display:none',
             'payout-row-slot' => 'display:none',
         ],
+        // ── перелинковка
+        'related-sections|variant-v2' => [
+            'related-cards' => 'grid-template-columns:1fr 1fr;gap:16px',
+            'related-card'  => 'padding:18px;border-radius:14px',
+        ],
+        'related-sections|variant-v3' => [
+            'related-cards' => 'display:flex;gap:14px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x mandatory',
+            'related-card'  => 'min-width:260px;scroll-snap-align:start',
+        ],
+        'related-sections|variant-v4' => [
+            'related-cards' => 'grid-template-columns:1fr;gap:10px',
+            'related-card'  => 'border:' . $пунктир,
+        ],
         // ── тематический блок
         'page-thematic-block|variant-v2' => [
             'review-quotes-list' => 'display:grid;grid-template-columns:1fr 1fr;gap:16px',
@@ -321,6 +334,15 @@ $ПРАВИЛА = [
     'slot-rtp'      => 'font-size:11px;opacity:.9',
     'slot-rtp-label' => 'display:block;opacity:.86',
     'slot-rtp-value' => 'display:block;font-weight:700',
+    // ── перелинковка «читайте также» (блок корпуса ТЗ)
+    'related-sections'         => '' . ШРИФТ . ';line-height:1.5;text-align:left;display:block;border:' . КАНТ . ';border-radius:14px;padding:18px;margin:22px 0 0',
+    'related-sections-heading' => 'font-weight:700;margin:0 0 4px;font-size:18px;line-height:1.3',
+    'related-sections-desc'    => 'margin:0 0 12px;font-size:13px;opacity:.85',
+    'related-cards'            => 'display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px',
+    'related-card'             => 'display:block;min-width:0;float:none;border:' . КАНТ . ';border-radius:12px;padding:12px 14px',
+    'related-card-link'        => 'display:block;color:inherit;text-decoration:none',
+    'related-card-title'       => 'font-weight:600;margin:0 0 3px;font-size:15px;line-height:1.3;overflow-wrap:break-word',
+    'related-card-desc'        => 'margin:0;font-size:13px;opacity:.85;line-height:1.45',
     'slot-play-btn' => 'display:inline-block;font-size:12px;padding:5px 11px;border:1px solid ' . ЗОЛОТО . ';border-radius:8px;color:inherit;font-weight:700;font-family:inherit;line-height:1.3;text-decoration:none;white-space:nowrap',
 ];
 

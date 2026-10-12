@@ -166,6 +166,13 @@ final class PageMetrics
         // а не в атрибуты, то без этой строки CSS уедет в слова, числа и
         // абзацы: «margin:0 0 20px» дал бы три числа на пустом месте.
         $raw = preg_replace('~<style\b[^>]*>.*?</style>~is', '', $raw);
+        // Мебель корпуса ТЗ (перелинковка и то, что встанет следом) из метрик
+        // вычитается: профиль и полосы сняты с корпуса без неё, и каждый новый
+        // блок иначе выбивает sections, h2 и anchors на всех двенадцати
+        // страницах разом — не потому что проза изменилась, а потому что мерка
+        // считает мебель прозой. Снимется, когда мебель встанет целиком и
+        // профиль будет перемерен по корпусу ТЗ (docs/tz-bloki-plan.md).
+        $raw = preg_replace('~<section\b[^>]*class="(?:related-sections)\b[^"]*".*?</section>~is', '', $raw);
         $norm = NicheLexicon::unplaceholder($raw);
         $r = $a->run([['name' => $type, 'url' => "/$type", 'html' => $norm, 'keyword' => '', 'lsi' => []]]);
         $m = $r['pages'][0]['metrics']; $s = $r['pages'][0]['stylistics'];
