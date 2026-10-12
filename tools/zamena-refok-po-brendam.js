@@ -26,37 +26,170 @@
   // Вставить целиком вместе с шапкой. Пусто — работаем только по MAP.
   const CAMPAIGNS = `
 slug,name,ref_link
+1go_engine,1GO_engine,https://sitegoratorr2.top/go/1go_engine
+1xslots_engine,1xSlots_engine,https://sitegoratorr2.top/go/1xslots_engine
+7k_engine,7k_engine,https://sitegoratorr2.top/go/7k_engine
+7k_engine_test,"7k_engine (test)",https://sitegoratorr2.top/go/7k_engine_test
+admiralx_engine,AdmiralX_engine,https://sitegoratorr2.top/go/admiralx_engine
+admiralx_engine_9_12,"AdmiralX_engine 9.12",https://sitegoratorr2.top/go/admiralx_engine_9_12
+admiralx_engine_new,AdmiralX_engine_new,https://sitegoratorr2.top/go/admiralx_engine_new
+admiralx_engine1,AdmiralX_engine1,https://sitegoratorr2.top/go/admiralx_engine1
+admiralx_engine12,AdmiralX_engine12,https://sitegoratorr2.top/go/admiralx_engine12
+admiralx_engine13,AdmiralX_engine13,https://sitegoratorr2.top/go/admiralx_engine13
+admiralx_engine14,AdmiralX_engine14,https://sitegoratorr2.top/go/admiralx_engine14
+admiralx_engine2,AdmiralX_engine2,https://sitegoratorr2.top/go/admiralx_engine2
+admiralx_engine6,AdmiralX_engine6,https://sitegoratorr2.top/go/admiralx_engine6
+admiralx_engine7,AdmiralX_engine7,https://sitegoratorr2.top/go/admiralx_engine7
+admiralx_engine8,AdmiralX_engine8,https://sitegoratorr2.top/go/admiralx_engine8
+admiralx_engine9,AdmiralX_engine9,https://sitegoratorr2.top/go/admiralx_engine9
+apex_engine,Apex_engine,https://sitegoratorr2.top/go/apex_engine
+arkada_engine,Arkada_engine,https://sitegoratorr2.top/go/arkada_engine
+aurora_engine,Aurora_engine,https://sitegoratorr2.top/go/aurora_engine
+aurora_engine2,Aurora_engine2,https://sitegoratorr2.top/go/aurora_engine2
+aurora_engine3,Aurora_engine3,https://sitegoratorr2.top/go/aurora_engine3
+aurora_engine5,Aurora_engine5,https://sitegoratorr2.top/go/aurora_engine5
+azino_engine,Azino_engine,https://sitegoratorr2.top/go/azino_engine
+banda_engine,Banda_engine,https://sitegoratorr2.top/go/banda_engine
+bollywod_engine,Bollywod_engine,https://sitegoratorr2.top/go/bollywod_engine
+booi_engine,Booi_engine,https://sitegoratorr2.top/go/booi_engine
+cat_engine,Cat_engine,https://sitegoratorr2.top/go/cat_engine
+championslots_engine,ChampionSlots_engine,https://sitegoratorr2.top/go/championslots_engine
+clubnika_engine,Clubnika_engine,https://sitegoratorr2.top/go/clubnika_engine
+cryptoboss_engine,Cryptoboss_engine,https://sitegoratorr2.top/go/cryptoboss_engine
+cryptoboss_engine_buzz,Cryptoboss_engine_buzz,https://sitegoratorr2.top/go/cryptoboss_engine_buzz
+cryptoboss_engine1,Cryptoboss_engine1,https://sitegoratorr2.top/go/cryptoboss_engine1
+cryptoboss_engine10,Cryptoboss_engine10,https://sitegoratorr2.top/go/cryptoboss_engine10
+cryptoboss_engine11,Cryptoboss_engine11,https://sitegoratorr2.top/go/cryptoboss_engine11
+cryptoboss_engine12,Cryptoboss_engine12,https://sitegoratorr2.top/go/cryptoboss_engine12
+cryptoboss_engine13,Cryptoboss_engine13,https://sitegoratorr2.top/go/cryptoboss_engine13
+cryptoboss_engine14,Cryptoboss_engine14,https://sitegoratorr2.top/go/cryptoboss_engine14
+cryptoboss_engine15,Cryptoboss_engine15,https://sitegoratorr2.top/go/cryptoboss_engine15
+cryptoboss_engine2,Cryptoboss_engine2,https://sitegoratorr2.top/go/cryptoboss_engine2
+cryptoboss_engine3,Cryptoboss_engine3,https://sitegoratorr2.top/go/cryptoboss_engine3
+cryptoboss_engine5,Cryptoboss_engine5,https://sitegoratorr2.top/go/cryptoboss_engine5
+cryptoboss_engine6,Cryptoboss_engine6,https://sitegoratorr2.top/go/cryptoboss_engine6
+cryptoboss_engine7,Cryptoboss_engine7,https://sitegoratorr2.top/go/cryptoboss_engine7
+cryptoboss_engine8,Cryptoboss_engine8,https://sitegoratorr2.top/go/cryptoboss_engine8
+cryptoboss_engine9,Cryptoboss_engine9,https://sitegoratorr2.top/go/cryptoboss_engine9
+dorgen_engine,Dorgen_engine,https://sitegoratorr2.top/go/dorgen_engine
+dorgne_fenix,"Dorgne Fenix",https://sitegoratorr2.top/go/dorgne_fenix
+dragonmoney_engine,DragonMoney_engine,https://sitegoratorr2.top/go/dragonmoney_engine
+drip_engine,Drip_engine,https://sitegoratorr2.top/go/drip_engine
+eldorado_engine,Eldorado_engine,https://sitegoratorr2.top/go/eldorado_engine
+eva_engine,Eva_engine,https://sitegoratorr2.top/go/eva_engine
+faro_engine,Faro_engine,https://sitegoratorr2.top/go/faro_engine
+fenix_engine,Fenix_engine,https://sitegoratorr2.top/go/fenix_engine
+getx_engine,Getx_engine,https://sitegoratorr2.top/go/getx_engine
+gizbo_engine,Gizbo_engine,https://sitegoratorr2.top/go/gizbo_engine
+gold_engine,Gold_engine,https://sitegoratorr2.top/go/gold_engine
+hype_engine,Hype_engine,https://sitegoratorr2.top/go/hype_engine
+irwin_engine,Irwin_engine,https://sitegoratorr2.top/go/irwin_engine
+jetton_engine,Jetton_engine,https://sitegoratorr2.top/go/jetton_engine
+joycasino_engine,Joycasino_engine,https://sitegoratorr2.top/go/joycasino_engine
+jozz_engine,Jozz_engine,https://sitegoratorr2.top/go/jozz_engine
+kometa_engine,Kometa_engine,https://sitegoratorr2.top/go/kometa_engine
+kush_engine,Kush_engine,https://sitegoratorr2.top/go/kush_engine
+leebet,Leebet_engine,https://sitegoratorr2.top/go/leebet
+lev_engine,Lev_engine,https://sitegoratorr2.top/go/lev_engine
+lex_engine,Lex_engine,https://sitegoratorr2.top/go/lex_engine
+mellstroy_engine,Mellstroy_engine,https://sitegoratorr2.top/go/mellstroy_engine
+money_x_engine,"Money X_engine",https://sitegoratorr2.top/go/money_x_engine
+mostbet_engine,Mostbet_engine,https://sitegoratorr2.top/go/mostbet_engine
+motor_engine,Motor_engine,https://sitegoratorr2.top/go/motor_engine
+newretro_engine,NewRetro_engine,https://sitegoratorr2.top/go/newretro_engine
+nomad_engine,Nomad_engine,https://sitegoratorr2.top/go/nomad_engine
+onino_engine,Onino_engine,https://sitegoratorr2.top/go/onino_engine
+pinco_engine,Pinco_engine,https://sitegoratorr2.top/go/pinco_engine
+pinup_engine,Pinup_engine,https://sitegoratorr2.top/go/pinup_engine
+playfortuna_engine,PlayFortuna_engine,https://sitegoratorr2.top/go/playfortuna_engine
+r7_engine,R7_engine,https://sitegoratorr2.top/go/r7_engine
+ramenbet_engine_buzz,Ramenbet_engine_buzz,https://sitegoratorr2.top/go/ramenbet_engine_buzz
+ramenbet_engine1,Ramenbet_engine1,https://sitegoratorr2.top/go/ramenbet_engine1
+ramenbet_engine10,Ramenbet_engine10,https://sitegoratorr2.top/go/ramenbet_engine10
+ramenbet_engine11,Ramenbet_engine11,https://sitegoratorr2.top/go/ramenbet_engine11
+ramenbet_engine2,Ramenbet_engine2,https://sitegoratorr2.top/go/ramenbet_engine2
+ramenbet_engine3,Ramenbet_engine3,https://sitegoratorr2.top/go/ramenbet_engine3
+ramenbet_engine3_2,Ramenbet_engine3,https://sitegoratorr2.top/go/ramenbet_engine3_2
+ramenbet_engine4,Ramenbet_engine4,https://sitegoratorr2.top/go/ramenbet_engine4
+ramenbet_engine5,Ramenbet_engine5,https://sitegoratorr2.top/go/ramenbet_engine5
+ramenbet_engine6,Ramenbet_engine6,https://sitegoratorr2.top/go/ramenbet_engine6
+ramenbet_engine7,Ramenbet_engine7,https://sitegoratorr2.top/go/ramenbet_engine7
+ramenbet_engine8,Ramenbet_engine8,https://sitegoratorr2.top/go/ramenbet_engine8
+ramenbet_engine9,Ramenbet_engine9,https://sitegoratorr2.top/go/ramenbet_engine9
+riobet_engine,Riobet_engine,https://sitegoratorr2.top/go/riobet_engine
+slotzal_engine,Slotzal_engine,https://sitegoratorr2.top/go/slotzal_engine
+spin_engine_crossbrand,Spin_engine_crossbrand,https://sitegoratorr2.top/go/spin_engine_crossbrand
+stake_engine,Stake_engine,https://sitegoratorr2.top/go/stake_engine
+starda_engine,Starda_engine,https://sitegoratorr2.top/go/starda_engine
+sykaa_engine,Sykaa_engine,https://sitegoratorr2.top/go/sykaa_engine
+unlim_engine,Unlim_engine,https://sitegoratorr2.top/go/unlim_engine
+unlim_engine2,Unlim_engine2,https://sitegoratorr2.top/go/unlim_engine2
+unlim_engine4,Unlim_engine4,https://sitegoratorr2.top/go/unlim_engine4
+unlim_engine5,Unlim_engine5,https://sitegoratorr2.top/go/unlim_engine5
+upx_engine,UPX_engine,https://sitegoratorr2.top/go/upx_engine
+vavada_engine,Vavada_engine,https://sitegoratorr2.top/go/vavada_engine
+velora_engine,Velora_engine,https://sitegoratorr2.top/go/velora_engine
+vodka_engine,Vodka_engine,https://sitegoratorr2.top/go/vodka_engine
+vovan_engine,Vovan_engine,https://sitegoratorr2.top/go/vovan_engine
+vovan_engine1,Vovan_engine1,https://sitegoratorr2.top/go/vovan_engine1
+vovan_engine2,Vovan_engine2,https://sitegoratorr2.top/go/vovan_engine2
+vovan_engine3,Vovan_engine3,https://sitegoratorr2.top/go/vovan_engine3
+vovan_engine4,Vovan_engine4,https://sitegoratorr2.top/go/vovan_engine4
+vulcan_engine,Vulcan_engine,https://sitegoratorr2.top/go/vulcan_engine
+zooma_engine,Zooma_engine,https://sitegoratorr2.top/go/zooma_engine
+zooma_engine2,Zooma_engine2,https://sitegoratorr2.top/go/zooma_engine2
 `;
 
   // Ручные соответствия «бренд → слаг». Берут верх над совпадением по названию.
   const MAP = {
     '1Go':                '1go_engine',
+    '1xSlots':            '1xslots_engine',
     '7K':                 '7k_engine',
     'AdmiralX':           'admiralx_engine',
     'Arkada':             'arkada_engine',
     'Aurora Casino':      'aurora_engine',
+    'Azino777':           'azino_engine',          // кампания называется Azino_engine
     'Booi':               'booi_engine',
+    'Cat':                'cat_engine',
     'Champion Slots':     'championslots_engine',
     'ClubNika':           'clubnika_engine',
     'CryptoBoss':         'cryptoboss_engine',
     'CryptobossTemplate': 'cryptoboss_engine',
+    'Dragon Money':       'dragonmoney_engine',
     'Drip':               'drip_engine',
+    'Eldorado':           'eldorado_engine',
+    'Eva':                'eva_engine',
     'GetX':               'getx_engine',
     'Gizbo':              'gizbo_engine',
     'Hype':               'hype_engine',
+    'Irwin':              'irwin_engine',
+    'Jetton':             'jetton_engine',
     'Kometa':             'kometa_engine',
     'Kush':               'kush_engine',
-    'Lucky Bird':         'spin_engine_crossbrand',
+    'Lev':                'lev_engine',
+    'Lex':                'lex_engine',
+    'Lucky Bird':         'spin_engine_crossbrand', // своей кампании нет, льём на кроссбренд
+    'Mellstroy':          'mellstroy_engine',
     'Money X':            'money_x_engine',
+    'MostBet Bookmaker':  'mostbet_engine',
+    'Motor':              'motor_engine',
     'New Retro':          'newretro_engine',
-    'Onion':              'onino_engine',
+    'Onion':              'onino_engine',          // в панели кампания названа Onino
+    'Pinco':              'pinco_engine',
     'Play Fortuna':       'playfortuna_engine',
     'R7':                 'r7_engine',
-    'Ramenbet':           'ramenbet_engine1',
+    'Ramenbet':           'ramenbet_engine1',      // простого ramenbet_engine в базе нет
+    'Riobet':             'riobet_engine',
+    'Slotozal':           'slotzal_engine',        // кампания названа Slotzal
+    'Stake':              'stake_engine',
     'Starda':             'starda_engine',
+    'Sykaaa':             'sykaa_engine',          // кампания названа Sykaa
+    'UP-X':               'upx_engine',
     'Unlim Casino':       'unlim_engine',
+    'Vavada':             'vavada_engine',
     'Vodka':              'vodka_engine',
     'Vovan':              'vovan_engine',
+    'Vulkan Platinum':    'vulcan_engine',         // кампания названа Vulcan
     'Zooma':              'zooma_engine',
   };
 
