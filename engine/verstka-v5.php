@@ -48,6 +48,157 @@ define('УСПЕХ', $Т['успех']);
 define('ШРИФТ', v5TemaShrift($Т));
 define('ССЫЛКА', v5TemaSsylka($Т));
 
+/**
+ * Правила версий блоков: «блок|версия» → «класс-цель → объявления».
+ * Цель `*` — сам блок. CSS взят из ТЗ дословно, переведён в инлайн: псевдо-
+ * элементы (::before у маркера FAQ, ::after у стрелки) инлайном не ставятся
+ * и пропущены. Заливки фона из ТЗ тоже сняты: наши наборы — фрагменты, фон даёт
+ * шаблон сайта, и тёмная заливка rgba(0,0,0,.22) на светлом шаблоне читается
+ * серой плашкой (видно на наборе 825). От версии остаётся её костяк: колонки,
+ * карусель, пунктир, срезанное содержимое.
+ *
+ * Наши страницы класс `variant-vN` несут давно, он приходит из донорских
+ * блоков банка, но вёрстка стилизовала по первому классу элемента, и все
+ * четыре версии выглядели одинаково. Этот проход и есть недостающая половина.
+ */
+function vsТаблицаВерсий(): array
+{
+    // Пунктир берётся от канта темы: свой цвет рамки мы не назначаем.
+    $пунктир = str_replace('solid', 'dashed', КАНТ);
+    return [
+        // ── первый экран
+        'hero-value|variant-v2' => [
+            'hero-value-grid' => 'grid-template-columns:1fr;gap:20px',
+            'hero-quicklinks' => 'order:-1',
+        ],
+        'hero-value|variant-v3' => [
+            'hero-value-grid' => 'grid-template-columns:1.2fr .8fr',
+            'hero-info'       => 'border:' . КАНТ . ';border-radius:14px;padding:18px',
+        ],
+        'hero-value|variant-v4' => [
+            'hero-tagline'  => 'display:none',
+            'hero-features' => 'display:grid;grid-template-columns:1fr 1fr;gap:12px',
+            'hero-actions'  => 'flex-wrap:wrap',
+        ],
+        // ── плитки-преимущества
+        'value-pillars|variant-v2' => [
+            'value-pillars-grid' => 'grid-template-columns:repeat(4,minmax(0,1fr));gap:14px',
+            'value-pillar'       => 'flex-direction:column;align-items:flex-start;gap:10px;padding:18px',
+            'value-pillar-icon'  => 'font-size:29px',
+            'value-pillar-title' => 'font-size:16px',
+        ],
+        'value-pillars|variant-v3' => [
+            'value-pillars-grid' => 'display:flex;gap:14px;overflow-x:auto;padding-bottom:8px;scroll-snap-type:x mandatory',
+            'value-pillar'       => 'min-width:280px;scroll-snap-align:start',
+        ],
+        'value-pillars|variant-v4' => [
+            'value-pillars-grid' => 'grid-template-columns:1fr',
+            'value-pillar'       => 'border:' . $пунктир,
+        ],
+        // ── каталог с табами и карточки в нём
+        'slots-dashboard|variant-v2' => [
+            'slots-grid' => 'grid-template-columns:repeat(2,minmax(0,1fr));gap:18px',
+            'slot-card'  => 'border-radius:18px',
+        ],
+        'slots-dashboard|variant-v3' => [
+            'slots-grid' => 'display:flex;gap:16px;overflow-x:auto;padding-bottom:8px;scroll-snap-type:x mandatory',
+            'slot-card'  => 'min-width:320px;scroll-snap-align:start',
+        ],
+        'slots-dashboard|variant-v4' => [
+            'slots-grid'  => 'grid-template-columns:1fr;gap:14px',
+            'slot-card'   => 'border-radius:14px',
+            'slot-chart'  => 'display:none',
+            'slot-footer' => 'display:flex;justify-content:space-between',
+        ],
+        // ── выплаты и джекпоты
+        'recent-payouts-block|variant-v2' => [
+            'jackpot-strip-grid' => 'grid-template-columns:repeat(2,1fr)',
+            'payout-feed'        => 'margin-top:16px',
+            'payout-row'         => 'padding:10px 12px',
+        ],
+        'recent-payouts-block|variant-v3' => [
+            'jackpot-strip-grid' => 'display:flex;overflow-x:auto;gap:12px;padding-bottom:6px;scroll-snap-type:x mandatory',
+            'jackpot-cell'       => 'min-width:220px;scroll-snap-align:start',
+            'payout-track'       => 'overflow:hidden',
+        ],
+        'recent-payouts-block|variant-v4' => [
+            '*'               => 'border-style:dashed',
+            'jackpot-strip'   => 'display:none',
+            'payout-row-slot' => 'display:none',
+        ],
+        // ── тематический блок
+        'page-thematic-block|variant-v2' => [
+            'review-quotes-list' => 'display:grid;grid-template-columns:1fr 1fr;gap:16px',
+        ],
+        'page-thematic-block|variant-v3' => [
+            '*'        => 'padding:20px',
+            'faq-item' => 'border-style:dashed',
+        ],
+        'page-thematic-block|variant-v4' => [
+            'faq-answer' => 'display:block;padding-top:4px',
+        ],
+        // ── FAQ
+        'faq-section|variant-v2' => [
+            'faq-list' => 'display:grid;grid-template-columns:1fr 1fr;gap:14px',
+        ],
+        'faq-section|variant-v3' => [
+            'faq-question' => 'padding-left:18px',
+            'faq-item'     => 'border-style:dashed',
+        ],
+        'faq-section|variant-v4' => [
+            '*'  => 'border-style:dashed',
+            'h2' => 'text-align:left',
+        ],
+    ];
+}
+
+/**
+ * Дописать к строкам стили версии блока, внутри которого они стоят.
+ *
+ * Рамка блока ищется по отступу: закрывающий тег с отступом не глубже
+ * открывающего закрывает блок. Наша выдача отформатирована по тегу на строку,
+ * поэтому этого достаточно; вложенных блоков с версиями у доноров нет, но
+ * стек на случай вложенности держится.
+ */
+function vsВерсииПоБлокам(array $строки, int &$правил): array
+{
+    $таблица = vsТаблицаВерсий();
+    $стек = [];
+    foreach ($строки as $i => $л) {
+        $отступ = strlen($л) - strlen(ltrim($л));
+        while ($стек && preg_match('~^\s*</~', $л) && $отступ <= $стек[count($стек) - 1][0]) { array_pop($стек); }
+        if (preg_match('~class="([a-z][a-z-]*)\s+(variant-v\d)"~', $л, $m) && isset($таблица[$m[1] . '|' . $m[2]])) {
+            $стек[] = [$отступ, $таблица[$m[1] . '|' . $m[2]]];
+            $л = vsДописать($л, $стек[count($стек) - 1][1]['*'] ?? '', $правил);
+            $строки[$i] = $л;
+            continue;
+        }
+        if (!$стек) { continue; }
+        $правила = $стек[count($стек) - 1][1];
+        if (preg_match('~<(h[1-6])\b~', $л, $t) && isset($правила[$t[1]])) {
+            $строки[$i] = vsДописать($л, $правила[$t[1]], $правил);
+            continue;
+        }
+        if (preg_match('~class="([a-z][a-z0-9-]*)~', $л, $m) && isset($правила[$m[1]])) {
+            $строки[$i] = vsДописать($л, $правила[$m[1]], $правил);
+        }
+    }
+    return $строки;
+}
+
+/** Дописать объявления в style= строки (или завести атрибут). */
+function vsДописать(string $л, string $объявления, int &$правил): string
+{
+    if ($объявления === '') { return $л; }
+    $правил++;
+    if (preg_match('~\sstyle="([^"]*)"~', $л)) {
+        return (string) preg_replace('~(\sstyle=")([^"]*)(")~',
+            '${1}${2}' . ';' . str_replace('$', '\\$', $объявления) . '${3}', $л, 1);
+    }
+    return (string) preg_replace('~(<[a-zA-Z][a-zA-Z0-9]*\b[^>]*?)(\s*/?>)~',
+        '${1} style="' . str_replace('$', '\\$', $объявления) . '"${2}', $л, 1);
+}
+
 /** class → инлайновый стиль. Ключ — первый класс элемента. */
 $ПРАВИЛА = [
     // ── шапка страницы
@@ -350,6 +501,10 @@ foreach ($файлы as $файл) {
 
         $итог[] = vsКнопка($л, $правил);
     }
+
+    // версии блоков: правила ТЗ под variant-vN, дописываются к уже готовым
+    // стилям. Текста не касаются — только объявления в style=.
+    $итог = vsВерсииПоБлокам($итог, $правил);
 
     // последний проход: всё, что осталось без style=, получает жёсткий сброс
     foreach ($итог as $k => $л) { $итог[$k] = v5ZhyostkoStroka($л, $Т, $правил); }
