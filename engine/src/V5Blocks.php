@@ -5931,6 +5931,20 @@ function v5BlokVsplyvashek(int $сид, array $имена, array $база): str
     $пауза = $rng->int(9, 17) * 1000;
     $показ = $rng->int(5, 8) * 1000;
 
+    // Тост рождается скриптом, в html его нет — вёрстка до него не дотянется
+    // ни атрибутами, ни <style>. Поэтому стили идут прямо в innerHTML.
+    // Цвета нейтральные: блок собирает генератор, а тема назначается позже,
+    // на оформлении; у корпуса тут тёмная подложка с акцентом бренда —
+    // подложку повторяем, акцент не выдумываем.
+    $стТост = 'position:relative;pointer-events:auto;cursor:pointer'
+        . ';background:rgba(17,17,20,.92);color:#fff;padding:14px 18px;border-radius:14px'
+        . ';border:1px solid rgba(255,255,255,.14);box-shadow:0 10px 36px rgba(0,0,0,.45)'
+        // Без кавычек внутри: строка уезжает в одинарные кавычки JS, и
+        // «'Segoe UI'» ломает скрипт. Проверяется node --check.
+        . ';font:14px/1.35 -apple-system,BlinkMacSystemFont,Roboto,Arial,sans-serif';
+    $стЗакрыть = 'background:none;border:0;color:#fff;opacity:.6;font-size:18px'
+        . ';line-height:1;cursor:pointer;padding:0 0 0 6px';
+
     return '<div id="winNotifications" class="win-notifications-root" aria-live="polite"></div>' . "\n"
         . '<script>' . "\n"
         . '(function () {' . "\n"
@@ -5943,11 +5957,16 @@ function v5BlokVsplyvashek(int $сид, array $имена, array $база): str
         . '    var em = emojis[Math.floor(Math.random() * emojis.length)];' . "\n"
         . "    var div = document.createElement('div');" . "\n"
         . "    div.className = 'win-notification-toast';" . "\n"
-        . '    div.innerHTML = \'<div class="win-toast-inner"><span class="win-toast-emoji">\' + em'
-        . ' + \'</span><div class="win-toast-body"><div class="win-toast-player">\' + w.player'
-        . ' + \'</div><div class="win-toast-amount">\' + w.amount.toLocaleString(\'ru-RU\')'
-        . ' + \' &#8381;</div><div class="win-toast-game">\' + w.game'
-        . ' + \'</div></div><button type="button" class="win-toast-close" aria-label="Закрыть">&times;</button></div>\';' . "\n"
+        . "    div.setAttribute('style', '" . $стТост . "');" . "\n"
+        . '    div.innerHTML = \'<div class="win-toast-inner" style="display:flex;align-items:center;gap:12px">\''
+        . ' + \'<span class="win-toast-emoji" style="font-size:22px;line-height:1">\' + em'
+        . ' + \'</span><div class="win-toast-body" style="min-width:0">\''
+        . ' + \'<div class="win-toast-player" style="font-size:12px;opacity:.75">\' + w.player'
+        . ' + \'</div><div class="win-toast-amount" style="font-size:18px;font-weight:800;margin:2px 0">\''
+        . ' + w.amount.toLocaleString(\'ru-RU\')'
+        . ' + \' &#8381;</div><div class="win-toast-game" style="font-size:12px;opacity:.75">\' + w.game'
+        . ' + \'</div></div><button type="button" class="win-toast-close" aria-label="Закрыть" style="'
+        . $стЗакрыть . '">&times;</button></div>\';' . "\n"
         . "    var close = div.querySelector('.win-toast-close');" . "\n"
         . "    if (close) { close.addEventListener('click', function () { cont.removeChild(div); }); }" . "\n"
         . '    cont.appendChild(div);' . "\n"
