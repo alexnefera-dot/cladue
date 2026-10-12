@@ -43,7 +43,8 @@ function стКритичный(string $тег, string $атрибуты): bool
     return (bool) preg_match('~\sclass="(?:[^"]*\s)?(?:slots-grid|slot-card|slot-card-inner'
         . '|slot-poster|slot-info|slot-footer|slot-name|slot-provider|slot-rtp|slot-play-btn'
         . '|related-cards|related-card|yandex-index-only'
-        . '|win-notifications-root|support-widget|support-panel)(?:\s[^"]*)?"~', $атрибуты);
+        . '|win-notifications-root|support-widget|support-panel'
+        . '|timer-display|timer-item)(?:\s[^"]*)?"~', $атрибуты);
 }
 
 /** Заменяет style="…" на класс, дописывая его к уже имеющимся. */

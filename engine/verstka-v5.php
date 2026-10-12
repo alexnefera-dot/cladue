@@ -348,6 +348,18 @@ $ПРАВИЛА = [
     // внутри скрипта: до узлов, которых в html нет, вёрстка не дотянется.
     'win-notifications-root' => 'position:fixed;bottom:20px;left:20px;z-index:9998;max-width:320px'
         . ';pointer-events:none;display:flex;flex-direction:column;gap:10px;align-items:flex-start',
+    // ── таймер акции: версии настоящие, под v2..v4 у корпуса есть правила.
+    'promo-timer-widget' => '' . ШРИФТ . ';display:block;margin:26px 0;padding:22px'
+        . ';border:' . КАНТ . ';border-radius:18px;text-align:center',
+    'timer-header'       => 'margin:0 0 14px',
+    'timer-title'        => 'margin:0;font-size:20px;font-weight:800;line-height:1.25',
+    'timer-display'      => 'display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 16px',
+    'timer-item'         => 'padding:12px 8px;border:' . КАНТ . ';border-radius:12px;min-width:0',
+    'timer-value'        => 'font-size:28px;font-weight:800;line-height:1;margin:0 0 4px',
+    'timer-label'        => 'font-size:12px;opacity:.75',
+    'timer-cta'          => 'margin:0',
+    'timer-button'       => 'display:inline-block;padding:10px 18px;border:1px solid ' . ЗОЛОТО
+        . ';border-radius:10px;color:inherit;font-weight:700;text-decoration:none;font-family:inherit',
     // ── виджет поддержки (B6): плавающая кнопка справа внизу и панель,
     // раскрываемая скриптом. Панель отдаётся скрытой (hidden), иначе на
     // странице без JS она висит поверх текста.
