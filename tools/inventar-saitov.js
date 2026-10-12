@@ -1,11 +1,10 @@
-/* Инвентарь сайтов: адрес + реф-ссылка — spin-engine.top
+/* Инвентарь сайтов: бренд, лейбл и реф-ссылка — spin-engine.top
  *
- * Только читает, ничего не меняет. Проходит по всем сайтам и собирает
- * id, адрес сайта и ссылку, которая на нём стоит. В конце — сводка по доменам
- * рефок: сколько сайтов на каком домене.
+ * Только читает, ничего не меняет. Проходит по всем сайтам из списка и
+ * собирает id, бренд, лейбл (колонка Label) и ссылку, которая на сайте стоит.
+ * В конце — сводка по доменам рефок: сколько сайтов на каком домене.
  *
  * Запускать в консоли на https://spin-engine.top/sites
- * (или на /domains — тогда возьмёт то, что есть на странице).
  *
  * Результат: таблица в консоли, TSV в буфере обмена и в window.__inv.
  */
@@ -14,45 +13,48 @@
   const PAUSE = 150;   // пауза между сайтами, мс
 
   const log = (...a) => console.log('%c[инвентарь]', 'color:#0f766e;font-weight:bold', ...a);
-
   const parse = (html) => new DOMParser().parseFromString(html, 'text/html');
 
-  const idsFrom = (doc) => [...new Set([...doc.querySelectorAll('a[href*="/sites/view/"], a[href*="/sites/edit/"]')]
-    .map(a => (a.getAttribute('href') || '').match(/\/sites\/(?:view|edit)\/(\d+)/)?.[1])
-    .filter(Boolean))];
+  const idOf = (a) => (a.getAttribute('href') || '').match(/\/sites\/(?:view|edit)\/(\d+)/)?.[1];
 
-  // Адрес сайта в списке обычно стоит отдельной колонкой рядом со ссылкой на
-  // правку. Забираем его заранее: в форме редактирования поле может называться
-  // как угодно, а тут это просто текст строки.
-  const namesFrom = (doc) => {
-    const map = {};
-    for (const a of doc.querySelectorAll('a[href*="/sites/view/"], a[href*="/sites/edit/"]')) {
-      const id = (a.getAttribute('href') || '').match(/\/sites\/(?:view|edit)\/(\d+)/)?.[1];
-      if (!id) continue;
-      const row = a.closest('tr');
-      if (!row) continue;
-      const cells = [...row.querySelectorAll('td')].map(td => td.textContent.trim());
-      // ячейка, похожая на домен: есть точка и нет пробелов
-      const host = cells.find(t => /^[\w.-]+\.[a-z]{2,}$/i.test(t));
-      if (host && !map[id]) map[id] = host;
+  /**
+   * Разбор списка сайтов. Колонки ищем по заголовкам, а не по номеру: порядок
+   * столбцов в админке меняется, а подписи — нет. Лейбл берём из колонки Label,
+   * бренд — из Brand.
+   */
+  const rowsFrom = (doc) => {
+    const out = {};
+    for (const table of doc.querySelectorAll('table')) {
+      const heads = [...table.querySelectorAll('thead th')].map(th => th.textContent.trim().toLowerCase());
+      const iLabel = heads.findIndex(t => /^(label|лейбл|метка)$/.test(t));
+      const iBrand = heads.findIndex(t => /^(brand|бренд)$/.test(t));
+
+      for (const tr of table.querySelectorAll('tbody tr')) {
+        const link = tr.querySelector('a[href*="/sites/view/"], a[href*="/sites/edit/"]');
+        const id   = link ? idOf(link) : null;
+        if (!id) continue;
+        const cells = [...tr.querySelectorAll('td')].map(td => td.textContent.trim());
+        const label = iLabel >= 0 ? (cells[iLabel] || '') : '';
+        const brand = iBrand >= 0 ? (cells[iBrand] || '') : '';
+        // запасной вариант: подпись вида Имя_1 или домен в любой ячейке
+        const guess = cells.find(t => /^[\w.-]+_\d+$/.test(t)) || cells.find(t => /^[\w.-]+\.[a-z]{2,}$/i.test(t)) || '';
+        out[id] = { brand, label: label || guess };
+      }
     }
-    return map;
+    return out;
   };
 
-  // --- собираем id и адреса из списка
-  let ids = [], names = {};
+  // --- список сайтов: из отданного сервером HTML и из того, что уже на странице
+  let info = {};
   for (const src of ['/sites', location.pathname + location.search]) {
     try {
       const doc = parse(await (await fetch(src, { credentials: 'same-origin' })).text());
-      const found = idsFrom(doc);
-      if (found.length > ids.length) { ids = found; log(`из ${src}: ${found.length}`); }
-      Object.assign(names, namesFrom(doc));
+      Object.assign(info, rowsFrom(doc));
     } catch (e) { /* страницы может не быть */ }
   }
-  const live = parse(document.documentElement.outerHTML);
-  ids = [...new Set([...ids, ...idsFrom(live)])];
-  Object.assign(names, namesFrom(live));
+  Object.assign(info, rowsFrom(parse(document.documentElement.outerHTML)));
 
+  const ids = Object.keys(info);
   log('сайтов:', ids.length);
   if (!ids.length) return console.error('ничего не нашлось — открой список сайтов и запусти снова');
 
@@ -67,21 +69,21 @@
       const fld = doc.querySelector('[name="ref_link"]');
       const ref = fld ? (fld.value ?? fld.textContent ?? '').trim() : '';
 
-      // адрес сайта: из списка, а если там не нашёлся — из полей формы
-      let site = names[id] || '';
-      if (!site) {
-        for (const n of ['url', 'site', 'domain', 'subdomain', 'host', 'name', 'title']) {
+      let { brand, label } = info[id];
+      // если в списке лейбла не было — пробуем поля формы
+      if (!label) {
+        for (const n of ['label', 'name', 'title', 'url', 'site', 'domain']) {
           const f = doc.querySelector(`[name="${n}"]`);
           const v = f ? (f.value ?? f.textContent ?? '').trim() : '';
-          if (v && /\./.test(v)) { site = v.replace(/^https?:\/\//i, '').split('/')[0]; break; }
+          if (v) { label = v; break; }
         }
       }
 
-      rows.push({ id, site, ref, host: ref ? hostOf(ref) : '' });
-      if ((i + 1) % 25 === 0) log(`обработано ${i + 1}/${ids.length}`);
+      rows.push({ id, brand, label, ref, host: ref ? hostOf(ref) : '' });
+      if ((i + 1) % 25 === 0) log(`пройдено ${i + 1} из ${ids.length}`);
     } catch (e) {
       failed++;
-      rows.push({ id, site: names[id] || '', ref: '', host: 'ОШИБКА' });
+      rows.push({ id, brand: info[id].brand, label: info[id].label, ref: '', host: 'ОШИБКА' });
     }
     await new Promise(r => setTimeout(r, PAUSE));
   }
@@ -93,10 +95,10 @@
     byHost.set(k, (byHost.get(k) || 0) + 1);
   }
 
-  const tsv = rows.map(r => [r.id, r.site, r.ref].join('\t')).join('\n');
+  const tsv = rows.map(r => [r.id, r.brand, r.label, r.ref].join('\t')).join('\n');
   window.__inv = { rows, tsv };
 
-  console.log('\n===== id / сайт / рефка =====\n' + tsv + '\n');
+  console.log('\n===== id / бренд / лейбл / рефка =====\n' + tsv + '\n');
   console.log('===== по доменам рефок =====');
   for (const [host, n] of [...byHost.entries()].sort((a, b) => b[1] - a[1])) console.log(`${host} — ${n}`);
 
@@ -108,7 +110,7 @@
     log('буфер недоступен (вкладка не в фокусе) — скопировать: copy(__inv.tsv)');
   }
 
-  const noSite = rows.filter(r => !r.site).length;
-  const noRef  = rows.filter(r => !r.ref).length;
-  log(`ГОТОВО. сайтов: ${rows.length}, без адреса: ${noSite}, без рефки: ${noRef}, ошибок: ${failed}`);
+  const noLabel = rows.filter(r => !r.label).length;
+  const noRef   = rows.filter(r => !r.ref).length;
+  log(`ГОТОВО. сайтов: ${rows.length}, без лейбла: ${noLabel}, без рефки: ${noRef}, ошибок: ${failed}`);
 })();
